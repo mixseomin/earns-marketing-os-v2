@@ -629,34 +629,60 @@ export const NguoiXemSchema = z.object({
     ly_do: z.string().describe('Vì sao bớt mà người xem không mất ý: lặp thông tin shot nào, gộp với shot nào, rút còn bao nhiêu giây (1 câu)'),
   })).describe('Chỗ THU NHỎ: shot thừa, lặp ý, giữ lâu hơn cần, gộp được với shot kề — để tập về độ dài chuẩn; rỗng nếu tập không dài'),
 });
+/** Người xem của phim QUẢNG CÁO (anh 15/10/2026: "nếu là kiểm cho mục đích QC thì ok"): cùng khoá với NguoiXemSchema (lưu chung ThuNguoiXem,
+ *  cổng chung) nhưng chấm theo QC — dừng lướt, nhận ra sản phẩm, vấn đề ↔ lợi ích, ưu đãi + việc làm tiếp — không đòi cốt truyện / cú lật. */
+export const NguoiXemQcSchema = z.object({
+  ke_lai: z.string().describe('Kể lại QC vừa xem trong 2–4 câu ngắn đúng như người lướt bình thường hiểu: bán cái gì, cho ai, giải quyết chuyện gì, ưu đãi gì — không thêm điều video không cho thấy'),
+  ai: z.string().describe('Sản phẩm là gì (theo những gì thấy/nghe) — "không rõ" nếu không nhận ra'),
+  muon: z.string().describe('Vấn đề / nỗi đau mà QC nói tới — "không rõ" nếu không rõ'),
+  can: z.string().describe('Lợi ích chính người xem nhớ được sau khi xem — "không rõ" nếu không rõ'),
+  lat: z.string().describe('Cái gì trong 2 giây đầu làm bạn dừng lướt và VÌ SAO — "không thấy" nếu 2 giây đầu không giữ được bạn'),
+  ket: z.string().describe('Ưu đãi + việc cần làm tiếp (mua ở đâu / bấm gì) mà người xem nhận được — "không rõ" nếu không rõ'),
+  diem: z.number().describe('Mức hiểu + muốn bấm 0–10 (10 = hiểu trọn sản phẩm, lợi ích, ưu đãi và muốn bấm xem; 5 = hiểu đại khái nhưng không rõ lợi ích hoặc ưu đãi)'),
+  cho_kho: NguoiXemSchema.shape.cho_kho,
+  cat: NguoiXemSchema.shape.cat,
+});
 export const DoiChieuYSchema = z.object({
-  khop: z.boolean().describe('Người xem có nhận được ĐÚNG câu chuyện + cú lật + kết mà tác giả định không'),
+  khop: z.boolean().describe('Người xem có nhận được ĐÚNG điều tác giả định không (phim: câu chuyện + cú lật + kết; QC: sản phẩm + vấn đề + lợi ích chính + ưu đãi)'),
   lech: z.string().describe('Điều tác giả muốn mà người xem KHÔNG nhận được (1–2 câu); rỗng nếu khớp'),
 });
 /** Người xem ảo của phim KHÔNG LỜI: không lời là chủ ý — đánh giá câu chuyện qua hình + âm, góp ý bằng hành động chứ không bằng chữ. */
 const XEM_KHONG_LOI = 'PHIM NÀY KHÔNG LỜI (chủ ý, kiểu Larva / Shaun the Sheep): nhân vật chỉ phát âm hiệu (tiếng kêu, bập bẹ), không có câu nói, gần như không có chữ màn. Đừng coi việc không có lời là lỗi. Câu sửa đề xuất TUYỆT ĐỐI không được là "thêm câu nói / thêm chữ màn / thêm lời dẫn" — chỉ đề xuất bằng hành động, biểu cảm, góc máy (cận vào chi tiết), tách shot, âm thanh (tiếng động, nhạc) hoặc nhịp.';
+/** Luật soát của người xem QC: thay LUAT_KE_CHUYEN (luật dựng truyện) — QC không cần cú lật / nhân vật phát triển. Creative tự nhiên: không bắt lỗi
+ *  đúng sai của ưu đãi / số liệu / review (anh 14/10/2026). */
+const LUAT_XEM_QC = `LUẬT SOÁT QC (mỗi luật bị vi phạm là một chỗ vấp, ghi shot):
+1. 2 giây đầu phải có lý do dừng lướt: một vấn đề thấy ngay bằng hình, một câu/chữ chạm đúng người xem, hoặc ưu đãi. Mở bằng cảnh chung chung là vấp.
+2. Nhận ra sản phẩm là gì khi nó xuất hiện; nỗi đau và sản phẩm phải nối với nhau (thấy sản phẩm giải đúng vấn đề vừa nêu).
+3. Tắt tiếng vẫn hiểu: ý chính phải nằm trên hình hoặc chữ màn. Chữ màn chỉ vài từ mỗi khung, đọc kịp trong số giây của shot.
+4. Lợi ích nói bằng hình (thấy được), không chỉ bằng lời.
+5. Cuối video phải rõ ưu đãi và việc làm tiếp (mua / bấm xem).
+6. KHÔNG bắt lỗi đúng sai của ưu đãi, số liệu, lời review — đó là việc của người bán. KHÔNG đòi cốt truyện, cú lật hay nhân vật phát triển.`;
 /** Lời dặn + đầu vào của lượt NGƯỜI XEM — MỘT nguồn cho lượt gọi Claude và cho người tự chấm (scripts/kiem-nguoi-xem.mts --in): ai chấm cũng
- *  nhận đúng cùng một chữ. */
-export const heNguoiXem = (kt: Pick<KinhThanh, 'khong_loi'>, doDai?: string): string => 'Bạn là một người xem BÌNH THƯỜNG, xem video ngắn này lần đầu trên điện thoại. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được (ai nói). Bạn KHÔNG đọc kịch bản, không biết ý đồ tác giả, và giả sử bạn KHÔNG biết truyện gốc / bối cảnh / nhân vật nào ngoài những gì phim tự cho thấy. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật: chỗ nào không hiểu thì nói không hiểu. Khi liệt kê chỗ vấp, soát thêm theo luật dưới (mỗi luật bị vi phạm là một chỗ vấp, ghi shot). Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của phim.\n\n' + LUAT_KE_CHUYEN + (kt.khong_loi ? `\n\n${XEM_KHONG_LOI}` : '') + (doDai ? `\n\nĐỘ DÀI: ${doDai} Góp ý không chỉ được THÊM: mỗi chỗ đề xuất tách / chèn shot làm tập dài ra thì phải tìm chỗ bớt tương ứng; liệt kê ở "cat" mọi shot rút / gộp / bỏ được mà người xem không mất ý (lặp thông tin, giữ quá lâu, hai shot nói cùng một điều). Một chỗ vấp sửa được bằng cách GỘP / BỎ shot rối thì đề xuất thế, đừng tách thêm.` : '');
+ *  nhận đúng cùng một chữ. Phim QC (qc = đối tượng của QC) → người xem là người lướt mạng xã hội thuộc đối tượng đó, soát theo LUAT_XEM_QC. */
+export const heNguoiXem = (kt: Pick<KinhThanh, 'khong_loi'>, doDai?: string, qc?: { doi_tuong: string } | null): string => qc ? heNguoiXemQc(qc.doi_tuong, doDai) : 'Bạn là một người xem BÌNH THƯỜNG, xem video ngắn này lần đầu trên điện thoại. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được (ai nói). Bạn KHÔNG đọc kịch bản, không biết ý đồ tác giả, và giả sử bạn KHÔNG biết truyện gốc / bối cảnh / nhân vật nào ngoài những gì phim tự cho thấy. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật: chỗ nào không hiểu thì nói không hiểu. Khi liệt kê chỗ vấp, soát thêm theo luật dưới (mỗi luật bị vi phạm là một chỗ vấp, ghi shot). Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của phim.\n\n' + LUAT_KE_CHUYEN + (kt.khong_loi ? `\n\n${XEM_KHONG_LOI}` : '') + (doDai ? `\n\nĐỘ DÀI: ${doDai} Góp ý không chỉ được THÊM: mỗi chỗ đề xuất tách / chèn shot làm tập dài ra thì phải tìm chỗ bớt tương ứng; liệt kê ở "cat" mọi shot rút / gộp / bỏ được mà người xem không mất ý (lặp thông tin, giữ quá lâu, hai shot nói cùng một điều). Một chỗ vấp sửa được bằng cách GỘP / BỎ shot rối thì đề xuất thế, đừng tách thêm.` : '');
+const heNguoiXemQc = (doiTuong: string, doDai?: string): string => `Bạn là một người đang lướt Facebook / Instagram Reels trên điện thoại, thuộc đúng nhóm khách này: ${doiTuong || 'người lớn bình thường'}. Video dưới đây là một QUẢNG CÁO bạn lướt trúng lần đầu. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật như một người lướt thật: chỗ nào chán thì nói chán, chỗ nào không hiểu thì nói không hiểu. Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của video.\n\n${LUAT_XEM_QC}${doDai ? `\n\nĐỘ DÀI: ${doDai} QC càng gọn càng tốt: liệt kê ở "cat" mọi shot rút / gộp / bỏ được mà người xem không mất ý; một chỗ vấp sửa được bằng cách GỘP / BỎ shot thì đề xuất thế, đừng tách thêm.` : ''}`;
 export const vaoNguoiXem = (o: { ban: string; nhanVat: string }): string => `NHÂN VẬT / BỐI CẢNH XUẤT HIỆN TRÊN MÀN (để biết tên gọi khi nhìn thấy):\n${o.nhanVat || '(không khai)'}\n\nBẢNG SHOT (theo thời gian):\n${o.ban}`;
-export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: string; brief: string; kt: Required<KinhThanh>; doDai?: string }): Promise<GoiYKq<{ xem: z.infer<typeof NguoiXemSchema>; doi: z.infer<typeof DoiChieuYSchema> }>> {
+export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: string; brief: string; kt: Required<KinhThanh>; doDai?: string; qc?: { doi_tuong: string } | null }): Promise<GoiYKq<{ xem: z.infer<typeof NguoiXemSchema>; doi: z.infer<typeof DoiChieuYSchema> }>> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   try {
     // Trần rộng: tiếng Việt tốn token, 11 shot × chỗ vấp kèm câu sửa vượt 3k → JSON đứt "Unterminated string" (13/10/2026, nút báo lỗi).
     const r1 = await c.messages.parse({
       model: o.kt.mo_hinh_chu, max_tokens: 12000,
-      system: heNguoiXem(o.kt, o.doDai),
+      system: heNguoiXem(o.kt, o.doDai, o.qc),
       messages: [{ role: 'user', content: vaoNguoiXem(o) }],
-      output_config: { format: zodOutputFormat(NguoiXemSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+      output_config: { format: zodOutputFormat((o.qc ? NguoiXemQcSchema : NguoiXemSchema) as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r1.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const xem = r1.parsed_output as z.infer<typeof NguoiXemSchema> | null;
     if (!xem) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt người xem)' };
     const r2 = await c.messages.parse({
       model: o.kt.mo_hinh_chu, max_tokens: 800,
-      system: 'Bạn so câu chuyện MỘT NGƯỜI XEM kể lại với ý đồ của tác giả. Chỉ đánh giá người xem có nhận được đúng câu chuyện, cú lật và kết không — không chấm văn.',
-      messages: [{ role: 'user', content: `Ý ĐỒ TÁC GIẢ\nLogline: ${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM KỂ LẠI\n${xem.ke_lai}\nCú lật người xem thấy: ${xem.lat}\nKết người xem nhận: ${xem.ket}` }],
+      system: o.qc ? 'Bạn so điều MỘT NGƯỜI XEM nhận được từ một quảng cáo với ý đồ của người làm QC. Chỉ đánh giá người xem có nhận đúng sản phẩm, vấn đề, lợi ích chính và ưu đãi không — không chấm văn, không xét đúng sai của ưu đãi / số liệu.'
+        : 'Bạn so câu chuyện MỘT NGƯỜI XEM kể lại với ý đồ của tác giả. Chỉ đánh giá người xem có nhận được đúng câu chuyện, cú lật và kết không — không chấm văn.',
+      messages: [{ role: 'user', content: o.qc
+        ? `Ý ĐỒ QC\n${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM NHẬN ĐƯỢC\n${xem.ke_lai}\nSản phẩm: ${xem.ai}\nVấn đề: ${xem.muon}\nLợi ích: ${xem.can}\nƯu đãi / việc làm tiếp: ${xem.ket}`
+        : `Ý ĐỒ TÁC GIẢ\nLogline: ${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM KỂ LẠI\n${xem.ke_lai}\nCú lật người xem thấy: ${xem.lat}\nKết người xem nhận: ${xem.ket}` }],
       output_config: { format: zodOutputFormat(DoiChieuYSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     const doi = r2.parsed_output as z.infer<typeof DoiChieuYSchema> | null;

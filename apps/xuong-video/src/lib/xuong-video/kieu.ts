@@ -388,6 +388,8 @@ export type Lop = {
 export type KiemKhung = { url: string; dat: boolean; loi: { loai: string; mo_ta: string; sua: string }[]; luc: string; model: string; duyet_tay?: string };
 export type ThuNguoiXem = {
   ma: string; luc: string; model: string;
+  /** chấm theo tiêu chí QC (claude.ts › NguoiXemQcSchema): hieu.ai = sản phẩm, muon = vấn đề, can = lợi ích, lat = hook, ket = ưu đãi + CTA */
+  qc?: boolean;
   ke_lai: string; hieu: { ai: string; muon: string; can: string; lat: string; ket: string };
   diem: number; cho_kho: { shot: number; van_de: string; sua: string }[];
   /** shot rút / gộp / bỏ được mà người xem không mất ý — để tập về độ dài chuẩn series (thiếu ở bản kiểm cũ) */

@@ -63,9 +63,10 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
         <div style={{ display: 'grid', gap: 6, marginTop: 8, fontSize: 12, lineHeight: 1.5, opacity: cu ? 0.6 : 1 }}>
           <div><b>Người xem kể lại:</b> {t.ke_lai}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '2px 10px' }}>
-            {([['Ai', t.hieu.ai], ['Muốn gì', t.hieu.muon], ['Cản trở', t.hieu.can], ['Cú lật', t.hieu.lat], ['Kết', t.hieu.ket]] as const).map(([k, v]) => <Fragment key={k}><span style={mono}>{k}</span><span style={{ color: /không rõ|không thấy/i.test(v) ? 'var(--red)' : undefined }}>{v}</span></Fragment>)}
+            {(t.qc ? [['Sản phẩm', t.hieu.ai], ['Vấn đề', t.hieu.muon], ['Lợi ích', t.hieu.can], ['Dừng lướt', t.hieu.lat], ['Ưu đãi / CTA', t.hieu.ket]] as const
+              : [['Ai', t.hieu.ai], ['Muốn gì', t.hieu.muon], ['Cản trở', t.hieu.can], ['Cú lật', t.hieu.lat], ['Kết', t.hieu.ket]] as const).map(([k, v]) => <Fragment key={k}><span style={mono}>{k}</span><span style={{ color: /không rõ|không thấy/i.test(v) ? 'var(--red)' : undefined }}>{v}</span></Fragment>)}
           </div>
-          {!t.khop && t.lech && <div style={{ color: 'var(--red)' }}><b>Lệch ý tác giả:</b> {t.lech}</div>}
+          {!t.khop && t.lech && <div style={{ color: 'var(--red)' }}><b>{t.qc ? 'Lệch ý QC' : 'Lệch ý tác giả'}:</b> {t.lech}</div>}
           {t.cho_kho.length > 0 && (
             <div style={{ display: 'grid', gap: 4 }}>
               <b>Chỗ người xem vấp ({t.cho_kho.length}):</b>

@@ -10,6 +10,13 @@ import { banNguoiXem, maKichBan, maTheoCanh, keHoachSua, DIEM_HIEU_DAT } from '.
 import { docKinhThanh, locNhanh, lamTronClip, giayPhat, type ThuNguoiXem } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 
+/** Phim QC → người xem chấm theo QC (claude.ts › heNguoiXem): đối tượng = người xem, ý đồ = sản phẩm + đối tượng + điểm nổi bật + ưu đãi. */
+function yDoQc(loai: string, kt: ReturnType<typeof docKinhThanh>): { qc: { doi_tuong: string } | null; yDo: string } {
+  if (loai !== 'quang_cao') return { qc: null, yDo: '' };
+  const q = kt.qc;
+  return { qc: { doi_tuong: q.doi_tuong }, yDo: [`Sản phẩm: ${q.ten}`, q.doi_tuong && `Đối tượng: ${q.doi_tuong}`, q.diem_noi_bat && `Điểm nổi bật: ${q.diem_noi_bat}`, q.uu_dai && `Ưu đãi: ${q.uu_dai}`].filter(Boolean).join('\n') };
+}
+
 export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập' };
@@ -25,13 +32,14 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   const giayTap = Math.round(canh.filter((c) => !intro.has(c.phan_doan)).reduce((a, c) => a + giayPhat(c), 0));
   const tc = kt.series?.tham_chieu;
   const doDai = `tập đang dài ${giayTap} giây (không tính intro / thẻ kết)${tc?.do_dai_s ? `, chuẩn series ${tc.do_dai_s} giây theo ${tc.tac_pham}` : ''}.`;
-  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt, doDai });
+  const { qc, yDo } = yDoQc(bc.loai, kt);
+  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline: qc ? yDo : logline, brief: bc.tap.brief, kt, doDai, qc });
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const { xem, doi } = kq.data;
   // Đạt hay không tính trên ĐÚNG con số hiện ra (đã làm tròn) — trước đây so điểm thô: 6,6 hiện "7/10, khớp ý" mà vẫn chặn (Tango & Lint tập 1, 14/10/2026).
   const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));
-  const t: ThuNguoiXem = { ma: maKichBan(canh), ma_canh: maTheoCanh(canh), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
+  const t: ThuNguoiXem = { ma: maKichBan(canh), ma_canh: maTheoCanh(canh), ...(qc ? { qc: true } : {}), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
     diem, cho_kho: xem.cho_kho, cat: xem.cat, khop: doi.khop, lech: doi.lech, dat: doi.khop && diem >= DIEM_HIEU_DAT };
   await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: t };
@@ -53,9 +61,12 @@ export async function dauVaoNguoiXemCanh(db: Db, tapId: number, phanDoan: string
   const ban = `${truoc ? `PHẦN TRƯỚC CẢNH NÀY (bạn đã xem, tóm tắt theo lời bạn kể lần trước): ${truoc}\n\n` : ''}CẢNH ĐANG XEM:\n${banNguoiXem(canh)}`;
   const ids = new Set(canh.flatMap((c) => c.nhan_vat));
   const nvTa = bc.nhanVat.filter((v) => ids.has(v.id) && v.loai !== 'phong_cach').map((v) => `- ${v.ten}: ${v.mo_ta.slice(0, 160)}`).join('\n');
+  const q = yDoQc(bc.loai, kt);
+  if (q.qc) return { ok: true as const, bc, canh, kt, ban, nvTa, yDo: q.yDo, qc: q.qc, doDai: `đoạn dài ${Math.round(canh.reduce((a, c) => a + giayPhat(c), 0))} giây.`,
+    brief: `Chỉ đánh giá RIÊNG đoạn “${phanDoan}” của QC: người xem có nhận được đúng ý của đoạn này (vấn đề / sản phẩm / lợi ích / ưu đãi mà nó gánh) không.` };
   const yDo = pc ? `Cảnh “${pc.ten}” (${pc.beat}). Mục tiêu: ${pc.muc_tieu}. Xung đột: ${pc.xung_dot}. Ẩn ý: ${pc.an_y}.${pc.gag?.length ? ` Gag: ${pc.gag.map((g) => `${g.ten} — gài: ${g.gai}; bùng: ${g.bung}`).join(' | ')}.` : ''}` : `Cảnh “${phanDoan}”.`;
   const brief = 'Chỉ đánh giá RIÊNG cảnh này: người xem có theo được ai muốn gì, chuyện gì xảy ra, cú bùng và kết cảnh không.';
-  return { ok: true as const, bc, canh, kt, ban, nvTa, yDo, brief, doDai: `cảnh dài ${Math.round(canh.reduce((a, c) => a + giayPhat(c), 0))} giây.` };
+  return { ok: true as const, bc, canh, kt, ban, nvTa, yDo, brief, qc: null, doDai: `cảnh dài ${Math.round(canh.reduce((a, c) => a + giayPhat(c), 0))} giây.` };
 }
 /** tuCham: kết quả người xem do NGƯỜI KHÁC chấm trên đúng đầu vào dauVaoNguoiXemCanh (anh 15/10/2026: "lúc này cổng kiểm thì mày làm đi" — Claude
  *  trong phiên chat tự chấm, 0đ) — ghi cùng chỗ, cùng mã, model = tên người chấm; không gọi API, không ghi tiền. */
@@ -66,13 +77,13 @@ export async function kiemNguoiXemCanh(db: Db, tapId: number, phanDoan: string, 
   let xem: ThuNguoiXemTho, doi: { khop: boolean; lech: string }, model: string;
   if (tuCham) ({ xem, doi } = tuCham), (model = tuCham.nguoi);
   else {
-    const kq = await thuNguoiXem({ ban: v.ban, nhanVat: v.nvTa, logline: v.yDo, brief: v.brief, kt, doDai: v.doDai });
+    const kq = await thuNguoiXem({ ban: v.ban, nhanVat: v.nvTa, logline: v.yDo, brief: v.brief, kt, doDai: v.doDai, qc: v.qc });
     if (!kq.ok) return kq;
     await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem riêng cảnh “${phanDoan}” · tập ${bc.tap.so}`, kq.model, kq.tokens);
     ({ xem, doi } = kq.data); model = kq.model;
   }
   const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));
-  const t: ThuNguoiXem = { ma: maTheoCanh(canh)[phanDoan]!, luc: new Date().toISOString(), model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
+  const t: ThuNguoiXem = { ma: maTheoCanh(canh)[phanDoan]!, ...(v.qc ? { qc: true } : {}), luc: new Date().toISOString(), model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
     diem, cho_kho: xem.cho_kho, cat: xem.cat, khop: doi.khop, lech: doi.lech, dat: doi.khop && diem >= DIEM_HIEU_DAT };
   // Ghi vào thu_nguoi_xem.canh[phan_doan]; tập chưa từng kiểm cả tập thì tạo khung rỗng (ma rỗng = cả tập chưa kiểm, cổng chỉ tính theo cảnh).
   const r0 = (await db.execute(sql`SELECT thu_nguoi_xem FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];

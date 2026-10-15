@@ -6,17 +6,17 @@
 import { readFileSync } from 'node:fs';
 import { getDb } from '@mos2/db';
 import { kiemNguoiXemTap, kiemNguoiXemCanh, dauVaoNguoiXemCanh } from '../src/lib/xuong-video/kiem-nguoi-xem';
-import { heNguoiXem, vaoNguoiXem, NguoiXemSchema, DoiChieuYSchema } from '../src/lib/xuong-video/claude';
+import { heNguoiXem, vaoNguoiXem, NguoiXemSchema, NguoiXemQcSchema, DoiChieuYSchema } from '../src/lib/xuong-video/claude';
 const gia = (k: string) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? '').slice(k.length + 3);
 const tap = Number(process.argv[2]); const canh = gia('canh'); const tu = gia('tu-cham');
 if (canh && process.argv.includes('--in')) {
   const v = await dauVaoNguoiXemCanh(getDb()!, tap, canh);
   if (!v.ok) { console.error(v.loi); process.exit(1); }
-  console.log(`=== LỜI DẶN NGƯỜI XEM ===\n${heNguoiXem(v.kt, v.doDai)}\n\n=== ĐẦU VÀO ===\n${vaoNguoiXem({ ban: v.ban, nhanVat: v.nvTa })}\n\n=== Ý ĐỒ (chỉ lượt đối chiếu được thấy) ===\n${v.yDo}\n${v.brief}`);
+  console.log(`=== LỜI DẶN NGƯỜI XEM ===\n${heNguoiXem(v.kt, v.doDai, v.qc)}\n\n=== ĐẦU VÀO ===\n${vaoNguoiXem({ ban: v.ban, nhanVat: v.nvTa })}\n\n=== Ý ĐỒ (chỉ lượt đối chiếu được thấy) ===\n${v.yDo}\n${v.brief}`);
   process.exit(0);
 }
 let tuCham: Parameters<typeof kiemNguoiXemCanh>[3];
-if (tu) { const j = JSON.parse(readFileSync(tu, 'utf8')); tuCham = { xem: NguoiXemSchema.parse(j.xem), doi: DoiChieuYSchema.parse(j.doi), nguoi: String(j.nguoi || 'tự chấm') }; }
+if (tu) { const j = JSON.parse(readFileSync(tu, 'utf8')); tuCham = { xem: (j.qc ? NguoiXemQcSchema : NguoiXemSchema).parse(j.xem), doi: DoiChieuYSchema.parse(j.doi), nguoi: String(j.nguoi || 'tự chấm') }; }
 const r = canh ? await kiemNguoiXemCanh(getDb()!, tap, canh, tuCham) : await kiemNguoiXemTap(getDb()!, tap);
 console.log(JSON.stringify(r, null, 2));
 process.exit(0);

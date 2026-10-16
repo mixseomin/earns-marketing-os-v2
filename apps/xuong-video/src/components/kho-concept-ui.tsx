@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { Seg, Pill, Nut, Loi, mono } from './ui';
+import { Ngan } from './ngan';
 import { useNho } from './nho';
 import { TaoTuTemplate } from './template-ui';
 import { tien } from '@/lib/xuong-video/kieu';
@@ -26,19 +27,6 @@ export function soKho(d: KhoConcept) {
   }
   return { bat, thuc, duKien, cents, boHinh };
 }
-export function DaiSoKho({ d }: { d: KhoConcept }) {
-  const k = soKho(d), n = k.thuc || k.duKien;
-  const o = (b: string, s: string, t?: string) => <span title={t} style={{ display: 'grid' }}><b style={{ fontFamily: 'var(--font-mono)', fontSize: 15 }}>{b}</b><span style={mono}>{s}</span></span>;
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 26px', padding: '4px 2px 10px' }}>
-      {o(String(d.concept.length), 'concept')}
-      {o(String(k.boHinh), 'bộ hình', `${k.bat.length} cặp concept × template đang bật; mỗi biến thể diễn viên / bối cảnh một bộ hình`)}
-      {o(n.toLocaleString('vi-VN'), k.thuc ? 'creative' : 'creative (dự kiến)', `ghép được ${k.thuc.toLocaleString('vi-VN')} · dự kiến khi đủ phương án ${k.duKien.toLocaleString('vi-VN')} · đã duyệt ${d.creative.filter((x) => x.trang_thai !== 'bo').length}`)}
-      {o(`~${tien(k.cents)}`, 'tiền hình', `đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot · ${tien(d.gia.kb_cents)}/bộ kịch bản · ${n ? tien(k.cents / n) : '—'}/creative`)}
-    </div>
-  );
-}
-
 // ── TAB CONCEPT ─────────────────────────────────────────────────────────────────────────────────────────────────
 const catChu = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
 export function TabConcept({ d, spKey, onDoi, onChon }: { d: KhoConcept; spKey: string; onDoi: () => Promise<void>; onChon: (id: number) => void }) {
@@ -203,69 +191,100 @@ function PhuongAnO({ chu, so, nguon, onLuu, onBo }: { chu: string; so: number; n
   );
 }
 
-// ── TAB ĐỀ XUẤT (creative = tổ hợp) ──────────────────────────────────────────────────────────────────────────────
-const VONG: { value: `${Vong}`; label: string; title: string }[] = [
-  { value: '1', label: 'Vòng 1 · đổi hook', title: 'Chỉ đổi ô đầu (hook) — mọi ô khác và diễn viên giữ bản 1' },
-  { value: '2', label: 'Vòng 2 · đổi diễn viên / bối cảnh', title: 'Chữ giữ bản 1, chỉ đổi biến thể hình' },
-  { value: '3', label: 'Vòng 3 · đổi thân', title: 'Hook bản 1, diễn viên V1, đổi các ô sau hook' },
-  { value: '0', label: 'Cả ma trận', title: 'Mọi tổ hợp' },
-];
-export function TabDeXuat({ d, spKey, onDoi, onMoPhim }: { d: KhoConcept; spKey: string; onDoi: () => Promise<void>; onMoPhim: (id: number) => void }) {
-  const [vongS, setVong] = useNho<`${Vong}`>('xv-cp-vong', '1', ['0', '1', '2', '3'], 'cpvong');
-  const vong = Number(vongS) as Vong;
+// ── BẢNG CREATIVE DUY NHẤT (anh 17/10/2026: "một bảng duy nhất là danh sách creative và bộ lọc chi tiết là xong") ──────────────────────────────
+// Mỗi dòng = một creative (concept × template × diễn viên × một phương án mỗi ô). Lọc: concept · mức nhận biết · template · diễn viên · trạng thái · vòng test
+// + ô tìm chữ của bảng. Bấm dòng → bung toàn bộ chữ của creative theo thứ tự shot. Nhập concept / bật template / sửa phương án nằm trong ⚙ Cấu hình.
+type DongCr = ToHop & { c: Concept; t: TplConcept; hook: string; khac: { ten: string; chu: string }[] };
+const TT_CR = [{ value: '', label: 'Mọi trạng thái' }, { value: 'de_xuat', label: 'Đề xuất' }, { value: 'duyet', label: 'Đã duyệt' }, { value: 'da_tao', label: 'Đã thành phim' }];
+const VONG_LOC = [{ value: '', label: 'Mọi tổ hợp' }, { value: '1', label: 'Vòng 1 · đổi hook' }, { value: '2', label: 'Vòng 2 · đổi diễn viên' }, { value: '3', label: 'Vòng 3 · đổi thân' }];
+function Chon({ value, onChange, ds, nhan }: { value: string; onChange: (v: string) => void; ds: { value: string; label: string }[]; nhan: string }) {
+  return <select className="xv-in" style={{ width: 'auto', maxWidth: 220 }} value={value} onChange={(e) => onChange(e.target.value)} aria-label={nhan} title={nhan}>{ds.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}</select>;
+}
+export function KhoCreative({ d, spKey, onDoi, onMoPhim }: { d: KhoConcept; spKey: string; onDoi: () => Promise<void>; onMoPhim: (id: number) => void }) {
+  const [cfg, setCfg] = useState(false);
+  const [lc, setLc] = useNho<string>('xv-kc-c', '', ['', ...d.concept.map((c) => String(c.id))], 'kcc');
+  const [lnb, setLnb] = useNho<string>('xv-kc-nb', '', ['', ...MUC_NB.map((m) => m.key)], 'kcnb');
+  const [lt, setLt] = useNho<string>('xv-kc-t', '', ['', ...d.tpl.map((t) => String(t.id))], 'kct');
+  const [lv, setLv] = useNho<string>('xv-kc-v', '', ['', '1', '2', '3', '4', '5', '6', '7', '8'], 'kcv');
+  const [ltt, setLtt] = useNho<string>('xv-kc-tt', '', TT_CR.map((x) => x.value), 'kctt');
+  const [lvong, setLvong] = useNho<string>('xv-kc-vong', '', VONG_LOC.map((x) => x.value), 'kcvong');
   const [chon, setChon] = useState<Set<string>>(new Set());
-  const [het, setHet] = useState(200);
+  const [mo, setMo] = useState<string | null>(null);
   const [tao, setTao] = useState<{ id: number; template_id: number; template_ten: string; ten: string; gt: Record<string, string> } | null>(null);
   const [loi, setLoi] = useState('');
   const daDuyet = useMemo(() => new Map(d.creative.map((c) => [c.ma, c])), [d.creative]);
-  const nhom = useMemo(() => soKho(d).bat.map(({ cap, c, t }) => ({ cap, c, t, ds: toHopCap(c, t, cap, btCua(d, cap.id), d.phuong_an).ds.filter((x) => trongVong(x, t.o_chu, vong)) })).filter((g) => g.ds.length), [d, vong]);
-  const tong = nhom.reduce((a, g) => a + g.ds.length, 0);
-  const hien: { g: (typeof nhom)[number]; v: number; ds: ToHop[] }[] = [];
-  let con = het;
-  for (const g of nhom) for (const v of [...new Set(g.ds.map((x) => x.bien_the.so))]) { if (con <= 0) break; const ds = g.ds.filter((x) => x.bien_the.so === v).slice(0, con); con -= ds.length; hien.push({ g, v, ds }); }
-  const doi = (ma: string) => { const s2 = new Set(chon); s2.has(ma) ? s2.delete(ma) : s2.add(ma); setChon(s2); };
-  const tatCa = nhom.flatMap((g) => g.ds);
-  const duyet = async (ds: ToHop[]) => { const r = await duyetToHop(spKey, ds.map((x) => ({ cap_id: x.cap_id, bien_the_id: x.bien_the.id, chon: x.chon, ma: x.ma }))); if (!r.ok) setLoi(r.loi); else { setChon(new Set()); await onDoi(); } };
+  const tat: DongCr[] = useMemo(() => soKho(d).bat.flatMap(({ cap, c, t }) => toHopCap(c, t, cap, btCua(d, cap.id), d.phuong_an).ds.map((x) => ({ ...x, c, t,
+    hook: d.phuong_an.find((p) => p.cap_id === cap.id && p.o === t.o_chu[0]?.k && p.so === x.chon[t.o_chu[0]?.k ?? ''])?.chu ?? '—',
+    khac: khacGoc(x, t.o_chu, d.phuong_an).filter((k) => k.ten !== `V${x.bien_the.so}`) }))), [d]);
+  const ttCua = (x: DongCr) => { const cr = daDuyet.get(x.ma); return !cr || cr.trang_thai === 'bo' ? 'de_xuat' : cr.trang_thai; };
+  const rows = tat.filter((x) => (!lc || String(x.c.id) === lc) && (!lnb || x.c.nb === lnb) && (!lt || String(x.t.id) === lt) && (!lv || String(x.bien_the.so) === lv)
+    && (!ltt || ttCua(x) === ltt) && (!lvong || trongVong(x, x.t.o_chu, Number(lvong) as Vong)));
+  const duyet = async (ds: DongCr[]) => { const r = await duyetToHop(spKey, ds.map((x) => ({ cap_id: x.cap_id, bien_the_id: x.bien_the.id, chon: x.chon, ma: x.ma }))); if (!r.ok) setLoi(r.loi); else { setChon(new Set()); await onDoi(); } };
   const bo = async (ma: string[]) => { const r = await boCreative(spKey, ma); if (!r.ok) setLoi(r.loi); else { setChon(new Set()); await onDoi(); } };
   const moTao = async (id: number) => { const r = await gtCreative(id); if (!r.ok) setLoi(r.loi); else setTao({ id, ...r.data }); };
-  const chep = (ma: string) => { void navigator.clipboard?.writeText(ma).catch(() => undefined); };
-  if (!tong) return <div style={{ display: 'grid', gap: 8 }}><Seg options={VONG} value={vongS} onChange={setVong} />
-    <span style={mono}>Chưa ghép được creative nào ở vòng này — mỗi ô chữ của cặp cần ít nhất một phương án (tab Phương án).</span></div>;
+  const chuaDuyet = rows.filter((x) => ttCua(x) === 'de_xuat');
+  const k = soKho(d);
+  const doiChon = (ma: string) => { const s2 = new Set(chon); s2.has(ma) ? s2.delete(ma) : s2.add(ma); setChon(s2); };
+  const cot: DataColumn<DongCr>[] = [
+    { key: 'chon', header: '', width: 28, align: 'center', cell: (x) => <input type="checkbox" checked={chon.has(x.ma)} onChange={() => doiChon(x.ma)} onClick={(e) => e.stopPropagation()} aria-label={`chọn ${x.ma}`} /> },
+    { key: 'so', header: '#', width: 52, align: 'left', sortValue: (x) => daDuyet.get(x.ma)?.so ?? 1e9, cell: (x) => { const cr = daDuyet.get(x.ma); return cr && cr.trang_thai !== 'bo' ? <b style={{ fontFamily: 'var(--font-mono)' }}>#{cr.so}</b> : <span style={mono}>·</span>; } },
+    { key: 'hook', header: 'Hook', align: 'left', sortValue: (x) => x.hook, cell: (x) => <span style={{ display: 'block', ...catChu }}>{x.hook}</span>, cellTitle: (x) => x.hook },
+    { key: 'concept', header: 'Người mua', align: 'left', width: '22%', sortValue: (x) => x.c.ma, cell: (x) => <span style={{ display: 'flex', gap: 5, alignItems: 'baseline', minWidth: 0 }}><b style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{x.c.ma}</b><NbChip nb={x.c.nb} /><span style={{ fontSize: 12, ...catChu }}>{x.c.ten}</span></span>, cellTitle: (x) => `${x.c.ma} · ${x.c.ten}` },
+    { key: 'tpl', header: 'Template', align: 'left', width: 130, sortValue: (x) => tenT(x.t), cell: (x) => <span style={{ fontSize: 12, display: 'block', ...catChu }}>{tenT(x.t)}</span>, cellTitle: (x) => tenT(x.t) },
+    { key: 'v', header: 'Diễn viên', align: 'left', width: 140, sortValue: (x) => x.bien_the.so, cell: (x) => <span style={{ fontSize: 12, display: 'block', ...catChu }}><b style={{ fontFamily: 'var(--font-mono)' }}>V{x.bien_the.so}</b> {[x.bien_the.nguoi_chinh, x.bien_the.boi_canh].filter(Boolean).join(' · ')}</span>, cellTitle: (x) => [x.bien_the.nguoi_chinh, x.bien_the.nguoi_phu, x.bien_the.boi_canh].filter((v) => v && v !== '—').join(' · ') },
+    { key: 'khac', header: 'Khác bản 1', align: 'left', width: '20%', cell: (x) => <span style={{ fontSize: 11.5, color: 'var(--cyan)', display: 'block', ...catChu }}>{x.khac.map((k2) => k2.ten).join(' · ') || <span style={mono}>—</span>}</span>, cellTitle: (x) => x.khac.map((k2) => `${k2.ten}: ${k2.chu}`).join('\n') },
+    { key: 'tt', header: 'Trạng thái', align: 'left', width: 104, sortValue: (x) => ttCua(x), cell: (x) => { const cr = daDuyet.get(x.ma);
+      return cr?.trang_thai === 'da_tao' && cr.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }}>phim #{cr.phim_id}</button>
+        : cr?.trang_thai === 'duyet' ? <Nut onClick={() => void moTao(cr.id)} title="Tạo phim từ template với diễn viên, bối cảnh và chữ đã chọn (0đ)">Tạo phim</Nut> : <Pill color="var(--fg-3)">đề xuất</Pill>; } },
+  ];
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Seg options={VONG} value={vongS} onChange={setVong} />
-        <span style={mono}>{tong.toLocaleString('vi-VN')} creative · đang chọn {chon.size}</span>
-        <Nut chinh ly={!chon.size && 'chọn creative trước'} onClick={() => void duyet(tatCa.filter((x) => chon.has(x.ma)))}>Duyệt {chon.size} đã chọn</Nut>
-        <Nut onClick={() => void duyet(tatCa.filter((x) => !daDuyet.has(x.ma) || daDuyet.get(x.ma)!.trang_thai === 'bo'))} title="Duyệt mọi creative của vòng đang xem (0đ — chỉ lưu kế hoạch)">Duyệt cả vòng ({tatCa.filter((x) => !daDuyet.has(x.ma) || daDuyet.get(x.ma)!.trang_thai === 'bo').length})</Nut>
-        <Nut ly={![...chon].some((m) => daDuyet.get(m)?.trang_thai === 'duyet') && 'chọn creative đã duyệt'} onClick={() => void bo([...chon].filter((m) => daDuyet.get(m)?.trang_thai === 'duyet'))}>Bỏ duyệt</Nut>
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ display: 'flex', gap: '6px 14px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={mono} title={`đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot · ${tien(d.gia.kb_cents)}/bộ kịch bản`}><b style={{ color: 'var(--fg-1)' }}>{tat.length.toLocaleString('vi-VN')}</b> creative · {k.boHinh} bộ hình · ~{tien(k.cents)} tiền hình · {d.creative.filter((x) => x.trang_thai !== 'bo').length} đã duyệt</span>
+        <span style={{ flex: 1 }} />
+        <Nut onClick={() => setCfg(true)} title="Nhập concept từ spy · bật / tắt template · diễn viên · sửa phương án chữ">⚙ Cấu hình</Nut>
       </div>
-      <Loi>{loi}</Loi>
-      {hien.map(({ g, v, ds }) => { const bt = ds[0]!.bien_the;
-        return <div key={`${g.cap.id}-${v}`} style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px', alignItems: 'baseline', padding: '7px 10px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
-            <b style={{ fontSize: 13 }}>{g.c.ten}</b><NbChip nb={g.c.nb} /><span style={{ fontSize: 12 }}>· {tenT(g.t)}</span>
-            {g.t.shot_ca > 0 && <span style={mono}>· V{bt.so} {[bt.nguoi_chinh, bt.nguoi_phu, bt.boi_canh].filter((x) => x && x !== '—').join(' · ') || 'như template'}</span>}
-            <span style={mono}>· {ds.length} creative</span>
-          </div>
-          {ds.map((x) => { const cr = daDuyet.get(x.ma), hook = d.phuong_an.find((p) => p.cap_id === x.cap_id && p.o === g.t.o_chu[0]?.k && p.so === x.chon[g.t.o_chu[0]?.k ?? '']);
-            const khac = khacGoc(x, g.t.o_chu, d.phuong_an).filter((k) => k.ten !== `V${x.bien_the.so}`);
-            return <div key={x.ma} style={{ display: 'grid', gridTemplateColumns: '20px 48px minmax(0, 1fr) auto', gap: 8, alignItems: 'start', padding: '6px 10px', borderBottom: '1px solid var(--line)' }}>
-              <input type="checkbox" checked={chon.has(x.ma)} onChange={() => doi(x.ma)} aria-label={`chọn ${x.ma}`} />
-              <b style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: cr && cr.trang_thai !== 'bo' ? 'var(--fg-1)' : 'var(--fg-4)' }} title={cr ? `số cố định #${cr.so}` : 'chưa duyệt — chưa có số'}>{cr && cr.trang_thai !== 'bo' ? `#${cr.so}` : '·'}</b>
-              <span style={{ display: 'grid', gap: 3, minWidth: 0 }}><span style={{ fontSize: 13 }}>{hook?.chu ?? '—'}</span>
-                <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{khac.length ? khac.map((k) => <span key={k.ten} style={{ fontSize: 11, padding: '0 6px', borderRadius: 99, background: 'color-mix(in srgb, var(--cyan) 14%, transparent)', color: 'var(--cyan)' }} title={k.chu}>{k.ten}: {k.chu.slice(0, 46)}{k.chu.length > 46 ? '…' : ''}</span>) : <span style={mono}>thân · kết như bản 1</span>}</span></span>
-              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {cr?.trang_thai === 'da_tao' && cr.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(cr.phim_id!)}>phim #{cr.phim_id}</button>
-                  : cr?.trang_thai === 'duyet' ? <Nut onClick={() => void moTao(cr.id)} title="Tạo phim từ template với diễn viên, bối cảnh và chữ đã chọn (0đ)">Tạo phim</Nut> : <Pill color="var(--fg-3)">đề xuất</Pill>}
-                <button type="button" className="xv-lienket xv-mono" onClick={() => chep(x.ma)} title={`Mã QC (tên quảng cáo để quy kết quả): ${x.ma} — bấm để chép`}>mã QC</button>
-              </span>
-            </div>; })}
-        </div>; })}
-      {tong > het && <Nut onClick={() => setHet(het + 400)}>Xem thêm ({(tong - het).toLocaleString('vi-VN')} creative)</Nut>}
+      {!d.concept.length ? <span style={mono}>Chưa có concept — bấm ⚙ Cấu hình → Nhập concept từ spy.</span> : <>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chon nhan="Người mua" value={lc} onChange={setLc} ds={[{ value: '', label: 'Mọi người mua' }, ...d.concept.map((c) => ({ value: String(c.id), label: `${c.ma} · ${c.ten}` }))]} />
+          <Chon nhan="Mức nhận biết" value={lnb} onChange={setLnb} ds={[{ value: '', label: 'Mọi mức nhận biết' }, ...MUC_NB.map((m) => ({ value: m.key, label: `${m.key} · ${m.ten}` }))]} />
+          <Chon nhan="Template" value={lt} onChange={setLt} ds={[{ value: '', label: 'Mọi template' }, ...d.tpl.filter((t) => d.cap.some((c) => c.bat && c.template_id === t.id)).map((t) => ({ value: String(t.id), label: tenT(t) }))]} />
+          <Chon nhan="Diễn viên" value={lv} onChange={setLv} ds={[{ value: '', label: 'Mọi diễn viên' }, ...[...new Set(tat.map((x) => x.bien_the.so))].sort().map((v) => ({ value: String(v), label: `V${v}` }))]} />
+          <Chon nhan="Trạng thái" value={ltt} onChange={setLtt} ds={TT_CR} />
+          <Chon nhan="Vòng test" value={lvong} onChange={setLvong} ds={VONG_LOC} />
+          {(lc || lnb || lt || lv || ltt || lvong) && <button type="button" className="xv-lienket xv-mono" onClick={() => { setLc(''); setLnb(''); setLt(''); setLv(''); setLtt(''); setLvong(''); }}>bỏ lọc</button>}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Nut chinh ly={!chon.size && 'tick creative trước'} onClick={() => void duyet(tat.filter((x) => chon.has(x.ma)))}>Duyệt {chon.size} đã chọn</Nut>
+          <Nut ly={!chuaDuyet.length && 'không còn creative chưa duyệt trong bộ lọc'} onClick={() => void duyet(chuaDuyet)} title="Duyệt mọi creative đang lọc (0đ — chỉ lưu kế hoạch, cấp số cố định)">Duyệt {chuaDuyet.length} đang lọc</Nut>
+          <Nut ly={![...chon].some((m) => daDuyet.get(m)?.trang_thai === 'duyet') && 'tick creative đã duyệt'} onClick={() => void bo([...chon].filter((m) => daDuyet.get(m)?.trang_thai === 'duyet'))}>Bỏ duyệt</Nut>
+          <span style={mono}>{rows.length.toLocaleString('vi-VN')} dòng đang lọc</span>
+        </div>
+        <Loi>{loi}</Loi>
+        <DataTable rows={rows} columns={cot} getRowKey={(x) => x.ma} pageSize={50} minWidth={980} fixedLayout stickyFirst={false}
+          searchText={(x) => `${x.hook} ${x.c.ten} ${tenT(x.t)} ${x.khac.map((k2) => k2.chu).join(' ')} ${x.bien_the.nguoi_chinh} ${x.bien_the.boi_canh}`} searchPlaceholder="tìm chữ trong creative…"
+          onRowClick={(x) => setMo(mo === x.ma ? null : x.ma)}
+          renderExpanded={(x) => (mo !== x.ma ? null : <div style={{ display: 'grid', gap: 3, fontSize: 12.5 }}>
+            {x.t.o_chu.map((o) => <div key={o.k}><span style={{ ...mono, display: 'inline-block', minWidth: 150 }}>{o.ten} · {o.loai}</span>{d.phuong_an.find((p) => p.cap_id === x.cap_id && p.o === o.k && p.so === x.chon[o.k])?.chu ?? '—'}</div>)}
+            <span style={mono}>mã QC {x.ma} · <button type="button" className="xv-lienket xv-mono" onClick={() => void navigator.clipboard?.writeText(x.ma).catch(() => undefined)}>chép</button></span>
+          </div>)} />
+      </>}
+      {cfg && <CauHinhKho d={d} spKey={spKey} onDoi={onDoi} onClose={() => setCfg(false)} />}
       {tao && <TaoTuTemplate templateId={tao.template_id} tenTemplate={tao.template_ten} gtDau={tao.gt} onClose={() => setTao(null)}
         taoBang={(ten, gt) => taoPhimTuCreative(tao.id, ten, gt)} onTao={(id) => { setTao(null); void onDoi(); onMoPhim(id); }}
-        dauNgan={<div style={{ ...mono, marginBottom: 8 }}>{tao.ten} — ô điền sẵn từ concept, diễn viên / bối cảnh và phương án đã chọn; kiểm rồi tạo.</div>} />}
+        dauNgan={<div style={{ ...mono, marginBottom: 8 }}>{tao.ten} — ô điền sẵn từ người mua, diễn viên và phương án đã chọn; kiểm rồi tạo.</div>} />}
     </div>
+  );
+}
+/** ⚙ CẤU HÌNH kho (ẩn mặc định): nhập concept · template + diễn viên · phương án chữ — ba màn quản trị cũ, gom vào một ngăn. */
+function CauHinhKho({ d, spKey, onDoi, onClose }: { d: KhoConcept; spKey: string; onDoi: () => Promise<void>; onClose: () => void }) {
+  const [tab, setTab] = useState<'concept' | 'template' | 'phuong_an'>('phuong_an');
+  const [conceptId, setConceptId] = useState<number | null>(null), [capId, setCapId] = useState<number | null>(null);
+  return (
+    <Ngan onClose={onClose} tieuDe="⚙ Cấu hình kho creative" dau={<Seg options={[{ value: 'concept' as const, label: 'Người mua (concept)' }, { value: 'template' as const, label: 'Template · diễn viên' }, { value: 'phuong_an' as const, label: 'Phương án chữ' }]} value={tab} onChange={setTab} />}>
+      {tab === 'concept' && <TabConcept d={d} spKey={spKey} onDoi={onDoi} onChon={(id) => { setConceptId(id); setTab('template'); }} />}
+      {tab === 'template' && <TabTemplate d={d} onDoi={onDoi} conceptId={conceptId} setConceptId={setConceptId} />}
+      {tab === 'phuong_an' && <TabPhuongAn d={d} spKey={spKey} onDoi={onDoi} capId={capId} setCapId={setCapId} />}
+    </Ngan>
   );
 }

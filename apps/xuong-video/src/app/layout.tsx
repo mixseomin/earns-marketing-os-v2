@@ -8,6 +8,7 @@ import { TheoDoiBan } from '@/components/theo-doi-ban';
 import { maBan } from '@/lib/ban';
 import { NganChung, NutNgan } from '@/components/ngan-chung';
 import { GoiYHost } from '@/components/goi-y';
+import { TimNhanh, NutTimNhanh } from '@/components/tim-nhanh';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Xưởng video', template: '%s · Xưởng video' }, robots: { index: false, follow: false } };
@@ -29,6 +30,8 @@ export default async function Layout({ children }: { children: React.ReactNode }
         <main className="xv-main">{children}</main>
         <PhongToKhiRe />
         <NganChung />
+        <TimNhanh />
+        <NutTimNhanh />
         <GoiYHost />
         {me?.role === 'admin' && <GopY />}
         <TheoDoiBan banDau={maBan()} />

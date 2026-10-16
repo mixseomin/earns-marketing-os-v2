@@ -2,6 +2,7 @@
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
 import { HoSoTap } from './ho-so';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { khaiNguCanh } from '@/lib/ngu-canh';
 import { Timeline } from './timeline';
 import { LuoiKichBan } from './luoi-kich-ban';
 import { Ngan } from './ngan';
@@ -82,6 +83,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
     dauCanh.current = dau;
   }, [tap.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void taiCanh(); }, [taiCanh]);
+  // 🔎 Tìm nhanh (tim-nhanh.tsx) mở sổ / bộ set / nối khung của ĐÚNG tập đang xem.
+  useEffect(() => khaiNguCanh({ phimId: phim.id, tenPhim: phim.ten, tapId: tap.id, soTap: tap.so, tenTap: tap.ten }), [phim.id, phim.ten, tap.id, tap.so, tap.ten]);
   useEffect(() => { setKichBan(tap.kich_ban); setTenTap(tap.ten); setBrief(tap.brief); }, [tap.kich_ban, tap.ten, tap.brief]);
 
   // Poll Veo khi có cảnh đang sinh (Veo chạy 1-3 phút). Dừng ngay khi không còn job chạy.

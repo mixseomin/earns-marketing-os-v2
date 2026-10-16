@@ -2,7 +2,8 @@
 // KHO CREATIVE THEO SẢN PHẨM (kho-creative.ts) — tab 📦 Sản phẩm trên trang chủ → ngăn một sản phẩm, 6 tab cố định:
 // Creative (bảng, gom / lọc / chọn → so cạnh nhau) · Bản đồ (loại góc × dòng khuôn, mở ma trận góc × khuôn) · Góc (cây loại › góc › creative)
 // · Thành phần (mỗi loại một bảng: dùng ở bao nhiêu creative) · Lô sinh · Kết quả. Nhãn chỉ ghi tên, số ở hover (YDNI luật 3).
-import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { Ngan } from './ngan';
 import { Seg, Pill, LinkNgoai, Nut, Loi, mono } from './ui';
 import { useNho } from './nho';
@@ -20,8 +21,6 @@ const TAB_SP: { value: TabSp; label: string }[] = [
   { value: 'thanh_phan', label: 'Thành phần' }, { value: 'lo', label: 'Lô sinh' }, { value: 'ket_qua', label: 'Kết quả' },
 ];
 const tenKhuon = (c: Pick<DongCreative, 'tpl'>) => (c.tpl ? DONG_TEMPLATE.find((d) => d.key === c.tpl!.dong)?.khuon.find((k) => k.key === c.tpl!.khuon)?.ten ?? c.tpl.khuon : 'Ngoài template');
-const o: CSSProperties = { borderBottom: '1px solid var(--line)', padding: '5px 8px', textAlign: 'left', verticalAlign: 'middle' };
-const th: CSSProperties = { ...o, position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-3)', fontWeight: 500 };
 
 /** Danh sách sản phẩm (tab 📦 Sản phẩm): mỗi sản phẩm một dòng, bấm mở ngăn. Nhóm theo sản phẩm của phim QC (nhom-phim.ts › sanPhamPhim). */
 export function DanhSachSanPham({ phim, onMo }: { phim: Phim[]; onMo: (key: string) => void }) {
@@ -97,67 +96,57 @@ const ChipGoc = ({ g, on }: { g: GocSpy; on?: () => void }) => (
 );
 
 type Gom = 'khong' | 'loai' | 'cum' | 'khuon';
+const diemSx = (c: DongCreative) => c.nac.filter((x) => x.tt === 'xong').length;
 function BangCreative({ d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim, onSoSanh }: { d: KhoSanPham; goc: GocSpy[]; cum: CumGoc[]; locGoc: number | null; setLocGoc: (x: number | null) => void; chon: number[]; setChon: (x: number[]) => void; onMoPhim: (id: number) => void; onSoSanh: () => void }) {
   const [gom, setGom] = useNho<Gom>('xv-sp-gom', 'loai', ['khong', 'loai', 'cum', 'khuon']);
-  const [xep, setXep] = useNho<'moi' | 'gan_xong'>('xv-sp-xep', 'moi', ['moi', 'gan_xong']);
   const [tim, setTim] = useState('');
+  // Lọc góc + ô tìm áp TRƯỚC khi gom: mọi nhóm cùng một bộ lọc (mỗi nhóm là một DataTable — ô tìm riêng từng bảng thì lọc lệch nhau).
   const ds = useMemo(() => {
     const t = tim.trim().toLowerCase();
-    const l = d.creative.filter((c) => (locGoc == null || c.goc.some((g) => g.id === locGoc)) && (!t || [c.ten, c.hook, c.cta, ...c.goc.map((g) => g.ten)].some((x) => x.toLowerCase().includes(t))));
-    const diem = (c: DongCreative) => c.nac.filter((x) => x.tt === 'xong').length;
-    return [...l].sort((a, b) => (xep === 'gan_xong' ? diem(b) - diem(a) : 0) || b.sua_luc.localeCompare(a.sua_luc));
-  }, [d.creative, locGoc, tim, xep]);
+    return d.creative.filter((c) => (locGoc == null || c.goc.some((g) => g.id === locGoc)) && (!t || [c.ten, c.hook, c.cta, ...c.goc.map((g) => g.ten)].some((x) => x.toLowerCase().includes(t))))
+      .sort((a, b) => b.sua_luc.localeCompare(a.sua_luc));
+  }, [d.creative, locGoc, tim]);
   const nhom: { ten: string; ds: DongCreative[] }[] = gom === 'khong' ? [{ ten: '', ds }]
     : gom === 'khuon' ? [...new Set(ds.map(tenKhuon))].map((k) => ({ ten: k, ds: ds.filter((c) => tenKhuon(c) === k) }))
     : gom === 'cum' ? [...cum.map((c) => c.ten), 'Chưa vào cụm'].map((t) => ({ ten: `🧩 ${t}`, ds: ds.filter((c) => c.goc.some((g) => (cumCua(g.id, cum) ?? 'Chưa vào cụm') === t)) })).filter((x) => x.ds.length)
     : LOAI_GOC_SPY.map((l) => ({ ten: `${l.ic} ${l.ten}`, ds: ds.filter((c) => c.goc.some((g) => g.loai === l.key)) })).filter((x) => x.ds.length);
   const gocLoc = locGoc != null ? (goc.find((g) => g.id === locGoc) ?? d.creative.flatMap((c) => c.goc).find((g) => g.id === locGoc)) : null;
   const doi = (id: number) => setChon(chon.includes(id) ? chon.filter((x) => x !== id) : [...chon, id]);
+  // Cột dùng chung cho mọi nhóm; bảng cố định bề rộng cột (fixedLayout) để các bảng nhóm xếp chồng thẳng cột với nhau.
+  const cot = (tenNhom: string): DataColumn<DongCreative>[] => [
+    { key: 'chon', header: '', width: 30, align: 'center', cell: (c) => <input type="checkbox" checked={chon.includes(c.id)} onChange={() => doi(c.id)} onClick={(e) => e.stopPropagation()} aria-label={`chọn #${c.id}`} /> },
+    { key: 'ten', header: 'Creative', width: '22%', align: 'left', sortValue: (c) => c.ten, cell: (c) => (
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
+        <span style={{ width: 22, height: 32, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: c.anh ? `center / cover no-repeat url(${anhNho(c.anh, 160)}), #111` : 'var(--bg-2)' }} />
+        <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</b>
+        {c.sua_sau_xuat && <span style={{ color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
+      </span>), cellTitle: (c) => `#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}` },
+    { key: 'goc', header: 'Góc', width: '17%', align: 'left', sortValue: (c) => c.goc[0]?.ten ?? null, cell: (c) => {
+      const chinh = (gom === 'loai' ? c.goc.find((x) => `${loaiGocSpy(x.loai).ic} ${loaiGocSpy(x.loai).ten}` === tenNhom) : null) ?? c.goc[0];
+      const phu = c.goc.filter((x) => x !== chinh);
+      return <>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : 'chưa gắn'}{phu.length > 0 && <span style={{ marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</>;
+    } },
+    { key: 'khuon', header: 'Khuôn', width: 150, align: 'left', sortValue: tenKhuon, cell: (c) => <Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id}` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill> },
+    { key: 'hook', header: 'Hook', align: 'left', sortValue: (c) => c.hook, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.hook || '—'}</span>, cellTitle: (c) => c.hook },
+    { key: 'cta', header: 'CTA', width: '12%', align: 'left', sortValue: (c) => c.cta, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cta || '—'}</span>, cellTitle: (c) => c.cta },
+    { key: 'nn', header: 'NN', title: 'Ngôn ngữ của lời / chữ màn (kinh thánh)', width: 46, align: 'center', sortValue: (c) => c.ngon_ngu, cell: (c) => <Pill color="var(--cyan)">{c.ngon_ngu.toUpperCase()}</Pill> },
+    { key: 'sx', header: 'Sản xuất', title: 'Bấm tiêu đề để xếp theo số bước đã xong', width: 205, align: 'left', sortValue: diemSx, cell: (c) => <NacSx c={c} /> },
+  ];
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={mono}>Gom</span><Seg options={[{ value: 'loai' as Gom, label: 'Loại góc' }, ...(cum.length ? [{ value: 'cum' as Gom, label: 'Cụm người mua' }] : []), { value: 'khuon' as Gom, label: 'Khuôn' }, { value: 'khong' as Gom, label: 'Không' }]} value={gom} onChange={setGom} />
-        <span style={mono}>Xếp</span><Seg options={[{ value: 'moi' as const, label: 'Mới sửa' }, { value: 'gan_xong' as const, label: 'Sắp xong' }]} value={xep} onChange={setXep} />
         <input className="xv-in" style={{ width: 200 }} value={tim} onChange={(e) => setTim(e.target.value)} placeholder="🔍 tên, hook, CTA, góc…" />
         {gocLoc && <Pill color="var(--cyan)" title="Bỏ lọc góc"><button type="button" onClick={() => setLocGoc(null)} style={{ all: 'unset', cursor: 'pointer' }}>{loaiGocSpy(gocLoc.loai).ic} {gocLoc.ten} ✕</button></Pill>}
       </div>
-      <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-        {/* Cột cố định (table-layout fixed): bảng vừa bề ngang ngăn, chữ dài cắt + hover, không đẩy CTA / sản xuất ra ngoài. */}
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1100, fontSize: 12, tableLayout: 'fixed' }}>
-          <colgroup><col style={{ width: 30 }} /><col style={{ width: '22%' }} /><col style={{ width: '17%' }} /><col style={{ width: 150 }} /><col /><col style={{ width: '12%' }} /><col style={{ width: 46 }} /><col style={{ width: 205 }} /></colgroup>
-          <thead><tr><th style={th} /><th style={th}>Creative</th><th style={th}>Góc</th><th style={th}>Khuôn</th><th style={th}>Hook</th><th style={th}>CTA</th><th style={th} title="Ngôn ngữ">NN</th><th style={th}>Sản xuất</th></tr></thead>
-          <tbody>
-            {nhom.map((g) => (
-              <Fragment key={g.ten || 'tat_ca'}>
-                {g.ten && <tr><td colSpan={8} style={{ ...o, background: 'var(--bg-2)', fontWeight: 600 }} title={`${g.ds.length} creative`}>{g.ten}</td></tr>}
-                {g.ds.map((c) => {
-                  const chinh = (gom === 'loai' ? c.goc.find((x) => `${loaiGocSpy(x.loai).ic} ${loaiGocSpy(x.loai).ten}` === g.ten) : null) ?? c.goc[0];
-                  const phu = c.goc.filter((x) => x !== chinh);
-                  return (
-                    <tr key={`${g.ten}-${c.id}`} style={{ background: chon.includes(c.id) ? 'color-mix(in srgb, var(--cyan) 8%, transparent)' : undefined }}>
-                      <td style={o}><input type="checkbox" checked={chon.includes(c.id)} onChange={() => doi(c.id)} aria-label={`chọn #${c.id}`} /></td>
-                      <td style={{ ...o, overflow: 'hidden' }}>
-                        <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
-                          <span style={{ width: 22, height: 32, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: c.anh ? `center / cover no-repeat url(${anhNho(c.anh, 160)}), #111` : 'var(--bg-2)' }} />
-                          <button type="button" onClick={() => onMoPhim(c.id)} title={`#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}`} style={{ all: 'unset', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</button>
-                          {c.sua_sau_xuat && <span style={{ ...mono, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
-                        </span>
-                      </td>
-                      <td style={{ ...o, whiteSpace: 'nowrap', overflow: 'hidden' }}>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : <span style={mono}>chưa gắn</span>}{phu.length > 0 && <span style={{ ...mono, marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</td>
-                      <td style={{ ...o, overflow: 'hidden', whiteSpace: 'nowrap' }}><Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id}` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill></td>
-                      <td style={o}><span title={c.hook} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.hook || '—'}</span></td>
-                      <td style={o}><span title={c.cta} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.cta || '—'}</span></td>
-                      <td style={o}><Pill color="var(--cyan)" title="ngôn ngữ của lời / chữ màn (kinh thánh)">{c.ngon_ngu.toUpperCase()}</Pill></td>
-                      <td style={o}><NacSx c={c} /></td>
-                    </tr>
-                  );
-                })}
-              </Fragment>
-            ))}
-            {!ds.length && <tr><td colSpan={8} style={{ ...o, ...mono }}>Không có creative khớp bộ lọc.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      {!ds.length && <div style={{ ...mono, padding: 10, border: '1px solid var(--line)', borderRadius: 8 }}>Không có creative khớp bộ lọc.</div>}
+      {nhom.map((g) => (
+        <div key={g.ten || 'tat_ca'} style={{ display: 'grid', gap: 4 }}>
+          {g.ten && <b style={{ fontSize: 12.5 }} title={`${g.ds.length} creative`}>{g.ten}</b>}
+          <DataTable rows={g.ds} columns={cot(g.ten)} getRowKey={(c) => `${g.ten}-${c.id}`} onRowClick={(c) => onMoPhim(c.id)} fixedLayout stickyFirst={false} minWidth={1100}
+            persistKey="xv-sp-creative" rowStyle={(c) => (chon.includes(c.id) ? { background: 'color-mix(in srgb, var(--cyan) 8%, transparent)' } : undefined)} />
+        </div>
+      ))}
       {chon.length > 0 && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', border: '1px solid var(--cyan)', borderRadius: 8 }}>
           <b style={{ fontSize: 12 }} title={chon.map((x) => `#${x}`).join(' ')}>Đã chọn</b>
@@ -180,20 +169,14 @@ function BanDo({ d, goc, lo, spKey, onLo, onMoPhim, onMoGoc }: { d: KhoSanPham; 
   const cot = COT_DONG.filter((c) => c.key !== 'ngoai' || d.creative.some((x) => dongCua(x) === 'ngoai'));
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5, border: '1px solid var(--line)' }}>
-        <thead><tr><th style={th}>Loại góc</th>{cot.map((c) => <th key={c.key} style={th}>{c.ten}</th>)}</tr></thead>
-        <tbody>
-          {LOAI_GOC_SPY.map((l) => {
-            const soGoc = goc.filter((g) => g.loai === l.key).length;
-            return (
-              <tr key={l.key} style={{ background: mo === l.key ? 'color-mix(in srgb, var(--cyan) 8%, transparent)' : undefined }}>
-                <td style={o}><button type="button" onClick={() => setMo(mo === l.key ? null : l.key)} title={`${soGoc} góc trên spy · bấm để mở ma trận góc × khuôn`} style={{ all: 'unset', cursor: 'pointer', fontWeight: 700 }}>{mo === l.key ? '▾' : '▸'} {l.ic} {l.ten}</button></td>
-                {cot.map((c) => { const ids = bd[l.key]?.[c.key] ?? []; return <td key={c.key} style={{ ...o, fontWeight: 700, color: ids.length ? 'var(--fg-1)' : 'var(--fg-4)' }} title={ids.length ? ids.map((x) => `#${x}`).join(' ') + ' (một creative gắn nhiều góc nên có thể ở nhiều hàng)' : 'chưa có creative'}>{ids.length}</td>; })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <DataTable rows={LOAI_GOC_SPY} getRowKey={(l) => l.key} onRowClick={(l) => setMo(mo === l.key ? null : l.key)} minWidth={560}
+        rowStyle={(l) => (mo === l.key ? { background: 'color-mix(in srgb, var(--cyan) 8%, transparent)' } : undefined)}
+        columns={[
+          { key: 'loai', header: 'Loại góc', align: 'left', cell: (l) => <b>{mo === l.key ? '▾' : '▸'} {l.ic} {l.ten}</b>, cellTitle: (l) => `${goc.filter((g) => g.loai === l.key).length} góc trên spy · bấm để mở ma trận góc × khuôn` },
+          ...cot.map((c): DataColumn<(typeof LOAI_GOC_SPY)[number]> => ({ key: c.key, header: c.ten, sortValue: (l) => (bd[l.key]?.[c.key] ?? []).length,
+            cell: (l) => { const ids = bd[l.key]?.[c.key] ?? []; return <b style={{ color: ids.length ? 'var(--fg-1)' : 'var(--fg-4)' }}>{ids.length}</b>; },
+            cellTitle: (l) => { const ids = bd[l.key]?.[c.key] ?? []; return ids.length ? ids.map((x) => `#${x}`).join(' ') + ' (một creative gắn nhiều góc nên có thể ở nhiều hàng)' : 'chưa có creative'; } })),
+        ]} />
       {mo && (() => {
         // Góc ĐÃ có creative lên đầu (không thì góc dùng nhiều nhất có thể rơi khỏi 12 dòng đầu), rồi theo lượt nhắc.
         const coCr = (id: number) => d.creative.some((c) => c.goc.some((x) => x.id === id));
@@ -203,22 +186,18 @@ function BanDo({ d, goc, lo, spKey, onLo, onMoPhim, onMoGoc }: { d: KhoSanPham; 
         return (
           <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
             {!ds.length && <div style={{ ...mono, padding: 10 }}>Chưa tải được góc từ spy cho loại này.</div>}
-            {ds.length > 0 && <table style={{ borderCollapse: 'collapse', fontSize: 11 }}>
-              <thead><tr><th style={{ ...th, minWidth: 240 }}>Góc</th>{cotK.map((k) => <th key={`${k.dong}.${k.khuon}`} style={{ ...th, textAlign: 'center', width: 26, borderLeft: k === cotK.find((x) => x.dong === k.dong) ? '1px solid var(--fg-4)' : undefined }} title={k.ten}>{k.ngan}</th>)}</tr></thead>
-              <tbody>
-                {hien.map((g) => (
-                  <tr key={g.id}>
-                    <td style={{ ...o, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${g.so_nhac} lượt nhắc${g.mo_ta ? ` · ${g.mo_ta}` : ''}`}><button type="button" onClick={() => onMoGoc(g.id)} style={{ all: 'unset', cursor: 'pointer' }}>{g.ten}</button></td>
-                    {cotK.map((k) => { const ids = oMaTran(d.creative, g.id, k); const cho = !ids.length && trongLo(g.id, k); const themDuoc = !ids.length && !cho && k.dong !== 'ngoai'; return (
-                      <td key={`${k.dong}.${k.khuon}`} style={{ ...o, textAlign: 'center', padding: 2, borderLeft: k === cotK.find((x) => x.dong === k.dong) ? '1px solid var(--fg-4)' : undefined }}>
-                        <button type="button" disabled={!ids.length && !themDuoc} onClick={() => (ids[0] ? onMoPhim(ids[0]) : themDuoc && void them(g, k))}
-                          title={ids.length ? ids.map((x) => `#${x}`).join(' ') : cho ? `${g.ten} × ${k.ten}: trong lô sinh, chờ tạo phim` : themDuoc ? `${g.ten} × ${k.ten}: trống · bấm để thêm vào lô sinh` : 'trống'}
-                          style={{ all: 'unset', cursor: ids.length || themDuoc ? 'pointer' : 'default', display: 'inline-block', width: 12, height: 12, borderRadius: 2, border: `1px solid ${cho ? 'var(--amber)' : 'var(--line)'}`, background: ids.length ? '#4ade80' : cho ? 'color-mix(in srgb, var(--amber) 45%, transparent)' : 'transparent' }} />
-                      </td>); })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>}
+            {/* Ma trận góc × khuôn: mỗi DÒNG khuôn là một nhóm cột (bật / tắt ở ⚙ Columns của DataTable). */}
+            {ds.length > 0 && <DataTable rows={hien} getRowKey={(g) => String(g.id)} minWidth={240 + cotK.length * 26}
+              groups={COT_DONG.filter((c) => cotK.some((k) => k.dong === c.key)).map((c) => ({ key: c.key, label: c.ten }))}
+              columns={[
+                { key: 'goc', header: 'Góc', align: 'left', width: 260, sortValue: (g) => g.ten, cell: (g) => <button type="button" onClick={() => onMoGoc(g.id)} style={{ all: 'unset', cursor: 'pointer' }}>{g.ten}</button>, cellTitle: (g) => `${g.so_nhac} lượt nhắc${g.mo_ta ? ` · ${g.mo_ta}` : ''}` },
+                ...cotK.map((k): DataColumn<(typeof hien)[number]> => ({ key: `${k.dong}.${k.khuon}`, group: k.dong, header: k.ngan, title: k.ten, align: 'center', width: 26,
+                  sortValue: (g) => oMaTran(d.creative, g.id, k).length,
+                  cell: (g) => { const ids = oMaTran(d.creative, g.id, k); const cho = !ids.length && trongLo(g.id, k); const themDuoc = !ids.length && !cho && k.dong !== 'ngoai'; return (
+                    <button type="button" disabled={!ids.length && !themDuoc} onClick={(e) => { e.stopPropagation(); if (ids[0]) onMoPhim(ids[0]); else if (themDuoc) void them(g, k); }}
+                      title={ids.length ? ids.map((x) => `#${x}`).join(' ') : cho ? `${g.ten} × ${k.ten}: trong lô sinh, chờ tạo phim` : themDuoc ? `${g.ten} × ${k.ten}: trống · bấm để thêm vào lô sinh` : 'trống'}
+                      style={{ all: 'unset', cursor: ids.length || themDuoc ? 'pointer' : 'default', display: 'inline-block', width: 12, height: 12, borderRadius: 2, border: `1px solid ${cho ? 'var(--amber)' : 'var(--line)'}`, background: ids.length ? 'var(--lime)' : cho ? 'color-mix(in srgb, var(--amber) 45%, transparent)' : 'transparent' }} />); } })),
+              ]} />}
             <div style={{ ...mono, padding: '6px 8px' }}>Ô xanh = đã có creative (bấm mở) · ô vàng = trong lô sinh · ô trống bấm để thêm vào lô sinh{bao && <b style={{ marginLeft: 8, color: 'var(--fg-1)' }}>{bao}</b>}</div>
             {ds.length > 12 && <button type="button" className="xv-lienket xv-mono" style={{ margin: 8 }} onClick={() => setHet(!het)} title={`${ds.length} góc`}>{het ? '▴ chỉ góc nhiều lượt nhắc' : '▾ hiện hết góc'}</button>}
           </div>
@@ -291,23 +270,13 @@ function ThuVienThanhPhan({ tp, onMoPhim }: { tp: ThanhPhan[]; onMoPhim: (id: nu
         <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><span style={mono}>Lời / chữ</span><Seg options={lop('chu')} value={loai} onChange={setLoai} /></span>
         <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><span style={mono}>Hình / tiếng</span><Seg options={lop('hinh')} value={loai} onChange={setLoai} /></span>
       </div>
-      <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
-          <thead><tr><th style={th}>Nội dung</th><th style={th}>Hình / mô tả</th><th style={th}>Dùng ở</th></tr></thead>
-          <tbody>
-            {ds.map((t, i) => (
-              <tr key={i}>
-                <td style={{ ...o, maxWidth: 360 }}>{t.noi_dung}</td>
-                <td style={{ ...o, ...mono, maxWidth: 300 }} title={t.phu}><span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{t.phu || '—'}</span></td>
-                <td style={o} title={`${t.dung_o.length} creative${t.co_media ? ` · ${t.co_media} lần có hình / clip sẵn` : ''}`}>
-                  <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{t.dung_o.map((x) => <button key={x} type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(x)}>#{x}</button>)}</span>
-                </td>
-              </tr>
-            ))}
-            {!ds.length && <tr><td colSpan={3} style={{ ...o, ...mono }}>Chưa có thành phần loại này trong các creative của sản phẩm.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataTable key={loai} rows={ds} getRowKey={(t, i) => `${loai}-${i}`} minWidth={720} searchText={(t) => `${t.noi_dung} ${t.phu}`} searchPlaceholder="lọc thành phần…"
+        columns={[
+          { key: 'nd', header: 'Nội dung', align: 'left', sortValue: (t) => t.noi_dung, cell: (t) => <span style={{ whiteSpace: 'normal' }}>{t.noi_dung}</span> },
+          { key: 'phu', header: 'Hình / mô tả', align: 'left', cell: (t) => <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal', maxWidth: 300 }}>{t.phu || '—'}</span>, cellTitle: (t) => t.phu },
+          { key: 'dung', header: 'Dùng ở', align: 'left', sortValue: (t) => t.dung_o.length, cellTitle: (t) => `${t.dung_o.length} creative${t.co_media ? ` · ${t.co_media} lần có hình / clip sẵn` : ''}`,
+            cell: (t) => <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{t.dung_o.map((x) => <button key={x} type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(x)}>#{x}</button>)}</span> },
+        ]} />
     </div>
   );
 }
@@ -322,16 +291,17 @@ function SoSanh({ ds, tp, onClose, onMoPhim }: { ds: DongCreative[]; tp: ThanhPh
   ];
   return (
     <Ngan onClose={onClose} tieuDe="So cạnh nhau">
-      <div style={{ overflow: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: 12, minWidth: 220 * ds.length }}>
-          <thead><tr><th style={th} />{ds.map((c) => <th key={c.id} style={th}><button type="button" onClick={() => onMoPhim(c.id)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--cyan)', display: 'grid', gap: 4, justifyItems: 'start' }} title={c.ten}>
-            {/* Ảnh đại diện của creative (#1396) — cùng ảnh cột hình ở bảng Creative; rê để phóng to. */}
-            {c.anh ? <img src={anhNho(c.anh, 160)} alt="" style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} /> : <span style={{ width: 54, height: 96, borderRadius: 4, border: '1px dashed var(--line)', display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--fg-4)' }}>🎬</span>}
-            #{c.id}</button></th>)}</tr></thead>
-          <tbody>{hang.map(([ten, f]) => { const v = ds.map(f); const khac = new Set(v).size > 1; return (
-            <tr key={ten}><td style={{ ...o, ...mono }}>{ten}</td>{v.map((x, i) => <td key={i} style={{ ...o, background: khac ? 'color-mix(in srgb, var(--amber) 16%, transparent)' : undefined, maxWidth: 280 }}>{x}</td>)}</tr>); })}</tbody>
-        </table>
-      </div>
+      {/* Mỗi DÒNG một thành phần, mỗi CỘT một creative; dòng có ô khác nhau tô vàng. */}
+      <DataTable rows={hang} getRowKey={([ten]) => ten} minWidth={160 + 220 * ds.length}
+        rowStyle={([, f]) => (new Set(ds.map(f)).size > 1 ? { background: 'color-mix(in srgb, var(--amber) 16%, transparent)' } : undefined)}
+        columns={[
+          { key: 'tp', header: 'Thành phần', align: 'left', cell: ([ten]) => ten },
+          ...ds.map((c): DataColumn<(typeof hang)[number]> => ({ key: String(c.id), align: 'left', title: c.ten, cell: ([, f]) => <span style={{ whiteSpace: 'normal', display: 'block', maxWidth: 280 }}>{f(c)}</span>,
+            header: <button type="button" onClick={() => onMoPhim(c.id)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--cyan)', display: 'grid', gap: 4, justifyItems: 'start', textTransform: 'none' }} title={c.ten}>
+              {/* Ảnh đại diện của creative (#1396) — cùng ảnh cột hình ở bảng Creative; rê để phóng to. */}
+              {c.anh ? <img src={anhNho(c.anh, 160)} alt="" style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} /> : <span style={{ width: 54, height: 96, borderRadius: 4, border: '1px dashed var(--line)', display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--fg-4)' }}>🎬</span>}
+              #{c.id}</button> })),
+        ]} />
     </Ngan>
   );
 }
@@ -352,29 +322,15 @@ function LoSinhTab({ spKey, lo, onDoi, onMoPhim, onMoBanDo, onMoTemplate }: { sp
         <span style={mono}>Mỗi dòng = một ô góc × khuôn chờ thành phim. Tạo phim là chép template + điền ô (0đ), chưa sinh hình / giọng.</span>
         {lo.some((l) => l.trang_thai === 'bo') && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={hienBo} onChange={(e) => setHienBo(e.target.checked)} />hiện dòng đã bỏ</label>}
       </span>
-      <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
-          <thead><tr><th style={th}>Góc</th><th style={th}>Khuôn</th><th style={th}>Template</th><th style={th}>Trạng thái</th><th style={th} /></tr></thead>
-          <tbody>
-            {ds.map((l) => (
-              <tr key={l.id} style={{ opacity: l.trang_thai === 'bo' ? 0.5 : 1 }}>
-                <td style={o}>{l.goc.map((g) => <span key={g.id} title={loaiGocSpy(g.loai).ten}>{loaiGocSpy(g.loai).ic} {g.ten}</span>)}</td>
-                <td style={o}><Pill color="var(--fg-2)">{kh(l)}</Pill></td>
-                <td style={{ ...o, ...mono }} title={l.template_ten}>{l.template_id ? `#${l.template_id}` : '—'}</td>
-                <td style={o} title={new Date(l.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}>
-                  {l.trang_thai === 'da_tao' && l.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(l.phim_id!)}>đã tạo #{l.phim_id}</button> : <span style={mono}>{l.trang_thai === 'bo' ? 'đã bỏ' : 'chờ tạo'}</span>}
-                </td>
-                <td style={{ ...o, whiteSpace: 'nowrap' }}>
-                  {l.trang_thai === 'cho' && <span style={{ display: 'inline-flex', gap: 6 }}>
-                    <Nut chinh onClick={() => setTao(l)}>Tạo phim</Nut>
-                    <Nut onClick={async () => { await boLo(l.id); await onDoi(); }}>Bỏ</Nut>
-                  </span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable rows={ds} getRowKey={(l) => String(l.id)} minWidth={720} rowStyle={(l) => (l.trang_thai === 'bo' ? { opacity: 0.5 } : undefined)}
+        columns={[
+          { key: 'goc', header: 'Góc', align: 'left', sortValue: (l) => l.goc[0]?.ten ?? null, cell: (l) => <>{l.goc.map((g) => <span key={g.id} title={loaiGocSpy(g.loai).ten}>{loaiGocSpy(g.loai).ic} {g.ten}</span>)}</> },
+          { key: 'khuon', header: 'Khuôn', align: 'left', sortValue: kh, cell: (l) => <Pill color="var(--fg-2)">{kh(l)}</Pill> },
+          { key: 'tpl', header: 'Template', align: 'left', cell: (l) => (l.template_id ? `#${l.template_id}` : '—'), cellTitle: (l) => l.template_ten },
+          { key: 'tt', header: 'Trạng thái', align: 'left', sortValue: (l) => l.trang_thai, cellTitle: (l) => new Date(l.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            cell: (l) => (l.trang_thai === 'da_tao' && l.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(l.phim_id!)}>đã tạo #{l.phim_id}</button> : l.trang_thai === 'bo' ? 'đã bỏ' : 'chờ tạo') },
+          { key: 'lam', header: '', align: 'left', cell: (l) => (l.trang_thai === 'cho' ? <span style={{ display: 'inline-flex', gap: 6 }}><Nut chinh onClick={() => setTao(l)}>Tạo phim</Nut><Nut onClick={async () => { await boLo(l.id); await onDoi(); }}>Bỏ</Nut></span> : null) },
+        ]} />
       {tao && tao.template_id && (
         <TaoTuTemplate templateId={tao.template_id} tenTemplate={tao.template_ten} gtDau={gtDau} onClose={() => setTao(null)}
           taoBang={(ten, gt) => taoPhimTuLo(tao.id, ten, gt)}

@@ -119,6 +119,8 @@ export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: 
 export type DongKichBan = { loai: 'hd' | 'am' | 'chuyen'; chu: string } | { loai: 'nv'; ten: string; dien: string; loi: string };
 export type KinhThanh = {
   phong_cach?: string;          // "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm" — nối vào đầu mọi prompt ảnh/video
+  /** CHẤT LIỆU HÌNH (anh 16/10/2026 "phải tách thể loại film ra"): người thật / hoạt hình — quyết định cổng soi mặt + sổ bề ngoài; '' = tự nhận từ phong_cach (chatLieuPhim) */
+  chat_lieu?: '' | 'nguoi_that' | 'hoat_hinh';
   ti_le?: TiLe;
   do_phan_giai?: DoPhanGiai;
   mo_hinh_anh?: MoHinhAnh;
@@ -329,10 +331,18 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
   return cho.length ? `Phim ${tenNgonNgu(ngonNgu)} nhưng chữ đi vào model còn tiếng Việt (${cho.slice(0, 5).join(', ')}${cho.length > 5 ? '…' : ''}) — bấm 🌐 Dịch cả phim trước, không sinh để khỏi mất tiền.` : null;
 }
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
-  phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
+  phong_cach: '', chat_lieu: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
   giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };
+/** Chất liệu hình của phim: khai tay trong kinh thánh, không thì đọc chữ phong cách. Không đoán được → 'hoat_hinh' an toàn (không bật cổng soi mặt
+ *  trên phim chưa rõ) — phim người thật nào phong cách không nói rõ thì chọn tay. */
+export function chatLieuPhim(kt: Pick<KinhThanh, 'chat_lieu' | 'phong_cach'> | null | undefined): 'nguoi_that' | 'hoat_hinh' {
+  if (kt?.chat_lieu) return kt.chat_lieu;
+  const p = (kt?.phong_cach ?? '').toLowerCase();
+  if (/(animat|cartoon|pixar|anime|stop[- ]?motion|claymation|clay|hoạt hình|2d|3d (render|style)|cel[- ]shad|illustrat|felt|puppet)/.test(p)) return 'hoat_hinh';
+  return /(live[- ]action|photo ?real|real (people|person)|người thật|ugc|documentary|shot on (an )?iphone|phone (camera|video)|creator|talking to camera)/.test(p) ? 'nguoi_that' : 'hoat_hinh';
+}
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 
 export type Phim = {

@@ -4,7 +4,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { ImageAttach } from './image-attach';
 import { THE_LOAI, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaPhim, taiAnhLen, layTuLinkSanPham, goiYAIKinhThanh } from '@/lib/actions';
-import { MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, NGON_NGU, docKinhThanh, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
+import { MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, NGON_NGU, docKinhThanh, chatLieuPhim, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { MauQcForm } from './mau-qc';
 import { Khoa, O, Seg, Nut, Loi, mono } from './ui';
@@ -106,6 +106,7 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
           <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder={laQc ? "Quay thật kiểu UGC, ánh sáng cửa sổ, cầm tay, chân thực…" : "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…"} />
         </O>
+        <O label="Chất liệu hình" hint="Người thật → bật cổng soi mặt (giữ đúng khuôn mặt) + sổ bề ngoài theo ngày. Để trống thì máy đọc chữ phong cách."><Chon value={kt.chat_lieu ?? ''} onChange={(v) => set('chat_lieu', v as NonNullable<KinhThanh['chat_lieu']>)} options={[{ value: '', label: `tự nhận (${chatLieuPhim({ phong_cach: kt.phong_cach }) === 'nguoi_that' ? 'người thật' : 'hoạt hình'})` }, { value: 'nguoi_that', label: 'người thật' }, { value: 'hoat_hinh', label: 'hoạt hình' }]} /></O>
         <O span label="Mô tả / tiền đề"><textarea className="xv-ta" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="Bộ phim kể về… / Sản phẩm là… bán cho…" /></O>
         <O label={<>Thể loại{nutAi('the_loai')}</>} hint="quyết định thư viện cỡ cảnh / ánh sáng / âm thanh / nhạc Claude chọn cho từng shot"><Chon value={kt.the_loai} onChange={(v) => set('the_loai', v as TheLoai)} options={THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta, phu: t.mo_ta.split(',')[0] }))} placeholder="chọn thể loại…" minWidth={220} /></O>
         <O label={<>Logline{nutAi('logline')}</>} hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder={laQc ? "Phụ nữ 50+ mỏi vai vì bra gọng tìm được chiếc bra nâng mặc cả ngày quên" : "Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới"} /></O>

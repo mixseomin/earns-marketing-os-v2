@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
-import { locNhanh, type SoiMat } from './kieu';
+import { chatLieuPhim, locNhanh, type KinhThanh, type SoiMat } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
 const PY = process.env.XV_SOI_MAT_PY || '/opt/xv-soi-mat/bin/python';
@@ -24,12 +24,19 @@ function chay(vao: unknown): Promise<Ra> {
 }
 
 export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /** false = chạy thử, không ghi DB */ ghi?: boolean } = {}): Promise<{ ok: true; data: { soi: number; lech: { thu_tu: number; chu: string }[]; theo_doi: string[] } } | { ok: false; loi: string }> {
-  const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  const t = (await db.execute(sql`SELECT t.phim_id, p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
+  // Phim HOẠT HÌNH: không soi mặt (bộ so mặt người chấm mặt hoạt hình không tin được) — ghi "không theo dõi" đè kết quả cũ để lưới / cổng không đọc nhầm.
+  const nguoiThat = chatLieuPhim(t[0].kinh_thanh as KinhThanh) === 'nguoi_that';
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A')
     .filter((c) => c.keyframe_url && (o.tatCa || c.soi_mat?.url !== c.keyframe_url));
   if (!ds.length) return { ok: true, data: { soi: 0, lech: [], theo_doi: [] } };
+  if (!nguoiThat) {
+    const luc = new Date().toISOString();
+    if (o.ghi !== false) for (const c of ds) await db.execute(sql`UPDATE xv_canh SET soi_mat = ${JSON.stringify({ url: c.keyframe_url!, luc, mat: 0, ket: [], dat: true } satisfies SoiMat)}::jsonb WHERE id = ${c.id}`);
+    return { ok: true, data: { soi: ds.length, lech: [], theo_doi: [] } };
+  }
   const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
   const tenCua = (ids: number[]) => ids.map((id) => nv.find((v) => v.id === id)?.ten).filter((x): x is string => !!x);
   let ra: Ra;

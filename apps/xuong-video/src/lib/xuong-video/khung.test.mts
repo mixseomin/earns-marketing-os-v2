@@ -44,3 +44,15 @@ console.log('khung.test: laQc bắt buộc ok');
   assert.equal(chan({ keyframe_url: 'k1', kiem_khung: kk }), null, 'shot cũ chưa có soi_mat: không chặn');
   console.log('khung.test: soi mặt ok');
 }
+
+// CHẤT LIỆU HÌNH: khai tay thắng; không khai thì đọc phong cách — UGC / live-action = người thật, Pixar / stop-motion = hoạt hình, không rõ = hoạt hình
+{
+  const { chatLieuPhim } = await import('./kieu');
+  assert.equal(chatLieuPhim({ phong_cach: 'Live-action UGC ad, photorealistic real people, shot on iPhone vertical' }), 'nguoi_that');
+  assert.equal(chatLieuPhim({ phong_cach: 'Creator reply video, phone camera, talking to camera at home' }), 'nguoi_that');
+  assert.equal(chatLieuPhim({ phong_cach: 'Stop-motion felt puppets on a desk, macro lens' }), 'hoat_hinh');
+  assert.equal(chatLieuPhim({ phong_cach: '3D hoạt hình kiểu Pixar' }), 'hoat_hinh');
+  assert.equal(chatLieuPhim({ phong_cach: 'warm light, cozy' }), 'hoat_hinh', 'không rõ: không bật soi mặt');
+  assert.equal(chatLieuPhim({ phong_cach: 'warm light, cozy', chat_lieu: 'nguoi_that' }), 'nguoi_that', 'khai tay thắng');
+  console.log('khung.test: chất liệu ok');
+}

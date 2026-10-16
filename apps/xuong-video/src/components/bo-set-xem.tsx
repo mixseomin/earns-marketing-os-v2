@@ -38,7 +38,9 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
   useEffect(() => { void (async () => { const { loi: l, kq } = await goiAction(() => boSet3dTap(tapId)); setLoi(l); if (kq?.ok) setDl(kq.data); })(); }, [tapId]);
   const shots = useMemo(() => (dl?.shots ?? []).filter((s) => s.set_id && s.may_3d), [dl]);
   const shot = shots.find((s) => s.id === chon) ?? null;
-  const setId = shot?.set_id ?? shots[0]?.set_id ?? null;
+  // Tập nhiều bối cảnh (phim tổng tài: văn phòng / thang máy / phòng họp) — chọn bộ set để tham quan, kể cả khi chưa có shot nào đứng trên nó.
+  const [setXem, setSetXem] = useState<number | null>(null);
+  const setId = shot?.set_id ?? setXem ?? shots[0]?.set_id ?? dl?.sets[0]?.id ?? null;
   const set: BoSet | undefined = dl?.sets.find((x) => x.id === setId);
   const doc = dl?.ti_le !== '16:9';
   // Góc nhìn tự do giữ qua các lần dựng lại cảnh (bật/tắt nhãn, đường đi) — chỉ đặt lại khi đổi shot hoặc đổi chế độ máy.
@@ -136,7 +138,10 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-        <b style={{ fontSize: 13 }}>{set.ten}</b>
+        {(dl?.sets.length ?? 0) > 1
+          ? <Chon value={String(set.id)} onChange={(v) => { setSetXem(Number(v)); if (shot && shot.set_id !== Number(v)) setChon(null); }} minWidth={200}
+              options={dl!.sets.map((x) => ({ value: String(x.id), label: `🧊 ${x.ten}`, title: x.mo_ta }))} />
+          : <b style={{ fontSize: 13 }}>{set.ten}</b>}
         <Chon value={chon == null ? '' : String(chon)} onChange={(v) => setChon(v ? Number(v) : null)} minWidth={260}
           options={[{ value: '', label: '— toàn bộ set —' }, ...shots.filter((s) => s.set_id === set.id).map((s) => ({ value: String(s.id), label: `#${s.thu_tu}${s.ma ? ` · ${s.ma}` : ''} · ${s.canh.slice(0, 40)}`, ngan: `#${s.thu_tu}${s.ma ? ` · ${s.ma}` : ''}`, title: s.canh }))]} />
         <button type="button" className="xv-btn" disabled={iShot <= 0} title="Shot trước" onClick={() => setChon(shots[iShot - 1]!.id)}>◀</button>

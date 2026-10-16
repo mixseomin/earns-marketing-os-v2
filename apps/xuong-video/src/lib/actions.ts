@@ -1725,7 +1725,8 @@ export async function boSet3dTap(tapId: number): Promise<Kq<{ sets: BoSet[]; kho
   const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
   const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
   const shots = ds.map((c) => ({ id: c.id, thu_tu: c.thu_tu, ma: c.dan_dung?.ma ?? '', canh: c.canh, set_id: boSetCuaShot(c, nv), may_3d: c.may_3d ?? null, xam: c.khung_xam?.xam ?? null }));
-  const ids = [...new Set(shots.map((s) => s.set_id).filter((x): x is number => !!x))];
+  // + bộ set gắn với BỐI CẢNH của phim (chưa có shot nào đứng trên vẫn tham quan được — dựng set trước, đặt shot sau).
+  const ids = [...new Set([...shots.map((s) => s.set_id), ...nv.filter((v) => v.loai === 'boi_canh').map((v) => v.bo_set_id ?? null)].filter((x): x is number => !!x))];
   const sets = ids.length ? ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE id IN (${sql.join(ids.map((i) => sql`${i}`), sql`, `)})`)) as unknown as Row[]).map(mapBoSet) : [];
   const khoi: Record<string, NhanVat['khoi_3d']> = {}; const loaiNv: Record<string, string> = {};
   for (const v of nv) if (v.khoi_3d) { khoi[v.ten] = v.khoi_3d; loaiNv[v.ten] = v.loai; }

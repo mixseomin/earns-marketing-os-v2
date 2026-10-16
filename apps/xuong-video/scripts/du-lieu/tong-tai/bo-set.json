@@ -1,0 +1,1059 @@
+[
+ {
+  "ten": "Văn phòng mở tầng 38 · Lục thị",
+  "boi_canh": "Văn phòng mở tầng 38",
+  "vung": {
+   "tam": [
+    0,
+    600,
+    0
+   ],
+   "ban_kinh": 700
+  },
+  "mo_ta": "Văn phòng mở 12 × 14 m: 3 dãy bàn, cửa kính lớn bên phải, vách kính phòng tổng giám đốc ở cuối",
+  "vat": [
+   {
+    "ten": "Sàn đá",
+    "hinh": "hop",
+    "tam": [
+     0,
+     600,
+     -2
+    ],
+    "co": [
+     1200,
+     1400,
+     2
+    ],
+    "mau": "#d9d6d0",
+    "en": "polished white marble floor",
+    "nen": true
+   },
+   {
+    "ten": "Tường trái",
+    "hinh": "hop",
+    "tam": [
+     -600,
+     600,
+     0
+    ],
+    "co": [
+     2,
+     1400,
+     300
+    ],
+    "mau": "#e8e6e2",
+    "en": "plain light grey office wall",
+    "nen": true
+   },
+   {
+    "ten": "Cửa kính lớn",
+    "hinh": "hop",
+    "tam": [
+     600,
+     600,
+     0
+    ],
+    "co": [
+     2,
+     1400,
+     300
+    ],
+    "mau": "#cfe0f0",
+    "en": "floor-to-ceiling windows over a city skyline",
+    "nen": true,
+    "sang": 1.2
+   },
+   {
+    "ten": "Tường cuối",
+    "hinh": "hop",
+    "tam": [
+     0,
+     1300,
+     0
+    ],
+    "co": [
+     1200,
+     2,
+     300
+    ],
+    "mau": "#e8e6e2",
+    "en": "back office wall",
+    "nen": true
+   },
+   {
+    "ten": "Vách kính phòng TGĐ",
+    "hinh": "hop",
+    "tam": [
+     300,
+     1000,
+     0
+    ],
+    "co": [
+     560,
+     2,
+     300
+    ],
+    "mau": "#bcd3e0",
+    "en": "glass wall of the CEO office",
+    "sang": 0.3
+   },
+   {
+    "ten": "Cửa phòng TGĐ",
+    "hinh": "hop",
+    "tam": [
+     80,
+     1000,
+     0
+    ],
+    "co": [
+     110,
+     3,
+     240
+    ],
+    "mau": "#a9c4d6",
+    "en": "glass door of the CEO office",
+    "sang": 0.3
+   },
+   {
+    "ten": "Bàn TGĐ",
+    "hinh": "hop",
+    "tam": [
+     330,
+     1150,
+     0
+    ],
+    "co": [
+     200,
+     90,
+     76
+    ],
+    "mau": "#3b2618",
+    "en": "large dark walnut executive desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Bàn 1.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     300,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 1.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     322,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 1.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     230,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 1.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     300,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 1.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     322,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 1.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     230,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 1.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     300,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 1.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     322,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 1.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     230,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 2.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     500,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 2.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     522,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 2.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     430,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 2.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     500,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 2.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     522,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 2.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     430,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 2.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     500,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 2.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     522,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 2.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     430,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 3.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     700,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 3.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     722,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 3.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     630,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 3.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     700,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 3.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     722,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 3.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     630,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bàn 3.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     700,
+     0
+    ],
+    "co": [
+     160,
+     80,
+     76
+    ],
+    "mau": "#6b4a30",
+    "en": "walnut office desk",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn hình 3.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     722,
+     76
+    ],
+    "co": [
+     55,
+     4,
+     34
+    ],
+    "mau": "#16181c",
+    "en": "computer monitor"
+   },
+   {
+    "ten": "Ghế 3.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     630,
+     0
+    ],
+    "co": [
+     50,
+     50,
+     95
+    ],
+    "mau": "#2a2a2e",
+    "en": "black office chair",
+    "chat": "vai"
+   }
+  ]
+ },
+ {
+  "ten": "Sảnh thang máy · Lục thị",
+  "boi_canh": "Sảnh thang máy",
+  "vung": {
+   "tam": [
+    0,
+    250,
+    0
+   ],
+   "ban_kinh": 350
+  },
+  "mo_ta": "Sảnh 7 × 6 m: hai thang máy thép, tường đá đen, logo vàng",
+  "vat": [
+   {
+    "ten": "Sàn đá đen",
+    "hinh": "hop",
+    "tam": [
+     0,
+     250,
+     -2
+    ],
+    "co": [
+     700,
+     600,
+     2
+    ],
+    "mau": "#202022",
+    "en": "black polished marble floor",
+    "nen": true
+   },
+   {
+    "ten": "Tường đá",
+    "hinh": "hop",
+    "tam": [
+     0,
+     450,
+     0
+    ],
+    "co": [
+     700,
+     2,
+     300
+    ],
+    "mau": "#151517",
+    "en": "black marble wall",
+    "nen": true
+   },
+   {
+    "ten": "Tường trái",
+    "hinh": "hop",
+    "tam": [
+     -350,
+     250,
+     0
+    ],
+    "co": [
+     2,
+     600,
+     300
+    ],
+    "mau": "#1c1c1f",
+    "en": "dark marble side wall",
+    "nen": true
+   },
+   {
+    "ten": "Tường phải",
+    "hinh": "hop",
+    "tam": [
+     350,
+     250,
+     0
+    ],
+    "co": [
+     2,
+     600,
+     300
+    ],
+    "mau": "#1c1c1f",
+    "en": "dark marble side wall",
+    "nen": true
+   },
+   {
+    "ten": "Thang máy 1",
+    "hinh": "hop",
+    "tam": [
+     -100,
+     446,
+     0
+    ],
+    "co": [
+     115,
+     4,
+     225
+    ],
+    "mau": "#9aa0a6",
+    "en": "brushed steel elevator door"
+   },
+   {
+    "ten": "Thang máy 2",
+    "hinh": "hop",
+    "tam": [
+     100,
+     446,
+     0
+    ],
+    "co": [
+     115,
+     4,
+     225
+    ],
+    "mau": "#9aa0a6",
+    "en": "brushed steel elevator door"
+   },
+   {
+    "ten": "Logo Lục thị",
+    "hinh": "hop",
+    "tam": [
+     0,
+     448,
+     245
+    ],
+    "co": [
+     140,
+     2,
+     30
+    ],
+    "mau": "#c9a45c",
+    "en": "gold company logo on the wall",
+    "sang": 0.5
+   },
+   {
+    "ten": "Đèn trần",
+    "hinh": "hop",
+    "tam": [
+     0,
+     250,
+     298
+    ],
+    "co": [
+     500,
+     40,
+     2
+    ],
+    "mau": "#fff4dc",
+    "en": "warm recessed ceiling light strip",
+    "sang": 3
+   }
+  ]
+ },
+ {
+  "ten": "Phòng họp HĐQT · Lục thị",
+  "boi_canh": "Phòng họp HĐQT",
+  "vung": {
+   "tam": [
+    0,
+    420,
+    0
+   ],
+   "ban_kinh": 500
+  },
+  "mo_ta": "Phòng họp 10 × 9 m: bàn dài 5,2 m, 11 ghế, màn chiếu, cửa đôi bên trái, kính sau lưng",
+  "vat": [
+   {
+    "ten": "Thảm",
+    "hinh": "hop",
+    "tam": [
+     0,
+     400,
+     -2
+    ],
+    "co": [
+     1000,
+     900,
+     2
+    ],
+    "mau": "#3a3a3e",
+    "en": "dark grey boardroom carpet",
+    "nen": true
+   },
+   {
+    "ten": "Cửa kính chiều",
+    "hinh": "hop",
+    "tam": [
+     0,
+     800,
+     0
+    ],
+    "co": [
+     1000,
+     2,
+     300
+    ],
+    "mau": "#e9d9bf",
+    "en": "floor-to-ceiling windows, city skyline in afternoon light",
+    "nen": true,
+    "sang": 1.3
+   },
+   {
+    "ten": "Tường trái",
+    "hinh": "hop",
+    "tam": [
+     -500,
+     400,
+     0
+    ],
+    "co": [
+     2,
+     900,
+     300
+    ],
+    "mau": "#5d554c",
+    "en": "walnut wood paneled wall",
+    "nen": true,
+    "chat": "go"
+   },
+   {
+    "ten": "Tường phải",
+    "hinh": "hop",
+    "tam": [
+     500,
+     400,
+     0
+    ],
+    "co": [
+     2,
+     900,
+     300
+    ],
+    "mau": "#5d554c",
+    "en": "walnut wood paneled wall",
+    "nen": true,
+    "chat": "go"
+   },
+   {
+    "ten": "Cửa đôi",
+    "hinh": "hop",
+    "tam": [
+     -498,
+     150,
+     0
+    ],
+    "co": [
+     3,
+     200,
+     260
+    ],
+    "mau": "#3b2618",
+    "en": "tall double wooden doors",
+    "chat": "go"
+   },
+   {
+    "ten": "Màn trình chiếu",
+    "hinh": "hop",
+    "tam": [
+     0,
+     795,
+     90
+    ],
+    "co": [
+     300,
+     4,
+     170
+    ],
+    "mau": "#1a1d22",
+    "en": "large presentation screen"
+   },
+   {
+    "ten": "Bàn họp",
+    "hinh": "hop",
+    "tam": [
+     0,
+     420,
+     0
+    ],
+    "co": [
+     150,
+     520,
+     76
+    ],
+    "mau": "#3b2618",
+    "en": "long dark walnut boardroom table",
+    "chat": "go"
+   },
+   {
+    "ten": "Ghế 1T",
+    "hinh": "hop",
+    "tam": [
+     -120,
+     230,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 1P",
+    "hinh": "hop",
+    "tam": [
+     120,
+     230,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 2T",
+    "hinh": "hop",
+    "tam": [
+     -120,
+     330,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 2P",
+    "hinh": "hop",
+    "tam": [
+     120,
+     330,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 3T",
+    "hinh": "hop",
+    "tam": [
+     -120,
+     430,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 3P",
+    "hinh": "hop",
+    "tam": [
+     120,
+     430,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 4T",
+    "hinh": "hop",
+    "tam": [
+     -120,
+     530,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 4P",
+    "hinh": "hop",
+    "tam": [
+     120,
+     530,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 5T",
+    "hinh": "hop",
+    "tam": [
+     -120,
+     630,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế 5P",
+    "hinh": "hop",
+    "tam": [
+     120,
+     630,
+     0
+    ],
+    "co": [
+     55,
+     55,
+     105
+    ],
+    "mau": "#1d1d20",
+    "en": "black leather boardroom chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Ghế chủ toạ",
+    "hinh": "hop",
+    "tam": [
+     0,
+     720,
+     0
+    ],
+    "co": [
+     65,
+     60,
+     120
+    ],
+    "mau": "#1d1d20",
+    "en": "high-back leather chair at the head of the table",
+    "chat": "vai"
+   }
+  ]
+ }
+]

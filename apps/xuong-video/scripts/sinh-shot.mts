@@ -27,6 +27,7 @@ import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 import { dongThoai, dungTiengClip, giaGiongTheo } from '../src/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
+import { doiModelVideo } from '../src/lib/xuong-video/qc-cam-xuc';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
@@ -54,14 +55,16 @@ for (const id of ids) { const bc = await boiCanhCanh(db, id); if (!bc) { console
 const kt = bcs[0]!.kt; const tapId = bcs[0]!.canh.tap_id;
 const giaAnh = await giaAnhSv(kt.mo_hinh_anh).catch(() => 0);
 const dm = await dsMoHinhGiong();
-let uocVideo = 0, uocGiong = 0;
+let uocVideo = 0, uocGiong = 0; const dsModelVideo = new Set<string>();
 for (const bc of bcs) {
   const giay = lamTronClip(bc.canh.thoi_luong_s);
-  uocVideo += await giaVideoSv(kt.mo_hinh_video, kt.do_phan_giai, giay, dungTiengClip(bc.canh, bc.nhanVat)).catch(() => 0);   // cùng luật tiếng với lúc sinh/tính tiền thật
+  // ước theo ĐÚNG model sẽ gửi: shot có trẻ em tự sang Kling (qc-cam-xuc.ts › doiModelVideo) — trước 16/10/2026 dòng ước vẫn ghi Veo $0.20 cho clip Kling ~$0.70
+  const mv = doiModelVideo(kt.mo_hinh_video, bc.nhanVat.filter((v) => v.loai === 'nhan_vat'))?.model ?? kt.mo_hinh_video; dsModelVideo.add(mv);
+  uocVideo += await giaVideoSv(mv, kt.do_phan_giai, giay, dungTiengClip(bc.canh, bc.nhanVat)).catch(() => 0);   // cùng luật tiếng với lúc sinh/tính tiền thật
   for (const d of dongThoai(bc.canh, bc.nhanVat)) { const v = bc.nhanVat.find((x) => x.ten === d.nhan_vat); uocGiong += giaGiongTheo(dm, v?.giong_model || (!v && bc.kt.giong_dan?.model) || MODEL_GIONG_MAC_DINH(), d.loi.length) ?? 0; }
 }
 console.log(`tập #${tapId} · ${bcs.map((b) => `#${b.canh.thu_tu} (id ${b.canh.id}, ${b.canh.trang_thai}${b.canh.keyframe_url ? ', có keyframe' : ''})`).join(' · ')}`);
-console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video ${kt.mo_hinh_video} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);
+console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video ${[...dsModelVideo].join(' + ')} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);
 if (arg('xem')) {
   for (const bc of bcs) {
     const p = promptVideoCanh(bc);

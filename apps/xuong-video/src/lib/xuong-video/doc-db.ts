@@ -91,10 +91,10 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null };
 }
 
-export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {
+export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean; /** giá ước (¢) — người gọi biết giá (video fal/Veo) thì đưa vào để cổng tiền so ngưỡng thay vì báo "không ước được" */ cents?: number }): Promise<number> {
   // phim_id tính trước bằng truy vấn riêng: nhét cùng một tham số số vào subquery của INSERT làm postgres-js đoán kiểu
   // text cho nó rồi ném ERR_INVALID_ARG_TYPE (sinh keyframe hỏng hẳn 08/10/2026).
-  if (LOAI_JOB_TON_TIEN.has(d.loai)) chotTien(`job ${d.loai} · ${d.model}`, { cents: d.loai === 'anh' && MO_HINH_ANH.some((m) => m.key === d.model) ? giaAnhCents(d.model) : undefined });   // script thiếu duyệt → dừng trước khi ghi job (chot-tien.ts)
+  if (LOAI_JOB_TON_TIEN.has(d.loai)) chotTien(`job ${d.loai} · ${d.model}`, { cents: d.cents ?? (d.loai === 'anh' && MO_HINH_ANH.some((m) => m.key === d.model) ? giaAnhCents(d.model) : undefined) });   // script thiếu duyệt → dừng trước khi ghi job (chot-tien.ts)
   let phimId: number | null = d.phim_id ?? null;
   if (phimId == null && d.canh_id != null) {
     const q = (await db.execute(sql`SELECT t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${d.canh_id}`)) as unknown as Row[];

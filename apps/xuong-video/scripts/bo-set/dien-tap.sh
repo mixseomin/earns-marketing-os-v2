@@ -23,7 +23,7 @@ for f in glob.glob(f'{ra}/vao/*/p*.json'):
         if chi and so not in chi: continue
         os.makedirs(f"{ra}/{so:02d}-{s['ma']}", exist_ok=True)
         json.dump({**d, 'shot': [s]}, open(f"{ra}/{so:02d}-{s['ma']}/vao.json", 'w')); ds.append((so, s['ma'], g))
-open(f'{ra}/viec.txt', 'w').write('\n'.join(f'{so:02d}-{ma} {ma} {g}' for so, ma, g in sorted(ds)))
+open(f'{ra}/viec.txt', 'w').write('\n'.join(f'{so:02d}-{ma} {ma} {g}' for so, ma, g in sorted(ds)) + '\n')
 PY
 while read -r TEN MA GIAY; do
   D="$RA/$TEN"; [ -f "$D/xong" ] && continue

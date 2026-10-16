@@ -4660,28 +4660,12 @@
      "goc_may": "Close-up product",
      "hanh_dong": "the folded {{san_pham}} in its colors on a table",
      "hanh_dong_vi": "Chiếc {{san_pham}} gấp gọn, đủ màu, đặt trên bàn",
-     "chu_man": "{{san_pham}} · {{uu_dai}} · Shop now",
+     "chu_man": "{{chot}}",
      "loi": "{{chot}}",
      "prompt_anh": "Product-only close-up, no people, no hands: neatly folded {{san_pham_hinh}} on a wooden table, soft window light",
      "prompt_video": "Slow push-in on the folded {{san_pham}}",
      "bt": [
       "m1"
-     ],
-     "tk": [
-      {
-       "cau": "Shop now",
-       "nguon": [
-        {
-         "loai": "qc_thang",
-         "nguon": "qc_meta",
-         "trich": "FLASH SALE SHOP NOW",
-         "ma": "1379397090976285",
-         "link": "https://www.facebook.com/ads/library/?id=1379397090976285",
-         "ghi": "JettJeans · Husband video, end card",
-         "ky_thuat": "việc làm tiếp rõ trên chữ"
-        }
-       ]
-      }
      ]
     }
    ],

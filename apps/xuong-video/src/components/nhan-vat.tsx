@@ -2,6 +2,7 @@
 // Mục 2 tuyến nhân vật: anchor, ảnh gốc, biến thể, giọng cố định của từng nhân vật.
 import { useEffect, useState } from 'react';
 import { Ngan } from './ngan';
+import { SoLienMachXem } from './so-lien-mach-ui';
 import { moNgan } from './ngan-chung';
 import { ImageAttach } from './image-attach';
 import { GIONG } from '@/lib/xuong-video/am-thanh';
@@ -208,6 +209,11 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
           <div className="xv-field"><Nut chinh ly={!f.ten.trim() && 'nhập tên'} ban={!!ban} onClick={() => void chay('them', async () => { const r = await luuBienThe({ nhan_vat_id: a.id, ...f }); if (r.ok) setF({ ...f, ten: '', mo_ta: '' }); return r; })}>+ Thêm</Nut></div>
         </div>
       </div>
+      {(a.loai === 'nhan_vat' || a.loai === 'dao_cu') && <section style={{ marginTop: 18, display: 'grid', gap: 8 }}>
+        {/* Sổ liền mạch của nhân vật / đạo cụ qua mọi tập (script supervisor) — cùng sổ với drawer cảnh, lọc theo tên này. */}
+        <h3 style={{ margin: 0, fontSize: 14 }}>📒 Sổ liền mạch</h3>
+        <SoLienMachXem phimId={a.phim_id} ten={a.ten} />
+      </section>}
     </Ngan>
   );
 }

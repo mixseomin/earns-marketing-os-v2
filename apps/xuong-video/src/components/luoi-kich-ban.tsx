@@ -147,6 +147,9 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   <button type="button" title={pc.lien_truoc === false ? 'Cảnh MỚI: thời gian nhảy so với cảnh trước — chỗ đứng, dáng, hướng, đồ cầm được đổi. Bấm → liền mạch.' : 'LIỀN cảnh trước: mọi nhân vật mở cảnh đúng chỗ / dáng / trạng thái lần cuối thấy. Bấm → cảnh mới (thời gian nhảy).'}
                     onClick={async (e) => { e.stopPropagation(); const r = await goiAction(() => luuLuongCanh(tap.id, pc.ten, { lien_truoc: pc.lien_truoc === false ? null : false })); if (r.loi) alert(r.loi); await onChanged(); }}
                     style={{ fontSize: 10, padding: '0 5px', borderRadius: 3, border: '1px solid var(--line)', background: 'none', color: pc.lien_truoc === false ? '#facc15' : 'var(--fg-3)', cursor: 'pointer' }}>{pc.lien_truoc === false ? '✂ cảnh mới' : '⛓ liền'}</button>
+                  <button type="button" title="Sổ liền mạch của cảnh: từng nhân vật qua từng shot — chỗ, dáng, hướng, trạng thái, đồ cầm, lỗi đứt mạch"
+                    onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'lien-mach', tapId: tap.id, canh: pc.ten }); }}
+                    style={{ fontSize: 10, padding: '0 5px', borderRadius: 3, border: '1px solid var(--line)', background: 'none', color: 'var(--fg-2)', cursor: 'pointer' }}>📒 sổ</button>
                   {pc.noi && <span>📍 {pc.noi}</span>}{pc.luc && <span>🕐 {pc.luc}</span>}
                 </div>}
                 <div className="xv-mono" style={{ padding: '4px 7px 0', fontSize: 10, lineHeight: 1.35, color: 'var(--fg-2)' }}>

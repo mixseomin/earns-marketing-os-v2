@@ -12,8 +12,9 @@ import { NguonShotNoiDung } from './nguon-shot';
 import { NoiKhungTap } from './noi-khung';
 import { BoSetXem } from './bo-set-xem';
 import { SoNguonAi } from './nguon-ai-ui';
+import { SoLienMachXem } from './so-lien-mach-ui';
 
-export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
+export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -37,6 +38,8 @@ function Host() {
       else if (y.loai === 'noi-khung') ngan.open('noi-khung', y.tapId);
       // Bộ set 3D: ?ngan=bo-set&nganId=<tập>.<shot> — F5 mở lại đúng tập, đúng shot.
       else if (y.loai === 'bo-set') ngan.open('bo-set', `${y.tapId}.${y.canhId ?? 0}`);
+      // Sổ liền mạch của một cảnh (script supervisor): ?ngan=lien-mach&nganId=<tập>~<tên cảnh> — F5 mở lại đúng cảnh.
+      else if (y.loai === 'lien-mach') ngan.open('lien-mach', `${y.tapId}~${encodeURIComponent(y.canh ?? '')}`);
       else { if (y.loai === 'thu-vien') setTl(y.tl ?? ''); ngan.open(y.loai, y.loai === 'so-chi-phi' ? y.phim ?? null : null); }
     };
     window.addEventListener(SU_KIEN, h); return () => window.removeEventListener(SU_KIEN, h);
@@ -64,6 +67,11 @@ function Host() {
         <BoSetXem key={ngan.id} tapId={Number(ngan.id.split('.')[0])} canhId={Number(ngan.id.split('.')[1]) || null} />
       </Ngan>
     )}
+    {ngan.is('lien-mach') && ngan.id && (() => { const [t, c] = ngan.id.split('~'); const canh = decodeURIComponent(c ?? ''); return (
+      <Ngan onClose={ngan.close} tieuDe={`📒 Sổ liền mạch${canh ? ` · ${canh}` : ''}`}>
+        <SoLienMachXem key={ngan.id} tapId={Number(t)} canh={canh || undefined} />
+      </Ngan>
+    ); })()}
     {kyThuat && (
       <Ngan nho onClose={() => setKyThuat(null)} tieuDe="🎬 Kỹ thuật điện ảnh">
         <ChiTietKyThuatNgan key={kyThuat} ma={kyThuat} />

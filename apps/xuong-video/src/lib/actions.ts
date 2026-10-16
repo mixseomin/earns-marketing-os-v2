@@ -34,6 +34,7 @@ import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { maAnimatic } from '@/lib/xuong-video/ho-so';
 import type { BanXuat, BoSet, May3d } from '@/lib/xuong-video/kieu';
+import { soLienMach, type SoLienMach as SoLienMachT } from '@/lib/xuong-video/so-lien-mach';
 import { boSetCuaShot } from '@/lib/xuong-video/bo-set-3d';
 import { mapBoSet } from '@/lib/xuong-video/bo-set-3d-may';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
@@ -1669,6 +1670,25 @@ export async function boSetCuaTap(tapId: number): Promise<Kq<Pick<BoSet, 'id' | 
 }
 /** 🧊 Dữ liệu trình xem 3D của một tập (bo-set-xem.tsx): mọi bộ set mà shot của tập đứng trên + khối nhân vật / đạo cụ + máy và chỗ đứng
  *  từng shot. CÙNG dữ liệu Blender dựng khung xám (bo-set-3d.ts › bangDung) — xoay xem ở trình duyệt khớp đúng ảnh khung xám. */
+/** SỔ LIỀN MẠCH (so-lien-mach.ts) cho drawer: theo TẬP (drawer cảnh — mọi nhân vật) hoặc theo NHÂN VẬT qua mọi tập của phim (drawer nhân vật).
+ *  Nhánh dựng A, thứ tự phát. Lỗi lấy từ cùng cổng lienMachTap với cổng keyframe. */
+export async function soLienMachAction(q: { tapId: number } | { phimId: number; ten: string }): Promise<Kq<{ tap: { id: number; so: number; ten: string }; so: SoLienMachT }[]>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const taps = (await db.execute('tapId' in q ? sql`SELECT * FROM xv_tap WHERE id = ${q.tapId}` : sql`SELECT * FROM xv_tap WHERE phim_id = ${q.phimId} ORDER BY so, id`)) as unknown as Row[];
+  if (!taps[0]) return loi('không thấy tập');
+  const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(taps[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
+  const out: { tap: { id: number; so: number; ten: string }; so: SoLienMachT }[] = [];
+  for (const r of taps) {
+    const t = mapTap(r);
+    const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${t.id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
+    const so = soLienMach(ds, t.phan_canh, nv);
+    if ('ten' in q && !so.nhanVat[q.ten]?.length) continue;   // drawer nhân vật: chỉ tập có nhân vật này
+    out.push({ tap: { id: t.id, so: t.so, ten: t.ten }, so });
+  }
+  return { ok: true, data: out };
+}
 export async function boSet3dTap(tapId: number): Promise<Kq<{ sets: BoSet[]; khoi: Record<string, NhanVat['khoi_3d']>; loai: Record<string, string>; shots: { id: number; thu_tu: number; ma: string; canh: string; set_id: number | null; may_3d: May3d | null; xam: string | null }[]; ti_le: string }>> {
   const db = getDb();
   if (!db) return loi('no db');

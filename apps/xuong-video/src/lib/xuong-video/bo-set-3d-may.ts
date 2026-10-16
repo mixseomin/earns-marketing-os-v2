@@ -144,7 +144,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       if (!xam) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); return; }
       const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(sau ? { sau } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
-      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau ?? '', c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '', c.khung_xam.mau_giua ?? '');
+      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau ?? '', c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '', c.khung_xam.mau_giua ?? '', ...(c.khung_xam.giua ?? []), c.khung_xam.dien ?? '');
       dung++;
     });
     const mbCu = set.mat_bang_url;

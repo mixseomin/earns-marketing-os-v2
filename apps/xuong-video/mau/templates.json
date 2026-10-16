@@ -680,6 +680,7 @@
      "loai": "hook",
      "goc_may": "Medium shot, eye level, handheld",
      "hanh_dong": "{{nhan_vat_ten}} looks at camera with a tired frown, holding up the problem",
+     "hanh_dong_vi": "{{nhan_vat_ten}} nhìn máy, mặt cau có mệt mỏi, giơ ra thứ đang gây phiền",
      "chu_man": "{{tinh_huong}}…",
      "loi": "{{tinh_huong}}…",
      "dien_xuat": "wry, tired",
@@ -696,6 +697,7 @@
      "loai": "noi_dau",
      "goc_may": "Close-up, over the shoulder in the mirror",
      "hanh_dong": "{{noi_dau_hinh}}",
+     "hanh_dong_vi": "Nỗi đau: cảnh vấn đề người mua đang gặp",
      "chu_man": "{{noi_dau}}",
      "loi": "{{noi_dau}}",
      "nv": [
@@ -711,6 +713,7 @@
      "loai": "noi_dau",
      "goc_may": "Close-up",
      "hanh_dong": "{{noi_dau_2_hinh}}",
+     "hanh_dong_vi": "Nỗi đau thứ hai: vấn đề hiện rõ hơn",
      "chu_man": "{{noi_dau_2}}",
      "loi": "{{noi_dau_2}}",
      "nv": [
@@ -726,6 +729,7 @@
      "loai": "giai_phap",
      "goc_may": "Wide shot from the doorway",
      "hanh_dong": "{{nguoi_2_ten}} stands in the doorway and tosses a folded {{san_pham_goi}} onto the bed next to {{nhan_vat_ten}}, grinning",
+     "hanh_dong_vi": "{{nguoi_2_ten}} đứng ở cửa, cười, ném chiếc {{san_pham_goi}} gấp sẵn lên giường cạnh {{nhan_vat_ten}}",
      "chu_man": "{{nguoi_gioi_thieu}}",
      "loi": "{{nguoi_gioi_thieu}}",
      "nv": [
@@ -746,6 +750,7 @@
      "loai": "demo",
      "goc_may": "Medium shot in front of the mirror",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "loi": "{{demo}}",
      "nv": [
@@ -765,6 +770,7 @@
      "loai": "tinh_nang",
      "goc_may": "Macro close-up of the product",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}",
      "nv": [
@@ -783,6 +789,7 @@
      "loai": "so_sanh",
      "goc_may": "Medium shot, side angle in the mirror",
      "hanh_dong": "{{loi_ich_2_hinh}}",
+     "hanh_dong_vi": "Lợi ích 2 hiện bằng hình",
      "chu_man": "{{loi_ich_2}}",
      "loi": "{{loi_ich_2}}",
      "nv": [
@@ -802,6 +809,7 @@
      "loai": "demo",
      "goc_may": "Medium wide, low angle",
      "hanh_dong": "{{loi_ich_3_hinh}}",
+     "hanh_dong_vi": "Lợi ích 3 hiện bằng hình",
      "chu_man": "{{loi_ich_3}}",
      "loi": "{{loi_ich_3}}",
      "nv": [
@@ -821,6 +829,7 @@
      "loai": "so_sanh",
      "goc_may": "Top-down",
      "hanh_dong": "{{truoc_sau_hinh}}",
+     "hanh_dong_vi": "Trước / sau: đồ cũ bị gạt đi, sản phẩm thay thế",
      "chu_man": "{{truoc_sau}}",
      "loi": "{{truoc_sau}}",
      "nv": [
@@ -841,6 +850,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium close-up",
      "hanh_dong": "{{nhan_vat_ten}} relaxed and smiling, wearing the product",
+     "hanh_dong_vi": "{{nhan_vat_ten}} thoải mái, mỉm cười, đang mặc sản phẩm",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -859,6 +869,7 @@
      "loai": "tran_an",
      "goc_may": "Overhead flat lay",
      "hanh_dong": "Three folded {{san_pham}} in three colors laid out neatly in a row",
+     "hanh_dong_vi": "Ba chiếc {{san_pham}} gấp gọn, ba màu, xếp thẳng hàng",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",
@@ -878,6 +889,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
@@ -1016,6 +1028,7 @@
      "loai": "hook",
      "goc_may": "Medium shot",
      "hanh_dong": "Model holds the product up to the camera with excitement",
+     "hanh_dong_vi": "Người mẫu hào hứng giơ sản phẩm về phía máy",
      "chu_man": "{{uu_dai}}?!",
      "loi": "{{uu_dai}}?",
      "dien_xuat": "excited",
@@ -1033,6 +1046,7 @@
      "loai": "uu_dai",
      "goc_may": "Close-up of two products",
      "hanh_dong": "Two products side by side held in hands",
+     "hanh_dong_vi": "Hai sản phẩm cầm trên tay, đặt cạnh nhau",
      "chu_man": "{{uu_dai}}",
      "nv": [
       "sp",
@@ -1047,6 +1061,7 @@
      "loai": "giai_phap",
      "goc_may": "Medium shot",
      "hanh_dong": "Model wearing/using the product, turning to camera",
+     "hanh_dong_vi": "Người mẫu mặc / dùng sản phẩm, quay về phía máy",
      "chu_man": "This viral {{san_pham}}",
      "loi": "This viral one",
      "nv": [
@@ -1079,6 +1094,7 @@
      "loai": "uu_dai",
      "goc_may": "Detail shot",
      "hanh_dong": "Close detail of the product",
+     "hanh_dong_vi": "Cận chi tiết sản phẩm",
      "chu_man": "is on massive sale",
      "nv": [
       "sp",
@@ -1109,6 +1125,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium shot",
      "hanh_dong": "Model smiling, nodding",
+     "hanh_dong_vi": "Người mẫu mỉm cười, gật đầu",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -1124,6 +1141,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}",
      "nv": [
@@ -1139,6 +1157,7 @@
      "loai": "tinh_nang",
      "goc_may": "Medium shot",
      "hanh_dong": "{{loi_ich_2_hinh}}",
+     "hanh_dong_vi": "Lợi ích 2 hiện bằng hình",
      "chu_man": "{{loi_ich_2}}",
      "loi": "{{loi_ich_2}}",
      "nv": [
@@ -1155,6 +1174,7 @@
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "Watch this",
      "nv": [
       "sp",
@@ -1186,6 +1206,7 @@
      "loai": "tinh_nang",
      "goc_may": "Medium wide",
      "hanh_dong": "{{loi_ich_3_hinh}}",
+     "hanh_dong_vi": "Lợi ích 3 hiện bằng hình",
      "chu_man": "{{loi_ich_3}}",
      "loi": "{{loi_ich_3}}",
      "nv": [
@@ -1202,6 +1223,7 @@
      "loai": "tinh_nang",
      "goc_may": "Medium shot",
      "hanh_dong": "{{loi_ich_4_hinh}}",
+     "hanh_dong_vi": "Lợi ích 4 hiện bằng hình",
      "chu_man": "{{loi_ich_4}}",
      "loi": "{{loi_ich_4}}",
      "nv": [
@@ -1218,6 +1240,7 @@
      "loai": "noi_dau",
      "goc_may": "Close-up",
      "hanh_dong": "An ordinary uncomfortable alternative is tossed aside onto the bed",
+     "hanh_dong_vi": "Món đồ thường, khó chịu bị ném sang giường",
      "chu_man": "No more {{noi_dau_ngan}}",
      "nv": [
       "sp",
@@ -1233,6 +1256,7 @@
      "loai": "tran_an",
      "goc_may": "Flat lay",
      "hanh_dong": "Product in several colors",
+     "hanh_dong_vi": "Sản phẩm đủ các màu",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",
@@ -1247,6 +1271,7 @@
      "loai": "cta",
      "goc_may": "Medium shot",
      "hanh_dong": "Model points down toward the button",
+     "hanh_dong_vi": "Người mẫu chỉ xuống nút mua",
      "chu_man": "{{dam_bao}}",
      "loi": "Grab yours now.",
      "nv": [
@@ -1279,6 +1304,7 @@
      "loai": "end_card",
      "goc_may": "Product hero",
      "hanh_dong": "Hero shot with offer",
+     "hanh_dong_vi": "Cảnh kết: sản phẩm + ưu đãi",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -1413,6 +1439,7 @@
      "loai": "hook",
      "goc_may": "Medium close-up in the mirror, three-quarter back view, fixed angle A",
      "hanh_dong": "BEFORE: {{noi_dau_hinh}}",
+     "hanh_dong_vi": "TRƯỚC: cảnh vấn đề người mua đang gặp",
      "chu_man": "{{noi_dau}}",
      "loi": "{{noi_dau}}",
      "dien_xuat": "honest, a bit embarrassed",
@@ -1429,6 +1456,7 @@
      "loai": "noi_dau",
      "goc_may": "Close-up",
      "hanh_dong": "The problem up close",
+     "hanh_dong_vi": "Cận cảnh vấn đề",
      "chu_man": "{{noi_dau_2}}",
      "nv": [
       "nv",
@@ -1443,6 +1471,7 @@
      "loai": "giai_phap",
      "goc_may": "Close-up of hands",
      "hanh_dong": "Hands shake out the product and hold it up in front of the mirror",
+     "hanh_dong_vi": "Hai tay giũ sản phẩm rồi giơ lên trước gương",
      "chu_man": "Then I tried {{san_pham}}",
      "loi": "Then I tried this.",
      "nv": [
@@ -1489,6 +1518,7 @@
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "nv": [
       "sp",
@@ -1504,6 +1534,7 @@
      "loai": "so_sanh",
      "goc_may": "SAME fixed angle A as shot 1",
      "hanh_dong": "AFTER: same pose as shot 1, now confident with the product",
+     "hanh_dong_vi": "SAU: cùng tư thế shot 1, giờ tự tin với sản phẩm",
      "chu_man": "{{truoc_sau}}",
      "nv": [
       "sp",
@@ -1519,6 +1550,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}",
      "nv": [
@@ -1535,6 +1567,7 @@
      "loai": "tinh_nang",
      "goc_may": "Medium shot, side angle",
      "hanh_dong": "{{loi_ich_2_hinh}}",
+     "hanh_dong_vi": "Lợi ích 2 hiện bằng hình",
      "chu_man": "{{loi_ich_2}}",
      "loi": "{{loi_ich_2}}",
      "nv": [
@@ -1551,6 +1584,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium close-up",
      "hanh_dong": "Smiling at camera",
+     "hanh_dong_vi": "Mỉm cười vào máy",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -1566,6 +1600,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "Hero shot with offer",
+     "hanh_dong_vi": "Cảnh kết: sản phẩm + ưu đãi",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
@@ -1702,6 +1737,7 @@
      "loai": "hook",
      "goc_may": "Close-up, product in hand toward camera",
      "hanh_dong": "Hand thrusts the product toward the lens",
+     "hanh_dong_vi": "Tay đẩy sản phẩm sát ống kính",
      "chu_man": "Tired of this? {{noi_dau}}",
      "loi": "Still dealing with this?",
      "nv": [
@@ -1733,6 +1769,7 @@
      "loai": "noi_dau",
      "goc_may": "Close-up",
      "hanh_dong": "An ordinary uncomfortable alternative is tossed aside",
+     "hanh_dong_vi": "Món đồ thường, khó chịu bị gạt đi",
      "chu_man": "No more {{noi_dau_ngan}}",
      "loi": "No more {{noi_dau_ngan}}.",
      "nv": [
@@ -1747,6 +1784,7 @@
      "loai": "demo",
      "goc_may": "Close-up of hands",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}",
      "nv": [
@@ -1762,6 +1800,7 @@
      "loai": "demo",
      "goc_may": "Close-up of hands",
      "hanh_dong": "{{loi_ich_2_hinh}}",
+     "hanh_dong_vi": "Lợi ích 2 hiện bằng hình",
      "chu_man": "{{loi_ich_2}}",
      "loi": "{{loi_ich_2}}",
      "nv": [
@@ -1777,6 +1816,7 @@
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "loi": "{{demo}}",
      "nv": [
@@ -1793,6 +1833,7 @@
      "loai": "demo",
      "goc_may": "Medium wide",
      "hanh_dong": "{{loi_ich_3_hinh}}",
+     "hanh_dong_vi": "Lợi ích 3 hiện bằng hình",
      "chu_man": "{{loi_ich_3}}",
      "loi": "{{loi_ich_3}}",
      "nv": [
@@ -1809,6 +1850,7 @@
      "loai": "tinh_nang",
      "goc_may": "Medium shot",
      "hanh_dong": "{{loi_ich_4_hinh}}",
+     "hanh_dong_vi": "Lợi ích 4 hiện bằng hình",
      "chu_man": "{{loi_ich_4}}",
      "loi": "{{loi_ich_4}}",
      "nv": [
@@ -1825,6 +1867,7 @@
      "loai": "so_sanh",
      "goc_may": "Split frame",
      "hanh_dong": "Ordinary alternative vs the product doing the same test",
+     "hanh_dong_vi": "Đồ thường và sản phẩm cùng làm một phép thử",
      "chu_man": "Regular one vs {{san_pham}}",
      "nv": [
       "sp",
@@ -1839,6 +1882,7 @@
      "loai": "tran_an",
      "goc_may": "Flat lay",
      "hanh_dong": "Product in several colors",
+     "hanh_dong_vi": "Sản phẩm đủ các màu",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",
@@ -1853,6 +1897,7 @@
      "loai": "end_card",
      "goc_may": "Product hero",
      "hanh_dong": "Hero shot with offer",
+     "hanh_dong_vi": "Cảnh kết: sản phẩm + ưu đãi",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
@@ -1983,6 +2028,7 @@
      "loai": "hook",
      "goc_may": "Selfie close-up, front camera at arm's length",
      "hanh_dong": "{{nhan_vat_ten}} talks straight to camera, skeptical expression",
+     "hanh_dong_vi": "{{nhan_vat_ten}} nói thẳng vào máy, vẻ hoài nghi",
      "chu_man": "I didn't believe this would work",
      "loi": "Okay, I honestly didn't believe this would work.",
      "noi": "{{nhan_vat_ten}}",
@@ -2030,6 +2076,7 @@
      "loai": "noi_dau",
      "goc_may": "Selfie close-up",
      "hanh_dong": "The person describes the old problem",
+     "hanh_dong_vi": "Người kể tả vấn đề cũ",
      "chu_man": "{{noi_dau}}",
      "loi": "{{noi_dau}}",
      "noi": "{{nhan_vat_ten}}",
@@ -2047,6 +2094,7 @@
      "loai": "giai_phap",
      "goc_may": "Selfie medium, product held up",
      "hanh_dong": "The person holds the product up to the camera",
+     "hanh_dong_vi": "Người kể giơ sản phẩm về phía máy",
      "chu_man": "Then I found {{san_pham}}",
      "loi": "Then my friend sent me this.",
      "noi": "{{nhan_vat_ten}}",
@@ -2080,6 +2128,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up B-roll",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}.",
      "noi": "{{nhan_vat_ten}}",
@@ -2096,6 +2145,7 @@
      "loai": "demo",
      "goc_may": "Medium B-roll",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{loi_ich_2}}",
      "loi": "{{loi_ich_2}}.",
      "noi": "{{nhan_vat_ten}}",
@@ -2113,6 +2163,7 @@
      "loai": "bang_chung",
      "goc_may": "Selfie close-up",
      "hanh_dong": "The person smiles, genuinely happy",
+     "hanh_dong_vi": "Người kể mỉm cười, vui thật lòng",
      "chu_man": "I'm never going back",
      "loi": "Honestly? I'm never going back.",
      "noi": "{{nhan_vat_ten}}",
@@ -2161,6 +2212,7 @@
      "loai": "tran_an",
      "goc_may": "Selfie medium",
      "hanh_dong": "The person points at the screen",
+     "hanh_dong_vi": "Người kể chỉ vào màn hình",
      "chu_man": "{{dam_bao}}",
      "loi": "And if it doesn't work for you, they make it right.",
      "noi": "{{nhan_vat_ten}}",
@@ -2193,6 +2245,7 @@
      "loai": "end_card",
      "goc_may": "Product hero",
      "hanh_dong": "Hero shot with offer",
+     "hanh_dong_vi": "Cảnh kết: sản phẩm + ưu đãi",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -2322,6 +2375,7 @@
      "loai": "hook",
      "goc_may": "Real photo, slow zoom in",
      "hanh_dong": "Real product photo",
+     "hanh_dong_vi": "Ảnh thật của sản phẩm",
      "chu_man": "{{noi_dau}}?",
      "loi": "{{noi_dau}}?",
      "nv": [
@@ -2336,6 +2390,7 @@
      "loai": "giai_phap",
      "goc_may": "Real photo, slow pan",
      "hanh_dong": "Real product photo",
+     "hanh_dong_vi": "Ảnh thật của sản phẩm",
      "chu_man": "Meet {{san_pham}}",
      "loi": "Meet {{san_pham}}.",
      "nv": [
@@ -2350,6 +2405,7 @@
      "loai": "tinh_nang",
      "goc_may": "Real photo, slow zoom out",
      "hanh_dong": "Real product photo",
+     "hanh_dong_vi": "Ảnh thật của sản phẩm",
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}.",
      "nv": [
@@ -2364,6 +2420,7 @@
      "loai": "tinh_nang",
      "goc_may": "Real photo, slow pan",
      "hanh_dong": "Real product photo",
+     "hanh_dong_vi": "Ảnh thật của sản phẩm",
      "chu_man": "{{loi_ich_2}}",
      "loi": "{{loi_ich_2}}.",
      "nv": [
@@ -2378,6 +2435,7 @@
      "loai": "bang_chung",
      "goc_may": "Real photo, slow zoom in",
      "hanh_dong": "Real product photo",
+     "hanh_dong_vi": "Ảnh thật của sản phẩm",
      "chu_man": "{{review}}",
      "nv": [
       "sp"
@@ -2391,6 +2449,7 @@
      "loai": "end_card",
      "goc_may": "Real photo, static",
      "hanh_dong": "Real product photo with offer",
+     "hanh_dong_vi": "Ảnh thật của sản phẩm kèm ưu đãi",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
@@ -2519,6 +2578,7 @@
      "loai": "hook",
      "goc_may": "Extreme close-up, product feature fills the frame",
      "hanh_dong": "{{dac_tinh_hinh}}",
+     "hanh_dong_vi": "Đặc tính sản phẩm, cận chi tiết",
      "chu_man": "{{dac_tinh}}",
      "nv": [
       "sp",
@@ -2534,6 +2594,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up of hands",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "nv": [
       "sp",
@@ -2549,6 +2610,7 @@
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "nv": [
       "sp",
@@ -2565,6 +2627,7 @@
      "loai": "demo",
      "goc_may": "Medium shot, real moment",
      "hanh_dong": "{{vi_du_1_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 1",
      "chu_man": "{{vi_du_1}}",
      "nv": [
       "sp",
@@ -2581,6 +2644,7 @@
      "loai": "demo",
      "goc_may": "Medium wide, real moment",
      "hanh_dong": "{{vi_du_2_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 2",
      "chu_man": "{{vi_du_2}}",
      "nv": [
       "sp",
@@ -2597,6 +2661,7 @@
      "loai": "demo",
      "goc_may": "Medium shot, real moment",
      "hanh_dong": "{{vi_du_3_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 3",
      "chu_man": "{{vi_du_3}}",
      "nv": [
       "sp",
@@ -2613,6 +2678,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium close-up",
      "hanh_dong": "Smiling at camera",
+     "hanh_dong_vi": "Mỉm cười vào máy",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -2628,6 +2694,7 @@
      "loai": "tran_an",
      "goc_may": "Flat lay",
      "hanh_dong": "Product in several colors",
+     "hanh_dong_vi": "Sản phẩm đủ các màu",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",
@@ -2642,6 +2709,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} with the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} cầm / mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -2788,6 +2856,7 @@
      "loai": "hook",
      "goc_may": "Medium close-up",
      "hanh_dong": "{{noi_dau_hinh}}",
+     "hanh_dong_vi": "Nỗi đau: cảnh vấn đề người mua đang gặp",
      "chu_man": "{{noi_dau}}",
      "nv": [
       "nv",
@@ -2803,6 +2872,7 @@
      "loai": "giai_phap",
      "goc_may": "Extreme close-up, product feature fills the frame",
      "hanh_dong": "{{dac_tinh_hinh}}",
+     "hanh_dong_vi": "Đặc tính sản phẩm, cận chi tiết",
      "chu_man": "{{dac_tinh}}",
      "nv": [
       "sp",
@@ -2818,6 +2888,7 @@
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "nv": [
       "sp",
@@ -2834,6 +2905,7 @@
      "loai": "demo",
      "goc_may": "Medium shot, real moment",
      "hanh_dong": "{{vi_du_1_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 1",
      "chu_man": "{{vi_du_1}}",
      "nv": [
       "sp",
@@ -2850,6 +2922,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium close-up",
      "hanh_dong": "Smiling at camera",
+     "hanh_dong_vi": "Mỉm cười vào máy",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -2865,6 +2938,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -2988,6 +3062,7 @@
      "loai": "hook",
      "goc_may": "Phone selfie in the mirror",
      "hanh_dong": "{{nhan_vat_ten}} holds the product up to the mirror, excited",
+     "hanh_dong_vi": "{{nhan_vat_ten}} hào hứng giơ sản phẩm lên trước gương",
      "chu_man": "{{pov}}",
      "nv": [
       "sp",
@@ -3003,6 +3078,7 @@
      "loai": "demo",
      "goc_may": "Phone selfie in the mirror",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "nv": [
       "sp",
@@ -3018,6 +3094,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up, handheld phone",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "nv": [
       "sp",
@@ -3032,6 +3109,7 @@
      "loai": "demo",
      "goc_may": "Handheld phone, real moment",
      "hanh_dong": "{{vi_du_1_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 1",
      "chu_man": "{{vi_du_1}}",
      "nv": [
       "sp",
@@ -3047,6 +3125,7 @@
      "loai": "tinh_nang",
      "goc_may": "Phone selfie in the mirror, side angle",
      "hanh_dong": "{{loi_ich_2_hinh}}",
+     "hanh_dong_vi": "Lợi ích 2 hiện bằng hình",
      "chu_man": "{{loi_ich_2}}",
      "nv": [
       "sp",
@@ -3062,6 +3141,7 @@
      "loai": "bang_chung",
      "goc_may": "Phone selfie close-up",
      "hanh_dong": "Smiling at the phone",
+     "hanh_dong_vi": "Mỉm cười vào điện thoại",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -3077,6 +3157,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -3201,6 +3282,7 @@
      "loai": "hook",
      "goc_may": "Top-down on the bed",
      "hanh_dong": "Hands open the package, the colors spill out on the bed",
+     "hanh_dong_vi": "Hai tay mở gói hàng, các màu đổ ra giường",
      "chu_man": "{{haul_mo}}",
      "nv": [
       "sp",
@@ -3216,6 +3298,7 @@
      "loai": "tinh_nang",
      "goc_may": "Extreme close-up",
      "hanh_dong": "{{dac_tinh_hinh}}",
+     "hanh_dong_vi": "Đặc tính sản phẩm, cận chi tiết",
      "chu_man": "{{dac_tinh}}",
      "nv": [
       "sp",
@@ -3231,6 +3314,7 @@
      "loai": "demo",
      "goc_may": "Phone selfie in the mirror",
      "hanh_dong": "Wearing the first color",
+     "hanh_dong_vi": "Mặc màu thứ nhất",
      "chu_man": "{{mau_chinh}}",
      "nv": [
       "sp",
@@ -3247,6 +3331,7 @@
      "loai": "demo",
      "goc_may": "Phone selfie in the mirror",
      "hanh_dong": "Wearing the second color",
+     "hanh_dong_vi": "Mặc màu thứ hai",
      "chu_man": "{{mau_2}}",
      "nv": [
       "sp",
@@ -3263,6 +3348,7 @@
      "loai": "demo",
      "goc_may": "Phone selfie in the mirror",
      "hanh_dong": "Wearing the third color",
+     "hanh_dong_vi": "Mặc màu thứ ba",
      "chu_man": "{{mau_3}}",
      "nv": [
       "sp",
@@ -3279,6 +3365,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up of hands",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "nv": [
       "sp",
@@ -3294,6 +3381,7 @@
      "loai": "tran_an",
      "goc_may": "Flat lay",
      "hanh_dong": "All colors folded side by side",
+     "hanh_dong_vi": "Tất cả các màu gấp gọn đặt cạnh nhau",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",
@@ -3308,6 +3396,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -3443,6 +3532,7 @@
      "loai": "hook",
      "goc_may": "Medium close-up, phone at arm's length",
      "hanh_dong": "{{nhan_vat_ten}} reads a comment on their phone, then looks at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đọc một bình luận trên điện thoại rồi nhìn vào máy",
      "chu_man": "{{binh_luan}}",
      "nv": [
       "nv",
@@ -3466,6 +3556,7 @@
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "nv": [
       "sp",
@@ -3482,6 +3573,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up of hands",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "nv": [
       "sp",
@@ -3497,6 +3589,7 @@
      "loai": "tran_an",
      "goc_may": "Real size chart",
      "hanh_dong": "Real size chart from the store",
+     "hanh_dong_vi": "Bảng size thật của shop",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp"
@@ -3511,6 +3604,7 @@
      "loai": "demo",
      "goc_may": "Medium shot, real moment",
      "hanh_dong": "{{vi_du_1_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 1",
      "chu_man": "{{vi_du_1}}",
      "nv": [
       "sp",
@@ -3527,6 +3621,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium close-up",
      "hanh_dong": "Smiling at camera",
+     "hanh_dong_vi": "Mỉm cười vào máy",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -3542,6 +3637,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -3668,6 +3764,7 @@
      "loai": "hook",
      "goc_may": "Medium close-up",
      "hanh_dong": "{{re_hong_hinh}}",
+     "hanh_dong_vi": "Đồ rẻ hỏng: món giá rẻ bị xấu đi sau khi dùng",
      "chu_man": "{{re_hong}}",
      "nv": [
       "nv",
@@ -3683,6 +3780,7 @@
      "loai": "so_sanh",
      "goc_may": "Split frame / same action",
      "hanh_dong": "{{so_sanh_hinh}}",
+     "hanh_dong_vi": "So sánh đồ rẻ với sản phẩm, cùng lúc",
      "chu_man": "{{so_sanh}}",
      "nv": [
       "sp",
@@ -3698,6 +3796,7 @@
      "loai": "giai_phap",
      "goc_may": "Extreme close-up",
      "hanh_dong": "{{dac_tinh_hinh}}",
+     "hanh_dong_vi": "Đặc tính sản phẩm, cận chi tiết",
      "chu_man": "{{dac_tinh}}",
      "nv": [
       "sp",
@@ -3713,6 +3812,7 @@
      "loai": "demo",
      "goc_may": "Medium shot, real moment",
      "hanh_dong": "{{vi_du_1_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 1",
      "chu_man": "{{vi_du_1}}",
      "nv": [
       "sp",
@@ -3729,6 +3829,7 @@
      "loai": "demo",
      "goc_may": "Medium shot, real moment",
      "hanh_dong": "{{vi_du_2_hinh}}",
+     "hanh_dong_vi": "Ví dụ dùng thật 2",
      "chu_man": "{{vi_du_2}}",
      "nv": [
       "sp",
@@ -3745,6 +3846,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up of hands",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "nv": [
       "sp",
@@ -3760,6 +3862,7 @@
      "loai": "bang_chung",
      "goc_may": "Medium close-up",
      "hanh_dong": "Smiling at camera",
+     "hanh_dong_vi": "Mỉm cười vào máy",
      "chu_man": "{{review}}",
      "nv": [
       "sp",
@@ -3775,6 +3878,7 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong_vi": "{{nhan_vat_ten}} mặc sản phẩm, tự tin cười vào máy",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -3975,6 +4079,7 @@
      "loai": "hook",
      "goc_may": "Macro, studio, product fills the frame",
      "hanh_dong": "{{hook_hinh}}",
+     "hanh_dong_vi": "Hook: cảnh mở gây tò mò",
      "chu_man": "{{hook}}",
      "nv": [
       "sp_gap",
@@ -3991,6 +4096,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_1}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 1",
      "chu_man": "{{noi_1_chu}}",
      "nv": [],
      "co": "ws",
@@ -4003,6 +4109,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_2}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 2",
      "chu_man": "{{noi_2_chu}}",
      "nv": [],
      "co": "ws",
@@ -4015,6 +4122,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_3}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 3",
      "chu_man": "{{noi_3_chu}}",
      "nv": [],
      "co": "ws",
@@ -4027,6 +4135,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_4}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 4",
      "chu_man": "{{noi_4_chu}}",
      "nv": [],
      "co": "ws",
@@ -4039,6 +4148,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_5}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 5",
      "chu_man": "{{noi_5_chu}}",
      "nv": [],
      "co": "ws",
@@ -4051,6 +4161,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_6}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 6",
      "chu_man": "{{noi_6_chu}}",
      "nv": [],
      "co": "ws",
@@ -4063,6 +4174,7 @@
      "loai": "demo",
      "goc_may": "Eye-level wide, locked off",
      "hanh_dong": "{{nhan_vat_ten}} stands fixed in the exact same pose ({{dang}}), cut-out overlay in front of: {{noi_7}}",
+     "hanh_dong_vi": "{{nhan_vat_ten}} đứng nguyên một dáng, cắt nền ghép trước nơi thứ 7",
      "chu_man": "{{noi_7_chu}}",
      "nv": [],
      "co": "ws",
@@ -4075,6 +4187,7 @@
      "loai": "tinh_nang",
      "goc_may": "Close-up, studio",
      "hanh_dong": "{{lat_hinh}}",
+     "hanh_dong_vi": "Lật: sản phẩm biến hình / mở ra",
      "chu_man": "{{lat}}",
      "nv": [
       "sp_gap",
@@ -4091,6 +4204,7 @@
      "loai": "tran_an",
      "goc_may": "Overhead flat lay",
      "hanh_dong": "Product in every color, flat lay",
+     "hanh_dong_vi": "Sản phẩm đủ màu, bày phẳng nhìn từ trên",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",
@@ -4105,6 +4219,7 @@
      "loai": "end_card",
      "goc_may": "Hero, studio",
      "hanh_dong": "Hero product shot",
+     "hanh_dong_vi": "Cảnh kết: sản phẩm",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
@@ -4304,6 +4419,7 @@
      ],
      "goc_may": "Wide shot, eye level, handheld at the party",
      "hanh_dong": "{{dinh_diem_hinh}}; {{nguoi_3_ten}} runs to the table and tugs {{nguoi_2_ten}} by the hand; {{nguoi_2_ten}} half-rises, a hand goes to the waistband, a wince",
+     "hanh_dong_vi": "Khoảnh khắc đỉnh điểm; {{nguoi_3_ten}} chạy tới bàn kéo tay {{nguoi_2_ten}}; {{nguoi_2_ten}} nhổm dậy, tay đưa lên cạp quần, nhăn mặt",
      "chu_man": "{{dinh_diem}}",
      "loi": "{{loi_moi}}",
      "noi": "{{nguoi_3_ten}}",
@@ -4322,6 +4438,7 @@
      ],
      "goc_may": "Medium close-up, low angle from the table",
      "hanh_dong": "{{van_de_1_hinh}}",
+     "hanh_dong_vi": "Vấn đề 1 hiện bằng hình",
      "chu_man": "{{van_de_1}}",
      "loi": "{{tu_choi}}",
      "noi": "{{nguoi_2_ten}}",
@@ -4339,6 +4456,7 @@
      ],
      "goc_may": "Extreme close-up under the table",
      "hanh_dong": "{{van_de_2_hinh}}",
+     "hanh_dong_vi": "Vấn đề 2 hiện bằng hình",
      "prompt_anh": "Extreme close-up under a tablecloth: {{van_de_2_hinh}}, warm party light",
      "prompt_video": "Fingers undo the top button, the belly relaxes, a slow relieved exhale",
      "chu_man": "{{van_de_2}}",
@@ -4355,6 +4473,7 @@
      ],
      "goc_may": "Medium close-up across the table, shallow depth of field",
      "hanh_dong": "{{dinh_diem_2_hinh}}",
+     "hanh_dong_vi": "Đỉnh điểm: người gặp vấn đề ngồi ngoài cuộc vui",
      "chu_man": "{{dinh_diem_2}}",
      "loi": "{{dinh_diem_2}}",
      "prompt_anh": "{{nhan_vat_hinh}} across the table, {{dinh_diem_2_hinh}}, {{boi_canh_2}}, shallow depth of field",
@@ -4371,6 +4490,7 @@
      ],
      "goc_may": "Close-up on the hands",
      "hanh_dong": "{{van_de_3_hinh}}",
+     "hanh_dong_vi": "Vấn đề 3 hiện bằng hình",
      "chu_man": "{{van_de_3}}",
      "loi": "{{van_de_3}}",
      "prompt_anh": "Close-up: {{van_de_3_hinh}}, {{boi_canh}}",
@@ -4385,6 +4505,7 @@
      ],
      "goc_may": "Top-down close-up",
      "hanh_dong": "{{da_thu_hinh}}",
+     "hanh_dong_vi": "Những cách đã thử mà không ăn thua",
      "chu_man": "{{da_thu}}",
      "loi": "{{da_thu}}",
      "prompt_anh": "Top-down still life, no people, no hands: {{da_thu_hinh}}, {{boi_canh}}",
@@ -4400,6 +4521,7 @@
      ],
      "goc_may": "Medium shot, eye level",
      "hanh_dong": "{{nguoi_2_ten}} holds up the old fix, shakes head and tosses it on the bed",
+     "hanh_dong_vi": "{{nguoi_2_ten}} giơ cách chữa cũ lên, lắc đầu, ném lên giường",
      "chu_man": "{{khong_an_thua}}",
      "loi": "{{khong_an_thua}}",
      "prompt_anh": "{{nguoi_2_hinh}} in {{boi_canh}}, holding up a pair of suspenders, shaking head",
@@ -4416,6 +4538,7 @@
      ],
      "goc_may": "Medium shot, slow push-in",
      "hanh_dong": "{{phat_hien_hinh}}",
+     "hanh_dong_vi": "Phát hiện: người kể tìm ra sản phẩm",
      "chu_man": "{{phat_hien}}",
      "loi": "{{phat_hien}}",
      "prompt_anh": "{{nhan_vat_hinh}}, {{phat_hien_hinh}}, {{boi_canh}}",
@@ -4455,6 +4578,7 @@
      ],
      "goc_may": "Medium shot, eye level",
      "hanh_dong": "{{demo_hinh}}",
+     "hanh_dong_vi": "Demo: mặc / dùng sản phẩm",
      "chu_man": "{{demo}}",
      "loi": "{{bat_ngo}}",
      "noi": "{{nguoi_2_ten}}",
@@ -4477,6 +4601,7 @@
      ],
      "goc_may": "Wide shot, handheld follow",
      "hanh_dong": "{{goi_lai_hinh}}",
+     "hanh_dong_vi": "Gọi lại đỉnh điểm: lần này vui trọn vẹn",
      "chu_man": "{{goi_lai}}",
      "loi": "{{goi_lai}}",
      "prompt_anh": "{{nguoi_2_hinh}} wearing the {{san_pham}} dancing with {{nguoi_3_hinh}}, {{goi_lai_hinh}}, {{boi_canh_2}}",
@@ -4497,6 +4622,7 @@
      ],
      "goc_may": "Extreme close-up macro on the knee mid-dance",
      "hanh_dong": "{{loi_ich_1_hinh}}",
+     "hanh_dong_vi": "Lợi ích 1 hiện bằng hình",
      "chu_man": "{{loi_ich_1}}",
      "prompt_anh": "Extreme close-up: {{nguoi_2_hinh}} knee bending mid-dance, {{loi_ich_1_hinh}}, product {{san_pham_hinh}}",
      "prompt_video": "The {{san_pham}} fabric stretches with the knee and springs back",
@@ -4517,6 +4643,7 @@
      ],
      "goc_may": "Medium close-up, shallow depth of field",
      "hanh_dong": "{{nhan_vat_ten}} watches from the table, smiling; {{nguoi_2_ten}} dances in the background",
+     "hanh_dong_vi": "{{nhan_vat_ten}} ngồi bàn nhìn theo, mỉm cười; phía sau {{nguoi_2_ten}} đang nhảy",
      "chu_man": "{{review}}",
      "prompt_anh": "{{nhan_vat_hinh}} sitting at a party table, smiling warmly, {{boi_canh_2}}; far behind and out of focus {{nguoi_2_hinh}} in the {{san_pham}} dances",
      "prompt_video": "The narrator smiles and shakes head fondly, the {{san_pham}} visible in the background",
@@ -4535,6 +4662,7 @@
      ],
      "goc_may": "Close-up product",
      "hanh_dong": "the folded {{san_pham}} in its colors on a table",
+     "hanh_dong_vi": "Chiếc {{san_pham}} gấp gọn, đủ màu, đặt trên bàn",
      "chu_man": "{{san_pham}} · {{uu_dai}} · Shop now",
      "loi": "{{chot}}",
      "prompt_anh": "Product-only close-up, no people, no hands: neatly folded {{san_pham_hinh}} on a wooden table, soft window light",

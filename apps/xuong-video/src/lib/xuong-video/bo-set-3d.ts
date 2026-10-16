@@ -318,7 +318,8 @@ export function luongShot<T extends { id: number; canh?: string }>(ds: T[], phan
  *  khai lệch thì máy dùng kết shot trước và ghi vào lech (sổ báo nhẹ: dữ liệu khai thừa / sai). Sửa chỗ kết của shot trước = shot sau tự đổi theo.
  *  Không nối: shot hoặc nhân vật khai nhay (cố ý cắt thời gian), món đang được cầm (theo người cầm), sang ngày truyện khác (reset hết),
  *  cảnh lien_truoc: false (reset chỗ / hướng / dáng, trạng thái cơ thể giữ). Dáng chỉ nối khi nhân vật CÓ MẶT ở shot liền trước (vắng một shot =
- *  thời gian trôi ngoài khung). Trường _den shot không khai thì theo chỗ mở mới (đứng yên / giữ dáng). Món nối được ghi noi_tu = số shot nguồn. */
+ *  thời gian trôi ngoài khung). Trường _den shot không khai thì theo chỗ mở mới (đứng yên / giữ dáng) — riêng HƯỚNG: shot khai hướng khác thì đó là
+ *  hướng shot cần, nhân vật quay đầu tới đó trong shot. Món nối được ghi noi_tu = số shot nguồn. */
 export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3d | null; canh?: string }>(ds: T[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): { may: Map<number, May3d>; lech: Record<number, string[]> } {
   type Ket = { p: number[]; huong?: number; nam: boolean; shot: number };
   const ket = new Map<string, Ket>(); const trang = new Map<string, string>(); let truocCo = new Set<string>();
@@ -339,7 +340,8 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
         if (d > 0.5) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở ở ${r(v.tam)} mà kết #${k.shot} ở ${r(k.p)} (lệch ${Math.round(d * 10) / 10} cm) — máy nối theo kết #${k.shot}; cố ý cắt thời gian thì khai nhay`);
         n.tam = [...k.p];
         if (k.huong != null) {
-          if (v.huong != null && gocLech(k.huong, v.huong) > 15) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở nhìn ${Math.round(v.huong)}° mà kết #${k.shot} nhìn ${Math.round(k.huong)}° — máy nối theo #${k.shot}`);
+          // hướng shot khai khác hướng nối mà không khai huong_den = hướng shot CẦN (nhìn người kia): mở theo hookup rồi DIỄN quay đầu tới đó.
+          if (v.huong != null && v.huong_den == null && gocLech(k.huong, v.huong) > 15) n.huong_den = v.huong;
           n.huong = k.huong;
         }
         if (truocCo.has(v.ten)) {

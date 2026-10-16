@@ -114,7 +114,7 @@ const xuL = [{ ten: 'Bố', tam: [0, 0, 0], trang_den: 'ướt' }] as Parameters
 assert.ok(lienMachTap([shc(1, 'Lái xe', xuL), shc(2, 'Nhà', [{ ten: 'Bố', tam: [9, 0, 0] }])], kh, pc)[2]?.some((x) => x.includes('"ướt"')), 'cùng ngày: ướt vẫn phải giữ');
 assert.ok(lienMachTap([sh(1, [{ ten: 'Lint', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Lint', tam: [3, 0, 0] }])], kh)[3]![0]!.includes('kết #1'));
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [40, 0, 0] }], 'thời gian trôi: trượt cáp xuống đế cắm')], kh), {});
-assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], huong: 90 }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], huong: -90 }])], kh)[2]![0]!.includes('nhìn -90° mà kết #1 nhìn 90°'));
+{ const q = noiHookup([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], huong: 90 }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], huong: -90 }])]); assert.deepEqual([q.may.get(2)!.vi_tri[0]!.huong, q.may.get(2)!.vi_tri[0]!.huong_den, q.lech[2]], [90, -90, undefined], 'hướng: mở theo hookup, quay tới hướng shot cần'); }
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Gummy Bear', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Gummy Bear', tam: [3, 0, 1], cam: 'Tango' } as never]), sh(3, [{ ten: 'Gummy Bear', tam: [50, 0, 0] }])], kh), {});
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Sticky', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Sticky', tam: [50, 0, 0], nhay: 'lẻn theo ngoài khung' } as never])], kh), {});
 // Đồ tuỳ chọn: bố cục nhắc laptop mà shot chưa khai them → thiếu; khai rồi → đủ.

@@ -4261,6 +4261,7 @@
     "dinh_diem",
     "van_de_2",
     "nguoi_gioi_thieu",
+    "loi_moi",
     "dinh_diem_hinh",
     "van_de_1_hinh",
     "tu_choi",
@@ -4416,11 +4417,12 @@
      "goc_may": "Wide shot, eye level, handheld at the party",
      "hanh_dong": "{{dinh_diem_hinh}}; {{nguoi_3_ten}} runs to the table and tugs {{nguoi_2_ten}} by the hand; {{nguoi_2_ten}} half-rises, a hand goes to the waistband, a wince",
      "hanh_dong_vi": "Khoảnh khắc đỉnh điểm; {{nguoi_3_ten}} chạy tới bàn kéo tay {{nguoi_2_ten}}; {{nguoi_2_ten}} nhổm dậy, tay đưa lên cạp quần, nhăn mặt",
-     "chu_man": "{{dinh_diem}}",
-     "loi": "{{dinh_diem}}",
+     "chu_man": "{{loi_moi}}",
+     "loi": "{{loi_moi}}",
      "prompt_anh": "{{dinh_diem_hinh}}, {{boi_canh_2}}; in the foreground {{nguoi_3_hinh}} tugs the hand of {{nguoi_2_hinh}}, who half-rises from a round table with one hand on the tight waistband, wincing. Exactly ONE {{nguoi_2_ten}} and ONE {{nguoi_3_ten}} in the frame; other guests are strangers in the background",
      "prompt_video": "The child pulls the hand toward the dance floor; the person half-rises, presses a hand to the tight waistband and winces, music and string lights behind",
-     "dien_xuat": "eager, bright"
+     "dien_xuat": "eager, bright",
+     "noi": "{{nguoi_3_ten}}"
     },
     {
      "giay": 2.8,

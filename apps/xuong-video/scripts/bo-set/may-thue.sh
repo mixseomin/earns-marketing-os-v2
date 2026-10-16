@@ -25,9 +25,12 @@ case "$VIEC" in
   do)
     D=${4:-$(ls -d ~/xuong-video-render/tap19/09-* | head -1)}
     $SSH "rm -rf /root/xv/do && mkdir -p /root/xv/do" && rsync -aq -e "ssh -p $CONG" "$D/vao.json" $HOST:/root/xv/do/
-    $SSH "cd /root/xv && for k in 1 2; do /usr/bin/time -f 'GIAY %e' env XV_MAY=cycles XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=4 XV_MAU=24 XV_RONG=720 XV_THU_KHUNG=\$k /opt/blender/blender -b --factory-startup -P scripts/bo-set/dung-set.py -- do/vao.json do 2>&1 | grep -E '^GPU|GIAY'; done"
+    # đo bằng đồng hồ bash (container RunPod không có /usr/bin/time)
+    $SSH "cd /root/xv && for k in 1 2; do t0=\$(date +%s.%N); env XV_MAY=cycles XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=4 XV_MAU=24 XV_RONG=720 XV_THU_KHUNG=\$k /opt/blender/blender -b --factory-startup -P scripts/bo-set/dung-set.py -- do/vao.json do > do/log-\$k 2>&1; t1=\$(date +%s.%N); grep -E '^GPU' do/log-\$k | head -1; echo \"KHUNG \$k: \$(echo \"\$t1 - \$t0\" | bc) giay (ca nap Blender + dung canh)\"; grep -E 'Error|Traceback' do/log-\$k | head -2; done"
     echo "iMac M4 đo 16/10/2026: 8,9 giây / khung Cycles 720p · cả tập 19 ≈ 5,7 giờ. Khung đầu gồm cả nạp cảnh — lấy khung thứ hai để ước." ;;
   tat)
-    $SSH 'if command -v runpodctl >/dev/null && [ -n "$RUNPOD_POD_ID" ]; then runpodctl stop pod "$RUNPOD_POD_ID"; else echo "không tự tắt được (không phải RunPod) — tắt trên trang nhà cung cấp"; fi' ;;
+    # Biến RUNPOD_* nằm trong môi trường TIẾN TRÌNH 1 của container, phiên SSH không có (đo 17/10/2026) → đọc từ /proc/1/environ.
+    $SSH 'eval "$(tr "\0" "\n" < /proc/1/environ | grep -E "^RUNPOD_(POD_ID|API_KEY)=" | sed "s/^/export /")"
+      if command -v runpodctl >/dev/null && [ -n "$RUNPOD_POD_ID" ]; then runpodctl stop pod "$RUNPOD_POD_ID"; else echo "không tự tắt được (không phải RunPod) — tắt trên trang nhà cung cấp"; fi' ;;
   *) sed -n 2,9p "$0"; exit 1 ;;
 esac

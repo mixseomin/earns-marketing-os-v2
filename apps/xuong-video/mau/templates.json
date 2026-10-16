@@ -4184,7 +4184,7 @@
     "mo_hinh_chu": "claude-opus-5-5",
     "ngon_ngu": "en",
     "the_loai": "qc_ugc",
-    "logline": "{{nhan_vat_ten}}: {{niem_tin_sai}} — {{dinh_diem_2}} — until {{san_pham}}.",
+    "logline": "{{dinh_diem}} {{nguoi_3_ten}} wants {{nguoi_2_ten}} to dance — {{dinh_diem_2}} — until {{san_pham}}.",
     "qc": {
      "ten": "{{san_pham}}",
      "link": "{{link}}",

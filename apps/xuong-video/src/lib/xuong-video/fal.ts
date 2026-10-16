@@ -189,7 +189,8 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   // CLIP 3D LÀM NGUỒN (H3 Max 3D→Video: video_url = clip diễn Blender): máy / đường đi / nhịp / số vật lấy từ clip; các khung khoá làm ảnh tham chiếu
   // ngoại hình (có tham chiếu thì model không tự sinh ảnh ngoại hình mới). Thời lượng theo clip.
   if (co('video_url') && v.videoNguon) {
-    o.video_url = v.videoNguon;
+    // H3 Max kiểm prompt ≤ 2000 ký tự LÚC CHẠY (schema không khai maxLength, lỗi 422 về qua docFal chứ không lúc gửi — #23 16/10/2026).
+    o.video_url = v.videoNguon; o.prompt = catCau(v.prompt, toiDa ?? 2000);
     if (khung.length && co('reference_image_urls')) o.reference_image_urls = khung.slice(0, 8);
     if (co('resolution')) { const en = enumCua(p.resolution).map(String); const chon = en.find((x) => /768|720/.test(x)) ?? en[0]; if (chon) o.resolution = chon; }
     return o;

@@ -36,7 +36,7 @@ def mesh_that(ten):
     out = []
     for i, g in enumerate(goc):
         o = g.copy(); o.data = g.data.copy() if g.data else None; bpy.context.collection.objects.link(o); o.hide_render = o.hide_viewport = False
-        o.name = f'NV {ten}' if i == 0 else f'NV {ten}·{i}'; out.append(o)
+        o.name = f'NV {ten}' if i == 0 else f'NV {ten}·{i}'; o['vai'] = g.name.split('.')[0]; out.append(o)   # vai = tên phần lúc dựng (chan / ban chan / tay…) — bản diễn cử động theo vai
     return out
    # có OpenGL (Xvfb trên box) → khung xám + mặt bằng bằng Workbench; độ sâu vẫn Cycles 1 mẫu
 
@@ -652,6 +652,28 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             if o.name == f'NV {ten}' or o.name.startswith(f'NV {ten}·'):
                 mw = o.matrix_world.copy(); o.parent = e; o.matrix_parent_inverse = e.matrix_world.inverted(); o.matrix_world = mw
     bpy.context.view_layer.update()
+    # CHÂN TAY: mỗi bên một KHỚP (empty) ở đỉnh chân / vai, trục x của khớp = trục ngang của nhân vật → quay quanh nó là đưa tới / lui. Phần mesh
+    # mang vai 'chan' / 'ban chan' / 'tay' (mesh_that ghi) gắn vào khớp cùng bên; khối tạm không có vai thì đứng nguyên như trước.
+    khop = {}
+    for ten, (e, nv) in neo.items():
+        h = math.radians(nv.get('huong', 0) or 0); ngang = Vector((math.cos(h), math.sin(h), 0)); nhom = {}
+        for o in objs:
+            if o.parent is not e or o.get('vai') not in ('chan', 'ban chan', 'tay'): continue
+            bb = [o.matrix_world @ Vector(c) for c in o.bound_box]; tam = sum(bb, Vector()) / 8
+            ben = 1 if (tam - e.matrix_world.translation).dot(ngang) > 0 else -1
+            nhom.setdefault(('tay' if o['vai'] == 'tay' else 'chan', ben), []).append((o, bb, tam))
+        ds = []
+        for (loai, ben), ps in nhom.items():
+            truc = [x for x in ps if x[0]['vai'] != 'ban chan'] or ps   # khớp đặt theo ống chân / tay, bàn chân đi theo
+            tam = sum((x[2] for x in truc), Vector()) / len(truc)
+            P = bpy.data.objects.new(f'khop {ten} {loai} {ben}', None); s.collection.objects.link(P)
+            P.location = Vector((tam.x, tam.y, max(v.z for x in truc for v in x[1]))); P.rotation_euler = (0, 0, h)
+            bpy.context.view_layer.update(); P.parent = e; P.matrix_parent_inverse = e.matrix_world.inverted(); bpy.context.view_layer.update()
+            for o, _, _ in ps:
+                mw = o.matrix_world.copy(); o.parent = P; o.matrix_parent_inverse = P.matrix_world.inverted(); o.matrix_world = mw
+            ds.append((P, loai, ben, h))
+        khop[ten] = ds
+    bpy.context.view_layer.update()
     for ten, (e, nv) in neo.items():   # đồ đang cầm: neo gắn vào neo người cầm
         cam_ = nv.get('cam')
         if cam_ and cam_ in neo:
@@ -669,6 +691,11 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             if bay: lac = 5 * math.sin(2 * math.pi * 2 * t); p.z += 0.08 * math.sin(2 * math.pi * 3 * t)   # bay: lắc + bồng bềnh nhẹ
             e.location = p * CM; e.rotation_euler = (0, math.radians(lac), math.radians(dh * k))
             e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_euler', frame=f)
+            for P, loai, ben, h in khop.get(ten, []):
+                if bay: g_ = math.radians(10 if loai == 'chan' else 6) * math.sin(2 * math.pi * 1.5 * t + ben * 0.6)   # bay: chân tay lủng lẳng
+                elif dai > 0.4: g_ = math.radians(24 if loai == 'chan' else 14) * math.sin(math.pi * buoc * k) * ben * (1 if loai == 'chan' else -1)   # bước luân phiên, tay ngược chân
+                else: g_ = 0.0
+                P.rotation_euler = (g_, 0, h); P.keyframe_insert('rotation_euler', frame=f)
     s.frame_set(1); anh_sang_mau(s, sh, True)
     s.render.engine = 'CYCLES'; s.cycles.samples = int(os.environ.get('XV_MAU', '32')); s.cycles.use_denoising = True
     try:

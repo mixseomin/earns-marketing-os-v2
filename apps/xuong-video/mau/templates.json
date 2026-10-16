@@ -4565,7 +4565,8 @@
      "dien_xuat": "skeptical",
      "bt": [
       "m1"
-     ]
+     ],
+     "hanh_dong_vi": "{{nhan_vat_ten}} vừa đưa chiếc {{san_pham}} mới; {{nguoi_2_ten}} cầm cạp giơ cả chiếc quần đã mở sẵn lên, nhìn từ trên xuống dưới, nghi ngờ"
     },
     {
      "giay": 2.8,

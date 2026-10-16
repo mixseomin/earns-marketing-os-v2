@@ -112,6 +112,7 @@ console.log('phu-thuoc.test: ok');
   const mike = { id: 250, ten: 'Mike', loai: 'nhan_vat' } as NhanVat; const sp = { id: 249, ten: 'JettJeans', loai: 'san_pham' } as NhanVat;
   const bc = { id: 251, ten: 'Mirror spot', loai: 'boi_canh' } as NhanVat;
   assert.ok(thieuMau({ nhan_vat: [249, 251], prompt_anh: 'Close-up: he squats down to pick up a box', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('chưa gắn mẫu người')));
+assert.ok(!thieuMau({ nhan_vat: [249, 251], prompt_anh: 'Product-only close-up, no people, no hands: folded trousers on a table', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('chưa gắn mẫu người')), "'no people, no hands' là tĩnh vật, không phải shot có người");
   assert.ok(!thieuMau({ nhan_vat: [249, 250, 251], prompt_anh: 'Close-up: he squats down', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('mẫu người')), 'đã gắn Mike → qua');
   assert.ok(!thieuMau({ nhan_vat: [249, 251], prompt_anh: 'Overhead flat lay of folded pants', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('mẫu người')), 'không có người → qua');
   assert.ok(!thieuMau({ nhan_vat: [249, 251], prompt_anh: 'his hands hold it', hanh_dong: '' }, [sp, bc]).some((x) => x.includes('mẫu người')), 'phim không có anchor người → không xét');

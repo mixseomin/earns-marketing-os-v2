@@ -55,8 +55,9 @@ export function mauNhacTen(c: Pick<Canh, 'nhan_vat' | 'prompt_anh'>, nhanVat: Pi
 export const moTaNuocDoi = (mo: string | undefined): string | null => (mo ?? '').match(/[\p{L}-]+(?: [\p{L}-]+)? \/ [\p{L}-]+(?: [\p{L}-]+)?/u)?.[0] ?? null;
 /** Chữ trong prompt ảnh cho thấy shot có người (đại từ / người / tay). */
 export const CO_NGUOI = /\b(he|she|his|her|him|man|woman|person|people|hands?)\b/i;
-/** Có người trong prompt — bỏ cụm PHỦ ĐỊNH trước ('NO people at all', 'without a person': ảnh nền ghép của khuôn đổi nền). */
-export const coNguoi = (prompt: string): boolean => CO_NGUOI.test(prompt.replace(/\b(no|without|empty of|free of)\s+(\w+\s+)?(people|person|humans?|man|woman|one)\b/gi, ' '));
+/** Có người trong prompt — bỏ cụm PHỦ ĐỊNH trước ('NO people at all', 'without a person': ảnh nền ghép của khuôn đổi nền; 'no hands': tĩnh vật /
+ *  end card sản phẩm — 16/10/2026 Jett #61 shot 6, 14 bị chặn nhầm). */
+export const coNguoi = (prompt: string): boolean => CO_NGUOI.test(prompt.replace(/\b(no|without|empty of|free of)\s+(\w+\s+)?(people|person|humans?|man|woman|one|hands?)\b/gi, ' '));
 export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> & Partial<Pick<Canh, 'ky_thuat'>>, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & Partial<Pick<NhanVat, 'mo_ta'>>)[]): string[] {
   const out: string[] = [];
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));

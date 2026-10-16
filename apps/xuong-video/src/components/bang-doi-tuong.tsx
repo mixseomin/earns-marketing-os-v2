@@ -2,6 +2,7 @@
 // Bảng đối tượng × shot (12/10/2026): hàng = sản phẩm / người / bối cảnh / đạo cụ, cột = shot. Ô có ảnh = đối tượng gắn vào shot
 // (ảnh biến thể nếu shot chọn biến thể — rê để xem to). Đỏ = thiếu ảnh (không sinh được), vàng = sản phẩm khác màu/biến thể với đa số shot,
 // vàng nét đứt ở ô trống = mô tả shot nhắc tên mà chưa gắn. Bắt lỗi trước khi tốn tiền sinh. Luật ở phu-thuoc.ts › bangDoiTuong, 0đ.
+import { Anh3d } from './anh-set-3d';
 import { useMemo } from 'react';
 import { bangDoiTuong } from '@/lib/xuong-video/phu-thuoc';
 import type { Canh, NhanVat } from '@/lib/xuong-video/kieu';
@@ -37,7 +38,9 @@ export function BangDoiTuong({ canh, nhanVat, onChonShot, onDong }: { canh: Canh
               <tr key={nv.id}>
                 <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-1)', paddingRight: 6, whiteSpace: 'nowrap', fontSize: 11.5 }}>
                   <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-                    {nv.anh_ref[0] ? <img src={anhNho(nv.anh_ref[0], 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 4 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[nv.loai] ?? '•'}</span>}
+                    {nv.anh_ref[0] ? <img src={anhNho(nv.anh_ref[0], 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 4 }} />
+                      : (nv.khoi_3d || (nv.loai === 'boi_canh' && nv.bo_set_id)) ? <span style={{ borderRadius: 4, overflow: 'hidden', display: 'inline-block' }}><Anh3d v={nv} co={22} /></span>   /* chưa ảnh thật → ảnh 3D (quy trình chuẩn) */
+                      : <span style={{ width: 22, textAlign: 'center' }}>{ICON[nv.loai] ?? '•'}</span>}
                     <span style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>{nv.ten}</span>
                   </span>
                 </td>

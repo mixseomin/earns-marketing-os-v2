@@ -36,7 +36,35 @@ export function khanHinh(wd: number, NT = 56, NV = 26): THREE.BufferGeometry {
 }
 
 /** Một khối — cùng luật dung-set.py › khoi: tam = (x, y, z ĐÁY) tương đối gốc nhóm (quay theo xoay°), co = (rộng x, sâu y, cao z). */
+/** MA-NƠ-CANH NGƯỜI (khoi_3d.hinh 'nguoi', phim người thật) — cùng tỉ lệ nhân trắc với Blender (scripts/bo-set/mesh/nguoi.py › TL): các khối elip
+ *  hông, bụng, ngực, cổ, đầu, tay, chân ở tư thế đứng; đáy giữa ở (0,0,0) dữ liệu, mặt nhìn −y. Trước 17/10/2026 trình xem vẽ viên nhộng. */
+const TL = { chan: 0.039, cang: 0.246, dui: 0.245, hong: 0.1, bung: 0.1, nguc: 0.13, co: 0.052, dau: 0.13, vai: 0.129, tay_tren: 0.186, tay_duoi: 0.146, ban_tay: 0.108, hong_rong: 0.095 };
+function nguoiThree(H: number, da: string, ao: string, mo: number): THREE.Group {
+  const L = Object.fromEntries(Object.entries(TL).map(([k, v]) => [k, v * H])) as typeof TL;
+  const g = new THREE.Group();
+  const e = (x: number, z0: number, rx: number, ry: number, dai: number, mau: string, y = 0) => g.add(khoi({ hinh: 'cau', co: [rx * 2, ry * 2, dai], tam: [x, y, z0], mau }, [0, 0], 0, mo));
+  const zH = L.chan + L.cang + L.dui;
+  for (const s of [-1, 1]) {
+    const x = s * L.hong_rong * 0.55;
+    e(x, L.chan * 0.2, 0.026 * H, 0.04 * H, L.chan * 1.1, ao, -0.02 * H);   // bàn chân (mũi ra trước)
+    e(x, L.chan, 0.034 * H, 0.034 * H, L.cang, ao); e(x, L.chan + L.cang, 0.045 * H, 0.045 * H, L.dui, ao);
+    const xv = s * L.vai, zv = zH + L.bung + L.nguc * 0.88;
+    e(xv * 1.02, zv - L.tay_tren, 0.03 * H, 0.03 * H, L.tay_tren, ao); e(xv * 1.04, zv - L.tay_tren - L.tay_duoi, 0.024 * H, 0.024 * H, L.tay_duoi, da);
+    e(xv * 1.05, zv - L.tay_tren - L.tay_duoi - L.ban_tay, 0.018 * H, 0.01 * H, L.ban_tay, da);
+  }
+  e(0, zH - L.hong * 0.6, L.hong_rong * 1.05, 0.1 * H, L.hong, ao); e(0, zH, 0.085 * H, 0.06 * H, L.bung, ao); e(0, zH + L.bung, 0.11 * H, 0.068 * H, L.nguc, ao);
+  e(0, zH + L.bung + L.nguc, 0.03 * H, 0.03 * H, L.co, da); e(0, zH + L.bung + L.nguc + L.co, 0.046 * H, 0.056 * H, L.dau, da);
+  e(0, zH + L.bung + L.nguc + L.co + L.dau * 0.38, 0.008 * H, 0.012 * H, 0.02 * H, da, -0.05 * H);   // mũi: chỉ hướng mặt
+  return g;
+}
+
 export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.Object3D {
+  if (p.hinh === 'nguoi') {
+    const a0 = (xoay * Math.PI) / 180; const [x0, y0, z0] = [p.tam?.[0] ?? 0, p.tam?.[1] ?? 0, p.tam?.[2] ?? 0];
+    const n = nguoiThree(p.co?.[2] ?? 170, p.mau, (p as Phan & { ao?: string }).ao ?? p.mau, mo);
+    n.position.copy(V([goc[0]! + x0 * Math.cos(a0) - y0 * Math.sin(a0), goc[1]! + x0 * Math.sin(a0) + y0 * Math.cos(a0), z0])); n.rotation.y = ((xoay + (p.xoay ?? 0)) * Math.PI) / 180;
+    return n;
+  }
   const m = chat(p.mau, p.sang ?? 0, mo);
   if (p.hinh === 'day') {
     const d = (p.diem ?? []).map(V);
@@ -52,7 +80,6 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
   else if (p.hinh === 'khan') { g = khanHinh(w / (dd || 1)); }   // tấm khăn rủ: đơn vị tâm ở giữa khối như hộp
   else if (p.hinh === 'non') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
-  else if (p.hinh === 'nguoi') g = new THREE.CapsuleGeometry(0.3, 0.4, 6, 16);   // người (phim người thật): viên nhộng cao = chiều cao — Blender dựng ma-nơ-canh có khớp
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);
   // Nghiêng quanh trục x của khối TRƯỚC rồi mới xoay quanh trục đứng (như Blender Euler XYZ) → thứ tự 'YXZ' của three.
@@ -66,7 +93,7 @@ export function nhanVat(k: KhoiNv, vt: { tam: number[]; huong?: number; nam?: bo
   const [X, Y, Z] = [vt.tam[0]!, vt.tam[1]!, vt.tam[2] ?? 0];
   const [w, d, h] = k.co as [number, number, number];
   const trong = new THREE.Group();   // người đứng, đáy giữa ở gốc, mặt nhìn −y dữ liệu
-  trong.add(khoi({ hinh: k.hinh, co: [w, d, h], mau: k.mau, sang: k.sang, dinh: k.dinh, tam: [0, 0, 0] }, [0, 0], 0, mo));
+  trong.add(khoi({ hinh: k.hinh, co: [w, d, h], mau: k.mau, sang: k.sang, dinh: k.dinh, tam: [0, 0, 0], ...((k as KhoiNv & { ao?: string }).ao ? { ao: (k as KhoiNv & { ao?: string }).ao } : {}) } as Phan, [0, 0], 0, mo));
   const phan: Phan[] = [...(k.phan ?? [])];
   if (k.mat) {
     const e = Math.max(0.3, 0.26 * Math.min(w, h)); const ex = 0.22 * w; const [ey, ez] = [-d / 2 + e * 0.15, h * 0.62 - e / 2];

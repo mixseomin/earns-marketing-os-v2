@@ -84,7 +84,6 @@ export async function damBaoAnhMat(db: Db, nv: NhanVat[]): Promise<void> {
 // ── 🩹 SỬA MẶT (bước 2b nhịp B): keyframe lệch mặt → mô hình sửa ảnh rẻ nhất của chuỗi cổng (ckey Nano Banana 2 ~110₫; cổng hỏng thì rơi
 // Google ~874₫) nhận [keyframe, ảnh sát mặt] + lệnh "chỉ thay mặt X" → ảnh về thì SOI LẠI: đạt → thành keyframe (bản cũ còn trong dải
 // keyframe để hoàn tác); chưa đạt → thử lại từ ẢNH GỐC, tối đa SUA_MAT_TOI_DA lần rồi dừng, ghi lỗi để người xem các bản trong dải.
-const viTriMat = (o?: { x: number; y: number }) => (o ? `the face at the ${o.y < 0.36 ? 'top' : o.y > 0.64 ? 'bottom' : 'middle'}-${o.x < 0.36 ? 'left' : o.x > 0.64 ? 'right' : 'centre'} of image 1` : 'their face in image 1');
 
 async function docShot(db: Db, canhId: number) {
   const r = (await db.execute(sql`SELECT c.*, p.kinh_thanh AS kt_phim FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];

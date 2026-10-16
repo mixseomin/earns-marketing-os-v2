@@ -1,6 +1,7 @@
 // Xuất một tập — MỘT đường cho nút ⬇ Xuất (actions.ts › xuatTap) và script (scripts/xuat-tap.mts): cùng cổng người xem + cổng tiếng,
 // cùng job, cùng chỗ ghi bản xuất. Trước 15/10/2026 lõi nằm trong server action có kiểm phiên admin → máy không tự xuất được, phải nhờ anh bấm.
 // 0đ (ffmpeg trên máy chủ, không gọi model).
+import { batCamXuc } from './qc-cam-xuc';
 import { xuatMayDungTap } from './may-dung';
 import 'server-only';
 import { sql } from 'drizzle-orm';
@@ -51,7 +52,7 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   if (soi.length) return { ok: false, loi: `Chưa xuất được — clip còn lỗi soi: ${soi.join('; ')}. Sinh lại shot đó, hoặc bấm "Bỏ qua lỗi soi" trên thẻ shot nếu máy báo nhầm` };
   const kt = docKinhThanh(bc.kt);
   // MURCH QC (qc-cam-xuc.ts): phim bật cam_xuc_qc thì mọi clip phải SOÁT ĐẠT (nét mặt đầu/cuối đúng kế hoạch, không biến dạng, sản phẩm giữ…).
-  if (bc.loai === 'quang_cao' && kt.cam_xuc_qc) {
+  if (batCamXuc(bc.loai, kt)) {
     // Clip chưa có điểm (thay clip tay, clip cũ trước khi có máy chấm) → máy chấm ngay (cham-may.ts, 0đ) rồi mới xét.
     const chuaCham = locNhanh(canh, nhanh || 'A').filter((c) => !soatClip(c)).map((c) => c.id);
     if (chuaCham.length) {

@@ -5,24 +5,24 @@
   "vung": {
    "tam": [
     0,
-    600,
+    650,
     0
    ],
    "ban_kinh": 700
   },
-  "mo_ta": "Văn phòng mở 12 × 14 m: 3 dãy bàn, cửa kính lớn bên phải, vách kính phòng tổng giám đốc ở cuối",
+  "mo_ta": "Văn phòng mở 12 × 13 m: 3 dãy bàn có đồ làm việc, 7 đồng nghiệp (5 ngồi, 2 đứng cạnh cửa sổ), cửa kính lớn bên phải + tủ thấp, tranh thuỷ mặc + tường logo bên trái, tủ hồ sơ + máy photo góc sau trái, phòng TGĐ vách kính (bàn, ghế, kệ sách, sofa, thư pháp), cửa vào + đồng hồ ở tường trước, trần đèn dải",
   "vat": [
    {
     "ten": "Sàn đá",
     "hinh": "hop",
     "tam": [
      0,
-     600,
+     650,
      -2
     ],
     "co": [
      1200,
-     1400,
+     1300,
      2
     ],
     "mau": "#d9d6d0",
@@ -30,16 +30,33 @@
     "nen": true
    },
    {
+    "ten": "Trần",
+    "hinh": "hop",
+    "tam": [
+     0,
+     650,
+     300
+    ],
+    "co": [
+     1200,
+     1300,
+     2
+    ],
+    "mau": "#f4f4f2",
+    "en": "white acoustic ceiling",
+    "nen": true
+   },
+   {
     "ten": "Tường trái",
     "hinh": "hop",
     "tam": [
      -600,
-     600,
+     650,
      0
     ],
     "co": [
      2,
-     1400,
+     1300,
      300
     ],
     "mau": "#e8e6e2",
@@ -51,16 +68,16 @@
     "hinh": "hop",
     "tam": [
      600,
-     600,
+     650,
      0
     ],
     "co": [
      2,
-     1400,
+     1300,
      300
     ],
     "mau": "#cfe0f0",
-    "en": "floor-to-ceiling windows over a city skyline",
+    "en": "floor-to-ceiling windows over a city skyline in morning light",
     "nen": true,
     "sang": 1.2
    },
@@ -78,8 +95,58 @@
      300
     ],
     "mau": "#e8e6e2",
-    "en": "back office wall",
+    "en": "plain light grey back office wall",
     "nen": true
+   },
+   {
+    "ten": "Tường trước",
+    "hinh": "hop",
+    "tam": [
+     0,
+     0,
+     0
+    ],
+    "co": [
+     1200,
+     2,
+     300
+    ],
+    "mau": "#e8e6e2",
+    "en": "plain light grey office wall",
+    "nen": true
+   },
+   {
+    "ten": "Cửa vào kính mờ",
+    "hinh": "hop",
+    "tam": [
+     -300,
+     3,
+     0
+    ],
+    "co": [
+     180,
+     3,
+     240
+    ],
+    "mau": "#c9d6df",
+    "en": "frosted glass double entrance doors with steel handles",
+    "sang": 0.2
+   },
+   {
+    "ten": "Đồng hồ tường",
+    "hinh": "hop",
+    "tam": [
+     250,
+     3,
+     195
+    ],
+    "co": [
+     40,
+     3,
+     40
+    ],
+    "mau": "#111111",
+    "en": "round black wall clock showing 9:05"
    },
    {
     "ten": "Vách kính phòng TGĐ",
@@ -116,6 +183,334 @@
     "sang": 0.3
    },
    {
+    "ten": "Đèn trần 1",
+    "hinh": "hop",
+    "tam": [
+     -330,
+     550,
+     296
+    ],
+    "co": [
+     12,
+     900,
+     4
+    ],
+    "mau": "#fffaf0",
+    "en": "recessed linear LED ceiling light",
+    "sang": 3
+   },
+   {
+    "ten": "Đèn trần 2",
+    "hinh": "hop",
+    "tam": [
+     -120,
+     550,
+     296
+    ],
+    "co": [
+     12,
+     900,
+     4
+    ],
+    "mau": "#fffaf0",
+    "en": "recessed linear LED ceiling light",
+    "sang": 3
+   },
+   {
+    "ten": "Đèn trần 3",
+    "hinh": "hop",
+    "tam": [
+     300,
+     550,
+     296
+    ],
+    "co": [
+     12,
+     900,
+     4
+    ],
+    "mau": "#fffaf0",
+    "en": "recessed linear LED ceiling light",
+    "sang": 3
+   },
+   {
+    "ten": "Tranh thuỷ mặc",
+    "hinh": "hop",
+    "tam": [
+     -597,
+     450,
+     120
+    ],
+    "co": [
+     4,
+     240,
+     120
+    ],
+    "mau": "#d8d4c8",
+    "en": "large framed Chinese ink-wash painting of misty mountains in a thin black frame"
+   },
+   {
+    "ten": "Tường logo",
+    "hinh": "hop",
+    "tam": [
+     -597,
+     850,
+     0
+    ],
+    "co": [
+     4,
+     260,
+     300
+    ],
+    "mau": "#1d3557",
+    "en": "navy blue feature wall with gold metal letters \"LU GROUP\"",
+    "nen": true
+   },
+   {
+    "ten": "Tủ hồ sơ",
+    "hinh": "hop",
+    "tam": [
+     -340,
+     1270,
+     0
+    ],
+    "co": [
+     480,
+     50,
+     110
+    ],
+    "mau": "#cfd2d6",
+    "en": "row of light grey metal filing cabinets",
+    "chat": "kim_loai"
+   },
+   {
+    "ten": "Máy photo",
+    "hinh": "hop",
+    "tam": [
+     -480,
+     1150,
+     0
+    ],
+    "co": [
+     70,
+     60,
+     100
+    ],
+    "mau": "#e9e9e9",
+    "en": "large white office copier printer"
+   },
+   {
+    "ten": "Tủ thấp cửa sổ",
+    "hinh": "hop",
+    "tam": [
+     565,
+     550,
+     0
+    ],
+    "co": [
+     50,
+     700,
+     70
+    ],
+    "mau": "#ece8e0",
+    "en": "low white lacquer credenza along the windows with stacked binders and small potted succulents on top"
+   },
+   {
+    "ten": "Cây góc trước trái",
+    "goc": [
+     -555,
+     60
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       140
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
+    "ten": "Cây góc trước phải",
+    "goc": [
+     555,
+     60
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       140
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
+    "ten": "Cây cạnh tường",
+    "goc": [
+     -555,
+     650
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       120
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
+    "ten": "Cây cạnh phòng TGĐ",
+    "goc": [
+     555,
+     950
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       140
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
+    "ten": "Cây góc sau trái",
+    "goc": [
+     -555,
+     1060
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       130
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
     "ten": "Bàn TGĐ",
     "hinh": "hop",
     "tam": [
@@ -131,6 +526,128 @@
     "mau": "#3b2618",
     "en": "large dark walnut executive desk",
     "chat": "go"
+   },
+   {
+    "ten": "Ghế TGĐ",
+    "hinh": "hop",
+    "tam": [
+     330,
+     1235,
+     0
+    ],
+    "co": [
+     65,
+     60,
+     125
+    ],
+    "mau": "#151517",
+    "en": "high-back black leather executive chair",
+    "chat": "vai"
+   },
+   {
+    "ten": "Laptop TGĐ",
+    "hinh": "hop",
+    "tam": [
+     330,
+     1140,
+     76
+    ],
+    "co": [
+     34,
+     24,
+     2
+    ],
+    "mau": "#b9bcc0",
+    "en": "closed silver laptop"
+   },
+   {
+    "ten": "Kệ sách TGĐ",
+    "hinh": "hop",
+    "tam": [
+     400,
+     1282,
+     0
+    ],
+    "co": [
+     300,
+     30,
+     220
+    ],
+    "mau": "#3b2618",
+    "en": "tall dark walnut bookshelf with leather-bound books and two crystal awards",
+    "chat": "go"
+   },
+   {
+    "ten": "Sofa TGĐ",
+    "hinh": "hop",
+    "tam": [
+     110,
+     1230,
+     0
+    ],
+    "co": [
+     150,
+     70,
+     45
+    ],
+    "mau": "#1b1b1d",
+    "en": "black leather sofa",
+    "chat": "vai"
+   },
+   {
+    "ten": "Thư pháp",
+    "hinh": "hop",
+    "tam": [
+     110,
+     1297,
+     125
+    ],
+    "co": [
+     110,
+     4,
+     70
+    ],
+    "mau": "#f3efe6",
+    "en": "framed black calligraphy scroll on white paper"
+   },
+   {
+    "ten": "Cây phòng TGĐ",
+    "goc": [
+     545,
+     1060
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       110
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
    },
    {
     "ten": "Bàn 1.1",
@@ -163,7 +680,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 1.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     285,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 1.1",
+    "hinh": "hop",
+    "tam": [
+     -372,
+     310,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Chậu sen đá 1.1",
+    "hinh": "hop",
+    "tam": [
+     -492,
+     318,
+     76
+    ],
+    "co": [
+     12,
+     12,
+     16
+    ],
+    "mau": "#4f7a45",
+    "en": "small succulent in a white pot"
    },
    {
     "ten": "Ghế 1.1",
@@ -179,7 +744,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -213,7 +778,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 1.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     285,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 1.2",
+    "hinh": "hop",
+    "tam": [
+     -162,
+     310,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Cốc 1.2",
+    "hinh": "hop",
+    "tam": [
+     -275,
+     280,
+     76
+    ],
+    "co": [
+     8,
+     8,
+     10
+    ],
+    "mau": "#ffffff",
+    "en": "white mug"
    },
    {
     "ten": "Ghế 1.2",
@@ -229,7 +842,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -263,7 +876,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 1.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     285,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 1.3",
+    "hinh": "hop",
+    "tam": [
+     48,
+     310,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Chậu sen đá 1.3",
+    "hinh": "hop",
+    "tam": [
+     -72,
+     318,
+     76
+    ],
+    "co": [
+     12,
+     12,
+     16
+    ],
+    "mau": "#4f7a45",
+    "en": "small succulent in a white pot"
    },
    {
     "ten": "Ghế 1.3",
@@ -279,7 +940,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -313,7 +974,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 2.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     485,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 2.1",
+    "hinh": "hop",
+    "tam": [
+     -372,
+     510,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Cốc 2.1",
+    "hinh": "hop",
+    "tam": [
+     -485,
+     480,
+     76
+    ],
+    "co": [
+     8,
+     8,
+     10
+    ],
+    "mau": "#ffffff",
+    "en": "white mug"
    },
    {
     "ten": "Ghế 2.1",
@@ -329,7 +1038,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -363,7 +1072,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 2.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     485,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 2.2",
+    "hinh": "hop",
+    "tam": [
+     -162,
+     510,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Chậu sen đá 2.2",
+    "hinh": "hop",
+    "tam": [
+     -282,
+     518,
+     76
+    ],
+    "co": [
+     12,
+     12,
+     16
+    ],
+    "mau": "#4f7a45",
+    "en": "small succulent in a white pot"
    },
    {
     "ten": "Ghế 2.2",
@@ -379,7 +1136,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -413,7 +1170,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 2.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     485,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 2.3",
+    "hinh": "hop",
+    "tam": [
+     48,
+     510,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Cốc 2.3",
+    "hinh": "hop",
+    "tam": [
+     -65,
+     480,
+     76
+    ],
+    "co": [
+     8,
+     8,
+     10
+    ],
+    "mau": "#ffffff",
+    "en": "white mug"
    },
    {
     "ten": "Ghế 2.3",
@@ -429,7 +1234,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -463,7 +1268,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 3.1",
+    "hinh": "hop",
+    "tam": [
+     -430,
+     685,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 3.1",
+    "hinh": "hop",
+    "tam": [
+     -372,
+     710,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Chậu sen đá 3.1",
+    "hinh": "hop",
+    "tam": [
+     -492,
+     718,
+     76
+    ],
+    "co": [
+     12,
+     12,
+     16
+    ],
+    "mau": "#4f7a45",
+    "en": "small succulent in a white pot"
    },
    {
     "ten": "Ghế 3.1",
@@ -479,7 +1332,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -513,7 +1366,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 3.2",
+    "hinh": "hop",
+    "tam": [
+     -220,
+     685,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 3.2",
+    "hinh": "hop",
+    "tam": [
+     -162,
+     710,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Cốc 3.2",
+    "hinh": "hop",
+    "tam": [
+     -275,
+     680,
+     76
+    ],
+    "co": [
+     8,
+     8,
+     10
+    ],
+    "mau": "#ffffff",
+    "en": "white mug"
    },
    {
     "ten": "Ghế 3.2",
@@ -529,7 +1430,7 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
    },
    {
@@ -563,7 +1464,55 @@
      34
     ],
     "mau": "#16181c",
-    "en": "computer monitor"
+    "en": "black computer monitor"
+   },
+   {
+    "ten": "Bàn phím 3.3",
+    "hinh": "hop",
+    "tam": [
+     -10,
+     685,
+     76
+    ],
+    "co": [
+     45,
+     14,
+     2
+    ],
+    "mau": "#1f1f22",
+    "en": "black keyboard"
+   },
+   {
+    "ten": "Khay giấy 3.3",
+    "hinh": "hop",
+    "tam": [
+     48,
+     710,
+     76
+    ],
+    "co": [
+     28,
+     34,
+     14
+    ],
+    "mau": "#2b2b2b",
+    "en": "black wire document tray with papers"
+   },
+   {
+    "ten": "Chậu sen đá 3.3",
+    "hinh": "hop",
+    "tam": [
+     -72,
+     718,
+     76
+    ],
+    "co": [
+     12,
+     12,
+     16
+    ],
+    "mau": "#4f7a45",
+    "en": "small succulent in a white pot"
    },
    {
     "ten": "Ghế 3.3",
@@ -579,8 +1528,141 @@
      95
     ],
     "mau": "#2a2a2e",
-    "en": "black office chair",
+    "en": "black mesh office chair",
     "chat": "vai"
+   },
+   {
+    "ten": "Đồng nghiệp ngồi 1",
+    "hinh": "nguoi",
+    "tam": [
+     -10,
+     230,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     170
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#d9cbb5",
+    "tu_the": "ngoi",
+    "xoay": 90,
+    "en": "young male office worker in a beige shirt, seated, turned toward the aisle, watching"
+   },
+   {
+    "ten": "Đồng nghiệp ngồi 2",
+    "hinh": "nguoi",
+    "tam": [
+     -10,
+     430,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     162
+    ],
+    "mau": "#ecc7a8",
+    "ao": "#9fb8d6",
+    "tu_the": "ngoi",
+    "xoay": 90,
+    "en": "young female office worker in a light blue blouse, seated, turned toward the aisle, holding up a phone to film"
+   },
+   {
+    "ten": "Đồng nghiệp ngồi 3",
+    "hinh": "nguoi",
+    "tam": [
+     -10,
+     630,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     175
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#3a3f47",
+    "tu_the": "ngoi",
+    "xoay": 90,
+    "en": "male office worker in a charcoal shirt, seated, turned toward the aisle, smirking"
+   },
+   {
+    "ten": "Đồng nghiệp ngồi 4",
+    "hinh": "nguoi",
+    "tam": [
+     -220,
+     430,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     160
+    ],
+    "mau": "#ecc7a8",
+    "ao": "#f7f7f5",
+    "tu_the": "ngoi",
+    "xoay": 180,
+    "en": "female office worker in a white blouse, seated at her desk, glancing over her shoulder"
+   },
+   {
+    "ten": "Đồng nghiệp ngồi 5",
+    "hinh": "nguoi",
+    "tam": [
+     -430,
+     630,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#6b4f3a",
+    "tu_the": "ngoi",
+    "xoay": 180,
+    "en": "male office worker in a brown sweater, seated at his desk, typing"
+   },
+   {
+    "ten": "Đồng nghiệp đứng 1",
+    "hinh": "nguoi",
+    "tam": [
+     500,
+     470,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     160
+    ],
+    "mau": "#ecc7a8",
+    "ao": "#e9dcc9",
+    "tu_the": "dung",
+    "xoay": -90,
+    "en": "female office worker in a cream blouse and grey pencil skirt, standing by the window, filming on her phone"
+   },
+   {
+    "ten": "Đồng nghiệp đứng 2",
+    "hinh": "nguoi",
+    "tam": [
+     510,
+     770,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     178
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#6d7f99",
+    "tu_the": "dung",
+    "xoay": -90,
+    "en": "male office worker in a slate blue shirt and dark trousers, standing by the window, arms crossed, smirking"
    }
   ]
  },
@@ -595,7 +1677,7 @@
    ],
    "ban_kinh": 350
   },
-  "mo_ta": "Sảnh 7 × 6 m: hai thang máy thép, tường đá đen, logo vàng",
+  "mo_ta": "Sảnh 7 × 6 m: hai thang máy thép + số tầng + nút gọi, tường đá đen, logo vàng, tranh lá vàng, bảng chỉ dẫn, ghế băng, hai bình lan trắng, cây góc, trần ô",
   "vat": [
    {
     "ten": "Sàn đá đen",
@@ -612,6 +1694,23 @@
     ],
     "mau": "#202022",
     "en": "black polished marble floor",
+    "nen": true
+   },
+   {
+    "ten": "Trần",
+    "hinh": "hop",
+    "tam": [
+     0,
+     250,
+     300
+    ],
+    "co": [
+     700,
+     600,
+     2
+    ],
+    "mau": "#2a2826",
+    "en": "dark coffered ceiling",
     "nen": true
    },
    {
@@ -679,7 +1778,8 @@
      225
     ],
     "mau": "#9aa0a6",
-    "en": "brushed steel elevator door"
+    "en": "brushed steel elevator door",
+    "chat": "kim_loai"
    },
    {
     "ten": "Thang máy 2",
@@ -695,7 +1795,58 @@
      225
     ],
     "mau": "#9aa0a6",
-    "en": "brushed steel elevator door"
+    "en": "brushed steel elevator door",
+    "chat": "kim_loai"
+   },
+   {
+    "ten": "Số tầng 1",
+    "hinh": "hop",
+    "tam": [
+     -100,
+     446,
+     232
+    ],
+    "co": [
+     36,
+     2,
+     9
+    ],
+    "mau": "#ff9a3c",
+    "en": "small amber digital floor indicator showing 38",
+    "sang": 1.5
+   },
+   {
+    "ten": "Số tầng 2",
+    "hinh": "hop",
+    "tam": [
+     100,
+     446,
+     232
+    ],
+    "co": [
+     36,
+     2,
+     9
+    ],
+    "mau": "#ff9a3c",
+    "en": "small amber digital floor indicator showing 12",
+    "sang": 1.5
+   },
+   {
+    "ten": "Nút gọi",
+    "hinh": "hop",
+    "tam": [
+     0,
+     446,
+     95
+    ],
+    "co": [
+     9,
+     2,
+     16
+    ],
+    "mau": "#b8bcc2",
+    "en": "brushed steel elevator call-button panel"
    },
    {
     "ten": "Logo Lục thị",
@@ -711,7 +1862,7 @@
      30
     ],
     "mau": "#c9a45c",
-    "en": "gold company logo on the wall",
+    "en": "gold metal \"LU GROUP\" logo on the wall",
     "sang": 0.5
    },
    {
@@ -720,7 +1871,7 @@
     "tam": [
      0,
      250,
-     298
+     297
     ],
     "co": [
      500,
@@ -730,6 +1881,201 @@
     "mau": "#fff4dc",
     "en": "warm recessed ceiling light strip",
     "sang": 3
+   },
+   {
+    "ten": "Tranh lá vàng",
+    "hinh": "hop",
+    "tam": [
+     -347,
+     230,
+     100
+    ],
+    "co": [
+     3,
+     200,
+     130
+    ],
+    "mau": "#b8964a",
+    "en": "large abstract gold-leaf painting in a thin black frame"
+   },
+   {
+    "ten": "Bảng chỉ dẫn",
+    "hinh": "hop",
+    "tam": [
+     347,
+     330,
+     110
+    ],
+    "co": [
+     3,
+     70,
+     100
+    ],
+    "mau": "#1a1a1c",
+    "en": "black glass building directory sign with white lettering",
+    "sang": 0.3
+   },
+   {
+    "ten": "Ghế băng",
+    "hinh": "hop",
+    "tam": [
+     310,
+     250,
+     0
+    ],
+    "co": [
+     45,
+     160,
+     45
+    ],
+    "mau": "#1b1b1d",
+    "en": "black leather bench",
+    "chat": "vai"
+   },
+   {
+    "ten": "Bình lan trái",
+    "goc": [
+     -250,
+     405
+    ],
+    "en": "tall black marble pedestal with a white phalaenopsis orchid arrangement",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       40,
+       40,
+       95
+      ],
+      "mau": "#111113"
+     },
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       95
+      ],
+      "co": [
+       22,
+       22,
+       25
+      ],
+      "dinh": 0.7,
+      "mau": "#f4f4f4"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       115
+      ],
+      "co": [
+       55,
+       35,
+       50
+      ],
+      "mau": "#fbf7fb"
+     }
+    ]
+   },
+   {
+    "ten": "Bình lan phải",
+    "goc": [
+     250,
+     405
+    ],
+    "en": "tall black marble pedestal with a white phalaenopsis orchid arrangement",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       40,
+       40,
+       95
+      ],
+      "mau": "#111113"
+     },
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       95
+      ],
+      "co": [
+       22,
+       22,
+       25
+      ],
+      "dinh": 0.7,
+      "mau": "#f4f4f4"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       115
+      ],
+      "co": [
+       55,
+       35,
+       50
+      ],
+      "mau": "#fbf7fb"
+     }
+    ]
+   },
+   {
+    "ten": "Cây sảnh",
+    "goc": [
+     -305,
+     45
+    ],
+    "en": "tall bird-of-paradise plant in a black ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       150
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
    }
   ]
  },
@@ -744,7 +2090,7 @@
    ],
    "ban_kinh": 500
   },
-  "mo_ta": "Phòng họp 10 × 9 m: bàn dài 5,2 m, 11 ghế, màn chiếu, cửa đôi bên trái, kính sau lưng",
+  "mo_ta": "Phòng họp 10 × 8 m: bàn dài 5,2 m (sổ + ly nước từng chỗ, lan giữa bàn), 10 ghế — 8 thành viên HĐQT ngồi, màn chiếu, cửa đôi + tranh đỏ bên trái, tủ thấp + bộ cà phê + đồng hồ bên phải, đèn thả, kính sau lưng, cây ba góc",
   "vat": [
    {
     "ten": "Thảm",
@@ -761,6 +2107,23 @@
     ],
     "mau": "#3a3a3e",
     "en": "dark grey boardroom carpet",
+    "nen": true
+   },
+   {
+    "ten": "Trần",
+    "hinh": "hop",
+    "tam": [
+     0,
+     400,
+     300
+    ],
+    "co": [
+     1000,
+     800,
+     2
+    ],
+    "mau": "#e9e5de",
+    "en": "white ceiling",
     "nen": true
    },
    {
@@ -791,7 +2154,7 @@
     ],
     "co": [
      2,
-     900,
+     800,
      300
     ],
     "mau": "#5d554c",
@@ -809,7 +2172,25 @@
     ],
     "co": [
      2,
-     900,
+     800,
+     300
+    ],
+    "mau": "#5d554c",
+    "en": "walnut wood paneled wall",
+    "nen": true,
+    "chat": "go"
+   },
+   {
+    "ten": "Tường trước",
+    "hinh": "hop",
+    "tam": [
+     0,
+     0,
+     0
+    ],
+    "co": [
+     1000,
+     2,
      300
     ],
     "mau": "#5d554c",
@@ -848,7 +2229,8 @@
      170
     ],
     "mau": "#1a1d22",
-    "en": "large presentation screen"
+    "en": "large presentation screen showing a bar chart titled \"HARRINGTON FUND · LU GROUP\"",
+    "sang": 0.6
    },
    {
     "ten": "Bàn họp",
@@ -868,6 +2250,221 @@
     "chat": "go"
    },
    {
+    "ten": "Đèn thả",
+    "hinh": "hop",
+    "tam": [
+     0,
+     420,
+     240
+    ],
+    "co": [
+     40,
+     480,
+     6
+    ],
+    "mau": "#2b2b2b",
+    "en": "long black linear pendant light hanging above the table",
+    "sang": 2
+   },
+   {
+    "ten": "Lan giữa bàn",
+    "hinh": "hop",
+    "tam": [
+     0,
+     420,
+     76
+    ],
+    "co": [
+     30,
+     90,
+     22
+    ],
+    "mau": "#f5f5f0",
+    "en": "low white orchid centerpiece in a long white planter"
+   },
+   {
+    "ten": "Tranh đỏ",
+    "hinh": "hop",
+    "tam": [
+     -497,
+     520,
+     110
+    ],
+    "co": [
+     4,
+     260,
+     140
+    ],
+    "mau": "#8a2e2e",
+    "en": "large framed abstract painting in deep red and gold"
+   },
+   {
+    "ten": "Tủ thấp",
+    "hinh": "hop",
+    "tam": [
+     470,
+     400,
+     0
+    ],
+    "co": [
+     50,
+     240,
+     80
+    ],
+    "mau": "#3b2618",
+    "en": "walnut credenza",
+    "chat": "go"
+   },
+   {
+    "ten": "Bộ cà phê",
+    "hinh": "hop",
+    "tam": [
+     470,
+     400,
+     80
+    ],
+    "co": [
+     30,
+     60,
+     18
+    ],
+    "mau": "#d9d4c9",
+    "en": "silver coffee service with white porcelain cups on a tray"
+   },
+   {
+    "ten": "Đồng hồ tường",
+    "hinh": "hop",
+    "tam": [
+     497,
+     400,
+     200
+    ],
+    "co": [
+     3,
+     45,
+     45
+    ],
+    "mau": "#111111",
+    "en": "round black wall clock showing 3:00"
+   },
+   {
+    "ten": "Cây góc trái",
+    "goc": [
+     -455,
+     755
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       140
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
+    "ten": "Cây góc phải",
+    "goc": [
+     455,
+     755
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       140
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
+    "ten": "Cây góc trước",
+    "goc": [
+     455,
+     45
+    ],
+    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "phan": [
+     {
+      "hinh": "non",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       45,
+       45,
+       45
+      ],
+      "dinh": 0.8,
+      "mau": "#f2f0ea"
+     },
+     {
+      "hinh": "cau",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       80,
+       80,
+       140
+      ],
+      "mau": "#3f6b3a"
+     }
+    ]
+   },
+   {
     "ten": "Ghế 1T",
     "hinh": "hop",
     "tam": [
@@ -883,6 +2480,57 @@
     "mau": "#1d1d20",
     "en": "black leather boardroom chair",
     "chat": "vai"
+   },
+   {
+    "ten": "Sổ 1T",
+    "hinh": "hop",
+    "tam": [
+     -52,
+     230,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 1T",
+    "hinh": "hop",
+    "tam": [
+     -45,
+     252,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 1T",
+    "hinh": "nguoi",
+    "tam": [
+     -120,
+     230,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#1c2733",
+    "tu_the": "ngoi",
+    "xoay": 90,
+    "en": "board member: woman in her forties in a navy blazer, short bob haircut, seated at the table"
    },
    {
     "ten": "Ghế 1P",
@@ -902,6 +2550,57 @@
     "chat": "vai"
    },
    {
+    "ten": "Sổ 1P",
+    "hinh": "hop",
+    "tam": [
+     52,
+     230,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 1P",
+    "hinh": "hop",
+    "tam": [
+     45,
+     252,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 1P",
+    "hinh": "nguoi",
+    "tam": [
+     120,
+     230,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#2b2f36",
+    "tu_the": "ngoi",
+    "xoay": -90,
+    "en": "board member: older man with grey hair in a dark grey suit, seated at the table"
+   },
+   {
     "ten": "Ghế 2T",
     "hinh": "hop",
     "tam": [
@@ -917,6 +2616,57 @@
     "mau": "#1d1d20",
     "en": "black leather boardroom chair",
     "chat": "vai"
+   },
+   {
+    "ten": "Sổ 2T",
+    "hinh": "hop",
+    "tam": [
+     -52,
+     330,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 2T",
+    "hinh": "hop",
+    "tam": [
+     -45,
+     352,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 2T",
+    "hinh": "nguoi",
+    "tam": [
+     -120,
+     330,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#2d2a26",
+    "tu_the": "ngoi",
+    "xoay": 90,
+    "en": "board member: older man in a dark brown suit, seated at the table"
    },
    {
     "ten": "Ghế 2P",
@@ -936,6 +2686,57 @@
     "chat": "vai"
    },
    {
+    "ten": "Sổ 2P",
+    "hinh": "hop",
+    "tam": [
+     52,
+     330,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 2P",
+    "hinh": "hop",
+    "tam": [
+     45,
+     352,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 2P",
+    "hinh": "nguoi",
+    "tam": [
+     120,
+     330,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#1d1f24",
+    "tu_the": "ngoi",
+    "xoay": -90,
+    "en": "board member: woman in her fifties in a black pantsuit, pearl earrings, seated at the table"
+   },
+   {
     "ten": "Ghế 3T",
     "hinh": "hop",
     "tam": [
@@ -951,6 +2752,57 @@
     "mau": "#1d1d20",
     "en": "black leather boardroom chair",
     "chat": "vai"
+   },
+   {
+    "ten": "Sổ 3T",
+    "hinh": "hop",
+    "tam": [
+     -52,
+     430,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 3T",
+    "hinh": "hop",
+    "tam": [
+     -45,
+     452,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 3T",
+    "hinh": "nguoi",
+    "tam": [
+     -120,
+     430,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#202124",
+    "tu_the": "ngoi",
+    "xoay": 90,
+    "en": "board member: man in his sixties in a black suit, silver hair slicked back, seated at the table"
    },
    {
     "ten": "Ghế 3P",
@@ -970,6 +2822,57 @@
     "chat": "vai"
    },
    {
+    "ten": "Sổ 3P",
+    "hinh": "hop",
+    "tam": [
+     52,
+     430,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 3P",
+    "hinh": "hop",
+    "tam": [
+     45,
+     452,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 3P",
+    "hinh": "nguoi",
+    "tam": [
+     120,
+     430,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#3c3f45",
+    "tu_the": "ngoi",
+    "xoay": -90,
+    "en": "board member: bald man in a charcoal suit with a red tie, seated at the table"
+   },
+   {
     "ten": "Ghế 4T",
     "hinh": "hop",
     "tam": [
@@ -985,6 +2888,38 @@
     "mau": "#1d1d20",
     "en": "black leather boardroom chair",
     "chat": "vai"
+   },
+   {
+    "ten": "Sổ 4T",
+    "hinh": "hop",
+    "tam": [
+     -52,
+     530,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 4T",
+    "hinh": "hop",
+    "tam": [
+     -45,
+     552,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
    },
    {
     "ten": "Ghế 4P",
@@ -1004,6 +2939,57 @@
     "chat": "vai"
    },
    {
+    "ten": "Sổ 4P",
+    "hinh": "hop",
+    "tam": [
+     52,
+     530,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 4P",
+    "hinh": "hop",
+    "tam": [
+     45,
+     552,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 4P",
+    "hinh": "nguoi",
+    "tam": [
+     120,
+     530,
+     0
+    ],
+    "co": [
+     40,
+     24,
+     172
+    ],
+    "mau": "#e2bc9c",
+    "ao": "#23262d",
+    "tu_the": "ngoi",
+    "xoay": -90,
+    "en": "board member: man in his forties in a navy suit, rimless glasses, seated at the table"
+   },
+   {
     "ten": "Ghế 5T",
     "hinh": "hop",
     "tam": [
@@ -1019,6 +3005,38 @@
     "mau": "#1d1d20",
     "en": "black leather boardroom chair",
     "chat": "vai"
+   },
+   {
+    "ten": "Sổ 5T",
+    "hinh": "hop",
+    "tam": [
+     -52,
+     630,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 5T",
+    "hinh": "hop",
+    "tam": [
+     -45,
+     652,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
    },
    {
     "ten": "Ghế 5P",
@@ -1038,21 +3056,55 @@
     "chat": "vai"
    },
    {
-    "ten": "Ghế chủ toạ",
+    "ten": "Sổ 5P",
     "hinh": "hop",
     "tam": [
-     0,
-     720,
+     52,
+     630,
+     76
+    ],
+    "co": [
+     22,
+     30,
+     1
+    ],
+    "mau": "#f4f1ea",
+    "en": "white notepad with a black pen"
+   },
+   {
+    "ten": "Ly nước 5P",
+    "hinh": "hop",
+    "tam": [
+     45,
+     652,
+     76
+    ],
+    "co": [
+     7,
+     7,
+     13
+    ],
+    "mau": "#cfe3ea",
+    "en": "glass of water"
+   },
+   {
+    "ten": "Thành viên HĐQT 5P",
+    "hinh": "nguoi",
+    "tam": [
+     120,
+     630,
      0
     ],
     "co": [
-     65,
-     60,
-     120
+     40,
+     24,
+     172
     ],
-    "mau": "#1d1d20",
-    "en": "high-back leather chair at the head of the table",
-    "chat": "vai"
+    "mau": "#e2bc9c",
+    "ao": "#4a4f57",
+    "tu_the": "ngoi",
+    "xoay": -90,
+    "en": "board member: older man in a grey suit with a white beard, seated at the table"
    }
   ]
  }

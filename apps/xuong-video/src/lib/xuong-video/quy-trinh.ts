@@ -3,6 +3,7 @@
 // bước nào gác cổng đó mà chưa đạt thì máy chủ từ chối (sinhKeyframeCanh, batDauVideoCanh) và thanh 🎬 Quy trình trên studio chỉ đúng
 // chỗ thiếu + cách làm. Thêm một chuẩn mới = thêm MỘT mục ở đây, không vá từng nút. Khác kiem-qc.ts: bên đó chấm NỘI DUNG quảng cáo
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
+import { batCamXuc } from './qc-cam-xuc';
 import { chanKhung } from './khung';
 import { maAnimatic, conTapSau } from './ho-so';
 import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
@@ -24,7 +25,7 @@ export type TapQt = { ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem
 export type PhimQt = { phong_cach?: string; /** thể loại (phim_doc bật bộ chấm phim ngắn dọc) */ the_loai?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean; /** Murch QC (qc-cam-xuc.ts) */ camXucQc?: boolean };
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'> & Partial<Pick<KinhThanh, 'cam_xuc_qc' | 'the_loai'>>): PhimQt =>
-  ({ phong_cach: kt.phong_cach, the_loai: kt.the_loai, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi, camXucQc: loai === 'quang_cao' && !!kt.cam_xuc_qc });
+  ({ phong_cach: kt.phong_cach, the_loai: kt.the_loai, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi, camXucQc: batCamXuc(loai, kt) });
 type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'soi_mat' | 'prompt_video' | 'keyframe_ket' | 'bieu_cam' | 'noi_lien' | 'soat' | 'video_url' | 'video_cuoi_url' | 'nhanh'>>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —

@@ -8,7 +8,11 @@
 //   4. MÁY CHỌN TRƯỚC: có trẻ em trong khung → không gửi Veo (Google từ chối ảnh có trẻ em thật) mà gửi Kling; cận cảnh + động tác lớn
 //      (nhảy, xoay, chạy) → chặn (#12 chân biến dạng); shot nối liền → khung đầu lấy khung cuối clip shot trước (sinh-video.ts).
 // Tự kiểm: qc-cam-xuc.test.mts
-import type { Canh, NhanVat } from './kieu';
+import type { Canh, KinhThanh, NhanVat } from './kieu';
+
+/** BẬT KẾ HOẠCH CẢM XÚC (biểu cảm đầu → cuối, soát keyframe / clip): quảng cáo có cờ cam_xuc_qc, HOẶC phim ngắn dọc (tổng tài — sống nhờ nét mặt,
+ *  anh 17/10/2026). MỘT chỗ quyết — trước đây 3 nơi tự viết `loai === 'quang_cao' && cam_xuc_qc`. */
+export const batCamXuc = (loai: string, kt: Pick<KinhThanh, 'cam_xuc_qc' | 'the_loai'> | null | undefined): boolean => (loai === 'quang_cao' && !!kt?.cam_xuc_qc) || kt?.the_loai === 'phim_doc';
 
 /** Bộ từ biểu cảm (đóng) — để máy so được đầu/cuối. en = câu đưa vào prompt; am = nét tiêu cực (tự cấm cười). */
 export const BIEU_CAM = [
@@ -26,6 +30,16 @@ export const BIEU_CAM = [
   { key: 'met', ten: 'Mệt, gượng', en: 'tired and strained, a forced polite face with no real smile', am: true },
   { key: 'buon', ten: 'Buồn', en: 'quietly sad, eyes lowered', am: true },
   { key: 'that_vong', ten: 'Thất vọng', en: 'defeated, a heavy sigh', am: true },
+  // Nét KỊCH (phim ngắn dọc / tổng tài, 17/10/2026): bất công → nhẫn nhịn → đánh mặt cần các nét này, bộ QC không có.
+  { key: 'lanh_lung', ten: 'Lạnh lùng', en: 'cold and expressionless, piercing stare, jaw set', am: false },
+  { key: 'khinh_bi', ten: 'Khinh bỉ', en: 'contemptuous, chin raised, looking down the nose', am: true },
+  { key: 'dac_y', ten: 'Đắc ý', en: 'smug and triumphant, a self-satisfied half smile', am: false },
+  { key: 'nhuc_nha', ten: 'Nhục nhã', en: 'humiliated, cheeks flushed, eyes glistening but holding back tears', am: true },
+  { key: 'nhan_nhin', ten: 'Nhẫn nhịn', en: 'composed restraint, calm face hiding anger, steady breathing', am: false },
+  { key: 'gian', ten: 'Giận', en: 'angry, brows lowered, lips pressed thin', am: true },
+  { key: 'soc', ten: 'Sốc', en: 'stunned, eyes wide, mouth slightly open, frozen', am: true },
+  { key: 'quyet_tam', ten: 'Quyết tâm', en: 'resolute and fearless, steady eye contact', am: false },
+  { key: 'nhech_moi', ten: 'Nhếch môi', en: 'a subtle knowing smirk at one corner of the mouth', am: false },
 ] as const;
 export type MaBieuCam = (typeof BIEU_CAM)[number]['key'];
 export const bieuCam = (k: string) => BIEU_CAM.find((x) => x.key === k);

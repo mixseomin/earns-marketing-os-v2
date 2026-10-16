@@ -1,4 +1,4 @@
-// NẠP TẬP MẪU PHIM TỔNG TÀI vào studio (anh 17/10/2026: "tạo vào file video trong studio để quản lý"). Nguồn: phim.json + bo-set.json cạnh tệp này.
+// NẠP TẬP MẪU PHIM TỔNG TÀI vào studio (anh 17/10/2026: "tạo vào file video trong studio để quản lý"). Nguồn: phim.json + bo-set.json + shot.json cạnh tệp này.
 // Chạy lại an toàn: phim tìm theo tên, nhân vật theo (phim, tên), tập theo (phim, số) — có thì cập nhật, chưa có thì thêm. Không xoá gì.
 //   cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/du-lieu/tong-tai/nap.mts
 import { readFileSync } from 'node:fs';
@@ -46,5 +46,31 @@ for (const b of JSON.parse(readFileSync(new URL('./bo-set.json', import.meta.url
   await db.execute(sql`UPDATE xv_nhan_vat SET bo_set_id = ${id}, vung = ${j(b.vung)}::jsonb, updated_at = now() WHERE id = ${nv[b.boi_canh]!}`);
 }
 
-console.log(JSON.stringify({ phim: Number(phimId), tap: Number(tapId), nhan_vat: nv, bo_set: sets }));
+// SHOT (shot.json, sinh bằng dung-shot.py): khoá = dan_dung.ma — chạy lại thì cập nhật đúng shot, không đẻ trùng. Tên nhân vật → id anchor.
+type Shot = { ma: string; canh: string; phat_s: number; thoi_luong_s: number; duong_video: string; ky_thuat: Record<string, unknown>; dan_dung: Record<string, string>; hanh_dong: string;
+  thoai: { nhan_vat: string; dien_xuat: string; loi: string }[]; bieu_cam: unknown[]; may_3d: unknown; nhan_vat: string[]; chu_man: string; prompt_anh: string; prompt_video: string };
+const shots: Shot[] = JSON.parse(readFileSync(new URL('./shot.json', import.meta.url), 'utf8'));
+const soCanh = (ten: string) => t.phan_canh.findIndex((p: { ten: string }) => p.ten === ten) + 1;
+let soShot = 0;
+for (const [i, c] of shots.entries()) {
+  const dd = { ...c.dan_dung, duong_video: c.duong_video };
+  const ids = c.nhan_vat.map((x) => nv[x]).filter(Boolean);
+  const kt = c.ky_thuat as Record<string, string>;
+  const gocMay = [kt.co_canh, kt.goc, kt.chuyen_dong, kt.ong_kinh].filter(Boolean).join(' · ');
+  const loiThoai = c.thoai.map((d) => `${d.nhan_vat} (${d.dien_xuat}): "${d.loi}"`).join('\n');
+  const pa = c.prompt_anh || `${dd.bo_cuc}. Opening moment: ${dd.mo}.`;
+  const pv = c.prompt_video || `${dd.mo}, then ${dd.ket}. Natural, restrained acting; cinematic, photorealistic.`;
+  r = await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND dan_dung->>'ma' = ${c.ma} LIMIT 1`);
+  const vals = sql`thu_tu = ${i + 1}, canh = ${`Cảnh ${soCanh(c.canh)} · ${c.canh}`}, phan_doan = ${c.canh}, nhan_vat = ${j(ids)}::jsonb, hanh_dong = ${c.hanh_dong}, goc_may = ${gocMay},
+    loi_thoai = ${loiThoai}, thoai = ${j(c.thoai)}::jsonb, thoi_luong_s = ${c.thoi_luong_s}, phat_s = ${c.phat_s}, ky_thuat = ${j(c.ky_thuat)}::jsonb, dan_dung = ${j(dd)}::jsonb,
+    bieu_cam = ${j(c.bieu_cam)}::jsonb, may_3d = ${j(c.may_3d)}::jsonb, chu_man = ${c.chu_man}, prompt_anh = ${pa}, prompt_video = ${pv}, updated_at = now()`;
+  if (r[0]) await db.execute(sql`UPDATE xv_canh SET ${vals} WHERE id = ${r[0].id}`);
+  else await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, dan_dung) VALUES (${tapId}, ${i + 1}, ${j(dd)}::jsonb)`).then(async () => {
+    const n = await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND dan_dung->>'ma' = ${c.ma} ORDER BY id DESC LIMIT 1`);
+    await db.execute(sql`UPDATE xv_canh SET ${vals} WHERE id = ${n[0]!.id}`);
+  });
+  soShot++;
+}
+
+console.log(JSON.stringify({ phim: Number(phimId), tap: Number(tapId), nhan_vat: nv, bo_set: sets, shot: soShot }));
 process.exit(0);

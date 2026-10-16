@@ -1,0 +1,2167 @@
+[
+ {
+  "ma": "1.1",
+  "canh": "Cà phê và hồ sơ",
+  "phat_s": 3,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "hanh_dong",
+   "co_canh": "two",
+   "goc": "ngang",
+   "chuyen_dong": "cam_tay",
+   "ong_kinh": "chuan",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong",
+    "vut"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Profile two-shot in the aisle: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers soft behind",
+   "mo": "Hạ walking with a folder, Vivian blocking her path holding a full coffee cup",
+   "ket": "coffee splashed across the chest of Hạ’s white blouse",
+   "huong": "they face each other across the frame",
+   "muc_dich": "HOOK: bất công ngay giây đầu",
+   "ma": "1.1"
+  },
+  "hanh_dong": "Vivian chặn đường, hất cả ly cà phê vào ngực áo Hạ",
+  "thoai": [
+   {
+    "nhan_vat": "Vivian",
+    "dien_xuat": "lạnh, rít qua kẽ răng",
+    "loi": "Dọn sạch đi. Rồi cút."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "khinh_bi",
+    "cuoi": "khinh_bi"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "binh_thuong",
+    "cuoi": "soc"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    120,
+    590,
+    150
+   ],
+   "nhin": [
+    300,
+    590,
+    140
+   ],
+   "ong_kinh": 40,
+   "khung": [
+    "Vivian",
+    "Lâm Hạ"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180,
+     "trang_phuc": "plain white silk blouse and black tailored slacks, long straight black hair loose",
+     "do_deo": "jade bangle on the left wrist; white staff ID badge on a dark blue lanyard",
+     "trang_den": "hot coffee stain spreading across the chest of the white blouse"
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0,
+     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick"
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang_den": "empty"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 0.0
+ },
+ {
+  "ma": "1.2",
+  "canh": "Cà phê và hồ sơ",
+  "phat_s": 2,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chi_tiet",
+   "co_canh": "insert",
+   "goc": "cao",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "macro",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "rung"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her hand holding the folder at frame bottom",
+   "mo": "stain still spreading",
+   "ket": "Hạ’s fingers tighten on the folder",
+   "muc_dich": "người xem thấy rõ cái nhục",
+   "ma": "1.2"
+  },
+  "hanh_dong": "Vết cà phê loang trên áo trắng, tay Hạ siết chặt tập hồ sơ",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhuc_nha",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    300,
+    560,
+    150
+   ],
+   "nhin": [
+    300,
+    548,
+    110
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Lâm Hạ"
+   ],
+   "qua_truc": true,
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 3.0
+ },
+ {
+  "ma": "1.3",
+  "canh": "Cà phê và hồ sơ",
+  "phat_s": 4,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "nguoi_thu_ba",
+   "co_canh": "ots",
+   "goc": "ngang",
+   "chuyen_dong": "day_vao",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Over Hạ’s shoulder (soft, screen-right foreground) onto Vivian holding up an empty black leather folder, an empty coffee cup in her other hand",
+   "mo": "Vivian raises the empty Harrington folder for the room to see",
+   "ket": "Vivian’s smug look around the room",
+   "huong": "Vivian looks screen-right at Hạ",
+   "muc_dich": "vu oan công khai",
+   "ma": "1.3"
+  },
+  "hanh_dong": "Vivian giơ tập hồ sơ rỗng lên cho cả phòng thấy",
+  "thoai": [
+   {
+    "nhan_vat": "Vivian",
+    "dien_xuat": "giơ tập hồ sơ rỗng, giọng to cho cả phòng nghe",
+    "loi": "Hồ sơ Harrington đâu? Ngày đầu đi làm đã làm mất tài liệu mật?"
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "khinh_bi",
+    "cuoi": "dac_y"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    285,
+    470,
+    155
+   ],
+   "nhin": [
+    300,
+    640,
+    150
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Hồ sơ Harrington",
+     "tam": [
+      300,
+      625,
+      150
+     ],
+     "huong": 0,
+     "cam": "Vivian"
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Hồ sơ Harrington",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 5.0
+ },
+ {
+  "ma": "1.4",
+  "canh": "Cà phê và hồ sơ",
+  "phat_s": 3,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "phan_ung",
+   "co_canh": "ots",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Clean single on Hạ from the aisle side, the coffee stain on her white blouse, the window light behind her",
+   "mo": "Hạ looking straight off screen-left, calm",
+   "ket": "Hạ holds the gaze",
+   "huong": "Hạ looks screen-left at Vivian",
+   "muc_dich": "Hạ không cãi — chỉ nói sự thật",
+   "ma": "1.4"
+  },
+  "hanh_dong": "Hạ bình thản nhìn thẳng người đối diện",
+  "thoai": [
+   {
+    "nhan_vat": "Lâm Hạ",
+    "dien_xuat": "bình thản, nhìn thẳng",
+    "loi": "Sáng nay chính chị nhận từ tay tôi."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   },
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "gian"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    190,
+    680,
+    158
+   ],
+   "nhin": [
+    300,
+    540,
+    150
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Lâm Hạ"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Hồ sơ Harrington",
+     "tam": [
+      300,
+      625,
+      150
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "an": true
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Hồ sơ Harrington",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 9.0
+ },
+ {
+  "ma": "1.5",
+  "canh": "Cà phê và hồ sơ",
+  "phat_s": 6,
+  "thoi_luong_s": 6,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "tong_the",
+   "co_canh": "ws",
+   "goc": "cao",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "rong",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong",
+    "foley"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "High wide: Vivian throws the papers to the marble floor, Hạ kneels on one knee picking them up, coworkers at the window and the nearest desks watching and filming on phones",
+   "mo": "Vivian holding the folder above the floor",
+   "ket": "Hạ on one knee gathering papers",
+   "muc_dich": "đáy của sự nhục — khán giả nóng mặt",
+   "ma": "1.5"
+  },
+  "hanh_dong": "Vivian ném xấp giấy xuống sàn đá; Hạ quỳ một gối nhặt từng tờ; đồng nghiệp xì xào, giơ điện thoại quay",
+  "thoai": [
+   {
+    "nhan_vat": "Vivian",
+    "dien_xuat": "khinh khỉnh",
+    "loi": "Nhặt lên."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "dac_y"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui",
+     "cuoi_lon",
+     "buon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    40,
+    650,
+    260
+   ],
+   "nhin": [
+    300,
+    590,
+    40
+   ],
+   "ong_kinh": 28,
+   "khung": [
+    "Lâm Hạ",
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180,
+     "nam_den": false,
+     "dien": [
+      "quy_mot_goi@0.35-0.6"
+     ]
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Hồ sơ Harrington",
+     "tam": [
+      300,
+      625,
+      150
+     ],
+     "huong": 0,
+     "den": [
+      310,
+      585,
+      0
+     ]
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Hồ sơ Harrington",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 12.0
+ },
+ {
+  "ma": "2.1",
+  "canh": "Tổng tài đuổi việc",
+  "phat_s": 5,
+  "thoi_luong_s": 5,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "thiet_lap",
+   "co_canh": "ws",
+   "goc": "thap",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "rong",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "im_lang",
+    "foley"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Low angle from between the desks: the glass door of the CEO office opens at the back, Lục Thần walks out toward camera, the office falls silent",
+   "mo": "glass door closed, Thần visible behind the glass",
+   "ket": "Thần standing a few steps from Hạ and Vivian",
+   "huong": "Thần walks toward camera",
+   "muc_dich": "quyền lực bước vào",
+   "ma": "2.1"
+  },
+  "hanh_dong": "Cửa kính phòng tổng giám đốc mở, Lục Thần bước ra, cả phòng im bặt",
+  "thoai": [
+   {
+    "nhan_vat": "Lục Thần",
+    "dien_xuat": "không cao giọng",
+    "loi": "Chuyện gì?"
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "lanh_lung",
+    "cuoi": "lanh_lung",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    250,
+    560,
+    110
+   ],
+   "nhin": [
+    150,
+    900,
+    170
+   ],
+   "ong_kinh": 32,
+   "khung": [
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      80,
+      1020,
+      0
+     ],
+     "huong": 0,
+     "den": [
+      230,
+      760,
+      0
+     ],
+     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch"
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      560,
+      0
+     ],
+     "huong": 180,
+     "nam": false
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 18.0
+ },
+ {
+  "ma": "2.2",
+  "canh": "Tổng tài đuổi việc",
+  "phat_s": 4,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chu_quan",
+   "co_canh": "mcu",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Vivian MCU from Thần’s side, her face switching to a sweet smile",
+   "mo": "Vivian turns from Hạ to Thần",
+   "ket": "Vivian smiling up at Thần",
+   "huong": "Vivian looks screen-left up at Thần",
+   "muc_dich": "hai mặt của Vivian",
+   "ma": "2.2"
+  },
+  "hanh_dong": "Vivian đổi giọng ngọt ngào với Lục Thần",
+  "thoai": [
+   {
+    "nhan_vat": "Vivian",
+    "dien_xuat": "đổi giọng ngọt ngào",
+    "loi": "Thư ký mới làm mất hồ sơ Harrington, thưa tổng giám đốc."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "vui"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    240,
+    740,
+    165
+   ],
+   "nhin": [
+    300,
+    640,
+    150
+   ],
+   "ong_kinh": 70,
+   "khung": [
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0,
+     "huong_den": -60
+    },
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      230,
+      760,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      560,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Vivian",
+   "Lục Thần",
+   "Lâm Hạ",
+   "Văn phòng mở tầng 38",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 23.0
+ },
+ {
+  "ma": "2.3",
+  "canh": "Tổng tài đuổi việc",
+  "phat_s": 5,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "phan_ung",
+   "co_canh": "cu",
+   "goc": "thap",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong",
+    "tim_dap"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Low close-up on Lục Thần looking down at Hạ, cold; he turns away at the end",
+   "mo": "Thần staring down at Hạ",
+   "ket": "Thần already turning away",
+   "huong": "Thần looks down screen-right",
+   "muc_dich": "phán quyết lạnh lùng",
+   "ma": "2.3"
+  },
+  "hanh_dong": "Lục Thần nhìn Hạ từ trên xuống, ánh mắt lạnh, rồi quay đi",
+  "thoai": [
+   {
+    "nhan_vat": "Lục Thần",
+    "dien_xuat": "dứt khoát, quay đi ngay",
+    "loi": "Cô bị đuổi việc."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "lanh_lung",
+    "cuoi": "lanh_lung",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    290,
+    610,
+    120
+   ],
+   "nhin": [
+    230,
+    760,
+    172
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      230,
+      760,
+      0
+     ],
+     "huong": 30,
+     "huong_den": 180
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      560,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": -60
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 27.0
+ },
+ {
+  "ma": "2.4",
+  "canh": "Tổng tài đuổi việc",
+  "phat_s": 4,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chi_tiet",
+   "co_canh": "insert",
+   "goc": "cao",
+   "chuyen_dong": "nghieng_len",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "ding"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Insert on the phone screen in Hạ’s hand lighting up with a message, then tilt up to her face",
+   "mo": "phone screen lights up",
+   "ket": "Hạ’s subtle smirk",
+   "muc_dich": "khán giả biết thân phận trước nhân vật",
+   "motif": "tin nhắn luật sư — gieo cho cảnh 4",
+   "ma": "2.4"
+  },
+  "hanh_dong": "Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhech_moi",
+    "lat": true
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    300,
+    600,
+    150
+   ],
+   "nhin": [
+    300,
+    560,
+    120
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Lâm Hạ"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      560,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Điện thoại của Hạ",
+     "tam": [
+      300,
+      548,
+      110
+     ],
+     "huong": 180,
+     "cam": "Lâm Hạ"
+    },
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      230,
+      760,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": -60
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Văn phòng mở tầng 38",
+   "Điện thoại của Hạ",
+   "Ly cà phê"
+  ],
+  "chu_man": "Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 32.0
+ },
+ {
+  "ma": "3.1",
+  "canh": "Thang máy",
+  "phat_s": 6,
+  "thoi_luong_s": 6,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "hanh_dong",
+   "co_canh": "ws",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "rong",
+   "anh_sang": "vien",
+   "am_thanh": [
+    "nen_phong",
+    "foley"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Wide lobby: Hạ holding a cardboard box of belongings waits at the left elevator; Vivian strides in from the right and snatches the staff badge off her neck",
+   "mo": "Hạ alone at the elevator",
+   "ket": "Vivian holding the snatched badge, Hạ turned to face her",
+   "muc_dich": "nhục lần cuối",
+   "ma": "3.1"
+  },
+  "hanh_dong": "Hạ ôm thùng đồ chờ thang máy; Vivian bước tới giật phắt thẻ nhân viên trên cổ cô",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "khinh_bi"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui",
+     "buon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    180,
+    40,
+    160
+   ],
+   "nhin": [
+    -60,
+    400,
+    140
+   ],
+   "ong_kinh": 30,
+   "khung": [
+    "Lâm Hạ",
+    "Vivian"
+   ],
+   "nhay": "Hạ thu dọn đồ rồi ra sảnh (thời gian trôi ngoài khung)",
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -100,
+      380,
+      0
+     ],
+     "huong": 180,
+     "huong_den": 90,
+     "trang_phuc": "plain white silk blouse and black tailored slacks, long straight black hair loose",
+     "do_deo": "jade bangle on the left wrist; white staff ID badge on a dark blue lanyard",
+     "trang": "hot coffee stain spreading across the chest of the white blouse",
+     "do_deo_den": "jade bangle on the left wrist"
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      260,
+      150,
+      0
+     ],
+     "huong": -60,
+     "den": [
+      0,
+      365,
+      0
+     ],
+     "huong_den": -90,
+     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick"
+    },
+    {
+     "ten": "Thẻ nhân viên",
+     "tam": [
+      -100,
+      368,
+      140
+     ],
+     "huong": 180,
+     "den": [
+      10,
+      360,
+      120
+     ]
+    },
+    {
+     "ten": "Thùng đồ cá nhân",
+     "tam": [
+      -100,
+      362,
+      95
+     ],
+     "huong": 180,
+     "cam": "Lâm Hạ"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Sảnh thang máy",
+   "Thẻ nhân viên",
+   "Thùng đồ cá nhân"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 36.0
+ },
+ {
+  "ma": "3.2",
+  "canh": "Thang máy",
+  "phat_s": 5,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "nguoi_thu_ba",
+   "co_canh": "ots",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "vien",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Over Hạ’s shoulder (box edge in foreground) onto Vivian dangling the badge",
+   "mo": "Vivian dangling the lanyard",
+   "ket": "Vivian leaning in, sneering",
+   "huong": "Vivian looks screen-left at Hạ",
+   "muc_dich": "Vivian tưởng mình thắng",
+   "ma": "3.2"
+  },
+  "hanh_dong": "Vivian lắc lắc tấm thẻ trước mặt Hạ",
+  "thoai": [
+   {
+    "nhan_vat": "Vivian",
+    "dien_xuat": "cười khẩy",
+    "loi": "Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "khinh_bi",
+    "cuoi": "dac_y"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    -170,
+    400,
+    155
+   ],
+   "nhin": [
+    0,
+    365,
+    152
+   ],
+   "ong_kinh": 70,
+   "khung": [
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -100,
+      380,
+      0
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      0,
+      365,
+      0
+     ],
+     "huong": -90
+    },
+    {
+     "ten": "Thẻ nhân viên",
+     "tam": [
+      10,
+      360,
+      120
+     ],
+     "huong": -90,
+     "cam": "Vivian"
+    },
+    {
+     "ten": "Thùng đồ cá nhân",
+     "tam": [
+      -95,
+      365,
+      95
+     ],
+     "huong": 90,
+     "cam": "Lâm Hạ"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Sảnh thang máy",
+   "Thẻ nhân viên",
+   "Thùng đồ cá nhân"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 42.0
+ },
+ {
+  "ma": "3.3",
+  "canh": "Thang máy",
+  "phat_s": 6,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "phan_ung",
+   "co_canh": "cu",
+   "goc": "ngang",
+   "chuyen_dong": "day_vao",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "vien",
+   "am_thanh": [
+    "im_lang"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Reverse close-up on Hạ over Vivian’s shoulder; long silence before she speaks",
+   "mo": "Hạ looking straight at Vivian",
+   "ket": "Hạ’s faint smile",
+   "huong": "Hạ looks screen-right at Vivian",
+   "muc_dich": "lời hứa trả đòn",
+   "ma": "3.3"
+  },
+  "hanh_dong": "Hạ nhìn thẳng Vivian, khẽ nhếch môi",
+  "thoai": [
+   {
+    "nhan_vat": "Lâm Hạ",
+    "dien_xuat": "nhìn thẳng, mỉm cười nhẹ",
+    "loi": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhech_moi"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    60,
+    355,
+    158
+   ],
+   "nhin": [
+    -100,
+    380,
+    152
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Lâm Hạ"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -100,
+      380,
+      0
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      0,
+      365,
+      0
+     ],
+     "huong": -90
+    },
+    {
+     "ten": "Thẻ nhân viên",
+     "tam": [
+      10,
+      360,
+      120
+     ],
+     "huong": -90,
+     "cam": "Vivian"
+    },
+    {
+     "ten": "Thùng đồ cá nhân",
+     "tam": [
+      -95,
+      365,
+      95
+     ],
+     "huong": 90,
+     "cam": "Lâm Hạ",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Sảnh thang máy",
+   "Thùng đồ cá nhân"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 47.0
+ },
+ {
+  "ma": "3.4",
+  "canh": "Thang máy",
+  "phat_s": 5,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "tam_trang",
+   "co_canh": "ms",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chuan",
+   "anh_sang": "vien",
+   "am_thanh": [
+    "ding",
+    "foley"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Hạ steps into the elevator; the steel doors slide shut between her and Vivian",
+   "mo": "Hạ stepping back into the elevator",
+   "ket": "doors closed, Vivian’s reflection in the steel",
+   "muc_dich": "khép một chương",
+   "ma": "3.4"
+  },
+  "hanh_dong": "Hạ lùi vào thang máy, cửa thép khép lại giữa hai người",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhech_moi",
+    "cuoi": "quyet_tam"
+   },
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "ngo_vuc"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    60,
+    230,
+    160
+   ],
+   "nhin": [
+    -100,
+    440,
+    150
+   ],
+   "ong_kinh": 45,
+   "khung": [
+    "Lâm Hạ",
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -100,
+      380,
+      0
+     ],
+     "huong": 90,
+     "den": [
+      -100,
+      470,
+      0
+     ],
+     "huong_den": 0
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      0,
+      365,
+      0
+     ],
+     "huong": -90
+    },
+    {
+     "ten": "Thẻ nhân viên",
+     "tam": [
+      10,
+      360,
+      120
+     ],
+     "huong": -90,
+     "cam": "Vivian",
+     "an": true
+    },
+    {
+     "ten": "Thùng đồ cá nhân",
+     "tam": [
+      -95,
+      365,
+      95
+     ],
+     "huong": 90,
+     "cam": "Lâm Hạ",
+     "het": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Sảnh thang máy",
+   "Thẻ nhân viên",
+   "Thùng đồ cá nhân"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 53.0
+ },
+ {
+  "ma": "4.1",
+  "canh": "Phòng họp 3 giờ",
+  "phat_s": 5,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "thiet_lap",
+   "co_canh": "ws",
+   "goc": "cao",
+   "chuyen_dong": "truot_ngang",
+   "ong_kinh": "rong",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Wide boardroom: Lục Thần standing at the head of the table presenting in front of the screen, board members seated along both sides, Vivian standing beside him holding a coffee cup",
+   "mo": "Thần mid-presentation",
+   "ket": "board members nodding",
+   "muc_dich": "Thần tưởng mọi thứ trong tay",
+   "ma": "4.1"
+  },
+  "hanh_dong": "Lục Thần thuyết trình trước HĐQT, Vivian đứng cạnh cầm ly cà phê đắc ý",
+  "thoai": [
+   {
+    "nhan_vat": "Lục Thần",
+    "dien_xuat": "tự tin",
+    "loi": "Với khoản vốn của Quỹ Harrington, Lục thị sẽ…"
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "tu_tin",
+    "cuoi": "tu_tin"
+   },
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "dac_y"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    0,
+    60,
+    280
+   ],
+   "nhin": [
+    0,
+    620,
+    100
+   ],
+   "ong_kinh": 30,
+   "khung": [
+    "Lục Thần"
+   ],
+   "nhay": "3 giờ chiều cùng ngày — họp HĐQT",
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      0,
+      740,
+      0
+     ],
+     "huong": 0,
+     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch"
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      110,
+      745,
+      0
+     ],
+     "huong": -20,
+     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick"
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      122,
+      728,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Vivian",
+   "Phòng họp HĐQT",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 58.0
+ },
+ {
+  "ma": "4.2",
+  "canh": "Phòng họp 3 giờ",
+  "phat_s": 5,
+  "thoi_luong_s": 5,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "hanh_dong",
+   "co_canh": "ws",
+   "goc": "thap",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "rong",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "dap",
+    "foley"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Low angle: the tall double doors swing open, Lâm Hạ strides in in a white power suit, Lawyer Trần a step behind",
+   "mo": "doors closed",
+   "ket": "Hạ standing at the end of the table",
+   "huong": "Hạ walks screen-right toward the table",
+   "muc_dich": "đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực",
+   "ma": "4.2"
+  },
+  "hanh_dong": "Cửa đôi mở, Hạ bước vào — vest trắng, tóc buông; luật sư Trần theo sau",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "quyet_tam",
+    "cuoi": "quyet_tam",
+    "lat": true,
+    "cam": [
+     "buon",
+     "nhuc_nha"
+    ]
+   },
+   {
+    "nv": "Luật sư Trần",
+    "dau": "binh_thuong",
+    "cuoi": "tu_tin"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    -120,
+    430,
+    90
+   ],
+   "nhin": [
+    -330,
+    170,
+    150
+   ],
+   "ong_kinh": 28,
+   "khung": [
+    "Lâm Hạ",
+    "Luật sư Trần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -470,
+      150,
+      0
+     ],
+     "huong": 90,
+     "den": [
+      -200,
+      200,
+      0
+     ],
+     "trang_phuc": "tailored white power suit, white silk blouse, hair down, confident",
+     "trang": "",
+     "do_deo": "jade bangle on the left wrist",
+     "nhay": "họp HĐQT 3 giờ chiều — đã thay vest trắng"
+    },
+    {
+     "ten": "Luật sư Trần",
+     "tam": [
+      -490,
+      110,
+      0
+     ],
+     "huong": 90,
+     "den": [
+      -270,
+      150,
+      0
+     ],
+     "trang_phuc": "navy three-piece suit, gold-rimmed glasses, leather briefcase"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Luật sư Trần",
+   "Phòng họp HĐQT"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 63.0
+ },
+ {
+  "ma": "4.3",
+  "canh": "Phòng họp 3 giờ",
+  "phat_s": 4,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "nguoi_thu_ba",
+   "co_canh": "two",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chuan",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Two-shot: Lawyer Trần presents Hạ to the board; Hạ calm beside him",
+   "mo": "Trần raising a hand toward Hạ",
+   "ket": "board members turning in their chairs",
+   "muc_dich": "thân phận lộ ra",
+   "ma": "4.3"
+  },
+  "hanh_dong": "Luật sư Trần giới thiệu Hạ với cả phòng",
+  "thoai": [
+   {
+    "nhan_vat": "Luật sư Trần",
+    "dien_xuat": "trang trọng",
+    "loi": "Xin giới thiệu: cô Lâm Hạ, người thừa kế Quỹ Harrington."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Luật sư Trần",
+    "dau": "tu_tin",
+    "cuoi": "tu_tin"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "quyet_tam",
+    "cuoi": "lanh_lung"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    60,
+    110,
+    160
+   ],
+   "nhin": [
+    -235,
+    175,
+    150
+   ],
+   "ong_kinh": 45,
+   "khung": [
+    "Lâm Hạ",
+    "Luật sư Trần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -200,
+      200,
+      0
+     ],
+     "huong": 90
+    },
+    {
+     "ten": "Luật sư Trần",
+     "tam": [
+      -270,
+      150,
+      0
+     ],
+     "huong": 90
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Luật sư Trần",
+   "Phòng họp HĐQT"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 68.0
+ },
+ {
+  "ma": "4.4",
+  "canh": "Phòng họp 3 giờ",
+  "phat_s": 2,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chi_tiet",
+   "co_canh": "insert",
+   "goc": "thap",
+   "chuyen_dong": "speed_ramp",
+   "ong_kinh": "macro",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "vo_kinh"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Slow-motion insert: Vivian’s coffee cup slipping from her fingers and shattering on the floor",
+   "mo": "cup leaving Vivian’s hand",
+   "ket": "porcelain shards and coffee across the carpet",
+   "muc_dich": "cú đánh mặt bằng hình",
+   "ma": "4.4"
+  },
+  "hanh_dong": "Ly cà phê trên tay Vivian rơi xuống sàn, vỡ tung",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "soc",
+    "cuoi": "soc",
+    "cam": [
+     "vui",
+     "dac_y"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    170,
+    670,
+    12
+   ],
+   "nhin": [
+    125,
+    705,
+    15
+   ],
+   "ong_kinh": 100,
+   "khung": [
+    "Ly cà phê"
+   ],
+   "qua_truc": true,
+   "vi_tri": [
+    {
+     "ten": "Vivian",
+     "tam": [
+      110,
+      745,
+      0
+     ],
+     "huong": -20
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      122,
+      728,
+      105
+     ],
+     "huong": 0,
+     "den": [
+      125,
+      705,
+      0
+     ],
+     "trang_den": "shattered on the floor"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Vivian",
+   "Phòng họp HĐQT",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 72.0
+ },
+ {
+  "ma": "4.5",
+  "canh": "Phòng họp 3 giờ",
+  "phat_s": 5,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "hanh_dong",
+   "co_canh": "mcu",
+   "goc": "thap",
+   "chuyen_dong": "zoom_cham",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "im_lang"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Low medium close-up on Hạ delivering the line, the board soft behind her",
+   "mo": "Hạ looking down the table at Thần",
+   "ket": "Hạ unblinking",
+   "huong": "Hạ looks screen-right toward Thần",
+   "muc_dich": "phán quyết — ngược lại cảnh 2",
+   "ma": "4.5"
+  },
+  "hanh_dong": "Hạ tuyên bố rút vốn, từng chữ",
+  "thoai": [
+   {
+    "nhan_vat": "Lâm Hạ",
+    "dien_xuat": "bình thản, từng chữ",
+    "loi": "Quỹ Harrington rút toàn bộ vốn khỏi Lục thị. Hiệu lực từ bây giờ."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "lanh_lung",
+    "cuoi": "lanh_lung",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    -140,
+    340,
+    120
+   ],
+   "nhin": [
+    -200,
+    200,
+    160
+   ],
+   "ong_kinh": 70,
+   "khung": [
+    "Lâm Hạ"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -200,
+      200,
+      0
+     ],
+     "huong": 160
+    },
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      0,
+      740,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Luật sư Trần",
+     "tam": [
+      -270,
+      150,
+      0
+     ],
+     "huong": 90
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Lục Thần",
+   "Phòng họp HĐQT"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 74.0
+ },
+ {
+  "ma": "5.1",
+  "canh": "Sếp mới",
+  "phat_s": 4,
+  "thoi_luong_s": 5,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "phan_ung",
+   "co_canh": "ms",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chuan",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "tim_dap"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Lục Thần drops his pen and strides to the corner of the table, both palms slamming onto the tabletop",
+   "mo": "Thần at the head of the table, pen in hand",
+   "ket": "Thần leaning on the table corner, hands flat on the wood",
+   "muc_dich": "lần đầu mất thế chủ động",
+   "ma": "5.1"
+  },
+  "hanh_dong": "Lục Thần buông bút, bước tới góc bàn, hai tay chống mạnh xuống mặt bàn",
+  "thoai": [
+   {
+    "nhan_vat": "Lục Thần",
+    "dien_xuat": "lần đầu mất bình tĩnh",
+    "loi": "Cô… rốt cuộc là ai?"
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "soc",
+    "cuoi": "gian",
+    "lat": true
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    -100,
+    470,
+    160
+   ],
+   "nhin": [
+    -35,
+    720,
+    150
+   ],
+   "ong_kinh": 45,
+   "khung": [
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      0,
+      740,
+      0
+     ],
+     "huong": 0,
+     "den": [
+      -70,
+      705,
+      0
+     ],
+     "huong_den": -90
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Phòng họp HĐQT"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 79.0
+ },
+ {
+  "ma": "5.2",
+  "canh": "Sếp mới",
+  "phat_s": 6,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chu_quan",
+   "co_canh": "two",
+   "goc": "ngang",
+   "chuyen_dong": "day_vao",
+   "ong_kinh": "chuan",
+   "anh_sang": "tuong_phan",
+   "chuyen_canh": "mo_cheo",
+   "am_thanh": [
+    "im_lang",
+    "cot_ket"
+   ]
+  },
+  "dan_dung": {
+   "bo_cuc": "Profile two-shot at the table corner: Hạ (screen-left) leans in to Thần’s eye level; the jade bangle on her wrist catches the light; cut to black on the line",
+   "mo": "Hạ arriving at the corner",
+   "ket": "Hạ’s face close to Thần’s — cut to black",
+   "huong": "Hạ looks screen-right into Thần’s eyes",
+   "muc_dich": "cliffhanger",
+   "motif": "vòng tay ngọc — ký ức cô bé năm xưa (tập sau)",
+   "ma": "5.2"
+  },
+  "hanh_dong": "Hạ cúi xuống ngang tầm mắt anh, vòng tay ngọc loé sáng; cắt đen",
+  "thoai": [
+   {
+    "nhan_vat": "Lâm Hạ",
+    "dien_xuat": "khẽ, chắc nịch",
+    "loi": "Sếp mới của anh."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "lanh_lung",
+    "cuoi": "nhech_moi"
+   },
+   {
+    "nv": "Lục Thần",
+    "dau": "gian",
+    "cuoi": "soc"
+   }
+  ],
+  "may_3d": {
+   "dat": [
+    -120,
+    500,
+    175
+   ],
+   "nhin": [
+    -120,
+    702,
+    150
+   ],
+   "ong_kinh": 35,
+   "khung": [
+    "Lâm Hạ",
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -200,
+      200,
+      0
+     ],
+     "huong": 160,
+     "den": [
+      -170,
+      700,
+      0
+     ],
+     "huong_den": 90
+    },
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      -70,
+      705,
+      0
+     ],
+     "huong": -90
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Lục Thần",
+   "Phòng họp HĐQT"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 83.0
+ }
+]

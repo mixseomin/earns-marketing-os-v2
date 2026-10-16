@@ -1,5 +1,6 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
+import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong } from './bo-set-3d';
 import 'server-only';
 import { sql } from 'drizzle-orm';
@@ -108,7 +109,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // + ANIMATIC đã duyệt (quy-trinh.ts › chanAnimatic): đọc hồ sơ tập + mọi shot của tập để so mã.
   const tapR = ((await db.execute(sql`SELECT t.ho_so, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${bc.canh.tap_id}`)) as unknown as Row[])[0];
   const dsTap = ((await db.execute(sql`SELECT thu_tu, nhanh, keyframe_url, phat_s, thoi_luong_s FROM xv_canh WHERE tap_id = ${bc.canh.tap_id}`)) as unknown as Row[]).map((r) => ({ thu_tu: Number(r.thu_tu), nhanh: String(r.nhanh ?? ''), keyframe_url: (r.keyframe_url as string | null) ?? null, phat_s: r.phat_s == null ? null : Number(r.phat_s), thoi_luong_s: Number(r.thoi_luong_s) }));
-  const qt = chanVideo(bc.canh, bc.nhanVat, tapR?.loai === 'quang_cao', { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap, camXucQc: tapR?.loai === 'quang_cao' && !!bc.kt.cam_xuc_qc });
+  const qt = chanVideo(bc.canh, bc.nhanVat, tapR?.loai === 'quang_cao', { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap, camXucQc: batCamXuc(String(tapR?.loai ?? ''), bc.kt) });
   // Một cảnh một model ảnh (sinh-anh.ts › tronModelCanh): keyframe lệch model của cảnh thì không tiêu tiền video lên nó.
   { const tm = await tronModelCanh(db, bc.canh); if (tm) qt.push(tm); }
   // QC: keyframe gắn sản phẩm mà không thấy màu sản phẩm (soi-clip.ts) — mặc sai quần thì clip nào cũng sai, không tiêu tiền lên nó.

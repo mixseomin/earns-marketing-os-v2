@@ -120,7 +120,16 @@ def khan_diem(wd, NT=56, NV=26):
 
 def khoi(p, ten, goc=(0, 0), xoay=0):
     """Một khối: tam = (x, y, z ĐÁY) tương đối với gốc nhóm; co = (rộng x, sâu y, cao z)."""
-    h = p['hinh']; m = mau(p['mau'], p.get('sang', 0))
+    h = p['hinh']
+    if h == 'nguoi':   # NGƯỜI PHỤ / quần chúng của bộ set (đồng nghiệp ngồi bàn, thành viên HĐQT): ma-nơ-canh mesh/nguoi.py cao co[2], tư thế tu_the,
+        # mau = da, ao = áo. Các phần tên '<ten> ng.<khớp>' → ten_vat gom về <ten> (NHOM) để khung xám gọi đúng tên + en. CÙNG bo-set-three.ts › nguoiThree.
+        x, y, z = p['tam']; a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
+        lin = lambda hx: (*[(int(hx.lstrip('#')[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)], 1)
+        n_ = ng().dung_nguoi(f'{ten} ng', cao=p['co'][2], mau=lin(p['mau']), mau_ao=lin(p.get('ao') or p['mau']), dv=CM, ten_goc=ten)
+        ng().tu_the(n_, p.get('tu_the') or 'dung')
+        n_['goc'].location = (gx * CM, gy * CM, z * CM); n_['goc'].rotation_euler.z = math.radians(xoay + p.get('xoay', 0))
+        return n_['goc']
+    m = mau(p['mau'], p.get('sang', 0))
     if h == 'day':
         cv = bpy.data.curves.new(ten, 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = p['ban_kinh'] * CM; cv.bevel_resolution = 2
         sp = cv.splines.new('NURBS'); sp.points.add(len(p['diem']) - 1)
@@ -443,7 +452,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
 
-NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v}
+NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi'}   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
 NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}
 EN = {v['ten']: v['en'] for v in DL['vat'] if v.get('en')}   # tên tiếng Anh cho prompt keyframe   # mặt bàn, tường, kệ: không phải vật chắn
 TRANG = {}   # tên → trạng thái đang dựng của shot hiện tại (đã chia mảnh…) — nhin_thay ghi vào 'trang' cho nhãn keyframe

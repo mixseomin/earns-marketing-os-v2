@@ -37,20 +37,34 @@ export function khanHinh(wd: number, NT = 56, NV = 26): THREE.BufferGeometry {
 
 /** Một khối — cùng luật dung-set.py › khoi: tam = (x, y, z ĐÁY) tương đối gốc nhóm (quay theo xoay°), co = (rộng x, sâu y, cao z). */
 /** MA-NƠ-CANH NGƯỜI (khoi_3d.hinh 'nguoi', phim người thật) — cùng tỉ lệ nhân trắc với Blender (scripts/bo-set/mesh/nguoi.py › TL): các khối elip
- *  hông, bụng, ngực, cổ, đầu, tay, chân ở tư thế đứng; đáy giữa ở (0,0,0) dữ liệu, mặt nhìn −y. Trước 17/10/2026 trình xem vẽ viên nhộng. */
+ *  hông, bụng, ngực, cổ, đầu, tay, chân; đáy giữa ở (0,0,0) dữ liệu, mặt nhìn −y. Trước 17/10/2026 trình xem vẽ viên nhộng.
+ *  ngoi = tư thế ngồi của nguoi.py › tu_the('ngoi'): hông hạ xuống cẳng chân + bàn chân, đùi nằm ngang ra trước, cẳng tay đặt ra trước
+ *  (người phụ ngồi bàn / ghế họp của bộ set — anh 17/10/2026 "bối cảnh sơ sài, AI bịa"). */
 const TL = { chan: 0.039, cang: 0.246, dui: 0.245, hong: 0.1, bung: 0.1, nguc: 0.13, co: 0.052, dau: 0.13, vai: 0.129, tay_tren: 0.186, tay_duoi: 0.146, ban_tay: 0.108, hong_rong: 0.095 };
-function nguoiThree(H: number, da: string, ao: string, mo: number): THREE.Group {
+function nguoiThree(H: number, da: string, ao: string, mo: number, ngoi = false): THREE.Group {
   const L = Object.fromEntries(Object.entries(TL).map(([k, v]) => [k, v * H])) as typeof TL;
   const g = new THREE.Group();
-  const e = (x: number, z0: number, rx: number, ry: number, dai: number, mau: string, y = 0) => g.add(khoi({ hinh: 'cau', co: [rx * 2, ry * 2, dai], tam: [x, y, z0], mau }, [0, 0], 0, mo));
-  const zH = L.chan + L.cang + L.dui;
+  const k = (x: number, y: number, z0: number, w: number, d: number, c: number, mau: string) => g.add(khoi({ hinh: 'cau', co: [w, d, c], tam: [x, y, z0], mau }, [0, 0], 0, mo));
+  const e = (x: number, z0: number, rx: number, ry: number, dai: number, mau: string, y = 0) => k(x, y, z0, rx * 2, ry * 2, dai, mau);
+  const zH = ngoi ? L.chan + L.cang : L.chan + L.cang + L.dui;
   for (const s of [-1, 1]) {
     const x = s * L.hong_rong * 0.55;
-    e(x, L.chan * 0.2, 0.026 * H, 0.04 * H, L.chan * 1.1, ao, -0.02 * H);   // bàn chân (mũi ra trước)
-    e(x, L.chan, 0.034 * H, 0.034 * H, L.cang, ao); e(x, L.chan + L.cang, 0.045 * H, 0.045 * H, L.dui, ao);
+    if (ngoi) {
+      k(x, -L.dui - 0.02 * H, L.chan * 0.2, 0.052 * H, 0.08 * H, L.chan * 1.1, ao);   // bàn chân dưới gối
+      k(x, -L.dui, L.chan, 0.068 * H, 0.068 * H, L.cang, ao); k(x, -L.dui / 2, zH - 0.045 * H, 0.09 * H, L.dui, 0.09 * H, ao);   // cẳng đứng · đùi ngang
+    } else {
+      e(x, L.chan * 0.2, 0.026 * H, 0.04 * H, L.chan * 1.1, ao, -0.02 * H);   // bàn chân (mũi ra trước)
+      e(x, L.chan, 0.034 * H, 0.034 * H, L.cang, ao); e(x, L.chan + L.cang, 0.045 * H, 0.045 * H, L.dui, ao);
+    }
     const xv = s * L.vai, zv = zH + L.bung + L.nguc * 0.88;
-    e(xv * 1.02, zv - L.tay_tren, 0.03 * H, 0.03 * H, L.tay_tren, ao); e(xv * 1.04, zv - L.tay_tren - L.tay_duoi, 0.024 * H, 0.024 * H, L.tay_duoi, da);
-    e(xv * 1.05, zv - L.tay_tren - L.tay_duoi - L.ban_tay, 0.018 * H, 0.01 * H, L.ban_tay, da);
+    e(xv * 1.02, zv - L.tay_tren, 0.03 * H, 0.03 * H, L.tay_tren, ao);
+    if (ngoi) {   // cẳng tay + bàn tay đặt ra trước (lên đùi / mặt bàn)
+      k(xv * 1.04, -L.tay_duoi / 2, zv - L.tay_tren - 0.024 * H, 0.048 * H, L.tay_duoi, 0.048 * H, da);
+      k(xv * 1.05, -L.tay_duoi - L.ban_tay / 2, zv - L.tay_tren - 0.018 * H, 0.036 * H, L.ban_tay, 0.02 * H, da);
+    } else {
+      e(xv * 1.04, zv - L.tay_tren - L.tay_duoi, 0.024 * H, 0.024 * H, L.tay_duoi, da);
+      e(xv * 1.05, zv - L.tay_tren - L.tay_duoi - L.ban_tay, 0.018 * H, 0.01 * H, L.ban_tay, da);
+    }
   }
   e(0, zH - L.hong * 0.6, L.hong_rong * 1.05, 0.1 * H, L.hong, ao); e(0, zH, 0.085 * H, 0.06 * H, L.bung, ao); e(0, zH + L.bung, 0.11 * H, 0.068 * H, L.nguc, ao);
   e(0, zH + L.bung + L.nguc, 0.03 * H, 0.03 * H, L.co, da); e(0, zH + L.bung + L.nguc + L.co, 0.046 * H, 0.056 * H, L.dau, da);
@@ -61,7 +75,7 @@ function nguoiThree(H: number, da: string, ao: string, mo: number): THREE.Group 
 export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.Object3D {
   if (p.hinh === 'nguoi') {
     const a0 = (xoay * Math.PI) / 180; const [x0, y0, z0] = [p.tam?.[0] ?? 0, p.tam?.[1] ?? 0, p.tam?.[2] ?? 0];
-    const n = nguoiThree(p.co?.[2] ?? 170, p.mau, (p as Phan & { ao?: string }).ao ?? p.mau, mo);
+    const n = nguoiThree(p.co?.[2] ?? 170, p.mau, p.ao ?? p.mau, mo, p.tu_the === 'ngoi');
     n.position.copy(V([goc[0]! + x0 * Math.cos(a0) - y0 * Math.sin(a0), goc[1]! + x0 * Math.sin(a0) + y0 * Math.cos(a0), z0])); n.rotation.y = ((xoay + (p.xoay ?? 0)) * Math.PI) / 180;
     return n;
   }

@@ -141,6 +141,11 @@ const KIEM = {
       let coVung = true;
       try { await api('GET', `/v1/apps/${p.sku}/appAvailabilityV2`); } catch (e) { if (/\b404\b/.test(String(e.message))) coVung = false; else throw e; }
       if (!coVung) tt.dong += ' — CHƯA MỞ VÙNG BÁN: không hiện ở nước nào (chạy Tools/asc.mjs vungban)';
+      else {   // kiểm THẬT trên store công khai: Apple mất vài giờ (có khi 24 giờ) mới hiện sau khi mở vùng bán
+        const thay = async (c) => (await (await fetch(`https://itunes.apple.com/lookup?id=${p.sku}&country=${c}`, { signal: AbortSignal.timeout(15_000) })).json().catch(() => ({}))).resultCount > 0;
+        const [vn, us] = [await thay('vn'), await thay('us')];
+        if (!vn || !us) tt.dong += ` — chưa hiện trên store ${[!vn && 'VN', !us && 'US'].filter(Boolean).join(' + ')}`;
+      }
       if (!p.url) tt.url = `https://apps.apple.com/app/id${p.sku}`;
     }
     return tt;

@@ -109,7 +109,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
   if (moHinh && (/^(fal|shopaikey|google):/.test(moHinh) || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
-  if (!hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (thiếu cảm xúc) — chọn Veo / Kling`);
+  if (!hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (Pika thiếu cảm xúc, Grok tự in phụ đề giả) — chọn Veo qua Google / Kling`);
   // Khoá model (cong-ai.ts › tachKhoa): 'shopaikey:<model>' = đúng cổng đó (không dự phòng) · 'google:<model>' = Google trực tiếp · trần = tự chọn.
   const khoaVid = tachKhoa(bc.kt.mo_hinh_video);
   if (khoaVid.kieu === 'google') { bc.kt.mo_hinh_video = khoaVid.model as typeof bc.kt.mo_hinh_video; boQuaCong = true; }
@@ -124,7 +124,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
   // CHUỖI CỔNG (cong-ai.ts): shot dùng Veo → thử Grok qua ShopAIKey trước (rẻ hơn, ~95s); không nhận thì gọi Google như cũ.
   const thuCong: BuocNguon[] = [];
-  const chuoi = khoaVid.kieu === 'cong' ? [{ cong: khoaVid.cong, model: khoaVid.model, giay: MO_HINH_CONG.find((m) => m.key === `${khoaVid.cong}:${khoaVid.model}`)?.giay ?? 10 }] : chuoiVideo(bc.kt.mo_hinh_video);
+  const chuoi = khoaVid.kieu === 'cong' ? [{ cong: khoaVid.cong, model: khoaVid.model, giay: MO_HINH_CONG.find((m) => m.key === `${khoaVid.cong}:${khoaVid.model}`)?.giay ?? 10 }] : chuoiVideo(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao');
   if (!laFal && !boQuaCong) {
     for (const b of chuoi) {
       const g = await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, giay: b.giay });

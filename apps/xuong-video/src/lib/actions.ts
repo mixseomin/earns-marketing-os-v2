@@ -71,7 +71,7 @@ export type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string
 /** Giá theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
 
 /** Danh mục model cho ô chọn: Google/OpenAI (cố định) + fal (động, ~100 model) kèm giá. */
-export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'clip' | 'khac'; giaText?: string; gia?: import('@/lib/xuong-video/gia-fal').GiaTom };
+export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'clip' | 'khac'; giaText?: string; gia?: import('@/lib/xuong-video/gia-fal').GiaTom; chuoi?: string[] };
 export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon[] }> {
   if (!(await admin())) return { anh: [], video: [] };
   const fal: ModelFal[] = await danhMucFal().catch(() => []);
@@ -81,7 +81,7 @@ export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon
   const cong = MO_HINH_CONG.filter((m) => coCong(m.key.split(':')[0] as CongKey));
   const congAnh = cong.filter((m) => m.donVi === 'anh'), congVideo = cong.filter((m) => m.donVi === 'clip');
   const giaChuoiAnh = (k: string) => { const c = chuoiAnh(k)[0]; const m = c && MO_HINH_CONG.find((x) => x.key === `${c.cong}:${c.model}`); return m ? centsCong(m.vnd) : null; };
-  const giaChuoiVideo = (k: string) => { const c = chuoiVideo(k)[0]; const m = c && MO_HINH_CONG.find((x) => x.key === `${c.cong}:${c.model}`); return m ? centsCong(m.vnd) : null; };
+  const giaChuoiVideo = (k: string) => { const c = chuoiVideo(k, false)[0]; const m = c && MO_HINH_CONG.find((x) => x.key === `${c.cong}:${c.model}`); return m ? centsCong(m.vnd) : null; };
   return {
     anh: [
       ...MO_HINH_ANH.flatMap((m) => {
@@ -96,7 +96,7 @@ export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon
       ...MO_HINH_VIDEO.filter((m) => !m.key.startsWith('fal:')).flatMap((m) => {
         const re = giaChuoiVideo(m.key);
         const goc = { key: m.key, label: m.label.split(' (')[0]!, nhom: 'Google', giaCents: m.giaGiay['720p'], donVi: 'giay' as const };
-        return re == null ? [goc] : [{ ...goc, label: `${goc.label} · tự chọn rẻ nhất (Grok/ShopAIKey → Google)`, nhom: 'Tự chọn nguồn', giaCents: re, donVi: 'clip' as const }, { ...goc, key: `google:${m.key}`, nhom: 'Google (trực tiếp)' }];
+        return re == null ? [goc] : [{ ...goc, label: `${goc.label} · tự chọn rẻ nhất (Grok/ShopAIKey → Google)`, nhom: 'Tự chọn nguồn', giaCents: re, donVi: 'clip' as const, chuoi: chuoiVideo(m.key, false).map((c) => `${c.cong}:${c.model}`) }, { ...goc, key: `google:${m.key}`, nhom: 'Google (trực tiếp)' }];
       }),
       ...congVideo.map((m) => ({ key: m.key, label: m.label, nhom: m.nhom, giaCents: centsCong(m.vnd), donVi: 'clip' as const })),
       ...fal.filter((m) => m.loai === 'video').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText, gia: m.gia })),

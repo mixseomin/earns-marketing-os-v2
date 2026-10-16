@@ -3,6 +3,7 @@
 // các cổng tiền kỳ khác (quy-trinh.ts › chanTienKy), và có cách sửa 0đ: đaDangMay đổi chuyển động máy đúng các shot phạm luật.
 // Hành động TRONG khung (nhân vật làm gì) thì luật kể chuyện của Claude lo (claude.ts › LUAT_KE_CHUYEN số 9) + câu "khung hình sống"
 // trong prompt video (sinh-video.ts). Thuần — tự kiểm: nhip-hinh.test.mts
+import { MAY_DAY_VAO } from './san-pham-shot';
 import type { KyThuatShot } from './dien-anh';
 import { O_DAN_DUNG_BAT_BUOC, type DanDung, type PhanCanh } from './kieu';
 
@@ -11,7 +12,8 @@ export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
 export const TI_LE_TINH_TOI_DA = 0.4;
 const TINH = (k?: KyThuatShot) => !k?.chuyen_dong || k.chuyen_dong === 'tinh';
 
-type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null };
+/** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
+type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean };
 
 /** Lỗi nhịp hình của một chuỗi shot (đã xếp theo thứ tự phát). */
 export function kiemNhipHinh(ds: ShotNhip[]): string[] {
@@ -41,7 +43,7 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
   const doi = new Set<number>();
   const chon = (i: number) => {
     const truoc = kt[i - 1]?.chuyen_dong; const sau = kt[i + 1]?.chuyen_dong;
-    const ds2 = HOP_CO_CANH[kt[i]!.co_canh ?? ''] ?? HOP_MAC_DINH;
+    const ds2 = (HOP_CO_CANH[kt[i]!.co_canh ?? ''] ?? HOP_MAC_DINH).filter((x) => !(ds[i]!.tranh_day && MAY_DAY_VAO.includes(x)));
     const m = ds2.find((x) => x !== truoc && x !== sau && x !== kt[i]!.chuyen_dong) ?? ds2[0]!;
     kt[i]!.chuyen_dong = m; doi.add(i);
   };

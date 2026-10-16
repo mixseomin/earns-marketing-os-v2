@@ -17,6 +17,7 @@ import { nhipHanhDong } from './nhip-hanh-dong';
 import { mapCanh, mapTap, mapNhanVat, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
 import { daDangMay, giayDoc } from './nhip-hinh';
+import { tranhDayVao } from './san-pham-shot';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const doDai = (url: string) => new Promise<number | null>((ok) => execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', url], { timeout: 30_000 }, (e, ra) => { const g = Number(String(ra).trim()); ok(e || !Number.isFinite(g) ? null : g); }));
@@ -102,8 +103,11 @@ export async function nhipHanhDongTap(db: Db, tapId: number, nguoi: string): Pro
 export async function daDangMayTapDb(db: Db, tapId: number, nguoi: string): Promise<number> {
   const canh = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   const doi = new Map<number, Canh['ky_thuat']>();
+  // Quảng cáo: shot gắn sản phẩm mặc trên người ở cỡ có người thì không chọn đẩy vào (san-pham-shot.ts — đẩy vào cắt mất sản phẩm, #54 shot 9).
+  const phim = ((await db.execute(sql`SELECT p.id, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
+  const sp = phim?.loai === 'quang_cao' ? ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim.id} AND loai = 'san_pham'`)) as unknown as Row[]).map(mapNhanVat) : [];
   for (const nh of ['A', ...cacNhanh(canh).filter((x) => x !== 'A')]) {
-    const ds = locNhanh(canh, nh).map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat }));
+    const ds = locNhanh(canh, nh).map((c) => { const kt = doi.get(c.id) ?? c.ky_thuat; return { ...c, ky_thuat: kt, tranh_day: tranhDayVao(kt?.co_canh, sp.filter((v) => c.nhan_vat.includes(v.id))) }; });
     for (const x of daDangMay(ds)) doi.set(x.id, x.ky_thuat);
   }
   for (const [id, kt] of doi) {

@@ -12,6 +12,7 @@ import { getDb } from '@mos2/db';
 import { DONG_TEMPLATE, type DongTemplate, type Lop, ghepThoai, CAM_XUC_THEO_LOAI, type KieuChu, type KinhThanh, type MauQcTemplate, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
 import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot, anchorGhiCung } from '../src/lib/xuong-video/template';
 import { daDangMay } from '../src/lib/xuong-video/nhip-hinh';
+import { nhacSanPham } from '../src/lib/xuong-video/san-pham-shot';
 import { diemNhan } from '../src/lib/xuong-video/diem-nhan';
 import type { KyThuatShot } from '../src/lib/xuong-video/dien-anh';
 import { cauThieuNguon, type ThamKhaoCau } from '../src/lib/xuong-video/tham-khao';
@@ -63,6 +64,12 @@ for (const t of tep.templates) {
   // (16/10/2026: truoc_sau shot 4 {{demo_hinh}} chỉ nằm ở hanh_dong → JettJeans #54 vẽ selfie đứng thay vì ngồi buộc giày).
   const lotHanhDong = t.shots.flatMap((s, i) => (s.prompt_anh && !s.keyframe ? [...(s.hanh_dong ?? '').matchAll(/\{\{(\w+_hinh)\}\}/g)].map((m) => m[1]!).filter((k) => !s.prompt_anh!.includes(`{{${k}}}`)).map((k) => `shot ${i + 1}: {{${k}}}`) : []));
   if (lotHanhDong.length) throw new Error(`${t.key}: ô hành động không có trong prompt hình (keyframe không thấy hành động): ${lotHanhDong.join(', ')}`);
+  // Shot gắn sản phẩm: hành động phải nhắc sản phẩm (san-pham-shot.ts) — câu chung "Small happy laugh" / "smiles … slow push-in" chép sang phim
+  // làm model bịa cử chỉ kéo cổ áo trong phim bán quần (#54 shot 9, 16/10/2026). Ô *_hinh điền theo sản phẩm lúc tạo phim → tính là có nhắc.
+  const spKey = new Set(t.nhan_vat.filter((v) => v.loai === 'san_pham').map((v) => v.key));
+  const spTpl = t.nhan_vat.filter((v) => v.loai === 'san_pham');
+  const khongSp = t.shots.flatMap((s, i) => ((s.nv ?? []).some((k) => spKey.has(k)) && !nhacSanPham(((s.prompt_video ?? '').trim() || s.hanh_dong).replace(/\{\{\w+_hinh\}\}/g, '{{san_pham}}'), spTpl) ? [`shot ${i + 1}`] : []));
+  if (khongSp.length) throw new Error(`${t.key}: shot gắn sản phẩm mà hành động không nhắc sản phẩm (viết cử chỉ vào {{san_pham}}): ${khongSp.join(', ')}`);
   const dongCua = DONG_TEMPLATE.find((x) => x.key === t.dong);
   if (!dongCua || !dongCua.khuon.some((k) => k.key === t.khuon)) throw new Error(`${t.key}: thiếu / sai dòng + khuôn (kieu.ts › DONG_TEMPLATE) — kho template xếp theo dòng → khuôn`);
   const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o, mau_qc: t.mau_qc, dong: t.dong, khuon: t.khuon };

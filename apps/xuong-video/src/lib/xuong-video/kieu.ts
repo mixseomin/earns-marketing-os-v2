@@ -47,9 +47,10 @@ export const MO_HINH_ANH = [
 export type MoHinhAnh = (typeof MO_HINH_ANH)[number]['key'];
 
 /** Model video Veo 3.1 (Gemini API, predictLongRunning). `giaGiay` = cents mỗi giây theo độ phân giải. */
-/** Model video KHÔNG dùng cho quảng cáo (anh 16/10/2026: Pika khung khoá "thiếu cảm xúc" — chỉ biến hình giữa hai khung, người không diễn).
- *  Một luật cho ô chọn model (mo-hinh-ui.tsx › luaChonVideo) và cửa sinh clip máy chủ (sinh-video.ts › batDauVideoCanh). */
-export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes'];
+/** Model video KHÔNG dùng cho quảng cáo (anh 16/10/2026: Pika khung khoá "thiếu cảm xúc" — chỉ biến hình giữa hai khung, người không diễn;
+ *  Grok qua ShopAIKey tự in phụ đề giả lên hình dù prompt cấm — #54 shot 6 / 9 "Look at that fit!" đè thẻ kết).
+ *  Một luật cho ô chọn model (mo-hinh-ui.tsx › luaChonVideo), chuỗi tự chọn rẻ nhất (cong-ai.ts › chuoiVideo) và cửa sinh clip máy chủ (sinh-video.ts). */
+export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'];
 export const hopQc = (key: string, laQc: boolean): boolean => !(laQc && MO_HINH_KHONG_QC.includes(key));
 export const MO_HINH_VIDEO = [
   { key: 'veo-3.1-lite-generate-preview', label: 'Veo 3.1 Lite (rẻ nhất: $0,40 / 8s 720p)', giaGiay: { '720p': 5, '1080p': 8 } },

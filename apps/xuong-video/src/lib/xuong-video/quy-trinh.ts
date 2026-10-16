@@ -13,6 +13,7 @@ import { kiemTieng } from './khop-giong';
 import type { Series, TapHoSo, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, tomTatNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM, type ShotXem } from './nguoi-xem';
 import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
+import { loiSanPhamShot } from './san-pham-shot';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
@@ -23,7 +24,7 @@ export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; l
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'>): PhimQt =>
   ({ phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi });
-type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung'>>;
+type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'prompt_video'>>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
  *  shot nào không thuộc một phân cảnh đã khai (phan_doan khớp tên trong tap.phan_canh) thì chưa được sinh. MỘT luật cho bảng chọn,
@@ -137,6 +138,8 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   if (c.keyframe_url && !laQc) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null }); if (k) out.push(k); }
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
+  // Quảng cáo: cử chỉ phải dồn vào sản phẩm + máy không đẩy cắt mất sản phẩm mặc trên người (san-pham-shot.ts) — chặn trước khi tiêu tiền clip.
+  if (laQc) out.push(...loiSanPhamShot(c, nhanVat));
   return out;
 }
 

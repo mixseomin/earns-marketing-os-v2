@@ -2,7 +2,7 @@
 // ckey.vn (chợ người bán, giá VNĐ) và ShopAIKey (credit $1 = 3.250₫) bán lại model Google/xAI rẻ hơn gọi thẳng. Một ảnh đi qua CHUỖI:
 // cổng rẻ nhất trước, lỗi/treo/hết tiền thì sang cổng kế, cuối cùng mới tới Google — mỗi bước ghi vào `nguon` để biết ảnh ra từ đâu,
 // giá thật bao nhiêu, bước nào hỏng vì sao. Số đo + bảng giá: scripts/du-lieu/cong-api/README.md. Chạy được trong Worker (không DB).
-import type { TiLeAnh } from './kieu';
+import { hopQc, type TiLeAnh } from './kieu';
 
 /** Tỉ giá quy tiền thật (memory feedback_chi_phi_vnd_that): sổ chi phí ghi cent USD theo VNĐ thật đã trả. */
 export const VND_MOI_USD = 26000;
@@ -208,9 +208,11 @@ export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents
 };
 
 /** Chuỗi cổng video cho một shot dùng Veo (Google): Grok qua ShopAIKey trước. Chỉ khi có khoá. */
-export function chuoiVideo(modelGoc: string): { cong: CongKey; model: string; giay: number }[] {
+/** laQc: bỏ bậc không hợp quảng cáo (kieu.ts › MO_HINH_KHONG_QC) — chuỗi rỗng thì shot đi thẳng Google. */
+export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; model: string; giay: number }[] {
   if (!/^veo/i.test(modelGoc) || !coCong('shopaikey')) return [];
-  return [{ cong: 'shopaikey', model: 'grok-video-3-10s', giay: 10 }, { cong: 'shopaikey', model: 'grok-imagine-video-1.5', giay: 6 }];
+  return ([{ cong: 'shopaikey', model: 'grok-video-3-10s', giay: 10 }, { cong: 'shopaikey', model: 'grok-imagine-video-1.5', giay: 6 }] as const)
+    .filter((b) => hopQc(`${b.cong}:${b.model}`, laQc)).map((b) => ({ ...b }));
 }
 
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */

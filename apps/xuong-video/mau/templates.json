@@ -654,7 +654,7 @@
       "bc"
      ],
      "prompt_anh": "Macro close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
-     "prompt_video": "Hands slowly reveal the detail, shallow depth of field",
+     "prompt_video": "Hands slowly reveal the detail of the {{san_pham}}, shallow depth of field",
      "co": "ecu",
      "bt": [
       "m1"
@@ -673,7 +673,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
-     "prompt_video": "The person turns slowly and smiles at their reflection",
+     "prompt_video": "The person turns slowly to show the {{san_pham}} and smiles at their reflection",
      "co": "mcu",
      "bt": [
       "m1"
@@ -710,7 +710,7 @@
       "bc"
      ],
      "prompt_anh": "Top-down phone photo: {{truoc_sau_hinh}}; product: {{san_pham_hinh}}",
-     "prompt_video": "Hands swap the items quickly, top-down static camera",
+     "prompt_video": "Hands swap the {{san_pham}} pieces quickly, top-down static camera",
      "co": "ms",
      "bt": [
       "m1",
@@ -730,7 +730,7 @@
       "bc2"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, relaxed and smiling, {{boi_canh_2}}",
-     "prompt_video": "The person laughs softly and leans back, gentle handheld",
+     "prompt_video": "The person smooths the {{san_pham}}, laughs softly and leans back, gentle handheld",
      "co": "mcu",
      "bt": [
       "m1"
@@ -747,7 +747,7 @@
       "bc"
      ],
      "prompt_anh": "Overhead flat lay: three neatly folded {{san_pham_hinh}} in {{mau_chinh_hinh}}, {{mau_2_hinh}} and {{mau_3_hinh}} side by side on a clean light linen bed cover, soft daylight, vertical 9:16, empty space in the lower third for text, no text, no labels",
-     "prompt_video": "Slow overhead push-in, a hand smooths the fabric of the middle tank",
+     "prompt_video": "Slow overhead push-in, a hand smooths the fabric of the middle {{san_pham}}",
      "co": "cu",
      "bt": [
       "m1",
@@ -768,7 +768,7 @@
       "bc2"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_chinh_hinh}}, standing tall and smiling confidently at the camera on {{boi_canh_2}}, warm golden hour light, vertical 9:16 hero shot, empty space in the lower third for text, no text",
-     "prompt_video": "The person smiles and gives a small confident nod, gentle breeze, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, gentle breeze, camera locked off",
      "co": "cu",
      "bt": [
       "m1"
@@ -921,7 +921,7 @@
       "bc"
      ],
      "prompt_anh": "Two {{san_pham_hinh}} held side by side by hands, bright room",
-     "prompt_video": "Hands present both items, quick shake",
+     "prompt_video": "Hands present both {{san_pham}} pieces, quick shake",
      "co": "cu"
     },
     {
@@ -937,7 +937,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{boi_canh}}",
-     "prompt_video": "The person turns to camera confidently",
+     "prompt_video": "The person turns to camera confidently, showing off the {{san_pham}}",
      "co": "ms",
      "tk": [
       {
@@ -967,7 +967,7 @@
       "bc"
      ],
      "prompt_anh": "Detail close-up of {{san_pham_hinh}}",
-     "prompt_video": "Slow slide across the detail",
+     "prompt_video": "Slow slide across the detail of the {{san_pham}}",
      "co": "ecu",
      "tk": [
       {
@@ -998,7 +998,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, smiling and nodding, {{boi_canh}}",
-     "prompt_video": "The person nods and smiles at camera",
+     "prompt_video": "The person touches the {{san_pham}}, nods and smiles at camera",
      "co": "mcu"
     },
     {
@@ -1106,7 +1106,7 @@
       "bc"
      ],
      "prompt_anh": "Close-up: hands tossing an ordinary uncomfortable generic alternative aside onto a bed, {{boi_canh}}",
-     "prompt_video": "The ordinary item is tossed aside, quick motion",
+     "prompt_video": "The ordinary item is tossed aside for the {{san_pham}}, quick motion",
      "co": "cu",
      "loi": "No more {{noi_dau_ngan}}."
     },
@@ -1121,7 +1121,7 @@
       "bc"
      ],
      "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors, soft daylight",
-     "prompt_video": "Slow overhead push-in",
+     "prompt_video": "Slow overhead push-in on the {{san_pham}}",
      "co": "ms"
     },
     {
@@ -1137,7 +1137,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, pointing down, {{boi_canh}}",
-     "prompt_video": "The person points down with a smile",
+     "prompt_video": "The person points down at the {{san_pham}} with a smile",
      "co": "ms",
      "tk": [
       {
@@ -1167,7 +1167,7 @@
       "bc"
      ],
      "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, light background, room for text",
-     "prompt_video": "Subtle slow zoom",
+     "prompt_video": "Subtle slow zoom on the {{san_pham}}",
      "co": "cu"
     }
    ],
@@ -1393,7 +1393,7 @@
       "bc"
      ],
      "prompt_anh": "Same mirror selfie angle: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, confident and happy, {{boi_canh}}",
-     "prompt_video": "The person straightens up and smiles, fixed camera",
+     "prompt_video": "The person straightens up, smooths the {{san_pham}} with both hands and smiles, fixed camera",
      "co": "ms"
     },
     {
@@ -1425,7 +1425,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
-     "prompt_video": "The person turns slowly",
+     "prompt_video": "The person turns slowly to show the {{san_pham}} from the side and back",
      "co": "mcu"
     },
     {
@@ -1440,7 +1440,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, warm smile at camera",
-     "prompt_video": "Small happy laugh",
+     "prompt_video": "The person runs a hand over the {{san_pham}} and gives a small happy laugh",
      "co": "mcu"
     },
     {
@@ -1456,7 +1456,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, soft morning light, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms"
     }
    ],
@@ -1621,7 +1621,7 @@
       "bc"
      ],
      "prompt_anh": "Close-up: hands tossing an ordinary uncomfortable generic alternative aside onto a tabletop, {{boi_canh}}",
-     "prompt_video": "The ordinary item is tossed aside, quick motion",
+     "prompt_video": "The ordinary item is tossed aside for the {{san_pham}}, quick motion",
      "co": "cu"
     },
     {
@@ -1713,7 +1713,7 @@
       "bc"
      ],
      "prompt_anh": "Side-by-side test on a tabletop: an ordinary generic alternative on the left, {{san_pham_hinh}} on the right",
-     "prompt_video": "Both are tested at the same time, the right one clearly wins",
+     "prompt_video": "Both are tested at the same time, the {{san_pham}} clearly wins",
      "co": "ms"
     },
     {
@@ -1727,7 +1727,7 @@
       "bc"
      ],
      "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors",
-     "prompt_video": "Slow overhead push-in",
+     "prompt_video": "Slow overhead push-in on the {{san_pham}}",
      "co": "cu"
     },
     {
@@ -1742,7 +1742,7 @@
       "bc"
      ],
      "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, room for text",
-     "prompt_video": "Subtle slow zoom",
+     "prompt_video": "Subtle slow zoom on the {{san_pham}}",
      "co": "cu"
     }
    ],
@@ -2005,7 +2005,7 @@
       "bc"
      ],
      "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, genuine smile, {{boi_canh}}",
-     "prompt_video": "The person smiles and shakes their head in disbelief",
+     "prompt_video": "The person looks down at the {{san_pham}}, smiles and shakes their head in disbelief",
      "co": "mcu",
      "tk": [
       {
@@ -2081,7 +2081,7 @@
       "bc"
      ],
      "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, room for text",
-     "prompt_video": "Subtle slow zoom",
+     "prompt_video": "Subtle slow zoom on the {{san_pham}}",
      "co": "cu"
     }
    ],
@@ -2502,7 +2502,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, warm smile at camera, {{boi_canh}}",
-     "prompt_video": "Small happy laugh",
+     "prompt_video": "The person runs a hand over the {{san_pham}} and gives a small happy laugh",
      "co": "mcu"
     },
     {
@@ -2516,7 +2516,7 @@
       "bc"
      ],
      "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors, neatly arranged on a clean surface in {{boi_canh}}, vertical 9:16, no text",
-     "prompt_video": "Slow overhead push-in",
+     "prompt_video": "Slow overhead push-in on the {{san_pham}}",
      "co": "cu"
     },
     {
@@ -2531,7 +2531,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing or carrying {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -2739,7 +2739,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, warm smile at camera, {{boi_canh}}",
-     "prompt_video": "Small happy laugh",
+     "prompt_video": "The person runs a hand over the {{san_pham}} and gives a small happy laugh",
      "co": "mcu"
     },
     {
@@ -2754,7 +2754,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -2936,7 +2936,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror, side angle: {{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
-     "prompt_video": "The person turns slowly in the mirror",
+     "prompt_video": "The person turns slowly in the mirror to show the {{san_pham}} from every side",
      "co": "mcu"
     },
     {
@@ -2951,7 +2951,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie close-up: {{nhan_vat_hinh}} wearing {{san_pham_hinh}}, big genuine smile, {{boi_canh}}",
-     "prompt_video": "Small happy laugh",
+     "prompt_video": "The person runs a hand over the {{san_pham}} and gives a small happy laugh",
      "co": "mcu"
     },
     {
@@ -2966,7 +2966,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3089,7 +3089,7 @@
       "bc"
      ],
      "prompt_anh": "Top-down phone shot on a bed: hands opening a mailer package, {{san_pham_hinh}} in {{mau_chinh_hinh}}, {{mau_2_hinh}} and {{mau_3_hinh}} spread out, {{boi_canh}}",
-     "prompt_video": "Hands pull the items out and fan the colors across the bed",
+     "prompt_video": "Hands pull the {{san_pham}} out and fan the colors across the bed",
      "co": "cu",
      "loi": "{{haul_mo}}"
     },
@@ -3120,7 +3120,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_chinh_hinh}}, {{boi_canh}}",
-     "prompt_video": "The person does a quick turn in the mirror",
+     "prompt_video": "The person does a quick turn in the mirror to show the {{san_pham}} from every side",
      "co": "ms",
      "loi": "{{mau_chinh}}"
     },
@@ -3136,7 +3136,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_2_hinh}} (not the main color), {{boi_canh}}",
-     "prompt_video": "The person does a quick turn in the mirror",
+     "prompt_video": "The person does a quick turn in the mirror to show the {{san_pham}} from every side",
      "co": "ms",
      "loi": "{{mau_2}}"
     },
@@ -3152,7 +3152,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_3_hinh}} (not the main color), {{boi_canh}}",
-     "prompt_video": "The person does a quick turn in the mirror",
+     "prompt_video": "The person does a quick turn in the mirror to show the {{san_pham}} from every side",
      "co": "ms",
      "loi": "{{mau_3}}"
     },
@@ -3182,7 +3182,7 @@
       "bc"
      ],
      "prompt_anh": "Flat lay of {{san_pham_hinh}} in {{mau_chinh_hinh}}, {{mau_2_hinh}} and {{mau_3_hinh}} folded side by side on a bed, vertical 9:16, no text",
-     "prompt_video": "Slow overhead push-in",
+     "prompt_video": "Slow overhead push-in on the {{san_pham}}",
      "co": "cu"
     },
     {
@@ -3197,7 +3197,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3384,7 +3384,7 @@
       "sp"
      ],
      "prompt_anh": "Real size chart of the product",
-     "prompt_video": "Slow push-in on the size chart",
+     "prompt_video": "Slow push-in on the {{san_pham}} size chart",
      "co": "cu",
      "keyframe": "{{anh_tran_an}}"
     },
@@ -3416,7 +3416,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, warm smile at camera, {{boi_canh}}",
-     "prompt_video": "Small happy laugh",
+     "prompt_video": "The person runs a hand over the {{san_pham}} and gives a small happy laugh",
      "co": "mcu"
     },
     {
@@ -3431,7 +3431,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3649,7 +3649,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, warm smile at camera, {{boi_canh}}",
-     "prompt_video": "Small happy laugh",
+     "prompt_video": "The person runs a hand over the {{san_pham}} and gives a small happy laugh",
      "co": "mcu"
     },
     {
@@ -3664,7 +3664,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person shows off the {{san_pham}} with one hand, smiles and gives a small confident nod, camera locked off",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3980,7 +3980,7 @@
      ],
      "co": "cu",
      "prompt_anh": "Overhead flat lay on a seamless warm off-white backdrop: the product in every available color laid out in a neat grid, soft studio light, vertical 9:16, no text",
-     "prompt_video": "Slow overhead push-in"
+     "prompt_video": "Slow overhead push-in on the {{san_pham}}"
     },
     {
      "giay": 2.5,
@@ -3996,7 +3996,7 @@
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}.",
      "prompt_anh": "Brand hero shot on a seamless warm off-white backdrop: {{san_pham_hinh}} standing open with {{san_pham_gap_hinh}} beside it, soft studio light, empty lower third for text, vertical 9:16, no text, no people",
-     "prompt_video": "Very slow push-in, studio, nothing moves"
+     "prompt_video": "Very slow push-in on the {{san_pham}}, studio, nothing moves"
     }
    ]
   }

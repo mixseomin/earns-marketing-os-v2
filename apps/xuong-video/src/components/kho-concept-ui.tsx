@@ -170,7 +170,9 @@ export function TabPhuongAn({ d, spKey, onDoi, capId, setCapId }: { d: KhoConcep
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 10 }}>
         {x.t.o_chu.map((o) => { const ds2 = pa.filter((p) => p.o === o.k).sort((a, b) => a.so - b.so);
           return <div key={o.k} style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>{o.ten} <span style={mono}>· {o.loai} · {o.giay}s · {ds2.length} phương án</span></span>
+            <span style={{ display: 'grid', gap: 1 }} title={`ô {{${o.k}}}`}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-2)' }}>{LOAI_SHOT_MAU.find((l) => l.key === o.loai)?.ten ?? o.loai} <span style={mono}>· {o.giay}s · {ds2.length} phương án</span></span>
+              <span style={{ ...mono, ...catChu }}>{o.ten}</span></span>
             {ds2.map((p) => <PhuongAnO key={`${p.id}-${p.chu}`} chu={p.chu} so={p.so} nguon={p.nguon} onLuu={(c) => chay(suaPhuongAn(p.id, c))} onBo={() => chay(boPhuongAn(p.id))} />)}
             <span style={{ display: 'flex', gap: 4 }}>
               <input className="xv-in" placeholder={o.goi_y || 'thêm phương án tay…'} value={moi[o.k] ?? ''} onChange={(e) => setMoi({ ...moi, [o.k]: e.target.value })} />

@@ -1,9 +1,19 @@
 'use client';
 // Chip điểm Murch trên ô shot + thẻ nổi sáu tiêu chí (anh 15/10/2026: "bộ tính điểm dựa vào luật của Murch cho mỗi shot dựa vào cảnh trước, cảnh sau,
 // cảnh hiện tại và toàn cảnh"). Số là ƯỚC LƯỢNG để so shot trong tập (diem-murch.ts), không phải điểm tuyệt đối — thẻ nói rõ.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useViTriNoi } from './vi-tri-noi';
-import { TRONG_SO, TEN_TIEU_CHI, mauDiem, type DiemMurch, type TieuChi } from '@/lib/xuong-video/diem-murch';
+import { TRONG_SO, TEN_TIEU_CHI, mauDiem, diemMurchTap, diemMurchCanh, type DiemMurch, type TieuChi } from '@/lib/xuong-video/diem-murch';
+import { boSetCuaTap } from '@/lib/actions';
+import type { BoSet, Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
+
+/** MỘT chỗ tính điểm Murch cho mọi nơi hiện chip (Lưới, Timeline) — cùng bộ set 3D, cùng cờ QC → cùng số ở mọi màn. */
+export function useDiemMurch(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'id' | 'phan_canh'>, laQc?: boolean) {
+  const [sets, setSets] = useState<Pick<BoSet, 'id' | 'du_lieu'>[]>([]);
+  useEffect(() => { void boSetCuaTap(tap.id).then((r) => { if (r.ok) setSets(r.data); }); }, [tap.id]);
+  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [], laQc });
+  return { sets, diemM, tbM: diemMurchCanh(canh, diemM) };
+}
 
 export function ChipMurch({ d, canh, tap, soShot, viTri: vt }: { d: DiemMurch | undefined; canh: number | undefined; tap: number; soShot: number; /** chỗ đặt chip trong ô (mặc định góc phải trên) */ viTri?: { left?: number; right?: number; top?: number; bottom?: number } }) {
   const ref = useRef<HTMLSpanElement>(null);

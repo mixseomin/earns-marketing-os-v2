@@ -1,5 +1,6 @@
 // SOÁT MURCH QC (qc-cam-xuc.ts) — Claude soát TRONG PHIÊN, 0đ (không gọi model trả tiền). Hai bước:
-//   --in [--shot=1,2] : in kế hoạch biểu cảm từng shot + dựng tờ khung (keyframe | 6 khung clip đều nhau) lên R2 để xem.
+//   --in [--shot=1,2] : in kế hoạch biểu cảm từng shot + dựng tờ 8 khung clip (4×2, mỗi khung 400px) lên R2 để xem. Trước 16/10/2026 tờ là 6×240px:
+//                       mặt còn ~30px, Claude đọc nhầm Frank NGHIẾN RĂNG NHĂN ĐAU (#61 #2) thành cười → chấm trượt một clip đạt.
 //   --ghi=<tệp.json>  : { "<thu_tu>": { "keyframe"?: { dat, loi[] }, "clip"?: { dat, loi[], do?: { dau, cuoi } } } } → ghi xv_canh.soat cho đúng
 //                       keyframe / clip ĐANG DÙNG (sinh lại là soát cũ hết hiệu lực). Bảng soát: qc-cam-xuc.ts › MUC_SOAT.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
@@ -33,7 +34,7 @@ if (process.argv.includes('--in')) {
     let to = '';
     if (clip) {
       const d = await dai(clip); const phat = c.phat_s ?? d;
-      const b = await ff(['-v', 'error', '-t', String(Math.min(phat, d || phat)), '-i', clip, '-vf', `fps=6/${Math.max(0.5, Math.min(phat, d || phat))},scale=240:-1,tile=6x1`, '-frames:v', '1', '-q:v', '3', '-f', 'image2', '-vcodec', 'mjpeg', 'pipe:1']);
+      const b = await ff(['-v', 'error', '-t', String(Math.min(phat, d || phat)), '-i', clip, '-vf', `fps=8/${Math.max(0.5, Math.min(phat, d || phat))},scale=400:-1,tile=4x2`, '-frames:v', '1', '-q:v', '3', '-f', 'image2', '-vcodec', 'mjpeg', 'pipe:1']);
       if (b?.length) to = (await uploadToR2(`xuong-video/soat/${c.id}-clip-${Date.now()}.jpg`, b, 'image/jpeg')) ?? '';
     }
     console.log(`\n#${c.thu_tu} [${c.phan_doan}] ${c.noi_lien ? '⛓ nối liền · ' : ''}${c.hanh_dong.slice(0, 140)}`);

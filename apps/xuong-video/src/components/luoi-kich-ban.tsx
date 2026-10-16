@@ -3,7 +3,7 @@
 // nháp / keyframe), mốc giờ trong phim, chữ màn, lời đọc — xếp theo phân cảnh (tên · beat · mục tiêu). Bấm thẻ = mở shot đó trên timeline.
 // 14/10/2026 (anh: "lưới không nhìn thấy key chuyển cảnh, location, time"): đầu khối cảnh hiện NƠI + THỜI ĐIỂM; mỗi thẻ hiện bối cảnh của shot,
 // vai kể · cỡ cảnh · chuyển động máy, và chuyển cảnh sang shot sau (liền máy / hoà tan tô màu) — dữ liệu hồ sơ tiền kỳ phải có chỗ hiện.
-import { chuManHien, giayPhat, tenPhanDoan, loiSoiClip, moTaVi, type BoSet, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { chuManHien, giayPhat, tenPhanDoan, loiSoiClip, moTaVi, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { dongThoai } from '@/lib/xuong-video/am-thanh';
 import { mono } from './ui';
 import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
@@ -11,16 +11,15 @@ import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
 import { useEffect, useState } from 'react';
 import { useNho } from './nho';
 import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
-import { kiemKhungTapAction, boSetCuaTap, boQuaSoiClipAction, dichMoTaTap, luuLuongCanh } from '@/lib/actions';
+import { kiemKhungTapAction, boQuaSoiClipAction, dichMoTaTap, luuLuongCanh } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
 import { KyThuatApDung } from './thu-vien';
 import { boSetCuaShot, loiMachTap, canhBaoMachTap } from '@/lib/xuong-video/bo-set-3d';
 import { NhanKhung3D } from './kiem-khung-noi';
-import { ChipMurch } from './diem-murch-noi';
+import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { Khung3DSong } from './khung-3d-song';
-import { diemMurchTap, diemMurchCanh } from '@/lib/xuong-video/diem-murch';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -74,13 +73,11 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
     <button type="button" title={title} disabled={tat} onClick={() => setZoom((z) => Math.min(5, Math.max(1, z + d)))} style={{ fontSize: 11, lineHeight: '16px', padding: '0 4px', borderRadius: 3, border: '1px solid var(--line)', background: tat ? 'none' : 'var(--bg-2)', color: tat ? 'var(--fg-4)' : 'var(--fg-2)', cursor: tat ? 'default' : 'pointer', opacity: tat ? 0.6 : 1 }}>{chu}</button>
   );
   // Mạch 3D (bo-set-3d.ts › loiMachTap): CÙNG hàm cổng keyframe dùng — đứt mạch chỗ đứng / thiếu chuỗi chú ý gắn ⚠ ở ô 3D, tooltip ghi lý do.
-  const [sets, setSets] = useState<Pick<BoSet, 'id' | 'du_lieu'>[]>([]);
-  useEffect(() => { void boSetCuaTap(tap.id).then((r) => { if (r.ok) setSets(r.data); }); }, [tap.id]);
+  // Điểm Murch từng shot (diem-murch.ts › useDiemMurch, chung với Timeline): so shot trong tập, chip ô keyframe + ô 3D, thẻ nổi sáu tiêu chí.
+  const { sets, diemM, tbM } = useDiemMurch(canh, nhanVat, tap, laQc);
   const lienMach = loiMachTap(canh, nhanVat, sets, tap.phan_canh);
   // Cảnh báo (luật 30°, eye trace, khoảng nhìn, chiều cao máy, ống kính — Murch xếp cuối): ⚠ vàng, không chặn tiền.
   const canhBao = canhBaoMachTap(canh, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t));
-  // Điểm Murch từng shot (diem-murch.ts): so shot trong tập, chip góc phải ô 3D, thẻ nổi sáu tiêu chí.
-  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [], laQc }); const tbM = diemMurchCanh(canh, diemM);
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
   let t = 0;

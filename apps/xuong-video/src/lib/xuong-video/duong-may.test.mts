@@ -34,4 +34,6 @@ const ln = duongMay({ ...m, dat: [0, -20, 1], vi_tri: [{ ten: 'Tango', tam: [0, 
 assert.ok(ln.dat[2]! > 1, 'bị che → máy cao lên');
 const tuong = hopVat([{ ten: 'Tường', hinh: 'hop', tam: [10, -9, 0], co: [60, 2, 80], mau: '#fff' }]);
 assert.equal(duongMay({ ...m, dat: [0, -20, 1], vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [20, 0, 0] }] }, 'truot_ngang', tuong)!.che, 'Tường', 'che hẳn → gắn cờ');
+const ph3 = duongMay({ ...m2, vi_tri: [m2.vi_tri[0]!, { ten: 'Lint', tam: [5, 3, 0], dien: ['phong3@0.05-0.3'] }] }, 'zoom_gat', [], () => 2)!;
+assert.ok(ph3.nhin[2]! >= 3 && ph3.ong_kinh < 100, 'phồng ×3: nhắm giữa thân phồng, zoom chừa chỗ');
 console.log('duong-may: mọi bài tự kiểm qua');

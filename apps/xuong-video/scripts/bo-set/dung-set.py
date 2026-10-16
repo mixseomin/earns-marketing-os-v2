@@ -5,7 +5,7 @@
 # Chạy trên box (Blender không giao diện):
 #   blender -b --factory-startup -P apps/xuong-video/scripts/bo-set/dung-set.py -- <set.json> <thư mục ra> [ma shot,...]
 import bpy, json, math, sys, os
-from mathutils import Vector, Euler
+from mathutils import Quaternion, Vector, Euler
 
 arg = sys.argv[sys.argv.index('--') + 1:]
 DL = json.load(open(arg[0], encoding='utf-8'))
@@ -669,6 +669,45 @@ def ve_do_sau(s, ra):
 
 if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ độ sâu từng shot
     ve_do_sau(s, RA); sys.exit(0)
+# THƯ VIỆN ĐỘNG TÁC (bước 2, anh 16/10/2026 "làm phim hoàn toàn bằng Blender"): mỗi nhân vật trong shot khai vi_tri[].dien = ['ten@a-b', …]
+# (a, b = phần thời lượng shot 0..1; '@a' = bắt đầu ở a, kéo ~15 %; không '@' = cả shot). Giá trị giữ nguyên sau khi động tác xong (tóc đã rũ
+# thì rũ tới hết shot). Chớp mắt + chúi tới khi đi là TỰ ĐỘNG, không cần khai.
+DONG_TAC = {
+    'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
+    'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
+    'nga_ngoi': 'ngã ngồi ra sau', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai',
+}
+def doc_dong_tac(ds):
+    out = []
+    for x in ds:
+        ten, _, mt = x.partition('@'); so = ''.join(c for c in ten if c.isdigit()); ten = ten.rstrip('0123456789')
+        if ten not in DONG_TAC: print('CANH BAO dong tac la', x); continue
+        if mt: a_, _, b_ = mt.partition('-'); a_ = float(a_); b_ = float(b_) if b_ else min(1.0, a_ + 0.15)
+        else: a_, b_ = 0.0, 1.0
+        out.append((ten, a_, max(b_, a_ + 0.01), float(so) if so else None))
+    return out
+
+def dong_tac_luc(hd, t, r):
+    """Giá trị các kênh diễn lúc t (0..1) từ danh sách động tác đã đọc."""
+    em_ = lambda u: u * u * (3 - 2 * u)
+    nay = lambda u: em_(u) + 0.12 * math.sin(math.pi * u) * (1 - u)   # tới đích có nảy nhẹ
+    v = {'phong': 1.0, 'nhay': 0.0, 'lun': 0.0, 'nga': 0.0, 'lan': 0.0, 'run': 0.0, 'bep': 0.0, 'mat': 1.0, 'nheo': 1.0, 'toc_goc': 0.0, 'toc_lac': 0.0, 'toc_dai': 1.0, 'vai': 0.0}
+    for ten, a, b, so in hd:
+        c = min(1.0, max(0.0, (t - a) / (b - a))); dang = a <= t <= b
+        if ten == 'phong': v['phong'] *= 1 + ((so or 3) - 1) * nay(c)
+        elif ten == 'xep': v['phong'] *= 1 - 0.18 * em_(c)
+        elif ten == 'run' and dang: v['run'] = max(v['run'], 0.035)
+        elif ten == 'nhay': v['nhay'] += 1.1 * 4 * c * (1 - c); v['bep'] += 0.08 * (1 - min(1, c / 0.12)) * (c > 0) + 0.08 * max(0, (c - 0.88) / 0.12)
+        elif ten == 'nga_ngoi': v['nga'] += 22 * nay(c); v['lun'] += 0.25 * em_(c); v['bep'] += 0.06 * math.sin(math.pi * c)
+        elif ten == 'cuoi_lan' and dang: v['lan'] += 18 * math.sin(2 * math.pi * 3 * c); v['nhay'] += 0.15 * abs(math.sin(2 * math.pi * 3 * c))
+        elif ten == 'nhun_vai': v['vai'] += 0.18 * abs(math.sin(2 * math.pi * c)) * (c < 1)
+        elif ten == 'mat_to': v['mat'] *= 1 + 0.3 * nay(c)
+        elif ten == 'nheo_mat': v['nheo'] *= 1 - 0.45 * em_(c)
+        elif ten == 'toc_ru': v['toc_goc'] += 75 * nay(c); v['toc_dai'] *= 1 - 0.15 * em_(c)
+        elif ten == 'toc_bat': g = math.exp(-4 * c) * (c > 0); v['toc_lac'] += 22 * g * math.sin(6 * math.pi * c); v['toc_dai'] *= 1 + 0.45 * g * abs(math.sin(6 * math.pi * c))
+        elif ten == 'toc_dung': v['toc_dai'] *= 1 + 0.25 * em_(c); v['toc_goc'] -= 10 * em_(c)
+    return v
+
 def dien_shot(s, sh, ra, giay=4.0, fps=12):
     """DIỄN CẢ SHOT trong Blender (anh 16/10/2026: "thêm khung chuyển động vật lý cho chúng để đồng bộ"): mỗi nhân vật gắn một KHUNG NEO (empty)
     chạy từ chỗ mở → chỗ kết trên MỘT trục thời gian (fps khung/giây, đúng nhịp stop-motion 12): đi trên bàn có nhịp nhún theo bước, bay lên
@@ -711,6 +750,22 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             ds.append((P, loai, ben, h))
         khop[ten] = ds
     bpy.context.view_layer.update()
+    # BỘ PHẬN DIỄN CẢM (thư viện động tác — xem DONG_TAC): mắt (vai mat / nguoi / lap lanh) co giãn tại chỗ; tóc / sợi chỉ (vai toc / chi xanh) gắn
+    # một khớp ở GỐC (đáy hộp bao) để rũ / bật / dựng; trục x của khớp = trục ngang thân.
+    mat_cua, toc_cua = {}, {}
+    for ten, (e, nv) in neo.items():
+        h = math.radians(nv.get('huong', 0) or 0)
+        mat_cua[ten] = [(o, o.scale.copy()) for o in objs if o.get('vai') in ('mat', 'nguoi', 'lap lanh') and (o.parent is e)]
+        ds = []
+        for o in objs:
+            if o.parent is not e or o.get('vai') not in ('toc', 'chi xanh'): continue
+            bb = [o.matrix_world @ Vector(c) for c in o.bound_box]; goc_ = Vector((sum(v.x for v in bb) / 8, sum(v.y for v in bb) / 8, min(v.z for v in bb)))
+            P = bpy.data.objects.new(f'khop toc {ten}', None); s.collection.objects.link(P); P.location = goc_; P.rotation_euler = (0, 0, h)
+            bpy.context.view_layer.update(); P.parent = e; P.matrix_parent_inverse = e.matrix_world.inverted(); bpy.context.view_layer.update()
+            mw = o.matrix_world.copy(); o.parent = P; o.matrix_parent_inverse = P.matrix_world.inverted(); o.matrix_world = mw
+            ds.append((P, h))
+        toc_cua[ten] = ds
+    bpy.context.view_layer.update()
     for ten, (e, nv) in neo.items():   # đồ đang cầm: neo gắn vào neo người cầm
         cam_ = nv.get('cam')
         if cam_ and cam_ in neo:
@@ -731,6 +786,8 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         h0 = nv.get('huong', 0) or 0; h1 = nv.get('huong_den', h0) or h0; dh = ((h1 - h0 + 180) % 360) - 180
         dai = (b.xy - a.xy).length; bay = b.z - a.z > 0.8; buoc = max(1, round(dai / 0.9)); di = dai > 0.4 and not bay and abs(b.z - a.z) < 0.3
         hat = sum(ord(c) * (i + 1) for i, c in enumerate(ten))
+        hd = doc_dong_tac(nv.get('dien') or [])
+        rb = random.Random(hat); chop = [rb.uniform(0.2, 0.45), rb.uniform(0.65, 0.9)]   # hai lần chớp mắt tự nhiên, lệch nhịp mỗi nhân vật
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1); k = dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
             if di: p.z += 0.14 * abs(math.sin(math.pi * buoc * k))   # nhún theo bước
@@ -739,15 +796,30 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             r = random.Random(hat * 1000 + f)
             p += Vector([r.uniform(-0.012, 0.012) * boil for _ in range(3)])   # boil: xê dịch ~0,1 mm mỗi khung
             q = [math.radians(r.uniform(-0.4, 0.4) * boil) for _ in range(3)]
-            e.location = p * CM; e.rotation_euler = (q[0], math.radians(lac) + q[1], math.radians(dh * k) + q[2])
+            dt = dong_tac_luc(hd, t, r)   # {phong, nhay, lui, lan, run, nghieng...} theo thư viện
+            p += Vector((0, 0, dt['nhay'] - dt['lun'])) + Vector([r.uniform(-1, 1) * dt['run'] for _ in range(3)])
+            hh = math.radians(h0 + dh * k); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
+            nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di else 0.0) - math.radians(dt['nga'])   # đi: chúi tới · ngã ngồi: ngả ra sau
+            R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * k) + q[2]) @ Quaternion((1, 0, 0), q[0]))
+            e.rotation_mode = 'QUATERNION'; e.location = p * CM; e.rotation_quaternion = R
             cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 else 0.0   # 1 = chân vừa chạm đất
-            e.scale = (1 + 0.017 * cham, 1 + 0.017 * cham, 1 - 0.035 * cham)   # đất nặn bẹp nhẹ khi chạm, giữ thể tích
-            e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_euler', frame=f); e.keyframe_insert('scale', frame=f)
+            bep = 0.035 * cham + dt['bep']; ph = dt['phong']
+            e.scale = (ph * (1 + bep / 2), ph * (1 + bep / 2), ph * (1 - bep))   # đất nặn bẹp nhẹ khi chạm, giữ thể tích · phồng to
+            e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_quaternion', frame=f); e.keyframe_insert('scale', frame=f)
+            for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo
+                nham_ = 0.12 if any(abs(f - (1 + c * (N - 1))) < 1.01 for c in chop) else 1.0
+                o.scale = Vector((sc.x * dt['mat'], sc.y * dt['mat'], sc.z * dt['mat'] * dt['nheo'] * nham_)); o.keyframe_insert('scale', frame=f)
+            for P, h in toc_cua.get(ten, []):   # tóc / sợi chỉ: rũ · bật lò xo · dựng
+                P.rotation_euler = (math.radians(dt['toc_goc']), math.radians(dt['toc_lac']), h); P.scale = (1, 1, dt['toc_dai'])
+                P.keyframe_insert('rotation_euler', frame=f); P.keyframe_insert('scale', frame=f)
             for P, loai, ben, h in khop.get(ten, []):
                 if bay: g_ = math.radians(10 if loai == 'chan' else 6) * math.sin(2 * math.pi * 1.5 * t + ben * 0.6)   # bay: chân tay lủng lẳng
                 elif dai > 0.4: g_ = math.radians(24 if loai == 'chan' else 14) * math.sin(math.pi * buoc * k) * ben * (1 if loai == 'chan' else -1)   # bước luân phiên, tay ngược chân
                 else: g_ = 0.0
                 P.rotation_euler = (g_, 0, h); P.keyframe_insert('rotation_euler', frame=f)
+                if loai == 'tay':   # nhún vai: hai tay nhấc lên
+                    if 'goc_tay' not in P: P['goc_tay'] = list(P.location)
+                    P.location = Vector(P['goc_tay']) + Vector((0, 0, dt['vai'] * CM)); P.keyframe_insert('location', frame=f)
     # MÁY CHẠY (duong-may.ts › duongMay, số nghề may_di): mở → kết theo tốc độ (nhanh = xong trong 30 % đầu như crash zoom), ống kính đổi theo
     # (zoom), nét tính lại từng khung theo chỗ máy. Cầm tay: lắc chậm + run từng khung (người cầm máy thở), biên độ theo khoảng cách máy.
     chay = sh['may'].get('chay')

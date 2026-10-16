@@ -38,7 +38,7 @@ export function hopVat(vat: VatSet[], them: string[] = []): Hop[] {
 const trong = (p: V3, hs: Hop[], le = 0.3) => hs.find((b) => [0, 1, 2].every((i) => p[i]! > b.min[i]! - le && p[i]! < b.max[i]! + le));
 
 /** Máy lúc kết của shot; null = máy đứng yên (không có mã, mã tĩnh, hoặc kiểu bay tự do chưa dựng được — FPV / hyperlapse). */
-export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' | 'khung' | 'nham'>, chuyenDong: string | undefined | null, can: Hop[] = []): DuongMay | null {
+export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' | 'khung' | 'nham'>, chuyenDong: string | undefined | null, can: Hop[] = [], cao: (ten: string) => number = () => 2): DuongMay | null {
   const md = chuyenDong ? NGANH[`chuyen_dong.${chuyenDong}`]?.may_di : undefined;
   if (!md) return null;
   const rung = chuyenDong === 'cam_tay';
@@ -58,7 +58,14 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
     case 'len': case 'xuong': { const k = 1 / (md.ti_le ?? 1); datK = cong(dat, [0, 0, kc * (k - 1)]); break; }   // cẩu: nâng (ti_le < 1) / hạ (> 1) máy, giữ điểm nhìn
     case 'zoom': {   // zoom VÀO chủ thể: ống kính dài ra + đầu máy quay về chỗ chủ thể (lúc kết), không zoom vào điểm nhìn giữa khung
       ok = m.ong_kinh * (md.ti_le ?? 1.4);
-      if (ct) { const p = v(ct.den ?? ct.tam); nhinK = [p[0], p[1], Math.max(nhin[2], p[2] + 1)]; }
+      if (ct) {
+        // Thân lúc kết = cao khối × hệ số phồng khai trong dien ('phong3' = ×3, #14 Lint phồng gấp ba): nhắm GIỮA thân đó, zoom tối đa tới khi thân
+        // cao ~70 % khung (khung dọc: cảm biến 36 mm theo chiều cao → khung cao = khoảng cách × 36 / ống kính).
+        const ph = (ct.dien ?? []).map((x) => /^phong(\d+(?:\.\d+)?)?/.exec(x)).filter(Boolean).reduce((a, x) => a * Number(x![1] ?? 3), 1);
+        const hs = cao(ct.ten) * ph; const p = v(ct.den ?? ct.tam);
+        nhinK = [p[0], p[1], Math.max(nhin[2], p[2] + hs / 2)];
+        ok = Math.min(ok, Math.max(m.ong_kinh, (0.55 * dai(tru(dat, nhinK)) * 36) / hs));   // 55 %: chừa lông / tóc ngoài khối khai
+      }
       break;
     }
     case 'lia': nhinK = cong(dat, xoayZ(tru(nhin, dat), -chieu * (md.goc ?? 30))); break;   // lia: máy đứng, đầu máy xoay

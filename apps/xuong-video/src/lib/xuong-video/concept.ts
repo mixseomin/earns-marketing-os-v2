@@ -1,7 +1,8 @@
 // KHO CREATIVE THEO CONCEPT (anh 16–17/10/2026: "1.000 creative — quản lý trong studio trước khi sản xuất"). Bốn tầng, mỗi tầng một tab ngăn sản phẩm:
 //   Concept   = một sub-avatar của spy (path × mức nhận biết) — người mua cụ thể ở một mức nhận biết (migration 0269 xv_concept)
 //   Template  = cách tiếp cận (Kể chuyện, Trước/Sau…) — cặp concept × template = MỘT BỘ HÌNH (xv_cap); thêm biến thể diễn viên / bối cảnh (xv_bien_the_hinh)
-//   Phương án = nhiều giá trị chữ cho các ô câu chuyện của template ({{noi_dau}}…) — đổi chữ dùng lại clip (xv_phuong_an)
+//   Phương án = nhiều giá trị chữ cho các ô câu chuyện của template ({{noi_dau}}…) (xv_phuong_an). CHƯA dùng lại clip: Tạo phim = chepPhim từ template,
+//     shot có chữ đổi bị bỏ hình về nháp (template-db.ts) → mỗi creative hiện tốn như một phim riêng (tienDungRiengCents); dùng lại clip giữa creative cùng bộ hình là việc sau.
 //   Creative  = cặp × biến thể × một phương án mỗi ô; tổ hợp chỉ TÍNH ra, duyệt mới lưu (xv_creative, số cố định trong sản phẩm)
 // Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/concept.test.mts
 import { nhomCuaO } from './template';
@@ -76,6 +77,8 @@ export const PA_DU_KIEN = (oChu: Pick<OChu, 'loai'>[], i: number): number => {
 /** Tiền một bộ hình: kịch bản + mọi shot + mỗi biến thể thêm sinh lại các shot có người / bối cảnh (cents). */
 export const tienCapCents = (t: Pick<TplConcept, 'so_shot' | 'shot_ca'>, soBienThe: number, g: GiaConcept): number =>
   g.kb_cents + t.so_shot * g.shot_cents + Math.max(0, soBienThe - 1) * t.shot_ca * g.shot_cents;
+/** Tiền MỘT creative khi dựng thành phim riêng như cách Tạo phim hiện nay (chưa dùng lại clip): kịch bản + mọi shot có ô chữ (shot khác giữ hình). */
+export const tienDungRiengCents = (t: Pick<TplConcept, 'o_chu'>, g: GiaConcept): number => g.kb_cents + new Set(t.o_chu.map((o) => `${o.loai}|${o.k}`)).size * g.shot_cents;
 /** Tiền thêm của MỘT biến thể (cents) — chỉ shot có người / bối cảnh. */
 export const tienBienTheCents = (t: Pick<TplConcept, 'shot_ca'>, g: GiaConcept): number => t.shot_ca * g.shot_cents;
 

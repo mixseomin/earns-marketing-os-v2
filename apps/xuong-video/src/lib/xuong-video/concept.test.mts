@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/concept.test.mts
 import assert from 'node:assert';
-import { oChuTuKhung, oHinhCua, gtBienThe, toHopCap, trongVong, khacGoc, tienCapCents, duKienCap, maToHop, hopKhuon, PA_DU_KIEN, type TplConcept, type Concept, type BienTheHinh, type PhuongAn } from './concept';
+import { oChuTuKhung, oHinhCua, gtBienThe, toHopCap, trongVong, khacGoc, tienCapCents, tienDungRiengCents, duKienCap, maToHop, hopKhuon, PA_DU_KIEN, type TplConcept, type Concept, type BienTheHinh, type PhuongAn } from './concept';
 
 // ô chữ: theo thứ tự shot, bỏ ô sản phẩm / ảnh / _hinh; ô nhóm nhân vật vẫn là chữ khi nằm trong chữ màn (nguoi_gioi_thieu)
 const o = [{ k: 'san_pham', ten: 'Sản phẩm' }, { k: 'noi_dau', ten: 'Nỗi đau' }, { k: 'tinh_huong', ten: 'Tình huống' }, { k: 'noi_dau_hinh', ten: 'Hình nỗi đau' },
@@ -47,4 +47,6 @@ assert.strictEqual(duKienCap(t, 2), 2 * 3 * 2 * 1);   // hook 3 · nỗi đau (�
 assert.strictEqual(PA_DU_KIEN([{ loai: 'hook' }, { loai: 'noi_dau' }, { loai: 'noi_dau' }, { loai: 'bang_chung' }], 2), 1);
 assert.strictEqual(PA_DU_KIEN([{ loai: 'hook' }, { loai: 'noi_dau' }, { loai: 'noi_dau' }, { loai: 'bang_chung' }], 3), 2);
 assert.ok(hopKhuon('ke_chuyen', 'PA') && !hopKhuon('uu_dai', 'PA'));
+// dựng riêng một creative: kịch bản + mỗi shot có ô chữ (3 ô → 3 shot), không tính shot giữ hình
+assert.strictEqual(tienDungRiengCents(t, g), 40 + 3 * 20);
 console.log('concept.test: ok');

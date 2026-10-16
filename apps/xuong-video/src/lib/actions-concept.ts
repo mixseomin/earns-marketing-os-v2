@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { type Row, n, s, mangInt } from '@/lib/xuong-video/doc-db';
 import { docOTemplate } from '@/lib/xuong-video/template-db';
 import { docGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
+import { docSpy } from '@/lib/xuong-video/spy-api';
 import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET } from '@/lib/xuong-video/concept-db';
 import { giaTriSanPham, taoPhimTuTemplate } from '@/lib/actions';
 import type { KetQuaChep } from '@/lib/xuong-video/template-db';
@@ -17,13 +18,10 @@ import { oChuTuKhung, oHinhCua, hopKhuon, gtBienThe, type Concept, type TplConce
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 async function admin() { const me = await getCurrentUser(); return me && me.role === 'admin' ? me : null; }
-const SPY_API = process.env.SPY_API_URL || 'http://127.0.0.1:3850';
-async function docSpy<T>(duong: string): Promise<Kq<T>> {
-  try {
-    const r = await fetch(`${SPY_API}${duong}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
-    return r.ok ? { ok: true, data: (await r.json()) as T } : loi(`spy trả ${r.status}`);
-  } catch (e) { return loi(`không gọi được spy (${e instanceof Error ? e.message.slice(0, 60) : 'lỗi'})`); }
-}
+/** Đơn giá DỰ PHÒNG (cents) khi sổ xv_job 30 ngày chưa có lượt nào — số đo sổ 15/10/2026: ảnh Nano Banana 3,4¢ · clip Veo Lite ~16¢ · lượt Opus ~16¢. */
+const GIA_DU_PHONG = { anh: 3.4, video: 16, chu: 16 };
+/** Một shot = ~2 lần thử keyframe + ~1,3 lần thử video; một bộ kịch bản = kịch bản + tách cảnh + ~0,3 lượt kiểm người xem (đo trên sổ 14–15/10/2026). */
+const LAN_THU = { anh: 2, video: 1.3, chu_kb: 2.3 };
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 /** Nhóm spy của sản phẩm: góc spy đã gắn ở creative của sản phẩm, hoặc concept đã nhập. */
@@ -75,14 +73,14 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
     db.execute(sql`SELECT * FROM xv_creative WHERE sp_key = ${spKey} ORDER BY so`),
   ]) : [[], [], []];
   const g = (gRows as unknown as Row[])[0] ?? {};
-  const anh = Number(g.anh) || 3.4, video = Number(g.video) || 16, chu = Number(g.chu) || 16;
+  const anh = Number(g.anh) || GIA_DU_PHONG.anh, video = Number(g.video) || GIA_DU_PHONG.video, chu = Number(g.chu) || GIA_DU_PHONG.chu;
   return { ok: true, data: {
     spy_sp: await spySp(db, spKey), concept, tpl, cap,
     bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true })),
     phuong_an: (pa as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), o: s(r.o), so: n(r.so), chu: s(r.chu), nguon: s(r.nguon) })),
     creative: (cr as unknown as Row[]).map((r) => ({ id: n(r.id), so: n(r.so), cap_id: n(r.cap_id), bien_the_id: r.bien_the_id == null ? null : n(r.bien_the_id),
       chon: (r.chon ?? {}) as Record<string, number>, ma: s(r.ma), trang_thai: (s(r.trang_thai) || 'duyet') as CreativeDuyet['trang_thai'], phim_id: r.phim_id == null ? null : n(r.phim_id) })),
-    gia: { shot_cents: Math.round((2 * anh + 1.3 * video) * 100) / 100, kb_cents: Math.round(2.3 * chu * 100) / 100, chu_cents: Math.round(chu * 100) / 100 },
+    gia: { shot_cents: Math.round((LAN_THU.anh * anh + LAN_THU.video * video) * 100) / 100, kb_cents: Math.round(LAN_THU.chu_kb * chu * 100) / 100, chu_cents: Math.round(chu * 100) / 100 },
   } };
 }
 

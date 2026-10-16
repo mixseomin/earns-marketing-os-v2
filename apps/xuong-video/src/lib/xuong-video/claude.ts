@@ -761,7 +761,7 @@ export async function suaKichBanTheoNguoiXem(o: { bang: string; anchor: string; 
 
 // ── PHƯƠNG ÁN CHỮ cho một cặp concept × template (concept.ts, anh 16/10/2026: "đổi text, câu chữ sẽ ra creative khác nhau") ─────────────────
 // Mỗi ô câu chuyện của template ({{noi_dau}}, {{review}}…) nhiều cách nói — viết từ CÂU THẬT của khách trong sub-avatar spy, đúng mức nhận biết,
-// vừa số giây của shot. Đổi chữ dùng lại nguyên clip nên các phương án phải hợp với CÙNG một hình (không tả hành động khác).
+// vừa số giây của shot. Các phương án của một ô phải hợp với CÙNG một hình (không tả hành động khác) — để sau này dùng lại được clip của bộ hình.
 const PhuongAnSchema = z.object({
   o: z.array(z.object({
     k: z.string().describe('Khoá ô, đúng như danh sách ô đã cho'),

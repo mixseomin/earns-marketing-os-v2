@@ -10,7 +10,7 @@ import { useNho } from './nho';
 import { TaoTuTemplate } from './template-ui';
 import { tien } from '@/lib/xuong-video/kieu';
 import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, uocVietHet, vietHet, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, type KhoConcept } from '@/lib/actions-concept';
-import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, tienCapCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
+import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, tienCapCents, tienDungRiengCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
 
 const tenT = (t: Pick<TplConcept, 'ten'>) => t.ten.replace(/\s*\(.*\)\s*$/, '');
 const NbChip = ({ nb }: { nb: string }) => <b title={`${mucNb(nb).ten} — ${mucNb(nb).dung}`} style={{ color: mucNb(nb).mau, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{nb}</b>;
@@ -240,7 +240,7 @@ export function KhoCreative({ d, spKey, onDoi, onMoPhim }: { d: KhoConcept; spKe
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: '6px 14px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={mono} title={`đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot · ${tien(d.gia.kb_cents)}/bộ kịch bản`}><b style={{ color: 'var(--fg-1)' }}>{tat.length.toLocaleString('vi-VN')}</b> creative · {k.boHinh} bộ hình · ~{tien(k.cents)} tiền hình · {d.creative.filter((x) => x.trang_thai !== 'bo').length} đã duyệt</span>
+        <span style={mono} title={`đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot · ${tien(d.gia.kb_cents)}/bộ kịch bản`}><b style={{ color: 'var(--fg-1)' }}>{tat.length.toLocaleString('vi-VN')}</b> creative · {k.boHinh} bộ hình · hình + kịch bản ~{tien(k.cents)} nếu mỗi bộ hình dựng một lần · <b style={{ color: 'var(--amber)' }} title="Tạo phim hiện chép từ template: shot có chữ đổi bị sinh lại hình — mỗi creative tốn như một phim riêng. Dùng lại clip giữa creative cùng bộ hình chưa có.">~{tien(tat.reduce((a, x) => a + tienDungRiengCents(x.t, d.gia), 0))} nếu dựng riêng từng creative (cách hiện nay)</b> · {d.creative.filter((x) => x.trang_thai !== 'bo').length} đã duyệt</span>
         <span style={{ flex: 1 }} />
         <Nut onClick={() => setCfg(true)} title="Nhập concept từ spy · bật / tắt template · diễn viên · sửa phương án chữ">⚙ Cấu hình</Nut>
       </div>

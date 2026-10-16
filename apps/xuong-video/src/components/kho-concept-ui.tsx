@@ -8,7 +8,7 @@ import { Seg, Pill, Nut, Loi, mono } from './ui';
 import { useNho } from './nho';
 import { TaoTuTemplate } from './template-ui';
 import { tien } from '@/lib/xuong-video/kieu';
-import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, type KhoConcept } from '@/lib/actions-concept';
+import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, uocVietHet, vietHet, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, type KhoConcept } from '@/lib/actions-concept';
 import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, tienCapCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
 
 const tenT = (t: Pick<TplConcept, 'ten'>) => t.ten.replace(/\s*\(.*\)\s*$/, '');
@@ -142,7 +142,24 @@ function DongBienThe({ v, gia, onLuu, onBo }: { v: BienTheHinh; gia: string; onL
 }
 
 // ── TAB PHƯƠNG ÁN ───────────────────────────────────────────────────────────────────────────────────────────────
-export function TabPhuongAn({ d, onDoi, capId, setCapId }: { d: KhoConcept; onDoi: () => Promise<void>; capId: number | null; setCapId: (id: number) => void }) {
+/** VIẾT HẾT: một nút cho mọi cặp còn thiếu phương án (giá tổng trên nút); đang chạy → hỏi lại 5 giây, vẽ lại kho khi có phương án mới. */
+function VietHet({ spKey, onDoi }: { spKey: string; onDoi: () => Promise<void> }) {
+  const [u, setU] = useState<{ caps: number[]; cents: number; dang: { tong: number; xong: number; loi: number; cents: number; chay: boolean } | null } | null>(null);
+  const [loi, setLoi] = useState('');
+  const tai = async () => { const r = await uocVietHet(spKey); if (r.ok) setU(r.data); };
+  useEffect(() => { void tai(); }, [spKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!u?.dang?.chay) return; const t = setTimeout(() => { void onDoi(); void tai(); }, 5000); return () => clearTimeout(t); }, [u]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!u) return null;
+  const dg = u.dang;
+  return <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+    {dg?.chay ? <span style={mono}>đang viết {dg.xong}/{dg.tong} cặp · {tien(dg.cents)}{dg.loi ? ` · ${dg.loi} lỗi` : ''}</span>
+      : u.caps.length ? <Nut chinh gia={u.cents} onClick={() => void vietHet(spKey).then((r) => { if (!r.ok) setLoi(r.loi); else void tai(); })}
+          title={`Một lượt Claude mỗi cặp, lần lượt ${u.caps.length} cặp còn thiếu phương án — TỐN TIỀN`}>✍ AI viết cho {u.caps.length} cặp còn thiếu · ~{tien(u.cents)}</Nut>
+      : <span style={mono}>mọi cặp đã có phương án{dg ? ` · lượt vừa rồi ${dg.xong} cặp, ${tien(dg.cents)}${dg.loi ? `, ${dg.loi} lỗi` : ''}` : ''}</span>}
+    {loi && <Loi>{loi}</Loi>}
+  </span>;
+}
+export function TabPhuongAn({ d, spKey, onDoi, capId, setCapId }: { d: KhoConcept; spKey: string; onDoi: () => Promise<void>; capId: number | null; setCapId: (id: number) => void }) {
   const ds = soKho(d).bat;
   const x = ds.find((y) => y.cap.id === capId) ?? ds[0];
   const [uoc, setUoc] = useState<{ cap: number; cents: number; model: string } | null>(null);
@@ -156,6 +173,7 @@ export function TabPhuongAn({ d, onDoi, capId, setCapId }: { d: KhoConcept; onDo
   const th = toHopCap(x.c, x.t, x.cap, btCua(d, x.cap.id), d.phuong_an);
   return (
     <div style={{ display: 'grid', gap: 10 }}>
+      <VietHet spKey={spKey} onDoi={onDoi} />
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <select className="xv-in" style={{ maxWidth: 420 }} value={x.cap.id} onChange={(e) => setCapId(Number(e.target.value))} aria-label="cặp concept × template">
           {ds.map((y) => <option key={y.cap.id} value={y.cap.id}>{y.c.ma} · {y.c.ten} × T{y.t.id} {tenT(y.t)}</option>)}

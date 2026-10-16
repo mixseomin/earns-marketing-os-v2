@@ -72,3 +72,34 @@ export async function vietPhuongAnDb(db: Db, capId: number): Promise<Kq<number>>
   return { ok: true, data: so };
 }
 
+
+/** Cặp ĐANG BẬT của sản phẩm còn ô chữ chưa có phương án nào (cần AI viết). */
+export async function capThieuPhuongAn(db: Db, spKey: string): Promise<number[]> {
+  const caps = (await db.execute(sql`SELECT c.id FROM xv_cap c JOIN xv_concept k ON k.id = c.concept_id WHERE k.sp_key = ${spKey} AND NOT k.an AND c.bat ORDER BY k.path, k.ma, c.template_id`)) as unknown as Row[];
+  const ra: number[] = [];
+  for (const r of caps) {
+    const x = await nguCanhCap(db, n(r.id)); if (!x || !x.oChu.length) continue;
+    const co = new Set(((await db.execute(sql`SELECT DISTINCT o FROM xv_phuong_an WHERE cap_id = ${n(r.id)} AND NOT an`)) as unknown as Row[]).map((y) => s(y.o)));
+    if (x.oChu.some((o) => !co.has(o.k))) ra.push(n(r.id));
+  }
+  return ra;
+}
+/** Lượt VIẾT HẾT đang chạy theo sản phẩm (bộ nhớ tiến trình studio) — màn hỏi lại để hiện tiến độ. */
+export const VIET_HET = new Map<string, { tong: number; xong: number; loi: number; cents: number; chay: boolean; luc: number }>();
+/** Viết phương án cho mọi cặp còn thiếu — LẦN LƯỢT (một cặp một lượt Claude), ghi tiến độ vào VIET_HET. Gọi không chờ (nền) từ action, chờ từ script. */
+export async function vietHetDb(db: Db, spKey: string, caps: number[]): Promise<{ xong: number; loi: number }> {
+  const st = { tong: caps.length, xong: 0, loi: 0, cents: 0, chay: true, luc: Date.now() };
+  VIET_HET.set(spKey, st);
+  for (const id of caps) {
+    try {
+      const truoc = Date.now();
+      const r = await vietPhuongAnDb(db, id);
+      if (!r.ok) { st.loi++; console.error(`viet het · cặp #${id}: ${r.loi}`); }
+      const t = (await db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS c FROM xv_job WHERE loai = 'chu' AND nhan LIKE 'Phương án chữ%' AND created_at >= to_timestamp(${truoc / 1000})`)) as unknown as Row[];
+      st.cents += Number(t[0]?.c) || 0;
+    } catch (e) { st.loi++; console.error(`viet het · cặp #${id}:`, e instanceof Error ? e.message : e); }
+    st.xong++;
+  }
+  st.chay = false;
+  return { xong: st.xong, loi: st.loi };
+}

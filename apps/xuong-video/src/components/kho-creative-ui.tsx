@@ -79,7 +79,7 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
       {TAB_KHO_CONCEPT.includes(tab) && (kc ? <DaiSoKho d={kc} /> : <Loi>{kcLoi}</Loi>)}
       {tab === 'concept' && kc && <TabConcept d={kc} spKey={spKey} onDoi={taiKc} onChon={(id) => { setConceptId(id); setTab('template'); }} />}
       {tab === 'template' && kc && <TabTemplate d={kc} onDoi={taiKc} conceptId={conceptId} setConceptId={setConceptId} />}
-      {tab === 'phuong_an' && kc && <TabPhuongAn d={kc} onDoi={taiKc} capId={capId} setCapId={setCapId} />}
+      {tab === 'phuong_an' && kc && <TabPhuongAn d={kc} spKey={spKey} onDoi={taiKc} capId={capId} setCapId={setCapId} />}
       {tab === 'de_xuat' && kc && <TabDeXuat d={kc} spKey={spKey} onDoi={async () => { await taiKc(); await taiKho(); }} onMoPhim={onMoPhim} />}
       {tab === 'creative' && <BangCreative d={d} goc={goc} cum={cum?.cum ?? []} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
       {tab === 'ban_do' && <BanDo d={d} goc={goc} lo={lo} spKey={spKey} onLo={taiLo} onMoPhim={onMoPhim} onMoGoc={moGoc} />}

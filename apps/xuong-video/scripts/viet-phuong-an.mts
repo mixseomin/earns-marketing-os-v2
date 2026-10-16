@@ -2,12 +2,24 @@
 // Mặc định CHỈ in giá ước + các ô; thêm --chay mới gọi Claude (TỐN TIỀN — chỉ chạy khi anh bảo).
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/viet-phuong-an.mts <cap_id> [--chay]
+//     … scripts/viet-phuong-an.mts --het <sp_key> [--chay]   (mọi cặp còn thiếu của sản phẩm)
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { nguCanhCap, uocVietPhuongAnDb, vietPhuongAnDb } from '../src/lib/xuong-video/concept-db';
+import { nguCanhCap, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb } from '../src/lib/xuong-video/concept-db';
 import { PA_DU_KIEN } from '../src/lib/xuong-video/concept';
 
 const db = getDb()!;
+// --het <sp_key>: mọi cặp đang bật còn thiếu phương án của sản phẩm (cùng lõi nút "✍ AI viết cho N cặp còn thiếu")
+if (process.argv[2] === '--het') {
+  const sp = process.argv[3]!; const caps = await capThieuPhuongAn(db, sp);
+  let c = 0; for (const id of caps) { const u = await uocVietPhuongAnDb(db, id); if (u.ok) c += u.data.cents; }
+  console.log(`${sp}: ${caps.length} cặp còn thiếu phương án · ước $${(c / 100).toFixed(3)}`);
+  if (!process.argv.includes('--chay') || !caps.length) process.exit(0);
+  const r = await vietHetDb(db, sp, caps);
+  const t = (await db.execute(sql`SELECT count(*) AS n FROM xv_phuong_an WHERE cap_id = ANY(${`{${caps.join(',')}}`}::int[]) AND NOT an`)) as unknown as { n: number }[];
+  console.log(`✓ ${r.xong - r.loi}/${caps.length} cặp · ${r.loi} lỗi · ${t[0]?.n} phương án`);
+  process.exit(r.loi ? 1 : 0);
+}
 const cap = Number(process.argv[2]);
 if (!Number.isFinite(cap)) { console.error('dùng: viet-phuong-an.mts <cap_id> [--chay]'); process.exit(2); }
 const x = await nguCanhCap(db, cap);

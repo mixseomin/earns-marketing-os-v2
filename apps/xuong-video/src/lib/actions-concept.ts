@@ -9,7 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { type Row, n, s, mangInt } from '@/lib/xuong-video/doc-db';
 import { docOTemplate } from '@/lib/xuong-video/template-db';
 import { docGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
-import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb } from '@/lib/xuong-video/concept-db';
+import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET } from '@/lib/xuong-video/concept-db';
 import { giaTriSanPham, taoPhimTuTemplate } from '@/lib/actions';
 import type { KetQuaChep } from '@/lib/xuong-video/template-db';
 import { oChuTuKhung, oHinhCua, hopKhuon, gtBienThe, type Concept, type TplConcept, type Cap, type BienTheHinh, type PhuongAn, type CreativeDuyet, type GiaConcept, type SubAvatar } from '@/lib/xuong-video/concept';
@@ -197,6 +197,27 @@ export async function vietPhuongAn(capId: number): Promise<Kq<number>> {
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   return vietPhuongAnDb(db, capId);
+}
+
+/** Cặp còn thiếu phương án + giá ước viết hết (cents) + lượt viết hết đang chạy (nếu có). */
+export async function uocVietHet(spKey: string): Promise<Kq<{ caps: number[]; cents: number; dang: { tong: number; xong: number; loi: number; cents: number; chay: boolean } | null }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const caps = await capThieuPhuongAn(db, spKey);
+  let cents = 0; for (const id of caps) { const u = await uocVietPhuongAnDb(db, id); if (u.ok) cents += u.data.cents; }
+  return { ok: true, data: { caps, cents: Math.round(cents * 100) / 100, dang: VIET_HET.get(spKey) ?? null } };
+}
+/** AI viết phương án cho MỌI cặp còn thiếu (TỐN TIỀN — giá tổng ghi trên nút, anh bấm là duyệt đúng lượt đó). Chạy nền, lần lượt từng cặp. */
+export async function vietHet(spKey: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (VIET_HET.get(spKey)?.chay) return loi('đang viết — đợi lượt trước xong');
+  const caps = await capThieuPhuongAn(db, spKey);
+  if (!caps.length) return loi('mọi cặp đã có phương án');
+  void vietHetDb(db, spKey, caps);
+  return { ok: true, data: caps.length };
 }
 
 // ── CREATIVE ĐÃ DUYỆT ────────────────────────────────────────────────────────────────────────────────────────────

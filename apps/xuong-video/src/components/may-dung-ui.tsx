@@ -1,20 +1,14 @@
 'use client';
-// Khối 🎞 MÁY DỰNG trong tab Phim của phim thể loại 'may_dung' (may-dung.ts): đề (từ đích + 36 ô, ô đúng tô màu), ảnh nền theo chủ đề, chữ đăng.
-// Dựng keyframe / clip / bản xuất = nút ⬇ Xuất của tập (0đ). Sinh nền = ~65–110₫ (bấm hai nhịp), xong thì xuất lại để nền vào bản dựng.
-import { useState } from 'react';
-import { sinhNenMayDungUi } from '@/lib/actions-may-dung';
+// Phim Máy Dựng CŨ (thể loại 'may_dung', đã lưu trữ — từ 17/10/2026 video máy nằm ở cửa ⚙ Tự động, may-ui.tsx): khối đề trong tab Phim +
+// storyboard riêng. Xuất lại = nút ⬇ Xuất của tập (0đ).
 import { banHien, gioVN, type Canh, type Phim, type Tap } from '@/lib/xuong-video/kieu';
 import { luoi } from '@/lib/xuong-video/may-dung-do-chu';
 import { MAU_MAY_DUNG } from '@/lib/xuong-video/may-dung-mau';
-import { AnhNho, Loi, Nut, mono } from './ui';
+import { AnhNho, mono } from './ui';
 import { moNgan } from './ngan-chung';
 
-const GIA_NEN = 0.5;   // ¢ — trần ước để xác nhận (ckey thật ~65–110₫)
-
-export function MayDungPanel({ phim, onChanged }: { phim: Phim; onChanged: () => void }) {
+export function MayDungPanel({ phim }: { phim: Phim }) {
   const k = phim.kinh_thanh?.may_dung;
-  const [ban, setBan] = useState(false);
-  const [loi, setLoi] = useState('');
   if (!k) return null;
   const L = luoi(k.de);
   return (
@@ -27,7 +21,6 @@ export function MayDungPanel({ phim, onChanged }: { phim: Phim; onChanged: () =>
         <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
           {k.nen_url ? <AnhNho url={k.nen_url} kich={110} title={k.nen_prompt ?? ''} onClick={() => moNgan({ loai: 'xem', url: k.nen_url!, ten: `Nền · ${k.chu_de}` })} />
             : <div style={{ width: 62, height: 110, borderRadius: 6, background: k.de.mau.sau, display: 'grid', placeItems: 'center', ...mono, color: k.de.mau.truoc }}>dải màu</div>}
-          <Nut gia={GIA_NEN} ban={ban} title="Sinh ảnh nền AI theo chủ đề (không chữ) — xong thì ⬇ Xuất lại" onClick={async () => { setBan(true); setLoi(''); const r = await sinhNenMayDungUi(phim.id); if (!r.ok) setLoi(r.loi ?? 'lỗi'); setBan(false); onChanged(); }}>{ban ? 'đang sinh…' : k.nen_url ? 'Nền mới' : 'Sinh nền'}</Nut>
         </div>
         <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, color: k.de.mau.nhan }}>{k.de.dich}</div>
@@ -38,14 +31,13 @@ export function MayDungPanel({ phim, onChanged }: { phim: Phim; onChanged: () =>
           {k.dang.link && <div style={mono}>Link: {k.dang.link}</div>}
         </div>
       </div>
-      <Loi>{loi}</Loi>
     </div>
   );
 }
 
 /** Tab Storyboard của phim MÁY DỰNG (anh 17/10/2026: "không giống gì cả… rối quá"): chữ / đồng hồ / đáp án đã nằm SẴN trong hình do máy dựng,
  *  nên không đi timeline của phim AI (lớp chữ màn đè lên keyframe = chữ hai lần, nút sinh keyframe / video / giọng không dùng tới). Chỉ có:
- *  video sẽ đăng (bản xuất mới nhất) + 3 thẻ shot — clip cắt từ bản dựng, chưa xuất thì khung xem trước cùng bộ lọc (may-dung.ts › khungXemTruoc). */
+ *  video sẽ đăng (bản xuất mới nhất) + 3 thẻ shot — clip / khung cắt từ bản dựng. */
 export function MayDungStoryboard({ tap, canh }: { tap: Tap; canh: Canh[] }) {
   const ban = banHien(tap.xuat).chinh;
   const giay = (c: Canh) => c.phat_s ?? c.thoi_luong_s ?? 0;

@@ -92,7 +92,8 @@ function MauVaPhimDung({ d, onMoPhimChong }: { d: DuLieu; onMoPhimChong: (id: nu
 /** Kho template ở đầu trang: mỗi template một thẻ — dùng khi nào, số shot, nút Dùng (form điền) / Sửa (mở như phim). */
 /** Kho template xếp DÒNG → KHUÔN (kieu.ts › DONG_TEMPLATE): mỗi dòng một khối, trong dòng từng khuôn một hàng; khuôn chưa có template vẫn hiện
  *  một ô mờ "chưa có" — nhìn là biết kho còn thiếu khuôn nào. Template tự lưu (chưa gán dòng/khuôn) gom ở cuối. */
-export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number) => void }) {
+/** Cửa 🧩 Theo template: kho template (dòng → khuôn → template) + dưới mỗi template là các video đã tạo từ nó (`phimTu`: phim có tu_template). */
+export function KhoTemplate({ ds: dsVao, phimTu = [], onMo }: { ds: Phim[]; phimTu?: Phim[]; onMo: (id: number) => void }) {
   const [dung, setDung] = useState<Phim | null>(null);
   const ds = [...dsVao].sort((a, b) => a.id - b.id);   // thứ tự dựng (khung chính trước), không theo lần sửa gần nhất
   const cua = (dong: string, khuon: string) => ds.filter((p) => p.kinh_thanh?.template?.dong === dong && p.kinh_thanh?.template?.khuon === khuon);
@@ -106,6 +107,11 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
       <b style={{ fontSize: 13 }}>{tenGon(p.ten)}</b>
       <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
       <KhungThe id={p.id} />
+      {(() => { const con = phimTu.filter((x) => Number(x.kinh_thanh?.tu_template?.id) === p.id), song = con.filter((x) => !x.kinh_thanh?.luu_tru); return (
+        <div style={{ display: 'grid', gap: 2, borderTop: '1px solid var(--line)', paddingTop: 4 }} title={con.length > song.length ? `${con.length - song.length} video lưu trữ không hiện` : undefined}>
+          {song.length ? song.map((x) => <button key={x.id} type="button" className="xv-lienket" style={{ textAlign: 'left', fontSize: 12 }} onClick={() => onMo(x.id)}><span style={mono}>#{x.id}</span> {x.ten}</button>)
+            : <span style={mono}>chưa có video nào dùng template này</span>}
+        </div>); })()}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 'auto' }}>
         <Nut chinh onClick={() => setDung(p)}>Dùng</Nut>
         <Nut onClick={() => onMo(p.id)} title="Sửa template như sửa phim: shot, prompt, anchor, nhãn ô">Sửa</Nut>

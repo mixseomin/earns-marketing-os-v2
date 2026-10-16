@@ -197,7 +197,7 @@ export async function dsPhim(): Promise<Phim[]> {
         (SELECT count(*) FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an) AS so_anh_qc,
         (SELECT coalesce(json_agg(json_build_object('id', a.id, 'url', a.url, 'ti_le', a.ti_le) ORDER BY a.id), '[]'::json)
           FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an AND a.url IS NOT NULL) AS anh_qc_tom
-      FROM xv_phim p ORDER BY p.updated_at DESC`);
+      FROM xv_phim p WHERE p.loai <> 'may_dung' ORDER BY p.updated_at DESC`);   // video máy ở cửa ⚙ Tự động (xv_may_video); phim Máy Dựng cũ mở qua mId vẫn được
     return (r as unknown as Row[]).map(mapPhim);
   } catch { return []; }
 }

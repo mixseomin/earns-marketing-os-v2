@@ -153,8 +153,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
               {phimLoai === 'quang_cao' && !nhanVat.some((v) => v.loai === 'san_pham' && c.nhan_vat.includes(v.id)) && nhanVat.some((v) => v.loai === 'san_pham') && <span style={{ fontSize: 10.5, color: 'var(--amber)' }}>⚠ shot chưa có sản phẩm</span>}
             </div>
           )}
-          <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={c.loi_thoai ? `“${c.loi_thoai}”` : undefined}>{c.hanh_dong}</div>
-          {moTaVi(c) && moTaVi(c) !== c.hanh_dong.trim() && <div style={{ fontSize: 11.5, marginTop: 2, color: 'var(--fg-1)' }}>🇻🇳 {moTaVi(c)}</div>}
+          <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={[moTaVi(c) && moTaVi(c) !== c.hanh_dong.trim() ? `🇻🇳 ${moTaVi(c)}` : '', c.loi_thoai ? `“${c.loi_thoai}”` : ''].filter(Boolean).join('\n') || undefined}>{c.hanh_dong}</div>
           {nhanVat.some((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id)) && (
             <TrangPhucShot c={c} onLuu={(t) => void chay(k, () => suaCanh(c.id, { trang_phuc: t }))} />
           )}

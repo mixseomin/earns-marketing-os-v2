@@ -611,6 +611,28 @@ Luật:
   }
 }
 
+// ── DỊCH NHANH MÔ TẢ SHOT SANG TIẾNG VIỆT (#1397): người duyệt bật 🇻🇳 trên lưới → shot chưa có bản dịch dịch bằng model chữ RẺ NHẤT, lưu
+// vào xv_canh.hanh_dong_vi (lần sau không gọi lại). Không theo mo_hinh_chu của phim — việc này chỉ cần hiểu, không cần văn hay.
+export const MO_HINH_DICH_NHANH = 'claude-haiku-4-5';
+export async function dichMoTaVi(ds: string[]): Promise<GoiYKq<string[]>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  try {
+    const r = await c.messages.parse({
+      model: MO_HINH_DICH_NHANH, max_tokens: Math.min(8000, 1000 + ds.reduce((a, x) => a + x.length, 0)),
+      system: 'Dịch mô tả hành động của từng shot phim quảng cáo sang tiếng Việt cho người duyệt đọc: một câu rõ, đủ ý, tự nhiên. Giữ nguyên tên người, tên sản phẩm, số, ô dạng {{...}}. Thuật ngữ quay phim dịch theo cách đoàn phim Việt hay nói (máy đứng yên, đẩy máy, cận cảnh…).',
+      messages: [{ role: 'user', content: `Dịch từng chuỗi, trả về đủ chỉ số:\n${JSON.stringify(ds.map((v, i) => ({ i, v })))}` }],
+      output_config: { format: zodOutputFormat(DichChuoiSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const p = r.parsed_output as z.infer<typeof DichChuoiSchema> | null;
+    if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return { ok: true, data: ds.map((_, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() ?? ''), model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+  } catch (e) {
+    return { ok: false, loi: loiGoi(e) };
+  }
+}
+
 // ── THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): lượt 1 MÙ — chỉ bảng shot người xem thấy/nghe; lượt 2 đối chiếu với ý tác giả ─────────
 export const NguoiXemSchema = z.object({
   ke_lai: z.string().describe('Kể lại câu chuyện vừa xem trong 3–5 câu ngắn, đúng như một người xem bình thường hiểu — không thêm điều phim không cho thấy'),

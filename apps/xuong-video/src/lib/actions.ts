@@ -13,7 +13,7 @@ import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { gopAm } from '@/lib/xuong-video/xuat-chay';
 import { batDauXuatTap } from '@/lib/xuong-video/xuat-tap';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
-import { locNhanh, giayPhat, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
+import { locNhanh, giayPhat, laTiengViet, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
@@ -26,6 +26,7 @@ import { kiemKhungTap, duyetKhungTay } from '@/lib/xuong-video/kiem-khung';
 import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
+import { dichMoTaVi } from '@/lib/xuong-video/claude';
 import { vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -692,6 +693,22 @@ export async function boQuaSoiClipAction(canhId: number): Promise<Kq<true>> {
   if (!db || !me) return loi('không có quyền');
   await db.execute(sql`UPDATE xv_canh SET soi_clip = soi_clip || ${JSON.stringify({ bo_qua: true, bo_qua_boi: me.email })}::jsonb WHERE id = ${canhId} AND soi_clip IS NOT NULL`);
   return { ok: true, data: true };
+}
+/** 🇻🇳 trên lưới (#1397): dịch mô tả các shot của tập CHƯA có bản tiếng Việt bằng model chữ rẻ nhất (claude.ts › dichMoTaVi), lưu hanh_dong_vi.
+ *  Shot đã có bản dịch / hành động đã là tiếng Việt thì bỏ qua — bấm lại không tốn thêm. Trả số shot vừa dịch + tiền. */
+export async function dichMoTaTap(tapId: number): Promise<Kq<{ so: number; cents: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ds = ((await db.execute(sql`SELECT c.id, c.hanh_dong, t.phim_id, t.so FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.tap_id = ${tapId} AND c.hanh_dong_vi = '' AND coalesce(c.hanh_dong, '') <> '' ORDER BY c.thu_tu`)) as unknown as Row[])
+    .filter((r) => !laTiengViet(s(r.hanh_dong)));
+  if (!ds.length) return { ok: true, data: { so: 0, cents: 0 } };
+  const kq = await dichMoTaVi(ds.map((r) => s(r.hanh_dong)));
+  if (!kq.ok) return loi(kq.loi);
+  const cents = await ghiTienChu(db, n(ds[0]!.phim_id), `Dịch mô tả shot sang tiếng Việt · tập ${n(ds[0]!.so)}`, kq.model, kq.tokens);
+  let so = 0;
+  for (const [i, r] of ds.entries()) { const v = kq.data[i]; if (!v) continue; await db.execute(sql`UPDATE xv_canh SET hanh_dong_vi = ${v} WHERE id = ${n(r.id)} AND hanh_dong_vi = ''`); so++; }
+  return { ok: true, data: { so, cents } };
 }
 export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const db = getDb();

@@ -9,8 +9,9 @@ import { mono } from './ui';
 import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
 import { useEffect, useState } from 'react';
+import { useNho } from './nho';
 import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
-import { kiemKhungTapAction, boSetCuaTap, boQuaSoiClipAction } from '@/lib/actions';
+import { kiemKhungTapAction, boSetCuaTap, boQuaSoiClipAction, dichMoTaTap } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
@@ -50,6 +51,21 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   const [zoom, setZoom] = useState(() => { if (typeof window === 'undefined') return 2; const v = Number(new URLSearchParams(window.location.search).get('lz')); return v >= 1 && v <= 5 ? v : 2; });
   useEffect(() => { const u = new URL(window.location.href); if (zoom === 2) u.searchParams.delete('lz'); else u.searchParams.set('lz', String(zoom)); window.history.replaceState(window.history.state, '', u.toString()); }, [zoom]);
   // CHỈ XEM (anh 14/10/2026): cả hai · chỉ keyframe · chỉ khung 3D — ở URL (?lh=) như độ phóng, F5 giữ nguyên.
+  // Ngôn ngữ mô tả shot (#1397): mặc định ngôn ngữ GỐC (câu gửi model); bật 🇻🇳 = hiện bản tiếng Việt — shot chưa có thì máy chủ dịch bằng
+  // model chữ rẻ nhất rồi lưu (actions.ts › dichMoTaTap), lần sau không gọi lại. Giữ qua F5 (?mtv=vi).
+  const [ngonNgu, setNgonNgu] = useNho<'goc' | 'vi'>('xv-mo-ta-vi', 'goc', ['goc', 'vi'], 'mtv');
+  const [banDich, setBanDich] = useState(false); const [loiDich, setLoiDich] = useState('');
+  const xemVi = ngonNgu === 'vi';
+  const thieuVi = canh.filter((c) => c.hanh_dong.trim() && !moTaVi(c)).length;
+  const batVi = async () => {
+    if (xemVi) { setNgonNgu('goc'); return; }
+    setNgonNgu('vi');
+    if (!thieuVi) return;
+    setBanDich(true); setLoiDich('');
+    const r = await goiAction(() => dichMoTaTap(tap.id));
+    setLoiDich(r.loi); setBanDich(false); if (!r.loi) await onChanged();
+  };
+  const moTa = (c: Canh) => (xemVi ? moTaVi(c) || c.hanh_dong : c.hanh_dong);
   const [hien, setHien] = useState<'ca' | 'kf' | '3d'>(() => { if (typeof window === 'undefined') return 'ca'; const v = new URLSearchParams(window.location.search).get('lh'); return v === 'kf' || v === '3d' ? v : 'ca'; });
   useEffect(() => { const u = new URL(window.location.href); if (hien === 'ca') u.searchParams.delete('lh'); else u.searchParams.set('lh', hien); window.history.replaceState(window.history.state, '', u.toString()); }, [hien]);
   const rongThe = (doc ? [96, 132, 180, 240, 320] : [150, 210, 280, 360, 480])[zoom - 1]!;
@@ -79,6 +95,9 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
         <span style={mono}>{canh.length} shot · {gio(tong)} · {khoi.length} khối phân cảnh — bấm một thẻ để xem chi tiết shot</span>
         <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{nutZoom('🔍−', 'Thu nhỏ thẻ (giữ qua F5)', zoom <= 1, -1)}<span style={{ ...mono, minWidth: 22, textAlign: 'center' }} title="Độ phóng lưới (giữ qua F5)">{zoom}/5</span>{nutZoom('🔍+', 'Phóng to thẻ (giữ qua F5)', zoom >= 5, 1)}</span>
         <span style={{ display: 'inline-flex', gap: 2 }}>{([['ca', 'Cả hai'], ['kf', 'Keyframe'], ['3d', '3D']] as const).map(([k, t]) => <button key={k} type="button" className={`xv-btn${hien === k ? ' chinh' : ''}`} style={{ padding: '0 8px' }} title={k === 'ca' ? 'Thẻ có cả keyframe lẫn khung 3D' : k === 'kf' ? 'Chỉ xem keyframe' : 'Chỉ xem khung 3D'} onClick={() => setHien(k)}>{t}</button>)}</span>
+        <button type="button" className={`xv-btn${xemVi ? ' chinh' : ''}`} style={{ padding: '0 8px' }} disabled={banDich} onClick={() => void batVi()}
+          title={xemVi ? 'Đang hiện mô tả tiếng Việt — bấm để về ngôn ngữ gốc' : `Hiện mô tả shot bằng tiếng Việt${thieuVi ? ` — ${thieuVi} shot chưa có bản dịch sẽ được dịch bằng model rẻ nhất (Claude Haiku) và lưu lại` : ''}`}>{banDich ? '… đang dịch' : '🇻🇳'}</button>
+        {loiDich && <span style={{ ...mono, color: 'var(--red)' }}>{loiDich}</span>}
         <button type="button" className="xv-btn" title="Mở bộ set 3D của tập: xoay, phóng, nhìn qua máy từng shot, đường đi nhân vật" onClick={() => moNgan({ loai: 'bo-set', tapId: tap.id })}>🧊 Xoay xem 3D</button>
         <span style={mono}>khung: <b style={{ color: '#4ade80' }}>✓ {(demKhung.dat ?? 0) + (demKhung.tay ?? 0)}</b> · <b style={{ color: 'var(--red)' }}>⚠ {demKhung.lech ?? 0}</b> · <b style={{ color: 'var(--amber)' }}>? {demKhung.chua ?? 0}</b></span>
         <Nut chinh={canKiem.length > 0} ly={!canKiem.length && 'mọi khung đã kiểm'} ban={banKhung} gia={giaKhung} title="Máy nhìn keyframe từng khối cảnh (kèm khung cuối cảnh trước) so với thẻ shot và với nhau: chuyển cảnh, bố trí set, trục 180°, nhân vật thừa/thiếu, ánh sáng. Chưa kiểm / lệch → chặn video + animatic." onClick={() => void kiemKhung()}>{banKhung ? '… đang kiểm khung' : `${TEN_NUT_KHUNG} · ${canKiem.length} khối · ~${tien(giaKhung)}`}</Nut>
@@ -108,7 +127,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   {/* Chưa sinh vẫn hiện KHUNG + shot sẽ thấy gì (anh 14/10/2026: "kể cả chưa sinh cũng phải show ra khung để còn biết"). */}
                   {!anh && <span style={{ position: 'absolute', inset: 0, padding: '22px 7px 7px', display: 'flex', flexDirection: 'column', gap: 4, border: '1px dashed var(--line)', borderRadius: 4, fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-2)', overflow: 'hidden' }}>
                     <span className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>CHƯA SINH HÌNH</span>
-                    <span style={{ display: '-webkit-box', WebkitLineClamp: doc ? 9 : 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{moTaVi(c) || c.hanh_dong || c.prompt_anh || c.canh}</span>
+                    <span style={{ display: '-webkit-box', WebkitLineClamp: doc ? 9 : 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{moTa(c) || c.prompt_anh || c.canh}</span>
                   </span>}
                   {anh && (() => { const tk = trangThaiKhung(c); const kk = c.kiem_khung; const m = { dat: ['✓', '#4ade80'], tay: ['✓ tay', '#4ade80'], lech: ['⚠ lệch', '#f87171'], chua: ['? chưa kiểm', '#fbbf24'], khong: ['', ''] }[tk];
                     return tk !== 'khong' && <span className="xv-mono" title={tk === 'lech' || tk === 'tay' ? kk!.loi.map((l) => `${tenLoiKhung(l.loai)}: ${l.mo_ta}`).join('\n') : tk === 'chua' ? 'Keyframe chưa qua kiểm khung (hoặc đã sinh lại sau lần kiểm)' : 'Máy kiểm khung: khớp'} style={{ position: 'absolute', left: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: m[1] }}>{m[0]}</span>; })()}
@@ -123,8 +142,8 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   {bc.length > 0 && <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bc.join(', ')}>📍 {bc.join(', ')}</div>}
                   <div style={{ marginTop: 2 }}><KyThuatApDung kt={kt} nhom={['vai', 'co_canh', 'chuyen_dong', 'dien_xuat']} nho /></div>
                 </div>
-                {/* Mô tả tiếng Việt của hành động (#1397) — hover xem câu gốc gửi model. Chưa có hình thì ô hình đã hiện câu này. */}
-                {anh && moTaVi(c) && <div title={c.hanh_dong} style={{ padding: '4px 7px 0', fontSize: 11, lineHeight: 1.35, color: 'var(--fg-2)' }}>{moTaVi(c)}</div>}
+                {/* Mô tả hành động theo ngôn ngữ đang chọn (#1397) — hover xem bản ngôn ngữ kia. Chưa có hình thì ô hình đã hiện câu này. */}
+                {anh && moTa(c) && <div title={xemVi ? c.hanh_dong : moTaVi(c) || undefined} style={{ padding: '4px 7px 0', fontSize: 11, lineHeight: 1.35, color: 'var(--fg-2)' }}>{moTa(c)}</div>}
                 {loi && <div style={{ padding: '4px 7px 5px', fontSize: 11, lineHeight: 1.35, color: 'var(--fg-1)' }}>{loi}</div>}
                 <div className="xv-mono" style={{ marginTop: 'auto', padding: '3px 7px', fontSize: 10, borderTop: '1px dashed var(--line)', color: cc && cc !== 'cat' ? '#facc15' : 'var(--fg-3)' }} title="Chuyển cảnh sang shot sau — bấm xem chi tiết" role={cc ? 'button' : undefined} onClick={cc ? (e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: `chuyen_canh.${cc}` }); } : undefined}>→ {tenKt(cc, 'chuyen_canh') || 'Cắt thẳng'}{cc === 'lien_may' ? ' ⛓' : ''}</div>
                 {/* KHUNG XÁM 3D (anh 14/10/2026: "shot thuộc khung hình nào trong file 3D thì kẹp ảnh đó dưới chân lưới"): render từ bộ set + máy ảo của

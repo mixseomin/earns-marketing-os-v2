@@ -185,7 +185,7 @@ VT = {
  '1.1': [v(TANGO, NEP, ve=G0, an=True), v(GUMMY, G0), v(HAND, [40.3, 20.4, 2.0], [46, 24, 12], ve=-90)],
  '1.2': [v(TANGO, NEP, ve=G0, an=True), v(HAND, [57.5, 14.4, 1.5], ve=-70, nhay='tay nhấc khỏi khung rồi với sang bấm công tắc')],
  '2.1': [v(TANGO, NEP, [22.5, 23.8, 1.0], ve=G0, ve_den=G0, an=True), v(GUMMY, G0)],
- '2.2': [v(TANGO, [22.5, 23.8, 1.0], [30.3, 26.6, 0.6], ve=G0), v(GUMMY, G0, [35, 27, 1.5])],
+ '2.2': [v(TANGO, [22.5, 23.8, 1.0], [30.3, 26.6, 0], ve=G0), v(GUMMY, G0, [35, 27, 1.5])],
  '2.3': [v(TANGO, [30.5, 26.8, 0], ve=[35, 27], ve_den=GAP, nam=True), v(GUMMY, [35, 27, 1.5], [26, 33, 0.5])],
  '2.4': [v(STICKY, [16.8, 13.0, 0.05], ve=[30.5, 26.8]), v(TANGO, [30.5, 26.8, 0], [21, 34, 0], ve=GAP, nam=True), v(GUMMY, [26, 33, 0.5], [14, 41, 0.5])],
  '3.1': [v(TANGO, [1.5, 44, 0], [1.5, 56, 0], ve=[1.5, 80], nam=True), v(GUMMY, [1.5, 52, 0.3], [1.5, 63, 0.3])],

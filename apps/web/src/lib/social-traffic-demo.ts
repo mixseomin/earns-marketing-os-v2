@@ -14,9 +14,13 @@ export interface StGoc {
 export interface StKenh {
   id: number; ten: string; nenTang: string; nhom: string; ngonNgu: string; proxy: string;
   tt: StTrangThaiKenh; ngay: number; video: number; trungViXem: number; xem: number; click: number; hh: number;
+  daDo?: boolean;      // LIVE: false = kênh có trong vault nhưng chưa có máy đo số (cột số hiện '—', không hiện 0 giả)
+  xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)
 }
 export interface StLo { id: number; goc: number; kenh: number; buoc: number }
-export interface StTrang { slug: string; goc: number; kenh: number; click: number; raShop: number; chuongTrinh: string; song: boolean }
+export interface StTrang { slug: string; goc: number; kenh: number; click: number | null; raShop: number | null; chuongTrinh: string; song: boolean; tieuDe?: string; kenhTen?: string }
+/** Cửa bán (LIVE): Gumroad theo store (product_daily), Etsy / KDP theo vault — chưa có nguồn số bán thì số = null. */
+export interface StBan { cua: string; ten: string; duAn: string; xem30: number | null; ban30: number | null; usd30: number | null; ghiChu?: string }
 export interface StDuLieu { goc: StGoc[]; kenh: StKenh[]; lo: StLo[]; trang: StTrang[] }
 
 export const ST_BUOC = ['Kịch bản', 'Dựng', 'Kiểm', 'Lên lịch'] as const;   // bước 4 = đã đăng (rời hàng đợi)

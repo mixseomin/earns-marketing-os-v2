@@ -22,6 +22,7 @@ const so = (n: number) => Math.round(n).toLocaleString('vi-VN');
 const usd = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n) < 100 ? Math.abs(n).toFixed(2) : so(Math.abs(n))}`;
 const trungVi = (a: number[]) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? (s[m] ?? 0) : ((s[m - 1] ?? 0) + (s[m] ?? 0)) / 2; };
 const nho = { fontSize: 11, color: 'var(--fg-3)' } as const;
+const chuaDo = <span style={{ fontSize: 11, color: 'var(--fg-3)' }} title="có trong vault, chưa có máy đọc số">chưa đo</span>;
 const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang xưởng studio.on.tc (tốn tiền sinh video) — chờ nối luồng ghi và anh bấm duyệt từng lô';
 
 export function SocialTrafficView({ live }: { live: SocialLive }) {
@@ -34,18 +35,22 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [gia, setGia] = useState(ST_GIA_MAC);
   const [bao, setBao] = useState('');
   const [catKenh, setCatKenh] = useState<number | null>(null);
-  const d: StDuLieu = laLive ? { goc: live.goc, kenh: [], lo: [], trang: [] } : demo;
+  const d: StDuLieu = laLive ? { goc: live.goc, kenh: live.kenh, lo: [], trang: live.trang } : demo;
+  const do_ = (k: StKenh) => k.daDo !== false;   // DEMO không có cờ → coi như đã đo
   const gocOf = (id: number) => d.goc.find((g) => g.id === id);
   const kenhOf = (id: number) => d.kenh.find((k) => k.id === id);
   const sua = (f: (x: StDuLieu) => void, thongBao: string) => { const x = structuredClone(demo); f(x); setDemo(x); setBao(thongBao); };
 
   const t = useMemo(() => {
     const kSong = d.kenh.filter((k) => k.tt === 'song' || k.tt === 'co');
-    const video = d.kenh.reduce((a, k) => a + k.video, 0), xem = d.kenh.reduce((a, k) => a + k.xem, 0), click = d.kenh.reduce((a, k) => a + k.click, 0), hh = d.kenh.reduce((a, k) => a + k.hh, 0);
-    const raShop = d.trang.reduce((a, x) => a + (x.click * x.raShop) / 100, 0);
+    const video = d.kenh.reduce((a, k) => a + k.video, 0), xem = d.kenh.reduce((a, k) => a + k.xem, 0), click = d.kenh.reduce((a, k) => a + k.click, 0);
+    // LIVE: tiền = số bán thật của cửa bán 30 ngày (chưa quy được về từng kênh); DEMO: cộng từ kênh
+    const hh = laLive ? live.ban.reduce((a, b) => a + (b.usd30 ?? 0), 0) : d.kenh.reduce((a, k) => a + k.hh, 0);
+    const raShop = d.trang.reduce((a, x) => a + ((x.click ?? 0) * (x.raShop ?? 0)) / 100, 0);
     const chi = video * gia.video + kSong.length * gia.proxy;
-    return { kSong, video, xem, click, hh, raShop, don: hh / gia.hhDon, chi, lai: hh - chi };
-  }, [d, gia]);
+    const don = laLive ? live.ban.reduce((a, b) => a + (b.ban30 ?? 0), 0) : hh / gia.hhDon;
+    return { kSong, video, xem, click, hh, raShop, don, chi, lai: hh - chi };
+  }, [d, gia, laLive, live.ban]);
 
   // dải luồng: bấm một chặng = sang mục chứa chặng đó (DaiLuong chuẩn nhà, cùng khuôn /shop)
   const CHANG: Record<string, Muc> = { goc: 'goc', sx: 'sx', dang: 'kenh', xem: 'kenh', site: 'trang', hh: 'tien' };
@@ -55,14 +60,16 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'dang', nhan: 'Đã đăng', so: t.video, phuDe: `${t.kSong.length} kênh sống` },
     { key: 'xem', nhan: 'Lượt xem', so: t.xem, phuDe: `trung vị ${so(trungVi(d.kenh.map((k) => k.trungViXem)))}` },
     { key: 'site', nhan: 'Về site aff', so: t.click, phuDe: t.xem ? `${((t.click / t.xem) * 100).toFixed(2)}%` : undefined },
-    { key: 'hh', nhan: 'Hoa hồng $', so: Math.round(t.hh), phuDe: d.kenh.length ? `lãi ${usd(t.lai)}` : undefined },
+    { key: 'hh', nhan: laLive ? 'Bán 30 ngày $' : 'Hoa hồng $', so: Math.round(t.hh), phuDe: laLive ? `${so(t.don)} đơn` : d.kenh.length ? `lãi ${usd(t.lai)}` : undefined },
   ];
   const changDang = Object.keys(CHANG).find((k) => CHANG[k] === muc && k !== 'xem') ?? '';
 
-  const canhBao = laLive ? [] : [
+  const canhBao = [
+    ...d.kenh.filter((k) => !do_(k)).map((k) => ({ mau: 'var(--warn)', nhan: 'Chưa đo', chu: `${k.ten} (${k.nenTang} · ${k.nhom}) có trong vault nhưng chưa có máy đọc số — thêm vào máy đo kênh (kenh_so_ngay) thì hiện số.` })),
+    ...(laLive ? live.ban.filter((b) => b.xem30 == null).map((b) => ({ mau: 'var(--warn)', nhan: 'Chưa đo bán', chu: `${b.cua} ${b.ten} (${b.duAn}): ${b.ghiChu ?? 'chưa có số bán'}.` })) : []),
     ...d.kenh.filter((k) => k.tt === 'co').map((k) => ({ mau: 'var(--warn)', nhan: 'Dính cờ', chu: `${k.ten} (${k.nenTang}) bị hạn chế phân phối — tạm dừng đăng 48 giờ, đổi khuôn video.` })),
     ...d.kenh.filter((k) => k.tt === 'khoa').map((k) => ({ mau: 'var(--bad)', nhan: 'Bị khoá', chu: `${k.ten} bị khoá sau ${k.ngay} ngày — xem lại proxy ${k.proxy} trước khi mở kênh thay.` })),
-    ...d.kenh.filter((k) => k.tt === 'song' && k.ngay >= ST_CAT_NGAY && k.trungViXem < ST_CAT_TRUNG_VI).map((k) => ({ mau: 'var(--warn)', nhan: 'Nên cắt', chu: `${k.ten}: trung vị ${so(k.trungViXem)} lượt sau ${k.ngay} ngày, dưới ngưỡng ${ST_CAT_TRUNG_VI}.` })),
+    ...d.kenh.filter((k) => do_(k) && k.nenTang !== 'Pinterest' && k.tt === 'song' && k.ngay >= ST_CAT_NGAY && k.trungViXem < ST_CAT_TRUNG_VI).map((k) => ({ mau: 'var(--warn)', nhan: 'Nên cắt', chu: `${k.ten}: trung vị ${so(k.trungViXem)} lượt sau ${k.ngay} ngày, dưới ngưỡng ${ST_CAT_TRUNG_VI}.` })),
     ...d.trang.filter((x) => !x.song).map((x) => ({ mau: 'var(--bad)', nhan: 'Link chết', chu: `site.com/${x.slug} trỏ tới sản phẩm hết hàng (${x.chuongTrinh}) — video cũ vẫn đổ khách vào đây.` })),
   ];
 
@@ -108,31 +115,33 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'proxy', header: 'Proxy', align: 'left', cell: (k) => <span style={nho}>{k.proxy}</span> },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (k) => <Pill color={TT_KENH[k.tt][0]} label={TT_KENH[k.tt][1]} uppercase={false} /> },
     { key: 'ngay', header: 'Ngày', sortValue: (k) => k.ngay, cell: (k) => k.ngay },
-    { key: 'video', header: 'Video', sortValue: (k) => k.video, cell: (k) => k.video },
-    { key: 'tv', header: 'Trung vị xem', sortValue: (k) => k.trungViXem, cell: (k) => <span style={k.ngay >= ST_CAT_NGAY && k.trungViXem < ST_CAT_TRUNG_VI ? { color: 'var(--warn)' } : undefined}>{so(k.trungViXem)}</span> },
-    { key: 'click', header: 'Về site', sortValue: (k) => k.click, cell: (k) => so(k.click) },
-    { key: 'hh', header: 'Hoa hồng', sortValue: (k) => k.hh, cell: (k) => (k.hh ? usd(k.hh) : '—') },
+    { key: 'video', header: 'Đã đăng', sortValue: (k) => k.video, cell: (k) => (do_(k) ? k.video : chuaDo) },
+    { key: 'xem', header: 'Lượt xem', title: 'Video: cộng dồn từ lúc đăng · Pinterest: lượt hiện 30 ngày', sortValue: (k) => k.xem, cell: (k) => (do_(k) ? so(k.xem) : chuaDo) },
+    { key: 'x7', header: 'Xem 7 ngày', sortValue: (k) => k.xem7 ?? null, cell: (k) => (k.xem7 == null ? <span style={nho} title={k.nenTang === 'Pinterest' ? 'Pinterest chỉ có số 30 ngày toàn tài khoản' : 'chưa đủ 7 ngày đo'}>—</span> : so(k.xem7)) },
+    { key: 'tv', header: 'Trung vị / video', sortValue: (k) => k.trungViXem, cell: (k) => (!do_(k) ? chuaDo : k.nenTang === 'Pinterest' ? <span style={nho} title="Pinterest không trả lượt xem từng ghim">—</span> : <span style={k.ngay >= ST_CAT_NGAY && k.trungViXem < ST_CAT_TRUNG_VI ? { color: 'var(--warn)' } : undefined}>{so(k.trungViXem)}</span>) },
+    { key: 'click', header: 'Về site / shop', title: 'Video: phiên vào trang printables 7 ngày (GA4) · Pinterest: click 30 ngày', sortValue: (k) => k.click, cell: (k) => (do_(k) ? so(k.click) : chuaDo) },
+    ...(laLive ? [] : [{ key: 'hh', header: 'Hoa hồng', sortValue: (k: StKenh) => k.hh, cell: (k: StKenh) => (k.hh ? usd(k.hh) : '—') }]),
     { key: 'lam', header: '', cell: (k) => (k.tt === 'dung' || k.tt === 'khoa' ? null : catKenh === k.id
       ? <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12 }}>Cắt kênh này?
           <button className="btn" style={{ color: 'var(--bad)' }} onClick={() => { sua((x) => { const y = x.kenh.find((z) => z.id === k.id); if (y) y.tt = 'dung'; x.lo = x.lo.filter((l) => l.kenh !== k.id); }, `Đã cắt ${k.ten}, video chờ của kênh này rời hàng đợi.`); setCatKenh(null); }}>Cắt</button>
           <button className="btn" onClick={() => setCatKenh(null)}>Giữ</button></span>
       : <span style={{ display: 'inline-flex', gap: 6 }}>
-          {k.hh > 150 && <button className="btn" onClick={() => { const ngu = k.ngonNgu === 'EN' ? 'DE' : 'FR'; sua((x) => { x.kenh.push({ ...k, id: Math.max(...x.kenh.map((z) => z.id)) + 1, ten: `${k.ten}.${ngu.toLowerCase()}`, ngonNgu: ngu, proxy: `${ngu} · ISP mới`, tt: 'song', ngay: 0, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0 }); }, `Đã mở ${k.ten}.${ngu.toLowerCase()} — kịch bản các góc ra tiền sẽ được dịch sang.`); }}>Nhân sang ngôn ngữ khác</button>}
-          <button className="btn" style={{ color: 'var(--bad)' }} onClick={() => setCatKenh(k.id)}>Cắt</button>
+          {k.hh > 150 && !laLive && <button className="btn" onClick={() => { const ngu = k.ngonNgu === 'EN' ? 'DE' : 'FR'; sua((x) => { x.kenh.push({ ...k, id: Math.max(...x.kenh.map((z) => z.id)) + 1, ten: `${k.ten}.${ngu.toLowerCase()}`, ngonNgu: ngu, proxy: `${ngu} · ISP mới`, tt: 'song', ngay: 0, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0 }); }, `Đã mở ${k.ten}.${ngu.toLowerCase()} — kịch bản các góc ra tiền sẽ được dịch sang.`); }}>Nhân sang ngôn ngữ khác</button>}
+          <GuardedButton className="btn" style={{ color: 'var(--bad)' }} reason={laLive && 'LIVE chỉ đọc: cắt kênh / đổi trạng thái làm trong vault (Resources › Accounts)'} onClick={() => setCatKenh(k.id)}>Cắt</GuardedButton>
         </span>) },
   ];
   const cotTrang: DataColumn<StTrang>[] = [
-    { key: 'slug', header: 'Đường dẫn', align: 'left', cell: (x) => <span style={{ fontFamily: 'var(--font-mono)' }}>site.com/{x.slug}</span> },
-    { key: 'goc', header: 'Góc', align: 'left', cell: (x) => gocOf(x.goc)?.ten ?? '—' },
-    { key: 'kenh', header: 'Kênh đổ về', align: 'left', cell: (x) => { const k = kenhOf(x.kenh); return k ? `${k.ten} · ${k.nenTang}` : '—'; } },
-    { key: 'click', header: 'Khách vào', sortValue: (x) => x.click, cell: (x) => so(x.click) },
-    { key: 'ra', header: 'Bấm sang shop', sortValue: (x) => x.raShop, cell: (x) => `${x.raShop}%` },
+    { key: 'slug', header: 'Đường dẫn', align: 'left', cell: (x) => <span style={{ fontFamily: 'var(--font-mono)' }}>{laLive ? x.slug : `site.com/${x.slug}`}</span> },
+    { key: 'goc', header: laLive ? 'Sản phẩm' : 'Góc', align: 'left', cell: (x) => x.tieuDe ?? gocOf(x.goc)?.ten ?? '—' },
+    { key: 'kenh', header: 'Kênh đổ về', align: 'left', cell: (x) => { if (x.kenhTen != null) return x.kenhTen; const k = kenhOf(x.kenh); return k ? `${k.ten} · ${k.nenTang}` : '—'; } },
+    { key: 'click', header: 'Khách vào', sortValue: (x) => x.click, cell: (x) => (x.click == null ? <span style={nho} title="chưa có máy đếm click từng trang">—</span> : so(x.click)) },
+    { key: 'ra', header: 'Bấm sang shop', sortValue: (x) => x.raShop, cell: (x) => (x.raShop == null ? <span style={nho}>—</span> : `${x.raShop}%`) },
     { key: 'ct', header: 'Chương trình', align: 'left', cell: (x) => <span style={nho}>{x.chuongTrinh}</span> },
     { key: 'song', header: 'Link', align: 'left', cell: (x) => <Pill color={x.song ? 'var(--ok)' : 'var(--bad)'} label={x.song ? 'Sống' : 'Hết hàng'} uppercase={false} /> },
     { key: 'lam', header: '', cell: (x) => (x.song ? null : <button className="btn" onClick={() => sua((y) => { const z = y.trang.find((w) => w.slug === x.slug); if (z) z.song = true; }, `site.com/${x.slug} đã trỏ sang sản phẩm thay thế cùng góc.`)}>Đổi sang sản phẩm thay thế</button>) },
   ];
 
-  const pheu = [['Lượt xem', t.xem], ['Bấm link về site', t.click], ['Bấm sang shop', t.raShop], ['Đơn (ước từ hoa hồng)', t.don]] as const;
+  const pheu = [['Lượt xem', t.xem], ['Bấm link về site', t.click], ['Bấm sang shop', t.raShop], [laLive ? 'Đơn (cửa bán, 30 ngày)' : 'Đơn (ước từ hoa hồng)', t.don]] as const;
   const trong = (tieuDe: string, moTa: string) => <EmptyState icon="○" title={tieuDe} description={moTa} compact />;
 
   return (
@@ -142,7 +151,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
           value={cheDo} onChange={(v) => { setCheDo(v); setBao(''); setCatKenh(null); }} />
         <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, color: laLive ? 'var(--ok)' : 'var(--warn)', background: `color-mix(in srgb, ${laLive ? 'var(--ok)' : 'var(--warn)'} 12%, transparent)` }}>
           {laLive
-            ? <>Số thật · góc đọc từ spy.on.tc ({live.nhom} nhóm, nhớ 5 phút, lần đọc {new Date(live.luc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}) · kênh, video, trang đích, tiền còn trống vì mô hình chưa chạy</>
+            ? <>Số thật · góc đọc từ spy.on.tc ({live.nhom} nhóm, nhớ 5 phút, lần đọc {new Date(live.luc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}) · kênh + cửa bán của các dự án có Gumroad / Etsy / KDP (số đo dùng chung tab Tài sản) · sản xuất còn trống</>
             : <>Dữ liệu mẫu — bấm thoải mái, không ghi gì · F5 về mẫu gốc</>}
         </span>
         {bao && <span role="status" style={{ ...nho, color: 'var(--fg-2)' }}>{bao}</span>}
@@ -155,7 +164,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
-        <Panel title="Phễu" subtitle="30 ngày · tỉ lệ so với bước trên">
+        <Panel title="Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>
           {t.xem ? <div style={{ display: 'grid', gap: 8 }}>{pheu.map(([ten, v], i) => (
             <div key={ten} style={{ display: 'grid', gridTemplateColumns: '140px minmax(0,1fr) 90px', gap: 10, alignItems: 'center', fontSize: 12 }}>
               <span>{ten}</span>
@@ -216,10 +225,18 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         : trong('Chưa có trang đích', 'Site aff chưa dựng. Mỗi video đăng xong sẽ có một trang đích riêng (site.com/g/<mã>) nói đúng điều video hứa.'))}
 
       {muc === 'tien' && <>
+        {laLive && <Panel title="Cửa bán" subtitle="30 ngày · Gumroad đọc product_daily, Etsy / KDP chưa có máy đọc số">
+          <SimpleTable rows={live.ban} getRowKey={(b) => `${b.cua}:${b.ten}`} columns={[
+            { key: 'cua', header: 'Cửa bán', cell: (b) => b.cua }, { key: 'ten', header: 'Tài khoản / store', cell: (b) => b.ten }, { key: 'da', header: 'Dự án', cell: (b) => b.duAn },
+            { key: 'x', header: 'Lượt xem', align: 'right', cell: (b) => (b.xem30 == null ? '—' : so(b.xem30)) },
+            { key: 'b', header: 'Đơn', align: 'right', cell: (b) => (b.ban30 == null ? '—' : so(b.ban30)) },
+            { key: 'u', header: 'Tiền', align: 'right', cell: (b) => (b.usd30 == null ? '—' : usd(b.usd30)) },
+            { key: 'g', header: '', cell: (b) => (b.ghiChu ? <span style={nho}>{b.ghiChu}</span> : null) }]} />
+        </Panel>}
         <StatsStrip minColWidth={170} cards={[
-          { key: 'chi', label: 'Chi 30 ngày', value: usd(t.chi), sub: `${so(t.video)} video · ${t.kSong.length} proxy` },
-          { key: 'hh', label: 'Hoa hồng 30 ngày', value: usd(t.hh), color: 'var(--ok)', sub: `≈ ${so(t.don)} đơn` },
-          { key: 'lai', label: 'Lãi', value: usd(t.lai), color: t.lai >= 0 ? 'var(--ok)' : 'var(--bad)', sub: t.chi ? `${(t.hh / t.chi).toFixed(2)}× tiền bỏ ra` : undefined },
+          { key: 'chi', label: laLive ? 'Chi (ước theo giá đầu vào)' : 'Chi 30 ngày', value: usd(t.chi), sub: `${so(t.video)} video · ${t.kSong.length} proxy` },
+          { key: 'hh', label: laLive ? 'Bán thật 30 ngày' : 'Hoa hồng 30 ngày', value: usd(t.hh), color: 'var(--ok)', sub: `${laLive ? '' : '≈ '}${so(t.don)} đơn` },
+          { key: 'lai', label: laLive ? 'Lãi (ước)' : 'Lãi', value: usd(t.lai), color: t.lai >= 0 ? 'var(--ok)' : 'var(--bad)', sub: t.chi ? `${(t.hh / t.chi).toFixed(2)}× tiền bỏ ra` : undefined },
           { key: 'hoa', label: 'Hoà vốn mỗi kênh', value: `${so(Math.ceil((t.kSong.length ? t.chi / t.kSong.length : gia.proxy + 60 * gia.video) / gia.hhDon))} đơn`, sub: t.kSong.length ? `chi ${usd(t.chi / t.kSong.length)}/kênh/tháng` : `kênh mới 60 video/tháng` },
         ]} />
         <Panel title="Giá đầu vào" subtitle="đổi để tính lại cả tab">
@@ -231,7 +248,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
               </label>))}
           </div>
         </Panel>
-        {d.kenh.length
+        {d.kenh.length && !laLive
           ? <SimpleTable rows={d.kenh} getRowKey={(k) => String(k.id)} columns={[
               { key: 'ten', header: 'Kênh', cell: (k) => `${k.ten} · ${k.nenTang}` },
               { key: 'chi', header: 'Chi', align: 'right', cell: (k) => usd(k.video * gia.video + (k.tt === 'song' || k.tt === 'co' ? gia.proxy : 0)) },
@@ -241,7 +258,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
                 const [mau, chu] = k.tt === 'dung' ? ['var(--fg-3)', 'Đã cắt'] : l > 100 ? ['var(--ok)', 'Nhân thêm'] : l >= 0 ? ['var(--accent)', 'Giữ nhịp'] : k.ngay < ST_CAT_NGAY ? ['var(--warn)', `Chờ đủ ${ST_CAT_NGAY} ngày`] : ['var(--bad)', 'Cân nhắc cắt'];
                 return <Pill color={mau} label={chu} uppercase={false} />; } },
             ]} />
-          : trong('Chưa có kênh để tính lãi', 'Giá đầu vào ở trên là giá thật. Bảng lãi từng kênh hiện khi có kênh đầu tiên.')}
+          : laLive ? null : trong('Chưa có kênh để tính lãi', 'Giá đầu vào ở trên là giá thật. Bảng lãi từng kênh hiện khi có kênh đầu tiên.')}
       </>}
     </div>
   );

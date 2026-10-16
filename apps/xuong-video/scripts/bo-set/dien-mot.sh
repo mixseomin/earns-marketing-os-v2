@@ -6,7 +6,7 @@ BOX=root@167.233.241.16; APP=/opt/earns-marketing-os-v2/apps/xuong-video; DIR=$(
 [ -f "$D/xong${XV_NHAP:+-nhap}" ] && exit 0
 rm -f "$D"/f*.png
 env XV_MAY=${XV_MAY:-cycles} XV_NHAP=$XV_NHAP XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720} \
-  /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P "$DIR/scripts/bo-set/dung-set.py" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; exit 0; }
+  /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P "$DIR/scripts/bo-set/${XV_PY:-dung-set.py}" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; exit 0; }
 N=$(ls "$D"/f*.png 2>/dev/null | wc -l | tr -d ' '); [ "$N" -ge 2 ] || { echo "LOI $TEN: không có khung"; exit 0; }
 "$DIR/scripts/bo-set/ghep-dien.sh" "$D" "$D/dien.mp4"
 for i in 0 1 2 3 4; do f=$(python3 -c "print(1 + round([0, .25, .5, .75, 1][$i] * ($N - 1)))"); "$DIR/scripts/bo-set/ghep-dien.sh" --anh "$D/f$(printf %04d $f).png" "$D/khoa-$i.jpg"; done

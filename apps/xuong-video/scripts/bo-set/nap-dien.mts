@@ -23,7 +23,7 @@ const khung = gon ? Array.from({ length: Number((await readFile(path.join(dir, '
 if (khung.length < 2) { console.log('thư mục không có khung f####.png (hoặc khoa-*.jpg + so-khung.txt)'); process.exit(1); }
 const db = getDb()!;
 const r = (await db.execute(sql`SELECT thu_tu, khung_xam FROM xv_canh WHERE id = ${canh}`)) as unknown as { thu_tu: number; khung_xam: KhungXam | null }[];
-if (!r[0]?.khung_xam) { console.log('shot chưa có khung_xam (render bộ set trước)'); process.exit(1); }
+if (!r[0]) { console.log('không có shot này'); process.exit(1); }   // shot ngoài bộ set (mở đầu vũ trụ / thành phố — mo-dau.py) chưa có khung_xam: tạo mới bên dưới
 const ma = Date.now().toString(36);
 // 5 khung khoá cùng công thức dung-set.py › dien_shot (in 'KHOA i f'): f = 1 + round(t·(N−1)).
 const chon = [0, 0.25, 0.5, 0.75, 1].map((t) => khung[Math.round(t * (khung.length - 1))]!);
@@ -37,7 +37,8 @@ for (const [i, f] of chon.entries()) {
   url.push(u);
 }
 const clip = await uploadToR2(`xuong-video/khung-xam/${canh}-${ma}-dien.mp4`, await readFile(path.join(dir, 'dien.mp4')), 'video/mp4');
-const kx: KhungXam = { ...r[0].khung_xam, mau: url[0]!, mau_ket: url[4]!, giua: url.slice(1, 4), ...(clip ? { dien: clip } : {}) };
+const goc: KhungXam = r[0].khung_xam ?? ({ ma: `dien-${ma}`, xam: url[0]!, kiem: [], thay: [], luc: new Date().toISOString() } as unknown as KhungXam);
+const kx: KhungXam = { ...goc, mau: url[0]!, mau_ket: url[4]!, giua: url.slice(1, 4), ...(clip ? { dien: clip } : {}) };
 await chupTruoc(db, { bang: 'xv_canh', id: canh, cot: ['keyframe_url', 'keyframe_uv', 'keyframe_ket', 'khung_xam', 'trang_thai', 'video_url', 'video_phien_ban', 'nguon_video'], moTa: 'keyframe + video = bản diễn Blender', nguoi: 'script nap-dien' });
 await taoJob(db, { nhan: `Keyframe · bản diễn Blender (${khung.length} khung) · cảnh #${r[0].thu_tu}`, canh_id: canh, loai: 'anh', provider: 'blender', model: 'blender:cycles', request: { dich: 'dien_3d', khoa: url, clip }, xong: true });
 await db.execute(sql`UPDATE xv_job SET output_url = ${url[0]!}, chi_phi_cents = 0 WHERE id = (SELECT max(id) FROM xv_job WHERE canh_id = ${canh} AND model = 'blender:cycles')`);

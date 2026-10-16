@@ -9,4 +9,6 @@ lay $T/wood_table_001_diff_2k.jpg go_mau.jpg
 lay $T/wood_table_001_rough_2k.jpg go_nham.jpg
 lay $T/wood_table_001_nor_gl_2k.jpg go_phap.jpg
 lay https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/cayley_interior_1k.hdr phong.hdr
+# Trái Đất về đêm (NASA Black Marble 2016, 3 km — science.nasa.gov/earth/earth-observatory/earth-at-night/maps; ghi công NASA Goddard) cho shot mở đầu từ vũ trụ
+lay https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km.jpg trai_dat_dem.jpg
 ls -la tai-san

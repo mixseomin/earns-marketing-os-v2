@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { chotTien } from './chot-tien';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
-import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
+import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, khoaKhung, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { giayDoc } from './nhip-hinh';
 import { vanLuatDung, LUAT_DUNG_CANH } from './luat-dung';
@@ -176,12 +176,12 @@ export async function tachCanh(opts: {
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
   const laQc = opts.loai === 'quang_cao';
-  const khung = CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!;
+  const kKhung = khoaKhung(opts.loai, kt.the_loai); const khung = CAU_TRUC[kKhung]!;
   // Có QC MẪU → khuôn của mẫu thắng mọi thứ: số shot = số shot mẫu, thời lượng = tổng giây mẫu, beat chỉ để tham khảo.
   const mau = laQc && coMau(kt.qc) ? kt.qc.mau! : null;
   if (mau) { opts = { ...opts, soCanh: mau.shots.length, thoiLuongS: giayMau(mau) }; }
   // Thời lượng mục tiêu chia cho từng beat (quảng cáo có tỉ lệ sẵn) → Claude biết hook được mấy giây, không tự kéo 24s thành 64s.
-  const giayTheoBeat = opts.thoiLuongS && !mau ? giayBeat(opts.loai, opts.thoiLuongS) : null;
+  const giayTheoBeat = opts.thoiLuongS && !mau ? giayBeat(kKhung, opts.thoiLuongS) : null;
   const toiGiay = giayDoc({ laQc, khong_loi: kt.khong_loi });
   const user = [
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
@@ -249,7 +249,7 @@ export async function vietKichBan(opts: {
     opts.tapSo ? `Viết kịch bản TẬP ${opts.tapSo}.` : '',
     `Tổng thời lượng mục tiêu: ${opts.thoiLuongS ?? 30} giây.`,
     `BRIEF:\n${opts.brief.trim()}`,
-    `KHUNG BEAT (${CAU_TRUC[opts.loai]?.ten ?? CAU_TRUC.phim!.ten}):\n${(CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!).beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
+    `KHUNG BEAT (${CAU_TRUC[khoaKhung(opts.loai, kt.the_loai)]!.ten}):\n${CAU_TRUC[khoaKhung(opts.loai, kt.the_loai)]!.beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
     'Viết kịch bản đúng định dạng kịch bản phim chuyên nghiệp, đánh số cảnh (Cảnh 1, Cảnh 2…). Một CẢNH = một nơi + một quãng thời gian liền; tiêu đề cảnh ghi THỜI ĐIỂM cụ thể (vd ĐÊM – 23:40, ngay sau khi đèn tắt) và cảnh đầu tập tả bằng hình nơi chốn + giờ (luật 12–13). Đây là KỊCH BẢN của biên kịch: chỉ có truyện — KHÔNG ghi máy, cỡ cảnh, ống kính, số shot (đó là SHOT LIST của đạo diễn ở bước tách cảnh; ngành tách hai tài liệu, không gộp). Mỗi cảnh: dòng tiêu đề (NỘI/NGOẠI. ĐỊA ĐIỂM – THỜI ĐIỂM), đoạn hành động, rồi thoại theo khuôn:\nTÊN NHÂN VẬT\n  (diễn xuất: nhìn lên, giơ tay…)\n  Lời nói.\nĐi đúng khung beat trên. Mỗi cảnh ghi: bối cảnh, mục tiêu + xung đột của nhân vật, hành động, lời thoại (có ẩn ý, đúng giọng từng nhân vật), cảm xúc chuyển từ đâu tới đâu, không khí (ánh sáng, âm thanh). Cảm xúc của tập phải có lên có xuống. Không giải thích thêm, chỉ trả kịch bản.',
   ].filter(Boolean).join('\n\n');
   try {

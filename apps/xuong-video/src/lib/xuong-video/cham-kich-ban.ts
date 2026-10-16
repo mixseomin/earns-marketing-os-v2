@@ -19,11 +19,37 @@ const NHIP: [NhipKb, RegExp][] = [
 export const nhipCua = (ten: string): NhipKb | null => NHIP.find(([, r]) => r.test(ten))?.[0] ?? null;
 export const TEN_NHIP: Record<NhipKb, string> = { hook: 'Hook', van_de: 'Vấn đề', leo_thang: 'Leo thang', lat_nguoc: 'Lật ngược', ket: 'Kết / móc' };
 
+/** Từ khoá khoảnh khắc CẢM XÚC MẠNH của phim ngắn dọc (đánh mặt / sỉ nhục / lật thân phận / tình cảm bùng) — Việt + Anh. */
+export const CAM_XUC_MANH = /tát|quỳ|khóc|nức nở|sốc|lật mặt|vạch mặt|bẽ mặt|đánh mặt|sỉ nhục|thân phận|hôn|ôm chầm|đuổi việc|ly hôn|phản bội|nhục|slap|kneel|tears|cries|sob|shock|expos|humiliat|reveal|kiss|betray|divorce|fired/i;
+/** BỘ CHẤM PHIM NGẮN DỌC (micro-drama kiểu tổng tài — dien-anh.ts › CAU_TRUC.phim_doc): độ dài tập · nút thắt dày (≤ 30s không có nút) ·
+ *  cliffhanger cuối MỖI tập (trừ tập cuối series) · có khoảnh khắc cảm xúc mạnh. Cliffhanger là mục chặn — tập không móc thì cả chuỗi 60 tập gãy. */
+export function chamPhimDoc(o: VaoKb): MucKb[] {
+  const { tap, canh, kt } = o; const m: MucKb[] = [];
+  const tong = canh.reduce((a, c) => a + giayPhat(c), 0);
+  if (canh.length) m.push({ key: 'do_dai_doc', ten: 'Độ dài tập 60–120s', dat: tong >= 55 && tong <= 135, ghi: `tập dài ${Math.round(tong)}s${tong < 55 ? ' — quá ngắn, chưa kịp dồn nén' : tong > 135 ? ' — quá dài, người xem lướt đi trước cliffhanger' : ''}`, cung: false });
+  // nút = đầu mỗi phân cảnh mang nhịp vấn đề / leo thang / lật ngược / kết
+  const batDau = new Map<string, number>(); let t = 0;
+  for (const c of canh) { if (!batDau.has(c.phan_doan)) batDau.set(c.phan_doan, t); t += giayPhat(c); }
+  const nut = tap.phan_canh.filter((p) => ['van_de', 'leo_thang', 'lat_nguoc', 'ket'].includes(nhipCua(p.beat) ?? '')).map((p) => batDau.get(p.ten)).filter((x): x is number => x != null).sort((a, b) => a - b);
+  if (canh.length && tong > 0) {
+    const moc = [0, ...nut, tong]; let lon = 0, tu = 0;
+    for (let i = 1; i < moc.length; i++) if (moc[i]! - moc[i - 1]! > lon) { lon = moc[i]! - moc[i - 1]!; tu = moc[i - 1]!; }
+    m.push({ key: 'nut_day', ten: 'Nút thắt mỗi 15–30s', dat: lon <= 30, ghi: lon <= 30 ? `${nut.length} nút, khoảng dài nhất ${Math.round(lon)}s` : `giây ${Math.round(tu)}–${Math.round(tu + lon)} dài ${Math.round(lon)}s không có nút thắt — chèn một cú ép / hé lộ / lật nhỏ`, cung: false });
+  }
+  const conTap = !kt.series?.tap?.length || kt.series.tap.some((x) => (x.so ?? 0) > (tap.so ?? 0));
+  const cuoi = [tap.beats[tap.beats.length - 1]?.ten ?? '', tap.phan_canh[tap.phan_canh.length - 1]?.beat ?? ''].join(' ');
+  const moc = /cliff|móc|teaser|tease|next|tập sau|bỏ lửng|to be continued/i.test(cuoi);
+  if (conTap) m.push({ key: 'cliff_doc', ten: 'Cliffhanger cuối tập', dat: moc, ghi: moc ? `beat cuối: ${cuoi.trim()}` : 'phim ngắn dọc mà tập không kết bằng cliffhanger — người xem không bấm tập sau (beat cuối phải là móc / bỏ lửng)', cung: true });
+  const manh = canh.find((c) => CAM_XUC_MANH.test([c.hanh_dong ?? '', c.loi_thoai, ...c.thoai.map((d) => d.loi)].join(' ')));
+  m.push({ key: 'cam_xuc_manh', ten: 'Khoảnh khắc cảm xúc mạnh', dat: !!manh, ghi: manh ? `có: ${(manh.hanh_dong ?? manh.loi_thoai).slice(0, 80)}` : 'chưa có cú đánh mặt / sỉ nhục / lật thân phận / bùng cảm xúc nào — thể loại này sống nhờ những khoảnh khắc đó', cung: false });
+  return m;
+}
+
 export type MucKb = { key: string; ten: string; dat: boolean; ghi: string; cung: boolean };
 export type VaoKb = {
   tap: { so?: number; beats: Pick<Beat, 'ten'>[]; phan_canh: Pick<PhanCanh, 'ten' | 'beat'>[] };
   canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong'>>)[];
-  kt: { logline?: string; series?: Series | null; khong_loi?: boolean };
+  kt: { logline?: string; series?: Series | null; khong_loi?: boolean; /** thể loại — 'phim_doc' (phim ngắn dọc) bật bộ chấm nhịp micro-drama */ the_loai?: string };
 };
 /** Logline của tập: series → logline tập trong kinh thánh series; phim lẻ → logline phim. */
 export const loglineTap = (kt: VaoKb['kt'], so?: number): string => ((kt.series?.dong_co ? kt.series.tap.find((t) => t.so === so)?.logline : '') || kt.logline || '').trim();
@@ -54,6 +80,7 @@ export function chamKichBan(o: VaoKb): { muc: MucKb[]; diem: number; chan: strin
     let t = 0, tuLat = -1; for (const c of canh) { if (tuLat < 0 && pcLat.has(c.phan_doan)) tuLat = t; t += giayPhat(c); }
     if (tuLat >= 0 && tong > 0) { const r = tuLat / tong; m.push({ key: 'vi_tri_lat', ten: 'Lật ngược đúng chỗ', dat: r >= 0.55 && r <= 0.92, ghi: `lật ngược bắt đầu ở ${Math.round(r * 100)}% phim${r < 0.55 ? ' — quá sớm, chưa đủ leo thang' : r > 0.92 ? ' — quá muộn, không còn chỗ kết' : ''}`, cung: false }); }
   }
+  if (kt.the_loai === 'phim_doc') m.push(...chamPhimDoc(o));
   if (series) {
     const conTap = (kt.series!.tap ?? []).some((x) => (x.so ?? 0) > (tap.so ?? 0));
     const cuoi = tap.beats[tap.beats.length - 1]?.ten ?? '';

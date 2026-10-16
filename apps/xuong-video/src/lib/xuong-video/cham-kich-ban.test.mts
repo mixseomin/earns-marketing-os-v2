@@ -43,3 +43,24 @@ const s1 = { phat_s: 3, thoi_luong_s: 4, phan_doan: 'a', chu_man: '', thoai: [],
 const hook = (khong_loi: boolean) => ck2({ tap: { so: 1, beats: [], phan_canh: [] }, canh: [s1], kt: { logline: 'x'.repeat(30), khong_loi } }).muc.find((m) => m.key === 'hook')!.dat;
 assert.strictEqual(hook(true), true, 'không lời: hook bằng hình'); assert.strictEqual(hook(false), false, 'phim thường vẫn đòi chữ/lời');
 console.log('cham-kich-ban.test (không lời): ok');
+
+// PHIM NGẮN DỌC: bộ chấm riêng — độ dài, nút ≤ 30s, cliffhanger (chặn), cảm xúc mạnh; khung beat riêng, tên beat khớp máy chấm
+{
+  const { chamKichBan: cham, nhipCua: nhip } = await import('./cham-kich-ban');
+  const { CAU_TRUC, khoaKhung } = await import('./dien-anh');
+  assert.equal(khoaKhung('short', 'phim_doc'), 'phim_doc'); assert.equal(khoaKhung('short', 'hai'), 'short'); assert.equal(khoaKhung('la', ''), 'phim');
+  assert.deepEqual(CAU_TRUC.phim_doc!.beats.map((b) => nhip(b.ten)), ['hook', 'van_de', 'leo_thang', 'leo_thang', 'lat_nguoc', 'ket'], 'tên beat khung phim dọc khớp máy chấm');
+  assert.ok(Math.abs(CAU_TRUC.phim_doc!.beats.reduce((a, b) => a + (b.phan ?? 0), 0) - 1) < 1e-9, 'tỉ lệ cộng = 1');
+  const sh = (pd: string, s: number, hd = '') => ({ phan_doan: pd, phat_s: s, thoi_luong_s: s, chu_man: '', thoai: [], loi_thoai: '', hanh_dong: hd });
+  const pc = (ds: [string, string][]) => ds.map(([ten, beat]) => ({ ten, beat }));
+  const tot = cham({ tap: { so: 1, beats: [{ ten: 'Cliffhanger — móc tập sau' }], phan_canh: pc([['A', 'Hook'], ['B', 'Vấn đề'], ['C', 'Leo thang'], ['D', 'Lật ngược'], ['E', 'Cliffhanger']]) },
+    canh: [sh('A', 3, 'Cô bị hắt nước vào mặt'), sh('B', 20), sh('C', 25), sh('D', 25, 'Anh tát lại kẻ sỉ nhục'), sh('E', 15)], kt: { the_loai: 'phim_doc', logline: 'x'.repeat(30) } });
+  const g = (k: string) => tot.muc.find((x) => x.key === k)!;
+  assert.ok(g('do_dai_doc').dat && g('nut_day').dat && g('cliff_doc').dat && g('cam_xuc_manh').dat, JSON.stringify(tot.muc));
+  const xau = cham({ tap: { so: 1, beats: [{ ten: 'Kết' }], phan_canh: pc([['A', 'Hook'], ['B', 'Kết']]) }, canh: [sh('A', 50), sh('B', 10)], kt: { the_loai: 'phim_doc' } });
+  const x = (k: string) => xau.muc.find((y) => y.key === k)!;
+  assert.ok(!x('nut_day').dat && x('nut_day').ghi.includes('giây 0–50'), x('nut_day').ghi);
+  assert.ok(!x('cliff_doc').dat && x('cliff_doc').cung && !x('cam_xuc_manh').dat);
+  assert.ok(!cham({ tap: { so: 1, beats: [], phan_canh: [] }, canh: [sh('A', 50)], kt: { the_loai: 'hai' } }).muc.some((y) => y.key === 'nut_day'), 'thể loại khác: không chấm phim dọc');
+  console.log('cham-kich-ban.test: phim ngắn dọc ok');
+}

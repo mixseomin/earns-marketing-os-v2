@@ -6,7 +6,7 @@ import { luatDung } from './luat-dung';
 import { NGANH, type NganhKyThuat, type MayDi } from './dien-anh-nganh';
 export type { NganhKyThuat, MayDi } from './dien-anh-nganh';
 
-export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap';
+export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap' | 'phim_doc';
 export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'dien_xuat' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
 /** xfade/nhom_cc/giay_cc: riêng nhóm chuyển cảnh — kiểu ffmpeg xfade mà BẢN XUẤT dựng thật giữa shot này và shot sau, nhóm kiểu CapCut, độ dài (giây). */
 /** nganh = mô tả ngành đầy đủ (khung mở → kết, cách làm, động cơ, tác động, lỗi hay gặp, nguồn) và may_di = phần số cho máy 3D — dien-anh-nganh.ts. */
@@ -35,6 +35,7 @@ export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
   { key: 'tai_lieu', ten: 'Tài liệu', mo_ta: 'Ánh sáng tự nhiên, máy quan sát, âm hiện trường' },
   { key: 'qc_ugc', ten: 'Quảng cáo UGC', mo_ta: 'Điện thoại cầm tay, nói vào máy, sáng cửa sổ, cắt nhanh' },
   { key: 'qc_cao_cap', ten: 'Quảng cáo cao cấp', mo_ta: 'Sản phẩm hoàn hảo, đèn studio, macro, chuyển động mượt' },
+  { key: 'phim_doc', ten: 'Phim ngắn dọc (tổng tài / micro-drama)', mo_ta: 'Cận mặt, đối thoại qua vai, sang trọng lạnh, cắt theo câu thoại, nhạc căng; mỗi 15–30s một nút thắt, cuối tập là cliffhanger' },
 ];
 
 export const NHOM_KY_THUAT: { key: NhomKyThuat; ten: string; icon: string }[] = [
@@ -78,39 +79,39 @@ const THU_VIEN_GOC: KyThuat[] = [
   k('co_canh', 'ms', 'Trung cảnh', 'Từ hông trở lên: hội thoại, cử chỉ tay. Cỡ cảnh "kể chuyện" mặc định.', 'medium shot, framed from the waist up', T),
   k('co_canh', 'mcu', 'Cận trung', 'Từ ngực trở lên: thoại có cảm xúc, nói vào máy (UGC).', 'medium close-up, chest up, face clearly readable', T),
   k('co_canh', 'cu', 'Cận mặt', 'Cảm xúc chiếm trọn khung: phản ứng, nước mắt, quyết định.', 'close-up on the face, emotion fills the frame, shallow depth of field', T),
-  k('co_canh', 'ecu', 'Đặc tả', 'Chỉ một chi tiết: mắt, bàn tay, giọt mồ hôi — căng thẳng tột độ hoặc chi tiết sản phẩm.', 'extreme close-up detail, a single feature fills the frame', ['kinh_di', 'chinh_kich', 'hanh_dong', 'tinh_cam', 'qc_cao_cap']),
+  k('co_canh', 'ecu', 'Đặc tả', 'Chỉ một chi tiết: mắt, bàn tay, giọt mồ hôi — căng thẳng tột độ hoặc chi tiết sản phẩm.', 'extreme close-up detail, a single feature fills the frame', ['kinh_di', 'chinh_kich', 'hanh_dong', 'tinh_cam', 'phim_doc', 'qc_cao_cap']),
   k('co_canh', 'insert', 'Cận đồ vật (insert)', 'Cận vật quan trọng với câu chuyện hoặc sản phẩm.', 'insert shot of the object, crisp detail, clean background', T),
-  k('co_canh', 'ots', 'Qua vai', 'Nhìn qua vai người nghe tới người nói — đặt hai người trong một quan hệ.', 'over-the-shoulder shot, foreground shoulder softly out of focus', ['chinh_kich', 'tinh_cam', 'hanh_dong', 'kinh_di', 'hai', 'vien_tuong']),
+  k('co_canh', 'ots', 'Qua vai', 'Nhìn qua vai người nghe tới người nói — đặt hai người trong một quan hệ.', 'over-the-shoulder shot, foreground shoulder softly out of focus', ['chinh_kich', 'tinh_cam', 'phim_doc', 'hanh_dong', 'kinh_di', 'hai', 'vien_tuong']),
   k('co_canh', 'two', 'Khung hai người', 'Hai nhân vật cùng khung: tình bạn, đối đầu, khoảng cách giữa họ nói lên quan hệ.', 'two-shot, both characters framed together', T),
   k('co_canh', 'pov', 'Góc nhìn nhân vật (POV)', 'Khán giả nhìn bằng mắt nhân vật — đồng cảm hoặc sợ hãi.', 'first-person point-of-view shot', ['kinh_di', 'hanh_dong', 'qc_ugc', 'phieu_luu']),
   // ── Góc máy
   k('goc', 'ngang', 'Ngang tầm mắt', 'Trung tính, gần gũi — khán giả ngang hàng nhân vật.', 'eye-level camera angle', T),
   k('goc', 'thap', 'Góc thấp (hất lên)', 'Nhân vật trông mạnh, oai, đáng sợ hoặc anh hùng.', 'low-angle shot looking up, subject appears powerful', ['hanh_dong', 'phieu_luu', 'kinh_di', 'vien_tuong', 'hoat_hinh', 'qc_cao_cap']),
-  k('goc', 'cao', 'Góc cao (nhìn xuống)', 'Nhân vật nhỏ bé, yếu thế, cô đơn.', 'high-angle shot looking down, subject appears small and vulnerable', ['chinh_kich', 'kinh_di', 'tinh_cam', 'hoat_hinh']),
+  k('goc', 'cao', 'Góc cao (nhìn xuống)', 'Nhân vật nhỏ bé, yếu thế, cô đơn.', 'high-angle shot looking down, subject appears small and vulnerable', ['chinh_kich', 'kinh_di', 'tinh_cam', 'phim_doc', 'hoat_hinh']),
   k('goc', 'nghieng', 'Góc nghiêng (Dutch)', 'Khung lệch — bất an, mất cân bằng, điên loạn.', 'dutch angle, tilted horizon, unsettling composition', ['kinh_di', 'hanh_dong', 'vien_tuong']),
   k('goc', 'tren_xuong', 'Từ trên xuống (bird-eye)', 'Nhìn thẳng từ trên: bố cục, bản đồ, định mệnh.', "top-down bird's-eye view", ['phieu_luu', 'hanh_dong', 'qc_cao_cap', 'tai_lieu']),
   k('goc', 'sat_dat', 'Sát đất (worm-eye)', 'Máy sát mặt đất — kịch tính, thế giới khổng lồ.', "worm's-eye view from ground level", ['hoat_hinh', 'phieu_luu', 'hanh_dong']),
   k('goc', 'selfie', 'Selfie / cầm tay nói vào máy', 'Người nói cầm điện thoại nói thẳng vào ống kính — chất UGC thật.', 'selfie angle, handheld phone held at arm length, looking straight into the lens', ['qc_ugc']),
   // ── Chuyển động máy
   k('chuyen_dong', 'tinh', 'Máy đứng yên', 'Để diễn xuất tự nói; hợp hài (đúng nhịp) và chính kịch.', 'static locked-off camera', T),
-  k('chuyen_dong', 'day_vao', 'Đẩy chậm vào (push-in)', 'Máy tiến dần vào mặt — khoảnh khắc nhận ra, cảm xúc dâng.', 'slow push-in dolly toward the subject', ['chinh_kich', 'tinh_cam', 'kinh_di', 'hoat_hinh', 'vien_tuong', 'qc_cao_cap']),
-  k('chuyen_dong', 'lui_ra', 'Lùi ra (pull-out)', 'Máy lùi xa — hé lộ bối cảnh, cô đơn, kết cảnh.', 'slow dolly pull-out revealing the surroundings', ['chinh_kich', 'phieu_luu', 'kinh_di', 'tinh_cam']),
+  k('chuyen_dong', 'day_vao', 'Đẩy chậm vào (push-in)', 'Máy tiến dần vào mặt — khoảnh khắc nhận ra, cảm xúc dâng.', 'slow push-in dolly toward the subject', ['chinh_kich', 'tinh_cam', 'phim_doc', 'kinh_di', 'hoat_hinh', 'vien_tuong', 'qc_cao_cap']),
+  k('chuyen_dong', 'lui_ra', 'Lùi ra (pull-out)', 'Máy lùi xa — hé lộ bối cảnh, cô đơn, kết cảnh.', 'slow dolly pull-out revealing the surroundings', ['chinh_kich', 'phieu_luu', 'kinh_di', 'tinh_cam', 'phim_doc']),
   k('chuyen_dong', 'lia', 'Lia ngang (pan)', 'Quét không gian, theo hướng nhìn của nhân vật.', 'smooth horizontal pan', T),
   k('chuyen_dong', 'nghieng_len', 'Nghiêng lên/xuống (tilt)', 'Từ chân lên mặt — hé lộ nhân vật hoặc vật to lớn.', 'vertical tilt reveal', T),
   k('chuyen_dong', 'truot_ngang', 'Trượt ngang (truck)', 'Máy đi song song nhân vật đang đi — đồng hành.', 'tracking shot moving sideways alongside the subject', ['phieu_luu', 'hoat_hinh', 'hanh_dong', 'qc_cao_cap', 'tai_lieu']),
   k('chuyen_dong', 'cau', 'Cẩu lên (crane)', 'Máy bay lên cao — hùng vĩ, kết thúc, chiến thắng.', 'crane shot rising up and away', ['phieu_luu', 'hoat_hinh', 'chinh_kich', 'vien_tuong']),
   k('chuyen_dong', 'cam_tay', 'Cầm tay (handheld)', 'Rung nhẹ, thật, gấp gáp — hành động, UGC, tài liệu.', 'handheld camera with natural subtle shake', ['hanh_dong', 'kinh_di', 'tai_lieu', 'qc_ugc']),
   k('chuyen_dong', 'theo', 'Bám theo (steadicam)', 'Máy theo sau lưng nhân vật mượt mà — đưa khán giả vào hành trình.', 'smooth steadicam following behind the subject', ['phieu_luu', 'kinh_di', 'hanh_dong', 'chinh_kich']),
-  k('chuyen_dong', 'vong', 'Quay vòng (orbit)', 'Máy vòng quanh nhân vật/sản phẩm — khoảnh khắc lớn, khoe sản phẩm.', '360-degree orbit around the subject', ['hanh_dong', 'tinh_cam', 'qc_cao_cap', 'vien_tuong']),
+  k('chuyen_dong', 'vong', 'Quay vòng (orbit)', 'Máy vòng quanh nhân vật/sản phẩm — khoảnh khắc lớn, khoe sản phẩm.', '360-degree orbit around the subject', ['hanh_dong', 'tinh_cam', 'phim_doc', 'qc_cao_cap', 'vien_tuong']),
   k('chuyen_dong', 'quat', 'Quất nhanh (whip pan)', 'Lia cực nhanh nhòe hình — nhịp hài hoặc chuyển cảnh năng lượng.', 'fast whip pan with motion blur', ['hai', 'hanh_dong', 'qc_ugc']),
-  k('chuyen_dong', 'doi_net', 'Đổi nét (rack focus)', 'Chuyển nét từ vật này sang vật kia — dẫn mắt, tiết lộ.', 'rack focus shifting from foreground to background', ['kinh_di', 'chinh_kich', 'tinh_cam', 'qc_cao_cap']),
+  k('chuyen_dong', 'doi_net', 'Đổi nét (rack focus)', 'Chuyển nét từ vật này sang vật kia — dẫn mắt, tiết lộ.', 'rack focus shifting from foreground to background', ['kinh_di', 'chinh_kich', 'tinh_cam', 'phim_doc', 'qc_cao_cap']),
   k('chuyen_dong', 'zoom_gat', 'Zoom gắt (crash zoom)', 'Zoom vào cực nhanh — sốc, hài, nhấn mạnh.', 'sudden crash zoom', ['hai', 'kinh_di', 'qc_ugc']),
   k('chuyen_dong', 'zoom_cham', 'Zoom chậm (slow zoom)', 'Máy đứng yên, tiêu cự đổi chậm — như có người đang quan sát từ xa; áp lực dồn dần.', 'very slow optical zoom in from a fixed camera position, perspective unchanged, observational', ['chinh_kich', 'kinh_di', 'tai_lieu']),
   k('chuyen_dong', 'cau_xuong', 'Cẩu xuống (crane down)', 'Máy hạ từ trên cao xuống đúng tầm mắt nhân vật — dẫn khán giả từ nơi chốn vào người.', 'crane shot descending from high above down to the character\'s eye level', ['phieu_luu', 'hoat_hinh', 'chinh_kich', 'qc_cao_cap']),
   k('chuyen_dong', 'dan_truoc', 'Dẫn trước (leading shot)', 'Máy lùi trước mặt nhân vật đang đi tới — thấy nét mặt suốt hành trình.', 'leading shot: the camera tracks backwards in front of the character walking toward it, face always readable', ['phieu_luu', 'hoat_hinh', 'chinh_kich', 'hanh_dong']),
   // ── Diễn xuất cảm xúc (15/10/2026 — "mắt nhân vật rưng rưng… lưu vào thư viện"): nhịp diễn của shot — đi vào prompt video; mô tả ngành ở dien-anh-nganh.ts.
-  k('dien_xuat', 'mat_rung_rung', 'Mắt rưng rưng', 'Mí dưới đầy nước, mắt long lanh, cố kìm rồi một giọt lăn — mất mát, được tha thứ.', 'eyes slowly welling up with tears, glistening, the character fights them back, then a single tear rolls down', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
-  k('dien_xuat', 'moi_run', 'Môi run, cằm run', 'Cố không khóc: môi mím, cằm run nhẹ, hít một hơi run.', 'chin quivering and lower lip trembling as the character tries not to cry', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
+  k('dien_xuat', 'mat_rung_rung', 'Mắt rưng rưng', 'Mí dưới đầy nước, mắt long lanh, cố kìm rồi một giọt lăn — mất mát, được tha thứ.', 'eyes slowly welling up with tears, glistening, the character fights them back, then a single tear rolls down', ['tinh_cam', 'phim_doc', 'chinh_kich', 'hoat_hinh']),
+  k('dien_xuat', 'moi_run', 'Môi run, cằm run', 'Cố không khóc: môi mím, cằm run nhẹ, hít một hơi run.', 'chin quivering and lower lip trembling as the character tries not to cry', ['tinh_cam', 'phim_doc', 'chinh_kich', 'hoat_hinh']),
   k('dien_xuat', 'nuot_khan', 'Nuốt khan', 'Thấy nguy, nuốt "ực" thấy rõ, người co lại.', 'a big visible nervous gulp, the body shrinking slightly', T),
   k('dien_xuat', 'nin_tho', 'Khựng, nín thở', 'Đang cử động thì đứng hình một nhịp rồi mới phản ứng.', 'freezes completely for a beat, holding breath, only the eyes move', T),
   k('dien_xuat', 'nhin_lai_hai_lan', 'Nhìn lại hai lần (double take)', 'Liếc qua như không có gì, quay đi, rồi quay phắt lại mắt mở to.', 'classic double take: a casual glance away, then a sharp snap back with wide eyes', ['hai', 'hoat_hinh', 'qc_ugc']),
@@ -118,7 +119,7 @@ const THU_VIEN_GOC: KyThuat[] = [
   k('dien_xuat', 'chop_mat_cham', 'Chớp mắt chậm (deadpan)', 'Nhìn thẳng, nhắm mở mắt thật chậm, mặt không đổi — "thật hả?".', 'a slow deadpan blink, face otherwise unchanged', ['hai', 'hoat_hinh', 'qc_ugc']),
   k('dien_xuat', 'liec_mat', 'Liếc mắt', 'Đầu yên, chỉ mắt đảo sang mục tiêu — toan tính, nghi ngờ, mở chuỗi nhìn → thấy → làm.', 'eyes dart sideways toward the target while the head stays still', T),
   k('dien_xuat', 'nhan_ra', 'Nhận ra', 'Ánh mắt dừng lại, đồng tử mở, hít nhẹ — ý nghĩ hiện trên mắt trước khi mặt đổi.', 'a realization beat: the gaze stops, pupils widen, a small intake of breath, then the expression changes', T),
-  k('dien_xuat', 'cuoi_qua_nuoc_mat', 'Cười qua nước mắt', 'Mắt còn ướt mà khoé môi nhích lên — nghẹn ngào mà ấm.', 'a small smile breaking through tears', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
+  k('dien_xuat', 'cuoi_qua_nuoc_mat', 'Cười qua nước mắt', 'Mắt còn ướt mà khoé môi nhích lên — nghẹn ngào mà ấm.', 'a small smile breaking through tears', ['tinh_cam', 'phim_doc', 'chinh_kich', 'hoat_hinh']),
   k('dien_xuat', 'rung_minh', 'Rùng mình ghê sợ', 'Sóng rùng mình chạy từ đầu xuống chân, nhăn mũi, lùi lại.', 'a full-body disgusted shudder rippling from top to bottom, nose wrinkled', ['hai', 'hoat_hinh']),
   k('dien_xuat', 'xiu_vai', 'Xìu xuống', 'Thở ra, người xẹp xuống, đầu cúi, tóc rũ theo — thất vọng.', 'deflates with a sigh, body sagging and head drooping, hair drooping with it', T),
   k('dien_xuat', 'cuoi_ranh_manh', 'Cười ranh mãnh', 'Mắt hẹp lại, nhếch mép, xoa hai tay — vừa nảy ra kế.', 'eyes narrow into a sly one-sided grin, rubbing hands together', ['hai', 'hoat_hinh']),
@@ -142,18 +143,18 @@ const THU_VIEN_GOC: KyThuat[] = [
   k('ong_kinh', 'probe', 'Probe macro (Laowa)', 'Ống thăm dò sát đất/sát vật, lướt giữa các chi tiết — đồ vật hoá thành công trình khổng lồ.', 'probe macro lens gliding inches above the surface, tiny objects look monumental', ['hanh_dong', 'qc_cao_cap', 'qc_ugc', 'vien_tuong']),
   k('ong_kinh', 'rong', 'Góc rộng 24mm', 'Không gian giãn, gần mà méo nhẹ — phiêu lưu, hài.', '24mm wide-angle lens', T),
   k('ong_kinh', 'chuan', 'Chuẩn 35–50mm', 'Gần mắt người, tự nhiên.', '35mm lens, natural perspective', T),
-  k('ong_kinh', 'chan_dung', 'Chân dung 85mm', 'Nền xoá mịn, mặt nổi bật — cảm xúc, sản phẩm.', '85mm portrait lens, creamy bokeh background', ['tinh_cam', 'chinh_kich', 'qc_cao_cap', 'hoat_hinh']),
+  k('ong_kinh', 'chan_dung', 'Chân dung 85mm', 'Nền xoá mịn, mặt nổi bật — cảm xúc, sản phẩm.', '85mm portrait lens, creamy bokeh background', ['tinh_cam', 'phim_doc', 'chinh_kich', 'qc_cao_cap', 'hoat_hinh']),
   k('ong_kinh', 'tele', 'Tele 135mm', 'Nén hậu cảnh, theo dõi từ xa — rình rập, cô lập.', '135mm telephoto lens, compressed background', ['kinh_di', 'hanh_dong', 'tai_lieu', 'chinh_kich']),
   k('ong_kinh', 'macro', 'Macro', 'Chi tiết siêu cận: chất vải, đường may, giọt nước.', 'macro lens, extreme texture detail', ['qc_cao_cap', 'qc_ugc', 'tai_lieu', 'kinh_di']),
   k('ong_kinh', 'anamorphic', 'Anamorphic', 'Khung điện ảnh rộng, vệt loé ngang — chất phim chiếu rạp.', 'anamorphic lens, horizontal lens flares, cinematic widescreen', ['vien_tuong', 'hanh_dong', 'phieu_luu', 'chinh_kich']),
   // ── Ánh sáng
   k('anh_sang', 'sang_deu', 'Sáng đều (high-key)', 'Ít bóng, tươi sáng — hài, hoạt hình, quảng cáo.', 'bright high-key lighting, minimal shadows', ['hai', 'hoat_hinh', 'qc_ugc', 'qc_cao_cap']),
   k('anh_sang', 'toi', 'Tối nhiều bóng (low-key)', 'Mảng tối lớn, một nguồn sáng — bí ẩn, đe doạ.', 'low-key lighting, deep shadows, single hard source', ['kinh_di', 'chinh_kich', 'hanh_dong', 'vien_tuong']),
-  k('anh_sang', 'tuong_phan', 'Sáng tối gắt (chiaroscuro)', 'Nửa mặt sáng nửa tối — giằng xé nội tâm.', 'chiaroscuro lighting, half the face in shadow', ['chinh_kich', 'kinh_di', 'tinh_cam']),
-  k('anh_sang', 'hoang_hon', 'Giờ vàng', 'Nắng chiều vàng ấm, xiên dài — hoài niệm, lãng mạn, hy vọng.', 'golden hour sunlight, warm low sun, long soft shadows', ['tinh_cam', 'hoat_hinh', 'phieu_luu', 'chinh_kich', 'qc_cao_cap']),
-  k('anh_sang', 'gio_xanh', 'Giờ xanh', 'Sau hoàng hôn, xanh lạnh dịu — trầm lặng, buồn.', 'blue hour, cool twilight ambience', ['chinh_kich', 'tinh_cam', 'vien_tuong']),
-  k('anh_sang', 'cua_so', 'Ánh cửa sổ mềm', 'Ánh ban ngày qua cửa sổ, mềm và thật — UGC, đời thường.', 'soft natural window light, gentle falloff', ['qc_ugc', 'tai_lieu', 'tinh_cam', 'chinh_kich']),
-  k('anh_sang', 'nguoc', 'Ngược sáng / bóng đen', 'Nhân vật thành bóng trước nguồn sáng — bí ẩn, hùng tráng.', 'strong backlight, silhouette', ['phieu_luu', 'kinh_di', 'hanh_dong', 'tinh_cam']),
+  k('anh_sang', 'tuong_phan', 'Sáng tối gắt (chiaroscuro)', 'Nửa mặt sáng nửa tối — giằng xé nội tâm.', 'chiaroscuro lighting, half the face in shadow', ['chinh_kich', 'kinh_di', 'tinh_cam', 'phim_doc']),
+  k('anh_sang', 'hoang_hon', 'Giờ vàng', 'Nắng chiều vàng ấm, xiên dài — hoài niệm, lãng mạn, hy vọng.', 'golden hour sunlight, warm low sun, long soft shadows', ['tinh_cam', 'phim_doc', 'hoat_hinh', 'phieu_luu', 'chinh_kich', 'qc_cao_cap']),
+  k('anh_sang', 'gio_xanh', 'Giờ xanh', 'Sau hoàng hôn, xanh lạnh dịu — trầm lặng, buồn.', 'blue hour, cool twilight ambience', ['chinh_kich', 'tinh_cam', 'phim_doc', 'vien_tuong']),
+  k('anh_sang', 'cua_so', 'Ánh cửa sổ mềm', 'Ánh ban ngày qua cửa sổ, mềm và thật — UGC, đời thường.', 'soft natural window light, gentle falloff', ['qc_ugc', 'tai_lieu', 'tinh_cam', 'phim_doc', 'chinh_kich']),
+  k('anh_sang', 'nguoc', 'Ngược sáng / bóng đen', 'Nhân vật thành bóng trước nguồn sáng — bí ẩn, hùng tráng.', 'strong backlight, silhouette', ['phieu_luu', 'kinh_di', 'hanh_dong', 'tinh_cam', 'phim_doc']),
   k('anh_sang', 'vien', 'Đèn viền (rim light)', 'Viền sáng tách người khỏi nền tối — điện ảnh, sản phẩm sang.', 'rim light outlining the subject against a dark background', ['qc_cao_cap', 'hanh_dong', 'vien_tuong', 'chinh_kich']),
   k('anh_sang', 'neon', 'Neon', 'Ánh hồng/xanh neon — đô thị đêm, tương lai.', 'neon pink and cyan practical lighting', ['vien_tuong', 'hanh_dong']),
   k('anh_sang', 'trang', 'Ánh trăng', 'Xanh bạc yếu, đêm — huyền bí, sợ hãi.', 'cold moonlight, silver-blue night', ['kinh_di', 'phieu_luu', 'hoat_hinh']),
@@ -161,11 +162,11 @@ const THU_VIEN_GOC: KyThuat[] = [
   k('anh_sang', 'duoi_len', 'Rọi từ dưới lên', 'Đèn hắt từ dưới mặt — ma quái.', 'under-lighting from below the face', ['kinh_di']),
   k('anh_sang', 'studio', 'Đèn studio sản phẩm', 'Softbox lớn, phản sáng trắng — sản phẩm sạch, đúng màu.', 'professional studio product lighting, large softbox, clean reflections', ['qc_cao_cap']),
   // ── Màu
-  k('mau', 'am', 'Ấm áp', 'Cam vàng — gia đình, an toàn, thân thương.', 'warm color grade, amber and honey tones', ['hoat_hinh', 'tinh_cam', 'qc_ugc', 'chinh_kich']),
+  k('mau', 'am', 'Ấm áp', 'Cam vàng — gia đình, an toàn, thân thương.', 'warm color grade, amber and honey tones', ['hoat_hinh', 'tinh_cam', 'phim_doc', 'qc_ugc', 'chinh_kich']),
   k('mau', 'teal_cam', 'Teal–cam', 'Da cam nổi trên nền xanh — chuẩn bom tấn.', 'teal and orange blockbuster color grade', ['hanh_dong', 'phieu_luu', 'vien_tuong']),
   k('mau', 'lanh', 'Lạnh, bạc màu', 'Xanh xám, rút bão hoà — u ám, cô độc.', 'cold desaturated grade, steel blue and grey', ['kinh_di', 'chinh_kich', 'vien_tuong']),
   k('mau', 'xanh_benh', 'Xanh bệnh hoạn', 'Ám xanh lá vàng — ghê rợn, sai sai.', 'sickly green tint, unsettling', ['kinh_di']),
-  k('mau', 'pastel', 'Pastel', 'Hồng, xanh bạc hà nhạt — dễ thương, nhẹ nhàng.', 'soft pastel palette', ['hoat_hinh', 'hai', 'tinh_cam', 'qc_ugc']),
+  k('mau', 'pastel', 'Pastel', 'Hồng, xanh bạc hà nhạt — dễ thương, nhẹ nhàng.', 'soft pastel palette', ['hoat_hinh', 'hai', 'tinh_cam', 'phim_doc', 'qc_ugc']),
   k('mau', 'tu_nhien', 'Tự nhiên', 'Đúng màu thật, da thật — tài liệu, UGC, sản phẩm.', 'natural true-to-life colors, accurate skin tones', ['tai_lieu', 'qc_ugc', 'qc_cao_cap']),
   k('mau', 'tuong_phan_cao', 'Tương phản cao', 'Đen sâu, sáng gắt — mạnh, kịch tính.', 'high-contrast grade, deep blacks', ['hanh_dong', 'kinh_di', 'qc_cao_cap']),
   k('mau', 'den_trang', 'Đen trắng', 'Hồi ức, nghiêm trang, nghệ thuật.', 'black and white', ['chinh_kich', 'kinh_di', 'tai_lieu']),
@@ -175,8 +176,8 @@ const THU_VIEN_GOC: KyThuat[] = [
   // keyframe shot sau (sinh-video.ts › khungCuoiCanh, kieu.ts › noiKhungShot) và keyframe shot sau lấy keyframe shot này làm tham chiếu.
   k('chuyen_canh', 'lien_may', 'Liền máy (nối khung)', 'Shot sau tiếp đúng giây cuối shot này, cùng nơi — clip kết bằng chính khung mở của shot sau, cắt không giật.', '', T),
   k('chuyen_canh', 'cat_khop', 'Cắt khớp hình (match cut)', 'Hình dáng/chuyển động shot sau khớp shot trước — nối ý, thời gian trôi.', 'end on a strong shape or motion that the next shot will mirror', ['phieu_luu', 'chinh_kich', 'vien_tuong', 'qc_cao_cap', 'hoat_hinh']),
-  k('chuyen_canh', 'j_cut', 'J-cut (tiếng đến trước)', 'Âm thanh cảnh sau vang lên trước khi hình đổi — dẫn mượt.', '', ['chinh_kich', 'tinh_cam', 'tai_lieu', 'phieu_luu']),
-  k('chuyen_canh', 'l_cut', 'L-cut (tiếng còn kéo dài)', 'Tiếng cảnh trước còn đọng khi hình đã sang — dư âm cảm xúc.', '', ['chinh_kich', 'tinh_cam', 'tai_lieu']),
+  k('chuyen_canh', 'j_cut', 'J-cut (tiếng đến trước)', 'Âm thanh cảnh sau vang lên trước khi hình đổi — dẫn mượt.', '', ['chinh_kich', 'tinh_cam', 'phim_doc', 'tai_lieu', 'phieu_luu']),
+  k('chuyen_canh', 'l_cut', 'L-cut (tiếng còn kéo dài)', 'Tiếng cảnh trước còn đọng khi hình đã sang — dư âm cảm xúc.', '', ['chinh_kich', 'tinh_cam', 'phim_doc', 'tai_lieu']),
   { ...k('chuyen_canh', 'hoa_tan', 'Hoà tan (dissolve)', 'Hình chồng mờ — thời gian trôi, hồi ức.', '', ['tinh_cam', 'chinh_kich', 'hoat_hinh']), xfade: 'dissolve', nhom_cc: 'co_ban' as NhomChuyenCanh, giay_cc: 0.6 },
   { ...k('chuyen_canh', 'toi_den', 'Tắt dần về đen', 'Kết một chương, khoảng lặng.', '', ['chinh_kich', 'kinh_di', 'tinh_cam', 'tai_lieu']), xfade: 'fadeblack', nhom_cc: 'co_ban' as NhomChuyenCanh, giay_cc: 0.6 },
   { ...k('chuyen_canh', 'quat_chuyen', 'Quất chuyển (whip)', 'Lia nhanh sang cảnh mới — năng lượng, hài, quảng cáo.', 'end with a fast whip-pan motion blur', ['hai', 'hanh_dong', 'qc_ugc']), xfade: 'hblur', nhom_cc: 'dong' as NhomChuyenCanh, giay_cc: 0.35 },
@@ -210,7 +211,7 @@ const THU_VIEN_GOC: KyThuat[] = [
   k('am_thanh', 'nen_phong', 'Âm nền phòng', 'Tiếng phòng nhỏ, đồng hồ, tủ lạnh — thật, gần.', 'quiet room tone ambience', T),
   k('am_thanh', 'rung', 'Âm rừng', 'Chim, gió lá, côn trùng.', 'forest ambience, birdsong, rustling leaves', ['hoat_hinh', 'phieu_luu', 'kinh_di', 'tai_lieu']),
   k('am_thanh', 'pho', 'Âm phố', 'Xe cộ, người qua lại.', 'city street ambience, distant traffic', ['hanh_dong', 'chinh_kich', 'tai_lieu', 'qc_ugc']),
-  k('am_thanh', 'mua', 'Mưa', 'Mưa rơi — buồn, lãng mạn, ghê rợn.', 'steady rain ambience', ['tinh_cam', 'chinh_kich', 'kinh_di']),
+  k('am_thanh', 'mua', 'Mưa', 'Mưa rơi — buồn, lãng mạn, ghê rợn.', 'steady rain ambience', ['tinh_cam', 'phim_doc', 'chinh_kich', 'kinh_di']),
   k('am_thanh', 'foley', 'Tiếng động cận (foley)', 'Bước chân, vải sột soạt, đồ chạm — làm hình "có thật".', 'close foley sounds synced to the action', T),
   k('am_thanh', 'tim_dap', 'Nhịp tim', 'Tiếng tim đập to dần — hồi hộp.', 'heartbeat getting louder', ['kinh_di', 'hanh_dong', 'chinh_kich']),
   k('am_thanh', 'im_lang', 'Im lặng đột ngột', 'Cắt hết âm — trước cú doạ hay khoảnh khắc lớn.', 'sudden silence', ['kinh_di', 'chinh_kich', 'hanh_dong']),
@@ -228,7 +229,7 @@ const THU_VIEN_GOC: KyThuat[] = [
   k('am_thanh', 'sam', 'Sấm', 'Sấm rền — bão, điềm xấu, cao trào. Có tiếng thật trong bản xuất.', 'rolling thunder crack', ['hanh_dong', 'kinh_di', 'chinh_kich', 'phieu_luu']),
   k('am_thanh', 'cot_ket', 'Cót két', 'Cửa, sàn gỗ cót két.', 'creaking wooden door and floorboards', ['kinh_di', 'hai']),
   // ── Nhạc
-  k('nhac', 'piano', 'Piano ấm', 'Vài nốt piano mộc — tình cảm, hồi tưởng.', 'gentle warm solo piano', ['tinh_cam', 'chinh_kich', 'hoat_hinh', 'qc_ugc']),
+  k('nhac', 'piano', 'Piano ấm', 'Vài nốt piano mộc — tình cảm, hồi tưởng.', 'gentle warm solo piano', ['tinh_cam', 'phim_doc', 'chinh_kich', 'hoat_hinh', 'qc_ugc']),
   k('nhac', 'dan_nhac', 'Dàn nhạc dâng', 'Dây + kèn trào lên — hùng tráng, chiến thắng.', 'swelling orchestral score', ['phieu_luu', 'hoat_hinh', 'hanh_dong', 'vien_tuong']),
   k('nhac', 'drone', 'Âm trầm căng (drone)', 'Một nốt trầm kéo dài — hồi hộp, bất an.', 'low ominous suspense drone', ['kinh_di', 'vien_tuong', 'chinh_kich']),
   k('nhac', 'day_dao', 'Dây cào (horror strings)', 'Violin cào chói — ghê rợn.', 'screeching dissonant horror strings', ['kinh_di']),
@@ -307,6 +308,16 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
     { ten: 'Hook 3 giây', mo_ta: 'Câu/khung hình giữ ngón tay lại' }, { ten: 'Vấn đề', mo_ta: 'Nhân vật muốn gì và cái gì cản' },
     { ten: 'Leo thang', mo_ta: 'Mỗi lần thử lại tệ hơn, tăng tốc' }, { ten: 'Lật ngược', mo_ta: 'Lật kỳ vọng' }, { ten: 'Kết / móc', mo_ta: 'Kết đọng lại + móc sang tập sau / lời kêu gọi theo dõi' },
   ] },
+  // PHIM NGẮN DỌC (micro-drama kiểu tổng tài — anh 16/10/2026): tập 60–120s, 60–100 tập; mỗi 15–30s một nút, cuối tập là cliffhanger. Tên beat
+  // khớp máy chấm (cham-kich-ban.ts › nhipCua): Hook / Vấn đề / Leo thang / Lật ngược / Cliffhanger. `phan` = tỉ lệ thời lượng.
+  phim_doc: { ten: 'Phim ngắn dọc (móc 3s → sỉ nhục → nút 1 → nút 2 → đánh mặt → cliffhanger)', beats: [
+    { ten: 'Hook 3 giây', mo_ta: 'Mở NGAY giữa xung đột: một câu sốc, cái tát, lời tuyên bố, ánh mắt lạnh — không giới thiệu', phan: 0.04 },
+    { ten: 'Vấn đề — sỉ nhục', mo_ta: 'Nhân vật chính bị coi thường / dồn ép bất công; người xem đứng về phía họ', phan: 0.16 },
+    { ten: 'Leo thang — nút 1', mo_ta: 'Kẻ ép tăng đòn; một bí mật / thân phận hé ra một chút (người xem biết hơn kẻ ép)', phan: 0.2 },
+    { ten: 'Leo thang — nút 2', mo_ta: 'Ép đến tận cùng, nhân vật chính im lặng / nhẫn nhịn — khán giả nóng ruột chờ phản đòn', phan: 0.2 },
+    { ten: 'Lật ngược — đánh mặt', mo_ta: 'Phản đòn: thân phận / sự thật lộ ra, kẻ ép bẽ mặt (face-slap) — khoảnh khắc cảm xúc mạnh nhất tập', phan: 0.25 },
+    { ten: 'Cliffhanger — móc tập sau', mo_ta: 'Một câu / hình bỏ lửng mở xung đột mới — dừng đúng lúc người xem muốn biết tiếp', phan: 0.15 },
+  ] },
   // Quảng cáo: `phan` = tỉ lệ thời lượng của beat (cộng = 1) → tách cảnh biết beat nào được mấy giây với thời lượng mục tiêu bất kỳ.
   quang_cao: { ten: 'Quảng cáo (hook → nỗi đau → giải pháp → bằng chứng → ưu đãi)', beats: [
     { ten: 'Hook', mo_ta: '1–3 giây đầu: HÌNH gây dừng tay + chữ trên màn + câu chạm đúng người xem', phan: 0.1 }, { ten: 'Nỗi đau', mo_ta: 'Vấn đề họ gặp mỗi ngày, thấy bằng mắt', phan: 0.15 },
@@ -316,6 +327,8 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
   ] },
 };
 /** Chia thời lượng mục tiêu cho các beat theo `phan` → "Hook 0–3s · Nỗi đau 3–7s …" (beat không có phan → chia đều phần còn lại). */
+/** Khung beat của một tập: thể loại có khung riêng (phim ngắn dọc) thắng loại sản phẩm; không thì theo loại (phim / short / quảng cáo). MỘT chỗ chọn. */
+export const khoaKhung = (loai: string, theLoai?: string | null): string => (theLoai && CAU_TRUC[theLoai] ? theLoai : CAU_TRUC[loai] ? loai : 'phim');
 export function giayBeat(loai: string, tong: number): { ten: string; tu: number; den: number }[] {
   const beats = (CAU_TRUC[loai] ?? CAU_TRUC.phim!).beats;
   const coPhan = beats.reduce((a, b) => a + (b.phan ?? 0), 0);

@@ -73,10 +73,13 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
       WHERE a.platform_key IN ('gumroad','etsy','kdp') AND coalesce(a.status,'') NOT IN ('closed','banned') AND a.project_id IS NOT NULL ORDER BY a.platform_key`)) as unknown as
       { platform_key: string; handle: string; status: string | null; project_id: string; du_an: string | null }[];
     const duAn = [...new Set(cua.map((c) => c.project_id))];
+    if (!duAn.length) return { kenh: [], trang: [], ban: [] };
+    // drizzle trải mảng JS thành ($1, $2…) chứ không thành text[] → `= ANY(${mang})` gãy ("op ANY/ALL (array) requires array"); dùng IN (…)
+    const trong = (xs: string[]) => sql.join(xs.map((x) => sql`${x}`), sql`, `);
     const tenDuAn = Object.fromEntries(cua.map((c) => [c.project_id, c.du_an ?? c.project_id]));
     const [tk, so, video, kenhSp, dau, gum] = await Promise.all([
       d.execute(sql`SELECT id, platform_key, handle, status, project_id, proxy_id, created_at::date::text AS tao FROM platform_accounts
-        WHERE project_id = ANY(${duAn}) AND platform_key = ANY(${MXH}) ORDER BY project_id, platform_key`) as unknown as Promise<{ id: number; platform_key: string; handle: string; status: string | null; project_id: string; proxy_id: number | null; tao: string }[]>,
+        WHERE project_id IN (${trong(duAn)}) AND platform_key IN (${trong(MXH)}) ORDER BY project_id, platform_key`) as unknown as Promise<{ id: number; platform_key: string; handle: string; status: string | null; project_id: string; proxy_id: number | null; tao: string }[]>,
       docKenhSo(), docVideoSo(), docKenh(),
       d.execute(sql`SELECT split_part(san_pham, ':', 1) AS du_an, kenh, min(ngay)::text AS dau FROM kenh_so_ngay GROUP BY 1, 2`) as unknown as Promise<{ du_an: string; kenh: string; dau: string }[]>,
       d.execute(sql`SELECT store, sum(views)::int AS xem, sum(sales)::int AS ban, round(sum(usd_cents) / 100.0, 2)::float AS usd FROM product_daily

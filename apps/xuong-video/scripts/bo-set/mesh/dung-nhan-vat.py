@@ -85,38 +85,68 @@ def dung_mr_wipe(co_khan=10.5, dau_r=1.6, dau_z=6.0):
         out += mat_nut(vt, nor if hit else Vector((0, -1, 0)))
     return out
 
-# ── TANGO: quả trứng đất nặn cam, vân tay, mắt lồi trắng + con ngươi, tóc xoắn lò xo, hai tay ngắn, hai bàn chân tròn. Đáy giữa ở z=0, mặt −y.
-def dung_tango(w=2.0, d=1.6, h=2.6):
-    m, nt, b, rgb = vat_lieu('dat set cam', '#e8803a', Roughness=0.62)
-    b.inputs['Subsurface Weight'].default_value = 0.25; b.inputs['Subsurface Radius'].default_value = (0.004, 0.002, 0.001); b.inputs['Subsurface Scale'].default_value = 0.004
-    gon(nt, b, 700, 0.18, 4)   # vân tay mờ
-    md, ntd, bd, _ = vat_lieu('dat set dam', '#d06a26', Roughness=0.62); gon(ntd, bd, 700, 0.18, 4)
+def ong(ten, diem, r, m, r_cuoi=None):
+    """Ống bo tròn theo đường cong (tay, tóc): diem cm, bán kính r cm (thon dần tới r_cuoi)."""
+    cv = bpy.data.curves.new(ten, 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = r * CM; cv.bevel_resolution = 6; cv.use_fill_caps = True
+    sp = cv.splines.new('NURBS'); sp.points.add(len(diem) - 1)
+    for i, q in enumerate(diem): sp.points[i].co = (q[0] * CM, q[1] * CM, q[2] * CM, 1); sp.points[i].radius = 1 if r_cuoi is None else 1 + (r_cuoi / r - 1) * i / (len(diem) - 1)
+    sp.use_endpoint_u = True; sp.order_u = min(4, len(diem))
+    o = bpy.data.objects.new(ten, cv); bpy.context.collection.objects.link(o); cv.materials.append(m); return o
+
+# ── TANGO, ĐO THEO BẢNG MẪU (anh 16/10/2026: "con mesh và con nano không khớp — tạo hình nano dễ thương"): thân HẠT ĐẬU đứng (hông rộng hơn vai,
+# hai bên gần thẳng) trên HAI CHÂN NGẮN bàn chân dẹt; tay DÀI buông sát thân; mắt TO, CAO, GẦN nhau; tóc xoắn mảnh; da cam đậm MỊN (không gồ đá).
+# Tỉ lệ (cao 3,6 cm gồm tóc): chân 0,4 · thân 2,35 (rộng 1,75, sâu 1,4) · tóc 0,8 · mắt Ø 0,62 ở 72% thân, cách nhau 0,66.
+def dung_tango():
+    m, nt, b, rgb = vat_lieu('dat set cam', '#d2541a', Roughness=0.5)
+    b.inputs['Subsurface Weight'].default_value = 0.15; b.inputs['Subsurface Radius'].default_value = (0.004, 0.0015, 0.0008); b.inputs['Subsurface Scale'].default_value = 0.003
+    gon(nt, b, 1400, 0.05, 3)   # vân tay rất mờ
     out = []
-    # thân: trứng = cầu kéo dài, hơi thon đỉnh, làm mịn + gồ nhẹ (dent ngón cái sau lưng = một chỗ lõm bằng texture lớn)
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=0.5 * CM, location=(0, 0, h / 2 * CM)); th = bpy.context.object; th.name = 'Tango'
-    th.scale = (w, d, h)
-    for v in th.data.vertices: v.co.x *= 1 - 0.12 * max(0.0, v.co.z); v.co.y *= 1 - 0.12 * max(0.0, v.co.z)   # thon về đỉnh
-    bpy.ops.object.shade_smooth(); th.data.materials.append(m); sd = th.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 2
-    tx = bpy.data.textures.new('tango_go', 'CLOUDS'); tx.noise_scale = 0.006; dp = th.modifiers.new('go', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = 0.0006
+    z0, cao, rong, sau = 0.4, 2.35, 1.75, 1.4
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=40, radius=0.5, location=(0, 0, 0)); th = bpy.context.object; th.name = 'Tango'
+    for v in th.data.vertices:   # hạt đậu: hông (dưới) rộng hơn vai; hai bên phẳng dần (siêu elip) — toạ độ cục bộ −0.5..0.5
+        t = v.co.z + 0.5; k = 1.04 - 0.1 * t
+        x, y = v.co.x, v.co.y; rr = math.hypot(x, y)
+        if rr > 1e-6:
+            a_ = math.atan2(y, x); sq = (abs(math.cos(a_)) ** 2.6 + abs(math.sin(a_)) ** 2.6) ** (-1 / 2.6)
+            f = 1 + 0.12 * (sq - 1)
+            v.co.x, v.co.y = x * k * f, y * k * f
+    th.scale = (rong * CM, sau * CM, cao * CM); th.location = (0, 0, (z0 + cao / 2) * CM)
+    bpy.ops.object.shade_smooth(); th.data.materials.append(m); sd = th.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
     out.append(th)
-    # mắt lồi: cầu trắng chìm 1/3 vào thân, con ngươi đen ở trước
+    mw, *_ = vat_lieu('mat trang', '#fbfbfb', Roughness=0.15); mb_, *_ = vat_lieu('nguoi', '#0b0b0b', Roughness=0.1)
+    for sx in (-1, 1):   # mắt lồi to, cao, gần nhau; con ngươi hơi lệch vào trong + lên (ngây thơ)
+        ex, ez = sx * 0.37, z0 + cao * 0.66   # mắt vừa phải, có khoảng hở giữa (lần trước to + sát như mắt ếch)
+        out.append(cau('mat', 0.24, (ex, -sau / 2 + 0.1, ez), mw, 40, 20))
+        out.append(cau('nguoi', 0.115, (ex - sx * 0.03, -sau / 2 - 0.1, ez + 0.02), mb_, 24, 12))
+    for sx in (-1, 1):   # tay dài buông sát thân, cong nhẹ ra ngoài ở cổ tay
+        a_ = cau('tay', 0.5, (sx * 0.86, -0.02, z0 + cao * 0.42), m, 32, 16); a_.scale = (0.34, 0.36, 1.05); a_.rotation_euler = (0, math.radians(sx * 10), 0); out.append(a_)   # tay = khối đất nặn tròn dài ôm sát thân (ống cong ra tấm dẹt như mái chèo)
+    for sx in (-1, 1):   # hai chân ngắn + bàn chân dẹt chìa ra trước
+        c = cau('chan', 0.5, (sx * 0.36, 0, 0.32), m, 32, 16); c.scale = (0.48, 0.48, 0.6); out.append(c)   # chân ngắn tròn mềm
+        f_ = cau('ban chan', 0.5, (sx * 0.37, -0.1, 0.11), m, 32, 16); f_.scale = (0.56, 0.66, 0.26); out.append(f_)
+    pts = []   # tóc: lò xo mảnh, vòng nhỏ, đứng thẳng giữa đỉnh đầu
+    for i in range(40):
+        t = i / 39; g = t * math.pi * 2 * 2.6; r = 0.06 + 0.07 * t
+        pts.append((math.cos(g) * r, math.sin(g) * r, z0 + cao - 0.08 + t * 0.78))
+    out.append(ong('toc', pts, 0.055, m, 0.05))
+    return out
+
+# ── LINT, ĐO THEO BẢNG MẪU: cục nỉ XÁM ĐẬM lông ngắn dày, hai CHÂN nỉ xám đậm thò rõ dưới, mắt NHỎ đen bóng gần nhau, một sợi chỉ xanh trên đỉnh.
+def dung_lint(r=1.0):
+    z = 0.38 + r
+    m, nt, b, _ = vat_lieu('ni xam', '#55555b', Roughness=1.0); b.inputs['Sheen Weight'].default_value = 0.2; gon(nt, b, 1500, 0.5, 6)
+    th = cau('Lint', r, (0, 0, z), m, 64, 32)
+    tx = bpy.data.textures.new('lint_xu', 'CLOUDS'); tx.noise_scale = 0.003; dp = th.modifiers.new('xu', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = 0.0008
+    long_toi(th, '#4c4c52', 0.085, 6500, 0.009)   # xám chuột đậm, lông ngắn dày như nỉ (lần trước dài + bắt sáng trắng bạc)
+    out = [th]
+    md, *_ = vat_lieu('ni dam', '#47474d', Roughness=1.0)
     for sx in (-1, 1):
-        e = 0.62; ex, ez = sx * 0.42, h * 0.6
-        mw, *_ = vat_lieu('mat trang', '#ffffff', Roughness=0.25); mb_, *_ = vat_lieu('nguoi', '#111111', Roughness=0.3)
-        o = cau('mat', e / 2, (ex, -d / 2 + e * 0.2, ez), mw); out.append(o)
-        o = cau('nguoi', e * 0.22, (ex, -d / 2 - e * 0.22, ez + 0.04), mb_, 24, 12); out.append(o)
-    # tóc xoắn lò xo: đường xoắn ốc rộng 0.7, cao 1.1, ống 0.09 — màu cam đậm
-    cv = bpy.data.curves.new('toc', 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = 0.09 * CM; cv.bevel_resolution = 4
-    sp = cv.splines.new('NURBS'); n = 60; sp.points.add(n - 1)
-    for i in range(n):
-        t = i / (n - 1); g = t * math.pi * 2 * 2.5; r = 0.35 * (0.3 + 0.7 * t)
-        sp.points[i].co = ((0.1 + math.cos(g) * r) * CM, (math.sin(g) * r) * CM, (h - 0.15 + t * 1.1) * CM, 1)
-    sp.use_endpoint_u = True; sp.order_u = 4
-    o = bpy.data.objects.new('toc', cv); bpy.context.collection.objects.link(o); cv.materials.append(md); out.append(o)
-    # tay: hai khối trứng nhỏ buông hai bên; chân: hai bàn chân tròn chìa ra trước
+        out.append(ong('chan', [(sx * 0.3, -0.05, z - r * 0.7), (sx * 0.32, -0.08, 0.25), (sx * 0.33, -0.12, 0.1)], 0.15, md, 0.16))
+        f_ = cau('ban chan', 0.5, (sx * 0.33, -0.16, 0.06), md, 24, 12); f_.scale = (0.34, 0.42, 0.18); out.append(f_)
+    mden, *_ = vat_lieu('mat den bong', '#040404', Roughness=0.04)
     for sx in (-1, 1):
-        o = cau('tay', 0.5, (sx * 1.0, -0.05, 0.95), md, 32, 16); o.scale = (0.45, 0.45, 0.95); out.append(o)
-        o = cau('chan', 0.5, (sx * 0.42, -0.3, 0.17), md, 32, 16); o.scale = (0.62, 0.85, 0.34); out.append(o)
+        out.append(cau('mat', 0.17, (sx * 0.27, -r * 1.06, z + 0.15), mden, 32, 16))   # mắt nằm NGOÀI lớp lông (lần trước bị lông lấp)
+        out.append(cau('lap lanh', 0.045, (sx * 0.27 + 0.05, -r * 1.06 - 0.14, z + 0.21), vat_lieu('trang', '#ffffff', Roughness=0.1)[0], 12, 6))
+    out.append(ong('chi xanh', [(0.02, 0.0, z + r - 0.1), (0.04, 0.0, z + r + 0.2), (0.1, -0.02, z + r + 0.45), (0.2, -0.04, z + r + 0.58)], 0.035, vat_lieu('chi', '#1f6fe0', Roughness=0.5)[0]))
     return out
 
 def meta(ten, phan, m, res=0.05, nguong=0.6, he=1.0):
@@ -154,26 +184,6 @@ def mat_tron(vt, r, m_trang=None, m_den=None, huong=(0, -1, 0), nguoi=0.42):
     mw = m_trang or vat_lieu('mat trang', '#ffffff', Roughness=0.2)[0]; mb_ = m_den or vat_lieu('nguoi', '#0d0d0d', Roughness=0.15)[0]
     h = Vector(huong).normalized(); a = cau('mat', r, vt, mw, 32, 16); b = cau('nguoi', r * nguoi, Vector(vt) + h * r * 0.75, mb_, 24, 12)
     return [a, b]
-
-# ── LINT: cục bụi nỉ xám: thân cầu xù (gồ lớn) + lông sợi thật, mắt đen bóng tròn, một sợi chỉ xanh dựng trên đỉnh, hai chân nỉ nhỏ.
-def dung_lint(r=1.05):
-    m, nt, b, _ = vat_lieu('ni xam', '#8d8d93', Roughness=1.0); b.inputs['Sheen Weight'].default_value = 1.0; gon(nt, b, 1200, 0.6, 6)
-    th = cau('Lint', r, (0, 0, r + 0.12), m, 64, 32); sd = th.modifiers.new('sub', 'SUBSURF'); sd.levels = sd.render_levels = 1
-    tx = bpy.data.textures.new('lint_xu', 'CLOUDS'); tx.noise_scale = 0.004; dp = th.modifiers.new('xu', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = 0.0018
-    long_toi(th, '#9a9aa2', 0.32, 2600)
-    out = [th]
-    mden, *_ = vat_lieu('mat den bong', '#050505', Roughness=0.05); mden_ = mden
-    for sx in (-1, 1):
-        out.append(cau('mat', 0.28, (sx * 0.38, -r * 0.93, r + 0.35), mden_, 32, 16))
-        o = cau('lap lanh', 0.07, (sx * 0.38 + 0.08, -r * 0.93 - 0.24, r + 0.45), vat_lieu('trang', '#ffffff', Roughness=0.1)[0], 12, 6); out.append(o)
-        o = cau('chan', 0.5, (sx * 0.38, -0.25, 0.1), vat_lieu('ni dam', '#5c5c62', Roughness=1.0)[0], 24, 12); o.scale = (0.34, 0.4, 0.28); out.append(o)
-    cv = bpy.data.curves.new('chi', 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = 0.035 * CM; cv.bevel_resolution = 3
-    sp = cv.splines.new('NURBS'); pts = [(0.05, 0.05, 2 * r - 0.1), (0.08, 0.06, 2 * r + 0.25), (0.15, 0.02, 2 * r + 0.55), (0.28, -0.05, 2 * r + 0.75)]
-    sp.points.add(len(pts) - 1)
-    for i, q in enumerate(pts): sp.points[i].co = (q[0] * CM, q[1] * CM, (q[2] + 0.12) * CM, 1)
-    sp.use_endpoint_u = True; sp.order_u = 3
-    o = bpy.data.objects.new('chi xanh', cv); bpy.context.collection.objects.link(o); cv.materials.append(vat_lieu('chi', '#1f6fe0', Roughness=0.5)[0]); out.append(o)
-    return out
 
 # ── COTTON BALL: cục bông trắng ngà, nhiều cụm hoà nhau (metaball) + sợi bông mảnh, không mắt.
 def dung_cotton_ball():
@@ -281,12 +291,12 @@ if __name__ == '__main__' and '--' in sys.argv:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     s = bpy.context.scene; w = bpy.data.worlds.new('w'); s.world = w; w.use_nodes = True
     w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.75, 0.74, 0.72, 1); w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.35
-    objs = nhan_vat_mesh(ten)
+    objs = nhan_vat_mesh(ten); bpy.context.view_layer.update()   # ma trận mới trước khi đo chiều cao đặt máy (không thì máy nhìn vào khoảng trống)
     hi = max((o.matrix_world @ Vector(c)).z for o in objs for c in o.bound_box)
     for i, g in enumerate((0, 60, 120)):
         bpy.ops.object.light_add(type='AREA', location=(0.12 * math.cos(math.radians(g + 40)), 0.12 * math.sin(math.radians(g + 40)) - 0.1, 0.16)); L = bpy.context.object; L.data.energy = 2.0 if i == 0 else 0.8; L.data.size = 0.12
         L.rotation_euler = (Vector((0, 0, hi / 2)) - L.location).to_track_quat('-Z', 'Y').to_euler()
-    cd = bpy.data.cameras.new('c'); cd.lens = 60; cam = bpy.data.objects.new('c', cd); s.collection.objects.link(cam); s.camera = cam
+    cd = bpy.data.cameras.new('c'); cd.lens = 60; cd.clip_start = 0.002; cam = bpy.data.objects.new('c', cd); s.collection.objects.link(cam); s.camera = cam
     s.render.engine = 'CYCLES'; s.cycles.samples = 48; s.cycles.use_denoising = True; s.render.resolution_x, s.render.resolution_y = 560, 720
     try:
         p = bpy.context.preferences.addons['cycles'].preferences; p.compute_device_type = 'METAL'; p.get_devices()
@@ -295,7 +305,7 @@ if __name__ == '__main__' and '--' in sys.argv:
     except Exception as e: print('GPU?', e)
     print('render device', s.cycles.device)
     for i, g in enumerate((0, -50, 90)):
-        a = math.radians(g); cam.location = (math.sin(a) * 0.17, -math.cos(a) * 0.17, hi * 0.55 + 0.03)
+        a = math.radians(g); kc = max(0.07, hi * 2.6); cam.location = (math.sin(a) * kc, -math.cos(a) * kc, hi * 0.55 + kc * 0.15)
         cam.rotation_euler = (Vector((0, 0, hi * 0.5)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
         s.render.filepath = ra.replace('.png', f'-{i}.png'); bpy.ops.render.render(write_still=True)
     print('XONG', ten)

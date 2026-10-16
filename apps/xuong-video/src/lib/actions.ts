@@ -27,6 +27,7 @@ import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { dichMoTaVi } from '@/lib/xuong-video/claude';
+import { coKhoa, LOAI_NGUON, TEN_TRANG_THAI, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
 import { vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -709,6 +710,52 @@ export async function dichMoTaTap(tapId: number): Promise<Kq<{ so: number; cents
   let so = 0;
   for (const [i, r] of ds.entries()) { const v = kq.data[i]; if (!v) continue; await db.execute(sql`UPDATE xv_canh SET hanh_dong_vi = ${v} WHERE id = ${n(r.id)} AND hanh_dong_vi = ''`); so++; }
   return { ok: true, data: { so, cents } };
+}
+// ── SỔ NGUỒN AI (nguon-ai.ts, migration 0263) ─────────────────────────────────────────────────────────────────────────
+/** Mọi nguồn + model; ổn định tính trực tiếp từ xv_job trong `ngay` ngày (ma_job = 'provider|model'). Khoá chỉ báo có / chưa có. */
+export async function dsNguonAi(ngay = 14): Promise<Kq<{ nguon: Nguon[]; model: NguonModel[] }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ng = (await db.execute(sql`SELECT * FROM xv_nguon ORDER BY CASE trang_thai WHEN 'dang' THEN 0 WHEN 'co_tk' THEN 1 WHEN 'tham_khao' THEN 2 ELSE 3 END, ten`)) as unknown as Row[];
+  const md = (await db.execute(sql`SELECT m.*, od.goi, od.dat, od.giay, od.cents, od.dat_gan, od.loi_gan FROM xv_nguon_model m
+    LEFT JOIN LATERAL (SELECT count(*) AS goi, count(*) FILTER (WHERE j.trang_thai = 'xong') AS dat,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM j.updated_at - j.created_at)) FILTER (WHERE j.trang_thai = 'xong') AS giay,
+        coalesce(sum(j.chi_phi_cents), 0) AS cents, max(j.updated_at) FILTER (WHERE j.trang_thai = 'xong') AS dat_gan,
+        (array_agg(left(j.loi, 160) ORDER BY j.created_at DESC) FILTER (WHERE j.trang_thai <> 'xong' AND coalesce(j.loi, '') <> ''))[1] AS loi_gan
+      FROM xv_job j WHERE cardinality(m.ma_job) > 0 AND (j.provider || '|' || j.model) = ANY(m.ma_job) AND j.created_at > now() - make_interval(days => ${ngay})) od ON true
+    ORDER BY m.loai, m.gia_vnd NULLS LAST, m.model`)) as unknown as Row[];
+  return { ok: true, data: {
+    nguon: ng.map((r) => ({ key: s(r.key), ten: s(r.ten), kieu: s(r.kieu), trang_thai: s(r.trang_thai) as TrangThaiNguon, loai: s(r.loai), tra_tien: s(r.tra_tien), vault: s(r.vault), nap_tien: s(r.nap_tien), rui_ro: s(r.rui_ro), co_khoa: coKhoa(s(r.khoa_env), process.env) })),
+    model: md.map((r) => ({ id: n(r.id), nguon_key: s(r.nguon_key), loai: s(r.loai) as LoaiNguon, model: s(r.model), goi: s(r.goi), gia_vnd: r.gia_vnd == null ? null : Number(r.gia_vnd), gia_goc: s(r.gia_goc), link: s(r.link), link_phu: s(r.link_phu),
+      ngay_doc: r.ngay_doc == null ? null : String(r.ngay_doc).slice(0, 10), kha_nang: s(r.kha_nang), khop: (Array.isArray(r.khop) ? r.khop : []) as O[], tat: s(r.tat),
+      on_dinh: n(r.goi) ? { goi: n(r.goi), dat: n(r.dat), giay: r.giay == null ? null : Math.round(Number(r.giay)), cents: Number(r.cents), dat_gan: r.dat_gan == null ? null : String(r.dat_gan), loi_gan: r.loi_gan == null ? null : s(r.loi_gan) } : null })),
+  } };
+}
+/** Đổi trạng thái một nguồn (Đưa vào dùng / ngừng). Chỉ đổi sổ — tạo tài khoản, nạp tiền, đặt khoá vẫn là việc của anh. */
+export async function doiTrangThaiNguon(key: string, tt: TrangThaiNguon): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!(tt in TEN_TRANG_THAI)) return loi('trạng thái lạ');
+  await db.execute(sql`UPDATE xv_nguon SET trang_thai = ${tt}, updated_at = now() WHERE key = ${key}`);
+  return { ok: true, data: undefined };
+}
+/** Thêm một bên (chưa có thì tạo, trạng thái Tham khảo) + một model của bên đó. Giá nhập theo đơn vị chuẩn của loại. */
+export async function themNguonModel(d: { ten: string; loai: LoaiNguon; model: string; gia_vnd: number | null; gia_goc: string; link: string }): Promise<Kq<string>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ten = d.ten.trim(), model = d.model.trim();
+  if (!ten || !model) return loi('cần tên bên và tên model');
+  if (!LOAI_NGUON.some((l) => l.key === d.loai)) return loi('loại lạ');
+  // Giá phải kèm trang chứa giá đó (CHECK trong 0263 chặn ở tầng DB; đây báo lỗi dễ hiểu trước).
+  if (d.gia_vnd != null && !/^https?:\/\//.test(d.link.trim())) return loi('giá phải kèm link trang chứa giá (https://…)');
+  const key = ten.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || `nguon-${Date.now()}`;
+  await db.execute(sql`INSERT INTO xv_nguon (key, ten, nap_tien) VALUES (${key}, ${ten}, ${d.link.trim()}) ON CONFLICT (key) DO NOTHING`);
+  await db.execute(sql`INSERT INTO xv_nguon_model (nguon_key, loai, model, gia_vnd, gia_goc, link, ngay_doc) VALUES (${key}, ${d.loai}, ${model}, ${d.gia_vnd}, ${d.gia_goc.trim() || 'nhập tay'}, ${d.link.trim()}, now()::date)
+    ON CONFLICT (nguon_key, loai, model, goi) DO UPDATE SET gia_vnd = EXCLUDED.gia_vnd, gia_goc = EXCLUDED.gia_goc, link = EXCLUDED.link, ngay_doc = EXCLUDED.ngay_doc, updated_at = now()`);
+  return { ok: true, data: key };
 }
 export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const db = getDb();

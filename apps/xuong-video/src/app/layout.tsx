@@ -22,6 +22,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
           <span style={{ flex: 1 }} />
           <NutNgan y={{ loai: 'thu-vien' }}>🎬 thư viện điện ảnh</NutNgan>
           <NutNgan y={{ loai: 'so-chi-phi' }}>💰 sổ chi phí</NutNgan>
+          <NutNgan y={{ loai: 'nguon-ai' }}>🔌 nguồn AI</NutNgan>
           <a href="https://mos2.on.tc" className="xv-mono">mos2</a>
         </header>
         <main className="xv-main">{children}</main>

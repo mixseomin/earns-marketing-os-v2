@@ -1,6 +1,6 @@
 'use client';
 // Drawer chung của cả studio (anh chốt 09/10/2026: bấm link KHÔNG được mở trang khác, phải là drawer).
-//   moNgan({ loai: 'thu-vien' | 'so-chi-phi' | 'xem', … }) gọi được từ bất kỳ đâu (header, form shot, sổ, ảnh, clip, bản xuất).
+//   moNgan({ loai: 'thu-vien' | 'so-chi-phi' | 'nguon-ai' | 'xem', … }) gọi được từ bất kỳ đâu (header, form shot, sổ, ảnh, clip, bản xuất).
 //   Thư viện + sổ chi phí ghi vào URL (?ngan=…) → F5 mở lại đúng; xem tệp (ảnh/clip/âm) là drawer hẹp chồng lên, có nút Tải (cùng nguồn, không mở tab).
 import { Suspense, useEffect, useState } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
@@ -11,8 +11,9 @@ import { KhoNoiDung, maDich, docDich, type DichKho } from './kho';
 import { NguonShotNoiDung } from './nguon-shot';
 import { NoiKhungTap } from './noi-khung';
 import { BoSetXem } from './bo-set-xem';
+import { SoNguonAi } from './nguon-ai-ui';
 
-export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string };
+export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -71,6 +72,11 @@ function Host() {
     {nguon != null && (
       <Ngan onClose={() => setNguon(null)} tieuDe="🔗 Nguồn của shot">
         <NguonShotNoiDung canhId={nguon} />
+      </Ngan>
+    )}
+    {ngan.is('nguon-ai') && (
+      <Ngan onClose={ngan.close} tieuDe="🔌 Sổ nguồn AI">
+        <SoNguonAi />
       </Ngan>
     )}
     {ngan.is('so-chi-phi') && (

@@ -321,12 +321,48 @@ for ma, m in MOI.items():
 S['may']['7.2a']['khung'] = [TANGO, 'USB Hub']          # Tango nhìn mặt đế cắm → khung cho thấy mặt đế cắm
 S['may']['7.4']['khung'] = [WIPE]   # #35: hai bạn nấp không phải chủ thể — bộ giải không phải lùi máy 31 cm để gom cả Tango (ms thành toàn cảnh, thừa khoảng trên đầu)
 S['may']['7.7a']['khung'] = [TANGO, LINT, 'Orange Card']  # thẻ trống là thứ hai bạn (và khán giả) nhìn
+# ĐỘNG TÁC DIỄN (bước 2 phim Blender, 16/10/2026): theo đúng mô tả hành động từng shot — thư viện dung-set.py › DONG_TAC, 'ten@a-b' (phần thời lượng).
+# Chớp mắt + chúi tới khi đi là tự động. Động tác chưa có trong thư viện (cuộn tròn lăn, kéo giãn kẹo, bẹp thành vũng, nặn xe trượt…) để bước 3.
+DIEN = {
+ '2.1': {TANGO: ['mat_to@0.2', 'toc_bat@0.3']},                                   # #7 ló lên, sợi tóc bật dựng
+ '2.2': {TANGO: ['nhay@0.15-0.6']},                                               # #8 nhảy ôm chầm viên kẹo
+ '2.3': {TANGO: ['mat_to@0.5']},                                                  # #9 úp mặt, ngẩng nhìn theo kẹo
+ '4.2': {LINT: ['run@0.6-0.75']},                                                 # #13 cục bụi khẽ động đậy
+ '4.3': {LINT: ['phong3@0.05-0.3', 'toc_dung@0.05-0.25', 'mat_to@0.05', 'run@0.55-1'], TANGO: ['mat_to@0.08']},   # #14 phồng gấp ba, run
+ '4.5': {LINT: ['phong3@0-0.001', 'phong0.34@0.02-0.35', 'mat_to@0.55']},        # #15 xẹp lại từ ×3, mắt hé to nhìn kẹo
+ '4.5a': {TANGO: ['toc_ru@0.3-0.55', 'toc_bat@0.75']},                            # #16 tóc rũ… rồi bật lên
+ '4.7': {TANGO: ['cuoi_lan@0.75-1'], LINT: ['toc_dung@0.4-0.6', 'cuoi_lan@0.75-1']},   # #18 nhận kẹo, sợi chỉ sáng, hai đứa cười
+ '5.2': {WIPE: ['run@0.2-0.45']},                                                 # #20 rùng mình
+ '5.3': {TANGO: ['toc_dung@0.4-0.8'], LINT: ['mat_to@0.3']},                      # #21 tóc từ từ dựng lên
+ '5.4': {LINT: ['run@0.3-1']},                                                    # #22 Lint sợ sau lưng Tango
+ '5.5': {WIPE: ['xoay_tit@0-1'], LINT: ['toc_dung@0.1-0.4', 'run@0.2-1']},       # #23 xoay tít, lông Lint dựng
+ '5.6': {TANGO: ['nhay@0-0.4']},                                                  # #24 nhảy lao vào Mr. Wipe
+ '5.7': {TANGO: ['mat_to@0.2', 'toc_bat@0.6']},                                   # #25 sợi tóc bật BOING
+ '6.3': {WIPE: ['run@0.6-1']},                                                    # #28 vướng vào đám dây
+ '7.1a': {TANGO: ['mat_to@0.3']},                                                 # #30 khựng lại, mắt đảo theo tiếng
+ '7.2': {TANGO: ['run@0.45-0.6', 'nhun_vai@0.6-0.9']},                            # #32 bị giật, vẩy tay
+ '7.2a': {TANGO: ['nheo_mat@0.6-0.85', 'nhun_vai@0.75-1']},                       # #33 cười ranh mãnh, xoa tay
+ '7.3': {LINT: ['cuoi_lan@0.6-1']},                                               # #34 Lint ôm bụng cười
+ '7.4': {WIPE: ['run@0.6-0.9']},                                                  # #35 rùng mình ghê sợ
+ '7.5': {WIPE: ['run@0.7-1']},                                                    # #37 BZZT
+ '7.6': {TANGO: ['cuoi_lan@0.3-1'], LINT: ['cuoi_lan@0.3-1']},                    # #38 cười lăn
+ '7.6a': {WIPE: ['run@0-1'], TANGO: ['nhay@0.7-0.9'], LINT: ['nhay@0.7-0.9']},    # #39 lảo đảo bay lủi · đập tay
+ '7.6b': {TANGO: ['nhay@0.35-0.65'], LINT: ['nhay@0.3-0.6']},                     # #40 nhảy mừng
+ '7.7a': {TANGO: ['mat_to@0.1', 'toc_ru@0.3-0.6'], LINT: ['mat_to@0.1']},         # #42 sững sờ, tóc rũ
+ '7.7b': {TANGO: ['nheo_mat@0.5-0.8']},                                           # #43 nhíu mắt nhìn mẩu giấy
+ '8.1': {TANGO: ['nhun_vai@0.1-0.5'], LINT: ['nhay@0.5-0.7']},                    # #45 nhún vai tiếc kẹo, vỗ vai
+}
+for ma, ds in VT.items():
+    for x in ds:
+        if ma in DIEN and x['ten'] in DIEN[ma]: x['dien'] = DIEN[ma][x['ten']]
+        else: x.pop('dien', None)
 for ma, ds in VT.items():
     m = S['may'][ma]; m['vi_tri'] = ds
     if ma in NHAY: m['nhay'] = NHAY[ma]
     else: m.pop('nhay', None)
 # Máy giữ nguyên tay (dat): nhìn theo chỗ mới của chủ thể.
 S['may']['2.3'].update(dat=[33.1, 23.1, 1.2], nhin=[30.8, 27.3, 0.9], ong_kinh=35)   # #9 CẬN mặt Tango đập xuống gỗ (two → cu = 2 bậc so với #8), 4,5 cm   # 8 cm, Tango ~1/3 khung (cỡ trung)
+S['may']['4.3']['nham'] = LINT   # #14 crash zoom vào Lint đang phồng (không vào Tango — chủ thể đầu)
 S['may']['4.2']['phia'] = 1   # #13: giải lại để nhận tiêu cự 35 của bộ ống mới (cảnh 4 = 24 / 35 / 60); máy đổi không đáng kể
 S['may']['4.3'].pop('phia', None); S['may']['4.3'].update(dat=[-2.2, 63.1, 1.0], nhin=[5.5, 71.5, 1.0], ong_kinh=24, khung=[TANGO, LINT])   # #14 ĐẶT TAY: bộ giải cứ kéo máy về gần #13 (lệch 25°) — sau-trái 40° quanh Tango, cùng phía trục, Lint phải màn   # #14: xoay 35° so với #13 (luật 30°)   # #9: xoay 35° quanh Tango so với #8 (luật 30°), nhìn 125° (máy chủ cảnh 92°)
 # 5.7 cận vũng đất sét: cáp trượt dốc qua ngay trước mặt Tango — máy tự động đứng từ trước-trái.
@@ -356,5 +392,8 @@ KHOP_CO = {
 }
 for ma, m in KHOP_CO.items():
     S['may'][ma].pop('phia', None); S['may'][ma].update(m)
+# #28 đặt LẦN CUỐI (16/10/2026, phim Blender — máy chạy tracking): trước-trái iMac, thấy xe trượt từ rừng cáp tới thẻ cam; máy cũ (SUA) đứng sau
+# iMac → chân iMac che chủ thể suốt nửa sau clip (duong-may.ts gắn cờ 'che').
+S['may']['6.3'].pop('phia', None); S['may']['6.3'].update(dat=[5, 40, 3], nhin=[12, 64, 2])
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

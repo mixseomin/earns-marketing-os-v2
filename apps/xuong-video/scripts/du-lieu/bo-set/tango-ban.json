@@ -1874,7 +1874,11 @@
           ],
           "huong": 78,
           "huong_den": 83,
-          "an": true
+          "an": true,
+          "dien": [
+            "mat_to@0.2",
+            "toc_bat@0.3"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -1914,7 +1918,10 @@
             26.6,
             0.6
           ],
-          "huong": 83
+          "huong": 83,
+          "dien": [
+            "nhay@0.15-0.6"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -1960,7 +1967,10 @@
           ],
           "huong": 93,
           "huong_den": -127,
-          "nam": true
+          "nam": true,
+          "dien": [
+            "mat_to@0.5"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -2236,7 +2246,10 @@
             72,
             0
           ],
-          "huong": -90
+          "huong": -90,
+          "dien": [
+            "run@0.6-0.75"
+          ]
         }
       ],
       "khung": [
@@ -2270,7 +2283,10 @@
             0
           ],
           "huong": 107,
-          "nam": true
+          "nam": true,
+          "dien": [
+            "mat_to@0.08"
+          ]
         },
         {
           "ten": "Lint",
@@ -2279,7 +2295,13 @@
             72,
             0
           ],
-          "huong": -73
+          "huong": -73,
+          "dien": [
+            "phong3@0.05-0.3",
+            "toc_dung@0.05-0.25",
+            "mat_to@0.05",
+            "run@0.55-1"
+          ]
         },
         {
           "ten": "Cotton Ball",
@@ -2304,7 +2326,8 @@
         70.8,
         0.4
       ],
-      "ong_kinh": 24
+      "ong_kinh": 24,
+      "nham": "Lint"
     },
     "4.5": {
       "vi_tri": [
@@ -2315,7 +2338,12 @@
             72,
             0
           ],
-          "huong": -90
+          "huong": -90,
+          "dien": [
+            "phong3@0-0.001",
+            "phong0.34@0.02-0.35",
+            "mat_to@0.55"
+          ]
         },
         {
           "ten": "Cotton Ball",
@@ -2348,7 +2376,11 @@
             70.5,
             0
           ],
-          "huong": 107
+          "huong": 107,
+          "dien": [
+            "toc_ru@0.3-0.55",
+            "toc_bat@0.75"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -2430,7 +2462,10 @@
             70.5,
             0
           ],
-          "huong": 75
+          "huong": 75,
+          "dien": [
+            "cuoi_lan@0.75-1"
+          ]
         },
         {
           "ten": "Lint",
@@ -2444,7 +2479,11 @@
             71.6,
             0
           ],
-          "huong": -45
+          "huong": -45,
+          "dien": [
+            "toc_dung@0.4-0.6",
+            "cuoi_lan@0.75-1"
+          ]
         },
         {
           "ten": "Cotton Ball",
@@ -2559,7 +2598,10 @@
             78,
             9
           ],
-          "huong": -55
+          "huong": -55,
+          "dien": [
+            "run@0.2-0.45"
+          ]
         },
         {
           "ten": "Lint",
@@ -2605,7 +2647,10 @@
             0
           ],
           "huong": 105,
-          "huong_den": 124
+          "huong_den": 124,
+          "dien": [
+            "toc_dung@0.4-0.8"
+          ]
         },
         {
           "ten": "Lint",
@@ -2615,7 +2660,10 @@
             0
           ],
           "huong": -75,
-          "huong_den": 132
+          "huong_den": 132,
+          "dien": [
+            "mat_to@0.3"
+          ]
         },
         {
           "ten": "Blue Spray Bottle",
@@ -2679,7 +2727,10 @@
             71.6,
             0
           ],
-          "huong": 157
+          "huong": 157,
+          "dien": [
+            "run@0.3-1"
+          ]
         },
         {
           "ten": "Mr. Wipe",
@@ -2746,7 +2797,11 @@
             72.5,
             4.5
           ],
-          "huong": 153
+          "huong": 153,
+          "dien": [
+            "toc_dung@0.1-0.4",
+            "run@0.2-1"
+          ]
         },
         {
           "ten": "Tango",
@@ -2774,7 +2829,10 @@
             74.5,
             6
           ],
-          "huong": -27
+          "huong": -27,
+          "dien": [
+            "xoay_tit@0-1"
+          ]
         },
         {
           "ten": "Cotton Ball",
@@ -2837,7 +2895,10 @@
           ],
           "huong": 125,
           "huong_den": -48,
-          "nam_den": true
+          "nam_den": true,
+          "dien": [
+            "nhay@0-0.4"
+          ]
         },
         {
           "ten": "Blue Spray Bottle",
@@ -2896,7 +2957,11 @@
           ],
           "huong": -48,
           "nam": true,
-          "huong_den": 143
+          "huong_den": 143,
+          "dien": [
+            "mat_to@0.2",
+            "toc_bat@0.6"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -3113,7 +3178,10 @@
             3
           ],
           "huong": -29,
-          "huong_den": 0
+          "huong_den": 0,
+          "dien": [
+            "run@0.6-1"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -3152,14 +3220,14 @@
         "Lint"
       ],
       "dat": [
-        22.1,
-        55.5,
-        0.5
+        5,
+        40,
+        3
       ],
       "nhin": [
-        12.5,
-        66.5,
-        2.5
+        12,
+        64,
+        2
       ],
       "ong_kinh": 24
     },
@@ -3252,7 +3320,11 @@
           ],
           "huong": -133,
           "huong_den": 53,
-          "lam": "Cable Plug"
+          "lam": "Cable Plug",
+          "dien": [
+            "run@0.45-0.6",
+            "nhun_vai@0.6-0.9"
+          ]
         },
         {
           "ten": "Lint",
@@ -3290,7 +3362,11 @@
             0.3
           ],
           "huong": 53,
-          "huong_den": -177
+          "huong_den": -177,
+          "dien": [
+            "nheo_mat@0.6-0.85",
+            "nhun_vai@0.75-1"
+          ]
         },
         {
           "ten": "Lint",
@@ -3349,7 +3425,10 @@
             0.3
           ],
           "huong": -49,
-          "huong_den": -119
+          "huong_den": -119,
+          "dien": [
+            "cuoi_lan@0.6-1"
+          ]
         }
       ],
       "khung": [
@@ -3384,7 +3463,10 @@
           ],
           "huong": -18,
           "huong_den": -43,
-          "nhay": "gỡ khỏi rừng cáp, bay tới đế cắm ngoài khung"
+          "nhay": "gỡ khỏi rừng cáp, bay tới đế cắm ngoài khung",
+          "dien": [
+            "run@0.6-0.9"
+          ]
         },
         {
           "ten": "Tango",
@@ -3443,7 +3525,10 @@
             54.3,
             0.8
           ],
-          "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp"
+          "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp",
+          "dien": [
+            "run@0.7-1"
+          ]
         }
       ],
       "khung": [
@@ -3472,7 +3557,10 @@
             0
           ],
           "huong": 140,
-          "huong_den": 125
+          "huong_den": 125,
+          "dien": [
+            "cuoi_lan@0.3-1"
+          ]
         },
         {
           "ten": "Lint",
@@ -3482,7 +3570,10 @@
             0
           ],
           "huong": 123,
-          "huong_den": 45
+          "huong_den": 45,
+          "dien": [
+            "cuoi_lan@0.3-1"
+          ]
         },
         {
           "ten": "Mr. Wipe",
@@ -3589,7 +3680,11 @@
             0
           ],
           "huong": 125,
-          "huong_den": 86
+          "huong_den": 86,
+          "dien": [
+            "mat_to@0.1",
+            "toc_ru@0.3-0.6"
+          ]
         },
         {
           "ten": "Lint",
@@ -3599,7 +3694,10 @@
             0
           ],
           "huong": 45,
-          "huong_den": 74
+          "huong_den": 74,
+          "dien": [
+            "mat_to@0.1"
+          ]
         }
       ],
       "khung": [
@@ -3665,7 +3763,10 @@
             3,
             0
           ],
-          "huong": 3
+          "huong": 3,
+          "dien": [
+            "nhun_vai@0.1-0.5"
+          ]
         },
         {
           "ten": "Lint",
@@ -3674,7 +3775,10 @@
             3,
             0
           ],
-          "huong": -3
+          "huong": -3,
+          "dien": [
+            "nhay@0.5-0.7"
+          ]
         }
       ],
       "phia": 0,
@@ -3693,7 +3797,10 @@
             0.3
           ],
           "huong": 71,
-          "huong_den": -133
+          "huong_den": -133,
+          "dien": [
+            "mat_to@0.3"
+          ]
         },
         {
           "ten": "Lint",
@@ -3768,7 +3875,10 @@
             0
           ],
           "huong": 125,
-          "huong_den": 60
+          "huong_den": 60,
+          "dien": [
+            "nhay@0.7-0.9"
+          ]
         },
         {
           "ten": "Lint",
@@ -3778,7 +3888,10 @@
             0
           ],
           "huong": 45,
-          "huong_den": 60
+          "huong_den": 60,
+          "dien": [
+            "nhay@0.7-0.9"
+          ]
         },
         {
           "ten": "Mr. Wipe",
@@ -3795,7 +3908,10 @@
           "huong": -30,
           "huong_den": -108,
           "trang": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp",
-          "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp, trailing a wisp of smoke"
+          "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp, trailing a wisp of smoke",
+          "dien": [
+            "run@0-1"
+          ]
         }
       ],
       "dat": [
@@ -3825,7 +3941,10 @@
             0
           ],
           "huong": 86,
-          "huong_den": 125
+          "huong_den": 125,
+          "dien": [
+            "nhay@0.35-0.65"
+          ]
         },
         {
           "ten": "Lint",
@@ -3835,7 +3954,10 @@
             0
           ],
           "huong": 60,
-          "huong_den": 45
+          "huong_den": 45,
+          "dien": [
+            "nhay@0.3-0.6"
+          ]
         }
       ],
       "dat": [
@@ -3869,6 +3991,9 @@
             53,
             50.5,
             0.3
+          ],
+          "dien": [
+            "nheo_mat@0.5-0.8"
           ]
         },
         {

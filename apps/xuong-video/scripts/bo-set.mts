@@ -48,13 +48,15 @@ if (gia('nap')) {
       const kt = (r[0].ky_thuat ?? {}) as Record<string, string>;
       // Khoá gồm TOÀN BỘ khai của shot (dm: chỗ đứng, phía, khung, nhảy, qua_truc, them, den_ban…) — trước đây chỉ vài trường nên khai qua_truc / them
       // không vào DB khi chỗ đứng giữ nguyên (5.2 / 7.5 tập 19).
-      const vao = JSON.stringify([BAN_MAY, dm, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
+      // dien (động tác diễn) không ảnh hưởng chỗ đặt máy → ngoài khoá, thêm / sửa động tác không làm tính lại máy.
+      const viTriMay = dm.vi_tri.map(({ dien: _d, ...v }) => v); const dmMay = { ...dm, vi_tri: viTriMay };
+      const vao = JSON.stringify([BAN_MAY, dmMay, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
       // Đầu vào không đổi → giữ máy cũ (có thể đã được bộ giải trong Blender dời) — khỏi dựng + giải lại mỗi lần nạp.
       const cu = r[0].may_3d as (May3d & { tu_dong?: { vao?: string } }) | null;
       if (cu?.tu_dong?.vao === vao) { may++; continue; }
       // Khoá ĐỜI CŨ (chỉ chỗ đứng / phía / khung / nhảy + cỡ cảnh) còn khớp → máy vẫn đúng: GIỮ máy đã giải, chỉ chép các khai mới (qua_truc, them,
       // den_ban…) và đổi sang khoá mới — không tính lại máy (tính lại = góc lệch khỏi keyframe đã sinh).
-      const vaoCu = JSON.stringify([BAN_MAY, dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
+      const vaoCu = JSON.stringify([BAN_MAY, viTriMay, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
       if (cu?.tu_dong?.vao === vaoCu) {
         const { phia: _p, ...khai } = dm as DatMay & Record<string, unknown>;
         const moi = { ...cu, ...khai, dat: cu.dat, nhin: cu.nhin, ong_kinh: cu.ong_kinh, tu_dong: { ...cu.tu_dong, vao } };

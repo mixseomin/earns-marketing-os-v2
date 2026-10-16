@@ -675,12 +675,13 @@ if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ �
 DONG_TAC = {
     'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
-    'nga_ngoi': 'ngã ngồi ra sau', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai',
+    'nga_ngoi': 'ngã ngồi ra sau', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',
 }
 def doc_dong_tac(ds):
     out = []
     for x in ds:
-        ten, _, mt = x.partition('@'); so = ''.join(c for c in ten if c.isdigit()); ten = ten.rstrip('0123456789')
+        import re
+        ten, _, mt = x.partition('@'); kq = re.match(r'^([a-z_]+?)(\d+(?:\.\d+)?)?$', ten); ten, so = (kq.group(1), kq.group(2) or '') if kq else (ten, '')
         if ten not in DONG_TAC: print('CANH BAO dong tac la', x); continue
         if mt: a_, _, b_ = mt.partition('-'); a_ = float(a_); b_ = float(b_) if b_ else min(1.0, a_ + 0.15)
         else: a_, b_ = 0.0, 1.0
@@ -691,7 +692,7 @@ def dong_tac_luc(hd, t, r):
     """Giá trị các kênh diễn lúc t (0..1) từ danh sách động tác đã đọc."""
     em_ = lambda u: u * u * (3 - 2 * u)
     nay = lambda u: em_(u) + 0.12 * math.sin(math.pi * u) * (1 - u)   # tới đích có nảy nhẹ
-    v = {'phong': 1.0, 'nhay': 0.0, 'lun': 0.0, 'nga': 0.0, 'lan': 0.0, 'run': 0.0, 'bep': 0.0, 'mat': 1.0, 'nheo': 1.0, 'toc_goc': 0.0, 'toc_lac': 0.0, 'toc_dai': 1.0, 'vai': 0.0}
+    v = {'phong': 1.0, 'nhay': 0.0, 'lun': 0.0, 'nga': 0.0, 'lan': 0.0, 'run': 0.0, 'bep': 0.0, 'mat': 1.0, 'nheo': 1.0, 'toc_goc': 0.0, 'toc_lac': 0.0, 'toc_dai': 1.0, 'vai': 0.0, 'xoay': 0.0}
     for ten, a, b, so in hd:
         c = min(1.0, max(0.0, (t - a) / (b - a))); dang = a <= t <= b
         if ten == 'phong': v['phong'] *= 1 + ((so or 3) - 1) * nay(c)
@@ -705,6 +706,7 @@ def dong_tac_luc(hd, t, r):
         elif ten == 'nheo_mat': v['nheo'] *= 1 - 0.45 * em_(c)
         elif ten == 'toc_ru': v['toc_goc'] += 75 * nay(c); v['toc_dai'] *= 1 - 0.15 * em_(c)
         elif ten == 'toc_bat': g = math.exp(-4 * c) * (c > 0); v['toc_lac'] += 22 * g * math.sin(6 * math.pi * c); v['toc_dai'] *= 1 + 0.45 * g * abs(math.sin(6 * math.pi * c))
+        elif ten == 'xoay_tit': v['xoay'] += 360 * (so or 2) * em_(c)
         elif ten == 'toc_dung': v['toc_dai'] *= 1 + 0.25 * em_(c); v['toc_goc'] -= 10 * em_(c)
     return v
 
@@ -800,7 +802,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             p += Vector((0, 0, dt['nhay'] - dt['lun'])) + Vector([r.uniform(-1, 1) * dt['run'] for _ in range(3)])
             hh = math.radians(h0 + dh * k); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
             nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di else 0.0) - math.radians(dt['nga'])   # đi: chúi tới · ngã ngồi: ngả ra sau
-            R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * k) + q[2]) @ Quaternion((1, 0, 0), q[0]))
+            R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * k + dt['xoay']) + q[2]) @ Quaternion((1, 0, 0), q[0]))
             e.rotation_mode = 'QUATERNION'; e.location = p * CM; e.rotation_quaternion = R
             cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 else 0.0   # 1 = chân vừa chạm đất
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']

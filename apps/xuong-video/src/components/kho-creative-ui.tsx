@@ -126,7 +126,9 @@ function BangCreative({ d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim,
       const phu = c.goc.filter((x) => x !== chinh);
       return <>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : 'chưa gắn'}{phu.length > 0 && <span style={{ marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</>;
     } },
-    { key: 'khuon', header: 'Khuôn', width: 150, align: 'left', sortValue: tenKhuon, cell: (c) => <Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id}` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill> },
+    // Bấm khuôn = mở ĐÚNG template đó (góp ý #1400) — onCellClick chặn lan lên hàng, không mở phim creative chồng lên
+    { key: 'khuon', header: 'Khuôn', width: 150, align: 'left', sortValue: tenKhuon, onCellClick: (c) => { if (c.tpl) onMoPhim(c.tpl.id); },
+      cell: (c) => <Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id} · bấm để mở template` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill> },
     { key: 'hook', header: 'Hook', align: 'left', sortValue: (c) => c.hook, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.hook || '—'}</span>, cellTitle: (c) => c.hook },
     { key: 'cta', header: 'CTA', width: '12%', align: 'left', sortValue: (c) => c.cta, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cta || '—'}</span>, cellTitle: (c) => c.cta },
     { key: 'nn', header: 'NN', title: 'Ngôn ngữ của lời / chữ màn (kinh thánh)', width: 46, align: 'center', sortValue: (c) => c.ngon_ngu, cell: (c) => <Pill color="var(--cyan)">{c.ngon_ngu.toUpperCase()}</Pill> },
@@ -169,7 +171,9 @@ function BanDo({ d, goc, lo, spKey, onLo, onMoPhim, onMoGoc }: { d: KhoSanPham; 
   const cot = COT_DONG.filter((c) => c.key !== 'ngoai' || d.creative.some((x) => dongCua(x) === 'ngoai'));
   return (
     <div style={{ display: 'grid', gap: 10 }}>
+      {/* ma trận bung NGAY DƯỚI hàng loại góc vừa bấm (góp ý #1401 — trước đây vẽ dưới cả bảng, xa chỗ bấm) */}
       <DataTable rows={LOAI_GOC_SPY} getRowKey={(l) => l.key} onRowClick={(l) => setMo(mo === l.key ? null : l.key)} minWidth={560}
+        renderExpanded={(l) => (mo === l.key ? maTran(l.key) : null)}
         rowStyle={(l) => (mo === l.key ? { background: 'color-mix(in srgb, var(--cyan) 8%, transparent)' } : undefined)}
         columns={[
           { key: 'loai', header: 'Loại góc', align: 'left', cell: (l) => <b>{mo === l.key ? '▾' : '▸'} {l.ic} {l.ten}</b>, cellTitle: (l) => `${goc.filter((g) => g.loai === l.key).length} góc trên spy · bấm để mở ma trận góc × khuôn` },
@@ -177,7 +181,9 @@ function BanDo({ d, goc, lo, spKey, onLo, onMoPhim, onMoGoc }: { d: KhoSanPham; 
             cell: (l) => { const ids = bd[l.key]?.[c.key] ?? []; return <b style={{ color: ids.length ? 'var(--fg-1)' : 'var(--fg-4)' }}>{ids.length}</b>; },
             cellTitle: (l) => { const ids = bd[l.key]?.[c.key] ?? []; return ids.length ? ids.map((x) => `#${x}`).join(' ') + ' (một creative gắn nhiều góc nên có thể ở nhiều hàng)' : 'chưa có creative'; } })),
         ]} />
-      {mo && (() => {
+    </div>
+  );
+  function maTran(mo: string) {
         // Góc ĐÃ có creative lên đầu (không thì góc dùng nhiều nhất có thể rơi khỏi 12 dòng đầu), rồi theo lượt nhắc.
         const coCr = (id: number) => d.creative.some((c) => c.goc.some((x) => x.id === id));
         const ds = goc.filter((g) => g.loai === mo).sort((a, b) => Number(coCr(b.id)) - Number(coCr(a.id)) || b.so_nhac - a.so_nhac);
@@ -202,9 +208,7 @@ function BanDo({ d, goc, lo, spKey, onLo, onMoPhim, onMoGoc }: { d: KhoSanPham; 
             {ds.length > 12 && <button type="button" className="xv-lienket xv-mono" style={{ margin: 8 }} onClick={() => setHet(!het)} title={`${ds.length} góc`}>{het ? '▴ chỉ góc nhiều lượt nhắc' : '▾ hiện hết góc'}</button>}
           </div>
         );
-      })()}
-    </div>
-  );
+  }
 }
 
 function CayGoc({ d, goc, cum, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { so_nhac: number })[]; cum: { cum: CumGoc[]; nguon: string } | null; onMoPhim: (id: number) => void; onMoGoc: (id: number) => void }) {

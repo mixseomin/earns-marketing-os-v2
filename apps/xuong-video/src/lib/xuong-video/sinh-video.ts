@@ -14,7 +14,7 @@ import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { tronModelCanh } from './sinh-anh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
-import { soiClipCanh } from './soi-clip';
+import { soiClipCanh, khungDauThieuSp } from './soi-clip';
 import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
@@ -106,6 +106,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const qt = chanVideo(bc.canh, bc.nhanVat, tapR?.loai === 'quang_cao', { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap });
   // Một cảnh một model ảnh (sinh-anh.ts › tronModelCanh): keyframe lệch model của cảnh thì không tiêu tiền video lên nó.
   { const tm = await tronModelCanh(db, bc.canh); if (tm) qt.push(tm); }
+  // QC: keyframe gắn sản phẩm mà không thấy màu sản phẩm (soi-clip.ts) — mặc sai quần thì clip nào cũng sai, không tiêu tiền lên nó.
+  if (tapR?.loai === 'quang_cao') { const sp = await khungDauThieuSp(db, bc.canh).catch((e) => { console.error(`đo màu sản phẩm keyframe shot ${canhId}:`, e); return null; }); if (sp) qt.push(sp); }
   if ((!thu && qt.length) || !bc.canh.keyframe_url) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ') || 'chưa có keyframe'}`);
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);

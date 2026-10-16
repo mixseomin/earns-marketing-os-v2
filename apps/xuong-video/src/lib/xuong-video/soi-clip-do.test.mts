@@ -16,7 +16,9 @@ assert.strictEqual(mauSanPham([anh([XAM, TRANG], [500, 500])]), null);
 const tl = [anh([XANH, XAM], [30, 70]), anh([XANH, XAM], [28, 72]), anh([XANH, XAM], [4, 96])].map((x) => tiLeMau(x, h));
 assert.strictEqual(giayMatSanPham(tl, [0.1, 2, 4]), 4);
 assert.strictEqual(giayMatSanPham([0.3, 0.29, 0.25], [0.1, 2, 4]), null, 'quần còn nguyên → đạt');
-assert.strictEqual(giayMatSanPham([0.02, 0, 0], [0.1, 2, 4]), 'khong_do', 'khung đầu gần như không có màu sp → không kết luận');
+assert.strictEqual(giayMatSanPham([0.02, 0, 0], [0.1, 2, 4]), 'khong_do', 'sp nhỏ trong khung (toàn cảnh) → không kết luận mất');
+// Đúng ca #54 shot 4: gắn quần cobalt mà khung mặc jeans xanh đậm (0,6%) → vắng / sai màu.
+assert.strictEqual(giayMatSanPham([0.006, 0, 0.001], [0.1, 2, 4]), 'vang');
 // Đúng ca #54 shot 9: áo polo navy cùng sắc độ với quần cobalt — máy đẩy vào ngực, khung đầy áo navy, quần còn ít → vẫn phải thấy mất quần.
 const NAVY: [number, number, number] = [20, 30, 70];
 const tl9 = [anh([XANH, NAVY, XAM], [30, 20, 50]), anh([XANH, NAVY, XAM], [3, 60, 37])].map((x) => tiLeMau(x, h));

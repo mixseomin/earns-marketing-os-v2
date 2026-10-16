@@ -37,9 +37,14 @@ export function tiLeMau(px: Uint8Array, m: MauSp): number {
   }
   return tong ? n / tong : 0;
 }
-/** Sản phẩm mất khỏi khung: khung k còn < 35% lượng màu của khung đầu. Trả giây đầu tiên mất, hoặc null. Khung đầu < 3% = không đo được. */
-export function giayMatSanPham(tiLe: number[], giay: number[]): number | null | 'khong_do' {
+/** Khung (ảnh) gắn sản phẩm mà gần như không có màu sản phẩm (< 1%) = sản phẩm vắng hoặc sai màu (#54 shot 4: mặc quần jeans xanh đậm thay
+ *  quần xanh cobalt, đo ra 0,6%). Ngưỡng thấp để shot toàn cảnh (quần nhỏ trong gương, #7 ≈ 2%) không bị báo nhầm. */
+export const VANG_SP = 0.01;
+/** Sản phẩm mất khỏi khung: khung k còn < 35% lượng màu của khung đầu. Trả giây đầu tiên mất, null = còn, 'vang' = khung đầu đã không có
+ *  sản phẩm (< VANG_SP), 'khong_do' = khung đầu quá ít màu sản phẩm (< 3%) để kết luận mất. */
+export function giayMatSanPham(tiLe: number[], giay: number[]): number | null | 'khong_do' | 'vang' {
   const dau = tiLe[0] ?? 0;
+  if (dau < VANG_SP) return 'vang';
   if (dau < 0.03) return 'khong_do';
   const i = tiLe.findIndex((x, k) => k > 0 && x < dau * 0.35);
   return i < 0 ? null : giay[i]!;

@@ -751,9 +751,17 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     # MÁY CHẠY (duong-may.ts › duongMay, số nghề may_di): mở → kết theo tốc độ (nhanh = xong trong 30 % đầu như crash zoom), ống kính đổi theo
     # (zoom), nét tính lại từng khung theo chỗ máy. Cầm tay: lắc chậm + run từng khung (người cầm máy thở), biên độ theo khoảng cách máy.
     chay = sh['may'].get('chay')
+    if chay and chay.get('che'): print('CANH BAO duong nhin bi che boi', chay['che'], '— dat lai may shot', sh.get('so'))
     if chay:
         d0, n0, l0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']), sh['may']['ong_kinh']
         d1, n1, l1 = Vector(chay['dat']), Vector(chay['nhin']), chay['ong_kinh']
+        bpy.context.view_layer.update()   # ma trận đồ vật mới trước khi đo hộp bao (không thì hộp nằm ở gốc, lưới không bắt được gì)
+        vat_dung = []   # hộp bao (cm) của đồ vật nhô lên khỏi mặt bàn (bỏ nhân vật / mặt phẳng)
+        for o in bpy.data.objects:
+            if o.type != 'MESH' or o.hide_render or o.name.startswith(('NV ', 'L~')): continue
+            bb = [o.matrix_world @ Vector(c) / CM for c in o.bound_box]
+            mn = Vector([min(v[i] for v in bb) for i in range(3)]); mx_ = Vector([max(v[i] for v in bb) for i in range(3)])
+            if mx_.z > 0.6 and (mx_ - mn).length < 200: vat_dung.append((o.name, mn, mx_))
         kc = (d0 - n0).length; rr = random.Random(4242); pha = [rr.uniform(0, 6.283) for _ in range(6)]
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1); k = em(min(1.0, t / 0.3) if chay.get('toc') == 'nhanh' else t)
@@ -764,6 +772,9 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 npt = npt + Vector([0.02 * kc * math.sin(2 * math.pi * (0.4 + 0.15 * i) * gi + pha[3 + i]) for i in range(3)])
             cam.location = dp * CM; cam.rotation_euler = (npt * CM - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = l0 + (l1 - l0) * k
             cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f); cam.data.keyframe_insert('lens', frame=f)
+            for o in vat_dung:   # lưới an toàn: máy chui vào đồ vật trên set → báo (dữ liệu / đường máy phải sửa, không render lặng im)
+                mn, mx_ = o[1], o[2]
+                if all(mn[i] < dp[i] < mx_[i] for i in range(3)): print('CANH BAO may xuyen', o[0], 'khung', f); break
             lay_net(cam, sh, dp * CM); cam.data.dof.keyframe_insert('focus_distance', frame=f); cam.data.dof.keyframe_insert('aperture_fstop', frame=f)
     if boil:   # lông boil: độ rối sợi đổi nhẹ mỗi khung (như lông thật bị tay chạm giữa hai lần chụp)
         for st in {ps.settings for o in objs for ps in getattr(o, 'particle_systems', [])}:

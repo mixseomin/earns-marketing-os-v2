@@ -1,6 +1,6 @@
 // Tự kiểm đường máy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/duong-may.test.mts
 import assert from 'node:assert';
-import { duongMay } from './duong-may';
+import { duongMay, hopVat } from './duong-may';
 const m = { dat: [0, -20, 5], nhin: [0, 0, 2], ong_kinh: 40, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [6, 0, 0] }] };
 const kc = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!);
 assert.equal(duongMay(m, null), null);
@@ -21,4 +21,17 @@ const ng = duongMay(m, 'nghieng_len')!; assert.ok(ng.nhin[2]! > m.nhin[2]!, 'ngh
 const m2 = { ...m, vi_tri: [...m.vi_tri, { ten: 'Lint', tam: [5, 3, 0] }], nham: 'Lint' };
 const zl = duongMay(m2, 'zoom_gat')!; assert.deepEqual(zl.nhin.slice(0, 2), [5, 3], 'zoom nhắm đích danh Lint');
 const doc = duongMay({ ...m, dat: [0, -20, 0.5], vi_tri: [{ ten: 'Tango', tam: [0, 0, 2.3], den: [6, 0, 0.3] }] }, 'truot_ngang')!; assert.ok(doc.dat[2]! >= 0.3, 'không chui dưới mặt bàn');
+const xa = duongMay({ ...m, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [48, -18, 0] }] }, 'truot_ngang')!; assert.ok(Math.abs(xa.dat[0]! - 48 * 0.35) < 0.05 && xa.nhin[0] === 48 && xa.nhin[1] === -18, 'đi xa: dolly 35 %, đầu máy lia tới đúng chỗ kết');
+// vật cản giữa đường dolly: máy thu ngắn quãng, không chui vào vật; không có vật cản thì đi đủ
+const can = hopVat([{ ten: 'iMac', hinh: 'hop', tam: [10, -18, 0], co: [6, 4, 20], mau: '#ff0' }]);
+const tc2 = duongMay({ ...m, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [20, 0, 0] }] }, 'truot_ngang', can)!;
+assert.ok(tc2.dat[0]! < 7, 'dừng trước vật cản'); assert.equal(tc2.nhin[0], 20, 'đầu máy vẫn bám chủ thể');
+assert.equal(duongMay({ ...m, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [20, 0, 0] }] }, 'truot_ngang')!.dat[0], 20);
+assert.equal(hopVat([{ ten: 'Bàn', hinh: 'hop', tam: [0, 0, -3], co: [100, 100, 3], mau: '#000', nen: true }]).length, 0, 'mặt nền không tính');
+// vật che đường nhìn lúc kết: cẩu máy lên tới khi thấy chủ thể
+const che = hopVat([{ ten: 'iMac', hinh: 'hop', tam: [10, -9, 0], co: [30, 2, 3], mau: '#ff0' }]);
+const ln = duongMay({ ...m, dat: [0, -20, 1], vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [20, 0, 0] }] }, 'truot_ngang', che)!;
+assert.ok(ln.dat[2]! > 1, 'bị che → máy cao lên');
+const tuong = hopVat([{ ten: 'Tường', hinh: 'hop', tam: [10, -9, 0], co: [60, 2, 80], mau: '#fff' }]);
+assert.equal(duongMay({ ...m, dat: [0, -20, 1], vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [20, 0, 0] }] }, 'truot_ngang', tuong)!.che, 'Tường', 'che hẳn → gắn cờ');
 console.log('duong-may: mọi bài tự kiểm qua');

@@ -839,7 +839,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 p_truoc = p.copy(); huong_di = (b - a).xy.normalized() if (b - a).xy.length > 1e-6 else Vector((1, 0))
                 truc_lan = Vector((-huong_di.y, huong_di.x, 0))
                 C = Vector((0, 0, rb * CM))
-                Mt = (Matrix.Translation(p * CM + C) @ Matrix.Rotation(quang / rb, 4, truc_lan) @ Matrix.Translation(-C)
+                Mt = (Matrix.Translation(p * CM + C) @ Matrix.Rotation(quang / rb * kb, 4, truc_lan) @ Matrix.Translation(-C)
                       @ Matrix.Translation(Vector((0, 0, -(tam_than - rb) * kb * CM))) @ R.to_matrix().to_4x4() @ Pm)
                 if than is not None:
                     g_ = Vector(than['goc_sc']); f_ = Vector((2 * rb / w_, 2 * rb / d_, 2 * rb / h_))

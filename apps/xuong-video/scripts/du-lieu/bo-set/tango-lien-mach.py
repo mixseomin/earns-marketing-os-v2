@@ -414,6 +414,6 @@ for ma, m in KHOP_CO.items():
 S['may']['6.3'].pop('phia', None); S['may']['6.3'].update(dat=[5, 40, 3], nhin=[12, 64, 2])
 # #12 CẨU MỞ CẢNH (anh 16/10/2026: "sao cái này bé thế" — máy 17 cm, Tango ~10 % khung, bung ra đúng lúc máy cao nhất): kiểu nghề "bắt đầu sát,
 # cẩu lên mở không gian" — máy sát mặt bàn cách Tango ~7 cm (Tango ~25 % khung), bóng bung ra trong 40 % đầu, rồi cẩu lên khoe rừng cáp.
-S['may']['4.1'].pop('phia', None); S['may']['4.1'].update(dat=[-1, 63.5, 0.6], nhin=[-1, 70, 1.0], ong_kinh=24)
+S['may']['4.1'].pop('phia', None); S['may']['4.1'].update(dat=[0.5, 63, 0.8], nhin=[-2.5, 69.5, 1.0], ong_kinh=24)   # nhìn giữa đường lăn: bóng vào khung từ khung đầu (ống 24 khung dọc ±23°)
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

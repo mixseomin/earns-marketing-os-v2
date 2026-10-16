@@ -7,13 +7,13 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
-import type { StBan, StGoc, StKenh, StTrang, StTrangThaiKenh } from './social-traffic-demo';
+import type { StBan, StGoc, StKenh, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[] }
+export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[] }
 
 type SpNhom = { id: number; ten: string; ai: number };
 type SpGoc = { id: number; ten: string; loai: string; cach_tim: string; so_qc: number | null; suc?: { diem: number }; bc?: { nguoi: number } | null; bat_ngo?: boolean; dang_len?: boolean };
@@ -41,7 +41,7 @@ export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [];
   let nhom: SpNhom[];
   try { nhom = await docDanhSach(); }
-  catch (e) { return { luc, goc: [], nhom: 0, loi: [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`], ...(await docKenhThat(loi)) }; }
+  catch (e) { const l = [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`]; return { luc, goc: [], nhom: 0, loi: l, ...(await docKenhThat(l)), lo: await docLoStudio(l) }; }
   const ra: StGoc[][] = new Array(nhom.length);
   let tiep = 0;
   await Promise.all(Array.from({ length: Math.min(SONG_SONG, nhom.length) }, async () => {
@@ -51,7 +51,23 @@ export async function getSocialLive(): Promise<SocialLive> {
     }
   }));
   // xếp chung mọi nhóm theo Sức mạnh (spy chấm trong từng nhóm, 0–100 cùng thang) — góc mạnh nhất toàn kho lên đầu
-  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThat(loi)) };
+  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThat(loi)), lo: await docLoStudio(loi) };
+}
+
+/* HÀNG ĐỢI SẢN XUẤT (LIVE): video thật của studio.on.tc — phim thể loại Máy Dựng (Front Porch Puzzles…), mỗi phim một video, cùng DB mos2_prod.
+   Bước theo tập đầu của phim: chưa có kịch bản → Kịch bản · chưa có bản xuất → Dựng · có bản xuất → Lên lịch (chờ đăng). Máy Dựng dựng bằng máy
+   nên không qua Kiểm. Đăng xong chưa có sổ ghi lại → video đã xuất nằm ở Lên lịch cho tới khi có máy ghi lượt đăng. */
+const STUDIO = 'https://studio.on.tc';
+async function docLoStudio(loi: string[]): Promise<StLo[]> {
+  const d = getDb(); if (!d) return [];
+  try {
+    const r = (await d.execute(sql`SELECT p.id, p.ten, p.kinh_thanh->'may_dung'->>'du_an' AS du_an, t.kich_ban IS NOT NULL AND t.kich_ban <> '' AS co_kb,
+        jsonb_array_length(coalesce(t.xuat, '[]'::jsonb)) > 0 AS da_xuat, t.video_url
+      FROM xv_phim p LEFT JOIN LATERAL (SELECT * FROM xv_tap WHERE phim_id = p.id ORDER BY so LIMIT 1) t ON true
+      WHERE p.loai = 'may_dung' ORDER BY p.id DESC`)) as unknown as { id: number; ten: string; du_an: string | null; co_kb: boolean | null; da_xuat: boolean | null; video_url: string | null }[];
+    return r.map((x): StLo => ({ id: x.id, goc: 0, kenh: 0, buoc: !x.co_kb ? 0 : !x.da_xuat ? 1 : 3, ten: x.ten.replace(/^[^·]+·\s*/, ''), duAn: x.du_an ?? '',
+      studio: `${STUDIO}/?m=phim&mId=${x.id}&tab=storyboard`, video: x.da_xuat ? x.video_url : null }));
+  } catch (e) { loi.push(`hàng đợi studio: ${(e as Error).message}`); return []; }
 }
 
 /* KÊNH THẬT (anh 16/10/2026 "gom các kênh từ dự án KDP, Gum, Etsy về"): dự án có cửa bán — Etsy / KDP đang mở trong vault,

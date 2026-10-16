@@ -17,7 +17,11 @@ export interface StKenh {
   daDo?: boolean;      // LIVE: false = kênh có trong vault nhưng chưa có máy đo số (cột số hiện '—', không hiện 0 giả)
   xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)
 }
-export interface StLo { id: number; goc: number; kenh: number; buoc: number }
+export interface StLo {
+  id: number; goc: number; kenh: number; buoc: number;
+  /** LIVE: video thật của studio.on.tc (phim thể loại Máy Dựng) — tên phim, dự án, link mở phim trong studio, link bản xuất. */
+  ten?: string; duAn?: string; studio?: string; video?: string | null;
+}
 export interface StTrang { slug: string; goc: number; kenh: number; click: number | null; raShop: number | null; chuongTrinh: string; song: boolean; tieuDe?: string; kenhTen?: string }
 /** Cửa bán (LIVE): Gumroad theo store (product_daily), Etsy / KDP theo vault — chưa có nguồn số bán thì số = null. */
 export interface StBan { cua: string; ten: string; duAn: string; xem30: number | null; ban30: number | null; usd30: number | null; ghiChu?: string }

@@ -26,6 +26,9 @@ const nho = { fontSize: 11, color: 'var(--fg-3)' } as const;
 const chuaDo = <span style={{ fontSize: 11, color: 'var(--fg-3)' }} title="có trong vault, chưa có máy đọc số">chưa đo</span>;
 const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang xưởng studio.on.tc (tốn tiền sinh video) — chờ nối luồng ghi và anh bấm duyệt từng lô';
 
+/** Mỗi cột hàng đợi chỉ hiện chừng này video mới nhất — Máy Dựng sinh liên tục, xem đủ trong studio. */
+const LO_HIEN = 12;
+
 export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'demo');
   const [muc, setMuc] = useShallowParam('sts', 'tong');
@@ -36,7 +39,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [gia, setGia] = useState(ST_GIA_MAC);
   const [bao, setBao] = useState('');
   const [catKenh, setCatKenh] = useState<number | null>(null);
-  const d: StDuLieu = laLive ? { goc: live.goc, kenh: live.kenh, lo: [], trang: live.trang } : demo;
+  const d: StDuLieu = laLive ? { goc: live.goc, kenh: live.kenh, lo: live.lo, trang: live.trang } : demo;
   const do_ = (k: StKenh) => k.daDo !== false;   // DEMO không có cờ → coi như đã đo
   const gocOf = (id: number) => d.goc.find((g) => g.id === id);
   const kenhOf = (id: number) => d.kenh.find((k) => k.id === id);
@@ -57,7 +60,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const CHANG: Record<string, Muc> = { goc: 'goc', sx: 'sx', dang: 'kenh', xem: 'kenh', site: 'trang', hh: 'tien' };
   const nut: NutLuong[] = [
     { key: 'goc', nhan: 'Góc từ spy', so: d.goc.length, phuDe: `${d.goc.filter((g) => g.tt !== 'chua').length} đã làm` },
-    { key: 'sx', nhan: 'Đang sản xuất', so: d.lo.length, phuDe: d.lo.length ? usd(d.lo.length * gia.video) : undefined },
+    { key: 'sx', nhan: 'Đang sản xuất', so: d.lo.length, phuDe: d.lo.length && !laLive ? usd(d.lo.length * gia.video) : undefined },
     { key: 'dang', nhan: 'Đã đăng', so: t.video, phuDe: `${t.kSong.length} kênh sống` },
     { key: 'xem', nhan: 'Lượt xem', so: t.xem, phuDe: `trung vị ${so(trungVi(d.kenh.map((k) => k.trungViXem)))}` },
     { key: 'site', nhan: 'Về site aff', so: t.click, phuDe: t.xem ? `${((t.click / t.xem) * 100).toFixed(2)}%` : undefined },
@@ -199,10 +202,17 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
 
       {muc === 'sx' && (d.lo.length
         ? <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ST_BUOC.length}, minmax(200px, 1fr))`, gap: 10, overflowX: 'auto' }}>
-            {ST_BUOC.map((ten, b) => { const o = d.lo.filter((l) => l.buoc === b); return (
+            {ST_BUOC.map((ten, b) => { const tat = d.lo.filter((l) => l.buoc === b), o = tat.slice(0, LO_HIEN); return (
               <div key={ten} style={{ background: 'var(--bg-2)', borderRadius: 8, padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
-                <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '.06em' }} title={`${o.length} video`}>{ten}</div>
-                {o.map((l) => { const g = gocOf(l.goc), k = kenhOf(l.kenh); return (
+                <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '.06em' }} title={`${tat.length} video`}>{ten} · {tat.length}</div>
+                {o.map((l) => { const g = gocOf(l.goc), k = kenhOf(l.kenh); return l.studio ? (
+                  <div key={l.id} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, display: 'grid', gap: 4, fontSize: 12 }}>
+                    <span style={{ ...nho, fontFamily: 'var(--font-mono)' }}>#{l.id} · {l.duAn}</span><b style={{ fontWeight: 600 }}>{l.ten}</b>
+                    <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <a href={l.studio} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Mở trong studio</a>
+                      {l.video && <a href={l.video} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Xem video</a>}
+                    </span>
+                  </div>) : (
                   <div key={l.id} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, display: 'grid', gap: 4, fontSize: 12 }}>
                     <span style={{ ...nho, fontFamily: 'var(--font-mono)' }}>#{l.id}</span><b style={{ fontWeight: 600 }}>{g?.ten}</b><span style={nho}>{k?.ten} · {k?.nenTang} · {k?.ngonNgu}</span>
                     <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -210,10 +220,11 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
                       {b === 2 && <button className="btn" style={{ color: 'var(--bad)' }} onClick={() => sua((x) => { const y = x.lo.find((z) => z.id === l.id); if (y) y.buoc = 1; }, `#${l.id} trả về Dựng`)}>Trả về dựng</button>}
                     </span>
                   </div>); })}
+                {tat.length > o.length && <span style={nho}>… còn {tat.length - o.length} video, xem đủ trong studio</span>}
                 {!o.length && <span style={nho}>Trống</span>}
               </div>); })}
           </div>
-        : trong('Chưa có video nào đang làm', 'Hàng đợi đọc từ sổ job của xưởng studio.on.tc. Tạo lô ở mục Góc thì video vào đây, đi qua Kịch bản → Dựng → Kiểm → Lên lịch.'))}
+        : trong('Chưa có video nào đang làm', 'Hàng đợi đọc phim thể loại Máy Dựng của studio.on.tc. Có phim mới thì video vào đây, đi qua Kịch bản → Dựng → Lên lịch.'))}
 
       {muc === 'kenh' && (d.kenh.length
         ? <><DataTable rows={d.kenh} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={900} />

@@ -53,7 +53,14 @@ if (gia('nap')) {
       const vao = JSON.stringify([BAN_MAY, dmMay, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
       // Đầu vào không đổi → giữ máy cũ (có thể đã được bộ giải trong Blender dời) — khỏi dựng + giải lại mỗi lần nạp.
       const cu = r[0].may_3d as (May3d & { tu_dong?: { vao?: string } }) | null;
-      if (cu?.tu_dong?.vao === vao) { may++; continue; }
+      if (cu?.tu_dong?.vao === vao) {
+        // Máy giữ nguyên, nhưng động tác (dien) có thể đã đổi — ghi chỗ đứng mới (cùng vị trí, khác dien) không đụng máy.
+        if (JSON.stringify(cu.vi_tri) !== JSON.stringify(dm.vi_tri)) {
+          await chupTruoc(db, { bang: 'xv_canh', id: Number(r[0].id), cot: ['may_3d'], moTa: 'nạp động tác (giữ máy)', nguoi: 'bo-set' });
+          await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify({ ...cu, vi_tri: dm.vi_tri })}::jsonb WHERE id = ${Number(r[0].id)}`);
+        }
+        may++; continue;
+      }
       // Khoá ĐỜI CŨ (chỉ chỗ đứng / phía / khung / nhảy + cỡ cảnh) còn khớp → máy vẫn đúng: GIỮ máy đã giải, chỉ chép các khai mới (qua_truc, them,
       // den_ban…) và đổi sang khoá mới — không tính lại máy (tính lại = góc lệch khỏi keyframe đã sinh).
       const vaoCu = JSON.stringify([BAN_MAY, viTriMay, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);

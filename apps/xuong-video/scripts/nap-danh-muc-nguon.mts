@@ -26,7 +26,9 @@ for (const m of await danhMucFal()) {
   const link = `https://fal.ai/models/${m.id}`;
   const giay = m.gia.khongTieng['720p'] ?? m.gia.chinh['720p'];
   const gia = m.loai === 'video' ? (giay != null ? Math.round(giay * GIAY_CHUAN * VND_MOI_CENT) : null) : (m.gia.anh?.[0] != null ? Math.round(m.gia.anh[0] * VND_MOI_CENT) : null);
-  ds.push({ nguon: 'fal', loai: m.loai, model: m.ten, gia, goc: m.giaText || 'chưa đọc được chuỗi giá', link, ma: [`fal|fal:${m.id}`] });
+  // Giá gốc một dòng: bỏ dòng tiêu đề của bản tóm tắt giá (gia-fal.ts › tomGia.moTa), nối các mức bằng ' · '.
+  const goc = (m.giaText || '').split('\n').slice(1).map((x) => x.replace(/^[•\s]+/, '').trim()).filter(Boolean).join(' · ') || 'fal chưa công bố giá';
+  ds.push({ nguon: 'fal', loai: m.loai, model: m.ten, gia, goc, link, ma: [`fal|fal:${m.id}`] });
 }
 // ── ShopAIKey ── (một model có thể có nhiều kênh giá khác nhau → lấy kênh rẻ nhất)
 {

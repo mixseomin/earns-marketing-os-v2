@@ -13,7 +13,21 @@ def vat_lieu(ten, mau, **k):
     b.inputs['Base Color'].default_value = (*rgb, 1); m.diffuse_color = (*rgb, 1)
     for kk, v in k.items():
         if kk in b.inputs: b.inputs[kk].default_value = v
+    khuyet_diem(nt, b)
     return m, nt, b, rgb
+
+def khuyet_diem(nt, b, manh=1.0):
+    """KHUYẾT ĐIỂM BỀ MẶT (anh 16/10/2026: "sao hình ảnh nó không chân thật" — cách The Lego Movie làm CG như chụp đồ thật): ngoài đời không mặt nào
+    bóng đều — vết tay, chỗ sờ nhiều bóng hơn, chỗ bụi mờ hơn. Độ nhám lốm đốm quanh giá trị gốc ở cỡ milimét (dấu tay) + vệt rộng cỡ centimét."""
+    if b.inputs['Roughness'].is_linked: return
+    r0 = b.inputs['Roughness'].default_value
+    nho = nt.nodes.new('ShaderNodeTexNoise'); nho.inputs['Scale'].default_value = 450; nho.inputs['Detail'].default_value = 6
+    to = nt.nodes.new('ShaderNodeTexNoise'); to.inputs['Scale'].default_value = 35; to.inputs['Detail'].default_value = 2
+    tr = nt.nodes.new('ShaderNodeMix'); tr.data_type = 'FLOAT'; tr.inputs['Factor'].default_value = 0.45
+    nt.links.new(nho.outputs['Fac'], tr.inputs['A']); nt.links.new(to.outputs['Fac'], tr.inputs['B'])
+    mr = nt.nodes.new('ShaderNodeMapRange'); mr.inputs['From Min'].default_value = 0.3; mr.inputs['From Max'].default_value = 0.7
+    mr.inputs['To Min'].default_value = max(0.02, r0 - 0.12 * manh); mr.inputs['To Max'].default_value = min(1.0, r0 + 0.14 * manh)
+    nt.links.new(tr.outputs['Result'], mr.inputs['Value']); nt.links.new(mr.outputs['Result'], b.inputs['Roughness'])
 
 def gon(nt, b, scale, manh, detail=2.0):
     nz = nt.nodes.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = scale; nz.inputs['Detail'].default_value = detail

@@ -16,6 +16,7 @@ CM = 0.01  # Blender tính mét
 CHI_MB = os.environ.get('XV_CHI_MAT_BANG') == '1'   # chỉ vẽ mặt bằng (lượt song song riêng), bỏ render từng shot
 BO_MB = os.environ.get('XV_BO_MAT_BANG') == '1'     # phần song song: mặt bằng vẽ tí hon cho nhanh (lượt mb vẽ bản đủ)
 NHANH = os.environ.get('XV_NHANH') == '1'
+TAI_SAN = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tai-san')   # tài sản CC0 (tai-tai-san.sh) — thiếu thì rơi về vật liệu dựng tay
 MESH_THAT = os.environ.get('XV_MESH_THAT') == '1'   # nhân vật = mesh thật (mesh/dung-nhan-vat.py) + khung màu render Cycles → chính ảnh render là keyframe
 if MESH_THAT:
     import importlib.util as _iu
@@ -144,7 +145,20 @@ def chat_lieu(o, chat, hex_):
     def gon(scale, manh):
         nz = nt.nodes.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = scale; bm = nt.nodes.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = manh
         nt.links.new(nz.outputs['Fac'], bm.inputs['Height']); nt.links.new(bm.outputs['Normal'], b.inputs['Normal'])
-    if chat == 'go':
+    anh = lambda ten: os.path.join(TAI_SAN, ten)
+    if chat == 'go' and os.path.exists(anh('go_mau.jpg')):   # gỗ quét từ bàn thật (Poly Haven wood_table_001), tô theo màu khai, vân ~30 cm một ô
+        tc = nt.nodes.new('ShaderNodeTexCoord'); mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (3.3, 3.3, 3.3)
+        nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+        def tex(ten, mau=True):
+            t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(anh(ten), check_existing=True); t.projection = 'BOX'; t.projection_blend = 0.2
+            if not mau: t.image.colorspace_settings.name = 'Non-Color'
+            nt.links.new(mp.outputs['Vector'], t.inputs['Vector']); return t
+        tm, tn, tp = tex('go_mau.jpg'), tex('go_nham.jpg', False), tex('go_phap.jpg', False)
+        mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 0.85
+        nt.links.new(tm.outputs['Color'], mx.inputs['A']); mx.inputs['B'].default_value = (*[min(1, c * 2.2) for c in rgb], 1)
+        nt.links.new(mx.outputs['Result'], b.inputs['Base Color']); nt.links.new(tn.outputs['Color'], b.inputs['Roughness'])
+        nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.6; nt.links.new(tp.outputs['Color'], nm.inputs['Color']); nt.links.new(nm.outputs['Normal'], b.inputs['Normal'])
+    elif chat == 'go':
         nz = nt.nodes.new('ShaderNodeTexWave'); nz.inputs['Scale'].default_value = 3; nz.inputs['Distortion'].default_value = 6
         cr = nt.nodes.new('ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (*[c * 0.55 for c in rgb], 1); cr.color_ramp.elements[1].color = (*[min(1, c * 1.35) for c in rgb], 1)
         nt.links.new(nz.outputs['Fac'], cr.inputs['Fac']); nt.links.new(cr.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = 0.42
@@ -156,6 +170,7 @@ def chat_lieu(o, chat, hex_):
     elif chat == 'kim_loai': b.inputs['Metallic'].default_value = 0.9; b.inputs['Roughness'].default_value = 0.32
     elif chat == 'nhua': b.inputs['Roughness'].default_value = 0.35
     elif chat == 'cao_su': b.inputs['Roughness'].default_value = 0.7
+    if MESH_THAT and chat != 'go': dnv.khuyet_diem(nt, b)   # vết tay / chỗ bóng chỗ mờ (dnv.khuyet_diem)
     o.data.materials.clear(); o.data.materials.append(m)
 
 def hoan_thien(o, kieu, w, d, h):
@@ -196,6 +211,12 @@ def anh_sang_mau(s, sh, bat):
     # Ánh xanh đêm dịu phủ cả phòng + đèn phụ mềm từ phía máy (đủ đọc hình khối cho model — không phải ánh sáng cuối cùng của phim).
     s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.05, 0.07, 0.12, 1)
     s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.5
+    if MESH_THAT and os.path.exists(os.path.join(TAI_SAN, 'phong.hdr')):   # ánh hắt + phản chiếu từ một căn phòng THẬT (HDRI), nhuộm xanh đêm, rất dịu
+        wn = s.world.node_tree; bg = wn.nodes['Background']
+        ev = wn.nodes.get('hdri') or wn.nodes.new('ShaderNodeTexEnvironment'); ev.name = 'hdri'; ev.image = bpy.data.images.load(os.path.join(TAI_SAN, 'phong.hdr'), check_existing=True)
+        mx = wn.nodes.get('hdri_nhuom') or wn.nodes.new('ShaderNodeMix'); mx.name = 'hdri_nhuom'; mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1.0
+        mx.inputs['B'].default_value = (0.35, 0.45, 0.8, 1); wn.links.new(ev.outputs['Color'], mx.inputs['A']); wn.links.new(mx.outputs['Result'], bg.inputs['Color'])
+        bg.inputs['Strength'].default_value = 0.25
     cam = s.camera
     if cam:
         p = cam.matrix_world.translation / CM

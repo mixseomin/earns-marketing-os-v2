@@ -30,3 +30,4 @@ npm-debug.log*
 /backup/
 *.sql.gz
 .xv-worker-sha
+apps/xuong-video/scripts/bo-set/tai-san/

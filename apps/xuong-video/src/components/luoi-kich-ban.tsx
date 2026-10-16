@@ -115,7 +115,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   {/* Máy soi clip (soi-clip.ts): chữ lạ model tự in / sản phẩm ra khỏi khung — bản xuất không nhận clip này; bấm = bỏ qua khi máy báo nhầm. */}
                   {loiSoiClip(c).length > 0 && <span role="button" className="xv-mono" title={`Máy soi clip:\n${loiSoiClip(c).join('\n')}\n\nBản xuất không nhận clip này. Sinh lại shot, hoặc bấm để bỏ qua nếu máy báo nhầm.`}
                     onClick={async (e) => { e.stopPropagation(); if (!confirm(`Bỏ qua lỗi soi của shot #${c.thu_tu}?\n\n${loiSoiClip(c).join('\n')}`)) return; const r = await goiAction(() => boQuaSoiClipAction(c.id)); if (r.loi) alert(r.loi); await onChanged(); }}
-                    style={{ position: 'absolute', right: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.75)', color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
+                    style={{ position: 'absolute', right: 4, top: vuaSinh(c) ? 40 : 22, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.75)', color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
                 </div>}
                 {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}

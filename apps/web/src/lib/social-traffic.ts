@@ -54,20 +54,18 @@ export async function getSocialLive(): Promise<SocialLive> {
   return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThat(loi)), lo: await docLoStudio(loi) };
 }
 
-/* HÀNG ĐỢI SẢN XUẤT (LIVE): video thật của studio.on.tc — phim thể loại Máy Dựng (Front Porch Puzzles…), mỗi phim một video, cùng DB mos2_prod.
-   Bước theo tập đầu của phim: chưa có kịch bản → Kịch bản · chưa có bản xuất → Dựng · có bản xuất → Lên lịch (chờ đăng). Máy Dựng dựng bằng máy
-   nên không qua Kiểm. Đăng xong chưa có sổ ghi lại → video đã xuất nằm ở Lên lịch cho tới khi có máy ghi lượt đăng. Phim lưu trữ (phim cũ, không dựng /
-   không đăng nữa — anh 17/10/2026) không vào hàng đợi. */
+/* HÀNG ĐỢI SẢN XUẤT (LIVE): video thật của các MÁY trên studio.on.tc (xv_may / xv_may_video, cùng DB mos2_prod — từ 17/10/2026 video máy không còn
+   là phim). Chưa dựng → Dựng · đã dựng mà còn nền chưa đăng → Lên lịch · đăng đủ mọi nền của máy → rời hàng đợi (sổ đăng xv_may_video.da_dang).
+   Máy dựng bằng máy nên không qua Kịch bản / Kiểm. Video lưu trữ (video cũ, không dựng / không đăng nữa) không vào hàng đợi. */
 const STUDIO = 'https://studio.on.tc';
 async function docLoStudio(loi: string[]): Promise<StLo[]> {
   const d = getDb(); if (!d) return [];
   try {
-    const r = (await d.execute(sql`SELECT p.id, p.ten, p.kinh_thanh->'may_dung'->>'du_an' AS du_an, t.kich_ban IS NOT NULL AND t.kich_ban <> '' AS co_kb,
-        jsonb_array_length(coalesce(t.xuat, '[]'::jsonb)) > 0 AS da_xuat, t.video_url
-      FROM xv_phim p LEFT JOIN LATERAL (SELECT * FROM xv_tap WHERE phim_id = p.id ORDER BY so LIMIT 1) t ON true
-      WHERE p.loai = 'may_dung' AND coalesce((p.kinh_thanh->>'luu_tru')::boolean, false) = false ORDER BY p.id DESC`)) as unknown as { id: number; ten: string; du_an: string | null; co_kb: boolean | null; da_xuat: boolean | null; video_url: string | null }[];
-    return r.map((x): StLo => ({ id: x.id, goc: 0, kenh: 0, buoc: !x.co_kb ? 0 : !x.da_xuat ? 1 : 3, ten: x.ten.replace(/^[^·]+·\s*/, ''), duAn: x.du_an ?? '',
-      studio: `${STUDIO}/?m=phim&mId=${x.id}&tab=storyboard`, video: x.da_xuat ? x.video_url : null }));
+    const r = (await d.execute(sql`SELECT v.id, v.may_id, v.chu_de, m.du_an, v.video_url,
+        EXISTS (SELECT 1 FROM jsonb_array_elements(m.dang) n WHERE NOT (v.da_dang ? (n->>'nen'))) AS con_nen
+      FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE NOT v.luu_tru ORDER BY v.id DESC`)) as unknown as { id: number; may_id: number; chu_de: string; du_an: string; video_url: string | null; con_nen: boolean }[];
+    return r.filter((x) => !x.video_url || x.con_nen).map((x): StLo => ({ id: x.id, goc: 0, kenh: 0, buoc: x.video_url ? 3 : 1, ten: x.chu_de, duAn: x.du_an,
+      studio: `${STUDIO}/?kho=tu_dong&may=${x.may_id}&video=${x.id}`, video: x.video_url }));
   } catch (e) { loi.push(`hàng đợi studio: ${(e as Error).message}`); return []; }
 }
 

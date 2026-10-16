@@ -224,7 +224,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
                 {!o.length && <span style={nho}>Trống</span>}
               </div>); })}
           </div>
-        : trong('Chưa có video nào đang làm', 'Hàng đợi đọc phim thể loại Máy Dựng của studio.on.tc. Có phim mới thì video vào đây, đi qua Kịch bản → Dựng → Lên lịch.'))}
+        : trong('Chưa có video nào đang làm', 'Hàng đợi đọc video của các máy trên studio.on.tc (cửa ⚙ Tự động). Máy ra video mới thì vào đây: Dựng → Lên lịch, đăng đủ mọi nền thì rời hàng đợi.'))}
 
       {muc === 'kenh' && (d.kenh.length
         ? <><DataTable rows={d.kenh} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={900} />

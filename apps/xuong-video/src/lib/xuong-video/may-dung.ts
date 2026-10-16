@@ -1,7 +1,8 @@
 // PHIM MÁY DỰNG (thể loại 'may_dung' trong danh sách Phim — anh 16/10/2026: "nó luôn phải nằm trong danh sách Phim, chỉ là thể loại khác. Khi mở ra
 // cũng phải chia thành các keyframe, card, kịch bản"). Mỗi video = một phim (kinh_thanh.may_dung = đề + chữ đăng) → một tập (kịch bản viết sẵn từ đề)
 // → 3 shot (may-dung-do-chu.ts › kichBanMotDung). Xuất: ASS + ffmpeg trên box3 (0đ) → bản xuất của tập (ghiBanXuat, như mọi phim) + keyframe / clip
-// từng shot cắt từ chính bản dựng → storyboard, thẻ shot, tab Xuất đi đúng đường của phim. Ảnh nền theo chủ đề = AI (~65–110₫, ghi sổ chi).
+// từng shot cắt từ chính bản dựng → storyboard, thẻ shot, tab Xuất đi đúng đường của phim. Nạp đề xong là có ngay keyframe XEM TRƯỚC từng shot
+// (khungXemTruoc: một khung qua đúng bộ lọc của bản dựng) — anh 17/10/2026 "mở ra phải thấy đúng cái sẽ sx ra". Ảnh nền theo chủ đề = AI (~65–110₫, ghi sổ chi).
 // Nguồn đề Front Porch Puzzles = puzzle-books/scripts/de-short.mjs (day-studio.mjs đẩy qua scripts/may-dung.mts --nap); bên đăng (dang-short.mjs)
 // đọc danh sách bằng may-dung.mts --ds rồi tải bản xuất mới nhất.
 import { execFile } from 'node:child_process';
@@ -62,6 +63,7 @@ export async function napDe(db: Db, ds: DeNap[]): Promise<{ moi: number; doi: nu
       const p = ((await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES ('studio', ${tenPhim(x)}, 'may_dung', ${`Đố chữ "Only ONE is spelled right" — ${x.chu_de}. Dựng bằng khuôn, không AI.`}, ${JSON.stringify(kt)}::jsonb) RETURNING id`)) as unknown as Row[])[0]!;
       const t = ((await db.execute(sql`INSERT INTO xv_tap (phim_id, so) VALUES (${Number(p.id)}, 1) RETURNING id`)) as unknown as Row[])[0]!;
       await ghiTapShot(db, Number(t.id), x.de);
+      await khungXemTruoc(db, Number(t.id));
       moi++; continue;
     }
     const deDoi = JSON.stringify(cu.khuon.de) !== JSON.stringify(x.de), dangDoi = JSON.stringify(cu.khuon.dang) !== JSON.stringify(x.dang) || cu.khuon.chu_de !== x.chu_de;
@@ -70,10 +72,50 @@ export async function napDe(db: Db, ds: DeNap[]): Promise<{ moi: number; doi: nu
     await db.execute(sql`UPDATE xv_phim SET ten = ${tenPhim(x)}, kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{may_dung}', ${JSON.stringify(khuon)}::jsonb), updated_at = now() WHERE id = ${cu.id}`);
     let tapId = cu.tapId;
     if (tapId == null) tapId = Number((((await db.execute(sql`INSERT INTO xv_tap (phim_id, so) VALUES (${cu.id}, 1) RETURNING id`)) as unknown as Row[])[0]!).id);
-    if (deDoi || cu.tapId == null || thieuShot) await ghiTapShot(db, tapId, x.de);
+    if (deDoi || cu.tapId == null || thieuShot) { await ghiTapShot(db, tapId, x.de); await khungXemTruoc(db, tapId); }
     doi++;
   }
   return { moi, doi, giu };
+}
+
+/** Ảnh nền (nếu có) + tệp ASS của đề vào thư mục tạm — dùng chung cho bản dựng và khung xem trước. */
+async function chuanBi(k: MayDungKt, thuMuc: string): Promise<{ nen: string | null; ass: string } | { loi: string }> {
+  let nen: string | null = null;
+  if (k.nen_url) {
+    const t = await fetch(k.nen_url, { signal: AbortSignal.timeout(60_000) }).catch(() => null);
+    if (!t?.ok) return { loi: `không tải được ảnh nền (${t?.status ?? 'mạng'})` };
+    nen = `${thuMuc}/nen.${(k.nen_url.split('?')[0]!.split('.').pop() || 'jpg').slice(0, 4)}`;
+    await writeFile(nen, Buffer.from(await t.arrayBuffer()));
+  }
+  const ass = `${thuMuc}/de.ass`;
+  await writeFile(ass, assMotDung(k.de), 'utf8');
+  return { nen, ass };
+}
+
+/** Keyframe XEM TRƯỚC từng shot ngay khi nạp đề (chưa xuất): một khung giữa shot qua đúng bộ lọc của bản dựng → R2 → keyframe_url.
+ *  Không đổi trạng thái shot (clip / bản xuất vẫn chờ ⬇ Xuất). 0đ, vài giây mỗi phim. Trả danh sách lỗi (rỗng = đủ khung). */
+export async function khungXemTruoc(db: Db, tapId: number): Promise<string[]> {
+  const r = ((await db.execute(sql`SELECT p.kinh_thanh->'may_dung' AS may_dung FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId} AND p.loai = 'may_dung'`)) as unknown as Row[])[0];
+  const k = r?.may_dung as MayDungKt | undefined;
+  if (!k?.de) return ['tập này không phải phim Máy Dựng (thiếu đề)'];
+  if (!FONTS_DIR) return ['máy chủ thiếu thư mục font (apps/xuong-video/public/fonts)'];
+  const shots = ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map((x) => Number(x.id));
+  const thuMuc = `${tmpdir()}/xv-may-dung-kf-${tapId}-${randomUUID().slice(0, 8)}`, loi: string[] = [];
+  await mkdir(thuMuc, { recursive: true });
+  try {
+    const cb = await chuanBi(k, thuMuc); if ('loi' in cb) return [cb.loi];
+    const goc = `xuong-video/may-dung/${k.slug}-xt-${randomUUID().slice(0, 8)}`;
+    for (const [i, s] of kichBanMotDung(k.de).shots.entries()) {
+      const id = shots[i]; if (id == null) { loi.push(`thiếu shot #${i + 1}`); continue; }
+      const kf = `${thuMuc}/kf${i}.jpg`;
+      try { await run('ffmpeg', lenhMotDung({ de: k.de, ass: cb.ass, nen: cb.nen, fontsDir: FONTS_DIR, ra: kf, khung: s.tu + (s.den - s.tu) / 2 }), { timeout: 120_000, maxBuffer: 8 << 20 }); }
+      catch (e) { loi.push(`shot #${i + 1}: ${((e as { stderr?: string }).stderr || (e as Error).message).trim().split('\n').pop()!.slice(0, 120)}`); continue; }
+      const u = await uploadToR2(`${goc}-s${i + 1}.jpg`, await readFile(kf), 'image/jpeg');
+      if (!u) { loi.push(`shot #${i + 1}: không đẩy được khung lên R2`); continue; }
+      await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${u}, keyframe_uv = ${JSON.stringify([u])}::jsonb, updated_at = now() WHERE id = ${id}`);
+    }
+    return loi;
+  } finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
 }
 
 /** Bản dựng + khung từng shot cho một tập khuôn: MP4 cả video, mỗi shot một keyframe (khung giữa shot) + một clip (cắt đúng đoạn) → R2,
@@ -88,15 +130,8 @@ export async function xuatMayDungTap(db: Db, tapId: number): Promise<{ ok: true;
   const thuMuc = `${tmpdir()}/xv-may-dung-${tapId}-${randomUUID().slice(0, 8)}`;
   await mkdir(thuMuc, { recursive: true });
   try {
-    let nen: string | null = null;
-    if (k.nen_url) {
-      const t = await fetch(k.nen_url, { signal: AbortSignal.timeout(60_000) }).catch(() => null);
-      if (!t?.ok) return { ok: false, loi: `không tải được ảnh nền (${t?.status ?? 'mạng'})` };
-      nen = `${thuMuc}/nen.${(k.nen_url.split('?')[0]!.split('.').pop() || 'jpg').slice(0, 4)}`;
-      await writeFile(nen, Buffer.from(await t.arrayBuffer()));
-    }
-    const ass = `${thuMuc}/de.ass`, ra = `${thuMuc}/ra.mp4`;
-    await writeFile(ass, assMotDung(k.de), 'utf8');
+    const cb = await chuanBi(k, thuMuc); if ('loi' in cb) return { ok: false, loi: cb.loi };
+    const { nen, ass } = cb, ra = `${thuMuc}/ra.mp4`;
     try { await run('ffmpeg', lenhMotDung({ de: k.de, ass, nen, fontsDir: FONTS_DIR, ra }), { timeout: 5 * 60_000, maxBuffer: 8 << 20 }); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
     const goc = `xuong-video/may-dung/${k.slug}-${randomUUID().slice(0, 8)}`;

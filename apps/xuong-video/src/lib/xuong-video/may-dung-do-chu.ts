@@ -105,7 +105,8 @@ export const AM = `0.3*sin(2*PI*660*t)*exp(-9*t)`
   + `+0.35*sin(2*PI*880*t)*exp(-6*(t-${T_LO}))*gte(t,${T_LO})`;
 
 /** Lệnh ffmpeg: nền (ảnh có chuyển động máy chậm + phủ màu bìa, hoặc dải radial màu bìa) → ass → H.264 30 hình/giây + AAC. */
-export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null; fontsDir: string; ra: string }): string[] {
+/** Lệnh ffmpeg dựng video. `khung` (giây) = chỉ xuất MỘT khung JPG tại giây đó qua đúng bộ lọc của bản dựng — keyframe xem trước của shot. */
+export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const M = o.de.mau, khung = Math.round(DAI * FPS);
   const vao = o.nen
     ? ['-loop', '1', '-framerate', String(FPS), '-t', String(DAI), '-i', o.nen]
@@ -114,8 +115,10 @@ export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null;
     ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},zoompan=z='1+0.06*on/${khung}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},lutyuv=y=val*0.7,vignette=angle=PI/4`   // tối đi bằng ĐỘ SÁNG (kênh Y), giữ màu: drawbox có alpha trên YUV trộn cả kênh màu về xám — lớp đen 30% đã làm ảnh gần như đơn sắc (đo 16/10/2026)
     : '[0:v]null';
   const assEsc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+  const loc = `${nen},ass='${assEsc(o.ass)}':fontsdir='${assEsc(o.fontsDir)}',format=yuv420p[v]`;
+  if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${AM}':s=44100:d=${DAI}`,
-    '-filter_complex', `${nen},ass='${assEsc(o.ass)}':fontsdir='${assEsc(o.fontsDir)}',format=yuv420p[v]`,
+    '-filter_complex', loc,
     '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 

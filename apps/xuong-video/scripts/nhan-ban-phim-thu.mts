@@ -40,8 +40,8 @@ const ketQua = await db.transaction(async (tx) => {
     if (kf) gan++;
     const nv = ((c.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x): x is number => x != null);
     const bt = ((c.bien_the as number[]) ?? []).map((x) => doiBt.get(Number(x))).filter((x): x is number => x != null);
-    await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, prompt_anh, prompt_video, keyframe_url, keyframe_uv, video_url, trang_thai, loi, chi_phi_cents, bien_the, video_cuoi_url, nguon_video, video_phien_ban, thoai_url, am_thanh_url, phan_doan, cam_xuc, ky_thuat, thoai, trang_phuc, phat_s, chu_man, nhanh, kieu_chu)
-      SELECT ${tapMoi}, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, ${JSON.stringify(nv)}::jsonb, prompt_anh, prompt_video, ${kf ?? null}, ${JSON.stringify(kf ? [kf] : [])}::jsonb, NULL, ${kf ? 'co_keyframe' : 'nhap'}, '', 0, ${JSON.stringify(bt)}::jsonb, NULL, '{}'::jsonb, '[]'::jsonb, thoai_url, am_thanh_url, phan_doan, cam_xuc, ky_thuat, thoai, trang_phuc, phat_s, chu_man, nhanh, kieu_chu
+    await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, prompt_anh, prompt_video, keyframe_url, keyframe_uv, video_url, trang_thai, loi, chi_phi_cents, bien_the, video_cuoi_url, nguon_video, video_phien_ban, thoai_url, am_thanh_url, phan_doan, cam_xuc, ky_thuat, thoai, trang_phuc, phat_s, chu_man, nhanh, kieu_chu)
+      SELECT ${tapMoi}, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, loi_thoai, am_thanh, thoi_luong_s, ${JSON.stringify(nv)}::jsonb, prompt_anh, prompt_video, ${kf ?? null}, ${JSON.stringify(kf ? [kf] : [])}::jsonb, NULL, ${kf ? 'co_keyframe' : 'nhap'}, '', 0, ${JSON.stringify(bt)}::jsonb, NULL, '{}'::jsonb, '[]'::jsonb, thoai_url, am_thanh_url, phan_doan, cam_xuc, ky_thuat, thoai, trang_phuc, phat_s, chu_man, nhanh, kieu_chu
       FROM xv_canh WHERE id = ${Number(c.id)}`);
   }
   return { phimId, tapMoi, soShot: canh.length, ganKeyframe: gan };

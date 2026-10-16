@@ -50,6 +50,11 @@ export type MoHinhAnh = (typeof MO_HINH_ANH)[number]['key'];
 /** Model video KHÔNG dùng cho quảng cáo (anh 16/10/2026: Pika khung khoá "thiếu cảm xúc" — chỉ biến hình giữa hai khung, người không diễn;
  *  Grok qua ShopAIKey tự in phụ đề giả lên hình dù prompt cấm — #54 shot 6 / 9 "Look at that fit!" đè thẻ kết).
  *  Một luật cho ô chọn model (mo-hinh-ui.tsx › luaChonVideo), chuỗi tự chọn rẻ nhất (cong-ai.ts › chuoiVideo) và cửa sinh clip máy chủ (sinh-video.ts). */
+/** Chữ có dấu tiếng Việt. */
+export const laTiengViet = (t: string): boolean => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(t);
+/** Mô tả tiếng Việt của shot (#1397): trường riêng, không có thì hanh_dong nếu nó đã là tiếng Việt (tách cảnh viết tiếng Việt), không thì rỗng.
+ *  MỘT chỗ cho lưới, thẻ shot và cổng kiểm thiếu. */
+export const moTaVi = (c: Pick<Canh, 'hanh_dong' | 'hanh_dong_vi'>): string => c.hanh_dong_vi?.trim() || (laTiengViet(c.hanh_dong) ? c.hanh_dong.trim() : '');
 /** Kết quả máy soi clip (soi-clip.ts). */
 export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[] }; bo_qua?: boolean };
 /** Lỗi soi còn hiệu lực của shot: soi đúng clip đang dùng, có lỗi, chưa ai bỏ qua. */
@@ -518,7 +523,7 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */
 export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan');
 export type Canh = {
-  id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
+  id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; /** mô tả tiếng Việt của hành động (#1397) — đọc qua moTaVi */ hanh_dong_vi: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */
   phat_s: number | null; chu_man: string; nhanh: string;
   /** kiểu chữ màn riêng của shot (đè kieu_chu của phim). */

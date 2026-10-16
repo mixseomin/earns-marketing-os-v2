@@ -10,7 +10,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { boVaoThungRac } from '../src/lib/xuong-video/thung-rac';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
-import { ghepThoai, CAM_XUC_THEO_LOAI, type DongThoai, type LoaiShotMau } from '../src/lib/xuong-video/kieu';
+import { ghepThoai, laTiengViet, CAM_XUC_THEO_LOAI, type DongThoai, type LoaiShotMau } from '../src/lib/xuong-video/kieu';
 
 type Canh = { tu: number; den: number; loai: string; /** cảm xúc khán giả MỤC TIÊU cuối shot (-5..5) */ cam_xuc?: number; chu: string; hinh: string; mau_quan?: string; anh_that?: string; y: number; kieu?: Record<string, unknown>; prompt_anh?: string; prompt_video?: string; goc_may?: string; anchor?: string[] };
 type HoSo = { nguon: string; loi_doc: [number, string][]; canh: Canh[]; phong_cach: string; kieu_chu_phim: Record<string, unknown>; anchor_moi: Record<string, { loai: string; ten: string; mo_ta: string }>; doi_ten_anchor: Record<string, { ten: string; mo_ta: string }> };
@@ -75,8 +75,8 @@ for (const [i, c] of hs.canh.entries()) {
   const ids = c.anchor?.includes('none') ? [] : [sp, ...(c.anchor ?? []).map((k) => idAnchor[k]).filter((x): x is number => !!x)];
   const bt = c.mau_quan && mauQuan.get(c.mau_quan) ? [mauQuan.get(c.mau_quan)!] : [];
   const anh = c.anh_that ? `${B}${c.anh_that}.webp` : null;
-  await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh, kieu_chu, keyframe_url, keyframe_uv, trang_thai)
-    VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1} · ${c.loai}`}, ${c.goc_may ?? (anh ? 'Still real product/customer photo' : '')}, ${hanhDong(c, anh)}, ${ghepThoai(thoai)}, ${JSON.stringify(thoai)}::jsonb, '', 4,
+  await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh, kieu_chu, keyframe_url, keyframe_uv, trang_thai)
+    VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1} · ${c.loai}`}, ${c.goc_may ?? (anh ? 'Still real product/customer photo' : '')}, ${hanhDong(c, anh)}, ${laTiengViet(c.hinh) ? c.hinh : ''}, ${ghepThoai(thoai)}, ${JSON.stringify(thoai)}::jsonb, '', 4,
       ${JSON.stringify(anh ? [] : ids)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${c.prompt_anh ?? ''}, ${c.prompt_video ?? ''}, ${c.loai}, ${typeof c.cam_xuc === 'number' ? c.cam_xuc : CAM_XUC_THEO_LOAI[c.loai as LoaiShotMau] ?? 0}, '{}'::jsonb, '', ${phat}, ${c.chu}, '', ${JSON.stringify(kieu)}::jsonb,
       ${anh}, ${JSON.stringify(anh ? [anh] : [])}::jsonb, ${anh ? 'co_keyframe' : 'nhap'})`);
 }

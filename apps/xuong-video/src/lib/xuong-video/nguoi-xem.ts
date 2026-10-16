@@ -87,8 +87,8 @@ export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[])
 
 // ── Áp bản sửa của Claude (claude.ts › suaKichBanTheoNguoiXem) vào các shot — thuần, máy chủ chỉ việc ghi (kiem-nguoi-xem.ts) ──
 type DongVao = { nhan_vat: string; dien_xuat: string; loi: string };
-export type SuaShot = { shot: number; hanh_dong: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; doi_hinh: boolean; phat_s: number; nhan_vat?: string[] };
-export type ShotMoi = { sau_shot: number; canh: string; hanh_dong: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; nhan_vat: string[]; phat_s: number };
+export type SuaShot = { shot: number; hanh_dong: string; hanh_dong_vi?: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; doi_hinh: boolean; phat_s: number; nhan_vat?: string[] };
+export type ShotMoi = { sau_shot: number; canh: string; hanh_dong: string; hanh_dong_vi?: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; nhan_vat: string[]; phat_s: number };
 export const LOI_CAN_KEYFRAME = 'Sửa theo người xem: hình đổi — sinh lại keyframe';
 /** Dòng thoại mới: câu nào giữ nguyên chữ + người nói thì giữ file giọng đã có (url, độ dài, giọng) — chỉ câu đổi mới phải đọc lại. */
 export function giuGiong(cu: DongThoai[], moi: DongVao[]): DongThoai[] {
@@ -98,8 +98,8 @@ export function giuGiong(cu: DongThoai[], moi: DongVao[]): DongThoai[] {
   });
 }
 export type KeHoachSua = {
-  capNhat: { id: number; thu_tu: number; nhan_vat: number[]; hanh_dong: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; thoai_url: string | null; prompt_anh: string; phat_s: number; loi: string }[];
-  chen: { sau_id: number; canh: string; hanh_dong: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; prompt_anh: string; nhan_vat: number[]; phat_s: number }[];
+  capNhat: { id: number; thu_tu: number; nhan_vat: number[]; hanh_dong: string; hanh_dong_vi: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; thoai_url: string | null; prompt_anh: string; phat_s: number; loi: string }[];
+  chen: { sau_id: number; canh: string; hanh_dong: string; hanh_dong_vi: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; prompt_anh: string; nhan_vat: number[]; phat_s: number }[];
   /** thứ tự cuối: id shot cũ hoặc 'm<i>' (shot chèn thứ i) */
   thuTu: (number | string)[];
 };
@@ -111,7 +111,7 @@ export function keHoachSua(canh: Pick<Canh, 'id' | 'thu_tu' | 'thoai' | 'nhan_va
     const thoai = giuGiong(c.thoai ?? [], x.thoai);
     // Đối tượng có trong shot = cũ ∪ tên Claude ghi (bản sửa thêm Pip vào prompt mà không gắn mẫu → cổng chặn keyframe, 13/10/2026).
     const nvMoi = [...new Set([...(c.nhan_vat ?? []), ...(x.nhan_vat ?? []).map((t) => nv.find((v) => v.ten.trim().toLowerCase() === t.trim().toLowerCase())?.id).filter((y): y is number => y != null)])];
-    capNhat.push({ id: c.id, thu_tu: c.thu_tu, nhan_vat: nvMoi, hanh_dong: x.hanh_dong.trim(), chu_man: boChamCuoi(x.chu_man.trim()), thoai, loi_thoai: ghepThoai(thoai), thoai_url: thoai[0]?.url ?? null, prompt_anh: x.prompt_anh.trim(), phat_s: Math.max(2, Math.round(x.phat_s * 10) / 10), loi: x.doi_hinh ? LOI_CAN_KEYFRAME : '' });
+    capNhat.push({ id: c.id, thu_tu: c.thu_tu, nhan_vat: nvMoi, hanh_dong: x.hanh_dong.trim(), hanh_dong_vi: (x.hanh_dong_vi ?? '').trim(), chu_man: boChamCuoi(x.chu_man.trim()), thoai, loi_thoai: ghepThoai(thoai), thoai_url: thoai[0]?.url ?? null, prompt_anh: x.prompt_anh.trim(), phat_s: Math.max(2, Math.round(x.phat_s * 10) / 10), loi: x.doi_hinh ? LOI_CAN_KEYFRAME : '' });
   }
   const chen: KeHoachSua['chen'] = [];
   const thuTu: KeHoachSua['thuTu'] = [];
@@ -121,7 +121,7 @@ export function keHoachSua(canh: Pick<Canh, 'id' | 'thu_tu' | 'thoai' | 'nhan_va
     for (const m of them.filter((y) => y.sau_shot === c.thu_tu)) {
       const thoai = giuGiong([], m.thoai);
       thuTu.push(`m${chen.length}`);
-      chen.push({ sau_id: c.id, canh: m.canh.trim() || 'Shot thêm', hanh_dong: m.hanh_dong.trim(), chu_man: boChamCuoi(m.chu_man.trim()), thoai, loi_thoai: ghepThoai(thoai), prompt_anh: m.prompt_anh.trim(), nhan_vat: m.nhan_vat.map(idTen).filter((x): x is number => x != null), phat_s: Math.max(2, Math.round(m.phat_s * 10) / 10) });
+      chen.push({ sau_id: c.id, canh: m.canh.trim() || 'Shot thêm', hanh_dong: m.hanh_dong.trim(), hanh_dong_vi: (m.hanh_dong_vi ?? '').trim(), chu_man: boChamCuoi(m.chu_man.trim()), thoai, loi_thoai: ghepThoai(thoai), prompt_anh: m.prompt_anh.trim(), nhan_vat: m.nhan_vat.map(idTen).filter((x): x is number => x != null), phat_s: Math.max(2, Math.round(m.phat_s * 10) / 10) });
     }
   }
   return { capNhat, chen, thuTu };

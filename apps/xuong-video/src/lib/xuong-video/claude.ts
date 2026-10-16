@@ -701,6 +701,7 @@ const SuaKbSchema = z.object({
   sua: z.array(z.object({
     shot: z.number().describe('Số shot (#) đang có cần sửa'),
     hanh_dong: z.string().describe('Hành động người xem THẤY trong shot (1 câu, tiếng Anh)'),
+    hanh_dong_vi: z.string().describe('Câu hành động đó dịch sang tiếng Việt cho người duyệt đọc (1 câu)'),
     chu_man: z.string().describe('Chữ trên màn ≤ 5 từ, không dấu chấm cuối; rỗng nếu không cần'),
     thoai: z.array(DongSua).describe('TOÀN BỘ dòng thoại / lời dẫn của shot sau khi sửa (giữ nguyên dòng không cần đổi)'),
     prompt_anh: z.string().describe('Prompt ảnh keyframe tiếng Anh sau khi sửa (giữ nguyên nếu hình không đổi)'),
@@ -711,7 +712,7 @@ const SuaKbSchema = z.object({
   them: z.array(z.object({
     sau_shot: z.number().describe('Chèn ngay SAU shot số này (theo số shot hiện tại)'),
     canh: z.string().describe('Tên shot ngắn (tiếng Anh)'),
-    hanh_dong: z.string(), chu_man: z.string(), thoai: z.array(DongSua),
+    hanh_dong: z.string(), hanh_dong_vi: z.string().describe('Câu hành động dịch sang tiếng Việt cho người duyệt đọc'), chu_man: z.string(), thoai: z.array(DongSua),
     prompt_anh: z.string().describe('Prompt ảnh keyframe tiếng Anh, cùng phong cách phim'),
     nhan_vat: z.array(z.string()).describe('Tên anchor (nhân vật / bối cảnh / đạo cụ) có trong shot, đúng tên trong danh sách'),
     phat_s: z.number(),

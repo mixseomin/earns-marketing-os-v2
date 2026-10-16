@@ -112,16 +112,16 @@ export async function suaTheoNguoiXemTap(db: Db, tapId: number, nguoi: string): 
   const kh = keHoachSua(canh, bc.nhanVat, kq.data.sua, kq.data.them);
   const nhom = await chupTruoc(db, { bang: 'xv_canh', id: kh.capNhat[0]?.id ?? canh[0]!.id, cot: ['thu_tu'], moTa: 'sửa kịch bản theo người xem', nguoi });
   for (const u of kh.capNhat) {
-    await chupTruoc(db, { bang: 'xv_canh', id: u.id, cot: ['hanh_dong', 'chu_man', 'thoai', 'loi_thoai', 'thoai_url', 'prompt_anh', 'phat_s', 'loi', 'nhan_vat'], moTa: 'sửa theo người xem', nguoi: '', nhom });
-    await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${u.hanh_dong}, chu_man = ${u.chu_man}, thoai = ${JSON.stringify(u.thoai)}::jsonb, loi_thoai = ${u.loi_thoai}, thoai_url = ${u.thoai_url},
+    await chupTruoc(db, { bang: 'xv_canh', id: u.id, cot: ['hanh_dong', 'hanh_dong_vi', 'chu_man', 'thoai', 'loi_thoai', 'thoai_url', 'prompt_anh', 'phat_s', 'loi', 'nhan_vat'], moTa: 'sửa theo người xem', nguoi: '', nhom });
+    await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${u.hanh_dong}, hanh_dong_vi = ${u.hanh_dong_vi}, chu_man = ${u.chu_man}, thoai = ${JSON.stringify(u.thoai)}::jsonb, loi_thoai = ${u.loi_thoai}, thoai_url = ${u.thoai_url},
       prompt_anh = ${u.prompt_anh}, prompt_video = ${u.hanh_dong}, nhan_vat = ${JSON.stringify(u.nhan_vat)}::jsonb, phat_s = ${u.phat_s}, thoi_luong_s = GREATEST(thoi_luong_s, ${lamTronClip(u.phat_s)}), loi = ${u.loi}, updated_at = now() WHERE id = ${u.id}`);
   }
   // Shot chèn: chép phân cảnh / kỹ thuật / cảm xúc của shot đứng trước (qua cổng shot list), rồi đánh số lại cả tập theo thuTu.
   const idMoi = new Map<string, number>();
   for (const [i, m] of kh.chen.entries()) {
     const tr = tatCa.find((c) => c.id === m.sau_id)!;
-    const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, chu_man, thoai, loi_thoai, prompt_anh, prompt_video, phat_s, thoi_luong_s, nhan_vat, ky_thuat, phan_doan, cam_xuc, nhanh)
-      VALUES (${tapId}, ${tr.thu_tu}, ${m.canh}, ${m.hanh_dong}, ${m.chu_man}, ${JSON.stringify(m.thoai)}::jsonb, ${m.loi_thoai}, ${m.prompt_anh}, ${m.hanh_dong}, ${m.phat_s}, ${lamTronClip(m.phat_s)},
+    const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, hanh_dong_vi, chu_man, thoai, loi_thoai, prompt_anh, prompt_video, phat_s, thoi_luong_s, nhan_vat, ky_thuat, phan_doan, cam_xuc, nhanh)
+      VALUES (${tapId}, ${tr.thu_tu}, ${m.canh}, ${m.hanh_dong}, ${m.hanh_dong_vi}, ${m.chu_man}, ${JSON.stringify(m.thoai)}::jsonb, ${m.loi_thoai}, ${m.prompt_anh}, ${m.hanh_dong}, ${m.phat_s}, ${lamTronClip(m.phat_s)},
         ${JSON.stringify(m.nhan_vat)}::jsonb, ${JSON.stringify(tr.ky_thuat ?? {})}::jsonb, ${tr.phan_doan}, ${tr.cam_xuc}, ${tr.nhanh}) RETURNING id`)) as unknown as Row[];
     idMoi.set(`m${i}`, Number(r[0]!.id));
   }

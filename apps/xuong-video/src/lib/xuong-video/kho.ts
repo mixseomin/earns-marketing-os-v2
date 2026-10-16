@@ -97,7 +97,7 @@ export async function boKhoiKho(db: Db, id: number): Promise<void> {
 // ── Khuôn QC + kiểu chữ thương hiệu (đợt C) ─────────────────────────────────────────────────────────────────────
 
 /** Cột của shot chép vào khuôn — phần CẤU TRÚC (giây, chữ màn nguyên văn, lời + độ trễ, máy, prompt), không chép tệp (hình/clip/giọng). */
-type ShotKhuon = { thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoi_luong_s: number; phat_s: number | null;
+type ShotKhuon = { thu_tu: number; canh: string; goc_may: string; hanh_dong: string; hanh_dong_vi?: string; loi_thoai: string; am_thanh: string; thoi_luong_s: number; phat_s: number | null;
   prompt_anh: string; prompt_video: string; phan_doan: string; cam_xuc: number; ky_thuat: unknown; trang_phuc: string; chu_man: string; nhanh: string; kieu_chu: unknown;
   thoai: { nhan_vat: string; dien_xuat: string; loi: string; tre?: number }[]; nhan_vat_ten: string[] };
 
@@ -110,7 +110,7 @@ export async function luuKhuonQc(db: Db, tapId: number, ten?: string): Promise<K
   const tenNv = new Map(nv.map((x) => [n(x.id), s(x.ten)]));
   const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   if (!ds.length) return loi('tập chưa có shot');
-  const shots: ShotKhuon[] = ds.map((c) => ({ thu_tu: c.thu_tu, canh: c.canh, goc_may: c.goc_may, hanh_dong: c.hanh_dong, loi_thoai: c.loi_thoai, am_thanh: c.am_thanh,
+  const shots: ShotKhuon[] = ds.map((c) => ({ thu_tu: c.thu_tu, canh: c.canh, goc_may: c.goc_may, hanh_dong: c.hanh_dong, hanh_dong_vi: c.hanh_dong_vi, loi_thoai: c.loi_thoai, am_thanh: c.am_thanh,
     thoi_luong_s: c.thoi_luong_s, phat_s: c.phat_s ?? null, prompt_anh: c.prompt_anh, prompt_video: c.prompt_video, phan_doan: c.phan_doan, cam_xuc: c.cam_xuc, ky_thuat: c.ky_thuat,
     trang_phuc: c.trang_phuc ?? '', chu_man: c.chu_man, nhanh: c.nhanh ?? '', kieu_chu: c.kieu_chu,
     thoai: c.thoai.map((d) => ({ nhan_vat: d.nhan_vat, dien_xuat: d.dien_xuat, loi: d.loi, ...(typeof d.tre === 'number' ? { tre: d.tre } : {}) })),
@@ -139,8 +139,8 @@ export async function taoTapTuKhuon(db: Db, khuonId: number, phimId: number, ngu
   const tapId = n(t[0]!.id);
   for (const x of du.shots) {
     const ids = x.nhan_vat_ten.map((tn) => idTheoTen.get(tn.trim().toLowerCase())).filter((v): v is number => v != null);
-    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, chu_man, nhanh, kieu_chu, thoai, phat_s, trang_thai)
-      VALUES (${tapId}, ${x.thu_tu}, ${x.canh}, ${x.goc_may}, ${x.hanh_dong}, ${x.loi_thoai}, ${x.am_thanh}, ${x.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${x.prompt_anh}, ${x.prompt_video},
+    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, chu_man, nhanh, kieu_chu, thoai, phat_s, trang_thai)
+      VALUES (${tapId}, ${x.thu_tu}, ${x.canh}, ${x.goc_may}, ${x.hanh_dong}, ${x.hanh_dong_vi ?? ''}, ${x.loi_thoai}, ${x.am_thanh}, ${x.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${x.prompt_anh}, ${x.prompt_video},
         ${x.phan_doan}, ${x.cam_xuc}, ${JSON.stringify(x.ky_thuat ?? {})}::jsonb, ${x.trang_phuc}, ${x.chu_man}, ${x.nhanh || null}, ${JSON.stringify(x.kieu_chu ?? {})}::jsonb, ${JSON.stringify(x.thoai)}::jsonb, ${x.phat_s}, 'nhap')`);
   }
   await db.execute(sql`UPDATE xv_tai_san SET so_lan_dung = so_lan_dung + 1, updated_at = now() WHERE id = ${khuonId}`);

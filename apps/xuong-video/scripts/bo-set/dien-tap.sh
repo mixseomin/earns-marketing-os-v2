@@ -2,7 +2,7 @@
 # DIỄN CẢ TẬP bằng Blender trên iMac (anh 16/10/2026: phim làm hoàn toàn bằng Blender; "làm sao tao xem được cái mày vừa làm"):
 # lấy shot + thời lượng từ máy chủ → mỗi shot: dung-set.py XV_DIEN render khung → ghep-dien.sh (hậu kỳ ống kính) → gửi clip + 5 khung khoá
 # → nap-dien.mts: clip thành VIDEO của shot (lưới / timeline / trình phát hiện ngay), khung đầu thành keyframe. 0đ. Shot đã xong thì bỏ qua (chạy lại tiếp).
-#   scripts/bo-set/dien-tap.sh <tap_id> [--chi=thu_tu,…]   ·   XV_RONG (mặc định 720) · XV_MAU (24) chỉnh chất lượng
+#   scripts/bo-set/dien-tap.sh <tap_id> [--chi=thu_tu,…]   ·   XV_MAY=eevee (bản xem ~1 phút/shot) | cycles (~8 phút/shot iMac M4) · XV_RONG (720) · XV_MAU (24)
 set -e
 TAP=$1; CHI=$(echo "$2" | sed -n 's/^--chi=//p')
 BOX=root@167.233.241.16; APP=/opt/earns-marketing-os-v2/apps/xuong-video
@@ -28,7 +28,7 @@ PY
 while read -r TEN MA GIAY; do
   D="$RA/$TEN"; [ -f "$D/xong" ] && continue
   rm -f "$D"/f*.png
-  env XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720} "$BLENDER" -b --factory-startup -P "$DIR/scripts/bo-set/dung-set.py" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; continue; }
+  env XV_MAY=${XV_MAY:-cycles} XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720} "$BLENDER" -b --factory-startup -P "$DIR/scripts/bo-set/dung-set.py" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; continue; }
   N=$(ls "$D"/f*.png | wc -l | tr -d ' '); [ "$N" -ge 2 ] || { echo "LOI $TEN: không có khung"; continue; }
   "$DIR/scripts/bo-set/ghep-dien.sh" "$D" "$D/dien.mp4"
   for i in 0 1 2 3 4; do f=$(python3 -c "print(1 + round([0, .25, .5, .75, 1][$i] * ($N - 1)))"); "$DIR/scripts/bo-set/ghep-dien.sh" --anh "$D/f$(printf %04d $f).png" "$D/khoa-$i.jpg"; done

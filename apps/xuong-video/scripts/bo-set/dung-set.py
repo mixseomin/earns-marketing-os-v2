@@ -857,12 +857,22 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 st.roughness_1 = r1 * (1 + r.uniform(-0.3, 0.3) * boil); st.roughness_endpoint = re_ * (1 + r.uniform(-0.3, 0.3) * boil)
                 st.keyframe_insert('roughness_1', frame=f); st.keyframe_insert('roughness_endpoint', frame=f)
     s.frame_set(1); anh_sang_mau(s, sh, True)
-    s.render.engine = 'CYCLES'; s.cycles.samples = int(os.environ.get('XV_MAU', '32')); s.cycles.use_denoising = True
-    try:
-        p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
-        for d_ in p_.devices: d_.use = True
-        s.cycles.device = 'GPU'
-    except Exception as ex: print('GPU?', ex)
+    # BỘ DỰNG (anh 16/10/2026: "mỗi shot 11 phút — tối ưu kiểu gì"): iMac M4 GPU 8 nhân, Cycles ~12,5 s/khung 720p. XV_MAY=eevee → EEVEE (dựng thời
+    # gian thực, nhanh hơn hàng chục lần, đủ cho bản xem); mặc định Cycles nhưng giữ dữ liệu cảnh giữa các khung (không dựng lại lông / BVH mỗi
+    # khung), lấy mẫu thích ứng, bớt nảy sáng — cảnh tối nhỏ không cần 12 lần nảy.
+    if os.environ.get('XV_MAY') == 'eevee':
+        s.render.engine = 'BLENDER_EEVEE'; ev = s.eevee; ev.taa_render_samples = int(os.environ.get('XV_MAU', '32'))
+        for k_, v_ in (('use_raytracing', True), ('use_shadows', True), ('use_volumetric_shadows', False)):
+            if hasattr(ev, k_): setattr(ev, k_, v_)
+    else:
+        s.render.engine = 'CYCLES'; s.cycles.samples = int(os.environ.get('XV_MAU', '32')); s.cycles.use_denoising = True
+        s.cycles.use_adaptive_sampling = True; s.cycles.adaptive_threshold = 0.03; s.render.use_persistent_data = True
+        s.cycles.max_bounces = 6; s.cycles.diffuse_bounces = 2; s.cycles.glossy_bounces = 2; s.cycles.transmission_bounces = 6
+        try:
+            p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
+            for d_ in p_.devices: d_.use = True
+            s.cycles.device = 'GPU'
+        except Exception as ex: print('GPU?', ex)
     if not chay: lay_net(cam, sh)
     s.view_settings.view_transform = 'AgX'
     # 1080×1920 (XV_RONG): model video nhận khung ≥ 720p — khung 540 bị phóng lên thành mềm.

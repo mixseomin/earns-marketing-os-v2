@@ -33,5 +33,5 @@ assert.ok(!assMotDung({ ...de, dich: 'A{B}C' }).includes('A{B}C'));
 const khong = lenhMotDung({ de, ass: '/t/a.ass', nen: null, fontsDir: '/f', ra: '/t/r.mp4' }).join(' ');
 assert.ok(khong.includes('gradients=') && khong.includes("ass='/t/a.ass'") && khong.includes('aevalsrc=') && !khong.includes('zoompan'));
 const co = lenhMotDung({ de, ass: '/t/a.ass', nen: '/t/n.jpg', fontsDir: '/f', ra: '/t/r.mp4' }).join(' ');
-assert.ok(co.includes('zoompan') && co.includes('/t/n.jpg') && !co.includes('gradients='));
+assert.ok(co.includes('zoompan') && co.includes('/t/n.jpg') && !co.includes('gradients=') && co.includes('lutyuv') && !co.includes('drawbox'), 'nền ảnh: tối bằng độ sáng, không drawbox (drawbox có alpha làm mất màu)');
 console.log('khuon-mot-dung: đạt');

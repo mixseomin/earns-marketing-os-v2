@@ -62,7 +62,8 @@ export function assMotDung(de: DeMotDung): string {
   // 36 ô: ô sai mờ còn 25% lúc lộ; ô đúng có khung màu nhấn viền đỏ, chữ phóng 1,25
   for (const [i, c] of L.o.entries()) {
     const dung = i === de.cho;
-    d.push([6, 0, T_KET, 'Den', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})${fs(L.co)}\\fsp1\\1c&H1B1B1B&${nay(0, 88)}${dung ? `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\fscx125\\fscy125)` : `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\1a${alpha(0.25)})`}}${chu(c.w)}`]);
+    const x0 = Math.round(540 + (c.x - 540) * 0.88), y0 = Math.round(990 + (c.y - 990) * 0.88);
+    d.push([6, 0, T_KET, 'Den', `{\\an5\\move(${x0},${y0},${Math.round(c.x)},${Math.round(c.y)},0,500)${fs(L.co)}\\fsp1\\1c&H1B1B1B&${nay(0, 88)}${dung ? `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\fscx125\\fscy125)` : `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\1a${alpha(0.25)})`}}${chu(c.w)}`]);
     if (dung) {
       const w = Math.round(L.cw - 12), h = Math.round(L.ch - 8);
       d.push([4, T_LO, T_KET, 'Ve', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})\\1c${mauAss(DO)}\\fscx80\\fscy80\\t(0,300,0.5,\\fscx125\\fscy125)\\p1}${bo(w, h, 14)}`]);
@@ -110,7 +111,7 @@ export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null;
     ? ['-loop', '1', '-framerate', String(FPS), '-t', String(DAI), '-i', o.nen]
     : ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=radial:x0=540:y0=730:x1=540:y1=2050:c0=${tron(M.sau, '#ffffff', 0.3).replace('#', '0x')}:c1=${M.sau.replace('#', '0x')}:c2=${tron(M.sau, '#000000', 0.3).replace('#', '0x')}:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
   const nen = o.nen
-    ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},zoompan=z='1+0.06*on/${khung}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},drawbox=x=0:y=0:w=iw:h=ih:color=${M.sau.replace('#', '0x')}@0.42:t=fill`
+    ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},zoompan=z='1+0.06*on/${khung}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},lutyuv=y=val*0.7,vignette=angle=PI/4`   // tối đi bằng ĐỘ SÁNG (kênh Y), giữ màu: drawbox có alpha trên YUV trộn cả kênh màu về xám — lớp đen 30% đã làm ảnh gần như đơn sắc (đo 16/10/2026)
     : '[0:v]null';
   const assEsc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${AM}':s=44100:d=${DAI}`,

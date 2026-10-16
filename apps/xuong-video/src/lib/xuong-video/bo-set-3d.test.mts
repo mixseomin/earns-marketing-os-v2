@@ -73,9 +73,9 @@ assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground, c
 const kh = () => ({ co: [2, 1.6, 2.6] });
 const sh = (id: number, vi_tri: { ten: string; tam: number[]; den?: number[]; huong?: number; nam?: boolean; nam_den?: boolean; trang_den?: string; dien?: string[] }[], nhay?: string) => ({ id, thu_tu: id, may_3d: { dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri, ...(nhay ? { nhay } : {}) } });
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [10, 0.3, 0] }])], kh), {});
-assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [15, 0, 0] }])], kh)[2]![0]!.includes('lệch 5 cm'));
+assert.ok(noiHookup([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [15, 0, 0] }])]).lech[2]![0]!.includes('lệch 5 cm')); assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [15, 0, 0] }])], kh), {}, 'khai lệch: cổng không chặn');
 // dáng: đứng → nằm qua cú cắt là lỗi; ngã trong shot (nam_den) thì qua; vắng một shot thì được đổi ngoài khung
-assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh)[2]?.some((x) => x.startsWith('⛓') && x.includes('khai mở nằm')), 'đứng → nằm qua cú cắt: hookup nối đứng, báo khai lệch');
+assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh)[2]?.some((x) => x.includes('NẰM')) !== true && noiHookup([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])]).lech[2]?.[0]?.includes('khai mở nằm'), 'đứng → nằm qua cú cắt: hookup nối đứng, cổng không chặn, ghi chú khai lệch');
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam_den: true }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh), {});
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }]), sh(2, [{ ten: 'Lint', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Tango', tam: [0, 0, 0] }])], kh), {});
 // nằm mà đi: lỗi; khai lan_tron / truot thì qua
@@ -108,11 +108,11 @@ const pc = [{ ten: 'Lái xe', ngay: 'N1' }, { ten: 'Ngủ', ngay: 'D2' }, { ten:
   assert.deepEqual(mayDayDu([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [12, 0, 0] }])], () => false).get(2)!.vi_tri[0]!.tam, [10, 0, 0], 'Blender dựng chỗ đã nối');
 }
 assert.deepEqual(lienMachTap([shc(1, 'Cảnh 1 · Lái xe', [{ ten: 'Bố', tam: [0, 0, 0] }]), shc(2, 'Cảnh 2 · Ngủ', [{ ten: 'Bố', tam: [90, 0, 0], nam: true }])], kh, pc), {}, 'sáng hôm sau đang ngủ: hợp lệ');
-assert.ok(lienMachTap([shc(1, 'Lái xe', [{ ten: 'Bố', tam: [0, 0, 0] }]), shc(2, 'Liền', [{ ten: 'Bố', tam: [90, 0, 0], nam: true }])], kh, pc)[2]?.length, 'cảnh liền: vẫn bắt');
+assert.ok(noiHookup([shc(1, 'Lái xe', [{ ten: 'Bố', tam: [0, 0, 0] }]), shc(2, 'Liền', [{ ten: 'Bố', tam: [90, 0, 0], nam: true }])], pc).lech[2]?.length, 'cảnh liền: vẫn nối (ghi chú khai lệch)');
 assert.deepEqual(lienMachTap([shc(1, 'Lái xe', [{ ten: 'Bố', tam: [0, 0, 0] }]), shc(2, 'Nhà', [{ ten: 'Bố', tam: [90, 0, 0], nam: true }])], kh, pc), {}, 'thời gian nhảy: chỗ / dáng reset');
 const xuL = [{ ten: 'Bố', tam: [0, 0, 0], trang_den: 'ướt' }] as Parameters<typeof sh>[1];
-assert.ok(lienMachTap([shc(1, 'Lái xe', xuL), shc(2, 'Nhà', [{ ten: 'Bố', tam: [9, 0, 0] }])], kh, pc)[2]?.some((x) => x.includes('"ướt"')), 'cùng ngày: ướt vẫn phải giữ');
-assert.ok(lienMachTap([sh(1, [{ ten: 'Lint', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Lint', tam: [3, 0, 0] }])], kh)[3]![0]!.includes('kết #1'));
+assert.ok(noiHookup([shc(1, 'Lái xe', xuL), shc(2, 'Nhà', [{ ten: 'Bố', tam: [9, 0, 0] }])], pc).lech[2]?.some((x) => x.includes('"ướt"')), 'cùng ngày: ướt vẫn nối');
+assert.ok(noiHookup([sh(1, [{ ten: 'Lint', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Lint', tam: [3, 0, 0] }])]).lech[3]![0]!.includes('kết #1'));
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [40, 0, 0] }], 'thời gian trôi: trượt cáp xuống đế cắm')], kh), {});
 { const q = noiHookup([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], huong: 90 }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], huong: -90 }])]); assert.deepEqual([q.may.get(2)!.vi_tri[0]!.huong, q.may.get(2)!.vi_tri[0]!.huong_den, q.lech[2]], [90, -90, undefined], 'hướng: mở theo hookup, quay tới hướng shot cần'); }
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Gummy Bear', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Gummy Bear', tam: [3, 0, 1], cam: 'Tango' } as never]), sh(3, [{ ten: 'Gummy Bear', tam: [50, 0, 0] }])], kh), {});
@@ -215,8 +215,8 @@ const mD = (deg: number, z = 1.5, vi_tri: May3d['vi_tri'] = [], k: Partial<May3d
 // trạng thái nhân vật vào prompt + nối qua cú cắt
 assert.equal(trangThaiVat({ ten: 'W', tam: [0, 0, 0], trang: 'frizzed stiff' }), 'frizzed stiff');
 assert.equal(trangThaiVat({ ten: 'W', tam: [0, 0, 0], trang_den: 'frizzed stiff' }, true), 'frizzed stiff');
-const lmT = lienMachTap([{ id: 1, thu_tu: 1, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang_den: 'frizzed stiff' }]) }, { id: 2, thu_tu: 2, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0] }]) }], () => null);
-assert.ok(lmT[2]?.[0]?.includes('frizzed stiff'), JSON.stringify(lmT));
+const lmT = noiHookup([{ id: 1, thu_tu: 1, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang_den: 'frizzed stiff' }]) }, { id: 2, thu_tu: 2, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0] }]) }]);
+assert.equal(lmT.may.get(2)!.vi_tri[0]!.trang, 'frizzed stiff', 'trạng thái nối qua cú cắt');
 assert.equal(lienMachTap([{ id: 1, thu_tu: 1, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang_den: 'frizzed stiff' }]) }, { id: 2, thu_tu: 2, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang: 'frizzed stiff' }]) }], () => null)[2], undefined);
 // shot tổng thể: cảnh 3 shot, 2 nhân vật, không shot nào thấy cả hai → chặn shot đông người; có một shot thấy đủ → qua
 const tt = (thayL: boolean) => [

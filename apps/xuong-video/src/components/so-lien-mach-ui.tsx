@@ -13,7 +13,7 @@ import { moNgan } from './ngan-chung';
 type Ds = { tap: { id: number; so: number; ten: string }; so: SoLienMach }[];
 const mono = { fontFamily: 'var(--mono, ui-monospace)', fontSize: 11 } as const;
 const mauDiem = (d: number) => (d >= 90 ? '#4ade80' : d >= 70 ? '#facc15' : '#f87171');
-const TEN_MUC: Record<MucLoi, string> = { chan: 'CHẶN', nang: 'nặng', thieu: 'thiếu', nhe: 'nhẹ' };
+const TEN_MUC: Record<MucLoi, string> = { chan: 'CHẶN', nang: 'nặng', thieu: 'thiếu', nhe: 'nhẹ', ghi: 'ghi chú' };
 const LUONG: Record<DongSo['luong_moi'], string> = { '': '', ngay: '📅 sang ngày truyện mới — sổ reset hết', canh: '✂ cảnh mới (thời gian nhảy) — chỗ / dáng / đồ cầm reset', nhay: '⏭ shot khai cắt thời gian' };
 
 export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: number; canh?: string }) {
@@ -33,7 +33,7 @@ export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: numb
       <div style={{ ...mono, color: 'var(--fg-3)', lineHeight: 1.5 }}>
         Sổ của <b>script supervisor</b>: mỗi shot một dòng — nhân vật phải MỞ shot đúng chỗ / dáng / hướng / trạng thái / đồ cầm lúc KẾT lần cuối thấy, trừ khi sang
         <b> ngày truyện</b> khác (reset hết) hoặc <b>cảnh mới</b> (thời gian nhảy: reset chỗ, dáng, đồ cầm — trạng thái cơ thể như ướt, bẩn, trang phục giữ tới khi đổi ngày).
-        {' '}<b style={{ color: '#4ade80' }}>⛓#N</b> = <b>hookup</b> như xưởng hoạt hình: chỗ / hướng / dáng / trạng thái mở của shot TỰ NỐI từ lúc kết của shot #N — không khai lại; sửa chỗ kết shot trước là shot sau đổi theo.
+        {' '}<b style={{ color: '#4ade80' }}>nối #N</b> = <b>hookup</b> như xưởng hoạt hình: chỗ / hướng / dáng / trạng thái mở của shot TỰ NỐI từ lúc kết của shot #N — không khai lại; sửa chỗ kết shot trước là shot sau đổi theo.
       </div>
       {ds.map(({ tap, so }) => {
         const ten = 'ten' in p ? [p.ten] : Object.keys(so.nhanVat);
@@ -44,7 +44,7 @@ export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: numb
             {ten.map((t) => {
               const dong = (so.nhanVat[t] ?? []).filter((d) => !shotCanh || shotCanh.has(d.thu_tu));
               if (!dong.length) return null;
-              const soLoi = dong.filter((d) => d.loi.length).length;
+              const soLoi = dong.filter((d) => d.muc.some((m) => m.muc !== 'ghi')).length;
               return (
                 <div key={t} style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
                   {!('ten' in p) && <div style={{ padding: '6px 10px', background: 'var(--bg-2)', display: 'flex', gap: 8, alignItems: 'baseline' }}>
@@ -72,22 +72,22 @@ export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: numb
 
 function DongSoTr({ d }: { d: DongSo }) {
   const td = { padding: '4px 8px', borderTop: '1px solid var(--line)', verticalAlign: 'top' } as const;
-  const loi = d.loi.length > 0;
+  const loi = d.muc.some((m) => m.muc !== 'ghi'); const coGhi = d.muc.length > 0;
   return (<>
     {d.luong_moi && <tr><td colSpan={9} style={{ ...td, color: '#facc15', background: 'rgba(250,204,21,.06)' }}>{LUONG[d.luong_moi]}</td></tr>}
     <tr style={{ background: loi ? 'rgba(248,113,113,.08)' : undefined, opacity: d.an ? 0.6 : 1 }} title={d.an ? 'ngoài khung (ẩn) — vẫn tính liền mạch' : undefined}>
       <td style={{ ...td, color: mauDiem(d.diem), fontWeight: 700 }} title={d.muc.length ? d.muc.map((m) => `${TEN_MUC[m.muc]} −${m.tru}`).join(' · ') : 'không lỗi'}>{d.diem}</td>
       <td style={td}><button type="button" className="xv-lienket" onClick={() => moNgan({ loai: 'nguon', canhId: d.canhId })} style={{ ...mono }}>#{d.thu_tu}</button></td>
       <td style={{ ...td, color: 'var(--fg-3)' }}>{d.canh}{d.ngay ? ` · ${d.ngay}` : ''}</td>
-      <td style={td}>{d.noi != null && <span style={{ color: '#4ade80' }} title={`chỗ / hướng / dáng / trạng thái mở NỐI từ lúc kết #${d.noi} (hookup) — sửa chỗ kết của #${d.noi} là shot này đổi theo`}>⛓#{d.noi} </span>}{chuCho(d.tam)}{d.den ? ` → ${chuCho(d.den)}` : ''}</td>
+      <td style={td}>{d.noi != null && <span style={{ color: '#4ade80' }} title={`chỗ / hướng / dáng / trạng thái mở NỐI từ lúc kết #${d.noi} (hookup) — sửa chỗ kết của #${d.noi} là shot này đổi theo`}>nối #{d.noi} · </span>}{chuCho(d.tam)}{d.den ? ` → ${chuCho(d.den)}` : ''}</td>
       <td style={{ ...td, color: d.nam !== d.nam_den ? '#facc15' : undefined }}>{chuDang(d)}</td>
       <td style={td}>{d.huong != null ? `${Math.round(d.huong)}°` : ''}{d.huong_den != null && d.huong_den !== d.huong ? ` → ${Math.round(d.huong_den)}°` : ''}</td>
       <td style={{ ...td, maxWidth: 220 }}>{d.trang || d.trang_den ? <span title={d.trang_den}>{d.trang || 'bình thường'}{d.trang_den !== d.trang ? ` → ${d.trang_den}` : ''}</span> : <span style={{ color: 'var(--fg-4)' }}>bình thường</span>}</td>
       <td style={td}>{d.cam ? `trong tay ${d.cam}` : ''}{d.chia ? ` · ${d.chia} mảnh` : ''}</td>
       <td style={{ ...td, color: 'var(--fg-3)' }}>{d.dien.join(', ')}</td>
     </tr>
-    {loi && <tr><td colSpan={9} style={{ ...td, borderTop: 'none', paddingTop: 0 }}>{d.muc.map((m, i) => <div key={i} style={{ color: m.muc === 'chan' ? '#f87171' : m.muc === 'nhe' ? 'var(--fg-3)' : '#facc15' }}>
-      <b>{TEN_MUC[m.muc]} −{m.tru}</b> · {m.chu}</div>)}</td></tr>}
+    {coGhi && <tr><td colSpan={9} style={{ ...td, borderTop: 'none', paddingTop: 0 }}>{d.muc.map((m, i) => <div key={i} style={{ color: m.muc === 'chan' ? '#f87171' : m.muc === 'nhe' || m.muc === 'ghi' ? 'var(--fg-3)' : '#facc15' }}>
+      <b>{TEN_MUC[m.muc]}{m.tru ? ` −${m.tru}` : ''}</b> · {m.chu}</div>)}</td></tr>}
   </>);
 }
 

@@ -17,9 +17,10 @@ export type DongSo = {
 };
 /** MỨC LỖI (cách script supervisor / IMDb goofs xếp): chặn = phá logic truyện hoặc vật lý (vị trí nhảy, dáng nhảy, nằm mà đi, vật tự lành, đồ cầm
  *  biến mất, trạng thái tự hết) · nặng = dễ thấy (quay ngoắt hướng) · thiếu = mô tả có động tác mà 3D chưa khai · nhẹ = phần còn lại. */
-export type MucLoi = 'chan' | 'nang' | 'thieu' | 'nhe';
-export const TRU_MUC: Record<MucLoi, number> = { chan: 40, nang: 20, thieu: 15, nhe: 8 };
-export const mucLoi = (s: string): MucLoi => /^⛓/.test(s) ? 'nhe' : /thiếu động tác/.test(s) ? 'thieu' : /đứt mạch|NẰM|ĐỨNG|đã chia|đang cầm|trạng thái/.test(s) ? 'chan' : /quay ngoắt/.test(s) ? 'nang' : 'nhe';
+export type MucLoi = 'chan' | 'nang' | 'thieu' | 'nhe' | 'ghi';
+/** ghi = ghi chú khai lệch đã được hookup nối lại (máy dựng đúng) — không trừ điểm, không tính đứt mạch */
+export const TRU_MUC: Record<MucLoi, number> = { chan: 40, nang: 20, thieu: 15, nhe: 8, ghi: 0 };
+export const mucLoi = (s: string): MucLoi => /^nối: /.test(s) ? 'ghi' : /thiếu động tác/.test(s) ? 'thieu' : /đứt mạch|NẰM|ĐỨNG|đã chia|đang cầm|trạng thái/.test(s) ? 'chan' : /quay ngoắt/.test(s) ? 'nang' : 'nhe';
 /** Độ dễ thấy: ngoài khung ×0,4; trong khung theo % khung nhân vật chiếm (0,6 → 1,0 khi ≥ 40 %); không có số đo → 1. */
 export const doDeThay = (an: boolean, pt: number | null) => (an ? 0.4 : pt == null ? 1 : 0.6 + Math.min(pt, 40) / 100);
 export function chamLoi(loi: string[], an: boolean, pt: number | null): { diem: number; muc: DongSo['muc'] } {
@@ -38,7 +39,11 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
   const nhom = new Map<number, ShotSo[]>();
   for (const c of ds) { const k = c.nhan_vat ? (boSetCuaShot({ nhan_vat: c.nhan_vat }, nhanVat as Parameters<typeof boSetCuaShot>[1]) ?? -1) : -1; nhom.set(k, [...(nhom.get(k) ?? []), c]); }
   const loiShot: Record<number, string[]> = {}; const daNoi = new Map<number, May3d>();
-  for (const g of nhom.values()) { Object.assign(loiShot, lienMachTap(g, (t) => khoiCua(t, nhanVat), phanCanh)); for (const [k, m] of noiHookup(g, phanCanh).may) daNoi.set(k, m); }
+  for (const g of nhom.values()) {
+    Object.assign(loiShot, lienMachTap(g, (t) => khoiCua(t, nhanVat), phanCanh));
+    const hk = noiHookup(g, phanCanh); for (const [k, m] of hk.may) daNoi.set(k, m);
+    for (const [k, v] of Object.entries(hk.lech)) (loiShot[Number(k)] ??= []).push(...v);   // ghi chú khai lệch: chỉ sổ hiện, cổng không chặn
+  }
   const luongCua = luongShot(ds, phanCanh);
   const out: SoLienMach = { nhanVat: {}, canh: [] };
   let canhTruoc: string | undefined; let ngayTruoc: string | null = null;

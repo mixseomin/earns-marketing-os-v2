@@ -337,7 +337,7 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
       const n: typeof v = { ...v };
       if (k) {
         const d = Math.hypot(v.tam[0]! - k.p[0]!, v.tam[1]! - k.p[1]!, (v.tam[2] ?? 0) - (k.p[2] ?? 0));
-        if (d > 0.5) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở ở ${r(v.tam)} mà kết #${k.shot} ở ${r(k.p)} (lệch ${Math.round(d * 10) / 10} cm) — máy nối theo kết #${k.shot}; cố ý cắt thời gian thì khai nhay`);
+        if (d > 0.5) (lech[c.id] ??= []).push(`nối: ${v.ten} khai mở ở ${r(v.tam)} mà kết #${k.shot} ở ${r(k.p)} (lệch ${Math.round(d * 10) / 10} cm) — máy nối theo kết #${k.shot}; cố ý cắt thời gian thì khai nhay`);
         n.tam = [...k.p];
         if (k.huong != null) {
           // hướng shot khai khác hướng nối mà không khai huong_den = hướng shot CẦN (nhìn người kia): mở theo hookup rồi DIỄN quay đầu tới đó.
@@ -345,14 +345,14 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
           n.huong = k.huong;
         }
         if (truocCo.has(v.ten)) {
-          if (k.nam !== !!v.nam) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở ${v.nam ? 'nằm' : 'đứng'} mà kết #${k.shot} ${k.nam ? 'nằm' : 'đứng'} — máy nối theo #${k.shot}; đổi dáng thì diễn trong shot (nam_den + động tác nga / day)`);
+          if (k.nam !== !!v.nam) (lech[c.id] ??= []).push(`nối: ${v.ten} khai mở ${v.nam ? 'nằm' : 'đứng'} mà kết #${k.shot} ${k.nam ? 'nằm' : 'đứng'} — máy nối theo #${k.shot}; đổi dáng thì diễn trong shot (nam_den + động tác nga / day)`);
           n.nam = k.nam; if (v.nam_den == null) n.nam_den = k.nam;
         }
         n.noi_tu = k.shot;
       }
       if (t !== undefined) {
         const mo = (v.trang ?? '').trim();
-        if (mo !== t) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở "${mo || 'bình thường'}" mà kết shot trước "${t || 'bình thường'}" — máy nối theo shot trước; đổi thì khai trang_den`);
+        if (mo !== t) (lech[c.id] ??= []).push(`nối: ${v.ten} khai mở "${mo || 'bình thường'}" mà kết shot trước "${t || 'bình thường'}" — máy nối theo shot trước; đổi thì khai trang_den`);
         n.trang = t || undefined; if (v.trang_den == null) n.trang_den = t || undefined;
       }
       return n;
@@ -369,10 +369,9 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
 }
 
 export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null; canh?: string }>(ds0: T[], khoi: (ten: string) => { co: number[] } | null, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
-  // Kiểm trên bản ĐÃ NỐI hookup (noiHookup) — đúng thứ Blender / keyframe dựng; chỗ khai lệch shot trước thành ghi chú ⛓ (nhẹ).
+  // Kiểm trên bản ĐÃ NỐI hookup (noiHookup) — đúng thứ Blender / keyframe dựng. Chỗ khai lệch KHÔNG phải lỗi (máy đã dựng đúng): sổ hiện thành ghi chú, cổng không chặn.
   const hk = noiHookup(ds0, phanCanh); const ds = ds0.map((c) => (hk.may.has(c.id) ? { ...c, may_3d: hk.may.get(c.id)! } : c));
   const cuoi = new Map<string, { p: number[]; huong?: number; nam: boolean; shot: number }>(); const out: Record<number, string[]> = {};
-  for (const [k, v] of Object.entries(hk.lech)) (out[Number(k)] ??= []).push(...v);
   // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
   // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
   const camBoi = new Map<string, { nguoi: string; shot: number }>();

@@ -155,7 +155,9 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         return (
           <div className="xv-panel" style={{ padding: 0, marginBottom: 0 }}>
             {!nhom.length && <div style={{ ...mono, padding: 16 }}>Không có phim khớp bộ lọc.</div>}
-            {nhom.map((g) => g.phim.length === 1
+            {/* Series LUÔN có đầu nhóm, kể cả mới một bản (anh 17/10/2026 "cho vào group của film này"): series là chỗ gom các bản / ngôn ngữ / tập —
+                bản tiếng Anh của 'Nữ Thừa Kế Bí Mật' sẽ vào đúng nhóm. Nhóm một phim kiểu khác vẫn gọn một dòng (15/10/2026). */}
+            {nhom.map((g) => g.phim.length === 1 && g.kieu !== 'series'
               ? dong(g.phim[0]!, <span style={{ fontSize: 12, width: 16, textAlign: 'center' }} title={TEN_KIEU[g.kieu]}>{bieuTuong(g.kieu)}</span>)
               : (
                 <section key={g.key}>

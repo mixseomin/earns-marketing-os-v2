@@ -7,8 +7,9 @@
 //   --xuat <slug|all-chua>         dựng video (MP4 + 3 khung) cho một slug, hoặc mọi video đang dùng chưa có video
 //   --ghi-dang <slug> <nền>        stdin JSON { url, ngay, luc?, binhLuan? } → sổ đăng của video (gộp vào lượt đã có)
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
+//   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
 import { getDb } from '@mos2/db';
-import { dsVideoDang, ghiDang, ghiNguon, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
+import { dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
@@ -35,7 +36,9 @@ if (a.includes('--nap')) {
   if (!slug || !nen) { console.error('dùng: --ghi-dang <slug> <nền> < x.json'); process.exit(2); }
   if (!(await ghiDang(db, ma, slug, nen, await docStdin()))) { console.error(`không có video "${slug}" trong máy ${ma}`); process.exit(1); }
   console.log(`✓ sổ đăng ${slug} · ${nen}`);
+} else if (a.includes('--nhat-ky')) {
+  await ghiNhatKy(db, ma, await docStdin()); console.log('✓ nhật ký');
 } else if (a.includes('--nguon')) {
   await ghiNguon(db, ma, await docStdin()); console.log('✓ nguồn');
-} else { console.error('dùng: may-dung.mts [--may mã] --nap < de.json | --ds [--ca-luu-tru] | --xuat <slug|all-chua> | --ghi-dang <slug> <nền> < x.json | --nguon < n.json'); process.exit(2); }
+} else { console.error('dùng: may-dung.mts [--may mã] --nap < de.json | --ds [--ca-luu-tru] | --xuat <slug|all-chua> | --ghi-dang <slug> <nền> < x.json | --nguon < n.json | --nhat-ky < x.json'); process.exit(2); }
 process.exit(0);

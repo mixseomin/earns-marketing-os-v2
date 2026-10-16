@@ -1,6 +1,7 @@
 // MÁY → VIDEO (anh 17/10/2026, duyệt bố cục "Tự động · Theo template · Làm tự do"). Một MÁY = mẫu dựng + nguồn đề + luật chọn + nơi đăng;
 // mỗi VIDEO là một dòng nhẹ của xv_may_video (đề, video, 3 khung, sổ đăng từng nền) — không phim / tập / shot riêng, nên lên số lớn được.
 // Cửa vào cho máy ngoài studio: scripts/may-dung.mts (puzzle-books qua ssh: nạp đề, xuất, đọc danh sách đăng, ghi sổ đăng, ghi số nguồn).
+import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { dungVideo } from './may-dung';
@@ -22,6 +23,11 @@ export type VideoMay = {
   video_url: string | null; khung: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
 };
 export type DeNapMay = { slug: string; chu_de: string; de: DeMotDung; dang: VideoMay['dang'] };
+/** Một bước máy đã làm (xv_may_nhat_ky): chon_de · trang_tang · dung · dang · bo_qua · loi. */
+export type NhatKy = { id: number; luc: string; buoc: string; ok: boolean; slug: string | null; nen: string | null; noi_dung: string; url: string | null };
+/** Lượt đăng gần nhất của một nền — tệp báo lượt dang-short.mjs ghi cho cty.on.tc (/var/lib/cty/may/video-<nền>.json, cùng box). */
+export type LuotDang = { nen: string; luc: string; ok: boolean; slug?: string; url?: string; loi?: string; kho?: number; ke?: string | null };
+const BAO_CTY = '/var/lib/cty/may';
 
 const COT_MAY = sql`m.id, m.ma, m.ten, m.du_an, m.muc_dich, m.mau, m.chay, m.nguon, m.luat, m.dang,
   (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND NOT v.luu_tru) AS so_video,
@@ -47,11 +53,19 @@ export async function mayTheoMa(db: Db, ma: string): Promise<May | null> {
   return r ? mapMay(r) : null;
 }
 /** Một máy + video mới nhất trước: mặc định chỉ video đang dùng (`luuTru` = cả lưu trữ), `gioiHan` dòng. */
-export async function chiTietMay(db: Db, id: number, o: { luuTru?: boolean; gioiHan?: number } = {}): Promise<{ may: May; video: VideoMay[] } | null> {
+export async function chiTietMay(db: Db, id: number, o: { luuTru?: boolean; gioiHan?: number } = {}): Promise<{ may: May; video: VideoMay[]; nhat_ky: NhatKy[]; luot: LuotDang[] } | null> {
   const r = ((await db.execute(sql`SELECT ${COT_MAY} FROM xv_may m WHERE m.id = ${id}`)) as unknown as Row[])[0];
   if (!r) return null;
   const v = (await db.execute(sql`SELECT * FROM xv_may_video WHERE may_id = ${id} AND (${!!o.luuTru} OR NOT luu_tru) ORDER BY luu_tru, id DESC LIMIT ${o.gioiHan ?? 15}`)) as unknown as Row[];
-  return { may: mapMay(r), video: v.map(mapVideo) };
+  const nk = (await db.execute(sql`SELECT id, luc, buoc, ok, slug, nen, noi_dung, url FROM xv_may_nhat_ky WHERE may_id = ${id} ORDER BY luc DESC, id DESC LIMIT 12`)) as unknown as Row[];
+  const may = mapMay(r);
+  const luot = (await Promise.all(may.dang.map(async (d) => { try { return { nen: d.nen, ...JSON.parse(await readFile(`${BAO_CTY}/video-${d.nen}.json`, 'utf8')) } as LuotDang; } catch { return null; } }))).filter((x): x is LuotDang => !!x);
+  return { may, video: v.map(mapVideo), luot,
+    nhat_ky: nk.map((x) => ({ id: Number(x.id), luc: String(x.luc), buoc: String(x.buoc), ok: !!x.ok, slug: (x.slug as string | null) ?? null, nen: (x.nen as string | null) ?? null, noi_dung: String(x.noi_dung ?? ''), url: (x.url as string | null) ?? null })) };
+}
+/** Ghi một bước máy vừa làm vào nhật ký (máy ngoài gọi qua may-dung.mts --nhat-ky). */
+export async function ghiNhatKy(db: Db, ma: string, x: { buoc: string; ok?: boolean; slug?: string; nen?: string; noi_dung?: string; url?: string }): Promise<void> {
+  await db.execute(sql`INSERT INTO xv_may_nhat_ky (may_id, buoc, ok, slug, nen, noi_dung, url) SELECT id, ${x.buoc}, ${x.ok ?? true}, ${x.slug ?? null}, ${x.nen ?? null}, ${x.noi_dung ?? ''}, ${x.url ?? null} FROM xv_may WHERE ma = ${ma}`);
 }
 
 /** Nạp đề (khoá = slug trong máy): chưa có → thêm; đề đổi → ghi đề mới, bỏ video cũ (xuất lại); chỉ chữ đăng đổi → cập nhật chữ. */

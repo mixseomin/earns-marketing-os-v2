@@ -4,7 +4,7 @@
 // Máy đang mở nằm trong URL (?may=) → F5 / chia sẻ mở lại đúng máy. Chỉ đọc: nạp / xuất / đăng do máy ngoài chạy qua scripts/may-dung.mts.
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { chiTietMayUi, dsMayUi } from '@/lib/actions-may';
-import type { May, VideoMay } from '@/lib/xuong-video/may';
+import type { LuotDang, May, NhatKy, VideoMay } from '@/lib/xuong-video/may';
 import { kichBanMotDung, luoi } from '@/lib/xuong-video/may-dung-do-chu';
 import { MAU_MAY_DUNG } from '@/lib/xuong-video/may-dung-mau';
 import { gioVN } from '@/lib/xuong-video/kieu';
@@ -48,6 +48,45 @@ export function TuDong() {
   );
 }
 
+/** Giờ lượt kế của một mốc "HH:MM" (giờ VN): hôm nay nếu chưa qua, không thì ngày mai. */
+function luotKe(gio: string): { ngay: string; conGio: number } {
+  const [h, p] = gio.split(':').map(Number), nay = new Date(), vn = new Date(nay.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const ke = new Date(vn); ke.setHours(h ?? 0, p ?? 0, 0, 0); if (ke <= vn) ke.setDate(ke.getDate() + 1);
+  return { ngay: ke.getDate() === vn.getDate() ? 'hôm nay' : 'ngày mai', conGio: (ke.getTime() - vn.getTime()) / 36e5 };
+}
+const BUOC: Record<string, string> = { chon_de: 'Chọn đề', trang_tang: 'Trang tặng', dung: 'Dựng', dang: 'Đăng', bo_qua: 'Bỏ qua', loi: 'Lỗi' };
+
+/** BỘ MÁY ĐANG CHẠY (anh 17/10/2026): lượt kế theo từng máy đăng · lượt đăng gần nhất từng nền (tệp báo cty) · nhật ký các bước máy vừa làm. */
+function DangChay({ m, nhatKy, luot, video, onMo }: { m: May; nhatKy: NhatKy[]; luot: LuotDang[]; video: VideoMay[]; onMo: (id: number) => void }) {
+  const theoGio = [...new Set(m.dang.map((d) => `${d.gio}|${d.may}`))].map((k) => { const [gio, may] = k.split('|') as [string, string]; return { gio, may, nen: m.dang.filter((d) => d.gio === gio && d.may === may).map((d) => d.ten) }; });
+  const idSlug = (slug: string | null) => video.find((v) => v.slug === slug)?.id ?? null;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(0, 2fr)', gap: 12, background: 'var(--bg-2)', borderRadius: 6, padding: 10 }}>
+      <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+        <b style={{ fontSize: 12.5 }}>{m.chay ? '● Máy đang chạy' : '○ Máy đang tắt'}</b>
+        {theoGio.map((x) => { const k = luotKe(x.gio); return (
+          <div key={x.gio + x.may} style={{ fontSize: 12.5 }}>Lượt kế <b>{x.gio} {k.ngay}</b> <span style={mono}>(còn {k.conGio < 1 ? `${Math.round(k.conGio * 60)} phút` : `${k.conGio.toFixed(1).replace('.', ',')} giờ`})</span><br /><span style={mono}>{x.may}: {x.nen.join(' · ')}</span></div>); })}
+        <span style={mono}>Mỗi lượt: kho dưới 3 video chưa đăng thì làm thêm 1 video (chọn đề → trang tặng → dựng), rồi đăng 1 video mỗi nền.</span>
+        {!!luot.length && <div style={{ display: 'grid', gap: 2, borderTop: '1px solid var(--line)', paddingTop: 6 }}>
+          <span style={{ ...mono, textTransform: 'uppercase', letterSpacing: '.06em' }}>Lượt đăng gần nhất</span>
+          {luot.map((l) => (
+            <span key={l.nen} style={{ fontSize: 12 }} title={l.loi ?? ''}><b style={{ color: l.ok ? '#4ade80' : 'var(--red)' }}>{l.ok ? '✓' : '✗'}</b> {m.dang.find((d) => d.nen === l.nen)?.ten ?? l.nen} <span style={mono}>{gioVN(l.luc)}</span> {l.ok ? (l.slug ?? '') : (l.loi ?? 'lỗi').slice(0, 80)}</span>))}
+        </div>}
+      </div>
+      <div style={{ display: 'grid', gap: 3, alignContent: 'start', minWidth: 0 }}>
+        <span style={{ ...mono, textTransform: 'uppercase', letterSpacing: '.06em' }}>Nhật ký máy</span>
+        {!nhatKy.length && <span style={mono}>chưa có bước nào</span>}
+        {nhatKy.map((k) => { const vid = idSlug(k.slug); return (
+          <div key={k.id} style={{ display: 'grid', gridTemplateColumns: '92px 78px minmax(0, 1fr)', gap: 8, fontSize: 12.5, alignItems: 'baseline' }}>
+            <span style={mono}>{gioVN(k.luc)}</span>
+            <b style={{ color: !k.ok ? 'var(--red)' : k.buoc === 'dang' ? '#4ade80' : 'var(--cyan)', fontWeight: 600 }}>{BUOC[k.buoc] ?? k.buoc}{k.nen ? ` · ${NEN_GON[k.nen] ?? k.nen}` : ''}</b>
+            <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{k.noi_dung}{vid != null && <> · <button type="button" className="xv-lienket" style={{ fontSize: 12 }} onClick={() => onMo(vid)}>xem video</button></>}{k.url && k.buoc === 'dang' && <> · <a href={k.url} target="_blank" rel="noreferrer" style={{ color: 'var(--cyan)' }}>mở bài</a></>}</span>
+          </div>); })}
+      </div>
+    </div>
+  );
+}
+
 const chipChay = (m: May) => <Pill color={m.chay ? '#4ade80' : 'var(--fg-3)'} nhat={!m.chay}>{m.chay ? '● đang chạy' : '○ chưa bật'}</Pill>;
 const conLai = (m: May) => (m.nguon.tong != null && m.nguon.dung != null ? m.nguon.tong - m.nguon.dung : null);
 const tomDang = (m: May) => m.dang.map((d) => d.ten).join(' · ') || '—';
@@ -73,7 +112,7 @@ function TheMay({ m, onMo }: { m: May; onMo: () => void }) {
 }
 
 function ManMay({ id, onVe }: { id: number; onVe: () => void }) {
-  const [d, setD] = useState<{ may: May; video: VideoMay[] } | null | undefined>(undefined);
+  const [d, setD] = useState<{ may: May; video: VideoMay[]; nhat_ky: NhatKy[]; luot: LuotDang[] } | null | undefined>(undefined);
   const [tab, setTab] = useState<Tab>('video');
   const [luuTru, setLuuTru] = useState(false);
   const [gioiHan, setGioiHan] = useState(TRANG);
@@ -110,22 +149,21 @@ function ManMay({ id, onVe }: { id: number; onVe: () => void }) {
           </button>
         ))}
       </div>
+      <DangChay m={m} nhatKy={d.nhat_ky} luot={d.luot} video={d.video} onMo={setMo} />
       <Seg options={[{ value: 'video' as const, label: 'Video' }, { value: 'mau' as const, label: 'Mẫu' }, { value: 'nguon' as const, label: 'Nguồn đề' }, { value: 'dang' as const, label: 'Đăng' }]} value={tab} onChange={setTab} />
 
       {tab === 'video' && <>
         {!video.length ? <span style={mono}>Chưa có video. Máy chạy thì mỗi lượt tự lấy đề kế tiếp từ nguồn, dựng, rồi hiện ở đây.</span> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 620 }}>
-              <thead><tr style={{ textAlign: 'left' }}>{['', 'Video', 'Tạo lúc', 'Đăng', ''].map((h, i) => <th key={i} style={{ ...mono, fontWeight: 500, padding: '4px 6px', borderBottom: '1px solid var(--line)' }}>{h}</th>)}</tr></thead>
-              <tbody>{video.map((v) => (
-                <tr key={v.id} onClick={() => setMo(v.id)} style={{ cursor: 'pointer', opacity: v.luu_tru ? 0.5 : 1, borderBottom: '1px solid var(--line)' }}>
-                  <td style={{ padding: '4px 6px', width: 34 }}>{v.khung[0] ? <img src={anhNho(v.khung[0], 160)} alt="" style={{ width: 26, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 3, display: 'block' }} /> : <span style={{ display: 'block', width: 26, aspectRatio: '9 / 16', borderRadius: 3, background: v.de?.mau?.sau ?? 'var(--bg-2)' }} />}</td>
-                  <td style={{ padding: '4px 6px' }}><span style={mono}>#{v.id}</span> <b style={{ fontWeight: 600 }}>{v.chu_de}</b> <span style={mono}>{v.de?.dich}</span> {v.luu_tru && <Pill color="var(--fg-4)">lưu trữ</Pill>}</td>
-                  <td style={{ ...mono, padding: '4px 6px', whiteSpace: 'nowrap' }}>{gioVN(v.created_at)}</td>
-                  <td style={{ padding: '4px 6px' }}><span style={{ display: 'inline-flex', gap: 3 }}>{m.dang.map((n) => { const x = v.da_dang[n.nen]; return <span key={n.nen} title={x ? `${n.ten}: đăng ${x.ngay}` : v.luu_tru ? `${n.ten}: không đăng (lưu trữ)` : `${n.ten}: chờ lượt ${n.gio}`} style={{ ...mono, width: 24, textAlign: 'center', borderRadius: 3, padding: '1px 0', background: x ? 'rgba(74,222,128,.15)' : 'var(--bg-2)', color: x ? '#4ade80' : 'var(--fg-3)' }}>{NEN_GON[n.nen] ?? n.nen}</span>; })}</span></td>
-                  <td style={{ ...mono, padding: '4px 6px', textAlign: 'right' }}>{v.video_url ? `${v.giay ?? ''}s` : 'chưa dựng'}</td>
-                </tr>))}</tbody>
-            </table>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+            {video.map((v) => (
+              <button key={v.id} type="button" onClick={() => setMo(v.id)} style={{ all: 'unset', cursor: 'pointer', display: 'grid', gap: 4, alignContent: 'start', opacity: v.luu_tru ? 0.5 : 1 }}>
+                {v.khung[0] ? <img src={anhNho(v.khung[0], 320)} alt="" style={khung916} /> : <span style={{ ...khung916, background: v.de?.mau?.sau ?? 'var(--bg-2)', display: 'grid', placeItems: 'center', ...mono }}>chưa dựng</span>}
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{v.chu_de} <span style={mono}>{v.de?.dich}</span></span>
+                <span style={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {m.dang.map((n) => { const x = v.da_dang[n.nen]; return <span key={n.nen} title={x ? `${n.ten}: đăng ${x.ngay}` : v.luu_tru ? `${n.ten}: không đăng (lưu trữ)` : `${n.ten}: chờ lượt ${n.gio}`} style={{ ...mono, width: 22, textAlign: 'center', borderRadius: 3, padding: '1px 0', background: x ? 'rgba(74,222,128,.15)' : 'var(--bg-2)', color: x ? '#4ade80' : 'var(--fg-3)' }}>{NEN_GON[n.nen] ?? n.nen}</span>; })}
+                  <span style={{ ...mono, marginLeft: 'auto' }}>{v.luu_tru ? 'lưu trữ' : gioVN(v.created_at)}</span>
+                </span>
+              </button>))}
           </div>)}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {conNua && <button type="button" className="xv-lienket" style={{ fontSize: 12 }} onClick={() => setGioiHan((g) => g + TRANG)}>Xem thêm {TRANG} video cũ hơn</button>}

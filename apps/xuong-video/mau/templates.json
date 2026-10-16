@@ -4660,8 +4660,8 @@
      "goc_may": "Close-up product",
      "hanh_dong": "the folded {{san_pham}} in its colors on a table",
      "hanh_dong_vi": "Chiếc {{san_pham}} gấp gọn, đủ màu, đặt trên bàn",
-     "chu_man": "{{chot}}",
-     "loi": "{{chot}}",
+     "chu_man": "{{chot}} Try {{san_pham}}. {{uu_dai}}.",
+     "loi": "{{chot}} Try {{san_pham}}. {{uu_dai}}.",
      "prompt_anh": "Product-only close-up, no people, no hands: neatly folded {{san_pham_hinh}} on a wooden table, soft window light",
      "prompt_video": "Slow push-in on the folded {{san_pham}}",
      "bt": [
@@ -4669,7 +4669,8 @@
      ]
     }
    ],
-   "diem_cham": 3
+   "diem_cham": 3,
+   "diem_nhan": false
   }
  ]
 }

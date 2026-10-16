@@ -25,7 +25,7 @@ type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; h
   /** shot NỀN GHÉP (khuôn đổi nền): ảnh nền không người, nơi hiện một lần → ky_thuat.nen_ghep, cổng mẫu không đòi anchor Bối cảnh */ nen_ghep?: boolean;
   /** kiểu chữ RIÊNG của shot (vd ô bình luận: nền trắng, nguyên câu) — trống: shot CTA lấy kiểu thư viện CTA, shot khác theo phim */ kieu?: KieuChu;
   /** nguồn tham khảo của câu cố định (không phải ô) — BẮT BUỘC, thiếu thì dừng (tham-khao.ts) */ tk?: ThamKhaoCau[] };
-type Tpl = { key: string; ten: string; mo_ta: string; /** 3 = mọi shot đủ hình + giọng + chữ màn (dung-template chặn) */ diem_cham?: number; dong?: DongTemplate; khuon?: string; mau_qc?: MauQcTemplate[]; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
+type Tpl = { key: string; ten: string; mo_ta: string; /** 3 = mọi shot đủ hình + giọng + chữ màn (dung-template chặn) */ diem_cham?: number; /** false = không gắn hiệu ứng + tiếng điểm nhấn ở điểm cắt (phim kể chuyện) */ diem_nhan?: boolean; dong?: DongTemplate; khuon?: string; mau_qc?: MauQcTemplate[]; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
   /** tap.lop: lớp phủ template mang sẵn (vd lớp ảnh người cắt nền của khuôn đổi nền) — nối trước lớp điểm nhấn máy tự thêm */
   tap: { ten: string; brief: string; lop?: Lop[] }; shots: Shot[] };
 type Tep = { o_chung: Record<string, OTemplate>; templates: Tpl[] };
@@ -110,7 +110,9 @@ async function ghiShot(phimId: number, t: Tpl, capNhat: boolean) {
   const giay = Math.round(t.shots.reduce((a, s) => a + s.giay, 0));
   const { beats, phan_canh } = khungTuShot(t.shots);
   // ✨ điểm nhấn (diem-nhan.ts): hiệu ứng hình (lớp của tập) + tiếng ở mỗi điểm cắt theo loại shot
-  const nhan = diemNhan(t.shots.map((s) => ({ loai: s.loai, phat: s.giay })));
+  // Template KỂ CHUYỆN khai diem_nhan: false (anh 16/10/2026: "hiệu ứng giật này ngu vãi") — rung + tiếng đập / glitch / zoom pop ở mỗi điểm cắt
+  // hợp QC ưu đãi nhịp nhanh, phá mạch phim cảm xúc. Không gắn lớp hiệu ứng lẫn tiếng điểm nhấn.
+  const nhan = t.diem_nhan === false ? { lop: [] as Lop[], am: t.shots.map(() => [] as string[]) } : diemNhan(t.shots.map((s) => ({ loai: s.loai, phat: s.giay })));
   const lopTap = [...(t.tap.lop ?? []), ...nhan.lop];
   // anchor + biến thể: dựng mới, hoặc (capNhat) khớp theo thứ tự trong tệp = thứ tự id, ghi đè chữ, thiếu thì thêm
   const idNv: Record<string, number> = {}; const idBt: Record<string, number> = {};

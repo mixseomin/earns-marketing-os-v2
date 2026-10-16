@@ -10,7 +10,8 @@ import path from 'node:path';
 import { sql } from 'drizzle-orm';
 import { chatLieuPhim, docKinhThanh, locNhanh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
 import { uploadToR2 } from '../r2';
-import { SUA_MAT_TOI_DA } from './khung';
+import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA } from './khung';
+import { VND_MOI_USD } from './cong-ai';
 import { kemBienThe, mapCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 
 const PY = process.env.XV_SOI_MAT_PY || '/opt/xv-soi-mat/bin/python';
@@ -106,7 +107,8 @@ export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, 
     ...lech.map((x, i) => `Replace ONLY ${viTriMat(x.k.o)} (the person ${x.k.ten}) with the exact face of the person in image ${i + 2}: same bone structure, eyes, nose, mouth, hairline, skin tone and age. Keep the expression, head angle and gaze of image 1.`),
     'Keep everything else pixel-identical to image 1: hair style, clothes, body, hands, other people, background, lighting, colour grade, framing and resolution. Photorealistic. No text, no captions, no watermark.',
   ].join(' ');
-  const job = await taoJob(db, { nhan: `🩹 Sửa mặt · #${c.thu_tu} · lần ${lan}/${SUA_MAT_TOI_DA}`, canh_id: canhId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh,
+  // giá THẬT của đường sẽ đi: cổng đầu chuỗi ảnh là ckey (GIA_SUA_MAT_VND), không phải giá niêm yết Google của model
+  const job = await taoJob(db, { nhan: `🩹 Sửa mặt · #${c.thu_tu} · lần ${lan}/${SUA_MAT_TOI_DA}`, canh_id: canhId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, cents: Math.round((GIA_SUA_MAT_VND / VND_MOI_USD) * 100 * 1000) / 1000,
     request: { prompt, thamChieu: refs, dich: 'sua_mat', lan, goc: anh, ten: lech.map((x) => x.k.ten), ...(thu ? { thu: true } : {}) } });
   const { dayViecAnh } = await import('./hoan-tat');   // nạp muộn: hoan-tat gọi lại xongSuaMat
   await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: refs, tiLe: kt.ti_le, thuMuc: `keyframe/${canhId}-sua-mat` });

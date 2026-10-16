@@ -160,7 +160,7 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
       output_url = ${kq.ok ? kq.url : null}, model = coalesce(${kq.ok ? kq.model : null}, model),
       provider = CASE WHEN ${prov ?? ''} <> '' THEN ${prov ?? ''} WHEN ${kq.ok ? kq.model : ''} LIKE 'gpt-%' THEN 'openai' WHEN ${kq.ok ? kq.model : ''} LIKE 'fal:%' THEN 'fal' ELSE provider END,
       chi_phi_cents = ${Math.round(gia * 1000) / 1000}, loi = ${kq.ok ? '' : kq.loi}, nguon = ${n0 ? JSON.stringify(n0) : null}::jsonb, updated_at = now()
-    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich, request->>'anh_qc_id' AS anh_qc_id`)) as unknown as Row[];
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich, request->>'anh_qc_id' AS anh_qc_id, request->>'lan' AS lan, request->>'goc' AS goc, request->>'thu' AS thu`)) as unknown as Row[];
   const j = r[0];
   if (!j) return false;
   // Một cổng trong chuỗi hỏng vì HẾT TIỀN → báo Telegram để nạp (studio đã tự sang cổng kế). Không chặn việc ghi sổ.
@@ -174,6 +174,10 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   void lamSanNho(kq.url);
   if (j.bien_the_id != null) {
     await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.bien_the_id)}`);
+  } else if (canh != null && j.dich === 'sua_mat') {
+    // 🩹 sửa mặt (soi-mat.ts › suaMatCanh): soi lại ảnh sửa → đạt thì thành keyframe, chưa thì thử lại từ ảnh gốc (tối đa 3 lần)
+    const { xongSuaMat } = await import('./soi-mat');
+    await xongSuaMat(db, canh, kq.url, gia, { lan: j.lan as string | null, goc: j.goc as string | null, thu: j.thu as string | null, job: kq.job });
   } else if (canh != null && j.dich === 'keyframe_ket') {
     // keyframe KẾT (sinh-anh.ts › sinhKeyframeKetCanh): khung cuối của shot — video nhận làm ảnh cuối
     await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);

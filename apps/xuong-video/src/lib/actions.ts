@@ -22,7 +22,7 @@ import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-vi
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
 import { kiemNguoiXemTap, kiemNguoiXemCanh, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
-import { soiMatTap, duyetMatTay } from './xuong-video/soi-mat';
+import { soiMatTap, duyetMatTay, suaMatCanh } from './xuong-video/soi-mat';
 import { kiemKhungTap, duyetKhungTay } from '@/lib/xuong-video/kiem-khung';
 import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
@@ -689,6 +689,15 @@ export async function soiMatTapAction(tapId: number, tatCa = false): Promise<Kq<
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   try { return await soiMatTap(db, tapId, { tatCa }); } catch (e) { console.error('[soi mặt]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
+}
+/** 🩹 Sửa mặt các shot lệch (soi-mat.ts › suaMatCanh) — TỐN TIỀN ~110₫ / lần thử / shot, tối đa 3 lần thử (giá ghi trên nút). */
+export async function suaMatAction(canhIds: number[]): Promise<Kq<{ gui: number; loi: string[] }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  let gui = 0; const l: string[] = [];
+  for (const id of canhIds) { const r = await suaMatCanh(db, id).catch((e: unknown) => ({ ok: false as const, loi: String(e) })); if (r.ok) gui++; else l.push(r.loi); }
+  return { ok: true, data: { gui, loi: l } };
 }
 /** Người nhận một khung máy báo lệch MẶT (máy báo nhầm: góc nghiêng gắt, ánh sáng lạ) — 0đ. */
 export async function duyetMatTayAction(canhId: number): Promise<Kq<true>> {

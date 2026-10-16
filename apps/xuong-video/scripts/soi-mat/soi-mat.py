@@ -62,7 +62,7 @@ for ten, urls in vao.get('mau', {}).items():
     ra['mau'][ten] = len(vs)
     if vs: mau[ten] = vs
 for a in vao.get('anh', []):
-    try: mat = van(doc(a['url']), 0.4, 0.05)
+    try: im = doc(a['url']); H, W = im.shape[:2]; mat = van(im, 0.4, 0.05)
     except Exception as e: ra['anh'].append({'id': a['id'], 'loi': str(e)}); continue
     # GÁN mỗi mặt cho TỐI ĐA một nhân vật (cặp giống nhất trước): shot qua vai thấy lưng A + mặt B thì A không thấy mặt (giong null, không lệch),
     # không phải "mặt B không giống A". Nhân vật được gán một mặt dưới ngưỡng = mặt lệch ảnh mẫu (AI vẽ người khác).
@@ -71,11 +71,13 @@ for a in vao.get('anh', []):
     gan, dung = {}, set()
     for g, i, t in cap:
         if t in gan or i in dung: continue
-        gan[t] = (g, mat[i][1]); dung.add(i)
+        gan[t] = (g, mat[i][1], mat[i][2]); dung.add(i)
     ket = []
     for t in ten:
         if t not in gan: ket.append({'ten': t, 'giong': None, 'dat': True}); continue
-        g, h = gan[t]; nho = h < NHO
-        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or g >= NGUONG, **({'nho': True} if nho else {})})
+        g, h, hop = gan[t]; nho = h < NHO
+        # tâm mặt theo phần khung (0..1) — để lệnh sửa mặt chỉ đúng mặt nào khi khung có nhiều người
+        o = {'x': round((float(hop[0]) + float(hop[2]) / 2) / W, 3), 'y': round((float(hop[1]) + float(hop[3]) / 2) / H, 3)}
+        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or g >= NGUONG, 'o': o, **({'nho': True} if nho else {})})
     ra['anh'].append({'id': a['id'], 'mat': len(mat), 'ket': ket})
 print(json.dumps(ra, ensure_ascii=False))

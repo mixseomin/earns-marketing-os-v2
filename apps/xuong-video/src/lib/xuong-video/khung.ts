@@ -37,6 +37,9 @@ export function trangThaiMat(c: Pick<Canh, 'keyframe_url'> & Partial<Pick<Canh, 
   return m.duyet_tay ? 'tay' : 'lech';
 }
 export const TEN_NUT_MAT = '🙂 Soi mặt';
+/** 🩹 Sửa mặt (soi-mat.ts › suaMatCanh): số lần thử tối đa mỗi shot + giá một lần ở cổng đầu chuỗi (ckey Nano Banana 2, sổ nguồn 16/10/2026) */
+export const SUA_MAT_TOI_DA = 3;
+export const GIA_SUA_MAT_VND = 110.5;
 export const chuLechMat = (m: SoiMat) => m.ket.filter((k) => !k.dat).map((k) => `${k.ten} (giống ${Math.round((k.giong ?? 0) * 100)}%)`).join(', ');
 
 /** Lý do chặn (rỗng = qua) — MỘT luật cho cổng video, duyệt animatic, lưới. */

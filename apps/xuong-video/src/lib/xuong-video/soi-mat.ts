@@ -8,9 +8,10 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
-import { chatLieuPhim, locNhanh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
+import { chatLieuPhim, docKinhThanh, locNhanh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
 import { uploadToR2 } from '../r2';
-import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
+import { SUA_MAT_TOI_DA } from './khung';
+import { kemBienThe, mapCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 
 const PY = process.env.XV_SOI_MAT_PY || '/opt/xv-soi-mat/bin/python';
 const KICH_BAN = () => [path.join(process.cwd(), 'scripts/soi-mat/soi-mat.py'), '/opt/earns-marketing-os-v2/apps/xuong-video/scripts/soi-mat/soi-mat.py'].find((p) => existsSync(p));
@@ -74,4 +75,67 @@ export async function damBaoAnhMat(db: Db, nv: NhanVat[]): Promise<void> {
     v.anh_mat = { tu, url };
     await db.execute(sql`UPDATE xv_nhan_vat SET anh_mat = ${JSON.stringify(v.anh_mat)}::jsonb WHERE id = ${v.id}`);
   }
+}
+
+// ── 🩹 SỬA MẶT (bước 2b nhịp B): keyframe lệch mặt → mô hình sửa ảnh rẻ nhất của chuỗi cổng (ckey Nano Banana 2 ~110₫; cổng hỏng thì rơi
+// Google ~874₫) nhận [keyframe, ảnh sát mặt] + lệnh "chỉ thay mặt X" → ảnh về thì SOI LẠI: đạt → thành keyframe (bản cũ còn trong dải
+// keyframe để hoàn tác); chưa đạt → thử lại từ ẢNH GỐC, tối đa SUA_MAT_TOI_DA lần rồi dừng, ghi lỗi để người xem các bản trong dải.
+const viTriMat = (o?: { x: number; y: number }) => (o ? `the face at the ${o.y < 0.36 ? 'top' : o.y > 0.64 ? 'bottom' : 'middle'}-${o.x < 0.36 ? 'left' : o.x > 0.64 ? 'right' : 'centre'} of image 1` : 'their face in image 1');
+
+async function docShot(db: Db, canhId: number) {
+  const r = (await db.execute(sql`SELECT c.*, p.kinh_thanh AS kt_phim FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
+  if (!r[0]) return null;
+  const c = mapCanh(r[0]); const kt = docKinhThanh(r[0].kt_phim as KinhThanh);
+  const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id = ANY(${`{${c.nhan_vat.join(',') || 0}}`}::int[])`)) as unknown as Row[]).map(mapNhanVat));
+  return { c, kt, nv };
+}
+
+/** Gửi MỘT lượt sửa mặt cho shot (lan = lần thử, goc = ảnh gốc để mọi lần thử đều sửa từ bản đầu, không sửa chồng lên bản đã hỏng). TỐN TIỀN ~110₫. */
+export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, /** chạy thử: ảnh sửa + điểm soi lại chỉ ghi vào job, shot giữ nguyên, không thử lại */ thu = false): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const d = await docShot(db, canhId); if (!d) return { ok: false, loi: 'không thấy shot' };
+  const { c, kt, nv } = d; const sm = c.soi_mat;
+  if (chatLieuPhim(kt) !== 'nguoi_that') return { ok: false, loi: 'phim hoạt hình không sửa mặt' };
+  if (!c.keyframe_url || !sm || sm.url !== c.keyframe_url || sm.dat) return { ok: false, loi: `shot #${c.thu_tu} không lệch mặt (chưa soi, hoặc đã đạt)` };
+  await damBaoAnhMat(db, nv);
+  const lech = sm.ket.filter((k) => !k.dat).map((k) => ({ k, mat: nv.find((v) => v.ten === k.ten)?.anh_mat?.url[0] })).filter((x): x is { k: SoiMat['ket'][number]; mat: string } => !!x.mat).slice(0, 2);   // ckey nhận tối đa 3 ảnh
+  if (!lech.length) return { ok: false, loi: 'nhân vật lệch chưa có ảnh sát mặt (ảnh mẫu không thấy mặt rõ)' };
+  const anh = goc ?? c.keyframe_url;
+  const refs = [anh, ...lech.map((x) => x.mat)];
+  const prompt = [
+    'Image 1 is a finished film frame that must stay EXACTLY the same except for one fix.',
+    ...lech.map((x, i) => `Replace ONLY ${viTriMat(x.k.o)} (the person ${x.k.ten}) with the exact face of the person in image ${i + 2}: same bone structure, eyes, nose, mouth, hairline, skin tone and age. Keep the expression, head angle and gaze of image 1.`),
+    'Keep everything else pixel-identical to image 1: hair style, clothes, body, hands, other people, background, lighting, colour grade, framing and resolution. Photorealistic. No text, no captions, no watermark.',
+  ].join(' ');
+  const job = await taoJob(db, { nhan: `🩹 Sửa mặt · #${c.thu_tu} · lần ${lan}/${SUA_MAT_TOI_DA}`, canh_id: canhId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh,
+    request: { prompt, thamChieu: refs, dich: 'sua_mat', lan, goc: anh, ten: lech.map((x) => x.k.ten), ...(thu ? { thu: true } : {}) } });
+  const { dayViecAnh } = await import('./hoan-tat');   // nạp muộn: hoan-tat gọi lại xongSuaMat
+  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: refs, tiLe: kt.ti_le, thuMuc: `keyframe/${canhId}-sua-mat` });
+  return { ok: true, data: job };
+}
+
+/** Ảnh sửa mặt về (hoan-tat.ts › hoanTatAnh, dich 'sua_mat'): soi lại → nhận / thử tiếp / dừng. */
+export async function xongSuaMat(db: Db, canhId: number, url: string, gia: number, req: { lan?: string | null; goc?: string | null; thu?: string | null; job?: number }): Promise<void> {
+  const d = await docShot(db, canhId); if (!d) return;
+  const { c, nv } = d; const lan = Number(req.lan ?? 1) || 1;
+  const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
+  let sm: SoiMat | null = null;
+  try {
+    const ra = await chay({ mau, anh: [{ id: canhId, url, ten: nv.map((v) => v.ten) }] }); const a = ra.anh[0];
+    if (a && !a.loi) sm = { url, luc: new Date().toISOString(), mat: a.mat ?? 0, ket: a.ket ?? [], dat: (a.ket ?? []).every((k) => k.dat) };
+  } catch (e) { console.error('[sửa mặt › soi lại]', e); }
+  if (req.thu === 'true' && req.job) { await db.execute(sql`UPDATE xv_job SET request = request || ${JSON.stringify({ soi_lai: sm })}::jsonb WHERE id = ${req.job}`); return; }
+  if (sm?.dat) {
+    await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb), keyframe_url = ${url}, soi_mat = ${JSON.stringify(sm)}::jsonb,
+      chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canhId}`);
+    return;
+  }
+  await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb), chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${canhId}`);
+  const diem = sm ? sm.ket.filter((k) => !k.dat).map((k) => `${k.ten} ${Math.round((k.giong ?? 0) * 100)}%`).join(', ') : 'soi lại lỗi';
+  if (lan < SUA_MAT_TOI_DA && c.soi_mat && !c.soi_mat.dat) {
+    const r = await suaMatCanh(db, canhId, lan + 1, req.goc ?? undefined);
+    if (r.ok) return;
+    await db.execute(sql`UPDATE xv_canh SET loi = ${`🩹 sửa mặt lần ${lan} chưa đạt (${diem}); không thử tiếp được: ${r.loi}`} WHERE id = ${canhId}`);
+    return;
+  }
+  await db.execute(sql`UPDATE xv_canh SET loi = ${`🩹 sửa mặt ${lan} lần chưa đạt (lần cuối: ${diem}) — các bản đã nằm trong dải keyframe để xem; sinh lại keyframe hoặc nhận tay`} WHERE id = ${canhId}`);
 }

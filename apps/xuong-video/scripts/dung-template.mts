@@ -14,13 +14,14 @@ import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot, anchorGhiCung } from
 import { daDangMay } from '../src/lib/xuong-video/nhip-hinh';
 import { nhacSanPham } from '../src/lib/xuong-video/san-pham-shot';
 import { diemNhan } from '../src/lib/xuong-video/diem-nhan';
+import { BIEU_CAM, type BieuCamNv } from '../src/lib/xuong-video/qc-cam-xuc';
 import type { KyThuatShot } from '../src/lib/xuong-video/dien-anh';
 import { cauThieuNguon, type ThamKhaoCau } from '../src/lib/xuong-video/tham-khao';
 import { CTA_MAC_DINH, laShotCta } from '../src/lib/xuong-video/cta';
 
 
 
-type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; hanh_dong: string; chu_man: string; loi?: string; noi?: string; dien_xuat?: string;
+type Shot = { /** Murch QC: kế hoạch biểu cảm (qc-cam-xuc.ts) — nv là tên / ô {{…}} */ bieu_cam?: BieuCamNv[]; /** khung đầu = khung cuối clip shot trước */ noi_lien?: boolean; giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; hanh_dong: string; chu_man: string; loi?: string; noi?: string; dien_xuat?: string;
   prompt_anh?: string; prompt_video?: string; /** mô tả tiếng Việt của hành động (#1397) — BẮT BUỘC */ hanh_dong_vi?: string; nv?: string[]; /** biến thể (màu…) của anchor gắn vào shot — key trong nhan_vat[].bien_the */ bt?: string[]; keyframe?: string; /** cỡ cảnh (ecu|cu|mcu|ms|two|ws|ews) */ co: string; /** chuyển động máy — trống thì máy chọn */ may?: string;
   /** shot NỀN GHÉP (khuôn đổi nền): ảnh nền không người, nơi hiện một lần → ky_thuat.nen_ghep, cổng mẫu không đòi anchor Bối cảnh */ nen_ghep?: boolean;
   /** kiểu chữ RIÊNG của shot (vd ô bình luận: nền trắng, nguyên câu) — trống: shot CTA lấy kiểu thư viện CTA, shot khác theo phim */ kieu?: KieuChu;
@@ -66,6 +67,9 @@ for (const t of tep.templates) {
     const lech = t.shots.flatMap((s, i) => (s.chu_man?.trim() && s.loi?.trim() && s.chu_man.trim() !== s.loi.trim() ? [`shot ${i + 1}`] : []));
     if (lech.length) throw new Error(`${t.key}: chữ màn khác lời đang nghe (diem_cham 3): ${lech.join(', ')}`);
   }
+  // Murch QC: mã biểu cảm phải thuộc bộ từ (qc-cam-xuc.ts › BIEU_CAM) — mã lạ thì máy không so liền mạch được.
+  const maLa = t.shots.flatMap((s, i) => (s.bieu_cam ?? []).flatMap((b) => [b.dau, b.cuoi, ...(b.cam ?? [])].filter((k) => !BIEU_CAM.some((x) => x.key === k)).map((k) => `shot ${i + 1}: ${k}`)));
+  if (maLa.length) throw new Error(`${t.key}: mã biểu cảm lạ (dùng BIEU_CAM trong qc-cam-xuc.ts): ${maLa.join(', ')}`);
   // Template phải có MẪU QC THẮNG kèm video / ảnh thật (anh 15/10/2026) — thiếu thì không dựng.
   if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);
   const ghiCung = anchorGhiCung(t.nhan_vat);
@@ -149,11 +153,11 @@ async function ghiShot(phimId: number, t: Tpl, capNhat: boolean) {
     const v = { canh: s.canh ?? `Shot ${i + 1} · ${s.loai}`, kf: s.keyframe ?? null, tt: s.keyframe ? 'co_keyframe' : 'nhap' };
     if (capNhat) await db.execute(sql`UPDATE xv_canh SET canh = ${v.canh}, goc_may = ${s.goc_may}, hanh_dong = ${s.hanh_dong}, hanh_dong_vi = ${s.hanh_dong_vi ?? ''}, loi_thoai = ${ghepThoai(thoai)}, thoai = ${JSON.stringify(thoai)}::jsonb,
         thoi_luong_s = ${Math.max(2, Math.ceil(s.giay))}, phat_s = ${s.giay}, nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, prompt_anh = ${s.prompt_anh ?? ''}, prompt_video = ${s.prompt_video ?? ''},
-        phan_doan = ${s.loai}, cam_xuc = ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ky_thuat = ${JSON.stringify(kt[i])}::jsonb, chu_man = ${s.chu_man}, kieu_chu = ${JSON.stringify(s.kieu ?? (laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {}))}::jsonb, tham_khao = ${JSON.stringify(s.tk ?? [])}::jsonb, keyframe_url = ${v.kf}, keyframe_uv = ${JSON.stringify(v.kf ? [v.kf] : [])}::jsonb, trang_thai = ${v.tt}, updated_at = now()
+        phan_doan = ${s.loai}, cam_xuc = ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ky_thuat = ${JSON.stringify(kt[i])}::jsonb, chu_man = ${s.chu_man}, bieu_cam = ${JSON.stringify(s.bieu_cam ?? [])}::jsonb, noi_lien = ${!!s.noi_lien}, kieu_chu = ${JSON.stringify(s.kieu ?? (laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {}))}::jsonb, tham_khao = ${JSON.stringify(s.tk ?? [])}::jsonb, keyframe_url = ${v.kf}, keyframe_uv = ${JSON.stringify(v.kf ? [v.kf] : [])}::jsonb, trang_thai = ${v.tt}, updated_at = now()
       WHERE tap_id = ${tapId} AND thu_tu = ${i + 1}`);
-    else await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, loi_thoai, thoai, am_thanh, thoi_luong_s, phat_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, chu_man, kieu_chu, tham_khao, keyframe_url, keyframe_uv, trang_thai)
+    else await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, loi_thoai, thoai, am_thanh, thoi_luong_s, phat_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, chu_man, bieu_cam, noi_lien, kieu_chu, tham_khao, keyframe_url, keyframe_uv, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${v.canh}, ${s.goc_may}, ${s.hanh_dong}, ${s.hanh_dong_vi ?? ''}, ${ghepThoai(thoai)}, ${JSON.stringify(thoai)}::jsonb, '', ${Math.max(2, Math.ceil(s.giay))}, ${s.giay},
-        ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${s.prompt_anh ?? ''}, ${s.prompt_video ?? ''}, ${s.loai}, ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ${JSON.stringify(kt[i])}::jsonb, '', ${s.chu_man}, ${JSON.stringify(s.kieu ?? (laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {}))}::jsonb, ${JSON.stringify(s.tk ?? [])}::jsonb,
+        ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${s.prompt_anh ?? ''}, ${s.prompt_video ?? ''}, ${s.loai}, ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ${JSON.stringify(kt[i])}::jsonb, '', ${s.chu_man}, ${JSON.stringify(s.bieu_cam ?? [])}::jsonb, ${!!s.noi_lien}, ${JSON.stringify(s.kieu ?? (laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {}))}::jsonb, ${JSON.stringify(s.tk ?? [])}::jsonb,
         ${v.kf}, ${JSON.stringify(v.kf ? [v.kf] : [])}::jsonb, ${v.tt})`);
   }
 }

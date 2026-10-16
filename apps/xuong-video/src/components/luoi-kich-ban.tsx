@@ -40,7 +40,7 @@ const vuaSinh = (c: { keyframe_luc?: string | null; video_luc?: string | null })
   return m && Date.now() - new Date(m).getTime() < VUA_SINH_PHUT * 60000 ? m : null;
 };
 
-export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void> }) {
+export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged, laQc }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void>; laQc?: boolean }) {
   // 🔍 Kiểm khung (khung.ts): máy nhìn keyframe từng khối cảnh + cú chuyển từ cảnh trước — chưa kiểm / lệch thì video + animatic bị chặn.
   const [banKhung, setBanKhung] = useState(false); const [loiKhung, setLoiKhung] = useState('');
   const canKiem = khoiCanKiem(canh); const giaKhung = giaKiemKhung(moHinhChu, canKiem.map((k) => k.length));
@@ -80,7 +80,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   // Cảnh báo (luật 30°, eye trace, khoảng nhìn, chiều cao máy, ống kính — Murch xếp cuối): ⚠ vàng, không chặn tiền.
   const canhBao = canhBaoMachTap(canh, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t));
   // Điểm Murch từng shot (diem-murch.ts): so shot trong tập, chip góc phải ô 3D, thẻ nổi sáu tiêu chí.
-  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [] }); const tbM = diemMurchCanh(canh, diemM);
+  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [], laQc }); const tbM = diemMurchCanh(canh, diemM);
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
   let t = 0;
@@ -136,6 +136,8 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                     onClick={async (e) => { e.stopPropagation(); if (!confirm(`Bỏ qua lỗi soi của shot #${c.thu_tu}?\n\n${loiSoiClip(c).join('\n')}`)) return; const r = await goiAction(() => boQuaSoiClipAction(c.id)); if (r.loi) alert(r.loi); await onChanged(); }}
                     style={{ position: 'absolute', right: 4, top: vuaSinh(c) ? 40 : 22, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.75)', color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
+                  {/* Điểm Murch ở MỌI thẻ (anh 16/10/2026: "phải đặt vào mặc định cho mọi video") — trước chỉ có trong ô 3D nên QC / shot ngoài bộ set không thấy. */}
+                  <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} viTri={{ left: 4, top: 22 }} />
                 </div>}
                 {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}
                 <div className="xv-mono" style={{ padding: '4px 7px 0', fontSize: 10, lineHeight: 1.35, color: 'var(--fg-2)' }}>
@@ -158,7 +160,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                       ))}>
                       {/* Ô vẽ SỐNG từ bộ set + may_3d hiện tại (khung-3d-song.tsx) — không còn ảnh render cũ. Nhãn khối: khung_xam.thay đo bằng lưới tia
                           (anh 14/10/2026: khối vàng ở cảnh 6–7 tưởng là tay Gã khổng lồ), chỉ gắn ở khung dọc và khi chưa xoay. */}
-                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} /><ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} />
+                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} />{hien === '3d' && <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} />}
                     </Khung3DSong>
                   : <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--amber)', border: '1px dashed var(--line)', textAlign: 'center' }}>🧊 chưa đặt máy 3D</div>)}
               </button>

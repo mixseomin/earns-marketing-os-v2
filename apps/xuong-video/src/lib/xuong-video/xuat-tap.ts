@@ -8,6 +8,7 @@ import { kiemTieng } from './khop-giong';
 import { chanNguoiXem } from './nguoi-xem';
 import { kiemQc } from './kiem-qc';
 import { docKinhThanh, locNhanh, loiSoiClip, type Canh } from './kieu';
+import { soatClip } from './qc-cam-xuc';
 import { boiCanhTap, taoJob, xongJob, mapCanh, type Db, type Row } from './doc-db';
 import { khopGiongTap } from './hau-ky';
 
@@ -36,6 +37,11 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   const soi = locNhanh(canh, nhanh || 'A').flatMap((c) => loiSoiClip(c).map((x) => `#${c.thu_tu}: ${x}`));
   if (soi.length) return { ok: false, loi: `Chưa xuất được — clip còn lỗi soi: ${soi.join('; ')}. Sinh lại shot đó, hoặc bấm "Bỏ qua lỗi soi" trên thẻ shot nếu máy báo nhầm` };
   const kt = docKinhThanh(bc.kt);
+  // MURCH QC (qc-cam-xuc.ts): phim bật cam_xuc_qc thì mọi clip phải SOÁT ĐẠT (nét mặt đầu/cuối đúng kế hoạch, không biến dạng, sản phẩm giữ…).
+  if (bc.loai === 'quang_cao' && kt.cam_xuc_qc) {
+    const chua = locNhanh(canh, nhanh || 'A').flatMap((c) => { const k = soatClip(c); return !k ? [`#${c.thu_tu}: clip chưa soát`] : !k.dat ? [`#${c.thu_tu}: ${k.loi.join(' · ')}`] : []; });
+    if (chua.length) return { ok: false, loi: `Chưa xuất được — Murch QC: ${chua.slice(0, 5).join('; ')}${chua.length > 5 ? `; +${chua.length - 5}` : ''}. Soát clip (scripts/soat-cam-xuc.mts) hoặc sinh lại shot trượt` };
+  }
   // Luật QC máy chặn được (kiem-qc.ts) — chỉ những luật sai là ra bản hỏng, không phải gu: màn kết thiếu tên sản phẩm.
   const qcSai = kiemQc({ loai: bc.loai, canh: locNhanh(canh, nhanh || 'A'), nhanVat: bc.nhanVat, qc: kt.qc, nhanh }).filter((x) => !x.ok && ['ten_cuoi'].includes(x.key));
   if (qcSai.length) return { ok: false, loi: `Chưa xuất được — ${qcSai.map((x) => x.chiTiet ?? x.chu).join('; ')}` };

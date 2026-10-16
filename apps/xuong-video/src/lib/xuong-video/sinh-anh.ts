@@ -5,6 +5,7 @@ import { dayViecAnh } from './hoan-tat';
 import { promptAnhMau } from './claude';
 import { promptCatNen } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
+import { promptBieuCam } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
@@ -247,7 +248,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       mayCau, ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat), huongCau, framingCau, ngoaiCau, trangCau,
       thay.length ? `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.` : '',
       `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`,
-      camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh'),
+      camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh'),
     ].filter(Boolean).join(' ');
     // HAI BƯỚC (anh 15–16/10/2026, #35: chỉ model điều khiển bằng ĐỘ SÂU giữ đúng góc máy 3D; nhân dạng phải nhờ một lượt sửa có ảnh mẫu):
     // bước 1 = FLUX depth từ bản đồ độ sâu 3D + chữ (không nhận ảnh mẫu) → ảnh thật đúng hình học; bước 2 = sửa nhân dạng trên chính ảnh đó.
@@ -271,13 +272,13 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trong) { const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${moTaNgan(v.mo_ta)}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${moTaNgan(v.mo_ta)}`); }
       const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,
-        huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+        huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
       return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS };
   }
   // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
-  const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 
@@ -334,7 +335,8 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   const nvPhim = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tapQt.phim_id} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${bc.canh.tap_id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   const chan: string[] = [];
-  const qt = [...chanTienKy(tapQt, phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt), locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim)];
+  const pq = phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt);
+  const qt = [...chanTienKy(tapQt, pq, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim, { camXucQc: pq.camXucQc, ds: locNhanh(tatCa, bc.canh.nhanh || 'A') })];
   if (qt.length) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);

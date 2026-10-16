@@ -6,6 +6,7 @@
 // Leake 2017 có hàm chi phí liên tục / nhịp, không có cảm xúc).
 import type { Canh, NhanVat, BoSet, PhanCanh } from './kieu';
 import { giayPhat } from './kieu';
+import { camXucDo, loiMachBieuCam } from './qc-cam-xuc';
 import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY } from './bo-set-3d';
 import { giayDoc } from './nhip-hinh';
 
@@ -15,7 +16,7 @@ export const TEN_TIEU_CHI: Record<TieuChi, string> = { cam_xuc: 'Cảm xúc', tr
 /** phan = 0…1 từng tiêu chí; tong = 0…100 theo trọng số Murch; ly_do = vì sao mất điểm (ngắn, một câu / tiêu chí). */
 export type DiemMurch = { tong: number; phan: Record<TieuChi, number>; ly_do: Partial<Record<TieuChi, string>> };
 
-type Shot = Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'nhan_vat' | 'cam_xuc' | 'hanh_dong' | 'ky_thuat' | 'dan_dung' | 'may_3d' | 'khung_xam' | 'phat_s' | 'thoi_luong_s' | 'thoai'> & { nhanh?: string };
+type Shot = Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'nhan_vat' | 'cam_xuc' | 'hanh_dong' | 'ky_thuat' | 'dan_dung' | 'may_3d' | 'khung_xam' | 'phat_s' | 'thoi_luong_s' | 'thoai'> & Partial<Pick<Canh, 'bieu_cam' | 'soat' | 'keyframe_url' | 'video_url' | 'video_cuoi_url'>> & { nhanh?: string };
 type NV = Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>;
 const kep = (x: number) => Math.max(0, Math.min(1, x));
 const tamThay = (c: Shot, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2 } : null; };
@@ -27,6 +28,7 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
   const tenNv = new Set(nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id));
   // Lỗi mạch (một lần cho cả nhánh) — phân loại theo nội dung câu cổng (bo-set-3d.ts): mỗi câu đã mang tên luật ở đầu.
   const mach = loiMachTap(ds as Parameters<typeof loiMachTap>[0], nhanVat, sets);
+  const machBieuCam = p.laQc ? loiMachBieuCam(ds, nhanVat) : {};
   const loai = (s: string): TieuChi | 'truyen_chuoi' => /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
   const giayChuan = giayDoc(p);
   const bungCua = new Map<string, Set<number>>(); for (const pc of p.phanCanh ?? []) for (const g of pc.gag ?? []) if (g.o_shot) (bungCua.get(pc.ten) ?? bungCua.set(pc.ten, new Set()).get(pc.ten)!).add(g.o_shot);
@@ -48,6 +50,10 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     if (vai === 'phan_ung') { cx += phat >= 1.5 ? 0.15 : 0.05; if (phat < 1.5) thieuCx.push('phản ứng chưa giữ đủ 1,5 giây'); }
     if (sauBung) cx += 0.1;
     if (kt.dien_xuat || dd.dien?.trim() || (c.thoai ?? []).some((t) => t.dien_xuat?.trim())) cx += 0.1; else thieuCx.push('chưa ghi diễn xuất');
+    // QC: cảm xúc ĐO THẬT (soát keyframe / clip — qc-cam-xuc.ts) thay phần ước lượng; lệch liền mạch biểu cảm với shot trước thì 0.
+    const doCx = p.laQc ? camXucDo({ keyframe_url: c.keyframe_url ?? null, video_url: c.video_url ?? null, video_cuoi_url: c.video_cuoi_url ?? null, soat: c.soat }) : null; const machBc = p.laQc ? (machBieuCam[c.id] ?? []) : [];
+    if (doCx) { cx = doCx.diem; thieuCx.length = 0; if (doCx.ly_do) thieuCx.push(doCx.ly_do); }
+    if (machBc.length) { cx = 0; thieuCx.push(...machBc); }
     const camXuc = kep(cx); if (thieuCx.length) ly.cam_xuc = thieuCx.join(' · ');
     // ── TRUYỆN (23): hành động chính · mục đích · motif / gài–trả · chuỗi nhìn → thấy → làm · điểm nhấn ở shot bùng ──
     let tr = 0; const thieuTr: string[] = [];

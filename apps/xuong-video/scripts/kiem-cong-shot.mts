@@ -22,7 +22,7 @@ for (const tapId of process.argv.slice(2).map(Number)) {
   // Điểm Murch (diem-murch.ts): so shot trong tập — in M=<điểm> cạnh mỗi shot + trung bình từng cảnh ở cuối.
   const tapR = ((await db.execute(sql`SELECT t.phan_canh, t.phim_id, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
   const sets = ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${Number(tapR?.phim_id)} OR phim_id IS NULL`)) as unknown as Row[]).map(mapBoSet);
-  const diemM = diemMurchTap(locNhanh(canh, 'A'), nv, sets, { phanCanh: (tapR?.phan_canh as never) ?? [] }); const tbM = diemMurchCanh(locNhanh(canh, 'A'), diemM);
+  const diemM = diemMurchTap(locNhanh(canh, 'A'), nv, sets, { phanCanh: (tapR?.phan_canh as never) ?? [], laQc: tapR?.loai === 'quang_cao' }); const tbM = diemMurchCanh(locNhanh(canh, 'A'), diemM);
   for (const c of canh) {
     const g = await lyChanKeyframe(db, c.id);
     if (!g) { console.log(`#${c.thu_tu} không đọc được bối cảnh`); continue; }

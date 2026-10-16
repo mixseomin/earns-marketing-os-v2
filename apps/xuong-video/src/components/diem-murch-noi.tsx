@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useViTriNoi } from './vi-tri-noi';
 import { TRONG_SO, TEN_TIEU_CHI, mauDiem, type DiemMurch, type TieuChi } from '@/lib/xuong-video/diem-murch';
 
-export function ChipMurch({ d, canh, tap, soShot }: { d: DiemMurch | undefined; canh: number | undefined; tap: number; soShot: number }) {
+export function ChipMurch({ d, canh, tap, soShot, viTri: vt }: { d: DiemMurch | undefined; canh: number | undefined; tap: number; soShot: number; /** chỗ đặt chip trong ô (mặc định góc phải trên) */ viTri?: { left?: number; right?: number; top?: number; bottom?: number } }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [mo, setMo] = useState(false);
   const viTri = useViTriNoi(ref, mo, { rong: 340, caoToiDa: 420 });
@@ -13,7 +13,7 @@ export function ChipMurch({ d, canh, tap, soShot }: { d: DiemMurch | undefined; 
   const mau = mauDiem(d.tong);
   return (<>
     <span ref={ref} className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} title=""
-      style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'help', fontWeight: 700 }}>
+      style={{ position: 'absolute', ...(vt ?? { right: 4, top: 4 }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'help', fontWeight: 700 }}>
       M {d.tong}
     </span>
     {mo && (

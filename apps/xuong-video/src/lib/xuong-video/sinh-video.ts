@@ -11,6 +11,8 @@ import { chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKh
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
+import { noiKhungTuClipTruoc } from './noi-khung-clip';
+import { promptBieuCam, doiModelVideo } from './qc-cam-xuc';
 import { tronModelCanh } from './sinh-anh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
@@ -59,7 +61,7 @@ export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Cấm chữ / nhãn tên (Veo in "Mr. Wipe", "Lint" lên hình vì prompt gọi tên) và mặt hoạt hình vẽ thêm (Lint mọc mắt nhắm miệng méo).
   const rendau = !!bc.canh.khung_xam?.mau && bc.canh.keyframe_url === bc.canh.khung_xam.mau;
   const giuAnh = rendau ? 'Keep the exact look of the first frame: same materials, textures, lighting, colours and depth of field; it is a real photographed miniature, not a cartoon. No on-screen text, captions, subtitles or name labels anywhere. Every character keeps exactly the face and eyes it has in the first frame — never draw, add or animate a cartoon face, mouth or expression lines that are not there.' : '';
-  return [rendau ? giuAnh : phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : '', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), theVideo(bc.canh.dan_dung, rendau), moTaChuyenDong(bc.canh.khung_xam?.di), coMau(bc.kt.qc) ? '' : KHUNG_SONG, spTrongTam, thoaiVeo, giuKhung, khongThem, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
+  return [rendau ? giuAnh : phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : '', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), theVideo(bc.canh.dan_dung, rendau), moTaChuyenDong(bc.canh.khung_xam?.di), coMau(bc.kt.qc) ? '' : KHUNG_SONG, spTrongTam, thoaiVeo, giuKhung, khongThem, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'), promptBieuCam(bc.canh.bieu_cam, 'video'),
     coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''].filter(Boolean).join(' ');
 }
 
@@ -90,6 +92,8 @@ const VEO_SANG_FAL: Record<string, string> = {
 export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false, thu = false, boQuaCong = false): Promise<Kq<number>> {
   let bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
+  // Shot nối liền (Murch QC): khung đầu = khung cuối clip shot trước — đặt trước mọi cổng để cổng xét đúng keyframe sẽ dùng.
+  if (bc.canh.noi_lien) { const e = await noiKhungTuClipTruoc(db, bc.canh); if (e) return loi(`Shot #${bc.canh.thu_tu}: ${e}`); bc = (await boiCanhCanh(db, canhId))!; }
   if (!thu && tuDong && bc.canh.keyframe_url && (bc.canh.trang_thai === 'co_keyframe' || bc.canh.trang_thai === 'nhap')) {
     await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['trang_thai', 'loi'], moTa: 'duyệt keyframe (bấm Sinh nháp)', nguoi: 'Sinh nháp' });
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${canhId}`);
@@ -103,7 +107,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // + ANIMATIC đã duyệt (quy-trinh.ts › chanAnimatic): đọc hồ sơ tập + mọi shot của tập để so mã.
   const tapR = ((await db.execute(sql`SELECT t.ho_so, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${bc.canh.tap_id}`)) as unknown as Row[])[0];
   const dsTap = ((await db.execute(sql`SELECT thu_tu, nhanh, keyframe_url, phat_s, thoi_luong_s FROM xv_canh WHERE tap_id = ${bc.canh.tap_id}`)) as unknown as Row[]).map((r) => ({ thu_tu: Number(r.thu_tu), nhanh: String(r.nhanh ?? ''), keyframe_url: (r.keyframe_url as string | null) ?? null, phat_s: r.phat_s == null ? null : Number(r.phat_s), thoi_luong_s: Number(r.thoi_luong_s) }));
-  const qt = chanVideo(bc.canh, bc.nhanVat, tapR?.loai === 'quang_cao', { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap });
+  const qt = chanVideo(bc.canh, bc.nhanVat, tapR?.loai === 'quang_cao', { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap, camXucQc: tapR?.loai === 'quang_cao' && !!bc.kt.cam_xuc_qc });
   // Một cảnh một model ảnh (sinh-anh.ts › tronModelCanh): keyframe lệch model của cảnh thì không tiêu tiền video lên nó.
   { const tm = await tronModelCanh(db, bc.canh); if (tm) qt.push(tm); }
   // QC: keyframe gắn sản phẩm mà không thấy màu sản phẩm (soi-clip.ts) — mặc sai quần thì clip nào cũng sai, không tiêu tiền lên nó.
@@ -112,6 +116,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
   if (moHinh && (/^(fal|shopaikey|google):/.test(moHinh) || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+  // Model theo NỘI DUNG (qc-cam-xuc.ts): có trẻ em → Veo từ chối → đổi sang Kling TRƯỚC khi gửi (Jett #61 shot 1/2/11 hỏng 3 lượt).
+  const doiM = doiModelVideo(bc.kt.mo_hinh_video, bc.nhanVat.filter((v) => v.loai === 'nhan_vat'));
+  if (doiM) bc.kt.mo_hinh_video = doiM.model as typeof bc.kt.mo_hinh_video;
   // Lượt THỬ ngoài quy trình (thu) được dùng model cấm QC khi anh chỉ đích danh (16/10/2026: "grok trước sinh ổn mà, thử lại xem" — Veo chặn ảnh có
   // trẻ em, Jett #61 shot 1/2/11); clip thử vẫn qua máy soi chữ lạ (soi-clip.ts) như mọi clip. Sản xuất (không thu) giữ chặn.
   if (!thu && !hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (Pika thiếu cảm xúc, Grok tự in phụ đề giả) — chọn Veo qua Google / Kling`);

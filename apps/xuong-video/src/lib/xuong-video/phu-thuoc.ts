@@ -17,14 +17,14 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
   const chan: string[] = []; const luu_y: string[] = [];
   if (viec === 'keyframe') {
     if (c.dang_sinh_anh) chan.push('đang sinh ảnh');
-    chan.push(...chanTienKy(o.tap, o.phim, o.ds, o.ds, nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(c, o.tap, nhanVat));
+    chan.push(...chanTienKy(o.tap, o.phim, o.ds, o.ds, nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(c, o.tap, nhanVat, { camXucQc: o.phim.camXucQc, ds: o.ds }));
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');
     if (o.truoc && noiKhungShot(false, o.truoc) && !o.truoc.keyframe_url) luu_y.push(`shot #${o.truoc.thu_tu} liền máy với shot này — sinh keyframe shot #${o.truoc.thu_tu} trước để ảnh này bám đúng chỗ, đúng tư thế`);
     if (noiKhungShot(o.noiKhung, o.truoc) && o.truoc && (o.truoc.video_url || o.truoc.video_cuoi_url)) luu_y.push(`clip shot #${o.truoc.thu_tu} lấy keyframe này làm khung cuối — đổi keyframe thì clip đó phải sinh lại mới nối liền`);
   } else {
     if (c.trang_thai === 'dang_sinh') chan.push('đang sinh video');
-    chan.push(...chanVideo(c, nhanVat, o.phim.laQc, o.ds ? { hoSo: o.tap.ho_so, ds: o.ds } : undefined));
+    chan.push(...chanVideo(c, nhanVat, o.phim.laQc, o.ds ? { hoSo: o.tap.ho_so, ds: o.ds, camXucQc: o.phim.camXucQc } : { camXucQc: o.phim.camXucQc }));
     if (noiKhungShot(o.noiKhung, c) && o.ke && !o.ke.keyframe_url) luu_y.push(`shot #${o.ke.thu_tu} chưa có keyframe — clip này sẽ không có khung cuối, nối không liền`);
     if (c.video_url || c.video_cuoi_url) luu_y.push('đã có clip — bản mới thêm vào danh sách phiên bản');
   }

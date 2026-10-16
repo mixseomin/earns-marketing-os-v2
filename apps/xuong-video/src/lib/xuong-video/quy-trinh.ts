@@ -15,16 +15,17 @@ import { chanNguoiXem, tomTatNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM, typ
 import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { loiSanPhamShot } from './san-pham-shot';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
+import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, soatKeyframe } from './qc-cam-xuc';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
 export type MucQt = { key: string; nhom: NhomQt; ten: string; ok: boolean; thieu: string[]; cong: Cong | null; lam: string };
 export type TapQt = { ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat' | 'intro' | 'gag'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
-export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean };
+export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean; /** Murch QC (qc-cam-xuc.ts) */ camXucQc?: boolean };
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
-export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'>): PhimQt =>
-  ({ phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi });
-type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'prompt_video' | 'keyframe_ket'>>;
+export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'> & Partial<Pick<KinhThanh, 'cam_xuc_qc'>>): PhimQt =>
+  ({ phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi, camXucQc: loai === 'quang_cao' && !!kt.cam_xuc_qc });
+type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'prompt_video' | 'keyframe_ket' | 'bieu_cam' | 'noi_lien' | 'soat' | 'video_url' | 'video_cuoi_url' | 'nhanh'>>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
  *  shot nào không thuộc một phân cảnh đã khai (phan_doan khớp tên trong tap.phan_canh) thì chưa được sinh. MỘT luật cho bảng chọn,
@@ -112,8 +113,14 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   return out;
 }
 /** Cổng tiền kỳ cấp SHOT: phân cảnh + mẫu bối cảnh/đối tượng + ảnh mẫu + ngôn ngữ máy (cỡ cảnh). */
-export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[]): string[] {
+export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[], o?: { camXucQc?: boolean; ds?: ShotQt[] }): string[] {
   const out: string[] = [];
+  // MURCH QC (qc-cam-xuc.ts): kế hoạch biểu cảm đủ người + liền mạch với shot trước — chặn trước khi tiêu tiền keyframe.
+  if (o?.camXucQc) {
+    const thieu = thieuBieuCam(c, nhanVatPhim);
+    if (thieu.length) out.push(`chưa có kế hoạch biểu cảm (đầu → cuối) cho ${thieu.join(', ')} — nét mặt không khai thì model tự chọn, shot sau dễ gãy cảm xúc`);
+    if (o.ds) out.push(...(loiMachBieuCam(o.ds.filter((x) => (x.nhanh || '') === (c.nhanh || '') || !x.nhanh), nhanVatPhim)[c.id] ?? []));
+  }
   const pc = thieuPhanCanh(tap.phan_canh, c); if (pc) out.push(pc);
   out.push(...thieuMau(c, nhanVatPhim));
   out.push(...thanhPhanCanh(c, nhanVatPhim).thieu);
@@ -129,9 +136,9 @@ export function chanAnimatic(hoSo: TapHoSo | undefined, ds: Parameters<typeof ma
   return hoSo.animatic.ma === maAnimatic(ds) ? [] : ['keyframe / giây phát đã đổi sau khi duyệt animatic — xuất và duyệt lại animatic'];
 }
 /** laQc BẮT BUỘC (16/10/2026: thẻ shot + script kiểm gọi không truyền o → quảng cáo vẫn bị chặn "chưa kiểm khung" dù cổng đã gỡ cho QC). */
-export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { hoSo?: TapHoSo; ds: Parameters<typeof maAnimatic>[0] }): string[] {
+export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { hoSo?: TapHoSo; ds: Parameters<typeof maAnimatic>[0]; camXucQc?: boolean } | { camXucQc?: boolean; hoSo?: undefined; ds?: undefined }): string[] {
   const out: string[] = [];
-  if (o) out.push(...chanAnimatic(o.hoSo, o.ds, laQc));
+  if (o?.ds) out.push(...chanAnimatic(o.hoSo, o.ds, laQc));
   if (!c.keyframe_url) out.push('chưa có keyframe');
   else if (c.trang_thai !== 'duyet' && c.trang_thai !== 'loi' && c.trang_thai !== 'xong') out.push('chưa duyệt keyframe');
   // Máy kiểm khung (khung.ts): keyframe chưa kiểm / lệch bố trí, trục, nhân vật → không cho tiêu tiền video lên một khung sai.
@@ -141,6 +148,10 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
   // Quảng cáo: cử chỉ phải dồn vào sản phẩm + máy không đẩy cắt mất sản phẩm mặc trên người (san-pham-shot.ts) — chặn trước khi tiêu tiền clip.
   if (laQc) out.push(...loiSanPhamShot(c, nhanVat));
+  // Cận cảnh + động tác lớn → méo thân (qc-cam-xuc.ts) — mọi QC.
+  if (laQc) { const cc = loiCanCanhDongLon(c); if (cc) out.push(cc); }
+  // Murch QC: keyframe phải SOÁT ĐẠT (Claude trong phiên, scripts/soat-cam-xuc.mts) — trừ shot nối liền (khung đầu = khung cuối clip trước đã soát).
+  if (o?.camXucQc && c.keyframe_url && !c.noi_lien) { const k = soatKeyframe(c); if (!k) out.push('keyframe chưa soát (số người · người lạ · mặt · sản phẩm · hành động · nét mặt) — soát rồi mới sinh video'); else if (!k.dat) out.push(`keyframe soát trượt: ${k.loi.join(' · ')}`); }
   return out;
 }
 

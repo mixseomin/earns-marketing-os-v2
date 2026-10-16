@@ -110,7 +110,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
       const thoai = ((noiDungMoi.thoai as { loi?: string; url?: string | null }[]) ?? []).map((x, i) => (x.loi === thoaiCu[i]?.loi ? x : { ...x, url: null }));
       if (doi) nhapLai++; else giuMedia++;
       const tham_khao = o.laTemplate ? (c.tham_khao ?? []) : thamKhaoSauDien({ chu_man: s(c.chu_man), thoai: (c.thoai as { loi?: string }[]) ?? [], tham_khao: (c.tham_khao as ThamKhaoCau[]) ?? [] }, gt, o.tk);
-      await chen(t, 'xv_canh', { ...noiDungMoi, ...media, thoai, tham_khao, tap_id: doiTap.get(n(c.tap_id)), chi_phi_cents: 0, loi: '',
+      await chen(t, 'xv_canh', { ...noiDungMoi, ...media, thoai, tham_khao, tap_id: doiTap.get(n(c.tap_id)), chi_phi_cents: 0, loi: '', soat: null,
         nhan_vat: ((c.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x) => x != null),
         bien_the: ((c.bien_the as number[]) ?? []).map((x) => doiBt.get(Number(x))).filter((x) => x != null),
         trang_thai: doi ? (media.keyframe_url ? 'co_keyframe' : 'nhap') : c.trang_thai });

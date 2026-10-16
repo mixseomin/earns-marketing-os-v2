@@ -9,6 +9,7 @@ import { BoSetXem } from './bo-set-xem';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
 import { O_DAN_DUNG, moTaVi, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
+import { BieuCamShot } from './bieu-cam-ui';
 import { chanVideo } from '@/lib/xuong-video/quy-trinh';
 import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu, NhomNut } from './ui';
 import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
@@ -157,6 +158,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
           {nhanVat.some((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id)) && (
             <TrangPhucShot c={c} onLuu={(t) => void chay(k, () => suaCanh(c.id, { trang_phuc: t }))} />
           )}
+          {phimLoai === 'quang_cao' && <BieuCamShot c={c} nhanVat={nhanVat} onDoi={async () => { await chay(k, async () => ({ ok: true as const, data: undefined })); }} />}
           {dongThoai(c, nhanVat).length > 0 && (
             <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
               {dongThoai(c, nhanVat).map((d, i) => (

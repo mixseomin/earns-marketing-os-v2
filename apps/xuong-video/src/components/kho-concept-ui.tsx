@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { Seg, Pill, Nut, Loi, LinkNgoai, mono } from './ui';
+import { Chon } from './chon';
 import { linkGocSpy } from '@/lib/xuong-video/goc-spy';
 import { Ngan } from './ngan';
 import { useNho } from './nho';
@@ -159,9 +160,8 @@ export function TabPhuongAn({ d, spKey, onDoi, capId, setCapId }: { d: KhoConcep
     <div style={{ display: 'grid', gap: 10 }}>
       <VietHet spKey={spKey} onDoi={onDoi} />
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <select className="xv-in" style={{ maxWidth: 420 }} value={x.cap.id} onChange={(e) => setCapId(Number(e.target.value))} aria-label="cặp concept × template">
-          {ds.map((y) => <option key={y.cap.id} value={y.cap.id}>{y.c.ma} · {y.c.ten} × T{y.t.id} {tenT(y.t)}</option>)}
-        </select>
+        <Chon value={String(x.cap.id)} onChange={(v) => setCapId(Number(v))} minWidth={320} title="cặp concept × template"
+          options={ds.map((y) => ({ value: String(y.cap.id), label: `${y.c.ma} · ${y.c.ten} × T${y.t.id} ${tenT(y.t)}`, nhom: `${y.c.ma} · ${y.c.ten}` }))} />
         <Nut chinh ban={ban} gia={uoc?.cap === x.cap.id ? uoc.cents : undefined} ly={!x.t.o_chu.length && 'template không có ô chữ'} onClick={() => void viet()} title={`Một lượt ${uoc?.model ?? 'Claude'} viết phương án cho ${x.t.o_chu.length} ô từ câu thật của khách — TỐN TIỀN`}>
           ✍ AI viết phương án{uoc?.cap === x.cap.id ? ` · ~${tien(uoc.cents)}` : ''}</Nut>
         <span style={mono}>{th.thieu.length ? `còn ${th.thieu.length} ô chưa có phương án — chưa ghép được creative` : `${th.ds.length.toLocaleString('vi-VN')} creative ghép được từ cặp này`}</span>
@@ -198,9 +198,6 @@ function PhuongAnO({ chu, so, nguon, onLuu, onBo }: { chu: string; so: number; n
 type DongCr = ToHop & { c: Concept; t: TplConcept; hook: string; khac: { ten: string; chu: string }[] };
 const TT_CR = [{ value: '', label: 'Mọi trạng thái' }, { value: 'de_xuat', label: 'Đề xuất' }, { value: 'duyet', label: 'Đã duyệt' }, { value: 'da_tao', label: 'Đã thành phim' }];
 const VONG_LOC = [{ value: '', label: 'Mọi tổ hợp' }, { value: '1', label: 'Vòng 1 · đổi hook' }, { value: '2', label: 'Vòng 2 · đổi diễn viên' }, { value: '3', label: 'Vòng 3 · đổi thân' }];
-function Chon({ value, onChange, ds, nhan }: { value: string; onChange: (v: string) => void; ds: { value: string; label: string }[]; nhan: string }) {
-  return <select className="xv-in" style={{ width: 'auto', maxWidth: 220 }} value={value} onChange={(e) => onChange(e.target.value)} aria-label={nhan} title={nhan}>{ds.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}</select>;
-}
 /** Bộ hình = một cặp concept × template × một biến thể diễn viên — đơn vị SẢN XUẤT (keyframe + video làm một lần), các creative của nó chỉ khác chữ. */
 type BoHinh = { key: string; c: Concept; t: TplConcept; v: BienTheHinh; ds: DongCr[] };
 export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept; spKey: string; phim: { id: number; anh: string | null; ket: string; nac: { ten: string; tt: string }[] }[]; onDoi: () => Promise<void>; onMoPhim: (id: number) => void }) {
@@ -272,12 +269,12 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
       {!d.concept.length ? <span style={mono}>Chưa có concept — bấm ⚙ Cấu hình → Nhập concept từ spy.</span> : <>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <input className="xv-in" style={{ width: 200 }} placeholder="tìm chữ trong creative…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="tìm chữ" />
-          <Chon nhan="Người mua" value={lc} onChange={setLc} ds={[{ value: '', label: 'Mọi người mua' }, ...d.concept.map((c) => ({ value: String(c.id), label: `${c.ma} · ${c.ten}` }))]} />
-          <Chon nhan="Mức nhận biết" value={lnb} onChange={setLnb} ds={[{ value: '', label: 'Mọi mức nhận biết' }, ...MUC_NB.map((m) => ({ value: m.key, label: `${m.key} · ${m.ten}` }))]} />
-          <Chon nhan="Template" value={lt} onChange={setLt} ds={[{ value: '', label: 'Mọi template' }, ...d.tpl.filter((t) => d.cap.some((c) => c.bat && c.template_id === t.id)).map((t) => ({ value: String(t.id), label: tenT(t) }))]} />
-          <Chon nhan="Diễn viên" value={lv} onChange={setLv} ds={[{ value: '', label: 'Mọi diễn viên' }, ...[...new Set(tat.map((x) => x.bien_the.so))].sort().map((v) => ({ value: String(v), label: `V${v}` }))]} />
-          <Chon nhan="Trạng thái" value={ltt} onChange={setLtt} ds={TT_CR} />
-          <Chon nhan="Vòng test" value={lvong} onChange={setLvong} ds={VONG_LOC} />
+          <Chon nho title="Người mua" value={lc} onChange={setLc} minWidth={150} options={[{ value: '', label: 'Mọi người mua' }, ...d.concept.map((c) => ({ value: String(c.id), label: `${c.ma} · ${c.ten}` }))]} />
+          <Chon nho title="Mức nhận biết" value={lnb} onChange={setLnb} minWidth={150} options={[{ value: '', label: 'Mọi mức nhận biết' }, ...MUC_NB.map((m) => ({ value: m.key, label: `${m.key} · ${m.ten}` }))]} />
+          <Chon nho title="Template" value={lt} onChange={setLt} minWidth={150} options={[{ value: '', label: 'Mọi template' }, ...d.tpl.filter((t) => d.cap.some((c) => c.bat && c.template_id === t.id)).map((t) => ({ value: String(t.id), label: tenT(t) }))]} />
+          <Chon nho title="Diễn viên" value={lv} onChange={setLv} minWidth={150} options={[{ value: '', label: 'Mọi diễn viên' }, ...[...new Set(tat.map((x) => x.bien_the.so))].sort().map((v) => ({ value: String(v), label: `V${v}` }))]} />
+          <Chon nho title="Trạng thái" value={ltt} onChange={setLtt} minWidth={150} options={TT_CR} />
+          <Chon nho title="Vòng test" value={lvong} onChange={setLvong} minWidth={150} options={VONG_LOC} />
           {(lc || lnb || lt || lv || ltt || lvong || q) && <button type="button" className="xv-lienket xv-mono" onClick={() => { setLc(''); setLnb(''); setLt(''); setLv(''); setLtt(''); setLvong(''); setQ(''); }}>bỏ lọc</button>}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>

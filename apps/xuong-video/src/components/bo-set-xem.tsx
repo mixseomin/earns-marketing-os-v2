@@ -13,6 +13,7 @@ import { moNgan } from './ngan-chung';
 import type { BoSet, May3d } from '@/lib/xuong-video/kieu';
 import { V, chat, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
 import { goiAction, Loi, mono } from './ui';
+import { Chon } from './chon';
 
 type DuLieu = Extract<Awaited<ReturnType<typeof boSet3dTap>>, { ok: true }>['data'];
 
@@ -136,10 +137,8 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
         <b style={{ fontSize: 13 }}>{set.ten}</b>
-        <select className="xv-in" value={chon ?? ''} onChange={(e) => setChon(e.target.value ? Number(e.target.value) : null)} style={{ maxWidth: 260 }}>
-          <option value="">— toàn bộ set —</option>
-          {shots.filter((s) => s.set_id === set.id).map((s) => <option key={s.id} value={s.id}>#{s.thu_tu}{s.ma ? ` · ${s.ma}` : ''} · {s.canh.slice(0, 40)}</option>)}
-        </select>
+        <Chon value={chon == null ? '' : String(chon)} onChange={(v) => setChon(v ? Number(v) : null)} minWidth={260}
+          options={[{ value: '', label: '— toàn bộ set —' }, ...shots.filter((s) => s.set_id === set.id).map((s) => ({ value: String(s.id), label: `#${s.thu_tu}${s.ma ? ` · ${s.ma}` : ''} · ${s.canh.slice(0, 40)}`, ngan: `#${s.thu_tu}${s.ma ? ` · ${s.ma}` : ''}`, title: s.canh }))]} />
         <button type="button" className="xv-btn" disabled={iShot <= 0} title="Shot trước" onClick={() => setChon(shots[iShot - 1]!.id)}>◀</button>
         <button type="button" className="xv-btn" disabled={iShot < 0 || iShot >= shots.length - 1} title="Shot sau" onClick={() => setChon(shots[iShot + 1]!.id)}>▶</button>
         {nut(quaMay, '👁 Máy shot', 'Nhìn qua đúng máy ảo của shot (cùng ống kính + khung như khung xám)', () => setQuaMay(!quaMay))}

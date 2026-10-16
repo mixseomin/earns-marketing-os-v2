@@ -7,6 +7,7 @@ import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { dsNguonAi, doiTrangThaiNguon, themNguonModel } from '@/lib/actions';
 import { LOAI_NGUON, TEN_TRANG_THAI, VIEC_NGUON, fmtVnd, giaHien, mucOnDinh, tiLeDat, vndMoiLuot, type LoaiNguon, type Nguon, type NguonModel, type O } from '@/lib/xuong-video/nguon-ai';
 import { Seg, Loi, LinkNgoai, mono, goiAction } from './ui';
+import { Chon } from './chon';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { useNho } from './nho';
@@ -138,7 +139,7 @@ function ThamKhao({ ds, model, onMo, onDoi }: { ds: Nguon[]; model: NguonModel[]
     <form onSubmit={(e) => { e.preventDefault(); void them(); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, border: '1px dashed var(--line)', borderRadius: 8, padding: 10 }}>
       <input className="xv-in" required placeholder="Tên bên cung cấp" value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} />
       <input className="xv-in" required placeholder="Model" value={f.model} onChange={(e) => setF({ ...f, model: e.target.value })} />
-      <select className="xv-in" value={f.loai} onChange={(e) => setF({ ...f, loai: e.target.value as LoaiNguon })} title={LOAI_NGUON.find((l) => l.key === f.loai)?.donVi}>{LOAI_NGUON.map((l) => <option key={l.key} value={l.key}>{l.ten}</option>)}</select>
+      <Chon value={f.loai} onChange={(v) => setF({ ...f, loai: v as LoaiNguon })} minWidth={140} options={LOAI_NGUON.map((l) => ({ value: l.key, label: l.ten, title: `đơn vị giá: ${l.donVi}` }))} />
       <input className="xv-in" type="number" min="0" step="any" placeholder={`₫ / ${LOAI_NGUON.find((l) => l.key === f.loai)?.donVi}`} value={f.gia} onChange={(e) => setF({ ...f, gia: e.target.value })} />
       <input className="xv-in" placeholder="Giá gốc như trên trang" value={f.goc} onChange={(e) => setF({ ...f, goc: e.target.value })} />
       <input className="xv-in" required={!!f.gia.trim()} type="url" placeholder="Link trang chứa giá (bắt buộc khi có giá)" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />

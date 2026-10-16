@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
+import { Chon } from './chon';
 import { docTemplate, luuCauHinhTemplate, taoPhimTuTemplate } from '@/lib/actions';
 import { giaTriMau, oThieu, theoNhom, nhomCuaO, NHOM_O, type OTemplateDs } from '@/lib/xuong-video/template';
 import { tenPhanDoan, DONG_TEMPLATE, type CauHinhTemplate, type Phim } from '@/lib/xuong-video/kieu';
@@ -196,7 +197,7 @@ export function TemplatePanel({ phim, onChanged, onMoPhim, onMoPhimChong }: { ph
                   <input className="xv-in" value={v.goi_y ?? ''} onChange={(e) => sua(v.k, { goi_y: e.target.value })} />
                   <textarea className="xv-in" rows={v.dai ? 3 : 1} value={v.mau ?? ''} onChange={(e) => sua(v.k, { mau: e.target.value })} />
                   <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <select className="xv-in" style={{ width: 84 }} value={nhomCuaO(v.k, v)} onChange={(e) => sua(v.k, { nhom: e.target.value })}>{NHOM_O.map((n) => <option key={n.key} value={n.key}>{n.ten.split(' ')[0]} {n.key.replace('_', ' ')}</option>)}</select>
+                    <Chon nho minWidth={84} value={nhomCuaO(v.k, v)} onChange={(x) => sua(v.k, { nhom: x })} options={NHOM_O.map((n) => ({ value: n.key, label: `${n.ten.split(' ')[0]} ${n.key.replace('_', ' ')}`, title: n.ten }))} />
                     <input type="checkbox" title="ô chữ dài (nhiều dòng)" checked={!!v.dai} onChange={(e) => sua(v.k, { dai: e.target.checked })} />
                   </span>
                 </div>

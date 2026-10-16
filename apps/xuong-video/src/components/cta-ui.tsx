@@ -1,6 +1,7 @@
 'use client';
 // 🎯 Chọn kiểu CTA (thư viện CTA — cta.ts, mau/cta.json) ở panel shot ưu đãi / CTA / end card: mỗi kiểu kèm mẫu thắng nó học theo.
 import { THU_VIEN_CTA, ctaTheoKey } from '@/lib/xuong-video/cta';
+import { Chon } from './chon';
 
 const mono = { fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--fg-3)' } as const;
 
@@ -9,10 +10,7 @@ export function ChonCta({ hienTai, onDoi }: { hienTai?: string; onDoi: (key: str
   return (
     <div style={{ display: 'grid', gap: 4 }}>
       <div style={{ ...mono, letterSpacing: 0.5, marginTop: 6 }}>KIỂU CTA (thư viện)</div>
-      <select className="xv-in" value={c?.key ?? ''} onChange={(e) => onDoi(e.target.value)}>
-        {!c && <option value="">— chưa chọn —</option>}
-        {THU_VIEN_CTA.map((x) => <option key={x.key} value={x.key}>{x.ten}</option>)}
-      </select>
+      <Chon value={c?.key ?? ''} onChange={onDoi} placeholder="— chưa chọn —" options={THU_VIEN_CTA.map((x) => ({ value: x.key, label: x.ten, title: x.mo_ta }))} />
       {c && (
         <>
           <span style={{ alignSelf: 'start', justifySelf: 'start', background: c.kieu.nen, color: c.kieu.mau, padding: '1px 8px', borderRadius: 4, fontWeight: 800, fontSize: 12,

@@ -290,13 +290,13 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
       {l.loai === 'chu' && <textarea className="xv-in" rows={2} value={l.chu ?? ''} onChange={(e) => onDoi({ chu: e.target.value })} placeholder="chữ (xuống dòng = dòng mới)" />}
       {l.loai === 'chu' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 6, alignItems: 'end' }}>
-          <label style={o}>Font<select className="xv-in" value={l.font ?? 'Montserrat Black'} onChange={(e) => onDoi({ font: e.target.value })} style={{ minWidth: 0 }}>{FONT_CHU.map((f) => <option key={f.key} value={f.key}>{f.key}</option>)}</select></label>
+          <label style={o}>Font<Chon nho minWidth={120} value={l.font ?? 'Montserrat Black'} onChange={(v) => onDoi({ font: v })} options={FONT_CHU.map((f) => ({ value: f.key, label: f.key }))} /></label>
           {mau('Màu', 'mau')}{mau('Viền', 'vien')}{mau('Nền', 'nen')}
         </div>
       )}
       {l.loai === 'hinh' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 6, alignItems: 'end' }}>
-          <label style={o}>Dạng<select className="xv-in" value={l.dang ?? 'bo_goc'} onChange={(e) => onDoi({ dang: e.target.value as Lop['dang'] })}><option value="chu_nhat">Chữ nhật</option><option value="bo_goc">Bo góc</option><option value="tron">Tròn / elip</option></select></label>
+          <label style={o}>Dạng<Chon nho minWidth={120} value={l.dang ?? 'bo_goc'} onChange={(v) => onDoi({ dang: v as Lop['dang'] })} options={[{ value: 'chu_nhat', label: 'Chữ nhật' }, { value: 'bo_goc', label: 'Bo góc' }, { value: 'tron', label: 'Tròn / elip' }]} /></label>
           {mau('Màu', 'mau')}{mau('Viền', 'vien')}
         </div>
       )}
@@ -315,8 +315,8 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
           {l.loai === 'chu' ? so('Rộng', 'w', 0.01, 0.01, 2) : l.loai === 'hinh' ? so('Độ đậm', 'mo', 0.05, 0, 1) : <span />}{so('Xoay (°)', 'xoay', 1, -180, 180)}
           {l.loai !== 'anh' && so('Dày viền', 'vien_day', 0.01, 0, 0.3)}
           {l.loai === 'chu' && <label style={{ ...o, alignSelf: 'center' }}><span><input type="checkbox" checked={!!l.nghieng} onChange={(e) => onDoi({ nghieng: e.target.checked })} /> Nghiêng</span></label>}
-          <label style={o}>Hiệu ứng vào<select className="xv-in" value={l.vao} onChange={(e) => onDoi({ vao: e.target.value as Lop['vao'] })}><option value="khong">Không</option><option value="mo">Hiện dần</option><option value="pop">Bật ra</option><option value="truot">Trượt lên</option>{l.loai === 'chu' && <><option value="nay">Nảy</option><option value="go_chu">Gõ chữ</option></>}</select></label>
-          <label style={o}>Khi ra<select className="xv-in" value={l.ra} onChange={(e) => onDoi({ ra: e.target.value as Lop['ra'] })}><option value="khong">Cắt</option><option value="mo">Mờ dần</option></select></label>
+          <label style={o}>Hiệu ứng vào<Chon nho minWidth={120} value={l.vao} onChange={(v) => onDoi({ vao: v as Lop['vao'] })} options={[{ value: 'khong', label: 'Không' }, { value: 'mo', label: 'Hiện dần' }, { value: 'pop', label: 'Bật ra' }, { value: 'truot', label: 'Trượt lên' }, ...(l.loai === 'chu' ? [{ value: 'nay', label: 'Nảy' }, { value: 'go_chu', label: 'Gõ chữ' }] : [])]} /></label>
+          <label style={o}>Khi ra<Chon nho minWidth={120} value={l.ra} onChange={(v) => onDoi({ ra: v as Lop['ra'] })} options={[{ value: 'khong', label: 'Cắt' }, { value: 'mo', label: 'Mờ dần' }]} /></label>
           {l.loai === 'anh' && <label style={{ ...o, gridColumn: 'span 2' }}>Đường dẫn ảnh<input className="xv-in" value={l.url ?? ''} onChange={(e) => onDoi({ url: e.target.value })} /></label>}
           <label style={{ ...o, gridColumn: 'span 2' }}>Tên lớp<input className="xv-in" value={l.ten ?? ''} placeholder={tenLop(l)} onChange={(e) => onDoi({ ten: e.target.value })} /></label>
           <span style={{ display: 'flex', gap: 4, gridColumn: 'span 2' }}>{nut('⬆ Lên trên', 'Đưa lớp lên trên', () => onLenXuong(1))}{nut('⬇ Xuống dưới', 'Đưa lớp xuống dưới', () => onLenXuong(-1))}</span>

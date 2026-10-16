@@ -758,3 +758,29 @@ export async function suaKichBanTheoNguoiXem(o: { bang: string; anchor: string; 
     return { ok: false, loi: loiGoi(e) };
   }
 }
+
+// ── PHƯƠNG ÁN CHỮ cho một cặp concept × template (concept.ts, anh 16/10/2026: "đổi text, câu chữ sẽ ra creative khác nhau") ─────────────────
+// Mỗi ô câu chuyện của template ({{noi_dau}}, {{review}}…) nhiều cách nói — viết từ CÂU THẬT của khách trong sub-avatar spy, đúng mức nhận biết,
+// vừa số giây của shot. Đổi chữ dùng lại nguyên clip nên các phương án phải hợp với CÙNG một hình (không tả hành động khác).
+const PhuongAnSchema = z.object({
+  o: z.array(z.object({
+    k: z.string().describe('Khoá ô, đúng như danh sách ô đã cho'),
+    phuong_an: z.array(z.object({
+      chu: z.string().describe('Chữ của ô (chữ màn + lời đọc) — đúng NGÔN NGỮ QC, vừa số giây của shot'),
+      nguon: z.string().describe('Một cụm tiếng Việt ≤ 8 từ: lấy từ đâu / khác các phương án kia ở chỗ nào (vd "câu khách nguyên văn", "mở bằng cảm xúc")'),
+    })),
+  })),
+});
+export type PhuongAnViet = z.infer<typeof PhuongAnSchema>;
+export async function vietPhuongAnCap(kinhThanh: KinhThanh, user: string): Promise<GoiYKq<PhuongAnViet>> {
+  const kt = docKinhThanh(kinhThanh);
+  return hoi(PhuongAnSchema, kt, `Bạn là copywriter quảng cáo video ngắn (Meta / TikTok). Viết nhiều PHƯƠNG ÁN chữ cho từng ô của một template quảng cáo.
+${taQc(kt)}
+Luật:
+- Chỉ dùng sự thật có trong mục SẢN PHẨM; không bịa số liệu, ưu đãi, chứng nhận.
+- Ưu tiên chữ của CHÍNH khách (câu nguyên văn trong hồ sơ người mua) — giữ giọng và từ của họ, chỉ cắt gọn.
+- Mỗi phương án vừa số giây của shot: khoảng 2,5 từ mỗi giây, chừa 0,5 giây thở.
+- Các phương án của cùng một ô phải KHÁC nhau thật (góc nói, cảm xúc, chi tiết) nhưng vẫn hợp với CÙNG một hình của shot đó.
+- Đúng mức nhận biết của người xem: UA kể gián tiếp, chưa nhắc sản phẩm; PA chạm thẳng vấn đề; SA vì sao giải pháp này tốt nhất; PrA gỡ phản đối bằng bằng chứng; MA chỉ cần deal.
+- Ngôn ngữ chữ: ${tenNgonNgu(kt.ngon_ngu)}.`, user);
+}

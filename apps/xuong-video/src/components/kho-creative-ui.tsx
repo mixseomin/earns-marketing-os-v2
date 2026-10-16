@@ -14,10 +14,15 @@ import { LOAI_GOC_SPY, loaiGocSpy, linkGocSpy, linkSpSpy, type GocSpy } from '@/
 import { COT_DONG, COT_KHUON, LOAI_THANH_PHAN, banDo, dongCua, oMaTran, cumCua, type CumGoc, type DongCreative, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
 import { nhomPhim, anhDaiDien } from '@/lib/xuong-video/nhom-phim';
 import { DONG_TEMPLATE, type Phim } from '@/lib/xuong-video/kieu';
+import { DaiSoKho, TabConcept, TabTemplate, TabPhuongAn, TabDeXuat } from './kho-concept-ui';
+import { docKhoConcept, type KhoConcept } from '@/lib/actions-concept';
 
-type TabSp = 'creative' | 'ban_do' | 'goc' | 'thanh_phan' | 'lo' | 'ket_qua';
+// 4 tab đầu = kho creative theo CONCEPT (kho-concept-ui.tsx, 17/10/2026): Concept → Template → Phương án → Đề xuất; "Đã làm" = creative đã thành phim
+type TabSp = 'concept' | 'template' | 'phuong_an' | 'de_xuat' | 'creative' | 'ban_do' | 'goc' | 'thanh_phan' | 'lo' | 'ket_qua';
+const TAB_KHO_CONCEPT: TabSp[] = ['concept', 'template', 'phuong_an', 'de_xuat'];
 const TAB_SP: { value: TabSp; label: string }[] = [
-  { value: 'creative', label: 'Creative' }, { value: 'ban_do', label: 'Bản đồ' }, { value: 'goc', label: 'Góc' },
+  { value: 'concept', label: 'Concept' }, { value: 'template', label: 'Template' }, { value: 'phuong_an', label: 'Phương án' }, { value: 'de_xuat', label: 'Đề xuất' },
+  { value: 'creative', label: 'Đã làm' }, { value: 'ban_do', label: 'Bản đồ' }, { value: 'goc', label: 'Góc' },
   { value: 'thanh_phan', label: 'Thành phần' }, { value: 'lo', label: 'Lô sinh' }, { value: 'ket_qua', label: 'Kết quả' },
 ];
 const tenKhuon = (c: Pick<DongCreative, 'tpl'>) => (c.tpl ? DONG_TEMPLATE.find((d) => d.key === c.tpl!.dong)?.khuon.find((k) => k.key === c.tpl!.khuon)?.ten ?? c.tpl.khuon : 'Ngoài template');
@@ -48,7 +53,12 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
   const [d, setD] = useState<KhoSanPham | null>(null);
   const [loi, setLoi] = useState('');
   const [goc, setGoc] = useState<(GocSpy & { so_nhac: number })[]>([]);
-  const [tab, setTab] = useNho<TabSp>('xv-sp-tab', 'creative', TAB_SP.map((t) => t.value), 'sptab');
+  const [tab, setTab] = useNho<TabSp>('xv-sp-tab', 'concept', TAB_SP.map((t) => t.value), 'sptab');
+  const [kc, setKc] = useState<KhoConcept | null>(null);
+  const [kcLoi, setKcLoi] = useState('');
+  const [conceptId, setConceptId] = useState<number | null>(null);
+  const [capId, setCapId] = useState<number | null>(null);
+  const taiKc = async () => { const r = await docKhoConcept(spKey); if (r.ok) { setKc(r.data); setKcLoi(''); } else setKcLoi(r.loi); };
   const [chon, setChon] = useState<number[]>([]);
   const [soSanh, setSoSanh] = useState(false);
   const [locGoc, setLocGoc] = useState<number | null>(null);
@@ -56,7 +66,7 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
   const [cum, setCum] = useState<{ cum: CumGoc[]; nguon: string } | null>(null);
   const taiLo = async () => { const r = await dsLo(spKey); if (r.ok) setLo(r.data); };
   const taiKho = async () => { const r = await docKhoSanPham(spKey); if (r.ok) setD(r.data); else setLoi(r.loi); };
-  useEffect(() => { void taiKho(); void taiLo(); }, [spKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void taiKho(); void taiLo(); void taiKc(); }, [spKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (d?.sp.spy) { void dsGocSpy(d.sp.spy).then((r) => r.ok && setGoc(r.data)); void docCumGoc(d.sp.spy).then((r) => r.ok && setCum(r.data)); } }, [d?.sp.spy]);
   const moGoc = (id: number) => { setLocGoc(id); setTab('creative'); };
   if (loi) return <Ngan onClose={onClose}><Loi>{loi}</Loi></Ngan>;
@@ -66,6 +76,11 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
       {d.sp.spy && <LinkNgoai href={linkSpSpy(d.sp.spy)} className="xv-lienket xv-mono" title="Mở nhóm góc của sản phẩm trên spy.on.tc (tab mới)">góc trên spy ↗</LinkNgoai>}
       {d.sp.link && <LinkNgoai href={d.sp.link} className="xv-lienket xv-mono" title={d.sp.link}>trang bán ↗</LinkNgoai>}
     </>} dau={<Seg options={TAB_SP} value={tab} onChange={setTab} />}>
+      {TAB_KHO_CONCEPT.includes(tab) && (kc ? <DaiSoKho d={kc} /> : <Loi>{kcLoi}</Loi>)}
+      {tab === 'concept' && kc && <TabConcept d={kc} spKey={spKey} onDoi={taiKc} onChon={(id) => { setConceptId(id); setTab('template'); }} />}
+      {tab === 'template' && kc && <TabTemplate d={kc} onDoi={taiKc} conceptId={conceptId} setConceptId={setConceptId} />}
+      {tab === 'phuong_an' && kc && <TabPhuongAn d={kc} onDoi={taiKc} capId={capId} setCapId={setCapId} />}
+      {tab === 'de_xuat' && kc && <TabDeXuat d={kc} spKey={spKey} onDoi={async () => { await taiKc(); await taiKho(); }} onMoPhim={onMoPhim} />}
       {tab === 'creative' && <BangCreative d={d} goc={goc} cum={cum?.cum ?? []} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
       {tab === 'ban_do' && <BanDo d={d} goc={goc} lo={lo} spKey={spKey} onLo={taiLo} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
       {tab === 'goc' && <CayGoc d={d} goc={goc} cum={cum} onMoPhim={onMoPhim} onMoGoc={moGoc} />}

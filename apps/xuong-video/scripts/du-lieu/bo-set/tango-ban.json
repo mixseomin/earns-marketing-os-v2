@@ -1919,8 +1919,10 @@
             0.6
           ],
           "huong": 83,
+          "nam_den": true,
           "dien": [
-            "nhay@0.15-0.6"
+            "nhay@0.15-0.6",
+            "nga@0.6-0.85"
           ]
         },
         {
@@ -2196,7 +2198,8 @@
             0
           ],
           "huong": 112,
-          "nam": true
+          "nam": true,
+          "nam_den": false
         },
         {
           "ten": "Gummy Bear",
@@ -2283,9 +2286,11 @@
             0
           ],
           "huong": 107,
-          "nam": true,
+          "nam": false,
+          "nam_den": true,
           "dien": [
-            "mat_to@0.08"
+            "mat_to@0.08",
+            "nga@0.12-0.3"
           ]
         },
         {
@@ -3065,7 +3070,8 @@
             2.3
           ],
           "huong": 0,
-          "huong_den": 71
+          "huong_den": 71,
+          "nam": true
         },
         {
           "ten": "Lint",
@@ -3149,7 +3155,8 @@
             0.3
           ],
           "huong": 71,
-          "huong_den": 79
+          "huong_den": 79,
+          "nam": true
         },
         {
           "ten": "Lint",
@@ -3246,7 +3253,12 @@
             0.3
           ],
           "huong": 79,
-          "huong_den": 71
+          "huong_den": 71,
+          "nam": true,
+          "nam_den": false,
+          "dien": [
+            "day@0.05-0.3"
+          ]
         },
         {
           "ten": "Lint",

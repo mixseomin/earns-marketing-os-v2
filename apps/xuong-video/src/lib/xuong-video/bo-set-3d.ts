@@ -18,7 +18,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 31;
+export const BAN_DUNG = 32;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -294,7 +294,7 @@ const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360
 
 /** Lỗi liền mạch theo từng shot (id → câu). ds = các shot CÙNG bộ set theo thứ tự phát; shot không có may_3d bỏ qua. */
 export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null }>(ds: T[], khoi: (ten: string) => { co: number[] } | null): Record<number, string[]> {
-  const cuoi = new Map<string, { p: number[]; huong?: number; shot: number }>(); const out: Record<number, string[]> = {};
+  const cuoi = new Map<string, { p: number[]; huong?: number; nam: boolean; shot: number }>(); const out: Record<number, string[]> = {};
   // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
   // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
   const camBoi = new Map<string, { nguoi: string; shot: number }>();
@@ -304,6 +304,7 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   // SỔ TRẠNG THÁI (script supervisor, 15/10/2026): trạng thái cơ thể / bề mặt (trang) shot trước ĐỂ LẠI phải là trạng thái shot sau MỞ — xù lông
   // không tự phẳng, bẹp không tự tròn; chỉ đổi trong shot (trang_den) hoặc khi khai nhay.
   const trangCuoi = new Map<string, { t: string; shot: number }>();
+  let truocCo = new Set<string>();
   for (const c of ds) {
     const m = c.may_3d; if (!m) continue;
     const co = new Set(m.vi_tri.map((v) => v.ten));
@@ -330,10 +331,15 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
         const d = Math.hypot(v.tam[0]! - tr.p[0]!, v.tam[1]! - tr.p[1]!, (v.tam[2] ?? 0) - (tr.p[2] ?? 0));
         const r = (p: number[]) => `(${p.map((x) => Math.round(x * 10) / 10).join(', ')})`;
         if (d > NGUONG_CM(khoi(v.ten)?.co)) (out[c.id] ??= []).push(`${v.ten} đứt mạch: kết #${tr.shot} ở ${r(tr.p)} mà mở shot này ở ${r(v.tam)} — lệch ${Math.round(d * 10) / 10} cm; sửa chỗ đứng / chỗ kết, hoặc khai nhay (lý do) nếu cố ý cắt thời gian`);
+        // DÁNG — chỉ khi nhân vật CÓ MẶT ở shot liền trước (vắng một shot = thời gian trôi ngoài khung, #14 nằm → vắng #15 → #16 đứng là hợp lệ).
+        // (anh 16/10/2026: "#8 đang đứng mà #9 đã nằm — hệ thống điểm không phát hiện được à"): đứng / nằm không tự đổi qua cú cắt — ngã phải
+        // diễn trong shot (nam_den ở shot trước) hoặc khai nhay. Trước đây cổng chỉ so chỗ + hướng + trạng thái chữ.
+        if (tr.nam !== !!v.nam && truocCo.has(v.ten)) (out[c.id] ??= []).push(`${v.ten} kết #${tr.shot} đang ${tr.nam ? 'NẰM' : 'ĐỨNG'} mà mở shot này ${v.nam ? 'NẰM' : 'ĐỨNG'} — cho ${tr.nam ? 'đứng dậy' : 'ngã'} trong #${tr.shot} (nam_den: ${!tr.nam}) hoặc khai nhay nếu cố ý cắt thời gian`);
         if (tr.huong != null && v.huong != null && gocLech(tr.huong, v.huong) > 60) (out[c.id] ??= []).push(`${v.ten} quay ngoắt ${Math.round(gocLech(tr.huong, v.huong))}° qua cú cắt (kết #${tr.shot} nhìn ${tr.huong}°, mở shot này ${v.huong}°)`);
       }
-      cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, shot: c.thu_tu });
+      cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: !!(v.nam_den ?? v.nam), shot: c.thu_tu });
     }
+    truocCo = co;
   }
   return out;
 }

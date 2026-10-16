@@ -5,7 +5,7 @@
 # Chạy trên box (Blender không giao diện):
 #   blender -b --factory-startup -P apps/xuong-video/scripts/bo-set/dung-set.py -- <set.json> <thư mục ra> [ma shot,...]
 import bpy, json, math, sys, os
-from mathutils import Quaternion, Vector, Euler
+from mathutils import Matrix, Quaternion, Vector, Euler
 
 arg = sys.argv[sys.argv.index('--') + 1:]
 DL = json.load(open(arg[0], encoding='utf-8'))
@@ -675,7 +675,7 @@ if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ �
 DONG_TAC = {
     'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
-    'nga_ngoi': 'ngã ngồi ra sau', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',
+    'nga_ngoi': 'ngã ngồi ra sau', 'nga': 'mốc cú ngã đứng → nằm (cần nam_den)', 'day': 'mốc đứng dậy nằm → đứng (cần nam_den: false)', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',
 }
 def doc_dong_tac(ds):
     out = []
@@ -789,6 +789,13 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         dai = (b.xy - a.xy).length; bay = b.z - a.z > 0.8; buoc = max(1, round(dai / 0.9)); di = dai > 0.4 and not bay and abs(b.z - a.z) < 0.3
         hat = sum(ord(c) * (i + 1) for i, c in enumerate(ten))
         hd = doc_dong_tac(nv.get('dien') or [])
+        doi_dang = None   # đứng ↔ nằm trong shot (nam → nam_den): trục ngang + độ dời giống nam_xuong, cỡ theo khối nhân vật mẫu
+        if nv.get('nam_den') is not None and bool(nv.get('nam_den')) != bool(nv.get('nam')):
+            km = (DL.get('nhan_vat_mau') or {}).get(ten) or {}; cw, cd_, ch = (km.get('co') or [1, 1, 2])[:3]
+            ag = math.radians(h0); u_ = Vector((math.cos(ag), math.sin(ag), 0)); truoc_ = Vector((math.sin(ag), -math.cos(ag), 0))
+            mac = [x for x in hd if x[0] == ('nga' if nv.get('nam_den') else 'day')]
+            doi_dang = {'nga': bool(nv.get('nam_den')), 'u': u_, 'lech': (Vector((0, 0, cd_ / 2)) + truoc_ * (ch / 2)) * CM,
+                        'cua': (mac[0][1], mac[0][2]) if mac else ((0.6, 0.85) if nv.get('nam_den') else (0.1, 0.4))}
         rb = random.Random(hat); chop = [rb.uniform(0.2, 0.45), rb.uniform(0.65, 0.9)]   # hai lần chớp mắt tự nhiên, lệch nhịp mỗi nhân vật
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1); k = dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
@@ -803,10 +810,16 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             hh = math.radians(h0 + dh * k); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
             nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di else 0.0) - math.radians(dt['nga'])   # đi: chúi tới · ngã ngồi: ngả ra sau
             R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * k + dt['xoay']) + q[2]) @ Quaternion((1, 0, 0), q[0]))
-            e.rotation_mode = 'QUATERNION'; e.location = p * CM; e.rotation_quaternion = R
+            e.rotation_mode = 'QUATERNION'
             cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 else 0.0   # 1 = chân vừa chạm đất
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']
-            e.scale = (ph * (1 + bep / 2), ph * (1 + bep / 2), ph * (1 - bep))   # đất nặn bẹp nhẹ khi chạm, giữ thể tích · phồng to
+            Mt = Matrix.Translation(p * CM) @ R.to_matrix().to_4x4()
+            if doi_dang:   # NGÃ / ĐỨNG DẬY trong shot = nội suy đúng phép nam_xuong (xoay 90° quanh trục ngang tại chân + dời thân lên mặt bàn)
+                a_, b_ = doi_dang['cua']; kd = em(min(1.0, max(0.0, (t - a_) / (b_ - a_))))
+                Mt = Mt @ (Matrix.Translation(doi_dang['lech'] * kd) @ Matrix.Rotation(math.radians(-90 * kd), 4, doi_dang['u']) if doi_dang['nga']
+                           else Matrix.Rotation(math.radians(90 * kd), 4, doi_dang['u']) @ Matrix.Translation(-doi_dang['lech'] * kd))
+            Mt = Mt @ Matrix.Diagonal((ph * (1 + bep / 2), ph * (1 + bep / 2), ph * (1 - bep), 1))   # đất nặn bẹp nhẹ khi chạm, giữ thể tích · phồng to
+            lo, ro, sc_ = Mt.decompose(); e.location = lo; e.rotation_quaternion = ro; e.scale = sc_
             e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_quaternion', frame=f); e.keyframe_insert('scale', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo
                 nham_ = 0.12 if any(abs(f - (1 + c * (N - 1))) < 1.01 for c in chop) else 1.0

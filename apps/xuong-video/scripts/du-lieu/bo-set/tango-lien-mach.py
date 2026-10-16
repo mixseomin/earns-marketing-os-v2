@@ -352,6 +352,18 @@ DIEN = {
  '7.7b': {TANGO: ['nheo_mat@0.5-0.8']},                                           # #43 nhíu mắt nhìn mẩu giấy
  '8.1': {TANGO: ['nhun_vai@0.1-0.5'], LINT: ['nhay@0.5-0.7']},                    # #45 nhún vai tiếc kẹo, vỗ vai
 }
+# DÁNG LIỀN MẠCH (anh 16/10/2026: "#8 đang đứng mà #9 đã nằm"): đứng / nằm đổi TRONG shot (nam_den), không qua cú cắt — cổng lienMachTap kiểm dáng.
+def dang(ma, ten, **k):
+    for x in VT[ma]:
+        if x['ten'] == ten: x.update(k)
+dang('2.2', TANGO, nam_den=True)                 # #8 kẹo phụt khỏi vòng tay → Tango ngã xuống gỗ cuối shot (#9 mở đang nằm)
+dang('4.1', TANGO, nam_den=False)                # #12 quả bóng cam lăn tới rồi bung ra thành Tango đứng (#13 mở đứng)
+dang('4.3', TANGO, nam=False, nam_den=True)      # #14 'Tango ngã ngồi' diễn trong shot: mở đứng, ngã khi Lint phồng
+for ma in ('6.2', '6.3'): dang(ma, TANGO, nam=True)   # #27–#28 Tango đã nặn thành xe trượt: thân dẹt nằm
+dang('7.1', TANGO, nam=True, nam_den=False)      # #29 xe trượt dừng trên thẻ cam → bung lại thành Tango đứng
+DIEN.setdefault('2.2', {}).setdefault(TANGO, []).append('nga@0.6-0.85')
+DIEN.setdefault('4.3', {}).setdefault(TANGO, []).append('nga@0.12-0.3')
+DIEN.setdefault('7.1', {}).setdefault(TANGO, []).append('day@0.05-0.3')
 for ma, ds in VT.items():
     for x in ds:
         if ma in DIEN and x['ten'] in DIEN[ma]: x['dien'] = DIEN[ma][x['ten']]

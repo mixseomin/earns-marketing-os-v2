@@ -10,6 +10,9 @@ import { type Row, n, s, mangInt } from '@/lib/xuong-video/doc-db';
 import { docOTemplate } from '@/lib/xuong-video/template-db';
 import { docGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { docSpy } from '@/lib/xuong-video/spy-api';
+import { nguCanhXuat, xuatCreativeDb } from '@/lib/xuong-video/xuat-creative';
+import { taoJob, xongJob } from '@/lib/xuong-video/doc-db';
+import { chayNen } from '@/lib/xuong-video/hoan-tat';
 import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET } from '@/lib/xuong-video/concept-db';
 import { giaTriSanPham, taoPhimTuTemplate } from '@/lib/actions';
 import type { KetQuaChep } from '@/lib/xuong-video/template-db';
@@ -76,10 +79,10 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
   const anh = Number(g.anh) || GIA_DU_PHONG.anh, video = Number(g.video) || GIA_DU_PHONG.video, chu = Number(g.chu) || GIA_DU_PHONG.chu;
   return { ok: true, data: {
     spy_sp: await spySp(db, spKey), concept, tpl, cap,
-    bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true })),
+    bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true, phim_id: r.phim_id == null ? null : n(r.phim_id) })),
     phuong_an: (pa as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), o: s(r.o), so: n(r.so), chu: s(r.chu), nguon: s(r.nguon) })),
     creative: (cr as unknown as Row[]).map((r) => ({ id: n(r.id), so: n(r.so), cap_id: n(r.cap_id), bien_the_id: r.bien_the_id == null ? null : n(r.bien_the_id),
-      chon: (r.chon ?? {}) as Record<string, number>, ma: s(r.ma), trang_thai: (s(r.trang_thai) || 'duyet') as CreativeDuyet['trang_thai'], phim_id: r.phim_id == null ? null : n(r.phim_id) })),
+      chon: (r.chon ?? {}) as Record<string, number>, ma: s(r.ma), trang_thai: (s(r.trang_thai) || 'duyet') as CreativeDuyet['trang_thai'], phim_id: r.phim_id == null ? null : n(r.phim_id), xuat: (r.xuat ?? null) as CreativeDuyet['xuat'] })),
     gia: { shot_cents: Math.round((LAN_THU.anh * anh + LAN_THU.video * video) * 100) / 100, kb_cents: Math.round(LAN_THU.chu_kb * chu * 100) / 100, chu_cents: Math.round(chu * 100) / 100 },
   } };
 }
@@ -283,5 +286,24 @@ export async function taoPhimTuCreative(creativeId: number, ten: string, gt: Rec
   await db.execute(sql`UPDATE xv_phim SET goc_spy = ${JSON.stringify(goc)}::jsonb,
     kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{creative}', ${JSON.stringify({ so: n(r.so), ma: s(r.ma), concept: s(r.k_ma) })}::jsonb), updated_at = now() WHERE id = ${kq.data.phimId}`);
   await db.execute(sql`UPDATE xv_creative SET phim_id = ${kq.data.phimId}, trang_thai = 'da_tao' WHERE id = ${creativeId}`);
+  // phim ĐẦU TIÊN của bộ hình = PHIM GỐC — các creative khác cùng bộ hình xuất từ clip của nó (xuatCreative), không tạo phim riêng
+  if (r.bien_the_id != null) await db.execute(sql`UPDATE xv_bien_the_hinh SET phim_id = ${kq.data.phimId} WHERE id = ${n(r.bien_the_id)} AND phim_id IS NULL`);
   return kq;
+}
+
+/** ⬇ XUẤT CREATIVE TỪ PHIM GỐC (dùng lại clip — xuat-creative.ts): chạy nền như lồng tiếng, trả job. Tiền: chỉ giọng của câu đổi (ElevenLabs,
+ *  câu đã đọc thì dùng lại); hình / clip 0đ. Creative phải đã duyệt và bộ hình có phim gốc đủ clip. */
+export async function xuatCreative(creativeId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nc = await nguCanhXuat(db, creativeId);
+  if (!nc.ok) return nc;
+  if (s(nc.data.cr.trang_thai) === 'bo') return loi('creative đã bỏ duyệt');
+  const job = await taoJob(db, { phim_id: nc.data.phimGoc, nhan: `Xuất creative #${n(nc.data.cr.so)} từ phim gốc`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { creative_id: creativeId } });
+  chayNen(async () => {
+    const r = await xuatCreativeDb(db, creativeId, job).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));
+    if (!r.ok) await xongJob(db, job, { loi: r.loi });
+  });
+  return { ok: true, data: job };
 }

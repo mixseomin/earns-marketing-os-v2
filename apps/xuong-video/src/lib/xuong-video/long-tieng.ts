@@ -20,10 +20,10 @@ import { docKinhThanh, locNhanh, type BanXuat } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, xongJob, type Db, type Row } from './doc-db';
 
 const run = promisify(execFile);
-const bam = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 24);
+export const bam = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 24);
 const PUB = () => (process.env.R2_PUBLIC_BASE || '').replace(/\/+$/, '');
 /** Tệp R2 có khoá suy từ nội dung (không bao giờ đổi) → có rồi thì dùng lại, khỏi tiêu tiền lần hai. */
-async function coTep(key: string): Promise<string | null> {
+export async function coTep(key: string): Promise<string | null> {
   const url = `${PUB()}/${key}`;
   try { return (await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(15_000) })).ok ? url : null; } catch { return null; }
 }

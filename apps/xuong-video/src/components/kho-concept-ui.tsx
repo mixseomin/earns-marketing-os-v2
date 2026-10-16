@@ -11,7 +11,7 @@ import { Ngan } from './ngan';
 import { useNho } from './nho';
 import { TaoTuTemplate } from './template-ui';
 import { tien, LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
-import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, uocVietHet, vietHet, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, type KhoConcept } from '@/lib/actions-concept';
+import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, uocVietHet, vietHet, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, xuatCreative, type KhoConcept } from '@/lib/actions-concept';
 import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, tienCapCents, tienDungRiengCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
 
 const tenT = (t: Pick<TplConcept, 'ten'>) => t.ten.replace(/\s*\(.*\)\s*$/, '');
@@ -216,6 +216,9 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
   const [soBo, setSoBo] = useState(8);
   const [tao, setTao] = useState<{ id: number; template_id: number; template_ten: string; ten: string; gt: Record<string, string> } | null>(null);
   const [loi, setLoi] = useState('');
+  const [dangXuat, setDangXuat] = useState<Set<number>>(new Set());
+  useEffect(() => { if (!dangXuat.size) return; const t = setTimeout(() => { void onDoi(); }, 6000); return () => clearTimeout(t); }, [dangXuat, d]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!dangXuat.size) return; const con = new Set([...dangXuat].filter((id) => !d.creative.find((c) => c.id === id)?.xuat)); if (con.size !== dangXuat.size) setDangXuat(con); }, [d.creative]); // eslint-disable-line react-hooks/exhaustive-deps
   const daDuyet = useMemo(() => new Map(d.creative.map((c) => [c.ma, c])), [d.creative]);
   const phimId = useMemo(() => new Map(phim.map((x) => [x.id, x])), [phim]);
   const tat: DongCr[] = useMemo(() => soKho(d).bat.flatMap(({ cap, c, t }) => toHopCap(c, t, cap, btCua(d, cap.id), d.phuong_an).ds.map((x) => ({ ...x, c, t,
@@ -241,9 +244,19 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
     { key: 'so', header: '#', width: 52, align: 'left', sortValue: (x) => daDuyet.get(x.ma)?.so ?? 1e9, cell: (x) => { const cr = daDuyet.get(x.ma); return cr && cr.trang_thai !== 'bo' ? <b style={{ fontFamily: 'var(--font-mono)' }}>#{cr.so}</b> : <span style={mono}>·</span>; } },
     { key: 'hook', header: 'Hook', title: b.t.o_chu[0]?.ten, align: 'left', sortValue: (x) => x.hook, cell: (x) => <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500, ...catChu }}>{x.hook}</span>, cellTitle: (x) => x.hook },
     { key: 'khac', header: 'Khác bản 1', align: 'left', width: '34%', cell: (x) => <span style={{ fontSize: 11.5, color: 'var(--cyan)', display: 'block', ...catChu }}>{x.khac.map((k2) => `${k2.ten}: ${k2.chu}`).join(' · ') || <span style={mono}>thân · kết như bản 1</span>}</span>, cellTitle: (x) => x.khac.map((k2) => `${k2.ten}: ${k2.chu}`).join('\n') },
-    { key: 'tt', header: 'Trạng thái', align: 'left', width: 110, sortValue: (x) => ttCua(x), cell: (x) => { const cr = daDuyet.get(x.ma);
-      return cr?.trang_thai === 'da_tao' && cr.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }} title="mở phim của creative">🎬 phim #{cr.phim_id}</button>
-        : cr?.trang_thai === 'duyet' ? <Nut onClick={() => void moTao(cr.id)} title="Tạo phim từ template với diễn viên, bối cảnh và chữ đã chọn (0đ)">Tạo phim</Nut> : <Pill color="var(--fg-3)">đề xuất</Pill>; } },
+    { key: 'tt', header: 'Trạng thái', align: 'left', width: 150, sortValue: (x) => ttCua(x), cell: (x) => { const cr = daDuyet.get(x.ma), goc = x.bien_the.phim_id ?? null;
+      // DÙNG LẠI CLIP: creative đầu của bộ hình tạo PHIM GỐC; các creative khác xuất từ clip của phim gốc (chỉ thay chữ + giọng)
+      if (!cr || cr.trang_thai === 'bo') return <Pill color="var(--fg-3)">đề xuất</Pill>;
+      if (cr.phim_id && cr.phim_id === goc) return <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }} title="phim gốc của bộ hình — sản xuất hình / clip ở đây">🎬 phim gốc #{cr.phim_id}</button>;
+      if (cr.phim_id) return <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }}>🎬 phim #{cr.phim_id}</button>;
+      if (!goc) return <Nut onClick={() => void moTao(cr.id)} title="Tạo PHIM GỐC của bộ hình từ creative này (0đ) — sinh hình / clip một lần ở phim gốc, các creative khác cùng bộ hình xuất từ clip đó">Tạo phim gốc</Nut>;
+      const san = phimId.get(goc)?.nac.find((k2) => k2.ten === 'Clip')?.tt === 'xong';
+      return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+        {cr.xuat?.url && <LinkNgoai href={cr.xuat.url} className="xv-lienket xv-mono" title={`xuất ${new Date(cr.xuat.luc).toLocaleString('vi-VN')}${cr.xuat.canh_bao?.length ? ` · ${cr.xuat.canh_bao.join(' · ')}` : ''}`}>▶ bản xuất</LinkNgoai>}
+        {dangXuat.has(cr.id) ? <span style={mono}>đang xuất…</span>
+          : <Nut ly={!san && 'phim gốc chưa đủ clip — sinh clip ở phim gốc trước'} onClick={() => void xuatCreative(cr.id).then((r) => { if (!r.ok) setLoi(r.loi); else setDangXuat(new Set([...dangXuat, cr.id])); })}
+              title="Xuất từ clip của phim gốc, chỉ thay chữ màn + giọng câu đổi (giọng đọc lại theo câu, ~vài cent; hình 0đ)">{cr.xuat?.url ? '↻' : '⬇ Xuất'}</Nut>}
+      </span>; } },
   ];
   /** Kịch bản một creative = dải thẻ theo shot (như storyboard): số · loại shot · giây, câu chữ, nguồn — để review đúng chữ trước khi duyệt. */
   const kichBan = (x: DongCr) => <div style={{ display: 'grid', gap: 10, padding: '4px 0 2px', fontFamily: 'var(--font-sans)' }}>
@@ -272,9 +285,9 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: '6px 14px', alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={mono} title={`đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot · ${tien(d.gia.kb_cents)}/bộ kịch bản`}><b style={{ color: 'var(--fg-1)', fontSize: 13 }}>{tat.length.toLocaleString('vi-VN')}</b> creative trên <b style={{ color: 'var(--fg-1)', fontSize: 13 }}>{k.boHinh}</b> bộ hình · {d.creative.filter((x) => x.trang_thai !== 'bo').length} đã duyệt</span>
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'baseline' }} title="Tạo phim hiện chép từ template: shot có chữ đổi bị sinh lại hình nên mỗi creative tốn như một phim. Dùng lại clip = mỗi bộ hình sản xuất một lần, các creative chỉ thay chữ màn + giọng khi xuất (chưa có).">
-          <span style={{ ...mono, color: 'var(--amber)' }}>dựng riêng từng creative (hiện nay) ~{tien(tienRieng)}</span><span style={mono}>→</span>
-          <span style={{ ...mono, color: 'var(--lime)' }}>dùng lại clip ~{tien(k.cents)} (chưa có)</span></span>
+        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'baseline' }} title="Dùng lại clip: mỗi bộ hình chỉ sản xuất MỘT phim gốc; các creative khác của bộ hình bấm ⬇ Xuất — dựng từ clip phim gốc, chỉ thay chữ màn + giọng câu đổi. Dựng riêng = mỗi creative một phim (tạo phim từ template sinh lại shot có chữ đổi).">
+          <span style={{ ...mono, color: 'var(--amber)' }}>nếu dựng riêng từng creative ~{tien(tienRieng)}</span><span style={mono}>→</span>
+          <span style={{ ...mono, color: 'var(--lime)' }}>dùng lại clip ~{tien(k.cents)}</span></span>
         <span style={{ flex: 1 }} />
         {spyAv && <LinkNgoai href={spyAv} className="xv-lienket xv-mono" title="Sub-avatar của nhóm spy — gốc của mọi người mua">người mua trên spy ↗</LinkNgoai>}
         <Nut onClick={() => setCfg({ cap: null })} title="Nhập concept từ spy · bật / tắt template · diễn viên · sửa phương án chữ">⚙ Cấu hình</Nut>
@@ -314,7 +327,7 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
                 </span>
               </span>
               <span style={{ display: 'grid', justifyItems: 'end', gap: 2, ...mono }} title="Dùng lại clip: bộ hình sản xuất một lần, mỗi creative chỉ thay chữ màn + giọng khi xuất">
-                <span>🎬 {boPhim ? `${boPhim} phim đã tạo` : 'chưa sản xuất'} → <b style={{ color: 'var(--fg-1)' }}>{b.ds.length}</b> creative</span>
+                <span>{b.v.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(b.v.phim_id!)} title={phimId.get(b.v.phim_id)?.nac.map((k2) => `${k2.ten}: ${k2.tt}`).join(' · ')}>🎬 phim gốc #{b.v.phim_id} · {phimId.get(b.v.phim_id)?.ket ?? ''}</button> : '🎬 chưa có phim gốc'} → <b style={{ color: 'var(--fg-1)' }}>{b.ds.length}</b> creative · {b.ds.filter((x) => daDuyet.get(x.ma)?.xuat?.url).length} đã xuất{boPhim > 1 ? ` · ${boPhim} phim` : ''}</span>
                 <span><span style={{ color: 'var(--amber)' }}>riêng ~{tien(b.ds.length * tienDungRiengCents(b.t, d.gia))}</span> · <span style={{ color: 'var(--lime)' }}>dùng lại ~{tien(tienBo)}</span></span>
               </span>
             </div>

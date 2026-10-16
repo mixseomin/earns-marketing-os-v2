@@ -1,8 +1,9 @@
 // KHO CREATIVE THEO CONCEPT (anh 16–17/10/2026: "1.000 creative — quản lý trong studio trước khi sản xuất"). Bốn tầng, mỗi tầng một tab ngăn sản phẩm:
 //   Concept   = một sub-avatar của spy (path × mức nhận biết) — người mua cụ thể ở một mức nhận biết (migration 0269 xv_concept)
 //   Template  = cách tiếp cận (Kể chuyện, Trước/Sau…) — cặp concept × template = MỘT BỘ HÌNH (xv_cap); thêm biến thể diễn viên / bối cảnh (xv_bien_the_hinh)
-//   Phương án = nhiều giá trị chữ cho các ô câu chuyện của template ({{noi_dau}}…) (xv_phuong_an). CHƯA dùng lại clip: Tạo phim = chepPhim từ template,
-//     shot có chữ đổi bị bỏ hình về nháp (template-db.ts) → mỗi creative hiện tốn như một phim riêng (tienDungRiengCents); dùng lại clip giữa creative cùng bộ hình là việc sau.
+//   Phương án = nhiều giá trị chữ cho các ô câu chuyện của template ({{noi_dau}}…) (xv_phuong_an). DÙNG LẠI CLIP: creative đầu của bộ hình tạo
+//     PHIM GỐC (xv_bien_the_hinh.phim_id), creative khác xuất từ clip của nó, chỉ thay chữ màn + giọng (xuat-creative.ts); tạo phim riêng từ template thì
+//     shot có chữ đổi bị sinh lại hình (template-db.ts) → tienDungRiengCents là giá so sánh.
 //   Creative  = cặp × biến thể × một phương án mỗi ô; tổ hợp chỉ TÍNH ra, duyệt mới lưu (xv_creative, số cố định trong sản phẩm)
 // Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/concept.test.mts
 import { nhomCuaO } from './template';
@@ -36,9 +37,9 @@ export type TplConcept = { id: number; ten: string; dong: string; khuon: string;
   /** shot có anchor nhân vật / bối cảnh / một trong hai — đổi diễn viên / bối cảnh = sinh lại ĐÚNG các shot này (đếm thật từ xv_canh.nhan_vat) */
   shot_nguoi: number; shot_boi: number; shot_ca: number; o_chu: OChu[]; o_hinh: string[] };
 export type Cap = { id: number; concept_id: number; template_id: number; bat: boolean };
-export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean };
+export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean; /** phim gốc của bộ hình (xuat-creative.ts) */ phim_id?: number | null };
 export type PhuongAn = { id: number; cap_id: number; o: string; so: number; chu: string; nguon: string };
-export type CreativeDuyet = { id: number; so: number; cap_id: number; bien_the_id: number | null; chon: Record<string, number>; ma: string; trang_thai: 'duyet' | 'da_tao' | 'bo'; phim_id: number | null };
+export type CreativeDuyet = { id: number; so: number; cap_id: number; bien_the_id: number | null; chon: Record<string, number>; ma: string; trang_thai: 'duyet' | 'da_tao' | 'bo'; phim_id: number | null; /** bản xuất từ phim gốc (dùng lại clip) */ xuat?: { url: string; luc: string; giay?: number; canh_bao?: string[] } | null };
 /** Đơn giá thật (trung bình sổ xv_job 30 ngày): một shot (keyframe ×2 lần thử + video ×1,3) · một bộ kịch bản (kịch bản + tách cảnh + kiểm người xem). */
 export type GiaConcept = { shot_cents: number; kb_cents: number; chu_cents: number };
 

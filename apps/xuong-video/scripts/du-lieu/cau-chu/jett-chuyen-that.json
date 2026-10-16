@@ -1,7 +1,7 @@
 {
- "template": 58,
- "ten": "Jett · Chuyện có thật (Linda kể: Frank ngồi ngoài mọi điệu nhảy)",
- "ghi": "Vấn đề trước, giải pháp sau (template #58, khuôn từ Thriving In Menopause + Parkinson's Health Insider). Giải pháp ở shot 9/15. Skill viet-qc-truc-dien, 16/10/2026.",
+ "template": 60,
+ "ten": "Jett · Chuyện có thật v2 (diễn: Lily rủ ông nhảy, cạp quần cấn → ngồi ngoài)",
+ "ghi": "Template chuyen_that v2 — DIỄN không kể, 3 điểm chạm mỗi shot (hình + giọng + chữ). Giải pháp shot 8/14. Skill viet-qc-truc-dien, 16/10/2026.",
  "o": {
   "san_pham": "JettJeans",
   "link": "https://orabra.com/jettjeans3-men-s-classic-straight-fit-stretch-jeans-3",
@@ -41,70 +41,8 @@
   "giong_2": "nam Mỹ 66 tuổi, trầm, ít nói",
   "boi_canh": "cozy American home: dining table by a window, brown leather sofa, wooden floor, family photos, warm afternoon light",
   "boi_canh_2": "backyard wedding reception at dusk: string lights, round tables with white cloths, a wooden dance floor, family guests",
-  "niem_tin_sai": [
-   "For years I blamed his body. It was his jeans.",
-   [
-    {
-     "loai": "loi_khach",
-     "nguon": "reddit",
-     "trich": "My dad spent my entire childhood wearing the wrong cut of jeans because he knew his inseam and waist and just bought off that. He had baggy thighs and saggy butt and knee bagging.",
-     "ma": "1865463",
-     "link": "https://www.reddit.com/r/capsulewardrobe/comments/1cmij54/could_someone_please_tell_me_in_no_uncertain/l3qx4b3/",
-     "ky_thuat": "lật cách hiểu vấn đề"
-    },
-    {
-     "loai": "qc_thang",
-     "nguon": "qc_meta",
-     "trich": "🚫 Before: Stiff waistbands. Dug in at the waist. Sagging seat. Heavy fabric. ✅ After: Flex waist. Smooth Butt. Feels light as air",
-     "ma": "1739471230507642",
-     "link": "https://www.facebook.com/ads/library/?id=1739471230507642",
-     "ghi": "JettJeans · Men Over 50 / Contour · 14 đơn / CPA $26 ở shop mình"
-    }
-   ]
-  ],
-  "niem_tin_sai_hinh": "the narrator holds up an old pair of stiff faded jeans toward the camera, unimpressed",
-  "van_de_1": [
-   "He'd tug at his waistband every time he sat down.",
-   [
-    {
-     "loai": "qc_thang",
-     "nguon": "qc_meta",
-     "trich": "Most jeans fight you the second you sit down, bend over, or squat. JettJeans don't. ✅ Sit. Bend. Squat. No restriction.",
-     "ma": "4532816070328428",
-     "link": "https://www.facebook.com/ads/library/?id=4532816070328428",
-     "ghi": "JettJeans · Final Hours (ảnh) · đang chạy 14/10/2026",
-     "ky_thuat": "chi tiết đời thật"
-    },
-    {
-     "loai": "trang_ban",
-     "nguon": "orabra",
-     "trich": "deep pockets design allows you to carry all your essentials comfortably without anything digging into your skin when you movem bend, or sit.",
-     "link": "https://orabra.com/jettjeans3-men-s-classic-straight-fit-stretch-jeans-3"
-    }
-   ]
-  ],
-  "van_de_1_hinh": "at the dinner table the person sits down and immediately pulls at a stiff waistband digging into the belly",
-  "van_de_2": [
-   "The seat sagged like an empty pouch.",
-   [
-    {
-     "loai": "loi_khach",
-     "nguon": "reddit",
-     "trich": "if I wear jeans too many times in a row without putting them in the dryer I get that saggy pouch of fabric",
-     "ma": "1857165",
-     "link": "https://www.reddit.com/r/mensfashion/comments/1raaac1/why_do_guys_do_this/o6j66s1/",
-     "ky_thuat": "đặt hình ảnh"
-    },
-    {
-     "loai": "loi_khach",
-     "nguon": "reddit",
-     "trich": "My dad spent my entire childhood wearing the wrong cut of jeans because he knew his inseam and waist and just bought off that. He had baggy thighs and saggy butt and knee bagging.",
-     "ma": "1865463",
-     "link": "https://www.reddit.com/r/capsulewardrobe/comments/1cmij54/could_someone_please_tell_me_in_no_uncertain/l3qx4b3/"
-    }
-   ]
-  ],
-  "van_de_2_hinh": "from behind, the person stands up from the sofa; old faded jeans hang baggy and loose in the seat",
+  "van_de_1_hinh": "the person pushes up from the chair in stiff faded jeans, the waistband digs into the belly, a wince, then sinks back down",
+  "van_de_2_hinh": "under the tablecloth, fingers undo the top button of stiff faded jeans over a belly",
   "van_de_3": [
    "Every month, one more notch on the belt.",
    [
@@ -127,7 +65,7 @@
   ],
   "van_de_3_hinh": "close-up: hands pull a worn leather belt one more hole tighter over stiff faded jeans, the waistband bunches",
   "dinh_diem": [
-   "Then came our grandson's wedding.",
+   "Our grandson's wedding.",
    [
     {
      "loai": "qc_thang",
@@ -140,7 +78,7 @@
     }
    ]
   ],
-  "dinh_diem_hinh": "wide shot of a warm backyard wedding reception at dusk, string lights, guests dancing",
+  "dinh_diem_hinh": "backyard wedding reception at dusk, string lights, family dancing on a wooden floor",
   "dinh_diem_2": [
    "He sat out every dance.",
    [
@@ -163,7 +101,7 @@
     }
    ]
   ],
-  "dinh_diem_2_hinh": "the person sits alone at a reception table in stiff faded jeans, shifting uncomfortably, watching the family dance",
+  "dinh_diem_2_hinh": "the narrator watches the person sit alone in stiff faded jeans while the family dances",
   "da_thu": [
    "Bigger size. Tighter belt. Suspenders.",
    [
@@ -269,7 +207,7 @@
     }
    ]
   ],
-  "demo_hinh": "at the dinner table the person sits down in the new light blue jeans and leans back relaxed, the waistband lies flat",
+  "demo_hinh": "at home the person sits down in the new light blue jeans, leans back, then squats and stands up, nothing pinching",
   "goi_lai": [
    "Next family party? First one on the dance floor.",
    [
@@ -291,7 +229,7 @@
     }
    ]
   ],
-  "goi_lai_hinh": "at a backyard family party the person dances with a little granddaughter, laughing, the new light blue jeans moving freely",
+  "goi_lai_hinh": "at a backyard family party at dusk the person gets up at once and spins the little girl around, laughing",
   "loi_ich_1": [
    "They look like jeans. Feel like sweatpants.",
    [
@@ -320,7 +258,7 @@
     }
    ]
   ],
-  "loi_ich_1_hinh": "close-up: hands pull the light blue denim at the thigh, the fabric stretches and springs back smooth",
+  "loi_ich_1_hinh": "the light blue denim stretches over the bending knee and springs back smooth",
   "chot": [
    "If his jeans fight him every time he sits, try these.",
    [
@@ -345,6 +283,118 @@
   ],
   "mau_chinh": "Light Blue",
   "mau_chinh_hinh": "vivid cobalt light blue color",
-  "mau_chinh_anh": "https://cdn.orabra.com/uploads/media/719ea446-f511-4ea6-8b66-422c50a743fe/2879d968-9f99-4a9c-9365-32ed4eb01f33/1ec254d089fb89db.webp"
+  "mau_chinh_anh": "https://cdn.orabra.com/uploads/media/719ea446-f511-4ea6-8b66-422c50a743fe/2879d968-9f99-4a9c-9365-32ed4eb01f33/1ec254d089fb89db.webp",
+  "nguoi_3_ten": "Lily",
+  "nguoi_3_hinh": "American girl, 7, white, blonde hair in two braids, pink party dress, white sneakers",
+  "giong_3": "bé gái Mỹ 7 tuổi, trong, háo hức",
+  "loi_moi": [
+   "Grandpa, come dance with me!",
+   [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "The morning it broke me was our granddaughter's sixth birthday. ... He told me to go without him. To take pictures. To tell her Grandpa loved her.",
+     "ma": "1673581983693866",
+     "link": "https://www.facebook.com/ads/library/?id=1673581983693866",
+     "ghi": "Parkinson's Health Insider · vợ kể về chồng · 98 ngày",
+     "ky_thuat": "người thân kéo vào khoảnh khắc"
+    }
+   ]
+  ],
+  "van_de_1": [
+   "Every time he stood up, his jeans dug in.",
+   [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "🚫 Before: Stiff waistbands. Dug in at the waist. Sagging seat. Heavy fabric. ✅ After: Flex waist. Smooth Butt. Feels light as air",
+     "ma": "1739471230507642",
+     "link": "https://www.facebook.com/ads/library/?id=1739471230507642",
+     "ghi": "JettJeans · Men Over 50 / Contour · 14 đơn / CPA $26 ở shop mình",
+     "ky_thuat": "chi tiết đời thật"
+    },
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "Most jeans fight you the second you sit down, bend over, or squat. JettJeans don't. ✅ Sit. Bend. Squat. No restriction.",
+     "ma": "4532816070328428",
+     "link": "https://www.facebook.com/ads/library/?id=4532816070328428",
+     "ghi": "JettJeans · Final Hours (ảnh) · đang chạy 14/10/2026"
+    }
+   ]
+  ],
+  "tu_choi": [
+   "Next song, sweetheart.",
+   [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "The morning it broke me was our granddaughter's sixth birthday. ... He told me to go without him. To take pictures. To tell her Grandpa loved her.",
+     "ma": "1673581983693866",
+     "link": "https://www.facebook.com/ads/library/?id=1673581983693866",
+     "ghi": "Parkinson's Health Insider · vợ kể về chồng · 98 ngày",
+     "ky_thuat": "câu che giấu vấn đề"
+    }
+   ]
+  ],
+  "van_de_2": [
+   "Under the table, he'd quietly undo the top button.",
+   [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "🚫 Before: Stiff waistbands. Dug in at the waist. Sagging seat. Heavy fabric. ✅ After: Flex waist. Smooth Butt. Feels light as air",
+     "ma": "1739471230507642",
+     "link": "https://www.facebook.com/ads/library/?id=1739471230507642",
+     "ghi": "JettJeans · Men Over 50 / Contour · 14 đơn / CPA $26 ở shop mình",
+     "ky_thuat": "chi tiết đời thật"
+    },
+    {
+     "loai": "trang_ban",
+     "nguon": "orabra",
+     "trich": "deep pockets design allows you to carry all your essentials comfortably without anything digging into your skin when you movem bend, or sit.",
+     "link": "https://orabra.com/jettjeans3-men-s-classic-straight-fit-stretch-jeans-3"
+    }
+   ]
+  ],
+  "nghi_ngo": [
+   "They look just like my old jeans.",
+   [
+    {
+     "loai": "loi_khach",
+     "nguon": "amazon",
+     "trich": "They are very comfortable yet feel like regular jeans.",
+     "ma": "1918971",
+     "link": "https://www.amazon.com/gp/customer-reviews/RB4BGYTPRAFBU",
+     "ky_thuat": "nghi ngờ thật"
+    },
+    {
+     "loai": "loi_khach",
+     "nguon": "amazon",
+     "trich": "Perfect fit in waist, length. Comfortable and can be worn as casual slacks.",
+     "ma": "1398266",
+     "link": "https://www.amazon.com/gp/customer-reviews/R1P6GKGBZO7Y0J"
+    }
+   ]
+  ],
+  "bat_ngo": [
+   "Huh. Nothing's pinching.",
+   [
+    {
+     "loai": "trang_ban",
+     "nguon": "orabra",
+     "trich": "deep pockets design allows you to carry all your essentials comfortably without anything digging into your skin when you movem bend, or sit.",
+     "link": "https://orabra.com/jettjeans3-men-s-classic-straight-fit-stretch-jeans-3",
+     "ky_thuat": "câu cụt có nhịp"
+    },
+    {
+     "loai": "loi_khach",
+     "nguon": "amazon",
+     "trich": "They are comfortable in the waist band as it stretches just enough when bending over but not so much to make them feel like they are falling off.",
+     "ma": "1396752",
+     "link": "https://www.amazon.com/gp/customer-reviews/R2G5SFYPYYTLOT"
+    }
+   ]
+  ]
  }
 }

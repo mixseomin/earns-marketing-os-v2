@@ -28,3 +28,14 @@ const dong = (w: string, conf: number) => ['5', '1', '1', '1', '1', '1', '10', '
 const tsv = ['level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext', dong('Look', 93), dong('at', 95), dong('that', 91), dong('fit!', 90), dong('~%', 96), dong('Hmm', 40)].join('\n');
 assert.deepStrictEqual(chuTrongKhung(tsv), ['Look', 'that', 'fit!']);
 console.log('soi-clip-do: đạt');
+
+// MẶT TRÔI: một khung lẻ thấp không tính; ≥ 2 khung và ≥ 40% → trôi; quá ít khung chấm được → không kết luận
+{
+  const { matTroiClip } = await import('./soi-clip-do');
+  const d = (xs: number[]) => xs.map((g, i) => ({ giay: i, giong: g }));
+  assert.equal(matTroiClip(d([0.6, 0.55, 0.2, 0.58, 0.61])), null, 'một khung lẻ (chớp mắt) không tính');
+  assert.deepEqual(matTroiClip(d([0.6, 0.5, 0.3, 0.25, 0.2])), [2, 3, 4], 'nửa sau clip mặt trôi');
+  assert.equal(matTroiClip(d([0.2])), null, 'một khung chấm được: không kết luận');
+  assert.deepEqual(matTroiClip(d([0.2, 0.3])), [0, 1]);
+  console.log('soi-clip-do.test: mặt trôi ok');
+}

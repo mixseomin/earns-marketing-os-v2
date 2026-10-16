@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, VANG_SP, type MauSp } from './soi-clip-do';
 import { mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
+import { soiMatClip } from './soi-mat';
 import type { Canh, SoiClip } from './kieu';
 
 const chay = (cmd: string, args: string[]) => new Promise<Buffer | null>((ok) => execFile(cmd, args, { encoding: 'buffer', maxBuffer: 1 << 26, timeout: 60_000 }, (e, b) => ok(e ? null : (b as Buffer))));
@@ -72,7 +73,10 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
     if (mat === 'vang') loi.push(loiVang(sp.ten, mau[0]!));
     else if (typeof mat === 'number') loi.push(`sản phẩm (${sp.ten}) ra khỏi khung hoặc đổi màu từ giây ${mat} — màu sản phẩm còn ${Math.round((Math.min(...mau.slice(1)) / mau[0]!) * 100)}% so với khung đầu`);
   }
-  const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu } };
+  // Mặt trôi (phim người thật — soi-mat.ts › soiMatClip): video hay giữ mặt khung đầu rồi trôi dần sang người khác ở nửa sau clip.
+  const sm = await soiMatClip(db, c, url, dai).catch((e: unknown) => { console.error('[soi mặt clip]', e); return null; });
+  if (sm) loi.push(...sm.loi);
+  const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}) } };
   await db.execute(sql`UPDATE xv_canh SET soi_clip = ${JSON.stringify(kq)}::jsonb WHERE id = ${canhId}`);
   return kq;
 }

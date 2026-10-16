@@ -54,3 +54,11 @@ export function chuTrongKhung(tsv: string): string[] {
   return tsv.split('\n').slice(1).map((d) => d.split('\t')).filter((c) => c.length >= 12 && Number(c[10]) >= 80)
     .map((c) => c[11]!.trim()).filter((w) => /^[A-Za-z][A-Za-z']{2,}[!?.,]*$/.test(w));
 }
+
+/** MẶT TRÔI TRONG CLIP (bước 2b nhịp C, phim người thật): điểm giống ảnh mẫu của MỘT nhân vật qua các khung đã chấm được (mặt đủ to, gần chính diện —
+ *  soi-mat.py). Trôi = từ 2 khung trở lên dưới ngưỡng VÀ chiếm ≥ 40% số khung chấm được — một khung lẻ (chớp mắt, nhoè chuyển động) không tính.
+ *  Trả giây các khung lệch, hoặc null = đạt / không đủ khung để kết luận. */
+export function matTroiClip(diem: { giay: number; giong: number }[], nguong = 0.363): number[] | null {
+  const duoi = diem.filter((d) => d.giong < nguong);
+  return duoi.length >= 2 && duoi.length / diem.length >= 0.4 ? duoi.map((d) => d.giay) : null;
+}

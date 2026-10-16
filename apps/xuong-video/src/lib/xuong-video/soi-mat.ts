@@ -6,9 +6,12 @@ import 'server-only';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import path from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path, { join } from 'node:path';
 import { sql } from 'drizzle-orm';
-import { chatLieuPhim, docKinhThanh, locNhanh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
+import { chatLieuPhim, docKinhThanh, locNhanh, type Canh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
+import { matTroiClip } from './soi-clip-do';
 import { uploadToR2 } from '../r2';
 import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA } from './khung';
 import { VND_MOI_USD } from './cong-ai';
@@ -151,4 +154,36 @@ export async function xongSuaMat(db: Db, canhId: number, url: string, gia: numbe
     return;
   }
   await db.execute(sql`UPDATE xv_canh SET loi = ${`🩹 sửa mặt ${lan} lần chưa đạt (lần cuối: ${diem}) — các bản đã nằm trong dải keyframe để xem; sinh lại keyframe hoặc nhận tay`} WHERE id = ${canhId}`);
+}
+
+/** 🎞 SOI MẶT CLIP (bước 2b nhịp C): phim người thật — khoảng 1 khung / giây (3–10 khung) của clip, so mặt từng khung với ảnh mẫu (chỉ chấm mặt đủ to,
+ *  gần chính diện), luật trôi ở soi-clip-do.ts › matTroiClip. Gọi từ máy soi clip (soi-clip.ts) lúc clip về — lỗi vào soi_clip, bản xuất chặn,
+ *  người duyệt bỏ qua được. null = không phải phim người thật / không có nhân vật có ảnh mẫu mặt. 0đ. */
+export async function soiMatClip(db: Db, c: Pick<Canh, 'tap_id' | 'nhan_vat'>, url: string, dai: number): Promise<{ loi: string[]; diem: Record<string, { giay: number; giong: number }[]> } | null> {
+  const p = (await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${c.tap_id}`)) as unknown as Row[];
+  if (!p[0] || chatLieuPhim(p[0].kinh_thanh as KinhThanh) !== 'nguoi_that' || !c.nhan_vat.length) return null;
+  const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id = ANY(${`{${c.nhan_vat.join(',')}}`}::int[])`)) as unknown as Row[]).map(mapNhanVat));
+  const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
+  if (!Object.keys(mau).length) return null;
+  const n = Math.max(3, Math.min(10, Math.round(dai)));
+  const giay = Array.from({ length: n }, (_, i) => Math.round((0.15 + (i * (dai - 0.3)) / (n - 1)) * 10) / 10);
+  const thu = await mkdtemp(join(tmpdir(), 'soi-mat-clip-'));
+  try {
+    const khung: { id: number; url: string; ten: string[] }[] = [];
+    for (const [i, t] of giay.entries()) {
+      const f = join(thu, `${i}.jpg`);
+      const ok = await new Promise<boolean>((xong) => execFile('ffmpeg', ['-v', 'error', '-y', '-ss', String(t), '-i', url, '-frames:v', '1', '-q:v', '2', f], { timeout: 60_000 }, (e) => xong(!e)));
+      if (ok) khung.push({ id: i, url: f, ten: Object.keys(mau) });
+    }
+    if (!khung.length) return null;
+    const ra = await chay({ mau, anh: khung });
+    const diem: Record<string, { giay: number; giong: number }[]> = {};
+    for (const a of ra.anh) for (const k of a.ket ?? []) if (k.giong != null && !k.nho && !k.nghieng) (diem[k.ten] ??= []).push({ giay: giay[a.id]!, giong: k.giong });
+    const loi: string[] = [];
+    for (const [ten, d] of Object.entries(diem)) {
+      const troi = matTroiClip(d);
+      if (troi) loi.push(`mặt ${ten} trôi trong clip (giây ${troi.join(', ')} — giống ảnh mẫu chỉ ${Math.round(Math.min(...d.map((x) => x.giong)) * 100)}–${Math.round(Math.max(...d.filter((x) => troi.includes(x.giay)).map((x) => x.giong)) * 100)}%, ngưỡng 36%) — sinh lại clip từ keyframe đã qua 🙂 Soi mặt`);
+    }
+    return { loi, diem };
+  } finally { await rm(thu, { recursive: true, force: true }); }
 }

@@ -1,3 +1,5 @@
+import { SocialTrafficView } from '@/components/social-traffic-view';
+import { getSocialLive } from '@/lib/social-traffic';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
@@ -112,10 +114,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {tab === 'luat' && <LuatView />}
           {tab === 'lenh' && <Lenh />}
           {tab === 'duan' && <DuAn projects={projects} />}
+          {tab === 'social' && <Suspense fallback={cho}><SocialTab /></Suspense>}
         </div>
       </div>
     </AppShell>
   );
+}
+
+// Social Traffic — góc thật đọc từ spy.on.tc (nhớ 5 phút) cho chế độ LIVE; DEMO nằm sẵn trong view.
+async function SocialTab() {
+  return <SocialTrafficView live={await getSocialLive()} />;
 }
 
 // Live Orders của strategy-lab — cùng blotter với /p/strategy-lab/orders, bộ lọc giữ ở cookie slf2 như bên đó.

@@ -420,7 +420,10 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
     kinh_thanh = coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb
       -- giọng lời dẫn đã khoá (sinh-giong ghi) không bị form kinh thánh đang mở từ trước ghi đè thành rỗng
       || CASE WHEN coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb->'giong_dan', 'null'::jsonb) = 'null'::jsonb AND coalesce(kinh_thanh->'giong_dan', 'null'::jsonb) <> 'null'::jsonb
-         THEN jsonb_build_object('giong_dan', kinh_thanh->'giong_dan') ELSE '{}'::jsonb END, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
+         THEN jsonb_build_object('giong_dan', kinh_thanh->'giong_dan') ELSE '{}'::jsonb END
+      -- đề của phim Máy Dựng (may-dung.ts, máy đẩy) không bị form mở từ trước ghi đè mất
+      || CASE WHEN coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb->'may_dung', 'null'::jsonb) = 'null'::jsonb AND kinh_thanh ? 'may_dung'
+         THEN jsonb_build_object('may_dung', kinh_thanh->'may_dung') ELSE '{}'::jsonb END, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
     updated_at = now() WHERE id = ${id}`);
   if (d.kinh_thanh?.qc) await apKieuChuThuongHieu(db, id).catch(() => false);   // chưa có kiểu chữ → lấy preset của thương hiệu
   // Quảng cáo: sản phẩm khai ở kinh thánh → anchor sản phẩm cùng tên (tạo nếu chưa có), ảnh thật lên ĐẦU anh_ref để mọi keyframe tham chiếu đúng hàng.

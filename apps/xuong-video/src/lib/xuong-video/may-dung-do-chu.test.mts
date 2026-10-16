@@ -1,6 +1,6 @@
-// node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/khuon-mot-dung.test.mts
+// node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-do-chu.test.mts
 import assert from 'node:assert';
-import { assMotDung, lenhMotDung, luoi, mauAss, tron, DAI, T_LO, T_KET, type DeMotDung } from './khuon-mot-dung';
+import { assMotDung, lenhMotDung, luoi, mauAss, tron, DAI, T_LO, T_KET, type DeMotDung } from './may-dung-do-chu';
 
 const o = Array.from({ length: 36 }, (_, i) => (i === 29 ? 'COSTUME' : 'COSTUMB'));
 const de: DeMotDung = { dich: 'COSTUME', o, cho: 29, goi: 'Halloween', mau: { sau: '#1E5A6B', truoc: '#F4EBDC', nhan: '#E9B44C' } };
@@ -34,4 +34,13 @@ const khong = lenhMotDung({ de, ass: '/t/a.ass', nen: null, fontsDir: '/f', ra: 
 assert.ok(khong.includes('gradients=') && khong.includes("ass='/t/a.ass'") && khong.includes('aevalsrc=') && !khong.includes('zoompan'));
 const co = lenhMotDung({ de, ass: '/t/a.ass', nen: '/t/n.jpg', fontsDir: '/f', ra: '/t/r.mp4' }).join(' ');
 assert.ok(co.includes('zoompan') && co.includes('/t/n.jpg') && !co.includes('gradients=') && co.includes('lutyuv') && !co.includes('drawbox'), 'nền ảnh: tối bằng độ sáng, không drawbox (drawbox có alpha làm mất màu)');
-console.log('khuon-mot-dung: đạt');
+console.log('may-dung-do-chu: đạt');
+
+// phim của khuôn: 3 shot liền nhau phủ đủ DAI, kịch bản nhắc từ đích + vị trí ô đúng
+import { kichBanMotDung } from './may-dung-do-chu';
+const kb = kichBanMotDung(de);
+assert.strictEqual(kb.shots.length, 3);
+assert.strictEqual(kb.shots[0]!.tu, 0); assert.strictEqual(kb.shots[2]!.den, DAI);
+for (let i = 1; i < 3; i++) assert.strictEqual(kb.shots[i]!.tu, kb.shots[i - 1]!.den, 'shot phải nối liền');
+assert.ok(kb.kich_ban.includes('COSTUME') && kb.shots[1]!.hanh_dong.includes('ô 30'));
+console.log('kichBanMotDung: đạt');

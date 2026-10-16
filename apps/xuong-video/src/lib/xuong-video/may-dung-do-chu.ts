@@ -1,9 +1,9 @@
-// KHUÔN VIDEO "Only ONE is spelled right" (Front Porch Puzzles, chuyển từ puzzle-books/scripts/shorts.mjs --kieu an, 16/10/2026).
+// MẪU MÁY DỰNG "Đố chữ · Only ONE is spelled right" (Front Porch Puzzles, chuyển từ puzzle-books/scripts/shorts.mjs --kieu an, 16/10/2026).
 // THUẦN: đề bài → tệp ASS (libass vẽ chữ + hình) + lệnh ffmpeg. Không AI, không trình duyệt (máy chủ cấm chạy trình duyệt — bản cũ
 // chụp từng khung bằng Chrome trên iMac). Nhịp + bố cục giữ y bản cũ: tiêu đề + bảng "đập" vào khung 0,5s, thanh thời gian + đồng hồ
 // đếm 7 giây (3 giây cuối đỏ, nảy mỗi giây), 7,3s lộ đúng một ô (ô sai mờ đi), 9,1s màn kết rủ comment + link pickjot.
-// Nền: ảnh (AI theo chủ đề, khuon.ts › sinhNenKhuon) phủ màu bìa cho chữ đọc rõ, hoặc dải màu bìa khi chưa có ảnh.
-//   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/khuon-mot-dung.test.mts
+// Nền: ảnh (AI theo chủ đề, may-dung.ts › sinhNenMayDung) phủ màu bìa cho chữ đọc rõ, hoặc dải màu bìa khi chưa có ảnh.
+//   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-do-chu.test.mts
 
 export interface MauBia { sau: string; truoc: string; nhan: string }
 export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string; mau: MauBia }
@@ -117,4 +117,26 @@ export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null;
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${AM}':s=44100:d=${DAI}`,
     '-filter_complex', `${nen},ass='${assEsc(o.ass)}':fontsdir='${assEsc(o.fontsDir)}',format=yuv420p[v]`,
     '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+}
+
+/** PHIM của khuôn (thể loại 'may_dung' trong danh sách Phim, anh 16/10/2026: "nó luôn phải nằm trong danh sách Phim, chỉ là thể loại khác"):
+ *  kịch bản tập + 3 SHOT theo nhịp khuôn — đề + đếm · lộ đáp án · màn kết. Viết sẵn từ đề, không AI. Keyframe / clip của shot = khung cắt từ
+ *  bản dựng (may-dung.ts › xuatMayDungTap), nên storyboard, thẻ shot, xuất đi đúng đường như mọi phim. */
+export const SHOT_MOT_DUNG = [
+  { tu: 0, den: T_LO, canh: 'Đề + đếm 7 giây' },
+  { tu: T_LO, den: T_KET, canh: 'Lộ đáp án' },
+  { tu: T_KET, den: DAI, canh: 'Màn kết' },
+] as const;
+export function kichBanMotDung(de: DeMotDung) {
+  const L = luoi(de), sai = de.o.filter((_, i) => i !== de.cho).length;
+  const shots = [
+    { ...SHOT_MOT_DUNG[0], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: `Only ONE is spelled\n${de.dich}\nFind it in 7 seconds`,
+      hanh_dong: `Tiêu đề và bảng trắng "đập" vào khung (0,5s). Bảng ${L.cot}×${L.hang} = 36 ô: ${sai} bản viết sai một chữ của ${de.dich}, đúng một ô viết đúng. Thanh thời gian co dần, đồng hồ đếm 7 → 1 (3 giây cuối nền đỏ, nảy mỗi giây), tích tắc mỗi giây.` },
+    { ...SHOT_MOT_DUNG[1], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: de.dich,
+      hanh_dong: `Lộ đáp án: ô ${de.cho + 1} (hàng ${Math.floor(de.cho / L.cot) + 1}, cột ${(de.cho % L.cot) + 1}) bật khung màu nhấn viền đỏ, phóng 1,25; 35 ô sai mờ còn 25%. Tiếng "ting".` },
+    { ...SHOT_MOT_DUNG[2], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: 'Did you spot it in time?\nComment YES or NO\nFree large print puzzles to print:\npickjot.com/printables',
+      hanh_dong: 'Màn kết hiện dần (0,3s) trên nền màu bìa: câu hỏi, nút "Comment YES or NO", link pickjot.com/printables.' },
+  ].map((s) => ({ ...s, giay: Math.round((s.den - s.tu) * 100) / 100 }));
+  const kich_ban = shots.map((s, i) => `#${i + 1} ${s.canh} (${s.tu.toFixed(1)}–${s.den.toFixed(1)}s)\n${s.hanh_dong}\nChữ màn: ${s.chu_man.replace(/\n/g, ' / ')}`).join('\n\n');
+  return { tom_tat: `Đố chữ "Only ONE is spelled right" — ${de.goi}: tìm ${de.dich} đúng chính tả giữa 36 ô trong 7 giây.`, kich_ban, shots };
 }

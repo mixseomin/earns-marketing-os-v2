@@ -105,6 +105,11 @@ export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_
     const q = (await db.execute(sql`SELECT phim_id FROM xv_nhan_vat WHERE id = ${d.nhan_vat_id}`)) as unknown as Row[];
     phimId = q[0] ? n(q[0].phim_id) : null;
   }
+  // Phim MÁY DỰNG dựng bằng máy (may-dung.ts): không sinh keyframe / clip / giọng / chữ AI cho nó — một chỗ chặn cho mọi nút. Riêng ảnh nền của phim Máy Dựng được.
+  if (phimId != null && LOAI_JOB_TON_TIEN.has(d.loai) && (d.request as { dich?: string } | null)?.dich !== 'may_dung_nen') {
+    const p = (await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+    if (p[0]?.loai === 'may_dung') throw new Error('phim Máy Dựng dựng bằng máy, không sinh AI — bấm ⬇ Xuất để dựng keyframe / clip / bản xuất (0đ)');
+  }
   const r = (await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, canh_id, nhan_vat_id, bien_the_id, loai, provider, model, request, trang_thai)
     VALUES (${phimId}, ${d.nhan ?? ''}, ${d.canh_id ?? null}, ${d.nhan_vat_id ?? null}, ${d.bien_the_id ?? null}, ${d.loai}, ${d.provider}, ${d.model}, ${JSON.stringify(d.request ?? {})}::jsonb, ${d.xong ? 'xong' : 'cho'}) RETURNING id`)) as unknown as Row[];
   return n(r[0]?.id);

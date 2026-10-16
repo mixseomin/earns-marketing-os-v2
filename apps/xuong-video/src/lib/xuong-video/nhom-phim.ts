@@ -3,8 +3,8 @@
 // của một sản phẩm về một nhóm, dù tên phim đặt kiểu gì ("Mẫu QC · Jett…", "Jett · Trước/Sau…"). Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhom-phim.test.mts
 import type { Phim } from './kieu';
 
-export type KieuNhom = 'template' | 'series' | 'quang_cao' | 'phim';
-export const TEN_KIEU: Record<KieuNhom, string> = { template: 'Template', series: 'Series', quang_cao: 'Quảng cáo', phim: 'Phim ngắn' };
+export type KieuNhom = 'template' | 'series' | 'quang_cao' | 'phim' | 'may_dung';
+export const TEN_KIEU: Record<KieuNhom, string> = { template: 'Template', series: 'Series', quang_cao: 'Quảng cáo', phim: 'Phim ngắn', may_dung: 'Máy Dựng' };
 export type NhomPhim = { key: string; ten: string; kieu: KieuNhom; phim: Phim[]; chi_phi_cents: number };
 
 /** Ảnh đại diện của phim trên danh sách (anh 15/10/2026: "chưa sinh poster thì dùng ảnh gần nhất"): poster → keyframe mới nhất → ảnh QC đầu. */
@@ -27,7 +27,7 @@ export function sanPhamPhim(p: Pick<Phim, 'loai' | 'kinh_thanh'>): { key: string
   if (!key && ten) key = ten.toLowerCase();
   return key ? { key, ten: ten || key } : null;
 }
-export const kieuPhim = (p: Pick<Phim, 'loai' | 'kinh_thanh'>): KieuNhom => (p.kinh_thanh?.template ? 'template' : p.kinh_thanh?.series?.dong_co?.trim() ? 'series' : p.loai === 'quang_cao' ? 'quang_cao' : 'phim');
+export const kieuPhim = (p: Pick<Phim, 'loai' | 'kinh_thanh'>): KieuNhom => (p.kinh_thanh?.template ? 'template' : p.kinh_thanh?.series?.dong_co?.trim() ? 'series' : p.loai === 'quang_cao' ? 'quang_cao' : p.loai === 'may_dung' ? 'may_dung' : 'phim');
 
 /** Lọc + gom: `ds` theo thứ tự mới sửa trước; nhóm xếp theo phim mới nhất của nó. */
 export function nhomPhim(ds: Phim[], loc: { kieu?: KieuNhom | ''; tim?: string; luuTru?: boolean }): NhomPhim[] {
@@ -47,7 +47,7 @@ export function nhomPhim(ds: Phim[], loc: { kieu?: KieuNhom | ''; tim?: string; 
 }
 /** Đếm theo kiểu (cho nhãn bộ lọc) — tính trên bản không lưu trữ trừ khi luuTru. */
 export const demKieu = (ds: Phim[], luuTru = false): Record<KieuNhom, number> => {
-  const d: Record<KieuNhom, number> = { template: 0, series: 0, quang_cao: 0, phim: 0 };
+  const d: Record<KieuNhom, number> = { template: 0, series: 0, quang_cao: 0, phim: 0, may_dung: 0 };
   for (const p of ds) if (luuTru || !laLuuTru(p)) d[kieuPhim(p)]++;
   return d;
 };

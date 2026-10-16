@@ -2,7 +2,7 @@
 // Xưởng video AI (studio.on.tc) — một màn: danh sách phim → drawer phim (kinh thánh · tuyến nhân vật · tập · storyboard từng tập).
 // Storyboard = bảng cảnh: mỗi dòng một cảnh (xương sống dữ liệu); keyframe sinh → chọn → duyệt → video. Canvas node + timeline (G2/G3)
 // là hai cách nhìn khác của cùng bảng này, không có dữ liệu riêng.
-import { KhuonNoiDung } from './khuon-ui';
+import { MayDungPanel } from './may-dung-ui';
 import { Suspense, useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
@@ -32,6 +32,9 @@ export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
 }
 
+/** Nhóm thể loại Máy Dựng sinh liên tục (anh 16/10/2026) → danh sách chỉ hiện chừng này video mới nhất, "Xem thêm" để mở rộng. */
+const MAY_DUNG_HIEN = 15;
+
 function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [phim, setPhim] = useState<Phim[]>(phimDau);
   const [ten, setTen] = useState('');
@@ -40,8 +43,10 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [ban, setBan] = useState(false);
   const modal = useModalParam();
   const chong = useModalParam(KHOA_CHONG.m);
-  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'series', 'quang_cao', 'phim']);   // template có tab riêng, không còn là bộ lọc
+  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'series', 'quang_cao', 'phim', 'may_dung']);   // template có tab riêng, không còn là bộ lọc
   const [locTim, setLocTim] = useState('');
+  /** Nhóm Máy Dựng đang mở rộng (mặc định chỉ hiện MAY_DUNG_HIEN video mới nhất). */
+  const [moRong, setMoRong] = useState<Record<string, boolean>>({});
   const [hienLuuTru, setHienLuuTru] = useState(false);
   const [tapMo, setTapMo] = useState<number | null>(null);   // bấm chip tập → mở ngăn phim đúng tập
   const taiLai = useCallback(async () => setPhim(await dsPhim()), []);
@@ -60,7 +65,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const dem = demKieu(phim); const soLuuTru = phim.filter(laLuuTru).length;
   // YDNI trang chủ (anh 15/10/2026: "YDNI lại trang home"): trước là 4 khối chồng dọc (chỉ số · kho template · tạo mới · danh sách) dài ~4.300px.
   // Giờ MỘT MÀN: đầu ghim (tab Phim | Template · bộ lọc · chỉ số một dòng · ＋ Tạo mới gập sẵn), nội dung cuộn TRONG khung bên dưới.
-  const [khoTab, setKhoTab] = useNho<'phim' | 'sanpham' | 'template' | 'khuon'>('xv-kho-tab', 'phim', ['phim', 'sanpham', 'template', 'khuon'], 'kho');
+  const [khoTab, setKhoTab] = useNho<'phim' | 'sanpham' | 'template'>('xv-kho-tab', 'phim', ['phim', 'sanpham', 'template'], 'kho');
   // Ngăn một sản phẩm (kho creative): khoá sản phẩm trong URL (?sp=) → F5 / chia sẻ mở lại đúng sản phẩm.
   const [spMo, setSpMoState] = useState<string | null>(null);
   useLayoutEffect(() => { const k = new URLSearchParams(window.location.search).get('sp'); if (k) setSpMoState(k); }, []);   // sau hydrate, như nho.ts
@@ -74,9 +79,9 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       {thieu.length > 0 && <div className="xv-banner">Máy chủ thiếu: {thieu.join(' · ')} — đặt trong .env.production rồi restart mos2-studio. Trang vẫn soạn được, nút sinh sẽ báo lỗi tới khi có khoá.</div>}
       <div className="xv-panel" style={{ padding: '8px 10px', marginBottom: 8, display: 'grid', gap: 6, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Seg options={[{ value: 'phim' as const, label: '🎬 Phim', title: `${dem.series + dem.quang_cao + dem.phim} phim / bộ` }, { value: 'sanpham' as const, label: '📦 Sản phẩm', title: 'Creative gom theo sản phẩm: góc spy × khuôn × thành phần' }, { value: 'template' as const, label: '🧩 Template', title: `${dem.template} template` }, { value: 'khuon' as const, label: '🎞 Khuôn video', title: 'Video dựng bằng khuôn, không AI (Front Porch Puzzles…) — xuất 0đ trên máy chủ' }]} value={khoTab} onChange={setKhoTab} />
+          <Seg options={[{ value: 'phim' as const, label: '🎬 Phim', title: `${dem.series + dem.quang_cao + dem.phim} phim / bộ` }, { value: 'sanpham' as const, label: '📦 Sản phẩm', title: 'Creative gom theo sản phẩm: góc spy × khuôn × thành phần' }, { value: 'template' as const, label: '🧩 Template', title: `${dem.template} template` }]} value={khoTab} onChange={setKhoTab} />
           {khoTab === 'phim' && <>
-            <Seg options={[{ value: '' as const, label: 'Tất cả' }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: TEN_KIEU[k], title: `${dem[k]} ${TEN_KIEU[k].toLowerCase()}` }))]} value={locKieu} onChange={setLocKieu} />
+            <Seg options={[{ value: '' as const, label: 'Tất cả' }, ...(['series', 'quang_cao', 'phim', 'may_dung'] as const).map((k) => ({ value: k, label: TEN_KIEU[k], title: `${dem[k]} ${TEN_KIEU[k].toLowerCase()}` }))]} value={locKieu} onChange={setLocKieu} />
             <input className="xv-in" style={{ width: 200 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
             {soLuuTru > 0 && <label title={`${soLuuTru} bản lưu trữ`} style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />lưu trữ</label>}
           </>}
@@ -102,8 +107,6 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       {khoTab === 'sanpham' ? (
         <DanhSachSanPham phim={phim} onMo={setSpMo} />
-      ) : khoTab === 'khuon' ? (
-        <KhuonNoiDung />
       ) : khoTab === 'template' ? (
         <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} onMo={moPhim} />
       ) : phim.length === 0 ? (
@@ -112,7 +115,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         // NHÓM (series / sản phẩm / thương hiệu) → PHIM → TẬP (nhom-phim.ts). Gọn (anh 15/10/2026 "chia nhóm gọn lại"): mỗi phim MỘT dòng
         // (ảnh đại diện · tên · số liệu · chip tập · ảnh QC); nhóm chỉ một phim thì không có đầu nhóm riêng; đầu nhóm dính khi cuộn.
         const nhom = nhomPhim(phim, { kieu: locKieu, tim: locTim, luuTru: hienLuuTru });
-        const bieuTuong = (k: KieuNhom) => (k === 'template' ? '🧩' : k === 'series' ? '📺' : k === 'quang_cao' ? '📣' : '🎬');
+        const bieuTuong = (k: KieuNhom) => (k === 'template' ? '🧩' : k === 'series' ? '📺' : k === 'quang_cao' ? '📣' : k === 'may_dung' ? '🎞' : '🎬');
         const dong = (p: Phim, dau?: ReactNode) => {
           const anh = anhDaiDien(p);
           return (
@@ -154,7 +157,11 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                     <b style={{ fontSize: 12.5 }}>{bieuTuong(g.kieu)} {g.ten}</b>
                     <span style={mono} title={`${g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · ${tien(g.chi_phi_cents)}`}>{TEN_KIEU[g.kieu]}</span>
                   </div>
-                  {g.phim.map((p) => dong(p))}
+                  {(g.kieu === 'may_dung' && !moRong[g.key] ? [...g.phim].sort((a, b) => b.id - a.id).slice(0, MAY_DUNG_HIEN) : g.kieu === 'may_dung' ? [...g.phim].sort((a, b) => b.id - a.id) : g.phim).map((p) => dong(p))}
+                  {g.kieu === 'may_dung' && g.phim.length > MAY_DUNG_HIEN && (
+                    <button type="button" className="xv-lienket" style={{ display: 'block', padding: '6px 10px', fontSize: 12 }} onClick={() => setMoRong((m) => ({ ...m, [g.key]: !m[g.key] }))}>
+                      {moRong[g.key] ? `Thu gọn — chỉ ${MAY_DUNG_HIEN} video mới nhất` : `Xem thêm ${g.phim.length - MAY_DUNG_HIEN} video cũ hơn`}
+                    </button>)}
                 </section>
               ))}
           </div>
@@ -231,6 +238,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
       {tab === 'phim' && <>
         {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
         {phim.loai === 'quang_cao' && !phim.kinh_thanh?.template && <GocSpyPanel phim={phim} onChanged={tai} />}
+        {phim.loai === 'may_dung' && <MayDungPanel phim={phim} onChanged={tai} />}
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
         <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />

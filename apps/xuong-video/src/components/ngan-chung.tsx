@@ -13,9 +13,8 @@ import { NoiKhungTap } from './noi-khung';
 import { BoSetXem } from './bo-set-xem';
 import { SoNguonAi } from './nguon-ai-ui';
 import { SoLienMachXem } from './so-lien-mach-ui';
-import { KhuonNoiDung } from './khuon-ui';
 
-export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' } | { loai: 'khuon' };
+export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -81,11 +80,6 @@ function Host() {
     {nguon != null && (
       <Ngan onClose={() => setNguon(null)} tieuDe="🔗 Nguồn của shot">
         <NguonShotNoiDung canhId={nguon} />
-      </Ngan>
-    )}
-    {ngan.is('khuon') && (
-      <Ngan onClose={ngan.close} tieuDe="🧩 Khuôn video">
-        <KhuonNoiDung />
       </Ngan>
     )}
     {ngan.is('nguon-ai') && (

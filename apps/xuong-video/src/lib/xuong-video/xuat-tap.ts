@@ -1,6 +1,7 @@
 // Xuất một tập — MỘT đường cho nút ⬇ Xuất (actions.ts › xuatTap) và script (scripts/xuat-tap.mts): cùng cổng người xem + cổng tiếng,
 // cùng job, cùng chỗ ghi bản xuất. Trước 15/10/2026 lõi nằm trong server action có kiểm phiên admin → máy không tự xuất được, phải nhờ anh bấm.
 // 0đ (ffmpeg trên máy chủ, không gọi model).
+import { xuatMayDungTap } from './may-dung';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { chayXuat, ghiBanXuat } from './xuat-chay';
@@ -20,6 +21,17 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   if (!canh.length) return { ok: false, loi: 'tập chưa có cảnh' };
   const dang = (await db.execute(sql`SELECT 1 FROM xv_job WHERE loai = 'xuat' AND trang_thai = 'cho' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '20 minutes' LIMIT 1`)) as unknown as Row[];
   if (dang.length) return { ok: false, loi: 'đang có một bản xuất của tập này chạy dở — chờ xong rồi xuất lại' };
+  // Phim MÁY DỰNG (thể loại 'may_dung'): dựng bằng mẫu trên máy chủ (may-dung.ts, 0đ) + keyframe / clip từng shot cắt từ bản dựng. Các cổng bên dưới
+  // (thử người xem, máy kiểm tiếng, soi clip, Murch QC) đo phim AI — Máy Dựng không có giọng / clip AI để đo.
+  if (bc.loai === 'may_dung') {
+    const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Xuất Máy Dựng · tập ${bc.tap.so}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: '' } });
+    return { ok: true, job, chay: async () => {
+      const kq = await xuatMayDungTap(db, tapId);
+      if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return { loi: kq.loi }; }
+      await ghiBanXuat(db, { tapId, job, nhanh: '', kq });
+      return {};
+    } };
+  }
   // Cổng xuất: máy kiểm tiếng (khop-giong.ts › kiemTieng) — câu bị cắt / đè nhau / đọc quá nhanh thì không ra bản lỗi.
   const hieu = chanNguoiXem(bc.tap.thu_nguoi_xem, locNhanh(canh, 'A'));
   if (hieu.length) return { ok: false, loi: `Chưa xuất được — ${hieu[0]}` };

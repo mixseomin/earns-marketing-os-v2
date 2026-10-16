@@ -12,12 +12,13 @@ export const LOAI_PHIM: { key: LoaiPhim; label: string; mo_ta: string }[] = [
 ];
 
 export type LoaiNhanVat = 'nhan_vat' | 'san_pham' | 'boi_canh' | 'dao_cu' | 'phong_cach';
-export const LOAI_NHAN_VAT: { key: LoaiNhanVat; label: string }[] = [
-  { key: 'nhan_vat', label: 'Nhân vật' },
-  { key: 'san_pham', label: 'Sản phẩm' },
-  { key: 'boi_canh', label: 'Bối cảnh' },
-  { key: 'dao_cu', label: 'Đạo cụ' },
-  { key: 'phong_cach', label: 'Phong cách' },
+/** ic = biểu tượng của loại đối tượng — MỘT chỗ khai cho timeline, bảng đối tượng × shot… */
+export const LOAI_NHAN_VAT: { key: LoaiNhanVat; label: string; ic: string }[] = [
+  { key: 'nhan_vat', label: 'Nhân vật', ic: '🧍' },
+  { key: 'san_pham', label: 'Sản phẩm', ic: '📦' },
+  { key: 'boi_canh', label: 'Bối cảnh', ic: '🏠' },
+  { key: 'dao_cu', label: 'Đạo cụ', ic: '🧸' },
+  { key: 'phong_cach', label: 'Phong cách', ic: '🎨' },
 ];
 
 export type TrangThaiCanh = 'nhap' | 'co_keyframe' | 'duyet' | 'dang_sinh' | 'xong' | 'loi';

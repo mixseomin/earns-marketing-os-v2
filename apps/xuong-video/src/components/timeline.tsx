@@ -9,7 +9,7 @@ import { ChuManXem } from './chu-man';
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
-import { chuManHien, giayPhat, tenCamXuc, tenPhanDoan, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { LOAI_NHAN_VAT, chuManHien, giayPhat, tenCamXuc, tenPhanDoan, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat, type KyThuatShot } from '@/lib/xuong-video/dien-anh';
 import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-dong';
 import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM } from '@/lib/xuong-video/sfx';
@@ -30,6 +30,10 @@ import { ThamKhaoShot } from './tham-khao-ui';
 import { ChonCta } from './cta-ui';
 import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { laShotCta } from '@/lib/xuong-video/cta';
+import { trangThaiDoiTuong, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
+
+/** Màu khối làn Đối tượng theo mức điểm (khoiAm cần mã hex để ghép độ trong). */
+const MAU_DOI_TUONG: Record<MucDoiTuong, string> = { tot: '#a3e635', vang: '#f5b638', do: '#f87171', trong: '#545a68' };
 
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
@@ -58,6 +62,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Điểm Murch từng shot — cùng hook với Lưới (diem-murch-noi.tsx › useDiemMurch), chip góc dưới khối clip làn 🎬 Hình, rê vào xem sáu tiêu chí.
   const { diemM, tbM } = useDiemMurch(canh, nhanVat, tap, laQc);
   const batDau = useMemo(() => { let a = 0; return canh.map((c) => { const s = a; a += dur(c); return s; }); }, [canh, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Trạng thái + điểm từng đối tượng theo shot (trang-thai-doi-tuong.ts) — làn 'Đối tượng' cuối timeline.
+  const doiTuong = useMemo(() => trangThaiDoiTuong(canh, nhanVat, tap.phan_canh), [canh, nhanVat, tap.phan_canh]);
   // Nhân vật của cả tập theo thứ tự xuất hiện (người nói + nhân vật có mặt mà không nói) → mỗi người MỘT nhóm làn: cảm xúc + thoại (#1244).
   const nguoiNoiTap = useMemo(() => {
     const ds: string[] = [];
@@ -697,6 +703,19 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               })
             : khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac', undefined,
                 sinh && { loai: 'nhac', giay: tong, dang: sinh.ban('nhac1') || sinh.dangCaTap, nghe: tap.nhac_url ? [tap.nhac_url] : [], title: `Bấm để chọn model nhạc, mô tả rồi sinh một bài cả tập` }), 26, <>{onKhopNhip && nutNho(dangKhop ? '⏳' : '🎯', 'Khớp nhịp: dò phách của nhạc nền rồi dời mỗi điểm cắt tới phách gần nhất (về sau ≤0,35s, lùi ≤0,1s — không cụt giọng); lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được.', false, () => { if (dangKhop) return; setDangKhop(true); void onKhopNhip().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); })}{nutNho(tat.nhac ? '🔇' : '🔊', tat.nhac ? 'Nhạc đang tắt — bấm để bật' : 'Tắt tiếng nhạc', !!tat.nhac, () => batTat('nhac'))}</>)}
+
+          {/* ĐỐI TƯỢNG (trang-thai-doi-tuong.ts): mỗi người / đạo cụ / sản phẩm / bối cảnh một làn — từng shot: trạng thái (dáng · trạng thái · đồ cầm, hoặc biến thể),
+              màu theo điểm 0–10 (mẫu chưa đủ · nhắc tên chưa gắn · khác biến thể · đứt liền mạch · kiểm khung · soi clip); điểm cả tập ở đầu làn. Nét đứt = nhắc tên mà chưa gắn. */}
+          {doiTuong.map((r) => (
+            <Fragment key={`dt${r.nv.id}`}>
+              {track(`${LOAI_NHAN_VAT.find((l) => l.key === r.nv.loai)?.ic ?? '•'} ${r.nv.ten}`, `Trạng thái ${r.nv.ten} theo từng shot · điểm 0–10, trừ khi mẫu chưa đủ / nhắc tên chưa gắn / khác biến thể / đứt liền mạch / kiểm khung / soi clip`, r.o.map((o, i) => {
+                if (o.diem == null) return null;
+                const cc = canh[i]!;
+                return khoiAm(batDau[i]! * pps, dur(cc) * pps, o.co, MAU_DOI_TUONG[o.muc], `${o.loi.length ? '⚠ ' : ''}${o.chu}`,
+                  `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+              }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined)}
+            </Fragment>
+          ))}
 
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}

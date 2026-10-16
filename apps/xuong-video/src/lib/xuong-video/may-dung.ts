@@ -31,16 +31,17 @@ export type DeNap = { du_an: string; mau: MauMayDung; slug: string; chu_de: stri
 const THUONG_HIEU: Record<string, string> = { 'puzzle-books': 'Front Porch Puzzles' };
 const tenPhim = (x: DeNap) => `${THUONG_HIEU[x.du_an] ?? x.du_an} · Only ONE · ${x.chu_de} (${x.de.dich})`;
 
-async function phimTheoSlug(db: Db, slug: string): Promise<{ id: number; tapId: number | null; khuon: MayDungKt } | null> {
-  const r = ((await db.execute(sql`SELECT p.id, p.kinh_thanh->'may_dung' AS may_dung, (SELECT t.id FROM xv_tap t WHERE t.phim_id = p.id ORDER BY t.so, t.id LIMIT 1) AS tap_id
+async function phimTheoSlug(db: Db, slug: string): Promise<{ id: number; tapId: number | null; soShot: number; khuon: MayDungKt } | null> {
+  const r = ((await db.execute(sql`SELECT p.id, p.kinh_thanh->'may_dung' AS may_dung, (SELECT t.id FROM xv_tap t WHERE t.phim_id = p.id ORDER BY t.so, t.id LIMIT 1) AS tap_id,
+      (SELECT count(*)::int FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id) AS so_shot
     FROM xv_phim p WHERE p.loai = 'may_dung' AND p.kinh_thanh->'may_dung'->>'slug' = ${slug} ORDER BY p.id LIMIT 1`)) as unknown as Row[])[0];
-  return r ? { id: Number(r.id), tapId: r.tap_id == null ? null : Number(r.tap_id), khuon: r.may_dung as MayDungKt } : null;
+  return r ? { id: Number(r.id), tapId: r.tap_id == null ? null : Number(r.tap_id), soShot: Number(r.so_shot ?? 0), khuon: r.may_dung as MayDungKt } : null;
 }
 
 /** Ghi tập + 3 shot từ đề (thay toàn bộ shot cũ của tập — shot khuôn do máy sinh, không có gì tay sửa để giữ). */
 async function ghiTapShot(db: Db, tapId: number, de: DeMotDung): Promise<void> {
   const kb = kichBanMotDung(de);
-  await db.execute(sql`UPDATE xv_tap SET ten = ${'Only ONE · ' + de.dich}, tom_tat = ${kb.tom_tat}, kich_ban = ${kb.kich_ban}, thoi_luong_s = ${DAI}, updated_at = now() WHERE id = ${tapId}`);
+  await db.execute(sql`UPDATE xv_tap SET ten = ${'Only ONE · ' + de.dich}, tom_tat = ${kb.tom_tat}, kich_ban = ${kb.kich_ban}, thoi_luong_s = ${Math.round(DAI)}, updated_at = now() WHERE id = ${tapId}`);   // cột số nguyên — giây thật ở phat_s từng shot
   await db.execute(sql`DELETE FROM xv_canh WHERE tap_id = ${tapId}`);
   for (const [i, s] of kb.shots.entries()) {
     await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, hanh_dong_vi, chu_man, thoi_luong_s, phat_s, phan_doan, trang_thai)
@@ -64,11 +65,12 @@ export async function napDe(db: Db, ds: DeNap[]): Promise<{ moi: number; doi: nu
       moi++; continue;
     }
     const deDoi = JSON.stringify(cu.khuon.de) !== JSON.stringify(x.de), dangDoi = JSON.stringify(cu.khuon.dang) !== JSON.stringify(x.dang) || cu.khuon.chu_de !== x.chu_de;
-    if (!deDoi && !dangDoi && cu.tapId != null) { giu++; continue; }
+    const thieuShot = cu.soShot !== kichBanMotDung(x.de).shots.length;   // lượt nạp trước hỏng giữa chừng → bù
+    if (!deDoi && !dangDoi && cu.tapId != null && !thieuShot) { giu++; continue; }
     await db.execute(sql`UPDATE xv_phim SET ten = ${tenPhim(x)}, kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{may_dung}', ${JSON.stringify(khuon)}::jsonb), updated_at = now() WHERE id = ${cu.id}`);
     let tapId = cu.tapId;
     if (tapId == null) tapId = Number((((await db.execute(sql`INSERT INTO xv_tap (phim_id, so) VALUES (${cu.id}, 1) RETURNING id`)) as unknown as Row[])[0]!).id);
-    if (deDoi || cu.tapId == null) await ghiTapShot(db, tapId, x.de);
+    if (deDoi || cu.tapId == null || thieuShot) await ghiTapShot(db, tapId, x.de);
     doi++;
   }
   return { moi, doi, giu };

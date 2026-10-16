@@ -6,6 +6,8 @@
 :root {
   --bg-0: #0b0d12; --bg-1: #12151c; --bg-2: #1a1e27; --line: #262b36;
   --fg-1: #e8eaf0; --fg-2: #b4b9c6; --fg-3: #7d8494; --fg-4: #545a68;
+  /* token DataTable dùng chung (@mos2/bang) gọi theo tên mos2 — trỏ về bảng màu studio */
+  --fg-0: #f4f5f8; --line-2: #343a47; --accent: var(--cyan);
   --cyan: #38d9f5; --amber: #f5b638; --violet: #a78bfa; --lime: #a3e635; --red: #f87171;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }

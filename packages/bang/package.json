@@ -1,0 +1,22 @@
+{
+  "name": "@mos2/bang",
+  "version": "0.0.1",
+  "description": "Bảng dùng chung cho các app (mos2, studio…): DataTable + sắp xếp, lọc cột, phân trang, lưu tuỳ chọn bảng.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./data-table": "./src/data-table.tsx",
+    "./use-table-sort": "./src/use-table-sort.tsx",
+    "./anchored-popover": "./src/anchored-popover.tsx",
+    "./col-filter": "./src/col-filter.ts",
+    "./table-prefs": "./src/table-prefs.tsx",
+    "./url-shallow": "./src/url-shallow.ts",
+    "./phan-trang": "./src/phan-trang.tsx",
+    "./bang.css": "./src/bang.css"
+  },
+  "peerDependencies": {
+    "next": "*",
+    "react": "*",
+    "react-dom": "*"
+  }
+}

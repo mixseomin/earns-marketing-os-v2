@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
+    "@mos2/bang": "*",
     "@mos2/db": "*",
     "@mos2/gop-y": "*",
     "@types/three": "^0.169.0",

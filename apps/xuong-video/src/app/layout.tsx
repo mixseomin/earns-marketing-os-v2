@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import '@mos2/bang/bang.css';
 import './xv.css';
 import { PhongToKhiRe } from '@/components/phong-to';
 import { GopY } from '@/components/gop-y';

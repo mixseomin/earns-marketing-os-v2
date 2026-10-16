@@ -919,27 +919,7 @@ button { font-family: inherit; color: inherit; }
 /* .page = page-root marker + header system (.page-head/.page-title/.page-sub).
    Outer padding now comes from .main (single source) — do NOT re-add it here. */
 
-/* ui.DataTable — row hover brighten (matches the SEO table's .seo-row:hover). */
-.dt-row:hover td { filter: brightness(1.4); }
-/* Hộp cuộn của DataTable: cuộn CẢ HAI chiều bên trong. max-height để hàng tiêu đề position:sticky
-   có hộp dọc mà dính. KHÔNG dùng overscroll-behavior:contain — nó CHẶN wheel chuyền xuống TRANG khi
-   cuộn tới đáy bảng: bảng cao hơn 78vh (>~20 hàng) là kẹt, chuột đặt trong bảng không scroll trang
-   được nữa (user 15/08). Mặc định (auto) = cuộn hết bảng thì chuyền tiếp cho trang. */
-.dt-scroll { max-height: min(78vh, 880px); overflow: auto; }
-/* ⚙ Columns popover: hide the native <details> disclosure triangle. */
-.dt-cols summary { list-style: none; }
-.dt-cols summary::-webkit-details-marker { display: none; }
-.dt-cols summary::marker { content: ''; }
-/* Adminer-style header: hover a column name → reveal sort + filter buttons (absolute, so no layout
-   shift). Active sort arrow + filter flag render inline separately and stay visible. */
-.dt-th-name:hover { color: var(--fg-1); }
-.dt-th-actions { position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
-  display: inline-flex; gap: 2px; align-items: center; opacity: 0; pointer-events: none;
-  transition: opacity .1s ease; background: var(--bg-2); border-radius: 5px; padding: 1px; }
-.dt-th:hover .dt-th-actions { opacity: 1; pointer-events: auto; }
-.dt-th-actions button { font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 4px;
-  border: 1px solid var(--line); background: var(--bg-1); color: var(--fg-2); cursor: pointer; }
-.dt-th-actions button:hover { color: var(--accent); border-color: var(--accent); }
+/* ui.DataTable: CSS nằm ở gói @mos2/bang (bang.css, import trong app/layout.tsx). */
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
   padding: 0 0 var(--s-4); gap: var(--s-4);

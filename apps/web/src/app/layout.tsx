@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import './globals.css';
 import { RootProviders } from '@/components/root-providers';
 import { TablePrefsProvider } from '@/components/ui/table-prefs';
+import '@mos2/bang/bang.css';
 import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
 import { GopYMos2 } from '@/components/gop-y-mos2';

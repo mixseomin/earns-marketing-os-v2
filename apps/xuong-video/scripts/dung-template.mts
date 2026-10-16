@@ -25,7 +25,7 @@ type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; h
   /** shot NỀN GHÉP (khuôn đổi nền): ảnh nền không người, nơi hiện một lần → ky_thuat.nen_ghep, cổng mẫu không đòi anchor Bối cảnh */ nen_ghep?: boolean;
   /** kiểu chữ RIÊNG của shot (vd ô bình luận: nền trắng, nguyên câu) — trống: shot CTA lấy kiểu thư viện CTA, shot khác theo phim */ kieu?: KieuChu;
   /** nguồn tham khảo của câu cố định (không phải ô) — BẮT BUỘC, thiếu thì dừng (tham-khao.ts) */ tk?: ThamKhaoCau[] };
-type Tpl = { key: string; ten: string; mo_ta: string; dong?: DongTemplate; khuon?: string; mau_qc?: MauQcTemplate[]; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
+type Tpl = { key: string; ten: string; mo_ta: string; /** 3 = mọi shot đủ hình + giọng + chữ màn (dung-template chặn) */ diem_cham?: number; dong?: DongTemplate; khuon?: string; mau_qc?: MauQcTemplate[]; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
   /** tap.lop: lớp phủ template mang sẵn (vd lớp ảnh người cắt nền của khuôn đổi nền) — nối trước lớp điểm nhấn máy tự thêm */
   tap: { ten: string; brief: string; lop?: Lop[] }; shots: Shot[] };
 type Tep = { o_chung: Record<string, OTemplate>; templates: Tpl[] };
@@ -54,8 +54,14 @@ for (const t of tep.templates) {
   if (thieuMau.length) throw new Error(`${t.key}: ô thiếu giá trị mẫu: ${thieuMau.map((x) => x.k).join(', ')}`);
   // Shot thiếu trường bắt buộc → tham số undefined trong câu INSERT, Postgres báo "syntax error at or near ','" SAU KHI phim + anchor đã ghi
   // → template dở dang 0 shot (16/10/2026: chuyen_that thiếu goc_may đẻ #56, #57 rỗng). Kiểm hết trước khi đụng DB.
-  const thieuTruong = t.shots.flatMap((s, i) => (['giay', 'loai', 'goc_may', 'hanh_dong', 'chu_man'] as const).filter((k) => s[k] == null || s[k] === '').map((k) => `shot ${i + 1}: ${k}`));
+  const thieuTruong = t.shots.flatMap((s, i) => (['giay', 'loai', 'goc_may', 'hanh_dong', 'chu_man'] as const).filter((k) => s[k] == null || (k !== 'chu_man' && s[k] === '')).map((k) => `shot ${i + 1}: ${k}`));
   if (thieuTruong.length) throw new Error(`${t.key}: shot thiếu trường bắt buộc: ${thieuTruong.join(', ')}`);
+  // ĐIỂM CHẠM (anh 16/10/2026: "điểm chạm càng nhiều càng tốt — tình huống cần có cả video, kể chuyện và text trên màn hình"): template khai
+  // diem_cham: 3 thì MỌI shot phải đủ hình diễn (hanh_dong) + giọng (loi: thoại trong cảnh hoặc lời dẫn) + chữ màn.
+  if (t.diem_cham === 3) {
+    const thieuCham = t.shots.flatMap((s, i) => [!s.hanh_dong?.trim() && 'hình', !s.loi?.trim() && 'giọng', !s.chu_man?.trim() && 'chữ màn'].filter(Boolean).map((x) => `shot ${i + 1}: ${x}`));
+    if (thieuCham.length) throw new Error(`${t.key}: thiếu điểm chạm (diem_cham 3 = hình + giọng + chữ màn mỗi shot): ${thieuCham.join(', ')}`);
+  }
   // Template phải có MẪU QC THẮNG kèm video / ảnh thật (anh 15/10/2026) — thiếu thì không dựng.
   if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);
   const ghiCung = anchorGhiCung(t.nhan_vat);

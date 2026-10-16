@@ -56,7 +56,8 @@ export async function getSocialLive(): Promise<SocialLive> {
 
 /* HÀNG ĐỢI SẢN XUẤT (LIVE): video thật của studio.on.tc — phim thể loại Máy Dựng (Front Porch Puzzles…), mỗi phim một video, cùng DB mos2_prod.
    Bước theo tập đầu của phim: chưa có kịch bản → Kịch bản · chưa có bản xuất → Dựng · có bản xuất → Lên lịch (chờ đăng). Máy Dựng dựng bằng máy
-   nên không qua Kiểm. Đăng xong chưa có sổ ghi lại → video đã xuất nằm ở Lên lịch cho tới khi có máy ghi lượt đăng. */
+   nên không qua Kiểm. Đăng xong chưa có sổ ghi lại → video đã xuất nằm ở Lên lịch cho tới khi có máy ghi lượt đăng. Phim lưu trữ (phim cũ, không dựng /
+   không đăng nữa — anh 17/10/2026) không vào hàng đợi. */
 const STUDIO = 'https://studio.on.tc';
 async function docLoStudio(loi: string[]): Promise<StLo[]> {
   const d = getDb(); if (!d) return [];
@@ -64,7 +65,7 @@ async function docLoStudio(loi: string[]): Promise<StLo[]> {
     const r = (await d.execute(sql`SELECT p.id, p.ten, p.kinh_thanh->'may_dung'->>'du_an' AS du_an, t.kich_ban IS NOT NULL AND t.kich_ban <> '' AS co_kb,
         jsonb_array_length(coalesce(t.xuat, '[]'::jsonb)) > 0 AS da_xuat, t.video_url
       FROM xv_phim p LEFT JOIN LATERAL (SELECT * FROM xv_tap WHERE phim_id = p.id ORDER BY so LIMIT 1) t ON true
-      WHERE p.loai = 'may_dung' ORDER BY p.id DESC`)) as unknown as { id: number; ten: string; du_an: string | null; co_kb: boolean | null; da_xuat: boolean | null; video_url: string | null }[];
+      WHERE p.loai = 'may_dung' AND coalesce((p.kinh_thanh->>'luu_tru')::boolean, false) = false ORDER BY p.id DESC`)) as unknown as { id: number; ten: string; du_an: string | null; co_kb: boolean | null; da_xuat: boolean | null; video_url: string | null }[];
     return r.map((x): StLo => ({ id: x.id, goc: 0, kenh: 0, buoc: !x.co_kb ? 0 : !x.da_xuat ? 1 : 3, ten: x.ten.replace(/^[^·]+·\s*/, ''), duAn: x.du_an ?? '',
       studio: `${STUDIO}/?m=phim&mId=${x.id}&tab=storyboard`, video: x.da_xuat ? x.video_url : null }));
   } catch (e) { loi.push(`hàng đợi studio: ${(e as Error).message}`); return []; }

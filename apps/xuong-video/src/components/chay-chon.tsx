@@ -40,7 +40,7 @@ export function ChayChon({ canh, nhanVat, kt, phimQt, noiKhung, tap, ban, onChay
         <b style={{ fontSize: 12 }}>Sinh theo lựa chọn</b>
         {(['keyframe', 'video'] as const).map((v) => <button key={v} type="button" className={`xv-btn${viec === v ? ' chinh' : ''}`} style={{ padding: '1px 8px' }} onClick={() => doiViec(v)}>{v === 'keyframe' ? '🖼 Keyframe' : '🎬 Video nháp'}</button>)}
         {viec === 'keyframe' ? <Chon nho value={mhAnh} onChange={setMhAnh} options={luaChonAnh(dsAnh)} title="Model ảnh cho lượt này" minWidth={220} />
-          : <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, 8, kt.do_phan_giai)} title="Model video cho lượt này" minWidth={240} />}
+          : <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, 8, kt.do_phan_giai, phimQt.laQc)} title="Model video cho lượt này" minWidth={240} />}
         <button type="button" className="xv-lienket xv-mono" onClick={() => setChon(new Set(chayDuoc.map((x) => x.c.id)))} title={`${chayDuoc.length} shot chạy được`}>chọn hết</button>
         <button type="button" className="xv-lienket xv-mono" onClick={() => setChon(new Set())}>bỏ hết</button>
         <span style={{ flex: 1 }} />

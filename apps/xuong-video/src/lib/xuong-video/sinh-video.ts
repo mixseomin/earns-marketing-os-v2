@@ -15,7 +15,7 @@ import { tronModelCanh } from './sinh-anh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
 import { sinhGiongShots } from './sinh-giong';
-import { type Canh, type TapHoSo, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { type Canh, type TapHoSo, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
 const KHUNG_SONG = 'Keep the whole frame alive: the characters perform the action with clear, readable whole-body movement (not just a small facial change), and secondary motion never stops — fur, leaves, grass, clouds and small background details keep drifting.';
@@ -38,7 +38,7 @@ export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // KHÔNG THÊM GÌ NGOÀI KHUNG ĐẦU (anh 15/10/2026: "bắt sinh ảnh, video phải tuân thủ tuyệt đối cái gì 3D đặt vào — chỉ được format, chuyển động"):
   // khung đầu dựng từ 3D đã có đủ thứ trong khung; clip chỉ được làm chúng chuyển động. Ai / món gì khung 3D kết mới thấy (đi vào khung) thì được vào.
   const vaoKhung = (bc.canh.khung_xam?.di ?? []).filter((d) => d.tu.some((x) => x < 0 || x > 1) && d.den.every((x) => x >= 0 && x <= 1)).map((d) => d.ten);
-  const khongThem = bc.canh.khung_xam ? `Nothing new appears during the clip: no extra characters, props, cables, hands or objects beyond what is in the first frame${vaoKhung.length ? ` (only ${vaoKhung.join(', ')} may enter, as the action says)` : ''}; things cut off by the frame edge stay cut off; only movement, expression and camera motion change.` : '';
+  const khongThem = bc.canh.khung_xam ? `Nothing new appears during the clip: no extra characters, props, cables, hands or objects beyond what is in the first frame${vaoKhung.length ? ` (only ${vaoKhung.join(', ')} may enter, as the action says)` : ''}; things cut off by the frame edge stay cut off; no fire, smoke, sparks, exhaust, glow, dust or particle effects of any kind (a character that rises simply floats); only movement, expression and camera motion change.` : '';
   // Thoại: KHÔNG lấy câu trong ngoặc kép của prompt_video (ngôn ngữ cũ, Veo in thành phụ đề) — ghép từ dòng thoại hiện tại của shot;
   // có file giọng riêng rồi thì clip câm (chỉ cử miệng). Nên sinh GIỌNG trước VIDEO.
   const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
@@ -105,6 +105,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
   if (moHinh && (/^(fal|shopaikey|google):/.test(moHinh) || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+  if (!hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (thiếu cảm xúc) — chọn Veo / Kling`);
   // Khoá model (cong-ai.ts › tachKhoa): 'shopaikey:<model>' = đúng cổng đó (không dự phòng) · 'google:<model>' = Google trực tiếp · trần = tự chọn.
   const khoaVid = tachKhoa(bc.kt.mo_hinh_video);
   if (khoaVid.kieu === 'google') { bc.kt.mo_hinh_video = khoaVid.model as typeof bc.kt.mo_hinh_video; boQuaCong = true; }

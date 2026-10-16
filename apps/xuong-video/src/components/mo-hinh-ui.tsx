@@ -2,7 +2,7 @@
 // Danh mục model ảnh/video nạp một lần cho cả trang (context) + cách hiện giá/lựa chọn model trên ô chọn.
 import { createContext } from 'react';
 import { type MoHinhChon } from '@/lib/actions';
-import { giaAnhCents, giaVideoCents, tien } from '@/lib/xuong-video/kieu';
+import { giaAnhCents, giaVideoCents, tien, hopQc } from '@/lib/xuong-video/kieu';
 import { type LuaChon } from './chon';
 
 /** Danh mục model (Google/OpenAI + ~100 model fal) nạp một lần cho cả trang. */
@@ -30,8 +30,8 @@ export function luaChonAnh(ds: MoHinhChon[]): LuaChon[] {
   });
 }
 
-export function luaChonVideo(ds: MoHinhChon[], giay: number, dpg: '720p' | '1080p'): LuaChon[] {
-  return ds.map((m) => {
+export function luaChonVideo(ds: MoHinhChon[], giay: number, dpg: '720p' | '1080p', laQc: boolean): LuaChon[] {
+  return ds.filter((m) => hopQc(m.key, laQc)).map((m) => {
     if (m.gia) {
       const kg = m.gia.giay[dpg]; const kc = m.gia.clip[dpg];
       const phu = kg ? `${khoangTien(kg, giay)} · ${giay}s` : kc ? `${khoangTien(kc)}/clip` : 'chưa có giá';

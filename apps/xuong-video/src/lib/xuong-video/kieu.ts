@@ -47,6 +47,10 @@ export const MO_HINH_ANH = [
 export type MoHinhAnh = (typeof MO_HINH_ANH)[number]['key'];
 
 /** Model video Veo 3.1 (Gemini API, predictLongRunning). `giaGiay` = cents mỗi giây theo độ phân giải. */
+/** Model video KHÔNG dùng cho quảng cáo (anh 16/10/2026: Pika khung khoá "thiếu cảm xúc" — chỉ biến hình giữa hai khung, người không diễn).
+ *  Một luật cho ô chọn model (mo-hinh-ui.tsx › luaChonVideo) và cửa sinh clip máy chủ (sinh-video.ts › batDauVideoCanh). */
+export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes'];
+export const hopQc = (key: string, laQc: boolean): boolean => !(laQc && MO_HINH_KHONG_QC.includes(key));
 export const MO_HINH_VIDEO = [
   { key: 'veo-3.1-lite-generate-preview', label: 'Veo 3.1 Lite (rẻ nhất: $0,40 / 8s 720p)', giaGiay: { '720p': 5, '1080p': 8 } },
   { key: 'veo-3.1-fast-generate-preview', label: 'Veo 3.1 Fast ($0,80 / 8s 720p)', giaGiay: { '720p': 10, '1080p': 12 } },

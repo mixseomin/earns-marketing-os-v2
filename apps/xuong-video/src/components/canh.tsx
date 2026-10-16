@@ -98,7 +98,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
   const chanVid = chanVideo(c, nhanVat, phimLoai === 'quang_cao').filter((x) => x !== 'chưa duyệt keyframe' && !x.includes('chưa có giọng'));
   const lyVideo = (mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : mhVideo.startsWith('shopaikey:') ? !khoa.shopaikey && 'thiếu SHOPAIKEY_API_KEY' : !khoa.google && !khoa.shopaikey && 'thiếu GOOGLE_API_KEY') || (chanVid.length > 0 && chanVid.join('; ')) || (c.dang_sinh_giong && 'đang sinh giọng — xong sẽ tự gửi video nếu anh đã bấm Sinh nháp');
   const chonAnh = <Chon nho value={mhAnh} onChange={setMhAnh} options={luaChonAnh(dsAnh)} title="Model ảnh cho lần sinh này" minWidth={220} />;
-  const chonVideo = <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, giay, kt.do_phan_giai)} title="Model video cho lần sinh này" minWidth={240} />;
+  const chonVideo = <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, giay, kt.do_phan_giai, phimLoai === 'quang_cao')} title="Model video cho lần sinh này" minWidth={240} />;
   // Bước kế của cảnh → MỘT nút chính; còn lại vào menu ⋯ (YDNI).
   const buoc = c.trang_thai === 'dang_sinh' || c.dang_sinh_anh ? 'dang' : c.video_cuoi_url ? 'cuoi' : c.video_url && c.trang_thai === 'xong' ? 'nhap' : c.trang_thai === 'duyet' ? 'duyet' : c.keyframe_url ? 'kf' : 'trong';
 

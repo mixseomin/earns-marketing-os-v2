@@ -52,6 +52,10 @@ for (const t of tep.templates) {
   const ds = dsOTemplate({ o }, dung);
   const thieuMau = oThieu(ds, giaTriMau(ds));
   if (thieuMau.length) throw new Error(`${t.key}: ô thiếu giá trị mẫu: ${thieuMau.map((x) => x.k).join(', ')}`);
+  // Shot thiếu trường bắt buộc → tham số undefined trong câu INSERT, Postgres báo "syntax error at or near ','" SAU KHI phim + anchor đã ghi
+  // → template dở dang 0 shot (16/10/2026: chuyen_that thiếu goc_may đẻ #56, #57 rỗng). Kiểm hết trước khi đụng DB.
+  const thieuTruong = t.shots.flatMap((s, i) => (['giay', 'loai', 'goc_may', 'hanh_dong', 'chu_man'] as const).filter((k) => s[k] == null || s[k] === '').map((k) => `shot ${i + 1}: ${k}`));
+  if (thieuTruong.length) throw new Error(`${t.key}: shot thiếu trường bắt buộc: ${thieuTruong.join(', ')}`);
   // Template phải có MẪU QC THẮNG kèm video / ảnh thật (anh 15/10/2026) — thiếu thì không dựng.
   if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);
   const ghiCung = anchorGhiCung(t.nhan_vat);

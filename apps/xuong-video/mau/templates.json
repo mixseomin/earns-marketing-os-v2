@@ -407,6 +407,93 @@
   "noi_7_chu": {
    "ten": "Nhãn nơi 7 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
    "mau": "7:30 · Groceries"
+  },
+  "niem_tin_sai": {
+   "ten": "Niềm tin sai (hook, chữ màn)",
+   "goi_y": "Câu mở lật cách hiểu: điều người kể từng tin là nguyên nhân — ≤ 12 từ. Có nguồn.",
+   "mau": "For years I thought it was his body. It was his jeans."
+  },
+  "niem_tin_sai_hinh": {
+   "ten": "Hook thấy bằng hình",
+   "mau": "the narrator holds up an old pair of stiff faded jeans toward the camera, unimpressed"
+  },
+  "van_de_1": {
+   "ten": "Vấn đề 1 — chi tiết đời thường (chữ màn)",
+   "goi_y": "Một cảnh cụ thể, lặp lại hằng ngày. Có nguồn.",
+   "mau": "He'd tug his waistband every time he sat down."
+  },
+  "van_de_1_hinh": {
+   "ten": "Vấn đề 1 thấy bằng hình",
+   "mau": "at the dinner table the man sits down and immediately pulls at a stiff waistband digging into his belly"
+  },
+  "van_de_2": {
+   "ten": "Vấn đề 2 — nặng hơn (chữ màn)",
+   "mau": "The seat sagged like an empty pouch."
+  },
+  "van_de_2_hinh": {
+   "ten": "Vấn đề 2 thấy bằng hình",
+   "mau": "from behind, he stands up from the sofa; old jeans hang baggy and loose in the seat"
+  },
+  "van_de_3": {
+   "ten": "Vấn đề 3 — cách chữa cháy hằng ngày (chữ màn)",
+   "mau": "He cinched his belt one more notch. Every month."
+  },
+  "van_de_3_hinh": {
+   "ten": "Vấn đề 3 thấy bằng hình",
+   "mau": "close-up: hands pull a worn leather belt one more hole tighter, the waistband bunches"
+  },
+  "dinh_diem": {
+   "ten": "Khoảnh khắc đỉnh điểm — dẫn vào (chữ màn)",
+   "goi_y": "Một ngày cụ thể có người thân, có điều để mất. Có nguồn (thường là khuôn kể của QC thắng).",
+   "mau": "Then came our grandson's wedding."
+  },
+  "dinh_diem_hinh": {
+   "ten": "Đỉnh điểm — bối cảnh thấy bằng hình",
+   "mau": "wide shot of a warm wedding reception, string lights, guests dancing"
+  },
+  "dinh_diem_2": {
+   "ten": "Đỉnh điểm — điều đã mất (chữ màn)",
+   "mau": "He sat out every dance."
+  },
+  "dinh_diem_2_hinh": {
+   "ten": "Điều đã mất thấy bằng hình",
+   "mau": "the man sits alone at a reception table, shifting uncomfortably, watching the family dance"
+  },
+  "da_thu": {
+   "ten": "Những cách đã thử (chữ màn)",
+   "goi_y": "Liệt kê 2–4 thứ đã thử, có tên. Có nguồn.",
+   "mau": "Bigger size. Tighter belt. Suspenders."
+  },
+  "da_thu_hinh": {
+   "ten": "Đã thử thấy bằng hình",
+   "mau": "on the bed: a pile of jeans in bigger sizes, a belt and a pair of suspenders"
+  },
+  "khong_an_thua": {
+   "ten": "Không ăn thua (chữ màn, ngắn)",
+   "mau": "Nothing worked."
+  },
+  "phat_hien": {
+   "ten": "Phát hiện gốc thật (chữ màn)",
+   "goi_y": "Lật lại câu hook: vấn đề nằm ở đâu thật. Có nguồn.",
+   "mau": "Turns out stiff denim fights you every time you sit."
+  },
+  "phat_hien_hinh": {
+   "ten": "Phát hiện thấy bằng hình",
+   "mau": "the narrator at the kitchen table reads on her phone, eyebrows lifting"
+  },
+  "goi_lai": {
+   "ten": "Gọi lại đỉnh điểm — giờ đã ổn (chữ màn)",
+   "goi_y": "Đúng tình huống ở đỉnh điểm, nay kết quả ngược lại.",
+   "mau": "Next family party, he was first on the dance floor."
+  },
+  "goi_lai_hinh": {
+   "ten": "Gọi lại thấy bằng hình",
+   "mau": "at a family party the man dances with his granddaughter, laughing, jeans moving with him"
+  },
+  "chot": {
+   "ten": "Câu chốt (lời, kiểu \"If … nothing else worked\")",
+   "goi_y": "Lọc đúng người + mời thử. Có nguồn.",
+   "mau": "If his jeans fight him every time he sits, try these."
   }
  },
  "templates": [
@@ -3997,6 +4084,425 @@
      "loi": "{{san_pham}}. {{uu_dai}}.",
      "prompt_anh": "Brand hero shot on a seamless warm off-white backdrop: {{san_pham_hinh}} standing open with {{san_pham_gap_hinh}} beside it, soft studio light, empty lower third for text, vertical 9:16, no text, no people",
      "prompt_video": "Very slow push-in on the {{san_pham}}, studio, nothing moves"
+    }
+   ]
+  },
+  {
+   "key": "chuyen_that",
+   "dong": "ugc",
+   "khuon": "ke_chuyen",
+   "ten": "Template · Chuyện có thật — vấn đề trước, giải pháp sau (người thật, 15 shot, 36s)",
+   "mo_ta": "Kể chuyện kiểu QC thắng dài hơi: niềm tin sai → 3 chi tiết vấn đề leo thang → khoảnh khắc đỉnh điểm có người thân → đã thử mọi cách → phát hiện gốc thật → giải pháp (≈55% thời lượng) → demo → gọi lại đúng tình huống cũ, giờ ổn → review → chốt \"If… try these\". Người kể (nhân vật chính, giọng dẫn) có thể là người thân của người gặp vấn đề (người thứ hai). Học từ \"Thriving In Menopause\" (116 ngày, ×6) và \"Parkinson's Health Insider\" (vợ kể về chồng, 98 ngày).",
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "nhan_vat_ten",
+    "nhan_vat_hinh",
+    "giong",
+    "nguoi_2_ten",
+    "nguoi_2_hinh",
+    "giong_2",
+    "boi_canh",
+    "boi_canh_2",
+    "niem_tin_sai",
+    "niem_tin_sai_hinh",
+    "van_de_1",
+    "van_de_1_hinh",
+    "van_de_2",
+    "van_de_2_hinh",
+    "van_de_3",
+    "van_de_3_hinh",
+    "dinh_diem",
+    "dinh_diem_hinh",
+    "dinh_diem_2",
+    "dinh_diem_2_hinh",
+    "da_thu",
+    "da_thu_hinh",
+    "khong_an_thua",
+    "phat_hien",
+    "phat_hien_hinh",
+    "nguoi_gioi_thieu",
+    "demo",
+    "demo_hinh",
+    "goi_lai",
+    "goi_lai_hinh",
+    "loi_ich_1",
+    "loi_ich_1_hinh",
+    "review",
+    "chot",
+    "mau_chinh",
+    "mau_chinh_hinh",
+    "mau_chinh_anh"
+   ],
+   "kinh_thanh": {
+    "phong_cach": "Live-action UGC ad, photorealistic real people, shot on iPhone vertical, natural light, true colors, no cinematic filter; candid documentary feel, slower story pacing ~2.4s per shot",
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "logline": "{{nhan_vat_ten}}: {{niem_tin_sai}} — {{dinh_diem_2}} — until {{san_pham}}.",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.075,
+      "y": 0.76,
+      "vao": "bat",
+      "tu": 3
+     }
+    }
+   },
+   "nhan_vat": [
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ],
+     "bien_the": [
+      {
+       "key": "m1",
+       "nhom": "trang_thai",
+       "ten": "{{mau_chinh}}",
+       "mo_ta": "{{mau_chinh_hinh}}",
+       "anh_url": "{{mau_chinh_anh}}"
+      }
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "{{nhan_vat_ten}}",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "nv2",
+     "loai": "nhan_vat",
+     "ten": "{{nguoi_2_ten}}",
+     "mo_ta": "{{nguoi_2_hinh}}",
+     "giong": "{{giong_2}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Home",
+     "mo_ta": "{{boi_canh}}"
+    },
+    {
+     "key": "bc2",
+     "loai": "boi_canh",
+     "ten": "The big day",
+     "mo_ta": "{{boi_canh_2}}"
+    }
+   ],
+   "tap": {
+    "ten": "Chuyện có thật · 15 shot",
+    "brief": "{{nhan_vat_ten}} kể bằng lời dẫn chậm, thật, như tâm sự: {{niem_tin_sai}} Vấn đề của {{nguoi_2_ten}} leo thang tới ngày {{dinh_diem}} Giải pháp {{san_pham}} chỉ xuất hiện sau khi đã thử mọi cách. Ưu đãi: {{uu_dai}}."
+   },
+   "mau_qc": [
+    {
+     "ma": "2286314902195669",
+     "page": "Thriving In Menopause",
+     "x": 6,
+     "ngay": 116,
+     "link": "https://www.facebook.com/ads/library/?id=2286314902195669",
+     "giay": 150.5,
+     "video": "https://img.on.tc/xuong-video/mau-qc/2286314902195669.mp4",
+     "anh": "https://img.on.tc/xuong-video/mau-qc/2286314902195669.jpg",
+     "to": "https://img.on.tc/xuong-video/mau-qc/2286314902195669-to.jpg",
+     "mo_ta": "Lời dẫn đi đúng nhịp vấn đề trước: \"I thought my hip pain was just part of getting older\" → chi tiết đời thường leo thang (cầu thang, dắt chó) → \"I tried everything. Collagen. Turmeric. Ibuprofen.\" → gốc thật (cơ chế) → sản phẩm → kết quả trong đúng các chi tiết cũ → \"If… nothing else has worked\". Hình: hoạt hình 3D giải phẫu (bộ xương đi cầu thang, điểm đau đỏ), không phải người thật."
+    },
+    {
+     "ma": "1673581983693866",
+     "page": "Parkinson's Health Insider",
+     "x": 5,
+     "ngay": 98,
+     "link": "https://www.facebook.com/ads/library/?id=1673581983693866",
+     "giay": 232.9,
+     "video": "https://img.on.tc/xuong-video/mau-qc/1673581983693866.mp4",
+     "anh": "https://img.on.tc/xuong-video/mau-qc/1673581983693866.jpg",
+     "to": "https://img.on.tc/xuong-video/mau-qc/1673581983693866-to.jpg",
+     "mo_ta": "CHỮ BÀI ĐĂNG là chuyện vợ (Carol) kể về chồng (Frank): nhiều năm chi tiết nhỏ leo thang → \"I was doing everything right\" (liệt kê đã thử) → đỉnh điểm \"our granddaughter's sixth birthday\" → người lạ chỉ ra gốc thật. Video: bác sĩ nói thẳng camera trả lời bình luận (khác hình template này — học phần chữ)."
+    }
+   ],
+   "shots": [
+    {
+     "giay": 2.6,
+     "loai": "hook",
+     "co": "mcu",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "chu_man": "{{niem_tin_sai}}",
+     "loi": "{{niem_tin_sai}}",
+     "hanh_dong": "{{niem_tin_sai_hinh}}",
+     "prompt_anh": "{{nhan_vat_hinh}}, in {{boi_canh}}, {{niem_tin_sai_hinh}}, vertical phone photo, natural light",
+     "prompt_video": "The narrator gives a small wry shake of the head while holding the old item up, handheld phone camera",
+     "dien_xuat": "confiding, wry",
+     "goc_may": "Medium close-up, eye level, handheld"
+    },
+    {
+     "giay": 2.4,
+     "loai": "noi_dau",
+     "co": "ms",
+     "nv": [
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{van_de_1}}",
+     "loi": "{{van_de_1}}",
+     "hanh_dong": "{{van_de_1_hinh}}",
+     "prompt_anh": "{{nguoi_2_hinh}}, {{van_de_1_hinh}}, {{boi_canh}}, candid phone photo",
+     "prompt_video": "The person winces and tugs, the moment repeats like a habit, camera observes from across the room",
+     "goc_may": "Medium shot across the dinner table, observational"
+    },
+    {
+     "giay": 2.4,
+     "loai": "noi_dau",
+     "co": "ws",
+     "nv": [
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{van_de_2}}",
+     "loi": "{{van_de_2}}",
+     "hanh_dong": "{{van_de_2_hinh}}",
+     "prompt_anh": "{{nguoi_2_hinh}}, {{van_de_2_hinh}}, {{boi_canh}}",
+     "prompt_video": "The person straightens up and hitches the old pair with both hands, slow handheld drift",
+     "goc_may": "Wide shot from behind, handheld"
+    },
+    {
+     "giay": 2.4,
+     "loai": "noi_dau",
+     "co": "ecu",
+     "nv": [
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{van_de_3}}",
+     "loi": "{{van_de_3}}",
+     "hanh_dong": "{{van_de_3_hinh}}",
+     "prompt_anh": "Extreme close-up: {{van_de_3_hinh}}, warm indoor light",
+     "prompt_video": "Hands strain on the old fix, a short frustrated exhale",
+     "goc_may": "Extreme close-up on the hands"
+    },
+    {
+     "giay": 2.2,
+     "loai": "noi_dau",
+     "co": "ews",
+     "nv": [
+      "nv2",
+      "bc2"
+     ],
+     "chu_man": "{{dinh_diem}}",
+     "loi": "{{dinh_diem}}",
+     "hanh_dong": "{{dinh_diem_hinh}}",
+     "prompt_anh": "{{dinh_diem_hinh}}, {{boi_canh_2}}, the man visible small in the crowd",
+     "prompt_video": "Slow push-in across the celebration, warm and lively",
+     "goc_may": "Extreme wide establishing shot of the event"
+    },
+    {
+     "giay": 2.6,
+     "loai": "noi_dau",
+     "co": "mcu",
+     "nv": [
+      "nv2",
+      "bc2"
+     ],
+     "chu_man": "{{dinh_diem_2}}",
+     "loi": "{{dinh_diem_2}}",
+     "hanh_dong": "{{dinh_diem_2_hinh}}",
+     "prompt_anh": "{{nguoi_2_hinh}}, {{dinh_diem_2_hinh}}, {{boi_canh_2}}, shallow depth of field",
+     "prompt_video": "The person shifts in the chair and looks away from the dance floor, the music continues in the background",
+     "dien_xuat": "quiet, sad",
+     "goc_may": "Medium close-up, shallow depth of field"
+    },
+    {
+     "giay": 2.4,
+     "loai": "noi_dau",
+     "co": "cu",
+     "nv": [
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{da_thu}}",
+     "loi": "{{da_thu}}",
+     "hanh_dong": "{{da_thu_hinh}}",
+     "prompt_anh": "Top-down: {{da_thu_hinh}}, {{boi_canh}}",
+     "prompt_video": "A hand drops one more item onto the pile, beat by beat",
+     "goc_may": "Top-down close-up"
+    },
+    {
+     "giay": 1.6,
+     "loai": "noi_dau",
+     "co": "mcu",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "chu_man": "{{khong_an_thua}}",
+     "loi": "{{khong_an_thua}}",
+     "hanh_dong": "the narrator lets out a long breath and looks at the camera",
+     "prompt_anh": "{{nhan_vat_hinh}}, looking at the camera, tired, {{boi_canh}}",
+     "prompt_video": "The narrator shrugs, defeated",
+     "dien_xuat": "tired",
+     "goc_may": "Medium close-up, eye level"
+    },
+    {
+     "giay": 2.6,
+     "loai": "giai_phap",
+     "co": "ms",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "chu_man": "{{phat_hien}}",
+     "loi": "{{phat_hien}}",
+     "hanh_dong": "{{phat_hien_hinh}}",
+     "prompt_anh": "{{nhan_vat_hinh}}, {{phat_hien_hinh}}, {{boi_canh}}",
+     "prompt_video": "The narrator looks up from the phone, realization showing, slow push-in",
+     "dien_xuat": "realizing",
+     "goc_may": "Medium shot, slow push-in"
+    },
+    {
+     "giay": 2.4,
+     "loai": "giai_phap",
+     "co": "ws",
+     "nv": [
+      "sp",
+      "nv",
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{nguoi_gioi_thieu}}",
+     "loi": "{{nguoi_gioi_thieu}}",
+     "hanh_dong": "the narrator hands a neatly folded new pair of {{san_pham}} to {{nguoi_2_ten}}",
+     "prompt_anh": "{{nhan_vat_hinh}} hands a folded pair of {{san_pham_hinh}} to {{nguoi_2_hinh}}, {{boi_canh}}",
+     "prompt_video": "The person unfolds the new {{san_pham}}, skeptical, and turns it over",
+     "bt": [
+      "m1"
+     ],
+     "goc_may": "Wide two-shot"
+    },
+    {
+     "giay": 2.4,
+     "loai": "demo",
+     "co": "ms",
+     "nv": [
+      "sp",
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{demo}}",
+     "loi": "{{demo}}",
+     "hanh_dong": "{{demo_hinh}}",
+     "prompt_anh": "{{nguoi_2_hinh}} wearing the {{san_pham}}, {{demo_hinh}}, {{boi_canh}}",
+     "prompt_video": "The person sits down in the {{san_pham}} and leans back, relaxed, nothing pinching",
+     "dien_xuat": "surprised, relaxed",
+     "bt": [
+      "m1"
+     ],
+     "goc_may": "Medium shot, eye level"
+    },
+    {
+     "giay": 2.6,
+     "loai": "so_sanh",
+     "co": "ws",
+     "nv": [
+      "sp",
+      "nv2",
+      "bc2"
+     ],
+     "chu_man": "{{goi_lai}}",
+     "loi": "{{goi_lai}}",
+     "hanh_dong": "{{goi_lai_hinh}}",
+     "prompt_anh": "{{nguoi_2_hinh}} wearing the {{san_pham}}, {{goi_lai_hinh}}, {{boi_canh_2}}",
+     "prompt_video": "The person laughs and moves freely in the {{san_pham}}, handheld camera follows",
+     "dien_xuat": "joyful",
+     "bt": [
+      "m1"
+     ],
+     "goc_may": "Wide shot, handheld follow"
+    },
+    {
+     "giay": 2.2,
+     "loai": "tinh_nang",
+     "co": "ecu",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}",
+     "hanh_dong": "{{loi_ich_1_hinh}}",
+     "prompt_anh": "Extreme close-up: {{loi_ich_1_hinh}}, product {{san_pham_hinh}}",
+     "prompt_video": "The {{san_pham}} fabric stretches and springs back, macro detail",
+     "bt": [
+      "m1"
+     ],
+     "goc_may": "Extreme close-up macro"
+    },
+    {
+     "giay": 2.4,
+     "loai": "bang_chung",
+     "co": "mcu",
+     "nv": [
+      "sp",
+      "nv",
+      "nv2",
+      "bc"
+     ],
+     "chu_man": "{{review}}",
+     "hanh_dong": "the two of them on the sofa, the narrator glances over and smiles, {{nguoi_2_ten}} nods",
+     "prompt_anh": "{{nhan_vat_hinh}} and {{nguoi_2_hinh}} on the sofa in {{boi_canh}}, {{nguoi_2_ten}} wearing the {{san_pham}}, the narrator smiling",
+     "prompt_video": "Small shared laugh between the two, the {{san_pham}} visible, warm light",
+     "bt": [
+      "m1"
+     ],
+     "goc_may": "Medium close-up two-shot"
+    },
+    {
+     "giay": 2.2,
+     "loai": "end_card",
+     "co": "cu",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "loi": "{{chot}}",
+     "hanh_dong": "the narrator holds up the folded {{san_pham}} to the camera",
+     "prompt_anh": "{{nhan_vat_hinh}} holding a folded pair of {{san_pham_hinh}} to the camera, {{boi_canh}}",
+     "prompt_video": "The narrator nods at the camera holding the {{san_pham}}, confident",
+     "bt": [
+      "m1"
+     ],
+     "goc_may": "Close-up, eye level"
     }
    ]
   }

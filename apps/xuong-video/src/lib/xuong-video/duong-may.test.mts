@@ -16,4 +16,6 @@ const tr = duongMay(m, 'truot_ngang')!; assert.ok(tr.dat[0]! > 5, 'trượt về
 const li = duongMay(m, 'lia')!; assert.ok(li.nhin[0]! > 0, 'lia theo chủ thể sang phải'); assert.deepEqual(li.dat, m.dat);
 const vo = duongMay(m, 'vong')!; assert.ok(Math.abs(kc(vo.dat, m.nhin) - kc(m.dat, m.nhin)) < 0.05, 'quay vòng giữ khoảng cách');
 const ng = duongMay(m, 'nghieng_len')!; assert.ok(ng.nhin[2]! > m.nhin[2]!, 'nghiêng lên');
+const m2 = { ...m, vi_tri: [...m.vi_tri, { ten: 'Lint', tam: [5, 3, 0] }], nham: 'Lint' };
+const zl = duongMay(m2, 'zoom_gat')!; assert.deepEqual(zl.nhin.slice(0, 2), [5, 3], 'zoom nhắm đích danh Lint');
 console.log('duong-may: mọi bài tự kiểm qua');

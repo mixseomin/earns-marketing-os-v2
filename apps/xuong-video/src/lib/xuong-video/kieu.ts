@@ -345,6 +345,7 @@ export type BoSet = { id: number; project: string; phim_id: number | null; ten: 
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
 export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy do datMayTuDong tính (phía ° quanh chủ thể) — bộ giải trong Blender được phép xoay / nâng / lùi máy cho chủ thể thấy rõ */ tu_dong?: { phia?: number; /** mã đầu vào lúc tính (chỗ đứng + phía + khung + cỡ/góc/ống) — nạp lại mà khớp thì GIỮ máy bộ giải đã tìm */ vao?: string };
   /** CỐ Ý vượt trục (POV chủ quan, cú lật trục có chủ đích): không kiểm trục shot này; shot sau so với shot thường gần nhất */ qua_truc?: boolean;
+  /** máy chạy (ky_thuat.chuyen_dong) NHẮM vào ai: zoom / lia / theo / trượt bám tên này; trống = chủ thể đầu (duong-may.ts) */ nham?: string;
   /** CHỦ THỂ của khung: phải trong khung + không bị che (mặc định: hai vị trí đầu không 'an') */ khung?: string[]; vi_tri: { ten: string; /** chỗ ở lúc MỞ shot (cm) — khung xám dựng ở đây */ tam: number[]; /** chỗ ở lúc KẾT shot (đi / lăn / bay trong shot); không ghi = đứng yên */ den?: number[];
     /** hướng mặt lúc mở / kết (độ, 0 = nhìn về phía người ngồi −y, 90 = nhìn sang phải +x) — mắt khối 3D quay theo */ huong?: number; huong_den?: number;
     /** TRẠNG THÁI NHÂN VẬT lúc mở / kết (sổ script supervisor — tiếng Anh cho prompt: 'frizzed stiff with static', 'soaking wet'); trống = bình thường.

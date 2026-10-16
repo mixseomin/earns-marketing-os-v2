@@ -23,6 +23,16 @@ if MESH_THAT:
     _sp = _iu.spec_from_file_location('dung_nhan_vat', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mesh', 'dung-nhan-vat.py'))
     dnv = _iu.module_from_spec(_sp); _sp.loader.exec_module(dnv)
 KHO_MESH = {}
+# NGƯỜI (khoi_3d.hinh = 'nguoi', phim người thật — bước 5): ma-nơ-canh có khớp mesh/nguoi.py; NGUOI[tên] = các khớp để vòng diễn đặt bước chân.
+NGUOI = {}
+_NG = None
+def ng():
+    global _NG
+    if _NG is None:
+        import importlib.util as _iu2
+        _s2 = _iu2.spec_from_file_location('nguoi', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mesh', 'nguoi.py'))
+        _NG = _iu2.module_from_spec(_s2); _s2.loader.exec_module(_NG)
+    return _NG
 def bat_gpu(s):
     """Cycles chạy GPU của MÁY ĐANG CHẠY: OPTIX / CUDA (NVIDIA — máy thuê cloud, scripts/bo-set/may-thue.sh), HIP (AMD), METAL (iMac / Mac).
     Không có GPU nào thì để CPU. Trước đây ghi cứng METAL 3 chỗ → lên máy NVIDIA âm thầm chạy CPU. Chỉ đổi THIẾT BỊ, không đổi hình ra."""
@@ -328,6 +338,16 @@ def nhan_vat(sh, ket=False):
                 if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau'])
                 than.append(o); tat_ca.append(o)
             continue
+        if mau_nv.get('hinh') == 'nguoi':   # NGƯỜI: ma-nơ-canh có khớp, cao = co[2] cm; gốc tên 'NV <tên>' (vòng diễn gắn neo vào gốc, các khớp đi theo)
+            hx = mau_nv['mau'].lstrip('#'); rgb = tuple((int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
+            ha = (mau_nv.get('ao') or mau_nv['mau']).lstrip('#'); rgb_ao = tuple((int(ha[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
+            n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}")
+            n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
+            kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
+            ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_
+            bpy.context.view_layer.update()
+            phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
+            than.append(bpy.data.objects[f"NG {nv['ten']}.nguc_k"]); tat_ca.extend([n_['goc'], *phan_ng]); continue
         mt = mesh_that(nv['ten'])
         if mt:   # MESH THẬT: đặt vào chỗ (X, Y, Z) quay theo hướng; nằm thì xoay cả người như khối tạm
             from mathutils import Matrix
@@ -846,7 +866,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di else 0.0) - math.radians(dt['nga'])   # đi: chúi tới · ngã ngồi: ngả ra sau
             R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * k + dt['xoay']) + q[2]) @ Quaternion((1, 0, 0), q[0]))
             e.rotation_mode = 'QUATERNION'
-            cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 else 0.0   # 1 = chân vừa chạm đất
+            cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 and ten not in NGUOI else 0.0   # 1 = chân vừa chạm đất (người thật không bẹp như đất nặn)
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']
             Mt = Matrix.Translation(p * CM) @ R.to_matrix().to_4x4(); Pm = Matrix.Identity(4)
             if doi_dang:   # NGÃ / ĐỨNG DẬY trong shot = nội suy đúng phép nam_xuong (xoay 90° quanh trục ngang tại chân + dời thân lên mặt bàn)
@@ -872,6 +892,12 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             Mt = Matrix.Translation(p * CM) @ Matrix.Diagonal((1 + bep / 2, 1 + bep / 2, 1 - bep, 1)) @ Matrix.Translation(-p * CM) @ Mt @ Matrix.Diagonal((ph, ph, ph, 1))
             lo, ro, sc_ = Mt.decompose(); e.location = lo; e.rotation_quaternion = ro; e.scale = sc_
             e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_quaternion', frame=f); e.keyframe_insert('scale', frame=f)
+            if ten in NGUOI:   # NGƯỜI: pha bước theo QUÃNG ĐÃ ĐI (sải ~0,41 chiều cao) → chân không trượt; đứng yên thì giữ tư thế chốt
+                n_ = NGUOI[ten]
+                if di: ng().buoc(n_, (p - a).xy.length / (2 * 0.41 * n_['cao']))
+                else: ng().tu_the(n_, n_.get('kieu', 'dung'))
+                for kk in ng().KHOP_KEY: n_[kk].keyframe_insert('rotation_euler', frame=f)
+                n_['hong'].keyframe_insert('location', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo
                 nham_ = 0.12 if any(abs(f - (1 + c * (N - 1))) < 1.01 for c in chop) else 1.0
                 thu = max(0.001, 1 - dt['bong'])   # thành bóng: mắt thu vào

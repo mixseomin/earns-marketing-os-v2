@@ -52,6 +52,7 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
   else if (p.hinh === 'khan') { g = khanHinh(w / (dd || 1)); }   // tấm khăn rủ: đơn vị tâm ở giữa khối như hộp
   else if (p.hinh === 'non') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
+  else if (p.hinh === 'nguoi') g = new THREE.CapsuleGeometry(0.3, 0.4, 6, 16);   // người (phim người thật): viên nhộng cao = chiều cao — Blender dựng ma-nơ-canh có khớp
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);
   // Nghiêng quanh trục x của khối TRƯỚC rồi mới xoay quanh trục đứng (như Blender Euler XYZ) → thứ tự 'YXZ' của three.

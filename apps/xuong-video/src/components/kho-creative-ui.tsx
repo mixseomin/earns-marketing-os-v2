@@ -22,9 +22,9 @@ type TabSp = 'concept' | 'template' | 'phuong_an' | 'de_xuat' | 'creative' | 'ba
 const TAB_KHO_CONCEPT: TabSp[] = ['concept', 'template', 'phuong_an', 'de_xuat'];
 const TAB_SP: { value: TabSp; label: string }[] = [
   { value: 'concept', label: 'Concept' }, { value: 'template', label: 'Template' }, { value: 'phuong_an', label: 'Phương án' }, { value: 'de_xuat', label: 'Đề xuất' },
-  { value: 'creative', label: 'Đã làm' }, { value: 'ban_do', label: 'Bản đồ' }, { value: 'goc', label: 'Góc' },
-  { value: 'thanh_phan', label: 'Thành phần' }, { value: 'lo', label: 'Lô sinh' }, { value: 'ket_qua', label: 'Kết quả' },
+  { value: 'creative', label: 'Đã làm' }, { value: 'goc', label: 'Góc' }, { value: 'thanh_phan', label: 'Thành phần' },
 ];
+// ẨN (anh 17/10/2026 "ẩn đi, không hiện thừa"): Bản đồ + Lô sinh trùng việc với Template / Đề xuất; Kết quả chưa có số liệu. Mã + dữ liệu xv_lo giữ nguyên.
 const tenKhuon = (c: Pick<DongCreative, 'tpl'>) => (c.tpl ? DONG_TEMPLATE.find((d) => d.key === c.tpl!.dong)?.khuon.find((k) => k.key === c.tpl!.khuon)?.ten ?? c.tpl.khuon : 'Ngoài template');
 
 /** Danh sách sản phẩm (tab 📦 Sản phẩm): mỗi sản phẩm một dòng, bấm mở ngăn. Nhóm theo sản phẩm của phim QC (nhom-phim.ts › sanPhamPhim). */

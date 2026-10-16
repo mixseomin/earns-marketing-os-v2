@@ -43,15 +43,48 @@ def cat_mat(im, hop, co=512):
     ok, b = cv2.imencode('.jpg', cv2.resize(im[y0:y1, x0:x1], (co, co)), [cv2.IMWRITE_JPEG_QUALITY, 92])
     return base64.b64encode(b.tobytes()).decode() if ok else None
 
-vao = json.load(sys.stdin); ra = {'mau': {}, 'anh': [], 'cat': {}}
+def vung_dau(im, o):
+    """Vùng ĐẦU vuông quanh mặt gần điểm o (phần khung) — cắt ra cho mô hình sửa (kiểu face detailer: mặt to → giữ đúng người hơn)."""
+    det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+    if f is None: return None
+    H, W = im.shape[:2]; x, y, w, h = min(f, key=lambda r: ((r[0] + r[2] / 2) / W - o['x']) ** 2 + ((r[1] + r[3] / 2) / H - o['y']) ** 2)[:4]
+    c = max(w, h) * 2.6; cx, cy = x + w / 2, y + h / 2 - h * 0.15
+    x0, y0 = int(max(0, cx - c / 2)), int(max(0, cy - c / 2)); x1, y1 = int(min(W, x0 + c)), int(min(H, y0 + c))
+    return [x0, y0, x1, y1]
+
+def b64jpg(im, q=93):
+    ok, b = cv2.imencode('.jpg', im, [cv2.IMWRITE_JPEG_QUALITY, q]); return base64.b64encode(b.tobytes()).decode()
+
+def doc_goc(u):
+    """Ảnh ở ĐỘ PHÂN GIẢI GỐC (dán lại phải đúng điểm ảnh của keyframe)."""
+    b = open(u, 'rb').read() if os.path.exists(u) else urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': 'xv-soi-mat'}), timeout=30).read()
+    return cv2.imdecode(np.frombuffer(b, np.uint8), cv2.IMREAD_COLOR)
+
+vao = json.load(sys.stdin)
+if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y}} → {hop:[x0,y0,x1,y1] px gốc, b64: vùng đầu 1024²}
+    im = doc_goc(vao['url']); hop = vung_dau(im, vao['o'])
+    print(json.dumps({'hop': hop, 'b64': b64jpg(cv2.resize(im[hop[1]:hop[3], hop[0]:hop[2]], (1024, 1024))) if hop else None})); sys.exit(0)
+if vao.get('op') == 'dan':        # {op, goc, sua, hop} → {b64: khung gốc với vùng đầu đã sửa dán lại, mặt nạ elip mờ biên, khớp màu}
+    im = doc_goc(vao['goc']); x0, y0, x1, y1 = vao['hop']; vg = im[y0:y1, x0:x1]
+    sua = cv2.resize(doc_goc(vao['sua']), (x1 - x0, y1 - y0), interpolation=cv2.INTER_AREA)
+    # khớp màu (LAB, trung bình + độ lệch) về vùng gốc — mô hình sửa hay lệch tông nhẹ, dán vào sẽ thành mảng
+    a, b = cv2.cvtColor(sua, cv2.COLOR_BGR2LAB).astype(np.float32), cv2.cvtColor(vg, cv2.COLOR_BGR2LAB).astype(np.float32)
+    a = (a - a.mean((0, 1))) / (a.std((0, 1)) + 1e-6) * b.std((0, 1)) + b.mean((0, 1))
+    sua = cv2.cvtColor(np.clip(a, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+    hh, ww = vg.shape[:2]; m = np.zeros((hh, ww), np.float32)
+    cv2.ellipse(m, (ww // 2, int(hh * 0.47)), (int(ww * 0.33), int(hh * 0.4)), 0, 0, 360, 1.0, -1)
+    k = max(3, int(min(hh, ww) * 0.12) | 1); m = cv2.GaussianBlur(m, (k, k), 0)[..., None]
+    im[y0:y1, x0:x1] = (sua * m + vg * (1 - m)).astype(np.uint8)
+    print(json.dumps({'b64': b64jpg(im)})); sys.exit(0)
+ra = {'mau': {}, 'anh': [], 'cat': {}}
 mau = {}
 for ten, urls in vao.get('mau', {}).items():
     vs, ung = [], []
     for u in urls:
-        try: im = doc(u); v = van(im)
+        try: im = doc(u); v = [x for x in van(im, 0.0) if x[1] >= 40]   # ảnh mẫu: MỌI mặt đủ rõ, kể cả mặt nghiêng nhỏ của dáng toàn thân (Jett #11 Frank cười nghiêng)
         except Exception as e: print(f'bỏ ảnh mẫu {u}: {e}', file=sys.stderr); continue
-        vs.extend(x for x, _, _ in v[:12])
-        ung.extend((x, h, hop, im) for x, h, hop in v[:12] if h >= 80)
+        vs.extend(x for x, _, _ in v[:16])
+        ung.extend((x, h, hop, im) for x, h, hop in v[:16] if h >= 80)
     # cat: mặt ĐIỂN HÌNH nhất của ảnh mẫu (gần trung bình mọi mặt — thường là mặt trung tính nhìn thẳng, không phải mặt "ngạc nhiên"),
     # cộng một mặt khác góc nhất → ảnh sát mặt kèm lượt sinh keyframe / sửa mặt.
     if vao.get('cat') and ung:

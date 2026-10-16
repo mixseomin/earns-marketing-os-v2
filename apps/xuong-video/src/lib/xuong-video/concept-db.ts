@@ -26,7 +26,7 @@ export async function nguCanhCap(db: Db, capId: number) {
   const phim = (await phimSanPham(db, s(c.sp_key)))[0];
   const kt = ((phim?.kinh_thanh ?? {}) as KinhThanh);
   const av = (c.du_lieu ?? {}) as SubAvatar;
-  const daCo = (await db.execute(sql`SELECT o, chu FROM xv_phuong_an WHERE cap_id = ${capId} AND NOT an ORDER BY o, so`)) as unknown as Row[];
+  const daCo = ((await db.execute(sql`SELECT o, chu FROM xv_phuong_an WHERE cap_id = ${capId} AND NOT an ORDER BY o, so`)) as unknown as Row[]).filter((x) => oChu.some((o) => o.k === s(x.o)));   // chỉ ô chữ — ô hình (nap-o-hinh) không phải câu để AI né lặp
   const user = `NGƯỜI MUA (concept ${s(c.ma)} · mức nhận biết ${s(c.nb)} — ${mucNb(s(c.nb)).ten}: ${mucNb(s(c.nb)).dung}):
 - Ai: ${av.nguoi}
 - Đang trải qua: ${av.trai_nghiem} · Cảm thấy: ${av.cam_xuc} · Kéo dài: ${av.keo_dai}

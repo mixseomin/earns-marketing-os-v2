@@ -282,9 +282,11 @@ export async function gtCreative(creativeId: number): Promise<Kq<{ template_id: 
   const keys = o.o.filter((x) => x.dung).map((x) => x.k);
   const av = (r.du_lieu ?? {}) as SubAvatar;
   if (keys.includes('doi_tuong') && av.nguoi) gt.doi_tuong = av.nguoi;
-  Object.assign(gt, gtBienThe({ nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh) }, keys));
   const chon = (r.chon ?? {}) as Record<string, number>;
-  const pa = (await db.execute(sql`SELECT o, so, chu FROM xv_phuong_an WHERE cap_id = ${n(r.cap_id)}`)) as unknown as Row[];
+  const pa = (await db.execute(sql`SELECT o, so, chu FROM xv_phuong_an WHERE cap_id = ${n(r.cap_id)} AND NOT an`)) as unknown as Row[];
+  // ô HÌNH của cặp (scripts/nap-o-hinh.mts — hình tả đúng sản phẩm thay cho mẫu template lẫn sản phẩm khác): một phương án, không vào tổ hợp
+  for (const p of pa) if (n(p.so) === 1 && !(s(p.o) in chon) && keys.includes(s(p.o)) && s(p.chu).trim()) gt[s(p.o)] = s(p.chu);
+  Object.assign(gt, gtBienThe({ nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh) }, keys));
   for (const [k, so] of Object.entries(chon)) { const p = pa.find((x) => s(x.o) === k && n(x.so) === so); if (p) gt[k] = s(p.chu); }
   const tTen = s(r.t_ten).replace(/^Template\s*·\s*/, '').replace(/\s*\(.*\)\s*$/, '');
   return { ok: true, data: { template_id: n(r.template_id), template_ten: s(r.t_ten), ten: `#${n(r.so)} ${s(r.k_ten)} · ${tTen}`, gt } };

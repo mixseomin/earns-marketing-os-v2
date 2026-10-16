@@ -208,7 +208,9 @@ type PhimKho = { id: number; ten: string; anh: string | null; ket: string; nac: 
 function XemPhimGoc({ x, d, phim, onMoPhim }: { x: DongCr; d: KhoConcept; phim: PhimKho[]; onMoPhim: (id: number) => void }) {
   const cung = phim.filter((p) => p.tpl?.id === x.t.id);
   // điền ô cho phần xem trước: mẫu của template → sản phẩm → diễn viên / bối cảnh của biến thể → chữ creative đã chọn; ô còn trống hiện ‹tên ô›
-  const gt: Record<string, string> = { ...x.t.gt_mau, ...d.gt_sp, ...gtBienThe(x.bien_the, [...x.t.o_hinh, ...Object.keys(x.t.gt_mau)]) };
+  // ô hình của cặp (nap-o-hinh.mts) đè mẫu template — mẫu của nhiều template tả sản phẩm khác
+  const oHinhCap = Object.fromEntries(d.phuong_an.filter((p) => p.cap_id === x.cap_id && p.so === 1 && !(p.o in x.chon) && p.chu.trim()).map((p) => [p.o, p.chu]));
+  const gt: Record<string, string> = { ...x.t.gt_mau, ...d.gt_sp, ...oHinhCap, ...gtBienThe(x.bien_the, [...x.t.o_hinh, ...Object.keys(x.t.gt_mau)]) };
   for (const o of x.t.o_chu) { const p = d.phuong_an.find((y) => y.cap_id === x.cap_id && y.o === o.k && y.so === x.chon[o.k]); if (p) gt[o.k] = p.chu; }
   const dien = (t: string) => t.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_a, k: string) => gt[k.toLowerCase()]?.trim() || `‹${k.replace(/_/g, ' ')}›`);
   const chuShot = (i: number) => { const os = x.t.o_chu.filter((o) => o.shot === i);

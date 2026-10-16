@@ -694,24 +694,45 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         cam_ = nv.get('cam')
         if cam_ and cam_ in neo:
             mw = e.matrix_world.copy(); e.parent = neo[cam_][0]; e.matrix_parent_inverse = neo[cam_][0].matrix_world.inverted(); e.matrix_world = mw
+    # NGÔN NGỮ STOP-MOTION (anh 16/10/2026: "blender tạo chuyển động dạng stopmotion đã đúng chưa"), theo nghề Laika / Aardman:
+    #   lấy đà + vượt rồi khựng (dien_k) · BOIL: mỗi khung nhân vật xê dịch li ti như tay người chỉnh, lông nhảy nhẹ (ngẫu nhiên CỐ ĐỊNH theo
+    #   tên + số khung — render lại ra y hệt) · đất nặn bẹp nhẹ mỗi lần chân chạm đất. Biên độ: XV_BOIL (1 = mặc định, 0 = tắt boil).
     em = lambda t: t * t * (3 - 2 * t)   # nhanh dần – chậm dần
+    def dien_k(t):
+        if t < 0.1: return -0.025 * math.sin(math.pi * t / 0.1)   # lấy đà: lùi nhẹ trước khi đi
+        u = (t - 0.1) / 0.9
+        return em(u) + 0.04 * math.sin(math.pi * min(1, max(0, (u - 0.7) / 0.3)))   # vượt quá ~4 % rồi khựng về đúng chỗ kết
+    boil = float(os.environ.get('XV_BOIL', '1'))
+    import random
     for ten, (e, nv) in neo.items():
         if nv.get('cam') and nv['cam'] in neo: continue
         a = Vector(nv['tam'] + ([0] if len(nv['tam']) < 3 else [])); b = Vector((nv.get('den') or nv['tam']) + ([0] if len(nv.get('den') or nv['tam']) < 3 else []))
         h0 = nv.get('huong', 0) or 0; h1 = nv.get('huong_den', h0) or h0; dh = ((h1 - h0 + 180) % 360) - 180
-        dai = (b.xy - a.xy).length; bay = b.z - a.z > 0.8; buoc = max(1, round(dai / 0.9))
+        dai = (b.xy - a.xy).length; bay = b.z - a.z > 0.8; buoc = max(1, round(dai / 0.9)); di = dai > 0.4 and not bay and abs(b.z - a.z) < 0.3
+        hat = sum(ord(c) * (i + 1) for i, c in enumerate(ten))
         for f in range(1, N + 1):
-            t = (f - 1) / (N - 1); k = em(t); p = a.lerp(b, k)
-            if dai > 0.4 and not bay and abs(b.z - a.z) < 0.3: p.z += 0.14 * abs(math.sin(math.pi * buoc * k))   # nhún theo bước
+            t = (f - 1) / (N - 1); k = dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
+            if di: p.z += 0.14 * abs(math.sin(math.pi * buoc * k))   # nhún theo bước
             lac = 0.0
             if bay: lac = 5 * math.sin(2 * math.pi * 2 * t); p.z += 0.08 * math.sin(2 * math.pi * 3 * t)   # bay: lắc + bồng bềnh nhẹ
-            e.location = p * CM; e.rotation_euler = (0, math.radians(lac), math.radians(dh * k))
-            e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_euler', frame=f)
+            r = random.Random(hat * 1000 + f)
+            p += Vector([r.uniform(-0.012, 0.012) * boil for _ in range(3)])   # boil: xê dịch ~0,1 mm mỗi khung
+            q = [math.radians(r.uniform(-0.4, 0.4) * boil) for _ in range(3)]
+            e.location = p * CM; e.rotation_euler = (q[0], math.radians(lac) + q[1], math.radians(dh * k) + q[2])
+            cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 else 0.0   # 1 = chân vừa chạm đất
+            e.scale = (1 + 0.017 * cham, 1 + 0.017 * cham, 1 - 0.035 * cham)   # đất nặn bẹp nhẹ khi chạm, giữ thể tích
+            e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_euler', frame=f); e.keyframe_insert('scale', frame=f)
             for P, loai, ben, h in khop.get(ten, []):
                 if bay: g_ = math.radians(10 if loai == 'chan' else 6) * math.sin(2 * math.pi * 1.5 * t + ben * 0.6)   # bay: chân tay lủng lẳng
                 elif dai > 0.4: g_ = math.radians(24 if loai == 'chan' else 14) * math.sin(math.pi * buoc * k) * ben * (1 if loai == 'chan' else -1)   # bước luân phiên, tay ngược chân
                 else: g_ = 0.0
                 P.rotation_euler = (g_, 0, h); P.keyframe_insert('rotation_euler', frame=f)
+    if boil:   # lông boil: độ rối sợi đổi nhẹ mỗi khung (như lông thật bị tay chạm giữa hai lần chụp)
+        for st in {ps.settings for o in objs for ps in getattr(o, 'particle_systems', [])}:
+            r1, re_ = st.roughness_1, st.roughness_endpoint; r = random.Random(len(st.name) * 97)
+            for f in range(1, N + 1):
+                st.roughness_1 = r1 * (1 + r.uniform(-0.3, 0.3) * boil); st.roughness_endpoint = re_ * (1 + r.uniform(-0.3, 0.3) * boil)
+                st.keyframe_insert('roughness_1', frame=f); st.keyframe_insert('roughness_endpoint', frame=f)
     s.frame_set(1); anh_sang_mau(s, sh, True)
     s.render.engine = 'CYCLES'; s.cycles.samples = int(os.environ.get('XV_MAU', '32')); s.cycles.use_denoising = True
     try:

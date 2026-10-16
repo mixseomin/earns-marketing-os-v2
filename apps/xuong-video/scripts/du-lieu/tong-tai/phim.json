@@ -1,0 +1,98 @@
+{
+  "ten": "Nữ Thừa Kế Bí Mật · tập mẫu tổng tài",
+  "loai": "phim",
+  "mo_ta": "Tập mẫu phim ngắn dọc kiểu tổng tài (micro-drama) — thử trọn đường phim người thật: Blender dựng thử → AI phủ người thật → video trộn (Veo qua kie + H3 3D). Tập 1 thoại tiếng Việt để duyệt; chốt xong làm bản tiếng Anh cho cả series.",
+  "kinh_thanh": {
+    "phong_cach": "Live-action vertical Chinese-style CEO romance short drama, photorealistic East Asian actors, glossy luxury corporate look, cool steel-blue daylight from floor-to-ceiling windows with warm practical lamps, shallow depth of field, 35-85mm lenses, clean high-end cinematic grade, natural skin texture",
+    "chat_lieu": "nguoi_that",
+    "the_loai": "phim_doc",
+    "ti_le": "9:16",
+    "ngon_ngu": "vi",
+    "mo_hinh_video": "kie:veo3_lite",
+    "logline": "Lâm Hạ — trợ lý mới bị sỉ nhục và đuổi việc ngay ngày đầu — thật ra là người thừa kế Quỹ Harrington đang nắm sống còn của tập đoàn; tổng tài Lục Thần cần chữ ký của cô để thoát vụ thâu tóm.",
+    "chu_de": "Người bị coi thường nhất mới là người nắm quyền — và sự tôn trọng không mua được bằng chức vụ",
+    "series": {
+      "ten": "Nữ Thừa Kế Bí Mật",
+      "dong_co": "Mỗi tập: Lâm Hạ bị Lục Thần hoặc phe Vivian dồn ép bất công, cô nhẫn nhịn trong khi khán giả biết thân phận thật, rồi một cú đánh mặt lật thế cờ; cuối tập luôn mở một xung đột / bí mật mới giữa hai người.",
+      "khan_gia": "Nữ 25–45 xem phim ngắn dọc trên điện thoại (DramaBox / ReelShort), thích tổng tài, trả thù, lật thân phận",
+      "dinh_dang": "60 tập × 60–120 giây, dọc 9:16; tập 10 là tập mở thu phí (cú đánh mặt lớn nhất); cứ 2–3 tập một cú đánh mặt",
+      "tap": [
+        { "so": 1, "ten": "Ngày đầu bị đuổi việc", "logline": "Ngày đầu đi làm, Hạ bị Vivian vu oan và bị Lục Thần đuổi việc trước cả phòng — 3 giờ chiều cô bước vào phòng họp HĐQT với tư cách người rút vốn.", "nhan_vat": ["Lâm Hạ", "Lục Thần", "Vivian", "Luật sư Trần"], "boi_canh": ["Văn phòng mở tầng 38", "Sảnh thang máy", "Phòng họp HĐQT"] },
+        { "so": 2, "ten": "Hợp đồng 30 ngày", "logline": "Lục Thần tìm đến tận nhà Hạ xin cô giữ vốn; cô đặt điều kiện: anh làm trợ lý riêng cho cô 30 ngày." },
+        { "so": 3, "ten": "Tổng tài pha cà phê", "logline": "Ngày đầu làm trợ lý, Lục Thần bị Hạ bắt pha lại ly cà phê đúng như ly Vivian đã hắt vào cô — Vivian chứng kiến." }
+      ]
+    }
+  },
+  "nhan_vat": [
+    { "loai": "nhan_vat", "ten": "Lâm Hạ", "mo_ta": "East Asian woman, 24, slim, 165 cm, long straight black hair, natural light makeup, calm intelligent eyes, soft oval face", "tieu_su": "Người thừa kế Quỹ Harrington (mẹ là người sáng lập), giấu thân phận đi làm trợ lý ở Lục thị để xem tận mắt công ty mình sắp rót vốn. Điềm tĩnh, nhịn được, phản đòn đúng lúc. Mong muốn: được tôn trọng vì con người chứ không vì tiền. Nỗi sợ: bị yêu vì gia sản.", "khoi_3d": { "hinh": "nguoi", "co": [40, 24, 165], "mau": "#e8c4a8", "ao": "#f2f2f0" } },
+    { "loai": "nhan_vat", "ten": "Lục Thần", "mo_ta": "East Asian man, 30, tall 185 cm, sharp jawline, short side-parted black hair, cold intense eyes, clean-shaven, perfect posture", "tieu_su": "Tổng giám đốc tập đoàn Lục thị, lạnh lùng, tin vào năng lực và số liệu, coi thường người 'không có giá trị'. Đang bị đối thủ thâu tóm, sống còn nhờ vốn Quỹ Harrington. Bí mật: từng được một cô bé cứu khi lạc ở Thượng Hải năm 10 tuổi.", "khoi_3d": { "hinh": "nguoi", "co": [48, 28, 185], "mau": "#d9b394", "ao": "#111216" } },
+    { "loai": "nhan_vat", "ten": "Vivian", "mo_ta": "East Asian woman, 32, 168 cm, sleek low bun, bold red lipstick, sharp arched brows, arrogant expression", "tieu_su": "Trưởng phòng hành chính, thầm muốn trở thành bà Lục; bắt nạt người mới để giữ quyền. Thói quen: luôn cầm ly cà phê.", "khoi_3d": { "hinh": "nguoi", "co": [40, 24, 168], "mau": "#e6c0a2", "ao": "#7a1325" } },
+    { "loai": "nhan_vat", "ten": "Luật sư Trần", "mo_ta": "East Asian man, 55, gold-rimmed glasses, neat short grey hair, navy three-piece suit, calm authoritative bearing", "tieu_su": "Luật sư riêng của nhà Harrington, đã chăm Hạ từ nhỏ.", "khoi_3d": { "hinh": "nguoi", "co": [46, 28, 172], "mau": "#d4ae90", "ao": "#1c2840" } },
+    { "loai": "boi_canh", "ten": "Văn phòng mở tầng 38", "mo_ta": "Luxury open-plan corporate office on the 38th floor: white marble floor, rows of walnut desks with monitors, floor-to-ceiling windows over a city skyline, glass-walled CEO office at the far end" },
+    { "loai": "boi_canh", "ten": "Sảnh thang máy", "mo_ta": "Polished elevator lobby of a luxury office tower: brushed steel elevator doors, black marble walls, warm recessed lights, company logo on the wall" },
+    { "loai": "boi_canh", "ten": "Phòng họp HĐQT", "mo_ta": "Boardroom with a long dark walnut table, leather chairs, a large presentation screen, tall double doors, city skyline behind floor-to-ceiling windows in afternoon light" },
+    { "loai": "dao_cu", "ten": "Hồ sơ Harrington", "mo_ta": "Black leather document folder embossed with a gold H crest" },
+    { "loai": "dao_cu", "ten": "Ly cà phê", "mo_ta": "White ceramic coffee cup with saucer, black coffee" },
+    { "loai": "dao_cu", "ten": "Thẻ nhân viên", "mo_ta": "White plastic staff ID badge on a dark blue lanyard, LỤC THỊ logo" }
+  ],
+  "tap": {
+    "so": 1, "ten": "Ngày đầu bị đuổi việc",
+    "brief": "Tập mẫu 90 giây, dọc 9:16, thoại tiếng Việt. Người xem: nữ 25–45 lướt điện thoại. Mục tiêu: trong 3 giây đầu thấy bất công (bị hắt cà phê), giữa tập biết trước thân phận Hạ (tin nhắn), cuối tập đã đánh mặt + cliffhanger 'Sếp mới của anh'. Thông điệp: người bị coi thường mới là người nắm quyền.",
+    "beats": [
+      { "ten": "Hook 3 giây", "mo_ta": "Vivian hắt cà phê lên áo Hạ giữa văn phòng: 'Dọn sạch đi. Rồi cút.'", "cam_xuc": -3 },
+      { "ten": "Vấn đề — sỉ nhục", "mo_ta": "Vu Hạ làm mất hồ sơ Harrington, ném giấy xuống sàn bắt nhặt; cả phòng cười", "cam_xuc": -4 },
+      { "ten": "Leo thang — nút 1", "mo_ta": "Lục Thần bước ra, nghe Vivian, đuổi việc Hạ; tin nhắn trên điện thoại hé thân phận cho khán giả", "cam_xuc": -5 },
+      { "ten": "Leo thang — nút 2", "mo_ta": "Ở thang máy Vivian giật thẻ nhân viên; Hạ mỉm cười: lần sau tôi không đi cửa này", "cam_xuc": -2 },
+      { "ten": "Lật ngược — đánh mặt", "mo_ta": "3 giờ chiều, Hạ bước vào phòng họp HĐQT với luật sư: Quỹ Harrington rút vốn; ly cà phê của Vivian rơi vỡ", "cam_xuc": 4 },
+      { "ten": "Cliffhanger — móc tập sau", "mo_ta": "Lục Thần đứng bật dậy: 'Cô rốt cuộc là ai?' — 'Sếp mới của anh.' Cắt đen", "cam_xuc": 5 }
+    ],
+    "phan_canh": [
+      { "ten": "Cà phê và hồ sơ", "beat": "Hook 3 giây", "ngay": "D1", "noi": "Văn phòng mở tầng 38", "luc": "09:00 sáng", "muc_tieu": "Hạ muốn làm tốt ngày đầu, giữ bí mật thân phận", "xung_dot": "Vivian cần một con dê tế thần cho hồ sơ Harrington thất lạc", "an_y": "Hạ không cãi vì cô đang quan sát công ty này", "nhip": "nhanh, cắt theo câu thoại", "cam_xuc_dau": -1, "cam_xuc_cuoi": -4, "anh_sang": "cua_so",
+        "kich_ban": [
+          { "loai": "hd", "chu": "Văn phòng mở tầng 38 tập đoàn Lục thị, nắng sớm qua kính. LÂM HẠ (24, sơ mi trắng giản dị, thẻ nhân viên mới) ôm tập hồ sơ đi qua dãy bàn." },
+          { "loai": "hd", "chu": "VIVIAN (32, váy công sở đỏ đô, tóc búi thấp) bước chặn ngang, hất cả ly cà phê vào ngực áo Hạ." },
+          { "loai": "nv", "ten": "Vivian", "dien": "lạnh, rít qua kẽ răng", "loi": "Dọn sạch đi. Rồi cút." },
+          { "loai": "hd", "chu": "Vết cà phê loang trên áo trắng. Đồng nghiệp xì xào, có người giơ điện thoại quay." },
+          { "loai": "nv", "ten": "Vivian", "dien": "giơ tập hồ sơ rỗng lên cho cả phòng thấy", "loi": "Hồ sơ Harrington đâu? Ngày đầu đi làm đã làm mất tài liệu mật?" },
+          { "loai": "nv", "ten": "Lâm Hạ", "dien": "bình thản, nhìn thẳng", "loi": "Sáng nay chính chị nhận từ tay tôi." },
+          { "loai": "hd", "chu": "Vivian ném xấp giấy xuống sàn đá." },
+          { "loai": "nv", "ten": "Vivian", "dien": "khinh khỉnh", "loi": "Nhặt lên." },
+          { "loai": "hd", "chu": "Hạ quỳ một gối nhặt từng tờ. Tiếng cười khẽ quanh phòng." }
+        ] },
+      { "ten": "Tổng tài đuổi việc", "beat": "Leo thang — nút 1", "ngay": "D1", "noi": "Văn phòng mở tầng 38", "luc": "liền sau", "muc_tieu": "Lục Thần muốn dẹp ồn để giữ hình ảnh trước ngày họp HĐQT", "xung_dot": "Anh tin lời Vivian, không hỏi Hạ một câu", "an_y": "Khán giả biết Hạ là người nắm vốn — anh vừa đuổi chính 'cứu tinh' của mình", "nhip": "chậm lại khi anh bước ra, rồi dứt khoát", "cam_xuc_dau": -4, "cam_xuc_cuoi": -5, "anh_sang": "cua_so",
+        "kich_ban": [
+          { "loai": "hd", "chu": "Cửa kính phòng tổng giám đốc mở. LỤC THẦN (30, vest đen may đo, sơ mi trắng) bước ra. Cả phòng im bặt." },
+          { "loai": "nv", "ten": "Lục Thần", "dien": "không cao giọng", "loi": "Chuyện gì?" },
+          { "loai": "nv", "ten": "Vivian", "dien": "đổi giọng ngọt ngào", "loi": "Thư ký mới làm mất hồ sơ Harrington, thưa tổng giám đốc." },
+          { "loai": "hd", "chu": "Lục Thần nhìn Hạ từ trên xuống, ánh mắt lạnh như nhìn đồ vật." },
+          { "loai": "nv", "ten": "Lục Thần", "dien": "dứt khoát, quay đi ngay", "loi": "Cô bị đuổi việc." },
+          { "loai": "hd", "chu": "Hạ đứng dậy. Điện thoại trong tay cô sáng: tin nhắn 'Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần'." },
+          { "loai": "hd", "chu": "Hạ khẽ nhếch môi." }
+        ] },
+      { "ten": "Thang máy", "beat": "Leo thang — nút 2", "ngay": "D1", "noi": "Sảnh thang máy", "luc": "liền sau", "muc_tieu": "Hạ rời đi trong im lặng", "xung_dot": "Vivian muốn hạ nhục lần cuối", "an_y": "Câu 'lần sau tôi không đi cửa này' là lời hứa trả đòn", "nhip": "căng, im lặng dài trước câu thoại", "cam_xuc_dau": -3, "cam_xuc_cuoi": -1, "anh_sang": "vien",
+        "kich_ban": [
+          { "loai": "hd", "chu": "Hạ ôm thùng giấy đồ đạc đứng chờ thang máy. Vivian bước tới, giật phắt thẻ nhân viên trên cổ cô." },
+          { "loai": "nv", "ten": "Vivian", "dien": "cười khẩy", "loi": "Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa." },
+          { "loai": "nv", "ten": "Lâm Hạ", "dien": "nhìn thẳng, mỉm cười nhẹ", "loi": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này." },
+          { "loai": "hd", "chu": "Cửa thang máy khép lại giữa hai người." }
+        ] },
+      { "ten": "Phòng họp 3 giờ", "beat": "Lật ngược — đánh mặt", "ngay": "D1", "lien_truoc": false, "noi": "Phòng họp HĐQT", "luc": "15:00 chiều", "muc_tieu": "Lục Thần cần HĐQT duyệt khoản vốn Harrington", "xung_dot": "Người đại diện Harrington chính là cô gái anh vừa đuổi", "an_y": "Hạ thay vest trắng — từ nạn nhân thành người nắm quyền", "nhip": "tự tin, chậm, mỗi bước đi một nhịp nhạc", "cam_xuc_dau": 1, "cam_xuc_cuoi": 4, "anh_sang": "tuong_phan",
+        "kich_ban": [
+          { "loai": "hd", "chu": "Phòng họp HĐQT. Lục Thần đứng trước màn hình trình chiếu, các thành viên gật gù. Vivian đứng cạnh, cầm ly cà phê, đắc ý." },
+          { "loai": "nv", "ten": "Lục Thần", "dien": "tự tin", "loi": "Với khoản vốn của Quỹ Harrington, Lục thị sẽ…" },
+          { "loai": "hd", "chu": "Cửa đôi mở. Hạ bước vào — vest trắng, tóc buông, thần thái khác hẳn. Theo sau là LUẬT SƯ TRẦN (55, kính gọng vàng)." },
+          { "loai": "nv", "ten": "Luật sư Trần", "dien": "trang trọng", "loi": "Xin giới thiệu: cô Lâm Hạ, người thừa kế Quỹ Harrington." },
+          { "loai": "hd", "chu": "Ly cà phê trên tay Vivian rơi xuống sàn, vỡ tung." },
+          { "loai": "nv", "ten": "Lâm Hạ", "dien": "bình thản, từng chữ", "loi": "Quỹ Harrington rút toàn bộ vốn khỏi Lục thị. Hiệu lực từ bây giờ." }
+        ] },
+      { "ten": "Sếp mới", "beat": "Cliffhanger — móc tập sau", "ngay": "D1", "noi": "Phòng họp HĐQT", "luc": "liền sau", "muc_tieu": "Lục Thần muốn biết cô là ai", "xung_dot": "Lần đầu tiên anh mất thế chủ động", "an_y": "Vòng tay ngọc của Hạ gợi ký ức cô bé năm xưa (gieo cho tập sau)", "nhip": "dừng đúng đỉnh, cắt đen", "cam_xuc_dau": 4, "cam_xuc_cuoi": 5, "anh_sang": "tuong_phan",
+        "kich_ban": [
+          { "loai": "hd", "chu": "Lục Thần buông bút, đứng bật dậy." },
+          { "loai": "nv", "ten": "Lục Thần", "dien": "lần đầu mất bình tĩnh", "loi": "Cô… rốt cuộc là ai?" },
+          { "loai": "hd", "chu": "Hạ bước lại gần, cúi xuống ngang tầm mắt anh. Vòng tay ngọc trên cổ tay cô loé sáng." },
+          { "loai": "nv", "ten": "Lâm Hạ", "dien": "khẽ, chắc nịch", "loi": "Sếp mới của anh." },
+          { "loai": "chuyen", "chu": "CẮT ĐEN." }
+        ] }
+    ]
+  }
+}

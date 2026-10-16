@@ -3,6 +3,7 @@
 //   dòng 1 = tiêu đề (đậm) · dòng "Nhãn: giá trị" (nhãn ≤ 24 ký tự) = bảng hai cột · dòng khác = đoạn văn.
 // MỘT host ở layout lo vị trí (theo chuột, kẹp trong màn), độ trễ, ẩn khi bấm/cuộn — chỗ dùng không phải dựng gì.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { GOI_Y_AN } from './vi-tri-noi';
 
 type Hien = { chu: string; x: number; y: number };
 const DONG_NHAN = /^([^:\n]{1,24}):\s+(.+)$/;
@@ -24,9 +25,11 @@ export function GoiYHost() {
       hen = setTimeout(() => setHien({ chu, x: e.clientX, y: e.clientY }), 220);
     };
     const di = (e: PointerEvent) => { if (dang) setHien((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h)); };
+    // Lớp nổi riêng (useViTriNoi) mở bên trong phần tử có thẻ gợi ý → ẩn thẻ của cha (vi-tri-noi.ts › tamTatTitleCha).
+    window.addEventListener(GOI_Y_AN, an);
     document.addEventListener('pointerover', vao); document.addEventListener('pointermove', di);
     document.addEventListener('pointerdown', an, true); window.addEventListener('scroll', an, true);
-    return () => { document.removeEventListener('pointerover', vao); document.removeEventListener('pointermove', di); document.removeEventListener('pointerdown', an, true); window.removeEventListener('scroll', an, true); };
+    return () => { document.removeEventListener('pointerover', vao); document.removeEventListener('pointermove', di); document.removeEventListener('pointerdown', an, true); window.removeEventListener('scroll', an, true); window.removeEventListener(GOI_Y_AN, an); };
   }, []);
   useLayoutEffect(() => {
     if (!hien || !ref.current) { setVt(null); return; }

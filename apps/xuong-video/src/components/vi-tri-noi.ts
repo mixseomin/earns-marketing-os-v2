@@ -9,10 +9,15 @@ export type DiemNeo = { x: number; y: number };
 /** Tắt tạm `title` của các phần tử CHA khi lớp nổi đang mở: thẻ shot lưới là một <button title="…"> bọc nhãn, rê vào nhãn thì sau ~1s tooltip
  *  mặc định của trình duyệt (title của cha) hiện đè lên lớp nổi (#1392). Trả hàm khôi phục. Nằm trong hook để MỌI lớp nổi neo vào nút
  *  (nhãn kỹ thuật, điểm Murch, kiểm khung, ô chọn, menu ⋯) cùng được, không vá từng cái. */
+/** Cất cả `data-goi-y` (thẻ gợi ý nhà, goi-y.tsx) của cha: chip điểm Murch nằm trong khối clip timeline có data-goi-y → hai thẻ đè nhau.
+ *  Báo host ẩn thẻ đang hiện / đang chờ hiện (sự kiện GOI_Y_AN). */
+export const GOI_Y_AN = 'xv-goi-y-an';
+const THUOC_TINH_CHA = ['title', 'data-goi-y'] as const;
 export function tamTatTitleCha(el: HTMLElement | null): () => void {
-  const ds: [HTMLElement, string][] = [];
-  for (let p = el?.parentElement ?? null; p; p = p.parentElement) { const t = p.getAttribute('title'); if (t != null) { ds.push([p, t]); p.removeAttribute('title'); } }
-  return () => { for (const [p, t] of ds) if (!p.hasAttribute('title')) p.setAttribute('title', t); };
+  const ds: [HTMLElement, string, string][] = [];
+  for (let p = el?.parentElement ?? null; p; p = p.parentElement) for (const a of THUOC_TINH_CHA) { const t = p.getAttribute(a); if (t != null) { ds.push([p, a, t]); p.removeAttribute(a); } }
+  if (ds.some(([, a]) => a === 'data-goi-y') && typeof window !== 'undefined') window.dispatchEvent(new Event(GOI_Y_AN));
+  return () => { for (const [p, a, t] of ds) if (!p.hasAttribute(a)) p.setAttribute(a, t); };
 }
 export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: boolean, o: { rong: number; canPhai?: boolean; caoToiDa?: number }): CSSProperties {
   const [st, setSt] = useState<CSSProperties>({ position: 'fixed', visibility: 'hidden' });

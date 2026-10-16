@@ -365,7 +365,7 @@ DIEN.setdefault('2.2', {}).setdefault(TANGO, []).append('nga@0.6-0.85')
 # NẰM KHÔNG TỰ ĐI (anh 16/10/2026: "#10 Tango đang nằm mà vẫn di chuyển được"): khai cách di chuyển — cuộn tròn lăn / trượt.
 DIEN.setdefault('2.4', {}).setdefault(TANGO, []).append('lan_tron@0.2-1')   # #10 cuộn tròn thành quả bóng cam lăn theo viên kẹo
 DIEN.setdefault('3.1', {}).setdefault(TANGO, []).append('lan_tron')         # #11 quả bóng lăn vèo qua khe màn hình
-DIEN.setdefault('4.1', {}).setdefault(TANGO, []).append('lan_tron@0-0.75')  # #12 lăn tới rồi bung ra thành Tango (nam_den False)
+DIEN.setdefault('4.1', {}).setdefault(TANGO, []).append('lan_tron@0-0.4')   # #12 lăn tới rồi bung ra thành Tango (nam_den False) — hành động trong 40 % đầu, lúc máy còn gần
 for ma in ('6.2', '6.3'): DIEN.setdefault(ma, {}).setdefault(TANGO, []).append('truot')   # #27–#28 thân nặn thành xe trượt, trượt dọc cáp
 DIEN.setdefault('4.3', {}).setdefault(TANGO, []).append('nga@0.12-0.3')
 DIEN.setdefault('7.1', {}).setdefault(TANGO, []).append('day@0.05-0.3')
@@ -412,5 +412,8 @@ for ma, m in KHOP_CO.items():
 # #28 đặt LẦN CUỐI (16/10/2026, phim Blender — máy chạy tracking): trước-trái iMac, thấy xe trượt từ rừng cáp tới thẻ cam; máy cũ (SUA) đứng sau
 # iMac → chân iMac che chủ thể suốt nửa sau clip (duong-may.ts gắn cờ 'che').
 S['may']['6.3'].pop('phia', None); S['may']['6.3'].update(dat=[5, 40, 3], nhin=[12, 64, 2])
+# #12 CẨU MỞ CẢNH (anh 16/10/2026: "sao cái này bé thế" — máy 17 cm, Tango ~10 % khung, bung ra đúng lúc máy cao nhất): kiểu nghề "bắt đầu sát,
+# cẩu lên mở không gian" — máy sát mặt bàn cách Tango ~7 cm (Tango ~25 % khung), bóng bung ra trong 40 % đầu, rồi cẩu lên khoe rừng cáp.
+S['may']['4.1'].pop('phia', None); S['may']['4.1'].update(dat=[-1, 63.5, 0.6], nhin=[-1, 70, 1.0], ong_kinh=24)
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

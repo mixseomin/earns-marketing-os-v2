@@ -2207,7 +2207,7 @@
           "nam": true,
           "nam_den": false,
           "dien": [
-            "lan_tron@0-0.75"
+            "lan_tron@0-0.4"
           ]
         },
         {
@@ -2219,8 +2219,18 @@
           ]
         }
       ],
-      "phia": 0,
-      "nhay": "cắt thời gian: hết khe màn hình, lăn vào rừng cáp"
+      "nhay": "cắt thời gian: hết khe màn hình, lăn vào rừng cáp",
+      "dat": [
+        -1,
+        63.5,
+        0.6
+      ],
+      "nhin": [
+        -1,
+        70,
+        1.0
+      ],
+      "ong_kinh": 24
     },
     "4.2": {
       "vi_tri": [

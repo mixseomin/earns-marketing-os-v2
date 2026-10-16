@@ -250,6 +250,13 @@ export async function guiFal(id: string, input: Record<string, unknown>): Promis
   try { r = await fetch(`${QUEUE}/${id}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(input), signal: AbortSignal.timeout(60_000) }); }
   catch (e) { return { ok: false, loi: `không gửi được tới fal (${e instanceof Error ? e.name : 'lỗi mạng'}) — thử lại` }; }
   const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  // Prompt dài hơn giới hạn mà schema KHÔNG khai maxLength (H3 Max 3D→Video: 2000 ký tự, #23 16/10/2026) → fal 422 nói rõ số → cắt ở ranh giới câu
+  // đúng số đó rồi gửi lại MỘT lần. Lỗi 422 chưa tính tiền.
+  if (r.status === 422 && typeof input.prompt === 'string') {
+    const d = Array.isArray(j.detail) ? (j.detail as Array<{ loc?: unknown[]; msg?: string }>) : [];
+    const n = Number(/at most (\d+) characters/.exec(d.find((x) => (x.loc ?? []).includes('prompt'))?.msg ?? '')?.[1]);
+    if (n && input.prompt.length > n) return guiFal(id, { ...input, prompt: catCau(input.prompt, n) });
+  }
   if (!r.ok) return { ok: false, loi: docLoiFal(j, r.status) };
   if (typeof j.status_url !== 'string' || typeof j.response_url !== 'string') return { ok: false, loi: 'fal không trả status_url/response_url' };
   return { ok: true, taskId: JSON.stringify({ s: j.status_url, r: j.response_url }) };

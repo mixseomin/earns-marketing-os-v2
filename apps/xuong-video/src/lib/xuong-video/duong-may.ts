@@ -44,7 +44,10 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
     case 'lia': nhinK = cong(dat, xoayZ(tru(nhin, dat), -chieu * (md.goc ?? 30))); break;   // lia: máy đứng, đầu máy xoay
     case 'nghieng': nhinK = cong(nhin, [0, 0, Math.tan(((md.goc ?? 25) * Math.PI) / 180) * kc]); break;   // nghiêng lên
     case 'vong': datK = cong(nhin, xoayZ(D, chieu * (md.goc ?? 60))); break;   // quay vòng quanh điểm nhìn
-    case 'ngang': { const s = Math.abs(ngangDi) > 0.3 ? ngangDi : 0.2 * kc; const dv = nhan(phai, s); datK = cong(dat, dv); nhinK = cong(nhin, dv); break; }   // trượt cùng chủ thể
+    case 'ngang': {   // tracking: máy chạy SONG SONG cả quãng chủ thể đi (giữ khoảng cách + chỗ trong khung — #28 chỉ trượt phần ngang thì chủ thể
+      // đi chéo ra khỏi khung); chủ thể đứng yên thì trượt ngang 20 % khoảng cách máy
+      const dv = dai(di) > 0.3 ? di : nhan(phai, 0.2 * kc); datK = cong(dat, dv); nhinK = cong(nhin, dv); break;
+    }
     case 'theo': datK = cong(dat, di); nhinK = cong(nhin, di); break;   // bám theo: máy dời đúng quãng chủ thể đi
   }
   return { kieu: md.kieu, dat: tron(datK), nhin: tron(nhinK), ong_kinh: Math.round(ok * 10) / 10, toc: md.toc, ...(rung ? { rung } : {}) };

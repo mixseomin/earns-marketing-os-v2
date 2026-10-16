@@ -718,7 +718,7 @@ export async function dsNguonAi(ngay = 14): Promise<Kq<{ nguon: Nguon[]; model: 
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   const ng = (await db.execute(sql`SELECT * FROM xv_nguon ORDER BY CASE trang_thai WHEN 'dang' THEN 0 WHEN 'co_tk' THEN 1 WHEN 'tham_khao' THEN 2 ELSE 3 END, ten`)) as unknown as Row[];
-  const md = (await db.execute(sql`SELECT m.*, od.goi, od.dat, od.giay, od.cents, od.dat_gan, od.loi_gan FROM xv_nguon_model m
+  const md = (await db.execute(sql`SELECT m.*, od.goi AS od_goi, od.dat AS od_dat, od.giay AS od_giay, od.cents AS od_cents, od.dat_gan AS od_dat_gan, od.loi_gan AS od_loi_gan FROM xv_nguon_model m
     LEFT JOIN LATERAL (SELECT count(*) AS goi, count(*) FILTER (WHERE j.trang_thai = 'xong') AS dat,
         percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM j.updated_at - j.created_at)) FILTER (WHERE j.trang_thai = 'xong') AS giay,
         coalesce(sum(j.chi_phi_cents), 0) AS cents, max(j.updated_at) FILTER (WHERE j.trang_thai = 'xong') AS dat_gan,
@@ -729,7 +729,8 @@ export async function dsNguonAi(ngay = 14): Promise<Kq<{ nguon: Nguon[]; model: 
     nguon: ng.map((r) => ({ key: s(r.key), ten: s(r.ten), kieu: s(r.kieu), trang_thai: s(r.trang_thai) as TrangThaiNguon, loai: s(r.loai), tra_tien: s(r.tra_tien), vault: s(r.vault), nap_tien: s(r.nap_tien), rui_ro: s(r.rui_ro), co_khoa: coKhoa(s(r.khoa_env), process.env) })),
     model: md.map((r) => ({ id: n(r.id), nguon_key: s(r.nguon_key), loai: s(r.loai) as LoaiNguon, model: s(r.model), goi: s(r.goi), gia_vnd: r.gia_vnd == null ? null : Number(r.gia_vnd), gia_goc: s(r.gia_goc), link: s(r.link), link_phu: s(r.link_phu),
       ngay_doc: r.ngay_doc == null ? null : String(r.ngay_doc).slice(0, 10), kha_nang: s(r.kha_nang), khop: (Array.isArray(r.khop) ? r.khop : []) as O[], tat: s(r.tat),
-      on_dinh: n(r.goi) ? { goi: n(r.goi), dat: n(r.dat), giay: r.giay == null ? null : Math.round(Number(r.giay)), cents: Number(r.cents), dat_gan: r.dat_gan == null ? null : String(r.dat_gan), loi_gan: r.loi_gan == null ? null : s(r.loi_gan) } : null })),
+      // cột ổn định đặt bí danh od_*: xv_nguon_model đã có cột `goi` (tên gói) — trùng tên thì số lượt ghi đè tên gói
+      on_dinh: n(r.od_goi) ? { goi: n(r.od_goi), dat: n(r.od_dat), giay: r.od_giay == null ? null : Math.round(Number(r.od_giay)), cents: Number(r.od_cents), dat_gan: r.od_dat_gan == null ? null : String(r.od_dat_gan), loi_gan: r.od_loi_gan == null ? null : s(r.od_loi_gan) } : null })),
   } };
 }
 /** Đổi trạng thái một nguồn (Đưa vào dùng / ngừng). Chỉ đổi sổ — tạo tài khoản, nạp tiền, đặt khoá vẫn là việc của anh. */

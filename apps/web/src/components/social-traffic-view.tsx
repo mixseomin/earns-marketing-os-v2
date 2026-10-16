@@ -234,10 +234,11 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             { key: 'g', header: '', cell: (b) => (b.ghiChu ? <span style={nho}>{b.ghiChu}</span> : null) }]} />
         </Panel>}
         <StatsStrip minColWidth={170} cards={[
-          { key: 'chi', label: laLive ? 'Chi (ước theo giá đầu vào)' : 'Chi 30 ngày', value: usd(t.chi), sub: `${so(t.video)} video · ${t.kSong.length} proxy` },
+          // LIVE: chưa có sổ chi của kênh (video puzzle dựng bằng máy riêng, ghim Pinterest không tốn tiền sinh) → không ước chi bằng giá xưởng, kẻo ra lỗ giả
+          { key: 'chi', label: 'Chi 30 ngày', value: laLive ? '—' : usd(t.chi), sub: laLive ? 'chưa có sổ chi của kênh' : `${so(t.video)} video · ${t.kSong.length} proxy` },
           { key: 'hh', label: laLive ? 'Bán thật 30 ngày' : 'Hoa hồng 30 ngày', value: usd(t.hh), color: 'var(--ok)', sub: `${laLive ? '' : '≈ '}${so(t.don)} đơn` },
-          { key: 'lai', label: laLive ? 'Lãi (ước)' : 'Lãi', value: usd(t.lai), color: t.lai >= 0 ? 'var(--ok)' : 'var(--bad)', sub: t.chi ? `${(t.hh / t.chi).toFixed(2)}× tiền bỏ ra` : undefined },
-          { key: 'hoa', label: 'Hoà vốn mỗi kênh', value: `${so(Math.ceil((t.kSong.length ? t.chi / t.kSong.length : gia.proxy + 60 * gia.video) / gia.hhDon))} đơn`, sub: t.kSong.length ? `chi ${usd(t.chi / t.kSong.length)}/kênh/tháng` : `kênh mới 60 video/tháng` },
+          { key: 'lai', label: 'Lãi', value: laLive ? '—' : usd(t.lai), color: laLive ? undefined : t.lai >= 0 ? 'var(--ok)' : 'var(--bad)', sub: laLive ? 'có sổ chi mới tính' : t.chi ? `${(t.hh / t.chi).toFixed(2)}× tiền bỏ ra` : undefined },
+          { key: 'hoa', label: 'Hoà vốn mỗi kênh', value: `${so(Math.ceil((t.kSong.length && !laLive ? t.chi / t.kSong.length : gia.proxy + 60 * gia.video) / gia.hhDon))} đơn`, sub: t.kSong.length && !laLive ? `chi ${usd(t.chi / t.kSong.length)}/kênh/tháng` : 'kênh làm bằng xưởng, 60 video/tháng' },
         ]} />
         <Panel title="Giá đầu vào" subtitle="đổi để tính lại cả tab">
           <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>

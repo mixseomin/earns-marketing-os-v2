@@ -54,8 +54,8 @@ export async function getSocialLive(): Promise<SocialLive> {
   return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThat(loi)) };
 }
 
-/* KÊNH THẬT (anh 16/10/2026 "gom các kênh từ dự án KDP, Gum, Etsy về"): dự án nào có cửa bán Gumroad / Etsy / KDP đang mở (vault) thì
-   lấy kênh mạng xã hội CHÍNH của dự án đó (platform_accounts.project_id). Số đo dùng LẠI máy của tab Tài sản — kenh_so_ngay qua
+/* KÊNH THẬT (anh 16/10/2026 "gom các kênh từ dự án KDP, Gum, Etsy về"): dự án có cửa bán — Etsy / KDP đang mở trong vault,
+   Gumroad theo store có số (product_daily, ghép dự án theo tên) — thì lấy kênh mạng xã hội CHÍNH của dự án (platform_accounts.project_id). Số đo dùng LẠI máy của tab Tài sản — kenh_so_ngay qua
    tai-san/kenh.ts + video-tinh.ts (tinhVideo / tinhPin) — nên hai tab luôn cùng số. Kênh có trong vault mà chưa có máy đo → daDo=false.
    Bán: Gumroad theo store (product_daily 30 ngày); Etsy / KDP chưa có nguồn số bán → null + ghi chú. */
 const NEN: Record<string, { pk: string; ten: string }> = {
@@ -69,14 +69,22 @@ const giua = (a: number[]) => { if (!a.length) return 0; const x = [...a].sort((
 async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTrang[]; ban: StBan[] }> {
   const d = getDb(); if (!d) return { kenh: [], trang: [], ban: [] };
   try {
-    const cua = (await d.execute(sql`SELECT a.platform_key, a.handle, a.status, a.project_id, p.name AS du_an FROM platform_accounts a LEFT JOIN projects p ON p.id = a.project_id
-      WHERE a.platform_key IN ('gumroad','etsy','kdp') AND coalesce(a.status,'') NOT IN ('closed','banned') AND a.project_id IS NOT NULL ORDER BY a.platform_key`)) as unknown as
-      { platform_key: string; handle: string; status: string | null; project_id: string; du_an: string | null }[];
-    const duAn = [...new Set(cua.map((c) => c.project_id))];
+    // Etsy / KDP: tài khoản vault đang mở có dự án. Gumroad: theo STORE có số (product_daily) — tài khoản vault Gumroad là tài khoản
+    // ĐĂNG NHẬP (một tài khoản vào nhiều store qua switcher, vd makalynkentymtt82 → militarycalc/codecrate/examweight), không phải store.
+    const [cua, duAnAll, storeAll] = await Promise.all([
+      d.execute(sql`SELECT a.platform_key, a.handle, a.project_id FROM platform_accounts a
+        WHERE a.platform_key IN ('etsy','kdp') AND coalesce(a.status,'') NOT IN ('closed','banned') AND a.project_id IS NOT NULL ORDER BY a.platform_key`) as unknown as Promise<{ platform_key: string; handle: string; project_id: string }[]>,
+      d.execute(sql`SELECT id, name FROM projects`) as unknown as Promise<{ id: string; name: string }[]>,
+      d.execute(sql`SELECT DISTINCT store FROM product_daily`) as unknown as Promise<{ store: string }[]>,
+    ]);
+    // store ↔ dự án theo TÊN chuẩn hoá (frontporchpuzzles = "Front Porch Puzzles", examweight = examweight) — store không khớp dự án nào vẫn hiện, dự án '—'
+    const chuan = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const duAnStore = (store: string) => duAnAll.find((p) => chuan(p.id) === chuan(store) || chuan(p.name) === chuan(store))?.id ?? null;
+    const tenDuAn: Record<string, string> = Object.fromEntries(duAnAll.map((p) => [p.id, p.name]));
+    const duAn = [...new Set([...cua.map((c) => c.project_id), ...storeAll.map((s) => duAnStore(s.store)).filter((x): x is string => !!x)])];
     if (!duAn.length) return { kenh: [], trang: [], ban: [] };
     // drizzle trải mảng JS thành ($1, $2…) chứ không thành text[] → `= ANY(${mang})` gãy ("op ANY/ALL (array) requires array"); dùng IN (…)
     const trong = (xs: string[]) => sql.join(xs.map((x) => sql`${x}`), sql`, `);
-    const tenDuAn = Object.fromEntries(cua.map((c) => [c.project_id, c.du_an ?? c.project_id]));
     const [tk, so, video, kenhSp, dau, gum] = await Promise.all([
       d.execute(sql`SELECT id, platform_key, handle, status, project_id, proxy_id, created_at::date::text AS tao FROM platform_accounts
         WHERE project_id IN (${trong(duAn)}) AND platform_key IN (${trong(MXH)}) ORDER BY project_id, platform_key`) as unknown as Promise<{ id: number; platform_key: string; handle: string; status: string | null; project_id: string; proxy_id: number | null; tao: string }[]>,
@@ -125,14 +133,11 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
       if (!c.tieuDe!.includes(sp.ten)) c.tieuDe = `${c.tieuDe} · ${sp.ten}`;
       theoDich.set(o.dich, c);
     }
-    const ban: StBan[] = cua.map((c) => {
-      if (c.platform_key === 'gumroad') { const g = gum.find((x) => x.store === c.handle);
-        return { cua: 'Gumroad', ten: c.handle, duAn: tenDuAn[c.project_id] ?? c.project_id, xem30: g?.xem ?? 0, ban30: g?.ban ?? 0, usd30: g?.usd ?? 0, ghiChu: g ? undefined : 'store chưa có số trong product_daily' }; }
-      return { cua: c.platform_key === 'kdp' ? 'Amazon KDP' : 'Etsy', ten: c.handle, duAn: tenDuAn[c.project_id] ?? c.project_id, xem30: null, ban30: null, usd30: null, ghiChu: 'chưa có máy đọc số bán' };
-    });
-    // store Gumroad có số mà tài khoản vault không gắn dự án (vd frontporchpuzzles #504) — vẫn đếm, không bỏ sót tiền
-    for (const g of gum) if (!ban.some((b) => b.cua === 'Gumroad' && b.ten === g.store))
-      ban.push({ cua: 'Gumroad', ten: g.store, duAn: '—', xem30: g.xem, ban30: g.ban, usd30: g.usd, ghiChu: 'tài khoản vault chưa gắn dự án' });
+    const ban: StBan[] = [
+      ...storeAll.map((s): StBan => { const g = gum.find((x) => x.store === s.store), da = duAnStore(s.store);
+        return { cua: 'Gumroad', ten: s.store, duAn: da ? tenDuAn[da] ?? da : '—', xem30: g?.xem ?? 0, ban30: g?.ban ?? 0, usd30: g?.usd ?? 0, ghiChu: da ? undefined : 'store không khớp tên dự án nào' }; }),
+      ...cua.map((c): StBan => ({ cua: c.platform_key === 'kdp' ? 'Amazon KDP' : 'Etsy', ten: c.handle, duAn: tenDuAn[c.project_id] ?? c.project_id, xem30: null, ban30: null, usd30: null, ghiChu: 'chưa có máy đọc số bán' })),
+    ];
     return { kenh, trang: [...theoDich.values()], ban };
   } catch (e) { loi.push(`kênh / cửa bán: ${(e as Error).message}`); return { kenh: [], trang: [], ban: [] }; }
 }

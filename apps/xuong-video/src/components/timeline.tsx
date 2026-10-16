@@ -29,6 +29,7 @@ import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { ThamKhaoShot } from './tham-khao-ui';
 import { ChonCta } from './cta-ui';
 import { ChipMurch, useDiemMurch } from './diem-murch-noi';
+import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
 import { trangThaiDoiTuong, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
 
@@ -594,7 +595,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                   background: anh ? `url(${anh}) left center / auto 100% repeat-x, #111` : 'var(--bg-2)', opacity: keo === cc.id ? 0.4 : 1 }}>
                 {(cc.dang_sinh_anh || cc.trang_thai === 'dang_sinh') && <div className="xv-dang"><span>⏳ {cc.dang_sinh_anh ? 'ảnh' : 'video'}</span></div>}
                 <span style={{ position: 'absolute', left: 3, top: 2, fontSize: 10, color: '#fff', textShadow: '0 1px 3px #000', whiteSpace: 'nowrap', zIndex: 2 }}>{coVid ? '▶ ' : ''}#{cc.thu_tu} · {dur(cc)}s</span>
-                <ChipMurch d={diemM[cc.id]} canh={tbM.canh[cc.phan_doan]} tap={tbM.tap} soShot={cc.thu_tu} viTri={{ left: 3, bottom: 2 }} />
+                <ChipMurch d={diemM[cc.id]} canh={tbM.canh[cc.phan_doan]} tap={tbM.tap} soShot={cc.thu_tu} viTri={{ left: 3, bottom: 2 }} may={mayClip(cc)} />
                 <div onPointerDown={keoMep(cc)} title="Kéo để cắt / kéo dài giây phát" style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 7, cursor: 'ew-resize', background: 'rgba(255,255,255,.25)' }} />
               </div>
             );

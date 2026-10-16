@@ -107,11 +107,13 @@ export function doiModelVideo(model: string, nguoiTrongShot: Pick<NhanVat, 'ten'
 /** Cận cảnh + động tác lớn của thân người → model vẽ méo chân / tay / thân (#12: cận đầu gối khi đang nhảy → chân phình biến dạng). */
 const CO_CAN = new Set(['ecu', 'cu', 'insert', 'mcu']);
 export const DONG_LON = /\b(danc(e|es|ing)|jump(s|ing)?|spin(s|ning)?|twirl(s|ing)?|run(s|ning)?|kick(s|ing)?|leap(s|ing)?|swing(s|ing)?|squat(s|ting)? (down|deep)|lunge(s|ing)?)\b/i;
+const HAU_CANH = /\b(behind|background|in the distance|blur(s|red|ry)?|guests?|crowd|others|people around|out of focus)\b/i;
 export function loiCanCanhDongLon(c: Pick<Canh, 'hanh_dong'> & { prompt_video?: string; ky_thuat?: { co_canh?: string } | null }): string | null {
   const co = c.ky_thuat?.co_canh ?? '';
   const hd = (c.prompt_video ?? '').trim() || c.hanh_dong;
   if (!CO_CAN.has(co)) return null;
-  const m = hd.match(DONG_LON);
+  // Vế câu tả HẬU CẢNH / người khác ("the dancing blurs behind") không phải động tác của chủ thể cận cảnh — Jett #61 #4 bị chặn nhầm 16/10/2026.
+  const m = hd.split(/[.;,]|\bwhile\b|\bas\b/i).filter((v) => !HAU_CANH.test(v)).join(' ').match(DONG_LON);
   return m ? `cận cảnh (${co}) mà động tác lớn ("${m[0]}") — model vẽ méo thân / chân (Jett #61 shot 12); cận thì động tác nhỏ (tay chạm, vải giãn, nét mặt), động tác lớn để ở cảnh trung / rộng` : null;
 }
 
@@ -138,6 +140,12 @@ export const soatClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url'> & { soat?
   if (c.soat?.clip?.url === u) return c.soat.clip;
   const m = c.soat?.may;
   return m?.url === u ? { url: u, luc: m.luc, nguoi: 'máy (HSEmotion)', dat: m.ket === 'dat', loi: m.ket === 'can_mat' ? m.loi.map((x) => `cần mắt — ${x}`) : m.loi } : null;
+};
+
+/** Kết quả MÁY cho đúng clip đang dùng — hiện RIÊNG (chip 🤖), kể cả khi người đã soát: người thắng máy ở cổng, nhưng anh vẫn phải thấy máy nói gì. */
+export const mayClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url'> & { soat?: SoatShot | null }): KqMay | null => { const u = c.video_cuoi_url || c.video_url; return u && c.soat?.may?.url === u ? c.soat.may : null; };
+export const KY_MAY: Record<KqMay['ket'], { ky: string; mau: string; ten: string }> = {
+  dat: { ky: '✓', mau: '#4ade80', ten: 'đạt' }, can_mat: { ky: '◐', mau: '#fbbf24', ten: 'cần mắt' }, truot: { ky: '✗', mau: '#f87171', ten: 'trượt' },
 };
 
 // ── MÁY TỰ CHẤM CLIP (0đ) ─────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ import { KyThuatApDung } from './thu-vien';
 import { boSetCuaShot, loiMachTap, canhBaoMachTap } from '@/lib/xuong-video/bo-set-3d';
 import { NhanKhung3D } from './kiem-khung-noi';
 import { ChipMurch, useDiemMurch } from './diem-murch-noi';
+import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { Khung3DSong } from './khung-3d-song';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
@@ -134,7 +135,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                     style={{ position: 'absolute', right: 4, top: vuaSinh(c) ? 40 : 22, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.75)', color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
                   {/* Điểm Murch ở MỌI thẻ (anh 16/10/2026: "phải đặt vào mặc định cho mọi video") — trước chỉ có trong ô 3D nên QC / shot ngoài bộ set không thấy. */}
-                  <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} viTri={{ left: 4, top: 22 }} />
+                  <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} viTri={{ left: 4, top: 22 }} may={mayClip(c)} />
                 </div>}
                 {i === 0 && pc && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                   {/* LUỒNG CẢNH (script supervisor): ngày truyện + cảnh liền / cảnh mới — cổng liền mạch theo nhân vật reset sổ theo đây (bo-set-3d.ts › lienMachTap). */}

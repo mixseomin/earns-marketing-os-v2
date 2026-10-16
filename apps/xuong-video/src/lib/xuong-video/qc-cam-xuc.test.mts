@@ -67,3 +67,5 @@ const url = 'https://x/c.mp4', may = { url, luc: '', ket: 'can_mat' as const, lo
 assert.ok(!soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.dat && soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.loi[0]!.startsWith('cần mắt'));
 assert.ok(soatClip({ video_url: url, video_cuoi_url: null, soat: { may: { ...may, ket: 'truot' }, clip: { url, luc: '', nguoi: 'anh', dat: true, loi: [] } } })!.dat, 'người soát thắng máy');
 console.log('qc-cam-xuc chấm máy ok');
+assert.strictEqual(loiCanCanhDongLon({ hanh_dong: 'The narrator watches, the dancing blurs behind, a small worried glance', ky_thuat: { co_canh: 'mcu' } }), null, 'nhảy ở hậu cảnh không phải động tác chủ thể');
+assert.ok(loiCanCanhDongLon({ hanh_dong: 'He spins her around, laughing', ky_thuat: { co_canh: 'mcu' } }));

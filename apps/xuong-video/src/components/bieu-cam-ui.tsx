@@ -3,7 +3,7 @@
 // trước, và trạng thái SOÁT (keyframe / clip) Claude ghi bằng scripts/soat-cam-xuc.mts. Lưu ngay khi đổi (↶ hoàn tác được).
 import { useState } from 'react';
 import { suaBieuCam } from '@/lib/actions-cam-xuc';
-import { BIEU_CAM, camThuc, soatKeyframe, soatClip, type BieuCamNv, type MaBieuCam } from '@/lib/xuong-video/qc-cam-xuc';
+import { BIEU_CAM, camThuc, soatKeyframe, soatClip, mayClip, KY_MAY, type BieuCamNv, type MaBieuCam } from '@/lib/xuong-video/qc-cam-xuc';
 import type { Canh, NhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { mono, goiAction } from './ui';
@@ -19,7 +19,7 @@ export function BieuCamShot({ c, nhanVat, onDoi }: { c: Canh; nhanVat: NhanVat[]
     const cu = ds.find((b) => b.nv === ten) ?? { nv: ten, dau: 'binh_thuong' as MaBieuCam, cuoi: 'binh_thuong' as MaBieuCam };
     void luu({ bieu_cam: [...ds.filter((b) => b.nv !== ten && nguoi.some((v) => v.ten === b.nv)), { ...cu, ...p }] });
   };
-  const k = soatKeyframe(c), v = soatClip(c);
+  const k = soatKeyframe(c), v = soatClip(c), m = mayClip(c);
   const chip = (ten: string, s: ReturnType<typeof soatKeyframe>) => { const mat = !!s && !s.dat && s.loi.every((x) => x.startsWith('cần mắt')); return <span style={{ ...mono, color: !s ? 'var(--fg-4)' : s.dat ? '#4ade80' : mat ? '#fbbf24' : '#f87171' }} title={s ? `${s.nguoi} · ${s.luc}\n${s.loi.join('\n') || 'đạt'}${mat ? '\nMáy chưa chắc — người xem clip rồi ghi soát' : ''}` : 'chưa soát'}>{ten} {!s ? '—' : s.dat ? '✓' : mat ? '◐' : '✗'}</span>; };
   if (!nguoi.length && !c.noi_lien) return null;
   return (
@@ -41,6 +41,7 @@ export function BieuCamShot({ c, nhanVat, onDoi }: { c: Canh; nhanVat: NhanVat[]
         <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }} title="Khung đầu = khung cuối clip shot trước (máy tự tách khi sinh video) — dùng khi hành động nối tiếp liền mạch">
           <input type="checkbox" checked={!!c.noi_lien} onChange={(e) => void luu({ noi_lien: e.target.checked })} />⛓ nối liền shot trước</label>
         {chip('soát keyframe', k)}{chip('soát clip', v)}
+        <span style={{ ...mono, color: m ? KY_MAY[m.ket].mau : 'var(--fg-4)' }} title={m ? `Máy chấm clip (đo nét mặt từng khung so với kế hoạch) · ${m.luc}\n${m.loi.join('\n') || 'đạt'}${v && !v.nguoi.startsWith('máy') ? `\nNgười đã soát: ${v.dat ? 'đạt' : 'trượt'} — người thắng máy ở cổng xuất` : ''}` : 'Máy chưa chấm clip này — tự chấm khi clip sinh xong hoặc lúc xuất'}>🤖 máy {m ? `${KY_MAY[m.ket].ky} ${KY_MAY[m.ket].ten}` : '—'}</span>
       </div>
       {loi && <span style={{ fontSize: 10.5, color: 'var(--red)' }}>{loi}</span>}
     </div>

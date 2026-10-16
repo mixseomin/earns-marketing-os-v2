@@ -25,6 +25,7 @@ import { DichPhim } from './dich-phim';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { NguoiXem } from './nguoi-xem-ui';
+import { MayDungStoryboard } from './may-dung-ui';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 
 export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void>; tab: TabPhim }) {
@@ -64,6 +65,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [loiUoc, setLoiUoc] = useState('');
   const kt = docKinhThanh(phim.kinh_thanh);
   const hien = banHien(tap.xuat);
+  const mayDung = phim.loai === 'may_dung';
   // Bản lồng tiếng Việt đã lưu trong shot (ban-dich.ts) — timeline + toàn màn hình xem bằng nút 🇻🇳 trên hàng Storyboard.
   const vi = canh ? theoNgonNgu(locNhanh(canh, nhanh), 'vi') : null; const xemVi = tiengXem === 'vi' && kt.ngon_ngu !== 'vi' && !!vi?.coDich;
   const kyTuLoi = locNhanh(canh ?? [], 'A').reduce((a, c) => a + (c.thoai ?? []).reduce((b, d) => b + d.loi.trim().length, 0), 0);
@@ -202,12 +204,13 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       {uoc && uoc.soCanhDuyet > 0 && <div style={{ ...mono, marginTop: 8, color: 'var(--amber)' }}>Đang chờ sinh video: {uoc.soCanhDuyet} cảnh · {uoc.giayDuyet}s ≈ {tien(uoc.videoTong)}</div>}
       </>)}
       {/* Kiểm người xem có hiểu không: luôn ở tab Kịch bản; chưa đạt thì hiện ĐẦU tab Storyboard / Xuất — đúng chỗ nó đang chặn keyframe + xuất. */}
-      {!!canh?.length && (tab === 'kich_ban' || chanNguoiXem(tap.thu_nguoi_xem, locNhanh(canh, 'A')).length > 0) && (
+      {/* Máy Dựng (may_dung) dựng bằng máy: không có lượt AI nào để kiểm người xem / quy trình / sinh — storyboard riêng (may-dung-ui.tsx). */}
+      {!mayDung && !!canh?.length && (tab === 'kich_ban' || chanNguoiXem(tap.thu_nguoi_xem, locNhanh(canh, 'A')).length > 0) && (
         <NguoiXem tap={tap} canh={locNhanh(canh, 'A')} moHinhChu={kt.mo_hinh_chu} coAnthropic={khoa.anthropic} onChanged={onChanged} onMoShot={tab === 'storyboard' ? (so) => { const x = canh.find((c) => c.thu_tu === so); if (x) setChonCanh(x.id); } : undefined} />
       )}
       <Loi>{loi}</Loi>
 
-      {tab === 'storyboard' && (
+      {tab === 'storyboard' && !mayDung && (
       <div className="xv-dinh" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
         {/* MỘT hàng đầu cho cả tab (13/10/2026 — trước là 5 hàng chồng: tiêu đề, tập, trạng thái, kiểu xem, tiếng). */}
         {!!canh?.length && <span style={{ display: 'inline-flex', gap: 2 }}>
@@ -248,8 +251,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       {tab === 'xuat' && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
           <strong style={{ fontSize: 12 }}>{canh?.length ?? '…'} cảnh · {giayPhatTong}s{tap.thoi_luong_s ? ` / mục tiêu ${tap.thoi_luong_s}s` : ''}</strong>
-          {chonNhanh}
-          {nutQt}{nutQc}
+          {!mayDung && <>{chonNhanh}{nutQt}{nutQc}</>}
           <span style={{ flex: 1 }} />
           <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
             title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn (shot nào có), end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
@@ -258,15 +260,15 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           </Nut>
           {/* Bản lồng tiếng Việt: cùng hình + nhịp, chữ màn dịch, mọi câu đọc lại bằng đúng giọng nhân vật (ban-dich.ts) — vừa để người chỉ
               biết tiếng Việt xem hộ, vừa là track tiếng Việt gắn vào video gốc trên YouTube. Không thay bản xuất chính. */}
-          {kt.ngon_ngu !== 'vi' && <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào')} ban={jobXuat != null} gia={giaChuCents(kt.mo_hinh_chu, 2500, 2500)}
+          {!mayDung && kt.ngon_ngu !== 'vi' && <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào')} ban={jobXuat != null} gia={giaChuCents(kt.mo_hinh_chu, 2500, 2500)}
             title={`Lồng tiếng Việt: dịch chữ màn + lời (1 lượt Claude, cùng nội dung thì nhớ bản dịch, 0đ lần sau), đọc lại ~${kyTuLoi} ký tự bằng đúng giọng từng nhân vật (tính vào gói ElevenLabs; câu đã đọc thì dùng lại). Ra MP4 để gửi người xem hộ + track tiếng M4A để gắn vào video gốc trên YouTube. Không thay bản xuất chính.`}
             onClick={async () => { setLoiXuat(''); const r = await xuatLongTiengVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Lồng tiếng Việt · ~{tien(giaChuCents(kt.mo_hinh_chu, 2500, 2500))} + {kyTuLoi} ký tự</Nut>}
           {/* Kho tài sản (ít dùng) → sau ⋯: cả tập thành khuôn QC dùng lại; tạo tập mới từ khuôn đã lưu. */}
-          <Menu>
+          {!mayDung && <Menu>
             <MucMenu onClick={() => void chay('nhan', () => apDiemNhan(tap.id))}>✨ Điểm nhấn tự động — mỗi điểm cắt một hiệu ứng hình + tiếng theo loại shot (hook zoom + pop, nỗi đau rung + đập, CTA zoom + ka-ching…) · 0đ</MucMenu>
             <MucMenu onClick={() => void chay('khuon', () => luuKhuonTap(tap.id))}>🧩 Lưu tập làm khuôn QC — giây từng shot, chữ màn + lời, góc máy, prompt, kiểu chữ, bài đăng</MucMenu>
             <MucMenu onClick={() => moNgan({ loai: 'kho', dich: { phimId: tap.phim_id } })}>🧩 Tạo tập từ khuôn trong kho (chưa có hình/giọng)</MucMenu>
-          </Menu>
+          </Menu>}
         </div>
       )}
       {tab === 'xuat' && <Loi>{loiXuat}</Loi>}
@@ -326,7 +328,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           </Nut>
           <span style={{ ...mono, marginLeft: 10 }}>hoặc <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button> tự viết</span>
         </div>
-      ) : (
+      ) : mayDung ? <MayDungStoryboard tap={tap} canh={canh} /> : (
         <>
           {xem === 'timeline' ? (() => {
             const canhNhanh = locNhanh(canh, nhanh);

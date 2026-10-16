@@ -677,6 +677,22 @@ DONG_TAC = {
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
     'lan_tron': 'cuộn tròn thành quả bóng lăn (chân tay / mắt / tóc thu vào)', 'truot': 'trượt nằm (xe trượt / băng / dây) — thân nằm di chuyển', 'nga_ngoi': 'ngã ngồi ra sau', 'nga': 'mốc cú ngã đứng → nằm (cần nam_den)', 'day': 'mốc đứng dậy nằm → đứng (cần nam_den: false)', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',
 }
+# TƯ THẾ CHỐT (pose-to-pose — Thomas & Johnston "The Illusion of Life", Williams "The Animator's Survival Kit"; anh 16/10/2026: "đang nằm mà đứng
+# dậy phải có động tác đầy đủ, nhảy luôn thế là bật lên"): mỗi dòng (u = phần thời lượng động tác, nam = mức nằm 0 đứng … 1 nằm hẳn (âm = chúi tới
+# quá đứng), bep = bẹp theo phương đứng (+ bẹp, − vươn), tay = góc hai tay (độ, − chống xuống, + vung lên)). Giữa hai tư thế chốt nhanh dần – chậm dần.
+TU_THE = {
+    'day': [(0, 1.0, 0, 0), (0.15, 1.05, 0.04, 10), (0.45, 0.5, 0.02, -40), (0.66, -0.08, 0.16, -45), (0.85, -0.02, -0.06, -5), (1.0, 0, 0, 0)],   # lấy đà · ngồi dậy chống tay · chúi tới ngồi xổm · đẩy lên vươn · lắng
+    'nga': [(0, 0, 0, 0), (0.2, -0.06, 0, 35), (0.55, 0.6, -0.03, 50), (0.75, 1.0, 0.16, 20), (0.88, 0.96, -0.04, 5), (1.0, 1.0, 0, 0)],          # mất thăng bằng vung tay · đổ · chạm bàn bẹp · nảy · nằm yên
+}
+GIAY_TU_THE = {'day': 1.25, 'nga': 0.9}   # thời lượng mặc định (giây) — nhịp động tác không co giãn theo độ dài shot
+def tu_the(ten, c):
+    k = TU_THE[ten]; c = min(1.0, max(0.0, c))
+    for (u0, *a0), (u1, *a1) in zip(k, k[1:]):
+        if c <= u1:
+            x = (c - u0) / (u1 - u0) if u1 > u0 else 1; x = x * x * (3 - 2 * x)
+            return [a0[i] + (a1[i] - a0[i]) * x for i in range(3)]
+    return list(k[-1][1:])
+
 def doc_dong_tac(ds):
     out = []
     for x in ds:
@@ -806,9 +822,9 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             ag = math.radians(h0); u_ = Vector((math.cos(ag), math.sin(ag), 0)); truoc_ = Vector((math.sin(ag), -math.cos(ag), 0))
             mac = [x for x in hd if x[0] == ('nga' if nv.get('nam_den') else 'day')]
             doi_dang = {'nga': bool(nv.get('nam_den')), 'u': u_, 'lech': (Vector((0, 0, cd_ / 2)) + truoc_ * (ch / 2)) * CM,
-                        'cua': (mac[0][1], mac[0][2]) if mac else ((0.6, 0.85) if nv.get('nam_den') else (0.1, 0.4))}
+                        'cua': (mac[0][1], mac[0][2]) if mac else ((max(0.0, 0.85 - GIAY_TU_THE['nga'] / giay), 0.85) if nv.get('nam_den') else (0.1, min(1.0, 0.1 + GIAY_TU_THE['day'] / giay)))}
             lt = [x for x in hd if x[0] == 'lan_tron']
-            if lt and not mac and lt[0][2] < 0.999: doi_dang['cua'] = (lt[0][2], min(1.0, lt[0][2] + 0.18))   # bóng bung ra xong mới đứng dậy / ngã (#12)
+            if lt and not mac and lt[0][2] < 0.999: doi_dang['cua'] = (lt[0][2], min(1.0, lt[0][2] + GIAY_TU_THE['day'] / giay))   # bóng bung ra xong mới đứng dậy (#12)
         rb = random.Random(hat); chop = [rb.uniform(0.2, 0.45), rb.uniform(0.65, 0.9)]   # hai lần chớp mắt tự nhiên, lệch nhịp mỗi nhân vật
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1); k = dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
@@ -828,10 +844,11 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']
             Mt = Matrix.Translation(p * CM) @ R.to_matrix().to_4x4(); Pm = Matrix.Identity(4)
             if doi_dang:   # NGÃ / ĐỨNG DẬY trong shot = nội suy đúng phép nam_xuong (xoay 90° quanh trục ngang tại chân + dời thân lên mặt bàn)
-                a_, b_ = doi_dang['cua']; kd = em(min(1.0, max(0.0, (t - a_) / (b_ - a_))))
-                Pm = (Matrix.Translation(doi_dang['lech'] * kd) @ Matrix.Rotation(math.radians(-90 * kd), 4, doi_dang['u']) if doi_dang['nga']
-                      else Matrix.Rotation(math.radians(90 * kd), 4, doi_dang['u']) @ Matrix.Translation(-doi_dang['lech'] * kd))
-                Mt = Mt @ Pm
+                a_, b_ = doi_dang['cua']; nam_, bep_tt, tay_tt = tu_the('nga' if doi_dang['nga'] else 'day', (t - a_) / (b_ - a_))
+                # dáng ở mức nằm L so với DÁNG ĐỨNG: T(lech·L) · R(−90°·L) (cùng phép nam_xuong khi L = 1); nhân vật dựng sẵn ở dáng mở (đứng hoặc nằm)
+                dung_ve = Matrix.Identity(4) if doi_dang['nga'] else Matrix.Rotation(math.radians(90), 4, doi_dang['u']) @ Matrix.Translation(-doi_dang['lech'])
+                Pm = Matrix.Translation(doi_dang['lech'] * nam_) @ Matrix.Rotation(math.radians(-90 * nam_), 4, doi_dang['u']) @ dung_ve
+                Mt = Mt @ Pm; bep += bep_tt; dt['tay_tt'] = tay_tt
             if lan:   # QUẢ BÓNG LĂN: thân co về cầu (cùng thể tích) hạ xuống mặt bàn, chân tay / mắt / tóc thu vào, lăn đúng số vòng theo quãng
                 kb = dt['bong']; km = (DL.get('nhan_vat_mau') or {}).get(ten) or {}; w_, d_, h_ = (km.get('co') or [1.7, 1.4, 2.6])[:3]
                 rb = (w_ * d_ * h_) ** (1 / 3) / 2; tam_than = d_ / 2 if nv.get('nam') else h_ / 2 + 0.2   # tâm thân theo dáng lúc lăn (đang nằm thì thấp: nam_xuong đặt thân dày d trên mặt bàn)
@@ -845,7 +862,8 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                     g_ = Vector(than['goc_sc']); f_ = Vector((2 * rb / w_, 2 * rb / d_, 2 * rb / h_))
                     than.scale = Vector([g_[i] * (f_[i] ** kb) for i in range(3)]); than.keyframe_insert('scale', frame=f)
                 for o in bo_phan: o.scale = Vector(o['goc_sc']) * max(0.001, 1 - kb); o.keyframe_insert('scale', frame=f)
-            Mt = Mt @ Matrix.Diagonal((ph * (1 + bep / 2), ph * (1 + bep / 2), ph * (1 - bep), 1))   # đất nặn bẹp nhẹ khi chạm, giữ thể tích · phồng to
+            # bẹp / vươn theo phương ĐỨNG của thế giới tại chỗ chạm bàn (đúng cả khi đang nằm / đang đứng dậy) · phồng to theo thân
+            Mt = Matrix.Translation(p * CM) @ Matrix.Diagonal((1 + bep / 2, 1 + bep / 2, 1 - bep, 1)) @ Matrix.Translation(-p * CM) @ Mt @ Matrix.Diagonal((ph, ph, ph, 1))
             lo, ro, sc_ = Mt.decompose(); e.location = lo; e.rotation_quaternion = ro; e.scale = sc_
             e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_quaternion', frame=f); e.keyframe_insert('scale', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo
@@ -859,6 +877,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 if bay: g_ = math.radians(10 if loai == 'chan' else 6) * math.sin(2 * math.pi * 1.5 * t + ben * 0.6)   # bay: chân tay lủng lẳng
                 elif dai > 0.4: g_ = math.radians(24 if loai == 'chan' else 14) * math.sin(math.pi * buoc * k) * ben * (1 if loai == 'chan' else -1)   # bước luân phiên, tay ngược chân
                 else: g_ = 0.0
+                if loai == 'tay' and dt.get('tay_tt'): g_ += math.radians(dt['tay_tt'])   # tư thế chốt: tay chống bàn khi đứng dậy · vung khi ngã
                 P.rotation_euler = (g_, 0, h); P.keyframe_insert('rotation_euler', frame=f)
                 if loai == 'tay':   # nhún vai: hai tay nhấc lên
                     if 'goc_tay' not in P: P['goc_tay'] = list(P.location)

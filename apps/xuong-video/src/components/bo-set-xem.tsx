@@ -11,7 +11,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 import { boSet3dTap, boSet3dSet } from '@/lib/actions';
 import { moNgan } from './ngan-chung';
 import type { BoSet, May3d } from '@/lib/xuong-video/kieu';
-import { V, chat, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
+import { V, catLop, chat, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
 import { goiAction, Loi, mono } from './ui';
 import { Chon } from './chon';
 
@@ -115,7 +115,7 @@ export function BoSetXem({ tapId, setId: setTheo, canhId, gon }: { tapId?: numbe
     banh.current.dat({ quaMay, chon });
     if (goc.current?.khoa === khoa) { may.position.copy(goc.current.vt); dk.target.copy(goc.current.dich); dk.update(); }
     const ro = new ResizeObserver(coKhung); ro.observe(el);
-    let raf = 0; const ve = () => { raf = requestAnimationFrame(ve); dk.update(); r.render(canh, may); nhanR.render(canh, may); }; ve();
+    let raf = 0; const ve = () => { raf = requestAnimationFrame(ve); dk.update(); catLop(canh, may); r.render(canh, may); nhanR.render(canh, may); }; ve();
     return () => {
       goc.current = { khoa, vt: may.position.clone(), dich: dk.target.clone() };
       cancelAnimationFrame(raf); ro.disconnect(); dk.dispose();

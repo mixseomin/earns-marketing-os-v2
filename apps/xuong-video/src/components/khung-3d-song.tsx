@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { boSet3dTap } from '@/lib/actions';
-import { V, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
+import { V, catLop, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
 import type { May3d } from '@/lib/xuong-video/kieu';
 
 type DuLieu = Extract<Awaited<ReturnType<typeof boSet3dTap>>, { ok: true }>['data'];
@@ -62,7 +62,7 @@ export function Khung3DSong({ tapId, setId, may, doc, children, nhanKhoi, onMo }
       const cau = new THREE.Spherical().setFromVector3(goc);
       cau.theta += lech.ngang; cau.phi = Math.min(Math.PI - 0.05, Math.max(0.05, cau.phi + lech.doc));
       cam.position.copy(dich.clone().add(new THREE.Vector3().setFromSpherical(cau))); cam.lookAt(dich);
-      const r = boVe(); r.setPixelRatio(1); r.setSize(W, H, false); r.render(sc, cam);
+      const r = boVe(); r.setPixelRatio(1); r.setSize(W, H, false); catLop(sc, cam); r.render(sc, cam);
       if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
       c.getContext('2d')?.drawImage(r.domElement, 0, 0, W, H);
     };

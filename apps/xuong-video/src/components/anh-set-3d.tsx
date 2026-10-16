@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { boSet3dSet } from '@/lib/actions';
-import { dungCanhShot, huyCanh, nhanVat as khoiNhanVat, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
+import { catLop, dungCanhShot, huyCanh, nhanVat as khoiNhanVat, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
 import type { NhanVat } from '@/lib/xuong-video/kieu';
 
 const nho = new Map<string, Promise<string | null>>();
@@ -19,7 +19,7 @@ function chupCanh(canh: THREE.Scene, co: number, huong: THREE.Vector3, xa: numbe
   const may = new THREE.PerspectiveCamera(40, 1, 0.01, 100000);
   may.position.copy(tam.clone().add(huong.clone().normalize().multiplyScalar(coVat * xa))); may.lookAt(tam);
   const rd = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); rd.setSize(co, co);
-  rd.render(canh, may); const url = rd.domElement.toDataURL('image/jpeg', 0.85);
+  catLop(canh, may); rd.render(canh, may); const url = rd.domElement.toDataURL('image/jpeg', 0.85);
   rd.dispose(); rd.forceContextLoss(); return url;
 }
 

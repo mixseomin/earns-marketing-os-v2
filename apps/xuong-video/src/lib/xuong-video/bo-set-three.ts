@@ -139,6 +139,7 @@ export function dungCanhShot(set: BoSet, khoiCua: (ten: string) => KhoiNv | unde
     const g = new THREE.Group();
     if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0, mo));
     else g.add(khoi(v as Phan, undefined, 0, mo));
+    if (v.nen) g.userData.nen = true;
     canh.add(g);
     if (nhan && !v.nen) { const hop = new THREE.Box3().setFromObject(g); nhan(v.tuy_chon ? `${v.ten} (tuỳ chọn)` : v.ten, 'rgba(0,0,0,.65)', new THREE.Vector3((hop.min.x + hop.max.x) / 2, hop.max.y + 0.6, (hop.min.z + hop.max.z) / 2)); }
   }
@@ -152,6 +153,24 @@ export function dungCanhShot(set: BoSet, khoiCua: (ten: string) => KhoiNv | unde
     }
   }
   return canh;
+}
+
+/** CẮT LỚP (cutaway — trường quay tháo trần / vách cho máy đứng ngoài nhìn vào; anh 17/10/2026 thêm trần + tường trước cho bộ set tổng tài
+ *  "để AI không bịa" thì góc xem tổng bị trần che kín): mặt nền (nen — tường, trần, sàn, mặt bàn) nằm GIỮA máy xem và lòng phòng thì ẩn,
+ *  theo trục mỏng nhất của nó. Máy shot đứng trong phòng → không ẩn gì, khung khớp Blender. MỌI chỗ vẽ gọi trước render. */
+export function catLop(canh: THREE.Scene, may: THREE.Camera): void {
+  const nen = canh.children.filter((o) => o.userData.nen);
+  if (!canh.userData.tamPhong) {
+    const h = new THREE.Box3(); for (const o of nen) { o.userData.hop = new THREE.Box3().setFromObject(o); h.union(o.userData.hop); }
+    canh.userData.tamPhong = h.isEmpty() ? new THREE.Vector3() : h.getCenter(new THREE.Vector3());
+  }
+  const tam = canh.userData.tamPhong as THREE.Vector3;
+  for (const o of nen) {
+    const h = o.userData.hop as THREE.Box3; const s = h.getSize(new THREE.Vector3());
+    const ax = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
+    const p = may.position[ax];
+    o.visible = (h.min[ax] + h.max[ax]) / 2 >= tam[ax] ? p < h.min[ax] : p > h.max[ax];
+  }
 }
 
 /** Góc nhìn dọc (độ) của máy shot — cùng ống kính với Blender (cảm biến 36 mm theo chiều dài hơn của khung). */

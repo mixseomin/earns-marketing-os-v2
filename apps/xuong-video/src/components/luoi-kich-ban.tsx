@@ -3,14 +3,14 @@
 // nháp / keyframe), mốc giờ trong phim, chữ màn, lời đọc — xếp theo phân cảnh (tên · beat · mục tiêu). Bấm thẻ = mở shot đó trên timeline.
 // 14/10/2026 (anh: "lưới không nhìn thấy key chuyển cảnh, location, time"): đầu khối cảnh hiện NƠI + THỜI ĐIỂM; mỗi thẻ hiện bối cảnh của shot,
 // vai kể · cỡ cảnh · chuyển động máy, và chuyển cảnh sang shot sau (liền máy / hoà tan tô màu) — dữ liệu hồ sơ tiền kỳ phải có chỗ hiện.
-import { chuManHien, giayPhat, tenPhanDoan, type BoSet, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { chuManHien, giayPhat, tenPhanDoan, loiSoiClip, type BoSet, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { dongThoai } from '@/lib/xuong-video/am-thanh';
 import { mono } from './ui';
 import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
 import { useEffect, useState } from 'react';
 import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
-import { kiemKhungTapAction, boSetCuaTap } from '@/lib/actions';
+import { kiemKhungTapAction, boSetCuaTap, boQuaSoiClipAction } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
@@ -112,6 +112,10 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   </span>}
                   {anh && (() => { const tk = trangThaiKhung(c); const kk = c.kiem_khung; const m = { dat: ['✓', '#4ade80'], tay: ['✓ tay', '#4ade80'], lech: ['⚠ lệch', '#f87171'], chua: ['? chưa kiểm', '#fbbf24'], khong: ['', ''] }[tk];
                     return tk !== 'khong' && <span className="xv-mono" title={tk === 'lech' || tk === 'tay' ? kk!.loi.map((l) => `${tenLoiKhung(l.loai)}: ${l.mo_ta}`).join('\n') : tk === 'chua' ? 'Keyframe chưa qua kiểm khung (hoặc đã sinh lại sau lần kiểm)' : 'Máy kiểm khung: khớp'} style={{ position: 'absolute', left: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: m[1] }}>{m[0]}</span>; })()}
+                  {/* Máy soi clip (soi-clip.ts): chữ lạ model tự in / sản phẩm ra khỏi khung — bản xuất không nhận clip này; bấm = bỏ qua khi máy báo nhầm. */}
+                  {loiSoiClip(c).length > 0 && <span role="button" className="xv-mono" title={`Máy soi clip:\n${loiSoiClip(c).join('\n')}\n\nBản xuất không nhận clip này. Sinh lại shot, hoặc bấm để bỏ qua nếu máy báo nhầm.`}
+                    onClick={async (e) => { e.stopPropagation(); if (!confirm(`Bỏ qua lỗi soi của shot #${c.thu_tu}?\n\n${loiSoiClip(c).join('\n')}`)) return; const r = await goiAction(() => boQuaSoiClipAction(c.id)); if (r.loi) alert(r.loi); await onChanged(); }}
+                    style={{ position: 'absolute', right: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.75)', color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
                 </div>}
                 {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}

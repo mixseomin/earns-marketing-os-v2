@@ -7,7 +7,7 @@ import { chayXuat, ghiBanXuat } from './xuat-chay';
 import { kiemTieng } from './khop-giong';
 import { chanNguoiXem } from './nguoi-xem';
 import { kiemQc } from './kiem-qc';
-import { docKinhThanh, locNhanh, type Canh } from './kieu';
+import { docKinhThanh, locNhanh, loiSoiClip, type Canh } from './kieu';
 import { boiCanhTap, taoJob, xongJob, mapCanh, type Db, type Row } from './doc-db';
 import { khopGiongTap } from './hau-ky';
 
@@ -32,6 +32,9 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
     }
   }
   if (tieng.length) return { ok: false, loi: `Chưa xuất được — tiếng còn lỗi: ${tieng.slice(0, 4).join('; ')}${tieng.length > 4 ? `; +${tieng.length - 4} lỗi nữa` : ''}` };
+  // Máy soi clip (soi-clip.ts): clip còn chữ lạ / mất sản phẩm thì không ra bản lỗi — sinh lại shot, hoặc bỏ qua nếu máy báo nhầm.
+  const soi = locNhanh(canh, nhanh || 'A').flatMap((c) => loiSoiClip(c).map((x) => `#${c.thu_tu}: ${x}`));
+  if (soi.length) return { ok: false, loi: `Chưa xuất được — clip còn lỗi soi: ${soi.join('; ')}. Sinh lại shot đó, hoặc bấm "Bỏ qua lỗi soi" trên thẻ shot nếu máy báo nhầm` };
   const kt = docKinhThanh(bc.kt);
   // Luật QC máy chặn được (kiem-qc.ts) — chỉ những luật sai là ra bản hỏng, không phải gu: màn kết thiếu tên sản phẩm.
   const qcSai = kiemQc({ loai: bc.loai, canh: locNhanh(canh, nhanh || 'A'), nhanVat: bc.nhanVat, qc: kt.qc, nhanh }).filter((x) => !x.ok && ['ten_cuoi'].includes(x.key));

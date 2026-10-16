@@ -14,6 +14,7 @@ import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { tronModelCanh } from './sinh-anh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
+import { soiClipCanh } from './soi-clip';
 import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
@@ -230,6 +231,8 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
       const nguon = { model: s(req[0]?.model), prompt: rq.prompt ?? '', khung_dau: rq.khungDau ?? null, khung_cuoi: rq.khungCuoi ?? null, giay: rq.giay ?? null, job: r.id };
       await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
     }
+    // Máy soi clip (soi-clip.ts, 0đ): chữ lạ model tự in + sản phẩm còn trong khung — lỗi hiện trên thẻ shot, bản xuất không nhận clip lỗi.
+    if (r.canh_id != null) await soiClipCanh(db, r.canh_id).catch((e) => console.error(`soi clip shot ${r.canh_id}:`, e));
     vuaXong++;
   }
   return { conChay, vuaXong };

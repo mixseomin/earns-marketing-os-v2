@@ -50,6 +50,10 @@ export type MoHinhAnh = (typeof MO_HINH_ANH)[number]['key'];
 /** Model video KHÔNG dùng cho quảng cáo (anh 16/10/2026: Pika khung khoá "thiếu cảm xúc" — chỉ biến hình giữa hai khung, người không diễn;
  *  Grok qua ShopAIKey tự in phụ đề giả lên hình dù prompt cấm — #54 shot 6 / 9 "Look at that fit!" đè thẻ kết).
  *  Một luật cho ô chọn model (mo-hinh-ui.tsx › luaChonVideo), chuỗi tự chọn rẻ nhất (cong-ai.ts › chuoiVideo) và cửa sinh clip máy chủ (sinh-video.ts). */
+/** Kết quả máy soi clip (soi-clip.ts). */
+export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[] }; bo_qua?: boolean };
+/** Lỗi soi còn hiệu lực của shot: soi đúng clip đang dùng, có lỗi, chưa ai bỏ qua. */
+export const loiSoiClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url' | 'soi_clip'>): string[] => { const u = c.video_cuoi_url || c.video_url; const k = c.soi_clip; return u && k && k.url === u && !k.bo_qua ? k.loi : []; };
 export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'];
 export const hopQc = (key: string, laQc: boolean): boolean => !(laQc && MO_HINH_KHONG_QC.includes(key));
 export const MO_HINH_VIDEO = [
@@ -521,6 +525,7 @@ export type Canh = {
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; /** ISO lúc sinh xong keyframe / clip đang dùng (dsCanh, #1384) */ keyframe_luc?: string | null; video_luc?: string | null; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   dan_dung?: DanDung;
   kiem_khung?: KiemKhung | null;
+  /** máy soi clip (soi-clip.ts) — chỉ áp khi url trùng clip đang dùng */ soi_clip?: SoiClip | null;
   may_3d?: May3d | null;
   khung_xam?: KhungXam | null;
   /** nguồn của TỪNG tệp (keyframe ứng viên, clip nháp/cuối): url → nhãn ngắn + đủ (cổng · model · model thật · tiền thật) — actions.ts › dsCanh */

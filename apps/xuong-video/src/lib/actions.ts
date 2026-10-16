@@ -686,6 +686,13 @@ export async function duyetKhungTayAction(canhId: number): Promise<Kq<true>> {
   const r = await duyetKhungTay(db, canhId, me.email);
   return r.ok ? { ok: true, data: true } : r;
 }
+/** Người duyệt nhận clip máy soi báo lỗi (máy báo nhầm) — 0đ; bản xuất nhận lại clip này. Clip mới sinh thì soi lại từ đầu. */
+export async function boQuaSoiClipAction(canhId: number): Promise<Kq<true>> {
+  const db = getDb(); const me = await admin();
+  if (!db || !me) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_canh SET soi_clip = soi_clip || ${JSON.stringify({ bo_qua: true, bo_qua_boi: me.email })}::jsonb WHERE id = ${canhId} AND soi_clip IS NOT NULL`);
+  return { ok: true, data: true };
+}
 export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const db = getDb();
   if (!db) return loi('no db');

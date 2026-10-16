@@ -109,6 +109,10 @@ export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map
 export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: string; an_y: string; nhip: string; cam_xuc_dau: number; cam_xuc_cuoi: number;
   /** gag của cảnh: gài → bùng, o_shot = shot thứ mấy TRONG cảnh có cú bùng (1-based) */ gag?: { ten: string; gai: string; bung: string; o_shot: number; /** MẠCH truyện nhỏ của gag trong cảnh (A, B…) — cảnh có ≥2 gag phải khai; đổi mạch thì cần NÚT ĐÓNG (nhip-hinh.ts › kiemNutDong) */ mach?: string }[];
   /** cảnh mở series (chuỗi từ thế giới ngoài) — không tính vào độ dài chuẩn của tập */ intro?: boolean;
+  /** NGÀY TRUYỆN (script supervisor: N1 = đêm thứ nhất, D2 = ngày thứ hai…) — sang ngày khác thì sổ liền mạch reset cả trạng thái cơ thể
+   *  (ướt / xù / bẩn), quần áo, chỗ, dáng; trống = cùng ngày cảnh trước */ ngay?: string;
+  /** cảnh tiếp LIỀN thời gian cảnh trước? false = cảnh mới (thời gian nhảy / nơi khác hẳn) → reset chỗ đứng, hướng, dáng, đồ đang cầm (trạng thái
+   *  cơ thể giữ tới khi đổi ngày truyện); trống = liền mạch (bo-set-3d.ts › lienMachTap) */ lien_truoc?: boolean;
   noi?: string; luc?: string; gia_tri_doi?: string; diem_xoay?: string; nhip_hd?: string[]; hieu_ung?: string[]; anh_sang?: string; mau?: string; mau_mo_ta?: string; nhac?: string;
   /** đoạn kịch bản (screenplay) của cảnh: hành động / âm / thoại / chuyển cảnh */ kich_ban?: DongKichBan[] };
 export type DongKichBan = { loai: 'hd' | 'am' | 'chuyen'; chu: string } | { loai: 'nv'; ten: string; dien: string; loi: string };

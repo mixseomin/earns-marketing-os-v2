@@ -347,7 +347,7 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
     const mDu = bc.mayDu ?? bc.canh.may_3d;   // máy đầy đủ (có đồ để lại) — doc-db.ts › boiCanhCanh, cùng nguồn với prompt
     const k = chanKhungXam({ ...bc.canh, may_3d: mDu }, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? shotSoTruc(ds, i) : null);
     // Mạch: mọi nhân vật mở shot này đúng chỗ lần cuối thấy nó kết + chuỗi chú ý nhìn → thấy → làm (cùng hàm dấu ⚠ trên lưới).
-    k.push(...(loiMachTap(ds, nvPhim, r[0] ? [mapBoSet(r[0])] : [])[bc.canh.id] ?? []));
+    k.push(...(loiMachTap(ds, nvPhim, r[0] ? [mapBoSet(r[0])] : [], tapQt.phan_canh)[bc.canh.id] ?? []));   // phân cảnh: luồng thời gian (ngày truyện / liền trước)
     if (k.length) chan.push(`Bộ set 3D: ${k.join('; ')}`);
   }
   if (!bc.canh.prompt_anh.trim()) chan.push('cảnh chưa có prompt ảnh');

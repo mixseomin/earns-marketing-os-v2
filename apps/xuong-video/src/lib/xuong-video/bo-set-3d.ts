@@ -2,7 +2,7 @@
 // máy ảo của từng shot (xv_canh.may_3d) render ra khung xám + bản đồ độ sâu (scripts/bo-set/dung-set.py, Blender trên box) làm khung xương
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
-import type { BoSet, Canh, KhungXam, May3d, NhanVat, VatThay } from './kieu';
+import type { BoSet, Canh, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
 import { duongMay, hopVat } from './duong-may';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
@@ -293,7 +293,10 @@ const NGUONG_CM = (co?: number[]) => Math.max(0.8, 0.45 * Math.max(...(co ?? [2]
 const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
 
 /** Lỗi liền mạch theo từng shot (id → câu). ds = các shot CÙNG bộ set theo thứ tự phát; shot không có may_3d bỏ qua. */
-export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null }>(ds: T[], khoi: (ten: string) => { co: number[] } | null): Record<number, string[]> {
+/** Cảnh của một shot trong phân cảnh tập: shot ghi 'Cảnh 4 · Cục bụi biết sợ', phân cảnh ghi 'Cục bụi biết sợ'. */
+export const canhCuaShot = <P extends Pick<PhanCanh, 'ten'>>(canh: string | undefined, pc: P[] | undefined): P | undefined =>
+  canh && pc?.length ? pc.find((x) => x.ten.trim() === canh.trim() || canh.split('·').pop()!.trim() === x.ten.trim()) : undefined;
+export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null; canh?: string }>(ds: T[], khoi: (ten: string) => { co: number[] } | null, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
   const cuoi = new Map<string, { p: number[]; huong?: number; nam: boolean; shot: number }>(); const out: Record<number, string[]> = {};
   // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
   // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
@@ -305,8 +308,19 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   // không tự phẳng, bẹp không tự tròn; chỉ đổi trong shot (trang_den) hoặc khi khai nhay.
   const trangCuoi = new Map<string, { t: string; shot: number }>();
   let truocCo = new Set<string>();
+  // LUỒNG CẢNH (script supervisor, anh 16/10/2026: "đang lái xe hết cảnh, cảnh sau sáng hôm sau đang nằm ngủ là bình thường"): sổ liền mạch
+  // theo từng nhân vật chỉ giữ trong một luồng thời gian. Sang cảnh khai NGÀY TRUYỆN khác → reset hết (trừ vật đã chia: thời gian không làm lành);
+  // cảnh khai lien_truoc: false (thời gian nhảy) → reset chỗ / hướng / dáng / đồ đang cầm, trạng thái cơ thể giữ tới khi đổi ngày.
+  let canhTruoc: string | undefined; let ngayTruoc: string | undefined;
   for (const c of ds) {
     const m = c.may_3d; if (!m) continue;
+    const pc = canhCuaShot(c.canh, phanCanh);
+    if (pc && pc.ten !== canhTruoc) {
+      const ngay = pc.ngay?.trim() || ngayTruoc;
+      if (canhTruoc !== undefined && ngay !== ngayTruoc) { cuoi.clear(); camBoi.clear(); trangCuoi.clear(); truocCo = new Set(); }
+      else if (canhTruoc !== undefined && pc.lien_truoc === false) { cuoi.clear(); camBoi.clear(); truocCo = new Set(); }
+      canhTruoc = pc.ten; ngayTruoc = ngay;
+    }
     const co = new Set(m.vi_tri.map((v) => v.ten));
     for (const v of m.vi_tri) {
       const tr = trangCuoi.get(v.ten); const mo = (v.trang ?? '').trim();
@@ -554,12 +568,12 @@ export function chuoiChuY<T extends { id: number; thu_tu: number; phan_doan?: st
 
 /** Lỗi MẠCH của cả tập theo từng bộ set: liền mạch chỗ đứng / đồ đang cầm (lienMachTap) + chuỗi chú ý nhìn → thấy → làm (chuoiChuY).
  *  MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và dấu ⚠ trên lưới (luoi-kich-ban.tsx). ds = shot nhánh dựng theo thứ tự phát. */
-export function loiMachTap<T extends ShotMach & { nhan_vat: number[] }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[]): Record<number, string[]> {
+export function loiMachTap<T extends ShotMach & { nhan_vat: number[]; canh?: string }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
   const out: Record<number, string[]> = {};
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
     const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);
-    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
+    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat), phanCanh), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
 }

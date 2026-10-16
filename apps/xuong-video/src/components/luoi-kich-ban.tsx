@@ -11,7 +11,7 @@ import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
 import { useEffect, useState } from 'react';
 import { useNho } from './nho';
 import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
-import { kiemKhungTapAction, boSetCuaTap, boQuaSoiClipAction, dichMoTaTap } from '@/lib/actions';
+import { kiemKhungTapAction, boSetCuaTap, boQuaSoiClipAction, dichMoTaTap, luuLuongCanh } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
@@ -76,7 +76,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   // Mạch 3D (bo-set-3d.ts › loiMachTap): CÙNG hàm cổng keyframe dùng — đứt mạch chỗ đứng / thiếu chuỗi chú ý gắn ⚠ ở ô 3D, tooltip ghi lý do.
   const [sets, setSets] = useState<Pick<BoSet, 'id' | 'du_lieu'>[]>([]);
   useEffect(() => { void boSetCuaTap(tap.id).then((r) => { if (r.ok) setSets(r.data); }); }, [tap.id]);
-  const lienMach = loiMachTap(canh, nhanVat, sets);
+  const lienMach = loiMachTap(canh, nhanVat, sets, tap.phan_canh);
   // Cảnh báo (luật 30°, eye trace, khoảng nhìn, chiều cao máy, ống kính — Murch xếp cuối): ⚠ vàng, không chặn tiền.
   const canhBao = canhBaoMachTap(canh, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t));
   // Điểm Murch từng shot (diem-murch.ts): so shot trong tập, chip góc phải ô 3D, thẻ nổi sáu tiêu chí.
@@ -139,7 +139,16 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   {/* Điểm Murch ở MỌI thẻ (anh 16/10/2026: "phải đặt vào mặc định cho mọi video") — trước chỉ có trong ô 3D nên QC / shot ngoài bộ set không thấy. */}
                   <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} viTri={{ left: 4, top: 22 }} />
                 </div>}
-                {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}
+                {i === 0 && pc && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                  {/* LUỒNG CẢNH (script supervisor): ngày truyện + cảnh liền / cảnh mới — cổng liền mạch theo nhân vật reset sổ theo đây (bo-set-3d.ts › lienMachTap). */}
+                  <button type="button" title={`Ngày truyện của cảnh (N1 = đêm 1, D2 = ngày 2…). Khác ngày cảnh trước → sổ liền mạch reset cả trạng thái cơ thể, chỗ, dáng.${pc.ngay ? '' : ' Trống = cùng ngày cảnh trước.'}`}
+                    onClick={async (e) => { e.stopPropagation(); const v = prompt('Ngày truyện của cảnh (N1, D2…; để trống = cùng ngày cảnh trước):', pc.ngay ?? ''); if (v === null) return; const r = await goiAction(() => luuLuongCanh(tap.id, pc.ten, { ngay: v })); if (r.loi) alert(r.loi); await onChanged(); }}
+                    style={{ fontSize: 10, padding: '0 5px', borderRadius: 3, border: '1px solid var(--line)', background: pc.ngay ? 'var(--bg-2)' : 'none', color: pc.ngay ? 'var(--fg-1)' : 'var(--fg-4)', cursor: 'pointer' }}>📅 {pc.ngay ?? 'ngày?'}</button>
+                  <button type="button" title={pc.lien_truoc === false ? 'Cảnh MỚI: thời gian nhảy so với cảnh trước — chỗ đứng, dáng, hướng, đồ cầm được đổi. Bấm → liền mạch.' : 'LIỀN cảnh trước: mọi nhân vật mở cảnh đúng chỗ / dáng / trạng thái lần cuối thấy. Bấm → cảnh mới (thời gian nhảy).'}
+                    onClick={async (e) => { e.stopPropagation(); const r = await goiAction(() => luuLuongCanh(tap.id, pc.ten, { lien_truoc: pc.lien_truoc === false ? null : false })); if (r.loi) alert(r.loi); await onChanged(); }}
+                    style={{ fontSize: 10, padding: '0 5px', borderRadius: 3, border: '1px solid var(--line)', background: 'none', color: pc.lien_truoc === false ? '#facc15' : 'var(--fg-3)', cursor: 'pointer' }}>{pc.lien_truoc === false ? '✂ cảnh mới' : '⛓ liền'}</button>
+                  {pc.noi && <span>📍 {pc.noi}</span>}{pc.luc && <span>🕐 {pc.luc}</span>}
+                </div>}
                 <div className="xv-mono" style={{ padding: '4px 7px 0', fontSize: 10, lineHeight: 1.35, color: 'var(--fg-2)' }}>
                   {bc.length > 0 && <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bc.join(', ')}>📍 {bc.join(', ')}</div>}
                   <div style={{ marginTop: 2 }}><KyThuatApDung kt={kt} nhom={['vai', 'co_canh', 'chuyen_dong', 'dien_xuat']} nho /></div>

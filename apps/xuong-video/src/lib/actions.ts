@@ -695,6 +695,19 @@ export async function boQuaSoiClipAction(canhId: number): Promise<Kq<true>> {
   await db.execute(sql`UPDATE xv_canh SET soi_clip = soi_clip || ${JSON.stringify({ bo_qua: true, bo_qua_boi: me.email })}::jsonb WHERE id = ${canhId} AND soi_clip IS NOT NULL`);
   return { ok: true, data: true };
 }
+/** LUỒNG CẢNH (script supervisor, 16/10/2026): khai NGÀY TRUYỆN (N1, D2…) và cảnh có tiếp LIỀN thời gian cảnh trước không, cho một cảnh của
+ *  phân cảnh tập — cổng liền mạch theo nhân vật (bo-set-3d.ts › lienMachTap) reset sổ theo hai trường này. null = xoá khai (về mặc định liền mạch). */
+export async function luuLuongCanh(tapId: number, ten: string, v: { ngay?: string | null; lien_truoc?: boolean | null }): Promise<Kq<true>> {
+  const db = getDb(); const me = await admin();
+  if (!db || !me) return loi('không có quyền');
+  const dat: Record<string, unknown> = {}; const xoa: string[] = [];
+  if (v.ngay !== undefined) { if (v.ngay && v.ngay.trim()) dat.ngay = v.ngay.trim().toUpperCase(); else xoa.push('ngay'); }
+  if (v.lien_truoc !== undefined) { if (v.lien_truoc === null) xoa.push('lien_truoc'); else dat.lien_truoc = v.lien_truoc; }
+  await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['phan_canh'], moTa: `luồng cảnh "${ten}"`, nguoi: me.email });
+  await db.execute(sql`UPDATE xv_tap SET phan_canh = (SELECT coalesce(jsonb_agg(CASE WHEN x->>'ten' = ${ten} THEN (x - ${`{${xoa.join(',')}}`}::text[]) || ${JSON.stringify(dat)}::jsonb ELSE x END ORDER BY o), '[]'::jsonb)
+    FROM jsonb_array_elements(phan_canh) WITH ORDINALITY AS t(x, o)), updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: true };
+}
 /** 🇻🇳 trên lưới (#1397): dịch mô tả các shot của tập CHƯA có bản tiếng Việt bằng model chữ rẻ nhất (claude.ts › dichMoTaVi), lưu hanh_dong_vi.
  *  Shot đã có bản dịch / hành động đã là tiếng Việt thì bỏ qua — bấm lại không tốn thêm. Trả số shot vừa dịch + tiền. */
 export async function dichMoTaTap(tapId: number): Promise<Kq<{ so: number; cents: number }>> {

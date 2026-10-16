@@ -22,12 +22,12 @@ const kep = (x: number) => Math.max(0, Math.min(1, x));
 const tamThay = (c: Shot, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2 } : null; };
 
 /** Điểm Murch của mọi shot trong một nhánh (đã xếp theo thứ tự phát). gag: cú bùng của từng cảnh (phan_canh[].gag) để thưởng shot phản ứng sau bùng. */
-export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], p: { khong_loi?: boolean; laQc?: boolean; phanCanh?: Pick<PhanCanh, 'ten' | 'gag'>[] } = {}): Record<number, DiemMurch> {
+export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], p: { khong_loi?: boolean; laQc?: boolean; phanCanh?: Pick<PhanCanh, 'ten' | 'gag' | 'ngay' | 'lien_truoc'>[] } = {}): Record<number, DiemMurch> {
   const out: Record<number, DiemMurch> = {};
   const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);
   const tenNv = new Set(nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id));
   // Lỗi mạch (một lần cho cả nhánh) — phân loại theo nội dung câu cổng (bo-set-3d.ts): mỗi câu đã mang tên luật ở đầu.
-  const mach = loiMachTap(ds as Parameters<typeof loiMachTap>[0], nhanVat, sets);
+  const mach = loiMachTap(ds as Parameters<typeof loiMachTap>[0], nhanVat, sets, p.phanCanh);
   const machBieuCam = p.laQc ? loiMachBieuCam(ds, nhanVat) : {};
   const loai = (s: string): TieuChi | 'truyen_chuoi' => /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
   const giayChuan = giayDoc(p);

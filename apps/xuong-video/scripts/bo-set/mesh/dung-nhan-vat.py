@@ -164,6 +164,7 @@ def meta(ten, phan, m, res=0.05, nguong=0.6, he=1.0):
     me.transform(Matrix.Scale(CM, 4)); me.update()
     om = bpy.data.objects.new(ten, me); bpy.context.collection.objects.link(om); me.materials.append(m)
     for p_ in me.polygons: p_.use_smooth = True
+    sd = om.modifiers.new('min', 'SUBSURF'); sd.levels = 1; sd.render_levels = 2   # lưới metaball thô: chất keo trong / da bóng bắt sáng gãy thành ô khi ảnh nét (16/10/2026)
     print('meta', ten, len(me.vertices), 'đỉnh')
     return om
 

@@ -127,6 +127,8 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
     elif h == 'non':   # nón cụt (thân khăn rủ Mr. Wipe): đáy rộng co[0]×co[1], đỉnh = đáy × dinh, cao co[2]
         bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * p.get('dinh', 0.4), depth=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
     o = bpy.context.object
+    if h != 'hop':   # khối cong mặt mịn: ảnh nét (lay_net) lộ từng ô đa giác thành vệt sáng ô vuông (16/10/2026)
+        for f in o.data.polygons: f.use_smooth = True
     o.scale = (w * CM, d * CM, c * CM)
     o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))   # nghiêng quanh trục x của khối (nắp laptop) rồi mới xoay
     return dat(o, m, ten)
@@ -200,6 +202,20 @@ def anh_sang_mau(s, sh, bat):
         den('L~phu', 'AREA', [p.x, p.y, p.z + 12], (0.75, 0.82, 1.0), 4, tuple(cam.rotation_euler), 40)
         if MESH_THAT: den('L~phu2', 'AREA', [p.x, p.y, p.z + 4], (0.85, 0.88, 1.0), 2.5, tuple(cam.rotation_euler), 30)   # Cycles tối hơn EEVEE: thêm fill từ phía máy (như đèn phụ trên set thật) cho mặt nhân vật không chìm
 
+def lay_net(cam, sh):
+    """NÉT như ảnh chụp mô hình thật (anh 16/10/2026: "sao ảnh nó cứ mờ mờ không nét như Veo"). Trước: nét đặt vào ĐIỂM NHÌN của máy (thường sau
+    chủ thể) ở f/8 — ở tỉ lệ mô hình (máy cách ~7 cm) vùng nét chỉ vài mm nên chủ thể nhoè. Giờ: nét đặt giữa các CHỦ THỂ (bat_buoc, cả chỗ mở lẫn
+    chỗ kết), khẩu tính theo độ sâu giữa chủ thể gần nhất và xa nhất (+1 cm) để tất cả cùng nét, nền vẫn mềm: N = f²·Δ / (2·c·s²), c = 0,03 mm,
+    trong khoảng f/11–f/64 (XV_FSTOP ép một số cố định)."""
+    d = cam.data.dof; d.use_dof = True; goc = cam.matrix_world.translation
+    chu = set(sh.get('bat_buoc') or [])
+    diem = [Vector(p + ([0] if len(p) < 3 else [])) + Vector((0, 0, 1.2)) for v in sh.get('nhan_vat', []) if v['ten'] in chu for p in [v['tam']] + ([v['den']] if v.get('den') else [])]
+    kc = [(p * CM - goc).length * 1000 for p in diem] or [(Vector(sh['may']['nhin']) * CM - goc).length * 1000]   # mm
+    s_ = (min(kc) + max(kc)) / 2; de = max(kc) - min(kc) + 10
+    d.focus_distance = s_ / 1000
+    f = cam.data.lens; N = f * f * de / (2 * 0.03 * s_ * s_)
+    d.aperture_fstop = float(os.environ['XV_FSTOP']) if os.environ.get('XV_FSTOP') else min(64.0, max(11.0, N))
+
 def ve_mau(s, sh, ra):
     """Render khung màu bằng EEVEE (chỉ khi có OpenGL — Xvfb trên box). Trả True nếu có ảnh."""
     if not NHANH: return False
@@ -212,7 +228,7 @@ def ve_mau(s, sh, ra):
             for d_ in p_.devices: d_.use = True
             s.cycles.device = 'GPU'
         except Exception as e: print('GPU?', e)
-        cam_ = s.camera; cam_.data.dof.use_dof = True; cam_.data.dof.focus_distance = (Vector(sh['may']['nhin']) * CM - cam_.matrix_world.translation).length; cam_.data.dof.aperture_fstop = 8
+        lay_net(s.camera, sh)
     else: s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12
     s.view_settings.view_transform = 'AgX'
     # JPEG 88: nhẹ 5–8 lần PNG, đủ nét cho mô hình ảnh (anh 15/10/2026: "đẩy nhiều ảnh thì phải nén")
@@ -239,7 +255,7 @@ def dung_set():
     bpy.ops.object.light_add(type='SUN', location=(0, 0, 2)); bpy.context.object.data.energy = 3
     bpy.context.object.rotation_euler = Euler((math.radians(50), math.radians(-20), math.radians(20)))
     s.render.engine = 'CYCLES'; s.cycles.device = 'CPU'; s.cycles.samples = 10; s.cycles.use_denoising = True   # khung xám là khối phẳng màu: 10 mẫu + khử nhiễu ≈ 24 mẫu thô, nhanh ~2,5×
-    s.render.resolution_x, s.render.resolution_y = 540, 960
+    s.render.resolution_x, s.render.resolution_y = 1080, 1920   # khung màu = keyframe: đủ lớn cho model video (540 bị phóng lên thành mềm)
     s.view_settings.view_transform = 'Standard'
     return s
 
@@ -703,9 +719,11 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         for d_ in p_.devices: d_.use = True
         s.cycles.device = 'GPU'
     except Exception as ex: print('GPU?', ex)
-    cam.data.dof.use_dof = True; cam.data.dof.focus_distance = (Vector(sh['may']['nhin']) * CM - cam.matrix_world.translation).length; cam.data.dof.aperture_fstop = 8
+    lay_net(cam, sh)
     s.view_settings.view_transform = 'AgX'
-    s.render.resolution_x, s.render.resolution_y = 540, 960
+    # 1080×1920 (XV_RONG): model video nhận khung ≥ 720p — khung 540 bị phóng lên thành mềm.
+    rong = int(os.environ.get('XV_RONG', '1080')); s.render.resolution_x, s.render.resolution_y = rong, rong * 16 // 9
+    if os.environ.get('XV_THU_KHUNG'): s.frame_start = s.frame_end = int(os.environ['XV_THU_KHUNG'])   # thử nét: một khung
     fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'RGB'
     s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
     for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):

@@ -14,6 +14,12 @@ def nguoi(ten, tam, cao, ao, en, da='#e2bc9c', tu_the='dung', xoay=0):
     """Người phụ / quần chúng: ma-nơ-canh có khớp (mesh/nguoi.py), xoay = hướng mặt (0 = nhìn −y, 90 = nhìn +x)."""
     return {'ten': ten, 'hinh': 'nguoi', 'tam': tam, 'co': [40, 24, cao], 'mau': da, 'ao': ao, 'tu_the': tu_the, 'xoay': xoay, 'en': en}
 
+def ghe(ten, goc, xoay, en, cao_tua=95, mau='#2a2a2e', rong=50):
+    """Ghế RỖNG (mặt ngồi + chân + tựa lưng) — khối đặc thì người phụ ngồi chìm trong ghế. Hướng như người ngồi: xoay 0 = nhìn −y, tựa ở +y."""
+    return {'ten': ten, 'goc': goc, 'xoay': xoay, 'en': en, 'chat': 'vai', 'phan': [
+        {'hinh': 'hop', 'tam': [0, 0, 0], 'co': [8, 8, 40], 'mau': '#3a3a3e'}, {'hinh': 'hop', 'tam': [0, 0, 40], 'co': [rong, rong, 8], 'mau': mau},
+        {'hinh': 'hop', 'tam': [0, rong / 2 - 4, 48], 'co': [rong, 7, cao_tua - 48], 'mau': mau}]}
+
 def cay(ten, goc, cao=180, en='tall fiddle-leaf fig plant in a white ceramic pot'):
     return {'ten': ten, 'goc': goc, 'en': en, 'phan': [{'hinh': 'non', 'tam': [0, 0, 0], 'co': [45, 45, 45], 'dinh': 0.8, 'mau': '#f2f0ea'},
                                                       {'hinh': 'cau', 'tam': [0, 0, 40], 'co': [80, 80, cao - 40], 'mau': '#3f6b3a'}]}
@@ -30,7 +36,7 @@ def van_phong():
          hop('Vách kính phòng TGĐ', [300, 1000, 0], [560, 2, 300], '#bcd3e0', 'glass wall of the CEO office', sang=0.3),
          hop('Cửa phòng TGĐ', [80, 1000, 0], [110, 3, 240], '#a9c4d6', 'glass door of the CEO office', sang=0.3)]
     for i, x in enumerate((-330, -120, 300)):
-        v.append(hop(f'Đèn trần {i + 1}', [x, 550, 296], [12, 900, 4], '#fffaf0', 'recessed linear LED ceiling light', sang=3))
+        v.append(hop(f'Đèn trần {i + 1}', [x, 550, 296], [12, 900, 4], '#fffaf0', 'recessed linear LED ceiling light', sang=3, nen=True))
     # tường trái: tranh thuỷ mặc + mảng tường xanh chữ vàng; góc trái sau: tủ hồ sơ, máy photo
     v += [hop('Tranh thuỷ mặc', [-597, 450, 120], [4, 240, 120], '#d8d4c8', 'large framed Chinese ink-wash painting of misty mountains in a thin black frame'),
           hop('Tường logo', [-597, 850, 0], [4, 260, 300], '#1d3557', 'navy blue feature wall with gold metal letters "LU GROUP"', nen=True),
@@ -55,7 +61,7 @@ def van_phong():
                   hop(f'Khay giấy {r + 1}.{c + 1}', [x + 58, y + 10, 76], [28, 34, 14], '#2b2b2b', 'black wire document tray with papers'),
                   (hop(f'Chậu sen đá {r + 1}.{c + 1}', [x - 62, y + 18, 76], [12, 12, 16], '#4f7a45', 'small succulent in a white pot') if (r + c) % 2 == 0
                    else hop(f'Cốc {r + 1}.{c + 1}', [x - 55, y - 20, 76], [8, 8, 10], '#ffffff', 'white mug')),
-                  hop(f'Ghế {r + 1}.{c + 1}', [x, y - 70, 0], [50, 50, 95], '#2a2a2e', 'black mesh office chair', chat='vai')]
+                  ghe(f'Ghế {r + 1}.{c + 1}', [x, y - 70], 90 if c == 2 else 180, 'black mesh office chair')]
     # người phụ: dãy sát lối đi quay ra xem, còn lại làm việc; hai người đứng cạnh cửa sổ (sau lưng hai vai chính)
     v += [nguoi('Đồng nghiệp ngồi 1', [-10, 230, 0], 170, '#d9cbb5', 'young male office worker in a beige shirt, seated, turned toward the aisle, watching', tu_the='ngoi', xoay=90),
           nguoi('Đồng nghiệp ngồi 2', [-10, 430, 0], 162, '#9fb8d6', 'young female office worker in a light blue blouse, seated, turned toward the aisle, holding up a phone to film', da='#ecc7a8', tu_the='ngoi', xoay=90),
@@ -78,7 +84,7 @@ def thang_may():
             hop('Số tầng 2', [100, 446, 232], [36, 2, 9], '#ff9a3c', 'small amber digital floor indicator showing 12', sang=1.5),
             hop('Nút gọi', [0, 446, 95], [9, 2, 16], '#b8bcc2', 'brushed steel elevator call-button panel'),
             hop('Logo Lục thị', [0, 448, 245], [140, 2, 30], '#c9a45c', 'gold metal "LU GROUP" logo on the wall', sang=0.5),
-            hop('Đèn trần', [0, 250, 297], [500, 40, 2], '#fff4dc', 'warm recessed ceiling light strip', sang=3),
+            hop('Đèn trần', [0, 250, 297], [500, 40, 2], '#fff4dc', 'warm recessed ceiling light strip', sang=3, nen=True),
             hop('Tranh lá vàng', [-347, 230, 100], [3, 200, 130], '#b8964a', 'large abstract gold-leaf painting in a thin black frame'),
             hop('Bảng chỉ dẫn', [347, 330, 110], [3, 70, 100], '#1a1a1c', 'black glass building directory sign with white lettering', sang=0.3),
             hop('Ghế băng', [310, 250, 0], [45, 160, 45], '#1b1b1d', 'black leather bench', chat='vai'),
@@ -115,7 +121,7 @@ def phong_hop():
     for i, y in enumerate((230, 330, 430, 530, 630)):
         for s in (-1, 1):
             b = 'T' if s < 0 else 'P'
-            v += [hop(f'Ghế {i + 1}{b}', [s * 120, y, 0], [55, 55, 105], '#1d1d20', 'black leather boardroom chair', chat='vai'),
+            v += [ghe(f'Ghế {i + 1}{b}', [s * 120, y], -90 * s, 'black leather high-back boardroom chair', cao_tua=110, mau='#1d1d20', rong=55),
                   hop(f'Sổ {i + 1}{b}', [s * 52, y, 76], [22, 30, 1], '#f4f1ea', 'white notepad with a black pen'),
                   hop(f'Ly nước {i + 1}{b}', [s * 45, y + 22, 76], [7, 7, 13], '#cfe3ea', 'glass of water')]
             tv = thanh_vien.get((b, i + 1))

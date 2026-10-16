@@ -197,7 +197,8 @@
     ],
     "mau": "#fffaf0",
     "en": "recessed linear LED ceiling light",
-    "sang": 3
+    "sang": 3,
+    "nen": true
    },
    {
     "ten": "Đèn trần 2",
@@ -214,7 +215,8 @@
     ],
     "mau": "#fffaf0",
     "en": "recessed linear LED ceiling light",
-    "sang": 3
+    "sang": 3,
+    "nen": true
    },
    {
     "ten": "Đèn trần 3",
@@ -231,7 +233,8 @@
     ],
     "mau": "#fffaf0",
     "en": "recessed linear LED ceiling light",
-    "sang": 3
+    "sang": 3,
+    "nen": true
    },
    {
     "ten": "Tranh thuỷ mặc",
@@ -732,20 +735,57 @@
    },
    {
     "ten": "Ghế 1.1",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -430,
-     230,
-     0
+     230
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 180,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 1.2",
@@ -830,20 +870,57 @@
    },
    {
     "ten": "Ghế 1.2",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -220,
-     230,
-     0
+     230
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 180,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 1.3",
@@ -928,20 +1005,57 @@
    },
    {
     "ten": "Ghế 1.3",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -10,
-     230,
-     0
+     230
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 90,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 2.1",
@@ -1026,20 +1140,57 @@
    },
    {
     "ten": "Ghế 2.1",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -430,
-     430,
-     0
+     430
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 180,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 2.2",
@@ -1124,20 +1275,57 @@
    },
    {
     "ten": "Ghế 2.2",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -220,
-     430,
-     0
+     430
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 180,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 2.3",
@@ -1222,20 +1410,57 @@
    },
    {
     "ten": "Ghế 2.3",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -10,
-     430,
-     0
+     430
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 90,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 3.1",
@@ -1320,20 +1545,57 @@
    },
    {
     "ten": "Ghế 3.1",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -430,
-     630,
-     0
+     630
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 180,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 3.2",
@@ -1418,20 +1680,57 @@
    },
    {
     "ten": "Ghế 3.2",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -220,
-     630,
-     0
+     630
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 180,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Bàn 3.3",
@@ -1516,20 +1815,57 @@
    },
    {
     "ten": "Ghế 3.3",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -10,
-     630,
-     0
+     630
     ],
-    "co": [
-     50,
-     50,
-     95
-    ],
-    "mau": "#2a2a2e",
+    "xoay": 90,
     "en": "black mesh office chair",
-    "chat": "vai"
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       50,
+       50,
+       8
+      ],
+      "mau": "#2a2a2e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       21.0,
+       48
+      ],
+      "co": [
+       50,
+       7,
+       47
+      ],
+      "mau": "#2a2a2e"
+     }
+    ]
    },
    {
     "ten": "Đồng nghiệp ngồi 1",
@@ -1880,7 +2216,8 @@
     ],
     "mau": "#fff4dc",
     "en": "warm recessed ceiling light strip",
-    "sang": 3
+    "sang": 3,
+    "nen": true
    },
    {
     "ten": "Tranh lá vàng",
@@ -2466,20 +2803,57 @@
    },
    {
     "ten": "Ghế 1T",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -120,
-     230,
-     0
+     230
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": 90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 1T",
@@ -2534,20 +2908,57 @@
    },
    {
     "ten": "Ghế 1P",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      120,
-     230,
-     0
+     230
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": -90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 1P",
@@ -2602,20 +3013,57 @@
    },
    {
     "ten": "Ghế 2T",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -120,
-     330,
-     0
+     330
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": 90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 2T",
@@ -2670,20 +3118,57 @@
    },
    {
     "ten": "Ghế 2P",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      120,
-     330,
-     0
+     330
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": -90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 2P",
@@ -2738,20 +3223,57 @@
    },
    {
     "ten": "Ghế 3T",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -120,
-     430,
-     0
+     430
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": 90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 3T",
@@ -2806,20 +3328,57 @@
    },
    {
     "ten": "Ghế 3P",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      120,
-     430,
-     0
+     430
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": -90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 3P",
@@ -2874,20 +3433,57 @@
    },
    {
     "ten": "Ghế 4T",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -120,
-     530,
-     0
+     530
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": 90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 4T",
@@ -2923,20 +3519,57 @@
    },
    {
     "ten": "Ghế 4P",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      120,
-     530,
-     0
+     530
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": -90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 4P",
@@ -2991,20 +3624,57 @@
    },
    {
     "ten": "Ghế 5T",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      -120,
-     630,
-     0
+     630
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": 90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 5T",
@@ -3040,20 +3710,57 @@
    },
    {
     "ten": "Ghế 5P",
-    "hinh": "hop",
-    "tam": [
+    "goc": [
      120,
-     630,
-     0
+     630
     ],
-    "co": [
-     55,
-     55,
-     105
-    ],
-    "mau": "#1d1d20",
-    "en": "black leather boardroom chair",
-    "chat": "vai"
+    "xoay": -90,
+    "en": "black leather high-back boardroom chair",
+    "chat": "vai",
+    "phan": [
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       0
+      ],
+      "co": [
+       8,
+       8,
+       40
+      ],
+      "mau": "#3a3a3e"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       0,
+       40
+      ],
+      "co": [
+       55,
+       55,
+       8
+      ],
+      "mau": "#1d1d20"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       0,
+       23.5,
+       48
+      ],
+      "co": [
+       55,
+       7,
+       62
+      ],
+      "mau": "#1d1d20"
+     }
+    ]
    },
    {
     "ten": "Sổ 5P",

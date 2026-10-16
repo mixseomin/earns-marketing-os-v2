@@ -36,6 +36,17 @@ export const trangCoIsbn = (html, isbn) => html.includes(`${isbn.slice(0, 3)}-${
 /** Mã /dp/ trong trang tìm kiếm, theo thứ tự xuất hiện, không trùng. */
 export const dpTrongTrang = (html) => [...new Set([...html.matchAll(/\/dp\/([0-9A-Z]{10})/g)].map((m) => m[1]))];
 
+/** BSR trên trang sản phẩm: hạng tổng "#12,345 in Books" (sách mới chưa bán thì không có) + hạng từng mục. */
+export function docBsr(html) {
+  const t = html.replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+  const i = t.indexOf('Best Sellers Rank'); if (i < 0) return { bsr: null, hang: [] };
+  const doan = t.slice(i, i + 700);
+  const so = (x) => Number(x.replace(/,/g, ''));
+  const tong = doan.match(/#([\d,]+) in Books\b/);
+  const hang = [...doan.matchAll(/#([\d,]+) in ([^#(]+?)(?=\s*(?:#|\(|Customer|$))/g)].filter((m) => !/^Books\s*$/.test(m[2].trim())).slice(0, 3).map((m) => ({ so: so(m[1]), muc: m[2].trim() }));
+  return { bsr: tong ? so(tong[1]) : null, hang };
+}
+
 /** Dòng máy đầu ghi chú: thay dòng máy cũ ("⟳ …"), giữ phần tay (cùng luật ios-chung/Tools/tai-san.mjs). */
 export function ghiChu(cu, dong) {
   if (!dong) return cu ?? null;
@@ -67,7 +78,11 @@ if (process.argv.includes('--tu-kiem')) {
   eq(trangAmazonHong(200, '<form action="/errors/validateCaptcha">' + 'x'.repeat(30000)), true, 'trang captcha 200 = bị chặn');
   eq(trangAmazonHong(200, 'x'.repeat(3785)), true, 'trang cụt = bị chặn');
   eq(trangAmazonHong(200, 'ISBN-13 : 979-8178977729' + 'x'.repeat(600000)), false, 'trang thật');
-  if (!process.exitCode) console.log('theo-doi-duyet: 19/19 đạt');
+  const mau = '<span>Best Sellers Rank:</span> #110 in State Quarter Collecting <a>#226 in Antique &amp; Collectible Precious Metals (Books)</a> #813 in Antique &amp; Collectible Reference (Books) <span>Customer Reviews';
+  eq(docBsr(mau), { bsr: null, hang: [{ so: 110, muc: 'State Quarter Collecting' }, { so: 226, muc: 'Antique & Collectible Precious Metals' }, { so: 813, muc: 'Antique & Collectible Reference' }] }, 'sách mới: chưa hạng tổng');
+  eq(docBsr('Best Sellers Rank: #1,234,567 in Books (See Top 100 in Books) #55 in Word Search').bsr, 1234567, 'hạng tổng');
+  eq(docBsr('<html>no rank</html>'), { bsr: null, hang: [] }, 'không có BSR');
+  if (!process.exitCode) console.log('theo-doi-duyet: 22/22 đạt');
   process.exit(process.exitCode ?? 0);
 }
 
@@ -82,11 +97,27 @@ async function proxyAmazon() {
   try { const c = JSON.parse(readFileSync(f, 'utf8')); if (c.het > Date.now() + 60_000) return c.ep; } catch { /* chưa có */ }
   const key = (readFileSync('/root/.secrets/spy.env', 'utf8').match(/^SUIPROXY_KEY=(.*)$/m) ?? [])[1]?.trim().replace(/^["']|["']$/g, '');
   if (!key) return null;
-  const r = await (await fetch(`https://api.suiproxy.com/api/proxy/get-new-proxy?api_key=${key}`, { signal: AbortSignal.timeout(20_000) })).json().catch(() => null);
+  let r = null;
+  for (let i = 0; i < 4 && !r?.success; i++) {   // vừa đổi IP thì SuiProxy khoá đổi ~60 giây ("thử lại sau N giây") → chờ đúng chừng đó
+    r = await (await fetch(`https://api.suiproxy.com/api/proxy/get-new-proxy?api_key=${key}`, { signal: AbortSignal.timeout(20_000) })).json().catch(() => null);
+    const cho = Number(String(r?.message ?? '').match(/(\d+)\s*giây/)?.[1] ?? 0);
+    if (!r?.success && cho > 0 && cho <= 90) await new Promise((ok) => setTimeout(ok, (cho + 2) * 1000)); else if (!r?.success) break;
+  }
   if (!r?.success) return null;
   mkdirSync(DATA, { recursive: true });
   writeFileSync(f, JSON.stringify({ ep: r.data.proxyHttp, het: Date.now() + (Number(r.data.timeLive) || 1500) * 1000 }));
   return r.data.proxyHttp;
+}
+/** Lấy một trang Amazon: IP proxy bị chặn → bỏ IP đó, xin IP mới, thử lại (tối đa 3 IP / lượt — chặn hay không tuỳ IP: 16/10 IP 27.76.x đọc
+ *  được, IP 58.186.x bị 503). Không được thì null = chưa kiểm được. Mọi chỗ đọc Amazon đi qua đây. */
+let soLanDoiIp = 0;
+async function amazon(url) {
+  for (;;) {
+    const ep = await proxyAmazon(); if (!ep) return null;
+    const html = layQuaProxy(url, ep); if (html) return html;
+    if (++soLanDoiIp > 3) return null;
+    boProxy();
+  }
 }
 function boProxy() { try { writeFileSync(`${DATA}/proxy.json`, '{}'); } catch { /* chưa có thư mục */ } }
 /** GET qua proxy bằng curl (fetch của Node không đi proxy HTTP sẵn). Amazon chặn IP (503, trang captcha, trang cụt) → null: KHÔNG được coi là
@@ -111,11 +142,10 @@ const KIEM = {
     if (!['in_review', 'pending'].includes(p.status)) return null;
     const isbn = isbnCua(p);
     if (!isbn) return { status: p.status, dong: `⟳ Duyệt KDP: chưa kiểm được — sổ chưa có ISBN (${ngayVn()})` };
-    let ep = await proxyAmazon(), tim = ep && layQuaProxy(`https://www.amazon.com/s?k=${isbn}&i=stripbooks`, ep);
-    if (ep && !tim) { boProxy(); ep = await proxyAmazon(); tim = ep && layQuaProxy(`https://www.amazon.com/s?k=${isbn}&i=stripbooks`, ep); }   // IP bị chặn → đổi một lần
+    const tim = await amazon(`https://www.amazon.com/s?k=${isbn}&i=stripbooks`);
     if (!tim) return null;   // Amazon chặn / proxy hỏng: chưa kiểm được, lượt sau thử lại
     for (const asin of dpTrongTrang(tim).slice(0, 4)) {
-      const trang = layQuaProxy(`https://www.amazon.com/dp/${asin}`, ep);
+      const trang = await amazon(`https://www.amazon.com/dp/${asin}`);
       if (trang == null) return null;   // bị chặn giữa chừng: không kết luận
       if (trangCoIsbn(trang, isbn)) return { status: 'published', dong: `⟳ Duyệt KDP: đã lên Amazon ${asin} (${ngayVn()})`, url: `https://www.amazon.com/dp/${asin}` };
     }
@@ -139,7 +169,8 @@ const pr = await fetch(`${U}/items/products?limit=-1&fields=id,title,platform,sk
 if (!pr.ok) throw new Error(`Directus products → ${pr.status} ${(await pr.text()).slice(0, 200)}`);
 const doi = [];
 let kiem = 0, chuaKiem = 0;
-for (const p of (await pr.json()).data) {
+const sp = (await pr.json()).data;
+for (const p of sp) {
   let tt;
   try { tt = await KIEM[p.platform](p); } catch (e) { log(`${p.platform} · ${p.title}: lỗi ${String(e.message).slice(0, 120)}`); chuaKiem++; continue; }
   if (!tt) { if (['in_review', 'pending'].includes(p.status)) chuaKiem++; continue; }
@@ -153,6 +184,27 @@ for (const p of (await pr.json()).data) {
   if (!r.ok) log(`  lỗi ghi ${r.status} ${(await r.text()).slice(0, 150)}`);
 }
 log(`xong: kiểm ${kiem} · chưa kiểm được ${chuaKiem} · đổi trạng thái ${doi.length}`);
+
+// ── ĐO BSR (anh 16/10/2026: "xem traffic từng quyển" — Amazon không cho tác giả xem lượt xem trang; BSR lên xuống hằng ngày là dấu có người
+// mua). Sách KDP đang bán có link /dp/ → mỗi cuốn MỘT lần/ngày (giờ VN) vào product_stats (platform kdp, raw_data.bsr + hang). Amazon chặn
+// lượt này thì giờ sau thử lại (chưa có số hôm nay = chưa đo, không ghi 0).
+const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+let doBsr = 0, chanBsr = 0;
+for (const p of sp.filter((x) => x.platform === 'kdp' && x.status === 'published' && /\/dp\/([0-9A-Z]{10})/.test(x.url ?? ''))) {
+  const asin = p.url.match(/\/dp\/([0-9A-Z]{10})/)[1];
+  const cu = (await (await fetch(`${U}/items/product_stats?limit=1&fields=id,raw_data&filter[product_id][_eq]=${p.id}&filter[date][_eq]=${homNay}&filter[platform][_eq]=kdp`, { headers: H })).json()).data?.[0];
+  if (cu?.raw_data?.bsr !== undefined) continue;   // hôm nay đã đo
+  const html = await amazon(`https://www.amazon.com/dp/${asin}`);
+  if (!html) { chanBsr++; continue; }
+  const b = docBsr(html);
+  doBsr++;
+  log(`BSR ${p.title.slice(0, 40)} (${asin}): ${b.bsr ? `#${b.bsr} Books` : 'chưa có hạng tổng'}${b.hang.length ? ` · ${b.hang.map((h) => `#${h.so} ${h.muc}`).join(' · ')}` : ''}`);
+  if (DRY) continue;
+  const raw = { ...(cu?.raw_data ?? {}), bsr: b.bsr, hang: b.hang, asin };
+  await fetch(cu ? `${U}/items/product_stats/${cu.id}` : `${U}/items/product_stats`, { method: cu ? 'PATCH' : 'POST', headers: H,
+    body: JSON.stringify(cu ? { raw_data: raw } : { product_id: p.id, date: homNay, platform: 'kdp', raw_data: raw }) });
+}
+if (doBsr || chanBsr) log(`BSR: đo ${doBsr} cuốn${chanBsr ? ` · Amazon chặn ${chanBsr} (giờ sau thử lại)` : ''}`);
 
 // Báo Telegram khi trạng thái ĐỔI. Bot + nhóm đọc trong vault mos2 (acct #476, nhóm MINE, topic Quản lý).
 if (doi.length && !DRY && process.env.MOS2_SECRET_KEY && process.env.DATABASE_URL) {

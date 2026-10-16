@@ -48,6 +48,18 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   const preset = (await db.execute(sql`SELECT du_lieu FROM xv_tai_san WHERE loai = 'giong' AND thuong_hieu = ${pj} AND xoa_luc IS NULL ORDER BY updated_at DESC LIMIT 1`)) as unknown as Row[];
   const giongTh = (preset[0]?.du_lieu as { model?: string; voice?: string } | undefined);
   let giongDan = chonDan ?? bc.kt.giong_dan ?? (giongTh?.model && giongTh.voice ? { model: giongTh.model, voice: giongTh.voice } : null);
+  // NGƯỜI KỂ (kt.nguoi_ke — 16/10/2026 Jett #61: lời dẫn của bà Linda đọc bằng "Bill" nam lớn tuổi vì rơi về preset thương hiệu JettJeans):
+  // phim khai người kể thì lời dẫn = giọng riêng của anchor đó (chưa có thì chọn theo giới tính trong mô tả rồi LƯU vào anchor), đứng trước
+  // giọng đã khoá của phim và preset thương hiệu. Lượt chọn tay giọng lời dẫn (chonDan) vẫn thắng.
+  const ke = !chonDan && bc.kt.nguoi_ke ? timNv(bc.nhanVat, bc.kt.nguoi_ke) : null;
+  if (coLoiDan && ke) {
+    if (!ke.giong_id) {
+      const model = ke.giong_model || MODEL_GIONG_MAC_DINH();
+      const voice = chonGiongRieng(ke, (await giongCua(model)).map((g) => g.id), bc.nhanVat.filter((x) => x.id !== ke.id && x.giong_id && (x.giong_model || model) === model).map((x) => x.giong_id));
+      if (voice) { await db.execute(sql`UPDATE xv_nhan_vat SET giong_model = ${model}, giong_id = ${voice}, updated_at = now() WHERE id = ${ke.id}`); ke.giong_model = model; ke.giong_id = voice; }
+    }
+    if (ke.giong_id) giongDan = { model: ke.giong_model || MODEL_GIONG_MAC_DINH(), voice: ke.giong_id };
+  }
   if (coLoiDan && !giongDan) {
     if (coMau(bc.kt.qc)) return loi('Phim có QC mẫu: chọn giọng LỜI DẪN cho cả phim trước (cùng giới tính với giọng của mẫu) — không tự dùng giọng mặc định');
     const m = MODEL_GIONG_MAC_DINH(); giongDan = { model: m, voice: await giongMacDinh(m) };
@@ -56,7 +68,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
     await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{giong_dan}', ${JSON.stringify(giongDan)}::jsonb), updated_at = now() WHERE id = ${bc.tap.phim_id}`);
   }
   // Giọng lời dẫn vừa chốt = preset của thương hiệu (một dòng mỗi thương hiệu, cập nhật tại chỗ).
-  if (coLoiDan && giongDan && pj && (giongDan.model !== giongTh?.model || giongDan.voice !== giongTh?.voice)) {
+  if (coLoiDan && giongDan && pj && !ke && (giongDan.model !== giongTh?.model || giongDan.voice !== giongTh?.voice)) {   // giọng người kể là của nhân vật, không thành preset thương hiệu
     const daCo = (await db.execute(sql`UPDATE xv_tai_san SET du_lieu = ${JSON.stringify(giongDan)}::jsonb, ten = ${`Giọng lời dẫn · ${pj} · ${giongDan.voice}`}, xoa_luc = NULL, updated_at = now()
       WHERE loai = 'giong' AND thuong_hieu = ${pj} RETURNING id`)) as unknown as Row[];
     if (!daCo.length) await db.execute(sql`INSERT INTO xv_tai_san (loai, ten, thuong_hieu, du_lieu, nguon) VALUES ('giong', ${`Giọng lời dẫn · ${pj} · ${giongDan.voice}`}, ${pj}, ${JSON.stringify(giongDan)}::jsonb, ${JSON.stringify({ phim_id: bc.tap.phim_id })}::jsonb)`);

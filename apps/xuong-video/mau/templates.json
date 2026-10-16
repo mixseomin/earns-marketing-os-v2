@@ -4206,7 +4206,8 @@
       "vao": "bat",
       "tu": 3
      }
-    }
+    },
+    "nguoi_ke": "{{nhan_vat_ten}}"
    },
    "nhan_vat": [
     {

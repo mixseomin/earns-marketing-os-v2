@@ -10,34 +10,37 @@ export function hsv(r: number, g: number, b: number): [number, number, number] {
 const coMau = (s: number, v: number) => s >= 0.25 && v >= 0.15;
 const DA = [10, 50];   // dải màu da người — ảnh sản phẩm có người mặc thì da hay chiếm nhiều nhất
 
-/** Màu chủ đạo của sản phẩm từ ảnh gốc (rgb24 phẳng): hue giữa của ô 10° đông nhất trong các điểm có màu. null = sản phẩm không có màu nổi
- *  (đen / trắng / xám, < 5% điểm có màu) → không đo được bằng màu. Ô đông nhất là màu da mà có ô khác ≥ 40% nó thì lấy ô kia. */
-export function mauSanPham(anh: Uint8Array[]): number | null {
-  const o = new Array<number>(36).fill(0); let tong = 0, mau = 0;
+/** Màu sản phẩm: sắc độ + độ đậm + độ sáng trung bình của ô sắc độ 10° đông nhất. So cả độ sáng vì cùng sắc độ vẫn khác món: #54 quần xanh
+ *  cobalt (sáng) với áo polo xanh navy (tối) cùng hue ~225° — đo hue trần thì áo bị tính là quần, máy không thấy quần ra khỏi khung. */
+export type MauSp = { h: number; s: number; v: number };
+/** Màu chủ đạo của sản phẩm từ ảnh gốc (rgb24 phẳng). null = sản phẩm không có màu nổi (đen / trắng / xám, < 5% điểm có màu) → không đo
+ *  được bằng màu. Ô đông nhất là màu da (ảnh có người mặc) mà có ô khác ≥ 40% nó thì lấy ô kia. */
+export function mauSanPham(anh: Uint8Array[]): MauSp | null {
+  const o = Array.from({ length: 36 }, () => ({ n: 0, s: 0, v: 0 })); let tong = 0, mau = 0;
   for (const px of anh) for (let i = 0; i + 2 < px.length; i += 3) {
     tong++; const [h, s, v] = hsv(px[i]!, px[i + 1]!, px[i + 2]!);
-    if (coMau(s, v)) { mau++; o[Math.floor(h / 10) % 36]!++; }
+    if (coMau(s, v)) { mau++; const b = o[Math.floor(h / 10) % 36]!; b.n++; b.s += s; b.v += v; }
   }
   if (!tong || mau / tong < 0.05) return null;
-  const xep = o.map((n, i) => ({ n, i })).sort((a, b) => b.n - a.n);
+  const xep = o.map((b, i) => ({ ...b, i })).sort((a, b) => b.n - a.n);
   const laDa = (i: number) => i * 10 + 5 >= DA[0]! && i * 10 + 5 <= DA[1]!;
-  const chon = laDa(xep[0]!.i) ? (xep.find((x) => !laDa(x.i) && x.n >= xep[0]!.n * 0.4) ?? xep[0]!) : xep[0]!;
-  return chon.i * 10 + 5;
+  const c = laDa(xep[0]!.i) ? (xep.find((x) => !laDa(x.i) && x.n >= xep[0]!.n * 0.4) ?? xep[0]!) : xep[0]!;
+  return { h: c.i * 10 + 5, s: c.s / c.n, v: c.v / c.n };
 }
-/** Tỉ lệ điểm ảnh mang màu sản phẩm (±15°). */
-export function tiLeMau(px: Uint8Array, hue: number): number {
+/** Tỉ lệ điểm ảnh mang màu sản phẩm: sắc độ ±15°, độ đậm và độ sáng lệch ≤ 0,22. */
+export function tiLeMau(px: Uint8Array, m: MauSp): number {
   let n = 0, tong = 0;
   for (let i = 0; i + 2 < px.length; i += 3) {
     tong++; const [h, s, v] = hsv(px[i]!, px[i + 1]!, px[i + 2]!);
-    const lech = Math.min(Math.abs(h - hue), 360 - Math.abs(h - hue));
-    if (coMau(s, v) && lech <= 15) n++;
+    const lech = Math.min(Math.abs(h - m.h), 360 - Math.abs(h - m.h));
+    if (coMau(s, v) && lech <= 15 && Math.abs(s - m.s) <= 0.22 && Math.abs(v - m.v) <= 0.22) n++;
   }
   return tong ? n / tong : 0;
 }
-/** Sản phẩm mất khỏi khung: khung k còn < 35% lượng màu của khung đầu. Trả giây đầu tiên mất, hoặc null. Khung đầu < 2% = không đo được. */
+/** Sản phẩm mất khỏi khung: khung k còn < 35% lượng màu của khung đầu. Trả giây đầu tiên mất, hoặc null. Khung đầu < 3% = không đo được. */
 export function giayMatSanPham(tiLe: number[], giay: number[]): number | null | 'khong_do' {
   const dau = tiLe[0] ?? 0;
-  if (dau < 0.02) return 'khong_do';
+  if (dau < 0.03) return 'khong_do';
   const i = tiLe.findIndex((x, k) => k > 0 && x < dau * 0.35);
   return i < 0 ? null : giay[i]!;
 }

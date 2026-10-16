@@ -45,10 +45,10 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   // Sản phẩm còn trong khung: chỉ shot gắn sản phẩm có ảnh gốc màu nổi.
   const sp = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE loai = 'san_pham' AND id = ANY(${`{${c.nhan_vat.join(',')}}`}::int[])`)) as unknown as Row[]).map(mapNhanVat);
   const anh = (await Promise.all(sp.flatMap((v) => v.anh_ref.slice(0, 3)).map((u) => khungNho(u, 0)))).filter((x) => x != null) as Uint8Array[];
-  const hue = anh.length ? mauSanPham(anh) : null;
+  const mauSp = anh.length ? mauSanPham(anh) : null;
   const mau: number[] = [];
-  if (hue != null) {
-    for (const t of giay) { const k = await khungNho(url, t); mau.push(k ? Math.round(tiLeMau(k, hue) * 1000) / 1000 : 0); }
+  if (mauSp) {
+    for (const t of giay) { const k = await khungNho(url, t); mau.push(k ? Math.round(tiLeMau(k, mauSp) * 1000) / 1000 : 0); }
     const mat = giayMatSanPham(mau, giay);
     if (typeof mat === 'number') loi.push(`sản phẩm (${sp.map((v) => v.ten).join(', ')}) ra khỏi khung hoặc đổi màu từ giây ${mat} — màu sản phẩm còn ${Math.round((Math.min(...mau.slice(1)) / mau[0]!) * 100)}% so với khung đầu`);
   }

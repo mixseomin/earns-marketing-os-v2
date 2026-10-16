@@ -3,6 +3,7 @@
 # lấy shot + thời lượng từ máy chủ → mỗi shot: dung-set.py XV_DIEN render khung → ghep-dien.sh (hậu kỳ ống kính) → gửi clip + 5 khung khoá
 # → nap-dien.mts: clip thành VIDEO của shot (lưới / timeline / trình phát hiện ngay), khung đầu thành keyframe. 0đ. Shot đã xong thì bỏ qua (chạy lại tiếp).
 #   XV_NHAP=1 scripts/bo-set/dien-tap.sh <tap_id>   ← bản nháp nhanh (~10 phút cả tập)
+#   XV_MAY_THUE=<user@host> [XV_MAY_THUE_CONG=<cổng>] … ← render trên máy thuê GPU (may-thue.sh chuan-bi trước; xong nhớ may-thue.sh tat)
 #   scripts/bo-set/dien-tap.sh <tap_id> [--chi=thu_tu,…]   ·   XV_MAY=eevee (bản xem ~1 phút/shot) | cycles (~8 phút/shot iMac M4) · XV_RONG (720) · XV_MAU (24)
 set -e
 TAP=$1; CHI=$(echo "$2" | sed -n 's/^--chi=//p')
@@ -31,3 +32,5 @@ if [ -n "$XV_NHAP" ]; then export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${
 export XV_MAY XV_NHAP XV_RONG XV_MAU
 while read -r TEN MA GIAY; do echo "$RA/$TEN $MA $GIAY"; done < "$RA/viec.txt" | xargs -P "${XV_SONG:-1}" -L1 "$DIR/scripts/bo-set/dien-mot.sh"
 echo "HET tap $TAP"
+[ -n "$XV_MAY_THUE" ] && echo "⚠ MÁY THUÊ còn đang tính tiền — tắt: scripts/bo-set/may-thue.sh tat $XV_MAY_THUE ${XV_MAY_THUE_CONG:-22}"
+true

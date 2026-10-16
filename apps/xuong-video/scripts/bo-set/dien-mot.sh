@@ -5,8 +5,16 @@ D=$1; MA=$2; GIAY=$3; TEN=$(basename "$D")
 BOX=root@167.233.241.16; APP=/opt/earns-marketing-os-v2/apps/xuong-video; DIR=$(cd "$(dirname "$0")/../.." && pwd)
 [ -f "$D/xong${XV_NHAP:+-nhap}" ] && exit 0
 rm -f "$D"/f*.png
-env XV_MAY=${XV_MAY:-cycles} XV_NHAP=$XV_NHAP XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720} \
-  /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P "$DIR/scripts/bo-set/${XV_PY:-dung-set.py}" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; exit 0; }
+MOI="XV_MAY=${XV_MAY:-cycles} XV_NHAP=$XV_NHAP XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720}"
+if [ -n "$XV_MAY_THUE" ]; then
+  # MÁY THUÊ GPU (may-thue.sh — chuan-bi trước): đẩy vao.json lên → Blender GPU bên đó → kéo khung về; hậu kỳ + nạp vẫn ở iMac như cũ.
+  C=${XV_MAY_THUE_CONG:-22}; R=/root/xv/shot/$TEN
+  { ssh -p $C $XV_MAY_THUE "rm -rf $R && mkdir -p $R" && rsync -aq -e "ssh -p $C" "$D/vao.json" $XV_MAY_THUE:$R/ \
+    && ssh -p $C $XV_MAY_THUE "cd /root/xv && env $MOI /opt/blender/blender -b --factory-startup -P scripts/bo-set/${XV_PY:-dung-set.py} -- $R/vao.json $R" > "$D/log" 2>&1 \
+    && rsync -aq -e "ssh -p $C" "$XV_MAY_THUE:$R/f*.png" "$D/"; } || { echo "LOI $TEN trên máy thuê (xem $D/log)"; exit 0; }
+else
+  env $MOI /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P "$DIR/scripts/bo-set/${XV_PY:-dung-set.py}" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; exit 0; }
+fi
 N=$(ls "$D"/f*.png 2>/dev/null | wc -l | tr -d ' '); [ "$N" -ge 2 ] || { echo "LOI $TEN: không có khung"; exit 0; }
 "$DIR/scripts/bo-set/ghep-dien.sh" "$D" "$D/dien.mp4"
 for i in 0 1 2 3 4; do f=$(python3 -c "print(1 + round([0, .25, .5, .75, 1][$i] * ($N - 1)))"); "$DIR/scripts/bo-set/ghep-dien.sh" --anh "$D/f$(printf %04d $f).png" "$D/khoa-$i.jpg"; done

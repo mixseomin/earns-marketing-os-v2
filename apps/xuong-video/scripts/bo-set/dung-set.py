@@ -23,6 +23,20 @@ if MESH_THAT:
     _sp = _iu.spec_from_file_location('dung_nhan_vat', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mesh', 'dung-nhan-vat.py'))
     dnv = _iu.module_from_spec(_sp); _sp.loader.exec_module(dnv)
 KHO_MESH = {}
+def bat_gpu(s):
+    """Cycles chạy GPU của MÁY ĐANG CHẠY: OPTIX / CUDA (NVIDIA — máy thuê cloud, scripts/bo-set/may-thue.sh), HIP (AMD), METAL (iMac / Mac).
+    Không có GPU nào thì để CPU. Trước đây ghi cứng METAL 3 chỗ → lên máy NVIDIA âm thầm chạy CPU. Chỉ đổi THIẾT BỊ, không đổi hình ra."""
+    try: p_ = bpy.context.preferences.addons['cycles'].preferences
+    except Exception as e: print('GPU?', e); return
+    for kieu in ('OPTIX', 'CUDA', 'HIP', 'METAL'):
+        try: p_.compute_device_type = kieu; p_.get_devices()
+        except Exception: continue
+        gpu = [d_ for d_ in p_.devices if d_.type == kieu]
+        if not gpu: continue
+        for d_ in p_.devices: d_.use = d_.type == kieu
+        s.cycles.device = 'GPU'; print('GPU', kieu, ', '.join(d_.name for d_ in gpu)); return
+    print('GPU? không có — chạy CPU')
+
 def mesh_that(ten):
     """Mesh thật của nhân vật, dựng MỘT lần (mô phỏng vải ~15 s) rồi nhân bản cho từng shot; không có hàm dựng → None (rơi về khối tạm)."""
     if not MESH_THAT: return None
@@ -244,11 +258,7 @@ def ve_mau(s, sh, ra):
     anh_sang_mau(s, sh, True)
     if MESH_THAT:   # render = keyframe: Cycles GPU, khử nhiễu, DOF macro
         s.render.engine = 'CYCLES'; s.cycles.samples = 64; s.cycles.use_denoising = True
-        try:
-            p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
-            for d_ in p_.devices: d_.use = True
-            s.cycles.device = 'GPU'
-        except Exception as e: print('GPU?', e)
+        bat_gpu(s)
         lay_net(s.camera, sh)
     else: s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12
     s.view_settings.view_transform = 'AgX'
@@ -633,11 +643,7 @@ def bang_ti_le(s, ra):
     may_ve(s, True); s.display.shading.show_shadows = False
     if MESH_THAT:   # mesh thật: Cycles + hai đèn vuông trước mặt hàng (soát ngoại hình đúng như sẽ vào keyframe)
         s.render.engine = 'CYCLES'; s.cycles.samples = 48; s.cycles.use_denoising = True
-        try:
-            p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
-            for d_ in p_.devices: d_.use = True
-            s.cycles.device = 'GPU'
-        except Exception as e: print('GPU?', e)
+        bat_gpu(s)
         s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.25
         for k_, (dx, e_) in enumerate(((-0.3, 1.6), (0.6, 0.7))):
             ld = bpy.data.lights.new(f'lt{k_}', 'AREA'); ld.energy = e_; ld.size = 0.3
@@ -928,11 +934,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         s.render.engine = 'CYCLES'; s.cycles.samples = int(os.environ.get('XV_MAU', '32')); s.cycles.use_denoising = True
         s.cycles.use_adaptive_sampling = True; s.cycles.adaptive_threshold = 0.03; s.render.use_persistent_data = True
         s.cycles.max_bounces = 6; s.cycles.diffuse_bounces = 2; s.cycles.glossy_bounces = 2; s.cycles.transmission_bounces = 6
-        try:
-            p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
-            for d_ in p_.devices: d_.use = True
-            s.cycles.device = 'GPU'
-        except Exception as ex: print('GPU?', ex)
+        bat_gpu(s)
     if not chay: lay_net(cam, sh)
     s.view_settings.view_transform = 'AgX'
     # 1080×1920 (XV_RONG): model video nhận khung ≥ 720p — khung 540 bị phóng lên thành mềm.

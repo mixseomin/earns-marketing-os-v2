@@ -42,7 +42,7 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
   if (!(await admin())) return loi('không có quyền');
   const [cRows, tRows, gRows] = await Promise.all([
     db.execute(sql`SELECT * FROM xv_concept WHERE sp_key = ${spKey} AND NOT an ORDER BY path, array_position(ARRAY['UA','PA','SA','PrA','MA'], nb), ma`),
-    db.execute(sql`SELECT id, ten, kinh_thanh->'template'->>'dong' AS dong, kinh_thanh->'template'->>'khuon' AS khuon FROM xv_phim
+    db.execute(sql`SELECT id, ten, kinh_thanh->'template'->>'dong' AS dong, kinh_thanh->'template'->>'khuon' AS khuon, kinh_thanh->'template'->'mau_qc' AS mau FROM xv_phim
       WHERE kinh_thanh->'template' ? 'dong' AND coalesce((kinh_thanh->>'luu_tru')::boolean, false) = false ORDER BY id`),
     // ĐƠN GIÁ THẬT: ảnh keyframe + video (Veo Lite) + một lượt Claude kịch bản — trung bình 30 ngày, thiếu số thì lùi về số đo 15/10/2026
     db.execute(sql`SELECT
@@ -58,13 +58,18 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
     FROM xv_tap t JOIN xv_canh c ON c.tap_id = t.id AND coalesce(c.nhanh, '') IN ('', 'A')
     LEFT JOIN LATERAL jsonb_array_elements_text(coalesce(c.nhan_vat, '[]'::jsonb)) e(x) ON true LEFT JOIN xv_nhan_vat v ON v.id = e.x::int
     WHERE t.phim_id = ANY(${mangInt(tIds)}::int[]) AND t.so = (SELECT min(so) FROM xv_tap t2 WHERE t2.phim_id = t.phim_id) GROUP BY t.phim_id`)) as unknown as Row[]) : [];
+  // HÌNH của từng shot template (hành động) — xem trước phim gốc; tập đầu, nhánh A, theo thứ tự
+  const hinh = tIds.length ? ((await db.execute(sql`SELECT t.phim_id, c.thu_tu, coalesce(nullif(c.hanh_dong, ''), c.canh, '') AS hinh FROM xv_tap t JOIN xv_canh c ON c.tap_id = t.id AND coalesce(c.nhanh, '') IN ('', 'A')
+    WHERE t.phim_id = ANY(${mangInt(tIds)}::int[]) AND t.so = (SELECT min(so) FROM xv_tap t2 WHERE t2.phim_id = t.phim_id) ORDER BY t.phim_id, c.thu_tu, c.id`)) as unknown as Row[]) : [];
   const tpl: TplConcept[] = [];
   for (const r of tRows as unknown as Row[]) {
     const o = await docOTemplate(db, n(r.id)); if (!o) continue;
     const d = dem.find((x) => n(x.phim_id) === n(r.id));
     const oChu = oChuTuKhung(o.o.filter((x) => x.dung), o.khung);
     tpl.push({ id: n(r.id), ten: s(r.ten).replace(/^Template\s*·\s*/, ''), dong: s(r.dong), khuon: s(r.khuon), so_shot: o.khung.length, giay: Math.round(o.khung.reduce((a, k) => a + k.giay, 0)),
-      shot_nguoi: n(d?.nguoi), shot_boi: n(d?.boi), shot_ca: n(d?.ca), o_chu: oChu, o_hinh: oHinhCua(o.o.filter((x) => x.dung), oChu) });
+      shot_nguoi: n(d?.nguoi), shot_boi: n(d?.boi), shot_ca: n(d?.ca), o_chu: oChu, o_hinh: oHinhCua(o.o.filter((x) => x.dung), oChu),
+      shot: o.khung.map((k, i) => ({ loai: k.loai, giay: k.giay, chu: k.chu, hinh: s(hinh.filter((h) => n(h.phim_id) === n(r.id))[i]?.hinh).slice(0, 220) })),
+      mau: (Array.isArray(r.mau) ? (r.mau as { video?: string | null; anh?: string | null; mo_ta?: string; link?: string }[]) : []).slice(0, 2).map((m) => ({ video: m.video ?? null, anh: m.anh ?? null, mo_ta: s(m.mo_ta).slice(0, 300), link: s(m.link) })) });
   }
   const cIds = concept.map((c) => c.id);
   const cap: Cap[] = cIds.length ? ((await db.execute(sql`SELECT * FROM xv_cap WHERE concept_id = ANY(${mangInt(cIds)}::int[]) ORDER BY id`)) as unknown as Row[])

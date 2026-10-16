@@ -202,7 +202,45 @@ const TT_CR = [{ value: '', label: 'Mọi trạng thái' }, { value: 'de_xuat', 
 const VONG_LOC = [{ value: '', label: 'Mọi tổ hợp' }, { value: '1', label: 'Vòng 1 · đổi hook' }, { value: '2', label: 'Vòng 2 · đổi diễn viên' }, { value: '3', label: 'Vòng 3 · đổi thân' }];
 /** Bộ hình = một cặp concept × template × một biến thể diễn viên — đơn vị SẢN XUẤT (keyframe + video làm một lần), các creative của nó chỉ khác chữ. */
 type BoHinh = { key: string; c: Concept; t: TplConcept; v: BienTheHinh; ds: DongCr[] };
-export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept; spKey: string; phim: { id: number; anh: string | null; ket: string; nac: { ten: string; tt: string }[] }[]; onDoi: () => Promise<void>; onMoPhim: (id: number) => void }) {
+/** XEM TRƯỚC PHIM GỐC của một bộ hình (anh 17/10/2026: "tạo từ #1 thì phải cho xem #1 là gì, trông thế nào"): video QC mẫu template học theo +
+ *  phim đã làm từ cùng template (hình thật) + storyboard của creative đó — mỗi shot: loại · giây · HÌNH template tả · CHỮ của creative. */
+type PhimKho = { id: number; ten: string; anh: string | null; ket: string; nac: { ten: string; tt: string }[]; tpl?: { id: number } | null };
+function XemPhimGoc({ x, d, phim, onMoPhim }: { x: DongCr; d: KhoConcept; phim: PhimKho[]; onMoPhim: (id: number) => void }) {
+  const cung = phim.filter((p) => p.tpl?.id === x.t.id);
+  const chuShot = (i: number) => { const os = x.t.o_chu.filter((o) => o.shot === i);
+    if (os.length) return { moi: true, chu: os.map((o) => d.phuong_an.find((p) => p.cap_id === x.cap_id && p.o === o.k && p.so === x.chon[o.k])?.chu ?? '—').join(' · ') };
+    return { moi: false, chu: (x.t.shot[i]?.chu ?? '').replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_a, k: string) => `‹${k.replace(/_/g, ' ')}›`) }; };
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 12, padding: 10, borderBottom: '1px solid var(--line)', background: 'var(--bg-1)', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
+        {x.t.mau.filter((m) => m.video || m.anh).slice(0, 1).map((m, i) => <div key={i} style={{ display: 'grid', gap: 4 }}>
+          <span style={mono}>QC mẫu template học theo</span>
+          {m.video ? <video src={m.video} controls muted playsInline preload="metadata" style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 6, background: '#000', objectFit: 'cover' }} />
+            : <img src={m.anh!} alt="QC mẫu" style={{ width: '100%', borderRadius: 6 }} />}
+          {m.mo_ta && <span style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>{m.mo_ta}</span>}
+          {m.link && <LinkNgoai href={m.link} className="xv-lienket xv-mono">QC gốc ↗</LinkNgoai>}
+        </div>)}
+        {cung.length > 0 && <div style={{ display: 'grid', gap: 4 }}><span style={mono}>Phim đã làm từ template này</span>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{cung.slice(0, 6).map((p) => <button key={p.id} type="button" onClick={() => onMoPhim(p.id)} title={`#${p.id} · ${p.ten} · ${p.ket}`}
+            style={{ all: 'unset', cursor: 'pointer', width: 48, height: 72, borderRadius: 4, border: '1px solid var(--line)', background: p.anh ? `center / cover no-repeat url(${p.anh}), #111` : 'var(--bg-2)' }} />)}</div></div>}
+        {!x.t.mau.some((m) => m.video || m.anh) && !cung.length && <span style={mono}>Template chưa có QC mẫu hay phim đã làm để xem hình.</span>}
+      </div>
+      <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+        <span style={{ fontSize: 12.5 }}>Phim gốc: <b>{x.hook}</b> <span style={mono}>· {tenT(x.t)} · {x.t.so_shot} shot · {x.t.giay}s · {[x.bien_the.nguoi_chinh, x.bien_the.boi_canh].filter(Boolean).join(' · ')}</span></span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 6 }}>
+          {x.t.shot.map((sh, i) => { const c = chuShot(i);
+            return <div key={i} style={{ display: 'grid', gap: 4, alignContent: 'start', padding: '7px 9px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-2)', minHeight: 88 }}>
+              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><b style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>{i + 1}</b>
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-2)' }}>{LOAI_SHOT_MAU.find((l) => l.key === sh.loai)?.ten ?? sh.loai}</span><span style={{ ...mono, marginLeft: 'auto' }}>{sh.giay}s</span></span>
+              {sh.hinh && <span style={{ fontSize: 11, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={sh.hinh}>🎥 {sh.hinh}</span>}
+              <span style={{ fontSize: 13, fontWeight: c.moi ? 600 : 400, color: c.moi ? 'var(--fg-1)' : 'var(--fg-3)' }}>{c.chu || '—'}</span>
+            </div>; })}
+        </div>
+      </div>
+    </div>
+  );
+}
+export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept; spKey: string; phim: PhimKho[]; onDoi: () => Promise<void>; onMoPhim: (id: number) => void }) {
   const [cfg, setCfg] = useState<{ cap: number | null } | null>(null);
   const [lc, setLc] = useNho<string>('xv-kc-c', '', ['', ...d.concept.map((c) => String(c.id))], 'kcc');
   const [lnb, setLnb] = useNho<string>('xv-kc-nb', '', ['', ...MUC_NB.map((m) => m.key)], 'kcnb');
@@ -217,6 +255,7 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
   const [tao, setTao] = useState<{ id: number; template_id: number; template_ten: string; ten: string; gt: Record<string, string> } | null>(null);
   const [loi, setLoi] = useState('');
   const [dangXuat, setDangXuat] = useState<Set<number>>(new Set());
+  const [xemGoc, setXemGoc] = useState<string | null>(null);   // bộ hình đang mở xem trước phim gốc
   useEffect(() => { if (!dangXuat.size) return; const t = setTimeout(() => { void onDoi(); }, 6000); return () => clearTimeout(t); }, [dangXuat, d]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!dangXuat.size) return; const con = new Set([...dangXuat].filter((id) => !d.creative.find((c) => c.id === id)?.xuat)); if (con.size !== dangXuat.size) setDangXuat(con); }, [d.creative]); // eslint-disable-line react-hooks/exhaustive-deps
   const daDuyet = useMemo(() => new Map(d.creative.map((c) => [c.ma, c])), [d.creative]);
@@ -329,11 +368,15 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
               <span style={{ display: 'grid', justifyItems: 'end', gap: 2, ...mono }} title="Dùng lại clip: bộ hình sản xuất một lần, mỗi creative chỉ thay chữ màn + giọng khi xuất">
                 {!b.v.phim_id && (() => { const goc1 = b.ds.find((x) => Object.values(x.chon).every((v2) => v2 === 1) && daDuyet.get(x.ma)?.trang_thai === 'duyet') ?? b.ds.find((x) => daDuyet.get(x.ma)?.trang_thai === 'duyet');
                   const cr1 = goc1 ? daDuyet.get(goc1.ma) : undefined;
-                  return <Nut chinh ly={!cr1 && 'duyệt ít nhất một creative của bộ hình trước'} onClick={() => cr1 && void moTao(cr1.id)} title="Tạo PHIM GỐC của bộ hình (0đ) — sinh hình / clip một lần ở đây, các creative khác của bộ hình ⬇ Xuất từ clip đó">🎬 Tạo phim gốc{cr1 ? ` (từ #${cr1.so})` : ''}</Nut>; })()}
+                  return <span style={{ display: 'inline-flex', gap: 6 }}>
+                    {goc1 && <Nut onClick={() => setXemGoc(xemGoc === b.key ? null : b.key)} title="Xem phim gốc sẽ trông thế nào: QC mẫu của template, phim đã làm cùng template, storyboard chữ của creative này">{xemGoc === b.key ? '▴ Đóng xem' : `👁 Xem #${cr1?.so ?? ''}`}</Nut>}
+                    <Nut chinh ly={!cr1 && 'duyệt ít nhất một creative của bộ hình trước'} onClick={() => cr1 && void moTao(cr1.id)} title="Tạo PHIM GỐC của bộ hình (0đ) — sinh hình / clip một lần ở đây, các creative khác của bộ hình ⬇ Xuất từ clip đó">🎬 Tạo phim gốc{cr1 ? ` (từ #${cr1.so})` : ''}</Nut></span>; })()}
                 <span>{b.v.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(b.v.phim_id!)} title={phimId.get(b.v.phim_id)?.nac.map((k2) => `${k2.ten}: ${k2.tt}`).join(' · ')}>🎬 phim gốc #{b.v.phim_id} · {phimId.get(b.v.phim_id)?.ket ?? ''}</button> : '🎬 chưa có phim gốc'} → <b style={{ color: 'var(--fg-1)' }}>{b.ds.length}</b> creative · {b.ds.filter((x) => daDuyet.get(x.ma)?.xuat?.url).length} đã xuất{boPhim > 1 ? ` · ${boPhim} phim` : ''}</span>
                 <span><span style={{ color: 'var(--amber)' }}>riêng ~{tien(b.ds.length * tienDungRiengCents(b.t, d.gia))}</span> · <span style={{ color: 'var(--lime)' }}>dùng lại ~{tien(tienBo)}</span></span>
               </span>
             </div>
+            {xemGoc === b.key && (() => { const g1 = b.ds.find((x) => Object.values(x.chon).every((v2) => v2 === 1) && daDuyet.get(x.ma)?.trang_thai === 'duyet') ?? b.ds.find((x) => daDuyet.get(x.ma)?.trang_thai === 'duyet') ?? b.ds[0]!;
+              return <XemPhimGoc x={g1} d={d} phim={phim} onMoPhim={onMoPhim} />; })()}
             <DataTable rows={b.ds} columns={cot(b)} getRowKey={(x) => x.ma} minWidth={760} fixedLayout stickyFirst={false} persistKey="xv-kho-creative"
               onRowClick={(x) => setMo(mo === x.ma ? null : x.ma)} renderExpanded={(x) => (mo === x.ma ? kichBan(x) : null)} />
           </div>; })}

@@ -15,7 +15,8 @@ assert.deepStrictEqual(oHinhCua(o, oc), ['noi_dau_hinh', 'nhan_vat_hinh', 'boi_c
 assert.deepStrictEqual(gtBienThe({ nguoi_chinh: 'man, Black, 40s', nguoi_phu: '—', boi_canh: 'supermarket' }, ['nhan_vat_hinh', 'nguoi_2_hinh', 'boi_canh', 'boi_canh_2']),
   { nhan_vat_hinh: 'man, Black, 40s', boi_canh: 'supermarket' });
 
-const t: TplConcept = { id: 22, ten: 'Kể chuyện', dong: 'ugc', khuon: 'ke_chuyen', so_shot: 12, giay: 35, shot_nguoi: 9, shot_boi: 12, shot_ca: 12, o_chu: oc, o_hinh: [] };
+const t: TplConcept = { id: 22, ten: 'Kể chuyện', dong: 'ugc', khuon: 'ke_chuyen', so_shot: 12, giay: 35, shot_nguoi: 9, shot_boi: 12, shot_ca: 12, o_chu: oc, o_hinh: [], shot: [], mau: [] };
+assert.deepStrictEqual(oc.map((x) => x.shot), [0, 1, 2], 'ô nhớ shot đầu tiên dùng nó');
 const c = { id: 1, ma: '1A', path: 'P1', path_ten: '', nb: 'PA', ten: 'Đùi to', du_lieu: {} } as unknown as Concept;
 const bt: BienTheHinh[] = [{ id: 10, cap_id: 5, so: 1, nguoi_chinh: 'a', nguoi_phu: '', boi_canh: 'nhà', goc: true }, { id: 11, cap_id: 5, so: 2, nguoi_chinh: 'b', nguoi_phu: '', boi_canh: 'siêu thị', goc: false }];
 const pa: PhuongAn[] = [

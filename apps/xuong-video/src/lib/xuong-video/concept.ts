@@ -32,10 +32,12 @@ export type SubAvatar = { ma: string; path: string; ten: string; nb: string; ngu
   so_sanh: string; ngon_ngu: string[]; hook: string; creative: string; do_dai: string; traffic: string; goc?: number[] };
 export type Concept = { id: number; ma: string; path: string; path_ten: string; nb: string; ten: string; du_lieu: SubAvatar };
 /** Ô chữ của template có phương án: ô xuất hiện trong chữ màn của shot (thứ tự theo shot đầu tiên dùng nó), trừ ô sản phẩm / ảnh (sự thật cố định). */
-export type OChu = { k: string; ten: string; loai: string; giay: number; goi_y: string };
+export type OChu = { k: string; ten: string; loai: string; giay: number; goi_y: string; /** shot đầu tiên dùng ô (0-based, theo thứ tự shot tập 1 của template) */ shot: number };
 export type TplConcept = { id: number; ten: string; dong: string; khuon: string; so_shot: number; giay: number;
   /** shot có anchor nhân vật / bối cảnh / một trong hai — đổi diễn viên / bối cảnh = sinh lại ĐÚNG các shot này (đếm thật từ xv_canh.nhan_vat) */
-  shot_nguoi: number; shot_boi: number; shot_ca: number; o_chu: OChu[]; o_hinh: string[] };
+  shot_nguoi: number; shot_boi: number; shot_ca: number; o_chu: OChu[]; o_hinh: string[];
+  /** shot của template (xem trước phim gốc): loại · giây · chữ màn (còn {{ô}}) · hình (hành động template tả) */ shot: { loai: string; giay: number; chu: string; hinh: string }[];
+  /** QC mẫu thắng template học theo (kinh_thanh.template.mau_qc — video / ảnh trên R2) */ mau: { video: string | null; anh: string | null; mo_ta: string; link: string }[] };
 export type Cap = { id: number; concept_id: number; template_id: number; bat: boolean };
 export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean; /** phim gốc của bộ hình (xuat-creative.ts) */ phim_id?: number | null };
 export type PhuongAn = { id: number; cap_id: number; o: string; so: number; chu: string; nguon: string };
@@ -50,7 +52,7 @@ export function oChuTuKhung(o: { k: string; ten: string; goi_y?: string; nhom?: 
     if (nh === 'san_pham' || nh === 'anh' || /_hinh$/.test(x.k)) continue;
     const i = khung.findIndex((s) => s.chu.toLowerCase().includes(`{{${x.k}}}`));
     if (i < 0) continue;
-    ra.push({ k: x.k, ten: x.ten || x.k, loai: khung[i]!.loai, giay: khung[i]!.giay, goi_y: x.goi_y ?? '', i });
+    ra.push({ k: x.k, ten: x.ten || x.k, loai: khung[i]!.loai, giay: khung[i]!.giay, goi_y: x.goi_y ?? '', shot: i, i });
   }
   return ra.sort((a, b) => a.i - b.i).map(({ i: _i, ...x }) => x);
 }

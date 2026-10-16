@@ -73,7 +73,7 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
       {d.sp.spy && <LinkNgoai href={linkSpSpy(d.sp.spy)} className="xv-lienket xv-mono" title="Mở nhóm góc của sản phẩm trên spy.on.tc (tab mới)">góc trên spy ↗</LinkNgoai>}
       {d.sp.link && <LinkNgoai href={d.sp.link} className="xv-lienket xv-mono" title={d.sp.link}>trang bán ↗</LinkNgoai>}
     </>} dau={<Seg options={TAB_SP} value={tab} onChange={setTab} />}>
-      {tab === 'kho' && (kc ? <KhoCreative d={kc} spKey={spKey} onDoi={async () => { await taiKc(); await taiKho(); }} onMoPhim={onMoPhim} /> : <Loi>{kcLoi}</Loi>)}
+      {tab === 'kho' && (kc ? <KhoCreative d={kc} spKey={spKey} phim={d.creative} onDoi={async () => { await taiKc(); await taiKho(); }} onMoPhim={onMoPhim} /> : <Loi>{kcLoi}</Loi>)}
       {tab === 'creative' && <BangCreative d={d} goc={goc} cum={cum?.cum ?? []} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
       {tab === 'ban_do' && <BanDo d={d} goc={goc} lo={lo} spKey={spKey} onLo={taiLo} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
       {tab === 'goc' && <CayGoc d={d} goc={goc} cum={cum} onMoPhim={onMoPhim} onMoGoc={moGoc} />}

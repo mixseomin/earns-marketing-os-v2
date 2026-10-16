@@ -6,12 +6,14 @@
 // Lỗi = câu của cổng lienMachTap (cùng nguồn với cổng keyframe + ⚠ trên lưới). Bấm số shot → mở drawer nguồn shot.
 import { useEffect, useState } from 'react';
 import { soLienMachAction } from '@/lib/actions';
-import { chuCho, chuDang, type DongSo, type SoLienMach } from '@/lib/xuong-video/so-lien-mach';
+import { chuCho, chuDang, diemNhanVat, TRU_MUC, type DongSo, type MucLoi, type SoLienMach } from '@/lib/xuong-video/so-lien-mach';
 import { goiAction } from './ui';
 import { moNgan } from './ngan-chung';
 
 type Ds = { tap: { id: number; so: number; ten: string }; so: SoLienMach }[];
 const mono = { fontFamily: 'var(--mono, ui-monospace)', fontSize: 11 } as const;
+const mauDiem = (d: number) => (d >= 90 ? '#4ade80' : d >= 70 ? '#facc15' : '#f87171');
+const TEN_MUC: Record<MucLoi, string> = { chan: 'CHẶN', nang: 'nặng', thieu: 'thiếu', nhe: 'nhẹ' };
 const LUONG: Record<DongSo['luong_moi'], string> = { '': '', ngay: '📅 sang ngày truyện mới — sổ reset hết', canh: '✂ cảnh mới (thời gian nhảy) — chỗ / dáng / đồ cầm reset', nhay: '⏭ shot khai cắt thời gian' };
 
 export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: number; canh?: string }) {
@@ -48,9 +50,10 @@ export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: numb
                     <b style={{ fontSize: 13 }}>{t}</b>
                     <span style={{ ...mono, color: soLoi ? '#f87171' : '#4ade80' }} title={soLoi ? `${soLoi} shot đứt mạch` : 'liền mạch'}>{soLoi ? `⚠ đứt mạch` : '✓ liền mạch'}</span>
                   </div>}
+                  <DiemDau ds={dong} />
                   <table style={{ width: '100%', borderCollapse: 'collapse', ...mono }}>
                     <thead><tr style={{ color: 'var(--fg-4)', textAlign: 'left' }}>
-                      {['Shot', 'Cảnh · ngày', 'Chỗ mở → kết (cm)', 'Dáng', 'Hướng', 'Trạng thái / trang phục', 'Đồ cầm', 'Diễn'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 500, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
+                      {['Điểm', 'Shot', 'Cảnh · ngày', 'Chỗ mở → kết (cm)', 'Dáng', 'Hướng', 'Trạng thái / trang phục', 'Đồ cầm', 'Diễn'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 500, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
                     </tr></thead>
                     <tbody>{dong.map((d) => (
                       <DongSoTr key={d.canhId} d={d} />
@@ -70,8 +73,9 @@ function DongSoTr({ d }: { d: DongSo }) {
   const td = { padding: '4px 8px', borderTop: '1px solid var(--line)', verticalAlign: 'top' } as const;
   const loi = d.loi.length > 0;
   return (<>
-    {d.luong_moi && <tr><td colSpan={8} style={{ ...td, color: '#facc15', background: 'rgba(250,204,21,.06)' }}>{LUONG[d.luong_moi]}</td></tr>}
+    {d.luong_moi && <tr><td colSpan={9} style={{ ...td, color: '#facc15', background: 'rgba(250,204,21,.06)' }}>{LUONG[d.luong_moi]}</td></tr>}
     <tr style={{ background: loi ? 'rgba(248,113,113,.08)' : undefined, opacity: d.an ? 0.6 : 1 }} title={d.an ? 'ngoài khung (ẩn) — vẫn tính liền mạch' : undefined}>
+      <td style={{ ...td, color: mauDiem(d.diem), fontWeight: 700 }} title={d.muc.length ? d.muc.map((m) => `${TEN_MUC[m.muc]} −${m.tru}`).join(' · ') : 'không lỗi'}>{d.diem}</td>
       <td style={td}><button type="button" className="xv-lienket" onClick={() => moNgan({ loai: 'nguon', canhId: d.canhId })} style={{ ...mono }}>#{d.thu_tu}</button></td>
       <td style={{ ...td, color: 'var(--fg-3)' }}>{d.canh}{d.ngay ? ` · ${d.ngay}` : ''}</td>
       <td style={td}>{chuCho(d.tam)}{d.den ? ` → ${chuCho(d.den)}` : ''}</td>
@@ -81,6 +85,17 @@ function DongSoTr({ d }: { d: DongSo }) {
       <td style={td}>{d.cam ? `trong tay ${d.cam}` : ''}{d.chia ? ` · ${d.chia} mảnh` : ''}</td>
       <td style={{ ...td, color: 'var(--fg-3)' }}>{d.dien.join(', ')}</td>
     </tr>
-    {loi && <tr><td colSpan={8} style={{ ...td, borderTop: 'none', color: '#f87171', paddingTop: 0 }}>{d.loi.map((x, i) => <div key={i}>⚠ {x}</div>)}</td></tr>}
+    {loi && <tr><td colSpan={9} style={{ ...td, borderTop: 'none', paddingTop: 0 }}>{d.muc.map((m, i) => <div key={i} style={{ color: m.muc === 'chan' ? '#f87171' : m.muc === 'nhe' ? 'var(--fg-3)' : '#facc15' }}>
+      <b>{TEN_MUC[m.muc]} −{m.tru}</b> · {m.chu}</div>)}</td></tr>}
   </>);
+}
+
+/** Đầu bảng một nhân vật: điểm liền mạch trung bình / thấp nhất / số lỗi chặn + cách tính (mức × độ dễ thấy). */
+function DiemDau({ ds }: { ds: DongSo[] }) {
+  const d = diemNhanVat(ds);
+  return <div style={{ ...mono, padding: '5px 10px', display: 'flex', gap: 12, flexWrap: 'wrap', borderBottom: '1px solid var(--line)' }}
+    title={`Điểm liền mạch = 100 − tổng trừ. Mức: CHẶN −${TRU_MUC.chan} (phá logic truyện / vật lý, trừ đủ dù khó thấy) · nặng −${TRU_MUC.nang} · thiếu động tác −${TRU_MUC.thieu} · nhẹ −${TRU_MUC.nhe}; nặng / thiếu / nhẹ nhân độ dễ thấy (ngoài khung ×0,4, trong khung 0,6–1 theo % khung)`}>
+    <span>điểm TB <b style={{ color: mauDiem(d.tb) }}>{d.tb}</b></span><span>thấp nhất <b style={{ color: mauDiem(d.thap) }}>{d.thap}</b></span>
+    <span>lỗi chặn <b style={{ color: d.chan ? '#f87171' : '#4ade80' }}>{d.chan}</b></span>
+  </div>;
 }

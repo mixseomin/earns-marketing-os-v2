@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -81,6 +81,11 @@ assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }
 // nằm mà đi: lỗi; khai lan_tron / truot thì qua
 assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0], nam: true }])], kh)[1]?.some((x) => x.includes('NẰM mà đi')), 'nằm trượt đi');
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0], nam: true, dien: ['lan_tron'] }])], kh), {});
+// mô tả ↔ động tác: mô tả có 'ngã' mà không khai → báo; khai nam_den → qua; đang nằm sẵn → qua
+assert.equal(thieuDongTac({ hanh_dong: 'Tango ngã ngồi.', may_3d: sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]).may_3d as never }).length, 1);
+assert.equal(thieuDongTac({ hanh_dong: 'Tango ngã ngồi.', may_3d: sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam_den: true }]).may_3d as never }).length, 0);
+assert.equal(thieuDongTac({ hanh_dong: 'Tango úp mặt xuống gỗ.', may_3d: sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }]).may_3d as never }).length, 0);
+assert.equal(thieuDongTac({ hanh_dong: 'sợi tóc rũ xuống rồi bật lên', may_3d: sh(1, [{ ten: 'Tango', tam: [0, 0, 0], dien: ['toc_ru', 'toc_bat'] }]).may_3d as never }).length, 0);
 // luồng cảnh: cảnh khác ngày truyện → reset cả chỗ / dáng / trạng thái; lien_truoc: false → reset chỗ / dáng, trạng thái giữ; không khai → liền mạch
 const shc = (id: number, canh: string, vi_tri: Parameters<typeof sh>[1]) => ({ ...sh(id, vi_tri), canh });
 const pc = [{ ten: 'Lái xe', ngay: 'N1' }, { ten: 'Ngủ', ngay: 'D2' }, { ten: 'Nhà', lien_truoc: false }, { ten: 'Liền' }];

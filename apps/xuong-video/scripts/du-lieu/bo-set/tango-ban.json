@@ -3092,7 +3092,8 @@
           "huong_den": 71,
           "nam": true,
           "dien": [
-            "truot"
+            "truot",
+            "nhay@0.1-0.4"
           ]
         },
         {

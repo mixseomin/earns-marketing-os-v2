@@ -16,4 +16,7 @@ assert.equal(s.nhanVat.Tango![0]!.loi.length, 0); assert.equal(s.nhanVat.Tango![
 assert.equal(s.nhanVat.Tango![2]!.luong_moi, 'ngay'); assert.equal(s.nhanVat.Tango![2]!.ngay, 'D2');
 assert.deepEqual(s.canh.map((c) => [c.ten, c.ngay, c.shot]), [['Kẹo', 'N1', [1, 2]], ['Sáng', 'D2', [3]]]);
 assert.equal(chuDang({ nam: false, nam_den: true }), 'đứng → ngã');
+assert.ok(s.nhanVat.Tango![1]!.diem <= 60 && s.nhanVat.Tango![1]!.muc[0]!.muc === 'chan', 'lỗi dáng = chặn, trừ 40');
+assert.equal(s.nhanVat.Tango![0]!.diem, 100);
+import('./so-lien-mach').then(({ chamLoi }) => { assert.equal(chamLoi(['Lint quay ngoắt 90°'], true, null).diem, 92, 'nặng ngoài khung: 20 × 0,4'); });
 console.log('so-lien-mach: mọi bài tự kiểm qua');

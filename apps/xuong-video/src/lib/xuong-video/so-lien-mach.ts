@@ -2,7 +2,7 @@
 // cảnh" · "film này để demo và học hỏi để sau này làm film thật, người thật"). Mỗi nhân vật × mỗi shot một dòng: ngày truyện, cảnh, chỗ mở → kết,
 // dáng, hướng, trạng thái cơ thể (ướt / xù / bẩn / quần áo), đồ đang cầm, động tác — và lỗi đứt mạch. Lỗi lấy THẲNG từ cổng lienMachTap (một
 // nguồn với cổng keyframe + dấu ⚠ trên lưới), sổ không tự tính lại luật. Thuần, không đọc DB.
-import { canhCuaShot, khoiCua, lienMachTap } from './bo-set-3d';
+import { canhCuaShot, khoiCua, lienMachTap, thieuDongTac } from './bo-set-3d';
 import type { May3d, NhanVat, PhanCanh } from './kieu';
 
 type ViTri = May3d['vi_tri'][number];
@@ -12,10 +12,24 @@ export type DongSo = {
   tam: number[]; den: number[] | null; huong: number | null; huong_den: number | null; nam: boolean; nam_den: boolean;
   trang: string; trang_den: string; cam: string | null; chia: number | null; dien: string[]; an: boolean;
   loi: string[];
+  /** ĐIỂM LIỀN MẠCH 0–100 của nhân vật ở shot này (chamLoi) + từng lỗi đã xếp mức */ diem: number; muc: { muc: MucLoi; chu: string; tru: number }[];
 };
+/** MỨC LỖI (cách script supervisor / IMDb goofs xếp): chặn = phá logic truyện hoặc vật lý (vị trí nhảy, dáng nhảy, nằm mà đi, vật tự lành, đồ cầm
+ *  biến mất, trạng thái tự hết) · nặng = dễ thấy (quay ngoắt hướng) · thiếu = mô tả có động tác mà 3D chưa khai · nhẹ = phần còn lại. */
+export type MucLoi = 'chan' | 'nang' | 'thieu' | 'nhe';
+export const TRU_MUC: Record<MucLoi, number> = { chan: 40, nang: 20, thieu: 15, nhe: 8 };
+export const mucLoi = (s: string): MucLoi => /thiếu động tác/.test(s) ? 'thieu' : /đứt mạch|NẰM|ĐỨNG|đã chia|đang cầm|trạng thái/.test(s) ? 'chan' : /quay ngoắt/.test(s) ? 'nang' : 'nhe';
+/** Độ dễ thấy: ngoài khung ×0,4; trong khung theo % khung nhân vật chiếm (0,6 → 1,0 khi ≥ 40 %); không có số đo → 1. */
+export const doDeThay = (an: boolean, pt: number | null) => (an ? 0.4 : pt == null ? 1 : 0.6 + Math.min(pt, 40) / 100);
+export function chamLoi(loi: string[], an: boolean, pt: number | null): { diem: number; muc: DongSo['muc'] } {
+  const f = doDeThay(an, pt);
+  const muc = loi.map((chu) => { const m = mucLoi(chu); return { muc: m, chu, tru: Math.round(TRU_MUC[m] * (m === 'chan' ? 1 : f)) }; })   // lỗi chặn trừ đủ dù khó thấy
+    .sort((a, b) => b.tru - a.tru);
+  return { diem: Math.max(0, 100 - muc.reduce((a, x) => a + x.tru, 0)), muc };
+}
 export type SoLienMach = { nhanVat: Record<string, DongSo[]>; canh: { ten: string; ngay: string | null; lien_truoc: boolean; shot: number[] }[] };
 
-type ShotSo = { id: number; thu_tu: number; canh: string; may_3d?: May3d | null };
+type ShotSo = { id: number; thu_tu: number; canh: string; may_3d?: May3d | null; hanh_dong?: string; khung_xam?: { thay?: { ten: string; pt: number }[] } | null };
 
 /** ds: shot của MỘT nhánh dựng, theo thứ tự phát. */
 export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[] | undefined, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): SoLienMach {
@@ -35,7 +49,7 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
     out.canh[out.canh.length - 1]!.shot.push(c.thu_tu);
     const m = c.may_3d; if (!m) continue;
     if (!luong && m.nhay) luong = 'nhay';
-    const loi = loiShot[c.id] ?? [];
+    const loi = loiShot[c.id] ?? []; const thieu = thieuDongTac(c);
     for (const v of m.vi_tri as (ViTri & Record<string, unknown>)[]) {
       (out.nhanVat[v.ten] ??= []).push({
         canhId: c.id, thu_tu: c.thu_tu, canh: tenCanh, ngay: ngayTruoc, luong_moi: luong,
@@ -43,8 +57,11 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
         nam: !!v.nam, nam_den: !!(v.nam_den ?? v.nam), trang: (v.trang ?? '').trim(), trang_den: (v.trang_den ?? v.trang ?? '').trim(),
         cam: v.cam ?? null, chia: v.chia ?? null, dien: v.dien ?? [], an: !!v.an,
         // lỗi của shot NÓI VỀ nhân vật này (câu cổng mở bằng tên, hoặc nhắc người cầm / món đang cầm)
-        loi: loi.filter((x) => x.startsWith(`${v.ten} `) || x.includes(` ${v.ten} `) || x.includes(`${v.ten} (`)),
+        loi: [] as string[], diem: 100, muc: [],
       });
+      const d = out.nhanVat[v.ten]!.at(-1)!;
+      d.loi = [...loi.filter((x) => x.startsWith(`${v.ten} `) || x.includes(` ${v.ten} `) || x.includes(`${v.ten} (`)), ...(m.vi_tri[0]?.ten === v.ten ? thieu : [])];   // thiếu động tác: gắn vào nhân vật đầu của shot
+      Object.assign(d, chamLoi(d.loi, d.an, c.khung_xam?.thay?.find((x) => x.ten === v.ten)?.pt ?? null));
     }
   }
   return out;
@@ -53,3 +70,5 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
 /** Chữ ngắn cho một ô sổ. */
 export const chuCho = (p: number[] | null) => (p ? `(${p.map((x) => Math.round(x * 10) / 10).join(', ')})` : '');
 export const chuDang = (d: Pick<DongSo, 'nam' | 'nam_den'>) => (d.nam === d.nam_den ? (d.nam ? 'nằm' : 'đứng') : d.nam ? 'nằm → đứng dậy' : 'đứng → ngã');
+/** Điểm của nhân vật qua một tập: trung bình + thấp nhất + số lỗi chặn. */
+export const diemNhanVat = (ds: DongSo[]) => ({ tb: ds.length ? Math.round(ds.reduce((a, d) => a + d.diem, 0) / ds.length) : 100, thap: Math.min(100, ...ds.map((d) => d.diem)), chan: ds.reduce((a, d) => a + d.muc.filter((m) => m.muc === 'chan').length, 0) });

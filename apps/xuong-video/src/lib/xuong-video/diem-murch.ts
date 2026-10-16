@@ -29,7 +29,7 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
   // Lỗi mạch (một lần cho cả nhánh) — phân loại theo nội dung câu cổng (bo-set-3d.ts): mỗi câu đã mang tên luật ở đầu.
   const mach = loiMachTap(ds as Parameters<typeof loiMachTap>[0], nhanVat, sets, p.phanCanh);
   const machBieuCam = p.laQc ? loiMachBieuCam(ds, nhanVat) : {};
-  const loai = (s: string): TieuChi | 'truyen_chuoi' => /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
+  const loai = (s: string): TieuChi | 'truyen_chuoi' => /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ|NẰM|ĐỨNG|thiếu động tác/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
   const giayChuan = giayDoc(p);
   const bungCua = new Map<string, Set<number>>(); for (const pc of p.phanCanh ?? []) for (const g of pc.gag ?? []) if (g.o_shot) (bungCua.get(pc.ten) ?? bungCua.set(pc.ten, new Set()).get(pc.ten)!).add(g.o_shot);
   const viTriTrongCanh = new Map<number, number>(); { let d = ''; let k = 0; for (const c of ds) { if (c.phan_doan !== d) { d = c.phan_doan; k = 0; } viTriTrongCanh.set(c.id, ++k); } }

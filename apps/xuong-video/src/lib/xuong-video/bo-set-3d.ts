@@ -435,8 +435,29 @@ export function doiMat<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => 
   return out;
 }
 /** CẢNH BÁO (Murch: liên tục không gian xếp cuối) — luật 30°, eye trace, khoảng nhìn + headroom, chiều cao máy, bộ ống kính. Gắn ⚠ vàng, không chặn. */
+/** MÔ TẢ ↔ ĐỘNG TÁC (anh 16/10/2026: "cần lưu làm chuẩn và có bộ tính điểm, kiểm soát nếu thiếu"): mô tả hành động của shot nhắc một động tác thân
+ *  thể (ngã, đứng dậy, lăn, nhảy, run, phồng, xẹp, cười, xoay tít, tóc rũ / dựng) mà KHÔNG nhân vật nào trong shot khai động tác đó (dien / nam_den)
+ *  → bản diễn 3D sẽ thiếu đúng cái kịch bản viết. Luật thư viện: luat-dung.ts › mo_ta_dong_tac. */
+export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][number]) => boolean }[] = [
+  { ten: 'ngã', tu: /(ngã|té xuống|úp mặt|đổ (vật|xuống)|falls?|trips?)/i, co: (v) => !!v.nam || !!v.nam_den || (v.dien ?? []).some((x) => /^(nga|nga_ngoi)/.test(x)) },   // đang nằm sẵn = mô tả trạng thái, không đòi cú ngã
+  { ten: 'đứng dậy / bung ra', tu: /(đứng dậy|bung ra|ngồi dậy|gets? up|stands? up)/i, co: (v) => (!!v.nam && v.nam_den === false) || (v.dien ?? []).some((x) => /^day/.test(x)) },
+  { ten: 'lăn tròn', tu: /(lăn (vèo|theo|tới|tiếp|đi|lông lốc)|rolls?\b)/i /* phải có LĂN — 'cuộn tròn' tại chỗ là tư thế */, co: (v) => (v.dien ?? []).some((x) => /^lan_tron/.test(x)) },
+  { ten: 'nhảy', tu: /(nhảy|jumps?|leaps?)/i /* 'bật lên' hay nói về tóc — không tính */, co: (v) => (v.dien ?? []).some((x) => /^(nhay|cuoi_lan)/.test(x)) },
+  { ten: 'run', tu: /(run bần bật|rùng mình|run rẩy|trembl|shiver)/i, co: (v) => (v.dien ?? []).some((x) => /^run/.test(x)) },
+  { ten: 'phồng to', tu: /(phồng (to|lên)|puffs? up|inflat)/i, co: (v) => (v.dien ?? []).some((x) => /^phong/.test(x)) },
+  { ten: 'xẹp', tu: /(xẹp|deflat)/i, co: (v) => (v.dien ?? []).some((x) => /^(xep|phong0)/.test(x)) },
+  { ten: 'cười', tu: /(cười lăn|cười|laugh)/i, co: (v) => (v.dien ?? []).some((x) => /^(cuoi_lan|nheo_mat)/.test(x)) },
+  { ten: 'xoay tít', tu: /(xoay tít|spins?\b)/i, co: (v) => (v.dien ?? []).some((x) => /^xoay_tit/.test(x)) },
+  { ten: 'tóc rũ', tu: /(tóc rũ|sợi tóc rũ|droop)/i, co: (v) => (v.dien ?? []).some((x) => /^toc_ru/.test(x)) },
+  { ten: 'tóc / chỉ dựng', tu: /((tóc|sợi chỉ|lông)[^.;]{0,25}(dựng|bật)|BOING)/i, co: (v) => (v.dien ?? []).some((x) => /^(toc_dung|toc_bat)/.test(x)) },
+];
+export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'>): string[] {
+  const m = c.may_3d; const mt = c.hanh_dong ?? ''; if (!m || !mt.trim()) return [];
+  return DONG_TAC_MO_TA.filter((d) => d.tu.test(mt) && !m.vi_tri.some((v) => d.co(v))).map((d) => `thiếu động tác: mô tả có "${d.ten}" mà chưa nhân vật nào khai (dien / nam_den) — bản diễn 3D sẽ thiếu đúng cái kịch bản viết`);
+}
 export function canhBaoMachTap<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const them = (id: number, s: string) => (out[id] ??= []).push(s);
+  for (const c of ds) for (const x of thieuDongTac(c)) them(c.id, x);
   for (const k of khoiCanh(ds)) {
     const co = k.filter((c) => c.may_3d);
     for (let i = 1; i < co.length; i++) {

@@ -367,6 +367,7 @@ DIEN.setdefault('2.4', {}).setdefault(TANGO, []).append('lan_tron@0.2-1')   # #1
 DIEN.setdefault('3.1', {}).setdefault(TANGO, []).append('lan_tron')         # #11 quả bóng lăn vèo qua khe màn hình
 DIEN.setdefault('4.1', {}).setdefault(TANGO, []).append('lan_tron@0-0.4')   # #12 lăn tới rồi bung ra thành Tango (nam_den False) — hành động trong 40 % đầu, lúc máy còn gần
 for ma in ('6.2', '6.3'): DIEN.setdefault(ma, {}).setdefault(TANGO, []).append('truot')   # #27–#28 thân nặn thành xe trượt, trượt dọc cáp
+DIEN['6.2'][TANGO].append('nhay@0.1-0.4')   # #27 'xe trượt nhảy lên sợi cáp trắng dốc' (cổng mô tả ↔ động tác bắt thiếu)
 DIEN.setdefault('4.3', {}).setdefault(TANGO, []).append('nga@0.12-0.3')
 DIEN.setdefault('7.1', {}).setdefault(TANGO, []).append('day@0.05-0.3')
 for ma, ds in VT.items():

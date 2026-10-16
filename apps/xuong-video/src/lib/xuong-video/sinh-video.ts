@@ -17,6 +17,7 @@ import { tronModelCanh } from './sinh-anh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
 import { soiClipCanh, khungDauThieuSp } from './soi-clip';
+import { chamMayCanh } from './cham-may';
 import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
@@ -245,6 +246,8 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     }
     // Máy soi clip (soi-clip.ts, 0đ): chữ lạ model tự in + sản phẩm còn trong khung — lỗi hiện trên thẻ shot, bản xuất không nhận clip lỗi.
     if (r.canh_id != null) await soiClipCanh(db, r.canh_id).catch((e) => console.error(`soi clip shot ${r.canh_id}:`, e));
+    // Máy tự chấm cảm xúc (cham-may.ts, 0đ, ~6s): clip QC có điểm ngay — chip Murch + cổng xuất đọc kết quả này, không chờ người soát.
+    if (r.canh_id != null) await chamMayCanh(db, r.canh_id).catch((e) => console.error(`chấm máy shot ${r.canh_id}:`, e));
     vuaXong++;
   }
   return { conChay, vuaXong };

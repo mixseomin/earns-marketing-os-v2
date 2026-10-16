@@ -69,7 +69,7 @@ export function dongChuMan(chu: string, W: number, k: Parameters<typeof doDong>[
 /** CSS font-size = cỡ ASS × tỉ lệ này (trình duyệt tính cỡ theo em, libass theo winAscent+winDescent) — không có thì ô xem to hơn MP4. */
 export const emCss = (font: string): number => EM_CSS[font] ?? EM_CSS['DejaVu Sans'] ?? 1;
 /** Bỏ dấu chấm cuối câu của chữ trên hình (giữ "…", "?", "!" và chấm giữa câu/tên miền). */
-export const boChamCuoi = (s: string): string => s.replace(/(?<![.\s])\.\s*$/u, '').replace(/\s+$/u, '');
+export const boChamCuoi = (s: string): string => s.replace(/(?<![.\s])\.(["”’']?)\s*$/u, '$1').replace(/\s+$/u, '');   // chấm trước ngoặc đóng cũng bỏ: "The husband loves them." (Jett #61)
 
 /** CỤM CHỮ (15/10/2026 — anh: "chữ hơi bé và dài quá, mỗi khuôn chỉ show vài từ hợp lý"): cắt câu thành các cụm ≤ toiDa từ hiện LẦN LƯỢT
  *  (kiểu phụ đề TikTok/Reels). Thứ tự: (1) cắt theo CÂU trước — . ! ? … ; : là ranh giới, hai câu không chung một khung ("6 bras out. 3" sai);
@@ -109,6 +109,8 @@ export function chiaCum(cau: string, toiDa: number): string[] {
     }
     day();
     return ra;
-  }).map((c) => c.replace(/\s*[,;·•]$/u, ''));
+  // Mỗi cụm là một khung chữ RIÊNG → luật 4 (không chấm cuối câu) áp cho TỪNG cụm: trước 16/10/2026 chỉ áp cho cả dòng trước khi chia,
+  // nên "Bigger size. Tighter belt. Suspenders" chia ra "Tighter belt." vẫn còn chấm (Jett #61).
+  }).map((c) => boChamCuoi(c.replace(/\s*[,;·•]$/u, '')));
   return out.length ? out : [cau];
 }

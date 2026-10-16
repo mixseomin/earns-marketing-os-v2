@@ -9,6 +9,7 @@ import { chanNguoiXem } from './nguoi-xem';
 import { kiemQc } from './kiem-qc';
 import { docKinhThanh, locNhanh, loiSoiClip, type Canh } from './kieu';
 import { soatClip } from './qc-cam-xuc';
+import { chamMayShots } from './cham-may';
 import { boiCanhTap, taoJob, xongJob, mapCanh, type Db, type Row } from './doc-db';
 import { khopGiongTap } from './hau-ky';
 
@@ -39,8 +40,14 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   const kt = docKinhThanh(bc.kt);
   // MURCH QC (qc-cam-xuc.ts): phim bật cam_xuc_qc thì mọi clip phải SOÁT ĐẠT (nét mặt đầu/cuối đúng kế hoạch, không biến dạng, sản phẩm giữ…).
   if (bc.loai === 'quang_cao' && kt.cam_xuc_qc) {
+    // Clip chưa có điểm (thay clip tay, clip cũ trước khi có máy chấm) → máy chấm ngay (cham-may.ts, 0đ) rồi mới xét.
+    const chuaCham = locNhanh(canh, nhanh || 'A').filter((c) => !soatClip(c)).map((c) => c.id);
+    if (chuaCham.length) {
+      await chamMayShots(db, tapId, chuaCham).catch((e) => console.error(`chấm máy lúc xuất tập ${tapId}:`, e));
+      canh = ((await db.execute(sql`SELECT c.* FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`)) as unknown as Row[]).map(mapCanh);
+    }
     const chua = locNhanh(canh, nhanh || 'A').flatMap((c) => { const k = soatClip(c); return !k ? [`#${c.thu_tu}: clip chưa soát`] : !k.dat ? [`#${c.thu_tu}: ${k.loi.join(' · ')}`] : []; });
-    if (chua.length) return { ok: false, loi: `Chưa xuất được — Murch QC: ${chua.slice(0, 5).join('; ')}${chua.length > 5 ? `; +${chua.length - 5}` : ''}. Soát clip (scripts/soat-cam-xuc.mts) hoặc sinh lại shot trượt` };
+    if (chua.length) return { ok: false, loi: `Chưa xuất được — Murch QC: ${chua.slice(0, 5).join('; ')}${chua.length > 5 ? `; +${chua.length - 5}` : ''}. Shot ◐ cần mắt: xem clip rồi ghi soát (scripts/soat-cam-xuc.mts --ghi); shot ✗ trượt: sinh lại` };
   }
   // Luật QC máy chặn được (kiem-qc.ts) — chỉ những luật sai là ra bản hỏng, không phải gu: màn kết thiếu tên sản phẩm.
   const qcSai = kiemQc({ loai: bc.loai, canh: locNhanh(canh, nhanh || 'A'), nhanVat: bc.nhanVat, qc: kt.qc, nhanh }).filter((x) => !x.ok && ['ten_cuoi'].includes(x.key));

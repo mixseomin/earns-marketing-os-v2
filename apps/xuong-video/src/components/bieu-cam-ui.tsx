@@ -20,7 +20,7 @@ export function BieuCamShot({ c, nhanVat, onDoi }: { c: Canh; nhanVat: NhanVat[]
     void luu({ bieu_cam: [...ds.filter((b) => b.nv !== ten && nguoi.some((v) => v.ten === b.nv)), { ...cu, ...p }] });
   };
   const k = soatKeyframe(c), v = soatClip(c);
-  const chip = (ten: string, s: ReturnType<typeof soatKeyframe>) => <span style={{ ...mono, color: !s ? 'var(--fg-4)' : s.dat ? '#4ade80' : '#f87171' }} title={s ? `${s.nguoi} · ${s.luc}\n${s.loi.join('\n') || 'đạt'}` : 'chưa soát'}>{ten} {!s ? '—' : s.dat ? '✓' : '✗'}</span>;
+  const chip = (ten: string, s: ReturnType<typeof soatKeyframe>) => { const mat = !!s && !s.dat && s.loi.every((x) => x.startsWith('cần mắt')); return <span style={{ ...mono, color: !s ? 'var(--fg-4)' : s.dat ? '#4ade80' : mat ? '#fbbf24' : '#f87171' }} title={s ? `${s.nguoi} · ${s.luc}\n${s.loi.join('\n') || 'đạt'}${mat ? '\nMáy chưa chắc — người xem clip rồi ghi soát' : ''}` : 'chưa soát'}>{ten} {!s ? '—' : s.dat ? '✓' : mat ? '◐' : '✗'}</span>; };
   if (!nguoi.length && !c.noi_lien) return null;
   return (
     <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--violet)', display: 'grid', gap: 3, fontSize: 11 }}>

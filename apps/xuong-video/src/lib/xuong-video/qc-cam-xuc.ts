@@ -127,10 +127,76 @@ export const MUC_SOAT = [
   { key: 'bien_dang', ten: 'Không biến dạng thân / vật (clip)' },
 ] as const;
 export type KqSoat = { url: string; luc: string; nguoi: string; dat: boolean; loi: string[]; /** nét đo được (clip): đầu / cuối */ do?: { dau?: string; cuoi?: string } };
-export type SoatShot = { keyframe?: KqSoat; clip?: KqSoat };
+/** may = MÁY TỰ CHẤM clip (cham-may.ts, 0đ) — người soát (clip) luôn thắng máy; máy "cần mắt" = chưa đạt cho tới khi người soát. */
+export type KqMay = { url: string; luc: string; ket: 'dat' | 'can_mat' | 'truot'; loi: string[] };
+export type SoatShot = { keyframe?: KqSoat; clip?: KqSoat; may?: KqMay };
 /** Soát còn hiệu lực cho đúng ảnh / clip đang dùng. */
 export const soatKeyframe = (c: Pick<Canh, 'keyframe_url'> & { soat?: SoatShot | null }): KqSoat | null => (c.keyframe_url && c.soat?.keyframe?.url === c.keyframe_url ? c.soat.keyframe : null);
-export const soatClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url'> & { soat?: SoatShot | null }): KqSoat | null => { const u = c.video_cuoi_url || c.video_url; return u && c.soat?.clip?.url === u ? c.soat.clip : null; };
+export const soatClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url'> & { soat?: SoatShot | null }): KqSoat | null => {
+  const u = c.video_cuoi_url || c.video_url;
+  if (!u) return null;
+  if (c.soat?.clip?.url === u) return c.soat.clip;
+  const m = c.soat?.may;
+  return m?.url === u ? { url: u, luc: m.luc, nguoi: 'máy (HSEmotion)', dat: m.ket === 'dat', loi: m.ket === 'can_mat' ? m.loi.map((x) => `cần mắt — ${x}`) : m.loi } : null;
+};
+
+// ── MÁY TỰ CHẤM CLIP (0đ) ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// Số đo từ scripts/do-cam-xuc.py (mặt YuNet → người SFace theo ảnh mẫu → valence HSEmotion). Đo thật trên Jett #61 (16/10/2026): xác suất
+// từng lớp cảm xúc dàn đều (cao nhất ~0.38) nên KHÔNG xét theo lớp; VALENCE (âm −1 ↔ dương +1) mới tách rõ: nhăn đau −0.6…−0.9, cười +0.6…+0.9.
+// Grok #2 cũ (Frank cười khi đang đau) +0.68 ở khung đầu, khung đầu lệch cuối #1 tới 54.8; Kling #2 đạt lệch 2.8.
+export type MatDo = { ten: string | null; sim: number; sims?: Record<string, number>; w: number; val: number };
+export type DoClip = { dai: number; khung: { t: number; mat: MatDo[] }[]; noi?: { lech: number } };
+const DUONG = new Set<string>(['hao_huc', 'vui', 'cuoi_lon', 'am_ap', 'nhe_nhom', 'tu_tin']);
+export const NGUONG_MAY = { nguoiChac: 0.3, nguoiDoan: 0.15, matDoan: 80, cuoi: 0.5, am: -0.4, noiTruot: 20, noiMat: 10 } as const;
+const trungVi = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]!; };
+const dau2 = (x: number) => `${x > 0 ? '+' : ''}${x.toFixed(2)}`;
+
+/** Gán mặt → nhân vật theo khung: nhận chắc (sim ≥ 0.3) trước; nhân vật chưa có mặt thì đoán mặt to (≥ 80px) giống nhất (sim ≥ 0.15) — đoán = "chưa chắc". */
+function chuoiNv(d: DoClip, ten: string[]): Record<string, { t: number; val: number; chac: boolean }[]> {
+  const out: Record<string, { t: number; val: number; chac: boolean }[]> = Object.fromEntries(ten.map((t) => [t, []]));
+  for (const k of d.khung) {
+    const dung = new Set<number>();
+    for (const t of ten) { const i = k.mat.findIndex((m, j) => !dung.has(j) && m.ten === t && m.sim >= NGUONG_MAY.nguoiChac); if (i >= 0) { dung.add(i); out[t]!.push({ t: k.t, val: k.mat[i]!.val, chac: true }); } }
+    for (const t of ten) {
+      if (out[t]!.some((x) => x.t === k.t)) continue;
+      let tot = -1, sim: number = NGUONG_MAY.nguoiDoan;
+      k.mat.forEach((m, j) => { const s = m.sims?.[t] ?? (m.ten === t ? m.sim : -1); if (!dung.has(j) && m.w >= NGUONG_MAY.matDoan && s >= sim) { tot = j; sim = s; } });
+      if (tot >= 0) { dung.add(tot); out[t]!.push({ t: k.t, val: k.mat[tot]!.val, chac: false }); }
+    }
+  }
+  return out;
+}
+
+/** Xét số đo với kế hoạch biểu cảm: cấm cười mà đo ra cười · nét đầu / cuối ngược dấu kế hoạch · shot nối liền mà khung đầu lệch cuối shot trước.
+ *  Bằng chứng từ mặt nhận CHẮC → trượt; từ mặt đoán → cần mắt (người xem quyết). Nét trung tính (bất ngờ, ngờ vực, bình thường) không xét dấu. */
+export function chamMay(d: DoClip, ds: BieuCamNv[] | undefined, o: { phat?: number | null; noiLien?: boolean }): { ket: KqMay['ket']; loi: string[] } {
+  const plan = (ds ?? []).filter((b) => bieuCam(b.dau) && bieuCam(b.cuoi));
+  const phat = o.phat || d.dai || 4;
+  const truot: string[] = [], mat: string[] = [];
+  const ghi = (chac: boolean, x: string) => (chac ? truot : mat).push(chac ? x : `${x} (máy chưa chắc mặt là ai)`);
+  const chuoi = chuoiNv(d, plan.map((b) => b.nv));
+  const dau = (k: string) => (bieuCam(k)?.am ? -1 : DUONG.has(k) ? 1 : 0);
+  for (const b of plan) {
+    const ch = chuoi[b.nv] ?? [];
+    if (!ch.length) continue;
+    if (camThuc(b).some((k) => k === 'vui' || k === 'cuoi_lon')) {
+      const c = ch.filter((x) => x.val >= NGUONG_MAY.cuoi);
+      if (c.filter((x) => x.chac).length >= 2) truot.push(`nét mặt: ${b.nv} cười (${dau2(Math.max(...c.map((x) => x.val)))}) ở ${c[0]!.t}s–${c[c.length - 1]!.t}s mà kế hoạch cấm cười`);
+      else if (c.length) mat.push(`${b.nv} có vẻ cười (${dau2(Math.max(...c.map((x) => x.val)))}) ở ${c[0]!.t}s–${c[c.length - 1]!.t}s`);
+    }
+    for (const [ma, cua, nhan] of [[b.dau, ch.filter((x) => x.t <= Math.max(0.6, phat * 0.25)), 'đầu'], [b.cuoi, ch.filter((x) => x.t >= phat * 0.6), 'cuối']] as const) {
+      const s = dau(ma); if (!s || !cua.length) continue;
+      const v = trungVi(cua.map((x) => x.val));
+      if (s < 0 ? v >= NGUONG_MAY.cuoi : v <= NGUONG_MAY.am) ghi(cua.some((x) => x.chac), `nét mặt: ${b.nv} ${nhan} shot đo ${dau2(v)} mà kế hoạch là ${bieuCam(ma)!.ten}`);
+    }
+  }
+  if (o.noiLien && d.noi) {
+    if (d.noi.lech > NGUONG_MAY.noiTruot) truot.push(`liền mạch: khung đầu lệch khung cuối shot trước ${d.noi.lech} (nối liền phải gần 0)`);
+    else if (d.noi.lech > NGUONG_MAY.noiMat) mat.push(`khung đầu hơi lệch cuối shot trước (${d.noi.lech})`);
+  }
+  const trung = (a: string[]) => [...new Set(a)];
+  return truot.length ? { ket: 'truot', loi: trung([...truot, ...mat]) } : mat.length ? { ket: 'can_mat', loi: trung(mat) } : { ket: 'dat', loi: [] };
+}
 /** Điểm cảm xúc ĐO ĐƯỢC (0…1) cho Murch: clip đã soát thì theo clip, không thì theo keyframe; chưa soát → null (Murch giữ ước lượng). */
 export function camXucDo(c: Pick<Canh, 'keyframe_url' | 'video_url' | 'video_cuoi_url'> & { soat?: SoatShot | null }): { diem: number; ly_do: string } | null {
   const k = soatClip(c) ?? soatKeyframe(c);

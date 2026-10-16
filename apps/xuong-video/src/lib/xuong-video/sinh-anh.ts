@@ -7,7 +7,8 @@ import { promptCatNen } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptBieuCam } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
-import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
+import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
+import { damBaoAnhMat } from './soi-mat';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
@@ -58,7 +59,9 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
   for (const v of thuTu) {
     const b = btCanh(v);
     // Sản phẩm: shot chọn biến thể màu có ảnh thật (vd 'Medium Blue') → ảnh đó là màu chính; không thì ảnh đầu của anchor.
-    const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1)) : [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
+    // Người (phim người thật): ảnh SÁT MẶT đứng đầu — mô hình bám mặt theo số điểm ảnh của mặt, bảng nhân vật cả người thì mặt chỉ vài chục px.
+    const mat = v.loai === 'nhan_vat' ? (v.anh_mat?.url ?? []).slice(0, 1) : [];
+    const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1)) : [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
     const con = Math.max(0, 10 - truoc - urlRef.length);
     const lay = anh.slice(0, con);
     if (!lay.length) continue;
@@ -68,7 +71,7 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
     const so = tu === den ? `image ${tu}` : `images ${tu}–${den}`;
     dong.push(v.loai === 'san_pham'
       ? `${so} = THE PRODUCT: draw exactly this item — same cut, pockets, seams, hardware and fabric texture; never a generic version. ${lay.length > 1 ? `Image ${tu} shows its MAIN color — use exactly that color unless the shot names another color of the same item; the other product images show other colors of the same item.` : 'Use exactly its color.'} Where text and these images disagree, the images win. Do not write its name.`
-      : v.loai === 'nhan_vat' ? `${so} = the person ${v.ten} (same face, hair, age, body).` : `${so} = ${v.loai === 'boi_canh' ? 'the location' : 'the prop'} ${v.ten}.`);
+      : v.loai === 'nhan_vat' ? `${so} = the person ${v.ten} (same face, hair, age, body).${mat.length && lay[0] === mat[0] ? ` Image ${tu} is a CLOSE-UP of ${v.ten}'s face: the face in the new image must be this exact person — same bone structure, eyes, nose, mouth, hairline and skin; only the expression may change.` : ''}` : `${so} = ${v.loai === 'boi_canh' ? 'the location' : 'the prop'} ${v.ten}.`);
   }
   return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '', vai };
 }
@@ -120,6 +123,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
   if (!bc) return { ok: false, loi: 'không thấy cảnh' };
   if (!bc.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe mở' };
   if (!bc.canh.khung_xam?.mau_ket) return { ok: false, loi: 'shot không có khung màu chỗ kết (không ai di chuyển / quay trong shot, hoặc chưa dựng khung 3D)' };
+  if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
   const { prompt, urlRef } = chuanBiKeyframe(bc, true);
   const job = await taoJob(db, { nhan: `Keyframe KẾT · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef, dich: 'keyframe_ket' } });
   await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}-ket` });
@@ -365,6 +369,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   if (!g) return loi('không thấy cảnh');
   if (g.chan.length) return loi(g.chan.join(' · '));
   const { bc } = g;
+  if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));   // phim người thật: kèm ảnh sát mặt
   if (moHinh && (/^(fal|ckey|shopaikey|google):/.test(moHinh) || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;   // ckey:/shopaikey:/google: = chọn đích danh nguồn (cong-ai.ts)
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
   const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);

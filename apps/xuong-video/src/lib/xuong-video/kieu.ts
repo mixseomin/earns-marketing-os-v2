@@ -406,7 +406,7 @@ export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: str
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;
   /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */
-  am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[];
+  am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; /** ảnh SÁT MẶT máy cắt từ ảnh mẫu (soi-mat.ts › damBaoAnhMat) — phim người thật kèm vào lượt sinh để giữ đúng mặt */ anh_mat?: { tu: string; url: string[] } | null; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[];
   /** bối cảnh: thuộc bộ set nào + vùng (tâm cm) trong set; nhân vật / đạo cụ: khối đại diện 3D (cỡ cm) */ bo_set_id?: number | null; vung?: { tam: number[]; ban_kinh?: number } | null; khoi_3d?: { hinh: KhoiSet['hinh']; co: number[]; mau: string; /** có mắt (nhân vật): khung xám vẽ hai mắt chỉ hướng nhìn */ mat?: boolean; /** phần thêm, toạ độ tương đối đáy giữa khối */ phan?: Omit<KhoiSet, 'ten'>[] } | null };
 
 /** Phim quảng cáo mà chưa khai sản phẩm (mục 0) → lý do chặn; MỘT luật cho nút ở trình duyệt lẫn gác ở máy chủ. */

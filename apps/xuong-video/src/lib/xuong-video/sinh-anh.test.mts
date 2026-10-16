@@ -73,3 +73,12 @@ console.log('sinh-anh.test: ok');
   assert.match(gocMayChu({ dat: [0, 0, 10], nhin: [0, 10, 0], ong_kinh: 35 }, null), /tilted DOWN 45° — a HIGH-ANGLE/);
   assert.match(gocMayChu({ dat: [0, 0, 1.3], nhin: [0, 10, 1.3], ong_kinh: 35 }, { ten: 'Tango', giuaZ: 1.3 }), /EYE-LEVEL/);
 }
+// ẢNH SÁT MẶT (phim người thật): đứng đầu nhóm ảnh của người + câu "CLOSE-UP of face"; không có thì như cũ
+{
+  const nvM = [{ id: 1, loai: 'nhan_vat', ten: 'Frank', mo_ta: '', anh_ref: ['f1', 'f2'], anh_mat: { tu: 'x', url: ['m1', 'm2'] } }] as never;
+  const m = xepThamChieu(nvM);
+  assert.deepEqual(m.urlRef, ['m1', 'f1', 'f2']);
+  assert.ok(m.banDoRef.includes("Image 1 is a CLOSE-UP of Frank's face"), m.banDoRef);
+  assert.ok(!xepThamChieu(nv).banDoRef.includes('CLOSE-UP'), 'không có ảnh mặt: không thêm câu');
+  console.log('sinh-anh.test: ảnh sát mặt ok');
+}

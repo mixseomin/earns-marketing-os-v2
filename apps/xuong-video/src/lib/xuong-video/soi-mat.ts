@@ -4,10 +4,12 @@
 // Luật thuần + cổng ở khung.ts (trangThaiMat · chanKhung).
 import 'server-only';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
-import { chatLieuPhim, locNhanh, type KinhThanh, type SoiMat } from './kieu';
+import { chatLieuPhim, locNhanh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
+import { uploadToR2 } from '../r2';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
 const PY = process.env.XV_SOI_MAT_PY || '/opt/xv-soi-mat/bin/python';
@@ -37,6 +39,7 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
     if (o.ghi !== false) for (const c of ds) await db.execute(sql`UPDATE xv_canh SET soi_mat = ${JSON.stringify({ url: c.keyframe_url!, luc, mat: 0, ket: [], dat: true } satisfies SoiMat)}::jsonb WHERE id = ${c.id}`);
     return { ok: true, data: { soi: ds.length, lech: [], theo_doi: [] } };
   }
+  await damBaoAnhMat(db, nv).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
   const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
   const tenCua = (ids: number[]) => ids.map((id) => nv.find((v) => v.id === id)?.ten).filter((x): x is string => !!x);
   let ra: Ra;
@@ -56,4 +59,19 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
 /** Người nhận một khung máy báo lệch mặt (máy báo nhầm: góc nghiêng gắt, ánh sáng lạ) — 0đ. Keyframe đổi thì soi lại từ đầu. */
 export async function duyetMatTay(db: Db, canhId: number, nguoi: string): Promise<void> {
   await db.execute(sql`UPDATE xv_canh SET soi_mat = soi_mat || ${JSON.stringify({ duyet_tay: nguoi })}::jsonb WHERE id = ${canhId} AND soi_mat IS NOT NULL`);
+}
+
+/** ẢNH SÁT MẶT cho các nhân vật (phim người thật): cắt từ ảnh mẫu bằng soi-mat.py (mặt điển hình + một mặt khác góc), đẩy kho, ghi xv_nhan_vat.anh_mat.
+ *  Chỉ cắt lại khi bộ ảnh mẫu đổi (tu = mã các URL). Sửa thẳng nv[] truyền vào để lượt sinh đang chạy dùng ngay. 0đ. */
+export async function damBaoAnhMat(db: Db, nv: NhanVat[]): Promise<void> {
+  const ma = (v: NhanVat) => createHash('sha1').update([...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url ?? '')].join('|')).digest('hex').slice(0, 12);
+  const can = nv.filter((v) => v.loai === 'nhan_vat' && v.anh_ref.length && v.anh_mat?.tu !== ma(v));
+  if (!can.length) return;
+  const ra = await chay({ cat: true, mau: Object.fromEntries(can.map((v) => [v.ten, v.anh_ref.slice(0, 4)])), anh: [] }) as Ra & { cat?: Record<string, string[]> };
+  for (const v of can) {
+    const tu = ma(v); const url: string[] = [];
+    for (const [i, b] of (ra.cat?.[v.ten] ?? []).entries()) { const u = await uploadToR2(`xuong-video/mat/${v.id}-${tu}-${i}.jpg`, Buffer.from(b, 'base64'), 'image/jpeg'); if (u) url.push(u); }
+    v.anh_mat = { tu, url };
+    await db.execute(sql`UPDATE xv_nhan_vat SET anh_mat = ${JSON.stringify(v.anh_mat)}::jsonb WHERE id = ${v.id}`);
+  }
 }

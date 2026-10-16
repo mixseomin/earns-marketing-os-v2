@@ -112,7 +112,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
   if (moHinh && (/^(fal|shopaikey|google):/.test(moHinh) || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
-  if (!hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (Pika thiếu cảm xúc, Grok tự in phụ đề giả) — chọn Veo qua Google / Kling`);
+  // Lượt THỬ ngoài quy trình (thu) được dùng model cấm QC khi anh chỉ đích danh (16/10/2026: "grok trước sinh ổn mà, thử lại xem" — Veo chặn ảnh có
+  // trẻ em, Jett #61 shot 1/2/11); clip thử vẫn qua máy soi chữ lạ (soi-clip.ts) như mọi clip. Sản xuất (không thu) giữ chặn.
+  if (!thu && !hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (Pika thiếu cảm xúc, Grok tự in phụ đề giả) — chọn Veo qua Google / Kling`);
   // Khoá model (cong-ai.ts › tachKhoa): 'shopaikey:<model>' = đúng cổng đó (không dự phòng) · 'google:<model>' = Google trực tiếp · trần = tự chọn.
   const khoaVid = tachKhoa(bc.kt.mo_hinh_video);
   if (khoaVid.kieu === 'google') { bc.kt.mo_hinh_video = khoaVid.model as typeof bc.kt.mo_hinh_video; boQuaCong = true; }

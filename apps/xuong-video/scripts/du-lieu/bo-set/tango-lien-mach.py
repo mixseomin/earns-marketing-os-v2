@@ -362,6 +362,11 @@ dang('4.3', TANGO, nam=False, nam_den=True)      # #14 'Tango ngã ngồi' diễ
 for ma in ('6.2', '6.3'): dang(ma, TANGO, nam=True)   # #27–#28 Tango đã nặn thành xe trượt: thân dẹt nằm
 dang('7.1', TANGO, nam=True, nam_den=False)      # #29 xe trượt dừng trên thẻ cam → bung lại thành Tango đứng
 DIEN.setdefault('2.2', {}).setdefault(TANGO, []).append('nga@0.6-0.85')
+# NẰM KHÔNG TỰ ĐI (anh 16/10/2026: "#10 Tango đang nằm mà vẫn di chuyển được"): khai cách di chuyển — cuộn tròn lăn / trượt.
+DIEN.setdefault('2.4', {}).setdefault(TANGO, []).append('lan_tron@0.2-1')   # #10 cuộn tròn thành quả bóng cam lăn theo viên kẹo
+DIEN.setdefault('3.1', {}).setdefault(TANGO, []).append('lan_tron')         # #11 quả bóng lăn vèo qua khe màn hình
+DIEN.setdefault('4.1', {}).setdefault(TANGO, []).append('lan_tron@0-0.75')  # #12 lăn tới rồi bung ra thành Tango (nam_den False)
+for ma in ('6.2', '6.3'): DIEN.setdefault(ma, {}).setdefault(TANGO, []).append('truot')   # #27–#28 thân nặn thành xe trượt, trượt dọc cáp
 DIEN.setdefault('4.3', {}).setdefault(TANGO, []).append('nga@0.12-0.3')
 DIEN.setdefault('7.1', {}).setdefault(TANGO, []).append('day@0.05-0.3')
 for ma, ds in VT.items():

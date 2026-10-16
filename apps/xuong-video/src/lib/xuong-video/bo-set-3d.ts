@@ -18,7 +18,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 32;
+export const BAN_DUNG = 33;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -308,6 +308,14 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   // không tự phẳng, bẹp không tự tròn; chỉ đổi trong shot (trang_den) hoặc khi khai nhay.
   const trangCuoi = new Map<string, { t: string; shot: number }>();
   let truocCo = new Set<string>();
+  // NẰM MÀ DI CHUYỂN (anh 16/10/2026: "#10 con Tango đang nằm mà vẫn di chuyển được"): thân nằm không tự đi — phải khai CÁCH di chuyển trong
+  // dien (lan_tron = cuộn tròn lăn, truot = trượt: xe trượt / băng / dây) hoặc đang được người khác cầm.
+  const CACH_NAM = /^(lan_tron|truot)\b/;
+  for (const c of ds) for (const v of c.may_3d?.vi_tri ?? []) {
+    if (!v.den || v.cam || !(v.nam && (v.nam_den ?? v.nam))) continue;
+    const d = Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!);
+    if (d > 1 && !(v.dien ?? []).some((x) => CACH_NAM.test(x))) (out[c.id] ??= []).push(`${v.ten} đang NẰM mà đi ${Math.round(d * 10) / 10} cm trong shot — thân nằm không tự đi: khai cách di chuyển trong dien (lan_tron = cuộn tròn lăn, truot = trượt) hoặc cho đứng dậy / người khác cầm`);
+  }
   // LUỒNG CẢNH (script supervisor, anh 16/10/2026: "đang lái xe hết cảnh, cảnh sau sáng hôm sau đang nằm ngủ là bình thường"): sổ liền mạch
   // theo từng nhân vật chỉ giữ trong một luồng thời gian. Sang cảnh khai NGÀY TRUYỆN khác → reset hết (trừ vật đã chia: thời gian không làm lành);
   // cảnh khai lien_truoc: false (thời gian nhảy) → reset chỗ / hướng / dáng / đồ đang cầm, trạng thái cơ thể giữ tới khi đổi ngày.

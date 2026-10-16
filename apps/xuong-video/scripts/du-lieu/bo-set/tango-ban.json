@@ -2028,7 +2028,10 @@
             0
           ],
           "huong": -127,
-          "nam": true
+          "nam": true,
+          "dien": [
+            "lan_tron@0.2-1"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -2162,7 +2165,10 @@
             0
           ],
           "huong": 180,
-          "nam": true
+          "nam": true,
+          "dien": [
+            "lan_tron"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -2199,7 +2205,10 @@
           ],
           "huong": 112,
           "nam": true,
-          "nam_den": false
+          "nam_den": false,
+          "dien": [
+            "lan_tron@0-0.75"
+          ]
         },
         {
           "ten": "Gummy Bear",
@@ -3071,7 +3080,10 @@
           ],
           "huong": 0,
           "huong_den": 71,
-          "nam": true
+          "nam": true,
+          "dien": [
+            "truot"
+          ]
         },
         {
           "ten": "Lint",
@@ -3156,7 +3168,10 @@
           ],
           "huong": 71,
           "huong_den": 79,
-          "nam": true
+          "nam": true,
+          "dien": [
+            "truot"
+          ]
         },
         {
           "ten": "Lint",

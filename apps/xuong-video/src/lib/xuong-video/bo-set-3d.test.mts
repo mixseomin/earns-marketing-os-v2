@@ -71,13 +71,16 @@ assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground, c
 // Liền mạch: shot sau mở đúng chỗ shot trước kết (den) → qua; lệch 5 cm → đứt mạch; vắng một shot ở giữa vẫn so với lần cuối thấy;
 // khai nhay → không báo; quay ngoắt >60° qua cú cắt → báo.
 const kh = () => ({ co: [2, 1.6, 2.6] });
-const sh = (id: number, vi_tri: { ten: string; tam: number[]; den?: number[]; huong?: number; nam?: boolean; nam_den?: boolean; trang_den?: string }[], nhay?: string) => ({ id, thu_tu: id, may_3d: { dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri, ...(nhay ? { nhay } : {}) } });
+const sh = (id: number, vi_tri: { ten: string; tam: number[]; den?: number[]; huong?: number; nam?: boolean; nam_den?: boolean; trang_den?: string; dien?: string[] }[], nhay?: string) => ({ id, thu_tu: id, may_3d: { dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri, ...(nhay ? { nhay } : {}) } });
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [10, 0.3, 0] }])], kh), {});
 assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [15, 0, 0] }])], kh)[2]![0]!.includes('lệch 5 cm'));
 // dáng: đứng → nằm qua cú cắt là lỗi; ngã trong shot (nam_den) thì qua; vắng một shot thì được đổi ngoài khung
 assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh)[2]?.some((x) => x.includes('NẰM')), 'đứng → nằm qua cú cắt');
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam_den: true }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh), {});
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }]), sh(2, [{ ten: 'Lint', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Tango', tam: [0, 0, 0] }])], kh), {});
+// nằm mà đi: lỗi; khai lan_tron / truot thì qua
+assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0], nam: true }])], kh)[1]?.some((x) => x.includes('NẰM mà đi')), 'nằm trượt đi');
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0], nam: true, dien: ['lan_tron'] }])], kh), {});
 // luồng cảnh: cảnh khác ngày truyện → reset cả chỗ / dáng / trạng thái; lien_truoc: false → reset chỗ / dáng, trạng thái giữ; không khai → liền mạch
 const shc = (id: number, canh: string, vi_tri: Parameters<typeof sh>[1]) => ({ ...sh(id, vi_tri), canh });
 const pc = [{ ten: 'Lái xe', ngay: 'N1' }, { ten: 'Ngủ', ngay: 'D2' }, { ten: 'Nhà', lien_truoc: false }, { ten: 'Liền' }];
@@ -97,7 +100,7 @@ assert.ok(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Bac
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: { ...mm, them: ['MacBook Pro'] }, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap), []);
 // Sửa scripts/bo-set/dung-set.py thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi ghi lại băm ở đây.
 const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-set/dung-set.py', import.meta.url))).digest('hex').slice(0, 12);
-assert.deepEqual([BAN_DUNG, bam], [32, '422ba3cf68ed'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [33, 'c006bd1def24'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

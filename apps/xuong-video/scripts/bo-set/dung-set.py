@@ -801,12 +801,14 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         for o in bo_phan: o['goc_sc'] = list(o.scale)
         quang = 0.0; p_truoc = None
         doi_dang = None   # đứng ↔ nằm trong shot (nam → nam_den): trục ngang + độ dời giống nam_xuong, cỡ theo khối nhân vật mẫu
-        if not lan and nv.get('nam_den') is not None and bool(nv.get('nam_den')) != bool(nv.get('nam')):   # thành bóng: dáng do lan_tron lo
+        if nv.get('nam_den') is not None and bool(nv.get('nam_den')) != bool(nv.get('nam')):
             km = (DL.get('nhan_vat_mau') or {}).get(ten) or {}; cw, cd_, ch = (km.get('co') or [1, 1, 2])[:3]
             ag = math.radians(h0); u_ = Vector((math.cos(ag), math.sin(ag), 0)); truoc_ = Vector((math.sin(ag), -math.cos(ag), 0))
             mac = [x for x in hd if x[0] == ('nga' if nv.get('nam_den') else 'day')]
             doi_dang = {'nga': bool(nv.get('nam_den')), 'u': u_, 'lech': (Vector((0, 0, cd_ / 2)) + truoc_ * (ch / 2)) * CM,
                         'cua': (mac[0][1], mac[0][2]) if mac else ((0.6, 0.85) if nv.get('nam_den') else (0.1, 0.4))}
+            lt = [x for x in hd if x[0] == 'lan_tron']
+            if lt and not mac and lt[0][2] < 0.999: doi_dang['cua'] = (lt[0][2], min(1.0, lt[0][2] + 0.18))   # bóng bung ra xong mới đứng dậy / ngã (#12)
         rb = random.Random(hat); chop = [rb.uniform(0.2, 0.45), rb.uniform(0.65, 0.9)]   # hai lần chớp mắt tự nhiên, lệch nhịp mỗi nhân vật
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1); k = dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
@@ -824,11 +826,12 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             e.rotation_mode = 'QUATERNION'
             cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 else 0.0   # 1 = chân vừa chạm đất
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']
-            Mt = Matrix.Translation(p * CM) @ R.to_matrix().to_4x4()
+            Mt = Matrix.Translation(p * CM) @ R.to_matrix().to_4x4(); Pm = Matrix.Identity(4)
             if doi_dang:   # NGÃ / ĐỨNG DẬY trong shot = nội suy đúng phép nam_xuong (xoay 90° quanh trục ngang tại chân + dời thân lên mặt bàn)
                 a_, b_ = doi_dang['cua']; kd = em(min(1.0, max(0.0, (t - a_) / (b_ - a_))))
-                Mt = Mt @ (Matrix.Translation(doi_dang['lech'] * kd) @ Matrix.Rotation(math.radians(-90 * kd), 4, doi_dang['u']) if doi_dang['nga']
-                           else Matrix.Rotation(math.radians(90 * kd), 4, doi_dang['u']) @ Matrix.Translation(-doi_dang['lech'] * kd))
+                Pm = (Matrix.Translation(doi_dang['lech'] * kd) @ Matrix.Rotation(math.radians(-90 * kd), 4, doi_dang['u']) if doi_dang['nga']
+                      else Matrix.Rotation(math.radians(90 * kd), 4, doi_dang['u']) @ Matrix.Translation(-doi_dang['lech'] * kd))
+                Mt = Mt @ Pm
             if lan:   # QUẢ BÓNG LĂN: thân co về cầu (cùng thể tích) hạ xuống mặt bàn, chân tay / mắt / tóc thu vào, lăn đúng số vòng theo quãng
                 kb = dt['bong']; km = (DL.get('nhan_vat_mau') or {}).get(ten) or {}; w_, d_, h_ = (km.get('co') or [1.7, 1.4, 2.6])[:3]
                 rb = (w_ * d_ * h_) ** (1 / 3) / 2; tam_than = h_ / 2 + 0.2
@@ -837,7 +840,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 truc_lan = Vector((-huong_di.y, huong_di.x, 0))
                 C = Vector((0, 0, rb * CM))
                 Mt = (Matrix.Translation(p * CM + C) @ Matrix.Rotation(quang / rb, 4, truc_lan) @ Matrix.Translation(-C)
-                      @ Matrix.Translation(Vector((0, 0, -(tam_than - rb) * kb * CM))) @ R.to_matrix().to_4x4())
+                      @ Matrix.Translation(Vector((0, 0, -(tam_than - rb) * kb * CM))) @ R.to_matrix().to_4x4() @ Pm)
                 if than is not None:
                     g_ = Vector(than['goc_sc']); f_ = Vector((2 * rb / w_, 2 * rb / d_, 2 * rb / h_))
                     than.scale = Vector([g_[i] * (f_[i] ** kb) for i in range(3)]); than.keyframe_insert('scale', frame=f)

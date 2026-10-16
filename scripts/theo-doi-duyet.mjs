@@ -136,7 +136,14 @@ const KIEM = {
     if (!/^\d{6,}$/.test(String(p.sku ?? ''))) return null;
     const ver = (await api('GET', `/v1/apps/${p.sku}/appStoreVersions?filter[platform]=IOS&limit=20&fields[appStoreVersions]=versionString,appStoreState,createdDate`)).data;
     const tt = trangThaiAsc(ver.map((x) => ({ version: x.attributes.versionString, state: x.attributes.appStoreState, created: x.attributes.createdDate })));
-    return tt && tt.status === 'published' && !p.url ? { ...tt, url: `https://apps.apple.com/app/id${p.sku}` } : tt;
+    if (tt?.status === 'published') {
+      // đang bán mà CHƯA MỞ VÙNG BÁN = không hiện ở nước nào (Giỗ Chạp 15-16/10/2026) — mở bằng `node Tools/asc.mjs vungban` của app
+      let coVung = true;
+      try { await api('GET', `/v1/apps/${p.sku}/appAvailabilityV2`); } catch (e) { if (/\b404\b/.test(String(e.message))) coVung = false; else throw e; }
+      if (!coVung) tt.dong += ' — CHƯA MỞ VÙNG BÁN: không hiện ở nước nào (chạy Tools/asc.mjs vungban)';
+      if (!p.url) tt.url = `https://apps.apple.com/app/id${p.sku}`;
+    }
+    return tt;
   },
   kdp: async (p) => {
     if (!['in_review', 'pending'].includes(p.status)) return null;
@@ -177,7 +184,8 @@ for (const p of sp) {
   kiem++;
   const notes = ghiChu(p.notes, tt.dong), url = tt.url ?? p.url ?? null;
   if (tt.status === p.status && notes === (p.notes ?? null) && url === (p.url ?? null)) continue;
-  if (tt.status !== p.status) doi.push({ nen: p.platform, ten: p.title, cu: p.status, moi: tt.status, dong: tt.dong, url });
+  const moiCanhBao = /CHƯA MỞ VÙNG BÁN/.test(tt.dong ?? '') && !/CHƯA MỞ VÙNG BÁN/.test(p.notes ?? '');
+  if (tt.status !== p.status || moiCanhBao) doi.push({ nen: p.platform, ten: p.title, cu: p.status, moi: tt.status, dong: tt.dong, url });
   log(`${p.platform} · ${p.title}: ${CHU_SO[p.status] ?? p.status} → ${CHU_SO[tt.status] ?? tt.status}${tt.dong ? ` (${tt.dong})` : ''}`);
   if (DRY) continue;
   const r = await fetch(`${U}/items/products/${p.id}`, { method: 'PATCH', headers: H, body: JSON.stringify({ status: tt.status, notes, url }) });

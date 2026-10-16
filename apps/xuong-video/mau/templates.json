@@ -4357,7 +4357,7 @@
      "goc_may": "Top-down close-up"
     },
     {
-     "giay": 1.6,
+     "giay": 2.2,
      "loai": "noi_dau",
      "co": "mcu",
      "nv": [
@@ -4454,12 +4454,13 @@
      "co": "ecu",
      "nv": [
       "sp",
+      "nv2",
       "bc"
      ],
      "chu_man": "{{loi_ich_1}}",
      "loi": "{{loi_ich_1}}",
      "hanh_dong": "{{loi_ich_1_hinh}}",
-     "prompt_anh": "Extreme close-up: {{loi_ich_1_hinh}}, product {{san_pham_hinh}}",
+     "prompt_anh": "Extreme close-up: {{nguoi_2_hinh}} hands pulling the {{san_pham}} fabric, {{loi_ich_1_hinh}}, product {{san_pham_hinh}}",
      "prompt_video": "The {{san_pham}} fabric stretches and springs back, macro detail",
      "bt": [
       "m1"

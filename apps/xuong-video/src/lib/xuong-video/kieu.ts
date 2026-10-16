@@ -461,7 +461,7 @@ export type Lop = {
 /** Kết quả 🔍 Kiểm khung của MỘT keyframe (khung.ts / kiem-khung.ts): url = keyframe đã kiểm (đổi là hết hiệu lực); duyet_tay = người nhận khung dù máy báo lệch. */
 /** SOI MẶT (soi-mat.ts): mặt trong keyframe so với ảnh mẫu nhân vật. ket: nhân vật có ảnh mẫu mặt người; giong null = không thấy mặt trong khung (quay lưng, qua vai) —
  *  không phải lệch. dat = mọi mặt thấy được đều giống ảnh mẫu (cosine SFace ≥ 0,363). url = keyframe đã soi. */
-export type SoiMat = { url: string; luc: string; mat: number; ket: { ten: string; giong: number | null; dat: boolean }[]; dat: boolean; duyet_tay?: string; loi?: string };
+export type SoiMat = { url: string; luc: string; mat: number; ket: { ten: string; giong: number | null; dat: boolean; /** mặt quá nhỏ để chấm (< 64 px) — không chặn */ nho?: boolean }[]; dat: boolean; duyet_tay?: string; loi?: string };
 export type KiemKhung = { url: string; dat: boolean; loi: { loai: string; mo_ta: string; sua: string }[]; luc: string; model: string; duyet_tay?: string };
 export type ThuNguoiXem = {
   ma: string; luc: string; model: string;

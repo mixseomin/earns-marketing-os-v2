@@ -9,6 +9,7 @@ import numpy as np, cv2
 
 MO = os.environ.get('XV_SOI_MAT_MO', '/opt/xv-soi-mat/models')
 NGUONG = 0.363
+NHO = 64   # mặt thấp dưới 64 px: SFace (đầu vào 112 px) chấm không tin được, người xem cũng khó nhận — ghi 'nho', không chặn (Jett #11)
 cv2.setLogLevel(2) if hasattr(cv2, 'setLogLevel') else None
 det = cv2.FaceDetectorYN.create(f'{MO}/face_detection_yunet_2023mar.onnx', '', (320, 320), 0.8, 0.3, 5000)
 rec = cv2.FaceRecognizerSF.create(f'{MO}/face_recognition_sface_2021dec.onnx', '')
@@ -21,18 +22,19 @@ def doc(u):
     s = 1280 / max(im.shape[:2])
     return cv2.resize(im, None, fx=s, fy=s) if s < 1 else im
 
-def van(im):
-    """Vân mặt của mọi mặt trong ảnh (to trước)."""
+def van(im, ti_mat=0.4, ti_khung=0.0):
+    """Vân các mặt ĐỦ LỚN trong ảnh (to trước): cao ≥ ti_mat × mặt lớn nhất và ≥ ti_khung × chiều cao ảnh — người qua đường nhỏ ở nền bỏ qua
+    (Jett #12: cận cạp quần, mặt khách tí xíu phía sau bị gán cho Frank)."""
     det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
     if f is None: return []
-    f = sorted(f, key=lambda x: -x[2] * x[3])
-    return [rec.feature(rec.alignCrop(im, x)).flatten() for x in f]
+    f = sorted(f, key=lambda x: -x[3]); h0 = f[0][3]
+    return [(rec.feature(rec.alignCrop(im, x)).flatten(), float(x[3])) for x in f if x[3] >= ti_mat * h0 and x[3] >= ti_khung * im.shape[0]]
 
 def cos(a, b): return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
 
 if len(sys.argv) == 4 and sys.argv[1] == '--tu-kiem':
     a, b = van(doc(sys.argv[2])), van(doc(sys.argv[3]))
-    print(json.dumps({'mat_a': len(a), 'mat_b': len(b), 'giong': round(cos(a[0], b[0]), 3) if a and b else None})); sys.exit(0)
+    print(json.dumps({'mat_a': len(a), 'mat_b': len(b), 'giong': round(cos(a[0][0], b[0][0]), 3) if a and b else None})); sys.exit(0)
 
 vao = json.load(sys.stdin); ra = {'mau': {}, 'anh': []}
 mau = {}
@@ -41,20 +43,24 @@ for ten, urls in vao.get('mau', {}).items():
     for u in urls:
         try: v = van(doc(u))
         except Exception as e: print(f'bỏ ảnh mẫu {u}: {e}', file=sys.stderr); continue
-        if v: vs.append(v[0])   # ảnh mẫu: mặt to nhất là nhân vật
+        vs.extend(x for x, _ in v[:12])   # ảnh mẫu / bảng nhân vật nhiều góc + biểu cảm: mọi mặt cỡ lớn đều là nhân vật — so với mặt gần nhất
     ra['mau'][ten] = len(vs)
     if vs: mau[ten] = vs
 for a in vao.get('anh', []):
-    try: mat = van(doc(a['url']))
+    try: mat = van(doc(a['url']), 0.4, 0.05)
     except Exception as e: ra['anh'].append({'id': a['id'], 'loi': str(e)}); continue
     # GÁN mỗi mặt cho TỐI ĐA một nhân vật (cặp giống nhất trước): shot qua vai thấy lưng A + mặt B thì A không thấy mặt (giong null, không lệch),
     # không phải "mặt B không giống A". Nhân vật được gán một mặt dưới ngưỡng = mặt lệch ảnh mẫu (AI vẽ người khác).
     ten = [t for t in a.get('ten', []) if t in mau]
-    cap = sorted(((max(cos(m, r) for r in mau[t]), i, t) for i, m in enumerate(mat) for t in ten), reverse=True)
+    cap = sorted(((max(cos(m, r) for r in mau[t]), i, t) for i, (m, _) in enumerate(mat) for t in ten), reverse=True)
     gan, dung = {}, set()
     for g, i, t in cap:
         if t in gan or i in dung: continue
-        gan[t] = g; dung.add(i)
-    ket = [{'ten': t, 'giong': round(gan[t], 3) if t in gan else None, 'dat': t not in gan or gan[t] >= NGUONG} for t in ten]
+        gan[t] = (g, mat[i][1]); dung.add(i)
+    ket = []
+    for t in ten:
+        if t not in gan: ket.append({'ten': t, 'giong': None, 'dat': True}); continue
+        g, h = gan[t]; nho = h < NHO
+        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or g >= NGUONG, **({'nho': True} if nho else {})})
     ra['anh'].append({'id': a['id'], 'mat': len(mat), 'ket': ket})
 print(json.dumps(ra, ensure_ascii=False))

@@ -21,3 +21,38 @@ assert.ok(s.nhanVat.Tango![1]!.diem === 100 && s.nhanVat.Tango![1]!.muc[0]!.muc 
 assert.equal(s.nhanVat.Tango![0]!.diem, 100);
 import('./so-lien-mach').then(({ chamLoi }) => { assert.equal(chamLoi(['Lint quay ngoắt 90°'], true, null).diem, 92, 'nặng ngoài khung: 20 × 0,4'); });
 console.log('so-lien-mach: mọi bài tự kiểm qua');
+
+// SỔ BỀ NGOÀI (phim người thật): khai một lần, các shot sau tự nối; khai lệch = ghi chú; tháo đồ bằng _den; vết thương mang qua ngày;
+// ngày mới phải khai lại trang phục (thiếu khai); prompt có 'wearing: …'; bảng theo ngày gom đúng.
+import('./bo-set-3d').then(({ noiHookup, thieuKhaiNguoi, trangThaiVat, lienMachTap }) => import('./so-lien-mach').then(({ soLienMach: so, bangNgoai, mucLoi }) => {
+  const pcN = [{ ten: 'Văn phòng', ngay: 'N1' }, { ten: 'Biệt thự', ngay: 'D2' }];
+  const m1 = (vi_tri: unknown[]) => may(vi_tri);
+  const dsN = [
+    { id: 1, thu_tu: 1, canh: 'Văn phòng', may_3d: m1([{ ten: 'Bố', tam: [0, 0, 0], trang_phuc: 'navy three-piece suit', do_deo: 'gold watch' }]) },
+    { id: 2, thu_tu: 2, canh: 'Văn phòng', may_3d: m1([{ ten: 'Bố', tam: [0, 0, 0], vet_den: 'small cut on left cheek' }]) },
+    { id: 3, thu_tu: 3, canh: 'Văn phòng', may_3d: m1([{ ten: 'Bố', tam: [0, 0, 0], trang_phuc: 'grey suit', do_deo_den: '' }]) },
+    { id: 4, thu_tu: 4, canh: 'Văn phòng', may_3d: m1([{ ten: 'Bố', tam: [0, 0, 0] }]) },
+    { id: 5, thu_tu: 5, canh: 'Biệt thự', may_3d: m1([{ ten: 'Bố', tam: [9, 0, 0] }]) },
+  ];
+  const hk = noiHookup(dsN as never, pcN);
+  const v = (id: number) => hk.may.get(id)!.vi_tri[0]!;
+  assert.deepEqual([v(2).trang_phuc, v(2).do_deo], ['navy three-piece suit', 'gold watch'], 'shot sau tự nối trang phục + đồ trên người');
+  assert.equal(v(3).trang_phuc, 'navy three-piece suit', 'khai lệch trong ngày: máy nối theo shot trước');
+  assert.ok(hk.lech[3]?.some((x) => x.includes('trang phục "grey suit"')) && mucLoi(hk.lech[3]![0]!) === 'ghi', 'khai lệch = ghi chú');
+  assert.equal(v(4).do_deo, '', 'tháo đồng hồ trong #3 (do_deo_den "") → #4 không còn');
+  assert.deepEqual([v(5).trang_phuc, v(5).vet], [undefined, 'small cut on left cheek'], 'ngày mới: trang phục quên, vết thương mang theo');
+  const tk = thieuKhaiNguoi(dsN as never, pcN);
+  assert.ok(tk[5]?.some((x) => x.startsWith('thiếu khai trang phục')) && !tk[2] && !tk[4], 'ngày D2 chưa khai trang phục → thiếu khai (một lần)');
+  assert.equal(mucLoi(tk[5]![0]!), 'thieu');
+  assert.deepEqual(thieuKhaiNguoi([{ id: 1, thu_tu: 1, may_3d: m1([{ ten: 'Tango', tam: [0, 0, 0] }]) }] as never), {}, 'phim không khai bề ngoài: không đòi');
+  assert.ok(trangThaiVat(v(2), true)!.includes('wearing: navy three-piece suit') && trangThaiVat(v(2), true)!.includes('visible marks: small cut on left cheek'), 'prompt có bề ngoài');
+  assert.deepEqual(lienMachTap(dsN as never, () => null, pcN), {}, 'bản đã nối: cổng sạch');
+  // phá thử: cổng vẫn bắt khi bỏ qua hookup (món đang được cầm không nối) — vết thương không tự hết
+  assert.ok(lienMachTap([{ id: 1, thu_tu: 1, may_3d: m1([{ ten: 'Mèo', tam: [0, 0, 0], vet: 'bandaged paw' }]) }, { id: 2, thu_tu: 2, may_3d: m1([{ ten: 'Mèo', tam: [0, 0, 0], vet: '', cam: 'Bố' }]) }] as never, () => null)[2]?.some((x) => x.includes('đứt mạch vết thương')), 'cổng bắt vết thương tự hết');
+  const s5 = so(dsN as never, pcN, nv);
+  const b = bangNgoai(s5.nhanVat['Bố']!);
+  assert.deepEqual(b.map((x) => x.ngay), ['N1', 'D2']);
+  assert.deepEqual(b[0]!.muc.find((m) => m.ten === 'trang phục')!.gia_tri, [{ t: 'navy three-piece suit', shot: [1, 2, 3, 4] }], 'bảng theo ngày: một bộ cả ngày N1');
+  assert.ok(s5.nhanVat['Bố']![4]!.muc.some((m) => m.muc === 'thieu'), 'sổ hiện thiếu khai ở #5');
+  console.log('so-lien-mach: sổ bề ngoài qua');
+}));

@@ -364,6 +364,9 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** hướng mặt lúc mở / kết (độ, 0 = nhìn về phía người ngồi −y, 90 = nhìn sang phải +x) — mắt khối 3D quay theo */ huong?: number; huong_den?: number;
     /** TRẠNG THÁI NHÂN VẬT lúc mở / kết (sổ script supervisor — tiếng Anh cho prompt: 'frizzed stiff with static', 'soaking wet'); trống = bình thường.
      *  lienMachTap chặn shot sau mở khác trạng thái shot trước để lại; prompt STATE đè lên ảnh mẫu. */ trang?: string; trang_den?: string;
+    /** SỔ NGƯỜI (phim người thật — bo-set-3d.ts › SO_NGUOI): bề ngoài lúc mở / kết, tiếng Anh cho prompt. Không khai = chưa biết (hookup lấy từ shot
+     *  trước); '' ở _den = bỏ ra (cởi áo khoác, tháo nhẫn). Giữ tới khi sang ngày truyện khác — riêng vet (vết thương, băng, sẹo) không tự hết. */
+    trang_phuc?: string; trang_phuc_den?: string; toc?: string; toc_den?: string; trang_diem?: string; trang_diem_den?: string; do_deo?: string; do_deo_den?: string; vet?: string; vet_den?: string;
     /** đang được nhân vật này CẦM (kẹo trong tay Tango): đi theo người cầm, không kiểm chỗ riêng */ cam?: string;
     /** ĐỘNG TÁC DIỄN trong shot (thư viện dung-set.py › DONG_TAC): 'ten@a-b' (a, b = phần thời lượng 0..1), vd 'phong3@0.05-0.3', 'toc_ru@0.5'.
      *  Chớp mắt + chúi tới khi đi là tự động */ dien?: string[];

@@ -6,7 +6,7 @@
 // Lỗi = câu của cổng lienMachTap (cùng nguồn với cổng keyframe + ⚠ trên lưới). Bấm số shot → mở drawer nguồn shot.
 import { useEffect, useState } from 'react';
 import { soLienMachAction } from '@/lib/actions';
-import { chuCho, chuDang, diemNhanVat, TRU_MUC, type DongSo, type MucLoi, type SoLienMach } from '@/lib/xuong-video/so-lien-mach';
+import { bangNgoai, chuCho, chuDang, diemNhanVat, TRU_MUC, type DongSo, type MucLoi, type SoLienMach } from '@/lib/xuong-video/so-lien-mach';
 import { goiAction } from './ui';
 import { moNgan } from './ngan-chung';
 
@@ -52,6 +52,7 @@ export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: numb
                     <span style={{ ...mono, color: soLoi ? '#f87171' : '#4ade80' }} title={soLoi ? `${soLoi} shot đứt mạch` : 'liền mạch'}>{soLoi ? `⚠ đứt mạch` : '✓ liền mạch'}</span>
                   </div>}
                   <DiemDau ds={dong} />
+                  <BangNgoai ds={dong} />
                   <table style={{ width: '100%', borderCollapse: 'collapse', ...mono }}>
                     <thead><tr style={{ color: 'var(--fg-4)', textAlign: 'left' }}>
                       {['Điểm', 'Shot', 'Cảnh · ngày', 'Chỗ mở → kết (cm)', 'Dáng', 'Hướng', 'Trạng thái / trang phục', 'Đồ cầm', 'Diễn'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 500, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
@@ -82,13 +83,22 @@ function DongSoTr({ d }: { d: DongSo }) {
       <td style={td}>{d.noi != null && <span style={{ color: '#4ade80' }} title={`chỗ / hướng / dáng / trạng thái mở NỐI từ lúc kết #${d.noi} (hookup) — sửa chỗ kết của #${d.noi} là shot này đổi theo`}>nối #{d.noi} · </span>}{chuCho(d.tam)}{d.den ? ` → ${chuCho(d.den)}` : ''}</td>
       <td style={{ ...td, color: d.nam !== d.nam_den ? '#facc15' : undefined }}>{chuDang(d)}</td>
       <td style={td}>{d.huong != null ? `${Math.round(d.huong)}°` : ''}{d.huong_den != null && d.huong_den !== d.huong ? ` → ${Math.round(d.huong_den)}°` : ''}</td>
-      <td style={{ ...td, maxWidth: 220 }}>{d.trang || d.trang_den ? <span title={d.trang_den}>{d.trang || 'bình thường'}{d.trang_den !== d.trang ? ` → ${d.trang_den}` : ''}</span> : <span style={{ color: 'var(--fg-4)' }}>bình thường</span>}</td>
+      <td style={{ ...td, maxWidth: 260 }}>{d.trang || d.trang_den ? <span title={d.trang_den}>{d.trang || 'bình thường'}{d.trang_den !== d.trang ? ` → ${d.trang_den}` : ''}</span> : <span style={{ color: 'var(--fg-4)' }}>bình thường</span>}
+        {d.ngoai.map((g) => <div key={g.k} style={{ color: 'var(--fg-3)' }}>{g.ten}: {g.mo || 'không'}{g.ket !== g.mo ? ` → ${g.ket || 'bỏ ra'}` : ''}</div>)}</td>
       <td style={td}>{d.cam ? `trong tay ${d.cam}` : ''}{d.chia ? ` · ${d.chia} mảnh` : ''}</td>
       <td style={{ ...td, color: 'var(--fg-3)' }}>{d.dien.join(', ')}</td>
     </tr>
     {coGhi && <tr><td colSpan={9} style={{ ...td, borderTop: 'none', paddingTop: 0 }}>{d.muc.map((m, i) => <div key={i} style={{ color: m.muc === 'chan' ? '#f87171' : m.muc === 'nhe' || m.muc === 'ghi' ? 'var(--fg-3)' : '#facc15' }}>
       <b>{TEN_MUC[m.muc]}{m.tru ? ` −${m.tru}` : ''}</b> · {m.chu}</div>)}</td></tr>}
   </>);
+}
+
+/** Bảng bề ngoài theo ngày (wardrobe plot): ngày truyện → trang phục / tóc / trang điểm / đồ trên người / vết, kèm shot. Không khai gì thì ẩn. */
+function BangNgoai({ ds }: { ds: DongSo[] }) {
+  const b = bangNgoai(ds); if (!b.length) return null;
+  return <div style={{ ...mono, padding: '5px 10px', borderBottom: '1px solid var(--line)', display: 'grid', gap: 3 }} title="Bảng bề ngoài theo ngày truyện (wardrobe plot của script supervisor) — trong một ngày chỉ đổi khi khai _den trong shot">
+    {b.map((n) => <div key={n.ngay}><b>📅 {n.ngay}</b>{n.muc.map((m) => <span key={m.ten} style={{ marginLeft: 10 }}>{m.ten}: {m.gia_tri.map((g) => `${g.t} (#${g.shot.join(', #')})`).join(' → ')}</span>)}</div>)}
+  </div>;
 }
 
 /** Đầu bảng một nhân vật: điểm liền mạch trung bình / thấp nhất / số lỗi chặn + cách tính (mức × độ dễ thấy). */

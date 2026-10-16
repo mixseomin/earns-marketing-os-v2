@@ -297,6 +297,24 @@ const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360
 /** Cảnh của một shot trong phân cảnh tập: shot ghi 'Cảnh 4 · Cục bụi biết sợ', phân cảnh ghi 'Cục bụi biết sợ'. */
 export const canhCuaShot = <P extends Pick<PhanCanh, 'ten'>>(canh: string | undefined, pc: P[] | undefined): P | undefined =>
   canh && pc?.length ? pc.find((x) => x.ten.trim() === canh.trim() || canh.split('·').pop()!.trim() === x.ten.trim()) : undefined;
+/** SỔ BỀ NGOÀI (script supervisor, chuẩn bị phim người thật — anh 16/10/2026): các thuộc tính bề ngoài theo dõi qua cú cắt. MỘT bảng khai cho
+ *  hookup (noiHookup), cổng (lienMachTap), cảnh báo thiếu khai (thieuKhaiNguoi), sổ (so-lien-mach.ts) và prompt (trangThaiVat).
+ *  giu 'ngay' = qua ngày truyện mới (hoặc shot khai nhay) được đổi: ngủ dậy thay đồ, gội đầu · 'mai' = không tự hết, kể cả qua ngày / nhay:
+ *  vết thương, băng, sẹo — chỉ đổi khi khai _den. mac_dinh: giá trị khi không khai (trang: '' = bình thường); không có = chưa biết. */
+export const SO_NGUOI = [
+  { k: 'trang', ten: 'trạng thái cơ thể', en: '', giu: 'ngay', mac_dinh: '' },
+  { k: 'trang_phuc', ten: 'trang phục', en: 'wearing', giu: 'ngay' },
+  { k: 'toc', ten: 'tóc', en: 'hair', giu: 'ngay' },
+  { k: 'trang_diem', ten: 'trang điểm', en: 'makeup', giu: 'ngay' },
+  { k: 'do_deo', ten: 'đồ trên người', en: 'accessories on body', giu: 'ngay' },
+  { k: 'vet', ten: 'vết thương / dấu trên người', en: 'visible marks', giu: 'mai' },
+] as const satisfies readonly { k: string; ten: string; en: string; giu: 'ngay' | 'mai'; mac_dinh?: string }[];
+export type KhoaNguoi = (typeof SO_NGUOI)[number]['k'];
+type ViTriNguoi = Partial<Record<KhoaNguoi | `${KhoaNguoi}_den`, string>>;
+/** Giá trị bề ngoài lúc mở / kết của một chỗ đứng (undefined = chưa khai). */
+export const ngoaiMo = (v: ViTriNguoi, k: KhoaNguoi): string | undefined => { const x = v[k] ?? (SO_NGUOI.find((s) => s.k === k) as { mac_dinh?: string }).mac_dinh; return x == null ? undefined : x.trim(); };
+export const ngoaiKet = (v: ViTriNguoi, k: KhoaNguoi): string | undefined => { const x = v[`${k}_den`]; return x == null ? ngoaiMo(v, k) : x.trim(); };
+
 /** LUỒNG CẢNH của từng shot (script supervisor): 'ngay' = sang ngày truyện khác (reset hết) · 'canh' = cảnh mới khai lien_truoc: false (thời gian
  *  nhảy: reset chỗ / hướng / dáng / đồ cầm, trạng thái cơ thể giữ) · '' = cùng luồng. MỘT luật cho hookup, cổng liền mạch và sổ. */
 export function luongShot<T extends { id: number; canh?: string }>(ds: T[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Map<number, '' | 'ngay' | 'canh'> {
@@ -322,19 +340,31 @@ export function luongShot<T extends { id: number; canh?: string }>(ds: T[], phan
  *  hướng shot cần, nhân vật quay đầu tới đó trong shot. Món nối được ghi noi_tu = số shot nguồn. */
 export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3d | null; canh?: string }>(ds: T[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): { may: Map<number, May3d>; lech: Record<number, string[]> } {
   type Ket = { p: number[]; huong?: number; nam: boolean; shot: number };
-  const ket = new Map<string, Ket>(); const trang = new Map<string, string>(); let truocCo = new Set<string>();
+  const ket = new Map<string, Ket>(); const ngoai = new Map<string, Partial<Record<KhoaNguoi, string>>>(); let truocCo = new Set<string>();
+  const quenNgay = () => { for (const r of ngoai.values()) for (const x of SO_NGUOI) if (x.giu === 'ngay') delete r[x.k]; };
   const may = new Map<number, May3d>(); const lech: Record<number, string[]> = {}; const luong = luongShot(ds, phanCanh);
   const r = (p: number[]) => `(${p.map((x) => Math.round(x * 10) / 10).join(', ')})`;
   for (const c of ds) {
     const l = luong.get(c.id);
-    if (l === 'ngay') { ket.clear(); trang.clear(); truocCo = new Set(); } else if (l === 'canh') { ket.clear(); truocCo = new Set(); }
+    if (l === 'ngay') { ket.clear(); quenNgay(); truocCo = new Set(); } else if (l === 'canh') { ket.clear(); truocCo = new Set(); }
     const m = c.may_3d; if (!m) continue;
     const so = c.thu_tu ?? c.id;
     const vi_tri = m.vi_tri.map((v) => {
-      if (m.nhay || v.nhay || v.cam) return v;
-      const k = ket.get(v.ten); const t = trang.get(v.ten);
-      if (!k && t === undefined) return v;
-      const n: typeof v = { ...v };
+      if (v.cam) return v;
+      const n: typeof v = { ...v }; let doi = false;
+      // BỀ NGOÀI: shot trước đã khai thì shot này mở đúng như thế (không phải khai lại); cắt thời gian (nhay) được đổi, vết thương thì không.
+      const rn = ngoai.get(v.ten);
+      if (rn) for (const x of SO_NGUOI) {
+        const t = rn[x.k]; if (t === undefined || ((m.nhay || v.nhay) && x.giu === 'ngay')) continue;
+        const mo = ngoaiMo(v, x.k);
+        if (mo !== undefined && mo !== t) (lech[c.id] ??= []).push(x.k === 'trang'
+          ? `nối: ${v.ten} khai mở "${mo || 'bình thường'}" mà kết shot trước "${t || 'bình thường'}" — máy nối theo shot trước; đổi thì khai trang_den`
+          : `nối: ${v.ten} khai mở ${x.ten} "${mo || 'không'}" mà kết shot trước "${t || 'không'}" — máy nối theo shot trước; đổi trong shot thì khai ${x.k}_den`);
+        n[x.k] = t; if (v[`${x.k}_den`] == null) n[`${x.k}_den`] = t; doi = true;
+      }
+      if (m.nhay || v.nhay) return doi ? n : v;
+      const k = ket.get(v.ten);
+      if (!k && !doi) return v;
       if (k) {
         const d = Math.hypot(v.tam[0]! - k.p[0]!, v.tam[1]! - k.p[1]!, (v.tam[2] ?? 0) - (k.p[2] ?? 0));
         if (d > 0.5) (lech[c.id] ??= []).push(`nối: ${v.ten} khai mở ở ${r(v.tam)} mà kết #${k.shot} ở ${r(k.p)} (lệch ${Math.round(d * 10) / 10} cm) — máy nối theo kết #${k.shot}; cố ý cắt thời gian thì khai nhay`);
@@ -350,16 +380,11 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
         }
         n.noi_tu = k.shot;
       }
-      if (t !== undefined) {
-        const mo = (v.trang ?? '').trim();
-        if (mo !== t) (lech[c.id] ??= []).push(`nối: ${v.ten} khai mở "${mo || 'bình thường'}" mà kết shot trước "${t || 'bình thường'}" — máy nối theo shot trước; đổi thì khai trang_den`);
-        n.trang = t || undefined; if (v.trang_den == null) n.trang_den = t || undefined;
-      }
       return n;
     });
     may.set(c.id, { ...m, vi_tri });
     for (const v of vi_tri) {
-      trang.set(v.ten, (v.trang_den ?? v.trang ?? '').trim());
+      const rn = ngoai.get(v.ten) ?? {}; for (const x of SO_NGUOI) { const e = ngoaiKet(v, x.k); if (e !== undefined) rn[x.k] = e; } ngoai.set(v.ten, rn);
       if (v.cam) { ket.delete(v.ten); continue; }
       ket.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: !!(v.nam_den ?? v.nam), shot: so });
     }
@@ -380,7 +405,7 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   const daChia = new Map<string, { n: number; shot: number }>();
   // SỔ TRẠNG THÁI (script supervisor, 15/10/2026): trạng thái cơ thể / bề mặt (trang) shot trước ĐỂ LẠI phải là trạng thái shot sau MỞ — xù lông
   // không tự phẳng, bẹp không tự tròn; chỉ đổi trong shot (trang_den) hoặc khi khai nhay.
-  const trangCuoi = new Map<string, { t: string; shot: number }>();
+  const trangCuoi = new Map<string, Partial<Record<KhoaNguoi, { t: string; shot: number }>>>();   // bề ngoài (SO_NGUOI) lúc kết lần cuối thấy
   let truocCo = new Set<string>();
   // NẰM MÀ DI CHUYỂN (anh 16/10/2026: "#10 con Tango đang nằm mà vẫn di chuyển được"): thân nằm không tự đi — phải khai CÁCH di chuyển trong
   // dien (lan_tron = cuộn tròn lăn, truot = trượt: xe trượt / băng / dây) hoặc đang được người khác cầm.
@@ -396,14 +421,20 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   const luong = luongShot(ds, phanCanh);
   for (const c of ds) {
     const l = luong.get(c.id);
-    if (l === 'ngay') { cuoi.clear(); camBoi.clear(); trangCuoi.clear(); truocCo = new Set(); }
+    if (l === 'ngay') { cuoi.clear(); camBoi.clear(); for (const r of trangCuoi.values()) for (const x of SO_NGUOI) if (x.giu === 'ngay') delete r[x.k]; truocCo = new Set(); }
     else if (l === 'canh') { cuoi.clear(); camBoi.clear(); truocCo = new Set(); }
     const m = c.may_3d; if (!m) continue;
     const co = new Set(m.vi_tri.map((v) => v.ten));
     for (const v of m.vi_tri) {
-      const tr = trangCuoi.get(v.ten); const mo = (v.trang ?? '').trim();
-      if (tr && !m.nhay && !v.nhay && mo !== tr.t) (out[c.id] ??= []).push(`${v.ten} kết #${tr.shot} ở trạng thái "${tr.t || 'bình thường'}" mà mở shot này ${mo ? `"${mo}"` : 'không khai trang (bình thường)'} — khai trang: '${tr.t}' (trạng thái không tự đổi qua cú cắt), hoặc trang_den ở shot trước / nhay nếu cố ý`);
-      trangCuoi.set(v.ten, { t: (v.trang_den ?? v.trang ?? '').trim(), shot: c.thu_tu });
+      const r = trangCuoi.get(v.ten) ?? {};
+      for (const x of SO_NGUOI) {
+        const tr = r[x.k]; const mo = ngoaiMo(v, x.k);
+        if (tr && mo !== undefined && mo !== tr.t && !(x.giu === 'ngay' && (m.nhay || v.nhay))) (out[c.id] ??= []).push(x.k === 'trang'
+          ? `${v.ten} kết #${tr.shot} ở trạng thái "${tr.t || 'bình thường'}" mà mở shot này ${mo ? `"${mo}"` : 'không khai trang (bình thường)'} — khai trang: '${tr.t}' (trạng thái không tự đổi qua cú cắt), hoặc trang_den ở shot trước / nhay nếu cố ý`
+          : `${v.ten} đứt mạch ${x.ten}: kết #${tr.shot} "${tr.t || 'không'}" mà mở shot này "${mo || 'không'}" — ${x.giu === 'mai' ? 'không tự hết kể cả qua ngày' : 'không tự đổi trong ngày truyện'}; đổi trong shot thì khai ${x.k}_den`);
+        const e = ngoaiKet(v, x.k); if (e !== undefined) r[x.k] = { t: e, shot: c.thu_tu };
+      }
+      trangCuoi.set(v.ten, r);
     }
     if (m.nhay) camBoi.clear();
     for (const [mon, x] of camBoi) {
@@ -525,9 +556,32 @@ export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'>): string[
   const m = c.may_3d; const mt = c.hanh_dong ?? ''; if (!m || !mt.trim()) return [];
   return DONG_TAC_MO_TA.filter((d) => d.tu.test(mt) && !m.vi_tri.some((v) => d.co(v))).map((d) => `thiếu động tác: mô tả có "${d.ten}" mà chưa nhân vật nào khai (dien / nam_den) — bản diễn 3D sẽ thiếu đúng cái kịch bản viết`);
 }
-export function canhBaoMachTap<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
+/** THIẾU KHAI BỀ NGOÀI (bảng trang phục theo ngày của script supervisor): nhân vật đã khai một thuộc tính bề ngoài ở BẤT KỲ đâu trong tập (tức là
+ *  phim theo dõi nó — phim hoạt hình không khai thì không bị đòi) thì mỗi ngày truyện, lần xuất hiện đầu phải có giá trị — sau đó hookup tự nối.
+ *  Không khai = AI vẽ bộ khác mỗi shot. ds = shot cùng nhánh theo thứ tự phát (đã nối hay chưa đều được). */
+export function thieuKhaiNguoi<T extends { id: number; thu_tu?: number; may_3d?: May3d | null; canh?: string }>(ds: T[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+  const hk = noiHookup(ds, phanCanh).may; const luong = luongShot(ds, phanCanh); const out: Record<number, string[]> = {};
+  const theoDoi = new Map<string, Set<KhoaNguoi>>();
+  for (const c of ds) for (const v of c.may_3d?.vi_tri ?? []) for (const x of SO_NGUOI) if (x.k !== 'trang' && x.k !== 'vet' && (v[x.k] != null || v[`${x.k}_den`] != null)) theoDoi.set(v.ten, (theoDoi.get(v.ten) ?? new Set()).add(x.k));
+  let daBao = new Set<string>(); let ngay = 1;
+  for (const c of ds) {
+    if (luong.get(c.id) === 'ngay') { daBao = new Set(); ngay++; }
+    for (const v of hk.get(c.id)?.vi_tri ?? []) {
+      if (v.cam) continue;
+      for (const k of theoDoi.get(v.ten) ?? []) {
+        if (ngoaiMo(v, k) !== undefined || daBao.has(`${v.ten}|${k}`)) continue;
+        daBao.add(`${v.ten}|${k}`);
+        (out[c.id] ??= []).push(`thiếu khai ${SO_NGUOI.find((x) => x.k === k)!.ten}: ${v.ten} xuất hiện mà chưa khai ${k} cho ngày truyện này — AI sẽ vẽ bộ khác mỗi shot; khai ở lần xuất hiện đầu của ngày, các shot sau tự nối`);
+      }
+    }
+  }
+  return out;
+}
+
+export function canhBaoMachTap<T extends ShotMach & { canh?: string }>(ds: T[], laNhanVat: (ten: string) => boolean, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const them = (id: number, s: string) => (out[id] ??= []).push(s);
   for (const c of ds) for (const x of thieuDongTac(c)) them(c.id, x);
+  for (const [id, xs] of Object.entries(thieuKhaiNguoi(ds, phanCanh))) for (const x of xs) them(Number(id), x);
   for (const k of khoiCanh(ds)) {
     const co = k.filter((c) => c.may_3d);
     for (let i = 1; i < co.length; i++) {
@@ -691,7 +745,7 @@ export function gocMayLech(m: Pick<May3d, 'dat' | 'nhin'>, goc: string | undefin
 export function trangThaiVat(v: May3d['vi_tri'][number], ket = false): string | null {
   const ds: string[] = [];
   // Sổ trạng thái (script supervisor): nhân vật / vật khai trang (mở) · trang_den (kết) — bẹp, ướt, xù lông, bốc khói… đè lên ảnh mẫu.
-  const t = (ket ? v.trang_den ?? v.trang : v.trang)?.trim(); if (t) ds.push(t);
+  for (const x of SO_NGUOI) { const t = ket ? ngoaiKet(v, x.k) : ngoaiMo(v, x.k); if (t) ds.push(x.en ? `${x.en}: ${t}` : t); }
   const n = v.chia ?? 1;
   if (n > 1) { const cam = !!v.cam && !(ket && v.den); ds.push(cam ? `split into ${n} pieces; only ONE piece here (the holder's share)` : `split into ${n} separate pieces lying side by side, NOT a whole one`); }
   return ds.length ? ds.join('; ') : null;

@@ -2,7 +2,7 @@
 // cảnh" · "film này để demo và học hỏi để sau này làm film thật, người thật"). Mỗi nhân vật × mỗi shot một dòng: ngày truyện, cảnh, chỗ mở → kết,
 // dáng, hướng, trạng thái cơ thể (ướt / xù / bẩn / quần áo), đồ đang cầm, động tác — và lỗi đứt mạch. Lỗi lấy THẲNG từ cổng lienMachTap (một
 // nguồn với cổng keyframe + dấu ⚠ trên lưới), sổ không tự tính lại luật. Thuần, không đọc DB.
-import { boSetCuaShot, canhCuaShot, khoiCua, lienMachTap, luongShot, noiHookup, thieuDongTac } from './bo-set-3d';
+import { boSetCuaShot, canhCuaShot, khoiCua, lienMachTap, luongShot, ngoaiKet, ngoaiMo, noiHookup, SO_NGUOI, thieuDongTac, thieuKhaiNguoi, type KhoaNguoi } from './bo-set-3d';
 import type { May3d, NhanVat, PhanCanh } from './kieu';
 
 type ViTri = May3d['vi_tri'][number];
@@ -11,7 +11,9 @@ export type DongSo = {
   /** shot mở một LUỒNG mới cho sổ (khác ngày truyện / cảnh khai thời gian nhảy / shot khai nhay) */ luong_moi: '' | 'ngay' | 'canh' | 'nhay';
   /** chỗ / dáng / trạng thái mở NỐI từ kết shot số này (hookup — noiHookup); null = shot tự khai (đầu luồng / nhay / đang được cầm) */ noi: number | null;
   tam: number[]; den: number[] | null; huong: number | null; huong_den: number | null; nam: boolean; nam_den: boolean;
-  trang: string; trang_den: string; cam: string | null; chia: number | null; dien: string[]; an: boolean;
+  trang: string; trang_den: string;
+  /** BỀ NGOÀI (SO_NGUOI trừ trạng thái): trang phục, tóc, trang điểm, đồ trên người, vết — chỉ thuộc tính đã khai / đã nối */ ngoai: { k: KhoaNguoi; ten: string; mo: string; ket: string }[];
+  cam: string | null; chia: number | null; dien: string[]; an: boolean;
   loi: string[];
   /** ĐIỂM LIỀN MẠCH 0–100 của nhân vật ở shot này (chamLoi) + từng lỗi đã xếp mức */ diem: number; muc: { muc: MucLoi; chu: string; tru: number }[];
 };
@@ -20,7 +22,7 @@ export type DongSo = {
 export type MucLoi = 'chan' | 'nang' | 'thieu' | 'nhe' | 'ghi';
 /** ghi = ghi chú khai lệch đã được hookup nối lại (máy dựng đúng) — không trừ điểm, không tính đứt mạch */
 export const TRU_MUC: Record<MucLoi, number> = { chan: 40, nang: 20, thieu: 15, nhe: 8, ghi: 0 };
-export const mucLoi = (s: string): MucLoi => /^nối: /.test(s) ? 'ghi' : /thiếu động tác/.test(s) ? 'thieu' : /đứt mạch|NẰM|ĐỨNG|đã chia|đang cầm|trạng thái/.test(s) ? 'chan' : /quay ngoắt/.test(s) ? 'nang' : 'nhe';
+export const mucLoi = (s: string): MucLoi => /^nối: /.test(s) ? 'ghi' : /thiếu động tác|thiếu khai/.test(s) ? 'thieu' : /đứt mạch|NẰM|ĐỨNG|đã chia|đang cầm|trạng thái/.test(s) ? 'chan' : /quay ngoắt/.test(s) ? 'nang' : 'nhe';
 /** Độ dễ thấy: ngoài khung ×0,4; trong khung theo % khung nhân vật chiếm (0,6 → 1,0 khi ≥ 40 %); không có số đo → 1. */
 export const doDeThay = (an: boolean, pt: number | null) => (an ? 0.4 : pt == null ? 1 : 0.6 + Math.min(pt, 40) / 100);
 export function chamLoi(loi: string[], an: boolean, pt: number | null): { diem: number; muc: DongSo['muc'] } {
@@ -43,6 +45,7 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
     Object.assign(loiShot, lienMachTap(g, (t) => khoiCua(t, nhanVat), phanCanh));
     const hk = noiHookup(g, phanCanh); for (const [k, m] of hk.may) daNoi.set(k, m);
     for (const [k, v] of Object.entries(hk.lech)) (loiShot[Number(k)] ??= []).push(...v);   // ghi chú khai lệch: chỉ sổ hiện, cổng không chặn
+    for (const [k, v] of Object.entries(thieuKhaiNguoi(g, phanCanh))) (loiShot[Number(k)] ??= []).push(...v);   // thiếu khai bề ngoài của ngày
   }
   const luongCua = luongShot(ds, phanCanh);
   const out: SoLienMach = { nhanVat: {}, canh: [] };
@@ -65,6 +68,7 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
         canhId: c.id, thu_tu: c.thu_tu, canh: tenCanh, ngay: ngayTruoc, luong_moi: luong, noi: v.noi_tu ?? null,
         tam: v.tam, den: v.den ?? null, huong: v.huong ?? null, huong_den: v.huong_den ?? v.huong ?? null,
         nam: !!v.nam, nam_den: !!(v.nam_den ?? v.nam), trang: (v.trang ?? '').trim(), trang_den: (v.trang_den ?? v.trang ?? '').trim(),
+        ngoai: SO_NGUOI.filter((x) => x.k !== 'trang').flatMap((x) => { const mo = ngoaiMo(v, x.k), ket = ngoaiKet(v, x.k); return mo === undefined && ket === undefined ? [] : [{ k: x.k, ten: x.ten, mo: mo ?? '', ket: ket ?? '' }]; }),
         cam: v.cam ?? null, chia: v.chia ?? null, dien: v.dien ?? [], an: !!v.an,
         // lỗi của shot NÓI VỀ nhân vật này (câu cổng mở bằng tên, hoặc nhắc người cầm / món đang cầm)
         loi: [] as string[], diem: 100, muc: [],
@@ -75,6 +79,20 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
     }
   }
   return out;
+}
+
+/** BẢNG BỀ NGOÀI THEO NGÀY (wardrobe plot của script supervisor): mỗi ngày truyện, mỗi thuộc tính, các giá trị nhân vật mang và shot dùng. */
+export function bangNgoai(ds: DongSo[]): { ngay: string; muc: { ten: string; gia_tri: { t: string; shot: number[] }[] }[] }[] {
+  const out: ReturnType<typeof bangNgoai> = [];
+  for (const d of ds) {
+    const ngay = d.ngay ?? '—'; let o = out.find((x) => x.ngay === ngay); if (!o) out.push((o = { ngay, muc: [] }));
+    for (const g of d.ngoai) for (const t of new Set([g.mo, g.ket])) {
+      let m = o.muc.find((x) => x.ten === g.ten); if (!m) o.muc.push((m = { ten: g.ten, gia_tri: [] }));
+      const k = t || 'không'; let gv = m.gia_tri.find((x) => x.t === k); if (!gv) m.gia_tri.push((gv = { t: k, shot: [] }));
+      if (!gv.shot.includes(d.thu_tu)) gv.shot.push(d.thu_tu);
+    }
+  }
+  return out.filter((x) => x.muc.length);
 }
 
 /** Chữ ngắn cho một ô sổ. */

@@ -117,22 +117,26 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 <div style={{ height: 18, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', background: i === 0 ? `color-mix(in srgb, ${mau} 18%, transparent)` : undefined }}>
                   {i === 0 ? <><b style={{ color: mau, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tenPhanDoan(k.ten) || 'Chưa đặt phân cảnh'}</b>{pc?.beat && <span className="xv-mono" style={{ color: 'var(--fg-3)' }}>{pc.beat}</span>}</> : <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tenPhanDoan(k.ten)}</span>}
                 </div>
-                {hien !== '3d' && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
-                  <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
-                  <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
+                {/* Hàng nhãn RIÊNG trên khung hình (#1399: "cho ra hẳn ngoài khung hình") — mốc giờ · #N · giây · ✨ mới · ⚠ soi clip không đè lên ảnh nữa. */}
+                <div className="xv-mono" style={{ height: 20, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
+                  <span style={{ color: 'var(--fg-2)' }}>{gio(tc)}</span>
+                  <span style={{ flex: 1 }} />
                   {/* Nhãn gọn một dòng, font thường (#1388) — giờ sinh cụ thể nằm ở tooltip của thẻ. */}
-                  {vuaSinh(c) && <span title={`sinh ${truoc(vuaSinh(c)!)}`} style={{ position: 'absolute', right: 4, top: 22, fontSize: 9, lineHeight: 1.3, fontWeight: 600, whiteSpace: 'nowrap', padding: '0 4px', borderRadius: 3, background: '#16a34a', color: '#fff' }}>✨ mới</span>}
+                  {vuaSinh(c) && <span title={`sinh ${truoc(vuaSinh(c)!)}`} style={{ fontSize: 9, lineHeight: 1.3, fontWeight: 600, padding: '0 4px', borderRadius: 3, background: '#16a34a', color: '#fff', fontFamily: 'inherit' }}>✨ mới</span>}
+                  {/* Máy soi clip (soi-clip.ts): chữ lạ model tự in / sản phẩm ra khỏi khung — bản xuất không nhận clip này; bấm = bỏ qua khi máy báo nhầm. */}
+                  {loiSoiClip(c).length > 0 && <span role="button" title={`Máy soi clip:\n${loiSoiClip(c).join('\n')}\n\nBản xuất không nhận clip này. Sinh lại shot, hoặc bấm để bỏ qua nếu máy báo nhầm.`}
+                    onClick={async (e) => { e.stopPropagation(); if (!confirm(`Bỏ qua lỗi soi của shot #${c.thu_tu}?\n\n${loiSoiClip(c).join('\n')}`)) return; const r = await goiAction(() => boQuaSoiClipAction(c.id)); if (r.loi) alert(r.loi); await onChanged(); }}
+                    style={{ color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
+                  <span style={{ color: coVid ? '#4ade80' : 'var(--fg-1)' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
+                </div>
+                {hien !== '3d' && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
                   {/* Chưa sinh vẫn hiện KHUNG + shot sẽ thấy gì (anh 14/10/2026: "kể cả chưa sinh cũng phải show ra khung để còn biết"). */}
-                  {!anh && <span style={{ position: 'absolute', inset: 0, padding: '22px 7px 7px', display: 'flex', flexDirection: 'column', gap: 4, border: '1px dashed var(--line)', borderRadius: 4, fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-2)', overflow: 'hidden' }}>
+                  {!anh && <span style={{ position: 'absolute', inset: 0, padding: 7, display: 'flex', flexDirection: 'column', gap: 4, border: '1px dashed var(--line)', borderRadius: 4, fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-2)', overflow: 'hidden' }}>
                     <span className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>CHƯA SINH HÌNH</span>
                     <span style={{ display: '-webkit-box', WebkitLineClamp: doc ? 9 : 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{moTa(c) || c.prompt_anh || c.canh}</span>
                   </span>}
                   {anh && (() => { const tk = trangThaiKhung(c); const kk = c.kiem_khung; const m = { dat: ['✓', '#4ade80'], tay: ['✓ tay', '#4ade80'], lech: ['⚠ lệch', '#f87171'], chua: ['? chưa kiểm', '#fbbf24'], khong: ['', ''] }[tk];
                     return tk !== 'khong' && <span className="xv-mono" title={tk === 'lech' || tk === 'tay' ? kk!.loi.map((l) => `${tenLoiKhung(l.loai)}: ${l.mo_ta}`).join('\n') : tk === 'chua' ? 'Keyframe chưa qua kiểm khung (hoặc đã sinh lại sau lần kiểm)' : 'Máy kiểm khung: khớp'} style={{ position: 'absolute', left: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: m[1] }}>{m[0]}</span>; })()}
-                  {/* Máy soi clip (soi-clip.ts): chữ lạ model tự in / sản phẩm ra khỏi khung — bản xuất không nhận clip này; bấm = bỏ qua khi máy báo nhầm. */}
-                  {loiSoiClip(c).length > 0 && <span role="button" className="xv-mono" title={`Máy soi clip:\n${loiSoiClip(c).join('\n')}\n\nBản xuất không nhận clip này. Sinh lại shot, hoặc bấm để bỏ qua nếu máy báo nhầm.`}
-                    onClick={async (e) => { e.stopPropagation(); if (!confirm(`Bỏ qua lỗi soi của shot #${c.thu_tu}?\n\n${loiSoiClip(c).join('\n')}`)) return; const r = await goiAction(() => boQuaSoiClipAction(c.id)); if (r.loi) alert(r.loi); await onChanged(); }}
-                    style={{ position: 'absolute', right: 4, top: vuaSinh(c) ? 40 : 22, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.75)', color: '#f87171', cursor: 'pointer' }}>⚠ soi clip</span>}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
                   {/* Điểm Murch ở MỌI thẻ (anh 16/10/2026: "phải đặt vào mặc định cho mọi video") — trước chỉ có trong ô 3D nên QC / shot ngoài bộ set không thấy. */}
                   <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} viTri={{ left: 4, top: 22 }} may={mayClip(c)} />

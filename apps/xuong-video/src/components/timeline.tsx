@@ -375,7 +375,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         style={{ cursor: keoLop ? 'grab' : onNhan ? 'pointer' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: dangChon ? 'color-mix(in srgb, var(--cyan) 22%, var(--bg-1))' : 'var(--bg-1)', color: dangChon ? 'var(--fg-1)' : undefined, ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
-      <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
+      {/* Bấm vào CHỖ TRỐNG của làn (không trúng khối nào) = tua đầu phát tới đó (#1398) — mọi làn, không chỉ thước giờ. */}
+      <div style={{ position: 'relative', width: W, flexShrink: 0 }} onClick={(e) => { if (e.target === e.currentTarget) tuaToi(Math.max(0, Math.min(tong, e.nativeEvent.offsetX / pps))); }}>{noiDung}</div>
     </div>
   ); };
   const nutNho = (chu: string, title: string, tat: boolean, onClick: () => void) => (

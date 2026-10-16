@@ -41,7 +41,9 @@ export type TplConcept = { id: number; ten: string; dong: string; khuon: string;
 export type Cap = { id: number; concept_id: number; template_id: number; bat: boolean };
 export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean; /** phim gốc của bộ hình (xuat-creative.ts) */ phim_id?: number | null };
 export type PhuongAn = { id: number; cap_id: number; o: string; so: number; chu: string; nguon: string };
-export type CreativeDuyet = { id: number; so: number; cap_id: number; bien_the_id: number | null; chon: Record<string, number>; ma: string; trang_thai: 'duyet' | 'da_tao' | 'bo'; phim_id: number | null; /** bản xuất từ phim gốc (dùng lại clip) */ xuat?: { url: string; luc: string; giay?: number; canh_bao?: string[] } | null };
+export type CreativeDuyet = { id: number; so: number; cap_id: number; bien_the_id: number | null; chon: Record<string, number>; ma: string; trang_thai: 'de_xuat' | 'duyet' | 'da_tao' | 'bo'; phim_id: number | null; /** bản xuất từ phim gốc (dùng lại clip) */ xuat?: { url: string; luc: string; giay?: number; canh_bao?: string[] } | null };
+/** Creative đã được duyệt đi sản xuất (đã duyệt hoặc đã thành phim) — 'de_xuat' / 'bo' là chưa. Một chỗ cho mọi phép đếm / chặn. */
+export const laDuyet = (tt: string | undefined | null): boolean => tt === 'duyet' || tt === 'da_tao';
 /** Đơn giá thật (trung bình sổ xv_job 30 ngày): một shot (keyframe ×2 lần thử + video ×1,3) · một bộ kịch bản (kịch bản + tách cảnh + kiểm người xem). */
 export type GiaConcept = { shot_cents: number; kb_cents: number; chu_cents: number };
 

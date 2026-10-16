@@ -16,7 +16,7 @@ import { chayNen } from '@/lib/xuong-video/hoan-tat';
 import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET } from '@/lib/xuong-video/concept-db';
 import { giaTriSanPham, taoPhimTuTemplate } from '@/lib/actions';
 import type { KetQuaChep } from '@/lib/xuong-video/template-db';
-import { oChuTuKhung, oHinhCua, hopKhuon, gtBienThe, type Concept, type TplConcept, type Cap, type BienTheHinh, type PhuongAn, type CreativeDuyet, type GiaConcept, type SubAvatar } from '@/lib/xuong-video/concept';
+import { oChuTuKhung, oHinhCua, hopKhuon, gtBienThe, laDuyet, type Concept, type TplConcept, type Cap, type BienTheHinh, type PhuongAn, type CreativeDuyet, type GiaConcept, type SubAvatar } from '@/lib/xuong-video/concept';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -236,17 +236,31 @@ export async function duyetToHop(spKey: string, ds: { cap_id: number; bien_the_i
   for (const x of ds.slice(0, 3000)) {
     await db.execute(sql`INSERT INTO xv_creative (sp_key, so, cap_id, bien_the_id, chon, ma)
       VALUES (${spKey}, (SELECT coalesce(max(so), 0) + 1 FROM xv_creative WHERE sp_key = ${spKey}), ${x.cap_id}, ${x.bien_the_id}, ${JSON.stringify(x.chon)}::jsonb, ${x.ma.slice(0, 120)})
-      ON CONFLICT (sp_key, ma) DO UPDATE SET trang_thai = CASE WHEN xv_creative.trang_thai = 'bo' THEN 'duyet' ELSE xv_creative.trang_thai END`);
+      ON CONFLICT (sp_key, ma) DO UPDATE SET trang_thai = CASE WHEN xv_creative.trang_thai IN ('bo', 'de_xuat') THEN 'duyet' ELSE xv_creative.trang_thai END`);
     so++;
   }
   return { ok: true, data: so };
 }
-/** Bỏ duyệt (đổi trạng thái, không xoá — số giữ nguyên). */
+/** CẤP SỐ CỐ ĐỊNH cho tổ hợp chưa có số (anh 17/10/2026: "creative không thấy ID rõ ràng") — mọi creative có #N ngay khi xuất hiện, trạng thái
+ *  'de_xuat'; duyệt chỉ đổi trạng thái, giữ số. Một câu SQL cho cả lô, đánh số theo thứ tự gửi lên (thứ tự bộ hình trên màn). */
+export async function capSo(spKey: string, ds: { cap_id: number; bien_the_id: number; chon: Record<string, number>; ma: string }[]): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!ds.length) return { ok: true, data: 0 };
+  const r = (await db.execute(sql`INSERT INTO xv_creative (sp_key, so, cap_id, bien_the_id, chon, ma, trang_thai)
+    SELECT ${spKey}, (SELECT coalesce(max(so), 0) FROM xv_creative WHERE sp_key = ${spKey}) + row_number() OVER (ORDER BY x.i), x.cap_id, x.bien_the_id, x.chon, x.ma, 'de_xuat'
+    FROM jsonb_to_recordset(${JSON.stringify(ds.slice(0, 5000).map((x, i) => ({ ...x, ma: x.ma.slice(0, 120), i })))}::jsonb) AS x(i int, cap_id int, bien_the_id int, chon jsonb, ma text)
+    WHERE NOT EXISTS (SELECT 1 FROM xv_creative c WHERE c.sp_key = ${spKey} AND c.ma = x.ma)
+    ON CONFLICT DO NOTHING RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: r.length };
+}
+/** Bỏ duyệt → về 'de_xuat' (không xoá — số giữ nguyên). */
 export async function boCreative(spKey: string, ma: string[]): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`UPDATE xv_creative SET trang_thai = 'bo' WHERE sp_key = ${spKey} AND ma = ANY(${`{${ma.map((m) => `"${m.replace(/"/g, '')}"`).join(',')}}`}::text[]) AND trang_thai = 'duyet'`);
+  await db.execute(sql`UPDATE xv_creative SET trang_thai = 'de_xuat' WHERE sp_key = ${spKey} AND ma = ANY(${`{${ma.map((m) => `"${m.replace(/"/g, '')}"`).join(',')}}`}::text[]) AND trang_thai = 'duyet'`);
   return { ok: true, data: undefined };
 }
 
@@ -304,7 +318,7 @@ export async function xuatCreative(creativeId: number): Promise<Kq<number>> {
   if (!(await admin())) return loi('không có quyền');
   const nc = await nguCanhXuat(db, creativeId);
   if (!nc.ok) return nc;
-  if (s(nc.data.cr.trang_thai) === 'bo') return loi('creative đã bỏ duyệt');
+  if (!laDuyet(s(nc.data.cr.trang_thai))) return loi('creative chưa duyệt — duyệt trước rồi xuất');
   const job = await taoJob(db, { phim_id: nc.data.phimGoc, nhan: `Xuất creative #${n(nc.data.cr.so)} từ phim gốc`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { creative_id: creativeId } });
   chayNen(async () => {
     const r = await xuatCreativeDb(db, creativeId, job).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));

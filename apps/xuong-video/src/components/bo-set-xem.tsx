@@ -97,8 +97,14 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
           may.position.copy(V(s.dat)); dk.target.copy(V(s.nhin));
         } else {
           may.fov = 40;
-          const tam = s ? V(s.nhin) : new THREE.Vector3(0, 0, -55);
-          dk.target.copy(tam); may.position.copy(tam.clone().add(new THREE.Vector3(30, 45, 70)));
+          // Góc tự do lùi theo CỠ bộ set (bàn Tango ~1,5 m ↔ văn phòng tổng tài 12 × 14 m): trước đây cố định cách tâm ~90 cm → bộ set cỡ
+          // người máy đứng sát sàn, không thấy gì (17/10/2026).
+          const hop = new THREE.Box3();
+          hop.setFromObject(canh);
+          const co = hop.isEmpty() ? 120 : Math.max(hop.max.x - hop.min.x, hop.max.z - hop.min.z);
+          const tam = s ? V(s.nhin) : hop.isEmpty() ? new THREE.Vector3(0, 0, -55) : hop.getCenter(new THREE.Vector3()).setY(hop.min.y + Math.min(60, (hop.max.y - hop.min.y) / 3));
+          const lui = Math.max(1, co / 120);
+          dk.target.copy(tam); may.position.copy(tam.clone().add(new THREE.Vector3(30, 45, 70).multiplyScalar(lui)));
         }
         may.updateProjectionMatrix(); dk.update();
       },

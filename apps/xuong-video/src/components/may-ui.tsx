@@ -56,7 +56,7 @@ const lichDang = (m: May) => (m.dang.length ? `mỗi ngày ${[...new Set(m.dang.
 function TheMay({ m, onMo }: { m: May; onMo: () => void }) {
   const so = [[m.so.video, 'video'], [m.so.cho_dang, 'chờ đăng'], [conLai(m) ?? '—', 'đề còn lại'], [m.so.luu_tru, 'lưu trữ']] as const;
   return (
-    <button type="button" className="xv-panel" onClick={onMo} style={{ display: 'grid', gap: 8, textAlign: 'left', cursor: 'pointer', margin: 0 }}>
+    <button type="button" className="xv-panel" onClick={onMo} style={{ display: 'grid', gap: 8, textAlign: 'left', cursor: 'pointer', margin: 0, color: 'var(--fg-1)', font: 'inherit' }}>   {/* nút trình duyệt mặc định chữ đen — nền tối thì mất chữ */}
       <div style={{ display: 'grid', gap: 2 }}>
         <b style={{ fontSize: 14 }}>{m.ten}</b>
         <span style={mono}>{m.du_an} · {MAU_MAY_DUNG[m.mau]?.ten ?? m.mau}</span>

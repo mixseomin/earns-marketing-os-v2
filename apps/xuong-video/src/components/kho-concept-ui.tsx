@@ -237,14 +237,14 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
   const cot = (b: BoHinh): DataColumn<DongCr>[] => [
     { key: 'chon', header: '', width: 28, align: 'center', cell: (x) => <input type="checkbox" checked={chon.has(x.ma)} onChange={() => doiChon(x.ma)} onClick={(e) => e.stopPropagation()} aria-label={`chọn ${x.ma}`} /> },
     { key: 'so', header: '#', width: 52, align: 'left', sortValue: (x) => daDuyet.get(x.ma)?.so ?? 1e9, cell: (x) => { const cr = daDuyet.get(x.ma); return cr && cr.trang_thai !== 'bo' ? <b style={{ fontFamily: 'var(--font-mono)' }}>#{cr.so}</b> : <span style={mono}>·</span>; } },
-    { key: 'hook', header: `Hook (${b.t.o_chu[0]?.ten ?? 'ô đầu'})`, align: 'left', sortValue: (x) => x.hook, cell: (x) => <span style={{ display: 'block', ...catChu }}>{x.hook}</span>, cellTitle: (x) => x.hook },
+    { key: 'hook', header: 'Hook', title: b.t.o_chu[0]?.ten, align: 'left', sortValue: (x) => x.hook, cell: (x) => <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500, ...catChu }}>{x.hook}</span>, cellTitle: (x) => x.hook },
     { key: 'khac', header: 'Khác bản 1', align: 'left', width: '34%', cell: (x) => <span style={{ fontSize: 11.5, color: 'var(--cyan)', display: 'block', ...catChu }}>{x.khac.map((k2) => `${k2.ten}: ${k2.chu}`).join(' · ') || <span style={mono}>thân · kết như bản 1</span>}</span>, cellTitle: (x) => x.khac.map((k2) => `${k2.ten}: ${k2.chu}`).join('\n') },
     { key: 'tt', header: 'Trạng thái', align: 'left', width: 110, sortValue: (x) => ttCua(x), cell: (x) => { const cr = daDuyet.get(x.ma);
       return cr?.trang_thai === 'da_tao' && cr.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }} title="mở phim của creative">🎬 phim #{cr.phim_id}</button>
         : cr?.trang_thai === 'duyet' ? <Nut onClick={() => void moTao(cr.id)} title="Tạo phim từ template với diễn viên, bối cảnh và chữ đã chọn (0đ)">Tạo phim</Nut> : <Pill color="var(--fg-3)">đề xuất</Pill>; } },
   ];
   /** Kịch bản một creative = dải thẻ theo shot (như storyboard): số · loại shot · giây, câu chữ, nguồn — để review đúng chữ trước khi duyệt. */
-  const kichBan = (x: DongCr) => <div style={{ display: 'grid', gap: 10, padding: '4px 0 2px' }}>
+  const kichBan = (x: DongCr) => <div style={{ display: 'grid', gap: 10, padding: '4px 0 2px', fontFamily: 'var(--font-sans)' }}>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
       {x.t.o_chu.map((o, i) => { const p = d.phuong_an.find((y) => y.cap_id === x.cap_id && y.o === o.k && y.so === x.chon[o.k]), ban = x.chon[o.k] ?? 1;
         return <div key={o.k} title={`ô {{${o.k}}} · ${o.ten}`} style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: 6, padding: '8px 10px', borderRadius: 8, background: 'var(--bg-1)', border: `1px solid ${ban !== 1 ? 'color-mix(in srgb, var(--cyan) 55%, transparent)' : 'var(--line)'}`, minHeight: 92 }}>
@@ -254,7 +254,7 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
             <span style={{ ...mono, marginLeft: 'auto' }}>{o.giay}s</span>
             {ban !== 1 && <span style={{ fontSize: 10, padding: '0 6px', borderRadius: 99, background: 'color-mix(in srgb, var(--cyan) 16%, transparent)', color: 'var(--cyan)' }}>bản {ban}</span>}
           </span>
-          <span style={{ fontSize: 14, lineHeight: 1.35, fontWeight: 500, color: 'var(--fg-1)' }}>{p?.chu ?? '—'}</span>
+          <span style={{ fontSize: 14.5, lineHeight: 1.35, fontWeight: 600, color: 'var(--fg-1)' }}>{p?.chu ?? '—'}</span>
           {p?.nguon && <span style={{ fontSize: 11, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.nguon}</span>}
         </div>; })}
     </div>
@@ -262,7 +262,6 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
       <button type="button" className="xv-btn" onClick={() => void navigator.clipboard?.writeText(x.ma).catch(() => undefined)} title="Chép mã QC — đặt làm tên quảng cáo để kết quả quy về đúng creative">⧉ mã QC <span style={{ fontFamily: 'var(--font-mono)', opacity: 0.7 }}>{x.ma}</span></button>
       {(x.c.du_lieu.goc ?? []).length > 0 && d.spy_sp && <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><span style={mono}>bằng chứng</span>
         {(x.c.du_lieu.goc ?? []).slice(0, 4).map((g, n2) => <LinkNgoai key={g} href={linkGocSpy({ id: g, sp: d.spy_sp! })} className="xv-btn" title={`góc #${g} trên spy — câu thật của khách`}>spy {n2 + 1} ↗</LinkNgoai>)}</span>}
-      <span style={{ flex: 1 }} />
       <button type="button" className="xv-btn" onClick={() => setCfg({ cap: x.cap_id })}>✎ Sửa câu chữ</button>
     </div>
   </div>;

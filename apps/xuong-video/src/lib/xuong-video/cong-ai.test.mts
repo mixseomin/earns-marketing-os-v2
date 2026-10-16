@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { TOI_DA_REF, chonNguoiBanCkey, laHetTien, chuoiAnh, taNguon, taThu, tachKhoa, taNguonNgan } from './cong-ai';
+import { TOI_DA_REF, chonNguoiBanCkey, laHetTien, chuoiAnh, chuoiVideo, taNguon, taThu, tachKhoa, taNguonNgan } from './cong-ai';
 
 // hết tiền: đúng câu lỗi thật của từng cổng (Google 14/10/2026), không nhầm lỗi máy chủ
 assert.strictEqual(laHetTien('google', 'gemini-nano-banana-2.1: RESOURCE_EXHAUSTED: Your prepayment credits are depleted.'), true);
@@ -44,3 +44,14 @@ assert.strictEqual(TOI_DA_REF.ckey, 3, 'ckey nhận tối đa 3 ảnh tham chi�
   assert.equal(loiHetTienShopaikey(20, 500), null, 'còn $15 → không phải hết tiền, giữ lỗi gốc');
   assert.equal(loiHetTienShopaikey(undefined, 1982), null, 'không đọc được số dư → giữ lỗi gốc');
 }
+
+// Chuỗi video (16/10/2026): Kie.ai đứng đầu Veo khi có khoá; phim QC bỏ Grok; không khoá Kie thì như cũ.
+delete process.env.KIE_API_KEY;
+assert.deepStrictEqual(chuoiVideo('veo-3.1-lite-generate-preview', true), [], 'QC, không khoá Kie → đi thẳng Google');
+process.env.KIE_API_KEY = 'k';
+assert.deepStrictEqual(chuoiVideo('veo-3.1-lite-generate-preview', true).map((x) => `${x.cong}:${x.model}`), ['kie:veo3_lite']);
+assert.deepStrictEqual(chuoiVideo('veo-3.1-fast-generate-preview', false).map((x) => `${x.cong}:${x.model}`), ['kie:veo3_fast', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5']);
+assert.deepStrictEqual(chuoiVideo('veo-3.1-generate-preview', true), [], 'Veo Quality: Kie chưa vào chuỗi');
+assert.deepStrictEqual(tachKhoa('wavespeed:kwaivgi/kling-v3.0-std/image-to-video'), { kieu: 'cong', cong: 'wavespeed', model: 'kwaivgi/kling-v3.0-std/image-to-video' });
+console.log('cong-ai: chuỗi video đạt');
+

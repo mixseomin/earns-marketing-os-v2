@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema, khoaFal } from './fal';
-import { chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
+import { CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
@@ -116,7 +116,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   if ((!thu && qt.length) || !bc.canh.keyframe_url) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ') || 'chưa có keyframe'}`);
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
-  if (moHinh && (/^(fal|shopaikey|google):/.test(moHinh) || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+  // Cổng nhận được lấy từ MỘT chỗ (cong-ai.ts › tachKhoa) — trước là regex chép tay, thêm cổng mới (kie, wavespeed) là ô chọn bị lờ đi.
+  if (moHinh && (moHinh.startsWith('fal:') || tachKhoa(moHinh).kieu !== 'tu_chon' || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
   // Model theo NỘI DUNG (qc-cam-xuc.ts): có trẻ em → Veo từ chối → đổi sang Kling TRƯỚC khi gửi (Jett #61 shot 1/2/11 hỏng 3 lượt).
   const doiM = doiModelVideo(bc.kt.mo_hinh_video, bc.nhanVat.filter((v) => v.loai === 'nhan_vat'));
   if (doiM) bc.kt.mo_hinh_video = doiM.model as typeof bc.kt.mo_hinh_video;
@@ -206,7 +207,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     // qua vòng này; không thì một clip bị tải/ghi hai lần (phiên bản trùng, tiền cộng đôi).
     const thue = (await db.execute(sql`UPDATE xv_job SET updated_at = now() WHERE id = ${r.id} AND trang_thai = 'chay' AND updated_at < now() - interval '45 seconds' RETURNING id`)) as unknown as Row[];
     if (!thue.length) { conChay++; continue; }
-    const laCong = r.provider === 'shopaikey';
+    const laCong = CONG_VIDEO.includes(r.provider ?? '');
     const kq = r.provider === 'fal' ? await docFal(r.task_id!) : laCong ? await docVideoCong(r.provider, r.task_id!, r.created_at) : await docVeo(r.task_id!);
     if (!kq.done) { conChay++; continue; }
     if (!kq.ok) {

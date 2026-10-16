@@ -8,19 +8,24 @@ import { hopQc, type TiLeAnh } from './kieu';
 export const VND_MOI_USD = 26000;
 const vndRaCent = (vnd: number) => Math.round((vnd / VND_MOI_USD) * 100 * 1000) / 1000;
 
-export type CongKey = 'ckey' | 'shopaikey' | 'google';
+export type CongKey = 'ckey' | 'shopaikey' | 'google' | 'kie' | 'wavespeed';
+/** Cổng có đường VIDEO qua guiVideoCong / docVideoCong (sinh-video.ts nhận clip theo provider này). */
+export const CONG_VIDEO: readonly string[] = ['shopaikey', 'kie', 'wavespeed'];
 /** Thông tin nhà cung cấp — dùng cho tin báo hết tiền (tên, nơi nạp, vault giữ email/mật khẩu). */
 export const CONG: Record<CongKey, { ten: string; napTien: string; vault: number | null; ghiChu: string }> = {
   ckey: { ten: 'CKEY.VN', napTien: 'https://ckey.vn/deposit', vault: 534, ghiChu: 'đăng nhập trên Chrome thường (Cloudflare chặn trình duyệt tự động); mã xác minh về Spam' },
   shopaikey: { ten: 'ShopAIKey', napTien: 'https://shopaikey.com/account', vault: 532, ghiChu: 'nạp xu rồi "Nạp thêm tiền" vào key hiện có' },
   google: { ten: 'Google AI Studio (Gemini API)', napTien: 'https://ai.studio/projects', vault: null, ghiChu: 'tín dụng trả trước của project gắn GOOGLE_API_KEY' },
+  kie: { ten: 'Kie.ai', napTien: 'https://kie.ai/', vault: null, ghiChu: 'Veo 3.1 rẻ (lite 1080p 8s $0,175, đọc 16/10/2026); khoá KIE_API_KEY' },
+  wavespeed: { ten: 'WaveSpeedAI', napTien: 'https://wavespeed.ai/pricing', vault: null, ghiChu: 'Kling 3.0 Std $0,084/s; khoá WAVESPEED_API_KEY' },
 };
 
 export type BuocNguon = { cong: CongKey | 'fal' | 'openai'; model: string; ok: boolean; loi?: string; het_tien?: boolean; giay?: number };
 /** Nguồn của MỘT lượt sinh: cổng + model đã gọi + model thật phía sau + người bán + tiền thật + các bước đã thử. */
 export type NguonSinh = { cong: CongKey | 'fal' | 'openai'; model: string; model_that?: string; nguoi_ban?: string; vnd?: number; cents?: number; giay?: number; thu: BuocNguon[] };
 
-const khoa = (k: CongKey) => (k === 'ckey' ? process.env.CKEY_API_KEY : k === 'shopaikey' ? process.env.SHOPAIKEY_API_KEY : process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY) || null;
+const KHOA_ENV: Record<CongKey, string[]> = { ckey: ['CKEY_API_KEY'], shopaikey: ['SHOPAIKEY_API_KEY'], google: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'], kie: ['KIE_API_KEY'], wavespeed: ['WAVESPEED_API_KEY'] };
+const khoa = (k: CongKey) => KHOA_ENV[k].map((e) => process.env[e]).find(Boolean) || null;
 export const coCong = (k: CongKey) => !!khoa(k);
 
 /** Lỗi kiểu HẾT TIỀN của từng cổng (để báo nạp, không phải lỗi model). */
@@ -185,7 +190,7 @@ export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; t
   return { anh: null, nguon: null, thu };
 }
 
-const TEN_CONG: Record<string, string> = { ckey: 'ckey.vn', shopaikey: 'ShopAIKey', google: 'Google', fal: 'fal', openai: 'OpenAI' };
+const TEN_CONG: Record<string, string> = { ckey: 'ckey.vn', shopaikey: 'ShopAIKey', google: 'Google', fal: 'fal', openai: 'OpenAI', kie: 'Kie.ai', wavespeed: 'WaveSpeedAI' };
 /** Một dòng nguồn để hiện cạnh ảnh/clip: "ckey.vn · wowztools/nano-banana-2 → gemini-3.1-flash-image · 110,5₫ · 39s". */
 export function taNguon(n: NguonSinh | null | undefined): string {
   if (!n) return '';
@@ -201,7 +206,8 @@ export const taThu = (n: NguonSinh | null | undefined): string =>
 // bản xuất tự phóng + cắt cho đầy khung (xuat.ts). Veo của ShopAIKey treo hàng đợi >25 phút → KHÔNG đưa vào chuỗi; Google Veo trực tiếp
 // là dự phòng cuối (sinh-video.ts). Task cổng treo quá TREO_PHUT phút chưa chạy → bỏ, sinh lại qua Google.
 export const TREO_PHUT = 12;
-const GIA_VIDEO_VND: Record<string, number> = { 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500 };
+// Kie / WaveSpeed: giá đọc trang giá 16/10/2026 (sổ nguồn AI, migration 0265) — Kie ghi giá clip 8s 1080p, studio gọi 720p nên đây là mức trần.
+const GIA_VIDEO_VND: Record<string, number> = { 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500, 'kie:veo3_lite': 4550, 'kie:veo3_fast': 8450, 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video': 17472 };
 export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents?: number } => {
   const vnd = GIA_VIDEO_VND[`${cong}:${model}`];
   return vnd != null ? { vnd, cents: vndRaCent(vnd) } : {};
@@ -209,16 +215,23 @@ export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents
 
 /** Chuỗi cổng video cho một shot dùng Veo (Google): Grok qua ShopAIKey trước. Chỉ khi có khoá. */
 /** laQc: bỏ bậc không hợp quảng cáo (kieu.ts › MO_HINH_KHONG_QC) — chuỗi rỗng thì shot đi thẳng Google. */
+/** Kie.ai đứng ĐẦU chuỗi Veo (cùng model Veo 3.1, rẻ hơn fal ~27% và Google ~56% — sổ nguồn 16/10/2026). Không có khoá thì bỏ qua bậc đó. */
 export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; model: string; giay: number }[] {
-  if (!/^veo/i.test(modelGoc) || !coCong('shopaikey')) return [];
-  return ([{ cong: 'shopaikey', model: 'grok-video-3-10s', giay: 10 }, { cong: 'shopaikey', model: 'grok-imagine-video-1.5', giay: 6 }] as const)
-    .filter((b) => hopQc(`${b.cong}:${b.model}`, laQc)).map((b) => ({ ...b }));
+  if (!/^veo/i.test(modelGoc)) return [];
+  const kie = /lite/i.test(modelGoc) ? 'veo3_lite' : /fast/i.test(modelGoc) ? 'veo3_fast' : null;
+  const ds: { cong: CongKey; model: string; giay: number }[] = [
+    ...(kie ? [{ cong: 'kie' as const, model: kie, giay: 8 }] : []),
+    { cong: 'shopaikey', model: 'grok-video-3-10s', giay: 10 }, { cong: 'shopaikey', model: 'grok-imagine-video-1.5', giay: 6 },
+  ];
+  return ds.filter((b) => coCong(b.cong) && hopQc(`${b.cong}:${b.model}`, laQc));
 }
 
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
 export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; giay: number }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
   const k = khoa(cong);
-  if (!k || cong !== 'shopaikey') return { ok: false, loi: `cổng ${cong} chưa có đường video` };
+  if (!k || !CONG_VIDEO.includes(cong)) return { ok: false, loi: `cổng ${cong} chưa có đường video` };
+  if (cong === 'kie') return guiKie(k, model, o);
+  if (cong === 'wavespeed') return guiWavespeed(k, model, o);
   try {
     const r = await fetch('https://api.shopaikey.com/v1/video/generations', {
       method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
@@ -238,6 +251,8 @@ export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: st
 export async function docVideoCong(cong: string, taskId: string, taoLuc: string): Promise<{ done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean }> {
   const k = khoa(cong as CongKey);
   if (!k) return { done: true, ok: false, loi: `thiếu khoá ${cong}` };
+  if (cong === 'kie') return docKie(k, taskId, taoLuc);
+  if (cong === 'wavespeed') return docWavespeed(k, taskId, taoLuc);
   const r = await fetch(`https://api.shopaikey.com/v1/video/generations/${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
   if (!r?.ok) return { done: false };
   const d = ((await r.json().catch(() => ({}))) as { data?: { status?: string; result_url?: string; fail_reason?: string; start_time?: number } }).data ?? {};
@@ -245,6 +260,48 @@ export async function docVideoCong(cong: string, taskId: string, taoLuc: string)
   if (st === 'SUCCESS' && d.result_url) return { done: true, ok: true, uri: d.result_url };
   if (st === 'FAILURE' || st === 'FAILED') return { done: true, ok: false, loi: `cổng báo hỏng: ${d.fail_reason || 'không rõ'}` };
   if (!d.start_time && Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000) return { done: true, ok: false, treo: true, loi: `treo hàng đợi ${TREO_PHUT} phút chưa chạy` };
+  return { done: false };
+}
+
+// ── Kie.ai (docs.kie.ai: POST /api/v1/jobs/createTask · GET /api/v1/jobs/recordInfo?taskId=; lỗi trả HTTP 200 + code ≠ 200) ──
+type KqGui = { ok: true; taskId: string } | { ok: false; loi: string; status?: number };
+type KqDoc = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean };
+const quaHan = (taoLuc: string) => Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000;
+async function guiKie(k: string, model: string, o: { prompt: string; anhDau: string; giay: number }): Promise<KqGui> {
+  try {
+    const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({ model: 'veo-3-1', input: { prompt: o.prompt, model, image_urls: [o.anhDau], generation_type: 'FIRST_AND_LAST_FRAMES_2_VIDEO', aspect_ratio: '9:16', resolution: '720p', duration: o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8 } }) });
+    const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
+    if (j.code !== 200 || !j.data?.taskId) return { ok: false, status: j.code === 402 ? 402 : r.status, loi: `Kie.ai ${j.code ?? r.status}: ${j.msg || 'không nhận task'}`.slice(0, 300) };
+    return { ok: true, taskId: j.data.taskId };
+  } catch (e) { return { ok: false, loi: `không gửi được Kie.ai (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
+}
+async function docKie(k: string, taskId: string, taoLuc: string): Promise<KqDoc> {
+  const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+  if (!r?.ok) return { done: false };
+  const d = ((await r.json().catch(() => ({}))) as { data?: { state?: string; resultJson?: string; failMsg?: string } }).data ?? {};
+  if (d.state === 'success') { let url: string | undefined; try { url = (JSON.parse(d.resultJson ?? '{}') as { resultUrls?: string[] }).resultUrls?.[0]; } catch { url = undefined; } return url ? { done: true, ok: true, uri: url } : { done: true, ok: false, loi: 'Kie.ai báo xong nhưng không có link video' }; }
+  if (d.state === 'fail') return { done: true, ok: false, loi: `Kie.ai báo hỏng: ${d.failMsg || 'không rõ'}` };
+  if ((d.state === 'waiting' || d.state === 'queuing') && quaHan(taoLuc)) return { done: true, ok: false, treo: true, loi: `Kie.ai treo hàng đợi ${TREO_PHUT} phút` };
+  return { done: false };
+}
+// ── WaveSpeedAI (wavespeed.ai/docs: POST /api/v3/{model} · GET /api/v3/predictions/{id}/result) ──
+async function guiWavespeed(k: string, model: string, o: { prompt: string; anhDau: string; giay: number }): Promise<KqGui> {
+  try {
+    const r = await fetch(`https://api.wavespeed.ai/api/v3/${model}`, { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({ image: o.anhDau, prompt: o.prompt, duration: o.giay <= 5 ? 5 : 10 }) });
+    const j = (await r.json().catch(() => ({}))) as { code?: number; message?: string; data?: { id?: string } };
+    if (!r.ok || !j.data?.id) return { ok: false, status: r.status, loi: `WaveSpeedAI ${r.status}: ${j.message || 'không nhận task'}`.slice(0, 300) };
+    return { ok: true, taskId: j.data.id };
+  } catch (e) { return { ok: false, loi: `không gửi được WaveSpeedAI (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
+}
+async function docWavespeed(k: string, taskId: string, taoLuc: string): Promise<KqDoc> {
+  const r = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${encodeURIComponent(taskId)}/result`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+  if (!r?.ok) return { done: false };
+  const d = ((await r.json().catch(() => ({}))) as { data?: { status?: string; outputs?: unknown[]; error?: unknown } }).data ?? {};
+  if (d.status === 'completed') { const url = (d.outputs ?? []).find((x): x is string => typeof x === 'string'); return url ? { done: true, ok: true, uri: url } : { done: true, ok: false, loi: 'WaveSpeedAI báo xong nhưng không có link video' }; }
+  if (['failed', 'cancelled', 'timeout', 'deleted'].includes(String(d.status))) return { done: true, ok: false, loi: `WaveSpeedAI báo ${d.status}: ${String(d.error ?? '').slice(0, 200)}` };
+  if (d.status === 'created' && quaHan(taoLuc)) return { done: true, ok: false, treo: true, loi: `WaveSpeedAI treo ${TREO_PHUT} phút` };
   return { done: false };
 }
 
@@ -258,11 +315,14 @@ export const MO_HINH_CONG: MoHinhCong[] = [
   { key: 'shopaikey:gemini-nano-banana-2.1', label: 'Nano Banana 2.1', nhom: 'ShopAIKey', vnd: 683, donVi: 'anh' },
   { key: 'shopaikey:grok-video-3-10s', label: 'Grok Video 3 · 10s (khung 2:3, xuất tự cắt 9:16)', nhom: 'ShopAIKey', vnd: 3250, donVi: 'clip', giay: 10 },
   { key: 'shopaikey:grok-imagine-video-1.5', label: 'Grok Imagine Video 1.5 · 6s (khung 2:3)', nhom: 'ShopAIKey', vnd: 6500, donVi: 'clip', giay: 6 },
+  { key: 'kie:veo3_lite', label: 'Veo 3.1 Lite · Kie.ai (clip 4–8s, 9:16)', nhom: 'Kie.ai', vnd: 4550, donVi: 'clip', giay: 8 },
+  { key: 'kie:veo3_fast', label: 'Veo 3.1 Fast · Kie.ai (clip 4–8s, 9:16)', nhom: 'Kie.ai', vnd: 8450, donVi: 'clip', giay: 8 },
+  { key: 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video', label: 'Kling 3.0 Std · WaveSpeedAI (5 / 10s)', nhom: 'WaveSpeedAI', vnd: 17472, donVi: 'clip', giay: 8 },
 ];
 export const centsCong = (vnd: number) => vndRaCent(vnd);
 /** Tách khoá model: cổng đích danh / Google trực tiếp / tự chọn. */
 export function tachKhoa(key: string): { kieu: 'cong'; cong: CongKey; model: string } | { kieu: 'google'; model: string } | { kieu: 'tu_chon'; model: string } {
-  const m = /^(ckey|shopaikey|google):(.+)$/.exec(key);
+  const m = /^(ckey|shopaikey|google|kie|wavespeed):(.+)$/.exec(key);
   if (!m) return { kieu: 'tu_chon', model: key };
   return m[1] === 'google' ? { kieu: 'google', model: m[2]! } : { kieu: 'cong', cong: m[1] as CongKey, model: m[2]! };
 }

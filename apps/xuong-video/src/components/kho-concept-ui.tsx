@@ -249,7 +249,7 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
       if (!cr || cr.trang_thai === 'bo') return <Pill color="var(--fg-3)">đề xuất</Pill>;
       if (cr.phim_id && cr.phim_id === goc) return <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }} title="phim gốc của bộ hình — sản xuất hình / clip ở đây">🎬 phim gốc #{cr.phim_id}</button>;
       if (cr.phim_id) return <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }}>🎬 phim #{cr.phim_id}</button>;
-      if (!goc) return <Nut onClick={() => void moTao(cr.id)} title="Tạo PHIM GỐC của bộ hình từ creative này (0đ) — sinh hình / clip một lần ở phim gốc, các creative khác cùng bộ hình xuất từ clip đó">Tạo phim gốc</Nut>;
+      if (!goc) return <span style={mono} title="Bộ hình chưa có phim gốc — tạo ở đầu bộ hình; xong clip thì creative này ⬇ Xuất từ đó">chờ phim gốc</span>;
       const san = phimId.get(goc)?.nac.find((k2) => k2.ten === 'Clip')?.tt === 'xong';
       return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
         {cr.xuat?.url && <LinkNgoai href={cr.xuat.url} className="xv-lienket xv-mono" title={`xuất ${new Date(cr.xuat.luc).toLocaleString('vi-VN')}${cr.xuat.canh_bao?.length ? ` · ${cr.xuat.canh_bao.join(' · ')}` : ''}`}>▶ bản xuất</LinkNgoai>}
@@ -327,6 +327,9 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
                 </span>
               </span>
               <span style={{ display: 'grid', justifyItems: 'end', gap: 2, ...mono }} title="Dùng lại clip: bộ hình sản xuất một lần, mỗi creative chỉ thay chữ màn + giọng khi xuất">
+                {!b.v.phim_id && (() => { const goc1 = b.ds.find((x) => Object.values(x.chon).every((v2) => v2 === 1) && daDuyet.get(x.ma)?.trang_thai === 'duyet') ?? b.ds.find((x) => daDuyet.get(x.ma)?.trang_thai === 'duyet');
+                  const cr1 = goc1 ? daDuyet.get(goc1.ma) : undefined;
+                  return <Nut chinh ly={!cr1 && 'duyệt ít nhất một creative của bộ hình trước'} onClick={() => cr1 && void moTao(cr1.id)} title="Tạo PHIM GỐC của bộ hình (0đ) — sinh hình / clip một lần ở đây, các creative khác của bộ hình ⬇ Xuất từ clip đó">🎬 Tạo phim gốc{cr1 ? ` (từ #${cr1.so})` : ''}</Nut>; })()}
                 <span>{b.v.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(b.v.phim_id!)} title={phimId.get(b.v.phim_id)?.nac.map((k2) => `${k2.ten}: ${k2.tt}`).join(' · ')}>🎬 phim gốc #{b.v.phim_id} · {phimId.get(b.v.phim_id)?.ket ?? ''}</button> : '🎬 chưa có phim gốc'} → <b style={{ color: 'var(--fg-1)' }}>{b.ds.length}</b> creative · {b.ds.filter((x) => daDuyet.get(x.ma)?.xuat?.url).length} đã xuất{boPhim > 1 ? ` · ${boPhim} phim` : ''}</span>
                 <span><span style={{ color: 'var(--amber)' }}>riêng ~{tien(b.ds.length * tienDungRiengCents(b.t, d.gia))}</span> · <span style={{ color: 'var(--lime)' }}>dùng lại ~{tien(tienBo)}</span></span>
               </span>

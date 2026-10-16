@@ -10,11 +10,12 @@ import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { useShallowParam } from '@/lib/url-shallow';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive } from '@/lib/social-traffic';
+import { SocialTrucTiep } from '@/components/social-truc-tiep';
 
 type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'trang' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
   { key: 'tong', label: 'Tổng quan' }, { key: 'goc', label: 'Góc' }, { key: 'sx', label: 'Sản xuất' },
-  { key: 'kenh', label: 'Kênh' }, { key: 'trang', label: 'Trang đích' }, { key: 'tien', label: 'Sổ tiền' },
+  { key: 'kenh', label: 'Kênh' }, { key: 'trang', label: 'Trực tiếp' }, { key: 'tien', label: 'Sổ tiền' },
 ];
 const TT_GOC = { chua: ['var(--fg-3)', 'Chưa làm'], dang: ['var(--accent)', 'Đang thử'], thang: ['var(--ok)', 'Ra tiền'], chet: ['var(--bad)', 'Dừng'] } as const;
 const TT_KENH = { song: ['var(--ok)', 'Sống'], co: ['var(--warn)', 'Dính cờ'], khoa: ['var(--bad)', 'Bị khoá'], dung: ['var(--fg-3)', 'Đã cắt'] } as const;
@@ -219,6 +220,9 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             <span style={nho}>Mỗi kênh một thiết bị + một proxy riêng. Luật cắt: sau {ST_CAT_NGAY} ngày trung vị dưới {ST_CAT_TRUNG_VI} lượt xem thì dừng, dồn video sang kênh đang lên.</span></>
         : trong('Chưa có kênh nào', 'Kênh lấy từ vault tài khoản (Resources › Accounts), mỗi kênh một thiết bị + proxy riêng. Có kênh đầu tiên thì bảng hiện trung vị lượt xem, click về site, hoa hồng.'))}
 
+      {muc === 'trang' && laLive && <SocialTrucTiep />}
+      {muc === 'trang' && laLive && <h3 style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--fg-2)' }}>Trang đích các kênh đang trỏ tới</h3>}
+      {muc === 'trang' && !laLive && <span style={nho}>Khách trực tiếp trên site aff (phễu, bảng phiên, dòng thời gian từng khách) là số thật — bật LIVE để xem.</span>}
       {muc === 'trang' && (d.trang.length
         ? <><DataTable rows={d.trang} columns={cotTrang} getRowKey={(x) => x.slug} persistKey="st_trang" minWidth={860} />
             <span style={nho}>Mọi link trong video, bio, tin nhắn tự động đi qua các trang này — sửa link một lần ở đây là mọi video cũ ra tiền lại.</span></>

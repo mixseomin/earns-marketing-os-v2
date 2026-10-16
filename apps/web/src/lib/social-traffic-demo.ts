@@ -61,3 +61,20 @@ export const ST_DEMO: StDuLieu = {
     { slug: 'g/0194', goc: 8, kenh: 6, click: 95, raShop: 6, chuongTrinh: 'Impact · nhãn C', song: false },
   ],
 };
+
+/* TRỰC TIẾP (lib/social-truc-tiep.ts đọc sổ phiên adfond) — kiểu + bước phễu của site aff, dùng chung server và màn. */
+export const BUOC_AFF = [
+  { ma: 'vao', nhan: 'Vào trang', chuThich: 'Mở trang đích.' },
+  { ma: 'cuon', nhan: 'Cuộn 25%', chuThich: 'Cuộn tới ít nhất 25% trang.' },
+  { ma: 'doc', nhan: 'Đọc 50%', chuThich: 'Cuộn tới ít nhất 50% trang (mốc "đã đọc" của adfond).' },
+  { ma: 'bam', nhan: 'Bấm sang shop', chuThich: 'Bấm nút / link sang cửa bán (Gumroad, Etsy, Amazon…).' },
+] as const;
+export const CUA_SO_AFF = [{ value: 'online', label: 'Đang online' }, { value: '30p', label: '30 phút' }, { value: 'hom_nay', label: 'Hôm nay' }, { value: '7n', label: '7 ngày' }] as const;
+export type CuaSoAff = (typeof CUA_SO_AFF)[number]['value'];
+export const NHAN_SK_AFF: Record<string, string> = { vao: 'Vào', xem: 'Xem trang', bam: 'Bấm', bam_mua: 'Bấm sang shop' };
+export interface PhienAff {
+  id: string; site: string; quayLai: boolean; batDau: string; cuoi: string; online: boolean; nguon: string | null;
+  trangVao: string | null; trangHien: string | null; tieuDe: string | null; thietBi: string | null; nuoc: string | null; thanhPho: string | null;
+  soTrang: number; soBam: number; cuon: number; buoc: number; bamMua: string | null;
+}
+export interface SuKienAff { luc: string; loai: string; trang: string | null; chiTiet: string | null }

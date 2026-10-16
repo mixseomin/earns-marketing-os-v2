@@ -61,6 +61,9 @@ for (const t of tep.templates) {
   if (t.diem_cham === 3) {
     const thieuCham = t.shots.flatMap((s, i) => [!s.hanh_dong?.trim() && 'hình', !s.loi?.trim() && 'giọng', !s.chu_man?.trim() && 'chữ màn'].filter(Boolean).map((x) => `shot ${i + 1}: ${x}`));
     if (thieuCham.length) throw new Error(`${t.key}: thiếu điểm chạm (diem_cham 3 = hình + giọng + chữ màn mỗi shot): ${thieuCham.join(', ')}`);
+    // CHỮ = LỜI (anh 16/10/2026: "voice không khớp với text"): nghe một câu, đọc một câu khác là lệch — chữ màn phải đúng câu đang nghe.
+    const lech = t.shots.flatMap((s, i) => (s.chu_man?.trim() && s.loi?.trim() && s.chu_man.trim() !== s.loi.trim() && !/^\{\{san_pham\}\}/.test(s.chu_man.trim()) ? [`shot ${i + 1}`] : []));
+    if (lech.length) throw new Error(`${t.key}: chữ màn khác lời đang nghe (diem_cham 3): ${lech.join(', ')}`);
   }
   // Template phải có MẪU QC THẮNG kèm video / ảnh thật (anh 15/10/2026) — thiếu thì không dựng.
   if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);

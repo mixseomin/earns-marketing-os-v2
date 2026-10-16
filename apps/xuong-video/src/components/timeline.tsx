@@ -397,7 +397,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   };
   useEffect(() => () => ngheRef.current?.pause(), []);
   type NutSinh = { loai: YeuCauBang['loai']; cc?: Canh; phanDoan?: string; giay: number; title: string; dang?: boolean; nghe?: string[] };
-  const khoiAm = (x: number, w: number, co: boolean, mau: string, chu: string, title: string, key: number | string, onClick?: () => void, nutSinh?: NutSinh) => (
+  /** kyHieu: chữ đặt trước nội dung khối — mặc định ♪ cho khối âm có file; làn không phải âm thanh (Đối tượng) truyền '' */
+  const khoiAm = (x: number, w: number, co: boolean, mau: string, chu: string, title: string, key: number | string, onClick?: () => void, nutSinh?: NutSinh, kyHieu?: string) => (
     <div key={key} data-goi-y={title} onClick={onClick}
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
@@ -409,7 +410,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           style={{ marginRight: 4, padding: '0 5px', borderRadius: 3, border: `1px solid ${mau}`, background: dangNghe === nutSinh.nghe.join('|') ? mau : 'transparent', color: dangNghe === nutSinh.nghe.join('|') ? '#0b0b0b' : mau, fontSize: 9.5, lineHeight: '14px', cursor: 'pointer', position: 'relative', zIndex: 2 }}>
           {dangNghe === nutSinh.nghe.join('|') ? '■' : '▶'}
         </button>
-      ) : co && mau !== '#38d9f5' ? '♪ ' : ''}{chu}
+      ) : kyHieu ?? (co && mau !== '#38d9f5' ? '♪ ' : '')}{chu}
       {nutSinh && (
         // Nút ＋ to, sáng: mở bảng tuỳ chọn (model, giọng, nguồn, mô tả, giá) — không sinh ngay (#1202).
         <button type="button" className="xv-nut-sinh" title={nutSinh.title} disabled={nutSinh.dang}
@@ -712,7 +713,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 if (o.diem == null) return null;
                 const cc = canh[i]!;
                 return khoiAm(batDau[i]! * pps, dur(cc) * pps, o.co, MAU_DOI_TUONG[o.muc], `${o.loi.length ? '⚠ ' : ''}${o.chu}`,
-                  `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+                  `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); }, undefined, '');
               }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined)}
             </Fragment>
           ))}

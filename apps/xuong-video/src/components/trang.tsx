@@ -121,6 +121,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
               {/* Cột phải: dòng tên + số liệu + tập + ảnh QC; chân dung / góc spy (nếu có) xuống dòng riêng, thụt vào dưới tên (anh 15/10/2026). */}
               <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 3 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minHeight: 38 }}>
+              {/* Mã phim — cùng số #54 dùng trong chat / script / URL mId (#1394). */}
+              <span style={{ ...mono, fontSize: 11, color: 'var(--fg-4)' }}>#{p.id}</span>
               <button type="button" onClick={() => moPhim(p.id)} title={`${LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · ${p.so_nhan_vat} anchor · ${p.so_canh} cảnh · đã tốn ${tien(p.chi_phi_cents)}`} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 700, fontSize: 14.5, textAlign: 'left' }}>{p.ten}</button>
               {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
               {(p.tap_tom ?? []).map((t) => (

@@ -205,7 +205,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       <Loi>{loi}</Loi>
 
       {tab === 'storyboard' && (
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+      <div className="xv-dinh" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
         {/* MỘT hàng đầu cho cả tab (13/10/2026 — trước là 5 hàng chồng: tiêu đề, tập, trạng thái, kiểu xem, tiếng). */}
         {!!canh?.length && <span style={{ display: 'inline-flex', gap: 2 }}>
           <button type="button" className={`xv-btn${xem === 'timeline' ? ' chinh' : ''}`} onClick={() => setXem('timeline')}>🎞 Timeline</button>

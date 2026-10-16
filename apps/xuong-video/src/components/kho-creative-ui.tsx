@@ -324,7 +324,10 @@ function SoSanh({ ds, tp, onClose, onMoPhim }: { ds: DongCreative[]; tp: ThanhPh
     <Ngan onClose={onClose} tieuDe="So cạnh nhau">
       <div style={{ overflow: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', fontSize: 12, minWidth: 220 * ds.length }}>
-          <thead><tr><th style={th} />{ds.map((c) => <th key={c.id} style={th}><button type="button" onClick={() => onMoPhim(c.id)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--cyan)' }} title={c.ten}>#{c.id}</button></th>)}</tr></thead>
+          <thead><tr><th style={th} />{ds.map((c) => <th key={c.id} style={th}><button type="button" onClick={() => onMoPhim(c.id)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--cyan)', display: 'grid', gap: 4, justifyItems: 'start' }} title={c.ten}>
+            {/* Ảnh đại diện của creative (#1396) — cùng ảnh cột hình ở bảng Creative; rê để phóng to. */}
+            {c.anh ? <img src={anhNho(c.anh, 160)} alt="" style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} /> : <span style={{ width: 54, height: 96, borderRadius: 4, border: '1px dashed var(--line)', display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--fg-4)' }}>🎬</span>}
+            #{c.id}</button></th>)}</tr></thead>
           <tbody>{hang.map(([ten, f]) => { const v = ds.map(f); const khac = new Set(v).size > 1; return (
             <tr key={ten}><td style={{ ...o, ...mono }}>{ten}</td>{v.map((x, i) => <td key={i} style={{ ...o, background: khac ? 'color-mix(in srgb, var(--amber) 16%, transparent)' : undefined, maxWidth: 280 }}>{x}</td>)}</tr>); })}</tbody>
         </table>

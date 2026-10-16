@@ -24,6 +24,13 @@ export function Ngan({ onClose, nho, tieuDe, nut, dau, children }: { onClose: ()
     setTang(ds.length);
     setGoc(docRong(nho));
   }, [nho]);
+  // Cao của đầu dính (.xv-dau) → biến --dau-cao trên ngăn: hàng công cụ trong nội dung (.xv-dinh) dính ngay dưới đầu khi cuộn (#1397).
+  useEffect(() => {
+    const ngan = ref.current, dauEl = ngan?.querySelector<HTMLElement>(':scope > .xv-dau');
+    if (!ngan || !dauEl) return;
+    const ghi = () => ngan.style.setProperty('--dau-cao', `${dauEl.offsetHeight}px`);
+    ghi(); const ro = new ResizeObserver(ghi); ro.observe(dauEl); return () => ro.disconnect();
+  }, [tieuDe, dau]);
   // Esc chỉ đóng ngăn TRÊN CÙNG.
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key !== 'Escape') return; const ds = [...document.querySelectorAll('.xv-drawer')]; if (ds[ds.length - 1] === ref.current) onClose(); };

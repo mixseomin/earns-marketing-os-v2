@@ -68,6 +68,8 @@ table.xv-tbl td.n, table.xv-tbl th.n { text-align: right; font-family: var(--fon
 .xv-keo-mep:hover, .xv-keo-mep:active { background: linear-gradient(90deg, transparent 3px, var(--cyan, #22d3ee) 3px, var(--cyan, #22d3ee) 5px, transparent 5px); }
 /* Đầu drawer dính khi cuộn (#1233) — Ngan prop `dau`. Bù padding của .xv-drawer qua cùng biến, đổi padding không lệch. */
 .xv-dau { position: sticky; top: calc(-1 * var(--ngan-py)); z-index: 6; background: var(--bg-1); margin: calc(-1 * var(--ngan-py)) calc(-1 * var(--ngan-px)) 10px; padding: var(--ngan-py) var(--ngan-px) 8px; border-bottom: 1px solid var(--line); }
+/* Hàng công cụ dính ngay dưới đầu ngăn khi cuộn (#1397) — --dau-cao do Ngan đo; không ở trong ngăn thì dính sát mép trên. */
+.xv-dinh { position: sticky; top: calc(var(--dau-cao, var(--ngan-py, 0px)) - var(--ngan-py, 0px)); z-index: 5; background: var(--bg-1); padding-block: 5px; }
 .xv-canh { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg-0); }
 .xv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 .xv-anchor { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: flex; gap: 8px; }

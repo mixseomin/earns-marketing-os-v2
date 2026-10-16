@@ -89,14 +89,21 @@ function docGia(t: string): { cents: number | null; donVi: ModelFal['donVi'] } {
   return { cents: v, donVi: 'khac' };
 }
 
+/** Danh mục model fal (video image-to-video + ảnh edit) kèm giá đọc từ chuỗi giá của fal; nhớ 6 giờ. Có xuất để script nạp sổ nguồn dùng chung. */
 export async function danhMucFal(): Promise<ModelFal[]> {
   if (khoDanhMuc && Date.now() - khoDanhMuc.luc < 6 * 3600_000) return khoDanhMuc.ds;
+  // Đọc HẾT các trang (mỗi trang tối đa 100): trước 16/10/2026 chỉ đọc trang đầu → 100 / 329 model video, ô chọn model + sổ nguồn thiếu phần lớn.
   const lay = async (cat: string) => {
-    try {
-      const r = await fetch(`https://fal.ai/api/models?categories=${cat}&limit=100`, { headers: { accept: 'application/json' } });
-      const j = (await r.json()) as { items?: Array<Record<string, unknown>> };
-      return j.items ?? [];
-    } catch { return []; }
+    const out: Array<Record<string, unknown>> = [];
+    for (let trang = 1; trang <= 10; trang++) {
+      try {
+        const r = await fetch(`https://fal.ai/api/models?categories=${cat}&limit=100&page=${trang}`, { headers: { accept: 'application/json' } });
+        const it = ((await r.json()) as { items?: Array<Record<string, unknown>> }).items ?? [];
+        out.push(...it);
+        if (it.length < 100) break;
+      } catch (e) { console.error(`danh mục fal ${cat} trang ${trang}:`, e); break; }
+    }
+    return out;
   };
   const [vid, anh] = await Promise.all([lay('image-to-video'), lay('image-to-image')]);
   const ds: ModelFal[] = [];

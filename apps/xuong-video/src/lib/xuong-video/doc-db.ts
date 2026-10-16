@@ -4,7 +4,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { chotTien, LOAI_JOB_TON_TIEN } from './chot-tien';
 import type { getDb } from '@mos2/db';
-import { docKinhThanh, giaAnhCents, MO_HINH_ANH, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
+import { docKinhThanh, giaAnhCents, MO_HINH_ANH, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type PhanCanh, type Tap, type TrangThaiCanh } from './kieu';
 import { modelFal } from './fal';
 import { boSetCuaShot, laDoVatPhim, mayDayDu, PT_THAY } from './bo-set-3d';
 import type { NguCanhPhim } from './claude';
@@ -84,9 +84,10 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // (mở, kết, sơ đồ nguồn) lẫn cổng chặn — trạng thái vật (đã chia mảnh) nằm ở đây kể cả khi món đó ngoài khung.
   let mayDu: May3d | null = canh.may_3d ?? null;
   if (sid) {
-    const ds = ((await db.execute(sql`SELECT id, thu_tu, nhan_vat, may_3d FROM xv_canh WHERE tap_id = ${canh.tap_id} AND may_3d IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
-      .map((x) => ({ id: n(x.id), thu_tu: n(x.thu_tu), nhan_vat: (x.nhan_vat as number[]) ?? [], may_3d: x.may_3d as May3d })).filter((c) => boSetCuaShot(c, nvPhim) === sid);
-    mayDu = mayDayDu(ds, laDoVatPhim(nvPhim)).get(canh.id) ?? mayDu;
+    const ds = ((await db.execute(sql`SELECT id, thu_tu, canh, nhan_vat, may_3d FROM xv_canh WHERE tap_id = ${canh.tap_id} AND may_3d IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
+      .map((x) => ({ id: n(x.id), thu_tu: n(x.thu_tu), canh: s(x.canh), nhan_vat: (x.nhan_vat as number[]) ?? [], may_3d: x.may_3d as May3d })).filter((c) => boSetCuaShot(c, nvPhim) === sid);
+    const pc = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${canh.tap_id}`)) as unknown as Row[])[0]?.phan_canh;
+    mayDu = mayDayDu(ds, laDoVatPhim(nvPhim), (pc ?? []) as PhanCanh[]).get(canh.id) ?? mayDu;
   }
   return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null };
 }

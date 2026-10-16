@@ -11,12 +11,13 @@ const ds = [
 ];
 const s = soLienMach(ds, pc, nv);
 assert.equal(s.nhanVat.Tango!.length, 3); assert.equal(s.nhanVat.Lint!.length, 1);
-assert.ok(s.nhanVat.Tango![1]!.loi.some((x) => x.includes('NẰM')), 'dòng #2 mang lỗi dáng');
+assert.ok(s.nhanVat.Tango![1]!.loi.some((x) => x.includes('khai mở nằm')), 'dòng #2 báo khai lệch dáng');
+assert.deepEqual([s.nhanVat.Tango![1]!.nam, s.nhanVat.Tango![1]!.noi, s.nhanVat.Tango![2]!.noi], [false, 1, null], 'sổ hiện dáng ĐÃ NỐI (đứng, ⛓#1); ngày mới không nối');
 assert.equal(s.nhanVat.Tango![0]!.loi.length, 0); assert.equal(s.nhanVat.Tango![2]!.loi.length, 0, 'sang ngày mới không bắt');
 assert.equal(s.nhanVat.Tango![2]!.luong_moi, 'ngay'); assert.equal(s.nhanVat.Tango![2]!.ngay, 'D2');
 assert.deepEqual(s.canh.map((c) => [c.ten, c.ngay, c.shot]), [['Kẹo', 'N1', [1, 2]], ['Sáng', 'D2', [3]]]);
 assert.equal(chuDang({ nam: false, nam_den: true }), 'đứng → ngã');
-assert.ok(s.nhanVat.Tango![1]!.diem <= 60 && s.nhanVat.Tango![1]!.muc[0]!.muc === 'chan', 'lỗi dáng = chặn, trừ 40');
+assert.ok(s.nhanVat.Tango![1]!.diem >= 90 && s.nhanVat.Tango![1]!.muc[0]!.muc === 'nhe', 'khai lệch đã nối = nhẹ (máy dựng đúng)');
 assert.equal(s.nhanVat.Tango![0]!.diem, 100);
 import('./so-lien-mach').then(({ chamLoi }) => { assert.equal(chamLoi(['Lint quay ngoắt 90°'], true, null).diem, 92, 'nặng ngoài khung: 20 × 0,4'); });
 console.log('so-lien-mach: mọi bài tự kiểm qua');

@@ -12,7 +12,7 @@ import { uploadToR2, deleteFromR2, r2KeyFromUrl } from '../r2';
 import { khoaNho } from './anh-nho-may';
 import { CO_NHO } from './anh-nho';
 import { bangDung, boSetCuaShot, laDoVatPhim, maKhungXam, maPhan, mayDayDu, rangBuocTruc, shotSoTruc } from './bo-set-3d';
-import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
+import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d, type PhanCanh } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
 /** Chạy fn cho từng phần tử, tối đa n việc cùng lúc. */
@@ -69,7 +69,7 @@ export async function donRenderCu(db: Db, urls: string[], thu = false): Promise<
 /** che = 'xuat': chỉ chuẩn bị đầu vào Blender vào thuMuc rồi dừng (máy ngoài — iMac — render); 'nhap': không render, đọc kết quả máy ngoài đã đặt
  *  vào thuMuc rồi đẩy kho + ghi DB như thường. Khoá / DB không rời box: iMac chỉ làm thợ render (scripts/bo-set/chay-imac.sh). */
 export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[]; che?: 'xuat' | 'nhap'; thuMuc?: string } = {}): Promise<{ ok: true; data: { dung: number; loi: string[]; don: { xoa: number; giu: number }; ly_do: string[]; ids: number[] } } | { ok: false; loi: string }> {
-  const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  const t = (await db.execute(sql`SELECT phim_id, phan_canh FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
@@ -81,7 +81,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
   // Đồ để lại (mayDayDu): máy + chỗ đứng ĐẦY ĐỦ của từng shot = khai của shot + đạo cụ còn nằm lại từ các shot trước cùng set.
   const laDoVat = laDoVatPhim(nv);
   const day = new Map<number, May3d>();
-  for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) for (const [k, m] of mayDayDu(ds.filter((c) => boSetCuaShot(c, nv) === sid), laDoVat)) day.set(k, m);
+  for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) for (const [k, m] of mayDayDu(ds.filter((c) => boSetCuaShot(c, nv) === sid), laDoVat, (t[0].phan_canh ?? []) as PhanCanh[])) day.set(k, m);
   // Gom theo set: một lượt Blender / set (dựng set một lần, render mọi máy).
   const lyDo: string[] = [];
   const theoSet = new Map<number, (Canh & { may_3d: May3d; goc: May3d; truc: ReturnType<typeof rangBuocTruc>; khoa_may: boolean })[]>();

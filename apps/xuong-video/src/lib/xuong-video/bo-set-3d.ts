@@ -269,10 +269,11 @@ export function moTaThay(thay: VatThay[] | undefined, enCua?: (ten: string) => s
 // Bộ set có TRẠNG THÁI theo thời gian: đạo cụ / sản phẩm đặt xuống ở shot trước nằm nguyên chỗ cuối cùng nó được thấy trong mọi shot sau cùng
 // set — tự thêm vào chỗ đứng của shot (an, de_lai) cho tới khi nó được khai lại (đổi chỗ), được cầm lên (cam), hoặc rời bộ set (het).
 // Khung 3D / khung màu / keyframe vì thế luôn có món đó nếu máy nhìn thấy chỗ nó nằm — không phải nhớ khai lại từng shot.
-export function mayDayDu<T extends { id: number; may_3d?: May3d | null }>(ds: T[], laDoVat: (ten: string) => boolean): Map<number, May3d> {
+export function mayDayDu<T extends { id: number; may_3d?: May3d | null; canh?: string }>(ds: T[], laDoVat: (ten: string) => boolean, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Map<number, May3d> {
   const con = new Map<string, { tam: number[]; huong?: number; nam?: boolean; chia?: number }>(); const out = new Map<number, May3d>();
+  const noi = noiHookup(ds, phanCanh).may;   // chỗ / hướng / dáng / trạng thái MỞ = lúc KẾT shot trước (hookup) — trước khi tính đồ để lại
   for (const c of ds) {
-    const m = c.may_3d; if (!m) continue;
+    const m = noi.get(c.id) ?? c.may_3d; if (!m) continue;
     const co = new Set(m.vi_tri.map((v) => v.ten));
     const deLai = [...con].filter(([t]) => !co.has(t)).map(([ten, x]) => ({ ten, tam: x.tam, ...(x.huong != null ? { huong: x.huong } : {}), ...(x.nam ? { nam: true } : {}), ...(x.chia ? { chia: x.chia } : {}), an: true, de_lai: true }));
     out.set(c.id, deLai.length ? { ...m, vi_tri: [...m.vi_tri, ...deLai] } : m);
@@ -296,8 +297,80 @@ const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360
 /** Cảnh của một shot trong phân cảnh tập: shot ghi 'Cảnh 4 · Cục bụi biết sợ', phân cảnh ghi 'Cục bụi biết sợ'. */
 export const canhCuaShot = <P extends Pick<PhanCanh, 'ten'>>(canh: string | undefined, pc: P[] | undefined): P | undefined =>
   canh && pc?.length ? pc.find((x) => x.ten.trim() === canh.trim() || canh.split('·').pop()!.trim() === x.ten.trim()) : undefined;
-export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null; canh?: string }>(ds: T[], khoi: (ten: string) => { co: number[] } | null, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+/** LUỒNG CẢNH của từng shot (script supervisor): 'ngay' = sang ngày truyện khác (reset hết) · 'canh' = cảnh mới khai lien_truoc: false (thời gian
+ *  nhảy: reset chỗ / hướng / dáng / đồ cầm, trạng thái cơ thể giữ) · '' = cùng luồng. MỘT luật cho hookup, cổng liền mạch và sổ. */
+export function luongShot<T extends { id: number; canh?: string }>(ds: T[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Map<number, '' | 'ngay' | 'canh'> {
+  const out = new Map<number, '' | 'ngay' | 'canh'>(); let canhTruoc: string | undefined; let ngayTruoc: string | undefined;
+  for (const c of ds) {
+    let l: '' | 'ngay' | 'canh' = ''; const pc = canhCuaShot(c.canh, phanCanh);
+    if (pc && pc.ten !== canhTruoc) {
+      const ngay = pc.ngay?.trim() || ngayTruoc;
+      if (canhTruoc !== undefined) l = ngay !== ngayTruoc ? 'ngay' : pc.lien_truoc === false ? 'canh' : '';
+      canhTruoc = pc.ten; ngayTruoc = ngay;
+    }
+    out.set(c.id, l);
+  }
+  return out;
+}
+
+/** HOOKUP (cách xưởng hoạt hình nối hai shot — anh 16/10/2026 "có làm đi"): người diễn hoạt NHẬN tư thế khung cuối shot trước làm tư thế mở
+ *  shot mình, không tự khai lại. Trong một luồng cảnh, chỗ / hướng / dáng / trạng thái MỞ của mỗi nhân vật = lúc KẾT lần cuối thấy nó; shot sau
+ *  khai lệch thì máy dùng kết shot trước và ghi vào lech (sổ báo nhẹ: dữ liệu khai thừa / sai). Sửa chỗ kết của shot trước = shot sau tự đổi theo.
+ *  Không nối: shot hoặc nhân vật khai nhay (cố ý cắt thời gian), món đang được cầm (theo người cầm), sang ngày truyện khác (reset hết),
+ *  cảnh lien_truoc: false (reset chỗ / hướng / dáng, trạng thái cơ thể giữ). Dáng chỉ nối khi nhân vật CÓ MẶT ở shot liền trước (vắng một shot =
+ *  thời gian trôi ngoài khung). Trường _den shot không khai thì theo chỗ mở mới (đứng yên / giữ dáng). Món nối được ghi noi_tu = số shot nguồn. */
+export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3d | null; canh?: string }>(ds: T[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): { may: Map<number, May3d>; lech: Record<number, string[]> } {
+  type Ket = { p: number[]; huong?: number; nam: boolean; shot: number };
+  const ket = new Map<string, Ket>(); const trang = new Map<string, string>(); let truocCo = new Set<string>();
+  const may = new Map<number, May3d>(); const lech: Record<number, string[]> = {}; const luong = luongShot(ds, phanCanh);
+  const r = (p: number[]) => `(${p.map((x) => Math.round(x * 10) / 10).join(', ')})`;
+  for (const c of ds) {
+    const l = luong.get(c.id);
+    if (l === 'ngay') { ket.clear(); trang.clear(); truocCo = new Set(); } else if (l === 'canh') { ket.clear(); truocCo = new Set(); }
+    const m = c.may_3d; if (!m) continue;
+    const so = c.thu_tu ?? c.id;
+    const vi_tri = m.vi_tri.map((v) => {
+      if (m.nhay || v.nhay || v.cam) return v;
+      const k = ket.get(v.ten); const t = trang.get(v.ten);
+      if (!k && t === undefined) return v;
+      const n: typeof v = { ...v };
+      if (k) {
+        const d = Math.hypot(v.tam[0]! - k.p[0]!, v.tam[1]! - k.p[1]!, (v.tam[2] ?? 0) - (k.p[2] ?? 0));
+        if (d > 0.5) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở ở ${r(v.tam)} mà kết #${k.shot} ở ${r(k.p)} (lệch ${Math.round(d * 10) / 10} cm) — máy nối theo kết #${k.shot}; cố ý cắt thời gian thì khai nhay`);
+        n.tam = [...k.p];
+        if (k.huong != null) {
+          if (v.huong != null && gocLech(k.huong, v.huong) > 15) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở nhìn ${Math.round(v.huong)}° mà kết #${k.shot} nhìn ${Math.round(k.huong)}° — máy nối theo #${k.shot}`);
+          n.huong = k.huong;
+        }
+        if (truocCo.has(v.ten)) {
+          if (k.nam !== !!v.nam) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở ${v.nam ? 'nằm' : 'đứng'} mà kết #${k.shot} ${k.nam ? 'nằm' : 'đứng'} — máy nối theo #${k.shot}; đổi dáng thì diễn trong shot (nam_den + động tác nga / day)`);
+          n.nam = k.nam; if (v.nam_den == null) n.nam_den = k.nam;
+        }
+        n.noi_tu = k.shot;
+      }
+      if (t !== undefined) {
+        const mo = (v.trang ?? '').trim();
+        if (mo !== t) (lech[c.id] ??= []).push(`⛓ ${v.ten} khai mở "${mo || 'bình thường'}" mà kết shot trước "${t || 'bình thường'}" — máy nối theo shot trước; đổi thì khai trang_den`);
+        n.trang = t || undefined; if (v.trang_den == null) n.trang_den = t || undefined;
+      }
+      return n;
+    });
+    may.set(c.id, { ...m, vi_tri });
+    for (const v of vi_tri) {
+      trang.set(v.ten, (v.trang_den ?? v.trang ?? '').trim());
+      if (v.cam) { ket.delete(v.ten); continue; }
+      ket.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: !!(v.nam_den ?? v.nam), shot: so });
+    }
+    truocCo = new Set(vi_tri.map((v) => v.ten));
+  }
+  return { may, lech };
+}
+
+export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null; canh?: string }>(ds0: T[], khoi: (ten: string) => { co: number[] } | null, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+  // Kiểm trên bản ĐÃ NỐI hookup (noiHookup) — đúng thứ Blender / keyframe dựng; chỗ khai lệch shot trước thành ghi chú ⛓ (nhẹ).
+  const hk = noiHookup(ds0, phanCanh); const ds = ds0.map((c) => (hk.may.has(c.id) ? { ...c, may_3d: hk.may.get(c.id)! } : c));
   const cuoi = new Map<string, { p: number[]; huong?: number; nam: boolean; shot: number }>(); const out: Record<number, string[]> = {};
+  for (const [k, v] of Object.entries(hk.lech)) (out[Number(k)] ??= []).push(...v);
   // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
   // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
   const camBoi = new Map<string, { nguoi: string; shot: number }>();
@@ -319,16 +392,12 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   // LUỒNG CẢNH (script supervisor, anh 16/10/2026: "đang lái xe hết cảnh, cảnh sau sáng hôm sau đang nằm ngủ là bình thường"): sổ liền mạch
   // theo từng nhân vật chỉ giữ trong một luồng thời gian. Sang cảnh khai NGÀY TRUYỆN khác → reset hết (trừ vật đã chia: thời gian không làm lành);
   // cảnh khai lien_truoc: false (thời gian nhảy) → reset chỗ / hướng / dáng / đồ đang cầm, trạng thái cơ thể giữ tới khi đổi ngày.
-  let canhTruoc: string | undefined; let ngayTruoc: string | undefined;
+  const luong = luongShot(ds, phanCanh);
   for (const c of ds) {
+    const l = luong.get(c.id);
+    if (l === 'ngay') { cuoi.clear(); camBoi.clear(); trangCuoi.clear(); truocCo = new Set(); }
+    else if (l === 'canh') { cuoi.clear(); camBoi.clear(); truocCo = new Set(); }
     const m = c.may_3d; if (!m) continue;
-    const pc = canhCuaShot(c.canh, phanCanh);
-    if (pc && pc.ten !== canhTruoc) {
-      const ngay = pc.ngay?.trim() || ngayTruoc;
-      if (canhTruoc !== undefined && ngay !== ngayTruoc) { cuoi.clear(); camBoi.clear(); trangCuoi.clear(); truocCo = new Set(); }
-      else if (canhTruoc !== undefined && pc.lien_truoc === false) { cuoi.clear(); camBoi.clear(); truocCo = new Set(); }
-      canhTruoc = pc.ten; ngayTruoc = ngay;
-    }
     const co = new Set(m.vi_tri.map((v) => v.ten));
     for (const v of m.vi_tri) {
       const tr = trangCuoi.get(v.ten); const mo = (v.trang ?? '').trim();

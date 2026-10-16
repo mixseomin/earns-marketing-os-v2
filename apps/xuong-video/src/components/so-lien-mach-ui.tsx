@@ -33,6 +33,7 @@ export function SoLienMachXem(p: { phimId: number; ten: string } | { tapId: numb
       <div style={{ ...mono, color: 'var(--fg-3)', lineHeight: 1.5 }}>
         Sổ của <b>script supervisor</b>: mỗi shot một dòng — nhân vật phải MỞ shot đúng chỗ / dáng / hướng / trạng thái / đồ cầm lúc KẾT lần cuối thấy, trừ khi sang
         <b> ngày truyện</b> khác (reset hết) hoặc <b>cảnh mới</b> (thời gian nhảy: reset chỗ, dáng, đồ cầm — trạng thái cơ thể như ướt, bẩn, trang phục giữ tới khi đổi ngày).
+        {' '}<b style={{ color: '#4ade80' }}>⛓#N</b> = <b>hookup</b> như xưởng hoạt hình: chỗ / hướng / dáng / trạng thái mở của shot TỰ NỐI từ lúc kết của shot #N — không khai lại; sửa chỗ kết shot trước là shot sau đổi theo.
       </div>
       {ds.map(({ tap, so }) => {
         const ten = 'ten' in p ? [p.ten] : Object.keys(so.nhanVat);
@@ -78,7 +79,7 @@ function DongSoTr({ d }: { d: DongSo }) {
       <td style={{ ...td, color: mauDiem(d.diem), fontWeight: 700 }} title={d.muc.length ? d.muc.map((m) => `${TEN_MUC[m.muc]} −${m.tru}`).join(' · ') : 'không lỗi'}>{d.diem}</td>
       <td style={td}><button type="button" className="xv-lienket" onClick={() => moNgan({ loai: 'nguon', canhId: d.canhId })} style={{ ...mono }}>#{d.thu_tu}</button></td>
       <td style={{ ...td, color: 'var(--fg-3)' }}>{d.canh}{d.ngay ? ` · ${d.ngay}` : ''}</td>
-      <td style={td}>{chuCho(d.tam)}{d.den ? ` → ${chuCho(d.den)}` : ''}</td>
+      <td style={td}>{d.noi != null && <span style={{ color: '#4ade80' }} title={`chỗ / hướng / dáng / trạng thái mở NỐI từ lúc kết #${d.noi} (hookup) — sửa chỗ kết của #${d.noi} là shot này đổi theo`}>⛓#{d.noi} </span>}{chuCho(d.tam)}{d.den ? ` → ${chuCho(d.den)}` : ''}</td>
       <td style={{ ...td, color: d.nam !== d.nam_den ? '#facc15' : undefined }}>{chuDang(d)}</td>
       <td style={td}>{d.huong != null ? `${Math.round(d.huong)}°` : ''}{d.huong_den != null && d.huong_den !== d.huong ? ` → ${Math.round(d.huong_den)}°` : ''}</td>
       <td style={{ ...td, maxWidth: 220 }}>{d.trang || d.trang_den ? <span title={d.trang_den}>{d.trang || 'bình thường'}{d.trang_den !== d.trang ? ` → ${d.trang_den}` : ''}</span> : <span style={{ color: 'var(--fg-4)' }}>bình thường</span>}</td>

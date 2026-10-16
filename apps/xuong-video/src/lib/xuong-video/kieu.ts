@@ -368,6 +368,7 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** ĐỘNG TÁC DIỄN trong shot (thư viện dung-set.py › DONG_TAC): 'ten@a-b' (a, b = phần thời lượng 0..1), vd 'phong3@0.05-0.3', 'toc_ru@0.5'.
      *  Chớp mắt + chúi tới khi đi là tự động */ dien?: string[];
     /** món RỜI KHỎI bộ set sau shot này (bị lấy đi / mang ra ngoài) — không còn tự đặt lại ở các shot sau */ het?: boolean;
+    /** (máy tự thêm) chỗ / hướng / dáng / trạng thái mở NỐI từ kết của shot số này (hookup — bo-set-3d.ts › noiHookup) */ noi_tu?: number;
     /** (máy tự thêm) đạo cụ ĐỂ LẠI từ shot trước, đặt đúng chỗ cuối cùng nó được thấy — bo-set-3d.ts › mayDayDu */ de_lai?: boolean;
     /** CỐ Ý xuất hiện ở chỗ khác lần cuối thấy (đi ngoài khung) — ghi lý do; chỉ miễn kiểm cho món này */ nhay?: string;
     /** nhân vật này TÁC ĐỘNG lên món nào trong shot (chạm, ấn, chà, cầm lên) — tên vật của set hoặc chỗ đứng khác. Cổng chuỗi chú ý

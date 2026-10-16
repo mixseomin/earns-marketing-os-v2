@@ -64,8 +64,15 @@ export function gtBienThe(v: Pick<BienTheHinh, 'nguoi_chinh' | 'nguoi_phu' | 'bo
   return gt;
 }
 
-/** Số phương án DỰ KIẾN mỗi ô khi AI viết (ô đầu — thường là hook — 3, còn lại 2). */
-export const PA_DU_KIEN = (i: number) => (i === 0 ? 3 : 2);
+/** Số phương án DỰ KIẾN mỗi ô (AI viết đúng số này): chỉ ô ĐÒN BẨY mới nhiều phương án — ô đầu (hook) 3; ô ĐẦU TIÊN của mỗi loại nỗi đau / so sánh /
+ *  bằng chứng / trấn an / ưu đãi 2; ô còn lại (giải pháp, demo, tính năng — đi theo hình) 1. 17/10/2026: cho mọi ô 2–3 phương án → template 10 ô ra
+ *  1.536 tổ hợp mỗi cặp, 136.200 cho 44 cặp — tích của những ô không đáng test. */
+const LOAI_DON_BAY = ['noi_dau', 'so_sanh', 'bang_chung', 'tran_an', 'uu_dai'];
+export const PA_DU_KIEN = (oChu: Pick<OChu, 'loai'>[], i: number): number => {
+  if (i === 0) return 3;
+  const o = oChu[i]; if (!o) return 1;
+  return LOAI_DON_BAY.includes(o.loai) && oChu.findIndex((x) => x.loai === o.loai) === i ? 2 : 1;
+};
 /** Tiền một bộ hình: kịch bản + mọi shot + mỗi biến thể thêm sinh lại các shot có người / bối cảnh (cents). */
 export const tienCapCents = (t: Pick<TplConcept, 'so_shot' | 'shot_ca'>, soBienThe: number, g: GiaConcept): number =>
   g.kb_cents + t.so_shot * g.shot_cents + Math.max(0, soBienThe - 1) * t.shot_ca * g.shot_cents;
@@ -85,7 +92,7 @@ export function toHopCap(c: Concept, t: TplConcept, cap: Cap, bt: BienTheHinh[],
   return { ds: bt.flatMap((v) => chon.map((ch) => ({ cap_id: cap.id, bien_the: v, chon: ch, ma: maToHop(c.ma, t.id, v.so, t.o_chu, ch) }))), thieu };
 }
 /** Số tổ hợp dự kiến của một cặp khi chưa có phương án (để lên kế hoạch trước khi tiêu tiền). */
-export const duKienCap = (t: Pick<TplConcept, 'o_chu'>, soBienThe: number): number => soBienThe * t.o_chu.reduce((n, _o, i) => n * PA_DU_KIEN(i), 1);
+export const duKienCap = (t: Pick<TplConcept, 'o_chu'>, soBienThe: number): number => soBienThe * t.o_chu.reduce((n, _o, i) => n * PA_DU_KIEN(t.o_chu, i), 1);
 
 /** Vòng test: 1 đổi ô đầu (hook) · 2 đổi diễn viên / bối cảnh · 3 đổi các ô thân · 0 cả ma trận. Các phần không đổi giữ phương án / biến thể 1. */
 export type Vong = 0 | 1 | 2 | 3;

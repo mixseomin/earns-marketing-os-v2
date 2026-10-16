@@ -34,7 +34,7 @@ export function DaiSoKho({ d }: { d: KhoConcept }) {
       {o(String(d.concept.length), 'concept')}
       {o(`${k.bat.length} → ${k.boHinh}`, 'cặp → bộ hình', 'cặp concept × template đang bật → số bộ hình (mỗi biến thể diễn viên / bối cảnh một bộ)')}
       {o(k.thuc.toLocaleString('vi-VN'), 'creative ghép được', 'tổ hợp đã đủ phương án mọi ô')}
-      {o(k.duKien.toLocaleString('vi-VN'), 'creative dự kiến', 'khi mỗi ô có phương án dự kiến (ô đầu 3, ô khác 2)')}
+      {o(k.duKien.toLocaleString('vi-VN'), 'creative dự kiến', 'khi mỗi ô có số phương án dự kiến: hook 3, ô đầu mỗi loại nỗi đau / so sánh / bằng chứng / trấn an / ưu đãi 2, ô khác 1')}
       {o(tien(k.cents), 'tiền hình + kịch bản', `đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot (keyframe + video), ${tien(d.gia.kb_cents)}/bộ kịch bản`)}
       {o(n ? tien(k.cents / n) : '—', 'mỗi creative')}
       {o(d.creative.filter((x) => x.trang_thai !== 'bo').length.toLocaleString('vi-VN'), 'đã duyệt')}

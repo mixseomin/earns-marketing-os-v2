@@ -214,7 +214,7 @@ TEMPLATE (thứ tự shot · loại · giây · chữ màn, {{ô}} là chỗ c�
 ${o.khung.map((k, i) => `${i + 1}. ${k.loai} · ${k.giay}s · ${k.chu}`).join('\n')}
 
 Ô CẦN VIẾT (k · tên · shot · giây · gợi ý của template) — số phương án mỗi ô ghi trong ngoặc:
-${oChu.map((x, i) => `- ${x.k} · ${x.ten} · ${x.loai} · ${x.giay}s${x.goi_y ? ` · gợi ý: ${x.goi_y}` : ''} (${PA_DU_KIEN(i)} phương án)`).join('\n')}
+${oChu.map((x, i) => `- ${x.k} · ${x.ten} · ${x.loai} · ${x.giay}s${x.goi_y ? ` · gợi ý: ${x.goi_y}` : ''} (${PA_DU_KIEN(oChu, i)} phương án)`).join('\n')}
 ${daCo.length ? `\nĐÃ CÓ (đừng lặp lại): ${daCo.map((x) => `${s(x.o)}: "${s(x.chu)}"`).join(' · ')}` : ''}`;
   return { c, oChu, kt, user, phimId: phim ? n(phim.id) : null };
 }
@@ -226,7 +226,7 @@ export async function uocVietPhuongAn(capId: number): Promise<Kq<{ cents: number
   const x = await nguCanhCap(db, capId);
   if (!x) return loi('không thấy cặp');
   const model = x.kt.mo_hinh_chu || 'claude-opus-5-5';
-  const soPa = x.oChu.reduce((a, _o, i) => a + PA_DU_KIEN(i), 0);
+  const soPa = x.oChu.reduce((a, _o, i) => a + PA_DU_KIEN(x.oChu, i), 0);
   return { ok: true, data: { cents: Math.round(giaChuCents(model, Math.ceil(x.user.length / 3.2) + 1600, soPa * 70 + 300) * 100) / 100, model, so_o: x.oChu.length } };
 }
 /** AI viết phương án cho mọi ô của một cặp (TỐN TIỀN — một lượt Claude, anh bấm). Phương án mới nối sau phương án đã có. */

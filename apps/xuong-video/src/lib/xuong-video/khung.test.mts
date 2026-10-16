@@ -21,6 +21,10 @@ console.log('khung.test: ok');
 // QC miễn cổng kiểm khung (15/10/2026); phim truyện vẫn bị chặn khi keyframe chưa kiểm
 import { chanVideo } from './quy-trinh';
 const shot = { keyframe_url: 'a', kiem_khung: null, trang_thai: 'duyet', thoai: [], loi_thoai: '', nhan_vat: [] } as unknown as Parameters<typeof chanVideo>[0];
-assert.deepEqual(chanVideo(shot, [], { ds: [], laQc: true }), []);
-assert.ok(chanVideo(shot, [], { ds: [], laQc: false }).some((x) => /Kiểm khung|chưa qua/.test(x)));
+assert.deepEqual(chanVideo(shot, [], true, { ds: [] }), []);
+assert.ok(chanVideo(shot, [], false, { ds: [] }).some((x) => /Kiểm khung|chưa qua/.test(x)));
 console.log('khung.test (QC miễn kiểm khung): ok');
+// laQc bắt buộc: gọi KHÔNG kèm o (thẻ shot, script kiểm) vẫn phải miễn kiểm khung cho quảng cáo (16/10/2026)
+assert.deepEqual(chanVideo(shot, [], true), [], 'QC, không truyền o → không chặn kiểm khung');
+assert.ok(chanVideo(shot, [], false).some((x) => /Kiểm khung|chưa qua/.test(x)), 'phim truyện, không truyền o → vẫn chặn');
+console.log('khung.test: laQc bắt buộc ok');

@@ -98,7 +98,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // + ANIMATIC đã duyệt (quy-trinh.ts › chanAnimatic): đọc hồ sơ tập + mọi shot của tập để so mã.
   const tapR = ((await db.execute(sql`SELECT t.ho_so, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${bc.canh.tap_id}`)) as unknown as Row[])[0];
   const dsTap = ((await db.execute(sql`SELECT thu_tu, nhanh, keyframe_url, phat_s, thoi_luong_s FROM xv_canh WHERE tap_id = ${bc.canh.tap_id}`)) as unknown as Row[]).map((r) => ({ thu_tu: Number(r.thu_tu), nhanh: String(r.nhanh ?? ''), keyframe_url: (r.keyframe_url as string | null) ?? null, phat_s: r.phat_s == null ? null : Number(r.phat_s), thoi_luong_s: Number(r.thoi_luong_s) }));
-  const qt = chanVideo(bc.canh, bc.nhanVat, { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap, laQc: tapR?.loai === 'quang_cao' });
+  const qt = chanVideo(bc.canh, bc.nhanVat, tapR?.loai === 'quang_cao', { hoSo: (tapR?.ho_so ?? {}) as TapHoSo, ds: dsTap });
   // Một cảnh một model ảnh (sinh-anh.ts › tronModelCanh): keyframe lệch model của cảnh thì không tiêu tiền video lên nó.
   { const tm = await tronModelCanh(db, bc.canh); if (tm) qt.push(tm); }
   if ((!thu && qt.length) || !bc.canh.keyframe_url) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ') || 'chưa có keyframe'}`);

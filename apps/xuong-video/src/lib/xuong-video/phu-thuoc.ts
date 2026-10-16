@@ -24,7 +24,7 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
     if (noiKhungShot(o.noiKhung, o.truoc) && o.truoc && (o.truoc.video_url || o.truoc.video_cuoi_url)) luu_y.push(`clip shot #${o.truoc.thu_tu} lấy keyframe này làm khung cuối — đổi keyframe thì clip đó phải sinh lại mới nối liền`);
   } else {
     if (c.trang_thai === 'dang_sinh') chan.push('đang sinh video');
-    chan.push(...chanVideo(c, nhanVat, o.ds ? { hoSo: o.tap.ho_so, ds: o.ds, laQc: o.phim.laQc } : undefined));
+    chan.push(...chanVideo(c, nhanVat, o.phim.laQc, o.ds ? { hoSo: o.tap.ho_so, ds: o.ds } : undefined));
     if (noiKhungShot(o.noiKhung, c) && o.ke && !o.ke.keyframe_url) luu_y.push(`shot #${o.ke.thu_tu} chưa có keyframe — clip này sẽ không có khung cuối, nối không liền`);
     if (c.video_url || c.video_cuoi_url) luu_y.push('đã có clip — bản mới thêm vào danh sách phiên bản');
   }

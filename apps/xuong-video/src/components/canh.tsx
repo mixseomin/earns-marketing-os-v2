@@ -95,7 +95,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
   // Nút Sinh nháp tự lo phần máy làm được (duyệt keyframe đang chọn, sinh giọng còn thiếu → giọng xong tự gửi video), nên chỉ tắt
   // vì thứ người phải làm: thiếu khoá, chưa có keyframe, đang sinh giọng dở.
   const thieuGiong = dongThoai(c, nhanVat).some((d) => d.loi.trim() && !d.url);
-  const chanVid = chanVideo(c, nhanVat).filter((x) => x !== 'chưa duyệt keyframe' && !x.includes('chưa có giọng'));
+  const chanVid = chanVideo(c, nhanVat, phimLoai === 'quang_cao').filter((x) => x !== 'chưa duyệt keyframe' && !x.includes('chưa có giọng'));
   const lyVideo = (mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : mhVideo.startsWith('shopaikey:') ? !khoa.shopaikey && 'thiếu SHOPAIKEY_API_KEY' : !khoa.google && !khoa.shopaikey && 'thiếu GOOGLE_API_KEY') || (chanVid.length > 0 && chanVid.join('; ')) || (c.dang_sinh_giong && 'đang sinh giọng — xong sẽ tự gửi video nếu anh đã bấm Sinh nháp');
   const chonAnh = <Chon nho value={mhAnh} onChange={setMhAnh} options={luaChonAnh(dsAnh)} title="Model ảnh cho lần sinh này" minWidth={220} />;
   const chonVideo = <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, giay, kt.do_phan_giai)} title="Model video cho lần sinh này" minWidth={240} />;

@@ -20,13 +20,13 @@ for (const tapId of process.argv.slice(2).map(Number)) {
   // Cảnh báo liên tục (không chặn): luật 30°, eye trace, khoảng nhìn, chiều cao máy, bộ ống kính — in riêng để sửa 3D khi rảnh tay.
   const canhBao = canhBaoMachTap(locNhanh(canh, 'A'), (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten === t));
   // Điểm Murch (diem-murch.ts): so shot trong tập — in M=<điểm> cạnh mỗi shot + trung bình từng cảnh ở cuối.
-  const tapR = ((await db.execute(sql`SELECT phan_canh, phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0];
+  const tapR = ((await db.execute(sql`SELECT t.phan_canh, t.phim_id, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
   const sets = ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${Number(tapR?.phim_id)} OR phim_id IS NULL`)) as unknown as Row[]).map(mapBoSet);
   const diemM = diemMurchTap(locNhanh(canh, 'A'), nv, sets, { phanCanh: (tapR?.phan_canh as never) ?? [] }); const tbM = diemMurchCanh(locNhanh(canh, 'A'), diemM);
   for (const c of canh) {
     const g = await lyChanKeyframe(db, c.id);
     if (!g) { console.log(`#${c.thu_tu} không đọc được bối cảnh`); continue; }
-    const vid = chanVideo(g.bc.canh, g.bc.nhanVat); { const tm = await tronModelCanh(db, c); if (tm) vid.push(tm); }
+    const vid = chanVideo(g.bc.canh, g.bc.nhanVat, tapR?.loai === 'quang_cao'); { const tm = await tronModelCanh(db, c); if (tm) vid.push(tm); }
     const gi = dongThoai(c, nv).filter((d) => d.loi.trim());
     console.log(`#${c.thu_tu} M=${diemM[c.id]?.tong ?? '—'} [${c.trang_thai}] kf:${c.keyframe_url ? 'có' : '—'} giọng:${gi.filter((d) => d.url).length}/${gi.length} | keyframe: ${g.chan.length ? 'CHẶN ' + g.chan.join(' ; ') : 'qua'} | video: ${vid.length ? 'CHẶN ' + vid.join(' ; ') : 'qua'}${canhBao[c.id]?.length ? ` | ⚐ ${canhBao[c.id]!.join(' ; ')}` : ''}`);
   }

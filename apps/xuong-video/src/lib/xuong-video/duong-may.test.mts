@@ -20,4 +20,5 @@ const vo = duongMay(m, 'vong')!; assert.ok(Math.abs(kc(vo.dat, m.nhin) - kc(m.da
 const ng = duongMay(m, 'nghieng_len')!; assert.ok(ng.nhin[2]! > m.nhin[2]!, 'nghiêng lên');
 const m2 = { ...m, vi_tri: [...m.vi_tri, { ten: 'Lint', tam: [5, 3, 0] }], nham: 'Lint' };
 const zl = duongMay(m2, 'zoom_gat')!; assert.deepEqual(zl.nhin.slice(0, 2), [5, 3], 'zoom nhắm đích danh Lint');
+const doc = duongMay({ ...m, dat: [0, -20, 0.5], vi_tri: [{ ten: 'Tango', tam: [0, 0, 2.3], den: [6, 0, 0.3] }] }, 'truot_ngang')!; assert.ok(doc.dat[2]! >= 0.3, 'không chui dưới mặt bàn');
 console.log('duong-may: mọi bài tự kiểm qua');

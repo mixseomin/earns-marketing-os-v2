@@ -50,5 +50,7 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
     }
     case 'theo': datK = cong(dat, di); nhinK = cong(nhin, di); break;   // bám theo: máy dời đúng quãng chủ thể đi
   }
+  // Máy không chui xuống dưới mặt bàn (z = 0): chủ thể trượt dốc xuống thì máy bám theo dừng ở 0,3 cm (hoặc chỗ thấp ban đầu nếu đã thấp hơn) — #28.
+  datK = [datK[0], datK[1], Math.max(datK[2], Math.min(dat[2], 0.3))];
   return { kieu: md.kieu, dat: tron(datK), nhin: tron(nhinK), ong_kinh: Math.round(ok * 10) / 10, toc: md.toc, ...(rung ? { rung } : {}) };
 }

@@ -632,6 +632,61 @@ def ve_do_sau(s, ra):
 
 if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ độ sâu từng shot
     ve_do_sau(s, RA); sys.exit(0)
+def dien_shot(s, sh, ra, giay=4.0, fps=12):
+    """DIỄN CẢ SHOT trong Blender (anh 16/10/2026: "thêm khung chuyển động vật lý cho chúng để đồng bộ"): mỗi nhân vật gắn một KHUNG NEO (empty)
+    chạy từ chỗ mở → chỗ kết trên MỘT trục thời gian (fps khung/giây, đúng nhịp stop-motion 12): đi trên bàn có nhịp nhún theo bước, bay lên
+    thì nhanh dần chậm dần + lắc nhẹ, hướng mặt xoay dần; đồ đang CẦM gắn theo khung neo người cầm; đồ đứng yên giữ nguyên chỗ. Render cả clip
+    (<ra>/f####.png) + in số khung của 5 khung khoá 0 · ¼ · ½ · ¾ · cuối (dòng 'KHOA i f') cho video nhiều khung. Máy đứng yên như máy shot."""
+    dat_tuy_chon(set(sh.get('them') or []))
+    than, objs = nhan_vat(sh); bpy.context.view_layer.update()
+    cam = may(s, sh['may'], f"dien {sh['ma']}")
+    N = max(2, int(round(giay * fps)))
+    s.render.fps = fps; s.frame_start = 1; s.frame_end = N
+    neo = {}
+    for nv in sh.get('nhan_vat', []):
+        ten = nv['ten']; X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
+        e = bpy.data.objects.new(f'neo {ten}', None); s.collection.objects.link(e); e.location = Vector((X, Y, Z)) * CM
+        bpy.context.view_layer.update()   # ma trận neo mới còn là đơn vị → nghịch đảo cha sai, nhân vật bị dời gấp đôi toạ độ (lỗi 16/10/2026)
+        neo[ten] = (e, nv)
+        for o in objs:
+            if o.name == f'NV {ten}' or o.name.startswith(f'NV {ten}·'):
+                mw = o.matrix_world.copy(); o.parent = e; o.matrix_parent_inverse = e.matrix_world.inverted(); o.matrix_world = mw
+    bpy.context.view_layer.update()
+    for ten, (e, nv) in neo.items():   # đồ đang cầm: neo gắn vào neo người cầm
+        cam_ = nv.get('cam')
+        if cam_ and cam_ in neo:
+            mw = e.matrix_world.copy(); e.parent = neo[cam_][0]; e.matrix_parent_inverse = neo[cam_][0].matrix_world.inverted(); e.matrix_world = mw
+    em = lambda t: t * t * (3 - 2 * t)   # nhanh dần – chậm dần
+    for ten, (e, nv) in neo.items():
+        if nv.get('cam') and nv['cam'] in neo: continue
+        a = Vector(nv['tam'] + ([0] if len(nv['tam']) < 3 else [])); b = Vector((nv.get('den') or nv['tam']) + ([0] if len(nv.get('den') or nv['tam']) < 3 else []))
+        h0 = nv.get('huong', 0) or 0; h1 = nv.get('huong_den', h0) or h0; dh = ((h1 - h0 + 180) % 360) - 180
+        dai = (b.xy - a.xy).length; bay = b.z - a.z > 0.8; buoc = max(1, round(dai / 0.9))
+        for f in range(1, N + 1):
+            t = (f - 1) / (N - 1); k = em(t); p = a.lerp(b, k)
+            if dai > 0.4 and not bay and abs(b.z - a.z) < 0.3: p.z += 0.14 * abs(math.sin(math.pi * buoc * k))   # nhún theo bước
+            lac = 0.0
+            if bay: lac = 5 * math.sin(2 * math.pi * 2 * t); p.z += 0.08 * math.sin(2 * math.pi * 3 * t)   # bay: lắc + bồng bềnh nhẹ
+            e.location = p * CM; e.rotation_euler = (0, math.radians(lac), math.radians(dh * k))
+            e.keyframe_insert('location', frame=f); e.keyframe_insert('rotation_euler', frame=f)
+    s.frame_set(1); anh_sang_mau(s, sh, True)
+    s.render.engine = 'CYCLES'; s.cycles.samples = int(os.environ.get('XV_MAU', '32')); s.cycles.use_denoising = True
+    try:
+        p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
+        for d_ in p_.devices: d_.use = True
+        s.cycles.device = 'GPU'
+    except Exception as ex: print('GPU?', ex)
+    cam.data.dof.use_dof = True; cam.data.dof.focus_distance = (Vector(sh['may']['nhin']) * CM - cam.matrix_world.translation).length; cam.data.dof.aperture_fstop = 8
+    s.view_settings.view_transform = 'AgX'
+    s.render.resolution_x, s.render.resolution_y = 540, 960
+    fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'RGB'
+    s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
+    for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):
+        f = 1 + round(t * (N - 1)); print('KHOA', i, f)
+    print('XONG dien', sh['ma'], N, 'khung')
+
+if os.environ.get('XV_DIEN'):   # đường riêng: diễn + render cả shot (shot đầu tiên trong tệp đầu vào)
+    dien_shot(s, DL['shot'][0], RA, float(os.environ.get('XV_GIAY', '4'))); sys.exit(0)
 if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng tỉ lệ nhân vật
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)

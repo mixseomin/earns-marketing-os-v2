@@ -46,5 +46,6 @@ export async function getSocialLive(): Promise<SocialLive> {
       try { ra[i] = await docNhom(s.id, s.ten); } catch (e) { loi.push(`nhóm #${s.id} ${s.ten}: ${(e as Error).message}`); ra[i] = []; }
     }
   }));
-  return { luc, goc: ra.flat(), nhom: nhom.length, loi };
+  // xếp chung mọi nhóm theo Sức mạnh (spy chấm trong từng nhóm, 0–100 cùng thang) — góc mạnh nhất toàn kho lên đầu
+  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi };
 }

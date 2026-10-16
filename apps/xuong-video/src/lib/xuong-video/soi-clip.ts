@@ -65,8 +65,10 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   const sp = await mauSpShot(db, c.nhan_vat);
   const mau: number[] = [];
   if (sp) {
-    for (const t of giay) { const k = await khungNho(url, t); mau.push(k ? Math.round(tiLeMau(k, sp.mau) * 1000) / 1000 : 0); }
-    const mat = giayMatSanPham(mau, giay);
+    // Khung ffmpeg đọc hỏng thì BỎ (không tính 0% — tính 0 là báo nhầm "sản phẩm ra khỏi khung"); khung đầu hỏng thì không kết luận.
+    const giayDoc: number[] = [];
+    for (const t of giay) { const k = await khungNho(url, t); if (!k) { if (t === giay[0]) break; continue; } mau.push(Math.round(tiLeMau(k, sp.mau) * 1000) / 1000); giayDoc.push(t); }
+    const mat = giayDoc[0] === giay[0] ? giayMatSanPham(mau, giayDoc) : 'khong_do';
     if (mat === 'vang') loi.push(loiVang(sp.ten, mau[0]!));
     else if (typeof mat === 'number') loi.push(`sản phẩm (${sp.ten}) ra khỏi khung hoặc đổi màu từ giây ${mat} — màu sản phẩm còn ${Math.round((Math.min(...mau.slice(1)) / mau[0]!) * 100)}% so với khung đầu`);
   }

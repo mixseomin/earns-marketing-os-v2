@@ -1,0 +1,172 @@
+// THEO DÕI DUYỆT SAU ĐĂNG — MỘT máy cho MỌI nền tảng (anh 16/10/2026: "có nhiều sản phẩm ở nhiều nền tảng cần review sau khi đăng tải;
+// phải 1 con làm đủ các nhiệm vụ này mới tối ưu tài nguyên; đặt nó lên box"). Giỗ Chạp đã lên App Store mà Tài sản vẫn "đã nộp, chờ duyệt".
+// Mỗi lượt (box3, theo-doi-duyet.timer, mỗi giờ): đọc sổ Tài sản (Directus products) → với từng sản phẩm hỏi ĐÚNG nền tảng của nó → đổi
+// `status` + dòng máy đầu ghi chú ("⟳ ASC …" / "⟳ Duyệt …") + url khi đã lên → trạng thái ĐỔI thì báo Telegram MINE › Quản lý.
+// Người chịu trách nhiệm trong cty: Nga (phòng kinh-doanh, cong-ty/nhan-su/nga). Thêm nền tảng = thêm một hàm vào KIEM.
+//   app-store      mọi app có Apple ID (sku) — API App Store Connect (scripts/asc-api.mjs)
+//   kdp            sách đang chờ duyệt (in_review/pending) có ISBN — tìm trên Amazon theo ISBN qua proxy (IP box3 bị Amazon chặn 503),
+//                  mở trang /dp/ khớp ĐÚNG ISBN mới tính là đã lên
+//   wordpress.org  plugin đang chờ duyệt — API plugins/info (slug = sku)
+//   node scripts/theo-doi-duyet.mjs [--dry]      node scripts/theo-doi-duyet.mjs --tu-kiem
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { api } from './asc-api.mjs';
+
+// ── phần THUẦN (tự kiểm) ─────────────────────────────────────────────────────────────────────────────────────────────
+const CHU_ASC = { WAITING_FOR_REVIEW: 'chờ duyệt', IN_REVIEW: 'Apple đang duyệt', PROCESSING_FOR_APP_STORE: 'đang xử lý', PENDING_DEVELOPER_RELEASE: 'đã duyệt, chờ phát hành',
+  PENDING_APPLE_RELEASE: 'đã duyệt, Apple sắp phát hành', REJECTED: 'BỊ TỪ CHỐI', METADATA_REJECTED: 'BỊ TỪ CHỐI (thông tin)', INVALID_BINARY: 'bản dựng lỗi',
+  PREPARE_FOR_SUBMISSION: 'chưa nộp', DEVELOPER_REJECTED: 'đã rút', READY_FOR_SALE: 'đang bán', READY_FOR_DISTRIBUTION: 'đang bán' };
+/** App Store: trạng thái sổ từ các phiên bản iOS. Bản đã lên store → app "đang bán" kể cả khi bản mới đang chờ (ghi chú nói). */
+export function trangThaiAsc(ver) {
+  const ds = [...ver].sort((a, b) => String(b.created ?? '').localeCompare(String(a.created ?? '')));
+  const dangBan = ds.find((v) => ['READY_FOR_SALE', 'READY_FOR_DISTRIBUTION'].includes(v.state)), moi = ds[0];
+  if (!moi) return null;
+  const ta = (v) => `${v.version} ${CHU_ASC[v.state] ?? v.state}`;
+  if (dangBan) return { status: 'published', dong: `⟳ ASC ${dangBan.version} đang bán${moi !== dangBan && moi.state !== dangBan.state ? ` · bản ${ta(moi)}` : ''}` };
+  if (['WAITING_FOR_REVIEW', 'IN_REVIEW', 'PROCESSING_FOR_APP_STORE', 'WAITING_FOR_EXPORT_COMPLIANCE', 'PENDING_APPLE_RELEASE'].includes(moi.state)) return { status: 'in_review', dong: `⟳ ASC ${ta(moi)}` };
+  if (moi.state === 'PENDING_DEVELOPER_RELEASE') return { status: 'ready', dong: `⟳ ASC ${ta(moi)} — bấm phát hành trên App Store Connect` };
+  if (['REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'].includes(moi.state)) return { status: 'draft', dong: `⟳ ASC ${ta(moi)} — xem tin Apple trong Resolution Center` };
+  return { status: 'draft', dong: null };   // chưa nộp: giữ dòng máy cũ ("⟳ ASC TestFlight 1.0 (3)")
+}
+
+/** ISBN-13 của sách: sku là ISBN, hoặc "ISBN 979…" trong ghi chú. */
+export const isbnCua = (p) => (/^97[89]\d{10}$/.test(String(p.sku ?? '')) ? String(p.sku) : (String(p.notes ?? '').match(/ISBN\s*:?\s*(97[89]\d{10})/) ?? [])[1] ?? null);
+/** Trang sản phẩm Amazon có đúng ISBN này không (Amazon in "ISBN-13 : 979-8178977729"). */
+export const trangCoIsbn = (html, isbn) => html.includes(`${isbn.slice(0, 3)}-${isbn.slice(3)}`) || html.includes(isbn);
+/** Mã /dp/ trong trang tìm kiếm, theo thứ tự xuất hiện, không trùng. */
+export const dpTrongTrang = (html) => [...new Set([...html.matchAll(/\/dp\/([0-9A-Z]{10})/g)].map((m) => m[1]))];
+
+/** Dòng máy đầu ghi chú: thay dòng máy cũ ("⟳ …"), giữ phần tay (cùng luật ios-chung/Tools/tai-san.mjs). */
+export function ghiChu(cu, dong) {
+  if (!dong) return cu ?? null;
+  const tay = (cu ?? '').split('\n').filter((l, i) => !(i === 0 && l.startsWith('⟳ '))).join('\n').trim();
+  return tay ? `${dong}\n${tay}` : dong;
+}
+
+export const CHU_SO = { planned: 'dự kiến', draft: 'đang làm', ready: 'sẵn sàng', owner_review: 'chờ anh duyệt', pending: 'đã nộp, chờ duyệt', in_review: 'đã nộp, chờ duyệt', published: 'đang bán', archived: 'ngừng', unlisted: 'ngừng' };
+
+if (process.argv.includes('--tu-kiem')) {
+  const eq = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) { console.error(`SAI ${m}: ${JSON.stringify(a)} ≠ ${JSON.stringify(b)}`); process.exitCode = 1; } };
+  const v = (version, state, created) => ({ version, state, created });
+  eq(trangThaiAsc([v('1.0', 'READY_FOR_SALE', '2026-09-20')]).status, 'published', 'Giỗ Chạp lên store');
+  eq(trangThaiAsc([v('1.0', 'WAITING_FOR_REVIEW', '2026-10-08')]), { status: 'in_review', dong: '⟳ ASC 1.0 chờ duyệt' }, 'chờ duyệt');
+  eq(trangThaiAsc([v('1.0', 'READY_FOR_SALE', '2026-09-20'), v('1.1', 'IN_REVIEW', '2026-10-10')]).dong, '⟳ ASC 1.0 đang bán · bản 1.1 Apple đang duyệt', 'bản mới đang duyệt');
+  eq(trangThaiAsc([v('1.0', 'REJECTED', '2026-09-29')]).status, 'draft', 'bị từ chối');
+  eq(trangThaiAsc([v('1.0', 'PREPARE_FOR_SUBMISSION', '2026-10-11')]), { status: 'draft', dong: null }, 'chưa nộp giữ dòng TestFlight');
+  eq(trangThaiAsc([v('1.0', 'PENDING_DEVELOPER_RELEASE', '2026-10-11')]).status, 'ready', 'chờ bấm phát hành');
+  eq(trangThaiAsc([]), null, 'chưa có phiên bản');
+  eq(isbnCua({ sku: '9798178977729' }), '9798178977729', 'sku là ISBN');
+  eq(isbnCua({ sku: '04YHKYVPAPM', notes: 'KDP 04YHKYVPAPM · ISBN 9798178892831 · 8.5x11' }), '9798178892831', 'ISBN trong ghi chú');
+  eq(isbnCua({ sku: '2T0BCDKSVEV', notes: 'file xong' }), null, 'chưa có ISBN');
+  eq(trangCoIsbn('<span>ISBN-13</span> : 979-8178977729 </span>', '9798178977729'), true, 'trang có ISBN');
+  eq(trangCoIsbn('ISBN-13 : 979-8178892831', '9798178977729'), false, 'ISBN khác (bản bìa mềm/cứng)');
+  eq(dpTrongTrang('<a href="/x/dp/B0HM6QFYDG/ref">a</a><a href="/dp/B07984JN3L">b</a><a href="/dp/B0HM6QFYDG">'), ['B0HM6QFYDG', 'B07984JN3L'], 'mã dp không trùng');
+  eq(ghiChu('⟳ ASC TestFlight 1.0 (3)\nTay.', '⟳ ASC 1.0 đang bán'), '⟳ ASC 1.0 đang bán\nTay.', 'thay dòng máy giữ tay');
+  eq(ghiChu('Tay.', null), 'Tay.', 'không dòng máy');
+  eq(trangAmazonHong(503, 'x'.repeat(30000)), true, '503 = bị chặn');
+  eq(trangAmazonHong(200, '<form action="/errors/validateCaptcha">' + 'x'.repeat(30000)), true, 'trang captcha 200 = bị chặn');
+  eq(trangAmazonHong(200, 'x'.repeat(3785)), true, 'trang cụt = bị chặn');
+  eq(trangAmazonHong(200, 'ISBN-13 : 979-8178977729' + 'x'.repeat(600000)), false, 'trang thật');
+  if (!process.exitCode) console.log('theo-doi-duyet: 19/19 đạt');
+  process.exit(process.exitCode ?? 0);
+}
+
+// ── mỗi nền tảng một hàm: sản phẩm → { status, dong, url? } | null (chưa kiểm được lượt này — giữ nguyên) ───────────────────
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36';
+const DATA = process.env.THEO_DOI_DATA || '/var/lib/theo-doi-duyet';
+const ngayVn = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10).split('-').reverse().slice(0, 2).join('/');
+
+/** Proxy cho Amazon: khoá SuiProxy của spy (/root/.secrets/spy.env). Lưu endpoint, chỉ xin mới khi hết hạn — xin liên tục bị khoá đổi 60 giây. */
+async function proxyAmazon() {
+  const f = `${DATA}/proxy.json`;
+  try { const c = JSON.parse(readFileSync(f, 'utf8')); if (c.het > Date.now() + 60_000) return c.ep; } catch { /* chưa có */ }
+  const key = (readFileSync('/root/.secrets/spy.env', 'utf8').match(/^SUIPROXY_KEY=(.*)$/m) ?? [])[1]?.trim().replace(/^["']|["']$/g, '');
+  if (!key) return null;
+  const r = await (await fetch(`https://api.suiproxy.com/api/proxy/get-new-proxy?api_key=${key}`, { signal: AbortSignal.timeout(20_000) })).json().catch(() => null);
+  if (!r?.success) return null;
+  mkdirSync(DATA, { recursive: true });
+  writeFileSync(f, JSON.stringify({ ep: r.data.proxyHttp, het: Date.now() + (Number(r.data.timeLive) || 1500) * 1000 }));
+  return r.data.proxyHttp;
+}
+function boProxy() { try { writeFileSync(`${DATA}/proxy.json`, '{}'); } catch { /* chưa có thư mục */ } }
+/** GET qua proxy bằng curl (fetch của Node không đi proxy HTTP sẵn). Amazon chặn IP (503, trang captcha, trang cụt) → null: KHÔNG được coi là
+ *  "chưa có sách" (16/10/2026 chạy thử: proxy bị chặn mà máy báo bản bìa cứng Nostalgic "chưa thấy" trong khi nó đã lên). */
+export function trangAmazonHong(code, html) { return code !== 200 || html.length < 20_000 || /captcha|robot check|api-services-support@amazon/i.test(html); }
+function layQuaProxy(url, ep) {
+  let out = '';
+  try { out = execFileSync('curl', ['-s', '--compressed', '-m', '40', '-x', `http://${ep}`, '-A', UA, '-H', 'Accept-Language: en-US,en;q=0.9', '-w', '\n%{http_code}', url], { encoding: 'utf8', maxBuffer: 20e6 }); }
+  catch { return null; }
+  const i = out.lastIndexOf('\n'), html = out.slice(0, i), code = Number(out.slice(i + 1));
+  return trangAmazonHong(code, html) ? null : html;
+}
+
+const KIEM = {
+  'app-store': async (p) => {
+    if (!/^\d{6,}$/.test(String(p.sku ?? ''))) return null;
+    const ver = (await api('GET', `/v1/apps/${p.sku}/appStoreVersions?filter[platform]=IOS&limit=20&fields[appStoreVersions]=versionString,appStoreState,createdDate`)).data;
+    const tt = trangThaiAsc(ver.map((x) => ({ version: x.attributes.versionString, state: x.attributes.appStoreState, created: x.attributes.createdDate })));
+    return tt && tt.status === 'published' && !p.url ? { ...tt, url: `https://apps.apple.com/app/id${p.sku}` } : tt;
+  },
+  kdp: async (p) => {
+    if (!['in_review', 'pending'].includes(p.status)) return null;
+    const isbn = isbnCua(p);
+    if (!isbn) return { status: p.status, dong: `⟳ Duyệt KDP: chưa kiểm được — sổ chưa có ISBN (${ngayVn()})` };
+    let ep = await proxyAmazon(), tim = ep && layQuaProxy(`https://www.amazon.com/s?k=${isbn}&i=stripbooks`, ep);
+    if (ep && !tim) { boProxy(); ep = await proxyAmazon(); tim = ep && layQuaProxy(`https://www.amazon.com/s?k=${isbn}&i=stripbooks`, ep); }   // IP bị chặn → đổi một lần
+    if (!tim) return null;   // Amazon chặn / proxy hỏng: chưa kiểm được, lượt sau thử lại
+    for (const asin of dpTrongTrang(tim).slice(0, 4)) {
+      const trang = layQuaProxy(`https://www.amazon.com/dp/${asin}`, ep);
+      if (trang == null) return null;   // bị chặn giữa chừng: không kết luận
+      if (trangCoIsbn(trang, isbn)) return { status: 'published', dong: `⟳ Duyệt KDP: đã lên Amazon ${asin} (${ngayVn()})`, url: `https://www.amazon.com/dp/${asin}` };
+    }
+    return { status: p.status, dong: `⟳ Duyệt KDP: chưa thấy trên Amazon (kiểm ${ngayVn()})` };
+  },
+  'wordpress.org': async (p) => {
+    if (!['in_review', 'pending'].includes(p.status) || !p.sku) return null;
+    const j = await (await fetch(`https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request%5Bslug%5D=${encodeURIComponent(p.sku)}`, { signal: AbortSignal.timeout(20_000) })).json().catch(() => null);
+    if (!j) return null;
+    if (j.slug) return { status: 'published', dong: `⟳ Duyệt WP.org: đã lên ${j.version ?? ''} (${ngayVn()})`.replace('  ', ' '), url: `https://wordpress.org/plugins/${j.slug}/` };
+    return { status: p.status, dong: `⟳ Duyệt WP.org: chưa lên (kiểm ${ngayVn()})` };
+  },
+};
+
+// ── vòng chính ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+const DRY = process.argv.includes('--dry');
+const log = (...a) => console.log(new Date().toISOString().slice(0, 19), ...a);
+const U = process.env.DIRECTUS_URL || 'https://as.on.tc';
+const H = { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}`, 'Content-Type': 'application/json' };
+const pr = await fetch(`${U}/items/products?limit=-1&fields=id,title,platform,sku,status,notes,url&filter[platform][_in]=${Object.keys(KIEM).join(',')}`, { headers: H });
+if (!pr.ok) throw new Error(`Directus products → ${pr.status} ${(await pr.text()).slice(0, 200)}`);
+const doi = [];
+let kiem = 0, chuaKiem = 0;
+for (const p of (await pr.json()).data) {
+  let tt;
+  try { tt = await KIEM[p.platform](p); } catch (e) { log(`${p.platform} · ${p.title}: lỗi ${String(e.message).slice(0, 120)}`); chuaKiem++; continue; }
+  if (!tt) { if (['in_review', 'pending'].includes(p.status)) chuaKiem++; continue; }
+  kiem++;
+  const notes = ghiChu(p.notes, tt.dong), url = tt.url ?? p.url ?? null;
+  if (tt.status === p.status && notes === (p.notes ?? null) && url === (p.url ?? null)) continue;
+  if (tt.status !== p.status) doi.push({ nen: p.platform, ten: p.title, cu: p.status, moi: tt.status, dong: tt.dong, url });
+  log(`${p.platform} · ${p.title}: ${CHU_SO[p.status] ?? p.status} → ${CHU_SO[tt.status] ?? tt.status}${tt.dong ? ` (${tt.dong})` : ''}`);
+  if (DRY) continue;
+  const r = await fetch(`${U}/items/products/${p.id}`, { method: 'PATCH', headers: H, body: JSON.stringify({ status: tt.status, notes, url }) });
+  if (!r.ok) log(`  lỗi ghi ${r.status} ${(await r.text()).slice(0, 150)}`);
+}
+log(`xong: kiểm ${kiem} · chưa kiểm được ${chuaKiem} · đổi trạng thái ${doi.length}`);
+
+// Báo Telegram khi trạng thái ĐỔI. Bot + nhóm đọc trong vault mos2 (acct #476, nhóm MINE, topic Quản lý).
+if (doi.length && !DRY && process.env.MOS2_SECRET_KEY && process.env.DATABASE_URL) {
+  const { default: postgres } = await import('postgres');
+  const sql = postgres(process.env.DATABASE_URL, { max: 1 });
+  try {
+    const [t] = await sql`SELECT pgp_sym_decrypt(decode(data->>'token_enc','base64'), ${process.env.MOS2_SECRET_KEY}) AS t FROM account_state WHERE account_id = 476 AND kind = 'api' AND ref = 'bot_token'`;
+    const [g] = await sql`SELECT data FROM account_state WHERE account_id = 476 AND kind = 'property' AND ref = 'mine'`;
+    const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const TEN_NEN = { 'app-store': 'App Store', kdp: 'KDP', 'wordpress.org': 'WordPress.org' };
+    const text = `<b>Duyệt sau đăng — trạng thái đổi</b> (Nga)\n` + doi.map((d) => `• ${TEN_NEN[d.nen] ?? d.nen} · ${esc(d.ten)}: ${CHU_SO[d.cu] ?? d.cu} → <b>${CHU_SO[d.moi] ?? d.moi}</b>`
+      + (d.dong ? `\n  ${esc(d.dong.replace(/^⟳ (ASC|Duyệt [^:]+:) ?/, ''))}` : '') + (d.url && d.moi === 'published' ? `\n  ${esc(d.url)}` : '')).join('\n');
+    const r = await fetch(`https://api.telegram.org/bot${t?.t}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: g?.data?.chat_id, message_thread_id: g?.data?.topics?.['Quản lý'], text, parse_mode: 'HTML', disable_web_page_preview: true }) });
+    log(r.ok ? 'đã báo Telegram MINE › Quản lý' : `Telegram lỗi ${r.status}`);
+  } finally { await sql.end(); }
+}

@@ -10,38 +10,14 @@
 // App chưa có "yêu cầu báo cáo" thì script tự tạo (ONGOING + ONE_TIME_SNAPSHOT lấy lại từ ngày ra mắt); Apple cần 1–2 ngày
 // để dựng lần đầu — trong lúc đó script chỉ báo "chưa có" chứ không ghi số 0 (chưa đo ≠ 0).
 //   node scripts/app-store-so.mjs [--days 35] [--dry]
-import { createSign } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 
 const args = process.argv.slice(2);
 const DAYS = Number(args[args.indexOf('--days') + 1]) || 35;
 const DRY = args.includes('--dry');
-const ASC_DIR = process.env.ASC_DIR || '/root/.secrets/asc';
 const log = (...a) => console.log(new Date().toISOString().slice(0, 19), ...a);
 
-// ---- ASC JWT (ES256) ----
-const env = Object.fromEntries(readFileSync(`${ASC_DIR}/asc.env`, 'utf8').split('\n')
-  .map((l) => l.match(/^\s*([A-Z_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2].trim().replace(/^["']|["']$/g, '')]));
-const KEY = readFileSync(`${ASC_DIR}/AuthKey_${env.ASC_KEY_ID}.p8`, 'utf8');
-const b64 = (o) => Buffer.from(typeof o === 'string' ? o : JSON.stringify(o)).toString('base64url');
-function jwt() {
-  const now = Math.floor(Date.now() / 1000);
-  const head = b64({ alg: 'ES256', kid: env.ASC_KEY_ID, typ: 'JWT' }), body = b64({ iss: env.ASC_ISSUER_ID, iat: now, exp: now + 1200, aud: 'appstoreconnect-v1' });
-  const s = createSign('SHA256'); s.update(`${head}.${body}`);
-  return `${head}.${body}.${s.sign({ key: KEY, dsaEncoding: 'ieee-p1363' }).toString('base64url')}`;
-}
-async function api(method, path, body) {
-  const r = await fetch(path.startsWith('http') ? path : `https://api.appstoreconnect.apple.com${path}`, {
-    method, headers: { Authorization: `Bearer ${jwt()}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-  if (!r.ok) throw new Error(`${method} ${path} → ${r.status} ${(await r.text()).slice(0, 300)}`);
-  return r.status === 204 ? null : r.json();
-}
-async function all(path) {
-  let out = [], next = path;
-  while (next) { const j = await api('GET', next); out = out.concat(j.data); next = j.links?.next; }
-  return out;
-}
+import { api, all } from './asc-api.mjs';   // JWT + gọi API App Store Connect dùng chung với app-store-trang-thai.mjs
 
 // ---- đọc một báo cáo: mọi instance DAILY trong cửa sổ → dòng TSV ----
 async function rows(requestId, name, since) {

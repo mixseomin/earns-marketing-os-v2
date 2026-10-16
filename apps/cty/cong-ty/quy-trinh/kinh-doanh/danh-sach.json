@@ -18,6 +18,24 @@
     "MacBook:com.earns.amazon-pull"
    ],
    "chi_phi": "0"
+  },
+  {
+   "id": "theo-doi-duyet",
+   "ten": "Theo dõi duyệt sau đăng (App Store · KDP · WordPress.org)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "box3 mỗi giờ (theo-doi-duyet.timer): hỏi từng nền tảng trạng thái duyệt của sản phẩm vừa đăng → Tài sản mos2 + báo Telegram MINE › Quản lý khi đổi. Số App Store: app-store-so.timer 09:00 + 21:00",
+   "mo_ta": "Một máy cho mọi nền tảng (anh 16/10/2026). Bị từ chối / đã duyệt chờ phát hành → báo anh, không tự nộp lại hay phát hành. Amazon chặn IP thì ghi chưa kiểm được, không kết luận.",
+   "ma": "scripts/theo-doi-duyet.mjs · scripts/app-store-so.mjs · scripts/asc-api.mjs",
+   "chu_tri": "nga",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi giờ",
+   "lich": [
+    "box3:theo-doi-duyet.timer",
+    "box3:app-store-so.timer"
+   ],
+   "chi_phi": "0 (proxy dùng chung khoá SuiProxy của spy)"
   }
  ]
 }

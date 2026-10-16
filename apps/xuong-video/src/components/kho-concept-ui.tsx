@@ -27,48 +27,49 @@ export function soKho(d: KhoConcept) {
   return { bat, thuc, duKien, cents, boHinh };
 }
 export function DaiSoKho({ d }: { d: KhoConcept }) {
-  const k = soKho(d), n = Math.max(k.thuc, k.duKien);
+  const k = soKho(d), n = k.thuc || k.duKien;
   const o = (b: string, s: string, t?: string) => <span title={t} style={{ display: 'grid' }}><b style={{ fontFamily: 'var(--font-mono)', fontSize: 15 }}>{b}</b><span style={mono}>{s}</span></span>;
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 22px', padding: '6px 2px 10px' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 26px', padding: '4px 2px 10px' }}>
       {o(String(d.concept.length), 'concept')}
-      {o(`${k.bat.length} → ${k.boHinh}`, 'cặp → bộ hình', 'cặp concept × template đang bật → số bộ hình (mỗi biến thể diễn viên / bối cảnh một bộ)')}
-      {o(k.thuc.toLocaleString('vi-VN'), 'creative ghép được', 'tổ hợp đã đủ phương án mọi ô')}
-      {o(k.duKien.toLocaleString('vi-VN'), 'creative dự kiến', 'khi mỗi ô có số phương án dự kiến: hook 3, ô đầu mỗi loại nỗi đau / so sánh / bằng chứng / trấn an / ưu đãi 2, ô khác 1')}
-      {o(tien(k.cents), 'tiền hình + kịch bản', `đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot (keyframe + video), ${tien(d.gia.kb_cents)}/bộ kịch bản`)}
-      {o(n ? tien(k.cents / n) : '—', 'mỗi creative')}
-      {o(d.creative.filter((x) => x.trang_thai !== 'bo').length.toLocaleString('vi-VN'), 'đã duyệt')}
+      {o(String(k.boHinh), 'bộ hình', `${k.bat.length} cặp concept × template đang bật; mỗi biến thể diễn viên / bối cảnh một bộ hình`)}
+      {o(n.toLocaleString('vi-VN'), k.thuc ? 'creative' : 'creative (dự kiến)', `ghép được ${k.thuc.toLocaleString('vi-VN')} · dự kiến khi đủ phương án ${k.duKien.toLocaleString('vi-VN')} · đã duyệt ${d.creative.filter((x) => x.trang_thai !== 'bo').length}`)}
+      {o(`~${tien(k.cents)}`, 'tiền hình', `đơn giá thật 30 ngày: ${tien(d.gia.shot_cents)}/shot · ${tien(d.gia.kb_cents)}/bộ kịch bản · ${n ? tien(k.cents / n) : '—'}/creative`)}
     </div>
   );
 }
 
 // ── TAB CONCEPT ─────────────────────────────────────────────────────────────────────────────────────────────────
+const catChu = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
 export function TabConcept({ d, spKey, onDoi, onChon }: { d: KhoConcept; spKey: string; onDoi: () => Promise<void>; onChon: (id: number) => void }) {
-  const [ban, setBan] = useState(false), [bao, setBao] = useState(''), [loi, setLoi] = useState('');
-  const nhap = async () => { setBan(true); setLoi(''); const r = await nhapConcept(spKey); setBan(false); if (!r.ok) { setLoi(r.loi); return; } setBao(`${r.data.moi} concept mới · ${r.data.cap_nhat} cập nhật`); await onDoi(); };
+  const [ban, setBan] = useState(false), [loi, setLoi] = useState('');
+  const nhap = async () => { setBan(true); setLoi(''); const r = await nhapConcept(spKey); setBan(false); if (!r.ok) { setLoi(r.loi); return; } await onDoi(); };
+  const nut = <Nut ban={ban} ly={!d.spy_sp && 'sản phẩm chưa gắn nhóm spy'} onClick={() => void nhap()} title={`Đọc sub-avatar của nhóm spy${d.spy_sp ? ` #${d.spy_sp}` : ''} (0đ)`}>{d.concept.length ? '↻ Cập nhật từ spy' : '⬇ Nhập concept từ spy'}</Nut>;
+  if (!d.concept.length) return <div style={{ padding: '20px 4px', display: 'grid', gap: 8, justifyItems: 'start' }}><b>Chưa có concept</b>{nut}<Loi>{loi}</Loi></div>;
   const path = [...new Map(d.concept.map((c) => [c.path, c.path_ten])).entries()];
-  const nut = <Nut chinh ban={ban} ly={!d.spy_sp && 'sản phẩm chưa gắn nhóm spy'} onClick={() => void nhap()} title="Đọc sub-avatar của nhóm spy (0đ — sub-avatar đã lập trên spy)">{d.concept.length ? '↻ Cập nhật từ spy' : '⬇ Nhập concept từ spy'}</Nut>;
-  if (!d.concept.length) return <div style={{ padding: '24px 10px', display: 'grid', gap: 8, justifyItems: 'start' }}>
-    <b>Chưa có concept</b><span style={{ ...mono, maxWidth: 560 }}>Concept = một người mua cụ thể ở một mức nhận biết (sub-avatar của nhóm spy{d.spy_sp ? ` #${d.spy_sp}` : ''}). Nhập xong, các template hợp mức nhận biết được bật sẵn ở tab Template.</span>{nut}<Loi>{loi}</Loi></div>;
+  const cot = '64px repeat(5, minmax(0, 1fr))';
   return (
     <div style={{ display: 'grid', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>{nut}<span style={mono}>{bao || `nhóm spy #${d.spy_sp} · bấm một concept để mở template của nó`}</span></div>
-      <Loi>{loi}</Loi>
-      <DataTable rows={path} getRowKey={(p) => p[0]} minWidth={760} fixedLayout stickyFirst={false}
-        columns={[
-          { key: 'path', header: 'Path', align: 'left', width: 210, cell: (p) => <span><b style={{ fontFamily: 'var(--font-mono)' }}>{p[0]}</b> <span style={{ fontSize: 12 }}>{p[1]}</span></span> },
-          ...MUC_NB.map((m): DataColumn<(typeof path)[number]> => ({ key: m.key, header: m.key, title: `${m.ten} — ${m.dung}`, align: 'left',
-            cell: (p) => { const c = d.concept.find((x) => x.path === p[0] && x.nb === m.key); if (!c) return <span style={mono}>—</span>;
-              const nT = d.cap.filter((x) => x.concept_id === c.id && x.bat).length;
-              return <button type="button" onClick={() => onChon(c.id)} title={`${c.du_lieu.nguoi}\nHook: ${c.du_lieu.hook}`}
-                style={{ all: 'unset', cursor: 'pointer', display: 'grid', gap: 2, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line)', borderLeft: `3px solid ${m.mau}`, width: '100%', boxSizing: 'border-box' }}>
-                <b style={{ fontSize: 12 }}>{c.ma} · {c.ten}</b><span style={mono}>{nT} template</span></button>; } })),
-        ]} />
+      <div>{nut}</div><Loi>{loi}</Loi>
+      <div style={{ display: 'grid', gridTemplateColumns: cot, gap: 6, alignItems: 'center' }}>
+        <span />{MUC_NB.map((m) => <b key={m.key} title={`${m.ten} — ${m.dung}`} style={{ ...mono, color: m.mau, fontWeight: 700 }}>{m.key} · {m.ten}</b>)}
+        {path.map(([p, ten]) => [
+          <b key={p} title={ten} style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p === 'chung' ? 'Chung' : p}</b>,
+          ...MUC_NB.map((m) => { const c = d.concept.find((x) => x.path === p && x.nb === m.key);
+            return c ? <button key={`${p}-${m.key}`} type="button" onClick={() => onChon(c.id)} title={`${c.ma} · ${c.ten}\n${ten}\nHook: ${c.du_lieu.hook}`}
+              style={{ all: 'unset', cursor: 'pointer', minWidth: 0, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', borderLeft: `3px solid ${m.mau}`, display: 'grid', gap: 1 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, ...catChu }}>{c.ma} · {c.ten}</span>
+              <span style={mono}>{d.cap.filter((x) => x.concept_id === c.id && x.bat).length} template</span></button>
+              : <span key={`${p}-${m.key}`} style={{ ...mono, textAlign: 'center' }}>·</span>; }),
+        ])}
+      </div>
     </div>
   );
 }
 
 // ── TAB TEMPLATE (+ biến thể diễn viên / bối cảnh) ───────────────────────────────────────────────────────────────
+/** Tên ngắn của template cho tiêu đề cột: phần trước "(" , bỏ chữ thừa ("UGC", "Template") — tên đủ ở hover. */
+const tenNgan = (t: Pick<TplConcept, 'ten'>) => tenT(t).replace(/^UGC\s+/i, '').replace(/\s*—.*$/, '').replace(/^Chuyện có thật.*/i, 'Chuyện thật').slice(0, 14);
 export function TabTemplate({ d, onDoi, conceptId, setConceptId }: { d: KhoConcept; onDoi: () => Promise<void>; conceptId: number | null; setConceptId: (id: number) => void }) {
   const [sua, setSua] = useState<{ c: number; t: number } | null>(null);
   const [loi, setLoi] = useState('');
@@ -80,14 +81,14 @@ export function TabTemplate({ d, onDoi, conceptId, setConceptId }: { d: KhoConce
     setSua(cap?.bat ? null : { c: c.id, t: t.id }); await onDoi();
   };
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <span style={mono}>Ô viền đứt = template hợp mức nhận biết của concept. Ô trống: bấm để bật. Ô đã bật: bấm để sửa biến thể diễn viên · bối cảnh bên dưới, bấm lần nữa để tắt. ×N = số biến thể.</span>
+    <div style={{ display: 'grid', gap: 8 }}>
+      <span style={mono}>✓ bật · ×N biến thể diễn viên · viền đứt = hợp mức nhận biết · bấm ô đã bật để sửa diễn viên, bấm lần nữa để tắt</span>
       <Loi>{loi}</Loi>
-      <DataTable rows={d.concept} getRowKey={(c) => String(c.id)} minWidth={300 + d.tpl.length * 34} stickyFirst
+      <DataTable rows={d.concept} getRowKey={(c) => String(c.id)} minWidth={200 + d.tpl.length * 74} stickyFirst
         rowStyle={(c) => (c.id === conceptId ? { background: 'color-mix(in srgb, var(--cyan) 7%, transparent)' } : undefined)}
         columns={[
-          { key: 'c', header: 'Concept', align: 'left', width: 250, cell: (c) => <span style={{ display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0 }}><b style={{ fontFamily: 'var(--font-mono)' }}>{c.ma}</b><NbChip nb={c.nb} /><span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.ten}</span></span> },
-          ...d.tpl.map((t): DataColumn<Concept> => ({ key: `t${t.id}`, header: `T${t.id}`, title: `${tenT(t)} · ${t.so_shot} shot · ${t.giay}s`, align: 'center', width: 34,
+          { key: 'c', header: 'Concept', align: 'left', width: 200, cell: (c) => <span title={`${c.ma} · ${c.ten}`} style={{ display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0, maxWidth: 190 }}><b style={{ fontFamily: 'var(--font-mono)' }}>{c.ma}</b><NbChip nb={c.nb} /><span style={{ fontSize: 12, ...catChu }}>{c.ten}</span></span> },
+          ...d.tpl.map((t): DataColumn<Concept> => ({ key: `t${t.id}`, header: tenNgan(t), title: `${tenT(t)} · ${t.so_shot} shot · ${t.giay}s`, align: 'center', width: 74,
             cell: (c) => { const cap = capCua(d, c.id, t.id), bat = !!cap?.bat, nv = cap ? btCua(d, cap.id).length : 0, goi = hopKhuon(t.khuon, c.nb), dang = sua?.c === c.id && sua.t === t.id;
               return <button type="button" onClick={(e) => { e.stopPropagation(); void bam(c, t); }} title={`${c.ma} × ${tenT(t)}${goi ? ` · hợp mức ${c.nb}` : ''}${bat ? ` · ${nv} biến thể` : ''}`}
                 style={{ all: 'unset', cursor: 'pointer', width: 20, height: 20, borderRadius: 4, display: 'inline-grid', placeItems: 'center', fontSize: 10, fontFamily: 'var(--font-mono)', color: bat ? '#06210f' : 'var(--fg-3)',
@@ -95,12 +96,6 @@ export function TabTemplate({ d, onDoi, conceptId, setConceptId }: { d: KhoConce
         ]} />
       {sua && (() => { const c = d.concept.find((x) => x.id === sua.c), t = d.tpl.find((x) => x.id === sua.t), cap = c && t ? capCua(d, c.id, t.id) : undefined;
         return c && t && cap?.bat ? <BienThePanel key={cap.id} d={d} c={c} t={t} cap={cap} onDoi={onDoi} /> : null; })()}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
-        {d.tpl.map((t) => <div key={t.id} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', display: 'grid', gap: 4 }}>
-          <span style={mono}>T{t.id} · {t.dong} · {t.so_shot} shot · {t.giay}s · {t.shot_ca} shot có người / bối cảnh</span><b style={{ fontSize: 13 }}>{tenT(t)}</b>
-          <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>{t.o_chu.map((o) => <span key={o.k} style={{ ...mono, padding: '0 5px', borderRadius: 4, background: 'var(--bg-2)' }} title={`ô {{${o.k}}} · ${o.loai} · ${o.giay}s`}>{o.ten}</span>)}</span>
-        </div>)}
-      </div>
     </div>
   );
 }
@@ -116,13 +111,13 @@ function BienThePanel({ d, c, t, cap, onDoi }: { d: KhoConcept; c: Concept; t: T
     <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 10, display: 'grid', gap: 8 }}>
       <span><b style={{ fontFamily: 'var(--font-mono)' }}>{c.ma} × T{t.id}</b> {tenT(t)} <span style={mono}>· {t.shot_ca}/{t.so_shot} shot có người / bối cảnh · mỗi biến thể thêm ~{tien(tienBienTheCents(t, d.gia))} · bộ hình cặp này ~{tien(tienCapCents(t, ds.length, d.gia))}</span></span>
       {!t.shot_ca ? <span style={mono}>Template này không có shot gắn nhân vật / bối cảnh — không có gì để đổi diễn viên.</span> : <>
-        <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 80px 70px', gap: 6, alignItems: 'center', ...mono }}><span>Mã</span><span>Người chính (ô hình nhân vật)</span><span>Người phụ</span><span>Bối cảnh</span><span>Tiền thêm</span><span /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 80px 70px', gap: 6, alignItems: 'center', ...mono }}><span>Mã</span><span>Người chính</span><span>Người phụ</span><span>Bối cảnh</span><span>Tiền thêm</span><span /></div>
         {ds.map((v) => <DongBienThe key={`${v.id}-${v.nguoi_chinh}-${v.nguoi_phu}-${v.boi_canh}`} v={v} gia={v.goc ? 'bộ gốc' : `+${tien(tienBienTheCents(t, d.gia))}`} onLuu={(x) => chay(suaBienThe(v.id, x))} onBo={v.goc ? undefined : () => chay(boBienThe(v.id))} />)}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <Nut onClick={() => void them({ nguoi_chinh: doiDa(cuoi.nguoi_chinh) })}>+ đổi màu da người chính</Nut>
           <Nut onClick={() => void them({ nguoi_phu: doiDa(cuoi.nguoi_phu) })}>+ đổi màu da người phụ</Nut>
           <Nut onClick={() => void them({ boi_canh: '' })}>+ bối cảnh khác</Nut>
-          <span style={mono}>Diễn viên nên giống người xem của concept ({c.du_lieu.nguoi}). Biến thể mới chỉ là kế hoạch — 0đ tới lúc sinh hình.</span>
+
         </div></>}
       <Loi>{loi}</Loi>
     </div>
@@ -194,7 +189,6 @@ export function TabPhuongAn({ d, spKey, onDoi, capId, setCapId }: { d: KhoConcep
             </span>
           </div>; })}
       </div>
-      <span style={mono}>Ô hình (đổi = sinh hình mới, không có phương án chữ): {x.t.o_hinh.join(' · ') || '—'}</span>
     </div>
   );
 }

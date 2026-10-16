@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/qc-cam-xuc.test.mts
 import assert from 'node:assert';
-import { camThuc, promptBieuCam, loiMachBieuCam, thieuBieuCam, laTreEm, doiModelVideo, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe, soatClip, camXucDo, type BieuCamNv } from './qc-cam-xuc';
+import { camThuc, promptBieuCam, loiMachBieuCam, thieuBieuCam, laTreEm, doiModelVideo, loiCanCanhDongLon, loiCauTraiBieuCam, chamMay, soatKeyframe, soatClip, camXucDo, type BieuCamNv } from './qc-cam-xuc';
 
 // Nét tiêu cực cả đầu lẫn cuối → tự cấm cười (Jett #61 #2: đang đau mà cười)
 assert.deepStrictEqual(camThuc({ nv: 'Frank', dau: 'dau', cuoi: 'met' }).sort(), ['cuoi_lon', 'vui']);
@@ -51,3 +51,19 @@ assert.ok(loiCauTraiBieuCam('He sits down; seated, he gives his granddaughter a 
 assert.strictEqual(loiCauTraiBieuCam('He winces and sinks back down. Lily smiles hopefully at him.', kh2), null, 'câu có tên người được cười');
 assert.strictEqual(loiCauTraiBieuCam('He winces, no smile at all', [{ nv: 'Frank', dau: 'vui', cuoi: 'cuoi_lon' }]), null, 'kế hoạch không cấm cười');
 assert.strictEqual(loiCauTraiBieuCam('He winces and sinks back down, with no real smile.', kh2), null, 'câu phủ định không phải lệnh cười');
+
+// MÁY TỰ CHẤM — số đo thật Jett #61 (16/10/2026): Grok #2 cũ (Frank cười khi đang đau, khung đầu lệch #1) → trượt; Kling #2 cuối shot cười nhẹ
+// nhưng mặt nhận chưa chắc → cần mắt; nét trung tính không xét dấu; người soát thắng máy.
+const k = (t: number, ten: string | null, sim: number, val: number, w = 120) => ({ t, mat: [{ ten, sim, sims: { Frank: sim }, w, val }] });
+const kh2b: BieuCamNv[] = [{ nv: 'Frank', dau: 'dau', cuoi: 'met' }];
+const grok = chamMay({ dai: 4, khung: [k(0, 'Frank', 0.4, 0.68), k(1.1, 'Frank', 0.31, 0.59), k(3.3, 'Frank', 0.36, 0.64)], noi: { lech: 54.77 } }, kh2b, { phat: 4, noiLien: true });
+assert.strictEqual(grok.ket, 'truot');
+assert.ok(grok.loi.some((x) => x.includes('cấm cười')) && grok.loi.some((x) => x.includes('liền mạch')));
+const kling = chamMay({ dai: 4, khung: [k(0, 'Frank', 0.39, -0.68), k(3.1, null, 0.29, 0.69, 173), k(3.54, null, 0.22, 0.62, 195)], noi: { lech: 2.77 } }, kh2b, { phat: 4, noiLien: true });
+assert.strictEqual(kling.ket, 'can_mat', JSON.stringify(kling));
+assert.strictEqual(chamMay({ dai: 4, khung: [k(0, 'Frank', 0.5, 0.32), k(3.9, 'Frank', 0.32, -0.57)] }, [{ nv: 'Frank', dau: 'ngo_vuc', cuoi: 'bat_ngo' }], {}).ket, 'dat', 'nét trung tính không xét dấu');
+assert.strictEqual(chamMay({ dai: 4, khung: [] }, [], {}).ket, 'dat', 'không có mặt để đo');
+const url = 'https://x/c.mp4', may = { url, luc: '', ket: 'can_mat' as const, loi: ['Frank có vẻ cười'] };
+assert.ok(!soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.dat && soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.loi[0]!.startsWith('cần mắt'));
+assert.ok(soatClip({ video_url: url, video_cuoi_url: null, soat: { may: { ...may, ket: 'truot' }, clip: { url, luc: '', nguoi: 'anh', dat: true, loi: [] } } })!.dat, 'người soát thắng máy');
+console.log('qc-cam-xuc chấm máy ok');

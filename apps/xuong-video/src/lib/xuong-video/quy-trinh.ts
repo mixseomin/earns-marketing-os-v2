@@ -15,7 +15,7 @@ import { chanNguoiXem, tomTatNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM, typ
 import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { loiSanPhamShot } from './san-pham-shot';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
-import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, soatKeyframe } from './qc-cam-xuc';
+import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe } from './qc-cam-xuc';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
@@ -120,6 +120,7 @@ export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[], o?: { ca
     const thieu = thieuBieuCam(c, nhanVatPhim);
     if (thieu.length) out.push(`chưa có kế hoạch biểu cảm (đầu → cuối) cho ${thieu.join(', ')} — nét mặt không khai thì model tự chọn, shot sau dễ gãy cảm xúc`);
     if (o.ds) out.push(...(loiMachBieuCam(o.ds.filter((x) => (x.nhanh || '') === (c.nhanh || '') || !x.nhanh), nhanVatPhim)[c.id] ?? []));
+    const trai = loiCauTraiBieuCam(c.prompt_anh, c.bieu_cam); if (trai) out.push(`keyframe: ${trai}`);
   }
   const pc = thieuPhanCanh(tap.phan_canh, c); if (pc) out.push(pc);
   out.push(...thieuMau(c, nhanVatPhim));
@@ -150,6 +151,7 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   if (laQc) out.push(...loiSanPhamShot(c, nhanVat));
   // Cận cảnh + động tác lớn → méo thân (qc-cam-xuc.ts) — mọi QC.
   if (laQc) { const cc = loiCanCanhDongLon(c); if (cc) out.push(cc); }
+  if (o?.camXucQc) { const trai = loiCauTraiBieuCam((c.prompt_video ?? '').trim() || c.hanh_dong, c.bieu_cam); if (trai) out.push(trai); }
   // Murch QC: keyframe phải SOÁT ĐẠT (Claude trong phiên, scripts/soat-cam-xuc.mts) — trừ shot nối liền (khung đầu = khung cuối clip trước đã soát).
   if (o?.camXucQc && c.keyframe_url && !c.noi_lien) { const k = soatKeyframe(c); if (!k) out.push('keyframe chưa soát (số người · người lạ · mặt · sản phẩm · hành động · nét mặt) — soát rồi mới sinh video'); else if (!k.dat) out.push(`keyframe soát trượt: ${k.loi.join(' · ')}`); }
   return out;

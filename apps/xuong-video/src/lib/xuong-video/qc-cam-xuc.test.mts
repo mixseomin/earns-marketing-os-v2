@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/qc-cam-xuc.test.mts
 import assert from 'node:assert';
-import { camThuc, promptBieuCam, loiMachBieuCam, thieuBieuCam, laTreEm, doiModelVideo, loiCanCanhDongLon, soatKeyframe, soatClip, camXucDo, type BieuCamNv } from './qc-cam-xuc';
+import { camThuc, promptBieuCam, loiMachBieuCam, thieuBieuCam, laTreEm, doiModelVideo, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe, soatClip, camXucDo, type BieuCamNv } from './qc-cam-xuc';
 
 // Nét tiêu cực cả đầu lẫn cuối → tự cấm cười (Jett #61 #2: đang đau mà cười)
 assert.deepStrictEqual(camThuc({ nv: 'Frank', dau: 'dau', cuoi: 'met' }).sort(), ['cuoi_lon', 'vui']);
@@ -44,3 +44,10 @@ assert.strictEqual(soatClip({ video_url: 'v1', video_cuoi_url: null, soat: { cli
 assert.deepStrictEqual(camXucDo({ keyframe_url: 'k1', video_url: 'v1', video_cuoi_url: null, soat: { clip: { url: 'v1', luc: '', nguoi: '', dat: false, loi: ['nét mặt: cười giữa chừng'] } } })?.diem, 0);
 assert.strictEqual(camXucDo({ keyframe_url: 'k1', video_url: null, video_cuoi_url: null, soat: null }), null);
 console.log('qc-cam-xuc ok');
+
+// Câu hành động trái kế hoạch (Jett #61 #2: "small apologetic smile" khi Frank đau → mệt)
+const kh2: BieuCamNv[] = [{ nv: 'Frank', dau: 'dau', cuoi: 'met' }, { nv: 'Lily', dau: 'hao_huc', cuoi: 'buon' }];
+assert.ok(loiCauTraiBieuCam('He sits down; seated, he gives his granddaughter a small apologetic smile.', kh2)?.includes('cấm cười (Frank)'));
+assert.strictEqual(loiCauTraiBieuCam('He winces and sinks back down. Lily smiles hopefully at him.', kh2), null, 'câu có tên người được cười');
+assert.strictEqual(loiCauTraiBieuCam('He winces, no smile at all', [{ nv: 'Frank', dau: 'vui', cuoi: 'cuoi_lon' }]), null, 'kế hoạch không cấm cười');
+assert.strictEqual(loiCauTraiBieuCam('He winces and sinks back down, with no real smile.', kh2), null, 'câu phủ định không phải lệnh cười');

@@ -75,6 +75,19 @@ export function thieuBieuCam(c: ShotBc, nhanVat: Nv[]): string[] {
   return nguoi.filter((t) => !(c.bieu_cam ?? []).some((b) => b.nv === t && bieuCam(b.dau) && bieuCam(b.cuoi)));
 }
 
+/** Câu hành động TRÁI kế hoạch biểu cảm: kế hoạch cấm cười (đang đau / mệt) mà prompt vẫn bảo "smile / laugh / grin" — hai lệnh ngược nhau
+ *  trong cùng một prompt thì model nghe câu hành động (Jett #61 #2: "a small apologetic smile" + EXPRESSION "never a smile" → Frank cười 2 lượt Kling).
+ *  Câu có tên một người được phép cười thì không xét (cười là của người đó). null = sạch. */
+export const TU_CUOI = /\b(smil(e|es|ed|ing)|grin(s|ned|ning)?|laugh(s|ed|ing|ter)?|beam(s|ed|ing)|chuckl(e|es|ed|ing)|giggl(e|es|ed|ing))\b/i;
+export function loiCauTraiBieuCam(cau: string, ds: BieuCamNv[] | undefined): string | null {
+  const plan = (ds ?? []).filter((b) => bieuCam(b.dau) && bieuCam(b.cuoi));
+  const cam = plan.filter((b) => camThuc(b).some((k) => k === 'vui' || k === 'cuoi_lon')).map((b) => b.nv);
+  if (!cam.length) return null;
+  const duoc = plan.filter((b) => !cam.includes(b.nv)).map((b) => b.nv.toLowerCase());
+  const sai = cau.split(/(?<=[.;!?])\s+/).filter((x) => TU_CUOI.test(x) && !new RegExp(`\\b(no|never|not|without|nor)\\b(\\s+\\w+){0,3}\\s+${TU_CUOI.source}`, 'i').test(x) && !duoc.some((t) => x.toLowerCase().includes(t)));
+  return sai.length ? `câu hành động bảo cười ("${sai[0]!.match(TU_CUOI)![0]}") mà kế hoạch biểu cảm cấm cười (${cam.join(', ')}) — model nghe câu hành động, sửa câu (hoặc ghi rõ tên người được cười)` : null;
+}
+
 /** Trẻ em theo mô tả anchor (tuổi < 13 hoặc từ chỉ trẻ em). */
 export function laTreEm(moTa: string): boolean {
   if (/\b(girl|boy|child|kid|toddler|baby|infant|schoolgirl|schoolboy)\b/i.test(moTa)) return true;

@@ -104,7 +104,7 @@ function theoRes(ds: MucGia[], res: '720p' | '1080p'): MucGia[] {
 const usd = (c: number) => `$${(c / 100).toFixed(c < 10 ? 3 : 2)}`;
 
 export function tomGia(raw: string): GiaTom {
-  const mt = raw.match(/minimum of (\d+)\s*(?:billable )?seconds?/i);
+  const mt = raw.match(/minimum(?: of)? (\d+)\s*(?:billable )?seconds?/i);   // 'minimum of 5 billable seconds' (Pika) · '(minimum 5 seconds)' (H3 Max)
   const ds = phanTichGia(raw);
   const giay = ds.filter((x) => x.kieu === 'giay');
   // Clip có số giây → quy ra giá/giây để so được với model tính theo giây.

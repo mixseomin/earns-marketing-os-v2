@@ -175,7 +175,7 @@ export function catCau(chu: string, toiDa?: number): string {
   return (i > toiDa * 0.5 ? cat.slice(0, i + 1) : cat.slice(0, cat.lastIndexOf(' '))).trim();
 }
 
-export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
+export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; /** clip diễn Blender cả shot (model 3D→video: H3 Max) */ videoNguon?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
   // Độ dài prompt theo GIỚI HẠN CỦA CHÍNH MODEL (schema maxLength): Kling 2.1 Pro nhận ≤ 2500 ký tự → 422 (#23, 16/10/2026). Cắt ở ranh giới câu
@@ -186,6 +186,26 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   const truongCuoi = ['end_image_url', 'tail_image_url', 'last_frame_url', 'end_frame_url', 'last_image_url'].find(co);
   // NHIỀU KHUNG KHOÁ (Pikaframes: image_urls 2–5 + transitions): đầu → các khung giữa → cuối, chia đều số giây shot cho từng đoạn (≥ 1 s mỗi đoạn).
   const khung = [v.anhDau, ...(v.khungGiua ?? []), v.anhCuoi].filter((x): x is string => !!x);
+  // CLIP 3D LÀM NGUỒN (H3 Max 3D→Video: video_url = clip diễn Blender): máy / đường đi / nhịp / số vật lấy từ clip; các khung khoá làm ảnh tham chiếu
+  // ngoại hình (có tham chiếu thì model không tự sinh ảnh ngoại hình mới). Thời lượng theo clip.
+  if (co('video_url') && v.videoNguon) {
+    o.video_url = v.videoNguon;
+    if (khung.length && co('reference_image_urls')) o.reference_image_urls = khung.slice(0, 8);
+    if (co('resolution')) { const en = enumCua(p.resolution).map(String); const chon = en.find((x) => /768|720/.test(x)) ?? en[0]; if (chon) o.resolution = chon; }
+    return o;
+  }
+  // KHUNG GHIM THEO SỐ KHUNG (FLUX 3 keyframes: [{image_url, frame_index}] trên video 24 khung/giây, ≤ 10 khung): rải đều từ khung 0 tới khung cuối.
+  if (co('keyframes') && khung.length >= 2) {
+    const en = enumCua(p.duration).map(Number).filter((x) => !Number.isNaN(x));
+    const dur = en.length ? en.reduce((a, b) => (Math.abs(b - (v.giay ?? 5)) < Math.abs(a - (v.giay ?? 5)) ? b : a)) : Math.max(5, Math.round(v.giay ?? 5));
+    const ds = khung.slice(0, 10); const cuoi = dur * 24 - 1;
+    o.keyframes = ds.map((u, i) => ({ image_url: u, frame_index: Math.round((i / (ds.length - 1)) * cuoi) }));
+    o.duration = dur;
+    if (co('generate_audio')) o.generate_audio = v.tieng ?? false;
+    if (v.tiLe && co('aspect_ratio')) o.aspect_ratio = enumCua(p.aspect_ratio).map(String).includes(v.tiLe) ? v.tiLe : 'auto';
+    if (co('resolution')) o.resolution = '720p';
+    return o;
+  }
   if (co('transitions') && co('image_urls') && khung.length >= 2) {
     const n = khung.length - 1; const tong = Math.max(n, Math.round(v.giay ?? 5)); const d = Array.from({ length: n }, (_, i) => Math.floor(tong / n) + (i < tong % n ? 1 : 0));
     o.image_urls = khung.slice(0, 5); o.transitions = d.slice(0, Math.min(5, khung.length) - 1).map((x) => ({ duration: x }));

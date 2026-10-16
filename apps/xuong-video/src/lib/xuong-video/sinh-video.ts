@@ -151,7 +151,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     const id = bc.kt.mo_hinh_video.slice(4);
     // Khung giữa chỉ khi keyframe là ảnh render 3D (cùng nguồn với khung giữa — keyframe AI không khớp khung giữa render).
     const kx = bc.canh.khung_xam; const khungGiua = kx && bc.canh.keyframe_url === kx.mau ? (kx.giua?.length ? kx.giua : kx.mau_giua ? [kx.mau_giua] : []) : [];
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
+    const videoNguon = kx && bc.canh.keyframe_url === kx.mau ? kx.dien ?? null : null;   // clip diễn Blender cùng nguồn với keyframe
+    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }

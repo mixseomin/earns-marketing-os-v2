@@ -52,3 +52,5 @@ console.log('gia-fal: mọi bài tự kiểm qua');
   const g = tg('Your request will cost $0.04 per second for 720p or $0.06 per second for 1080p, with a minimum of 5 billable seconds - $0.20 for 720p and $0.30 for 1080p.');
   assert.equal(g.chinh['720p'], 4); assert.equal(g.chinh['1080p'], 6); assert.equal(g.giayToiThieu, 5);
 }
+// H3 Max: "(minimum 5 seconds)" không có chữ 'of' → vẫn đọc ra tối thiểu 5 giây.
+assert.equal(tomGia('For every second of video you generate you will be charged $0.05 at 480p, $0.08 at 768p or $0.16 at 1080p (minimum 5 seconds), plus reference token usage.').giayToiThieu, 5);

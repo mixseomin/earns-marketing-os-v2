@@ -37,6 +37,7 @@ export type TplConcept = { id: number; ten: string; dong: string; khuon: string;
   /** shot có anchor nhân vật / bối cảnh / một trong hai — đổi diễn viên / bối cảnh = sinh lại ĐÚNG các shot này (đếm thật từ xv_canh.nhan_vat) */
   shot_nguoi: number; shot_boi: number; shot_ca: number; o_chu: OChu[]; o_hinh: string[];
   /** shot của template (xem trước phim gốc): loại · giây · chữ màn (còn {{ô}}) · hình (hành động template tả) */ shot: { loai: string; giay: number; chu: string; hinh: string }[];
+  /** giá trị MẪU của các ô (OTemplate.mau — như form Tạo phim điền sẵn) — điền phần xem trước */ gt_mau: Record<string, string>;
   /** QC mẫu thắng template học theo (kinh_thanh.template.mau_qc — video / ảnh trên R2) */ mau: { video: string | null; anh: string | null; mo_ta: string; link: string }[] };
 export type Cap = { id: number; concept_id: number; template_id: number; bat: boolean };
 export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean; /** phim gốc của bộ hình (xuat-creative.ts) */ phim_id?: number | null };

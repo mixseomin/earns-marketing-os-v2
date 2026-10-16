@@ -8,6 +8,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { type Row, n, s, mangInt } from '@/lib/xuong-video/doc-db';
 import { docOTemplate } from '@/lib/xuong-video/template-db';
+import { giaTriMau } from '@/lib/xuong-video/template';
 import { docGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { docSpy } from '@/lib/xuong-video/spy-api';
 import { nguCanhXuat, xuatCreativeDb } from '@/lib/xuong-video/xuat-creative';
@@ -34,7 +35,7 @@ async function spySp(db: Db, spKey: string): Promise<number | null> {
   return c ? n(c.spy_sp) : null;
 }
 
-export type KhoConcept = { spy_sp: number | null; concept: Concept[]; tpl: TplConcept[]; cap: Cap[]; bien_the: BienTheHinh[]; phuong_an: PhuongAn[]; creative: CreativeDuyet[]; gia: GiaConcept };
+export type KhoConcept = { spy_sp: number | null; /** giá trị ô SẢN PHẨM (creative cũ cùng sản phẩm) — điền phần xem trước */ gt_sp: Record<string, string>; concept: Concept[]; tpl: TplConcept[]; cap: Cap[]; bien_the: BienTheHinh[]; phuong_an: PhuongAn[]; creative: CreativeDuyet[]; gia: GiaConcept };
 /** Đọc trọn kho concept của một sản phẩm + 14 template + đơn giá thật (sổ xv_job 30 ngày). */
 export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
   const db = getDb();
@@ -68,6 +69,7 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
     const oChu = oChuTuKhung(o.o.filter((x) => x.dung), o.khung);
     tpl.push({ id: n(r.id), ten: s(r.ten).replace(/^Template\s*·\s*/, ''), dong: s(r.dong), khuon: s(r.khuon), so_shot: o.khung.length, giay: Math.round(o.khung.reduce((a, k) => a + k.giay, 0)),
       shot_nguoi: n(d?.nguoi), shot_boi: n(d?.boi), shot_ca: n(d?.ca), o_chu: oChu, o_hinh: oHinhCua(o.o.filter((x) => x.dung), oChu),
+      gt_mau: giaTriMau(o.o.filter((x) => x.dung)),
       shot: o.khung.map((k, i) => ({ loai: k.loai, giay: k.giay, chu: k.chu, hinh: s(hinh.filter((h) => n(h.phim_id) === n(r.id))[i]?.hinh).slice(0, 220) })),
       mau: (Array.isArray(r.mau) ? (r.mau as { video?: string | null; anh?: string | null; mo_ta?: string; link?: string }[]) : []).slice(0, 2).map((m) => ({ video: m.video ?? null, anh: m.anh ?? null, mo_ta: s(m.mo_ta).slice(0, 300), link: s(m.link) })) });
   }
@@ -83,7 +85,7 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
   const g = (gRows as unknown as Row[])[0] ?? {};
   const anh = Number(g.anh) || GIA_DU_PHONG.anh, video = Number(g.video) || GIA_DU_PHONG.video, chu = Number(g.chu) || GIA_DU_PHONG.chu;
   return { ok: true, data: {
-    spy_sp: await spySp(db, spKey), concept, tpl, cap,
+    spy_sp: await spySp(db, spKey), gt_sp: await (async () => { const g = await giaTriSanPham(spKey); return g.ok ? g.data : {}; })(), concept, tpl, cap,
     bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true, phim_id: r.phim_id == null ? null : n(r.phim_id) })),
     phuong_an: (pa as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), o: s(r.o), so: n(r.so), chu: s(r.chu), nguon: s(r.nguon) })),
     creative: (cr as unknown as Row[]).map((r) => ({ id: n(r.id), so: n(r.so), cap_id: n(r.cap_id), bien_the_id: r.bien_the_id == null ? null : n(r.bien_the_id),

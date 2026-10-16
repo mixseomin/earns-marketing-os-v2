@@ -12,7 +12,7 @@ import { useNho } from './nho';
 import { TaoTuTemplate } from './template-ui';
 import { tien, LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, uocVietHet, vietHet, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, xuatCreative, capSo, type KhoConcept } from '@/lib/actions-concept';
-import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, laDuyet, tienCapCents, tienDungRiengCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
+import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, laDuyet, gtBienThe, tienCapCents, tienDungRiengCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
 
 const tenT = (t: Pick<TplConcept, 'ten'>) => t.ten.replace(/\s*\(.*\)\s*$/, '');
 const NbChip = ({ nb }: { nb: string }) => <b title={`${mucNb(nb).ten} — ${mucNb(nb).dung}`} style={{ color: mucNb(nb).mau, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{nb}</b>;
@@ -207,15 +207,19 @@ type BoHinh = { key: string; c: Concept; t: TplConcept; v: BienTheHinh; ds: Dong
 type PhimKho = { id: number; ten: string; anh: string | null; ket: string; nac: { ten: string; tt: string }[]; tpl?: { id: number } | null };
 function XemPhimGoc({ x, d, phim, onMoPhim }: { x: DongCr; d: KhoConcept; phim: PhimKho[]; onMoPhim: (id: number) => void }) {
   const cung = phim.filter((p) => p.tpl?.id === x.t.id);
+  // điền ô cho phần xem trước: mẫu của template → sản phẩm → diễn viên / bối cảnh của biến thể → chữ creative đã chọn; ô còn trống hiện ‹tên ô›
+  const gt: Record<string, string> = { ...x.t.gt_mau, ...d.gt_sp, ...gtBienThe(x.bien_the, [...x.t.o_hinh, ...Object.keys(x.t.gt_mau)]) };
+  for (const o of x.t.o_chu) { const p = d.phuong_an.find((y) => y.cap_id === x.cap_id && y.o === o.k && y.so === x.chon[o.k]); if (p) gt[o.k] = p.chu; }
+  const dien = (t: string) => t.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_a, k: string) => gt[k.toLowerCase()]?.trim() || `‹${k.replace(/_/g, ' ')}›`);
   const chuShot = (i: number) => { const os = x.t.o_chu.filter((o) => o.shot === i);
     if (os.length) return { moi: true, chu: os.map((o) => d.phuong_an.find((p) => p.cap_id === x.cap_id && p.o === o.k && p.so === x.chon[o.k])?.chu ?? '—').join(' · ') };
-    return { moi: false, chu: (x.t.shot[i]?.chu ?? '').replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_a, k: string) => `‹${k.replace(/_/g, ' ')}›`) }; };
+    return { moi: false, chu: dien(x.t.shot[i]?.chu ?? '') }; };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: 12, padding: 10, borderBottom: '1px solid var(--line)', background: 'var(--bg-1)', fontFamily: 'var(--font-sans)' }}>
       <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
         {x.t.mau.filter((m) => m.video || m.anh).slice(0, 1).map((m, i) => <div key={i} style={{ display: 'grid', gap: 4 }}>
           <span style={mono}>QC mẫu template học theo</span>
-          {m.video ? <video src={m.video} controls muted playsInline preload="metadata" style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 6, background: '#000', objectFit: 'cover' }} />
+          {m.video ? <video src={m.video} controls muted playsInline preload="metadata" style={{ width: '100%', aspectRatio: '9 / 16', maxHeight: 300, borderRadius: 6, background: '#000', objectFit: 'contain' }} />
             : <img src={m.anh!} alt="QC mẫu" style={{ width: '100%', borderRadius: 6 }} />}
           {m.mo_ta && <span style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>{m.mo_ta}</span>}
           {m.link && <LinkNgoai href={m.link} className="xv-lienket xv-mono">QC gốc ↗</LinkNgoai>}
@@ -232,7 +236,7 @@ function XemPhimGoc({ x, d, phim, onMoPhim }: { x: DongCr; d: KhoConcept; phim: 
             return <div key={i} style={{ display: 'grid', gap: 4, alignContent: 'start', padding: '7px 9px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-2)', minHeight: 88 }}>
               <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><b style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>{i + 1}</b>
                 <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-2)' }}>{LOAI_SHOT_MAU.find((l) => l.key === sh.loai)?.ten ?? sh.loai}</span><span style={{ ...mono, marginLeft: 'auto' }}>{sh.giay}s</span></span>
-              {sh.hinh && <span style={{ fontSize: 11, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={sh.hinh}>🎥 {sh.hinh}</span>}
+              {sh.hinh && <span style={{ fontSize: 11, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={dien(sh.hinh)}>🎥 {dien(sh.hinh)}</span>}
               <span style={{ fontSize: 13, fontWeight: c.moi ? 600 : 400, color: c.moi ? 'var(--fg-1)' : 'var(--fg-3)' }}>{c.chu || '—'}</span>
             </div>; })}
         </div>

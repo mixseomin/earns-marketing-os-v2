@@ -3,7 +3,7 @@
 # Mỗi nhân vật một hàm dung_<ten>() trả về danh sách object gốc ở (0,0,0), mặt nhìn −y, đáy giữa ở z=0, đơn vị m (cm × CM). dung-set.py gọi qua
 # nhan_vat_mesh(ten) khi XV_MESH_THAT=1; không có hàm cho tên đó → rơi về khối tạm.
 #   Thử một nhân vật: blender -b --factory-startup -P dung-nhan-vat.py -- <ten> <ra.png>   (render xoay quanh, 3 góc)
-import bpy, math, sys
+import bpy, os, math, sys
 from mathutils import Vector
 CM = 0.01
 
@@ -186,8 +186,9 @@ def long_toi(o, mau, dai, so, day=0.012):
     """Lông / sợi thật (hệ hair của Cycles) phủ mặt o: dai cm, so sợi."""
     ps = o.modifiers.new('long', 'PARTICLE_SYSTEM').particle_system; st = ps.settings
     # MỌI độ rối / xoăn tính bằng MÉT (vật 2 cm): lần đầu đặt 0,02–0,04 → mỗi sợi lệch 2–4 cm, lông thành đám sương phủ cả khung.
+    if os.environ.get('XV_NHAP'): so = max(300, so // 4)   # bản nháp (playblast): lông thưa, dựng nhanh
     st.type = 'HAIR'; st.count = so; st.hair_length = dai * CM; st.use_advanced_hair = True; st.brownian_factor = 0.0; st.factor_random = 0.3 * dai * CM
-    st.radius_scale = day * CM; st.root_radius = 1.0; st.tip_radius = 0.3; st.child_type = 'INTERPOLATED'; st.rendered_child_count = 5; st.child_length = 0.85
+    st.radius_scale = day * CM; st.root_radius = 1.0; st.tip_radius = 0.3; st.child_type = 'INTERPOLATED'; st.rendered_child_count = 1 if os.environ.get('XV_NHAP') else 5; st.child_length = 0.85
     st.roughness_1 = 0.15 * dai * CM; st.roughness_endpoint = 0.25 * dai * CM; st.kink = 'NO'
     mh = bpy.data.materials.new('soi'); mh.use_nodes = True; nt = mh.node_tree; nt.nodes.clear()
     hb = nt.nodes.new('ShaderNodeBsdfHairPrincipled'); hx = mau.lstrip('#'); hb.parametrization = 'COLOR'

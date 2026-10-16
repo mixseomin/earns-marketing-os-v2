@@ -2,6 +2,7 @@
 # DIỄN CẢ TẬP bằng Blender trên iMac (anh 16/10/2026: phim làm hoàn toàn bằng Blender; "làm sao tao xem được cái mày vừa làm"):
 # lấy shot + thời lượng từ máy chủ → mỗi shot: dung-set.py XV_DIEN render khung → ghep-dien.sh (hậu kỳ ống kính) → gửi clip + 5 khung khoá
 # → nap-dien.mts: clip thành VIDEO của shot (lưới / timeline / trình phát hiện ngay), khung đầu thành keyframe. 0đ. Shot đã xong thì bỏ qua (chạy lại tiếp).
+#   XV_NHAP=1 scripts/bo-set/dien-tap.sh <tap_id>   ← bản nháp nhanh (~10 phút cả tập)
 #   scripts/bo-set/dien-tap.sh <tap_id> [--chi=thu_tu,…]   ·   XV_MAY=eevee (bản xem ~1 phút/shot) | cycles (~8 phút/shot iMac M4) · XV_RONG (720) · XV_MAU (24)
 set -e
 TAP=$1; CHI=$(echo "$2" | sed -n 's/^--chi=//p')
@@ -25,16 +26,8 @@ for f in glob.glob(f'{ra}/vao/*/p*.json'):
         json.dump({**d, 'shot': [s]}, open(f"{ra}/{so:02d}-{s['ma']}/vao.json", 'w')); ds.append((so, s['ma'], g))
 open(f'{ra}/viec.txt', 'w').write('\n'.join(f'{so:02d}-{ma} {ma} {g}' for so, ma, g in sorted(ds)) + '\n')
 PY
-while read -r TEN MA GIAY; do
-  D="$RA/$TEN"; [ -f "$D/xong" ] && continue
-  rm -f "$D"/f*.png
-  env XV_MAY=${XV_MAY:-cycles} XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720} "$BLENDER" -b --factory-startup -P "$DIR/scripts/bo-set/dung-set.py" -- "$D/vao.json" "$D" > "$D/log" 2>&1 || { echo "LOI $TEN (xem $D/log)"; continue; }
-  N=$(ls "$D"/f*.png | wc -l | tr -d ' '); [ "$N" -ge 2 ] || { echo "LOI $TEN: không có khung"; continue; }
-  "$DIR/scripts/bo-set/ghep-dien.sh" "$D" "$D/dien.mp4"
-  for i in 0 1 2 3 4; do f=$(python3 -c "print(1 + round([0, .25, .5, .75, 1][$i] * ($N - 1)))"); "$DIR/scripts/bo-set/ghep-dien.sh" --anh "$D/f$(printf %04d $f).png" "$D/khoa-$i.jpg"; done
-  echo $N > "$D/so-khung.txt"
-  ssh $BOX "rm -rf /tmp/dien-$MA && mkdir -p /tmp/dien-$MA"; rsync -aq "$D/dien.mp4" "$D"/khoa-*.jpg "$D/so-khung.txt" $BOX:/tmp/dien-$MA/
-  ssh $BOX "cd $APP && set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set/nap-dien.mts --canh=$MA --thu-muc=/tmp/dien-$MA" | grep -q '"ok":true' && touch "$D/xong" && echo "XONG $TEN ($N khung)" || echo "LOI nạp $TEN"
-  grep -h "CANH BAO" "$D/log" | sed "s/^/  $TEN: /" | head -3
-done < "$RA/viec.txt"
+# XV_NHAP=1 = BẢN NHÁP (playblast, anh 16/10/2026 "tao chỉ cần xem bản nháp cho nhanh"): EEVEE 360px, 4 mẫu, lông thưa, 3 shot song song.
+if [ -n "$XV_NHAP" ]; then export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-4} XV_SONG=${XV_SONG:-3}; fi
+export XV_MAY XV_NHAP XV_RONG XV_MAU
+while read -r TEN MA GIAY; do echo "$RA/$TEN $MA $GIAY"; done < "$RA/viec.txt" | xargs -P "${XV_SONG:-1}" -L1 "$DIR/scripts/bo-set/dien-mot.sh"
 echo "HET tap $TAP"

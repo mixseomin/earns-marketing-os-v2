@@ -21,7 +21,6 @@ export default async function Layout({ children }: { children: React.ReactNode }
           <a href="/" className="xv-brand">🎬 Xưởng video</a>
           <span className="xv-mono">kịch bản → storyboard → keyframe → clip → ghép</span>
           <span style={{ flex: 1 }} />
-          <NutNgan y={{ loai: 'khuon' }}>🧩 khuôn video</NutNgan>
           <NutNgan y={{ loai: 'thu-vien' }}>🎬 thư viện điện ảnh</NutNgan>
           <NutNgan y={{ loai: 'so-chi-phi' }}>💰 sổ chi phí</NutNgan>
           <NutNgan y={{ loai: 'nguon-ai' }}>🔌 nguồn AI</NutNgan>

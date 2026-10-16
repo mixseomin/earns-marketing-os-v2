@@ -2,6 +2,7 @@
 // Xưởng video AI (studio.on.tc) — một màn: danh sách phim → drawer phim (kinh thánh · tuyến nhân vật · tập · storyboard từng tập).
 // Storyboard = bảng cảnh: mỗi dòng một cảnh (xương sống dữ liệu); keyframe sinh → chọn → duyệt → video. Canvas node + timeline (G2/G3)
 // là hai cách nhìn khác của cùng bảng này, không có dữ liệu riêng.
+import { KhuonNoiDung } from './khuon-ui';
 import { Suspense, useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
@@ -59,7 +60,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const dem = demKieu(phim); const soLuuTru = phim.filter(laLuuTru).length;
   // YDNI trang chủ (anh 15/10/2026: "YDNI lại trang home"): trước là 4 khối chồng dọc (chỉ số · kho template · tạo mới · danh sách) dài ~4.300px.
   // Giờ MỘT MÀN: đầu ghim (tab Phim | Template · bộ lọc · chỉ số một dòng · ＋ Tạo mới gập sẵn), nội dung cuộn TRONG khung bên dưới.
-  const [khoTab, setKhoTab] = useNho<'phim' | 'sanpham' | 'template'>('xv-kho-tab', 'phim', ['phim', 'sanpham', 'template'], 'kho');
+  const [khoTab, setKhoTab] = useNho<'phim' | 'sanpham' | 'template' | 'khuon'>('xv-kho-tab', 'phim', ['phim', 'sanpham', 'template', 'khuon'], 'kho');
   // Ngăn một sản phẩm (kho creative): khoá sản phẩm trong URL (?sp=) → F5 / chia sẻ mở lại đúng sản phẩm.
   const [spMo, setSpMoState] = useState<string | null>(null);
   useLayoutEffect(() => { const k = new URLSearchParams(window.location.search).get('sp'); if (k) setSpMoState(k); }, []);   // sau hydrate, như nho.ts
@@ -73,7 +74,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       {thieu.length > 0 && <div className="xv-banner">Máy chủ thiếu: {thieu.join(' · ')} — đặt trong .env.production rồi restart mos2-studio. Trang vẫn soạn được, nút sinh sẽ báo lỗi tới khi có khoá.</div>}
       <div className="xv-panel" style={{ padding: '8px 10px', marginBottom: 8, display: 'grid', gap: 6, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Seg options={[{ value: 'phim' as const, label: '🎬 Phim', title: `${dem.series + dem.quang_cao + dem.phim} phim / bộ` }, { value: 'sanpham' as const, label: '📦 Sản phẩm', title: 'Creative gom theo sản phẩm: góc spy × khuôn × thành phần' }, { value: 'template' as const, label: '🧩 Template', title: `${dem.template} template` }]} value={khoTab} onChange={setKhoTab} />
+          <Seg options={[{ value: 'phim' as const, label: '🎬 Phim', title: `${dem.series + dem.quang_cao + dem.phim} phim / bộ` }, { value: 'sanpham' as const, label: '📦 Sản phẩm', title: 'Creative gom theo sản phẩm: góc spy × khuôn × thành phần' }, { value: 'template' as const, label: '🧩 Template', title: `${dem.template} template` }, { value: 'khuon' as const, label: '🎞 Khuôn video', title: 'Video dựng bằng khuôn, không AI (Front Porch Puzzles…) — xuất 0đ trên máy chủ' }]} value={khoTab} onChange={setKhoTab} />
           {khoTab === 'phim' && <>
             <Seg options={[{ value: '' as const, label: 'Tất cả' }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: TEN_KIEU[k], title: `${dem[k]} ${TEN_KIEU[k].toLowerCase()}` }))]} value={locKieu} onChange={setLocKieu} />
             <input className="xv-in" style={{ width: 200 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
@@ -101,6 +102,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       {khoTab === 'sanpham' ? (
         <DanhSachSanPham phim={phim} onMo={setSpMo} />
+      ) : khoTab === 'khuon' ? (
+        <KhuonNoiDung />
       ) : khoTab === 'template' ? (
         <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} onMo={moPhim} />
       ) : phim.length === 0 ? (

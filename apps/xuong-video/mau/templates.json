@@ -4306,7 +4306,7 @@
      "chu_man": "{{dinh_diem}}",
      "loi": "{{loi_moi}}",
      "noi": "{{nguoi_3_ten}}",
-     "prompt_anh": "{{boi_canh_2}}; in the foreground {{nguoi_3_hinh}} tugs the hand of {{nguoi_2_hinh}}, who half-rises from a round table with one hand on the tight waistband, wincing. Exactly ONE {{nguoi_2_ten}} and ONE {{nguoi_3_ten}} in the frame; other guests are strangers in the background",
+     "prompt_anh": "{{dinh_diem_hinh}}, {{boi_canh_2}}; in the foreground {{nguoi_3_hinh}} tugs the hand of {{nguoi_2_hinh}}, who half-rises from a round table with one hand on the tight waistband, wincing. Exactly ONE {{nguoi_2_ten}} and ONE {{nguoi_3_ten}} in the frame; other guests are strangers in the background",
      "prompt_video": "The child pulls the hand toward the dance floor; the person half-rises, presses a hand to the tight waistband and winces, music and string lights behind",
      "dien_xuat": "eager, bright"
     },

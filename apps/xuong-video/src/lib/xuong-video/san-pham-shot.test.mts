@@ -32,4 +32,9 @@ assert.ok(nhacSanPham('The person runs a hand over the {{san_pham}}', [{ ten: '{
 assert.ok(tranhDayVao('mcu', [QUAN]) && !tranhDayVao('ecu', [QUAN]) && !tranhDayVao('mcu', [CHAI]));
 const ds = [1, 2, 3].map((i) => ({ id: i, thu_tu: i, ky_thuat: { co_canh: 'mcu', chuyen_dong: 'tinh' }, tranh_day: true }));
 for (const x of daDangMay(ds)) assert.notStrictEqual(x.ky_thuat.chuyen_dong, 'day_vao', 'shot sản phẩm mặc trên người không được chọn đẩy vào');
+// Sản phẩm đổi trạng thái (giũ ra / mở gói / mặc vào) mà chưa có khung kết → chặn; có khung kết → qua (Jett #61 shot 9)
+assert.ok(loiSanPhamShot(shot('The person unfolds the new pants, turns them over, skeptical', { co_canh: 'ws' }), nv).some((x) => x.includes('đổi trạng thái')));
+assert.ok(loiSanPhamShot(shot('He opens the package and takes the pants out', { co_canh: 'ms' }), nv).some((x) => x.includes('đổi trạng thái')));
+assert.ok(!loiSanPhamShot({ ...shot('The person unfolds the new pants', { co_canh: 'ws' }), keyframe_ket: 'k.jpg' }, nv).some((x) => x.includes('đổi trạng thái')));
+assert.ok(!loiSanPhamShot(shot('He holds up the pants and turns them over, skeptical', { co_canh: 'ws' }), nv).some((x) => x.includes('đổi trạng thái')), 'giữ nguyên trạng thái → không chặn');
 console.log('san-pham-shot: đạt');

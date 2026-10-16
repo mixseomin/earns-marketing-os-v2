@@ -63,7 +63,7 @@ export function SocialTrucTiep() {
 
   if (loi) return <div style={{ fontSize: 12.5, color: 'var(--bad)' }}>Không đọc được sổ phiên: {loi}</div>;
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <StatsStrip minColWidth={130} cards={[
         { key: 'on', label: 'Đang online', value: online, color: online ? 'var(--ok)' : undefined, sub: `nhịp ${NHIP / 1000}s · ${luc ? giay(new Date(luc).toISOString()) : '…'}` },
         { key: 'ph', label: 'Phiên', value: ds.length, sub: CUA_SO_AFF.find((c) => c.value === kc)?.label },

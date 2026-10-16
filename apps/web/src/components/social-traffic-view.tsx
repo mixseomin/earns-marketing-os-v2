@@ -146,7 +146,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const trong = (tieuDe: string, moTa: string) => <EmptyState icon="○" title={tieuDe} description={moTa} compact />;
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0, 1fr)' }}>   {/* minmax(0,1fr): bảng rộng (minWidth) cuộn trong khung của nó, không kéo giãn cả trang */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <Segmented<string> options={[{ value: 'demo', label: 'DEMO', title: 'Dữ liệu mẫu để thử luồng' }, { value: 'live', label: 'LIVE', title: 'Số thật' }]}
           value={cheDo} onChange={(v) => { setCheDo(v); setBao(''); setCatKenh(null); }} />

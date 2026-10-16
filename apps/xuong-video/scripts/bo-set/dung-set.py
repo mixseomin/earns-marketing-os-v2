@@ -834,7 +834,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 Mt = Mt @ Pm
             if lan:   # QUẢ BÓNG LĂN: thân co về cầu (cùng thể tích) hạ xuống mặt bàn, chân tay / mắt / tóc thu vào, lăn đúng số vòng theo quãng
                 kb = dt['bong']; km = (DL.get('nhan_vat_mau') or {}).get(ten) or {}; w_, d_, h_ = (km.get('co') or [1.7, 1.4, 2.6])[:3]
-                rb = (w_ * d_ * h_) ** (1 / 3) / 2; tam_than = h_ / 2 + 0.2
+                rb = (w_ * d_ * h_) ** (1 / 3) / 2; tam_than = d_ / 2 if nv.get('nam') else h_ / 2 + 0.2   # tâm thân theo dáng lúc lăn (đang nằm thì thấp: nam_xuong đặt thân dày d trên mặt bàn)
                 if p_truoc is not None: quang += (p - p_truoc).xy.length * kb
                 p_truoc = p.copy(); huong_di = (b - a).xy.normalized() if (b - a).xy.length > 1e-6 else Vector((1, 0))
                 truc_lan = Vector((-huong_di.y, huong_di.x, 0))

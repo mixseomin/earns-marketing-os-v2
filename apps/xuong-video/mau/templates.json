@@ -4306,7 +4306,7 @@
      "chu_man": "{{dinh_diem}}",
      "loi": "{{loi_moi}}",
      "noi": "{{nguoi_3_ten}}",
-     "prompt_anh": "{{dinh_diem_hinh}}, {{boi_canh_2}}; {{nguoi_3_hinh}} tugging the hand of {{nguoi_2_hinh}} who half-rises from a round table with one hand on the waistband, wincing",
+     "prompt_anh": "{{boi_canh_2}}; in the foreground {{nguoi_3_hinh}} tugs the hand of {{nguoi_2_hinh}}, who half-rises from a round table with one hand on the tight waistband, wincing. Exactly ONE {{nguoi_2_ten}} and ONE {{nguoi_3_ten}} in the frame; other guests are strangers in the background",
      "prompt_video": "The child pulls the hand toward the dance floor; the person half-rises, presses a hand to the tight waistband and winces, music and string lights behind",
      "dien_xuat": "eager, bright"
     },
@@ -4380,15 +4380,14 @@
      "loai": "noi_dau",
      "co": "cu",
      "nv": [
-      "nv2",
       "bc"
      ],
      "goc_may": "Top-down close-up",
      "hanh_dong": "{{da_thu_hinh}}",
      "chu_man": "{{da_thu}}",
      "loi": "{{da_thu}}",
-     "prompt_anh": "Top-down: {{da_thu_hinh}}, {{boi_canh}}",
-     "prompt_video": "A hand drops one more item onto the pile, beat by beat"
+     "prompt_anh": "Top-down still life, no people, no hands: {{da_thu_hinh}}, {{boi_canh}}",
+     "prompt_video": "Slow top-down push-in over the pile, nothing moves"
     },
     {
      "giay": 2.2,
@@ -4518,7 +4517,7 @@
      "goc_may": "Medium close-up, shallow depth of field",
      "hanh_dong": "{{nhan_vat_ten}} watches from the table, smiling; {{nguoi_2_ten}} dances in the background",
      "chu_man": "{{review}}",
-     "prompt_anh": "{{nhan_vat_hinh}} smiling at a party table, {{nguoi_2_hinh}} in the {{san_pham}} dancing out of focus behind, {{boi_canh_2}}",
+     "prompt_anh": "{{nhan_vat_hinh}} sitting at a party table, smiling warmly, {{boi_canh_2}}; far behind and out of focus {{nguoi_2_hinh}} in the {{san_pham}} dances",
      "prompt_video": "The narrator smiles and shakes head fondly, the {{san_pham}} visible in the background",
      "bt": [
       "m1"
@@ -4537,7 +4536,7 @@
      "hanh_dong": "the folded {{san_pham}} in its colors on a table",
      "chu_man": "{{san_pham}} · {{uu_dai}} · Shop now",
      "loi": "{{chot}}",
-     "prompt_anh": "Close-up: neatly folded {{san_pham_hinh}} on a wooden table, {{boi_canh}}",
+     "prompt_anh": "Product-only close-up, no people, no hands: neatly folded {{san_pham_hinh}} on a wooden table, soft window light",
      "prompt_video": "Slow push-in on the folded {{san_pham}}",
      "bt": [
       "m1"

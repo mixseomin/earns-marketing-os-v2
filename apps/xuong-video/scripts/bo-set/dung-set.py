@@ -202,12 +202,12 @@ def anh_sang_mau(s, sh, bat):
         den('L~phu', 'AREA', [p.x, p.y, p.z + 12], (0.75, 0.82, 1.0), 4, tuple(cam.rotation_euler), 40)
         if MESH_THAT: den('L~phu2', 'AREA', [p.x, p.y, p.z + 4], (0.85, 0.88, 1.0), 2.5, tuple(cam.rotation_euler), 30)   # Cycles tối hơn EEVEE: thêm fill từ phía máy (như đèn phụ trên set thật) cho mặt nhân vật không chìm
 
-def lay_net(cam, sh):
+def lay_net(cam, sh, goc=None):
     """NÉT như ảnh chụp mô hình thật (anh 16/10/2026: "sao ảnh nó cứ mờ mờ không nét như Veo"). Trước: nét đặt vào ĐIỂM NHÌN của máy (thường sau
     chủ thể) ở f/8 — ở tỉ lệ mô hình (máy cách ~7 cm) vùng nét chỉ vài mm nên chủ thể nhoè. Giờ: nét đặt giữa các CHỦ THỂ (bat_buoc, cả chỗ mở lẫn
     chỗ kết), khẩu tính theo độ sâu giữa chủ thể gần nhất và xa nhất (+1 cm) để tất cả cùng nét, nền vẫn mềm: N = f²·Δ / (2·c·s²), c = 0,03 mm,
     trong khoảng f/11–f/64 (XV_FSTOP ép một số cố định)."""
-    d = cam.data.dof; d.use_dof = True; goc = cam.matrix_world.translation
+    d = cam.data.dof; d.use_dof = True; goc = cam.matrix_world.translation if goc is None else goc   # goc = chỗ máy (m) khi máy đang chạy
     chu = set(sh.get('bat_buoc') or [])
     diem = [Vector(p + ([0] if len(p) < 3 else [])) + Vector((0, 0, 1.2)) for v in sh.get('nhan_vat', []) if v['ten'] in chu for p in [v['tam']] + ([v['den']] if v.get('den') else [])]
     kc = [(p * CM - goc).length * 1000 for p in diem] or [(Vector(sh['may']['nhin']) * CM - goc).length * 1000]   # mm
@@ -727,6 +727,23 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 elif dai > 0.4: g_ = math.radians(24 if loai == 'chan' else 14) * math.sin(math.pi * buoc * k) * ben * (1 if loai == 'chan' else -1)   # bước luân phiên, tay ngược chân
                 else: g_ = 0.0
                 P.rotation_euler = (g_, 0, h); P.keyframe_insert('rotation_euler', frame=f)
+    # MÁY CHẠY (duong-may.ts › duongMay, số nghề may_di): mở → kết theo tốc độ (nhanh = xong trong 30 % đầu như crash zoom), ống kính đổi theo
+    # (zoom), nét tính lại từng khung theo chỗ máy. Cầm tay: lắc chậm + run từng khung (người cầm máy thở), biên độ theo khoảng cách máy.
+    chay = sh['may'].get('chay')
+    if chay:
+        d0, n0, l0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']), sh['may']['ong_kinh']
+        d1, n1, l1 = Vector(chay['dat']), Vector(chay['nhin']), chay['ong_kinh']
+        kc = (d0 - n0).length; rr = random.Random(4242); pha = [rr.uniform(0, 6.283) for _ in range(6)]
+        for f in range(1, N + 1):
+            t = (f - 1) / (N - 1); k = em(min(1.0, t / 0.3) if chay.get('toc') == 'nhanh' else t)
+            dp = d0.lerp(d1, k); npt = n0.lerp(n1, k)
+            if chay.get('rung'):
+                gi = t * giay; r_ = random.Random(9000 + f)
+                dp = dp + Vector([0.012 * kc * math.sin(2 * math.pi * (0.5 + 0.2 * i) * gi + pha[i]) + r_.uniform(-0.002, 0.002) * kc for i in range(3)])
+                npt = npt + Vector([0.02 * kc * math.sin(2 * math.pi * (0.4 + 0.15 * i) * gi + pha[3 + i]) for i in range(3)])
+            cam.location = dp * CM; cam.rotation_euler = (npt * CM - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = l0 + (l1 - l0) * k
+            cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f); cam.data.keyframe_insert('lens', frame=f)
+            lay_net(cam, sh, dp * CM); cam.data.dof.keyframe_insert('focus_distance', frame=f); cam.data.dof.keyframe_insert('aperture_fstop', frame=f)
     if boil:   # lông boil: độ rối sợi đổi nhẹ mỗi khung (như lông thật bị tay chạm giữa hai lần chụp)
         for st in {ps.settings for o in objs for ps in getattr(o, 'particle_systems', [])}:
             r1, re_ = st.roughness_1, st.roughness_endpoint; r = random.Random(len(st.name) * 97)
@@ -740,7 +757,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         for d_ in p_.devices: d_.use = True
         s.cycles.device = 'GPU'
     except Exception as ex: print('GPU?', ex)
-    lay_net(cam, sh)
+    if not chay: lay_net(cam, sh)
     s.view_settings.view_transform = 'AgX'
     # 1080×1920 (XV_RONG): model video nhận khung ≥ 720p — khung 540 bị phóng lên thành mềm.
     rong = int(os.environ.get('XV_RONG', '1080')); s.render.resolution_x, s.render.resolution_y = rong, rong * 16 // 9

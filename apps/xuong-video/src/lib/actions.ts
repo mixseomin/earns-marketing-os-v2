@@ -22,6 +22,7 @@ import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-vi
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
 import { kiemNguoiXemTap, kiemNguoiXemCanh, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
+import { soiMatTap, duyetMatTay } from './xuong-video/soi-mat';
 import { kiemKhungTap, duyetKhungTay } from '@/lib/xuong-video/kiem-khung';
 import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
@@ -681,6 +682,20 @@ export async function kiemKhungTapAction(tapId: number): Promise<Kq<{ khoi: numb
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   try { const r = await kiemKhungTap(db, tapId); return r.ok ? { ok: true, data: { ...r.data, lech: r.data.lech.length } } : r; } catch (e) { console.error('[kiểm khung]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
+}
+/** 🙂 Soi mặt cả tập (soi-mat.ts) — 0đ: OpenCV trên máy chủ so mặt trong keyframe với ảnh mẫu nhân vật. */
+export async function soiMatTapAction(tapId: number, tatCa = false): Promise<Kq<{ soi: number; lech: { thu_tu: number; chu: string }[]; theo_doi: string[] }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  try { return await soiMatTap(db, tapId, { tatCa }); } catch (e) { console.error('[soi mặt]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
+}
+/** Người nhận một khung máy báo lệch MẶT (máy báo nhầm: góc nghiêng gắt, ánh sáng lạ) — 0đ. */
+export async function duyetMatTayAction(canhId: number): Promise<Kq<true>> {
+  const db = getDb(); const me = await admin();
+  if (!db || !me) return loi('không có quyền');
+  await duyetMatTay(db, canhId, me.email);
+  return { ok: true, data: true };
 }
 /** Người nhận một khung máy báo lệch (máy báo sai) — 0đ. */
 export async function duyetKhungTayAction(canhId: number): Promise<Kq<true>> {

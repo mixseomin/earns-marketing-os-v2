@@ -9,11 +9,14 @@ import { damBaoNho } from './anh-nho-may';
 import { docKinhThanh, locNhanh, type Canh, type KiemKhung } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 import { kyThuat } from './dien-anh';
+import { soiMatTap } from './soi-mat';
 
 
 export async function kiemKhungTap(db: Db, tapId: number, o: { tatCa?: boolean; uoc?: boolean } = {}): Promise<{ ok: true; data: { khoi: number; shot: number; lech: { thu_tu: number; loi: KiemKhung['loi'] }[]; cents: number } } | { ok: false; loi: string }> {
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập' };
+  // 🙂 Soi mặt trước (0đ, máy chủ): mặt lệch ảnh mẫu thì cổng chặn ngay, khỏi tốn lượt Claude nhìn lại. Lỗi soi không chặn kiểm khung.
+  if (!o.uoc) { const sm = await soiMatTap(db, tapId).catch((e: unknown) => ({ ok: false as const, loi: String(e) })); if (!sm.ok) console.error('[soi mặt]', sm.loi); }
   const kt = docKinhThanh(bc.kt);
   const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
   const khoi = khoiCanKiem(ds, o.tatCa);

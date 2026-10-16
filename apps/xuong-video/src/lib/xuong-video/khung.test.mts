@@ -28,3 +28,19 @@ console.log('khung.test (QC miễn kiểm khung): ok');
 assert.deepEqual(chanVideo(shot, [], true), [], 'QC, không truyền o → không chặn kiểm khung');
 assert.ok(chanVideo(shot, [], false).some((x) => /Kiểm khung|chưa qua/.test(x)), 'phim truyện, không truyền o → vẫn chặn');
 console.log('khung.test: laQc bắt buộc ok');
+
+// SOI MẶT: lệch → chặn; keyframe đổi → chưa soi; quay lưng (giong null) không chặn; nhận tay → qua; phim không theo dõi mặt → không chặn
+{
+  const { trangThaiMat, chanKhung: chan } = await import('./khung');
+  const kk = { url: 'k1', dat: true, loi: [], luc: '', model: '' };
+  const sm = (dat: boolean, ket: { ten: string; giong: number | null; dat: boolean }[], o: Record<string, unknown> = {}) => ({ url: 'k1', luc: '', mat: 1, ket, dat, ...o });
+  const lech = sm(false, [{ ten: 'Bố', giong: 0.12, dat: false }]);
+  assert.equal(trangThaiMat({ keyframe_url: 'k1', soi_mat: lech }), 'lech');
+  assert.ok(chan({ keyframe_url: 'k1', kiem_khung: kk, soi_mat: lech })?.includes('Bố (giống 12%)'), 'mặt lệch chặn dù kiểm khung đạt');
+  assert.ok(chan({ keyframe_url: 'k2', kiem_khung: { ...kk, url: 'k2' }, soi_mat: lech })?.includes('soi lại'), 'keyframe đổi → soi lại');
+  assert.equal(chan({ keyframe_url: 'k1', kiem_khung: kk, soi_mat: sm(true, [{ ten: 'Bố', giong: null, dat: true }]) }), null, 'quay lưng: không chặn');
+  assert.equal(chan({ keyframe_url: 'k1', kiem_khung: kk, soi_mat: { ...lech, duyet_tay: 'a@b' } }), null, 'nhận tay: qua');
+  assert.equal(chan({ keyframe_url: 'k1', kiem_khung: kk, soi_mat: sm(true, []) }), null, 'không nhân vật mặt người: không theo dõi');
+  assert.equal(chan({ keyframe_url: 'k1', kiem_khung: kk }), null, 'shot cũ chưa có soi_mat: không chặn');
+  console.log('khung.test: soi mặt ok');
+}

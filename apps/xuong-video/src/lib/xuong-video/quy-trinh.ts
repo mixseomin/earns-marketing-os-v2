@@ -25,7 +25,7 @@ export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; l
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'> & Partial<Pick<KinhThanh, 'cam_xuc_qc'>>): PhimQt =>
   ({ phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi, camXucQc: loai === 'quang_cao' && !!kt.cam_xuc_qc });
-type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'prompt_video' | 'keyframe_ket' | 'bieu_cam' | 'noi_lien' | 'soat' | 'video_url' | 'video_cuoi_url' | 'nhanh'>>;
+type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung' | 'soi_mat' | 'prompt_video' | 'keyframe_ket' | 'bieu_cam' | 'noi_lien' | 'soat' | 'video_url' | 'video_cuoi_url' | 'nhanh'>>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
  *  shot nào không thuộc một phân cảnh đã khai (phan_doan khớp tên trong tap.phan_canh) thì chưa được sinh. MỘT luật cho bảng chọn,
@@ -144,7 +144,7 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   else if (c.trang_thai !== 'duyet' && c.trang_thai !== 'loi' && c.trang_thai !== 'xong') out.push('chưa duyệt keyframe');
   // Máy kiểm khung (khung.ts): keyframe chưa kiểm / lệch bố trí, trục, nhân vật → không cho tiêu tiền video lên một khung sai.
   // Quảng cáo KHÔNG xét (anh 15/10/2026: "gỡ cổng kiểm khung cho QC") — luật bố trí set / trục 180° là của phim truyện; QC duyệt keyframe bằng mắt.
-  if (c.keyframe_url && !laQc) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null }); if (k) out.push(k); }
+  if (c.keyframe_url && !laQc) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null, soi_mat: c.soi_mat ?? null }); if (k) out.push(k); }
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
   // Quảng cáo: cử chỉ phải dồn vào sản phẩm + máy không đẩy cắt mất sản phẩm mặc trên người (san-pham-shot.ts) — chặn trước khi tiêu tiền clip.

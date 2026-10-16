@@ -10,8 +10,8 @@ import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
 import { useEffect, useState } from 'react';
 import { useNho } from './nho';
-import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
-import { kiemKhungTapAction, boQuaSoiClipAction, dichMoTaTap, luuLuongCanh } from '@/lib/actions';
+import { trangThaiKhung, trangThaiMat, chuLechMat, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG, TEN_NUT_MAT } from '@/lib/xuong-video/khung';
+import { kiemKhungTapAction, soiMatTapAction, duyetMatTayAction, boQuaSoiClipAction, dichMoTaTap, luuLuongCanh } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
@@ -45,6 +45,11 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   const [banKhung, setBanKhung] = useState(false); const [loiKhung, setLoiKhung] = useState('');
   const canKiem = khoiCanKiem(canh); const giaKhung = giaKiemKhung(moHinhChu, canKiem.map((k) => k.length));
   const demKhung = canh.reduce((a, c) => { const t = trangThaiKhung(c); a[t] = (a[t] ?? 0) + 1; return a; }, {} as Record<string, number>);
+  // 🙂 Soi mặt (khung.ts › trangThaiMat): 0đ, máy chủ so mặt trong keyframe với ảnh mẫu — chỉ hiện khi tập có nhân vật mặt người đã soi.
+  const [banMat, setBanMat] = useState(false);
+  const demMat = canh.reduce((a, c) => { const t = trangThaiMat(c); a[t] = (a[t] ?? 0) + 1; return a; }, {} as Record<string, number>);
+  const chuaSoi = canh.filter((c) => c.keyframe_url && c.soi_mat?.url !== c.keyframe_url).length;
+  const soiMat = async () => { setBanMat(true); setLoiKhung(''); setLoiKhung((await goiAction(() => soiMatTapAction(tap.id))).loi); setBanMat(false); await onChanged(); };
   const kiemKhung = async () => { setBanKhung(true); setLoiKhung(''); setLoiKhung((await goiAction(() => kiemKhungTapAction(tap.id))).loi); setBanKhung(false); await onChanged(); };
   const doc = tiLe !== '16:9';
   // ĐỘ PHÓNG LƯỚI (#1350): bề rộng thẻ 5 nấc, ở URL (?lz=) như độ phóng thước timeline (?tlz=) — F5 / chia sẻ giữ nguyên.
@@ -99,6 +104,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
         <button type="button" className="xv-btn" title="Mở bộ set 3D của tập: xoay, phóng, nhìn qua máy từng shot, đường đi nhân vật" onClick={() => moNgan({ loai: 'bo-set', tapId: tap.id })}>🧊 Xoay xem 3D</button>
         <span style={mono}>khung: <b style={{ color: '#4ade80' }}>✓ {(demKhung.dat ?? 0) + (demKhung.tay ?? 0)}</b> · <b style={{ color: 'var(--red)' }}>⚠ {demKhung.lech ?? 0}</b> · <b style={{ color: 'var(--amber)' }}>? {demKhung.chua ?? 0}</b></span>
         <Nut chinh={canKiem.length > 0} ly={!canKiem.length && 'mọi khung đã kiểm'} ban={banKhung} gia={giaKhung} title="Máy nhìn keyframe từng khối cảnh (kèm khung cuối cảnh trước) so với thẻ shot và với nhau: chuyển cảnh, bố trí set, trục 180°, nhân vật thừa/thiếu, ánh sáng. Chưa kiểm / lệch → chặn video + animatic." onClick={() => void kiemKhung()}>{banKhung ? '… đang kiểm khung' : `${TEN_NUT_KHUNG} · ${canKiem.length} khối · ~${tien(giaKhung)}`}</Nut>
+        <button type="button" className="xv-btn" disabled={banMat || !chuaSoi} title={`0đ — máy chủ so mặt trong keyframe với ảnh mẫu nhân vật (OpenCV). Mặt lệch → chặn video + animatic. Nhân vật ảnh mẫu không có mặt người thì không theo dõi.${demMat.dat || demMat.lech ? ` Đã soi: ✓ ${(demMat.dat ?? 0) + (demMat.tay ?? 0)} · ⚠ ${demMat.lech ?? 0}` : ''}`} onClick={() => void soiMat()}>{banMat ? '… đang soi mặt' : `${TEN_NUT_MAT}${demMat.lech ? ` · ⚠ ${demMat.lech}` : ''}`}</button>
       </div>
       <Loi>{loiKhung}</Loi>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${rongThe}px, 1fr))`, gap: 8 }}>
@@ -137,6 +143,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   </span>}
                   {anh && (() => { const tk = trangThaiKhung(c); const kk = c.kiem_khung; const m = { dat: ['✓', '#4ade80'], tay: ['✓ tay', '#4ade80'], lech: ['⚠ lệch', '#f87171'], chua: ['? chưa kiểm', '#fbbf24'], khong: ['', ''] }[tk];
                     return tk !== 'khong' && <span className="xv-mono" title={tk === 'lech' || tk === 'tay' ? kk!.loi.map((l) => `${tenLoiKhung(l.loai)}: ${l.mo_ta}`).join('\n') : tk === 'chua' ? 'Keyframe chưa qua kiểm khung (hoặc đã sinh lại sau lần kiểm)' : 'Máy kiểm khung: khớp'} style={{ position: 'absolute', left: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: m[1] }}>{m[0]}</span>; })()}
+                  {anh && trangThaiMat(c) === 'lech' && <span className="xv-mono" role="button" tabIndex={0} title={`Mặt lệch ảnh mẫu: ${chuLechMat(c.soi_mat!)} — bấm để nhận (máy báo nhầm)`} onClick={(e) => { e.stopPropagation(); void goiAction(() => duyetMatTayAction(c.id)).then(() => onChanged()); }} style={{ position: 'absolute', right: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#f87171', cursor: 'pointer' }}>⚠ mặt</span>}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
                   {/* Điểm Murch ở MỌI thẻ (anh 16/10/2026: "phải đặt vào mặc định cho mọi video") — trước chỉ có trong ô 3D nên QC / shot ngoài bộ set không thấy. */}
                   <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} viTri={{ left: 4, top: 22 }} may={mayClip(c)} />

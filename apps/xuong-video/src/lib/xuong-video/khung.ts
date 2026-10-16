@@ -1,7 +1,7 @@
 // KIỂM KHUNG — phần thuần (14/10/2026, anh: "cần giải pháp kỹ thuật để không xảy ra cho mọi shot về sau, check bằng mắt mới thấy thì còn sai nhiều").
 // Mỗi keyframe phải được MÁY NHÌN so với thẻ shot + các khung cùng cảnh (kiem-khung.ts); kết quả gắn với ĐÚNG url keyframe đã kiểm, nên sinh lại
 // keyframe là tự hết hiệu lực. Cổng video + duyệt animatic đọc chanKhung — không có đường nào đi tiếp bằng một khung chưa kiểm hoặc kiểm trượt.
-import { giaChuCents, type Canh, type KiemKhung } from './kieu';
+import { giaChuCents, type Canh, type KiemKhung, type SoiMat } from './kieu';
 
 export const LOAI_LOI_KHUNG = [
   { key: 'chuyen_canh', ten: 'Chuyển cảnh không nối', mo_ta: 'từ khung trước sang khung này: trạng thái (ai cầm gì, ở đâu), hướng di chuyển, liền máy không phải khoảnh khắc kế' },
@@ -27,8 +27,23 @@ export function trangThaiKhung(c: Pick<Canh, 'keyframe_url' | 'kiem_khung'>): 'k
   return k.duyet_tay ? 'tay' : 'lech';
 }
 
+/** Trạng thái SOI MẶT (soi-mat.ts): 'khong' = chưa có keyframe / chưa soi lần nào / phim không có mặt người để theo dõi · 'chua' = keyframe đổi sau lần soi ·
+ *  'dat' · 'tay' = người nhận (máy báo nhầm) · 'lech' = có nhân vật thấy mặt mà mặt không giống ảnh mẫu. */
+export function trangThaiMat(c: Pick<Canh, 'keyframe_url'> & Partial<Pick<Canh, 'soi_mat'>>): 'khong' | 'chua' | 'dat' | 'tay' | 'lech' {
+  const m = c.soi_mat;
+  if (!c.keyframe_url || !m || !m.ket.length) return 'khong';
+  if (m.url !== c.keyframe_url) return 'chua';
+  if (m.dat) return 'dat';
+  return m.duyet_tay ? 'tay' : 'lech';
+}
+export const TEN_NUT_MAT = '🙂 Soi mặt';
+export const chuLechMat = (m: SoiMat) => m.ket.filter((k) => !k.dat).map((k) => `${k.ten} (giống ${Math.round((k.giong ?? 0) * 100)}%)`).join(', ');
+
 /** Lý do chặn (rỗng = qua) — MỘT luật cho cổng video, duyệt animatic, lưới. */
-export function chanKhung(c: Pick<Canh, 'keyframe_url' | 'kiem_khung'>): string | null {
+export function chanKhung(c: Pick<Canh, 'keyframe_url' | 'kiem_khung'> & Partial<Pick<Canh, 'soi_mat'>>): string | null {
+  const tm = trangThaiMat(c);
+  if (tm === 'lech') return `mặt lệch ảnh mẫu: ${chuLechMat(c.soi_mat!)} — sinh lại keyframe (kèm ảnh mẫu mặt / LoRA nhân vật) rồi ${TEN_NUT_MAT} lại`;
+  if (tm === 'chua') return `keyframe đổi sau lần ${TEN_NUT_MAT} — soi lại`;
   const t = trangThaiKhung(c);
   if (t === 'chua') return `keyframe chưa qua ${TEN_NUT_KHUNG} (bố trí set, trục máy, nhân vật) — hoặc đã sinh lại sau lần kiểm`;
   if (t === 'lech') return `keyframe lệch: ${(c.kiem_khung as KiemKhung).loi.map((l) => `${tenLoiKhung(l.loai)} — ${l.mo_ta}`).join('; ')} — sinh lại keyframe rồi kiểm lại`;

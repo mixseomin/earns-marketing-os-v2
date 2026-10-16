@@ -459,6 +459,9 @@ export type Lop = {
 /** Kết quả bước THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): Claude chỉ thấy thứ người xem thấy/nghe, kể lại + chấm hiểu; rồi đối chiếu brief.
  *  `ma` = mã phiên bản của bản người xem lúc thử — kịch bản đổi thì kết quả hết hiệu lực. */
 /** Kết quả 🔍 Kiểm khung của MỘT keyframe (khung.ts / kiem-khung.ts): url = keyframe đã kiểm (đổi là hết hiệu lực); duyet_tay = người nhận khung dù máy báo lệch. */
+/** SOI MẶT (soi-mat.ts): mặt trong keyframe so với ảnh mẫu nhân vật. ket: nhân vật có ảnh mẫu mặt người; giong null = không thấy mặt trong khung (quay lưng, qua vai) —
+ *  không phải lệch. dat = mọi mặt thấy được đều giống ảnh mẫu (cosine SFace ≥ 0,363). url = keyframe đã soi. */
+export type SoiMat = { url: string; luc: string; mat: number; ket: { ten: string; giong: number | null; dat: boolean }[]; dat: boolean; duyet_tay?: string; loi?: string };
 export type KiemKhung = { url: string; dat: boolean; loi: { loai: string; mo_ta: string; sua: string }[]; luc: string; model: string; duyet_tay?: string };
 export type ThuNguoiXem = {
   ma: string; luc: string; model: string;
@@ -546,6 +549,7 @@ export type Canh = {
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; /** ISO lúc sinh xong keyframe / clip đang dùng (dsCanh, #1384) */ keyframe_luc?: string | null; video_luc?: string | null; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   dan_dung?: DanDung;
   kiem_khung?: KiemKhung | null;
+  soi_mat?: SoiMat | null;
   /** máy soi clip (soi-clip.ts) — chỉ áp khi url trùng clip đang dùng */ soi_clip?: SoiClip | null;
   /** MURCH QC (qc-cam-xuc.ts): kế hoạch biểu cảm từng nhân vật (đầu → cuối, cấm) · khung đầu = khung cuối clip shot trước · kết quả soát thật */
   bieu_cam?: import('./qc-cam-xuc').BieuCamNv[]; noi_lien?: boolean; soat?: import('./qc-cam-xuc').SoatShot | null;

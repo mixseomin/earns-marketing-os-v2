@@ -54,7 +54,6 @@ export function SoNguonAi() {
   const dv = LOAI_NGUON.find((l) => l.key === loai)!.donVi;
   const dsLoai = d.model.filter((m) => m.loai === loai);
   const dsGia = dsLoai.filter((m) => tt === 'tat_ca' || (tt === 'dang' ? ttM(m) === 'dang' : ttM(m) !== 'dang'));
-  const maxGia = Math.max(1, ...dsGia.map((m) => giaHien(m) ?? 0));
   const moModel = (m: NguonModel) => setMo({ model: m.id });
 
   const cotModel: DataColumn<NguonModel> = { key: 'model', header: 'Model', align: 'left', cell: tenModel, sortValue: (m) => `${m.model} ${m.goi}` };
@@ -63,9 +62,11 @@ export function SoNguonAi() {
   const cotGiay: DataColumn<NguonModel> = { key: 'giay', header: 'Thời gian (trung vị)', title: 'Trung vị thời gian một lượt đạt, tính cả chờ hàng đợi', cell: (m) => (m.on_dinh?.giay ? `${m.on_dinh.giay}s` : '—'), sortValue: (m) => m.on_dinh?.giay ?? null };
   const cotGia: DataColumn<NguonModel>[] = [
     cotModel, cotNguon,
-    { key: 'gia', header: 'Giá', title: `VNĐ / ${dv} — bấm số để mở trang chứa giá`, cell: (m) => <><Gia m={m} /><span style={{ display: 'inline-block', height: 5, borderRadius: 3, background: 'var(--cyan)', opacity: 0.5, marginLeft: 6, verticalAlign: 'middle', width: giaHien(m) ? Math.max(3, Math.round((40 * giaHien(m)!) / maxGia)) : 0 }} /></>, sortValue: (m) => giaHien(m) },
-    { key: 'da_tru', header: 'Đã trừ / lượt đạt', title: 'Tiền thật đã trừ chia số lượt đạt, sổ job 14 ngày', cell: (m) => <DaTru m={m} />, sortValue: (m) => vndMoiLuot(m.on_dinh) },
+    // Đơn vị nằm TRONG tên cột: giá niêm yết theo đơn vị chuẩn của loại; tiền đã trừ là theo lượt THẬT (dài ngắn tuỳ shot) — hai đơn vị khác nhau,
+    // không đặt cạnh nhau để khỏi so thẳng (260₫ / bản 30s cạnh 238₫ / lượt trông như "rẻ hơn niêm yết").
+    { key: 'gia', header: `Giá / ${dv}`, title: `Giá niêm yết quy về VNĐ cho ${dv} — bấm số để mở trang chứa giá`, cell: (m) => <Gia m={m} />, sortValue: (m) => giaHien(m) },
     cotOnDinh, cotGiay,
+    { key: 'da_tru', header: 'Đã trừ / lượt thật', title: 'Tiền thật đã trừ chia số lượt đạt (sổ job 14 ngày) — một lượt dài ngắn tuỳ shot, KHÔNG cùng đơn vị với cột Giá', cell: (m) => <DaTru m={m} />, sortValue: (m) => vndMoiLuot(m.on_dinh) },
     { key: 'khop', header: 'Khớp', align: 'left', cell: (m) => <Khop k={m.khop} tat={m.tat} /> },
   ];
   const cotKhop: DataColumn<NguonModel>[] = [

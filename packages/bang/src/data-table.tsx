@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
 import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
@@ -150,6 +151,22 @@ export function DataTable<T>({
   serverSort, serverFilter,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
+  // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
+  // persistKey (localStorage, đọc sau khi gắn để không lệch SSR); có cột đã kéo → bảng chuyển table-layout fixed để bề ngang được tôn trọng.
+  const khoaRong = persistKey ? `tbl-rong.${persistKey}` : null;
+  const [rong, setRong] = useState<Record<string, number>>({});
+  useEffect(() => { if (khoaRong) setRong(docRongCot(khoaRong)); }, [khoaRong]);
+  const keoCot = (e: ReactPointerEvent<HTMLSpanElement>, key: string) => {
+    e.stopPropagation();
+    const th = e.currentTarget.parentElement as HTMLElement | null; const hang = th?.parentElement; if (!th || !hang) return;
+    // chốt bề ngang HIỆN TẠI của mọi cột trước khi chuyển sang fixed — không thì các cột chưa khai width nhảy lung tung lúc bắt đầu kéo
+    const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width); });
+    setRong((r) => ({ ...chot, ...r }));
+    batDauKeo(e, { dau: th.getBoundingClientRect().width, min: 36, max: () => 1600,
+      doi: (v) => setRong((r) => ({ ...r, [key]: v })),
+      xong: (v) => setRong((r) => { const n = { ...chot, ...r, [key]: v }; if (khoaRong) ghiRongCot(khoaRong, n); return n; }) });
+  };
+  const veMacDinh = (key: string) => setRong((r) => { const n = { ...r }; delete n[key]; if (khoaRong) ghiRongCot(khoaRong, n); return n; });
   // Ô tìm/lọc chung — persist như sort/lọc-cột (cookie server đọc sẵn + URL để share/F5). Trước đây
   // useState('') nên F5 xoá sạch ô tìm dù sort/lọc-cột vẫn sống → nhìn ra như "lọc bị reset".
   const searchUrlKey = persistKey ? `${persistKey}.q` : undefined;
@@ -291,6 +308,7 @@ export function DataTable<T>({
   }, [rows, q, searchText, activeFilters, columns]);
 
   const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
+  const visibleKeys = visible.map((c) => c.key);   // thứ tự ô tiêu đề — keoCot chốt bề ngang theo đúng cột
   // Hàng tổng chỉ vẽ khi CÒN dòng: lọc ra rỗng mà vẫn hiện "TỔNG (0) · $0" cạnh dòng báo
   // không khớp là hai câu nói cùng một chuyện, cái sau còn trông như số liệu thật.
   const hasTotals = visible.some((c) => c.total);
@@ -337,11 +355,11 @@ export function DataTable<T>({
       : {});
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseCell, textAlign: c.align ?? 'right', width: c.width, background: bandSoft(g?.color), ...stick(i, false), ...extra };
+    return { ...baseCell, textAlign: c.align ?? 'right', width: rong[c.key] ?? c.width, ...(rong[c.key] ? { maxWidth: rong[c.key], overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
   };
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width,
+    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: rong[c.key] ?? c.width,
       color: g?.color ?? 'var(--fg-3)',
       // nền = lớp ĐỤC + lớp màu nhóm (trong suốt) chồng lên, để hàng cuộn qua không lộ xuyên
       backgroundColor: 'var(--bg-2)',
@@ -461,7 +479,7 @@ export function DataTable<T>({
         </div>
       ) : (
       <div className="dt-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout ? 'fixed' : 'auto', minWidth }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth }}>
           {!hideHeader && (
           <thead>
             <tr>
@@ -499,6 +517,8 @@ export function DataTable<T>({
                         </span>
                       )}
                     </span>
+                    <span className="dt-keo" aria-hidden title="Kéo để đổi bề ngang cột · nhấp đúp để về mặc định"
+                          onPointerDown={(e) => keoCot(e, c.key)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); veMacDinh(c.key); }} />
                   </th>
                 );
               })}

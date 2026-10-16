@@ -261,7 +261,7 @@ export function KhoCreative({ d, spKey, onDoi, onMoPhim }: { d: KhoConcept; spKe
           <span style={mono}>{rows.length.toLocaleString('vi-VN')} dòng đang lọc</span>
         </div>
         <Loi>{loi}</Loi>
-        <DataTable rows={rows} columns={cot} getRowKey={(x) => x.ma} pageSize={50} minWidth={980} fixedLayout stickyFirst={false}
+        <DataTable rows={rows} columns={cot} getRowKey={(x) => x.ma} persistKey="xv-kho-creative" pageSize={50} minWidth={980} fixedLayout stickyFirst={false}
           searchText={(x) => `${x.hook} ${x.c.ten} ${tenT(x.t)} ${x.khac.map((k2) => k2.chu).join(' ')} ${x.bien_the.nguoi_chinh} ${x.bien_the.boi_canh}`} searchPlaceholder="tìm chữ trong creative…"
           onRowClick={(x) => setMo(mo === x.ma ? null : x.ma)}
           renderExpanded={(x) => (mo !== x.ma ? null : <div style={{ display: 'grid', gap: 3, fontSize: 12.5 }}>

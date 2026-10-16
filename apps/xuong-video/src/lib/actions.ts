@@ -1733,6 +1733,23 @@ export async function boSet3dTap(tapId: number): Promise<Kq<{ sets: BoSet[]; kho
   return { ok: true, data: { sets, khoi, loai: loaiNv, shots, ti_le: docKinhThanh(t[0].kinh_thanh as KinhThanh).ti_le } };
 }
 
+/** 🧊 Dữ liệu trình xem theo MỘT BỘ SET (thẻ bối cảnh › 🧊 Xem 3D, anh 17/10/2026 "sao không thấy ở đây"): bộ set + khối nhân vật của phim +
+ *  mọi shot (mọi tập, nhánh A) đứng trên bộ set đó — xem được ngay cả khi phim chưa có shot. Cùng khuôn dữ liệu boSet3dTap. */
+export async function boSet3dSet(setId: number): Promise<Kq<{ sets: BoSet[]; khoi: Record<string, NhanVat['khoi_3d']>; loai: Record<string, string>; shots: { id: number; thu_tu: number; ma: string; canh: string; set_id: number | null; may_3d: May3d | null; xam: string | null }[]; ti_le: string }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT b.*, p.kinh_thanh AS kt_phim FROM xv_bo_set b LEFT JOIN xv_phim p ON p.id = b.phim_id WHERE b.id = ${setId}`)) as unknown as Row[];
+  if (!r[0]) return loi('không thấy bộ set');
+  const set = mapBoSet(r[0]); const phimId = r[0].phim_id == null ? null : Number(r[0].phim_id);
+  const nv = phimId ? ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat) : [];
+  const ds = phimId ? locNhanh(((await db.execute(sql`SELECT c.* FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId} ORDER BY t.so, c.thu_tu, c.id`)) as unknown as Row[]).map(mapCanh), 'A') : [];
+  const shots = ds.filter((c) => boSetCuaShot(c, nv) === setId).map((c) => ({ id: c.id, thu_tu: c.thu_tu, ma: c.dan_dung?.ma ?? '', canh: c.canh, set_id: setId, may_3d: c.may_3d ?? null, xam: c.khung_xam?.xam ?? null }));
+  const khoi: Record<string, NhanVat['khoi_3d']> = {}; const loaiNv: Record<string, string> = {};
+  for (const v of nv) if (v.khoi_3d) { khoi[v.ten] = v.khoi_3d; loaiNv[v.ten] = v.loai; }
+  return { ok: true, data: { sets: [set], khoi, loai: loaiNv, shots, ti_le: docKinhThanh(r[0].kt_phim as KinhThanh).ti_le } };
+}
+
 // ── KHO CREATIVE THEO SẢN PHẨM (kho-creative.ts) ─────────────────────────────────────────────────────────────────────────────────
 export type KhoSanPham = { sp: { key: string; ten: string; link: string; spy: number | null }; creative: DongCreative[]; thanh_phan: ThanhPhan[] };
 /** Mọi creative QC của MỘT sản phẩm (khoá = nhom-phim.ts › sanPhamPhim) + thành phần gom từ shot / anchor. Chỉ đọc, 0đ. */

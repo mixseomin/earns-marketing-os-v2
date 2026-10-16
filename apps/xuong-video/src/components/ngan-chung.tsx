@@ -13,7 +13,7 @@ import { BoSetXem } from './bo-set-xem';
 import { SoNguonAi } from './nguon-ai-ui';
 import { SoLienMachXem } from './so-lien-mach-ui';
 
-export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
+export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'bo-set'; setId: number; tapId?: undefined; canhId?: undefined } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -29,7 +29,7 @@ function lopCua(y: YeuCauNgan): Lop {
     case 'nguon': return { loai: 'nguon', id: String(y.canhId) };
     case 'ky-thuat': return { loai: 'ky-thuat', id: y.ma };
     case 'noi-khung': return { loai: 'noi-khung', id: String(y.tapId) };
-    case 'bo-set': return { loai: 'bo-set', id: `${y.tapId}.${y.canhId ?? 0}` };
+    case 'bo-set': return { loai: 'bo-set', id: 'setId' in y && y.setId ? `s${y.setId}` : `${y.tapId}.${y.canhId ?? 0}` };
     case 'lien-mach': return { loai: 'lien-mach', id: `${y.tapId}~${encodeURIComponent(y.canh ?? '')}` };
     case 'thu-vien': return { loai: 'thu-vien', id: y.tl ?? '' };
     case 'so-chi-phi': return { loai: 'so-chi-phi', id: y.phim != null ? String(y.phim) : '' };
@@ -73,7 +73,7 @@ function TangNgan({ l, onClose }: { l: Lop; onClose: () => void }) {
     case 'thu-vien': return <Ngan onClose={onClose} tieuDe="🎬 Thư viện điện ảnh"><ThuVienNoiDung tlDau={l.id} /></Ngan>;
     case 'kho': return <Ngan onClose={onClose} tieuDe="📦 Kho tài sản"><KhoNoiDung dich={docDich(l.id || null)} /></Ngan>;
     case 'noi-khung': return <Ngan onClose={onClose} tieuDe="⛓ Nối khung cả tập"><NoiKhungTap tapId={n} /></Ngan>;
-    case 'bo-set': return <Ngan onClose={onClose} tieuDe="🧊 Bộ set 3D"><BoSetXem tapId={Number(l.id.split('.')[0])} canhId={Number(l.id.split('.')[1]) || null} /></Ngan>;
+    case 'bo-set': return <Ngan onClose={onClose} tieuDe="🧊 Bộ set 3D">{l.id.startsWith('s') ? <BoSetXem setId={Number(l.id.slice(1))} /> : <BoSetXem tapId={Number(l.id.split('.')[0])} canhId={Number(l.id.split('.')[1]) || null} />}</Ngan>;
     case 'lien-mach': { const [t, c] = l.id.split('~'); const canh = decodeURIComponent(c ?? '');
       return <Ngan onClose={onClose} tieuDe={`📒 Sổ liền mạch${canh ? ` · ${canh}` : ''}`}><SoLienMachXem tapId={Number(t)} canh={canh || undefined} /></Ngan>; }
     case 'ky-thuat': return <Ngan nho onClose={onClose} tieuDe="🎬 Kỹ thuật điện ảnh"><ChiTietKyThuatNgan ma={l.id} /></Ngan>;

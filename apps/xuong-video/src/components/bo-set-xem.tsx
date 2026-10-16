@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { boSet3dTap } from '@/lib/actions';
+import { boSet3dTap, boSet3dSet } from '@/lib/actions';
 import { moNgan } from './ngan-chung';
 import type { BoSet, May3d } from '@/lib/xuong-video/kieu';
 import { V, chat, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
@@ -24,7 +24,8 @@ const nhan = (chu: string, mau = 'rgba(0,0,0,.65)') => {
 };
 
 /** gon: bản nhúng trong ngăn chi tiết shot (#1365) — chỉ khung 3D nhìn qua máy shot, xoay / phóng được, không thanh công cụ; nút ⤢ mở bản đầy đủ. */
-export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: number | null; gon?: boolean }) {
+/** setId: xem THEO BỘ SET (thẻ bối cảnh › 🧊 Xem 3D) thay vì theo tập. */
+export function BoSetXem({ tapId, setId: setTheo, canhId, gon }: { tapId?: number; setId?: number; canhId?: number | null; gon?: boolean }) {
   const [dl, setDl] = useState<DuLieu | null>(null);
   const [loi, setLoi] = useState('');
   const [chon, setChon] = useState<number | null>(canhId ?? null);
@@ -35,7 +36,7 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
   const khung = useRef<HTMLDivElement>(null);
   const banh = useRef<{ dat: (s: { quaMay: boolean; chon: number | null }) => void } | null>(null);
 
-  useEffect(() => { void (async () => { const { loi: l, kq } = await goiAction(() => boSet3dTap(tapId)); setLoi(l); if (kq?.ok) setDl(kq.data); })(); }, [tapId]);
+  useEffect(() => { void (async () => { const { loi: l, kq } = await goiAction(() => (setTheo ? boSet3dSet(setTheo) : boSet3dTap(tapId ?? 0))); setLoi(l); if (kq?.ok) setDl(kq.data); })(); }, [tapId, setTheo]);
   const shots = useMemo(() => (dl?.shots ?? []).filter((s) => s.set_id && s.may_3d), [dl]);
   const shot = shots.find((s) => s.id === chon) ?? null;
   // Tập nhiều bối cảnh (phim tổng tài: văn phòng / thang máy / phòng họp) — chọn bộ set để tham quan, kể cả khi chưa có shot nào đứng trên nó.
@@ -136,7 +137,7 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
         <span style={{ ...mono, fontSize: 9.5 }}>kéo xoay · cuộn phóng</span>
         <span style={{ display: 'flex', gap: 3 }}>
           {nut(quaMay, '👁', 'Nhìn qua máy shot / nhìn tự do', () => setQuaMay(!quaMay))}
-          <button type="button" className="xv-btn" title="Mở bộ xem 3D đầy đủ (đường đi, mọi máy, nhãn)" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: chon })}>⤢</button>
+          <button type="button" className="xv-btn" title="Mở bộ xem 3D đầy đủ (đường đi, mọi máy, nhãn)" onClick={() => moNgan(setTheo ? { loai: 'bo-set', setId: setTheo } : { loai: 'bo-set', tapId: tapId ?? 0, canhId: chon })}>⤢</button>
         </span>
       </div>
     </div>

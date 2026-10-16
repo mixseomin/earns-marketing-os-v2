@@ -10,7 +10,7 @@ import { linkGocSpy } from '@/lib/xuong-video/goc-spy';
 import { Ngan } from './ngan';
 import { useNho } from './nho';
 import { TaoTuTemplate } from './template-ui';
-import { tien } from '@/lib/xuong-video/kieu';
+import { tien, LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import { nhapConcept, batCap, themBienThe, suaBienThe, boBienThe, themPhuongAn, suaPhuongAn, boPhuongAn, uocVietPhuongAn, vietPhuongAn, uocVietHet, vietHet, duyetToHop, boCreative, gtCreative, taoPhimTuCreative, type KhoConcept } from '@/lib/actions-concept';
 import { MUC_NB, mucNb, hopKhuon, toHopCap, trongVong, khacGoc, tienCapCents, tienDungRiengCents, tienBienTheCents, duKienCap, type Concept, type TplConcept, type Cap, type BienTheHinh, type ToHop, type Vong } from '@/lib/xuong-video/concept';
 
@@ -243,16 +243,28 @@ export function KhoCreative({ d, spKey, phim, onDoi, onMoPhim }: { d: KhoConcept
       return cr?.trang_thai === 'da_tao' && cr.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={(e) => { e.stopPropagation(); onMoPhim(cr.phim_id!); }} title="mở phim của creative">🎬 phim #{cr.phim_id}</button>
         : cr?.trang_thai === 'duyet' ? <Nut onClick={() => void moTao(cr.id)} title="Tạo phim từ template với diễn viên, bối cảnh và chữ đã chọn (0đ)">Tạo phim</Nut> : <Pill color="var(--fg-3)">đề xuất</Pill>; } },
   ];
-  /** Kịch bản một creative theo thứ tự ô (= thứ tự shot), mỗi câu kèm nguồn — để review đúng chữ trước khi duyệt. */
-  const kichBan = (x: DongCr) => <div style={{ display: 'grid', gap: 4, fontSize: 12.5 }}>
-    {x.t.o_chu.map((o) => { const p = d.phuong_an.find((y) => y.cap_id === x.cap_id && y.o === o.k && y.so === x.chon[o.k]);
-      return <div key={o.k} style={{ display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr)', gap: 8 }}><span style={mono}>{o.ten} · {o.loai} · {o.giay}s · bản {x.chon[o.k]}</span>
-        <span>{p?.chu ?? '—'}{p?.nguon && <span style={{ ...mono, marginLeft: 6 }}>← {p.nguon}</span>}</span></div>; })}
-    <span style={{ ...mono, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-      <span>mã QC <b>{x.ma}</b> <button type="button" className="xv-lienket xv-mono" onClick={() => void navigator.clipboard?.writeText(x.ma).catch(() => undefined)}>chép</button></span>
-      {(x.c.du_lieu.goc ?? []).length > 0 && d.spy_sp && <span>bằng chứng trên spy: {(x.c.du_lieu.goc ?? []).slice(0, 6).map((g) => <LinkNgoai key={g} href={linkGocSpy({ id: g, sp: d.spy_sp! })} className="xv-lienket xv-mono" style={{ marginRight: 6 }}>góc #{g}</LinkNgoai>)}</span>}
-      <button type="button" className="xv-lienket xv-mono" onClick={() => setCfg({ cap: x.cap_id })}>✎ sửa phương án của cặp này</button>
-    </span>
+  /** Kịch bản một creative = dải thẻ theo shot (như storyboard): số · loại shot · giây, câu chữ, nguồn — để review đúng chữ trước khi duyệt. */
+  const kichBan = (x: DongCr) => <div style={{ display: 'grid', gap: 10, padding: '4px 0 2px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
+      {x.t.o_chu.map((o, i) => { const p = d.phuong_an.find((y) => y.cap_id === x.cap_id && y.o === o.k && y.so === x.chon[o.k]), ban = x.chon[o.k] ?? 1;
+        return <div key={o.k} title={`ô {{${o.k}}} · ${o.ten}`} style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: 6, padding: '8px 10px', borderRadius: 8, background: 'var(--bg-1)', border: `1px solid ${ban !== 1 ? 'color-mix(in srgb, var(--cyan) 55%, transparent)' : 'var(--line)'}`, minHeight: 92 }}>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <b style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, width: 18, height: 18, borderRadius: 99, display: 'inline-grid', placeItems: 'center', background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{i + 1}</b>
+            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-2)' }}>{LOAI_SHOT_MAU.find((l) => l.key === o.loai)?.ten ?? o.loai}</span>
+            <span style={{ ...mono, marginLeft: 'auto' }}>{o.giay}s</span>
+            {ban !== 1 && <span style={{ fontSize: 10, padding: '0 6px', borderRadius: 99, background: 'color-mix(in srgb, var(--cyan) 16%, transparent)', color: 'var(--cyan)' }}>bản {ban}</span>}
+          </span>
+          <span style={{ fontSize: 14, lineHeight: 1.35, fontWeight: 500, color: 'var(--fg-1)' }}>{p?.chu ?? '—'}</span>
+          {p?.nguon && <span style={{ fontSize: 11, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.nguon}</span>}
+        </div>; })}
+    </div>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      <button type="button" className="xv-btn" onClick={() => void navigator.clipboard?.writeText(x.ma).catch(() => undefined)} title="Chép mã QC — đặt làm tên quảng cáo để kết quả quy về đúng creative">⧉ mã QC <span style={{ fontFamily: 'var(--font-mono)', opacity: 0.7 }}>{x.ma}</span></button>
+      {(x.c.du_lieu.goc ?? []).length > 0 && d.spy_sp && <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><span style={mono}>bằng chứng</span>
+        {(x.c.du_lieu.goc ?? []).slice(0, 4).map((g, n2) => <LinkNgoai key={g} href={linkGocSpy({ id: g, sp: d.spy_sp! })} className="xv-btn" title={`góc #${g} trên spy — câu thật của khách`}>spy {n2 + 1} ↗</LinkNgoai>)}</span>}
+      <span style={{ flex: 1 }} />
+      <button type="button" className="xv-btn" onClick={() => setCfg({ cap: x.cap_id })}>✎ Sửa câu chữ</button>
+    </div>
   </div>;
   const anhBo = (b: BoHinh) => b.ds.map((x) => daDuyet.get(x.ma)?.phim_id).map((id) => (id ? phimId.get(id) : undefined)).find((p) => p?.anh);
   return (

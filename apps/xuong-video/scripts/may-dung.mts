@@ -2,7 +2,7 @@
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts <lệnh>
 //   --nap                    (0đ) đọc JSON đề từ stdin ([{du_an, mau, slug, chu_de, de, dang}]) → phim thể loại Máy Dựng (+ tập + 3 shot)
-//   --ds <du_an>             (0đ) in JSON { slug: { phim_id, tap_id, file_url, xuat_luc, title, description, link, … } } — bên đăng đọc
+//   --ds <du_an> [--ca-luu-tru]  (0đ) in JSON { slug: { phim_id, tap_id, file_url, xuat_luc, title, description, link, … } } — bên đăng đọc
 //   --xuat <slug|all-chua|all> [--du-an x]   (0đ) ⬇ Xuất như nút của tập: bản dựng + keyframe / clip từng shot (ghi bản xuất của tập)
 //   --xem-truoc <slug|all-thieu> [--du-an x]  (0đ) keyframe xem trước từng shot (một khung qua bộ lọc bản dựng) — all-thieu: phim còn shot chưa có khung
 //   --nen <slug> [--prompt "…"]               TỐN TIỀN (~65–110₫/ảnh, chuỗi cổng rẻ): ảnh nền cho phim — cần DUYET_SINH_1_LAN=1
@@ -22,7 +22,7 @@ if (a.includes('--nap')) {
   if (!Array.isArray(ds) || !ds.length) { console.error('stdin phải là mảng đề'); process.exit(1); }
   console.log(JSON.stringify(await napDe(db, ds)));
 } else if (lay('--ds') != null) {
-  process.stdout.write(JSON.stringify(await dsMayDungDang(db, lay('--ds')!)));
+  process.stdout.write(JSON.stringify(await dsMayDungDang(db, lay('--ds')!, a.includes('--ca-luu-tru'))));
 } else if (lay('--xuat') != null) {
   const muc = lay('--xuat')!, duAn = lay('--du-an') ?? 'puzzle-books';
   const ds = Object.entries(await dsMayDungDang(db, duAn)).filter(([slug, x]) => (muc === 'all-chua' ? !x.file_url : muc === 'all' ? true : slug === muc));

@@ -176,11 +176,12 @@ export async function sinhNenMayDung(db: Db, phimId: number, prompt?: string): P
   return { ok: true, url, vnd };
 }
 
-/** Danh sách cho bên đăng: { slug: { phim_id, tap_id, file_url (bản xuất mới nhất), xuat_luc, nen, ...chữ đăng } } của một dự án. */
-export async function dsMayDungDang(db: Db, duAn: string): Promise<Record<string, Row>> {
+/** Danh sách cho bên đăng: { slug: { phim_id, tap_id, file_url (bản xuất mới nhất), xuat_luc, nen, ...chữ đăng } } của một dự án.
+ *  Phim đã lưu trữ bị bỏ (anh 17/10/2026: phim cũ lưu trữ, chỉ đăng phim mới) — `caLuuTru` lấy cả chúng (bên đọc số cần tên video đã đăng). */
+export async function dsMayDungDang(db: Db, duAn: string, caLuuTru = false): Promise<Record<string, Row>> {
   const rows = (await db.execute(sql`SELECT p.id, p.kinh_thanh->'may_dung' AS may_dung, t.id AS tap_id, t.video_url, t.xuat->-1->>'luc' AS xuat_luc
     FROM xv_phim p LEFT JOIN LATERAL (SELECT * FROM xv_tap WHERE phim_id = p.id ORDER BY so, id LIMIT 1) t ON true
-    WHERE p.loai = 'may_dung' AND p.kinh_thanh->'may_dung'->>'du_an' = ${duAn} AND coalesce((p.kinh_thanh->>'luu_tru')::boolean, false) = false`)) as unknown as Row[];
+    WHERE p.loai = 'may_dung' AND p.kinh_thanh->'may_dung'->>'du_an' = ${duAn} AND (${caLuuTru} OR coalesce((p.kinh_thanh->>'luu_tru')::boolean, false) = false)`)) as unknown as Row[];
   const ra: Record<string, Row> = {};
   for (const r of rows) { const k = r.may_dung as MayDungKt; ra[k.slug] = { phim_id: Number(r.id), tap_id: r.tap_id == null ? null : Number(r.tap_id), file_url: r.video_url ?? null, xuat_luc: r.xuat_luc ?? null, nen: !!k.nen_url, ...k.dang, kieu: 'an', mau: k.mau }; }
   return ra;

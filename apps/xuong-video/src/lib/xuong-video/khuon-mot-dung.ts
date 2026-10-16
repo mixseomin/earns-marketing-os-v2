@@ -1,0 +1,119 @@
+// KHUÔN VIDEO "Only ONE is spelled right" (Front Porch Puzzles, chuyển từ puzzle-books/scripts/shorts.mjs --kieu an, 16/10/2026).
+// THUẦN: đề bài → tệp ASS (libass vẽ chữ + hình) + lệnh ffmpeg. Không AI, không trình duyệt (máy chủ cấm chạy trình duyệt — bản cũ
+// chụp từng khung bằng Chrome trên iMac). Nhịp + bố cục giữ y bản cũ: tiêu đề + bảng "đập" vào khung 0,5s, thanh thời gian + đồng hồ
+// đếm 7 giây (3 giây cuối đỏ, nảy mỗi giây), 7,3s lộ đúng một ô (ô sai mờ đi), 9,1s màn kết rủ comment + link pickjot.
+// Nền: ảnh (AI theo chủ đề, khuon.ts › sinhNenKhuon) phủ màu bìa cho chữ đọc rõ, hoặc dải màu bìa khi chưa có ảnh.
+//   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/khuon-mot-dung.test.mts
+
+export interface MauBia { sau: string; truoc: string; nhan: string }
+export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string; mau: MauBia }
+
+export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, LO = 0.6, T_KET = T_LO + LO + 1.2, DAI = T_KET + 2.7;
+const W = 1080, H = 1920, DO = '#E5484D';
+/** Cỡ chữ ASS (\\fs) tính theo chiều cao dòng, cỡ CSS của bản cũ tính theo em → nhân hệ số này để chữ ra cùng cỡ (đo 16/10/2026 trên khung so). */
+const EM = 1.25;
+const fs = (px: number) => `\\fs${Math.round(px * EM)}`;
+
+/** '#RRGGBB' → màu ASS '&H00BBGGRR&' (ASS ghi BGR). */
+export function mauAss(hex: string): string {
+  const h = hex.replace('#', '').padEnd(6, '0').slice(0, 6).toUpperCase();
+  return `&H00${h.slice(4, 6)}${h.slice(2, 4)}${h.slice(0, 2)}&`;
+}
+/** Độ đục 0..1 → alpha ASS (00 = đục hẳn, FF = trong suốt). */
+const alpha = (duc: number) => `&H${Math.round((1 - Math.min(1, Math.max(0, duc))) * 255).toString(16).padStart(2, '0').toUpperCase()}&`;
+/** Trộn hai màu hex theo tỉ lệ t (0 = a, 1 = b) — dải nền sáng/tối từ màu bìa như color-mix của bản cũ. */
+export function tron(a: string, b: string, t: number): string {
+  const p = (x: string) => [1, 3, 5].map((i) => parseInt(x.replace('#', '').padEnd(6, '0').slice(i - 1, i + 1), 16));
+  const [x, y] = [p(a), p(b)];
+  return `#${x.map((v, i) => Math.round(v + (y[i]! - v) * t).toString(16).padStart(2, '0')).join('')}`;
+}
+const tg = (s: number) => { const c = Math.max(0, Math.round(s * 100)); return `${Math.floor(c / 360000)}:${String(Math.floor(c / 6000) % 60).padStart(2, '0')}:${String(Math.floor(c / 100) % 60).padStart(2, '0')}.${String(c % 100).padStart(2, '0')}`; };
+const ms = (s: number) => Math.round(s * 1000);
+const chu = (s: string) => s.replace(/[{}\\]/g, '');
+/** Hình chữ nhật bo góc (ASS drawing, gốc 0,0) — đặt bằng \an5\pos(tâm) để phóng/thu quanh tâm. */
+function bo(w: number, h: number, r: number): string {
+  const R = Math.min(r, w / 2, h / 2), k = Math.round(R * 0.4477 * 10) / 10;   // 1 − 0,5523: điểm điều khiển bezier xấp xỉ cung 1/4 tròn
+  return `m ${R} 0 l ${w - R} 0 b ${w - k} 0 ${w} ${k} ${w} ${R} l ${w} ${h - R} b ${w} ${h - k} ${w - k} ${h} ${w - R} ${h} l ${R} ${h} b ${k} ${h} 0 ${h - k} 0 ${h - R} l 0 ${R} b 0 ${k} ${k} 0 ${R} 0`;
+}
+
+type Dong = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' | 'Chu', text: string];
+
+/** Bố cục ô chữ: 4 cột x 9 hàng cho từ ≤ 6 chữ, 3 x 12 cho từ dài hơn; cỡ chữ theo bề rộng ô (Archivo Black ~0,8 em/chữ) — y bản cũ. */
+export function luoi(de: DeMotDung) {
+  const cot = de.dich.length > 6 ? 3 : 4, hang = 36 / cot, cw = 960 / cot, ch = 1040 / hang;
+  const co = Math.min(64, Math.floor((cw - 24) / (de.dich.length * 0.8)));
+  return { cot, hang, cw, ch, co, o: de.o.map((w, i) => ({ w, x: 60 + ((i % cot) + 0.5) * cw, y: 470 + (Math.floor(i / cot) + 0.5) * ch })) };
+}
+
+export function assMotDung(de: DeMotDung): string {
+  const M = de.mau, L = luoi(de), d: Dong[] = [];
+  const nay = (tu: number, tuX: number, den = 0.5) => `\\fscx${tuX}\\fscy${tuX}\\t(${ms(tu)},${ms(tu + den)},0.5,\\fscx100\\fscy100)`;
+  // nền chưa có ảnh: vết sáng giữa trên (dải radial lo ở ffmpeg) — có ảnh thì phủ một lớp màu bìa mỏng ở ffmpeg, ở đây không vẽ gì
+  // khối tiêu đề
+  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,140)\\fnAtkinson Hyperlegible\\b1${fs(52)}\\1c${mauAss(M.truoc)}\\1a&H14&${nay(0, 135)}}Only ONE is spelled`]);
+  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,250)${fs(118)}\\fsp2\\1c${mauAss(M.nhan)}\\4c&H000000&\\4a&H90&\\shad7${nay(0, 135)}}${chu(de.dich)}`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,350)\\fnAtkinson Hyperlegible\\b1${fs(44)}\\1c${mauAss(M.truoc)}${nay(0, 135)}}Find it in 7 seconds`]);
+  // thanh thời gian: rãnh trắng mờ + vạch màu nhấn co dần từ phải sang trái trong 7 giây đếm
+  d.push([2, 0, T_LO, 'Ve', `{\\an7\\pos(60,400)\\1c&HFFFFFF&\\1a${alpha(0.18)}\\p1}${bo(960, 22, 11)}`]);
+  d.push([3, 0, T_LO, 'Ve', `{\\an7\\pos(60,400)\\1c${mauAss(M.nhan)}\\clip(60,400,1020,422)\\t(${ms(T_DEM)},${ms(T_LO)},\\clip(60,400,60,422))\\p1}${bo(960, 22, 11)}`]);
+  // bảng trắng + bóng, "đập" vào 0,88 → 1
+  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,1008)\\1c&H000000&\\1a${alpha(0.22)}${nay(0, 88)}\\p1}${bo(980, 1080, 28)}`]);
+  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,990)\\1c&HFFFFFF&${nay(0, 88)}\\p1}${bo(980, 1080, 28)}`]);
+  // 36 ô: ô sai mờ còn 25% lúc lộ; ô đúng có khung màu nhấn viền đỏ, chữ phóng 1,25
+  for (const [i, c] of L.o.entries()) {
+    const dung = i === de.cho;
+    d.push([6, 0, T_KET, 'Den', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})${fs(L.co)}\\fsp1\\1c&H1B1B1B&${nay(0, 88)}${dung ? `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\fscx125\\fscy125)` : `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\1a${alpha(0.25)})`}}${chu(c.w)}`]);
+    if (dung) {
+      const w = Math.round(L.cw - 12), h = Math.round(L.ch - 8);
+      d.push([4, T_LO, T_KET, 'Ve', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})\\1c${mauAss(DO)}\\fscx80\\fscy80\\t(0,300,0.5,\\fscx125\\fscy125)\\p1}${bo(w, h, 14)}`]);
+      d.push([5, T_LO, T_KET, 'Ve', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})\\1c${mauAss(M.nhan)}\\fscx80\\fscy80\\t(0,300,0.5,\\fscx125\\fscy125)\\p1}${bo(w - 16, h - 16, 10)}`]);
+    }
+  }
+  // đồng hồ đếm 7 → 1 (3 giây cuối nền đỏ chữ trắng), mỗi số nảy 1,12 ở 0,2s cuối giây của nó
+  for (let s = DEM; s >= 1; s--) {
+    const tu = s === DEM ? 0 : T_LO - s, den = T_LO - s + 1, gap = s <= 3;
+    const nayGiay = `\\t(${ms(den - tu - 0.2)},${ms(den - tu)},\\fscx112\\fscy112)`;
+    d.push([7, tu, den, 'Ve', `{\\an5\\pos(540,1710)\\1c${gap ? mauAss(DO) : mauAss(M.truoc)}\\4c&H000000&\\4a&H40&\\shad0${nayGiay}\\p1}${bo(220, 220, 110)}`]);
+    d.push([8, tu, den, 'Den', `{\\an5\\pos(540,1712)${fs(120)}\\1c${gap ? '&HFFFFFF&' : '&H111111&'}${nayGiay}}${s}`]);
+  }
+  // màn kết
+  const fad = '\\fad(300,0)';
+  d.push([10, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(M.sau)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+  d.push([11, T_KET, DAI, 'Ve', `{\\an5\\pos(540,700)\\1c${mauAss(tron(M.sau, '#ffffff', 0.3))}\\1a${alpha(0.55)}${fad}\\blur40\\p1}${bo(1000, 1000, 500)}`]);
+  d.push([12, T_KET, DAI, 'Den', `{\\an5\\pos(540,780)${fs(100)}\\1c${mauAss(M.truoc)}\\q2${fad}}Did you spot\\Nit in time?`]);
+  d.push([12, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1000)\\1c${mauAss(M.nhan)}${fad}\\p1}${bo(620, 110, 18)}`]);
+  d.push([13, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1000)\\fnAtkinson Hyperlegible\\b1${fs(60)}\\1c&H111111&${fad}}Comment YES or NO`]);
+  d.push([12, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1180)\\fnAtkinson Hyperlegible\\b1${fs(52)}\\1c${mauAss(M.truoc)}${fad}}Free large print puzzles to print:`]);
+  d.push([12, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1250)\\fnAtkinson Hyperlegible\\b1${fs(54)}\\1c${mauAss(M.nhan)}${fad}}pickjot.com/printables`]);
+  return [
+    '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 2', 'ScaledBorderAndShadow: yes', '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    'Style: Ve,Arial,20,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1',
+    'Style: Den,Archivo Black,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1',
+    'Style: Chu,Atkinson Hyperlegible,48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1',
+    '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+    ...d.map(([lop, tu, den, kieu, text]) => `Dialogue: ${lop},${tg(tu)},${tg(den)},${kieu},,0,0,0,,${text}`), '',
+  ].join('\n');
+}
+
+/** Tiếng: tích mỗi giây lúc đếm, tích dồn 3 giây cuối, "ting" lúc lộ — sinh bằng ffmpeg, không file nhạc (khỏi bản quyền). Y bản cũ (SO_LO = 1). */
+export const AM = `0.3*sin(2*PI*660*t)*exp(-9*t)`
+  + `+0.25*sin(2*PI*1400*t)*lt(mod(t-${T_DEM},1),0.04)*gte(t,${T_DEM})*lt(t,${T_LO})`
+  + `+0.2*sin(2*PI*1700*t)*lt(mod(t-${T_DEM}+0.5,1),0.03)*gte(t,${T_LO - 3})*lt(t,${T_LO})`
+  + `+0.35*sin(2*PI*880*t)*exp(-6*(t-${T_LO}))*gte(t,${T_LO})`;
+
+/** Lệnh ffmpeg: nền (ảnh có chuyển động máy chậm + phủ màu bìa, hoặc dải radial màu bìa) → ass → H.264 30 hình/giây + AAC. */
+export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null; fontsDir: string; ra: string }): string[] {
+  const M = o.de.mau, khung = Math.round(DAI * FPS);
+  const vao = o.nen
+    ? ['-loop', '1', '-framerate', String(FPS), '-t', String(DAI), '-i', o.nen]
+    : ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=radial:x0=540:y0=730:x1=540:y1=2050:c0=${tron(M.sau, '#ffffff', 0.3).replace('#', '0x')}:c1=${M.sau.replace('#', '0x')}:c2=${tron(M.sau, '#000000', 0.3).replace('#', '0x')}:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
+  const nen = o.nen
+    ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},zoompan=z='1+0.06*on/${khung}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},drawbox=x=0:y=0:w=iw:h=ih:color=${M.sau.replace('#', '0x')}@0.42:t=fill`
+    : '[0:v]null';
+  const assEsc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+  return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${AM}':s=44100:d=${DAI}`,
+    '-filter_complex', `${nen},ass='${assEsc(o.ass)}':fontsdir='${assEsc(o.fontsDir)}',format=yuv420p[v]`,
+    '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+}

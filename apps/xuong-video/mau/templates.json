@@ -4238,7 +4238,7 @@
    "dong": "ugc",
    "khuon": "ke_chuyen",
    "ten": "Template · Chuyện có thật — vấn đề DIỄN bằng hình trước, giải pháp sau (người thật, 14 shot, 35s)",
-   "mo_ta": "DIỄN, KHÔNG KỂ (anh 16/10/2026: \"tình huống phải = video, không phải = mõm\"): vấn đề lộ ra bằng hành động trong một khoảnh khắc có người thân (người thứ ba rủ → người gặp vấn đề đứng dậy, nhăn, ngồi lại, nói câu che giấu → cận lý do thật) → lời dẫn chỉ nối nhịp (cái giá, đã thử, phát hiện) → giải pháp ở shot 8/14 → dùng thử có thoại bất ngờ → GỌI LẠI đúng khoảnh khắc cũ, giờ làm được → review → chốt. Không có shot người kể nói vào máy. 2 giây đầu đã THẤY vấn đề (luật soát QC 1). Chữ màn ≤ ~2,5 từ/giây. BA ĐIỂM CHẠM mỗi shot (anh 16/10/2026: \"điểm chạm càng nhiều càng tốt\"): hình diễn + giọng (thoại trong cảnh hoặc lời dẫn) + chữ màn; CHỮ MÀN = ĐÚNG CÂU ĐANG NGHE (anh 16/10/2026: \"voice không khớp với text\") — thoại trong cảnh thì chữ là câu thoại, lời dẫn thì chữ là câu dẫn. Khung lời học từ Thriving In Menopause (116 ngày ×6) + Parkinson's Health Insider (vợ kể về chồng, 98 ngày).",
+   "mo_ta": "DIỄN, KHÔNG KỂ (anh 16/10/2026: \"tình huống phải = video, không phải = mõm\"): vấn đề lộ ra bằng hành động trong một khoảnh khắc có người thân (người thứ ba rủ → người gặp vấn đề đứng dậy, nhăn, ngồi lại, nói câu che giấu → cận lý do thật) → lời dẫn chỉ nối nhịp (cái giá, đã thử, phát hiện) → giải pháp ở shot 8/14 → dùng thử có thoại bất ngờ → GỌI LẠI đúng khoảnh khắc cũ, giờ làm được → review → chốt. Không có shot người kể nói vào máy. 2 giây đầu đã THẤY vấn đề (luật soát QC 1). Chữ màn ≤ ~2,5 từ/giây. BA ĐIỂM CHẠM mỗi shot (anh 16/10/2026: \"điểm chạm càng nhiều càng tốt\"): hình diễn + giọng (thoại trong cảnh hoặc lời dẫn) + chữ màn; CHỮ MÀN = ĐÚNG CÂU ĐANG NGHE (anh 16/10/2026: \"voice không khớp với text\") — thoại trong cảnh thì chữ là câu thoại, lời dẫn thì chữ là câu dẫn. Khung lời học từ Thriving In Menopause (116 ngày ×6) + Parkinson's Health Insider (vợ kể về chồng, 98 ngày). MURCH QC bật: mỗi shot có kế hoạch biểu cảm đầu → cuối liền mạch (shot 2 nối liền shot 1); keyframe + clip soát thật trước video / xuất.",
    "o": [
     "san_pham",
     "san_pham_hinh",
@@ -4319,7 +4319,8 @@
       "tu": 3
      }
     },
-    "nguoi_ke": "{{nhan_vat_ten}}"
+    "nguoi_ke": "{{nhan_vat_ten}}",
+    "cam_xuc_qc": true
    },
    "nhan_vat": [
     {
@@ -4422,7 +4423,19 @@
      "prompt_anh": "{{dinh_diem_hinh}}, {{boi_canh_2}}; in the foreground {{nguoi_3_hinh}} tugs the hand of {{nguoi_2_hinh}}, who half-rises from a round table with one hand on the tight waistband, wincing. Exactly ONE {{nguoi_2_ten}} and ONE {{nguoi_3_ten}} in the frame; other guests are strangers in the background",
      "prompt_video": "The child pulls the hand toward the dance floor; the person half-rises, presses a hand to the tight waistband and winces, music and string lights behind",
      "dien_xuat": "eager, bright",
-     "noi": "{{nguoi_3_ten}}"
+     "noi": "{{nguoi_3_ten}}",
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_3_ten}}",
+       "dau": "hao_huc",
+       "cuoi": "hao_huc"
+      },
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "binh_thuong",
+       "cuoi": "dau"
+      }
+     ]
     },
     {
      "giay": 2.8,
@@ -4441,7 +4454,20 @@
      "noi": "{{nguoi_2_ten}}",
      "prompt_anh": "{{nguoi_2_hinh}}, {{van_de_1_hinh}}, {{boi_canh_2}}",
      "prompt_video": "The person pushes up from the chair, the stiff waistband digs in, a wince, then sinks back down and forces a smile",
-     "dien_xuat": "covering, forced smile"
+     "dien_xuat": "covering, forced smile",
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "dau",
+       "cuoi": "met"
+      },
+      {
+       "nv": "{{nguoi_3_ten}}",
+       "dau": "hao_huc",
+       "cuoi": "buon"
+      }
+     ],
+     "noi_lien": true
     },
     {
      "giay": 2.2,
@@ -4457,7 +4483,14 @@
      "prompt_anh": "Extreme close-up under a tablecloth: {{van_de_2_hinh}}, warm party light",
      "prompt_video": "Fingers undo the top button, the belly relaxes, a slow relieved exhale",
      "chu_man": "{{van_de_2}}",
-     "loi": "{{van_de_2}}"
+     "loi": "{{van_de_2}}",
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "met",
+       "cuoi": "nhe_nhom"
+      }
+     ]
     },
     {
      "giay": 2.6,
@@ -4475,7 +4508,19 @@
      "loi": "{{dinh_diem_2}}",
      "prompt_anh": "{{nhan_vat_hinh}} across the table, {{dinh_diem_2_hinh}}, {{boi_canh_2}}, shallow depth of field",
      "prompt_video": "The narrator watches, the dancing blurs behind, a small worried glance",
-     "dien_xuat": "quiet, sad"
+     "dien_xuat": "quiet, sad",
+     "bieu_cam": [
+      {
+       "nv": "{{nhan_vat_ten}}",
+       "dau": "lo_lang",
+       "cuoi": "buon"
+      },
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "met",
+       "cuoi": "met"
+      }
+     ]
     },
     {
      "giay": 2.4,
@@ -4491,7 +4536,14 @@
      "chu_man": "{{van_de_3}}",
      "loi": "{{van_de_3}}",
      "prompt_anh": "Close-up: {{van_de_3_hinh}}, {{boi_canh}}",
-     "prompt_video": "Hands strain on the belt, the waistband bunches, a short frustrated exhale"
+     "prompt_video": "Hands strain on the belt, the waistband bunches, a short frustrated exhale",
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "met",
+       "cuoi": "that_vong"
+      }
+     ]
     },
     {
      "giay": 2.4,
@@ -4523,7 +4575,14 @@
      "loi": "{{khong_an_thua}}",
      "prompt_anh": "{{nguoi_2_hinh}} in {{boi_canh}}, holding up a pair of suspenders, shaking head",
      "prompt_video": "The person tosses the item onto the bed and sits down heavily",
-     "dien_xuat": "defeated"
+     "dien_xuat": "defeated",
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "that_vong",
+       "cuoi": "that_vong"
+      }
+     ]
     },
     {
      "giay": 2.6,
@@ -4540,7 +4599,14 @@
      "loi": "{{phat_hien}}",
      "prompt_anh": "{{nhan_vat_hinh}}, {{phat_hien_hinh}}, {{boi_canh}}",
      "prompt_video": "The narrator looks up from the phone, realization showing, slow push-in",
-     "dien_xuat": "realizing"
+     "dien_xuat": "realizing",
+     "bieu_cam": [
+      {
+       "nv": "{{nhan_vat_ten}}",
+       "dau": "binh_thuong",
+       "cuoi": "bat_ngo"
+      }
+     ]
     },
     {
      "giay": 2.6,
@@ -4562,7 +4628,19 @@
      "bt": [
       "m1"
      ],
-     "hanh_dong_vi": "{{nhan_vat_ten}} vừa đưa chiếc {{san_pham}} mới; {{nguoi_2_ten}} cầm cạp giơ cả chiếc quần đã mở sẵn lên, nhìn từ trên xuống dưới, nghi ngờ"
+     "hanh_dong_vi": "{{nhan_vat_ten}} vừa đưa chiếc {{san_pham}} mới; {{nguoi_2_ten}} cầm cạp giơ cả chiếc quần đã mở sẵn lên, nhìn từ trên xuống dưới, nghi ngờ",
+     "bieu_cam": [
+      {
+       "nv": "{{nhan_vat_ten}}",
+       "dau": "bat_ngo",
+       "cuoi": "am_ap"
+      },
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "ngo_vuc",
+       "cuoi": "ngo_vuc"
+      }
+     ]
     },
     {
      "giay": 2.8,
@@ -4584,6 +4662,13 @@
      "dien_xuat": "surprised",
      "bt": [
       "m1"
+     ],
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "ngo_vuc",
+       "cuoi": "bat_ngo"
+      }
      ]
     },
     {
@@ -4606,6 +4691,19 @@
      "dien_xuat": "joyful",
      "bt": [
       "m1"
+     ],
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "vui",
+       "cuoi": "cuoi_lon",
+       "lat": true
+      },
+      {
+       "nv": "{{nguoi_3_ten}}",
+       "dau": "hao_huc",
+       "cuoi": "cuoi_lon"
+      }
      ]
     },
     {
@@ -4626,7 +4724,14 @@
      "bt": [
       "m1"
      ],
-     "loi": "{{loi_ich_1}}"
+     "loi": "{{loi_ich_1}}",
+     "bieu_cam": [
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "cuoi_lon",
+       "cuoi": "vui"
+      }
+     ]
     },
     {
      "giay": 2.4,
@@ -4647,7 +4752,19 @@
      "bt": [
       "m1"
      ],
-     "loi": "{{review}}"
+     "loi": "{{review}}",
+     "bieu_cam": [
+      {
+       "nv": "{{nhan_vat_ten}}",
+       "dau": "am_ap",
+       "cuoi": "am_ap"
+      },
+      {
+       "nv": "{{nguoi_2_ten}}",
+       "dau": "vui",
+       "cuoi": "cuoi_lon"
+      }
+     ]
     },
     {
      "giay": 2.4,

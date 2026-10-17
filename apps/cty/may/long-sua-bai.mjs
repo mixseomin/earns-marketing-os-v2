@@ -128,7 +128,7 @@ log(`claude thoát ${r.status ?? r.signal} · ${kq.num_turns ?? '?'} lượt · 
 
 let lyDo = '';
 if (!ket || !/KET:\**\s*OK/i.test(ket)) lyDo = ket ? ket.replace(/^\s*\**KET:\**\s*DUNG\s*/i, '') : r.signal ? `quá ${TRAN_PHUT} phút` : (chu.split('\n').pop() || 'Claude Code không trả kết quả').slice(0, 300);
-else if (sau === truoc) lyDo = 'báo OK nhưng không có commit mới';
+// không đòi commit mới TRONG lượt này: phần sửa có thể đã commit ở lượt trước bị cắt giờ (17/10/2026 — Long xong mà bị báo dừng oan); trần 3 lượt chặn nộp lặp
 else if (!sach) lyDo = 'Long còn sửa dở chưa commit ở chính tệp mình đã đụng';
 else if (!fs.existsSync(tepDung)) lyDo = `không thấy bản dựng ${path.relative(REPO, tepDung)}`;
 if (lyDo) { kb(`--dung ${q(x.url)} --nguoi ${NGUOI} --ly-do ${q(lyDo)}`); nhatKy({ viec: 'sua-bai', ket: `${x.url} → dừng: ${lyDo}`, token }); process.exit(0); }

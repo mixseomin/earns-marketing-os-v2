@@ -29,7 +29,9 @@ const box = (cmd, input) => { for (let i = 1; ; i++) { try { return execFileSync
 const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const kb = (args, input) => box(`cd ${APP} && CTY_DATA_DIR=${DATA} node worker/kiem-bai.mjs ${args}`, input);
 const git = (...a) => execFileSync('git', ['-C', REPO, ...a], { encoding: 'utf8' }).trim();
-const chay = (cmd, a) => execFileSync(cmd, a, { cwd: SITES, encoding: 'utf8', env: ENV, timeout: 15 * 60000, maxBuffer: 64 << 20 });
+const chay = (cmd, a, env = ENV) => execFileSync(cmd, a, { cwd: SITES, encoding: 'utf8', env, timeout: 15 * 60000, maxBuffer: 64 << 20 });
+// Khoá Cloudflare cho bước xoá cache của deploy-sm.sh: máy anh đọc sổ ghi nhớ, iMac không có sổ đó → lấy từ /opt/hotel-arb/env trên box3 (17/10/2026)
+const envCf = () => { const e = { ...ENV }; for (const l of box("grep -E '^export CF_API_(KEY|EMAIL)=' /opt/hotel-arb/env").split('\n')) { const m = l.match(/^export (CF_API_\w+)=["']?([^"'\s]+)/); if (m) e[m[1]] = m[2]; } return e; };
 const nhatKy = (o) => { try { box(`mkdir -p ${DATA}/nhip && echo ${q(JSON.stringify({ luc: new Date().toISOString(), ...o }))} >> ${DATA}/nhip/${NGUOI}.jsonl`); } catch { /* box im */ } };
 const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
 
@@ -65,7 +67,7 @@ for (const d of JSON.parse(kb('--cho-dang'))) {
     try { git('merge-base', '--is-ancestor', d.ban, 'HEAD'); } catch { throw new Error(`commit đã duyệt ${d.ban.slice(0, 8)} không nằm trong nhánh hiện tại`); }
     if (git('diff', '--name-only', d.ban, 'HEAD')) throw new Error(`nhánh đã có commit mới sau bản duyệt ${d.ban.slice(0, 8)} — chưa duyệt, không đưa lên`);
     chay('python3', ['build-hr.py', 'ratesbyroom.com']);
-    const ra = chay('sh', ['deploy-sm.sh', DIST, '/var/www/ratesbyroom', 'ratesbyroom.com']);
+    const ra = chay('sh', ['deploy-sm.sh', DIST, '/var/www/ratesbyroom', 'ratesbyroom.com'], envCf());
     let day = ''; try { git('push', 'origin', 'HEAD'); day = 'đã push commit về origin'; } catch (e) { day = `push origin lỗi: ${String(e.message).split('\n')[0]}`; }
     kb(`--da-dang ${q(d.id)} --ket ok --ghi ${q(`${ra.trim().split('\n').pop()} · ${day}`)}`); nhatKy({ viec: 'dua-len', ket: `${d.url} → đã lên trang (bản ${d.ban.slice(0, 8)})` }); log(`đã đưa lên ${d.url}`);
   } catch (e) {

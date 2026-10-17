@@ -168,7 +168,8 @@ export async function daDang(id, ok, ghi = '') {
   const x = JSON.parse(fs.readFileSync(f, 'utf8'));
   const { bao } = await tgNoiDung();
   await bao(ok ? `🚀 <b>${esc(tenNguoi('ngoc'))}</b> đã cho đưa lên ${esc(x.url)} · bản ${esc(String(x.ban).slice(0, 8))} (${esc(tenNguoi(x.tu))} sửa)${ghi ? `\n${esc(ghi)}` : ''}\n${CTY_LINK}`
-    : `⚠️ <b>${esc(tenNguoi('ngoc'))}</b>: đưa ${esc(x.url)} lên KHÔNG được · bản ${esc(String(x.ban).slice(0, 8))}\nLý do: ${esc(ghi || 'không rõ')}\n${CTY_LINK}`, x.tin);
+    : `⚠️ <b>${esc(tenNguoi('ngoc'))}</b>: đưa ${esc(x.url)} lên KHÔNG được · bản ${esc(String(x.ban).slice(0, 8))}\nLý do: ${esc(ghi || 'không rõ')}\n${CTY_LINK}`, x.tin,
+    ok ? undefined : { inline_keyboard: [[{ text: '🔁 Đưa lên lại', callback_data: `nd:danglai:${x.id}` }]] });
   if (ok) fs.rmSync(f); else { x.loi = ghi; x.loi_luc = new Date().toISOString(); fs.writeFileSync(f, JSON.stringify(x, null, 1)); }
   return x;
 }
@@ -203,6 +204,11 @@ const traVe = (x) => { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSyn
 export const nutQuyet = (id) => ({ inline_keyboard: [[{ text: `🔓 Cho sửa thêm ${TRAN_LUOT} lượt`, callback_data: `nd:mo:${id}` }, { text: '✋ Dừng hẳn bài này', callback_data: `nd:dung:${id}` }]] });
 /** Anh bấm nút quyết: mở → đếm lại từ 0 + trả về người phụ trách theo nhận xét lần chấm cuối; dừng → giữ khoá. Trả câu báo. */
 export function quyetBai(lenh, id, ai = 'Anh') {
+  if (lenh === 'danglai') {   // id = bài chờ đưa lên (cho-dang/<id>.json) bị lỗi → xoá dấu lỗi, máy đưa lên lại ở lượt kế
+    const fd = path.join(DANG(), `${id}.json`); if (!fs.existsSync(fd)) throw new Error('bài này không còn chờ đưa lên');
+    const x = JSON.parse(fs.readFileSync(fd, 'utf8')); delete x.loi; delete x.loi_luc; fs.writeFileSync(fd, JSON.stringify(x, null, 1));
+    return `🔁 ${esc(ai)} cho đưa ${esc(x.url)} lên lại ở lượt kế (≤ 5 phút).`;
+  }
   if (lenh === 'nhando' || lenh === 'doi' || lenh === 'lai') {   // id = bài trả về (tra-ve/<id>.json)
     const ft = path.join(TRA(), `${id}.json`); if (!fs.existsSync(ft)) throw new Error('bài này không còn chờ sửa');
     const x = JSON.parse(fs.readFileSync(ft, 'utf8')), ten = tenNguoi(x.phu_trach);
@@ -231,7 +237,7 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
   const { gomTin, moHop } = await import('./tg-phong.mjs'); await gomTin(tg);
   for (const x of moHop(phong)) {
     const c = x.callback_query, m = x.message; x.xong();
-    if (c && /^nd:(mo|dung|nhando|doi|lai):/.test(c.data || '')) {
+    if (c && /^nd:(mo|dung|nhando|doi|lai|danglai):/.test(c.data || '')) {
       const [, lenh, id] = c.data.split(':'), ai = c.from?.first_name || c.from?.username || 'Anh';
       try { const cau = quyetBai(lenh, id, ai); await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận' }); await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } }); await bao(cau, c.message.message_id); }
       catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message, show_alert: true }); }

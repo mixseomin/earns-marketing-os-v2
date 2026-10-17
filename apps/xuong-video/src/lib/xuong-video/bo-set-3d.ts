@@ -29,7 +29,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 45;
+export const BAN_DUNG = 46;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -48,7 +48,7 @@ export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
   return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh, chay: duongMay(s.may_3d, s.ky_thuat?.chuyen_dong, hopVat(set.du_lieu.vat, s.may_3d.them ?? []), (t) => Number((mau[t] as { co?: number[] } | undefined)?.co?.[2] ?? 2)) }, nhan_vat: s.may_3d.vi_tri,
-    bat_buoc: chuThe(s.may_3d), mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban })) } };
+    bat_buoc: chuThe(s.may_3d), co_canh: s.ky_thuat?.co_canh ?? '', mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban })) } };
 }
 
 /** NGƯỜI ĐANG NÓI là chủ thể trong khung (không phải giọng ngoài khung) — keyframe AI = khung mở phải thấy mặt họ: luật kiem-ai-3d.ts › matNguoiNoi và
@@ -255,7 +255,7 @@ export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[];
  *  MCU từ ngực, MS từ thắt lưng — dải đó lấp ~90% khung dọc, máy nhắm giữa dải. Cảnh rộng / two / OTS vẫn ôm cả người. */
 export const BANG_NGUOI: Record<string, number> = { ecu: 0.08, cu: 0.2, mcu: 0.33, insert: 0.33, ots: 0.4, ms: 0.55, two: 0.6 };   // OTS: ngực trở lên + vai tiền cảnh; two-shot: thắt lưng trở lên; insert vào thân người: vùng ngực
 export const TAM_MAT_CM = 150;
-export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[]; hinh?: string } | null): May3d {
+export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string; chuyen_dong?: string }, khoi: (ten: string) => { co: number[]; hinh?: string } | null): May3d {
   const ong = ONG_MM[kt.ong_kinh ?? ''] ?? ONG_THEO_CO[kt.co_canh ?? ''] ?? 35;
   const ten = o.khung?.length ? o.khung : o.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
   const chu = o.vi_tri.filter((v) => ten.includes(v.ten));
@@ -268,7 +268,10 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
     const a = (((p === v.den ? ng.huong_den ?? ng.huong : ng.huong) ?? 0) * Math.PI) / 180; const q = p === v.den && ng.den ? ng.den : ng.tam;
     return [q[0]! + 35 * Math.sin(a), q[1]! - 35 * Math.cos(a), (q[2] ?? 0) + 0.6 * (kh.co[2] ?? 170)];
   };
-  const ds = (chu.length ? chu : o.vi_tri).flatMap((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return [v.tam, ...(v.den ? [v.den] : [])].map((p0) => { const p = choCam(v, p0); return { x: p[0]!, y: p[1]!, z: p[2] ?? 0, h, w: c[0]! }; }); });
+  // Máy ĐI THEO người (dẫn trước / bám theo / trượt ngang): khung mở chỉ ôm chỗ ĐẦU shot — máy đi cùng, không cần lùi xa ôm cả quãng đi (tập 122 #15:
+  // ôm cả lối vào cửa → hai người 0,5% khung).
+  const theoNguoi = ['dan_truoc', 'theo', 'truot_ngang'].includes(kt.chuyen_dong ?? '');
+  const ds = (chu.length ? chu : o.vi_tri).flatMap((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return [v.tam, ...(v.den && !theoNguoi ? [v.den] : [])].map((p0) => { const p = choCam(v, p0); return { x: p[0]!, y: p[1]!, z: p[2] ?? 0, h, w: c[0]! }; }); });
   const cx = ds.reduce((a, d) => a + d.x, 0) / ds.length, cy = ds.reduce((a, d) => a + d.y, 0) / ds.length;
   const H = Math.max(...ds.map((d) => d.z + d.h)) - Math.min(...ds.map((d) => d.z));
   // Bề NGANG đo VUÔNG GÓC hướng máy (trước 17/10/2026 luôn đo theo trục x của phòng: máy nhìn dọc trục x thì hai người đứng đối mặt theo y
@@ -296,7 +299,9 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   // Người thật đứng + góc NGANG TẦM: máy ở TẦM MẮT chuẩn (150 cm) cho mọi shot — không ở giữa thân (84 cm ở cảnh rộng) và không đổi theo
   // chiều cao từng diễn viên; cổng "chiều cao máy" đòi các shot ngang tầm trong cảnh cùng một tầm (±4 cm).
   const tamMat = (kt.goc ?? 'ngang') === 'ngang' && chu.length > 0 && chu.every((v) => khoi(v.ten)?.hinh === 'nguoi' && !v.nam);
-  const z = kt.goc === 'sat_dat' ? 0.5 : tamMat ? TAM_MAT_CM : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
+  // Góc thấp cho NGƯỜI THẬT: máy không xuống dưới ~0,35 thân (đầu gối–hông) — cảnh rộng đi xa thì công thức cũ hạ máy xuống 0,4 cm (sát thảm, cỡ đồ chơi).
+  const sanNguoi = chu.length && chu.every((v) => khoi(v.ten)?.hinh === 'nguoi') ? 0.35 * Math.max(...chu.map((v) => khoi(v.ten)?.co[2] ?? 170)) : 0.4;
+  const z = kt.goc === 'sat_dat' ? 0.5 : tamMat ? TAM_MAT_CM : Math.max(sanNguoi, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
   return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), ...(o.nhay ? { nhay: o.nhay } : {}), tu_dong: { phia: o.phia ?? 0 } };
 }

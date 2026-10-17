@@ -736,6 +736,18 @@ def dat_may(cam, dat, nhin):
     cam.rotation_euler = (Vector(nhin) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
     cat_lop(cam)
 
+SAN_CO = {'ms': 20, 'two': 15, 'mcu': 30}   # CÙNG bo-set-3d.ts › SAN_CO (+ toàn cảnh người thật 10 — SAN_WS_NGUOI)
+def qua_nho(sh, k):
+    """Số chủ thể QUÁ NHỎ so với cỡ cảnh (cùng luật cổng coCanhLech / chuTheQuaNho): người chính dưới sàn cỡ cảnh; đồ vật ở cú cận cao < 15% khung.
+    Trước đây bộ giải chỉ tránh che khuất → chọn chỗ xa tít, người thành chấm (tập 122 #15)."""
+    co = sh.get('co_canh') or ''; mau = DL.get('nhan_vat_mau', {}); n = 0
+    nguoi = [x for x in k if x['bat_buoc'] and x['trong_khung'] and (mau.get(x['nhan_vat']) or {}).get('hinh') == 'nguoi']
+    san = SAN_CO.get(co) or (10 if co == 'ws' and nguoi else 0)
+    if san and nguoi and max(x['cao_khung_pt'] for x in nguoi) < san: n += 1
+    if co in ('cu', 'ecu', 'insert', 'mcu'):
+        n += sum(1 for x in k if x['bat_buoc'] and x['trong_khung'] and (mau.get(x['nhan_vat']) or {}).get('hinh') != 'nguoi' and x['cao_khung_pt'] < 15)
+    return n
+
 def mat_sai(sh, p):
     """Số NGƯỜI ĐANG NÓI (sh['mat'] — bo-set-3d.ts › nguoiNoiTrongKhung) mà từ chỗ máy p không thấy mặt ở khung mở: góc giữa hướng mặt (huong: 0 = nhìn −y,
     90 = +x) và hướng tới máy > ngưỡng (sh['mat_nguong'] — cùng luật kiem-ai-3d.ts › matNguoiNoi). Bộ giải coi nặng như chủ thể bị che."""
@@ -753,12 +765,15 @@ def giai_may(s, cam, sh, nv):
     mọi chủ thể đều thấy rõ (ít đổi nhất trước). Không có phương án sạch → giữ phương án ít lỗi nhất, kiểm vẫn báo."""
     g = Vector(sh['may']['nhin']); d0 = Vector(sh['may']['dat']) - g
     tot = None
-    for xa in (1.0, 1.3, 1.7):
-        for dz in (0, 1.5, 4, 8):
+    # CỠ CHỦ THỂ (17/10/2026 tập 122): bước nâng máy cũ 1,5–8 cm là cỡ đồ chơi — người thật 170 cm thì nâng theo phần thân; thêm thử LẠI GẦN (0,8)
+    H = max([float((DL.get('nhan_vat_mau', {}).get(t) or {}).get('co', [0, 0, 0])[2]) for t in (sh.get('bat_buoc') or [])] + [0])
+    buoc_z = (0, 1.5, 4, 8) if H < 30 else (0, 0.1 * H, 0.2 * H, 0.35 * H)
+    for xa in (1.0, 0.8, 1.3, 1.7):
+        for dz in buoc_z:
             for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90, 120, -120, 150, -150, 180):   # tới 180° để máy đang sai phía trục quay về được
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
                 vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
-                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100 + mat_sai(sh, vt_may) * 100
+                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100 + mat_sai(sh, vt_may) * 100 + qua_nho(sh, k) * 50
                 if h == 0: h = chan_la(s, cam, sh, nv) + thieu_nhac(s, cam, sh, nv) * 10   # chủ thể sạch rồi mới tính vật chắn lạ + vật được nhắc mà không thấy (đắt hơn)
                 if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot

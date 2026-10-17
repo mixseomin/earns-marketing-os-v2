@@ -134,7 +134,7 @@ shot('4.2', C4, 5, 'h3', {'vai': 'hanh_dong', 'co_canh': 'ws', 'goc': 'thap', 'c
      { 'dien': 'Anticipation: the double doors swing open. Action: Hạ strides in, chin up, the lawyer a step behind. Reaction: board members turn in their chairs.','bo_cuc': 'Low angle: the tall double doors swing open, Lâm Hạ strides in in a white power suit, Lawyer Trần a step behind', 'mo': 'doors closed', 'ket': 'Hạ standing at the end of the table', 'huong': 'Hạ walks screen-right toward the table', 'muc_dich': 'đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực'},
      'Cửa đôi mở, Hạ bước vào — vest trắng, tóc buông; luật sư Trần theo sau', [],
      [bc(HA, 'quyet_tam', 'quyet_tam', lat=True, cam=['buon', 'nhuc_nha']), bc(TRAN, 'binh_thuong', 'tu_tin')],
-     {'dat': [-250, 360, 100], 'nhin': [-380, 160, 140], 'ong_kinh': 28, 'khung': [HA, TRAN], 'qua_truc': True,   # cả phòng quay về cửa: cú nhìn theo hướng mắt, cố ý đảo hướng máy
+     {'dat': [-245, 360, 110], 'nhin': [-380, 160, 140], 'ong_kinh': 28, 'khung': [HA, TRAN], 'qua_truc': True,   # cả phòng quay về cửa: cú nhìn theo hướng mắt, cố ý đảo hướng máy
      
       'vi_tri': [vt(HA, [-470, 150, 0], 90, den=[-200, 200, 0], **AO_HA_CHIEU, nhay='họp HĐQT 3 giờ chiều — đã thay vest trắng', dien=['mc_sai_buoc']), vt(TRAN, [-490, 110, 0], 90, den=[-270, 150, 0], **AO_TRAN, dien=['mc_di_bo'])]},
      [HA, TRAN, PH])
@@ -184,7 +184,8 @@ shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao',
      { 'dien': "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as a thin jade bead bracelet slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.", 'huong': 'Static hand; the camera pushes down onto the wrist.','bo_cuc': 'High insert on Lục Thần’s left wrist resting on the dark walnut table: the cuff pulled back reveals a thin pale-green jade bead bracelet next to his steel watch', 'mo': 'Thần’s hand flat on the table, cuff covering the wrist', 'ket': 'the jade bead bracelet in full view — cut to black', 'muc_dich': 'móc: khán giả thấy hai người cùng một chất ngọc, nhân vật chưa biết', 'motif': 'ngọc — vòng tay của Hạ (5.2) ↔ chuỗi hạt của Thần (tập sau)'},
      'Cận cổ tay Thần trên mặt bàn: tay áo xô lên, lộ chuỗi hạt ngọc cùng màu với vòng tay của Hạ; cắt đen', [],
      [bc(THAN, 'ngo_vuc', 'ngo_vuc')],
-     {'dat': [-140, 670, 110], 'nhin': [-112, 690, 74], 'ong_kinh': 100, 'khung': ['Chuỗi hạt ngọc', THAN], 'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt('Chuỗi hạt ngọc', [-112, 690, 74], -90, cam=THAN)]},   # cổ tay trái đang chống bàn (dáng chong_ban: tay trước người ~45 cm)
+     {'tay': True, 'dat': [-165, 690, 125], 'nhin': [-120, 723, 82], 'ong_kinh': 75, 'khung': ['Chuỗi hạt ngọc', THAN],   # tay phải Thần đang chống (dáng chong_ban: tay trước người ~50 cm, phía bắc)
+      'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt('Chuỗi hạt ngọc', [-112, 690, 74], -90, cam=THAN)]},   # cổ tay trái đang chống bàn (dáng chong_ban: tay trước người ~45 cm)
      [THAN, PH, 'Chuỗi hạt ngọc'])
 
 # MÁY TỰ ĐẶT (17/10/2026 — khung 3D đầu tiên: máy gõ tay nằm trong người phụ, dí sát mặt, cắt mất nhân vật): giữ HƯỚNG máy đã khai (phía quanh

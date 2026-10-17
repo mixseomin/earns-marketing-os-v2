@@ -1663,7 +1663,7 @@
      ]
     }
    ],
-   "phia": 135.0
+   "phia": 134.4
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2247,6 +2247,18 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    -165,
+    690,
+    125
+   ],
+   "nhin": [
+    -120,
+    723,
+    82
+   ],
+   "ong_kinh": 75,
    "khung": [
     "Chuỗi hạt ngọc",
     "Lục Thần"
@@ -2274,8 +2286,7 @@
      "huong": -90,
      "cam": "Lục Thần"
     }
-   ],
-   "phia": -60.7
+   ]
   },
   "nhan_vat": [
    "Lục Thần",

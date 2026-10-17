@@ -7,6 +7,7 @@ import { chiTietMayUi, dsMayUi } from '@/lib/actions-may';
 import type { LuotDang, May, NhatKy, VideoMay } from '@/lib/xuong-video/may';
 import { luoi, type DeMotDung } from '@/lib/xuong-video/may-dung-do-chu';
 import type { DeScam } from '@/lib/xuong-video/may-dung-scam';
+import { BUOC as BUOC_LAND, type DeLand } from '@/lib/xuong-video/may-dung-land';
 import { shotsMau, type DeMay } from '@/lib/xuong-video/mau-dung';
 import { MAU_MAY_DUNG } from '@/lib/xuong-video/may-dung-mau';
 import { gioVN } from '@/lib/xuong-video/kieu';
@@ -89,8 +90,8 @@ function DangChay({ m, nhatKy, luot, video, onMo }: { m: May; nhatKy: NhatKy[]; 
   );
 }
 
-/** Chữ phụ của một video theo mẫu: đố chữ = từ đích; Scam or Real = kênh · đáp án. */
-const phuDe = (de: DeMay) => ('dich' in de ? de.dich : `${de.kenh} · ${de.ket === 'scam' ? 'SCAM' : 'REAL'}`);
+/** Chữ phụ của một video theo mẫu: đố chữ = từ đích; Scam or Real = kênh · đáp án; Before you land = nước · mã cửa ngõ. */
+const phuDe = (de: DeMay) => ('dich' in de ? de.dich : 'san_bay' in de ? `${de.nuoc} · ${de.san_bay.map((a) => a.iata).join(' ')}` : `${de.kenh} · ${de.ket === 'scam' ? 'SCAM' : 'REAL'}`);
 const mauNen = (de: DeMay) => ('mau' in de ? de.mau.sau : '#14213D');
 
 const chipChay = (m: May) => <Pill color={m.chay ? '#4ade80' : 'var(--fg-3)'} nhat={!m.chay}>{m.chay ? '● đang chạy' : '○ chưa bật'}</Pill>;
@@ -242,13 +243,21 @@ function NganVideo({ v, m, onClose }: { v: VideoMay; m: May; onClose: () => void
   );
 }
 
-/** Đề của một video theo mẫu: đố chữ = 36 ô (ô đúng tô màu); Scam or Real = tin nhắn, dòng có dấu hiệu đánh số + lý do. */
+/** Đề của một video theo mẫu: đố chữ = 36 ô (ô đúng tô màu); Scam or Real = tin nhắn, dòng có dấu hiệu đánh số + lý do; Before you land = nước + cửa ngõ + 3 bước. */
 function DeVideo({ de }: { de: DeMay }) {
   if ('dich' in de) {
     const d = de as DeMotDung, L = luoi(d);
     return (
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${L.cot}, minmax(0, 1fr))`, gap: 2, maxWidth: 420 }}>
         {d.o.map((w, i) => <span key={i} style={{ ...mono, fontSize: 10.5, padding: '1px 4px', borderRadius: 3, textAlign: 'center', background: i === d.cho ? d.mau.nhan : 'transparent', color: i === d.cho ? '#111' : 'var(--fg-2)' }}>{w}</span>)}
+      </div>);
+  }
+  if ('san_bay' in de) {
+    const d = de as DeLand;
+    return (
+      <div style={{ display: 'grid', gap: 4, fontSize: 12.5 }}>
+        <span style={mono}>{d.nuoc} · cửa ngõ: {d.san_bay.map((a) => `${a.iata} ${a.ten}`).join(' · ')}</span>
+        {BUOC_LAND(d.nuoc).map((s, i) => <span key={i} style={{ borderLeft: '3px solid var(--line)', paddingLeft: 6 }}><b>{i + 1} </b>{s}</span>)}
       </div>);
   }
   const d = de as DeScam;

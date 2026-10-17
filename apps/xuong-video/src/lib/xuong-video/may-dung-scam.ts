@@ -19,24 +19,11 @@ export interface DeScam {
 export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, T_KET = T_LO + 2.8, DAI = T_KET + 2.7;
 const W = 1080, H = 1920, DO = '#E5484D', XANH = '#2EBD85', NHAN = '#FCA311', SAU = '#14213D', TRANG = '#F4F6F8';
 const MAU_KENH: Record<KenhScam, string> = { WhatsApp: '#1FA855', Email: '#3B6FE0', SMS: '#5B6472' };
+import { alpha, bo, chu, mauAss, ms, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+export { mauAss, ngat };
+
 const EM = 1.25;
 const fs = (px: number) => `\\fs${Math.round(px * EM)}`;
-export function mauAss(hex: string): string { const h = hex.replace('#', '').padEnd(6, '0').slice(0, 6).toUpperCase(); return `&H00${h.slice(4, 6)}${h.slice(2, 4)}${h.slice(0, 2)}&`; }
-const alpha = (duc: number) => `&H${Math.round((1 - Math.min(1, Math.max(0, duc))) * 255).toString(16).padStart(2, '0').toUpperCase()}&`;
-const tg = (s: number) => { const c = Math.max(0, Math.round(s * 100)); return `${Math.floor(c / 360000)}:${String(Math.floor(c / 6000) % 60).padStart(2, '0')}:${String(Math.floor(c / 100) % 60).padStart(2, '0')}.${String(c % 100).padStart(2, '0')}`; };
-const ms = (s: number) => Math.round(s * 1000);
-const chu = (s: string) => s.replace(/[{}\\]/g, '');
-function bo(w: number, h: number, r: number): string {
-  const R = Math.min(r, w / 2, h / 2), k = Math.round(R * 0.4477 * 10) / 10;
-  return `m ${R} 0 l ${w - R} 0 b ${w - k} 0 ${w} ${k} ${w} ${R} l ${w} ${h - R} b ${w} ${h - k} ${w - k} ${h} ${w - R} ${h} l ${R} ${h} b ${k} ${h} 0 ${h - k} 0 ${h - R} l 0 ${R} b 0 ${k} ${k} 0 ${R} 0`;
-}
-/** Ngắt chữ theo số ký tự (Atkinson 44px ≈ 0,5em/ký tự → khung 820px ≈ 31 ký tự). */
-export function ngat(s: string, n = 31): string[] {
-  const ra: string[] = []; let d = '';
-  for (const w of s.split(/\s+/).filter(Boolean)) { if (d && (d + ' ' + w).length > n) { ra.push(d); d = w; } else d = d ? `${d} ${w}` : w; }
-  if (d) ra.push(d);
-  return ra;
-}
 /** Bố cục tin: mỗi đoạn → các dòng đã ngắt, toạ độ y; đoạn có dấu hiệu giữ khung bao (y đầu, y cuối) để khoanh. */
 export function boCuc(de: DeScam) {
   const DONG = 66, x = 140, y0 = de.kenh === 'Email' && de.tieu_de ? 700 : 620;
@@ -49,10 +36,9 @@ export function boCuc(de: DeScam) {
   return { x, doan, cuoi: y };
 }
 
-type Dong = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' | 'Chu', text: string];
 
 export function assScam(de: DeScam): string {
-  const d: Dong[] = [], L = boCuc(de), lua = de.ket === 'scam', mauKet = lua ? DO : XANH, kenh = MAU_KENH[de.kenh];
+  const d: DongAss[] = [], L = boCuc(de), lua = de.ket === 'scam', mauKet = lua ? DO : XANH, kenh = MAU_KENH[de.kenh];
   const nay = (tuX: number) => `\\fscx${tuX}\\fscy${tuX}\\t(0,500,0.5,\\fscx100\\fscy100)`;
   // tiêu đề: SCAM (đỏ) or REAL? (xanh)
   d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,150)${fs(104)}\\4c&H000000&\\4a&H80&\\shad6${nay(130)}\\1c${mauAss(DO)}}SCAM{\\1c&HFFFFFF&\\fs${Math.round(70 * EM)}} or {\\1c${mauAss(XANH)}\\fs${Math.round(104 * EM)}}REAL?`]);
@@ -103,16 +89,7 @@ export function assScam(de: DeScam): string {
   d.push([21, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1170)\\1c${mauAss(NHAN)}${fad}\\p1}${bo(640, 120, 20)}`]);
   d.push([22, T_KET, DAI, 'Den', `{\\an5\\pos(540,1172)${fs(62)}\\1c&H111111&${fad}}ratesbyroom.com`]);
   d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1330)\\b1${fs(42)}\\1c${mauAss(NHAN)}${fad}}Free checklist: 5 red flags before you pay`]);
-  return [
-    '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 2', 'ScaledBorderAndShadow: yes', '',
-    '[V4+ Styles]',
-    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    'Style: Ve,Arial,20,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1',
-    'Style: Den,Archivo Black,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1',
-    'Style: Chu,Atkinson Hyperlegible,48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1',
-    '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
-    ...d.map(([lop, tu, den, kieu, text]) => `Dialogue: ${lop},${tg(tu)},${tg(den)},${kieu},,0,0,0,,${text}`), '',
-  ].join('\n');
+  return rapAss(W, H, d);
 }
 
 /** Tiếng: tích mỗi giây lúc đếm, dồn 3 giây cuối; lộ SCAM = tiếng "bè" trầm, REAL = "ting". Sinh bằng ffmpeg, không nhạc ngoài. */
@@ -123,9 +100,8 @@ export const amScam = (ket: DeScam['ket']) => `0.3*sin(2*PI*660*t)*exp(-9*t)`
 
 /** Lệnh ffmpeg: nền dải radial xanh đêm → ass → H.264 + AAC. `khung` (giây) = một khung JPG. */
 export function lenhScam(o: { de: DeScam; ass: string; fontsDir: string; ra: string; khung?: number }): string[] {
-  const assEsc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   const vao = ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=radial:x0=540:y0=600:x1=540:y1=2100:c0=0x24345E:c1=0x14213D:c2=0x0B1226:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
-  const loc = `[0:v]ass='${assEsc(o.ass)}':fontsdir='${assEsc(o.fontsDir)}',format=yuv420p[v]`;
+  const loc = `[0:v]ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amScam(o.de.ket)}':s=44100:d=${DAI}`,
     '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];

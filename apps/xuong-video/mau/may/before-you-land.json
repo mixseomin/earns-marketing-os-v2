@@ -1,0 +1,617 @@
+[
+ {
+  "slug": "land-japan",
+  "iso": "jp",
+  "nuoc": "Japan",
+  "san_bay": [
+   {
+    "iata": "NRT",
+    "ten": "Narita International Airport",
+    "tp": "Narita"
+   },
+   {
+    "iata": "HND",
+    "ten": "Tokyo Haneda International Airport",
+    "tp": "Tokyo"
+   },
+   {
+    "iata": "KIX",
+    "ten": "Kansai International Airport",
+    "tp": "Osaka"
+   }
+  ],
+  "link": "https://esimfares.com/jp/"
+ },
+ {
+  "slug": "land-italy",
+  "iso": "it",
+  "nuoc": "Italy",
+  "san_bay": [
+   {
+    "iata": "FCO",
+    "ten": "Rome–Fiumicino Leonardo da Vinci International Airport",
+    "tp": "Rome"
+   },
+   {
+    "iata": "MXP",
+    "ten": "Milan Malpensa International Airport",
+    "tp": "Ferno (VA)"
+   },
+   {
+    "iata": "VCE",
+    "ten": "Venice Marco Polo Airport",
+    "tp": "Venezia (VE)"
+   }
+  ],
+  "link": "https://esimfares.com/it/"
+ },
+ {
+  "slug": "land-france",
+  "iso": "fr",
+  "nuoc": "France",
+  "san_bay": [
+   {
+    "iata": "CDG",
+    "ten": "Charles de Gaulle International Airport",
+    "tp": "Paris (Roissy-en-France, Val-d'Oise)"
+   },
+   {
+    "iata": "ORY",
+    "ten": "Paris-Orly Airport",
+    "tp": "Paris (Orly, Val-de-Marne)"
+   },
+   {
+    "iata": "NCE",
+    "ten": "Nice-Côte d'Azur Airport",
+    "tp": "Nice, Alpes-Maritimes"
+   }
+  ],
+  "link": "https://esimfares.com/fr/"
+ },
+ {
+  "slug": "land-spain",
+  "iso": "es",
+  "nuoc": "Spain",
+  "san_bay": [
+   {
+    "iata": "MAD",
+    "ten": "Adolfo Suárez Madrid–Barajas Airport",
+    "tp": "Madrid"
+   },
+   {
+    "iata": "BCN",
+    "ten": "Josep Tarradellas Barcelona-El Prat Airport",
+    "tp": "Barcelona"
+   },
+   {
+    "iata": "AGP",
+    "ten": "Málaga-Costa del Sol Airport",
+    "tp": "Málaga"
+   }
+  ],
+  "link": "https://esimfares.com/es/"
+ },
+ {
+  "slug": "land-united-kingdom",
+  "iso": "gb",
+  "nuoc": "United Kingdom",
+  "san_bay": [
+   {
+    "iata": "LHR",
+    "ten": "London Heathrow Airport",
+    "tp": "London"
+   },
+   {
+    "iata": "LGW",
+    "ten": "London Gatwick Airport",
+    "tp": "London"
+   },
+   {
+    "iata": "MAN",
+    "ten": "Manchester Airport",
+    "tp": "Manchester, Greater Manchester"
+   }
+  ],
+  "link": "https://esimfares.com/gb/"
+ },
+ {
+  "slug": "land-mexico",
+  "iso": "mx",
+  "nuoc": "Mexico",
+  "san_bay": [
+   {
+    "iata": "MEX",
+    "ten": "Mexico City Benito Juárez International Airport",
+    "tp": "Mexico City"
+   },
+   {
+    "iata": "CUN",
+    "ten": "Cancún International Airport",
+    "tp": "Cancún"
+   },
+   {
+    "iata": "PVR",
+    "ten": "Puerto Vallarta International Airport",
+    "tp": "Puerto Vallarta"
+   }
+  ],
+  "link": "https://esimfares.com/mx/"
+ },
+ {
+  "slug": "land-thailand",
+  "iso": "th",
+  "nuoc": "Thailand",
+  "san_bay": [
+   {
+    "iata": "BKK",
+    "ten": "Suvarnabhumi Airport",
+    "tp": "Bangkok"
+   },
+   {
+    "iata": "DMK",
+    "ten": "Don Mueang International Airport",
+    "tp": "Bangkok"
+   },
+   {
+    "iata": "HKT",
+    "ten": "Phuket International Airport",
+    "tp": "Phuket"
+   }
+  ],
+  "link": "https://esimfares.com/th/"
+ },
+ {
+  "slug": "land-greece",
+  "iso": "gr",
+  "nuoc": "Greece",
+  "san_bay": [
+   {
+    "iata": "ATH",
+    "ten": "Athens Eleftherios Venizelos International Airport",
+    "tp": "Spata-Artemida"
+   },
+   {
+    "iata": "JTR",
+    "ten": "Santorini International Airport",
+    "tp": "Santorini Island"
+   },
+   {
+    "iata": "HER",
+    "ten": "Heraklion International Nikos Kazantzakis Airport",
+    "tp": "Heraklion"
+   }
+  ],
+  "link": "https://esimfares.com/gr/"
+ },
+ {
+  "slug": "land-portugal",
+  "iso": "pt",
+  "nuoc": "Portugal",
+  "san_bay": [
+   {
+    "iata": "LIS",
+    "ten": "Lisbon Humberto Delgado Airport",
+    "tp": "Lisbon"
+   },
+   {
+    "iata": "OPO",
+    "ten": "Francisco de Sá Carneiro Airport",
+    "tp": "Porto"
+   },
+   {
+    "iata": "FAO",
+    "ten": "Faro - Gago Coutinho International Airport",
+    "tp": "Faro"
+   }
+  ],
+  "link": "https://esimfares.com/pt/"
+ },
+ {
+  "slug": "land-germany",
+  "iso": "de",
+  "nuoc": "Germany",
+  "san_bay": [
+   {
+    "iata": "FRA",
+    "ten": "Frankfurt Main Airport",
+    "tp": "Frankfurt am Main"
+   },
+   {
+    "iata": "MUC",
+    "ten": "Munich Airport",
+    "tp": "Munich"
+   },
+   {
+    "iata": "BER",
+    "ten": "Berlin Brandenburg Airport",
+    "tp": "Berlin"
+   }
+  ],
+  "link": "https://esimfares.com/de/"
+ },
+ {
+  "slug": "land-turkey",
+  "iso": "tr",
+  "nuoc": "Turkey",
+  "san_bay": [
+   {
+    "iata": "IST",
+    "ten": "İstanbul Airport",
+    "tp": "Istanbul"
+   },
+   {
+    "iata": "SAW",
+    "ten": "Istanbul Sabiha Gökçen International Airport",
+    "tp": "Pendik, Istanbul"
+   },
+   {
+    "iata": "AYT",
+    "ten": "Antalya International Airport",
+    "tp": "Antalya"
+   }
+  ],
+  "link": "https://esimfares.com/tr/"
+ },
+ {
+  "slug": "land-south-korea",
+  "iso": "kr",
+  "nuoc": "South Korea",
+  "san_bay": [
+   {
+    "iata": "ICN",
+    "ten": "Incheon International Airport",
+    "tp": "Seoul"
+   },
+   {
+    "iata": "GMP",
+    "ten": "Seoul Gimpo International Airport",
+    "tp": "Seoul"
+   },
+   {
+    "iata": "PUS",
+    "ten": "Gimhae International Airport",
+    "tp": "Busan"
+   }
+  ],
+  "link": "https://esimfares.com/kr/"
+ },
+ {
+  "slug": "land-vietnam",
+  "iso": "vn",
+  "nuoc": "Vietnam",
+  "san_bay": [
+   {
+    "iata": "SGN",
+    "ten": "Tan Son Nhat International Airport",
+    "tp": "Ho Chi Minh City"
+   },
+   {
+    "iata": "HAN",
+    "ten": "Noi Bai International Airport",
+    "tp": "Hanoi (Soc Son)"
+   },
+   {
+    "iata": "DAD",
+    "ten": "Da Nang International Airport",
+    "tp": "Da Nang"
+   }
+  ],
+  "link": "https://esimfares.com/vn/"
+ },
+ {
+  "slug": "land-indonesia",
+  "iso": "id",
+  "nuoc": "Indonesia",
+  "san_bay": [
+   {
+    "iata": "DPS",
+    "ten": "Denpasar I Gusti Ngurah Rai International Airport",
+    "tp": "Kuta, Badung"
+   },
+   {
+    "iata": "CGK",
+    "ten": "Soekarno-Hatta International Airport",
+    "tp": "Jakarta"
+   }
+  ],
+  "link": "https://esimfares.com/id/"
+ },
+ {
+  "slug": "land-iceland",
+  "iso": "is",
+  "nuoc": "Iceland",
+  "san_bay": [
+   {
+    "iata": "KEF",
+    "ten": "Keflavik International Airport",
+    "tp": "Reykjavík"
+   }
+  ],
+  "link": "https://esimfares.com/is/"
+ },
+ {
+  "slug": "land-netherlands",
+  "iso": "nl",
+  "nuoc": "Netherlands",
+  "san_bay": [
+   {
+    "iata": "AMS",
+    "ten": "Amsterdam Airport Schiphol",
+    "tp": "Amsterdam"
+   }
+  ],
+  "link": "https://esimfares.com/nl/"
+ },
+ {
+  "slug": "land-switzerland",
+  "iso": "ch",
+  "nuoc": "Switzerland",
+  "san_bay": [
+   {
+    "iata": "ZRH",
+    "ten": "Zürich Airport",
+    "tp": "Zurich"
+   },
+   {
+    "iata": "GVA",
+    "ten": "Geneva International Airport",
+    "tp": "Geneva"
+   }
+  ],
+  "link": "https://esimfares.com/ch/"
+ },
+ {
+  "slug": "land-ireland",
+  "iso": "ie",
+  "nuoc": "Ireland",
+  "san_bay": [
+   {
+    "iata": "DUB",
+    "ten": "Dublin Airport",
+    "tp": "Dublin"
+   },
+   {
+    "iata": "SNN",
+    "ten": "Shannon Airport",
+    "tp": "Shannon"
+   }
+  ],
+  "link": "https://esimfares.com/ie/"
+ },
+ {
+  "slug": "land-croatia",
+  "iso": "hr",
+  "nuoc": "Croatia",
+  "san_bay": [
+   {
+    "iata": "DBV",
+    "ten": "Dubrovnik Ruđer Bošković Airport",
+    "tp": "Dubrovnik"
+   },
+   {
+    "iata": "SPU",
+    "ten": "Split Saint Jerome Airport",
+    "tp": "Split"
+   },
+   {
+    "iata": "ZAG",
+    "ten": "Zagreb Franjo Tuđman International Airport",
+    "tp": "Velika Gorica"
+   }
+  ],
+  "link": "https://esimfares.com/hr/"
+ },
+ {
+  "slug": "land-egypt",
+  "iso": "eg",
+  "nuoc": "Egypt",
+  "san_bay": [
+   {
+    "iata": "CAI",
+    "ten": "Cairo International Airport",
+    "tp": "Cairo"
+   },
+   {
+    "iata": "HRG",
+    "ten": "Hurghada International Airport",
+    "tp": "Hurghada"
+   },
+   {
+    "iata": "SSH",
+    "ten": "Sharm El Sheikh International Airport",
+    "tp": "Sharm El Sheikh"
+   }
+  ],
+  "link": "https://esimfares.com/eg/"
+ },
+ {
+  "slug": "land-morocco",
+  "iso": "ma",
+  "nuoc": "Morocco",
+  "san_bay": [
+   {
+    "iata": "RAK",
+    "ten": "Marrakesh Menara Airport",
+    "tp": "Marrakesh"
+   },
+   {
+    "iata": "CMN",
+    "ten": "Mohammed V International Airport",
+    "tp": "Casablanca"
+   }
+  ],
+  "link": "https://esimfares.com/ma/"
+ },
+ {
+  "slug": "land-united-arab-emirates",
+  "iso": "ae",
+  "nuoc": "United Arab Emirates",
+  "san_bay": [
+   {
+    "iata": "DXB",
+    "ten": "Dubai International Airport",
+    "tp": "Dubai"
+   },
+   {
+    "iata": "AUH",
+    "ten": "Zayed International Airport",
+    "tp": "Abu Dhabi"
+   }
+  ],
+  "link": "https://esimfares.com/ae/"
+ },
+ {
+  "slug": "land-australia",
+  "iso": "au",
+  "nuoc": "Australia",
+  "san_bay": [
+   {
+    "iata": "SYD",
+    "ten": "Sydney Kingsford Smith International Airport",
+    "tp": "Sydney (Mascot)"
+   },
+   {
+    "iata": "MEL",
+    "ten": "Melbourne Airport",
+    "tp": "Melbourne"
+   },
+   {
+    "iata": "BNE",
+    "ten": "Brisbane International Airport",
+    "tp": "Brisbane"
+   }
+  ],
+  "link": "https://esimfares.com/au/"
+ },
+ {
+  "slug": "land-new-zealand",
+  "iso": "nz",
+  "nuoc": "New Zealand",
+  "san_bay": [
+   {
+    "iata": "AKL",
+    "ten": "Auckland International Airport",
+    "tp": "Auckland"
+   },
+   {
+    "iata": "CHC",
+    "ten": "Christchurch International Airport",
+    "tp": "Christchurch"
+   },
+   {
+    "iata": "ZQN",
+    "ten": "Queenstown Airport",
+    "tp": "Queenstown"
+   }
+  ],
+  "link": "https://esimfares.com/nz/"
+ },
+ {
+  "slug": "land-peru",
+  "iso": "pe",
+  "nuoc": "Peru",
+  "san_bay": [
+   {
+    "iata": "LIM",
+    "ten": "Jorge Chávez International Airport",
+    "tp": "Lima"
+   },
+   {
+    "iata": "CUZ",
+    "ten": "Alejandro Velasco Astete International Airport",
+    "tp": "Cusco"
+   }
+  ],
+  "link": "https://esimfares.com/pe/"
+ },
+ {
+  "slug": "land-costa-rica",
+  "iso": "cr",
+  "nuoc": "Costa Rica",
+  "san_bay": [
+   {
+    "iata": "SJO",
+    "ten": "Juan Santamaría International Airport",
+    "tp": "San José (Alajuela)"
+   },
+   {
+    "iata": "LIR",
+    "ten": "Daniel Oduber Quirós International Airport",
+    "tp": "Liberia"
+   }
+  ],
+  "link": "https://esimfares.com/cr/"
+ },
+ {
+  "slug": "land-colombia",
+  "iso": "co",
+  "nuoc": "Colombia",
+  "san_bay": [
+   {
+    "iata": "BOG",
+    "ten": "El Dorado International Airport",
+    "tp": "Bogota"
+   },
+   {
+    "iata": "MDE",
+    "ten": "Jose Maria Córdova International Airport",
+    "tp": "Medellín"
+   },
+   {
+    "iata": "CTG",
+    "ten": "Rafael Nuñez International Airport",
+    "tp": "Cartagena"
+   }
+  ],
+  "link": "https://esimfares.com/co/"
+ },
+ {
+  "slug": "land-philippines",
+  "iso": "ph",
+  "nuoc": "Philippines",
+  "san_bay": [
+   {
+    "iata": "MNL",
+    "ten": "Ninoy Aquino International Airport",
+    "tp": "Manila (Pasay)"
+   },
+   {
+    "iata": "CEB",
+    "ten": "Mactan Cebu International Airport",
+    "tp": "Cebu City/Lapu-Lapu City"
+   }
+  ],
+  "link": "https://esimfares.com/ph/"
+ },
+ {
+  "slug": "land-singapore",
+  "iso": "sg",
+  "nuoc": "Singapore",
+  "san_bay": [
+   {
+    "iata": "SIN",
+    "ten": "Singapore Changi Airport",
+    "tp": "Singapore"
+   }
+  ],
+  "link": "https://esimfares.com/sg/"
+ },
+ {
+  "slug": "land-taiwan",
+  "iso": "tw",
+  "nuoc": "Taiwan",
+  "san_bay": [
+   {
+    "iata": "TPE",
+    "ten": "Taiwan Taoyuan International Airport",
+    "tp": "Taoyuan"
+   },
+   {
+    "iata": "TSA",
+    "ten": "Taipei Songshan International Airport",
+    "tp": "Taipei (Songshan)"
+   }
+  ],
+  "link": "https://esimfares.com/tw/"
+ }
+]

@@ -1,0 +1,3245 @@
+iata,ten,nuoc,tp,loai
+WKK,Aleknagik / New Airport,US,Aleknagik,medium_airport
+BBQ,Burton-Nibbs International Airport,AG,Codrington,medium_airport
+HIR,Honiara International Airport,SB,Honiara,large_airport
+MUA,Munda Airport,SB,Munda,medium_airport
+INU,Nauru International Airport,NR,Yaren,medium_airport
+AXF,Alxa Left Banner Bayanhot Airport,CN,Bayanhot,medium_airport
+VMU,Baimuru Airport,PG,Baimuru,medium_airport
+BUA,Buka Airport,PG,Buka Island,medium_airport
+OPU,Balimo Airport,PG,Balimo,medium_airport
+CMU,Chimbu Airport,PG,Kundiawa,medium_airport
+DAU,Daru Airport,PG,Daru,medium_airport
+GKA,Goroka Airport,PG,Goronka,medium_airport
+GUR,Gurney Airport,PG,Gurney,medium_airport
+PNP,Girua Airport,PG,Popondetta,medium_airport
+HKN,Hoskins Airport,PG,Kimbe,medium_airport
+KMA,Kerema Airport,PG,Kerema,medium_airport
+KVG,Kavieng Airport,PG,Kavieng,medium_airport
+MAG,Madang Airport,PG,Madang,medium_airport
+HGU,Mount Hagen Kagamuga Airport,PG,Mount Hagen,medium_airport
+MDU,Mendi Airport,PG,Mendi,medium_airport
+MAS,Momote Airport,PG,Manus Island,medium_airport
+LAE,Nadzab Tomodachi International Airport,PG,Lae,large_airport
+POM,Port Moresby Jacksons International Airport,PG,Port Moresby,large_airport
+RAB,Tokua Airport,PG,Kokopo,medium_airport
+VAI,Vanimo Airport,PG,Vanimo,medium_airport
+WBM,Wapenamanda Airport,PG,Wapenamanda,medium_airport
+WWK,Wewak International Airport,PG,Wewak,medium_airport
+JEG,Aasiaat Airport,GL,Aasiaat,medium_airport
+CNP,Neerlerit Inaat Airport,GL,Neerlerit Inaat,medium_airport
+GOH,Nuuk International Airport,GL,Nuuk,large_airport
+JAV,Ilulissat Airport,GL,Ilulissat,medium_airport
+KUS,Kulusuk Airport,GL,Kulusuk,medium_airport
+NAQ,Qaanaaq Airport,GL,Qaanaaq,medium_airport
+SFJ,Kangerlussuaq International Airport,GL,Kangerlussuaq,medium_airport
+JHS,Sisimiut Airport,GL,Sisimiut,medium_airport
+AEY,Akureyri International Airport,IS,Akureyri,large_airport
+EGS,Egilsstaðir Airport,IS,Egilsstaðir,medium_airport
+GRY,Grímsey Airport,IS,Grímsey/Sandvík,medium_airport
+HFN,Hornafjörður Airport,IS,Höfn,medium_airport
+IFJ,Ísafjörður Airport,IS,Ísafjörður,medium_airport
+KEF,Keflavik International Airport,IS,Reykjavík,large_airport
+RKV,Reykjavík Domestic Airport,IS,Reykjavík,medium_airport
+VPN,Vopnafjörður Airport,IS,Vopnafjörður,medium_airport
+PRN,Priština Adem Jashari International Airport,XK,Prishtina,large_airport
+VDC,Glauber de Andrade Rocha Airport,BR,Vitória da Conquista,medium_airport
+CUK,Caye Caulker Airport,BZ,Caye Caulker,medium_airport
+CYC,Caye Chapel Airport,BZ,Caye Chapel,medium_airport
+CZH,Corozal Airport,BZ,Corozal,medium_airport
+DGA,Dangriga Airport,BZ,Dangriga,medium_airport
+SPR,John Greif II Airport,BZ,San Pedro,medium_airport
+TZA,Sir Barry Bowen Municipal Airport,BZ,Belize City,medium_airport
+YAA,Anahim Lake Airport,CA,Anahim Lake,medium_airport
+XQU,Qualicum Beach Airport,CA,Qualicum Beach,medium_airport
+ZEL,Bella Bella (Campbell Island) Airport,CA,Bella Bella,medium_airport
+BZX,Bazhong Enyang Airport,CN,Bazhong,medium_airport
+HSC,Shaoguan Danxia Airport,CN,Shaoguan,medium_airport
+JGS,Jinggangshan Airport,CN,Ji'an,medium_airport
+JNH,Jiaxing Nanhu Airport,CN,"Xiuzhou, Hangzhou",medium_airport
+DDR,Shigatse Tingri Airport,CN,Xigazê (Dingri),medium_airport
+HQL,Tashikuergan Hongqilafu Airport,CN,Tashikuergan,medium_airport
+LSG,Leshan Airport,CN,Leshan (Wutongqiao),medium_airport
+ZAT,Zhaotong Zhaoyang Airport,CN,Zhaotong,medium_airport
+BFY,Bengbu Tenghu Airport,CN,Bengbu,medium_airport
+YAG,Fort Frances Municipal Airport,CA,Fort Frances,medium_airport
+YAM,Sault Ste Marie Airport,CA,Sault Ste Marie,medium_airport
+XKS,Kasabonika Airport,CA,Kasabonika,medium_airport
+YAY,St. Anthony Airport,CA,St. Anthony,medium_airport
+YAZ,Tofino / Long Beach Airport,CA,Tofino,medium_airport
+YBC,Baie-Comeau Airport,CA,Baie-Comeau,medium_airport
+QBC,Bella Coola Airport,CA,Bella Coola,medium_airport
+YBY,Bonnyville Airport,CA,Bonnyville,medium_airport
+YBG,Saguenay-Bagotville Airport,CA,Saguenay,medium_airport
+YBK,Baker Lake Airport,CA,Baker Lake,medium_airport
+YBL,Campbell River Airport,CA,Campbell River,medium_airport
+YBR,Brandon Municipal Airport,CA,Brandon,medium_airport
+YBX,Lourdes-de-Blanc-Sablon Airport,CA,Blanc-Sablon,medium_airport
+YCB,Cambridge Bay Airport,CA,Cambridge Bay,medium_airport
+YCD,Nanaimo Airport,CA,Nanaimo,medium_airport
+YCG,Castlegar/West Kootenay Regional Airport,CA,Castlegar,medium_airport
+YDA,Dawson City Airport,CA,Dawson City,medium_airport
+YDF,Deer Lake Airport,CA,Deer Lake,medium_airport
+YDN,Dauphin Barker Airport,CA,Dauphin,medium_airport
+YEG,Edmonton International Airport,CA,Edmonton,large_airport
+YEV,Inuvik Mike Zubko Airport,CA,Inuvik,medium_airport
+YFB,Iqaluit Airport,CA,Iqaluit,medium_airport
+YFC,Fredericton International Airport,CA,Fredericton,medium_airport
+YFS,Fort Simpson Airport,CA,Fort Simpson,medium_airport
+YGL,La Grande Rivière Airport,CA,La Grande Rivière,medium_airport
+YGP,Michel-Pouliot Gaspé Airport,CA,Gaspé,medium_airport
+YGR,Îles-de-la-Madeleine Airport,CA,Les Îles-de-la-Madeleine,medium_airport
+YGV,Havre-Saint-Pierre Airport,CA,Havre-Saint-Pierre,medium_airport
+YGW,Kuujjuarapik Airport,CA,Kuujjuarapik,medium_airport
+YHM,John C. Munro Hamilton International Airport,CA,Hamilton,large_airport
+YHU,Montréal / Saint-Hubert Metropolitan Airport,CA,Montréal,medium_airport
+YHY,Hay River / Merlyn Carter Airport,CA,Hay River,medium_airport
+YHZ,Halifax / Stanfield International Airport,CA,Halifax,large_airport
+YIF,St Augustin Airport,CA,St-Augustin,medium_airport
+YIV,Island Lake Airport,CA,Island Lake,medium_airport
+YKA,Kamloops John Moose Fulton Field Regional Airport,CA,Kamloops,medium_airport
+YKF,Region of Waterloo International Airport,CA,Breslau,medium_airport
+YKL,Schefferville Airport,CA,Schefferville,medium_airport
+YLL,Lloydminster Airport,CA,Lloydminster,medium_airport
+YLK,Barrie-Lake Simcoe Regional Airport,CA,Barrie,medium_airport
+YLW,Kelowna International Airport,CA,Kelowna,large_airport
+YMM,Fort McMurray International Airport,CA,Fort McMurray,medium_airport
+YMO,Moosonee Airport,CA,Moosonee,medium_airport
+YMT,Chapais Airport,CA,Chibougamau,medium_airport
+YMX,Montreal Mirabel International Airport,CA,Montréal,medium_airport
+YNA,Natashquan Airport,CA,Natashquan,medium_airport
+YND,Ottawa / Gatineau Airport,CA,Gatineau,medium_airport
+YNL,Points North Landing Airport,CA,Points North Landing,medium_airport
+YOJ,High Level Airport,CA,High Level,medium_airport
+YOW,Ottawa Macdonald-Cartier International Airport,CA,Ottawa,large_airport
+YPA,Prince Albert Glass Field,CA,Prince Albert,medium_airport
+YPE,Peace River Airport,CA,Peace River,medium_airport
+YPL,Pickle Lake Airport,CA,Pickle Lake,medium_airport
+YPN,Port-Menier Airport,CA,Port-Menier,medium_airport
+YPQ,Peterborough Regional Airport,CA,Peterborough,medium_airport
+YPR,Prince Rupert Airport,CA,Prince Rupert,medium_airport
+YPW,Powell River Airport,CA,Powell River,medium_airport
+YPX,Puvirnituq Airport,CA,Puvirnituq,medium_airport
+YPY,Fort Chipewyan Airport,CA,Fort Chipewyan,medium_airport
+YPZ,Burns Lake Airport,CA,Burns Lake,medium_airport
+YQA,Muskoka Airport,CA,Gravenhurst,medium_airport
+YQB,Quebec Jean Lesage International Airport,CA,Quebec,large_airport
+YQD,The Pas Airport,CA,The Pas,medium_airport
+YQG,Windsor International Airport,CA,Windsor,large_airport
+YQH,Watson Lake Airport,CA,Watson Lake,medium_airport
+YQK,Kenora Airport,CA,Kenora,medium_airport
+YQL,Lethbridge County Airport,CA,Lethbridge,medium_airport
+YQM,Greater Moncton Roméo LeBlanc International Airport,CA,Moncton,medium_airport
+YQN,Nakina Airport,CA,Nakina,medium_airport
+YQQ,Comox Valley International Airport / CFB Comox,CA,Comox,medium_airport
+YQR,Regina International Airport,CA,Regina,medium_airport
+YQT,Thunder Bay International Airport,CA,Thunder Bay,medium_airport
+YQU,Grande Prairie Airport,CA,Grande Prairie,medium_airport
+YQX,Gander International Airport,CA,Gander,medium_airport
+YQY,Sydney / J.A. Douglas McCurdy Airport,CA,Sydney,medium_airport
+YQZ,Quesnel Airport,CA,Quesnel,medium_airport
+YRB,Resolute Bay Airport,CA,Resolute Bay,medium_airport
+YRJ,Roberval Airport,CA,Roberval,medium_airport
+YRL,Red Lake Airport,CA,Red Lake,medium_airport
+YRO,Ottawa / Rockcliffe Airport,CA,Ottawa,medium_airport
+YRT,Rankin Inlet Airport,CA,Rankin Inlet,medium_airport
+YSB,Sudbury Airport,CA,Sudbury,medium_airport
+YSF,Stony Rapids Airport,CA,Stony Rapids,medium_airport
+YSJ,Saint John Airport,CA,Saint John,medium_airport
+YSM,Fort Smith Airport,CA,Fort Smith,medium_airport
+YCM,Niagara District Airport,CA,Niagara-on-the-Lake,medium_airport
+YTH,Thompson Airport,CA,Thompson,medium_airport
+YTS,Timmins/Victor M. Power,CA,Timmins,medium_airport
+YTZ,Billy Bishop Toronto City Airport,CA,Toronto,medium_airport
+YUL,Montreal / Pierre Elliott Trudeau International Airport,CA,Montréal,large_airport
+YUX,Hall Beach Airport,CA,Sanirajak,medium_airport
+YUY,Rouyn Noranda Airport,CA,Rouyn-Noranda,medium_airport
+YVB,Bonaventure Airport,CA,Bonaventure,medium_airport
+YVC,La Ronge Airport,CA,La Ronge,medium_airport
+YVO,Val-d'Or Airport,CA,Val-d'Or,medium_airport
+YVP,Kuujjuaq Airport,CA,Kuujjuaq,medium_airport
+YVQ,Norman Wells Airport,CA,Norman Wells,medium_airport
+YVR,Vancouver International Airport,CA,Vancouver,large_airport
+YVV,Wiarton Airport,CA,Wiarton,medium_airport
+YWG,Winnipeg / James Armstrong Richardson International Airport,CA,Winnipeg,large_airport
+YWK,Wabush Airport,CA,Wabush,medium_airport
+YWL,Williams Lake Airport,CA,Williams Lake,medium_airport
+YXC,Cranbrook/Canadian Rockies International Airport,CA,Cranbrook,medium_airport
+YXE,Saskatoon John G. Diefenbaker International Airport,CA,Saskatoon,large_airport
+YXH,Medicine Hat Regional Airport,CA,Medicine Hat,medium_airport
+YXJ,Fort St John / North Peace Regional Airport,CA,Fort Saint John,medium_airport
+YXL,Sioux Lookout Airport,CA,Sioux Lookout,medium_airport
+YXS,Prince George (International) Airport,CA,Prince George,medium_airport
+YXT,Northwest Regional Airport Terrace-Kitimat,CA,Terrace,medium_airport
+YXU,London International Airport,CA,London,medium_airport
+YXX,Abbotsford International Airport,CA,Abbotsford,medium_airport
+YXY,Whitehorse / Erik Nielsen International Airport,CA,Whitehorse,medium_airport
+YYB,North Bay Jack Garland Airport,CA,North Bay,medium_airport
+YYC,Calgary International Airport,CA,Calgary,large_airport
+YYD,Smithers Airport,CA,Smithers,medium_airport
+YYE,Fort Nelson Airport,CA,Fort Nelson,medium_airport
+YYF,Penticton Airport,CA,Penticton,medium_airport
+YYG,Charlottetown Airport,CA,Charlottetown,medium_airport
+YYJ,Victoria International Airport,CA,Victoria,large_airport
+YYL,Lynn Lake Airport,CA,Lynn Lake,medium_airport
+YYQ,Churchill Airport,CA,Churchill,medium_airport
+YYR,Goose Bay Airport,CA,Goose Bay,medium_airport
+YYT,St. John's International Airport,CA,St. John's,large_airport
+YYY,Mont Joli Airport,CA,Mont-Joli,medium_airport
+YYZ,Toronto Pearson International Airport,CA,Toronto,large_airport
+YZF,Yellowknife International Airport,CA,Yellowknife,medium_airport
+YZP,Sandspit Airport,CA,Sandspit,medium_airport
+YZS,Coral Harbour Airport,CA,Coral Harbour,medium_airport
+YZT,Port Hardy Airport,CA,Port Hardy,medium_airport
+YZU,Whitecourt Airport,CA,Whitecourt,medium_airport
+YZV,Sept-Îles Airport,CA,Sept-Îles,medium_airport
+ZBF,Bathurst Airport,CA,South Tetagouche,medium_airport
+ZMT,Masset Airport,CA,Masset,medium_airport
+ZSJ,Sandy Lake Airport,CA,Sandy Lake,medium_airport
+BJA,Soummam–Abane Ramdane Airport,DZ,Béjaïa,large_airport
+ALG,Houari Boumediene Airport,DZ,Algiers,large_airport
+DJG,Tiska Djanet Airport,DZ,Djanet,large_airport
+VVZ,Illizi Takhamalt Airport,DZ,Illizi,medium_airport
+QSF,Ain Arnat Airport,DZ,Sétif,medium_airport
+TMR,Aguenar – Hadj Bey Akhamok Airport,DZ,Tamanrasset,large_airport
+GJL,Jijel Ferhat Abbas Airport,DZ,Tahir,large_airport
+MZW,Mecheria Airport,DZ,Mecheria,medium_airport
+AAE,Annaba Rabah Bitat Airport,DZ,Annaba,large_airport
+CZL,Mohamed Boudiaf International Airport,DZ,Constantine,large_airport
+TEE,Cheikh Larbi Tébessi Airport,DZ,Tébessi,medium_airport
+BLJ,Batna Mostefa Ben Boulaid Airport,DZ,Batna,large_airport
+TIN,Tindouf Airport,DZ,Tindouf,medium_airport
+CFK,Chlef Aboubakr Belkaid International Airport,DZ,Chlef,large_airport
+TLM,Zenata – Messali El Hadj Airport,DZ,Zenata,large_airport
+ORN,Oran Es-Sénia (Ahmed Ben Bella) International Airport,DZ,Es-Sénia,large_airport
+CBH,Béchar Boudghene Ben Ali Lotfi Airport,DZ,Béchar,medium_airport
+BMW,Bordj Badji Mokhtar Airport,DZ,Bordj Badji Mokhtar,medium_airport
+AZR,Touat-Cheikh Sidi Mohamed Belkebir Airport,DZ,Adrar,medium_airport
+BSK,Biskra - Mohamed Khider Airport,DZ,Biskra,large_airport
+ELG,El Golea Airport,DZ,El Menia,medium_airport
+GHA,Noumérat - Moufdi Zakaria Airport,DZ,El Atteuf,medium_airport
+HME,Hassi Messaoud-Oued Irara Krim Belkacem Airport,DZ,Hassi Messaoud,medium_airport
+INZ,In Salah Airport,DZ,In Salah,medium_airport
+TGR,Touggourt Sidi Madhi Airport,DZ,Touggourt,medium_airport
+LOO,Laghouat - Molay Ahmed Medeghri Airport,DZ,Laghouat,medium_airport
+ELU,Guemar Airport - مطار قمار بالوادي,DZ,Guemar,medium_airport
+TMX,Timimoun Airport,DZ,Timimoun,medium_airport
+OGX,Ain Beida Airport,DZ,Ouargla,medium_airport
+IAM,Zarzaitine - In Aménas Airport,DZ,In Aménas,medium_airport
+COO,Cotonou Cadjehoun International Airport,BJ,Cotonou,large_airport
+OUA,Ouagadougou Thomas Sankara International Airport,BF,Ouagadougou,large_airport
+BOY,Bobo Dioulasso Airport,BF,Bobo Dioulasso,large_airport
+ACC,Kotoka International Airport,GH,Accra,large_airport
+TML,Yakubu Tali International Airport,GH,Tamale,large_airport
+KMS,Prempeh I International Airport,GH,Kumasi,large_airport
+NYI,Sunyani Airport,GH,Sunyani,medium_airport
+TKD,Takoradi Airport,GH,Sekondi-Takoradi,medium_airport
+ABJ,Félix-Houphouët-Boigny International Airport,CI,Abidjan,large_airport
+BYK,Bouaké Airport,CI,Bouaké,medium_airport
+HGO,Korhogo Airport,CI,Korhogo,medium_airport
+SPY,San Pedro Airport,CI,,medium_airport
+DKA,Umaru Musa Yar'adua Airport,NG,Katsina,medium_airport
+ABV,Nnamdi Azikiwe International Airport,NG,Abuja,large_airport
+QUO,Akwa Ibom International Airport,NG,Uyo,medium_airport
+AKR,Akure Airport,NG,Akure,medium_airport
+ABB,Asaba International Airport,NG,Asaba,large_airport
+BCU,Sir Abubakar Tafawa Balewa Bauchi State International Airport,NG,Bauchi,large_airport
+BNI,Benin Airport,NG,Benin,medium_airport
+CBQ,Margaret Ekpo International Airport,NG,Calabar,medium_airport
+ENU,Akanu Ibiam International Airport,NG,Enegu,large_airport
+GMO,Gombe Lawanti International Airport,NG,Gombe,medium_airport
+IBA,Ibadan Airport,NG,Ibadan,medium_airport
+ILR,General Tunde Idiagbon International Airport,NG,Ilorin/Ogbomosho,large_airport
+QOW,Sam Mbakwe International Cargo Airport,NG,Owerri,medium_airport
+JOS,Yakubu Gowon Airport,NG,Jos,medium_airport
+KAD,Kaduna International Airport,NG,Kaduna,large_airport
+KAN,Mallam Aminu Kano International Airport,NG,Kano,large_airport
+MIU,Maiduguri International Airport,NG,Maiduguri,large_airport
+MDI,Makurdi Airport,NG,Makurdi,medium_airport
+LOS,Murtala Muhammed International Airport,NG,Lagos,large_airport
+PHC,Port Harcourt International Airport,NG,Port Harcourt,large_airport
+SKO,Sadiq Abubakar III International Airport,NG,Sokoto,large_airport
+QRW,Warri Airport,NG,Okpe,medium_airport
+YOL,Yola Airport,NG,Yola,medium_airport
+NIM,Diori Hamani International Airport,NE,Niamey,large_airport
+ZND,Zinder Airport,NE,Zinder,medium_airport
+TBJ,Tabarka-Aïn Draham International Airport,TN,Tabarka,medium_airport
+MIR,Monastir Habib Bourguiba International Airport,TN,Monastir,medium_airport
+NBE,Enfidha - Hammamet International Airport,TN,Enfidha,medium_airport
+TUN,Tunis Carthage International Airport,TN,Tunis,large_airport
+DJE,Djerba Zarzis International Airport,TN,Mellita,large_airport
+SFA,Sfax Thyna International Airport,TN,Sfax,medium_airport
+TOE,Tozeur Nefta International Airport,TN,Tozeur,medium_airport
+LFW,Lomé–Tokoin International Airport,TG,Lomé,large_airport
+ANR,Antwerp International Airport (Deurne),BE,Antwerp,medium_airport
+BRU,Brussels Airport,BE,Zaventem,large_airport
+CRL,Brussels South Charleroi Airport,BE,Charleroi,large_airport
+LGG,Liège Airport,BE,Grâce-Hollogne,medium_airport
+OST,Ostend-Bruges International Airport,BE,Oostende,large_airport
+HDF,Heringsdorf Airport,DE,Zirchow,medium_airport
+BER,Berlin Brandenburg Airport,DE,Berlin,large_airport
+DRS,Dresden Airport,DE,Dresden,large_airport
+ERF,Erfurt-Weimar Airport,DE,Erfurt,large_airport
+FRA,Frankfurt Main Airport,DE,Frankfurt am Main,large_airport
+FMO,Münster Osnabrück Airport,DE,Greven,large_airport
+HAM,Hamburg Helmut Schmidt Airport,DE,Hamburg,large_airport
+CGN,Cologne Bonn Airport,DE,Köln (Cologne),large_airport
+DUS,Düsseldorf Airport,DE,Düsseldorf,large_airport
+MUC,Munich Airport,DE,Munich,large_airport
+NUE,Nuremberg Airport,DE,Nuremberg,large_airport
+LEJ,Leipzig/Halle Airport,DE,Schkeuditz,large_airport
+SCN,Saarbrücken Airport,DE,Saarbrücken,medium_airport
+STR,Stuttgart Airport,DE,Stuttgart,large_airport
+HAJ,Hannover Airport,DE,Hannover,large_airport
+BRE,Bremen Airport,DE,Bremen,large_airport
+HHN,Frankfurt-Hahn Airport,DE,Frankfurt am Main (Lautzenhausen),large_airport
+MHG,Mannheim-City Airport,DE,Mannheim,medium_airport
+LBC,Lübeck Blankensee Airport,DE,Lübeck,medium_airport
+FMM,Memmingen Allgau Airport,DE,Memmingen,large_airport
+PAD,Paderborn Lippstadt Airport,DE,Büren,large_airport
+NRN,Weeze (Niederrhein) Airport,DE,Weeze,large_airport
+DTM,Dortmund Airport,DE,Dortmund,large_airport
+FDH,Bodensee Airport Friedrichshafen,DE,Friedrichshafen,large_airport
+FKB,Karlsruhe Baden-Baden Airport,DE,Rheinmünster,large_airport
+KSF,Kassel Airport,DE,Calden,large_airport
+GWT,Westerland Sylt Airport,DE,Sylt,medium_airport
+KDL,Kärdla Airport,EE,Kärdla,medium_airport
+URE,Kuressaare Airport,EE,Kuressaare,medium_airport
+EPU,Pärnu Airport,EE,Pärnu,medium_airport
+TLL,Lennart Meri Tallinn Airport,EE,Tallinn,large_airport
+TAY,Tartu Airport,EE,Tartu,medium_airport
+ENF,Enontekio Airport,FI,Enontekio,medium_airport
+HEL,Helsinki Vantaa Airport,FI,Helsinki (Vantaa),large_airport
+IVL,Ivalo Airport,FI,Ivalo,large_airport
+JOE,Joensuu Airport,FI,Joensuu,medium_airport
+JYV,Jyväskylä Airport,FI,Jyväskylän Maalaiskunta,medium_airport
+KEM,Kemi-Tornio Airport,FI,Kemi / Tornio,medium_airport
+KAJ,Kajaani Airport,FI,Kajaani,medium_airport
+KOK,Kokkola-Pietarsaari Airport,FI,Kokkola / Kruunupyy,medium_airport
+KAO,Kuusamo Airport,FI,Kuusamo,medium_airport
+KTT,Kittilä International Airport,FI,Kittilä,large_airport
+KUO,Kuopio Airport,FI,Kuopio / Siilinjärvi,large_airport
+LPP,Lappeenranta Airport,FI,Lappeenranta,large_airport
+MHQ,Mariehamn Airport,FI,Mariehamn,medium_airport
+OUL,Oulu Airport,FI,Oulu / Oulunsalo,large_airport
+POR,Pori Airport,FI,Pori,medium_airport
+RVN,Rovaniemi Airport,FI,Rovaniemi,large_airport
+SVL,Savonlinna Airport,FI,Savonlinna,medium_airport
+TMP,Tampere-Pirkkala Airport,FI,Tampere / Pirkkala,large_airport
+TKU,Turku Airport,FI,Turku,large_airport
+VAA,Vaasa Airport,FI,Vaasa,large_airport
+BFS,Belfast International Airport,GB,Belfast,large_airport
+BHD,George Best Belfast City Airport,GB,Belfast,medium_airport
+LDY,City of Derry Airport,GB,"Derry, Derry and Strabane",medium_airport
+BHX,Birmingham Airport,GB,"Birmingham, West Midlands",large_airport
+MAN,Manchester Airport,GB,"Manchester, Greater Manchester",large_airport
+CAL,Campbeltown Airport,GB,Campbeltown,medium_airport
+EOI,Eday Airport,GB,Eday,medium_airport
+CWL,Cardiff International Airport,GB,Cardiff,large_airport
+BRS,Bristol Airport,GB,Bristol,large_airport
+LPL,Liverpool John Lennon Airport,GB,Liverpool,large_airport
+LTN,London Luton Airport,GB,"Luton, Luton",large_airport
+BOH,Bournemouth Airport,GB,Bournemouth,medium_airport
+SOU,Southampton Airport,GB,Southampton,medium_airport
+NQY,Cornwall Airport Newquay,GB,Newquay,medium_airport
+ACI,Alderney Airport,GG,Saint Anne,medium_airport
+GCI,Guernsey Airport,GG,Saint Peter Port,medium_airport
+JER,Jersey Airport,JE,St. Peter,medium_airport
+LGW,London Gatwick Airport,GB,London,large_airport
+LCY,London City Airport,GB,London,medium_airport
+LHR,London Heathrow Airport,GB,London,large_airport
+SEN,London Southend Airport,GB,"Southend-on-Sea, Essex",medium_airport
+HUY,Humberside Airport,GB,"Grimsby, Lincolnshire",medium_airport
+LBA,Leeds Bradford Airport,GB,"Leeds, West Yorkshire",large_airport
+IOM,Isle of Man Airport,IM,"Castletown, Rushen",large_airport
+NCL,Newcastle International Airport,GB,"Newcastle upon Tyne, Tyne and Wear",large_airport
+MME,Teesside International Airport,GB,"Darlington, Durham",medium_airport
+EMA,East Midlands Airport,GB,"Nottingham, Leicestershire",large_airport
+KOI,Kirkwall Airport,GB,"Kirkwall, Orkney Islands",medium_airport
+LSI,Sumburgh Airport,GB,"Lerwick, Shetland",medium_airport
+WIC,Wick John O'Groats Airport,GB,Wick,medium_airport
+ABZ,Aberdeen International Airport,GB,Aberdeen,large_airport
+INV,Inverness Airport,GB,"Inverness, Highland",medium_airport
+GLA,Glasgow Airport,GB,Glasgow,large_airport
+EDI,Edinburgh Airport,GB,"Ingliston, Edinburgh",large_airport
+ILY,Islay Airport,GB,"Isle of Islay, Argyll and Bute",medium_airport
+PIK,Glasgow Prestwick Airport,GB,"Prestwick, South Ayrshire",large_airport
+BEB,Benbecula Airport,GB,Balivanich,medium_airport
+DND,Dundee Airport,GB,Dundee,medium_airport
+SYY,Stornoway Airport,GB,"Stornoway, Western Isles",medium_airport
+BRR,Barra Airport,GB,Eoligarry,medium_airport
+TRE,Tiree Airport,GB,"Balemartine, Argyll and Bute",medium_airport
+NWI,Norwich Airport,GB,"Norwich, Norfolk",medium_airport
+STN,London Stansted Airport,GB,"London, Essex",large_airport
+EXT,Exeter International Airport,GB,"Exeter, Devon",medium_airport
+MPN,Mount Pleasant Airport / RAF Mount Pleasant,FK,Mount Pleasant,medium_airport
+AMS,Amsterdam Airport Schiphol,NL,Amsterdam,large_airport
+MST,Maastricht Aachen Airport,NL,Maastricht,large_airport
+EIN,Eindhoven Airport,NL,Eindhoven,large_airport
+GRQ,Groningen Airport Eelde,NL,Groningen,large_airport
+RTM,Rotterdam The Hague Airport,NL,Rotterdam,large_airport
+ORK,Cork International Airport,IE,Cork,large_airport
+CFN,Donegal Airport,IE,Donegal,medium_airport
+DUB,Dublin Airport,IE,Dublin,large_airport
+NOC,Ireland West Airport Knock,IE,Charlestown,large_airport
+KIR,Kerry Airport,IE,Farranfore,medium_airport
+SNN,Shannon Airport,IE,Shannon,large_airport
+AAR,Aarhus Airport,DK,Aarhus,large_airport
+BLL,Billund Airport,DK,Billund,large_airport
+CPH,Copenhagen Kastrup Airport,DK,Copenhagen,large_airport
+EBJ,Esbjerg Airport,DK,Esbjerg,medium_airport
+KRP,Midtjyllands Airport / Air Base Karup,DK,Karup,medium_airport
+ODE,Odense Hans Christian Andersen Airport,DK,Odense,large_airport
+RKE,Copenhagen Roskilde Airport,DK,Roskilde,medium_airport
+RNN,Bornholm Airport,DK,Rønne,medium_airport
+SGD,Sønderborg Airport,DK,Sønderborg,medium_airport
+FAE,Vágar Airport,FO,Vágar,large_airport
+AAL,Aalborg Airport,DK,Aalborg,large_airport
+LUX,Luxembourg-Findel International Airport,LU,Luxembourg,large_airport
+AES,Ålesund Airport,NO,Ålesund,large_airport
+ANX,"Andøya Airport, Andenes",NO,Andenes,medium_airport
+ALF,Alta Airport,NO,Alta,medium_airport
+BNN,"Brønnøysund Airport, Brønnøy",NO,Brønnøy,medium_airport
+BOO,Bodø Airport,NO,Bodø,large_airport
+BGO,"Bergen Airport, Flesland",NO,Bergen,large_airport
+BJF,Båtsfjord Airport,NO,Båtsfjord,medium_airport
+BVG,Berlevåg Airport,NO,Berlevåg,medium_airport
+KRS,Kristiansand Airport,NO,Kristiansand(Kjevik),large_airport
+BDU,Bardufoss Airport,NO,Målselv,medium_airport
+EVE,Harstad/Narvik Airport,NO,Evenes,large_airport
+FRO,Florø Airport,NO,Florø,medium_airport
+OSL,Oslo-Gardermoen International Airport,NO,Oslo (Gardermoen),large_airport
+HAU,"Haugesund Airport, Karmøy",NO,Karmøy,medium_airport
+HFT,Hammerfest Airport,NO,Hammerfest,medium_airport
+HVG,"Honningsvåg Airport, Valan",NO,Honningsvåg,medium_airport
+KSU,"Kristiansund Airport, Kvernberget",NO,Kvernberget,medium_airport
+KKN,"Kirkenes Airport, Høybuktmoen",NO,Kirkenes,medium_airport
+LKN,Leknes Airport,NO,Leknes,medium_airport
+MEH,Mehamn Airport,NO,Mehamn,medium_airport
+MOL,"Molde Airport, Årø",NO,Årø,medium_airport
+MJF,"Mosjøen Airport, Kjærstad",NO,Mosjøen,medium_airport
+LKL,"Lakselv Airport, Banak",NO,Lakselv,medium_airport
+OLA,Ørland Airport,NO,Ørland,medium_airport
+HOV,"Ørsta-Volda Airport, Hovden",NO,Ørsta,medium_airport
+MQN,"Mo i Rana Airport, Røssvoll",NO,Mo i Rana,medium_airport
+RVK,"Rørvik Airport, Ryum",NO,Rørvik,medium_airport
+RRS,Røros Airport,NO,Røros,medium_airport
+LYR,"Svalbard Airport, Longyear",NO,Longyearbyen,medium_airport
+SVJ,"Svolvær Airport, Helle",NO,Svolvær,medium_airport
+SKN,"Stokmarknes Airport, Skagen",NO,Hadsel,medium_airport
+SRP,"Stord Airport, Sørstokken",NO,Leirvik,medium_airport
+SOJ,Sørkjosen Airport,NO,Sørkjosen,medium_airport
+VAW,"Vardø Airport, Svartnes",NO,Vardø,medium_airport
+SSJ,"Sandnessjøen Airport, Stokka",NO,Alstahaug,medium_airport
+TOS,Tromsø Airport,NO,Tromsø,large_airport
+TRF,"Sandefjord Airport, Torp",NO,Sandefjord(Torp),large_airport
+TRD,"Trondheim Airport, Værnes",NO,Trondheim,large_airport
+VDS,Vadsø Airport,NO,Vadsø,medium_airport
+SVG,"Stavanger Airport, Sola",NO,Stavanger,large_airport
+BZG,Ignacy Jan Paderewski Bydgoszcz Airport,PL,Bydgoszcz,medium_airport
+GDN,Gdańsk Lech Wałęsa Airport,PL,Gdańsk,large_airport
+KRK,Kraków John Paul II International Airport,PL,Balice,large_airport
+KTW,Katowice Wojciech Korfanty International Airport,PL,Katowice,large_airport
+LUZ,Lublin Airport,PL,Lublin,large_airport
+LCJ,Łódź Władysław Reymont Airport,PL,Łódź,large_airport
+WMI,Warsaw Modlin Airport,PL,Nowy Dwór Mazowiecki,large_airport
+POZ,Poznań-Ławica Airport,PL,Poznań,large_airport
+RDO,Warsaw Radom Airport,PL,Radom,medium_airport
+RZE,Rzeszów-Jasionka Airport,PL,Jasionka,large_airport
+SZZ,Solidarity Szczecin–Goleniów Airport,PL,Szczecin(Glewice),large_airport
+SZY,Olsztyn-Mazury Airport,PL,Szymany,medium_airport
+WAW,Warsaw Chopin Airport,PL,Warsaw,large_airport
+WRO,Copernicus Wrocław Airport,PL,Wrocław,large_airport
+IEG,Zielona Góra-Babimost Airport,PL,Nowe Kramsko,medium_airport
+RNB,Ronneby Airport,SE,Ronneby,medium_airport
+GOT,Göteborg Landvetter Airport,SE,Göteborg,large_airport
+JKG,Jönköping Airport,SE,Jönköping,medium_airport
+THN,Trollhättan-Vänersborg Airport,SE,Trollhättan,medium_airport
+MXX,Mora Airport,SE,Mora,medium_airport
+NYO,Stockholm Skavsta Airport,SE,Nyköping,large_airport
+SCR,Scandinavian Mountains Airport,SE,Malung-Sälen,large_airport
+KLR,Kalmar Airport,SE,Kalmar,medium_airport
+MMX,Malmö Sturup Airport,SE,Malmö,large_airport
+HAD,Halmstad Airport,SE,Halmstad,medium_airport
+VXO,Växjö Kronoberg Airport,SE,Växjö,medium_airport
+GEV,Gällivare Airport,SE,Gällivare,medium_airport
+KRF,Kramfors-Sollefteå Höga Kusten Airport,SE,Nyland,medium_airport
+LYC,Lycksele Airport,SE,Lycksele,medium_airport
+SDL,Sundsvall-Härnösand Airport,SE,Sundsvall/ Härnösand,medium_airport
+OER,Örnsköldsvik Airport,SE,Örnsköldsvik,medium_airport
+KRN,Kiruna Airport,SE,Kiruna,large_airport
+SFT,Skellefteå Airport,SE,Skellefteå,medium_airport
+UME,Umeå Airport,SE,Umeå,large_airport
+VHM,Vilhelmina South Lapland Airport,SE,Vilhelmina,medium_airport
+AJR,Arvidsjaur Airport,SE,Arvidsjaur,medium_airport
+OSD,Åre Östersund Airport,SE,Östersund,medium_airport
+ORB,Örebro Airport,SE,Örebro,medium_airport
+KSD,Karlstad Airport,SE,Karlstad,medium_airport
+VST,Stockholm Västerås Airport,SE,Stockholm / Västerås,large_airport
+LLA,Luleå Airport,SE,Luleå,large_airport
+ARN,Stockholm-Arlanda Airport,SE,Stockholm,large_airport
+BMA,Stockholm-Bromma Airport,SE,Stockholm,medium_airport
+BLE,Dala Airport,SE,Borlange,medium_airport
+LPI,Linköping City Airport,SE,Linköping,large_airport
+NRK,Norrköping Airport,SE,Norrköping,medium_airport
+TYF,Torsby Airport,SE,Torsby,medium_airport
+VBY,Visby Airport,SE,Visby,large_airport
+AGH,Ängelholm-Helsingborg Airport,SE,Ängelholm,medium_airport
+FCN,Sea-Airport Cuxhaven/Nordholz / Nordholz Naval Airbase,DE,Wurster Nordseeküste,medium_airport
+RLG,Rostock-Laage Airport,DE,Laage,medium_airport
+RIX,Riga International Airport,LV,Riga,large_airport
+KUN,Kaunas International Airport,LT,Kaunas,large_airport
+PLQ,Palanga International Airport,LT,Palanga,large_airport
+VNO,Vilnius International Airport,LT,Vilnius,large_airport
+BFN,Bram Fischer International Airport,ZA,Bloemfontein,large_airport
+CPT,Cape Town International Airport,ZA,Cape Town,large_airport
+ELS,King Phalo Airport,ZA,East London,large_airport
+GRJ,George Airport,ZA,George,large_airport
+HDS,Eastgate Airport / Air Force Base Hoedspruit,ZA,Hoedspruit,medium_airport
+KIM,Kimberley Airport,ZA,Kimberley,large_airport
+MQP,Kruger Mpumalanga International Airport,ZA,Mbombela,large_airport
+HLA,Lanseria International Airport,ZA,Johannesburg,large_airport
+DUR,King Shaka International Airport,ZA,Durban,large_airport
+MGH,Margate Airport,ZA,Margate,medium_airport
+MBD,Mmabatho International Airport,ZA,Mafeking,medium_airport
+MZQ,Mkuze Airport,ZA,Mkuze,medium_airport
+JNB,O.R. Tambo International Airport,ZA,Johannesburg,large_airport
+PLZ,Chief Dawid Stuurman International Airport,ZA,Gqeberha (Port Elizabeth),large_airport
+PHW,Hendrik Van Eck Airport,ZA,Phalaborwa,medium_airport
+PZB,Pietermaritzburg Airport,ZA,Pietermaritzburg,medium_airport
+PTG,Polokwane International Airport,ZA,Polokwane,large_airport
+RCB,Richards Bay Airport,ZA,Richards Bay,medium_airport
+SIS,Sishen Airport,ZA,Sishen,medium_airport
+SZK,Skukuza Airport,ZA,Skukuza,medium_airport
+UTN,Upington Airport,ZA,Upington,medium_airport
+UTT,K. D. Matanzima Airport,ZA,Mthatha,medium_airport
+FRW,Phillip Gaonwe Matante International Airport,BW,Francistown,large_airport
+BBK,Kasane International Airport,BW,Kasane,large_airport
+MUB,Maun International Airport,BW,Maun,large_airport
+GBE,Sir Seretse Khama International Airport,BW,Gaborone,large_airport
+BZV,Maya-Maya International Airport,CG,Brazzaville,large_airport
+PNR,Antonio Agostinho-Neto International Airport,CG,Pointe Noire,large_airport
+SHO,King Mswati III International Airport,SZ,Mpaka,large_airport
+BGF,Bangui M'Poko International Airport,CF,Bangui,large_airport
+BSG,Bata International Airport,GQ,Bata,large_airport
+GEM,President Obiang Nguema International Airport,GQ,Mengomeyén,medium_airport
+SSG,Malabo International Airport,GQ,Malabo,large_airport
+ASI,RAF Ascension Island,SH,Cat Hill,medium_airport
+HLE,Saint Helena International Airport,SH,Jamestown,medium_airport
+MRU,Sir Seewoosagur Ramgoolam International Airport,MU,Plaine Magnien,large_airport
+RRG,Sir Charles Gaetan Duval Airport,MU,Port Mathurin,medium_airport
+DLA,Douala International Airport,CM,Douala,large_airport
+MVR,Salak Airport,CM,Maroua,medium_airport
+NGE,N'Gaoundéré Airport,CM,N'Gaoundéré,medium_airport
+GOU,Garoua International Airport,CM,Garoua,large_airport
+NSI,Yaoundé Nsimalen International Airport,CM,Yaoundé,large_airport
+LVI,Harry Mwanga Nkumbula International Airport,ZM,Livingstone,large_airport
+LUN,Kenneth Kaunda International Airport,ZM,Lusaka,large_airport
+MFU,Mfuwe International Airport,ZM,Mfuwe,large_airport
+NLA,Simon Mwansa Kapwepwe International Airport,ZM,Ndola,large_airport
+HAH,Prince Said Ibrahim International Airport,KM,Moroni,medium_airport
+AJN,Ouani Airport,KM,Ouani,medium_airport
+DZA,Dzaoudzi Pamandzi International Airport,YT,Dzaoudzi,large_airport
+RUN,Roland Garros Airport,RE,Sainte-Marie,large_airport
+ZSE,Saint-Pierre Pierrefonds Airport,RE,Saint-Pierre,large_airport
+TNR,Ivato International Airport,MG,Antananarivo,large_airport
+SMS,Sainte Marie Airport,MG,Vohilava,medium_airport
+TMM,Toamasina Ambalamanasy Airport,MG,Toamasina,large_airport
+MOQ,Morondava Airport,MG,Morondava,medium_airport
+DIE,Arrachart Airport,MG,Antisiranana,medium_airport
+MJN,Amborovy Airport,MG,Mahajanga,large_airport
+NOS,Nosy Be International Airport,MG,Nosy Be,large_airport
+BPY,Besalampy Airport,MG,Besalampy,medium_airport
+WMN,Maroantsetra Airport,MG,Maroantsetra,medium_airport
+SVB,Sambava Airport,MG,Sambava,medium_airport
+FTU,Tôlanaro Airport,MG,Tôlanaro,medium_airport
+MNJ,Mananjary Airport,MG,Mananjary,medium_airport
+TLE,Toliara Airport,MG,Toliara,medium_airport
+SSY,Mbanza Congo Airport,AO,Mbanza Congo,medium_airport
+NBJ,Dr. Antonio Agostinho Neto International Airport,AO,Luanda (Ícolo e Bengo),large_airport
+CAB,Cabinda Airport,AO,Cabinda,medium_airport
+CBT,Catumbela Airport,AO,Catumbela,medium_airport
+DUE,Dundo Airport,AO,Chitato,medium_airport
+VPE,Ngjiva Pereira Airport,AO,Ngiva,medium_airport
+NOV,Albano Machado Airport,AO,Huambo,medium_airport
+LAD,Quatro de Fevereiro International Airport,AO,Luanda,large_airport
+MEG,Malanje Airport,AO,Malanje,medium_airport
+SPP,Menongue Airport,AO,Menongue,medium_airport
+MSZ,Welwitschia Mirabilis International Airport,AO,Moçâmedes,medium_airport
+GXG,Negage Airport,AO,Negage,medium_airport
+SZA,Soyo Airport,AO,Soyo,medium_airport
+SDD,Lubango Mukanka International Airport,AO,Lubango,medium_airport
+OYE,Oyem Airport,GA,Oyem,medium_airport
+POG,Port Gentil International Airport,GA,Port Gentil,large_airport
+MKU,Makokou Airport,GA,Makokou,medium_airport
+LBV,Libreville Leon M'ba International Airport,GA,Libreville,large_airport
+MVB,M'Vengue El Hadj Omar Bongo Ondimba International Airport,GA,Franceville,medium_airport
+PCP,Principe Airport,ST,São Tomé & Príncipe,medium_airport
+TMS,São Tomé International Airport,ST,São Tomé,large_airport
+BEW,Beira International Airport,MZ,Beira,large_airport
+VPY,Chimoio Airport,MZ,Chimoio,medium_airport
+INH,Inhambane Airport,MZ,Inhambane,medium_airport
+VXC,Lichinga Airport,MZ,Lichinga,medium_airport
+MPM,Maputo Airport,MZ,Maputo,large_airport
+MNC,Nacala International Airport,MZ,Nacala,medium_airport
+APL,Nampula Airport,MZ,Nampula,large_airport
+POL,Pemba Airport,MZ,Pemba,medium_airport
+UEL,Quelimane Airport,MZ,Quelimane,medium_airport
+TET,Tete Airport,MZ,Tete,large_airport
+VNX,Vilankulo Airport,MZ,Vilanculo,medium_airport
+SEZ,Seychelles International Airport,SC,Victoria,large_airport
+PRI,Praslin Island Airport,SC,Praslin Island,medium_airport
+NDJ,N'Djamena International Airport,TD,N'Djamena,large_airport
+BUQ,Joshua Mqabuko Nkomo International Airport,ZW,Bulawayo,large_airport
+VFA,Victoria Falls International Airport,ZW,Victoria Falls,large_airport
+HRE,Robert Gabriel Mugabe International Airport,ZW,Harare,large_airport
+KAB,Kariba Airport,ZW,Kariba,medium_airport
+BLZ,Chileka International Airport,MW,Blantyre,large_airport
+LLW,Kamuzu International Airport,MW,Lumbadzi,large_airport
+MSU,Moshoeshoe I International Airport,LS,Maseru(Mazenod),large_airport
+MPA,Katima Mulilo Airport,NA,Mpacha,medium_airport
+LUD,Luderitz Airport,NA,Luderitz,medium_airport
+OND,Ondangwa Airport,NA,Ondangwa,medium_airport
+OMD,Oranjemund Airport,NA,Oranjemund,medium_airport
+NDU,Rundu Airport,NA,Rundu,medium_airport
+WVB,Walvis Bay International Airport,NA,Walvis Bay(Rooikop),large_airport
+ERS,Eros Airport,NA,Windhoek,medium_airport
+WDH,Hosea Kutako International Airport,NA,Windhoek,large_airport
+FIH,Ndjili International Airport,CD,Kinshasa,large_airport
+FDU,Bandundu Airport,CD,Bandundu,medium_airport
+KKW,Kikwit Airport,CD,Kikwit,medium_airport
+MDK,Mbandaka Airport,CD,Mbandaka,medium_airport
+BDT,Gbadolite Airport,CD,Gbadolite,medium_airport
+GMA,Gemena Airport,CD,Gemena,medium_airport
+FKI,Bangoka International Airport,CD,Kisangani,large_airport
+IRP,Matari Airport,CD,Isiro,medium_airport
+BUX,Bunia Airport,CD,Bunia,medium_airport
+GOM,Goma International Airport,CD,Goma,large_airport
+KND,Kindu Airport,CD,Kindu,medium_airport
+FBM,Lubumbashi International Airport,CD,Lubumbashi,large_airport
+KWZ,Kolwezi Airport,CD,Kolwezi,medium_airport
+FMI,Kalemie Airport,CD,Kalemie,medium_airport
+KGA,Kananga Airport,CD,Kananga,medium_airport
+MJM,Mbuji Mayi Airport,CD,Mbuji Mayi,medium_airport
+BKO,Modibo Keita International Airport,ML,Bamako,large_airport
+GAQ,Gao International Airport,ML,Gao,medium_airport
+KYS,Kayes Dag Dag Airport,ML,Kayes,medium_airport
+MZI,Mopti Airport,ML,Sévaré,medium_airport
+TOM,Tombouktou Airport,ML,Timbuktu,large_airport
+BJL,Banjul International Airport,GM,Banjul (Yundum),large_airport
+FUE,Fuerteventura Airport,ES,El Matorral,large_airport
+VDE,El Hierro Airport,ES,El Hierro Island,medium_airport
+SPC,La Palma Airport,ES,"Sta Cruz de la Palma, La Palma Island",medium_airport
+LPA,Gran Canaria Airport,ES,Gran Canaria Island,large_airport
+ACE,César Manrique-Lanzarote Airport,ES,San Bartolomé,large_airport
+TFS,Tenerife Sur Airport,ES,Tenerife,large_airport
+TFN,Tenerife Norte-Ciudad de La Laguna Airport,ES,Tenerife,large_airport
+MLN,Melilla Airport,ES,Melilla,medium_airport
+FNA,Lungi International Airport,SL,Freetown (Lungi-Town),large_airport
+OXB,Osvaldo Vieira International Airport,GW,Bissau,large_airport
+JJU,Qaqortoq Airport,GL,Qaqortoq,medium_airport
+MLW,Spriggs Payne Airport,LR,Monrovia,medium_airport
+ROB,Roberts International Airport,LR,Monrovia,large_airport
+AGA,Al Massira Airport,MA,Agadir (Temsia),large_airport
+TTA,Tan Tan Airport,MA,Tan Tan,medium_airport
+OZG,Zagora Airport,MA,Zagora,large_airport
+UAR,Bouarfa Airport,MA,Bouarfa,medium_airport
+FEZ,Fes Saïss International Airport,MA,Saïss,large_airport
+ERH,Moulay Ali Cherif Airport,MA,Errachidia,medium_airport
+OUD,Oujda Angads Airport,MA,Ahl Angad,large_airport
+SMW,Smara Airport,EH,Smara,medium_airport
+BEM,Beni Mellal Airport,MA,Oulad Yaich,large_airport
+RBA,Rabat-Salé Airport,MA,Rabat,large_airport
+VIL,Dakhla Airport,EH,Dakhla,large_airport
+ESU,Essaouira-Mogador Airport,MA,Essaouira,medium_airport
+EUN,Laayoune Hassan I International Airport,EH,El Aaiún,large_airport
+CMN,Mohammed V International Airport,MA,Casablanca,large_airport
+NDR,Nador Al Aaroui International Airport,MA,Al Aaroui,large_airport
+RAK,Marrakesh Menara Airport,MA,Marrakesh,large_airport
+OZZ,Ouarzazate International Airport,MA,Ouarzazate,large_airport
+AHU,Cherif Al Idrissi Airport,MA,Al Hoceima,medium_airport
+TTU,Sania Ramel Airport,MA,Tétouan,large_airport
+TNG,Tangier Ibn Battuta Airport,MA,Tangier,large_airport
+DSS,Blaise Diagne International Airport,SN,Dakar,large_airport
+ZIG,Ziguinchor Airport,SN,Ziguinchor,medium_airport
+CSK,Cap Skirring Airport,SN,Cap Skirring,medium_airport
+NKC,Nouakchott–Oumtounsy International Airport,MR,Nouakchott,large_airport
+NDB,Nouadhibou International Airport,MR,Nouadhibou,large_airport
+OUZ,Tazadit Airport,MR,Zouérate,medium_airport
+CKY,Ahmed Sékou Touré International Airport,GN,Conakry,large_airport
+SID,Amílcar Cabral International Airport,CV,Espargos,large_airport
+BVC,Aristides Pereira International Airport,CV,Rabil,large_airport
+MMO,Maio Airport,CV,Vila do Maio,medium_airport
+RAI,Nelson Mandela International Airport,CV,Praia,large_airport
+SNE,Preguiça Airport,CV,Preguiça,medium_airport
+VXE,Cesaria Evora International Airport,CV,São Pedro,large_airport
+ADD,Addis Ababa Bole International Airport,ET,Addis Ababa,large_airport
+AMH,Arba Minch Airport,ET,Arba Minch,medium_airport
+AXU,Axum Airport,ET,Axum,medium_airport
+BJR,Bahir Dar Airport,ET,Bahir Dar,medium_airport
+DIR,Aba Tenna Dejazmach Yilma International Airport,ET,Dire Dawa,large_airport
+GMB,Gambela Airport,ET,Gambela,medium_airport
+GDQ,Gondar Airport,ET,Azezo,medium_airport
+GDE,Gode Airport,ET,Gode,medium_airport
+JIJ,Gerad Wilwal International Airport,ET,Jijiga,large_airport
+BCO,Jinka Airport,ET,Jinka,medium_airport
+JIM,Jimma Airport,ET,Jimma,medium_airport
+ABK,Kebri Dahar Airport,ET,Kebri Dahar,medium_airport
+AWA,Hawassa International Airport,ET,Hawassa,large_airport
+MQX,Mekele Alula Aba Nega Airport,ET,Mekele,medium_airport
+ASO,Asosa Airport,ET,Asosa,medium_airport
+BJM,Bujumbura Melchior Ndadaye International Airport,BI,Bujumbura,large_airport
+GID,Gitega Airport,BI,Gitega,medium_airport
+BSA,Bender Qassim International Airport,SO,Bosaso,large_airport
+HGA,Egal International Airport,SO,Hargeisa,large_airport
+BBO,Berbera Airport,SO,Berbera,medium_airport
+MGQ,Aden Adde International Airport,SO,Mogadishu,large_airport
+JIB,Djibouti-Ambouli Airport,DJ,Djibouti City,large_airport
+DBB,El Alamein International Airport,EG,El Alamein,large_airport
+AAC,El Arish International Airport,EG,El Arish,large_airport
+ATZ,Asyut International Airport,EG,Asyut,large_airport
+HBE,Alexandria International Airport,EG,Alexandria,large_airport
+ABS,Abu Simbel Airport,EG,Abu Simbel,medium_airport
+CAI,Cairo International Airport,EG,Cairo,large_airport
+CCE,Capital International Airport,EG,New Cairo,medium_airport
+HRG,Hurghada International Airport,EG,Hurghada,large_airport
+LXR,Luxor International Airport,EG,Luxor,large_airport
+RMF,Marsa Alam International Airport,EG,Marsa Alam,large_airport
+MUH,Mersa Matruh International Airport,EG,Marsa Matruh,large_airport
+PSD,Port Said International Airport,EG,Port Said,large_airport
+HMB,Suhaj International Airport,EG,Suhaj,large_airport
+SSH,Sharm El Sheikh International Airport,EG,Sharm El Sheikh,large_airport
+ASW,Aswan International Airport,EG,Aswan,large_airport
+SPX,Sphinx International Airport,EG,Al Jiza,large_airport
+TCP,Taba International Airport,EG,Taba,medium_airport
+ASM,Asmara International Airport,ER,Asmara,medium_airport
+JUB,Juba International Airport,SS,Juba,large_airport
+ASV,Amboseli Airport,KE,Ol Tukai,medium_airport
+EDL,Eldoret International Airport,KE,Eldoret,large_airport
+NBO,Jomo Kenyatta International Airport,KE,Nairobi,large_airport
+KIS,Kisumu International Airport,KE,Kisumu,large_airport
+LAU,Manda Airport,KE,Lamu,medium_airport
+MYD,Malindi International Airport,KE,Malindi,medium_airport
+MBA,Moi International Airport,KE,Mombasa,large_airport
+MRE,Mara Serena Lodge Airstrip,KE,Serena,medium_airport
+NYK,Nanyuki Civil Airport,KE,Gathiuru,medium_airport
+WIL,Nairobi Wilson Airport,KE,Nairobi,medium_airport
+WJR,Wajir Airport,KE,Wajir,medium_airport
+AKF,Kufra Airport,LY,Kufra,medium_airport
+BEN,Benina International Airport,LY,Benina,large_airport
+MJI,Mitiga International Airport,LY,Tripoli,large_airport
+LAQ,Al Abraq International Airport,LY,Al Albraq,large_airport
+SEB,Sabha Airport,LY,Sabha,medium_airport
+LTD,Ghadames Airport,LY,Ghadames,medium_airport
+KGL,Kigali International Airport,RW,Kigali,large_airport
+KME,Kamembe Airport,RW,Kamembe,medium_airport
+DOG,Dongola Airport,SD,Dongola,medium_airport
+ELF,El Fasher Airport,SD,El Fasher,medium_airport
+KSL,Kassala Airport,SD,Kassala,medium_airport
+UYL,Nyala Airport,SD,Nyala,medium_airport
+EBD,El-Obeid Airport,SD,El-Obeid,medium_airport
+PZU,Port Sudan New International Airport,SD,Port Sudan,large_airport
+KRT,Khartoum International Airport,SD,Khartoum,large_airport
+MAK,Malakal International Airport,SS,Malakal,medium_airport
+WUU,Wau Airport,SS,Wau,medium_airport
+ARK,Arusha Airport,TZ,Arusha,medium_airport
+DAR,Julius Nyerere International Airport,TZ,Dar es Salaam,large_airport
+DOD,Dodoma Airport,TZ,Dodoma,medium_airport
+MBI,Songwe Airport,TZ,Mbeya,medium_airport
+JRO,Kilimanjaro International Airport,TZ,Arusha,large_airport
+MYW,Mtwara Airport,TZ,Mtwara,medium_airport
+MWZ,Mwanza International Airport,TZ,Mwanza,large_airport
+TGT,Tanga Airport,TZ,Tanga,medium_airport
+ZNZ,Abeid Amani Karume International Airport,TZ,Zanzibar,large_airport
+RUA,Arua Airport,UG,Arua,medium_airport
+EBB,Entebbe International Airport,UG,Entebbe,large_airport
+ULU,Gulu Airport,UG,Gulu,medium_airport
+SRT,Soroti Airport,UG,Soroti,medium_airport
+DHX,Dhoho International Airport,ID,Kediri,medium_airport
+UGU,Bilorai Airport,ID,Bilogai,medium_airport
+AYJ,Maharshi Valmiki International Airport,IN,Faizabad,medium_airport
+AVR,Amravati  Airport,IN,Amravati,medium_airport
+SDW,Sindhudurg Airport,IN,Chipi,medium_airport
+NMI,Navi Mumbai International Airport,IN,Navi Mumbai,large_airport
+HGI,Itanagar Donyi Polo Hollongi Airport,IN,Hollongi,medium_airport
+DXN,Noida International Airport,IN,Gautam Buddha Nagar,large_airport
+AHA,Maa Mahamaya Airport,IN,Ambikapur,medium_airport
+BLD,Boulder City Municipal Airport,US,Boulder City,medium_airport
+ABE,Lehigh Valley International Airport,US,Allentown/Bethlehem,medium_airport
+ABI,Abilene Regional Airport,US,Abilene,medium_airport
+ABQ,Albuquerque International Sunport,US,Albuquerque,large_airport
+ABR,Aberdeen Regional Airport,US,Aberdeen,medium_airport
+ABY,Southwest Georgia Regional Airport,US,Albany,medium_airport
+ACK,Nantucket Memorial Airport,US,Nantucket,medium_airport
+ACT,Waco Regional Airport,US,Waco,medium_airport
+ACV,California Redwood Coast-Humboldt County Airport,US,Arcata/Eureka,medium_airport
+ACY,Atlantic City International Airport,US,Atlantic City,medium_airport
+AEX,Alexandria International Airport,US,Alexandria,medium_airport
+AGS,Augusta Regional At Bush Field,US,Augusta,medium_airport
+AIA,Alliance Municipal Airport,US,Alliance,medium_airport
+ALB,Albany International Airport,US,Albany,large_airport
+ALO,Waterloo Regional Airport,US,Waterloo,medium_airport
+ALS,San Luis Valley Regional Airport/Bergman Field,US,Alamosa,medium_airport
+ALW,Walla Walla Regional Airport,US,Walla Walla,medium_airport
+AMA,Rick Husband Amarillo International Airport,US,Amarillo,medium_airport
+AOO,Altoona Blair County Airport,US,Altoona,medium_airport
+APN,Alpena County Regional Airport,US,Alpena,medium_airport
+ART,Watertown International Airport,US,Watertown,medium_airport
+ASE,Aspen-Pitkin County Airport (Sardy Field),US,Aspen,medium_airport
+ATL,Hartsfield Jackson Atlanta International Airport,US,Atlanta,large_airport
+ATW,Appleton International Airport,US,Appleton,medium_airport
+ATY,Watertown Regional Airport,US,Watertown,medium_airport
+AUG,Augusta State Airport,US,Augusta,medium_airport
+AUS,Austin Bergstrom International Airport,US,Austin,large_airport
+AVL,Asheville Regional Airport,US,Asheville,medium_airport
+AVP,Wilkes-Barre/Scranton International Airport,US,Wilkes-Barre/Scranton,medium_airport
+AZO,Kalamazoo/Battle Creek International Airport,US,Kalamazoo,medium_airport
+BKG,Branson Airport,US,Branson,medium_airport
+BDL,Bradley International Airport,US,Hartford,large_airport
+BED,Laurence G Hanscom Field,US,Bedford,medium_airport
+BFD,Bradford Regional Airport,US,Bradford,medium_airport
+BFF,Western Neb. Rgnl/William B. Heilig Airport,US,Scottsbluff,medium_airport
+BFI,King County International Airport - Boeing Field,US,Seattle,medium_airport
+BFL,Meadows Field,US,Bakersfield,medium_airport
+BGM,Greater Binghamton/Edwin A Link field,US,Binghamton,medium_airport
+BGR,Bangor International Airport,US,Bangor,medium_airport
+BHB,Hancock County-Bar Harbor Airport,US,Bar Harbor,medium_airport
+BHM,Birmingham-Shuttlesworth International Airport,US,Birmingham,large_airport
+BIH,Eastern Sierra Regional Airport,US,Bishop,medium_airport
+BIL,Billings Logan International Airport,US,Billings,medium_airport
+BIS,Bismarck Municipal Airport,US,Bismarck,medium_airport
+BJC,Rocky Mountain Metropolitan Airport,US,Denver,medium_airport
+BKW,Raleigh County Memorial Airport,US,Beaver,medium_airport
+BLI,Bellingham International Airport,US,Bellingham,medium_airport
+BLV,Scott AFB/Midamerica Airport,US,Belleville,medium_airport
+BMI,Central Illinois Regional Airport at Bloomington-Normal,US,Bloomington/Normal,medium_airport
+BNA,Nashville International Airport,US,Nashville,large_airport
+BOI,Boise Air Terminal/Gowen Field,US,Boise,large_airport
+BOS,Boston Logan International Airport,US,Boston,large_airport
+BPT,Jack Brooks Regional Airport,US,Beaumont/Port Arthur,medium_airport
+BQK,Brunswick Golden Isles Airport,US,Brunswick,medium_airport
+BRD,Brainerd Lakes Regional Airport,US,Brainerd,medium_airport
+BRL,Southeast Iowa Regional Airport,US,Burlington,medium_airport
+BRO,Brownsville South Padre Island International Airport,US,Brownsville,medium_airport
+BTM,Bert Mooney Airport,US,Butte,medium_airport
+BTR,Baton Rouge Metropolitan Airport,US,Baton Rouge,medium_airport
+BTV,Patrick Leahy Burlington International Airport,US,Burlington,medium_airport
+BUF,Buffalo Niagara International Airport,US,Buffalo,large_airport
+BUR,Hollywood Burbank/Bob Hope Airport,US,Burbank,large_airport
+BWI,Baltimore/Washington International Thurgood Marshall Airport,US,Baltimore,large_airport
+BZN,Bozeman Yellowstone International Airport,US,Bozeman,medium_airport
+CAE,Columbia Metropolitan Airport,US,Columbia,medium_airport
+CAK,Akron Canton Regional Airport,US,Akron,medium_airport
+CCR,Buchanan Field,US,Concord,medium_airport
+CDC,Cedar City Regional Airport,US,Cedar City,medium_airport
+CDR,Chadron Municipal Airport,US,Chadron,medium_airport
+CEC,Jack Mc Namara Field Airport,US,Crescent City,medium_airport
+CEZ,Cortez Municipal Airport,US,Cortez,medium_airport
+CGI,Cape Girardeau Regional Airport,US,Cape Girardeau,medium_airport
+CHA,Chattanooga Metropolitan Airport (Lovell Field),US,Chattanooga,medium_airport
+CHO,Charlottesville Albemarle Airport,US,Charlottesville,medium_airport
+CHS,Charleston International Airport,US,Charleston,large_airport
+CID,The Eastern Iowa Airport,US,Cedar Rapids,medium_airport
+CIU,Chippewa County International Airport,US,Kincheloe,medium_airport
+CKB,North Central West Virginia Airport,US,Bridgeport,medium_airport
+CLE,Cleveland Hopkins International Airport,US,Cleveland,large_airport
+CLL,Easterwood Field,US,College Station,medium_airport
+CLT,Charlotte Douglas International Airport,US,Charlotte,large_airport
+CMH,John Glenn Columbus International Airport,US,Columbus,large_airport
+CMI,University of Illinois Willard Airport,US,Savoy,medium_airport
+CMX,Houghton County Memorial Airport,US,Hancock,medium_airport
+CNM,Cavern City Air Terminal,US,Carlsbad,medium_airport
+CNY,Canyonlands Regional Airport,US,Moab,medium_airport
+COD,Yellowstone Regional Airport,US,Cody,medium_airport
+COS,City of Colorado Springs Municipal Airport,US,Colorado Springs,large_airport
+COU,Columbia Regional Airport,US,Columbia,medium_airport
+CPR,Casper-Natrona County International Airport,US,Casper,medium_airport
+CRP,Corpus Christi International Airport,US,Corpus Christi,medium_airport
+CLD,McClellan-Palomar Airport,US,Carlsbad,medium_airport
+CRW,Yeager Airport,US,Charleston,medium_airport
+CSG,Columbus Airport,US,Columbus,medium_airport
+CVG,Cincinnati Northern Kentucky International Airport,US,Cincinnati / Covington,large_airport
+CVN,Clovis Municipal Airport,US,Clovis,medium_airport
+CWA,Central Wisconsin Airport,US,Mosinee,medium_airport
+CYS,Cheyenne Regional Jerry Olson Field,US,Cheyenne,medium_airport
+DAB,Daytona Beach International Airport,US,Daytona Beach,medium_airport
+DAL,Dallas Love Field,US,Dallas,large_airport
+DAY,James M. Cox Dayton International Airport,US,Dayton,medium_airport
+DBQ,Dubuque Regional Airport,US,Dubuque,medium_airport
+DCA,Ronald Reagan Washington National Airport,US,Washington,large_airport
+DDC,Dodge City Regional Airport,US,Dodge City,medium_airport
+DEC,Decatur Airport,US,Decatur,medium_airport
+DEN,Denver International Airport,US,Denver,large_airport
+DFW,Dallas Fort Worth International Airport,US,Dallas-Fort Worth,large_airport
+DHN,Dothan Regional Airport,US,Dothan,medium_airport
+DIK,Dickinson Theodore Roosevelt Regional Airport,US,Dickinson,medium_airport
+DLH,Duluth International Airport,US,Duluth,medium_airport
+DOV,Dover Civil Air Terminal/Dover Air Force Base,US,Dover,medium_airport
+DRO,Durango La Plata County Airport,US,Durango,medium_airport
+DSM,Des Moines International Airport,US,Des Moines,large_airport
+DSI,Destin Executive Airport,US,Destin,medium_airport
+DTW,Detroit Metropolitan Wayne County Airport,US,Detroit,large_airport
+DUJ,DuBois Regional Airport,US,Dubois,medium_airport
+DVL,Devils Lake Regional Airport,US,Devils Lake,medium_airport
+EAR,Kearney Regional Airport,US,Kearney,medium_airport
+EAT,Pangborn Memorial Airport,US,Wenatchee,medium_airport
+EAU,Chippewa Valley Regional Airport,US,Eau Claire,medium_airport
+ECP,Northwest Florida Beaches International Airport,US,Panama City Beach,medium_airport
+EGE,Eagle County Regional Airport,US,Eagle,medium_airport
+EKO,Elko Regional Airport,US,Elko,medium_airport
+ELD,South Arkansas Regional Airport at Goodwin Field,US,El Dorado,medium_airport
+ELM,Elmira Corning Regional Airport,US,Elmira/Corning,medium_airport
+ELP,El Paso International Airport,US,El Paso,large_airport
+ERI,Erie International Tom Ridge Field,US,Erie,medium_airport
+ESC,Delta County Airport,US,Escanaba,medium_airport
+EUG,Eugene Airport,US,Eugene,medium_airport
+EVV,Evansville Regional Airport,US,Evansville,medium_airport
+EWB,New Bedford Regional Airport,US,New Bedford,medium_airport
+EWN,Coastal Carolina Regional Airport,US,New Bern,medium_airport
+EWR,Newark Liberty International Airport,US,Newark,large_airport
+EYW,Key West International Airport,US,Key West,medium_airport
+FAR,Hector International Airport,US,Fargo,medium_airport
+FAT,Fresno Yosemite International Airport,US,Fresno,large_airport
+FAY,Fayetteville Regional Airport - Grannis Field,US,Fayetteville,medium_airport
+FRD,Friday Harbor Airport,US,Friday Harbor,medium_airport
+FLG,Flagstaff Pulliam Airport,US,Flagstaff,medium_airport
+FLL,Fort Lauderdale Hollywood International Airport,US,Fort Lauderdale,large_airport
+FLO,Florence Regional Airport,US,Florence,medium_airport
+FNT,Bishop International Airport,US,Flint,medium_airport
+FOD,Fort Dodge Regional Airport,US,Fort Dodge,medium_airport
+FSD,Sioux Falls Regional Airport,US,Sioux Falls,medium_airport
+FSM,Fort Smith Regional Airport,US,Fort Smith,medium_airport
+FTW,Fort Worth Meacham International Airport,US,Fort Worth,medium_airport
+FWA,Fort Wayne International Airport,US,Fort Wayne,medium_airport
+GCC,Northeast Wyoming Regional Airport,US,Gillette,medium_airport
+GCK,Garden City Regional Airport,US,Garden City,medium_airport
+GCN,Grand Canyon National Park Airport,US,Grand Canyon - Tusayan,medium_airport
+GDV,Dawson Community Airport,US,Glendive,medium_airport
+GEG,Spokane International Airport,US,Spokane,large_airport
+GFK,Grand Forks International Airport,US,Grand Forks,medium_airport
+GGG,East Texas Regional Airport,US,Longview,medium_airport
+GGW,Glasgow Valley County Airport Wokal Field,US,Glasgow,medium_airport
+GJT,Grand Junction Regional Airport,US,Grand Junction,medium_airport
+GLH,Mid Delta Regional Airport,US,Greenville,medium_airport
+GNV,Gainesville Regional Airport,US,Gainesville,medium_airport
+FCA,Glacier Park International Airport,US,Kalispell,medium_airport
+GPT,Gulfport Biloxi International Airport,US,Gulfport,medium_airport
+GRB,Austin Straubel International Airport,US,Green Bay,medium_airport
+GRI,Central Nebraska Regional Airport,US,Grand Island,medium_airport
+GRK,Killeen Regional Airport / Robert Gray Army Airfield,US,Fort Cavazos,medium_airport
+GRR,Gerald R. Ford International Airport,US,Grand Rapids,large_airport
+GSO,Piedmont Triad International Airport,US,Greensboro,large_airport
+GSP,Greenville-Spartanburg International Airport,US,Greenville/Greer/Spartanburg,medium_airport
+GTF,Great Falls International Airport,US,Great Falls,medium_airport
+GTR,Golden Triangle Regional Airport,US,Columbus/W Point/Starkville,medium_airport
+GUC,Gunnison Crested Butte Regional Airport,US,Gunnison,medium_airport
+GUP,Gallup Municipal Airport,US,Gallup,medium_airport
+GYY,Gary/Chicago International Airport,US,Gary,medium_airport
+DSY,Dara Sakor International Airport,KH,Ta Noun,large_airport
+KTI,Techo International Airport,KH,Phnom Penh (Boeng Khyang),large_airport
+HDN,Yampa Valley Airport,US,Hayden,medium_airport
+HGR,Hagerstown Regional Richard A Henson Field,US,Hagerstown,medium_airport
+HHR,Jack Northrop Field Hawthorne Municipal Airport,US,Hawthorne,medium_airport
+HIB,Range Regional Airport,US,Hibbing,medium_airport
+HII,Lake Havasu City Airport,US,Lake Havasu City,medium_airport
+HLN,Helena Regional Airport,US,Helena,medium_airport
+HOB,Lea County Regional Airport,US,Hobbs,medium_airport
+HOT,Memorial Field Airport,US,Hot Springs,medium_airport
+HOU,William P. Hobby Airport,US,Houston,large_airport
+HPN,Westchester County Airport,US,White Plains,medium_airport
+HRL,Valley International Airport,US,Harlingen,medium_airport
+HRO,Boone County Airport,US,Harrison,medium_airport
+HSV,Huntsville International Airport,US,Huntsville,medium_airport
+HTS,Tri-State Airport / Milton J. Ferguson Field,US,Huntington,medium_airport
+HVN,Tweed New Haven Airport,US,New Haven,medium_airport
+HVR,Havre City County Airport,US,Havre,medium_airport
+HHH,Hilton Head Airport,US,Hilton Head Island,medium_airport
+HYA,Cape Cod Gateway Airport,US,Hyannis,medium_airport
+HYS,Hays Regional Airport,US,Hays,medium_airport
+IAD,Washington Dulles International Airport,US,Dulles,large_airport
+IAG,Niagara Falls International Airport,US,Niagara Falls,medium_airport
+IAH,George Bush Intercontinental Airport,US,Houston,large_airport
+ICT,Wichita Dwight D. Eisenhower National Airport,US,Wichita,medium_airport
+IDA,Idaho Falls Regional Airport,US,Idaho Falls,medium_airport
+ILG,Wilmington Airport,US,Wilmington,medium_airport
+ILM,Wilmington International Airport,US,Wilmington,medium_airport
+IMT,Ford Airport,US,Kingsford,medium_airport
+IND,Indianapolis International Airport,US,Indianapolis,large_airport
+INL,Falls International Airport,US,International Falls,medium_airport
+IPL,Imperial County Airport,US,Imperial,medium_airport
+IPT,Williamsport Regional Airport,US,Williamsport,medium_airport
+IRK,Kirksville Regional Airport,US,Kirksville,medium_airport
+ISP,Long Island MacArthur Airport,US,Islip,medium_airport
+ITH,Ithaca Tompkins Regional Airport,US,Ithaca,medium_airport
+AZA,Mesa Gateway Airport,US,Mesa,medium_airport
+JAC,Jackson Hole Airport,US,Jackson,medium_airport
+JAN,Jackson-Medgar Wiley Evers International Airport,US,Jackson,medium_airport
+JAX,Jacksonville International Airport,US,Jacksonville,large_airport
+JBR,Jonesboro Municipal Airport,US,Jonesboro,medium_airport
+JFK,John F. Kennedy International Airport,US,New York,large_airport
+JLN,Joplin Regional Airport,US,Joplin,medium_airport
+JMS,Jamestown Regional Airport,US,Jamestown,medium_airport
+USA,Concord-Padgett Regional Airport,US,Concord,medium_airport
+JST,John Murtha Johnstown Cambria County Airport,US,Johnstown,medium_airport
+LAF,Purdue University Airport,US,West Lafayette,medium_airport
+LAL,Lakeland Linder International Airport,US,Lakeland,medium_airport
+LAN,Capital Region International Airport,US,Lansing,medium_airport
+LAR,Laramie Regional Airport,US,Laramie,medium_airport
+LAS,Harry Reid International Airport,US,Las Vegas,large_airport
+LAW,Lawton Fort Sill Regional Airport,US,Lawton,medium_airport
+LAX,Los Angeles International Airport,US,Los Angeles,large_airport
+LBB,Lubbock Preston Smith International Airport,US,Lubbock,medium_airport
+LBE,Arnold Palmer Regional Airport,US,Latrobe,medium_airport
+LBF,North Platte Regional Airport Lee Bird Field,US,North Platte,medium_airport
+LBL,Liberal Mid-America Regional Airport,US,Liberal,medium_airport
+LCH,Lake Charles Regional Airport,US,Lake Charles,medium_airport
+LCK,Rickenbacker International Airport,US,Columbus,medium_airport
+LEB,Lebanon Municipal Airport,US,Lebanon,medium_airport
+LEX,Blue Grass Airport,US,Lexington,medium_airport
+LFT,Lafayette Regional Airport,US,Lafayette,medium_airport
+LGA,LaGuardia Airport,US,New York,large_airport
+LGB,Long Beach International Airport,US,Long Beach,large_airport
+LIT,Bill & Hillary Clinton National Airport/Adams Field,US,Little Rock,medium_airport
+LNK,Lincoln Airport,US,Lincoln,medium_airport
+LNS,Lancaster Airport,US,Lancaster,medium_airport
+LRD,Laredo International Airport,US,Laredo,medium_airport
+LRU,Las Cruces International Airport,US,Las Cruces,medium_airport
+LSE,La Crosse Regional Airport,US,La Crosse,medium_airport
+LUK,Cincinnati Municipal Airport Lunken Field,US,Cincinnati,medium_airport
+LWB,Greenbrier Valley Airport,US,Lewisburg,medium_airport
+LWS,Lewiston Nez Perce County Airport,US,Lewiston,medium_airport
+LYH,Lynchburg Regional Airport - Preston Glenn Field,US,Lynchburg,medium_airport
+MAF,Midland International Air and Space Port,US,Midland,medium_airport
+MBS,MBS International Airport,US,Freeland,medium_airport
+MCE,Merced Regional Macready Field,US,Merced,medium_airport
+MCI,Kansas City International Airport,US,Kansas City,large_airport
+MCK,McCook Ben Nelson Regional Airport,US,McCook,medium_airport
+MCN,Middle Georgia Regional Airport,US,Macon,medium_airport
+MCO,Orlando International Airport,US,Orlando,large_airport
+MCW,Mason City Municipal Airport,US,Mason City,medium_airport
+MDT,Harrisburg International Airport,US,Harrisburg,medium_airport
+MDW,Chicago Midway International Airport,US,Chicago,large_airport
+MEI,Key Field / Meridian Regional Airport,US,Meridian,medium_airport
+MEM,Frederick W. Smith International Airport,US,Memphis,large_airport
+MFE,McAllen Miller International Airport,US,McAllen,medium_airport
+MFR,Rogue Valley International-Medford Airport,US,Medford,medium_airport
+MGC,Michigan City Municipal Airport,US,Michigan City,medium_airport
+MGM,Montgomery Regional (Dannelly Field) Airport,US,Montgomery,medium_airport
+MGW,Morgantown Municipal Airport Walter L. (Bill) Hart Field,US,Morgantown,medium_airport
+MHK,Manhattan Regional Airport,US,Manhattan,medium_airport
+MHT,Manchester-Boston Regional Airport,US,Manchester,medium_airport
+MIA,Miami International Airport,US,Miami,large_airport
+MKE,General Mitchell International Airport,US,Milwaukee,large_airport
+MKG,Muskegon County Airport,US,Muskegon,medium_airport
+MKL,McKellar-Sipes Regional Airport,US,Jackson,medium_airport
+MLB,Melbourne Orlando International Airport,US,Melbourne,medium_airport
+MLI,Quad City International Airport,US,Moline,medium_airport
+MLU,Monroe Regional Airport,US,Monroe,medium_airport
+MMH,Mammoth Yosemite Airport,US,Mammoth Lakes,medium_airport
+MOB,Mobile Regional Airport,US,Mobile,medium_airport
+MOT,Minot International Airport,US,Minot,medium_airport
+MRY,Monterey Regional Airport,US,Monterey,medium_airport
+MSL,Northwest Alabama Regional Airport,US,Muscle Shoals,medium_airport
+MSN,Dane County Regional Truax Field,US,Madison,medium_airport
+MSO,Missoula Montana Airport,US,Missoula,medium_airport
+MSP,Minneapolis–Saint Paul International Airport / Wold–Chamberlain Field,US,Minneapolis,large_airport
+MSS,Massena International Airport Richards Field,US,Massena,medium_airport
+MSY,Louis Armstrong New Orleans International Airport,US,New Orleans,large_airport
+MTJ,Montrose Regional Airport,US,Montrose,medium_airport
+MWA,Veterans Airport of Southern Illinois,US,Marion,medium_airport
+MWL,Mineral Wells Regional Airport,US,Mineral Wells,medium_airport
+MYL,McCall Municipal Airport,US,McCall,medium_airport
+MYR,Myrtle Beach International Airport,US,Myrtle Beach,large_airport
+YUM,Yuma International Airport / Marine Corps Air Station Yuma,US,Yuma,medium_airport
+OAJ,Albert J Ellis Airport,US,Richlands,medium_airport
+OAK,Oakland San Francisco Bay Airport,US,Oakland,large_airport
+OGD,Ogden Hinckley Airport,US,Ogden,medium_airport
+OGS,Ogdensburg International Airport,US,Ogdensburg,medium_airport
+OKC,OKC Will Rogers World Airport,US,Oklahoma City,large_airport
+OLF,L M Clayton Airport,US,Wolf Point,medium_airport
+OLM,Olympia Regional Airport,US,Olympia,medium_airport
+OMA,Eppley Airfield,US,Omaha,large_airport
+ONT,Ontario International Airport,US,Ontario,large_airport
+OPF,Miami-Opa Locka Executive Airport,US,Miami,medium_airport
+ORD,Chicago O'Hare International Airport,US,Chicago,large_airport
+ORF,Norfolk International Airport,US,Norfolk,large_airport
+ORH,Worcester Regional Airport,US,Worcester,medium_airport
+ESD,Orcas Island Airport,US,Eastsound,medium_airport
+OTH,Southwest Oregon Regional Airport,US,North Bend,medium_airport
+OWB,Owensboro Daviess County Airport,US,Owensboro,medium_airport
+OCE,Ocean City Municipal Airport,US,Ocean City,medium_airport
+PAE,Seattle Paine Field International Airport,US,Everett,medium_airport
+PAH,Barkley Regional Airport,US,Paducah,medium_airport
+PBG,Plattsburgh International Airport,US,Plattsburgh,medium_airport
+DJT,President Donald J. Trump International Airport,US,West Palm Beach,large_airport
+PDK,DeKalb Peachtree Airport,US,Atlanta,medium_airport
+PDT,Eastern Oregon Regional Airport at Pendleton,US,Pendleton,medium_airport
+PDX,Portland International Airport,US,Portland,large_airport
+PGA,Page Municipal Airport,US,Page,medium_airport
+PGD,Punta Gorda Airport,US,Punta Gorda,medium_airport
+PGV,Pitt-Greenville Airport,US,Greenville,medium_airport
+PHF,Newport News Williamsburg International Airport,US,Newport News,medium_airport
+PHL,Philadelphia International Airport,US,Philadelphia,large_airport
+PHX,Phoenix Sky Harbor International Airport,US,Phoenix,large_airport
+PIA,General Wayne A. Downing Peoria International Airport,US,Peoria,medium_airport
+PIB,Hattiesburg Laurel Regional Airport,US,Moselle,medium_airport
+PIE,St. Petersburg Clearwater International Airport,US,Pinellas Park,large_airport
+PIH,Pocatello Regional Airport,US,Pocatello,medium_airport
+PIR,Pierre Regional Airport,US,Pierre,medium_airport
+PIT,Pittsburgh International Airport,US,Pittsburgh,large_airport
+PKB,Mid Ohio Valley Regional Airport,US,Parkersburg (Williamstown),medium_airport
+PLN,Pellston Regional Airport of Emmet County Airport,US,Pellston,medium_airport
+PNS,Pensacola International Airport,US,Pensacola,large_airport
+PQI,Presque Isle International Airport,US,Presque Isle,medium_airport
+PRC,Prescott Regional Airport - Ernest A. Love Field,US,Prescott,medium_airport
+PSC,Tri Cities Airport,US,Pasco,medium_airport
+PSM,Portsmouth International Airport at Pease,US,Portsmouth,medium_airport
+PSP,Palm Springs International Airport,US,Palm Springs,large_airport
+PUB,Pueblo Memorial Airport,US,Pueblo,medium_airport
+PUW,Pullman-Moscow Regional Airport,US,Pullman,medium_airport
+PVD,Rhode Island T. F. Green International Airport,US,Providence/Warwick,large_airport
+PVU,Provo Municipal Airport,US,Provo,medium_airport
+PWM,Portland International Jetport,US,Portland,large_airport
+RAP,Rapid City Regional Airport,US,Rapid City,medium_airport
+RDD,Redding Municipal Airport,US,Redding,medium_airport
+RDM,Roberts Field,US,Redmond,medium_airport
+RDU,Raleigh-Durham International Airport,US,Raleigh/Durham,large_airport
+RFD,Chicago Rockford International Airport,US,Chicago/Rockford,medium_airport
+RHI,Rhinelander Oneida County Airport,US,Rhinelander,medium_airport
+RIC,Richmond International Airport,US,Richmond,large_airport
+RIW,Central Wyoming Regional Airport,US,Riverton,medium_airport
+RKD,Knox County Regional Airport,US,Rockland,medium_airport
+RKS,Southwest Wyoming Regional Airport,US,Rock Springs,medium_airport
+RNO,Reno Tahoe International Airport,US,Reno,large_airport
+ROA,Roanoke–Blacksburg Regional Airport,US,Roanoke,medium_airport
+ROC,Frederick Douglass Greater Rochester International Airport,US,Rochester,large_airport
+ROW,Roswell Air Center Airport,US,Roswell,medium_airport
+RST,Rochester International Airport,US,Rochester,medium_airport
+RSW,Southwest Florida International Airport,US,Fort Myers,large_airport
+RUT,Rutland - Southern Vermont Regional Airport,US,Rutland,medium_airport
+SAF,Santa Fe Municipal Airport,US,Santa Fe,medium_airport
+SAN,San Diego International Airport,US,San Diego,large_airport
+SAT,San Antonio International Airport,US,San Antonio,large_airport
+SAV,Savannah Hilton Head International Airport,US,Savannah,large_airport
+MQT,Marquette Sawyer Regional Airport,US,Gwinn,medium_airport
+SBA,Santa Barbara Municipal Airport,US,Santa Barbara,medium_airport
+SBD,San Bernardino International Airport,US,San Bernardino,large_airport
+SBN,South Bend International Airport,US,South Bend,medium_airport
+SBP,San Luis County Regional Airport,US,San Luis Obispo,medium_airport
+SBY,Salisbury Ocean City Wicomico Regional Airport,US,Salisbury,medium_airport
+SCK,Stockton Metropolitan Airport,US,Stockton,medium_airport
+SDF,Louisville Muhammad Ali International Airport,US,Louisville,large_airport
+SDY,Sidney - Richland Regional Airport,US,Sidney,medium_airport
+SEA,Seattle–Tacoma International Airport,US,Seattle,large_airport
+SFB,Orlando Sanford International Airport,US,Orlando,large_airport
+SFO,San Francisco International Airport,US,San Francisco,large_airport
+SGF,Springfield Branson National Airport,US,Springfield,medium_airport
+UST,Northeast Florida Regional Airport,US,St Augustine,medium_airport
+SGU,St George Regional Airport,US,St George,medium_airport
+SHD,Shenandoah Valley Regional Airport,US,Weyers Cave,medium_airport
+SHR,Sheridan County Airport,US,Sheridan,medium_airport
+SHV,Shreveport Regional Airport,US,Shreveport,medium_airport
+SJC,Mineta San Jose International Airport,US,San Jose,large_airport
+SJT,San Angelo Regional Mathis Field,US,San Angelo,medium_airport
+TSM,Taos Regional Airport,US,Taos,medium_airport
+SLC,Salt Lake City International Airport,US,Salt Lake City,large_airport
+SLE,Salem-Willamette Valley Airport/McNary Field,US,Salem,medium_airport
+SLK,Adirondack Regional Airport,US,Saranac Lake,medium_airport
+SLN,Salina Municipal Airport,US,Salina,medium_airport
+SMF,Sacramento International Airport,US,Sacramento,large_airport
+SMN,Lemhi County Airport,US,Salmon,medium_airport
+SMX,Santa Maria Public Airport Captain G Allan Hancock Field,US,Santa Maria,medium_airport
+SNA,John Wayne Orange County International Airport,US,Santa Ana,large_airport
+SOW,Show Low Regional Airport,US,Show Low,medium_airport
+SPI,Abraham Lincoln Capital Airport,US,Springfield,medium_airport
+SPS,Wichita Falls Municipal Airport / Sheppard Air Force Base,US,Wichita Falls,medium_airport
+SQL,San Carlos Airport,US,San Carlos,medium_airport
+SRQ,Sarasota Bradenton International Airport,US,Sarasota/Bradenton,large_airport
+STC,Saint Cloud Regional Airport,US,Saint Cloud,medium_airport
+STL,St. Louis Lambert International Airport,US,St Louis,large_airport
+STS,Charles M. Schulz Sonoma County Airport,US,Santa Rosa,medium_airport
+SUN,Friedman Memorial Airport,US,Hailey,medium_airport
+SUX,Sioux Gateway Airport / Brigadier General Bud Day Field,US,Sioux City,medium_airport
+SVC,Grant County Airport,US,Silver City,medium_airport
+SWF,New York Stewart International Airport,US,Newburgh,medium_airport
+SWO,Stillwater Regional Airport,US,Stillwater,medium_airport
+SYR,Syracuse Hancock International Airport,US,Syracuse,large_airport
+TBN,Waynesville-St. Robert Regional Airport-Forney Field,US,Fort Leonard Wood,medium_airport
+TEB,Teterboro Airport,US,Teterboro,medium_airport
+TEX,Telluride Regional Airport,US,Telluride,medium_airport
+TIW,Tacoma Narrows Airport,US,Tacoma,medium_airport
+TLH,Tallahassee International Airport,US,Tallahassee,medium_airport
+TOL,Eugene F. Kranz Toledo Express Airport,US,Toledo,medium_airport
+TPA,Tampa International Airport,US,Tampa,large_airport
+TRI,Tri-Cities Regional TN/VA Airport,US,Blountville,medium_airport
+TKF,Truckee Tahoe Airport,US,Truckee,medium_airport
+TTN,Trenton Mercer Airport,US,Ewing Township,medium_airport
+TUL,Tulsa International Airport,US,Tulsa,large_airport
+TUP,Tupelo Regional Airport,US,Tupelo,medium_airport
+TUS,Tucson International Airport,US,Tucson,large_airport
+TVC,Cherry Capital Airport,US,Traverse City,medium_airport
+TVF,Thief River Falls Regional Airport,US,Thief River Falls,medium_airport
+TWF,Joslin Field Magic Valley Regional Airport,US,Twin Falls,medium_airport
+TXK,Texarkana Regional Airport (Webb Field),US,Texarkana,medium_airport
+TYR,Tyler Pounds Regional Airport,US,Tyler,medium_airport
+TYS,McGhee Tyson Airport,US,Knoxville/Maryville,large_airport
+UIN,Quincy Regional Airport Baldwin Field,US,Quincy,medium_airport
+SCE,State College Regional Airport,US,State College,medium_airport
+NPT,Newport State Airport,US,Newport,medium_airport
+VCT,Victoria Regional Airport,US,Victoria,medium_airport
+VEL,Vernal Regional Airport,US,Vernal,medium_airport
+VLD,Valdosta Regional Airport,US,Valdosta,medium_airport
+VPS,Destin-Fort Walton Beach Airport,US,Valparaiso,medium_airport
+VRB,Vero Beach Regional Airport,US,Vero Beach,medium_airport
+WST,Westerly State Airport,US,Westerly,medium_airport
+WYS,Yellowstone Airport,US,West Yellowstone,medium_airport
+XNA,Northwest Arkansas National Airport,US,Fayetteville/Springdale/Rogers,medium_airport
+XWA,Williston Basin International Airport,US,Williston,medium_airport
+YKM,Yakima Air Terminal McAllister Field,US,Yakima,medium_airport
+BOR,Bokeo International Airport,LA,Ton Phueng,medium_airport
+TIA,Tirana International Airport Mother Teresa,AL,Rinas,large_airport
+BOJ,Burgas Airport,BG,Burgas,large_airport
+PDV,Plovdiv International Airport,BG,Plovdiv,large_airport
+SOF,Sofia Airport,BG,Sofia,large_airport
+VAR,Varna Airport,BG,Varna,large_airport
+ECN,Ercan International Airport,CY,Tymbou (Kirklar),large_airport
+LCA,Larnaca International Airport,CY,Larnaca,large_airport
+PFO,Paphos International Airport,CY,Paphos,large_airport
+DBV,Dubrovnik Ruđer Bošković Airport,HR,Dubrovnik,large_airport
+OSI,Osijek Airport,HR,Osijek(Klisa),medium_airport
+PUY,Pula Airport,HR,Pula,large_airport
+RJK,Rijeka Airport,HR,Rijeka(Omišalj),large_airport
+BWK,Brač Airport,HR,Gornji Humac,medium_airport
+SPU,Split Saint Jerome Airport,HR,Split,large_airport
+ZAG,Zagreb Franjo Tuđman International Airport,HR,Velika Gorica,large_airport
+ZAD,Zadar Airport,HR,Zadar,large_airport
+ALC,Alicante-Elche Miguel Hernández Airport,ES,Alicante,large_airport
+LEI,Almería Airport,ES,Almería,medium_airport
+OVD,Asturias Airport,ES,Ranón,large_airport
+ODB,Córdoba Airport,ES,Córdoba,medium_airport
+BIO,Bilbao Airport,ES,Bilbao,large_airport
+BCN,Josep Tarradellas Barcelona-El Prat Airport,ES,Barcelona,large_airport
+BJZ,Badajoz Airport,ES,Badajoz,medium_airport
+CDT,Castellón-Costa Azahar Airport,ES,Castellón de la Plana,medium_airport
+LCG,A Coruña Airport,ES,Culleredo,medium_airport
+ILD,Lleida-Alguaire Airport,ES,Lleida,medium_airport
+GRO,Girona-Costa Brava Airport,ES,Girona,large_airport
+GRX,F.G.L. Airport Granada-Jaén Airport,ES,Granada,medium_airport
+IBZ,Ibiza Airport,ES,Ibiza (Eivissa),large_airport
+XRY,Jerez Airport,ES,Jerez de la Frontera,medium_airport
+LEN,León Airport,ES,La Virgen del Camino,medium_airport
+RJL,Logroño-Agoncillo Airport,ES,Logroño,medium_airport
+MAD,Adolfo Suárez Madrid–Barajas Airport,ES,Madrid,large_airport
+AGP,Málaga-Costa del Sol Airport,ES,Málaga,large_airport
+MAH,Menorca Airport,ES,Mahón (Maó),large_airport
+RMU,Region of Murcia International Airport,ES,Corvera,large_airport
+PMI,Palma de Mallorca Airport,ES,Palma de Mallorca,large_airport
+PNA,Pamplona Airport,ES,Pamplona,medium_airport
+REU,Reus Airport,ES,Reus,large_airport
+SLM,Salamanca Airport,ES,Salamanca,medium_airport
+EAS,San Sebastián Airport,ES,Hondarribia,medium_airport
+SCQ,Santiago-Rosalía de Castro Airport,ES,Santiago de Compostela,large_airport
+LEU,Pirineus - la Seu d'Urgel Airport,ES,La Seu d'Urgell Pyrenees and Andorra,medium_airport
+VLC,Valencia Airport,ES,Valencia,large_airport
+VLL,Valladolid Airport,ES,Valladolid,medium_airport
+VIT,Vitoria Airport,ES,Alava,medium_airport
+VGO,Vigo Airport,ES,Vigo,medium_airport
+SDR,Seve Ballesteros-Santander Airport,ES,Santander,medium_airport
+ZAZ,Zaragoza Airport,ES,Zaragoza,large_airport
+SVQ,Seville Airport,ES,Seville,large_airport
+BOD,Bordeaux–Mérignac Airport,FR,Bordeaux,large_airport
+EGC,Bergerac Dordogne-Périgord airport,FR,Bergerac,medium_airport
+LRH,La Rochelle Île de Ré Airport,FR,La Rochelle,medium_airport
+PIS,Poitiers-Biard Airport,FR,Poitiers/Biard,medium_airport
+LIG,Limoges Airport,FR,Limoges/Bellegarde,medium_airport
+TLS,Toulouse-Blagnac Airport,FR,Toulouse/Blagnac,large_airport
+PUF,Pau Pyrénées Airport,FR,Pau/Pyrénées (Uzein),medium_airport
+LDE,Tarbes-Lourdes-Pyrénées Airport,FR,Tarbes/Lourdes/Pyrénées,medium_airport
+BIQ,Biarritz Pays Basque airport,FR,Biarritz,medium_airport
+DCM,Castres Mazamet Airport,FR,Castres,medium_airport
+RDZ,Rodez–Aveyron Airport,FR,Rodez/Marcillac,medium_airport
+DLE,Dole Tavaux Airport,FR,Dole,medium_airport
+ETZ,Metz-Nancy-Lorraine Airport,FR,Goin,medium_airport
+BIA,Bastia-Poretta International airport,FR,Bastia,large_airport
+CLY,Calvi Sainte Catherine Airport,FR,Calvi,medium_airport
+FSC,Figari Sud-Corse Airport,FR,Figari,large_airport
+AJA,Ajaccio Napoléon Bonaparte airport,FR,Ajaccio,medium_airport
+CMF,Chambéry Aix les Bains airport,FR,Chambéry,medium_airport
+CFE,Clermont-Ferrand Auvergne airport,FR,Clermont-Ferrand,large_airport
+LYS,Lyon Saint-Exupéry Airport,FR,"Colombier-Saugnieu, Rhône",large_airport
+NCY,Annecy Meythet airport,FR,Annecy,medium_airport
+GNB,Grenoble Alpes Isère Airport,FR,Grenoble,medium_airport
+AUR,Aurillac airport,FR,Aurillac,medium_airport
+CCF,Carcassonne Salvaza Airport,FR,Carcassonne,medium_airport
+MRS,Marseille Provence Airport,FR,"Marignane, Bouches-du-Rhône",large_airport
+NCE,Nice-Côte d'Azur Airport,FR,"Nice, Alpes-Maritimes",large_airport
+PGF,Perpignan-Rivesaltes (Llabanère) Airport,FR,Perpignan/Rivesaltes,medium_airport
+MPL,Montpellier-Méditerranée Airport,FR,Montpellier/Méditerranée,large_airport
+BZR,Béziers Vias airport,FR,Béziers,medium_airport
+AVN,Avignon Caumont airport,FR,Avignon,medium_airport
+BVA,Beauvais-Tillé airport,FR,Beauvais,large_airport
+XCR,Chalons Vatry airport,FR,Chalons en Champagne,medium_airport
+TUF,Tours Val de Loire Airport,FR,"Tours, Indre-et-Loire",medium_airport
+CDG,Charles de Gaulle International Airport,FR,"Paris (Roissy-en-France, Val-d'Oise)",large_airport
+ORY,Paris-Orly Airport,FR,"Paris (Orly, Val-de-Marne)",large_airport
+LIL,Lille Airport,FR,Lesquin,large_airport
+BES,Brest Bretagne airport,FR,Brest,large_airport
+DOL,Deauville Normandie airport,FR,Deauville,medium_airport
+CFR,Caen Carpiquet airport,FR,Caen,medium_airport
+RNS,Rennes-Saint-Jacques Airport,FR,"Saint-Jacques-de-la-Lande, Ille-et-Vilaine",medium_airport
+NTE,Nantes Atlantique Airport,FR,Nantes,large_airport
+BSL,EuroAirport Basel–Mulhouse–Freiburg,FR,Bâle / Mulhouse,large_airport
+BVE,Brive Souillac airport,FR,Brive,medium_airport
+SXB,Strasbourg Airport,FR,Strasbourg,large_airport
+TLN,Toulon-Hyères Airport,FR,"Hyères, Var",medium_airport
+FNI,Nîmes-Arles-Camargue Airport,FR,Nîmes/Garons,medium_airport
+FSP,Saint-Pierre Pointe-Blanche Airport,PM,Saint-Pierre,medium_airport
+AXD,Alexandroupoli Democritus Airport,GR,Alexandroupolis,medium_airport
+ATH,Athens Eleftherios Venizelos International Airport,GR,Spata-Artemida,large_airport
+VOL,Nea Anchialos National Airport,GR,Nea Anchialos,medium_airport
+JKH,Chios Island National Airport,GR,Chios Island,medium_airport
+IOA,Ioannina King Pyrrhus National Airport,GR,Ioannina,medium_airport
+HER,Heraklion International Nikos Kazantzakis Airport,GR,Heraklion,large_airport
+EFL,"Kefalonia International Airport ""Anna Pollatou""",GR,Kefallinia Island,large_airport
+KLX,Kalamata Airport,GR,Kalamata,medium_airport
+KGS,"Kos International Airport ""Ippokratis""",GR,Kos Island,large_airport
+AOK,Karpathos Airport,GR,Karpathos Island,medium_airport
+CFU,Corfu Ioannis Kapodistrias International Airport,GR,Kerkyra (Corfu),large_airport
+KVA,Kavala Alexander the Great International Airport,GR,Kavala,large_airport
+KZI,Kozani National Airport Filippos,GR,Kozani,medium_airport
+JMK,Mykonos Island National Airport,GR,Mykonos,medium_airport
+MJT,Mytilene International Airport,GR,Mytilene,medium_airport
+PVK,Aktion National Airport,GR,Preveza,medium_airport
+RHO,"Rhodes International Airport ""Diagoras""",GR,Rhodes,large_airport
+GPA,Patras Araxos Agamemnon Airport,GR,Patras,medium_airport
+CHQ,Chania International Airport,GR,Souda,large_airport
+JSI,Skiathos Island National Airport,GR,Skiathos,medium_airport
+SMI,Samos Airport,GR,Samos Island,medium_airport
+JTR,Santorini International Airport,GR,Santorini Island,large_airport
+JSH,Sitia Airport,GR,Crete Island,medium_airport
+SKG,Thessaloniki Macedonia International Airport,GR,Thessaloniki,large_airport
+ZTH,"Zakynthos International Airport ""Dionysios Solomos""",GR,Zakynthos,large_airport
+BUD,Budapest Liszt Ferenc International Airport,HU,Budapest,large_airport
+DEB,Debrecen International Airport,HU,Debrecen,large_airport
+PEV,Pécs-Pogány International Airport,HU,Pécs,large_airport
+SOB,Hévíz–Balaton Airport,HU,Sármellék,medium_airport
+CRV,Crotone Sant'Anna Pythagoras Airport,IT,Isola di Capo Rizzuto (KR),medium_airport
+BRI,Bari Karol Wojtyła International Airport,IT,Bari,large_airport
+FOG,Foggia Gino Lisa Airport,IT,Foggia (FG),medium_airport
+PSR,Abruzzo Airport,IT,Pescara,large_airport
+BDS,Brindisi Airport,IT,Brindisi,large_airport
+SUF,Lamezia Terme Sant'Eufemia International Airport,IT,Lamezia Terme (CZ),large_airport
+CIY,Comiso Airport,IT,Comiso,medium_airport
+CTA,Catania-Fontanarossa Airport,IT,Catania,large_airport
+LMP,Lampedusa Airport,IT,Lampedusa,medium_airport
+PNL,Pantelleria Airport,IT,Pantelleria (TP),medium_airport
+PMO,Falcone–Borsellino Airport,IT,Palermo,large_airport
+REG,Reggio Calabria Airport,IT,Reggio Calabria,medium_airport
+TPS,Vincenzo Florio Airport Trapani-Birgi,IT,Trapani (TP),medium_airport
+AHO,Alghero-Fertilia Airport,IT,Alghero,medium_airport
+CAG,Cagliari Elmas Airport,IT,Cagliari,large_airport
+OLB,Olbia Costa Smeralda Airport,IT,Olbia (SS),large_airport
+MXP,Milan Malpensa International Airport,IT,Ferno (VA),large_airport
+BGY,Il Caravaggio International Airport,IT,Orio al Serio (BG),large_airport
+TRN,Turin Airport,IT,Caselle Torinese (TO),large_airport
+GOA,Genoa Cristoforo Colombo Airport,IT,Genova (GE),large_airport
+LIN,Milano Linate Airport,IT,Segrate (MI),large_airport
+PMF,Parma Airport,IT,Parma (PR),medium_airport
+CUF,Cuneo International Airport,IT,Levaldigi (CN),medium_airport
+BZO,Bolzano Airport,IT,Bolzano (BZ),medium_airport
+BLQ,Bologna Guglielmo Marconi Airport,IT,Bologna,large_airport
+TSF,Treviso Airport,IT,Treviso (TV),large_airport
+FRL,Forlì-Luigi Ridolfi International Airport,IT,Forlì (FC),medium_airport
+VBS,Brescia Gabriele d'Annunzio Airport,IT,Montichiari (BS),medium_airport
+TRS,Trieste Airport,IT,Ronchi dei Legionari/Trieste,large_airport
+RMI,Federico Fellini International Airport,IT,Rimini (RN),large_airport
+VRN,Verona Villafranca Valerio Catullo Airport,IT,Caselle (VR),large_airport
+AOI,Marche Airport,IT,Falconara Marittima (AN),medium_airport
+VCE,Venice Marco Polo Airport,IT,Venezia (VE),large_airport
+CIA,Ciampino–G. B. Pastine International Airport,IT,Rome,large_airport
+FCO,Rome–Fiumicino Leonardo da Vinci International Airport,IT,Rome,large_airport
+QSR,Salerno Costa d'Amalfi Airport,IT,Salerno,medium_airport
+EBA,Marina di Campo Airport,IT,Campo nell'Elba (LI),medium_airport
+NAP,Naples International Airport,IT,Napoli,large_airport
+PSA,Pisa International Airport,IT,Pisa (PI),large_airport
+FLR,"Florence Airport, Peretola",IT,Firenze (FI),large_airport
+PEG,Perugia San Francesco d'Assisi – Umbria International Airport,IT,Perugia (PG),large_airport
+LJU,Ljubljana Jože Pučnik Airport,SI,Zgornji Brnik,large_airport
+MBX,Maribor Edvard Rusjan Airport,SI,Maribor,medium_airport
+JCL,České Budějovice South Bohemian Airport,CZ,České Budějovice,large_airport
+KLV,Karlovy Vary Airport,CZ,Karlovy Vary,large_airport
+OSR,Leoš Janáček Airport Ostrava,CZ,Mošnov,large_airport
+PED,Pardubice Airport,CZ,Pardubice,large_airport
+PRG,Václav Havel Airport Prague,CZ,Prague,large_airport
+BRQ,Brno-Tuřany Airport,CZ,Brno,medium_airport
+TLV,Ben Gurion International Airport,IL,Tel Aviv,large_airport
+ETM,Ramon International Airport,IL,Eilat,large_airport
+HFA,Uri Michaeli Haifa International Airport,IL,Haifa,medium_airport
+MLA,Malta International Airport,MT,Valletta,large_airport
+GRZ,Graz Airport,AT,Feldkirchen bei Graz,large_airport
+INN,Innsbruck Airport,AT,Innsbruck,large_airport
+KLU,Klagenfurt Airport,AT,Klagenfurt am Wörthersee,large_airport
+LNZ,Linz-Hörsching Airport,AT,Linz,large_airport
+SZG,Salzburg Airport,AT,Salzburg,large_airport
+VIE,Vienna International Airport,AT,Vienna,large_airport
+SMA,Santa Maria Airport,PT,Vila do Porto,medium_airport
+BGC,Bragança Airport,PT,Bragança,medium_airport
+CAT,Cascais Airport,PT,Cascais,medium_airport
+FLW,Flores Airport,PT,Santa Cruz das Flores,medium_airport
+FAO,Faro - Gago Coutinho International Airport,PT,Faro,large_airport
+GRW,Graciosa Airport,PT,Santa Cruz da Graciosa,medium_airport
+HOR,Horta Airport,PT,Horta,medium_airport
+TER,Lajes Airport,PT,Praia da Vitória,medium_airport
+FNC,Cristiano Ronaldo International Airport,PT,Funchal,large_airport
+PDL,João Paulo II Airport,PT,Ponta Delgada,large_airport
+PIX,Pico Airport,PT,Pico Island,medium_airport
+PRM,Portimão Airport,PT,Portimão,medium_airport
+OPO,Francisco de Sá Carneiro Airport,PT,Porto,large_airport
+PXO,Porto Santo Airport,PT,Vila Baleira,medium_airport
+LIS,Lisbon Humberto Delgado Airport,PT,Lisbon,large_airport
+SJZ,São Jorge Airport,PT,Velas,medium_airport
+VRL,Vila Real Airport,PT,Vila Real,medium_airport
+VSE,Aerodromo Goncalves Lobato (Viseu Airport),PT,Viseu,medium_airport
+BNX,Banja Luka International Airport,BA,Mahovljani,large_airport
+OMO,Mostar International Airport,BA,Mostar,large_airport
+SJJ,Sarajevo International Airport,BA,Sarajevo,large_airport
+TZL,Tuzla International Airport,BA,Dubrave Gornje,large_airport
+ARW,Arad International Airport,RO,Arad,medium_airport
+BCM,Bacău George Enescu International  Airport,RO,Bacău,large_airport
+BAY,Maramureș International Airport,RO,Tăuții-Măgherăuș,medium_airport
+BBU,Bucharest Băneasa Aurel Vlaicu International Airport,RO,Bucharest,large_airport
+GHV,Brașov-Ghimbav International Airport,RO,Brașov (Ghimbav),large_airport
+CND,Mihail Kogălniceanu International Airport,RO,Constanța,large_airport
+CLJ,Avram Iancu Cluj International Airport,RO,Cluj-Napoca,large_airport
+CRA,Craiova International Airport,RO,Craiova,large_airport
+IAS,Iaşi International Airport,RO,Iaşi,large_airport
+OMR,Oradea International Airport,RO,Oradea,large_airport
+OTP,Bucharest Henri Coandă International Airport,RO,Otopeni,large_airport
+SBZ,Sibiu International Airport,RO,Sibiu,large_airport
+SUJ,Satu Mare International Airport,RO,Satu Mare,medium_airport
+SCV,Suceava Ștefan cel Mare International Airport,RO,Suceava,large_airport
+TGM,Târgu Mureş Transilvania International Airport,RO,Recea,medium_airport
+TSR,Timișoara Traian Vuia International Airport,RO,Timişoara,large_airport
+GVA,Geneva International Airport,CH,Geneva,large_airport
+LUG,Lugano Airport,CH,Agno,medium_airport
+BRN,Bern Airport,CH,Bern,medium_airport
+ZRH,Zürich Airport,CH,Zurich,large_airport
+ACH,Sankt Gallen Altenrhein Airport,CH,St. Gallen,medium_airport
+ESB,Esenboğa International Airport,TR,Ankara,large_airport
+AYT,Antalya International Airport,TR,Antalya,large_airport
+GZT,Gaziantep Oğuzeli International Airport,TR,Gaziantep,large_airport
+KFS,Kastamonu Airport,TR,Kastamonu,medium_airport
+KYA,Konya Airport,TR,Konya,large_airport
+MZH,Amasya Merzifon Airport,TR,Amasya,medium_airport
+VAS,Sivas Nuri Demirağ Airport,TR,Sivas,medium_airport
+ONQ,Zonguldak Çaycuma Airport,TR,Zonguldak,medium_airport
+MLX,Malatya Erhaç Airport,TR,Malatya,medium_airport
+ASR,Kayseri Erkilet International Airport,TR,Kayseri,large_airport
+TJK,Tokat Airport,TR,Tokat,medium_airport
+DNZ,Çardak Airport,TR,Denizli,medium_airport
+NAV,Nevşehir Kapadokya Airport,TR,Nevşehir,large_airport
+BZI,Balıkesir Airport,TR,Balıkesir,medium_airport
+CKZ,Çanakkale Airport,TR,Çanakkale,medium_airport
+ADB,Adnan Menderes International Airport,TR,Gaziemir,large_airport
+YEI,Bursa Yenişehir Airport,TR,Yenişehir,medium_airport
+DLM,Dalaman International Airport,TR,Dalaman,large_airport
+TEQ,Tekirdağ Çorlu Airport,TR,Çorlu,medium_airport
+AOE,Hasan Polatkan Airport,TR,Eskişehir,large_airport
+KZR,Zafer Airport,TR,Altıntaş,medium_airport
+EZS,Elazığ Airport,TR,Elazığ,medium_airport
+OGU,Ordu–Giresun Airport,TR,Ordu,medium_airport
+DIY,Diyarbakır Airport,TR,Diyarbakır,medium_airport
+ERC,Erzincan Airport,TR,Erzincan,medium_airport
+ERZ,Erzurum International Airport,TR,Erzurum,medium_airport
+KSY,Kars Airport,TR,Kars,medium_airport
+TZX,Trabzon International Airport,TR,Trabzon,medium_airport
+VAN,Van Ferit Melen Airport,TR,Van,medium_airport
+BAL,Batman Airport,TR,Batman,medium_airport
+MSR,Muş Airport,TR,Muş,medium_airport
+NOP,Sinop Airport,TR,Sinop,medium_airport
+KCM,Kahramanmaraş Airport,TR,Kahramanmaraş,medium_airport
+AJI,Ağrı Airport,TR,Ağrı,medium_airport
+ADF,Adıyaman Airport,TR,Adıyaman,medium_airport
+MQM,Mardin Airport,TR,Mardin,medium_airport
+GNY,Şanlıurfa GAP Airport,TR,Şanlıurfa,large_airport
+IGD,Iğdır Airport,TR,Iğdır,medium_airport
+BGG,Bingöl Airport,TR,Bingöl,medium_airport
+NKT,Şırnak Şerafettin Elçi Airport,TR,Şırnak,medium_airport
+YKO,Hakkari Yüksekova Airport,TR,Hakkari,medium_airport
+HTY,Hatay Airport,TR,Antakya,medium_airport
+COV,Çukurova International Airport,TR,Tarsus,large_airport
+ISE,Süleyman Demirel International Airport,TR,Isparta,medium_airport
+EDO,Balıkesir Koca Seyit Airport,TR,Edremit,large_airport
+BJV,Milas Bodrum International Airport,TR,Bodrum,large_airport
+GZP,Gazipaşa-Alanya Airport,TR,Gazipaşa,medium_airport
+SZF,Samsun-Çarşamba Airport,TR,Samsun,medium_airport
+SAW,Istanbul Sabiha Gökçen International Airport,TR,"Pendik, Istanbul",large_airport
+IST,İstanbul Airport,TR,Istanbul,large_airport
+RZV,Rize–Artvin Airport,TR,Rize,medium_airport
+RMO,Chişinău International Airport,MD,Chişinău,large_airport
+OHD,Ohrid St. Paul the Apostle Airport,MK,Ohrid,large_airport
+SKP,Skopje International Airport,MK,Ilinden,large_airport
+GIB,Gibraltar Airport,GI,Gibraltar,large_airport
+BEG,Belgrade Nikola Tesla Airport,RS,Belgrade,large_airport
+KVO,Morava Airport,RS,Kraljevo,medium_airport
+INI,Niš Constantine the Great Airport,RS,Niš,large_airport
+TGD,Podgorica Airport / Podgorica Golubovci Airbase,ME,Podgorica,large_airport
+TIV,Tivat Airport,ME,Tivat,medium_airport
+LZG,Langzhong Gucheng Airport,CN,Nanchong (Langzhong),medium_airport
+BTS,M. R. Štefánik Airport,SK,Bratislava,large_airport
+KSC,Košice International Airport,SK,Košice,medium_airport
+SLD,Sliač Airport,SK,Sliač,medium_airport
+TAT,Poprad-Tatry Airport,SK,Poprad,medium_airport
+GDT,JAGS McCartney International Airport,TC,Cockburn Town,medium_airport
+NCA,North Caicos Airport,TC,North Caicos,medium_airport
+PLS,Providenciales International Airport,TC,Providenciales,large_airport
+XSC,South Caicos Airport,TC,South Caicos,medium_airport
+BRX,Maria Montez International Airport,DO,Barahona,medium_airport
+AZS,Samaná El Catey International Airport,DO,Samana,medium_airport
+JBQ,La Isabela International Airport,DO,La Isabela,medium_airport
+LRM,Casa De Campo International Airport,DO,La Romana,large_airport
+PUJ,Punta Cana International Airport,DO,Punta Cana,large_airport
+POP,Gregorio Luperon International Airport,DO,Puerto Plata,medium_airport
+SDQ,Las Américas International Airport,DO,Santo Domingo,large_airport
+STI,Cibao International Airport,DO,Santiago,large_airport
+GUA,La Aurora International Airport,GT,Guatemala City,large_airport
+PBR,Puerto Barrios Airport,GT,Puerto Barrios,medium_airport
+RER,Retalhuleu Airport,GT,Retalhuleu,medium_airport
+FRS,Mundo Maya International Airport,GT,San Benito,medium_airport
+LCE,Golosón International Airport,HN,La Ceiba,medium_airport
+SAP,Ramón Villeda Morales International Airport,HN,San Pedro Sula,large_airport
+GJA,La Laguna Airport,HN,Guanaja,medium_airport
+RTB,Juan Manuel Gálvez International Airport,HN,Coxen Hole,large_airport
+XPL,Palmerola International Airport,HN,Palmerola,large_airport
+TGU,Toncontín Airport,HN,Tegucigalpa,medium_airport
+OCJ,Ian Fleming International Airport,JM,Boscobel,medium_airport
+KIN,Norman Manley International Airport,JM,Kingston,large_airport
+MBJ,Sangster International Airport,JM,Montego Bay,large_airport
+KTP,Tinson Pen Airport,JM,Tinson Pen,medium_airport
+ACA,General Juan N. Álvarez International Airport,MX,Acapulco,large_airport
+AGU,Aguascalientes International Airport,MX,Aguascalientes,large_airport
+HUX,Bahías de Huatulco International Airport,MX,Huatulco,large_airport
+CME,Ciudad del Carmen International Airport,MX,Ciudad del Carmen,medium_airport
+CUL,Bachigualato Federal International Airport,MX,Culiacán,large_airport
+CTM,Chetumal International Airport,MX,Chetumal,medium_airport
+CEN,Ciudad Obregón International Airport,MX,Ciudad Obregón,medium_airport
+CPE,Ingeniero Alberto Acuña Ongay International Airport,MX,Campeche,medium_airport
+CJS,Abraham González International Airport,MX,Ciudad Juárez,large_airport
+CUU,General Roberto Fierro Villalobos International Airport,MX,Chihuahua,large_airport
+CVM,General Pedro Jose Mendez International Airport,MX,Ciudad Victoria,medium_airport
+CZM,Cozumel International Airport,MX,Cozumel,large_airport
+DGO,General Guadalupe Victoria International Airport,MX,Durango,medium_airport
+TPQ,Amado Nervo National Airport,MX,Tepic,medium_airport
+GDL,Guadalajara International Airport,MX,Guadalajara,large_airport
+GYM,General José María Yáñez International Airport,MX,Guaymas,medium_airport
+HMO,General Ignacio L. Pesqueira International Airport,MX,Hermosillo,large_airport
+CLQ,Licenciado Miguel de la Madrid International Airport,MX,Colima,medium_airport
+SLW,Plan de Guadalupe International Airport,MX,Saltillo,medium_airport
+IZT,General Antonio Cárdenas Rodríguez National Airport / Ixtepec Air Base,MX,Ixtepec,medium_airport
+LMM,Valle del Fuerte International Airport,MX,Los Mochis,medium_airport
+BJX,Guanajuato International Airport,MX,Silao,large_airport
+LAP,Manuel Márquez de León International Airport,MX,La Paz,medium_airport
+LTO,Loreto International Airport,MX,Loreto,large_airport
+MAM,General Servando Canales International Airport,MX,Matamoros,medium_airport
+MID,Manuel Crescencio Rejón International Airport,MX,Mérida,large_airport
+MXL,General Rodolfo Sánchez Taboada International Airport,MX,Mexicali,medium_airport
+MLM,General Francisco J. Mujica International Airport,MX,Morelia,large_airport
+MTT,Minatitlán/Coatzacoalcos International Airport,MX,Cosoleacaque,medium_airport
+MEX,Mexico City Benito Juárez International Airport,MX,Mexico City,large_airport
+MTY,Monterrey International Airport,MX,Monterrey,large_airport
+MZT,General Rafael Buelna International Airport,MX,Mazatlàn,large_airport
+NLD,Quetzalcóatl International Airport,MX,Nuevo Laredo,medium_airport
+OAX,Xoxocotlán International Airport,MX,Oaxaca,large_airport
+PAZ,El Tajín National Airport,MX,Poza Rica,medium_airport
+PBC,Hermanos Serdán International Airport,MX,Puebla,large_airport
+PDS,Piedras Negras International Airport,MX,Piedras Negras,medium_airport
+UPN,Uruapan - Licenciado y General Ignacio Lopez Rayon International Airport,MX,Uruapan,medium_airport
+PVR,Puerto Vallarta International Airport,MX,Puerto Vallarta,large_airport
+PXM,Puerto Escondido International Airport,MX,Puerto Escondido,medium_airport
+QRO,Querétaro Intercontinental Airport,MX,Querétaro,large_airport
+REX,General Lucio Blanco International Airport,MX,Reynosa,medium_airport
+SJD,Los Cabos International Airport,MX,San José del Cabo,large_airport
+CSW,Cabo San Lucas International Airport,MX,Cabo San Lucas,medium_airport
+NLU,Felipe Ángeles International Airport,MX,Mexico City,large_airport
+SLP,Ponciano Arriaga International Airport,MX,San Luis Potosí,medium_airport
+TRC,Francisco Sarabia Tinoco International Airport,MX,Torreón,medium_airport
+TGZ,Angel Albino Corzo International Airport,MX,Tuxtla Gutiérrez,medium_airport
+TIJ,General Abelardo L. Rodriguez International Airport,MX,Tijuana,large_airport
+TQO,Felipe Carrillo Puerto International Airport Tulum,MX,Tulum,large_airport
+TAM,General Francisco Javier Mina International Airport,MX,Ciudad Madero,medium_airport
+TLC,Adolfo López Mateos International Airport,MX,Toluca,large_airport
+TAP,Tapachula International Airport,MX,Tapachula,medium_airport
+CUN,Cancún International Airport,MX,Cancún,large_airport
+VSA,Carlos Rovirosa Pérez International Airport,MX,Villahermosa,large_airport
+VER,General Heriberto Jara International Airport,MX,Veracruz,large_airport
+ZCL,General Leobardo C. Ruiz International Airport,MX,Zacatecas,medium_airport
+ZIH,Ixtapa-Zihuatanejo International Airport,MX,Ixtapa,large_airport
+ZLO,Playa de Oro International Airport,MX,Manzanillo,medium_airport
+BEF,Bluefields Airport,NI,Bluefields,medium_airport
+MGA,Augusto C. Sandino (Managua) International Airport,NI,Managua,large_airport
+PUZ,Puerto Cabezas Airport,NI,Puerto Cabezas,medium_airport
+BOC,"Bocas del Toro ""Isla Colón"" International Airport",PA,Isla Colón,medium_airport
+CTD,Alonso Valderrama Airport,PA,Chitré,medium_airport
+CHX,Changuinola Captain Manuel Niño International Airport,PA,Changuinola,medium_airport
+DAV,Enrique Malek International Airport,PA,David,medium_airport
+ONX,Enrique Adolfo Jimenez Airport,PA,Colón,medium_airport
+PAC,Marcos A. Gelabert International Airport,PA,Albrook,medium_airport
+PTY,Tocumen International Airport,PA,Tocumen,large_airport
+FON,La Fortuna Arenal Airport,CR,La Fortuna,medium_airport
+GLF,Golfito Airport,CR,Golfito,medium_airport
+LIR,Daniel Oduber Quirós International Airport,CR,Liberia,large_airport
+LIO,Limón International Airport,CR,Limón,medium_airport
+NOB,Nosara Airport,CR,Nicoya,medium_airport
+SJO,Juan Santamaría International Airport,CR,San José (Alajuela),large_airport
+PJM,Puerto Jimenez Airport,CR,Puerto Jimenez,medium_airport
+SYQ,Tobías Bolaños International Airport,CR,San Jose,medium_airport
+XQP,Quepos Managua Airport,CR,Quepos,medium_airport
+SAL,El Salvador International Airport Saint Óscar Arnulfo Romero y Galdámez,SV,San Salvador (San Luis Talpa),large_airport
+ILS,Ilopango International Airport,SV,San Salvador,medium_airport
+CYA,Antoine-Simon International Airport,HT,Les Cayes,medium_airport
+CAP,Cap Haitien International Airport,HT,Cap Haitien,large_airport
+JEE,Jérémie Airport,HT,Carrefour Sanon,medium_airport
+PAP,Toussaint Louverture International Airport,HT,Port-au-Prince,large_airport
+BCA,Gustavo Rizo Airport,CU,Baracoa,medium_airport
+BYM,Carlos Manuel de Cespedes Airport,CU,Bayamo,medium_airport
+CCC,Jardines Del Rey Airport,CU,Cayo Coco,medium_airport
+CFG,Jaime Gonzalez Airport,CU,Cienfuegos,medium_airport
+CYO,Vilo Acuña International Airport,CU,Cayo Largo del Sur,medium_airport
+CMW,Ignacio Agramonte International Airport,CU,Camaguey,large_airport
+SCU,Antonio Maceo International Airport,CU,Santiago,large_airport
+HAV,José Martí International Airport,CU,Havana,large_airport
+HOG,Frank Pais International Airport,CU,Holguin,large_airport
+MZO,Sierra Maestra International Airport,CU,Manzanillo,medium_airport
+GER,Rafael Cabrera Airport,CU,Nueva Gerona,medium_airport
+SNU,Abel Santamaria International Airport,CU,Santa Clara,large_airport
+TND,Alberto Delgado Airport,CU,Trinidad,medium_airport
+VRA,Juan Gualberto Gomez International Airport,CU,Matanzas,large_airport
+VTU,Hermanos Ameijeiras Airport,CU,Las Tunas,medium_airport
+CYB,Charles Kirkconnell International Airport,KY,West End,medium_airport
+GCM,Owen Roberts International Airport,KY,George Town,large_airport
+ASD,Andros Town Airport,BS,Andros Town,medium_airport
+TZN,Congo Town Airport,BS,Andros,medium_airport
+MHH,Leonard M. Thompson International Airport,BS,Marsh Harbour,medium_airport
+SAQ,San Andros Airport,BS,Andros Island,medium_airport
+AXP,Spring Point Airport,BS,Spring Point,medium_airport
+TCB,Treasure Cay Airport,BS,Treasure Cay,medium_airport
+CCZ,Chub Cay Airport,BS,Chub Cay,medium_airport
+BIM,South Bimini Airport,BS,South Bimini,medium_airport
+ATC,Arthur's Town Airport,BS,Arthur's Town,medium_airport
+TBI,New Bight Airport,BS,Cat Island,medium_airport
+CRI,Colonel Hill Airport,BS,Colonel Hill,medium_airport
+GGT,Exuma International Airport,BS,Moss Town,medium_airport
+ELH,North Eleuthera Airport,BS,North Eleuthera,medium_airport
+GHB,Governor's Harbour Airport,BS,Governor's Harbour,medium_airport
+RSD,Rock Sound International Airport,BS,Rock Sound,medium_airport
+FPO,Grand Bahama International Airport,BS,Freeport,large_airport
+IGA,Inagua Airport,BS,Matthew Town,medium_airport
+LGI,Deadman's Cay Airport,BS,Deadman's Cay,medium_airport
+SML,Stella Maris Airport,BS,Stella Maris,medium_airport
+MYG,Mayaguana Airport,BS,Abraham Bay Settlement,medium_airport
+NAS,Lynden Pindling International Airport,BS,Nassau,large_airport
+ZSA,San Salvador International Airport,BS,San Salvador,large_airport
+BZE,Philip S. W. Goldson International Airport,BZ,Belize City,large_airport
+PLJ,Placencia Airport,BZ,Placencia,medium_airport
+RAR,Rarotonga International Airport,CK,Avarua,large_airport
+NAN,Nadi International Airport,FJ,Nadi,large_airport
+SUV,Nausori International Airport,FJ,Nausori,large_airport
+LBS,Labasa Airport,FJ,Labasa,medium_airport
+TBU,Fua'amotu International Airport,TO,Nuku'alofa,large_airport
+HPA,Lifuka Island Airport,TO,Lifuka,medium_airport
+VAV,Vava'u International Airport,TO,Vava'u Island,large_airport
+PHG,Port Harcourt City Airport / Port Harcourt Air Force Base,NG,Port Harcourt,medium_airport
+FUN,Funafuti International Airport,TV,Funafuti,medium_airport
+TRW,Bonriki International Airport,KI,South Tarawa,large_airport
+IUE,Niue International Airport,NU,Alofi,medium_airport
+NLH,Ninglang Luguhu Airport,CN,Ninglang,medium_airport
+WLS,Hihifo Airport,WF,Wallis Island,large_airport
+PHH,Pokhara International Airport,NP,Pokhara,large_airport
+APW,Faleolo International Airport,WS,Apia,large_airport
+PPG,Pago Pago International Airport,AS,Pago Pago,large_airport
+PPT,Fa'a'ā International Airport,PF,Papeete,large_airport
+RUR,Rurutu Airport,PF,,medium_airport
+TUB,Tubuai Airport,PF,,medium_airport
+AAA,Anaa Airport,PF,Anaa,medium_airport
+FGU,Fangatau Airport,PF,Fangatau,medium_airport
+TIH,Tikehau Airport,PF,Tuherahera,medium_airport
+FAV,Fakarava Airport,PF,,medium_airport
+XMH,Manihi Airport,PF,,medium_airport
+GMR,Totegegie Airport,PF,,medium_airport
+KKR,Kaukura Airport,PF,Raitahiti,medium_airport
+MKP,Makemo Airport,PF,Makemo,medium_airport
+TKP,Takapoto Airport,PF,,medium_airport
+AXR,Arutua Airport,PF,,medium_airport
+MVT,Mataiva Airport,PF,,medium_airport
+AHE,Ahe Airport,PF,Ahe Atoll,medium_airport
+TKX,Takaroa Airport,PF,,medium_airport
+NHV,Nuku Hiva Airport,PF,Nuku Hiva,medium_airport
+AUQ,Hiva Oa-Atuona Airport,PF,Hiva Oa Island,medium_airport
+BOB,Bora Bora Airport,PF,Motu Mute,medium_airport
+RGI,Rangiroa Airport,PF,,medium_airport
+HUH,Huahine-Fare Airport,PF,Fare,medium_airport
+MOZ,Moorea Temae Airport,PF,Moorea-Maiao,medium_airport
+HOI,Hao Airport,PF,Otepa,medium_airport
+MAU,Maupiti Airport,PF,,medium_airport
+RFP,Raiatea Airport,PF,Uturoa,medium_airport
+SON,Santo Pekoa International Airport,VU,Luganville,medium_airport
+VLI,Bauerfield International Airport,VU,Port Vila,large_airport
+TAH,Whitegrass Airport,VU,Tanna Island,medium_airport
+TGJ,Tiga Airport,NC,Tiga,medium_airport
+KNQ,Koné Airport,NC,Koné,medium_airport
+ILP,Île des Pins Airport,NC,Île des Pins,medium_airport
+LIF,Lifou Airport,NC,Lifou,medium_airport
+GEA,Nouméa Magenta Airport,NC,Nouméa,medium_airport
+MEE,Maré Airport,NC,Maré,medium_airport
+TOU,Touho Airport,NC,Touho,medium_airport
+UVE,Ouvéa Airport,NC,Ouvéa,medium_airport
+NOU,La Tontouta International Airport,NC,Nouméa (La Tontouta),large_airport
+AKL,Auckland International Airport,NZ,Auckland,large_airport
+TUO,Taupo Airport,NZ,Taupo,medium_airport
+CHC,Christchurch International Airport,NZ,Christchurch,large_airport
+CHT,Inia William Tuuta Memorial Airport,NZ,Te One,medium_airport
+DUD,Dunedin International Airport,NZ,Dunedin,medium_airport
+GIS,Gisborne Airport,NZ,Gisborne,medium_airport
+HKK,Hokitika Airfield,NZ,,medium_airport
+HLZ,Hamilton International Airport,NZ,Hamilton,medium_airport
+KKE,Kerikeri Airport,NZ,Kerikeri,medium_airport
+KAT,Kaitaia Airport,NZ,Awanui,medium_airport
+NPL,New Plymouth Airport,NZ,New Plymouth,medium_airport
+NPE,Hawke's Bay Airport,NZ,Napier,medium_airport
+NSN,Nelson Airport,NZ,Nelson,medium_airport
+IVC,Invercargill Airport,NZ,Invercargill,medium_airport
+PMR,Palmerston North Airport,NZ,Palmerston North,medium_airport
+ZQN,Queenstown Airport,NZ,Queenstown,large_airport
+ROT,Rotorua Regional Airport,NZ,Rotorua,medium_airport
+TRG,Tauranga Airport,NZ,Tauranga,medium_airport
+TIU,Timaru Airport,NZ,,medium_airport
+BHE,Woodbourne Airport,NZ,Blenheim,medium_airport
+WKA,Wanaka Airport,NZ,Wanaka,medium_airport
+WHK,Whakatāne Airport,NZ,Whakatāne,medium_airport
+WLG,Wellington International Airport,NZ,Wellington,large_airport
+WRE,Whangarei Airport,NZ,Whangarei,medium_airport
+WSZ,Westport Airport,NZ,Westport,medium_airport
+WAG,Wanganui Airport,NZ,Wanganui,medium_airport
+HEA,Herat - Khwaja Abdullah Ansari International Airport,AF,Guzara,large_airport
+KBL,Kabul International Airport,AF,Kabul,large_airport
+KDH,Ahmad Shah Baba International Airport,AF,Kandahar,large_airport
+KHT,Khost International Airport,AF,Khost,medium_airport
+MZR,Mazar-i-Sharif International Airport,AF,Mazar-i-Sharif,large_airport
+BAH,Bahrain International Airport,BH,Manama,large_airport
+OCS,Corisco International Airport,GQ,Corisco Island,large_airport
+AHB,Abha International Airport,SA,Abha,large_airport
+HOF,Al-Ahsa International Airport,SA,Hofuf,large_airport
+ULH,Al-Ula International Airport,SA,Al-Ula,large_airport
+ABT,King Saud Bin Abdulaziz (Al Baha) Airport,SA,Al-Baha,medium_airport
+BHH,Bisha Airport,SA,Bisha,medium_airport
+DMM,King Fahd International Airport,SA,Ad Dammam,large_airport
+DWD,Dawadmi Domestic Airport,SA,Dawadmi,medium_airport
+GIZ,Jizan Regional Airport / King Abdullah bin Abdulaziz Airport,SA,Jizan,medium_airport
+ELQ,Prince Naif bin Abdulaziz International Airport,SA,Qassim,large_airport
+URY,Gurayat Domestic Airport,SA,Gurayat,medium_airport
+HAS,Hail International Airport,SA,Hail,large_airport
+JED,King Abdulaziz International Airport,SA,Jeddah,large_airport
+KMC,King Khaled Military City Airport,SA,King Khaled Military City,medium_airport
+MED,Prince Mohammad Bin Abdulaziz Airport,SA,Medina,large_airport
+EAM,Najran Domestic Airport,SA,Najran,medium_airport
+NUM,Neom Bay Airport,SA,Sharma,large_airport
+AQI,Qaisumah–Hafar Al-Batin International Airport,SA,Qaisumah,large_airport
+RAH,Rafha Domestic Airport,SA,Rafha,medium_airport
+RUH,King Khalid International Airport,SA,Riyadh,large_airport
+RAE,Arar Domestic Airport,SA,Arar,medium_airport
+SHW,Sharurah Domestic Airport,SA,Sharurah,medium_airport
+AJF,Al-Jawf International Airport,SA,Al-Jawf,large_airport
+TUU,Prince Sultan bin Abdulaziz International Airport,SA,Tabuk,large_airport
+TIF,Taif International Airport,SA,Taif,large_airport
+TUI,Turaif Domestic Airport,SA,Turaif,medium_airport
+WAE,Wadi Al Dawasir Domestic Airport,SA,Wadi Al Dawasir,medium_airport
+EJH,Al Wajh Domestic Airport,SA,Al Wajh,medium_airport
+YNB,Prince Abdulmohsen Bin Abdulaziz International Airport,SA,Yanbu,large_airport
+ABD,Abadan Ayatollah Jami International Airport,IR,Abadan,large_airport
+DEF,Dezful Airport,IR,Dezful,medium_airport
+GCH,Gachsaran Airport,IR,Gachsaran,medium_airport
+MRX,Mahshahr Airport,IR,Mahshahr,medium_airport
+AWZ,Qasem Soleimani International Airport,IR,Ahvaz,large_airport
+AEU,Abu Musa Island Airport,IR,Abu Musa,medium_airport
+BUZ,Bushehr Airport,IR,Bushehr,medium_airport
+KIH,Kish International Airport,IR,Kish Island,large_airport
+BDH,Bandar Lengeh International Airport,IR,Bandar Lengeh,medium_airport
+PGU,Persian Gulf International Airport,IR,Khiyaroo,medium_airport
+KHK,Khark Airport,IR,Khark,medium_airport
+KSH,Shahid Ashrafi Esfahani Airport,IR,Kermanshah,medium_airport
+KHD,Khoram Abad Airport,IR,,medium_airport
+SDG,Sanandaj Airport,IR,,medium_airport
+KKS,Kashan Airport,IR,Kashan,medium_airport
+IFN,Isfahan Shahid Beheshti International Airport,IR,Isfahan,large_airport
+RAS,Sardar-e-Jangal Airport,IR,Rasht,medium_airport
+HDM,Hamadan Airport,IR,Hamadan,medium_airport
+IKA,Imam Khomeini International Airport,IR,Tehran,large_airport
+THR,Mehrabad International Airport,IR,Tehran,large_airport
+PYK,Payam International Airport,IR,Karaj,large_airport
+BND,Bandar Abbas International Airport,IR,Bandar Abbas,large_airport
+KER,Ayatollah Hashemi Rafsanjani International Airport,IR,Kerman,large_airport
+BXR,Bam Airport,IR,Bam,medium_airport
+GSM,Qeshm International Airport,IR,Qeshm(Dayrestan),large_airport
+RJN,Rafsanjan Airport,IR,Rafsanjan,medium_airport
+XBJ,Birjand International Airport,IR,Birjand,large_airport
+MHD,Mashhad International Airport,IR,Mashhad,large_airport
+BJB,Bojnord Airport,IR,Bojnord,medium_airport
+AFZ,Sabzevar National Airport,IR,Sabzevar,medium_airport
+NSH,Nowshahr Airport,IR,Nowshahr,medium_airport
+RZR,Ramsar Airport,IR,Ramsar,medium_airport
+SRY,Sari Dasht-e Naz International Airport,IR,Sari,medium_airport
+LRR,Lar Airport,IR,Lar,medium_airport
+LFM,Lamerd Airport,IR,Lamerd,medium_airport
+SYZ,Shiraz Shahid Dastghaib International Airport,IR,Shiraz,large_airport
+ADU,Ardabil Airport,IR,Ardabil,medium_airport
+OMH,Urmia Airport,IR,Urmia,medium_airport
+TBZ,Tabriz International Airport,IR,Tabriz,large_airport
+AZD,Shahid Sadooghi Airport,IR,Yazd,medium_airport
+ZBR,Chabahar Konarak International Airport,IR,Konarak,medium_airport
+ZAH,Zahedan International Airport,IR,Zahedan,large_airport
+AMM,Queen Alia International Airport,JO,Amman,large_airport
+ADJ,Marka International (Amman Civil) Airport,JO,Amman,large_airport
+AQJ,King Hussein International Airport,JO,Aqaba,large_airport
+KWI,Kuwait International Airport,KW,Kuwait City,large_airport
+BEY,Beirut Rafic Hariri International Airport,LB,Beirut,large_airport
+DQM,Duqm International Airport,OM,Duqm,large_airport
+AUH,Zayed International Airport,AE,Abu Dhabi,large_airport
+AAN,Al Ain International Airport,AE,Al Ain,large_airport
+DXB,Dubai International Airport,AE,Dubai,large_airport
+DWC,Al Maktoum International Airport,AE,Dubai(Jebel Ali),large_airport
+FJR,Fujairah International Airport,AE,Fujairah,large_airport
+RKT,Ras Al Khaimah International Airport,AE,Ras Al Khaimah,large_airport
+SHJ,Sharjah International Airport,AE,Sharjah,large_airport
+KHS,Khasab Airport,OM,Khasab,medium_airport
+MCT,Muscat International Airport,OM,Muscat/Seeb,large_airport
+SLL,Salalah International Airport,OM,Salalah,large_airport
+OHS,Suhar International Airport,OM,Suhar,large_airport
+BHV,Bahawalpur Airport,PK,Bahawalpur,medium_airport
+CJL,Chitral Airport,PK,Chitral,medium_airport
+DEA,Dera Ghazi Khan Airport,PK,Dera Ghazi Khan,medium_airport
+LYP,Faisalabad International Airport,PK,Faisalabad,large_airport
+GWD,New Gwadar International Airport,PK,Gurandani,large_airport
+GIL,Gilgit Airport,PK,Gilgit,medium_airport
+ISB,Islamabad International Airport,PK,Attock,large_airport
+KHI,Jinnah International Airport,PK,Karachi,large_airport
+LHE,Allama Iqbal International Airport,PK,Lahore,large_airport
+MUX,Multan International Airport,PK,Multan,large_airport
+WNS,Shaheed Benazirabad Airport,PK,Nawabashah,medium_airport
+PEW,Bacha Khan International Airport,PK,Peshawar,large_airport
+UET,Quetta International Airport,PK,Quetta,large_airport
+RYK,Shaikh Zaid Airport,PK,Rahim Yar Khan,medium_airport
+KDU,Skardu International Airport,PK,Skardu,large_airport
+SKZ,Begum Nusrat Bhutto International Airport Sukkur,PK,Sukkur,medium_airport
+SKT,Sialkot International Airport,PK,Sialkot,large_airport
+TUK,Turbat International Airport,PK,Turbat,large_airport
+PZH,Zhob Airport,PK,Fort Sandeman,medium_airport
+BGW,Baghdad International Airport / New Al Muthana Air Base,IQ,Baghdad,large_airport
+EBL,Erbil International Airport,IQ,Arbil,large_airport
+KIK,Kirkuk International Airport,IQ,Kirkuk,large_airport
+BSR,Basra International Airport,IQ,Basra,large_airport
+NJF,Al Najaf International Airport,IQ,Najaf,large_airport
+ISU,Jalal Talabani International Airport,IQ,Sulaymaniyah,medium_airport
+ALP,Aleppo International Airport,SY,Aleppo,large_airport
+DAM,Damascus International Airport,SY,Damascus,large_airport
+KAC,Qamishli International Airport,SY,Qamishli,medium_airport
+LTK,Latakia International Airport,SY,Latakia,medium_airport
+DIA,Doha International Airport,QA,Doha,large_airport
+DOH,Hamad International Airport,QA,Doha,large_airport
+ADE,Aden International Airport,YE,Aden,large_airport
+AAY,Al Ghaydah International Airport,YE,Al Ghaydah,medium_airport
+RIY,Riyan International Airport,YE,Mukalla(Riyan),large_airport
+SAH,Sanaa International Airport,YE,Sanaa,large_airport
+SCT,Socotra Airport,YE,Mori,medium_airport
+GXF,Seiyun Hadhramaut International Airport,YE,Seiyun,large_airport
+TAI,Taiz International Airport,YE,Taiz,medium_airport
+BTI,Barter Island Long Range Radar Station Airport,US,Barter Island,medium_airport
+BET,Bethel Airport,US,Bethel,medium_airport
+BRW,Wiley Post Will Rogers Memorial Airport,US,Utqiaġvik,medium_airport
+CDB,Cold Bay Airport,US,Cold Bay,medium_airport
+CDV,Merle K (Mudhole) Smith Airport,US,Cordova,medium_airport
+DRG,Deering Airport,US,Deering,medium_airport
+ADK,Adak Airport,US,Adak,medium_airport
+DLG,Dillingham Airport,US,Dillingham,medium_airport
+ADQ,Kodiak Airport,US,Kodiak,medium_airport
+DUT,Tom Madsen (Dutch Harbor) Airport,US,Unalaska,medium_airport
+EMK,Emmonak Airport,US,Emmonak,medium_airport
+ENA,Kenai Municipal Airport,US,Kenai,medium_airport
+FAI,Fairbanks International Airport,US,Fairbanks,medium_airport
+ABL,Ambler Airport,US,Ambler,medium_airport
+GAL,Edward G. Pitka Sr Airport,US,Galena,medium_airport
+GKN,Gulkana Airport,US,Gulkana,medium_airport
+GAM,Gambell Airport,US,Gambell,medium_airport
+GST,Gustavus Airport,US,Gustavus,medium_airport
+HCR,Holy Cross Airport,US,Holy Cross,medium_airport
+HSL,Huslia Airport,US,Huslia,medium_airport
+HNS,Haines Airport,US,Haines,medium_airport
+HOM,Homer Airport,US,Homer,medium_airport
+EGX,Egegik Airport,US,Egegik,medium_airport
+IAN,Bob Baker Memorial Airport,US,Kiana,medium_airport
+ILI,Iliamna Airport,US,Iliamna,medium_airport
+UTO,Indian Mountain LRRS Airport,US,Utopia Creek,medium_airport
+JNU,Juneau International Airport,US,Juneau,medium_airport
+AKN,King Salmon Airport,US,King Salmon,medium_airport
+AKP,Anaktuvuk Pass Airport,US,Anaktuvuk Pass,medium_airport
+KTN,Ketchikan International Airport,US,Ketchikan,medium_airport
+KLW,Klawock Airport,US,Klawock,medium_airport
+LUR,Cape Lisburne LRRS Airport,US,Cape Lisburne,medium_airport
+MCG,McGrath Airport,US,McGrath,medium_airport
+MRI,Merrill Field,US,Anchorage,medium_airport
+MYU,Mekoryuk Airport,US,Mekoryuk,medium_airport
+ANC,Ted Stevens Anchorage International Airport,US,Anchorage,large_airport
+ANI,Aniak Airport,US,Aniak,medium_airport
+ANV,Anvik Airport,US,Anvik,medium_airport
+OME,Nome Airport,US,Nome,medium_airport
+ORT,Northway Airport,US,Northway,medium_airport
+OTZ,Ralph Wien Memorial Airport,US,Kotzebue,medium_airport
+STG,St George Airport,US,St George,medium_airport
+PSG,Petersburg James A Johnson Airport,US,Petersburg,medium_airport
+PTH,Port Heiden Airport,US,Port Heiden,medium_airport
+PTU,Platinum Airport,US,Platinum,medium_airport
+NUI,Nuiqsut Airport,US,Nuiqsut,medium_airport
+ARC,Arctic Village Airport,US,Arctic Village,medium_airport
+RBY,Ruby Airport,US,Ruby,medium_airport
+SVA,Savoonga Airport,US,Savoonga,medium_airport
+SCC,Deadhorse Airport,US,Deadhorse,medium_airport
+SDP,Sand Point Airport,US,Sand Point,medium_airport
+SIT,Sitka Rocky Gutierrez Airport,US,Sitka,medium_airport
+SNP,St Paul Island Airport,US,St Paul Island,medium_airport
+ATK,Atqasuk Edward Burnell Sr Memorial Airport,US,Atqasuk,medium_airport
+UNK,Unalakleet Airport,US,Unalakleet,medium_airport
+VDZ,Valdez Pioneer Field,US,Valdez,medium_airport
+WRG,Wrangell Airport,US,Wrangell,medium_airport
+AIN,Wainwright Airport,US,Wainwright,medium_airport
+YAK,Yakutat Airport,US,Yakutat,medium_airport
+FYU,Fort Yukon Airport,US,Fort Yukon,medium_airport
+ROP,Rota International Airport,MP,Rota Island,large_airport
+SPN,Saipan International Airport,MP,"I Fadang, Saipan",medium_airport
+GUM,Antonio B. Won Pat International Airport,GU,Hagåtña,large_airport
+TIQ,Francisco Manglona Borja / Tinian International Airport,MP,Tinian Island,medium_airport
+HNM,Hana Airport,US,Hana,medium_airport
+JHM,Kapalua Airport,US,Lahaina,medium_airport
+KOA,Ellison Onizuka Kona International Airport at Keāhole,US,Kailua-Kona,large_airport
+LIH,Lihue Airport,US,"Lihue, Kauai",large_airport
+MKK,Molokai Airport,US,Kaunakakai,medium_airport
+MUE,Waimea Kohala Airport,US,Waimea (Kamuela),medium_airport
+HNL,Daniel K. Inouye International Airport,US,"Honolulu, Oahu",large_airport
+LNY,Lanai Airport,US,Lanai City,medium_airport
+OGG,Kahului International Airport,US,Kahului,large_airport
+ITO,Hilo International Airport,US,Hilo,medium_airport
+MAJ,Marshall Islands International Airport,MH,Majuro Atoll,large_airport
+KWA,Bucholz Army Air Field,MH,Kwajalein,medium_airport
+CXI,Cassidy International Airport,KI,Kiritimati,large_airport
+PIZ,Point Lay LRRS Airport,US,Point Lay,medium_airport
+TKK,Chuuk International Airport,FM,Weno Island,large_airport
+PNI,Pohnpei International Airport,FM,Pohnpei Island,medium_airport
+ROR,Roman Tmetuchl International Airport,PW,Babelthuap Island,large_airport
+KSA,Kosrae International Airport,FM,Okat,large_airport
+YAP,Yap International Airport,FM,Yap Island,large_airport
+AWK,Wake Island Airfield,UM,Wake Island,medium_airport
+KNH,Kinmen Airport,TW,Shang-I,medium_airport
+LZN,Matsu Nangan Airport,TW,Matsu (Nangan),medium_airport
+TTT,Taitung Airport,TW,Taitung City,medium_airport
+KHH,Kaohsiung International Airport,TW,Kaohsiung (Xiaogang),large_airport
+CYI,Chiayi Airport,TW,Shuishang,medium_airport
+KYD,Lanyu Airport,TW,Orchid Island,medium_airport
+RMQ,Taichung International Airport / Ching Chuang Kang Air Base,TW,Taichung (Qingshui),large_airport
+MFK,Matsu Beigan Airport,TW,Matsu (Beigan),medium_airport
+TNN,Tainan International Airport / Tainan Air Base,TW,Tainan (Rende),large_airport
+MZG,Penghu Magong Airport,TW,Huxi,large_airport
+TSA,Taipei Songshan International Airport,TW,Taipei (Songshan),large_airport
+TPE,Taiwan Taoyuan International Airport,TW,Taoyuan,large_airport
+HUN,Hualien Chiashan Airport,TW,Hualien City,large_airport
+NRT,Narita International Airport,JP,Narita,large_airport
+MMJ,Shinshu-Matsumoto Airport,JP,Matsumoto,medium_airport
+IBR,Ibaraki Airport,JP,Omitama,large_airport
+KIX,Kansai International Airport,JP,Osaka,large_airport
+SHM,Nanki Shirahama Airport,JP,Shirahama,medium_airport
+UKB,Kobe Airport,JP,Kobe,large_airport
+TJH,Konotori Tajima Airport,JP,Toyooka,medium_airport
+OBO,Tokachi-Obihiro Airport,JP,Obihiro,medium_airport
+CTS,New Chitose Airport,JP,Sapporo,large_airport
+HKD,Hakodate Airport,JP,Hakodate,large_airport
+KUH,Kushiro Airport,JP,Kushiro,medium_airport
+MMB,Memanbetsu Airport,JP,Ōzora,medium_airport
+SHB,Nakashibetsu Airport,JP,Nakashibetsu,medium_airport
+OKD,Sapporo Okadama Airport,JP,Sapporo,medium_airport
+WKJ,Wakkanai Airport,JP,Wakkanai,medium_airport
+AXJ,Amakusa Airport,JP,Amakusa,medium_airport
+IKI,Iki Airport,JP,Iki,medium_airport
+UBJ,Yamaguchi Ube Airport,JP,Ube,medium_airport
+TSJ,Tsushima Airport,JP,Tsushima,medium_airport
+MBE,Monbetsu Airport,JP,Monbetsu,medium_airport
+AKJ,Asahikawa Airport,JP,Higashikagura,medium_airport
+OIR,Okushiri Airport,JP,Okushiri Island,medium_airport
+RIS,Rishiri Airport,JP,Rishiri,medium_airport
+KUM,Yakushima Airport,JP,Yakushima,medium_airport
+FUJ,Fukue Airport,JP,Goto,medium_airport
+FUK,Fukuoka Airport,JP,Fukuoka,large_airport
+TNE,New Tanegashima Airport,JP,Tanegashima,medium_airport
+KOJ,Kagoshima Airport,JP,Kagoshima,large_airport
+KMI,Miyazaki Airport,JP,Miyazaki,large_airport
+OIT,Oita Airport,JP,Oita,medium_airport
+KKJ,Kitakyushu Airport,JP,Kitakyushu,large_airport
+HSG,Kyushu Saga International Airport,JP,Saga,large_airport
+KMJ,Kumamoto Airport,JP,Kumamoto,large_airport
+NGS,Nagasaki Airport,JP,Nagasaki,large_airport
+NGO,Chubu Centrair International Airport,JP,Tokoname,large_airport
+ASJ,Amami Airport,JP,Amami,medium_airport
+OKE,Okinoerabu Airport,JP,Wadomari,medium_airport
+KKX,Kikai Airport,JP,Kikai,medium_airport
+TKN,Tokunoshima Airport,JP,Amagi,medium_airport
+NKM,Nagoya Airport / JASDF Komaki Air Base,JP,Nagoya,medium_airport
+KMQ,Komatsu Airport / JASDF Komatsu Air Base,JP,Kanazawa,large_airport
+OKI,Oki Global Geopark Airport,JP,Okinoshima,medium_airport
+FSZ,Mount Fuji Shizuoka Airport,JP,Makinohara / Shimada,large_airport
+TOY,Toyama Kitokito Airport,JP,Toyama,medium_airport
+NTQ,Noto Satoyama Airport,JP,Wajima,medium_airport
+HIJ,Hiroshima Airport,JP,Hiroshima,large_airport
+OKJ,Okayama Momotaro Airport,JP,Okayama,large_airport
+IZO,Izumo Enmusubi Airport,JP,Izumo,medium_airport
+YGJ,Yonago Kitaro Airport / JASDF Miho Air Base,JP,Yonago,medium_airport
+IWK,Iwakuni Kintaikyo Airport,JP,Iwakuni,medium_airport
+KCZ,Kochi Ryoma Airport,JP,Nankoku,large_airport
+MYJ,Matsuyama Airport,JP,Matsuyama,large_airport
+ITM,Osaka Itami International Airport,JP,Osaka,large_airport
+TTJ,Tottori Sand Dunes Conan Airport,JP,Tottori,medium_airport
+TKS,Tokushima Awaodori Airport / JMSDF Tokushima Air Base,JP,Tokushima,large_airport
+TAK,Takamatsu Airport,JP,Takamatsu,large_airport
+IWJ,Iwami Airport,JP,Masuda,medium_airport
+AOJ,Aomori Airport,JP,Aomori,large_airport
+GAJ,Yamagata Airport,JP,Higashine,medium_airport
+SDS,Sado Airport,JP,Sado,medium_airport
+FKS,Fukushima Airport,JP,Sukagawa,medium_airport
+HNA,Iwate Hanamaki Airport,JP,Hanamaki,medium_airport
+AXT,Akita Airport,JP,Akita,medium_airport
+MSJ,Misawa Airport / Misawa Air Base,JP,Misawa,medium_airport
+KIJ,Niigata Airport,JP,Niigata,large_airport
+ONJ,Odate Noshiro Airport,JP,Kitaakita,medium_airport
+SDJ,Sendai Airport,JP,Natori,large_airport
+SYO,Shonai Airport,JP,Shonai,medium_airport
+HAC,Hachijojima Airport,JP,Hachijojima,medium_airport
+OIM,Oshima Airport,JP,Izu Oshima,medium_airport
+MYE,Miyakejima Airport,JP,Miyakejima,medium_airport
+HND,Tokyo Haneda International Airport,JP,Tokyo,large_airport
+MWX,Muan International Airport,KR,Muan (Piseo-ri),large_airport
+KWJ,Gwangju Airport,KR,Gwangju,medium_airport
+KUV,Gunsan Airport / Gunsan Air Base,KR,Gunsan,medium_airport
+RSU,Yeosu Airport,KR,Yeosu,medium_airport
+WJU,Wonju Airport / Hoengseong Air Base (K-38/K-46),KR,Wonju,medium_airport
+YNY,Yangyang International Airport,KR,Gonghang-ro,large_airport
+CJU,Jeju International Airport,KR,Jeju City,large_airport
+PUS,Gimhae International Airport,KR,Busan,large_airport
+HIN,Sacheon Airport / Sacheon Air Base,KR,Sacheon,medium_airport
+USN,Ulsan Airport,KR,Ulsan,medium_airport
+ICN,Incheon International Airport,KR,Seoul,large_airport
+GMP,Seoul Gimpo International Airport,KR,Seoul,large_airport
+KPO,Pohang Airport (G-815/K-3),KR,Pohang,medium_airport
+TAE,Daegu International Airport,KR,Daegu,large_airport
+CJJ,Cheongju International Airport/Cheongju Air Base (K-59/G-513),KR,Cheongju,large_airport
+OKA,Naha International Airport,JP,Naha,large_airport
+ISG,New Ishigaki Airport,JP,Ishigaki,medium_airport
+UEO,Kumejima Airport,JP,Kumejima,medium_airport
+MMD,Minamidaito Airport,JP,Minamidaito,medium_airport
+MMY,Miyako Airport,JP,Miyakojima,medium_airport
+KTD,Kitadaito Airport,JP,Kitadaitōjima,medium_airport
+SHI,Shimojishima Airport,JP,Miyakojima,medium_airport
+TRA,Tarama Airport,JP,Tarama,medium_airport
+RNJ,Yoron Airport,JP,Yoron,medium_airport
+OGN,Yonaguni Airport,JP,Yonaguni,medium_airport
+SFS,Subic Bay International Airport / Naval Air Station Cubi Point,PH,Olongapo,large_airport
+CRK,Clark International Airport / Clark Air Base,PH,Mabalacat,large_airport
+LAO,Laoag International Airport,PH,Laoag City,large_airport
+DRP,Bicol International Airport,PH,Legazpi,large_airport
+MNL,Ninoy Aquino International Airport,PH,Manila (Pasay),large_airport
+CBO,Cotabato (Awang) Airport,PH,Datu Odin Sinsuat,medium_airport
+DVO,Francisco Bangoy International Airport,PH,Davao,large_airport
+BXU,Bancasi Airport,PH,Butuan,medium_airport
+DPL,Dipolog Airport,PH,Dipolog,medium_airport
+CGM,Camiguin Airport,PH,Mambajao,medium_airport
+JOL,Jolo Airport,PH,Jolo,medium_airport
+TWT,Sanga Sanga Airport,PH,Bongao,medium_airport
+OZC,Labo Airport,PH,Ozamiz,medium_airport
+PAG,Pagadian Airport,PH,Pagadian,medium_airport
+GES,General Santos International Airport,PH,General Santos,large_airport
+SUG,Surigao Airport,PH,Surigao City,medium_airport
+CGY,Laguindingan International Airport,PH,Laguindingan,large_airport
+ZAM,Zamboanga International Airport,PH,Zamboanga,large_airport
+TAG,Bohol-Panglao International Airport,PH,Panglao,large_airport
+SJI,San Jose Airport,PH,San Jose,medium_airport
+WNP,Naga Airport,PH,Naga,medium_airport
+BSO,Basco Airport,PH,Basco,medium_airport
+TUG,Tuguegarao Airport,PH,Tuguegarao City,medium_airport
+VRC,Virac Airport,PH,Virac,medium_airport
+CYZ,Cauayan Airport,PH,Cauayan City,medium_airport
+TAC,Daniel Z. Romualdez Airport,PH,Tacloban City,medium_airport
+BCD,Bacolod-Silay International Airport,PH,Bacolod City,large_airport
+CYP,Calbayog Airport,PH,Calbayog City,medium_airport
+DGT,Sibulan Airport,PH,Dumaguete City,medium_airport
+MPH,Godofredo P. Ramos Airport,PH,Caticlan,medium_airport
+CRM,Catarman National Airport,PH,Catarman,medium_airport
+ILO,Iloilo International Airport,PH,Cabatuan,large_airport
+MBT,Moises R. Espinosa Airport,PH,Masbate,medium_airport
+KLO,Kalibo International Airport,PH,Kalibo,large_airport
+CEB,Mactan Cebu International Airport,PH,Cebu City/Lapu-Lapu City,large_airport
+PPS,Puerto Princesa International Airport / PAF Antonio Bautista Air Base,PH,Puerto Princesa,large_airport
+RXS,Roxas Airport,PH,Roxas City,medium_airport
+TBH,Tugdan Airport,PH,Tablas Island,medium_airport
+USU,Francisco B. Reyes (Busuanga) Airport,PH,Coron,medium_airport
+RSI,Red Sea International Airport,SA,Hanak,large_airport
+PRA,General Urquiza Airport,AR,Parana,medium_airport
+ROS,Rosario Islas Malvinas International Airport,AR,Rosario,large_airport
+SFN,Sauce Viejo Airport,AR,Santa Fe,medium_airport
+AEP,Aeroparque Jorge Newbery,AR,Buenos Aires,large_airport
+COR,Ingeniero Aeronáutico Ambrosio L.V. Taravella International Airport,AR,Cordoba,large_airport
+EZE,Ezeiza International Airport - Ministro Pistarini,AR,Buenos Aires (Ezeiza),large_airport
+MDZ,Governor Francisco Gabrielli International Airport,AR,Mendoza,large_airport
+AFA,Suboficial Ay Santiago Germano Airport,AR,San Rafael,medium_airport
+CTC,Coronel Felipe Varela International Airport,AR,Catamarca,medium_airport
+SDE,Vicecomodoro Angel D. La Paz Aragonés Airport,AR,Santiago del Estero,medium_airport
+IRJ,Capitan V A Almonacid Airport,AR,La Rioja,medium_airport
+RHD,Termas de Río Hondo international Airport,AR,Termas de Río Hondo,medium_airport
+TUC,Teniente Benjamín Matienzo International Airport,AR,San Miguel de Tucumán,large_airport
+UAQ,Domingo Faustino Sarmiento Airport,AR,San Juan,medium_airport
+LUQ,Brigadier Mayor D Cesar Raul Ojeda Airport,AR,San Luis,medium_airport
+CNQ,Corrientes Airport,AR,Corrientes,medium_airport
+RES,Resistencia International Airport,AR,Resistencia,large_airport
+FMA,Formosa National Airport,AR,Formosa,medium_airport
+IGR,Cataratas Del Iguazú International Airport,AR,Puerto Iguazu,medium_airport
+PSS,Libertador Gral D Jose De San Martin Airport,AR,Posadas,medium_airport
+SLA,Martín Miguel de Güemes International Airport,AR,Salta,large_airport
+JUJ,Gobernador Horacio Guzman International Airport,AR,San Salvador de Jujuy,large_airport
+CRD,General Enrique Mosconi International Airport,AR,Comodoro Rivadavia,large_airport
+EQS,Esquel Brigadier Antonio Parodi International Airport,AR,Esquel,medium_airport
+LHS,Las Heras Airport,AR,Las Heras,medium_airport
+REL,Almirante Marco Andres Zar Airport,AR,Rawson,medium_airport
+VDM,Gobernador Castello Airport,AR,Viedma / Carmen de Patagones,medium_airport
+PMY,El Tehuelche Airport,AR,Puerto Madryn,medium_airport
+FTE,El Calafate - Commander Armando Tola International Airport,AR,El Calafate,medium_airport
+PUD,Puerto Deseado Airport,AR,Puerto Deseado,medium_airport
+RGA,Gobernador Ramón Trejo Noel International Airport,AR,Rio Grande,medium_airport
+RGL,Piloto Civil Norberto Fernández International Airport,AR,Rio Gallegos,large_airport
+USH,Ushuaia - Malvinas Argentinas International Airport,AR,Ushuaia,medium_airport
+PMQ,Perito Moreno Jalil Hamer Airport,AR,Perito Moreno,medium_airport
+BHI,Comandante Espora Airport,AR,Bahía Blanca,medium_airport
+SST,Santa Teresita Airport,AR,Santa Teresita,medium_airport
+MDQ,Ástor Piazzola International Airport,AR,Mar del Plata,medium_airport
+NQN,Presidente Perón International Airport,AR,Neuquén,large_airport
+NEC,Necochea Airport,AR,Necochea,medium_airport
+RSA,Santa Rosa Airport,AR,Santa Rosa,medium_airport
+BRC,Teniente Luis Candelaria International Airport,AR,San Carlos de Bariloche,large_airport
+CPC,Aviador C. Campos Airport,AR,Chapelco/San Martin de los Andes,medium_airport
+JTC,Bauru/Arealva–Moussa Nakhal Tobias State Airport,BR,Bauru,medium_airport
+AQA,Araraquara Airport,BR,Araraquara,medium_airport
+AJU,Aracaju - Santa Maria Airport,BR,Aracaju,medium_airport
+AFL,Piloto Osvaldo Marques Dias Airport,BR,Alta Floresta,medium_airport
+ARU,Araçatuba Airport,BR,Araçatuba,medium_airport
+AAX,Romeu Zema Airport,BR,Araxá,medium_airport
+BEL,Val de Cans/Júlio Cezar Ribeiro International Airport,BR,Belém,large_airport
+BSB,Presidente Juscelino Kubitschek International Airport,BR,Brasília,large_airport
+BVB,Atlas Brasil Cantanhede International Airport,BR,Boa Vista,large_airport
+CAC,Coronel Adalberto Mendes da Silva Airport,BR,Cascavel,medium_airport
+CNF,Tancredo Neves International Airport,BR,Belo Horizonte,large_airport
+CGR,Campo Grande Airport,BR,Campo Grande,medium_airport
+XAP,Serafin Enoss Bertaso Airport,BR,Chapecó,medium_airport
+CKS,Carajás Airport,BR,Parauapebas,medium_airport
+CAW,Bartolomeu Lisandro Airport,BR,Campos dos Goytacazes,medium_airport
+CMG,Corumbá International Airport,BR,Corumbá,medium_airport
+CWB,Curitiba-Afonso Pena International Airport,BR,Curitiba,large_airport
+CXJ,Hugo Cantergiani Regional Airport,BR,Caxias Do Sul,medium_airport
+CGB,Várzea Grande–Marechal Rondon International Airport,BR,Cuiabá,large_airport
+CZS,Cruzeiro do Sul Airport,BR,Cruzeiro Do Sul,medium_airport
+PPB,Presidente Prudente Airport,BR,Presidente Prudente,medium_airport
+MAO,Eduardo Gomes International Airport,BR,Manaus,large_airport
+IGU,Cataratas International Airport,BR,Foz do Iguaçu,large_airport
+FLN,Hercílio Luz International Airport,BR,Florianópolis,large_airport
+FEN,Fernando de Noronha Airport,BR,Fernando de Noronha,medium_airport
+FOR,Pinto Martins International Airport,BR,Fortaleza,large_airport
+GIG,Rio de Janeiro Galeão – Tom Jobim International Airport,BR,Rio De Janeiro,large_airport
+GYN,Santa Genoveva International Airport,BR,Goiânia,large_airport
+GRU,São Paulo/Guarulhos–Governor André Franco Montoro International Airport,BR,São Paulo,large_airport
+GVR,Coronel Altino Machado Airport,BR,Governador Valadares,medium_airport
+ATM,Altamira Interstate Airport,BR,Altamira,medium_airport
+ITB,Itaituba Airport,BR,Itaituba,medium_airport
+IOS,Bahia - Jorge Amado Airport,BR,Ilhéus,medium_airport
+IPN,Usiminas Airport,BR,Ipatinga,medium_airport
+IMP,Prefeito Renato Moreira Airport,BR,Imperatriz,medium_airport
+JJD,Comandante Ariston Pessoa Airport,BR,Cruz,medium_airport
+JDF,Francisco de Assis Airport,BR,Juiz de Fora,medium_airport
+JPA,Presidente Castro Pinto International Airport,BR,João Pessoa,large_airport
+JOI,Lauro Carneiro de Loyola Airport,BR,Joinville,medium_airport
+CPV,Presidente João Suassuna Airport,BR,Campina Grande,medium_airport
+VCP,Viracopos International Airport,BR,Campinas,large_airport
+LAJ,Lages Airport,BR,Lages,medium_airport
+LDB,Governor José Richa Airport,BR,Londrina,medium_airport
+MAB,João Correa da Rocha Airport,BR,Marabá,medium_airport
+MGF,Regional de Maringá - Sílvio Name Júnior Airport,BR,Maringá,medium_airport
+MOC,Mário Ribeiro Airport,BR,Montes Claros,medium_airport
+MII,Frank Miloye Milenkowichi–Marília State Airport,BR,Marília,medium_airport
+MCZ,Zumbi dos Palmares International Airport,BR,Maceió,large_airport
+MCP,Macapá - Alberto Alcolumbre International Airport,BR,Macapá,medium_airport
+MVF,Dix-Sept Rosado Airport,BR,Mossoró,medium_airport
+MNX,Manicoré Airport,BR,Manicoré,medium_airport
+NVT,Ministro Victor Konder International Airport,BR,Navegantes,large_airport
+GEL,Santo Ângelo Airport,BR,Santo Ângelo,medium_airport
+POA,Porto Alegre-Salgado Filho International Airport,BR,Porto Alegre,large_airport
+PHB,Parnaíba - Prefeito Doutor João Silva Filho International Airport,BR,Parnaíba,medium_airport
+PFB,Lauro Kurtz Airport,BR,Passo Fundo,medium_airport
+PGZ,Ponta Grossa Airport - Comandante Antonio Amilton Beraldo,BR,Ponta Grossa,medium_airport
+PMW,Brigadeiro Lysias Rodrigues Airport,BR,Palmas,medium_airport
+PET,João Simões Lopes Neto International Airport,BR,Pelotas,medium_airport
+PNZ,Senador Nilo Coelho Airport,BR,Petrolina,medium_airport
+PMG,Ponta Porã Airport,BR,Ponta Porã,medium_airport
+BPS,Porto Seguro International Airport,BR,Porto Seguro,large_airport
+PVH,Governador Jorge Teixeira de Oliveira International Airport,BR,Porto Velho,large_airport
+RBR,Rio Branco-Plácido de Castro International Airport,BR,Rio Branco,large_airport
+ROO,Maestro Marinho Franco Airport,BR,Rondonópolis,medium_airport
+REC,Recife/Guararapes - Gilberto Freyre International Airport,BR,Recife,large_airport
+SDU,Santos Dumont Airport,BR,Rio de Janeiro,large_airport
+RAO,Leite Lopes Airport,BR,Ribeirão Preto,medium_airport
+NAT,Rio Grande do Norte/São Gonçalo do Amarante–Governador Aluízio Alves International Airport,BR,Natal,large_airport
+SJK,Professor Urbano Ernesto Stumpf Airport,BR,São José Dos Campos,medium_airport
+SLZ,Marechal Cunha Machado International Airport,BR,São Luís,large_airport
+RIA,Santa Maria Airport,BR,Santa Maria,medium_airport
+STM,Santarém - Maestro Wilson Fonseca International Airport,BR,Santarém,medium_airport
+CGH,Congonhas–Deputado Freitas Nobre Airport,BR,São Paulo,large_airport
+SJP,Prof. Eribelto Manoel Reino State Airport,BR,São José do Rio Preto,medium_airport
+SSA,Deputado Luiz Eduardo Magalhães International Airport,BR,Salvador,large_airport
+TMT,Trombetas Airport,BR,Oriximiná,medium_airport
+THE,Senador Petrônio Portela Airport,BR,Teresina,medium_airport
+TFF,Tefé Airport,BR,Tefé,medium_airport
+TBT,Tabatinga International Airport,BR,Tabatinga,medium_airport
+TUR,Tucuruí Airport,BR,Tucuruí,medium_airport
+SJL,São Gabriel da Cachoeira Airport,BR,São Gabriel da Cachoeira,medium_airport
+PAV,Paulo Afonso Airport,BR,Paulo Afonso,medium_airport
+URG,Rubem Berta Airport,BR,Uruguaiana,medium_airport
+UDI,Ten. Cel. Aviador César Bombonato Airport,BR,Uberlândia,medium_airport
+UBA,Mário de Almeida Franco Airport,BR,Uberaba,medium_airport
+BVH,Brigadeiro Camarão Airport,BR,Vilhena,medium_airport
+VIX,Eurico de Aguiar Salles International Airport,BR,Vitória,large_airport
+IZA,Presidente Itamar Franco Airport,BR,Juiz de Fora,medium_airport
+ARI,Chacalluta International Airport,CL,Arica,medium_airport
+CPO,Desierto de Atacama Airport,CL,Copiapo,medium_airport
+BBA,Balmaceda Airport,CL,Balmaceda,medium_airport
+CJC,El Loa Airport,CL,Calama,medium_airport
+PUQ,President Carlos Ibáñez International Airport,CL,Punta Arenas,large_airport
+IQQ,Diego Aracena International Airport,CL,Iquique,large_airport
+SCL,Comodoro Arturo Merino Benítez International Airport,CL,Santiago,large_airport
+ESR,Ricardo García Posada Airport,CL,El Salvador,medium_airport
+ANF,Andrés Sabella Gálvez International Airport,CL,Antofagasta,large_airport
+CCP,Carriel Sur International Airport,CL,Concepcion,large_airport
+IPC,Mataveri International Airport,CL,Isla De Pascua,large_airport
+ZOS,Cañal Bajo Carlos Hott Siebert Airport,CL,Osorno,medium_airport
+PNT,Lieutenant Julio Gallardo Airport,CL,Puerto Natales,medium_airport
+ZCO,La Araucanía International Airport,CL,Temuco,large_airport
+LSC,La Florida Airport,CL,La Serena-Coquimbo,medium_airport
+PMC,El Tepual International Airport,CL,Puerto Montt,large_airport
+ZAL,Pichoy Airport,CL,Valdivia,medium_airport
+OCC,Francisco De Orellana Airport,EC,Coca,medium_airport
+CUE,Mariscal Lamar Airport,EC,Cuenca,medium_airport
+GPS,Seymour Galapagos Ecological Airport,EC,Isla Baltra,medium_airport
+GYE,José Joaquín de Olmedo International Airport,EC,Guayaquil,large_airport
+LTX,Cotopaxi International Airport,EC,Latacunga,medium_airport
+XMS,Coronel E Carvajal Airport,EC,Macas,medium_airport
+MEC,Eloy Alfaro International Airport,EC,Manta,medium_airport
+UIO,Mariscal Sucre International Airport,EC,Quito,large_airport
+ETR,Santa Rosa - Artillery Colonel Victor Larrea International Airport,EC,Santa Rosa,medium_airport
+SNC,General Ulpiano Paez International Airport,EC,Salinas/La Libertad,large_airport
+ESM,Carlos Concha Torres International Airport,EC,Tachina,large_airport
+TUA,Lieutenant Colonel Luis A. Mantilla International Airport,EC,Tulcán,medium_airport
+ASU,Silvio Pettirossi International Airport,PY,Asunción,large_airport
+ENO,Teniente Ramon A. Ayub Gonzalez International Airport,PY,Encarnación,large_airport
+AGT,Guaraní International Airport,PY,Ciudad del Este,large_airport
+AXM,El Eden Airport,CO,Armenia,medium_airport
+PUU,Tres De Mayo Airport,CO,Puerto Asís,medium_airport
+BGA,Palonegro Airport,CO,Bucaramanga,medium_airport
+BOG,El Dorado International Airport,CO,Bogota,large_airport
+BAQ,Ernesto Cortissoz International Airport,CO,Barranquilla,large_airport
+BSC,José Celestino Mutis Airport,CO,Bahía Solano,medium_airport
+BUN,Gerardo Tobar López Airport,CO,Buenaventura,medium_airport
+CUC,Camilo Daza International Airport,CO,Cúcuta,medium_airport
+CTG,Rafael Nuñez International Airport,CO,Cartagena,large_airport
+CLO,Alfonso Bonilla Aragon International Airport,CO,Cali,large_airport
+TCO,La Florida Airport,CO,Tumaco,medium_airport
+CZU,Las Brujas Airport,CO,Corozal,medium_airport
+EJA,Yariguíes Airport,CO,Barrancabermeja,medium_airport
+FLA,Gustavo Artunduaga Paredes Airport,CO,Florencia,medium_airport
+GPI,Guapi Airport,CO,Guapi,medium_airport
+IBE,Perales Airport,CO,Ibagué,medium_airport
+IPI,San Luis Airport,CO,Ipiales,medium_airport
+APO,Antonio Roldán Betancur Airport,CO,Carepa,medium_airport
+LET,Alfredo Vásquez Cobo International Airport,CO,Leticia,medium_airport
+EOH,Enrique Olaya Herrera Airport,CO,Medellín,medium_airport
+MTR,Los Garzones Airport,CO,Montería,medium_airport
+MVP,Fabio Alberto Leon Bentley Airport,CO,Mitú,medium_airport
+MZL,La Nubia Airport,CO,Manizales,medium_airport
+NVA,Benito Salas Airport,CO,Neiva,medium_airport
+PCR,German Olano Airport,CO,Puerto Carreño,medium_airport
+PDA,Obando Cesar Gaviria Trujillo Airport,CO,Puerto Inírida,medium_airport
+PEI,Matecaña International Airport,CO,Pereira,medium_airport
+PPN,Guillermo León Valencia Airport,CO,Popayán,medium_airport
+PSO,Antonio Nariño Airport,CO,Chachagüí,medium_airport
+PVA,El Embrujo Airport,CO,Providencia,medium_airport
+MDE,Jose Maria Córdova International Airport,CO,Medellín,large_airport
+RCH,Almirante Padilla Airport,CO,Riohacha,medium_airport
+SJE,Jorge E. Gonzalez Torres Airport,CO,San José Del Guaviare,medium_airport
+SMR,Simón Bolívar International Airport,CO,Santa Marta,medium_airport
+ADZ,Gustavo Rojas Pinilla International Airport,CO,San Andrés,large_airport
+SVI,Eduardo Falla Solano Airport,CO,San Vicente Del Caguán,medium_airport
+TME,Gustavo Vargas Airport,CO,Tame,medium_airport
+AUC,Santiago Perez Airport,CO,Arauca,medium_airport
+UIB,El Caraño Airport,CO,Quibdó,medium_airport
+VUP,Alfonso López Pumarejo Airport,CO,Valledupar,medium_airport
+VVC,Vanguardia Airport,CO,Villavicencio,medium_airport
+EYP,El Alcaravan - Yopal Airport,CO,Yopal,medium_airport
+SRE,Alcantarí International Airport,BO,Sucre,large_airport
+CBB,Jorge Wilsterman International Airport,BO,Cochabamba,large_airport
+CIJ,Capitán Aníbal Arab Airport,BO,Cobija,medium_airport
+SRZ,El Trompillo Airport,BO,Santa Cruz,medium_airport
+GYA,Guayaramerín Airport,BO,Guayaramerín,medium_airport
+LPB,El Alto International Airport,BO,La Paz / El Alto,large_airport
+ORU,Juan Mendoza International Airport,BO,Oruro,large_airport
+PSZ,Capitán Av. Salvador Ogaya G. airport,BO,Puerto Suárez,medium_airport
+RIB,Capitán Av. Selin Zeitun Lopez Airport,BO,Riberalta,medium_airport
+TJA,Capitan Oriel Lea Plaza Airport,BO,Tarija,medium_airport
+TDD,Teniente Av. Jorge Henrich Arauz Airport,BO,Trinidad,medium_airport
+UYU,Joya Andina International Airport,BO,Quijarro,large_airport
+VVI,Viru Viru International Airport,BO,Santa Cruz,large_airport
+PBM,Johan Adolf Pengel International Airport,SR,Paramaribo,large_airport
+CAY,Cayenne – Félix Eboué Airport,GF,Matoury,large_airport
+MPY,Maripasoula Airport,GF,Maripasoula,medium_airport
+LDX,Saint-Laurent-du-Maroni Airport,GF,Saint-Laurent-du-Maroni,medium_airport
+PCL,Cap FAP David Abenzur Rengifo International Airport,PE,Pucallpa,large_airport
+CHM,FAP Lieutenant Jaime Andres de Montreuil Morales Airport,PE,Chimbote,medium_airport
+CIX,Capitán FAP José A. Quiñones González International Airport,PE,Chiclayo,large_airport
+AYP,Air Force Colonel Alfredo Mendivil Duarte Airport,PE,Ayacucho,medium_airport
+LIM,Jorge Chávez International Airport,PE,Lima,large_airport
+JAE,Shumba Airport,PE,Jaén,medium_airport
+JAU,Francisco Carle Airport,PE,Jauja,medium_airport
+JUL,Inca Manco Capac International Airport,PE,Juliaca,large_airport
+CJA,Mayor General FAP Armando Revoredo Iglesias Airport,PE,Cajamarca,medium_airport
+ILQ,General Jorge Fernandez Maldon Airport,PE,Ilo,medium_airport
+TBP,Captain Pedro Canga Rodríguez International Airport,PE,Tumbes,medium_airport
+YMS,Moises Benzaquen Rengifo Airport,PE,Yurimaguas,medium_airport
+HUU,Alferez Fap David Figueroa Fernandini Airport,PE,Huánuco,medium_airport
+CHH,Chachapoyas Airport,PE,Chachapoyas,medium_airport
+IQT,Coronel FAP Francisco Secada Vignetta International Airport,PE,Iquitos,large_airport
+AQP,Rodríguez Ballón International Airport,PE,Arequipa,large_airport
+TRU,Capitán FAP Carlos Martínez de Pinillos International Airport,PE,Trujillo,large_airport
+TPP,Cadete FAP Guillermo Del Castillo Paredes Airport,PE,Tarapoto,medium_airport
+TCQ,Coronel FAP Carlos Ciriani Santa Rosa International Airport,PE,Tacna,medium_airport
+PEM,Padre Aldamiz International Airport,PE,Puerto Maldonado,medium_airport
+PIU,PAF Captain Guillermo Concha Iberico International Airport,PE,Piura,medium_airport
+TYL,Captain Victor Montes Arias International Airport,PE,Talara,medium_airport
+NZC,Maria Reiche Neuman Airport,PE,Nazca,medium_airport
+CUZ,Alejandro Velasco Astete International Airport,PE,Cusco,large_airport
+PDP,Capitan Corbeta CA Curbelo International Airport,UY,Punta del Este,medium_airport
+MVD,Carrasco General Cesáreo L. Berisso International Airport,UY,Ciudad de la Costa,large_airport
+RVY,Pres. Gral. Óscar D. Gestido Binational Airport,UY,Rivera/Santana do Livramento,medium_airport
+BLA,General José Antonio Anzoategui International Airport,VE,Barcelona,large_airport
+BNS,Barinas Airport,VE,Barinas,medium_airport
+BRM,Jacinto Lara International Airport,VE,Barquisimeto,large_airport
+CAJ,Canaima Airport,VE,Canaima,medium_airport
+CUP,General Francisco Bermúdez Airport,VE,Carúpano,medium_airport
+CZE,José Leonardo Chirinos Airport,VE,Coro,medium_airport
+CUM,Antonio José de Sucre Airport,VE,Cumaná,medium_airport
+LSP,Josefa Camejo International Airport,VE,Paraguaná,medium_airport
+MAR,La Chinita International Airport,VE,Maracaibo,large_airport
+PMV,Del Caribe Santiago Mariño International Airport,VE,Isla Margarita,large_airport
+CCS,Maiquetía Simón Bolívar International Airport,VE,Maiquetía,large_airport
+MUN,José Tadeo Monagas International Airport,VE,Maturín,medium_airport
+PZO,General Manuel Carlos Piar International Airport,VE,Guyana City,large_airport
+SVZ,Juan Vicente Gómez International Airport,VE,San Antonio del Tachira,medium_airport
+SNV,Santa Elena de Uairén Airport,VE,Santa Elena de Uairén,medium_airport
+STD,Mayor Buenaventura Vivas International Airport,VE,Santo Domingo,medium_airport
+SOM,San Tomé Airport,VE,El Tigre,medium_airport
+VLN,Arturo Michelena International Airport,VE,Valencia,large_airport
+VIG,Juan Pablo Pérez Alfonso Airport,VE,El Vigía,medium_airport
+VLV,Dr. Antonio Nicolás Briceño Airport,VE,Valera,medium_airport
+AUX,Araguaína Airport,BR,Araguaína,medium_airport
+GEO,Cheddi Jagan International Airport,GY,Georgetown,large_airport
+OGL,Eugene F. Correia International Airport,GY,Ogle,medium_airport
+KAI,Kaieteur Airport,GY,Kaieteur Falls,medium_airport
+LTM,Lethem Airport,GY,Lethem,medium_airport
+ANU,V. C. Bird International Airport,AG,Osbourn,large_airport
+BGI,Grantley Adams International Airport,BB,Bridgetown,large_airport
+DCF,Canefield Airport,DM,Canefield,medium_airport
+DOM,Douglas-Charles Airport,DM,Marigot,medium_airport
+FDF,Martinique Aimé Césaire International Airport,MQ,Fort-de-France,large_airport
+SFG,Grand Case-l'Espérance Airport,MF,Grand Case,medium_airport
+SBH,St. Jean Airport,BL,Gustavia,medium_airport
+GBJ,Marie-Galante Airport,GP,Grand-Bourg,medium_airport
+PTP,Maryse Condé International Airport,GP,Pointe-à-Pitre,large_airport
+GND,Maurice Bishop International Airport,GD,Saint George's,large_airport
+STT,Cyril E. King Airport,VI,Charlotte Amalie,large_airport
+STX,Henry E. Rohlsen Airport,VI,Christiansted,medium_airport
+BQN,Rafael Hernández International Airport,PR,Aguadilla,medium_airport
+CPX,Benjamin Rivera Noriega Airport,PR,Culebra,medium_airport
+SIG,Fernando Luis Ribas Dominicci Airport,PR,San Juan,medium_airport
+MAZ,Eugenio Maria De Hostos Airport,PR,Mayaguez,medium_airport
+PSE,Mercedita International Airport,PR,Ponce,medium_airport
+NRR,José Aponte de la Torre Airport,PR,Ceiba,medium_airport
+SJU,Luis Munoz Marin International Airport,PR,San Juan,large_airport
+VQS,Antonio Rivera Rodriguez Airport,PR,Vieques,medium_airport
+SKB,Robert L. Bradshaw International Airport,KN,Basseterre,large_airport
+NEV,Vance W. Amory International Airport,KN,Charlestown,medium_airport
+SLU,George F. L. Charles Airport,LC,Castries,medium_airport
+UVF,Hewanorra International Airport,LC,Vieux Fort,large_airport
+BKN,Balkanabat International Airport,TM,Balkanabat,medium_airport
+AUA,Queen Beatrix International Airport,AW,Oranjestad,large_airport
+BON,Flamingo International Airport,BQ,Kralendijk,large_airport
+CUR,Hato International Airport,CW,Willemstad,large_airport
+EUX,F. D. Roosevelt Airport,BQ,Oranjestad,medium_airport
+SXM,Princess Juliana International Airport,SX,Sint Maarten,large_airport
+SAB,Juancho E. Yrausquin Airport,BQ,Zion's Hill,medium_airport
+AXA,Clayton J. Lloyd International Airport,AI,The Valley,medium_airport
+MNI,John A. Osborne Airport,MS,Gerald's Park,large_airport
+TAB,A.N.R. Robinson International Airport,TT,Scarborough,large_airport
+POS,Piarco International Airport,TT,Port of Spain,large_airport
+EIS,Terrance B. Lettsome International Airport,VG,Beef Island,large_airport
+VIJ,Virgin Gorda Airport,VG,Spanish Town,medium_airport
+SVD,Argyle International Airport,VC,Kingstown,large_airport
+BQU,J F Mitchell Airport,VC,Bequia,medium_airport
+CIW,Canouan Airport,VC,Canouan,medium_airport
+MQS,Mustique Airport,VC,Lovell,medium_airport
+UNI,Union Island International Airport,VC,Union Island,medium_airport
+BDA,L.F. Wade International Airport,BM,Hamilton,large_airport
+ALA,Almaty International Airport,KZ,Almaty,large_airport
+BXH,Balkhash Airport,KZ,Balkhash,medium_airport
+TDK,Taldykorgan Airport,KZ,Taldykorgan,medium_airport
+NQZ,Nursultan Nazarbayev International Airport,KZ,Astana,large_airport
+KOV,Kokshetau International Airport,KZ,Kokshetau,large_airport
+PPK,Petropavl International Airport,KZ,Petropavl,large_airport
+DMB,Taraz International Airport,KZ,Taraz,large_airport
+BSZ,Manas International Airport,KG,Bishkek,large_airport
+OSS,Osh International Airport,KG,Osh,large_airport
+IKG,Karakol International Airport,KG,Karakol,medium_airport
+CIT,Shymkent International Airport,KZ,Shymkent,large_airport
+HSA,Hazrat Sultan International Airport,KZ,Turkıstan,large_airport
+DZN,Zhezkazgan National Airport,KZ,Zhezkazgan,large_airport
+KGF,Sary-Arka Airport,KZ,Karaganda,large_airport
+BXY,Baikonur Krayniy International Airport,KZ,Baikonur,large_airport
+KZO,Korkyt Ata International Airport,KZ,Kyzylorda,large_airport
+URA,Manshuk Mametova International Airport,KZ,Uralsk,large_airport
+UKK,Oskemen International Airport,KZ,Ust-Kamenogorsk (Oskemen),large_airport
+PWQ,Pavlodar International Airport,KZ,Pavlodar,large_airport
+PLX,Semei International Airport,KZ,Semey,large_airport
+SCO,Aktau International Airport,KZ,Aktau,large_airport
+GUW,Atyrau International Airport,KZ,Atyrau,large_airport
+AKX,Aktobe International Airport,KZ,Aktobe,large_airport
+KSN,Kostanay International Airport,KZ,Kostanay,large_airport
+GYD,Heydar Aliyev International Airport,AZ,Baku,large_airport
+GNJ,Ganja International Airport,AZ,Ganja,large_airport
+NAJ,Nakhchivan International Airport,AZ,Nakhchivan,large_airport
+GBB,Gabala International Airport,AZ,Gabala,medium_airport
+LHL,Lachin International Airport,AZ,Lachin,medium_airport
+IKU,Issyk-Kul International Airport,KG,Tamchy,large_airport
+LWN,Shirak International Airport,AM,Gyumri,large_airport
+EVN,Zvartnots International Airport,AM,Yerevan,large_airport
+YKS,Platon Oyunsky Yakutsk International Airport,RU,Yakutsk,large_airport
+NER,Chulman Airport,RU,Neryungri,medium_airport
+MQJ,Moma Airport,RU,Khonuu,medium_airport
+OLZ,Olyokminsk Airport,RU,Olyokminsk,medium_airport
+USR,Ust-Nera Airport,RU,Ust-Nera,medium_airport
+VYI,Vilyuisk Airport,RU,Vilyuisk,medium_airport
+ULK,Lensk Airport,RU,Lensk,medium_airport
+PYJ,Polyarny Airport,RU,Yakutia,medium_airport
+MJZ,Mirny Airport,RU,Mirny,medium_airport
+SYS,Saskylakh Airport,RU,Saskylakh,medium_airport
+SEK,Srednekolymsk Airport,RU,Srednekolymsk,medium_airport
+CKH,Chokurdakh Airport,RU,Chokurdah,medium_airport
+CYX,Cherskiy Airport,RU,Cherskiy,medium_airport
+IKS,Tiksi Airport,RU,Tiksi,medium_airport
+ZKP,Zyryanka Airport,RU,Zyryanka,medium_airport
+ZIX,Zhigansk Airport,RU,Zhigansk,medium_airport
+KHX,Savannah Airstrip,UG,Kihihi,medium_airport
+KUT,David the Builder Kutaisi International Airport,GE,Kopitnari,large_airport
+BUS,Alexander Kartveli Batumi International Airport,GE,Batumi,large_airport
+SUI,Vladislav Ardzinba Sukhum International Airport,GE,Sukhumi,large_airport
+TBS,Tbilisi International Airport,GE,Tbilisi,large_airport
+BQS,Ignatyevo Airport,RU,Blagoveschensk,medium_airport
+KHV,Khabarovsk Novy Airport,RU,Khabarovsk,medium_airport
+KXK,Komsomolsk-on-Amur Airport,RU,Komsomolsk-on-Amur,medium_airport
+DYR,Ugolny Yuri Ryktheu Airport,RU,Anadyr,medium_airport
+KPW,Keperveem Airport,RU,Keperveem,medium_airport
+GDX,Sokol Airport,RU,Magadan,medium_airport
+PWE,Pevek Airport,RU,Apapelgino,medium_airport
+NLI,Nikolayevsk-na-Amure Airport,RU,Nikolayevsk-na-Amure Airport,medium_airport
+OHO,Okhotsk Airport,RU,Okhotsk,medium_airport
+PKC,Yelizovo Airport,RU,Petropavlovsk-Kamchatsky,large_airport
+UUS,Yuzhno-Sakhalinsk International Airport,RU,Yuzhno-Sakhalinsk,large_airport
+VVO,Vladivostok International Airport,RU,Artyom,large_airport
+HTA,Chita-Kadala International Airport,RU,Chita,large_airport
+BTK,Bratsk Airport,RU,Bratsk,medium_airport
+IKT,Irkutsk International Airport,RU,Irkutsk,large_airport
+UKX,Ust-Kut Airport,RU,Ust-Kut,medium_airport
+UUD,Baikal International Airport,RU,Ulan Ude,large_airport
+ARH,Talagi Airport,RU,Archangelsk,medium_airport
+NNM,Naryan Mar Airport,RU,Naryan Mar,medium_airport
+AMV,Amderma Airport,RU,Amderma,medium_airport
+KSZ,Kotlas Airport,RU,Kotlas,medium_airport
+LED,Pulkovo Airport,RU,St. Petersburg,large_airport
+MMK,Emperor Nicholas II Murmansk Airport,RU,Murmansk,large_airport
+PKV,Princess Olga Pskov International Airport,RU,Pskov,medium_airport
+PES,Petrozavodsk Airport,RU,Petrozavodsk,medium_airport
+CEE,Cherepovets Airport,RU,Cherepovets,medium_airport
+VUS,Velikiy Ustyug Airport,RU,Velikiy Ustyug,medium_airport
+BQT,Brest International Airport,BY,Brest,large_airport
+GME,Gomel Airport,BY,Gomel,medium_airport
+KGD,Khrabrovo Airport,RU,Kaliningrad,large_airport
+MSQ,Minsk National Airport,BY,Minsk,large_airport
+MVQ,Mogilev Airport,BY,Mogilev,medium_airport
+ABA,Abakan International Airport,RU,Abakan,large_airport
+BAX,Barnaul Gherman Titov International Airport,RU,Barnaul,large_airport
+KEJ,Alexei Leonov Kemerovo International Airport,RU,Kemerovo,large_airport
+EIE,Yeniseysk Airport,RU,Yeniseysk,medium_airport
+VEO,Severo-Yeniseysk Airport,RU,Severo-Yeniseysk,medium_airport
+VAQ,Vanavara Airport,RU,Vanavara,medium_airport
+KJA,Krasnoyarsk International Airport,RU,Krasnoyarsk,large_airport
+KCY,Krasnoyarsk Cheremshanka Airport,RU,Krasnoyarsk,medium_airport
+KYZ,Kyzyl Airport,RU,Kyzyl,medium_airport
+OVB,Novosibirsk Tolmachevo Airport,RU,Novosibirsk,large_airport
+OMS,Omsk Central Airport,RU,Omsk,large_airport
+TOF,Tomsk Kamov Airport,RU,Tomsk,large_airport
+NOZ,Spichenkovo Airport,RU,Novokuznetsk,medium_airport
+HTG,Khatanga Airport,RU,Khatanga,medium_airport
+IAA,Igarka Airport,RU,Igarka,medium_airport
+NSK,Alykel International Airport,RU,Norilsk,large_airport
+GDZ,Gelendzhik Airport,RU,Gelendzhik,medium_airport
+KRR,Krasnodar Pashkovsky International Airport,RU,Krasnodar,large_airport
+GRV,Akhmat Kadyrov Grozny International Airport,RU,Grozny,large_airport
+MCX,Makhachkala Uytash International Airport,RU,Makhachkala,large_airport
+MRV,Mineralnye Vody Airport,RU,Mineralnyye Vody,large_airport
+NAL,Nalchik Airport,RU,Nalchik,medium_airport
+OGZ,Vladikavkaz Beslan International Airport,RU,Beslan,medium_airport
+IGT,Magas Airport,RU,Sunzha,medium_airport
+STW,Stavropol Shpakovskoye Airport,RU,Stavropol,medium_airport
+AER,Sochi International Airport,RU,Sochi,large_airport
+ASF,Astrakhan Narimanovo Boris M. Kustodiev International Airport,RU,Astrakhan,large_airport
+ESL,Elista Airport,RU,Elista,medium_airport
+VOG,Volgograd International Airport,RU,Volgograd,large_airport
+CEK,Kurchatov Chelyabinsk International Airport,RU,Chelyabinsk,large_airport
+MQF,Magnitogorsk International Airport,RU,Magnitogorsk,large_airport
+SBT,Sabetta International Airport,RU,Sabetta,medium_airport
+BVJ,Bovanenkovo Airport,RU,Bovanenkovo,medium_airport
+SLY,Salekhard Airport,RU,Salekhard,medium_airport
+HMA,Khanty Mansiysk Airport,RU,Khanty-Mansiysk,medium_airport
+NYA,Nyagan Airport,RU,Nyagan,medium_airport
+EYK,Beloyarskiy Airport,RU,,medium_airport
+OVS,Sovetskiy Airport,RU,Sovetskiy,medium_airport
+URJ,Uray Airport,RU,Uray,medium_airport
+IJK,Izhevsk Airport,RU,Izhevsk,medium_airport
+KVX,Pobedilovo Airport,RU,Kirov,medium_airport
+NYM,Nadym Airport,RU,Nadym,medium_airport
+NUX,Novy Urengoy Airport,RU,Novy Urengoy,medium_airport
+NJC,Nizhnevartovsk Airport,RU,Nizhnevartovsk,large_airport
+PEE,Perm International Airport,RU,Perm,large_airport
+KGP,Kogalym International Airport,RU,Kogalym,medium_airport
+NOJ,Noyabrsk Airport,RU,Noyabrsk,medium_airport
+SGC,Surgut International Airport,RU,Surgut,large_airport
+SVX,Koltsovo Airport,RU,Yekaterinburg,large_airport
+RMZ,Tobolsk Remezov Airport,RU,Tobolsk,medium_airport
+TJM,Roshchino International Airport,RU,Tyumen,large_airport
+KRO,Kurgan Airport,RU,Kurgan,medium_airport
+ASB,Ashgabat International Airport,TM,Ashgabat,large_airport
+KRW,Turkmenbaşy International Airport,TM,Turkmenbaşy,medium_airport
+MYP,Mary International Airport,TM,Mary,medium_airport
+TAZ,Dashoguz International Airport,TM,Daşoguz,large_airport
+CRZ,Türkmenabat International Airport,TM,Türkmenabat,large_airport
+DYU,Dushanbe International Airport,TJ,Dushanbe,large_airport
+TJU,Kulob International Airport,TJ,Kulob,large_airport
+LBD,Khujand International Airport,TJ,Khujand,large_airport
+KQT,Bokhtar International Airport,TJ,Bokhtar,large_airport
+NMA,Namangan International Airport,UZ,Namangan,large_airport
+AZN,Andijan International Airport,UZ,Andijan,medium_airport
+FEG,Fergana International Airport,UZ,Fergana,medium_airport
+NCU,Nukus International Airport,UZ,Nukus,large_airport
+UGC,Urgench International Airport,UZ,Urgench,large_airport
+NVI,Navoi International Airport,UZ,Navoi,medium_airport
+BHK,Bukhara International Airport,UZ,Bukhara,large_airport
+SKD,Samarkand International Airport,UZ,Samarkand,large_airport
+TMJ,Termez Airport,UZ,Termez,medium_airport
+TVT,Tashkent-Khumo International Airport,UZ,Tashkent,medium_airport
+TAS,Tashkent International Airport,UZ,Tashkent,large_airport
+OMN,Zomin Airport,UZ,Zomin,medium_airport
+KMW,Kostroma Sokerkino Airport,RU,Kostroma,medium_airport
+IWA,Ivanovo South Airport,RU,Ivanovo,medium_airport
+ZIA,Zhukovsky International Airport,RU,Moscow,large_airport
+DME,Domodedovo International Airport,RU,Moscow,large_airport
+IAR,Golden Ring Yaroslavl International Airport,RU,Tunoshna,large_airport
+SVO,Sheremetyevo International Airport,RU,Moscow,large_airport
+VOZ,Voronezh International Airport,RU,Voronezh,medium_airport
+VKO,Vnukovo International Airport,RU,Moscow,large_airport
+UCT,Ukhta Airport,RU,Ukhta,medium_airport
+PEX,Pechora Airport,RU,Pechora,medium_airport
+USK,Usinsk Airport,RU,Usinsk,medium_airport
+VKT,Vorkuta Airport,RU,Vorkuta,medium_airport
+SCW,Syktyvkar Airport,RU,Syktyvkar,medium_airport
+GOJ,Nizhny Novgorod / Strigino International Airport,RU,Nizhny Novgorod,large_airport
+UUA,Bugulma Airport,RU,Bugulma,medium_airport
+KZN,Kazan International Airport,RU,Kazan,large_airport
+NBC,Begishevo Airport,RU,Nizhnekamsk,medium_airport
+CSY,Cheboksary Airport,RU,Cheboksary,medium_airport
+ULV,Ulyanovsk Baratayevka Airport,RU,Ulyanovsk,medium_airport
+ULY,Ulyanovsk Vostochny Airport,RU,Cherdakly,medium_airport
+REN,Orenburg Central Airport,RU,Orenburg,medium_airport
+OSW,Orsk Airport,RU,Orsk,medium_airport
+PEZ,Penza Airport,RU,Penza,medium_airport
+SKX,Saransk International Airport,RU,Saransk,large_airport
+BWO,Balakovo Airport,RU,Balakovo,medium_airport
+GSV,Gagarin International Airport,RU,Saratov,large_airport
+UFA,Ufa International Airport,RU,Ufa,large_airport
+KUF,Kurumoch International Airport,RU,Samara,large_airport
+REW,"Rewa Airport, Chorhata, REWA",IN,Rewa,medium_airport
+GDB,Gondia Airport,IN,Gondia,medium_airport
+AMD,Sardar Vallabh Patel International Airport,IN,Ahmedabad,large_airport
+IXU,Aurangabad Airport,IN,Aurangabad,medium_airport
+BOM,Chhatrapati Shivaji Maharaj International Airport,IN,Mumbai,large_airport
+BHJ,Bhuj Airport,IN,Bhuj,medium_airport
+IXG,Belagavi Airport,IN,Belgaum,medium_airport
+BDQ,Vadodara International Airport,IN,Vadodara,large_airport
+BHO,Raja Bhoj International Airport,IN,Bhopal,large_airport
+BHU,Bhavnagar Airport,IN,Bhavnagar,medium_airport
+HBX,Hubballi Airport,IN,Hubballi,medium_airport
+HSR,Rajkot International Airport,IN,Rajkot,large_airport
+IDR,Devi Ahilya Bai Holkar International Airport,IN,Indore,large_airport
+JLR,Jabalpur Airport,IN,Jabalpur,medium_airport
+JGA,Jamnagar Airport,IN,Jamnagar,medium_airport
+IXY,Kandla Airport,IN,Kandla,medium_airport
+HJR,Khajuraho Airport,IN,Khajuraho,medium_airport
+KLH,Kolhapur Airport,IN,Kolhapur,medium_airport
+IXK,Keshod Airport,IN,Keshod,medium_airport
+LTU,Murod Kond Airport,IN,Latur,medium_airport
+NDC,Nanded Airport,IN,Nanded,medium_airport
+NAG,Dr. Babasaheb Ambedkar International Airport,IN,Nagpur,large_airport
+ISK,Nashik International Airport,IN,Nashik,large_airport
+PNQ,Pune International Airport,IN,Pune,large_airport
+PBD,Porbandar Airport,IN,Porbandar,medium_airport
+RPR,Swami Vivekananda Airport,IN,Raipur,medium_airport
+SAG,Shirdi International Airport,IN,Kakadi,large_airport
+STV,Surat International Airport,IN,Surat,large_airport
+UDR,Maharana Pratap Airport,IN,Udaipur,medium_airport
+CMB,Bandaranaike International Colombo Airport,LK,Colombo,large_airport
+BTC,Batticaloa International Airport,LK,Batticaloa,medium_airport
+RML,Colombo Ratmalana International Airport,LK,Colombo,large_airport
+JAF,Jaffna International Airport,LK,Jaffna,large_airport
+KCT,Koggala Airport,LK,Galle,medium_airport
+TRR,China Bay Airport,LK,Trincomalee,medium_airport
+HRI,Mattala Rajapaksa International Airport,LK,Mattala,medium_airport
+BBM,Battambang Airport,KH,Battambang,medium_airport
+SAI,Siem Reap-Angkor International Airport,KH,Siem Reap,large_airport
+KOS,Sihanouk International Airport,KH,Preah Sihanouk,large_airport
+IXA,Agartala - Maharaja Bir Bikram Airport,IN,Agartala,medium_airport
+IXB,Bagdogra Airport,IN,Siliguri,large_airport
+SHL,Shillong Airport,IN,Shillong,medium_airport
+VNS,Lal Bahadur Shastri International Airport,IN,Varanasi,large_airport
+BBI,Biju Patnaik International Airport,IN,Bhubaneswar,large_airport
+PAB,Bilaspur Airport,IN,Bilaspur,medium_airport
+CCU,Netaji Subhash Chandra Bose International Airport,IN,Kolkata,large_airport
+RDP,Kazi Nazrul Islam Airport,IN,Durgapur,medium_airport
+DBR,Darbhanga Airport,IN,Darbhanga,medium_airport
+GOP,Gorakhpur Airport,IN,Gorakhpur,medium_airport
+GAU,Lokpriya Gopinath Bordoloi International Airport,IN,Guwahati,large_airport
+GAY,Gaya Airport,IN,Gaya,medium_airport
+IMF,Bir Tikendrajit International Airport,IN,Imphal,large_airport
+JRH,Jorhat Airport,IN,Jorhat,medium_airport
+IXS,Silchar Airport,IN,Silchar,medium_airport
+AJL,Lengpui Airport,IN,Aizawl (Lengpui),medium_airport
+IXI,Lilabari North Lakhimpur Airport,IN,Lilabari,medium_airport
+DIB,Dibrugarh Airport,IN,Dibrugarh,medium_airport
+DMU,Dimapur Airport,IN,Dimapur,medium_airport
+PAT,Jay Prakash Narayan Airport,IN,Patna,medium_airport
+IXR,Birsa Munda Airport,IN,Ranchi,medium_airport
+TEZ,Tezpur Airport,IN,,medium_airport
+UKE,Utkela Airport,IN,Bhawanipatna,medium_airport
+BZL,Barisal Airport,BD,Barisal,medium_airport
+CXB,Cox's Bazar Airport,BD,Cox's Bazar,medium_airport
+CGP,Shah Amanat International Airport,BD,Chattogram (Chittagong),large_airport
+DAC,Hazrat Shahjalal International Airport,BD,Dhaka,large_airport
+JSR,Jessore Airport,BD,Jashore (Jessore),medium_airport
+RJH,Shah Makhdum Airport,BD,Rajshahi,medium_airport
+SPD,Saidpur Airport,BD,Saidpur,medium_airport
+ZYL,Osmany International Airport,BD,Sylhet,large_airport
+HKG,Hong Kong International Airport,HK,Hong Kong,large_airport
+AGR,Agra Airport / Agra Air Force Station,IN,Agra,medium_airport
+IXD,Prayagraj Airport,IN,Allahabad,medium_airport
+ATQ,Sri Guru Ram Das Ji International Airport,IN,Amritsar,large_airport
+KUU,Kullu Manali Airport,IN,Bhuntar,medium_airport
+BEK,Bareilly Air Force Station,IN,Bareilly,medium_airport
+IXC,Shaheed Bhagat Singh International Airport,IN,Chandigarh,large_airport
+KNU,Kanpur Airport,IN,Kanpur,medium_airport
+DED,Dehradun Jolly Grant Airport,IN,Dehradun (Jauligrant),medium_airport
+DEL,Indira Gandhi International Airport,IN,New Delhi,large_airport
+DHM,Kangra Airport,IN,Kangra,medium_airport
+GWL,Gwalior Airport,IN,Gwalior,medium_airport
+HSS,Maharaja Agrasen International Airport,IN,Hisar,large_airport
+HWR,Halwara International Airport,IN,Halwara,large_airport
+JDH,Jodhpur Airport,IN,Jodhpur,medium_airport
+JAI,Jaipur International Airport,IN,Jaipur,large_airport
+JSA,Jaisalmer Airport,IN,,medium_airport
+IXJ,Jammu Airport,IN,Jammu,medium_airport
+KQH,Kishangarh Airport Ajmer,IN,Ajmer (Kishangarh),medium_airport
+IXL,Leh Kushok Bakula Rimpochee Airport,IN,Leh,medium_airport
+LKO,Chaudhary Charan Singh International Airport,IN,Lucknow,large_airport
+MZS,Moradabad Airport,IN,Moradabad,medium_airport
+IXP,Pathankot Airport,IN,Pathankot,medium_airport
+PGH,Pantnagar Airport,IN,Pantnagar,medium_airport
+SXR,Srinagar International Airport,IN,Srinagar,large_airport
+LPQ,Luang Phabang International Airport,LA,Luang Phabang,large_airport
+PKZ,Pakse International Airport,LA,Pakse,large_airport
+VTE,Wattay International Airport,LA,Vientiane,large_airport
+MFM,Macau International Airport,MO,Nossa Senhora do Carmo,large_airport
+BWA,Gautam Buddha International Airport,NP,Siddharthanagar (Bhairahawa),large_airport
+JKR,Janakpur Airport,NP,Janakpur,medium_airport
+KTM,Tribhuvan International Airport,NP,Kathmandu,large_airport
+LUA,Tenzing-Hillary Airport,NP,Lukla,medium_airport
+KEP,Nepalgunj Airport,NP,Nepalgunj,medium_airport
+PKR,Pokhara Domestic Airport,NP,Pokhara,medium_airport
+TPJ,Taplejung Airport,NP,Taplejung,medium_airport
+BIR,Biratnagar Airport,NP,Biratnagar,medium_airport
+AGX,Agatti Airport,IN,Agatti,medium_airport
+BLR,Kempegowda International Airport Bengaluru,IN,Bengaluru,large_airport
+VGA,Vijayawada International Airport,IN,Vijayawada,large_airport
+CJB,Coimbatore International Airport,IN,Coimbatore,large_airport
+COK,Cochin International Airport,IN,Kochi,large_airport
+CCJ,Calicut International Airport,IN,Calicut,large_airport
+CDP,Kadapa Airport,IN,Kadapa,medium_airport
+GOX,Manohar International Airport,IN,Mopa,large_airport
+GOI,Goa Dabolim International Airport,IN,Vasco da Gama,large_airport
+HYD,Rajiv Gandhi International Airport,IN,Hyderabad,large_airport
+CNN,Kannur International Airport,IN,Kannur,large_airport
+KJB,Kurnool Airport,IN,Orvakal,medium_airport
+IXM,Madurai Airport,IN,Madurai,medium_airport
+IXE,Mangaluru International Airport,IN,Mangaluru,large_airport
+MAA,Chennai International Airport,IN,Chennai,large_airport
+MYQ,Mysore Airport,IN,Mysore,medium_airport
+IXZ,Veer Savarkar International Airport / INS Utkrosh,IN,Port Blair,large_airport
+PNY,Pondicherry Airport,IN,Puducherry (Pondicherry),medium_airport
+RJA,Rajahmundry Airport,IN,Madhurapudi,medium_airport
+TIR,Tirupati International Airport,IN,Tirupati,large_airport
+TRZ,Tiruchirappalli International Airport,IN,Tiruchirappalli,large_airport
+TRV,Thiruvananthapuram International Airport,IN,Thiruvananthapuram,large_airport
+VTZ,Alluri Sitarama Raju International Airport (Vizag),IN,Visakhapatnam,large_airport
+PBH,Paro International Airport,BT,Paro,large_airport
+NMF,Maafaru International Airport,MV,Noonu Atoll,medium_airport
+GAN,Gan International Airport,MV,Gan,large_airport
+HAQ,Hanimaadhoo International Airport,MV,Haa Dhaalu Atoll,large_airport
+KDO,Kadhdhoo Airport,MV,Kadhdhoo,medium_airport
+MLE,Velana International Airport,MV,Malé,large_airport
+KDM,Kaadedhdhoo Airport,MV,Huvadhu Atoll,medium_airport
+VAM,Villa International Airport Maamigili,MV,Maamigili,medium_airport
+DMK,Don Mueang International Airport,TH,Bangkok,large_airport
+TDX,Trat Airport,TH,Laem Ngop,medium_airport
+BKK,Suvarnabhumi Airport,TH,Bangkok,large_airport
+UTP,U-Tapao–Rayong–Pattaya International Airport,TH,Rayong,large_airport
+CNX,Chiang Mai International Airport,TH,Chiang Mai,large_airport
+HGN,Mae Hong Son Airport,TH,Mae Hong Son,medium_airport
+LPT,Lampang Airport,TH,,medium_airport
+NNT,Nan Airport,TH,,medium_airport
+CEI,Mae Fah Luang - Chiang Rai International Airport,TH,Chiang Rai,large_airport
+PHY,Phetchabun Airport,TH,,medium_airport
+HHQ,Hua Hin Airport,TH,Hua Hin,medium_airport
+MAQ,Mae Sot Airport,TH,,medium_airport
+THS,Sukhothai Airport,TH,,medium_airport
+PHS,Phitsanulok Airport,TH,Phitsanulok,medium_airport
+URT,Surat Thani Airport,TH,Surat Thani,medium_airport
+NAW,Narathiwat Airport,TH,,medium_airport
+CJM,Chumphon Airport,TH,Chumphon,medium_airport
+NST,Nakhon Si Thammarat Airport,TH,Nakhon Si Thammarat,medium_airport
+KBV,Krabi International Airport,TH,Krabi,large_airport
+USM,Samui International Airport,TH,Na Thon (Ko Samui Island),large_airport
+HKT,Phuket International Airport,TH,Phuket,large_airport
+UNN,Ranong Airport,TH,Ranong,medium_airport
+HDY,Hat Yai International Airport,TH,Hat Yai,large_airport
+TST,Trang Airport,TH,Trang,medium_airport
+UTH,Udon Thani International Airport,TH,Udon Thani,large_airport
+SNO,Sakon Nakhon Airport,TH,,medium_airport
+PXR,Surin Airport,TH,Surin,medium_airport
+KKC,Khon Kaen Airport,TH,Khon Kaen,medium_airport
+LOE,Loei Airport,TH,,medium_airport
+BFV,Buri Ram Airport,TH,Buriram,medium_airport
+UBP,Ubon Ratchathani Airport,TH,Ubon Ratchathani,medium_airport
+ROI,Roi Et Airport,TH,Roi Et,medium_airport
+KOP,Nakhon Phanom Airport,TH,Nakhon Phanom,medium_airport
+BMV,Buon Ma Thuot Airport,VN,Buon Ma Thuot,medium_airport
+HPH,Cat Bi International Airport,VN,Haiphong (Hai An),large_airport
+CAH,Cà Mau Airport,VN,Ca Mau City,medium_airport
+CXR,Cam Ranh International Airport / Cam Ranh Air Base,VN,Nha Trang/nha Trang aiurportCam Ranh,large_airport
+VCS,Con Dao Airport,VN,Con Dao,medium_airport
+VCA,Can Tho International Airport,VN,Can Tho,large_airport
+DIN,Dien Bien Phu Airport,VN,Dien Bien Phu,medium_airport
+VDH,Dong Hoi Airport,VN,Dong Hoi,medium_airport
+DLI,Lien Khuong Airport,VN,Da Lat,medium_airport
+DAD,Da Nang International Airport,VN,Da Nang,large_airport
+HAN,Noi Bai International Airport,VN,Hanoi (Soc Son),large_airport
+HUI,Phu Bai International Airport,VN,Huế,large_airport
+UIH,Phu Cat Airport,VN,Quy Nohn,medium_airport
+PXU,Pleiku Airport,VN,Pleiku,medium_airport
+PQC,Phú Quốc International Airport,VN,Phu Quoc Island,large_airport
+VKG,Rach Gia Airport,VN,Rach Gia,medium_airport
+TBB,Dong Tac Airport,VN,Tuy Hoa,medium_airport
+SGN,Tan Son Nhat International Airport,VN,Ho Chi Minh City,large_airport
+VDO,Van Don International Airport,VN,Van Don,medium_airport
+VII,Vinh Airport,VN,Vinh,medium_airport
+TVY,Dawei Airport,MM,Dawei,medium_airport
+HEH,Heho Airport,MM,Heho,medium_airport
+KET,Kengtung Airport,MM,Kengtung,medium_airport
+KYP,Kyaukpyu Airport,MM,Kyaukpyu,medium_airport
+KAW,Kawthoung Airport,MM,Kawthoung,medium_airport
+LIW,Loikaw Airport,MM,Loikaw,medium_airport
+LSH,Lashio Airport,MM,Lashio,medium_airport
+MDL,Mandalay International Airport,MM,Mandalay,large_airport
+MGZ,Myeik Airport,MM,Mkeik,medium_airport
+MYT,Myitkyina Airport,MM,Myitkyina,medium_airport
+MOG,Mong Hsat Airport,MM,Mong Hsat,medium_airport
+NYT,Nay Pyi Taw International Airport,MM,Naypyitaw,large_airport
+PBU,Putao Airport,MM,Putao,medium_airport
+AKY,Sittwe Airport,MM,Sittwe,medium_airport
+SNW,Thandwe Airport,MM,Thandwe,medium_airport
+THL,Tachileik Airport,MM,Tachileik,medium_airport
+RGN,Yangon International Airport,MM,Yangon,large_airport
+UPG,Sultan Hasanuddin International Airport,ID,Makassar,large_airport
+BIK,Frans Kaisiepo Airport,ID,Biak,medium_airport
+TIM,Mozes Kilangin Airport,ID,Timika,medium_airport
+BMU,Sultan Muhammad Salahuddin Airport,ID,Bima,medium_airport
+DPS,Denpasar I Gusti Ngurah Rai International Airport,ID,"Kuta, Badung",large_airport
+LOP,Lombok International Airport,ID,"Mataram (Pujut, Lombok Tengah)",large_airport
+TTE,Sultan Babullah Airport,ID,Ternate,medium_airport
+TRT,Toraja Airport,ID,Toraja,medium_airport
+PLW,Mutiara - SIS Al-Jufrie Airport,ID,Palu,medium_airport
+PKY,Tjilik Riwut Airport,ID,Palangkaraya,medium_airport
+YIA,Yogyakarta International Airport,ID,Yogyakarta,large_airport
+CXP,Tunggul Wulung Airport,ID,Cilacap,medium_airport
+DJJ,Dortheys Hiyo Eluay International Airport,ID,Sentani,large_airport
+OKL,Oksibil Airport,ID,Oksibil,medium_airport
+MKQ,Mopah International Airport,ID,Merauke,medium_airport
+TMH,Tanah Merah Airport,ID,Tanah Merah,medium_airport
+BPN,Sultan Aji Muhammad Sulaiman Sepinggan International Airport,ID,Balikpapan,large_airport
+TRK,Juwata International Airport / Suharnoko Harbani AFB,ID,Tarakan,medium_airport
+AAP,Aji Pangeran Tumenggung Pranoto International Airport,ID,Samarinda,medium_airport
+NAH,Naha Airport,ID,"Tabukan Utara, Sangihe Islands",medium_airport
+MDC,Sam Ratulangi International Airport,ID,Manado,large_airport
+TJG,Warukin Airport,ID,Tanta-Tabalong,medium_airport
+BDJ,Syamsudin Noor International Airport,ID,Banjarbaru,large_airport
+LUV,Karel Sadsuitubun Airport,ID,Langgur,medium_airport
+NAM,Namniwel Airport,ID,Namniwel,medium_airport
+AMQ,Pattimura International Airport,ID,Ambon,large_airport
+BEJ,Kalimarau Airport,ID,Tanjung Redeb - Borneo Island,medium_airport
+MLG,Abdul Rachman Saleh Airport,ID,Malang,medium_airport
+JOG,Adisutjipto International Airport,ID,Yogyakarta,medium_airport
+SOC,Adisoemarmo International Airport,ID,Surakarta,large_airport
+SUB,Juanda International Airport,ID,Surabaya,large_airport
+SRG,Jenderal Ahmad Yani Airport,ID,Semarang,large_airport
+FKQ,Fakfak Airport,ID,Fakfak,medium_airport
+KNG,Utarom Airport,ID,Kaimana,medium_airport
+MKW,Rendani Airport,ID,Manokwari,medium_airport
+SOQ,Domine Eduard Osok Airport,ID,Sorong,medium_airport
+KOE,El Tari Airport,ID,Kupang,medium_airport
+WMX,Wamena Airport,ID,Wamena,medium_airport
+WNI,Matahora Airport,ID,Wangi-wangi Island,medium_airport
+KXB,Sangia Nibandera Airport,ID,Kolaka,medium_airport
+BTU,Bintulu Airport,MY,Bintulu,medium_airport
+KCH,Kuching International Airport,MY,Kuching,large_airport
+LMN,Limbang Airport,MY,Limbang,medium_airport
+MKM,Mukah Airport,MY,Mukah,medium_airport
+MUR,Marudi Airport,MY,Marudi,medium_airport
+MYY,Miri Airport,MY,Miri,medium_airport
+SBW,Sibu Airport,MY,Sibu,medium_airport
+BBN,Bario Airport,MY,Bario,medium_airport
+LDU,Lahad Datu Airport,MY,Lahad Datu,medium_airport
+BKI,Kota Kinabalu International Airport,MY,Kota Kinabalu,large_airport
+LBU,Labuan Airport,MY,Labuan,medium_airport
+SDK,Sandakan Airport,MY,Sandakan,medium_airport
+TWU,Tawau Airport,MY,Tawau,medium_airport
+MZV,Mulu Airport,MY,Mulu,medium_airport
+BWN,Brunei International Airport,BN,Bandar Seri Begawan,large_airport
+PKU,Sultan Syarif Kasim II International Airport / Roesmin Nurjadin AFB,ID,Pekanbaru,medium_airport
+DUM,Pinang Kampai Airport,ID,Dumai,medium_airport
+KJT,Kertajati International Airport,ID,Kertajati,medium_airport
+BDO,Husein Sastranegara International Airport,ID,Bandung,medium_airport
+BTH,Hang Nadim International Airport,ID,Batam,large_airport
+TNJ,Raja Haji Fisabilillah International Airport,ID,Tanjung Pinang-Bintan Island,medium_airport
+HLP,Halim Perdanakusuma International Airport,ID,Jakarta,large_airport
+CGK,Soekarno-Hatta International Airport,ID,Jakarta,large_airport
+TKG,Radin Inten II International Airport,ID,Bandar Lampung,medium_airport
+GNS,Binaka Airport,ID,Gunungsitoli,medium_airport
+KNO,Kualanamu International Airport,ID,Beringin,large_airport
+FLZ,Dr. Ferdinand Lumban Tobing Airport,ID,Sibolga (Pinangsori),medium_airport
+LSR,Alas Leuser Airport,ID,Kutacane,medium_airport
+NPO,Nanga Pinoh Airport,ID,Nanga Pinoh-Borneo Island,medium_airport
+KTG,Rahadi Osman Airport,ID,Ketapang,medium_airport
+NTX,Ranai Airport,ID,Ranai-Natuna Besar Island,medium_airport
+PNK,Supadio International Airport,ID,Pontianak,large_airport
+PSU,Pangsuma Airport,ID,Putussibau-Borneo Island,medium_airport
+SQG,Tebelian Airport,ID,Sintang,medium_airport
+PGK,Depati Amir Airport,ID,Pangkal Pinang,medium_airport
+BKS,Fatmawati Soekarno Airport,ID,Bengkulu,medium_airport
+PLM,Sultan Mahmud Badaruddin II Airport,ID,Palembang,medium_airport
+PDO,Pendopo Airport,ID,Talang Gudang-Sumatra Island,medium_airport
+PDG,Minangkabau International Airport,ID,Padang (Katapiang),large_airport
+MEQ,Cut Nyak Dhien Airport,ID,Kuala Pesisir,medium_airport
+TXE,Rembele Airport,ID,Takengon,medium_airport
+BTJ,Sultan Iskandar Muda International Airport,ID,Banda Aceh,large_airport
+TOD,Tioman Airport,MY,Tioman Island,medium_airport
+AOR,Sultan Abdul Halim Airport,MY,Alor Satar,medium_airport
+KBR,Sultan Ismail Petra Airport,MY,Kota Baharu,medium_airport
+KUA,Kuantan Airport,MY,Kuantan,medium_airport
+IPH,Sultan Azlan Shah Airport,MY,Ipoh,large_airport
+JHB,Senai International Airport,MY,Johor Bahru,large_airport
+KUL,Kuala Lumpur International Airport,MY,Sepang,large_airport
+LGK,Langkawi International Airport,MY,Langkawi,large_airport
+MKZ,Malacca International Airport,MY,Malacca,medium_airport
+TGG,Sultan Mahmud Airport,MY,Kuala Terengganu,medium_airport
+PEN,Penang International Airport,MY,Penang,large_airport
+SZB,Sultan Abdul Aziz Shah International Airport,MY,Subang,large_airport
+UAI,"Commander in Chief of FALINTIL, Kay Rala Xanana Gusmão, International Airport",TL,Suai,medium_airport
+DIL,Presidente Nicolau Lobato International Airport,TL,Dili,large_airport
+BCH,Baucau Airport,TL,Baucau,medium_airport
+OEC,Oecusse Route of the Sandalwood International Airport,TL,Oecussi-Ambeno,large_airport
+XSP,Seletar Airport,SG,Seletar,medium_airport
+SIN,Singapore Changi Airport,SG,Singapore,large_airport
+ALH,Albany Airport,AU,Albany,medium_airport
+ARM,Armidale Airport,AU,Armidale,medium_airport
+AYQ,Ayers Rock Connellan Airport,AU,Yulara,medium_airport
+BCI,Barcaldine Airport,AU,Barcaldine,medium_airport
+ASP,Alice Springs Airport,AU,Alice Springs,medium_airport
+BNE,Brisbane International Airport,AU,Brisbane,large_airport
+OOL,Gold Coast Airport,AU,Gold Coast,large_airport
+BKQ,Blackall Airport,AU,Blackall,medium_airport
+CNS,Cairns International Airport,AU,Cairns,large_airport
+CTL,Charleville Airport,AU,Charleville,medium_airport
+BVI,Birdsville Airport,AU,,medium_airport
+BHQ,Broken Hill Airport,AU,Broken Hill,medium_airport
+HTI,Hamilton Island Airport,AU,Hamilton Island,medium_airport
+BEU,Bedourie Airport,AU,Bedourie,medium_airport
+BRK,Bourke Airport,AU,,medium_airport
+ISA,Mount Isa Airport,AU,Mount Isa,medium_airport
+MKY,Mackay Airport,AU,Mackay,medium_airport
+BNK,Ballina Byron Gateway Airport,AU,Ballina,medium_airport
+OKY,Oakey Army Aviation Centre,AU,,medium_airport
+BQL,Boulia Airport,AU,,medium_airport
+PPP,Proserpine Whitsunday Coast Airport,AU,Proserpine,medium_airport
+ROK,Rockhampton Airport,AU,Rockhampton,medium_airport
+BME,Broome International Airport,AU,Broome,large_airport
+MCY,Sunshine Coast Airport,AU,Maroochydore,large_airport
+BHS,Bathurst Airport,AU,Bathurst,medium_airport
+TSV,Townsville Airport / RAAF Base Townsville,AU,Townsville,medium_airport
+BDB,Bundaberg Airport,AU,Bundaberg,medium_airport
+WEI,Weipa Airport,AU,Weipa,medium_airport
+WTB,Toowoomba Wellcamp Airport,AU,Toowoomba,large_airport
+CVQ,Carnarvon Airport,AU,Carnarvon,medium_airport
+CAZ,Cobar Airport,AU,,medium_airport
+CPD,Coober Pedy Airport,AU,Coober Pedy,medium_airport
+CNJ,Cloncurry Airport,AU,Cloncurry,medium_airport
+CED,Ceduna Airport,AU,,medium_airport
+CFS,Coffs Harbour Airport,AU,Coffs Harbour,medium_airport
+CTN,Cooktown Airport,AU,,medium_airport
+CMA,Cunnamulla Airport,AU,,medium_airport
+CNB,Coonamble Airport,AU,,medium_airport
+CUQ,Coen Airport,AU,Coen,medium_airport
+OOM,Cooma Snowy Mountains Airport,AU,Cooma,medium_airport
+DPO,Devonport Airport,AU,Devonport,medium_airport
+ELC,Elcho Island Airport,AU,Elcho Island,medium_airport
+EMD,Emerald Airport,AU,Emerald,medium_airport
+EPR,Esperance Airport,AU,Esperance,medium_airport
+FIZ,Fitzroy Crossing Airport,AU,,medium_airport
+GET,Geraldton Airport,AU,Moonyoonooka,medium_airport
+GLT,Gladstone Airport,AU,Gladstone,medium_airport
+GTE,Groote Eylandt Airport,AU,Groote Eylandt,medium_airport
+GFF,Griffith Airport,AU,Griffith,medium_airport
+HVB,Hervey Bay Airport,AU,Hervey Bay,medium_airport
+HID,Horn Island Airport,AU,Horn,medium_airport
+MHU,Mount Hotham Airport,AU,Mount Hotham,medium_airport
+KNS,King Island Airport,AU,,medium_airport
+KWM,Kowanyama Airport,AU,Kowanyama,medium_airport
+KGC,Kingscote Airport,AU,,medium_airport
+LNO,Leonora Airport,AU,Leonora,medium_airport
+IRG,Lockhart River Airport,AU,Lockhart River,medium_airport
+LSY,Lismore Airport,AU,Lismore,medium_airport
+LHG,Lightning Ridge Airport,AU,,medium_airport
+LRE,Longreach Airport,AU,Longreach,medium_airport
+LER,Leinster Airport,AU,,medium_airport
+AVV,Melbourne Avalon International Airport,AU,Geelong/Melbourne,large_airport
+ABX,Albury Airport,AU,East Albury,medium_airport
+MKR,Meekatharra Airport,AU,,medium_airport
+MEB,Melbourne Essendon Airport,AU,Essendon Fields,medium_airport
+MIM,Merimbula Airport,AU,Merimbula,medium_airport
+MNG,Maningrida Airport,AU,Maningrida,medium_airport
+HBA,Hobart International Airport,AU,Hobart (Cambridge),large_airport
+MQL,Mildura Airport,AU,Mildura,medium_airport
+LST,Launceston Airport,AU,Launceston (Western Junction),medium_airport
+MBW,Melbourne Moorabbin Airport,AU,Melbourne,medium_airport
+MEL,Melbourne Airport,AU,Melbourne,large_airport
+MMG,Mount Magnet Airport,AU,,medium_airport
+MRZ,Moree Airport,AU,Moree,medium_airport
+MOV,Moranbah Airport,AU,Moranbah,medium_airport
+MYA,Moruya Airport,AU,Moruya,medium_airport
+MGB,Mount Gambier Airport,AU,Mount Gambier,medium_airport
+NRA,Narrandera Airport,AU,Narrandera,medium_airport
+NAA,Narrabri Airport,AU,Narrabri,medium_airport
+NTN,Normanton Airport,AU,Normanton,medium_airport
+ZNE,Newman Airport,AU,Newman,medium_airport
+ADL,Adelaide International Airport,AU,Adelaide,large_airport
+PUG,Port Augusta Airport,AU,,medium_airport
+PBO,Paraburdoo Airport,AU,Paraburdoo,medium_airport
+CCK,Cocos (Keeling) Islands Airport,CC,West Island,large_airport
+DRW,Darwin International Airport / RAAF Darwin,AU,Darwin,large_airport
+GOV,Gove Airport,AU,Nhulunbuy,medium_airport
+KTA,Karratha Airport,AU,Karratha,medium_airport
+KGI,Kalgoorlie Boulder Airport,AU,Broadwood,medium_airport
+PKE,Parkes Airport,AU,Parkes,medium_airport
+KNX,East Kimberley Regional (Kununurra) Airport,AU,Kununurra,medium_airport
+PLO,Port Lincoln Airport,AU,Port Lincoln,medium_airport
+LEA,Learmonth Airport,AU,Exmouth,medium_airport
+PQQ,Port Macquarie Airport,AU,Port Macquarie,medium_airport
+PTJ,Portland Airport,AU,,medium_airport
+PHE,Port Hedland International Airport,AU,Port Hedland,large_airport
+PER,Perth International Airport,AU,Perth,large_airport
+XCH,Christmas Island International Airport,CX,Flying Fish Cove,medium_airport
+ULP,Quilpie Airport,AU,,medium_airport
+RMA,Roma Airport,AU,Roma,medium_airport
+CBR,Canberra Airport,AU,Canberra,medium_airport
+DBO,Dubbo City Regional Airport,AU,Dubbo,medium_airport
+MJK,Shark Bay Airport,AU,Denham,medium_airport
+SNB,Snake Bay Airport,AU,Milikapiti,medium_airport
+NLK,Norfolk Island International Airport,NF,Burnt Pine,medium_airport
+SYD,Sydney Kingsford Smith International Airport,AU,Sydney (Mascot),large_airport
+TMW,Tamworth Airport,AU,Tamworth,medium_airport
+WGA,Wagga Wagga Airport,AU,Forest Hill,medium_airport
+XTG,Thargomindah Airport,AU,Thargomindah,medium_airport
+THG,Thangool Airport,AU,Biloela,medium_airport
+TCA,Tennant Creek Airport,AU,Tennant Creek,medium_airport
+WNR,Windorah Airport,AU,Windorah,medium_airport
+WYA,Whyalla Airport,AU,Whyalla,medium_airport
+WGE,Walgett Airport,AU,,medium_airport
+NTL,Newcastle Airport,AU,Williamtown,large_airport
+WUN,Wiluna Airport,AU,,medium_airport
+WIN,Winton Airport,AU,,medium_airport
+BWT,Wynyard Airport,AU,Burnie,medium_airport
+PEK,Beijing Capital International Airport,CN,Beijing,large_airport
+PKX,Beijing Daxing International Airport,CN,Beijing,large_airport
+CDE,Chengde Puning Airport,CN,Chengde,medium_airport
+CIF,Chifeng Yulong Airport,CN,Chifeng,medium_airport
+BPE,Qinhuangdao Beidaihe Airport,CN,Qinhuangdao (Changli),medium_airport
+DSN,Ordos Ejin Horo International Airport,CN,Ordos,large_airport
+DAT,Datong Yungang International Airport,CN,Datong,large_airport
+ERL,Erenhot Saiwusu International Airport,CN,Erenhot,medium_airport
+YIE,Arxan Yi'ershi Airport,CN,Arxan,medium_airport
+HDG,Handan Airport,CN,Handan,medium_airport
+HET,Hohhot Baita International Airport,CN,Hohhot,large_airport
+HUO,Holingol Huolinhe Airport,CN,Holingol,medium_airport
+HLD,Hulunbuir Hailar Airport,CN,Hailar,large_airport
+LFQ,Linfen Yaodu Airport,CN,Linfen (Yaodu),medium_airport
+LLV,Lüliang Dawu Airport,CN,Lüliang,medium_airport
+NZH,Manzhouli Xijiao Airport,CN,Manzhouli,medium_airport
+BAV,Baotou Donghe International Airport,CN,Baotou,large_airport
+SZH,Shuozhou Zirun Airport,CN,Shuozhou,medium_airport
+SJW,Shijiazhuang Zhengding International Airport,CN,Shijiazhuang,large_airport
+TSN,Tianjin Binhai International Airport,CN,Tianjin,large_airport
+TGO,Tongliao Airport,CN,Tongliao,medium_airport
+UCB,Ulanqab Jining Airport,CN,Ulanqab,medium_airport
+WUA,Wuhai Airport,CN,Wuhai,medium_airport
+XIL,Xilinhot Airport,CN,Xilinhot,medium_airport
+YCU,Yuncheng Yanhu International Airport,CN,Yuncheng (Yanhu),large_airport
+TYN,Taiyuan Wusu International Airport,CN,Taiyuan,large_airport
+RLK,Bayannur Tianjitai Airport,CN,Bayannur,medium_airport
+ZQZ,Zhangjiakou Ningyuan Airport,CN,Zhangjiakou,medium_airport
+NZL,Zhalantun Genghis Khan Airport,CN,Zhalantun,medium_airport
+BHY,Beihai Fucheng Airport,CN,Beihai,medium_airport
+AEB,Baise (Bose) Bama Airport,CN,Baise (Tianyang),medium_airport
+CGD,Changde Taohuayuan Airport,CN,Changde (Dingcheng),medium_airport
+HJJ,Huaihua Zhijiang Airport,CN,Huaihua,medium_airport
+HCZ,Chenzhou Beihu Airport,CN,Chenzhou,medium_airport
+DYG,Zhangjiajie Hehua International Airport,CN,Zhangjiajie (Yongding),large_airport
+FUO,Foshan Shadi Airport,CN,Foshan (Nanhai),medium_airport
+CAN,Guangzhou Baiyun International Airport,CN,Guangzhou (Huadu),large_airport
+CSX,Changsha Huanghua International Airport,CN,Changsha (Changsha),large_airport
+HCJ,Hechi Jinchengjiang Airport,CN,Hechi (Jinchengjiang),medium_airport
+HUZ,Huizhou Pingtan Airport,CN,Huizhou (Pingtan),medium_airport
+KWL,Guilin Liangjiang International Airport,CN,Guilin (Lingui),large_airport
+LLF,Yongzhou Lingling Airport,CN,Yongzhou,medium_airport
+NNG,Nanning Wuxu International Airport,CN,Nanning (Jiangnan),large_airport
+SWA,Jieyang Chaoshan International Airport,CN,Jieyang (Rongcheng),large_airport
+ZUH,Zhuhai Jinwan Airport,CN,Zhuhai (Jinwan),large_airport
+WGN,Shaoyang Wugang Airport,CN,Shaoyang (Wugang),medium_airport
+SZX,Shenzhen Bao'an International Airport,CN,Shenzhen,large_airport
+WUZ,Wuzhou Xijiang Airport,CN,Tangbu,medium_airport
+YLX,Yulin Fumian Airport,CN,Yulin,medium_airport
+YYA,Yueyang Sanhe Airport,CN,Yueyang (Yueyanglou),medium_airport
+LZH,Liuzhou Bailian Airport / Bailian Air Base,CN,Liuzhou (Liujiang),medium_airport
+ZHA,Zhanjiang Wuchuan International Airport,CN,Zhanjiang,large_airport
+CGO,Zhengzhou Xinzheng International Airport,CN,Zhengzhou,large_airport
+EHU,Ezhou Huahu International Airport,CN,Ezhou,large_airport
+ENH,Enshi Xujiaping Airport,CN,Enshi (Enshi),medium_airport
+WUH,Wuhan Tianhe International Airport,CN,Wuhan (Huangpi),large_airport
+SHS,Jingzhou Shashi Airport,CN,Jingzhou (Shashi),medium_airport
+LYA,Luoyang Beijiao Airport,CN,Luoyang (Laocheng),large_airport
+HPG,Shennongjia Hongping Airport,CN,Shennongjia (Hongping),medium_airport
+WDS,Shiyan Wudangshan Airport,CN,Shiyan (Maojian),medium_airport
+XFN,Xiangyang Liuji Airport,CN,Xiangyang (Xiangzhou),medium_airport
+XAI,Xinyang Minggang Airport,CN,Xinyang,medium_airport
+YIH,Yichang Sanxia Airport,CN,Yichang (Xiaoting),medium_airport
+HAK,Haikou Meilan International Airport,CN,Haikou (Meilan),large_airport
+BAR,Qionghai Bo'ao Airport,CN,Qionghai (Basuo),medium_airport
+SYX,Sanya Phoenix International Airport,CN,Sanya (Tianya),large_airport
+RGO,Orang (Chongjin) Airport,KP,Hoemun-ri,medium_airport
+FNJ,Pyongyang Sunan International Airport,KP,Pyongyang,large_airport
+DSO,Sondok Airport,KP,Sŏndŏng-ni,medium_airport
+WOS,Wonsan Kalma Airport,KP,Wonsan,medium_airport
+DNH,Dunhuang Mogao International Airport,CN,Dunhuang,large_airport
+HXD,Haixi Delingha Airport,CN,Delingha,medium_airport
+GMQ,Golog Maqên Airport,CN,Golog (Maqên),medium_airport
+GOQ,Golmud Airport,CN,Golmud,medium_airport
+GYU,Guyuan Liupanshan Airport,CN,Guyuan (Yuanzhou),medium_airport
+HTT,Huatugou Airport,CN,Mengnai,medium_airport
+HZG,Hanzhong Chenggu Airport,CN,Hanzhong (Chenggu),medium_airport
+INC,Yinchuan Hedong International Airport,CN,Yinchuan,large_airport
+JIC,Jinchang Jinchuan Airport,CN,Jinchang,medium_airport
+JGN,Jiayuguan International Airport,CN,Jiayuguan,large_airport
+LHW,Lanzhou Zhongchuan International Airport,CN,Lanzhou (Yongdeng),large_airport
+LNL,Longnan Chengzhou Airport,CN,Longnan (Cheng),medium_airport
+IQN,Qingyang Xifeng Airport,CN,Qingyang (Xifeng),medium_airport
+THQ,Tianshui Maijishan Airport,CN,Tianshui (Maiji),medium_airport
+GXH,Gannan Xiahe Airport,CN,Gannan (Xiahe),medium_airport
+XNN,Xining Caojiabao International Airport,CN,Haidong (Huzhu Tu Autonomous County),large_airport
+XIY,Xi'an Xianyang International Airport,CN,Xi'an,large_airport
+ENY,Yan'an Nanniwan Airport,CN,Yan'an (Baota),medium_airport
+UYN,Yulin Yuyang Airport,CN,Yulin,medium_airport
+YUS,Yushu Batang Airport,CN,Yushu (Batang),medium_airport
+ZHY,Zhongwei Shapotou Airport,CN,Zhongwei (Shapotou),medium_airport
+YZY,Zhangye Ganzhou Airport,CN,Zhangye (Ganzhou),medium_airport
+AVK,Arvaikheer Airport,MN,Arvaikheer,medium_airport
+LTI,Altai Airport,MN,Altai,medium_airport
+BYN,Bayankhongor Airport,MN,Bayankhongor,medium_airport
+UGA,Bulgan Airport,MN,Bulgan,medium_airport
+COQ,Choibalsan Airport,MN,,medium_airport
+UBN,Ulaanbaatar Chinggis Khaan International Airport,MN,Ulaanbaatar (Sergelen),large_airport
+DLZ,Dalanzadgad Airport,MN,Dalanzadgad,medium_airport
+HVD,Khovd Airport,MN,Khovd,medium_airport
+MXV,Mörön Airport,MN,Mörön,medium_airport
+ULO,Ulaangom Airport,MN,Ulaangom,medium_airport
+ULG,Ölgii Mongolei International Airport,MN,Ölgii,medium_airport
+BSD,Baoshan Yunrui Airport,CN,Baoshan (Longyang),medium_airport
+CWJ,Cangyuan Washan Airport,CN,Lincang (Cangyuan),medium_airport
+DLU,Dali Fengyi Airport,CN,Dali (Xiaguan),medium_airport
+DIG,Diqing Shangri-La Airport,CN,Diqing (Shangri-La),medium_airport
+JHG,Xishuangbanna Gasa International Airport,CN,Jinghong (Gasa),large_airport
+JMJ,Lancang Jingmai Airport,CN,Pu'er (Lancang),medium_airport
+LNJ,Lincang Boshang Airport,CN,Lincang,medium_airport
+LJG,Lijiang Sanyi International Airport,CN,Lijiang,large_airport
+LUM,Dehong Mangshi International Airport,CN,Dehong (Mangshi),medium_airport
+KMG,Kunming Changshui International Airport,CN,Kunming,large_airport
+XMN,Xiamen Gaoqi International Airport,CN,Xiamen,large_airport
+AQG,Anqing Tianzhushan Airport / Anqing North Air Base,CN,Anqing,medium_airport
+CZX,Changzhou Benniu International Airport,CN,Changzhou,medium_airport
+KHN,Nanchang Changbei International Airport,CN,Nanchang,large_airport
+DOY,Dongying Shengli Airport,CN,Dongying (Kenli),medium_airport
+FUG,Fuyang Xiguan Airport,CN,"Yingzhou, Fuyang",medium_airport
+FOC,Fuzhou Changle International Airport,CN,Fuzhou (Changle),large_airport
+HGH,Hangzhou Xiaoshan International Airport,CN,Hangzhou,large_airport
+HZA,Heze Mudan Airport,CN,Heze (Dingtao),medium_airport
+JDZ,Jingdezhen Luojia Airport,CN,Jingdezhen,medium_airport
+JNG,Jining Da'an Airport,CN,Jining,medium_airport
+TNA,Jinan Yaoqiang International Airport,CN,Jinan (Licheng),large_airport
+JUZ,Quzhou Airport,CN,Quzhou (Kezheng),medium_airport
+LYG,Lianyungang Huaguoshan International Airport,CN,Lianyungang,large_airport
+LCX,Liancheng Guanzhishan Airport,CN,Longyan (Liancheng),medium_airport
+HYN,Taizhou Luqiao Airport,CN,Taizhou (Luqiao),medium_airport
+LYI,Linyi Qiyang Airport,CN,Linyi (Hedong),medium_airport
+NGB,Ningbo Lishe International Airport,CN,Ningbo,large_airport
+NKG,Nanjing Lukou International Airport,CN,Nanjing,large_airport
+NTG,Nantong Xingdong International Airport,CN,Nantong (Tongzhou),medium_airport
+HFE,Hefei Xinqiao International Airport,CN,Hefei,large_airport
+PVG,Shanghai Pudong International Airport,CN,Shanghai (Pudong),large_airport
+TAO,Qingdao Jiaodong International Airport,CN,Qingdao (Jiaozhou),large_airport
+JJN,Quanzhou Jinjiang International Airport,CN,Quanzhou,large_airport
+RIZ,Rizhao Shanzihe Airport,CN,Rizhao (Donggang),medium_airport
+HIA,Huai'an Lianshui Airport,CN,Huai'an,large_airport
+SQJ,Sanming Shaxian Airport,CN,Sanming (Sha),medium_airport
+SQD,Shangrao Sanqingshan Airport,CN,Shangrao (Hengfeng),medium_airport
+SHA,Shanghai Hongqiao International Airport,CN,Shanghai (Minhang),large_airport
+TXN,Huangshan Tunxi International Airport,CN,Huangshan,large_airport
+WHA,Wuhu Xuanzhou Airport,CN,Wuhu,medium_airport
+WEF,Weifang Nanyuan Airport,CN,Weifang (Kuiwen),medium_airport
+WEH,Weihai Dashuibo Airport,CN,Weihai,medium_airport
+WUX,Sunan Shuofang International Airport,CN,Wuxi,large_airport
+WUS,Nanping Wuyishan Airport,CN,Wuyishan,medium_airport
+WNZ,Wenzhou Longwan International Airport,CN,Wenzhou (Longwan),large_airport
+XUZ,Xuzhou Guanyin International Airport,CN,Xuzhou,medium_airport
+YTY,Yangzhou Taizhou Airport,CN,Yangzhou,medium_airport
+YIC,Yichun Mingyueshan Airport,CN,Yichun,medium_airport
+YNZ,Yancheng Nanyang International Airport,CN,Yancheng (Tinghu),large_airport
+YNT,Yantai Penglai International Airport,CN,Yantai,large_airport
+YIW,Yiwu Airport,CN,Yiwu/Jinhua,large_airport
+HSN,Zhoushan Putuoshan International Airport,CN,Zhoushan,large_airport
+NGQ,Ngari Gunsa Airport,CN,Shiquanhe,medium_airport
+AVA,Anshun Huangguoshu Airport,CN,Anshun (Xixiu),medium_airport
+BPX,Qamdo Bangda Airport,CN,Bangda,medium_airport
+BFJ,Bijie Feixiong Airport,CN,Bijie,medium_airport
+CKG,Chongqing Jiangbei International Airport,CN,Chongqing,large_airport
+DZH,Dazhou Jinya Airport,CN,Dazhou (Dachuan),medium_airport
+DCY,Daocheng Yading Airport,CN,Garzê (Daocheng),medium_airport
+GYS,Guangyuan Panlong Airport,CN,Guangyuan (Lizhou),medium_airport
+KWE,Guiyang Longdongbao International Airport,CN,Guiyang (Nanming),large_airport
+JZH,Jiuzhai Huanglong Airport,CN,Ngawa (Songpan),medium_airport
+KGT,Kangding Airport,CN,Garzê (Kangding),medium_airport
+KJH,Kaili Huangping Airport,CN,Kaili  (Huangping),medium_airport
+LXA,Lhasa Gonggar International Airport,CN,Shannan (Gonggar),large_airport
+LZO,Luzhou Yunlong Airport,CN,Luzhou (Yunlong),medium_airport
+WMT,Zunyi Maotai Airport,CN,Zunyi,medium_airport
+MIG,Mianyang Nanjiao Airport,CN,Mianyang (Fucheng),medium_airport
+HZH,Liping Airport,CN,Liping,medium_airport
+LZY,Nyingchi Mainling Airport,CN,Nyingchi (Mainling),medium_airport
+LPF,Liupanshui Yuezhao Airport,CN,Liupanshui (Zhongshan),medium_airport
+JIQ,Qianjiang Wulingshan Airport,CN,Qianjiang,medium_airport
+RKZ,Xigaze Peace Airport / Shigatse Air Base,CN,Xigazê (Samzhubzê),large_airport
+TCZ,Tengchong Tuofeng Airport,CN,Baoshan (Tengchong),medium_airport
+TFU,Chengdu Tianfu International Airport,CN,Chengdu (Jianyang),large_airport
+TEN,Tongren Fenghuang Airport,CN,Tongren (Daxing),medium_airport
+CTU,Chengdu Shuangliu International Airport,CN,Chengdu (Shuangliu),large_airport
+CQW,Chongqing Xiannüshan Airport,CN,Wulong,medium_airport
+XIC,Xichang Qingshan Airport,CN,Liangshan (Xichang),medium_airport
+YBP,Yibin Wuliangye Airport,CN,Yibin (Cuiping),medium_airport
+ACX,Xingyi Wanfenglin Airport,CN,Xingyi,medium_airport
+PZI,Panzhihua Bao'anying Airport,CN,Panzhihua (Renhe),medium_airport
+ZYI,Zunyi Xinzhou Airport,CN,Zunyi,medium_airport
+AKU,Aksu Hongqipo Airport,CN,Aksu (Onsu),medium_airport
+AAT,Altay Xuedu Airport,CN,Altay,medium_airport
+BPL,Bole Alashankou Airport,CN,Bole,medium_airport
+IQM,Qiemo Yudu Airport,CN,Qiemo,medium_airport
+FYN,Fuyun Koktokay Airport,CN,Fuyun,medium_airport
+HMI,Hami Airport,CN,Hami,medium_airport
+KRL,Korla Licheng Airport,CN,Korla,medium_airport
+KJI,Burqin Kanas Airport,CN,Burqin,medium_airport
+NLT,Xinyuan Nalati Airport,CN,Xinyuan,medium_airport
+RQA,Ruoqiang Loulan Airport,CN,Ruoqiang Town,medium_airport
+QSZ,Shache Airport,CN,Shache,medium_airport
+KHG,Kashgar Laining International Airport,CN,Kashgar,large_airport
+TLQ,Turpan Jiaohe Airport,CN,Turpan,medium_airport
+HTN,Hotan Airport,CN,Hotan,medium_airport
+URC,Ürümqi Tianshan International Airport,CN,Ürümqi,large_airport
+YIN,Ili Yining International Airport,CN,Ili (Yining / Ghulja),medium_airport
+AOG,Anshan Teng'ao Airport / Anshan Air Base,CN,Anshan,medium_airport
+DBC,Baicheng Chang'an Airport,CN,Baicheng,medium_airport
+NBS,Changbaishan Airport,CN,Baishan,medium_airport
+CGQ,Changchun Longjia International Airport,CN,Changchun,large_airport
+CHG,Chaoyang Airport,CN,"Shuangta, Chaoyang",medium_airport
+DDG,Dandong Langtou International Airport,CN,Dandong (Zhenxing),medium_airport
+DTU,Wudalianchi Dedu Airport,CN,Heihe,medium_airport
+FYJ,Fuyuan Dongji Airport,CN,Fuyuan,medium_airport
+HRB,Harbin Taiping International Airport,CN,Harbin,large_airport
+HEK,Heihe Aihui Airport,CN,Heihe,medium_airport
+JGD,Daxing'anling Elunchun Airport,CN,Jiagedaqi,medium_airport
+JMU,Jiamusi Songjiang International Airport,CN,Jiamusi,medium_airport
+JSJ,Jiansanjiang Shidi Airport,CN,Jiansanjiang,medium_airport
+JXA,Jixi Xingkaihu Airport,CN,Jixi,medium_airport
+JNZ,Jinzhou Bay Airport,CN,Jinzhou (Linghai),medium_airport
+LDS,Yichun Lindu Airport,CN,Yichun,medium_airport
+MDG,Mudanjiang Hailang International Airport,CN,Mudanjiang,medium_airport
+OHE,Mohe Gulian Airport,CN,Mohe,medium_airport
+NDG,Qiqihar Sanjiazi Airport,CN,Qiqihar,large_airport
+YSQ,Songyuan Chaganhu Airport,CN,Qian Gorlos Mongol Autonomous County,medium_airport
+DLC,Dalian Zhoushuizi International Airport,CN,Dalian (Ganjingzi),large_airport
+TNH,Tonghua Sanyuanpu Airport,CN,Tonghua,medium_airport
+SHE,Shenyang Taoxian International Airport,CN,Shenyang,large_airport
+YNJ,Yanji Chaoyangchuan Airport,CN,Yanji,medium_airport
+YKH,Yingkou Lanqi Airport,CN,Yingkou (Laobian),medium_airport

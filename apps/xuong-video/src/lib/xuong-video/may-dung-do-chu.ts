@@ -11,32 +11,18 @@ export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string
 export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, LO = 0.6, T_KET = T_LO + LO + 1.2, DAI = T_KET + 2.7;
 const W = 1080, H = 1920, DO = '#E5484D';
 /** Cỡ chữ ASS (\\fs) tính theo chiều cao dòng, cỡ CSS của bản cũ tính theo em → nhân hệ số này để chữ ra cùng cỡ (đo 16/10/2026 trên khung so). */
+import { alpha, bo, chu, mauAss, ms, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+export { mauAss };
+
 const EM = 1.25;
 const fs = (px: number) => `\\fs${Math.round(px * EM)}`;
 
-/** '#RRGGBB' → màu ASS '&H00BBGGRR&' (ASS ghi BGR). */
-export function mauAss(hex: string): string {
-  const h = hex.replace('#', '').padEnd(6, '0').slice(0, 6).toUpperCase();
-  return `&H00${h.slice(4, 6)}${h.slice(2, 4)}${h.slice(0, 2)}&`;
-}
-/** Độ đục 0..1 → alpha ASS (00 = đục hẳn, FF = trong suốt). */
-const alpha = (duc: number) => `&H${Math.round((1 - Math.min(1, Math.max(0, duc))) * 255).toString(16).padStart(2, '0').toUpperCase()}&`;
 /** Trộn hai màu hex theo tỉ lệ t (0 = a, 1 = b) — dải nền sáng/tối từ màu bìa như color-mix của bản cũ. */
 export function tron(a: string, b: string, t: number): string {
   const p = (x: string) => [1, 3, 5].map((i) => parseInt(x.replace('#', '').padEnd(6, '0').slice(i - 1, i + 1), 16));
   const [x, y] = [p(a), p(b)];
   return `#${x.map((v, i) => Math.round(v + (y[i]! - v) * t).toString(16).padStart(2, '0')).join('')}`;
 }
-const tg = (s: number) => { const c = Math.max(0, Math.round(s * 100)); return `${Math.floor(c / 360000)}:${String(Math.floor(c / 6000) % 60).padStart(2, '0')}:${String(Math.floor(c / 100) % 60).padStart(2, '0')}.${String(c % 100).padStart(2, '0')}`; };
-const ms = (s: number) => Math.round(s * 1000);
-const chu = (s: string) => s.replace(/[{}\\]/g, '');
-/** Hình chữ nhật bo góc (ASS drawing, gốc 0,0) — đặt bằng \an5\pos(tâm) để phóng/thu quanh tâm. */
-function bo(w: number, h: number, r: number): string {
-  const R = Math.min(r, w / 2, h / 2), k = Math.round(R * 0.4477 * 10) / 10;   // 1 − 0,5523: điểm điều khiển bezier xấp xỉ cung 1/4 tròn
-  return `m ${R} 0 l ${w - R} 0 b ${w - k} 0 ${w} ${k} ${w} ${R} l ${w} ${h - R} b ${w} ${h - k} ${w - k} ${h} ${w - R} ${h} l ${R} ${h} b ${k} ${h} 0 ${h - k} 0 ${h - R} l 0 ${R} b 0 ${k} ${k} 0 ${R} 0`;
-}
-
-type Dong = [lop: number, tu: number, den: number, kieu: 'Ve' | 'Den' | 'Chu', text: string];
 
 /** Bố cục ô chữ: 4 cột x 9 hàng cho từ ≤ 6 chữ, 3 x 12 cho từ dài hơn; cỡ chữ theo bề rộng ô (Archivo Black ~0,8 em/chữ) — y bản cũ. */
 export function luoi(de: DeMotDung) {
@@ -46,7 +32,7 @@ export function luoi(de: DeMotDung) {
 }
 
 export function assMotDung(de: DeMotDung): string {
-  const M = de.mau, L = luoi(de), d: Dong[] = [];
+  const M = de.mau, L = luoi(de), d: DongAss[] = [];
   const nay = (tu: number, tuX: number, den = 0.5) => `\\fscx${tuX}\\fscy${tuX}\\t(${ms(tu)},${ms(tu + den)},0.5,\\fscx100\\fscy100)`;
   // nền chưa có ảnh: vết sáng giữa trên (dải radial lo ở ffmpeg) — có ảnh thì phủ một lớp màu bìa mỏng ở ffmpeg, ở đây không vẽ gì
   // khối tiêu đề
@@ -86,16 +72,7 @@ export function assMotDung(de: DeMotDung): string {
   d.push([13, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1000)\\fnAtkinson Hyperlegible\\b1${fs(60)}\\1c&H111111&${fad}}Comment YES or NO`]);
   d.push([12, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1180)\\fnAtkinson Hyperlegible\\b1${fs(52)}\\1c${mauAss(M.truoc)}${fad}}Free large print puzzles to print:`]);
   d.push([12, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1250)\\fnAtkinson Hyperlegible\\b1${fs(54)}\\1c${mauAss(M.nhan)}${fad}}pickjot.com/printables`]);
-  return [
-    '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 2', 'ScaledBorderAndShadow: yes', '',
-    '[V4+ Styles]',
-    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    'Style: Ve,Arial,20,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1',
-    'Style: Den,Archivo Black,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1',
-    'Style: Chu,Atkinson Hyperlegible,48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1',
-    '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
-    ...d.map(([lop, tu, den, kieu, text]) => `Dialogue: ${lop},${tg(tu)},${tg(den)},${kieu},,0,0,0,,${text}`), '',
-  ].join('\n');
+  return rapAss(W, H, d, { chuDam: true });
 }
 
 /** Tiếng: tích mỗi giây lúc đếm, tích dồn 3 giây cuối, "ting" lúc lộ — sinh bằng ffmpeg, không file nhạc (khỏi bản quyền). Y bản cũ (SO_LO = 1). */
@@ -114,8 +91,7 @@ export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null;
   const nen = o.nen
     ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},zoompan=z='1+0.06*on/${khung}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},lutyuv=y=val*0.7,vignette=angle=PI/4`   // tối đi bằng ĐỘ SÁNG (kênh Y), giữ màu: drawbox có alpha trên YUV trộn cả kênh màu về xám — lớp đen 30% đã làm ảnh gần như đơn sắc (đo 16/10/2026)
     : '[0:v]null';
-  const assEsc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
-  const loc = `${nen},ass='${assEsc(o.ass)}':fontsdir='${assEsc(o.fontsDir)}',format=yuv420p[v]`;
+  const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${AM}':s=44100:d=${DAI}`,
     '-filter_complex', loc,

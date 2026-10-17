@@ -16,8 +16,12 @@ import path from 'node:path';
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'long';
 const REPO = path.join(os.homedir(), 'Me/Earns/hotel-arb'), SITES = path.join(REPO, 'scripts/sites'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 45;
 const HOST = /^https:\/\/(www\.)?ratesbyroom\.com(\/[^?#]*)/, DIST = 'dist-ratesbyroom';
-const QUYEN = ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash(python3 build-hr.py:*)', 'Bash(python3 sm_theme_rbr.py:*)', 'Bash(python3 sm_hosts.py:*)',
+// QUYỀN: sửa / ghi CHỈ trong repo hotel-arb (17/10/2026: quyền Edit không giới hạn đường dẫn → Long sửa ~/.claude/settings.json của anh).
+const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${REPO}/**)`, `Write(/${REPO}/**)`, 'Bash(python3 build-hr.py:*)', 'Bash(python3 sm_theme_rbr.py:*)', 'Bash(python3 sm_hosts.py:*)',
   'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git add:*)', 'Bash(git commit:*)'];
+const CAM = ['AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];   // Long không có ai để hỏi, không đi lạc sang việc khác
+// --setting-sources project,local: KHÔNG nạp ~/.claude/settings.json (hook Stop cá nhân của anh dành cho phiên chat). Có nạp thì mỗi lần Long dừng
+// bị hook chặn (787 lần trong một lượt 17/10, cộng hook ban-lui.py thiếu tệp trên iMac) → hết 45 phút mà gần như không làm gì.
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
 const thu = process.argv.includes('--thu');
 // ssh riêng mỗi lệnh (ControlPath=none): socket ghép kết nối gãy sau lượt Claude dài từng làm lệnh báo kết quả hỏng im lặng (17/10/2026); thử lại 3 lần
@@ -95,7 +99,8 @@ ${ds2(x.kq.giong)}
 
 VIỆC: đọc CLAUDE.md của repo, sửa mã dựng bài này theo mọi nhận xét và THƯỚC CHẤM bên dưới; dựng (python3 build-hr.py ratesbyroom.com — đang đứng ở
 scripts/sites); git add + git commit đúng tệp bạn sửa. KHÔNG deploy, KHÔNG push: bạn lưu nội bộ, Phòng Nội dung chấm bản dựng của bạn, duyệt thì máy
-tự đưa lên. Bạn chỉ được chạy các lệnh đó. Không đụng bài / host khác.
+tự đưa lên. Bạn chỉ được chạy các lệnh đó. Không đụng bài / host khác. Không đụng ~/.claude hay bất cứ thứ gì ngoài repo này;
+không có ai đọc câu trả lời giữa chừng nên đừng hỏi, đừng viết báo cáo dài: làm, commit, rồi in dòng KET.
 
 LUẬT: nội dung công khai tiếng Anh; không gạch ngang dài, không từ máy; không bịa số liệu, nghiên cứu, lời chứng thực, tên người thật.
 Ảnh: ảnh thật có quyền dùng hoặc hình minh hoạ tự dựng, <img> có alt. Video: chỉ nhúng video CÓ THẬT đúng chủ đề (ưu tiên video của mình có
@@ -109,7 +114,7 @@ if (thu) { console.log(`bài: ${x.url} · model ${model} · bản dựng ${tepDu
 
 kb(`--nhan ${q(x.url)} --nguoi ${NGUOI}`); log(`nhận ${x.url} · model ${model}`);
 const truoc = git('rev-parse', 'HEAD');
-const r = spawnSync(CLAUDE, ['-p', giao, '--model', model, '--output-format', 'json', '--allowedTools', ...QUYEN],
+const r = spawnSync(CLAUDE, ['-p', giao, '--model', model, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM],
   { cwd: SITES, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng */ }
 const u = kq.usage || {}, token = { vao: u.input_tokens || 0, ra: u.output_tokens || 0, cache_doc: u.cache_read_input_tokens || 0, cache_ghi: u.cache_creation_input_tokens || 0, gia_api_usd: kq.total_cost_usd || 0, model };

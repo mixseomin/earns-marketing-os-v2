@@ -27,11 +27,11 @@ voice-score đạt lần đầu ≥ 90%; không bài nào bị gỡ vì giọng.
 
 ## Được tự quyết
 
-Viết, sửa, nộp.
+Viết, sửa, nộp. DUYỆT bản nháp của xưởng (vd Long [Xưởng Aff]) = cho phép đưa đúng commit đó lên trang: máy trên iMac (apps/cty/may/long-sua-bai.mjs phần A, script cố định) dựng + deploy + push, và tôi báo cáo lên Telegram chủ đề 📝 Nội dung (🚀 đã đưa lên / ⚠️ lỗi).
 
 ## Phải hỏi
 
-Đăng (tôi không có tay).
+Đăng bài không qua hàng chờ duyệt (tôi không có tay; chỉ bản tôi DUYỆT mới được máy đưa lên).
 
 ## Cấm
 

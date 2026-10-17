@@ -49,13 +49,13 @@ export function soLuot(url, ds = docJson(XONG())) {
 export function moKhoa(url) { fs.mkdirSync(XONG(), { recursive: true }); fs.writeFileSync(path.join(XONG(), `${Date.now()}-mo.json`), JSON.stringify({ url, ket: 'MO_KHOA', luc: new Date().toISOString() })); }
 
 /** Nộp một bài vào hàng chờ. html = nội dung bản nháp (chưa lên trang) — có thì phòng chấm cái này, không tải url (url vẫn bắt buộc: vòng sửa đếm lượt theo url). */
-export function nopBai({ url, tu = 'Không rõ', html = null }) {
+export function nopBai({ url, tu = 'Không rõ', html = null, ban = null }) {
   if (!url) throw new Error('cần --nop <url> (bản nháp thì thêm --html <tệp>, url là trang đích)');
   const n = soLuot(url);
   if (n >= TRAN_LUOT) throw new Error(`${url} đã ${n}/${TRAN_LUOT} lượt chấm chưa DUYỆT — dừng vòng, chờ anh quyết (anh mở lại: --mo-khoa <url>)`);
   fs.mkdirSync(CHO(), { recursive: true });
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, luc: new Date().toISOString() }));
+  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, luc: new Date().toISOString() }));
   for (const x of docJson(TRA())) if (x.url === url) fs.rmSync(path.join(TRA(), `${x.id}.json`), { force: true });   // đã nộp lại = đã nhận việc sửa
   return id;
 }
@@ -158,6 +158,31 @@ export async function nhanSua(url, nguoi) {
   return x;
 }
 
+// ĐƯA LÊN SAU KHI DUYỆT (anh 17/10/2026: "Long là con claude nội bộ — nhận bài, xử lý, lưu nội bộ. Trưởng phòng Nội dung là AI bên ngoài, cho phép
+// commit (và cũng phải báo cáo)"): Long nộp BẢN NHÁP + mã commit nội bộ, không deploy. Ngọc DUYỆT bản đó → cho-dang/<id>.json; script cố định trên
+// máy của site (không phải mô hình) đưa đúng commit đó lên rồi báo `--da-dang` → tin Telegram dưới tên Ngọc. Bản chưa DUYỆT không bao giờ lên trang.
+const DANG = () => path.join(VP(), 'cho-dang');
+export const choDang = () => docJson(DANG());
+export async function daDang(id, ok, ghi = '') {
+  const f = path.join(DANG(), `${id}.json`); if (!fs.existsSync(f)) throw new Error(`không có bài chờ đưa lên ${id}`);
+  const x = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const { bao } = await tgNoiDung();
+  await bao(ok ? `🚀 <b>${esc(tenNguoi('ngoc'))}</b> đã cho đưa lên ${esc(x.url)} · bản ${esc(String(x.ban).slice(0, 8))} (${esc(tenNguoi(x.tu))} sửa)${ghi ? `\n${esc(ghi)}` : ''}\n${CTY_LINK}`
+    : `⚠️ <b>${esc(tenNguoi('ngoc'))}</b>: đưa ${esc(x.url)} lên KHÔNG được · bản ${esc(String(x.ban).slice(0, 8))}\nLý do: ${esc(ghi || 'không rõ')}\n${CTY_LINK}`, x.tin);
+  if (ok) fs.rmSync(f); else { x.loi = ghi; x.loi_luc = new Date().toISOString(); fs.writeFileSync(f, JSON.stringify(x, null, 1)); }
+  return x;
+}
+
+/** Người phụ trách không sửa trọn được (thiếu video thật, lỗi, quá giờ): đánh dấu dừng — máy không thử lại bài này — và báo Telegram. */
+export async function dungSua(url, nguoi, lyDo) {
+  const x = docJson(TRA()).find((v) => v.url === url && (!nguoi || v.phu_trach === nguoi));
+  if (!x) throw new Error(`không có bài chờ sửa ${url}`);
+  x.dung = String(lyDo || 'không rõ'); x.dung_luc = new Date().toISOString(); fs.writeFileSync(path.join(TRA(), `${x.id}.json`), JSON.stringify(x, null, 1));
+  const { bao } = await tgNoiDung();
+  await bao(`⚠️ <b>${esc(tenNguoi(x.phu_trach))}</b> dừng sửa ${esc(url)} · lượt ${x.luot}/${TRAN_LUOT}\nLý do: ${esc(x.dung)}\n${CTY_LINK}`, x.tin);
+  return x;
+}
+
 /** Nhịp (box3, Ngọc): xử mọi bài trong hàng chờ. env: TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
 export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi-dung' } = {}) {
   const cho = fs.existsSync(CHO()) ? fs.readdirSync(CHO()).filter((f) => f.endsWith('.json')).sort() : [];
@@ -177,6 +202,10 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     kq.diem = diemCuoi(kq, d); const ket = ketCuoi(kq, d), { chu, ...may } = d;
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinKiem({ tu: b.tu, url: b.url, kq, d, ket, ten }), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     fs.writeFileSync(path.join(XONG(), f), JSON.stringify({ ...b, html: undefined, kq, may, ket, tin: j.ok ? j.result.message_id : null, xong: new Date().toISOString() }, null, 1));
+    if (ket === 'DUYET' && b.ban) {
+      fs.mkdirSync(DANG(), { recursive: true }); fs.writeFileSync(path.join(DANG(), `${b.id}.json`), JSON.stringify({ id: b.id, url: b.url, tu: b.tu, ban: b.ban, tin: j.ok ? j.result.message_id : null, luc: new Date().toISOString() }, null, 1));
+      await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', reply_parameters: j.ok ? { message_id: j.result.message_id } : undefined, text: `✅ Duyệt bản ${esc(b.ban.slice(0, 8))} — máy đưa lên trang ở lượt kế (≤ 5 phút)` });
+    }
     const pt = phuTrach(b.url), luot = soLuot(b.url);
     if (ket !== 'DUYET') {
       const het = luot >= TRAN_LUOT, tenPt = pt ? tenNguoi(pt) : null;
@@ -216,14 +245,17 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
   }
   if (lay('--mo-khoa')) { moKhoa(lay('--mo-khoa')); console.log(`đã mở khoá ${lay('--mo-khoa')} — được thêm ${TRAN_LUOT} lượt`); }
   if (lay('--nhan')) { const x = await nhanSua(lay('--nhan'), lay('--nguoi')); console.log(`đã nhận sửa ${x.url} (lượt ${x.luot}/${TRAN_LUOT}) — đã báo Telegram`); }
+  if (a.includes('--cho-dang')) console.log(JSON.stringify(choDang().filter((x) => !x.loi)));
+  if (lay('--da-dang')) { await daDang(lay('--da-dang'), lay('--ket') === 'ok', lay('--ghi') || ''); console.log(`đã báo ${lay('--da-dang')}`); }
+  if (lay('--dung')) { await dungSua(lay('--dung'), lay('--nguoi'), lay('--ly-do')); console.log(`đã báo dừng ${lay('--dung')}`); }
   if (a.includes('--tra-ve')) {   // việc sửa đang chờ người phụ trách: node worker/kiem-bai.mjs --tra-ve [lan]
     const ai = lay('--tra-ve'), ds = docJson(TRA()).filter((x) => !ai || ai.startsWith('--') || x.phu_trach === ai);
-    console.log(ds.length ? ds.map((x) => `${x.url} · ${x.phu_trach} · lượt ${x.luot}/${TRAN_LUOT} · ${x.ket}\n  thiếu: ${x.kq.thieu.join(' | ') || '-'}\n  thừa: ${x.kq.thua.join(' | ') || '-'}\n  giọng: ${x.kq.giong.join(' | ') || '-'}`).join('\n') : 'không có bài nào chờ sửa');
+    if (a.includes('--json')) console.log(JSON.stringify(ds)); else console.log(ds.length ? ds.map((x) => `${x.url} · ${x.phu_trach} · lượt ${x.luot}/${TRAN_LUOT} · ${x.ket}\n  thiếu: ${x.kq.thieu.join(' | ') || '-'}\n  thừa: ${x.kq.thua.join(' | ') || '-'}\n  giọng: ${x.kq.giong.join(' | ') || '-'}`).join('\n') : 'không có bài nào chờ sửa');
   }
   if (lay('--nop') != null || lay('--html') != null) {
-    const html = lay('--html') ? fs.readFileSync(lay('--html'), 'utf8') : null;
+    const html = lay('--html') ? fs.readFileSync(lay('--html') === '-' ? 0 : lay('--html'), 'utf8') : null;   // '-' = đọc từ stdin (máy Mac đẩy bản nháp qua ssh)
     const url = lay('--nop') || '', tu = lay('--tu') || 'Không rõ', luot = soLuot(url);
-    console.log(`đã nộp ${nopBai({ url, tu, html })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
+    console.log(`đã nộp ${nopBai({ url, tu, html, ban: lay('--ban') })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
     if (luot) { const { bao } = await tgNoiDung().catch(() => ({})); await bao?.(`📤 <b>${esc(tenNguoi(tu))}</b> nộp lại ${esc(url)} · lượt ${luot + 1}/${TRAN_LUOT}\n${CTY_LINK}`); }
   }
 }

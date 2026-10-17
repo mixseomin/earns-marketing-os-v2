@@ -1,0 +1,23 @@
+{
+ "_": "Quy trình máy chạy của Xưởng Aff.",
+ "phong": "xuong-aff",
+ "quy_trinh": [
+  {
+   "id": "sua-bai",
+   "ten": "Sửa bài Phòng Nội dung trả về",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Bài Ngọc DUYỆT → script cố định đưa đúng commit đó lên ratesbyroom và Ngọc báo cáo; bài bị trả về → Long (Claude Code, quyền hẹp, không deploy) sửa, commit nội bộ, nộp bản nháp. Trần 3 lượt, không xong thì báo dừng.",
+   "ma": "apps/cty/may/long-sua-bai.mjs",
+   "chu_tri": "long",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 5 phút",
+   "lich": [
+    "iMac:tc.on.cty.long-sua-bai"
+   ],
+   "chi_phi": "gói thuê bao Claude Code; token mỗi lượt ghi nhật ký Long"
+  }
+ ]
+}

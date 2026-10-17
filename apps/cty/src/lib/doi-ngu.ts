@@ -85,7 +85,7 @@ export type Nguoi = { id: string; ten: string; phong: string; phongTen: string; 
  *  (2) phương án rẻ: model rẻ nhất mà vẫn hơn bộ não hiện tại ≥ 5 điểm (5 điểm ≈ biên sai số của bộ đo). */
 export function deXuatCho(model: string, vai: Vai, k: KetDo | null, tc: Record<string, number> = {}, td: TacDung[] = []): DeXuat {
   const cur = k?.theo_vai[vai]?.[model];
-  if (!k || !cur) return { muc: 'chua-do', them: [], chu: model === 'claude-code' ? 'Chưa đo: chạy bằng Claude Code (gói thuê bao), không gọi qua proxy nên chưa có trong bộ đo' : `Chưa đo bộ não ${tenModel(model)}` };
+  if (!k || !cur) return { muc: 'chua-do', them: [], chu: model?.startsWith('claude-code') ? 'Chưa đo: chạy bằng Claude Code (gói thuê bao), không gọi qua proxy nên chưa có trong bộ đo' : `Chưa đo bộ não ${tenModel(model)}` };
   const them = canhBao(vai, cur);
   // tính cách đã đo ra chênh THẬT (p < 0,05) cho đúng bộ não + vai này mà người chưa đặt tới mức đó
   for (const x of td) if (x.model === model && x.vai === vai && x.p < 0.05 && x.chenh > 0 && (tc[x.chi_so] ?? 0) < x.muc)

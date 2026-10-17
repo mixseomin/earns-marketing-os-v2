@@ -398,7 +398,7 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** món đã bị CHIA thành bấy nhiêu mảnh (kẹo bẻ đôi = 2): Blender dựng từng mảnh, đang cầm thì chỉ mảnh của người cầm; một khi đã chia thì
      *  shot sau không được nguyên lại (bo-set-3d.ts › lienMachTap) — và tự mang theo khi món bị để lại (mayDayDu) */ chia?: number;
     /** ĐIỂM tác động trên món đó (cm) khi món lớn (dấu tay ở góc trước đế cắm, không phải tâm đế cắm) — cổng đo hướng nhìn tới điểm này */ lam_o?: number[];
-    nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean; /** vết bẩn DÁN 3D trên người (dung-set.py › VET, vd 'ca_phe_nguc') — có từ đầu shot / chỉ ở khung kết; chữ tả vết vẫn ở sổ người (vet, trang) */ vet_3d?: string[]; vet_3d_den?: string[] }[];
+    nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
   /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ
    *  lần cuối thấy nó kết (bo-set-3d.ts › lienMachTap) */ nhay?: string;
   /** đồ TUỲ CHỌN của bộ set có mặt ở shot này (vd ['MacBook Pro']) — không khai = vắng */ them?: string[];

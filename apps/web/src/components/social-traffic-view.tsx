@@ -14,11 +14,12 @@ import { SocialTrucTiep } from '@/components/social-truc-tiep';
 
 type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'trang' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
-  { key: 'tong', label: 'Tổng quan' }, { key: 'goc', label: 'Góc' }, { key: 'sx', label: 'Sản xuất' },
-  { key: 'kenh', label: 'Kênh' }, { key: 'trang', label: 'Trực tiếp' }, { key: 'tien', label: 'Sổ tiền' },
+  // Icon trước chữ (card #1407, YDNI "trực quan trước chữ"): nhận ra mục bằng mắt, chữ để xác nhận.
+  { key: 'tong', label: '📊 Tổng quan' }, { key: 'goc', label: '🎯 Góc' }, { key: 'sx', label: '🎬 Sản xuất' },
+  { key: 'kenh', label: '📺 Kênh' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
 ];
-const TT_GOC = { chua: ['var(--fg-3)', 'Chưa làm'], dang: ['var(--accent)', 'Đang thử'], thang: ['var(--ok)', 'Ra tiền'], chet: ['var(--bad)', 'Dừng'] } as const;
-const TT_KENH = { song: ['var(--ok)', 'Sống'], co: ['var(--warn)', 'Dính cờ'], khoa: ['var(--bad)', 'Bị khoá'], dung: ['var(--fg-3)', 'Đã cắt'] } as const;
+const TT_GOC = { chua: ['var(--fg-3)', '○ Chưa làm'], dang: ['var(--accent)', '🧪 Đang thử'], thang: ['var(--ok)', '💰 Ra tiền'], chet: ['var(--bad)', '⏹ Dừng'] } as const;
+const TT_KENH = { song: ['var(--ok)', '✅ Sống'], co: ['var(--warn)', '🚩 Dính cờ'], khoa: ['var(--bad)', '🔒 Bị khoá'], dung: ['var(--fg-3)', '✂️ Đã cắt'] } as const;
 const so = (n: number) => Math.round(n).toLocaleString('vi-VN');
 const usd = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n) < 100 ? Math.abs(n).toFixed(2) : so(Math.abs(n))}`;
 const trungVi = (a: number[]) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? (s[m] ?? 0) : ((s[m - 1] ?? 0) + (s[m] ?? 0)) / 2; };
@@ -30,7 +31,7 @@ const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang 
 const LO_HIEN = 12;
 
 export function SocialTrafficView({ live }: { live: SocialLive }) {
-  const [cheDo, setCheDo] = useShallowParam('stm', 'demo');
+  const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const [muc, setMuc] = useShallowParam('sts', 'tong');
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   const laLive = cheDo === 'live';
@@ -59,12 +60,12 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   // dải luồng: bấm một chặng = sang mục chứa chặng đó (DaiLuong chuẩn nhà, cùng khuôn /shop)
   const CHANG: Record<string, Muc> = { goc: 'goc', sx: 'sx', dang: 'kenh', xem: 'kenh', site: 'trang', hh: 'tien' };
   const nut: NutLuong[] = [
-    { key: 'goc', nhan: 'Góc từ spy', so: d.goc.length, phuDe: `${d.goc.filter((g) => g.tt !== 'chua').length} đã làm` },
-    { key: 'sx', nhan: 'Đang sản xuất', so: d.lo.length, phuDe: d.lo.length && !laLive ? usd(d.lo.length * gia.video) : undefined },
-    { key: 'dang', nhan: 'Đã đăng', so: t.video, phuDe: `${t.kSong.length} kênh sống` },
-    { key: 'xem', nhan: 'Lượt xem', so: t.xem, phuDe: `trung vị ${so(trungVi(d.kenh.map((k) => k.trungViXem)))}` },
-    { key: 'site', nhan: 'Về site aff', so: t.click, phuDe: t.xem ? `${((t.click / t.xem) * 100).toFixed(2)}%` : undefined },
-    { key: 'hh', nhan: laLive ? 'Bán 30 ngày $' : 'Hoa hồng $', so: Math.round(t.hh), phuDe: laLive ? `${so(t.don)} đơn` : d.kenh.length ? `lãi ${usd(t.lai)}` : undefined },
+    { key: 'goc', nhan: 'Góc từ spy', icon: '🎯', so: d.goc.length, phuDe: `${d.goc.filter((g) => g.tt !== 'chua').length} đã làm` },
+    { key: 'sx', nhan: 'Đang sản xuất', icon: '🎬', so: d.lo.length, phuDe: d.lo.length && !laLive ? usd(d.lo.length * gia.video) : undefined },
+    { key: 'dang', nhan: 'Đã đăng', icon: '📤', so: t.video, phuDe: `${t.kSong.length} kênh sống` },
+    { key: 'xem', nhan: 'Lượt xem', icon: '👁', so: t.xem, phuDe: `trung vị ${so(trungVi(d.kenh.map((k) => k.trungViXem)))}` },
+    { key: 'site', nhan: 'Về site aff', icon: '🔗', so: t.click, phuDe: t.xem ? `${((t.click / t.xem) * 100).toFixed(2)}%` : undefined },
+    { key: 'hh', nhan: laLive ? 'Bán 30 ngày $' : 'Hoa hồng $', icon: '💵', so: Math.round(t.hh), phuDe: laLive ? `${so(t.don)} đơn` : d.kenh.length ? `lãi ${usd(t.lai)}` : undefined },
   ];
   const changDang = Object.keys(CHANG).find((k) => CHANG[k] === muc && k !== 'xem') ?? '';
 
@@ -101,7 +102,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const cotGoc: DataColumn<StGoc>[] = [
     { key: 'ten', header: 'Góc', align: 'left', sortValue: (g) => g.ten, cell: (g) => (
       <span style={{ display: 'grid', gap: 1 }}>
-        <span>{g.ten}{g.batNgo && <Pill color="var(--accent)" label="bất ngờ" uppercase={false} style={{ marginLeft: 6 }} />}{g.dangLen && <Pill color="var(--ok)" label="↑ đang lên" uppercase={false} style={{ marginLeft: 6 }} />}</span>
+        <span>{g.ten}{g.batNgo && <Pill color="var(--accent)" label="✨ bất ngờ" uppercase={false} style={{ marginLeft: 6 }} />}{g.dangLen && <Pill color="var(--ok)" label="📈 đang lên" uppercase={false} style={{ marginLeft: 6 }} />}</span>
         <span style={nho}>{g.nhom} · {g.loai}</span>
       </span>) },
     { key: 'suc', header: 'Sức mạnh', sortValue: (g) => g.suc, cell: (g) => g.suc ?? '—' },
@@ -111,8 +112,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'video', header: 'Video', sortValue: (g) => g.video, cell: (g) => g.video },
     { key: 'hh', header: 'Hoa hồng', sortValue: (g) => g.hh, cell: (g) => (g.hh ? <span style={{ color: 'var(--ok)' }}>{usd(g.hh)}</span> : '—') },
     { key: 'lam', header: '', cell: (g) => (g.tt === 'chet'
-      ? <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => sua((x) => { const y = x.goc.find((z) => z.id === g.id); if (y) y.tt = 'chua'; }, `“${g.ten}” về lại Chưa làm`)}>Thử lại</GuardedButton>
-      : <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => taoLo(g)}>Tạo lô 5 video</GuardedButton>) },
+      ? <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => sua((x) => { const y = x.goc.find((z) => z.id === g.id); if (y) y.tt = 'chua'; }, `“${g.ten}” về lại Chưa làm`)}>↻ Thử lại</GuardedButton>
+      : <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => taoLo(g)}>🎬 Tạo lô 5 video</GuardedButton>) },
   ];
   const cotKenh: DataColumn<StKenh>[] = [
     { key: 'ten', header: 'Kênh', align: 'left', sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gap: 1 }}><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
@@ -130,8 +131,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
           <button className="btn" style={{ color: 'var(--bad)' }} onClick={() => { sua((x) => { const y = x.kenh.find((z) => z.id === k.id); if (y) y.tt = 'dung'; x.lo = x.lo.filter((l) => l.kenh !== k.id); }, `Đã cắt ${k.ten}, video chờ của kênh này rời hàng đợi.`); setCatKenh(null); }}>Cắt</button>
           <button className="btn" onClick={() => setCatKenh(null)}>Giữ</button></span>
       : <span style={{ display: 'inline-flex', gap: 6 }}>
-          {k.hh > 150 && !laLive && <button className="btn" onClick={() => { const ngu = k.ngonNgu === 'EN' ? 'DE' : 'FR'; sua((x) => { x.kenh.push({ ...k, id: Math.max(...x.kenh.map((z) => z.id)) + 1, ten: `${k.ten}.${ngu.toLowerCase()}`, ngonNgu: ngu, proxy: `${ngu} · ISP mới`, tt: 'song', ngay: 0, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0 }); }, `Đã mở ${k.ten}.${ngu.toLowerCase()} — kịch bản các góc ra tiền sẽ được dịch sang.`); }}>Nhân sang ngôn ngữ khác</button>}
-          <GuardedButton className="btn" style={{ color: 'var(--bad)' }} reason={laLive && 'LIVE chỉ đọc: cắt kênh / đổi trạng thái làm trong vault (Resources › Accounts)'} onClick={() => setCatKenh(k.id)}>Cắt</GuardedButton>
+          {k.hh > 150 && !laLive && <button className="btn" onClick={() => { const ngu = k.ngonNgu === 'EN' ? 'DE' : 'FR'; sua((x) => { x.kenh.push({ ...k, id: Math.max(...x.kenh.map((z) => z.id)) + 1, ten: `${k.ten}.${ngu.toLowerCase()}`, ngonNgu: ngu, proxy: `${ngu} · ISP mới`, tt: 'song', ngay: 0, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0 }); }, `Đã mở ${k.ten}.${ngu.toLowerCase()} — kịch bản các góc ra tiền sẽ được dịch sang.`); }}>🌐 Nhân sang ngôn ngữ khác</button>}
+          <GuardedButton className="btn" style={{ color: 'var(--bad)' }} reason={laLive && 'LIVE chỉ đọc: cắt kênh / đổi trạng thái làm trong vault (Resources › Accounts)'} onClick={() => setCatKenh(k.id)}>✂️ Cắt</GuardedButton>
         </span>) },
   ];
   const cotTrang: DataColumn<StTrang>[] = [
@@ -141,8 +142,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'click', header: 'Khách vào', sortValue: (x) => x.click, cell: (x) => (x.click == null ? <span style={nho} title="chưa có máy đếm click từng trang">—</span> : so(x.click)) },
     { key: 'ra', header: 'Bấm sang shop', sortValue: (x) => x.raShop, cell: (x) => (x.raShop == null ? <span style={nho}>—</span> : `${x.raShop}%`) },
     { key: 'ct', header: 'Chương trình', align: 'left', cell: (x) => <span style={nho}>{x.chuongTrinh}</span> },
-    { key: 'song', header: 'Link', align: 'left', cell: (x) => <Pill color={x.song ? 'var(--ok)' : 'var(--bad)'} label={x.song ? 'Sống' : 'Hết hàng'} uppercase={false} /> },
-    { key: 'lam', header: '', cell: (x) => (x.song ? null : <button className="btn" onClick={() => sua((y) => { const z = y.trang.find((w) => w.slug === x.slug); if (z) z.song = true; }, `site.com/${x.slug} đã trỏ sang sản phẩm thay thế cùng góc.`)}>Đổi sang sản phẩm thay thế</button>) },
+    { key: 'song', header: 'Link', align: 'left', cell: (x) => <Pill color={x.song ? 'var(--ok)' : 'var(--bad)'} label={x.song ? '✅ Sống' : '⛔ Hết hàng'} uppercase={false} /> },
+    { key: 'lam', header: '', cell: (x) => (x.song ? null : <button className="btn" onClick={() => sua((y) => { const z = y.trang.find((w) => w.slug === x.slug); if (z) z.song = true; }, `site.com/${x.slug} đã trỏ sang sản phẩm thay thế cùng góc.`)}>🔁 Đổi sang sản phẩm thay thế</button>) },
   ];
 
   const pheu = [['Lượt xem', t.xem], ['Bấm link về site', t.click], ['Bấm sang shop', t.raShop], [laLive ? 'Đơn (cửa bán, 30 ngày)' : 'Đơn (ước từ hoa hồng)', t.don]] as const;
@@ -151,7 +152,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   return (
     <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0, 1fr)' }}>   {/* minmax(0,1fr): bảng rộng (minWidth) cuộn trong khung của nó, không kéo giãn cả trang */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Segmented<string> options={[{ value: 'demo', label: 'DEMO', title: 'Dữ liệu mẫu để thử luồng' }, { value: 'live', label: 'LIVE', title: 'Số thật' }]}
+        <Segmented<string> options={[{ value: 'demo', label: '🧪 DEMO', title: 'Dữ liệu mẫu để thử luồng' }, { value: 'live', label: '🟢 LIVE', title: 'Số thật' }]}
           value={cheDo} onChange={(v) => { setCheDo(v); setBao(''); setCatKenh(null); }} />
         <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, color: laLive ? 'var(--ok)' : 'var(--warn)', background: `color-mix(in srgb, ${laLive ? 'var(--ok)' : 'var(--warn)'} 12%, transparent)` }}>
           {laLive
@@ -168,7 +169,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
-        <Panel title="Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>
+        <Panel title="🔻 Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>
           {t.xem ? <div style={{ display: 'grid', gap: 8 }}>{pheu.map(([ten, v], i) => (
             <div key={ten} style={{ display: 'grid', gridTemplateColumns: '140px minmax(0,1fr) 90px', gap: 10, alignItems: 'center', fontSize: 12 }}>
               <span>{ten}</span>
@@ -177,13 +178,13 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             </div>))}</div>
             : trong('Chưa có lượt xem', 'Phễu hiện khi kênh đầu tiên đăng video và trang đích bắt đầu nhận khách.')}
         </Panel>
-        <Panel title="Cần xử lý" subtitle={canhBao.length ? `${canhBao.length} việc` : undefined}>
+        <Panel title="⚠️ Cần xử lý" subtitle={canhBao.length ? `${canhBao.length} việc` : undefined}>
           {canhBao.length ? <div style={{ display: 'grid', gap: 6 }}>{canhBao.map((c, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 6 }}>
-              <Pill color={c.mau} label={c.nhan} uppercase={false} /><span>{c.chu}</span></div>))}</div>
+              <Pill color={c.mau} label={`${c.mau === 'var(--bad)' ? '⛔' : '⚠️'} ${c.nhan}`} uppercase={false} /><span>{c.chu}</span></div>))}</div>
             : <span style={nho}>Không có việc gấp.</span>}
         </Panel>
-        <Panel title="Góc đang ra tiền" subtitle="tiền từng góc chảy ngược về spy để chấm Sức mạnh">
+        <Panel title="💰 Góc đang ra tiền" subtitle="tiền từng góc chảy ngược về spy để chấm Sức mạnh">
           {d.goc.some((g) => g.tt === 'thang')
             ? <SimpleTable rows={d.goc.filter((g) => g.tt === 'thang').sort((a, b) => b.hh - a.hh)} getRowKey={(g) => String(g.id)} columns={[
                 { key: 'ten', header: 'Góc', cell: (g) => g.ten }, { key: 'v', header: 'Video', align: 'right', cell: (g) => g.video },
@@ -193,7 +194,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       </div>}
 
       {muc === 'goc' && <>
-        <Segmented<string> options={[{ value: 'all', label: 'Tất cả' }, { value: 'chua', label: 'Chưa làm' }, { value: 'dang', label: 'Đang thử' }, { value: 'thang', label: 'Ra tiền' }, { value: 'chet', label: 'Dừng' }, { value: 'bn', label: 'Bất ngờ' }, { value: 'len', label: 'Đang lên' }]}
+        <Segmented<string> options={[{ value: 'all', label: 'Tất cả' }, { value: 'chua', label: '○ Chưa làm' }, { value: 'dang', label: '🧪 Đang thử' }, { value: 'thang', label: '💰 Ra tiền' }, { value: 'chet', label: '⏹ Dừng' }, { value: 'bn', label: '✨ Bất ngờ' }, { value: 'len', label: '📈 Đang lên' }]}
           value={locGoc} onChange={setLocGoc} hrefFor={(v) => `?tab=social&sts=goc&stg=${v}`} />
         {gocLoc.length ? <DataTable rows={gocLoc} columns={cotGoc} getRowKey={(g) => String(g.id)} persistKey="st_goc" searchText={(g) => `${g.ten} ${g.nhom} ${g.loai}`} searchPlaceholder="Tìm góc / nhóm…" minWidth={820} />
           : trong('Không có góc nào khớp bộ lọc', laLive && !live.goc.length ? 'Spy chưa trả góc nào — xem dòng lỗi phía trên.' : 'Chọn bộ lọc khác.')}
@@ -209,15 +210,15 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
                   <div key={l.id} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, display: 'grid', gap: 4, fontSize: 12 }}>
                     <span style={{ ...nho, fontFamily: 'var(--font-mono)' }}>#{l.id} · {l.duAn}</span><b style={{ fontWeight: 600 }}>{l.ten}</b>
                     <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <a href={l.studio} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Mở trong studio</a>
-                      {l.video && <a href={l.video} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Xem video</a>}
+                      <a href={l.studio} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>🎞 Mở trong studio</a>
+                      {l.video && <a href={l.video} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>▶ Xem video</a>}
                     </span>
                   </div>) : (
                   <div key={l.id} style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, display: 'grid', gap: 4, fontSize: 12 }}>
                     <span style={{ ...nho, fontFamily: 'var(--font-mono)' }}>#{l.id}</span><b style={{ fontWeight: 600 }}>{g?.ten}</b><span style={nho}>{k?.ten} · {k?.nenTang} · {k?.ngonNgu}</span>
                     <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <button className="btn" onClick={() => buocKe(l.id)}>{b === 0 ? 'Gửi sang dựng' : b === 1 ? 'Xong, sang kiểm' : b === 2 ? 'Duyệt' : 'Đăng ngay'}</button>
-                      {b === 2 && <button className="btn" style={{ color: 'var(--bad)' }} onClick={() => sua((x) => { const y = x.lo.find((z) => z.id === l.id); if (y) y.buoc = 1; }, `#${l.id} trả về Dựng`)}>Trả về dựng</button>}
+                      <button className="btn" onClick={() => buocKe(l.id)}>{b === 0 ? '🛠 Gửi sang dựng' : b === 1 ? '🔍 Xong, sang kiểm' : b === 2 ? '✅ Duyệt' : '📤 Đăng ngay'}</button>
+                      {b === 2 && <button className="btn" style={{ color: 'var(--bad)' }} onClick={() => sua((x) => { const y = x.lo.find((z) => z.id === l.id); if (y) y.buoc = 1; }, `#${l.id} trả về Dựng`)}>↩ Trả về dựng</button>}
                     </span>
                   </div>); })}
                 {tat.length > o.length && <span style={nho}>… còn {tat.length - o.length} video, xem đủ trong studio</span>}
@@ -240,7 +241,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         : trong('Chưa có trang đích', 'Site aff chưa dựng. Mỗi video đăng xong sẽ có một trang đích riêng (site.com/g/<mã>) nói đúng điều video hứa.'))}
 
       {muc === 'tien' && <>
-        {laLive && <Panel title="Cửa bán" subtitle="30 ngày · Gumroad đọc product_daily, Etsy / KDP chưa có máy đọc số">
+        {laLive && <Panel title="🏪 Cửa bán" subtitle="30 ngày · Gumroad đọc product_daily, Etsy / KDP chưa có máy đọc số">
           <SimpleTable rows={live.ban} getRowKey={(b) => `${b.cua}:${b.ten}`} columns={[
             { key: 'cua', header: 'Cửa bán', cell: (b) => b.cua }, { key: 'ten', header: 'Tài khoản / store', cell: (b) => b.ten }, { key: 'da', header: 'Dự án', cell: (b) => b.duAn },
             { key: 'x', header: 'Lượt xem', align: 'right', cell: (b) => (b.xem30 == null ? '—' : so(b.xem30)) },
@@ -255,7 +256,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
           { key: 'lai', label: 'Lãi', value: laLive ? '—' : usd(t.lai), color: laLive ? undefined : t.lai >= 0 ? 'var(--ok)' : 'var(--bad)', sub: laLive ? 'có sổ chi mới tính' : t.chi ? `${(t.hh / t.chi).toFixed(2)}× tiền bỏ ra` : undefined },
           { key: 'hoa', label: 'Hoà vốn mỗi kênh', value: `${so(Math.ceil((t.kSong.length && !laLive ? t.chi / t.kSong.length : gia.proxy + 60 * gia.video) / gia.hhDon))} đơn`, sub: t.kSong.length && !laLive ? `chi ${usd(t.chi / t.kSong.length)}/kênh/tháng` : 'kênh làm bằng xưởng, 60 video/tháng' },
         ]} />
-        <Panel title="Giá đầu vào" subtitle="đổi để tính lại cả tab">
+        <Panel title="⚙️ Giá đầu vào" subtitle="đổi để tính lại cả tab">
           <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
             {([['video', 'Giá mỗi video ($) · xưởng đo $1–3', 0.1], ['proxy', 'Proxy mỗi kênh ($/tháng) · $2,4–4', 0.1], ['hhDon', 'Hoa hồng mỗi đơn ($) · 15% × $40', 0.5]] as const).map(([k, nhan, buoc]) => (
               <label key={k} htmlFor={`st-gia-${k}`} style={{ display: 'grid', gap: 4, fontSize: 11, color: 'var(--fg-2)' }}>{nhan}

@@ -6,7 +6,7 @@
 import type { ReactNode } from 'react';
 import { moTabNeuModifier, urlVoiParam } from '@/lib/url-mo-tab';
 
-export type NutLuong = { key: string; nhan: string; so: number; phuDe?: ReactNode; title?: string; dau?: { n: number; nhan: string; mau: string }[] };
+export type NutLuong = { key: string; nhan: string; icon?: ReactNode; so: number; phuDe?: ReactNode; title?: string; dau?: { n: number; nhan: string; mau: string }[] };
 
 export function DaiLuong({ nut, ngoai, value, onChange, urlKey }: {
   nut: NutLuong[];
@@ -23,7 +23,7 @@ export function DaiLuong({ nut, ngoai, value, onChange, urlKey }: {
         onAuxClick={(e) => { moTabNeuModifier(e, urlVoiParam(urlKey, x.key)); }}
         style={{ flex: '1 0 86px', minWidth: 86, display: 'grid', gap: 2, padding: '7px 8px', borderRadius: 6, textDecoration: 'none', color: 'inherit',
           border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`, background: on ? 'var(--accent-soft)' : x.so ? 'var(--bg-2)' : 'transparent', opacity: x.so || on ? 1 : 0.55 }}>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.nhan}</span>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.icon && <span aria-hidden style={{ marginRight: 4 }}>{x.icon}</span>}{x.nhan}</span>
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
           <b style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{x.so}</b>
           {x.phuDe != null && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{x.phuDe}</span>}

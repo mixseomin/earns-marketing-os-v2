@@ -31,22 +31,25 @@ import json, sys
 TOC = {"NVIDIA GeForce RTX 4090": 1.0, "NVIDIA GeForce RTX 5090": 1.25, "NVIDIA GeForce RTX 5080": 0.7, "NVIDIA RTX PRO 4500 Blackwell": 0.7,
        "NVIDIA GeForce RTX 3090": 0.48, "NVIDIA RTX A6000": 0.5, "NVIDIA A40": 0.45, "NVIDIA RTX A5000": 0.35, "NVIDIA RTX 4000 Ada Generation": 0.32,
        "NVIDIA L40S": 0.95, "NVIDIA RTX 6000 Ada Generation": 0.95, "NVIDIA L4": 0.28}
-ds = []
+ds = []; TRAN = float(sys.argv[1])   # trần giá theo giờ (XV_GIA_TOI_DA, mặc định 0,8$) — hết máy rẻ thì không tự nhảy lên máy $1+/giờ
 for g in json.load(sys.stdin)["data"]["gpuTypes"]:
     if g["id"] not in TOC or not (g.get("lowestPrice") or {}).get("stockStatus"): continue
     for cl, gia in (("COMMUNITY", g.get("communityPrice")), ("SECURE", g.get("securePrice"))):
-        if gia: ds.append((gia / TOC[g["id"]], cl, g["id"], gia))
-for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
+        if gia and gia <= TRAN: ds.append((gia / TOC[g["id"]], cl, g["id"], gia))
+for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI_DA:-0.8}")   # mọi ứng viên còn hàng, cả Secure — 17/10/2026 sáu máy Community rẻ nhất cùng hết chỗ
     echo "$DS" | while IFS='|' read -r cl gpu gia viec; do echo "  ứng viên: $gpu $cl \$$gia/giờ (theo việc $viec)" >&2; done
     [ -n "${XV_CHI_XEM:-}" ] && exit 0
     # khoá SSH CÔNG KHAI của máy đang chạy lệnh → biến PUBLIC_KEY (start.sh ghi vào authorized_keys). RunPod chỉ tự bơm khoá tài khoản khi bật
     # startSsh — cờ đó dành cho image của họ; image riêng thì tự truyền (17/10/2026: 3 máy liền "Permission denied (publickey)").
     KHOA=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1]).read().strip()))' "${XV_KHOA_SSH:-$HOME/.ssh/id_ed25519.pub}")   # XV_CHI_XEM=1: chỉ in ứng viên, không tạo máy (thử trước khi tốn tiền)
+    CU=$(GQ "query { myself { pods { id } } }" | python3 -c 'import json,sys; print(" ".join(p["id"] for p in json.load(sys.stdin)["data"]["myself"]["pods"]))')
     while IFS='|' read -r cl gpu gia viec; do
       R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"$ANH\", containerDiskInGb: 20, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30, env: [{key: \"PUBLIC_KEY\", value: $KHOA}]}) { id costPerHr } }")
       ID=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null || true)
+      # trả lời rỗng / hỏng (không id, không lỗi) → máy có thể ĐÃ được tạo: tra danh sách, máy mới xuất hiện thì nhận nó (không bỏ sót máy đang tính tiền)
+      [ -z "$ID" ] && [ -z "$(echo "$R" | LOI 2>/dev/null)" ] && ID=$(GQ "query { myself { pods { id } } }" | python3 -c 'import json,sys; cu=set(sys.argv[1].split()); print(next((p["id"] for p in json.load(sys.stdin)["data"]["myself"]["pods"] if p["id"] not in cu), ""))' "$CU")
       [ -n "$ID" ] && { echo "  → thuê $gpu $cl \$$gia/giờ" >&2; echo "$ID"; exit 0; }
-      echo "  $gpu $cl: $(echo "$R" | LOI)" >&2
+      echo "  $gpu $cl: $(echo "$R" | LOI 2>/dev/null || echo "$R" | head -c 200)" >&2
     done <<< "$DS"
     exit 1 ;;
   cho)   # đợi cổng SSH công khai của pod; pod không chạy / lỗi → dừng ngay. In "root@<ip> <cổng>"

@@ -20,7 +20,9 @@
     "tp": "Osaka"
    }
   ],
-  "link": "https://esimfares.com/jp/"
+  "link": "https://esimfares.com/jp/",
+  "nen_url": "https://images.pexels.com/photos/38947971/pexels-photo-38947971.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/tokyo-skytree-illuminated-at-night-in-japan-38947971/"
  },
  {
   "slug": "land-italy",
@@ -43,7 +45,9 @@
     "tp": "Venezia (VE)"
    }
   ],
-  "link": "https://esimfares.com/it/"
+  "link": "https://esimfares.com/it/",
+  "nen_url": "https://images.pexels.com/photos/36732237/pexels-photo-36732237.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/italian-flag-and-roman-architecture-in-rome-36732237/"
  },
  {
   "slug": "land-france",
@@ -66,7 +70,9 @@
     "tp": "Nice, Alpes-Maritimes"
    }
   ],
-  "link": "https://esimfares.com/fr/"
+  "link": "https://esimfares.com/fr/",
+  "nen_url": "https://images.pexels.com/photos/19288556/pexels-photo-19288556.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/cityscape-of-paris-under-scenic-clouds-19288556/"
  },
  {
   "slug": "land-spain",
@@ -89,7 +95,9 @@
     "tp": "Málaga"
    }
   ],
-  "link": "https://esimfares.com/es/"
+  "link": "https://esimfares.com/es/",
+  "nen_url": "https://images.pexels.com/photos/38220581/pexels-photo-38220581.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/aerial-view-of-malaga-bullring-and-coastline-38220581/"
  },
  {
   "slug": "land-united-kingdom",
@@ -112,7 +120,9 @@
     "tp": "Manchester, Greater Manchester"
    }
   ],
-  "link": "https://esimfares.com/gb/"
+  "link": "https://esimfares.com/gb/",
+  "nen_url": "https://images.pexels.com/photos/19211707/pexels-photo-19211707.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/curved-walls-of-a-london-skyscraper-the-walkie-talkie-19211707/"
  },
  {
   "slug": "land-mexico",
@@ -135,7 +145,9 @@
     "tp": "Puerto Vallarta"
    }
   ],
-  "link": "https://esimfares.com/mx/"
+  "link": "https://esimfares.com/mx/",
+  "nen_url": "https://images.pexels.com/photos/16212000/pexels-photo-16212000.png?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/view-of-the-palacio-postal-and-torre-latinoamericana-in-mexico-city-mexico-16212000/"
  },
  {
   "slug": "land-thailand",
@@ -158,7 +170,9 @@
     "tp": "Phuket"
    }
   ],
-  "link": "https://esimfares.com/th/"
+  "link": "https://esimfares.com/th/",
+  "nen_url": "https://images.pexels.com/photos/11104827/pexels-photo-11104827.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/rooftops-in-bangkok-11104827/"
  },
  {
   "slug": "land-greece",
@@ -181,7 +195,9 @@
     "tp": "Heraklion"
    }
   ],
-  "link": "https://esimfares.com/gr/"
+  "link": "https://esimfares.com/gr/",
+  "nen_url": "https://images.pexels.com/photos/36050711/pexels-photo-36050711.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/scenic-view-of-mount-lycabettus-in-athens-36050711/"
  },
  {
   "slug": "land-portugal",
@@ -204,7 +220,9 @@
     "tp": "Faro"
    }
   ],
-  "link": "https://esimfares.com/pt/"
+  "link": "https://esimfares.com/pt/",
+  "nen_url": "https://images.pexels.com/photos/33687957/pexels-photo-33687957.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/christ-the-king-statue-over-lisbon-s-rooftops-33687957/"
  },
  {
   "slug": "land-germany",
@@ -227,7 +245,9 @@
     "tp": "Berlin"
    }
   ],
-  "link": "https://esimfares.com/de/"
+  "link": "https://esimfares.com/de/",
+  "nen_url": "https://images.pexels.com/photos/28907705/pexels-photo-28907705.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/scenic-view-of-berlin-skyline-with-historic-architecture-28907705/"
  },
  {
   "slug": "land-turkey",
@@ -250,7 +270,9 @@
     "tp": "Antalya"
    }
   ],
-  "link": "https://esimfares.com/tr/"
+  "link": "https://esimfares.com/tr/",
+  "nen_url": "https://images.pexels.com/photos/38266394/pexels-photo-38266394.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/galata-tower-illuminated-at-night-in-istanbul-38266394/"
  },
  {
   "slug": "land-south-korea",
@@ -273,7 +295,9 @@
     "tp": "Busan"
    }
   ],
-  "link": "https://esimfares.com/kr/"
+  "link": "https://esimfares.com/kr/",
+  "nen_url": "https://images.pexels.com/photos/6647660/pexels-photo-6647660.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/high-rise-buildings-in-the-city-6647660/"
  },
  {
   "slug": "land-vietnam",
@@ -296,7 +320,9 @@
     "tp": "Da Nang"
    }
   ],
-  "link": "https://esimfares.com/vn/"
+  "link": "https://esimfares.com/vn/",
+  "nen_url": "https://images.pexels.com/photos/20621783/pexels-photo-20621783.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/bitexco-financial-tower-in-ho-chi-minh-city-20621783/"
  },
  {
   "slug": "land-indonesia",
@@ -314,7 +340,9 @@
     "tp": "Jakarta"
    }
   ],
-  "link": "https://esimfares.com/id/"
+  "link": "https://esimfares.com/id/",
+  "nen_url": "https://images.pexels.com/photos/37947095/pexels-photo-37947095.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/national-monument-jakarta-with-city-skyline-37947095/"
  },
  {
   "slug": "land-iceland",
@@ -327,7 +355,9 @@
     "tp": "Reykjavík"
    }
   ],
-  "link": "https://esimfares.com/is/"
+  "link": "https://esimfares.com/is/",
+  "nen_url": "https://images.pexels.com/photos/19922972/pexels-photo-19922972.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/buildings-on-sea-coast-19922972/"
  },
  {
   "slug": "land-netherlands",
@@ -340,7 +370,9 @@
     "tp": "Amsterdam"
    }
   ],
-  "link": "https://esimfares.com/nl/"
+  "link": "https://esimfares.com/nl/",
+  "nen_url": "https://images.pexels.com/photos/40305166/pexels-photo-40305166.png?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/euromast-tower-view-across-the-rotterdam-river-40305166/"
  },
  {
   "slug": "land-switzerland",
@@ -358,7 +390,9 @@
     "tp": "Geneva"
    }
   ],
-  "link": "https://esimfares.com/ch/"
+  "link": "https://esimfares.com/ch/",
+  "nen_url": "https://images.pexels.com/photos/20283812/pexels-photo-20283812.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/gothic-cathedral-in-bern-20283812/"
  },
  {
   "slug": "land-ireland",
@@ -376,7 +410,9 @@
     "tp": "Shannon"
    }
   ],
-  "link": "https://esimfares.com/ie/"
+  "link": "https://esimfares.com/ie/",
+  "nen_url": "https://images.pexels.com/photos/18399853/pexels-photo-18399853.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/liberty-hall-building-at-sunset-dublin-ireland-18399853/"
  },
  {
   "slug": "land-croatia",
@@ -399,7 +435,9 @@
     "tp": "Velika Gorica"
    }
   ],
-  "link": "https://esimfares.com/hr/"
+  "link": "https://esimfares.com/hr/",
+  "nen_url": "https://images.pexels.com/photos/2147487/pexels-photo-2147487.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/beach-side-town-landscape-2147487/"
  },
  {
   "slug": "land-egypt",
@@ -422,7 +460,9 @@
     "tp": "Sharm El Sheikh"
    }
   ],
-  "link": "https://esimfares.com/eg/"
+  "link": "https://esimfares.com/eg/",
+  "nen_url": "https://images.pexels.com/photos/38930869/pexels-photo-38930869.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/historic-mosque-minarets-in-cairo-egypt-38930869/"
  },
  {
   "slug": "land-morocco",
@@ -440,7 +480,9 @@
     "tp": "Casablanca"
    }
   ],
-  "link": "https://esimfares.com/ma/"
+  "link": "https://esimfares.com/ma/",
+  "nen_url": "https://images.pexels.com/photos/25748808/pexels-photo-25748808.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/the-koutoubia-mosque-and-palm-trees-in-marrakesh-morocco-25748808/"
  },
  {
   "slug": "land-united-arab-emirates",
@@ -458,7 +500,9 @@
     "tp": "Abu Dhabi"
    }
   ],
-  "link": "https://esimfares.com/ae/"
+  "link": "https://esimfares.com/ae/",
+  "nen_url": "https://images.pexels.com/photos/20337902/pexels-photo-20337902.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/skyscrapers-on-sea-coast-in-sharjah-20337902/"
  },
  {
   "slug": "land-australia",
@@ -481,7 +525,9 @@
     "tp": "Brisbane"
    }
   ],
-  "link": "https://esimfares.com/au/"
+  "link": "https://esimfares.com/au/",
+  "nen_url": "https://images.pexels.com/photos/36122471/pexels-photo-36122471.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/sydney-tower-silhouette-at-sunset-36122471/"
  },
  {
   "slug": "land-new-zealand",
@@ -504,7 +550,9 @@
     "tp": "Queenstown"
    }
   ],
-  "link": "https://esimfares.com/nz/"
+  "link": "https://esimfares.com/nz/",
+  "nen_url": "https://images.pexels.com/photos/22690739/pexels-photo-22690739.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/cityscape-of-auckland-viewed-from-the-one-tree-hill-22690739/"
  },
  {
   "slug": "land-peru",
@@ -522,7 +570,9 @@
     "tp": "Cusco"
    }
   ],
-  "link": "https://esimfares.com/pe/"
+  "link": "https://esimfares.com/pe/",
+  "nen_url": "https://images.pexels.com/photos/24039198/pexels-photo-24039198.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/tower-and-mountains-24039198/"
  },
  {
   "slug": "land-costa-rica",
@@ -540,7 +590,9 @@
     "tp": "Liberia"
    }
   ],
-  "link": "https://esimfares.com/cr/"
+  "link": "https://esimfares.com/cr/",
+  "nen_url": "https://images.pexels.com/photos/38058236/pexels-photo-38058236.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/modern-architecture-in-san-jose-costa-rica-38058236/"
  },
  {
   "slug": "land-colombia",
@@ -563,7 +615,9 @@
     "tp": "Cartagena"
    }
   ],
-  "link": "https://esimfares.com/co/"
+  "link": "https://esimfares.com/co/",
+  "nen_url": "https://images.pexels.com/photos/27937841/pexels-photo-27937841.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/a-clock-tower-in-the-middle-of-a-city-27937841/"
  },
  {
   "slug": "land-philippines",
@@ -581,7 +635,9 @@
     "tp": "Cebu City/Lapu-Lapu City"
    }
   ],
-  "link": "https://esimfares.com/ph/"
+  "link": "https://esimfares.com/ph/",
+  "nen_url": "https://images.pexels.com/photos/26802160/pexels-photo-26802160.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/black-and-white-photography-of-the-national-museum-of-natural-history-26802160/"
  },
  {
   "slug": "land-singapore",
@@ -594,7 +650,9 @@
     "tp": "Singapore"
    }
   ],
-  "link": "https://esimfares.com/sg/"
+  "link": "https://esimfares.com/sg/",
+  "nen_url": "https://images.pexels.com/photos/39879579/pexels-photo-39879579.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/singapore-skyline-at-sunset-with-ferris-wheel-39879579/"
  },
  {
   "slug": "land-taiwan",
@@ -612,6 +670,8 @@
     "tp": "Taipei (Songshan)"
    }
   ],
-  "link": "https://esimfares.com/tw/"
+  "link": "https://esimfares.com/tw/",
+  "nen_url": "https://images.pexels.com/photos/20063018/pexels-photo-20063018.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/taipei-101-behind-man-silhouette-at-night-20063018/"
  }
 ]

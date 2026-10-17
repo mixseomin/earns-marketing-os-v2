@@ -30,46 +30,49 @@ export const BUOC = (nuoc: string) => [`Install a ${nuoc} eSIM at home, on Wi-Fi
 
 export function assLand(de: DeLand): string {
   const d: DongAss[] = [], nay = (tu: number) => `\\fscx${tu}\\fscy${tu}\\t(0,450,0.5,\\fscx100\\fscy100)`, sb = de.san_bay.slice(0, 3);
-  // ── 0 → T_CUA: tên nước
-  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,260)\\b1${fs(48)}\\1c${mauAss(XANH)}${nay(120)}}LANDING IN`]);
-  d.push([6, 0, T_KET, 'Den', `{\\an5\\pos(540,${sb.length ? 400 : 520})${fs(coTen(de.nuoc))}\\1c&HFFFFFF&\\4c&H000000&\\4a&H70&\\shad6\\q0${nay(135)}}${chu(de.nuoc.toUpperCase())}`]);
-  d.push([5, 0, T_CUA + 0.4, 'Chu', `{\\an5\\pos(540,560)\\b1${fs(46)}\\1c&HFFFFFF&\\fad(250,250)}Do this before the wheels touch down`]);
-  // máy bay hạ dần (vẽ tay: thân + cánh), trượt ngang
+  // Bố cục dọc 1080×1920 phủ cả khung (17/10/2026: bản đầu dồn hết vào 60% trên, nửa dưới trống). Nền = ảnh thật của nước (lenhLand), làm tối.
+  // ── 0 → T_CUA: tên nước ở giữa màn
+  d.push([5, 0, T_CUA, 'Chu', `{\\an5\\pos(540,700)\\b1${fs(56)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3${nay(120)}}LANDING IN`]);
+  d.push([6, 0, T_CUA, 'Den', `{\\an5\\pos(540,880)${fs(Math.round(coTen(de.nuoc) * 1.2))}\\1c&HFFFFFF&\\3c&H000000&\\bord4\\shad8\\4a&H60&\\q0${nay(135)}}${chu(de.nuoc.toUpperCase())}`]);
+  d.push([5, 0.5, T_CUA, 'Chu', `{\\an5\\pos(540,1080)\\b1${fs(54)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\fad(250,200)}Do this before\\Nthe wheels touch down`]);
   const mb = 'm 0 18 l 120 10 b 140 9 150 14 150 18 b 150 22 140 27 120 26 l 0 18 m 70 15 l 40 -20 l 58 -20 l 98 14 m 70 21 l 40 56 l 58 56 l 98 22 m 6 17 l -6 0 l 6 0 l 22 15';
-  d.push([4, 0, T_CUA, 'Ve', `{\\an7\\1c${mauAss(NHAN)}\\move(-180,640,980,720,0,${Math.round(T_CUA * 1000)})\\frz-4\\p1}${mb}`]);
-  // ── T_CUA → T_KET: thẻ cửa ngõ
-  const caoThe = 120 + sb.length * 128, yThe = 640;
-  d.push([2, T_CUA, T_KET, 'Ve', `{\\an7\\pos(70,${yThe})\\1c${mauAss(TRANG)}\\fad(200,0)\\p1}${bo(940, caoThe, 30)}`]);
-  d.push([3, T_CUA, T_KET, 'Chu', `{\\an4\\pos(120,${yThe + 64})\\b1${fs(32)}\\1c&H6B6B6B&\\fad(200,0)}MAIN ARRIVAL AIRPORTS`]);
+  d.push([4, 0, T_CUA, 'Ve', `{\\an7\\1c${mauAss(NHAN)}\\fscx160\\fscy160\\move(-260,1260,1100,1340,0,${Math.round(T_CUA * 1000)})\\frz-4\\p1}${mb}`]);
+  // ── T_CUA → T_KET: tên nước thu lên đầu, thẻ cửa ngõ, cảnh báo, 3 bước
+  d.push([6, T_CUA, T_KET, 'Chu', `{\\an5\\pos(540,200)\\b1${fs(44)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3\\fad(200,0)}LANDING IN`]);
+  d.push([6, T_CUA, T_KET, 'Den', `{\\an5\\pos(540,330)${fs(coTen(de.nuoc))}\\1c&HFFFFFF&\\3c&H000000&\\bord4\\q0\\fad(200,0)}${chu(de.nuoc.toUpperCase())}`]);
+  const HANG = 150, caoThe = 130 + sb.length * HANG, yThe = 470;
+  d.push([2, T_CUA, T_KET, 'Ve', `{\\an7\\pos(50,${yThe})\\1c${mauAss(TRANG)}\\1a${alpha(0.96)}\\fad(200,0)\\p1}${bo(980, caoThe, 34)}`]);
+  d.push([3, T_CUA, T_KET, 'Chu', `{\\an4\\pos(100,${yThe + 66})\\b1${fs(36)}\\1c&H6B6B6B&\\fad(200,0)}MAIN ARRIVAL AIRPORTS`]);
   for (const [i, a] of sb.entries()) {
-    const y = yThe + 150 + i * 128, tu = T_CUA + 0.25 + i * 0.3;
-    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(205,${y})\\1c${mauAss(SAU)}\\fscx70\\fscy70\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(170, 96, 18)}`]);
-    d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(205,${y + 2})${fs(50)}\\1c${mauAss(NHAN)}\\fscx70\\fscy70\\t(0,200,\\fscx100\\fscy100)}${chu(a.iata)}`]);
-    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(320,${y - 22})\\b1${fs(38)}\\1c&H1B1B1B&\\fad(150,0)}${chu(tenGon(a.ten))}`]);
-    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(320,${y + 26})\\b0${fs(32)}\\1c&H5A5A5A&\\fad(150,0)}${chu(tpGon(a.tp))}`]);
+    const y = yThe + 165 + i * HANG, tu = T_CUA + 0.25 + i * 0.3;
+    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(200,${y})\\1c${mauAss(SAU)}\\fscx70\\fscy70\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(210, 116, 20)}`]);
+    d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(200,${y + 2})${fs(62)}\\1c${mauAss(NHAN)}\\fscx70\\fscy70\\t(0,200,\\fscx100\\fscy100)}${chu(a.iata)}`]);
+    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(335,${y - 26})\\b1${fs(46)}\\1c&H1B1B1B&\\fad(150,0)}${chu(tenGon(a.ten))}`]);
+    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(335,${y + 30})\\b0${fs(38)}\\1c&H5A5A5A&\\fad(150,0)}${chu(tpGon(a.tp))}`]);
   }
-  // dải cảnh báo roaming (đỏ)
-  const yCanh = yThe + caoThe + 90;
-  d.push([4, T_CUA + 1.4, T_BUOC, 'Ve', `{\\an5\\pos(540,${yCanh})\\1c${mauAss(DO)}\\fscx92\\fscy92\\t(0,220,\\fscx100\\fscy100)\\p1}${bo(940, 150, 24)}`]);
-  d.push([5, T_CUA + 1.4, T_BUOC, 'Chu', `{\\an5\\pos(540,${yCanh})\\b1${fs(40)}\\1c&HFFFFFF&\\q2}Your home SIM can start roaming\\Nthe moment it connects abroad`]);
-  // ── T_BUOC → T_KET: ba bước, tick lần lượt
-  const yB = yThe + caoThe + 40;
-  d.push([5, T_BUOC, T_KET, 'Chu', `{\\an4\\pos(80,${yB})\\b1${fs(40)}\\1c${mauAss(XANH)}\\fad(200,0)}3 STEPS, 2 MINUTES`]);
+  const yDuoi = yThe + caoThe;   // đáy thẻ
+  // dải cảnh báo roaming (đỏ) giữa phần còn lại của màn
+  const yCanh = Math.round((yDuoi + 1800) / 2);
+  d.push([4, T_CUA + 1.4, T_BUOC, 'Ve', `{\\an5\\pos(540,${yCanh})\\1c${mauAss(DO)}\\fscx92\\fscy92\\t(0,220,\\fscx100\\fscy100)\\p1}${bo(980, 230, 30)}`]);
+  d.push([5, T_CUA + 1.4, T_BUOC, 'Chu', `{\\an5\\pos(540,${yCanh})\\b1${fs(52)}\\1c&HFFFFFF&\\q2}Your home SIM can start\\Nroaming the moment it\\Nconnects abroad`]);
+  // ba bước: chia đều phần dưới thẻ
+  const yB = yDuoi + 90, buoc = (1790 - yB - 60) / 3;
+  d.push([5, T_BUOC, T_KET, 'Chu', `{\\an4\\pos(70,${yB})\\b1${fs(46)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3\\fad(200,0)}3 STEPS, 2 MINUTES`]);
   for (const [i, s] of BUOC(de.nuoc).entries()) {
-    const y = yB + 110 + i * 120, tu = T_BUOC + 0.4 + i * 1.2;
-    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(118,${y})\\1c${mauAss(XANH)}\\fscx50\\fscy50\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(76, 76, 38)}`]);
-    d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(118,${y + 2})${fs(38)}\\1c${mauAss(SAU)}}${i + 1}`]);
-    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(180,${y})\\b1${fs(38)}\\1c&HFFFFFF&\\fad(200,0)}${chu(s)}`]);
+    const y = Math.round(yB + 60 + buoc * (i + 0.5)), tu = T_BUOC + 0.4 + i * 1.2;
+    d.push([3, tu, T_KET, 'Ve', `{\\an5\\pos(540,${y})\\1c${mauAss(SAU)}\\1a${alpha(0.82)}\\fad(150,0)\\p1}${bo(980, Math.min(160, buoc - 20), 26)}`]);
+    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(130,${y})\\1c${mauAss(XANH)}\\fscx50\\fscy50\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(96, 96, 48)}`]);
+    d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(130,${y + 2})${fs(46)}\\1c${mauAss(SAU)}}${i + 1}`]);
+    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${chu(s)}`]);
   }
   // ── màn kết
   const fad = '\\fad(300,0)';
-  d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-  d.push([21, T_KET, DAI, 'Den', `{\\an5\\pos(540,620)${fs(72)}\\1c&HFFFFFF&\\q2${fad}}Land connected\\Nin ${chu(de.nuoc)}`]);
-  d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,860)\\b1${fs(44)}\\1c&HFFFFFF&\\1a&H30&${fad}}Compare eSIM plans before you fly:`]);
-  d.push([21, T_KET, DAI, 'Ve', `{\\an5\\pos(540,990)\\1c${mauAss(NHAN)}${fad}\\p1}${bo(680, 124, 22)}`]);
-  d.push([22, T_KET, DAI, 'Den', `{\\an5\\pos(540,992)${fs(60)}\\1c&H111111&${fad}}esimfares.com`]);
-  d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1150)\\b1${fs(40)}\\1c${mauAss(XANH)}${fad}}Save this for your trip`]);
-  d.push([3, 0, DAI, 'Ve', `{\\an7\\pos(0,1860)\\1c${mauAss(XANH)}\\1a${alpha(0.9)}\\p1}m 0 0 l ${W} 0 l ${W} 60 l 0 60`]);
+  d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}\\1a${alpha(0.88)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+  d.push([21, T_KET, DAI, 'Den', `{\\an5\\pos(540,700)${fs(92)}\\1c&HFFFFFF&\\q2${fad}}Land connected\\Nin ${chu(de.nuoc)}`]);
+  d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,990)\\b1${fs(52)}\\1c&HFFFFFF&\\1a&H20&${fad}}Compare eSIM plans before you fly:`]);
+  d.push([21, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1150)\\1c${mauAss(NHAN)}${fad}\\p1}${bo(800, 150, 26)}`]);
+  d.push([22, T_KET, DAI, 'Den', `{\\an5\\pos(540,1152)${fs(74)}\\1c&H111111&${fad}}esimfares.com`]);
+  d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1340)\\b1${fs(48)}\\1c${mauAss(XANH)}${fad}}Save this for your trip`]);
   return rapAss(W, H, d);
 }
 
@@ -79,23 +82,27 @@ export const amLand = () => `0.18*sin(2*PI*(220+400*t)*t)*exp(-1.2*t)*lt(t,${T_C
   + `+0.3*sin(2*PI*880*t)*exp(-5*(t-${T_KET}))*gte(t,${T_KET})`;
 
 /** Lệnh ffmpeg: nền dải xanh đêm → ass → H.264 + AAC. `khung` (giây) = một khung JPG. */
-export function lenhLand(o: { de: DeLand; ass: string; fontsDir: string; ra: string; khung?: number }): string[] {
-  const vao = ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=linear:x0=0:y0=0:x1=0:y1=${H}:c0=0x123B5E:c1=0x0B1D33:c2=0x081424:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
-  const loc = `[0:v]ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
+export function lenhLand(o: { de: DeLand; ass: string; nen?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
+  // nền = ảnh thật của nước (nen_url của video, Pexels): phủ kín khung, đẩy chậm (zoom 1 → 1,06), làm tối + mờ nhẹ cho chữ đọc rõ
+  const vao = o.nen ? ['-loop', '1', '-framerate', String(FPS), '-t', String(DAI), '-i', o.nen]
+    : ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=linear:x0=0:y0=0:x1=0:y1=${H}:c0=0x123B5E:c1=0x0B1D33:c2=0x081424:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
+  const nen = o.nen ? `[0:v]scale=${W * 2}:${H * 2}:force_original_aspect_ratio=increase,crop=${W * 2}:${H * 2},zoompan=z='1+0.06*on/${Math.round(DAI * FPS)}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},eq=brightness=-0.22:saturation=0.85,gblur=sigma=1.5`
+    : '[0:v]null';
+  const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amLand()}':s=44100:d=${DAI}`,
     '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 /** Một dòng nguồn đề (mau/may/before-you-land.json) → dòng nạp của máy: đề + chữ đăng tiếng Anh (không giá, không nhà mạng). */
-export function tuNguonLand(x: DeLand & { slug: string }) {
-  const { slug, ...de } = x;
+export function tuNguonLand(x: DeLand & { slug: string; nen_url?: string; nen_nguon?: string }) {
+  const { slug, nen_url, nen_nguon: _nguon, ...de } = x;
   const cua = de.san_bay.map((a) => `${tpGon(a.tp)} (${a.iata})`).join(', ');
   return { slug, chu_de: de.nuoc, de, dang: {
     title: `Landing in ${de.nuoc}? Do this before your plane touches down`,
     description: `Main arrival airports: ${cua}. Your home SIM can start roaming the moment it connects abroad. 1) Install a ${de.nuoc} eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for ${de.nuoc}: ${de.link}`,
     link: de.link,
-  } };
+  }, nen_url: nen_url ?? null };
 }
 
 /** Kịch bản 3 shot (tab Mẫu / ngăn video của máy). */

@@ -29,7 +29,8 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
   try {
     let nen: string | null = null;
     if (o.nenUrl) {
-      const t = await fetch(o.nenUrl, { signal: AbortSignal.timeout(60_000) }).catch(() => null);
+      // UA trình duyệt: CDN ảnh stock (Pexels) trả 403 cho UA mặc định của Node
+      const t = await fetch(o.nenUrl, { signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' } }).catch(() => null);
       if (!t?.ok) return { ok: false, loi: `không tải được ảnh nền (${t?.status ?? 'mạng'})` };
       nen = `${thuMuc}/nen.${(o.nenUrl.split('?')[0]!.split('.').pop() || 'jpg').slice(0, 4)}`;
       await writeFile(nen, Buffer.from(await t.arrayBuffer()));

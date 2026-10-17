@@ -24,7 +24,9 @@ export type VideoMay = {
   id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] };
   video_url: string | null; khung: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
 };
-export type DeNapMay = { slug: string; chu_de: string; de: DeMay; dang: VideoMay['dang'] };
+/** nen_url: ảnh nền của video (mẫu có nền ảnh thật — luật 'nền lớn = ảnh thật'); đổi ảnh = dựng lại như đổi đề.
+ *  KHÔNG gửi trường này (undefined) = giữ nguyên ảnh nền đang có — máy cũ (Front Porch) nạp đề không kèm ảnh, không được xoá ảnh của nó. */
+export type DeNapMay = { slug: string; chu_de: string; de: DeMay; dang: VideoMay['dang']; nen_url?: string | null };
 /** Một bước máy đã làm (xv_may_nhat_ky): chon_de · trang_tang · dung · dang · bo_qua · loi. */
 export type NhatKy = { id: number; luc: string; buoc: string; ok: boolean; slug: string | null; nen: string | null; noi_dung: string; url: string | null };
 /** Lượt đăng gần nhất của một nền — tệp báo lượt dang-short.mjs ghi cho cty.on.tc (/var/lib/cty/may/video-<nền>.json, cùng box). */
@@ -76,14 +78,15 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
   if (!MAU_MAY_DUNG[m.mau]) throw new Error(`máy ${ma}: mẫu lạ ${m.mau}`);
   let moi = 0, doi = 0, giu = 0;
   for (const x of ds) {
-    const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
+    const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de, nen_url FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
+    const coNen = x.nen_url !== undefined, nen = coNen ? x.nen_url ?? null : ((cu?.nen_url as string | null | undefined) ?? null);
     if (!cu) {
-      await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb)`);
+      await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang, nen_url) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb, ${nen})`);
       moi++; continue;
     }
-    const deDoi = JSON.stringify(cu.de) !== JSON.stringify(x.de), chuDoi = JSON.stringify(cu.dang) !== JSON.stringify(x.dang) || cu.chu_de !== x.chu_de;
+    const deDoi = JSON.stringify(cu.de) !== JSON.stringify(x.de) || (coNen && (cu.nen_url ?? null) !== nen), chuDoi = JSON.stringify(cu.dang) !== JSON.stringify(x.dang) || cu.chu_de !== x.chu_de;
     if (!deDoi && !chuDoi) { giu++; continue; }
-    if (deDoi) await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(x.de)}::jsonb, dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, video_url = NULL, khung = '[]'::jsonb, xuat_luc = NULL, updated_at = now() WHERE id = ${Number(cu.id)}`);
+    if (deDoi) await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(x.de)}::jsonb, dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, nen_url = ${nen}, video_url = NULL, khung = '[]'::jsonb, xuat_luc = NULL, updated_at = now() WHERE id = ${Number(cu.id)}`);
     else await db.execute(sql`UPDATE xv_may_video SET dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, updated_at = now() WHERE id = ${Number(cu.id)}`);
     doi++;
   }

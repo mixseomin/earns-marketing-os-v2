@@ -1008,12 +1008,10 @@
     "ngoi"
    ],
    "dip": [
-    "dinh_diem",
     "hen_ho"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": false,
-   "dip_en": "our first date"
+   "ngoai_troi": false
   },
   {
    "ma": "dl_xe_hoi",

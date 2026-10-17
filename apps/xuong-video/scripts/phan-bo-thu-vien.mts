@@ -14,9 +14,12 @@ const d = JSON.parse(readFileSync(tep, 'utf8')) as { sp_key: string; concept: Re
 const db = getDb()!;
 const bt = (await db.execute(sql`SELECT b.*, k.ma AS k_ma FROM xv_bien_the_hinh b JOIN xv_cap c ON c.id = b.cap_id JOIN xv_concept k ON k.id = c.concept_id
   WHERE k.sp_key = ${d.sp_key} AND c.bat AND NOT b.an ORDER BY b.so, k.ma, c.template_id`)) as unknown as Row[];
-const kq = phanBo(bt.map((b) => ({ key: String(b.id), concept: String(b.k_ma), yc: d.concept[String(b.k_ma)]?.yeu_cau ?? { gioi: ['nam'] } })));
+// bộ hình ĐÃ CÓ PHIM GỐC giữ nguyên diễn viên / bối cảnh (clip đã quay — đổi là lệch với mọi bản xuất từ clip đó)
+const giu = bt.filter((b) => b.phim_id != null); const doi = bt.filter((b) => b.phim_id == null);
+if (giu.length) console.log(`  giữ nguyên ${giu.length} bộ hình đã có phim gốc (#${giu.map((b) => b.id).join(', #')})`);
+const kq = phanBo(doi.map((b) => ({ key: String(b.id), concept: String(b.k_ma), yc: d.concept[String(b.k_ma)]?.yeu_cau ?? { gioi: ['nam'] } })));
 const dem = (f: (x: (typeof kq)[number]) => string) => [...kq.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
-console.log(`${bt.length} bộ hình · ${new Set(kq.map((x) => x.chinh.ma)).size} diễn viên chính · ${new Set(kq.map((x) => x.boi_canh.ma)).size} bối cảnh chính · ${kq.filter((x) => x.phu.qh.lgbt).length} cặp đồng giới`);
+console.log(`${doi.length} bộ hình · ${new Set(kq.map((x) => x.chinh.ma)).size} diễn viên chính · ${new Set(kq.map((x) => x.boi_canh.ma)).size} bối cảnh chính · ${kq.filter((x) => x.phu.qh.lgbt).length} cặp đồng giới`);
 console.log('  sắc tộc:', dem((x) => SAC_TOC[x.chinh.sac_toc] ?? x.chinh.sac_toc).map(([k, n]) => `${k} ${n}`).join(' · '));
 console.log('  nhóm bối cảnh:', dem((x) => NHOM_BOI_CANH[x.boi_canh.nhom] ?? x.boi_canh.nhom).map(([k, n]) => `${k} ${n}`).join(' · '));
 for (const x of kq.slice(0, 6)) console.log(`  #${x.key}: ${x.chinh.ten} — ${moTaChinh(x)} | ${x.phu.qh.vi}: ${x.phu.dv.ten} | ${x.boi_canh.ten} + ${x.boi_canh_2.ten} · đỉnh điểm: ${x.su_kien.dip_en}`);

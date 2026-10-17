@@ -1,0 +1,590 @@
+[
+ {
+  "id": 2,
+  "nguoi_chinh": "American white man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 4,
+  "nguoi_chinh": "American white man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 3,
+  "nguoi_chinh": "American white man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 1,
+  "nguoi_chinh": "American white man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 5,
+  "nguoi_chinh": "American white man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 9,
+  "nguoi_chinh": "American white man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 8,
+  "nguoi_chinh": "American white man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 7,
+  "nguoi_chinh": "American white man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 6,
+  "nguoi_chinh": "American white man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 10,
+  "nguoi_chinh": "American white man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 15,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 12,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 11,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 13,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 14,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 16,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 17,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 18,
+  "nguoi_chinh": "American white man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 19,
+  "nguoi_chinh": "American white man, 30, average build, short hair, usually lives in gray sweatpants and a hoodie",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "cozy American apartment living room with a gray couch and a game controller on the table, weekend morning light",
+  "o": {}
+ },
+ {
+  "id": 20,
+  "nguoi_chinh": "American white man, 30, average build, short hair, usually lives in gray sweatpants and a hoodie",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "cozy American apartment living room with a gray couch and a game controller on the table, weekend morning light",
+  "o": {}
+ },
+ {
+  "id": 22,
+  "nguoi_chinh": "American white man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 24,
+  "nguoi_chinh": "American white man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 23,
+  "nguoi_chinh": "American white man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 21,
+  "nguoi_chinh": "American white man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 25,
+  "nguoi_chinh": "American white man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 30,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 27,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 26,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 28,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 29,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 31,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 32,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 33,
+  "nguoi_chinh": "American white man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 35,
+  "nguoi_chinh": "American white man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 37,
+  "nguoi_chinh": "American white man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 36,
+  "nguoi_chinh": "American white man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 34,
+  "nguoi_chinh": "American white man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 38,
+  "nguoi_chinh": "American white man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 39,
+  "nguoi_chinh": "American white man, 27, slim-athletic build, styled short hair, wears a fitted black tee and a light jacket",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern city apartment with a full-length mirror, plants, evening light",
+  "o": {}
+ },
+ {
+  "id": 40,
+  "nguoi_chinh": "American white man, 27, slim-athletic build, styled short hair, wears a fitted black tee and a light jacket",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern city apartment with a full-length mirror, plants, evening light",
+  "o": {}
+ },
+ {
+  "id": 41,
+  "nguoi_chinh": "American white man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ },
+ {
+  "id": 43,
+  "nguoi_chinh": "American white man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ },
+ {
+  "id": 42,
+  "nguoi_chinh": "American white man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ },
+ {
+  "id": 44,
+  "nguoi_chinh": "American white man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ },
+ {
+  "id": 48,
+  "nguoi_chinh": "American Black man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 50,
+  "nguoi_chinh": "American Black man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 49,
+  "nguoi_chinh": "American Black man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 47,
+  "nguoi_chinh": "American Black man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 51,
+  "nguoi_chinh": "American Black man, 35, broad muscular thighs and calves, average height, short dark hair, wears a plain gray tee",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "small American bedroom with a full-length mirror, wooden dresser, morning light",
+  "o": {}
+ },
+ {
+  "id": 55,
+  "nguoi_chinh": "American Black man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 54,
+  "nguoi_chinh": "American Black man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 53,
+  "nguoi_chinh": "American Black man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 52,
+  "nguoi_chinh": "American Black man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "clothing store fitting room with a curtain and a big mirror, several pairs of jeans on hooks",
+  "o": {}
+ },
+ {
+  "id": 60,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 57,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 56,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 58,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 59,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 61,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 62,
+  "nguoi_chinh": "American Black man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American living room with a sofa and a coffee table, a delivery box opened on the table, soft daylight",
+  "o": {}
+ },
+ {
+  "id": 63,
+  "nguoi_chinh": "American Black man, 30, average build, short hair, usually lives in gray sweatpants and a hoodie",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "cozy American apartment living room with a gray couch and a game controller on the table, weekend morning light",
+  "o": {}
+ },
+ {
+  "id": 64,
+  "nguoi_chinh": "American Black man, 30, average build, short hair, usually lives in gray sweatpants and a hoodie",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "cozy American apartment living room with a gray couch and a game controller on the table, weekend morning light",
+  "o": {}
+ },
+ {
+  "id": 66,
+  "nguoi_chinh": "American Black man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 68,
+  "nguoi_chinh": "American Black man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 67,
+  "nguoi_chinh": "American Black man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 65,
+  "nguoi_chinh": "American Black man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 69,
+  "nguoi_chinh": "American Black man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern American office with a desk, laptop and window light",
+  "o": {}
+ },
+ {
+  "id": 74,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 71,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 70,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 72,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 73,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 75,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 76,
+  "nguoi_chinh": "American Black man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "tidy American bedroom with a full-length mirror and a wooden wardrobe, evening light",
+  "o": {}
+ },
+ {
+  "id": 78,
+  "nguoi_chinh": "American Black man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 80,
+  "nguoi_chinh": "American Black man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 79,
+  "nguoi_chinh": "American Black man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 77,
+  "nguoi_chinh": "American Black man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 81,
+  "nguoi_chinh": "American Black man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "outdoor construction site with lumber, sawhorses and a pickup truck, bright daylight",
+  "o": {}
+ },
+ {
+  "id": 82,
+  "nguoi_chinh": "American Black man, 27, slim-athletic build, styled short hair, wears a fitted black tee and a light jacket",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern city apartment with a full-length mirror, plants, evening light",
+  "o": {}
+ },
+ {
+  "id": 83,
+  "nguoi_chinh": "American Black man, 27, slim-athletic build, styled short hair, wears a fitted black tee and a light jacket",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "modern city apartment with a full-length mirror, plants, evening light",
+  "o": {}
+ },
+ {
+  "id": 84,
+  "nguoi_chinh": "American Black man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ },
+ {
+  "id": 85,
+  "nguoi_chinh": "American Black man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ },
+ {
+  "id": 86,
+  "nguoi_chinh": "American Black man, 50, average build, short graying hair, wears a casual flannel shirt",
+  "nguoi_phu": "American woman, 40s, friendly, casual sweater and jeans, the man's wife",
+  "boi_canh": "American kitchen table with a laptop and a coffee mug, morning light",
+  "o": {}
+ }
+]

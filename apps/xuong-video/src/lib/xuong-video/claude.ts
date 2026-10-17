@@ -792,20 +792,48 @@ Luật:
 - Ngôn ngữ chữ: ${tenNgonNgu(kt.ngon_ngu)}.`, user);
 }
 
-/** XÁC NHẬN LỖI CLIP bằng Claude nhìn ảnh (máy soi bản 3, soi-bien-dang.ts): Gemini quét rộng khoanh lỗi, Claude xem các khung nét cao quanh đúng giây
- *  và quyết có / không + mức nặng / nhẹ. Đo 17/10/2026: Gemini Pro gật cả ngón tay bình thường (báo nhầm 3–6/8 clip tốt). ~1,5¢/lần. */
-export const MO_HINH_XAC_NHAN_CLAUDE = 'claude-sonnet-5-5';
-export async function xacNhanLoiClaude(o: { anh: string[]; cauHoi: string }): Promise<{ ok: true; data: { co: boolean; muc: 'nang' | 'nhe'; ly_do: string }; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
-  const c = client();
-  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+/** CLAUDE QUA ĐẠI LÝ trước, ANTHROPIC trực tiếp dự phòng (anh 17/10/2026: "ok, làm đi"). ShopAIKey bán Claude thật (usage_source anthropic) tính bằng credit
+ *  $1 = 3.250₫ (≈ 1/8 giá gốc); lỗi (hết credit, sập, quá tải) → gọi thẳng api.anthropic.com bằng ANTHROPIC_API_KEY trên box. Một hàm cho mọi
+ *  lượt Claude tự động của máy (xác nhận lỗi clip, kiểm người xem). `nguon` cho biết đường đã đi để ghi tiền đúng giá. */
+export type KqClaude = { ok: true; text: string; tokens: { in: number; out: number }; nguon: 'shopaikey' | 'anthropic'; model: string } | { ok: false; loi: string };
+export async function goiClaude(o: { noiDung: ({ anh: string } | { text: string })[]; maxTokens: number; model?: string; he?: string }): Promise<KqClaude> {
+  chotTien('gọi Claude');   // script thiếu duyệt → dừng (chot-tien.ts)
+  const model = o.model ?? 'claude-sonnet-5-5';
+  const loiShop: string[] = [];
+  const khoaShop = process.env.SHOPAIKEY_API_KEY;
+  if (khoaShop) {
+    try {
+      const r = await fetch('https://api.shopaikey.com/v1/chat/completions', { method: 'POST', signal: AbortSignal.timeout(180_000),
+        headers: { authorization: `Bearer ${khoaShop}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ model, max_tokens: o.maxTokens, messages: [...(o.he ? [{ role: 'system', content: o.he }] : []),
+          { role: 'user', content: o.noiDung.map((x) => ('anh' in x ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${x.anh}` } } : { type: 'text', text: x.text })) }] }) });
+      const j = await r.json() as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
+      const text = j.choices?.[0]?.message?.content ?? '';
+      if (r.ok && text) return { ok: true, text, tokens: { in: j.usage?.prompt_tokens ?? 0, out: j.usage?.completion_tokens ?? 0 }, nguon: 'shopaikey', model };
+      loiShop.push(`ShopAIKey ${r.status}: ${j.error?.message ?? 'không có chữ'}`);
+    } catch (e) { loiShop.push(`ShopAIKey: ${e instanceof Error ? e.message : String(e)}`); }
+  }
+  if (!process.env.ANTHROPIC_API_KEY) return { ok: false, loi: [...loiShop, 'Thiếu ANTHROPIC_API_KEY'].join(' · ') };
   try {
-    const r = await c.messages.create({ model: MO_HINH_XAC_NHAN_CLAUDE, max_tokens: 400,
-      messages: [{ role: 'user', content: [...o.anh.map((d) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: d } })),
-        { type: 'text' as const, text: `${o.cauHoi}\nReply with ONLY a JSON object: {"co": true|false, "muc": "nang"|"nhe", "ly_do": "<frame number and exactly what is wrong, or why it is fine>"}` }] }] });
-    const txt = r.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
-    const m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return { ok: false, loi: `Claude không trả JSON: ${txt.slice(0, 120)}` };
-    const d = JSON.parse(m[0]) as { co: boolean; muc: 'nang' | 'nhe'; ly_do: string };
-    return { ok: true, data: { co: !!d.co, muc: d.muc === 'nhe' ? 'nhe' : 'nang', ly_do: String(d.ly_do ?? '') }, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
-  } catch (e) { return { ok: false, loi: loiGoi(e) }; }
+    const c = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const r = await c.messages.create({ model, max_tokens: o.maxTokens, ...(o.he ? { system: o.he } : {}),
+      messages: [{ role: 'user', content: o.noiDung.map((x) => ('anh' in x ? { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.anh } } : { type: 'text' as const, text: x.text })) }] });
+    if (loiShop.length) console.error('[claude] đại lý lỗi, dùng Anthropic trực tiếp:', loiShop.join(' · '));
+    return { ok: true, text: r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''), tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens }, nguon: 'anthropic', model };
+  } catch (e) { return { ok: false, loi: [...loiShop, loiGoi(e)].join(' · ') }; }
+}
+/** Khoá ghi sổ tiền của một lượt goiClaude: đi đại lý thì 'shopaikey:<model>' (bảng GIA_CHU tính theo tiền thật), trực tiếp thì đúng tên model. */
+export const modelSoTien = (k: { nguon: 'shopaikey' | 'anthropic'; model: string }): string => (k.nguon === 'shopaikey' ? `shopaikey:${k.model}` : k.model);
+/** Lấy khối JSON đầu tiên trong chữ Claude trả (có thể bọc ```json). */
+export const tachJson = <T>(t: string): T | null => { const m = t.match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]) as T; } catch { return null; } };
+
+/** XÁC NHẬN LỖI CLIP bằng Claude nhìn ảnh (máy soi bản 3, soi-bien-dang.ts): Gemini quét rộng khoanh lỗi, Claude xem các khung nét cao quanh đúng giây
+ *  và quyết có / không + mức nặng / nhẹ. Đo 17/10/2026 trên bộ mẫu: bắt 8/8, báo nhầm 3/8 (Gemini Pro 4–6/8). */
+export const MO_HINH_XAC_NHAN_CLAUDE = 'claude-sonnet-5-5';
+export async function xacNhanLoiClaude(o: { anh: string[]; cauHoi: string }): Promise<{ ok: true; data: { co: boolean; muc: 'nang' | 'nhe'; ly_do: string }; tokens: { in: number; out: number }; model: string } | { ok: false; loi: string }> {
+  const r = await goiClaude({ noiDung: [...o.anh.map((anh) => ({ anh })), { text: `${o.cauHoi}\nReply with ONLY a JSON object: {"co": true|false, "muc": "nang"|"nhe", "ly_do": "<frame number and exactly what is wrong, or why it is fine>"}` }], maxTokens: 400, model: MO_HINH_XAC_NHAN_CLAUDE });
+  if (!r.ok) return r;
+  const d = tachJson<{ co: boolean; muc: string; ly_do: string }>(r.text);
+  if (!d) return { ok: false, loi: `Claude không trả JSON: ${r.text.slice(0, 120)}` };
+  return { ok: true, data: { co: !!d.co, muc: d.muc === 'nhe' ? 'nhe' : 'nang', ly_do: String(d.ly_do ?? '') }, tokens: r.tokens, model: modelSoTien(r) };
 }

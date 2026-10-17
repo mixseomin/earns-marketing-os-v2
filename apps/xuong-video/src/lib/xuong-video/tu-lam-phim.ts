@@ -6,8 +6,8 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { kiemNguoiXemTap, type kiemNguoiXemCanh } from './kiem-nguoi-xem';
-import { heNguoiXem, vaoNguoiXem, NguoiXemSchema, NguoiXemQcSchema, DoiChieuYSchema, type thuNguoiXem } from './claude';
-import { goiGeminiJson, zodSangGemini, MO_HINH_BD } from './soi-bien-dang';
+import { heNguoiXem, vaoNguoiXem, NguoiXemSchema, NguoiXemQcSchema, DoiChieuYSchema, goiClaude, tachJson, modelSoTien, type thuNguoiXem } from './claude';
+import { zodSangGemini } from './soi-bien-dang';
 import { sinhAnhGoc, sinhKeyframeCanh } from './sinh-anh';
 import { sinhGiongShots } from './sinh-giong';
 import { khopGiongTap } from './hau-ky';
@@ -25,27 +25,30 @@ async function doiJob(db: Db, ids: number[], phut = 10): Promise<void> {
     if (Number(r[0]?.n) === 0) return; await ngu(5000);
   }
 }
-/** Bộ chấm người xem bằng Gemini — CÙNG chữ ký + lời dặn với thuNguoiXem (Claude) để kiemNguoiXemTap dùng chung: lượt 1 người xem (heNguoiXem +
- *  vaoNguoiXem), lượt 2 đối chiếu ý đồ. Chấm CẢ PHIM một lần: phim kể chuyện để sản phẩm / CTA ở cuối là đúng dạng — chấm từng đoạn thì đoạn nỗi đau
- *  luôn bị trừ vì "chưa thấy sản phẩm" (17/10/2026, #122: 8/8 đoạn trượt). */
-const chamGemini: typeof thuNguoiXem = async (o) => {
-  for (let lan = 0; lan < 2; lan++) { const r = await chamGemini1(o); if (r.ok || lan) return r; console.error('[chấm người xem] thử lại:', r.loi); }
+/** Bộ chấm người xem bằng CLAUDE (qua đại lý, dự phòng Anthropic — claude.ts › goiClaude) — CÙNG chữ ký + lời dặn với thuNguoiXem để kiemNguoiXemTap
+ *  dùng chung: lượt 1 người xem (heNguoiXem + vaoNguoiXem), lượt 2 đối chiếu ý đồ. Chấm CẢ PHIM một lần (phim kể chuyện để sản phẩm / CTA ở cuối).
+ *  Khuôn trả lời lấy từ đúng zod của studio (zodSangGemini giữ mô tả trường). Gemini trước đây hiểu sai trường, phải vá nhiều lần (17/10/2026). */
+const DU_TRUONG = ['ke_lai', 'ai', 'muon', 'can', 'lat', 'ket', 'diem', 'cho_kho', 'cat'];
+const chamClaude: typeof thuNguoiXem = async (o) => {
+  for (let lan = 0; lan < 2; lan++) { const r = await chamClaude1(o); if (r.ok || lan) return r; console.error('[chấm người xem] thử lại:', r.loi); }
   return { ok: false, loi: 'không tới' };
 };
-const DU_TRUONG = ['ke_lai', 'ai', 'muon', 'can', 'lat', 'ket', 'diem', 'cho_kho', 'cat'];
-const chamGemini1: typeof thuNguoiXem = async (o) => {
-  const x = await goiGeminiJson<Parameters<typeof kiemNguoiXemCanh>[3] extends infer T ? T extends { xem: infer X } ? X : never : never>(
-    [{ text: `${heNguoiXem(o.kt, o.doDai, o.qc)}\n\n${vaoNguoiXem(o)}` }], zodSangGemini(o.qc ? NguoiXemQcSchema : NguoiXemSchema));
-  if (!x) return { ok: false, loi: 'Gemini không trả lời (lượt người xem)' };
-  const xem = x.data;
-  const thieu = DU_TRUONG.filter((k) => (xem as Record<string, unknown>)[k] == null);
-  if (thieu.length || !Number.isFinite(Number(xem.diem))) return { ok: false, loi: `Gemini trả thiếu trường: ${thieu.join(', ') || 'diem'}` };
-  const d = await goiGeminiJson<{ khop: boolean; lech: string }>([{ text: o.qc
+const chamClaude1: typeof thuNguoiXem = async (o) => {
+  const khuon = JSON.stringify(zodSangGemini(o.qc ? NguoiXemQcSchema : NguoiXemSchema));
+  const x = await goiClaude({ he: heNguoiXem(o.kt, o.doDai, o.qc), maxTokens: 6000,
+    noiDung: [{ text: `${vaoNguoiXem(o)}\n\nTrả lời DUY NHẤT một đối tượng JSON đúng khuôn (mô tả từng trường nằm trong "description"): ${khuon}` }] });
+  if (!x.ok) return x;
+  const xem = tachJson<Record<string, unknown>>(x.text);
+  const thieu = DU_TRUONG.filter((k) => xem?.[k] == null);
+  if (!xem || thieu.length || !Number.isFinite(Number(xem.diem))) return { ok: false, loi: `Claude trả thiếu trường: ${thieu.join(', ') || 'diem'}` };
+  const d = await goiClaude({ maxTokens: 800, noiDung: [{ text: (o.qc
     ? `Bạn so điều MỘT NGƯỜI XEM nhận được từ một quảng cáo với ý đồ của người làm QC. Chỉ đánh giá người xem có nhận đúng sản phẩm, vấn đề, lợi ích chính và ưu đãi không — không chấm văn, không xét đúng sai của ưu đãi / số liệu.\n\nÝ ĐỒ QC\n${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM NHẬN ĐƯỢC\n${xem.ke_lai}\nSản phẩm: ${xem.ai}\nVấn đề: ${xem.muon}\nLợi ích: ${xem.can}\nƯu đãi / việc làm tiếp: ${xem.ket}`
-    : `Bạn so câu chuyện MỘT NGƯỜI XEM kể lại với ý đồ của tác giả. Chỉ đánh giá người xem có nhận được đúng câu chuyện, cú lật và kết không — không chấm văn.\n\nÝ ĐỒ TÁC GIẢ\nLogline: ${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM KỂ LẠI\n${xem.ke_lai}\nCú lật người xem thấy: ${xem.lat}\nKết người xem nhận: ${xem.ket}` }],
-    zodSangGemini(DoiChieuYSchema));
-  if (!d || typeof d.data.khop !== 'boolean') return { ok: false, loi: 'Gemini không trả lời đúng khuôn (lượt đối chiếu)' };
-  return { ok: true, data: { xem, doi: d.data }, model: MO_HINH_BD, tokens: { in: x.tk.in + d.tk.in, out: x.tk.out + d.tk.out } } as Awaited<ReturnType<typeof thuNguoiXem>>;
+    : `Bạn so câu chuyện MỘT NGƯỜI XEM kể lại với ý đồ của tác giả. Chỉ đánh giá người xem có nhận được đúng câu chuyện, cú lật và kết không — không chấm văn.\n\nÝ ĐỒ TÁC GIẢ\nLogline: ${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM KỂ LẠI\n${xem.ke_lai}\nCú lật người xem thấy: ${xem.lat}\nKết người xem nhận: ${xem.ket}`)
+    + `\n\nTrả lời DUY NHẤT JSON: ${JSON.stringify(zodSangGemini(DoiChieuYSchema))}` }] });
+  if (!d.ok) return d;
+  const doi = tachJson<{ khop: boolean; lech: string }>(d.text);
+  if (!doi || typeof doi.khop !== 'boolean') return { ok: false, loi: 'Claude không trả đúng khuôn (lượt đối chiếu)' };
+  return { ok: true, data: { xem: xem as never, doi: { khop: doi.khop, lech: String(doi.lech ?? '') } }, model: modelSoTien(x), tokens: { in: x.tokens.in + d.tokens.in, out: x.tokens.out + d.tokens.out } } as Awaited<ReturnType<typeof thuNguoiXem>>;
 };
 
 export type KetLamPhim = { ok: boolean; buoc: string; loi: string[]; clip: KetTuSua[] };
@@ -55,7 +58,7 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
   const canhA = () => db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`).then((r) => locNhanh((r as unknown as Row[]).map(mapCanh), 'A'));
   // 1. người xem CẢ PHIM (cùng cổng: thu_nguoi_xem.ma = mã kịch bản) — trượt thì dừng trước khi tiêu tiền hình
   if (!bc.tap.thu_nguoi_xem?.dat) {
-    const k = await kiemNguoiXemTap(db, tapId, chamGemini);
+    const k = await kiemNguoiXemTap(db, tapId, chamClaude);
     if (!k.ok) return { ok: false, buoc: 'người xem', loi: [k.loi], clip: [] };
     log(`  người xem ${k.data.dat ? '✓' : '✗'} ${k.data.diem}/10${k.data.khop ? '' : ` · lệch: ${k.data.lech}`}`);
     if (!k.data.dat) return { ok: false, buoc: 'người xem', loi: [`${k.data.diem}/10${k.data.khop ? '' : ` · lệch: ${k.data.lech}`}`, ...k.data.cho_kho.map((c) => `#${c.shot} ${c.van_de} → ${c.sua}`)], clip: [] };

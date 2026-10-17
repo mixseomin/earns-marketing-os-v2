@@ -3,11 +3,12 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { type Row, n, s, ghiTienChu } from './doc-db';
-import { docOTemplate } from './template-db';
+import { docOTemplate, dienLaiChu } from './template-db';
+import { cauThieuNguon, type ThamKhaoCau } from './tham-khao';
 import { sanPhamPhim } from './nhom-phim';
 import { giaChuCents, type KinhThanh } from './kieu';
 import { vietPhuongAnCap } from './claude';
-import { oChuTuKhung, mucNb, PA_DU_KIEN, type SubAvatar } from './concept';
+import { oChuTuKhung, mucNb, PA_DU_KIEN, nguonCreative, type SubAvatar } from './concept';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -102,4 +103,20 @@ export async function vietHetDb(db: Db, spKey: string, caps: number[]): Promise<
   }
   st.chay = false;
   return { xong: st.xong, loi: st.loi };
+}
+
+/** Gắn nguồn tham khảo của creative vào phim của nó (0đ): đọc phương án đã chọn + sub-avatar + thông tin trang bán đã điền trong phim → dienLaiChu
+ *  (chữ / lời giữ nguyên vì gt không đổi, chỉ thêm nguồn). Một đường cho nút Tạo phim gốc (taoPhimTuCreative) và script gắn lại cho phim đã tạo. */
+export async function ganNguonCreativeDb(db: Db, phimId: number): Promise<{ shot: number; thieu: string[] } | null> {
+  const r = ((await db.execute(sql`SELECT cr.chon, cr.cap_id, k.du_lieu, p.kinh_thanh FROM xv_creative cr JOIN xv_cap c ON c.id = cr.cap_id
+    JOIN xv_concept k ON k.id = c.concept_id JOIN xv_phim p ON p.id = cr.phim_id WHERE cr.phim_id = ${phimId}`)) as unknown as Row[])[0];
+  if (!r) return null;
+  const gt = (((r.kinh_thanh ?? {}) as KinhThanh).tu_template?.gia_tri ?? {}) as Record<string, string>;
+  const pa = ((await db.execute(sql`SELECT o, so, nguon FROM xv_phuong_an WHERE cap_id = ${n(r.cap_id)} AND NOT an`)) as unknown as Row[]).map((x) => ({ o: s(x.o), so: n(x.so), nguon: s(x.nguon) }));
+  const tk = nguonCreative((r.chon ?? {}) as Record<string, number>, pa, (r.du_lieu ?? {}) as SubAvatar,
+    { link: gt.link, diem: gt.diem_noi_bat, uu_dai: gt.uu_dai, ten: gt.san_pham });
+  const kq = await dienLaiChu(db, phimId, { gt: {}, tk });
+  if (!kq) return null;
+  const canh = (await db.execute(sql`SELECT c.chu_man, c.thoai, c.tham_khao FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId}`)) as unknown as Row[];
+  return { shot: kq.shot, thieu: canh.flatMap((c) => cauThieuNguon({ chu_man: s(c.chu_man), thoai: (c.thoai ?? []) as { loi?: string }[], tham_khao: (c.tham_khao ?? []) as ThamKhaoCau[] })) };
 }

@@ -14,7 +14,7 @@ import { docSpy } from '@/lib/xuong-video/spy-api';
 import { nguCanhXuat, xuatCreativeDb } from '@/lib/xuong-video/xuat-creative';
 import { taoJob, xongJob } from '@/lib/xuong-video/doc-db';
 import { chayNen } from '@/lib/xuong-video/hoan-tat';
-import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET } from '@/lib/xuong-video/concept-db';
+import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET, ganNguonCreativeDb } from '@/lib/xuong-video/concept-db';
 import { giaTriSanPham, taoPhimTuTemplate } from '@/lib/actions';
 import type { KetQuaChep } from '@/lib/xuong-video/template-db';
 import { oChuTuKhung, oHinhCua, hopKhuon, gtBienThe, laDuyet, type Concept, type TplConcept, type Cap, type BienTheHinh, type PhuongAn, type CreativeDuyet, type GiaConcept, type SubAvatar } from '@/lib/xuong-video/concept';
@@ -310,6 +310,8 @@ export async function taoPhimTuCreative(creativeId: number, ten: string, gt: Rec
     kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{creative}', ${JSON.stringify({ so: n(r.so), ma: s(r.ma), concept: s(r.k_ma) })}::jsonb), updated_at = now() WHERE id = ${kq.data.phimId}`);
   await db.execute(sql`UPDATE xv_creative SET phim_id = ${kq.data.phimId}, trang_thai = 'da_tao' WHERE id = ${creativeId}`);
   // phim ĐẦU TIÊN của bộ hình = PHIM GỐC — các creative khác cùng bộ hình xuất từ clip của nó (xuatCreative), không tạo phim riêng
+  // nguồn tham khảo của phương án đi theo câu chữ vào phim — thiếu thì cổng quy trình chặn sinh keyframe cả phim
+  await ganNguonCreativeDb(db, kq.data.phimId);
   if (r.bien_the_id != null) await db.execute(sql`UPDATE xv_bien_the_hinh SET phim_id = ${kq.data.phimId} WHERE id = ${n(r.bien_the_id)} AND phim_id IS NULL`);
   return kq;
 }

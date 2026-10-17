@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/concept.test.mts
 import assert from 'node:assert';
-import { oChuTuKhung, oHinhCua, gtBienThe, toHopCap, trongVong, khacGoc, tienCapCents, tienDungRiengCents, duKienCap, maToHop, hopKhuon, PA_DU_KIEN, type TplConcept, type Concept, type BienTheHinh, type PhuongAn } from './concept';
+import { oChuTuKhung, oHinhCua, gtBienThe, toHopCap, trongVong, khacGoc, tienCapCents, tienDungRiengCents, duKienCap, maToHop, hopKhuon, PA_DU_KIEN, nguonCreative, type TplConcept, type Concept, type BienTheHinh, type PhuongAn } from './concept';
 
 // ô chữ: theo thứ tự shot, bỏ ô sản phẩm / ảnh / _hinh; ô nhóm nhân vật vẫn là chữ khi nằm trong chữ màn (nguoi_gioi_thieu)
 const o = [{ k: 'san_pham', ten: 'Sản phẩm' }, { k: 'noi_dau', ten: 'Nỗi đau' }, { k: 'tinh_huong', ten: 'Tình huống' }, { k: 'noi_dau_hinh', ten: 'Hình nỗi đau' },
@@ -50,4 +50,11 @@ assert.strictEqual(PA_DU_KIEN([{ loai: 'hook' }, { loai: 'noi_dau' }, { loai: 'n
 assert.ok(hopKhuon('ke_chuyen', 'PA') && !hopKhuon('uu_dai', 'PA'));
 // dựng riêng một creative: kịch bản + mỗi shot có ô chữ (3 ô → 3 shot), không tính shot giữ hình
 assert.strictEqual(tienDungRiengCents(t, g), 40 + 3 * 20);
+// nguồn: ghi chú 'trang' → trang bán; còn lại → lời khách (câu nguyên văn); ô sản phẩm / ưu đãi luôn có nguồn trang bán
+const ng = nguonCreative({ tinh_huong: 1, noi_dau: 2 }, [{ o: 'tinh_huong', so: 1, nguon: "câu khách 'choked'" }, { o: 'noi_dau', so: 2, nguon: 'trang: 4% elastane' }],
+  { ngon_ngu: ['every pair chokes'], goc: [7] }, { link: 'https://x', diem: '4% elastane', uu_dai: '70% OFF', ten: 'Jett' });
+assert.strictEqual(ng.tinh_huong![0]!.loai, 'loi_khach'); assert.ok(ng.tinh_huong![0]!.trich.includes('every pair chokes')); assert.strictEqual(ng.tinh_huong![0]!.ma, '7');
+assert.strictEqual(ng.noi_dau![0]!.loai, 'trang_ban'); assert.strictEqual(ng.noi_dau![0]!.trich, '4% elastane');
+assert.deepStrictEqual(Object.keys(ng).sort(), ['noi_dau', 'san_pham', 'tinh_huong', 'uu_dai']);
+assert.ok(nguonCreative({ x: 1 }, [], { ngon_ngu: [] }, {}).x![0]!.trich.length > 0, 'không câu khách vẫn có trích (không rỗng)');
 console.log('concept.test: ok');

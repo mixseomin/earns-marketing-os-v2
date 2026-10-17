@@ -20,6 +20,7 @@ import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
 import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
+import { chamVideo, promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
 const phimId = Number((process.argv.find((a) => a.startsWith('--phim=')) ?? '').split('=')[1] || 0);
@@ -60,8 +61,10 @@ if (arg('xem-prompt')) {
     const k = chuanBiKeyframe(bc);
     console.log(`\n#${c.thu_tu} ${c.canh}`);
     if (k.haiBuoc && !nguon) console.log(`  [bước 1 FLUX]\n  ${k.haiBuoc.prompt1}\n  [bước 2 · ${k.haiBuoc.ref2.length + 1} ảnh]\n  ${k.haiBuoc.prompt2}`);
-    const c = chamKeyframe(bc); console.log(`  ${c.loi.some((l) => l.phat >= 20) ? '✗' : '✓'} điểm prompt ${c.diem}/100${c.loi.length ? `\n    ${c.loi.map((l) => `−${l.phat} ${l.chu}`).join('\n    ')}` : ' (mọi đường: một bước, hai bước, khung kết)'}`);
     else console.log(`  [một bước · ${k.urlRef.length} ảnh]\n  ${k.prompt}`);
+    console.log(`  [video]\n  ${promptVideoCanh(bc)}`);
+    const ck = chamKeyframe(bc); const cv = chamVideo(bc); const loi = [...ck.loi, ...cv.loi];
+    console.log(`  ${loi.some((l) => l.phat >= 20) ? '✗' : '✓'} điểm prompt keyframe ${ck.diem}/100 · video ${cv.diem}/100${loi.length ? `\n    ${loi.map((l) => `−${l.phat} ${l.chu}`).join('\n    ')}` : ''}`);
   }
   process.exit(0);
 }

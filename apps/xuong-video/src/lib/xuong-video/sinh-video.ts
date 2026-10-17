@@ -25,7 +25,6 @@ import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
-const KHUNG_SONG = 'Keep the whole frame alive: the characters perform the action with clear, readable whole-body movement (not just a small facial change), and secondary motion never stops — fur, leaves, grass, clouds and small background details keep drifting.';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -46,15 +45,15 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // Sản phẩm/người/bối cảnh phải giữ y như khung đầu (keyframe đã duyệt): Veo tự "sửa" quần theo chữ tả trong prompt_video và cho nhân vật
   // đi khỏi khung (thử 2 shot 09/10/2026) — nói rõ khung đầu là chân lý, chủ thể ở trong khung suốt clip, không chữ.
   const coSp = bc.nhanVat.some((v) => v.loai === 'san_pham');
-  const giuKhung = `The first frame is the ground truth: keep every person, ${coSp ? 'the product (exact same garment — cut, color, pockets, fabric — never restyled), ' : ''}the set and the framing exactly as in it; the main subject stays fully in frame for the whole clip; no text, captions or logos appear.`;
-  // Shot có sản phẩm mà hành động chỉ tả mặt ("cười, gật đầu", "push-in") + KHUNG_SONG đòi cử động cả thân → model tự bịa cử chỉ vào món
+  const giuKhung = `The first frame is the ground truth: keep every person, ${coSp ? 'the product (exact same garment — cut, color, pockets, fabric — never restyled), ' : ''}the set and the framing exactly as in it; the main subject stays fully in frame for the whole clip.`;
+  // Shot có sản phẩm mà hành động chỉ tả mặt ("cười, gật đầu", "push-in") + câu khung sống (CHAT_LIEU.song_video) đòi cử động cả thân → model tự bịa cử chỉ vào món
   // gần tay nhất: #54 shot 9 (16/10/2026) ông Mike kéo cổ áo polo trong phim bán QUẦN, máy đẩy vào cắt mất quần. Cử chỉ phải dồn vào sản phẩm.
   const tenSp = bc.nhanVat.filter((v) => v.loai === 'san_pham').map((v) => v.ten.trim()).filter(Boolean).join(', ');
   const spTrongTam = coSp ? `The product${tenSp ? ` (${tenSp})` : ''} is the focus of the shot: any hand or body gesture is about the product itself (touching, smoothing, adjusting or showing it off) — never tugging, adjusting or pointing at other clothing; the product stays fully visible the whole clip and no camera move crops it out of frame.` : '';
   // KHÔNG THÊM GÌ NGOÀI KHUNG ĐẦU (anh 15/10/2026: "bắt sinh ảnh, video phải tuân thủ tuyệt đối cái gì 3D đặt vào — chỉ được format, chuyển động"):
   // khung đầu dựng từ 3D đã có đủ thứ trong khung; clip chỉ được làm chúng chuyển động. Ai / món gì khung 3D kết mới thấy (đi vào khung) thì được vào.
   const vaoKhung = (bc.canh.khung_xam?.di ?? []).filter((d) => d.tu.some((x) => x < 0 || x > 1) && d.den.every((x) => x >= 0 && x <= 1)).map((d) => d.ten);
-  const khongThem = bc.canh.khung_xam ? `Nothing new appears during the clip: no extra characters, props, cables, hands or objects beyond what is in the first frame${vaoKhung.length ? ` (only ${vaoKhung.join(', ')} may enter, as the action says)` : ''}; things cut off by the frame edge stay cut off; no fire, smoke, sparks, exhaust, glow, dust or particle effects of any kind (a character that rises simply floats); only movement, expression and camera motion change.` : '';
+  const khongThem = bc.canh.khung_xam ? CHAT_LIEU[chatLieuPhim(bc.kt)].khong_them(vaoKhung.length ? ` (only ${vaoKhung.map(goiTenEn([...bc.nhanVat, ...bc.nvPhim])).join(', ')} may enter, as the action says)` : '') : '';
   // Thoại: KHÔNG lấy câu trong ngoặc kép của prompt_video (ngôn ngữ cũ, Veo in thành phụ đề) — ghép từ dòng thoại hiện tại của shot;
   // có file giọng riêng rồi thì clip câm (chỉ cử miệng). Nên sinh GIỌNG trước VIDEO.
   const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
@@ -72,20 +71,22 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const cl = chatLieuPhim(bc.kt);
   // GIỮ KHUNG ĐẦU theo chất liệu (CHAT_LIEU.giu_video): hoạt hình chỉ khi khung đầu là ảnh render 3D; người thật luôn (giữ mặt, đồ, bối cảnh).
   const giuAnh = rendau || cl === 'nguoi_that' ? CHAT_LIEU[cl].giu_video : '';
+  const chen = bc.canh.ky_thuat?.co_canh === 'insert';   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
   return [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
-    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di, goiTenEn([...bc.nhanVat, ...bc.nvPhim]))), khoi('khac', coMau(bc.kt.qc) ? '' : KHUNG_SONG), khoi('vat', spTrongTam),
-    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem}`), khoi('cam_chu', 'No on-screen text, captions, subtitles, labels or logos.'),
+    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di, goiTenEn([...bc.nhanVat, ...bc.nvPhim]))), khoi('khac', coMau(bc.kt.qc) ? '' : CHAT_LIEU[cl].song_video(chen)), khoi('vat', spTrongTam),
+    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem}`), khoi('cam_chu', 'No on-screen text, captions, subtitles, name labels or logos anywhere.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
-    khoi('cam_xuc', promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', promptBieuCam(bc.canh.bieu_cam, 'video')),
+    khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     khoi('thoai', coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''),
   ];
 }
 export const promptVideoCanh = (bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): string => ghep(khoiVideoCanh(bc));
 /** CHẤM prompt video (kiem-prompt.ts, khuôn KHUON.video): chất liệu phim, tiếng Việt lọt vào, cận chèn tả mặt, lặp — chặn trước khi gửi model video. */
 export function chamVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { diem: number; loi: LoiPrompt[] } {
-  return chamPrompt([{ ten: KHUON.video.ten, duong: 'video', khoi: khoiVideoCanh(bc) }], { co_canh: bc.canh.ky_thuat?.co_canh, chat_lieu: chatLieuPhim(bc.kt), ten_rieng: bc.nhanVat.map((v) => v.ten), nguoi: [], vat: [] });
+  return chamPrompt([{ ten: KHUON.video.ten, duong: 'video', khoi: khoiVideoCanh(bc) }], { co_canh: bc.canh.ky_thuat?.co_canh, chat_lieu: chatLieuPhim(bc.kt), ten_rieng: bc.nhanVat.map((v) => v.ten), nguoi: [], vat: [],
+    di: (bc.canh.khung_xam?.di ?? []).map((d) => ({ ten: d.ten, dx: d.den[0]! - d.tu[0]! })) });
 }
 
 /** Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.

@@ -17,7 +17,9 @@ export const CHAT_LIEU: Record<ChatLieu, {
   /** bước 1 FLUX: câu chốt chất liệu (không lặp chữ của phong cách phim) */ flux_cuoi: string;
   /** khoá ánh sáng cảnh (mọi shot cùng cảnh cùng tông) */ anh_sang: (denBan: boolean) => string;
   /** video: lối diễn */ dien_video: (rendau: boolean) => string;
-  /** video: giữ đúng khung đầu */ giu_video: string;
+  /** video: giữ đúng khung đầu (KHÔNG nói chuyện chữ — khối cam_chu nói một lần) */ giu_video: string;
+  /** video: khung sống — chuyển động phụ hợp chất liệu; cận chèn (chen) không đòi cử động cả người */ song_video: (chen: boolean) => string;
+  /** video: không thêm gì ngoài khung đầu */ khong_them: (vao: string) => string;
   /** chữ CẤM với chất liệu này (bộ chấm chặn nếu lọt vào) */ cam: RegExp;
 }> = {
   nguoi_that: {
@@ -27,8 +29,10 @@ export const CHAT_LIEU: Record<ChatLieu, {
     flux_cuoi: 'Real people, real skin and fabric, natural motivated lighting, 35mm film look. No text, no letters, no numbers.',
     anh_sang: () => 'Scene lighting, identical in every shot of this scene: same light direction, exposure and colour grade as the rest of the scene.',
     dien_video: () => 'Naturalistic screen acting (real human timing, subtle and motivated, no cartoon exaggeration)',
-    giu_video: 'Keep the exact look of the first frame: same people, faces, wardrobe, set, lighting and colours; real live-action footage. No on-screen text, captions, subtitles or name labels anywhere.',
-    cam: /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top|desk lamp|squash and stretch|cartoon acting|puppet)\b/i,
+    giu_video: 'Keep the exact look of the first frame: same people, faces, wardrobe, set, lighting and colours; real live-action footage.',
+    song_video: (chen) => chen ? 'Only the described detail moves; everything else in frame stays still, with natural subtle life (a breath, a slight shift of light).' : 'Keep the frame alive with natural, motivated movement: the actors perform the action with readable body language, and the background stays naturally alive (people breathing, slight shifts, light on surfaces) — never frozen.',
+    khong_them: (vao) => `Nothing new appears during the clip: no extra people, props or objects beyond what is in the first frame${vao}; things cut off by the frame edge stay cut off; no visual effects, particles or glows.`,
+    cam: /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top|desk lamp|squash and stretch|cartoon acting|puppet|fur, leaves|simply floats)\b/i,
   },
   hoat_hinh: {
     anh_dich: () => 'a real photograph of the miniature stop-motion set',
@@ -39,7 +43,9 @@ export const CHAT_LIEU: Record<ChatLieu, {
       ? 'Scene lighting, identical in every shot of this scene: the warm desk lamp is ON (soft golden light from the lamp side) mixed with a faint cool glow from the screens; the room beyond the desk falls off to dark; same exposure and colour grade as the rest of the scene.'
       : 'Scene lighting, identical in every shot of this scene: night, the desk lamp is OFF — only the cool blue glow of the screens lights the desk, with deep soft shadows; the room beyond the desk is dark (no bokeh, no extra lamps); same exposure and colour grade in every shot.',
     dien_video: (r) => r ? 'Performance like a real stop-motion puppet (small, deliberate moves; every body keeps its solid shape — no stretching, melting or bending of limbs)' : 'Cartoon acting (anticipation, action, follow-through, squash and stretch, hold the reaction)',
-    giu_video: 'Keep the exact look of the first frame: same materials, textures, lighting, colours and depth of field; it is a real photographed miniature, not a cartoon. No on-screen text, captions, subtitles or name labels anywhere. Every character keeps exactly the face and eyes it has in the first frame — never draw, add or animate a cartoon face, mouth or expression lines that are not there.',
+    giu_video: 'Keep the exact look of the first frame: same materials, textures, lighting, colours and depth of field; it is a real photographed miniature, not a cartoon. Every character keeps exactly the face and eyes it has in the first frame — never draw, add or animate a cartoon face, mouth or expression lines that are not there.',
+    song_video: () => 'Keep the whole frame alive: the characters perform the action with clear, readable whole-body movement (not just a small facial change), and secondary motion never stops — fur, leaves, grass, clouds and small background details keep drifting.',
+    khong_them: (vao) => `Nothing new appears during the clip: no extra characters, props, cables, hands or objects beyond what is in the first frame${vao}; things cut off by the frame edge stay cut off; no fire, smoke, sparks, exhaust, glow, dust or particle effects of any kind (a character that rises simply floats); only movement, expression and camera motion change.`,
     cam: /\b(live-action film still|real actors|35mm film look)\b/i,
   },
 };

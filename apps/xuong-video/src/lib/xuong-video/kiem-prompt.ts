@@ -12,7 +12,7 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, dai: 20, lap: 10 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 const AN = /\b(hidden|covered|covering|concealed|out of sight|not visible|tucked under)\b/i;
 const TU_CHUNG = new Set(['small', 'thin', 'black', 'white', 'light', 'large', 'under', 'with', 'their', 'which', 'little', 'round', 'dark', 'long', 'short']);
@@ -25,6 +25,7 @@ export type SoatPrompt = {
   /** đồ CHỦ THỂ đang thấy trong khung 3D — chữ không được nói nó bị che / giấu */ vat: { ten: string; mo_ta: string }[];
   /** chất liệu phim: chữ cấm của chất liệu (CHAT_LIEU.cam) */ chat_lieu?: ChatLieu;
   /** tên riêng được phép giữ dấu (nhân vật, đạo cụ có tên) */ ten_rieng?: string[];
+  /** chuyển động trên màn đo từ khung 3D (khung_xam.di: dx > 0 = sang phải màn) — chữ "walks screen-left" ngược số này là lỗi */ di?: { ten: string; dx: number }[];
 };
 export type LoiPrompt = { buoc: string; ma: MaLoiPrompt; phat: number; chu: string };
 
@@ -61,6 +62,14 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
       const tuVat = v.mo_ta.toLowerCase().match(/[a-z-]{5,}/g)?.filter((w) => !TU_CHUNG.has(w)) ?? [];
       const cau = chu.split(/[.;|]/).find((c) => AN.test(c) && tuVat.some((w) => c.toLowerCase().includes(w)));
       if (cau) them(b.ten, 'nguoc_3d', `chữ nói ${v.ten} bị che / giấu ("${cau.trim().slice(0, 90)}") mà khung 3D cho thấy nó — sửa chữ (sổ người / mở shot) cho khớp 3D`);
+    }
+    // HƯỚNG ĐI NGƯỢC 3D: chữ "Hạ walks screen-right" mà khung 3D đo Hạ đi sang trái màn (tập 122 #15 sau khi đổi máy) — video đi lung tung
+    for (const d of s.di ?? []) {
+      if (Math.abs(d.dx) < 0.08) continue;
+      const tat = d.ten.trim().split(/\s+/).pop() ?? d.ten; const doi = d.dx > 0 ? 'left' : 'right';
+      const ten_ = tat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');   // ranh giới theo chữ Unicode — \\b của JS không hiểu 'Hạ'
+      const m = chu.match(new RegExp(`(?<!\\p{L})${ten_}(?!\\p{L})[^.;|]{0,40}?\\b(walks|moves|runs|strides|steps|heads|crosses|goes|rushes|drifts)\\b[^.;|]{0,30}?screen-${doi}`, 'iu'));
+      if (m) them(b.ten, 'nguoc_huong', `chữ nói "${m[0].trim()}" mà khung 3D đo ${d.ten} đi sang ${d.dx > 0 ? 'PHẢI' : 'TRÁI'} màn — sửa câu hướng (dan_dung.huong) cho khớp 3D`);
     }
     // CÂU LẶP: một vế ≥ 4 từ nằm trọn trong một vế khác (#15 "jade bangle on the left wrist" hai lần)
     const ve = chuLap.toLowerCase().split(/[,.;|]/).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 4);

@@ -39,4 +39,8 @@ assert.equal(chamPrompt([{ ten: 'bước 1', chu: lapChu }], s).diem, 90); asser
 // THOẠI đúng ngôn ngữ phim không phải tiếng Việt lọt vào; bố trí nhiều món cùng loại không phải lặp
 assert.deepEqual(loiPrompt([{ ten: 'video', duong: 'video', khoi: [khoi('giu', `Keep the first frame, wearing ${VEST}.`), khoi('dien', 'Naturalistic acting.'), khoi('cam_chu', 'No text.'), khoi('thoai', 'Hạ says "Cô nói đúng."')] }], s), []);
 assert.equal(chamPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: [khoi('anh_dich', 'EDIT Image 1.'), khoi('bo_tri', 'black leather armchair with a walnut frame, black leather armchair with a walnut frame'), khoi('nguoi', `woman wearing ${VEST}`), khoi('phong_cach', 'Photo look.'), khoi('cam_chu', 'No text.')] }], s).diem, 100);
+// HƯỚNG ĐI NGƯỢC 3D (#15): "Hạ walks screen-right" mà 3D đo Hạ sang trái → chặn; cùng hướng → qua
+const di = { ...s, di: [{ ten: 'Lâm Hạ', dx: -0.3 }] };
+assert.equal(loiPrompt([{ ten: 'video', chu: `Keep screen direction: Hạ walks screen-right toward the table, wearing ${VEST}.` }], di).length, 1);
+assert.equal(loiPrompt([{ ten: 'video', chu: `Keep screen direction: Hạ walks screen-left toward the table, wearing ${VEST}.` }], di).length, 0);
 console.log('kiem-prompt: ok');

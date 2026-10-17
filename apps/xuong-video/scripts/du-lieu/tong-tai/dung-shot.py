@@ -181,7 +181,7 @@ shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao',
      { 'dien': "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as a thin jade bead bracelet slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.", 'huong': 'Static hand; the camera pushes down onto the wrist.','bo_cuc': 'High insert on Lục Thần’s left wrist resting on the dark walnut table: the cuff pulled back reveals a thin pale-green jade bead bracelet next to his steel watch', 'mo': 'Thần’s hand flat on the table, cuff covering the wrist', 'ket': 'the jade bead bracelet in full view — cut to black', 'muc_dich': 'móc: khán giả thấy hai người cùng một chất ngọc, nhân vật chưa biết', 'motif': 'ngọc — vòng tay của Hạ (5.2) ↔ chuỗi hạt của Thần (tập sau)'},
      'Cận cổ tay Thần trên mặt bàn: tay áo xô lên, lộ chuỗi hạt ngọc cùng màu với vòng tay của Hạ; cắt đen', [],
      [bc(THAN, 'ngo_vuc', 'ngo_vuc')],
-     {'dat': [-130, 690, 120], 'nhin': [-100, 715, 76], 'ong_kinh': 100, 'khung': ['Chuỗi hạt ngọc'], 'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt('Chuỗi hạt ngọc', [-100, 715, 76], -90)]},
+     {'dat': [-140, 670, 110], 'nhin': [-112, 690, 74], 'ong_kinh': 100, 'khung': ['Chuỗi hạt ngọc'], 'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt('Chuỗi hạt ngọc', [-112, 690, 74], -90)]},   # cổ tay trái đang chống bàn (dáng chong_ban: tay trước người ~45 cm)
      [THAN, PH, 'Chuỗi hạt ngọc'])
 
 # MÁY TỰ ĐẶT (17/10/2026 — khung 3D đầu tiên: máy gõ tay nằm trong người phụ, dí sát mặt, cắt mất nhân vật): giữ HƯỚNG máy đã khai (phía quanh

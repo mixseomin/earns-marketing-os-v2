@@ -1,7 +1,7 @@
 // Sinh hình cho một phim trên box (không cần phiên đăng nhập) — TỐN TIỀN, chỉ chạy khi anh đã duyệt con số:
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
-//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước.
+//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
 //   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
 //                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
@@ -34,7 +34,9 @@ const kt = docKinhThanh(p[0].kinh_thanh as never);
 const anchorThieu = await q(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(anh_ref) = 0 AND mo_ta <> '' AND NOT (loai = 'boi_canh' AND bo_set_id IS NOT NULL) ORDER BY id`);
 const tap = await q(sql`SELECT id, so FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`);
 const tapId = Number(tap[0]?.id ?? 0);
-const canhThieu = tapId ? await q(sql`SELECT id, thu_tu, canh, (khung_xam->>'sau') IS NOT NULL AS co_sau FROM xv_canh WHERE tap_id = ${tapId} AND keyframe_url IS NULL AND prompt_anh <> '' ORDER BY thu_tu`) : [];
+// --lam-lai: sinh lại keyframe cho MỌI shot (3D / dáng đổi sau lượt trước) — ảnh cũ vẫn nằm trong keyframe_uv (ứng viên, chọn lại được), ảnh mới thành ảnh chọn.
+const lamLai = arg('lam-lai');
+const canhThieu = tapId ? await q(sql`SELECT id, thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : [];
 // --nguon=<cổng:model> (vd ckey:wowztools/nano-banana-2): sinh keyframe ĐÚNG nguồn đó, một bước — không tự rơi sang cổng đắt hơn, không qua FLUX độ sâu.
 const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8);
 // Shot có bản đồ độ sâu 3D mặc định đi HAI BƯỚC (sinh-anh.ts: FLUX depth fal $0,05 + ảnh sửa nhân dạng) — ước giá phải tính bước FLUX (17/10/2026:
@@ -73,7 +75,12 @@ if ((arg('keyframe') || arg('xuat')) && tapId && !arg('bo-qua-ngon-ngu')) {
 }
 if (arg('keyframe') && canhThieu.length) {
   const jobs: number[] = [];
-  for (const c of canhThieu) { const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); }
+  for (const c of canhThieu) {
+    if (lamLai) await db.execute(sql`UPDATE xv_canh SET keyframe_url = NULL WHERE id = ${c.id}`);   // ảnh mới về thì thành ảnh chọn (hoan-tat: coalesce)
+    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined);
+    if (r.ok) jobs.push(...r.data);
+    else { console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); if (lamLai && c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = coalesce(keyframe_url, ${String(c.keyframe_url)}) WHERE id = ${c.id}`); }
+  }
   await doi(jobs, 'keyframe');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);

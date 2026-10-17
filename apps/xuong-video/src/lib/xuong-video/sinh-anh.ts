@@ -14,7 +14,7 @@ import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './po
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
-import { loiAi3d } from './kiem-ai-3d';
+import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -287,7 +287,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const mon = trong.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
-        return `${moTaVua(v.mo_ta)}${h ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        // BỘ ĐỒ ĐANG MẶC (sổ trang phục): FLUX không nhận ảnh mẫu — không nói thì nó tự chọn đồ (tập 122 #15: Hạ vest ĐEN thay vest trắng; #22 tay trần không cổ tay áo)
+        const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined;
+        return `${moTaVua(v.mo_ta)}${bt?.mo_ta ? `, wearing ${moTaVua(bt.mo_ta)}` : ''}${h ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nen = thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten);
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
@@ -297,15 +299,20 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const gocChu = nguoiThat ? (g >= 8 ? 'low-angle shot looking up' : g <= -8 ? 'high-angle shot looking down' : 'eye-level shot')
         : g >= 8 ? 'low-angle shot from just above the desk, looking up' : g <= -8 ? 'high-angle shot looking down onto the desk' : 'eye-level shot at the height of the tiny characters';
       const prompt1 = (nguoiThat
-        ? [`Cinematic live-action film still, photorealistic, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
+        ? [`Cinematic live-action film still, photorealistic, ${gocChu}.`, bc.canh.dan_dung?.mo ? `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.` : '',   // dáng / việc đang làm ở khung mở (#20: "chống bàn" mà FLUX vẽ đứng thẳng)
+          mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
           moTaVua(phongCachHinh(bc.kt.phong_cach)), 'Real people, real skin and fabric, natural motivated lighting, shallow depth of field, 35mm film look. No text, no letters, no numbers.']
         : [`Macro photograph of a real miniature stop-motion set, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
           bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.',
           'Real materials, shallow depth of field, tactile handmade stop-motion feel. No text, no letters, no numbers, no people, no hands.']).filter(Boolean).join(' ');
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trong) { const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${moTaNgan(v.mo_ta)}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${moTaNgan(v.mo_ta)}`); }
+      // ĐỒ NHẬN DẠNG trong khung (màn chiếu, tranh, bảng chỉ dẫn — kiem-ai-3d.ts › LA_NHAN_DANG): ảnh chuẩn đã dán trên mặt vật ở khung màu (Image 2);
+      // FLUX bước 1 vẽ chữ bậy lên đó, KHONG_CHU ở bước 2 lại cấm sửa → #20 màn chiếu ra chữ vô nghĩa. Bước 2 chép nội dung từ Image 2, chữ khác vẫn cấm.
+      const coDinh = thayDs.filter((x) => x.pt >= PT_THAY && LA_NHAN_DANG.test(x.en ?? '')).map((x) => x.en!);
+      const chuCoDinh = coDinh.length ? `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there. Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.` : KHONG_CHU;
       const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,
-        huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
+        huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), chuCoDinh, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
       return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS };

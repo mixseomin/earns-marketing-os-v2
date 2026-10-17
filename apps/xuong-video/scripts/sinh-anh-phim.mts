@@ -1,5 +1,6 @@
 // Sinh hình cho một phim trên box (không cần phiên đăng nhập) — TỐN TIỀN, chỉ chạy khi anh đã duyệt con số:
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
+//   --xem-prompt : (0đ) in câu lệnh keyframe sẽ gửi của các shot đang chọn (--lam-lai --chi=…), không sinh gì.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --bien-the   : sinh ảnh tham chiếu cho biến thể chưa có ảnh (sinh-anh.sinhAnhBienTheDb — sổ trang phục), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
@@ -13,8 +14,8 @@
 import { lookPhim } from '../src/lib/xuong-video/look';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb } from '../src/lib/xuong-video/sinh-anh';
-import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb, chuanBiKeyframe } from '../src/lib/xuong-video/sinh-anh';
+import { boiCanhCanh, boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
 import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
@@ -52,6 +53,17 @@ console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(an
 const btThieu = await q(sql`SELECT b.id, b.ten, v.ten AS nv FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId} AND b.anh_url IS NULL ORDER BY b.id`);
 console.log(`  biến thể chưa ảnh: ${btThieu.length} → ≈ ${tien(btThieu.length * giaAnh)}`);
 console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh + haiBuoc * 5)}${haiBuoc ? ` (gồm ${haiBuoc} shot hai bước: FLUX độ sâu ≈ $0.05/shot)` : ''}${nguon ? ` · nguồn ${nguon}, một bước` : ''}`);
+// --xem-prompt (0đ): in câu lệnh keyframe SẼ gửi (một bước, hoặc bước 1 FLUX + bước 2 sửa nhân dạng) của các shot đang chọn — soát chữ trước khi xin duyệt tiền
+if (arg('xem-prompt')) {
+  for (const c of canhThieu) {
+    const bc = await boiCanhCanh(db as never, Number(c.id)); if (!bc) continue;
+    const k = chuanBiKeyframe(bc);
+    console.log(`\n#${c.thu_tu} ${c.canh}`);
+    if (k.haiBuoc && !nguon) console.log(`  [bước 1 FLUX]\n  ${k.haiBuoc.prompt1}\n  [bước 2 · ${k.haiBuoc.ref2.length + 1} ảnh]\n  ${k.haiBuoc.prompt2}`);
+    else console.log(`  [một bước · ${k.urlRef.length} ảnh]\n  ${k.prompt}`);
+  }
+  process.exit(0);
+}
 if (arg('uoc') || (!arg('anchor') && !arg('bien-the') && !arg('keyframe') && !arg('xuat') && !process.argv.some((a) => a.startsWith('--nhac=')))) { console.log('(chỉ ước lượng — thêm --anchor / --keyframe / --nhac=… / --xuat để chạy)'); process.exit(0); }
 
 /** Đợi các job ảnh xong (cả đường Cloudflare lẫn hàng nền trong tiến trình này). */

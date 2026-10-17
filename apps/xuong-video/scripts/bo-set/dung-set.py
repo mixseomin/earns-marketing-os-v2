@@ -410,13 +410,16 @@ def dung_set():
 
 TUY_CHON = {v['ten'] for v in DL['vat'] if v.get('tuy_chon')}
 THAY_CHO = {v['ten']: v['thay_cho'] for v in DL['vat'] if v.get('tuy_chon') and v.get('thay_cho')}
+AN_TUY = set()   # khối đang ẩn vì đồ tuỳ chọn của shot — cat_lop (tường rời) chỉ được ẩn thêm, không bật lại
 def dat_tuy_chon(co):
     """Đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ hiện ở shot khai may_3d.them; ẩn cả render lẫn tia kiểm (hide_viewport → ra khỏi depsgraph).
     Món tuỳ chọn là TRẠNG THÁI KHÁC của đồ set (thay_cho: cửa đôi MỞ thay cửa đóng) → đồ kia ẩn — CÙNG kieu.ts › vatHien."""
-    bo = {THAY_CHO[t] for t in co if t in THAY_CHO}; xet = TUY_CHON | set(THAY_CHO.values())
+    bo = {THAY_CHO[t] for t in co if t in THAY_CHO}; xet = TUY_CHON | set(THAY_CHO.values()); AN_TUY.clear()
     for o in bpy.data.objects:
         t = o.name.rsplit(' ', 1)[0] if o.name.rsplit(' ', 1)[0] in xet else o.name
-        if t in xet: o.hide_viewport = o.hide_render = (t in TUY_CHON and t not in co) or t in bo
+        if t in xet:
+            o.hide_viewport = o.hide_render = (t in TUY_CHON and t not in co) or t in bo
+            if o.hide_render: AN_TUY.add(o.name)
     bpy.context.view_layer.update()
 
 def nhan_vat(sh, ket=False):
@@ -576,7 +579,7 @@ def cat_lop(cam):
         ax = min(range(3), key=lambda i: hi[i] - lo[i])
         an = p[ax] > lo[ax] if (lo[ax] + hi[ax]) / 2 >= _LOP['tam'][ax] else p[ax] < hi[ax]
         for x in [o] + [bpy.data.objects.get(g) for g in _LOP['gan'].get(ten, [])]:
-            if x: x.hide_viewport = x.hide_render = an
+            if x: x.hide_viewport = x.hide_render = an or x.name in AN_TUY   # đồ tuỳ chọn shot không khai / bị thay (cửa đóng khi cửa mở) giữ ẩn
     bpy.context.view_layer.update()
 
 def do_sau(s, gan, xa):
@@ -646,6 +649,26 @@ def vet_(n_, ten, ds):
         o.location = (lo.x + (hi.x - lo.x) * lx, lo.y, lo.z + (hi.z - lo.z) * lz)
         o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
 
+# DÁNG CẦN MẶT TỰA ở khung MỞ: động tác → điểm chạm (bàn tay). Không có mặt đỡ dưới điểm chạm thì AI tự bịa chỗ tựa — tập 122 #20 Thần "chống bàn"
+# ở chỗ không có bàn → keyframe chống tay lên lưng ghế; #22 cận cổ tay thành bàn tay lơ lửng. Phim thường diễn viên tự tìm mặt bàn; phim AI phải đo.
+DANG_TUA = {'chong_ban': ('t', 'p')}
+def tua_hong(s, dg, sh, ten):
+    """Khoảng hở lớn nhất (cm) từ điểm chạm của dáng tựa đang diễn ở khung mở tới mặt đỡ ngay dưới nó (bỏ qua thân chính người đó). None = không có
+    dáng tựa hoặc chạm đủ (≤ 6 cm)."""
+    nv = next((x for x in sh.get('nhan_vat', []) if x.get('ten') == ten), None); n_ = NGUOI.get(ten)
+    if not nv or not n_: return None
+    mo = [str(d).split('@')[0] for d in (nv.get('dien') or []) if '@' not in str(d) or float(str(d).split('@')[1].split('-')[0]) <= 0.01]
+    hong = 0.0
+    for ma in mo:
+        for ben in DANG_TUA.get(ma, ()):
+            p = diem_cam(n_, ben); goc = p.copy()
+            for _ in range(6):
+                hit, loc, _, _, ob, _ = s.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
+                if not hit or not ob: hong = max(hong, 300.0); break
+                if ob.name.startswith(f"NG {ten}.") or ob.name == f"NV {ten}" or ob.name.startswith(f"NV {ten}·"): goc = loc - Vector((0, 0, 0.002)); continue
+                hong = max(hong, (p.z - loc.z) / CM); break
+    return round(hong, 1) if hong > 6 else None
+
 def kiem_hinh_hoc(s, cam, sh, nv_obj):
     """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật — TÂM có trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia
     từ máy tới 9 điểm trên thân — che > nửa số điểm = bị che). bat_buoc = chủ thể của khung (shot khai) — chỉ chúng mới là lỗi khi hỏng."""
@@ -688,8 +711,10 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
         # 'tam': toạ độ THẾ GIỚI (cm) của chủ thể lúc dựng — món đang cầm / đeo nằm ở bàn tay thật của rig, không ở toạ độ khai → đặt máy tay nhắm theo số này
         # 'khung': hộp bao trên màn (0..1, gốc trên-trái, kẹp vào khung) gồm cả phần bị che — hai người hộp trùng nhau thì AI vẽ thành một (#15)
         cv = [world_to_camera_view(s, cam, q) for q in bb]; kx = [min(1.0, max(0.0, q.x)) for q in cv]; ky = [min(1.0, max(0.0, 1 - q.y)) for q in cv]
-        out.append({'nhan_vat': ten, 'tam': [round(x / CM, 1) for x in tam], 'bat_buoc': ten in bb_ten, 'trong_khung': trong,
-                    'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che, 'khung': [round(min(kx), 3), round(min(ky), 3), round(max(kx), 3), round(max(ky), 3)]})
+        d_ = {'nhan_vat': ten, 'tam': [round(x / CM, 1) for x in tam], 'bat_buoc': ten in bb_ten, 'trong_khung': trong,
+              'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che, 'khung': [round(min(kx), 3), round(min(ky), 3), round(max(kx), 3), round(max(ky), 3)]}
+        if ng_ and (h_ := tua_hong(s, dg, sh, ng_)): d_['tua_hong'] = h_
+        out.append(d_)
     return out
 
 NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or v.get('mau_3d')}   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')

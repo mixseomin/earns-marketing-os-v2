@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi } from './kiem-ai-3d';
+import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -27,4 +27,7 @@ const nv2 = [{ ten: 'Hạ', loai: 'nhan_vat' }, { ten: 'Trần', loai: 'nhan_vat
 assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), nv2).length, 1);
 assert.equal(chongNguoi(kh([0.2, 0.3, 0.4, 0.9], [0.55, 0.3, 0.75, 0.88]), nv2).length, 0);
 assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), [{ ten: 'Hạ', loai: 'nhan_vat' }, { ten: 'Trần', loai: 'dao_cu' }] as never).length, 0);
+// DÁNG TỰA: chống bàn mà tay cách mặt đỡ 45 cm → chặn; chạm (không có tua_hong) → qua
+const tua = (h?: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { kiem: [{ nhan_vat: 'Thần', bat_buoc: true, trong_khung: true, cao_khung_pt: 60, bi_che_boi: [], tua_hong: h }] } }) as never;
+assert.equal(tuaHong(tua(45)).length, 1); assert.equal(tuaHong(tua()).length, 0);
 console.log('kiem-ai-3d: ok');

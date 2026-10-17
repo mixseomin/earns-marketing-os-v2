@@ -139,7 +139,8 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (9): mocap CMU (mã 'mc_*', mesh/mocap.py) — chỉ ma-nơ-canh người → GIỮ 37.
 // 17/10/2026 (10): mô hình đồ đạc thật (mau_3d, Poly Haven) — chỉ món khai mau_3d → GIỮ 37.
 // 17/10/2026 (14): hình 'vong' (vòng / chuỗi hạt), đồ ĐEO gắn khớp rig (deo), kiem ghi hộp khung của từng chủ thể, đồ tuỳ chọn thay_cho → 49.
-assert.deepEqual([BAN_DUNG, bam], [49, '37b8915ac346'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// 17/10/2026 (15): cat_lop không bật lại đồ tuỳ chọn đang ẩn (AN_TUY) + đo dáng tựa (tua_hong) → 50.
+assert.deepEqual([BAN_DUNG, bam], [50, 'c55a55711d2c'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

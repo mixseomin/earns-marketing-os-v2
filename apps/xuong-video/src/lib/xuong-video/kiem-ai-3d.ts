@@ -3,7 +3,7 @@
 // Phim thường: đạo cụ có mặt ở trường quay là lên hình. Phim AI: thứ gì KHÔNG có trong bản 3D thì model tự vẽ (mỗi góc một kiểu), thứ gì có mà không
 // được gọi tên thì model tự đổi. Bộ kiểm này đặt hai chiều đó thành luật CHẶN, đọc dữ liệu shot + set + khung 3D (không gọi AI, 0đ):
 //   ĐỦ   — vật được nhắc trong chữ của shot (hành động, bố cục, mở / kết, diễn xuất) phải có khối 3D tương ứng; shot cận phải THẤY nó trong khung.
-//   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo · hai người không chồng hình.
+//   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo · hai người không chồng hình · dáng tựa phải có mặt đỡ.
 // MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và bộ chấm tại chỗ (scripts/du-lieu/tong-tai/kiem.mts). Thuần — tự kiểm: kiem-ai-3d.test.mts
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
 import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
@@ -108,6 +108,13 @@ export function chongNguoi(c: ShotAi, nhanVat: Pick<NvAi, 'ten' | 'loai'>[]): st
   return out;
 }
 
+/** DÁNG TỰA KHÔNG CÓ MẶT ĐỠ: người đang chống tay / tựa (dung-set.py › DANG_TUA) mà điểm chạm lơ lửng ở khung mở — AI tự bịa chỗ tựa (tập 122 #20:
+ *  "chống bàn" ở chỗ không có bàn → keyframe chống lên lưng ghế; #22 cận cổ tay thành bàn tay giữa không trung). Đọc khung_xam.kiem[].tua_hong. */
+export function tuaHong(c: ShotAi): string[] {
+  return (c.khung_xam?.kiem ?? []).filter((k) => k.tua_hong && k.trong_khung)
+    .map((k) => `${k.nhan_vat} đang chống / tựa mà tay cách mặt đỡ ${k.tua_hong} cm ở khung mở — AI sẽ tự bịa chỗ tựa: dời người tới sát mặt bàn / mặt tựa, hoặc đổi dáng`);
+}
+
 /** ĐỒ NHẬN DẠNG (tranh, thư pháp, ảnh, poster, màn chiếu có nội dung, bảng chỉ dẫn): chỉ có chữ tả thì mỗi góc máy AI vẽ một bức khác (anh 17/10/2026:
  *  "tranh trên tường lúc hình A lúc tranh B"). Phải có ẢNH CHUẨN (vat.anh — scripts/sinh-anh-set.mts) dán lên mặt vật trong 3D. Đã có khung 3D: chỉ xét
  *  đồ LỌT KHUNG; chưa có: mọi đồ nhận dạng của set (chặn sớm, trước khi dựng). Màn hình tắt / logo chữ không tính. */
@@ -120,5 +127,5 @@ export function doNhanDangChuaAnh(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null)
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat)];
+  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c)];
 }

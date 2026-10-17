@@ -43,6 +43,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
   const [skn, setSkn] = useShallowParam('skn', '');   // nền đang lọc, CHỌN NHIỀU nối bằng ',' ('' = mọi nền)
+  // (eaf4df89 không lên máy chủ: run của nó bị huỷ vì lượt đẩy sau, run kế chỉ so event.before nên bỏ build web — 18/10/2026)
   const nenChon = skn ? skn.split(',') : [];
   const [skg, setSkg] = useShallowParam('skg', '');   // góc đang lọc, nhiều góc nối bằng ',' ('' = mọi góc)
   const gocChon = skg ? skg.split(',') : [];

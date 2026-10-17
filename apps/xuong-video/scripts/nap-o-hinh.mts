@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import { docOTemplate } from '../src/lib/xuong-video/template-db';
 import { oChuTuKhung } from '../src/lib/xuong-video/concept';
 
-type DuLieu = { sp_key: string; nguon: string; chung: Record<string, string>; concept: Record<string, Record<string, string>>; dan_toc: Record<string, string> };
+type DuLieu = { sp_key: string; nguon: string; /** nguồn riêng theo ô (câu chữ màn cố định cần nguồn tham khảo) */ nguon_o?: Record<string, string>; chung: Record<string, string>; concept: Record<string, Record<string, string>>; dan_toc: Record<string, string> };
 type Row = Record<string, unknown>;
 const tep = process.argv[2]; const ghi = process.argv.includes('--ghi');
 if (!tep) { console.error('dùng: nap-o-hinh.mts <tệp.json> [--ghi]'); process.exit(2); }
@@ -33,11 +33,11 @@ for (const c of caps) {
   for (const x of dung) {
     if (chu.has(x.k) || O_BIEN_THE.has(x.k)) continue;
     const v = gtConcept[x.k] ?? d.chung[x.k];
-    if (!v) { if (/_hinh$|^boi_canh|_ten$/.test(x.k)) thieu.set(`T${c.template_id}.${x.k}`, 1); continue; }
+    if (!v) { if (/_hinh$|^boi_canh|_ten$|^giong/.test(x.k)) thieu.set(`T${c.template_id}.${x.k}`, 1); continue; }
     soO++;
     if (!ghi) continue;
-    const r = (await db.execute(sql`INSERT INTO xv_phuong_an (cap_id, o, so, chu, nguon) VALUES (${Number(c.id)}, ${x.k}, 1, ${v}, ${d.nguon})
-      ON CONFLICT (cap_id, o, so) DO UPDATE SET chu = EXCLUDED.chu, an = false WHERE xv_phuong_an.nguon = EXCLUDED.nguon RETURNING id`)) as unknown as Row[];
+    const r = (await db.execute(sql`INSERT INTO xv_phuong_an (cap_id, o, so, chu, nguon) VALUES (${Number(c.id)}, ${x.k}, 1, ${v}, ${d.nguon_o?.[x.k] ?? d.nguon})
+      ON CONFLICT (cap_id, o, so) DO UPDATE SET chu = EXCLUDED.chu, an = false WHERE xv_phuong_an.nguon = EXCLUDED.nguon OR xv_phuong_an.nguon = ${d.nguon} RETURNING id`)) as unknown as Row[];
     if (!r.length) boQua++;
   }
 }

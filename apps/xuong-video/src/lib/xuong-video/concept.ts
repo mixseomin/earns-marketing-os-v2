@@ -124,17 +124,18 @@ export function khacGoc(x: ToHop, oChu: OChu[], pa: PhuongAn[]): { ten: string; 
 /** NGUỒN THAM KHẢO của một creative khi thành phim (cổng chanThamKhao chặn câu không nguồn): mỗi ô chữ đã chọn mang ghi chú nguồn của phương án —
  *  ghi chú nói "trang" → thông tin trang bán (trích điểm nổi bật), còn lại → lời khách của người mua (trích câu nguyên văn trong sub-avatar spy);
  *  ô sản phẩm / ưu đãi (end card) → trang bán. 17/10/2026: phim gốc #120 bị chặn cả 8 shot vì đường creative → phim làm rơi nguồn của phương án. */
-export type NguonCr = { loai: 'loi_khach' | 'trang_ban'; nguon: string; trich: string; link?: string; ma?: string; ky_thuat?: string };
+export type NguonCr = { loai: 'loi_khach' | 'trang_ban' | 'qc_thang'; nguon: string; trich: string; link?: string; ma?: string; ky_thuat?: string };
 export function nguonCreative(chon: Record<string, number>, pa: Pick<PhuongAn, 'o' | 'so' | 'nguon'>[], av: Pick<SubAvatar, 'ngon_ngu' | 'goc'>,
   sp: { link?: string; diem?: string; uu_dai?: string; ten?: string }): Record<string, NguonCr[]> {
   const trang = (trich: string, ky?: string): NguonCr => ({ loai: 'trang_ban', nguon: 'trang_ban', trich, ...(sp.link ? { link: sp.link } : {}), ...(ky ? { ky_thuat: ky } : {}) });
   const khach = (ky: string): NguonCr => ({ loai: 'loi_khach', nguon: 'spy', trich: (av.ngon_ngu ?? []).map((x) => `"${x}"`).join(' · ') || ky,
     ...(av.goc?.length ? { ma: av.goc.join(',') } : {}), ky_thuat: ky });
   const ra: Record<string, NguonCr[]> = {};
-  for (const [k, so] of Object.entries(chon)) {
-    const ghi = pa.find((p) => p.o === k && p.so === so)?.nguon.trim() ?? '';
-    ra[k] = [/trang|số liệu thật/i.test(ghi) ? trang(sp.diem || ghi, ghi) : khach(ghi || 'phương án viết từ câu khách của người mua')];
-  }
+  const mot = (ghi: string): NguonCr => /QC thắng|qc_thang/i.test(ghi) ? { loai: 'qc_thang', nguon: 'qc_meta', trich: ghi, ky_thuat: ghi, ...(/(\d{12,})/.test(ghi) ? { ma: ghi.match(/(\d{12,})/)![1]!, link: `https://www.facebook.com/ads/library/?id=${ghi.match(/(\d{12,})/)![1]}` } : {}) }
+    : /trang|số liệu thật/i.test(ghi) ? trang(sp.diem || ghi, ghi) : khach(ghi || 'phương án viết từ câu khách của người mua');
+  for (const [k, so] of Object.entries(chon)) ra[k] = [mot(pa.find((p) => p.o === k && p.so === so)?.nguon.trim() ?? '')];
+  // ô chữ cố định của cặp (một phương án, không vào tổ hợp — nap-o-hinh.mts › nguon_o): câu nào có ghi nguồn thì mang nguồn đó
+  for (const p of pa) if (p.so === 1 && !(p.o in chon) && !(p.o in ra) && /QC thắng|qc_thang|câu khách|trang:/i.test(p.nguon)) ra[p.o] = [mot(p.nguon.trim())];
   if (sp.uu_dai) ra.uu_dai = [trang(sp.uu_dai)];
   if (sp.ten) ra.san_pham = [trang(sp.ten)];
   return ra;

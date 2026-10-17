@@ -57,4 +57,6 @@ assert.strictEqual(ng.tinh_huong![0]!.loai, 'loi_khach'); assert.ok(ng.tinh_huon
 assert.strictEqual(ng.noi_dau![0]!.loai, 'trang_ban'); assert.strictEqual(ng.noi_dau![0]!.trich, '4% elastane');
 assert.deepStrictEqual(Object.keys(ng).sort(), ['noi_dau', 'san_pham', 'tinh_huong', 'uu_dai']);
 assert.ok(nguonCreative({ x: 1 }, [], { ngon_ngu: [] }, {}).x![0]!.trich.length > 0, 'không câu khách vẫn có trích (không rỗng)');
+const ng2 = nguonCreative({}, [{ o: 'dinh_diem', so: 1, nguon: "QC thắng: khuôn kể (Meta 1673581983693866)" }, { o: 'boi_canh', so: 1, nguon: 'Claude trong phiên' }], { ngon_ngu: [] }, {});
+assert.strictEqual(ng2.dinh_diem![0]!.loai, 'qc_thang'); assert.strictEqual(ng2.dinh_diem![0]!.ma, '1673581983693866'); assert.ok(!ng2.boi_canh, 'ô hình không cần nguồn');
 console.log('concept.test: ok');

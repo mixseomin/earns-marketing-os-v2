@@ -159,7 +159,7 @@ export function theSai(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> |
 export function boCucNguoiNgoai(c: ShotAi, nhanVat: NvAi[]): string[] {
   const bo = c.dan_dung?.bo_cuc ?? ''; const kiem = c.khung_xam?.kiem; if (!bo || !kiem) return [];
   const thay = new Set(kiem.filter((k) => k.trong_khung).map((k) => k.nhan_vat));
-  const goi = (t: string) => { const e = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(`(?<!\\p{L})${e}(?!\\p{L})`, 'iu'); };
+  const goi = (t: string) => { const e = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(`(?<!\\b(?:at|toward|towards|from|to|after|on)\\s+(?:\\p{L}+\\s+)?)(?<!\\p{L})${e}(?!\\p{L})`, 'iu'); };   // "from Thần's side" (chỗ máy), "looking at Hạ" (hướng nhìn): không phải người trong khung
   return nhanVat.filter((a) => a.loai === 'nhan_vat' && !thay.has(a.ten) && [a.ten, a.ten.trim().split(/\s+/).pop() ?? ''].some((t) => t.length >= 2 && goi(t).test(bo)) && !/off[- ]?screen|ngoài khung/i.test(bo))
     .map((a) => `bố cục gọi tên ${a.ten} mà khung 3D không có ${a.ten} — AI sẽ tự vẽ một ${a.ten} (đồ, dáng tuỳ ý): dời máy cho thấy, hoặc bỏ tên khỏi bố cục`);
 }

@@ -56,4 +56,5 @@ assert.deepEqual(theSai(the('{Hạ} looks at {Điện thoại} on the {Bàn}', [
 const bcn = (trong: boolean) => ({ hanh_dong: '', prompt_anh: '', dan_dung: { bo_cuc: 'Reverse close-up on Hạ over Vivian’s shoulder' }, khung_xam: { kiem: [{ nhan_vat: 'Hạ', trong_khung: true, cao_khung_pt: 60, bi_che_boi: [] }, { nhan_vat: 'Vivian', trong_khung: trong, cao_khung_pt: 40, bi_che_boi: [] }] } }) as never;
 const nvB = [{ ten: 'Hạ', loai: 'nhan_vat', mo_ta: '' }, { ten: 'Vivian', loai: 'nhan_vat', mo_ta: '' }] as never;
 assert.equal(boCucNguoiNgoai(bcn(false), nvB).length, 1); assert.equal(boCucNguoiNgoai(bcn(true), nvB).length, 0);
+assert.equal(boCucNguoiNgoai({ ...(bcn(false) as object), dan_dung: { bo_cuc: 'Low close-up on Hạ looking down at Vivian; MCU from Vivian’s side' } } as never, nvB).length, 0);   // hướng nhìn / chỗ máy
 console.log('kiem-ai-3d: ok');

@@ -1320,9 +1320,9 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    40,
-    335,
-    158
+    85,
+    318,
+    160
    ],
    "nhin": [
     -100,
@@ -1838,7 +1838,7 @@
   "dan_dung": {
    "dien": "Anticipation: the {Ly cà phê} tumbles in slow motion a hand's width above the carpet, coffee curling out of it. Action: it hits and shatters. Reaction: shards and coffee spray across the dark carpet.",
    "huong": "The {Ly cà phê} falls straight down.",
-   "bo_cuc": "Low slow-motion insert at carpet level: the {Ly cà phê} tumbling just above the dark grey carpet, the hem of Vivian’s burgundy dress soft behind",
+   "bo_cuc": "Low slow-motion insert at carpet level: the {Ly cà phê} tumbling just above the dark grey carpet",
    "mo": "the {Ly cà phê} tumbling just above the carpet, coffee spilling out",
    "ket": "porcelain shards and coffee across the carpet",
    "muc_dich": "cú đánh mặt bằng hình",

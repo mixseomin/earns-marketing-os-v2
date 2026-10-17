@@ -330,6 +330,10 @@ export function tachKhoa(key: string): { kieu: 'cong'; cong: CongKey; model: str
 export const giaAnhCong = (k: string): number | null => (GIA_ANH_VND[k] != null ? vndRaCent(GIA_ANH_VND[k]!) : null);
 /** Một cổng đích danh cho ảnh: gọi đúng một lần, kèm nguồn. */
 export async function sinhAnhMotCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh; loi?: string }> {
+  // Cổng nhận ít ảnh tham chiếu hơn shot cần → dừng NGAY, không gửi lượt chắc chắn bị từ chối (17/10/2026 tập 122 #13: ckey 400 hai lần với 5 ảnh);
+  // không cắt bớt ảnh (bản đồ "ảnh N là gì" trong prompt sẽ sai) — chọn cổng nhận đủ ảnh. CÙNG luật chuỗi cổng (sinhAnhQuaCong).
+  const toiDa = TOI_DA_REF[cong];
+  if (toiDa != null && o.thamChieuUrl.length > toiDa) { const loi = `cổng ${cong} nhận tối đa ${toiDa} ảnh tham chiếu, shot có ${o.thamChieuUrl.length} — chọn cổng khác (vd shopaikey:)`; return { anh: null, loi, nguon: { cong, model, thu: [{ cong, model, ok: false, loi, giay: 0 }] } }; }
   const t0 = Date.now();
   const kq = await sinhAnhCong(cong, model, o);
   const giay = Math.round((Date.now() - t0) / 100) / 10;

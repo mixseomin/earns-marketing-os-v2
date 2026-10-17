@@ -93,6 +93,8 @@ if (arg('keyframe') && canhThieu.length) {
     else { console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); if (lamLai && c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = coalesce(keyframe_url, ${String(c.keyframe_url)}) WHERE id = ${c.id}`); }
   }
   await doi(jobs, 'keyframe');
+  // --lam-lai: job hỏng SAU khi đã gửi (cổng từ chối, hết giờ) → shot không còn ảnh chọn; trả lại ảnh cũ (vẫn nằm trong keyframe_uv), không để trống.
+  if (lamLai) for (const c of canhThieu) if (c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${String(c.keyframe_url)} WHERE id = ${c.id} AND keyframe_url IS NULL`);
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
 }

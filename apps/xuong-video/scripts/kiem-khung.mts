@@ -1,13 +1,15 @@
 // 🔍 Kiểm khung cho một tập trên box (khung.ts / kiem-khung.ts) — cùng lõi nút trên lưới.
 //   mặc định: CHỈ ƯỚC (0đ) — số khối cảnh cần kiểm + giá · --chay: kiểm thật (TỐN TIỀN) · --tat-ca: kiểm lại mọi khối · --duyet-tay=<canh_id>: người nhận khung (0đ)
 //   TỰ CHẤM 0đ (Claude trong phiên, cùng lời dặn + cùng ảnh như lượt API): --in → in lời dặn + thẻ shot + URL ảnh từng khối; xem ảnh rồi
-//   --tu-cham=<tệp.json> { shot: [{ shot, loi: [{ loai, mo_ta, sua }] }] } (+ --nguoi=<tên>) → ghi kiem_khung như lượt API
+//   --tu-cham=<tệp.json> { shot: [{ shot, loi: [{ loai, mo_ta, sua }], dap: { "<mã câu hỏi>": true|false } }] } (+ --nguoi=<tên>) → ghi kiem_khung như lượt API
+//   (dap = đáp án CÂU HỎI KIỂM in ở --in — cau-hoi-khung.ts; câu "không" thành lỗi đúng loại)
 // cd apps/xuong-video && [DUYET_SINH_1_LAN=1] NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/kiem-khung.mts <tap_id> [--chay] [--tat-ca]
 import { getDb } from '@mos2/db';
 import { readFileSync } from 'node:fs';
 import { kiemKhungTap, duyetKhungTay, dauVaoKiemKhung, ghiKiemKhung } from '../src/lib/xuong-video/kiem-khung';
 import { heKiemKhung, KiemKhungSchema } from '../src/lib/xuong-video/claude';
 import { tenLoiKhung } from '../src/lib/xuong-video/khung';
+import { loiTuDapAn } from '../src/lib/xuong-video/cau-hoi-khung';
 const db = getDb()!; const tap = Number(process.argv[2]); const co = (k: string) => process.argv.includes(k);
 const tay = process.argv.find((a) => a.startsWith('--duyet-tay='));
 if (tay) { console.log(JSON.stringify(await duyetKhungTay(db, Number(tay.split('=')[1]), 'script'))); process.exit(0); }
@@ -23,7 +25,11 @@ if (co('--in')) {
 }
 const tu = process.argv.find((a) => a.startsWith('--tu-cham='));
 if (tu) {
-  const ds = KiemKhungSchema.shape.shot.parse(JSON.parse(readFileSync(tu.slice('--tu-cham='.length), 'utf8')).shot);
+  const tho = JSON.parse(readFileSync(tu.slice('--tu-cham='.length), 'utf8')).shot as { shot: number; loi?: unknown[]; dap?: Record<string, boolean> }[];
+  // ĐÁP ÁN CÂU HỎI KIỂM (cau-hoi-khung.ts): { shot, dap: { "co:Lâm Hạ": true, "ao:Lâm Hạ": false, … } } → lỗi đúng loại; cộng với lỗi ghi tay (loi)
+  const coDap = tho.some((x) => x.dap); const v = coDap ? await dauVaoKiemKhung(db, tap, true) : null;
+  const hoiCua = new Map((v?.khoi ?? []).flatMap((k) => k.shot.map((x) => [x.so, x.hoi] as const)));
+  const ds = KiemKhungSchema.shape.shot.parse(tho.map((x) => ({ shot: x.shot, loi: [...(x.loi ?? []), ...(x.dap ? loiTuDapAn(hoiCua.get(x.shot) ?? [], x.dap).map((l) => ({ ...l, sua: 'sinh lại keyframe' })) : [])] })));
   const nguoi = (process.argv.find((a) => a.startsWith('--nguoi=')) ?? '--nguoi=Claude trong phiên (tự chấm)').slice(8);
   const lech = await ghiKiemKhung(db, tap, ds, nguoi);
   console.log(`tự chấm: ghi ${ds.length} khung · lệch ${lech.length}`); for (const l of lech) for (const x of l.loi) console.log(`#${l.thu_tu} ⚠ ${tenLoiKhung(x.loai)}: ${x.mo_ta}`);

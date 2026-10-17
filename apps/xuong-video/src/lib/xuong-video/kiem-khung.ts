@@ -1,13 +1,14 @@
 // Lõi 🔍 Kiểm khung trên máy chủ — MỘT chỗ cho nút trên lưới (actions.ts › kiemKhungTapAction) và script (scripts/kiem-khung.mts).
 // Mỗi khối cảnh có keyframe chưa kiểm → MỘT lượt Claude nhìn cả khối (ảnh nhỏ 640px) + thẻ shot → ghi xv_canh.kiem_khung cho từng shot
 // (gắn url keyframe đã kiểm). Luật thuần + cổng ở khung.ts. TỐN TIỀN: ~1 lượt Claude / khối cảnh.
+import { cauHoiKhung, inCauHoi } from './cau-hoi-khung';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { kiemKhungCanh } from './claude';
 import { khoiCanKiem, giaKiemKhung } from './khung';
 import { damBaoNho } from './anh-nho-may';
 import { docKinhThanh, locNhanh, type Canh, type KiemKhung } from './kieu';
-import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
+import { boiCanhCanh, boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 import { kyThuat } from './dien-anh';
 import { soiMatTap } from './soi-mat';
 
@@ -29,7 +30,12 @@ export async function dauVaoKiemKhung(db: Db, tapId: number, tatCa = false) {
     const i0 = ds.indexOf(k[0]!); const tr = i0 > 0 ? ds[i0 - 1]! : null;
     const truoc = tr?.keyframe_url ? { so: tr.thu_tu, url: (await nho(tr.keyframe_url)) ?? tr.keyframe_url, the: theShot(tr, ten, null) } : null;
     const shot = [];
-    for (const c of k) { const j = ds.indexOf(c); shot.push({ c, so: c.thu_tu, url: (await nho(c.keyframe_url)) ?? c.keyframe_url!, xam: c.khung_xam?.xam ? await nho(c.khung_xam.xam) : null, the: theShot(c, ten, j > 0 ? ds[j - 1]! : null) }); }
+    for (const c of k) {
+      const j = ds.indexOf(c);
+      // CÂU HỎI KIỂM kiểu DSG (cau-hoi-khung.ts) từ dữ liệu HIỆN TẠI (sổ người, 3D, ảnh chuẩn) — người chấm trả lời từng câu, câu "không" = lỗi
+      const bcS = await boiCanhCanh(db, c.id); const hoi = bcS ? cauHoiKhung({ canh: bcS.canh, nhanVat: bcS.nhanVat, may: bcS.mayDu }) : [];
+      shot.push({ c, so: c.thu_tu, url: (await nho(c.keyframe_url)) ?? c.keyframe_url!, xam: c.khung_xam?.xam ? await nho(c.khung_xam.xam) : null, the: [theShot(c, ten, j > 0 ? ds[j - 1]! : null), inCauHoi(hoi)].filter(Boolean).join('\n'), hoi });
+    }
     const canh = [k[0]!.phan_doan, pc?.noi && `nơi: ${pc.noi}`, pc?.luc && `lúc: ${pc.luc}`, pc?.anh_sang && `ánh sáng: ${kyThuat(pc.anh_sang, 'anh_sang')?.ten ?? pc.anh_sang}`, pc?.mau_mo_ta && `màu: ${pc.mau_mo_ta}`].filter(Boolean).join(' · ');
     khoi.push({ canh, truoc, shot });
   }

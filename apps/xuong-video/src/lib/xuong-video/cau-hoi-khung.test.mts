@@ -17,4 +17,8 @@ assert.match(ds.find((c) => c.ma === 'ao:Lâm Hạ')!.hoi, /white power suit/); 
 assert.deepEqual(loiTuDapAn(ds, { 'co:Lâm Hạ': false, 'ao:Lâm Hạ': false, 'mat:Lâm Hạ': false }).map((l) => l.loai), ['thieu']);
 // có Hạ mà vest đen → lỗi tạo hình
 assert.deepEqual(loiTuDapAn(ds, { 'co:Lâm Hạ': true, 'ao:Lâm Hạ': false }).map((l) => l.loai), ['nhan_dang']);
+// DÁNG ở khung mở: chong_ban → câu "chống hai tay lên mặt bàn"; cận chèn KHÔNG vào tay (vết trên ngực) → không hỏi "không thấy mặt"
+const c2 = { ...(canh as object), ky_thuat: { co_canh: 'insert' }, may_3d: { dat: [0, -300, 160], nhin: [0, 0, 120], ong_kinh: 50, vi_tri: [{ ten: 'Lâm Hạ', tam: [0, 0, 0], huong: 0, dien: ['chong_ban'] }] } } as never;
+const ds2 = cauHoiKhung({ canh: c2, nhanVat: nv });
+assert.match(ds2.find((c) => c.ma === 'dang:Lâm Hạ')!.hoi, /chống hai tay/); assert.ok(!ds2.some((c) => c.ma.startsWith('chen:')));
 console.log('cau-hoi-khung: ok');

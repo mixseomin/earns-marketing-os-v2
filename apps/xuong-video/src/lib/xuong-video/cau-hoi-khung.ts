@@ -10,11 +10,16 @@ import { LA_NHAN_DANG } from './kiem-ai-3d';
 import { dauBoiCanh } from './prompt-khoi';
 
 export type CauHoi = { ma: string; hoi: string; loai: LoaiLoiKhung; phu_thuoc?: string };
+/** DÁNG ở khung mở (mã động tác dung-set.py › DONG_TAC) → câu hỏi nhìn được. Chỉ dáng rõ trên hình; mocap 'mc_*' (đi, chạy) không hỏi. */
+const DANG: Record<string, string> = { chong_ban: 'chống hai tay lên mặt bàn, người đổ về trước', cui_nguoi: 'cúi người về phía trước', om_thung: 'ôm thùng trước bụng', cam_truoc: 'cầm món đồ trước ngực',
+  khoanh_tay: 'khoanh tay', thuyet_trinh: 'một tay mở về phía màn chiếu', gioi_thieu: 'đưa tay giới thiệu người bên cạnh', gio_cao: 'giơ cao món đồ', hat: 'hất mạnh món đồ ra trước', dua_truoc_mat: 'đưa món đồ lên trước mặt người đối diện' };
 const ngan = (t: string, n = 90) => { const x = t.trim().replace(/\s+/g, ' '); return x.length > n ? `${x.slice(0, n).replace(/[\s,;]+\S*$/, '')}…` : x; };
 
 export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'dan_dung' | 'may_3d'>; nhanVat: NhanVat[]; may?: May3d | null }): CauHoi[] {
   const { canh, nhanVat } = x; const m = x.may ?? canh.may_3d; const kx = canh.khung_xam;
   const out: CauHoi[] = []; const chen = canh.ky_thuat?.co_canh === 'insert';
+  // CẬN TAY: cận chèn mà chủ thể là món đang cầm / đeo ở tay → mặt người ngoài khung. Cận vết trên áo (#2) thì khung 3D vẫn có đầu — không hỏi "không thấy mặt".
+  const canTay = chen && (kx?.kiem ?? []).some((k) => k.bat_buoc && k.trong_khung && m?.vi_tri.some((v) => v.ten === k.nhan_vat && v.cam && (!v.deo || v.deo.startsWith('cotay'))));
   const bc = nhanVat.find((v) => v.loai === 'boi_canh');
   if (bc?.mo_ta.trim()) out.push({ ma: 'boi_canh', loai: 'bo_tri', hoi: `Bối cảnh đúng: "${dauBoiCanh(bc.mo_ta)}"?` });
   if (canh.dan_dung?.mo?.trim()) out.push({ ma: 'mo', loai: 'trang_thai', hoi: `Đúng khoảnh khắc MỞ shot: "${ngan(canh.dan_dung.mo, 120)}"?` });
@@ -24,11 +29,13 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
     const a = nhanVat.find((v) => v.ten === k.nhan_vat); const vt = m?.vi_tri.find((v) => v.ten === k.nhan_vat); const co = `co:${k.nhan_vat}`;
     if (a?.loai === 'nhan_vat') {
       nguoi.push(a.ten);
-      out.push({ ma: co, loai: 'thieu', hoi: chen ? `Có tay / cổ tay của ${a.ten} trong khung?` : `Có ${a.ten} trong khung (${ngan(a.mo_ta, 70)})?` });
+      out.push({ ma: co, loai: 'thieu', hoi: canTay ? `Có tay / cổ tay của ${a.ten} trong khung?` : `Có ${a.ten} trong khung (${ngan(a.mo_ta, 70)})?` });
       const ao = vt ? bienTheTheoSo(vt, a).map((b) => b.mo_ta).filter(Boolean) : [];
+      const dang = (vt?.dien ?? []).map((d) => String(d)).filter((d) => !d.includes('@') || Number(d.split('@')[1]!.split('-')[0]) <= 0.01).map((d) => DANG[d.split('@')[0]!]).filter(Boolean);
+      if (dang.length) out.push({ ma: `dang:${a.ten}`, phu_thuoc: co, loai: 'trang_thai', hoi: `${a.ten} đang ${dang.join(', ')}?` });
       if (ao.length) out.push({ ma: `ao:${a.ten}`, phu_thuoc: co, loai: 'nhan_dang', hoi: `${a.ten} mặc đúng: ${ngan(ao.join('; '), 120)}?` });
-      if (chen) out.push({ ma: `chen:${a.ten}`, phu_thuoc: co, loai: 'thua', hoi: `Cận chèn: KHÔNG thấy mặt ${a.ten} (chỉ tay / cổ tay)?` });
-      else if (m && vt) { const h = huongVoiMay(m, vt); if (h && h.lech <= 80) out.push({ ma: `mat:${a.ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${a.ten} quay mặt về phía máy, thấy mặt (3D lệch ${h.lech}°)?` }); }
+      if (canTay) out.push({ ma: `chen:${a.ten}`, phu_thuoc: co, loai: 'thua', hoi: `Cận chèn: KHÔNG thấy mặt ${a.ten} (chỉ tay / cổ tay)?` });
+      else if (!chen && m && vt) { const h = huongVoiMay(m, vt); if (h && h.lech <= 80) out.push({ ma: `mat:${a.ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${a.ten} quay mặt về phía máy, thấy mặt (3D lệch ${h.lech}°)?` }); }
     } else {
       out.push({ ma: co, loai: 'thieu', hoi: `Có ${k.nhan_vat}${a?.mo_ta ? ` (${ngan(a.mo_ta, 70)})` : ''} rõ trong khung?` });
       if (vt?.cam) out.push({ ma: `cam:${k.nhan_vat}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${k.nhan_vat} nằm trên ${vt.deo ? `${vt.deo.startsWith('cotay_t') ? 'cổ tay trái' : vt.deo.startsWith('cotay_p') ? 'cổ tay phải' : vt.deo} của` : 'tay / người'} ${vt.cam}?` });

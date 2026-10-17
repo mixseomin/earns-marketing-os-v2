@@ -878,8 +878,7 @@ def giai_may(s, cam, sh, nv):
         for dz in buoc_z:
             for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90, 120, -120, 150, -150, 180):   # tới 180° để máy đang sai phía trục quay về được
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
-                vt_may = g + v + Vector((0, 0, dz))
-                if TRAN_Z is not None and vt_may.z > TRAN_Z - 15: vt_may.z = TRAN_Z - 15   # KHÔNG lên quá trần (lùi xa nhân cả độ cao: #14 485 cm > trần 300)
+                vt_may = Vector(trong_phong(g + v + Vector((0, 0, dz))))   # TRONG phòng: không lên quá trần (#14 485 cm), không ra ngoài sàn (#10)
                 dat_may(cam, vt_may, g)
                 k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100 + mat_sai(sh, vt_may) * 100 + qua_nho(sh, k) * 50
                 if h == 0: h = chan_la(s, cam, sh, nv) + thieu_nhac(s, cam, sh, nv) * 10   # chủ thể sạch rồi mới tính vật chắn lạ + vật được nhắc mà không thấy (đắt hơn)
@@ -891,6 +890,17 @@ def giai_may(s, cam, sh, nv):
 # (tập 122 #14, #5). None = set không có trần (bàn làm việc đồ chơi).
 _tran = [float(v['tam'][2]) for v in DL['vat'] if v.get('tam') and len(v['tam']) > 2 and re.search(r'\bceiling\b', v.get('en', ''), re.I) and float(v['tam'][2]) > 150]
 TRAN_Z = min(_tran) if _tran else None
+# SÀN của bộ set (vật nền khai floor / carpet): máy phải đứng TRONG phòng, cách mép 20 cm — bộ giải lùi xa từng đưa máy ra ngoài sàn (#10 y −270, sàn
+# từ −50) → khung lộ khoảng trống ngoài set. None = set không có sàn (bàn làm việc đồ chơi).
+_san = [v for v in DL['vat'] if v.get('nen') and v.get('tam') and v.get('co') and re.search(r'\b(floor|carpet)\b', v.get('en', ''), re.I)]
+SAN_XY = (min(v['tam'][0] - v['co'][0] / 2 for v in _san) + 20, max(v['tam'][0] + v['co'][0] / 2 for v in _san) - 20,
+          min(v['tam'][1] - v['co'][1] / 2 for v in _san) + 20, max(v['tam'][1] + v['co'][1] / 2 for v in _san) - 20) if _san else None
+def trong_phong(p):
+    """Kẹp vị trí máy (cm, list hoặc Vector) vào trong sàn + dưới trần của bộ set."""
+    x, y, z = p[0], p[1], p[2]
+    if SAN_XY: x = min(max(x, SAN_XY[0]), SAN_XY[1]); y = min(max(y, SAN_XY[2]), SAN_XY[3])
+    if TRAN_Z is not None: z = min(z, TRAN_Z - 15)
+    return [x, y, z]
 
 def vat_chu_the(sh):
     """Đồ vật CỦA BỘ SET được khai là chủ thể khung (vd công tắc đèn ở shot bấm đèn) — kiểm như nhân vật: phải thấy rõ, không bị che.
@@ -1362,8 +1372,8 @@ kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
-    if TRAN_Z is not None and sh['may']['dat'][2] > TRAN_Z - 15:   # máy khai / tự đặt cao hơn trần → hạ xuống dưới trần, ghi lại như máy đã giải
-        sh['may']['dat'] = [sh['may']['dat'][0], sh['may']['dat'][1], TRAN_Z - 15]; giai[sh['ma']] = {'dat': sh['may']['dat'], 'nhin': sh['may']['nhin']}
+    _k = trong_phong(sh['may']['dat'])   # máy khai / tự đặt ra ngoài phòng (trên trần, ngoài sàn) → kẹp vào trong, ghi lại như máy đã giải
+    if [round(a, 1) for a in _k] != [round(a, 1) for a in sh['may']['dat']]: sh['may']['dat'] = _k; giai[sh['ma']] = {'dat': _k, 'nhin': sh['may']['nhin']}
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
     k = kiem_hinh_hoc(s, cam, sh, nv_kiem)

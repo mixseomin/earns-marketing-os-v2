@@ -85,7 +85,7 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
   const anh = Number(g.anh) || GIA_DU_PHONG.anh, video = Number(g.video) || GIA_DU_PHONG.video, chu = Number(g.chu) || GIA_DU_PHONG.chu;
   return { ok: true, data: {
     spy_sp: await spySp(db, spKey), gt_sp: await giaTriSanPhamDb(db, spKey), concept, tpl, cap,
-    bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true, phim_id: r.phim_id == null ? null : n(r.phim_id) })),
+    bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true, o: (r.o ?? {}) as Record<string, string>, phim_id: r.phim_id == null ? null : n(r.phim_id) })),
     phuong_an: (pa as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), o: s(r.o), so: n(r.so), chu: s(r.chu), nguon: s(r.nguon) })),
     creative: (cr as unknown as Row[]).map((r) => ({ id: n(r.id), so: n(r.so), cap_id: n(r.cap_id), bien_the_id: r.bien_the_id == null ? null : n(r.bien_the_id),
       chon: (r.chon ?? {}) as Record<string, number>, ma: s(r.ma), trang_thai: (s(r.trang_thai) || 'duyet') as CreativeDuyet['trang_thai'], phim_id: r.phim_id == null ? null : n(r.phim_id), xuat: (r.xuat ?? null) as CreativeDuyet['xuat'] })),

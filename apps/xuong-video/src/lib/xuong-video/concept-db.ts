@@ -134,7 +134,7 @@ export async function giaTriSanPhamDb(db: Db, spKey: string): Promise<Record<str
 }
 /** Giá trị ô để tạo phim từ một creative: sản phẩm → ô hình của cặp (nap-o-hinh.mts) → diễn viên / bối cảnh của biến thể → phương án đã chọn. */
 export async function gtCreativeDb(db: Db, creativeId: number): Promise<{ template_id: number; template_ten: string; ten: string; gt: Record<string, string> } | string> {
-  const r = ((await db.execute(sql`SELECT cr.*, c.template_id, k.ma AS k_ma, k.ten AS k_ten, k.du_lieu, p.ten AS t_ten, b.nguoi_chinh, b.nguoi_phu, b.boi_canh
+  const r = ((await db.execute(sql`SELECT cr.*, c.template_id, k.ma AS k_ma, k.ten AS k_ten, k.du_lieu, p.ten AS t_ten, b.nguoi_chinh, b.nguoi_phu, b.boi_canh, b.o AS b_o
     FROM xv_creative cr JOIN xv_cap c ON c.id = cr.cap_id JOIN xv_concept k ON k.id = c.concept_id JOIN xv_phim p ON p.id = c.template_id
     LEFT JOIN xv_bien_the_hinh b ON b.id = cr.bien_the_id WHERE cr.id = ${creativeId}`)) as unknown as Row[])[0];
   if (!r) return 'không thấy creative';
@@ -148,7 +148,7 @@ export async function gtCreativeDb(db: Db, creativeId: number): Promise<{ templa
   const pa = (await db.execute(sql`SELECT o, so, chu FROM xv_phuong_an WHERE cap_id = ${n(r.cap_id)} AND NOT an`)) as unknown as Row[];
   // ô HÌNH của cặp (scripts/nap-o-hinh.mts — hình tả đúng sản phẩm thay cho mẫu template lẫn sản phẩm khác): một phương án, không vào tổ hợp
   for (const p of pa) if (n(p.so) === 1 && !(s(p.o) in chon) && keys.includes(s(p.o)) && s(p.chu).trim()) gt[s(p.o)] = s(p.chu);
-  Object.assign(gt, gtBienThe({ nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh) }, keys));
+  Object.assign(gt, gtBienThe({ nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), o: (r.b_o ?? {}) as Record<string, string> }, keys));
   for (const [k, so] of Object.entries(chon)) { const p = pa.find((x) => s(x.o) === k && n(x.so) === so); if (p) gt[k] = s(p.chu); }
   const tTen = s(r.t_ten).replace(/^Template\s*·\s*/, '').replace(/\s*\(.*\)\s*$/, '');
   return { template_id: n(r.template_id), template_ten: s(r.t_ten), ten: `#${n(r.so)} ${s(r.k_ten)} · ${tTen}`, gt };

@@ -1,0 +1,1365 @@
+{
+ "ghi": "Thư viện bối cảnh dùng chung (mọi sản phẩm). Claude viết trong phiên 17/10/2026 (0đ). Thêm nơi = thêm một dòng.",
+ "nhom": {
+  "nha": "Nhà",
+  "cong_viec": "Công việc",
+  "an_uong": "Ăn uống",
+  "mua_sam": "Mua sắm",
+  "the_thao": "Thể thao",
+  "su_kien": "Sự kiện",
+  "di_lai": "Đi lại",
+  "ngoai_troi": "Ngoài trời",
+  "thanh_pho": "Thành phố"
+ },
+ "boi_canh": [
+  {
+   "ma": "nha_bep",
+   "nhom": "nha",
+   "ten": "Bếp nhà Mỹ",
+   "prompt": "bright American family kitchen with an island counter, bar stools, morning light",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "cui",
+    "xom"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "gia_dinh"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_phong_khach",
+   "nhom": "nha",
+   "ten": "Phòng khách",
+   "prompt": "cozy American living room with a sofa, coffee table and a TV, warm afternoon light",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "cui"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "gia_dinh",
+    "thu_gian"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_phong_ngu",
+   "nhom": "nha",
+   "ten": "Phòng ngủ có gương đứng",
+   "prompt": "small American bedroom with a full-length mirror and wooden dresser, morning light",
+   "hoat_dong": [
+    "dung",
+    "ngoi",
+    "xom"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "mac_do"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_phong_tam",
+   "nhom": "nha",
+   "ten": "Phòng tắm gương lớn",
+   "prompt": "clean bathroom with a large mirror and white tiles, soft light",
+   "hoat_dong": [
+    "dung"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "mac_do"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_tu_do",
+   "nhom": "nha",
+   "ten": "Tủ quần áo walk-in",
+   "prompt": "walk-in closet with shelves of folded clothes and a mirror, warm light",
+   "hoat_dong": [
+    "dung",
+    "xom",
+    "cui"
+   ],
+   "dip": [
+    "mac_do"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_hien_truoc",
+   "nhom": "nha",
+   "ten": "Hiên trước nhà",
+   "prompt": "front porch of a suburban house with steps and a porch swing, golden hour",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "gia_dinh"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nha_san_sau",
+   "nhom": "nha",
+   "ten": "Sân sau có ghế",
+   "prompt": "backyard deck with patio chairs and a grill, late afternoon sun",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "xom",
+    "cui"
+   ],
+   "dip": [
+    "thu_gian",
+    "tiec",
+    "gia_dinh"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nha_garage",
+   "nhom": "nha",
+   "ten": "Garage xưởng",
+   "prompt": "home garage workshop with tools on a pegboard and a workbench",
+   "hoat_dong": [
+    "xom",
+    "cui",
+    "dung",
+    "leo"
+   ],
+   "dip": [
+    "lam_viec",
+    "so_thich"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_cau_thang",
+   "nhom": "nha",
+   "ten": "Cầu thang trong nhà",
+   "prompt": "carpeted staircase in a family home with framed photos on the wall",
+   "hoat_dong": [
+    "leo",
+    "di",
+    "ngoi"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "gia_dinh"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_phong_giat",
+   "nhom": "nha",
+   "ten": "Phòng giặt",
+   "prompt": "laundry room with a washer, dryer and a folding counter",
+   "hoat_dong": [
+    "cui",
+    "xom",
+    "dung"
+   ],
+   "dip": [
+    "thuong_ngay"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_ban_lam_viec",
+   "nhom": "nha",
+   "ten": "Góc làm việc tại nhà",
+   "prompt": "home office corner with a desk, laptop and a plant",
+   "hoat_dong": [
+    "ngoi"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_cho_xe",
+   "nhom": "nha",
+   "ten": "Lối xe trước nhà",
+   "prompt": "suburban driveway with a pickup truck and a basketball hoop",
+   "hoat_dong": [
+    "di",
+    "dung",
+    "leo",
+    "lai_xe"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "gia_dinh"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nha_vuon",
+   "nhom": "nha",
+   "ten": "Vườn rau sau nhà",
+   "prompt": "backyard vegetable garden with raised beds and a watering can",
+   "hoat_dong": [
+    "xom",
+    "cui",
+    "dung"
+   ],
+   "dip": [
+    "so_thich",
+    "thu_gian"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nha_can_ho",
+   "nhom": "nha",
+   "ten": "Căn hộ thành phố",
+   "prompt": "modern city apartment with big windows, plants and a gray couch",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "thu_gian"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "nha_ban_an",
+   "nhom": "nha",
+   "ten": "Bàn ăn gia đình",
+   "prompt": "family dining table set for dinner, warm pendant light",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "gia_dinh",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_van_phong",
+   "nhom": "cong_viec",
+   "ten": "Văn phòng mở",
+   "prompt": "open-plan office with desks, laptops and glass meeting rooms",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_phong_hop",
+   "nhom": "cong_viec",
+   "ten": "Phòng họp",
+   "prompt": "glass-walled conference room with a long table and a screen",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_cong_truong",
+   "nhom": "cong_viec",
+   "ten": "Công trường",
+   "prompt": "outdoor construction site with lumber, sawhorses and a pickup truck",
+   "hoat_dong": [
+    "xom",
+    "cui",
+    "leo",
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "cv_kho_hang",
+   "nhom": "cong_viec",
+   "ten": "Kho hàng",
+   "prompt": "warehouse aisle with tall shelves of boxes and a pallet jack",
+   "hoat_dong": [
+    "cui",
+    "xom",
+    "di",
+    "leo"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_xuong_sua_xe",
+   "nhom": "cong_viec",
+   "ten": "Xưởng sửa xe",
+   "prompt": "auto repair shop with a car on a lift and tool chests",
+   "hoat_dong": [
+    "xom",
+    "cui",
+    "dung"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_trang_trai",
+   "nhom": "cong_viec",
+   "ten": "Trang trại",
+   "prompt": "farm yard with a red barn, hay bales and a fence",
+   "hoat_dong": [
+    "di",
+    "leo",
+    "xom",
+    "cui"
+   ],
+   "dip": [
+    "lam_viec",
+    "ngoai_troi"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "cv_quan_cafe_quay",
+   "nhom": "cong_viec",
+   "ten": "Sau quầy quán cà phê",
+   "prompt": "behind the counter of a busy coffee shop with an espresso machine",
+   "hoat_dong": [
+    "dung",
+    "cui",
+    "di"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_tiem_toc",
+   "nhom": "cong_viec",
+   "ten": "Tiệm cắt tóc",
+   "prompt": "classic barbershop with leather chairs and mirrors",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "thuong_ngay"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_lop_hoc",
+   "nhom": "cong_viec",
+   "ten": "Lớp học",
+   "prompt": "bright classroom with desks and a whiteboard",
+   "hoat_dong": [
+    "dung",
+    "di",
+    "ngoi"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_benh_vien",
+   "nhom": "cong_viec",
+   "ten": "Hành lang bệnh viện",
+   "prompt": "clean hospital corridor with soft light",
+   "hoat_dong": [
+    "di",
+    "dung"
+   ],
+   "dip": [
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "cv_studio_anh",
+   "nhom": "cong_viec",
+   "ten": "Studio chụp ảnh",
+   "prompt": "photo studio with a seamless backdrop and softbox lights",
+   "hoat_dong": [
+    "dung",
+    "xom",
+    "ngoi",
+    "nhay"
+   ],
+   "dip": [
+    "quang_cao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "an_nha_hang",
+   "nhom": "an_uong",
+   "ten": "Nhà hàng tối",
+   "prompt": "cozy restaurant with candles on tables and warm light",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "hen_ho",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "an_quan_cafe",
+   "nhom": "an_uong",
+   "ten": "Quán cà phê",
+   "prompt": "neighborhood coffee shop with wooden tables and big windows",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "hen_ho"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "an_brewery",
+   "nhom": "an_uong",
+   "ten": "Sân quán bia brewery",
+   "prompt": "busy brewery patio with long wooden benches and string lights",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "ban_be",
+    "thu_gian"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "an_bar_the_thao",
+   "nhom": "an_uong",
+   "ten": "Quán bar thể thao",
+   "prompt": "sports bar with TVs, bar stools and a pool table",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "cui"
+   ],
+   "dip": [
+    "ban_be",
+    "the_thao"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "an_diner",
+   "nhom": "an_uong",
+   "ten": "Diner kiểu Mỹ",
+   "prompt": "classic American diner with red booths and a counter",
+   "hoat_dong": [
+    "ngoi"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "gia_dinh"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "an_food_truck",
+   "nhom": "an_uong",
+   "ten": "Xe đồ ăn ngoài phố",
+   "prompt": "food truck parked on a sunny street with people in line",
+   "hoat_dong": [
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "ban_be"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "an_bbq",
+   "nhom": "an_uong",
+   "ten": "Tiệc nướng sân sau",
+   "prompt": "backyard barbecue with a smoking grill, picnic tables and friends",
+   "hoat_dong": [
+    "dung",
+    "xom",
+    "ngoi"
+   ],
+   "dip": [
+    "tiec",
+    "ban_be",
+    "gia_dinh"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "an_rooftop",
+   "nhom": "an_uong",
+   "ten": "Bar sân thượng",
+   "prompt": "rooftop bar with a city skyline at dusk",
+   "hoat_dong": [
+    "dung",
+    "ngoi"
+   ],
+   "dip": [
+    "hen_ho",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "ms_phong_thu_do",
+   "nhom": "mua_sam",
+   "ten": "Phòng thử đồ",
+   "prompt": "clothing store fitting room with a curtain and a big mirror",
+   "hoat_dong": [
+    "dung",
+    "xom"
+   ],
+   "dip": [
+    "mua_sam",
+    "mac_do"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "ms_cua_hang_quan_ao",
+   "nhom": "mua_sam",
+   "ten": "Cửa hàng quần áo",
+   "prompt": "clothing store with racks of jeans and folded shirts",
+   "hoat_dong": [
+    "di",
+    "dung",
+    "cui"
+   ],
+   "dip": [
+    "mua_sam"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "ms_sieu_thi",
+   "nhom": "mua_sam",
+   "ten": "Siêu thị",
+   "prompt": "grocery store aisle with a shopping cart",
+   "hoat_dong": [
+    "di",
+    "cui",
+    "xom"
+   ],
+   "dip": [
+    "mua_sam",
+    "thuong_ngay"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "ms_trung_tam",
+   "nhom": "mua_sam",
+   "ten": "Trung tâm thương mại",
+   "prompt": "bright shopping mall concourse with escalators",
+   "hoat_dong": [
+    "di",
+    "leo",
+    "dung"
+   ],
+   "dip": [
+    "mua_sam"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "ms_cho_noi",
+   "nhom": "mua_sam",
+   "ten": "Chợ nông sản cuối tuần",
+   "prompt": "weekend farmers market with produce stalls and canopies",
+   "hoat_dong": [
+    "di",
+    "dung",
+    "cui"
+   ],
+   "dip": [
+    "mua_sam",
+    "thuong_ngay"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "ms_cua_hang_do_cu",
+   "nhom": "mua_sam",
+   "ten": "Tiệm đồ cũ",
+   "prompt": "vintage thrift store with racks and old furniture",
+   "hoat_dong": [
+    "di",
+    "dung",
+    "xom"
+   ],
+   "dip": [
+    "mua_sam"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "ms_home_depot",
+   "nhom": "mua_sam",
+   "ten": "Cửa hàng vật liệu",
+   "prompt": "home improvement store aisle with lumber and tools",
+   "hoat_dong": [
+    "di",
+    "cui",
+    "xom",
+    "leo"
+   ],
+   "dip": [
+    "mua_sam",
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "ms_giao_hang",
+   "nhom": "mua_sam",
+   "ten": "Nhận hàng trước cửa",
+   "prompt": "front door step with a delivery box on the doormat",
+   "hoat_dong": [
+    "cui",
+    "xom",
+    "dung"
+   ],
+   "dip": [
+    "mua_sam",
+    "thuong_ngay"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tt_phong_gym",
+   "nhom": "the_thao",
+   "ten": "Phòng gym",
+   "prompt": "gym with weight racks and rubber floor",
+   "hoat_dong": [
+    "xom",
+    "dung",
+    "ngoi"
+   ],
+   "dip": [
+    "the_thao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "tt_san_bong_ro",
+   "nhom": "the_thao",
+   "ten": "Sân bóng rổ ngoài trời",
+   "prompt": "outdoor basketball court with a chain-link fence",
+   "hoat_dong": [
+    "chay",
+    "nhay",
+    "dung"
+   ],
+   "dip": [
+    "the_thao",
+    "ban_be"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tt_san_golf",
+   "nhom": "the_thao",
+   "ten": "Sân golf",
+   "prompt": "golf course green with a flag and rolling fairway",
+   "hoat_dong": [
+    "di",
+    "cui",
+    "dung"
+   ],
+   "dip": [
+    "the_thao",
+    "thu_gian"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tt_bowling",
+   "nhom": "the_thao",
+   "ten": "Sân bowling",
+   "prompt": "bowling alley with lanes and neon lights",
+   "hoat_dong": [
+    "cui",
+    "dung",
+    "ngoi"
+   ],
+   "dip": [
+    "ban_be",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "tt_san_bong_tre_em",
+   "nhom": "the_thao",
+   "ten": "Sân bóng của con",
+   "prompt": "kids soccer field on a Saturday morning with parents on bleachers",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "xom",
+    "chay"
+   ],
+   "dip": [
+    "gia_dinh",
+    "the_thao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tt_khan_dai",
+   "nhom": "the_thao",
+   "ten": "Khán đài sân vận động",
+   "prompt": "stadium bleachers during a game with fans",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "nhay"
+   ],
+   "dip": [
+    "ban_be",
+    "the_thao"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tt_duong_chay",
+   "nhom": "the_thao",
+   "ten": "Đường chạy công viên",
+   "prompt": "park running path lined with trees",
+   "hoat_dong": [
+    "di",
+    "chay"
+   ],
+   "dip": [
+    "the_thao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tt_yoga",
+   "nhom": "the_thao",
+   "ten": "Phòng yoga",
+   "prompt": "bright yoga studio with wooden floor and mats",
+   "hoat_dong": [
+    "xom",
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "the_thao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "sk_dam_cuoi_san",
+   "nhom": "su_kien",
+   "ten": "Tiệc cưới sân vườn",
+   "prompt": "backyard wedding reception at dusk with string lights and a wooden dance floor",
+   "hoat_dong": [
+    "nhay",
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "tiec",
+    "gia_dinh"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "sk_sinh_nhat",
+   "nhom": "su_kien",
+   "ten": "Tiệc sinh nhật trong nhà",
+   "prompt": "kids birthday party in a living room with balloons and a cake",
+   "hoat_dong": [
+    "ngoi",
+    "xom",
+    "dung",
+    "nhay"
+   ],
+   "dip": [
+    "tiec",
+    "gia_dinh"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "sk_tot_nghiep",
+   "nhom": "su_kien",
+   "ten": "Lễ tốt nghiệp",
+   "prompt": "outdoor graduation ceremony with rows of chairs and caps in the air",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "su_kien",
+    "gia_dinh"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "sk_nha_tho",
+   "nhom": "su_kien",
+   "ten": "Sân nhà thờ Chủ nhật",
+   "prompt": "church front steps on a Sunday morning with families",
+   "hoat_dong": [
+    "di",
+    "dung",
+    "leo"
+   ],
+   "dip": [
+    "su_kien",
+    "gia_dinh"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "sk_hoi_cho",
+   "nhom": "su_kien",
+   "ten": "Hội chợ hạt",
+   "prompt": "county fair with a Ferris wheel and food stands",
+   "hoat_dong": [
+    "di",
+    "dung"
+   ],
+   "dip": [
+    "gia_dinh",
+    "ban_be"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "sk_hoa_nhac",
+   "nhom": "su_kien",
+   "ten": "Hoà nhạc ngoài trời",
+   "prompt": "outdoor concert lawn with a stage and string lights",
+   "hoat_dong": [
+    "dung",
+    "nhay",
+    "ngoi"
+   ],
+   "dip": [
+    "ban_be",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "sk_thanksgiving",
+   "nhom": "su_kien",
+   "ten": "Bữa tối Lễ Tạ ơn",
+   "prompt": "Thanksgiving dinner table with family and a roast turkey",
+   "hoat_dong": [
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "gia_dinh",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "sk_tiec_van_phong",
+   "nhom": "su_kien",
+   "ten": "Tiệc công ty",
+   "prompt": "office holiday party with a buffet and decorations",
+   "hoat_dong": [
+    "dung",
+    "ngoi",
+    "nhay"
+   ],
+   "dip": [
+    "lam_viec",
+    "tiec"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "sk_hen_ho",
+   "nhom": "su_kien",
+   "ten": "Buổi hẹn đầu tiên",
+   "prompt": "first date at a wine bar with low warm light",
+   "hoat_dong": [
+    "ngoi"
+   ],
+   "dip": [
+    "hen_ho"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "dl_xe_hoi",
+   "nhom": "di_lai",
+   "ten": "Trong xe hơi",
+   "prompt": "driver seat of a car on the morning commute",
+   "hoat_dong": [
+    "ngoi",
+    "lai_xe"
+   ],
+   "dip": [
+    "di_lai",
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "dl_ban_tai",
+   "nhom": "di_lai",
+   "ten": "Thùng xe bán tải",
+   "prompt": "tailgate of a pickup truck parked by a field",
+   "hoat_dong": [
+    "ngoi",
+    "leo",
+    "dung"
+   ],
+   "dip": [
+    "ngoai_troi",
+    "ban_be"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "dl_san_bay",
+   "nhom": "di_lai",
+   "ten": "Sân bay",
+   "prompt": "airport terminal with rolling suitcases and big windows",
+   "hoat_dong": [
+    "di",
+    "ngoi",
+    "dung"
+   ],
+   "dip": [
+    "du_lich"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "dl_may_bay",
+   "nhom": "di_lai",
+   "ten": "Ghế máy bay",
+   "prompt": "economy airplane seat by the window",
+   "hoat_dong": [
+    "ngoi"
+   ],
+   "dip": [
+    "du_lich"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "dl_tau_dien",
+   "nhom": "di_lai",
+   "ten": "Tàu điện",
+   "prompt": "subway car with commuters holding rails",
+   "hoat_dong": [
+    "dung",
+    "ngoi"
+   ],
+   "dip": [
+    "di_lai",
+    "lam_viec"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "dl_ga_tau",
+   "nhom": "di_lai",
+   "ten": "Sân ga",
+   "prompt": "train platform with an arriving train",
+   "hoat_dong": [
+    "dung",
+    "di"
+   ],
+   "dip": [
+    "di_lai"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "dl_khach_san",
+   "nhom": "di_lai",
+   "ten": "Phòng khách sạn",
+   "prompt": "hotel room with a made bed and a city view window",
+   "hoat_dong": [
+    "ngoi",
+    "dung",
+    "xom"
+   ],
+   "dip": [
+    "du_lich"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": false
+  },
+  {
+   "ma": "dl_tram_xang",
+   "nhom": "di_lai",
+   "ten": "Trạm xăng ven đường",
+   "prompt": "roadside gas station on a road trip",
+   "hoat_dong": [
+    "dung",
+    "di",
+    "xom"
+   ],
+   "dip": [
+    "du_lich"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "dl_xe_dap",
+   "nhom": "di_lai",
+   "ten": "Đạp xe phố",
+   "prompt": "city bike lane with a bicycle",
+   "hoat_dong": [
+    "ngoi",
+    "di"
+   ],
+   "dip": [
+    "di_lai",
+    "the_thao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_cong_vien",
+   "nhom": "ngoai_troi",
+   "ten": "Công viên",
+   "prompt": "city park with green lawn, benches and big trees",
+   "hoat_dong": [
+    "di",
+    "ngoi",
+    "xom"
+   ],
+   "dip": [
+    "thu_gian",
+    "gia_dinh"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_bai_bien",
+   "nhom": "ngoai_troi",
+   "ten": "Lối gỗ bãi biển",
+   "prompt": "beach boardwalk at sunset",
+   "hoat_dong": [
+    "di",
+    "ngoi"
+   ],
+   "dip": [
+    "du_lich",
+    "hen_ho"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_duong_mon",
+   "nhom": "ngoai_troi",
+   "ten": "Đường mòn leo núi",
+   "prompt": "forest hiking trail with rocks and a creek",
+   "hoat_dong": [
+    "di",
+    "leo",
+    "xom"
+   ],
+   "dip": [
+    "ngoai_troi",
+    "the_thao"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_cau_ca",
+   "nhom": "ngoai_troi",
+   "ten": "Cầu câu cá bên hồ",
+   "prompt": "wooden fishing dock on a calm lake",
+   "hoat_dong": [
+    "ngoi",
+    "xom",
+    "dung"
+   ],
+   "dip": [
+    "ngoai_troi",
+    "thu_gian"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_cam_trai",
+   "nhom": "ngoai_troi",
+   "ten": "Khu cắm trại",
+   "prompt": "campsite with a tent and a campfire at dusk",
+   "hoat_dong": [
+    "ngoi",
+    "xom",
+    "cui"
+   ],
+   "dip": [
+    "ngoai_troi",
+    "ban_be"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_cong_vien_cho",
+   "nhom": "ngoai_troi",
+   "ten": "Công viên cho chó",
+   "prompt": "dog park with a fence and people throwing balls",
+   "hoat_dong": [
+    "xom",
+    "cui",
+    "di",
+    "chay"
+   ],
+   "dip": [
+    "thu_gian"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_ban_picnic",
+   "nhom": "ngoai_troi",
+   "ten": "Bàn picnic",
+   "prompt": "picnic table in a park with a checkered cloth",
+   "hoat_dong": [
+    "ngoi",
+    "leo"
+   ],
+   "dip": [
+    "gia_dinh",
+    "hen_ho"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "nt_vuon_nho",
+   "nhom": "ngoai_troi",
+   "ten": "Vườn nho",
+   "prompt": "vineyard rows at golden hour",
+   "hoat_dong": [
+    "di",
+    "dung"
+   ],
+   "dip": [
+    "du_lich",
+    "hen_ho"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tp_via_he",
+   "nhom": "thanh_pho",
+   "ten": "Vỉa hè phố",
+   "prompt": "busy city sidewalk with shop windows",
+   "hoat_dong": [
+    "di",
+    "dung"
+   ],
+   "dip": [
+    "di_lai",
+    "thuong_ngay"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tp_bac_tam_cap",
+   "nhom": "thanh_pho",
+   "ten": "Bậc tam cấp nhà phố",
+   "prompt": "brownstone front stoop in a city neighborhood",
+   "hoat_dong": [
+    "ngoi",
+    "leo",
+    "dung"
+   ],
+   "dip": [
+    "thuong_ngay"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tp_pho_dem",
+   "nhom": "thanh_pho",
+   "ten": "Phố đêm",
+   "prompt": "city street at night with neon shop lights",
+   "hoat_dong": [
+    "di",
+    "dung"
+   ],
+   "dip": [
+    "ban_be",
+    "hen_ho"
+   ],
+   "thoi_gian": "toi",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tp_bai_do_xe",
+   "nhom": "thanh_pho",
+   "ten": "Bãi đỗ xe",
+   "prompt": "parking lot of a strip mall",
+   "hoat_dong": [
+    "di",
+    "leo",
+    "lai_xe"
+   ],
+   "dip": [
+    "thuong_ngay"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tp_quang_truong",
+   "nhom": "thanh_pho",
+   "ten": "Quảng trường",
+   "prompt": "city plaza with a fountain and pigeons",
+   "hoat_dong": [
+    "di",
+    "ngoi"
+   ],
+   "dip": [
+    "thuong_ngay",
+    "du_lich"
+   ],
+   "thoi_gian": "chieu",
+   "ngoai_troi": true
+  },
+  {
+   "ma": "tp_thang_cuon",
+   "nhom": "thanh_pho",
+   "ten": "Cầu thang ngoài trời",
+   "prompt": "outdoor concrete staircase in a city park",
+   "hoat_dong": [
+    "leo",
+    "di",
+    "ngoi"
+   ],
+   "dip": [
+    "the_thao",
+    "thuong_ngay"
+   ],
+   "thoi_gian": "sang",
+   "ngoai_troi": true
+  }
+ ]
+}

@@ -34,4 +34,12 @@ ${LUAT_PROMPT.map((l) => `- ${l.en}`).join('\n')}
 export const laLoiTam = (loi: string): boolean => /internal error|try again later|temporarily|timeout|timed out|503|502|rate limit|hạn mức|overloaded/i.test(loi);
 /** Giọng lời dẫn theo mô tả người kể (ô giong / nhân vật): nữ → Jessica, còn lại → Chris (giọng nam Mỹ #120). ElevenLabs v3 qua fal. */
 export const MODEL_GIONG_DAN = 'fal-ai/elevenlabs/tts/eleven-v3';
-export const chonGiongDan = (moTa: string): string => /(?<!\p{L})(woman|female|girl|lady|mother|mom|wife|grandma|grandmother|nữ|bà|mẹ|vợ)(?!\p{L})/iu.test(moTa) ? 'Jessica' : 'Chris';
+/** Giọng theo giới + tuổi trong mô tả (ô giong): nam <30 Liam · 30–44 Chris · 45–59 Brian · ≥60 Bill; nữ <35 Jessica · 35–59 Sarah · ≥60 Matilda;
+ *  phi nhị nguyên River. Không ghi tuổi thì nam Chris / nữ Jessica. */
+export function chonGiongDan(moTa: string): string {
+  const tuoi = Number((moTa.match(/(?<!\d)(\d{2})(?!\d)/) ?? [])[1] ?? 0);
+  if (/non-binary|phi nhị nguyên/i.test(moTa)) return 'River';
+  const nu = /(?<!\p{L})(woman|female|girl|lady|mother|mom|wife|grandma|grandmother|nữ|bà|mẹ|vợ)(?!\p{L})/iu.test(moTa);
+  if (nu) return !tuoi ? 'Jessica' : tuoi < 35 ? 'Jessica' : tuoi < 60 ? 'Sarah' : 'Matilda';
+  return !tuoi ? 'Chris' : tuoi < 30 ? 'Liam' : tuoi < 45 ? 'Chris' : tuoi < 60 ? 'Brian' : 'Bill';
+}

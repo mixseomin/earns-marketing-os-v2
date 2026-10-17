@@ -1,6 +1,6 @@
 'use client';
 // Drawer chung của cả studio (anh chốt 09/10/2026: bấm link KHÔNG được mở trang khác, phải là drawer).
-//   moNgan({ loai: 'thu-vien' | 'so-chi-phi' | 'nguon-ai' | 'xem', … }) gọi được từ bất kỳ đâu (header, form shot, sổ, ảnh, clip, bản xuất).
+//   moNgan({ loai: 'thu-vien' | 'thu-vien-dien' | 'so-chi-phi' | 'nguon-ai' | 'xem', … }) gọi được từ bất kỳ đâu (header, form shot, sổ, ảnh, clip, bản xuất).
 //   Mọi ngăn chung là MỘT CHỒNG trên URL (?nc=loai:id, đúng thứ tự) → F5 mở lại đúng; xem tệp (ảnh/clip/âm) là tầng hẹp, có nút Tải (cùng nguồn, không mở tab).
 import { Suspense, useEffect, useState } from 'react';
 import { Ngan } from './ngan';
@@ -11,9 +11,10 @@ import { NguonShotNoiDung } from './nguon-shot';
 import { NoiKhungTap } from './noi-khung';
 import { BoSetXem } from './bo-set-xem';
 import { SoNguonAi } from './nguon-ai-ui';
+import { ThuVienDien } from './thu-vien-dien-ui';
 import { SoLienMachXem } from './so-lien-mach-ui';
 
-export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'bo-set'; setId: number; tapId?: undefined; canhId?: undefined } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' };
+export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'bo-set'; setId: number; tapId?: undefined; canhId?: undefined } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' } | { loai: 'thu-vien-dien' };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -79,6 +80,7 @@ function TangNgan({ l, onClose }: { l: Lop; onClose: () => void }) {
     case 'ky-thuat': return <Ngan nho onClose={onClose} tieuDe="🎬 Kỹ thuật điện ảnh"><ChiTietKyThuatNgan ma={l.id} /></Ngan>;
     case 'nguon': return <Ngan onClose={onClose} tieuDe="🔗 Nguồn của shot"><NguonShotNoiDung canhId={n} /></Ngan>;
     case 'nguon-ai': return <Ngan onClose={onClose} tieuDe="🔌 Sổ nguồn AI"><SoNguonAi /></Ngan>;
+    case 'thu-vien-dien': return <Ngan onClose={onClose} tieuDe="📚 Bối cảnh · diễn viên"><ThuVienDien /></Ngan>;
     case 'so-chi-phi': return <Ngan onClose={onClose} tieuDe="💰 Sổ chi phí"><SoChiPhi phimDau={l.id ? n : undefined} /></Ngan>;
     case 'xem': {
       const laVideo = /\.(mp4|webm|mov)(\?|$)/i.test(l.id), laAm = /\.(mp3|wav|m4a|ogg)(\?|$)/i.test(l.id);

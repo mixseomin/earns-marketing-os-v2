@@ -45,7 +45,33 @@
    "vi_du_1_hinh": "he drops into a deep squat to grab something off the floor and stands back up, the light blue jeans stretch over his thighs",
    "vi_du_2_hinh": "he sits on a brewery bench with legs apart, relaxed, no tight pull at the thighs",
    "vi_du_3_hinh": "he jogs up a flight of outdoor stairs two at a time",
-   "giong": "American man, 35, relaxed, slightly frustrated then relieved, casual"
+   "giong": "American man, 35, relaxed, slightly frustrated then relieved, casual",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     28,
+     50
+    ],
+    "dang": [
+     "đùi to, bắp chân to",
+     "người to, mập",
+     "thấp, chắc",
+     "thể thao"
+    ],
+    "dip": [
+     "mac_do",
+     "thuong_ngay",
+     "ban_be",
+     "the_thao",
+     "thu_gian"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "1B": {
    "nguoi": "American man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
@@ -58,7 +84,32 @@
    "vi_du_1_hinh": "he steps up onto a curb and crosses the street, the straight leg falls clean",
    "vi_du_2_hinh": "he sits at a coffee shop table, one ankle on the knee, no pull at the thigh",
    "vi_du_3_hinh": "he crouches to tie his shoe on the sidewalk and stands up smoothly",
-   "giong": "American man, 38, matter-of-fact, confident, casual"
+   "giong": "American man, 38, matter-of-fact, confident, casual",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     28,
+     50
+    ],
+    "dang": [
+     "đùi to, bắp chân to",
+     "người to, mập",
+     "thấp, chắc",
+     "thể thao"
+    ],
+    "dip": [
+     "mua_sam",
+     "mac_do",
+     "di_lai",
+     "thuong_ngay"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "1C": {
    "nguoi": "American man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
@@ -71,7 +122,31 @@
    "vi_du_1_hinh": "he bends down to pick up the delivery box and stands up, the jeans move with him",
    "vi_du_2_hinh": "he sits on the porch steps with a coffee, relaxed waist, no pinching",
    "vi_du_3_hinh": "he walks to his car and climbs in, the jeans stretch over his thighs",
-   "giong": "American man, 40, warm, a bit cautious then reassured"
+   "giong": "American man, 40, warm, a bit cautious then reassured",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     30,
+     56
+    ],
+    "dang": [
+     "đùi to, bắp chân to",
+     "người to, mập",
+     "thấp, chắc",
+     "thể thao"
+    ],
+    "dip": [
+     "mua_sam",
+     "thuong_ngay",
+     "gia_dinh"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "2A": {
    "nguoi": "American man, 30, average build, short hair, usually lives in gray sweatpants and a hoodie",
@@ -84,7 +159,26 @@
    "vi_du_1_hinh": "he flops onto the couch and stretches out, the jeans stay comfortable",
    "vi_du_2_hinh": "at the backyard barbecue he crouches by the grill to flip burgers",
    "vi_du_3_hinh": "he plays catch with a friend in the yard, moving freely",
-   "giong": "American man, 30, laid-back, easygoing, light humor"
+   "giong": "American man, 30, laid-back, easygoing, light humor",
+   "yeu_cau": {
+    "gioi": [
+     "nam",
+     "phi_nhi_nguyen"
+    ],
+    "tuoi": [
+     22,
+     34
+    ],
+    "dip": [
+     "thu_gian",
+     "ban_be",
+     "thuong_ngay"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "2B": {
    "nguoi": "American man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
@@ -97,7 +191,24 @@
    "vi_du_1_hinh": "he gets in and out of the car in one easy move",
    "vi_du_2_hinh": "he sits at his desk for hours, relaxed shoulders, waist lies flat",
    "vi_du_3_hinh": "he bends down to pick up papers from under the desk and sits back up",
-   "giong": "American man, 45, tired of discomfort, dry humor, warm"
+   "giong": "American man, 45, tired of discomfort, dry humor, warm",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     38,
+     62
+    ],
+    "dip": [
+     "lam_viec",
+     "di_lai"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "2C": {
    "nguoi": "American man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
@@ -110,7 +221,25 @@
    "vi_du_1_hinh": "he walks into the restaurant looking sharp, the jeans keep their shape",
    "vi_du_2_hinh": "he sits at the dinner table, the fabric stays smooth, no sagging",
    "vi_du_3_hinh": "he stands up to greet a friend, the jeans look as crisp as when he sat down",
-   "giong": "American man, 42, measured, discerning, confident"
+   "giong": "American man, 42, measured, discerning, confident",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     34,
+     56
+    ],
+    "dip": [
+     "hen_ho",
+     "tiec",
+     "lam_viec"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "3A": {
    "nguoi": "American man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
@@ -123,7 +252,31 @@
    "vi_du_1_hinh": "he kneels on one knee to measure a board, the denim stretches",
    "vi_du_2_hinh": "he hops up onto the pickup truck bed in one move",
    "vi_du_3_hinh": "in the garage he crouches under a workbench to grab a tool",
-   "giong": "American man, 38, blunt working-guy tone, gravelly"
+   "giong": "American man, 38, blunt working-guy tone, gravelly",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     24,
+     56
+    ],
+    "dang": [
+     "thể thao",
+     "thấp, chắc",
+     "trung bình",
+     "đùi to, bắp chân to"
+    ],
+    "dip": [
+     "lam_viec",
+     "so_thich",
+     "ngoai_troi"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "4A": {
    "nguoi": "American man, 27, slim-athletic build, styled short hair, wears a fitted black tee and a light jacket",
@@ -136,7 +289,27 @@
    "vi_du_1_hinh": "he walks down the city street with confidence, the jeans look sharp",
    "vi_du_2_hinh": "he meets a date outside a restaurant and smiles",
    "vi_du_3_hinh": "he sits on a bar stool, relaxed, the jeans keep a clean line",
-   "giong": "American man, 27, upbeat, confident, conversational"
+   "giong": "American man, 27, upbeat, confident, conversational",
+   "yeu_cau": {
+    "gioi": [
+     "nam",
+     "phi_nhi_nguyen"
+    ],
+    "tuoi": [
+     22,
+     34
+    ],
+    "dip": [
+     "hen_ho",
+     "ban_be",
+     "di_lai",
+     "tiec"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   },
   "MA": {
    "nguoi": "American man, 50, average build, short graying hair, wears a casual flannel shirt",
@@ -149,7 +322,25 @@
    "vi_du_1_hinh": "he picks up the package at the door and smiles",
    "vi_du_2_hinh": "he sits back at the kitchen table in the new jeans, relaxed",
    "vi_du_3_hinh": "he walks out the door in the new jeans",
-   "giong": "American man, 50, friendly, practical, straightforward"
+   "giong": "American man, 50, friendly, practical, straightforward",
+   "yeu_cau": {
+    "gioi": [
+     "nam"
+    ],
+    "tuoi": [
+     42,
+     74
+    ],
+    "dip": [
+     "mua_sam",
+     "thuong_ngay",
+     "gia_dinh"
+    ],
+    "hoat_dong": [
+     "xom",
+     "ngoi"
+    ]
+   }
   }
  },
  "dan_toc": {
@@ -158,5 +349,6 @@
  },
  "nguon_o": {
   "dinh_diem": "QC thắng: khuôn kể 'quần làm hỏng một ngày quan trọng' (Parkinson's Health Insider · vợ kể về chồng · 98 ngày, Meta 1673581983693866)"
- }
+ },
+ "ghi_thu_vien": "Diễn viên + bối cảnh của từng bộ hình do thư viện phân bổ (scripts/phan-bo-thu-vien.mts theo yeu_cau); nguoi / ten / boi_canh của concept chỉ còn là mẫu cũ."
 }

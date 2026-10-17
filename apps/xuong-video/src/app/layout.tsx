@@ -23,6 +23,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
           <span className="xv-mono">kịch bản → storyboard → keyframe → clip → ghép</span>
           <span style={{ flex: 1 }} />
           <NutNgan y={{ loai: 'thu-vien' }}>🎬 thư viện điện ảnh</NutNgan>
+          <NutNgan y={{ loai: 'thu-vien-dien' }}>📚 bối cảnh · diễn viên</NutNgan>
           <NutNgan y={{ loai: 'so-chi-phi' }}>💰 sổ chi phí</NutNgan>
           <NutNgan y={{ loai: 'nguon-ai' }}>🔌 nguồn AI</NutNgan>
           <a href="https://mos2.on.tc" className="xv-mono">mos2</a>

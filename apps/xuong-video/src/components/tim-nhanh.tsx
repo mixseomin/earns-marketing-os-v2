@@ -20,6 +20,7 @@ const SO_NGAN: { ic: string; ten: string; mo: string; tu: string; y: (n: NguCanh
   { ic: '⛓', ten: 'Nối khung cả tập', mo: 'sơ đồ nguồn nối khung giữa các shot', tu: 'noi khung keyframe', y: (n) => (n ? { loai: 'noi-khung', tapId: n.tapId } : null), can: 'mở một tập' },
   { ic: '🎬', ten: 'Thư viện điện ảnh', mo: 'kỹ thuật máy, ánh sáng, chuyển cảnh, âm thanh + luật dựng cảnh', tu: 'thu vien ky thuat luat dung', y: () => ({ loai: 'thu-vien' }) },
   { ic: '💰', ten: 'Sổ chi phí', mo: 'tiền AI đã tiêu theo phim / job', tu: 'chi phi tien cost', y: (n) => ({ loai: 'so-chi-phi', ...(n ? { phim: n.phimId } : {}) }) },
+  { ic: '📚', ten: 'Bối cảnh · diễn viên', mo: 'thư viện nơi + người phân bổ cho bộ hình', tu: 'boi canh dien vien nhan vat thu vien location cast', y: () => ({ loai: 'thu-vien-dien' }) },
   { ic: '🔌', ten: 'Sổ nguồn AI', mo: 'cổng / model / giá thật VNĐ', tu: 'nguon ai model gia fal ckey', y: () => ({ loai: 'nguon-ai' }) },
   { ic: '📦', ten: 'Kho tài sản', mo: 'clip, ảnh, nhạc dùng lại', tu: 'kho tai san asset', y: () => ({ loai: 'kho' }) },
 ];

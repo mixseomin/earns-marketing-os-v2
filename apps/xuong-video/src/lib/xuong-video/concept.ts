@@ -40,7 +40,7 @@ export type TplConcept = { id: number; ten: string; dong: string; khuon: string;
   /** giá trị MẪU của các ô (OTemplate.mau — như form Tạo phim điền sẵn) — điền phần xem trước */ gt_mau: Record<string, string>;
   /** QC mẫu thắng template học theo (kinh_thanh.template.mau_qc — video / ảnh trên R2) */ mau: { video: string | null; anh: string | null; mo_ta: string; link: string }[] };
 export type Cap = { id: number; concept_id: number; template_id: number; bat: boolean };
-export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean; /** phim gốc của bộ hình (xuat-creative.ts) */ phim_id?: number | null };
+export type BienTheHinh = { id: number; cap_id: number; so: number; nguoi_chinh: string; nguoi_phu: string; boi_canh: string; goc: boolean; /** giá trị ô riêng của biến thể (thư viện phân bổ: tên, người phụ, bối cảnh 2, giọng) — đè giá trị chung của cặp */ o?: Record<string, string>; /** phim gốc của bộ hình (xuat-creative.ts) */ phim_id?: number | null };
 export type PhuongAn = { id: number; cap_id: number; o: string; so: number; chu: string; nguon: string };
 export type CreativeDuyet = { id: number; so: number; cap_id: number; bien_the_id: number | null; chon: Record<string, number>; ma: string; trang_thai: 'de_xuat' | 'duyet' | 'da_tao' | 'bo'; phim_id: number | null; /** bản xuất từ phim gốc (dùng lại clip) */ xuat?: { url: string; luc: string; giay?: number; canh_bao?: string[] } | null };
 /** Creative đã được duyệt đi sản xuất (đã duyệt hoặc đã thành phim) — 'de_xuat' / 'bo' là chưa. Một chỗ cho mọi phép đếm / chặn. */
@@ -64,8 +64,9 @@ export const oHinhCua = (o: { k: string; nhom?: string }[], oChu: OChu[]): strin
   o.filter((x) => !oChu.some((c) => c.k === x.k) && (/_hinh$/.test(x.k) || ['nhan_vat', 'boi_canh'].includes(nhomCuaO(x.k, x)))).map((x) => x.k);
 
 /** Biến thể hình → giá trị ô của template (tạo phim, nhịp 4): người chính → ô hình nhân vật chính, người phụ → ô hình người thứ hai, bối cảnh → ô bối cảnh đầu. */
-export function gtBienThe(v: Pick<BienTheHinh, 'nguoi_chinh' | 'nguoi_phu' | 'boi_canh'>, oKeys: string[]): Record<string, string> {
+export function gtBienThe(v: Pick<BienTheHinh, 'nguoi_chinh' | 'nguoi_phu' | 'boi_canh'> & Pick<Partial<BienTheHinh>, 'o'>, oKeys: string[]): Record<string, string> {
   const gt: Record<string, string> = {};
+  for (const [k, x] of Object.entries(v.o ?? {})) if (oKeys.includes(k) && String(x ?? '').trim()) gt[k] = String(x).trim();
   const dat = (re: RegExp, val: string) => { const k = oKeys.find((x) => re.test(x)); if (k && val.trim() && val.trim() !== '—') gt[k] = val.trim(); };
   dat(/^nhan_vat_hinh$/, v.nguoi_chinh); dat(/^nguoi_2_hinh$/, v.nguoi_phu); dat(/^boi_canh$/, v.boi_canh);
   return gt;

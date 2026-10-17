@@ -4,7 +4,7 @@
 // Không ghi đè dòng của nguồn khác (AI / người sửa tay); bản cũ của biến thể chép ra <tệp>.sao-luu.json trước khi sửa.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/nap-o-hinh.mts scripts/du-lieu/o-hinh/jettjeans.json [--ghi]
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { docOTemplate } from '../src/lib/xuong-video/template-db';
@@ -41,19 +41,9 @@ for (const c of caps) {
     if (!r.length) boQua++;
   }
 }
-// diễn viên + bối cảnh của từng biến thể: persona tiếng Anh của concept + sắc tộc theo số biến thể; người phụ = nguoi_2_hinh chung
-const bt = (await db.execute(sql`SELECT b.id, b.so, b.nguoi_chinh, b.nguoi_phu, b.boi_canh, k.ma FROM xv_bien_the_hinh b JOIN xv_cap c ON c.id = b.cap_id
-  JOIN xv_concept k ON k.id = c.concept_id WHERE k.sp_key = ${d.sp_key} AND c.bat AND NOT b.an`)) as unknown as Row[];
-const moi = bt.flatMap((b) => {
-  const cv = d.concept[String(b.ma)]; const dt = d.dan_toc[String(b.so)];
-  if (!cv?.nguoi || !dt) return [];
-  return [{ id: Number(b.id), nguoi_chinh: cv.nguoi.replace(/^American man/, `American ${dt} man`), nguoi_phu: d.chung.nguoi_2_hinh ?? '', boi_canh: cv.boi_canh ?? '' }];
-});
-console.log(`${d.sp_key}: ${caps.length} cặp · ${soO} ô hình · ${moi.length}/${bt.length} biến thể diễn viên${ghi ? '' : ' (chưa ghi — thêm --ghi)'}`);
+// Diễn viên + bối cảnh của biến thể: KHÔNG ghi ở đây nữa — thư viện phân bổ (scripts/phan-bo-thu-vien.mts, 17/10/2026).
+console.log(`${d.sp_key}: ${caps.length} cặp · ${soO} ô hình${ghi ? '' : ' (chưa ghi — thêm --ghi)'}`);
 if (thieu.size) console.log(`  ô hình chưa có giá trị: ${[...thieu.keys()].join(', ')}`);
 if (!ghi) process.exit(0);
-const saoLuu = tep.replace(/\.json$/, '.sao-luu.json');
-if (!existsSync(saoLuu)) writeFileSync(saoLuu, JSON.stringify(bt.map((b) => ({ id: b.id, nguoi_chinh: b.nguoi_chinh, nguoi_phu: b.nguoi_phu, boi_canh: b.boi_canh })), null, 1));
-for (const b of moi) await db.execute(sql`UPDATE xv_bien_the_hinh SET nguoi_chinh = ${b.nguoi_chinh}, nguoi_phu = ${b.nguoi_phu}, boi_canh = ${b.boi_canh} WHERE id = ${b.id}`);
-console.log(`✓ ghi ${soO - boQua} ô (${boQua} giữ bản nguồn khác) · ${moi.length} biến thể · sao lưu ${saoLuu}`);
+console.log(`✓ ghi ${soO - boQua} ô (${boQua} giữ bản nguồn khác)`);
 process.exit(0);

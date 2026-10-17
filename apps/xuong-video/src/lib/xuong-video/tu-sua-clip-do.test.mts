@@ -18,6 +18,10 @@ assert.ok(laLoiTam('lượt sinh bị từ chối: Kie.ai báo hỏng: Internal 
 assert.ok(!laLoiTam('Request blocked: The generation was halted during Google safety review'), 'chặn an toàn là lỗi do prompt, phải viết lại');
 assert.ok(!laLoiTam('cơ thể méo từ giây 1.7: hands distorted'));
 assert.strictEqual(chonGiongDan('American man, 35, relaxed'), 'Chris');
-assert.strictEqual(chonGiongDan('nữ Mỹ 70 tuổi, ấm'), 'Jessica');
-assert.strictEqual(chonGiongDan('American woman, 40s'), 'Jessica');
+assert.strictEqual(chonGiongDan('American man, 62, natural'), 'Bill');
+assert.strictEqual(chonGiongDan('American man, 24'), 'Liam');
+assert.strictEqual(chonGiongDan('American non-binary person, 33'), 'River');
+assert.strictEqual(chonGiongDan('American woman, 48'), 'Sarah');
+assert.strictEqual(chonGiongDan('nữ Mỹ 70 tuổi, ấm'), 'Matilda');
+assert.strictEqual(chonGiongDan('American woman, 40s'), 'Sarah');
 console.log('tu-sua-clip-do.test: ok');

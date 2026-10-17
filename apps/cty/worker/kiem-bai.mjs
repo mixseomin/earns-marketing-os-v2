@@ -18,12 +18,31 @@ export const KET = { DUYET: '✅ DUYỆT', SUA_LAI: '✏️ SỬA LẠI', KHONG_
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless',
   'game-changer', 'cutting-edge', 'state-of-the-art', "in today's world", 'in the realm of', "it's worth noting", 'in conclusion', 'unlock the'];
 
-/** Nộp một bài vào hàng chờ. html = nội dung bản nháp (chưa lên trang) — có thì phòng chấm cái này, không tải url. */
+// VÒNG SỬA (anh 17/10/2026: "bên xưởng aff phải có người phụ trách tiếp nhận và thực hiện sửa rồi lại gửi lại cho đội content. hãy đặt
+// giới hạn để ko bị lặp vô hạn"): bài chưa DUYỆT → trả về người phụ trách site (tra-ve/<id>.json + tin Telegram) → họ sửa, nộp lại.
+// Mỗi url tối đa TRAN_LUOT lượt chấm chưa DUYỆT; hết lượt thì hàng chờ từ chối nộp, chờ anh `--mo-khoa <url>`.
+export const TRAN_LUOT = 3;
+const PHU_TRACH = { 'ratesbyroom.com': 'lan', 'staymarlow.com': 'lan', 'ratesbycar.com': 'lan', 'hotelrateguide.com': 'lan', 'trafficbuyersguide.com': 'lan' };   // host (cả subdomain) → người phụ trách
+export const phuTrach = (url) => { const h = (() => { try { return new URL(url).hostname; } catch { return ''; } })(); const k = Object.keys(PHU_TRACH).find((d) => h === d || h.endsWith(`.${d}`)); return k ? PHU_TRACH[k] : null; };
+const TRA = () => path.join(VP(), 'tra-ve');
+const tenNguoi = (id) => { try { return fs.readFileSync(path.join(GOC, 'cong-ty', 'nhan-su', id, 'SOUL.md'), 'utf8').match(/^ten:\s*(.+)$/m)[1].trim(); } catch { return id; } };
+const docJson = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []);
+/** Số lượt chấm chưa DUYỆT của url kể từ lần DUYỆT / mở khoá gần nhất. */
+export function soLuot(url, ds = docJson(XONG())) {
+  let n = 0; for (const x of ds.filter((x) => x.url === url)) n = x.ket === 'DUYET' || x.ket === 'MO_KHOA' ? 0 : n + 1; return n;
+}
+/** Anh mở khoá một url đã hết lượt: ghi mốc MO_KHOA vào da-kiem để đếm lại từ 0. */
+export function moKhoa(url) { fs.mkdirSync(XONG(), { recursive: true }); fs.writeFileSync(path.join(XONG(), `${Date.now()}-mo.json`), JSON.stringify({ url, ket: 'MO_KHOA', luc: new Date().toISOString() })); }
+
+/** Nộp một bài vào hàng chờ. html = nội dung bản nháp (chưa lên trang) — có thì phòng chấm cái này, không tải url (url vẫn bắt buộc: vòng sửa đếm lượt theo url). */
 export function nopBai({ url, tu = 'Không rõ', html = null }) {
-  if (!url && !html) throw new Error('cần --nop <url> hoặc --html <tệp>');
+  if (!url) throw new Error('cần --nop <url> (bản nháp thì thêm --html <tệp>, url là trang đích)');
+  const n = soLuot(url);
+  if (n >= TRAN_LUOT) throw new Error(`${url} đã ${n}/${TRAN_LUOT} lượt chấm chưa DUYỆT — dừng vòng, chờ anh quyết (anh mở lại: --mo-khoa <url>)`);
   fs.mkdirSync(CHO(), { recursive: true });
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url: url || '', tu, html, luc: new Date().toISOString() }));
+  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, luc: new Date().toISOString() }));
+  for (const x of docJson(TRA())) if (x.url === url) fs.rmSync(path.join(TRA(), `${x.id}.json`), { force: true });   // đã nộp lại = đã nhận việc sửa
   return id;
 }
 
@@ -126,6 +145,14 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     kq.diem = diemCuoi(kq, d); const ket = ketCuoi(kq, d), { chu, ...may } = d;
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinKiem({ tu: b.tu, url: b.url, kq, d, ket, ten }), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     fs.writeFileSync(path.join(XONG(), f), JSON.stringify({ ...b, html: undefined, kq, may, ket, tin: j.ok ? j.result.message_id : null, xong: new Date().toISOString() }, null, 1));
+    const pt = phuTrach(b.url), luot = soLuot(b.url);
+    if (ket !== 'DUYET') {
+      const het = luot >= TRAN_LUOT, tenPt = pt ? tenNguoi(pt) : null;
+      if (!het && pt) { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSync(path.join(TRA(), `${b.id}.json`), JSON.stringify({ id: b.id, url: b.url, phu_trach: pt, luot, ket, kq, luc: new Date().toISOString() }, null, 1)); }
+      await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: j.ok ? { message_id: j.result.message_id } : undefined, parse_mode: 'HTML',
+        text: het ? `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — dừng vòng sửa, chờ anh quyết.`
+          : pt ? `↩️ Giao <b>${esc(tenPt)}</b> sửa theo nhận xét trên rồi nộp lại · lượt ${luot}/${TRAN_LUOT}` : `↩️ ${esc(b.url)} chưa có người phụ trách (PHU_TRACH trong kiem-bai.mjs) · lượt ${luot}/${TRAN_LUOT}` });
+    }
     fs.unlinkSync(path.join(CHO(), f));
     ra.push(`${b.url || 'nháp'} → ${ket}`);
   }
@@ -149,7 +176,16 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.equal(diemCuoi({ diem: 10 }, mayDo(du.replace('<img src=a.png alt=x>', ''))), 6, 'chặn cứng thì không 10/10');
     const tin = tinKiem({ tu: 'A', url: 'https://x.com/a/', kq: { thieu: ['cảnh mở'], thua: [], giong: [], diem: 3, ket_luan: 'KHONG_DUYET', tom_tat: 'sơ sài' }, d, ket: 'KHONG_DUYET' });
     t.ok(tin.startsWith('📝 <b>A</b> gửi bài https://x.com/a/') && tin.includes('Thiếu') && tin.includes('⛔ KHÔNG DUYỆT') && tin.includes('chặn cứng'));
+    const u = 'https://ratesbyroom.com/a/', ds = (...k) => k.map((ket) => ({ url: u, ket }));
+    t.equal(soLuot(u, ds('SUA_LAI', 'KHONG_DUYET')), 2); t.equal(soLuot(u, ds('SUA_LAI', 'DUYET', 'SUA_LAI')), 1, 'DUYỆT đếm lại');
+    t.equal(soLuot(u, ds('SUA_LAI', 'SUA_LAI', 'SUA_LAI', 'MO_KHOA')), 0, 'mở khoá đếm lại'); t.equal(soLuot(u, [{ url: 'https://x.com/', ket: 'SUA_LAI' }]), 0, 'url khác không tính');
+    t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'lan'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('lan'), 'Lan');
     console.log('kiem-bai: tự kiểm đạt'); process.exit(0);
+  }
+  if (lay('--mo-khoa')) { moKhoa(lay('--mo-khoa')); console.log(`đã mở khoá ${lay('--mo-khoa')} — được thêm ${TRAN_LUOT} lượt`); }
+  if (a.includes('--tra-ve')) {   // việc sửa đang chờ người phụ trách: node worker/kiem-bai.mjs --tra-ve [lan]
+    const ai = lay('--tra-ve'), ds = docJson(TRA()).filter((x) => !ai || ai.startsWith('--') || x.phu_trach === ai);
+    console.log(ds.length ? ds.map((x) => `${x.url} · ${x.phu_trach} · lượt ${x.luot}/${TRAN_LUOT} · ${x.ket}\n  thiếu: ${x.kq.thieu.join(' | ') || '-'}\n  thừa: ${x.kq.thua.join(' | ') || '-'}\n  giọng: ${x.kq.giong.join(' | ') || '-'}`).join('\n') : 'không có bài nào chờ sửa');
   }
   if (lay('--nop') != null || lay('--html') != null) {
     const html = lay('--html') ? fs.readFileSync(lay('--html'), 'utf8') : null;

@@ -72,7 +72,7 @@ export const VIEC_NHIP = {
   ],
   'kiem-bai': [
     { ma: 'kiem-bai', ten: 'Kiểm bài mới', lich: (n) => tanSuat(n.kiemMoi), khop: null,
-      mo_ta: 'Mọi bài / trang nội dung mới nộp vào hàng chờ (node worker/kiem-bai.mjs --nop <url> --tu <người>, hoặc --html <bản nháp>) trước khi lên trang. Máy đo không AI (gạch ngang dài, từ máy, số chữ, ví dụ trích, FAQ, phần "nếu đã lỡ", nút) rồi Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md → tin vào chủ đề 📝 Nội dung trên Telegram: ai gửi, thiếu gì, thừa gì, giọng văn, kết luận DUYỆT / SỬA LẠI / KHÔNG DUYỆT. Chặn cứng (gạch dài, từ máy) không bao giờ DUYỆT. Mô hình chỉ được gọi khi có bài.' },
+      mo_ta: 'Mọi bài / trang nội dung mới nộp vào hàng chờ (node worker/kiem-bai.mjs --nop <url> --tu <người>, hoặc --html <bản nháp>) trước khi lên trang. Máy đo không AI (gạch ngang dài, từ máy, số chữ, ví dụ trích, FAQ, phần "nếu đã lỡ", nút) rồi Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md → tin vào chủ đề 📝 Nội dung trên Telegram: ai gửi, thiếu gì, thừa gì, giọng văn, kết luận DUYỆT / SỬA LẠI / KHÔNG DUYỆT. Chặn cứng (gạch dài, từ máy, thiếu ảnh / video / FAQ) không bao giờ DUYỆT. Bài chưa DUYỆT trả về người phụ trách site (--tra-ve) sửa rồi nộp lại, tối đa 3 lượt; hết lượt thì dừng chờ anh (--mo-khoa). Mô hình chỉ được gọi khi có bài.' },
   ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,

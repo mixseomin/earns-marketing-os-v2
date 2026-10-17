@@ -50,11 +50,12 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
   // xác nhận từng loại bằng khung nét cao quanh đúng giây
   const giu: LoiBienDang[] = []; const loi: string[] = []; const canhBao: string[] = []; let tkXn = { in: 0, out: 0 }; let modelXn = MO_HINH_XAC_NHAN_CLAUDE;
   for (const [loai, v] of gop) {
-    const ts = [-0.5, -0.25, 0, 0.25, 0.5, 0.75].map((d) => Math.min(o.dai, Math.max(0, v.giay + d)));
-    const anh = await khungTai(o.url, ts, 768);
+    // cả đoạn được dùng (12 khung) — Flash ước giờ lệch, cửa sổ ±0,5s quanh giờ báo làm Claude không thấy lỗi thật (bộ mẫu: sót chân gập ngược, tất méo)
+    const ts = Array.from({ length: 12 }, (_, k) => (k + 0.5) * o.dai / 12);
+    const anh = await khungTai(o.url, ts, 640);
     // xác nhận bằng CLAUDE nhìn ảnh (claude.ts › xacNhanLoiClaude) — Gemini (cả Pro) gật cả ngón tay bình thường; đúng giá Claude ~1,5¢ vẫn rẻ hơn một lượt sinh lại oan
-    const cauHoi = `These 6 images are consecutive frames (0.25 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
-A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object in EVERY frame. co=true if that defect is really there; co=false if it looks normal, is only motion blur, or is part of the shot intent. muc: "nang" ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it (legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on clothing, an object floating or popping in / out, the product turning into a different garment or color); otherwise "nhe" (slightly soft fingers, small wrinkle / rip / texture changes, small edge objects, slight color shift, anything smaller than ~5% of the frame).`;
+    const cauHoi = `These 12 images are consecutive frames (1..12, evenly spaced over the whole shot) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
+A first automatic check reported, around ${Math.round(v.giay * 10) / 10}s of ${Math.round(o.dai * 10) / 10}s: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object in EVERY frame (the timing may be off). co=true if that defect is really there; co=false if it looks normal, is only motion blur, or is part of the shot intent. muc: "nang" ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it (legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on clothing, an object floating or popping in / out, the product turning into a different garment or color); otherwise "nhe" (slightly soft fingers, small wrinkle / rip / texture changes, small edge objects, slight color shift, anything smaller than ~5% of the frame).`;
     const c = anh ? await xacNhanLoiClaude({ anh, cauHoi }) : null;
     if (c?.ok) { tkXn = { in: tkXn.in + c.tokens.in, out: tkXn.out + c.tokens.out }; modelXn = c.model; }
     const cd = c?.ok ? c.data : null;

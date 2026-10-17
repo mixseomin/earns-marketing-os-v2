@@ -76,7 +76,7 @@ export const TEN_BD: Record<(typeof LOAI_BD)[number], string> = { trang_phuc_bie
 export function loiDanBienDang(sp: string, yDo = ''): string {
   return `These ${N_KHUNG_BD} images are consecutive frames (1..${N_KHUNG_BD}, in time order) of ONE AI-generated video clip.
 ${yDo ? `What this shot is MEANT to show (anything described here is intentional, e.g. a different old garment, a rip, a split-screen comparison — not a defect): ${yDo}\n` : ''}The product (when it appears) should look like this: ${sp || '(no product description)'}
-Find AI-generation defects that an ordinary viewer would clearly notice at normal playback speed. Do NOT report style, lighting, motion blur, small expression changes, or anything the shot intent above describes. When unsure, do not report.
+Find AI-generation defects that an ordinary viewer would clearly notice watching ONCE at normal speed on a phone. Do NOT report: style, lighting, motion blur, small expression changes, slightly soft or imperfect fingers, small wrinkle / texture / rip changes, small objects at the frame edge, slight color shifts, anything smaller than about 5% of the frame, or anything the shot intent above describes.
 Write mo_ta in short plain English.
 Defect types:
 - trang_phuc_bien_dang: clothing changes shape unnaturally between frames — pants ballooning or turning baggy, crotch dropping toward the knees, waistband or fabric bulging out, garment merging with the body or another object.

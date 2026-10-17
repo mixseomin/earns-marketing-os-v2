@@ -4,38 +4,62 @@
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { khoaGoogle } from './google';
-import { loiDanBienDang, loiTuBienDang, giaoBienDang, LOAI_BD, N_KHUNG_BD, type LoiBienDang } from './soi-clip-do';
+import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
 import { giaChuCents } from './kieu';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
 export const MO_HINH_BD = 'gemini-3.8-flash';
-/** N_KHUNG_BD khung RỜI (giữa mỗi đoạn đều nhau) trong `dai` giây đầu, rộng 448px — gửi thành ảnh riêng, không ghép (ghép thì bị nén mất chi tiết chân tay). */
-const khungRoi = async (url: string, dai: number): Promise<string[] | null> => {
+/** Lấy khung tại các giây `ts` (rộng `w`px) — ảnh RỜI (ghép ảnh bị Gemini nén mất chi tiết chân tay). */
+const khungTai = async (url: string, ts: number[], w: number): Promise<string[] | null> => {
   const ra: string[] = [];
-  for (let i = 0; i < N_KHUNG_BD; i++) {
-    const b = await new Promise<Buffer | null>((ok) => execFile('ffmpeg', ['-v', 'error', '-ss', String(Math.round(((i + 0.5) * dai / N_KHUNG_BD) * 100) / 100), '-i', url, '-frames:v', '1',
-      '-vf', 'scale=448:-2', '-q:v', '4', '-f', 'mjpeg', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 24, timeout: 60_000 }, (e, x) => ok(e || !(x as Buffer).length ? null : (x as Buffer))));
+  for (const t of ts) {
+    const b = await new Promise<Buffer | null>((ok) => execFile('ffmpeg', ['-v', 'error', '-ss', String(Math.max(0, Math.round(t * 100) / 100)), '-i', url, '-frames:v', '1',
+      '-vf', `scale=${w}:-2`, '-q:v', '3', '-f', 'mjpeg', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 24, timeout: 60_000 }, (e, x) => ok(e || !(x as Buffer).length ? null : (x as Buffer))));
     if (b) ra.push(b.toString('base64'));
   }
-  return ra.length >= N_KHUNG_BD - 1 ? ra : null;
+  return ra.length >= ts.length - 1 ? ra : null;
 };
+const LOAI_EN: Record<string, string> = { trang_phuc_bien_dang: 'clothing deforming unnaturally', co_the_meo: 'distorted anatomy (limbs merging, missing, duplicated, bending impossibly)',
+  chu_tren_vat: 'text or a logo appearing on the clothing or objects', san_pham_doi_kieu: 'the product changing design or color', vat_the_la: 'an object appearing, vanishing, floating or morphing' };
 
-/** `dai` = số giây ĐẦU clip được soi — truyền đúng đoạn bản xuất dùng (giây phát + phần bỏ đầu), không phải cả clip: 12 khung rải trên 8s bỏ lọt
- *  chỗ chân dính vào nhau chỉ ~0,5s trong 3,3s được dùng (#127 shot 12, anh 17/10/2026). */
+/** MÁY SOI BẢN 3 (anh 17/10/2026: "KO đc bỏ sót — chạy QC tốn tiền nên creative phải đúng"): ưu tiên KHÔNG SÓT.
+ *  Quét rộng: 2 lượt × N_KHUNG_BD khung rời LỆCH GIỜ nhau (phủ 2N thời điểm trong đoạn được dùng), GỘP mọi lỗi (hợp, không phải giao — giao bỏ sót
+ *  tất lơ lửng / tay méo trên bộ mẫu). Xác nhận: mỗi loại lỗi bị báo soi lại 4 khung nét cao quanh đúng giây đó, hỏi có / không — chỉ lọc báo nhầm.
+ *  Đo trên bộ mẫu chuẩn: scripts/kiem-may-soi.mts (phải bắt 100% clip lỗi). */
 export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number } | null> {
   if (!khoaGoogle()) return null;
-  const anh = await khungRoi(o.url, o.dai); if (!anh) return null;
+  const N = N_KHUNG_BD, buoc = o.dai / N;
+  const tA = Array.from({ length: N }, (_, i) => (i + 0.25) * buoc), tB = Array.from({ length: N }, (_, i) => (i + 0.75) * buoc);
+  const [a, b] = await Promise.all([khungTai(o.url, tA, 448), khungTai(o.url, tB, 448)]);
+  if (!a || !b) return null;
   const schema = { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'OBJECT',
     properties: { khung: { type: 'INTEGER' }, loai: { type: 'STRING', enum: [...LOAI_BD] }, mo_ta: { type: 'STRING' } }, required: ['khung', 'loai', 'mo_ta'] } } }, required: ['loi'] };
-  const parts = [{ text: loiDanBienDang(o.sp, o.yDo) }, ...anh.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))];
-  // hai lượt song song, giữ lỗi cả hai cùng thấy (giaoBienDang) — một lượt lẻ báo nhầm quá nhiều để làm cổng chặn
-  const [x, y] = await Promise.all([goiGeminiJson<{ loi?: LoiBienDang[] }>(parts, schema, 'MEDIA_RESOLUTION_MEDIUM'), goiGeminiJson<{ loi?: LoiBienDang[] }>(parts, schema, 'MEDIA_RESOLUTION_MEDIUM')]);
+  const goi = (anh: string[]) => goiGeminiJson<{ loi?: LoiBienDang[] }>([{ text: loiDanBienDang(o.sp, o.yDo) }, ...anh.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], schema, 'MEDIA_RESOLUTION_MEDIUM');
+  const [x, y] = await Promise.all([goi(a), goi(b)]);
   if (!x || !y) return null;
   const tk = { in: x.tk.in + y.tk.in, out: x.tk.out + y.tk.out };
+  // gộp: mỗi loại lấy thời điểm sớm nhất mà một trong hai lượt thấy
+  const gop = new Map<string, { giay: number; mo_ta: string; khung: number }>();
+  for (const [ds, ts] of [[x.data.loi ?? [], tA], [y.data.loi ?? [], tB]] as const) for (const l of ds) {
+    if (!LOAI_BD.includes(l.loai) || l.khung < 1 || l.khung > N) continue;
+    const g = ts[l.khung - 1]!; const cu = gop.get(l.loai);
+    if (!cu || g < cu.giay) gop.set(l.loai, { giay: g, mo_ta: l.mo_ta, khung: l.khung });
+  }
+  // xác nhận từng loại bằng khung nét cao quanh đúng giây
+  const giu: LoiBienDang[] = []; const loi: string[] = [];
+  for (const [loai, v] of gop) {
+    const ts = [v.giay - 0.3, v.giay, v.giay + 0.3, v.giay + 0.6].map((t) => Math.min(o.dai, Math.max(0, t)));
+    const anh = await khungTai(o.url, ts, 768);
+    const c = anh ? await goiGeminiJson<{ co: boolean; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
+A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely. Is this defect really visible in these frames (a viewer would notice it)? Answer co=true if yes, co=false if the frames look correct.` },
+      ...anh.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, ly_do: { type: 'STRING' } }, required: ['co', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH') : null;
+    if (c) { tk.in += c.tk.in; tk.out += c.tk.out; }
+    // không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
+    if (!c || c.data.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
+  }
   const cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
-  const tho = giaoBienDang(x.data.loi ?? [], y.data.loi ?? []);
-  return { loi: loiTuBienDang(tho, o.dai), tho, cents };
+  return { loi, tho: giu, cents };
 }
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */
 export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string): Promise<{ data: T; tk: { in: number; out: number } } | null> {

@@ -68,10 +68,10 @@ export function matTroiClip(diem: { giay: number; giong: number }[], nguong = 0.
  *  nên soi bằng mô hình nhìn ảnh rẻ trên MỘT ảnh ghép N_KHUNG_BD khung. Phần thuần: lời dặn + đọc kết quả → câu lỗi kèm giây. */
 /** Số khung RỜI gửi soi (17/10/2026: ghép 12 khung thành một ảnh thì Gemini nén còn ~1.400 token, chân dính nhau ở #127 shot 12 lọt; 8–10 khung rời
  *  độ phân giải vừa ~5k token bắt được). */
-export const N_KHUNG_BD = 8;
+export const N_KHUNG_BD = 10;
 export const LOAI_BD = ['trang_phuc_bien_dang', 'co_the_meo', 'chu_tren_vat', 'san_pham_doi_kieu', 'vat_the_la'] as const;
 export type LoiBienDang = { khung: number; loai: (typeof LOAI_BD)[number]; mo_ta: string };
-const TEN_BD: Record<(typeof LOAI_BD)[number], string> = { trang_phuc_bien_dang: 'trang phục biến dạng', co_the_meo: 'cơ thể méo', chu_tren_vat: 'chữ tự in trên đồ vật',
+export const TEN_BD: Record<(typeof LOAI_BD)[number], string> = { trang_phuc_bien_dang: 'trang phục biến dạng', co_the_meo: 'cơ thể méo', chu_tren_vat: 'chữ tự in trên đồ vật',
   san_pham_doi_kieu: 'sản phẩm đổi kiểu', vat_the_la: 'vật thể lạ' };
 export function loiDanBienDang(sp: string, yDo = ''): string {
   return `These ${N_KHUNG_BD} images are consecutive frames (1..${N_KHUNG_BD}, in time order) of ONE AI-generated video clip.
@@ -83,7 +83,7 @@ Defect types:
 - co_the_meo: distorted anatomy — check EVERY frame closely: count legs, feet, arms, hands; a leg merging into the other leg or the body, a limb disappearing or duplicated, a joint bending at an impossible place, not being able to tell which leg is which, melted fingers, body proportions changing.
 - chu_tren_vat: letters, logos or words printed or appearing on the product, clothing or objects (any readable text at all).
 - san_pham_doi_kieu: the product changes design or color compared with the description or with earlier frames.
-- vat_the_la: objects appearing, vanishing or morphing.
+- vat_the_la: objects appearing, vanishing or morphing — ESPECIALLY anything held in a hand: it floats free of the hand, detaches, changes shape or size, merges with the fingers or clothing, or a new object appears in the hand.
 Give the frame number (1-${N_KHUNG_BD}) where each defect is clearest. If the clip is clean, return an empty list.`;
 }
 /** Kết quả mô hình → câu lỗi cho soi_clip.loi (giây = giữa khung). Khung ngoài 1..N hoặc loại lạ thì bỏ. Mỗi loại một câu (khung sớm nhất). */

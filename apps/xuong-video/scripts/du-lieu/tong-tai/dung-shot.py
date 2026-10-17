@@ -69,7 +69,7 @@ shot('2.1', C2, 5, 'h3', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'thap', 'c
      { 'dien': 'Anticipation: the glass door swings open, the room goes silent. Action: Lục Thần strides out toward the group, unhurried. Reaction: everyone straightens; heads turn to follow him.','bo_cuc': 'Low angle from between the desks: the glass door of the CEO office opens at the back, Lục Thần walks out toward camera, the office falls silent', 'mo': 'glass door closed, Thần visible behind the glass', 'ket': 'Thần standing a few steps from Hạ and Vivian', 'huong': 'Thần walks toward camera', 'muc_dich': 'quyền lực bước vào'},
      'Cửa kính phòng tổng giám đốc mở, Lục Thần bước ra, cả phòng im bặt', [(THAN, 'không cao giọng', 'Chuyện gì?')],
      [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon']), bc(HA, 'nhan_nhin', 'nhan_nhin'), bc(VIV, 'dac_y', 'dac_y')],
-     {'dat': [150, 420, 110], 'nhin': [180, 800, 150], 'ong_kinh': 32, 'khung': [THAN, HA, VIV],   # tổng thể cảnh 2: máy thấp sau lưng Hạ + Vivian, Thần từ cửa kính bước tới
+     {'tay': True, 'dat': [230, 250, 140], 'nhin': [200, 800, 140], 'ong_kinh': 24, 'khung': [THAN, HA, VIV],   # tổng thể cảnh 2: máy thấp sau lưng Hạ + Vivian, Thần từ cửa kính bước tới
      
       'vi_tri': [vt(THAN, [80, 1020, 0], 0, den=[230, 760, 0], **AO_THAN, dien=['mc_sai_buoc']), vt(HA, [300, 560, 0], 180, nam=False), vt(VIV, [300, 640, 0], 0, huong_den=-150), LY_RONG(an=True)]},
      [THAN, HA, VIV, VP, 'Ly cà phê'])
@@ -90,7 +90,7 @@ shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'mcu', 'goc': 'cao', 'c
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
      # 2.4: trung cận từ ngực (điện thoại trong tay) lên mặt — cận riêng món 15 cm trước thân thì máy dí vào áo
-     {'dat': [250, 640, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [HA, DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
+     {'tay': True, 'dat': [250, 645, 145], 'nhin': [300, 560, 125], 'ong_kinh': 50, 'khung': [HA, DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──
@@ -176,7 +176,7 @@ shot('5.3', C5, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', '
      { 'dien': "Anticipation: Thần stays frozen, palms still on the table. Action: his jaw tightens; his eyes follow Hạ off screen-left. Reaction: the cold mask cracks — a long, stunned breath.", 'huong': 'Thần looks screen-left after Hạ.','bo_cuc': 'Slow push into a close-up of Lục Thần still leaning on the table corner, the boardroom soft and silent behind him', 'mo': 'Thần frozen, leaning on his palms', 'ket': 'Thần staring after Hạ, stunned', 'muc_dich': 'giữ phản ứng — khán giả nếm cú đảo thế'},
      'Lục Thần đứng chết lặng, hai tay vẫn chống trên bàn, mắt dõi theo Hạ', [],
      [bc(THAN, 'soc', 'ngo_vuc')],
-     {'dat': [-150, 560, 160], 'nhin': [-70, 705, 160], 'ong_kinh': 85, 'khung': [THAN],   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
+     {'tay': True, 'dat': [-170, 640, 150], 'nhin': [-70, 705, 150], 'ong_kinh': 85, 'khung': [THAN],   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
       'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt(HA, [-165, 700, 0], 90, an=True)]},
      [THAN, PH])
 shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'day_vao', 'ong_kinh': 'macro', 'anh_sang': 'tuong_phan', 'luat': ['chenh_thong_tin', 'motif'], 'am_thanh': ['im_lang', 'cot_ket']},
@@ -191,7 +191,7 @@ shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao',
 import math
 for s_ in S:
     m = s_['may_3d']
-    if 'dat' not in m: continue
+    if 'dat' not in m or m.get('tay'): continue   # 'tay': máy ĐẶT TAY (giữ dat / nhin / ong_kinh, bộ giải Blender không dời) — shot bộ giải làm hỏng
     ten = m.get('khung') or [v['ten'] for v in m['vi_tri'] if not v.get('an')][:2]
     ds = [v['tam'] for v in m['vi_tri'] if v['ten'] in ten] or [m['nhin']]
     cx = sum(p[0] for p in ds) / len(ds); cy = sum(p[1] for p in ds) / len(ds)

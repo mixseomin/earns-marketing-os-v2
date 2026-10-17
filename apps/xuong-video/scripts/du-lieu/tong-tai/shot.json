@@ -599,6 +599,18 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    230,
+    250,
+    140
+   ],
+   "nhin": [
+    200,
+    800,
+    140
+   ],
+   "ong_kinh": 24,
    "khung": [
     "Lục Thần",
     "Lâm Hạ",
@@ -656,8 +668,7 @@
      "trang": "empty",
      "an": true
     }
-   ],
-   "phia": -13.5
+   ]
   },
   "nhan_vat": [
    "Lục Thần",
@@ -912,6 +923,18 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    250,
+    645,
+    145
+   ],
+   "nhin": [
+    300,
+    560,
+    125
+   ],
+   "ong_kinh": 50,
    "khung": [
     "Lâm Hạ",
     "Điện thoại của Hạ"
@@ -969,8 +992,7 @@
      "trang": "empty",
      "an": true
     }
-   ],
-   "phia": -149.8
+   ]
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2133,6 +2155,18 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    -170,
+    640,
+    150
+   ],
+   "nhin": [
+    -70,
+    705,
+    150
+   ],
+   "ong_kinh": 85,
    "khung": [
     "Lục Thần"
    ],
@@ -2159,8 +2193,7 @@
      "huong": 90,
      "an": true
     }
-   ],
-   "phia": -28.9
+   ]
   },
   "nhan_vat": [
    "Lục Thần",

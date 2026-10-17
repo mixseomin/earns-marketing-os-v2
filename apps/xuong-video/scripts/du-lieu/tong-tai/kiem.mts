@@ -10,7 +10,7 @@ import { chamKichBan } from '../../../src/lib/xuong-video/cham-kich-ban';
 import { mayShot } from './may-shot';
 import { chanTienKy, chanShot, phimQt } from '../../../src/lib/xuong-video/quy-trinh';
 import { TIEN_TO_NGUOI_XEM } from '../../../src/lib/xuong-video/nguoi-xem';
-import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech } from '../../../src/lib/xuong-video/bo-set-3d';
+import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech, loiNoiMay, shotSoTruc, boSetCuaShot } from '../../../src/lib/xuong-video/bo-set-3d';
 
 const D = dirname(fileURLToPath(import.meta.url));
 const doc = (f: string) => JSON.parse(readFileSync(join(D, f), 'utf8'));
@@ -43,6 +43,7 @@ const chan = loiMachTap(ds as never, nv as never, boSet as never, phanCanh);
 const canh = canhBaoMachTap(ds as never, (t) => nv.some((a) => a.loai === 'nhan_vat' && a.ten === t), phanCanh);
 const khai = thieuKhaiNguoi(ds as never, phanCanh);
 let nChan = 0, nCanh = 0;
+ds.forEach((c, i) => { const sid = boSetCuaShot(c as never, nv as never); if (sid) (chan[c.id] ??= []).push(...loiNoiMay(c as never, nv as never, { id: sid }, i > 0 ? shotSoTruc(ds as never, i) : null)); });   // nối máy: cùng hàm cổng keyframe, không cần dựng
 for (const c of ds) {
   const l = chan[c.id] ?? [];
   const w = [...(canh[c.id] ?? []), ...(khai[c.id] ?? []), gocMayLech(c.may_3d, c.ky_thuat?.goc)].filter((x): x is string => !!x && !(boChu && x.startsWith('chữ lệch 3D')));

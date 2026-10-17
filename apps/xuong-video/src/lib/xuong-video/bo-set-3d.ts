@@ -167,6 +167,24 @@ export function vatChanTienCanh(c: Pick<Canh, 'may_3d' | 'khung_xam'> & Partial<
   return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !ct.includes(t.ten) && !(set ? tenGoi(t.ten, set) : [t.ten]).some((g) => nhac(g, chu)));
 }
 
+/** NỐI MÁY giữa shot này và shot so trục (shotSoTruc) — mặt chủ thể thấy được ở shot phản ứng, hướng nhìn không quay > 100° (trừ đối đáp cùng
+ *  phía trục), không vượt trục 180°. CHỈ cần toạ độ máy, không cần khung xám đã dựng → cổng keyframe (chanKhungXam) và bộ chấm tại chỗ trước khi
+ *  thuê máy dựng (scripts/du-lieu/tong-tai/kiem.mts) gọi CÙNG hàm này (17/10/2026: phải dựng 3 lượt GPU mới lộ hết lỗi nối máy). */
+export function loiNoiMay(c: Pick<Canh, 'may_3d'> & Partial<Pick<Canh, 'ky_thuat' | 'phan_doan'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id'>[], set: Pick<BoSet, 'id'>, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> & Partial<Pick<Canh, 'phan_doan'>> | null): string[] {
+  const out: string[] = [];
+  if (!c.may_3d) return out;
+  out.push(...matQuayDi(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
+  // NỐI HƯỚNG MÁY: hai shot liền nhau CÙNG cảnh mà hướng nhìn của máy lệch > 100° → hậu cảnh + cỡ đổi hẳn, cắt như sang nơi khác (5.4 → 5.5
+  // tập 19: một máy nhìn về iMac từ góc sau, một máy nhìn rừng cáp từ bên trái). Cố ý (POV, lật trục) thì khai qua_truc.
+  if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {
+    const h = (m: May3d) => Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!);
+    const lech = Math.abs(((((h(c.may_3d) - h(truoc.may_3d)) * 180) / Math.PI + 540) % 360) - 180);
+    if (lech > 100 && !doiDapCungPhia(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase()))) out.push(`máy đổi hướng nhìn ${Math.round(lech)}° so với shot trước cùng cảnh — hậu cảnh đổi hẳn, cắt như sang nơi khác: đặt máy gần hướng shot trước, hoặc khai qua_truc nếu cố ý`);
+  }
+  if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
+  return out;
+}
+
 /** Cổng khung xám của một shot (rỗng = qua). Shot không thuộc set nào → không chặn (ngoại lệ đã khai: không có anchor bối cảnh có set). */
 export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat' | 'phan_doan'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> & Partial<Pick<Canh, 'phan_doan'>> | null): string[] {
   if (!set) return [];
@@ -190,15 +208,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   // GÓC MÁY 3D phải khớp góc máy khai ở thẻ shot (15/10/2026: 7.1a khai ngang tầm mà bộ giải đẩy máy lên cao 59° — keyframe bỏ qua khung 3D,
   // vẽ ngang tầm theo chữ, mất luôn cú quay đầu). Lệch → đặt tay máy hoặc đổi góc khai cho đúng điều muốn quay.
   { const g = gocMayLech(c.may_3d, c.ky_thuat?.goc); if (g) out.push(g); }
-  out.push(...matQuayDi(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
-  // NỐI HƯỚNG MÁY: hai shot liền nhau CÙNG cảnh mà hướng nhìn của máy lệch > 100° → hậu cảnh + cỡ đổi hẳn, cắt như sang nơi khác (5.4 → 5.5
-  // tập 19: một máy nhìn về iMac từ góc sau, một máy nhìn rừng cáp từ bên trái). Cố ý (POV, lật trục) thì khai qua_truc.
-  if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {
-    const h = (m: May3d) => Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!);
-    const lech = Math.abs(((((h(c.may_3d) - h(truoc.may_3d)) * 180) / Math.PI + 540) % 360) - 180);
-    if (lech > 100 && !doiDapCungPhia(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase()))) out.push(`máy đổi hướng nhìn ${Math.round(lech)}° so với shot trước cùng cảnh — hậu cảnh đổi hẳn, cắt như sang nơi khác: đặt máy gần hướng shot trước, hoặc khai qua_truc nếu cố ý`);
-  }
-  if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
+  out.push(...loiNoiMay(c, nhanVat, set, truoc));
   return out;
 }
 

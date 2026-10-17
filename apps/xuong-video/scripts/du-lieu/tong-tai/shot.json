@@ -656,7 +656,7 @@
      "an": true
     }
    ],
-   "phia": 35.6
+   "phia": -13.5
   },
   "nhan_vat": [
    "Lục Thần",
@@ -724,7 +724,7 @@
       0
      ],
      "huong": 0,
-     "huong_den": -60
+     "huong_den": -150
     },
     {
      "ten": "Lục Thần",
@@ -757,7 +757,7 @@
      "an": true
     }
    ],
-   "phia": -149.0
+   "phia": -121.0
   },
   "nhan_vat": [
    "Vivian",
@@ -846,7 +846,7 @@
       640,
       0
      ],
-     "huong": -60
+     "huong": -150
     },
     {
      "ten": "Ly cà phê",
@@ -861,7 +861,7 @@
      "an": true
     }
    ],
-   "phia": 21.8
+   "phia": 0.0
   },
   "nhan_vat": [
    "Lục Thần",
@@ -953,7 +953,7 @@
       640,
       0
      ],
-     "huong": -60
+     "huong": -150
     },
     {
      "ten": "Ly cà phê",
@@ -968,7 +968,7 @@
      "an": true
     }
    ],
-   "phia": 180.0
+   "phia": -148.0
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1205,7 +1205,7 @@
      "cam": "Lâm Hạ"
     }
    ],
-   "phia": -101.6
+   "phia": -81.6
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1316,7 +1316,7 @@
      "an": true
     }
    ],
-   "phia": 81.1
+   "phia": 72.6
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1725,7 +1725,7 @@
      ]
     }
    ],
-   "phia": 77.6
+   "phia": 0.0
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1780,7 +1780,6 @@
    "khung": [
     "Ly cà phê"
    ],
-   "qua_truc": true,
    "vi_tri": [
     {
      "ten": "Vivian",
@@ -1810,7 +1809,7 @@
      "trang_den": "shattered on the floor"
     }
    ],
-   "phia": 47.6
+   "phia": -71.0
   },
   "nhan_vat": [
    "Vivian",
@@ -1902,7 +1901,7 @@
      "an": true
     }
    ],
-   "phia": 156.8
+   "phia": -155.2
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2159,7 +2158,7 @@
      "an": true
     }
    ],
-   "phia": -83.4
+   "phia": -61.6
   },
   "nhan_vat": [
    "Lục Thần",

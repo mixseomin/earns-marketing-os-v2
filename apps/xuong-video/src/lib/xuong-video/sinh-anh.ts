@@ -18,7 +18,7 @@ import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
 import { CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
-import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
+import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
 import { uploadToR2 } from '../r2';
 
@@ -155,6 +155,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
 export type HaiBuoc = { sau: string; prompt1: string; prompt2: string; ref2: string[] };
 export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
+  bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
   const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);

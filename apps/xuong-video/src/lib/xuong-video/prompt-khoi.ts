@@ -113,6 +113,26 @@ export const soNguoiCau = (chinh: string[], phu: number) => {
   if (!n) return 'No people anywhere in this frame.';
   return `Exactly ${n} ${n === 1 ? 'person' : 'people'} in this frame${chinh.length ? ` (${chinh.join(', ')}${phu ? ` and ${phu} background ${phu === 1 ? 'extra' : 'extras'} where the layout places them` : ''})` : ''} — no other people anywhere: not in the background, doorways, corridors, windows or reflections.`;
 };
+/** THẺ LIÊN KẾT ĐỒ VẬT (anh 18/10/2026: "không dùng tên kiểu cố định mà phải là template và link đến đồ đạc đó… đảm bảo không sai sót"). Chữ thẻ shot gọi
+ *  vật bằng {Tên} — ĐÚNG tên nhân vật / đạo cụ / đồ set — thay vì chữ tự do ("box", "cup", "the badge"): bộ kiểm đọc thẻ để biết chắc vật nào được nhắc
+ *  (không đoán bằng từ điển — "box" ↔ "Thùng đồ cá nhân" từng trượt), prompt thay thẻ bằng mô tả tiếng Anh của chính vật đó (không lọt tên tiếng Việt).
+ *  Thẻ sai tên / trỏ vật không có trong 3D → cổng chặn (kiem-ai-3d.ts › theSai); thẻ chưa thay mà lọt vào prompt → bộ chấm chặn. */
+export const THE = /\{([^{}\n]+)\}/g;
+/** Các tên được thẻ nhắc trong một đoạn chữ. */
+export const theTrong = (t: string | undefined | null) => [...(t ?? '').matchAll(THE)].map((m) => m[1]!.trim());
+/** Tên ĐƯA CHO MODEL của một vật qua thẻ: nhân vật → tên; đạo cụ / sản phẩm → vế đầu mô tả en; đồ set → vế đầu en. Không có article (chữ thẻ tự viết a / the). */
+export function goiThe(nhanVat: { ten: string; loai: string; mo_ta?: string }[], vatSet: { ten: string; en?: string }[]) {
+  const thuong = (x: string) => x.replace(/^(a|an|the)\s+/i, '').replace(/^./, (c) => (/[A-Z][a-z]/.test(x.slice(0, 2)) ? c.toLowerCase() : c));
+  return (ten: string): string | undefined => {
+    const a = nhanVat.find((x) => x.ten.trim().toLowerCase() === ten.trim().toLowerCase());
+    if (a) return a.loai === 'nhan_vat' ? a.ten : a.mo_ta?.trim() ? thuong((a.mo_ta.split(/[,.;:—]/)[0] ?? '').trim()) : undefined;
+    const v = vatSet.find((x) => x.ten.trim().toLowerCase() === ten.trim().toLowerCase());
+    return v?.en ? thuong((v.en.split(/[,;]/)[0] ?? '').trim()) : undefined;
+  };
+}
+/** Thay mọi thẻ {Tên} trong một đoạn chữ bằng tên đưa cho model; thẻ không biết thì GIỮ NGUYÊN (bộ chấm prompt sẽ chặn — không lặng lẽ đoán). */
+export const dienThe = (t: string, goi: (ten: string) => string | undefined) => t.replace(THE, (m, ten: string) => goi(ten.trim()) ?? m);
+
 /** Câu đầu của mô tả bối cảnh (trước ':' hoặc '.'): "Boardroom in afternoon light" — đủ nói ĐANG Ở ĐÂU, không liệt kê đồ (mời vẽ thêm). */
 export const dauBoiCanh = (moTa: string) => (moTa.split(/[:.]/)[0] ?? '').trim().split(/\s+/).slice(0, 18).join(' ');
 /** chữ tả mặt / đầu — trừ 'eye-level' (góc máy) và 'face out of frame' (chính câu dặn không vẽ mặt) */

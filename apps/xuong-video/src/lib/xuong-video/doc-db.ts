@@ -4,6 +4,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { chotTien, LOAI_JOB_TON_TIEN } from './chot-tien';
 import type { getDb } from '@mos2/db';
+import { dienThe, goiThe } from './prompt-khoi';
 import { docKinhThanh, giaAnhCents, MO_HINH_ANH, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type PhanCanh, type Tap, type TrangThaiCanh } from './kieu';
 import { modelFal } from './fal';
 import { boSetCuaShot, laDoVatPhim, mayDayDu, PT_THAY } from './bo-set-3d';
@@ -52,6 +53,12 @@ export async function boiCanhTap(db: Db, tapId: number) {
   return { tap, loai: s(r[0].p_loai) as LoaiPhim, kt: (r[0].kt ?? {}) as KinhThanh, nhanVat: nvKem, tapTruoc: truoc.map((x) => s(x.tom_tat)) };
 }
 
+/** Shot đã THAY THẺ {Tên} trong chữ đi vào model (dan_dung, prompt_anh, prompt_video) — dựng prompt dùng bản này; bộ kiểm đọc bản gốc (có thẻ). */
+export function canhDaThayThe<B extends { canh: Canh; nhanVat: NhanVat[]; nvPhim?: { ten: string; loai: string; mo_ta?: string }[]; vatSet?: { ten: string; en?: string }[] }>(bc: B): B {
+  const goi = goiThe([...bc.nhanVat, ...(bc.nvPhim ?? [])], bc.vatSet ?? []);
+  const dd = Object.fromEntries(Object.entries(bc.canh.dan_dung ?? {}).map(([k, v]) => [k, typeof v === 'string' ? dienThe(v, goi) : v])) as Canh['dan_dung'];
+  return { ...bc, canh: { ...bc.canh, dan_dung: dd, prompt_anh: dienThe(bc.canh.prompt_anh ?? '', goi), prompt_video: dienThe(bc.canh.prompt_video ?? '', goi) } };
+}
 export async function boiCanhCanh(db: Db, canhId: number) {
   const r = (await db.execute(sql`SELECT c.*, p.kinh_thanh AS kt, p.id AS p_id, p.loai AS p_loai FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
   if (!r[0]) return null;
@@ -63,7 +70,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // BỘ SET của shot (nếu có 3D): vật trong set khai anchor = nó là MỘT PHẦN của anchor đó (Card Window → Orange Card, Cable Plug → White Cable).
   const nvPhim = canh.may_3d ? ((await db.execute(sql`SELECT id, ten, loai, bo_set_id, mo_ta FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id), mo_ta: s(x.mo_ta) })) : [];
   const sid = canh.may_3d ? boSetCuaShot(canh, nvPhim) : null;
-  const vatSet = sid ? ((((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[])[0]?.vat ?? []) as { ten: string; anchor?: string }[]) : [];
+  const vatSet = sid ? ((((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[])[0]?.vat ?? []) as { ten: string; anchor?: string; en?: string }[]) : [];
   const anchorCua: Record<string, string> = Object.fromEntries(vatSet.filter((v) => v.anchor && v.anchor !== v.ten).map((v) => [v.ten, v.anchor!]));
   // PHẦN TRĂM KHUNG 3D theo ANCHOR (cộng các phần của nó): 15/10/2026 shot #32 tập 19 — cửa sổ thẻ chiếm 34% khung, ví da cam (anchor) 0.7% vì
   // Tango đứng trên → ví không kèm ảnh mẫu, keyframe vẽ mặt xám bất kỳ.
@@ -92,7 +99,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
     mayDu = mayDayDu(ds, laDoVatPhim(nvPhim), (pc ?? []) as PhanCanh[]).get(canh.id) ?? mayDu;
   }
   // nvPhim: mọi nhân vật / đạo cụ của phim (tên, loại, mô tả) — gọi tên en cho món không gắn shot mà có trong 3D (đồ để lại: "Ly cà phê stays in place")
-  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim };
+  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim, vatSet };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean; /** giá ước (¢) — người gọi biết giá (video fal/Veo) thì đưa vào để cổng tiền so ngưỡng thay vì báo "không ước được" */ cents?: number }): Promise<number> {

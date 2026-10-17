@@ -12,7 +12,7 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 const AN = /\b(hidden|covered|covering|concealed|out of sight|not visible|tucked under)\b/i;
 const TU_CHUNG = new Set(['small', 'thin', 'black', 'white', 'light', 'large', 'under', 'with', 'their', 'which', 'little', 'round', 'dark', 'long', 'short']);
@@ -51,6 +51,7 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
     // bỏ tên riêng trước khi soi dấu: tên khai (cả tên tắt) + chữ VIẾT HOA đầu (tên nhân vật ngoài khung được nhắc); chữ thường có dấu mới là tiếng Việt lọt vào
     const tron = rieng.reduce((c, t) => c.split(t).join(' '), chuViet).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
     if (coTiengViet(tron)) them(b.ten, 'tieng_viet', `lẫn tiếng Việt ${doan(tron, VIET)} — model đọc tiếng Anh: dùng mô tả en (biến thể, vật), không dùng tên / ghi chú tiếng Việt`);
+    { const tho = chu.match(/\{[^{}\n]+\}/); if (tho) them(b.ten, 'the_tho', `thẻ ${tho[0]} chưa được thay — tên không trỏ tới vật nào (prompt-khoi.ts › goiThe)`); }
     if (cam?.test(chu)) them(b.ten, 'chat_lieu', `chữ sai chất liệu phim ${doan(chu, cam)} — dùng CHAT_LIEU (prompt-khoi.ts) thay vì chữ ghi cứng`);
     const tu = chu.split(/\s+/).filter(Boolean).length;
     if (flux && tu > TU_TOI_DA_FLUX) them(b.ten, 'dai', `dài ${tu} từ — FLUX đọc ~${TU_TOI_DA_FLUX} từ, phần cuối bị cắt: rút gọn hậu cảnh, bỏ lặp`);

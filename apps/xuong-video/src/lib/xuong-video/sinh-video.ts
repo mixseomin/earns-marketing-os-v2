@@ -23,7 +23,7 @@ import { soiClipCanh, khungDauThieuSp } from './soi-clip';
 import { chamMayCanh } from './cham-may';
 import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
-import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
+import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -40,6 +40,7 @@ const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false): string =>
 const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.map((x) => (x ?? '').trim().toLowerCase().replace(/[.\s]+$/, '')).filter((x) => x.split(/\s+/).length >= 3); return t.split(/(?<=[.!?])\s+/).filter((x) => !c.some((k) => x.toLowerCase().includes(k))).join(' '); };
 /** KHỐI prompt video (prompt-khoi.ts) — promptVideoCanh ghép, chamVideo chấm theo KHUON.video. */
 export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): Khoi[] {
+  bc = canhDaThayThe(bc);   // thẻ {Tên} → mô tả en của đúng vật
   // Shot đã có file giọng riêng → clip KHÔNG được tự đọc thoại (Veo đọc giọng lơ lớ, chồng với TTS — #1219); miệng vẫn cử động để khớp miệng sau.
   const coGiong = dongThoai(bc.canh, bc.nhanVat).some((d) => d.url);
   // Sản phẩm/người/bối cảnh phải giữ y như khung đầu (keyframe đã duyệt): Veo tự "sửa" quần theo chữ tả trong prompt_video và cho nhân vật

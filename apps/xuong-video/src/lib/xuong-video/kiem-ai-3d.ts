@@ -8,6 +8,7 @@
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
 import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
 import { vatHien } from './kieu';
+import { theTrong } from './prompt-khoi';
 
 /** DANH MỤC VẬT: nhóm từ (Việt + Anh) chỉ cùng một loại đồ. KHÔNG dùng từ hai nghĩa (plant = đặt mình, watch = nhìn, key = then chốt, screen-left,
  *  cặp = đôi, tách = chia) — báo nhầm làm luật mất tin. Chữ của shot nhắc một từ → bản 3D phải có khối mà tên / mô tả chứa một từ cùng nhóm.
@@ -138,6 +139,21 @@ export function doNhanDangChuaAnh(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null)
     .map((v) => `đồ nhận dạng "${v.ten}" chưa có ảnh chuẩn — AI vẽ mỗi góc một bức: chạy scripts/sinh-anh-set.mts (ảnh dán lên mặt vật trong 3D)`);
 }
 
+/** THẺ LIÊN KẾT SAI (prompt-khoi.ts › THE): {Tên} không trỏ tới nhân vật / đạo cụ / đồ set nào (gõ sai, vật đã đổi tên) · đạo cụ được thẻ nhắc mà shot không đặt
+ *  trong 3D · đồ set tuỳ chọn được nhắc mà shot không bật (them). Nhân vật được nhắc khi ngoài khung ("looks at {Lục Thần}") là đúng — không bắt. */
+export function theSai(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
+  const dd = c.dan_dung ?? {}; const chu = [dd.bo_cuc, dd.mo, dd.ket, dd.huong, dd.dien, c.prompt_anh, (c as { prompt_video?: string }).prompt_video].filter(Boolean).join('\n');
+  const vat = set?.du_lieu.vat ?? []; const hien = new Set(vatHien(vat, c.may_3d?.them).map((v) => v.ten.toLowerCase()));
+  const out: string[] = [];
+  for (const t of [...new Set(theTrong(chu))]) {
+    const k = t.toLowerCase(); const a = nhanVat.find((x) => x.ten.toLowerCase() === k); const v = vat.find((x) => x.ten.toLowerCase() === k);
+    if (!a && !v) { out.push(`thẻ {${t}} không trỏ tới nhân vật / đạo cụ / đồ set nào — sửa đúng tên`); continue; }
+    if (a && a.loai !== 'nhan_vat' && a.loai !== 'boi_canh' && !c.may_3d?.vi_tri.some((x) => x.ten.toLowerCase() === k)) out.push(`thẻ {${t}} nhắc đạo cụ mà shot không đặt nó trong 3D (may_3d.vi_tri) — thêm chỗ đứng hoặc bỏ thẻ`);
+    if (!a && v && !hien.has(k)) out.push(`thẻ {${t}} nhắc đồ set mà shot không bật (đồ tuỳ chọn / bị thay) — khai may_3d.them`);
+  }
+  return out;
+}
+
 /** ĐỒ LẬT / RƠI mà 3D để đứng thẳng: khoảnh khắc mở tả đồ đang lật, đổ, rơi, nghiêng (tumbling, tipping, spilling…) mà không món nào trong 3D khai nghieng
  *  → bản đồ độ sâu là cái ly đứng thẳng, AI vẽ ly đứng (#17 "cup tumbling… coffee spilling"). */
 const LAT = /\b(tumbl\w*|tipping|tips over|topples?|upside[- ]down|spill\w*|falling|falls|tilt\w*|knocked over|overturned)\b/i;
@@ -157,5 +173,5 @@ export function vungTrong(c: ShotAi): string[] {
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c)];
+  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set)];
 }

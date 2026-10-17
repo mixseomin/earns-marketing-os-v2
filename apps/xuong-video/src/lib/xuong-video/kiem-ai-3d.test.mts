@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat } from './kiem-ai-3d';
+import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat, theSai } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -47,4 +47,9 @@ assert.equal(datLat(lat()).length, 1); assert.equal(datLat(lat(70)).length, 0);
 const nho = (w: number) => ({ hanh_dong: '', prompt_anh: '', ky_thuat: { co_canh: 'ots' }, dan_dung: { mo: 'Hạ looks at her phone' }, khung_xam: { thay: [{ ten: 'Hạ', pt: 30, hop: [0, 0, 0.5, 1], tien: false }, { ten: 'Điện thoại', pt: 1, hop: [0.5, 0.5, 0.5 + w, 0.52], tien: false }] },
   may_3d: may([{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]) }) as never;
 assert.equal(thieuVat3d(nho(0.03), nv, set).length, 1); assert.equal(thieuVat3d(nho(0.12), nv, set).length, 0);
+// THẺ LIÊN KẾT: tên sai → chặn; đạo cụ không có trong 3D → chặn; đúng + có chỗ đứng → qua; nhân vật ngoài khung được nhắc → qua
+const the = (mo: string, vi: object[]) => ({ hanh_dong: '', prompt_anh: '', dan_dung: { mo }, may_3d: may(vi) }) as never;
+assert.equal(theSai(the('Hạ looks at {Điện thoai}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), nv, set).length, 1);
+assert.equal(theSai(the('Hạ looks at {Điện thoại}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), nv, set).length, 1);
+assert.deepEqual(theSai(the('{Hạ} looks at {Điện thoại} on the {Bàn}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]), nv, set), []);
 console.log('kiem-ai-3d: ok');

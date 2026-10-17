@@ -49,4 +49,6 @@ assert.equal(chamPrompt([{ ten: 'video', chu: `Thần slams the table. Woman wea
 assert.equal(chamPrompt([{ ten: 'video', chu: `Hạ looks down the table at Thần. Woman wearing ${VEST}.` }], ng).diem, 100);
 // KHUÔN: có người trong khung mà thiếu khối số người → chặn (#15 mọc thêm người ngoài hành lang)
 assert.equal(loiPrompt([{ ten: 'bước 1', duong: 'flux', khoi: [khoi('anh_dich', 'Film still.'), khoi('boi_canh', 'Setting: Boardroom.'), khoi('nguoi', `A woman wearing ${VEST}.`), khoi('chat_lieu', 'Real.')] }], s).length, 1);
+// THẺ CÒN SÓT trong prompt → chặn
+assert.equal(loiPrompt([{ ten: 'bước 1', chu: `Woman wearing ${VEST} holding the {Ly ca phe}.` }], s).length, 1);
 console.log('kiem-prompt: ok');

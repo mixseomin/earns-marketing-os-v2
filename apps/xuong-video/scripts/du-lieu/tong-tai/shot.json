@@ -18,9 +18,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Vivian plants herself in Hạ's path, cup raised. Action: a sharp flick of the wrist, coffee arcs onto Hạ's chest. Reaction: Hạ freezes, breath caught, eyes drop to the stain.",
+   "dien": "Anticipation: Vivian plants herself in Hạ's path, {Ly cà phê} raised. Action: a sharp flick of the wrist, coffee arcs onto Hạ's chest. Reaction: Hạ freezes, breath caught, eyes drop to the stain.",
    "bo_cuc": "Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers behind",
-   "mo": "Hạ walking down the aisle, Vivian blocking her path holding a full coffee cup",
+   "mo": "Hạ walking down the aisle, Vivian blocking her path holding a full {Ly cà phê}",
    "ket": "coffee splashed across the chest of Hạ’s white blouse",
    "huong": "they face each other across the frame",
    "muc_dich": "HOOK: bất công ngay giây đầu",
@@ -217,9 +217,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Vivian lifts the empty folder high. Action: she turns it to the room like evidence. Reaction: a smug glance around for the coworkers' reaction.",
-   "bo_cuc": "Over Hạ’s shoulder (soft, screen-right foreground) onto Vivian holding up an empty black leather folder, an empty coffee cup in her other hand",
-   "mo": "Vivian raises the empty Harrington folder for the room to see",
+   "dien": "Anticipation: Vivian lifts the empty {Hồ sơ Harrington} high. Action: she turns it to the room like evidence. Reaction: a smug glance around for the coworkers' reaction.",
+   "bo_cuc": "Over Hạ’s shoulder (soft, screen-right foreground) onto Vivian holding up the empty {Hồ sơ Harrington}, the empty {Ly cà phê} in her other hand",
+   "mo": "Vivian raises the empty {Hồ sơ Harrington} for the room to see",
    "ket": "Vivian’s smug look around the room",
    "huong": "Vivian looks screen-right at Hạ",
    "muc_dich": "vu oan công khai",
@@ -455,7 +455,7 @@
    "dien": "Anticipation: Vivian dangles the papers over the floor. Action: she lets them fall; Hạ kneels on one knee and gathers them sheet by sheet. Reaction: coworkers lean in, phones up.",
    "huong": "Vivian looks down at Hạ; Hạ looks at the papers on the floor.",
    "bo_cuc": "High wide: Vivian throws the papers to the marble floor, Hạ kneels on one knee picking them up, coworkers at the window and the nearest desks watching and filming on phones",
-   "mo": "Vivian holding the folder above the floor",
+   "mo": "Vivian holding the {Hồ sơ Harrington} above the floor",
    "ket": "Hạ on one knee gathering papers",
    "muc_dich": "đáy của sự nhục — khán giả nóng mặt",
    "ma": "1.5"
@@ -575,9 +575,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: the glass door swings open, the room goes silent. Action: Lục Thần strides out toward the group, unhurried. Reaction: everyone straightens; heads turn to follow him.",
-   "bo_cuc": "Low angle from between the desks: the glass door of the CEO office opens at the back, Lục Thần walks out toward camera, the office falls silent",
-   "mo": "glass door closed, Thần visible behind the glass",
+   "dien": "Anticipation: the {Cửa phòng TGĐ} swings open, the room goes silent. Action: Lục Thần strides out toward the group, unhurried. Reaction: everyone straightens; heads turn to follow him.",
+   "bo_cuc": "Low angle from between the desks: the {Cửa phòng TGĐ} opens at the back, Lục Thần walks out toward camera, the office falls silent",
+   "mo": "{Cửa phòng TGĐ} closed, Thần visible behind the glass",
    "ket": "Thần standing a few steps from Hạ and Vivian",
    "huong": "Thần walks toward camera",
    "muc_dich": "quyền lực bước vào",
@@ -917,10 +917,10 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: the phone lights up in Hạ's hand. Action: she reads the message; focus racks from the phone to her face. Reaction: the faintest smirk at the corner of her mouth.",
-   "huong": "Hạ looks down at the phone, then up and off screen-left.",
-   "bo_cuc": "Insert on the phone screen in Hạ’s hand lighting up with a message, her face soft behind it, then focus racks to her face",
-   "mo": "phone screen lights up",
+   "dien": "Anticipation: the {Điện thoại của Hạ} lights up in Hạ's hand. Action: she reads the message; focus racks from the {Điện thoại của Hạ} to her face. Reaction: the faintest smirk at the corner of her mouth.",
+   "huong": "Hạ looks down at the {Điện thoại của Hạ}, then up and off screen-left.",
+   "bo_cuc": "Insert on the screen of the {Điện thoại của Hạ} in Hạ’s hand lighting up with a message, her face soft behind it, then focus racks to her face",
+   "mo": "the {Điện thoại của Hạ} screen lights up",
    "ket": "Hạ’s subtle smirk",
    "muc_dich": "khán giả biết thân phận trước nhân vật",
    "motif": "tin nhắn luật sư — gieo cho cảnh 4",
@@ -1039,11 +1039,11 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Hạ waits at the elevator hugging the box. Action: Vivian strides in and snatches the badge off Hạ's neck. Reaction: Hạ turns slowly to face her, box still in her arms.",
+   "dien": "Anticipation: Hạ waits at the {Thang máy 1} hugging the {Thùng đồ cá nhân}. Action: Vivian strides in and snatches the {Thẻ nhân viên} off Hạ's neck. Reaction: Hạ turns slowly to face her, the {Thùng đồ cá nhân} still in her arms.",
    "huong": "Vivian walks screen-left toward Hạ; Hạ turns screen-right to face her.",
-   "bo_cuc": "Wide lobby: Hạ holding a cardboard box of belongings waits at the left elevator; Vivian strides in from the right and snatches the staff badge off her neck",
+   "bo_cuc": "Wide lobby: Hạ holding the {Thùng đồ cá nhân} waits at the {Thang máy 1}; Vivian strides in from the right and snatches the {Thẻ nhân viên} off her neck",
    "mo": "Hạ alone at the elevator",
-   "ket": "Vivian holding the snatched badge, Hạ turned to face her",
+   "ket": "Vivian holding the snatched {Thẻ nhân viên}, Hạ turned to face her",
    "muc_dich": "nhục lần cuối",
    "ma": "3.1"
   },
@@ -1167,9 +1167,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Vivian holds the lanyard up between two fingers. Action: she swings it in front of Hạ's face. Reaction: leans in with a sneer.",
-   "bo_cuc": "Over Hạ’s shoulder (box edge in foreground) onto Vivian dangling the badge",
-   "mo": "Vivian dangling the lanyard",
+   "dien": "Anticipation: Vivian holds the {Thẻ nhân viên} up between two fingers. Action: she swings it in front of Hạ's face. Reaction: leans in with a sneer.",
+   "bo_cuc": "Over Hạ’s shoulder ({Thùng đồ cá nhân} edge in foreground) onto Vivian dangling the {Thẻ nhân viên}",
+   "mo": "Vivian dangling the {Thẻ nhân viên}",
    "ket": "Vivian leaning in, sneering",
    "huong": "Vivian looks screen-left at Hạ",
    "muc_dich": "Vivian tưởng mình thắng",
@@ -1400,9 +1400,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Hạ steps backward into the elevator. Action: the steel doors slide shut between them. Reaction: Vivian's smile falters as her reflection appears in the steel.",
+   "dien": "Anticipation: Hạ steps backward into the elevator. Action: the {Thang máy 1} slides shut between them. Reaction: Vivian's smile falters as her reflection appears in the steel.",
    "huong": "Hạ backs away from camera into the elevator; Vivian stays facing her.",
-   "bo_cuc": "Hạ steps into the elevator; the steel doors slide shut between her and Vivian",
+   "bo_cuc": "Hạ steps into the elevator; the {Thang máy 1} slides shut between her and Vivian",
    "mo": "Hạ stepping back into the elevator",
    "ket": "doors closed, Vivian’s reflection in the steel",
    "muc_dich": "khép một chương",
@@ -1513,9 +1513,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Thần gestures toward the screen. Action: he presents confidently to the seated board. Reaction: board members nod; Vivian sips with a satisfied look.",
-   "huong": "Thần faces the table, gesturing screen-left toward the screen.",
-   "bo_cuc": "Wide boardroom: Lục Thần standing at the head of the table presenting in front of the screen, board members seated along both sides, Vivian standing beside him holding a coffee cup",
+   "dien": "Anticipation: Thần gestures toward the {Màn trình chiếu}. Action: he presents confidently to the seated board. Reaction: board members nod; Vivian sips with a satisfied look.",
+   "huong": "Thần faces the table, gesturing screen-left toward the {Màn trình chiếu}.",
+   "bo_cuc": "Wide boardroom: Lục Thần standing at the head of the table presenting in front of the {Màn trình chiếu}, board members seated along both sides, Vivian standing beside him holding the {Ly cà phê}",
    "mo": "Thần mid-presentation",
    "ket": "board members nodding",
    "muc_dich": "Thần tưởng mọi thứ trong tay",
@@ -1620,8 +1620,8 @@
   },
   "dan_dung": {
    "dien": "Anticipation: Hạ holds for a beat in the open doorway. Action: she strides in toward the camera, chin up, the lawyer a step behind. Reaction: her eyes lock on the far end of the table.",
-   "bo_cuc": "Low angle: the tall double doors flung wide open, Lâm Hạ strides in through the doorway in a white power suit, Lawyer Trần a step behind her",
-   "mo": "doors already flung open, Hạ in the doorway mid-stride, Trần a step behind",
+   "bo_cuc": "Low angle: the {Cửa đôi mở}, Lâm Hạ strides in through the doorway in a white power suit, Lawyer Trần a step behind her",
+   "mo": "the {Cửa đôi mở}; Hạ in the doorway mid-stride, Trần a step behind",
    "ket": "Hạ standing at the end of the table",
    "huong": "Hạ walks toward the camera, drifting screen-left toward the table",
    "muc_dich": "đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực",
@@ -1825,10 +1825,10 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: the white cup tumbles in slow motion a hand's width above the carpet, coffee curling out of it. Action: it hits and shatters. Reaction: shards and coffee spray across the dark carpet.",
-   "huong": "The cup falls straight down.",
-   "bo_cuc": "Low slow-motion insert at carpet level: the white coffee cup tumbling just above the dark grey carpet, the hem of Vivian’s burgundy dress soft behind",
-   "mo": "cup tumbling just above the carpet, coffee spilling out",
+   "dien": "Anticipation: the {Ly cà phê} tumbles in slow motion a hand's width above the carpet, coffee curling out of it. Action: it hits and shatters. Reaction: shards and coffee spray across the dark carpet.",
+   "huong": "The {Ly cà phê} falls straight down.",
+   "bo_cuc": "Low slow-motion insert at carpet level: the {Ly cà phê} tumbling just above the dark grey carpet, the hem of Vivian’s burgundy dress soft behind",
+   "mo": "the {Ly cà phê} tumbling just above the carpet, coffee spilling out",
    "ket": "porcelain shards and coffee across the carpet",
    "muc_dich": "cú đánh mặt bằng hình",
    "ma": "4.4"
@@ -2002,10 +2002,10 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Thần's pen stops mid-air. Action: he drops it, strides to the table corner and slams both palms onto the wood. Reaction: he leans in, breathing hard, staring at Hạ.",
+   "dien": "Anticipation: the {Bút ký} stops mid-air in Thần's hand. Action: he drops it, strides to the table corner and slams both palms onto the wood. Reaction: he leans in, breathing hard, staring at Hạ.",
    "huong": "Thần moves screen-left to the table corner and looks screen-left at Hạ.",
-   "bo_cuc": "Lục Thần drops his pen and strides to the corner of the table, both palms slamming onto the tabletop",
-   "mo": "Thần at the head of the table, pen in hand",
+   "bo_cuc": "Lục Thần drops the {Bút ký} and strides to the corner of the table, both palms slamming onto the tabletop",
+   "mo": "Thần at the head of the table, the {Bút ký} in hand",
    "ket": "Thần leaning on the table corner, hands flat on the wood",
    "muc_dich": "lần đầu mất thế chủ động",
    "ma": "5.1"
@@ -2290,11 +2290,11 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as a thin jade bead bracelet slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.",
+   "dien": "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as the {Chuỗi hạt ngọc} slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.",
    "huong": "Static hand; the camera pushes down onto the wrist.",
-   "bo_cuc": "Insert at wrist height on Lục Thần’s left hand pressed flat on the dark walnut table, forearm upright: the shirt cuff pulled back reveals a thin pale-green jade bead bracelet around the wrist",
+   "bo_cuc": "Insert at wrist height on Lục Thần’s left hand pressed flat on the dark walnut table, forearm upright: the shirt cuff pulled back reveals the {Chuỗi hạt ngọc} around the wrist",
    "mo": "Thần’s left hand flat on the table, the shirt cuff just pulled back off the wrist",
-   "ket": "the jade bead bracelet in full view — cut to black",
+   "ket": "the {Chuỗi hạt ngọc} in full view — cut to black",
    "muc_dich": "móc: khán giả thấy hai người cùng một chất ngọc, nhân vật chưa biết",
    "motif": "ngọc — vòng tay của Hạ (5.2) ↔ chuỗi hạt của Thần (tập sau)",
    "ma": "5.4"

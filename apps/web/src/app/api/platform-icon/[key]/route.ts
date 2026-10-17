@@ -16,7 +16,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 
 const YEAR = 'public, max-age=31536000, immutable';
-const MISS = 'public, max-age=604800';       // 404 cache 7 ngày → browser không xin lại icon đã biết là thiếu
+const MISS = 'public, max-age=3600';         // 404 cache 1 giờ ở trình duyệt (DB vẫn nhớ thử-hụt 7 ngày): 7 ngày thì sửa dữ liệu xong (dailymotion 18/10) trình duyệt vẫn hiện quả địa cầu cả tuần
 const MISS_TTL_MS = 7 * 864e5;               // trong 7 ngày, không chạy lại chuỗi fetch cho platform đã thử-hụt
 
 // Trang đăng nhập CHUNG của hãng khác không phải nhà của nền tảng: youtube chỉ có signup_url ở accounts.google.com

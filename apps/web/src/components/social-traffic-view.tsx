@@ -42,7 +42,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [muc, setMuc] = useShallowParam('sts', 'tong');
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
-  const [locNen, setLocNen] = useShallowParam('skn', 'all');
+  const [skn, setSkn] = useShallowParam('skn', '');   // nền đang lọc, CHỌN NHIỀU nối bằng ',' ('' = mọi nền)
+  const nenChon = skn ? skn.split(',') : [];
   const [skg, setSkg] = useShallowParam('skg', '');   // góc đang lọc, nhiều góc nối bằng ',' ('' = mọi góc)
   const gocChon = skg ? skg.split(',') : [];
   const [gopKenh, setGopKenh] = useShallowParam('skb', 'khong');
@@ -275,14 +276,14 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         ? <>{(() => {
             const dem = (f: (k: StKenh) => string) => d.kenh.reduce<Record<string, number>>((a, k) => ({ ...a, [f(k)]: (a[f(k)] ?? 0) + 1 }), {});
             const soNen = dem((k) => k.nenTang), soNhom = dem((k) => k.nhom);
-            const loc = d.kenh.filter((k) => (locNen === 'all' || k.nenTang === locNen) && (!gocChon.length || gocChon.includes(k.nhom)));
+            const loc = d.kenh.filter((k) => (!nenChon.length || nenChon.includes(k.nenTang)) && (!gocChon.length || gocChon.includes(k.nhom)));
             const khoa = gopKenh === 'nen' ? (k: StKenh) => k.nenTang : gopKenh === 'goc' ? (k: StKenh) => k.nhom : null;
             const nhom = khoa ? [...new Set(loc.map(khoa))].map((g) => ({ g, ks: loc.filter((k) => khoa(k) === g) })) : [{ g: '', ks: loc }];
             const bang = (ks: StKenh[], key: string) => <DataTable key={key} rows={ks} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={1380}
               searchText={(k) => `${k.ten} ${k.nenTang} ${k.nhom} ${k.landing ?? ''}`} searchPlaceholder="Tìm kênh / góc / landing…" />;
             return <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <FilterChips urlKey="skn" value={locNen} onChange={setLocNen} counts={{ all: d.kenh.length, ...soNen }}
+                <FilterChips values={nenChon.length ? nenChon : ['all']} onToggle={(v) => setSkn(v.includes('all') && nenChon.length ? '' : v.filter((x) => x !== 'all').join(','))} counts={{ all: d.kenh.length, ...soNen }}
                   options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} khoa={d.kenh.find((k) => k.nenTang === n)?.nenKey} co={12} /> }))]} />
                 {/* Góc là danh sách ĐỘNG (sẽ hàng nghìn) → ô chọn có tìm, không bày chip (YDNI § select; anh 18/10: "1000 góc mà show thế này") */}
                 <MultiSelect<string> label="🎯 Mọi góc" options={Object.entries(soNhom).sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, label: value, count }))}

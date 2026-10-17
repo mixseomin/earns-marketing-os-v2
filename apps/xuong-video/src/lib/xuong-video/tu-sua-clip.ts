@@ -103,7 +103,7 @@ async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => v
   let loiCuoi = ''; let m = moHinh;
   for (let tam = 0; tam <= 4; tam++) {
     // lỗi tạm lần đầu: gửi lại đúng model sau 30s; từ lần hai chuyển hẳn sang dự phòng (#127: Kie "Internal Error" 11/45 lượt, mỗi lượt đợi 90s)
-    if (tam) { if (tam >= 2 && m !== VIDEO_DU_PHONG) m = VIDEO_DU_PHONG; log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — gửi lại lần ${tam}${m === VIDEO_DU_PHONG ? ` qua ${VIDEO_DU_PHONG}` : ''}`); await ngu(30_000); }
+    if (tam) { if (tam >= 2) m = m === VIDEO_DU_PHONG ? undefined : VIDEO_DU_PHONG; log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — gửi lại lần ${tam}${tam >= 2 ? ` qua ${m ?? 'model của phim'}` : ''}`); await ngu(30_000); }
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
     const r = await batDauVideoCanh(db, id, m, 'nhap');
     if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
@@ -120,17 +120,19 @@ async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => v
   return { ok: false, loi: loiCuoi };
 }
 /** Viết lại prompt video của một shot theo lỗi vừa gặp (Gemini, ~0.1¢). Prompt mới vẫn vi phạm luật → thử lại một lần; vẫn vi phạm → null. */
-async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daThu: string[]): Promise<string | null> {
+async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daThu: string[], log: (s: string) => void = () => {}): Promise<string | null> {
   // tên sản phẩm / thương hiệu trong prompt → model video tự in chữ lên đồ (#127 shot 13: 'JETT' trên cạp) — cấm, gọi là "the trousers"
   const ten = String((((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.kinh_thanh as { tu_template?: { gia_tri?: Record<string, string> } } | undefined)?.tu_template?.gia_tri?.san_pham ?? '').trim();
   for (let i = 0; i < 2; i++) {
     const r = await goiGeminiJson<{ prompt?: string }>([{ text: loiDanSuaPrompt({ prompt: c.prompt_video, chu: c.chu_man, loi, daThu }) + (ten ? `\n- Never write the brand or product name ("${ten}") — call it "the trousers"; any name in the prompt gets printed onto the clothing.` : '') }],
       { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] });
-    if (!r) return null;
+    if (!r) { log(`  #${c.thu_tu} viết lại prompt: Gemini không trả lời`); return null; }
     await ghiTienChu(db, phimId, `viết lại prompt video #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
     const p = (r.data.prompt ?? '').trim();
     // không thêm người vào shot không có người (#120 shot 3: shot sản phẩm bị viết thành 'the person stands…')
-    if (p && !lintPrompt(p).length && !(coNguoi(p) && !coNguoi(c.prompt_video)) && !(ten && p.toLowerCase().includes(ten.toLowerCase()))) return p;
+    const vi = [...(!p ? ['rỗng'] : []), ...lintPrompt(p).map((l) => l.vi), ...(coNguoi(p) && !coNguoi(c.prompt_video) ? ['thêm người vào shot không người'] : []), ...(ten && p.toLowerCase().includes(ten.toLowerCase()) ? [`có tên "${ten}"`] : [])];
+    if (!vi.length) return p;
+    log(`  #${c.thu_tu} viết lại prompt lần ${i + 1} bị loại: ${vi.join(' · ')}`);
     daThu = [...daThu, p];
   }
   return null;
@@ -174,7 +176,7 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
       if (loi.some(laTuChoiModel)) { moHinhVideo = VIDEO_DU_PHONG; log(`  #${c.thu_tu} lần ${lan}: model video từ chối — chuyển ${VIDEO_DU_PHONG}`); }
       // lỗi do PROMPT → viết lại; lỗi TẠM / từ chối của model / lỗi keyframe → giữ prompt
       if (!kfLai && !loi.every((x) => laLoiTam(x) || laTuChoiModel(x))) {
-        const moi = await vietLaiPrompt(db, c, phimId, loi, daThu);
+        const moi = await vietLaiPrompt(db, c, phimId, loi, daThu, log);
         if (!moi) { ket = 'loi'; loi = [...loi, 'không viết lại được prompt sạch']; break; }
         daThu.push(c.prompt_video);
         await db.execute(sql`UPDATE xv_canh SET prompt_video = ${moi}, updated_at = now() WHERE id = ${c.id}`);

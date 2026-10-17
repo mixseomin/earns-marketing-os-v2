@@ -26,4 +26,5 @@ assert.strictEqual(chonGiongDan('nữ Mỹ 70 tuổi, ấm'), 'Matilda');
 assert.strictEqual(chonGiongDan('American woman, 40s'), 'Sarah');
 assert.ok(laTuChoiModel('Kie.ai báo hỏng: The Google model was unable to generate audio for this request.') && !laLoiTam('The Google model was unable to generate audio'));
 assert.ok(laMatNoiTieng('Request blocked: The input content was flagged for containing a prominent public figure.'));
+assert.ok(laLoiTam('lượt sinh bị từ chối: cổng báo hỏng: 抱歉，系统繁忙，请稍后重试'));
 console.log('tu-sua-clip-do.test: ok');

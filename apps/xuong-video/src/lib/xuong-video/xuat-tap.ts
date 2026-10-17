@@ -6,11 +6,11 @@ import { batCamXuc } from './qc-cam-xuc';
 import { xuatMayDungTap } from './may-dung';
 import 'server-only';
 import { sql } from 'drizzle-orm';
-import { chayXuat, ghiBanXuat } from './xuat-chay';
+import { chayXuat, ghiBanXuat, loiSoiXuat } from './xuat-chay';
 import { kiemTieng } from './khop-giong';
 import { chanNguoiXem } from './nguoi-xem';
 import { kiemQc } from './kiem-qc';
-import { docKinhThanh, locNhanh, loiSoiClip, type Canh } from './kieu';
+import { docKinhThanh, locNhanh, type Canh } from './kieu';
 import { soatClip } from './qc-cam-xuc';
 import { chamMayShots } from './cham-may';
 import { boiCanhTap, taoJob, xongJob, mapCanh, type Db, type Row } from './doc-db';
@@ -49,7 +49,8 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   }
   if (tieng.length) return { ok: false, loi: `Chưa xuất được — tiếng còn lỗi: ${tieng.slice(0, 4).join('; ')}${tieng.length > 4 ? `; +${tieng.length - 4} lỗi nữa` : ''}` };
   // Máy soi clip (soi-clip.ts): clip còn chữ lạ / mất sản phẩm thì không ra bản lỗi — sinh lại shot, hoặc bỏ qua nếu máy báo nhầm.
-  const soi = locNhanh(canh, nhanh || 'A').flatMap((c) => loiSoiClip(c).map((x) => `#${c.thu_tu}: ${x}`));
+  // (cổng thật nằm trong chayXuat; báo sớm ở đây để không tạo job xuất hỏng)
+  const soi = loiSoiXuat(canh, nhanh);
   if (soi.length) return { ok: false, loi: `Chưa xuất được — clip còn lỗi soi: ${soi.join('; ')}. Sinh lại shot đó, hoặc bấm "Bỏ qua lỗi soi" trên thẻ shot nếu máy báo nhầm` };
   const kt = docKinhThanh(bc.kt);
   // MURCH QC (qc-cam-xuc.ts): phim bật cam_xuc_qc thì mọi clip phải SOÁT ĐẠT (nét mặt đầu/cuối đúng kế hoạch, không biến dạng, sản phẩm giữ…).

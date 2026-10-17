@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { keHoachXuat, urlCanXuat, khoangIm, tiengLa, hinhDung, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu, type LichTieng } from './xuat';
 import { sql } from 'drizzle-orm';
-import type { Canh, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc } from './kieu';
+import { locNhanh, loiSoiClip, type Canh, type LoaiPhim, type Lop, type NhanVat, type PhanCanh, type Tap, type ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
 import { luuKieuChuThuongHieu } from './kho';
 
@@ -110,7 +110,13 @@ async function doHinhDung(duong: string, giay: number): Promise<[number, number]
 const SFX_DIR = [`${process.cwd()}/public/sfx`, `${process.cwd()}/apps/xuong-video/public/sfx`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/sfx'].find((d) => existsSync(d));
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
-export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion?: boolean; look?: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
+/** Lỗi máy soi của các shot sẽ vào bản xuất (nhánh hook `nhanh`, mặc định A). Rỗng = được xuất. */
+export const loiSoiXuat = (canh: Canh[], nhanh?: string | null): string[] => locNhanh(canh, nhanh || 'A').flatMap((c) => loiSoiClip(c).map((x) => `#${c.thu_tu}: ${x}`));
+export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion?: boolean; look?: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean; boQuaSoi?: boolean }): Promise<KqXuat> {
+  // CỔNG SOI CLIP ở LÕI xuất — mọi đường (nút ⬇ Xuất, tự làm phim, xuất creative, lồng tiếng) đều qua đây. 17/10/2026: script tự làm phim gọi thẳng
+  // chayXuat, vòng qua cổng ở xuat-tap.ts → ra MP4 #127 còn 8 shot lỗi. boQuaSoi chỉ cho bản xem thử một shot (sinh-shot.mts).
+  if (!o.boQuaSoi) { const soi = loiSoiXuat(o.chiThuTu?.length ? o.canh.filter((c) => o.chiThuTu!.includes(c.thu_tu)) : o.canh, o.nhanh);
+    if (soi.length) return { ok: false, loi: `Chưa xuất được — clip còn lỗi soi: ${soi.join('; ')}. Sinh lại shot đó, hoặc bấm "Bỏ qua lỗi soi" trên thẻ shot nếu máy báo nhầm` }; }
   const font = FONT_UNG_VIEN.find((f) => existsSync(f));
   if (!font) return { ok: false, loi: 'máy chủ không có font để vẽ chữ (DejaVuSans-Bold)' };
   const thuMuc = `${tmpdir()}/xv-xuat-${o.tap.id}-${randomUUID().slice(0, 8)}`;

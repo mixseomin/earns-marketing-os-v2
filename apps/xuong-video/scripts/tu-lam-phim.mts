@@ -36,14 +36,15 @@ const phimId = bc.tap.phim_id;
 const tongPhim = () => tienPhim(db, phimId);
 const truoc = await tongPhim();
 const kq = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa, nganSachCents, moHinhVideo });
-if (!kq.ok) console.log(`✗ dừng ở bước ${kq.buoc} — KHÔNG xuất:\n  ${kq.loi.join('\n  ')}`);
-if (!kq.ok && kq.buoc === BUOC_NGAN_SACH) await baoTelegram(db, [
+if (!kq.ok) {
+  console.log(`✗ dừng ở bước ${kq.buoc} — KHÔNG xuất:\n  ${kq.loi.join('\n  ')}`);
+  if (kq.buoc === BUOC_NGAN_SACH) await baoTelegram(db, [
   `<b>Phim #${phimId} dừng: vượt ngân sách lượt chạy</b> (${tien(nganSachCents)})`,
   `Lượt này: ${tien((await tongPhim()) - truoc)} · tổng cả phim: ${tien(await tongPhim())}`,
   `Còn lỗi: ${esc(kq.loi.slice(1).map((l) => l.slice(0, 90)).join(' · ').slice(0, 900) || '—')}`,
   `Chờ anh bảo chạy tiếp · ${gioVn()}`,
 ].join('\n'));
-else {
+} else {
   const b2 = (await boiCanhTap(db, tapId))!; const kt = docKinhThanh(b2.kt);
   const job = await taoJob(db, { phim_id: phimId, nhan: `Xuất bản · tập ${b2.tap.so} (tự hoàn thành)`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: 'A' } });
   const x = await chayXuat({ loai: b2.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[]).map(mapCanh), nhanVat: b2.nhanVat, tap: b2.tap, qc: kt.qc, nhanh: 'A' });

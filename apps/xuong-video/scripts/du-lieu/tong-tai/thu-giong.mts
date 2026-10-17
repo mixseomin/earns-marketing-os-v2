@@ -27,7 +27,7 @@ for (const t of THU) for (const v of t.giong) {
   jobs.push({ job, nhan });
 }
 for (let i = 0; i < 90; i++) {
-  const r = (await db.execute(sql`SELECT id, trang_thai, output_url, loi, chi_phi_cents FROM xv_job WHERE id = ANY(${jobs.map((j) => j.job)})`)) as unknown as Row[];
+  const r = (await db.execute(sql`SELECT id, trang_thai, output_url, loi, chi_phi_cents FROM xv_job WHERE id = ANY(${`{${jobs.map((j) => j.job).join(',')}}`}::int[])`)) as unknown as Row[];
   if (r.every((x) => x.trang_thai !== 'cho')) {
     for (const j of jobs) { const x = r.find((y) => Number(y.id) === j.job)!; console.log(`${j.nhan} | ${x.trang_thai} | ${x.output_url ?? x.loi} | ${x.chi_phi_cents}¢`); }
     process.exit(0);

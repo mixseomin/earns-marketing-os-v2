@@ -2,7 +2,7 @@
 // KẾ HOẠCH BIỂU CẢM của một shot QC (qc-cam-xuc.ts) — trên thẻ shot: mỗi nhân vật trong shot chọn nét ĐẦU → CUỐI (+ cú lật), cờ nối liền shot
 // trước, và trạng thái SOÁT (keyframe / clip) Claude ghi bằng scripts/soat-cam-xuc.mts. Lưu ngay khi đổi (↶ hoàn tác được).
 import { useState } from 'react';
-import { suaBieuCam } from '@/lib/actions-cam-xuc';
+import { suaBieuCam, soatClipTay } from '@/lib/actions-cam-xuc';
 import { BIEU_CAM, camThuc, soatKeyframe, soatClip, mayClip, KY_MAY, type BieuCamNv, type MaBieuCam } from '@/lib/xuong-video/qc-cam-xuc';
 import type { Canh, NhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
@@ -12,6 +12,8 @@ const LUA = BIEU_CAM.map((b) => ({ value: b.key, label: b.ten, title: b.en }));
 
 export function BieuCamShot({ c, nhanVat, onDoi }: { c: Canh; nhanVat: NhanVat[]; onDoi: () => Promise<void> }) {
   const [loi, setLoi] = useState('');
+  const [lyDo, setLyDo] = useState<string | null>(null);   // ✗ trượt: ô lý do mở tại chỗ
+  const soat = async (dat: boolean, ly = '') => { const r = await goiAction(() => soatClipTay(c.id, dat, ly)); setLoi(r.loi); if (!r.loi) { setLyDo(null); await onDoi(); } };
   const nguoi = nhanVat.filter((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id));
   const ds = c.bieu_cam ?? [];
   const luu = async (moi: { bieu_cam?: BieuCamNv[]; noi_lien?: boolean }) => { setLoi((await goiAction(() => suaBieuCam(c.id, moi))).loi); await onDoi(); };
@@ -20,7 +22,7 @@ export function BieuCamShot({ c, nhanVat, onDoi }: { c: Canh; nhanVat: NhanVat[]
     void luu({ bieu_cam: [...ds.filter((b) => b.nv !== ten && nguoi.some((v) => v.ten === b.nv)), { ...cu, ...p }] });
   };
   const k = soatKeyframe(c), v = soatClip(c), m = mayClip(c);
-  const chip = (ten: string, s: ReturnType<typeof soatKeyframe>) => { const mat = !!s && !s.dat && s.loi.every((x) => x.startsWith('cần mắt')); return <span style={{ ...mono, color: !s ? 'var(--fg-4)' : s.dat ? '#4ade80' : mat ? '#fbbf24' : '#f87171' }} title={s ? `${s.nguoi} · ${s.luc}\n${s.loi.join('\n') || 'đạt'}${mat ? '\nMáy chưa chắc — người xem clip rồi ghi soát' : ''}` : 'chưa soát'}>{ten} {!s ? '—' : s.dat ? '✓' : mat ? '◐' : '✗'}</span>; };
+  const chip = (ten: string, s: ReturnType<typeof soatKeyframe>) => { const mat = s?.may === 'can_mat'; return <span style={{ ...mono, color: !s ? 'var(--fg-4)' : s.dat ? '#4ade80' : mat ? '#fbbf24' : '#f87171' }} title={s ? `${s.nguoi} · ${s.luc}\n${s.loi.join('\n') || 'đạt'}${mat ? '\nMáy chưa chắc — xem clip rồi bấm ✓ đạt / ✗ trượt bên cạnh' : ''}` : 'chưa soát'}>{ten} {!s ? '—' : s.dat ? '✓' : mat ? '◐' : '✗'}</span>; };
   if (!nguoi.length && !c.noi_lien) return null;
   return (
     <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--violet)', display: 'grid', gap: 3, fontSize: 11 }}>
@@ -42,6 +44,12 @@ export function BieuCamShot({ c, nhanVat, onDoi }: { c: Canh; nhanVat: NhanVat[]
           <input type="checkbox" checked={!!c.noi_lien} onChange={(e) => void luu({ noi_lien: e.target.checked })} />⛓ nối liền shot trước</label>
         {chip('soát keyframe', k)}{chip('soát clip', v)}
         <span style={{ ...mono, color: m ? KY_MAY[m.ket].mau : 'var(--fg-4)' }} title={m ? `Máy chấm clip (đo nét mặt từng khung so với kế hoạch) · ${m.luc}\n${m.loi.join('\n') || 'đạt'}${v && !v.nguoi.startsWith('máy') ? `\nNgười đã soát: ${v.dat ? 'đạt' : 'trượt'} — người thắng máy ở cổng xuất` : ''}` : 'Máy chưa chấm clip này — tự chấm khi clip sinh xong hoặc lúc xuất'}>🤖 máy {m ? `${KY_MAY[m.ket].ky} ${KY_MAY[m.ket].ten}` : '—'}</span>
+        {(c.video_cuoi_url || c.video_url) && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }} title="Anh soát clip đang dùng — thắng kết quả máy ở cổng xuất">
+          <button type="button" className="xv-btn" style={{ padding: '0 6px', fontSize: 11 }} onClick={() => void soat(true)}>✓ đạt</button>
+          <button type="button" className="xv-btn" style={{ padding: '0 6px', fontSize: 11 }} onClick={() => setLyDo(lyDo == null ? '' : null)}>✗ trượt</button>
+          {lyDo != null && <><input autoFocus value={lyDo} onChange={(e) => setLyDo(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void soat(false, lyDo); if (e.key === 'Escape') setLyDo(null); }} placeholder="lý do, vd: nét mặt: cười khi đang đau" style={{ ...mono, width: 220, fontSize: 11 }} />
+            <button type="button" className="xv-btn" style={{ padding: '0 6px', fontSize: 11 }} disabled={!lyDo.trim()} onClick={() => void soat(false, lyDo)}>Ghi</button></>}
+        </span>}
       </div>
       {loi && <span style={{ fontSize: 10.5, color: 'var(--red)' }}>{loi}</span>}
     </div>

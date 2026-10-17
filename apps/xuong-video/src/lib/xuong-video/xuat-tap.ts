@@ -61,7 +61,7 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
       canh = ((await db.execute(sql`SELECT c.* FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`)) as unknown as Row[]).map(mapCanh);
     }
     const chua = locNhanh(canh, nhanh || 'A').flatMap((c) => { const k = soatClip(c); return !k ? [`#${c.thu_tu}: clip chưa soát`] : !k.dat ? [`#${c.thu_tu}: ${k.loi.join(' · ')}`] : []; });
-    if (chua.length) return { ok: false, loi: `Chưa xuất được — Murch QC: ${chua.slice(0, 5).join('; ')}${chua.length > 5 ? `; +${chua.length - 5}` : ''}. Shot ◐ cần mắt: xem clip rồi ghi soát (scripts/soat-cam-xuc.mts --ghi); shot ✗ trượt: sinh lại` };
+    if (chua.length) return { ok: false, loi: `Chưa xuất được — Murch QC: ${chua.slice(0, 5).join('; ')}${chua.length > 5 ? `; +${chua.length - 5}` : ''}. Shot ◐ cần mắt: xem clip rồi bấm ✓ đạt / ✗ trượt ở dòng 🎭 trên thẻ shot; shot ✗ trượt: sinh lại` };
   }
   // Luật QC máy chặn được (kiem-qc.ts) — chỉ những luật sai là ra bản hỏng, không phải gu: màn kết thiếu tên sản phẩm.
   const qcSai = kiemQc({ loai: bc.loai, canh: locNhanh(canh, nhanh || 'A'), nhanVat: bc.nhanVat, qc: kt.qc, nhanh }).filter((x) => !x.ok && ['ten_cuoi'].includes(x.key));

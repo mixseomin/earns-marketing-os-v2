@@ -8,7 +8,7 @@
 //   4. MÁY CHỌN TRƯỚC: có trẻ em trong khung → không gửi Veo (Google từ chối ảnh có trẻ em thật) mà gửi Kling; cận cảnh + động tác lớn
 //      (nhảy, xoay, chạy) → chặn (#12 chân biến dạng); shot nối liền → khung đầu lấy khung cuối clip shot trước (sinh-video.ts).
 // Tự kiểm: qc-cam-xuc.test.mts
-import type { Canh, KinhThanh, NhanVat } from './kieu';
+import { cauVideo, type Canh, type KinhThanh, type NhanVat } from './kieu';
 
 /** BẬT KẾ HOẠCH CẢM XÚC (biểu cảm đầu → cuối, soát keyframe / clip): quảng cáo có cờ cam_xuc_qc, HOẶC phim ngắn dọc (tổng tài — sống nhờ nét mặt,
  *  anh 17/10/2026). MỘT chỗ quyết — trước đây 3 nơi tự viết `loai === 'quang_cao' && cam_xuc_qc`. */
@@ -124,7 +124,7 @@ export const DONG_LON = /\b(danc(e|es|ing)|jump(s|ing)?|spin(s|ning)?|twirl(s|in
 const HAU_CANH = /\b(behind|background|in the distance|blur(s|red|ry)?|guests?|crowd|others|people around|out of focus)\b/i;
 export function loiCanCanhDongLon(c: Pick<Canh, 'hanh_dong'> & { prompt_video?: string; ky_thuat?: { co_canh?: string } | null }): string | null {
   const co = c.ky_thuat?.co_canh ?? '';
-  const hd = (c.prompt_video ?? '').trim() || c.hanh_dong;
+  const hd = cauVideo(c);
   if (!CO_CAN.has(co)) return null;
   // Vế câu tả HẬU CẢNH / người khác ("the dancing blurs behind") không phải động tác của chủ thể cận cảnh — Jett #61 #4 bị chặn nhầm 16/10/2026.
   const m = hd.split(/[.;,]|\bwhile\b|\bas\b/i).filter((v) => !HAU_CANH.test(v)).join(' ').match(DONG_LON);
@@ -142,7 +142,7 @@ export const MUC_SOAT = [
   { key: 'bieu_cam', ten: 'Nét mặt đúng kế hoạch' },
   { key: 'bien_dang', ten: 'Không biến dạng thân / vật (clip)' },
 ] as const;
-export type KqSoat = { url: string; luc: string; nguoi: string; dat: boolean; loi: string[]; /** nét đo được (clip): đầu / cuối */ do?: { dau?: string; cuoi?: string } };
+export type KqSoat = { url: string; luc: string; nguoi: string; dat: boolean; loi: string[]; /** có = kết quả của MÁY (soatClip đổi từ soat.may) — mức đạt / cần mắt / trượt */ may?: KqMay['ket']; /** nét đo được (clip): đầu / cuối */ do?: { dau?: string; cuoi?: string } };
 /** may = MÁY TỰ CHẤM clip (cham-may.ts, 0đ) — người soát (clip) luôn thắng máy; máy "cần mắt" = chưa đạt cho tới khi người soát. */
 export type KqMay = { url: string; luc: string; ket: 'dat' | 'can_mat' | 'truot'; loi: string[] };
 export type SoatShot = { keyframe?: KqSoat; clip?: KqSoat; may?: KqMay };
@@ -153,7 +153,7 @@ export const soatClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url'> & { soat?
   if (!u) return null;
   if (c.soat?.clip?.url === u) return c.soat.clip;
   const m = c.soat?.may;
-  return m?.url === u ? { url: u, luc: m.luc, nguoi: 'máy (HSEmotion)', dat: m.ket === 'dat', loi: m.ket === 'can_mat' ? m.loi.map((x) => `cần mắt — ${x}`) : m.loi } : null;
+  return m?.url === u ? { url: u, luc: m.luc, nguoi: 'máy (HSEmotion)', may: m.ket, dat: m.ket === 'dat', loi: m.ket === 'can_mat' ? m.loi.map((x) => `cần mắt — ${x}`) : m.loi } : null;
 };
 
 /** Kết quả MÁY cho đúng clip đang dùng — hiện RIÊNG (chip 🤖), kể cả khi người đã soát: người thắng máy ở cổng, nhưng anh vẫn phải thấy máy nói gì. */

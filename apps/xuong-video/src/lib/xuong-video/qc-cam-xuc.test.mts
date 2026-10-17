@@ -65,6 +65,9 @@ assert.strictEqual(chamMay({ dai: 4, khung: [k(0, 'Frank', 0.5, 0.32), k(3.9, 'F
 assert.strictEqual(chamMay({ dai: 4, khung: [] }, [], {}).ket, 'dat', 'không có mặt để đo');
 const url = 'https://x/c.mp4', may = { url, luc: '', ket: 'can_mat' as const, loi: ['Frank có vẻ cười'] };
 assert.ok(!soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.dat && soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.loi[0]!.startsWith('cần mắt'));
+assert.strictEqual(soatClip({ video_url: url, video_cuoi_url: null, soat: { may } })!.may, 'can_mat', 'mức máy có cấu trúc — chip ◐ đọc trường này, không dò tiền tố chữ');
+assert.strictEqual(soatClip({ video_url: url, video_cuoi_url: null, soat: { may, clip: { url, luc: '', nguoi: 'anh', dat: false, loi: ['x'] } } })!.may, undefined, 'người soát: không mang mức máy');
+assert.strictEqual(soatClip({ video_url: 'https://x/moi.mp4', video_cuoi_url: null, soat: { may } }), null, 'clip đổi: kết quả máy cũ hết hiệu lực');
 assert.ok(soatClip({ video_url: url, video_cuoi_url: null, soat: { may: { ...may, ket: 'truot' }, clip: { url, luc: '', nguoi: 'anh', dat: true, loi: [] } } })!.dat, 'người soát thắng máy');
 console.log('qc-cam-xuc chấm máy ok');
 assert.strictEqual(loiCanCanhDongLon({ hanh_dong: 'The narrator watches, the dancing blurs behind, a small worried glance', ky_thuat: { co_canh: 'mcu' } }), null, 'nhảy ở hậu cảnh không phải động tác chủ thể');

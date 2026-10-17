@@ -7,7 +7,7 @@ import { batCamXuc } from './qc-cam-xuc';
 import { lintPrompt } from './tu-sua-clip-do';
 import { chanKhung } from './khung';
 import { maAnimatic, conTapSau } from './ho-so';
-import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
+import { thanhPhanCanh, cauVideo, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
 import type { Beat } from './dien-anh';
 import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
@@ -159,8 +159,8 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   // Cận cảnh + động tác lớn → méo thân (qc-cam-xuc.ts) — mọi QC.
   if (laQc) { const cc = loiCanCanhDongLon(c); if (cc) out.push(cc); }
   // Luật prompt học từ clip hỏng (tu-sua-clip-do.ts: nhặt vật, đứng dậy từ ngồi xổm, mở cạp/khoá, từ nhạy cảm) — mọi QC, chặn trước khi tiêu tiền clip.
-  if (laQc) for (const l of lintPrompt((c.prompt_video ?? '').trim() || c.hanh_dong)) out.push(`prompt video: ${l.vi} — ${l.en}`);
-  if (o?.camXucQc) { const trai = loiCauTraiBieuCam((c.prompt_video ?? '').trim() || c.hanh_dong, c.bieu_cam); if (trai) out.push(trai); }
+  if (laQc) for (const l of lintPrompt(cauVideo(c))) out.push(`prompt video: ${l.vi} — ${l.en}`);
+  if (o?.camXucQc) { const trai = loiCauTraiBieuCam(cauVideo(c), c.bieu_cam); if (trai) out.push(trai); }
   // Murch QC: keyframe phải SOÁT ĐẠT (Claude trong phiên, scripts/soat-cam-xuc.mts) — trừ shot nối liền (khung đầu = khung cuối clip trước đã soát).
   if (o?.camXucQc && c.keyframe_url && !c.noi_lien) { const k = soatKeyframe(c); if (!k) out.push('keyframe chưa soát (số người · người lạ · mặt · sản phẩm · hành động · nét mặt) — soát rồi mới sinh video'); else if (!k.dat) out.push(`keyframe soát trượt: ${k.loi.join(' · ')}`); }
   return out;

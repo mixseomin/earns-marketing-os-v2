@@ -56,6 +56,8 @@ export type MoHinhAnh = (typeof MO_HINH_ANH)[number]['key'];
 export const laTiengViet = (t: string): boolean => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(t);
 /** Mô tả tiếng Việt của shot (#1397): trường riêng, không có thì hanh_dong nếu nó đã là tiếng Việt (tách cảnh viết tiếng Việt), không thì rỗng.
  *  MỘT chỗ cho lưới, thẻ shot và cổng kiểm thiếu. */
+/** Câu hành động THẬT gửi model video: prompt_video riêng nếu có, không thì hành động của shot — mọi cổng soát câu (sản phẩm, cấm cười, cận cảnh, lint) đọc qua đây. */
+export const cauVideo = (c: Pick<Canh, 'hanh_dong'> & { prompt_video?: string | null }): string => (c.prompt_video ?? '').trim() || c.hanh_dong;
 export const moTaVi = (c: Pick<Canh, 'hanh_dong' | 'hanh_dong_vi'>): string => c.hanh_dong_vi?.trim() || (laTiengViet(c.hanh_dong) ? c.hanh_dong.trim() : '');
 /** Kết quả máy soi clip (soi-clip.ts). */
 export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[]; /** điểm giống ảnh mẫu theo nhân vật, từng khung chấm được (soi-mat.ts › soiMatClip) */ mat?: Record<string, { giay: number; giong: number }[]>; /** lỗi biến dạng hai lượt cùng thấy (soi-bien-dang.ts) */ bien_dang?: { khung: number; loai: string; mo_ta: string }[] }; bo_qua?: boolean };

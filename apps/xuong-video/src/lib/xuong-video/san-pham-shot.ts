@@ -6,7 +6,7 @@
 //      shot 9: quần cobalt gấp trong keyframe, giũ ra thành jeans 5 túi bạc màu có mác).
 // MỘT luật cho cổng sinh clip (quy-trinh.ts › chanVideo), máy chọn chuyển động (nhip-hinh.ts › daDangMay) và kiểm template (dung-template.mts).
 // Tự kiểm: san-pham-shot.test.mts.
-import type { Canh, NhanVat } from './kieu';
+import { cauVideo, type Canh, type NhanVat } from './kieu';
 import type { KyThuatShot } from './dien-anh';
 
 type Sp = Pick<NhanVat, 'ten' | 'mo_ta'>;
@@ -50,7 +50,7 @@ export function loiSanPhamShot(c: Pick<Canh, 'nhan_vat' | 'hanh_dong'> & { promp
   const sp = nhanVat.filter((v) => v.loai === 'san_pham' && c.nhan_vat.includes(v.id));
   if (!sp.length) return [];
   const out: string[] = [];
-  const hd = (c.prompt_video ?? '').trim() || c.hanh_dong;
+  const hd = cauVideo(c);
   const loai = loaiCua(sp);
   const ten = sp.map((x) => x.ten).join(', ');
   if (!nhacSanPham(hd, sp)) out.push(`hành động không nhắc sản phẩm (${ten}) — model sẽ tự bịa cử chỉ vào món khác (#54: kéo cổ áo polo trong phim bán quần); viết cử chỉ vào chính sản phẩm, vd "${loai?.goiY ?? 'holds the product up and turns it toward the camera'}"`);

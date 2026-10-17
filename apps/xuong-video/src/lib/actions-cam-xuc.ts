@@ -36,3 +36,19 @@ export async function batCamXucQc(phimId: number, bat: boolean): Promise<Kq> {
   await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{cam_xuc_qc}', ${JSON.stringify(bat)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
   return { ok: true, data: undefined };
 }
+
+/** NGƯỜI SOÁT CLIP ĐANG DÙNG (✓ đạt / ✗ trượt trên thẻ shot) — thắng kết quả máy ở cổng xuất (qc-cam-xuc.ts › soatClip). Trước 17/10/2026 chip và cổng
+ *  xuất bảo "người xem clip rồi ghi soát" mà chỉ có đường script (soat-cam-xuc.mts --ghi) — clip máy chấm ◐ cần mắt chặn xuất, anh không có nút gỡ. */
+export async function soatClipTay(canhId: number, dat: boolean, lyDo = ''): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT coalesce(video_cuoi_url, video_url) url FROM xv_canh WHERE id = ${canhId}`)) as unknown as { url: string | null }[];
+  if (!r[0]?.url) return loi('shot chưa có clip để soát');
+  if (!dat && !lyDo.trim()) return loi('trượt thì ghi lý do (vd "nét mặt: cười khi đang đau") — máy sinh lại dựa vào câu này');
+  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['soat'], moTa: `soát clip: ${dat ? 'đạt' : 'trượt'}`, nguoi: me.email ?? '' });
+  const kq = { url: r[0].url, luc: new Date().toISOString(), nguoi: me.email ?? 'người soát', dat, loi: dat ? [] : [lyDo.trim().slice(0, 300)] };
+  await db.execute(sql`UPDATE xv_canh SET soat = jsonb_set(coalesce(soat, '{}'::jsonb), '{clip}', ${JSON.stringify(kq)}::jsonb), updated_at = now() WHERE id = ${canhId}`);
+  return { ok: true, data: undefined };
+}

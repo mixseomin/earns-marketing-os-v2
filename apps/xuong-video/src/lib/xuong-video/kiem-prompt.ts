@@ -7,7 +7,10 @@
 export const CO_TIENG_VIET = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
 /** Bước 1 FLUX đọc tối đa ~512 token T5: quá ~300 từ thì phần cuối (phong cách, "No text") bị cắt. */
 export const TU_TOI_DA_FLUX = 300;
-const MAT = /\b(jawline|eyes?|face|faces|hair|makeup|eyebrows?|lips|smile|stare|expression)\b/i;
+/** chữ tả mặt / đầu — trừ 'eye-level' (góc máy) và 'face out of frame' (chính câu dặn không vẽ mặt) */
+export const MAT = /\b(jawline|eyes|face(?! out of frame)|faces|hair|makeup|eyebrows?|lips|smile|stare)\b/i;
+/** Bỏ các vế tả mặt / tóc khỏi một mô tả (bộ đồ có 'loose hair, light makeup') — dùng cho cận chèn chỉ thấy tay. */
+export const boMat = (t: string) => t.split(/,\s*/).filter((x) => !MAT.test(x)).join(', ');
 const AN = /\b(hidden|covered|covering|concealed|out of sight|not visible|tucked under)\b/i;
 const TU_CHUNG = new Set(['small', 'thin', 'black', 'white', 'light', 'large', 'under', 'with', 'their', 'which', 'little', 'round', 'dark', 'long', 'short']);
 
@@ -24,7 +27,9 @@ const doan = (chu: string, re: RegExp) => { const m = chu.match(new RegExp(`[^.;
 /** Lỗi của bộ prompt một shot (rỗng = qua). */
 export function loiPrompt(buoc: BuocPrompt[], s: SoatPrompt): string[] {
   const out: string[] = [];
-  const rieng = [...(s.ten_rieng ?? []), ...s.nguoi.map((n) => n.ten), ...s.vat.map((v) => v.ten)].filter(Boolean).sort((a, b) => b.length - a.length);
+  // tên đủ + tên gọi tắt (chữ cuối: 'Lâm Hạ' → 'Hạ', 'Luật sư Trần' → 'Trần') — câu mở shot gọi nhân vật bằng tên tắt
+  const du = [...(s.ten_rieng ?? []), ...s.nguoi.map((n) => n.ten), ...s.vat.map((v) => v.ten)].filter(Boolean);
+  const rieng = [...new Set([...du, ...du.map((t) => t.trim().split(/\s+/).pop() ?? '')])].filter(Boolean).sort((a, b) => b.length - a.length);
   for (const b of buoc) {
     const tron = rieng.reduce((c, t) => c.split(t).join(' '), b.chu);   // bỏ tên riêng trước khi soi dấu
     if (CO_TIENG_VIET.test(tron)) out.push(`${b.ten}: lẫn tiếng Việt ${doan(tron, /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/)} — model đọc tiếng Anh: dùng tên en của vật / bỏ ghi chú tiếng Việt`);

@@ -15,7 +15,7 @@ import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
-import { loiPrompt, type SoatPrompt } from './kiem-prompt';
+import { boMat, loiPrompt, type SoatPrompt } from './kiem-prompt';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -292,7 +292,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
         const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined; const deo = v.loai === 'nhan_vat' ? viTriCua(v.ten)?.do_deo : undefined;
         // CẬN CHÈN: chỉ phần thân trong khung (tay, cổ tay) — tả hàm, mắt, tóc là mời model vẽ mặt vào cú cận đồ (tập 122 #22)
         const ai = v.loai === 'nhan_vat' && chen ? `${v.ten.split(' ').pop()}'s hand and forearm only (face out of frame)` : moTaVua(v.mo_ta);
-        return `${ai}${bt?.mo_ta ? `, wearing ${moTaVua(bt.mo_ta)}` : ''}${deo ? `, ${deo}` : ''}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        return `${ai}${bt?.mo_ta ? `, wearing ${chen ? boMat(moTaVua(bt.mo_ta)) : moTaVua(bt.mo_ta)}` : ''}${deo ? `, ${deo}` : ''}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nen = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair")
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
@@ -312,7 +312,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       for (const v of trong) {
         // bộ đồ + đồ đeo của SỔ NGƯỜI nói thẳng ở bước 2 (trước đây chỉ tả mặt → model giữ đồ FLUX tự chọn, #15 vest đen); cận chèn không tả mặt
         const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined; const deo = v.loai === 'nhan_vat' ? viTriCua(v.ten)?.do_deo : undefined;
-        const ta = `${v.loai === 'nhan_vat' && chen ? 'skin tone and sleeve only, face out of frame' : moTaNgan(v.mo_ta)}${bt?.mo_ta ? `; wearing ${moTaVua(bt.mo_ta)}` : ''}${deo ? `; ${deo}` : ''}`;
+        const ta = `${v.loai === 'nhan_vat' && chen ? 'skin tone and sleeve only, face out of frame' : moTaNgan(v.mo_ta)}${bt?.mo_ta ? `; wearing ${chen ? boMat(moTaVua(bt.mo_ta)) : moTaVua(bt.mo_ta)}` : ''}${deo ? `; ${deo}` : ''}`;
         const u = bt?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${ta}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${ta}`);
       }
       // ĐỒ NHẬN DẠNG trong khung (màn chiếu, tranh, bảng chỉ dẫn — kiem-ai-3d.ts › LA_NHAN_DANG): ảnh chuẩn đã dán trên mặt vật ở khung màu (Image 2);
@@ -324,7 +324,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // SOÁT CHỮ (kiem-prompt.ts): người trong khung + bộ đồ sổ trang phục, đồ chủ thể đang thấy — lyChanKeyframe chặn trước khi tiêu tiền
       const chuThe3d = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).map((k) => k.nhan_vat));
       const soat: SoatPrompt = { co_canh: bc.canh.ky_thuat?.co_canh, ten_rieng: bc.nhanVat.map((v) => v.ten),
-        nguoi: trong.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: btCanh(v)?.mo_ta ? moTaVua(btCanh(v)!.mo_ta) : undefined })),
+        nguoi: trong.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: btCanh(v)?.mo_ta ? (chen ? boMat : (x: string) => x)(moTaVua(btCanh(v)!.mo_ta)) : undefined })),
         vat: trong.filter((v) => v.loai !== 'nhan_vat' && chuThe3d.has(v.ten)).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta })) };
       return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 }, soat };
     }

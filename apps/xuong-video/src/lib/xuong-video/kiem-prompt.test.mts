@@ -20,4 +20,6 @@ assert.equal(loiPrompt(mat, { ...s, co_canh: 'mcu' }).length, 0);
 const vong = { nguoi: [], vat: [{ ten: 'Chuỗi hạt ngọc', mo_ta: 'Thin bracelet of small pale-green jade beads on a black silk cord' }] };
 assert.equal(loiPrompt([{ ten: 'bước 1', chu: 'Steel watch; a thin pale-green jade bead bracelet hidden under the left shirt cuff.' }], vong).length, 1);
 assert.equal(loiPrompt([{ ten: 'bước 1', chu: 'The cuff pulled back shows a pale-green jade bead bracelet on the wrist.' }], vong).length, 0);
+// báo oan cũ: tên gọi tắt 'Hạ', 'eye-level shot', 'face out of frame' không phải lỗi
+assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `Eye-level shot. Moment: Hạ steps in. Hạ's hand only (face out of frame), wearing ${VEST}.` }], { ...s, co_canh: 'insert' }), []);
 console.log('kiem-prompt: ok');

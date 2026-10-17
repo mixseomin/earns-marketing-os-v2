@@ -734,7 +734,7 @@ def ten_vat(o):
     # "NG Lâm Hạ.dau_k" thay vì "Lâm Hạ": cổng chủ thể / chữ lệch / prompt keyframe tưởng nhân vật vắng mặt.
     if n.startswith('NG ') and '.' in n: return n[3:].rsplit('.', 1)[0]
     g = n.rsplit(' ', 1)[0]
-    return g if g in NHOM else o.name
+    return g if g in NHOM else n   # '<vật>·anh sau' (tấm ảnh chuẩn), '<vật>·manh0' → tên vật — trả o.name từng làm tên khối lọt vào prompt
 
 def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
     """THẤY GÌ TRONG KHUNG — bằng số, không bằng mắt (anh 14/10/2026: khối vàng ở cảnh 6–7 trông như tay Gã khổng lồ mà không ai biết là gì).

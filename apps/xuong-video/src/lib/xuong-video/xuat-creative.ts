@@ -9,7 +9,8 @@ import { uploadToR2 } from '@/lib/r2';
 import { chayXuat } from './xuat-chay';
 import { gonGiong } from './hau-ky';
 import { chayViecAm } from './viec-am';
-import { dauVaoGiongTheoModel } from './giong';
+import { dauVaoGiongTheoModel, dsMoHinhGiong } from './giong';
+import { giaGiongTheo } from './am-thanh';
 import { MODEL_GIONG_MAC_DINH, giongMacDinh } from './sinh-giong';
 import { giongDong } from './ban-dich';
 import { bam, coTep } from './long-tieng';
@@ -51,7 +52,7 @@ export async function xuatCreativeDb(db: Db, creativeId: number, job: number): P
   const bc = await boiCanhTap(db, goc.tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập phim gốc' };
   const kt = docKinhThanh(bc.kt);
-  const loiGiong: string[] = []; let kyTu = 0;
+  const loiGiong: string[] = []; let kyTu = 0, cents = 0; const dm = await dsMoHinhGiong();
   const canh = [];
   for (const [i, c] of goc.canh.entries()) {
     const t = tpl.canh[i]!;
@@ -70,7 +71,7 @@ export async function xuatCreativeDb(db: Db, creativeId: number, job: number): P
       if (!url) {
         const kq = await chayViecAm({ kieu: 'am', job, model: g.model, input: await dauVaoGiongTheoModel(g.model, { text: loiDoc, voice: g.voice, ngonNgu: kt.ngon_ngu, camXuc: c.cam_xuc, theLoai: kt.the_loai ?? '' }), thuMuc: `creative/${creativeId}-${c.id}-${j}` });
         if (!kq.ok) { loiGiong.push(`#${c.thu_tu} dòng ${j + 1}: ${kq.loi}`); thoai.push({ ...d, loi: loiMoi, url: null }); continue; }
-        kyTu += loiDoc.length;
+        kyTu += loiDoc.length; cents += giaGiongTheo(dm, g.model, loiDoc.length) ?? 0;   // 17/10/2026: giọng lồng lại không vào sổ chi phí (#2–#4 ghi $0)
         const gon = await gonGiong(kq.url, c.id) ?? kq.url;
         const r = await fetch(gon);
         url = r.ok ? await uploadToR2(key, Buffer.from(await r.arrayBuffer()), 'audio/mpeg') ?? gon : gon;
@@ -83,7 +84,7 @@ export async function xuatCreativeDb(db: Db, creativeId: number, job: number): P
   if (!kq.ok) return kq;
   const canhBao = [...(loiGiong.length ? [`${loiGiong.length} câu không đọc được (im): ${loiGiong.join(' · ').slice(0, 300)}`] : []), ...kq.canhBao];
   await db.execute(sql`UPDATE xv_creative SET xuat = ${JSON.stringify({ url: kq.url, luc: new Date().toISOString(), job, giay: Math.round(kq.giay * 10) / 10, canh_bao: canhBao, phim_goc: nc.data.phimGoc })}::jsonb WHERE id = ${creativeId}`);
-  await xongJob(db, job, { output_url: kq.url });
+  await xongJob(db, job, { output_url: kq.url, chi_phi_cents: cents });
   if (kyTu) console.log(`[xuất creative] #${creativeId}: đọc mới ${kyTu} ký tự`);
   return { ok: true, data: { url: kq.url } };
 }

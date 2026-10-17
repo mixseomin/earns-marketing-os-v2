@@ -15,7 +15,7 @@ import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
-import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
+import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
 import { CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
@@ -328,21 +328,25 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // Prompt bước 1 NGẮN, mô tả tự nhiên (FLUX đọc giới hạn chữ: khối luật dài bị cắt, con số "40 mm, 1.2 cm" bị vẽ thành chữ "480" — #35).
       // Hình học đã nằm trong bản đồ độ sâu; chữ chỉ nói Ở ĐÂU, KHOẢNH KHẮC, AI / CÁI GÌ trông ra sao, quay hướng nào.
       const thayDs = bc.canh.khung_xam?.thay ?? [];
-      const mon = trongS.map((v) => {
+      // NGÂN SÁCH TỪ cho FLUX (~300 từ): mô tả vật qua thẻ / bộ đồ dài làm vượt (#3, #11 = 303–307 từ) → dựng lại gọn dần (bộ đồ 32 → 20 → 12 từ, hậu cảnh ≤ 6 → 4 món)
+      // thay vì để FLUX cắt mất phần cuối (câu chất liệu, "No text").
+      const dungMon = (cap: number) => trongS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
-        return `${taNv(v, false, 32)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        return `${taNv(v, false, cap)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
-      const nen = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair")
+      const nenDu = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).sort((p, q) => q.pt - p.pt).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair"), lớn trước
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
       // KHUÔN bước 1 FLUX (KHUON.flux): ảnh đích theo chất liệu + bối cảnh + khoảnh khắc mở (dáng — #20 "chống bàn" mà FLUX vẽ đứng thẳng) + người + hậu cảnh
-      const kF: Khoi[] = [
+      const dungKF = (cap: number, nenToiDa: number): Khoi[] => { const mon = dungMon(cap); const nen = nenDu.slice(0, nenToiDa); return [
         khoi('anh_dich', CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang')), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`),
         khoi('khoanh_khac', !ket && bc.canh.dan_dung?.mo && `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.`),
         khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', soNguoi), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
         khoi('anh_sang', nguoiThat ? '' : bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.'),
         khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi),
-      ];
+      ]; };
+      const soTu = (ds: Khoi[]) => ghep(ds).split(/\s+/).length;
+      const kF = [dungKF(32, 6), dungKF(20, 5), dungKF(12, 4)].find((x) => soTu(x) <= TU_TOI_DA_FLUX - 10) ?? dungKF(12, 3);
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trongS) {
         const ta = taNv(v, true);

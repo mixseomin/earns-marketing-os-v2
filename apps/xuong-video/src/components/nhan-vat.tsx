@@ -11,6 +11,7 @@ import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongMode
 import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mono, goiAction } from './ui';
+import { useNho } from './nho';
 import { NutNghe } from './media';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 
@@ -76,6 +77,10 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   const [ban, setBan] = useState<number | null>(null);
   const [loi, setLoi] = useState<Record<number, string>>({});
   const kt = docKinhThanh(kinhThanh);
+  // #1406: lọc nhỏ theo loại anchor — nhãn chỉ ghi tên, số đếm vào hover; nhớ trên URL (nvl).
+  const coLoai = LOAI_NHAN_VAT.filter((l) => nhanVat.some((v) => v.loai === l.key));
+  const [locLoai, setLocLoai] = useNho<'' | LoaiNhanVat>('xv-nv-loai', '', ['', ...LOAI_NHAN_VAT.map((l) => l.key)], 'nvl');
+  const dsHien = locLoai && coLoai.some((l) => l.key === locLoai) ? nhanVat.filter((v) => v.loai === locLoai) : nhanVat;
   // Bấm là đẩy vào hàng đợi nền rồi trả ngay → bấm liên tục nhiều anchor được; trạng thái "đang sinh" đọc từ máy chủ.
   // gui[id] = số ảnh gốc lúc bấm lần đầu của mạch này → nút hiện "đang gửi" ngay khi bấm, xong thì báo đã thêm mấy ảnh.
   const [gui, setGui] = useState<Record<number, { goc: number; cho: number }>>({});
@@ -92,12 +97,14 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <h3 style={{ flex: 1 }}>2 · Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
         <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
+        {coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
+          options={[{ value: '' as const, label: 'Tất cả', title: `${nhanVat.length} anchor` }, ...coLoai.map((l) => ({ value: l.key, label: `${l.ic} ${l.label}`, title: `${nhanVat.filter((v) => v.loai === l.key).length} ${l.label.toLowerCase()}` }))]} />}
         <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
       </div>
       <Loi>{loi[-1]}</Loi>
       {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
-        {nhanVat.map((v) => {
+        {dsHien.map((v) => {
           const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
           const g0 = gui[v.id]; const them = g0 ? v.anh_ref.length - g0.goc : 0;
           return (

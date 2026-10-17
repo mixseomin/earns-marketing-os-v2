@@ -105,3 +105,6 @@ div:hover > .xv-nut-sinh, .xv-nut-sinh:hover, .xv-nut-sinh:focus-visible { opaci
 @keyframes xv-chu-bat { 0% { transform: scale(.6); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
 .xv-chu-dap { animation: xv-chu-dap 140ms cubic-bezier(.55,0,.85,.35) both; }
 .xv-chu-bat { animation: xv-chu-bat 200ms ease-out both; }
+
+/* Nhóm làn của một nhân vật (timeline.tsx): vạch màu vẽ TRÊN ô nhãn dính — viền ở khung bọc thì cuộn ngang trôi mất và đẩy làn lệch 2px (#1413). */
+.xv-tl-nhom [data-nhan-lan] { box-shadow: inset 2px 0 0 var(--mau-nhom); }

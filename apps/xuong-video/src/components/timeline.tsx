@@ -510,7 +510,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
       <TayKeo truc="y" onPointerDown={hangPan.keo('y')} onDoubleClick={hangPan.veMacDinh} title="Kéo để đổi chiều cao khung hình · nhấp đúp = mặc định" />
       {/* Các track */}
-      <div ref={vungRef} style={{ marginTop: 0, padding: '6px 10px 0', borderTop: '1px solid var(--line)', overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
+      {/* Không đệm TRÁI ở khung cuộn (#1413): cột nhãn dính left:0 bám mép trong lớp đệm → khe 10px bên trái nhãn để khối đang cuộn ló qua; đầu phát kéo cũng lệch 10px. */}
+      <div ref={vungRef} style={{ marginTop: 0, padding: '6px 10px 0 0', borderTop: '1px solid var(--line)', overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
         <div style={{ width: W + nhanW, position: 'relative' }}>
           {/* Thước giây — bấm/kéo để tua */}
           <div style={{ display: 'flex', height: 18 }}>
@@ -671,7 +672,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\nCảm xúc: ${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
             });
             return (
-              <div key={ten} style={{ borderLeft: `2px solid ${mauNv(v)}`, marginTop: 4 }}>
+              <div key={ten} className="xv-tl-nhom" style={{ '--mau-nhom': mauNv(v), marginTop: 4 } as React.CSSProperties}>
                 {track(`🎭 ${ten}`, `Cảm xúc / diễn xuất của ${ten} theo từng shot (lấy từ diễn xuất của dòng thoại; nét đứt = có mặt nhưng chưa ghi cảm xúc) — sửa ở form shot`, camXuc)}
                 {coThoai && track(`🗣 ${ten} · thoại`, `Thoại của ${ten} theo từng shot — bấm khối để sinh giọng cả shot`, canh.map((cc, i) => {
               const dsT = dongThoai(cc, nhanVat);

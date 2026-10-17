@@ -58,7 +58,7 @@ export const tienPhim = async (db: Db, phimId: number): Promise<number> =>
 /** NGÂN SÁCH LƯỢT CHẠY (anh 17/10/2026: "sinh mà tốn tiền quá thì phải báo"): #127 đốt $8,18 vì vòng tự sửa sinh lại mãi không ai hay.
  *  `nganSachCents`: lượt chạy tiêu quá mức này thì DỪNG trước lần tiêu kế, trả buoc 'ngân sách' (script báo Telegram, chờ anh bảo chạy tiếp). */
 export const BUOC_NGAN_SACH = 'ngân sách';
-export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => void, o: { toiDa?: number; nganSachCents?: number } = {}): Promise<KetLamPhim> {
+export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => void, o: { toiDa?: number; nganSachCents?: number; moHinhVideo?: string } = {}): Promise<KetLamPhim> {
   const bc = await boiCanhTap(db, tapId); if (!bc) return { ok: false, buoc: 'tập', loi: ['không thấy tập'], clip: [] };
   const phimId = bc.tap.phim_id; const kt = docKinhThanh(bc.kt);
   const truoc = await tienPhim(db, phimId);
@@ -104,7 +104,7 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
   } else if (!g.ok) log(`  ✗ giọng: ${g.loi}`);
   // 5. clip — vòng tự sửa (soi keyframe → video → soi clip → viết lại prompt), mọi shot nhánh A
   { const d = await dungVi(); if (d) return d; }
-  const clip = await tuSuaClipTap(db, tapId, { toiDa: o.toiDa ?? 3, log, dung: vuot });
+  const clip = await tuSuaClipTap(db, tapId, { toiDa: o.toiDa ?? 3, log, dung: vuot, moHinhVideo: o.moHinhVideo });
   { const l = await vuot(); if (l) return { ok: false, buoc: BUOC_NGAN_SACH, loi: [l, ...clip.filter((k) => k.ket !== 'sach').map((k) => `#${k.thu_tu}: ${k.loi.join(' | ')}`)], clip }; }
   // 6. nhạc nền cả tập
   const tap = ((await db.execute(sql`SELECT nhac_url FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0];

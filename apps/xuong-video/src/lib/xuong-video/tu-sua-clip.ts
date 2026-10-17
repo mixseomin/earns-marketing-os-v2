@@ -140,7 +140,7 @@ const SONG_SONG = 4;
 export type KetTuSua = { thu_tu: number; ket: 'sach' | 'het_luot' | 'loi'; lan: number; loi: string[] };
 /** Chạy vòng tự sửa cho mọi shot nhánh A của tập có clip lỗi (hoặc chỉ `chi`). log: in tiến độ. */
 /** `dung`: hỏi trước MỖI lần tiêu tiền (keyframe / video) — trả lý do thì dừng hẳn cả tập (vd vượt ngân sách lượt chạy, tu-lam-phim.ts). */
-export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; chi?: number[]; log?: (s: string) => void; dung?: () => Promise<string | null> } = {}): Promise<KetTuSua[]> {
+export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; chi?: number[]; log?: (s: string) => void; dung?: () => Promise<string | null>; moHinhVideo?: string } = {}): Promise<KetTuSua[]> {
   const log = o.log ?? (() => {}); const toiDa = o.toiDa ?? 3;
   const phimId = Number(((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]?.phim_id);
   const tatCa = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
@@ -152,7 +152,7 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
     let c = c0; let loi = loiSoiClip(c); const daThu: string[] = [];
     if (!loi.length && (c.video_cuoi_url || c.video_url) && !lintPrompt(c.prompt_video).length) return;
     if (!loi.length && lintPrompt(c.prompt_video).length) loi = lintPrompt(c.prompt_video).map((l) => `prompt vi phạm luật: ${l.vi}`);
-    let lan = 0, ket: KetTuSua['ket'] = 'het_luot'; let moHinhVideo: string | undefined;
+    let lan = 0, ket: KetTuSua['ket'] = 'het_luot'; let moHinhVideo: string | undefined = o.moHinhVideo;
     let ly: string | null = null;
     while (lan < toiDa) {
       if ((ly = (await o.dung?.()) ?? null)) { ket = 'loi'; loi = [...loi, ly]; break; }

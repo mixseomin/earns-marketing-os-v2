@@ -208,6 +208,8 @@ const kxNho = (pt: number, hop: number[]) => ({ kiem: [{ nhan_vat: 'Cable Plug',
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(3.3, [0.778, 0.333, 1, 0.583]), ky_thuat: { co_canh: 'cu' } as never }).length, 1);
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(9, [0.8, 0.3, 1, 0.6]), ky_thuat: { co_canh: 'cu' } as never }).length, 0);   // chạm mép mà đủ lớn → qua
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(9, [0.2, 0.3, 0.5, 0.6]), ky_thuat: { co_canh: 'cu' } as never }).length, 0);
+assert.equal(chuTheQuaNho({ khung_xam: kxNho(1.8, [0.35, 0.38, 0.65, 0.52]), ky_thuat: { co_canh: 'insert' } as never }).length, 0);   // vòng hạt mảnh giữa khung, trải 30% → qua
+assert.equal(chuTheQuaNho({ khung_xam: kxNho(1.8, [0.45, 0.45, 0.55, 0.52]), ky_thuat: { co_canh: 'insert' } as never }).length, 1);   // mảnh mà nhỏ → chặn
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(1, [0.8, 0.3, 1, 0.4]), ky_thuat: { co_canh: 'ws' } as never }).length, 0);
 // hướng nhân vật so với máy: máy ở −y nhìn +y; huong 0 = nhìn về −y = nhìn máy; 180 = quay lưng; 90 = nhìn +x = phải màn hình
 const mT = { dat: [0, -10, 1], nhin: [0, 0, 1] };

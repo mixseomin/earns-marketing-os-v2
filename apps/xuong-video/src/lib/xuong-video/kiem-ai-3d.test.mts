@@ -26,6 +26,9 @@ const kh = (k1: number[], k2: number[]) => ({ hanh_dong: '', prompt_anh: '', khu
 const nv2 = [{ ten: 'Hạ', loai: 'nhan_vat' }, { ten: 'Trần', loai: 'nhan_vat' }] as never;
 assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), nv2).length, 1);
 assert.equal(chongNguoi(kh([0.2, 0.3, 0.4, 0.9], [0.55, 0.3, 0.75, 0.88]), nv2).length, 0);
+const khCo = (c1: number, c2: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { kiem: [{ nhan_vat: 'Hạ', bat_buoc: true, trong_khung: true, cao_khung_pt: c1, bi_che_boi: [], khung: [0, 0.25, 0.66, 1] }, { nhan_vat: 'Trần', bat_buoc: true, trong_khung: true, cao_khung_pt: c2, bi_che_boi: [], khung: [0.06, 0, 1, 1] }] } }) as never;
+assert.equal(chongNguoi(khCo(60, 81), nv2).length, 0);   // tiền – hậu cảnh (#13): người trước to hẳn → qua
+assert.equal(chongNguoi(khCo(78, 81), nv2).length, 1);   // cùng cỡ, trùng → chặn
 assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), [{ ten: 'Hạ', loai: 'nhan_vat' }, { ten: 'Trần', loai: 'dao_cu' }] as never).length, 0);
 // DÁNG TỰA: chống bàn mà tay cách mặt đỡ 45 cm → chặn; chạm (không có tua_hong) → qua
 const tua = (h?: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { kiem: [{ nhan_vat: 'Thần', bat_buoc: true, trong_khung: true, cao_khung_pt: 60, bi_che_boi: [], tua_hong: h }] } }) as never;

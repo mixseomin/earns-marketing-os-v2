@@ -116,7 +116,9 @@ export const chuTheQuaNho = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky
   const thay = new Map((c.khung_xam?.thay ?? []).map((t) => [t.ten, t]));
   return (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).flatMap((k) => {
     const t = thay.get(k.nhan_vat);
-    return t && t.pt < 5 ? [`${k.nhan_vat} (chủ thể) chỉ chiếm ${Math.round(t.pt * 10) / 10}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — dời máy cho nó nằm rõ trong khung (không bị nhân vật che, không ở quá xa)`] : [];
+    // VẬT MẢNH / RỖNG (vòng tay, chuỗi hạt, dây): phủ ít điểm ảnh mà trải rộng giữa khung là đọc rõ — tập 122 #22 chuỗi hạt 1,8% điểm ảnh, trải 30% bề ngang
+    const h = t?.hop; const giua = !!h && h[0]! > 0.01 && h[1]! > 0.01 && h[2]! < 0.99 && h[3]! < 0.99; const trai = h ? Math.max(h[2]! - h[0]!, h[3]! - h[1]!) : 0;
+    return t && t.pt < 5 && !(giua && trai >= 0.2) ? [`${k.nhan_vat} (chủ thể) chỉ chiếm ${Math.round(t.pt * 10) / 10}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — dời máy cho nó nằm rõ trong khung (không bị nhân vật che, không ở quá xa)`] : [];
   });
 };
 /** CỠ CẢNH KHỚP 3D (15/10/2026, tờ toàn cảnh tập 19): thẻ khai cỡ trung (ms / two / mcu) mà nhân vật chính trong khung 3D chỉ cao 9–15% khung

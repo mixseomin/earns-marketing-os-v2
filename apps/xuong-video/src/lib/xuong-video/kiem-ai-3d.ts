@@ -92,8 +92,9 @@ export function vatDeoThieuNguoi(c: ShotAi): string[] {
 
 /** HAI NGƯỜI CHỒNG HÌNH: hai chủ thể người đứng gần như thẳng hàng với máy (hộp bao trên màn trùng ≥ 60 % bề ngang người hẹp hơn, và cùng tầm cao) —
  *  ảnh độ sâu chỉ còn MỘT dáng người, AI vẽ một người (tập 122 #15: Trần "theo sau một bước" đứng ngay sau lưng Hạ dọc trục máy → keyframe mất Trần).
+ *  Chỉ xét hai người CÙNG CỠ trên khung (cùng độ sâu) — người trước to hẳn người sau là bố cục tiền – hậu cảnh, không phải chồng.
  *  Phim thường: diễn viên tự tách ra khi máy chạy; phim AI: 3D chồng là ảnh chồng. Đọc khung_xam.kiem[].khung (dung-set.py › kiem_hinh_hoc). */
-export const CHONG_NGUOI = 0.6;
+export const CHONG_NGUOI = 0.6; export const CUNG_CO = 0.85;
 export function chongNguoi(c: ShotAi, nhanVat: Pick<NvAi, 'ten' | 'loai'>[]): string[] {
   const nguoi = new Set(nhanVat.filter((a) => a.loai === 'nhan_vat').map((a) => a.ten));
   const ds = (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung && nguoi.has(k.nhan_vat) && k.khung?.length === 4);
@@ -102,7 +103,9 @@ export function chongNguoi(c: ShotAi, nhanVat: Pick<NvAi, 'ten' | 'loai'>[]): st
     const [a, b] = [ds[i]!.khung!, ds[j]!.khung!];
     const ngang = Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!); const doc = Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!);
     const hep = Math.min(a[2]! - a[0]!, b[2]! - b[0]!); const thap = Math.min(a[3]! - a[1]!, b[3]! - b[1]!);
-    if (hep > 0 && thap > 0 && ngang / hep >= CHONG_NGUOI && doc / thap >= 0.5)
+    // cỡ gần bằng nhau = cùng độ sâu; người trước to hẳn người sau (qua vai, tiền – hậu cảnh: #6 28% / 21%, #13 81% / 60%) là bố cục chiều sâu AI vẽ được
+    const co = Math.min(ds[i]!.cao_khung_pt, ds[j]!.cao_khung_pt) / Math.max(ds[i]!.cao_khung_pt, ds[j]!.cao_khung_pt, 0.1);
+    if (hep > 0 && thap > 0 && ngang / hep >= CHONG_NGUOI && doc / thap >= 0.5 && co >= CUNG_CO)
       out.push(`${ds[i]!.nhan_vat} và ${ds[j]!.nhan_vat} chồng hình trên khung (trùng ${Math.round((ngang / hep) * 100)}% bề ngang) — AI sẽ vẽ thành một người: tách hai người ra hai bên trục máy, hoặc đổi góc máy`);
   }
   return out;

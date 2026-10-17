@@ -40,10 +40,11 @@ console.log('soi-clip-do: đạt');
   console.log('soi-clip-do.test: mặt trôi ok');
 }
 
-// Biến dạng: khung → giây giữa khung (clip 6s, 12 khung → khung 8 = 3.75s); mỗi loại một câu, khung sớm nhất; khung / loại lạ bỏ
-const bd = loiTuBienDang([{ khung: 9, loai: 'trang_phuc_bien_dang', mo_ta: 'pants balloon' }, { khung: 8, loai: 'trang_phuc_bien_dang', mo_ta: 'crotch drops' },
-  { khung: 13, loai: 'co_the_meo', mo_ta: 'x' }, { khung: 2, loai: 'khac' as never, mo_ta: 'x' }, { khung: 3, loai: 'chu_tren_vat', mo_ta: 'Jett on waistband' }], 6);
-assert.deepStrictEqual(bd, ['chữ tự in trên đồ vật từ giây 1.3: Jett on waistband', 'trang phục biến dạng từ giây 3.8: crotch drops']);
+// Biến dạng: khung → giây giữa khung (8 khung trên 8s → khung 3 = 2.5s, khung 7 = 6.5s); mỗi loại một câu, khung sớm nhất; khung / loại lạ bỏ
+const bd = loiTuBienDang([{ khung: 8, loai: 'trang_phuc_bien_dang', mo_ta: 'pants balloon' }, { khung: 7, loai: 'trang_phuc_bien_dang', mo_ta: 'crotch drops' },
+  { khung: 9, loai: 'co_the_meo', mo_ta: 'x' }, { khung: 2, loai: 'khac' as never, mo_ta: 'x' }, { khung: 3, loai: 'chu_tren_vat', mo_ta: 'Jett on waistband' }], 8);
+assert.strictEqual(N_KHUNG_BD, 8);
+assert.deepStrictEqual(bd, ['chữ tự in trên đồ vật từ giây 2.5: Jett on waistband', 'trang phục biến dạng từ giây 6.5: crotch drops']);
 assert.deepStrictEqual(loiTuBienDang([], 6), []);
 assert.ok(loiDanBienDang('blue jeans').includes('blue jeans') && loiDanBienDang('').includes(String(N_KHUNG_BD)));
 assert.ok(loiDanBienDang('x', 'split frame old vs new').includes('split frame old vs new') && !loiDanBienDang('x').includes('MEANT'), 'ý đồ shot chỉ có khi truyền');

@@ -10,20 +10,27 @@ import { giaChuCents } from './kieu';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
 export const MO_HINH_BD = 'gemini-3.8-flash';
-const anhGhep = (url: string, dai: number) => new Promise<Buffer | null>((ok) => execFile('ffmpeg', ['-v', 'error', '-t', String(dai), '-i', url,
-  '-vf', `fps=${N_KHUNG_BD / dai},scale=270:-2,tile=6x2`, '-frames:v', '1', '-q:v', '4', '-f', 'mjpeg', 'pipe:1'],
-  { encoding: 'buffer', maxBuffer: 1 << 25, timeout: 90_000 }, (e, b) => ok(e || !(b as Buffer).length ? null : (b as Buffer))));
+/** N_KHUNG_BD khung RỜI (giữa mỗi đoạn đều nhau) trong `dai` giây đầu, rộng 448px — gửi thành ảnh riêng, không ghép (ghép thì bị nén mất chi tiết chân tay). */
+const khungRoi = async (url: string, dai: number): Promise<string[] | null> => {
+  const ra: string[] = [];
+  for (let i = 0; i < N_KHUNG_BD; i++) {
+    const b = await new Promise<Buffer | null>((ok) => execFile('ffmpeg', ['-v', 'error', '-ss', String(Math.round(((i + 0.5) * dai / N_KHUNG_BD) * 100) / 100), '-i', url, '-frames:v', '1',
+      '-vf', 'scale=448:-2', '-q:v', '4', '-f', 'mjpeg', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 24, timeout: 60_000 }, (e, x) => ok(e || !(x as Buffer).length ? null : (x as Buffer))));
+    if (b) ra.push(b.toString('base64'));
+  }
+  return ra.length >= N_KHUNG_BD - 1 ? ra : null;
+};
 
 /** `dai` = số giây ĐẦU clip được soi — truyền đúng đoạn bản xuất dùng (giây phát + phần bỏ đầu), không phải cả clip: 12 khung rải trên 8s bỏ lọt
  *  chỗ chân dính vào nhau chỉ ~0,5s trong 3,3s được dùng (#127 shot 12, anh 17/10/2026). */
 export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number } | null> {
   if (!khoaGoogle()) return null;
-  const anh = await anhGhep(o.url, o.dai); if (!anh) return null;
+  const anh = await khungRoi(o.url, o.dai); if (!anh) return null;
   const schema = { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'OBJECT',
     properties: { khung: { type: 'INTEGER' }, loai: { type: 'STRING', enum: [...LOAI_BD] }, mo_ta: { type: 'STRING' } }, required: ['khung', 'loai', 'mo_ta'] } } }, required: ['loi'] };
-  const parts = [{ text: loiDanBienDang(o.sp, o.yDo) }, { inlineData: { mimeType: 'image/jpeg', data: anh.toString('base64') } }];
+  const parts = [{ text: loiDanBienDang(o.sp, o.yDo) }, ...anh.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))];
   // hai lượt song song, giữ lỗi cả hai cùng thấy (giaoBienDang) — một lượt lẻ báo nhầm quá nhiều để làm cổng chặn
-  const [x, y] = await Promise.all([goiGeminiJson<{ loi?: LoiBienDang[] }>(parts, schema), goiGeminiJson<{ loi?: LoiBienDang[] }>(parts, schema)]);
+  const [x, y] = await Promise.all([goiGeminiJson<{ loi?: LoiBienDang[] }>(parts, schema, 'MEDIA_RESOLUTION_MEDIUM'), goiGeminiJson<{ loi?: LoiBienDang[] }>(parts, schema, 'MEDIA_RESOLUTION_MEDIUM')]);
   if (!x || !y) return null;
   const tk = { in: x.tk.in + y.tk.in, out: x.tk.out + y.tk.out };
   const cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
@@ -31,9 +38,9 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
   return { loi: loiTuBienDang(tho, o.dai), tho, cents };
 }
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */
-export async function goiGeminiJson<T>(parts: unknown[], schema: unknown): Promise<{ data: T; tk: { in: number; out: number } } | null> {
+export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string): Promise<{ data: T; tk: { in: number; out: number } } | null> {
   const key = khoaGoogle(); if (!key) return null;
-  const body = { contents: [{ role: 'user', parts }], generationConfig: { thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: schema } };
+  const body = { contents: [{ role: 'user', parts }], generationConfig: { ...(mediaResolution ? { mediaResolution } : {}), thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: schema } };
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MO_HINH_BD}:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
     if (!r.ok) { console.error('[gemini json]', r.status, (await r.text()).slice(0, 200)); return null; }

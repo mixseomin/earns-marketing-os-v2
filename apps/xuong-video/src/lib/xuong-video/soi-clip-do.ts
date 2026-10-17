@@ -66,19 +66,21 @@ export function matTroiClip(diem: { giay: number; giong: number }[], nguong = 0.
 /** BIẾN DẠNG trong clip (anh 17/10/2026: "giây 11 thì quần lòi ra ngoài. Rất hay bị lỗi này" — #120 shot 4 đứng dậy từ ngồi xổm, quần phồng như
  *  quần thụng, đũng tụt, cạp tự in chữ "Jett"). Đo hình học theo màu không tách được nếp gấp / bóng khỏi khe hai ống (thử 8 clip #120: lẫn lộn),
  *  nên soi bằng mô hình nhìn ảnh rẻ trên MỘT ảnh ghép N_KHUNG_BD khung. Phần thuần: lời dặn + đọc kết quả → câu lỗi kèm giây. */
-export const N_KHUNG_BD = 12;
+/** Số khung RỜI gửi soi (17/10/2026: ghép 12 khung thành một ảnh thì Gemini nén còn ~1.400 token, chân dính nhau ở #127 shot 12 lọt; 8–10 khung rời
+ *  độ phân giải vừa ~5k token bắt được). */
+export const N_KHUNG_BD = 8;
 export const LOAI_BD = ['trang_phuc_bien_dang', 'co_the_meo', 'chu_tren_vat', 'san_pham_doi_kieu', 'vat_the_la'] as const;
 export type LoiBienDang = { khung: number; loai: (typeof LOAI_BD)[number]; mo_ta: string };
 const TEN_BD: Record<(typeof LOAI_BD)[number], string> = { trang_phuc_bien_dang: 'trang phục biến dạng', co_the_meo: 'cơ thể méo', chu_tren_vat: 'chữ tự in trên đồ vật',
   san_pham_doi_kieu: 'sản phẩm đổi kiểu', vat_the_la: 'vật thể lạ' };
 export function loiDanBienDang(sp: string, yDo = ''): string {
-  return `This image is a grid of ${N_KHUNG_BD} frames from ONE AI-generated video clip, in time order (left to right, top row then bottom row; frame 1 is top-left).
+  return `These ${N_KHUNG_BD} images are consecutive frames (1..${N_KHUNG_BD}, in time order) of ONE AI-generated video clip.
 ${yDo ? `What this shot is MEANT to show (anything described here is intentional, e.g. a different old garment, a rip, a split-screen comparison — not a defect): ${yDo}\n` : ''}The product (when it appears) should look like this: ${sp || '(no product description)'}
 Find AI-generation defects that an ordinary viewer would clearly notice at normal playback speed. Do NOT report style, lighting, motion blur, small expression changes, or anything the shot intent above describes. When unsure, do not report.
 Write mo_ta in short plain English.
 Defect types:
 - trang_phuc_bien_dang: clothing changes shape unnaturally between frames — pants ballooning or turning baggy, crotch dropping toward the knees, waistband or fabric bulging out, garment merging with the body or another object.
-- co_the_meo: distorted anatomy — extra/missing/melted limbs or fingers, legs bending the wrong way, body proportions changing.
+- co_the_meo: distorted anatomy — check EVERY frame closely: count legs, feet, arms, hands; a leg merging into the other leg or the body, a limb disappearing or duplicated, a joint bending at an impossible place, not being able to tell which leg is which, melted fingers, body proportions changing.
 - chu_tren_vat: letters, logos or words printed or appearing on the product, clothing or objects (any readable text at all).
 - san_pham_doi_kieu: the product changes design or color compared with the description or with earlier frames.
 - vat_the_la: objects appearing, vanishing or morphing.

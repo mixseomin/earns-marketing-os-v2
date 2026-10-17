@@ -1,6 +1,6 @@
 // Tự kiểm soi-clip-do.ts: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/soi-clip-do.test.mts
 import assert from 'node:assert';
-import { hsv, mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung } from './soi-clip-do';
+import { hsv, mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, loiTuBienDang, loiDanBienDang, N_KHUNG_BD } from './soi-clip-do';
 
 const anh = (mau: [number, number, number][], n: number[]) => { const a: number[] = []; mau.forEach((m, k) => { for (let i = 0; i < n[k]!; i++) a.push(...m); }); return new Uint8Array(a); };
 const XANH: [number, number, number] = [40, 80, 200], DA: [number, number, number] = [220, 170, 130], TRANG: [number, number, number] = [245, 245, 245], XAM: [number, number, number] = [90, 90, 95];
@@ -39,3 +39,10 @@ console.log('soi-clip-do: đạt');
   assert.deepEqual(matTroiClip(d([0.2, 0.3])), [0, 1]);
   console.log('soi-clip-do.test: mặt trôi ok');
 }
+
+// Biến dạng: khung → giây giữa khung (clip 6s, 12 khung → khung 8 = 3.75s); mỗi loại một câu, khung sớm nhất; khung / loại lạ bỏ
+const bd = loiTuBienDang([{ khung: 9, loai: 'trang_phuc_bien_dang', mo_ta: 'pants balloon' }, { khung: 8, loai: 'trang_phuc_bien_dang', mo_ta: 'crotch drops' },
+  { khung: 13, loai: 'co_the_meo', mo_ta: 'x' }, { khung: 2, loai: 'khac' as never, mo_ta: 'x' }, { khung: 3, loai: 'chu_tren_vat', mo_ta: 'Jett on waistband' }], 6);
+assert.deepStrictEqual(bd, ['chữ tự in trên đồ vật từ giây 1.3: Jett on waistband', 'trang phục biến dạng từ giây 3.8: crotch drops']);
+assert.deepStrictEqual(loiTuBienDang([], 6), []);
+assert.ok(loiDanBienDang('blue jeans').includes('blue jeans') && loiDanBienDang('').includes(String(N_KHUNG_BD)));

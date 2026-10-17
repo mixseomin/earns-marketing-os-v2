@@ -62,3 +62,33 @@ export function matTroiClip(diem: { giay: number; giong: number }[], nguong = 0.
   const duoi = diem.filter((d) => d.giong < nguong);
   return duoi.length >= 2 && duoi.length / diem.length >= 0.4 ? duoi.map((d) => d.giay) : null;
 }
+
+/** BIẾN DẠNG trong clip (anh 17/10/2026: "giây 11 thì quần lòi ra ngoài. Rất hay bị lỗi này" — #120 shot 4 đứng dậy từ ngồi xổm, quần phồng như
+ *  quần thụng, đũng tụt, cạp tự in chữ "Jett"). Đo hình học theo màu không tách được nếp gấp / bóng khỏi khe hai ống (thử 8 clip #120: lẫn lộn),
+ *  nên soi bằng mô hình nhìn ảnh rẻ trên MỘT ảnh ghép N_KHUNG_BD khung. Phần thuần: lời dặn + đọc kết quả → câu lỗi kèm giây. */
+export const N_KHUNG_BD = 12;
+export const LOAI_BD = ['trang_phuc_bien_dang', 'co_the_meo', 'chu_tren_vat', 'san_pham_doi_kieu', 'vat_the_la'] as const;
+export type LoiBienDang = { khung: number; loai: (typeof LOAI_BD)[number]; mo_ta: string };
+const TEN_BD: Record<(typeof LOAI_BD)[number], string> = { trang_phuc_bien_dang: 'trang phục biến dạng', co_the_meo: 'cơ thể méo', chu_tren_vat: 'chữ tự in trên đồ vật',
+  san_pham_doi_kieu: 'sản phẩm đổi kiểu', vat_the_la: 'vật thể lạ' };
+export function loiDanBienDang(sp: string): string {
+  return `This image is a grid of ${N_KHUNG_BD} frames from ONE AI-generated video clip, in time order (left to right, top row then bottom row; frame 1 is top-left).
+The product shown in the clip should look like this the whole time: ${sp || '(no product description)'}
+Find AI-generation defects that a viewer would notice. Report ONLY clear defects, not style, lighting or mild motion blur:
+- trang_phuc_bien_dang: clothing changes shape unnaturally between frames — pants ballooning or turning baggy, crotch dropping toward the knees, waistband or fabric bulging out, garment merging with the body or another object.
+- co_the_meo: distorted anatomy — extra/missing/melted limbs or fingers, legs bending the wrong way, body proportions changing.
+- chu_tren_vat: letters, logos or words printed or appearing on the product, clothing or objects (any readable text at all).
+- san_pham_doi_kieu: the product changes design or color compared with the description or with earlier frames.
+- vat_the_la: objects appearing, vanishing or morphing.
+Give the frame number (1-${N_KHUNG_BD}) where each defect is clearest. If the clip is clean, return an empty list.`;
+}
+/** Kết quả mô hình → câu lỗi cho soi_clip.loi (giây = giữa khung). Khung ngoài 1..N hoặc loại lạ thì bỏ. Mỗi loại một câu (khung sớm nhất). */
+export function loiTuBienDang(ds: LoiBienDang[], dai: number): string[] {
+  const ra = new Map<string, string>();
+  for (const x of [...ds].sort((a, b) => a.khung - b.khung)) {
+    if (!LOAI_BD.includes(x.loai) || x.khung < 1 || x.khung > N_KHUNG_BD || ra.has(x.loai)) continue;
+    const giay = Math.round(((x.khung - 0.5) * dai / N_KHUNG_BD) * 10) / 10;
+    ra.set(x.loai, `${TEN_BD[x.loai]} từ giây ${giay}: ${x.mo_ta.trim().slice(0, 160)}`);
+  }
+  return [...ra.values()];
+}

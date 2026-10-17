@@ -102,10 +102,11 @@ export const amLand = (de: DeLand) => { const { T_CUA, buocTu, T_KET } = nhipLan
 export function lenhLand(o: { de: DeLand; ass: string; nen?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const DAI = Number(nhipLand(o.de).DAI.toFixed(2));
   // nền = ảnh thật của nước (nen_url của video, Pexels): phủ kín khung, đẩy chậm (zoom 1 → 1,06), làm tối + mờ nhẹ cho chữ đọc rõ
-  const vao = o.nen ? ['-loop', '1', '-framerate', String(FPS), '-t', String(DAI), '-i', o.nen]
+  // ảnh nền vào MỘT khung (không -loop 1: ffmpeg giải mã lại JPEG mỗi khung — đo box3 17/10/2026: 23,2s → 8,9s khi xử lý ảnh một lần rồi loop)
+  const vao = o.nen ? ['-i', o.nen]
     : ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=linear:x0=0:y0=0:x1=0:y1=${H}:c0=0x123B5E:c1=0x0B1D33:c2=0x081424:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
   // lia chậm từ trên xuống bằng crop theo t (17/10/2026: zoompan ở cỡ 2x tốn ~35s/video — crop trên ảnh 1,08x rẻ hơn hẳn, vẫn có chuyển động)
-  const nen = o.nen ? `[0:v]scale=${Math.round(W * 1.08)}:${Math.round(H * 1.08)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.08)}:${Math.round(H * 1.08)},crop=${W}:${H}:x='(iw-ow)/2':y='(ih-oh)*t/${DAI}',eq=brightness=-0.22:saturation=0.85,boxblur=2:1`
+  const nen = o.nen ? `[0:v]scale=${Math.round(W * 1.08)}:${Math.round(H * 1.08)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.08)}:${Math.round(H * 1.08)},eq=brightness=-0.22:saturation=0.85,boxblur=2:1,loop=loop=-1:size=1:start=0,fps=${FPS},crop=${W}:${H}:x='(iw-ow)/2':y='(ih-oh)*t/${DAI}'`
     : '[0:v]null';
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];

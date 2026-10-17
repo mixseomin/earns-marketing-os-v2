@@ -27,7 +27,10 @@ const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown 
 const p = await q(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`);
 if (!p[0]) { console.error('không thấy phim'); process.exit(1); }
 const kt = docKinhThanh(p[0].kinh_thanh as never);
-const anchorThieu = await q(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(anh_ref) = 0 AND mo_ta <> '' ORDER BY id`);
+// Bối cảnh CÓ BỘ SET 3D không sinh ảnh mẫu (anh 17/10/2026 "để khi đổi góc quay AI không bịa"): keyframe shot có khung 3D bỏ ảnh bối cảnh khỏi
+// tham chiếu (sinh-anh.ts › nvRef) — nguồn hình phòng là bộ set + tên tiếng Anh từng khối; ảnh AI tả lại phòng chỉ tốn tiền và đẻ bản phòng thứ hai.
+// Thẻ bối cảnh đó hiện ảnh 3D (anh-set-3d.tsx). Muốn ảnh AI thì bấm sinh tay trên thẻ.
+const anchorThieu = await q(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(anh_ref) = 0 AND mo_ta <> '' AND NOT (loai = 'boi_canh' AND bo_set_id IS NOT NULL) ORDER BY id`);
 const tap = await q(sql`SELECT id, so FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`);
 const tapId = Number(tap[0]?.id ?? 0);
 const canhThieu = tapId ? await q(sql`SELECT id, thu_tu, canh FROM xv_canh WHERE tap_id = ${tapId} AND keyframe_url IS NULL AND prompt_anh <> '' ORDER BY thu_tu`) : [];

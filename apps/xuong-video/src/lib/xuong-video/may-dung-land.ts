@@ -4,7 +4,7 @@
 // KHÔNG nói giá, dung lượng, tốc độ, nhà mạng — những thứ đổi theo tuần và mình không đo được (cùng luật với site esimfares).
 // Nhịp: 0 tên nước đập vào · 3,0 thẻ cửa ngõ + dải cảnh báo roaming · 8,0 ba bước (tick lần lượt) · 12,6 màn kết: so gói eSIM ở esimfares.com.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-land.test.mts
-import { alpha, bo, chu, mauAss, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 
 export interface DeLand {
   iso: string;                                        // mã nước 2 chữ thường (trang esimfares.com/<iso>/)
@@ -63,7 +63,7 @@ export function assLand(de: DeLand): string {
     d.push([3, tu, T_KET, 'Ve', `{\\an5\\pos(540,${y})\\1c${mauAss(SAU)}\\1a${alpha(0.82)}\\fad(150,0)\\p1}${bo(980, Math.min(160, buoc - 20), 26)}`]);
     d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(130,${y})\\1c${mauAss(XANH)}\\fscx50\\fscy50\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(96, 96, 48)}`]);
     d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(130,${y + 2})${fs(46)}\\1c${mauAss(SAU)}}${i + 1}`]);
-    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${chu(s)}`]);
+    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${ngat(s, 30).map(chu).join('\\N')}`]);   // tên nước dài (United Arab Emirates) → tự xuống dòng, không tràn mép
   }
   // ── màn kết
   const fad = '\\fad(300,0)';

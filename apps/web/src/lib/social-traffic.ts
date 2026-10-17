@@ -110,14 +110,14 @@ const giua = (a: number[]) => { if (!a.length) return 0; const x = [...a].sort((
    Nguồn chuẩn = VAULT: mọi tài khoản mạng xã hội còn sống có dự án (platform_accounts.project_id) — lập kênh nào cũng phải `browsers link … <dự án>`,
    nên kênh tự hiện ngay lúc lưu vault, không cần thêm bước. Kênh đã khai trong máy đăng (xv_may.dang[].br.acct) lấy thêm tên máy làm nhóm và số video
    máy đã đăng lên nền đó (xv_may_video.da_dang); kênh chưa gắn máy nhóm theo dự án. Chưa có máy đo lượt xem → daDo=false. */
-const NEN_TEN: Record<string, string> = { youtube: 'YouTube Shorts', facebook: 'Facebook Reels', instagram: 'Instagram Reels', x: 'X', twitter: 'X', tiktok: 'TikTok', pinterest: 'Pinterest', threads: 'Threads', quora: 'Quora' };
+const NEN_TEN: Record<string, string> = { youtube: 'YouTube Shorts', facebook: 'Facebook Reels', instagram: 'Instagram Reels', x: 'X', twitter: 'X', tiktok: 'TikTok', pinterest: 'Pinterest', threads: 'Threads', quora: 'Quora', dailymotion: 'Dailymotion' };
 async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<number>, homMs: number): Promise<StKenh[]> {
   const r = (await d.execute(sql`SELECT a.id, a.platform_key, a.handle, a.status, a.proxy_id, a.created_at::date::text AS tao, coalesce(p.name, a.project_id) AS du_an,
       may.ten AS may, may.da_dang
     FROM platform_accounts a LEFT JOIN projects p ON p.id = a.project_id
     LEFT JOIN LATERAL (SELECT m.ten, (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen')) AS da_dang
       FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE n->'br'->>'acct' = a.id::text LIMIT 1) may ON true
-    WHERE a.project_id IS NOT NULL AND a.platform_key IN (${sql.join([...MXH, 'quora'].map((x) => sql`${x}`), sql`, `)})
+    WHERE a.project_id IS NOT NULL AND a.platform_key IN (${sql.join([...MXH, 'quora', 'dailymotion'].map((x) => sql`${x}`), sql`, `)})
       AND coalesce(a.status, '') NOT IN ('closed', 'banned')
       -- Facebook: kênh là PAGE (vault ghi "(Page)"); tài khoản FB cá nhân chỉ để đăng nhập (htuan82@, mixseo@…) không phải kênh — trừ khi máy đăng khai nó
       AND (a.platform_key <> 'facebook' OR a.handle ILIKE '%(Page)%' OR may.ten IS NOT NULL)

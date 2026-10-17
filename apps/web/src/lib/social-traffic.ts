@@ -173,7 +173,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         const ngayDau = dau.find((x) => x.du_an === da && x.kenh === key)?.dau ?? t?.tao ?? hom;
         // lần đăng cuối = video mới nhất CỦA NỀN NÀY (sổ số video ghi ngayDang từng video) · landing chính = đích nhiều sản phẩm trỏ nhất
         const dangCuoi = dongs.filter((x) => x.kenh === key).flatMap((x) => x.videos.map((v) => v.ngayDang ?? '')).reduce((a, x) => (x > a ? x : a), '') || null;
-        const dem = new Map<string, number>(); for (const sp of kenhSp.filter((x) => x.project === da)) { const u = sp.o[key]?.dich; if (u) dem.set(u, (dem.get(u) ?? 0) + 1); }
+        const dem = new Map<string, number>(); for (const sp of kenhSp.filter((x) => x.project === da)) { const u = sp.o[key === 'pinterest' ? 'pinterest' : 'shorts']?.dich;   /* kenh_sp gộp mọi nền video ngắn dưới khoá 'shorts' */ if (u) dem.set(u, (dem.get(u) ?? 0) + 1); }
         const landing = [...dem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
         const daDang = key === 'pinterest' ? kenhSp.filter((x) => x.project === da).reduce((a, x) => a + (x.o.pinterest?.xong ?? 0), 0) : n?.soVideo ?? 0;
         kenh.push({

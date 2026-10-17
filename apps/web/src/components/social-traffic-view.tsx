@@ -149,7 +149,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'phien30', header: '30 ngày', align: 'right', sortValue: (x) => x.phien30, cell: (x) => kd(x, so(x.phien30)) },
   ];
   const cotKenh: DataColumn<StKenh>[] = [
-    { key: 'ten', header: 'Kênh', align: 'left', sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 8, alignItems: 'center' }}><span style={{ gridRow: 'span 2' }}><Logo ten={k.nenTang} co={20} /></span><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
+    { key: 'ten', header: 'Kênh', align: 'left', width: 230, sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 8, alignItems: 'center' }}><span style={{ gridRow: 'span 2' }}><Logo ten={k.nenTang} co={20} /></span><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
     { key: 'proxy', header: 'Proxy', align: 'left', cell: (k) => <span style={nho}>{k.proxy}</span> },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (k) => <Pill color={TT_KENH[k.tt][0]} label={TT_KENH[k.tt][1]} uppercase={false} /> },
     { key: 'ngay', header: 'Ngày', sortValue: (k) => k.ngay, cell: (k) => k.ngay },
@@ -275,7 +275,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             const loc = d.kenh.filter((k) => (locNen === 'all' || k.nenTang === locNen) && (locNhom === 'all' || k.nhom === locNhom));
             const khoa = gopKenh === 'nen' ? (k: StKenh) => k.nenTang : gopKenh === 'goc' ? (k: StKenh) => k.nhom : null;
             const nhom = khoa ? [...new Set(loc.map(khoa))].map((g) => ({ g, ks: loc.filter((k) => khoa(k) === g) })) : [{ g: '', ks: loc }];
-            const bang = (ks: StKenh[], key: string) => <DataTable key={key} rows={ks} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={1100}
+            const bang = (ks: StKenh[], key: string) => <DataTable key={key} rows={ks} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={1380}
               searchText={(k) => `${k.ten} ${k.nenTang} ${k.nhom} ${k.landing ?? ''}`} searchPlaceholder="Tìm kênh / góc / landing…" />;
             return <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

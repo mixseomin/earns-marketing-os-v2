@@ -63,7 +63,8 @@ export const moTaVi = (c: Pick<Canh, 'hanh_dong' | 'hanh_dong_vi'>): string => c
 export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[]; /** điểm giống ảnh mẫu theo nhân vật, từng khung chấm được (soi-mat.ts › soiMatClip) */ mat?: Record<string, { giay: number; giong: number }[]>; /** lỗi biến dạng đã xác nhận (soi-bien-dang.ts) */ bien_dang?: { khung: number; loai: string; mo_ta: string }[]; /** lỗi NHẸ (chỉ thấy khi dừng hình) — không chặn, hiện để người duyệt xem */ canh_bao?: string[] }; bo_qua?: boolean };
 /** Lỗi soi còn hiệu lực của shot: soi đúng clip đang dùng, có lỗi, chưa ai bỏ qua. */
 export const loiSoiClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url' | 'soi_clip'>): string[] => { const u = c.video_cuoi_url || c.video_url; const k = c.soi_clip; return u && k && k.url === u && !k.bo_qua ? k.loi : []; };
-export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'];
+// 17/10/2026: anh mở lại Grok cho QC người thật — phụ đề giả Grok tự in giờ do máy soi bắt (soi-clip.ts: chữ lạ tesseract + soi biến dạng 'chữ tự in') và vòng tự sửa sinh lại.
+export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes'];
 export const hopQc = (key: string, laQc: boolean): boolean => !(laQc && MO_HINH_KHONG_QC.includes(key));
 export const MO_HINH_VIDEO = [
   { key: 'veo-3.1-lite-generate-preview', label: 'Veo 3.1 Lite (rẻ nhất: $0,40 / 8s 720p)', giaGiay: { '720p': 5, '1080p': 8 } },

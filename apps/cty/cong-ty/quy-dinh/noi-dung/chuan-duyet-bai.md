@@ -38,6 +38,17 @@ cảm xúc đó ở câu đầu, rồi trả lời nhanh hơn họ kịp chán. 
 - **Không bịa**: không số liệu, không "theo nghiên cứu", không lời chứng thực, không tên người thật. Cảnh mẫu ghi rõ là mẫu.
   Thiếu số liệu thật thì viết chỗ đó cụ thể bằng ví dụ, không bằng con số.
 
+### Hình thức BẮT BUỘC (17/10/2026 — bản 1.835 chữ được phòng chấm 10/10 mà anh vẫn "không đạt": tường chữ, không một hình)
+
+Chữ hay mà trông như tường chữ thì người đọc vẫn bỏ đi. Bài cho traffic mạng xã hội phải có:
+- **Hình ngay màn đầu**: ảnh / minh hoạ / khung ví dụ nhìn thấy trước khi cuộn (không chỉ tiêu đề + chữ).
+- **Nhúng chính video kéo người đọc tới** (nếu bài là đích của video) — người vừa xem video thấy đúng thứ đó, tin ngay.
+- **Ví dụ trông như thật**: tin nhắn trong khung bong bóng / màn điện thoại, dấu hiệu được khoanh / tô ngay trên ví dụ — không phải đoạn chữ thụt lề.
+- **Mật độ hình**: tối đa ~300 chữ giữa hai khối nhìn được (hình, khung ví dụ, bảng có khung, câu đố, checklist).
+- **Bảng / câu đố / checklist có kiểu dáng** (khung, màu đúng / sai), không phải chữ trơn xếp cột.
+- **Trên máy tính không bỏ trống nửa màn**: cột bên (mục lục dính, tóm tắt 5 dấu hiệu, nút) hoặc bố cục rộng hơn.
+- **Nút hành động lặp lại** ở giữa bài và cuối bài; trên điện thoại có thanh nút dính đáy.
+
 ### Giữ người đọc trên trang (hình thức)
 
 - Đoạn 1–3 câu trên điện thoại. Tiêu đề mục là câu có thông tin ("A deadline you didn't agree to"), không phải nhãn ("Deadline").
@@ -52,6 +63,8 @@ cảm xúc đó ở câu đầu, rồi trả lời nhanh hơn họ kịp chán. 
 3. **Nộp Phòng Nội dung của cty** (cty.on.tc) để duyệt — bài mới KHÔNG lên trang khi phòng chưa DUYỆT. Phòng chấm theo chính tệp này.
 
 # Phần 2 · Giọng văn (chặn cứng thì ít nhất SỬA LẠI)
+
+- **Chặn cứng hình thức:** không có khối hình nào (ảnh / video / khung ví dụ có kiểu dáng) hoặc quá ~300 chữ mỗi khối hình → không được DUYỆT. Máy đo đếm sẵn (so_hinh, chu_moi_hinh); bạn chỉ thấy chữ, nên tin số máy đo cho phần hình.
 
 - **Chặn cứng:** gạch ngang dài (— hoặc –) trong chữ; từ máy: delve, leverage, utilize, crucial, vital, comprehensive, robust,
   streamline, moreover, furthermore, seamless, game-changer, cutting-edge, state-of-the-art, "in today's world", "in the realm of",

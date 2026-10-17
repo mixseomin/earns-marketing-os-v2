@@ -39,12 +39,30 @@ ${sp ? `The product must match this description exactly: ${sp}\n` : ''}List only
   await ghiTienChu(db, phimId, `soi keyframe #${c.thu_tu}`, MO_HINH_BD, { in: x.tk.in + y.tk.in, out: x.tk.out + y.tk.out }, 'google');
   return (x.data.loi ?? []).length && (y.data.loi ?? []).length ? (x.data.loi ?? []) : [];
 }
+/** Viết lại prompt khung (prompt_anh) theo lỗi soi keyframe: giữ NGUYÊN đoạn mô tả sản phẩm (thay bằng ‹sản phẩm› khi gửi, ghép lại sau),
+ *  đổi khung hình / bố cục / tư thế để model ảnh vẽ đúng — vd cận cảnh sản phẩm sai kiểu → khung trung cả người. null = không viết được. */
+async function vietLaiPromptAnh(db: Db, c: Canh, phimId: number, loi: string[]): Promise<string | null> {
+  const sp = await moTaSp(db, c); const goc = sp ? c.prompt_anh.split(sp).join('‹PRODUCT›') : c.prompt_anh;
+  const r = await goiGeminiJson<{ prompt?: string }>([{ text: `Rewrite this text-to-image prompt for the FIRST FRAME of an ad shot. The image model keeps drawing it wrong: ${loi.join(' | ')}
+Current prompt (‹PRODUCT› is a fixed product description that must stay EXACTLY as the token ‹PRODUCT›, once): ${goc}
+On-screen text the frame must support: ${c.chu_man || '(none)'}
+Change framing / composition / pose so the model renders the product correctly (e.g. a medium or full-body shot instead of a tight close-up when the close-up gets the product details wrong), keep the same person, setting and meaning. Hands out of frame or relaxed at the sides. Plain English, under 90 words plus the ‹PRODUCT› token.` }],
+    { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] });
+  if (!r) return null;
+  await ghiTienChu(db, phimId, `viết lại prompt khung #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
+  const p = (r.data.prompt ?? '').trim();
+  if (!p || (sp && !p.includes('‹PRODUCT›'))) return null;
+  return sp ? p.split('‹PRODUCT›').join(sp) : p;
+}
 /** Sinh lại keyframe tới khi soi sạch (tối đa `toiDa` ảnh, ~3¢/ảnh), chọn + duyệt ảnh sạch. Trả lỗi còn lại (rỗng = sạch). */
 async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, log: (s: string) => void): Promise<string[]> {
   let c = await docCanh(db, id);
   let loi = await soiKeyframe(db, c, phimId) ?? [];
   for (let i = 0; loi.length && i < toiDa; i++) {
+    c = await docCanh(db, id);
     log(`  #${c.thu_tu} keyframe sai (${loi.join(' | ')}) — sinh lại keyframe lần ${i + 1}`);
+    // từ lần 2: viết lại prompt KHUNG theo lỗi (giữ nguyên mô tả sản phẩm) — 17/10/2026 #120 shot 3: cận cảnh quần cứ ra jeans 5 túi, khung trung thì đúng
+    if (i > 0) { const pa = await vietLaiPromptAnh(db, c, phimId, loi); if (pa) { await db.execute(sql`UPDATE xv_canh SET prompt_anh = ${pa}, updated_at = now() WHERE id = ${id}`); log(`  #${c.thu_tu} prompt khung mới: ${pa.split(await moTaSp(db, c)).join('‹sản phẩm›').slice(0, 300)}`); } }
     const r = await sinhKeyframeCanh(db, id, 1);
     if (!r.ok) return [`không sinh được keyframe: ${r.loi}`];
     const t0 = Date.now(); let url: string | null = null;
@@ -91,8 +109,8 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
       lan++;
       // khung đầu sai (soi keyframe) hoặc clip sai sản phẩm ngay từ đầu → lỗi ở KEYFRAME, sinh lại keyframe chứ không đốt tiền video
       if (lan === 1 || loi.some((x) => /sản phẩm đổi kiểu từ giây 0\.|khung không thấy sản phẩm/.test(x))) {
-        const kf = await keyframeSach(db, c.id, phimId, 2, log);
-        if (kf.length) { ket = 'loi'; loi = [`keyframe vẫn sai sau 2 lần sinh lại: ${kf.join(' | ')}`]; break; }
+        const kf = await keyframeSach(db, c.id, phimId, 3, log);
+        if (kf.length) { ket = 'loi'; loi = [`keyframe vẫn sai sau 3 lần sinh lại: ${kf.join(' | ')}`]; break; }
         c = await docCanh(db, c.id);
       }
       const moi = await vietLaiPrompt(db, c, phimId, loi, daThu);

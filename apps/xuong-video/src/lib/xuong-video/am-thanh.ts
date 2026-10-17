@@ -15,6 +15,9 @@ export type MoHinhAm = { key: string; ten: string; loai: LoaiAm; /** cents mỗi
 export const MO_HINH_AM: MoHinhAm[] = [
   { key: 'fal-ai/elevenlabs/tts/eleven-v3', ten: 'ElevenLabs v3 (diễn cảm xúc)', loai: 'giong', gia: 10, donVi: '1k_ky_tu', ghiChu: 'Diễn cảm tốt nhất, hiểu thẻ [sad] [whispers] [excited]; nhiều ngôn ngữ kể cả tiếng Việt' },
   { key: 'fal-ai/minimax/speech-02-hd', ten: 'MiniMax Speech 02 HD', loai: 'giong', gia: 10, donVi: '1k_ky_tu', ghiChu: 'Có tham số cảm xúc (vui/buồn/sợ/giận), tối ưu tiếng Việt' },
+  // 2.8 (17/10/2026, tổng tài dùng bộ giọng châu Á): danh mục fal không ghi giá → sổ job ghi 0¢. Giá theo trang model trên fal ($0,1 / $0,06 mỗi 1.000 ký tự).
+  { key: 'fal-ai/minimax/speech-2.8-hd', ten: 'MiniMax Speech 2.8 HD', loai: 'giong', gia: 10, donVi: '1k_ky_tu', ghiChu: 'Hơn 300 giọng hệ thống kể cả Hoa / Hàn / Nhật / Việt (giong-minimax.ts), đọc tiếng Việt qua language_boost, có tham số cảm xúc' },
+  { key: 'fal-ai/minimax/speech-2.8-turbo', ten: 'MiniMax Speech 2.8 Turbo', loai: 'giong', gia: 6, donVi: '1k_ky_tu', ghiChu: 'Bản nhanh, rẻ hơn của 2.8 HD — cùng bộ giọng' },
   { key: 'mirelo-ai/sfx-v1/video-to-audio', ten: 'Mirelo SFX (từ clip)', loai: 'sfx_video', gia: 0.7, donVi: 'giay', ghiChu: 'Nghe hình mà tạo tiếng khớp hành động' },
   { key: 'fal-ai/elevenlabs/sound-effects/v2', ten: 'ElevenLabs SFX (từ mô tả)', loai: 'sfx_chu', gia: 0.2, donVi: 'giay', ghiChu: 'Hiệu ứng từ câu mô tả' },
   { key: 'sonilo/v1.1/text-to-sound-effects', ten: 'Sonilo SFX (từ mô tả, rẻ)', loai: 'sfx_chu', gia: 0.18, donVi: 'giay', ghiChu: 'Rẻ nhất' },

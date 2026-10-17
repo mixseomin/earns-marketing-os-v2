@@ -4,6 +4,7 @@
 // - ElevenLabs trực tiếp (khoá ELEVENLABS_API_KEY trên box): mọi giọng trong tài khoản (giọng clone, giọng thêm từ thư viện),
 //   tính vào gói ElevenLabs của tài khoản thay vì fal. Không có khoá thì nhóm này không hiện.
 import 'server-only';
+import { GIONG_MINIMAX } from './giong-minimax';
 
 type Truong = { type?: string; enum?: unknown[]; examples?: unknown[]; anyOf?: Array<{ enum?: unknown[]; $ref?: string }>; allOf?: Array<{ $ref?: string }>; $ref?: string; properties?: Record<string, Truong>; description?: string };
 export type MoHinhGiong = { key: string; ten: string; nhom: string; giaCents: number | null; donVi: '1k_ky_tu' | 'giay' | 'luot' | 'khac'; giaText: string };
@@ -106,7 +107,10 @@ export async function giongCua(model: string): Promise<{ id: string; ten: string
       return (j.voices ?? []).map((v) => ({ id: v.voice_id, ten: `${v.name}${v.labels ? ` · ${Object.values(v.labels).filter(Boolean).slice(0, 3).join(', ')}` : ''}${v.category && v.category !== 'premade' ? ` (${v.category})` : ''}` }));
     } catch { return []; }
   }
-  return (await moTaFal(model)).giong.map((g) => ({ id: g, ten: g }));
+  const fal = (await moTaFal(model)).giong.map((g) => ({ id: g, ten: g }));
+  // MiniMax: fal chỉ ghi 17 giọng tiếng Anh làm ví dụ — thêm đủ giọng hệ thống chính thức (Hoa / Hàn / Nhật / Việt…), giữ thứ tự ví dụ fal đứng đầu.
+  if (/minimax\/(preview\/)?speech/.test(model)) return [...fal, ...GIONG_MINIMAX.filter(([id]) => !fal.some((g) => g.id === id)).map(([id, nn, ten]) => ({ id, ten: `${nn} · ${ten}` }))];
+  return fal;
 }
 
 /** Đầu vào đúng khuôn của model: chữ + giọng + ngôn ngữ + cảm xúc (MiniMax có trường emotion; ElevenLabs v3 hiểu thẻ [sad]…). */

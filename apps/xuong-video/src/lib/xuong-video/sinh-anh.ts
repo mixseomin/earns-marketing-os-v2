@@ -282,7 +282,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const aoCua = (v: NhanVat) => btSo(v).map((b) => b.mo_ta.trim().replace(/[.\s]+$/, '').slice(0, 600)).filter(Boolean);
   const themCua = (v: NhanVat) => { const vt = vtCua(v); return vt ? [ket ? vt.toc_den ?? vt.toc : vt.toc, ket ? vt.trang_diem_den ?? vt.trang_diem : vt.trang_diem].filter((x): x is string => !!x?.trim()) : []; };
   const deoCua = (v: NhanVat) => { const vt = vtCua(v); return (ket ? vt?.do_deo_den ?? vt?.do_deo : vt?.do_deo) ?? ''; };
-  const taNv = (v: NhanVat, gon = false) => chuNguoi(v, { ao: aoCua(v), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua });
+  // toiDaTu: bước 1 FLUX đọc ~300 từ — bộ đồ rút còn vế đầu (dáng bộ đồ, chi tiết vết / hoạ tiết để bước 2 làm theo ảnh mẫu + mô tả đủ); #6 vết cà phê đủ chữ = 305 từ
+  const rut = (t: string, n?: number) => { if (!n) return t; const w = t.split(/\s+/); return w.length <= n ? t : `${w.slice(0, n).join(' ').replace(/[,;:]+$/, '')}…`; };
+  const taNv = (v: NhanVat, gon = false, toiDaTu?: number) => chuNguoi(v, { ao: aoCua(v).map((x) => rut(x, toiDaTu)), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua });
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").
@@ -320,7 +322,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const mon = trongS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
-        return `${taNv(v)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        return `${taNv(v, false, 32)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nen = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair")
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;

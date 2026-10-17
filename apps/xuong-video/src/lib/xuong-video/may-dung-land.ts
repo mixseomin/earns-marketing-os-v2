@@ -63,7 +63,7 @@ export function assLand(de: DeLand): string {
     d.push([3, tu, T_KET, 'Ve', `{\\an5\\pos(540,${y})\\1c${mauAss(SAU)}\\1a${alpha(0.82)}\\fad(150,0)\\p1}${bo(980, Math.min(160, buoc - 20), 26)}`]);
     d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(130,${y})\\1c${mauAss(XANH)}\\fscx50\\fscy50\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(96, 96, 48)}`]);
     d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(130,${y + 2})${fs(46)}\\1c${mauAss(SAU)}}${i + 1}`]);
-    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${ngat(s, 30).map(chu).join('\\N')}`]);   // tên nước dài (United Arab Emirates) → tự xuống dòng, không tràn mép
+    d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${ngat(s, 36).map(chu).join('\\N')}`]);   // tên nước dài (United Arab Emirates) → tự xuống dòng, không tràn mép
   }
   // ── màn kết
   const fad = '\\fad(300,0)';

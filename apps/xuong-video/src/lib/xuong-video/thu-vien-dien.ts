@@ -58,7 +58,7 @@ export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number } = {}): KetPh
     const bc2 = itNhat(nguon.filter((b) => b.nhom !== bc1.nhom).length ? nguon.filter((b) => b.nhom !== bc1.nhom) : nguon.filter((b) => b.ma !== bc1.ma), (b) => so(dNoi, b.ma) * 10 + so(dNhom, b.nhom), i * 11)!;
     tang(dNoi, bc2.ma); tang(dNhom, bc2.nhom);
     const ao = itNhat(AO, (a) => so(dAo, a), i)!; tang(dAo, ao);
-    const sk = itNhat(BOI_CANH.filter((b) => b.dip_en), (b) => so(dSk, b.ma), i * 3)!; tang(dSk, sk.ma);
+    const sk = itNhat(BOI_CANH.filter((b) => b.dip_en && b.ma !== bc1.ma && b.ma !== bc2.ma), (b) => so(dSk, b.ma), i * 3)!; tang(dSk, sk.ma);
     return { key: v.key, chinh, phu: { qh, dv: phu }, boi_canh: bc1, boi_canh_2: bc2, su_kien: sk, ao };
   });
 }

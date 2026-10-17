@@ -38,9 +38,12 @@ for g in json.load(sys.stdin)["data"]["gpuTypes"]:
         if gia: ds.append((gia / TOC[g["id"]], cl, g["id"], gia))
 for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
     echo "$DS" | while IFS='|' read -r cl gpu gia viec; do echo "  ứng viên: $gpu $cl \$$gia/giờ (theo việc $viec)" >&2; done
-    [ -n "${XV_CHI_XEM:-}" ] && exit 0   # XV_CHI_XEM=1: chỉ in ứng viên, không tạo máy (thử trước khi tốn tiền)
+    [ -n "${XV_CHI_XEM:-}" ] && exit 0
+    # khoá SSH CÔNG KHAI của máy đang chạy lệnh → biến PUBLIC_KEY (start.sh ghi vào authorized_keys). RunPod chỉ tự bơm khoá tài khoản khi bật
+    # startSsh — cờ đó dành cho image của họ; image riêng thì tự truyền (17/10/2026: 3 máy liền "Permission denied (publickey)").
+    KHOA=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1]).read().strip()))' "${XV_KHOA_SSH:-$HOME/.ssh/id_ed25519.pub}")   # XV_CHI_XEM=1: chỉ in ứng viên, không tạo máy (thử trước khi tốn tiền)
     while IFS='|' read -r cl gpu gia viec; do
-      R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"$ANH\", containerDiskInGb: 20, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30}) { id costPerHr } }")
+      R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"$ANH\", containerDiskInGb: 20, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30, env: [{key: \"PUBLIC_KEY\", value: $KHOA}]}) { id costPerHr } }")
       ID=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null || true)
       [ -n "$ID" ] && { echo "  → thuê $gpu $cl \$$gia/giờ" >&2; echo "$ID"; exit 0; }
       echo "  $gpu $cl: $(echo "$R" | LOI)" >&2
@@ -67,7 +70,9 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
       POD=${XV_POD:-}; XV_POD=""; [ -n "$POD" ] || POD=$(bash "$0" tao) || { echo "không tạo được máy"; POD=""; exit 1; }
       echo "pod $POD (lần $lan)"
       DC=$(bash "$0" cho "$POD" || true); H=${DC% *}; P=${DC##* }
-      if [ "${H#root@}" != "$H" ] && bash "$0" chuan-bi "$H" "$P"; then break; fi
+      RC=1; [ "${H#root@}" != "$H" ] && { RC=0; bash "$0" chuan-bi "$H" "$P" || RC=$?; }
+      [ $RC = 0 ] && break
+      [ $RC = 3 ] && { echo "lỗi cấu hình (khoá SSH) — dừng, không thuê thêm máy"; exit 1; }
       echo "máy $POD không dùng được ($DC) — xoá, thuê máy khác"; bash "$0" xoa "$POD"; POD=""
       [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
     done
@@ -78,7 +83,8 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
   chuan-bi)
     # máy mới có thể trùng ip:cổng với máy cũ (khoá host khác) → bỏ khoá cũ; sshd có thể lên sau khi cổng đã mở → đợi tới 60 giây
     ssh-keygen -R "[${HOST#*@}]:$CONG" >/dev/null 2>&1 || true
-    for i in $(seq 1 12); do E=$($SSH true 2>&1) && break; [ $i = 12 ] && { echo "SSH không vào được: $E"; exit 1; }; sleep 5; done
+    # bị từ chối khoá = lỗi CẤU HÌNH (máy nào cũng thế) → mã 3, lam dừng hẳn, không thuê máy khác; còn lại (cổng chưa mở…) = máy hỏng, mã 1
+    for i in $(seq 1 12); do E=$($SSH true 2>&1) && break; [ $i = 12 ] && { echo "SSH không vào được: $E"; echo "$E" | grep -q "Permission denied" && exit 3; exit 1; }; sleep 5; done
     $SSH "set -e; [ -f /usr/lib/x86_64-linux-gnu/libEGL.so.1 ] && command -v rsync >/dev/null && command -v xz >/dev/null || { (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync xz-utils libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 ffmpeg) >/dev/null; }
       if [ ! -x /opt/blender/blender ]; then cd /opt
         curl -fsSL -A 'Mozilla/5.0' -o $TEP https://download.blender.org/release/Blender5.0/$TEP || curl -fsSL -o $TEP https://mirrors.ocf.berkeley.edu/blender/release/Blender5.0/$TEP

@@ -87,7 +87,7 @@ shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao',
      {'bo_cuc': 'Insert on the phone screen in Hạ’s hand lighting up with a message, then tilt up to her face', 'mo': 'phone screen lights up', 'ket': 'Hạ’s subtle smirk', 'muc_dich': 'khán giả biết thân phận trước nhân vật', 'motif': 'tin nhắn luật sư — gieo cho cảnh 4'},
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
-     {'dat': [300, 600, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [HA], 'vi_tri': [vt(HA, [300, 560, 0], 180), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -60), LY_RONG(an=True)]},
+     {'dat': [300, 600, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [DT], 'vi_tri': [vt(HA, [300, 560, 0], 180), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -60), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──

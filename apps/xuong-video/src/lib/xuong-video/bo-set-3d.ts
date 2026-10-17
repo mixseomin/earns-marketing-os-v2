@@ -203,12 +203,12 @@ const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, 
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 /** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
-export const BAN_MAY = 3;   // 3 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI)
+export const BAN_MAY = 4;   // 3–4 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI), thêm OTS / two / insert
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 /** CỠ CẢNH NGƯỜI THẬT (anh 17/10/2026, previs tổng tài: shot "cận" ra toàn thân): PHAN_KHUNG viết cho nhân vật Tango tí hon (cận = ôm cả khối,
  *  nhắm giữa người). Người (khối 'nguoi', đứng) thì cận / trung cận / trung cảnh là một DẢI cơ thể tính từ đỉnh đầu — chuẩn ngành: CU đầu + vai,
  *  MCU từ ngực, MS từ thắt lưng — dải đó lấp ~90% khung dọc, máy nhắm giữa dải. Cảnh rộng / two / OTS vẫn ôm cả người. */
-export const BANG_NGUOI: Record<string, number> = { ecu: 0.08, cu: 0.2, mcu: 0.33, ms: 0.55 };
+export const BANG_NGUOI: Record<string, number> = { ecu: 0.08, cu: 0.2, mcu: 0.33, insert: 0.33, ots: 0.4, ms: 0.55, two: 0.6 };   // OTS: ngực trở lên + vai tiền cảnh; two-shot: thắt lưng trở lên; insert vào thân người: vùng ngực
 export const TAM_MAT_CM = 150;
 export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[]; hinh?: string } | null): May3d {
   const ong = ONG_MM[kt.ong_kinh ?? ''] ?? ONG_THEO_CO[kt.co_canh ?? ''] ?? 35;

@@ -4,7 +4,8 @@
 //   (--may mặc định front-porch-only-one)
 //   --nap                          đọc JSON đề từ stdin ([{slug, chu_de, de, dang}]) → video của máy (đề đổi thì video cũ bỏ, xuất lại)
 //   --ds [--ca-luu-tru]            in JSON { slug: { id, file_url, xuat_luc, da_dang, title, description, link, book, … } } — bên đăng / bên đọc số
-//   --xuat <slug|all-chua>         dựng video (MP4 + 3 khung) cho một slug, hoặc mọi video đang dùng chưa có video
+//   --xuat <slug|all-chua|all>     dựng video (MP4 + 3 khung) cho một slug, mọi video đang dùng chưa có video, hoặc dựng lại TẤT CẢ (đổi mẫu)
+//                                  — chạy song song SONG_SONG lượt trong một tiến trình (box3 4 nhân)
 //   --ghi-dang <slug> <nền>        stdin JSON { url, ngay, luc?, binhLuan? } → sổ đăng của video (gộp vào lượt đã có)
 //   --nap-nguon <tệp.json>         nạp cả tệp nguồn đề của mẫu (vd mau/may/scam-or-real.json) qua tuNguon của mẫu (mau-dung.ts)
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
@@ -34,13 +35,14 @@ if (a.includes('--nap')) {
 } else if (a.includes('--ds')) {
   process.stdout.write(JSON.stringify(await dsVideoDang(db, ma, a.includes('--ca-luu-tru'))));
 } else if (lay('--xuat') != null) {
-  const muc = lay('--xuat')!, ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all-chua' ? !x.file_url : slug === muc));
+  const muc = lay('--xuat')!, ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url : slug === muc));
   if (!ds.length) { console.error(muc === 'all-chua' ? 'không còn video nào chưa dựng' : `không có video "${muc}" (đang dùng) trong máy ${ma}`); process.exit(muc === 'all-chua' ? 0 : 1); }
-  let hong = 0;
-  for (const [slug, x] of ds) {
-    const t = Date.now(), r = await xuatVideo(db, Number(x.id));
+  let hong = 0, i = 0;
+  const SONG_SONG = 3, lam = async () => { while (i < ds.length) {
+    const [slug, x] = ds[i++]!, t = Date.now(), r = await xuatVideo(db, Number(x.id));
     console.log(r.ok ? `✓ ${slug} ${((Date.now() - t) / 1000).toFixed(1)}s` : `✗ ${slug}: ${r.loi}`); if (!r.ok) hong++;
-  }
+  } };
+  await Promise.all(Array.from({ length: Math.min(SONG_SONG, ds.length) }, lam));
   if (hong) process.exit(1);
 } else if (lay('--ghi-dang') != null) {
   const i = a.indexOf('--ghi-dang'), slug = a[i + 1], nen = a[i + 2];

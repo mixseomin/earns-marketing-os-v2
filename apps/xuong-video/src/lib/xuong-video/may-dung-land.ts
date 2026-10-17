@@ -104,12 +104,13 @@ export function lenhLand(o: { de: DeLand; ass: string; nen?: string | null; font
   // nền = ảnh thật của nước (nen_url của video, Pexels): phủ kín khung, đẩy chậm (zoom 1 → 1,06), làm tối + mờ nhẹ cho chữ đọc rõ
   const vao = o.nen ? ['-loop', '1', '-framerate', String(FPS), '-t', String(DAI), '-i', o.nen]
     : ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=linear:x0=0:y0=0:x1=0:y1=${H}:c0=0x123B5E:c1=0x0B1D33:c2=0x081424:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
-  const nen = o.nen ? `[0:v]scale=${W * 2}:${H * 2}:force_original_aspect_ratio=increase,crop=${W * 2}:${H * 2},zoompan=z='1+0.06*on/${Math.round(DAI * FPS)}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},eq=brightness=-0.22:saturation=0.85,gblur=sigma=1.5`
+  // lia chậm từ trên xuống bằng crop theo t (17/10/2026: zoompan ở cỡ 2x tốn ~35s/video — crop trên ảnh 1,08x rẻ hơn hẳn, vẫn có chuyển động)
+  const nen = o.nen ? `[0:v]scale=${Math.round(W * 1.08)}:${Math.round(H * 1.08)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.08)}:${Math.round(H * 1.08)},crop=${W}:${H}:x='(iw-ow)/2':y='(ih-oh)*t/${DAI}',eq=brightness=-0.22:saturation=0.85,boxblur=2:1`
     : '[0:v]null';
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amLand(o.de)}':s=44100:d=${DAI}`,
-    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 /** Một dòng nguồn đề (mau/may/before-you-land.json) → dòng nạp của máy: đề + chữ đăng tiếng Anh (không giá, không nhà mạng). */

@@ -183,12 +183,26 @@ export async function dungSua(url, nguoi, lyDo) {
   return x;
 }
 
+/** Link http(s) trong một tin Telegram: chữ trần + link ẩn sau chữ (text_link). Trùng thì một. */
+export const linkTrong = (m) => [...new Set([...(String(m.text || m.caption || '').match(/https?:\/\/[^\s<>"']+/g) || []),
+  ...(m.entities || m.caption_entities || []).filter((e) => e.type === 'text_link').map((e) => e.url)].map((u) => u.replace(/[).,;]+$/, '')))];
+
 /** Nhịp (box3, Ngọc): xử mọi bài trong hàng chờ. env: TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
 export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi-dung' } = {}) {
+  const { tg, st, bao } = await tgNoiDung();
+  // Anh gửi link vào chủ đề 📝 Nội dung (anh 17/10/2026: "tao gửi bài cần chấm vào tele … chỉ cần link") → nộp hàng chờ, chấm ngay lượt này
+  const { gomTin, moHop } = await import('./tg-phong.mjs'); await gomTin(tg);
+  for (const x of moHop(phong)) {
+    const m = x.message; x.xong();
+    if (!m || m.from?.is_bot) continue;
+    for (const url of linkTrong(m)) {
+      try { nopBai({ url, tu: m.from?.first_name || m.from?.username || 'Anh' }); await bao(`📥 <b>${esc(tenNguoi(nguoi))}</b> nhận bài ${esc(url)} — chấm ngay`, m.message_id); }
+      catch (e) { await bao(`⛔ Không nhận ${esc(url)}: ${esc(e.message)}`, m.message_id); }
+    }
+  }
   const cho = fs.existsSync(CHO()) ? fs.readdirSync(CHO()).filter((f) => f.endsWith('.json')).sort() : [];
   if (!cho.length) return 'hàng chờ trống';
   if (!model) throw new Error(`${nguoi} chưa có model trong SOUL.md`);
-  const { tg, st } = await tgNoiDung();
   const { vpBao } = await import('./vp.mjs'); fs.mkdirSync(XONG(), { recursive: true });
   const ra = [];
   for (const f of cho) {
@@ -241,6 +255,8 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.equal(soLuot(u, ds('SUA_LAI', 'KHONG_DUYET')), 2); t.equal(soLuot(u, ds('SUA_LAI', 'DUYET', 'SUA_LAI')), 1, 'DUYỆT đếm lại');
     t.equal(soLuot(u, ds('SUA_LAI', 'SUA_LAI', 'SUA_LAI', 'MO_KHOA')), 0, 'mở khoá đếm lại'); t.equal(soLuot(u, [{ url: 'https://x.com/', ket: 'SUA_LAI' }]), 0, 'url khác không tính');
     t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'long'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('long'), 'Long [Xưởng Aff]'); t.equal(tenNguoi('Ngọc'), 'Ngọc [Nội dung]'); t.equal(tenNguoi('Claude (phiên X)'), 'Claude (phiên X)');
+    t.deepEqual(linkTrong({ text: 'chấm giúp https://ratesbyroom.com/a/ và https://ratesbyroom.com/a/).' }), ['https://ratesbyroom.com/a/']);
+    t.deepEqual(linkTrong({ text: 'bài này', entities: [{ type: 'text_link', url: 'https://x.com/b' }] }), ['https://x.com/b']); t.deepEqual(linkTrong({ text: 'không link' }), []);
     console.log('kiem-bai: tự kiểm đạt'); process.exit(0);
   }
   if (lay('--mo-khoa')) { moKhoa(lay('--mo-khoa')); console.log(`đã mở khoá ${lay('--mo-khoa')} — được thêm ${TRAN_LUOT} lượt`); }

@@ -1,0 +1,62 @@
+// HỘP TIN TELEGRAM THEO PHÒNG (anh 17/10/2026: "phòng nào thì tự mà theo dõi tele phòng đó").
+// Telegram chỉ cho MỘT nơi đọc tin của bot: getUpdates đọc là xác nhận luôn, hai nơi cùng đọc thì nơi này nuốt tin của nơi kia (trước đây Bảo mật đọc
+// với allowed_updates=['callback_query'] nên tin anh gõ vào chủ đề khác bị Telegram bỏ hẳn). Bộ nhận chung này đọc một lần, xếp từng tin vào hộp của
+// PHÒNG SỞ HỮU CHỦ ĐỀ (topic) đó: <DATA>/tg-hop/<phòng>/<update_id>.json. Phòng nào tự mở hộp phòng mình (moHop). Nhịp nào chạy trước thì gom hộ cả công ty.
+// Chủ đề → phòng: CHU_DE — mỗi phòng giữ mã topic bot đã tạo trong tệp trạng thái của nó. Thêm phòng có chủ đề riêng = thêm một dòng ở đây.
+import fs from 'node:fs';
+import path from 'node:path';
+
+const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
+export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json' };
+const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
+const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
+
+/** topic → phòng, đọc từ tệp trạng thái từng phòng. */
+export function phongCuaTopic(topic) {
+  if (topic == null) return null;
+  for (const [phong, tep] of Object.entries(CHU_DE)) { try { if (JSON.parse(fs.readFileSync(path.join(DATA(), tep), 'utf8')).topic === topic) return phong; } catch { /* phòng chưa tạo chủ đề */ } }
+  return null;
+}
+const topicCua = (x) => x.message?.message_thread_id ?? x.callback_query?.message?.message_thread_id ?? null;
+
+/** Đọc mọi tin mới của bot một lần, xếp vào hộp phòng. tg(method, body) = hàm gọi Bot API của bên gọi. Có khoá: hai nhịp cùng lúc thì một bên bỏ qua. */
+export async function gomTin(tg) {
+  fs.mkdirSync(GOC_HOP(), { recursive: true });
+  const khoa = path.join(GOC_HOP(), '.khoa');
+  try { fs.mkdirSync(khoa); } catch { if (Date.now() - fs.statSync(khoa).mtimeMs < 120000) return 0; fs.rmSync(khoa, { recursive: true, force: true }); fs.mkdirSync(khoa); }   // khoá kẹt > 2 phút = nhịp trước chết giữa chừng
+  try {
+    const tOffset = path.join(GOC_HOP(), 'offset.json'); let offset = 0; try { offset = JSON.parse(fs.readFileSync(tOffset, 'utf8')).offset; } catch { /* lần đầu */ }
+    const u = await tg('getUpdates', { offset, timeout: 0, allowed_updates: ['message', 'callback_query'] });
+    let n = 0;
+    for (const x of u.ok ? u.result : []) {
+      const phong = phongCuaTopic(topicCua(x)) ?? KHAC;
+      fs.mkdirSync(HOP(phong), { recursive: true }); fs.writeFileSync(path.join(HOP(phong), `${x.update_id}.json`), JSON.stringify(x));
+      offset = x.update_id + 1; n++;
+    }
+    fs.writeFileSync(tOffset, JSON.stringify({ offset }));
+    try { for (const f of fs.readdirSync(HOP(KHAC))) if (Date.now() - fs.statSync(path.join(HOP(KHAC), f)).mtimeMs > GIU_KHAC_NGAY * 864e5) fs.rmSync(path.join(HOP(KHAC), f)); } catch { /* chưa có hộp khác */ }
+    return n;
+  } finally { fs.rmSync(khoa, { recursive: true, force: true }); }
+}
+
+/** Tin trong hộp một phòng, cũ trước. Mỗi tin có xong() — gọi sau khi xử xong thì tin rời hộp (xử hỏng thì lượt sau xử lại). */
+export function moHop(phong) {
+  let ds = []; try { ds = fs.readdirSync(HOP(phong)).filter((f) => f.endsWith('.json')).sort((a, b) => parseInt(a) - parseInt(b)); } catch { return []; }
+  return ds.map((f) => { const p = path.join(HOP(phong), f); return { ...JSON.parse(fs.readFileSync(p, 'utf8')), xong: () => fs.rmSync(p, { force: true }) }; });
+}
+
+if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kiem')) {
+  const { strict: t } = await import('node:assert'); const os = await import('node:os');
+  process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'tg-phong-'));
+  fs.writeFileSync(path.join(DATA(), 'noi-dung-tg.json'), JSON.stringify({ topic: 7 })); fs.writeFileSync(path.join(DATA(), 'bao-mat-tg.json'), JSON.stringify({ topic: 3 }));
+  let goi = null; const tg = async (m, b) => { goi = b; return { ok: true, result: [
+    { update_id: 10, message: { message_thread_id: 7, text: 'https://ratesbyroom.com/a/' } },
+    { update_id: 11, callback_query: { data: 'km:x:y', message: { message_thread_id: 3 } } },
+    { update_id: 12, message: { text: 'chủ đề chung' } }] }; };
+  t.equal(await gomTin(tg), 3); t.deepEqual(goi.allowed_updates, ['message', 'callback_query'], 'đọc cả tin lẫn nút');
+  t.equal(moHop('noi-dung').length, 1); t.equal(moHop('an-toan-tk')[0].callback_query.data, 'km:x:y'); t.equal(moHop(KHAC).length, 1, 'chủ đề chung không lọt vào phòng nào');
+  await gomTin(tg); t.equal(goi.offset, 13, 'lần sau đọc tiếp sau tin cuối');
+  const [a] = moHop('noi-dung'); a.xong(); t.equal(moHop('noi-dung').length, 0, 'xong() rút tin khỏi hộp');
+  fs.mkdirSync(path.join(GOC_HOP(), '.khoa')); t.equal(await gomTin(tg), 0, 'nhịp khác đang gom thì bỏ qua');
+  console.log('tg-phong: tự kiểm đạt');
+}

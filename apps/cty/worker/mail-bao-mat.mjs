@@ -180,9 +180,11 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   // nút anh bấm dưới tin (callback "km:<nhóm>:<miền>") → dạy sổ TRƯỚC khi đọc hòm, để nhịp này thẩm định lại theo điều vừa dạy
-  let day = 0; const u = await tg('getUpdates', { offset: st.upd ?? 0, timeout: 0, allowed_updates: ['callback_query'] });
-  for (const x of u.ok ? u.result : []) {
-    st.upd = x.update_id + 1; const c = x.callback_query; const [, nhom, mien] = String(c?.data ?? '').split(':');
+  // tin Telegram đọc qua bộ nhận chung (tg-phong.mjs): Bảo mật chỉ mở hộp phòng mình — đọc thẳng getUpdates ở đây từng nuốt tin của phòng khác
+  const { gomTin, moHop } = await import('./tg-phong.mjs'); await gomTin(tg);
+  let day = 0;
+  for (const x of moHop(phong || 'an-toan-tk')) {
+    x.xong(); const c = x.callback_query; const [, nhom, mien] = String(c?.data ?? '').split(':');
     if (!c || !String(c.data).startsWith('km:')) continue;
     try { await dayMien(nhom, mien, c.from?.username ?? String(c.from?.id ?? '')); day++; await tg('answerCallbackQuery', { callback_query_id: c.id, text: `${ten} đã nhớ: ${mien} = ${NOM_CHU[nhom] ?? nhom}` }); }
     catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message, show_alert: true }); }

@@ -37,12 +37,12 @@ const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet';
 let ban = git('status', '--porcelain');
 if (ban) {
   const cho = JSON.parse(kb(`--tra-ve ${NGUOI} --json`)).find((v) => !v.nhan_luc && !v.dung);
-  const ds5 = ban.split('\n').slice(0, 5).map((l) => l.slice(3)).join(', ');
+  const tep5 = ban.split('\n').slice(0, 5).map((l) => l.replace(/^\s*\S+\s+/, '')), ds5 = tep5.join(', ');   // git() đã trim nên dòng đầu mất dấu cách: tách theo cột, không cắt cứng 3 ký tự
   if (cho?.nhan_do && !thu) {
     git('add', '-A'); git('commit', '-q', '-m', `Long [Xưởng Aff] nhận việc dở chưa commit (anh cho) để sửa ${cho.url}: ${ds5}`.slice(0, 300));
     log(`nhận việc dở: ${ds5}`); ban = '';
   } else {
-    if (cho && !cho.cho_luc && !thu) { const t = execFileSync('stat', ['-f', '%Sm', '-t', '%H:%M %d/%m', path.join(REPO, ban.split('\n')[0].slice(3).replace(/\/$/, ''))], { encoding: 'utf8' }).trim();
+    if (cho && !cho.cho_luc && !thu) { let t = '?'; try { t = execFileSync('stat', ['-f', '%Sm', '-t', '%H:%M %d/%m', path.join(REPO, tep5[0].replace(/\/$/, ''))], { encoding: 'utf8' }).trim(); } catch { /* không đọc được giờ: vẫn báo */ }
       kb(`--cho ${q(cho.url)} --nguoi ${NGUOI} --ly-do ${q(`Repo hotel-arb trên iMac đang có việc dở chưa commit của phiên khác (${ds5} · sửa lúc ${t}). Long không đè việc của người khác.`)}`); }
     log(`hotel-arb đang có thay đổi chưa commit, đợi:\n${ban}`); process.exit(0);
   }

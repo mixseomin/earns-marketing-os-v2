@@ -1,0 +1,26 @@
+# Image máy render thuê (apps/xuong-video/scripts/bo-set/may-thue/) → ghcr.io/mixseomin/xv-render — repo public nên image kéo công khai được.
+name: xv-render image
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['apps/xuong-video/scripts/bo-set/may-thue/**', '.github/workflows/xv-render-image.yml']
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: apps/xuong-video/scripts/bo-set/may-thue
+          push: true
+          tags: ghcr.io/mixseomin/xv-render:blender-5.0.1,ghcr.io/mixseomin/xv-render:latest
+          labels: org.opencontainers.image.source=https://github.com/mixseomin/earns-marketing-os-v2

@@ -2,7 +2,7 @@
 // SOCIAL TRAFFIC — thao tác từ màn (tab trang chủ Social Traffic). Chỉ admin. Hiện chỉ đọc: phiên khách trực tiếp trên site aff.
 import { getCurrentUser } from '@/lib/auth';
 import { docKenh } from '@/lib/tai-san/kenh';
-import { docPhienAff, docSuKienAff } from '@/lib/social-truc-tiep';
+import { docPhienAff, docSuKienAff, siteCoMa } from '@/lib/social-truc-tiep';
 import type { CuaSoAff } from '@/lib/social-traffic-demo';
 
 async function admin() {
@@ -23,7 +23,9 @@ async function siteAff(): Promise<string[]> {
 export async function socialPhien(cuaSo: CuaSoAff) {
   await admin();
   const sites = await siteAff();
-  return { sites, phien: await docPhienAff(sites, (['online', '30p', 'hom_nay', '7n'] as const).includes(cuaSo) ? cuaSo : '30p') };
+  const coMa = await siteCoMa(sites);
+  return { sites: sites.filter((s) => coMa.has(s)), khongMa: sites.filter((s) => !coMa.has(s)),
+    phien: await docPhienAff(sites, (['online', '30p', 'hom_nay', '7n'] as const).includes(cuaSo) ? cuaSo : '30p') };
 }
 
 export async function socialSuKien(id: string) {

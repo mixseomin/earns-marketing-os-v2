@@ -30,6 +30,7 @@ export interface StLanding {
   url: string; site: string; path: string; nguon: string;   // nguon = video máy nào / kênh nào trỏ tới
   soVideo: number; phien7: number; khach7: number; doc50: number; bamRa: number; phien30: number; online: number;
   nguonKhach: { ten: string; so: number }[]; cuoi: string | null;
+  coMa: boolean;   // site có gắn mã theo dõi (từng gửi phiên) — false: Gumroad/Etsy, số = không đo được, KHÔNG phải 0
 }
 export interface StDuLieu { goc: StGoc[]; kenh: StKenh[]; lo: StLo[]; trang: StTrang[] }
 

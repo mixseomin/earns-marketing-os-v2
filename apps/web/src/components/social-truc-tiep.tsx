@@ -25,7 +25,7 @@ const cat = (s: string | null, w = 220) => <span title={s ?? ''} style={{ displa
 export function SocialTrucTiep() {
   const [kc, setKc] = useShallowParam('stk', '30p');
   const [bc, setBc] = useShallowParam('stb', '');
-  const [kq, setKq] = useState<{ sites: string[]; phien: PhienAff[] } | null>(null);
+  const [kq, setKq] = useState<{ sites: string[]; khongMa: string[]; phien: PhienAff[] } | null>(null);
   const [loi, setLoi] = useState('');
   const [luc, setLuc] = useState(0);
   const modal = useModalParam();
@@ -74,7 +74,9 @@ export function SocialTrucTiep() {
       ]} />
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <FilterChips urlKey="stk" value={kc} onChange={setKc} options={CUA_SO_AFF.map((c) => ({ value: c.value, label: c.label }))} />
-        <span style={{ ...phu, fontSize: 11.5 }}>site: {kq?.sites.join(', ') || '…'} · sổ phiên adfond (page-events.js), không tính lượt đội nhà</span>
+        <span style={{ ...phu, fontSize: 11.5 }}>đo được: {kq ? kq.sites.join(', ') || 'chưa site nào' : '…'} · sổ phiên adfond (page-events.js), không tính lượt đội nhà</span>
+        {kq?.khongMa.length ? <span style={{ fontSize: 11.5, color: 'var(--warn)' }} title="Gumroad / Etsy không cho chèn mã theo dõi của mình — khách vào thẳng các trang này không bao giờ hiện ở đây. Muốn đo thì trỏ link qua trang của mình (pickjot.com…) trước.">
+          ⚠️ không gắn được mã: {kq.khongMa.join(', ')}</span> : null}
       </div>
       <DaiLuong urlKey="stb" value={bc} onChange={setBc} nut={BUOC_AFF.map((b, i) => {
         const o = ds.filter((p) => p.buoc === i);

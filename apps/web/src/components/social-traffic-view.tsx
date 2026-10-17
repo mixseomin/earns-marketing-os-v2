@@ -4,7 +4,8 @@
 // Công tắc DEMO / LIVE (URL ?stm): DEMO = bộ mẫu lib/social-traffic-demo.ts, bấm được hết, không ghi đâu cả;
 // LIVE = số thật — góc đọc spy (lib/social-traffic.ts), phần còn lại rỗng tới khi mô hình chạy, nút tốn tiền / ghi thật bị gác.
 // Mục con (URL ?sts) và bộ lọc góc (?stg) ghi URL shallow như mọi bộ lọc khác.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { socialPhien } from '@/lib/actions/social-traffic';
 import { DataTable, EmptyState, GuardedButton, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
@@ -40,6 +41,15 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [muc, setMuc] = useShallowParam('sts', 'tong');
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   const laLive = cheDo === 'live';
+  // Số người đang trên site aff — badge trên tab Trực tiếp (card #1411), gọi lại mỗi 10 giây khi trang đang hiện, chỉ ở LIVE.
+  const [online, setOnline] = useState<number | null>(null);
+  useEffect(() => {
+    if (!laLive) { setOnline(null); return; }
+    let song = true;
+    const nap = () => socialPhien('online').then((r) => song && setOnline(r.phien.filter((p) => p.online).length)).catch(() => song && setOnline(null));
+    nap(); const id = setInterval(() => document.visibilityState === 'visible' && nap(), 10_000);
+    return () => { song = false; clearInterval(id); };
+  }, [laLive]);
   // DEMO đổi được tại chỗ (state cục bộ, F5 về mẫu gốc); LIVE chỉ đọc
   const [demo, setDemo] = useState<StDuLieu>(() => structuredClone(ST_DEMO));
   const [gia, setGia] = useState(ST_GIA_MAC);
@@ -121,16 +131,18 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       : <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => taoLo(g)}>🎬 Tạo lô 5 video</GuardedButton>) },
   ];
   const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : '—');
+  // Site không gắn được mã (Gumroad/Etsy): số = KHÔNG ĐO ĐƯỢC, không phải 0 (card #1412)
+  const kd = (x: StLanding, n: React.ReactNode) => (x.coMa ? n : <span style={nho} title="Gumroad / Etsy không cho chèn mã theo dõi — khách vào thẳng trang này không đếm được">không đo</span>);
   const cotLanding: DataColumn<StLanding>[] = [
     { key: 'url', header: 'Trang đích', cell: (x) => <a href={`https://href.li/?${x.url}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><SiteFavicon url={x.url} size={14} />{x.site}<span style={nho}>{x.path}</span></span></a> },
     { key: 'nguon', header: 'Ai trỏ tới', cell: (x) => <span style={nho}>{x.nguon}{x.soVideo ? ` · ${x.soVideo} video` : ''}</span> },
-    { key: 'online', header: 'Đang xem', align: 'right', sortValue: (x) => x.online, cell: (x) => (x.online ? <b style={{ color: 'var(--ok)' }}>● {x.online}</b> : '—') },
-    { key: 'phien7', header: 'Phiên 7 ngày', align: 'right', sortValue: (x) => x.phien7, cell: (x) => so(x.phien7) },
-    { key: 'khach7', header: 'Khách', align: 'right', sortValue: (x) => x.khach7, cell: (x) => so(x.khach7) },
-    { key: 'doc', header: 'Đọc ≥ 50%', align: 'right', sortValue: (x) => (x.phien7 ? x.doc50 / x.phien7 : 0), cell: (x) => <span title={`${x.doc50}/${x.phien7} phiên`}>{pct(x.doc50, x.phien7)}</span> },
-    { key: 'bam', header: 'Bấm ra', align: 'right', sortValue: (x) => x.bamRa, cell: (x) => <span title={`${x.bamRa}/${x.phien7} phiên bấm sang trang đối tác`}>{so(x.bamRa)} <span style={nho}>{pct(x.bamRa, x.phien7)}</span></span> },
-    { key: 'nguonKhach', header: 'Nguồn khách (7 ngày)', cell: (x) => <span style={nho}>{x.nguonKhach.map((n) => `${n.ten} ${n.so}`).join(' · ') || '—'}</span> },
-    { key: 'phien30', header: '30 ngày', align: 'right', sortValue: (x) => x.phien30, cell: (x) => so(x.phien30) },
+    { key: 'online', header: 'Đang xem', align: 'right', sortValue: (x) => x.online, cell: (x) => kd(x, x.online ? <b style={{ color: 'var(--ok)' }}>● {x.online}</b> : '—') },
+    { key: 'phien7', header: 'Phiên 7 ngày', align: 'right', sortValue: (x) => x.phien7, cell: (x) => kd(x, so(x.phien7)) },
+    { key: 'khach7', header: 'Khách', align: 'right', sortValue: (x) => x.khach7, cell: (x) => kd(x, so(x.khach7)) },
+    { key: 'doc', header: 'Đọc ≥ 50%', align: 'right', sortValue: (x) => (x.phien7 ? x.doc50 / x.phien7 : 0), cell: (x) => kd(x, <span title={`${x.doc50}/${x.phien7} phiên`}>{pct(x.doc50, x.phien7)}</span>) },
+    { key: 'bam', header: 'Bấm ra', align: 'right', sortValue: (x) => x.bamRa, cell: (x) => kd(x, <span title={`${x.bamRa}/${x.phien7} phiên bấm sang trang đối tác`}>{so(x.bamRa)} <span style={nho}>{pct(x.bamRa, x.phien7)}</span></span>) },
+    { key: 'nguonKhach', header: 'Nguồn khách (7 ngày)', cell: (x) => kd(x, <span style={nho}>{x.nguonKhach.map((n) => `${n.ten} ${n.so}`).join(' · ') || '—'}</span>) },
+    { key: 'phien30', header: '30 ngày', align: 'right', sortValue: (x) => x.phien30, cell: (x) => kd(x, so(x.phien30)) },
   ];
   const cotKenh: DataColumn<StKenh>[] = [
     { key: 'ten', header: 'Kênh', align: 'left', sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 8, alignItems: 'center' }}><span style={{ gridRow: 'span 2' }}><Logo ten={k.nenTang} co={20} /></span><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
@@ -182,7 +194,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
 
       <DaiLuong nut={nut} value={changDang} onChange={(k) => setMuc(CHANG[k] ?? 'tong')} urlKey="sts" />
 
-      <Tabs<Muc> items={MUC.map((m) => ({ ...m, title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
+      <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>

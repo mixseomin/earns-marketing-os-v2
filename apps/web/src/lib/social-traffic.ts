@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
-import { docSoLanding } from './social-truc-tiep';
+import { docSoLanding, siteCoMa } from './social-truc-tiep';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
@@ -71,9 +71,9 @@ async function docLanding(trang: StTrang[], loi: string[]): Promise<StLanding[]>
     for (const r of may) them(r.link, `máy ${r.ten}`, r.so);
     for (const t of trang) them(t.slug.startsWith('http') ? t.slug : `https://${t.slug}`, t.kenhTen ? `kênh ${t.kenhTen}` : 'kênh');
     const ds = [...theo].map(([key, x]) => { const i = key.indexOf('/'); return { site: key.slice(0, i), path: key.slice(i) || '/', ...x }; });
-    let so = new Map(); try { so = await docSoLanding(ds); } catch (e) { loi.push(`số landing (adfond): ${(e as Error).message}`); }
+    let so = new Map(), coMa = new Set<string>(); try { [so, coMa] = await Promise.all([docSoLanding(ds), siteCoMa([...new Set(ds.map((x) => x.site))])]); } catch (e) { loi.push(`số landing (adfond): ${(e as Error).message}`); }
     return ds.map((x): StLanding => { const s = so.get(`${x.site}${x.path}`) ?? { phien7: 0, khach7: 0, doc50: 0, bamRa: 0, phien30: 0, online: 0, nguonKhach: [], cuoi: null };
-      return { url: `https://${x.site}${x.path}`, site: x.site, path: x.path, nguon: x.nguon.join(' · '), soVideo: x.soVideo, ...s }; })
+      return { url: `https://${x.site}${x.path}`, site: x.site, path: x.path, nguon: x.nguon.join(' · '), soVideo: x.soVideo, ...s, coMa: coMa.has(x.site) }; })
       .sort((a, b) => b.phien7 - a.phien7 || b.soVideo - a.soVideo);
   } catch (e) { loi.push(`landing: ${(e as Error).message}`); return []; }
 }

@@ -14,6 +14,14 @@ function db() {
   return (globalThis.__adfond_pg ??= postgres(url, { max: 2, prepare: false }));
 }
 
+/** Site nào CÓ gắn mã theo dõi = từng gửi phiên về sổ adfond trong 90 ngày. Gumroad / Etsy không cho chèn page-events.js →
+ *  không bao giờ có phiên; in 0 cho chúng là nói dối "đã đo, không ai vào" (card #1412, 17/10/2026). Đọc từ dữ liệu, không danh sách gõ tay. */
+export async function siteCoMa(sites: string[]): Promise<Set<string>> {
+  const sql = db(); if (!sql || !sites.length) return new Set();
+  const r = await sql<{ site: string }[]>`SELECT DISTINCT site FROM phien_khach WHERE site IN ${sql(sites)} AND bat_dau > now() - interval '90 days'`;
+  return new Set(r.map((x) => x.site));
+}
+
 const ONLINE_GIAY = 90;   // cùng mốc adfond (phien-khach-chung ONLINE_GIAY): có gói trong 90 giây qua = đang online
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : String(v));
 

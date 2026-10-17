@@ -7,11 +7,10 @@ import { khoaGoogle } from './google';
 import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
 import { giaChuCents } from './kieu';
+import { xacNhanLoiClaude, MO_HINH_XAC_NHAN_CLAUDE } from './claude';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
 export const MO_HINH_BD = 'gemini-3.8-flash';
-/** Lớp XÁC NHẬN dùng model mạnh hơn (Flash dao động: hai lượt Flash gật cả ngón tay bình thường mà bỏ tất lơ lửng — bộ mẫu 17/10/2026). */
-export const MO_HINH_XAC_NHAN = 'gemini-3.1-pro-preview';
 /** Lấy khung tại các giây `ts` (rộng `w`px) — ảnh RỜI (ghép ảnh bị Gemini nén mất chi tiết chân tay). */
 const khungTai = async (url: string, ts: number[], w: number): Promise<string[] | null> => {
   const ra: string[] = [];
@@ -51,20 +50,20 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
   // xác nhận từng loại bằng khung nét cao quanh đúng giây
   const giu: LoiBienDang[] = []; const loi: string[] = []; const canhBao: string[] = []; let tkXn = { in: 0, out: 0 };
   for (const [loai, v] of gop) {
-    const ts = [v.giay - 0.3, v.giay, v.giay + 0.3, v.giay + 0.6].map((t) => Math.min(o.dai, Math.max(0, t)));
+    const ts = [-0.5, -0.25, 0, 0.25, 0.5, 0.75].map((d) => Math.min(o.dai, Math.max(0, v.giay + d)));
     const anh = await khungTai(o.url, ts, 768);
-    // MỘT lượt xác nhận bằng model mạnh (MO_HINH_XAC_NHAN) — Flash dao động nên không làm lớp xác nhận được
-    const hoi = () => goiGeminiJson<{ co: boolean; muc: 'nang' | 'nhe'; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
-A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object. co=true if the defect is really there (false if it looks normal, is only motion blur, or is part of the shot intent). muc: 'nang' ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it — e.g. legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on the clothing, an object floating or popping in / out, the product turning into a different garment or color. Everything else is 'nhe' and is NOT an ad defect: slightly soft, blurred or imperfect fingers/hands, small wrinkle / rip / texture changes, small objects at the frame edge or on the floor, slight color shift, motion blur, any detail smaller than about 5% of the frame. In ly_do name the frame and what exactly is wrong.` },
-      ...(anh ?? []).map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, muc: { type: 'STRING', enum: ['nang', 'nhe'] }, ly_do: { type: 'STRING' } }, required: ['co', 'muc', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH', MO_HINH_XAC_NHAN);
-    const c = anh ? await hoi() : null;
-    if (c) tkXn = { in: tkXn.in + c.tk.in, out: tkXn.out + c.tk.out };
+    // xác nhận bằng CLAUDE nhìn ảnh (claude.ts › xacNhanLoiClaude) — Gemini (cả Pro) gật cả ngón tay bình thường; đúng giá Claude ~1,5¢ vẫn rẻ hơn một lượt sinh lại oan
+    const cauHoi = `These 6 images are consecutive frames (0.25 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
+A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object in EVERY frame. co=true if that defect is really there; co=false if it looks normal, is only motion blur, or is part of the shot intent. muc: "nang" ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it (legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on clothing, an object floating or popping in / out, the product turning into a different garment or color); otherwise "nhe" (slightly soft fingers, small wrinkle / rip / texture changes, small edge objects, slight color shift, anything smaller than ~5% of the frame).`;
+    const c = anh ? await xacNhanLoiClaude({ anh, cauHoi }) : null;
+    if (c?.ok) tkXn = { in: tkXn.in + c.tokens.in, out: tkXn.out + c.tokens.out };
+    const cd = c?.ok ? c.data : null;
     // lỗi NHẸ (chỉ thấy khi dừng hình) không chặn — ghi cảnh báo; không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
-    if (c?.data.co && c.data.muc === 'nhe') { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (nhẹ) giây ${Math.round(v.giay * 10) / 10}: ${c.data.ly_do.slice(0, 140)}`); continue; }
-    if (!c || c.data.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
+    if (cd?.co && cd.muc === 'nhe') { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (nhẹ) giây ${Math.round(v.giay * 10) / 10}: ${cd.ly_do.slice(0, 140)}`); continue; }
+    if (!cd || cd.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
   let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
-  if (tkXn.in) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', MO_HINH_XAC_NHAN, tkXn, 'google') : giaChuCents(MO_HINH_XAC_NHAN, tkXn.in, tkXn.out);
+  if (tkXn.in) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', MO_HINH_XAC_NHAN_CLAUDE, tkXn) : giaChuCents(MO_HINH_XAC_NHAN_CLAUDE, tkXn.in, tkXn.out);
   return { loi, tho: giu, cents, canhBao };
 }
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */

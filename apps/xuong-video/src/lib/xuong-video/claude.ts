@@ -791,3 +791,21 @@ Luật:
 - Đúng mức nhận biết của người xem: UA kể gián tiếp, chưa nhắc sản phẩm; PA chạm thẳng vấn đề; SA vì sao giải pháp này tốt nhất; PrA gỡ phản đối bằng bằng chứng; MA chỉ cần deal.
 - Ngôn ngữ chữ: ${tenNgonNgu(kt.ngon_ngu)}.`, user);
 }
+
+/** XÁC NHẬN LỖI CLIP bằng Claude nhìn ảnh (máy soi bản 3, soi-bien-dang.ts): Gemini quét rộng khoanh lỗi, Claude xem các khung nét cao quanh đúng giây
+ *  và quyết có / không + mức nặng / nhẹ. Đo 17/10/2026: Gemini Pro gật cả ngón tay bình thường (báo nhầm 3–6/8 clip tốt). ~1,5¢/lần. */
+export const MO_HINH_XAC_NHAN_CLAUDE = 'claude-sonnet-5-5';
+export async function xacNhanLoiClaude(o: { anh: string[]; cauHoi: string }): Promise<{ ok: true; data: { co: boolean; muc: 'nang' | 'nhe'; ly_do: string }; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  try {
+    const r = await c.messages.create({ model: MO_HINH_XAC_NHAN_CLAUDE, max_tokens: 400,
+      messages: [{ role: 'user', content: [...o.anh.map((d) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: d } })),
+        { type: 'text' as const, text: `${o.cauHoi}\nReply with ONLY a JSON object: {"co": true|false, "muc": "nang"|"nhe", "ly_do": "<frame number and exactly what is wrong, or why it is fine>"}` }] }] });
+    const txt = r.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+    const m = txt.match(/\{[\s\S]*\}/);
+    if (!m) return { ok: false, loi: `Claude không trả JSON: ${txt.slice(0, 120)}` };
+    const d = JSON.parse(m[0]) as { co: boolean; muc: 'nang' | 'nhe'; ly_do: string };
+    return { ok: true, data: { co: !!d.co, muc: d.muc === 'nhe' ? 'nhe' : 'nang', ly_do: String(d.ly_do ?? '') }, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+  } catch (e) { return { ok: false, loi: loiGoi(e) }; }
+}

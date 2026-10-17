@@ -71,10 +71,12 @@ export const LOAI_BD = ['trang_phuc_bien_dang', 'co_the_meo', 'chu_tren_vat', 's
 export type LoiBienDang = { khung: number; loai: (typeof LOAI_BD)[number]; mo_ta: string };
 const TEN_BD: Record<(typeof LOAI_BD)[number], string> = { trang_phuc_bien_dang: 'trang phục biến dạng', co_the_meo: 'cơ thể méo', chu_tren_vat: 'chữ tự in trên đồ vật',
   san_pham_doi_kieu: 'sản phẩm đổi kiểu', vat_the_la: 'vật thể lạ' };
-export function loiDanBienDang(sp: string): string {
+export function loiDanBienDang(sp: string, yDo = ''): string {
   return `This image is a grid of ${N_KHUNG_BD} frames from ONE AI-generated video clip, in time order (left to right, top row then bottom row; frame 1 is top-left).
-The product shown in the clip should look like this the whole time: ${sp || '(no product description)'}
-Find AI-generation defects that a viewer would notice. Report ONLY clear defects, not style, lighting or mild motion blur:
+${yDo ? `What this shot is MEANT to show (anything described here is intentional, e.g. a different old garment, a rip, a split-screen comparison — not a defect): ${yDo}\n` : ''}The product (when it appears) should look like this: ${sp || '(no product description)'}
+Find AI-generation defects that an ordinary viewer would clearly notice at normal playback speed. Do NOT report style, lighting, motion blur, small expression changes, or anything the shot intent above describes. When unsure, do not report.
+Write mo_ta in short plain English.
+Defect types:
 - trang_phuc_bien_dang: clothing changes shape unnaturally between frames — pants ballooning or turning baggy, crotch dropping toward the knees, waistband or fabric bulging out, garment merging with the body or another object.
 - co_the_meo: distorted anatomy — extra/missing/melted limbs or fingers, legs bending the wrong way, body proportions changing.
 - chu_tren_vat: letters, logos or words printed or appearing on the product, clothing or objects (any readable text at all).

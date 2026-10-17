@@ -14,10 +14,10 @@ const anhGhep = (url: string, dai: number) => new Promise<Buffer | null>((ok) =>
   '-vf', `fps=${N_KHUNG_BD / dai},scale=270:-2,tile=6x2`, '-frames:v', '1', '-q:v', '4', '-f', 'mjpeg', 'pipe:1'],
   { encoding: 'buffer', maxBuffer: 1 << 25, timeout: 90_000 }, (e, b) => ok(e || !(b as Buffer).length ? null : (b as Buffer))));
 
-export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number } | null> {
+export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number } | null> {
   const key = khoaGoogle(); if (!key) return null;
   const anh = await anhGhep(o.url, o.dai); if (!anh) return null;
-  const body = { contents: [{ role: 'user', parts: [{ text: loiDanBienDang(o.sp) }, { inlineData: { mimeType: 'image/jpeg', data: anh.toString('base64') } }] }],
+  const body = { contents: [{ role: 'user', parts: [{ text: loiDanBienDang(o.sp, o.yDo) }, { inlineData: { mimeType: 'image/jpeg', data: anh.toString('base64') } }] }],
     generationConfig: { thinkingConfig: { thinkingLevel: 'low' }, responseMimeType: 'application/json', responseSchema: { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'OBJECT',
       properties: { khung: { type: 'INTEGER' }, loai: { type: 'STRING', enum: [...LOAI_BD] }, mo_ta: { type: 'STRING' } }, required: ['khung', 'loai', 'mo_ta'] } } }, required: ['loi'] } } };
   try {
@@ -31,3 +31,6 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
     return { loi: loiTuBienDang(tho, o.dai), tho, cents };
   } catch (e) { console.error('[soi biến dạng]', e); return null; }
 }
+/** Ý đồ của shot cho máy soi: hành động video + khung hình (bỏ đoạn tả sản phẩm dài — đã có riêng) — để quần cũ / rách / chia đôi khung cố ý không bị báo. */
+export const yDoShot = (promptVideo: string, promptAnh: string, spMoTa = ''): string =>
+  [promptVideo, spMoTa ? promptAnh.split(spMoTa).join('') : promptAnh].map((x) => x.trim()).filter(Boolean).join(' | ').slice(0, 900);

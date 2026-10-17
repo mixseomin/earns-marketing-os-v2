@@ -46,3 +46,4 @@ const bd = loiTuBienDang([{ khung: 9, loai: 'trang_phuc_bien_dang', mo_ta: 'pant
 assert.deepStrictEqual(bd, ['chữ tự in trên đồ vật từ giây 1.3: Jett on waistband', 'trang phục biến dạng từ giây 3.8: crotch drops']);
 assert.deepStrictEqual(loiTuBienDang([], 6), []);
 assert.ok(loiDanBienDang('blue jeans').includes('blue jeans') && loiDanBienDang('').includes(String(N_KHUNG_BD)));
+assert.ok(loiDanBienDang('x', 'split frame old vs new').includes('split frame old vs new') && !loiDanBienDang('x').includes('MEANT'), 'ý đồ shot chỉ có khi truyền');

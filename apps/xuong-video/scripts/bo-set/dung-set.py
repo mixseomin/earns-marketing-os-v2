@@ -550,21 +550,23 @@ def nhan_vat(sh, ket=False):
 DI_MC = ('mc_di_bo', 'mc_sai_buoc')   # mocap ĐI: khung tĩnh thay bằng giữa sải bước (nhan_vat › di_mo)
 
 def tran_(o, nv, w, h):
-    """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): chuỗi giọt liền nhau từ miệng vật theo
-    trục nghiêng rồi cong xuống theo trọng lực. Chữ "coffee spilling out" mà 3D chỉ có ly trơn thì ảnh AI bám 3D, vẽ ly sạch (tập 122 #17).
-    Tên 'NV <vật>·tran<i>' → kiểm hình học / mặt nạ coi là một phần vật đó; nhãn keyframe ghi trạng thái qua TRANG."""
+    """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): MỘT ống liền thon dần từ miệng vật theo
+    trục nghiêng rồi cong xuống theo trọng lực. Chữ "coffee spilling out" mà 3D chỉ có ly trơn thì ảnh AI bám 3D, vẽ ly sạch (tập 122 #17); dựng
+    bằng chuỗi hạt cầu thì AI chép thành chuỗi hạt (lượt 2) — chất lỏng phải là khối LIỀN. Tên 'NV <vật>·tran' → kiểm hình học / mặt nạ coi là
+    một phần vật đó; nhãn keyframe ghi trạng thái qua TRANG."""
     bpy.context.view_layer.update()   # khoi() vừa gán scale / xoay — chưa update thì matrix_world còn là phép dời, dòng mọc thẳng lên ngoài khung
-    M = o.matrix_world.copy(); mieng = M @ Vector((0, 0, 0.5)); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized()
-    r0 = 0.3 * w; buoc = 0.55 * r0; ds = []
-    for i in range(9):
-        p = mieng + truc * (i * buoc * CM) - Vector((0, 0, 0.18 * i * i * buoc * CM))
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=max(0.35 * r0, r0 * (1 - 0.07 * i)) * CM, location=p)
-        g = bpy.context.object
-        for f in g.data.polygons: f.use_smooth = True
-        g.parent = o; g.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay
-        ds.append(dat(g, mau(nv.get('tran_mau', '#2a1a10')), f"NV {nv['ten']}·tran{i}"))
-    TRANG[nv['ten']] = f"{nv['tran']} spilling out of it in a curling stream"
-    return ds
+    M = o.matrix_world.copy(); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized(); mieng = M @ Vector((0, 0, 0.42))
+    r0 = 0.3 * w; dai = 2.2 * h; n = 24
+    cv = bpy.data.curves.new(f"tran {nv['ten']}", 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = r0 * CM; cv.bevel_resolution = 4; cv.use_fill_caps = True
+    sp = cv.splines.new('POLY'); sp.points.add(n - 1)
+    for i in range(n):
+        t = i / (n - 1); p = mieng + truc * (t * dai * CM) - Vector((0, 0, 0.9 * t * t * dai * CM))
+        sp.points[i].co = (*p, 1); sp.points[i].radius = 1.0 - 0.7 * t   # miệng rộng → đầu dòng mảnh
+    g = bpy.data.objects.new(f"NV {nv['ten']}·tran", cv); bpy.context.collection.objects.link(g)
+    g.parent = o; g.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay
+    cv.materials.append(mau(nv.get('tran_mau', '#2a1a10')))
+    TRANG[nv['ten']] = f"{nv['tran']} spilling out of it in one smooth continuous liquid stream"
+    return [g]
 
 def diem_cam(n_, ben):
     """Điểm nắm của một bàn tay ma-nơ-canh (toạ độ thế giới, m): cổ tay + 0,55 chiều dài bàn tay dọc trục bàn tay."""

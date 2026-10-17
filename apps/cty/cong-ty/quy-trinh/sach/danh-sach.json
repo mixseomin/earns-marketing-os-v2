@@ -160,7 +160,7 @@
    "id": "video-ngan",
    "ten": "Đăng video ngắn (4 nền)",
    "so_hoa": "co-dinh",
-   "kich_hoat": "20:00 giờ VN mỗi ngày: TikTok (iMac, máy ảo tiktok1); 20:05 YouTube · Facebook · Instagram (MacBook)",
+   "kich_hoat": "20:00 giờ VN mỗi ngày: TikTok (iMac, máy ảo tiktok1); 20:05 YouTube · Facebook (iMac — FB qua Graph API box3) · Instagram (MacBook)",
    "mo_ta": "Mỗi nền một short \"Only ONE\" mỗi ngày (video đúng mùa trước), caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách. Mỗi lượt báo kết quả (đăng được / lỗi gì, kho còn bao nhiêu) lên cty → làn Video ở tab Dây chuyền; lỗi hay quá giờ không có tin = việc trễ của người chủ trì. Lượt TikTok xong là tắt sạch máy ảo (~2,6 GB RAM).",
    "ma": "puzzle-books scripts/dang-short.mjs <nền> → /var/lib/cty/may/video-<nền>.json (box3)",
    "chu_tri": "kenh-keo-khach",
@@ -171,6 +171,7 @@
    "day_chuyen": "video",
    "lich": [
     "iMac:com.earns.puzzle-short",
+    "iMac:com.earns.puzzle-short-yt",
     "MacBook:com.earns.puzzle-short-yt"
    ],
    "chi_phi": "proxy cho máy ảo TikTok (thuê theo tháng, chưa ghi số) · nền khác 0"

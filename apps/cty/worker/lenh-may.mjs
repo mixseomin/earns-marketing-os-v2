@@ -11,8 +11,8 @@ import { GOC } from './goc.mjs';
 export const LENH_MAY = {
   // qt = quy trình của lệnh: người CHỦ TRÌ quy trình đó là người phụ trách lệnh (nguoiLenh) — gõ phím trên văn phòng pixel khi máy chạy, tên hiện
   // cạnh nút (anh 13/10/2026 "mọi thứ liên kết 1-1 với pixel và cty.on.tc"); việc máy trễ cùng qt trong bảng có nút. phi = tiền thật mỗi lần.
-  'video:youtube': { may: 'MacBook', ten: 'Đăng video YouTube', qt: 'video-ngan' },
-  'video:facebook': { may: 'MacBook', ten: 'Đăng video Facebook', qt: 'video-ngan' },
+  'video:youtube': { may: 'iMac', ten: 'Đăng video YouTube', qt: 'video-ngan' },
+  'video:facebook': { may: 'iMac', ten: 'Đăng video Facebook', qt: 'video-ngan' },
   'video:instagram': { may: 'MacBook', ten: 'Đăng video Instagram', qt: 'video-ngan' },
   'video:tiktok': { may: 'iMac', ten: 'Đăng video TikTok', qt: 'video-ngan' },
   'do-video': { may: 'MacBook', ten: 'Đo lượt xem video', qt: 'do-video' },

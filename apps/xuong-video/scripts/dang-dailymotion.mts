@@ -1,7 +1,7 @@
 // ĐĂNG VIDEO DAILYMOTION QUA API (box3, 18/10/2026) — cùng khuôn dang-fb-reel.mts: khoá nằm ở box3, không rời máy chủ, máy Mac gọi qua ssh.
-// Khoá: DM_KEYS_FILE (mặc định /root/.secrets/dailymotion.json) = { "<profile_id>": { "ten": "<tên kênh>", "client_id": "…", "client_secret": "…" } }
+// Khoá: DM_KEYS_FILE (mặc định /root/.secrets/dailymotion.json) = { "<profile_id>": { "ten": "<username kênh — /v2/profiles/<id> trả name = username, vd hotelscamalerts>", "client_id": "…", "client_secret": "…" } }
 //   — Private API key tạo trong Dailymotion Studio › Organization › API keys (quyền quản lý video), profile_id = id kênh trong Studio.
-// Luồng (developers.dailymotion.com/guides/authentication + /guides/upload): token client_credentials (scope video.manage, sống 1800s) →
+// Luồng (developers.dailymotion.com/guides/authentication + /guides/upload): token client_credentials (scope video.manage + profile.read để kiểm tên kênh, sống 1800s) →
 //   POST /v2/files/upload_sessions → POST tệp (multipart, trường file) lên upload_url → POST /v2/profiles/<id>/videos { title, category, visibility,
 //   is_for_kids, source.file_url, description, tags } (tạo = xuất bản luôn). Video lấy từ URL R2 công khai, tải về /tmp rồi đẩy lên.
 // Máy gọi: puzzle-books dang-br.mjs › dangApi('dailymotion') — stdin JSON { profile_id, ten, video_url, tieu_de, mo_ta, the? } → stdout JSON { url, post_id }.
@@ -24,7 +24,7 @@ async function goi(u: string, init: RequestInit = {}): Promise<Record<string, un
 }
 
 async function layToken(k: Kenh): Promise<string> {
-  const j = await goi(TOKEN, { method: 'POST', body: new URLSearchParams({ grant_type: 'client_credentials', client_id: k.client_id, client_secret: k.client_secret, scope: 'video.manage' }) });
+  const j = await goi(TOKEN, { method: 'POST', body: new URLSearchParams({ grant_type: 'client_credentials', client_id: k.client_id, client_secret: k.client_secret, scope: 'video.manage profile.read' }) });
   if (!j.access_token) throw new Error('Dailymotion không trả access_token');
   return String(j.access_token);
 }
@@ -34,8 +34,8 @@ export async function kiemKenh(profileId: string, ten: string): Promise<string> 
   const k = docSo()[profileId]; if (!k?.client_id) throw new Error(`box3 chưa có khoá Dailymotion cho kênh ${profileId} trong ${SO} — không đăng`);
   const tok = await layToken(k);
   const p = await goi(`${API}/v2/profiles/${profileId}`, { headers: { Authorization: `Bearer ${tok}` } });
-  const tenThat = String(p.name ?? p.screenname ?? p.display_name ?? '');
-  if (tenThat && tenThat !== ten) throw new Error(`kênh Dailymotion ${profileId} tên "${tenThat}", cấu hình ghi "${ten}" — dừng`);
+  const tenThat = String(p.name ?? '');   // name = USERNAME kênh (đo 18/10/2026: {"profile_id":"x6f3gcy","name":"hotelscamalerts"})
+  if (tenThat !== ten) throw new Error(`kênh Dailymotion ${profileId} tên "${tenThat}", cấu hình ghi "${ten}" — dừng`);
   return tok;
 }
 

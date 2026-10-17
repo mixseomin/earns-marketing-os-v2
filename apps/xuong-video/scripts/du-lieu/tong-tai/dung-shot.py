@@ -35,7 +35,7 @@ shot('1.1', C1, 3, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 
      'Vivian chặn đường, hất cả ly cà phê vào ngực áo Hạ', [(VIV, 'lạnh, rít qua kẽ răng', 'Dọn sạch đi. Rồi cút.')],
      [bc(VIV, 'khinh_bi', 'khinh_bi'), bc(HA, 'binh_thuong', 'soc')],
      {'dat': [120, 590, 150], 'nhin': [300, 590, 140], 'ong_kinh': 40, 'khung': [VIV, HA],
-      'vi_tri': [vt(HA, [300, 540, 0], 180, **AO_HA_SANG, trang_den='hot coffee stain spreading across the chest of the white blouse'), vt(VIV, [300, 640, 0], 0, **AO_VIV), vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang_den='empty')]},
+      'vi_tri': [vt(HA, [300, 540, 0], 180, **AO_HA_SANG, trang_den='hot coffee stain spreading across the chest of the white blouse'), vt(VIV, [300, 640, 0], 0, **AO_VIV, dien=['cam_truoc', 'hat@0.25-0.45']), vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang_den='empty')]},
      [HA, VIV, VP, 'Ly cà phê'], chu_man='09:05 · Tầng 38 · Lục thị')
 shot('1.2', C1, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'cam_tay', 'ong_kinh': 'macro', 'anh_sang': 'cua_so', 'am_thanh': ['rung']},
      {'bo_cuc': 'Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her hand holding the folder at frame bottom', 'mo': 'stain still spreading', 'ket': 'Hạ’s fingers tighten on the folder', 'muc_dich': 'người xem thấy rõ cái nhục'},
@@ -47,7 +47,7 @@ shot('1.3', C1, 4, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngan
      'Vivian giơ tập hồ sơ rỗng lên cho cả phòng thấy', [(VIV, 'giơ tập hồ sơ rỗng, giọng to cho cả phòng nghe', 'Hồ sơ Harrington đâu? Ngày đầu đi làm đã làm mất tài liệu mật?')],
      [bc(VIV, 'khinh_bi', 'dac_y'), bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui'])],
      {'dat': [285, 470, 155], 'nhin': [300, 640, 150], 'ong_kinh': 85, 'khung': [VIV],
-      'vi_tri': [vt(HA, [300, 540, 0], 180), vt(VIV, [300, 640, 0], 0), vt('Hồ sơ Harrington', [300, 625, 150], 0, cam=VIV), LY_RONG()]},
+      'vi_tri': [vt(HA, [300, 540, 0], 180), vt(VIV, [300, 640, 0], 0, dien=['gio_cao@0-0.3']), vt('Hồ sơ Harrington', [300, 625, 150], 0, cam=VIV), LY_RONG()]},
      [HA, VIV, VP, 'Hồ sơ Harrington', 'Ly cà phê'])
 shot('1.4', C1, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'ots', 'goc': 'ngang', 'chuyen_dong': 'vong', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
      {'bo_cuc': 'Clean single on Hạ from the aisle side, the coffee stain on her white blouse, the window light behind her', 'mo': 'Hạ looking straight off screen-left, calm', 'ket': 'Hạ holds the gaze', 'huong': 'Hạ looks screen-left at Vivian', 'muc_dich': 'Hạ không cãi — chỉ nói sự thật'},
@@ -60,7 +60,7 @@ shot('1.5', C1, 6, 'h3', {'vai': 'tong_the', 'co_canh': 'ws', 'goc': 'cao', 'chu
      'Vivian ném xấp giấy xuống sàn đá; Hạ quỳ một gối nhặt từng tờ; đồng nghiệp xì xào, giơ điện thoại quay', [(VIV, 'khinh khỉnh', 'Nhặt lên.')],
      [bc(VIV, 'dac_y', 'dac_y'), bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui', 'cuoi_lon', 'buon'])],
      {'dat': [40, 650, 260], 'nhin': [300, 590, 40], 'ong_kinh': 28, 'khung': [HA, VIV],
-      'vi_tri': [vt(HA, [300, 540, 0], 180, nam_den=False, dien=['quy_mot_goi@0.35-0.6']), vt(VIV, [300, 640, 0], 0), vt('Hồ sơ Harrington', [300, 625, 150], 0, den=[310, 585, 0]), LY_RONG()]},
+      'vi_tri': [vt(HA, [300, 540, 0], 180, dien=['quy_mot_goi@0.35-0.6']), vt(VIV, [300, 640, 0], 0, dien=['gio_cao', 'hat@0.1-0.3']), vt('Hồ sơ Harrington', [300, 625, 150], 0, den=[310, 585, 0]), LY_RONG()]},
      [HA, VIV, VP, 'Hồ sơ Harrington', 'Ly cà phê'])
 
 # ── CẢNH 2 · liền sau (18–36 s) ──
@@ -87,7 +87,7 @@ shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao',
      {'bo_cuc': 'Insert on the phone screen in Hạ’s hand lighting up with a message, then tilt up to her face', 'mo': 'phone screen lights up', 'ket': 'Hạ’s subtle smirk', 'muc_dich': 'khán giả biết thân phận trước nhân vật', 'motif': 'tin nhắn luật sư — gieo cho cảnh 4'},
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
-     {'dat': [300, 600, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [DT], 'vi_tri': [vt(HA, [300, 560, 0], 180), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -60), LY_RONG(an=True)]},
+     {'dat': [300, 600, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -60), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──
@@ -96,25 +96,25 @@ shot('3.1', C3, 6, 'h3', {'vai': 'tong_the', 'co_canh': 'ws', 'goc': 'ngang', 'c
      'Hạ ôm thùng đồ chờ thang máy; Vivian bước tới giật phắt thẻ nhân viên trên cổ cô', [],
      [bc(VIV, 'dac_y', 'khinh_bi'), bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui', 'buon'])],
      {'dat': [180, 40, 160], 'nhin': [-60, 400, 140], 'ong_kinh': 30, 'khung': [HA, VIV], 'nhay': 'Hạ thu dọn đồ rồi ra sảnh (thời gian trôi ngoài khung)',
-      'vi_tri': [vt(HA, [-100, 380, 0], 180, huong_den=90, **AO_HA_SANG, trang='hot coffee stain spreading across the chest of the white blouse', do_deo_den='jade bangle on the left wrist'), vt(VIV, [260, 150, 0], -60, den=[0, 365, 0], huong_den=-90, **AO_VIV), vt('Thẻ nhân viên', [-100, 368, 140], 180, den=[10, 360, 120]), vt(HOP, [-100, 362, 95], 180, cam=HA)]},
+      'vi_tri': [vt(HA, [-100, 380, 0], 180, huong_den=90, **AO_HA_SANG, trang='hot coffee stain spreading across the chest of the white blouse', do_deo_den='jade bangle on the left wrist', dien=['om_thung']), vt(VIV, [260, 150, 0], -60, den=[0, 365, 0], huong_den=-90, **AO_VIV, dien=['giat@0.55-0.8']), vt('Thẻ nhân viên', [-100, 368, 140], 180, den=[10, 360, 120]), vt(HOP, [-100, 362, 95], 180, cam=HA)]},
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 shot('3.2', C3, 5, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chan_dung', 'anh_sang': 'vien', 'am_thanh': ['nen_phong']},
      {'bo_cuc': 'Over Hạ’s shoulder (box edge in foreground) onto Vivian dangling the badge', 'mo': 'Vivian dangling the lanyard', 'ket': 'Vivian leaning in, sneering', 'huong': 'Vivian looks screen-left at Hạ', 'muc_dich': 'Vivian tưởng mình thắng'},
      'Vivian lắc lắc tấm thẻ trước mặt Hạ', [(VIV, 'cười khẩy', 'Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa.')],
      [bc(VIV, 'khinh_bi', 'dac_y')],
-     {'dat': [-170, 400, 155], 'nhin': [0, 365, 152], 'ong_kinh': 70, 'khung': [VIV], 'vi_tri': [vt(HA, [-100, 380, 0], 90), vt(VIV, [0, 365, 0], -90), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HOP, [-95, 365, 95], 90, cam=HA)]},
+     {'dat': [-170, 400, 155], 'nhin': [0, 365, 152], 'ong_kinh': 70, 'khung': [VIV], 'vi_tri': [vt(HA, [-100, 380, 0], 90, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['dua_truoc_mat']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HOP, [-95, 365, 95], 90, cam=HA)]},
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 shot('3.3', C3, 6, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'vien', 'am_thanh': ['im_lang']},
      {'bo_cuc': 'Reverse close-up on Hạ over Vivian’s shoulder; long silence before she speaks', 'mo': 'Hạ looking straight at Vivian', 'ket': 'Hạ’s faint smile', 'huong': 'Hạ looks screen-right at Vivian', 'muc_dich': 'lời hứa trả đòn'},
      'Hạ nhìn thẳng Vivian, khẽ nhếch môi', [(HA, 'nhìn thẳng, mỉm cười nhẹ', 'Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.')],
      [bc(HA, 'nhan_nhin', 'nhech_moi')],
-     {'dat': [60, 355, 158], 'nhin': [-100, 380, 152], 'ong_kinh': 85, 'khung': [HA], 'vi_tri': [vt(HA, [-100, 380, 0], 90), vt(VIV, [0, 365, 0], -90), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HOP, [-95, 365, 95], 90, cam=HA, an=True)]},
+     {'dat': [60, 355, 158], 'nhin': [-100, 380, 152], 'ong_kinh': 85, 'khung': [HA], 'vi_tri': [vt(HA, [-100, 380, 0], 90, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['cam_truoc']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HOP, [-95, 365, 95], 90, cam=HA, an=True)]},
      [HA, VIV, SANH, HOP])
 shot('3.4', C3, 5, 'veo', {'vai': 'tam_trang', 'co_canh': 'ms', 'goc': 'thap', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chuan', 'anh_sang': 'vien', 'am_thanh': ['ding', 'foley']},
      {'bo_cuc': 'Hạ steps into the elevator; the steel doors slide shut between her and Vivian', 'mo': 'Hạ stepping back into the elevator', 'ket': 'doors closed, Vivian’s reflection in the steel', 'muc_dich': 'khép một chương'},
      'Hạ lùi vào thang máy, cửa thép khép lại giữa hai người', [],
      [bc(HA, 'nhech_moi', 'quyet_tam'), bc(VIV, 'dac_y', 'ngo_vuc')],
-     {'dat': [60, 230, 160], 'nhin': [-100, 440, 150], 'ong_kinh': 45, 'khung': [HA, VIV], 'vi_tri': [vt(HA, [-100, 380, 0], 90, den=[-100, 470, 0], huong_den=0), vt(VIV, [0, 365, 0], -90), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV, an=True), vt(HOP, [-95, 365, 95], 90, cam=HA, het=True)]},
+     {'dat': [60, 230, 160], 'nhin': [-100, 440, 150], 'ong_kinh': 45, 'khung': [HA, VIV], 'vi_tri': [vt(HA, [-100, 380, 0], 90, den=[-100, 470, 0], huong_den=0, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['cam_truoc']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV, an=True), vt(HOP, [-95, 365, 95], 90, cam=HA, het=True)]},
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 
 # ── CẢNH 4 · Phòng họp HĐQT 15:00 (58–79 s) — thời gian nhảy, Hạ đã thay vest trắng ──
@@ -124,7 +124,7 @@ shot('4.1', C4, 5, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'cao', 'c
      'Lục Thần thuyết trình trước HĐQT, Vivian đứng cạnh cầm ly cà phê đắc ý', [(THAN, 'tự tin', 'Với khoản vốn của Quỹ Harrington, Lục thị sẽ…')],
      [bc(THAN, 'tu_tin', 'tu_tin'), bc(VIV, 'dac_y', 'dac_y')],
      {'dat': [0, 60, 280], 'nhin': [0, 620, 100], 'ong_kinh': 30, 'khung': [THAN], 'nhay': '3 giờ chiều cùng ngày — họp HĐQT',
-      'vi_tri': [vt(THAN, [0, 740, 0], 0, **AO_THAN), vt(VIV, [110, 745, 0], -20, **AO_VIV), vt('Ly cà phê', [122, 728, 105], 0, cam=VIV)]},
+      'vi_tri': [vt(THAN, [0, 740, 0], 0, **AO_THAN, dien=['thuyet_trinh']), vt(VIV, [110, 745, 0], -20, **AO_VIV, dien=['cam_truoc']), vt('Ly cà phê', [122, 728, 105], 0, cam=VIV)]},
      [THAN, VIV, PH, 'Ly cà phê'])
 shot('4.2', C4, 5, 'h3', {'vai': 'hanh_dong', 'co_canh': 'ws', 'goc': 'thap', 'chuyen_dong': 'dan_truoc', 'ong_kinh': 'rong', 'anh_sang': 'tuong_phan', 'am_thanh': ['dap', 'foley']},
      {'bo_cuc': 'Low angle: the tall double doors swing open, Lâm Hạ strides in in a white power suit, Lawyer Trần a step behind', 'mo': 'doors closed', 'ket': 'Hạ standing at the end of the table', 'huong': 'Hạ walks screen-right toward the table', 'muc_dich': 'đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực'},
@@ -137,12 +137,12 @@ shot('4.3', C4, 4, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'two', 'goc': 'ngan
      {'bo_cuc': 'Two-shot: Lawyer Trần presents Hạ to the board; Hạ calm beside him', 'mo': 'Trần raising a hand toward Hạ', 'ket': 'board members turning in their chairs', 'muc_dich': 'thân phận lộ ra'},
      'Luật sư Trần giới thiệu Hạ với cả phòng', [(TRAN, 'trang trọng', 'Xin giới thiệu: cô Lâm Hạ, người thừa kế Quỹ Harrington.')],
      [bc(TRAN, 'tu_tin', 'tu_tin'), bc(HA, 'quyet_tam', 'lanh_lung')],
-     {'dat': [60, 110, 160], 'nhin': [-235, 175, 150], 'ong_kinh': 45, 'khung': [HA, TRAN], 'vi_tri': [vt(HA, [-200, 200, 0], 90), vt(TRAN, [-270, 150, 0], 90)]},
+     {'dat': [60, 110, 160], 'nhin': [-235, 175, 150], 'ong_kinh': 45, 'khung': [HA, TRAN], 'vi_tri': [vt(HA, [-200, 200, 0], 90), vt(TRAN, [-270, 150, 0], 90, dien=['gioi_thieu@0-0.3'])]},
      [HA, TRAN, PH])
 shot('4.4', C4, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'thap', 'chuyen_dong': 'speed_ramp', 'ong_kinh': 'macro', 'anh_sang': 'tuong_phan', 'am_thanh': ['vo_kinh']},
      {'bo_cuc': 'Slow-motion insert: Vivian’s coffee cup slipping from her fingers and shattering on the floor', 'mo': 'cup leaving Vivian’s hand', 'ket': 'porcelain shards and coffee across the carpet', 'muc_dich': 'cú đánh mặt bằng hình'},
      'Ly cà phê trên tay Vivian rơi xuống sàn, vỡ tung', [], [bc(VIV, 'soc', 'soc', cam=['vui', 'dac_y'])],
-     {'dat': [170, 670, 12], 'nhin': [125, 705, 15], 'ong_kinh': 100, 'khung': ['Ly cà phê'], 'qua_truc': True, 'vi_tri': [vt(VIV, [110, 745, 0], -20), vt('Ly cà phê', [122, 728, 105], 0, den=[125, 705, 0], trang_den='shattered on the floor')]},
+     {'dat': [170, 670, 12], 'nhin': [125, 705, 15], 'ong_kinh': 100, 'khung': ['Ly cà phê'], 'qua_truc': True, 'vi_tri': [vt(VIV, [110, 745, 0], -20, dien=['cam_truoc']), vt('Ly cà phê', [122, 728, 105], 0, den=[125, 705, 0], trang_den='shattered on the floor')]},
      [VIV, PH, 'Ly cà phê'])
 shot('4.5', C4, 5, 'veo', {'vai': 'hanh_dong', 'co_canh': 'mcu', 'goc': 'thap', 'chuyen_dong': 'zoom_cham', 'ong_kinh': 'chan_dung', 'anh_sang': 'tuong_phan', 'am_thanh': ['im_lang']},
      {'bo_cuc': 'Low medium close-up on Hạ delivering the line, the board soft behind her', 'mo': 'Hạ looking down the table at Thần', 'ket': 'Hạ unblinking', 'huong': 'Hạ looks screen-right toward Thần', 'muc_dich': 'phán quyết — ngược lại cảnh 2'},
@@ -156,13 +156,13 @@ shot('5.1', C5, 4, 'h3', {'vai': 'phan_ung', 'co_canh': 'ms', 'goc': 'ngang', 'c
      {'bo_cuc': 'Lục Thần drops his pen and strides to the corner of the table, both palms slamming onto the tabletop', 'mo': 'Thần at the head of the table, pen in hand', 'ket': 'Thần leaning on the table corner, hands flat on the wood', 'muc_dich': 'lần đầu mất thế chủ động'},
      'Lục Thần buông bút, bước tới góc bàn, hai tay chống mạnh xuống mặt bàn', [(THAN, 'lần đầu mất bình tĩnh', 'Cô… rốt cuộc là ai?')],
      [bc(THAN, 'soc', 'gian', lat=True)],
-     {'dat': [-100, 470, 160], 'nhin': [-35, 720, 150], 'ong_kinh': 45, 'khung': [THAN], 'vi_tri': [vt(THAN, [0, 740, 0], 0, den=[-70, 705, 0], huong_den=-90)]},
+     {'dat': [-100, 470, 160], 'nhin': [-35, 720, 150], 'ong_kinh': 45, 'khung': [THAN], 'vi_tri': [vt(THAN, [0, 740, 0], 0, den=[-70, 705, 0], huong_den=-90, dien=['chong_ban@0.55-0.85'])]},
      [THAN, PH])
 shot('5.2', C5, 6, 'veo', {'vai': 'chu_quan', 'co_canh': 'two', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chuan', 'anh_sang': 'tuong_phan', 'chuyen_canh': 'mo_cheo', 'am_thanh': ['im_lang', 'cot_ket']},
      {'bo_cuc': 'Profile two-shot at the table corner: Hạ (screen-left) leans in to Thần’s eye level; the jade bangle on her wrist catches the light; cut to black on the line', 'mo': 'Hạ arriving at the corner', 'ket': 'Hạ’s face close to Thần’s — cut to black', 'huong': 'Hạ looks screen-right into Thần’s eyes', 'muc_dich': 'cliffhanger', 'motif': 'vòng tay ngọc — ký ức cô bé năm xưa (tập sau)'},
      'Hạ cúi xuống ngang tầm mắt anh, vòng tay ngọc loé sáng; cắt đen', [(HA, 'khẽ, chắc nịch', 'Sếp mới của anh.')],
      [bc(HA, 'lanh_lung', 'nhech_moi'), bc(THAN, 'gian', 'soc')],
-     {'dat': [-120, 500, 175], 'nhin': [-120, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN], 'vi_tri': [vt(HA, [-170, 640, 0], 90, den=[-165, 700, 0], **AO_HA_CHIEU, nhay='đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)'), vt(THAN, [-70, 705, 0], -90)]},
+     {'dat': [-120, 500, 175], 'nhin': [-120, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN], 'vi_tri': [vt(HA, [-170, 640, 0], 90, den=[-165, 700, 0], **AO_HA_CHIEU, nhay='đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)', dien=['cui_nguoi@0.6-0.9']), vt(THAN, [-70, 705, 0], -90, dien=['chong_ban'])]},
      [HA, THAN, PH])
 
 # MÁY TỰ ĐẶT (17/10/2026 — khung 3D đầu tiên: máy gõ tay nằm trong người phụ, dí sát mặt, cắt mất nhân vật): giữ HƯỚNG máy đã khai (phía quanh

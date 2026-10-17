@@ -361,6 +361,7 @@ def nhan_vat(sh, ket=False):
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
             ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_
+            ng().ap_dien(n_, nv.get('dien'), 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
             than.append(bpy.data.objects[f"NG {nv['ten']}.nguc_k"]); tat_ca.extend([n_['goc'], *phan_ng]); continue
@@ -390,7 +391,39 @@ def nhan_vat(sh, ket=False):
             pk = khoi(p, f"NV {nv['ten']}·{i}", (X, Y), hg); tat_ca.append(pk)
             if p.get('chat'): chat_lieu(pk, p['chat'], p['mau'])
         if nv.get('nam'): nam_xuong(tat_ca[dau:], X, Y, Z, hg, d, h)
+    gan_tay(sh, tat_ca, ket)
     return than, tat_ca
+
+def diem_cam(n_, ben):
+    """Điểm nắm của một bàn tay ma-nơ-canh (toạ độ thế giới, m): cổ tay + 0,55 chiều dài bàn tay dọc trục bàn tay."""
+    return n_[f'cotay_{ben}'].matrix_world @ Vector((0, 0, -0.55 * n_['L']['ban_tay']))
+
+def tay_cam(sh):
+    """Đồ đang cầm của người (ma-nơ-canh) trong shot → (người cầm, tay): món thứ nhất tay phải 'p', thứ hai tay trái 't'; người đang 'om_thung'
+    thì món đầu ôm giữa hai tay 'om'."""
+    co = {v['ten']: v for v in sh.get('nhan_vat', [])}; out, dem = {}, {}
+    for v in sh.get('nhan_vat', []):
+        c = v.get('cam')
+        if not c or c not in co or c not in NGUOI: continue
+        om = any(str(x).split('@')[0] == 'om_thung' for x in (co[c].get('dien') or []))
+        k = dem.get(c, 0); dem[c] = k + 1
+        out[v['ten']] = (c, 'om' if om and k == 0 else 'p' if k == 0 else 't')
+    return out
+
+def gan_tay(sh, tat_ca, ket=False):
+    """RIG — đồ đang cầm nằm ĐÚNG trong bàn tay người cầm (anh 17/10/2026: ly, thẻ lơ lửng cạnh tay → AI vẽ sai tay cầm): dời món sao cho tâm món
+    trùng điểm nắm (ôm thùng: giữa hai tay). Khung kết của món cầm + đặt xuống (cam + den) thì không gắn."""
+    bpy.context.view_layer.update()
+    for ten, (c, ben) in tay_cam(sh).items():
+        v = next(x for x in sh['nhan_vat'] if x['ten'] == ten)
+        if ket and v.get('den'): continue
+        n_ = NGUOI[c]; dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
+        objs = [o for o in tat_ca if o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")]
+        if not objs: continue
+        bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]
+        tam = Vector([(min(p[i] for p in bb) + max(p[i] for p in bb)) / 2 for i in range(3)])
+        for o in objs: o.location += dich - tam
+    bpy.context.view_layer.update()
 
 def nam_xuong(objs, X, Y, Z, hg, d, h):
     """Xoay một người đang đứng (đáy giữa ở X, Y, Z; quay theo hg) ngửa ra sau 90° quanh trục ngang của chính nó: mặt trước lên trời, đỉnh đầu
@@ -753,6 +786,11 @@ if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ �
 # (a, b = phần thời lượng shot 0..1; '@a' = bắt đầu ở a, kéo ~15 %; không '@' = cả shot). Giá trị giữ nguyên sau khi động tác xong (tóc đã rũ
 # thì rũ tới hết shot). Chớp mắt + chúi tới khi đi là TỰ ĐỘNG, không cần khai.
 DONG_TAC = {
+    # NGƯỜI (rig ma-nơ-canh — mesh/nguoi.py › TU_THE_NGUOI): tư thế chồng lên đứng / bước; 'ten' = cả shot, 'ten@a-b' = chuyển dần trong a..b
+    'quy_mot_goi': 'quỳ một gối, tay với xuống sàn', 'cam_truoc': 'cầm món trước ngực', 'cam_dien_thoai': 'nhìn điện thoại trong tay',
+    'gio_cao': 'giơ cao món cho cả phòng thấy', 'dua_truoc_mat': 'đưa món lên trước mặt người đối diện', 'hat': 'hất / ném mạnh ra trước',
+    'giat': 'vươn tay giật', 'chong_ban': 'hai tay chống mặt bàn, ngẩng nhìn', 'cui_nguoi': 'cúi sát về phía trước', 'om_thung': 'ôm thùng trước bụng',
+    'khoanh_tay': 'khoanh tay', 'gioi_thieu': 'đưa tay giới thiệu người bên cạnh', 'thuyet_trinh': 'tay mở về phía màn chiếu',
     'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
     'lan_tron': 'cuộn tròn thành quả bóng lăn (chân tay / mắt / tóc thu vào)', 'truot': 'trượt nằm (xe trượt / băng / dây) — thân nằm di chuyển', 'nga_ngoi': 'ngã ngồi ra sau', 'nga': 'mốc cú ngã đứng → nằm (cần nam_den)', 'day': 'mốc đứng dậy nằm → đứng (cần nam_den: false)', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',
@@ -869,10 +907,14 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             ds.append((P, h))
         toc_cua[ten] = ds
     bpy.context.view_layer.update()
-    for ten, (e, nv) in neo.items():   # đồ đang cầm: neo gắn vào neo người cầm
+    tc = tay_cam(sh)
+    for ten, (e, nv) in neo.items():   # đồ đang cầm: neo gắn vào BÀN TAY người cầm (ma-nơ-canh — rig), không thì vào neo người cầm
         cam_ = nv.get('cam')
         if cam_ and cam_ in neo:
-            mw = e.matrix_world.copy(); e.parent = neo[cam_][0]; e.matrix_parent_inverse = neo[cam_][0].matrix_world.inverted(); e.matrix_world = mw
+            cha = neo[cam_][0]
+            if ten in tc and tc[ten][1] in ('p', 't'): cha = NGUOI[cam_][f"cotay_{tc[ten][1]}"]
+            elif ten in tc: cha = NGUOI[cam_]['nguc']
+            mw = e.matrix_world.copy(); e.parent = cha; e.matrix_parent_inverse = cha.matrix_world.inverted(); e.matrix_world = mw
     # NGÔN NGỮ STOP-MOTION (anh 16/10/2026: "blender tạo chuyển động dạng stopmotion đã đúng chưa"), theo nghề Laika / Aardman:
     #   lấy đà + vượt rồi khựng (dien_k) · BOIL: mỗi khung nhân vật xê dịch li ti như tay người chỉnh, lông nhảy nhẹ (ngẫu nhiên CỐ ĐỊNH theo
     #   tên + số khung — render lại ra y hệt) · đất nặn bẹp nhẹ mỗi lần chân chạm đất. Biên độ: XV_BOIL (1 = mặc định, 0 = tắt boil).
@@ -950,6 +992,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 n_ = NGUOI[ten]
                 if di: ng().buoc(n_, (p - a).xy.length / (2 * 0.41 * n_['cao']))
                 else: ng().tu_the(n_, n_.get('kieu', 'dung'))
+                ng().ap_dien(n_, nv.get('dien'), t)   # rig: tư thế theo mã diễn, chồng lên dáng đứng / bước
                 for kk in ng().KHOP_KEY: n_[kk].keyframe_insert('rotation_euler', frame=f)
                 n_['hong'].keyframe_insert('location', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo

@@ -76,7 +76,7 @@ def _dat(n, ten, x=0.0, y=0.0, z=0.0):
     n[ten].rotation_euler = (math.radians(x), math.radians(y), math.radians(z))
 
 def tu_the(n, kieu):
-    """Tư thế chốt. Quy ước góc: x dương = ngả RA SAU (về +y); đùi x âm = co lên phía trước (−y)."""
+    """Tư thế chốt. Quy ước góc (đo 17/10/2026): khớp hướng XUỐNG (đùi, tay) x âm = đưa ra trước (−y); khớp hướng LÊN (lưng, ngực, cổ, đầu) x dương = cúi ra trước."""
     L = n['L']; z_hong = L['chan'] + L['cang'] + L['dui']
     for k in list(n):
         if isinstance(n[k], bpy.types.Object) and n[k].type == 'EMPTY' and k != 'goc': n[k].rotation_euler = (0, 0, 0)
@@ -122,3 +122,48 @@ def di(n, tu, den, f0, f1, sai_buoc=None):
         t = (f - f0) / max(1, f1 - f0)
         n['goc'].location = (tu[0] + dx * t, tu[1] + dy * t, 0); n['goc'].rotation_euler.z = math.radians(huong)
         buoc(n, t * chu_ky); khoa_khung(n, f)
+
+# ── THƯ VIỆN TƯ THẾ NGƯỜI (rig previs — anh 17/10/2026 "có rig thì thông tin gửi AI rõ ràng, đỡ sai"): mỗi tư thế = góc khớp (độ, cùng quy ước
+# tu_the: x dương = ngả ra sau / về +y; tay x âm = vung ra trước; y = dạng tay ra ngoài, bên trái 't' âm / phải 'p' dương) + 'hong_cao' (phần chiều
+# cao, hông hạ khi quỳ / ngồi). Chỉ ĐÈ các khớp tư thế khai — đi (buoc) + cầm đồ (cam_truoc) chồng được. Mã trong vi_tri.dien: 'ten' = giữ cả shot,
+# 'ten@a-b' = chuyển dần từ dáng trước sang dáng này trong khoảng a..b (phần thời lượng shot), giữ tới hết. Đồ đang cầm gắn vào bàn tay
+# (dung-set.py › gan_tay): món cầm thứ nhất tay phải, thứ hai tay trái; 'om_thung' đặt món giữa hai tay.
+TU_THE_NGUOI = {
+    # QUY ƯỚC (đo bằng số 17/10/2026): khớp hướng LÊN (lung, nguc, co, dau) x DƯƠNG = cúi / ngả ra TRƯỚC (−y); khớp hướng XUỐNG (tay, chân)
+    # x ÂM = vung ra trước. Thân cúi θ thì tay đang buông bị kéo ra sau θ — muốn tay đổ xuống trước góc φ thì đặt vai = −φ − θ.
+    'quy_mot_goi': {'hong_cao': 0.27, 'lung': (18, 0, 0), 'dui_t': (-90, 0, 0), 'goi_t': (90, 0, 0), 'dui_p': (8, 0, 0), 'goi_p': (95, 0, 0),
+                    'vai_p': (-40, 8, 0), 'khuyu_p': (-15, 0, 0), 'dau': (15, 0, 0)},                          # quỳ gối phải, cúi, tay phải với xuống sàn
+    'cam_truoc': {'vai_p': (-15, 8, 0), 'khuyu_p': (-85, 0, 0)},                                                # cầm món trước ngực
+    'cam_dien_thoai': {'vai_p': (-12, 10, 0), 'khuyu_p': (-110, 0, 0), 'dau': (22, 0, 0)},                     # nhìn xuống điện thoại trong tay
+    'gio_cao': {'vai_p': (-150, 12, 0), 'khuyu_p': (-15, 0, 0), 'lung': (-5, 0, 0)},                            # giơ cao cho cả phòng thấy, ngả nhẹ ra sau
+    'dua_truoc_mat': {'vai_p': (-70, 12, 0), 'khuyu_p': (-55, 0, 0)},                                           # đưa món lên trước mặt người đối diện
+    'hat': {'vai_p': (-90, 5, 0), 'khuyu_p': (-8, 0, 0), 'lung': (10, 0, 0), 'nguc': (0, 0, 12)},               # hất / ném mạnh ra trước
+    'giat': {'vai_p': (-97, 4, 0), 'khuyu_p': (-12, 0, 0), 'lung': (12, 0, 0), 'nguc': (0, 0, 15)},             # vươn tay giật
+    'chong_ban': {'lung': (28, 0, 0), 'nguc': (10, 0, 0), 'vai_t': (-85, -10, 0), 'vai_p': (-85, 10, 0),
+                  'khuyu_t': (0, 0, 0), 'khuyu_p': (0, 0, 0), 'dau': (-35, 0, 0)},                              # cúi 38°, hai tay đổ xuống chống mặt bàn, ngẩng nhìn
+    'cui_nguoi': {'lung': (20, 0, 0), 'nguc': (8, 0, 0), 'dau': (-15, 0, 0)},                                   # cúi sát về phía trước, mắt giữ ngang
+    'om_thung': {'vai_t': (-22, -6, 0), 'vai_p': (-22, 6, 0), 'khuyu_t': (-88, 0, 0), 'khuyu_p': (-88, 0, 0)},  # ôm thùng trước bụng
+    'khoanh_tay': {'vai_t': (-25, -4, 0), 'vai_p': (-25, 4, 0), 'khuyu_t': (-115, 0, -35), 'khuyu_p': (-115, 0, 35)},
+    'gioi_thieu': {'vai_p': (-40, 35, 0), 'khuyu_p': (-15, 0, 0)},                                              # đưa tay giới thiệu người bên cạnh
+    'thuyet_trinh': {'vai_p': (-50, 28, 0), 'khuyu_p': (-30, 0, 0), 'dau': (0, 0, -10)},                        # tay mở về phía màn chiếu
+}
+
+def ap_dien(n, ds, t):
+    """Đặt tư thế theo mã diễn (vi_tri.dien) lúc t (0..1) — chồng lên dáng hiện tại (đứng / ngồi / đang bước). Trả tên các tư thế đang có hiệu lực."""
+    dang = []
+    for x in ds or []:
+        ten, _, mt = str(x).partition('@')
+        if ten not in TU_THE_NGUOI: continue
+        if mt:
+            a, _, b = mt.partition('-'); a = float(a); b = float(b) if b else min(1.0, a + 0.2)
+            k = 1.0 if t >= b else 0.0 if t <= a else (t - a) / max(1e-6, b - a)
+        else: k = 1.0
+        k = k * k * (3 - 2 * k)
+        if k <= 0: continue
+        dang.append(ten)
+        for khop, g in TU_THE_NGUOI[ten].items():
+            if khop == 'hong_cao':
+                z0 = n['hong'].location.z; n['hong'].location.z = z0 + (g * n['cao'] - z0) * k; continue
+            e = n[khop].rotation_euler; mo = (math.degrees(e.x), math.degrees(e.y), math.degrees(e.z))
+            n[khop].rotation_euler = tuple(math.radians(mo[i] + (g[i] - mo[i]) * k) for i in range(3))
+    return dang

@@ -570,6 +570,15 @@ export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][
   { ten: 'xoay tít', tu: /(xoay tít|spins?\b)/i, co: (v) => (v.dien ?? []).some((x) => /^xoay_tit/.test(x)) },
   { ten: 'tóc rũ', tu: /(tóc rũ|sợi tóc rũ|droop)/i, co: (v) => (v.dien ?? []).some((x) => /^toc_ru/.test(x)) },
   { ten: 'tóc / chỉ dựng', tu: /((tóc|sợi chỉ|lông)[^.;]{0,25}(dựng|bật)|BOING)/i, co: (v) => (v.dien ?? []).some((x) => /^(toc_dung|toc_bat)/.test(x)) },
+  // NGƯỜI (rig ma-nơ-canh, mesh/nguoi.py › TU_THE_NGUOI — 17/10/2026): kịch bản viết động tác thân người mà 3D vẫn đứng thẳng tay buông → ảnh 3D
+  // (ảnh số 1 của keyframe) nói một đằng, chữ nói một nẻo, AI tự đoán. Khai mã tư thế ở vi_tri.dien.
+  { ten: 'quỳ', tu: /(quỳ|kneel)/i, co: (v) => (v.dien ?? []).some((x) => /^quy/.test(x)) },
+  { ten: 'hất / ném', tu: /(hất|ném|throws?\b)/i, co: (v) => (v.dien ?? []).some((x) => /^hat/.test(x)) },
+  { ten: 'giật', tu: /(giật|snatch)/i, co: (v) => (v.dien ?? []).some((x) => /^giat/.test(x)) },
+  { ten: 'giơ', tu: /(giơ|raises?\b|holds? up)/i, co: (v) => (v.dien ?? []).some((x) => /^(gio_cao|dua_truoc_mat|gioi_thieu)/.test(x)) },
+  { ten: 'chống tay', tu: /(chống[^.;]{0,15}(tay|bàn)|palms? on|hands? on the table)/i, co: (v) => (v.dien ?? []).some((x) => /^chong_ban/.test(x)) },
+  { ten: 'ôm', tu: /(ôm thùng|ôm hộp|carry(ing)? a (cardboard )?box)/i, co: (v) => (v.dien ?? []).some((x) => /^om_thung/.test(x)) },
+  { ten: 'cúi người', tu: /(cúi (xuống|người|sát)|leans? in)/i, co: (v) => (v.dien ?? []).some((x) => /^(cui_nguoi|quy|chong_ban)/.test(x)) },
 ];
 export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'>): string[] {
   const m = c.may_3d; const mt = c.hanh_dong ?? ''; if (!m || !mt.trim()) return [];

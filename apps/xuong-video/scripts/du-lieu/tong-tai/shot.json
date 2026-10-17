@@ -71,7 +71,11 @@
       0
      ],
      "huong": 0,
-     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick"
+     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
+     "dien": [
+      "cam_truoc",
+      "hat@0.25-0.45"
+     ]
     },
     {
      "ten": "Ly cà phê",
@@ -254,7 +258,10 @@
       640,
       0
      ],
-     "huong": 0
+     "huong": 0,
+     "dien": [
+      "gio_cao@0-0.3"
+     ]
     },
     {
      "ten": "Hồ sơ Harrington",
@@ -466,7 +473,6 @@
       0
      ],
      "huong": 180,
-     "nam_den": false,
      "dien": [
       "quy_mot_goi@0.35-0.6"
      ]
@@ -478,7 +484,11 @@
       640,
       0
      ],
-     "huong": 0
+     "huong": 0,
+     "dien": [
+      "gio_cao",
+      "hat@0.1-0.3"
+     ]
     },
     {
      "ten": "Hồ sơ Harrington",
@@ -883,7 +893,10 @@
       560,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "dien": [
+      "cam_dien_thoai"
+     ]
     },
     {
      "ten": "Điện thoại của Hạ",
@@ -1001,7 +1014,10 @@
      "trang_phuc": "plain white silk blouse and black tailored slacks, long straight black hair loose",
      "do_deo": "jade bangle on the left wrist; white staff ID badge on a dark blue lanyard",
      "trang": "hot coffee stain spreading across the chest of the white blouse",
-     "do_deo_den": "jade bangle on the left wrist"
+     "do_deo_den": "jade bangle on the left wrist",
+     "dien": [
+      "om_thung"
+     ]
     },
     {
      "ten": "Vivian",
@@ -1017,7 +1033,10 @@
       0
      ],
      "huong_den": -90,
-     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick"
+     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
+     "dien": [
+      "giat@0.55-0.8"
+     ]
     },
     {
      "ten": "Thẻ nhân viên",
@@ -1110,7 +1129,10 @@
       380,
       0
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "om_thung"
+     ]
     },
     {
      "ten": "Vivian",
@@ -1119,7 +1141,10 @@
       365,
       0
      ],
-     "huong": -90
+     "huong": -90,
+     "dien": [
+      "dua_truoc_mat"
+     ]
     },
     {
      "ten": "Thẻ nhân viên",
@@ -1208,7 +1233,10 @@
       380,
       0
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "om_thung"
+     ]
     },
     {
      "ten": "Vivian",
@@ -1217,7 +1245,10 @@
       365,
       0
      ],
-     "huong": -90
+     "huong": -90,
+     "dien": [
+      "cam_truoc"
+     ]
     },
     {
      "ten": "Thẻ nhân viên",
@@ -1312,7 +1343,10 @@
       470,
       0
      ],
-     "huong_den": 0
+     "huong_den": 0,
+     "dien": [
+      "om_thung"
+     ]
     },
     {
      "ten": "Vivian",
@@ -1321,7 +1355,10 @@
       365,
       0
      ],
-     "huong": -90
+     "huong": -90,
+     "dien": [
+      "cam_truoc"
+     ]
     },
     {
      "ten": "Thẻ nhân viên",
@@ -1418,7 +1455,10 @@
       0
      ],
      "huong": 0,
-     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch"
+     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch",
+     "dien": [
+      "thuyet_trinh"
+     ]
     },
     {
      "ten": "Vivian",
@@ -1428,7 +1468,10 @@
       0
      ],
      "huong": -20,
-     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick"
+     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
+     "dien": [
+      "cam_truoc"
+     ]
     },
     {
      "ten": "Ly cà phê",
@@ -1617,7 +1660,10 @@
       150,
       0
      ],
-     "huong": 90
+     "huong": 90,
+     "dien": [
+      "gioi_thieu@0-0.3"
+     ]
     }
    ],
    "phia": 77.6
@@ -1682,7 +1728,10 @@
       745,
       0
      ],
-     "huong": -20
+     "huong": -20,
+     "dien": [
+      "cam_truoc"
+     ]
     },
     {
      "ten": "Ly cà phê",
@@ -1859,7 +1908,10 @@
       705,
       0
      ],
-     "huong_den": -90
+     "huong_den": -90,
+     "dien": [
+      "chong_ban@0.55-0.85"
+     ]
     }
    ],
    "phia": -20.3
@@ -1943,7 +1995,10 @@
      "trang_phuc": "tailored white power suit, white silk blouse, hair down, confident",
      "trang": "",
      "do_deo": "jade bangle on the left wrist",
-     "nhay": "đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)"
+     "nhay": "đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)",
+     "dien": [
+      "cui_nguoi@0.6-0.9"
+     ]
     },
     {
      "ten": "Lục Thần",
@@ -1952,7 +2007,10 @@
       705,
       0
      ],
-     "huong": -90
+     "huong": -90,
+     "dien": [
+      "chong_ban"
+     ]
     }
    ],
    "phia": 0.0

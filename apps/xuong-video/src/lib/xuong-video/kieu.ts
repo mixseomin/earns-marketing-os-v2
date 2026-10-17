@@ -155,6 +155,8 @@ export type KinhThanh = {
   luu_tru?: boolean;
   /** nhịp stop-motion: bản xuất giữ mỗi hình hai nhịp (12 hình/giây) — chuyển động AI mượt quá trông như quay stop-motion thật (Tango & Lint) */
   nhip_stop_motion?: boolean;
+  /** TÔNG MÀU CHUNG cả phim cho bản xuất (key nhóm 'mau' thư viện dien-anh.ts: teal_cam, am, lanh…) — look.ts; trống = không áp */
+  look?: string;
   /** phim KHÔNG LỜI (kiểu Larva): không thoại; nhân vật chỉ phát âm hiệu riêng; truyện kể bằng hành động + âm thanh (claude.ts › heThong) */
   khong_loi?: boolean;
   /** BẢN ĐỒ KHÔNG GIAN (14/10/2026 — "thiếu đoạn dẫn từ không gian tới nơi xảy ra, như Larva"): các nơi chốn (tên đúng anchor Bối cảnh)
@@ -337,7 +339,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', chat_lieu: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  may_dung: null, giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
+  may_dung: null, giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };
 /** Chất liệu hình của phim: khai tay trong kinh thánh, không thì đọc chữ phong cách. Không đoán được → 'hoat_hinh' an toàn (không bật cổng soi mặt
  *  trên phim chưa rõ) — phim người thật nào phong cách không nói rõ thì chọn tay. */

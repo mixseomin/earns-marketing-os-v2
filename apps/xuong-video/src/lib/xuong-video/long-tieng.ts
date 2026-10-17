@@ -1,6 +1,7 @@
 // Máy chủ của BẢN LỒNG TIẾNG (ban-dich.ts): dịch chữ màn + lời (1 lượt Claude, nhớ theo nội dung) → đọc từng câu bằng đúng giọng của bản gốc
 // (ElevenLabs, tính vào ký tự trong gói; câu đã đọc thì dùng lại) → xuất MP4 + tách track tiếng M4A (gắn vào video gốc trên YouTube)
 // → ghi vào danh sách bản xuất của tập, KHÔNG thay bản chính (video_url giữ nguyên). Một chỗ cho nút (actions.ts) và script.
+import { lookPhim } from './look';
 import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -106,7 +107,7 @@ export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang 
     }
   }
   const canhDich = theoNgonNgu(daGan, sang).canh;
-  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh: canhDich, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
+  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: canhDich, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
   if (!kq.ok) return kq;
   const amUrl = await tachTrackTieng(kq.url, `${tapId}-${sang}`);
   const canhBao = [...(loiGiong.length ? [`${loiGiong.length} câu không đọc được (im): ${loiGiong.join(' · ').slice(0, 300)}`] : []), ...(amUrl ? [] : ['không tách được track tiếng M4A']), ...kq.canhBao];

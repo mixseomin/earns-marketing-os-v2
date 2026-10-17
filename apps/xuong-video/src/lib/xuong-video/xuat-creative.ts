@@ -2,6 +2,7 @@
 // một biến thể diễn viên) sản xuất MỘT phim gốc (xv_bien_the_hinh.phim_id); creative cùng bộ hình xuất từ chính clip của phim gốc, chỉ thay
 // chữ màn + lời theo phương án của nó: câu đổi thì đọc lại bằng ĐÚNG giọng của câu gốc (tệp khoá theo nội dung → có rồi thì dùng lại), câu giữ
 // nguyên dùng file giọng cũ; dựng MP4 0đ (chayXuat — cùng đường với ⬇ Xuất và lồng tiếng long-tieng.ts). Không sinh hình, không gọi Claude.
+import { lookPhim } from './look';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { uploadToR2 } from '@/lib/r2';
@@ -78,7 +79,7 @@ export async function xuatCreativeDb(db: Db, creativeId: number, job: number): P
     }
     canh.push({ ...c, chu_man: chuMoi === chuGoc ? c.chu_man : chuMoi, thoai });
   }
-  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
+  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
   if (!kq.ok) return kq;
   const canhBao = [...(loiGiong.length ? [`${loiGiong.length} câu không đọc được (im): ${loiGiong.join(' · ').slice(0, 300)}`] : []), ...kq.canhBao];
   await db.execute(sql`UPDATE xv_creative SET xuat = ${JSON.stringify({ url: kq.url, luc: new Date().toISOString(), job, giay: Math.round(kq.giay * 10) / 10, canh_bao: canhBao, phim_goc: nc.data.phimGoc })}::jsonb WHERE id = ${creativeId}`);

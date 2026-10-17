@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -73,6 +73,11 @@ assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([chan]), dan_dung:
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([{ ...chan, pt: 8 }]) }, setIMac), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxT([]), thay: undefined } }, nv, setIMac).some((x) => x.includes('đời cũ')));
 assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground, cut off by the top edge — only a 30% strip shows)'));
+// CHỦ THỂ NHỎ (#11 tập 122: thẻ 0,6% khung, chủ thể shot) vẫn là THẤY; đồ nhỏ không phải chủ thể thì bỏ
+const the = { ten: 'Thẻ nhân viên', en: 'staff ID badge', pt: 0.6, hop: [0.1, 0.5, 0.2, 0.6] as [number, number, number, number], tien: false };
+const kxThe = { kiem: [{ nhan_vat: 'Thẻ nhân viên', bat_buoc: true, trong_khung: true }] };
+assert.ok(moTaThay([the], undefined, kxThe).includes('staff ID badge')); assert.equal(moTaThay([the]), '');
+assert.equal(thayRo(kxThe, the), true); assert.equal(thayRo({ kiem: [{ nhan_vat: 'Thẻ nhân viên', bat_buoc: true, trong_khung: false }] }, the), false);
 // Liền mạch: shot sau mở đúng chỗ shot trước kết (den) → qua; lệch 5 cm → đứt mạch; vắng một shot ở giữa vẫn so với lần cuối thấy;
 // khai nhay → không báo; quay ngoắt >60° qua cú cắt → báo.
 const kh = () => ({ co: [2, 1.6, 2.6] });

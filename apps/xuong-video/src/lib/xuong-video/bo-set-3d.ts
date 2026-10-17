@@ -333,6 +333,11 @@ export function moTaChuyenDong(di: KhungXam['di'] | undefined, goi: (ten: string
 /** NGƯỠNG "THẤY TRONG KHUNG 3D" (% diện tích) — MỘT số cho nhãn khối, đạo cụ tự kèm ảnh mẫu, và lọc ảnh mẫu đạo cụ ngoài khung (doc-db / sinh-anh).
  *  15/10/2026 #32 tập 19: nhãn lấy ≥ 2% còn câu sau ghi "Nothing else is in this frame" → Lint 1.7% đứng sau phích bị coi như không có. */
 export const PT_THAY = 1;
+/** CHỦ THỂ shot (may_3d.khung → khung_xam.kiem bat_buoc) mà bộ đo 3D thấy trong khung: luôn tính là THẤY dù chiếm < PT_THAY — đồ nhỏ làm chủ thể
+ *  (thẻ, bút, nhẫn) vẫn phải vẽ. Tập 122 #11: thẻ nhân viên 0,6% khung → prompt ghi "Not in frame: badge", bỏ ảnh mẫu thẻ, keyframe vẽ tay buông. */
+export const chuTheThay = (kx: { kiem?: { nhan_vat: string; bat_buoc?: boolean; trong_khung?: boolean }[] } | null | undefined, ten: string) => !!kx?.kiem?.some((k) => k.nhan_vat === ten && k.bat_buoc && k.trong_khung);
+/** Một mục khung_xam.thay có tính là THẤY trong khung không — MỘT luật cho nhãn khối, ảnh mẫu, câu ngoài khung, hướng nhân vật. */
+export const thayRo = (kx: Parameters<typeof chuTheThay>[0], t: { ten: string; pt: number }) => t.pt >= PT_THAY || chuTheThay(kx, t.ten);
 /** Vật chạm mép khung (hộp thấy 0..1) → "cut off by the bottom edge — only a 10% strip shows": model không được vẽ cả món. */
 export function catMep(h: number[]): string {
   const m: string[] = []; const e = 0.015;
@@ -342,9 +347,9 @@ export function catMep(h: number[]): string {
   else if (h[2]! >= 1 - e && h[0]! > 0.5) m.push(`the right edge — only ${Math.round((1 - h[0]!) * 100)}% of the width shows`);
   return m.length ? `, cut off by ${m.join(' and ')}` : '';
 }
-export function moTaThay(thay: VatThay[] | undefined, enCua?: (ten: string) => string | undefined): string {
+export function moTaThay(thay: VatThay[] | undefined, enCua?: (ten: string) => string | undefined, kx?: Parameters<typeof chuTheThay>[0]): string {
   const ngang = (x: number) => (x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'); const doc = (y: number) => (y < 0.36 ? 'top' : y > 0.64 ? 'bottom' : 'middle');
-  const ds = (thay ?? []).filter((t) => t.pt >= PT_THAY).map((t) => `${enCua?.(t.ten) ?? t.en ?? t.ten}${t.trang ? ` [${t.trang}]` : ''} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''}${catMep(t.hop)})`);
+  const ds = (thay ?? []).filter((t) => thayRo(kx, t)).map((t) => `${enCua?.(t.ten) ?? t.en ?? t.ten}${t.trang ? ` [${t.trang}]` : ''} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''}${catMep(t.hop)})`);
   // 3D LÀ NGUỒN DUY NHẤT của "có gì, ở đâu, to bao nhiêu" (anh 15/10/2026, keyframe #35: đế cắm 3D chỉ ló một dải ở đáy → ảnh vẽ cả cái đế to; chữ thẻ
   // shot "a cable loop trailing behind" → ảnh thêm vòng cáp): chữ chỉ thêm chất liệu, biểu cảm, dáng, hành động — chữ gọi tên thứ ngoài danh sách = ngoài khung.
   return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; every desk, table and shelf holds ONLY the listed objects — leave all other surfaces bare (no extra cups, notebooks, papers, pens, phones, plants or decor); framed pictures and screens show exactly what the layout image shows; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there). This list and Image 1 are the ONLY authority on WHAT is in the frame, WHERE and HOW BIG: if any other sentence of this prompt names a character or object that is not in this list, it is OFF-SCREEN at this instant — do not draw it or any trace of it. The rest of the prompt only adds look, material, expression, pose and action to what IS listed; a block cut off by the frame edge stays cut off exactly that much.` : '';

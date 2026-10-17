@@ -6,10 +6,10 @@ import { readFileSync } from 'node:fs';
 import { getDb } from '@mos2/db';
 import { soiBienDang } from '../src/lib/xuong-video/soi-bien-dang';
 
-const m = JSON.parse(readFileSync('scripts/du-lieu/soi-mau/mau.json', 'utf8')) as { sp: string; loi: { url: string; dai: number; loai: string; ghi: string }[]; tot: { url: string; dai: number; ghi: string }[] };
+const m = JSON.parse(readFileSync('scripts/du-lieu/soi-mau/mau.json', 'utf8')) as { sp: string; loi: { url: string; dai: number; loai: string; ghi: string; y_do?: string }[]; tot: { url: string; dai: number; ghi: string; y_do?: string }[] };
 const db = getDb()!;
 let bat = 0, nham = 0, tien = 0;
-const ket = await Promise.all([...m.loi.map((x) => ({ ...x, laLoi: true })), ...m.tot.map((x) => ({ ...x, laLoi: false, loai: '' }))].map(async (x) => ({ x, k: await soiBienDang(db, { url: x.url, dai: x.dai, sp: m.sp }) })));
+const ket = await Promise.all([...m.loi.map((x) => ({ ...x, laLoi: true })), ...m.tot.map((x) => ({ ...x, laLoi: false, loai: '' }))].map(async (x) => ({ x, k: await soiBienDang(db, { url: x.url, dai: x.dai, sp: m.sp, yDo: x.y_do }) })));
 for (const { x, k } of ket) {
   if (!k) { console.log(`?  ${x.ghi} — không soi được`); continue; }
   tien += k.cents;

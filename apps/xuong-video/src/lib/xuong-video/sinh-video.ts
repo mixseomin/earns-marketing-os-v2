@@ -46,7 +46,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // đi khỏi khung (thử 2 shot 09/10/2026) — nói rõ khung đầu là chân lý, chủ thể ở trong khung suốt clip, không chữ.
   const coSp = bc.nhanVat.some((v) => v.loai === 'san_pham');
   const lv = LOAI_VIDEO[bc.loai] ?? LOAI_VIDEO.phim;
-  const giuKhung = `The first frame is the ground truth: keep every person, ${coSp ? `${lv.sp_giu}, ` : ''}the set and the framing exactly as in it; the main subject stays fully in frame for the whole clip.`;
+  const giuKhung = `The main subject stays fully in frame for the whole clip${coSp ? `; ${lv.sp_giu} stays exactly as in the first frame` : ''}.`;
   // Shot có sản phẩm mà hành động chỉ tả mặt ("cười, gật đầu", "push-in") + câu khung sống (CHAT_LIEU.song_video) đòi cử động cả thân → model tự bịa cử chỉ vào món
   // gần tay nhất: #54 shot 9 (16/10/2026) ông Mike kéo cổ áo polo trong phim bán QUẦN, máy đẩy vào cắt mất quần. Cử chỉ phải dồn vào sản phẩm.
   const tenSp = bc.nhanVat.filter((v) => v.loai === 'san_pham').map((v) => v.ten.trim()).filter(Boolean).join(', ');
@@ -71,13 +71,14 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const rendau = !!bc.canh.khung_xam?.mau && bc.canh.keyframe_url === bc.canh.khung_xam.mau;
   const cl = chatLieuPhim(bc.kt);
   // GIỮ KHUNG ĐẦU theo chất liệu (CHAT_LIEU.giu_video): hoạt hình chỉ khi khung đầu là ảnh render 3D; người thật luôn (giữ mặt, đồ, bối cảnh).
-  const giuAnh = rendau || cl === 'nguoi_that' ? CHAT_LIEU[cl].giu_video : '';
+  const giuAnh = CHAT_LIEU[cl].giu_video;
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
   return [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
-    khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
-    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di, goiTenEn([...bc.nhanVat, ...bc.nvPhim]))), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
-    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem}`), khoi('cam_chu', 'No on-screen text, captions, subtitles, name labels or logos anywhere.'),
+    // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)
+    khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || (bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
+    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di, goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'))), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
+    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem}`), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     khoi('thoai', coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''),

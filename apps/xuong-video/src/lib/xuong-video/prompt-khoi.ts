@@ -29,9 +29,9 @@ export const CHAT_LIEU: Record<ChatLieu, {
     flux_cuoi: 'Real people, real skin and fabric, natural motivated lighting, 35mm film look. No text, no letters, no numbers.',
     anh_sang: () => 'Scene lighting, identical in every shot of this scene: same light direction, exposure and colour grade as the rest of the scene.',
     dien_video: () => 'Naturalistic screen acting (real human timing, subtle and motivated, no cartoon exaggeration)',
-    giu_video: 'Keep the exact look of the first frame: same people, faces, wardrobe, set, lighting and colours; real live-action footage.',
+    giu_video: 'Stay true to the first frame: same people, faces, wardrobe, set, framing, light and colours — real live-action footage.',
     song_video: (chen) => chen ? 'Only the described detail moves; everything else in frame stays still, with natural subtle life (a breath, a slight shift of light).' : 'Keep the frame alive with natural, motivated movement: the actors perform the action with readable body language, and the background stays naturally alive (people breathing, slight shifts, light on surfaces) — never frozen.',
-    khong_them: (vao) => `Nothing new appears during the clip: no extra people, props or objects beyond what is in the first frame${vao}; things cut off by the frame edge stay cut off; no visual effects, particles or glows.`,
+    khong_them: (vao) => `Nothing new appears (no extra people or objects${vao}, no visual effects); things cut off by the frame edge stay cut off.`,
     cam: /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top|desk lamp|squash and stretch|cartoon acting|puppet|fur, leaves|simply floats)\b/i,
   },
   hoat_hinh: {
@@ -105,12 +105,14 @@ export const boTrung = (t: string, khac: string) => { const k = khac.toLowerCase
 
 /** KHỐI NGƯỜI: nhân dạng (bỏ quần áo khi có bộ đồ sổ) + bộ đồ (mô tả MỌI biến thể sổ người đang trỏ) + đồ đeo (không trùng bộ đồ). Cận chèn: chỉ tay.
  *  gon = bản ngắn cho bước sửa nhân dạng (ảnh mẫu đã mang mặt). MỘT hàm cho mọi đường. */
-export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { ao: string[]; deo?: string; chen: boolean; gon?: boolean; moTa: (t: string) => string }): string {
+export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { ao: string[]; deo?: string; them?: string[]; chen: boolean; gon?: boolean; moTa: (t: string) => string }): string {
   const ao = o.ao.map((x) => (o.chen ? boMat(x) : x)).filter(Boolean).join('; ');
   const deo = o.deo && !ao.toLowerCase().includes(o.deo.toLowerCase().replace(/^(a|an|the)\s+/, '')) ? o.deo : '';
+  // tóc / trang điểm của sổ người (khác ngày, khác cảnh) — cận chèn không tả
+  const them = o.chen ? '' : (o.them ?? []).filter(Boolean).join(', ');
   const nguoi = a.loai === 'nhan_vat';
   const goc = nguoi && o.chen ? (o.gon ? 'skin tone and sleeve only, face out of frame' : `${a.ten.split(' ').pop()}'s hand and forearm only (face out of frame)`)
     : ao ? boTrung(boDo(o.moTa(a.mo_ta)), ao) : o.moTa(a.mo_ta);
   const n = o.gon ? '; ' : ', ';
-  return `${goc}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}`;
+  return `${goc}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}${them ? `${n}${them}` : ''}`;
 }

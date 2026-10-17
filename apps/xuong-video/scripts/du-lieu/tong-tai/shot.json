@@ -73,6 +73,8 @@
      ],
      "huong": 0,
      "trang_phuc": "Đầm đỏ đô công sở",
+     "trang_diem": "bold red lipstick",
+     "do_deo": "small gold stud earrings",
      "dien": [
       "cam_truoc",
       "hat@0.25-0.45"
@@ -631,7 +633,7 @@
       0
      ],
      "trang_phuc": "Com-lê đen ba mảnh",
-     "do_deo": "thin pale-green jade bead bracelet hidden under the left shirt cuff",
+     "do_deo": "steel wristwatch on the left wrist; thin pale-green jade bead bracelet hidden under the left shirt cuff",
      "dien": [
       "mc_sai_buoc"
      ]
@@ -1089,6 +1091,8 @@
      ],
      "huong_den": -90,
      "trang_phuc": "Đầm đỏ đô công sở",
+     "trang_diem": "bold red lipstick",
+     "do_deo": "small gold stud earrings",
      "dien": [
       "mc_sai_buoc@0-0.55",
       "giat@0.55-0.8"
@@ -1528,7 +1532,7 @@
      ],
      "huong": 0,
      "trang_phuc": "Com-lê đen ba mảnh",
-     "do_deo": "thin pale-green jade bead bracelet hidden under the left shirt cuff",
+     "do_deo": "steel wristwatch on the left wrist; thin pale-green jade bead bracelet hidden under the left shirt cuff",
      "dien": [
       "thuyet_trinh"
      ]
@@ -1542,6 +1546,8 @@
      ],
      "huong": -20,
      "trang_phuc": "Đầm đỏ đô công sở",
+     "trang_diem": "bold red lipstick",
+     "do_deo": "small gold stud earrings",
      "dien": [
       "cam_truoc"
      ]
@@ -1673,6 +1679,7 @@
       0
      ],
      "trang_phuc": "Com-lê navy luật sư",
+     "do_deo": "carrying a brown leather briefcase",
      "dien": [
       "mc_di_bo"
      ]
@@ -2290,7 +2297,7 @@
       "chong_ban"
      ],
      "trang_phuc": "Com-lê đen ba mảnh",
-     "do_deo": "thin pale-green jade bead bracelet on the left wrist, shirt cuff pulled back so it shows",
+     "do_deo": "steel wristwatch and a thin pale-green jade bead bracelet on the left wrist, shirt cuff pulled back so the bracelet shows",
      "nhay": "cận chèn: tay áo đã xô lên lộ chuỗi hạt (giữa #21 và #22)"
     },
     {

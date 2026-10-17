@@ -25,7 +25,7 @@ import { uploadToR2 } from '../r2';
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
 /** Prompt ảnh cuối = phong cách bộ phim + prompt cảnh + nhắc giữ đúng anchor theo ảnh tham chiếu. */
-export const KHONG_CHU = 'Absolutely NO text, letters, words, numbers, captions, subtitles, labels, watermarks or logos anywhere in the image — not even product names; the frame must be clean, on-screen text is added later in post.';
+export const KHONG_CHU = 'No text, letters, numbers, captions, watermarks or logos anywhere in the image.';
 export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = ''): string {
   // Kỹ thuật điện ảnh của shot (cỡ cảnh, góc, ống kính, ánh sáng, màu — thư viện dien-anh.ts) đứng ngay sau phong cách.
   const dong = [KHONG_CHU, phongCach ? `Visual style: ${phongCach}.` : '', kyThuatAnh ? `Cinematography: ${kyThuatAnh}.` : '', prompt.trim()];
@@ -243,7 +243,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const trangCauCua = (boNguoi: boolean) => {
     const ds = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).map((v) => {
       const a = bc.nhanVat.find((n) => n.ten === v.ten); if (!a) return '';
-      const t = trangThaiVat(v, ket, (k, gt) => { const b = (a.bien_the ?? []).find((x) => x.ten.trim().toLowerCase() === gt.trim().toLowerCase()); return a.loai === 'nhan_vat' && boNguoi && (b || k === 'do_deo') ? null : b ? b.mo_ta : gt; });
+      const t = trangThaiVat(v, ket, (k, gt) => { const b = (a.bien_the ?? []).find((x) => x.ten.trim().toLowerCase() === gt.trim().toLowerCase()); return a.loai === 'nhan_vat' && boNguoi && (b || k === 'do_deo' || k === 'toc' || k === 'trang_diem') ? null : b ? b.mo_ta : gt; });
       return t ? `${v.ten}: ${t}` : '';
     }).filter(Boolean);
     return ds.length ? `STATE in this frame (overrides the reference photos): ${ds.join('; ')}.` : '';
@@ -278,9 +278,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // KHỐI NGƯỜI / MÓN (prompt-khoi.ts › chuNguoi) — MỘT hàm cho mọi đường: bộ đồ = mô tả mọi biến thể sổ người, đồ đeo sổ người, cận chèn chỉ tả tay.
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';
   const vtCua = (v: NhanVat) => (v.loai === 'nhan_vat' ? viTriCua(v.ten) : undefined);
-  const aoCua = (v: NhanVat) => btSo(v).map((b) => moTaVua(b.mo_ta)).filter(Boolean);
+  // mô tả biến thể ĐỦ (không cắt ở " — " như moTaVua: vết cà phê sau dấu gạch từng bị cắt khỏi mọi prompt #2–#13)
+  const aoCua = (v: NhanVat) => btSo(v).map((b) => b.mo_ta.trim().replace(/[.\s]+$/, '').slice(0, 600)).filter(Boolean);
+  const themCua = (v: NhanVat) => { const vt = vtCua(v); return vt ? [ket ? vt.toc_den ?? vt.toc : vt.toc, ket ? vt.trang_diem_den ?? vt.trang_diem : vt.trang_diem].filter((x): x is string => !!x?.trim()) : []; };
   const deoCua = (v: NhanVat) => { const vt = vtCua(v); return (ket ? vt?.do_deo_den ?? vt?.do_deo : vt?.do_deo) ?? ''; };
-  const taNv = (v: NhanVat, gon = false) => chuNguoi(v, { ao: aoCua(v), deo: deoCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua });
+  const taNv = (v: NhanVat, gon = false) => chuNguoi(v, { ao: aoCua(v), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua });
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").
@@ -341,7 +343,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // KHUÔN bước 2 sửa nhân dạng (KHUON.sua_nhan_dang)
       const kS: Khoi[] = [
         khoi('nguoi', `EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
-        khoi('giu', `Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there. Do not add, remove, move, rotate or resize anything.`),
+        khoi('giu', 'Keep everything else exactly as Image 1 (camera, framing, every position, size and outline, background, light, colours); Image 2 is the 3D layout of this frame. Do not add, remove, move or resize anything.'),
         khoi('huong', chen ? '' : huongCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
         khoi('nhan_dang', coDinh.length && `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there.`),
         khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),

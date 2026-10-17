@@ -69,7 +69,7 @@ for (const [i, c] of shots.entries()) {
   const gocMay = [kt.co_canh, kt.goc, kt.chuyen_dong, kt.ong_kinh].filter(Boolean).join(' · ');
   const loiThoai = c.thoai.map((d) => `${d.nhan_vat} (${d.dien_xuat}): "${d.loi}"`).join('\n');
   const pa = c.prompt_anh || `${dd.bo_cuc}. Opening moment: ${dd.mo}.`;
-  const pv = c.prompt_video || `${dd.mo}, then ${dd.ket}. Natural, restrained acting; cinematic, photorealistic.`;
+  const pv = c.prompt_video || '';   // không chèn câu mẫu: khuôn video (sinh-video.ts › khoiVideoCanh) tự dựng từ mở / kết / diễn / phong cách — câu mẫu cũ lặp hai lần
   r = await db.execute(sql`SELECT id, may_3d FROM xv_canh WHERE tap_id = ${tapId} AND dan_dung->>'ma' = ${c.ma} LIMIT 1`);
   const may = mayShot(c.may_3d as never, kt, khoiCua, (r[0]?.may_3d ?? null) as never);
   const vals = sql`thu_tu = ${i + 1}, canh = ${`Cảnh ${soCanh(c.canh)} · ${c.canh}`}, phan_doan = ${c.canh}, nhan_vat = ${j(ids)}::jsonb, hanh_dong = ${c.hanh_dong}, goc_may = ${gocMay},

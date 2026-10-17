@@ -567,12 +567,11 @@ def tran_(o, nv, w, h, dinh=1.0):
     r0 = 0.16 * w; dai = 1.5 * h; n = 26; mep = mieng + g * (0.95 * rR * CM)
     ra = (truc + g * 0.35).normalized()
     cv = bpy.data.curves.new(f"tran {nv['ten']}", 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = r0 * CM; cv.bevel_resolution = 4; cv.use_fill_caps = True
-    sp = cv.splines.new('POLY'); sp.points.add(n + 1)
-    sp.points[0].co = (*(mieng + g * (0.35 * rR * CM) - truc * (0.3 * CM)), 1); sp.points[0].radius = 1.3
-    sp.points[1].co = (*(mep - truc * (0.1 * CM)), 1); sp.points[1].radius = 1.15
+    sp = cv.splines.new('POLY'); sp.points.add(n)   # bắt đầu ĐÚNG mép (mặt chất lỏng nối liền) — thêm điểm trong lòng miệng thì dòng gấp khúc như khuỷu ống
+    sp.points[0].co = (*(mep - truc * (0.1 * CM)), 1); sp.points[0].radius = 1.15
     for i in range(n):
         t = (i + 1) / n; p = mep + ra * (t * dai * CM) - Vector((0, 0, 1.6 * t * t * dai * CM))
-        sp.points[i + 2].co = (*p, 1); sp.points[i + 2].radius = 1.0 - 0.8 * t   # mép rộng → đầu dòng mảnh
+        sp.points[i + 1].co = (*p, 1); sp.points[i + 1].radius = 1.0 - 0.8 * t   # mép rộng → đầu dòng mảnh
     cv.materials.append(mau_)
     gd = bpy.data.objects.new(f"NV {nv['ten']}·tran", cv); bpy.context.collection.objects.link(gd); ds.append(gd)
     for x in ds: x.parent = o; x.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay

@@ -528,7 +528,7 @@ def nhan_vat(sh, ket=False):
         o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat'), 'nghieng': nv.get('nghieng') or mau_nv.get('nghieng') or 0}, f"NV {nv['ten']}", (X, Y), hg)   # nghieng: đồ nghiêng / lật theo shot (vi_tri)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
-        if nv.get('tran') and ket is not True: tat_ca.extend(tran_(o, nv, w, h))
+        if nv.get('tran') and ket is not True: tat_ca.extend(tran_(o, nv, w, h, mau_nv.get('dinh', 1.0)))
         # NẰM (bẹp / ngã): dựng người ĐỨNG đủ tay, chân, tóc, mắt rồi xoay cả người ngửa ra sau quanh trục ngang của nó (mặt hướng lên).
         # Trước 15/10/2026 nằm = đổi cao thành sâu + BỎ mọi phần → còn quả trứng trơn có hai mắt, model ảnh không nhận ra là Tango nằm (#14 tập 19).
         dau = len(tat_ca) - 1
@@ -549,24 +549,35 @@ def nhan_vat(sh, ket=False):
 
 DI_MC = ('mc_di_bo', 'mc_sai_buoc')   # mocap ĐI: khung tĩnh thay bằng giữa sải bước (nhan_vat › di_mo)
 
-def tran_(o, nv, w, h):
-    """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): MỘT ống liền thon dần từ miệng vật theo
-    trục nghiêng rồi cong xuống theo trọng lực. Chữ "coffee spilling out" mà 3D chỉ có ly trơn thì ảnh AI bám 3D, vẽ ly sạch (tập 122 #17); dựng
-    bằng chuỗi hạt cầu thì AI chép thành chuỗi hạt (lượt 2) — chất lỏng phải là khối LIỀN. Tên 'NV <vật>·tran' → kiểm hình học / mặt nạ coi là
-    một phần vật đó; nhãn keyframe ghi trạng thái qua TRANG."""
+def tran_(o, nv, w, h, dinh=1.0):
+    """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): MẶT CHẤT LỎNG trong lòng miệng vật + MỘT
+    ống liền thon dần tràn qua MÉP THẤP NHẤT (phía trọng lực) rồi cong xuống. Chữ "coffee spilling out" mà 3D chỉ có ly trơn thì AI vẽ ly sạch (tập
+    122 #17); chuỗi hạt cầu thì AI vẽ chuỗi hạt; ống mọc từ tâm miệng của khối đặc thì AI vẽ dòng lơ lửng ngoài mép, lòng cốc trống (lượt 3).
+    Hình học thay mô phỏng chất lỏng: model ảnh chỉ đọc dáng + độ sâu. Tên 'NV <vật>·tran*' → kiểm hình học / mặt nạ coi là một phần vật đó."""
     bpy.context.view_layer.update()   # khoi() vừa gán scale / xoay — chưa update thì matrix_world còn là phép dời, dòng mọc thẳng lên ngoài khung
-    M = o.matrix_world.copy(); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized(); mieng = M @ Vector((0, 0, 0.42))
-    r0 = 0.16 * w; dai = 1.5 * h; n = 24
+    M = o.matrix_world.copy(); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized(); mieng = M @ Vector((0, 0, 0.5))
+    rR = 0.5 * dinh * w   # bán kính miệng (cm): nón cụt đỉnh = đáy × dinh
+    g = Vector((0, 0, -1)) - truc * Vector((0, 0, -1)).dot(truc)
+    g = g.normalized() if g.length > 1e-4 else Vector((0, -1, 0))   # hướng mép thấp nhất trên mặt miệng
+    mau_ = mau(nv.get('tran_mau', '#2a1a10')); ds = []
+    # mặt chất lỏng: đĩa phẳng sẫm hơi lùi vào trong miệng
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.92 * rR * CM, depth=0.25 * CM, location=mieng - truc * (0.35 * CM), rotation=truc.to_track_quat('Z', 'Y').to_euler())
+    ds.append(dat(bpy.context.object, mau_, f"NV {nv['ten']}·tran_mat"))
+    # dòng: từ trong lòng miệng → qua mép thấp → theo trục ra ngoài rồi rơi
+    r0 = 0.16 * w; dai = 1.5 * h; n = 26; mep = mieng + g * (0.95 * rR * CM)
+    ra = (truc + g * 0.35).normalized()
     cv = bpy.data.curves.new(f"tran {nv['ten']}", 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = r0 * CM; cv.bevel_resolution = 4; cv.use_fill_caps = True
-    sp = cv.splines.new('POLY'); sp.points.add(n - 1)
+    sp = cv.splines.new('POLY'); sp.points.add(n + 1)
+    sp.points[0].co = (*(mieng + g * (0.35 * rR * CM) - truc * (0.3 * CM)), 1); sp.points[0].radius = 1.3
+    sp.points[1].co = (*(mep - truc * (0.1 * CM)), 1); sp.points[1].radius = 1.15
     for i in range(n):
-        t = i / (n - 1); p = mieng + truc * (t * dai * CM) - Vector((0, 0, 1.6 * t * t * dai * CM))
-        sp.points[i].co = (*p, 1); sp.points[i].radius = 1.0 - 0.8 * t   # miệng rộng → đầu dòng mảnh
-    g = bpy.data.objects.new(f"NV {nv['ten']}·tran", cv); bpy.context.collection.objects.link(g)
-    g.parent = o; g.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay
-    cv.materials.append(mau(nv.get('tran_mau', '#2a1a10')))
-    TRANG[nv['ten']] = f"{nv['tran']} spilling out of it in one smooth continuous liquid stream"
-    return [g]
+        t = (i + 1) / n; p = mep + ra * (t * dai * CM) - Vector((0, 0, 1.6 * t * t * dai * CM))
+        sp.points[i + 2].co = (*p, 1); sp.points[i + 2].radius = 1.0 - 0.8 * t   # mép rộng → đầu dòng mảnh
+    cv.materials.append(mau_)
+    gd = bpy.data.objects.new(f"NV {nv['ten']}·tran", cv); bpy.context.collection.objects.link(gd); ds.append(gd)
+    for x in ds: x.parent = o; x.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay
+    TRANG[nv['ten']] = f"full of {nv['tran']}, which pours over the lowest point of the rim in one smooth continuous stream"
+    return ds
 
 def diem_cam(n_, ben):
     """Điểm nắm của một bàn tay ma-nơ-canh (toạ độ thế giới, m): cổ tay + 0,55 chiều dài bàn tay dọc trục bàn tay."""

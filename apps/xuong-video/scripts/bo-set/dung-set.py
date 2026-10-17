@@ -733,6 +733,18 @@ def dat_may(cam, dat, nhin):
     cam.rotation_euler = (Vector(nhin) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
     cat_lop(cam)
 
+def mat_sai(sh, p):
+    """Số NGƯỜI ĐANG NÓI (sh['mat'] — bo-set-3d.ts › nguoiNoiTrongKhung) mà từ chỗ máy p không thấy mặt ở khung mở: góc giữa hướng mặt (huong: 0 = nhìn −y,
+    90 = +x) và hướng tới máy > ngưỡng (sh['mat_nguong'] — cùng luật kiem-ai-3d.ts › matNguoiNoi). Bộ giải coi nặng như chủ thể bị che."""
+    n = 0; ng = sh.get('mat_nguong', 80)
+    for ten in sh.get('mat') or []:
+        v = next((x for x in sh['nhan_vat'] if x['ten'] == ten), None)
+        if not v: continue
+        h = math.radians(v.get('huong', 0)); f = Vector((math.sin(h), -math.cos(h))); d = Vector((p[0] - v['tam'][0], p[1] - v['tam'][1]))
+        if d.length < 1e-6: continue
+        if math.degrees(f.angle(d.normalized())) > ng: n += 1
+    return n
+
 def giai_may(s, cam, sh, nv):
     """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài, nằm sai phía trục, hoặc có vật chắn tiền cảnh chữ không nhắc, → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên
     mọi chủ thể đều thấy rõ (ít đổi nhất trước). Không có phương án sạch → giữ phương án ít lỗi nhất, kiểm vẫn báo."""
@@ -743,7 +755,7 @@ def giai_may(s, cam, sh, nv):
             for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90, 120, -120, 150, -150, 180):   # tới 180° để máy đang sai phía trục quay về được
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
                 vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
-                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100
+                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100 + mat_sai(sh, vt_may) * 100
                 if h == 0: h = chan_la(s, cam, sh, nv) + thieu_nhac(s, cam, sh, nv) * 10   # chủ thể sạch rồi mới tính vật chắn lạ + vật được nhắc mà không thấy (đắt hơn)
                 if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot

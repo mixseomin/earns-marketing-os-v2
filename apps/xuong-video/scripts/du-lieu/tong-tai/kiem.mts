@@ -43,6 +43,8 @@ const kb = chamKichBan({ tap: { so: 1, beats: phim.tap.beats, phan_canh: phanCan
   canh: shots.map((s: Record<string, any>) => ({ phat_s: s.phat_s, thoi_luong_s: s.thoi_luong_s, phan_doan: s.canh, chu_man: s.chu_man, thoai: s.thoai, loi_thoai: '', hanh_dong: s.hanh_dong })) as never });
 console.log(`kịch bản ${kb.diem}/100`); for (const m of kb.muc) if (!m.dat) console.log('  ✗', m.ten, '—', m.ghi);
 const chan = loiMachTap(ds as never, nv as never, boSet as never, phanCanh);
+// ảnh chuẩn đồ nhận dạng (vat.anh) chỉ nằm trên DB (sinh-anh-set.mts, nap.mts giữ) — ở đây không đọc được, cổng keyframe trên box mới chấm luật đó
+const DB_ONLY = (x: string) => x.startsWith('đồ nhận dạng');
 const canh = canhBaoMachTap(ds as never, (t) => nv.some((a) => a.loai === 'nhan_vat' && a.ten === t), phanCanh);
 const khai = thieuKhaiNguoi(ds as never, phanCanh);
 let nChan = 0, nCanh = 0;
@@ -51,7 +53,7 @@ const du = mayDayDu(ds as never, laDoVatPhim(nv as never), phanCanh as never);
 ds.forEach((c, i) => { const sid = boSetCuaShot(c as never, nv as never); const cd = { ...c, may_3d: du.get(c.id) ?? c.may_3d }; if (sid) (chan[c.id] ??= []).push(...loiNoiMay(cd as never, nv as never, { id: sid }, i > 0 ? shotSoTruc(ds as never, i) : null),
   ...loiAi3d({ ...cd, thoai: (shots[i] as Record<string, any>).thoai, prompt_anh: (shots[i] as Record<string, any>).prompt_anh ?? '' } as never, nv as never, (boSet.find((b) => b.id === sid) ?? null) as never)); });   // nối máy + bộ kiểm AI: cùng hàm cổng keyframe, không cần dựng   // nối máy: cùng hàm cổng keyframe, không cần dựng
 for (const c of ds) {
-  const l = chan[c.id] ?? [];
+  const l = (chan[c.id] ?? []).filter((x) => !DB_ONLY(x));
   const w = [...(canh[c.id] ?? []), ...(khai[c.id] ?? []), gocMayLech(c.may_3d, c.ky_thuat?.goc)].filter((x): x is string => !!x && !(boChu && x.startsWith('chữ lệch 3D')));
   nChan += l.length; nCanh += w.length;
   if (l.length || w.length) console.log(`#${c.thu_tu} (${c.ma})`, [...l.map((x) => 'CHẶN ' + x), ...w.map((x) => '⚐ ' + x)].join('\n    '));

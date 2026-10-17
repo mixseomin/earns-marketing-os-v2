@@ -20,7 +20,7 @@
   "dan_dung": {
    "dien": "Anticipation: Vivian plants herself in Hạ's path, cup raised. Action: a sharp flick of the wrist, coffee arcs onto Hạ's chest. Reaction: Hạ freezes, breath caught, eyes drop to the stain.",
    "bo_cuc": "Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers behind",
-   "mo": "Hạ walking with a folder, Vivian blocking her path holding a full coffee cup",
+   "mo": "Hạ walking down the aisle, Vivian blocking her path holding a full coffee cup",
    "ket": "coffee splashed across the chest of Hạ’s white blouse",
    "huong": "they face each other across the frame",
    "muc_dich": "HOOK: bất công ngay giây đầu",
@@ -121,15 +121,15 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: stillness, the stain still spreading. Action: Hạ's fingers slowly tighten on the folder. Reaction: a slow controlled exhale.",
+   "dien": "Anticipation: stillness, the stain still spreading. Action: Hạ's hand slowly clenches into a fist at her side. Reaction: a slow controlled exhale.",
    "huong": "Hạ looks down at her own chest.",
-   "bo_cuc": "Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her hand holding the folder at frame bottom",
+   "bo_cuc": "Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her clenched hand at frame bottom",
    "mo": "stain still spreading",
-   "ket": "Hạ’s fingers tighten on the folder",
+   "ket": "Hạ’s hand clenched into a fist",
    "muc_dich": "người xem thấy rõ cái nhục",
    "ma": "1.2"
   },
-  "hanh_dong": "Vết cà phê loang trên áo trắng, tay Hạ siết chặt tập hồ sơ",
+  "hanh_dong": "Vết cà phê loang trên áo trắng, tay Hạ siết chặt thành nắm đấm",
   "thoai": [],
   "bieu_cam": [
    {
@@ -913,7 +913,8 @@
   ],
   "may_3d": {
    "khung": [
-    "Lâm Hạ"
+    "Lâm Hạ",
+    "Điện thoại của Hạ"
    ],
    "vi_tri": [
     {
@@ -969,7 +970,7 @@
      "an": true
     }
    ],
-   "phia": -148.0
+   "phia": -149.8
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2159,7 +2160,7 @@
      "an": true
     }
    ],
-   "phia": -61.6
+   "phia": -28.9
   },
   "nhan_vat": [
    "Lục Thần",

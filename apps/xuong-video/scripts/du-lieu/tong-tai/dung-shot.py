@@ -32,15 +32,15 @@ C1, C2, C3, C4, C5 = 'Cà phê và hồ sơ', 'Tổng tài đuổi việc', 'Tha
 
 # ── CẢNH 1 · Văn phòng mở 09:00 (0–18 s) ──
 shot('1.1', C1, 3, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 'chuyen_dong': 'zoom_gat', 'ong_kinh': 'chuan', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong', 'vut']},
-     { 'dien': "Anticipation: Vivian plants herself in Hạ's path, cup raised. Action: a sharp flick of the wrist, coffee arcs onto Hạ's chest. Reaction: Hạ freezes, breath caught, eyes drop to the stain.",'bo_cuc': 'Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers behind', 'mo': 'Hạ walking with a folder, Vivian blocking her path holding a full coffee cup', 'ket': 'coffee splashed across the chest of Hạ’s white blouse', 'huong': 'they face each other across the frame', 'muc_dich': 'HOOK: bất công ngay giây đầu'},
+     { 'dien': "Anticipation: Vivian plants herself in Hạ's path, cup raised. Action: a sharp flick of the wrist, coffee arcs onto Hạ's chest. Reaction: Hạ freezes, breath caught, eyes drop to the stain.",'bo_cuc': 'Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers behind', 'mo': 'Hạ walking down the aisle, Vivian blocking her path holding a full coffee cup', 'ket': 'coffee splashed across the chest of Hạ’s white blouse', 'huong': 'they face each other across the frame', 'muc_dich': 'HOOK: bất công ngay giây đầu'},
      'Vivian chặn đường, hất cả ly cà phê vào ngực áo Hạ', [(VIV, 'lạnh, rít qua kẽ răng', 'Dọn sạch đi. Rồi cút.')],
      [bc(VIV, 'khinh_bi', 'khinh_bi'), bc(HA, 'binh_thuong', 'soc')],
      {'dat': [120, 590, 150], 'nhin': [300, 590, 140], 'ong_kinh': 40, 'khung': [VIV, HA],
       'vi_tri': [vt(HA, [300, 540, 0], 180, **AO_HA_SANG, trang_phuc_den='Sơ mi trắng dính cà phê'), vt(VIV, [300, 640, 0], 0, **AO_VIV, dien=['cam_truoc', 'hat@0.25-0.45']), vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang_den='empty')]},
      [HA, VIV, VP, 'Ly cà phê'], chu_man='09:05 · Tầng 38 · Lục thị')
 shot('1.2', C1, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'cam_tay', 'ong_kinh': 'macro', 'anh_sang': 'cua_so', 'am_thanh': ['rung']},
-     { 'dien': "Anticipation: stillness, the stain still spreading. Action: Hạ's fingers slowly tighten on the folder. Reaction: a slow controlled exhale.", 'huong': 'Hạ looks down at her own chest.','bo_cuc': 'Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her hand holding the folder at frame bottom', 'mo': 'stain still spreading', 'ket': 'Hạ’s fingers tighten on the folder', 'muc_dich': 'người xem thấy rõ cái nhục'},
-     'Vết cà phê loang trên áo trắng, tay Hạ siết chặt tập hồ sơ', [], [bc(HA, 'soc', 'nhan_nhin', cam=['vui', 'cuoi_lon']), bc(VIV, 'khinh_bi', 'khinh_bi')],
+     { 'dien': "Anticipation: stillness, the stain still spreading. Action: Hạ's hand slowly clenches into a fist at her side. Reaction: a slow controlled exhale.", 'huong': 'Hạ looks down at her own chest.','bo_cuc': 'Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her clenched hand at frame bottom', 'mo': 'stain still spreading', 'ket': 'Hạ’s hand clenched into a fist', 'muc_dich': 'người xem thấy rõ cái nhục'},
+     'Vết cà phê loang trên áo trắng, tay Hạ siết chặt thành nắm đấm', [], [bc(HA, 'soc', 'nhan_nhin', cam=['vui', 'cuoi_lon']), bc(VIV, 'khinh_bi', 'khinh_bi')],
      {'dat': [300, 560, 150], 'nhin': [300, 548, 110], 'ong_kinh': 85, 'khung': [HA], 'qua_truc': True, 'vi_tri': [vt(HA, [300, 540, 0], 180), vt(VIV, [300, 640, 0], 0), LY_RONG(an=True)]},
      [HA, VIV, VP, 'Ly cà phê'])
 shot('1.3', C1, 4, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
@@ -90,7 +90,7 @@ shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'mcu', 'goc': 'cao', 'c
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
      # 2.4: trung cận từ ngực (điện thoại trong tay) lên mặt — cận riêng món 15 cm trước thân thì máy dí vào áo
-     {'dat': [250, 640, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [HA], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
+     {'dat': [250, 640, 150], 'nhin': [300, 560, 120], 'ong_kinh': 85, 'khung': [HA, DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──
@@ -176,7 +176,7 @@ shot('5.3', C5, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', '
      { 'dien': "Anticipation: Thần stays frozen, palms still on the table. Action: his jaw tightens; his eyes follow Hạ off screen-left. Reaction: the cold mask cracks — a long, stunned breath.", 'huong': 'Thần looks screen-left after Hạ.','bo_cuc': 'Slow push into a close-up of Lục Thần still leaning on the table corner, the boardroom soft and silent behind him', 'mo': 'Thần frozen, leaning on his palms', 'ket': 'Thần staring after Hạ, stunned', 'muc_dich': 'giữ phản ứng — khán giả nếm cú đảo thế'},
      'Lục Thần đứng chết lặng, hai tay vẫn chống trên bàn, mắt dõi theo Hạ', [],
      [bc(THAN, 'soc', 'ngo_vuc')],
-     {'dat': [-190, 640, 160], 'nhin': [-70, 705, 160], 'ong_kinh': 85, 'khung': [THAN],   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
+     {'dat': [-150, 560, 160], 'nhin': [-70, 705, 160], 'ong_kinh': 85, 'khung': [THAN],   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
       'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt(HA, [-165, 700, 0], 90, an=True)]},
      [THAN, PH])
 shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'day_vao', 'ong_kinh': 'macro', 'anh_sang': 'tuong_phan', 'luat': ['chenh_thong_tin', 'motif'], 'am_thanh': ['im_lang', 'cot_ket']},

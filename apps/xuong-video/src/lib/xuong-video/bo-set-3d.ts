@@ -29,7 +29,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 42;
+export const BAN_DUNG = 43;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -43,13 +43,20 @@ export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat
 }
 
 /** Bảng đầu vào cho dung-set.py: vật của set + khối nhân vật + các shot (ma = id shot). Thiếu khối của một tên → lỗi (không đoán cỡ). */
-export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d; truc?: ReturnType<typeof rangBuocTruc>; /** máy đã khớp keyframe đã sinh — bộ giải không dời */ khoa_may?: boolean } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
+export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d; truc?: ReturnType<typeof rangBuocTruc>; /** máy đã khớp keyframe đã sinh — bộ giải không dời */ khoa_may?: boolean } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat' | 'thoai'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
   const mau: Record<string, unknown> = {}; const thieu = new Set<string>();
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
   return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh, chay: duongMay(s.may_3d, s.ky_thuat?.chuyen_dong, hopVat(set.du_lieu.vat, s.may_3d.them ?? []), (t) => Number((mau[t] as { co?: number[] } | undefined)?.co?.[2] ?? 2)) }, nhan_vat: s.may_3d.vi_tri,
-    bat_buoc: chuThe(s.may_3d), giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban })) } };
+    bat_buoc: chuThe(s.may_3d), mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban })) } };
 }
+
+/** NGƯỜI ĐANG NÓI là chủ thể trong khung (không phải giọng ngoài khung) — keyframe AI = khung mở phải thấy mặt họ: luật kiem-ai-3d.ts › matNguoiNoi và
+ *  bộ giải máy trong Blender (dung-set.py › mat_sai) dùng CÙNG danh sách + ngưỡng (17/10/2026 #6: bộ giải dời máy ra sau lưng Thần đang nói). */
+export const nguoiNoiTrongKhung = (c: { may_3d?: May3d | null } & Partial<Pick<Canh, 'thoai'>>): string[] => {
+  const noi = new Set((c.thoai ?? []).filter((d) => d.loi?.trim()).map((d) => d.nhan_vat.trim().toLowerCase()));
+  return c.may_3d ? chuThe(c.may_3d).filter((t) => noi.has(t.trim().toLowerCase()) && !c.may_3d!.vi_tri.find((v) => v.ten === t)?.an) : [];
+};
 
 /** Phía của máy so với TRỤC HÀNH ĐỘNG (đường nối hai nhân vật đầu tiên có mặt ở cả hai shot, nhìn từ trên): +1 / -1, 0 = không xác định. */
 function phia(m: May3d, a: string, b: string): number {

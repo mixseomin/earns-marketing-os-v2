@@ -6,7 +6,7 @@
 //   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo.
 // MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và bộ chấm tại chỗ (scripts/du-lieu/tong-tai/kiem.mts). Thuần — tự kiểm: kiem-ai-3d.test.mts
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
-import { chuThe, huongVoiMay } from './bo-set-3d';
+import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
 
 /** DANH MỤC VẬT: nhóm từ (Việt + Anh) chỉ cùng một loại đồ. KHÔNG dùng từ hai nghĩa (plant = đặt mình, watch = nhìn, key = then chốt, screen-left,
  *  cặp = đôi, tách = chia) — báo nhầm làm luật mất tin. Chữ của shot nhắc một từ → bản 3D phải có khối mà tên / mô tả chứa một từ cùng nhóm.
@@ -73,8 +73,7 @@ export function thieuVat3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu
 export function matNguoiNoi(c: ShotAi): string[] {
   // Shot CHỦ QUAN (mắt nhân vật A nhìn B đang nói) vẫn phải thấy mặt B — A không ở trong khung, B mới là chủ thể (tập 122 #7: POV Thần, Vivian quay lưng).
   const m = c.may_3d; if (!m) return [];
-  const noi = new Set((c.thoai ?? []).filter((d) => d.loi?.trim()).map((d) => d.nhan_vat.trim().toLowerCase()));
-  return chuThe(m).filter((t) => noi.has(t.trim().toLowerCase())).flatMap((t) => {
+  return nguoiNoiTrongKhung(c).flatMap((t) => {
     const v = m.vi_tri.find((x) => x.ten === t && !x.an); if (!v) return [];
     // KHUNG MỞ phải thấy mặt: keyframe AI = khung mở; quay mặt về máy giữa shot không cứu được ảnh đầu (tập 122 #18: mở 115°, kết 45° → keyframe vẽ gáy)
     const a = huongVoiMay(m, v);

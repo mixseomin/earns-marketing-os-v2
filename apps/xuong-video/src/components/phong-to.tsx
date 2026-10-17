@@ -3,6 +3,7 @@
 // Gắn một lần ở layout, bắt sự kiện ở document → ảnh thêm sau này tự có, không phải nhớ bọc từng chỗ.
 import { useEffect, useRef, useState } from 'react';
 import { anhNho, anhGoc } from '@/lib/xuong-video/anh-nho';
+import { GOI_Y_AN } from './vi-tri-noi';
 
 export function PhongToKhiRe() {
   // soSanh: ảnh tham chiếu đi kèm (data-so-sanh='[{"ten","url"}]' trên ảnh keyframe) — hiện thành cột bên cạnh để so (#1215).
@@ -15,6 +16,10 @@ export function PhongToKhiRe() {
     const vao = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null;
       if (!(t instanceof HTMLImageElement) || t.dataset.khongPhongTo != null) return;
+      // MỘT lớp nổi mỗi lần rê (#1415): ảnh nằm trong khối có thẻ gợi ý mang ảnh (data-goi-y-anh) → thẻ đó đã hiện ảnh, không phóng to thêm;
+      // khối có thẻ gợi ý chữ thường → bản phóng to thắng, tắt thẻ gợi ý (goi-y.tsx nghe GOI_Y_AN).
+      if (t.closest('[data-goi-y-anh]')) return;
+      if (t.closest('[data-goi-y]')) window.dispatchEvent(new Event(GOI_Y_AN));
       const r = t.getBoundingClientRect();
       if (r.width >= 360) return;   // ảnh đã đủ to thì thôi
       let soSanh: { ten: string; url: string }[] = [];

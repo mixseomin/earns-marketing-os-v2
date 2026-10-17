@@ -39,18 +39,22 @@ if (ban) {
   const cho = JSON.parse(kb(`--tra-ve ${NGUOI} --json`)).find((v) => !v.nhan_luc && !v.dung);
   const tep5 = ban.split('\n').slice(0, 5).map((l) => l.replace(/^\s*\S+\s+/, '')), ds5 = tep5.join(', ');   // git() đã trim nên dòng đầu mất dấu cách: tách theo cột, không cắt cứng 3 ký tự
   if (cho?.nhan_do && !thu) {
-    git('add', '-A'); git('commit', '-q', '-m', `Long [Xưởng Aff] nhận việc dở chưa commit (anh cho) để sửa ${cho.url}: ${ds5}`.slice(0, 300));
-    log(`nhận việc dở: ${ds5}`); ban = '';
+    const tepNhan = (cho.cho_tep || []).filter((f) => tep5.includes(f) || ban.includes(f));   // CHỈ tệp đã hiện trong tin chờ anh bấm — tệp phiên khác sinh ra sau đó không gom
+    if (!tepNhan.length) { log('tin chờ không ghi tệp nào khớp — không nhận'); process.exit(0); }
+    git('add', '--', ...tepNhan); git('commit', '-q', '-m', `Long [Xưởng Aff] nhận việc dở chưa commit (anh cho) để sửa ${cho.url}: ${tepNhan.join(', ')}`.slice(0, 300));
+    log(`nhận việc dở: ${tepNhan.join(', ')}`); ban = git('status', '--porcelain');
   } else {
     if (cho && !cho.cho_luc && !thu) { let t = '?'; try { t = execFileSync('stat', ['-f', '%Sm', '-t', '%H:%M %d/%m', path.join(REPO, tep5[0].replace(/\/$/, ''))], { encoding: 'utf8' }).trim(); } catch { /* không đọc được giờ: vẫn báo */ }
-      kb(`--cho ${q(cho.url)} --nguoi ${NGUOI} --ly-do ${q(`Repo hotel-arb trên iMac đang có việc dở chưa commit của phiên khác (${ds5} · sửa lúc ${t}). Long không đè việc của người khác.`)}`); }
+      kb(`--cho ${q(cho.url)} --nguoi ${NGUOI} --tep ${q(JSON.stringify(tep5))} --ly-do ${q(`Repo hotel-arb trên iMac đang có việc dở chưa commit của phiên khác (${ds5} · sửa lúc ${t}). Long không đè việc của người khác.`)}`); }
     log(`hotel-arb đang có thay đổi chưa commit, đợi:\n${ban}`); process.exit(0);
   }
 }
+const banKhac = ban;   // tệp dở còn lại sau khi nhận = của phiên khác: phần A không đưa lên (dựng sẽ lẫn), phần B được sửa nhưng chỉ xét tệp của Long
 
 // ── A. ĐƯA LÊN bản Ngọc đã DUYỆT ──
 for (const d of JSON.parse(kb('--cho-dang'))) {
   if (!HOST.test(d.url)) continue;
+  if (banKhac) { log(`chưa đưa lên ${d.url}: repo còn việc dở của phiên khác`); continue; }
   if (thu) { log(`[thử] sẽ đưa lên ${d.url} bản ${d.ban}`); continue; }
   try {
     try { git('merge-base', '--is-ancestor', d.ban, 'HEAD'); } catch { throw new Error(`commit đã duyệt ${d.ban.slice(0, 8)} không nằm trong nhánh hiện tại`); }
@@ -108,13 +112,16 @@ let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng
 const u = kq.usage || {}, token = { vao: u.input_tokens || 0, ra: u.output_tokens || 0, cache_doc: u.cache_read_input_tokens || 0, cache_ghi: u.cache_creation_input_tokens || 0, gia_api_usd: kq.total_cost_usd || 0, model };
 const chu = String(kq.result || r.stderr || r.error?.message || '').trim();
 const ket = (chu.match(/^\s*\**KET:\**\s*(OK|DUNG)\b.*$/gim) || []).pop();
-const sau = git('rev-parse', 'HEAD'), sach = !git('status', '--porcelain');
+const sau = git('rev-parse', 'HEAD');
+// Long bỏ sót = tệp Long đã commit mà vẫn còn sửa dở; tệp dở của phiên khác không tính cho Long
+const cuaLong = new Set(sau === truoc ? [] : git('diff', '--name-only', truoc, sau).split('\n').filter(Boolean));
+const sach = !git('status', '--porcelain').split('\n').filter(Boolean).some((l) => cuaLong.has(l.replace(/^\s*\S+\s+/, '')));
 log(`claude thoát ${r.status ?? r.signal} · ${kq.num_turns ?? '?'} lượt · ${JSON.stringify(token)} · ${ket || 'không có dòng KET'} · commit ${sau.slice(0, 8)}`);
 
 let lyDo = '';
 if (!ket || !/KET:\**\s*OK/i.test(ket)) lyDo = ket ? ket.replace(/^\s*\**KET:\**\s*DUNG\s*/i, '') : r.signal ? `quá ${TRAN_PHUT} phút` : (chu.split('\n').pop() || 'Claude Code không trả kết quả').slice(0, 300);
 else if (sau === truoc) lyDo = 'báo OK nhưng không có commit mới';
-else if (!sach) lyDo = 'còn thay đổi chưa commit sau khi sửa';
+else if (!sach) lyDo = 'Long còn sửa dở chưa commit ở chính tệp mình đã đụng';
 else if (!fs.existsSync(tepDung)) lyDo = `không thấy bản dựng ${path.relative(REPO, tepDung)}`;
 if (lyDo) { kb(`--dung ${q(x.url)} --nguoi ${NGUOI} --ly-do ${q(lyDo)}`); nhatKy({ viec: 'sua-bai', ket: `${x.url} → dừng: ${lyDo}`, token }); process.exit(0); }
 kb(`--nop ${q(x.url)} --tu Long --html - --ban ${sau}`, fs.readFileSync(tepDung, 'utf8'));

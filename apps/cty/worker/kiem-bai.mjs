@@ -175,11 +175,11 @@ export async function daDang(id, ok, ghi = '') {
 
 /** Người phụ trách chưa bắt đầu được (vd repo đang có việc dở chưa commit của phiên khác): báo MỘT lần lên Telegram, kèm nút cho anh chọn
  *  "nhận luôn việc dở" hay "đợi" (anh 17/10/2026: bấm rồi mà không thấy Long — Long đợi im lặng). */
-export async function choSua(url, nguoi, lyDo) {
+export async function choSua(url, nguoi, lyDo, tep = []) {
   const x = docJson(TRA()).find((v) => v.url === url && (!nguoi || v.phu_trach === nguoi));
   if (!x) throw new Error(`không có bài chờ sửa ${url}`);
   if (x.cho_luc) return x;
-  x.cho_luc = new Date().toISOString(); fs.writeFileSync(path.join(TRA(), `${x.id}.json`), JSON.stringify(x, null, 1));
+  x.cho_luc = new Date().toISOString(); x.cho_tep = tep; fs.writeFileSync(path.join(TRA(), `${x.id}.json`), JSON.stringify(x, null, 1));   // cho_tep: đúng tệp anh thấy lúc bấm — Long chỉ nhận chừng đó
   const { bao } = await tgNoiDung();
   await bao(`⏳ <b>${esc(tenNguoi(x.phu_trach))}</b> chưa bắt đầu sửa ${esc(url)}\n${esc(lyDo)}`, x.tin,
     { inline_keyboard: [[{ text: `🧩 Cho ${tenNguoi(x.phu_trach).split(' ')[0]} nhận luôn việc dở`, callback_data: `nd:nhando:${x.id}` }, { text: '⏳ Đợi phiên kia', callback_data: `nd:doi:${x.id}` }]] });
@@ -319,7 +319,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', reply_markup: nutQuyet(b.id), ...(b.tin ? { reply_parameters: { message_id: b.tin, allow_sending_without_reply: true } } : {}),
       text: `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — anh quyết bằng nút dưới đây.` }); console.log('đã gửi nút quyết');
   }
-  if (lay('--cho')) { await choSua(lay('--cho'), lay('--nguoi'), lay('--ly-do') || ''); console.log(`đã báo chờ ${lay('--cho')}`); }
+  if (lay('--cho')) { await choSua(lay('--cho'), lay('--nguoi'), lay('--ly-do') || '', JSON.parse(lay('--tep') || '[]')); console.log(`đã báo chờ ${lay('--cho')}`); }
   if (lay('--dung')) { await dungSua(lay('--dung'), lay('--nguoi'), lay('--ly-do')); console.log(`đã báo dừng ${lay('--dung')}`); }
   if (a.includes('--tra-ve')) {   // việc sửa đang chờ người phụ trách: node worker/kiem-bai.mjs --tra-ve [lan]
     const ai = lay('--tra-ve'), ds = docJson(TRA()).filter((x) => !ai || ai.startsWith('--') || x.phu_trach === ai);

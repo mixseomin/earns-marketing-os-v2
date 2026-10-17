@@ -38,7 +38,8 @@ function itNhat<T>(ds: T[], diem: (x: T) => number, xoay: number): T | undefined
 /** o.daDung: bối cảnh (ma) + diễn viên (ma) đã nằm trong phim gốc có sẵn — tính như đã dùng để bộ hình mới không lặp lại (17/10/2026: phòng ngủ #120). */
 export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number; daDung?: { boi_canh?: string[]; dien_vien?: string[] } } = {}): KetPhanBo[] {
   const dSac = dem(), dNguoi = dem(), dNoi = dem(), dNhom = dem(), dAo = dem(), dQh = dem(), dSk = dem();
-  for (const m of o.daDung?.boi_canh ?? []) { tang(dNoi, m); const b = BOI_CANH.find((x) => x.ma === m); if (b) tang(dNhom, b.nhom); }
+  // nơi đã QUAY ở phim gốc có sẵn tính như 5 lần dùng: chỉ chọn lại khi các nơi khác cùng nhóm đều đã dùng nhiều (người xem đã thấy nơi đó)
+  for (const m of o.daDung?.boi_canh ?? []) for (let k = 0; k < 5; k++) tang(dNoi, m);
   for (const m of o.daDung?.dien_vien ?? []) tang(dNguoi, m);
   const lgbt = o.tiLeLgbt ?? 0.2;
   return viec.map((v, i) => {

@@ -122,8 +122,9 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
   const r = (await d.execute(sql`SELECT a.id, a.platform_key, a.handle, a.status, a.proxy_id, a.created_at::date::text AS tao, coalesce(p.name, a.project_id) AS du_an,
       may.ten AS may, may.da_dang
     FROM platform_accounts a LEFT JOIN projects p ON p.id = a.project_id
-    LEFT JOIN LATERAL (SELECT m.ten, (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen')) AS da_dang
-      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE n->'br'->>'acct' = a.id::text LIMIT 1) may ON true
+    -- MỌI nền máy dùng tài khoản này cộng lại (một tài khoản X có cả nền x — video — và x_anh — bài ảnh; LIMIT 1 trước đây đếm thiếu bài ảnh)
+    LEFT JOIN LATERAL (SELECT string_agg(DISTINCT m.ten, ' · ') AS ten, sum((SELECT count(*) FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen')))::int AS da_dang
+      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE n->'br'->>'acct' = a.id::text) may ON true
     WHERE a.project_id IS NOT NULL AND a.platform_key IN (${sql.join([...MXH, 'quora', 'dailymotion'].map((x) => sql`${x}`), sql`, `)})
       AND coalesce(a.status, '') NOT IN ('closed', 'banned')
       -- Facebook: kênh là PAGE (vault ghi "(Page)"); tài khoản FB cá nhân chỉ để đăng nhập (htuan82@, mixseo@…) không phải kênh — trừ khi máy đăng khai nó

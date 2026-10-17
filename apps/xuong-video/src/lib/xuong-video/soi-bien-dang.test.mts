@@ -11,3 +11,10 @@ for (const z of [z3, z4] as const) {
   assert.strictEqual(sc.properties.ds!.items!.type, 'OBJECT'); assert.strictEqual(sc.properties.b!.type, 'BOOLEAN'); assert.deepStrictEqual(sc.required, ['ai', 'ds', 'b']);
 }
 console.log('soi-bien-dang.test: ok');
+import { laLoiTay } from './soi-bien-dang';
+assert.ok(laLoiTay('The right hand has deformed, overlapping extra fingers while grabbing the knee'), 'đầu gối chỉ là chỗ chạm — vẫn là lỗi tay');
+assert.ok(laLoiTay('Right hand fingers are distorted'));
+assert.ok(!laLoiTay('The pant legs merge into a single tube'));
+assert.ok(!laLoiTay('Sock floats detached from hand mid-air', 'vat_the_la'), 'vật cầm tay là lỗi vật thể, không qua xác nhận');
+assert.ok(!laLoiTay('The legs and hands merge into one limb'), 'nhắc chân → lỗi chân');
+console.log('laLoiTay: ok');

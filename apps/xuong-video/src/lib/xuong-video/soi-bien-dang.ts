@@ -21,6 +21,8 @@ const khungTai = async (url: string, ts: number[], w: number): Promise<string[] 
   }
   return ra.length >= ts.length - 1 ? ra : null;
 };
+/** Lỗi chỉ dính tới ngón tay / bàn tay / cổ tay (không nhắc chân, quần, vật cầm) — loại báo nhầm nhiều nhất, cần Claude xác nhận. */
+export const laLoiTay = (moTa: string, loai = 'co_the_meo'): boolean => loai === 'co_the_meo' && /\b(finger|hand|wrist|thumb|palm)s?\b/i.test(moTa) && !/\b(legs?|feet|foot|limbs?)\b/i.test(moTa);
 const LOAI_EN: Record<string, string> = { trang_phuc_bien_dang: 'clothing deforming unnaturally', co_the_meo: 'distorted anatomy (limbs merging, missing, duplicated, bending impossibly)',
   chu_tren_vat: 'text or a logo appearing on the clothing or objects', san_pham_doi_kieu: 'the product changing design or color', vat_the_la: 'an object appearing, vanishing, floating or morphing' };
 
@@ -50,12 +52,14 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
   // xác nhận từng loại bằng khung nét cao quanh đúng giây
   const giu: LoiBienDang[] = []; const loi: string[] = []; const canhBao: string[] = []; let tkXn = { in: 0, out: 0 }; let modelXn = MO_HINH_XAC_NHAN_CLAUDE;
   for (const [loai, v] of gop) {
-    // cả đoạn được dùng (12 khung) — Flash ước giờ lệch, cửa sổ ±0,5s quanh giờ báo làm Claude không thấy lỗi thật (bộ mẫu: sót chân gập ngược, tất méo)
-    const ts = Array.from({ length: 12 }, (_, k) => (k + 0.5) * o.dai / 12);
-    const anh = await khungTai(o.url, ts, 640);
+    // PHÂN XỬ THEO LOẠI (đo bộ mẫu 17/10/2026): Claude bác nhầm cả 3 ca chân gập ngược / dính liền ở mọi cách xem → lỗi chân, quần, chữ, vật thể, sản phẩm
+    // Flash thấy là CHẶN, không cho bác (không sót). Chỉ lỗi dính tới NGÓN TAY / BÀN TAY (nơi báo nhầm nhiều nhất) mới qua Claude xác nhận.
+    if (!laLoiTay(v.mo_ta, loai)) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); continue; }
+    const ts = [-0.5, -0.25, 0, 0.25, 0.5, 0.75].map((d) => Math.min(o.dai, Math.max(0, v.giay + d)));
+    const anh = await khungTai(o.url, ts, 768);
     // xác nhận bằng CLAUDE nhìn ảnh (claude.ts › xacNhanLoiClaude) — Gemini (cả Pro) gật cả ngón tay bình thường; đúng giá Claude ~1,5¢ vẫn rẻ hơn một lượt sinh lại oan
-    const cauHoi = `These 12 images are consecutive frames (1..12, evenly spaced over the whole shot) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
-A first automatic check reported, around ${Math.round(v.giay * 10) / 10}s of ${Math.round(o.dai * 10) / 10}s: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object in EVERY frame (the timing may be off). co=true if that defect is really there; co=false if it looks normal, is only motion blur, or is part of the shot intent. muc: "nang" ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it (legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on clothing, an object floating or popping in / out, the product turning into a different garment or color); otherwise "nhe" (slightly soft fingers, small wrinkle / rip / texture changes, small edge objects, slight color shift, anything smaller than ~5% of the frame).`;
+    const cauHoi = `These 6 images are consecutive frames (0.25 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
+A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the hands and fingers in EVERY frame. co=true if that defect is really there; co=false if it looks normal, is only motion blur, or is part of the shot intent. muc: "nang" ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it (legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on clothing, an object floating or popping in / out, the product turning into a different garment or color); otherwise "nhe" (slightly soft fingers, small wrinkle / rip / texture changes, small edge objects, slight color shift, anything smaller than ~5% of the frame).`;
     const c = anh ? await xacNhanLoiClaude({ anh, cauHoi }) : null;
     if (c?.ok) { tkXn = { in: tkXn.in + c.tokens.in, out: tkXn.out + c.tokens.out }; modelXn = c.model; }
     const cd = c?.ok ? c.data : null;

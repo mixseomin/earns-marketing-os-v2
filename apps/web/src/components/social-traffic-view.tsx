@@ -6,7 +6,7 @@
 // Mục con (URL ?sts) và bộ lọc góc (?stg) ghi URL shallow như mọi bộ lọc khác.
 import { useEffect, useMemo, useState } from 'react';
 import { socialPhien } from '@/lib/actions/social-traffic';
-import { DataTable, EmptyState, GuardedButton, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
+import { DataTable, EmptyState, FilterChips, GuardedButton, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
@@ -40,6 +40,10 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const [muc, setMuc] = useShallowParam('sts', 'tong');
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
+  // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
+  const [locNen, setLocNen] = useShallowParam('skn', 'all');
+  const [locNhom, setLocNhom] = useShallowParam('skg', 'all');
+  const [gopKenh, setGopKenh] = useShallowParam('skb', 'khong');
   const laLive = cheDo === 'live';
   // Số người đang trên site aff — badge trên tab Trực tiếp (card #1411), gọi lại mỗi 10 giây khi trang đang hiện, chỉ ở LIVE.
   const [online, setOnline] = useState<number | null>(null);
@@ -149,6 +153,14 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'proxy', header: 'Proxy', align: 'left', cell: (k) => <span style={nho}>{k.proxy}</span> },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (k) => <Pill color={TT_KENH[k.tt][0]} label={TT_KENH[k.tt][1]} uppercase={false} /> },
     { key: 'ngay', header: 'Ngày', sortValue: (k) => k.ngay, cell: (k) => k.ngay },
+    { key: 'dangCuoi', header: '📅 Đăng cuối', title: 'Ngày đăng video mới nhất trên nền này · cam khi đã quá 3 ngày', sortValue: (k) => k.dangCuoi ?? '',
+      cell: (k) => { if (!k.dangCuoi) return <span style={nho} title="chưa có máy ghi ngày đăng của nền này">—</span>;
+        const cach = Math.round((Date.now() + 7 * 3600e3 - Date.parse(k.dangCuoi)) / 864e5);
+        return <span title={k.dangCuoi} style={cach > 3 ? { color: 'var(--warn)' } : undefined}>{k.dangCuoi.slice(8, 10)}/{k.dangCuoi.slice(5, 7)} <span style={nho}>{cach <= 0 ? 'hôm nay' : `${cach} ngày`}</span></span>; } },
+    { key: 'landing', header: '🛬 Landing chính', align: 'left', title: 'Đích được nhiều sản phẩm của kênh trỏ tới nhất', sortValue: (k) => k.landing ?? '',
+      cell: (k) => (k.landing ? <a href={`https://href.li/?${k.landing}`} target="_blank" rel="noreferrer" title={k.landing} style={{ color: 'var(--accent)', display: 'inline-flex', gap: 6, alignItems: 'center', maxWidth: 260 }}>
+        <SiteFavicon url={k.landing} size={14} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.landing.replace(/^https?:\/\/(www\.)?/, '')}</span></a>
+        : <span style={nho}>—</span>) },
     { key: 'video', header: 'Đã đăng', sortValue: (k) => k.video, cell: (k) => (do_(k) ? k.video : chuaDo) },
     { key: 'xem', header: 'Lượt xem', title: 'Video: cộng dồn từ lúc đăng · Pinterest: lượt hiện 30 ngày', sortValue: (k) => k.xem, cell: (k) => (do_(k) ? so(k.xem) : chuaDo) },
     { key: 'x7', header: 'Xem 7 ngày', sortValue: (k) => k.xem7 ?? null, cell: (k) => (k.xem7 == null ? <span style={nho} title={k.nenTang === 'Pinterest' ? 'Pinterest chỉ có số 30 ngày toàn tài khoản' : 'chưa đủ 7 ngày đo'}>—</span> : so(k.xem7)) },
@@ -257,7 +269,31 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         : trong('Chưa có video nào đang làm', 'Hàng đợi đọc video của các máy trên studio.on.tc (cửa ⚙ Tự động). Máy ra video mới thì vào đây: Dựng → Lên lịch, đăng đủ mọi nền thì rời hàng đợi.'))}
 
       {muc === 'kenh' && (d.kenh.length
-        ? <><DataTable rows={d.kenh} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={900} />
+        ? <>{(() => {
+            const dem = (f: (k: StKenh) => string) => d.kenh.reduce<Record<string, number>>((a, k) => ({ ...a, [f(k)]: (a[f(k)] ?? 0) + 1 }), {});
+            const soNen = dem((k) => k.nenTang), soNhom = dem((k) => k.nhom);
+            const loc = d.kenh.filter((k) => (locNen === 'all' || k.nenTang === locNen) && (locNhom === 'all' || k.nhom === locNhom));
+            const khoa = gopKenh === 'nen' ? (k: StKenh) => k.nenTang : gopKenh === 'goc' ? (k: StKenh) => k.nhom : null;
+            const nhom = khoa ? [...new Set(loc.map(khoa))].map((g) => ({ g, ks: loc.filter((k) => khoa(k) === g) })) : [{ g: '', ks: loc }];
+            const bang = (ks: StKenh[], key: string) => <DataTable key={key} rows={ks} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={1100}
+              searchText={(k) => `${k.ten} ${k.nenTang} ${k.nhom} ${k.landing ?? ''}`} searchPlaceholder="Tìm kênh / góc / landing…" />;
+            return <>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <FilterChips urlKey="skn" value={locNen} onChange={setLocNen} counts={{ all: d.kenh.length, ...soNen }}
+                  options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} co={12} /> }))]} />
+                <FilterChips urlKey="skg" value={locNhom} onChange={setLocNhom} counts={{ all: d.kenh.length, ...soNhom }}
+                  options={[{ value: 'all', label: '🎯 Mọi góc' }, ...Object.keys(soNhom).map((n) => ({ value: n, label: n }))]} />
+                <Segmented<string> value={gopKenh} onChange={setGopKenh}
+                  options={[{ value: 'khong', label: '☰ Không gộp' }, { value: 'nen', label: '📺 Gộp theo nền' }, { value: 'goc', label: '🎯 Gộp theo góc' }]} />
+              </div>
+              {nhom.map(({ g, ks }) => (g
+                ? <div key={g} style={{ display: 'grid', gap: 6 }}>
+                    <h4 style={{ margin: '6px 0 0', fontSize: 13, display: 'inline-flex', gap: 6, alignItems: 'center' }}>{gopKenh === 'nen' ? <Logo ten={g} /> : '🎯'} {g}
+                      <span style={nho}>{ks.length} kênh · {so(ks.reduce((a, k) => a + k.xem, 0))} lượt xem · {so(ks.reduce((a, k) => a + k.click, 0))} về site</span></h4>
+                    {bang(ks, g)}</div>
+                : bang(ks, 'tat-ca')))}
+              {!loc.length && <span style={nho}>Không kênh nào khớp bộ lọc.</span>}
+            </>; })()}
             <span style={nho}>Mỗi kênh một thiết bị + một proxy riêng. Luật cắt: sau {ST_CAT_NGAY} ngày trung vị dưới {ST_CAT_TRUNG_VI} lượt xem thì dừng, dồn video sang kênh đang lên.</span></>
         : trong('Chưa có kênh nào', 'Kênh lấy từ vault tài khoản (Resources › Accounts), mỗi kênh một thiết bị + proxy riêng. Có kênh đầu tiên thì bảng hiện trung vị lượt xem, click về site, hoa hồng.'))}
 

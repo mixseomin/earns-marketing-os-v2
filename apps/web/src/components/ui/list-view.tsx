@@ -65,7 +65,7 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, sea
 // `counts` is optional; when given, each chip shows `label n`.
 //
 // Chọn NHIỀU: truyền `values` + `onToggle` thay cho `value` + `onChange` (mảng rỗng = không lọc).
-export interface ChipOption<T extends string> { value: T; label: string; title?: string }
+export interface ChipOption<T extends string> { value: T; label: string; title?: string; icon?: ReactNode }   // icon: favicon / glyph trước chữ (YDNI trực quan trước chữ) — không nhét emoji vào label
 type ChipMode<T> =
   | { value: T; onChange: (v: T) => void; values?: never; onToggle?: never }
   | { values: T[]; onToggle: (v: T[]) => void; value?: never; onChange?: never };
@@ -90,7 +90,8 @@ export function FilterChips<T extends string>({ options, value, onChange, values
       options={options.map((o) => ({
         value: o.value,
         title: o.title,   // hover explanation per chip (Segmented renders it) — don't drop tooltips on migrate
-        label: counts && counts[o.value] != null ? `${o.label} ${counts[o.value]}` : o.label,
+        label: (() => { const chu = counts && counts[o.value] != null ? `${o.label} ${counts[o.value]}` : o.label;
+          return o.icon ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{o.icon}{chu}</span> : chu; })(),
       }))}
     />
   );

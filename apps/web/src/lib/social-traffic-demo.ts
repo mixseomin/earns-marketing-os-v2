@@ -16,6 +16,8 @@ export interface StKenh {
   tt: StTrangThaiKenh; ngay: number; video: number; trungViXem: number; xem: number; click: number; hh: number;
   daDo?: boolean;      // LIVE: false = kênh có trong vault nhưng chưa có máy đo số (cột số hiện '—', không hiện 0 giả)
   xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)
+  dangCuoi?: string | null;  // LIVE: ngày đăng video mới nhất trên nền này (YYYY-MM-DD); null = chưa có máy đo
+  landing?: string | null;   // LIVE: link đích được nhiều sản phẩm của kênh trỏ tới nhất (kenh_sp.dich)
 }
 export interface StLo {
   id: number; goc: number; kenh: number; buoc: number;

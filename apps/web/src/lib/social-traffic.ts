@@ -171,6 +171,10 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         if (!coSo && !t) continue;
         if (t) daDung.add(t.id);
         const ngayDau = dau.find((x) => x.du_an === da && x.kenh === key)?.dau ?? t?.tao ?? hom;
+        // lần đăng cuối = video mới nhất CỦA NỀN NÀY (sổ số video ghi ngayDang từng video) · landing chính = đích nhiều sản phẩm trỏ nhất
+        const dangCuoi = dongs.filter((x) => x.kenh === key).flatMap((x) => x.videos.map((v) => v.ngayDang ?? '')).reduce((a, x) => (x > a ? x : a), '') || null;
+        const dem = new Map<string, number>(); for (const sp of kenhSp.filter((x) => x.project === da)) { const u = sp.o[key]?.dich; if (u) dem.set(u, (dem.get(u) ?? 0) + 1); }
+        const landing = [...dem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
         const daDang = key === 'pinterest' ? kenhSp.filter((x) => x.project === da).reduce((a, x) => a + (x.o.pinterest?.xong ?? 0), 0) : n?.soVideo ?? 0;
         kenh.push({
           id: t?.id ?? -(kenh.length + 1), ten: t?.handle ?? nen.ten, nenTang: nen.ten, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN',
@@ -178,7 +182,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
           ngay: Math.max(0, Math.round((homMs - Date.parse(ngayDau)) / 864e5)), video: daDang,
           trungViXem: key === 'pinterest' ? 0 : giua(tv.video.map((v) => v.nen[key]?.tong).filter((x): x is number => x != null)),
           xem: key === 'pinterest' ? pin?.hien30 ?? 0 : n?.tong ?? 0, xem7: key === 'pinterest' ? null : n?.xem7 ?? null,
-          click: key === 'pinterest' ? pin?.click30 ?? 0 : n?.vaoShop7 ?? 0, hh: 0, daDo: coSo,
+          click: key === 'pinterest' ? pin?.click30 ?? 0 : n?.vaoShop7 ?? 0, hh: 0, daDo: coSo, dangCuoi, landing,
         });
       }
       // kênh MXH khác của dự án (twitter, threads…) có trong vault nhưng chưa có máy đo

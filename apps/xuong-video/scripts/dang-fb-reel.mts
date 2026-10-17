@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 const V = 'v21.0', G = `https://graph.facebook.com/${V}`;
 const SO = process.env.FB_PAGES_FILE || '/root/.secrets/fb-pages.json';
 type Trang = { ten: string; token: string };
-const docSo = (): Record<string, Trang> => JSON.parse(readFileSync(SO, 'utf8'));
+/** Sổ token Page; thiếu tệp = sổ rỗng (kiemTrang báo "chưa có token", không đăng). */
+const docSo = (): Record<string, Trang> => { try { return JSON.parse(readFileSync(SO, 'utf8')); } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return {}; throw e; } };
 const sleep = (s: number) => new Promise((r) => setTimeout(r, s * 1000));
 
 async function goi(u: string, init: RequestInit = {}): Promise<Record<string, unknown>> {

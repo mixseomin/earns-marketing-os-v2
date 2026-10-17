@@ -14,13 +14,14 @@ import os from 'node:os';
 import path from 'node:path';
 
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'long';
-const REPO = path.join(os.homedir(), 'Me/Earns/hotel-arb'), SITES = path.join(REPO, 'scripts/sites'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30;
+const REPO = path.join(os.homedir(), 'Me/Earns/hotel-arb'), SITES = path.join(REPO, 'scripts/sites'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 45;
 const HOST = /^https:\/\/(www\.)?ratesbyroom\.com(\/[^?#]*)/, DIST = 'dist-ratesbyroom';
 const QUYEN = ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash(python3 build-hr.py:*)', 'Bash(python3 sm_theme_rbr.py:*)', 'Bash(python3 sm_hosts.py:*)',
   'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git add:*)', 'Bash(git commit:*)'];
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
 const thu = process.argv.includes('--thu');
-const box = (cmd, input) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX, cmd], { encoding: 'utf8', timeout: 120000, input });
+// ssh riêng mỗi lệnh (ControlPath=none): socket ghép kết nối gãy sau lượt Claude dài từng làm lệnh báo kết quả hỏng im lặng (17/10/2026); thử lại 3 lần
+const box = (cmd, input) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000, input }); } catch (e) { if (i >= 3) throw e; execFileSync('sleep', ['5']); } } };
 const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const kb = (args, input) => box(`cd ${APP} && CTY_DATA_DIR=${DATA} node worker/kiem-bai.mjs ${args}`, input);
 const git = (...a) => execFileSync('git', ['-C', REPO, ...a], { encoding: 'utf8' }).trim();
@@ -71,6 +72,8 @@ for (const d of JSON.parse(kb('--cho-dang'))) {
 
 // ── B. LONG SỬA bài bị trả về ──
 const ds = JSON.parse(kb(`--tra-ve ${NGUOI} --json`));
+for (const k of ds.filter((v) => v.nhan_luc && !v.dung && Date.now() - Date.parse(v.nhan_luc) > (TRAN_PHUT + 15) * 60000))
+  kb(`--dung ${q(k.url)} --nguoi ${NGUOI} --ly-do ${q(`lượt nhận lúc ${k.nhan_luc.slice(11, 16)} UTC không trả kết quả (máy chết / mất kết nối giữa chừng)`)}`);
 const x = ds.find((v) => !v.nhan_luc && !v.dung);
 if (!x) { log(`không có bài chờ sửa (${ds.length} bài đã nhận / đã dừng)`); process.exit(0); }
 const m = x.url.match(HOST);

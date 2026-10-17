@@ -192,7 +192,8 @@ export async function dungSua(url, nguoi, lyDo) {
   if (!x) throw new Error(`không có bài chờ sửa ${url}`);
   x.dung = String(lyDo || 'không rõ'); x.dung_luc = new Date().toISOString(); fs.writeFileSync(path.join(TRA(), `${x.id}.json`), JSON.stringify(x, null, 1));
   const { bao } = await tgNoiDung();
-  await bao(`⚠️ <b>${esc(tenNguoi(x.phu_trach))}</b> dừng sửa ${esc(url)} · lượt ${x.luot}/${TRAN_LUOT}\nLý do: ${esc(x.dung)}\n${CTY_LINK}`, x.tin);
+  await bao(`⚠️ <b>${esc(tenNguoi(x.phu_trach))}</b> dừng sửa ${esc(url)} · lượt ${x.luot}/${TRAN_LUOT}\nLý do: ${esc(x.dung)}\n${CTY_LINK}`, x.tin,
+    { inline_keyboard: [[{ text: `🔁 Cho ${tenNguoi(x.phu_trach).split(' ')[0]} làm tiếp`, callback_data: `nd:lai:${x.id}` }, { text: '✋ Để đó', callback_data: `nd:doi:${x.id}` }]] });
   return x;
 }
 
@@ -202,10 +203,11 @@ const traVe = (x) => { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSyn
 export const nutQuyet = (id) => ({ inline_keyboard: [[{ text: `🔓 Cho sửa thêm ${TRAN_LUOT} lượt`, callback_data: `nd:mo:${id}` }, { text: '✋ Dừng hẳn bài này', callback_data: `nd:dung:${id}` }]] });
 /** Anh bấm nút quyết: mở → đếm lại từ 0 + trả về người phụ trách theo nhận xét lần chấm cuối; dừng → giữ khoá. Trả câu báo. */
 export function quyetBai(lenh, id, ai = 'Anh') {
-  if (lenh === 'nhando' || lenh === 'doi') {   // id = bài trả về (tra-ve/<id>.json)
+  if (lenh === 'nhando' || lenh === 'doi' || lenh === 'lai') {   // id = bài trả về (tra-ve/<id>.json)
     const ft = path.join(TRA(), `${id}.json`); if (!fs.existsSync(ft)) throw new Error('bài này không còn chờ sửa');
     const x = JSON.parse(fs.readFileSync(ft, 'utf8')), ten = tenNguoi(x.phu_trach);
-    if (lenh === 'doi') return `⏳ ${esc(ai)} cho <b>${esc(ten)}</b> đợi phiên kia xong việc dở.`;
+    if (lenh === 'doi') return x.dung ? `✋ ${esc(ai)} để đó, <b>${esc(ten)}</b> không làm tiếp bài này.` : `⏳ ${esc(ai)} cho <b>${esc(ten)}</b> đợi phiên kia xong việc dở.`;
+    if (lenh === 'lai') { for (const k of ['dung', 'dung_luc', 'nhan_luc', 'cho_luc']) delete x[k]; fs.writeFileSync(ft, JSON.stringify(x, null, 1)); return `🔁 ${esc(ai)} cho <b>${esc(ten)}</b> làm tiếp ở lượt kế (≤ 5 phút), giữ phần đã commit.`; }
     x.nhan_do = true; fs.writeFileSync(ft, JSON.stringify(x, null, 1));
     return `🧩 ${esc(ai)} cho <b>${esc(ten)}</b> nhận luôn việc dở: commit phần đang dở rồi sửa tiếp ở lượt kế (≤ 5 phút).`;
   }
@@ -229,7 +231,7 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
   const { gomTin, moHop } = await import('./tg-phong.mjs'); await gomTin(tg);
   for (const x of moHop(phong)) {
     const c = x.callback_query, m = x.message; x.xong();
-    if (c && /^nd:(mo|dung|nhando|doi):/.test(c.data || '')) {
+    if (c && /^nd:(mo|dung|nhando|doi|lai):/.test(c.data || '')) {
       const [, lenh, id] = c.data.split(':'), ai = c.from?.first_name || c.from?.username || 'Anh';
       try { const cau = quyetBai(lenh, id, ai); await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận' }); await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } }); await bao(cau, c.message.message_id); }
       catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message, show_alert: true }); }
@@ -306,6 +308,8 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
       t.ok(quyetBai('mo', id3).includes('Long [Xưởng Aff]')); t.equal(soLuot(u2), 0, 'mở lại đếm từ 0'); t.equal(docJson(TRA()).length, 1, 'trả về Long theo lần chấm cuối');
       t.ok(quyetBai('mo', id3).includes('đã được mở'), 'bấm hai lần không mở hai lần');
       const tra = docJson(TRA())[0]; t.ok(quyetBai('doi', tra.id).startsWith('⏳')); t.ok(!docJson(TRA())[0].nhan_do, 'đợi thì không nhận việc dở');
+      { const ft = path.join(TRA(), `${tra.id}.json`); fs.writeFileSync(ft, JSON.stringify({ ...tra, dung: 'quá giờ', nhan_luc: 'x' }));
+        t.ok(quyetBai('lai', tra.id).startsWith('🔁')); const y = docJson(TRA())[0]; t.ok(!y.dung && !y.nhan_luc, 'làm tiếp xoá dấu dừng + đã nhận'); }
       t.ok(quyetBai('nhando', tra.id).startsWith('🧩')); t.equal(docJson(TRA())[0].nhan_do, true, 'nhận việc dở ghi cờ cho Long');
       t.equal(nutQuyet(id3).inline_keyboard[0][0].callback_data.length <= 64, true); }
     console.log('kiem-bai: tự kiểm đạt'); process.exit(0);

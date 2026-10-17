@@ -4,6 +4,8 @@
 #   may-thue.sh chuan-bi <user@host> [cổng]   cài Blender 5.0.1 Linux + đẩy dung-set.py / mesh / tài sản + in GPU — chạy lại an toàn
 #   may-thue.sh do <user@host> [cổng] [thư mục shot]   đo giây / khung Cycles 720p của một shot (mặc định #9 tập 19) → ước giờ cả tập
 #   may-thue.sh tat <user@host> [cổng]       tắt máy thuê từ bên trong (RunPod: runpodctl stop pod) — hết việc là tắt, không để tính tiền
+#   may-thue.sh bat <pod_id>                 BẬT pod RunPod qua API (khoá RUNPOD_API_KEY nằm trên box3 — anh 17/10/2026 "phải lấy khoá API") rồi đợi
+#                                            cổng SSH, in "root@<ip> <cổng>"   ·   may-thue.sh dung <pod_id> = tắt qua API (tính tiền dừng ngay)
 # Diễn cả tập trên máy thuê: XV_MAY_THUE=<user@host> [XV_MAY_THUE_CONG=<cổng>] scripts/bo-set/dien-tap.sh <tập>
 #   (dien-mot.sh đẩy vao.json lên → Blender GPU trên máy thuê → kéo khung về → hậu kỳ + nạp như cũ trên iMac).
 set -e
@@ -12,7 +14,19 @@ DIR=$(cd "$(dirname "$0")/../.." && pwd)
 SSH="ssh -p $CONG -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 $HOST"
 BAN=5.0.1; TEP=blender-$BAN-linux-x64.tar.xz
 [ -n "$HOST" ] || { sed -n 2,9p "$0"; exit 1; }
+API() {   # gọi GraphQL RunPod TỪ box3 (khoá không rời máy chủ, không in ra)
+  ssh root@167.233.241.16 "set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; curl -s -H 'Content-Type: application/json' -H \"Authorization: Bearer \$RUNPOD_API_KEY\" -d '$1' https://api.runpod.io/graphql"
+}
 case "$VIEC" in
+  bat)
+    API "{\"query\":\"mutation { podResume(input: {podId: \\\"$HOST\\\", gpuCount: 1}) { id desiredStatus costPerHr } }\"}" | head -c 300; echo
+    for i in $(seq 1 60); do
+      R=$(API "{\"query\":\"query { pod(input: {podId: \\\"$HOST\\\"}) { desiredStatus runtime { ports { ip publicPort privatePort isIpPublic } } } }\"}" || true)
+      D=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["pod"]; ps=[p for p in ((d.get("runtime") or {}).get("ports") or []) if p["privatePort"]==22 and p["isIpPublic"]]; print(f"root@{ps[0][\"ip\"]} {ps[0][\"publicPort\"]}" if ps else "")' 2>/dev/null || true)   # set -e: máy chưa có cổng thì JSON trống — đợi tiếp
+      [ -n "$D" ] && { echo "$D"; exit 0; }; sleep 5
+    done; echo "pod chưa có SSH sau 5 phút"; exit 1 ;;
+  dung)
+    API "{\"query\":\"mutation { podStop(input: {podId: \\\"$HOST\\\"}) { id desiredStatus } }\"}" | head -c 300; echo ;;
   chuan-bi)
     $SSH "set -e; command -v rsync >/dev/null && command -v xz >/dev/null || { (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync xz-utils libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 ffmpeg) >/dev/null; }
       if [ ! -x /opt/blender/blender ]; then cd /opt

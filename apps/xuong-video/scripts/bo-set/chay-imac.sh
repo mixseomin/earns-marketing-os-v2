@@ -3,6 +3,7 @@
 # Box chuẩn bị đầu vào (--xuat) → iMac kéo về, render bằng Blender GPU → đẩy kết quả lên /tmp của box → box nhận (--nhap): đẩy kho, ghi DB, dọn ảnh.
 # Khoá / DB không rời box; iMac chỉ làm thợ render.
 #   apps/xuong-video/scripts/bo-set/chay-imac.sh <tap_id> [--tat-ca | --chi=<id,…>]
+#   XV_MAY_THUE=root@<ip> XV_MAY_THUE_CONG=<cổng> …  = render trên máy thuê GPU (may-thue.sh bat <pod> rồi chuan-bi trước)
 #   XV_THO=1 …  = BẢN NHÁP THÔ (540×960, ít mẫu, nhanh) chỉ để duyệt bố cục — không dùng làm keyframe; bản đẹp chạy lại --tat-ca
 set -euo pipefail
 TAP="$1"; THEM="${2:-}"
@@ -17,6 +18,13 @@ rsync -a "$BOX:$D/" "$L/"
 t1=$(date +%s)
 # Render: mỗi tệp đầu vào một Blender, 2 cái song song (GPU dùng chung).
 ls "$L"/*/*.json >/dev/null 2>&1 || { echo "không có shot nào cần dựng"; exit 0; }
+if [ -n "${XV_MAY_THUE:-}" ]; then
+  # MÁY THUÊ GPU (RunPod 4090 — may-thue.sh bat / chuan-bi trước): đẩy đầu vào lên, render ở đó (2 Blender song song), kéo kết quả về.
+  C=${XV_MAY_THUE_CONG:-22}; R=/root/xv/khung
+  ssh -p $C "$XV_MAY_THUE" "rm -rf $R && mkdir -p $R" && rsync -aq -e "ssh -p $C" "$L/" "$XV_MAY_THUE:$R/"
+  ssh -p $C "$XV_MAY_THUE" "cd $R && for j in */*.json; do ten=\$(basename \$j .json); ra=\$(dirname \$j)/\$ten; if [ \$ten = mb ]; then e=XV_CHI_MAT_BANG=1; else e=XV_BO_MAT_BANG=1; fi; ( env XV_NHANH=1 XV_MESH_THAT=1 XV_THO=${XV_THO:-} \$e /opt/blender/blender -b --factory-startup -P /root/xv/scripts/bo-set/dung-set.py -- \$j \$ra > \$ra.log 2>&1; grep -q XONG \$ra.log || { echo \"✗ \$ten:\"; tail -5 \$ra.log; } ) & while [ \$(jobs -r | wc -l) -ge 2 ]; do sleep 1; done; done; wait"
+  rsync -aq -e "ssh -p $C" "$XV_MAY_THUE:$R/" "$L/"
+else
 for j in "$L"/*/*.json; do
   ten=$(basename "$j" .json); ra="$(dirname "$j")/$ten"
   if [ "$ten" = mb ]; then e="XV_CHI_MAT_BANG=1"; else e="XV_BO_MAT_BANG=1"; fi
@@ -24,6 +32,7 @@ for j in "$L"/*/*.json; do
   while [ "$(jobs -r | wc -l)" -ge 2 ]; do sleep 1; done
 done
 wait
+fi
 t2=$(date +%s)
 # Chỉ đẩy KẾT QUẢ về box (ảnh JPEG + số đo json), không đẩy lại đầu vào / log.
 rsync -az --include="*/" --include="*/p*/***" --include="*/mb/***" --exclude="*" "$L/" "$BOX:$D/"

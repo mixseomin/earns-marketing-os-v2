@@ -90,7 +90,7 @@ shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao',
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
      # 2.4: trung cận từ ngực (điện thoại trong tay) lên mặt — cận riêng món 15 cm trước thân thì máy dí vào áo
-     {'tay': True, 'qua_truc': True, 'dat': [360, 610, 165], 'nhin': [313, 583, 115], 'ong_kinh': 50, 'khung': [DT, HA],   # điện thoại đo từ khung 3D lần trước (điểm ảnh + máy cũ); đổi nét điện thoại → mặt (lia lên thì khung mở nhìn xuống sàn)   # khung MỞ = cận điện thoại trong tay Hạ (rồi lia lên mặt); cú chèn được khác phía trục
+     {'tay': True, 'qua_truc': True, 'dat': [360, 610, 165], 'nhin': [313, 583, 115], 'ong_kinh': 65, 'khung': [DT, HA],   # điện thoại đo từ khung 3D lần trước (điểm ảnh + máy cũ); đổi nét điện thoại → mặt (lia lên thì khung mở nhìn xuống sàn)   # khung MỞ = cận điện thoại trong tay Hạ (rồi lia lên mặt); cú chèn được khác phía trục
       'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 

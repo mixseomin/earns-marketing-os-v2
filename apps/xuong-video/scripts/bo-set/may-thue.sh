@@ -44,11 +44,12 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
     KHOA=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1]).read().strip()))' "${XV_KHOA_SSH:-$HOME/.ssh/id_ed25519.pub}")   # XV_CHI_XEM=1: chỉ in ứng viên, không tạo máy (thử trước khi tốn tiền)
     CU=$(GQ "query { myself { pods { id } } }" | python3 -c 'import json,sys; print(" ".join(p["id"] for p in json.load(sys.stdin)["data"]["myself"]["pods"]))')
     while IFS='|' read -r cl gpu gia viec; do
+      case " ${XV_BO_GPU:-} " in *" $cl|$gpu "*) echo "  bỏ $gpu $cl (vừa hỏng GPU trong lượt này)" >&2; continue ;; esac
       R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"$ANH\", containerDiskInGb: 20, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30, env: [{key: \"PUBLIC_KEY\", value: $KHOA}]}) { id costPerHr } }")
       ID=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null || true)
       # trả lời rỗng / hỏng (không id, không lỗi) → máy có thể ĐÃ được tạo: tra danh sách, máy mới xuất hiện thì nhận nó (không bỏ sót máy đang tính tiền)
       [ -z "$ID" ] && [ -z "$(echo "$R" | LOI 2>/dev/null)" ] && ID=$(GQ "query { myself { pods { id } } }" | python3 -c 'import json,sys; cu=set(sys.argv[1].split()); print(next((p["id"] for p in json.load(sys.stdin)["data"]["myself"]["pods"] if p["id"] not in cu), ""))' "$CU")
-      [ -n "$ID" ] && { echo "  → thuê $gpu $cl \$$gia/giờ" >&2; echo "$ID"; exit 0; }
+      [ -n "$ID" ] && { echo "  → thuê $gpu $cl \$$gia/giờ" >&2; [ -n "${XV_TAO_GHI:-}" ] && echo "$cl|$gpu" > "$XV_TAO_GHI"; echo "$ID"; exit 0; }
       echo "  $gpu $cl: $(echo "$R" | LOI 2>/dev/null || echo "$R" | head -c 200)" >&2
     done <<< "$DS"
     exit 1 ;;
@@ -69,6 +70,8 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
          # bản diễn → XOÁ máy. trap EXIT xoá cả khi lỗi / bị ngắt. may-thue.sh lam <tap> [chi_thu_tu,…]   ·   XV_POD=<id> dùng lại máy đang chạy
     TAP=$HOST; CHI=${3:-}; [ -n "$TAP" ] || { echo "thiếu <tap>"; exit 1; }
     POD=""; trap '[ -n "$POD" ] && { echo "— xoá máy thuê $POD"; bash "$0" xoa "$POD"; }' EXIT
+    # loại GPU vừa hỏng khỏi các lần thử sau (17/10/2026: RunPod cấp 3 lần liền cùng một máy RTX 5080 Blender không thấy GPU)
+    export XV_TAO_GHI; XV_TAO_GHI=$(mktemp); export XV_BO_GPU="${XV_BO_GPU:-}"
     for lan in 1 2 3; do
       POD=${XV_POD:-}; XV_POD=""; [ -n "$POD" ] || POD=$(bash "$0" tao) || { echo "không tạo được máy"; POD=""; exit 1; }
       echo "pod $POD (lần $lan)"
@@ -76,7 +79,7 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
       RC=1; [ "${H#root@}" != "$H" ] && { RC=0; bash "$0" chuan-bi "$H" "$P" || RC=$?; }
       [ $RC = 0 ] && break
       [ $RC = 3 ] && { echo "lỗi cấu hình (khoá SSH) — dừng, không thuê thêm máy"; exit 1; }
-      echo "máy $POD không dùng được ($DC) — xoá, thuê máy khác"; bash "$0" xoa "$POD"; POD=""
+      echo "máy $POD không dùng được ($DC) — xoá, thuê máy khác"; bash "$0" xoa "$POD"; POD=""; XV_BO_GPU="$XV_BO_GPU $(cat "$XV_TAO_GHI" 2>/dev/null)"
       [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
     done
     echo "máy: $H cổng $P"

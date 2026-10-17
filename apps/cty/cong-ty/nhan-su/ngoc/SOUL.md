@@ -10,7 +10,7 @@ model: fal:google/gemini-3.8-flash
 room: day-chuyen
 muc_quyet: 2
 approval: SMART
-heartbeat: off
+heartbeat: kiem-bai
 lich: theo đặt hàng
 skills: [human-voice, voice-score, content-pillars]
 data: [content_pillars:*, san-pham:mo-ta, outreach:email-draft]

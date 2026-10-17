@@ -12,7 +12,7 @@ import { execFileSync } from 'node:child_process';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiAp, apBox, docLich, choAp } from './lich-may.mjs';
-import { NHIP_MAY } from './nhip.mjs';
+import { NHIP_MAY } from './nhip-may.mjs';   // KHÔNG import nhip.mjs: nó nạp tệp này giữa top-level await → vòng chờ, exit 13
 // LaunchAgent của việc NHỊP chạy trên Mac (nhip.mjs NHIP_MAY, vd Bảo dọn nhật ký): đã là đầu việc có giờ chỉnh riêng ở cột Tự làm — không hiện lần hai
 // như việc máy (sửa lịch "mỗi 10 phút" ở đó là phá cơ chế máy hỏi giờ).
 const NHIP_LAUNCHD = new Set(Object.values(NHIP_MAY).map((x) => x.launchd));

@@ -70,6 +70,10 @@ export const VIEC_NHIP = {
     { ma: 'don', ten: 'Dọn nhật ký chat cũ', lich: (n) => `${n.gio || GIO_MAC_DINH} hằng ngày · MacBook`, gio: (n) => n.gio || GIO_MAC_DINH, khop: null,
       mo_ta: 'Mỗi ngày một lần, đúng giờ admin đặt ở cột Tự làm (mặc định 03:30), trên MacBook (LaunchAgent com.htuan.don-nhat-ky hỏi mỗi 10 phút → ~/bin/don-nhat-ky; Mac ngủ thì chạy lúc thức): xoá nhật ký chat Claude cũ hơn 14 ngày, cũ nhất trước; tổng còn quá 8 GB thì xoá tiếp từ cũ đến mới nhưng không đụng tệp có ghi trong 48 giờ (phiên đang chạy). Mỗi lượt ghi một dòng sổ sự kiện. Tắt ở cột Tự làm thì lượt kế không chạy.' },
   ],
+  'kiem-bai': [
+    { ma: 'kiem-bai', ten: 'Kiểm bài mới', lich: (n) => tanSuat(n.kiemMoi), khop: null,
+      mo_ta: 'Mọi bài / trang nội dung mới nộp vào hàng chờ (node worker/kiem-bai.mjs --nop <url> --tu <người>, hoặc --html <bản nháp>) trước khi lên trang. Máy đo không AI (gạch ngang dài, từ máy, số chữ, ví dụ trích, FAQ, phần "nếu đã lỡ", nút) rồi Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md → tin vào chủ đề 📝 Nội dung trên Telegram: ai gửi, thiếu gì, thừa gì, giọng văn, kết luận DUYỆT / SỬA LẠI / KHÔNG DUYỆT. Chặn cứng (gạch dài, từ máy) không bao giờ DUYỆT. Mô hình chỉ được gọi khi có bài.' },
+  ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
       mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình chỉ được gọi khi có thư cần viết lời báo.' },
@@ -82,12 +86,13 @@ export const VIEC_NHIP = {
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
 export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n), gio: x.gio?.(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
-export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)' };
+export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)' };
 /** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
  *  qua ssh trước mỗi lượt và tự ghi nhật ký nhịp (<DATA>/nhip/<người>.json[l]) như ghiLam. */
-export const NHIP_MAY = { 'don-nhat-ky': { may: 'MacBook', script: '~/bin/don-nhat-ky', launchd: 'com.htuan.don-nhat-ky' } };
+export { NHIP_MAY } from './nhip-may.mjs';   // khai ở nhip-may.mjs — viec-may.mjs nạp từ đó, không vòng về tệp này
 export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
+  'kiem-bai': async (n) => (await import('./kiem-bai.mjs')).nhipKiemBai(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Nội dung: bài nộp → chấm → Telegram
 };
 export { trongCa } from './gio-lam.mjs';
 import { trongCa, mocCuoiCa } from './gio-lam.mjs';

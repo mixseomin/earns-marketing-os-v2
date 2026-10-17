@@ -119,9 +119,11 @@ const giua = (a: number[]) => { if (!a.length) return 0; const x = [...a].sort((
    máy đã đăng lên nền đó (xv_may_video.da_dang); kênh chưa gắn máy nhóm theo dự án. Chưa có máy đo lượt xem → daDo=false. */
 const NEN_TEN: Record<string, string> = { youtube: 'YouTube Shorts', facebook: 'Facebook Reels', instagram: 'Instagram Reels', x: 'X', twitter: 'X', tiktok: 'TikTok', pinterest: 'Pinterest', threads: 'Threads', quora: 'Quora', dailymotion: 'Dailymotion' };
 async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<number>, homMs: number): Promise<StKenh[]> {
-  const r = (await d.execute(sql`SELECT a.id, a.platform_key, a.handle, a.status, a.proxy_id, a.created_at::date::text AS tao, coalesce(p.name, a.project_id) AS du_an,
+  const r = (await d.execute(sql`SELECT a.id, a.platform_key, a.handle, a.status, coalesce(a.proxy_id, bp.default_proxy_id) AS proxy_id, a.created_at::date::text AS tao, coalesce(p.name, a.project_id) AS du_an,
       may.ten AS may, may.da_dang
     FROM platform_accounts a LEFT JOIN projects p ON p.id = a.project_id
+    -- proxy: của tài khoản, không có thì của profile trình duyệt chứa nó (profile đi trọn qua proxy, vd beforeyouland → #4)
+    LEFT JOIN browser_profiles bp ON bp.id = a.browser_profile_id
     -- MỌI nền máy dùng tài khoản này cộng lại (một tài khoản X có cả nền x — video — và x_anh — bài ảnh; LIMIT 1 trước đây đếm thiếu bài ảnh)
     LEFT JOIN LATERAL (SELECT string_agg(DISTINCT m.ten, ' · ') AS ten, sum((SELECT count(*) FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen')))::int AS da_dang
       FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE n->'br'->>'acct' = a.id::text) may ON true

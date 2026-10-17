@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react';
 import { DataTable, EmptyState, GuardedButton, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
+import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive } from '@/lib/social-traffic';
@@ -24,6 +25,10 @@ const so = (n: number) => Math.round(n).toLocaleString('vi-VN');
 const usd = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n) < 100 ? Math.abs(n).toFixed(2) : so(Math.abs(n))}`;
 const trungVi = (a: number[]) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? (s[m] ?? 0) : ((s[m - 1] ?? 0) + (s[m] ?? 0)) / 2; };
 const nho = { fontSize: 11, color: 'var(--fg-3)' } as const;
+/** Favicon THẬT của nền tảng (YDNI: nhận diện bằng mắt, không emoji). Tên hiển thị 'YouTube Shorts' / 'Facebook Reels' /
+ *  'Gumroad' → khoá /api/platform-icon theo chữ đầu. Một chỗ cho bảng Kênh, Trang đích, Sổ tiền, Cửa bán. */
+const Logo = ({ ten, co = 16 }: { ten: string; co?: number }) => <SiteFavicon platformKey={ten.split(/\s+/)[0]!.toLowerCase()} size={co} title={ten} />;
+const coLogo = (ten: string, chu: React.ReactNode = ten) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={ten} />{chu}</span>;
 const chuaDo = <span style={{ fontSize: 11, color: 'var(--fg-3)' }} title="có trong vault, chưa có máy đọc số">chưa đo</span>;
 const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang xưởng studio.on.tc (tốn tiền sinh video) — chờ nối luồng ghi và anh bấm duyệt từng lô';
 
@@ -116,7 +121,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       : <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => taoLo(g)}>🎬 Tạo lô 5 video</GuardedButton>) },
   ];
   const cotKenh: DataColumn<StKenh>[] = [
-    { key: 'ten', header: 'Kênh', align: 'left', sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gap: 1 }}><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
+    { key: 'ten', header: 'Kênh', align: 'left', sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 8, alignItems: 'center' }}><span style={{ gridRow: 'span 2' }}><Logo ten={k.nenTang} co={20} /></span><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
     { key: 'proxy', header: 'Proxy', align: 'left', cell: (k) => <span style={nho}>{k.proxy}</span> },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (k) => <Pill color={TT_KENH[k.tt][0]} label={TT_KENH[k.tt][1]} uppercase={false} /> },
     { key: 'ngay', header: 'Ngày', sortValue: (k) => k.ngay, cell: (k) => k.ngay },
@@ -138,7 +143,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const cotTrang: DataColumn<StTrang>[] = [
     { key: 'slug', header: 'Đường dẫn', align: 'left', cell: (x) => <span style={{ fontFamily: 'var(--font-mono)' }}>{laLive ? x.slug : `site.com/${x.slug}`}</span> },
     { key: 'goc', header: laLive ? 'Sản phẩm' : 'Góc', align: 'left', cell: (x) => x.tieuDe ?? gocOf(x.goc)?.ten ?? '—' },
-    { key: 'kenh', header: 'Kênh đổ về', align: 'left', cell: (x) => { if (x.kenhTen != null) return x.kenhTen; const k = kenhOf(x.kenh); return k ? `${k.ten} · ${k.nenTang}` : '—'; } },
+    { key: 'kenh', header: 'Kênh đổ về', align: 'left', cell: (x) => { if (x.kenhTen != null) return x.kenhTen; const k = kenhOf(x.kenh); return k ? coLogo(k.nenTang, k.ten) : '—'; } },
     { key: 'click', header: 'Khách vào', sortValue: (x) => x.click, cell: (x) => (x.click == null ? <span style={nho} title="chưa có máy đếm click từng trang">—</span> : so(x.click)) },
     { key: 'ra', header: 'Bấm sang shop', sortValue: (x) => x.raShop, cell: (x) => (x.raShop == null ? <span style={nho}>—</span> : `${x.raShop}%`) },
     { key: 'ct', header: 'Chương trình', align: 'left', cell: (x) => <span style={nho}>{x.chuongTrinh}</span> },
@@ -243,7 +248,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       {muc === 'tien' && <>
         {laLive && <Panel title="🏪 Cửa bán" subtitle="30 ngày · Gumroad đọc product_daily, Etsy / KDP chưa có máy đọc số">
           <SimpleTable rows={live.ban} getRowKey={(b) => `${b.cua}:${b.ten}`} columns={[
-            { key: 'cua', header: 'Cửa bán', cell: (b) => b.cua }, { key: 'ten', header: 'Tài khoản / store', cell: (b) => b.ten }, { key: 'da', header: 'Dự án', cell: (b) => b.duAn },
+            { key: 'cua', header: 'Cửa bán', cell: (b) => coLogo(b.cua) }, { key: 'ten', header: 'Tài khoản / store', cell: (b) => b.ten }, { key: 'da', header: 'Dự án', cell: (b) => b.duAn },
             { key: 'x', header: 'Lượt xem', align: 'right', cell: (b) => (b.xem30 == null ? '—' : so(b.xem30)) },
             { key: 'b', header: 'Đơn', align: 'right', cell: (b) => (b.ban30 == null ? '—' : so(b.ban30)) },
             { key: 'u', header: 'Tiền', align: 'right', cell: (b) => (b.usd30 == null ? '—' : usd(b.usd30)) },
@@ -267,7 +272,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         </Panel>
         {d.kenh.length && !laLive
           ? <SimpleTable rows={d.kenh} getRowKey={(k) => String(k.id)} columns={[
-              { key: 'ten', header: 'Kênh', cell: (k) => `${k.ten} · ${k.nenTang}` },
+              { key: 'ten', header: 'Kênh', cell: (k) => coLogo(k.nenTang, k.ten) },
               { key: 'chi', header: 'Chi', align: 'right', cell: (k) => usd(k.video * gia.video + (k.tt === 'song' || k.tt === 'co' ? gia.proxy : 0)) },
               { key: 'hh', header: 'Hoa hồng', align: 'right', cell: (k) => usd(k.hh) },
               { key: 'lai', header: 'Lãi', align: 'right', cell: (k) => { const l = k.hh - (k.video * gia.video + (k.tt === 'song' || k.tt === 'co' ? gia.proxy : 0)); return <span style={{ color: l >= 0 ? 'var(--ok)' : 'var(--bad)' }}>{usd(l)}</span>; } },

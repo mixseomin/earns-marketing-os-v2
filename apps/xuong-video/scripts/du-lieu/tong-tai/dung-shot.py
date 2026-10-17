@@ -6,10 +6,11 @@ import json, os
 HA, THAN, VIV, TRAN = 'Lâm Hạ', 'Lục Thần', 'Vivian', 'Luật sư Trần'
 VP, SANH, PH = 'Văn phòng mở tầng 38', 'Sảnh thang máy', 'Phòng họp HĐQT'
 # bề ngoài (sổ người — SO_NGUOI): khai ở lần xuất hiện đầu của ngày, shot sau tự nối
-AO_HA_SANG = {'trang_phuc': 'plain white silk blouse and black tailored slacks, long straight black hair loose', 'do_deo': 'jade bangle on the left wrist; white staff ID badge on a dark blue lanyard'}
-AO_THAN = {'trang_phuc': 'black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch', 'do_deo': 'thin pale-green jade bead bracelet hidden under the left shirt cuff'}
-AO_VIV = {'trang_phuc': 'fitted burgundy office dress, hair in a sleek low bun, red lipstick'}
-AO_TRAN = {'trang_phuc': 'navy three-piece suit, gold-rimmed glasses, leather briefcase'}
+# SỔ TRANG PHỤC: trang_phuc / trang / vet ghi TÊN biến thể chuẩn hoá (phim.json › nhan_vat[].bien_the — mô tả, ảnh, dấu 3D), không tả chữ tự do
+AO_HA_SANG = {'trang_phuc': 'Sơ mi trắng', 'do_deo': 'jade bangle on the left wrist; white staff ID badge on a dark blue lanyard'}
+AO_THAN = {'trang_phuc': 'Com-lê đen ba mảnh', 'do_deo': 'thin pale-green jade bead bracelet hidden under the left shirt cuff'}
+AO_VIV = {'trang_phuc': 'Đầm đỏ đô công sở'}
+AO_TRAN = {'trang_phuc': 'Com-lê navy luật sư'}
 HOP, DT = 'Thùng đồ cá nhân', 'Điện thoại của Hạ'
 LY_RONG = lambda **k: vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang='empty', **k)   # Vivian cầm ly rỗng suốt cảnh 1–2 (hất xong ở 1.1)
 
@@ -35,7 +36,7 @@ shot('1.1', C1, 3, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 
      'Vivian chặn đường, hất cả ly cà phê vào ngực áo Hạ', [(VIV, 'lạnh, rít qua kẽ răng', 'Dọn sạch đi. Rồi cút.')],
      [bc(VIV, 'khinh_bi', 'khinh_bi'), bc(HA, 'binh_thuong', 'soc')],
      {'dat': [120, 590, 150], 'nhin': [300, 590, 140], 'ong_kinh': 40, 'khung': [VIV, HA],
-      'vi_tri': [vt(HA, [300, 540, 0], 180, **AO_HA_SANG, trang_den='hot coffee stain spreading across the chest of the white blouse'), vt(VIV, [300, 640, 0], 0, **AO_VIV, dien=['cam_truoc', 'hat@0.25-0.45']), vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang_den='empty')]},
+      'vi_tri': [vt(HA, [300, 540, 0], 180, **AO_HA_SANG, trang_phuc_den='Sơ mi trắng dính cà phê'), vt(VIV, [300, 640, 0], 0, **AO_VIV, dien=['cam_truoc', 'hat@0.25-0.45']), vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang_den='empty')]},
      [HA, VIV, VP, 'Ly cà phê'], chu_man='09:05 · Tầng 38 · Lục thị')
 shot('1.2', C1, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'cam_tay', 'ong_kinh': 'macro', 'anh_sang': 'cua_so', 'am_thanh': ['rung']},
      { 'dien': "Anticipation: stillness, the stain still spreading. Action: Hạ's fingers slowly tighten on the folder. Reaction: a slow controlled exhale.", 'huong': 'Hạ looks down at her own chest.','bo_cuc': 'Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her hand holding the folder at frame bottom', 'mo': 'stain still spreading', 'ket': 'Hạ’s fingers tighten on the folder', 'muc_dich': 'người xem thấy rõ cái nhục'},
@@ -98,7 +99,7 @@ shot('3.1', C3, 6, 'h3', {'vai': 'tong_the', 'co_canh': 'ws', 'goc': 'ngang', 'c
      'Hạ ôm thùng đồ chờ thang máy; Vivian bước tới giật phắt thẻ nhân viên trên cổ cô', [],
      [bc(VIV, 'dac_y', 'khinh_bi'), bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui', 'buon'])],
      {'dat': [180, 40, 160], 'nhin': [-60, 400, 140], 'ong_kinh': 30, 'khung': [HA, VIV], 'nhay': 'Hạ thu dọn đồ rồi ra sảnh (thời gian trôi ngoài khung)',
-      'vi_tri': [vt(HA, [-100, 380, 0], 180, huong_den=90, **AO_HA_SANG, trang='hot coffee stain spreading across the chest of the white blouse', do_deo_den='jade bangle on the left wrist', dien=['om_thung']), vt(VIV, [260, 150, 0], -60, den=[0, 365, 0], huong_den=-90, **AO_VIV, dien=['mc_sai_buoc@0-0.55', 'giat@0.55-0.8']), vt('Thẻ nhân viên', [-100, 368, 140], 180, den=[10, 360, 120]), vt(HOP, [-100, 362, 95], 180, cam=HA)]},
+      'vi_tri': [vt(HA, [-100, 380, 0], 180, huong_den=90, trang_phuc='Sơ mi trắng dính cà phê', do_deo='jade bangle on the left wrist; white staff ID badge on a dark blue lanyard', do_deo_den='jade bangle on the left wrist', dien=['om_thung']), vt(VIV, [260, 150, 0], -60, den=[0, 365, 0], huong_den=-90, **AO_VIV, dien=['mc_sai_buoc@0-0.55', 'giat@0.55-0.8']), vt('Thẻ nhân viên', [-100, 368, 140], 180, den=[10, 360, 120]), vt(HOP, [-100, 362, 95], 180, cam=HA)]},
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 shot('3.2', C3, 5, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'vien', 'am_thanh': ['nen_phong']},
      { 'dien': "Anticipation: Vivian holds the lanyard up between two fingers. Action: she swings it in front of Hạ's face. Reaction: leans in with a sneer.",'bo_cuc': 'Over Hạ’s shoulder (box edge in foreground) onto Vivian dangling the badge', 'mo': 'Vivian dangling the lanyard', 'ket': 'Vivian leaning in, sneering', 'huong': 'Vivian looks screen-left at Hạ', 'muc_dich': 'Vivian tưởng mình thắng'},
@@ -120,7 +121,7 @@ shot('3.4', C3, 5, 'veo', {'vai': 'tam_trang', 'co_canh': 'ms', 'goc': 'thap', '
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 
 # ── CẢNH 4 · Phòng họp HĐQT 15:00 (58–79 s) — thời gian nhảy, Hạ đã thay vest trắng ──
-AO_HA_CHIEU = {'trang_phuc': 'tailored white power suit, white silk blouse, hair down, confident', 'trang': '', 'do_deo': 'jade bangle on the left wrist'}
+AO_HA_CHIEU = {'trang_phuc': 'Vest trắng', 'trang': '', 'do_deo': 'jade bangle on the left wrist'}
 shot('4.1', C4, 5, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'cao', 'chuyen_dong': 'truot_ngang', 'ong_kinh': 'rong', 'anh_sang': 'tuong_phan', 'am_thanh': ['nen_phong']},
      { 'dien': 'Anticipation: Thần gestures toward the screen. Action: he presents confidently to the seated board. Reaction: board members nod; Vivian sips with a satisfied look.', 'huong': 'Thần faces the table, gesturing screen-left toward the screen.','bo_cuc': 'Wide boardroom: Lục Thần standing at the head of the table presenting in front of the screen, board members seated along both sides, Vivian standing beside him holding a coffee cup', 'mo': 'Thần mid-presentation', 'ket': 'board members nodding', 'muc_dich': 'Thần tưởng mọi thứ trong tay'},
      'Lục Thần thuyết trình trước HĐQT, Vivian đứng cạnh cầm ly cà phê đắc ý', [(THAN, 'tự tin', 'Với khoản vốn của Quỹ Harrington, Lục thị sẽ…')],
@@ -195,11 +196,6 @@ for s_ in S:
     cx = sum(p[0] for p in ds) / len(ds); cy = sum(p[1] for p in ds) / len(ds)
     m['phia'] = round(math.degrees(math.atan2(m['dat'][0] - cx, -(m['dat'][1] - cy))), 1)
     for k in ('dat', 'nhin', 'ong_kinh'): m.pop(k)
-# VẾT CÀ PHÊ trên ngực áo Hạ (3D, không chỉ chữ): hiện từ cuối 1.1 (vet_den) tới hết cảnh 3 — chiều cảnh 4 cô đã thay vest trắng.
-for s_ in S:
-    if s_['canh'] not in (C1, C2, C3): continue
-    for v in s_['may_3d']['vi_tri']:
-        if v['ten'] == HA: v['vet_3d_den' if s_['ma'] == '1.1' else 'vet_3d'] = ['ca_phe_nguc']
 t = 0.0
 for s_ in S: s_['bat_dau'] = t; t += s_['phat_s']
 json.dump(S, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shot.json'), 'w'), ensure_ascii=False, indent=1)

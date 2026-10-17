@@ -17,7 +17,9 @@ const doc = (f: string) => JSON.parse(readFileSync(join(D, f), 'utf8'));
 const phim = doc('phim.json'); const sets = doc('bo-set.json') as { ten: string; boi_canh: string; vat: unknown[] }[]; const shots = doc('shot.json') as Record<string, never>[];
 const boChu = process.argv.includes('--bo-chu');
 
-const nv = (phim.nhan_vat as { ten: string; loai: string; khoi_3d?: unknown }[]).map((a, i) => ({ id: i + 1, ten: a.ten, loai: a.loai, khoi_3d: a.khoi_3d ?? null, bo_set_id: a.loai === 'boi_canh' ? sets.findIndex((s) => s.boi_canh === a.ten) + 1 || null : null }));
+// biến thể (sổ trang phục): ảnh chỉ có trên DB — ở đây coi như có (lookChuaChuan vẫn chặn chữ tự do + thiếu dáng nghỉ)
+const nv = (phim.nhan_vat as { ten: string; loai: string; khoi_3d?: unknown; bien_the?: { nhom: string; ten: string; mo_ta: string; dan_3d?: unknown }[] }[]).map((a, i) => ({ id: i + 1, ten: a.ten, loai: a.loai, khoi_3d: a.khoi_3d ?? null,
+  bien_the: (a.bien_the ?? []).map((b, k) => ({ id: (i + 1) * 100 + k, nhan_vat_id: i + 1, ...b, anh_url: '(cục bộ)' })), bo_set_id: a.loai === 'boi_canh' ? sets.findIndex((s) => s.boi_canh === a.ten) + 1 || null : null }));
 const boSet = sets.map((s, i) => ({ id: i + 1, du_lieu: { vat: s.vat } }));
 const phanCanh = phim.tap.phan_canh as { ten: string; ngay?: string; lien_truoc?: boolean }[];
 const idCua = (t: string) => { const x = nv.find((a) => a.ten === t); if (!x) throw new Error(`shot nhắc "${t}" mà phim.json không có anchor`); return x.id; };

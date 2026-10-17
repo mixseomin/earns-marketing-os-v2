@@ -2,7 +2,7 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { dayViecAnh } from './hoan-tat';
-import { promptAnhMau } from './claude';
+import { promptAnhMau, promptBienThe } from './claude';
 import { promptCatNen } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptBieuCam } from './qc-cam-xuc';
@@ -12,9 +12,9 @@ import { damBaoAnhMat } from './soi-mat';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
-import { boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
+import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
-import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
+import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
 import { uploadToR2 } from '../r2';
 
@@ -100,6 +100,24 @@ export async function sinhAnhGoc(db: Db, nhanVatId: number, so = 1): Promise<KqS
 
 /** Ảnh NGƯỜI NỀN XANH để tách nền (cat-nen.ts): một dáng cố định `dang`, cầm sản phẩm của phim; tham chiếu = ảnh người + ảnh đầu của mỗi
  *  anchor sản phẩm. Xong → hoan-tat.ts nhận dich 'cat_nen': chromakey → PNG → điền vào lớp phủ ID_LOP_CAT_NEN của tập. TỐN TIỀN (1 ảnh). */
+/** Sinh ảnh một BIẾN THỂ từ ảnh gốc của anchor (tham chiếu) → giữ danh tính, chỉ đổi phần biến thể. MỘT lõi cho nút trên thẻ nhân vật
+ *  (actions.ts › sinhAnhBienThe) và script (sinh-anh-phim.mts --bien-the). moHinh = nguồn đích danh (ckey:…) — không thì model ảnh của phim. */
+export async function sinhAnhBienTheDb(db: Db, bienTheId: number, moHinh?: string): Promise<KqSinh<number>> {
+  const r = (await db.execute(sql`SELECT b.*, v.loai AS v_loai, v.ten AS v_ten, v.mo_ta AS v_mo_ta, v.anh_ref AS v_anh, p.kinh_thanh AS kt
+    FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id JOIN xv_phim p ON p.id = v.phim_id WHERE b.id = ${bienTheId}`)) as unknown as Row[];
+  if (!r[0]) return { ok: false, loi: 'không thấy biến thể' };
+  const b = mapBienThe(r[0]);
+  const anhGoc = Array.isArray(r[0].v_anh) ? (r[0].v_anh as string[]) : [];
+  if (!anhGoc.length) return { ok: false, loi: 'anchor chưa có ảnh gốc — bấm "Sinh ảnh mẫu" của anchor trước để biến thể bám theo' };
+  const kt = docKinhThanh(r[0].kt as KinhThanh);
+  const model = moHinh && /^(fal|ckey|shopaikey|google):/.test(moHinh) ? moHinh : kt.mo_hinh_anh;
+  const a = { loai: String(r[0].v_loai) as NhanVat['loai'], ten: String(r[0].v_ten), mo_ta: String(r[0].v_mo_ta) };
+  const prompt = promptBienThe(a, b, kt);
+  const job = await taoJob(db, { nhan: `Biến thể · ${a.ten} · ${b.ten}`, nhan_vat_id: b.nhan_vat_id, bien_the_id: bienTheId, loai: 'anh', provider: 'google', model, request: { prompt } });
+  await dayViecAnh({ job, model, prompt, thamChieuUrl: anhGoc.slice(0, 2), tiLe: a.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `bien-the/${bienTheId}` });
+  return { ok: true, data: job };
+}
+
 export async function sinhAnhCatNen(db: Db, nhanVatId: number, dang: string): Promise<KqSinh<number>> {
   const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
   const r = (await db.execute(sql`SELECT v.*, p.kinh_thanh AS kt FROM xv_nhan_vat v JOIN xv_phim p ON p.id = v.phim_id WHERE v.id = ${nhanVatId}`)) as unknown as Row[];
@@ -134,7 +152,9 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 export type HaiBuoc = { sau: string; prompt1: string; prompt2: string; ref2: string[] };
 export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc } {
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
-  const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
+  // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
+  const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);
+  const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v)[0] : undefined) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
   // Sản phẩm đứng ĐẦU danh sách tham chiếu (3 ảnh), rồi người/bối cảnh — và prompt nói rõ ảnh số mấy là gì, ảnh thắng chữ (#1256: quần
   // sinh ra là jeans chung chung vì ảnh sản phẩm nằm sau ảnh người, không được gọi tên, còn chữ mô tả "light blue, cúc đồng" lấn ảnh).
   // Shot có KHUNG XÁM 3D: bố trí + hậu cảnh lấy từ 3D, nên KHÔNG gửi ảnh mẫu bối cảnh lẫn chữ tả bối cảnh (thử #23 tập 19, 14/10/2026: ảnh

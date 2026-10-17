@@ -60,12 +60,9 @@
       0
      ],
      "huong": 180,
-     "trang_phuc": "plain white silk blouse and black tailored slacks, long straight black hair loose",
+     "trang_phuc": "Sơ mi trắng",
      "do_deo": "jade bangle on the left wrist; white staff ID badge on a dark blue lanyard",
-     "trang_den": "hot coffee stain spreading across the chest of the white blouse",
-     "vet_3d_den": [
-      "ca_phe_nguc"
-     ]
+     "trang_phuc_den": "Sơ mi trắng dính cà phê"
     },
     {
      "ten": "Vivian",
@@ -75,7 +72,7 @@
       0
      ],
      "huong": 0,
-     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
+     "trang_phuc": "Đầm đỏ đô công sở",
      "dien": [
       "cam_truoc",
       "hat@0.25-0.45"
@@ -163,10 +160,7 @@
       540,
       0
      ],
-     "huong": 180,
-     "vet_3d": [
-      "ca_phe_nguc"
-     ]
+     "huong": 180
     },
     {
      "ten": "Vivian",
@@ -264,10 +258,7 @@
       540,
       0
      ],
-     "huong": 180,
-     "vet_3d": [
-      "ca_phe_nguc"
-     ]
+     "huong": 180
     },
     {
      "ten": "Vivian",
@@ -379,10 +370,7 @@
       540,
       0
      ],
-     "huong": 180,
-     "vet_3d": [
-      "ca_phe_nguc"
-     ]
+     "huong": 180
     },
     {
      "ten": "Vivian",
@@ -499,9 +487,6 @@
      "huong": 180,
      "dien": [
       "mc_quy_xuong@0.3-1"
-     ],
-     "vet_3d": [
-      "ca_phe_nguc"
      ]
     },
     {
@@ -633,7 +618,7 @@
       760,
       0
      ],
-     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch",
+     "trang_phuc": "Com-lê đen ba mảnh",
      "do_deo": "thin pale-green jade bead bracelet hidden under the left shirt cuff",
      "dien": [
       "mc_sai_buoc"
@@ -647,10 +632,7 @@
       0
      ],
      "huong": 180,
-     "nam": false,
-     "vet_3d": [
-      "ca_phe_nguc"
-     ]
+     "nam": false
     },
     {
      "ten": "Vivian",
@@ -760,10 +742,7 @@
       560,
       0
      ],
-     "huong": 180,
-     "vet_3d": [
-      "ca_phe_nguc"
-     ]
+     "huong": 180
     },
     {
      "ten": "Ly cà phê",
@@ -858,10 +837,7 @@
       560,
       0
      ],
-     "huong": 180,
-     "vet_3d": [
-      "ca_phe_nguc"
-     ]
+     "huong": 180
     },
     {
      "ten": "Vivian",
@@ -949,9 +925,6 @@
      "huong": 180,
      "dien": [
       "cam_dien_thoai"
-     ],
-     "vet_3d": [
-      "ca_phe_nguc"
      ]
     },
     {
@@ -1069,15 +1042,11 @@
      ],
      "huong": 180,
      "huong_den": 90,
-     "trang_phuc": "plain white silk blouse and black tailored slacks, long straight black hair loose",
+     "trang_phuc": "Sơ mi trắng dính cà phê",
      "do_deo": "jade bangle on the left wrist; white staff ID badge on a dark blue lanyard",
-     "trang": "hot coffee stain spreading across the chest of the white blouse",
      "do_deo_den": "jade bangle on the left wrist",
      "dien": [
       "om_thung"
-     ],
-     "vet_3d": [
-      "ca_phe_nguc"
      ]
     },
     {
@@ -1094,7 +1063,7 @@
       0
      ],
      "huong_den": -90,
-     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
+     "trang_phuc": "Đầm đỏ đô công sở",
      "dien": [
       "mc_sai_buoc@0-0.55",
       "giat@0.55-0.8"
@@ -1200,9 +1169,6 @@
      "huong": 90,
      "dien": [
       "om_thung"
-     ],
-     "vet_3d": [
-      "ca_phe_nguc"
      ]
     },
     {
@@ -1313,9 +1279,6 @@
      "huong": 90,
      "dien": [
       "om_thung"
-     ],
-     "vet_3d": [
-      "ca_phe_nguc"
      ]
     },
     {
@@ -1428,9 +1391,6 @@
      "huong_den": 0,
      "dien": [
       "om_thung"
-     ],
-     "vet_3d": [
-      "ca_phe_nguc"
      ]
     },
     {
@@ -1542,7 +1502,7 @@
       0
      ],
      "huong": 0,
-     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch",
+     "trang_phuc": "Com-lê đen ba mảnh",
      "do_deo": "thin pale-green jade bead bracelet hidden under the left shirt cuff",
      "dien": [
       "thuyet_trinh"
@@ -1556,7 +1516,7 @@
       0
      ],
      "huong": -20,
-     "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
+     "trang_phuc": "Đầm đỏ đô công sở",
      "dien": [
       "cam_truoc"
      ]
@@ -1651,7 +1611,7 @@
       200,
       0
      ],
-     "trang_phuc": "tailored white power suit, white silk blouse, hair down, confident",
+     "trang_phuc": "Vest trắng",
      "trang": "",
      "do_deo": "jade bangle on the left wrist",
      "nhay": "họp HĐQT 3 giờ chiều — đã thay vest trắng",
@@ -1672,7 +1632,7 @@
       150,
       0
      ],
-     "trang_phuc": "navy three-piece suit, gold-rimmed glasses, leather briefcase",
+     "trang_phuc": "Com-lê navy luật sư",
      "dien": [
       "mc_di_bo"
      ]
@@ -2097,7 +2057,7 @@
       700,
       0
      ],
-     "trang_phuc": "tailored white power suit, white silk blouse, hair down, confident",
+     "trang_phuc": "Vest trắng",
      "trang": "",
      "do_deo": "jade bangle on the left wrist",
      "nhay": "đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)",

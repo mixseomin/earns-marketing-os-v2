@@ -402,7 +402,7 @@ def nhan_vat(sh, ket=False):
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
             ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_; n_['kieu'] = kieu; n_['dang'] = mau_nv.get('dang') or []
             ng().ap_dien(n_, dien_hl(n_, nv), 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
-            vet_(n_, nv['ten'], list(nv.get('vet_3d') or []) + (list(nv.get('vet_3d_den') or []) if ket is True or (ket and float(ket) >= 0.5) else []))
+            vet_(n_, nv['ten'], dan_cua(nv, mau_nv, ket is True or bool(ket and float(ket) >= 0.5)))
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
             than.append(bpy.data.objects[f"NG {nv['ten']}.nguc_k"]); tat_ca.extend([n_['goc'], *phan_ng]); continue
@@ -556,21 +556,31 @@ def dien_hl(n_, nv, di=False):
     if dg and not di and not nv.get('den') and n_.get('kieu', 'dung') == 'dung' and not any(str(x).startswith('mc_') for x in d): return list(dg) + d
     return d
 
-VET = {'ca_phe_nguc': ('#6b3f1d', 0.42, 0.45)}   # vết bẩn trên người: màu, rộng / cao theo phần ngực (anh 17/10/2026: vết bẩn gây chú ý → lên 3D)
+KHOA_LOOK = ('trang_phuc', 'trang', 'vet')   # CÙNG bo-set-3d.ts › KHOA_LOOK
+def dan_cua(nv, mau_nv, ket):
+    """Dấu 3D của một người trong shot = dấu của các BIẾN THỂ mà sổ người đang trỏ tới (ô trang_phuc / trang / vet = tên biến thể; khối nhân vật
+    mang bảng 'dan' tên → dấu — bo-set-3d.ts › khoiCua). Khung kết đọc ô _den. Không có chỗ nào khai dấu riêng: đổi biến thể là đổi mọi shot."""
+    bang = mau_nv.get('dan') or {}; out = []
+    for k in KHOA_LOOK:
+        t = (nv.get(f'{k}_den') if ket and nv.get(f'{k}_den') is not None else nv.get(k)) or ''
+        out += bang.get(t.strip().lower(), [])
+    return out
+
+BO_PHAN = {'nguc': 'nguc_k', 'dau': 'dau_k'}
 def vet_(n_, ten, ds):
-    """Vết bẩn dán trên áo (vi_tri.vet_3d / vet_3d_den — khác 'vet' chữ của sổ người SO_NGUOI): mảng dẹt bám mặt trước khối ngực, đi theo người khi cúi / quay — mọi góc máy thấy CÙNG một vết
-    (trước chỉ có chữ, AI vẽ mỗi shot một vết khác). Tên 'NG <ten>.vet_…' → kiểm hình học coi là một phần người đó."""
-    nguc = bpy.data.objects.get(f"NG {ten}.nguc_k")
-    if not nguc: return
-    for k in ds:
-        if k not in VET: continue
-        mau_, rong, cao = VET[k]; bb = [Vector(c) for c in nguc.bound_box]
-        lo = Vector([min(q[i] for q in bb) for i in range(3)]); hi = Vector([max(q[i] for q in bb) for i in range(3)])
+    """Dán DẤU của biến thể lên ma-nơ-canh (Dan3d: cho · mau · rong · cao · lech): khối dẹt bám mặt trước bộ phận, đi theo người khi cúi / quay —
+    mọi góc máy thấy CÙNG một vết. Tên 'NG <ten>.dan_<i>' → kiểm hình học coi là một phần người đó."""
+    for i, d in enumerate(ds):
+        bp = bpy.data.objects.get(f"NG {ten}.{BO_PHAN.get(d.get('cho', 'nguc'), 'nguc_k')}")
+        if not bp: continue
+        bb = [Vector(c) for c in bp.bound_box]
+        lo = Vector([min(q[k] for q in bb) for k in range(3)]); hi = Vector([max(q[k] for q in bb) for k in range(3)])
+        lx, lz = (d.get('lech') or [0.5, 0.55])
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1); o = bpy.context.object
-        dat(o, mau(mau_), f"NG {ten}.vet_{k}")
-        o.parent = nguc; o.matrix_parent_inverse.identity()
-        o.location = ((lo.x + hi.x) / 2, lo.y, lo.z + (hi.z - lo.z) * 0.55)
-        o.scale = ((hi.x - lo.x) * rong / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * cao / 2)
+        dat(o, mau(d.get('mau', '#6b3f1d')), f"NG {ten}.dan_{i}")
+        o.parent = bp; o.matrix_parent_inverse.identity()
+        o.location = (lo.x + (hi.x - lo.x) * lx, lo.y, lo.z + (hi.z - lo.z) * lz)
+        o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
 
 def kiem_hinh_hoc(s, cam, sh, nv_obj):
     """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật — TÂM có trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia

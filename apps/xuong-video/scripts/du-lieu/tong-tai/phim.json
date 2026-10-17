@@ -65,7 +65,36 @@
     "dang": [
      "dung_doi_chan"
     ]
-   }
+   },
+   "bien_the": [
+    {
+     "nhom": "trang_phuc",
+     "ten": "Sơ mi trắng",
+     "mo_ta": "Plain white silk blouse with a soft collar, tucked into black tailored slim slacks, black low heels; long straight black hair worn loose; pale-green jade bangle on the left wrist; white staff ID badge on a dark blue lanyard."
+    },
+    {
+     "nhom": "trang_phuc",
+     "ten": "Sơ mi trắng dính cà phê",
+     "mo_ta": "Same plain white silk blouse, black slacks, loose hair, jade bangle and staff badge — with ONE coffee stain: an irregular oval splash, dark coffee brown (#6b3f1d) with a darker wet rim, about 12 cm wide and 14 cm tall, centred on the chest just below the collarbones and slightly left of the button line, two thin drip trails running 4–5 cm downward, the fabric around it damp and slightly see-through. The stain has exactly this shape, colour, size and place in every shot.",
+     "dan_3d": [
+      {
+       "cho": "nguc",
+       "mau": "#6b3f1d",
+       "rong": 0.42,
+       "cao": 0.45,
+       "lech": [
+        0.5,
+        0.55
+       ]
+      }
+     ]
+    },
+    {
+     "nhom": "trang_phuc",
+     "ten": "Vest trắng",
+     "mo_ta": "Tailored white power suit (single-breasted blazer, wide-leg trousers) over a white silk blouse, hair down and glossy, pale-green jade bangle on the left wrist, no staff badge — clean and spotless."
+    }
+   ]
   },
   {
    "loai": "nhan_vat",
@@ -85,7 +114,14 @@
      "dung_doi_chan",
      "tay_tui"
     ]
-   }
+   },
+   "bien_the": [
+    {
+     "nhom": "trang_phuc",
+     "ten": "Com-lê đen ba mảnh",
+     "mo_ta": "Black tailored three-piece suit, crisp white shirt open at the collar, no tie, steel wristwatch on the left wrist; a thin pale-green jade bead bracelet hidden under the left shirt cuff."
+    }
+   ]
   },
   {
    "loai": "nhan_vat",
@@ -105,7 +141,14 @@
      "dung_doi_chan_p",
      "mot_tay_hong"
     ]
-   }
+   },
+   "bien_the": [
+    {
+     "nhom": "trang_phuc",
+     "ten": "Đầm đỏ đô công sở",
+     "mo_ta": "Fitted burgundy knee-length office sheath dress with three-quarter sleeves, black pumps, sleek low bun, bold red lipstick, small gold stud earrings."
+    }
+   ]
   },
   {
    "loai": "nhan_vat",
@@ -124,7 +167,14 @@
     "dang": [
      "dung_vung"
     ]
-   }
+   },
+   "bien_the": [
+    {
+     "nhom": "trang_phuc",
+     "ten": "Com-lê navy luật sư",
+     "mo_ta": "Navy three-piece suit, light blue shirt, dark burgundy tie, gold-rimmed glasses, brown leather briefcase."
+    }
+   ]
   },
   {
    "loai": "boi_canh",

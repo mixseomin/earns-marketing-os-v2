@@ -2,7 +2,7 @@
 // máy ảo của từng shot (xv_canh.may_3d) render ra khung xám + bản đồ độ sâu (scripts/bo-set/dung-set.py, Blender trên box) làm khung xương
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
-import type { BoSet, Canh, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
+import type { BienThe, BoSet, Canh, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
 import { duongMay, hopVat } from './duong-may';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
@@ -14,18 +14,29 @@ export function boSetCuaShot(c: Pick<Canh, 'nhan_vat'>, nhanVat: Pick<NhanVat, '
 }
 
 /** Khối đại diện của một tên nhân vật / đạo cụ trong may_3d.vi_tri (khớp tên anchor, không phân biệt hoa thường). */
-export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]) => nhanVat.find((v) => v.ten.trim().toLowerCase() === ten.trim().toLowerCase())?.khoi_3d ?? null;
+/** DẤU 3D của một biến thể (vết bẩn / vết thương / hoạ tiết dán lên người — dung-set.py › vet_): khối dẹt bám mặt trước bộ phận `cho`, rộng / cao
+ *  theo phần bộ phận, lech = [ngang, cao] (0..1, 0,5 = giữa). MỘT định nghĩa trong biến thể → mọi shot cùng hình dạng, màu, cỡ, vị trí. */
+export type Dan3d = { cho: 'nguc' | 'dau'; mau: string; rong: number; cao: number; lech?: [number, number] };
+export type BienTheDan = BienThe & { dan_3d?: Dan3d[] | null };
+type NvKhoi = Pick<NhanVat, 'ten' | 'khoi_3d'> & { bien_the?: BienTheDan[] };
+/** Khối 3D của một anchor + bảng DẤU của các biến thể có dan_3d (khoá = tên biến thể, chữ thường) — dựng 3D tra dấu theo giá trị sổ người; nằm trong
+ *  mã khung xám nên đổi dấu là khung tự cũ. */
+export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
+  const v = nhanVat.find((x) => x.ten.trim().toLowerCase() === ten.trim().toLowerCase()); if (!v?.khoi_3d) return null;
+  const dan = Object.fromEntries((v.bien_the ?? []).filter((b) => b.dan_3d?.length).map((b) => [b.ten.trim().toLowerCase(), b.dan_3d!]));
+  return Object.keys(dan).length ? { ...v.khoi_3d, dan } : v.khoi_3d;
+};
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 40;
+export const BAN_DUNG = 41;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
 /** Phần máy ĐI VÀO HÌNH: bỏ các khai chỉ cổng kể chuyện đọc (lam) — khai thêm "Tango chạm phích" không làm khung đã dựng thành cũ. */
 const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o) ? { ...m, vi_tri: m.vi_tri.map(({ lam: _l, lam_o: _o, ...v }) => v) } : m);
 export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))) });
-export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): string {
+export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[]): string {
   const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))]);
   let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return h.toString(36);
@@ -782,12 +793,49 @@ export function chuoiChuY<T extends { id: number; thu_tu: number; phan_doan?: st
 
 /** Lỗi MẠCH của cả tập theo từng bộ set: liền mạch chỗ đứng / đồ đang cầm (lienMachTap) + chuỗi chú ý nhìn → thấy → làm (chuoiChuY).
  *  MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và dấu ⚠ trên lưới (luoi-kich-ban.tsx). ds = shot nhánh dựng theo thứ tự phát. */
-export function loiMachTap<T extends ShotMach & { nhan_vat: number[]; canh?: string }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+// ── SỔ TRANG PHỤC (look book — anh 17/10/2026: "vết bẩn về hình dáng, màu sắc cũng phải chuẩn hoá… tổng hợp vào bộ chấm, kiểm soát đồng nhất chứ
+// không nhắc đâu vá đó"): mọi bề ngoài NHÌN THẤY ĐƯỢC của người thật (trang phục, trạng thái, vết) là một BIẾN THỂ chuẩn hoá của nhân vật — mô tả
+// cố định (hình dạng · màu · cỡ · vị trí), ảnh tham chiếu, dấu 3D. Sổ người (SO_NGUOI) chỉ ghi TÊN biến thể; chữ prompt, ảnh tham chiếu keyframe và
+// dấu trên bản 3D đều suy từ biến thể đó — không chỗ nào tự tả lại.
+export const KHOA_LOOK = ['trang_phuc', 'trang', 'vet'] as const;
+/** Biến thể mà sổ người của vị trí v đang trỏ tới (giá trị ô trang_phuc / trang / vet = tên biến thể), theo thứ tự ô. ket = trạng thái kết shot. */
+export function bienTheTheoSo(v: May3d['vi_tri'][number], nv: { bien_the?: BienThe[] } | undefined, ket = false): BienThe[] {
+  const out: BienThe[] = [];
+  for (const k of KHOA_LOOK) {
+    const t = (ket ? ngoaiKet(v as never, k) : ngoaiMo(v as never, k))?.trim().toLowerCase(); if (!t) continue;
+    const b = (nv?.bien_the ?? []).find((x) => x.ten.trim().toLowerCase() === t); if (b && !out.includes(b)) out.push(b);
+  }
+  return out;
+}
+const laNguoiThat = (nv: Pick<NhanVat, 'loai' | 'khoi_3d'> | undefined) => nv?.loai === 'nhan_vat' && nv.khoi_3d?.hinh === 'nguoi';
+/** CHẶN — sổ trang phục của người thật: ô trang_phuc / trang / vet ghi chữ tự do (không phải tên biến thể) · biến thể chưa có ảnh tham chiếu ·
+ *  người thật chưa khai dáng nghỉ (khoi_3d.dang — ma-nơ-canh đứng nghiêm, ảnh ra người thẳng đuỗn). Đọc trên sổ ĐÃ NỐI (noiHookup). */
+export function lookChuaChuan<T extends { id: number; thu_tu?: number; may_3d?: May3d | null; canh?: string }>(ds: T[], nhanVat: (Pick<NhanVat, 'ten' | 'loai' | 'khoi_3d'> & { bien_the?: BienThe[] })[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+  const out: Record<number, string[]> = {}; const hk = noiHookup(ds, phanCanh).may;
+  const ten = (k: string) => SO_NGUOI.find((x) => x.k === k)!.ten;
+  for (const c of ds) {
+    const m = hk.get(c.id) ?? c.may_3d; if (!m) continue; const ghi = new Set<string>();
+    for (const v of m.vi_tri) {
+      const nv = nhanVat.find((x) => x.ten.trim().toLowerCase() === v.ten.trim().toLowerCase()); if (!laNguoiThat(nv)) continue;
+      if (!(nv!.khoi_3d as { dang?: string[] }).dang?.length) ghi.add(`sổ trang phục: ${v.ten} chưa khai dáng nghỉ (khoi_3d.dang) — ma-nơ-canh đứng nghiêm, ảnh ra người thẳng đuỗn`);
+      for (const k of KHOA_LOOK) for (const ket of [false, true]) {
+        const t = (ket ? ngoaiKet(v as never, k) : ngoaiMo(v as never, k))?.trim(); if (!t) continue;
+        const b = (nv!.bien_the ?? []).find((x) => x.ten.trim().toLowerCase() === t.toLowerCase());
+        if (!b) ghi.add(`sổ trang phục: ${v.ten} — ${ten(k)} "${t}" là chữ tự do, chưa trỏ tới biến thể chuẩn hoá — tạo biến thể (hình dạng · màu · cỡ · vị trí + ảnh + dấu 3D nếu là vết) rồi ghi đúng TÊN biến thể vào sổ`);
+        else if (!b.anh_url) ghi.add(`sổ trang phục: biến thể "${b.ten}" của ${v.ten} chưa có ảnh tham chiếu`);
+      }
+    }
+    if (ghi.size) (out[c.id] ??= []).push(...ghi);
+  }
+  return out;
+}
+
+export function loiMachTap<T extends ShotMach & { nhan_vat: number[]; canh?: string }>(ds: T[], nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'> & { bien_the?: BienThe[] })[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
   const out: Record<number, string[]> = {};
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
     const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);
-    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat), phanCanh), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
+    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat), phanCanh), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv), lookChuaChuan(cua, nhanVat, phanCanh)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
 }

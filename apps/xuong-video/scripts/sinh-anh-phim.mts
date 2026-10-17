@@ -1,6 +1,7 @@
 // Sinh hình cho một phim trên box (không cần phiên đăng nhập) — TỐN TIỀN, chỉ chạy khi anh đã duyệt con số:
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
+//   --bien-the   : sinh ảnh tham chiếu cho biến thể chưa có ảnh (sinh-anh.sinhAnhBienTheDb — sổ trang phục), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
 //   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
@@ -12,7 +13,7 @@
 import { lookPhim } from '../src/lib/xuong-video/look';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { sinhAnhGoc, sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb } from '../src/lib/xuong-video/sinh-anh';
 import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
@@ -45,8 +46,11 @@ const haiBuoc = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((
 const giaAnh = await giaAnhSv(nguon || kt.mo_hinh_anh).catch(() => 0);
 console.log(`phim #${phimId} · model ảnh ${kt.mo_hinh_anh} ≈ ${tien(giaAnh)}/ảnh`);
 console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(anchorThieu.length * giaAnh)}`);
+// --bien-the: ảnh tham chiếu cho BIẾN THỂ chưa có ảnh (sổ trang phục — bo-set-3d.ts › lookChuaChuan chặn keyframe khi biến thể sổ người trỏ tới thiếu ảnh)
+const btThieu = await q(sql`SELECT b.id, b.ten, v.ten AS nv FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId} AND b.anh_url IS NULL ORDER BY b.id`);
+console.log(`  biến thể chưa ảnh: ${btThieu.length} → ≈ ${tien(btThieu.length * giaAnh)}`);
 console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh + haiBuoc * 5)}${haiBuoc ? ` (gồm ${haiBuoc} shot hai bước: FLUX độ sâu ≈ $0.05/shot)` : ''}${nguon ? ` · nguồn ${nguon}, một bước` : ''}`);
-if (arg('uoc') || (!arg('anchor') && !arg('keyframe') && !arg('xuat') && !process.argv.some((a) => a.startsWith('--nhac=')))) { console.log('(chỉ ước lượng — thêm --anchor / --keyframe / --nhac=… / --xuat để chạy)'); process.exit(0); }
+if (arg('uoc') || (!arg('anchor') && !arg('bien-the') && !arg('keyframe') && !arg('xuat') && !process.argv.some((a) => a.startsWith('--nhac=')))) { console.log('(chỉ ước lượng — thêm --anchor / --keyframe / --nhac=… / --xuat để chạy)'); process.exit(0); }
 
 /** Đợi các job ảnh xong (cả đường Cloudflare lẫn hàng nền trong tiến trình này). */
 async function doi(jobs: number[], nhan: string, phutToiDa = 25) {
@@ -64,6 +68,13 @@ if (arg('anchor') && anchorThieu.length) {
   const jobs: number[] = [];
   for (const a of anchorThieu) { const r = await sinhAnhGoc(db, Number(a.id)); if (r.ok) jobs.push(r.data); else console.log(`  ✗ ${a.ten}: ${r.loi}`); }
   await doi(jobs, 'ảnh gốc');
+  const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
+  for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
+}
+if (arg('bien-the') && btThieu.length) {
+  const jobs: number[] = [];
+  for (const b of btThieu) { const r = await sinhAnhBienTheDb(db, Number(b.id), nguon || undefined); if (r.ok) jobs.push(r.data); else console.log(`  ✗ ${b.nv} · ${b.ten}: ${r.loi}`); }
+  await doi(jobs, 'biến thể');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
 }

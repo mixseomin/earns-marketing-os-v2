@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -138,7 +138,7 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (8): rig người — tư thế theo mã diễn (ap_dien) + đồ cầm vào bàn tay (gan_tay); chỉ ma-nơ-canh người → phim cũ y nguyên → GIỮ 37.
 // 17/10/2026 (9): mocap CMU (mã 'mc_*', mesh/mocap.py) — chỉ ma-nơ-canh người → GIỮ 37.
 // 17/10/2026 (10): mô hình đồ đạc thật (mau_3d, Poly Haven) — chỉ món khai mau_3d → GIỮ 37.
-assert.deepEqual([BAN_DUNG, bam], [40, '5bf5110135b4'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [41, '0776468b3470'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));
@@ -295,4 +295,17 @@ console.log('bo-set-3d.test: ok');
   assert.ok(a.some((x) => x.includes('chữ lệch 3D') && x.includes('Tango') && x.includes('Lint') && !x.includes('Mr. Wipe')), JSON.stringify(a));
   const b = cb(s([{ ten: 'Tango', tu: [1.3, 0.5], den: [0.6, 0.5] }, { ten: 'Lint', tu: [1.3, 0.5], den: [0.7, 0.5] }]), () => true)[1] ?? [];
   assert.ok(!b.some((x) => x.includes('chữ lệch 3D')), 'đi vào khung → không báo');
+}
+
+// SỔ TRANG PHỤC: sổ người trỏ TÊN biến thể → suy được biến thể (mở / kết); chữ tự do + thiếu dáng nghỉ ở người thật = chặn; dấu 3D vào khối (mã khung)
+{
+  const bt = [{ id: 1, nhan_vat_id: 1, nhom: 'trang_phuc', ten: 'Sơ mi trắng', mo_ta: '', anh_url: 'u' }, { id: 2, nhan_vat_id: 1, nhom: 'trang_phuc', ten: 'Sơ mi dính cà phê', mo_ta: '', anh_url: 'u', dan_3d: [{ cho: 'nguc' as const, mau: '#6b3f1d', rong: 0.4, cao: 0.4 }] }];
+  const ha = { id: 1, ten: 'Hạ', loai: 'nhan_vat' as const, bo_set_id: null, khoi_3d: { hinh: 'nguoi' as const, co: [40, 24, 165], mau: '#e8c4a8', dang: ['dung_doi_chan'] }, bien_the: bt };
+  const vt = { ten: 'Hạ', tam: [0, 0, 0], trang_phuc: 'Sơ mi trắng', trang_phuc_den: 'sơ mi dính cà phê' } as never;
+  assert.equal(bienTheTheoSo(vt, ha)[0]!.id, 1); assert.equal(bienTheTheoSo(vt, ha, true)[0]!.id, 2);
+  const may = (v: object) => ({ dat: [0, -300, 150], nhin: [0, 0, 100], ong_kinh: 35, vi_tri: [{ ten: 'Hạ', tam: [0, 0, 0], ...v }] });
+  assert.deepEqual(lookChuaChuan([{ id: 1, may_3d: may({ trang_phuc: 'Sơ mi trắng' }) as never }], [ha]), {});
+  assert.equal(lookChuaChuan([{ id: 1, may_3d: may({ trang_phuc: 'white blouse with a stain' }) as never }], [ha])[1]!.length, 1);
+  assert.equal(lookChuaChuan([{ id: 1, may_3d: may({ trang_phuc: 'Sơ mi trắng' }) as never }], [{ ...ha, khoi_3d: { ...ha.khoi_3d, dang: [] } }])[1]!.length, 1);
+  assert.ok((khoiCua('Hạ', [ha]) as { dan?: Record<string, unknown> }).dan?.['sơ mi dính cà phê']);
 }

@@ -85,12 +85,13 @@ shot('2.3', C2, 5, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'thap', 'c
      [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
      {'dat': [230, 690, 120], 'nhin': [230, 760, 172], 'ong_kinh': 85, 'khung': [THAN], 'vi_tri': [vt(THAN, [230, 760, 0], 30, huong_den=180), vt(HA, [300, 560, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [THAN, VP, 'Ly cà phê'])   # cận Thần: Hạ / Vivian ngoài khung
-shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'mcu', 'goc': 'cao', 'chuyen_dong': 'nghieng_len', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['ding']},
+shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'nghieng_len', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['ding']},
      { 'dien': "Anticipation: the phone lights up in Hạ's hand. Action: she reads the message; the camera tilts up to her face. Reaction: the faintest smirk at the corner of her mouth.", 'huong': 'Hạ looks down at the phone, then up and off screen-left.','bo_cuc': 'Insert on the phone screen in Hạ’s hand lighting up with a message, then tilt up to her face', 'mo': 'phone screen lights up', 'ket': 'Hạ’s subtle smirk', 'muc_dich': 'khán giả biết thân phận trước nhân vật', 'motif': 'tin nhắn luật sư — gieo cho cảnh 4'},
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
      # 2.4: trung cận từ ngực (điện thoại trong tay) lên mặt — cận riêng món 15 cm trước thân thì máy dí vào áo
-     {'tay': True, 'dat': [245, 650, 175], 'nhin': [308, 572, 118], 'ong_kinh': 40, 'khung': [HA, DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
+     {'tay': True, 'qua_truc': True, 'dat': [380, 610, 150], 'nhin': [320, 595, 115], 'ong_kinh': 50, 'khung': [DT, HA],   # khung MỞ = cận điện thoại trong tay Hạ (rồi lia lên mặt); cú chèn được khác phía trục
+      'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──

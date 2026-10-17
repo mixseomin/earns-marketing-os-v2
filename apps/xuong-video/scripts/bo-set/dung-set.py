@@ -650,8 +650,8 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             che[k_] = che.get(k_, 0) + 1
         vt = world_to_camera_view(s, cam, tam)
         trong = 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0
-        if ng_:   # người: TRONG KHUNG = đầu hoặc ngực lọt khung (cận mặt thì tâm hông ở dưới khung là đúng ý); CAO = phần thấy được, cắt theo mép
-            moc = [bpy.data.objects.get(f"NG {ng_}.{k}") for k in ('dau_k', 'nguc_k')]
+        if ng_:   # người: TRONG KHUNG = một bộ phận lọt khung (cận mặt: đầu / ngực; cận đồ đang cầm: bàn tay) — tâm hông dưới khung là đúng ý; CAO = phần thấy, cắt theo mép
+            moc = phan
             trong = any(0 <= q.x <= 1 and 0 <= q.y <= 1 and q.z > 0 for q in (world_to_camera_view(s, cam, m.matrix_world @ (sum((Vector(c) for c in m.bound_box), Vector()) / 8)) for m in moc if m))
             ys = [min(1.0, max(0.0, y)) for y in ys]
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)

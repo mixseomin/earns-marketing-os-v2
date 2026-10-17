@@ -893,7 +893,7 @@
   "duong_video": "veo",
   "ky_thuat": {
    "vai": "chi_tiet",
-   "co_canh": "mcu",
+   "co_canh": "insert",
    "goc": "cao",
    "chuyen_dong": "nghieng_len",
    "ong_kinh": "chan_dung",
@@ -924,20 +924,21 @@
   ],
   "may_3d": {
    "tay": true,
+   "qua_truc": true,
    "dat": [
-    245,
-    650,
-    175
+    380,
+    610,
+    150
    ],
    "nhin": [
-    308,
-    572,
-    118
+    320,
+    595,
+    115
    ],
-   "ong_kinh": 40,
+   "ong_kinh": 50,
    "khung": [
-    "Lâm Hạ",
-    "Điện thoại của Hạ"
+    "Điện thoại của Hạ",
+    "Lâm Hạ"
    ],
    "vi_tri": [
     {

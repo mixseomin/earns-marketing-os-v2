@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { boSet3dSet } from '@/lib/actions';
 import { catLop, dungCanhShot, huyCanh, nhanVat as khoiNhanVat, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
 import type { NhanVat } from '@/lib/xuong-video/kieu';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 const nho = new Map<string, Promise<string | null>>();
 
@@ -52,7 +53,14 @@ export function Anh3d({ v, co = 72, onClick }: { v: Pick<NhanVat, 'loai' | 'bo_s
     return () => { huy = true; };
   }, [khoa, co, v.bo_set_id, v.khoi_3d]);
   const o = { width: co, height: co, background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 9.5, textAlign: 'center' as const, lineHeight: 1.2, padding: 4, boxSizing: 'border-box' as const };
-  if (!khoa) return <div style={o} title="Chưa có ảnh thật và chưa khai khối 3D (khoi_3d) — khai khối là thẻ có ảnh 3D ngay, sinh ảnh mẫu là ảnh thật thay vào">chưa khai khối 3D</div>;
-  if (!url) return <div style={o}>🧊…</div>;
+  const nho_ = co < 40;   // ô nhỏ (nhãn làn timeline): không nhét chữ, chỉ để ô trống / chấm chờ
+  if (!khoa) return <div style={o} title="Chưa có ảnh thật và chưa khai khối 3D (khoi_3d) — khai khối là thẻ có ảnh 3D ngay, sinh ảnh mẫu là ảnh thật thay vào">{nho_ ? '' : 'chưa khai khối 3D'}</div>;
+  if (!url) return <div style={o}>{nho_ ? '' : '🧊…'}</div>;
   return <img src={url} alt="" title={`Ảnh 3D (chưa có ảnh thật — sinh ảnh mẫu là tự thay)${onClick ? ' — bấm để xem 3D' : ''}`} onClick={onClick} style={{ width: co, height: co, objectFit: 'cover', display: 'block', cursor: onClick ? 'pointer' : 'default' }} />;
+}
+
+/** Hình đại diện MỘT anchor — dùng chung cho thẻ tuyến nhân vật và nhãn làn đối tượng trên timeline (#1415): ảnh mẫu thật đầu tiên, chưa có thì ảnh 3D của chính nó. */
+export function AnhDaiDien({ v, co = 72, onClick }: { v: Pick<NhanVat, 'loai' | 'bo_set_id' | 'khoi_3d' | 'anh_ref'>; co?: number; onClick?: () => void }) {
+  if (!v.anh_ref[0]) return <Anh3d v={v} co={co} onClick={onClick} />;
+  return <img src={anhNho(v.anh_ref[0], co > 80 ? 320 : 160)} alt="" onClick={onClick} style={{ width: co, height: co, objectFit: 'cover', display: 'block', cursor: onClick ? 'zoom-in' : undefined }} />;
 }

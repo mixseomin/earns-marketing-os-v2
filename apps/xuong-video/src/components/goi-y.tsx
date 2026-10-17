@@ -1,11 +1,12 @@
 'use client';
 // Thẻ gợi ý khi rê (#1247) — thay ô `title` thô của trình duyệt cho khối có nhiều dòng. Phần tử chỉ cần `data-goi-y="<chữ>"`:
+//   `data-goi-y-anh="<url>"` (tuỳ chọn) = ảnh đại diện đứng đầu thẻ (#1415).
 //   dòng 1 = tiêu đề (đậm) · dòng "Nhãn: giá trị" (nhãn ≤ 24 ký tự) = bảng hai cột · dòng khác = đoạn văn.
 // MỘT host ở layout lo vị trí (theo chuột, kẹp trong màn), độ trễ, ẩn khi bấm/cuộn — chỗ dùng không phải dựng gì.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { GOI_Y_AN } from './vi-tri-noi';
 
-type Hien = { chu: string; x: number; y: number };
+type Hien = { chu: string; anh?: string; x: number; y: number };
 const DONG_NHAN = /^([^:\n]{1,24}):\s+(.+)$/;
 
 export function GoiYHost() {
@@ -22,7 +23,8 @@ export function GoiYHost() {
       an(); if (!el) return;
       const chu = el.getAttribute('data-goi-y') ?? ''; if (!chu.trim()) return;
       dang = el;
-      hen = setTimeout(() => setHien({ chu, x: e.clientX, y: e.clientY }), 220);
+      const anh = el.getAttribute('data-goi-y-anh') || undefined;
+      hen = setTimeout(() => setHien({ chu, anh, x: e.clientX, y: e.clientY }), 220);
     };
     const di = (e: PointerEvent) => { if (dang) setHien((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h)); };
     // Lớp nổi riêng (useViTriNoi) mở bên trong phần tử có thẻ gợi ý → ẩn thẻ của cha (vi-tri-noi.ts › tamTatTitleCha).
@@ -44,6 +46,7 @@ export function GoiYHost() {
   const [tieuDe, ...con] = dong;
   return (
     <div ref={ref} className="xv-goi-y" style={{ left: vt?.left ?? -9999, top: vt?.top ?? -9999 }}>
+      {hien.anh && <img src={hien.anh} alt="" className="xv-goi-y-anh" />}
       <div className="xv-goi-y-tieu-de">{tieuDe}</div>
       {con.length > 0 && (
         <div className="xv-goi-y-than">

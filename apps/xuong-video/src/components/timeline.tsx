@@ -27,6 +27,7 @@ import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, K
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { AnhDaiDien } from './anh-set-3d';
 import { ThamKhaoShot } from './tham-khao-ui';
 import { ChonCta } from './cta-ui';
 import { ChipMurch, useDiemMurch } from './diem-murch-noi';
@@ -364,18 +365,19 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Danh sách làn của lần vẽ trước — menu 👁 đọc lúc mở (làn được khai trong lúc vẽ, sau ô thước nơi đặt menu).
   const lanRef = useRef<string[]>([]);
   useEffect(() => { lanRef.current = dsLan; });
-  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string, onNhan?: (them: boolean) => void, dangChon?: boolean) => {
+  /** dau: thứ đứng trước tên làn (hình đại diện đối tượng, #1415) · anhGoiY: ảnh lớn hiện trong thẻ gợi ý khi rê tên làn. */
+  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string, onNhan?: (them: boolean) => void, dangChon?: boolean, dau?: ReactNode, anhGoiY?: string) => {
     if (!keoLop && !dsLan.includes(nhan)) dsLan.push(nhan);
     if (!keoLop && nhan !== '🎬 Hình' && anLan.includes(nhan)) return null;
     return (
     <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3, outline: keoLop && dangThaVao === keoLop ? '1px solid var(--cyan)' : undefined }}>
-      <div data-goi-y={`${nhan}\n${mo}${onNhan ? '\nbấm tên làn = chọn cả làn · Shift/⌘ + bấm = thêm/bớt' : ''}`} data-nhan-lan="1"
+      <div data-goi-y={`${nhan}\n${mo}${onNhan ? '\nbấm tên làn = chọn cả làn · Shift/⌘ + bấm = thêm/bớt' : ''}`} data-nhan-lan="1" data-goi-y-anh={anhGoiY}
         onClick={onNhan ? (e: React.MouseEvent) => { if ((e.target as HTMLElement).closest('button')) return; onNhan(e.shiftKey || e.metaKey || e.ctrlKey); } : undefined}
         {...(keoLop ? { draggable: true, onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData('text/xv-lop', keoLop); e.dataTransfer.effectAllowed = 'move'; },
           onDragOver: (e: React.DragEvent) => { if (e.dataTransfer.types.includes('text/xv-lop')) { e.preventDefault(); setDangThaVao(keoLop); } },
           onDragLeave: () => setDangThaVao(null), onDrop: (e: React.DragEvent) => { e.preventDefault(); setDangThaVao(null); doiThuTuLop(e.dataTransfer.getData('text/xv-lop'), keoLop); } } : {})}
         style={{ cursor: keoLop ? 'grab' : onNhan ? 'pointer' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: dangChon ? 'color-mix(in srgb, var(--cyan) 22%, var(--bg-1))' : 'var(--bg-1)', color: dangChon ? 'var(--fg-1)' : undefined, ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
+        {dau}<span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
       {/* Bấm vào CHỖ TRỐNG của làn (không trúng khối nào) = tua đầu phát tới đó (#1398) — mọi làn, không chỉ thước giờ. */}
       <div style={{ position: 'relative', width: W, flexShrink: 0 }} onClick={(e) => { if (e.target === e.currentTarget) tuaToi(Math.max(0, Math.min(tong, e.nativeEvent.offsetX / pps))); }}>{noiDung}</div>
@@ -713,12 +715,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               màu theo điểm 0–10 (mẫu chưa đủ · nhắc tên chưa gắn · khác biến thể · đứt liền mạch · kiểm khung · soi clip); điểm cả tập ở đầu làn. Nét đứt = nhắc tên mà chưa gắn. */}
           {doiTuong.map((r) => (
             <Fragment key={`dt${r.nv.id}`}>
-              {track(`${LOAI_NHAN_VAT.find((l) => l.key === r.nv.loai)?.ic ?? '•'} ${r.nv.ten}`, `Trạng thái ${r.nv.ten} theo từng shot · điểm 0–10, trừ khi mẫu chưa đủ / nhắc tên chưa gắn / khác biến thể / đứt liền mạch / kiểm khung / soi clip`, r.o.map((o, i) => {
+              {track(r.nv.ten, `Trạng thái ${r.nv.ten} theo từng shot · điểm 0–10, trừ khi mẫu chưa đủ / nhắc tên chưa gắn / khác biến thể / đứt liền mạch / kiểm khung / soi clip`, r.o.map((o, i) => {
                 if (o.diem == null) return null;
                 const cc = canh[i]!;
                 return khoiAm(batDau[i]! * pps, dur(cc) * pps, o.co, MAU_DOI_TUONG[o.muc], `${o.loi.length ? '⚠ ' : ''}${o.chu}`,
                   `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); }, undefined, '');
-              }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined)}
+              }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined, undefined, undefined, undefined, <span title={LOAI_NHAN_VAT.find((l) => l.key === r.nv.loai)?.label} style={{ flexShrink: 0, borderRadius: 3, overflow: 'hidden' }}><AnhDaiDien v={r.nv} co={18} /></span>, r.nv.anh_ref[0] ? anhNho(r.nv.anh_ref[0], 320) : undefined)}
             </Fragment>
           ))}
 

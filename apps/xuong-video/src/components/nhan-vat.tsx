@@ -1,6 +1,6 @@
 'use client';
 // Mục 2 tuyến nhân vật: anchor, ảnh gốc, biến thể, giọng cố định của từng nhân vật.
-import { Anh3d } from './anh-set-3d';
+import { AnhDaiDien } from './anh-set-3d';
 import { useEffect, useState } from 'react';
 import { Ngan } from './ngan';
 import { SoLienMachXem } from './so-lien-mach-ui';
@@ -111,8 +111,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
           <div key={v.id} className="xv-anchor" style={{ flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ width: 72, height: 72, flexShrink: 0, position: 'relative', borderRadius: 6, overflow: 'hidden' }}>
-                {v.anh_ref[0] ? <img src={anhNho(v.anh_ref[0], 160)} alt="" onClick={() => moNgan({ loai: 'xem', url: v.anh_ref[0]!, ten: v.ten })} style={{ width: 72, height: 72, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
-                  : <Anh3d v={v} onClick={v.loai === 'boi_canh' && v.bo_set_id ? () => moNgan({ loai: 'bo-set', setId: v.bo_set_id! }) : undefined} />}   {/* chưa có ảnh thật → ảnh 3D (quy trình chuẩn 17/10/2026) */}
+                <AnhDaiDien v={v} onClick={v.anh_ref[0] ? () => moNgan({ loai: 'xem', url: v.anh_ref[0]!, ten: v.ten }) : v.loai === 'boi_canh' && v.bo_set_id ? () => moNgan({ loai: 'bo-set', setId: v.bo_set_id! }) : undefined} />   {/* chưa có ảnh thật → ảnh 3D (quy trình chuẩn 17/10/2026) */}
                 {soDang > 0 && <DangSinh chu={`${soDang} ảnh`} />}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>

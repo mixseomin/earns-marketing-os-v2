@@ -45,7 +45,45 @@
     }
    ]
   },
-  "look": "teal_cam"
+  "look": "teal_cam",
+  "bang_trang_phuc": [
+   {
+    "nv": "Lâm Hạ",
+    "ngay": "D1",
+    "tu_canh": "Cà phê và hồ sơ",
+    "bien_the": "Sơ mi trắng"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "ngay": "D1",
+    "tu_canh": "Cà phê và hồ sơ",
+    "bien_the": "Sơ mi trắng dính cà phê"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "ngay": "D1",
+    "tu_canh": "Phòng họp 3 giờ",
+    "bien_the": "Vest trắng"
+   },
+   {
+    "nv": "Lục Thần",
+    "ngay": "D1",
+    "tu_canh": "Tổng tài đuổi việc",
+    "bien_the": "Com-lê đen ba mảnh"
+   },
+   {
+    "nv": "Vivian",
+    "ngay": "D1",
+    "tu_canh": "Cà phê và hồ sơ",
+    "bien_the": "Đầm đỏ đô công sở"
+   },
+   {
+    "nv": "Luật sư Trần",
+    "ngay": "D1",
+    "tu_canh": "Phòng họp 3 giờ",
+    "bien_the": "Com-lê navy luật sư"
+   }
+  ]
  },
  "nhan_vat": [
   {
@@ -70,7 +108,12 @@
     {
      "nhom": "trang_phuc",
      "ten": "Sơ mi trắng",
-     "mo_ta": "Plain white silk blouse with a soft collar, tucked into black tailored slim slacks, black low heels; long straight black hair worn loose; pale-green jade bangle on the left wrist; white staff ID badge on a dark blue lanyard."
+     "mo_ta": "Plain white silk blouse with a soft collar, tucked into black tailored slim slacks, black low heels; long straight black hair worn loose; pale-green jade bangle on the left wrist; white staff ID badge on a dark blue lanyard.",
+     "dung_cho": [
+      "văn phòng",
+      "sảnh",
+      "phòng họp"
+     ]
     },
     {
      "nhom": "trang_phuc",
@@ -87,12 +130,22 @@
         0.55
        ]
       }
+     ],
+     "dung_cho": [
+      "văn phòng",
+      "sảnh",
+      "phòng họp"
      ]
     },
     {
      "nhom": "trang_phuc",
      "ten": "Vest trắng",
-     "mo_ta": "Tailored white power suit (single-breasted blazer, wide-leg trousers) over a white silk blouse, hair down and glossy, pale-green jade bangle on the left wrist, no staff badge — clean and spotless."
+     "mo_ta": "Tailored white power suit (single-breasted blazer, wide-leg trousers) over a white silk blouse, hair down and glossy, pale-green jade bangle on the left wrist, no staff badge — clean and spotless.",
+     "dung_cho": [
+      "văn phòng",
+      "sảnh",
+      "phòng họp"
+     ]
     }
    ]
   },
@@ -119,7 +172,12 @@
     {
      "nhom": "trang_phuc",
      "ten": "Com-lê đen ba mảnh",
-     "mo_ta": "Black tailored three-piece suit, crisp white shirt open at the collar, no tie, steel wristwatch on the left wrist; a thin pale-green jade bead bracelet hidden under the left shirt cuff."
+     "mo_ta": "Black tailored three-piece suit, crisp white shirt open at the collar, no tie, steel wristwatch on the left wrist; a thin pale-green jade bead bracelet hidden under the left shirt cuff.",
+     "dung_cho": [
+      "văn phòng",
+      "sảnh",
+      "phòng họp"
+     ]
     }
    ]
   },
@@ -146,7 +204,12 @@
     {
      "nhom": "trang_phuc",
      "ten": "Đầm đỏ đô công sở",
-     "mo_ta": "Fitted burgundy knee-length office sheath dress with three-quarter sleeves, black pumps, sleek low bun, bold red lipstick, small gold stud earrings."
+     "mo_ta": "Fitted burgundy knee-length office sheath dress with three-quarter sleeves, black pumps, sleek low bun, bold red lipstick, small gold stud earrings.",
+     "dung_cho": [
+      "văn phòng",
+      "sảnh",
+      "phòng họp"
+     ]
     }
    ]
   },
@@ -172,7 +235,12 @@
     {
      "nhom": "trang_phuc",
      "ten": "Com-lê navy luật sư",
-     "mo_ta": "Navy three-piece suit, light blue shirt, dark burgundy tie, gold-rimmed glasses, brown leather briefcase."
+     "mo_ta": "Navy three-piece suit, light blue shirt, dark burgundy tie, gold-rimmed glasses, brown leather briefcase.",
+     "dung_cho": [
+      "văn phòng",
+      "sảnh",
+      "phòng họp"
+     ]
     }
    ]
   },

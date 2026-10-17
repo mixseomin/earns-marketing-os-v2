@@ -15,6 +15,7 @@ import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { loiAi3d } from './kiem-ai-3d';
+import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
 import { uploadToR2 } from '../r2';
@@ -387,6 +388,9 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
     // Bộ kiểm riêng cho phim AI (kiem-ai-3d.ts): vật được nhắc phải có khối 3D + thấy ở cú cận · người nói thấy mặt · vật đeo kèm người đeo.
     const ai = loiAi3d({ ...bc.canh, may_3d: mDu }, nvPhim, r[0] ? mapBoSet(r[0]) : null);
     if (ai.length) chan.push(`Bộ kiểm AI: ${ai.join('; ')}`);
+    // Bảng trang phục theo ngày truyện (bang-trang-phuc.ts): đồ đang mặc đúng bảng của cảnh + đúng hoàn cảnh.
+    const tp = kiemBangTrangPhuc(bc.canh, mDu, tapQt.phan_canh, docBangTrangPhuc(bc.kt), nvPhim);
+    if (tp.length) chan.push(tp.join('; '));
   }
   if (!bc.canh.prompt_anh.trim()) chan.push('cảnh chưa có prompt ảnh');
   const cm = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });

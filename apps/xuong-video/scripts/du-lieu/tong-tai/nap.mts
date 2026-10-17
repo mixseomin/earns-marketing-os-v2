@@ -24,10 +24,10 @@ for (const v of d.nhan_vat) {
     : (await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, tieu_su, khoi_3d) VALUES (${phimId}, ${v.loai}, ${v.ten}, ${v.mo_ta}, ${v.tieu_su ?? ''}, ${v.khoi_3d ? j(v.khoi_3d) : null}::jsonb) RETURNING id`))[0]!.id;
   nv[v.ten] = Number(id);
   // BIẾN THỂ (sổ trang phục — bo-set-3d.ts › lookChuaChuan): khoá (nhân vật, tên); có thì cập nhật nhóm / mô tả / dấu 3D, GIỮ ảnh đã sinh.
-  for (const b of (v.bien_the ?? []) as { nhom: string; ten: string; mo_ta: string; dan_3d?: unknown }[]) {
+  for (const b of (v.bien_the ?? []) as { nhom: string; ten: string; mo_ta: string; dan_3d?: unknown; dung_cho?: string[] }[]) {
     const c = await db.execute(sql`SELECT id FROM xv_bien_the WHERE nhan_vat_id = ${Number(id)} AND ten = ${b.ten} LIMIT 1`);
-    if (c[0]) await db.execute(sql`UPDATE xv_bien_the SET nhom = ${b.nhom}, mo_ta = ${b.mo_ta}, dan_3d = ${b.dan_3d ? j(b.dan_3d) : null}::jsonb, updated_at = now() WHERE id = ${c[0].id}`);
-    else await db.execute(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta, dan_3d) VALUES (${Number(id)}, ${b.nhom}, ${b.ten}, ${b.mo_ta}, ${b.dan_3d ? j(b.dan_3d) : null}::jsonb)`);
+    if (c[0]) await db.execute(sql`UPDATE xv_bien_the SET nhom = ${b.nhom}, mo_ta = ${b.mo_ta}, dan_3d = ${b.dan_3d ? j(b.dan_3d) : null}::jsonb, dung_cho = ${b.dung_cho ? j(b.dung_cho) : null}::jsonb, updated_at = now() WHERE id = ${c[0].id}`);
+    else await db.execute(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta, dan_3d, dung_cho) VALUES (${Number(id)}, ${b.nhom}, ${b.ten}, ${b.mo_ta}, ${b.dan_3d ? j(b.dan_3d) : null}::jsonb, ${b.dung_cho ? j(b.dung_cho) : null}::jsonb)`);
   }
 }
 

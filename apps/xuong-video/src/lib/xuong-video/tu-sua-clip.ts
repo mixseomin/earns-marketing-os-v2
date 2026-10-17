@@ -9,7 +9,8 @@ import { sinhKeyframeCanh } from './sinh-anh';
 import { chupTruoc } from './hoan-tac';
 import { taiAnhBase64 } from './google';
 import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
-import { lintPrompt, loiDanSuaPrompt } from './tu-sua-clip-do';
+import { lintPrompt, loiDanSuaPrompt, laLoiTam } from './tu-sua-clip-do';
+import { coNguoi } from './quy-trinh';
 import { ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
 import { loiSoiClip, locNhanh, type Canh } from './kieu';
 
@@ -79,6 +80,27 @@ async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, l
   if (!loi.length) await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
   return loi;
 }
+/** Gửi sinh video một shot qua cổng studio rồi đợi xong (soi clip tự chạy lúc nhận). Lỗi TẠM (laLoiTam) — lúc gửi hay job hỏng — đợi 90s gửi lại
+ *  đúng prompt đó, tối đa 6 lần, không tính là một lần thử. ok = có clip mới. */
+async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string): Promise<{ ok: true } | { ok: false; loi: string }> {
+  let loiCuoi = '';
+  for (let tam = 0; tam <= 6; tam++) {
+    if (tam) { log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — đợi 90s gửi lại lần ${tam}`); await ngu(90_000); }
+    await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
+    const r = await batDauVideoCanh(db, id, undefined, 'nhap');
+    if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
+    const t0 = Date.now(); let j: Row | undefined;
+    while (Date.now() - t0 < 15 * 60_000) {
+      await ngu(10_000); await kiemVideoTap(db, tapId).catch(() => null);
+      j = ((await db.execute(sql`SELECT trang_thai, loi FROM xv_job WHERE id = ${r.data}`)) as unknown as Row[])[0];
+      if (j && j.trang_thai !== 'chay') break;
+    }
+    if (j?.trang_thai === 'xong') return { ok: true };
+    loiCuoi = `lượt sinh bị từ chối: ${String(j?.loi ?? 'quá 15 phút chưa xong').slice(0, 200)}`;
+    if (!laLoiTam(loiCuoi)) return { ok: false, loi: loiCuoi };
+  }
+  return { ok: false, loi: loiCuoi };
+}
 /** Viết lại prompt video của một shot theo lỗi vừa gặp (Gemini, ~0.1¢). Prompt mới vẫn vi phạm luật → thử lại một lần; vẫn vi phạm → null. */
 async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daThu: string[]): Promise<string | null> {
   for (let i = 0; i < 2; i++) {
@@ -87,7 +109,8 @@ async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daT
     if (!r) return null;
     await ghiTienChu(db, phimId, `viết lại prompt video #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
     const p = (r.data.prompt ?? '').trim();
-    if (p && !lintPrompt(p).length) return p;
+    // không thêm người vào shot không có người (#120 shot 3: shot sản phẩm bị viết thành 'the person stands…')
+    if (p && !lintPrompt(p).length && !(coNguoi(p) && !coNguoi(c.prompt_video))) return p;
     daThu = [...daThu, p];
   }
   return null;
@@ -113,24 +136,20 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
         if (kf.length) { ket = 'loi'; loi = [`keyframe vẫn sai sau 3 lần sinh lại: ${kf.join(' | ')}`]; break; }
         c = await docCanh(db, c.id);
       }
-      const moi = await vietLaiPrompt(db, c, phimId, loi, daThu);
-      if (!moi) { ket = 'loi'; loi = [...loi, 'không viết lại được prompt sạch']; break; }
-      daThu.push(c.prompt_video);
-      await db.execute(sql`UPDATE xv_canh SET prompt_video = ${moi}, trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${c.id}`);
-      log(`  #${c.thu_tu} lần ${lan}: ${moi}`);
-      const r = await batDauVideoCanh(db, c.id, undefined, 'nhap');
-      if (!r.ok) { loi = [`không gửi được: ${r.loi}`]; log(`  #${c.thu_tu} ✗ ${r.loi}`); if (/THEO NGÀY|hạn mức/i.test(r.loi)) { ket = 'loi'; break; } continue; }
-      // đợi job (soi clip tự chạy lúc nhận — sinh-video.ts › kiemVideoTap)
-      const t0 = Date.now();
-      while (Date.now() - t0 < 15 * 60_000) {
-        await ngu(10_000); await kiemVideoTap(db, tapId).catch(() => null);
-        const j = ((await db.execute(sql`SELECT trang_thai, loi FROM xv_job WHERE id = ${r.data}`)) as unknown as Row[])[0];
-        if (j && j.trang_thai !== 'chay') { if (j.trang_thai !== 'xong') loi = [`lượt sinh bị từ chối: ${String(j.loi).slice(0, 200)}`]; break; }
+      // lỗi do PROMPT → viết lại; lỗi TẠM của nhà cung cấp → gửi lại đúng prompt cũ (không viết lại)
+      if (!loi.every(laLoiTam)) {
+        const moi = await vietLaiPrompt(db, c, phimId, loi, daThu);
+        if (!moi) { ket = 'loi'; loi = [...loi, 'không viết lại được prompt sạch']; break; }
+        daThu.push(c.prompt_video);
+        await db.execute(sql`UPDATE xv_canh SET prompt_video = ${moi}, updated_at = now() WHERE id = ${c.id}`);
+        log(`  #${c.thu_tu} lần ${lan}: ${moi}`);
       }
+      const kq = await guiVaDoi(db, tapId, c.id, log, `#${c.thu_tu} lần ${lan}`);
       c = await docCanh(db, c.id);
-      const j = ((await db.execute(sql`SELECT trang_thai FROM xv_job WHERE id = ${r.data}`)) as unknown as Row[])[0];
-      if (j?.trang_thai === 'xong') loi = loiSoiClip(c);
-      log(`  #${c.thu_tu} lần ${lan}: ${j?.trang_thai === 'xong' ? (loi.length ? `clip còn lỗi — ${loi.join(' | ')}` : 'SẠCH') : loi.join(' | ')}`);
+      loi = kq.ok ? loiSoiClip(c) : [kq.loi];
+      log(`  #${c.thu_tu} lần ${lan}: ${kq.ok ? (loi.length ? `clip còn lỗi — ${loi.join(' | ')}` : 'SẠCH') : loi.join(' | ')}`);
+      if (!kq.ok && /THEO NGÀY/.test(kq.loi)) { ket = 'loi'; break; }
+      const j = kq.ok ? { trang_thai: 'xong' } : null;
       if (j?.trang_thai === 'xong' && !loi.length) { ket = 'sach'; break; }
     }
     ra.push({ thu_tu: c.thu_tu, ket, lan, loi: ket === 'sach' ? [] : loi });

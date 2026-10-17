@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/tu-sua-clip-do.test.mts
 import assert from 'node:assert';
-import { lintPrompt, loiDanSuaPrompt } from './tu-sua-clip-do';
+import { lintPrompt, loiDanSuaPrompt, laLoiTam } from './tu-sua-clip-do';
 const k = (p: string) => lintPrompt(p).map((l) => l.key);
 // ca thật đã hỏng
 assert.deepStrictEqual(k('he squats down low, picks up a small object off the floor with one hand and stays in the deep squat'), ['cam_vat']);
@@ -14,4 +14,7 @@ assert.deepStrictEqual(k('he holds the deep squat, both hands resting on his kne
 assert.deepStrictEqual(k('his hand slides along the light blue jeans at the thigh and he gives a small happy laugh'), []);
 const d = loiDanSuaPrompt({ prompt: 'p0', chu: 'He squats', loi: ['sock floats'], daThu: ['p-1'] });
 assert.ok(d.includes('sock floats') && d.includes('"p-1"') && d.includes('He squats') && d.includes('button and zip'));
+assert.ok(laLoiTam('lượt sinh bị từ chối: Kie.ai báo hỏng: Internal Error, Please try again later.'));
+assert.ok(!laLoiTam('Request blocked: The generation was halted during Google safety review'), 'chặn an toàn là lỗi do prompt, phải viết lại');
+assert.ok(!laLoiTam('cơ thể méo từ giây 1.7: hands distorted'));
 console.log('tu-sua-clip-do.test: ok');

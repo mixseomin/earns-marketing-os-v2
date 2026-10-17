@@ -27,5 +27,8 @@ The last generated clip had these defects (fix their cause): ${o.loi.join(' | ')
 ${o.daThu.length ? `Prompts already tried that FAILED (do not repeat their approach): ${o.daThu.map((x) => `"${x}"`).join(' ; ')}\n` : ''}Rules:
 ${LUAT_PROMPT.map((l) => `- ${l.en}`).join('\n')}
 - Prefer one simple, small, continuous action that is easy to render; keep the camera steady.
-- Keep the product and the person as in the keyframe. Plain English, one or two sentences, under 60 words.`;
+- Keep exactly what is in the keyframe and the current prompt: the same product, and the same people — if the current prompt has no person (a product-only shot), do NOT add any person, body or hands. Plain English, one or two sentences, under 60 words.`;
 }
+/** Lỗi TẠM của nhà cung cấp (không phải do prompt): gửi lại đúng prompt cũ sau một lúc, không tính là một lần thử, không viết lại prompt.
+ *  17/10/2026 #120 shot 3: Kie "Internal Error, Please try again later" ba lần liền → vòng cũ đốt cả 3 lần thử + viết lại prompt thêm người vào shot sản phẩm. */
+export const laLoiTam = (loi: string): boolean => /internal error|try again later|temporarily|timeout|timed out|503|502|rate limit|hạn mức|overloaded/i.test(loi);

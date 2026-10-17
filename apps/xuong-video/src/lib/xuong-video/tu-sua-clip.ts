@@ -9,7 +9,7 @@ import { sinhKeyframeCanh } from './sinh-anh';
 import { chupTruoc } from './hoan-tac';
 import { taiAnhBase64 } from './google';
 import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
-import { lintPrompt, loiDanSuaPrompt, laLoiTam } from './tu-sua-clip-do';
+import { lintPrompt, loiDanSuaPrompt, laLoiTam, laTuChoiModel, laMatNoiTieng, VIDEO_DU_PHONG } from './tu-sua-clip-do';
 import { coNguoi } from './quy-trinh';
 import { ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
 import { loiSoiClip, locNhanh, type Canh } from './kieu';
@@ -32,7 +32,7 @@ async function soiKeyframe(db: Db, c: Canh, phimId: number): Promise<string[] | 
   const sp = await moTaSp(db, c); if (!c.keyframe_url) return null;
   const anh = await taiAnhBase64(c.keyframe_url); if (!anh) return null;
   const parts = [{ text: `This is the FIRST FRAME of a video shot for a product ad. Shot intent: ${c.prompt_anh.split(sp).join('').slice(0, 600)}
-${sp ? `The product must match this description exactly: ${sp}\n` : ''}List only clear problems a viewer would notice: the product differs from the description (cut, pockets, stitching, color, details), visible text or logos on the product, or distorted hands/body. Empty list if correct. Short plain English.` },
+${sp ? `The product must match this description exactly: ${sp}\n` : ''}List only clear problems an ordinary viewer would notice at a glance: the product is a different kind of garment or clearly the wrong color, visible text or logos on the product, distorted hands/body, or the frame clearly not matching the shot intent. Small construction details (pocket shape, rivets, stitching, seams) count ONLY when the shot is a close-up of the product itself. Empty list if fine. Short plain English.` },
     { inlineData: anh }];
   const schema = { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['loi'] };
   const [x, y] = await Promise.all([goiGeminiJson<{ loi?: string[] }>(parts, schema), goiGeminiJson<{ loi?: string[] }>(parts, schema)]);
@@ -95,12 +95,12 @@ async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, l
 }
 /** Gửi sinh video một shot qua cổng studio rồi đợi xong (soi clip tự chạy lúc nhận). Lỗi TẠM (laLoiTam) — lúc gửi hay job hỏng — đợi 90s gửi lại
  *  đúng prompt đó, tối đa 6 lần, không tính là một lần thử. ok = có clip mới. */
-async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string): Promise<{ ok: true } | { ok: false; loi: string }> {
+async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string, moHinh?: string): Promise<{ ok: true } | { ok: false; loi: string }> {
   let loiCuoi = '';
   for (let tam = 0; tam <= 6; tam++) {
     if (tam) { log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — đợi 90s gửi lại lần ${tam}`); await ngu(90_000); }
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
-    const r = await batDauVideoCanh(db, id, undefined, 'nhap');
+    const r = await batDauVideoCanh(db, id, moHinh, 'nhap');
     if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
     const t0 = Date.now(); let j: Row | undefined;
     while (Date.now() - t0 < 15 * 60_000) {
@@ -140,7 +140,7 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
     let c = c0; let loi = loiSoiClip(c); const daThu: string[] = [];
     if (!loi.length && (c.video_cuoi_url || c.video_url) && !lintPrompt(c.prompt_video).length) continue;
     if (!loi.length && lintPrompt(c.prompt_video).length) loi = lintPrompt(c.prompt_video).map((l) => `prompt vi phạm luật: ${l.vi}`);
-    let lan = 0, ket: KetTuSua['ket'] = 'het_luot';
+    let lan = 0, ket: KetTuSua['ket'] = 'het_luot'; let moHinhVideo: string | undefined;
     while (lan < toiDa) {
       lan++;
       // khung đầu sai (soi keyframe) hoặc clip sai sản phẩm ngay từ đầu → lỗi ở KEYFRAME, sinh lại keyframe chứ không đốt tiền video
@@ -149,15 +149,24 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
         if (kf.length) { ket = 'loi'; loi = [`keyframe vẫn sai sau 3 lần sinh lại: ${kf.join(' | ')}`]; break; }
         c = await docCanh(db, c.id);
       }
-      // lỗi do PROMPT → viết lại; lỗi TẠM của nhà cung cấp → gửi lại đúng prompt cũ (không viết lại)
-      if (!loi.every(laLoiTam)) {
+      // cổng "một cảnh một model" / mặt giống người nổi tiếng → lỗi ở KEYFRAME: sinh lại keyframe (không viết lại prompt video)
+      const kfLai = loi.some((x) => /một cảnh một model/.test(x) || laMatNoiTieng(x));
+      if (kfLai) {
+        const kf = await sinhKeyframeCoDuPhong(db, c.id);
+        if (kf.url) { await chonKeyframe(db, c.id, kf.url, 'vòng tự sửa clip'); await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet' WHERE id = ${c.id}`); log(`  #${c.thu_tu} lần ${lan}: sinh lại keyframe (${loi[0]!.slice(0, 60)})`); }
+        c = await docCanh(db, c.id);
+      }
+      // model video từ chối theo nội dung → đổi model dự phòng cho các lần sau của shot này
+      if (loi.some(laTuChoiModel)) { moHinhVideo = VIDEO_DU_PHONG; log(`  #${c.thu_tu} lần ${lan}: model video từ chối — chuyển ${VIDEO_DU_PHONG}`); }
+      // lỗi do PROMPT → viết lại; lỗi TẠM / từ chối của model / lỗi keyframe → giữ prompt
+      if (!kfLai && !loi.every((x) => laLoiTam(x) || laTuChoiModel(x))) {
         const moi = await vietLaiPrompt(db, c, phimId, loi, daThu);
         if (!moi) { ket = 'loi'; loi = [...loi, 'không viết lại được prompt sạch']; break; }
         daThu.push(c.prompt_video);
         await db.execute(sql`UPDATE xv_canh SET prompt_video = ${moi}, updated_at = now() WHERE id = ${c.id}`);
         log(`  #${c.thu_tu} lần ${lan}: ${moi}`);
       }
-      const kq = await guiVaDoi(db, tapId, c.id, log, `#${c.thu_tu} lần ${lan}`);
+      const kq = await guiVaDoi(db, tapId, c.id, log, `#${c.thu_tu} lần ${lan}`, moHinhVideo);
       c = await docCanh(db, c.id);
       loi = kq.ok ? loiSoiClip(c) : [kq.loi];
       log(`  #${c.thu_tu} lần ${lan}: ${kq.ok ? (loi.length ? `clip còn lỗi — ${loi.join(' | ')}` : 'SẠCH') : loi.join(' | ')}`);

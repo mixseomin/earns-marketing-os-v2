@@ -43,3 +43,9 @@ export function chonGiongDan(moTa: string): string {
   if (nu) return !tuoi ? 'Jessica' : tuoi < 35 ? 'Jessica' : tuoi < 60 ? 'Sarah' : 'Matilda';
   return !tuoi ? 'Chris' : tuoi < 30 ? 'Liam' : tuoi < 45 ? 'Chris' : tuoi < 60 ? 'Brian' : 'Bill';
 }
+/** Model video TỪ CHỐI theo nội dung — viết lại prompt không cứu được, phải đổi model (Veo "unable to generate audio" lặp 3 lần #127 shot 10, 14;
+ *  "prominent public figure" — mặt keyframe giống người nổi tiếng, #127 shot 13). */
+export const laTuChoiModel = (loi: string): boolean => /unable to generate audio|public figure|safety review|flagged/i.test(loi);
+export const laMatNoiTieng = (loi: string): boolean => /public figure|celebrity/i.test(loi);
+/** Model video dự phòng khi Veo từ chối theo nội dung (giữ nhân vật tốt, có tiếng). */
+export const VIDEO_DU_PHONG = 'fal:fal-ai/kling-video/v3/pro/image-to-video';

@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/tu-sua-clip-do.test.mts
 import assert from 'node:assert';
-import { lintPrompt, loiDanSuaPrompt, laLoiTam, chonGiongDan } from './tu-sua-clip-do';
+import { lintPrompt, loiDanSuaPrompt, laLoiTam, chonGiongDan, laTuChoiModel, laMatNoiTieng } from './tu-sua-clip-do';
 const k = (p: string) => lintPrompt(p).map((l) => l.key);
 // ca thật đã hỏng
 assert.deepStrictEqual(k('he squats down low, picks up a small object off the floor with one hand and stays in the deep squat'), ['cam_vat']);
@@ -24,4 +24,6 @@ assert.strictEqual(chonGiongDan('American non-binary person, 33'), 'River');
 assert.strictEqual(chonGiongDan('American woman, 48'), 'Sarah');
 assert.strictEqual(chonGiongDan('nữ Mỹ 70 tuổi, ấm'), 'Matilda');
 assert.strictEqual(chonGiongDan('American woman, 40s'), 'Sarah');
+assert.ok(laTuChoiModel('Kie.ai báo hỏng: The Google model was unable to generate audio for this request.') && !laLoiTam('The Google model was unable to generate audio'));
+assert.ok(laMatNoiTieng('Request blocked: The input content was flagged for containing a prominent public figure.'));
 console.log('tu-sua-clip-do.test: ok');

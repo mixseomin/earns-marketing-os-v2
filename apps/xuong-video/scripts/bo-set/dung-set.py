@@ -508,7 +508,11 @@ def nhan_vat(sh, ket=False):
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
             ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_; n_['kieu'] = kieu; n_['dang'] = mau_nv.get('dang') or []
-            ng().ap_dien(n_, dien_hl(n_, nv), 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
+            # ĐANG ĐI ở khung mở / giữa (có 'den' xa ≥ 40 cm): đặt GIỮA SẢI BƯỚC rồi mới chồng tư thế tay (ôm thùng, cầm…) — mocap đi ở t = 0 là dáng
+            # đứng chụm chân, keyframe AI vẽ người đứng nghiêm giữa cửa (tập 122 #15 "Hạ sải bước vào" thành hai người đứng yên).
+            di_mo = ket is not True and kieu == 'dung' and bool(nv.get('den')) and math.hypot(nv['den'][0] - X, nv['den'][1] - Y) >= 40
+            if di_mo: ng().buoc(n_, 0.25)
+            ng().ap_dien(n_, [x for x in dien_hl(n_, nv) if not (di_mo and str(x).split('@')[0] in DI_MC)], 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
             vet_(n_, nv['ten'], dan_cua(nv, mau_nv, ket is True or bool(ket and float(ket) >= 0.5)))
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
@@ -524,6 +528,7 @@ def nhan_vat(sh, ket=False):
         o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat'), 'nghieng': nv.get('nghieng') or mau_nv.get('nghieng') or 0}, f"NV {nv['ten']}", (X, Y), hg)   # nghieng: đồ nghiêng / lật theo shot (vi_tri)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
+        if nv.get('tran') and ket is not True: tat_ca.extend(tran_(o, nv, w, h))
         # NẰM (bẹp / ngã): dựng người ĐỨNG đủ tay, chân, tóc, mắt rồi xoay cả người ngửa ra sau quanh trục ngang của nó (mặt hướng lên).
         # Trước 15/10/2026 nằm = đổi cao thành sâu + BỎ mọi phần → còn quả trứng trơn có hai mắt, model ảnh không nhận ra là Tango nằm (#14 tập 19).
         dau = len(tat_ca) - 1
@@ -541,6 +546,23 @@ def nhan_vat(sh, ket=False):
         if nv.get('nam'): nam_xuong(tat_ca[dau:], X, Y, Z, hg, d, h)
     gan_tay(sh, tat_ca, ket)
     return than, tat_ca
+
+DI_MC = ('mc_di_bo', 'mc_sai_buoc')   # mocap ĐI: khung tĩnh thay bằng giữa sải bước (nhan_vat › di_mo)
+
+def tran_(o, nv, w, h):
+    """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): chuỗi giọt liền nhau từ miệng vật theo
+    trục nghiêng rồi cong xuống theo trọng lực. Chữ "coffee spilling out" mà 3D chỉ có ly trơn thì ảnh AI bám 3D, vẽ ly sạch (tập 122 #17).
+    Tên 'NV <vật>·tran<i>' → kiểm hình học / mặt nạ coi là một phần vật đó; nhãn keyframe ghi trạng thái qua TRANG."""
+    M = o.matrix_world; mieng = M @ Vector((0, 0, 0.5)); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized()
+    r0 = 0.3 * w; buoc = 0.55 * r0; ds = []
+    for i in range(9):
+        p = mieng + truc * (i * buoc * CM) - Vector((0, 0, 0.18 * i * i * buoc * CM))
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=max(0.35 * r0, r0 * (1 - 0.07 * i)) * CM, location=p)
+        g = bpy.context.object
+        for f in g.data.polygons: f.use_smooth = True
+        ds.append(dat(g, mau(nv.get('tran_mau', '#2a1a10')), f"NV {nv['ten']}·tran{i}"))
+    TRANG[nv['ten']] = f"{nv['tran']} spilling out of it in a curling stream"
+    return ds
 
 def diem_cam(n_, ben):
     """Điểm nắm của một bàn tay ma-nơ-canh (toạ độ thế giới, m): cổ tay + 0,55 chiều dài bàn tay dọc trục bàn tay."""

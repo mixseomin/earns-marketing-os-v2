@@ -1198,14 +1198,14 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -125,
-    318,
-    146
+    -170,
+    338,
+    152
    ],
    "nhin": [
-    -42,
-    382,
-    138
+    0,
+    368,
+    145
    ],
    "ong_kinh": 45,
    "khung": [
@@ -1660,16 +1660,16 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -250,
-    100,
-    55
+    -180,
+    150,
+    50
    ],
    "nhin": [
-    -470,
-    160,
-    125
+    -480,
+    150,
+    135
    ],
-   "ong_kinh": 28,
+   "ong_kinh": 24,
    "khung": [
     "Lâm Hạ",
     "Luật sư Trần"
@@ -1889,7 +1889,8 @@
      ],
      "nghieng": 70,
      "nghieng_den": 95,
-     "trang_den": "shattered on the floor"
+     "trang_den": "shattered on the floor",
+     "tran": "black coffee"
     }
    ],
    "phia": -71.0

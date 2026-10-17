@@ -394,6 +394,7 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     trang_phuc?: string; trang_phuc_den?: string; toc?: string; toc_den?: string; trang_diem?: string; trang_diem_den?: string; do_deo?: string; do_deo_den?: string; vet?: string; vet_den?: string;
     /** đang được nhân vật này CẦM (kẹo trong tay Tango): đi theo người cầm, không kiểm chỗ riêng */ cam?: string;
     /** ĐỒ NGHIÊNG / LẬT lúc mở / kết (độ quanh trục ngang — ly lật giữa không trung #17); không khai = đứng thẳng */ nghieng?: number; nghieng_den?: number;
+    /** CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (tên tiếng Anh, vd 'black coffee') + màu — dung-set.py › tran_ dựng dòng giọt ở khung mở (#17) */ tran?: string; tran_mau?: string;
     /** món đang ĐEO (đi kèm cam = người đeo): khớp rig nơi nó nằm — 'cotay_t' / 'cotay_p' (cổ tay trái / phải nhân vật), 'co', 'nguc'. Không khai = cầm
      *  trong lòng bàn tay (dung-set.py › tay_cam) — tập 122 #22: chuỗi hạt cổ tay trái bị nhét vào lòng bàn tay phải */ deo?: string;
     /** ĐỘNG TÁC DIỄN trong shot (thư viện dung-set.py › DONG_TAC): 'ten@a-b' (a, b = phần thời lượng 0..1), vd 'phong3@0.05-0.3', 'toc_ru@0.5'.

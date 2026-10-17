@@ -895,7 +895,7 @@
    "vai": "chi_tiet",
    "co_canh": "insert",
    "goc": "cao",
-   "chuyen_dong": "nghieng_len",
+   "chuyen_dong": "doi_net",
    "ong_kinh": "chan_dung",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -903,9 +903,9 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: the phone lights up in Hạ's hand. Action: she reads the message; the camera tilts up to her face. Reaction: the faintest smirk at the corner of her mouth.",
+   "dien": "Anticipation: the phone lights up in Hạ's hand. Action: she reads the message; focus racks from the phone to her face. Reaction: the faintest smirk at the corner of her mouth.",
    "huong": "Hạ looks down at the phone, then up and off screen-left.",
-   "bo_cuc": "Insert on the phone screen in Hạ’s hand lighting up with a message, then tilt up to her face",
+   "bo_cuc": "Insert on the phone screen in Hạ’s hand lighting up with a message, her face soft behind it, then focus racks to her face",
    "mo": "phone screen lights up",
    "ket": "Hạ’s subtle smirk",
    "muc_dich": "khán giả biết thân phận trước nhân vật",
@@ -931,9 +931,9 @@
     165
    ],
    "nhin": [
-    297,
-    599,
-    130
+    313,
+    583,
+    115
    ],
    "ong_kinh": 50,
    "khung": [

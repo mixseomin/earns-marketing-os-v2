@@ -50,6 +50,18 @@ export const CHAT_LIEU: Record<ChatLieu, {
   },
 };
 
+/** Chữ theo LOẠI VIDEO (xv_phim.loai): phim truyện thì sản phẩm (nếu lọt vào) chỉ cần giữ y, không phải trọng tâm; quảng cáo thì cử chỉ dồn vào sản phẩm
+ *  (#54 shot 9 ông Mike kéo cổ áo trong phim bán QUẦN). Chữ sản phẩm TRUNG TÍNH — trước đây ghi cứng cho quần áo ("cut, color, pockets, fabric",
+ *  "never tugging other clothing"), QC điện thoại / mỹ phẩm nhận chữ quần. Thêm loại video: thêm một dòng. */
+export type LoaiVideo = 'short' | 'phim' | 'quang_cao' | 'may_dung';
+const SP_GIU = 'the product (exactly the same item — shape, colour, material and every detail — never restyled or swapped)';
+const SP_TAM = (ten: string) => `The product${ten ? ` (${ten})` : ''} is the focus of the shot: any hand or body gesture is about the product itself (holding, touching, using or showing it off) — never about something else nearby; the product stays fully visible the whole clip and no camera move crops it out of frame.`;
+export const LOAI_VIDEO: Record<LoaiVideo, { sp_giu: string; sp_tam: (ten: string) => string; /** câu khung sống (CHAT_LIEU.song_video) — QC dựng theo mẫu thì giữ nhịp mẫu, không thêm */ song: (coMau: boolean) => boolean }> = {
+  phim: { sp_giu: SP_GIU, sp_tam: () => '', song: () => true },
+  short: { sp_giu: SP_GIU, sp_tam: () => '', song: () => true },
+  quang_cao: { sp_giu: SP_GIU, sp_tam: SP_TAM, song: (m) => !m },
+  may_dung: { sp_giu: SP_GIU, sp_tam: SP_TAM, song: (m) => !m },
+};
 /** Mã khối — tên thành phần, dùng chung mọi đường sinh. */
 export type MaKhoi = 'anh_dich' | 'anh_so' | 'may' | 'boi_canh' | 'bo_tri' | 'khoanh_khac' | 'nguoi' | 'vat' | 'hau_canh' | 'huong' | 'khung' | 'ngoai_khung'
   | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'khac';
@@ -88,6 +100,8 @@ export const boMat = (t: string) => t.split(/,\s*/).filter((x) => !MAT.test(x)).
 /** chữ tả QUẦN ÁO — có bộ đồ sổ trang phục thì bỏ khỏi mô tả gốc (Trần: "navy three-piece suit" gốc + bộ đồ biến thể = hai bộ đồ). */
 const DO = /\b(suit|suits|shirt|blouse|dress|jacket|blazer|tie|trousers|pants|skirt|coat|vest|uniform|sweater|hoodie|jeans|outfit)\b/i;
 export const boDo = (t: string) => t.split(/,\s*/).filter((x) => !DO.test(x)).join(', ');
+/** Bỏ vế đã có trong đoạn khác (nhân dạng "gold-rimmed glasses" + bộ đồ "…, gold-rimmed glasses" — #15 nói hai lần). */
+export const boTrung = (t: string, khac: string) => { const k = khac.toLowerCase(); return t.split(/,\s*/).filter((x) => !x.trim() || !k.includes(x.trim().toLowerCase())).join(', '); };
 
 /** KHỐI NGƯỜI: nhân dạng (bỏ quần áo khi có bộ đồ sổ) + bộ đồ (mô tả MỌI biến thể sổ người đang trỏ) + đồ đeo (không trùng bộ đồ). Cận chèn: chỉ tay.
  *  gon = bản ngắn cho bước sửa nhân dạng (ảnh mẫu đã mang mặt). MỘT hàm cho mọi đường. */
@@ -96,7 +110,7 @@ export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { a
   const deo = o.deo && !ao.toLowerCase().includes(o.deo.toLowerCase().replace(/^(a|an|the)\s+/, '')) ? o.deo : '';
   const nguoi = a.loai === 'nhan_vat';
   const goc = nguoi && o.chen ? (o.gon ? 'skin tone and sleeve only, face out of frame' : `${a.ten.split(' ').pop()}'s hand and forearm only (face out of frame)`)
-    : ao ? boDo(o.moTa(a.mo_ta)) : o.moTa(a.mo_ta);
+    : ao ? boTrung(boDo(o.moTa(a.mo_ta)), ao) : o.moTa(a.mo_ta);
   const n = o.gon ? '; ' : ', ';
   return `${goc}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}`;
 }

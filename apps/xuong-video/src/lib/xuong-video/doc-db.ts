@@ -53,7 +53,7 @@ export async function boiCanhTap(db: Db, tapId: number) {
 }
 
 export async function boiCanhCanh(db: Db, canhId: number) {
-  const r = (await db.execute(sql`SELECT c.*, p.kinh_thanh AS kt, p.id AS p_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
+  const r = (await db.execute(sql`SELECT c.*, p.kinh_thanh AS kt, p.id AS p_id, p.loai AS p_loai FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
   if (!r[0]) return null;
   const canh = mapCanh(r[0]);
   const kt = docKinhThanh(r[0].kt as KinhThanh);
@@ -92,7 +92,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
     mayDu = mayDayDu(ds, laDoVatPhim(nvPhim), (pc ?? []) as PhanCanh[]).get(canh.id) ?? mayDu;
   }
   // nvPhim: mọi nhân vật / đạo cụ của phim (tên, loại, mô tả) — gọi tên en cho món không gắn shot mà có trong 3D (đồ để lại: "Ly cà phê stays in place")
-  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim };
+  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean; /** giá ước (¢) — người gọi biết giá (video fal/Veo) thì đưa vào để cổng tiền so ngưỡng thay vì báo "không ước được" */ cents?: number }): Promise<number> {

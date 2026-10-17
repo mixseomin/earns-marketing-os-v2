@@ -12,7 +12,7 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 const AN = /\b(hidden|covered|covering|concealed|out of sight|not visible|tucked under)\b/i;
 const TU_CHUNG = new Set(['small', 'thin', 'black', 'white', 'light', 'large', 'under', 'with', 'their', 'which', 'little', 'round', 'dark', 'long', 'short']);
@@ -25,6 +25,7 @@ export type SoatPrompt = {
   /** đồ CHỦ THỂ đang thấy trong khung 3D — chữ không được nói nó bị che / giấu */ vat: { ten: string; mo_ta: string }[];
   /** chất liệu phim: chữ cấm của chất liệu (CHAT_LIEU.cam) */ chat_lieu?: ChatLieu;
   /** tên riêng được phép giữ dấu (nhân vật, đạo cụ có tên) */ ten_rieng?: string[];
+  /** nhân vật NGOÀI KHUNG cả shot (3D không thấy, không đi vào) — chữ diễn cho họ làm gì thì model vẽ họ vào */ ngoai?: string[];
   /** chuyển động trên màn đo từ khung 3D (khung_xam.di: dx > 0 = sang phải màn) — chữ "walks screen-left" ngược số này là lỗi */ di?: { ten: string; dx: number }[];
 };
 export type LoiPrompt = { buoc: string; ma: MaLoiPrompt; phat: number; chu: string };
@@ -70,6 +71,14 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
       const ten_ = tat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');   // ranh giới theo chữ Unicode — \\b của JS không hiểu 'Hạ'
       const m = chu.match(new RegExp(`(?<!\\p{L})${ten_}(?!\\p{L})[^.;|]{0,40}?\\b(walks|moves|runs|strides|steps|heads|crosses|goes|rushes|drifts)\\b[^.;|]{0,30}?screen-${doi}`, 'iu'));
       if (m) them(b.ten, 'nguoc_huong', `chữ nói "${m[0].trim()}" mà khung 3D đo ${d.ten} đi sang ${d.dx > 0 ? 'PHẢI' : 'TRÁI'} màn — sửa câu hướng (dan_dung.huong) cho khớp 3D`);
+    }
+    // NGƯỜI NGOÀI KHUNG làm chủ ngữ hành động ("Thần slams the table" khi 3D không thấy Thần): model vẽ họ vào. Hướng nhìn "looks at Thần" là đúng — bỏ qua
+    // khi tên đứng sau at / to / toward / from / with / of / on / into / after. Khối thoại + chuyển động 3D không soi.
+    const chuDien = b.khoi ? ghep(b.khoi.filter((k) => k.ma !== 'thoai' && k.ma !== 'chuyen_dong')) : chu;
+    for (const t of s.ngoai ?? []) {
+      const tat = (t.trim().split(/\s+/).pop() ?? t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const m = chuDien.match(new RegExp(`(?<!\\b(?:at|to|toward|towards|from|with|of|on|into|after|beside|near)\\s+(?:\\p{L}+\\s+)?)(?<!\\p{L})${tat}(?!\\p{L})(?:'s)?\\s+\\p{L}+`, 'iu'));
+      if (m) them(b.ten, 'ngoai_khung', `chữ cho "${m[0]}" mà ${t} ngoài khung cả shot — model vẽ thêm người: chỉ tả người trong khung (hướng nhìn "looks at ${tat}" thì được)`);
     }
     // CÂU LẶP: một vế ≥ 4 từ nằm trọn trong một vế khác (#15 "jade bangle on the left wrist" hai lần)
     const ve = chuLap.toLowerCase().split(/[,.;|]/).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 4);

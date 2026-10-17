@@ -43,4 +43,8 @@ assert.equal(chamPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: [khoi(
 const di = { ...s, di: [{ ten: 'Lâm Hạ', dx: -0.3 }] };
 assert.equal(loiPrompt([{ ten: 'video', chu: `Keep screen direction: Hạ walks screen-right toward the table, wearing ${VEST}.` }], di).length, 1);
 assert.equal(loiPrompt([{ ten: 'video', chu: `Keep screen direction: Hạ walks screen-left toward the table, wearing ${VEST}.` }], di).length, 0);
+// NGƯỜI NGOÀI KHUNG làm chủ ngữ → cảnh báo (10); hướng nhìn "looks at Thần" → qua
+const ng = { ...s, ngoai: ['Lục Thần'] };
+assert.equal(chamPrompt([{ ten: 'video', chu: `Thần slams the table. Woman wearing ${VEST}.` }], ng).diem, 90);
+assert.equal(chamPrompt([{ ten: 'video', chu: `Hạ looks down the table at Thần. Woman wearing ${VEST}.` }], ng).diem, 100);
 console.log('kiem-prompt: ok');

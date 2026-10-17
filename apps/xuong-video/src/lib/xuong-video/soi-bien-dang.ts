@@ -29,7 +29,7 @@ const LOAI_EN: Record<string, string> = { trang_phuc_bien_dang: 'clothing deform
  *  Quét rộng: 2 lượt × N_KHUNG_BD khung rời LỆCH GIỜ nhau (phủ 2N thời điểm trong đoạn được dùng), GỘP mọi lỗi (hợp, không phải giao — giao bỏ sót
  *  tất lơ lửng / tay méo trên bộ mẫu). Xác nhận: mỗi loại lỗi bị báo soi lại 4 khung nét cao quanh đúng giây đó, hỏi có / không — chỉ lọc báo nhầm.
  *  Đo trên bộ mẫu chuẩn: scripts/kiem-may-soi.mts (phải bắt 100% clip lỗi). */
-export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number } | null> {
+export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number; canhBao: string[] } | null> {
   if (!khoaGoogle()) return null;
   const N = N_KHUNG_BD, buoc = o.dai / N;
   const tA = Array.from({ length: N }, (_, i) => (i + 0.25) * buoc), tB = Array.from({ length: N }, (_, i) => (i + 0.75) * buoc);
@@ -49,22 +49,23 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
     if (!cu || g < cu.giay) gop.set(l.loai, { giay: g, mo_ta: l.mo_ta, khung: l.khung });
   }
   // xác nhận từng loại bằng khung nét cao quanh đúng giây
-  const giu: LoiBienDang[] = []; const loi: string[] = []; let tkXn = { in: 0, out: 0 };
+  const giu: LoiBienDang[] = []; const loi: string[] = []; const canhBao: string[] = []; let tkXn = { in: 0, out: 0 };
   for (const [loai, v] of gop) {
     const ts = [v.giay - 0.3, v.giay, v.giay + 0.3, v.giay + 0.6].map((t) => Math.min(o.dai, Math.max(0, t)));
     const anh = await khungTai(o.url, ts, 768);
     // MỘT lượt xác nhận bằng model mạnh (MO_HINH_XAC_NHAN) — Flash dao động nên không làm lớp xác nhận được
-    const hoi = () => goiGeminiJson<{ co: boolean; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
-A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object. Answer co=true ONLY if the defect is clearly there and an ordinary viewer watching at normal speed would notice it; co=false if it looks normal, is merely motion blur, or is part of the shot intent. In ly_do name the frame and what exactly is wrong.` },
-      ...(anh ?? []).map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, ly_do: { type: 'STRING' } }, required: ['co', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH', MO_HINH_XAC_NHAN);
+    const hoi = () => goiGeminiJson<{ co: boolean; muc: 'nang' | 'nhe'; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
+A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object. co=true if the defect is really there (false if it looks normal, is only motion blur, or is part of the shot intent). muc: 'nang' if an ordinary viewer watching ONCE at normal speed on a phone would notice it (limbs merging or missing, clothing ballooning or fusing, readable text on clothing, an object floating / appearing / vanishing, the product clearly changing); 'nhe' if you only see it when pausing (slightly soft or blurred fingers, tiny texture change). In ly_do name the frame and what exactly is wrong.` },
+      ...(anh ?? []).map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, muc: { type: 'STRING', enum: ['nang', 'nhe'] }, ly_do: { type: 'STRING' } }, required: ['co', 'muc', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH', MO_HINH_XAC_NHAN);
     const c = anh ? await hoi() : null;
     if (c) tkXn = { in: tkXn.in + c.tk.in, out: tkXn.out + c.tk.out };
-    // không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
+    // lỗi NHẸ (chỉ thấy khi dừng hình) không chặn — ghi cảnh báo; không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
+    if (c?.data.co && c.data.muc === 'nhe') { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (nhẹ) giây ${Math.round(v.giay * 10) / 10}: ${c.data.ly_do.slice(0, 140)}`); continue; }
     if (!c || c.data.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
   let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
   if (tkXn.in) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', MO_HINH_XAC_NHAN, tkXn, 'google') : giaChuCents(MO_HINH_XAC_NHAN, tkXn.in, tkXn.out);
-  return { loi, tho: giu, cents };
+  return { loi, tho: giu, cents, canhBao };
 }
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */
 export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string, model: string = MO_HINH_BD): Promise<{ data: T; tk: { in: number; out: number } } | null> {

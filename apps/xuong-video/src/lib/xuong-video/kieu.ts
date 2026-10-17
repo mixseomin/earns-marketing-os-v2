@@ -60,7 +60,7 @@ export const laTiengViet = (t: string): boolean => /[àáạảãâầấậẩ�
 export const cauVideo = (c: Pick<Canh, 'hanh_dong'> & { prompt_video?: string | null }): string => (c.prompt_video ?? '').trim() || c.hanh_dong;
 export const moTaVi = (c: Pick<Canh, 'hanh_dong' | 'hanh_dong_vi'>): string => c.hanh_dong_vi?.trim() || (laTiengViet(c.hanh_dong) ? c.hanh_dong.trim() : '');
 /** Kết quả máy soi clip (soi-clip.ts). */
-export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[]; /** điểm giống ảnh mẫu theo nhân vật, từng khung chấm được (soi-mat.ts › soiMatClip) */ mat?: Record<string, { giay: number; giong: number }[]>; /** lỗi biến dạng hai lượt cùng thấy (soi-bien-dang.ts) */ bien_dang?: { khung: number; loai: string; mo_ta: string }[] }; bo_qua?: boolean };
+export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[]; /** điểm giống ảnh mẫu theo nhân vật, từng khung chấm được (soi-mat.ts › soiMatClip) */ mat?: Record<string, { giay: number; giong: number }[]>; /** lỗi biến dạng đã xác nhận (soi-bien-dang.ts) */ bien_dang?: { khung: number; loai: string; mo_ta: string }[]; /** lỗi NHẸ (chỉ thấy khi dừng hình) — không chặn, hiện để người duyệt xem */ canh_bao?: string[] }; bo_qua?: boolean };
 /** Lỗi soi còn hiệu lực của shot: soi đúng clip đang dùng, có lỗi, chưa ai bỏ qua. */
 export const loiSoiClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url' | 'soi_clip'>): string[] => { const u = c.video_cuoi_url || c.video_url; const k = c.soi_clip; return u && k && k.url === u && !k.bo_qua ? k.loi : []; };
 export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'];

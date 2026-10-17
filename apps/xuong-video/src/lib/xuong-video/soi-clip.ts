@@ -85,7 +85,7 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   const daiDung = Math.min(dai, giayPhat(c) + 0.6);
   const bd = await soiBienDang(db, { url, dai: daiDung, sp: String(spMoTa ?? ''), yDo: yDoShot(c.prompt_video ?? '', c.prompt_anh ?? '', String(spMoTa ?? '')), phimId: phimId == null ? null : Number(phimId) });
   if (bd) loi.push(...bd.loi);
-  const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}), ...(bd ? { bien_dang: bd.tho } : {}) } };
+  const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}), ...(bd ? { bien_dang: bd.tho, ...(bd.canhBao.length ? { canh_bao: bd.canhBao } : {}) } : {}) } };
   await db.execute(sql`UPDATE xv_canh SET soi_clip = ${JSON.stringify(kq)}::jsonb WHERE id = ${canhId}`);
   return kq;
 }

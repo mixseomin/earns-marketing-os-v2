@@ -14,7 +14,7 @@ for (const { x, k } of ket) {
   if (!k) { console.log(`?  ${x.ghi} — không soi được`); continue; }
   tien += k.cents;
   if (x.laLoi) { const ok = k.loi.length > 0; if (ok) bat++; console.log(`${ok ? '✓ bắt' : '✗ SÓT'}  ${x.ghi}${k.loi.length ? `\n      ${k.loi.join(' | ').slice(0, 220)}` : ''}`); }
-  else { if (k.loi.length) nham++; console.log(`${k.loi.length ? '✗ NHẦM' : '✓ sạch'}  ${x.ghi}${k.loi.length ? `\n      ${k.loi.join(' | ').slice(0, 220)}` : ''}`); }
+  else { if (k.loi.length) nham++; console.log(`${k.loi.length ? '✗ NHẦM' : '✓ sạch'}  ${x.ghi}${k.loi.length ? `\n      ${k.loi.join(' | ').slice(0, 220)}` : ''}${k.canhBao.length ? `\n      (nhẹ, không chặn) ${k.canhBao.join(' | ').slice(0, 200)}` : ''}`); }
 }
 console.log(`\nBẮT ${bat}/${m.loi.length} clip lỗi · báo nhầm ${nham}/${m.tot.length} clip tốt · ${tien.toFixed(2)}¢`);
 process.exit(bat === m.loi.length ? 0 : 1);

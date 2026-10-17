@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -24,6 +24,11 @@ assert.ok(bangDung(set, [{ id: 9, thu_tu: 1, may_3d: m([25, 4, 1]) }], nv).ok);
 assert.ok(vuotTruc(m([25, 4, 1]), m([25, 40, 1])));
 assert.equal(vuotTruc(m([25, 4, 1]), m([10, 10, 1])), null);
 assert.equal(vuotTruc(m([25, 4, 1]), m([25, 40, 1]), (t) => t === 'Tango'), null);   // Gummy là đồ vật → không làm đầu trục, không báo
+// Đối đáp: máy sau vai Tango nhìn Gummy rồi sau vai Gummy nhìn Tango, cùng phía trục (y < 25) → hợp lệ dù hướng nhìn đổi ~150°; khác phía / một người chung → không
+const qv = (dat: number[], nhin: number[]) => ({ ...m(dat), nhin });
+assert.ok(doiDapCungPhia(qv([12, 18, 1], [30, 25, 2]), qv([38, 18, 1], [20, 25, 2])));
+assert.ok(!doiDapCungPhia(qv([12, 18, 1], [30, 25, 2]), qv([38, 32, 1], [20, 25, 2])));
+assert.ok(!doiDapCungPhia(qv([12, 18, 1], [30, 25, 2]), { ...qv([38, 18, 1], [20, 25, 2]), vi_tri: [{ ten: 'Tango', tam: [20, 25, 0] }] }));
 // Cổng
 assert.deepEqual(chanKhungXam({ nhan_vat: [4], may_3d: null, khung_xam: null }, nv, null), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: null, khung_xam: null }, nv, set)[0]!.includes('chưa đặt máy'));
@@ -133,7 +138,7 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (8): rig người — tư thế theo mã diễn (ap_dien) + đồ cầm vào bàn tay (gan_tay); chỉ ma-nơ-canh người → phim cũ y nguyên → GIỮ 37.
 // 17/10/2026 (9): mocap CMU (mã 'mc_*', mesh/mocap.py) — chỉ ma-nơ-canh người → GIỮ 37.
 // 17/10/2026 (10): mô hình đồ đạc thật (mau_3d, Poly Haven) — chỉ món khai mau_3d → GIỮ 37.
-assert.deepEqual([BAN_DUNG, bam], [37, '6c04c66018e2'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [38, 'c9a49c86ac3e'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

@@ -8,8 +8,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chamKichBan } from '../../../src/lib/xuong-video/cham-kich-ban';
 import { mayShot } from './may-shot';
-import { kiemNguPhapMay, diCm } from '../../../src/lib/xuong-video/ngu-phap-may';
-import { kiemNhipHinh, kiemGiayDoc, kiemVaiKe, kiemDanKhongGian } from '../../../src/lib/xuong-video/nhip-hinh';
+import { chanTienKy, chanShot, phimQt } from '../../../src/lib/xuong-video/quy-trinh';
+import { TIEN_TO_NGUOI_XEM } from '../../../src/lib/xuong-video/nguoi-xem';
 import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech } from '../../../src/lib/xuong-video/bo-set-3d';
 
 const D = dirname(fileURLToPath(import.meta.url));
@@ -23,9 +23,18 @@ const phanCanh = phim.tap.phan_canh as { ten: string; ngay?: string; lien_truoc?
 const idCua = (t: string) => { const x = nv.find((a) => a.ten === t); if (!x) throw new Error(`shot nhắc "${t}" mà phim.json không có anchor`); return x.id; };
 const ds = shots.map((s: Record<string, any>, i) => ({ id: i + 1, thu_tu: i + 1, canh: s.canh, phan_doan: s.canh, nhan_vat: (s.nhan_vat as string[]).map(idCua), may_3d: mayShot(s.may_3d, s.ky_thuat, (t: string) => (phim.nhan_vat as { ten: string; khoi_3d?: { co: number[] } }[]).find((a) => a.ten === t)?.khoi_3d ?? null), ky_thuat: s.ky_thuat, hanh_dong: s.hanh_dong, dan_dung: s.dan_dung, prompt_video: s.prompt_video, ma: s.ma }));
 
-// Cổng tiền kỳ phần dữ liệu shot (quy-trinh.ts › chanTienKy gọi đúng các hàm này) — trước 17/10/2026 bộ chấm này bỏ sót, tập mẫu trượt nhịp hình (12/20 shot đứng yên).
-const nt = ds.map((c, i) => ({ thu_tu: c.thu_tu, ky_thuat: c.ky_thuat, bieu_cam: (shots[i] as Record<string, any>).bieu_cam, dan_dung: c.dan_dung, hanh_dong: c.hanh_dong, di_cm: diCm(c.may_3d?.vi_tri), cuoi: i === ds.length - 1, phan_doan: c.phan_doan, phat_s: (shots[i] as Record<string, any>).phat_s, thoi_luong_s: (shots[i] as Record<string, any>).thoi_luong_s }));
-const tienKy = [...kiemNhipHinh(nt), ...kiemNguPhapMay(nt as never, phim.kinh_thanh.the_loai), ...kiemGiayDoc(nt as never, {}), ...kiemVaiKe(nt as never, {} as never), ...kiemDanKhongGian(ds as never, nv.filter((a) => a.loai === 'boi_canh').map((a) => a.id), {})];
+// Cổng tiền kỳ = ĐÚNG hàm cổng keyframe chạy (sinh-anh.ts › lyChanKeyframe → quy-trinh.ts › chanTienKy + chanShot), không tự lắp danh sách:
+// 17/10/2026 bộ chấm tự lắp báo "0 chặn" trong khi cổng thật chặn cả 20 shot (thẻ shot, kết tập ba nhịp, liền mạch biểu cảm). Người xem ảo đọc DB
+// (thu_nguoi_xem) — ở đây chỉ nhắc, không tính chặn; ảnh gốc anchor cũng chỉ có trên DB (coi như có).
+const nvQt = nv.map((a, i) => ({ ...a, mo_ta: (phim.nhan_vat as { mo_ta?: string }[])[i]!.mo_ta ?? '', anh_ref: ['(cục bộ)'], bien_the: [] }));
+const canhQt = ds.map((c, i) => ({ ...c, phat_s: (shots[i] as Record<string, any>).phat_s, thoi_luong_s: (shots[i] as Record<string, any>).thoi_luong_s, chu_man: (shots[i] as Record<string, any>).chu_man,
+  thoai: (shots[i] as Record<string, any>).thoai, loi_thoai: '', bieu_cam: (shots[i] as Record<string, any>).bieu_cam, prompt_anh: (shots[i] as Record<string, any>).prompt_anh || 'x', bien_the: [], nhanh: '' }));
+const tapQt = { so: 1, brief: phim.tap.brief ?? '', beats: phim.tap.beats, phan_canh: phanCanh as never, thu_nguoi_xem: null, nhac_url: null, nhac_phan_canh: {} };
+const pq = phimQt(phim.loai, phim.kinh_thanh);
+const tatCaTk = [...chanTienKy(tapQt, pq, canhQt as never, canhQt as never, nv.filter((a) => a.loai === 'boi_canh').map((a) => a.id)),
+  ...canhQt.flatMap((c) => chanShot(c as never, tapQt, nvQt as never, { camXucQc: pq.camXucQc, ds: canhQt as never }).map((x) => `#${c.thu_tu} ${x}`))];
+const tienKy = tatCaTk.filter((x) => !x.startsWith(TIEN_TO_NGUOI_XEM));
+if (tatCaTk.length > tienKy.length) console.log('ℹ người xem ảo: đọc trên DB (kiem-nguoi-xem.mts), không chấm ở đây');
 console.log(`tiền kỳ: ${tienKy.length ? tienKy.map((x) => '\n  CHẶN ' + x).join('') : 'đạt'}`);
 const kb = chamKichBan({ tap: { so: 1, beats: phim.tap.beats, phan_canh: phanCanh as never }, kt: phim.kinh_thanh,
   canh: shots.map((s: Record<string, any>) => ({ phat_s: s.phat_s, thoi_luong_s: s.thoi_luong_s, phan_doan: s.canh, chu_man: s.chu_man, thoai: s.thoai, loi_thoai: '', hanh_dong: s.hanh_dong })) as never });

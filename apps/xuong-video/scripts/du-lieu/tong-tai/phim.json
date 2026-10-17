@@ -197,6 +197,20 @@
     ],
     "mau": "#111111"
    }
+  },
+  {
+   "loai": "dao_cu",
+   "ten": "Chuỗi hạt ngọc",
+   "mo_ta": "Thin bracelet of small pale-green jade beads on a black silk cord — the same milky green jade as Lâm Hạ's bangle",
+   "khoi_3d": {
+    "hinh": "hop",
+    "co": [
+     8,
+     8,
+     2
+    ],
+    "mau": "#8fc4a8"
+   }
   }
  ],
  "tap": {
@@ -437,8 +451,8 @@
     "luc": "liền sau",
     "muc_tieu": "Lục Thần muốn biết cô là ai",
     "xung_dot": "Lần đầu tiên anh mất thế chủ động",
-    "an_y": "Vòng tay ngọc của Hạ gợi ký ức cô bé năm xưa (gieo cho tập sau)",
-    "nhip": "dừng đúng đỉnh, cắt đen",
+    "an_y": "Vòng tay ngọc của Hạ và chuỗi hạt ngọc giấu dưới cổ tay áo Thần cùng một chất ngọc — khán giả thấy hai người đã gặp nhau từ nhỏ, cả hai chưa biết (gieo cho tập sau)",
+    "nhip": "bùng ở câu thoại → giữ mặt Thần 3 giây → móc chuỗi hạt ngọc, cắt đen",
     "cam_xuc_dau": 4,
     "cam_xuc_cuoi": 5,
     "anh_sang": "tuong_phan",
@@ -462,6 +476,14 @@
       "ten": "Lâm Hạ",
       "dien": "khẽ, chắc nịch",
       "loi": "Sếp mới của anh."
+     },
+     {
+      "loai": "hd",
+      "chu": "Hạ quay đi. Lục Thần đứng chết lặng, hai tay vẫn chống trên bàn."
+     },
+     {
+      "loai": "hd",
+      "chu": "Cận cổ tay anh: tay áo xô lên, lộ một chuỗi hạt ngọc — cùng màu ngọc với vòng tay của Hạ."
      },
      {
       "loai": "chuyen",

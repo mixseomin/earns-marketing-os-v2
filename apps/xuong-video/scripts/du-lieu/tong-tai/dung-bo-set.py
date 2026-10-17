@@ -35,7 +35,7 @@ def van_phong():
          hop('Cửa vào kính mờ', [-300, 3, 0], [180, 3, 240], '#c9d6df', 'frosted glass double entrance doors with steel handles', sang=0.2),
          hop('Đồng hồ tường', [250, 3, 195], [40, 3, 40], '#111111', 'round black wall clock showing 9:05'),
          hop('Vách kính phòng TGĐ', [300, 1000, 0], [560, 2, 300], '#bcd3e0', 'glass wall of the CEO office', sang=0.3),
-         hop('Cửa phòng TGĐ', [80, 1000, 0], [110, 3, 240], '#a9c4d6', 'glass door of the CEO office', sang=0.3)]
+         hop('Cửa phòng TGĐ', [80, 1000, 0], [110, 3, 240], '#a9c4d6', 'glass door of the CEO office', kinh=True)]
     for i, x in enumerate((-330, -120, 300)):
         v.append(hop(f'Đèn trần {i + 1}', [x, 550, 296], [12, 900, 4], '#fffaf0', 'recessed linear LED ceiling light', sang=3, nen=True))
     # tường trái: tranh thuỷ mặc + mảng tường xanh chữ vàng; góc trái sau: tủ hồ sơ, máy photo

@@ -339,6 +339,12 @@ def dung_set():
     for v in DL['vat']:   # vật liệu thật cho khung màu (Workbench vẫn đọc màu phẳng diffuse_color)
         if not v.get('chat'): continue
         for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]: chat_lieu(o, v['chat'], v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
+    for v in DL['vat']:   # KÍNH (kinh: True — cửa / vách kính): trong suốt ở khung màu, tia đo nhìn xuyên (tia_qua_kinh) — người sau cửa kính là THẤY
+        if not v.get('kinh'): continue
+        for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]:
+            m = mau(v.get('mau', '#a9c4d6')).copy(); m.name = f"kinh {v['ten']}"; b = m.node_tree.nodes['Principled BSDF']
+            b.inputs['Transmission Weight'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.04; b.inputs['IOR'].default_value = 1.45
+            m.diffuse_color = (*m.diffuse_color[:3], 0.25); dat(o, m, o.name)
     s = bpy.context.scene
     w = bpy.data.worlds.new('w'); s.world = w; w.use_nodes = True
     w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.25, 0.26, 0.3, 1)
@@ -531,6 +537,17 @@ def ve_sau(s, sh, cam, ra):
     s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
     s.render.engine, s.cycles.samples, s.cycles.use_denoising = eng, smp, dn
 
+KINH = {v['ten'] for v in DL['vat'] if v.get('kinh')}
+def tia_qua_kinh(s, dg, goc, huong, kc):
+    """ray_cast bỏ qua vật kính (KINH): trúng kính thì bắn tiếp từ sau mặt kính, tối đa 4 lớp."""
+    for _ in range(4):
+        hit, loc, nor, i, ob, mx = s.ray_cast(dg, goc, huong, distance=kc)
+        g = ob.name.split('·')[0] if hit and ob else ''
+        if not (g in KINH or g.rsplit(' ', 1)[0] in KINH): return hit, loc, nor, i, ob, mx
+        buoc = (loc - goc).length + 0.001; goc = loc + huong * 0.001; kc -= buoc
+        if kc <= 0: return False, None, None, None, None, None
+    return False, None, None, None, None, None
+
 def kiem_hinh_hoc(s, cam, sh, nv_obj):
     """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật — TÂM có trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia
     từ máy tới 9 điểm trên thân — che > nửa số điểm = bị che). bat_buoc = chủ thể của khung (shot khai) — chỉ chúng mới là lỗi khi hỏng."""
@@ -538,20 +555,30 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
     bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get(); out = []
     bb_ten = set(sh.get('bat_buoc') or [])
+    # MA-NƠ-CANH NGƯỜI (khối 'NG <tên>.<khớp>'): đo CẢ NGƯỜI — hộp bao gộp mọi khớp, tên = tên nhân vật, tay chân của chính họ không tính là che.
+    # Trước 17/10/2026 chỉ đo khối ngực dưới tên 'NG Lâm Hạ.nguc_k' → cổng tổng thể / chủ thể không nhận ra ai (tập 122: 3 cảnh báo thiếu người).
+    nguoi_cua = lambda n: n[3:].rsplit('.', 1)[0] if n.startswith('NG ') and '.' in n else None
     for o in nv_obj:
-        bb = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        ng_ = nguoi_cua(o.name)
+        phan = [x for x in bpy.data.objects if x.name.startswith(f"NG {ng_}.")] if ng_ else [o]
+        pts = [x.matrix_world @ Vector(c) for x in phan for c in x.bound_box]
+        lo = Vector([min(q[i] for q in pts) for i in range(3)]); hi = Vector([max(q[i] for q in pts) for i in range(3)])
+        bb = [Vector((hi.x if i & 1 else lo.x, hi.y if i & 2 else lo.y, hi.z if i & 4 else lo.z)) for i in range(8)] if ng_ else pts
         tam = sum(bb, Vector()) / 8
         diem = [tam] + [tam.lerp(c, 0.7) for c in bb]
         che = {}; ys = []
         for p in diem:
             v = world_to_camera_view(s, cam, p); ys.append(v.y)
             d = p - cam.location; kc = d.length
-            hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d.normalized(), distance=kc - 0.0005)
+            hit, loc, _, _, ob, _ = tia_qua_kinh(s, dg, cam.location, d.normalized(), kc - 0.0005)
             nhom = o.name.rsplit(' ', 1)[0] if o.name[-1:].isdigit() else o.name   # phần cùng nhóm (đế–cột–chao đèn) không tính là che
-            if hit and ob and ob.name != o.name and not ob.name.startswith(nhom + ' ') and not ob.name.startswith(o.name + '·'): che[ob.name.split('·')[0]] = che.get(ob.name.split('·')[0], 0) + 1
+            if not (hit and ob) or ob.name == o.name or ob.name.startswith(nhom + ' ') or ob.name.startswith(o.name + '·'): continue
+            if ng_ and (ob.name.startswith(f"NG {ng_}.") or ob.name == f"NV {ng_}"): continue
+            k_ = ob.name.split('·')[0]; k_ = f"NV {nguoi_cua(k_)}" if nguoi_cua(k_) else k_
+            che[k_] = che.get(k_, 0) + 1
         vt = world_to_camera_view(s, cam, tam)
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
-        ten = o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name)
+        ten = ng_ or (o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name))
         out.append({'nhan_vat': ten, 'bat_buoc': ten in bb_ten, 'trong_khung': 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0,
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out

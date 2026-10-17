@@ -18,7 +18,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 37;
+export const BAN_DUNG = 38;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -56,6 +56,16 @@ export function vuotTruc(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => b
   const [a, b] = [chung[0]!, chung[1]!];
   const p1 = phia(truoc, a, b); const p2 = phia(sau, a, b);
   return p1 && p2 && p1 !== p2 ? `máy sang phía bên kia trục ${a}–${b} so với shot trước (hướng trên màn sẽ đảo)` : null;
+}
+
+/** ĐỐI ĐÁP CÙNG PHÍA TRỤC (shot – ngược shot): hai shot cùng có ≥ 2 nhân vật chung và máy ở CÙNG phía trục nối họ — ngữ pháp chuẩn khi hai
+ *  người nói chuyện: máy quay từ sau vai người này sang sau vai người kia, hướng nhìn đổi 120–180° mà hướng trên màn giữ nguyên. Luật nối hướng
+ *  máy (> 100°) không áp cho cặp này (tập 122, 17/10/2026: 7 cặp đối đáp bị chặn như "cắt sang nơi khác"). */
+export function doiDapCungPhia(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => boolean = () => true): boolean {
+  const chung = sau.vi_tri.map((v) => v.ten).filter((t) => laNhanVat(t) && truoc.vi_tri.some((v) => v.ten === t));
+  if (chung.length < 2) return false;
+  const p1 = phia(truoc, chung[0]!, chung[1]!); const p2 = phia(sau, chung[0]!, chung[1]!);
+  return !!p1 && p1 === p2;
 }
 
 /** RÀNG BUỘC TRỤC cho bộ giải máy: trục nối hai nhân vật chung với shot so trục, phía máy tính TRONG Blender từ máy của shot đó ĐÃ GIẢI ở
@@ -184,7 +194,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {
     const h = (m: May3d) => Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!);
     const lech = Math.abs(((((h(c.may_3d) - h(truoc.may_3d)) * 180) / Math.PI + 540) % 360) - 180);
-    if (lech > 100) out.push(`máy đổi hướng nhìn ${Math.round(lech)}° so với shot trước cùng cảnh — hậu cảnh đổi hẳn, cắt như sang nơi khác: đặt máy gần hướng shot trước, hoặc khai qua_truc nếu cố ý`);
+    if (lech > 100 && !doiDapCungPhia(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase()))) out.push(`máy đổi hướng nhìn ${Math.round(lech)}° so với shot trước cùng cảnh — hậu cảnh đổi hẳn, cắt như sang nơi khác: đặt máy gần hướng shot trước, hoặc khai qua_truc nếu cố ý`);
   }
   if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
   return out;

@@ -23,7 +23,7 @@ if (co('--in')) {
 }
 const tu = process.argv.find((a) => a.startsWith('--tu-cham='));
 if (tu) {
-  const ds = KiemKhungSchema.shape.shot.parse(JSON.parse(readFileSync(tu.slice(11), 'utf8')).shot);
+  const ds = KiemKhungSchema.shape.shot.parse(JSON.parse(readFileSync(tu.slice('--tu-cham='.length), 'utf8')).shot);
   const nguoi = (process.argv.find((a) => a.startsWith('--nguoi=')) ?? '--nguoi=Claude trong phiên (tự chấm)').slice(8);
   const lech = await ghiKiemKhung(db, tap, ds, nguoi);
   console.log(`tự chấm: ghi ${ds.length} khung · lệch ${lech.length}`); for (const l of lech) for (const x of l.loi) console.log(`#${l.thu_tu} ⚠ ${tenLoiKhung(x.loai)}: ${x.mo_ta}`);

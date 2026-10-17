@@ -203,7 +203,8 @@ const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, 
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 /** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
-export const BAN_MAY = 6;   // 6: người đi trong shot không cho tràn mép · 5: bề ngang đo vuông góc hướng máy
+export const BAN_MAY = 7;   // 7: món người thật đang cầm nhắm chỗ tay
+//   // 6: người đi trong shot không cho tràn mép · 5: bề ngang đo vuông góc hướng máy
 //   // 3–4 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI), thêm OTS / two / insert
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 /** CỠ CẢNH NGƯỜI THẬT (anh 17/10/2026, previs tổng tài: shot "cận" ra toàn thân): PHAN_KHUNG viết cho nhân vật Tango tí hon (cận = ôm cả khối,
@@ -216,7 +217,15 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const ten = o.khung?.length ? o.khung : o.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
   const chu = o.vi_tri.filter((v) => ten.includes(v.ten));
   // Khung ôm cả chỗ mở lẫn chỗ kết của chủ thể (shot có di chuyển: chủ thể không chạy ra khỏi khung giữa chừng).
-  const ds = (chu.length ? chu : o.vi_tri).flatMap((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return [v.tam, ...(v.den ? [v.den] : [])].map((p) => ({ x: p[0]!, y: p[1]!, z: p[2] ?? 0, h, w: c[0]! })); });
+  // Món đang CẦM bởi người thật (rig ma-nơ-canh — dung-set.py › gan_tay đặt món vào bàn tay): khung nhắm chỗ TAY ước tính (trước ngực người cầm
+  // 35 cm, cao 0,6 thân), không nhắm toạ độ khai của món (#9 tổng tài: máy cận điện thoại nằm trong người Hạ).
+  const choCam = (v: DatMay['vi_tri'][number], p: number[]): number[] => {
+    const ng = v.cam ? o.vi_tri.find((x) => x.ten === v.cam) : undefined; const kh = ng ? khoi(ng.ten) : null;
+    if (!ng || kh?.hinh !== 'nguoi') return p;
+    const a = (((p === v.den ? ng.huong_den ?? ng.huong : ng.huong) ?? 0) * Math.PI) / 180; const q = p === v.den && ng.den ? ng.den : ng.tam;
+    return [q[0]! + 35 * Math.sin(a), q[1]! - 35 * Math.cos(a), (q[2] ?? 0) + 0.6 * (kh.co[2] ?? 170)];
+  };
+  const ds = (chu.length ? chu : o.vi_tri).flatMap((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return [v.tam, ...(v.den ? [v.den] : [])].map((p0) => { const p = choCam(v, p0); return { x: p[0]!, y: p[1]!, z: p[2] ?? 0, h, w: c[0]! }; }); });
   const cx = ds.reduce((a, d) => a + d.x, 0) / ds.length, cy = ds.reduce((a, d) => a + d.y, 0) / ds.length;
   const H = Math.max(...ds.map((d) => d.z + d.h)) - Math.min(...ds.map((d) => d.z));
   // Bề NGANG đo VUÔNG GÓC hướng máy (trước 17/10/2026 luôn đo theo trục x của phòng: máy nhìn dọc trục x thì hai người đứng đối mặt theo y

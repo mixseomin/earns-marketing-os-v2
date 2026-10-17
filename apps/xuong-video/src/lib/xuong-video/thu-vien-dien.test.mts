@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/thu-vien-dien.test.mts
 import assert from 'node:assert';
-import { phanBo, BOI_CANH, DIEN_VIEN, SAC_TOC, moTaChinh } from './thu-vien-dien';
+import { phanBo, boiCanhTheoPrompt, BOI_CANH, DIEN_VIEN, SAC_TOC, moTaChinh } from './thu-vien-dien';
 assert.ok(BOI_CANH.length >= 80 && DIEN_VIEN.length >= 140);
 assert.strictEqual(new Set(DIEN_VIEN.map((d) => d.sac_toc)).size, Object.keys(SAC_TOC).length);
 assert.ok(DIEN_VIEN.some((d) => d.gioi === 'phi_nhi_nguyen') && DIEN_VIEN.some((d) => d.tuoi >= 70) && DIEN_VIEN.some((d) => d.tuoi < 25));
@@ -24,4 +24,6 @@ const k3 = phanBo([0, 1, 2, 3].map((i) => ({ key: String(i), concept: 'X', yc: {
 assert.ok(k3.every((x) => x.boi_canh.nhom === 'nha') && new Set(k3.map((x) => x.boi_canh.ma)).size === 4, 'bối cảnh chính theo nhóm template, vẫn xoay');
 const k4 = phanBo([{ key: '0', concept: 'X', yc: { gioi: ['nam' as const], nhom_bc1: ['nha'] } }], { daDung: { boi_canh: ['nha_bep'] } });
 assert.notStrictEqual(k4[0]!.boi_canh.ma, 'nha_bep', 'nơi đã dùng ở phim cũ bị đẩy xuống');
+assert.strictEqual(boiCanhTheoPrompt('small American bedroom with a full-length mirror, wooden dresser, morning light')?.ma, 'nha_phong_ngu', 'khớp dù viết lệch chữ');
+assert.strictEqual(boiCanhTheoPrompt(''), undefined);
 console.log('thu-vien-dien.test: ok');

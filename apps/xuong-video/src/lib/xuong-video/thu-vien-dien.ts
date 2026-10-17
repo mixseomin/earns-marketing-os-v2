@@ -77,4 +77,5 @@ export const moTaPhu = (k: Pick<KetPhanBo, 'phu'>): string => `${k.phu.dv.mo_ta}
 /** Giọng mô tả cho ô giong theo diễn viên (tuổi + giới) — chonGiongDan đọc chuỗi này. */
 export const moTaGiong = (d: Pick<DienVienTv, 'gioi' | 'tuoi'>): string => `American ${d.gioi === 'nu' ? 'woman' : d.gioi === 'nam' ? 'man' : 'non-binary person'}, ${d.tuoi}, natural, conversational`;
 /** Bối cảnh trong thư viện có prompt trùng (đã dùng ở phim cũ) — để đếm vào daDung. */
-export const boiCanhTheoPrompt = (p: string): BoiCanhTv | undefined => BOI_CANH.find((b) => p.trim().startsWith(b.prompt) || b.prompt.startsWith(p.trim()));
+const dau = (x: string) => x.toLowerCase().replace(/[^a-z ]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !['and', 'the', 'with'].includes(w)).slice(0, 5).join(' ');
+export const boiCanhTheoPrompt = (p: string): BoiCanhTv | undefined => p.trim() ? BOI_CANH.find((b) => dau(b.prompt) === dau(p)) : undefined;

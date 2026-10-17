@@ -1,4 +1,4 @@
-// Soi BIẾN DẠNG cho clip (soi-bien-dang.ts — Gemini Flash nhìn ảnh ghép 12 khung, ~$0.001/clip, ghi tiền xv_job). Dùng để hiệu chỉnh trên clip
+// Soi BIẾN DẠNG cho clip (soi-bien-dang.ts — Gemini 3.8 Flash nhìn ảnh ghép 12 khung, ghi tiền xv_job). Dùng để hiệu chỉnh trên clip
 // đã biết lỗi / đã biết tốt, hoặc soi riêng một clip. Clip mới tự soi lúc nhận (soi-clip.ts).
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/soi-bien-dang.mts <url.mp4> [<url.mp4> …] --sp-phim=<phim_id>

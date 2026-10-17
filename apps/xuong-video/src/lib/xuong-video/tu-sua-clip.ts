@@ -123,6 +123,9 @@ async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => v
 async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daThu: string[], log: (s: string) => void = () => {}): Promise<string | null> {
   // tên sản phẩm / thương hiệu trong prompt → model video tự in chữ lên đồ (#127 shot 13: 'JETT' trên cạp) — cấm, gọi là "the trousers"
   const ten = String((((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.kinh_thanh as { tu_template?: { gia_tri?: Record<string, string> } } | undefined)?.tu_template?.gia_tri?.san_pham ?? '').trim();
+  // shot CÓ NGƯỜI = gắn nhân vật (sổ xv_nhan_vat), không đoán theo chữ prompt — #127 shot 3 "Fingers undo…", shot 8 "The narrator…" bị coi là shot
+  // không người, mọi bản viết lại có "he / hands" đều bị loại oan
+  const coNguoiShot = coNguoi(`${c.prompt_video} ${c.prompt_anh}`) || (c.nhan_vat.length > 0 && Number(((await db.execute(sql`SELECT count(*) AS n FROM xv_nhan_vat WHERE id = ANY(${`{${c.nhan_vat.join(',')}}`}::int[]) AND loai = 'nhan_vat'`)) as unknown as Row[])[0]?.n) > 0);
   for (let i = 0; i < 2; i++) {
     const r = await goiGeminiJson<{ prompt?: string }>([{ text: loiDanSuaPrompt({ prompt: c.prompt_video, chu: c.chu_man, loi, daThu }) + (ten ? `\n- Never write the brand or product name ("${ten}") — call it "the trousers"; any name in the prompt gets printed onto the clothing.` : '') }],
       { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] });
@@ -130,7 +133,7 @@ async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daT
     await ghiTienChu(db, phimId, `viết lại prompt video #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
     const p = (r.data.prompt ?? '').trim();
     // không thêm người vào shot không có người (#120 shot 3: shot sản phẩm bị viết thành 'the person stands…')
-    const vi = [...(!p ? ['rỗng'] : []), ...lintPrompt(p).map((l) => l.vi), ...(coNguoi(p) && !coNguoi(c.prompt_video) ? ['thêm người vào shot không người'] : []), ...(ten && p.toLowerCase().includes(ten.toLowerCase()) ? [`có tên "${ten}"`] : [])];
+    const vi = [...(!p ? ['rỗng'] : []), ...lintPrompt(p).map((l) => l.vi), ...(coNguoi(p) && !coNguoiShot ? ['thêm người vào shot không người'] : []), ...(ten && p.toLowerCase().includes(ten.toLowerCase()) ? [`có tên "${ten}"`] : [])];
     if (!vi.length) return p;
     log(`  #${c.thu_tu} viết lại prompt lần ${i + 1} bị loại: ${vi.join(' · ')}`);
     daThu = [...daThu, p];

@@ -3,7 +3,7 @@
 // File thường (client lẫn server import): kiểu + bảng hằng + phép tính thuần. Tự kiểm: nguon-ai.test.mts.
 
 export type TrangThaiNguon = 'dang' | 'co_tk' | 'tham_khao' | 'ngung';
-export type LoaiNguon = 'video' | 'anh' | 'giong' | 'am' | 'chu';
+export type LoaiNguon = 'video' | 'anh' | 'giong' | 'am' | 'chu' | 'nhung';
 /** Ô khớp nội dung: 1 nên dùng · 0 được · -1 cấm · null chưa rõ — theo thứ tự VIEC_NGUON. */
 export type O = 1 | 0 | -1 | null;
 
@@ -15,6 +15,7 @@ export const LOAI_NGUON: { key: LoaiNguon; ten: string; donVi: string }[] = [
   { key: 'giong', ten: 'Giọng', donVi: '1.000 ký tự' },
   { key: 'am', ten: 'Âm thanh', donVi: '1 bản 30s' },
   { key: 'chu', ten: 'Chữ', donVi: '1 lượt ≈ 20k token vào + 5k ra' },
+  { key: 'nhung', ten: 'Embedding', donVi: '1 triệu token vào' },
 ];
 export const VIEC_NGUON = ['QC người thật', 'Giữ nhân vật', 'Cận sản phẩm', 'Hoạt hình / 3D', 'Thoại khớp miệng', 'Nối khung khoá'] as const;
 

@@ -43,7 +43,7 @@ export function SoNguonAi() {
   const [d, setD] = useState<{ nguon: Nguon[]; model: NguonModel[] } | null>(null);
   const [loi, setLoi] = useState('');
   const [tab, setTab] = useNho<Tab>('xv-nguon-tab', 'gia', ['gia', 'nguon', 'khop', 'odinh', 'tk']);
-  const [loai, setLoai] = useNho<LoaiNguon>('xv-nguon-loai', 'video', ['video', 'anh', 'giong', 'am', 'chu']);
+  const [loai, setLoai] = useNho<LoaiNguon>('xv-nguon-loai', 'video', LOAI_NGUON.map((l) => l.key));
   const [tt, setTt] = useState<'tat_ca' | 'dang' | 'chua'>('tat_ca');
   const [mo, setMo] = useState<{ model: number } | { nguon: string } | null>(null);
   const tai = async () => { const r = await goiAction(() => dsNguonAi()); setLoi(r.loi); if (r.kq?.ok) setD(r.kq.data); };

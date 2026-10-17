@@ -1157,10 +1157,10 @@
   "duong_video": "veo",
   "ky_thuat": {
    "vai": "nguoi_thu_ba",
-   "co_canh": "ots",
+   "co_canh": "two",
    "goc": "ngang",
    "chuyen_dong": "day_vao",
-   "ong_kinh": "chan_dung",
+   "ong_kinh": "chuan",
    "anh_sang": "vien",
    "am_thanh": [
     "nen_phong"
@@ -1168,7 +1168,7 @@
   },
   "dan_dung": {
    "dien": "Anticipation: Vivian holds the {Thẻ nhân viên} up between two fingers. Action: she swings it in front of Hạ's face. Reaction: leans in with a sneer.",
-   "bo_cuc": "Over Hạ’s shoulder ({Thùng đồ cá nhân} edge in foreground) onto Vivian dangling the {Thẻ nhân viên}",
+   "bo_cuc": "Profile two-shot: Vivian dangling the {Thẻ nhân viên} in front of Hạ’s face, Hạ holding the {Thùng đồ cá nhân}",
    "mo": "Vivian dangling the {Thẻ nhân viên}",
    "ket": "Vivian leaning in, sneering",
    "huong": "Vivian looks screen-left at Hạ",
@@ -1198,16 +1198,16 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -160,
-    340,
-    155
+    -45,
+    255,
+    140
    ],
    "nhin": [
-    -10,
-    366,
-    160
+    -45,
+    380,
+    140
    ],
-   "ong_kinh": 50,
+   "ong_kinh": 32,
    "khung": [
     "Vivian",
     "Thẻ nhân viên"
@@ -1234,8 +1234,7 @@
      ],
      "huong": -90,
      "dien": [
-      "cam_truoc",
-      "dua_truoc_mat@0.4-0.7"
+      "dua_truoc_mat"
      ]
     },
     {

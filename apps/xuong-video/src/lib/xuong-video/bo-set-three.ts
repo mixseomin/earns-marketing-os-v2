@@ -135,7 +135,7 @@ export function dungCanhShot(set: BoSet, khoiCua: (ten: string) => KhoiNv | unde
   const them = new Set(may?.them ?? []);
   for (const v of set.du_lieu.vat) {
     if (v.tuy_chon && may && !them.has(v.ten)) continue;
-    const mo = v.kinh ? 0.25 : v.tuy_chon && !may ? 0.35 : 1;   // kính: trong suốt như khung Blender (dung-set.py › KINH)
+    const mo = v.kinh || /\bglass (wall|door|partition|panel)s?\b/i.test(v.en ?? '') ? 0.25 : v.tuy_chon && !may ? 0.35 : 1;   // kính: CÙNG luật dung-set.py › LA_KINH   // kính: trong suốt như khung Blender (dung-set.py › KINH)
     const g = new THREE.Group();
     if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0, mo));
     else g.add(khoi(v as Phan, undefined, 0, mo));

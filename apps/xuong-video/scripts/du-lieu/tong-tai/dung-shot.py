@@ -90,7 +90,7 @@ shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'mcu', 'goc': 'cao', 'c
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
      # 2.4: trung cận từ ngực (điện thoại trong tay) lên mặt — cận riêng món 15 cm trước thân thì máy dí vào áo
-     {'tay': True, 'dat': [250, 645, 145], 'nhin': [300, 560, 125], 'ong_kinh': 50, 'khung': [HA, DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
+     {'tay': True, 'dat': [245, 650, 175], 'nhin': [308, 572, 118], 'ong_kinh': 40, 'khung': [HA, DT], 'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──
@@ -176,7 +176,7 @@ shot('5.3', C5, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', '
      { 'dien': "Anticipation: Thần stays frozen, palms still on the table. Action: his jaw tightens; his eyes follow Hạ off screen-left. Reaction: the cold mask cracks — a long, stunned breath.", 'huong': 'Thần looks screen-left after Hạ.','bo_cuc': 'Slow push into a close-up of Lục Thần still leaning on the table corner, the boardroom soft and silent behind him', 'mo': 'Thần frozen, leaning on his palms', 'ket': 'Thần staring after Hạ, stunned', 'muc_dich': 'giữ phản ứng — khán giả nếm cú đảo thế'},
      'Lục Thần đứng chết lặng, hai tay vẫn chống trên bàn, mắt dõi theo Hạ', [],
      [bc(THAN, 'soc', 'ngo_vuc')],
-     {'tay': True, 'dat': [-170, 640, 150], 'nhin': [-70, 705, 150], 'ong_kinh': 85, 'khung': [THAN],   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
+     {'tay': True, 'dat': [-175, 640, 145], 'nhin': [-100, 702, 138], 'ong_kinh': 65, 'khung': [THAN],   # Thần chúi chống bàn: đầu lệch về −x, thấp hơn đứng   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
       'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt(HA, [-165, 700, 0], 90, an=True)]},
      [THAN, PH])
 shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'day_vao', 'ong_kinh': 'macro', 'anh_sang': 'tuong_phan', 'luat': ['chenh_thong_tin', 'motif'], 'am_thanh': ['im_lang', 'cot_ket']},

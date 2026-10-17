@@ -375,7 +375,7 @@ def dung_set():
     for v in DL['vat']:   # ẢNH CHUẨN (anh: URL — tranh, màn chiếu, bảng chỉ dẫn): dán lên mặt vật → khung 3D gửi AI đã có ĐÚNG bức tranh, mọi góc như nhau
         if v.get('anh'): dan_anh(v)
     for v in DL['vat']:   # KÍNH (kinh: True — cửa / vách kính): trong suốt ở khung màu, tia đo nhìn xuyên (tia_qua_kinh) — người sau cửa kính là THẤY
-        if not v.get('kinh'): continue
+        if not LA_KINH(v): continue
         for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]:
             m = mau(v.get('mau', '#a9c4d6')).copy(); m.name = f"kinh {v['ten']}"; b = m.node_tree.nodes['Principled BSDF']
             b.inputs['Transmission Weight'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.04; b.inputs['IOR'].default_value = 1.45
@@ -573,7 +573,10 @@ def ve_sau(s, sh, cam, ra):
     s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
     s.render.engine, s.cycles.samples, s.cycles.use_denoising = eng, smp, dn
 
-KINH = {v['ten'] for v in DL['vat'] if v.get('kinh')}
+import re as _re
+# kính: khai kinh=True HOẶC en tả là kính (glass wall / door / partition / panel) — 17/10/2026 'Vách kính phòng TGĐ' chưa khai, che người phía sau
+LA_KINH = lambda v: bool(v.get('kinh')) or bool(_re.search(r'\bglass (wall|door|partition|panel)s?\b', v.get('en') or '', _re.I))
+KINH = {v['ten'] for v in DL['vat'] if LA_KINH(v)}
 def tia_qua_kinh(s, dg, goc, huong, kc):
     """ray_cast bỏ qua vật kính (KINH): trúng kính thì bắn tiếp từ sau mặt kính, tối đa 4 lớp."""
     for _ in range(4):

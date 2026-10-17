@@ -35,8 +35,11 @@ function itNhat<T>(ds: T[], diem: (x: T) => number, xoay: number): T | undefined
   for (let i = 0; i < ds.length; i++) { const x = ds[(i + xoay) % ds.length]!; const d = diem(x); if (d < d0) { d0 = d; tot = x; } }
   return tot;
 }
-export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number } = {}): KetPhanBo[] {
+/** o.daDung: bối cảnh (ma) + diễn viên (ma) đã nằm trong phim gốc có sẵn — tính như đã dùng để bộ hình mới không lặp lại (17/10/2026: phòng ngủ #120). */
+export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number; daDung?: { boi_canh?: string[]; dien_vien?: string[] } } = {}): KetPhanBo[] {
   const dSac = dem(), dNguoi = dem(), dNoi = dem(), dNhom = dem(), dAo = dem(), dQh = dem(), dSk = dem();
+  for (const m of o.daDung?.boi_canh ?? []) { tang(dNoi, m); const b = BOI_CANH.find((x) => x.ma === m); if (b) tang(dNhom, b.nhom); }
+  for (const m of o.daDung?.dien_vien ?? []) tang(dNguoi, m);
   const lgbt = o.tiLeLgbt ?? 0.2;
   return viec.map((v, i) => {
     const yc = v.yc;
@@ -72,3 +75,5 @@ export const moTaChinh = (k: Pick<KetPhanBo, 'chinh' | 'ao'>): string => `${k.ch
 export const moTaPhu = (k: Pick<KetPhanBo, 'phu'>): string => `${k.phu.dv.mo_ta}, ${k.phu.qh.en}`;
 /** Giọng mô tả cho ô giong theo diễn viên (tuổi + giới) — chonGiongDan đọc chuỗi này. */
 export const moTaGiong = (d: Pick<DienVienTv, 'gioi' | 'tuoi'>): string => `American ${d.gioi === 'nu' ? 'woman' : d.gioi === 'nam' ? 'man' : 'non-binary person'}, ${d.tuoi}, natural, conversational`;
+/** Bối cảnh trong thư viện có prompt trùng (đã dùng ở phim cũ) — để đếm vào daDung. */
+export const boiCanhTheoPrompt = (p: string): BoiCanhTv | undefined => BOI_CANH.find((b) => p.trim().startsWith(b.prompt) || b.prompt.startsWith(p.trim()));

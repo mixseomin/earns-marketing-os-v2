@@ -22,4 +22,6 @@ assert.ok(k2.every((x) => ['vo', 'chong', 'ban_gai', 'ban_trai'].includes(x.phu.
 assert.ok(k2.some((x) => x.phu.qh.lgbt) && k2.some((x) => !x.phu.qh.lgbt));
 const k3 = phanBo([0, 1, 2, 3].map((i) => ({ key: String(i), concept: 'X', yc: { gioi: ['nam' as const], nhom_bc1: ['nha'] } })));
 assert.ok(k3.every((x) => x.boi_canh.nhom === 'nha') && new Set(k3.map((x) => x.boi_canh.ma)).size === 4, 'bối cảnh chính theo nhóm template, vẫn xoay');
+const k4 = phanBo([{ key: '0', concept: 'X', yc: { gioi: ['nam' as const], nhom_bc1: ['nha'] } }], { daDung: { boi_canh: ['nha_bep'] } });
+assert.notStrictEqual(k4[0]!.boi_canh.ma, 'nha_bep', 'nơi đã dùng ở phim cũ bị đẩy xuống');
 console.log('thu-vien-dien.test: ok');

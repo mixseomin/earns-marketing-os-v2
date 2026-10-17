@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { phanBo, moTaChinh, moTaPhu, moTaGiong, treCua, SAC_TOC, NHOM_BOI_CANH, type YeuCau } from '../src/lib/xuong-video/thu-vien-dien';
+import { phanBo, boiCanhTheoPrompt, moTaChinh, moTaPhu, moTaGiong, treCua, SAC_TOC, NHOM_BOI_CANH, type YeuCau } from '../src/lib/xuong-video/thu-vien-dien';
 
 type Row = Record<string, unknown>;
 const tep = process.argv[2]!; const ghi = process.argv.includes('--ghi');
@@ -17,7 +17,8 @@ const bt = (await db.execute(sql`SELECT b.*, k.ma AS k_ma, p.kinh_thanh->'templa
 // bộ hình ĐÃ CÓ PHIM GỐC giữ nguyên diễn viên / bối cảnh (clip đã quay — đổi là lệch với mọi bản xuất từ clip đó)
 const giu = bt.filter((b) => b.phim_id != null); const doi = bt.filter((b) => b.phim_id == null);
 if (giu.length) console.log(`  giữ nguyên ${giu.length} bộ hình đã có phim gốc (#${giu.map((b) => b.id).join(', #')})`);
-const kq = phanBo(doi.map((b) => ({ key: String(b.id), concept: String(b.k_ma), yc: { ...(d.concept[String(b.k_ma)]?.yeu_cau ?? { gioi: ['nam'] }), ...(Array.isArray(b.vai_phu) ? { qh: b.vai_phu as string[] } : {}), ...(Array.isArray(b.bc_nhom) ? { nhom_bc1: b.bc_nhom as string[] } : {}) } })));
+const daDung = { boi_canh: giu.flatMap((b) => [boiCanhTheoPrompt(String(b.boi_canh))?.ma, boiCanhTheoPrompt(String((b.o as Record<string, string> | null)?.boi_canh_2 ?? ''))?.ma]).filter((x): x is string => !!x) };
+const kq = phanBo(doi.map((b) => ({ key: String(b.id), concept: String(b.k_ma), yc: { ...(d.concept[String(b.k_ma)]?.yeu_cau ?? { gioi: ['nam'] }), ...(Array.isArray(b.vai_phu) ? { qh: b.vai_phu as string[] } : {}), ...(Array.isArray(b.bc_nhom) ? { nhom_bc1: b.bc_nhom as string[] } : {}) } })), { daDung });
 const dem = (f: (x: (typeof kq)[number]) => string) => [...kq.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
 console.log(`${doi.length} bộ hình · ${new Set(kq.map((x) => x.chinh.ma)).size} diễn viên chính · ${new Set(kq.map((x) => x.boi_canh.ma)).size} bối cảnh chính · ${kq.filter((x) => x.phu.qh.lgbt).length} cặp đồng giới`);
 console.log('  sắc tộc:', dem((x) => SAC_TOC[x.chinh.sac_toc] ?? x.chinh.sac_toc).map(([k, n]) => `${k} ${n}`).join(' · '));

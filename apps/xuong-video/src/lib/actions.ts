@@ -49,6 +49,7 @@ import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
 import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumGoc, type DongCreative, type ShotKho, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
+import { giaTriSanPhamDb } from '@/lib/xuong-video/concept-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
 import { oThieu, nhomCuaO, type OTemplateDs } from '@/lib/xuong-video/template';
@@ -1840,11 +1841,7 @@ export async function giaTriSanPham(spKey: string): Promise<Kq<Record<string, st
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const ds = ((await db.execute(sql`SELECT loai, kinh_thanh FROM xv_phim WHERE loai = 'quang_cao' AND kinh_thanh->'tu_template' IS NOT NULL ORDER BY updated_at`)) as unknown as Row[])
-    .filter((r) => sanPhamPhim({ loai: 'quang_cao', kinh_thanh: (r.kinh_thanh ?? {}) as KinhThanh })?.key === spKey);
-  const gt: Record<string, string> = {};
-  for (const r of ds) for (const [k, v] of Object.entries(((r.kinh_thanh ?? {}) as KinhThanh).tu_template?.gia_tri ?? {})) if (nhomCuaO(k) === 'san_pham' && String(v ?? '').trim()) gt[k] = String(v);
-  return { ok: true, data: gt };
+  return { ok: true, data: await giaTriSanPhamDb(db, spKey) };
 }
 /** Tạo phim từ một dòng lô: chép template + điền ô (như nút 🧩) rồi gắn góc của ô và nối dòng lô với phim. */
 export async function taoPhimTuLo(loId: number, ten: string, gt: Record<string, string>): Promise<Kq<KetQuaChep>> {

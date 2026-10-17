@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/tu-sua-clip-do.test.mts
 import assert from 'node:assert';
-import { lintPrompt, loiDanSuaPrompt, laLoiTam } from './tu-sua-clip-do';
+import { lintPrompt, loiDanSuaPrompt, laLoiTam, chonGiongDan } from './tu-sua-clip-do';
 const k = (p: string) => lintPrompt(p).map((l) => l.key);
 // ca thật đã hỏng
 assert.deepStrictEqual(k('he squats down low, picks up a small object off the floor with one hand and stays in the deep squat'), ['cam_vat']);
@@ -17,4 +17,7 @@ assert.ok(d.includes('sock floats') && d.includes('"p-1"') && d.includes('He squ
 assert.ok(laLoiTam('lượt sinh bị từ chối: Kie.ai báo hỏng: Internal Error, Please try again later.'));
 assert.ok(!laLoiTam('Request blocked: The generation was halted during Google safety review'), 'chặn an toàn là lỗi do prompt, phải viết lại');
 assert.ok(!laLoiTam('cơ thể méo từ giây 1.7: hands distorted'));
+assert.strictEqual(chonGiongDan('American man, 35, relaxed'), 'Chris');
+assert.strictEqual(chonGiongDan('nữ Mỹ 70 tuổi, ấm'), 'Jessica');
+assert.strictEqual(chonGiongDan('American woman, 40s'), 'Jessica');
 console.log('tu-sua-clip-do.test: ok');

@@ -14,8 +14,7 @@ import { docSpy } from '@/lib/xuong-video/spy-api';
 import { nguCanhXuat, xuatCreativeDb } from '@/lib/xuong-video/xuat-creative';
 import { taoJob, xongJob } from '@/lib/xuong-video/doc-db';
 import { chayNen } from '@/lib/xuong-video/hoan-tat';
-import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET, ganNguonCreativeDb } from '@/lib/xuong-video/concept-db';
-import { giaTriSanPham, taoPhimTuTemplate } from '@/lib/actions';
+import { phimSanPham, uocVietPhuongAnDb, vietPhuongAnDb, capThieuPhuongAn, vietHetDb, VIET_HET, giaTriSanPhamDb, gtCreativeDb, taoPhimGocDb } from '@/lib/xuong-video/concept-db';
 import type { KetQuaChep } from '@/lib/xuong-video/template-db';
 import { oChuTuKhung, oHinhCua, hopKhuon, gtBienThe, laDuyet, type Concept, type TplConcept, type Cap, type BienTheHinh, type PhuongAn, type CreativeDuyet, type GiaConcept, type SubAvatar } from '@/lib/xuong-video/concept';
 
@@ -85,7 +84,7 @@ export async function docKhoConcept(spKey: string): Promise<Kq<KhoConcept>> {
   const g = (gRows as unknown as Row[])[0] ?? {};
   const anh = Number(g.anh) || GIA_DU_PHONG.anh, video = Number(g.video) || GIA_DU_PHONG.video, chu = Number(g.chu) || GIA_DU_PHONG.chu;
   return { ok: true, data: {
-    spy_sp: await spySp(db, spKey), gt_sp: await (async () => { const g = await giaTriSanPham(spKey); return g.ok ? g.data : {}; })(), concept, tpl, cap,
+    spy_sp: await spySp(db, spKey), gt_sp: await giaTriSanPhamDb(db, spKey), concept, tpl, cap,
     bien_the: (bt as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), so: n(r.so), nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh), goc: r.goc === true, phim_id: r.phim_id == null ? null : n(r.phim_id) })),
     phuong_an: (pa as unknown as Row[]).map((r) => ({ id: n(r.id), cap_id: n(r.cap_id), o: s(r.o), so: n(r.so), chu: s(r.chu), nguon: s(r.nguon) })),
     creative: (cr as unknown as Row[]).map((r) => ({ id: n(r.id), so: n(r.so), cap_id: n(r.cap_id), bien_the_id: r.bien_the_id == null ? null : n(r.bien_the_id),
@@ -271,49 +270,16 @@ export async function gtCreative(creativeId: number): Promise<Kq<{ template_id: 
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const r = ((await db.execute(sql`SELECT cr.*, c.template_id, k.ma AS k_ma, k.ten AS k_ten, k.du_lieu, p.ten AS t_ten, b.nguoi_chinh, b.nguoi_phu, b.boi_canh
-    FROM xv_creative cr JOIN xv_cap c ON c.id = cr.cap_id JOIN xv_concept k ON k.id = c.concept_id JOIN xv_phim p ON p.id = c.template_id
-    LEFT JOIN xv_bien_the_hinh b ON b.id = cr.bien_the_id WHERE cr.id = ${creativeId}`)) as unknown as Row[])[0];
-  if (!r) return loi('không thấy creative');
-  const o = await docOTemplate(db, n(r.template_id));
-  if (!o) return loi('không thấy template');
-  const sp = await giaTriSanPham(s(r.sp_key));
-  const gt: Record<string, string> = { ...(sp.ok ? sp.data : {}) };
-  const keys = o.o.filter((x) => x.dung).map((x) => x.k);
-  const av = (r.du_lieu ?? {}) as SubAvatar;
-  if (keys.includes('doi_tuong') && av.nguoi) gt.doi_tuong = av.nguoi;
-  const chon = (r.chon ?? {}) as Record<string, number>;
-  const pa = (await db.execute(sql`SELECT o, so, chu FROM xv_phuong_an WHERE cap_id = ${n(r.cap_id)} AND NOT an`)) as unknown as Row[];
-  // ô HÌNH của cặp (scripts/nap-o-hinh.mts — hình tả đúng sản phẩm thay cho mẫu template lẫn sản phẩm khác): một phương án, không vào tổ hợp
-  for (const p of pa) if (n(p.so) === 1 && !(s(p.o) in chon) && keys.includes(s(p.o)) && s(p.chu).trim()) gt[s(p.o)] = s(p.chu);
-  Object.assign(gt, gtBienThe({ nguoi_chinh: s(r.nguoi_chinh), nguoi_phu: s(r.nguoi_phu), boi_canh: s(r.boi_canh) }, keys));
-  for (const [k, so] of Object.entries(chon)) { const p = pa.find((x) => s(x.o) === k && n(x.so) === so); if (p) gt[k] = s(p.chu); }
-  const tTen = s(r.t_ten).replace(/^Template\s*·\s*/, '').replace(/\s*\(.*\)\s*$/, '');
-  return { ok: true, data: { template_id: n(r.template_id), template_ten: s(r.t_ten), ten: `#${n(r.so)} ${s(r.k_ten)} · ${tTen}`, gt } };
+  const g = await gtCreativeDb(db, creativeId);
+  return typeof g === 'string' ? loi(g) : { ok: true, data: g };
 }
 /** Tạo phim từ creative đã duyệt (0đ): chép template + điền ô như nút 🧩, gắn góc spy của concept, nối creative ↔ phim, ghi mã QC vào phim. */
 export async function taoPhimTuCreative(creativeId: number, ten: string, gt: Record<string, string>): Promise<Kq<KetQuaChep>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const r = ((await db.execute(sql`SELECT cr.*, c.template_id, k.du_lieu, k.spy_sp, k.ma AS k_ma FROM xv_creative cr JOIN xv_cap c ON c.id = cr.cap_id JOIN xv_concept k ON k.id = c.concept_id WHERE cr.id = ${creativeId}`)) as unknown as Row[])[0];
-  if (!r) return loi('không thấy creative');
-  if (s(r.trang_thai) !== 'duyet' || r.phim_id != null) return loi('creative này không còn chờ tạo phim');
-  const kq = await taoPhimTuTemplate(n(r.template_id), ten, gt);
-  if (!kq.ok) return kq;
-  // góc spy của concept (góc làm bằng chứng) → chip góc trên phim, giữ đường quy về spy
-  const ids = new Set(((r.du_lieu ?? {}) as SubAvatar).goc ?? []);
-  let goc: GocSpy[] = [];
-  if (ids.size) { const g = await docSpy<{ id: number; loai: string; ten: string; mo_ta?: string }[]>(`/api/goc?sp=${n(r.spy_sp)}`);
-    if (g.ok) goc = docGocSpy(g.data.filter((x) => ids.has(Number(x.id))).map((x) => ({ id: Number(x.id), sp: n(r.spy_sp), loai: x.loai, ten: x.ten, ...(x.mo_ta ? { mo_ta: x.mo_ta } : {}) }))); }
-  await db.execute(sql`UPDATE xv_phim SET goc_spy = ${JSON.stringify(goc)}::jsonb,
-    kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{creative}', ${JSON.stringify({ so: n(r.so), ma: s(r.ma), concept: s(r.k_ma) })}::jsonb), updated_at = now() WHERE id = ${kq.data.phimId}`);
-  await db.execute(sql`UPDATE xv_creative SET phim_id = ${kq.data.phimId}, trang_thai = 'da_tao' WHERE id = ${creativeId}`);
-  // phim ĐẦU TIÊN của bộ hình = PHIM GỐC — các creative khác cùng bộ hình xuất từ clip của nó (xuatCreative), không tạo phim riêng
-  // nguồn tham khảo của phương án đi theo câu chữ vào phim — thiếu thì cổng quy trình chặn sinh keyframe cả phim
-  await ganNguonCreativeDb(db, kq.data.phimId);
-  if (r.bien_the_id != null) await db.execute(sql`UPDATE xv_bien_the_hinh SET phim_id = ${kq.data.phimId} WHERE id = ${n(r.bien_the_id)} AND phim_id IS NULL`);
-  return kq;
+  if (!ten.trim()) return loi('thiếu tên phim');
+  return taoPhimGocDb(db, creativeId, { ten, gt });
 }
 
 /** ⬇ XUẤT CREATIVE TỪ PHIM GỐC (dùng lại clip — xuat-creative.ts): chạy nền như lồng tiếng, trả job. Tiền: chỉ giọng của câu đổi (ElevenLabs,

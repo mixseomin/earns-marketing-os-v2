@@ -32,3 +32,6 @@ ${LUAT_PROMPT.map((l) => `- ${l.en}`).join('\n')}
 /** Lỗi TẠM của nhà cung cấp (không phải do prompt): gửi lại đúng prompt cũ sau một lúc, không tính là một lần thử, không viết lại prompt.
  *  17/10/2026 #120 shot 3: Kie "Internal Error, Please try again later" ba lần liền → vòng cũ đốt cả 3 lần thử + viết lại prompt thêm người vào shot sản phẩm. */
 export const laLoiTam = (loi: string): boolean => /internal error|try again later|temporarily|timeout|timed out|503|502|rate limit|hạn mức|overloaded/i.test(loi);
+/** Giọng lời dẫn theo mô tả người kể (ô giong / nhân vật): nữ → Jessica, còn lại → Chris (giọng nam Mỹ #120). ElevenLabs v3 qua fal. */
+export const MODEL_GIONG_DAN = 'fal-ai/elevenlabs/tts/eleven-v3';
+export const chonGiongDan = (moTa: string): string => /(?<!\p{L})(woman|female|girl|lady|mother|mom|wife|grandma|grandmother|nữ|bà|mẹ|vợ)(?!\p{L})/iu.test(moTa) ? 'Jessica' : 'Chris';

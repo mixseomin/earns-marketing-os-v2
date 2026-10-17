@@ -1622,70 +1622,80 @@
    "gioi": "gai",
    "tuoi": 7,
    "sac_toc": "white",
-   "mo_ta": "7-year-old white girl"
+   "mo_ta": "7-year-old white girl",
+   "ten": "Lily"
   },
   {
    "ma": "tre_black_trai",
    "gioi": "trai",
    "tuoi": 9,
    "sac_toc": "black",
-   "mo_ta": "9-year-old Black boy"
+   "mo_ta": "9-year-old Black boy",
+   "ten": "Malik"
   },
   {
    "ma": "tre_latino_gai",
    "gioi": "gai",
    "tuoi": 6,
    "sac_toc": "latino",
-   "mo_ta": "6-year-old Hispanic / Latino girl"
+   "mo_ta": "6-year-old Hispanic / Latino girl",
+   "ten": "Camila"
   },
   {
    "ma": "tre_dong_a_trai",
    "gioi": "trai",
    "tuoi": 8,
    "sac_toc": "dong_a",
-   "mo_ta": "8-year-old East Asian boy"
+   "mo_ta": "8-year-old East Asian boy",
+   "ten": "Ethan"
   },
   {
    "ma": "tre_dong_nam_a_gai",
    "gioi": "gai",
    "tuoi": 10,
    "sac_toc": "dong_nam_a",
-   "mo_ta": "10-year-old Filipino / Vietnamese girl"
+   "mo_ta": "10-year-old Filipino / Vietnamese girl",
+   "ten": "Bella"
   },
   {
    "ma": "tre_nam_a_trai",
    "gioi": "trai",
    "tuoi": 7,
    "sac_toc": "nam_a",
-   "mo_ta": "7-year-old South Asian boy"
+   "mo_ta": "7-year-old South Asian boy",
+   "ten": "Rohan"
   },
   {
    "ma": "tre_trung_dong_gai",
    "gioi": "gai",
    "tuoi": 8,
    "sac_toc": "trung_dong",
-   "mo_ta": "8-year-old Middle Eastern girl"
+   "mo_ta": "8-year-old Middle Eastern girl",
+   "ten": "Layla"
   },
   {
    "ma": "tre_ban_dia_trai",
    "gioi": "trai",
    "tuoi": 6,
    "sac_toc": "ban_dia",
-   "mo_ta": "6-year-old Native American boy"
+   "mo_ta": "6-year-old Native American boy",
+   "ten": "Kai"
   },
   {
    "ma": "tre_dao_tbd_gai",
    "gioi": "gai",
    "tuoi": 9,
    "sac_toc": "dao_tbd",
-   "mo_ta": "9-year-old Pacific Islander girl"
+   "mo_ta": "9-year-old Pacific Islander girl",
+   "ten": "Malia"
   },
   {
    "ma": "tre_lai_trai",
    "gioi": "trai",
    "tuoi": 10,
    "sac_toc": "lai",
-   "mo_ta": "10-year-old mixed-race boy"
+   "mo_ta": "10-year-old mixed-race boy",
+   "ten": "Eli"
   }
  ]
 }

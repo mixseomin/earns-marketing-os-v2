@@ -6,8 +6,8 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { kiemNguoiXemTap, type kiemNguoiXemCanh } from './kiem-nguoi-xem';
-import { heNguoiXem, vaoNguoiXem, type thuNguoiXem } from './claude';
-import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { heNguoiXem, vaoNguoiXem, NguoiXemSchema, NguoiXemQcSchema, DoiChieuYSchema, type thuNguoiXem } from './claude';
+import { goiGeminiJson, zodSangGemini, MO_HINH_BD } from './soi-bien-dang';
 import { sinhAnhGoc, sinhKeyframeCanh } from './sinh-anh';
 import { sinhGiongShots } from './sinh-giong';
 import { khopGiongTap } from './hau-ky';
@@ -25,23 +25,18 @@ async function doiJob(db: Db, ids: number[], phut = 10): Promise<void> {
     if (Number(r[0]?.n) === 0) return; await ngu(5000);
   }
 }
-const XEM_SCHEMA = { type: 'OBJECT', properties: { ke_lai: { type: 'STRING' }, ai: { type: 'STRING' }, muon: { type: 'STRING' }, can: { type: 'STRING' }, lat: { type: 'STRING' }, ket: { type: 'STRING' },
-  diem: { type: 'NUMBER' }, cho_kho: { type: 'ARRAY', items: { type: 'OBJECT', properties: { shot: { type: 'NUMBER' }, van_de: { type: 'STRING' }, sua: { type: 'STRING' } }, required: ['shot', 'van_de', 'sua'] } },
-  cat: { type: 'ARRAY', items: { type: 'OBJECT', properties: { shot: { type: 'NUMBER' }, bot_s: { type: 'NUMBER' }, ly_do: { type: 'STRING' } }, required: ['shot', 'bot_s', 'ly_do'] } } },
-  required: ['ke_lai', 'ai', 'muon', 'can', 'lat', 'ket', 'diem', 'cho_kho', 'cat'] };
-
 /** Bộ chấm người xem bằng Gemini — CÙNG chữ ký + lời dặn với thuNguoiXem (Claude) để kiemNguoiXemTap dùng chung: lượt 1 người xem (heNguoiXem +
  *  vaoNguoiXem), lượt 2 đối chiếu ý đồ. Chấm CẢ PHIM một lần: phim kể chuyện để sản phẩm / CTA ở cuối là đúng dạng — chấm từng đoạn thì đoạn nỗi đau
  *  luôn bị trừ vì "chưa thấy sản phẩm" (17/10/2026, #122: 8/8 đoạn trượt). */
 const chamGemini: typeof thuNguoiXem = async (o) => {
   const x = await goiGeminiJson<Parameters<typeof kiemNguoiXemCanh>[3] extends infer T ? T extends { xem: infer X } ? X : never : never>(
-    [{ text: `${heNguoiXem(o.kt, o.doDai, o.qc)}\n\n${vaoNguoiXem(o)}` }], XEM_SCHEMA);
+    [{ text: `${heNguoiXem(o.kt, o.doDai, o.qc)}\n\n${vaoNguoiXem(o)}` }], zodSangGemini(o.qc ? NguoiXemQcSchema : NguoiXemSchema));
   if (!x) return { ok: false, loi: 'Gemini không trả lời (lượt người xem)' };
   const xem = x.data;
   const d = await goiGeminiJson<{ khop: boolean; lech: string }>([{ text: o.qc
     ? `Bạn so điều MỘT NGƯỜI XEM nhận được từ một quảng cáo với ý đồ của người làm QC. Chỉ đánh giá người xem có nhận đúng sản phẩm, vấn đề, lợi ích chính và ưu đãi không — không chấm văn, không xét đúng sai của ưu đãi / số liệu.\n\nÝ ĐỒ QC\n${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM NHẬN ĐƯỢC\n${xem.ke_lai}\nSản phẩm: ${xem.ai}\nVấn đề: ${xem.muon}\nLợi ích: ${xem.can}\nƯu đãi / việc làm tiếp: ${xem.ket}`
     : `Bạn so câu chuyện MỘT NGƯỜI XEM kể lại với ý đồ của tác giả. Chỉ đánh giá người xem có nhận được đúng câu chuyện, cú lật và kết không — không chấm văn.\n\nÝ ĐỒ TÁC GIẢ\nLogline: ${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM KỂ LẠI\n${xem.ke_lai}\nCú lật người xem thấy: ${xem.lat}\nKết người xem nhận: ${xem.ket}` }],
-    { type: 'OBJECT', properties: { khop: { type: 'BOOLEAN' }, lech: { type: 'STRING' } }, required: ['khop', 'lech'] });
+    zodSangGemini(DoiChieuYSchema));
   if (!d) return { ok: false, loi: 'Gemini không trả lời (lượt đối chiếu)' };
   return { ok: true, data: { xem, doi: d.data }, model: MO_HINH_BD, tokens: { in: x.tk.in + d.tk.in, out: x.tk.out + d.tk.out } } as Awaited<ReturnType<typeof thuNguoiXem>>;
 };

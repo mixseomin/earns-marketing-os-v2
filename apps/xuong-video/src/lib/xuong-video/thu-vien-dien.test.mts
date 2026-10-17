@@ -20,4 +20,6 @@ assert.ok(new Set(k.map((x) => x.su_kien.ma)).size >= 10 && k.every((x) => x.su_
 const k2 = phanBo(Array.from({ length: 10 }, (_, i) => ({ key: String(i), concept: 'X', yc: { gioi: ['nam' as const], qh: ['vo', 'chong', 'ban_gai', 'ban_trai'] } })));
 assert.ok(k2.every((x) => ['vo', 'chong', 'ban_gai', 'ban_trai'].includes(x.phu.qh.ma)), 'vai phụ theo template');
 assert.ok(k2.some((x) => x.phu.qh.lgbt) && k2.some((x) => !x.phu.qh.lgbt));
+const k3 = phanBo([0, 1, 2, 3].map((i) => ({ key: String(i), concept: 'X', yc: { gioi: ['nam' as const], nhom_bc1: ['nha'] } })));
+assert.ok(k3.every((x) => x.boi_canh.nhom === 'nha') && new Set(k3.map((x) => x.boi_canh.ma)).size === 4, 'bối cảnh chính theo nhóm template, vẫn xoay');
 console.log('thu-vien-dien.test: ok');

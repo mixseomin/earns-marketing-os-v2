@@ -43,3 +43,19 @@ export async function goiGeminiJson<T>(parts: unknown[], schema: unknown): Promi
 /** Ý đồ của shot cho máy soi: hành động video + khung hình (bỏ đoạn tả sản phẩm dài — đã có riêng) — để quần cũ / rách / chia đôi khung cố ý không bị báo. */
 export const yDoShot = (promptVideo: string, promptAnh: string, spMoTa = ''): string =>
   [promptVideo, spMoTa ? promptAnh.split(spMoTa).join('') : promptAnh].map((x) => x.trim()).filter(Boolean).join(' | ').slice(0, 900);
+
+/** Khuôn zod (v3) → responseSchema của Gemini, GIỮ mô tả từng trường — để bộ chấm Gemini đọc đúng nghĩa trường như bản Claude
+ *  (17/10/2026: thiếu mô tả, Gemini hiểu trường `ai` của QC là "ai trong phim" thay vì "sản phẩm là gì" → đối chiếu báo lệch oan). */
+export function zodSangGemini(z: unknown): Record<string, unknown> {
+  const d = (z as { _def: { typeName: string; description?: string; shape?: () => Record<string, unknown>; type?: unknown; innerType?: unknown } })._def;
+  const mo = d.description ? { description: d.description } : {};
+  switch (d.typeName) {
+    case 'ZodObject': { const sh = d.shape!(); return { type: 'OBJECT', ...mo, properties: Object.fromEntries(Object.entries(sh).map(([k, v]) => [k, zodSangGemini(v)])), required: Object.keys(sh) }; }
+    case 'ZodArray': return { type: 'ARRAY', ...mo, items: zodSangGemini(d.type) };
+    case 'ZodString': return { type: 'STRING', ...mo };
+    case 'ZodNumber': return { type: 'NUMBER', ...mo };
+    case 'ZodBoolean': return { type: 'BOOLEAN', ...mo };
+    case 'ZodOptional': case 'ZodNullable': case 'ZodDefault': return zodSangGemini(d.innerType);
+    default: return { type: 'STRING', ...mo };
+  }
+}

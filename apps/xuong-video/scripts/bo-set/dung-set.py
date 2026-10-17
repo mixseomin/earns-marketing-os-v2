@@ -294,6 +294,44 @@ def lay_net(cam, sh, goc=None):
     f = cam.data.lens; N = f * f * de / (2 * 0.03 * s_ * s_)
     d.aperture_fstop = float(os.environ['XV_FSTOP']) if os.environ.get('XV_FSTOP') else min(64.0, max(11.0, N))
 
+def ve_mat_na(s, sh, cam, goc_ra):
+    """MẶT NẠ 3D cho GHÉP ĐÈ đồ nhận dạng và SỬA VÙNG (anh 17/10/2026, học từ topview.ai: ghép đồ thật vào keyframe thay vì để model vẽ; sửa một vùng thay vì
+    sinh lại cả khung). Render Workbench màu phẳng: vật đích trắng, mọi thứ khác đen (vật đứng trước tự che phần sau). Mỗi mặt nạ '<goc_ra>-mn-<i>.png'.
+      · 'nd:<vật>' — tấm ảnh chuẩn '<vật>·anh' + 4 góc trên khung (x, y 0..1 gốc trên-trái) kèm toạ độ ảnh (u, v) — ghép đúng phối cảnh
+      · 'ng:<tên>' — THÂN người (bỏ đầu, cổ, mũi, tóc) — sửa áo không đụng mặt"""
+    from bpy_extras.object_utils import world_to_camera_view
+    tg = []
+    for v in DL['vat']:
+        o = bpy.data.objects.get(f"{v['ten']}·anh") if v.get('anh') else None
+        if o and not o.hide_render: tg.append((f"nd:{v['ten']}", [o]))
+    for nv in sh.get('nhan_vat', []):
+        if nv.get('an') or (DL['nhan_vat_mau'].get(nv['ten']) or {}).get('hinh') != 'nguoi': continue
+        than = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render and o.name.startswith(f"NG {nv['ten']}.") and not any(k in o.name for k in ('.dau_k', '.mui', '.co_k', 'toc'))]
+        if than: tg.append((f"ng:{nv['ten']}", than))
+    if not tg: return {}
+    bpy.context.view_layer.update()
+    mesh = [o for o in bpy.data.objects if o.type == 'MESH']; mau_cu = {o.name: tuple(o.color) for o in mesh}
+    eng = s.render.engine; sd = s.display.shading; cu = (sd.light, sd.color_type); wc = tuple(s.world.color); vt_ = s.view_settings.view_transform
+    s.render.engine = 'BLENDER_WORKBENCH'; sd.light = 'FLAT'; sd.color_type = 'OBJECT'; s.world.color = (0, 0, 0); s.view_settings.view_transform = 'Standard'
+    fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'BW'
+    out = {}
+    for i, (ma, objs) in enumerate(tg):
+        for o in mesh: o.color = (0, 0, 0, 1)
+        for o in objs: o.color = (1, 1, 1, 1)
+        s.render.filepath = f"{goc_ra}-mn-{i}.png"; bpy.ops.render.render(write_still=True)
+        rec = {'tep': f'mn-{i}'}
+        if ma.startswith('nd:'):
+            o = objs[0]; uv = o.data.uv_layers.active.data if o.data.uv_layers.active else None; goc = {}
+            for lp in o.data.loops:
+                if lp.vertex_index in goc: continue
+                p = world_to_camera_view(s, cam, o.matrix_world @ o.data.vertices[lp.vertex_index].co)
+                goc[lp.vertex_index] = {'p': [round(p.x, 4), round(1 - p.y, 4)], 'uv': [round(uv[lp.index].uv[0], 4), round(1 - uv[lp.index].uv[1], 4)] if uv else None}
+            rec['goc'] = list(goc.values())
+        out[ma] = rec
+    for o in mesh: o.color = mau_cu[o.name]
+    s.render.engine = eng; sd.light, sd.color_type = cu; s.world.color = wc; s.view_settings.view_transform = vt_; fm.color_mode = 'RGBA'
+    return out
+
 def ve_mau(s, sh, ra):
     """Render khung màu bằng EEVEE (chỉ khi có OpenGL — Xvfb trên box). Trả True nếu có ảnh."""
     if not NHANH: return False
@@ -1307,7 +1345,7 @@ if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng t�
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
-kiem = {}; giai = {}; thay = {}; di = {}
+kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
@@ -1321,7 +1359,10 @@ for sh in ([] if CHI_MB else shots):
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     # ẢNH RA (anh 15/10/2026: "render 30+ shot sao ra 140 ảnh?"): chỉ KHUNG MÀU (JPEG) — ảnh số 1 của keyframe. Khung xám chỉ render khi máy không
     # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
-    if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"): ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu cho keyframe hai bước (FLUX depth)
+    if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
+        ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu cho keyframe hai bước (FLUX depth)
+        mn = ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}")   # mặt nạ ghép đè / sửa vùng
+        if mn: mat_na[sh['ma']] = mn
     else:
         s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
         s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
@@ -1400,5 +1441,6 @@ json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(giai, open(f'{RA}/giai.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(thay, open(f'{RA}/thay.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(di, open(f'{RA}/di.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(mat_na, open(f'{RA}/mat_na.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

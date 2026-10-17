@@ -144,7 +144,8 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (17): tấm ảnh chuẩn tên '<vật>·anh' (tên 'X anh sau' lọt vào prompt tiếng Việt) → 52.
 // 17/10/2026 (18): ten_vat trả tên vật (bỏ đuôi '·…') thay vì tên khối — tên khối tiếng Việt từng lọt vào prompt → 53.
 // 17/10/2026 (19): thay_cho nhận danh sách (cửa mở thay cửa đóng + mảng tường khoét lỗ) → 54.
-assert.deepEqual([BAN_DUNG, bam], [54, '6516719a79f3'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// 17/10/2026 (20): ve_mat_na — mặt nạ Workbench cho ghép đè đồ nhận dạng + sửa vùng thân người → 55.
+assert.deepEqual([BAN_DUNG, bam], [55, '69cf5be96684'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

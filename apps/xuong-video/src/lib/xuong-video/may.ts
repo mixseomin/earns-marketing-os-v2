@@ -11,7 +11,9 @@ import { MAU_MAY_DUNG, type MauMayDung } from './may-dung-mau';
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type Row = Record<string, unknown>;
 
-export type NenDang = { nen: string; ten: string; tk: string; gio: string; tran: number; kem: string; may: string };
+/** Cấu hình kênh cho máy đăng bằng br (puzzle-books scripts/dang-br.mjs): profile br + id vault, và chỗ nhận diện kênh trên nền. */
+export type KenhBr = { profile: string; acct: string; page_id?: string; ten?: string; handle?: string; kenh_id?: string };
+export type NenDang = { nen: string; ten: string; tk: string; gio: string; tran: number; kem: string; may: string; br?: KenhBr };
 export type DaDang = { url: string; ngay: string; luc?: string; binhLuan?: boolean };
 export type May = {
   id: number; ma: string; ten: string; du_an: string; muc_dich: string; mau: MauMayDung; chay: boolean;

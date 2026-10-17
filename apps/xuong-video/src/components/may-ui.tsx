@@ -16,7 +16,7 @@ import { Pill, Seg, mono } from './ui';
 
 const TRANG = 15;   // video mỗi lần hiện — máy sinh liên tục, cũ hơn nằm sau "Xem thêm"
 type Tab = 'video' | 'mau' | 'nguon' | 'dang';
-const NEN_GON: Record<string, string> = { tiktok: 'TT', youtube: 'YT', facebook: 'FB', instagram: 'IG' };
+const NEN_GON: Record<string, string> = { tiktok: 'TT', youtube: 'YT', facebook: 'FB', instagram: 'IG', x: 'X' };
 const khung916 = { width: '100%', aspectRatio: '9 / 16', borderRadius: 6, background: '#000', objectFit: 'cover' as const, display: 'block' };
 
 function datUrl(k: string, v: string | null) {

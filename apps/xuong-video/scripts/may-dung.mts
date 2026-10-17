@@ -9,9 +9,11 @@
 //   --nap-nguon <tệp.json>         nạp cả tệp nguồn đề của mẫu (vd mau/may/scam-or-real.json) qua tuNguon của mẫu (mau-dung.ts)
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
+//   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
+//   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
 import { getDb } from '@mos2/db';
 import { readFileSync } from 'node:fs';
-import { dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
+import { dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
@@ -47,7 +49,12 @@ if (a.includes('--nap')) {
   console.log(`✓ sổ đăng ${slug} · ${nen}`);
 } else if (a.includes('--nhat-ky')) {
   await ghiNhatKy(db, ma, await docStdin()); console.log('✓ nhật ký');
+} else if (a.includes('--may-info')) {
+  const m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  process.stdout.write(JSON.stringify(m));
+} else if (a.includes('--may-chay')) {
+  process.stdout.write(JSON.stringify((await dsMay(db)).filter((m) => m.chay).map((m) => m.ma)));
 } else if (a.includes('--nguon')) {
   await ghiNguon(db, ma, await docStdin()); console.log('✓ nguồn');
-} else { console.error('dùng: may-dung.mts [--may mã] --nap < de.json | --ds [--ca-luu-tru] | --xuat <slug|all-chua> | --ghi-dang <slug> <nền> < x.json | --nguon < n.json | --nhat-ky < x.json'); process.exit(2); }
+} else { console.error('dùng: may-dung.mts [--may mã] --nap < de.json | --ds [--ca-luu-tru] | --xuat <slug|all-chua> | --ghi-dang <slug> <nền> < x.json | --nguon < n.json | --nhat-ky < x.json | --may-info | --may-chay'); process.exit(2); }
 process.exit(0);

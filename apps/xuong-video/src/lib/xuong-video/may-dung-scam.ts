@@ -137,8 +137,8 @@ export const LINK_SCAM = 'https://ratesbyroom.com/hotel-scam-check/';
 export function tuNguonScam(x: DeScam & { slug: string }) {
   const { slug, ...de } = x, lua = de.ket === 'scam';
   return { slug, chu_de: de.goi, de, dang: {
-    title: `Scam or real? This "hotel" ${de.kenh === 'Email' ? 'email' : 'message'} – spot the red flags in 7 seconds`,
-    description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message – call the hotel on the number from its official website. Free checklist (5 red flags before you pay) + real hotel rates: ${LINK_SCAM}`,
+    title: `Scam or real? This "hotel" ${de.kenh === 'Email' ? 'email' : 'message'}: spot the red flags in 7 seconds`,
+    description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message. Call the hotel on the number from its official website. Free checklist (5 red flags before you pay) + real hotel rates: ${LINK_SCAM}`,
     link: LINK_SCAM,
   } };
 }

@@ -49,7 +49,7 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
     for i in $(seq 1 60); do
       R=$(GQ "query { pod(input: {podId: \"$HOST\"}) { desiredStatus runtime { ports { ip publicPort privatePort isIpPublic } } } }" || true)
       [ -n "$(echo "$R" | LOI 2>/dev/null)" ] && { echo "lỗi: $(echo "$R" | LOI)"; exit 1; }
-      D=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["pod"]; ps=[p for p in ((d.get("runtime") or {}).get("ports") or []) if p["privatePort"]==22 and p["isIpPublic"]]; print("CHET" if d["desiredStatus"] not in ("RUNNING",) else (f"root@{ps[0][\"ip\"]} {ps[0][\"publicPort\"]}" if ps else ""))' 2>/dev/null || true)
+      D=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["pod"]; ps=[p for p in ((d.get("runtime") or {}).get("ports") or []) if p["privatePort"]==22 and p["isIpPublic"]]; print("CHET" if d["desiredStatus"] != "RUNNING" else ("root@%s %s" % (ps[0]["ip"], ps[0]["publicPort"]) if ps else ""))' || true)   # không f-string lồng nháy: python3 3.9 của macOS báo lỗi cú pháp, lỗi bị nuốt → đợi mãi (17/10/2026)
       [ "$D" = CHET ] && { echo "pod không chạy"; exit 1; }
       [ -n "$D" ] && { echo "$D"; exit 0; }; sleep 5
     done; echo "pod chưa có SSH sau 5 phút"; exit 1 ;;
@@ -61,7 +61,7 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
   lam)   # CẢ MẠCH MỘT LỆNH: TẠO máy mới → đợi SSH → chuẩn bị → khung đẹp → bản diễn → XOÁ máy. trap EXIT xoá cả khi lỗi / bị ngắt.
          # may-thue.sh lam <tap> [chi_thu_tu,… cho bản diễn]
     TAP=$HOST; CHI=${3:-}; [ -n "$TAP" ] || { echo "thiếu <tap>"; exit 1; }
-    POD=$(bash "$0" tao) || { echo "không tạo được máy"; exit 1; }
+    POD=${XV_POD:-}; [ -n "$POD" ] || POD=$(bash "$0" tao) || { echo "không tạo được máy"; exit 1; }   # XV_POD=<id>: dùng lại máy đang chạy
     trap 'echo "— xoá máy thuê $POD"; bash "$0" xoa "$POD"' EXIT
     echo "pod $POD"
     DC=$(bash "$0" cho "$POD"); H=${DC% *}; P=${DC##* }

@@ -1,7 +1,7 @@
 // Sinh hình cho một phim trên box (không cần phiên đăng nhập) — TỐN TIỀN, chỉ chạy khi anh đã duyệt con số:
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
-//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong.
+//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước.
 //   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
 //                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
@@ -34,11 +34,16 @@ const kt = docKinhThanh(p[0].kinh_thanh as never);
 const anchorThieu = await q(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(anh_ref) = 0 AND mo_ta <> '' AND NOT (loai = 'boi_canh' AND bo_set_id IS NOT NULL) ORDER BY id`);
 const tap = await q(sql`SELECT id, so FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`);
 const tapId = Number(tap[0]?.id ?? 0);
-const canhThieu = tapId ? await q(sql`SELECT id, thu_tu, canh FROM xv_canh WHERE tap_id = ${tapId} AND keyframe_url IS NULL AND prompt_anh <> '' ORDER BY thu_tu`) : [];
+const canhThieu = tapId ? await q(sql`SELECT id, thu_tu, canh, (khung_xam->>'sau') IS NOT NULL AS co_sau FROM xv_canh WHERE tap_id = ${tapId} AND keyframe_url IS NULL AND prompt_anh <> '' ORDER BY thu_tu`) : [];
+// --nguon=<cổng:model> (vd ckey:wowztools/nano-banana-2): sinh keyframe ĐÚNG nguồn đó, một bước — không tự rơi sang cổng đắt hơn, không qua FLUX độ sâu.
+const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8);
+// Shot có bản đồ độ sâu 3D mặc định đi HAI BƯỚC (sinh-anh.ts: FLUX depth fal $0,05 + ảnh sửa nhân dạng) — ước giá phải tính bước FLUX (17/10/2026:
+// ước $0,034/ảnh trong khi đường thật ~ $0,09/ảnh).
+const haiBuoc = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau).length;
 const giaAnh = await giaAnhSv(kt.mo_hinh_anh).catch(() => 0);
 console.log(`phim #${phimId} · model ảnh ${kt.mo_hinh_anh} ≈ ${tien(giaAnh)}/ảnh`);
 console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(anchorThieu.length * giaAnh)}`);
-console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh)}`);
+console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh + haiBuoc * 5)}${haiBuoc ? ` (gồm ${haiBuoc} shot hai bước: FLUX độ sâu ≈ $0.05/shot)` : ''}${nguon ? ` · nguồn ${nguon}, một bước` : ''}`);
 if (arg('uoc') || (!arg('anchor') && !arg('keyframe') && !arg('xuat') && !process.argv.some((a) => a.startsWith('--nhac=')))) { console.log('(chỉ ước lượng — thêm --anchor / --keyframe / --nhac=… / --xuat để chạy)'); process.exit(0); }
 
 /** Đợi các job ảnh xong (cả đường Cloudflare lẫn hàng nền trong tiến trình này). */
@@ -68,7 +73,7 @@ if ((arg('keyframe') || arg('xuat')) && tapId && !arg('bo-qua-ngon-ngu')) {
 }
 if (arg('keyframe') && canhThieu.length) {
   const jobs: number[] = [];
-  for (const c of canhThieu) { const r = await sinhKeyframeCanh(db, Number(c.id), 1); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); }
+  for (const c of canhThieu) { const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); }
   await doi(jobs, 'keyframe');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);

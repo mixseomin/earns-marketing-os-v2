@@ -269,10 +269,17 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       });
       const nen = thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten);
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
-      const gocChu = g >= 8 ? 'low-angle shot from just above the desk, looking up' : g <= -8 ? 'high-angle shot looking down onto the desk' : 'eye-level shot at the height of the tiny characters';
-      const prompt1 = [`Macro photograph of a real miniature stop-motion set, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
-        bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.',
-        'Real materials, shallow depth of field, tactile handmade stop-motion feel. No text, no letters, no numbers, no people, no hands.'].filter(Boolean).join(' ');
+      // PHIM NGƯỜI THẬT (17/10/2026, tập 122): câu bước 1 trước đây ghi cứng cho hoạt hình stop-motion ("miniature set… no people, no hands") —
+      // áp vào phim người thật là FLUX vẽ mô hình thu nhỏ không người. Người thật: ảnh điện ảnh, ánh sáng theo phong cách hình của phim.
+      const nguoiThat = chatLieuPhim(bc.kt) === 'nguoi_that';
+      const gocChu = nguoiThat ? (g >= 8 ? 'low-angle shot looking up' : g <= -8 ? 'high-angle shot looking down' : 'eye-level shot')
+        : g >= 8 ? 'low-angle shot from just above the desk, looking up' : g <= -8 ? 'high-angle shot looking down onto the desk' : 'eye-level shot at the height of the tiny characters';
+      const prompt1 = (nguoiThat
+        ? [`Cinematic live-action film still, photorealistic, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
+          moTaVua(phongCachHinh(bc.kt.phong_cach)), 'Real people, real skin and fabric, natural motivated lighting, shallow depth of field, 35mm film look. No text, no letters, no numbers.']
+        : [`Macro photograph of a real miniature stop-motion set, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
+          bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.',
+          'Real materials, shallow depth of field, tactile handmade stop-motion feel. No text, no letters, no numbers, no people, no hands.']).filter(Boolean).join(' ');
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trong) { const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${moTaNgan(v.mo_ta)}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${moTaNgan(v.mo_ta)}`); }
       const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,

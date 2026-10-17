@@ -553,13 +553,15 @@ def tran_(o, nv, w, h):
     """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): chuỗi giọt liền nhau từ miệng vật theo
     trục nghiêng rồi cong xuống theo trọng lực. Chữ "coffee spilling out" mà 3D chỉ có ly trơn thì ảnh AI bám 3D, vẽ ly sạch (tập 122 #17).
     Tên 'NV <vật>·tran<i>' → kiểm hình học / mặt nạ coi là một phần vật đó; nhãn keyframe ghi trạng thái qua TRANG."""
-    M = o.matrix_world; mieng = M @ Vector((0, 0, 0.5)); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized()
+    bpy.context.view_layer.update()   # khoi() vừa gán scale / xoay — chưa update thì matrix_world còn là phép dời, dòng mọc thẳng lên ngoài khung
+    M = o.matrix_world.copy(); mieng = M @ Vector((0, 0, 0.5)); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized()
     r0 = 0.3 * w; buoc = 0.55 * r0; ds = []
     for i in range(9):
         p = mieng + truc * (i * buoc * CM) - Vector((0, 0, 0.18 * i * i * buoc * CM))
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=max(0.35 * r0, r0 * (1 - 0.07 * i)) * CM, location=p)
         g = bpy.context.object
         for f in g.data.polygons: f.use_smooth = True
+        g.parent = o; g.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay
         ds.append(dat(g, mau(nv.get('tran_mau', '#2a1a10')), f"NV {nv['ten']}·tran{i}"))
     TRANG[nv['ten']] = f"{nv['tran']} spilling out of it in a curling stream"
     return ds

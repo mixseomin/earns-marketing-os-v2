@@ -126,7 +126,8 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026: đổi chỉ THIẾT BỊ render / khử nhiễu (bat_gpu) + thêm nhánh hinh 'nguoi' (ma-nơ-canh, chỉ phim khai người) — hình phim cũ không đổi → GIỮ BAN_DUNG 37, chỉ ghi lại băm.
 // 17/10/2026 (2): khoi() nhận hinh 'nguoi' cho NGƯỜI PHỤ của bộ set (tu_the ngồi / đứng) — chỉ set khai người phụ đổi hình → GIỮ 37, ghi lại băm.
 // 17/10/2026 (3): khung mặt bằng ôm cả bộ set khi không có 'Mặt bàn' (bộ set phòng thật chết StopIteration) — set có 'Mặt bàn' y cũ → GIỮ 37.
-assert.deepEqual([BAN_DUNG, bam], [37, '669edad73f95'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// 17/10/2026 (4): ten_vat nhận ma-nơ-canh nhân vật 'NG <tên>.<khớp>' (khung xám tưởng nhân vật vắng) — phim không có ma-nơ-canh y cũ → GIỮ 37.
+assert.deepEqual([BAN_DUNG, bam], [37, '5757a6a4827b'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

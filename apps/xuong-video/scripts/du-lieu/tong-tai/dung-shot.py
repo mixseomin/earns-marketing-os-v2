@@ -165,6 +165,17 @@ shot('5.2', C5, 6, 'veo', {'vai': 'chu_quan', 'co_canh': 'two', 'goc': 'ngang', 
      {'dat': [-120, 500, 175], 'nhin': [-120, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN], 'vi_tri': [vt(HA, [-200, 200, 0], 160, den=[-170, 700, 0], huong_den=90), vt(THAN, [-70, 705, 0], -90)]},
      [HA, THAN, PH])
 
+# MÁY TỰ ĐẶT (17/10/2026 — khung 3D đầu tiên: máy gõ tay nằm trong người phụ, dí sát mặt, cắt mất nhân vật): giữ HƯỚNG máy đã khai (phía quanh
+# chủ thể, trục đã chấm đạt) rồi bỏ dat / nhin / ong_kinh — may-shot.ts › mayShot tính khoảng cách / cao / ống kính theo cỡ cảnh của thẻ shot.
+import math
+for s_ in S:
+    m = s_['may_3d']
+    if 'dat' not in m: continue
+    ten = m.get('khung') or [v['ten'] for v in m['vi_tri'] if not v.get('an')][:2]
+    ds = [v['tam'] for v in m['vi_tri'] if v['ten'] in ten] or [m['nhin']]
+    cx = sum(p[0] for p in ds) / len(ds); cy = sum(p[1] for p in ds) / len(ds)
+    m['phia'] = round(math.degrees(math.atan2(m['dat'][0] - cx, -(m['dat'][1] - cy))), 1)
+    for k in ('dat', 'nhin', 'ong_kinh'): m.pop(k)
 t = 0.0
 for s_ in S: s_['bat_dau'] = t; t += s_['phat_s']
 json.dump(S, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shot.json'), 'w'), ensure_ascii=False, indent=1)

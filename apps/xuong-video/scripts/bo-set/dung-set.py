@@ -460,6 +460,9 @@ def ten_vat(o):
     """Tên người đọc của một khối trong cảnh: 'NV Tango' → Tango, 'Desk Lamp 2' → Desk Lamp (phần của nhóm)."""
     n = o.name.split('·')[0]
     if n.startswith('NV '): return n[3:]
+    # Ma-nơ-canh nhân vật (phim người thật): các khối 'NG <tên>.<khớp>' — trước 17/10/2026 trả nguyên tên khối nên khung xám báo
+    # "NG Lâm Hạ.dau_k" thay vì "Lâm Hạ": cổng chủ thể / chữ lệch / prompt keyframe tưởng nhân vật vắng mặt.
+    if n.startswith('NG ') and '.' in n: return n[3:].rsplit('.', 1)[0]
     g = n.rsplit(' ', 1)[0]
     return g if g in NHOM else o.name
 

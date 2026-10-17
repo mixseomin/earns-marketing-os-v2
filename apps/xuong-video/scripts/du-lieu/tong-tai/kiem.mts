@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chamKichBan } from '../../../src/lib/xuong-video/cham-kich-ban';
+import { mayShot } from './may-shot';
 import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech } from '../../../src/lib/xuong-video/bo-set-3d';
 
 const D = dirname(fileURLToPath(import.meta.url));
@@ -18,7 +19,7 @@ const nv = (phim.nhan_vat as { ten: string; loai: string; khoi_3d?: unknown }[])
 const boSet = sets.map((s, i) => ({ id: i + 1, du_lieu: { vat: s.vat } }));
 const phanCanh = phim.tap.phan_canh as { ten: string; ngay?: string; lien_truoc?: boolean }[];
 const idCua = (t: string) => { const x = nv.find((a) => a.ten === t); if (!x) throw new Error(`shot nhắc "${t}" mà phim.json không có anchor`); return x.id; };
-const ds = shots.map((s: Record<string, any>, i) => ({ id: i + 1, thu_tu: i + 1, canh: s.canh, phan_doan: s.canh, nhan_vat: (s.nhan_vat as string[]).map(idCua), may_3d: s.may_3d, ky_thuat: s.ky_thuat, hanh_dong: s.hanh_dong, dan_dung: s.dan_dung, prompt_video: s.prompt_video, ma: s.ma }));
+const ds = shots.map((s: Record<string, any>, i) => ({ id: i + 1, thu_tu: i + 1, canh: s.canh, phan_doan: s.canh, nhan_vat: (s.nhan_vat as string[]).map(idCua), may_3d: mayShot(s.may_3d, s.ky_thuat, (t: string) => (phim.nhan_vat as { ten: string; khoi_3d?: { co: number[] } }[]).find((a) => a.ten === t)?.khoi_3d ?? null), ky_thuat: s.ky_thuat, hanh_dong: s.hanh_dong, dan_dung: s.dan_dung, prompt_video: s.prompt_video, ma: s.ma }));
 
 const kb = chamKichBan({ tap: { so: 1, beats: phim.tap.beats, phan_canh: phanCanh as never }, kt: phim.kinh_thanh,
   canh: shots.map((s: Record<string, any>) => ({ phat_s: s.phat_s, thoi_luong_s: s.thoi_luong_s, phan_doan: s.canh, chu_man: s.chu_man, thoai: s.thoai, loi_thoai: '', hanh_dong: s.hanh_dong })) as never });

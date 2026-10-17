@@ -61,16 +61,23 @@ async function docKenhThatVaLanding(loi: string[]) {
   const k = await docKenhThat(loi);
   return { ...k, landing: await docLanding(k.trang, loi) };
 }
-async function docLanding(trang: StTrang[], loi: string[]): Promise<StLanding[]> {
+/** TRANG ĐÍCH của Social = MỘT danh sách cho mọi chỗ (bảng Landing, Trực tiếp, badge online): link trong video của các MÁY studio
+ *  (xv_may_video.dang.link) + link đích của kênh (kenh_sp.dich). Trước 18/10 badge Trực tiếp chỉ lấy kenh_sp → bảng Landing thấy khách
+ *  trên ratesbyroom.com mà badge ghi 0 (anh: "sao ko khớp?"). Thêm nguồn trang đích thì thêm Ở ĐÂY. */
+export async function dsTrangDich(kenhLink: { url: string; nguon: string }[]): Promise<{ site: string; path: string; nguon: string[]; soVideo: number }[]> {
   const d = getDb(); if (!d) return [];
+  const may = (await d.execute(sql`SELECT v.dang->>'link' AS link, m.ten, count(*)::int AS so FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
+    WHERE NOT v.luu_tru AND coalesce(v.dang->>'link', '') <> '' GROUP BY 1, 2`)) as unknown as { link: string; ten: string; so: number }[];
+  const theo = new Map<string, { nguon: string[]; soVideo: number }>();
+  const them = (url: string, nguon: string, so = 0) => { try { const u = new URL(url); const key = `${u.host.replace(/^www\./, '')}${u.pathname}`; const x = theo.get(key) ?? { nguon: [], soVideo: 0 }; if (!x.nguon.includes(nguon)) x.nguon.push(nguon); x.soVideo += so; theo.set(key, x); } catch { /* link hỏng */ } };
+  for (const r of may) them(r.link, `máy ${r.ten}`, r.so);
+  for (const k of kenhLink) them(k.url.startsWith('http') ? k.url : `https://${k.url}`, k.nguon);
+  return [...theo].map(([key, x]) => { const i = key.indexOf('/'); return { site: key.slice(0, i), path: key.slice(i) || '/', ...x }; });
+}
+
+async function docLanding(trang: StTrang[], loi: string[]): Promise<StLanding[]> {
   try {
-    const may = (await d.execute(sql`SELECT v.dang->>'link' AS link, m.ten, count(*)::int AS so FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
-      WHERE NOT v.luu_tru AND coalesce(v.dang->>'link', '') <> '' GROUP BY 1, 2`)) as unknown as { link: string; ten: string; so: number }[];
-    const theo = new Map<string, { nguon: string[]; soVideo: number }>();
-    const them = (url: string, nguon: string, so = 0) => { try { const u = new URL(url); const key = `${u.host.replace(/^www\./, '')}${u.pathname}`; const x = theo.get(key) ?? { nguon: [], soVideo: 0 }; if (!x.nguon.includes(nguon)) x.nguon.push(nguon); x.soVideo += so; theo.set(key, x); } catch { /* link hỏng */ } };
-    for (const r of may) them(r.link, `máy ${r.ten}`, r.so);
-    for (const t of trang) them(t.slug.startsWith('http') ? t.slug : `https://${t.slug}`, t.kenhTen ? `kênh ${t.kenhTen}` : 'kênh');
-    const ds = [...theo].map(([key, x]) => { const i = key.indexOf('/'); return { site: key.slice(0, i), path: key.slice(i) || '/', ...x }; });
+    const ds = await dsTrangDich(trang.map((t) => ({ url: t.slug, nguon: t.kenhTen ? `kênh ${t.kenhTen}` : 'kênh' })));
     let so = new Map(), coMa = new Set<string>(); try { [so, coMa] = await Promise.all([docSoLanding(ds), siteCoMa([...new Set(ds.map((x) => x.site))])]); } catch (e) { loi.push(`số landing (adfond): ${(e as Error).message}`); }
     return ds.map((x): StLanding => { const s = so.get(`${x.site}${x.path}`) ?? { phien7: 0, khach7: 0, doc50: 0, bamRa: 0, phien30: 0, online: 0, nguonKhach: [], cuoi: null };
       return { url: `https://${x.site}${x.path}`, site: x.site, path: x.path, nguon: x.nguon.join(' · '), soVideo: x.soVideo, ...s, coMa: coMa.has(x.site) }; })
@@ -123,7 +130,7 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
       AND (a.platform_key <> 'facebook' OR a.handle ILIKE '%(Page)%' OR may.ten IS NOT NULL)
     ORDER BY (may.ten IS NULL), may.ten, du_an, a.platform_key`)) as unknown as { id: number; platform_key: string; handle: string; status: string | null; proxy_id: number | null; tao: string; du_an: string; may: string | null; da_dang: number | null }[];
   return r.filter((x) => !daCo.has(x.id)).map((x): StKenh => ({
-    id: x.id, ten: x.handle, nenTang: NEN_TEN[x.platform_key] ?? x.platform_key, nhom: x.may ?? x.du_an, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
+    id: x.id, ten: x.handle, nenTang: NEN_TEN[x.platform_key] ?? x.platform_key, nenKey: x.platform_key, nhom: x.may ?? x.du_an, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
     tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false,
   }));
 }
@@ -177,7 +184,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         const landing = [...dem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
         const daDang = key === 'pinterest' ? kenhSp.filter((x) => x.project === da).reduce((a, x) => a + (x.o.pinterest?.xong ?? 0), 0) : n?.soVideo ?? 0;
         kenh.push({
-          id: t?.id ?? -(kenh.length + 1), ten: t?.handle ?? nen.ten, nenTang: nen.ten, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN',
+          id: t?.id ?? -(kenh.length + 1), ten: t?.handle ?? nen.ten, nenTang: nen.ten, nenKey: nen.pk, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN',
           proxy: t?.proxy_id ? `proxy #${t.proxy_id}` : t ? 'chưa gắn proxy' : 'chưa có trong vault', tt: TT_TK(t?.status ?? null),
           ngay: Math.max(0, Math.round((homMs - Date.parse(ngayDau)) / 864e5)), video: daDang,
           trungViXem: key === 'pinterest' ? 0 : giua(tv.video.map((v) => v.nen[key]?.tong).filter((x): x is number => x != null)),
@@ -187,7 +194,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
       }
       // kênh MXH khác của dự án (twitter, threads…) có trong vault nhưng chưa có máy đo
       for (const t of tk.filter((x) => x.project_id === da && !daDung.has(x.id)))
-        kenh.push({ id: t.id, ten: t.handle, nenTang: t.platform_key, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
+        kenh.push({ id: t.id, ten: t.handle, nenTang: NEN_TEN[t.platform_key] ?? t.platform_key, nenKey: t.platform_key, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
     kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));

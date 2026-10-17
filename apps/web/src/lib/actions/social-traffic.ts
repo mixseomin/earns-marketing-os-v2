@@ -2,6 +2,7 @@
 // SOCIAL TRAFFIC — thao tác từ màn (tab trang chủ Social Traffic). Chỉ admin. Hiện chỉ đọc: phiên khách trực tiếp trên site aff.
 import { getCurrentUser } from '@/lib/auth';
 import { docKenh } from '@/lib/tai-san/kenh';
+import { dsTrangDich } from '@/lib/social-traffic';
 import { docPhienAff, docSuKienAff, siteCoMa } from '@/lib/social-truc-tiep';
 import type { CuaSoAff } from '@/lib/social-traffic-demo';
 
@@ -10,14 +11,11 @@ async function admin() {
   if (!me || me.role !== 'admin') throw new Error('chỉ admin');
 }
 
-/** Site aff = host trong đích link của kênh (kenh_sp.dich) — thêm sách / kênh trỏ về site mới là site đó tự vào, không có danh sách gõ tay. */
+/** Site aff = host của MỌI trang đích Social (dsTrangDich: link video máy studio + kenh_sp.dich) — cùng nguồn bảng Landing, nên
+ *  Trực tiếp / badge online không bao giờ lệch bảng Landing. Không có danh sách gõ tay. */
 async function siteAff(): Promise<string[]> {
-  const hosts = new Set<string>();
-  for (const sp of await docKenh()) for (const o of Object.values(sp.o)) {
-    if (!o.dich) continue;
-    try { hosts.add(new URL(o.dich).hostname.replace(/^www\./, '')); } catch { /* đích không phải URL → bỏ, không phải site */ }
-  }
-  return [...hosts];
+  const kenhLink = (await docKenh()).flatMap((sp) => Object.values(sp.o).map((o) => o.dich).filter((u): u is string => !!u).map((url) => ({ url, nguon: 'kênh' })));
+  return [...new Set((await dsTrangDich(kenhLink)).map((x) => x.site))];
 }
 
 export async function socialPhien(cuaSo: CuaSoAff) {

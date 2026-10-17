@@ -10,6 +10,7 @@ import { DataTable, EmptyState, FilterChips, GuardedButton, Panel, Pill, Segment
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
+import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive } from '@/lib/social-traffic';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
@@ -28,8 +29,8 @@ const trungVi = (a: number[]) => { if (!a.length) return 0; const s = [...a].sor
 const nho = { fontSize: 11, color: 'var(--fg-3)' } as const;
 /** Favicon THẬT của nền tảng (YDNI: nhận diện bằng mắt, không emoji). Tên hiển thị 'YouTube Shorts' / 'Facebook Reels' /
  *  'Gumroad' → khoá /api/platform-icon theo chữ đầu. Một chỗ cho bảng Kênh, Trang đích, Sổ tiền, Cửa bán. */
-const Logo = ({ ten, co = 16 }: { ten: string; co?: number }) => <SiteFavicon platformKey={ten.split(/\s+/)[0]!.toLowerCase()} size={co} title={ten} />;
-const coLogo = (ten: string, chu: React.ReactNode = ten) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={ten} />{chu}</span>;
+const Logo = ({ ten, khoa, co = 16 }: { ten: string; khoa?: string; co?: number }) => <SiteFavicon platformKey={khoa ?? ten.split(/\s+/)[0]!.toLowerCase()} size={co} title={ten} />;   // khoa = platforms.key thật; thiếu mới đoán từ tên (cửa bán Gumroad/Etsy/KDP)
+const coLogo = (ten: string, chu: React.ReactNode = ten, khoa?: string) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={ten} khoa={khoa} />{chu}</span>;
 const chuaDo = <span style={{ fontSize: 11, color: 'var(--fg-3)' }} title="có trong vault, chưa có máy đọc số">chưa đo</span>;
 const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang xưởng studio.on.tc (tốn tiền sinh video) — chờ nối luồng ghi và anh bấm duyệt từng lô';
 
@@ -149,13 +150,14 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'phien30', header: '30 ngày', align: 'right', sortValue: (x) => x.phien30, cell: (x) => kd(x, so(x.phien30)) },
   ];
   const cotKenh: DataColumn<StKenh>[] = [
-    { key: 'ten', header: 'Kênh', align: 'left', width: 230, sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 8, alignItems: 'center' }}><span style={{ gridRow: 'span 2' }}><Logo ten={k.nenTang} co={20} /></span><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
+    { key: 'ten', header: 'Kênh', align: 'left', width: 230, sortValue: (k) => k.ten, cell: (k) => <span title={`${k.nenTang} · ${k.nhom} · ${k.ngonNgu}`} style={{ display: 'inline-flex', gap: 8, alignItems: 'center', minWidth: 0 }}><Logo ten={k.nenTang} khoa={k.nenKey} co={18} />
+      <span style={{ display: 'grid', minWidth: 0 }}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.ten}</span>{gopKenh !== 'goc' && locNhom === 'all' && <span style={{ ...nho, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.nhom}</span>}</span></span> },   // gọn (anh: 'rối quá'): nền = favicon, góc chỉ hiện khi chưa gộp/lọc theo góc, EN bỏ — đủ chữ ở tooltip
     { key: 'proxy', header: 'Proxy', align: 'left', cell: (k) => <span style={nho}>{k.proxy}</span> },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (k) => <Pill color={TT_KENH[k.tt][0]} label={TT_KENH[k.tt][1]} uppercase={false} /> },
     { key: 'ngay', header: 'Ngày', sortValue: (k) => k.ngay, cell: (k) => k.ngay },
     { key: 'dangCuoi', header: '📅 Đăng cuối', title: 'Ngày đăng video mới nhất trên nền này · cam khi đã quá 3 ngày', sortValue: (k) => k.dangCuoi ?? '',
       cell: (k) => { if (!k.dangCuoi) return <span style={nho} title="chưa có máy ghi ngày đăng của nền này">—</span>;
-        const cach = Math.round((Date.now() + 7 * 3600e3 - Date.parse(k.dangCuoi)) / 864e5);
+        const cach = Math.round((Date.parse(todayInAppTz()) - Date.parse(k.dangCuoi)) / 864e5);
         return <span title={k.dangCuoi} style={cach > 3 ? { color: 'var(--warn)' } : undefined}>{k.dangCuoi.slice(8, 10)}/{k.dangCuoi.slice(5, 7)} <span style={nho}>{cach <= 0 ? 'hôm nay' : `${cach} ngày`}</span></span>; } },
     { key: 'landing', header: '🛬 Landing chính', align: 'left', title: 'Đích được nhiều sản phẩm của kênh trỏ tới nhất', sortValue: (k) => k.landing ?? '',
       cell: (k) => (k.landing ? <a href={`https://href.li/?${k.landing}`} target="_blank" rel="noreferrer" title={k.landing} style={{ color: 'var(--accent)', display: 'inline-flex', gap: 6, alignItems: 'center', maxWidth: 260 }}>
@@ -179,7 +181,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const cotTrang: DataColumn<StTrang>[] = [
     { key: 'slug', header: 'Đường dẫn', align: 'left', cell: (x) => <span style={{ fontFamily: 'var(--font-mono)' }}>{laLive ? x.slug : `site.com/${x.slug}`}</span> },
     { key: 'goc', header: laLive ? 'Sản phẩm' : 'Góc', align: 'left', cell: (x) => x.tieuDe ?? gocOf(x.goc)?.ten ?? '—' },
-    { key: 'kenh', header: 'Kênh đổ về', align: 'left', cell: (x) => { if (x.kenhTen != null) return x.kenhTen; const k = kenhOf(x.kenh); return k ? coLogo(k.nenTang, k.ten) : '—'; } },
+    { key: 'kenh', header: 'Kênh đổ về', align: 'left', cell: (x) => { if (x.kenhTen != null) return x.kenhTen; const k = kenhOf(x.kenh); return k ? coLogo(k.nenTang, k.ten, k.nenKey) : '—'; } },
     { key: 'click', header: 'Khách vào', sortValue: (x) => x.click, cell: (x) => (x.click == null ? <span style={nho} title="chưa có máy đếm click từng trang">—</span> : so(x.click)) },
     { key: 'ra', header: 'Bấm sang shop', sortValue: (x) => x.raShop, cell: (x) => (x.raShop == null ? <span style={nho}>—</span> : `${x.raShop}%`) },
     { key: 'ct', header: 'Chương trình', align: 'left', cell: (x) => <span style={nho}>{x.chuongTrinh}</span> },
@@ -280,7 +282,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             return <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <FilterChips urlKey="skn" value={locNen} onChange={setLocNen} counts={{ all: d.kenh.length, ...soNen }}
-                  options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} co={12} /> }))]} />
+                  options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} khoa={d.kenh.find((k) => k.nenTang === n)?.nenKey} co={12} /> }))]} />
                 <FilterChips urlKey="skg" value={locNhom} onChange={setLocNhom} counts={{ all: d.kenh.length, ...soNhom }}
                   options={[{ value: 'all', label: '🎯 Mọi góc' }, ...Object.keys(soNhom).map((n) => ({ value: n, label: n }))]} />
                 <Segmented<string> value={gopKenh} onChange={setGopKenh}
@@ -288,8 +290,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
               </div>
               {nhom.map(({ g, ks }) => (g
                 ? <div key={g} style={{ display: 'grid', gap: 6 }}>
-                    <h4 style={{ margin: '6px 0 0', fontSize: 13, display: 'inline-flex', gap: 6, alignItems: 'center' }}>{gopKenh === 'nen' ? <Logo ten={g} /> : '🎯'} {g}
-                      <span style={nho}>{ks.length} kênh · {so(ks.reduce((a, k) => a + k.xem, 0))} lượt xem · {so(ks.reduce((a, k) => a + k.click, 0))} về site</span></h4>
+                    <h4 style={{ margin: '6px 0 0', fontSize: 13, display: 'inline-flex', gap: 6, alignItems: 'center' }}>{gopKenh === 'nen' ? <Logo ten={g} khoa={ks[0]?.nenKey} /> : '🎯'} {g}
+                      <span style={nho}>{ks.length} kênh</span></h4>   {/* không cộng lượt xem / về site: video là cộng dồn + 7 ngày, Pinterest 30 ngày — cộng lại ra số không có thật */}
                     {bang(ks, g)}</div>
                 : bang(ks, 'tat-ca')))}
               {!loc.length && <span style={nho}>Không kênh nào khớp bộ lọc.</span>}
@@ -338,7 +340,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         </Panel>
         {d.kenh.length && !laLive
           ? <SimpleTable rows={d.kenh} getRowKey={(k) => String(k.id)} columns={[
-              { key: 'ten', header: 'Kênh', cell: (k) => coLogo(k.nenTang, k.ten) },
+              { key: 'ten', header: 'Kênh', cell: (k) => coLogo(k.nenTang, k.ten, k.nenKey) },
               { key: 'chi', header: 'Chi', align: 'right', cell: (k) => usd(k.video * gia.video + (k.tt === 'song' || k.tt === 'co' ? gia.proxy : 0)) },
               { key: 'hh', header: 'Hoa hồng', align: 'right', cell: (k) => usd(k.hh) },
               { key: 'lai', header: 'Lãi', align: 'right', cell: (k) => { const l = k.hh - (k.video * gia.video + (k.tt === 'song' || k.tt === 'co' ? gia.proxy : 0)); return <span style={{ color: l >= 0 ? 'var(--ok)' : 'var(--bad)' }}>{usd(l)}</span>; } },

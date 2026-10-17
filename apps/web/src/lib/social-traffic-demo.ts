@@ -13,6 +13,7 @@ export interface StGoc {
 }
 export interface StKenh {
   id: number; ten: string; nenTang: string; nhom: string; ngonNgu: string; proxy: string;
+  nenKey?: string;     // khoá nền tảng THẬT (platforms.key: youtube, twitter…) — favicon đọc khoá này, không đoán từ tên hiển thị ('X' ≠ khoá)
   tt: StTrangThaiKenh; ngay: number; video: number; trungViXem: number; xem: number; click: number; hh: number;
   daDo?: boolean;      // LIVE: false = kênh có trong vault nhưng chưa có máy đo số (cột số hiện '—', không hiện 0 giả)
   xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)

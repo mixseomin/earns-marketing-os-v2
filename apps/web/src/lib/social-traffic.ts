@@ -134,7 +134,7 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
     ORDER BY (may.ten IS NULL), may.ten, du_an, a.platform_key`)) as unknown as { id: number; platform_key: string; handle: string; status: string | null; proxy_id: number | null; tao: string; du_an: string; may: string | null; da_dang: number | null }[];
   return r.filter((x) => !daCo.has(x.id)).map((x): StKenh => ({
     id: x.id, ten: x.handle, nenTang: NEN_TEN[x.platform_key] ?? x.platform_key, nenKey: x.platform_key, nhom: x.may ?? x.du_an, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
-    tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false,
+    tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, demBai: x.may != null,
   }));
 }
 

@@ -166,7 +166,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       cell: (k) => (k.landing ? <a href={`https://href.li/?${k.landing}`} target="_blank" rel="noreferrer" title={k.landing} style={{ color: 'var(--accent)', display: 'inline-flex', gap: 6, alignItems: 'center', maxWidth: 260 }}>
         <SiteFavicon url={k.landing} size={14} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.landing.replace(/^https?:\/\/(www\.)?/, '')}</span></a>
         : <span style={nho}>—</span>) },
-    { key: 'video', header: 'Đã đăng', sortValue: (k) => k.video, cell: (k) => (do_(k) ? k.video : chuaDo) },
+    { key: 'video', header: 'Đã đăng', title: 'Số bài đã đăng — kênh của máy đăng đọc từ sổ máy, có số kể cả khi chưa đo lượt xem', sortValue: (k) => k.video, cell: (k) => (do_(k) || k.demBai ? k.video : chuaDo) },
     { key: 'xem', header: 'Lượt xem', title: 'Video: cộng dồn từ lúc đăng · Pinterest: lượt hiện 30 ngày', sortValue: (k) => k.xem, cell: (k) => (do_(k) ? so(k.xem) : chuaDo) },
     { key: 'x7', header: 'Xem 7 ngày', sortValue: (k) => k.xem7 ?? null, cell: (k) => (k.xem7 == null ? <span style={nho} title={k.nenTang === 'Pinterest' ? 'Pinterest chỉ có số 30 ngày toàn tài khoản' : 'chưa đủ 7 ngày đo'}>—</span> : so(k.xem7)) },
     { key: 'tv', header: 'Trung vị / video', sortValue: (k) => k.trungViXem, cell: (k) => (!do_(k) ? chuaDo : k.nenTang === 'Pinterest' ? <span style={nho} title="Pinterest không trả lượt xem từng ghim">—</span> : <span style={k.ngay >= ST_CAT_NGAY && k.trungViXem < ST_CAT_TRUNG_VI ? { color: 'var(--warn)' } : undefined}>{so(k.trungViXem)}</span>) },

@@ -4,7 +4,7 @@
 // Luồng (developers.dailymotion.com/guides/authentication + /guides/upload): token client_credentials (scope video.manage + profile.read để kiểm tên kênh, sống 1800s) →
 //   POST /v2/files/upload_sessions → POST tệp (multipart, trường file) lên upload_url → POST /v2/profiles/<id>/videos { title, category, visibility,
 //   is_for_kids, source.file_url, description, tags } (tạo = xuất bản luôn). Video lấy từ URL R2 công khai, tải về /tmp rồi đẩy lên.
-// Máy gọi: puzzle-books dang-br.mjs › dangApi('dailymotion') — stdin JSON { profile_id, ten, video_url, tieu_de, mo_ta, the? } → stdout JSON { url, post_id }.
+// Máy gọi: puzzle-books dang-br.mjs › dangApi('dailymotion') — stdin JSON { profile_id, ten, video_url, tieu_de, mo_ta, danh_muc, the? } → stdout JSON { url, post_id }.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/dang-dailymotion.mts < x.json
 //   ... --kiem <profile_id>     chỉ kiểm khoá ↔ kênh (không đăng)
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
@@ -39,7 +39,7 @@ export async function kiemKenh(profileId: string, ten: string): Promise<string> 
   return tok;
 }
 
-async function dang(profileId: string, tok: string, videoUrl: string, tieuDe: string, moTa: string, the: string[]): Promise<{ url: string; video_id: string }> {
+async function dang(profileId: string, tok: string, videoUrl: string, tieuDe: string, moTa: string, danhMuc: string, the: string[]): Promise<{ url: string; video_id: string }> {
   const tep = join(tmpdir(), `dm-${Date.now()}.mp4`);
   try {
     const r = await fetch(videoUrl, { signal: AbortSignal.timeout(5 * 60_000) }); if (!r.ok) throw new Error(`tải video R2 hỏng ${r.status}`);
@@ -49,7 +49,7 @@ async function dang(profileId: string, tok: string, videoUrl: string, tieuDe: st
     const up = await goi(String(s.upload_url), { method: 'POST', body: fd });
     const v = await goi(`${API}/v2/profiles/${profileId}/videos`, {
       method: 'POST', headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: tieuDe.slice(0, 255), description: moTa, category: 'travel', visibility: 'public', is_for_kids: false, tags: the, source: { file_url: up.url } }),
+      body: JSON.stringify({ title: tieuDe.slice(0, 255), description: moTa, category: danhMuc, visibility: 'public', is_for_kids: false, tags: the, source: { file_url: up.url } }),
     });
     const id = String(v.video_id ?? v.id ?? ''); if (!id) throw new Error(`Dailymotion không trả video_id (${JSON.stringify(v).slice(0, 200)})`);
     return { url: `https://www.dailymotion.com/video/${id}`, video_id: id };
@@ -62,8 +62,10 @@ if (a[0] === '--kiem') {
   await kiemKenh(id, k.ten); console.log(`✓ khoá khớp kênh Dailymotion ${k.ten} (${id})`); process.exit(0);
 }
 let raw = ''; for await (const c of process.stdin) raw += c;
-const x = JSON.parse(raw) as { profile_id: string; ten: string; video_url: string; tieu_de: string; mo_ta: string; the?: string[] };
+const x = JSON.parse(raw) as { profile_id: string; ten: string; video_url: string; tieu_de: string; mo_ta: string; danh_muc?: string; the?: string[] };
+// danh mục là của KÊNH (cấu hình máy xv_may.dang[].br.danh_muc, vd travel) — thiếu thì dừng, không đoán
+if (!x.danh_muc) { console.error('thiếu danh_muc (cấu hình kênh br.danh_muc) — không đăng'); process.exit(1); }
 const tok = await kiemKenh(x.profile_id, x.ten);
-const r = await dang(x.profile_id, tok, x.video_url, x.tieu_de, x.mo_ta, x.the ?? []);
+const r = await dang(x.profile_id, tok, x.video_url, x.tieu_de, x.mo_ta, x.danh_muc, x.the ?? []);
 process.stdout.write(JSON.stringify({ url: r.url, post_id: r.video_id }));
 process.exit(0);

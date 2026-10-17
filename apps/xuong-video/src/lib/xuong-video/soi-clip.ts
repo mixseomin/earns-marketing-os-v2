@@ -14,7 +14,7 @@ import { mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, VANG_SP, type MauSp
 import { mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 import { soiMatClip } from './soi-mat';
 import { soiBienDang, yDoShot } from './soi-bien-dang';
-import type { Canh, SoiClip } from './kieu';
+import { giayPhat, type Canh, type SoiClip } from './kieu';
 
 const chay = (cmd: string, args: string[]) => new Promise<Buffer | null>((ok) => execFile(cmd, args, { encoding: 'buffer', maxBuffer: 1 << 26, timeout: 60_000 }, (e, b) => ok(e ? null : (b as Buffer))));
 const doDai = async (url: string) => { const b = await chay('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', url]); const g = Number(String(b ?? '').trim()); return Number.isFinite(g) && g > 0 ? g : null; };
@@ -81,7 +81,9 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   // Biến dạng (soi-bien-dang.ts): trang phục phồng / đũng tụt, cơ thể méo, chữ tự in trên đồ, sản phẩm đổi kiểu, vật lạ. Không soi được → không chặn.
   const spMoTa = ((await db.execute(sql`SELECT mo_ta FROM xv_nhan_vat WHERE loai = 'san_pham' AND id = ANY(${`{${(c.nhan_vat.length ? c.nhan_vat : [0]).join(',')}}`}::int[]) ORDER BY id LIMIT 1`)) as unknown as Row[])[0]?.mo_ta;
   const phimId = ((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${c.tap_id}`)) as unknown as Row[])[0]?.phim_id;
-  const bd = await soiBienDang(db, { url, dai, sp: String(spMoTa ?? ''), yDo: yDoShot(c.prompt_video ?? '', c.prompt_anh ?? '', String(spMoTa ?? '')), phimId: phimId == null ? null : Number(phimId) });
+  // chỉ đoạn bản xuất DÙNG (xuat.ts bỏ ≤0,5s đầu rồi lấy đúng giây phát) → khung dày hơn đúng chỗ người xem thấy
+  const daiDung = Math.min(dai, giayPhat(c) + 0.6);
+  const bd = await soiBienDang(db, { url, dai: daiDung, sp: String(spMoTa ?? ''), yDo: yDoShot(c.prompt_video ?? '', c.prompt_anh ?? '', String(spMoTa ?? '')), phimId: phimId == null ? null : Number(phimId) });
   if (bd) loi.push(...bd.loi);
   const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}), ...(bd ? { bien_dang: bd.tho } : {}) } };
   await db.execute(sql`UPDATE xv_canh SET soi_clip = ${JSON.stringify(kq)}::jsonb WHERE id = ${canhId}`);

@@ -10,10 +10,12 @@ import { giaChuCents } from './kieu';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
 export const MO_HINH_BD = 'gemini-3.8-flash';
-const anhGhep = (url: string, dai: number) => new Promise<Buffer | null>((ok) => execFile('ffmpeg', ['-v', 'error', '-i', url,
+const anhGhep = (url: string, dai: number) => new Promise<Buffer | null>((ok) => execFile('ffmpeg', ['-v', 'error', '-t', String(dai), '-i', url,
   '-vf', `fps=${N_KHUNG_BD / dai},scale=270:-2,tile=6x2`, '-frames:v', '1', '-q:v', '4', '-f', 'mjpeg', 'pipe:1'],
   { encoding: 'buffer', maxBuffer: 1 << 25, timeout: 90_000 }, (e, b) => ok(e || !(b as Buffer).length ? null : (b as Buffer))));
 
+/** `dai` = số giây ĐẦU clip được soi — truyền đúng đoạn bản xuất dùng (giây phát + phần bỏ đầu), không phải cả clip: 12 khung rải trên 8s bỏ lọt
+ *  chỗ chân dính vào nhau chỉ ~0,5s trong 3,3s được dùng (#127 shot 12, anh 17/10/2026). */
 export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number } | null> {
   if (!khoaGoogle()) return null;
   const anh = await anhGhep(o.url, o.dai); if (!anh) return null;

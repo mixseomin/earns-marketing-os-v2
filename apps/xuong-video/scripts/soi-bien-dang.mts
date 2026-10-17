@@ -13,19 +13,19 @@ const phim = Number((process.argv.find((a) => a.startsWith('--sp-phim=')) ?? '')
 const sp = phim ? ((await db.execute(sql`SELECT mo_ta FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai = 'san_pham' ORDER BY id LIMIT 1`)) as unknown as { mo_ta: string }[])[0]?.mo_ta ?? '' : '';
 const canh = (process.argv.find((a) => a.startsWith('--canh=')) ?? '').slice(7).split(',').map(Number).filter(Boolean);
 const urlEp = (process.argv.find((a) => a.startsWith('--url=')) ?? '').slice(6);
-type Viec = { url: string; yDo: string; sp: string; phim: number | null };
+type Viec = { url: string; yDo: string; sp: string; phim: number | null; den?: number };
 const viec: Viec[] = process.argv.slice(2).filter((a) => a.startsWith('http')).map((url) => ({ url, yDo: '', sp, phim }));
 for (const id of canh) {
-  const r = ((await db.execute(sql`SELECT c.video_url, c.video_cuoi_url, c.prompt_video, c.prompt_anh, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${id}`)) as unknown as Record<string, unknown>[])[0];
+  const r = ((await db.execute(sql`SELECT c.video_url, c.video_cuoi_url, c.prompt_video, c.prompt_anh, c.phat_s, c.thoi_luong_s, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${id}`)) as unknown as Record<string, unknown>[])[0];
   if (!r) continue;
   const p = Number(r.phim_id);
   const spP = ((await db.execute(sql`SELECT mo_ta FROM xv_nhan_vat WHERE phim_id = ${p} AND loai = 'san_pham' ORDER BY id LIMIT 1`)) as unknown as { mo_ta: string }[])[0]?.mo_ta ?? '';
-  viec.push({ url: urlEp || String(r.video_cuoi_url || r.video_url), yDo: yDoShot(String(r.prompt_video ?? ''), String(r.prompt_anh ?? ''), spP), sp: spP, phim: p });
+  viec.push({ url: urlEp || String(r.video_cuoi_url || r.video_url), yDo: yDoShot(String(r.prompt_video ?? ''), String(r.prompt_anh ?? ''), spP), sp: spP, phim: p, den: Number(r.phat_s ?? r.thoi_luong_s ?? 0) + 0.6 || undefined });
 }
 let tong = 0;
-for (const { url, yDo, sp, phim } of viec) {
+for (const { url, yDo, sp, phim, den } of viec) {
   const dai = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', url]).toString().trim());
-  const k = await soiBienDang(db, { url, dai, sp, yDo, phimId: phim });
+  const k = await soiBienDang(db, { url, dai: den ? Math.min(dai, den) : dai, sp, yDo, phimId: phim });
   if (!k) { console.log(`?  ${url.split('/').pop()} — không soi được`); continue; }
   tong += k.cents;
   console.log(`${k.loi.length ? '✗' : '✓'}  ${url.split('/').pop()} · ${dai.toFixed(1)}s · ${k.cents.toFixed(3)}¢${k.loi.map((x) => `\n     ${x}`).join('')}`);

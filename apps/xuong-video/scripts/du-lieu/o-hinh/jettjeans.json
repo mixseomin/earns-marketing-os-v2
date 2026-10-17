@@ -350,5 +350,38 @@
  "nguon_o": {
   "dinh_diem": "QC thắng: khuôn kể 'quần làm hỏng một ngày quan trọng' (Parkinson's Health Insider · vợ kể về chồng · 98 ngày, Meta 1673581983693866)"
  },
- "ghi_thu_vien": "Diễn viên + bối cảnh của từng bộ hình do thư viện phân bổ (scripts/phan-bo-thu-vien.mts theo yeu_cau); nguoi / ten / boi_canh của concept chỉ còn là mẫu cũ."
+ "ghi_thu_vien": "Diễn viên + bối cảnh của từng bộ hình do thư viện phân bổ (scripts/phan-bo-thu-vien.mts theo yeu_cau); nguoi / ten / boi_canh của concept chỉ còn là mẫu cũ.",
+ "o_chu_viet_tay": {
+  "ghi": "Ô chữ viết tay đè phương án AI (giữ số phương án → mã creative không đổi). T60 loi_moi do ĐỨA TRẺ nói (template: thoai nhan_vat = {{nguoi_3_ten}}) — Opus viết theo giọng bạn đời ('Honey…', 'Sir…'), người xem chấm 6/10 (17/10/2026).",
+  "nguon": "QC thắng: lời trẻ gọi ông/bố mở đầu (Parkinson's Health Insider · 98 ngày, Meta 1673581983693866 — 'Grandpa, come dance with me!')",
+  "60": {
+   "loi_moi": {
+    "1A": [
+     "Dad, come dance with me!",
+     "Daddy, sit on the floor with us!",
+     "Dad, race me to the car!"
+    ],
+    "2A": [
+     "Dad, wear your nice jeans!",
+     "Daddy, no sweatpants today!",
+     "Dad, come play catch!"
+    ],
+    "2B": [
+     "Dad, come sit with us!",
+     "Daddy, hurry, it's starting!",
+     "Dad, help me carry this!"
+    ],
+    "3A": [
+     "Dad, lift me up!",
+     "Daddy, climb up here with me!",
+     "Dad, get down here and look!"
+    ],
+    "4A": [
+     "Dad, take a picture with me!",
+     "Daddy, you look so cool!",
+     "Dad, dance with me!"
+    ]
+   }
+  }
+ }
 }

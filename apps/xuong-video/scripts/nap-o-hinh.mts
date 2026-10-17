@@ -42,6 +42,18 @@ for (const c of caps) {
   }
 }
 // Diễn viên + bối cảnh của biến thể: KHÔNG ghi ở đây nữa — thư viện phân bổ (scripts/phan-bo-thu-vien.mts, 17/10/2026).
+// ô CHỮ viết tay đè phương án AI cùng số (o_chu_viet_tay: { <template_id>: { <ô>: { <concept>: [so 1, so 2, …] } } })
+const vt = (d as unknown as { o_chu_viet_tay?: Record<string, unknown> & { nguon?: string } }).o_chu_viet_tay;
+let soVt = 0;
+if (vt) for (const [tpl, oMap] of Object.entries(vt)) {
+  if (!/^\d+$/.test(tpl)) continue;
+  for (const [o, theoC] of Object.entries(oMap as Record<string, Record<string, string[]>>)) for (const [ma, ds] of Object.entries(theoC)) for (const [i, chu] of ds.entries()) {
+    soVt++; if (!ghi) continue;
+    await db.execute(sql`UPDATE xv_phuong_an pa SET chu = ${chu}, nguon = ${vt.nguon ?? d.nguon} FROM xv_cap c, xv_concept k
+      WHERE pa.cap_id = c.id AND k.id = c.concept_id AND k.sp_key = ${d.sp_key} AND k.ma = ${ma} AND c.template_id = ${Number(tpl)} AND pa.o = ${o} AND pa.so = ${i + 1}`);
+  }
+}
+if (soVt) console.log(`  ô chữ viết tay: ${soVt}`);
 console.log(`${d.sp_key}: ${caps.length} cặp · ${soO} ô hình${ghi ? '' : ' (chưa ghi — thêm --ghi)'}`);
 if (thieu.size) console.log(`  ô hình chưa có giá trị: ${[...thieu.keys()].join(', ')}`);
 if (!ghi) process.exit(0);

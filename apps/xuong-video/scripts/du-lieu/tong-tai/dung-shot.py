@@ -162,7 +162,7 @@ shot('5.2', C5, 6, 'veo', {'vai': 'chu_quan', 'co_canh': 'two', 'goc': 'ngang', 
      {'bo_cuc': 'Profile two-shot at the table corner: Hạ (screen-left) leans in to Thần’s eye level; the jade bangle on her wrist catches the light; cut to black on the line', 'mo': 'Hạ arriving at the corner', 'ket': 'Hạ’s face close to Thần’s — cut to black', 'huong': 'Hạ looks screen-right into Thần’s eyes', 'muc_dich': 'cliffhanger', 'motif': 'vòng tay ngọc — ký ức cô bé năm xưa (tập sau)'},
      'Hạ cúi xuống ngang tầm mắt anh, vòng tay ngọc loé sáng; cắt đen', [(HA, 'khẽ, chắc nịch', 'Sếp mới của anh.')],
      [bc(HA, 'lanh_lung', 'nhech_moi'), bc(THAN, 'gian', 'soc')],
-     {'dat': [-120, 500, 175], 'nhin': [-120, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN], 'vi_tri': [vt(HA, [-200, 200, 0], 160, den=[-170, 700, 0], huong_den=90), vt(THAN, [-70, 705, 0], -90)]},
+     {'dat': [-120, 500, 175], 'nhin': [-120, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN], 'vi_tri': [vt(HA, [-170, 640, 0], 90, den=[-165, 700, 0], **AO_HA_CHIEU, nhay='đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)'), vt(THAN, [-70, 705, 0], -90)]},
      [HA, THAN, PH])
 
 # MÁY TỰ ĐẶT (17/10/2026 — khung 3D đầu tiên: máy gõ tay nằm trong người phụ, dí sát mặt, cắt mất nhân vật): giữ HƯỚNG máy đã khai (phía quanh

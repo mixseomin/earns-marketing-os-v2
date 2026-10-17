@@ -203,9 +203,14 @@ const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, 
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 /** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
-export const BAN_MAY = 2;
+export const BAN_MAY = 3;   // 3 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI)
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
-export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[] } | null): May3d {
+/** CỠ CẢNH NGƯỜI THẬT (anh 17/10/2026, previs tổng tài: shot "cận" ra toàn thân): PHAN_KHUNG viết cho nhân vật Tango tí hon (cận = ôm cả khối,
+ *  nhắm giữa người). Người (khối 'nguoi', đứng) thì cận / trung cận / trung cảnh là một DẢI cơ thể tính từ đỉnh đầu — chuẩn ngành: CU đầu + vai,
+ *  MCU từ ngực, MS từ thắt lưng — dải đó lấp ~90% khung dọc, máy nhắm giữa dải. Cảnh rộng / two / OTS vẫn ôm cả người. */
+export const BANG_NGUOI: Record<string, number> = { ecu: 0.08, cu: 0.2, mcu: 0.33, ms: 0.55 };
+export const TAM_MAT_CM = 150;
+export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[]; hinh?: string } | null): May3d {
   const ong = ONG_MM[kt.ong_kinh ?? ''] ?? ONG_THEO_CO[kt.co_canh ?? ''] ?? 35;
   const ten = o.khung?.length ? o.khung : o.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
   const chu = o.vi_tri.filter((v) => ten.includes(v.ten));
@@ -214,16 +219,26 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const cx = ds.reduce((a, d) => a + d.x, 0) / ds.length, cy = ds.reduce((a, d) => a + d.y, 0) / ds.length;
   const H = Math.max(...ds.map((d) => d.z + d.h)) - Math.min(...ds.map((d) => d.z));
   const W = Math.max(...ds.map((d) => d.x + d.w / 2)) - Math.min(...ds.map((d) => d.x - d.w / 2));
-  const cz = Math.min(...ds.map((d) => d.z)) + H * 0.5;
+  let cz = Math.min(...ds.map((d) => d.z)) + H * 0.5;
   const tanV = 18 / ong, tanH = (18 * 9 / 16) / ong;   // nửa khung dọc / ngang trên tiêu cự
-  const f = PHAN_KHUNG[kt.co_canh ?? ''] ?? 0.4;
+  let f = PHAN_KHUNG[kt.co_canh ?? ''] ?? 0.4;
+  const bang = BANG_NGUOI[kt.co_canh ?? ''];
+  const laNguoi = !!bang && chu.length > 0 && chu.every((v) => khoi(v.ten)?.hinh === 'nguoi' && !v.nam);
+  let hKhung = H, wKhung = W;
+  if (laNguoi) {
+    const dinh = Math.max(...ds.map((d) => d.z + d.h)); hKhung = (dinh - Math.min(...ds.map((d) => d.z))) * bang;
+    cz = dinh - hKhung * 0.5; f = 0.9; if (chu.length === 1) wKhung = W * 0.5;   // một người cận: vai được tràn mép ngang
+  }
   // Máy luôn đứng NGOÀI khối chủ thể: tối thiểu một cỡ chủ thể + 1 cm tính từ tâm.
-  const d = Math.max(Math.max(H, W) + 1, H / (f * 2 * tanV), W / (0.85 * 2 * tanH));
+  const d = Math.max(Math.max(laNguoi ? hKhung : H, W) + 1, hKhung / (f * 2 * tanV), wKhung / (0.85 * 2 * tanH));
   const a = ((o.phia ?? 0) * Math.PI) / 180;
   const ngoc = { sat_dat: -1, thap: -12, ngang: 0, cao: 35, tren_xuong: 85, nghieng: 0, selfie: 0 }[kt.goc ?? 'ngang'] ?? 0;
   const e = (ngoc * Math.PI) / 180;
   const ngang = d * Math.cos(Math.abs(e));
-  const z = kt.goc === 'sat_dat' ? 0.5 : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
+  // Người thật đứng + góc NGANG TẦM: máy ở TẦM MẮT chuẩn (150 cm) cho mọi shot — không ở giữa thân (84 cm ở cảnh rộng) và không đổi theo
+  // chiều cao từng diễn viên; cổng "chiều cao máy" đòi các shot ngang tầm trong cảnh cùng một tầm (±4 cm).
+  const tamMat = (kt.goc ?? 'ngang') === 'ngang' && chu.length > 0 && chu.every((v) => khoi(v.ten)?.hinh === 'nguoi' && !v.nam);
+  const z = kt.goc === 'sat_dat' ? 0.5 : tamMat ? TAM_MAT_CM : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
   return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), ...(o.nhay ? { nhay: o.nhay } : {}), tu_dong: { phia: o.phia ?? 0 } };
 }

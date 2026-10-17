@@ -425,13 +425,23 @@ def cat_lop(cam):
         lo = [min(h[0][i] for h in hop.values()) for i in range(3)]; hi = [max(h[1][i] for h in hop.values()) for i in range(3)]
         _LOP['tam'] = [(lo[i] + hi[i]) / 2 for i in range(3)]; _LOP['hop'] = hop
     if not _LOP.get('tam'): return
+    if 'gan' not in _LOP:   # đồ GẮN TƯỜNG (cửa, tranh, mảng ốp, bảng): mỏng theo trục của mặt nền + nằm sát mặt đó → tháo cùng mảng tường (#16 kín gỗ cửa đôi)
+        _LOP['gan'] = {}
+        for o in bpy.data.objects:
+            if o.type != 'MESH' or o.name in NEN or o.name.startswith(('NG ', 'NV ', 'cam ', 'may ', 'duong ', 'dd ', 'tia ', 'nen ', 'vach ')): continue
+            bb = [o.matrix_world @ Vector(c) for c in o.bound_box]; lo, hi = [min(v[i] for v in bb) for i in range(3)], [max(v[i] for v in bb) for i in range(3)]
+            for ten, (wl, wh) in _LOP['hop'].items():
+                ax = min(range(3), key=lambda i: wh[i] - wl[i])
+                if hi[ax] - lo[ax] < 0.2 and lo[ax] > wl[ax] - 0.15 and hi[ax] < wh[ax] + 0.15 and all(lo[i] < wh[i] and hi[i] > wl[i] for i in range(3) if i != ax):
+                    _LOP['gan'].setdefault(ten, []).append(o.name); break
     p = cam.location
     for ten, (lo, hi) in _LOP['hop'].items():
         o = bpy.data.objects.get(ten)
         if not o: continue
         ax = min(range(3), key=lambda i: hi[i] - lo[i])
         an = p[ax] > lo[ax] if (lo[ax] + hi[ax]) / 2 >= _LOP['tam'][ax] else p[ax] < hi[ax]
-        o.hide_viewport = o.hide_render = an
+        for x in [o] + [bpy.data.objects.get(g) for g in _LOP['gan'].get(ten, [])]:
+            if x: x.hide_viewport = x.hide_render = an
     bpy.context.view_layer.update()
 
 def do_sau(s, gan, xa):

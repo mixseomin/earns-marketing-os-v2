@@ -1930,17 +1930,20 @@
     {
      "ten": "Lâm Hạ",
      "tam": [
-      -200,
-      200,
+      -170,
+      640,
       0
      ],
-     "huong": 160,
+     "huong": 90,
      "den": [
-      -170,
+      -165,
       700,
       0
      ],
-     "huong_den": 90
+     "trang_phuc": "tailored white power suit, white silk blouse, hair down, confident",
+     "trang": "",
+     "do_deo": "jade bangle on the left wrist",
+     "nhay": "đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)"
     },
     {
      "ten": "Lục Thần",
@@ -1952,7 +1955,7 @@
      "huong": -90
     }
    ],
-   "phia": 162.5
+   "phia": 0.0
   },
   "nhan_vat": [
    "Lâm Hạ",

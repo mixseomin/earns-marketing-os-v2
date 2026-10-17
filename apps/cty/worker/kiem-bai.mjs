@@ -28,10 +28,13 @@ export function nopBai({ url, tu = 'Không rõ', html = null }) {
 }
 
 /** HTML → chữ người đọc thấy ở phần thân bài (ưu tiên <main> / .prose / <article>), giữ đánh dấu tiêu đề và trích dẫn để mô hình thấy cấu trúc. */
+/** HTML phần THÂN BÀI (bỏ đầu trang / chân trang / thanh tìm kiếm): <div class="prose"> → <article> → <main> → cả trang. */
+export function thanBai(html) {
+  const h = String(html), m = h.match(/<div class="prose">([\s\S]*?)<\/div>\s*<\/main>/i) || h.match(/<article[\s\S]*?<\/article>/i) || h.match(/<main[\s\S]*?<\/main>/i);
+  return m ? (m[1] ?? m[0]) : h;
+}
 export function chuBai(html) {
-  let h = String(html).replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, '');
-  const m = h.match(/<div class="prose">([\s\S]*?)<\/div>\s*<\/main>/i) || h.match(/<article[\s\S]*?<\/article>/i) || h.match(/<main[\s\S]*?<\/main>/i);
-  if (m) h = m[1] ?? m[0];
+  const h = thanBai(html).replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, '');
   return h.replace(/<h1[^>]*>/gi, '\n# ').replace(/<h2[^>]*>/gi, '\n## ').replace(/<h3[^>]*>/gi, '\n### ').replace(/<blockquote[^>]*>/gi, '\n> ')
     .replace(/<li[^>]*>/gi, '\n- ').replace(/<(p|br|tr|div|table|details|summary)[^>]*>/gi, '\n').replace(/<td[^>]*>/gi, ' | ').replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ').replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/&euro;/g, '€').replace(/&ndash;/g, '–').replace(/&mdash;/g, '—').replace(/&#39;|&rsquo;/g, "'")
@@ -42,7 +45,7 @@ export function chuBai(html) {
 export function mayDo(html) {
   const chu = chuBai(html), thuong = chu.toLowerCase(), dong = chu.split('\n');
   const tuMay = TU_MAY.filter((w) => thuong.includes(w));
-  const gachDai = (chu.match(/[—–]/g) || []).length, h = String(html);
+  const gachDai = (chu.match(/[—–]/g) || []).length, h = thanBai(html);   // hình đếm trong thân bài — icon logo / ô tìm kiếm ở đầu trang không phải hình của bài
   // HÌNH THỨC (17/10/2026: bài 1.835 chữ chấm 10/10 mà anh vẫn "không đạt" — mô hình chỉ đọc chữ nên mù phần hình): đếm khối nhìn được
   const anh = (h.match(/<img\b|<picture\b|<svg\b/gi) || []).length, video = (h.match(/<video\b|<iframe\b/gi) || []).length;
   const khungVd = (h.match(/class="[^"]*\b(tin|msg|bubble|mock|phone|chat)\b/gi) || []).length;

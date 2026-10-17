@@ -165,6 +165,23 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))
         for f in me.polygons: f.use_smooth = True
         return dat(o, m, ten)
+    elif h == 'vong':   # VÒNG ĐEO (vòng tay, chuỗi hạt, nhẫn): xuyến trục z, ngoài co[0] × co[1], dày co[2]; hat = số hạt (chuỗi hạt) thay cho ống liền.
+        # Trước 17/10/2026 đồ đeo khai 'hop' → tấm dẹt; ảnh độ sâu đưa FLUX một miếng ván xanh trên cổ tay (tập 122 #22).
+        r = c / w / 2 if w else 0.1; R = 0.5 - r
+        if p.get('hat'):
+            n = int(p['hat']); hat = []
+            for i in range(n):
+                g = 2 * math.pi * i / n
+                bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=8, radius=r * 1.15, location=(R * math.cos(g), R * math.sin(g), 0)); hat.append(bpy.context.object)
+            for o_ in hat: o_.select_set(True)
+            bpy.context.view_layer.objects.active = hat[0]; bpy.ops.object.join()
+        else:
+            bpy.ops.mesh.primitive_torus_add(major_radius=R, minor_radius=r, major_segments=48, minor_segments=12)
+        o = bpy.context.object; o.location = (gx * CM, gy * CM, (z + c / 2) * CM)
+        for f in o.data.polygons: f.use_smooth = True
+        o.scale = (w * CM, d * CM, w * CM)   # tiết diện tròn: z theo co[0] (dày thật = 2r·co[0] = co[2])
+        o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))
+        return dat(o, m, ten)
     elif h == 'non':   # nón cụt (thân khăn rủ Mr. Wipe): đáy rộng co[0]×co[1], đỉnh = đáy × dinh, cao co[2]
         bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * p.get('dinh', 0.4), depth=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
     o = bpy.context.object
@@ -392,11 +409,14 @@ def dung_set():
     return s
 
 TUY_CHON = {v['ten'] for v in DL['vat'] if v.get('tuy_chon')}
+THAY_CHO = {v['ten']: v['thay_cho'] for v in DL['vat'] if v.get('tuy_chon') and v.get('thay_cho')}
 def dat_tuy_chon(co):
-    """Đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ hiện ở shot khai may_3d.them; ẩn cả render lẫn tia kiểm (hide_viewport → ra khỏi depsgraph)."""
+    """Đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ hiện ở shot khai may_3d.them; ẩn cả render lẫn tia kiểm (hide_viewport → ra khỏi depsgraph).
+    Món tuỳ chọn là TRẠNG THÁI KHÁC của đồ set (thay_cho: cửa đôi MỞ thay cửa đóng) → đồ kia ẩn — CÙNG kieu.ts › vatHien."""
+    bo = {THAY_CHO[t] for t in co if t in THAY_CHO}; xet = TUY_CHON | set(THAY_CHO.values())
     for o in bpy.data.objects:
-        t = o.name.rsplit(' ', 1)[0] if o.name.rsplit(' ', 1)[0] in TUY_CHON else o.name
-        if t in TUY_CHON: o.hide_viewport = o.hide_render = t not in co
+        t = o.name.rsplit(' ', 1)[0] if o.name.rsplit(' ', 1)[0] in xet else o.name
+        if t in xet: o.hide_viewport = o.hide_render = (t in TUY_CHON and t not in co) or t in bo
     bpy.context.view_layer.update()
 
 def nhan_vat(sh, ket=False):
@@ -449,7 +469,7 @@ def nhan_vat(sh, ket=False):
             bpy.context.view_layer.update()
             if nv.get('nam'): nam_xuong(mt, X, Y, Z, hg, d, h)
             than.append(mt[0]); tat_ca.extend(mt); continue
-        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4)}, f"NV {nv['ten']}", (X, Y), hg)
+        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat')}, f"NV {nv['ten']}", (X, Y), hg)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
         # NẰM (bẹp / ngã): dựng người ĐỨNG đủ tay, chân, tóc, mắt rồi xoay cả người ngửa ra sau quanh trục ngang của nó (mặt hướng lên).
@@ -476,11 +496,12 @@ def diem_cam(n_, ben):
 
 def tay_cam(sh):
     """Đồ đang cầm của người (ma-nơ-canh) trong shot → (người cầm, tay): món thứ nhất tay phải 'p', thứ hai tay trái 't'; người đang 'om_thung'
-    thì món đầu ôm giữa hai tay 'om'."""
+    thì món đầu ôm giữa hai tay 'om'. Đồ ĐEO (vi_tri.deo = khớp rig: 'cotay_t', 'cotay_p', 'co'…) → (người đeo, khớp đó)."""
     co = {v['ten']: v for v in sh.get('nhan_vat', [])}; out, dem = {}, {}
     for v in sh.get('nhan_vat', []):
         c = v.get('cam')
         if not c or c not in co or c not in NGUOI: continue
+        if v.get('deo') in NGUOI[c]: out[v['ten']] = (c, v['deo']); continue   # đồ ĐEO: nằm ở khớp đó (cổ tay, cổ), không chiếm tay cầm
         om = any(str(x).split('@')[0] == 'om_thung' for x in (co[c].get('dien') or []))
         k = dem.get(c, 0); dem[c] = k + 1
         out[v['ten']] = (c, 'om' if om and k == 0 else 'p' if k == 0 else 't')
@@ -493,9 +514,14 @@ def gan_tay(sh, tat_ca, ket=False):
     for ten, (c, ben) in tay_cam(sh).items():
         v = next(x for x in sh['nhan_vat'] if x['ten'] == ten)
         if ket and v.get('den'): continue
-        n_ = NGUOI[c]; dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
+        n_ = NGUOI[c]; khop = n_.get(ben) if ben not in ('om', 'p', 't') else None
         objs = [o for o in tat_ca if o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")]
         if not objs: continue
+        if khop is not None:   # ĐEO: trục vòng theo trục xương (cẳng tay), tâm lùi 2 cm về phía khuỷu — chỗ vòng tay nằm thật
+            q = khop.matrix_world.to_quaternion()
+            for o in objs: o.rotation_euler = q.to_euler()
+            bpy.context.view_layer.update(); dich = khop.matrix_world @ Vector((0, 0, 2.0))
+        else: dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
         bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]
         tam = Vector([(min(p[i] for p in bb) + max(p[i] for p in bb)) / 2 for i in range(3)])
         for o in objs: o.location += dich - tam
@@ -660,8 +686,10 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
         ten = ng_ or (o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name))
         # 'tam': toạ độ THẾ GIỚI (cm) của chủ thể lúc dựng — món đang cầm / đeo nằm ở bàn tay thật của rig, không ở toạ độ khai → đặt máy tay nhắm theo số này
+        # 'khung': hộp bao trên màn (0..1, gốc trên-trái, kẹp vào khung) gồm cả phần bị che — hai người hộp trùng nhau thì AI vẽ thành một (#15)
+        cv = [world_to_camera_view(s, cam, q) for q in bb]; kx = [min(1.0, max(0.0, q.x)) for q in cv]; ky = [min(1.0, max(0.0, 1 - q.y)) for q in cv]
         out.append({'nhan_vat': ten, 'tam': [round(x / CM, 1) for x in tam], 'bat_buoc': ten in bb_ten, 'trong_khung': trong,
-                    'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
+                    'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che, 'khung': [round(min(kx), 3), round(min(ky), 3), round(max(kx), 3), round(max(ky), 3)]})
     return out
 
 NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or v.get('mau_3d')}   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
@@ -1086,6 +1114,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         if cam_ and cam_ in neo:
             cha = neo[cam_][0]
             if ten in tc and tc[ten][1] in ('p', 't'): cha = NGUOI[cam_][f"cotay_{tc[ten][1]}"]
+            elif ten in tc and tc[ten][1] in NGUOI[cam_]: cha = NGUOI[cam_][tc[ten][1]]   # đồ đeo: theo khớp đeo
             elif ten in tc: cha = NGUOI[cam_]['nguc']
             mw = e.matrix_world.copy(); e.parent = cha; e.matrix_parent_inverse = cha.matrix_world.inverted(); e.matrix_world = mw
     # NGÔN NGỮ STOP-MOTION (anh 16/10/2026: "blender tạo chuyển động dạng stopmotion đã đúng chưa"), theo nghề Laika / Aardman:

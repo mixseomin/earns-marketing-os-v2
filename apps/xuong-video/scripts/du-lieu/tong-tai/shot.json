@@ -1590,8 +1590,8 @@
   },
   "dan_dung": {
    "dien": "Anticipation: the double doors swing open. Action: Hạ strides in, chin up, the lawyer a step behind. Reaction: board members turn in their chairs.",
-   "bo_cuc": "Low angle: the tall double doors swing open, Lâm Hạ strides in in a white power suit, Lawyer Trần a step behind",
-   "mo": "doors closed",
+   "bo_cuc": "Low angle: the tall double doors flung wide open, Lâm Hạ strides in through the doorway in a white power suit, Lawyer Trần a step behind her",
+   "mo": "doors already flung open, Hạ in the doorway mid-stride, Trần a step behind",
    "ket": "Hạ standing at the end of the table",
    "huong": "Hạ walks screen-right toward the table",
    "muc_dich": "đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực",
@@ -1617,17 +1617,32 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    -250,
+    100,
+    55
+   ],
+   "nhin": [
+    -470,
+    160,
+    125
+   ],
+   "ong_kinh": 28,
    "khung": [
     "Lâm Hạ",
     "Luật sư Trần"
    ],
    "qua_truc": true,
+   "them": [
+    "Cửa đôi mở"
+   ],
    "vi_tri": [
     {
      "ten": "Lâm Hạ",
      "tam": [
       -470,
-      150,
+      160,
       0
      ],
      "huong": 90,
@@ -1648,7 +1663,7 @@
      "ten": "Luật sư Trần",
      "tam": [
       -490,
-      110,
+      215,
       0
      ],
      "huong": 90,
@@ -1662,8 +1677,7 @@
       "mc_di_bo"
      ]
     }
-   ],
-   "phia": 134.4
+   ]
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2214,7 +2228,7 @@
   "ky_thuat": {
    "vai": "chi_tiet",
    "co_canh": "insert",
-   "goc": "cao",
+   "goc": "ngang",
    "chuyen_dong": "day_vao",
    "ong_kinh": "macro",
    "anh_sang": "tuong_phan",
@@ -2230,7 +2244,7 @@
   "dan_dung": {
    "dien": "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as a thin jade bead bracelet slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.",
    "huong": "Static hand; the camera pushes down onto the wrist.",
-   "bo_cuc": "High insert on Lục Thần’s left wrist resting on the dark walnut table: the cuff pulled back reveals a thin pale-green jade bead bracelet next to his steel watch",
+   "bo_cuc": "Insert at wrist height on Lục Thần’s left hand pressed flat on the dark walnut table, forearm upright: the shirt cuff pulled back reveals a thin pale-green jade bead bracelet around the wrist",
    "mo": "Thần’s hand flat on the table, cuff covering the wrist",
    "ket": "the jade bead bracelet in full view — cut to black",
    "muc_dich": "móc: khán giả thấy hai người cùng một chất ngọc, nhân vật chưa biết",
@@ -2249,16 +2263,16 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -185,
-    700,
-    125
+    -200,
+    640,
+    92
    ],
    "nhin": [
     -145,
-    730,
-    82
+    680,
+    86
    ],
-   "ong_kinh": 100,
+   "ong_kinh": 85,
    "khung": [
     "Chuỗi hạt ngọc",
     "Lục Thần"
@@ -2279,12 +2293,13 @@
     {
      "ten": "Chuỗi hạt ngọc",
      "tam": [
-      -112,
-      690,
-      74
+      -145,
+      680,
+      86
      ],
      "huong": -90,
-     "cam": "Lục Thần"
+     "cam": "Lục Thần",
+     "deo": "cotay_t"
     }
    ]
   },

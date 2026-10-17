@@ -335,13 +335,14 @@
    "ten": "Chuỗi hạt ngọc",
    "mo_ta": "Thin bracelet of small pale-green jade beads on a black silk cord — the same milky green jade as Lâm Hạ's bangle",
    "khoi_3d": {
-    "hinh": "hop",
+    "hinh": "vong",
     "co": [
-     7,
-     7,
-     0.8
+     6.5,
+     6.5,
+     0.9
     ],
-    "mau": "#3f7a5c"
+    "hat": 20,
+    "mau": "#a9d4b4"
    }
   }
  ],

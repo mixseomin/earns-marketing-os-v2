@@ -2,6 +2,7 @@
 // Cùng luật dung-set.py (Blender) để khung nhìn qua máy shot ở trình duyệt khớp khung xám. Toạ độ dữ liệu: cm, x phải, y sâu vào bàn, z lên → three: (x, z, −y).
 import * as THREE from 'three';
 import type { BoSet, KhoiSet, May3d, NhanVat } from './kieu';
+import { vatHien } from './kieu';
 
 export type Khoi = NonNullable<NhanVat['khoi_3d']>;
 export type Phan = Omit<KhoiSet, 'ten'> & { ten?: string; bac?: number };
@@ -94,6 +95,7 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
   else if (p.hinh === 'khan') { g = khanHinh(w / (dd || 1)); }   // tấm khăn rủ: đơn vị tâm ở giữa khối như hộp
   else if (p.hinh === 'non') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
+  else if (p.hinh === 'vong') { const r = c / w / 2; g = new THREE.TorusGeometry(0.5 - r, r, 12, 48).rotateX(Math.PI / 2); sy = w; }   // vòng đeo: xuyến trục đứng, tiết diện tròn (CÙNG dung-set.py › khoi 'vong')
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);
   // Nghiêng quanh trục x của khối TRƯỚC rồi mới xoay quanh trục đứng (như Blender Euler XYZ) → thứ tự 'YXZ' của three.
@@ -132,9 +134,9 @@ export function dungCanhShot(set: BoSet, khoiCua: (ten: string) => KhoiNv | unde
   const canh = new THREE.Scene(); canh.background = new THREE.Color('#3a3b44');
   canh.add(new THREE.HemisphereLight('#ffffff', '#5a4a3a', 1.6));
   const den = new THREE.DirectionalLight('#ffffff', 1.4); den.position.set(60, 120, 80); canh.add(den);
-  const them = new Set(may?.them ?? []);
+  const hien = may ? new Set(vatHien(set.du_lieu.vat, may.them).map((v) => v.ten)) : null;
   for (const v of set.du_lieu.vat) {
-    if (v.tuy_chon && may && !them.has(v.ten)) continue;
+    if (hien && !hien.has(v.ten)) continue;
     const mo = v.kinh || /\bglass (wall|door|partition|panel)s?\b/i.test(v.en ?? '') ? 0.25 : v.tuy_chon && !may ? 0.35 : 1;   // kính: CÙNG luật dung-set.py › LA_KINH   // kính: trong suốt như khung Blender (dung-set.py › KINH)
     const g = new THREE.Group();
     if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0, mo));

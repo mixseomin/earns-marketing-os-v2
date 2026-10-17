@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi } from './kiem-ai-3d';
+import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -21,4 +21,10 @@ assert.equal(matNguoiNoi({ hanh_dong: '', prompt_anh: '', thoai: [noi], ky_thuat
 // VẬT ĐEO: cận chỉ khai món đồ đang trên người → chặn; khai cả người → qua
 const deo = (khung: string[]) => ({ hanh_dong: '', prompt_anh: '', ky_thuat: { co_canh: 'insert' }, may_3d: { ...may([{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Vòng', tam: [10, 0, 80], huong: 0, cam: 'Hạ' }]), khung } }) as never;
 assert.equal(vatDeoThieuNguoi(deo(['Vòng'])).length, 1); assert.equal(vatDeoThieuNguoi(deo(['Vòng', 'Hạ'])).length, 0);
+// CHỒNG HÌNH: hai người hộp trùng gần hết (Trần ngay sau lưng Hạ dọc trục máy, #15) → chặn; đứng hai bên → qua; người bị khai là đồ (loai khác) không tính
+const kh = (k1: number[], k2: number[]) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { kiem: [{ nhan_vat: 'Hạ', bat_buoc: true, trong_khung: true, cao_khung_pt: 13, bi_che_boi: [], khung: k1 }, { nhan_vat: 'Trần', bat_buoc: true, trong_khung: true, cao_khung_pt: 13, bi_che_boi: [], khung: k2 }] } }) as never;
+const nv2 = [{ ten: 'Hạ', loai: 'nhan_vat' }, { ten: 'Trần', loai: 'nhan_vat' }] as never;
+assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), nv2).length, 1);
+assert.equal(chongNguoi(kh([0.2, 0.3, 0.4, 0.9], [0.55, 0.3, 0.75, 0.88]), nv2).length, 0);
+assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), [{ ten: 'Hạ', loai: 'nhan_vat' }, { ten: 'Trần', loai: 'dao_cu' }] as never).length, 0);
 console.log('kiem-ai-3d: ok');

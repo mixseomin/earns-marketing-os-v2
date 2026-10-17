@@ -3,10 +3,11 @@
 // Phim thường: đạo cụ có mặt ở trường quay là lên hình. Phim AI: thứ gì KHÔNG có trong bản 3D thì model tự vẽ (mỗi góc một kiểu), thứ gì có mà không
 // được gọi tên thì model tự đổi. Bộ kiểm này đặt hai chiều đó thành luật CHẶN, đọc dữ liệu shot + set + khung 3D (không gọi AI, 0đ):
 //   ĐỦ   — vật được nhắc trong chữ của shot (hành động, bố cục, mở / kết, diễn xuất) phải có khối 3D tương ứng; shot cận phải THẤY nó trong khung.
-//   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo.
+//   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo · hai người không chồng hình.
 // MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và bộ chấm tại chỗ (scripts/du-lieu/tong-tai/kiem.mts). Thuần — tự kiểm: kiem-ai-3d.test.mts
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
 import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
+import { vatHien } from './kieu';
 
 /** DANH MỤC VẬT: nhóm từ (Việt + Anh) chỉ cùng một loại đồ. KHÔNG dùng từ hai nghĩa (plant = đặt mình, watch = nhìn, key = then chốt, screen-left,
  *  cặp = đôi, tách = chia) — báo nhầm làm luật mất tin. Chữ của shot nhắc một từ → bản 3D phải có khối mà tên / mô tả chứa một từ cùng nhóm.
@@ -43,8 +44,7 @@ export const vatDuocNhacAi = (c: ShotAi) => { const chu = chuShot(c); return TU_
 
 /** Các khối 3D của shot kèm chữ nhận dạng: đồ set (tên + en + anchor), món ở chỗ đứng (tên + mô tả anchor), người (đồ đeo + mô tả biến thể đang mặc). */
 function khoi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): { ten: string; chu: string }[] {
-  const them = new Set(c.may_3d?.them ?? []);
-  const out = (set?.du_lieu.vat ?? []).filter((v) => !v.tuy_chon || them.has(v.ten)).map((v) => ({ ten: v.ten, chu: [v.ten, v.en ?? '', v.anchor ?? ''].join(' ') }));
+  const out = vatHien(set?.du_lieu.vat ?? [], c.may_3d?.them).map((v) => ({ ten: v.ten, chu: [v.ten, v.en ?? '', v.anchor ?? ''].join(' ') }));
   for (const v of c.may_3d?.vi_tri ?? []) {
     const a = nhanVat.find((x) => x.ten.trim().toLowerCase() === v.ten.trim().toLowerCase());
     const mac = (a?.bien_the ?? []).filter((b) => [v.trang_phuc, v.trang_phuc_den, v.trang, v.trang_den].some((t) => t && t.trim().toLowerCase() === b.ten.trim().toLowerCase())).map((b) => b.mo_ta);
@@ -90,6 +90,24 @@ export function vatDeoThieuNguoi(c: ShotAi): string[] {
   return m.vi_tri.filter((v) => ct.has(v.ten) && v.cam && !ct.has(v.cam)).map((v) => `${v.ten} đang trên người ${v.cam} mà khung cận chỉ khai món đồ — khai cả ${v.cam} vào may_3d.khung để thấy chỗ đeo / cầm`);
 }
 
+/** HAI NGƯỜI CHỒNG HÌNH: hai chủ thể người đứng gần như thẳng hàng với máy (hộp bao trên màn trùng ≥ 60 % bề ngang người hẹp hơn, và cùng tầm cao) —
+ *  ảnh độ sâu chỉ còn MỘT dáng người, AI vẽ một người (tập 122 #15: Trần "theo sau một bước" đứng ngay sau lưng Hạ dọc trục máy → keyframe mất Trần).
+ *  Phim thường: diễn viên tự tách ra khi máy chạy; phim AI: 3D chồng là ảnh chồng. Đọc khung_xam.kiem[].khung (dung-set.py › kiem_hinh_hoc). */
+export const CHONG_NGUOI = 0.6;
+export function chongNguoi(c: ShotAi, nhanVat: Pick<NvAi, 'ten' | 'loai'>[]): string[] {
+  const nguoi = new Set(nhanVat.filter((a) => a.loai === 'nhan_vat').map((a) => a.ten));
+  const ds = (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung && nguoi.has(k.nhan_vat) && k.khung?.length === 4);
+  const out: string[] = [];
+  for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) {
+    const [a, b] = [ds[i]!.khung!, ds[j]!.khung!];
+    const ngang = Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!); const doc = Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!);
+    const hep = Math.min(a[2]! - a[0]!, b[2]! - b[0]!); const thap = Math.min(a[3]! - a[1]!, b[3]! - b[1]!);
+    if (hep > 0 && thap > 0 && ngang / hep >= CHONG_NGUOI && doc / thap >= 0.5)
+      out.push(`${ds[i]!.nhan_vat} và ${ds[j]!.nhan_vat} chồng hình trên khung (trùng ${Math.round((ngang / hep) * 100)}% bề ngang) — AI sẽ vẽ thành một người: tách hai người ra hai bên trục máy, hoặc đổi góc máy`);
+  }
+  return out;
+}
+
 /** ĐỒ NHẬN DẠNG (tranh, thư pháp, ảnh, poster, màn chiếu có nội dung, bảng chỉ dẫn): chỉ có chữ tả thì mỗi góc máy AI vẽ một bức khác (anh 17/10/2026:
  *  "tranh trên tường lúc hình A lúc tranh B"). Phải có ẢNH CHUẨN (vat.anh — scripts/sinh-anh-set.mts) dán lên mặt vật trong 3D. Đã có khung 3D: chỉ xét
  *  đồ LỌT KHUNG; chưa có: mọi đồ nhận dạng của set (chặn sớm, trước khi dựng). Màn hình tắt / logo chữ không tính. */
@@ -102,5 +120,5 @@ export function doNhanDangChuaAnh(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null)
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set)];
+  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat)];
 }

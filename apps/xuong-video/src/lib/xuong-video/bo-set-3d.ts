@@ -18,7 +18,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 38;
+export const BAN_DUNG = 39;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -112,7 +112,9 @@ export const coCanhLech = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_t
   const chinh = nv.reduce((a, b) => (b.cao_khung_pt > a.cao_khung_pt ? b : a));
   return chinh.cao_khung_pt < san ? [`cỡ cảnh: thẻ khai ${co} mà ${chinh.nhan_vat} (nhân vật chính) chỉ cao ${chinh.cao_khung_pt}% khung 3D (cần ≥ ${san}%) — keyframe sẽ vẽ to hơn 3D — kéo máy lại gần (giữ hướng), hoặc khai cỡ cảnh rộng hơn cho đúng 3D`] : [];
 };
-export const chuTheQuaTo = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, set?: Pick<BoSet, 'du_lieu'> | null): string[] => ['cu', 'ecu', 'insert', 'mcu'].includes(c.ky_thuat?.co_canh ?? '') ? [] : (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.cao_khung_pt > 70 && !vatDet(set).has(k.nhan_vat)).map((k) => `${k.nhan_vat} cao ${k.cao_khung_pt}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — máy dí sát: lùi máy / đặt tay`);
+/** laNguoi: NGƯỜI THẬT (ma-nơ-canh khoi_3d.hinh 'nguoi') không xét — cỡ cảnh người cắt theo dải thân (BANG_NGUOI: ots / ms / two là ngực / thắt lưng
+ *  trở lên), chiếm > 70% chiều cao khung là đúng ý (tập 122: 5 shot qua vai / trung cảnh bị chặn oan khi đo cả người). */
+export const chuTheQuaTo = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, set?: Pick<BoSet, 'du_lieu'> | null, laNguoi: (ten: string) => boolean = () => false): string[] => ['cu', 'ecu', 'insert', 'mcu'].includes(c.ky_thuat?.co_canh ?? '') ? [] : (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.cao_khung_pt > 70 && !vatDet(set).has(k.nhan_vat) && !laNguoi(k.nhan_vat)).map((k) => `${k.nhan_vat} cao ${k.cao_khung_pt}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — máy dí sát: lùi máy / đặt tay`);
 
 /** Shot để so trục với shot thứ i: shot liền trước GẦN NHẤT không cố ý vượt trục (POV / lật trục có chủ đích không đặt trục mới). */
 export function shotSoTruc<T extends Pick<Canh, 'may_3d'>>(ds: T[], i: number): T | null {
@@ -177,7 +179,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   else if (!kx.thay) out.push('khung xám đời cũ chưa đo "thấy gì trong khung" — chạy 🧊 Dựng khung xám lại');
   else {
     for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
-    out.push(...chuTheQuaTo(c, set));
+    out.push(...chuTheQuaTo(c, set, (t) => nhanVat.some((x) => x.ten === t && x.khoi_3d?.hinh === 'nguoi')));
     out.push(...chuTheQuaNho(c));
     out.push(...coCanhLech(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
     // 'Bố cục nhắc mà khung không thấy' (dò tên trong chữ) KHÔNG chặn nữa — báo nhầm (chữ 'cable' khớp mọi sợi cáp); bộ giải máy vẫn dùng nó làm

@@ -138,7 +138,7 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (8): rig người — tư thế theo mã diễn (ap_dien) + đồ cầm vào bàn tay (gan_tay); chỉ ma-nơ-canh người → phim cũ y nguyên → GIỮ 37.
 // 17/10/2026 (9): mocap CMU (mã 'mc_*', mesh/mocap.py) — chỉ ma-nơ-canh người → GIỮ 37.
 // 17/10/2026 (10): mô hình đồ đạc thật (mau_3d, Poly Haven) — chỉ món khai mau_3d → GIỮ 37.
-assert.deepEqual([BAN_DUNG, bam], [38, 'c9a49c86ac3e'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [39, '8ad945fcc8f5'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));
@@ -183,7 +183,7 @@ assert.deepEqual(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: -90 
 // chủ thể quá to: thẻ dẹt (cao 0,3 cm) phủ tiền cảnh ở cỡ two không tính; nhân vật cao 260% vẫn đỏ
 const kxTo = (ten: string) => ({ ky_thuat: { co_canh: 'two' }, khung_xam: { kiem: [{ nhan_vat: ten, bat_buoc: true, trong_khung: true, cao_khung_pt: 260, bi_che_boi: [] }] } as never });
 const setThe = { du_lieu: { vat: [{ ten: 'Orange Card', tam: [0, 0, 0], co: [9, 6, 0.3], mau: '#f80', hinh: 'hop' } as never] } };
-assert.deepEqual(chuTheQuaTo(kxTo('Orange Card'), setThe), []); assert.equal(chuTheQuaTo(kxTo('Tango'), setThe).length, 1); assert.equal(chuTheQuaTo(kxTo('Orange Card')).length, 1);
+assert.deepEqual(chuTheQuaTo(kxTo('Orange Card'), setThe), []); assert.equal(chuTheQuaTo(kxTo('Tango'), setThe).length, 1); assert.deepEqual(chuTheQuaTo(kxTo('Tango'), setThe, (t) => t === 'Tango'), []);   // người thật: cỡ cảnh cắt theo dải thân, to là đúng ý assert.equal(chuTheQuaTo(kxTo('Orange Card')).length, 1);
 // lam không vào mã khung (khai kể chuyện không làm khung đã dựng thành cũ)
 const setM = { id: 1, du_lieu: { vat: [] } }; const mLam = (lam?: string) => ({ dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], ...(lam ? { lam } : {}) }] });
 assert.equal(maKhungXam(setM, mLam("Cable Plug"), []), maKhungXam(setM, mLam(), [])); assert.equal(maPhan(setM, mLam("X"), []).may, maPhan(setM, mLam(), []).may);

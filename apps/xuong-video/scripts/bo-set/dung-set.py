@@ -577,9 +577,14 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             k_ = ob.name.split('·')[0]; k_ = f"NV {nguoi_cua(k_)}" if nguoi_cua(k_) else k_
             che[k_] = che.get(k_, 0) + 1
         vt = world_to_camera_view(s, cam, tam)
+        trong = 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0
+        if ng_:   # người: TRONG KHUNG = đầu hoặc ngực lọt khung (cận mặt thì tâm hông ở dưới khung là đúng ý); CAO = phần thấy được, cắt theo mép
+            moc = [bpy.data.objects.get(f"NG {ng_}.{k}") for k in ('dau_k', 'nguc_k')]
+            trong = any(0 <= q.x <= 1 and 0 <= q.y <= 1 and q.z > 0 for q in (world_to_camera_view(s, cam, m.matrix_world @ (sum((Vector(c) for c in m.bound_box), Vector()) / 8)) for m in moc if m))
+            ys = [min(1.0, max(0.0, y)) for y in ys]
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
         ten = ng_ or (o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name))
-        out.append({'nhan_vat': ten, 'bat_buoc': ten in bb_ten, 'trong_khung': 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0,
+        out.append({'nhan_vat': ten, 'bat_buoc': ten in bb_ten, 'trong_khung': trong,
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
 

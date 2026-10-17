@@ -600,7 +600,9 @@
   ],
   "may_3d": {
    "khung": [
-    "Lục Thần"
+    "Lục Thần",
+    "Lâm Hạ",
+    "Vivian"
    ],
    "vi_tri": [
     {
@@ -654,7 +656,7 @@
      "an": true
     }
    ],
-   "phia": 20.3
+   "phia": 35.6
   },
   "nhan_vat": [
    "Lục Thần",
@@ -1595,6 +1597,7 @@
     "Lâm Hạ",
     "Luật sư Trần"
    ],
+   "qua_truc": true,
    "vi_tri": [
     {
      "ten": "Lâm Hạ",
@@ -1885,7 +1888,8 @@
       740,
       0
      ],
-     "huong": 0
+     "huong": 0,
+     "an": true
     },
     {
      "ten": "Luật sư Trần",
@@ -1894,7 +1898,8 @@
       150,
       0
      ],
-     "huong": 90
+     "huong": 90,
+     "an": true
     }
    ],
    "phia": 156.8
@@ -2075,7 +2080,7 @@
      ]
     }
    ],
-   "phia": 0.0
+   "phia": -51.2
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2154,7 +2159,7 @@
      "an": true
     }
    ],
-   "phia": -37.3
+   "phia": -83.4
   },
   "nhan_vat": [
    "Lục Thần",

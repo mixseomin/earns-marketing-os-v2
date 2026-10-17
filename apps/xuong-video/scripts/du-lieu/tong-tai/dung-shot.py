@@ -68,7 +68,8 @@ shot('2.1', C2, 5, 'h3', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'thap', 'c
      { 'dien': 'Anticipation: the glass door swings open, the room goes silent. Action: Lục Thần strides out toward the group, unhurried. Reaction: everyone straightens; heads turn to follow him.','bo_cuc': 'Low angle from between the desks: the glass door of the CEO office opens at the back, Lục Thần walks out toward camera, the office falls silent', 'mo': 'glass door closed, Thần visible behind the glass', 'ket': 'Thần standing a few steps from Hạ and Vivian', 'huong': 'Thần walks toward camera', 'muc_dich': 'quyền lực bước vào'},
      'Cửa kính phòng tổng giám đốc mở, Lục Thần bước ra, cả phòng im bặt', [(THAN, 'không cao giọng', 'Chuyện gì?')],
      [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon']), bc(HA, 'nhan_nhin', 'nhan_nhin'), bc(VIV, 'dac_y', 'dac_y')],
-     {'dat': [250, 560, 110], 'nhin': [150, 900, 170], 'ong_kinh': 32, 'khung': [THAN],
+     {'dat': [420, 470, 110], 'nhin': [150, 850, 150], 'ong_kinh': 32, 'khung': [THAN, HA, VIV],   # tổng thể cảnh 2: máy thấp sau lưng Hạ + Vivian, Thần từ cửa kính bước tới
+     
       'vi_tri': [vt(THAN, [80, 1020, 0], 0, den=[230, 760, 0], **AO_THAN, dien=['mc_sai_buoc']), vt(HA, [300, 560, 0], 180, nam=False), vt(VIV, [300, 640, 0], 0), LY_RONG(an=True)]},
      [THAN, HA, VIV, VP, 'Ly cà phê'])
 shot('2.2', C2, 4, 'veo', {'vai': 'chu_quan', 'co_canh': 'mcu', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
@@ -131,7 +132,8 @@ shot('4.2', C4, 5, 'h3', {'vai': 'hanh_dong', 'co_canh': 'ws', 'goc': 'thap', 'c
      { 'dien': 'Anticipation: the double doors swing open. Action: Hạ strides in, chin up, the lawyer a step behind. Reaction: board members turn in their chairs.','bo_cuc': 'Low angle: the tall double doors swing open, Lâm Hạ strides in in a white power suit, Lawyer Trần a step behind', 'mo': 'doors closed', 'ket': 'Hạ standing at the end of the table', 'huong': 'Hạ walks screen-right toward the table', 'muc_dich': 'đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực'},
      'Cửa đôi mở, Hạ bước vào — vest trắng, tóc buông; luật sư Trần theo sau', [],
      [bc(HA, 'quyet_tam', 'quyet_tam', lat=True, cam=['buon', 'nhuc_nha']), bc(TRAN, 'binh_thuong', 'tu_tin')],
-     {'dat': [-120, 430, 90], 'nhin': [-330, 170, 150], 'ong_kinh': 28, 'khung': [HA, TRAN],
+     {'dat': [-120, 430, 90], 'nhin': [-330, 170, 150], 'ong_kinh': 28, 'khung': [HA, TRAN], 'qua_truc': True,   # cả phòng quay về cửa: cú nhìn theo hướng mắt, cố ý đảo hướng máy
+     
       'vi_tri': [vt(HA, [-470, 150, 0], 90, den=[-200, 200, 0], **AO_HA_CHIEU, nhay='họp HĐQT 3 giờ chiều — đã thay vest trắng', dien=['mc_sai_buoc']), vt(TRAN, [-490, 110, 0], 90, den=[-270, 150, 0], **AO_TRAN, dien=['mc_di_bo'])]},
      [HA, TRAN, PH])
 shot('4.3', C4, 4, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'two', 'goc': 'ngang', 'chuyen_dong': 'dolly_zoom', 'ong_kinh': 'chuan', 'anh_sang': 'tuong_phan', 'am_thanh': ['nen_phong']},
@@ -149,7 +151,7 @@ shot('4.5', C4, 5, 'veo', {'vai': 'hanh_dong', 'co_canh': 'mcu', 'goc': 'thap', 
      { 'dien': 'Anticipation: Hạ looks down the table at Thần. Action: she states the withdrawal word by word. Reaction: unblinking, she waits.','bo_cuc': 'Low medium close-up on Hạ delivering the line, the board soft behind her', 'mo': 'Hạ looking down the table at Thần', 'ket': 'Hạ unblinking', 'huong': 'Hạ looks screen-right toward Thần', 'muc_dich': 'phán quyết — ngược lại cảnh 2'},
      'Hạ tuyên bố rút vốn, từng chữ', [(HA, 'bình thản, từng chữ', 'Quỹ Harrington rút toàn bộ vốn khỏi Lục thị. Hiệu lực từ bây giờ.')],
      [bc(HA, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
-     {'dat': [-140, 340, 120], 'nhin': [-200, 200, 160], 'ong_kinh': 70, 'khung': [HA], 'vi_tri': [vt(HA, [-200, 200, 0], 160), vt(THAN, [0, 740, 0], 0), vt(TRAN, [-270, 150, 0], 90)]},
+     {'dat': [-140, 340, 120], 'nhin': [-200, 200, 160], 'ong_kinh': 70, 'khung': [HA], 'vi_tri': [vt(HA, [-200, 200, 0], 160), vt(THAN, [0, 740, 0], 0, an=True), vt(TRAN, [-270, 150, 0], 90, an=True)]},
      [HA, PH])   # trung cận Hạ: Thần cuối bàn ngoài khung
 
 # ── CẢNH 5 · liền sau (79–89 s) ──
@@ -163,13 +165,15 @@ shot('5.2', C5, 6, 'veo', {'vai': 'tong_the', 'co_canh': 'two', 'goc': 'ngang', 
      { 'dien': 'Anticipation: Hạ walks to the corner and stops close. Action: she leans in to his eye level and says the line softly. Reaction: she straightens and turns away.','bo_cuc': 'Profile two-shot at the table corner: Hạ (screen-left) leans in to Thần’s eye level; the jade bangle on her wrist catches the light', 'mo': 'Hạ arriving at the corner', 'ket': 'Hạ straightening up, turning away from Thần', 'huong': 'Hạ looks screen-right into Thần’s eyes', 'muc_dich': 'cliffhanger', 'motif': 'vòng tay ngọc — ký ức cô bé năm xưa (tập sau)'},
      'Hạ cúi xuống ngang tầm mắt anh, vòng tay ngọc loé sáng', [(HA, 'khẽ, chắc nịch', 'Sếp mới của anh.')],
      [bc(HA, 'lanh_lung', 'nhech_moi'), bc(THAN, 'gian', 'soc')],
-     {'dat': [-120, 500, 175], 'nhin': [-120, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN], 'vi_tri': [vt(HA, [-170, 640, 0], 90, den=[-165, 700, 0], **AO_HA_CHIEU, nhay='đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)', dien=['cui_nguoi@0.6-0.9']), vt(THAN, [-70, 705, 0], -90, dien=['chong_ban'])]},
+     {'dat': [-260, 560, 170], 'nhin': [-118, 702, 150], 'ong_kinh': 35, 'khung': [HA, THAN],   # chéo từ phía Hạ — thẳng trục y thì Ghế 4T chắn tiền cảnh
+      'vi_tri': [vt(HA, [-170, 640, 0], 90, den=[-165, 700, 0], **AO_HA_CHIEU, nhay='đi tới góc bàn trong lúc Thần đứng dậy (ngoài khung #19)', dien=['cui_nguoi@0.6-0.9']), vt(THAN, [-70, 705, 0], -90, dien=['chong_ban'])]},
      [HA, THAN, PH])
 shot('5.3', C5, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'tuong_phan', 'luat': ['giu_phan_ung', 'khoang_lang'], 'am_thanh': ['im_lang']},
      { 'dien': "Anticipation: Thần stays frozen, palms still on the table. Action: his jaw tightens; his eyes follow Hạ off screen-left. Reaction: the cold mask cracks — a long, stunned breath.", 'huong': 'Thần looks screen-left after Hạ.','bo_cuc': 'Slow push into a close-up of Lục Thần still leaning on the table corner, the boardroom soft and silent behind him', 'mo': 'Thần frozen, leaning on his palms', 'ket': 'Thần staring after Hạ, stunned', 'muc_dich': 'giữ phản ứng — khán giả nếm cú đảo thế'},
      'Lục Thần đứng chết lặng, hai tay vẫn chống trên bàn, mắt dõi theo Hạ', [],
      [bc(THAN, 'soc', 'ngo_vuc')],
-     {'dat': [-150, 600, 150], 'nhin': [-70, 705, 150], 'ong_kinh': 85, 'khung': [THAN], 'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt(HA, [-165, 700, 0], 90, an=True)]},
+     {'dat': [-200, 690, 160], 'nhin': [-70, 705, 160], 'ong_kinh': 85, 'khung': [THAN],   # từ chỗ Hạ vừa đứng nhìn về Thần — nhìn theo +y thì màn trình chiếu lấp khung
+      'vi_tri': [vt(THAN, [-70, 705, 0], -90, dien=['chong_ban']), vt(HA, [-165, 700, 0], 90, an=True)]},
      [THAN, PH])
 shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'day_vao', 'ong_kinh': 'macro', 'anh_sang': 'tuong_phan', 'luat': ['chenh_thong_tin', 'motif'], 'am_thanh': ['im_lang', 'cot_ket']},
      { 'dien': "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as a thin jade bead bracelet slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.", 'huong': 'Static hand; the camera pushes down onto the wrist.','bo_cuc': 'High insert on Lục Thần’s left wrist resting on the dark walnut table: the cuff pulled back reveals a thin pale-green jade bead bracelet next to his steel watch', 'mo': 'Thần’s hand flat on the table, cuff covering the wrist', 'ket': 'the jade bead bracelet in full view — cut to black', 'muc_dich': 'móc: khán giả thấy hai người cùng một chất ngọc, nhân vật chưa biết', 'motif': 'ngọc — vòng tay của Hạ (5.2) ↔ chuỗi hạt của Thần (tập sau)'},

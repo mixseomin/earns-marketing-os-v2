@@ -298,7 +298,7 @@ def ve_mat_na(s, sh, cam, goc_ra):
     """MẶT NẠ 3D cho GHÉP ĐÈ đồ nhận dạng và SỬA VÙNG (anh 17/10/2026, học từ topview.ai: ghép đồ thật vào keyframe thay vì để model vẽ; sửa một vùng thay vì
     sinh lại cả khung). Render Workbench màu phẳng: vật đích trắng, mọi thứ khác đen (vật đứng trước tự che phần sau). Mỗi mặt nạ '<goc_ra>-mn-<i>.png'.
       · 'nd:<vật>' — tấm ảnh chuẩn '<vật>·anh' + 4 góc trên khung (x, y 0..1 gốc trên-trái) kèm toạ độ ảnh (u, v) — ghép đúng phối cảnh
-      · 'ng:<tên>' — THÂN người (bỏ đầu, cổ, mũi, tóc) — sửa áo không đụng mặt"""
+      · 'ng:<tên>' — THÂN người (bỏ đầu, cổ, mũi, tóc) — sửa áo không đụng mặt · 'ngd:<tên>' — cả người (ghép đè tránh)"""
     from bpy_extras.object_utils import world_to_camera_view
     tg = []
     for v in DL['vat']:   # tấm ảnh chuẩn có HAI mặt ('·anh', '·anh sau') — mặt quay vào phòng tuỳ vật (màn chiếu tường sau: '·anh sau'); lấy cả hai
@@ -306,8 +306,10 @@ def ve_mat_na(s, sh, cam, goc_ra):
         if ps: tg.append((f"nd:{v['ten']}", ps))
     for nv in sh.get('nhan_vat', []):
         if nv.get('an') or (DL['nhan_vat_mau'].get(nv['ten']) or {}).get('hinh') != 'nguoi': continue
-        than = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render and o.name.startswith(f"NG {nv['ten']}.") and not any(k in o.name for k in ('.dau_k', '.mui', '.co_k', 'toc'))]
+        ca = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render and o.name.startswith(f"NG {nv['ten']}.")]
+        than = [o for o in ca if not any(k in o.name for k in ('.dau_k', '.mui', '.co_k', 'toc'))]
         if than: tg.append((f"ng:{nv['ten']}", than))
+        if ca: tg.append((f"ngd:{nv['ten']}", ca))   # CẢ NGƯỜI (có đầu) — ghép đè không dán lên chỗ có người
     if not tg: return {}
     bpy.context.view_layer.update()
     mesh = [o for o in bpy.data.objects if o.type == 'MESH']; mau_cu = {o.name: tuple(o.color) for o in mesh}

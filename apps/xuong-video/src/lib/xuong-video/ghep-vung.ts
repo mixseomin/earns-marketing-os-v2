@@ -32,21 +32,23 @@ export async function ghepNhanDang(db: Db, canhId: number): Promise<Kq<{ url: st
   if (!mn.length) return { ok: false, loi: 'khung 3D không có đồ nhận dạng nào lọt khung (hoặc khung 3D cũ chưa có mặt nạ — dựng lại 3D)' };
   const vatSet = ((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE phim_id = (SELECT p.id FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${bc.canh.tap_id})`)) as unknown as Row[]).flatMap((r) => (r.vat ?? []) as { ten: string; anh?: string }[]);
   const kf = await rgba(await taiAnh(bc.canh.keyframe_url)); const W = kf.w, H = kf.h; const ra = Buffer.from(kf.d);
-  // VÙNG NGƯỜI nới rộng (6% bề ngang) bị TRỪ khỏi chỗ ghép: người trong ảnh AI không đứng y chỗ ma-nơ-canh 3D — ghép theo mặt nạ trơn thì biểu đồ đè lên
-  // mặt Thần (#20 lần thử đầu). Chỉ dán lên phần đồ nhận dạng chắc chắn không có người.
-  const nguoi = Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k]) => k.startsWith('ng:'));
+  // CÓ NGƯỜI TRƯỚC ĐỒ NHẬN DẠNG thì KHÔNG ghép: người trong ảnh AI không đứng y chỗ ma-nơ-canh 3D (#20: 3D Thần chống bàn cúi thấp, AI vẽ đứng thẳng →
+  // biểu đồ đè lên tóc, vai dù đã trừ vùng người nới rộng). Mặt nạ CẢ người (ngd, có đầu) nới 4% chồng lên đồ > 2% → bỏ qua, để ảnh AI.
   const tru = new Uint8Array(W * H);
-  for (const [, v] of nguoi) {
-    const m = await sharp(await taiAnh(v.url)).resize(W, H, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round(W * 0.03))).threshold(8).raw().toBuffer();
+  for (const [, v] of Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k]) => k.startsWith('ngd:'))) {
+    const m = await sharp(await taiAnh(v.url)).resize(W, H, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round(W * 0.02))).threshold(8).raw().toBuffer();
     for (let i = 0; i < W * H; i++) if (m[i]! > 127) tru[i] = 1;
   }
+  const boQua: string[] = [];
   const xong: string[] = [];
   for (const [k, v] of mn) {
     const ten = k.slice(3); const anh = vatSet.find((x) => x.ten === ten)?.anh; if (!anh) continue;
     const ref = await rgba(await taiAnh(anh)); const m = await rgba(await taiAnh(v.url), W, H);
+    let tong = 0, chong = 0; for (let i = 0; i < W * H; i++) if (m.d[i * 4]! > 127) { tong++; if (tru[i]) chong++; }
+    if (!tong) continue;
+    if (chong / tong > 0.02) { boQua.push(`${ten} (có người đứng trước, ${Math.round((chong / tong) * 100)}%)`); continue; }
     const Hm = dongPhang(v.goc!.map((g) => ({ x: g.p[0]! * W, y: g.p[1]! * H, u: g.uv![0]! * (ref.w - 1), v: g.uv![1]! * (ref.h - 1) }))); if (!Hm) continue;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      if (tru[y * W + x]) continue;
       const i = (y * W + x) * 4; const a = m.d[i]! / 255; if (a < 0.02) continue;
       const z = Hm[6]! * x + Hm[7]! * y + 1; const u = (Hm[0]! * x + Hm[1]! * y + Hm[2]!) / z, vv = (Hm[3]! * x + Hm[4]! * y + Hm[5]!) / z;
       if (u < 0 || vv < 0 || u > ref.w - 1 || vv > ref.h - 1) continue;
@@ -59,7 +61,7 @@ export async function ghepNhanDang(db: Db, canhId: number): Promise<Kq<{ url: st
     }
     xong.push(ten);
   }
-  if (!xong.length) return { ok: false, loi: 'đồ nhận dạng trong khung chưa có ảnh chuẩn (scripts/sinh-anh-set.mts)' };
+  if (!xong.length) return { ok: false, loi: boQua.length ? `không ghép: ${boQua.join(', ')} — để nguyên ảnh AI` : 'đồ nhận dạng lọt khung chưa có ảnh chuẩn (scripts/sinh-anh-set.mts)' };
   const url = await luuUngVien(db, canhId, await sharp(ra, { raw: { width: W, height: H, channels: 4 } }).jpeg({ quality: 92 }).toBuffer(), 'ghep');
   return url ? { ok: true, data: { url, vat: xong } } : { ok: false, loi: 'không đẩy được ảnh lên kho' };
 }
@@ -72,12 +74,16 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
   const a = bc.nhanVat.find((v) => v.ten === ten); const vt = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((v) => v.ten === ten);
   const ao = moTa ?? (vt && a ? bienTheTheoSo(vt, a).map((b) => b.mo_ta).join('; ') : '');
   if (!ao) return { ok: false, loi: `không có bộ đồ sổ người cho ${ten} — ghi mô tả` };
-  const kf = await sharp(await taiAnh(bc.canh.keyframe_url)).metadata();
+  // ≤ 1 MP: fal tính FLUX Fill $0,05 / MP LÀM TRÒN LÊN — ảnh 768×1376 (1,06 MP) bị tính 2 MP = $0,10
+  const goc = await sharp(await taiAnh(bc.canh.keyframe_url)).metadata(); const tl = Math.min(1, Math.sqrt(990_000 / ((goc.width ?? 1) * (goc.height ?? 1))));
+  const kf = { width: Math.floor((goc.width ?? 768) * tl), height: Math.floor((goc.height ?? 1365) * tl) };
+  const anhGui = await uploadToR2(`xuong-video/keyframe/${canhId}-goc-sua-${Date.now()}.jpg`, await sharp(await taiAnh(bc.canh.keyframe_url)).resize(kf.width, kf.height).jpeg({ quality: 92 }).toBuffer(), 'image/jpeg');
+  if (!anhGui) return { ok: false, loi: 'không đẩy được ảnh lên kho' };
   const mask = await sharp(await taiAnh(mn.url)).resize(kf.width, kf.height, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round((kf.width ?? 1000) * 0.012))).threshold(16).png().toBuffer();
   const maskUrl = await uploadToR2(`xuong-video/keyframe/${canhId}-mat-na-${Date.now()}.png`, mask, 'image/png'); if (!maskUrl) return { ok: false, loi: 'không đẩy được mặt nạ lên kho' };
   const prompt = `${ten.split(' ').pop()}'s clothing, exactly: ${ao}. Photorealistic, same light, colour grade, pose and body shape as the rest of the photo; seamless edges.`;
-  const job = await taoJob(db, { nhan: `Sửa vùng (${ten}) · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_SUA_VUNG}`, request: { dich: 'sua_vung', prompt, image: bc.canh.keyframe_url, mask: maskUrl } });
-  const kq = await chayAnhFal(MO_HINH_SUA_VUNG, { prompt, image_url: bc.canh.keyframe_url, mask_url: maskUrl, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
+  const job = await taoJob(db, { nhan: `Sửa vùng (${ten}) · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_SUA_VUNG}`, request: { dich: 'sua_vung', prompt, image: anhGui, mask: maskUrl } });
+  const kq = await chayAnhFal(MO_HINH_SUA_VUNG, { prompt, image_url: anhGui, mask_url: maskUrl, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
   const url = await luuUngVien(db, canhId, await sharp(kq.data).jpeg({ quality: 92 }).toBuffer(), 'sua');
   if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }

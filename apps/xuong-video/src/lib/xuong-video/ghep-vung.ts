@@ -32,12 +32,21 @@ export async function ghepNhanDang(db: Db, canhId: number): Promise<Kq<{ url: st
   if (!mn.length) return { ok: false, loi: 'khung 3D không có đồ nhận dạng nào lọt khung (hoặc khung 3D cũ chưa có mặt nạ — dựng lại 3D)' };
   const vatSet = ((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE phim_id = (SELECT p.id FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${bc.canh.tap_id})`)) as unknown as Row[]).flatMap((r) => (r.vat ?? []) as { ten: string; anh?: string }[]);
   const kf = await rgba(await taiAnh(bc.canh.keyframe_url)); const W = kf.w, H = kf.h; const ra = Buffer.from(kf.d);
+  // VÙNG NGƯỜI nới rộng (6% bề ngang) bị TRỪ khỏi chỗ ghép: người trong ảnh AI không đứng y chỗ ma-nơ-canh 3D — ghép theo mặt nạ trơn thì biểu đồ đè lên
+  // mặt Thần (#20 lần thử đầu). Chỉ dán lên phần đồ nhận dạng chắc chắn không có người.
+  const nguoi = Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k]) => k.startsWith('ng:'));
+  const tru = new Uint8Array(W * H);
+  for (const [, v] of nguoi) {
+    const m = await sharp(await taiAnh(v.url)).resize(W, H, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round(W * 0.03))).threshold(8).raw().toBuffer();
+    for (let i = 0; i < W * H; i++) if (m[i]! > 127) tru[i] = 1;
+  }
   const xong: string[] = [];
   for (const [k, v] of mn) {
     const ten = k.slice(3); const anh = vatSet.find((x) => x.ten === ten)?.anh; if (!anh) continue;
     const ref = await rgba(await taiAnh(anh)); const m = await rgba(await taiAnh(v.url), W, H);
     const Hm = dongPhang(v.goc!.map((g) => ({ x: g.p[0]! * W, y: g.p[1]! * H, u: g.uv![0]! * (ref.w - 1), v: g.uv![1]! * (ref.h - 1) }))); if (!Hm) continue;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (tru[y * W + x]) continue;
       const i = (y * W + x) * 4; const a = m.d[i]! / 255; if (a < 0.02) continue;
       const z = Hm[6]! * x + Hm[7]! * y + 1; const u = (Hm[0]! * x + Hm[1]! * y + Hm[2]!) / z, vv = (Hm[3]! * x + Hm[4]! * y + Hm[5]!) / z;
       if (u < 0 || vv < 0 || u > ref.w - 1 || vv > ref.h - 1) continue;

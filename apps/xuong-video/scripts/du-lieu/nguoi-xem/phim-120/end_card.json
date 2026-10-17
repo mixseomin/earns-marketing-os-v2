@@ -1,0 +1,25 @@
+{
+ "qc": true,
+ "nguoi": "Claude trong phiên 17/10/2026 (0đ)",
+ "xem": {
+  "ke_lai": "Mark in the jeans smiles, card says JettJeans 70% OFF.",
+  "ai": "JettJeans",
+  "muon": "—",
+  "can": "—",
+  "lat": "logo + giảm 70%",
+  "ket": "giảm 70%, nhưng chưa nói mua ở đâu/bấm gì — dựa vào nút CTA của nền tảng",
+  "diem": 7,
+  "cho_kho": [
+   {
+    "shot": 8,
+    "van_de": "End card có ưu đãi nhưng không có lời kêu gọi hành động",
+    "sua": "thêm chữ 'Shop now' dưới ưu đãi"
+   }
+  ],
+  "cat": []
+ },
+ "doi": {
+  "khop": true,
+  "lech": ""
+ }
+}

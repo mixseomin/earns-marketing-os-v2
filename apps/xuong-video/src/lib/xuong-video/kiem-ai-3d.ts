@@ -154,6 +154,16 @@ export function theSai(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> |
   return out;
 }
 
+/** CHỮ BỐ CỤC GỌI TÊN NHÂN VẬT mà khung 3D không có người đó: bố cục là thứ khung PHẢI cho thấy ("over Vivian's shoulder") — 3D không có Vivian thì
+ *  AI tự bịa một Vivian (#12: áo be thay đầm đỏ đô). Hướng nhìn ở khoảnh khắc mở / diễn ("looks at Vivian") là đúng — chỉ xét bố cục. */
+export function boCucNguoiNgoai(c: ShotAi, nhanVat: NvAi[]): string[] {
+  const bo = c.dan_dung?.bo_cuc ?? ''; const kiem = c.khung_xam?.kiem; if (!bo || !kiem) return [];
+  const thay = new Set(kiem.filter((k) => k.trong_khung).map((k) => k.nhan_vat));
+  const goi = (t: string) => { const e = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(`(?<!\\p{L})${e}(?!\\p{L})`, 'iu'); };
+  return nhanVat.filter((a) => a.loai === 'nhan_vat' && !thay.has(a.ten) && [a.ten, a.ten.trim().split(/\s+/).pop() ?? ''].some((t) => t.length >= 2 && goi(t).test(bo)) && !/off[- ]?screen|ngoài khung/i.test(bo))
+    .map((a) => `bố cục gọi tên ${a.ten} mà khung 3D không có ${a.ten} — AI sẽ tự vẽ một ${a.ten} (đồ, dáng tuỳ ý): dời máy cho thấy, hoặc bỏ tên khỏi bố cục`);
+}
+
 /** ĐỒ LẬT / RƠI mà 3D để đứng thẳng: khoảnh khắc mở tả đồ đang lật, đổ, rơi, nghiêng (tumbling, tipping, spilling…) mà không món nào trong 3D khai nghieng
  *  → bản đồ độ sâu là cái ly đứng thẳng, AI vẽ ly đứng (#17 "cup tumbling… coffee spilling"). */
 const LAT = /\b(tumbl\w*|tipping|tips over|topples?|upside[- ]down|spill\w*|falling|falls|tilt\w*|knocked over|overturned)\b/i;
@@ -173,5 +183,5 @@ export function vungTrong(c: ShotAi): string[] {
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set)];
+  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
 }

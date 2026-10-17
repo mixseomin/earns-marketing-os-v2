@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat, theSai } from './kiem-ai-3d';
+import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat, theSai, boCucNguoiNgoai } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -52,4 +52,8 @@ const the = (mo: string, vi: object[]) => ({ hanh_dong: '', prompt_anh: '', dan_
 assert.equal(theSai(the('Hạ looks at {Điện thoai}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), nv, set).length, 1);
 assert.equal(theSai(the('Hạ looks at {Điện thoại}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), nv, set).length, 1);
 assert.deepEqual(theSai(the('{Hạ} looks at {Điện thoại} on the {Bàn}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]), nv, set), []);
+// BỐ CỤC GỌI TÊN người không có trong khung 3D (#12 qua vai Vivian mà 3D không có Vivian) → chặn; có trong khung → qua
+const bcn = (trong: boolean) => ({ hanh_dong: '', prompt_anh: '', dan_dung: { bo_cuc: 'Reverse close-up on Hạ over Vivian’s shoulder' }, khung_xam: { kiem: [{ nhan_vat: 'Hạ', trong_khung: true, cao_khung_pt: 60, bi_che_boi: [] }, { nhan_vat: 'Vivian', trong_khung: trong, cao_khung_pt: 40, bi_che_boi: [] }] } }) as never;
+const nvB = [{ ten: 'Hạ', loai: 'nhan_vat', mo_ta: '' }, { ten: 'Vivian', loai: 'nhan_vat', mo_ta: '' }] as never;
+assert.equal(boCucNguoiNgoai(bcn(false), nvB).length, 1); assert.equal(boCucNguoiNgoai(bcn(true), nvB).length, 0);
 console.log('kiem-ai-3d: ok');

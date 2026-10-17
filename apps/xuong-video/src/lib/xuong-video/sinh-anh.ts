@@ -341,7 +341,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const dungKF = (cap: number, nenToiDa: number): Khoi[] => { const mon = dungMon(cap); const nen = nenDu.slice(0, nenToiDa); return [
         khoi('anh_dich', CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang')), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`),
         khoi('khoanh_khac', !ket && bc.canh.dan_dung?.mo && `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.`),
-        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', soNguoi), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
+        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', soNguoi), khoi('ngoai_khung', ngoaiCau), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
         khoi('anh_sang', nguoiThat ? '' : bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.'),
         khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi),
       ]; };
@@ -359,7 +359,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const kS: Khoi[] = [
         khoi('nguoi', `EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
         khoi('giu', 'Keep everything else exactly as Image 1 (camera, framing, every position, size and outline, background, light, colours); Image 2 is the 3D layout of this frame. Do not add, remove, move or resize anything.'),
-        khoi('huong', chen ? '' : huongCau), khoi('so_nguoi', soNguoi), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
+        khoi('huong', chen ? '' : huongCau), khoi('so_nguoi', soNguoi), khoi('ngoai_khung', ngoaiCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
         khoi('nhan_dang', coDinh.length && `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there.`),
         khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
         khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),

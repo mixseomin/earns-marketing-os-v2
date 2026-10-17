@@ -25,6 +25,19 @@ case "$VIEC" in
       D=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["pod"]; ps=[p for p in ((d.get("runtime") or {}).get("ports") or []) if p["privatePort"]==22 and p["isIpPublic"]]; print(f"root@{ps[0][\"ip\"]} {ps[0][\"publicPort\"]}" if ps else "")' 2>/dev/null || true)   # set -e: máy chưa có cổng thì JSON trống — đợi tiếp
       [ -n "$D" ] && { echo "$D"; exit 0; }; sleep 5
     done; echo "pod chưa có SSH sau 5 phút"; exit 1 ;;
+  xem)   # đọc trạng thái pod qua API (không bật, không tốn tiền) — thử đường gọi API trước khi bật
+    API "{\"query\":\"query { pod(input: {podId: \\\"$HOST\\\"}) { id desiredStatus costPerHr runtime { uptimeInSeconds } } }\"}" | head -c 400; echo ;;
+  lam)   # CẢ MẠCH MỘT LỆNH: bật → chuẩn bị → khung đẹp → bản diễn H3 → TẮT. trap EXIT tắt máy cả khi lỗi / bị ngắt (17/10/2026: máy chạy không vì
+         # bật rồi mới mò lệnh). may-thue.sh lam <pod> <tap> [chi_thu_tu,… cho bản diễn]
+    POD=$HOST; TAP=$3; CHI=${4:-}; [ -n "$TAP" ] || { echo "thiếu <tap>"; exit 1; }
+    trap 'echo "— tắt máy thuê"; bash "$0" dung "$POD"' EXIT
+    DC=$(bash "$0" bat "$POD" | tail -1); H=${DC% *}; P=${DC##* }
+    case "$H" in root@*) ;; *) echo "không lấy được SSH: $DC"; exit 1;; esac
+    echo "máy: $H cổng $P"
+    bash "$0" chuan-bi "$H" "$P"
+    XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --tat-ca
+    [ -n "$CHI" ] && XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P XV_MAY=cycles bash "$DIR/scripts/bo-set/dien-tap.sh" "$TAP" --chi="$CHI"
+    echo "XONG MẠCH" ;;
   dung)
     API "{\"query\":\"mutation { podStop(input: {podId: \\\"$HOST\\\"}) { id desiredStatus } }\"}" | head -c 300; echo ;;
   chuan-bi)
@@ -34,7 +47,7 @@ case "$VIEC" in
         tar -xJf $TEP && rm -f $TEP && mv blender-$BAN-linux-x64 blender; fi
       mkdir -p /root/xv/scripts/bo-set; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || echo 'không thấy nvidia-smi'"
     "$DIR/scripts/bo-set/tai-tai-san.sh" >/dev/null
-    rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" "$DIR/scripts/bo-set/mocap" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
+    rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/render-khung.sh" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" "$DIR/scripts/bo-set/mocap" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
     $SSH "/opt/blender/blender -b --factory-startup --python-expr \"import bpy; p=bpy.context.preferences.addons['cycles'].preferences; [print('THIET BI', k, [d.name for d in (p.get_devices_for_type(k) or [])]) for k in ('OPTIX','CUDA')]\" 2>/dev/null | grep THIET" ;;
   do)
     D=${4:-$(ls -d ~/xuong-video-render/tap19/09-* | head -1)}

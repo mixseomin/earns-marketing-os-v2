@@ -2,6 +2,8 @@
 // (FB_PAGES_FILE, mặc định /root/.secrets/fb-pages.json: { "<page_id>": { "ten": "<tên Page>", "token": "<page access token>" } }), không rời máy chủ.
 // Token lấy một lần từ app Meta riêng của htuan82 (không gắn Business Manager quảng cáo) — htuan82 là admin Page.
 // Máy gọi: puzzle-books dang-br.mjs › dangFacebookApi qua ssh, stdin JSON { page_id, ten, video_url, mo_ta, binh_luan? } → stdout JSON { url, post_id, binh_luan }.
+//   BÀI ẢNH (nền fb_anh, 18/10/2026): stdin { page_id, ten, anh: [url R2…], mo_ta } → ảnh tải lên chưa xuất bản (/photos published=false) rồi một bài
+//   /feed gắn attached_media — Facebook hiện thành album trượt. Cùng token + kiểm danh tính như Reel.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/dang-fb-reel.mts < x.json
 //   ... --kiem <page_id>     chỉ kiểm danh tính token ↔ Page (không đăng)
 import { readFileSync } from 'node:fs';
@@ -47,14 +49,28 @@ async function dangReel(pageId: string, token: string, videoUrl: string, moTa: s
   throw new Error(`Reel ${vid} chưa xuất bản sau 10 phút`);
 }
 
+/** Bài ảnh: mỗi ảnh lên /photos (published=false, Facebook tự kéo từ URL) → một bài /feed gắn đủ ảnh; trả permalink bài. */
+async function dangAnh(pageId: string, token: string, anh: string[], moTa: string): Promise<{ url: string; post_id: string }> {
+  if (!anh.length || anh.length > 10) throw new Error(`bài ảnh cần 1–10 ảnh (có ${anh.length})`);
+  const ids: string[] = [];
+  for (const u of anh) ids.push(String((await goi(`${G}/${pageId}/photos`, { method: 'POST', body: new URLSearchParams({ url: u, published: 'false', access_token: token }) })).id));
+  const b = new URLSearchParams({ message: moTa, access_token: token });
+  ids.forEach((id, i) => b.append(`attached_media[${i}]`, JSON.stringify({ media_fbid: id })));
+  const p = await goi(`${G}/${pageId}/feed`, { method: 'POST', body: b });
+  const l = await goi(`${G}/${p.id}?${qs({ fields: 'permalink_url', access_token: token })}`);
+  return { url: String(l.permalink_url ?? `https://www.facebook.com/${p.id}`), post_id: String(p.id) };
+}
+
 const a = process.argv.slice(2);
 if (a[0] === '--kiem') {
   const id = a[1]!, t = docSo()[id]; if (!t) { console.error(`không có Page ${id} trong sổ`); process.exit(1); }
   await kiemTrang(id, t.ten); console.log(`✓ token khớp Page ${t.ten} (${id})`); process.exit(0);
 }
 let raw = ''; for await (const c of process.stdin) raw += c;
-const x = JSON.parse(raw) as { page_id: string; ten: string; video_url: string; mo_ta: string; binh_luan?: string };
+const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; mo_ta: string; binh_luan?: string };
 const t = await kiemTrang(x.page_id, x.ten);
+if (x.anh) { process.stdout.write(JSON.stringify({ ...(await dangAnh(x.page_id, t.token, x.anh, x.mo_ta)), binh_luan: false })); process.exit(0); }
+if (!x.video_url) { console.error('thiếu video_url (hoặc anh cho bài ảnh)'); process.exit(1); }
 const r = await dangReel(x.page_id, t.token, x.video_url, x.mo_ta);
 let binh = false;
 if (x.binh_luan) {

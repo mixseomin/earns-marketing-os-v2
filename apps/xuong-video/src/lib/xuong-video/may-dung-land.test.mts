@@ -1,7 +1,7 @@
 // Tự kiểm mẫu "Before you land": mọi đề nguồn dựng được ASS, chữ đăng không có số giá / gạch dài, tên dài vẫn vừa khung.
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { assLand, coTen, kichBanLand, nhipLand, tenGon, tpGon, tuNguonLand, BUOC, CHU_CANH, CHU_KET } from './may-dung-land';
+import { anhLand, assLand, coTen, kichBanLand, nhipLand, tenGon, tpGon, tuNguonLand, BUOC, CHU_CANH, CHU_KET } from './may-dung-land';
 import { giayDoc } from './may-dung-ass';
 
 const ds = JSON.parse(readFileSync(new URL('../../../mau/may/before-you-land.json', import.meta.url), 'utf8'));
@@ -14,6 +14,10 @@ for (const x of ds) {
   assert.ok(!/[$€£]\s?\d|\d+\s?(GB|USD|EUR)\b/i.test(n.dang.description), `${x.nuoc}: chữ đăng có giá / dung lượng`);
   assert.ok(n.dang.link === `https://esimfares.com/${x.iso}/` && n.dang.description.endsWith(n.dang.link), `${x.nuoc}: link đích`);
   const N = nhipLand(x);
+  // ảnh tĩnh: ảnh 1 lúc cảnh báo đã hiện mà chưa sang 3 bước; ảnh 2 lúc bước cuối đã hiện, trước màn kết; khung nằm trong 1080x1920
+  const [a1, a2] = anhLand(x);
+  assert.ok(a1!.t > N.T_CANH && a1!.t < N.T_BUOC && a2!.t > N.buocTu.at(-1)! + 0.3 && a2!.t < N.T_KET, `${x.nuoc}: mốc ảnh sai`);
+  for (const k of [a1!, a2!]) assert.ok(k.cat[1] + k.cat[3] <= 1920 && k.cat[0] + k.cat[2] <= 1080, `${x.nuoc}: khung cắt tràn`);
   assert.strictEqual(kichBanLand(x).shots.at(-1)!.den, N.DAI);
   // luật đọc: cảnh báo, bước cuối, màn kết đều đứng ≥ thời gian đọc + đệm; các bước hiện tăng dần
   assert.ok(N.T_BUOC - N.T_CANH >= -1e-9 + giayDoc(CHU_CANH), `${x.nuoc}: cảnh báo không đủ thời gian đọc`);

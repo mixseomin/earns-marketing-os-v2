@@ -4,7 +4,7 @@
 // rồi mới chuyển); test của mẫu phải kiểm điều đó (xem may-dung-scam.test.mts / may-dung-land.test.mts). Không đặt mốc giây cứng cho khối có chữ.
 import { assMotDung, kichBanMotDung, lenhMotDung, DAI as DAI_DO_CHU, type DeMotDung } from './may-dung-do-chu';
 import { anhScam, assScam, kichBanScam, lenhScam, nhipScam, tuNguonScam, type DeScam } from './may-dung-scam';
-import { assLand, kichBanLand, lenhLand, nhipLand, tuNguonLand, type DeLand } from './may-dung-land';
+import { anhLand, assLand, kichBanLand, lenhLand, nhipLand, tuNguonLand, type DeLand } from './may-dung-land';
 import type { MauMayDung } from './may-dung-mau';
 
 export type DeMay = DeMotDung | DeScam | DeLand;
@@ -16,7 +16,7 @@ type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shot
 export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'do-chu-mot-dung': { ass: (de) => assMotDung(de as DeMotDung), lenh: (o) => lenhMotDung({ ...o, de: o.de as DeMotDung }), shots: (de) => kichBanMotDung(de as DeMotDung).shots, dai: () => DAI_DO_CHU },
   'scam-or-real': { ass: (de) => assScam(de as DeScam), lenh: (o) => lenhScam({ ...o, de: o.de as DeScam }), shots: (de) => kichBanScam(de as DeScam).shots, dai: (de) => nhipScam(de as DeScam).DAI, anh: (de) => anhScam(de as DeScam), tuNguon: tuNguonScam as never },
-  'before-you-land': { ass: (de) => assLand(de as DeLand), lenh: (o) => lenhLand({ ...o, de: o.de as DeLand }), shots: (de) => kichBanLand(de as DeLand).shots, dai: (de) => nhipLand(de as DeLand).DAI, tuNguon: tuNguonLand as never },
+  'before-you-land': { ass: (de) => assLand(de as DeLand), lenh: (o) => lenhLand({ ...o, de: o.de as DeLand }), shots: (de) => kichBanLand(de as DeLand).shots, dai: (de) => nhipLand(de as DeLand).DAI, anh: (de) => anhLand(de as DeLand), tuNguon: tuNguonLand as never },
 };
 /** 3 shot kịch bản của một video theo mẫu của máy (tab Mẫu, ngăn video). */
 export const shotsMau = (mau: MauMayDung, de: DeMay): ShotMau[] => (BO_DUNG[mau] ?? BO_DUNG['do-chu-mot-dung']).shots(de);

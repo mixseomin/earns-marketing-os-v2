@@ -44,6 +44,13 @@ export function nhipLand(de: DeLand) {
   return { T_CUA, T_CANH, T_BUOC, buocTu, T_KET, DAI };
 }
 
+/** ẢNH TĨNH cho bài ảnh (x_anh / fb_anh, 18/10/2026): (1) tên nước + sân bay + cảnh báo roaming (ngay trước khi sang 3 bước), (2) sân bay + 3 bước
+ *  (ngay trước màn kết, mọi bước đã hiện). Khung cắt 3:4 trong 1080x1920: ảnh 1 bỏ phần trống đáy, ảnh 2 bỏ tên nước để giữ trọn 3 bước. */
+export function anhLand(de: DeLand): { t: number; cat: [number, number, number, number] }[] {
+  const { T_BUOC, T_KET } = nhipLand(de);
+  return [{ t: T_BUOC - 0.4, cat: [0, 100, 1080, 1440] }, { t: T_KET - 0.3, cat: [0, 420, 1080, 1440] }];
+}
+
 export function assLand(de: DeLand): string {
   const { T_CUA, T_CANH, T_BUOC, buocTu, T_KET, DAI } = nhipLand(de);
   const d: DongAss[] = [], nay = (tu: number) => `\\fscx${tu}\\fscy${tu}\\t(0,450,0.5,\\fscx100\\fscy100)`, sb = de.san_bay.slice(0, 3);

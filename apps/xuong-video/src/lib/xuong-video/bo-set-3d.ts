@@ -311,14 +311,14 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
 
 /** CÂU CHUYỂN ĐỘNG cho video, viết từ số đo 3D (khung_xam.di): ai đi từ đâu tới đâu trên màn — cùng nguồn với khung màu nên không mâu thuẫn hình.
  *  Món dịch < 4% khung coi như đứng yên. tenEn: tên tiếng Anh (khối nhân vật giữ tên riêng). */
-export function moTaChuyenDong(di: KhungXam['di'] | undefined): string {
+export function moTaChuyenDong(di: KhungXam['di'] | undefined, goi: (ten: string) => string = (t) => t): string {
   const o = (u: number[]) => `${u[1]! < 0.36 ? 'upper' : u[1]! > 0.64 ? 'lower' : 'middle'} ${u[0]! < 0.36 ? 'left' : u[0]! > 0.64 ? 'right' : 'centre'}`;
   const ds = (di ?? []).filter((d) => Math.hypot(d.den[0]! - d.tu[0]!, d.den[1]! - d.tu[1]!) >= 0.04).map((d) => {
     const dx = d.den[0]! - d.tu[0]!, dy = d.den[1]! - d.tu[1]!;
     const huong = [Math.abs(dx) > 0.03 ? (dx > 0 ? 'screen-right' : 'screen-left') : '', Math.abs(dy) > 0.03 ? (dy < 0 ? 'upward' : 'downward') : ''].filter(Boolean).join(' and ');
-    return `${d.ten} moves ${huong} from the ${o(d.tu)} of the frame to the ${o(d.den)}`;
+    return `${goi(d.ten)} moves ${huong} from the ${o(d.tu)} of the frame to the ${o(d.den)}`;
   });
-  const yen = (di ?? []).filter((d) => Math.hypot(d.den[0]! - d.tu[0]!, d.den[1]! - d.tu[1]!) < 0.04).map((d) => d.ten);
+  const yen = (di ?? []).filter((d) => Math.hypot(d.den[0]! - d.tu[0]!, d.den[1]! - d.tu[1]!) < 0.04).map((d) => goi(d.ten));
   return ds.length ? `Blocking (from the 3D layout — follow it exactly): ${ds.join('; ')}.${yen.length ? ` ${yen.join(', ')} stay${yen.length === 1 ? 's' : ''} in place.` : ''} The last frame shows where everyone ends up.` : '';
 }
 

@@ -40,10 +40,14 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
   const cam = s.chat_lieu ? CHAT_LIEU[s.chat_lieu].cam : null;
   for (const b of buoc) {
     const chu = b.chu ?? ghep(b.khoi ?? []);
+    // khối THOẠI cố ý đúng ngôn ngữ phim (Veo khớp môi câu tiếng Việt) — không soi tiếng Việt; khối BỐ TRÍ / KHUNG liệt kê từng món theo vị trí, nhiều món
+    // cùng loại (ghế, món bị mép cắt) là thật — không soi lặp
+    const chuViet = b.khoi ? ghep(b.khoi.filter((k) => k.ma !== 'thoai')) : chu;
+    const chuLap = b.khoi ? ghep(b.khoi.filter((k) => k.ma !== 'bo_tri' && k.ma !== 'khung')) : chu;
     const flux = b.flux ?? (b.duong ? !!KHUON[b.duong].flux : false);
     if (b.khoi && b.duong) for (const m of thieuKhoi(b.duong, b.khoi, s.nguoi.length > 0)) them(b.ten, 'thieu_khoi', `thiếu khối "${m}" mà khuôn ${KHUON[b.duong].ten} bắt buộc — model tự đoán phần đó`);
     // bỏ tên riêng trước khi soi dấu: tên khai (cả tên tắt) + chữ VIẾT HOA đầu (tên nhân vật ngoài khung được nhắc); chữ thường có dấu mới là tiếng Việt lọt vào
-    const tron = rieng.reduce((c, t) => c.split(t).join(' '), chu).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
+    const tron = rieng.reduce((c, t) => c.split(t).join(' '), chuViet).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
     if (coTiengViet(tron)) them(b.ten, 'tieng_viet', `lẫn tiếng Việt ${doan(tron, VIET)} — model đọc tiếng Anh: dùng mô tả en (biến thể, vật), không dùng tên / ghi chú tiếng Việt`);
     if (cam?.test(chu)) them(b.ten, 'chat_lieu', `chữ sai chất liệu phim ${doan(chu, cam)} — dùng CHAT_LIEU (prompt-khoi.ts) thay vì chữ ghi cứng`);
     const tu = chu.split(/\s+/).filter(Boolean).length;
@@ -59,7 +63,7 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
       if (cau) them(b.ten, 'nguoc_3d', `chữ nói ${v.ten} bị che / giấu ("${cau.trim().slice(0, 90)}") mà khung 3D cho thấy nó — sửa chữ (sổ người / mở shot) cho khớp 3D`);
     }
     // CÂU LẶP: một vế ≥ 4 từ nằm trọn trong một vế khác (#15 "jade bangle on the left wrist" hai lần)
-    const ve = chu.toLowerCase().split(/[,.;|]/).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 4);
+    const ve = chuLap.toLowerCase().split(/[,.;|]/).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 4);
     const lap = ve.find((x, i) => ve.some((y, j) => j !== i && (y === x ? j < i : y.includes(x))));
     if (lap) them(b.ten, 'lap', `lặp "${lap.slice(0, 60)}" — bỏ vế trùng (model hiểu thành hai món)`);
   }

@@ -36,4 +36,7 @@ assert.equal(loiPrompt([{ ten: 'video', chu: `Cartoon acting (anticipation, squa
 // CÂU LẶP: chỉ trừ điểm (10), không chặn
 const lapChu = `Woman wearing ${VEST}, pale-green jade bangle on the left wrist, jade bangle on the left wrist.`;
 assert.equal(chamPrompt([{ ten: 'bước 1', chu: lapChu }], s).diem, 90); assert.equal(loiPrompt([{ ten: 'bước 1', chu: lapChu }], s).length, 0);
+// THOẠI đúng ngôn ngữ phim không phải tiếng Việt lọt vào; bố trí nhiều món cùng loại không phải lặp
+assert.deepEqual(loiPrompt([{ ten: 'video', duong: 'video', khoi: [khoi('giu', `Keep the first frame, wearing ${VEST}.`), khoi('dien', 'Naturalistic acting.'), khoi('cam_chu', 'No text.'), khoi('thoai', 'Hạ says "Cô nói đúng."')] }], s), []);
+assert.equal(chamPrompt([{ ten: 'một bước', duong: 'mot_buoc', khoi: [khoi('anh_dich', 'EDIT Image 1.'), khoi('bo_tri', 'black leather armchair with a walnut frame, black leather armchair with a walnut frame'), khoi('nguoi', `woman wearing ${VEST}`), khoi('phong_cach', 'Photo look.'), khoi('cam_chu', 'No text.')] }], s).diem, 100);
 console.log('kiem-prompt: ok');

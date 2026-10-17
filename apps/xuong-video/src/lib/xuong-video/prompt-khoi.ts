@@ -64,6 +64,15 @@ export const KHUON: Record<DuongSinh, { ten: string; bat_buoc: MaKhoi[]; flux?: 
 export const thieuKhoi = (duong: DuongSinh, ds: Khoi[], coNguoi = true): MaKhoi[] =>
   KHUON[duong].bat_buoc.filter((m) => (m !== 'nguoi' || coNguoi) && !ds.some((k) => k.ma === m && k.chu));
 
+/** Tên ngôn ngữ ĐƯA CHO MODEL (tiếng Anh) — kieu.ts › tenNgonNgu là tên cho người đọc / prompt Claude tiếng Việt ('tiếng Việt'), lọt vào prompt video thành
+ *  "On-camera dialogue (tiếng Việt, …)" (tập 122). */
+export const tenNgonNguEn = (ma?: string) => ({ vi: 'Vietnamese', en: 'English', es: 'Spanish', pt: 'Portuguese', de: 'German', fr: 'French', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', th: 'Thai', id: 'Indonesian' } as Record<string, string>)[ma ?? 'vi'] ?? 'Vietnamese';
+/** Tên một món ĐƯA CHO MODEL: nhân vật giữ tên riêng; đạo cụ / sản phẩm đổi sang vế đầu mô tả en ("Ly cà phê" → "White porcelain coffee cup") — tên đồ
+ *  tiếng Việt lọt vào câu chuyển động video ("Ly cà phê stays in place", tập 122). */
+export const goiTenEn = (nv: { ten: string; loai: string; mo_ta: string }[]) => (ten: string) => {
+  const a = nv.find((x) => x.ten.trim().toLowerCase() === ten.trim().toLowerCase());
+  return a && a.loai !== 'nhan_vat' && a.mo_ta.trim() ? (a.mo_ta.split(/[,.;:—]/)[0] ?? '').trim().replace(/^(a|an)\s+/i, 'the ') : ten;
+};
 /** Câu đầu của mô tả bối cảnh (trước ':' hoặc '.'): "Boardroom in afternoon light" — đủ nói ĐANG Ở ĐÂU, không liệt kê đồ (mời vẽ thêm). */
 export const dauBoiCanh = (moTa: string) => (moTa.split(/[:.]/)[0] ?? '').trim().split(/\s+/).slice(0, 18).join(' ');
 /** chữ tả mặt / đầu — trừ 'eye-level' (góc máy) và 'face out of frame' (chính câu dặn không vẽ mặt) */

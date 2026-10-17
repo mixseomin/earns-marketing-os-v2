@@ -19,10 +19,13 @@ const YEAR = 'public, max-age=31536000, immutable';
 const MISS = 'public, max-age=604800';       // 404 cache 7 ngày → browser không xin lại icon đã biết là thiếu
 const MISS_TTL_MS = 7 * 864e5;               // trong 7 ngày, không chạy lại chuỗi fetch cho platform đã thử-hụt
 
+// Trang đăng nhập CHUNG của hãng khác không phải nhà của nền tảng: youtube chỉ có signup_url ở accounts.google.com
+// → lưu logo Google cho YouTube (bảng Kênh tab Social, 17/10/2026). Bỏ qua các host này, lấy URL kế.
+const IDP = /^(accounts\.google\.com|appleid\.apple\.com|login\.microsoftonline\.com|login\.live\.com)$/;
 function hostOf(...urls: Array<string | null | undefined>): string | null {
   for (const u of urls) {
     if (!u) continue;
-    try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); }
+    try { const h = new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); if (!IDP.test(h)) return h; }
     catch { /* bỏ qua URL hỏng, thử cột kế */ }
   }
   return null;

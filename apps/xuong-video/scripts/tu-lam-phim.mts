@@ -3,10 +3,12 @@
 // TỐN TIỀN (video ~$0.17/shot/lần) — chạy khi anh đã bảo làm phim đó.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/tu-lam-phim.mts <tap_id> [--toi-da=3]
-//     … scripts/tu-lam-phim.mts --creative=<sp_key>:<số creative> [--toi-da=3]
+//     … scripts/tu-lam-phim.mts --creative=<sp_key>:<số creative> [--toi-da=3] [--ngan-sach=4]
+// --ngan-sach=<USD> (mặc định 4 ≈ một phim gốc sạch #120): lượt tiêu quá mức thì DỪNG, báo Telegram (MINE › Quản lý), chờ anh bảo chạy tiếp.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { lamPhimTuDau } from '../src/lib/xuong-video/tu-lam-phim';
+import { lamPhimTuDau, tienPhim, BUOC_NGAN_SACH } from '../src/lib/xuong-video/tu-lam-phim';
+import { baoTelegram, esc, gioVn } from '../src/lib/xuong-video/bao-het-tien';
 import { taoPhimGocDb } from '../src/lib/xuong-video/concept-db';
 import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
@@ -16,6 +18,7 @@ import { docKinhThanh, tien } from '../src/lib/xuong-video/kieu';
 if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('TỐN TIỀN — cần DUYET_SINH_1_LAN=1 sau khi anh bảo'); process.exit(1); }
 const db = getDb()!;
 const toiDa = Number((process.argv.find((a) => a.startsWith('--toi-da=')) ?? '').split('=')[1] || 3);
+const nganSachCents = Math.round(Number((process.argv.find((a) => a.startsWith('--ngan-sach=')) ?? '').split('=')[1] || 4) * 100);
 const cr = (process.argv.find((a) => a.startsWith('--creative=')) ?? '').slice(11);
 let tapId = Number(process.argv[2]);
 if (cr) {
@@ -28,10 +31,16 @@ if (cr) {
 }
 const bc = await boiCanhTap(db, tapId); if (!bc) { console.error('không thấy tập'); process.exit(1); }
 const phimId = bc.tap.phim_id;
-const tongPhim = async () => Number(((await db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS c FROM xv_job WHERE phim_id = ${phimId} AND tinh_chi`)) as unknown as Row[])[0]!.c);
+const tongPhim = () => tienPhim(db, phimId);
 const truoc = await tongPhim();
-const kq = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa });
+const kq = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa, nganSachCents });
 if (!kq.ok) console.log(`✗ dừng ở bước ${kq.buoc} — KHÔNG xuất:\n  ${kq.loi.join('\n  ')}`);
+if (!kq.ok && kq.buoc === BUOC_NGAN_SACH) await baoTelegram(db, [
+  `<b>Phim #${phimId} dừng: vượt ngân sách lượt chạy</b> (${tien(nganSachCents)})`,
+  `Lượt này: ${tien((await tongPhim()) - truoc)} · tổng cả phim: ${tien(await tongPhim())}`,
+  `Còn lỗi: ${esc(kq.loi.slice(1).map((l) => l.slice(0, 90)).join(' · ').slice(0, 900) || '—')}`,
+  `Chờ anh bảo chạy tiếp · ${gioVn()}`,
+].join('\n'));
 else {
   const b2 = (await boiCanhTap(db, tapId))!; const kt = docKinhThanh(b2.kt);
   const job = await taoJob(db, { phim_id: phimId, nhan: `Xuất bản · tập ${b2.tap.so} (tự hoàn thành)`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: 'A' } });

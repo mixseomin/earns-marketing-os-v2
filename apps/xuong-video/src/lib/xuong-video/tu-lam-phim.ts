@@ -15,7 +15,7 @@ import { sinhNhacTap } from './sinh-nhac';
 import { tuSuaClipTap, sinhKeyframeCoDuPhong, ANH_DU_PHONG, type KetTuSua } from './tu-sua-clip';
 import { chonGiongDan, MODEL_GIONG_DAN } from './tu-sua-clip-do';
 import { boiCanhTap, ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
-import { docKinhThanh, locNhanh } from './kieu';
+import { docKinhThanh, locNhanh, tien } from './kieu';
 
 const ngu = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 async function doiJob(db: Db, ids: number[], phut = 10): Promise<void> {
@@ -52,9 +52,22 @@ const chamClaude1: typeof thuNguoiXem = async (o) => {
 };
 
 export type KetLamPhim = { ok: boolean; buoc: string; loi: string[]; clip: KetTuSua[] };
-export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => void, o: { toiDa?: number } = {}): Promise<KetLamPhim> {
+/** Tiền đã tiêu cho phim (cent, theo sổ xv_job). */
+export const tienPhim = async (db: Db, phimId: number): Promise<number> =>
+  Number(((await db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS c FROM xv_job WHERE phim_id = ${phimId} AND tinh_chi`)) as unknown as Row[])[0]!.c);
+/** NGÂN SÁCH LƯỢT CHẠY (anh 17/10/2026: "sinh mà tốn tiền quá thì phải báo"): #127 đốt $8,18 vì vòng tự sửa sinh lại mãi không ai hay.
+ *  `nganSachCents`: lượt chạy tiêu quá mức này thì DỪNG trước lần tiêu kế, trả buoc 'ngân sách' (script báo Telegram, chờ anh bảo chạy tiếp). */
+export const BUOC_NGAN_SACH = 'ngân sách';
+export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => void, o: { toiDa?: number; nganSachCents?: number } = {}): Promise<KetLamPhim> {
   const bc = await boiCanhTap(db, tapId); if (!bc) return { ok: false, buoc: 'tập', loi: ['không thấy tập'], clip: [] };
   const phimId = bc.tap.phim_id; const kt = docKinhThanh(bc.kt);
+  const truoc = await tienPhim(db, phimId);
+  const vuot = async (): Promise<string | null> => {
+    if (o.nganSachCents == null) return null;
+    const da = (await tienPhim(db, phimId)) - truoc;
+    return da >= o.nganSachCents ? `vượt ngân sách lượt chạy: đã tiêu ${tien(da)} / ${tien(o.nganSachCents)}` : null;
+  };
+  const dungVi = async (): Promise<KetLamPhim | null> => { const l = await vuot(); return l ? { ok: false, buoc: BUOC_NGAN_SACH, loi: [l], clip: [] } : null; };
   const canhA = () => db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`).then((r) => locNhanh((r as unknown as Row[]).map(mapCanh), 'A'));
   // 1. người xem CẢ PHIM (cùng cổng: thu_nguoi_xem.ma = mã kịch bản) — trượt thì dừng trước khi tiêu tiền hình
   if (!bc.tap.thu_nguoi_xem?.dat) {
@@ -63,11 +76,13 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
     log(`  người xem ${k.data.dat ? '✓' : '✗'} ${k.data.diem}/10${k.data.khop ? '' : ` · lệch: ${k.data.lech}`}`);
     if (!k.data.dat) return { ok: false, buoc: 'người xem', loi: [`${k.data.diem}/10${k.data.khop ? '' : ` · lệch: ${k.data.lech}`}`, ...k.data.cho_kho.map((c) => `#${c.shot} ${c.van_de} → ${c.sua}`)], clip: [] };
   }
+  { const d = await dungVi(); if (d) return d; }
   // 2. ảnh gốc anchor còn thiếu (sản phẩm dùng ảnh thật, không sinh)
   const thieuAnh = bc.nhanVat.filter((v) => v.loai !== 'phong_cach' && v.loai !== 'san_pham' && !v.anh_ref.length);
   const jobA: number[] = [];
   for (const v of thieuAnh) { const r = await sinhAnhGoc(db, v.id); if (r.ok) jobA.push(r.data); else log(`  ✗ ảnh gốc ${v.ten}: ${r.loi}`); }
   await doiJob(db, jobA); if (jobA.length) log(`  ảnh gốc: ${jobA.length}`);
+  { const d = await dungVi(); if (d) return d; }
   // 3. keyframe còn thiếu (soi + sinh lại do vòng tự sửa lo); chuỗi ảnh mặc định từ chối thì model dự phòng (sinhKeyframeCoDuPhong)
   const jobK: number[] = []; const thieuKf = (await canhA()).filter((c) => !c.keyframe_url);
   for (const c of thieuKf) { const r = await sinhKeyframeCanh(db, c.id, 1); if (r.ok) jobK.push(...r.data); else log(`  ✗ keyframe #${c.thu_tu}: ${r.loi}`); }
@@ -88,7 +103,9 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
     const kg = await khopGiongTap(db, tapId, 'tự làm phim'); log(`  giọng: ${g.data} dòng (${voice})${kg.ok ? ` · khớp giây ${kg.data.tong}s` : ''}`);
   } else if (!g.ok) log(`  ✗ giọng: ${g.loi}`);
   // 5. clip — vòng tự sửa (soi keyframe → video → soi clip → viết lại prompt), mọi shot nhánh A
-  const clip = await tuSuaClipTap(db, tapId, { toiDa: o.toiDa ?? 3, log });
+  { const d = await dungVi(); if (d) return d; }
+  const clip = await tuSuaClipTap(db, tapId, { toiDa: o.toiDa ?? 3, log, dung: vuot });
+  { const l = await vuot(); if (l) return { ok: false, buoc: BUOC_NGAN_SACH, loi: [l, ...clip.filter((k) => k.ket !== 'sach').map((k) => `#${k.thu_tu}: ${k.loi.join(' | ')}`)], clip }; }
   // 6. nhạc nền cả tập
   const tap = ((await db.execute(sql`SELECT nhac_url FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0];
   if (!tap?.nhac_url) { const r = await sinhNhacTap(db, tapId, 'cassetteai/music-generator', undefined, 'warm light acoustic, hopeful, ad background, no vocals');

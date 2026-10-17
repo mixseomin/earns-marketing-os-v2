@@ -18,6 +18,24 @@
     "iMac:tc.on.cty.long-sua-bai"
    ],
    "chi_phi": "gói thuê bao Claude Code; token mỗi lượt ghi nhật ký Long"
+  },
+  {
+   "id": "dang-video-kenh",
+   "ten": "Đăng video kéo khách miễn phí (bộ kênh ngách)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "20:00 giờ VN mỗi ngày (iMac: X) · 20:40 (MacBook: YouTube, Facebook — sau lượt Front Porch 20:05)",
+   "mo_ta": "Mỗi máy studio đang bật (vd 'Scam or Real?' ngách đặt phòng → ratesbyroom.com) đăng MỘT video mỗi nền mỗi ngày lên bộ kênh của ngách, link trang đích gắn UTM theo nền; trước mỗi lượt đăng / bình luận máy KIỂM DANH TÍNH kênh (sai kênh / Page / tài khoản thì dừng). Sổ đăng + nhật ký ở studio (màn máy).",
+   "ma": "puzzle-books scripts/dang-may.mjs --het (lõi dang-br.mjs) · nơi đăng ở studio xv_may.dang",
+   "chu_tri": "long",
+   "lam": [
+    "may"
+   ],
+   "khi": "20:00 mỗi ngày",
+   "lich": [
+    "iMac:com.earns.may-dang",
+    "MacBook:com.earns.may-dang"
+   ],
+   "chi_phi": "0 (br trên phiên có sẵn)"
   }
  ]
 }

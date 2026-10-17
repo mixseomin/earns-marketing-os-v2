@@ -700,6 +700,48 @@
     "moi_giay": 300
    },
    "uu_tien_thap": true
+  },
+  {
+   "nhan": "iMac:com.earns.may-dang",
+   "ten": "Máy đăng chung - video các máy studio",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/dang-may.mjs",
+    "--het"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/dang-may.log",
+   "hen": {
+    "luc": [
+     "20:00",
+     "21:00"
+    ]
+   },
+   "ghi_chu": "Mọi nền giao cho iMac của mọi máy studio đang bật (xv_may.dang[].may = iMac, vd X @hotelscamalerts). Trần mỗi nền mỗi ngày ở dang-may.mjs nên lượt 21:00 chỉ bù khi 20:00 hỏng."
+  },
+  {
+   "nhan": "MacBook:com.earns.may-dang",
+   "ten": "Máy đăng chung - video các máy studio",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "scripts/dang-may.mjs",
+    "--het"
+   ],
+   "thu_muc": "/Users/htuan/Me/Earns/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/dang-may.log",
+   "hen": {
+    "luc": [
+     "20:40",
+     "22:40"
+    ]
+   },
+   "ghi_chu": "Nền giao MacBook (YouTube, Facebook) của mọi máy studio đang bật. Hẹn 20:40 — SAU lượt Front Porch 20:05 (cùng profile br militarycalc / doanhedu, chạy song song là giành profile); 22:40 bù khi 20:40 hỏng."
   }
  ]
 }

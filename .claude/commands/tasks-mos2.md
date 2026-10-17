@@ -4,6 +4,9 @@ description: Nạp và XỬ hàng đợi góp ý của chính MOS2 (card feedbac
 
 # Hàng đợi góp ý MOS2
 
+**Gọi được từ MỌI chat** (lệnh toàn cục: `~/.claude/commands/tasks-mos2.md` là symlink về tệp này trong repo). **Repo làm việc: `/Users/htuan/Me/GitHub/earns-marketing-os-v2`** —
+mọi lệnh / đường dẫn dùng TUYỆT ĐỐI vào đó, không cần mở repo làm cwd. Việc đầu tiên: đọc `/Users/htuan/Me/GitHub/earns-marketing-os-v2/CLAUDE.md` (bảng context `.claude/contexts/` trong đó cũng tính từ repo này).
+
 // turbo-all
 
 Màn `/p/mos2/plays` trả lời "có gì đang chờ". Lệnh này trả lời "làm hết đi".

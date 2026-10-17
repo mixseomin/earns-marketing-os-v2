@@ -4,6 +4,9 @@ description: Nạp và XỬ hàng đợi góp ý của Xưởng video studio.on.
 
 # Hàng đợi góp ý Xưởng video (studio.on.tc)
 
+**Gọi được từ MỌI chat** (lệnh toàn cục: `~/.claude/commands/tasks-studio.md` là symlink về tệp này trong repo). **Repo làm việc: `/Users/htuan/Me/GitHub/earns-marketing-os-v2`** —
+mọi lệnh / đường dẫn dùng TUYỆT ĐỐI vào đó, không cần mở repo làm cwd. Việc đầu tiên: đọc `/Users/htuan/Me/GitHub/earns-marketing-os-v2/CLAUDE.md` + `apps/xuong-video` + `.claude/contexts/xuong-video.md`.
+
 Bản sao của lệnh tasks-mos2 cho app `apps/xuong-video`: cùng script, cùng luật, khác dự án (`GOPY_PROJECT=xuong-video`) và máy (box3 167.233.241.16, nơi studio + DB chạy). Ngữ cảnh card có phim/tập/cảnh/vị trí timeline, lỗi trên màn, lỗi JS.
 
 // turbo-all

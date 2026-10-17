@@ -105,6 +105,23 @@ const MXH = ['youtube', 'tiktok', 'facebook', 'instagram', 'pinterest', 'twitter
 const TT_TK = (s: string | null): StTrangThaiKenh => (s === 'banned' || s === 'suspended' || s === 'locked' ? 'khoa' : s === 'closed' ? 'dung' : s === 'flagged' || s === 'limited' ? 'co' : 'song');
 const giua = (a: number[]) => { if (!a.length) return 0; const x = [...a].sort((p, q) => p - q), m = x.length >> 1; return x.length % 2 ? x[m]! : (x[m - 1]! + x[m]!) / 2; };
 
+/* KÊNH CỦA MÁY ĐĂNG (18/10/2026, anh: "các kênh mới tạo chưa thấy lên ở đây"): danh sách trên chỉ đi từ dự án có CỬA BÁN (Etsy/KDP/Gumroad),
+   nên kênh aff chạy theo máy studio (Hotel Scam Alerts → ratesbyroom, Before You Land → esimfares — dự án adfond, không có cửa bán) không bao giờ hiện.
+   Nguồn thứ hai = chính cấu hình máy đăng xv_may.dang[].br.acct (một nguồn với puzzle-books dang-may): thêm kênh vào máy là kênh tự hiện ở đây.
+   Nhóm = tên máy; số video = video của máy đã đăng lên nền đó (xv_may_video.da_dang); chưa có máy đo lượt xem → daDo=false. */
+const NEN_MAY: Record<string, string> = { youtube: 'YouTube Shorts', facebook: 'Facebook Reels', instagram: 'Instagram Reels', x: 'X', tiktok: 'TikTok', pinterest: 'Pinterest', threads: 'Threads' };
+async function docKenhMay(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<number>, homMs: number): Promise<StKenh[]> {
+  const r = (await d.execute(sql`SELECT m.ten AS may, n->>'nen' AS nen, a.id, a.handle, a.status, a.proxy_id, a.created_at::date::text AS tao,
+      (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen')) AS da_dang
+    FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n
+    JOIN platform_accounts a ON a.id::text = n->'br'->>'acct'
+    ORDER BY m.id, n->>'nen'`)) as unknown as { may: string; nen: string; id: number; handle: string; status: string | null; proxy_id: number | null; tao: string; da_dang: number }[];
+  return r.filter((x) => !daCo.has(x.id)).map((x): StKenh => ({
+    id: x.id, ten: x.handle, nenTang: NEN_MAY[x.nen] ?? x.nen, nhom: x.may, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
+    tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false,
+  }));
+}
+
 async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTrang[]; ban: StBan[] }> {
   const d = getDb(); if (!d) return { kenh: [], trang: [], ban: [] };
   try {
@@ -163,6 +180,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         kenh.push({ id: t.id, ten: t.handle, nenTang: t.platform_key, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
+    kenh.push(...await docKenhMay(d, new Set(kenh.map((k) => k.id)), homMs));
     // trang đích = các đích link mà kênh trỏ tới (kenh_sp.dich) — chưa có máy đo click từng trang → null
     const theoDich = new Map<string, StTrang>();
     for (const sp of kenhSp.filter((x) => x.project && duAn.includes(x.project))) for (const o of Object.values(sp.o)) {

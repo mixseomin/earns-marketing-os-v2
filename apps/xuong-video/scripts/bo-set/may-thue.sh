@@ -14,6 +14,7 @@ DIR=$(cd "$(dirname "$0")/../.." && pwd)
 SSH="ssh -p $CONG -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 $HOST"
 BAN=5.0.1; TEP=blender-$BAN-linux-x64.tar.xz
 [ -n "$HOST" ] || [ "$VIEC" = tao ] || { sed -n 2,9p "$0"; exit 1; }
+ANH=${XV_ANH:-ghcr.io/mixseomin/xv-render:blender-5.0.1}   # image riêng có sẵn Blender + thư viện (may-thue/Dockerfile, GitHub Actions)
 API() {   # gọi GraphQL RunPod TỪ box3 — truy vấn đọc từ stdin (JSON dựng bằng python, khỏi nháy lồng nhau); khoá không rời máy chủ, không in ra
   ssh root@167.233.241.16 'set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $RUNPOD_API_KEY" -d @- https://api.runpod.io/graphql'
 }
@@ -39,7 +40,7 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
     echo "$DS" | while IFS='|' read -r cl gpu gia viec; do echo "  ứng viên: $gpu $cl \$$gia/giờ (theo việc $viec)" >&2; done
     [ -n "${XV_CHI_XEM:-}" ] && exit 0   # XV_CHI_XEM=1: chỉ in ứng viên, không tạo máy (thử trước khi tốn tiền)
     while IFS='|' read -r cl gpu gia viec; do
-      R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404\", containerDiskInGb: 30, volumeInGb: 0, ports: \"22/tcp\", startSsh: true, supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30}) { id costPerHr } }")
+      R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"$ANH\", containerDiskInGb: 20, volumeInGb: 0, ports: \"22/tcp\", supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30}) { id costPerHr } }")
       ID=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null || true)
       [ -n "$ID" ] && { echo "  → thuê $gpu $cl \$$gia/giờ" >&2; echo "$ID"; exit 0; }
       echo "  $gpu $cl: $(echo "$R" | LOI)" >&2
@@ -58,28 +59,38 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
     [ -n "$E" ] && { echo "không bật được: $E"; exit 1; }; bash "$0" cho "$HOST" ;;
   dung)  GQ "mutation { podStop(input: {podId: \"$HOST\"}) { id desiredStatus } }"; echo ;;
   xoa)   GQ "mutation { podTerminate(input: {podId: \"$HOST\"}) }"; echo ;;
-  lam)   # CẢ MẠCH MỘT LỆNH: TẠO máy mới → đợi SSH → chuẩn bị → khung đẹp → bản diễn → XOÁ máy. trap EXIT xoá cả khi lỗi / bị ngắt.
-         # may-thue.sh lam <tap> [chi_thu_tu,… cho bản diễn]
+  lam)   # CẢ MẠCH MỘT LỆNH: tạo máy RẺ NHẤT THEO VIỆC → đợi SSH → chuẩn bị + KIỂM GPU (hỏng thì xoá, thuê máy khác, tối đa 3 lần) → khung đẹp →
+         # bản diễn → XOÁ máy. trap EXIT xoá cả khi lỗi / bị ngắt. may-thue.sh lam <tap> [chi_thu_tu,…]   ·   XV_POD=<id> dùng lại máy đang chạy
     TAP=$HOST; CHI=${3:-}; [ -n "$TAP" ] || { echo "thiếu <tap>"; exit 1; }
-    POD=${XV_POD:-}; [ -n "$POD" ] || POD=$(bash "$0" tao) || { echo "không tạo được máy"; exit 1; }   # XV_POD=<id>: dùng lại máy đang chạy
-    trap 'echo "— xoá máy thuê $POD"; bash "$0" xoa "$POD"' EXIT
-    echo "pod $POD"
-    DC=$(bash "$0" cho "$POD"); H=${DC% *}; P=${DC##* }
-    case "$H" in root@*) ;; *) echo "không lấy được SSH: $DC"; exit 1;; esac
-    echo "máy: $H cổng $P"; sleep 10   # sshd vừa mở cổng — đợi thêm cho chắc
-    bash "$0" chuan-bi "$H" "$P"
+    POD=""; trap '[ -n "$POD" ] && { echo "— xoá máy thuê $POD"; bash "$0" xoa "$POD"; }' EXIT
+    for lan in 1 2 3; do
+      POD=${XV_POD:-}; XV_POD=""; [ -n "$POD" ] || POD=$(bash "$0" tao) || { echo "không tạo được máy"; POD=""; exit 1; }
+      echo "pod $POD (lần $lan)"
+      DC=$(bash "$0" cho "$POD" || true); H=${DC% *}; P=${DC##* }
+      if [ "${H#root@}" != "$H" ] && bash "$0" chuan-bi "$H" "$P"; then break; fi
+      echo "máy $POD không dùng được ($DC) — xoá, thuê máy khác"; bash "$0" xoa "$POD"; POD=""
+      [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
+    done
+    echo "máy: $H cổng $P"
     XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --tat-ca
     [ -n "$CHI" ] && XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P XV_MAY=cycles bash "$DIR/scripts/bo-set/dien-tap.sh" "$TAP" --chi="$CHI"
     echo "XONG MẠCH" ;;
   chuan-bi)
-    $SSH "set -e; command -v rsync >/dev/null && command -v xz >/dev/null || { (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync xz-utils libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 ffmpeg) >/dev/null; }
+    # máy mới có thể trùng ip:cổng với máy cũ (khoá host khác) → bỏ khoá cũ; sshd có thể lên sau khi cổng đã mở → đợi tới 60 giây
+    ssh-keygen -R "[${HOST#*@}]:$CONG" >/dev/null 2>&1 || true
+    for i in $(seq 1 12); do $SSH true 2>/dev/null && break; [ $i = 12 ] && { echo "SSH không vào được"; exit 1; }; sleep 5; done
+    $SSH "set -e; [ -f /usr/lib/x86_64-linux-gnu/libEGL.so.1 ] && command -v rsync >/dev/null && command -v xz >/dev/null || { (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync xz-utils libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 ffmpeg) >/dev/null; }
       if [ ! -x /opt/blender/blender ]; then cd /opt
         curl -fsSL -A 'Mozilla/5.0' -o $TEP https://download.blender.org/release/Blender5.0/$TEP || curl -fsSL -o $TEP https://mirrors.ocf.berkeley.edu/blender/release/Blender5.0/$TEP
         tar -xJf $TEP && rm -f $TEP && mv blender-$BAN-linux-x64 blender; fi
       mkdir -p /root/xv/scripts/bo-set; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || echo 'không thấy nvidia-smi'"
     "$DIR/scripts/bo-set/tai-tai-san.sh" >/dev/null
     rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/render-khung.sh" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" "$DIR/scripts/bo-set/mocap" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
-    $SSH "/opt/blender/blender -b --factory-startup --python-expr \"import bpy; p=bpy.context.preferences.addons['cycles'].preferences; [print('THIET BI', k, [d.name for d in (p.get_devices_for_type(k) or [])]) for k in ('OPTIX','CUDA')]\" 2>/dev/null | grep THIET" ;;
+    # KIỂM GPU BẮT BUỘC (17/10/2026: máy 3090 Community báo CUDA cuInit lỗi → Blender lặng lẽ render CPU, 20 phút được 6 ảnh): Blender phải thấy
+    # GPU qua OptiX hoặc CUDA — không thấy thì thoát mã 2, lam xoá máy này và thuê máy khác.
+    TB=$($SSH "/opt/blender/blender -b --factory-startup --python-expr \"import bpy; p=bpy.context.preferences.addons['cycles'].preferences; [print('THIET BI', k, [d.name for d in (p.get_devices_for_type(k) or []) if d.type != 'CPU']) for k in ('OPTIX','CUDA')]\" 2>/dev/null | grep THIET" || true)
+    echo "$TB"
+    echo "$TB" | grep -qE "THIET BI (OPTIX|CUDA) \[.+\]" || { echo "GPU KHÔNG DÙNG ĐƯỢC trên máy này"; exit 2; } ;;
   do)
     D=${4:-$(ls -d ~/xuong-video-render/tap19/09-* | head -1)}
     $SSH "rm -rf /root/xv/do && mkdir -p /root/xv/do" && rsync -aq -e "ssh -p $CONG" "$D/vao.json" $HOST:/root/xv/do/

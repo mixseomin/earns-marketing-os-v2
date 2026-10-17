@@ -1059,10 +1059,23 @@ for ten, doan in duong.items():
         for p in gon:
             bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5 * CM, location=Vector(p) * CM); dat(bpy.context.object, mau(m, 3), f"dd {ten}")
         if len(gon) > 1: khoi({'hinh': 'day', 'diem': [list(p) for p in gon], 'ban_kinh': 0.25, 'mau': m, 'sang': 3, 'bac': 1}, f"duong {ten} {k}")
-# Khung mặt bằng tự ôm cả mặt bàn (vật tên 'Mặt bàn'), không gõ tay cỡ.
-ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
-cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08
-o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (ban['tam'][0] * CM, ban['tam'][1] * CM, 3); s.camera = o
+# Khung mặt bằng tự ôm cả bộ set theo số khai (tam/co, nhóm thì gốc + phần) — trước đây tìm vật tên 'Mặt bàn' (bộ bàn Tango) nên bộ set
+# phòng thật (tổng tài 17/10/2026: văn phòng, sảnh, phòng họp) chết StopIteration ở mọi lượt render. Có 'Mặt bàn' thì vẫn ôm đúng nó như cũ.
+def hop_set():
+    ban = next((v for v in DL['vat'] if v['ten'] == 'Mặt bàn'), None)
+    if ban: return ban['tam'][0], ban['tam'][1], ban['co'][0], ban['co'][1]
+    xs, ys = [], []
+    for v in DL['vat']:
+        for p in (v['phan'] if 'phan' in v else [v]):
+            if not p.get('tam') or not p.get('co'): continue
+            gx, gy = (v['goc'][0] + p['tam'][0], v['goc'][1] + p['tam'][1]) if 'phan' in v else (p['tam'][0], p['tam'][1])
+            xs += [gx - p['co'][0] / 2, gx + p['co'][0] / 2]; ys += [gy - p['co'][1] / 2, gy + p['co'][1] / 2]
+    return (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, max(xs) - min(xs), max(ys) - min(ys)
+bx, by, bw, bd = hop_set()
+cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(bw, bd * 1200 / 800) * CM * 1.08
+o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (bx * CM, by * CM, max(3, 4 * CM * 100)); s.camera = o
+cd.clip_end = 1000
+for v in [x for x in bpy.data.objects if x.name == 'Trần' or x.name.startswith('Trần ') or x.name.startswith('Đèn trần')]: v.hide_render = True   # mặt bằng nhìn xuống: trần che hết
 s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 8; s.cycles.use_denoising = True; may_ve(s, True)
 if BO_MB: s.render.resolution_x, s.render.resolution_y = 32, 24
 for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True

@@ -556,12 +556,12 @@ def tran_(o, nv, w, h):
     một phần vật đó; nhãn keyframe ghi trạng thái qua TRANG."""
     bpy.context.view_layer.update()   # khoi() vừa gán scale / xoay — chưa update thì matrix_world còn là phép dời, dòng mọc thẳng lên ngoài khung
     M = o.matrix_world.copy(); truc = (M.to_3x3() @ Vector((0, 0, 1))).normalized(); mieng = M @ Vector((0, 0, 0.42))
-    r0 = 0.3 * w; dai = 2.2 * h; n = 24
+    r0 = 0.16 * w; dai = 1.5 * h; n = 24
     cv = bpy.data.curves.new(f"tran {nv['ten']}", 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = r0 * CM; cv.bevel_resolution = 4; cv.use_fill_caps = True
     sp = cv.splines.new('POLY'); sp.points.add(n - 1)
     for i in range(n):
-        t = i / (n - 1); p = mieng + truc * (t * dai * CM) - Vector((0, 0, 0.9 * t * t * dai * CM))
-        sp.points[i].co = (*p, 1); sp.points[i].radius = 1.0 - 0.7 * t   # miệng rộng → đầu dòng mảnh
+        t = i / (n - 1); p = mieng + truc * (t * dai * CM) - Vector((0, 0, 1.6 * t * t * dai * CM))
+        sp.points[i].co = (*p, 1); sp.points[i].radius = 1.0 - 0.8 * t   # miệng rộng → đầu dòng mảnh
     g = bpy.data.objects.new(f"NV {nv['ten']}·tran", cv); bpy.context.collection.objects.link(g)
     g.parent = o; g.matrix_parent_inverse = M.inverted()   # đi theo vật khi bị dời / gắn tay
     cv.materials.append(mau(nv.get('tran_mau', '#2a1a10')))

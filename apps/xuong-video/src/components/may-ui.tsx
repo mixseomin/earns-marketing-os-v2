@@ -5,7 +5,9 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { chiTietMayUi, dsMayUi } from '@/lib/actions-may';
 import type { LuotDang, May, NhatKy, VideoMay } from '@/lib/xuong-video/may';
-import { kichBanMotDung, luoi } from '@/lib/xuong-video/may-dung-do-chu';
+import { luoi, type DeMotDung } from '@/lib/xuong-video/may-dung-do-chu';
+import type { DeScam } from '@/lib/xuong-video/may-dung-scam';
+import { shotsMau, type DeMay } from '@/lib/xuong-video/mau-dung';
 import { MAU_MAY_DUNG } from '@/lib/xuong-video/may-dung-mau';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
@@ -87,6 +89,10 @@ function DangChay({ m, nhatKy, luot, video, onMo }: { m: May; nhatKy: NhatKy[]; 
   );
 }
 
+/** Chữ phụ của một video theo mẫu: đố chữ = từ đích; Scam or Real = kênh · đáp án. */
+const phuDe = (de: DeMay) => ('dich' in de ? de.dich : `${de.kenh} · ${de.ket === 'scam' ? 'SCAM' : 'REAL'}`);
+const mauNen = (de: DeMay) => ('mau' in de ? de.mau.sau : '#14213D');
+
 const chipChay = (m: May) => <Pill color={m.chay ? '#4ade80' : 'var(--fg-3)'} nhat={!m.chay}>{m.chay ? '● đang chạy' : '○ chưa bật'}</Pill>;
 const conLai = (m: May) => (m.nguon.tong != null && m.nguon.dung != null ? m.nguon.tong - m.nguon.dung : null);
 const tomDang = (m: May) => m.dang.map((d) => d.ten).join(' · ') || '—';
@@ -157,8 +163,8 @@ function ManMay({ id, onVe }: { id: number; onVe: () => void }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
             {video.map((v) => (
               <button key={v.id} type="button" onClick={() => setMo(v.id)} style={{ all: 'unset', cursor: 'pointer', display: 'grid', gap: 4, alignContent: 'start', opacity: v.luu_tru ? 0.5 : 1 }}>
-                {v.khung[0] ? <img src={anhNho(v.khung[0], 320)} alt="" style={khung916} /> : <span style={{ ...khung916, background: v.de?.mau?.sau ?? 'var(--bg-2)', display: 'grid', placeItems: 'center', ...mono }}>chưa dựng</span>}
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{v.chu_de} <span style={mono}>{v.de?.dich}</span></span>
+                {v.khung[0] ? <img src={anhNho(v.khung[0], 320)} alt="" style={khung916} /> : <span style={{ ...khung916, background: v.de ? mauNen(v.de) : 'var(--bg-2)', display: 'grid', placeItems: 'center', ...mono }}>chưa dựng</span>}
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{v.chu_de} <span style={mono}>{v.de ? phuDe(v.de) : ''}</span></span>
                 <span style={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
                   {m.dang.map((n) => { const x = v.da_dang[n.nen]; return <span key={n.nen} title={x ? `${n.ten}: đăng ${x.ngay}` : v.luu_tru ? `${n.ten}: không đăng (lưu trữ)` : `${n.ten}: chờ lượt ${n.gio}`} style={{ ...mono, width: 22, textAlign: 'center', borderRadius: 3, padding: '1px 0', background: x ? 'rgba(74,222,128,.15)' : 'var(--bg-2)', color: x ? '#4ade80' : 'var(--fg-3)' }}>{NEN_GON[n.nen] ?? n.nen}</span>; })}
                   <span style={{ ...mono, marginLeft: 'auto' }}>{v.luu_tru ? 'lưu trữ' : gioVN(v.created_at)}</span>
@@ -173,7 +179,7 @@ function ManMay({ id, onVe }: { id: number; onVe: () => void }) {
 
       {tab === 'mau' && (mau ? <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 220px))', gap: 10 }}>
-          {kichBanMotDung(mau.de).shots.map((s, i) => (
+          {shotsMau(m.mau, mau.de).map((s, i) => (
             <div key={i} style={{ display: 'grid', gap: 4, alignContent: 'start' }}>
               <b style={{ fontSize: 12 }}>#{i + 1} {s.canh}</b><span style={mono}>{s.tu.toFixed(1)}–{s.den.toFixed(1)}s</span>
               <img src={mau.khung[i]} alt={s.canh} style={khung916} />
@@ -181,7 +187,7 @@ function ManMay({ id, onVe }: { id: number; onVe: () => void }) {
         </div>
         <div style={{ display: 'grid', gap: 4 }}>
           <b style={{ fontSize: 12.5 }}>Kịch bản khung — mọi video của máy dùng chung, chỉ đổi đề</b>
-          {kichBanMotDung(mau.de).shots.map((s, i) => <span key={i} style={{ fontSize: 12.5 }}><b>#{i + 1} {s.canh}:</b> {s.hanh_dong}</span>)}
+          {shotsMau(m.mau, mau.de).map((s, i) => <span key={i} style={{ fontSize: 12.5 }}><b>#{i + 1} {s.canh}:</b> {s.hanh_dong}</span>)}
           <span style={mono}>Khung trên lấy từ video #{mau.id} ({mau.chu_de}).</span>
         </div>
       </> : <span style={mono}>Chưa có video nào dựng xong để làm khung mẫu.</span>)}
@@ -207,9 +213,9 @@ function ManMay({ id, onVe }: { id: number; onVe: () => void }) {
 }
 
 function NganVideo({ v, m, onClose }: { v: VideoMay; m: May; onClose: () => void }) {
-  const shots = kichBanMotDung(v.de).shots, L = luoi(v.de);
+  const shots = shotsMau(m.mau, v.de);
   return (
-    <Ngan onClose={onClose} tieuDe={`#${v.id} ${v.chu_de} · ${v.de.dich}`}>
+    <Ngan onClose={onClose} tieuDe={`#${v.id} ${v.chu_de} · ${phuDe(v.de)}`}>
       <div style={{ display: 'grid', gap: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) repeat(3, minmax(0, 1fr))', gap: 10, alignItems: 'start' }}>
           <div style={{ display: 'grid', gap: 4 }}><b style={{ fontSize: 12 }}>Video</b>
@@ -221,9 +227,7 @@ function NganVideo({ v, m, onClose }: { v: VideoMay; m: May; onClose: () => void
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
           <div style={{ display: 'grid', gap: 6 }}><b style={{ fontSize: 12.5 }}>Đề</b>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${L.cot}, minmax(0, 1fr))`, gap: 2, maxWidth: 420 }}>
-              {v.de.o.map((w, i) => <span key={i} style={{ ...mono, fontSize: 10.5, padding: '1px 4px', borderRadius: 3, textAlign: 'center', background: i === v.de.cho ? v.de.mau.nhan : 'transparent', color: i === v.de.cho ? '#111' : 'var(--fg-2)' }}>{w}</span>)}
-            </div>
+            <DeVideo de={v.de} />
             {v.dang.title && <span style={{ fontSize: 12.5 }}><span style={mono}>Tiêu đề đăng:</span> {v.dang.title}</span>}
             {v.dang.link && <a href={v.dang.link} target="_blank" rel="noreferrer" style={{ ...mono, color: 'var(--cyan)' }}>{v.dang.link}</a>}
           </div>
@@ -236,4 +240,22 @@ function NganVideo({ v, m, onClose }: { v: VideoMay; m: May; onClose: () => void
       </div>
     </Ngan>
   );
+}
+
+/** Đề của một video theo mẫu: đố chữ = 36 ô (ô đúng tô màu); Scam or Real = tin nhắn, dòng có dấu hiệu đánh số + lý do. */
+function DeVideo({ de }: { de: DeMay }) {
+  if ('dich' in de) {
+    const d = de as DeMotDung, L = luoi(d);
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${L.cot}, minmax(0, 1fr))`, gap: 2, maxWidth: 420 }}>
+        {d.o.map((w, i) => <span key={i} style={{ ...mono, fontSize: 10.5, padding: '1px 4px', borderRadius: 3, textAlign: 'center', background: i === d.cho ? d.mau.nhan : 'transparent', color: i === d.cho ? '#111' : 'var(--fg-2)' }}>{w}</span>)}
+      </div>);
+  }
+  const d = de as DeScam;
+  return (
+    <div style={{ display: 'grid', gap: 4, fontSize: 12.5 }}>
+      <span style={mono}>{d.kenh} · {d.gui}{d.tieu_de ? ` · ${d.tieu_de}` : ''} · đáp án <b style={{ color: d.ket === 'scam' ? 'var(--red)' : '#4ade80' }}>{d.ket === 'scam' ? 'SCAM' : 'REAL'}</b></span>
+      {d.dong.map((x, i) => <span key={i} style={{ borderLeft: `3px solid ${x.co ? 'var(--red)' : 'var(--line)'}`, paddingLeft: 6 }}>{x.co ? <b style={{ color: 'var(--red)' }}>{x.co} </b> : null}{x.t}</span>)}
+      <span style={mono}>{d.ket === 'scam' ? 'Dấu hiệu' : 'Vì sao thật'}: {d.ly_do.join(' · ')}</span>
+    </div>);
 }

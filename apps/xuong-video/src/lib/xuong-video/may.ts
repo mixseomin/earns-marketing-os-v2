@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { dungVideo } from './may-dung';
-import type { DeMotDung } from './may-dung-do-chu';
+import type { DeMay } from './mau-dung';
 import { MAU_MAY_DUNG, type MauMayDung } from './may-dung-mau';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -19,10 +19,10 @@ export type May = {
   so: { video: number; cho_dang: number; luu_tru: number };
 };
 export type VideoMay = {
-  id: number; slug: string; chu_de: string; de: DeMotDung; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] };
+  id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] };
   video_url: string | null; khung: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
 };
-export type DeNapMay = { slug: string; chu_de: string; de: DeMotDung; dang: VideoMay['dang'] };
+export type DeNapMay = { slug: string; chu_de: string; de: DeMay; dang: VideoMay['dang'] };
 /** Một bước máy đã làm (xv_may_nhat_ky): chon_de · trang_tang · dung · dang · bo_qua · loi. */
 export type NhatKy = { id: number; luc: string; buoc: string; ok: boolean; slug: string | null; nen: string | null; noi_dung: string; url: string | null };
 /** Lượt đăng gần nhất của một nền — tệp báo lượt dang-short.mjs ghi cho cty.on.tc (/var/lib/cty/may/video-<nền>.json, cùng box). */
@@ -40,7 +40,7 @@ const mapMay = (r: Row): May => ({
   so: { video: Number(r.so_video ?? 0), cho_dang: Number(r.so_cho ?? 0), luu_tru: Number(r.so_luu ?? 0) },
 });
 const mapVideo = (r: Row): VideoMay => ({
-  id: Number(r.id), slug: String(r.slug), chu_de: String(r.chu_de ?? ''), de: r.de as DeMotDung, dang: (r.dang ?? {}) as VideoMay['dang'],
+  id: Number(r.id), slug: String(r.slug), chu_de: String(r.chu_de ?? ''), de: r.de as DeMay, dang: (r.dang ?? {}) as VideoMay['dang'],
   video_url: (r.video_url as string | null) ?? null, khung: (r.khung ?? []) as string[], giay: r.giay == null ? null : Number(r.giay),
   xuat_luc: r.xuat_luc == null ? null : String(r.xuat_luc), da_dang: (r.da_dang ?? {}) as Record<string, DaDang>, luu_tru: !!r.luu_tru, created_at: String(r.created_at),
 });
@@ -90,9 +90,9 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
 
 /** Dựng video của một dòng (0đ) → video_url + 3 khung. */
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT slug, de, nen_url FROM xv_may_video WHERE id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, m.mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: `không có video #${videoId}` };
-  const v = await dungVideo({ de: r.de as DeMotDung, nenUrl: (r.nen_url as string | null) ?? null, slug: String(r.slug) });
+  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, slug: String(r.slug) });
   if (!v.ok) return v;
   await db.execute(sql`UPDATE xv_may_video SET video_url = ${v.url}, khung = ${JSON.stringify(v.khung)}::jsonb, giay = ${v.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
   return { ok: true, url: v.url };

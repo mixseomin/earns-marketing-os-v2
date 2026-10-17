@@ -6,10 +6,13 @@
 //   --ds [--ca-luu-tru]            in JSON { slug: { id, file_url, xuat_luc, da_dang, title, description, link, book, … } } — bên đăng / bên đọc số
 //   --xuat <slug|all-chua>         dựng video (MP4 + 3 khung) cho một slug, hoặc mọi video đang dùng chưa có video
 //   --ghi-dang <slug> <nền>        stdin JSON { url, ngay, luc?, binhLuan? } → sổ đăng của video (gộp vào lượt đã có)
+//   --nap-nguon <tệp.json>         nạp cả tệp nguồn đề của mẫu (vd mau/may/scam-or-real.json) qua tuNguon của mẫu (mau-dung.ts)
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
 import { getDb } from '@mos2/db';
-import { dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
+import { readFileSync } from 'node:fs';
+import { dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
+import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
@@ -20,6 +23,12 @@ if (a.includes('--nap')) {
   const ds = await docStdin();
   if (!Array.isArray(ds) || !ds.length) { console.error('stdin phải là mảng đề'); process.exit(1); }
   console.log(JSON.stringify(await napVideo(db, ma, ds)));
+} else if (lay('--nap-nguon') != null) {
+  const m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  const tu = BO_DUNG[m.mau]?.tuNguon; if (!tu) { console.error(`mẫu ${m.mau} chưa có tuNguon`); process.exit(1); }
+  const ds = (JSON.parse(readFileSync(lay('--nap-nguon')!, 'utf8')) as never[]).map((x) => tu(x));
+  const kq = await napVideo(db, ma, ds as never); await ghiNguon(db, ma, { dung: 0, tong: ds.length });
+  console.log(JSON.stringify(kq));
 } else if (a.includes('--ds')) {
   process.stdout.write(JSON.stringify(await dsVideoDang(db, ma, a.includes('--ca-luu-tru'))));
 } else if (lay('--xuat') != null) {

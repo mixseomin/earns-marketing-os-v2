@@ -55,6 +55,25 @@ Change framing / composition / pose so the model renders the product correctly (
   if (!p || (sp && !p.includes('‹PRODUCT›'))) return null;
   return sp ? p.split('‹PRODUCT›').join(sp) : p;
 }
+/** Model ảnh DỰ PHÒNG khi chuỗi mặc định từ chối (17/10/2026 #127: Google chặn ảnh có trẻ em — IMAGE_SAFETY; cổng ckey chỉ nhận 3 ảnh tham chiếu,
+ *  shot có 6–8). OpenAI gpt-image-1.5 nhận nhiều tham chiếu, cho cảnh gia đình có trẻ em. */
+export const ANH_DU_PHONG = 'gpt-image-1.5';
+/** Sinh MỘT keyframe cho shot, đợi xong; chuỗi mặc định hỏng thì thử model dự phòng. Trả url ảnh mới (đã thành keyframe đang dùng nhờ sinhKeyframeCanh
+ *  khi shot chưa có ảnh; shot đã có ảnh thì người gọi chonKeyframe) hoặc null + lý do. */
+export async function sinhKeyframeCoDuPhong(db: Db, id: number): Promise<{ url: string | null; loi: string }> {
+  let loiCuoi = '';
+  for (const moHinh of [undefined, ANH_DU_PHONG]) {
+    const r = await sinhKeyframeCanh(db, id, 1, moHinh);
+    if (!r.ok) { loiCuoi = r.loi; continue; }
+    const t0 = Date.now();
+    while (Date.now() - t0 < 6 * 60_000) {
+      await ngu(5000);
+      const j = ((await db.execute(sql`SELECT trang_thai, output_url, loi FROM xv_job WHERE id = ${r.data[0]!}`)) as unknown as Row[])[0];
+      if (j && j.trang_thai !== 'cho' && j.trang_thai !== 'chay') { if (j.trang_thai === 'xong') return { url: String(j.output_url), loi: '' }; loiCuoi = String(j.loi ?? ''); break; }
+    }
+  }
+  return { url: null, loi: loiCuoi };
+}
 /** Sinh lại keyframe tới khi soi sạch (tối đa `toiDa` ảnh, ~3¢/ảnh), chọn + duyệt ảnh sạch. Trả lỗi còn lại (rỗng = sạch). */
 async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, log: (s: string) => void): Promise<string[]> {
   let c = await docCanh(db, id);
@@ -64,15 +83,9 @@ async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, l
     log(`  #${c.thu_tu} keyframe sai (${loi.join(' | ')}) — sinh lại keyframe lần ${i + 1}`);
     // từ lần 2: viết lại prompt KHUNG theo lỗi (giữ nguyên mô tả sản phẩm) — 17/10/2026 #120 shot 3: cận cảnh quần cứ ra jeans 5 túi, khung trung thì đúng
     if (i > 0) { const pa = await vietLaiPromptAnh(db, c, phimId, loi); if (pa) { await db.execute(sql`UPDATE xv_canh SET prompt_anh = ${pa}, updated_at = now() WHERE id = ${id}`); log(`  #${c.thu_tu} prompt khung mới: ${pa.split(await moTaSp(db, c)).join('‹sản phẩm›').slice(0, 300)}`); } }
-    const r = await sinhKeyframeCanh(db, id, 1);
-    if (!r.ok) return [`không sinh được keyframe: ${r.loi}`];
-    const t0 = Date.now(); let url: string | null = null;
-    while (Date.now() - t0 < 6 * 60_000) {
-      await ngu(5000);
-      const j = ((await db.execute(sql`SELECT trang_thai, output_url FROM xv_job WHERE id = ${r.data[0]!}`)) as unknown as Row[])[0];
-      if (j && j.trang_thai !== 'cho' && j.trang_thai !== 'chay') { url = j.trang_thai === 'xong' ? String(j.output_url) : null; break; }
-    }
-    if (!url) continue;
+    const kf = await sinhKeyframeCoDuPhong(db, id);
+    if (!kf.url) return [`không sinh được keyframe: ${kf.loi.slice(0, 200)}`];
+    const url = kf.url;
     await chonKeyframe(db, id, url, 'vòng tự sửa clip');
     c = await docCanh(db, id);
     loi = await soiKeyframe(db, c, phimId) ?? [];

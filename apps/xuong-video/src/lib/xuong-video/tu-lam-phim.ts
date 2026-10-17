@@ -12,7 +12,7 @@ import { sinhAnhGoc, sinhKeyframeCanh } from './sinh-anh';
 import { sinhGiongShots } from './sinh-giong';
 import { khopGiongTap } from './hau-ky';
 import { sinhNhacTap } from './sinh-nhac';
-import { tuSuaClipTap, type KetTuSua } from './tu-sua-clip';
+import { tuSuaClipTap, sinhKeyframeCoDuPhong, ANH_DU_PHONG, type KetTuSua } from './tu-sua-clip';
 import { chonGiongDan, MODEL_GIONG_DAN } from './tu-sua-clip-do';
 import { boiCanhTap, ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
 import { docKinhThanh, locNhanh } from './kieu';
@@ -65,10 +65,14 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
   const jobA: number[] = [];
   for (const v of thieuAnh) { const r = await sinhAnhGoc(db, v.id); if (r.ok) jobA.push(r.data); else log(`  ✗ ảnh gốc ${v.ten}: ${r.loi}`); }
   await doiJob(db, jobA); if (jobA.length) log(`  ảnh gốc: ${jobA.length}`);
-  // 3. keyframe còn thiếu (soi + sinh lại do vòng tự sửa lo)
-  const jobK: number[] = [];
-  for (const c of (await canhA()).filter((c) => !c.keyframe_url)) { const r = await sinhKeyframeCanh(db, c.id, 1); if (r.ok) jobK.push(...r.data); else log(`  ✗ keyframe #${c.thu_tu}: ${r.loi}`); }
+  // 3. keyframe còn thiếu (soi + sinh lại do vòng tự sửa lo); chuỗi ảnh mặc định từ chối thì model dự phòng (sinhKeyframeCoDuPhong)
+  const jobK: number[] = []; const thieuKf = (await canhA()).filter((c) => !c.keyframe_url);
+  for (const c of thieuKf) { const r = await sinhKeyframeCanh(db, c.id, 1); if (r.ok) jobK.push(...r.data); else log(`  ✗ keyframe #${c.thu_tu}: ${r.loi}`); }
   await doiJob(db, jobK); if (jobK.length) log(`  keyframe: ${jobK.length}`);
+  for (const c of (await canhA()).filter((x) => !x.keyframe_url)) {
+    const kf = await sinhKeyframeCoDuPhong(db, c.id);
+    log(`  keyframe #${c.thu_tu} ${kf.url ? `qua model dự phòng ${ANH_DU_PHONG}` : `vẫn hỏng: ${kf.loi.slice(0, 160)}`}`);
+  }
   const conThieuKf = (await canhA()).filter((c) => !c.keyframe_url);
   if (conThieuKf.length) return { ok: false, buoc: 'keyframe', loi: conThieuKf.map((c) => `#${c.thu_tu} chưa có keyframe`), clip: [] };
   // 4. giọng (trước video — độ dài shot khớp theo giọng)

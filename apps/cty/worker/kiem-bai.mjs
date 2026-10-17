@@ -141,7 +141,7 @@ export function tinKiem({ tu, url, kq, d, ket, ten = 'Ngọc' }) {
 async function tgNoiDung() {
   if (!process.env.TG_BOT_TOKEN) try { for (const l of fs.readFileSync('/root/.secrets/mine-tg.env', 'utf8').split('\n')) { const m = l.match(/^(?:export\s+)?(TG_BOT_TOKEN|TG_CHAT)=["']?([^"'\s]+)/); if (m) process.env[m[1]] = m[2]; } } catch { /* không phải box */ }
   const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
-  const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
+  const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...(m === 'sendMessage' ? { link_preview_options: { is_disabled: true } } : {}), ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };   // mọi tin của phòng tắt khung xem trước link (anh 17/10/2026)
   const tep = path.join(DATA(), 'noi-dung-tg.json'); let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   if (!st.topic) { const j = await tg('createForumTopic', { name: '📝 Nội dung' }); if (j.ok) st.topic = j.result.message_thread_id; fs.writeFileSync(tep, JSON.stringify(st)); }
   const bao = (text, tin) => tg('sendMessage', { message_thread_id: st.topic, text, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...(tin ? { reply_parameters: { message_id: tin, allow_sending_without_reply: true } } : {}) });
@@ -183,6 +183,21 @@ export async function dungSua(url, nguoi, lyDo) {
   return x;
 }
 
+/** Bài trả về người phụ trách (tra-ve/<id>.json). */
+const traVe = (x) => { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSync(path.join(TRA(), `${x.id}.json`), JSON.stringify({ ...x, luc: new Date().toISOString() }, null, 1)); };
+/** Nút anh quyết dưới tin "Hết 3/3 lượt" (anh 17/10/2026: "tao quyết ở đây kiểu gì?"). id = bản chấm cuối (da-kiem/<id>.json). */
+export const nutQuyet = (id) => ({ inline_keyboard: [[{ text: `🔓 Cho sửa thêm ${TRAN_LUOT} lượt`, callback_data: `nd:mo:${id}` }, { text: '✋ Dừng hẳn bài này', callback_data: `nd:dung:${id}` }]] });
+/** Anh bấm nút quyết: mở → đếm lại từ 0 + trả về người phụ trách theo nhận xét lần chấm cuối; dừng → giữ khoá. Trả câu báo. */
+export function quyetBai(lenh, id, ai = 'Anh') {
+  const f = path.join(XONG(), `${id}.json`); if (!fs.existsSync(f)) throw new Error(`không thấy lần chấm ${id}`);
+  const b = JSON.parse(fs.readFileSync(f, 'utf8'));
+  if (lenh === 'dung') return `✋ ${esc(ai)} dừng hẳn ${esc(b.url)} — giữ khoá, không sửa tiếp.`;
+  if (soLuot(b.url) < TRAN_LUOT) return `${esc(b.url)} đã được mở rồi.`;
+  moKhoa(b.url); const pt = phuTrach(b.url);
+  if (pt) traVe({ id: `${Date.now()}-mo`, url: b.url, phu_trach: pt, luot: 0, ket: b.ket, kq: b.kq, tin: b.tin });
+  return `🔓 ${esc(ai)} cho sửa thêm ${TRAN_LUOT} lượt ${esc(b.url)}${pt ? ` — giao <b>${esc(tenNguoi(pt))}</b> sửa theo lần chấm cuối` : ' — chưa có người phụ trách'}.`;
+}
+
 /** Link http(s) trong một tin Telegram: chữ trần + link ẩn sau chữ (text_link). Trùng thì một. */
 export const linkTrong = (m) => [...new Set([...(String(m.text || m.caption || '').match(/https?:\/\/[^\s<>"']+/g) || []),
   ...(m.entities || m.caption_entities || []).filter((e) => e.type === 'text_link').map((e) => e.url)].map((u) => u.replace(/[).,;]+$/, '')))];
@@ -193,7 +208,13 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
   // Anh gửi link vào chủ đề 📝 Nội dung (anh 17/10/2026: "tao gửi bài cần chấm vào tele … chỉ cần link") → nộp hàng chờ, chấm ngay lượt này
   const { gomTin, moHop } = await import('./tg-phong.mjs'); await gomTin(tg);
   for (const x of moHop(phong)) {
-    const m = x.message; x.xong();
+    const c = x.callback_query, m = x.message; x.xong();
+    if (c && /^nd:(mo|dung):/.test(c.data || '')) {
+      const [, lenh, id] = c.data.split(':'), ai = c.from?.first_name || c.from?.username || 'Anh';
+      try { const cau = quyetBai(lenh, id, ai); await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận' }); await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } }); await bao(cau, c.message.message_id); }
+      catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message, show_alert: true }); }
+      continue;
+    }
     if (!m || m.from?.is_bot) continue;
     for (const url of linkTrong(m)) {
       try { nopBai({ url, tu: m.from?.first_name || m.from?.username || 'Anh' }); await bao(`📥 <b>${esc(tenNguoi(nguoi))}</b> nhận bài ${esc(url)} — chấm ngay`, m.message_id); }
@@ -223,9 +244,10 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     const pt = phuTrach(b.url), luot = soLuot(b.url);
     if (ket !== 'DUYET') {
       const het = luot >= TRAN_LUOT, tenPt = pt ? tenNguoi(pt) : null;
-      if (!het && pt) { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSync(path.join(TRA(), `${b.id}.json`), JSON.stringify({ id: b.id, url: b.url, phu_trach: pt, luot, ket, kq, tin: j.ok ? j.result.message_id : null, luc: new Date().toISOString() }, null, 1)); }
+      if (!het && pt) traVe({ id: b.id, url: b.url, phu_trach: pt, luot, ket, kq, tin: j.ok ? j.result.message_id : null });
       await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: j.ok ? { message_id: j.result.message_id } : undefined, parse_mode: 'HTML',
-        text: het ? `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — dừng vòng sửa, chờ anh quyết.`
+        ...(het ? { reply_markup: nutQuyet(b.id) } : {}),
+        text: het ? `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — anh quyết bằng nút dưới đây.`
           : pt ? `↩️ Giao <b>${esc(tenPt)}</b> sửa theo nhận xét trên rồi nộp lại · lượt ${luot}/${TRAN_LUOT}` : `↩️ ${esc(b.url)} chưa có người phụ trách (PHU_TRACH trong kiem-bai.mjs) · lượt ${luot}/${TRAN_LUOT}` });
     }
     fs.unlinkSync(path.join(CHO(), f));
@@ -257,12 +279,24 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'long'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('long'), 'Long [Xưởng Aff]'); t.equal(tenNguoi('Ngọc'), 'Ngọc [Nội dung]'); t.equal(tenNguoi('Claude (phiên X)'), 'Claude (phiên X)');
     t.deepEqual(linkTrong({ text: 'chấm giúp https://ratesbyroom.com/a/ và https://ratesbyroom.com/a/).' }), ['https://ratesbyroom.com/a/']);
     t.deepEqual(linkTrong({ text: 'bài này', entities: [{ type: 'text_link', url: 'https://x.com/b' }] }), ['https://x.com/b']); t.deepEqual(linkTrong({ text: 'không link' }), []);
+    { const os = await import('node:os'); process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'kiem-bai-'));
+      fs.mkdirSync(XONG(), { recursive: true }); const u2 = 'https://ratesbyroom.com/q/';
+      for (const i of [1, 2, 3]) fs.writeFileSync(path.join(XONG(), `${1700000000000 + i}-x.json`), JSON.stringify({ id: `${1700000000000 + i}-x`, url: u2, ket: 'SUA_LAI', kq: { thieu: ['ảnh'], thua: [], giong: [] }, tin: 9 }));
+      const id3 = '1700000000003-x'; t.ok(quyetBai('dung', id3).startsWith('✋')); t.equal(soLuot(u2), 3, 'dừng hẳn giữ khoá');
+      t.ok(quyetBai('mo', id3).includes('Long [Xưởng Aff]')); t.equal(soLuot(u2), 0, 'mở lại đếm từ 0'); t.equal(docJson(TRA()).length, 1, 'trả về Long theo lần chấm cuối');
+      t.ok(quyetBai('mo', id3).includes('đã được mở'), 'bấm hai lần không mở hai lần');
+      t.equal(nutQuyet(id3).inline_keyboard[0][0].callback_data.length <= 64, true); }
     console.log('kiem-bai: tự kiểm đạt'); process.exit(0);
   }
   if (lay('--mo-khoa')) { moKhoa(lay('--mo-khoa')); console.log(`đã mở khoá ${lay('--mo-khoa')} — được thêm ${TRAN_LUOT} lượt`); }
   if (lay('--nhan')) { const x = await nhanSua(lay('--nhan'), lay('--nguoi')); console.log(`đã nhận sửa ${x.url} (lượt ${x.luot}/${TRAN_LUOT}) — đã báo Telegram`); }
   if (a.includes('--cho-dang')) console.log(JSON.stringify(choDang().filter((x) => !x.loi)));
   if (lay('--da-dang')) { await daDang(lay('--da-dang'), lay('--ket') === 'ok', lay('--ghi') || ''); console.log(`đã báo ${lay('--da-dang')}`); }
+  if (lay('--hoi-quyet')) {   // gửi lại tin quyết có nút cho một bài đã hết lượt (id = lần chấm cuối)
+    const b = JSON.parse(fs.readFileSync(path.join(XONG(), `${lay('--hoi-quyet')}.json`), 'utf8')); const { tg, st } = await tgNoiDung();
+    await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', reply_markup: nutQuyet(b.id), ...(b.tin ? { reply_parameters: { message_id: b.tin, allow_sending_without_reply: true } } : {}),
+      text: `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — anh quyết bằng nút dưới đây.` }); console.log('đã gửi nút quyết');
+  }
   if (lay('--dung')) { await dungSua(lay('--dung'), lay('--nguoi'), lay('--ly-do')); console.log(`đã báo dừng ${lay('--dung')}`); }
   if (a.includes('--tra-ve')) {   // việc sửa đang chờ người phụ trách: node worker/kiem-bai.mjs --tra-ve [lan]
     const ai = lay('--tra-ve'), ds = docJson(TRA()).filter((x) => !ai || ai.startsWith('--') || x.phu_trach === ai);

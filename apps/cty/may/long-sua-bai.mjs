@@ -68,7 +68,9 @@ for (const d of JSON.parse(kb('--cho-dang'))) {
     if (git('diff', '--name-only', d.ban, 'HEAD')) throw new Error(`nhánh đã có commit mới sau bản duyệt ${d.ban.slice(0, 8)} — chưa duyệt, không đưa lên`);
     chay('python3', ['build-hr.py', 'ratesbyroom.com']);
     const ra = chay('sh', ['deploy-sm.sh', DIST, '/var/www/ratesbyroom', 'ratesbyroom.com'], envCf());
-    let day = ''; try { git('push', 'origin', 'HEAD'); day = 'đã push commit về origin'; } catch (e) { day = `push origin lỗi: ${String(e.message).split('\n')[0]}`; }
+    // origin = repo trên MacBook đang mở nhánh main → git từ chối push vào (denyCurrentBranch). Kéo NGƯỢC từ MacBook, chỉ tiến thẳng, chỉ khi cây MacBook sạch.
+    let day = ''; try { execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', '-o', 'ControlPath=none', 'nguyens-macbook-pro', 'cd ~/Me/Earns/hotel-arb && test -z "$(git status --porcelain)" && git pull --ff-only -q tuans-imac:Me/Earns/hotel-arb main'], { encoding: 'utf8', timeout: 120000 }); day = 'MacBook đã kéo commit về'; }
+    catch (e) { day = `MacBook chưa kéo được (tắt máy / cây đang dở / lệch nhánh): ${String(e.stderr || e.message).trim().split('\n').pop()}`; }
     kb(`--da-dang ${q(d.id)} --ket ok --ghi ${q(`${ra.trim().split('\n').pop()} · ${day}`)}`); nhatKy({ viec: 'dua-len', ket: `${d.url} → đã lên trang (bản ${d.ban.slice(0, 8)})` }); log(`đã đưa lên ${d.url}`);
   } catch (e) {
     const lyDo = String(e.stderr || e.message).trim().split('\n').slice(-2).join(' ').slice(0, 300);

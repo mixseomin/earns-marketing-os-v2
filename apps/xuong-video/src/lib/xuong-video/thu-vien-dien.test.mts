@@ -17,4 +17,7 @@ const lg = k.filter((x) => x.phu.qh.lgbt).length; assert.ok(lg >= 6 && lg <= 10,
 assert.ok(!moTaChinh(k[0]!).match(/jeans|pants|trousers/i), 'mô tả người không ghi quần');
 assert.ok(k.every((x) => x.su_kien.ma !== x.boi_canh.ma && x.su_kien.ma !== x.boi_canh_2.ma), 'đỉnh điểm khác hai bối cảnh');
 assert.ok(new Set(k.map((x) => x.su_kien.ma)).size >= 10 && k.every((x) => x.su_kien.dip_en), 'dịp đỉnh điểm xoay vòng');
+const k2 = phanBo(Array.from({ length: 10 }, (_, i) => ({ key: String(i), concept: 'X', yc: { gioi: ['nam' as const], qh: ['vo', 'chong', 'ban_gai', 'ban_trai'] } })));
+assert.ok(k2.every((x) => ['vo', 'chong', 'ban_gai', 'ban_trai'].includes(x.phu.qh.ma)), 'vai phụ theo template');
+assert.ok(k2.some((x) => x.phu.qh.lgbt) && k2.some((x) => !x.phu.qh.lgbt));
 console.log('thu-vien-dien.test: ok');

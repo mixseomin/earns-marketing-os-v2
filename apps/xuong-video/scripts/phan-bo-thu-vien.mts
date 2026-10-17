@@ -12,12 +12,12 @@ type Row = Record<string, unknown>;
 const tep = process.argv[2]!; const ghi = process.argv.includes('--ghi');
 const d = JSON.parse(readFileSync(tep, 'utf8')) as { sp_key: string; concept: Record<string, { yeu_cau?: YeuCau }> };
 const db = getDb()!;
-const bt = (await db.execute(sql`SELECT b.*, k.ma AS k_ma FROM xv_bien_the_hinh b JOIN xv_cap c ON c.id = b.cap_id JOIN xv_concept k ON k.id = c.concept_id
+const bt = (await db.execute(sql`SELECT b.*, k.ma AS k_ma, p.kinh_thanh->'template'->'vai_phu' AS vai_phu FROM xv_bien_the_hinh b JOIN xv_cap c ON c.id = b.cap_id JOIN xv_concept k ON k.id = c.concept_id JOIN xv_phim p ON p.id = c.template_id
   WHERE k.sp_key = ${d.sp_key} AND c.bat AND NOT b.an ORDER BY b.so, k.ma, c.template_id`)) as unknown as Row[];
 // bộ hình ĐÃ CÓ PHIM GỐC giữ nguyên diễn viên / bối cảnh (clip đã quay — đổi là lệch với mọi bản xuất từ clip đó)
 const giu = bt.filter((b) => b.phim_id != null); const doi = bt.filter((b) => b.phim_id == null);
 if (giu.length) console.log(`  giữ nguyên ${giu.length} bộ hình đã có phim gốc (#${giu.map((b) => b.id).join(', #')})`);
-const kq = phanBo(doi.map((b) => ({ key: String(b.id), concept: String(b.k_ma), yc: d.concept[String(b.k_ma)]?.yeu_cau ?? { gioi: ['nam'] } })));
+const kq = phanBo(doi.map((b) => ({ key: String(b.id), concept: String(b.k_ma), yc: { ...(d.concept[String(b.k_ma)]?.yeu_cau ?? { gioi: ['nam'] }), ...(Array.isArray(b.vai_phu) ? { qh: b.vai_phu as string[] } : {}) } })));
 const dem = (f: (x: (typeof kq)[number]) => string) => [...kq.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
 console.log(`${doi.length} bộ hình · ${new Set(kq.map((x) => x.chinh.ma)).size} diễn viên chính · ${new Set(kq.map((x) => x.boi_canh.ma)).size} bối cảnh chính · ${kq.filter((x) => x.phu.qh.lgbt).length} cặp đồng giới`);
 console.log('  sắc tộc:', dem((x) => SAC_TOC[x.chinh.sac_toc] ?? x.chinh.sac_toc).map(([k, n]) => `${k} ${n}`).join(' · '));

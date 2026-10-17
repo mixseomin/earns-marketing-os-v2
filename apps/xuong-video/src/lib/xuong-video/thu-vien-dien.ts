@@ -21,7 +21,7 @@ export const AO = ['a plain gray crew-neck tee', 'a navy henley', 'a white oxfor
   'a heather gray hoodie', 'a light blue polo shirt', 'a mustard knit sweater', 'a white linen shirt', 'a burgundy quarter-zip', 'a black leather jacket over a gray tee'];
 
 /** Yêu cầu của một concept với diễn viên chính + bối cảnh (khai trong tệp dữ liệu sản phẩm, vd o-hinh/jettjeans.json › yeu_cau). */
-export type YeuCau = { gioi?: DienVienTv['gioi'][]; tuoi?: [number, number]; dang?: string[]; dip?: string[]; hoat_dong?: string[]; nhom_tranh?: string[] };
+export type YeuCau = { /** quan hệ người phụ bắt buộc (template khai: kinh_thanh.template.vai_phu — vd Chuyện có thật: người kể là bạn đời) */ qh?: string[]; gioi?: DienVienTv['gioi'][]; tuoi?: [number, number]; dang?: string[]; dip?: string[]; hoat_dong?: string[]; nhom_tranh?: string[] };
 export type ViecPhanBo = { key: string; concept: string; yc: YeuCau };
 export type KetPhanBo = { key: string; chinh: DienVienTv; phu: { qh: QuanHe; dv: DienVienTv }; boi_canh: BoiCanhTv; boi_canh_2: BoiCanhTv; /** dịp đỉnh điểm (template kể chuyện) — đổi theo bộ hình */ su_kien: BoiCanhTv; ao: string };
 
@@ -46,7 +46,8 @@ export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number } = {}): KetPh
     tang(dSac, chinh.sac_toc); tang(dNguoi, chinh.ma);
     // người phụ: quan hệ xoay vòng; cứ ~1/5 bộ hình là cặp đồng giới (chồng / bạn trai cho nhân vật nam, vợ / bạn gái cho nhân vật nữ)
     const laLgbt = Math.floor((i + 1) * lgbt) > Math.floor(i * lgbt);
-    const qhHop = QUAN_HE.filter((q) => (chinh.gioi === 'nam' ? q.ma !== 'vo' || !laLgbt : true) && (laLgbt ? q.lgbt : !q.lgbt));
+    const qhMo = QUAN_HE.filter((q) => !yc.qh?.length || yc.qh.includes(q.ma));
+    const qhHop = qhMo.filter((q) => (laLgbt ? q.lgbt : !q.lgbt)).length ? qhMo.filter((q) => (laLgbt ? q.lgbt : !q.lgbt)) : qhMo;
     const qh = itNhat(qhHop, (q) => so(dQh, q.ma), i) ?? QUAN_HE[0]!; tang(dQh, qh.ma);
     const gioiPhu: DienVienTv['gioi'][] = ['vo', 'ban_gai', 'me', 'con_gai'].includes(qh.ma) ? ['nu'] : ['chong', 'ban_trai', 'bo', 'con_trai'].includes(qh.ma) ? ['nam'] : ['nam', 'nu', 'phi_nhi_nguyen'];
     const tuoiPhu: [number, number] = ['me', 'bo'].includes(qh.ma) ? [chinh.tuoi + 20, 99] : ['con_gai', 'con_trai'].includes(qh.ma) ? [18, Math.max(18, chinh.tuoi - 18)] : [chinh.tuoi - 12, chinh.tuoi + 12];

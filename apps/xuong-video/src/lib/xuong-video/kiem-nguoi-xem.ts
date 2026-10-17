@@ -17,7 +17,8 @@ function yDoQc(loai: string, kt: ReturnType<typeof docKinhThanh>): { qc: { doi_t
   return { qc: { doi_tuong: q.doi_tuong }, yDo: [`Sản phẩm: ${q.ten}`, q.doi_tuong && `Đối tượng: ${q.doi_tuong}`, q.diem_noi_bat && `Điểm nổi bật: ${q.diem_noi_bat}`, q.uu_dai && `Ưu đãi: ${q.uu_dai}`].filter(Boolean).join('\n') };
 }
 
-export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
+/** `cham` = bộ chấm (mặc định Claude — thuNguoiXem); vòng tự làm phim truyền bộ chấm Gemini cùng khuôn (tu-lam-phim.ts › chamGemini). */
+export async function kiemNguoiXemTap(db: Db, tapId: number, cham: typeof thuNguoiXem = thuNguoiXem): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập' };
   const canh = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
@@ -33,9 +34,9 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   const tc = kt.series?.tham_chieu;
   const doDai = `tập đang dài ${giayTap} giây (không tính intro / thẻ kết)${tc?.do_dai_s ? `, chuẩn series ${tc.do_dai_s} giây theo ${tc.tac_pham}` : ''}.`;
   const { qc, yDo } = yDoQc(bc.loai, kt);
-  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline: qc ? yDo : logline, brief: bc.tap.brief, kt, doDai, qc });
+  const kq = await cham({ ban, nhanVat: nvTa, logline: qc ? yDo : logline, brief: bc.tap.brief, kt, doDai, qc });
   if (!kq.ok) return kq;
-  await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens);
+  await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens, kq.model.startsWith('gemini') ? 'google' : 'anthropic');
   const { xem, doi } = kq.data;
   // Đạt hay không tính trên ĐÚNG con số hiện ra (đã làm tròn) — trước đây so điểm thô: 6,6 hiện "7/10, khớp ý" mà vẫn chặn (Tango & Lint tập 1, 14/10/2026).
   const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));

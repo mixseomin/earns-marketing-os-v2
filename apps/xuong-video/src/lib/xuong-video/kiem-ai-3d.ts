@@ -78,7 +78,7 @@ export function matNguoiNoi(c: ShotAi): string[] {
     const v = m.vi_tri.find((x) => x.ten === t && !x.an); if (!v) return [];
     // KHUNG MỞ phải thấy mặt: keyframe AI = khung mở; quay mặt về máy giữa shot không cứu được ảnh đầu (tập 122 #18: mở 115°, kết 45° → keyframe vẽ gáy)
     const a = huongVoiMay(m, v);
-    const ng = c.ky_thuat?.co_canh === 'ws' || c.ky_thuat?.co_canh === 'ews' ? 100 : 80;   // toàn cảnh: nghiêng mặt (profile) vẫn đọc được ai đang nói
+    const ng = ['ws', 'ews', 'two'].includes(c.ky_thuat?.co_canh ?? '') ? 100 : 80;   // toàn cảnh / hai người đối mặt (50/50): nghiêng mặt vẫn đọc được ai đang nói
     return a && a.lech > ng ? [`${t} đang nói mà khung mở không thấy mặt (lệch ${a.lech}°) — đặt máy phía trước mặt, hoặc cho người quay về máy từ đầu shot`] : [];
   });
 }

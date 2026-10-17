@@ -641,7 +641,8 @@
       640,
       0
      ],
-     "huong": 0
+     "huong": 0,
+     "huong_den": -150
     },
     {
      "ten": "Ly cà phê",
@@ -1638,7 +1639,7 @@
      ]
     }
    ],
-   "phia": 129.8
+   "phia": 135.0
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1709,7 +1710,8 @@
       200,
       0
      ],
-     "huong": 90
+     "huong": 90,
+     "huong_den": 160
     },
     {
      "ten": "Luật sư Trần",
@@ -2078,7 +2080,7 @@
      ]
     }
    ],
-   "phia": -51.2
+   "phia": 17.3
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2211,7 +2213,8 @@
   ],
   "may_3d": {
    "khung": [
-    "Chuỗi hạt ngọc"
+    "Chuỗi hạt ngọc",
+    "Lục Thần"
    ],
    "vi_tri": [
     {
@@ -2233,10 +2236,11 @@
       690,
       74
      ],
-     "huong": -90
+     "huong": -90,
+     "cam": "Lục Thần"
     }
    ],
-   "phia": -54.5
+   "phia": -60.7
   },
   "nhan_vat": [
    "Lục Thần",

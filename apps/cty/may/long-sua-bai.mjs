@@ -32,9 +32,21 @@ const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; e
 if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Long đang tắt'); process.exit(0); }
 const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet';
 
-// Cây hotel-arb có thay đổi chưa commit = phiên khác đang làm → cả hai phần đều đợi (dựng từ cây bẩn là đưa việc dở của người khác lên trang)
-const ban = git('status', '--porcelain');
-if (ban) { log(`hotel-arb đang có thay đổi chưa commit, đợi:\n${ban.split('\n').slice(0, 5).join('\n')}`); process.exit(0); }
+// Cây hotel-arb có thay đổi chưa commit = phiên khác đang làm → đợi (dựng từ cây bẩn là đưa việc dở của người khác lên trang). Có bài chờ sửa thì
+// báo MỘT lần lên Telegram kèm nút; anh bấm "nhận luôn việc dở" → Long commit phần dở làm nền rồi sửa tiếp (anh 17/10/2026).
+let ban = git('status', '--porcelain');
+if (ban) {
+  const cho = JSON.parse(kb(`--tra-ve ${NGUOI} --json`)).find((v) => !v.nhan_luc && !v.dung);
+  const ds5 = ban.split('\n').slice(0, 5).map((l) => l.slice(3)).join(', ');
+  if (cho?.nhan_do && !thu) {
+    git('add', '-A'); git('commit', '-q', '-m', `Long [Xưởng Aff] nhận việc dở chưa commit (anh cho) để sửa ${cho.url}: ${ds5}`.slice(0, 300));
+    log(`nhận việc dở: ${ds5}`); ban = '';
+  } else {
+    if (cho && !cho.cho_luc && !thu) { const t = execFileSync('stat', ['-f', '%Sm', '-t', '%H:%M %d/%m', path.join(REPO, ban.split('\n')[0].slice(3).replace(/\/$/, ''))], { encoding: 'utf8' }).trim();
+      kb(`--cho ${q(cho.url)} --nguoi ${NGUOI} --ly-do ${q(`Repo hotel-arb trên iMac đang có việc dở chưa commit của phiên khác (${ds5} · sửa lúc ${t}). Long không đè việc của người khác.`)}`); }
+    log(`hotel-arb đang có thay đổi chưa commit, đợi:\n${ban}`); process.exit(0);
+  }
+}
 
 // ── A. ĐƯA LÊN bản Ngọc đã DUYỆT ──
 for (const d of JSON.parse(kb('--cho-dang'))) {

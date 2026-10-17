@@ -310,4 +310,5 @@ console.log('bo-set-3d.test: ok');
   assert.equal(lookChuaChuan([{ id: 1, may_3d: may({ trang_phuc: 'white blouse with a stain' }) as never }], [ha])[1]!.length, 1);
   assert.equal(lookChuaChuan([{ id: 1, may_3d: may({ trang_phuc: 'Sơ mi trắng' }) as never }], [{ ...ha, khoi_3d: { ...ha.khoi_3d, dang: [] } }])[1]!.length, 1);
   assert.ok((khoiCua('Hạ', [ha]) as { dan?: Record<string, unknown> }).dan?.['sơ mi dính cà phê']);
+  assert.equal(lookChuaChuan([{ id: 1, may_3d: may({}) as never }], [ha])[1]!.length, 1);   // xuất hiện mà chưa có trang phục → chặn
 }

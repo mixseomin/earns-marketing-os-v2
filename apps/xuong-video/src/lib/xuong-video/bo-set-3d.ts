@@ -820,6 +820,9 @@ export function lookChuaChuan<T extends { id: number; thu_tu?: number; may_3d?: 
     const m = hk.get(c.id) ?? c.may_3d; if (!m) continue; const ghi = new Set<string>();
     for (const v of m.vi_tri) {
       const nv = nhanVat.find((x) => x.ten.trim().toLowerCase() === v.ten.trim().toLowerCase()); if (!laNguoiThat(nv)) continue;
+      // Chuyển ngày truyện / nhảy thời gian: sổ quên trang phục ngày cũ — người thật xuất hiện mà chưa có trang phục (sau khi nối) = AI tự chọn đồ.
+      // Trước 17/10/2026 chỉ là cảnh báo (thieuKhaiNguoi) và chỉ với nhân vật từng khai; phim AI thì chặn.
+      if (!v.an && !ngoaiMo(v as never, 'trang_phuc')) ghi.add(`sổ trang phục: ${v.ten} xuất hiện mà chưa có trang phục cho ngày / lúc này (sang ngày truyện hoặc nhảy thời gian thì sổ quên đồ cũ) — khai trang_phuc = tên biến thể ở lần xuất hiện đầu`);
       if (!(nv!.khoi_3d as { dang?: string[] }).dang?.length) ghi.add(`sổ trang phục: ${v.ten} chưa khai dáng nghỉ (khoi_3d.dang) — ma-nơ-canh đứng nghiêm, ảnh ra người thẳng đuỗn`);
       for (const k of KHOA_LOOK) for (const ket of [false, true]) {
         const t = (ket ? ngoaiKet(v as never, k) : ngoaiMo(v as never, k))?.trim(); if (!t) continue;

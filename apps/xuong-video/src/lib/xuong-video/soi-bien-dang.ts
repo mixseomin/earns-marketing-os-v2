@@ -25,6 +25,11 @@ const khungTai = async (url: string, ts: number[], w: number): Promise<string[] 
   return ra.length >= ts.length - 1 ? ra : null;
 };
 /** Lỗi chỉ dính tới ngón tay / bàn tay / cổ tay (không nhắc chân, quần, vật cầm) — loại báo nhầm nhiều nhất, cần Claude xác nhận. */
+/** Lỗi "sản phẩm đổi kiểu" chỉ ở chi tiết may (túi, chỉ, đinh tán, khuy, đỉa quần) trong shot KHÔNG phải cận sản phẩm → người xem không thấy. */
+export const laChiTietNho = (moTa: string, loai: string, yDo = ''): boolean =>
+  loai === 'san_pham_doi_kieu' && /\b(pockets?|stitch\w*|seams?|rivets?|buttons?|belt loops?|coin pocket)\b/i.test(moTa)
+  && !/\b(colou?r|different (garment|kind)|shorts|skirt|leggings|(turns?|changes?|becomes?) into)\b/i.test(moTa)
+  && !/\b(close-?up|macro|detail shot|insert shot)\b/i.test(yDo);
 export const laLoiTay = (moTa: string, loai = 'co_the_meo'): boolean => loai === 'co_the_meo' && /\b(finger|hand|wrist|thumb|palm)s?\b/i.test(moTa) && !/\b(legs?|feet|foot|limbs?)\b/i.test(moTa);
 const LOAI_EN: Record<string, string> = { trang_phuc_bien_dang: 'clothing deforming unnaturally', co_the_meo: 'distorted anatomy (limbs merging, missing, duplicated, bending impossibly)',
   chu_tren_vat: 'text or a logo appearing on the clothing or objects', san_pham_doi_kieu: 'the product changing design or color', vat_the_la: 'an object appearing, vanishing, floating or morphing' };
@@ -65,6 +70,8 @@ async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: 
   for (const [loai, v] of gop) {
     // PHÂN XỬ THEO LOẠI (đo bộ mẫu 17/10/2026): Claude bác nhầm cả 3 ca chân gập ngược / dính liền ở mọi cách xem → lỗi chân, quần, chữ, vật thể, sản phẩm
     // Flash thấy là CHẶN, không cho bác (không sót). Chỉ lỗi dính tới NGÓN TAY / BÀN TAY (nơi báo nhầm nhiều nhất) mới qua Claude xác nhận.
+    // chi tiết may (túi, đường chỉ, đinh tán) ở shot KHÔNG cận sản phẩm: người xem không thấy (anh 17/10/2026: lỗi khó để ý không tính) → cảnh báo, không chặn
+    if (laChiTietNho(v.mo_ta, loai, o.yDo)) { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (chi tiết nhỏ, shot không cận) giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.slice(0, 140)}`); continue; }
     if (!laLoiTay(v.mo_ta, loai)) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); continue; }
     const ts = [-0.5, -0.25, 0, 0.25, 0.5, 0.75].map((d) => Math.min(o.dai, Math.max(0, v.giay + d)));
     const anh = await khungTai(o.url, ts, 768);

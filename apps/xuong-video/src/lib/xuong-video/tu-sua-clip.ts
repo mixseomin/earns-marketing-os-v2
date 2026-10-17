@@ -95,6 +95,10 @@ async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, l
 }
 /** Gửi sinh video một shot qua cổng studio rồi đợi xong (soi clip tự chạy lúc nhận). Lỗi TẠM (laLoiTam) — lúc gửi hay job hỏng — đợi 90s gửi lại
  *  đúng prompt đó, tối đa 6 lần, không tính là một lần thử. ok = có clip mới. */
+// các shot song song cùng hỏi kiemVideoTap của MỘT tập → dùng chung một lượt đang chạy (hai lượt cùng lúc nhận trùng một clip = soi + tính tiền hai lần)
+const kiemDang = new Map<number, Promise<unknown>>();
+const kiemChung = (db: Db, tapId: number) => { let p = kiemDang.get(tapId);
+  if (!p) { p = kiemVideoTap(db, tapId).catch(() => null).finally(() => kiemDang.delete(tapId)); kiemDang.set(tapId, p); } return p; };
 async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string, moHinh?: string): Promise<{ ok: true } | { ok: false; loi: string }> {
   let loiCuoi = '';
   for (let tam = 0; tam <= 6; tam++) {
@@ -104,7 +108,7 @@ async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => v
     if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
     const t0 = Date.now(); let j: Row | undefined;
     while (Date.now() - t0 < 15 * 60_000) {
-      await ngu(10_000); await kiemVideoTap(db, tapId).catch(() => null);
+      await ngu(10_000); await kiemChung(db, tapId);
       j = ((await db.execute(sql`SELECT trang_thai, loi FROM xv_job WHERE id = ${r.data}`)) as unknown as Row[])[0];
       if (j && j.trang_thai !== 'chay') break;
     }
@@ -131,6 +135,7 @@ async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daT
   return null;
 }
 
+const SONG_SONG = 4;
 export type KetTuSua = { thu_tu: number; ket: 'sach' | 'het_luot' | 'loi'; lan: number; loi: string[] };
 /** Chạy vòng tự sửa cho mọi shot nhánh A của tập có clip lỗi (hoặc chỉ `chi`). log: in tiến độ. */
 /** `dung`: hỏi trước MỖI lần tiêu tiền (keyframe / video) — trả lý do thì dừng hẳn cả tập (vd vượt ngân sách lượt chạy, tu-lam-phim.ts). */
@@ -138,10 +143,13 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
   const log = o.log ?? (() => {}); const toiDa = o.toiDa ?? 3;
   const phimId = Number(((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]?.phim_id);
   const tatCa = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
-  const ra: KetTuSua[] = [];
-  for (const c0 of tatCa.filter((c) => (!o.chi || o.chi.includes(c.id)))) {
+  // các shot sửa SONG SONG (tối đa SONG_SONG cùng lúc) — mỗi lần sinh video ~2 phút + soi ~1 phút; chạy lần lượt thì 8 shot × 3 lần = cả buổi (#127, 17/10/2026)
+  const ra: KetTuSua[] = []; let dungHet = false;
+  const hang = tatCa.filter((c) => (!o.chi || o.chi.includes(c.id)));
+  const xuLy = async (c0: Canh): Promise<void> => {
+    if (dungHet) return;
     let c = c0; let loi = loiSoiClip(c); const daThu: string[] = [];
-    if (!loi.length && (c.video_cuoi_url || c.video_url) && !lintPrompt(c.prompt_video).length) continue;
+    if (!loi.length && (c.video_cuoi_url || c.video_url) && !lintPrompt(c.prompt_video).length) return;
     if (!loi.length && lintPrompt(c.prompt_video).length) loi = lintPrompt(c.prompt_video).map((l) => `prompt vi phạm luật: ${l.vi}`);
     let lan = 0, ket: KetTuSua['ket'] = 'het_luot'; let moHinhVideo: string | undefined;
     let ly: string | null = null;
@@ -180,7 +188,9 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
       if (j?.trang_thai === 'xong' && !loi.length) { ket = 'sach'; break; }
     }
     ra.push({ thu_tu: c.thu_tu, ket, lan, loi: ket === 'sach' ? [] : loi });
-    if (ly) break;
-  }
-  return ra;
+    if (ly) dungHet = true;
+  };
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(SONG_SONG, hang.length) }, async () => { while (i < hang.length) await xuLy(hang[i++]!); }));
+  return ra.sort((a, b) => a.thu_tu - b.thu_tu);
 }

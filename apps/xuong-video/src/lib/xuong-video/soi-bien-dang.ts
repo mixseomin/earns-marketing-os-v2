@@ -3,6 +3,9 @@
 // trả câu lỗi kèm giây cho soi_clip.loi. Thiếu khoá / lỗi mạng → null (không chặn, không báo đạt giả). Ghi tiền vào xv_job như mọi lượt chữ.
 import 'server-only';
 import { execFile } from 'node:child_process';
+import { writeFile, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { khoaGoogle } from './google';
 import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
@@ -30,8 +33,16 @@ const LOAI_EN: Record<string, string> = { trang_phuc_bien_dang: 'clothing deform
  *  Quét rộng: 2 lượt × N_KHUNG_BD khung rời LỆCH GIỜ nhau (phủ 2N thời điểm trong đoạn được dùng), GỘP mọi lỗi (hợp, không phải giao — giao bỏ sót
  *  tất lơ lửng / tay méo trên bộ mẫu). Xác nhận: mỗi loại lỗi bị báo soi lại 4 khung nét cao quanh đúng giây đó, hỏi có / không — chỉ lọc báo nhầm.
  *  Đo trên bộ mẫu chuẩn: scripts/kiem-may-soi.mts (phải bắt 100% clip lỗi). */
-export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<{ loi: string[]; tho: LoiBienDang[]; cents: number; canhBao: string[] } | null> {
+type KetSoiBd = { loi: string[]; tho: LoiBienDang[]; cents: number; canhBao: string[] };
+/** Tải clip về đĩa MỘT lần rồi cắt khung tại chỗ (17/10/2026: ffmpeg đọc thẳng URL mở lại kết nối + tua cho TỪNG khung — 26 khung/clip,
+ *  soi lại 14 clip #127 mất 25 phút). Tải hỏng thì đọc thẳng URL như cũ. */
+export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<KetSoiBd | null> {
   if (!khoaGoogle()) return null;
+  const tep = join(tmpdir(), `soi-bd-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`);
+  const co = /^https?:/.test(o.url) ? await fetch(o.url, { signal: AbortSignal.timeout(120_000) }).then(async (r) => (r.ok ? (await writeFile(tep, Buffer.from(await r.arrayBuffer())), true) : false)).catch(() => false) : false;
+  try { return await soiBienDangTep(db, { ...o, url: co ? tep : o.url }); } finally { if (co) await unlink(tep).catch(() => {}); }
+}
+async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<KetSoiBd | null> {
   const N = N_KHUNG_BD, buoc = o.dai / N;
   const tA = Array.from({ length: N }, (_, i) => (i + 0.25) * buoc), tB = Array.from({ length: N }, (_, i) => (i + 0.75) * buoc);
   const [a, b] = await Promise.all([khungTai(o.url, tA, 448), khungTai(o.url, tB, 448)]);

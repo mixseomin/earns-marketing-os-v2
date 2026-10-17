@@ -393,6 +393,7 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
      *  trước); '' ở _den = bỏ ra (cởi áo khoác, tháo nhẫn). Giữ tới khi sang ngày truyện khác — riêng vet (vết thương, băng, sẹo) không tự hết. */
     trang_phuc?: string; trang_phuc_den?: string; toc?: string; toc_den?: string; trang_diem?: string; trang_diem_den?: string; do_deo?: string; do_deo_den?: string; vet?: string; vet_den?: string;
     /** đang được nhân vật này CẦM (kẹo trong tay Tango): đi theo người cầm, không kiểm chỗ riêng */ cam?: string;
+    /** ĐỒ NGHIÊNG / LẬT lúc mở / kết (độ quanh trục ngang — ly lật giữa không trung #17); không khai = đứng thẳng */ nghieng?: number; nghieng_den?: number;
     /** món đang ĐEO (đi kèm cam = người đeo): khớp rig nơi nó nằm — 'cotay_t' / 'cotay_p' (cổ tay trái / phải nhân vật), 'co', 'nguc'. Không khai = cầm
      *  trong lòng bàn tay (dung-set.py › tay_cam) — tập 122 #22: chuỗi hạt cổ tay trái bị nhét vào lòng bàn tay phải */ deo?: string;
     /** ĐỘNG TÁC DIỄN trong shot (thư viện dung-set.py › DONG_TAC): 'ten@a-b' (a, b = phần thời lượng 0..1), vd 'phong3@0.05-0.3', 'toc_ru@0.5'.
@@ -418,7 +419,7 @@ export type KhungXam = { ma: string; /** MẶT NẠ 3D (dung-set.py › ve_mat_n
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
    *  tien = nằm trước chủ thể (vật chắn tiền cảnh). Lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối. */
   thay?: VatThay[] };
-export type VatThay = { ten: string; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; /** trạng thái lúc dựng (đã chia mảnh…) — nhãn keyframe nói rõ, không để model vẽ theo ảnh mẫu nguyên vẹn */ trang?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
+export type VatThay = { ten: string; /** khối là NGƯỜI (nhân vật / người phụ của set) — prompt đếm số người */ nguoi?: boolean; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; /** trạng thái lúc dựng (đã chia mảnh…) — nhãn keyframe nói rõ, không để model vẽ theo ảnh mẫu nguyên vẹn */ trang?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
 export type GiongThu = { model: string; voice: string; url: string; cau: string; luc: string };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */

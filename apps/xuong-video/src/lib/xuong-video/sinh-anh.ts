@@ -16,7 +16,7 @@ import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMach
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
-import { CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHUON, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -300,10 +300,15 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       return `${v.ten}${so}: ${taNv(v, true)}`;
     });
     const trang3d = trangCauCua(true);
+    // SỐ NGƯỜI theo 3D: nhân vật lọt khung + người phụ của set lọt khung (khung_xam.thay.nguoi)
+    const thayAll = bc.canh.khung_xam?.thay ?? [];
+    const chinhNguoi = trongS.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten);
+    const phuNguoi = thayAll.filter((t) => t.nguoi && t.pt >= 0.5 && !bc.nhanVat.some((n) => n.ten === t.ten)).length;
+    const soNguoi = ket ? '' : soNguoiCau(chinhNguoi, phuNguoi);
     // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
     const k1: Khoi[] = [
       khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything; no props, cables, screens, people or hands that are not in Image 1.`),
-      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat)), khoi('huong', chen ? '' : huongCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
+      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
       khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
       khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
       khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', KHONG_CHU),
@@ -333,7 +338,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const kF: Khoi[] = [
         khoi('anh_dich', CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang')), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`),
         khoi('khoanh_khac', !ket && bc.canh.dan_dung?.mo && `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.`),
-        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
+        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', soNguoi), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
         khoi('anh_sang', nguoiThat ? '' : bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.'),
         khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi),
       ];
@@ -349,7 +354,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const kS: Khoi[] = [
         khoi('nguoi', `EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
         khoi('giu', 'Keep everything else exactly as Image 1 (camera, framing, every position, size and outline, background, light, colours); Image 2 is the 3D layout of this frame. Do not add, remove, move or resize anything.'),
-        khoi('huong', chen ? '' : huongCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
+        khoi('huong', chen ? '' : huongCau), khoi('so_nguoi', soNguoi), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
         khoi('nhan_dang', coDinh.length && `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there.`),
         khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
         khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),

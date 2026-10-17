@@ -27,30 +27,55 @@ async function luuUngVien(db: Db, canhId: number, buf: Buffer, duoi: string, cho
   return url;
 }
 
-/** GHÉP ĐÈ mọi đồ nhận dạng có ảnh chuẩn trong khung (0đ). */
+/** TÁCH NGƯỜI TRÊN CHÍNH KEYFRAME (SAM2, ~$0,002 / người): mặt nạ 3D là chỗ ma-nơ-canh, người AI vẽ lệch đi (#19 #21 mặt ở chỗ 3D là màn chiếu, #12 áo
+ *  Vivian ngoài mặt nạ 3D) → lấy viền người THẬT trên ảnh. Điểm chấm: tâm mặt nạ 3D người đó (dương) + tâm người khác (âm). Trả mặt nạ W×H (1 = người). */
+export const MO_HINH_TACH = 'fal-ai/sam2/image';
+async function tachNguoi(db: Db, canhId: number, thuTu: number, kfUrl: string, matNa: Record<string, { url: string }>, W: number, H: number): Promise<Map<string, Uint8Array>> {
+  const tam = new Map<string, [number, number]>();
+  for (const [k, v] of Object.entries(matNa).filter(([k]) => k.startsWith('ngd:'))) {
+    const m = await sharp(await taiAnh(v.url)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer();
+    let sx = 0, sy = 0, n = 0; for (let i = 0; i < W * H; i++) if (m[i]! > 127) { sx += i % W; sy += Math.floor(i / W); n++; }
+    if (n > W * H * 0.002) tam.set(k.slice(4), [Math.round(sx / n), Math.round(sy / n)]);
+  }
+  const out = new Map<string, Uint8Array>();
+  for (const [ten, [x, y]] of tam) {
+    const am = [...tam].filter(([t]) => t !== ten).map(([, p]) => ({ x: p[0], y: p[1], label: 0 }));
+    const job = await taoJob(db, { nhan: `Tách người (${ten}) · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_TACH}`, request: { dich: 'tach_nguoi', image: kfUrl, prompts: [{ x, y, label: 1 }, ...am] } });
+    const kq = await chayAnhFal(MO_HINH_TACH, { image_url: kfUrl, prompts: [{ x, y, label: 1 }, ...am], apply_mask: false, output_format: 'png' });
+    if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); continue; }
+    await xongJob(db, job, { chi_phi_cents: 0.25 });
+    const m = await sharp(kq.data).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer();
+    const a = new Uint8Array(W * H); let n = 0; for (let i = 0; i < W * H; i++) if (m[i]! > 127) { a[i] = 1; n++; }
+    if (n > W * H * 0.003 && n < W * H * 0.85) out.set(ten, a);   // ngoài khoảng này = SAM chấm trượt (nền / cả khung)
+  }
+  return out;
+}
+
+/** GHÉP ĐÈ mọi đồ nhận dạng có ảnh chuẩn trong khung (0đ + tách người ~$0,002 / người). */
 export async function ghepNhanDang(db: Db, canhId: number, chon = false): Promise<Kq<{ url: string; vat: string[] }>> {
   const bc = await boiCanhCanh(db, canhId); if (!bc?.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe' };
   const mn = Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k, v]) => k.startsWith('nd:') && (v.goc?.length ?? 0) >= 4 && v.goc!.every((g) => g.uv));
   if (!mn.length) return { ok: false, loi: 'khung 3D không có đồ nhận dạng nào lọt khung (hoặc khung 3D cũ chưa có mặt nạ — dựng lại 3D)' };
   const vatSet = ((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE phim_id = (SELECT p.id FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${bc.canh.tap_id})`)) as unknown as Row[]).flatMap((r) => (r.vat ?? []) as { ten: string; anh?: string }[]);
   const kf = await rgba(await taiAnh(bc.canh.keyframe_url)); const W = kf.w, H = kf.h; const ra = Buffer.from(kf.d);
-  // CÓ NGƯỜI TRƯỚC ĐỒ NHẬN DẠNG (theo 3D) thì KHÔNG ghép. GIỚI HẠN: đây là vị trí người trong 3D — người AI vẽ lệch 3D (#19, #21: mặt ở chỗ 3D là màn) thì phép
-  // này không thấy; muốn ghép an toàn khi có người phải tách người trên chính keyframe (model tách nền). Vì vậy kết quả chỉ là ứng viên, soát rồi mới chọn.
+  // NGƯỜI THẬT TRÊN KEYFRAME (SAM2) nới 1,5% bị TRỪ khỏi chỗ dán — trước đây lấy theo 3D, người AI lệch ma-nơ-canh thì biểu đồ đè lên mặt (#19 #21 #16)
   const tru = new Uint8Array(W * H);
-  for (const [, v] of Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k]) => k.startsWith('ngd:'))) {
-    const m = await sharp(await taiAnh(v.url)).resize(W, H, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round(W * 0.02))).threshold(8).raw().toBuffer();
-    for (let i = 0; i < W * H; i++) if (m[i]! > 127) tru[i] = 1;
+  const nguoiKf = await tachNguoi(db, canhId, bc.canh.thu_tu, bc.canh.keyframe_url, bc.canh.khung_xam?.mat_na ?? {}, W, H);
+  if (nguoiKf.size) {
+    const hop = Buffer.alloc(W * H); for (const a of nguoiKf.values()) for (let i = 0; i < W * H; i++) if (a[i]) hop[i] = 255;
+    const no = await sharp(hop, { raw: { width: W, height: H, channels: 1 } }).blur(Math.max(2, Math.round(W * 0.015))).threshold(8).raw().toBuffer();
+    for (let i = 0; i < W * H; i++) if (no[i]! > 127) tru[i] = 1;
   }
   const boQua: string[] = [];
   const xong: string[] = [];
   for (const [k, v] of mn) {
     const ten = k.slice(3); const anh = vatSet.find((x) => x.ten === ten)?.anh; if (!anh) continue;
     const ref = await rgba(await taiAnh(anh)); const m = await rgba(await taiAnh(v.url), W, H);
-    let tong = 0, chong = 0; for (let i = 0; i < W * H; i++) if (m.d[i * 4]! > 127) { tong++; if (tru[i]) chong++; }
+    let tong = 0; for (let i = 0; i < W * H; i++) if (m.d[i * 4]! > 127) tong++;
     if (!tong) continue;
-    if (chong / tong > 0.02) { boQua.push(`${ten} (có người đứng trước, ${Math.round((chong / tong) * 100)}%)`); continue; }
     const Hm = dongPhang(v.goc!.map((g) => ({ x: g.p[0]! * W, y: g.p[1]! * H, u: g.uv![0]! * (ref.w - 1), v: g.uv![1]! * (ref.h - 1) }))); if (!Hm) continue;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (tru[y * W + x]) continue;   // chỗ có người thật trên keyframe
       const i = (y * W + x) * 4; const a = m.d[i]! / 255; if (a < 0.02) continue;
       const z = Hm[6]! * x + Hm[7]! * y + 1; const u = (Hm[0]! * x + Hm[1]! * y + Hm[2]!) / z, vv = (Hm[3]! * x + Hm[4]! * y + Hm[5]!) / z;
       if (u < 0 || vv < 0 || u > ref.w - 1 || vv > ref.h - 1) continue;
@@ -81,7 +106,12 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
   const kf = { width: Math.floor((goc.width ?? 768) * tl), height: Math.floor((goc.height ?? 1365) * tl) };
   const anhGui = await uploadToR2(`xuong-video/keyframe/${canhId}-goc-sua-${Date.now()}.jpg`, await sharp(await taiAnh(bc.canh.keyframe_url)).resize(kf.width, kf.height).jpeg({ quality: 92 }).toBuffer(), 'image/jpeg');
   if (!anhGui) return { ok: false, loi: 'không đẩy được ảnh lên kho' };
-  const mask = await sharp(await taiAnh(mn.url)).resize(kf.width, kf.height, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round((kf.width ?? 1000) * 0.012))).threshold(16).png().toBuffer();
+  // MẶT NẠ = NGƯỜI THẬT trên keyframe (SAM2, chấm từ 3D) bỏ phần đầu (18% trên cùng của hộp người) — mặt nạ 3D trơn trượt khỏi người AI (#12 lần đầu)
+  const W = kf.width, H = kf.height; const ng = (await tachNguoi(db, canhId, bc.canh.thu_tu, anhGui, bc.canh.khung_xam?.mat_na ?? {}, W, H)).get(ten);   // ảnh đã thu nhỏ W×H — toạ độ điểm chấm cùng hệ
+  if (!ng) return { ok: false, loi: `không tách được ${ten} trên keyframe (SAM2) — không sửa vùng mù` };
+  let y0 = H, y1 = 0; for (let i = 0; i < W * H; i++) if (ng[i]) { const y = Math.floor(i / W); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const cat = y0 + Math.round((y1 - y0) * 0.18); const buf = Buffer.alloc(W * H); for (let i = 0; i < W * H; i++) if (ng[i] && Math.floor(i / W) >= cat) buf[i] = 255;
+  const mask = await sharp(buf, { raw: { width: W, height: H, channels: 1 } }).blur(Math.max(2, Math.round(W * 0.012))).threshold(16).png().toBuffer();
   const maskUrl = await uploadToR2(`xuong-video/keyframe/${canhId}-mat-na-${Date.now()}.png`, mask, 'image/png'); if (!maskUrl) return { ok: false, loi: 'không đẩy được mặt nạ lên kho' };
   const prompt = `${ten.split(' ').pop()}'s clothing, exactly: ${ao}. Photorealistic, same light, colour grade, pose and body shape as the rest of the photo; seamless edges.`;
   const job = await taoJob(db, { nhan: `Sửa vùng (${ten}) · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_SUA_VUNG}`, request: { dich: 'sua_vung', prompt, image: anhGui, mask: maskUrl } });

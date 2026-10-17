@@ -64,7 +64,7 @@ export const LOAI_VIDEO: Record<LoaiVideo, { sp_giu: string; sp_tam: (ten: strin
 };
 /** Mã khối — tên thành phần, dùng chung mọi đường sinh. */
 export type MaKhoi = 'anh_dich' | 'anh_so' | 'may' | 'boi_canh' | 'bo_tri' | 'khoanh_khac' | 'nguoi' | 'vat' | 'hau_canh' | 'huong' | 'khung' | 'ngoai_khung'
-  | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'khac';
+  | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'so_nguoi' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'khac';
 export type Khoi = { ma: MaKhoi; chu: string };
 export const khoi = (ma: MaKhoi, chu: string | false | 0 | null | undefined): Khoi => ({ ma, chu: (chu || '').trim() });
 /** Ghép khối thành prompt (bỏ khối rỗng). */
@@ -73,14 +73,14 @@ export const ghep = (ds: Khoi[]) => ds.map((k) => k.chu).filter(Boolean).join(' 
 /** ĐƯỜNG SINH và khối BẮT BUỘC của nó (rỗng = bộ chấm báo thiếu). Khuôn quyết định đường đó phải nói gì; chữ của từng khối do thư viện dựng. */
 export type DuongSinh = 'mot_buoc' | 'flux' | 'sua_nhan_dang' | 'video';
 export const KHUON: Record<DuongSinh, { ten: string; bat_buoc: MaKhoi[]; flux?: boolean }> = {
-  mot_buoc: { ten: 'một bước', bat_buoc: ['anh_dich', 'phong_cach', 'cam_chu'] },
-  flux: { ten: 'bước 1', bat_buoc: ['anh_dich', 'boi_canh', 'chat_lieu'], flux: true },
-  sua_nhan_dang: { ten: 'bước 2', bat_buoc: ['nguoi', 'giu', 'cam_chu'] },
+  mot_buoc: { ten: 'một bước', bat_buoc: ['anh_dich', 'phong_cach', 'cam_chu', 'so_nguoi'] },
+  flux: { ten: 'bước 1', bat_buoc: ['anh_dich', 'boi_canh', 'chat_lieu', 'so_nguoi'], flux: true },
+  sua_nhan_dang: { ten: 'bước 2', bat_buoc: ['nguoi', 'giu', 'cam_chu', 'so_nguoi'] },
   video: { ten: 'video', bat_buoc: ['giu', 'dien', 'cam_chu'] },
 };
 /** Khối bắt buộc mà rỗng (có người trong khung mới bắt khối người). */
 export const thieuKhoi = (duong: DuongSinh, ds: Khoi[], coNguoi = true): MaKhoi[] =>
-  KHUON[duong].bat_buoc.filter((m) => (m !== 'nguoi' || coNguoi) && !ds.some((k) => k.ma === m && k.chu));
+  KHUON[duong].bat_buoc.filter((m) => ((m !== 'nguoi' && m !== 'so_nguoi') || coNguoi) && !ds.some((k) => k.ma === m && k.chu));
 
 /** Tên ngôn ngữ ĐƯA CHO MODEL (tiếng Anh) — kieu.ts › tenNgonNgu là tên cho người đọc / prompt Claude tiếng Việt ('tiếng Việt'), lọt vào prompt video thành
  *  "On-camera dialogue (tiếng Việt, …)" (tập 122). */
@@ -106,6 +106,13 @@ export function tuTheEn(v: { nam?: boolean; dien?: string[] }, mon = 'the item')
   const t = ma.map((m) => DANG_EN[m]).filter(Boolean)[0];
   return (t ?? 'standing').replace('{mon}', mon);
 }
+/** SỐ NGƯỜI TRONG KHUNG theo 3D (nhân vật chính + người phụ của set lọt khung): ô trống trong khung (hành lang, ô cửa, hậu cảnh) thì AI hay thêm người —
+ *  #15 mọc thêm một người mặc vest trắng ngoài hành lang. Không có người nào thì nói thẳng "no people". */
+export const soNguoiCau = (chinh: string[], phu: number) => {
+  const n = chinh.length + phu;
+  if (!n) return 'No people anywhere in this frame.';
+  return `Exactly ${n} ${n === 1 ? 'person' : 'people'} in this frame${chinh.length ? ` (${chinh.join(', ')}${phu ? ` and ${phu} background ${phu === 1 ? 'extra' : 'extras'} where the layout places them` : ''})` : ''} — no other people anywhere: not in the background, doorways, corridors, windows or reflections.`;
+};
 /** Câu đầu của mô tả bối cảnh (trước ':' hoặc '.'): "Boardroom in afternoon light" — đủ nói ĐANG Ở ĐÂU, không liệt kê đồ (mời vẽ thêm). */
 export const dauBoiCanh = (moTa: string) => (moTa.split(/[:.]/)[0] ?? '').trim().split(/\s+/).slice(0, 18).join(' ');
 /** chữ tả mặt / đầu — trừ 'eye-level' (góc máy) và 'face out of frame' (chính câu dặn không vẽ mặt) */

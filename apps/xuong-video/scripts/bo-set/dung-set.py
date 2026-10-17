@@ -480,7 +480,7 @@ def nhan_vat(sh, ket=False):
     for nv in sh.get('nhan_vat', []):
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
         cam_luc_nay = nv.get('cam') and not (ket and nv.get('den'))   # cam + den = đặt xuống trong shot: khung kết không còn cầm
-        if ket is True: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
+        if ket is True: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam')), 'nghieng': nv.get('nghieng_den', nv.get('nghieng'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
         elif ket:   # khung GIỮA (ket = t, 0 < t < 1): nội suy chỗ + hướng giữa mở và kết — khung khoá giữa cho video nhiều khung (Pikaframes)
             t_ = float(ket); a_ = nv['tam']; b_ = nv.get('den') or a_
             h0 = nv.get('huong', 0); h1 = nv.get('huong_den', h0); dh = ((h1 - h0 + 180) % 360) - 180
@@ -521,7 +521,7 @@ def nhan_vat(sh, ket=False):
             bpy.context.view_layer.update()
             if nv.get('nam'): nam_xuong(mt, X, Y, Z, hg, d, h)
             than.append(mt[0]); tat_ca.extend(mt); continue
-        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat')}, f"NV {nv['ten']}", (X, Y), hg)
+        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat'), 'nghieng': nv.get('nghieng', mau_nv.get('nghieng', 0))}, f"NV {nv['ten']}", (X, Y), hg)   # nghieng: đồ nghiêng / lật theo shot (vi_tri)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
         # NẰM (bẹp / ngã): dựng người ĐỨNG đủ tay, chân, tóc, mắt rồi xoay cả người ngửa ra sau quanh trục ngang của nó (mặt hướng lên).
@@ -766,7 +766,8 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
         out.append(d_)
     return out
 
-NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or v.get('mau_3d')}   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
+NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or v.get('mau_3d')}
+NGUOI_SET = {v['ten'] for v in DL['vat'] if v.get('hinh') == 'nguoi'}   # người phụ / quần chúng của bộ set — 'thay' đánh dấu nguoi để prompt đếm đúng số người   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
 NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}
 EN = {v['ten']: v['en'] for v in DL['vat'] if v.get('en')}   # tên tiếng Anh cho prompt keyframe   # mặt bàn, tường, kệ: không phải vật chắn
 TRANG = {}   # tên → trạng thái đang dựng của shot hiện tại (đã chia mảnh…) — nhin_thay ghi vào 'trang' cho nhãn keyframe
@@ -805,7 +806,7 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
     for t, x in dem.items():
         pt = round(x['n'] * 100 / (C * R), 1)
         if pt < 0.5: continue
-        out.append({'ten': t, 'en': EN.get(t, t), **({'trang': TRANG[t]} if t in TRANG else {}), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
+        out.append({'ten': t, 'en': EN.get(t, t), **({'trang': TRANG[t]} if t in TRANG else {}), **({'nguoi': True} if t in NGUOI_SET or t in NGUOI else {}), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
                     # mặt nhìn từ trên xuống (≥ 80% tia trúng mặt ngửa: thẻ cam hai bạn đứng lên, sổ mở) là MẶT NỀN, không phải vật chắn
                     'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8 and x['mat'] < 0.8 * x['n']})
     return sorted(out, key=lambda x: -x['pt'])

@@ -1198,16 +1198,16 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -150,
-    285,
-    150
+    -125,
+    318,
+    146
    ],
    "nhin": [
-    -45,
-    378,
-    140
+    -42,
+    382,
+    138
    ],
-   "ong_kinh": 40,
+   "ong_kinh": 45,
    "khung": [
     "Vivian",
     "Thẻ nhân viên"
@@ -1876,6 +1876,8 @@
       705,
       0
      ],
+     "nghieng": 70,
+     "nghieng_den": 95,
      "trang_den": "shattered on the floor"
     }
    ],

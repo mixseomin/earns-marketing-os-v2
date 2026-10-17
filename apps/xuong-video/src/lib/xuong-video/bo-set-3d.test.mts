@@ -149,7 +149,8 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (22): mặt nạ cả người 'ngd:' (ghép đè tránh chỗ có người) → 57.
 // 18/10/2026 (23): máy không lên quá trần (TRAN_Z), nền máy nhìn thấy = xám trơn (HDRI chỉ chiếu sáng) → 58.
 // 18/10/2026 (24): máy phải đứng trong sàn bộ set (trong_phong) → 59.
-assert.deepEqual([BAN_DUNG, bam], [59, 'cd1313da6edd'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// 18/10/2026 (25): 'thay' đánh dấu người (nguoi), đồ nghiêng theo shot (vi_tri.nghieng) → 60.
+assert.deepEqual([BAN_DUNG, bam], [60, 'b5d19af80354'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

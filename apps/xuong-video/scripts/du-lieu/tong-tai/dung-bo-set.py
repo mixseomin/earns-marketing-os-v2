@@ -108,7 +108,7 @@ def phong_hop():
          # TRẠNG THÁI MỞ của cửa đôi (#15: "cửa đôi bật mở, Hạ sải bước vào") — đồ tuỳ chọn thay cho cửa đóng: hai cánh mở vào phòng + ô cửa sáng đèn hành lang
          # Ô cửa phải có CHIỀU SÂU thật: tấm sáng phẳng trên tường thì bản đồ độ sâu vẫn là bức tường → FLUX vẽ cửa đóng (#15 lượt 2). Nên cửa mở thay cả
          # 'Tường trái': tường khoét lỗ (3 mảng) + hành lang sâu 2 m sáng đèn phía sau + hai cánh mở vào phòng.
-         {'ten': 'Cửa đôi mở', 'goc': [-497, 150], 'tuy_chon': True, 'thay_cho': ['Cửa đôi', 'Tường trái'], 'en': 'tall double wooden doors flung wide open into the room, a warmly lit corridor beyond the doorway', 'phan': [
+         {'ten': 'Cửa đôi mở', 'goc': [-497, 150], 'tuy_chon': True, 'thay_cho': ['Cửa đôi', 'Tường trái'], 'en': 'tall double wooden doors flung wide open into the room, a warmly lit, empty corridor beyond the doorway', 'phan': [
              {'hinh': 'hop', 'tam': [50, -98, 0], 'co': [100, 4, 260], 'mau': '#3b2618'}, {'hinh': 'hop', 'tam': [50, 98, 0], 'co': [100, 4, 260], 'mau': '#3b2618'},
              {'hinh': 'hop', 'tam': [-3, -125, 0], 'co': [2, 50, 300], 'mau': '#5d554c'}, {'hinh': 'hop', 'tam': [-3, 400, 0], 'co': [2, 500, 300], 'mau': '#5d554c'},
              {'hinh': 'hop', 'tam': [-3, 0, 260], 'co': [2, 200, 40], 'mau': '#5d554c'},

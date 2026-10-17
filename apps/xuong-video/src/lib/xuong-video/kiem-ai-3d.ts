@@ -68,6 +68,12 @@ export function thieuVat3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu
     const moNhac = coTu(g.tu, c.dan_dung?.mo ?? '');
     if (c.khung_xam?.thay && (moNhac || CAN.has(c.ky_thuat?.co_canh ?? '')) && !co.some((k) => thay.has(k.ten) || nhanVat.some((a) => a.ten === k.ten && a.loai === 'nhan_vat' && thay.has(k.ten))))
       out.push(`${moNhac ? 'khoảnh khắc mở' : 'chữ shot cận'} nhắc ${g.ten} (${co.map((k) => k.ten).join(', ')}) mà khung 3D không thấy — dời máy / khai vào may_3d.khung cho nó lọt khung`);
+    // QUÁ NHỎ ĐỂ AI GIỮ: món khoảnh khắc mở nhắc (không phải người) trải < 5% khung ở shot không phải toàn cảnh → AI bỏ qua (#11 dây thẻ trong tay Vivian, cú qua vai)
+    else if (moNhac && c.khung_xam?.thay && !['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '')) {
+      const trai = Math.max(0, ...c.khung_xam.thay.filter((t) => co.some((k) => k.ten === t.ten) && !nhanVat.some((a) => a.ten === t.ten && a.loai === 'nhan_vat')).map((t) => Math.max(t.hop[2]! - t.hop[0]!, t.hop[3]! - t.hop[1]!)));
+      if (co.every((k) => !nhanVat.some((a) => a.ten === k.ten && a.loai === 'nhan_vat')) && trai < 0.05)
+        out.push(`khoảnh khắc mở nhắc ${g.ten} mà trong khung 3D nó chỉ trải ${Math.round(trai * 100)}% khung — quá nhỏ, AI sẽ bỏ qua: máy gần hơn / ống dài hơn cho món đó rõ`);
+    }
   }
   return out;
 }
@@ -132,6 +138,14 @@ export function doNhanDangChuaAnh(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null)
     .map((v) => `đồ nhận dạng "${v.ten}" chưa có ảnh chuẩn — AI vẽ mỗi góc một bức: chạy scripts/sinh-anh-set.mts (ảnh dán lên mặt vật trong 3D)`);
 }
 
+/** ĐỒ LẬT / RƠI mà 3D để đứng thẳng: khoảnh khắc mở tả đồ đang lật, đổ, rơi, nghiêng (tumbling, tipping, spilling…) mà không món nào trong 3D khai nghieng
+ *  → bản đồ độ sâu là cái ly đứng thẳng, AI vẽ ly đứng (#17 "cup tumbling… coffee spilling"). */
+const LAT = /\b(tumbl\w*|tipping|tips over|topples?|upside[- ]down|spill\w*|falling|falls|tilt\w*|knocked over|overturned)\b/i;
+export function datLat(c: ShotAi): string[] {
+  const mo = c.dan_dung?.mo ?? ''; if (!LAT.test(mo) || !c.may_3d) return [];
+  return c.may_3d.vi_tri.some((v) => v.nghieng || v.nghieng_den) ? [] : [`khoảnh khắc mở tả đồ "${mo.match(LAT)![0]}" mà 3D không món nào nghiêng (vi_tri.nghieng) — AI sẽ vẽ đồ đứng thẳng: khai góc nghiêng cho món đó`];
+}
+
 /** VÙNG TRỐNG: khung 3D có > 8% không thuộc vật nào (máy trên trần, nhìn ra ngoài bộ set) — chỗ trống thì AI TỰ VẼ một thứ (tập 122 #14: máy cao 485 cm
  *  trên trần 300, nền lộ ảnh HDRI → keyframe mọc thêm một căn phòng có bàn, laptop). Đọc tổng % khung của khung_xam.thay. */
 export const TRONG_TOI_DA = 8;
@@ -143,5 +157,5 @@ export function vungTrong(c: ShotAi): string[] {
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c)];
+  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c)];
 }

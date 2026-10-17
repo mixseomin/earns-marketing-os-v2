@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong } from './kiem-ai-3d';
+import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -40,4 +40,11 @@ assert.equal(thieuVat3d(moVat(['Hạ']), nv, set).length, 1); assert.equal(thieu
 // VÙNG TRỐNG: 70% khung có vật (máy trên trần, #14) → chặn; 97% → qua
 const tr = (pt: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { thay: [{ ten: 'Tường', pt, hop: [0, 0, 1, 1], tien: false }] } }) as never;
 assert.equal(vungTrong(tr(70)).length, 1); assert.equal(vungTrong(tr(97)).length, 0);
+// ĐỒ LẬT mà 3D đứng thẳng (#17) → chặn; khai nghieng → qua
+const lat = (ng?: number) => ({ hanh_dong: '', prompt_anh: '', dan_dung: { mo: 'cup tumbling just above the carpet, coffee spilling out' }, may_3d: may([{ ten: 'Ly', tam: [0, 0, 20], huong: 0, ...(ng ? { nghieng: ng } : {}) }]) }) as never;
+assert.equal(datLat(lat()).length, 1); assert.equal(datLat(lat(70)).length, 0);
+// MÓN MỞ SHOT QUÁ NHỎ (#11): điện thoại trải 3% khung ở cú qua vai → chặn; 12% → qua
+const nho = (w: number) => ({ hanh_dong: '', prompt_anh: '', ky_thuat: { co_canh: 'ots' }, dan_dung: { mo: 'Hạ looks at her phone' }, khung_xam: { thay: [{ ten: 'Hạ', pt: 30, hop: [0, 0, 0.5, 1], tien: false }, { ten: 'Điện thoại', pt: 1, hop: [0.5, 0.5, 0.5 + w, 0.52], tien: false }] },
+  may_3d: may([{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]) }) as never;
+assert.equal(thieuVat3d(nho(0.03), nv, set).length, 1); assert.equal(thieuVat3d(nho(0.12), nv, set).length, 0);
 console.log('kiem-ai-3d: ok');

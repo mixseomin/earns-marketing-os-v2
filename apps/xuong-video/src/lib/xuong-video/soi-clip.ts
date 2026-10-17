@@ -1,6 +1,7 @@
 // MÁY SOI CLIP (16/10/2026 — anh: "giải pháp kỹ thuật để không phải nhắc sửa từng tí"). Clip về là soi ngay, 0đ, chạy trên máy chủ:
 //   - chữ lạ: tesseract đọc 6 khung — model tự in phụ đề / chữ (Grok "Look at that fit!" #54 shot 6, 9) dù prompt cấm;
-//   - sản phẩm còn trong khung: màu chủ đạo của ảnh gốc sản phẩm, đo qua từng khung — máy đẩy vào ngực làm quần ra khỏi khung (#54 shot 9).
+//   - sản phẩm còn trong khung: màu chủ đạo của ảnh gốc sản phẩm, đo qua từng khung — máy đẩy vào ngực làm quần ra khỏi khung (#54 shot 9);
+//   - biến dạng (17/10/2026, #120 shot 4 quần phồng / đũng tụt): soi-bien-dang.ts — Gemini nhìn ảnh ghép 12 khung, hai lượt, ~$0.003/clip.
 // Kết quả ghi xv_canh.soi_clip (gắn url clip). Bản xuất không nhận clip còn lỗi soi (xuat-tap.ts); người duyệt bấm bỏ qua nếu máy báo nhầm.
 // MỘT đường cho lúc nhận clip (sinh-video.ts › kiemVideoTap) và script soi lại (scripts/soi-clip.mts). Phép đo thuần: soi-clip-do.ts.
 import 'server-only';
@@ -12,6 +13,7 @@ import { sql } from 'drizzle-orm';
 import { mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, VANG_SP, type MauSp } from './soi-clip-do';
 import { mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 import { soiMatClip } from './soi-mat';
+import { soiBienDang, yDoShot } from './soi-bien-dang';
 import type { Canh, SoiClip } from './kieu';
 
 const chay = (cmd: string, args: string[]) => new Promise<Buffer | null>((ok) => execFile(cmd, args, { encoding: 'buffer', maxBuffer: 1 << 26, timeout: 60_000 }, (e, b) => ok(e ? null : (b as Buffer))));
@@ -76,7 +78,12 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   // Mặt trôi (phim người thật — soi-mat.ts › soiMatClip): video hay giữ mặt khung đầu rồi trôi dần sang người khác ở nửa sau clip.
   const sm = await soiMatClip(db, c, url, dai).catch((e: unknown) => { console.error('[soi mặt clip]', e); return null; });
   if (sm) loi.push(...sm.loi);
-  const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}) } };
+  // Biến dạng (soi-bien-dang.ts): trang phục phồng / đũng tụt, cơ thể méo, chữ tự in trên đồ, sản phẩm đổi kiểu, vật lạ. Không soi được → không chặn.
+  const spMoTa = ((await db.execute(sql`SELECT mo_ta FROM xv_nhan_vat WHERE loai = 'san_pham' AND id = ANY(${`{${(c.nhan_vat.length ? c.nhan_vat : [0]).join(',')}}`}::int[]) ORDER BY id LIMIT 1`)) as unknown as Row[])[0]?.mo_ta;
+  const phimId = ((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${c.tap_id}`)) as unknown as Row[])[0]?.phim_id;
+  const bd = await soiBienDang(db, { url, dai, sp: String(spMoTa ?? ''), yDo: yDoShot(c.prompt_video ?? '', c.prompt_anh ?? '', String(spMoTa ?? '')), phimId: phimId == null ? null : Number(phimId) });
+  if (bd) loi.push(...bd.loi);
+  const kq: SoiClip = { url, luc: new Date().toISOString(), loi, do: { mau, chu, ...(sm ? { mat: sm.diem } : {}), ...(bd ? { bien_dang: bd.tho } : {}) } };
   await db.execute(sql`UPDATE xv_canh SET soi_clip = ${JSON.stringify(kq)}::jsonb WHERE id = ${canhId}`);
   return kq;
 }

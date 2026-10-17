@@ -58,7 +58,7 @@ export const laTiengViet = (t: string): boolean => /[àáạảãâầấậẩ�
  *  MỘT chỗ cho lưới, thẻ shot và cổng kiểm thiếu. */
 export const moTaVi = (c: Pick<Canh, 'hanh_dong' | 'hanh_dong_vi'>): string => c.hanh_dong_vi?.trim() || (laTiengViet(c.hanh_dong) ? c.hanh_dong.trim() : '');
 /** Kết quả máy soi clip (soi-clip.ts). */
-export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[]; /** điểm giống ảnh mẫu theo nhân vật, từng khung chấm được (soi-mat.ts › soiMatClip) */ mat?: Record<string, { giay: number; giong: number }[]> }; bo_qua?: boolean };
+export type SoiClip = { url: string; luc: string; loi: string[]; do: { mau: number[]; chu: string[]; /** điểm giống ảnh mẫu theo nhân vật, từng khung chấm được (soi-mat.ts › soiMatClip) */ mat?: Record<string, { giay: number; giong: number }[]>; /** lỗi biến dạng hai lượt cùng thấy (soi-bien-dang.ts) */ bien_dang?: { khung: number; loai: string; mo_ta: string }[] }; bo_qua?: boolean };
 /** Lỗi soi còn hiệu lực của shot: soi đúng clip đang dùng, có lỗi, chưa ai bỏ qua. */
 export const loiSoiClip = (c: Pick<Canh, 'video_url' | 'video_cuoi_url' | 'soi_clip'>): string[] => { const u = c.video_cuoi_url || c.video_url; const k = c.soi_clip; return u && k && k.url === u && !k.bo_qua ? k.loi : []; };
 export const MO_HINH_KHONG_QC: readonly string[] = ['fal:fal-ai/pika/v2.2/pikaframes', 'shopaikey:grok-video-3-10s', 'shopaikey:grok-imagine-video-1.5'];
@@ -552,7 +552,7 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
   { key: 'huong', ten: 'Hướng nhìn · hướng đi', mau: 'Tango looks and moves screen-right; gummy exits frame right.', vaoModel: true },
   { key: 'muc_dich', ten: 'Mục đích cảm xúc', mau: 'Thèm → hụt hẫng buồn cười; khán giả hiểu Tango muốn gì.', vaoModel: false },
   { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
-  { key: 'dien', ten: 'Diễn xuất hoạt hình', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
+  { key: 'dien', ten: 'Diễn xuất (lấy đà · hành động · phản ứng)', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
   { key: 'nhan', ten: 'Điểm nhấn âm–hình', mau: 'Giây 2,8: kẹo phụt khỏi tay — tiếng "bloop" đúng khung; nhạc ngắt 1 nhịp trước cú ngã.', vaoModel: false },
 ];
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */

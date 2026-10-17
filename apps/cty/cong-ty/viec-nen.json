@@ -373,7 +373,8 @@
    "nhat_ky": "/Users/htuan/Me/GitHub/spy-on-tc/logs/cao-launchd.log",
    "hen": {
     "moi_giay": 900
-   }
+   },
+   "tat": true
   },
   {
    "nhan": "iMac:tc.on.spy.doi-thu",
@@ -388,7 +389,8 @@
    "nhat_ky": "/Users/htuan/Me/GitHub/spy-on-tc/logs/doi-thu-launchd.log",
    "hen": {
     "moi_giay": 300
-   }
+   },
+   "tat": true
   },
   {
    "nhan": "MacBook:com.adfond.goc-kiem",

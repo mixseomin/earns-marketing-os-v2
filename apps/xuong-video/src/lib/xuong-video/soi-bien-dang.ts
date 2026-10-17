@@ -10,6 +10,8 @@ import { giaChuCents } from './kieu';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
 export const MO_HINH_BD = 'gemini-3.8-flash';
+/** Lớp XÁC NHẬN dùng model mạnh hơn (Flash dao động: hai lượt Flash gật cả ngón tay bình thường mà bỏ tất lơ lửng — bộ mẫu 17/10/2026). */
+export const MO_HINH_XAC_NHAN = 'gemini-3.1-pro-preview';
 /** Lấy khung tại các giây `ts` (rộng `w`px) — ảnh RỜI (ghép ảnh bị Gemini nén mất chi tiết chân tay). */
 const khungTai = async (url: string, ts: number[], w: number): Promise<string[] | null> => {
   const ra: string[] = [];
@@ -47,28 +49,29 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
     if (!cu || g < cu.giay) gop.set(l.loai, { giay: g, mo_ta: l.mo_ta, khung: l.khung });
   }
   // xác nhận từng loại bằng khung nét cao quanh đúng giây
-  const giu: LoiBienDang[] = []; const loi: string[] = [];
+  const giu: LoiBienDang[] = []; const loi: string[] = []; let tkXn = { in: 0, out: 0 };
   for (const [loai, v] of gop) {
     const ts = [v.giay - 0.3, v.giay, v.giay + 0.3, v.giay + 0.6].map((t) => Math.min(o.dai, Math.max(0, t)));
     const anh = await khungTai(o.url, ts, 768);
-    // hai lượt xác nhận độc lập, giữ khi CẢ HAI nói có — một lượt gật cả ngón tay bình thường (bộ mẫu: 4/8 clip tốt bị báo "ngón tay méo")
+    // MỘT lượt xác nhận bằng model mạnh (MO_HINH_XAC_NHAN) — Flash dao động nên không làm lớp xác nhận được
     const hoi = () => goiGeminiJson<{ co: boolean; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
 A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object. Answer co=true ONLY if the defect is clearly there and an ordinary viewer watching at normal speed would notice it; co=false if it looks normal, is merely motion blur, or is part of the shot intent. In ly_do name the frame and what exactly is wrong.` },
-      ...(anh ?? []).map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, ly_do: { type: 'STRING' } }, required: ['co', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH');
-    const [c1, c2] = anh ? await Promise.all([hoi(), hoi()]) : [null, null];
-    for (const c of [c1, c2]) if (c) { tk.in += c.tk.in; tk.out += c.tk.out; }
+      ...(anh ?? []).map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, ly_do: { type: 'STRING' } }, required: ['co', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH', MO_HINH_XAC_NHAN);
+    const c = anh ? await hoi() : null;
+    if (c) tkXn = { in: tkXn.in + c.tk.in, out: tkXn.out + c.tk.out };
     // không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
-    if (!c1 || !c2 || (c1.data.co && c2.data.co)) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
+    if (!c || c.data.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
-  const cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
+  let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
+  if (tkXn.in) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', MO_HINH_XAC_NHAN, tkXn, 'google') : giaChuCents(MO_HINH_XAC_NHAN, tkXn.in, tkXn.out);
   return { loi, tho: giu, cents };
 }
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */
-export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string): Promise<{ data: T; tk: { in: number; out: number } } | null> {
+export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string, model: string = MO_HINH_BD): Promise<{ data: T; tk: { in: number; out: number } } | null> {
   const key = khoaGoogle(); if (!key) return null;
   const body = { contents: [{ role: 'user', parts }], generationConfig: { ...(mediaResolution ? { mediaResolution } : {}), thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: schema } };
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MO_HINH_BD}:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) });
     if (!r.ok) { console.error('[gemini json]', r.status, (await r.text()).slice(0, 200)); return null; }
     const j = await r.json() as { candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[]; promptFeedback?: { blockReason?: string }; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } };
     const u = j.usageMetadata ?? {};

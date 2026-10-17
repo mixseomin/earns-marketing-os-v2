@@ -595,7 +595,7 @@ export type Job = {
 const GIA_CHU: Record<string, [number, number]> = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-4-5': [1, 5],
   // máy soi biến dạng clip (soi-bien-dang.ts) — giá niêm yết Gemini API, USD / 1M token (token suy nghĩ tính vào out); 3.8 Flash: giá khởi điểm
   // tới 31/12/2026, từ 01/01/2027 là [1.5, 7.5] (ai.google.dev/gemini-api/docs/pricing, tra 17/10/2026)
-  'gemini-3.8-flash': [0.75, 3.75], 'gemini-3.5-flash-lite': [0.3, 2.5] };
+  'gemini-3.8-flash': [0.75, 3.75], 'gemini-3.5-flash-lite': [0.3, 2.5], 'gemini-3.1-pro-preview': [2, 12] };
 export const giaChuCents = (model: string, tin: number, tout: number): number => {
   const g = GIA_CHU[model] ?? GIA_CHU[Object.keys(GIA_CHU).find((k) => model.startsWith(k)) ?? ''] ?? [4, 20];
   return (tin * g[0] + tout * g[1]) / 10_000;   // USD/1M token → cents/token = /1e6*100

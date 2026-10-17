@@ -6,7 +6,7 @@
 // Mục con (URL ?sts) và bộ lọc góc (?stg) ghi URL shallow như mọi bộ lọc khác.
 import { useEffect, useMemo, useState } from 'react';
 import { socialPhien } from '@/lib/actions/social-traffic';
-import { DataTable, EmptyState, FilterChips, GuardedButton, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
+import { DataTable, EmptyState, FilterChips, GuardedButton, MultiSelect, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
@@ -43,7 +43,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
   const [locNen, setLocNen] = useShallowParam('skn', 'all');
-  const [locNhom, setLocNhom] = useShallowParam('skg', 'all');
+  const [skg, setSkg] = useShallowParam('skg', '');   // góc đang lọc, nhiều góc nối bằng ',' ('' = mọi góc)
+  const gocChon = skg ? skg.split(',') : [];
   const [gopKenh, setGopKenh] = useShallowParam('skb', 'khong');
   const laLive = cheDo === 'live';
   // Số người đang trên site aff — badge trên tab Trực tiếp (card #1411), gọi lại mỗi 10 giây khi trang đang hiện, chỉ ở LIVE.
@@ -151,7 +152,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   ];
   const cotKenh: DataColumn<StKenh>[] = [
     { key: 'ten', header: 'Kênh', align: 'left', width: 230, sortValue: (k) => k.ten, cell: (k) => <span title={`${k.nenTang} · ${k.nhom} · ${k.ngonNgu}`} style={{ display: 'inline-flex', gap: 8, alignItems: 'center', minWidth: 0 }}><Logo ten={k.nenTang} khoa={k.nenKey} co={18} />
-      <span style={{ display: 'grid', minWidth: 0 }}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.ten}</span>{gopKenh !== 'goc' && locNhom === 'all' && <span style={{ ...nho, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.nhom}</span>}</span></span> },   // gọn (anh: 'rối quá'): nền = favicon, góc chỉ hiện khi chưa gộp/lọc theo góc, EN bỏ — đủ chữ ở tooltip
+      <span style={{ display: 'grid', minWidth: 0 }}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.ten}</span>{gopKenh !== 'goc' && gocChon.length !== 1 && <span style={{ ...nho, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.nhom}</span>}</span></span> },   // gọn (anh: 'rối quá'): nền = favicon, góc chỉ hiện khi chưa gộp/lọc theo góc, EN bỏ — đủ chữ ở tooltip
     { key: 'proxy', header: 'Proxy', align: 'left', cell: (k) => <span style={nho}>{k.proxy}</span> },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (k) => <Pill color={TT_KENH[k.tt][0]} label={TT_KENH[k.tt][1]} uppercase={false} /> },
     { key: 'ngay', header: 'Ngày', sortValue: (k) => k.ngay, cell: (k) => k.ngay },
@@ -274,7 +275,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         ? <>{(() => {
             const dem = (f: (k: StKenh) => string) => d.kenh.reduce<Record<string, number>>((a, k) => ({ ...a, [f(k)]: (a[f(k)] ?? 0) + 1 }), {});
             const soNen = dem((k) => k.nenTang), soNhom = dem((k) => k.nhom);
-            const loc = d.kenh.filter((k) => (locNen === 'all' || k.nenTang === locNen) && (locNhom === 'all' || k.nhom === locNhom));
+            const loc = d.kenh.filter((k) => (locNen === 'all' || k.nenTang === locNen) && (!gocChon.length || gocChon.includes(k.nhom)));
             const khoa = gopKenh === 'nen' ? (k: StKenh) => k.nenTang : gopKenh === 'goc' ? (k: StKenh) => k.nhom : null;
             const nhom = khoa ? [...new Set(loc.map(khoa))].map((g) => ({ g, ks: loc.filter((k) => khoa(k) === g) })) : [{ g: '', ks: loc }];
             const bang = (ks: StKenh[], key: string) => <DataTable key={key} rows={ks} columns={cotKenh} getRowKey={(k) => String(k.id)} persistKey="st_kenh" minWidth={1380}
@@ -283,8 +284,9 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <FilterChips urlKey="skn" value={locNen} onChange={setLocNen} counts={{ all: d.kenh.length, ...soNen }}
                   options={[{ value: 'all', label: 'Mọi nền' }, ...Object.keys(soNen).map((n) => ({ value: n, label: n, icon: <Logo ten={n} khoa={d.kenh.find((k) => k.nenTang === n)?.nenKey} co={12} /> }))]} />
-                <FilterChips urlKey="skg" value={locNhom} onChange={setLocNhom} counts={{ all: d.kenh.length, ...soNhom }}
-                  options={[{ value: 'all', label: '🎯 Mọi góc' }, ...Object.keys(soNhom).map((n) => ({ value: n, label: n }))]} />
+                {/* Góc là danh sách ĐỘNG (sẽ hàng nghìn) → ô chọn có tìm, không bày chip (YDNI § select; anh 18/10: "1000 góc mà show thế này") */}
+                <MultiSelect<string> label="🎯 Mọi góc" options={Object.entries(soNhom).sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, label: value, count }))}
+                  selected={gocChon} onChange={(v) => setSkg(v.join(','))} popupWidth={340} compact />
                 <Segmented<string> value={gopKenh} onChange={setGopKenh}
                   options={[{ value: 'khong', label: '☰ Không gộp' }, { value: 'nen', label: '📺 Gộp theo nền' }, { value: 'goc', label: '🎯 Gộp theo góc' }]} />
               </div>

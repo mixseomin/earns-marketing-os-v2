@@ -1,7 +1,7 @@
 // Tự kiểm mẫu "Scam or Real?" + cả tệp nguồn đề: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-scam.test.mts
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { assScam, boCuc, ngat, tuNguonScam, kichBanScam, nhipScam, CHU_KET_SCAM, type DeScam } from './may-dung-scam';
+import { anhScam, assScam, boCuc, ngat, tuNguonScam, kichBanScam, nhipScam, CHU_KET_SCAM, T_LO, type DeScam } from './may-dung-scam';
 import { giayDoc } from './may-dung-ass';
 
 assert.deepStrictEqual(ngat('one two three four', 9), ['one two', 'three', 'four']);
@@ -20,5 +20,10 @@ for (const x of ds) {
   // luật đọc: lý do đứng ≥ thời gian đọc + đệm; màn kết cũng vậy
   assert.ok(N.T_KET - N.T_LO >= -1e-9 + giayDoc(...x.ly_do.slice(0, 3)), `${x.slug}: lý do không đủ thời gian đọc`);
   assert.ok(N.DAI - N.T_KET >= -1e-9 + giayDoc(...CHU_KET_SCAM), `${x.slug}: màn kết không đủ thời gian đọc`);
+  // ảnh tĩnh: câu đố trước khi lộ, đáp án sau khi mọi dòng lý do đã hiện (0,15s/dòng) và trước màn kết; khung cắt nằm trong 1080x1920 và chứa hết tin
+  const [q, d] = anhScam(x);
+  assert.ok(q!.t < T_LO && d!.t > T_LO + 0.15 * 2 + 0.2 && d!.t < N.T_KET, `${x.slug}: mốc ảnh sai`);
+  for (const k of [q!, d!]) assert.ok(k.cat[1] + k.cat[3] <= 1920 && k.cat[0] + k.cat[2] <= 1080);
+  assert.ok(boCuc(x).cuoi < d!.cat[1] + d!.cat[3], `${x.slug}: ảnh đáp án cắt mất đuôi tin`);
 }
 console.log(`may-dung-scam: ${ds.length} đề đạt`);

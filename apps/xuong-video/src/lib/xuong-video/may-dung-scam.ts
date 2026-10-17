@@ -23,6 +23,12 @@ export function nhipScam(de: DeScam) {
   const lyDo = de.ly_do.slice(0, 3), T_KET = T_LO + 0.15 * (lyDo.length - 1) + giayDoc(de.ket.toUpperCase(), ...lyDo);
   return { T_LO, T_KET, DAI: T_KET + giayDoc(...CHU_KET_SCAM) };
 }
+/** ẢNH TĨNH cho bài ảnh (nền "x_anh" — X đăng 2 ảnh, 18/10/2026): câu đố (tin nhắn, chưa lộ, cắt bỏ vòng đếm ngược ở đáy) và đáp án (dấu SCAM/REAL,
+ *  dấu hiệu khoanh + lý do, cắt bỏ tiêu đề trên). Mốc theo nhịp của đề (đáp án đứng ở 70% quãng lộ → kết, mọi dòng lý do đã hiện). Khung cắt 3:4. */
+export function anhScam(de: DeScam): { t: number; cat: [number, number, number, number] }[] {
+  const { T_KET } = nhipScam(de);
+  return [{ t: T_DEM + DEM * 0.45, cat: [0, 0, 1080, 1440] }, { t: T_LO + (T_KET - T_LO) * 0.7, cat: [0, 240, 1080, 1440] }];
+}
 const W = 1080, H = 1920, DO = '#E5484D', XANH = '#2EBD85', NHAN = '#FCA311', SAU = '#14213D', TRANG = '#F4F6F8';
 const MAU_KENH: Record<KenhScam, string> = { WhatsApp: '#1FA855', Email: '#3B6FE0', SMS: '#5B6472' };
 import { alpha, bo, chu, giayDoc, mauAss, ms, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';

@@ -3,7 +3,7 @@
 // LUẬT ĐỌC (anh 17/10/2026): nhịp + thời lượng của mẫu TÍNH THEO ĐỀ bằng may-dung-ass.ts › giayDoc (mỗi khối chữ đứng đủ thời gian đọc + 1,5s đệm
 // rồi mới chuyển); test của mẫu phải kiểm điều đó (xem may-dung-scam.test.mts / may-dung-land.test.mts). Không đặt mốc giây cứng cho khối có chữ.
 import { assMotDung, kichBanMotDung, lenhMotDung, DAI as DAI_DO_CHU, type DeMotDung } from './may-dung-do-chu';
-import { assScam, kichBanScam, lenhScam, nhipScam, tuNguonScam, type DeScam } from './may-dung-scam';
+import { anhScam, assScam, kichBanScam, lenhScam, nhipScam, tuNguonScam, type DeScam } from './may-dung-scam';
 import { assLand, kichBanLand, lenhLand, nhipLand, tuNguonLand, type DeLand } from './may-dung-land';
 import type { MauMayDung } from './may-dung-mau';
 
@@ -11,11 +11,11 @@ export type DeMay = DeMotDung | DeScam | DeLand;
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
 type LenhVao = { de: DeMay; ass: string; nen: string | null; fontsDir: string; ra: string; khung?: number };
 /** tuNguon: một dòng tệp nguồn đề của mẫu → dòng nạp máy { slug, chu_de, de, dang } (may-dung.mts --nap-nguon). */
-type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shots: (de: DeMay) => ShotMau[]; /** thời lượng theo đề (luật đọc: nhịp tính theo chữ) */ dai: (de: DeMay) => number; tuNguon?: (x: never) => { slug: string; chu_de: string; de: DeMay; dang: Record<string, string> } };
+type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shots: (de: DeMay) => ShotMau[]; /** thời lượng theo đề (luật đọc: nhịp tính theo chữ) */ dai: (de: DeMay) => number; /** ảnh tĩnh cắt từ video cho bài ảnh (nền x_anh): giây + khung cắt [x, y, w, h] */ anh?: (de: DeMay) => { t: number; cat: [number, number, number, number] }[]; tuNguon?: (x: never) => { slug: string; chu_de: string; de: DeMay; dang: Record<string, string> } };
 
 export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'do-chu-mot-dung': { ass: (de) => assMotDung(de as DeMotDung), lenh: (o) => lenhMotDung({ ...o, de: o.de as DeMotDung }), shots: (de) => kichBanMotDung(de as DeMotDung).shots, dai: () => DAI_DO_CHU },
-  'scam-or-real': { ass: (de) => assScam(de as DeScam), lenh: (o) => lenhScam({ ...o, de: o.de as DeScam }), shots: (de) => kichBanScam(de as DeScam).shots, dai: (de) => nhipScam(de as DeScam).DAI, tuNguon: tuNguonScam as never },
+  'scam-or-real': { ass: (de) => assScam(de as DeScam), lenh: (o) => lenhScam({ ...o, de: o.de as DeScam }), shots: (de) => kichBanScam(de as DeScam).shots, dai: (de) => nhipScam(de as DeScam).DAI, anh: (de) => anhScam(de as DeScam), tuNguon: tuNguonScam as never },
   'before-you-land': { ass: (de) => assLand(de as DeLand), lenh: (o) => lenhLand({ ...o, de: o.de as DeLand }), shots: (de) => kichBanLand(de as DeLand).shots, dai: (de) => nhipLand(de as DeLand).DAI, tuNguon: tuNguonLand as never },
 };
 /** 3 shot kịch bản của một video theo mẫu của máy (tab Mẫu, ngăn video). */

@@ -78,7 +78,7 @@ for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
   chuan-bi)
     # máy mới có thể trùng ip:cổng với máy cũ (khoá host khác) → bỏ khoá cũ; sshd có thể lên sau khi cổng đã mở → đợi tới 60 giây
     ssh-keygen -R "[${HOST#*@}]:$CONG" >/dev/null 2>&1 || true
-    for i in $(seq 1 12); do $SSH true 2>/dev/null && break; [ $i = 12 ] && { echo "SSH không vào được"; exit 1; }; sleep 5; done
+    for i in $(seq 1 12); do E=$($SSH true 2>&1) && break; [ $i = 12 ] && { echo "SSH không vào được: $E"; exit 1; }; sleep 5; done
     $SSH "set -e; [ -f /usr/lib/x86_64-linux-gnu/libEGL.so.1 ] && command -v rsync >/dev/null && command -v xz >/dev/null || { (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync xz-utils libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 ffmpeg) >/dev/null; }
       if [ ! -x /opt/blender/blender ]; then cd /opt
         curl -fsSL -A 'Mozilla/5.0' -o $TEP https://download.blender.org/release/Blender5.0/$TEP || curl -fsSL -o $TEP https://mirrors.ocf.berkeley.edu/blender/release/Blender5.0/$TEP

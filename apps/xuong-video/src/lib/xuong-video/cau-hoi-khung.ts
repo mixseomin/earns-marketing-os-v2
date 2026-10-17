@@ -11,7 +11,7 @@ import { dauBoiCanh } from './prompt-khoi';
 
 export type CauHoi = { ma: string; hoi: string; loai: LoaiLoiKhung; phu_thuoc?: string };
 /** DÁNG ở khung mở (mã động tác dung-set.py › DONG_TAC) → câu hỏi nhìn được. Chỉ dáng rõ trên hình; mocap 'mc_*' (đi, chạy) không hỏi. */
-const DANG: Record<string, string> = { chong_ban: 'chống hai tay lên mặt bàn, người đổ về trước', cui_nguoi: 'cúi người về phía trước', om_thung: 'ôm thùng trước bụng', cam_truoc: 'cầm món đồ trước ngực',
+export const DANG: Record<string, string> = { chong_ban: 'chống hai tay lên mặt bàn, người đổ về trước', cui_nguoi: 'cúi người về phía trước', om_thung: 'ôm thùng trước bụng', cam_truoc: 'cầm món đồ trước ngực',
   khoanh_tay: 'khoanh tay', thuyet_trinh: 'một tay mở về phía màn chiếu', gioi_thieu: 'đưa tay giới thiệu người bên cạnh', gio_cao: 'giơ cao món đồ', hat: 'hất mạnh món đồ ra trước', dua_truoc_mat: 'đưa món đồ lên trước mặt người đối diện' };
 const ngan = (t: string, n = 90) => { const x = t.trim().replace(/\s+/g, ' '); return x.length > n ? `${x.slice(0, n).replace(/[\s,;]+\S*$/, '')}…` : x; };
 

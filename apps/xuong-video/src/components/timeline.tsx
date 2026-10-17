@@ -34,7 +34,7 @@ import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
-import { trangThaiDoiTuong, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
+import { trangThaiDoiTuong, mucDiem, TEN_NHANH, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
 
 /** Màu khối làn Đối tượng theo mức điểm (khoiAm cần mã hex để ghép độ trong). */
 const MAU_DOI_TUONG: Record<MucDoiTuong, string> = { tot: '#a3e635', vang: '#f5b638', do: '#f87171', trong: '#545a68' };
@@ -64,10 +64,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [giayTam, setGiayTam] = useState<Record<number, number>>({});
   const dur = (c: Canh) => giayTam[c.id] ?? giayPhat(c);
   // Điểm Murch từng shot — cùng hook với Lưới (diem-murch-noi.tsx › useDiemMurch), chip góc dưới khối clip làn 🎬 Hình, rê vào xem sáu tiêu chí.
-  const { diemM, tbM } = useDiemMurch(canh, nhanVat, tap, laQc);
+  const { sets, diemM, tbM } = useDiemMurch(canh, nhanVat, tap, laQc);
   const batDau = useMemo(() => { let a = 0; return canh.map((c) => { const s = a; a += dur(c); return s; }); }, [canh, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
   // Trạng thái + điểm từng đối tượng theo shot (trang-thai-doi-tuong.ts) — làn 'Đối tượng' cuối timeline.
-  const doiTuong = useMemo(() => trangThaiDoiTuong(canh, nhanVat, tap.phan_canh), [canh, nhanVat, tap.phan_canh]);
+  const doiTuong = useMemo(() => trangThaiDoiTuong(canh, nhanVat, tap.phan_canh, sets), [canh, nhanVat, tap.phan_canh, sets]);
   // Nhân vật của cả tập theo thứ tự xuất hiện (người nói + nhân vật có mặt mà không nói) → mỗi người MỘT nhóm làn: cảm xúc + thoại (#1244).
   const nguoiNoiTap = useMemo(() => {
     const ds: string[] = [];
@@ -361,6 +361,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [anLan, setAnLan] = useState<string[]>(() => { try { const v = JSON.parse(docLT('xv-tl-an-lan') ?? '[]') as unknown; return Array.isArray(v) ? v.map(String) : []; } catch { return []; } });
   const doiAnLan = (n: string) => setAnLan((d) => { const m = d.includes(n) ? d.filter((x) => x !== n) : [...d, n]; ghiLT('xv-tl-an-lan', JSON.stringify(m)); return m; });
   const anChuMan = anLan.includes('xem:chu_man');
+  // CÂY ĐỐI TƯỢNG: làn nào đang mở nhánh (mẫu · trang phục · vị trí · dáng · kiểm khung…) — nhớ theo trình duyệt.
+  const [moCay, setMoCay] = useState<number[]>(() => { try { const v = JSON.parse(docLT('xv-tl-mo-cay') ?? '[]') as unknown; return Array.isArray(v) ? v.map(Number) : []; } catch { return []; } });
+  const doiMoCay = (id: number) => setMoCay((d) => { const m = d.includes(id) ? d.filter((x) => x !== id) : [...d, id]; ghiLT('xv-tl-mo-cay', JSON.stringify(m)); return m; });
   const dsLan: string[] = [];
   // Danh sách làn của lần vẽ trước — menu 👁 đọc lúc mở (làn được khai trong lúc vẽ, sau ô thước nơi đặt menu).
   const lanRef = useRef<string[]>([]);
@@ -383,6 +386,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       <div style={{ position: 'relative', width: W, flexShrink: 0 }} onClick={(e) => { if (e.target === e.currentTarget) tuaToi(Math.max(0, Math.min(tong, e.nativeEvent.offsetX / pps))); }}>{noiDung}</div>
     </div>
   ); };
+  /** Làn CON của cây đối tượng: thụt vào, thấp hơn, không vào menu ẩn làn (ẩn theo làn cha). */
+  const lanCon = (nhan: string, mo: string, noiDung: ReactNode) => (
+    <div style={{ display: 'flex', alignItems: 'stretch', height: 20, marginTop: 1 }}>
+      <div data-goi-y={mo} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', color: 'var(--fg-3)', fontSize: 11, display: 'flex', alignItems: 'center', paddingLeft: 30, borderLeft: '2px solid var(--line)', marginLeft: 12, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{nhan}</div>
+      <div style={{ position: 'relative', width: W, flexShrink: 0, fontSize: 10.5 }}>{noiDung}</div>
+    </div>
+  );
   const nutNho = (chu: string, title: string, tat: boolean, onClick: () => void) => (
     <button type="button" title={title} onClick={onClick} style={{ flexShrink: 0, fontSize: 11, lineHeight: '16px', padding: '0 3px', borderRadius: 3, border: '1px solid var(--line)', background: tat ? 'none' : 'var(--bg-2)', color: tat ? 'var(--fg-4)' : 'var(--fg-2)', cursor: 'pointer', opacity: tat ? 0.6 : 1 }}>{chu}</button>
   );
@@ -720,7 +730,20 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 const cc = canh[i]!;
                 return khoiAm(batDau[i]! * pps, dur(cc) * pps, o.co, MAU_DOI_TUONG[o.muc], `${o.loi.length ? '⚠ ' : ''}${o.chu}`,
                   `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); }, undefined, '');
-              }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined, undefined, undefined, undefined, <span title={LOAI_NHAN_VAT.find((l) => l.key === r.nv.loai)?.label} style={{ flexShrink: 0, borderRadius: 3, overflow: 'hidden' }}><AnhDaiDien v={r.nv} co={18} /></span>, r.nv.anh_ref[0] ? anhNho(r.nv.anh_ref[0], 320) : undefined)}
+              }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined, undefined, undefined, undefined, <>
+                <button type="button" title={moCay.includes(r.nv.id) ? 'Thu cây' : 'Mở cây: từng mục đang tính điểm (mẫu, trang phục, vị trí, dáng, kiểm khung…)'} onClick={() => doiMoCay(r.nv.id)}
+                  style={{ flexShrink: 0, width: 14, padding: 0, border: 'none', background: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 10 }}>{moCay.includes(r.nv.id) ? '▾' : '▸'}</button>
+                <span title={LOAI_NHAN_VAT.find((l) => l.key === r.nv.loai)?.label} style={{ flexShrink: 0, borderRadius: 3, overflow: 'hidden' }}><AnhDaiDien v={r.nv} co={18} /></span></>, r.nv.anh_ref[0] ? anhNho(r.nv.anh_ref[0], 320) : undefined)}
+              {moCay.includes(r.nv.id) && !anLan.includes(r.nv.ten) && r.nhanh.map((ma) => (
+                <Fragment key={`dt${r.nv.id}-${ma}`}>
+                  {lanCon(TEN_NHANH[ma], `${r.nv.ten} › ${TEN_NHANH[ma]}: đúng phần đang tính vào điểm làn — ô vàng / đỏ = nhánh này bị trừ, rê vào xem trừ vì sao`, r.o.map((o, i) => {
+                    const n = o.nhanh.find((x) => x.ma === ma); if (!n) return null;
+                    const cc = canh[i]!; const tru = n.tru.reduce((a, t) => a + t.diem, 0);
+                    return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, MAU_DOI_TUONG[tru ? mucDiem(10 - tru) : 'tot'], `${tru ? `−${tru} ` : ''}${n.chu || '—'}`,
+                      `${r.nv.ten} › ${TEN_NHANH[ma]} · shot #${cc.thu_tu}\n${n.chu || '—'}${n.tru.length ? `\n${n.tru.map((t) => `−${t.diem} ${t.chu}`).join('\n')}` : '\nkhông bị trừ'}`, `dt${r.nv.id}-${ma}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); }, undefined, '');
+                  }))}
+                </Fragment>
+              ))}
             </Fragment>
           ))}
 

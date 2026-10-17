@@ -66,7 +66,8 @@ for (const [i, c] of shots.entries()) {
   const dd = { ...c.dan_dung, duong_video: c.duong_video };
   // ANCHOR của shot = khai tay ∪ mọi nhân vật / đạo cụ có CHỖ ĐỨNG trong 3D của shot — thêm đạo cụ vào vi_tri mà quên gắn anchor thì prompt nhắc nó mà
   // thiếu ảnh mẫu (tập 122 #19 'Bút ký'). Một chỗ khai (vi_tri), anchor tự theo.
-  const ids = [...new Set([...c.nhan_vat, ...((c.may_3d as { vi_tri?: { ten: string }[] } | undefined)?.vi_tri ?? []).map((v) => v.ten)].map((x) => nv[x]).filter(Boolean))];
+  // chỉ chỗ đứng KHÔNG ẩn — vật / người 'an' đặt sẵn để giữ liền mạch (ngoài khung), không phải anchor của shot
+  const ids = [...new Set([...c.nhan_vat, ...((c.may_3d as { vi_tri?: { ten: string; an?: boolean }[] } | undefined)?.vi_tri ?? []).filter((v) => !v.an).map((v) => v.ten)].map((x) => nv[x]).filter(Boolean))];
   const kt = c.ky_thuat as Record<string, string>;
   const gocMay = [kt.co_canh, kt.goc, kt.chuyen_dong, kt.ong_kinh].filter(Boolean).join(' · ');
   const loiThoai = c.thoai.map((d) => `${d.nhan_vat} (${d.dien_xuat}): "${d.loi}"`).join('\n');

@@ -16,7 +16,7 @@ import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMach
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
-import { CHAT_LIEU, chuNguoi, ghep, khoi, KHUON, type DuongSinh, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHUON, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -284,7 +284,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const deoCua = (v: NhanVat) => { const vt = vtCua(v); return (ket ? vt?.do_deo_den ?? vt?.do_deo : vt?.do_deo) ?? ''; };
   // toiDaTu: bước 1 FLUX đọc ~300 từ — bộ đồ rút còn vế đầu (dáng bộ đồ, chi tiết vết / hoạ tiết để bước 2 làm theo ảnh mẫu + mô tả đủ); #6 vết cà phê đủ chữ = 305 từ
   const rut = (t: string, n?: number) => { if (!n) return t; const w = t.split(/\s+/); return w.length <= n ? t : `${w.slice(0, n).join(' ').replace(/[,;:]+$/, '')}…`; };
-  const taNv = (v: NhanVat, gon = false, toiDaTu?: number) => chuNguoi(v, { ao: aoCua(v).map((x) => rut(x, toiDaTu)), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua });
+  // tư thế theo 3D (đứng / ngồi / nằm / dáng tay + món đang cầm) — chỉ bước 1 FLUX (đọc độ sâu ma-nơ-canh, dễ hiểu sai dáng); bước 2 giữ ảnh bước 1
+  const monCam = (v: NhanVat) => { const mm = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.cam === v.ten && !x.an); return mm ? goiTenEn([...bc.nhanVat, ...bc.nvPhim])(mm.ten) : undefined; };
+  const taNv = (v: NhanVat, gon = false, toiDaTu?: number) => chuNguoi(v, { ao: aoCua(v).map((x) => rut(x, toiDaTu)), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua,
+    tu_the: toiDaTu && v.loai === 'nhan_vat' && vtCua(v) ? tuTheEn(vtCua(v)!, monCam(v)) : undefined });
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").

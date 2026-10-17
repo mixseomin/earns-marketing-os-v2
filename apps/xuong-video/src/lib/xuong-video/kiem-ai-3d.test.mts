@@ -33,4 +33,8 @@ assert.equal(chongNguoi(kh([0.46, 0.42, 0.54, 0.6], [0.47, 0.42, 0.55, 0.59]), [
 // DÁNG TỰA: chống bàn mà tay cách mặt đỡ 45 cm → chặn; chạm (không có tua_hong) → qua
 const tua = (h?: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { kiem: [{ nhan_vat: 'Thần', bat_buoc: true, trong_khung: true, cao_khung_pt: 60, bi_che_boi: [], tua_hong: h }] } }) as never;
 assert.equal(tuaHong(tua(45)).length, 1); assert.equal(tuaHong(tua()).length, 0);
+// KHOẢNH KHẮC MỞ nhắc vật mà 3D không thấy → chặn cả ở cú qua vai (không phải cỡ cận)
+const moVat = (thay: string[]) => ({ hanh_dong: '', prompt_anh: '', ky_thuat: { co_canh: 'ots' }, dan_dung: { mo: 'Hạ looks at her phone' }, khung_xam: { thay: thay.map((t) => ({ ten: t, pt: 20, hop: [0, 0, 1, 1], tien: false })) },
+  may_3d: may([{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]) }) as never;
+assert.equal(thieuVat3d(moVat(['Hạ']), nv, set).length, 1); assert.equal(thieuVat3d(moVat(['Hạ', 'Điện thoại']), nv, set).length, 0);
 console.log('kiem-ai-3d: ok');

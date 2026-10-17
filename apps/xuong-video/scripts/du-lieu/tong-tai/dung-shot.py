@@ -47,7 +47,7 @@ shot('1.3', C1, 4, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngan
      { 'dien': "Anticipation: Vivian lifts the empty folder high. Action: she turns it to the room like evidence. Reaction: a smug glance around for the coworkers' reaction.",'bo_cuc': 'Over Hạ’s shoulder (soft, screen-right foreground) onto Vivian holding up an empty black leather folder, an empty coffee cup in her other hand', 'mo': 'Vivian raises the empty Harrington folder for the room to see', 'ket': 'Vivian’s smug look around the room', 'huong': 'Vivian looks screen-right at Hạ', 'muc_dich': 'vu oan công khai'},
      'Vivian giơ tập hồ sơ rỗng lên cho cả phòng thấy', [(VIV, 'giơ tập hồ sơ rỗng, giọng to cho cả phòng nghe', 'Hồ sơ Harrington đâu? Ngày đầu đi làm đã làm mất tài liệu mật?')],
      [bc(VIV, 'khinh_bi', 'dac_y'), bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui'])],
-     {'dat': [285, 470, 155], 'nhin': [300, 640, 150], 'ong_kinh': 85, 'khung': [VIV],
+     {'dat': [285, 470, 155], 'nhin': [300, 640, 150], 'ong_kinh': 85, 'khung': [VIV, 'Hồ sơ Harrington'],
       'vi_tri': [vt(HA, [300, 540, 0], 180), vt(VIV, [300, 640, 0], 0, dien=['gio_cao@0-0.3']), vt('Hồ sơ Harrington', [300, 625, 150], 0, cam=VIV), LY_RONG()]},
      [HA, VIV, VP, 'Hồ sơ Harrington', 'Ly cà phê'])
 shot('1.4', C1, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'ots', 'goc': 'ngang', 'chuyen_dong': 'vong', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
@@ -106,7 +106,7 @@ shot('3.2', C3, 5, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngan
      { 'dien': "Anticipation: Vivian holds the lanyard up between two fingers. Action: she swings it in front of Hạ's face. Reaction: leans in with a sneer.",'bo_cuc': 'Over Hạ’s shoulder (box edge in foreground) onto Vivian dangling the badge', 'mo': 'Vivian dangling the lanyard', 'ket': 'Vivian leaning in, sneering', 'huong': 'Vivian looks screen-left at Hạ', 'muc_dich': 'Vivian tưởng mình thắng'},
      'Vivian lắc lắc tấm thẻ trước mặt Hạ', [(VIV, 'cười khẩy', 'Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa.')],
      [bc(VIV, 'khinh_bi', 'dac_y'), bc(HA, 'nhan_nhin', 'nhan_nhin')],
-     {'dat': [-170, 340, 155], 'nhin': [0, 365, 152], 'ong_kinh': 70, 'khung': [VIV], 'vi_tri': [vt(HA, [-100, 380, 0], 90, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['dua_truoc_mat']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HOP, [-95, 365, 95], 90, cam=HA)]},
+     {'dat': [-170, 340, 155], 'nhin': [0, 365, 152], 'ong_kinh': 70, 'khung': [VIV, 'Thẻ nhân viên'], 'vi_tri': [vt(HA, [-100, 380, 0], 90, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['dua_truoc_mat']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HOP, [-95, 365, 95], 90, cam=HA)]},
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 shot('3.3', C3, 6, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'vien', 'am_thanh': ['im_lang']},
      { 'dien': "Anticipation: a long silence, Hạ's face still. Action: she speaks quietly, eyes never leaving her. Reaction: a faint smile that does not reach her eyes.",'bo_cuc': 'Reverse close-up on Hạ over Vivian’s shoulder; long silence before she speaks', 'mo': 'Hạ looking straight at Vivian', 'ket': 'Hạ’s faint smile', 'huong': 'Hạ looks screen-right at Vivian', 'muc_dich': 'lời hứa trả đòn'},

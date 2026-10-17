@@ -2576,8 +2576,11 @@
      150
     ],
     "tuy_chon": true,
-    "thay_cho": "Cửa đôi",
-    "en": "tall double wooden doors flung wide open into the room, warm corridor light through the doorway",
+    "thay_cho": [
+     "Cửa đôi",
+     "Tường trái"
+    ],
+    "en": "tall double wooden doors flung wide open into the room, a warmly lit corridor beyond the doorway",
     "phan": [
      {
       "hinh": "hop",
@@ -2610,17 +2613,118 @@
      {
       "hinh": "hop",
       "tam": [
-       -1,
+       -3,
+       -125,
+       0
+      ],
+      "co": [
+       2,
+       50,
+       300
+      ],
+      "mau": "#5d554c"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -3,
+       400,
+       0
+      ],
+      "co": [
+       2,
+       500,
+       300
+      ],
+      "mau": "#5d554c"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -3,
+       0,
+       260
+      ],
+      "co": [
+       2,
+       200,
+       40
+      ],
+      "mau": "#5d554c"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -103,
+       0,
+       -2
+      ],
+      "co": [
+       200,
+       200,
+       2
+      ],
+      "mau": "#8a7a66"
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -103,
+       -101,
+       0
+      ],
+      "co": [
+       200,
+       2,
+       260
+      ],
+      "mau": "#e8dcc4",
+      "sang": 0.6
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -103,
+       101,
+       0
+      ],
+      "co": [
+       200,
+       2,
+       260
+      ],
+      "mau": "#e8dcc4",
+      "sang": 0.6
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -203,
        0,
        0
       ],
       "co": [
-       1,
-       196,
-       258
+       2,
+       200,
+       260
       ],
-      "mau": "#efe3c8",
-      "sang": 1.2
+      "mau": "#f3e6cc",
+      "sang": 1.0
+     },
+     {
+      "hinh": "hop",
+      "tam": [
+       -103,
+       0,
+       260
+      ],
+      "co": [
+       200,
+       200,
+       2
+      ],
+      "mau": "#f6efe2",
+      "sang": 1.4
      }
     ]
    },

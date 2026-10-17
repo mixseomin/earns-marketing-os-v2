@@ -106,9 +106,15 @@ def phong_hop():
          hop('Tường trước', [0, 0, 0], [1000, 2, 300], '#5d554c', 'walnut wood paneled wall', nen=True, chat='go'),
          hop('Cửa đôi', [-498, 150, 0], [3, 200, 260], '#3b2618', 'tall double wooden doors', chat='go'),
          # TRẠNG THÁI MỞ của cửa đôi (#15: "cửa đôi bật mở, Hạ sải bước vào") — đồ tuỳ chọn thay cho cửa đóng: hai cánh mở vào phòng + ô cửa sáng đèn hành lang
-         {'ten': 'Cửa đôi mở', 'goc': [-497, 150], 'tuy_chon': True, 'thay_cho': 'Cửa đôi', 'en': 'tall double wooden doors flung wide open into the room, warm corridor light through the doorway', 'phan': [
+         # Ô cửa phải có CHIỀU SÂU thật: tấm sáng phẳng trên tường thì bản đồ độ sâu vẫn là bức tường → FLUX vẽ cửa đóng (#15 lượt 2). Nên cửa mở thay cả
+         # 'Tường trái': tường khoét lỗ (3 mảng) + hành lang sâu 2 m sáng đèn phía sau + hai cánh mở vào phòng.
+         {'ten': 'Cửa đôi mở', 'goc': [-497, 150], 'tuy_chon': True, 'thay_cho': ['Cửa đôi', 'Tường trái'], 'en': 'tall double wooden doors flung wide open into the room, a warmly lit corridor beyond the doorway', 'phan': [
              {'hinh': 'hop', 'tam': [50, -98, 0], 'co': [100, 4, 260], 'mau': '#3b2618'}, {'hinh': 'hop', 'tam': [50, 98, 0], 'co': [100, 4, 260], 'mau': '#3b2618'},
-             {'hinh': 'hop', 'tam': [-1, 0, 0], 'co': [1, 196, 258], 'mau': '#efe3c8', 'sang': 1.2}]},
+             {'hinh': 'hop', 'tam': [-3, -125, 0], 'co': [2, 50, 300], 'mau': '#5d554c'}, {'hinh': 'hop', 'tam': [-3, 400, 0], 'co': [2, 500, 300], 'mau': '#5d554c'},
+             {'hinh': 'hop', 'tam': [-3, 0, 260], 'co': [2, 200, 40], 'mau': '#5d554c'},
+             {'hinh': 'hop', 'tam': [-103, 0, -2], 'co': [200, 200, 2], 'mau': '#8a7a66'}, {'hinh': 'hop', 'tam': [-103, -101, 0], 'co': [200, 2, 260], 'mau': '#e8dcc4', 'sang': 0.6},
+             {'hinh': 'hop', 'tam': [-103, 101, 0], 'co': [200, 2, 260], 'mau': '#e8dcc4', 'sang': 0.6}, {'hinh': 'hop', 'tam': [-203, 0, 0], 'co': [2, 200, 260], 'mau': '#f3e6cc', 'sang': 1.0},
+             {'hinh': 'hop', 'tam': [-103, 0, 260], 'co': [200, 200, 2], 'mau': '#f6efe2', 'sang': 1.4}]},
          hop('Màn trình chiếu', [0, 795, 90], [300, 4, 170], '#1a1d22', 'large presentation screen showing a bar chart titled "HARRINGTON FUND · LU GROUP"', sang=0.6),
          hop('Bàn họp', [0, 420, 0], [150, 520, 76], '#3b2618', 'long dark walnut boardroom table', chat='go'),
          hop('Đèn thả', [0, 420, 240], [40, 480, 6], '#2b2b2b', 'long black linear pendant light hanging above the table', sang=2),

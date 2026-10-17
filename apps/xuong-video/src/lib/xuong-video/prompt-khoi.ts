@@ -91,6 +91,21 @@ export const goiTenEn = (nv: { ten: string; loai: string; mo_ta: string }[]) => 
   const a = nv.find((x) => x.ten.trim().toLowerCase() === ten.trim().toLowerCase());
   return a && a.loai !== 'nhan_vat' && a.mo_ta.trim() ? (a.mo_ta.split(/[,.;:—]/)[0] ?? '').trim().replace(/^(a|an)\s+/i, 'the ') : ten;
 };
+/** TƯ THẾ ở khung mở theo 3D (mã động tác dung-set.py › DONG_TAC) — FLUX đọc độ sâu ma-nơ-canh có khi ra NGỒI khi 3D đứng (tập 122 #4): nói thẳng.
+ *  {mon} = món người đó đang cầm (tên en). Không có mã nào → đứng. */
+const DANG_EN: Record<string, string> = {
+  chong_ban: 'standing, leaning forward with both palms flat on the table', cui_nguoi: 'standing, leaning forward', om_thung: 'standing, hugging {mon} against the stomach',
+  cam_truoc: 'standing, holding {mon} in front of the chest', gio_cao: 'standing, raising {mon} high for everyone to see', dua_truoc_mat: 'standing, holding {mon} up right in front of the other person',
+  hat: 'standing, flinging {mon} forward', giat: 'standing, reaching out to snatch', khoanh_tay: 'standing with arms crossed', gioi_thieu: 'standing, one open hand extended toward the person beside',
+  thuyet_trinh: 'standing, one hand open toward the screen', cam_dien_thoai: 'standing, looking down at {mon} in hand', quy_mot_goi: 'kneeling on one knee',
+  mc_di_bo: 'walking', mc_sai_buoc: 'striding forward', mc_quy_xuong: 'kneeling down', mc_dung_day: 'rising from a chair',
+};
+export function tuTheEn(v: { nam?: boolean; dien?: string[] }, mon = 'the item'): string {
+  if (v.nam) return 'lying down';
+  const ma = (v.dien ?? []).map(String).filter((d) => !d.includes('@') || Number(d.split('@')[1]!.split('-')[0]) <= 0.01).map((d) => d.split('@')[0]!);
+  const t = ma.map((m) => DANG_EN[m]).filter(Boolean)[0];
+  return (t ?? 'standing').replace('{mon}', mon);
+}
 /** Câu đầu của mô tả bối cảnh (trước ':' hoặc '.'): "Boardroom in afternoon light" — đủ nói ĐANG Ở ĐÂU, không liệt kê đồ (mời vẽ thêm). */
 export const dauBoiCanh = (moTa: string) => (moTa.split(/[:.]/)[0] ?? '').trim().split(/\s+/).slice(0, 18).join(' ');
 /** chữ tả mặt / đầu — trừ 'eye-level' (góc máy) và 'face out of frame' (chính câu dặn không vẽ mặt) */
@@ -105,7 +120,7 @@ export const boTrung = (t: string, khac: string) => { const k = khac.toLowerCase
 
 /** KHỐI NGƯỜI: nhân dạng (bỏ quần áo khi có bộ đồ sổ) + bộ đồ (mô tả MỌI biến thể sổ người đang trỏ) + đồ đeo (không trùng bộ đồ). Cận chèn: chỉ tay.
  *  gon = bản ngắn cho bước sửa nhân dạng (ảnh mẫu đã mang mặt). MỘT hàm cho mọi đường. */
-export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { ao: string[]; deo?: string; them?: string[]; chen: boolean; gon?: boolean; moTa: (t: string) => string }): string {
+export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { ao: string[]; deo?: string; them?: string[]; tu_the?: string; chen: boolean; gon?: boolean; moTa: (t: string) => string }): string {
   const ao = o.ao.map((x) => (o.chen ? boMat(x) : x)).filter(Boolean).join('; ');
   const deo = o.deo && !ao.toLowerCase().includes(o.deo.toLowerCase().replace(/^(a|an|the)\s+/, '')) ? o.deo : '';
   // tóc / trang điểm của sổ người (khác ngày, khác cảnh) — cận chèn không tả
@@ -114,5 +129,5 @@ export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { a
   const goc = nguoi && o.chen ? (o.gon ? 'skin tone and sleeve only, face out of frame' : `${a.ten.split(' ').pop()}'s hand and forearm only (face out of frame)`)
     : ao ? boTrung(boDo(o.moTa(a.mo_ta)), ao) : o.moTa(a.mo_ta);
   const n = o.gon ? '; ' : ', ';
-  return `${goc}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}${them ? `${n}${them}` : ''}`;
+  return `${goc}${o.tu_the && !o.chen ? `${n}${o.tu_the}` : ''}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}${them ? `${n}${them}` : ''}`;
 }

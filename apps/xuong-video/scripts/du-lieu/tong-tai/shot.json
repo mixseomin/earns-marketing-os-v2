@@ -250,7 +250,8 @@
   ],
   "may_3d": {
    "khung": [
-    "Vivian"
+    "Vivian",
+    "Hồ sơ Harrington"
    ],
    "vi_tri": [
     {
@@ -296,7 +297,7 @@
      "trang": "empty"
     }
    ],
-   "phia": -5.0
+   "phia": -5.3
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1185,7 +1186,8 @@
   ],
   "may_3d": {
    "khung": [
-    "Vivian"
+    "Vivian",
+    "Thẻ nhân viên"
    ],
    "vi_tri": [
     {
@@ -1233,7 +1235,7 @@
      "cam": "Lâm Hạ"
     }
    ],
-   "phia": -81.6
+   "phia": -82.7
   },
   "nhan_vat": [
    "Lâm Hạ",

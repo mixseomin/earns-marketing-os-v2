@@ -414,12 +414,12 @@ def dung_set():
     return s
 
 TUY_CHON = {v['ten'] for v in DL['vat'] if v.get('tuy_chon')}
-THAY_CHO = {v['ten']: v['thay_cho'] for v in DL['vat'] if v.get('tuy_chon') and v.get('thay_cho')}
+THAY_CHO = {v['ten']: (v['thay_cho'] if isinstance(v['thay_cho'], list) else [v['thay_cho']]) for v in DL['vat'] if v.get('tuy_chon') and v.get('thay_cho')}   # một món thay được vài đồ (cửa mở + mảng tường)
 AN_TUY = set()   # khối đang ẩn vì đồ tuỳ chọn của shot — cat_lop (tường rời) chỉ được ẩn thêm, không bật lại
 def dat_tuy_chon(co):
     """Đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ hiện ở shot khai may_3d.them; ẩn cả render lẫn tia kiểm (hide_viewport → ra khỏi depsgraph).
     Món tuỳ chọn là TRẠNG THÁI KHÁC của đồ set (thay_cho: cửa đôi MỞ thay cửa đóng) → đồ kia ẩn — CÙNG kieu.ts › vatHien."""
-    bo = {THAY_CHO[t] for t in co if t in THAY_CHO}; xet = TUY_CHON | set(THAY_CHO.values()); AN_TUY.clear()
+    bo = {x for t in co if t in THAY_CHO for x in THAY_CHO[t]}; xet = TUY_CHON | {x for ds in THAY_CHO.values() for x in ds}; AN_TUY.clear()
     for o in bpy.data.objects:
         t = o.name.rsplit(' ', 1)[0] if o.name.rsplit(' ', 1)[0] in xet else o.name
         if t in xet:

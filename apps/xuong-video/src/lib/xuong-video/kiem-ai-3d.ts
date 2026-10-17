@@ -62,8 +62,11 @@ export function thieuVat3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu
   for (const g of vatDuocNhacAi(c)) {
     const co = khoi.filter((k) => coTu(g.tu, k.chu));
     if (!co.length) { out.push(`chữ shot nhắc ${g.ten} mà bản 3D không có khối nào là ${g.ten} — AI sẽ tự vẽ: thêm đạo cụ / đồ set (đặt đúng chỗ), hoặc bỏ chữ nhắc`); continue; }
-    if (c.khung_xam?.thay && CAN.has(c.ky_thuat?.co_canh ?? '') && !co.some((k) => thay.has(k.ten) || nhanVat.some((a) => a.ten === k.ten && a.loai === 'nhan_vat' && thay.has(k.ten))))
-      out.push(`chữ shot cận nhắc ${g.ten} (${co.map((k) => k.ten).join(', ')}) mà khung 3D không thấy — dời máy / khai vào may_3d.khung cho nó lọt khung`);
+    // KHOẢNH KHẮC MỞ nhắc vật thì vật PHẢI thấy trong khung 3D ở MỌI cỡ cảnh — keyframe chính là khung mở (tập 122 #3 "Vivian raises the folder", #11 "dangling
+    // the lanyard": cú qua vai, máy gần, tập hồ sơ / dây thẻ ngoài khung → keyframe vẽ tay buông). Chữ khác (bố cục, diễn) chỉ bắt ở shot cận.
+    const moNhac = coTu(g.tu, c.dan_dung?.mo ?? '');
+    if (c.khung_xam?.thay && (moNhac || CAN.has(c.ky_thuat?.co_canh ?? '')) && !co.some((k) => thay.has(k.ten) || nhanVat.some((a) => a.ten === k.ten && a.loai === 'nhan_vat' && thay.has(k.ten))))
+      out.push(`${moNhac ? 'khoảnh khắc mở' : 'chữ shot cận'} nhắc ${g.ten} (${co.map((k) => k.ten).join(', ')}) mà khung 3D không thấy — dời máy / khai vào may_3d.khung cho nó lọt khung`);
   }
   return out;
 }

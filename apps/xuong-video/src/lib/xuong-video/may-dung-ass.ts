@@ -42,3 +42,13 @@ export function rapAss(W: number, H: number, d: DongAss[], o: { chuDam?: boolean
 }
 /** Đường dẫn tệp trong bộ lọc ffmpeg (ass=…, fontsdir=…): thoát \ : ' */
 export const thoatLoc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+
+/** LUẬT ĐỌC (anh 17/10/2026: "sau khi hiện nội dung đợi thêm 1-2s để họ còn đọc được"): một khối chữ hiện xong phải đứng ít nhất
+ *  số từ ÷ TU_MOI_GIAY giây (tốc độ đọc chữ trên màn) + DEM_DOC giây đệm, tối thiểu 2 giây — rồi khối kế mới được hiện / màn mới được chuyển.
+ *  Mọi mẫu máy tính nhịp theo đề bằng hàm này, không đặt mốc giây cứng. */
+export const TU_MOI_GIAY = 3.5, DEM_DOC = 1.5;   // 3,5 từ/giây ≈ 210 từ/phút (đọc thường) + 1,5s đệm (anh: "đợi thêm 1-2s")
+export const soTu = (...chu: string[]) => chu.join(' ').split(/\s+/).filter(Boolean).length;
+/** Thời gian đọc trọn một khối (có đệm). */
+export const giayDoc = (...chu: string[]) => Math.max(2, soTu(...chu) / TU_MOI_GIAY + DEM_DOC);
+/** Thời gian đọc không đệm — dùng cho các dòng hiện nối tiếp trong cùng một khối (đệm cộng một lần ở dòng cuối). */
+export const giayLuot = (...chu: string[]) => soTu(...chu) / TU_MOI_GIAY;

@@ -16,10 +16,16 @@ export interface DeScam {
   goi: string;                              // tên ngắn của chiêu (vd "Fake cancellation deadline")
 }
 
-export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, T_KET = T_LO + 2.8, DAI = T_KET + 2.7;
+export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM;
+export const CHU_KET_SCAM = ['Never pay through a link in a message.', 'Call the hotel on the number from its official website.', 'Compare real hotel rates: ratesbyroom.com'];
+/** Mốc theo đề (luật đọc may-dung-ass.ts › giayDoc): lộ đáp án → lý do đứng đủ thời gian đọc + đệm → màn kết đứng đủ thời gian đọc + đệm. */
+export function nhipScam(de: DeScam) {
+  const lyDo = de.ly_do.slice(0, 3), T_KET = T_LO + 0.15 * (lyDo.length - 1) + giayDoc(de.ket.toUpperCase(), ...lyDo);
+  return { T_LO, T_KET, DAI: T_KET + giayDoc(...CHU_KET_SCAM) };
+}
 const W = 1080, H = 1920, DO = '#E5484D', XANH = '#2EBD85', NHAN = '#FCA311', SAU = '#14213D', TRANG = '#F4F6F8';
 const MAU_KENH: Record<KenhScam, string> = { WhatsApp: '#1FA855', Email: '#3B6FE0', SMS: '#5B6472' };
-import { alpha, bo, chu, mauAss, ms, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, ms, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 export { mauAss, ngat };
 
 const EM = 1.25;
@@ -38,6 +44,7 @@ export function boCuc(de: DeScam) {
 
 
 export function assScam(de: DeScam): string {
+  const { T_KET, DAI } = nhipScam(de);
   const d: DongAss[] = [], L = boCuc(de), lua = de.ket === 'scam', mauKet = lua ? DO : XANH, kenh = MAU_KENH[de.kenh];
   const nay = (tuX: number) => `\\fscx${tuX}\\fscy${tuX}\\t(0,500,0.5,\\fscx100\\fscy100)`;
   // tiêu đề: SCAM (đỏ) or REAL? (xanh)
@@ -100,6 +107,7 @@ export const amScam = (ket: DeScam['ket']) => `0.3*sin(2*PI*660*t)*exp(-9*t)`
 
 /** Lệnh ffmpeg: nền dải radial xanh đêm → ass → H.264 + AAC. `khung` (giây) = một khung JPG. */
 export function lenhScam(o: { de: DeScam; ass: string; fontsDir: string; ra: string; khung?: number }): string[] {
+  const DAI = Number(nhipScam(o.de).DAI.toFixed(2));
   const vao = ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=radial:x0=540:y0=600:x1=540:y1=2100:c0=0x24345E:c1=0x14213D:c2=0x0B1226:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
   const loc = `[0:v]ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
@@ -121,6 +129,7 @@ export function tuNguonScam(x: DeScam & { slug: string }) {
 
 /** Kịch bản 3 shot (tab Mẫu / ngăn video của máy). */
 export function kichBanScam(de: DeScam) {
+  const { T_KET, DAI } = nhipScam(de);
   const lua = de.ket === 'scam';
   return { tom_tat: `Scam or Real? · ${de.goi}`, shots: [
     { tu: 0, den: T_LO, canh: 'Tin nhắn + đếm 7 giây', hanh_dong: `Tin ${de.kenh} từ "${de.gui}" hiện trong khung điện thoại; người xem có 7 giây tìm dấu hiệu, đồng hồ đếm 7 → 1.` },

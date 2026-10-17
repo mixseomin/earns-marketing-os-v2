@@ -51,7 +51,7 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
       if (!u) return { ok: false, loi: `không đẩy được khung shot #${i + 1} lên R2` };
       khung.push(u);
     }
-    return { ok: true, url, khung, giay: bo.dai };
+    return { ok: true, url, khung, giay: Number(bo.dai(o.de).toFixed(2)) };
   } finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
 }
 

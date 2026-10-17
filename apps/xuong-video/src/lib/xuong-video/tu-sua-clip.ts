@@ -32,7 +32,7 @@ async function soiKeyframe(db: Db, c: Canh, phimId: number): Promise<string[] | 
   const sp = await moTaSp(db, c); if (!c.keyframe_url) return null;
   const anh = await taiAnhBase64(c.keyframe_url); if (!anh) return null;
   const parts = [{ text: `This is the FIRST FRAME of a video shot for a product ad. Shot intent: ${c.prompt_anh.split(sp).join('').slice(0, 600)}
-${sp ? `The product must match this description exactly: ${sp}\n` : ''}List only clear problems an ordinary viewer would notice at a glance: the product is a different kind of garment or clearly the wrong color, visible text or logos on the product, distorted hands/body, or the frame clearly not matching the shot intent. Small construction details (pocket shape, rivets, stitching, seams) count ONLY when the shot is a close-up of the product itself. Empty list if fine. Short plain English.` },
+${sp ? `The product must match this description exactly: ${sp}\n` : ''}List only clear problems an ordinary viewer would notice at a glance: the product is a different kind of garment or clearly the wrong color, visible text or logos on the product, distorted hands/body, or the MAIN subject / main action of the intent is missing. Do NOT report gaze direction, expressions, background details, props, framing or camera angle, or small construction details (pocket shape, rivets, stitching) unless the shot is a close-up of the product itself. Empty list if fine. Short plain English.` },
     { inlineData: anh }];
   const schema = { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['loi'] };
   const [x, y] = await Promise.all([goiGeminiJson<{ loi?: string[] }>(parts, schema), goiGeminiJson<{ loi?: string[] }>(parts, schema)]);
@@ -82,7 +82,7 @@ async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, l
     c = await docCanh(db, id);
     log(`  #${c.thu_tu} keyframe sai (${loi.join(' | ')}) — sinh lại keyframe lần ${i + 1}`);
     // từ lần 2: viết lại prompt KHUNG theo lỗi (giữ nguyên mô tả sản phẩm) — 17/10/2026 #120 shot 3: cận cảnh quần cứ ra jeans 5 túi, khung trung thì đúng
-    if (i > 0) { const pa = await vietLaiPromptAnh(db, c, phimId, loi); if (pa) { await db.execute(sql`UPDATE xv_canh SET prompt_anh = ${pa}, updated_at = now() WHERE id = ${id}`); log(`  #${c.thu_tu} prompt khung mới: ${pa.split(await moTaSp(db, c)).join('‹sản phẩm›').slice(0, 300)}`); } }
+    if (i > 0) { const pa = await vietLaiPromptAnh(db, c, phimId, loi); if (pa) { await db.execute(sql`UPDATE xv_canh SET prompt_anh = ${pa}, updated_at = now() WHERE id = ${id}`); { const sp0 = await moTaSp(db, c); log(`  #${c.thu_tu} prompt khung mới: ${(sp0 ? pa.split(sp0).join('‹sản phẩm›') : pa).slice(0, 300)}`); } } }
     const kf = await sinhKeyframeCoDuPhong(db, id);
     if (!kf.url) return [`không sinh được keyframe: ${kf.loi.slice(0, 200)}`];
     const url = kf.url;
@@ -116,14 +116,16 @@ async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => v
 }
 /** Viết lại prompt video của một shot theo lỗi vừa gặp (Gemini, ~0.1¢). Prompt mới vẫn vi phạm luật → thử lại một lần; vẫn vi phạm → null. */
 async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daThu: string[]): Promise<string | null> {
+  // tên sản phẩm / thương hiệu trong prompt → model video tự in chữ lên đồ (#127 shot 13: 'JETT' trên cạp) — cấm, gọi là "the trousers"
+  const ten = String((((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.kinh_thanh as { tu_template?: { gia_tri?: Record<string, string> } } | undefined)?.tu_template?.gia_tri?.san_pham ?? '').trim();
   for (let i = 0; i < 2; i++) {
-    const r = await goiGeminiJson<{ prompt?: string }>([{ text: loiDanSuaPrompt({ prompt: c.prompt_video, chu: c.chu_man, loi, daThu }) }],
+    const r = await goiGeminiJson<{ prompt?: string }>([{ text: loiDanSuaPrompt({ prompt: c.prompt_video, chu: c.chu_man, loi, daThu }) + (ten ? `\n- Never write the brand or product name ("${ten}") — call it "the trousers"; any name in the prompt gets printed onto the clothing.` : '') }],
       { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] });
     if (!r) return null;
     await ghiTienChu(db, phimId, `viết lại prompt video #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
     const p = (r.data.prompt ?? '').trim();
     // không thêm người vào shot không có người (#120 shot 3: shot sản phẩm bị viết thành 'the person stands…')
-    if (p && !lintPrompt(p).length && !(coNguoi(p) && !coNguoi(c.prompt_video))) return p;
+    if (p && !lintPrompt(p).length && !(coNguoi(p) && !coNguoi(c.prompt_video)) && !(ten && p.toLowerCase().includes(ten.toLowerCase()))) return p;
     daThu = [...daThu, p];
   }
   return null;

@@ -47,5 +47,6 @@ export function chonGiongDan(moTa: string): string {
  *  "prominent public figure" — mặt keyframe giống người nổi tiếng, #127 shot 13). */
 export const laTuChoiModel = (loi: string): boolean => /unable to generate audio|public figure|safety review|flagged/i.test(loi);
 export const laMatNoiTieng = (loi: string): boolean => /public figure|celebrity/i.test(loi);
-/** Model video dự phòng khi Veo từ chối theo nội dung (giữ nhân vật tốt, có tiếng). */
-export const VIDEO_DU_PHONG = 'fal:fal-ai/kling-video/v3/pro/image-to-video';
+/** Model video dự phòng khi Veo từ chối theo nội dung / Kie lỗi nội bộ: Grok qua ShopAIKey — 3.250₫/clip, rẻ nhất sổ giá (cong-ai.ts › GIA_VIDEO_VND).
+ *  Trước là Kling v3 pro (~11.500₫/clip): #127 đốt $3,56 vào 8 lượt Kling, hơn nửa tiền video cả phim (17/10/2026). */
+export const VIDEO_DU_PHONG = 'shopaikey:grok-video-3-10s';

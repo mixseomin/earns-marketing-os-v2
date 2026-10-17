@@ -100,11 +100,12 @@ const kiemDang = new Map<number, Promise<unknown>>();
 const kiemChung = (db: Db, tapId: number) => { let p = kiemDang.get(tapId);
   if (!p) { p = kiemVideoTap(db, tapId).catch(() => null).finally(() => kiemDang.delete(tapId)); kiemDang.set(tapId, p); } return p; };
 async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string, moHinh?: string): Promise<{ ok: true } | { ok: false; loi: string }> {
-  let loiCuoi = '';
-  for (let tam = 0; tam <= 6; tam++) {
-    if (tam) { log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — đợi 90s gửi lại lần ${tam}`); await ngu(90_000); }
+  let loiCuoi = ''; let m = moHinh;
+  for (let tam = 0; tam <= 4; tam++) {
+    // lỗi tạm lần đầu: gửi lại đúng model sau 30s; từ lần hai chuyển hẳn sang dự phòng (#127: Kie "Internal Error" 11/45 lượt, mỗi lượt đợi 90s)
+    if (tam) { if (tam >= 2 && m !== VIDEO_DU_PHONG) m = VIDEO_DU_PHONG; log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — gửi lại lần ${tam}${m === VIDEO_DU_PHONG ? ` qua ${VIDEO_DU_PHONG}` : ''}`); await ngu(30_000); }
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
-    const r = await batDauVideoCanh(db, id, moHinh, 'nhap');
+    const r = await batDauVideoCanh(db, id, m, 'nhap');
     if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
     const t0 = Date.now(); let j: Row | undefined;
     while (Date.now() - t0 < 15 * 60_000) {

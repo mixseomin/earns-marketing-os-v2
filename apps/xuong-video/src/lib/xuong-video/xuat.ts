@@ -244,7 +244,13 @@ export function keHoachXuat(o: {
   const demFps = new Map<number, number>();
   for (const c of ds) { const u = c.video_cuoi_url || c.video_url; const f = u ? nl.get(u)?.fps : null; if (f && f >= 15 && f <= 60) demFps.set(f, (demFps.get(f) ?? 0) + 1); }
   const fpsRa = [...demFps.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 30;
-  const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${so(fpsRa)},format=yuv420p`;
+  // PHÓNG TO (17/10/2026 — clip AI 720p lên 1080): lanczos sắc hơn bicubic mặc định; phim truyện thêm làm nét nhẹ (unsharp 0,4) — quảng cáo giữ
+  // nguyên chất cũ. Phóng to bằng AI (trả phí) là tuỳ chọn riêng, không nằm ở đây.
+  const net = o.loai === 'quang_cao' ? '' : ',unsharp=5:5:0.4:5:5:0';
+  const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase:flags=lanczos,crop=${W}:${H},setsar=1${net},fps=${so(fpsRa)},format=yuv420p`;
+  // NỘI SUY KHUNG cho đoạn LÀM CHẬM (speed ramp / kéo chậm clip phủ giây phát): setpts kéo dài rồi fps= chỉ nhân bản khung → giật; minterpolate
+  // bù chuyển động (mci) dựng khung giữa thật — chỉ shot có đoạn chậm hơn 0,8× (đắt CPU, không áp đại trà).
+  const noiSuy = `minterpolate=fps=${so(fpsRa)}:mi_mode=mci:mc_mode=aobmc:vsbmc=1,`;
   // Ảnh tĩnh: đặt VỪA khung + nền là chính ảnh phóng mờ — ảnh vuông thật của shop (lưới review, ảnh sản phẩm) không bị cắt mất hai bên;
   // keyframe đã 9:16 thì vừa khít, nền mờ không lộ (09/10/2026, dùng ảnh thật Orabra cho shot bằng chứng + end card).
   // Ảnh tĩnh đẩy máy chậm (zoom vào 6% suốt giây phát) — ảnh đứng im 3–4s giữa các clip động trông như video bị khựng (10/10/2026).
@@ -325,7 +331,8 @@ export function keHoachXuat(o: {
     const conLai = cuoiThat - boDau;
     const gian = laVideo && !toc && !dungClip && dem > 0.01 && conLai > 0.3 ? Math.min(GIAN_TOI_DA, (conLai + dem) / conLai) : 1;
     const demCon = laVideo ? Math.max(0, dem - conLai * (gian - 1)) : 0;
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${mauCanh.get(c.id) ? `,eq=brightness=${so(mauCanh.get(c.id)!)}` : ''}${lookShot(o.look, c.ky_thuat?.mau) ? `,${lookShot(o.look, c.ky_thuat?.mau)}` : ''}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
+    const cham = gian > 1.25 || !!toc?.doan.some((d) => d.toc < 0.8);
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${cham ? noiSuy : ''}${khung}${mauCanh.get(c.id) ? `,eq=brightness=${so(mauCanh.get(c.id)!)}` : ''}${lookShot(o.look, c.ky_thuat?.mau) ? `,${lookShot(o.look, c.ky_thuat?.mau)}` : ''}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanHien(c.chu_man, phat, gopKieu(o.qc?.kieu_chu, c.kieu_chu).tu)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }

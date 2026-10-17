@@ -359,7 +359,7 @@ def anh_cache(url):
 def dan_anh(v):
     """ẢNH CHUẨN của đồ nhận dạng (anh 17/10/2026: "tranh trên tường lúc hình A lúc tranh B ở các góc khác nhau"): tấm ảnh phẳng phủ mặt vật (cả
     hai mặt mỏng nhất của hộp bao — mặt áp tường bị che), chừa viền 8% cho khung. Tên '<vật> anh' → cùng nhóm vật khi kiểm."""
-    f = anh_cache(v['anh']); ds = [o for o in bpy.data.objects if o.type == 'MESH' and (o.name == v['ten'] or o.name.startswith(v['ten'] + ' '))]
+    f = anh_cache(v['anh']); ds = [o for o in bpy.data.objects if o.type == 'MESH' and thuoc(v['ten'], o.name)]
     if not f or not ds: return
     bpy.context.view_layer.update()
     bb = [o.matrix_world @ Vector(c) for o in ds for c in o.bound_box]
@@ -379,6 +379,11 @@ def dan_anh(v):
         o.scale = (sz[a] * 0.84, sz[b] * 0.84, 1) if mong == 2 else ((sz[1] if mong == 0 else sz[0]) * 0.84, sz[2] * 0.84, 1)
         o.data.materials.append(m)
 
+def thuoc(ten, ten_khoi):
+    """Khối ten_khoi là CHÍNH vật ten hay một phần của nhóm ten ('<ten> <số>'). Không khớp tiền tố trơn: 'Cửa đôi mở 2' KHÔNG thuộc 'Cửa đôi'
+    (tập 122 #15: vân gỗ cửa đóng tô lên cả tấm sáng ô cửa mở)."""
+    return ten_khoi == ten or (ten_khoi.startswith(ten + ' ') and ten_khoi[len(ten) + 1:].isdigit())
+
 def dung_set():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     for v in DL['vat']:
@@ -388,12 +393,12 @@ def dung_set():
         else: khoi(v, v['ten'])
     for v in DL['vat']:   # vật liệu thật cho khung màu (Workbench vẫn đọc màu phẳng diffuse_color)
         if not v.get('chat'): continue
-        for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]: chat_lieu(o, v['chat'], v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
+        for o in [x for x in bpy.data.objects if thuoc(v['ten'], x.name)]: chat_lieu(o, v['chat'], v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
     for v in DL['vat']:   # ẢNH CHUẨN (anh: URL — tranh, màn chiếu, bảng chỉ dẫn): dán lên mặt vật → khung 3D gửi AI đã có ĐÚNG bức tranh, mọi góc như nhau
         if v.get('anh'): dan_anh(v)
     for v in DL['vat']:   # KÍNH (kinh: True — cửa / vách kính): trong suốt ở khung màu, tia đo nhìn xuyên (tia_qua_kinh) — người sau cửa kính là THẤY
         if not LA_KINH(v): continue
-        for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]:
+        for o in [x for x in bpy.data.objects if thuoc(v['ten'], x.name)]:
             m = mau(v.get('mau', '#a9c4d6')).copy(); m.name = f"kinh {v['ten']}"; b = m.node_tree.nodes['Principled BSDF']
             b.inputs['Transmission Weight'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.04; b.inputs['IOR'].default_value = 1.45
             m.diffuse_color = (*m.diffuse_color[:3], 0.25); dat(o, m, o.name)
@@ -681,7 +686,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
     nguoi_cua = lambda n: n[3:].rsplit('.', 1)[0] if n.startswith('NG ') and '.' in n else None
     for o in nv_obj:
         ng_ = nguoi_cua(o.name)
-        cam_ = next((x.get('cam') for x in sh.get('nhan_vat', []) if x.get('ten') and (o.name == x['ten'] or o.name.startswith(x['ten'] + ' ') or o.name == f"NV {x['ten']}")), None)
+        cam_ = next((x.get('cam') for x in sh.get('nhan_vat', []) if x.get('ten') and (thuoc(x['ten'], o.name) or o.name == f"NV {x['ten']}")), None)
         phan = [x for x in bpy.data.objects if x.name.startswith(f"NG {ng_}.")] if ng_ else [o]
         pts = [x.matrix_world @ Vector(c) for x in phan for c in x.bound_box]
         lo = Vector([min(q[i] for q in pts) for i in range(3)]); hi = Vector([max(q[i] for q in pts) for i in range(3)])
@@ -694,7 +699,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             d = p - cam.location; kc = d.length
             hit, loc, _, _, ob, _ = tia_qua_kinh(s, dg, cam.location, d.normalized(), kc - 0.0005)
             nhom = o.name.rsplit(' ', 1)[0] if o.name[-1:].isdigit() else o.name   # phần cùng nhóm (đế–cột–chao đèn) không tính là che
-            if not (hit and ob) or ob.name == o.name or ob.name.startswith(nhom + ' ') or ob.name.startswith(o.name + '·'): continue
+            if not (hit and ob) or ob.name == o.name or thuoc(nhom, ob.name) or ob.name.startswith(o.name + '·'): continue
             if ng_ and (ob.name.startswith(f"NG {ng_}.") or ob.name == f"NV {ng_}"): continue
             # món đang CẦM / ĐEO: bàn tay, cổ tay của chính người cầm che một phần là tự nhiên, không tính là bị che
             if cam_ and (ob.name.startswith(f"NG {cam_}.") or ob.name == f"NV {cam_}"): continue
@@ -707,7 +712,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             trong = any(0 <= q.x <= 1 and 0 <= q.y <= 1 and q.z > 0 for q in (world_to_camera_view(s, cam, m.matrix_world @ (sum((Vector(c) for c in m.bound_box), Vector()) / 8)) for m in moc if m))
             ys = [min(1.0, max(0.0, y)) for y in ys]
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
-        ten = ng_ or (o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name))
+        ten = ng_ or (o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if thuoc(t, o.name)), o.name))
         # 'tam': toạ độ THẾ GIỚI (cm) của chủ thể lúc dựng — món đang cầm / đeo nằm ở bàn tay thật của rig, không ở toạ độ khai → đặt máy tay nhắm theo số này
         # 'khung': hộp bao trên màn (0..1, gốc trên-trái, kẹp vào khung) gồm cả phần bị che — hai người hộp trùng nhau thì AI vẽ thành một (#15)
         cv = [world_to_camera_view(s, cam, q) for q in bb]; kx = [min(1.0, max(0.0, q.x)) for q in cv]; ky = [min(1.0, max(0.0, 1 - q.y)) for q in cv]
@@ -843,7 +848,7 @@ def vat_chu_the(sh):
     out = []
     for t in sh.get('bat_buoc') or []:
         if t in ten_nv: continue
-        o = bpy.data.objects.get(t) or next((x for x in bpy.data.objects if x.name.startswith(t + ' ')), None)
+        o = bpy.data.objects.get(t) or next((x for x in bpy.data.objects if thuoc(t, x.name)), None)
         if o: out.append(o)
     return out
 

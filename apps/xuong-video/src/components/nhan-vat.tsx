@@ -6,7 +6,7 @@ import { Ngan } from './ngan';
 import { SoLienMachXem } from './so-lien-mach-ui';
 import { moNgan } from './ngan-chung';
 import { ImageAttach } from './image-attach';
-import { GIONG } from '@/lib/xuong-video/am-thanh';
+import { GIONG, moHinhAm } from '@/lib/xuong-video/am-thanh';
 import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, goiYAIAnchor, goiYAIBoAnchor, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, doiChieuAnchor } from '@/lib/actions';
 import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
@@ -56,7 +56,7 @@ export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Pr
                 return (
                   <div key={khoa} title={g.cau} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)' }}>
                     <NutNghe url={g.url} />
-                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><b style={{ fontSize: 13 }}>{g.voice}</b> <span style={mono}>{dsM.find((m) => m.key === g.model)?.ten ?? g.model.split('/').slice(-2).join('/')}</span></span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><b style={{ fontSize: 13 }}>{g.voice}</b> <span style={mono}>{dsM.find((m) => m.key === g.model)?.ten ?? moHinhAm(g.model)?.ten ?? g.model.split('/').slice(-2).join('/')}</span></span>
                     {dang ? <span style={mono}>✓ đang dùng</span>
                       : <Nut ban={ban === khoa} onClick={async () => { setBan(khoa); setLoi(''); const r = await chonGiong(v.id, g.model, g.voice); setBan(''); if (!r.ok) { setLoi(r.loi); return; } setModel(g.model); setVoice(g.voice); await onChanged(); }}>Dùng</Nut>}
                   </div>

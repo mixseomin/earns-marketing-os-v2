@@ -195,6 +195,11 @@ for s_ in S:
     cx = sum(p[0] for p in ds) / len(ds); cy = sum(p[1] for p in ds) / len(ds)
     m['phia'] = round(math.degrees(math.atan2(m['dat'][0] - cx, -(m['dat'][1] - cy))), 1)
     for k in ('dat', 'nhin', 'ong_kinh'): m.pop(k)
+# VẾT CÀ PHÊ trên ngực áo Hạ (3D, không chỉ chữ): hiện từ cuối 1.1 (vet_den) tới hết cảnh 3 — chiều cảnh 4 cô đã thay vest trắng.
+for s_ in S:
+    if s_['canh'] not in (C1, C2, C3): continue
+    for v in s_['may_3d']['vi_tri']:
+        if v['ten'] == HA: v['vet_3d_den' if s_['ma'] == '1.1' else 'vet_3d'] = ['ca_phe_nguc']
 t = 0.0
 for s_ in S: s_['bat_dau'] = t; t += s_['phat_s']
 json.dump(S, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shot.json'), 'w'), ensure_ascii=False, indent=1)

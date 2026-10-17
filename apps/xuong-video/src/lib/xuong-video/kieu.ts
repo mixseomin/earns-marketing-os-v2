@@ -395,7 +395,7 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** món đã bị CHIA thành bấy nhiêu mảnh (kẹo bẻ đôi = 2): Blender dựng từng mảnh, đang cầm thì chỉ mảnh của người cầm; một khi đã chia thì
      *  shot sau không được nguyên lại (bo-set-3d.ts › lienMachTap) — và tự mang theo khi món bị để lại (mayDayDu) */ chia?: number;
     /** ĐIỂM tác động trên món đó (cm) khi món lớn (dấu tay ở góc trước đế cắm, không phải tâm đế cắm) — cổng đo hướng nhìn tới điểm này */ lam_o?: number[];
-    nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
+    nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean; /** vết bẩn DÁN 3D trên người (dung-set.py › VET, vd 'ca_phe_nguc') — có từ đầu shot / chỉ ở khung kết; chữ tả vết vẫn ở sổ người (vet, trang) */ vet_3d?: string[]; vet_3d_den?: string[] }[];
   /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ
    *  lần cuối thấy nó kết (bo-set-3d.ts › lienMachTap) */ nhay?: string;
   /** đồ TUỲ CHỌN của bộ set có mặt ở shot này (vd ['MacBook Pro']) — không khai = vắng */ them?: string[];
@@ -416,7 +416,7 @@ export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: str
   am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; /** ảnh SÁT MẶT máy cắt từ ảnh mẫu (soi-mat.ts › damBaoAnhMat) — phim người thật kèm vào lượt sinh để giữ đúng mặt */ anh_mat?: { tu: string; url: string[] } | null; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null;
   /** GIỌNG ĐÃ THỬ (casting): mỗi lượt thử / nghe thử một dòng — chọn lại trên thẻ nhân vật không phải sinh lại; model = khoá như giong_model */
   giong_thu?: GiongThu[]; doi_chieu?: DoiChieu | null; bien_the?: BienThe[];
-  /** bối cảnh: thuộc bộ set nào + vùng (tâm cm) trong set; nhân vật / đạo cụ: khối đại diện 3D (cỡ cm) */ bo_set_id?: number | null; vung?: { tam: number[]; ban_kinh?: number } | null; khoi_3d?: { hinh: KhoiSet['hinh']; co: number[]; mau: string; /** có mắt (nhân vật): khung xám vẽ hai mắt chỉ hướng nhìn */ mat?: boolean; /** phần thêm, toạ độ tương đối đáy giữa khối */ phan?: Omit<KhoiSet, 'ten'>[] } | null };
+  /** bối cảnh: thuộc bộ set nào + vùng (tâm cm) trong set; nhân vật / đạo cụ: khối đại diện 3D (cỡ cm) */ bo_set_id?: number | null; vung?: { tam: number[]; ban_kinh?: number } | null; khoi_3d?: { hinh: KhoiSet['hinh']; co: number[]; mau: string; /** có mắt (nhân vật): khung xám vẽ hai mắt chỉ hướng nhìn */ mat?: boolean; /** người: DÁNG NGHỈ tính cách (mã TU_THE_NGUOI, vd ['dung_doi_chan', 'tay_tui']) — dựng 3D tự chồng khi đứng yên (dung-set.py › dien_hl) */ dang?: string[]; /** phần thêm, toạ độ tương đối đáy giữa khối */ phan?: Omit<KhoiSet, 'ten'>[] } | null };
 
 /** Phim quảng cáo mà chưa khai sản phẩm (mục 0) → lý do chặn; MỘT luật cho nút ở trình duyệt lẫn gác ở máy chủ. */
 export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): string | false {

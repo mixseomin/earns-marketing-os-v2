@@ -146,6 +146,13 @@ TU_THE_NGUOI = {
     'khoanh_tay': {'vai_t': (-25, -4, 0), 'vai_p': (-25, 4, 0), 'khuyu_t': (-115, 0, -35), 'khuyu_p': (-115, 0, 35)},
     'gioi_thieu': {'vai_p': (-40, 35, 0), 'khuyu_p': (-15, 0, 0)},                                              # đưa tay giới thiệu người bên cạnh
     'thuyet_trinh': {'vai_p': (-50, 28, 0), 'khuyu_p': (-30, 0, 0), 'dau': (0, 0, -10)},                        # tay mở về phía màn chiếu
+    # DÁNG ĐỨNG TỰ NHIÊN (anh 17/10/2026: "ai đứng cũng thẳng đuỗn, nhìn chán") — dáng NGHỈ của nhân vật (khoi_3d.dang), máy tự chồng khi nhân vật
+    # đứng yên không có mocap (dung-set.py › dien_hl); động tác tay khai ở dien vẫn đè lên sau.
+    'dung_doi_chan': {'dui_t': (-6, 0, 0), 'goi_t': (14, 0, 0), 'nguc': (0, 0, 7), 'dau': (0, 5, 0)},          # dồn trọng tâm chân phải, gối trái chùng, vai xoay, đầu nghiêng
+    'dung_doi_chan_p': {'dui_p': (-6, 0, 0), 'goi_p': (14, 0, 0), 'nguc': (0, 0, -7), 'dau': (0, -5, 0)},      # dồn trọng tâm chân trái (đối xứng)
+    'tay_tui': {'vai_p': (8, 12, 0), 'khuyu_p': (-30, 0, 0)},                                                  # tay phải đút túi quần
+    'mot_tay_hong': {'vai_p': (12, 42, 0), 'khuyu_p': (-85, 0, 50)},                                            # chống hông tay phải
+    'dung_vung': {'vai_t': (-12, -6, 0), 'vai_p': (-12, 6, 0), 'khuyu_t': (-70, 0, -40), 'khuyu_p': (-70, 0, 40)},  # hai tay đan trước bụng
 }
 
 _MC = None

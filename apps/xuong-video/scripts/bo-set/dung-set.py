@@ -400,8 +400,9 @@ def nhan_vat(sh, ket=False):
             n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}")
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
-            ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_
-            ng().ap_dien(n_, nv.get('dien'), 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
+            ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_; n_['kieu'] = kieu; n_['dang'] = mau_nv.get('dang') or []
+            ng().ap_dien(n_, dien_hl(n_, nv), 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
+            vet_(n_, nv['ten'], list(nv.get('vet_3d') or []) + (list(nv.get('vet_3d_den') or []) if ket is True or (ket and float(ket) >= 0.5) else []))
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
             than.append(bpy.data.objects[f"NG {nv['ten']}.nguc_k"]); tat_ca.extend([n_['goc'], *phan_ng]); continue
@@ -547,6 +548,29 @@ def tia_qua_kinh(s, dg, goc, huong, kc):
         buoc = (loc - goc).length + 0.001; goc = loc + huong * 0.001; kc -= buoc
         if kc <= 0: return False, None, None, None, None, None
     return False, None, None, None, None, None
+
+def dien_hl(n_, nv, di=False):
+    """Mã diễn CÓ HIỆU LỰC của một người: dáng nghỉ của nhân vật (khoi_3d.dang) + động tác khai ở vi_tri.dien chồng sau. Dáng nghỉ chỉ áp khi
+    đứng yên (không đi, không 'den', không mocap cả người, không ngồi / nằm) — đi / mocap tự có dáng."""
+    d = list(nv.get('dien') or []); dg = n_.get('dang') or []
+    if dg and not di and not nv.get('den') and n_.get('kieu', 'dung') == 'dung' and not any(str(x).startswith('mc_') for x in d): return list(dg) + d
+    return d
+
+VET = {'ca_phe_nguc': ('#6b3f1d', 0.42, 0.45)}   # vết bẩn trên người: màu, rộng / cao theo phần ngực (anh 17/10/2026: vết bẩn gây chú ý → lên 3D)
+def vet_(n_, ten, ds):
+    """Vết bẩn dán trên áo (vi_tri.vet_3d / vet_3d_den — khác 'vet' chữ của sổ người SO_NGUOI): mảng dẹt bám mặt trước khối ngực, đi theo người khi cúi / quay — mọi góc máy thấy CÙNG một vết
+    (trước chỉ có chữ, AI vẽ mỗi shot một vết khác). Tên 'NG <ten>.vet_…' → kiểm hình học coi là một phần người đó."""
+    nguc = bpy.data.objects.get(f"NG {ten}.nguc_k")
+    if not nguc: return
+    for k in ds:
+        if k not in VET: continue
+        mau_, rong, cao = VET[k]; bb = [Vector(c) for c in nguc.bound_box]
+        lo = Vector([min(q[i] for q in bb) for i in range(3)]); hi = Vector([max(q[i] for q in bb) for i in range(3)])
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1); o = bpy.context.object
+        dat(o, mau(mau_), f"NG {ten}.vet_{k}")
+        o.parent = nguc; o.matrix_parent_inverse.identity()
+        o.location = ((lo.x + hi.x) / 2, lo.y, lo.z + (hi.z - lo.z) * 0.55)
+        o.scale = ((hi.x - lo.x) * rong / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * cao / 2)
 
 def kiem_hinh_hoc(s, cam, sh, nv_obj):
     """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật — TÂM có trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia
@@ -1062,7 +1086,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 n_ = NGUOI[ten]
                 if di: ng().buoc(n_, (p - a).xy.length / (2 * 0.41 * n_['cao']))
                 else: ng().tu_the(n_, n_.get('kieu', 'dung'))
-                ng().ap_dien(n_, nv.get('dien'), t, giay)   # rig: tư thế theo mã diễn (+ mocap thật), chồng lên dáng đứng / bước
+                ng().ap_dien(n_, dien_hl(n_, nv, di), t, giay)   # rig: tư thế theo mã diễn (+ mocap thật), chồng lên dáng đứng / bước
                 for kk in ng().KHOP_KEY: n_[kk].keyframe_insert('rotation_euler', frame=f)
                 n_['hong'].keyframe_insert('location', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo

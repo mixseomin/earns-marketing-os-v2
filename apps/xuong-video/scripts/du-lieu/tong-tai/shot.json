@@ -62,7 +62,10 @@
      "huong": 180,
      "trang_phuc": "plain white silk blouse and black tailored slacks, long straight black hair loose",
      "do_deo": "jade bangle on the left wrist; white staff ID badge on a dark blue lanyard",
-     "trang_den": "hot coffee stain spreading across the chest of the white blouse"
+     "trang_den": "hot coffee stain spreading across the chest of the white blouse",
+     "vet_3d_den": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Vivian",
@@ -160,7 +163,10 @@
       540,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "vet_3d": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Vivian",
@@ -258,7 +264,10 @@
       540,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "vet_3d": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Vivian",
@@ -370,7 +379,10 @@
       540,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "vet_3d": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Vivian",
@@ -487,6 +499,9 @@
      "huong": 180,
      "dien": [
       "mc_quy_xuong@0.3-1"
+     ],
+     "vet_3d": [
+      "ca_phe_nguc"
      ]
     },
     {
@@ -632,7 +647,10 @@
       0
      ],
      "huong": 180,
-     "nam": false
+     "nam": false,
+     "vet_3d": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Vivian",
@@ -742,7 +760,10 @@
       560,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "vet_3d": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Ly cà phê",
@@ -837,7 +858,10 @@
       560,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "vet_3d": [
+      "ca_phe_nguc"
+     ]
     },
     {
      "ten": "Vivian",
@@ -925,6 +949,9 @@
      "huong": 180,
      "dien": [
       "cam_dien_thoai"
+     ],
+     "vet_3d": [
+      "ca_phe_nguc"
      ]
     },
     {
@@ -1048,6 +1075,9 @@
      "do_deo_den": "jade bangle on the left wrist",
      "dien": [
       "om_thung"
+     ],
+     "vet_3d": [
+      "ca_phe_nguc"
      ]
     },
     {
@@ -1170,6 +1200,9 @@
      "huong": 90,
      "dien": [
       "om_thung"
+     ],
+     "vet_3d": [
+      "ca_phe_nguc"
      ]
     },
     {
@@ -1280,6 +1313,9 @@
      "huong": 90,
      "dien": [
       "om_thung"
+     ],
+     "vet_3d": [
+      "ca_phe_nguc"
      ]
     },
     {
@@ -1392,6 +1428,9 @@
      "huong_den": 0,
      "dien": [
       "om_thung"
+     ],
+     "vet_3d": [
+      "ca_phe_nguc"
      ]
     },
     {

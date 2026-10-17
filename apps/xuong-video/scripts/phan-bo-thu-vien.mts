@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { phanBo, moTaChinh, moTaPhu, moTaGiong, SAC_TOC, NHOM_BOI_CANH, type YeuCau } from '../src/lib/xuong-video/thu-vien-dien';
+import { phanBo, moTaChinh, moTaPhu, moTaGiong, treCua, SAC_TOC, NHOM_BOI_CANH, type YeuCau } from '../src/lib/xuong-video/thu-vien-dien';
 
 type Row = Record<string, unknown>;
 const tep = process.argv[2]!; const ghi = process.argv.includes('--ghi');
@@ -28,6 +28,7 @@ const saoLuu = tep.replace(/\.json$/, `.bien-the-${new Date().toISOString().slic
 writeFileSync(saoLuu, JSON.stringify(bt.map((b) => ({ id: b.id, nguoi_chinh: b.nguoi_chinh, nguoi_phu: b.nguoi_phu, boi_canh: b.boi_canh, o: b.o })), null, 1));
 for (const x of kq) {
   const o = { nhan_vat_ten: x.chinh.ten, nguoi_2_ten: x.phu.dv.ten, boi_canh_2: x.boi_canh_2.prompt, giong: moTaGiong(x.chinh), giong_2: moTaGiong(x.phu.dv),
+    nguoi_3_hinh: `${treCua(x.chinh.sac_toc).mo_ta}, his ${treCua(x.chinh.sac_toc).gioi === 'gai' ? 'daughter' : 'son'}, casual party clothes`,
     dinh_diem_hinh: `${x.su_kien.prompt}, people celebrating`, dinh_diem: `My jeans almost ruined ${x.su_kien.dip_en}.`,
     tv: JSON.stringify({ chinh: x.chinh.ma, phu: x.phu.dv.ma, qh: x.phu.qh.ma, bc: x.boi_canh.ma, bc2: x.boi_canh_2.ma, sk: x.su_kien.ma, ao: x.ao }) };
   await db.execute(sql`UPDATE xv_bien_the_hinh SET nguoi_chinh = ${moTaChinh(x)}, nguoi_phu = ${moTaPhu(x)}, boi_canh = ${x.boi_canh.prompt}, o = ${JSON.stringify(o)}::jsonb WHERE id = ${Number(x.key)}`);

@@ -13,6 +13,9 @@ export const NHOM_BOI_CANH = BC.nhom as Record<string, string>;
 export const DIEN_VIEN = DV.dien_vien as DienVienTv[];
 export const SAC_TOC = DV.sac_toc as Record<string, string>;
 export const QUAN_HE = DV.quan_he as QuanHe[];
+/** Trẻ em chỉ làm vai phụ (con của nhân vật chính) — một bé cho mỗi nhóm sắc tộc. */
+export const TRE_EM = DV.tre_em as { ma: string; gioi: 'gai' | 'trai'; tuoi: number; sac_toc: string; mo_ta: string }[];
+export const treCua = (sacToc: string) => TRE_EM.find((t) => t.sac_toc === sacToc) ?? TRE_EM[0]!;
 /** Áo (không quần — quần là sản phẩm hoặc đồ của shot): đổi theo bộ hình để các phim không cùng một bộ đồ. */
 export const AO = ['a plain gray crew-neck tee', 'a navy henley', 'a white oxford shirt', 'a red plaid flannel shirt', 'a black crew tee', 'an olive bomber jacket over a white tee',
   'a heather gray hoodie', 'a light blue polo shirt', 'a mustard knit sweater', 'a white linen shirt', 'a burgundy quarter-zip', 'a black leather jacket over a gray tee'];

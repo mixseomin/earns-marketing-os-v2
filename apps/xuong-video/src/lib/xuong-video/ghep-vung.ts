@@ -18,22 +18,24 @@ type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const taiAnh = async (u: string) => { const r = await fetch(u); if (!r.ok) throw new Error(`không tải được ${u} (${r.status})`); return Buffer.from(await r.arrayBuffer()); };
 const rgba = async (b: Buffer, w?: number, h?: number) => { const x = sharp(b).ensureAlpha(); const r = await (w && h ? x.resize(w, h, { fit: 'fill' }) : x).raw().toBuffer({ resolveWithObject: true }); return { d: r.data, w: r.info.width, h: r.info.height }; };
 
-async function luuUngVien(db: Db, canhId: number, buf: Buffer, duoi: string): Promise<string | null> {
+/** Ảnh ghép / sửa chỉ thành ỨNG VIÊN — KHÔNG tự thành ảnh chọn (17/10/2026: lượt ghép cả tập tự chọn ảnh, 5 shot biểu đồ đè lên mặt người). Người soát
+ *  ảnh rồi mới chọn (scripts/ghep-vung.mts --chon hoặc chọn trên lưới). */
+async function luuUngVien(db: Db, canhId: number, buf: Buffer, duoi: string, chon = false): Promise<string | null> {
   const url = await uploadToR2(`xuong-video/keyframe/${canhId}-${duoi}-${Date.now()}.jpg`, buf, 'image/jpeg');
   if (!url) return null;
-  await db.execute(sql`UPDATE xv_canh SET keyframe_uv = coalesce(keyframe_uv, '[]'::jsonb) || ${JSON.stringify([url])}::jsonb, keyframe_url = ${url}, updated_at = now() WHERE id = ${canhId}`);
+  await db.execute(sql`UPDATE xv_canh SET keyframe_uv = coalesce(keyframe_uv, '[]'::jsonb) || ${JSON.stringify([url])}::jsonb, keyframe_url = CASE WHEN ${chon} THEN ${url} ELSE keyframe_url END, updated_at = now() WHERE id = ${canhId}`);
   return url;
 }
 
 /** GHÉP ĐÈ mọi đồ nhận dạng có ảnh chuẩn trong khung (0đ). */
-export async function ghepNhanDang(db: Db, canhId: number): Promise<Kq<{ url: string; vat: string[] }>> {
+export async function ghepNhanDang(db: Db, canhId: number, chon = false): Promise<Kq<{ url: string; vat: string[] }>> {
   const bc = await boiCanhCanh(db, canhId); if (!bc?.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe' };
   const mn = Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k, v]) => k.startsWith('nd:') && (v.goc?.length ?? 0) >= 4 && v.goc!.every((g) => g.uv));
   if (!mn.length) return { ok: false, loi: 'khung 3D không có đồ nhận dạng nào lọt khung (hoặc khung 3D cũ chưa có mặt nạ — dựng lại 3D)' };
   const vatSet = ((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE phim_id = (SELECT p.id FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${bc.canh.tap_id})`)) as unknown as Row[]).flatMap((r) => (r.vat ?? []) as { ten: string; anh?: string }[]);
   const kf = await rgba(await taiAnh(bc.canh.keyframe_url)); const W = kf.w, H = kf.h; const ra = Buffer.from(kf.d);
-  // CÓ NGƯỜI TRƯỚC ĐỒ NHẬN DẠNG thì KHÔNG ghép: người trong ảnh AI không đứng y chỗ ma-nơ-canh 3D (#20: 3D Thần chống bàn cúi thấp, AI vẽ đứng thẳng →
-  // biểu đồ đè lên tóc, vai dù đã trừ vùng người nới rộng). Mặt nạ CẢ người (ngd, có đầu) nới 4% chồng lên đồ > 2% → bỏ qua, để ảnh AI.
+  // CÓ NGƯỜI TRƯỚC ĐỒ NHẬN DẠNG (theo 3D) thì KHÔNG ghép. GIỚI HẠN: đây là vị trí người trong 3D — người AI vẽ lệch 3D (#19, #21: mặt ở chỗ 3D là màn) thì phép
+  // này không thấy; muốn ghép an toàn khi có người phải tách người trên chính keyframe (model tách nền). Vì vậy kết quả chỉ là ứng viên, soát rồi mới chọn.
   const tru = new Uint8Array(W * H);
   for (const [, v] of Object.entries(bc.canh.khung_xam?.mat_na ?? {}).filter(([k]) => k.startsWith('ngd:'))) {
     const m = await sharp(await taiAnh(v.url)).resize(W, H, { fit: 'fill' }).greyscale().blur(Math.max(2, Math.round(W * 0.02))).threshold(8).raw().toBuffer();
@@ -62,13 +64,13 @@ export async function ghepNhanDang(db: Db, canhId: number): Promise<Kq<{ url: st
     xong.push(ten);
   }
   if (!xong.length) return { ok: false, loi: boQua.length ? `không ghép: ${boQua.join(', ')} — để nguyên ảnh AI` : 'đồ nhận dạng lọt khung chưa có ảnh chuẩn (scripts/sinh-anh-set.mts)' };
-  const url = await luuUngVien(db, canhId, await sharp(ra, { raw: { width: W, height: H, channels: 4 } }).jpeg({ quality: 92 }).toBuffer(), 'ghep');
+  const url = await luuUngVien(db, canhId, await sharp(ra, { raw: { width: W, height: H, channels: 4 } }).jpeg({ quality: 92 }).toBuffer(), 'ghep', chon);
   return url ? { ok: true, data: { url, vat: xong } } : { ok: false, loi: 'không đẩy được ảnh lên kho' };
 }
 
 export const MO_HINH_SUA_VUNG = 'fal-ai/flux-pro/v1/fill';
 /** SỬA VÙNG thân một người theo bộ đồ sổ người (hoặc mo_ta tự ghi) — FLUX Fill với mặt nạ 3D nới 2% (viền áo không lộ đường cắt). Có job + tiền trên sổ. */
-export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string): Promise<Kq<{ url: string }>> {
+export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string, chon = false): Promise<Kq<{ url: string }>> {
   const bc = await boiCanhCanh(db, canhId); if (!bc?.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe' };
   const mn = bc.canh.khung_xam?.mat_na?.[`ng:${ten}`]; if (!mn) return { ok: false, loi: `khung 3D không có mặt nạ thân ${ten} (dựng lại 3D)` };
   const a = bc.nhanVat.find((v) => v.ten === ten); const vt = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((v) => v.ten === ten);
@@ -85,7 +87,7 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
   const job = await taoJob(db, { nhan: `Sửa vùng (${ten}) · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_SUA_VUNG}`, request: { dich: 'sua_vung', prompt, image: anhGui, mask: maskUrl } });
   const kq = await chayAnhFal(MO_HINH_SUA_VUNG, { prompt, image_url: anhGui, mask_url: maskUrl, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
-  const url = await luuUngVien(db, canhId, await sharp(kq.data).jpeg({ quality: 92 }).toBuffer(), 'sua');
+  const url = await luuUngVien(db, canhId, await sharp(kq.data).jpeg({ quality: 92 }).toBuffer(), 'sua', chon);
   if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }
   await xongJob(db, job, { output_url: url, chi_phi_cents: (await modelFal(MO_HINH_SUA_VUNG))?.giaCents ?? 5 });
   return { ok: true, data: { url } };

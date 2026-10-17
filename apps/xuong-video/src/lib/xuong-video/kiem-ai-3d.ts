@@ -132,7 +132,16 @@ export function doNhanDangChuaAnh(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null)
     .map((v) => `đồ nhận dạng "${v.ten}" chưa có ảnh chuẩn — AI vẽ mỗi góc một bức: chạy scripts/sinh-anh-set.mts (ảnh dán lên mặt vật trong 3D)`);
 }
 
+/** VÙNG TRỐNG: khung 3D có > 8% không thuộc vật nào (máy trên trần, nhìn ra ngoài bộ set) — chỗ trống thì AI TỰ VẼ một thứ (tập 122 #14: máy cao 485 cm
+ *  trên trần 300, nền lộ ảnh HDRI → keyframe mọc thêm một căn phòng có bàn, laptop). Đọc tổng % khung của khung_xam.thay. */
+export const TRONG_TOI_DA = 8;
+export function vungTrong(c: ShotAi): string[] {
+  const t = c.khung_xam?.thay; if (!t?.length) return [];
+  const trong = 100 - t.reduce((a, x) => a + x.pt, 0);
+  return trong > TRONG_TOI_DA ? [`khung 3D trống ${Math.round(trong)}% (không vật nào — máy trên trần / nhìn ra ngoài bộ set) — AI sẽ tự vẽ thứ không có: hạ máy dưới trần, đổi hướng, hoặc dựng thêm phần set`] : [];
+}
+
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c)];
+  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c)];
 }

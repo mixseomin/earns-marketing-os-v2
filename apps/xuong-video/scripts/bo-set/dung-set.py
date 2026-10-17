@@ -4,7 +4,7 @@
 # render ra (1) khung xám — bố trí đúng tuyệt đối, (2) bản đồ độ sâu — khung xương cho mô hình ảnh, (3) mặt bằng nhìn từ trên có vị trí máy.
 # Chạy trên box (Blender không giao diện):
 #   blender -b --factory-startup -P apps/xuong-video/scripts/bo-set/dung-set.py -- <set.json> <thư mục ra> [ma shot,...]
-import bpy, json, math, sys, os
+import bpy, json, math, re, sys, os
 from mathutils import Matrix, Quaternion, Vector, Euler
 
 arg = sys.argv[sys.argv.index('--') + 1:]
@@ -272,7 +272,11 @@ def anh_sang_mau(s, sh, bat):
         wn = s.world.node_tree; bg = wn.nodes['Background']
         ev = wn.nodes.get('hdri') or wn.nodes.new('ShaderNodeTexEnvironment'); ev.name = 'hdri'; ev.image = bpy.data.images.load(os.path.join(TAI_SAN, 'phong.hdr'), check_existing=True)
         mx = wn.nodes.get('hdri_nhuom') or wn.nodes.new('ShaderNodeMix'); mx.name = 'hdri_nhuom'; mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1.0
-        mx.inputs['B'].default_value = (0.35, 0.45, 0.8, 1); wn.links.new(ev.outputs['Color'], mx.inputs['A']); wn.links.new(mx.outputs['Result'], bg.inputs['Color'])
+        mx.inputs['B'].default_value = (0.35, 0.45, 0.8, 1); wn.links.new(ev.outputs['Color'], mx.inputs['A'])
+        # MÁY NHÌN THẤY NỀN = XÁM TRƠN (HDRI chỉ để hắt sáng + phản chiếu): chỗ trống lộ ảnh HDRI căn phòng thật → AI chép thành một căn phòng (#14)
+        lp = wn.nodes.get('duong_tia') or wn.nodes.new('ShaderNodeLightPath'); lp.name = 'duong_tia'
+        mc = wn.nodes.get('nen_may') or wn.nodes.new('ShaderNodeMix'); mc.name = 'nen_may'; mc.data_type = 'RGBA'; mc.inputs['B'].default_value = (0.18, 0.18, 0.18, 1)
+        wn.links.new(mx.outputs['Result'], mc.inputs['A']); wn.links.new(lp.outputs['Is Camera Ray'], mc.inputs['Factor']); wn.links.new(mc.outputs['Result'], bg.inputs['Color'])
         bg.inputs['Strength'].default_value = 0.25
     cam = s.camera
     if cam:
@@ -874,12 +878,19 @@ def giai_may(s, cam, sh, nv):
         for dz in buoc_z:
             for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90, 120, -120, 150, -150, 180):   # tới 180° để máy đang sai phía trục quay về được
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
-                vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
+                vt_may = g + v + Vector((0, 0, dz))
+                if TRAN_Z is not None and vt_may.z > TRAN_Z - 15: vt_may.z = TRAN_Z - 15   # KHÔNG lên quá trần (lùi xa nhân cả độ cao: #14 485 cm > trần 300)
+                dat_may(cam, vt_may, g)
                 k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100 + mat_sai(sh, vt_may) * 100 + qua_nho(sh, k) * 50
                 if h == 0: h = chan_la(s, cam, sh, nv) + thieu_nhac(s, cam, sh, nv) * 10   # chủ thể sạch rồi mới tính vật chắn lạ + vật được nhắc mà không thấy (đắt hơn)
                 if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot
     dat_may(cam, tot[1], g); return tot
+
+# TRẦN của bộ set (vật khai 'ceiling'): máy không được cao hơn — trên trần thì tường rời dỡ trần, máy nhìn ra khoảng trống ngoài set, AI vẽ thêm một căn phòng
+# (tập 122 #14, #5). None = set không có trần (bàn làm việc đồ chơi).
+_tran = [float(v['tam'][2]) for v in DL['vat'] if v.get('tam') and len(v['tam']) > 2 and re.search(r'\bceiling\b', v.get('en', ''), re.I) and float(v['tam'][2]) > 150]
+TRAN_Z = min(_tran) if _tran else None
 
 def vat_chu_the(sh):
     """Đồ vật CỦA BỘ SET được khai là chủ thể khung (vd công tắc đèn ở shot bấm đèn) — kiểm như nhân vật: phải thấy rõ, không bị che.
@@ -1351,6 +1362,8 @@ kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
+    if TRAN_Z is not None and sh['may']['dat'][2] > TRAN_Z - 15:   # máy khai / tự đặt cao hơn trần → hạ xuống dưới trần, ghi lại như máy đã giải
+        sh['may']['dat'] = [sh['may']['dat'][0], sh['may']['dat'][1], TRAN_Z - 15]; giai[sh['ma']] = {'dat': sh['may']['dat'], 'nhin': sh['may']['nhin']}
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
     k = kiem_hinh_hoc(s, cam, sh, nv_kiem)

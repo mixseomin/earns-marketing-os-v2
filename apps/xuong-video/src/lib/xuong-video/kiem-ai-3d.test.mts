@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong } from './kiem-ai-3d';
+import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -37,4 +37,7 @@ assert.equal(tuaHong(tua(45)).length, 1); assert.equal(tuaHong(tua()).length, 0)
 const moVat = (thay: string[]) => ({ hanh_dong: '', prompt_anh: '', ky_thuat: { co_canh: 'ots' }, dan_dung: { mo: 'Hạ looks at her phone' }, khung_xam: { thay: thay.map((t) => ({ ten: t, pt: 20, hop: [0, 0, 1, 1], tien: false })) },
   may_3d: may([{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]) }) as never;
 assert.equal(thieuVat3d(moVat(['Hạ']), nv, set).length, 1); assert.equal(thieuVat3d(moVat(['Hạ', 'Điện thoại']), nv, set).length, 0);
+// VÙNG TRỐNG: 70% khung có vật (máy trên trần, #14) → chặn; 97% → qua
+const tr = (pt: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { thay: [{ ten: 'Tường', pt, hop: [0, 0, 1, 1], tien: false }] } }) as never;
+assert.equal(vungTrong(tr(70)).length, 1); assert.equal(vungTrong(tr(97)).length, 0);
 console.log('kiem-ai-3d: ok');

@@ -14,13 +14,12 @@
 import { lookPhim } from '../src/lib/xuong-video/look';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb, chuanBiKeyframe } from '../src/lib/xuong-video/sinh-anh';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb, chuanBiKeyframe, chamKeyframe } from '../src/lib/xuong-video/sinh-anh';
 import { boiCanhCanh, boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
 import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
-import { loiPrompt } from '../src/lib/xuong-video/kiem-prompt';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
 const phimId = Number((process.argv.find((a) => a.startsWith('--phim=')) ?? '').split('=')[1] || 0);
@@ -61,7 +60,7 @@ if (arg('xem-prompt')) {
     const k = chuanBiKeyframe(bc);
     console.log(`\n#${c.thu_tu} ${c.canh}`);
     if (k.haiBuoc && !nguon) console.log(`  [bước 1 FLUX]\n  ${k.haiBuoc.prompt1}\n  [bước 2 · ${k.haiBuoc.ref2.length + 1} ảnh]\n  ${k.haiBuoc.prompt2}`);
-    if (k.haiBuoc && k.soat) { const lp = loiPrompt([{ ten: 'bước 1', chu: k.haiBuoc.prompt1, flux: true }, { ten: 'bước 2', chu: k.haiBuoc.prompt2 }], k.soat); console.log(lp.length ? `  ✗ bộ chấm prompt:\n    ${lp.join('\n    ')}` : '  ✓ bộ chấm prompt: sạch'); }
+    const lp = chamKeyframe(bc); console.log(lp.length ? `  ✗ bộ chấm prompt:\n    ${lp.join('\n    ')}` : '  ✓ bộ chấm prompt: sạch (mọi đường: một bước, hai bước, khung kết)');
     else console.log(`  [một bước · ${k.urlRef.length} ảnh]\n  ${k.prompt}`);
   }
   process.exit(0);

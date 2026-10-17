@@ -25,4 +25,12 @@ assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `Eye-level shot. Moment: H�
 assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `Moment: Vivian turns from Hạ to Thần, wearing ${VEST}.` }], s), []);   // tên ngoài khung viết hoa → qua
 assert.equal(loiPrompt([{ ten: 'bước 1', chu: `Màn trình chiếu, wearing ${VEST}.` }], s).length, 1);   // tên khối: 'trình chiếu' chữ thường có dấu → chặn
 assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `a small café corner, wearing ${VEST}.` }], s), []);   // từ mượn 'café' không phải tiếng Việt
+// BỐI CẢNH: bước tự tả khung mà không nói đang ở đâu → chặn; có → qua
+const bc = { ...s, boi_canh: 'Boardroom in afternoon light' };
+assert.equal(loiPrompt([{ ten: 'bước 1', chu: `Woman wearing ${VEST}.`, boi_canh: true }], bc).length, 1);
+assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `Setting: Boardroom in afternoon light. Woman wearing ${VEST}.`, boi_canh: true }], bc), []);
+// CHẤT LIỆU: phim người thật mà chữ hoạt hình → chặn
+assert.equal(loiPrompt([{ ten: 'một bước', chu: `Turn it into a real photograph of the miniature stop-motion set. Woman wearing ${VEST}.` }], { ...s, nguoi_that: true }).length, 1);
+// CÂU LẶP → chặn
+assert.equal(loiPrompt([{ ten: 'bước 1', chu: `Woman wearing ${VEST}, pale-green jade bangle on the left wrist, jade bangle on the left wrist.` }], s).length, 1);
 console.log('kiem-prompt: ok');

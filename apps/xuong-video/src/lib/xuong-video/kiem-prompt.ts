@@ -10,14 +10,23 @@ export const TU_TOI_DA_FLUX = 300;
 export const MAT = /\b(jawline|eyes|face(?! out of frame)|faces|hair|makeup|eyebrows?|lips|smile|stare)\b/i;
 /** Bỏ các vế tả mặt / tóc khỏi một mô tả (bộ đồ có 'loose hair, light makeup') — dùng cho cận chèn chỉ thấy tay. */
 export const boMat = (t: string) => t.split(/,\s*/).filter((x) => !MAT.test(x)).join(', ');
+/** chữ tả QUẦN ÁO trong mô tả gốc nhân vật — có bộ đồ sổ trang phục thì bỏ (Trần: "navy three-piece suit" gốc + bộ đồ biến thể = hai bộ đồ) */
+const DO = /\b(suit|suits|shirt|blouse|dress|jacket|blazer|tie|trousers|pants|skirt|coat|vest|uniform|sweater|hoodie|jeans|outfit)\b/i;
+export const boDo = (t: string) => t.split(/,\s*/).filter((x) => !DO.test(x)).join(', ');
+/** Câu đầu của mô tả bối cảnh (trước ':' hoặc '.'): "Boardroom in afternoon light" — đủ nói ĐANG Ở ĐÂU, không liệt kê đồ (mời vẽ thêm). */
+export const dauBoiCanh = (moTa: string) => (moTa.split(/[:.]/)[0] ?? '').trim().split(/\s+/).slice(0, 18).join(' ');
+/** chữ của phim HOẠT HÌNH bàn làm việc (stop-motion, tí hon) — lọt vào phim người thật thì model vẽ mô hình thu nhỏ */
+const HOAT_HINH = /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top)\b/i;
 const AN = /\b(hidden|covered|covering|concealed|out of sight|not visible|tucked under)\b/i;
 const TU_CHUNG = new Set(['small', 'thin', 'black', 'white', 'light', 'large', 'under', 'with', 'their', 'which', 'little', 'round', 'dark', 'long', 'short']);
 
-export type BuocPrompt = { ten: string; chu: string; flux?: boolean };
+export type BuocPrompt = { ten: string; chu: string; flux?: boolean; /** bước tự tả cả khung (không sửa từ ảnh có sẵn) → phải nói bối cảnh */ boi_canh?: boolean };
 export type SoatPrompt = {
   co_canh?: string;
   /** người trong khung + bộ đồ sổ trang phục (mô tả biến thể) — mọi bước phải nói bộ đồ */ nguoi: { ten: string; trang_phuc?: string }[];
   /** đồ CHỦ THỂ đang thấy trong khung 3D — chữ không được nói nó bị che / giấu */ vat: { ten: string; mo_ta: string }[];
+  /** câu bối cảnh (dauBoiCanh) — bước tự tả cả khung phải có */ boi_canh?: string;
+  /** phim người thật: cấm chữ hoạt hình */ nguoi_that?: boolean;
   /** tên riêng được phép giữ dấu (nhân vật, đạo cụ có tên) — "Lâm Hạ" là tên, không phải chữ tiếng Việt lọt vào */ ten_rieng?: string[];
 };
 
@@ -34,6 +43,12 @@ export function loiPrompt(buoc: BuocPrompt[], s: SoatPrompt): string[] {
     // chữ thường có dấu mới là tiếng Việt lọt vào ('Màn trình chiếu' → 'trình chiếu', 'khẽ, chắc nịch')
     const tron = rieng.reduce((c, t) => c.split(t).join(' '), b.chu).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
     if (coTiengViet(tron)) out.push(`${b.ten}: lẫn tiếng Việt ${doan(tron, /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/)} — model đọc tiếng Anh: dùng tên en của vật / bỏ ghi chú tiếng Việt`);
+    if (s.nguoi_that && HOAT_HINH.test(b.chu)) out.push(`${b.ten}: phim người thật mà có chữ hoạt hình ${doan(b.chu, HOAT_HINH)} — model vẽ mô hình thu nhỏ: sửa câu dựng prompt theo chất liệu phim`);
+    if (b.boi_canh && s.boi_canh && !b.chu.toLowerCase().includes(s.boi_canh.toLowerCase())) out.push(`${b.ten}: không nói bối cảnh ("${s.boi_canh}") — model không biết đang ở đâu, tự chọn không gian`);
+    // CÂU LẶP: một vế ≥ 4 từ nằm trọn trong một vế khác (#15 "jade bangle on the left wrist" hai lần) — tốn chữ, model hiểu là hai món
+    const ve = b.chu.toLowerCase().split(/[,.;|]/).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 4);
+    const lap = ve.find((x, i) => ve.some((y, j) => j !== i && (y === x ? j < i : y.includes(x))));
+    if (lap) out.push(`${b.ten}: lặp "${lap.slice(0, 60)}" — bỏ vế trùng (model hiểu thành hai món)`);
     const tu = b.chu.split(/\s+/).filter(Boolean).length;
     if (b.flux && tu > TU_TOI_DA_FLUX) out.push(`${b.ten}: dài ${tu} từ — FLUX đọc ~${TU_TOI_DA_FLUX} từ, phần cuối bị cắt (thường là câu phong cách / "No text"): rút gọn hậu cảnh, bỏ lặp`);
     for (const n of s.nguoi) {

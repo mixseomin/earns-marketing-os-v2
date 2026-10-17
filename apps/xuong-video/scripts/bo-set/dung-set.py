@@ -301,9 +301,9 @@ def ve_mat_na(s, sh, cam, goc_ra):
       · 'ng:<tên>' — THÂN người (bỏ đầu, cổ, mũi, tóc) — sửa áo không đụng mặt"""
     from bpy_extras.object_utils import world_to_camera_view
     tg = []
-    for v in DL['vat']:
-        o = bpy.data.objects.get(f"{v['ten']}·anh") if v.get('anh') else None
-        if o and not o.hide_render: tg.append((f"nd:{v['ten']}", [o]))
+    for v in DL['vat']:   # tấm ảnh chuẩn có HAI mặt ('·anh', '·anh sau') — mặt quay vào phòng tuỳ vật (màn chiếu tường sau: '·anh sau'); lấy cả hai
+        ps = [o for o in (bpy.data.objects.get(f"{v['ten']}·anh"), bpy.data.objects.get(f"{v['ten']}·anh sau")) if v.get('anh') and o and not o.hide_render]
+        if ps: tg.append((f"nd:{v['ten']}", ps))
     for nv in sh.get('nhan_vat', []):
         if nv.get('an') or (DL['nhan_vat_mau'].get(nv['ten']) or {}).get('hinh') != 'nguoi': continue
         than = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render and o.name.startswith(f"NG {nv['ten']}.") and not any(k in o.name for k in ('.dau_k', '.mui', '.co_k', 'toc'))]
@@ -320,8 +320,8 @@ def ve_mat_na(s, sh, cam, goc_ra):
         for o in objs: o.color = (1, 1, 1, 1)
         s.render.filepath = f"{goc_ra}-mn-{i}.png"; bpy.ops.render.render(write_still=True)
         rec = {'tep': f'mn-{i}'}
-        if ma.startswith('nd:'):
-            o = objs[0]; uv = o.data.uv_layers.active.data if o.data.uv_layers.active else None; goc = {}
+        if ma.startswith('nd:'):   # 4 góc của tấm QUAY VỀ PHÍA MÁY (pháp tuyến hướng máy)
+            o = next((x for x in objs if (x.matrix_world.to_3x3() @ Vector((0, 0, 1))).dot(cam.location - x.matrix_world.translation) > 0), objs[0]); uv = o.data.uv_layers.active.data if o.data.uv_layers.active else None; goc = {}
             for lp in o.data.loops:
                 if lp.vertex_index in goc: continue
                 p = world_to_camera_view(s, cam, o.matrix_world @ o.data.vertices[lp.vertex_index].co)

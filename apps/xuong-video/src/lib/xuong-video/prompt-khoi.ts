@@ -101,7 +101,7 @@ export const boMat = (t: string) => t.split(/,\s*/).filter((x) => !MAT.test(x)).
 const DO = /\b(suit|suits|shirt|blouse|dress|jacket|blazer|tie|trousers|pants|skirt|coat|vest|uniform|sweater|hoodie|jeans|outfit)\b/i;
 export const boDo = (t: string) => t.split(/,\s*/).filter((x) => !DO.test(x)).join(', ');
 /** Bỏ vế đã có trong đoạn khác (nhân dạng "gold-rimmed glasses" + bộ đồ "…, gold-rimmed glasses" — #15 nói hai lần). */
-export const boTrung = (t: string, khac: string) => { const k = khac.toLowerCase(); return t.split(/,\s*/).filter((x) => !x.trim() || !k.includes(x.trim().toLowerCase())).join(', '); };
+export const boTrung = (t: string, khac: string) => { const k = khac.toLowerCase(); return t.split(/,\s*/).filter((x) => x.trim().split(/\s+/).length < 2 || !k.includes(x.trim().toLowerCase())).join(', '); };   // vế ≥ 2 từ — 'slim' (dáng) không phải 'slim slacks'
 
 /** KHỐI NGƯỜI: nhân dạng (bỏ quần áo khi có bộ đồ sổ) + bộ đồ (mô tả MỌI biến thể sổ người đang trỏ) + đồ đeo (không trùng bộ đồ). Cận chèn: chỉ tay.
  *  gon = bản ngắn cho bước sửa nhân dạng (ảnh mẫu đã mang mặt). MỘT hàm cho mọi đường. */

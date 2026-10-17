@@ -2245,7 +2245,7 @@
    "dien": "Anticipation: Thần's left hand flat on the walnut table, the shirt cuff riding up. Action: the camera pushes in on the wrist as a thin jade bead bracelet slides into view beside the steel watch. Reaction: hold on the green jade — cut to black.",
    "huong": "Static hand; the camera pushes down onto the wrist.",
    "bo_cuc": "Insert at wrist height on Lục Thần’s left hand pressed flat on the dark walnut table, forearm upright: the shirt cuff pulled back reveals a thin pale-green jade bead bracelet around the wrist",
-   "mo": "Thần’s hand flat on the table, cuff covering the wrist",
+   "mo": "Thần’s left hand flat on the table, the shirt cuff just pulled back off the wrist",
    "ket": "the jade bead bracelet in full view — cut to black",
    "muc_dich": "móc: khán giả thấy hai người cùng một chất ngọc, nhân vật chưa biết",
    "motif": "ngọc — vòng tay của Hạ (5.2) ↔ chuỗi hạt của Thần (tập sau)",
@@ -2288,7 +2288,8 @@
      "huong": 0,
      "dien": [
       "chong_ban"
-     ]
+     ],
+     "do_deo": "thin pale-green jade bead bracelet on the left wrist, shirt cuff pulled back so it shows"
     },
     {
      "ten": "Chuỗi hạt ngọc",

@@ -15,6 +15,7 @@ import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
+import { loiPrompt, type SoatPrompt } from './kiem-prompt';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -152,7 +153,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
 export type HaiBuoc = { sau: string; prompt1: string; prompt2: string; ref2: string[] };
-export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc } {
+export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt } {
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
   const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);
@@ -280,7 +281,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // bước 1 = FLUX depth từ bản đồ độ sâu 3D + chữ (không nhận ảnh mẫu) → ảnh thật đúng hình học; bước 2 = sửa nhân dạng trên chính ảnh đó.
     const sau = bc.canh.khung_xam?.sau;
     if (sau && !ket && bc.kt.keyframe_hai_buoc !== false) {
-      const trong = nvRef.filter((v) => v.loai !== 'boi_canh');
+      const trong = nvRef.filter((v) => v.loai !== 'boi_canh'); const chen = bc.canh.ky_thuat?.co_canh === 'insert';
       // Prompt bước 1 NGẮN, mô tả tự nhiên (FLUX đọc giới hạn chữ: khối luật dài của Nano Banana bị cắt mất phần nhân vật, con số "40 mm, 1.2 cm"
       // bị vẽ thành chữ "480" — #35, 16/10/2026). Hình học đã nằm trong bản đồ độ sâu; chữ chỉ nói CÁI GÌ, trông ra sao, quay hướng nào, ánh sáng.
       const thayDs = bc.canh.khung_xam?.thay ?? [];
@@ -288,10 +289,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
         // BỘ ĐỒ ĐANG MẶC (sổ trang phục): FLUX không nhận ảnh mẫu — không nói thì nó tự chọn đồ (tập 122 #15: Hạ vest ĐEN thay vest trắng; #22 tay trần không cổ tay áo)
-        const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined;
-        return `${moTaVua(v.mo_ta)}${bt?.mo_ta ? `, wearing ${moTaVua(bt.mo_ta)}` : ''}${h ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined; const deo = v.loai === 'nhan_vat' ? viTriCua(v.ten)?.do_deo : undefined;
+        // CẬN CHÈN: chỉ phần thân trong khung (tay, cổ tay) — tả hàm, mắt, tóc là mời model vẽ mặt vào cú cận đồ (tập 122 #22)
+        const ai = v.loai === 'nhan_vat' && chen ? `${v.ten.split(' ').pop()}'s hand and forearm only (face out of frame)` : moTaVua(v.mo_ta);
+        return `${ai}${bt?.mo_ta ? `, wearing ${moTaVua(bt.mo_ta)}` : ''}${deo ? `, ${deo}` : ''}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
-      const nen = thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten);
+      const nen = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair")
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
       // PHIM NGƯỜI THẬT (17/10/2026, tập 122): câu bước 1 trước đây ghi cứng cho hoạt hình stop-motion ("miniature set… no people, no hands") —
       // áp vào phim người thật là FLUX vẽ mô hình thu nhỏ không người. Người thật: ảnh điện ảnh, ánh sáng theo phong cách hình của phim.
@@ -306,14 +309,24 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.',
           'Real materials, shallow depth of field, tactile handmade stop-motion feel. No text, no letters, no numbers, no people, no hands.']).filter(Boolean).join(' ');
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
-      for (const v of trong) { const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${moTaNgan(v.mo_ta)}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${moTaNgan(v.mo_ta)}`); }
+      for (const v of trong) {
+        // bộ đồ + đồ đeo của SỔ NGƯỜI nói thẳng ở bước 2 (trước đây chỉ tả mặt → model giữ đồ FLUX tự chọn, #15 vest đen); cận chèn không tả mặt
+        const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined; const deo = v.loai === 'nhan_vat' ? viTriCua(v.ten)?.do_deo : undefined;
+        const ta = `${v.loai === 'nhan_vat' && chen ? 'skin tone and sleeve only, face out of frame' : moTaNgan(v.mo_ta)}${bt?.mo_ta ? `; wearing ${moTaVua(bt.mo_ta)}` : ''}${deo ? `; ${deo}` : ''}`;
+        const u = bt?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${ta}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${ta}`);
+      }
       // ĐỒ NHẬN DẠNG trong khung (màn chiếu, tranh, bảng chỉ dẫn — kiem-ai-3d.ts › LA_NHAN_DANG): ảnh chuẩn đã dán trên mặt vật ở khung màu (Image 2);
       // FLUX bước 1 vẽ chữ bậy lên đó, KHONG_CHU ở bước 2 lại cấm sửa → #20 màn chiếu ra chữ vô nghĩa. Bước 2 chép nội dung từ Image 2, chữ khác vẫn cấm.
       const coDinh = thayDs.filter((x) => x.pt >= PT_THAY && LA_NHAN_DANG.test(x.en ?? '')).map((x) => x.en!);
       const chuCoDinh = coDinh.length ? `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there. Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.` : KHONG_CHU;
       const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,
-        huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), chuCoDinh, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 } };
+        chen ? '' : huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), chuCoDinh, chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh'), chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
+      // SOÁT CHỮ (kiem-prompt.ts): người trong khung + bộ đồ sổ trang phục, đồ chủ thể đang thấy — lyChanKeyframe chặn trước khi tiêu tiền
+      const chuThe3d = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).map((k) => k.nhan_vat));
+      const soat: SoatPrompt = { co_canh: bc.canh.ky_thuat?.co_canh, ten_rieng: bc.nhanVat.map((v) => v.ten),
+        nguoi: trong.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: btCanh(v)?.mo_ta ? moTaVua(btCanh(v)!.mo_ta) : undefined })),
+        vat: trong.filter((v) => v.loai !== 'nhan_vat' && chuThe3d.has(v.ten)).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta })) };
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 }, soat };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS };
   }
@@ -404,6 +417,8 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   if (cm) chan.push(cm);
   const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
   if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở tab 🎭 Phim (Tuyến nhân vật) rồi sinh lại.`);
+  // BỘ CHẤM PROMPT (kiem-prompt.ts): chữ SẼ gửi đường hai bước (mặc định khi có độ sâu 3D) — lẫn tiếng Việt, thiếu bộ đồ, cận chèn tả mặt, chữ ngược 3D, quá dài cho FLUX
+  if (!chan.length) { const k = chuanBiKeyframe(bc); if (k.haiBuoc && k.soat) { const lp = loiPrompt([{ ten: 'bước 1', chu: k.haiBuoc.prompt1, flux: true }, { ten: 'bước 2', chu: k.haiBuoc.prompt2 }], k.soat); if (lp.length) chan.push(`Bộ chấm prompt: ${lp.join(' · ')}`); } }
   return { bc, chan };
 }
 

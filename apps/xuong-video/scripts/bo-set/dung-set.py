@@ -358,7 +358,7 @@ def anh_cache(url):
 
 def dan_anh(v):
     """ẢNH CHUẨN của đồ nhận dạng (anh 17/10/2026: "tranh trên tường lúc hình A lúc tranh B ở các góc khác nhau"): tấm ảnh phẳng phủ mặt vật (cả
-    hai mặt mỏng nhất của hộp bao — mặt áp tường bị che), chừa viền 8% cho khung. Tên '<vật> anh' → cùng nhóm vật khi kiểm."""
+    hai mặt mỏng nhất của hộp bao — mặt áp tường bị che), chừa viền 8% cho khung. Tên '<vật>·anh' → cùng nhóm vật khi kiểm."""
     f = anh_cache(v['anh']); ds = [o for o in bpy.data.objects if o.type == 'MESH' and thuoc(v['ten'], o.name)]
     if not f or not ds: return
     bpy.context.view_layer.update()
@@ -369,7 +369,7 @@ def dan_anh(v):
     tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = bpy.data.images.load(f); bsdf = nt.nodes['Principled BSDF']
     nt.links.new(tex.outputs['Color'], bsdf.inputs['Base Color']); nt.links.new(tex.outputs['Color'], bsdf.inputs['Emission Color']); bsdf.inputs['Emission Strength'].default_value = 0.25
     for dau in (-1, 1):
-        bpy.ops.mesh.primitive_plane_add(size=1); o = bpy.context.object; o.name = f"{v['ten']} anh{'' if dau > 0 else ' sau'}"
+        bpy.ops.mesh.primitive_plane_add(size=1); o = bpy.context.object; o.name = f"{v['ten']}·anh{'' if dau > 0 else ' sau'}"   # '·' → ten_vat gom về vật (tên 'Màn trình chiếu anh sau' từng lọt vào prompt)
         p = tam.copy(); p[mong] = (hi if dau > 0 else lo)[mong] + dau * 0.002; o.location = p
         # mặt phẳng gốc nằm trong XY, pháp tuyến +Z → xoay cho pháp tuyến dọc trục mỏng, cạnh u theo trục a (ngang), v theo trục b (thường là cao)
         # pháp tuyến hướng RA NGOÀI vật (người xem đứng ngoài → chữ / hình không bị lật gương)

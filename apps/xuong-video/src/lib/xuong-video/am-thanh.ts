@@ -3,6 +3,7 @@
 //   Giọng: mỗi nhân vật chọn MỘT giọng (model + voice) giữ cố định cả bộ phim → series không đổi giọng giữa các tập.
 //   Hiệu ứng: shot đã có clip → sinh từ chính clip (khớp hành động); chưa có clip → sinh từ mô tả âm thanh + kỹ thuật âm thanh của shot.
 //   Nhạc: một bài nền cho cả tập, dài bằng tập, lời nhắc ghép từ thể loại + kỹ thuật nhạc của các shot + đường cong cảm xúc.
+import { CO_TIENG_VIET } from './kiem-prompt';
 import type { Canh, NhanVat, DongThoai } from './kieu';
 import { CAM_XUC_EN, giayPhat, locNhanh } from './kieu';
 /** Độ dài nhạc cần sinh = tổng giây PHÁT thật của một nhánh (thứ bản xuất dựng), làm tròn lên — không lấy thoi_luong_s của mọi shot
@@ -128,7 +129,8 @@ export function promptCamXuc(c: Pick<Canh, 'cam_xuc' | 'thoai' | 'loi_thoai' | '
   const moodEn = CAM_XUC_EN[v] ?? '';
   // Chỉ diễn xuất của người NÓI TRONG KHUNG (lời dẫn V.O. không áp lên ai), bỏ nhãn "V.O.", KHÔNG đặt trong ngoặc kép (model ảnh/video dễ in
   // câu trong ngoặc thành chữ) và không ghi cứng "Vietnamese" — ghi chú đi theo ngôn ngữ phim (09/10/2026).
-  const dx = dongThoai(c, nv).filter((d) => d.nhan_vat.trim() && !laLoiDan(d.dien_xuat)).map((d) => `${d.nhan_vat.trim()}: ${d.dien_xuat.trim()}`).filter((x) => !/:\s*$/.test(x));
+  // ghi chú tiếng Việt (diễn cho giọng đọc) không vào prompt ảnh / video tiếng Anh — kiem-prompt.ts chặn chữ có dấu lọt vào (tập 122 #20 "khẽ, chắc nịch")
+  const dx = dongThoai(c, nv).filter((d) => d.nhan_vat.trim() && !laLoiDan(d.dien_xuat) && !CO_TIENG_VIET.test(d.dien_xuat)).map((d) => `${d.nhan_vat.trim()}: ${d.dien_xuat.trim()}`).filter((x) => !/:\s*$/.test(x));
   const out: string[] = [];
   if (loai === 'anh') {
     if (dx[0]) out.push(`Facial expression and body language (director's note) — ${dx[0]}.`);

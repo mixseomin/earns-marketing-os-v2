@@ -3,8 +3,7 @@
 // vẽ mặt Thần; chữ "bracelet hidden under the cuff" ngược khung 3D; tên khối tiếng Việt "Màn trình chiếu anh sau" lọt vào prompt; bước 1 dài quá
 // giới hạn FLUX nên câu "No text" cuối bị cắt). Luật thuần, 0đ, đọc đúng chuỗi SẼ gửi (sinh-anh.ts › chuanBiKeyframe) — chặn ở lyChanKeyframe trước
 // khi tiêu tiền, in ở sinh-anh-phim.mts --xem-prompt. Tự kiểm: kiem-prompt.test.mts
-/** Chữ có dấu tiếng Việt (model ảnh / video đọc tiếng Anh — tên khối, ghi chú đạo diễn tiếng Việt lọt vào là lời rác). */
-export const CO_TIENG_VIET = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+import { coTiengViet } from './kieu';   // MỘT luật nhận tiếng Việt với cổng ngôn ngữ (kieu.ts › shotLechNgonNgu) — không bắt oan 'Café'
 /** Bước 1 FLUX đọc tối đa ~512 token T5: quá ~300 từ thì phần cuối (phong cách, "No text") bị cắt. */
 export const TU_TOI_DA_FLUX = 300;
 /** chữ tả mặt / đầu — trừ 'eye-level' (góc máy) và 'face out of frame' (chính câu dặn không vẽ mặt) */
@@ -34,7 +33,7 @@ export function loiPrompt(buoc: BuocPrompt[], s: SoatPrompt): string[] {
     // bỏ tên riêng trước khi soi dấu: tên khai (cả tên tắt) + mọi chữ VIẾT HOA đầu (tên nhân vật ngoài khung được nhắc: 'turns from Hạ to Thần');
     // chữ thường có dấu mới là tiếng Việt lọt vào ('Màn trình chiếu' → 'trình chiếu', 'khẽ, chắc nịch')
     const tron = rieng.reduce((c, t) => c.split(t).join(' '), b.chu).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
-    if (CO_TIENG_VIET.test(tron)) out.push(`${b.ten}: lẫn tiếng Việt ${doan(tron, /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/)} — model đọc tiếng Anh: dùng tên en của vật / bỏ ghi chú tiếng Việt`);
+    if (coTiengViet(tron)) out.push(`${b.ten}: lẫn tiếng Việt ${doan(tron, /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/)} — model đọc tiếng Anh: dùng tên en của vật / bỏ ghi chú tiếng Việt`);
     const tu = b.chu.split(/\s+/).filter(Boolean).length;
     if (b.flux && tu > TU_TOI_DA_FLUX) out.push(`${b.ten}: dài ${tu} từ — FLUX đọc ~${TU_TOI_DA_FLUX} từ, phần cuối bị cắt (thường là câu phong cách / "No text"): rút gọn hậu cảnh, bỏ lặp`);
     for (const n of s.nguoi) {

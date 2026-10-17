@@ -1198,16 +1198,16 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -175,
-    330,
-    150
+    -160,
+    340,
+    155
    ],
    "nhin": [
-    -25,
-    372,
-    145
+    -10,
+    366,
+    160
    ],
-   "ong_kinh": 40,
+   "ong_kinh": 50,
    "khung": [
     "Vivian",
     "Thẻ nhân viên"
@@ -1234,7 +1234,8 @@
      ],
      "huong": -90,
      "dien": [
-      "dua_truoc_mat"
+      "gio_cao",
+      "dua_truoc_mat@0.4-0.7"
      ]
     },
     {

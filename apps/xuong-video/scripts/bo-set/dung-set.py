@@ -656,7 +656,8 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             ys = [min(1.0, max(0.0, y)) for y in ys]
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
         ten = ng_ or (o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name))
-        out.append({'nhan_vat': ten, 'bat_buoc': ten in bb_ten, 'trong_khung': trong,
+        # 'tam': toạ độ THẾ GIỚI (cm) của chủ thể lúc dựng — món đang cầm / đeo nằm ở bàn tay thật của rig, không ở toạ độ khai → đặt máy tay nhắm theo số này
+        out.append({'nhan_vat': ten, 'tam': [round(x / CM, 1) for x in tam], 'bat_buoc': ten in bb_ten, 'trong_khung': trong,
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
 

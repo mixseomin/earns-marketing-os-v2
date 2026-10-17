@@ -16,6 +16,9 @@ CM = 0.01  # Blender tính mét
 CHI_MB = os.environ.get('XV_CHI_MAT_BANG') == '1'   # chỉ vẽ mặt bằng (lượt song song riêng), bỏ render từng shot
 BO_MB = os.environ.get('XV_BO_MAT_BANG') == '1'     # phần song song: mặt bằng vẽ tí hon cho nhanh (lượt mb vẽ bản đủ)
 NHANH = os.environ.get('XV_NHANH') == '1'
+# BẢN NHÁP THÔ (anh 17/10/2026 "lâu thế à? sinh bản nháp thô thôi, sau dùng RunPod"): khung 540×960, ít mẫu — xem bố cục / máy / liền mạch
+# trên iMac trong vài phút. KHÔNG dùng làm keyframe (khung 540 bị phóng thành mềm): bản đẹp dựng lại --tat-ca trên máy thuê.
+THO = os.environ.get('XV_THO') == '1'
 TAI_SAN = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tai-san')   # tài sản CC0 (tai-tai-san.sh) — thiếu thì rơi về vật liệu dựng tay
 MESH_THAT = os.environ.get('XV_MESH_THAT') == '1'   # nhân vật = mesh thật (mesh/dung-nhan-vat.py) + khung màu render Cycles → chính ảnh render là keyframe
 if MESH_THAT:
@@ -280,7 +283,7 @@ def ve_mau(s, sh, ra):
     nen = tuple(s.world.node_tree.nodes['Background'].inputs['Color'].default_value); sm = s.world.node_tree.nodes['Background'].inputs['Strength'].default_value
     anh_sang_mau(s, sh, True)
     if MESH_THAT:   # render = keyframe: Cycles GPU, khử nhiễu, DOF macro
-        s.render.engine = 'CYCLES'; s.cycles.samples = 64; s.cycles.use_denoising = True
+        s.render.engine = 'CYCLES'; s.cycles.samples = 12 if THO else 64; s.cycles.use_denoising = True
         bat_gpu(s)
         lay_net(s.camera, sh)
     else: s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12
@@ -309,7 +312,7 @@ def dung_set():
     bpy.ops.object.light_add(type='SUN', location=(0, 0, 2)); bpy.context.object.data.energy = 3
     bpy.context.object.rotation_euler = Euler((math.radians(50), math.radians(-20), math.radians(20)))
     s.render.engine = 'CYCLES'; s.cycles.device = 'CPU'; s.cycles.samples = 10; s.cycles.use_denoising = True   # khung xám là khối phẳng màu: 10 mẫu + khử nhiễu ≈ 24 mẫu thô, nhanh ~2,5×
-    s.render.resolution_x, s.render.resolution_y = 1080, 1920   # khung màu = keyframe: đủ lớn cho model video (540 bị phóng lên thành mềm)
+    s.render.resolution_x, s.render.resolution_y = (540, 960) if THO else (1080, 1920)   # khung màu = keyframe: đủ lớn cho model video (540 bị phóng lên thành mềm) — nháp thô thì 540
     s.view_settings.view_transform = 'Standard'
     return s
 

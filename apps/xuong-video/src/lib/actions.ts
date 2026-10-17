@@ -1447,7 +1447,9 @@ export async function chonGiong(nhanVatId: number, model: string, voice: string)
   if (!model) return loi('chọn model giọng');
   const ds = await giongCua(model);
   if (ds.length && !ds.some((g) => g.id === voice)) return loi('giọng không có trong danh sách của model');
-  await db.execute(sql`UPDATE xv_nhan_vat SET giong_model = ${model}, giong_id = ${voice}, giong_mau_url = NULL, updated_at = now() WHERE id = ${nhanVatId}`);
+  // Giọng đã thử (giong_thu) → bản nghe của nó thành giọng mẫu luôn, không phải bấm nghe thử lại.
+  const thu = (await db.execute(sql`SELECT x->>'url' AS url FROM xv_nhan_vat, jsonb_array_elements(giong_thu) x WHERE id = ${nhanVatId} AND x->>'model' = ${model} AND x->>'voice' = ${voice} LIMIT 1`)) as unknown as Row[];
+  await db.execute(sql`UPDATE xv_nhan_vat SET giong_model = ${model}, giong_id = ${voice}, giong_mau_url = ${thu[0]?.url ? String(thu[0].url) : null}, updated_at = now() WHERE id = ${nhanVatId}`);
   return { ok: true, data: undefined };
 }
 
@@ -1467,7 +1469,7 @@ export async function ngheThuGiong(nhanVatId: number): Promise<Kq<number>> {
   const text = kt.ngon_ngu === 'vi' ? `Xin chào, mình là ${v.ten}. Đây là giọng của mình trong cả bộ phim.` : `Hi, I'm ${v.ten}. This is how I sound in the whole series.`;
   const g = giaGiongTheo(await dsMoHinhGiong(), v.giong_model, text.length);
   const gia = g ?? 0;
-  const job = await taoJob(db, { nhan: `Nghe thử giọng · ${v.ten} (${v.giong_id})${g == null ? ' · giá chưa rõ' : ''}`, nhan_vat_id: v.id, loai: 'am', provider: v.giong_model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: v.giong_model.startsWith('elevenlabs:') ? v.giong_model : `fal:${v.giong_model}`, request: { dich: 'giong_mau', gia, text } });
+  const job = await taoJob(db, { nhan: `Nghe thử giọng · ${v.ten} (${v.giong_id})${g == null ? ' · giá chưa rõ' : ''}`, nhan_vat_id: v.id, loai: 'am', provider: v.giong_model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: v.giong_model.startsWith('elevenlabs:') ? v.giong_model : `fal:${v.giong_model}`, request: { dich: 'giong_mau', gia, text, giong_model: v.giong_model, voice: v.giong_id } });
   await dayViecAm({ kieu: 'am', job, model: v.giong_model, input: await dauVaoGiongTheoModel(v.giong_model, { text, voice: v.giong_id, ngonNgu: kt.ngon_ngu, camXuc: 0, theLoai: kt.the_loai }), thuMuc: `giong/${v.id}` });
   return { ok: true, data: job };
 }

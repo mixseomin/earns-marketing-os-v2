@@ -48,6 +48,22 @@ export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Pr
             <Nut ly={(!v.giong_model && 'lưu giọng trước') || ((v.giong_model !== model || v.giong_id !== voice) && 'lưu giọng vừa chọn trước')} ban={ban === 'nghe'} title="Sinh một câu chào ngắn bằng giọng này (~$0.01)" onClick={async () => { setBan('nghe'); setLoi(''); const r = await ngheThuGiong(v.id); setBan(''); if (!r.ok) { setLoi(r.loi); return; } await onChanged(); }}>🎧 Nghe thử</Nut>
             {v.giong_mau_url && <NutNghe url={v.giong_mau_url} nhan="giọng mẫu" />}
           </div>
+          {!!v.giong_thu?.length && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ ...mono, marginBottom: 6 }}>Giọng đã thử ({v.giong_thu.length}) — nghe lại, bấm Dùng để đặt làm giọng của {v.ten}, không sinh lại</div>
+              {v.giong_thu.map((g) => {
+                const khoa = `${g.model}|${g.voice}`; const dang = g.model === v.giong_model && g.voice === v.giong_id;
+                return (
+                  <div key={khoa} title={g.cau} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)' }}>
+                    <NutNghe url={g.url} />
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><b style={{ fontSize: 13 }}>{g.voice}</b> <span style={mono}>{dsM.find((m) => m.key === g.model)?.ten ?? g.model.split('/').slice(-2).join('/')}</span></span>
+                    {dang ? <span style={mono}>✓ đang dùng</span>
+                      : <Nut ban={ban === khoa} onClick={async () => { setBan(khoa); setLoi(''); const r = await chonGiong(v.id, g.model, g.voice); setBan(''); if (!r.ok) { setLoi(r.loi); return; } setModel(g.model); setVoice(g.voice); await onChanged(); }}>Dùng</Nut>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Ngan>
       )}
     </>

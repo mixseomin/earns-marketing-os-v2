@@ -1,5 +1,5 @@
 // THỬ GIỌNG (casting giọng) tập mẫu tổng tài — bước 3: mỗi ứng viên đọc ĐÚNG một câu thoại thật của nhân vật, kèm chỉ dẫn diễn [dien_xuat]
-// như lúc sinh thoại thật (sinh-giong.ts). Ghi sổ job (sổ chi phí) nhưng KHÔNG gắn vào nhân vật — chọn xong mới chonGiong. TỐN TIỀN:
+// như lúc sinh thoại thật (sinh-giong.ts). Ghi sổ job + vào GIỌNG ĐÃ THỬ của nhân vật (hoan-tat.ts) — chọn trên thẻ nhân vật (🗣). TỐN TIỀN:
 //   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/du-lieu/tong-tai/thu-giong.mts
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -19,12 +19,13 @@ const THU: { ten: string; dien: string; loi: string; giong: string[] }[] = [
 ];
 const db = getDb() as Db; if (!db) throw new Error('không có DATABASE_URL');
 const dm = await dsMoHinhGiong();
+const idNv = async (ten: string) => Number(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${PHIM} AND ten = ${ten}`)) as unknown as Row[])[0]?.id) || undefined;
 const jobs: { job: number; nhan: string }[] = [];
 for (const t of THU) for (const v of t.giong) {
   const text = /eleven/.test(MODEL) && /v3/.test(MODEL) ? `[${t.dien}] ${t.loi}` : t.loi;   // chỉ ElevenLabs v3 đọc chỉ dẫn trong ngoặc (như sinh-giong.ts)
   const gia = giaGiongTheo(dm, MODEL, text.length) ?? 0;
   const nhan = `Thử giọng · ${t.ten} · ${v}`;
-  const job = await taoJob(db, { phim_id: PHIM, nhan, loai: 'am', provider: 'fal', model: `fal:${MODEL}`, request: { dich: 'thu_giong', gia, ten: t.ten, voice: v, text }, cents: gia });
+  const job = await taoJob(db, { phim_id: PHIM, nhan_vat_id: await idNv(t.ten), nhan, loai: 'am', provider: 'fal', model: `fal:${MODEL}`, request: { dich: 'thu_giong', gia, ten: t.ten, voice: v, text, giong_model: MODEL }, cents: gia });
   await dayViecAm({ kieu: 'am', job, model: MODEL, input: await dauVaoGiongTheoModel(MODEL, { text, voice: v, ngonNgu: 'vi', camXuc: 0, theLoai: 'phim_doc' }), thuMuc: `giong/thu-${PHIM}` });
   jobs.push({ job, nhan });
 }

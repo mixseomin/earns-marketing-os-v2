@@ -113,6 +113,13 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
       mo_ta: String(rq.prompt ?? ''), so_do: { model: String(j.model ?? '') }, nguon: { phim_id: Number(p[0].id), tap_id: Number(rq.tap_id) } }).catch((e) => console.error('[kho] lưu nhạc hỏng', e));
   }
   if (dich === 'giong_mau' && j.nhan_vat_id != null) await db.execute(sql`UPDATE xv_nhan_vat SET giong_mau_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);
+  // GIỌNG ĐÃ THỬ (anh 17/10/2026 "lưu cả các giọng lại, lát chọn lại trên studio"): nghe thử + lượt thử giọng (casting) vào danh sách của nhân vật,
+  // cùng model + giọng thì thay bản cũ. chonGiong lấy lại url ở đây → chọn lại không phải sinh lại.
+  if ((dich === 'giong_mau' || dich === 'thu_giong') && j.nhan_vat_id != null && rq.voice) {
+    const m = String(rq.giong_model ?? String(j.model ?? '').replace(/^fal:/, ''));
+    const dong = { model: m, voice: String(rq.voice), url: kq.url, cau: String(rq.text ?? ''), luc: new Date().toISOString() };
+    await db.execute(sql`UPDATE xv_nhan_vat SET giong_thu = coalesce((SELECT jsonb_agg(x) FROM jsonb_array_elements(giong_thu) x WHERE NOT (x->>'model' = ${m} AND x->>'voice' = ${dong.voice})), '[]'::jsonb) || jsonb_build_array(${JSON.stringify(dong)}::jsonb), updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);
+  }
   return true;
 }
 export const thuHangDoi = (job = 0) => guiHangDoi({ job, model: '', prompt: '', thamChieuUrl: [], tiLe: '1:1', thuMuc: 'thu', thu: true });

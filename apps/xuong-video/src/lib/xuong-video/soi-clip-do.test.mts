@@ -1,6 +1,6 @@
 // Tự kiểm soi-clip-do.ts: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/soi-clip-do.test.mts
 import assert from 'node:assert';
-import { hsv, mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, loiTuBienDang, loiDanBienDang, N_KHUNG_BD } from './soi-clip-do';
+import { hsv, mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, loiTuBienDang, loiDanBienDang, giaoBienDang, N_KHUNG_BD } from './soi-clip-do';
 
 const anh = (mau: [number, number, number][], n: number[]) => { const a: number[] = []; mau.forEach((m, k) => { for (let i = 0; i < n[k]!; i++) a.push(...m); }); return new Uint8Array(a); };
 const XANH: [number, number, number] = [40, 80, 200], DA: [number, number, number] = [220, 170, 130], TRANG: [number, number, number] = [245, 245, 245], XAM: [number, number, number] = [90, 90, 95];
@@ -47,3 +47,5 @@ assert.deepStrictEqual(bd, ['chữ tự in trên đồ vật từ giây 1.3: Jet
 assert.deepStrictEqual(loiTuBienDang([], 6), []);
 assert.ok(loiDanBienDang('blue jeans').includes('blue jeans') && loiDanBienDang('').includes(String(N_KHUNG_BD)));
 assert.ok(loiDanBienDang('x', 'split frame old vs new').includes('split frame old vs new') && !loiDanBienDang('x').includes('MEANT'), 'ý đồ shot chỉ có khi truyền');
+assert.deepStrictEqual(giaoBienDang([{ khung: 3, loai: 'co_the_meo', mo_ta: 'a' }, { khung: 5, loai: 'vat_the_la', mo_ta: 'b' }], [{ khung: 4, loai: 'co_the_meo', mo_ta: 'c' }]).map((x) => x.khung), [3], 'chỉ giữ loại cả hai lượt cùng thấy');
+assert.deepStrictEqual(giaoBienDang([{ khung: 3, loai: 'co_the_meo', mo_ta: 'a' }], []), []);

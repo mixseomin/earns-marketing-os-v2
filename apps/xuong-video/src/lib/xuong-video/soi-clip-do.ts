@@ -94,3 +94,6 @@ export function loiTuBienDang(ds: LoiBienDang[], dai: number): string[] {
   }
   return [...ra.values()];
 }
+/** Hai lượt soi ĐỘC LẬP, chỉ giữ loại lỗi CẢ HAI cùng thấy (khung lấy của lượt đầu). Hiệu chỉnh 17/10/2026: một lượt báo nhầm 4/14 clip tốt #61
+ *  (bé gái đi ra khỏi khung, ông cố ý đeo dây đeo quần) mà vẫn bắt đủ clip lỗi thật — lỗi thật lượt nào cũng thấy, báo nhầm thì lúc có lúc không. */
+export const giaoBienDang = (a: LoiBienDang[], b: LoiBienDang[]): LoiBienDang[] => a.filter((x) => b.some((y) => y.loai === x.loai));

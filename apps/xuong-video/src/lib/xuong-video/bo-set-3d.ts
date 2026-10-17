@@ -203,7 +203,8 @@ const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, 
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 /** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
-export const BAN_MAY = 4;   // 3–4 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI), thêm OTS / two / insert
+export const BAN_MAY = 5;   // 5: bề ngang đo vuông góc hướng máy
+//   // 3–4 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI), thêm OTS / two / insert
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 /** CỠ CẢNH NGƯỜI THẬT (anh 17/10/2026, previs tổng tài: shot "cận" ra toàn thân): PHAN_KHUNG viết cho nhân vật Tango tí hon (cận = ôm cả khối,
  *  nhắm giữa người). Người (khối 'nguoi', đứng) thì cận / trung cận / trung cảnh là một DẢI cơ thể tính từ đỉnh đầu — chuẩn ngành: CU đầu + vai,
@@ -218,7 +219,10 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const ds = (chu.length ? chu : o.vi_tri).flatMap((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return [v.tam, ...(v.den ? [v.den] : [])].map((p) => ({ x: p[0]!, y: p[1]!, z: p[2] ?? 0, h, w: c[0]! })); });
   const cx = ds.reduce((a, d) => a + d.x, 0) / ds.length, cy = ds.reduce((a, d) => a + d.y, 0) / ds.length;
   const H = Math.max(...ds.map((d) => d.z + d.h)) - Math.min(...ds.map((d) => d.z));
-  const W = Math.max(...ds.map((d) => d.x + d.w / 2)) - Math.min(...ds.map((d) => d.x - d.w / 2));
+  // Bề NGANG đo VUÔNG GÓC hướng máy (trước 17/10/2026 luôn đo theo trục x của phòng: máy nhìn dọc trục x thì hai người đứng đối mặt theo y
+  // bị tính "rộng 40 cm" → máy dí sát, two-shot trống trơn). Phía a: máy ở tâm + (sin a, −cos a) → trục ngang khung = (cos a, sin a).
+  const a0 = ((o.phia ?? 0) * Math.PI) / 180; const ngangCua = (d: { x: number; y: number }) => d.x * Math.cos(a0) + d.y * Math.sin(a0);
+  const W = Math.max(...ds.map((d) => ngangCua(d) + d.w / 2)) - Math.min(...ds.map((d) => ngangCua(d) - d.w / 2));
   let cz = Math.min(...ds.map((d) => d.z)) + H * 0.5;
   const tanV = 18 / ong, tanH = (18 * 9 / 16) / ong;   // nửa khung dọc / ngang trên tiêu cự
   let f = PHAN_KHUNG[kt.co_canh ?? ''] ?? 0.4;

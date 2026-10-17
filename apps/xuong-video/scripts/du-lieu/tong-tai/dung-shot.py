@@ -185,7 +185,7 @@ shot('5.4', C5, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'ngang
      'Cận cổ tay Thần trên mặt bàn: tay áo xô lên, lộ chuỗi hạt ngọc cùng màu với vòng tay của Hạ; cắt đen', [],
      [bc(THAN, 'ngo_vuc', 'ngo_vuc')],
      {'tay': True, 'dat': [-60, 580, 96], 'nhin': [-15, 650, 89], 'ong_kinh': 85, 'khung': ['Chuỗi hạt ngọc', THAN],   # sát mặt bàn từ phía tây nam (cùng phía máy #21), nhắm chuỗi hạt theo toạ độ ĐO (khung_xam.kiem[].tam −15, 650, 91)
-      'vi_tri': [vt(THAN, [-40, 715, 0], 0, dien=['chong_ban'], do_deo='thin pale-green jade bead bracelet on the left wrist, shirt cuff pulled back so it shows', nhay='cận chèn: tay áo đã xô lên lộ chuỗi hạt (giữa #21 và #22)'), vt('Chuỗi hạt ngọc', [-15, 650, 91], 0, cam=THAN, deo='cotay_t')]},   # sổ người: chuỗi hạt LỘ ở shot này (khung 3D thấy nó)   # ĐEO ở cổ tay trái (khớp rig) — không khai deo thì máy nhét vào lòng bàn tay phải
+      'vi_tri': [vt(THAN, [-40, 715, 0], 0, dien=['chong_ban'], trang_phuc='Com-lê đen ba mảnh', do_deo='thin pale-green jade bead bracelet on the left wrist, shirt cuff pulled back so it shows', nhay='cận chèn: tay áo đã xô lên lộ chuỗi hạt (giữa #21 và #22)'), vt('Chuỗi hạt ngọc', [-15, 650, 91], 0, cam=THAN, deo='cotay_t')]},   # sổ người: chuỗi hạt LỘ ở shot này (khung 3D thấy nó)   # ĐEO ở cổ tay trái (khớp rig) — không khai deo thì máy nhét vào lòng bàn tay phải
      [THAN, PH, 'Chuỗi hạt ngọc'])
 
 # MÁY TỰ ĐẶT (17/10/2026 — khung 3D đầu tiên: máy gõ tay nằm trong người phụ, dí sát mặt, cắt mất nhân vật): giữ HƯỚNG máy đã khai (phía quanh

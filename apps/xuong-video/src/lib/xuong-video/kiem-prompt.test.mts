@@ -22,4 +22,6 @@ assert.equal(loiPrompt([{ ten: 'bước 1', chu: 'Steel watch; a thin pale-green
 assert.equal(loiPrompt([{ ten: 'bước 1', chu: 'The cuff pulled back shows a pale-green jade bead bracelet on the wrist.' }], vong).length, 0);
 // báo oan cũ: tên gọi tắt 'Hạ', 'eye-level shot', 'face out of frame' không phải lỗi
 assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `Eye-level shot. Moment: Hạ steps in. Hạ's hand only (face out of frame), wearing ${VEST}.` }], { ...s, co_canh: 'insert' }), []);
+assert.deepEqual(loiPrompt([{ ten: 'bước 1', chu: `Moment: Vivian turns from Hạ to Thần, wearing ${VEST}.` }], s), []);   // tên ngoài khung viết hoa → qua
+assert.equal(loiPrompt([{ ten: 'bước 1', chu: `Màn trình chiếu, wearing ${VEST}.` }], s).length, 1);   // tên khối: 'trình chiếu' chữ thường có dấu → chặn
 console.log('kiem-prompt: ok');

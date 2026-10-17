@@ -31,7 +31,9 @@ export function loiPrompt(buoc: BuocPrompt[], s: SoatPrompt): string[] {
   const du = [...(s.ten_rieng ?? []), ...s.nguoi.map((n) => n.ten), ...s.vat.map((v) => v.ten)].filter(Boolean);
   const rieng = [...new Set([...du, ...du.map((t) => t.trim().split(/\s+/).pop() ?? '')])].filter(Boolean).sort((a, b) => b.length - a.length);
   for (const b of buoc) {
-    const tron = rieng.reduce((c, t) => c.split(t).join(' '), b.chu);   // bỏ tên riêng trước khi soi dấu
+    // bỏ tên riêng trước khi soi dấu: tên khai (cả tên tắt) + mọi chữ VIẾT HOA đầu (tên nhân vật ngoài khung được nhắc: 'turns from Hạ to Thần');
+    // chữ thường có dấu mới là tiếng Việt lọt vào ('Màn trình chiếu' → 'trình chiếu', 'khẽ, chắc nịch')
+    const tron = rieng.reduce((c, t) => c.split(t).join(' '), b.chu).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
     if (CO_TIENG_VIET.test(tron)) out.push(`${b.ten}: lẫn tiếng Việt ${doan(tron, /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/)} — model đọc tiếng Anh: dùng tên en của vật / bỏ ghi chú tiếng Việt`);
     const tu = b.chu.split(/\s+/).filter(Boolean).length;
     if (b.flux && tu > TU_TOI_DA_FLUX) out.push(`${b.ten}: dài ${tu} từ — FLUX đọc ~${TU_TOI_DA_FLUX} từ, phần cuối bị cắt (thường là câu phong cách / "No text"): rút gọn hậu cảnh, bỏ lặp`);

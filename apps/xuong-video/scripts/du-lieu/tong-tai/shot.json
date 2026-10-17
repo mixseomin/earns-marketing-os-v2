@@ -474,7 +474,7 @@
      ],
      "huong": 180,
      "dien": [
-      "quy_mot_goi@0.35-0.6"
+      "mc_quy_xuong@0.3-1"
      ]
     },
     {
@@ -593,7 +593,10 @@
       760,
       0
      ],
-     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch"
+     "trang_phuc": "black tailored three-piece suit, crisp white shirt, no tie, steel wristwatch",
+     "dien": [
+      "mc_sai_buoc"
+     ]
     },
     {
      "ten": "Lâm Hạ",
@@ -1035,6 +1038,7 @@
      "huong_den": -90,
      "trang_phuc": "fitted burgundy office dress, hair in a sleek low bun, red lipstick",
      "dien": [
+      "mc_sai_buoc@0-0.55",
       "giat@0.55-0.8"
      ]
     },
@@ -1564,7 +1568,10 @@
      "trang_phuc": "tailored white power suit, white silk blouse, hair down, confident",
      "trang": "",
      "do_deo": "jade bangle on the left wrist",
-     "nhay": "họp HĐQT 3 giờ chiều — đã thay vest trắng"
+     "nhay": "họp HĐQT 3 giờ chiều — đã thay vest trắng",
+     "dien": [
+      "mc_sai_buoc"
+     ]
     },
     {
      "ten": "Luật sư Trần",
@@ -1579,7 +1586,10 @@
       150,
       0
      ],
-     "trang_phuc": "navy three-piece suit, gold-rimmed glasses, leather briefcase"
+     "trang_phuc": "navy three-piece suit, gold-rimmed glasses, leather briefcase",
+     "dien": [
+      "mc_di_bo"
+     ]
     }
    ],
    "phia": 129.8
@@ -1910,7 +1920,8 @@
      ],
      "huong_den": -90,
      "dien": [
-      "chong_ban@0.55-0.85"
+      "mc_di_bo@0-0.5",
+      "mc_chong_ghe@0.5-1"
      ]
     }
    ],

@@ -20,7 +20,7 @@ case "$VIEC" in
         tar -xJf $TEP && rm -f $TEP && mv blender-$BAN-linux-x64 blender; fi
       mkdir -p /root/xv/scripts/bo-set; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || echo 'không thấy nvidia-smi'"
     "$DIR/scripts/bo-set/tai-tai-san.sh" >/dev/null
-    rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
+    rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" "$DIR/scripts/bo-set/mocap" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
     $SSH "/opt/blender/blender -b --factory-startup --python-expr \"import bpy; p=bpy.context.preferences.addons['cycles'].preferences; [print('THIET BI', k, [d.name for d in (p.get_devices_for_type(k) or [])]) for k in ('OPTIX','CUDA')]\" 2>/dev/null | grep THIET" ;;
   do)
     D=${4:-$(ls -d ~/xuong-video-render/tap19/09-* | head -1)}

@@ -5,7 +5,7 @@
 #   n = dung_nguoi('Bố', cao=175, mau=(0.8, 0.7, 0.6, 1))   → dict khớp
 #   tu_the(n, 'dung' | 'ngoi' | 'nam')  ·  buoc(n, pha)  (chu kỳ đi, pha 0..1)  ·  nhin(n, do)  (quay đầu, độ)
 #   di(n, tu, den, f0, f1, toc=110)  — đi từ chỗ tu tới den (cm) trong khung f0..f1, chân tay đánh nhịp theo quãng đường
-import bpy, bmesh, math
+import bpy, bmesh, math, os
 
 # Tỉ lệ (phần chiều cao) — số đo nhân trắc trung bình người lớn (Drillis & Contini).
 TL = dict(chan=0.039, cang=0.246, dui=0.245, hong=0.10, bung=0.10, nguc=0.13, co=0.052, dau=0.13,
@@ -148,11 +148,25 @@ TU_THE_NGUOI = {
     'thuyet_trinh': {'vai_p': (-50, 28, 0), 'khuyu_p': (-30, 0, 0), 'dau': (0, 0, -10)},                        # tay mở về phía màn chiếu
 }
 
-def ap_dien(n, ds, t):
-    """Đặt tư thế theo mã diễn (vi_tri.dien) lúc t (0..1) — chồng lên dáng hiện tại (đứng / ngồi / đang bước). Trả tên các tư thế đang có hiệu lực."""
+_MC = None
+def _mocap():
+    global _MC
+    if _MC is None:
+        import importlib.util as _iu
+        _s = _iu.spec_from_file_location('mocap', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mocap.py')); _MC = _iu.module_from_spec(_s); _s.loader.exec_module(_MC)
+    return _MC
+
+def ap_dien(n, ds, t, giay=4.0):
+    """Đặt tư thế theo mã diễn (vi_tri.dien) lúc t (0..1) — chồng lên dáng hiện tại (đứng / ngồi / đang bước). Trả tên các tư thế đang có hiệu lực.
+    Mã 'mc_<ten>[@a-b]' = chuyển động thật từ kho mocap CMU (mocap.py › MOCAP), phát đúng tốc độ thật theo `giay` của shot."""
     dang = []
     for x in ds or []:
         ten, _, mt = str(x).partition('@')
+        if ten.startswith('mc_'):
+            a, b = (0.0, 1.0)
+            if mt: a_, _, b_ = mt.partition('-'); a, b = float(a_), (float(b_) if b_ else 1.0)
+            if _mocap().ap_mocap(n, ten[3:], t, a, b, giay): dang.append(ten)
+            continue
         if ten not in TU_THE_NGUOI: continue
         if mt:
             a, _, b = mt.partition('-'); a = float(a); b = float(b) if b else min(1.0, a + 0.2)

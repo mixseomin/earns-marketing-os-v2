@@ -791,6 +791,10 @@ DONG_TAC = {
     'gio_cao': 'giơ cao món cho cả phòng thấy', 'dua_truoc_mat': 'đưa món lên trước mặt người đối diện', 'hat': 'hất / ném mạnh ra trước',
     'giat': 'vươn tay giật', 'chong_ban': 'hai tay chống mặt bàn, ngẩng nhìn', 'cui_nguoi': 'cúi sát về phía trước', 'om_thung': 'ôm thùng trước bụng',
     'khoanh_tay': 'khoanh tay', 'gioi_thieu': 'đưa tay giới thiệu người bên cạnh', 'thuyet_trinh': 'tay mở về phía màn chiếu',
+    # MOCAP THẬT (kho CMU, mesh/mocap.py › MOCAP): 'mc_<ten>[@a-b]'
+    'mc_cai_nhau': 'mocap: cãi nhau, vung tay giận', 'mc_giai_thich': 'mocap: nói chuyện, giải thích bằng tay', 'mc_chong_ghe': 'mocap: chống tay, nhìn trừng',
+    'mc_quy_xuong': 'mocap: quỳ xuống', 'mc_uong': 'mocap: uống', 'mc_chi_tay': 'mocap: chỉ tay / vẫy', 'mc_dung_day': 'mocap: đứng dậy khỏi ghế',
+    'mc_di_bo': 'mocap: đi bộ', 'mc_sai_buoc': 'mocap: sải bước',
     'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
     'lan_tron': 'cuộn tròn thành quả bóng lăn (chân tay / mắt / tóc thu vào)', 'truot': 'trượt nằm (xe trượt / băng / dây) — thân nằm di chuyển', 'nga_ngoi': 'ngã ngồi ra sau', 'nga': 'mốc cú ngã đứng → nằm (cần nam_den)', 'day': 'mốc đứng dậy nằm → đứng (cần nam_den: false)', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',
@@ -992,7 +996,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 n_ = NGUOI[ten]
                 if di: ng().buoc(n_, (p - a).xy.length / (2 * 0.41 * n_['cao']))
                 else: ng().tu_the(n_, n_.get('kieu', 'dung'))
-                ng().ap_dien(n_, nv.get('dien'), t)   # rig: tư thế theo mã diễn, chồng lên dáng đứng / bước
+                ng().ap_dien(n_, nv.get('dien'), t, giay)   # rig: tư thế theo mã diễn (+ mocap thật), chồng lên dáng đứng / bước
                 for kk in ng().KHOP_KEY: n_[kk].keyframe_insert('rotation_euler', frame=f)
                 n_['hong'].keyframe_insert('location', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo

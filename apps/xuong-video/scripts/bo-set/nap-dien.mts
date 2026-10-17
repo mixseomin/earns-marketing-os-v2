@@ -11,7 +11,7 @@ import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../../src/lib/r2';
 import { taoJob } from '../../src/lib/xuong-video/doc-db';
 import { chupTruoc } from '../../src/lib/xuong-video/hoan-tac';
-import type { KhungXam } from '../../src/lib/xuong-video/kieu';
+import { chatLieuPhim, type KhungXam, type KinhThanh } from '../../src/lib/xuong-video/kieu';
 
 const gia = (k: string) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? '').split('=')[1] ?? '';
 const canh = Number(gia('canh')); const dir = gia('thu-muc');
@@ -22,7 +22,7 @@ const gon = tep.includes('khoa-0.jpg') && tep.includes('so-khung.txt');
 const khung = gon ? Array.from({ length: Number((await readFile(path.join(dir, 'so-khung.txt'), 'utf8')).trim()) }, (_, i) => `f${String(i + 1).padStart(4, '0')}.png`) : tep.filter((f) => /^f\d{4}\.png$/.test(f)).sort();
 if (khung.length < 2) { console.log('thư mục không có khung f####.png (hoặc khoa-*.jpg + so-khung.txt)'); process.exit(1); }
 const db = getDb()!;
-const r = (await db.execute(sql`SELECT thu_tu, khung_xam FROM xv_canh WHERE id = ${canh}`)) as unknown as { thu_tu: number; khung_xam: KhungXam | null }[];
+const r = (await db.execute(sql`SELECT c.thu_tu, c.khung_xam, p.kinh_thanh FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canh}`)) as unknown as { thu_tu: number; khung_xam: KhungXam | null; kinh_thanh: KinhThanh | null }[];
 if (!r[0]) { console.log('không có shot này'); process.exit(1); }   // shot ngoài bộ set (mở đầu vũ trụ / thành phố — mo-dau.py) chưa có khung_xam: tạo mới bên dưới
 const ma = Date.now().toString(36);
 // 5 khung khoá cùng công thức dung-set.py › dien_shot (in 'KHOA i f'): f = 1 + round(t·(N−1)).
@@ -38,6 +38,17 @@ for (const [i, f] of chon.entries()) {
 }
 const clip = await uploadToR2(`xuong-video/khung-xam/${canh}-${ma}-dien.mp4`, await readFile(path.join(dir, 'dien.mp4')), 'video/mp4');
 const goc: KhungXam = r[0].khung_xam ?? ({ ma: `dien-${ma}`, xam: url[0]!, kiem: [], thay: [], luc: new Date().toISOString() } as unknown as KhungXam);
+// PHIM NGƯỜI THẬT (17/10/2026, tập mẫu tổng tài): bản diễn 3D là THAM CHIẾU CHUYỂN ĐỘNG (khung giữa cho video nhiều khung + clip cho đường 3D → video),
+// KHÔNG phải hình của phim — không gán keyframe / video (gán vào thì bước sinh keyframe người thật bỏ qua shot vì "đã có keyframe").
+const thamChieu = chatLieuPhim(r[0].kinh_thanh) === 'nguoi_that';
+if (thamChieu) {
+  const kxT: KhungXam = { ...goc, giua: url.slice(1, 4), ...(clip ? { dien: clip } : {}) };
+  await chupTruoc(db, { bang: 'xv_canh', id: canh, cot: ['khung_xam'], moTa: 'bản diễn 3D (tham chiếu chuyển động — phim người thật)', nguoi: 'script nap-dien' });
+  await taoJob(db, { nhan: `Bản diễn 3D (tham chiếu) · ${khung.length} khung · cảnh #${r[0].thu_tu}`, canh_id: canh, loai: 'anh', provider: 'blender', model: 'blender:cycles', request: { dich: 'dien_3d_tham_chieu', khoa: url, clip }, xong: true });
+  await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kxT)}::jsonb, updated_at = now() WHERE id = ${canh}`);
+  console.log(JSON.stringify({ ok: true, canh, khoa: url, clip, tham_chieu: true }));
+  process.exit(0);
+}
 const kx: KhungXam = { ...goc, mau: url[0]!, mau_ket: url[4]!, giua: url.slice(1, 4), ...(clip ? { dien: clip } : {}) };
 await chupTruoc(db, { bang: 'xv_canh', id: canh, cot: ['keyframe_url', 'keyframe_uv', 'keyframe_ket', 'khung_xam', 'trang_thai', 'video_url', 'video_phien_ban', 'nguon_video'], moTa: 'keyframe + video = bản diễn Blender', nguoi: 'script nap-dien' });
 await taoJob(db, { nhan: `Keyframe · bản diễn Blender (${khung.length} khung) · cảnh #${r[0].thu_tu}`, canh_id: canh, loai: 'anh', provider: 'blender', model: 'blender:cycles', request: { dich: 'dien_3d', khoa: url, clip }, xong: true });

@@ -632,6 +632,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
     nguoi_cua = lambda n: n[3:].rsplit('.', 1)[0] if n.startswith('NG ') and '.' in n else None
     for o in nv_obj:
         ng_ = nguoi_cua(o.name)
+        cam_ = next((x.get('cam') for x in sh.get('nhan_vat', []) if x.get('ten') and (o.name == x['ten'] or o.name.startswith(x['ten'] + ' ') or o.name == f"NV {x['ten']}")), None)
         phan = [x for x in bpy.data.objects if x.name.startswith(f"NG {ng_}.")] if ng_ else [o]
         pts = [x.matrix_world @ Vector(c) for x in phan for c in x.bound_box]
         lo = Vector([min(q[i] for q in pts) for i in range(3)]); hi = Vector([max(q[i] for q in pts) for i in range(3)])
@@ -646,6 +647,8 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             nhom = o.name.rsplit(' ', 1)[0] if o.name[-1:].isdigit() else o.name   # phần cùng nhóm (đế–cột–chao đèn) không tính là che
             if not (hit and ob) or ob.name == o.name or ob.name.startswith(nhom + ' ') or ob.name.startswith(o.name + '·'): continue
             if ng_ and (ob.name.startswith(f"NG {ng_}.") or ob.name == f"NV {ng_}"): continue
+            # món đang CẦM / ĐEO: bàn tay, cổ tay của chính người cầm che một phần là tự nhiên, không tính là bị che
+            if cam_ and (ob.name.startswith(f"NG {cam_}.") or ob.name == f"NV {cam_}"): continue
             k_ = ob.name.split('·')[0]; k_ = f"NV {nguoi_cua(k_)}" if nguoi_cua(k_) else k_
             che[k_] = che.get(k_, 0) + 1
         vt = world_to_camera_view(s, cam, tam)

@@ -1,0 +1,31 @@
+// LUẬT PROMPT VIDEO học từ clip hỏng (anh 17/10/2026: "tự động hoàn thành, fix làm sao ra được video không bị lỗi"). Mỗi luật là một kiểu
+// prompt đã làm model vẽ hỏng, có ca thật. Dùng ở hai chỗ: lint prompt trước khi tiêu tiền và lời dặn cho lượt viết lại prompt (tu-sua-clip.ts).
+// Thuần — tự kiểm: tu-sua-clip-do.test.mts.
+export type LuatPrompt = { key: string; re: RegExp; vi: string; en: string };
+export const LUAT_PROMPT: LuatPrompt[] = [
+  { key: 'cam_vat', re: /\b(pick(s|ing)?\s+(up\s+)?(a|an|the|something|it)\b|pick(s|ing)?\s+\w+\s+(off|from|up)\b|grab(s|bing)?\s+(a|an|the)\s+(?!waistband|belt)|holding\s+(a|an)\s+\w+)/i,
+    vi: 'nhặt / cầm đồ vật — model làm vật hiện ra, biến mất, lơ lửng hoặc méo tay (#120 shot 4: điện thoại hiện rồi mất, tất lơ lửng)',
+    en: 'Do not have the person pick up, hold or handle any object; keep hands empty and resting on the body or the product.' },
+  { key: 'dung_day', re: /\b(stand(s|ing)?\s+(back\s+)?up|rise(s)?\s+(up|from)|get(s)?\s+up\s+from)\b/i,
+    vi: 'đứng dậy từ ngồi xổm / ngồi — pha chuyển lớn làm quần phồng, đũng tụt (#120 shot 4 bản đầu)',
+    en: 'Do not change pose from squatting/sitting to standing (or back); hold one pose with only small natural movement.' },
+  { key: 'cap_khoa', re: /\b(unbutton|unzip|open(s|ing)?\s+(the\s+)?(fly|zip|button)|stretch(es|ing)?\s+(it|the\s+waistband)\s+wide|pull(s|ing)?\s+(the\s+)?waistband\s+(open|away|down))/i,
+    vi: 'kéo giãn / mở cạp, khoá — model mở khoá quần, lộ đồ lót có chữ (#120 shot 3)',
+    en: 'Never open, unbutton or pull the waistband away from the body; the button and zip stay closed and the inside of the garment is never visible.' },
+  { key: 'tu_nhay_cam', re: /\b(underwear|boxers?|briefs|nothing\s+(under|beneath)|naked|undress)/i,
+    vi: 'từ nhạy cảm — Google chặn ở khâu an toàn, không ra clip (#120 shot 3 lần 2)',
+    en: 'Do not mention underwear, nudity or anything beneath the clothing.' },
+];
+/** Luật bị prompt vi phạm (rỗng = sạch). */
+export const lintPrompt = (p: string): LuatPrompt[] => LUAT_PROMPT.filter((l) => l.re.test(p));
+/** Lời dặn viết lại prompt video sau một lần hỏng: giữ đúng ý shot + chữ màn, tránh lỗi vừa gặp, theo đủ luật. */
+export function loiDanSuaPrompt(o: { prompt: string; chu: string; loi: string[]; daThu: string[] }): string {
+  return `You rewrite ONE short motion prompt for an image-to-video model (Veo). The first frame (keyframe) is fixed; the prompt only describes the motion over a few seconds.
+Current prompt: ${o.prompt}
+On-screen text this shot must support (keep the same meaning): ${o.chu || '(none)'}
+The last generated clip had these defects (fix their cause): ${o.loi.join(' | ') || '(generation was refused)'}
+${o.daThu.length ? `Prompts already tried that FAILED (do not repeat their approach): ${o.daThu.map((x) => `"${x}"`).join(' ; ')}\n` : ''}Rules:
+${LUAT_PROMPT.map((l) => `- ${l.en}`).join('\n')}
+- Prefer one simple, small, continuous action that is easy to render; keep the camera steady.
+- Keep the product and the person as in the keyframe. Plain English, one or two sentences, under 60 words.`;
+}

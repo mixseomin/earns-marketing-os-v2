@@ -41,7 +41,8 @@
    "demo_hinh": "wearing the light blue stretch jeans he drops into a deep squat and stands up, the thighs have room, nothing pulls",
    "vi_du_1_hinh": "he climbs onto a high bar stool in one move, the jeans stretch over his thighs",
    "vi_du_2_hinh": "he sits on a brewery bench with legs apart, relaxed, no tight pull at the thighs",
-   "vi_du_3_hinh": "he jogs up a flight of outdoor stairs two at a time"
+   "vi_du_3_hinh": "he jogs up a flight of outdoor stairs two at a time",
+   "giong": "American man, 35, relaxed, slightly frustrated then relieved, casual"
   },
   "1B": {
    "nguoi": "American man, 38, big muscular thighs, average height, trimmed beard, wears a navy henley",
@@ -53,7 +54,8 @@
    "demo_hinh": "in the light blue stretch jeans he turns side-on in the mirror: straight clean leg, room at the thigh, then lunges forward easily",
    "vi_du_1_hinh": "he steps up onto a curb and crosses the street, the straight leg falls clean",
    "vi_du_2_hinh": "he sits at a coffee shop table, one ankle on the knee, no pull at the thigh",
-   "vi_du_3_hinh": "he crouches to tie his shoe on the sidewalk and stands up smoothly"
+   "vi_du_3_hinh": "he crouches to tie his shoe on the sidewalk and stands up smoothly",
+   "giong": "American man, 38, matter-of-fact, confident, casual"
   },
   "1C": {
    "nguoi": "American man, 40, heavy thighs, slight belly, average height, short hair, wears a casual blue polo",
@@ -65,7 +67,8 @@
    "demo_hinh": "he pulls the light blue stretch jeans on in one go, buttons them easily, sits down on the sofa and leans back relaxed",
    "vi_du_1_hinh": "he bends down to pick up the delivery box and stands up, the jeans move with him",
    "vi_du_2_hinh": "he sits on the porch steps with a coffee, relaxed waist, no pinching",
-   "vi_du_3_hinh": "he walks to his car and climbs in, the jeans stretch over his thighs"
+   "vi_du_3_hinh": "he walks to his car and climbs in, the jeans stretch over his thighs",
+   "giong": "American man, 40, warm, a bit cautious then reassured"
   },
   "2A": {
    "nguoi": "American man, 30, average build, short hair, usually lives in gray sweatpants and a hoodie",
@@ -77,7 +80,8 @@
    "demo_hinh": "on the couch in the light blue stretch jeans he pulls his knees up and sits cross-legged, as comfortable as sweatpants",
    "vi_du_1_hinh": "he flops onto the couch and stretches out, the jeans stay comfortable",
    "vi_du_2_hinh": "at the backyard barbecue he crouches by the grill to flip burgers",
-   "vi_du_3_hinh": "he plays catch with a friend in the yard, moving freely"
+   "vi_du_3_hinh": "he plays catch with a friend in the yard, moving freely",
+   "giong": "American man, 30, laid-back, easygoing, light humor"
   },
   "2B": {
    "nguoi": "American man, 45, average build with a slight belly, short graying hair, wears a light blue button-down shirt",
@@ -89,7 +93,8 @@
    "demo_hinh": "in the light blue stretch jeans he leans back in the office chair, crosses his legs, comfortable, no pull",
    "vi_du_1_hinh": "he gets in and out of the car in one easy move",
    "vi_du_2_hinh": "he sits at his desk for hours, relaxed shoulders, waist lies flat",
-   "vi_du_3_hinh": "he bends down to pick up papers from under the desk and sits back up"
+   "vi_du_3_hinh": "he bends down to pick up papers from under the desk and sits back up",
+   "giong": "American man, 45, tired of discomfort, dry humor, warm"
   },
   "2C": {
    "nguoi": "American man, 42, solid build, neat short hair, wears a crisp white oxford shirt",
@@ -101,7 +106,8 @@
    "demo_hinh": "in the light blue stretch jeans and the oxford shirt he checks the mirror: clean, structured, looks like classic trousers, then squats easily",
    "vi_du_1_hinh": "he walks into the restaurant looking sharp, the jeans keep their shape",
    "vi_du_2_hinh": "he sits at the dinner table, the fabric stays smooth, no sagging",
-   "vi_du_3_hinh": "he stands up to greet a friend, the jeans look as crisp as when he sat down"
+   "vi_du_3_hinh": "he stands up to greet a friend, the jeans look as crisp as when he sat down",
+   "giong": "American man, 42, measured, discerning, confident"
   },
   "3A": {
    "nguoi": "American man, 38, strong working build, sun-tanned forearms, short hair, wears a worn work shirt and boots",
@@ -113,7 +119,8 @@
    "demo_hinh": "in the light blue stretch jeans he squats deep to lift a board, then climbs a ladder, the seams hold",
    "vi_du_1_hinh": "he kneels on one knee to measure a board, the denim stretches",
    "vi_du_2_hinh": "he hops up onto the pickup truck bed in one move",
-   "vi_du_3_hinh": "in the garage he crouches under a workbench to grab a tool"
+   "vi_du_3_hinh": "in the garage he crouches under a workbench to grab a tool",
+   "giong": "American man, 38, blunt working-guy tone, gravelly"
   },
   "4A": {
    "nguoi": "American man, 27, slim-athletic build, styled short hair, wears a fitted black tee and a light jacket",
@@ -125,7 +132,8 @@
    "demo_hinh": "in the light blue stretch jeans and the jacket he checks the mirror, clean straight leg, he nods with confidence",
    "vi_du_1_hinh": "he walks down the city street with confidence, the jeans look sharp",
    "vi_du_2_hinh": "he meets a date outside a restaurant and smiles",
-   "vi_du_3_hinh": "he sits on a bar stool, relaxed, the jeans keep a clean line"
+   "vi_du_3_hinh": "he sits on a bar stool, relaxed, the jeans keep a clean line",
+   "giong": "American man, 27, upbeat, confident, conversational"
   },
   "MA": {
    "nguoi": "American man, 50, average build, short graying hair, wears a casual flannel shirt",
@@ -137,7 +145,8 @@
    "demo_hinh": "he opens the delivery box, pulls on the light blue stretch jeans and sits down, comfortable",
    "vi_du_1_hinh": "he picks up the package at the door and smiles",
    "vi_du_2_hinh": "he sits back at the kitchen table in the new jeans, relaxed",
-   "vi_du_3_hinh": "he walks out the door in the new jeans"
+   "vi_du_3_hinh": "he walks out the door in the new jeans",
+   "giong": "American man, 50, friendly, practical, straightforward"
   }
  },
  "dan_toc": {

@@ -22,7 +22,7 @@ const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensi
 // giới hạn để ko bị lặp vô hạn"): bài chưa DUYỆT → trả về người phụ trách site (tra-ve/<id>.json + tin Telegram) → họ sửa, nộp lại.
 // Mỗi url tối đa TRAN_LUOT lượt chấm chưa DUYỆT; hết lượt thì hàng chờ từ chối nộp, chờ anh `--mo-khoa <url>`.
 export const TRAN_LUOT = 3;
-const PHU_TRACH = { 'ratesbyroom.com': 'lan', 'staymarlow.com': 'lan', 'ratesbycar.com': 'lan', 'hotelrateguide.com': 'lan', 'trafficbuyersguide.com': 'lan' };   // host (cả subdomain) → người phụ trách
+const PHU_TRACH = { 'ratesbyroom.com': 'long', 'staymarlow.com': 'long', 'ratesbycar.com': 'long', 'hotelrateguide.com': 'long', 'trafficbuyersguide.com': 'long' };   // host (cả subdomain) → người phụ trách
 export const phuTrach = (url) => { const h = (() => { try { return new URL(url).hostname; } catch { return ''; } })(); const k = Object.keys(PHU_TRACH).find((d) => h === d || h.endsWith(`.${d}`)); return k ? PHU_TRACH[k] : null; };
 const TRA = () => path.join(VP(), 'tra-ve');
 const tenNguoi = (id) => { try { return fs.readFileSync(path.join(GOC, 'cong-ty', 'nhan-su', id, 'SOUL.md'), 'utf8').match(/^ten:\s*(.+)$/m)[1].trim(); } catch { return id; } };
@@ -179,7 +179,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     const u = 'https://ratesbyroom.com/a/', ds = (...k) => k.map((ket) => ({ url: u, ket }));
     t.equal(soLuot(u, ds('SUA_LAI', 'KHONG_DUYET')), 2); t.equal(soLuot(u, ds('SUA_LAI', 'DUYET', 'SUA_LAI')), 1, 'DUYỆT đếm lại');
     t.equal(soLuot(u, ds('SUA_LAI', 'SUA_LAI', 'SUA_LAI', 'MO_KHOA')), 0, 'mở khoá đếm lại'); t.equal(soLuot(u, [{ url: 'https://x.com/', ket: 'SUA_LAI' }]), 0, 'url khác không tính');
-    t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'lan'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('lan'), 'Lan');
+    t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'long'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('long'), 'Long');
     console.log('kiem-bai: tự kiểm đạt'); process.exit(0);
   }
   if (lay('--mo-khoa')) { moKhoa(lay('--mo-khoa')); console.log(`đã mở khoá ${lay('--mo-khoa')} — được thêm ${TRAN_LUOT} lượt`); }

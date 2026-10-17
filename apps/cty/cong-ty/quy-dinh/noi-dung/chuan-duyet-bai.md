@@ -62,7 +62,7 @@ Chữ hay mà trông như tường chữ thì người đọc vẫn bỏ đi. B�
 1. Chạy self-check của skill gốc (references/ai-tells.md) + skill `humanizer` + luật `human-voice` (không gạch ngang dài, không từ cấm).
 2. Tự hỏi: người đọc đến từ video dừng lại ở đâu? Có chỗ nào họ thấy mình trong đó không? Có câu nào chỉ là chữ lấp chỗ?
 3. **Nộp Phòng Nội dung của cty** (cty.on.tc) để duyệt — bài mới KHÔNG lên trang khi phòng chưa DUYỆT. Phòng chấm theo chính tệp này.
-4. **Chưa DUYỆT thì bài trả về người phụ trách site** (`--tra-ve <người>`), người đó sửa rồi nộp lại. Tối đa 3 lượt chấm chưa DUYỆT mỗi url; hết lượt thì hàng chờ từ chối, chờ anh quyết.
+4. **Chưa DUYỆT thì bài trả về người phụ trách site** (site affiliate AdFond → Long, Xưởng Kênh Aff; `--tra-ve <người>`), người đó sửa rồi nộp lại. Tối đa 3 lượt chấm chưa DUYỆT mỗi url; hết lượt thì hàng chờ từ chối, chờ anh quyết.
 
 # Phần 2 · Giọng văn (chặn cứng thì ít nhất SỬA LẠI)
 

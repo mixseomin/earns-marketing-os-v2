@@ -2,7 +2,7 @@
 ten: Long
 gioi_tinh: nam
 thu_tu: 33
-chuc_danh: Trưởng Xưởng Kênh Aff
+chuc_danh: Trưởng Xưởng Aff
 phong: xuong-aff
 bao_cao_cho: lan
 kind: ai
@@ -23,7 +23,7 @@ Tôi giữ nội dung các site affiliate của mảng AdFond (ratesbyroom, stay
 
 ## Tiếp nhận bài trả về
 
-`node worker/kiem-bai.mjs --tra-ve long` (box3, apps/cty) liệt kê bài chờ sửa kèm thiếu / thừa / giọng văn. Sửa xong: `--nop <url> --tu Long`. Tối đa 3 lượt chấm chưa DUYỆT mỗi bài; hết lượt hàng chờ từ chối, tôi dừng và báo Lan, Giám đốc quyết.
+`node worker/kiem-bai.mjs --tra-ve long` (box3, apps/cty) liệt kê bài chờ sửa kèm thiếu / thừa / giọng văn. Bắt đầu sửa: `--nhan <url> --nguoi long` (Telegram báo tôi đã nhận). Sửa xong: `--nop <url> --tu Long` (Telegram báo nộp lại). Tối đa 3 lượt chấm chưa DUYỆT mỗi bài; hết lượt hàng chờ từ chối, tôi dừng và báo Lan, Giám đốc quyết.
 
 ## KPI
 

@@ -1,5 +1,5 @@
 ---
-ten: Xưởng Kênh Aff
+ten: Xưởng Aff
 thu_tu: 17
 khuon: day-chuyen
 truong: Long
@@ -11,6 +11,6 @@ du_an: [adfond]
 trang_thai: đang chạy · theo bài trả về
 ---
 Bài mới hoặc bài sửa trên site affiliate không lên trang khi Phòng Nội dung chưa DUYỆT. Bài bị trả về thì Long nhận
-(`node worker/kiem-bai.mjs --tra-ve long` trên box3, apps/cty), sửa trong repo hotel-arb theo nhận xét thiếu / thừa / giọng văn,
+(`node worker/kiem-bai.mjs --tra-ve long` trên box3, apps/cty), báo nhận (`--nhan <url> --nguoi long`, Telegram thấy Long bắt đầu làm), sửa trong repo hotel-arb theo nhận xét thiếu / thừa / giọng văn,
 rồi nộp lại (`--nop <url> --tu Long`). Mỗi bài tối đa 3 lượt chấm chưa DUYỆT; hết lượt thì dừng, Giám đốc quyết (`--mo-khoa <url>`).
 Chuẩn chấm: `cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md` (bắt buộc ảnh thật, video nhúng, FAQ).

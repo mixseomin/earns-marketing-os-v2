@@ -13,6 +13,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const VP = () => path.join(DATA(), 'vp-noi-dung');
 const CHO = () => path.join(VP(), 'hang-cho'), XONG = () => path.join(VP(), 'da-kiem');
 const CTY = 'https://cty.on.tc';
+const CTY_LINK = `<a href="${CTY}/phong/xuong-aff">↗ cty · Xưởng Aff</a>`;
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const KET = { DUYET: '✅ DUYỆT', SUA_LAI: '✏️ SỬA LẠI', KHONG_DUYET: '⛔ KHÔNG DUYỆT' };
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless',
@@ -25,7 +26,20 @@ export const TRAN_LUOT = 3;
 const PHU_TRACH = { 'ratesbyroom.com': 'long', 'staymarlow.com': 'long', 'ratesbycar.com': 'long', 'hotelrateguide.com': 'long', 'trafficbuyersguide.com': 'long' };   // host (cả subdomain) → người phụ trách
 export const phuTrach = (url) => { const h = (() => { try { return new URL(url).hostname; } catch { return ''; } })(); const k = Object.keys(PHU_TRACH).find((d) => h === d || h.endsWith(`.${d}`)); return k ? PHU_TRACH[k] : null; };
 const TRA = () => path.join(VP(), 'tra-ve');
-const tenNguoi = (id) => { try { return fs.readFileSync(path.join(GOC, 'cong-ty', 'nhan-su', id, 'SOUL.md'), 'utf8').match(/^ten:\s*(.+)$/m)[1].trim(); } catch { return id; } };
+// Tên người trong tin: "Long [Xưởng Aff]" (anh 17/10/2026) — tên + phòng (bỏ chữ "Phòng " đầu). Nhận id hoặc tên; không khớp ai thì giữ nguyên.
+const fmTep = (t, k) => (t.match(new RegExp(`^${k}:\\s*(.+)$`, 'm')) || [])[1]?.trim();
+export const tenNguoi = (ai) => {
+  const NS = path.join(GOC, 'cong-ty', 'nhan-su');
+  try {
+    for (const id of fs.readdirSync(NS)) {
+      let t; try { t = fs.readFileSync(path.join(NS, id, 'SOUL.md'), 'utf8'); } catch { continue; }
+      const ten = fmTep(t, 'ten'); if (id !== ai && ten !== ai) continue;
+      let ph = ''; try { ph = fmTep(fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${fmTep(t, 'phong')}.md`), 'utf8'), 'ten').replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, ''); } catch { /* chưa có phòng */ }
+      return ph ? `${ten} [${ph}]` : ten;
+    }
+  } catch { /* không đọc được sổ nhân sự */ }
+  return ai;
+};
 const docJson = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []);
 /** Số lượt chấm chưa DUYỆT của url kể từ lần DUYỆT / mở khoá gần nhất. */
 export function soLuot(url, ds = docJson(XONG())) {
@@ -117,10 +131,31 @@ export const diemCuoi = (kq, d) => (d.chan_cung.length ? Math.min(kq.diem, 6) : 
 /** Tin Telegram theo khuôn anh đặt: "<người> gửi bài <url>. KQ: thiếu…, thừa… Kết luận: …". */
 export function tinKiem({ tu, url, kq, d, ket, ten = 'Ngọc' }) {
   const ds = (nhan, xs) => (xs.length ? `\n<b>${nhan}:</b>\n${xs.slice(0, 6).map((x) => `• ${esc(x)}`).join('\n')}` : '');
-  return `📝 <b>${esc(tu)}</b> gửi bài ${url ? esc(url) : '(bản nháp)'}\n<b>KQ (${esc(ten)} chấm ${kq.diem}/10):</b> ${esc(kq.tom_tat)}`
+  return `📝 <b>${esc(tenNguoi(tu))}</b> gửi bài ${url ? esc(url) : '(bản nháp)'}\n<b>KQ (${esc(tenNguoi(ten))} chấm ${kq.diem}/10):</b> ${esc(kq.tom_tat)}`
     + ds('Thiếu', kq.thieu) + ds('Thừa', kq.thua) + ds('Giọng văn', kq.giong)
     + `\n<b>Máy đo:</b> ${d.so_chu} chữ · ${d.so_hinh} khối hình (${d.so_anh_that} ảnh thật, ${d.so_video} video, ${d.so_khung_vi_du} khung ví dụ) · ${d.so_muc} mục · ${d.so_vi_du} ví dụ trích · FAQ ${d.co_faq ? 'có' : 'không'} · phần "nếu đã lỡ" ${d.co_neu_da_lo ? 'có' : 'không'} · nút ${d.co_nut ? 'có' : 'không'}${d.chan_cung.length ? ` · <b>chặn cứng:</b> ${esc(d.chan_cung.join('; '))}` : ''}`
     + `\n<b>Kết luận: ${KET[ket]}</b>\n<a href="${CTY}">↗ cty · Phòng Nội dung</a>`;
+}
+
+/** Telegram chủ đề "📝 Nội dung" — dùng chung cho nhịp chấm, lệnh nhận sửa, lệnh nộp lại. Chạy tay trên box thì tự đọc /root/.secrets/mine-tg.env. */
+async function tgNoiDung() {
+  if (!process.env.TG_BOT_TOKEN) try { for (const l of fs.readFileSync('/root/.secrets/mine-tg.env', 'utf8').split('\n')) { const m = l.match(/^(?:export\s+)?(TG_BOT_TOKEN|TG_CHAT)=["']?([^"'\s]+)/); if (m) process.env[m[1]] = m[2]; } } catch { /* không phải box */ }
+  const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
+  const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
+  const tep = path.join(DATA(), 'noi-dung-tg.json'); let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
+  if (!st.topic) { const j = await tg('createForumTopic', { name: '📝 Nội dung' }); if (j.ok) st.topic = j.result.message_thread_id; fs.writeFileSync(tep, JSON.stringify(st)); }
+  const bao = (text, tin) => tg('sendMessage', { message_thread_id: st.topic, text, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...(tin ? { reply_parameters: { message_id: tin, allow_sending_without_reply: true } } : {}) });
+  return { tg, st, bao };
+}
+
+/** Người phụ trách bắt đầu sửa (anh 17/10/2026: "nhận sửa thì cũng báo lên tele để nhìn thấy nó bắt đầu làm"): đánh dấu nhận + tin trả lời ngay dưới tin chấm. */
+export async function nhanSua(url, nguoi) {
+  const x = docJson(TRA()).find((v) => v.url === url && (!nguoi || v.phu_trach === nguoi));
+  if (!x) throw new Error(`không có bài chờ sửa ${url}${nguoi ? ` của ${nguoi}` : ''} (xem --tra-ve)`);
+  x.nhan_luc = new Date().toISOString(); fs.writeFileSync(path.join(TRA(), `${x.id}.json`), JSON.stringify(x, null, 1));
+  const { bao } = await tgNoiDung();
+  await bao(`🛠 <b>${esc(tenNguoi(x.phu_trach))}</b> nhận sửa ${esc(url)} · lượt ${x.luot}/${TRAN_LUOT}\n${CTY_LINK}`, x.tin);
+  return x;
 }
 
 /** Nhịp (box3, Ngọc): xử mọi bài trong hàng chờ. env: TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
@@ -128,10 +163,7 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
   const cho = fs.existsSync(CHO()) ? fs.readdirSync(CHO()).filter((f) => f.endsWith('.json')).sort() : [];
   if (!cho.length) return 'hàng chờ trống';
   if (!model) throw new Error(`${nguoi} chưa có model trong SOUL.md`);
-  const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
-  const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
-  const tep = path.join(DATA(), 'noi-dung-tg.json'); let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
-  if (!st.topic) { const j = await tg('createForumTopic', { name: '📝 Nội dung' }); if (j.ok) st.topic = j.result.message_thread_id; fs.writeFileSync(tep, JSON.stringify(st)); }
+  const { tg, st } = await tgNoiDung();
   const { vpBao } = await import('./vp.mjs'); fs.mkdirSync(XONG(), { recursive: true });
   const ra = [];
   for (const f of cho) {
@@ -148,7 +180,7 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     const pt = phuTrach(b.url), luot = soLuot(b.url);
     if (ket !== 'DUYET') {
       const het = luot >= TRAN_LUOT, tenPt = pt ? tenNguoi(pt) : null;
-      if (!het && pt) { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSync(path.join(TRA(), `${b.id}.json`), JSON.stringify({ id: b.id, url: b.url, phu_trach: pt, luot, ket, kq, luc: new Date().toISOString() }, null, 1)); }
+      if (!het && pt) { fs.mkdirSync(TRA(), { recursive: true }); fs.writeFileSync(path.join(TRA(), `${b.id}.json`), JSON.stringify({ id: b.id, url: b.url, phu_trach: pt, luot, ket, kq, tin: j.ok ? j.result.message_id : null, luc: new Date().toISOString() }, null, 1)); }
       await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: j.ok ? { message_id: j.result.message_id } : undefined, parse_mode: 'HTML',
         text: het ? `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — dừng vòng sửa, chờ anh quyết.`
           : pt ? `↩️ Giao <b>${esc(tenPt)}</b> sửa theo nhận xét trên rồi nộp lại · lượt ${luot}/${TRAN_LUOT}` : `↩️ ${esc(b.url)} chưa có người phụ trách (PHU_TRACH trong kiem-bai.mjs) · lượt ${luot}/${TRAN_LUOT}` });
@@ -179,16 +211,19 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     const u = 'https://ratesbyroom.com/a/', ds = (...k) => k.map((ket) => ({ url: u, ket }));
     t.equal(soLuot(u, ds('SUA_LAI', 'KHONG_DUYET')), 2); t.equal(soLuot(u, ds('SUA_LAI', 'DUYET', 'SUA_LAI')), 1, 'DUYỆT đếm lại');
     t.equal(soLuot(u, ds('SUA_LAI', 'SUA_LAI', 'SUA_LAI', 'MO_KHOA')), 0, 'mở khoá đếm lại'); t.equal(soLuot(u, [{ url: 'https://x.com/', ket: 'SUA_LAI' }]), 0, 'url khác không tính');
-    t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'long'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('long'), 'Long');
+    t.equal(phuTrach('https://bath.ratesbyroom.com/x'), 'long'); t.equal(phuTrach('https://evilratesbyroom.com/'), null); t.equal(tenNguoi('long'), 'Long [Xưởng Aff]'); t.equal(tenNguoi('Ngọc'), 'Ngọc [Nội dung]'); t.equal(tenNguoi('Claude (phiên X)'), 'Claude (phiên X)');
     console.log('kiem-bai: tự kiểm đạt'); process.exit(0);
   }
   if (lay('--mo-khoa')) { moKhoa(lay('--mo-khoa')); console.log(`đã mở khoá ${lay('--mo-khoa')} — được thêm ${TRAN_LUOT} lượt`); }
+  if (lay('--nhan')) { const x = await nhanSua(lay('--nhan'), lay('--nguoi')); console.log(`đã nhận sửa ${x.url} (lượt ${x.luot}/${TRAN_LUOT}) — đã báo Telegram`); }
   if (a.includes('--tra-ve')) {   // việc sửa đang chờ người phụ trách: node worker/kiem-bai.mjs --tra-ve [lan]
     const ai = lay('--tra-ve'), ds = docJson(TRA()).filter((x) => !ai || ai.startsWith('--') || x.phu_trach === ai);
     console.log(ds.length ? ds.map((x) => `${x.url} · ${x.phu_trach} · lượt ${x.luot}/${TRAN_LUOT} · ${x.ket}\n  thiếu: ${x.kq.thieu.join(' | ') || '-'}\n  thừa: ${x.kq.thua.join(' | ') || '-'}\n  giọng: ${x.kq.giong.join(' | ') || '-'}`).join('\n') : 'không có bài nào chờ sửa');
   }
   if (lay('--nop') != null || lay('--html') != null) {
     const html = lay('--html') ? fs.readFileSync(lay('--html'), 'utf8') : null;
-    console.log(`đã nộp ${nopBai({ url: lay('--nop') || '', tu: lay('--tu') || 'Không rõ', html })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
+    const url = lay('--nop') || '', tu = lay('--tu') || 'Không rõ', luot = soLuot(url);
+    console.log(`đã nộp ${nopBai({ url, tu, html })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
+    if (luot) { const { bao } = await tgNoiDung().catch(() => ({})); await bao?.(`📤 <b>${esc(tenNguoi(tu))}</b> nộp lại ${esc(url)} · lượt ${luot + 1}/${TRAN_LUOT}\n${CTY_LINK}`); }
   }
 }

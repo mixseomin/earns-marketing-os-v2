@@ -42,7 +42,8 @@ cảm xúc đó ở câu đầu, rồi trả lời nhanh hơn họ kịp chán. 
 
 Chữ hay mà trông như tường chữ thì người đọc vẫn bỏ đi. Bài cho traffic mạng xã hội phải có:
 - **Hình ngay màn đầu**: ảnh / minh hoạ / khung ví dụ nhìn thấy trước khi cuộn (không chỉ tiêu đề + chữ).
-- **Nhúng chính video kéo người đọc tới** (nếu bài là đích của video) — người vừa xem video thấy đúng thứ đó, tin ngay.
+- **Chuẩn SEO, chặn cứng (anh 17/10/2026):** mọi bài phải có đủ **ảnh thật** (`<img>`, có alt mô tả, không tính icon / khung chữ), **video nhúng** (YouTube / Vimeo / TikTok / `<video>`) và **mục FAQ** (tiêu đề "Questions people ask" / FAQ). Thiếu một trong ba thì không DUYỆT, khung ví dụ không thay được ảnh.
+- **Video nên là chính video kéo người đọc tới** (nếu bài là đích của video) — người vừa xem video thấy đúng thứ đó, tin ngay.
 - **Ví dụ trông như thật**: tin nhắn trong khung bong bóng / màn điện thoại, dấu hiệu được khoanh / tô ngay trên ví dụ — không phải đoạn chữ thụt lề.
 - **Mật độ hình**: tối đa ~300 chữ giữa hai khối nhìn được (hình, khung ví dụ, bảng có khung, câu đố, checklist).
 - **Bảng / câu đố / checklist có kiểu dáng** (khung, màu đúng / sai), không phải chữ trơn xếp cột.
@@ -64,7 +65,7 @@ Chữ hay mà trông như tường chữ thì người đọc vẫn bỏ đi. B�
 
 # Phần 2 · Giọng văn (chặn cứng thì ít nhất SỬA LẠI)
 
-- **Chặn cứng hình thức:** không có khối hình nào (ảnh / video / khung ví dụ có kiểu dáng) hoặc quá ~300 chữ mỗi khối hình → không được DUYỆT. Máy đo đếm sẵn (so_hinh, chu_moi_hinh); bạn chỉ thấy chữ, nên tin số máy đo cho phần hình.
+- **Chặn cứng hình thức:** không có khối hình nào (ảnh / video / khung ví dụ có kiểu dáng) hoặc quá ~300 chữ mỗi khối hình → không được DUYỆT. Máy đo đếm sẵn (so_hinh, chu_moi_hinh); bạn chỉ thấy chữ, nên tin số máy đo cho phần hình. Thiếu ảnh thật (so_anh_that = 0), thiếu video (so_video = 0) hoặc thiếu FAQ (co_faq = false) cũng là chặn cứng. Bài còn chặn cứng thì điểm tối đa 6/10.
 
 - **Chặn cứng:** gạch ngang dài (— hoặc –) trong chữ; từ máy: delve, leverage, utilize, crucial, vital, comprehensive, robust,
   streamline, moreover, furthermore, seamless, game-changer, cutting-edge, state-of-the-art, "in today's world", "in the realm of",

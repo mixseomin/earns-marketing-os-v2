@@ -69,7 +69,7 @@ export function thieuVat3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu
     if (c.khung_xam?.thay && (moNhac || CAN.has(c.ky_thuat?.co_canh ?? '')) && !co.some((k) => thay.has(k.ten) || nhanVat.some((a) => a.ten === k.ten && a.loai === 'nhan_vat' && thay.has(k.ten))))
       out.push(`${moNhac ? 'khoảnh khắc mở' : 'chữ shot cận'} nhắc ${g.ten} (${co.map((k) => k.ten).join(', ')}) mà khung 3D không thấy — dời máy / khai vào may_3d.khung cho nó lọt khung`);
     // QUÁ NHỎ ĐỂ AI GIỮ: món khoảnh khắc mở nhắc (không phải người) trải < 5% khung ở shot không phải toàn cảnh → AI bỏ qua (#11 dây thẻ trong tay Vivian, cú qua vai)
-    else if (moNhac && c.khung_xam?.thay && !['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '')) {
+    else if (moNhac && c.khung_xam?.thay && [...CAN, 'ots'].includes(c.ky_thuat?.co_canh ?? '')) {   // cận + qua vai; trung / toàn cảnh đồ cầm tay nhỏ là bình thường (#19 bút)
       const trai = Math.max(0, ...c.khung_xam.thay.filter((t) => co.some((k) => k.ten === t.ten) && !nhanVat.some((a) => a.ten === t.ten && a.loai === 'nhan_vat')).map((t) => Math.max(t.hop[2]! - t.hop[0]!, t.hop[3]! - t.hop[1]!)));
       if (co.every((k) => !nhanVat.some((a) => a.ten === k.ten && a.loai === 'nhan_vat')) && trai < 0.05)
         out.push(`khoảnh khắc mở nhắc ${g.ten} mà trong khung 3D nó chỉ trải ${Math.round(trai * 100)}% khung — quá nhỏ, AI sẽ bỏ qua: máy gần hơn / ống dài hơn cho món đó rõ`);

@@ -304,7 +304,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     const thayAll = bc.canh.khung_xam?.thay ?? [];
     const chinhNguoi = trongS.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten);
     const phuNguoi = thayAll.filter((t) => t.nguoi && t.pt >= 0.5 && !bc.nhanVat.some((n) => n.ten === t.ten)).length;
-    const soNguoi = ket ? '' : soNguoiCau(chinhNguoi, phuNguoi);
+    const soNguoi = ket ? 'The same people as in the start frame — nobody new appears.' : soNguoiCau(chinhNguoi, phuNguoi);
     // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
     const k1: Khoi[] = [
       khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything; no props, cables, screens, people or hands that are not in Image 1.`),

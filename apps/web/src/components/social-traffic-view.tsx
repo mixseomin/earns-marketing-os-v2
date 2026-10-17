@@ -9,15 +9,15 @@ import { DataTable, EmptyState, GuardedButton, Panel, Pill, Segmented, SimpleTab
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
-import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StTrang } from '@/lib/social-traffic-demo';
+import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive } from '@/lib/social-traffic';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 
-type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'trang' | 'tien';
+type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'landing' | 'trang' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
   // Icon trước chữ (card #1407, YDNI "trực quan trước chữ"): nhận ra mục bằng mắt, chữ để xác nhận.
   { key: 'tong', label: '📊 Tổng quan' }, { key: 'goc', label: '🎯 Góc' }, { key: 'sx', label: '🎬 Sản xuất' },
-  { key: 'kenh', label: '📺 Kênh' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
+  { key: 'kenh', label: '📺 Kênh' }, { key: 'landing', label: '🛬 Landing' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
 ];
 const TT_GOC = { chua: ['var(--fg-3)', '○ Chưa làm'], dang: ['var(--accent)', '🧪 Đang thử'], thang: ['var(--ok)', '💰 Ra tiền'], chet: ['var(--bad)', '⏹ Dừng'] } as const;
 const TT_KENH = { song: ['var(--ok)', '✅ Sống'], co: ['var(--warn)', '🚩 Dính cờ'], khoa: ['var(--bad)', '🔒 Bị khoá'], dung: ['var(--fg-3)', '✂️ Đã cắt'] } as const;
@@ -119,6 +119,18 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'lam', header: '', cell: (g) => (g.tt === 'chet'
       ? <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => sua((x) => { const y = x.goc.find((z) => z.id === g.id); if (y) y.tt = 'chua'; }, `“${g.ten}” về lại Chưa làm`)}>↻ Thử lại</GuardedButton>
       : <GuardedButton className="btn" reason={laLive && GAC_LIVE} onClick={() => taoLo(g)}>🎬 Tạo lô 5 video</GuardedButton>) },
+  ];
+  const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : '—');
+  const cotLanding: DataColumn<StLanding>[] = [
+    { key: 'url', header: 'Trang đích', cell: (x) => <a href={`https://href.li/?${x.url}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><SiteFavicon url={x.url} size={14} />{x.site}<span style={nho}>{x.path}</span></span></a> },
+    { key: 'nguon', header: 'Ai trỏ tới', cell: (x) => <span style={nho}>{x.nguon}{x.soVideo ? ` · ${x.soVideo} video` : ''}</span> },
+    { key: 'online', header: 'Đang xem', align: 'right', sortValue: (x) => x.online, cell: (x) => (x.online ? <b style={{ color: 'var(--ok)' }}>● {x.online}</b> : '—') },
+    { key: 'phien7', header: 'Phiên 7 ngày', align: 'right', sortValue: (x) => x.phien7, cell: (x) => so(x.phien7) },
+    { key: 'khach7', header: 'Khách', align: 'right', sortValue: (x) => x.khach7, cell: (x) => so(x.khach7) },
+    { key: 'doc', header: 'Đọc ≥ 50%', align: 'right', sortValue: (x) => (x.phien7 ? x.doc50 / x.phien7 : 0), cell: (x) => <span title={`${x.doc50}/${x.phien7} phiên`}>{pct(x.doc50, x.phien7)}</span> },
+    { key: 'bam', header: 'Bấm ra', align: 'right', sortValue: (x) => x.bamRa, cell: (x) => <span title={`${x.bamRa}/${x.phien7} phiên bấm sang trang đối tác`}>{so(x.bamRa)} <span style={nho}>{pct(x.bamRa, x.phien7)}</span></span> },
+    { key: 'nguonKhach', header: 'Nguồn khách (7 ngày)', cell: (x) => <span style={nho}>{x.nguonKhach.map((n) => `${n.ten} ${n.so}`).join(' · ') || '—'}</span> },
+    { key: 'phien30', header: '30 ngày', align: 'right', sortValue: (x) => x.phien30, cell: (x) => so(x.phien30) },
   ];
   const cotKenh: DataColumn<StKenh>[] = [
     { key: 'ten', header: 'Kênh', align: 'left', sortValue: (k) => k.ten, cell: (k) => <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', columnGap: 8, alignItems: 'center' }}><span style={{ gridRow: 'span 2' }}><Logo ten={k.nenTang} co={20} /></span><span>{k.ten}</span><span style={nho}>{k.nenTang} · {k.nhom} · {k.ngonNgu}</span></span> },
@@ -237,6 +249,12 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             <span style={nho}>Mỗi kênh một thiết bị + một proxy riêng. Luật cắt: sau {ST_CAT_NGAY} ngày trung vị dưới {ST_CAT_TRUNG_VI} lượt xem thì dừng, dồn video sang kênh đang lên.</span></>
         : trong('Chưa có kênh nào', 'Kênh lấy từ vault tài khoản (Resources › Accounts), mỗi kênh một thiết bị + proxy riêng. Có kênh đầu tiên thì bảng hiện trung vị lượt xem, click về site, hoa hồng.'))}
 
+      {muc === 'landing' && (!laLive
+        ? trong('Landing chỉ có số thật', 'Bật LIVE: mỗi trang đích mà video của các máy và kênh trỏ tới, kèm phiên 7 ngày, đọc tới đâu, bấm sang shop.')
+        : live.landing.length
+          ? <><DataTable rows={live.landing} columns={cotLanding} getRowKey={(x) => x.url} persistKey="st_landing" minWidth={980} searchText={(x) => `${x.url} ${x.nguon}`} searchPlaceholder="Tìm trang / máy / kênh…" />
+              <span style={nho}>Trang đích tự hiện khi một máy hay một kênh trỏ link tới nó. Số đọc từ page-events trên site (trang khách vào, 7 ngày, bỏ lượt đội nhà): đọc = cuộn ≥ 50%, bấm ra = bấm sang trang đối tác.</span></>
+          : trong('Chưa có trang đích', 'Chưa máy / kênh nào trỏ link tới trang nào.'))}
       {muc === 'trang' && laLive && <SocialTrucTiep />}
       {muc === 'trang' && laLive && <h3 style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--fg-2)' }}>Trang đích các kênh đang trỏ tới</h3>}
       {muc === 'trang' && !laLive && <span style={nho}>Khách trực tiếp trên site aff (phễu, bảng phiên, dòng thời gian từng khách) là số thật — bật LIVE để xem.</span>}

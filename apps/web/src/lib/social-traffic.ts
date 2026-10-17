@@ -7,13 +7,14 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
-import type { StBan, StGoc, StKenh, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
+import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
+import { docSoLanding } from './social-truc-tiep';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[] }
+export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[] }
 
 type SpNhom = { id: number; ten: string; ai: number };
 type SpGoc = { id: number; ten: string; loai: string; cach_tim: string; so_qc: number | null; suc?: { diem: number }; bc?: { nguoi: number } | null; bat_ngo?: boolean; dang_len?: boolean };
@@ -41,7 +42,7 @@ export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [];
   let nhom: SpNhom[];
   try { nhom = await docDanhSach(); }
-  catch (e) { const l = [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`]; return { luc, goc: [], nhom: 0, loi: l, ...(await docKenhThat(l)), lo: await docLoStudio(l) }; }
+  catch (e) { const l = [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`]; return { luc, goc: [], nhom: 0, loi: l, ...(await docKenhThatVaLanding(l)), lo: await docLoStudio(l) }; }
   const ra: StGoc[][] = new Array(nhom.length);
   let tiep = 0;
   await Promise.all(Array.from({ length: Math.min(SONG_SONG, nhom.length) }, async () => {
@@ -51,7 +52,30 @@ export async function getSocialLive(): Promise<SocialLive> {
     }
   }));
   // xếp chung mọi nhóm theo Sức mạnh (spy chấm trong từng nhóm, 0–100 cùng thang) — góc mạnh nhất toàn kho lên đầu
-  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThat(loi)), lo: await docLoStudio(loi) };
+  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThatVaLanding(loi)), lo: await docLoStudio(loi) };
+}
+
+/* LANDING: trang đích = link mà video của các máy (xv_may_video.dang.link) và kênh (kenh_sp.dich) trỏ tới — thêm máy / kênh mới là trang tự hiện,
+   không khai tay. Số phiên đọc sổ phiên khách adfond (page-events.js trên site: trang VÀO, nguồn, cuộn, bấm sang shop). */
+async function docKenhThatVaLanding(loi: string[]) {
+  const k = await docKenhThat(loi);
+  return { ...k, landing: await docLanding(k.trang, loi) };
+}
+async function docLanding(trang: StTrang[], loi: string[]): Promise<StLanding[]> {
+  const d = getDb(); if (!d) return [];
+  try {
+    const may = (await d.execute(sql`SELECT v.dang->>'link' AS link, m.ten, count(*)::int AS so FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
+      WHERE NOT v.luu_tru AND coalesce(v.dang->>'link', '') <> '' GROUP BY 1, 2`)) as unknown as { link: string; ten: string; so: number }[];
+    const theo = new Map<string, { nguon: string[]; soVideo: number }>();
+    const them = (url: string, nguon: string, so = 0) => { try { const u = new URL(url); const key = `${u.host.replace(/^www\./, '')}${u.pathname}`; const x = theo.get(key) ?? { nguon: [], soVideo: 0 }; if (!x.nguon.includes(nguon)) x.nguon.push(nguon); x.soVideo += so; theo.set(key, x); } catch { /* link hỏng */ } };
+    for (const r of may) them(r.link, `máy ${r.ten}`, r.so);
+    for (const t of trang) them(t.slug.startsWith('http') ? t.slug : `https://${t.slug}`, t.kenhTen ? `kênh ${t.kenhTen}` : 'kênh');
+    const ds = [...theo].map(([key, x]) => { const i = key.indexOf('/'); return { site: key.slice(0, i), path: key.slice(i) || '/', ...x }; });
+    let so = new Map(); try { so = await docSoLanding(ds); } catch (e) { loi.push(`số landing (adfond): ${(e as Error).message}`); }
+    return ds.map((x): StLanding => { const s = so.get(`${x.site}${x.path}`) ?? { phien7: 0, khach7: 0, doc50: 0, bamRa: 0, phien30: 0, online: 0, nguonKhach: [], cuoi: null };
+      return { url: `https://${x.site}${x.path}`, site: x.site, path: x.path, nguon: x.nguon.join(' · '), soVideo: x.soVideo, ...s }; })
+      .sort((a, b) => b.phien7 - a.phien7 || b.soVideo - a.soVideo);
+  } catch (e) { loi.push(`landing: ${(e as Error).message}`); return []; }
 }
 
 /* HÀNG ĐỢI SẢN XUẤT (LIVE): video thật của các MÁY trên studio.on.tc (xv_may / xv_may_video, cùng DB mos2_prod — từ 17/10/2026 video máy không còn

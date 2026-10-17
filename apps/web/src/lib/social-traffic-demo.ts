@@ -25,6 +25,12 @@ export interface StLo {
 export interface StTrang { slug: string; goc: number; kenh: number; click: number | null; raShop: number | null; chuongTrinh: string; song: boolean; tieuDe?: string; kenhTen?: string }
 /** Cửa bán (LIVE): Gumroad theo store (product_daily), Etsy / KDP theo vault — chưa có nguồn số bán thì số = null. */
 export interface StBan { cua: string; ten: string; duAn: string; xem30: number | null; ban30: number | null; usd30: number | null; ghiChu?: string }
+/** LANDING (LIVE, anh 17/10/2026 "cần thêm tab landing để còn tracking"): mỗi trang đích video / kênh trỏ tới + số phiên thật (page-events adfond). */
+export interface StLanding {
+  url: string; site: string; path: string; nguon: string;   // nguon = video máy nào / kênh nào trỏ tới
+  soVideo: number; phien7: number; khach7: number; doc50: number; bamRa: number; phien30: number; online: number;
+  nguonKhach: { ten: string; so: number }[]; cuoi: string | null;
+}
 export interface StDuLieu { goc: StGoc[]; kenh: StKenh[]; lo: StLo[]; trang: StTrang[] }
 
 export const ST_BUOC = ['Kịch bản', 'Dựng', 'Kiểm', 'Lên lịch'] as const;   // bước 4 = đã đăng (rời hàng đợi)

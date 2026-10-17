@@ -42,6 +42,25 @@ export async function docPhienAff(sites: string[], cuaSo: CuaSoAff): Promise<Phi
   });
 }
 
+/** Số của từng trang đích (site + đường dẫn = trang khách VÀO): 7 / 30 ngày, đọc ≥ 50%, bấm sang shop, nguồn khách, đang online. Bỏ lượt đội nhà. */
+export async function docSoLanding(ds: { site: string; path: string }[]): Promise<Map<string, { phien7: number; khach7: number; doc50: number; bamRa: number; phien30: number; online: number; nguonKhach: { ten: string; so: number }[]; cuoi: string | null }>> {
+  const sql = db(), ra = new Map(); if (!sql || !ds.length) return ra;
+  const sites = [...new Set(ds.map((x) => x.site))], paths = [...new Set(ds.map((x) => x.path))];
+  const rows = await sql<{ site: string; trang_vao: string; nguon: string | null; cuon: number; bam: boolean; khach_id: string | null; tuan: boolean; online: boolean; cuoi: Date }[]>`
+    SELECT p.site, p.trang_vao, p.nguon, p.cuon, p.khach_id, p.cuoi,
+      EXISTS (SELECT 1 FROM phien_su_kien e WHERE e.phien_id = p.id AND e.loai = 'bam_mua') AS bam,
+      p.bat_dau > now() - interval '7 days' AS tuan, p.cuoi > now() - make_interval(secs => ${ONLINE_GIAY}) AS online
+    FROM phien_khach p WHERE p.site IN ${sql(sites)} AND p.trang_vao IN ${sql(paths)} AND NOT p.noi_bo AND p.bat_dau > now() - interval '30 days'`;
+  for (const x of ds) {
+    const r = rows.filter((y) => y.site === x.site && y.trang_vao === x.path), t = r.filter((y) => y.tuan);
+    const ng = new Map<string, number>(); for (const y of t) ng.set(y.nguon || 'direct', (ng.get(y.nguon || 'direct') ?? 0) + 1);
+    ra.set(`${x.site}${x.path}`, { phien7: t.length, khach7: new Set(t.map((y) => y.khach_id)).size, doc50: t.filter((y) => y.cuon >= 50).length, bamRa: t.filter((y) => y.bam).length,
+      phien30: r.length, online: r.filter((y) => y.online).length, nguonKhach: [...ng].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([ten, so]) => ({ ten, so })),
+      cuoi: r.length ? iso(r.reduce((a, y) => (y.cuoi > a ? y.cuoi : a), r[0]!.cuoi)) : null });
+  }
+  return ra;
+}
+
 /** Dòng thời gian một phiên (xem trang, bấm, bấm sang shop…) — chỉ phiên của site được phép (chặn đọc phiên site khác qua id). */
 export async function docSuKienAff(id: string, sites: string[]): Promise<SuKienAff[]> {
   const sql = db(); if (!sql || !sites.length) return [];

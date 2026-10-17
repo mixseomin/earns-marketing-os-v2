@@ -38,11 +38,13 @@ assert.strictEqual(dong('Mike').o[4]!.nhanh.find((n) => n.ma === 'kiem')!.chu, '
 // VỊ TRÍ BẰNG CHỮ: đồ set gần nhất (bỏ tường), người gần nhất, hướng so với máy, đi tới đâu — không toạ độ
 const vat = [{ ten: 'Tường', hinh: 'hop', tam: [0, 0, 0], co: [1, 1, 1], mau: '#000', nen: true }, { ten: 'Thang máy 1', hinh: 'hop', tam: [-100, 470, 0], co: [1, 1, 1], mau: '#000' }, { ten: 'Bàn', hinh: 'hop', tam: [300, 100, 0], co: [1, 1, 1], mau: '#000' }] as never;
 const may = { dat: [-100, 200, 150], nhin: [-100, 380, 150], ong_kinh: 35, vi_tri: [{ ten: 'Hạ', tam: [-100, 380, 0], huong: 180 }, { ten: 'Vivian', tam: [0, 365, 0], huong: -90, den: [250, 120, 0] }] } as never;
-const chuHa = moTaViTri({ ten: 'Hạ', tam: [-100, 380, 0], huong: 0 } as never, may, vat, true);
+const NG = new Set(['Hạ', 'Vivian']);
+const chuHa = moTaViTri({ ten: 'Hạ', tam: [-100, 380, 0], huong: 0 } as never, may, vat, true, NG);
 assert.strictEqual(chuHa, 'cạnh Thang máy 1 · cách Vivian 1 m · nhìn về máy');
 assert.ok(!/\d+, \d+/.test(chuHa), 'không in toạ độ');
-assert.ok(moTaViTri({ ten: 'Vivian', tam: [0, 365, 0], huong: -90, den: [250, 120, 0] } as never, may, vat, true).includes('→ cạnh Bàn'));
-assert.strictEqual(moTaViTri({ ten: 'Thẻ', tam: [0, 0, 0], cam: 'Vivian' } as never, may, vat, false), 'trong tay Vivian');
+assert.ok(moTaViTri({ ten: 'Vivian', tam: [0, 365, 0], huong: -90, den: [250, 120, 0] } as never, may, vat, true, NG).includes('→ cạnh Bàn'));
+assert.ok(!moTaViTri({ ten: 'Hạ', tam: [-100, 380, 0], huong: 0 } as never, { ...(may as object), vi_tri: [{ ten: 'Thẻ', tam: [-100, 381, 0] }] } as never, vat, true, NG).includes('Thẻ'), 'đồ vật không phải người gần nhất');
+assert.strictEqual(moTaViTri({ ten: 'Thẻ', tam: [0, 0, 0], cam: 'Vivian' } as never, may, vat, false, NG), 'trong tay Vivian');
 assert.strictEqual(chuDien('hat@0.25-0.45'), 'hất mạnh món đồ ra trước (25–45% shot)');
 assert.strictEqual(chuDien('mc_sai_buoc'), 'sải bước');
 assert.strictEqual(nhanhLienMach('Hạ đổi trang phục giữa cảnh', true), 'ngoai');

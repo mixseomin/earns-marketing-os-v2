@@ -36,7 +36,7 @@ export const nhanhLienMach = (x: string, laNguoi: boolean): MaNhanh =>
     : /chỗ|vị trí|hướng|quay|nhảy|dời|trục|đi ngược|màn/i.test(x) ? 'vi_tri' : laNguoi ? 'dang' : 'trang';
 
 type ViTri = May3d['vi_tri'][number];
-const TEN_MC: Record<string, string> = { mc_di_bo: 'đi bộ', mc_sai_buoc: 'sải bước', mc_quy_xuong: 'quỳ xuống', mc_dung_day: 'đứng dậy khỏi ghế', mc_cai_nhau: 'cãi nhau, vung tay', mc_giai_thich: 'nói, giải thích bằng tay', mc_chong_ghe: 'chống tay lên ghế', mc_uong: 'uống', mc_chi_tay: 'chỉ tay' };
+const TEN_MC: Record<string, string> = { mc_di_bo: 'đi bộ', mc_sai_buoc: 'sải bước', mc_quy_xuong: 'quỳ xuống', mc_dung_day: 'đứng dậy khỏi ghế', mc_cai_nhau: 'cãi nhau, vung tay', mc_giai_thich: 'nói, giải thích bằng tay', mc_chong_ghe: 'chống tay lên ghế', mc_uong: 'uống', mc_chi_tay: 'chỉ tay', giat: 'giật phắt món đồ' };
 /** Mã động tác (vi_tri.dien) → chữ: 'hat@0.25-0.45' → "hất mạnh món đồ ra trước (25–45% shot)". */
 export const chuDien = (d: string) => {
   const [ma, mt] = String(d).split('@'); const ten = DANG[ma!] ?? TEN_MC[ma!] ?? ma!;
@@ -47,8 +47,8 @@ const xy = (p: number[] | undefined) => (p && p.length >= 2 ? [p[0]!, p[1]!] as 
 const kc = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!);
 const choVat = (v: VatSet) => xy('goc' in v ? v.goc : v.tam);
 const met = (cm: number) => `${(Math.round(cm / 10) / 10).toLocaleString('vi-VN')} m`;
-/** VỊ TRÍ BẰNG CHỮ: đồ set gần nhất (bỏ mặt nền), người gần nhất trong shot, hướng so với máy, đi đâu. Không in toạ độ. */
-export function moTaViTri(v: ViTri, m: May3d, vat: VatSet[], laNguoi: boolean): string {
+/** VỊ TRÍ BẰNG CHỮ: đồ set gần nhất (bỏ mặt nền), NGƯỜI gần nhất trong shot (nguoi = tên nhân vật, không tính đồ vật), hướng so với máy, đi đâu. Không in toạ độ. */
+export function moTaViTri(v: ViTri, m: May3d, vat: VatSet[], laNguoi: boolean, nguoi: ReadonlySet<string>): string {
   if (v.an) return 'ngoài khung (khuất)';
   if (v.cam && !laNguoi) return `trong tay ${v.cam}${v.den ? ', đặt xuống trong shot' : ''}`;
   const cho = (p: readonly number[]) => {
@@ -57,7 +57,7 @@ export function moTaViTri(v: ViTri, m: May3d, vat: VatSet[], laNguoi: boolean): 
     return g && g.d <= 300 ? `${g.d <= 120 ? 'cạnh' : 'gần'} ${g.ten}` : '';
   };
   const p = xy(v.tam); if (!p) return '';
-  const ng = m.vi_tri.filter((x) => x.ten !== v.ten && !x.an && !x.cam && xy(x.tam)).map((x) => ({ ten: x.ten, d: kc(p, xy(x.tam)!) })).sort((a, b) => a.d - b.d)[0];
+  const ng = m.vi_tri.filter((x) => x.ten !== v.ten && nguoi.has(x.ten) && !x.an && xy(x.tam)).map((x) => ({ ten: x.ten, d: kc(p, xy(x.tam)!) })).sort((a, b) => a.d - b.d)[0];
   const h = laNguoi ? huongVoiMay(m, v) : null;
   const den = xy(v.den ?? undefined); const di = den && kc(p, den) >= 40 ? `đi ${met(kc(p, den))} → ${cho(den) || 'chỗ mới'}` : '';
   return [cho(p), ng ? `cách ${ng.ten} ${met(ng.d)}` : '', h ? (h.lech <= 35 ? 'nhìn về máy' : h.lech <= 80 ? 'nghiêng ¾ về máy' : h.lech <= 120 ? 'quay ngang' : 'quay lưng về máy') : '', di].filter(Boolean).join(' · ');
@@ -66,6 +66,7 @@ export function moTaViTri(v: ViTri, m: May3d, vat: VatSet[], laNguoi: boolean): 
 export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[] = []): DongDoiTuong[] {
   const bang = bangDoiTuong(canh, nhanVat);
   const so = soLienMach(canh, phanCanh, nhanVat);
+  const tenNguoi = new Set(nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   const vatCua = (c: Canh) => { const sid = c.may_3d ? boSetCuaShot(c, nhanVat) : null; const s = sets.find((x) => x.id === sid); return s ? vatHien(s.du_lieu.vat, c.may_3d?.them) : []; };
   return bang
     .sort((a, b) => (THU_TU[a.nv.loai] ?? 9) - (THU_TU[b.nv.loai] ?? 9))
@@ -85,7 +86,7 @@ export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: P
         const d = dongSo.get(c.id); const vt = c.may_3d?.vi_tri.find((x) => x.ten === nv.ten);
         if (d) {
           if (laNguoi) them('ngoai', d.ngoai.map((g) => `${g.ten}: ${g.mo || 'không'}${g.ket && g.ket !== g.mo ? ` → ${g.ket}` : ''}`).join(' · ') || 'chưa khai');
-          if (vt && c.may_3d) them('vi_tri', moTaViTri(vt, c.may_3d, vatCua(c), laNguoi));
+          if (vt && c.may_3d) them('vi_tri', moTaViTri(vt, c.may_3d, vatCua(c), laNguoi, tenNguoi));
           if (laNguoi) them('dang', [d.an ? 'khuất' : chuDang(d), ...d.dien.map(chuDien), d.cam ? `cầm ${d.cam}` : ''].filter(Boolean).join(' · '));
           else them('trang', [d.trang || 'nguyên', d.trang_den && d.trang_den !== d.trang ? `→ ${d.trang_den}` : '', d.chia ? `chia ${d.chia} mảnh` : '', vt?.nghieng ? `nghiêng ${vt.nghieng}°` : '', vt?.tran ? `${vt.tran} đổ ra` : ''].filter(Boolean).join(' '));
           for (const x of d.loi) them(nhanhLienMach(x, laNguoi)).tru.push({ chu: `liền mạch: ${x}`, diem: TRU_DIEM.lien_mach });

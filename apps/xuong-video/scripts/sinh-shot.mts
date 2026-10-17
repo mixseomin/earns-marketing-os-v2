@@ -30,7 +30,7 @@ import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
 import { doiModelVideo } from '../src/lib/xuong-video/qc-cam-xuc';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
-import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
+import { chonKeyframe } from '../src/lib/xuong-video/tu-sua-clip';
 import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
 import { mapNhanVat, mapTap } from '../src/lib/xuong-video/doc-db';
 
@@ -46,11 +46,7 @@ const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown 
 const doi = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
 /** Chọn ảnh làm keyframe đang dùng — cùng câu với action chonKeyframe, kèm chụp hoàn tác. */
-async function chonKf(id: number, url: string) {
-  await chupTruoc(db!, { bang: 'xv_canh', id, cot: ['keyframe_url', 'keyframe_uv', 'trang_thai'], moTa: 'chọn keyframe (script)', nguoi: 'script sinh-shot' });
-  await db!.execute(sql`UPDATE xv_canh SET keyframe_url = ${url}, keyframe_uv = CASE WHEN keyframe_uv @> ${JSON.stringify([url])}::jsonb THEN keyframe_uv ELSE keyframe_uv || ${JSON.stringify([url])}::jsonb END,
-    trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi', 'duyet', 'xong') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${id}`);
-}
+const chonKf = (id: number, url: string) => chonKeyframe(db!, id, url, 'script sinh-shot');
 const bcs = [];
 for (const id of ids) { const bc = await boiCanhCanh(db, id); if (!bc) { console.error(`không thấy shot #${id}`); process.exit(1); } bcs.push(bc); }
 const kt = bcs[0]!.kt; const tapId = bcs[0]!.canh.tap_id;

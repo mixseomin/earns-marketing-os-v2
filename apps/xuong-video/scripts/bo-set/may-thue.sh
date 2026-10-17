@@ -4,7 +4,7 @@
 #   may-thue.sh chuan-bi <user@host> [cổng]   cài Blender 5.0.1 Linux + đẩy dung-set.py / mesh / tài sản + in GPU — chạy lại an toàn
 #   may-thue.sh do <user@host> [cổng] [thư mục shot]   đo giây / khung Cycles 720p của một shot (mặc định #9 tập 19) → ước giờ cả tập
 #   may-thue.sh tat <user@host> [cổng]       tắt máy thuê từ bên trong (RunPod: runpodctl stop pod) — hết việc là tắt, không để tính tiền
-#   may-thue.sh lam <tap> [chi]              CẢ MẠCH: tạo máy 4090 Community mới → chuẩn bị → khung đẹp → bản diễn → XOÁ máy (trap, cả khi lỗi)
+#   may-thue.sh lam <tap> [chi]              CẢ MẠCH: tạo máy RẺ NHẤT THEO VIỆC (XV_CHI_XEM=1 tao = xem ứng viên) → chuẩn bị → khung đẹp → bản diễn → XOÁ máy (trap, cả khi lỗi)
 #   may-thue.sh xem|bat|cho|dung|xoa <pod>   đọc / bật lại / đợi SSH / tắt / xoá pod qua API (khoá RUNPOD_API_KEY trên box3)  ·  tao = tạo pod mới
 # Diễn cả tập trên máy thuê: XV_MAY_THUE=<user@host> [XV_MAY_THUE_CONG=<cổng>] scripts/bo-set/dien-tap.sh <tập>
 #   (dien-mot.sh đẩy vao.json lên → Blender GPU trên máy thuê → kéo khung về → hậu kỳ + nạp như cũ trên iMac).
@@ -13,7 +13,7 @@ VIEC=$1; HOST=$2; CONG=${3:-22}
 DIR=$(cd "$(dirname "$0")/../.." && pwd)
 SSH="ssh -p $CONG -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 $HOST"
 BAN=5.0.1; TEP=blender-$BAN-linux-x64.tar.xz
-[ -n "$HOST" ] || { sed -n 2,9p "$0"; exit 1; }
+[ -n "$HOST" ] || [ "$VIEC" = tao ] || { sed -n 2,9p "$0"; exit 1; }
 API() {   # gọi GraphQL RunPod TỪ box3 — truy vấn đọc từ stdin (JSON dựng bằng python, khỏi nháy lồng nhau); khoá không rời máy chủ, không in ra
   ssh root@167.233.241.16 'set -a; . /opt/earns-marketing-os-v2/.env.production; set +a; curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $RUNPOD_API_KEY" -d @- https://api.runpod.io/graphql'
 }
@@ -22,13 +22,29 @@ LOI() { python3 -c 'import json,sys; d=json.load(sys.stdin); e=d.get("errors"); 
 case "$VIEC" in
   xem)   # đọc trạng thái pod (không bật, không tốn tiền)
     GQ "query { pod(input: {podId: \"$HOST\"}) { id name desiredStatus costPerHr runtime { uptimeInSeconds } } }"; echo ;;
-  tao)   # TẠO máy mới 4090 Community (rẻ nhất còn chỗ — máy cũ bị ràng host hết GPU, 17/10/2026), in pod id. Có lỗi thì dừng ngay.
-    for cl in COMMUNITY SECURE; do
-      R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"NVIDIA GeForce RTX 4090\", name: \"xv-render\", imageName: \"runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404\", containerDiskInGb: 30, volumeInGb: 0, ports: \"22/tcp\", startSsh: true, supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30}) { id costPerHr } }")
+  tao)   # TẠO máy mới RẺ NHẤT THEO VIỆC (anh 17/10/2026 "có máy rẻ hơn thì thay"): giá sống qua API ÷ tốc độ Cycles OptiX (ước theo Blender Open Data,
+         # 4090 = 1) → tiền mỗi lượt render; thử từ thấp nhất, Community trước Secure; còn chỗ là lấy. Máy rẻ theo giờ mà chậm (A5000, 3090) thường
+         # đắt hơn theo việc. In pod id; có lỗi thì thử máy kế, hết thì dừng.
+    DS=$(GQ "query { gpuTypes { id communityPrice securePrice lowestPrice(input: {gpuCount: 1}) { stockStatus } } }" | python3 -c '
+import json, sys
+TOC = {"NVIDIA GeForce RTX 4090": 1.0, "NVIDIA GeForce RTX 5090": 1.25, "NVIDIA GeForce RTX 5080": 0.7, "NVIDIA RTX PRO 4500 Blackwell": 0.7,
+       "NVIDIA GeForce RTX 3090": 0.48, "NVIDIA RTX A6000": 0.5, "NVIDIA A40": 0.45, "NVIDIA RTX A5000": 0.35, "NVIDIA RTX 4000 Ada Generation": 0.32,
+       "NVIDIA L40S": 0.95, "NVIDIA RTX 6000 Ada Generation": 0.95, "NVIDIA L4": 0.28}
+ds = []
+for g in json.load(sys.stdin)["data"]["gpuTypes"]:
+    if g["id"] not in TOC or not (g.get("lowestPrice") or {}).get("stockStatus"): continue
+    for cl, gia in (("COMMUNITY", g.get("communityPrice")), ("SECURE", g.get("securePrice"))):
+        if gia: ds.append((gia / TOC[g["id"]], cl, g["id"], gia))
+for v, cl, i, gia in sorted(ds)[:6]: print(f"{cl}|{i}|{gia}|{v:.3f}")')
+    echo "$DS" | while IFS='|' read -r cl gpu gia viec; do echo "  ứng viên: $gpu $cl \$$gia/giờ (theo việc $viec)" >&2; done
+    [ -n "${XV_CHI_XEM:-}" ] && exit 0   # XV_CHI_XEM=1: chỉ in ứng viên, không tạo máy (thử trước khi tốn tiền)
+    while IFS='|' read -r cl gpu gia viec; do
+      R=$(GQ "mutation { podFindAndDeployOnDemand(input: {cloudType: $cl, gpuCount: 1, gpuTypeId: \"$gpu\", name: \"xv-render\", imageName: \"runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404\", containerDiskInGb: 30, volumeInGb: 0, ports: \"22/tcp\", startSsh: true, supportPublicIp: true, minVcpuCount: 8, minMemoryInGb: 30}) { id costPerHr } }")
       ID=$(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("data") or {}).get("podFindAndDeployOnDemand"); print(p["id"] if p else "")' 2>/dev/null || true)
-      [ -n "$ID" ] && { echo "$R" >&2; echo "$ID"; exit 0; }
-      echo "$cl: $(echo "$R" | LOI)" >&2
-    done; exit 1 ;;
+      [ -n "$ID" ] && { echo "  → thuê $gpu $cl \$$gia/giờ" >&2; echo "$ID"; exit 0; }
+      echo "  $gpu $cl: $(echo "$R" | LOI)" >&2
+    done <<< "$DS"
+    exit 1 ;;
   cho)   # đợi cổng SSH công khai của pod; pod không chạy / lỗi → dừng ngay. In "root@<ip> <cổng>"
     for i in $(seq 1 60); do
       R=$(GQ "query { pod(input: {podId: \"$HOST\"}) { desiredStatus runtime { ports { ip publicPort privatePort isIpPublic } } } }" || true)

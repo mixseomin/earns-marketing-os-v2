@@ -271,22 +271,27 @@ const GOC_THEM: Record<string, string[]> = {
   nhan_vat: ['Full-body action pose sheet: walking, running, sitting, pointing, waving', 'Close-up expression sheet: laughing, angry, scared, thinking, crying, determined', 'Character shown in a natural three-quarter view standing in soft daylight, medium shot', 'Back and side detail sheet: outfit, accessories, hands and feet close-ups'],
   boi_canh: ['Same location seen from the OPPOSITE direction, reverse angle', 'Low ground-level angle looking up, close foreground details', 'High aerial bird-eye view of the whole place', 'Medium shot focusing on one landmark detail of the place', 'Wide shot from the far side, the place seen at a distance'],
   san_pham: ['Product from a 45-degree side angle', 'Macro close-up of material texture and stitching details', 'Flat lay top-down shot', 'Back view of the product'],
-  dao_cu: ['Prop from a different angle, side view', 'Macro close-up detail of the prop', 'Prop held in a hand for scale'],
+  dao_cu: ['Prop from a different angle, side view', 'Macro close-up detail of the prop', 'Prop shown at true scale beside a plain ballpoint pen'],
 };
 export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh, daCo = 0): string {
   if (daCo > 0) {
     const ds = GOC_THEM[nv.loai] ?? GOC_THEM.boi_canh!;
     const goc = ds[(daCo - 1) % ds.length]!;
     return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'consistent cinematic look'}. `
-      + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.';
+      + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.'
+      + (nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '');
   }
   const k = docKinhThanh(kt);
   const loai = nv.loai === 'nhan_vat' ? 'Character design reference sheet on a plain light background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of head close-ups showing neutral, happy, sad and surprised expressions; identical design in every view'
     : nv.loai === 'san_pham' ? 'Product reference shot, centered, soft studio lighting, plain background, exact product details'
     : nv.loai === 'boi_canh' ? 'Establishing shot of the location, wide angle, no characters'
     : nv.loai === 'dao_cu' ? 'Prop reference shot, centered, plain background' : 'Style reference frame';
-  return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.`;
+  // Đạo cụ / sản phẩm: câu CÔ LẬP đứng SAU phong cách phim — phong cách kiểu "luxury corporate drama" kéo cả văn phòng + người vào ảnh mẫu
+  // (tổng tài 17/10/2026: điện thoại cầm trong tay một người đàn ông, thẻ nhân viên in ảnh + tên một cô gái khác) → keyframe nhận người lạ làm tham chiếu.
+  const coLap = nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '';
+  return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap}`;
 }
+export const CO_LAP_VAT = 'ISOLATED object only, on a plain seamless light-grey studio background: no people, no hands, no faces, no room, no scenery, no other objects. Any photo slot or printed name on it stays blank or a neutral grey placeholder.';
 
 // ── Gợi ý AI cho MỌI form (anh yêu cầu 08/10/2026): mỗi lần sinh đều đọc ngữ cảnh của cả phim — kinh thánh, tuyến nhân vật,
 // tóm tắt các tập, cảnh lân cận — để phần mới khớp với phần đã có, không tả nhân vật một kiểu khác. ──────────────────────

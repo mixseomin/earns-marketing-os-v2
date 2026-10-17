@@ -158,7 +158,7 @@
   {
    "loai": "dao_cu",
    "ten": "Thẻ nhân viên",
-   "mo_ta": "White plastic staff ID badge on a dark blue lanyard, LỤC THỊ logo",
+   "mo_ta": "White plastic staff ID badge on a dark blue lanyard, small gold LỤC THỊ logo at the top, grey blank photo slot, no readable name",
    "khoi_3d": {
     "hinh": "hop",
     "co": [
@@ -172,7 +172,7 @@
   {
    "loai": "dao_cu",
    "ten": "Thùng đồ cá nhân",
-   "mo_ta": "Plain brown cardboard office box: a small potted succulent, a framed photo and a white mug sticking out of the top",
+   "mo_ta": "Plain brown cardboard office box: a small potted succulent, a framed landscape photo (no people) and a white mug sticking out of the top",
    "khoi_3d": {
     "hinh": "hop",
     "co": [

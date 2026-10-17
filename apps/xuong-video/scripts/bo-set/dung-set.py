@@ -408,7 +408,31 @@ def may(s, m, ten='cam'):
     o = bpy.data.objects.new(ten, cd); s.collection.objects.link(o)
     o.location = Vector(m['dat']) * CM
     o.rotation_euler = (Vector(m['nhin']) * CM - o.location).to_track_quat('-Z', 'Y').to_euler()
-    s.camera = o; return o
+    s.camera = o; cat_lop(o); return o
+
+_LOP = {}
+def cat_lop(cam):
+    """TƯỜNG RỜI (wild walls — trường quay tháo mảng tường / trần nằm giữa máy và diễn viên; anh 17/10/2026, bộ set tổng tài có đủ 4 tường + trần,
+    máy tự đặt lùi ra sau tường / lên trên trần → khung chỉ thấy tường): mặt nền (nen) nằm giữa máy và lòng phòng thì ẩn cả render lẫn tia kiểm,
+    theo trục mỏng nhất của nó. CÙNG luật với trình xem bo-set-three.ts › catLop. Máy đứng trong phòng → không ẩn gì."""
+    if not _LOP:
+        ds = [o for o in bpy.data.objects if o.type == 'MESH' and o.name in NEN]
+        if not ds: _LOP['tam'] = None; return
+        hop = {}
+        for o in ds:
+            bb = [o.matrix_world @ Vector(c) for c in o.bound_box]
+            hop[o.name] = ([min(v[i] for v in bb) for i in range(3)], [max(v[i] for v in bb) for i in range(3)])
+        lo = [min(h[0][i] for h in hop.values()) for i in range(3)]; hi = [max(h[1][i] for h in hop.values()) for i in range(3)]
+        _LOP['tam'] = [(lo[i] + hi[i]) / 2 for i in range(3)]; _LOP['hop'] = hop
+    if not _LOP.get('tam'): return
+    p = cam.location
+    for ten, (lo, hi) in _LOP['hop'].items():
+        o = bpy.data.objects.get(ten)
+        if not o: continue
+        ax = min(range(3), key=lambda i: hi[i] - lo[i])
+        an = p[ax] > lo[ax] if (lo[ax] + hi[ax]) / 2 >= _LOP['tam'][ax] else p[ax] < hi[ax]
+        o.hide_viewport = o.hide_render = an
+    bpy.context.view_layer.update()
 
 def do_sau(s, gan, xa):
     """Vật liệu đè: độ sâu theo máy (gần trắng → xa đen) — bản đồ độ sâu cho ControlNet."""
@@ -529,6 +553,7 @@ def chan_la(s, cam, sh, nv):
 def dat_may(cam, dat, nhin):
     cam.location = Vector(dat) * CM
     cam.rotation_euler = (Vector(nhin) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
+    cat_lop(cam)
 
 def giai_may(s, cam, sh, nv):
     """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài, nằm sai phía trục, hoặc có vật chắn tiền cảnh chữ không nhắc, → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên

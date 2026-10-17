@@ -455,11 +455,13 @@
     "di"
    ],
    "dip": [
+    "dinh_diem",
     "hen_ho",
     "tiec"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": false
+   "ngoai_troi": false,
+   "dip_en": "our anniversary dinner"
   },
   {
    "ma": "an_quan_cafe",
@@ -552,12 +554,14 @@
     "ngoi"
    ],
    "dip": [
-    "tiec",
     "ban_be",
-    "gia_dinh"
+    "dinh_diem",
+    "gia_dinh",
+    "tiec"
    ],
    "thoi_gian": "chieu",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "the family barbecue"
   },
   {
    "ma": "an_rooftop",
@@ -770,10 +774,12 @@
    ],
    "dip": [
     "ban_be",
+    "dinh_diem",
     "tiec"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": false
+   "ngoai_troi": false,
+   "dip_en": "bowling night"
   },
   {
    "ma": "tt_san_bong_tre_em",
@@ -787,11 +793,13 @@
     "chay"
    ],
    "dip": [
+    "dinh_diem",
     "gia_dinh",
     "the_thao"
    ],
    "thoi_gian": "sang",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "my kid's soccer game"
   },
   {
    "ma": "tt_khan_dai",
@@ -852,11 +860,13 @@
     "dung"
    ],
    "dip": [
-    "tiec",
-    "gia_dinh"
+    "dinh_diem",
+    "gia_dinh",
+    "tiec"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "the wedding"
   },
   {
    "ma": "sk_sinh_nhat",
@@ -870,11 +880,13 @@
     "nhay"
    ],
    "dip": [
-    "tiec",
-    "gia_dinh"
+    "dinh_diem",
+    "gia_dinh",
+    "tiec"
    ],
    "thoi_gian": "chieu",
-   "ngoai_troi": false
+   "ngoai_troi": false,
+   "dip_en": "my kid's birthday party"
   },
   {
    "ma": "sk_tot_nghiep",
@@ -886,11 +898,13 @@
     "dung"
    ],
    "dip": [
-    "su_kien",
-    "gia_dinh"
+    "dinh_diem",
+    "gia_dinh",
+    "su_kien"
    ],
    "thoi_gian": "sang",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "graduation day"
   },
   {
    "ma": "sk_nha_tho",
@@ -903,11 +917,13 @@
     "leo"
    ],
    "dip": [
-    "su_kien",
-    "gia_dinh"
+    "dinh_diem",
+    "gia_dinh",
+    "su_kien"
    ],
    "thoi_gian": "sang",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "Sunday service"
   },
   {
    "ma": "sk_hoi_cho",
@@ -919,11 +935,13 @@
     "dung"
    ],
    "dip": [
-    "gia_dinh",
-    "ban_be"
+    "ban_be",
+    "dinh_diem",
+    "gia_dinh"
    ],
    "thoi_gian": "chieu",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "the county fair"
   },
   {
    "ma": "sk_hoa_nhac",
@@ -937,10 +955,12 @@
    ],
    "dip": [
     "ban_be",
+    "dinh_diem",
     "tiec"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": true
+   "ngoai_troi": true,
+   "dip_en": "the concert"
   },
   {
    "ma": "sk_thanksgiving",
@@ -952,11 +972,13 @@
     "dung"
    ],
    "dip": [
+    "dinh_diem",
     "gia_dinh",
     "tiec"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": false
+   "ngoai_troi": false,
+   "dip_en": "Thanksgiving dinner"
   },
   {
    "ma": "sk_tiec_van_phong",
@@ -969,11 +991,13 @@
     "nhay"
    ],
    "dip": [
+    "dinh_diem",
     "lam_viec",
     "tiec"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": false
+   "ngoai_troi": false,
+   "dip_en": "the office party"
   },
   {
    "ma": "sk_hen_ho",
@@ -984,10 +1008,12 @@
     "ngoi"
    ],
    "dip": [
+    "dinh_diem",
     "hen_ho"
    ],
    "thoi_gian": "toi",
-   "ngoai_troi": false
+   "ngoai_troi": false,
+   "dip_en": "our first date"
   },
   {
    "ma": "dl_xe_hoi",

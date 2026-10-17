@@ -19,13 +19,14 @@ const dem = (f: (x: (typeof kq)[number]) => string) => [...kq.reduce((m, x) => m
 console.log(`${bt.length} bộ hình · ${new Set(kq.map((x) => x.chinh.ma)).size} diễn viên chính · ${new Set(kq.map((x) => x.boi_canh.ma)).size} bối cảnh chính · ${kq.filter((x) => x.phu.qh.lgbt).length} cặp đồng giới`);
 console.log('  sắc tộc:', dem((x) => SAC_TOC[x.chinh.sac_toc] ?? x.chinh.sac_toc).map(([k, n]) => `${k} ${n}`).join(' · '));
 console.log('  nhóm bối cảnh:', dem((x) => NHOM_BOI_CANH[x.boi_canh.nhom] ?? x.boi_canh.nhom).map(([k, n]) => `${k} ${n}`).join(' · '));
-for (const x of kq.slice(0, 6)) console.log(`  #${x.key}: ${x.chinh.ten} — ${moTaChinh(x)} | ${x.phu.qh.vi}: ${x.phu.dv.ten} | ${x.boi_canh.ten} + ${x.boi_canh_2.ten}`);
+for (const x of kq.slice(0, 6)) console.log(`  #${x.key}: ${x.chinh.ten} — ${moTaChinh(x)} | ${x.phu.qh.vi}: ${x.phu.dv.ten} | ${x.boi_canh.ten} + ${x.boi_canh_2.ten} · đỉnh điểm: ${x.su_kien.dip_en}`);
 if (!ghi) { console.log('(chưa ghi — thêm --ghi)'); process.exit(0); }
 const saoLuu = tep.replace(/\.json$/, `.bien-the-${new Date().toISOString().slice(0, 10)}.json`);
 writeFileSync(saoLuu, JSON.stringify(bt.map((b) => ({ id: b.id, nguoi_chinh: b.nguoi_chinh, nguoi_phu: b.nguoi_phu, boi_canh: b.boi_canh, o: b.o })), null, 1));
 for (const x of kq) {
   const o = { nhan_vat_ten: x.chinh.ten, nguoi_2_ten: x.phu.dv.ten, boi_canh_2: x.boi_canh_2.prompt, giong: moTaGiong(x.chinh), giong_2: moTaGiong(x.phu.dv),
-    tv: JSON.stringify({ chinh: x.chinh.ma, phu: x.phu.dv.ma, qh: x.phu.qh.ma, bc: x.boi_canh.ma, bc2: x.boi_canh_2.ma, ao: x.ao }) };
+    dinh_diem_hinh: `${x.su_kien.prompt}, people celebrating`, dinh_diem: `My jeans almost ruined ${x.su_kien.dip_en}.`,
+    tv: JSON.stringify({ chinh: x.chinh.ma, phu: x.phu.dv.ma, qh: x.phu.qh.ma, bc: x.boi_canh.ma, bc2: x.boi_canh_2.ma, sk: x.su_kien.ma, ao: x.ao }) };
   await db.execute(sql`UPDATE xv_bien_the_hinh SET nguoi_chinh = ${moTaChinh(x)}, nguoi_phu = ${moTaPhu(x)}, boi_canh = ${x.boi_canh.prompt}, o = ${JSON.stringify(o)}::jsonb WHERE id = ${Number(x.key)}`);
 }
 console.log(`✓ ghi ${kq.length} biến thể · sao lưu ${saoLuu}`);

@@ -5,7 +5,7 @@
 import BC from '../../../scripts/du-lieu/thu-vien/boi-canh.json';
 import DV from '../../../scripts/du-lieu/thu-vien/dien-vien.json';
 
-export type BoiCanhTv = { ma: string; nhom: string; ten: string; prompt: string; hoat_dong: string[]; dip: string[]; thoi_gian: string; ngoai_troi: boolean };
+export type BoiCanhTv = { ma: string; nhom: string; ten: string; prompt: string; hoat_dong: string[]; dip: string[]; thoi_gian: string; ngoai_troi: boolean; /** nơi làm được KHOẢNH KHẮC ĐỈNH ĐIỂM (dịp dinh_diem): tên dịp tiếng Anh cho câu chữ màn */ dip_en?: string };
 export type DienVienTv = { ma: string; ten: string; gioi: 'nam' | 'nu' | 'phi_nhi_nguyen'; tuoi: number; sac_toc: string; dang: string; toc: string; mo_ta: string; lgbt: boolean };
 export type QuanHe = { ma: string; vi: string; en: string; lgbt: boolean };
 export const BOI_CANH = BC.boi_canh as BoiCanhTv[];
@@ -20,7 +20,7 @@ export const AO = ['a plain gray crew-neck tee', 'a navy henley', 'a white oxfor
 /** Yêu cầu của một concept với diễn viên chính + bối cảnh (khai trong tệp dữ liệu sản phẩm, vd o-hinh/jettjeans.json › yeu_cau). */
 export type YeuCau = { gioi?: DienVienTv['gioi'][]; tuoi?: [number, number]; dang?: string[]; dip?: string[]; hoat_dong?: string[]; nhom_tranh?: string[] };
 export type ViecPhanBo = { key: string; concept: string; yc: YeuCau };
-export type KetPhanBo = { key: string; chinh: DienVienTv; phu: { qh: QuanHe; dv: DienVienTv }; boi_canh: BoiCanhTv; boi_canh_2: BoiCanhTv; ao: string };
+export type KetPhanBo = { key: string; chinh: DienVienTv; phu: { qh: QuanHe; dv: DienVienTv }; boi_canh: BoiCanhTv; boi_canh_2: BoiCanhTv; /** dịp đỉnh điểm (template kể chuyện) — đổi theo bộ hình */ su_kien: BoiCanhTv; ao: string };
 
 const dem = () => new Map<string, number>();
 const tang = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
@@ -33,7 +33,7 @@ function itNhat<T>(ds: T[], diem: (x: T) => number, xoay: number): T | undefined
   return tot;
 }
 export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number } = {}): KetPhanBo[] {
-  const dSac = dem(), dNguoi = dem(), dNoi = dem(), dNhom = dem(), dAo = dem(), dQh = dem();
+  const dSac = dem(), dNguoi = dem(), dNoi = dem(), dNhom = dem(), dAo = dem(), dQh = dem(), dSk = dem();
   const lgbt = o.tiLeLgbt ?? 0.2;
   return viec.map((v, i) => {
     const yc = v.yc;
@@ -58,7 +58,8 @@ export function phanBo(viec: ViecPhanBo[], o: { tiLeLgbt?: number } = {}): KetPh
     const bc2 = itNhat(nguon.filter((b) => b.nhom !== bc1.nhom).length ? nguon.filter((b) => b.nhom !== bc1.nhom) : nguon.filter((b) => b.ma !== bc1.ma), (b) => so(dNoi, b.ma) * 10 + so(dNhom, b.nhom), i * 11)!;
     tang(dNoi, bc2.ma); tang(dNhom, bc2.nhom);
     const ao = itNhat(AO, (a) => so(dAo, a), i)!; tang(dAo, ao);
-    return { key: v.key, chinh, phu: { qh, dv: phu }, boi_canh: bc1, boi_canh_2: bc2, ao };
+    const sk = itNhat(BOI_CANH.filter((b) => b.dip_en), (b) => so(dSk, b.ma), i * 3)!; tang(dSk, sk.ma);
+    return { key: v.key, chinh, phu: { qh, dv: phu }, boi_canh: bc1, boi_canh_2: bc2, su_kien: sk, ao };
   });
 }
 /** Mô tả người chính đưa vào ô nhan_vat_hinh / anchor: người + áo; KHÔNG ghi quần (quần là sản phẩm hoặc đồ của shot). */

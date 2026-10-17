@@ -15,4 +15,5 @@ assert.ok(k.every((x) => x.boi_canh.nhom !== x.boi_canh_2.nhom), 'hai bối cả
 assert.ok(k.every((x) => x.boi_canh.hoat_dong.some((h) => ['ngoi', 'xom'].includes(h))));
 const lg = k.filter((x) => x.phu.qh.lgbt).length; assert.ok(lg >= 6 && lg <= 10, `cặp đồng giới ${lg}/40`);
 assert.ok(!moTaChinh(k[0]!).match(/jeans|pants|trousers/i), 'mô tả người không ghi quần');
+assert.ok(new Set(k.map((x) => x.su_kien.ma)).size >= 10 && k.every((x) => x.su_kien.dip_en), 'dịp đỉnh điểm xoay vòng');
 console.log('thu-vien-dien.test: ok');

@@ -1,6 +1,7 @@
 // Sinh hình cho một phim trên box (không cần phiên đăng nhập) — TỐN TIỀN, chỉ chạy khi anh đã duyệt con số:
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
 //   --xem-prompt : (0đ) in câu lệnh keyframe sẽ gửi của các shot đang chọn (--lam-lai --chi=…), không sinh gì.
+//   --tiep-job   : đẩy lại job ảnh treo của tập (tiến trình chạy nó đã chết) bằng đúng đầu vào đã lưu — không chạy lại bước đã trả tiền.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --bien-the   : sinh ảnh tham chiếu cho biến thể chưa có ảnh (sinh-anh.sinhAnhBienTheDb — sổ trang phục), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
@@ -19,7 +20,7 @@ import { boiCanhCanh, boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/x
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
 import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
-import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
+import { dayViecAnh, giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 import { chamVideo, promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
@@ -102,11 +103,25 @@ if ((arg('keyframe') || arg('xuat')) && tapId && !arg('bo-qua-ngon-ngu')) {
   const lech = shotLechNgonNgu(kt.ngon_ngu, shots as never);
   if (lech.length) { console.error(`  ✗ phim ${tenNgonNgu(kt.ngon_ngu)} nhưng ${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 10).join(', #')}) — dịch tập trước (scripts/dich-tap.mts), hoặc --bo-qua-ngon-ngu`); process.exit(2); }
 }
+// --tiep-job (0đ thêm): job ẢNH của tập đang 'cho' mà tiến trình chạy nó đã chết (hàng nền trong tiến trình sinh-anh-phim) — đẩy lại đúng đầu vào đã lưu
+// (prompt + ảnh tham chiếu, kể cả ảnh bước 1 FLUX đã trả tiền), không chạy lại FLUX. Job bước 1 treo (gọi đồng bộ, không đẩy lại được) → đánh lỗi.
+if (arg('tiep-job') && tapId) {
+  const treo = await q(sql`SELECT j.id, j.nhan, j.model, j.request, j.canh_id FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at < now() - interval '3 minutes' ORDER BY j.id`);
+  const day: number[] = [];
+  for (const j of treo) {
+    const rq = (j.request ?? {}) as { prompt?: string; thamChieuUrl?: string[] };
+    if (String(j.nhan).includes('bước 1') || !rq.prompt) { await db.execute(sql`UPDATE xv_job SET trang_thai = 'loi', loi = 'tiến trình chạy job đã chết (không đẩy lại được bước gọi đồng bộ)' WHERE id = ${j.id}`); console.log(`  ✗ job ${j.id} ${j.nhan}: đánh lỗi`); continue; }
+    await dayViecAnh({ job: Number(j.id), model: String(j.model), prompt: rq.prompt, thamChieuUrl: rq.thamChieuUrl ?? [], tiLe: kt.ti_le, thuMuc: `keyframe/${j.canh_id}` });
+    day.push(Number(j.id)); console.log(`  ↻ job ${j.id} ${j.nhan}`);
+  }
+  if (day.length) await doi(day, 'job tiếp');
+}
 if (arg('keyframe') && canhThieu.length) {
   const jobs: number[] = [];
   for (const c of canhThieu) {
     if (lamLai) await db.execute(sql`UPDATE xv_canh SET keyframe_url = NULL WHERE id = ${c.id}`);   // ảnh mới về thì thành ảnh chọn (hoan-tat: coalesce)
-    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined);
+    // MỖI SHOT BỌC RIÊNG: một lỗi (mạng, cổng) không đổ cả lượt — 17/10/2026 ConnectTimeout ở shot #12 làm chết tiến trình, 4 job hàng nền treo, 5 shot mất ảnh chọn
+    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined).catch((e: unknown) => ({ ok: false as const, loi: `lỗi không bắt được: ${e instanceof Error ? e.message : String(e)}` }));
     if (r.ok) jobs.push(...r.data);
     else { console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); if (lamLai && c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = coalesce(keyframe_url, ${String(c.keyframe_url)}) WHERE id = ${c.id}`); }
   }

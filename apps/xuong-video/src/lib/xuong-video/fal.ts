@@ -293,16 +293,22 @@ export async function chayAnhFal(id: string, input: Record<string, unknown>): Pr
   if (!g.ok) return g;
   const t = JSON.parse(g.taskId) as { s: string; r: string };
   const h = { Authorization: `Key ${khoaFal()}` };
+  // MỌI lần gọi mạng sau khi gửi cũng không được văng ra (17/10/2026: hỏi trạng thái gặp ConnectTimeout → đổ cả lượt sinh-anh-phim 10 shot, 4 job treo):
+  // hỏi trạng thái lỗi mạng thì hỏi lại lượt sau (tối đa 5 lần liền); tải kết quả / ảnh lỗi mạng thì thử lại 3 lần rồi trả lỗi thường.
+  const lay = async (u: string, lan = 3): Promise<Response | null> => { for (let i = 0; i < lan; i++) { try { return await fetch(u, { headers: u.startsWith('https://queue.fal.run') ? h : undefined, signal: AbortSignal.timeout(30_000) }); } catch { await new Promise((o) => setTimeout(o, 2000)); } } return null; };
+  let loiMang = 0;
   for (let i = 0; i < 90; i++) {
     await new Promise((o) => setTimeout(o, 2000));
-    const st = (await (await fetch(t.s, { headers: h })).json().catch(() => ({}))) as { status?: string };
+    const rs = await lay(t.s, 1); if (!rs) { if (++loiMang >= 5) return { ok: false, loi: 'mất kết nối fal khi chờ kết quả (5 lần liền) — job đã gửi, xem lại trên fal' }; continue; }
+    loiMang = 0;
+    const st = (await rs.json().catch(() => ({}))) as { status?: string };
     if (st.status !== 'COMPLETED') continue;
-    const rr = await fetch(t.r, { headers: h });
+    const rr = await lay(t.r); if (!rr) return { ok: false, loi: 'fal xong nhưng không tải được kết quả (lỗi mạng)' };
     const j = (await rr.json().catch(() => ({}))) as { images?: Array<{ url?: string; content_type?: string }>; image?: { url?: string }; detail?: unknown };
     if (!rr.ok) return { ok: false, loi: docLoiFal(j as Record<string, unknown>, rr.status) };
     const url = j.images?.[0]?.url ?? j.image?.url;
     if (!url) return { ok: false, loi: 'fal xong nhưng không có ảnh' };
-    const b = await fetch(url);
+    const b = await lay(url); if (!b) return { ok: false, loi: 'fal xong nhưng không tải được ảnh (lỗi mạng)' };
     return { ok: true, model: `fal:${id}`, mimeType: b.headers.get('content-type')?.split(';')[0] || 'image/png', data: Buffer.from(await b.arrayBuffer()) };
   }
   return { ok: false, loi: 'fal quá 3 phút chưa xong' };

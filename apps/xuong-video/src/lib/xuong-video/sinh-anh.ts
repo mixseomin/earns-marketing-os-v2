@@ -15,7 +15,8 @@ import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
-import { boDo, boMat, dauBoiCanh, loiPrompt, type SoatPrompt } from './kiem-prompt';
+import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
+import { CHAT_LIEU, chuNguoi, ghep, khoi, KHUON, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -153,11 +154,15 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
 export type HaiBuoc = { sau: string; prompt1: string; prompt2: string; ref2: string[] };
-export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt } {
+export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
   const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);
-  const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v)[0] : undefined) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
+  const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v, ket)[0] : undefined) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
+  /** MỌI biến thể sổ người đang trỏ (trang_phuc + trang + vet) — mô tả en, không phải tên biến thể tiếng Việt */
+  const btSo = (v: NhanVat) => { const vt = viTriCua(v.ten); return vt && v.loai === 'nhan_vat' ? bienTheTheoSo(vt, v, ket) : []; };
+  // CHẤT LIỆU PHIM (prompt-khoi.ts › CHAT_LIEU): mọi chữ phụ thuộc chất liệu lấy từ một bảng — không ghi cứng chữ hoạt hình / người thật ở đây
+  const cl = chatLieuPhim(bc.kt); const CL = CHAT_LIEU[cl]; const nguoiThat = cl === 'nguoi_that';
   // Sản phẩm đứng ĐẦU danh sách tham chiếu (3 ảnh), rồi người/bối cảnh — và prompt nói rõ ảnh số mấy là gì, ảnh thắng chữ (#1256: quần
   // sinh ra là jeans chung chung vì ảnh sản phẩm nằm sau ảnh người, không được gọi tên, còn chữ mô tả "light blue, cúc đồng" lấn ảnh).
   // Shot có KHUNG XÁM 3D: bố trí + hậu cảnh lấy từ 3D, nên KHÔNG gửi ảnh mẫu bối cảnh lẫn chữ tả bối cảnh (thử #23 tập 19, 14/10/2026: ảnh
@@ -189,7 +194,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     return a === ten ? moTaNgan(v.mo_ta) : `${bc.canh.khung_xam?.thay?.find((t) => t.ten === ten)?.en ?? ten}, part of ${moTaNgan(v.mo_ta)}`;
   };
   const soKx = 1;
-  const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — re-create it as the real photographed miniature, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins).` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay, goiVat)}` : '';
+  const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — ${CL.previs}, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins).` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay, goiVat)}` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).
@@ -230,13 +235,20 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Cấm tay người / dụng cụ vẽ lạc khung — CÙNG luật với prompt video (kieu.ts › camCongCuVe); trước đây chỉ video có, keyframe thì không.
   // KHOÁ ÁNH SÁNG CẢNH (nối thử #22→#24: ba shot ba tông — gỗ sáng ấm / xanh lục tối / tối đốm sáng): shot có 3D dùng chung một câu ánh sáng
   // lấy từ dữ liệu (đèn bàn bật hay tắt), mọi shot cùng cảnh cùng tông, hậu cảnh ngoài bộ set tối.
-  const anhSang = kx ? (bc.canh.may_3d?.den_ban
-    ? 'Scene lighting, identical in every shot of this scene: the warm desk lamp is ON (soft golden light from the lamp side) mixed with a faint cool glow from the screens; the room beyond the desk falls off to dark; same exposure and colour grade as the rest of the scene.'
-    : 'Scene lighting, identical in every shot of this scene: night, the desk lamp is OFF — only the cool blue glow of the screens lights the desk, with deep soft shadows; the room beyond the desk is dark (no bokeh, no extra lamps); same exposure and colour grade in every shot.') : '';
+  const anhSang = kx ? CL.anh_sang(!!bc.canh.may_3d?.den_ban) : '';
   // TRẠNG THÁI VẬT (15/10/2026: kẹo đã bẻ đôi nằm ngoài khung 3D của 7.1a → không có nhãn → keyframe vẽ con gấu nguyên theo ảnh mẫu): mọi anchor
   // của shot đang ở trạng thái khác ảnh mẫu thì nói thẳng, đè lên ảnh mẫu — lấy từ 3D đầy đủ (kể cả đồ để lại), không dò chữ.
-  const trangChu = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((v) => bc.nhanVat.some((n) => n.ten === v.ten)).map((v) => { const t = trangThaiVat(v, ket); return t ? `${v.ten}: ${t}` : ''; }).filter(Boolean);
-  const trangCau = trangChu.length ? `STATE in this frame (overrides the reference photos): ${trangChu.join('; ')}.` : '';
+  // Ô sổ người trang_phuc / trang / vet là TÊN biến thể (tiếng Việt) — in thẳng ra là "wearing: Sơ mi trắng" (tập 122, mọi shot): đổi sang mô tả en của biến
+  // thể; boNguoi = đường có khối người (bộ đồ + đồ đeo đã nói ở đó) thì bỏ khỏi câu trạng thái, không nói hai lần.
+  const trangCauCua = (boNguoi: boolean) => {
+    const ds = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).map((v) => {
+      const a = bc.nhanVat.find((n) => n.ten === v.ten); if (!a) return '';
+      const t = trangThaiVat(v, ket, (k, gt) => { const b = (a.bien_the ?? []).find((x) => x.ten.trim().toLowerCase() === gt.trim().toLowerCase()); return a.loai === 'nhan_vat' && boNguoi && (b || k === 'do_deo') ? null : b ? b.mo_ta : gt; });
+      return t ? `${v.ten}: ${t}` : '';
+    }).filter(Boolean);
+    return ds.length ? `STATE in this frame (overrides the reference photos): ${ds.join('; ')}.` : '';
+  };
+  const trangCau = trangCauCua(false);
   // TỈ LỆ NHÂN VẬT (lineup / size chart, luật ti_le_nhan_vat): mỗi nhân vật một tấm mẫu riêng nên model đoán tỉ lệ; 3D đã đúng — nói bằng số so với
   // nhân vật đầu tiên trong khung (chiều cao khối khoi_3d).
   const caoCua = (ten: string) => bc.nhanVat.find((n) => n.ten === ten && n.loai === 'nhan_vat')?.khoi_3d?.co?.[2];
@@ -259,91 +271,85 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // GÓC MÁY bằng SỐ từ máy 3D (anh 15/10/2026, #35: 3D sát mặt bàn ngước lên Mr. Wipe, keyframe vẽ ngang tầm — prompt chỉ có cụm chung "low-angle").
   const mGoc = bc.mayDu ?? bc.canh.may_3d;
   const chinh = mGoc ? mGoc.vi_tri.find((v) => trongKhungAnchor.includes(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat')) ?? mGoc.vi_tri.find((v) => trongKhungAnchor.includes(v.ten)) : undefined;
-  const nguoiThat = chatLieuPhim(bc.kt) === 'nguoi_that';
   const mayCau = kx && mGoc ? gocMayChu(mGoc, chinh ? { ten: chinh.ten, giuaZ: (chinh.tam[2] ?? 0) + (bc.nhanVat.find((n) => n.ten === chinh.ten)?.khoi_3d?.co?.[2] ?? 0) / 2 } : null, nguoiThat) : '';
   // BỐI CẢNH: câu đầu mô tả anchor bối cảnh ("Boardroom in afternoon light") — có khung 3D thì KHÔNG gửi ảnh mẫu / mô tả dài (mời vẽ thêm đồ, #23
   // tập 19), nhưng phải nói ĐANG Ở ĐÂU: bỏ hẳn thì model không biết không gian (anh 17/10/2026: "không gian, bối cảnh chưa thấy prompt nhắc đến").
   const boiCanh = bc.nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => dauBoiCanh(v.mo_ta)).filter(Boolean)[0] ?? '';
-  // MÔ TẢ MỘT NGƯỜI / MÓN cho mọi đường (một bước, bước 1 FLUX, bước 2): bộ đồ + đồ đeo SỔ NGƯỜI, cận chèn chỉ tả tay. MỘT hàm — trước đây mỗi đường
-  // một kiểu, đường một bước không có bộ đồ.
+  // KHỐI NGƯỜI / MÓN (prompt-khoi.ts › chuNguoi) — MỘT hàm cho mọi đường: bộ đồ = mô tả mọi biến thể sổ người, đồ đeo sổ người, cận chèn chỉ tả tay.
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';
-  const doCua = (v: NhanVat) => {
-    const bt = v.loai === 'nhan_vat' ? btCanh(v) : undefined; const vt = v.loai === 'nhan_vat' ? viTriCua(v.ten) : undefined;
-    const ao = bt?.mo_ta ? (chen ? boMat(moTaVua(bt.mo_ta)) : moTaVua(bt.mo_ta)) : '';
-    const deo = (ket ? vt?.do_deo_den ?? vt?.do_deo : vt?.do_deo) ?? ''; const deoMoi = deo && !ao.toLowerCase().includes(deo.toLowerCase().replace(/^(a|an|the)\s+/, '')) ? deo : '';
-    return { ao, deo: deoMoi };
-  };
-  const taNv = (v: NhanVat, gon = false) => {
-    const { ao, deo } = doCua(v);
-    const goc = v.loai === 'nhan_vat' && chen ? (gon ? 'skin tone and sleeve only, face out of frame' : `${v.ten.split(' ').pop()}'s hand and forearm only (face out of frame)`) : ao ? boDo(gon ? moTaNgan(v.mo_ta) : moTaVua(v.mo_ta)) : gon ? moTaNgan(v.mo_ta) : moTaVua(v.mo_ta);
-    return `${goc}${ao ? `${gon ? ';' : ','} wearing ${ao}` : ''}${deo ? `${gon ? ';' : ','} ${deo}` : ''}`;
-  };
+  const vtCua = (v: NhanVat) => (v.loai === 'nhan_vat' ? viTriCua(v.ten) : undefined);
+  const aoCua = (v: NhanVat) => btSo(v).map((b) => moTaVua(b.mo_ta)).filter(Boolean);
+  const deoCua = (v: NhanVat) => { const vt = vtCua(v); return (ket ? vt?.do_deo_den ?? vt?.do_deo : vt?.do_deo) ?? ''; };
+  const taNv = (v: NhanVat, gon = false) => chuNguoi(v, { ao: aoCua(v), deo: deoCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua });
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").
   if (kxMau && bc.kt.keyframe_sua_3d !== false) {
     const ref: string[] = [kxMau]; const vaiS: { url: string; nhan: string }[] = [{ url: kxMau, nhan: '🎨 ảnh GỐC 3D — chỉ vẽ lại bề mặt' }];
-    const thay = nvRef.filter((v) => v.loai !== 'boi_canh').map((v) => {
+    const trongS = nvRef.filter((v) => v.loai !== 'boi_canh');
+    const thay = trongS.map((v) => {
       const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; let so = '';
       if (u && ref.length < 6) { ref.push(u); vaiS.push({ url: u, nhan: `${v.loai === 'nhan_vat' ? '🧍' : '🧸'} ${v.ten}` }); so = ` — looks exactly like Image ${ref.length}`; }
       return `${v.ten}${so}: ${taNv(v, true)}`;
     });
-    const pS = [
-      `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${nguoiThat ? `a real cinematic live-action film still${boiCanh ? ` — setting: ${boiCanh}` : ''}` : 'a real photograph of the miniature stop-motion set'}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything; no props, cables, screens, people or hands that are not in Image 1.`,
-      mayCau, ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat), huongCau, framingCau, ngoaiCau, trangCau,
-      thay.length ? `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.` : '',
-      `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`,
-      camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh'),
-    ].filter(Boolean).join(' ');
-    // SOÁT CHỮ (kiem-prompt.ts) cho MỌI đường: người trong khung + bộ đồ sổ trang phục, đồ chủ thể đang thấy, bối cảnh, chất liệu phim
+    const trang3d = trangCauCua(true);
+    // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
+    const k1: Khoi[] = [
+      khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything; no props, cables, screens, people or hands that are not in Image 1.`),
+      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat)), khoi('huong', chen ? '' : huongCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
+      khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
+      khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
+      khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', KHONG_CHU),
+      khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
+    ];
+    const pS = ghep(k1);
+    // SOÁT CHỮ (kiem-prompt.ts) cho MỌI đường: người trong khung + bộ đồ sổ trang phục, đồ chủ thể đang thấy, chất liệu phim
     const chuThe3d = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).map((k) => k.nhan_vat));
-    const trongS = nvRef.filter((v) => v.loai !== 'boi_canh');
-    const soat: SoatPrompt = { co_canh: bc.canh.ky_thuat?.co_canh, ten_rieng: bc.nhanVat.map((v) => v.ten), boi_canh: nguoiThat ? boiCanh : undefined, nguoi_that: nguoiThat,
-      nguoi: trongS.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: doCua(v).ao || undefined })),
+    const soat: SoatPrompt = { co_canh: bc.canh.ky_thuat?.co_canh, ten_rieng: bc.nhanVat.map((v) => v.ten), chat_lieu: cl,
+      nguoi: trongS.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: aoCua(v).map((x) => (chen ? boMat(x) : x)).join('; ') || undefined })),
       vat: trongS.filter((v) => v.loai !== 'nhan_vat' && chuThe3d.has(v.ten)).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta })) };
     // HAI BƯỚC (anh 15–16/10/2026, #35: chỉ model điều khiển bằng ĐỘ SÂU giữ đúng góc máy 3D; nhân dạng phải nhờ một lượt sửa có ảnh mẫu):
     // bước 1 = FLUX depth từ bản đồ độ sâu 3D + chữ (không nhận ảnh mẫu) → ảnh thật đúng hình học; bước 2 = sửa nhân dạng trên chính ảnh đó.
     const sau = bc.canh.khung_xam?.sau;
     if (sau && !ket && bc.kt.keyframe_hai_buoc !== false) {
-      const trong = nvRef.filter((v) => v.loai !== 'boi_canh');
-      // Prompt bước 1 NGẮN, mô tả tự nhiên (FLUX đọc giới hạn chữ: khối luật dài của Nano Banana bị cắt mất phần nhân vật, con số "40 mm, 1.2 cm"
-      // bị vẽ thành chữ "480" — #35, 16/10/2026). Hình học đã nằm trong bản đồ độ sâu; chữ chỉ nói CÁI GÌ, trông ra sao, quay hướng nào, ánh sáng.
+      // Prompt bước 1 NGẮN, mô tả tự nhiên (FLUX đọc giới hạn chữ: khối luật dài bị cắt, con số "40 mm, 1.2 cm" bị vẽ thành chữ "480" — #35).
+      // Hình học đã nằm trong bản đồ độ sâu; chữ chỉ nói Ở ĐÂU, KHOẢNH KHẮC, AI / CÁI GÌ trông ra sao, quay hướng nào.
       const thayDs = bc.canh.khung_xam?.thay ?? [];
-      const mon = trong.map((v) => {
+      const mon = trongS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
-        // BỘ ĐỒ ĐANG MẶC (sổ trang phục): FLUX không nhận ảnh mẫu — không nói thì nó tự chọn đồ (tập 122 #15: Hạ vest ĐEN thay vest trắng; #22 tay trần không cổ tay áo)
-        // CẬN CHÈN: chỉ phần thân trong khung (tay, cổ tay) — tả hàm, mắt, tóc là mời model vẽ mặt vào cú cận đồ (tập 122 #22)
         return `${taNv(v)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nen = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair")
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
-      // PHIM NGƯỜI THẬT (17/10/2026, tập 122): câu bước 1 trước đây ghi cứng cho hoạt hình stop-motion ("miniature set… no people, no hands") —
-      // áp vào phim người thật là FLUX vẽ mô hình thu nhỏ không người. Người thật: ảnh điện ảnh, ánh sáng theo phong cách hình của phim.
-      const gocChu = nguoiThat ? (g >= 8 ? 'low-angle shot looking up' : g <= -8 ? 'high-angle shot looking down' : 'eye-level shot')
-        : g >= 8 ? 'low-angle shot from just above the desk, looking up' : g <= -8 ? 'high-angle shot looking down onto the desk' : 'eye-level shot at the height of the tiny characters';
-      const prompt1 = (nguoiThat
-        ? [`Cinematic live-action film still, photorealistic, ${gocChu}.`, boiCanh ? `Setting: ${boiCanh}.` : '', bc.canh.dan_dung?.mo ? `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.` : '',   // dáng / việc đang làm ở khung mở (#20: "chống bàn" mà FLUX vẽ đứng thẳng)
-          mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
-          moTaVua(phongCachHinh(bc.kt.phong_cach)), 'Real people, real skin and fabric, natural motivated lighting, shallow depth of field, 35mm film look. No text, no letters, no numbers.']
-        : [`Macro photograph of a real miniature stop-motion set, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
-          bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.',
-          'Real materials, shallow depth of field, tactile handmade stop-motion feel. No text, no letters, no numbers, no people, no hands.']).filter(Boolean).join(' ');
+      // KHUÔN bước 1 FLUX (KHUON.flux): ảnh đích theo chất liệu + bối cảnh + khoảnh khắc mở (dáng — #20 "chống bàn" mà FLUX vẽ đứng thẳng) + người + hậu cảnh
+      const kF: Khoi[] = [
+        khoi('anh_dich', CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang')), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`),
+        khoi('khoanh_khac', !ket && bc.canh.dan_dung?.mo && `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.`),
+        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
+        khoi('anh_sang', nguoiThat ? '' : bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.'),
+        khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi),
+      ];
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
-      for (const v of trong) {
-        // bộ đồ + đồ đeo của SỔ NGƯỜI nói thẳng ở bước 2 (trước đây chỉ tả mặt → model giữ đồ FLUX tự chọn, #15 vest đen); cận chèn không tả mặt
+      for (const v of trongS) {
         const ta = taNv(v, true);
         const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${ta}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${ta}`);
       }
       // ĐỒ NHẬN DẠNG trong khung (màn chiếu, tranh, bảng chỉ dẫn — kiem-ai-3d.ts › LA_NHAN_DANG): ảnh chuẩn đã dán trên mặt vật ở khung màu (Image 2);
       // FLUX bước 1 vẽ chữ bậy lên đó, KHONG_CHU ở bước 2 lại cấm sửa → #20 màn chiếu ra chữ vô nghĩa. Bước 2 chép nội dung từ Image 2, chữ khác vẫn cấm.
       const coDinh = thayDs.filter((x) => x.pt >= PT_THAY && LA_NHAN_DANG.test(x.en ?? '')).map((x) => x.en!);
-      const chuCoDinh = coDinh.length ? `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there. Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.` : KHONG_CHU;
-      const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,
-        chen ? '' : huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), chuCoDinh, chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh'), chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 }, soat };
+      // KHUÔN bước 2 sửa nhân dạng (KHUON.sua_nhan_dang)
+      const kS: Khoi[] = [
+        khoi('nguoi', `EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
+        khoi('giu', `Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there. Do not add, remove, move, rotate or resize anything.`),
+        khoi('huong', chen ? '' : huongCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
+        khoi('nhan_dang', coDinh.length && `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there.`),
+        khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
+        khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
+      ];
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
-    return { prompt: pS, urlRef: ref, vai: vaiS, soat };
+    return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
   // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
   const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
@@ -352,13 +358,14 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
 
 /** CHẤM MỌI PROMPT KEYFRAME của một shot (kiem-prompt.ts): đường một bước (--nguon / chọn model khác), bước 1 FLUX + bước 2, keyframe KẾT nếu shot có
  *  khung kết. MỘT chỗ cho cổng (lyChanKeyframe) và sinh-anh-phim --xem-prompt. */
-export function chamKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): string[] {
-  const out: string[] = [];
+export function chamKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { diem: number; loi: LoiPrompt[] } {
+  let diem = 100; const loi: LoiPrompt[] = [];
   for (const ket of bc.canh.khung_xam?.mau_ket ? [false, true] : [false]) {
     const k = chuanBiKeyframe(bc, ket); if (!k.soat) continue; const nhan = ket ? 'khung kết · ' : '';
-    out.push(...loiPrompt([{ ten: `${nhan}một bước`, chu: k.prompt }, ...(k.haiBuoc ? [{ ten: `${nhan}bước 1`, chu: k.haiBuoc.prompt1, flux: true, boi_canh: true }, { ten: `${nhan}bước 2`, chu: k.haiBuoc.prompt2 }] : [])], k.soat));
+    const c = chamPrompt((Object.entries(k.khoi ?? {}) as [DuongSinh, Khoi[]][]).map(([d, ds]) => ({ ten: `${nhan}${KHUON[d].ten}`, duong: d, khoi: ds })), k.soat);
+    diem = Math.min(diem, c.diem); loi.push(...c.loi);
   }
-  return [...new Set(out)];
+  return { diem, loi };
 }
 
 /** Câu CAMERA từ máy 3D: cao bao nhiêu cm trên mặt bàn và so với giữa chủ thể, ngước / chúc bao nhiêu độ, ống kính, và HỆ QUẢ thấy gì
@@ -447,7 +454,7 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
   if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở tab 🎭 Phim (Tuyến nhân vật) rồi sinh lại.`);
   // BỘ CHẤM PROMPT (kiem-prompt.ts): chữ SẼ gửi đường hai bước (mặc định khi có độ sâu 3D) — lẫn tiếng Việt, thiếu bộ đồ, cận chèn tả mặt, chữ ngược 3D, quá dài cho FLUX
-  if (!chan.length) { const lp = chamKeyframe(bc); if (lp.length) chan.push(`Bộ chấm prompt: ${lp.join(' · ')}`); }
+  if (!chan.length) { const lp = chamKeyframe(bc).loi.filter((l) => l.phat >= NGUONG_CHAN); if (lp.length) chan.push(`Bộ chấm prompt: ${lp.map((l) => l.chu).join(' · ')}`); }
   return { bc, chan };
 }
 

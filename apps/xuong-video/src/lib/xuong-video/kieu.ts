@@ -492,6 +492,8 @@ export type Lop = {
 /** SOI MẶT (soi-mat.ts): mặt trong keyframe so với ảnh mẫu nhân vật. ket: nhân vật có ảnh mẫu mặt người; giong null = không thấy mặt trong khung (quay lưng, qua vai) —
  *  không phải lệch. dat = mọi mặt thấy được đều giống ảnh mẫu (cosine SFace ≥ 0,363). url = keyframe đã soi. */
 export type SoiMat = { url: string; luc: string; mat: number; ket: { ten: string; giong: number | null; dat: boolean; /** mặt quá nhỏ để chấm (< 64 px) — không chặn */ nho?: boolean; /** mặt quay nghiêng nhiều — bộ so mặt không tin được, không chặn */ nghieng?: boolean; /** tâm mặt theo phần khung 0..1 */ o?: { x: number; y: number } }[]; dat: boolean; duyet_tay?: string; loi?: string };
+/** Điểm prompt của shot (kiem-prompt.ts, ghi bởi diem-prompt.ts): 100 − tổng phạt; lỗi phạt ≥ 20 chặn sinh. */
+export type DiemPrompt = { diem: number; diem_keyframe: number; diem_video: number; loi: { buoc: string; ma: string; phat: number; chu: string }[]; luc: string };
 export type KiemKhung = { url: string; dat: boolean; loi: { loai: string; mo_ta: string; sua: string }[]; luc: string; model: string; duyet_tay?: string };
 export type ThuNguoiXem = {
   ma: string; luc: string; model: string;
@@ -578,7 +580,7 @@ export type Canh = {
   chu_man_dich?: Record<string, { goc: string; chu: string }>;
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; /** ISO lúc sinh xong keyframe / clip đang dùng (dsCanh, #1384) */ keyframe_luc?: string | null; video_luc?: string | null; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   dan_dung?: DanDung;
-  kiem_khung?: KiemKhung | null;
+  kiem_khung?: KiemKhung | null; /** điểm prompt (diem-prompt.ts) */ diem_prompt?: DiemPrompt | null;
   soi_mat?: SoiMat | null;
   /** máy soi clip (soi-clip.ts) — chỉ áp khi url trùng clip đang dùng */ soi_clip?: SoiClip | null;
   /** MURCH QC (qc-cam-xuc.ts): kế hoạch biểu cảm từng nhân vật (đầu → cuối, cấm) · khung đầu = khung cuối clip shot trước · kết quả soát thật */

@@ -60,7 +60,7 @@ if (arg('xem-prompt')) {
     const k = chuanBiKeyframe(bc);
     console.log(`\n#${c.thu_tu} ${c.canh}`);
     if (k.haiBuoc && !nguon) console.log(`  [bước 1 FLUX]\n  ${k.haiBuoc.prompt1}\n  [bước 2 · ${k.haiBuoc.ref2.length + 1} ảnh]\n  ${k.haiBuoc.prompt2}`);
-    const lp = chamKeyframe(bc); console.log(lp.length ? `  ✗ bộ chấm prompt:\n    ${lp.join('\n    ')}` : '  ✓ bộ chấm prompt: sạch (mọi đường: một bước, hai bước, khung kết)');
+    const c = chamKeyframe(bc); console.log(`  ${c.loi.some((l) => l.phat >= 20) ? '✗' : '✓'} điểm prompt ${c.diem}/100${c.loi.length ? `\n    ${c.loi.map((l) => `−${l.phat} ${l.chu}`).join('\n    ')}` : ' (mọi đường: một bước, hai bước, khung kết)'}`);
     else console.log(`  [một bước · ${k.urlRef.length} ảnh]\n  ${k.prompt}`);
   }
   process.exit(0);

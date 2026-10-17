@@ -872,10 +872,12 @@ export function gocMayLech(m: Pick<May3d, 'dat' | 'nhin'>, goc: string | undefin
 
 /** TRẠNG THÁI một vật trong shot cho prompt keyframe (MỘT chữ với nhãn Blender — scripts/bo-set/dung-set.py › TRANG): đã chia mảnh, đang cầm
  *  thì chỉ mảnh của người cầm. ket = khung kết (cam + den = đã đặt xuống). null = nguyên vẹn. */
-export function trangThaiVat(v: May3d['vi_tri'][number], ket = false): string | null {
+/** doi(k, giá trị) — đổi giá trị ô sổ người trước khi in (tên biến thể → mô tả en của nó; null = bỏ ô đó): ô trang_phuc / trang / vet là TÊN biến thể
+ *  tiếng Việt, in thẳng thành "wearing: Sơ mi trắng" (tập 122). */
+export function trangThaiVat(v: May3d['vi_tri'][number], ket = false, doi?: (k: KhoaNguoi, t: string) => string | null): string | null {
   const ds: string[] = [];
   // Sổ trạng thái (script supervisor): nhân vật / vật khai trang (mở) · trang_den (kết) — bẹp, ướt, xù lông, bốc khói… đè lên ảnh mẫu.
-  for (const x of SO_NGUOI) { const t = ket ? ngoaiKet(v, x.k) : ngoaiMo(v, x.k); if (t) ds.push(x.en ? `${x.en}: ${t}` : t); }
+  for (const x of SO_NGUOI) { const t0 = ket ? ngoaiKet(v, x.k) : ngoaiMo(v, x.k); const t = t0 && doi ? doi(x.k, t0) : t0; if (t) ds.push(x.en ? `${x.en}: ${t}` : t); }
   const n = v.chia ?? 1;
   if (n > 1) { const cam = !!v.cam && !(ket && v.den); ds.push(cam ? `split into ${n} pieces; only ONE piece here (the holder's share)` : `split into ${n} separate pieces lying side by side, NOT a whole one`); }
   return ds.length ? ds.join('; ') : null;

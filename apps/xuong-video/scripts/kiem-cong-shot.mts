@@ -12,6 +12,7 @@ import { mapBoSet } from '../src/lib/xuong-video/bo-set-3d-may';
 import { locNhanh } from '../src/lib/xuong-video/kieu';
 import { dongThoai } from '../src/lib/xuong-video/am-thanh';
 import { kiemTieng } from '../src/lib/xuong-video/khop-giong';
+import { ghiDiemPrompt } from '../src/lib/xuong-video/diem-prompt';
 const db = getDb()!;
 for (const tapId of process.argv.slice(2).map(Number)) {
   const canh = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
@@ -28,7 +29,8 @@ for (const tapId of process.argv.slice(2).map(Number)) {
     if (!g) { console.log(`#${c.thu_tu} không đọc được bối cảnh`); continue; }
     const vid = chanVideo(g.bc.canh, g.bc.nhanVat, tapR?.loai === 'quang_cao'); { const tm = await tronModelCanh(db, c); if (tm) vid.push(tm); }
     const gi = dongThoai(c, nv).filter((d) => d.loi.trim());
-    console.log(`#${c.thu_tu} M=${diemM[c.id]?.tong ?? '—'} [${c.trang_thai}] kf:${c.keyframe_url ? 'có' : '—'} giọng:${gi.filter((d) => d.url).length}/${gi.length} | keyframe: ${g.chan.length ? 'CHẶN ' + g.chan.join(' ; ') : 'qua'} | video: ${vid.length ? 'CHẶN ' + vid.join(' ; ') : 'qua'}${canhBao[c.id]?.length ? ` | ⚐ ${canhBao[c.id]!.join(' ; ')}` : ''}`);
+    const dp = await ghiDiemPrompt(db, c.id);   // điểm prompt (keyframe + video) → xv_canh.diem_prompt — timeline đọc
+    console.log(`#${c.thu_tu} M=${diemM[c.id]?.tong ?? '—'} P=${dp?.diem ?? '—'} [${c.trang_thai}] kf:${c.keyframe_url ? 'có' : '—'} giọng:${gi.filter((d) => d.url).length}/${gi.length} | keyframe: ${g.chan.length ? 'CHẶN ' + g.chan.join(' ; ') : 'qua'} | video: ${vid.length ? 'CHẶN ' + vid.join(' ; ') : 'qua'}${canhBao[c.id]?.length ? ` | ⚐ ${canhBao[c.id]!.join(' ; ')}` : ''}`);
   }
   console.log(`Murch · cả tập ${tbM.tap} · ${Object.entries(tbM.canh).map(([k, v]) => `${k}: ${v}`).join(' · ')}`);
 }

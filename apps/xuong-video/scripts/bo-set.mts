@@ -3,6 +3,7 @@
 //                                              khoi → khối 3D nhân vật / đạo cụ, may (theo mã shot) → xv_canh.may_3d của tập
 //   --dung --tap=<id> [--tat-ca]               dựng khung xám (Blender) cho shot có may_3d mà khung xám thiếu / cũ
 // cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set.mts …
+import { ghiDiemPromptTap } from '../src/lib/xuong-video/diem-prompt';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
@@ -86,6 +87,7 @@ if (process.argv.includes('--dung')) {
   if (nhap) {
     const v = JSON.parse(readFileSync(path.join(nhap, 'viec.json'), 'utf8')) as { ids: number[] };
     console.log(JSON.stringify(await dungKhungXamTap(db, tap, { tatCa: true, ids: v.ids, che: 'nhap', thuMuc: nhap })));
+    await ghiDiemPromptTap(db, tap);   // khung 3D mới → prompt đổi theo → chấm lại điểm prompt (timeline)
   } else {
     const kq = await dungKhungXamTap(db, tap, { tatCa: process.argv.includes('--tat-ca'), ids: chi, ...(xuat ? { che: 'xuat' as const, thuMuc: xuat } : {}) });
     // Không shot nào cần dựng thì dungKhungXamTap không tạo thư mục — tạo ở đây để viec.json rỗng vẫn ghi được (chay-imac.sh báo 'không có shot nào cần dựng').

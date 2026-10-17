@@ -58,7 +58,8 @@ const CAN = new Set(['cu', 'ecu', 'insert', 'mcu']);
  *  (khung_xam.thay) → keyframe vẽ theo chữ, lệch 3D. Trả câu chặn. */
 export function thieuVat3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
   const out: string[] = []; const khoi = khoi3d(c, nhanVat, set);
-  const thay = new Set((c.khung_xam?.thay ?? []).filter((t) => t.pt >= 1).map((t) => t.ten));
+  // THẤY = chiếm ≥ 1% khung (lưới tia), HOẶC món có chỗ đứng 3D mà tâm nằm trong khung (khung_xam.kiem) — toàn cảnh: ly trong tay Vivian < 1% khung vẫn là thấy (#1)
+  const thay = new Set([...(c.khung_xam?.thay ?? []).filter((t) => t.pt >= 1).map((t) => t.ten), ...(c.khung_xam?.kiem ?? []).filter((k) => k.trong_khung).map((k) => k.nhan_vat)]);
   for (const g of vatDuocNhacAi(c)) {
     const co = khoi.filter((k) => coTu(g.tu, k.chu));
     if (!co.length) { out.push(`chữ shot nhắc ${g.ten} mà bản 3D không có khối nào là ${g.ten} — AI sẽ tự vẽ: thêm đạo cụ / đồ set (đặt đúng chỗ), hoặc bỏ chữ nhắc`); continue; }

@@ -344,6 +344,20 @@
     "hat": 20,
     "mau": "#a9d4b4"
    }
+  },
+  {
+   "loai": "dao_cu",
+   "ten": "Bút ký",
+   "mo_ta": "Black lacquer fountain pen with a gold clip",
+   "khoi_3d": {
+    "hinh": "hop",
+    "co": [
+     1.2,
+     1.2,
+     14
+    ],
+    "mau": "#111111"
+   }
   }
  ],
  "tap": {

@@ -249,6 +249,18 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    268,
+    448,
+    158
+   ],
+   "nhin": [
+    306,
+    640,
+    168
+   ],
+   "ong_kinh": 50,
    "khung": [
     "Vivian",
     "Hồ sơ Harrington"
@@ -272,7 +284,7 @@
      ],
      "huong": 0,
      "dien": [
-      "gio_cao@0-0.3"
+      "gio_cao"
      ]
     },
     {
@@ -296,8 +308,7 @@
      "cam": "Vivian",
      "trang": "empty"
     }
-   ],
-   "phia": -5.3
+   ]
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -1185,6 +1196,18 @@
    }
   ],
   "may_3d": {
+   "tay": true,
+   "dat": [
+    -150,
+    285,
+    150
+   ],
+   "nhin": [
+    -25,
+    372,
+    140
+   ],
+   "ong_kinh": 55,
    "khung": [
     "Vivian",
     "Thẻ nhân viên"
@@ -1234,8 +1257,7 @@
      "huong": 90,
      "cam": "Lâm Hạ"
     }
-   ],
-   "phia": -82.7
+   ]
   },
   "nhan_vat": [
    "Lâm Hạ",
@@ -2025,6 +2047,21 @@
       "mc_di_bo@0-0.5",
       "mc_chong_ghe@0.5-1"
      ]
+    },
+    {
+     "ten": "Bút ký",
+     "tam": [
+      8,
+      728,
+      110
+     ],
+     "huong": 0,
+     "den": [
+      10,
+      690,
+      76
+     ],
+     "cam": "Lục Thần"
     }
    ],
    "phia": -20.3

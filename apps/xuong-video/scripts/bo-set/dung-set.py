@@ -296,9 +296,43 @@ def ve_mau(s, sh, ra):
     s.world.node_tree.nodes['Background'].inputs['Color'].default_value = nen; s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = sm
     return True
 
+# MÔ HÌNH ĐỒ ĐẠC THẬT (anh 17/10/2026 "bộ khung, thư viện làm tốt hơn chất lượng phim thì làm"): món khai mau_3d = mã mô hình CC0 Poly Haven
+# (tải bằng tai-tai-san.sh vào tai-san/mo-hinh/<mã>/) — nhập glTF thay khối hộp, co GIỮ tỉ lệ cho vừa khối khai (cao ≥ 30 cm: theo chiều cao;
+# món dẹt: vừa cạnh dài nhất), đáy giữa đặt đúng chỗ, xoay theo xoay khai + độ lệch mặt trước của mô hình (MH_XOAY). Các phần đặt tên
+# '<tên món> m<i>' → ten_vat gom về tên món (NHOM), cổng "thấy gì" + prompt vẫn gọi đúng tên + en. Thiếu tệp → dựng khối như cũ.
+MH_XOAY = {}   # mã → độ lệch mặt trước của mô hình so với quy ước bộ set (mặt nhìn −y); đo bằng bang-mo-hinh khi thêm mã mới
+def hop_vat(v):
+    """(gốc x, y, đáy z, rộng, sâu, cao, xoay) của một món — khối đơn hoặc nhóm phần (hộp bao các phần, toạ độ tương đối gốc)."""
+    if 'phan' not in v: return v['tam'][0], v['tam'][1], v['tam'][2], v['co'][0], v['co'][1], v['co'][2], v.get('xoay', 0)
+    xs, ys, zs = [], [], []
+    for p in v['phan']:
+        if not p.get('tam') or not p.get('co'): continue
+        xs += [p['tam'][0] - p['co'][0] / 2, p['tam'][0] + p['co'][0] / 2]; ys += [p['tam'][1] - p['co'][1] / 2, p['tam'][1] + p['co'][1] / 2]; zs += [p['tam'][2], p['tam'][2] + p['co'][2]]
+    return v['goc'][0], v['goc'][1], min(zs), max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs), v.get('xoay', 0)
+
+def mo_hinh_that(v):
+    import glob
+    from mathutils import Matrix
+    f = glob.glob(os.path.join(TAI_SAN, 'mo-hinh', v['mau_3d'], '*.gltf'))
+    if not f: print('CANH BAO thieu mo hinh', v['mau_3d'], '(chay tai-tai-san.sh)'); return False
+    truoc = set(bpy.data.objects); bpy.ops.import_scene.gltf(filepath=f[0]); bpy.context.view_layer.update()
+    moi = [o for o in bpy.data.objects if o not in truoc]
+    for o in moi: mw = o.matrix_world.copy(); o.parent = None; o.matrix_world = mw
+    for o in [o for o in moi if o.type != 'MESH']: bpy.data.objects.remove(o, do_unlink=True)
+    luoi = [o for o in moi if o.name in bpy.data.objects and o.type == 'MESH']
+    if not luoi: return False
+    bb = [o.matrix_world @ Vector(c) for o in luoi for c in o.bound_box]
+    lo = Vector([min(p[i] for p in bb) for i in range(3)]); hi = Vector([max(p[i] for p in bb) for i in range(3)]); sz = hi - lo
+    x, y, z, w, d, h, xoay = hop_vat(v)
+    s = h * CM / sz.z if h >= 30 else max(w, d, h) * CM / max(sz)
+    T = Matrix.Translation(Vector((x, y, z)) * CM) @ Matrix.Rotation(math.radians(xoay + MH_XOAY.get(v['mau_3d'], 0)), 4, 'Z') @ Matrix.Scale(s, 4) @ Matrix.Translation(-Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z)))
+    for i, o in enumerate(luoi): o.matrix_world = T @ o.matrix_world; o.name = f"{v['ten']} m{i}"
+    return True
+
 def dung_set():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     for v in DL['vat']:
+        if v.get('mau_3d') and mo_hinh_that(v): continue
         if 'phan' in v:
             for i, p in enumerate(v['phan']): khoi(p, f"{v['ten']} {i}", v['goc'], v.get('xoay', 0))
         else: khoi(v, v['ten'])
@@ -522,7 +556,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
 
-NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi'}   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
+NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or v.get('mau_3d')}   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
 NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}
 EN = {v['ten']: v['en'] for v in DL['vat'] if v.get('en')}   # tên tiếng Anh cho prompt keyframe   # mặt bàn, tường, kệ: không phải vật chắn
 TRANG = {}   # tên → trạng thái đang dựng của shot hiện tại (đã chia mảnh…) — nhin_thay ghi vào 'trang' cho nhãn keyframe

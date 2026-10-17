@@ -203,7 +203,7 @@ const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, 
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 /** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
-export const BAN_MAY = 5;   // 5: bề ngang đo vuông góc hướng máy
+export const BAN_MAY = 6;   // 6: người đi trong shot không cho tràn mép · 5: bề ngang đo vuông góc hướng máy
 //   // 3–4 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI), thêm OTS / two / insert
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 /** CỠ CẢNH NGƯỜI THẬT (anh 17/10/2026, previs tổng tài: shot "cận" ra toàn thân): PHAN_KHUNG viết cho nhân vật Tango tí hon (cận = ôm cả khối,
@@ -231,7 +231,9 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   let hKhung = H, wKhung = W;
   if (laNguoi) {
     const dinh = Math.max(...ds.map((d) => d.z + d.h)); hKhung = (dinh - Math.min(...ds.map((d) => d.z))) * bang;
-    cz = dinh - hKhung * 0.5; f = 0.9; if (chu.length === 1) wKhung = W * 0.5;   // một người cận: vai được tràn mép ngang
+    cz = dinh - hKhung * 0.5; f = 0.9;
+    // một người ĐỨNG YÊN cận: vai được tràn mép ngang; đang đi trong shot thì khung phải ôm trọn quãng đi (#19 tổng tài: Thần đi ra khỏi khung)
+    if (chu.length === 1 && !chu.some((v) => v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!) > 20)) wKhung = W * 0.5;
   }
   // Máy luôn đứng NGOÀI khối chủ thể: tối thiểu một cỡ chủ thể + 1 cm tính từ tâm.
   const d = Math.max(Math.max(laNguoi ? hKhung : H, W) + 1, hKhung / (f * 2 * tanV), wKhung / (0.85 * 2 * tanH));

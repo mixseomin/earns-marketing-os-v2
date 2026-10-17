@@ -250,7 +250,9 @@
      120
     ],
     "mau": "#d8d4c8",
-    "en": "large framed Chinese ink-wash painting of misty mountains in a thin black frame"
+    "en": "large Chinese ink-wash painting of misty mountains in a white wooden frame",
+    "mau_3d": "hanging_picture_frame_02",
+    "xoay": 90
    },
    {
     "ten": "Tường logo",
@@ -324,7 +326,8 @@
      -555,
      60
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -363,7 +366,8 @@
      555,
      60
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -402,7 +406,8 @@
      -555,
      650
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -441,7 +446,8 @@
      555,
      950
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -480,7 +486,8 @@
      -555,
      1060
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -594,8 +601,9 @@
      45
     ],
     "mau": "#1b1b1d",
-    "en": "black leather sofa",
-    "chat": "vai"
+    "en": "black tufted leather sofa",
+    "chat": "vai",
+    "mau_3d": "sofa_02"
    },
    {
     "ten": "Thư pháp",
@@ -619,7 +627,8 @@
      545,
      1060
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -731,7 +740,8 @@
      16
     ],
     "mau": "#4f7a45",
-    "en": "small succulent in a white pot"
+    "en": "small succulent in a white pot",
+    "mau_3d": "potted_plant_04"
    },
    {
     "ten": "Ghế 1.1",
@@ -1001,7 +1011,8 @@
      16
     ],
     "mau": "#4f7a45",
-    "en": "small succulent in a white pot"
+    "en": "small succulent in a white pot",
+    "mau_3d": "potted_plant_04"
    },
    {
     "ten": "Ghế 1.3",
@@ -1271,7 +1282,8 @@
      16
     ],
     "mau": "#4f7a45",
-    "en": "small succulent in a white pot"
+    "en": "small succulent in a white pot",
+    "mau_3d": "potted_plant_04"
    },
    {
     "ten": "Ghế 2.2",
@@ -1541,7 +1553,8 @@
      16
     ],
     "mau": "#4f7a45",
-    "en": "small succulent in a white pot"
+    "en": "small succulent in a white pot",
+    "mau_3d": "potted_plant_04"
    },
    {
     "ten": "Ghế 3.1",
@@ -1811,7 +1824,8 @@
      16
     ],
     "mau": "#4f7a45",
-    "en": "small succulent in a white pot"
+    "en": "small succulent in a white pot",
+    "mau_3d": "potted_plant_04"
    },
    {
     "ten": "Ghế 3.3",
@@ -2233,7 +2247,9 @@
      130
     ],
     "mau": "#b8964a",
-    "en": "large abstract gold-leaf painting in a thin black frame"
+    "en": "large abstract gold-leaf painting in a white wooden frame",
+    "mau_3d": "hanging_picture_frame_02",
+    "xoay": 90
    },
    {
     "ten": "Bảng chỉ dẫn",
@@ -2382,6 +2398,7 @@
      45
     ],
     "en": "tall bird-of-paradise plant in a black ceramic pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -2633,7 +2650,9 @@
      140
     ],
     "mau": "#8a2e2e",
-    "en": "large framed abstract painting in deep red and gold"
+    "en": "large abstract painting in deep red and gold in a white wooden frame",
+    "mau_3d": "hanging_picture_frame_02",
+    "xoay": 90
    },
    {
     "ten": "Tủ thấp",
@@ -2690,7 +2709,8 @@
      -455,
      755
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -2729,7 +2749,8 @@
      455,
      755
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -2768,7 +2789,8 @@
      455,
      45
     ],
-    "en": "tall fiddle-leaf fig plant in a white ceramic pot",
+    "en": "tall leafy indoor tree in a terracotta pot",
+    "mau_3d": "potted_plant_01",
     "phan": [
      {
       "hinh": "non",
@@ -2808,7 +2830,7 @@
      230
     ],
     "xoay": 90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -2833,8 +2855,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -2843,17 +2865,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 1T",
@@ -2869,7 +2892,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 1T",
@@ -2913,7 +2937,7 @@
      230
     ],
     "xoay": -90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -2938,8 +2962,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -2948,17 +2972,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 1P",
@@ -2974,7 +2999,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 1P",
@@ -3018,7 +3044,7 @@
      330
     ],
     "xoay": 90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3043,8 +3069,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3053,17 +3079,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 2T",
@@ -3079,7 +3106,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 2T",
@@ -3123,7 +3151,7 @@
      330
     ],
     "xoay": -90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3148,8 +3176,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3158,17 +3186,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 2P",
@@ -3184,7 +3213,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 2P",
@@ -3228,7 +3258,7 @@
      430
     ],
     "xoay": 90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3253,8 +3283,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3263,17 +3293,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 3T",
@@ -3289,7 +3320,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 3T",
@@ -3333,7 +3365,7 @@
      430
     ],
     "xoay": -90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3358,8 +3390,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3368,17 +3400,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 3P",
@@ -3394,7 +3427,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 3P",
@@ -3438,7 +3472,7 @@
      530
     ],
     "xoay": 90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3463,8 +3497,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3473,17 +3507,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 4T",
@@ -3499,7 +3534,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 4T",
@@ -3524,7 +3560,7 @@
      530
     ],
     "xoay": -90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3549,8 +3585,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3559,17 +3595,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 4P",
@@ -3585,7 +3622,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 4P",
@@ -3629,7 +3667,7 @@
      630
     ],
     "xoay": 90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3654,8 +3692,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3664,17 +3702,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 5T",
@@ -3690,7 +3729,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 5T",
@@ -3715,7 +3755,7 @@
      630
     ],
     "xoay": -90,
-    "en": "black leather high-back boardroom chair",
+    "en": "black leather armchair with a walnut wooden frame",
     "chat": "vai",
     "phan": [
      {
@@ -3740,8 +3780,8 @@
        40
       ],
       "co": [
-       55,
-       55,
+       60,
+       60,
        8
       ],
       "mau": "#1d1d20"
@@ -3750,17 +3790,18 @@
       "hinh": "hop",
       "tam": [
        0,
-       23.5,
+       26.0,
        48
       ],
       "co": [
-       55,
+       60,
        7,
-       62
+       52
       ],
       "mau": "#1d1d20"
      }
-    ]
+    ],
+    "mau_3d": "modern_arm_chair_01"
    },
    {
     "ten": "Sổ 5P",
@@ -3776,7 +3817,8 @@
      1
     ],
     "mau": "#f4f1ea",
-    "en": "white notepad with a black pen"
+    "en": "white notepads with a black pen",
+    "mau_3d": "office_notepads"
    },
    {
     "ten": "Ly nước 5P",

@@ -291,7 +291,7 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
   const coLap = nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '';
   return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap}`;
 }
-export const CO_LAP_VAT = 'ISOLATED object only, on a plain seamless light-grey studio background: no people, no hands, no faces, no room, no scenery, no other objects. Any photo slot or printed name on it stays blank or a neutral grey placeholder.';
+export const CO_LAP_VAT = 'ISOLATED object only, on a plain seamless light-grey studio background: no people, no hands, no faces, no room, no scenery, no other objects. Only if the object itself carries an ID photo or a printed name (badge, card), leave that area blank — never add grey patches, stickers or labels to any other object.';
 
 // ── Gợi ý AI cho MỌI form (anh yêu cầu 08/10/2026): mỗi lần sinh đều đọc ngữ cảnh của cả phim — kinh thánh, tuyến nhân vật,
 // tóm tắt các tập, cảnh lân cận — để phần mới khớp với phần đã có, không tả nhân vật một kiểu khác. ──────────────────────

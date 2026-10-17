@@ -31,13 +31,16 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */
 export async function goiGeminiJson<T>(parts: unknown[], schema: unknown): Promise<{ data: T; tk: { in: number; out: number } } | null> {
   const key = khoaGoogle(); if (!key) return null;
-  const body = { contents: [{ role: 'user', parts }], generationConfig: { thinkingConfig: { thinkingLevel: 'low' }, responseMimeType: 'application/json', responseSchema: schema } };
+  const body = { contents: [{ role: 'user', parts }], generationConfig: { thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: schema } };
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MO_HINH_BD}:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
     if (!r.ok) { console.error('[gemini json]', r.status, (await r.text()).slice(0, 200)); return null; }
-    const j = await r.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[]; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } };
+    const j = await r.json() as { candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[]; promptFeedback?: { blockReason?: string }; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } };
     const u = j.usageMetadata ?? {};
-    return { data: JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}') as T, tk: { in: u.promptTokenCount ?? 0, out: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) } };
+    // không có chữ (hết token / bị chặn) → null có lý do, KHÔNG trả {} (17/10/2026: {} thành điểm NaN, vòng tự làm phim đổ lỗi)
+    const txt = (j.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? '').join('').trim();
+    if (!txt) { console.error('[gemini json] không có chữ —', j.candidates?.[0]?.finishReason ?? j.promptFeedback?.blockReason ?? 'không rõ'); return null; }
+    return { data: JSON.parse(txt) as T, tk: { in: u.promptTokenCount ?? 0, out: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) } };
   } catch (e) { console.error('[gemini json]', e); return null; }
 }
 /** Ý đồ của shot cho máy soi: hành động video + khung hình (bỏ đoạn tả sản phẩm dài — đã có riêng) — để quần cũ / rách / chia đôi khung cố ý không bị báo. */

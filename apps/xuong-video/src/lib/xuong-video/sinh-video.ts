@@ -75,7 +75,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   return [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
-    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di, goiTenEn(bc.nhanVat))), khoi('khac', coMau(bc.kt.qc) ? '' : KHUNG_SONG), khoi('vat', spTrongTam),
+    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di, goiTenEn([...bc.nhanVat, ...bc.nvPhim]))), khoi('khac', coMau(bc.kt.qc) ? '' : KHUNG_SONG), khoi('vat', spTrongTam),
     khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem}`), khoi('cam_chu', 'No on-screen text, captions, subtitles, labels or logos.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', promptBieuCam(bc.canh.bieu_cam, 'video')),

@@ -61,7 +61,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
     ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${mangInt(canh.nhan_vat)}::int[])`)) as unknown as Row[]).map(mapNhanVat))
     : [];
   // BỘ SET của shot (nếu có 3D): vật trong set khai anchor = nó là MỘT PHẦN của anchor đó (Card Window → Orange Card, Cable Plug → White Cable).
-  const nvPhim = canh.may_3d ? ((await db.execute(sql`SELECT id, ten, loai, bo_set_id FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id) })) : [];
+  const nvPhim = canh.may_3d ? ((await db.execute(sql`SELECT id, ten, loai, bo_set_id, mo_ta FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id), mo_ta: s(x.mo_ta) })) : [];
   const sid = canh.may_3d ? boSetCuaShot(canh, nvPhim) : null;
   const vatSet = sid ? ((((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[])[0]?.vat ?? []) as { ten: string; anchor?: string }[]) : [];
   const anchorCua: Record<string, string> = Object.fromEntries(vatSet.filter((v) => v.anchor && v.anchor !== v.ten).map((v) => [v.ten, v.anchor!]));
@@ -91,7 +91,8 @@ export async function boiCanhCanh(db: Db, canhId: number) {
     const pc = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${canh.tap_id}`)) as unknown as Row[])[0]?.phan_canh;
     mayDu = mayDayDu(ds, laDoVatPhim(nvPhim), (pc ?? []) as PhanCanh[]).get(canh.id) ?? mayDu;
   }
-  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null };
+  // nvPhim: mọi nhân vật / đạo cụ của phim (tên, loại, mô tả) — gọi tên en cho món không gắn shot mà có trong 3D (đồ để lại: "Ly cà phê stays in place")
+  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean; /** giá ước (¢) — người gọi biết giá (video fal/Veo) thì đưa vào để cổng tiền so ngưỡng thay vì báo "không ước được" */ cents?: number }): Promise<number> {

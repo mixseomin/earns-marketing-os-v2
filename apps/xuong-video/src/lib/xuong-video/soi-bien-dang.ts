@@ -51,12 +51,14 @@ export async function soiBienDang(db: Db | null, o: { url: string; dai: number; 
   for (const [loai, v] of gop) {
     const ts = [v.giay - 0.3, v.giay, v.giay + 0.3, v.giay + 0.6].map((t) => Math.min(o.dai, Math.max(0, t)));
     const anh = await khungTai(o.url, ts, 768);
-    const c = anh ? await goiGeminiJson<{ co: boolean; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
-A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely. Is this defect really visible in these frames (a viewer would notice it)? Answer co=true if yes, co=false if the frames look correct.` },
-      ...anh.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, ly_do: { type: 'STRING' } }, required: ['co', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH') : null;
-    if (c) { tk.in += c.tk.in; tk.out += c.tk.out; }
+    // hai lượt xác nhận độc lập, giữ khi CẢ HAI nói có — một lượt gật cả ngón tay bình thường (bộ mẫu: 4/8 clip tốt bị báo "ngón tay méo")
+    const hoi = () => goiGeminiJson<{ co: boolean; ly_do: string }>([{ text: `These 4 images are consecutive frames (about 0.3 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
+A first check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the exact body part / object. Answer co=true ONLY if the defect is clearly there and an ordinary viewer watching at normal speed would notice it; co=false if it looks normal, is merely motion blur, or is part of the shot intent. In ly_do name the frame and what exactly is wrong.` },
+      ...(anh ?? []).map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, ly_do: { type: 'STRING' } }, required: ['co', 'ly_do'] }, 'MEDIA_RESOLUTION_HIGH');
+    const [c1, c2] = anh ? await Promise.all([hoi(), hoi()]) : [null, null];
+    for (const c of [c1, c2]) if (c) { tk.in += c.tk.in; tk.out += c.tk.out; }
     // không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
-    if (!c || c.data.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
+    if (!c1 || !c2 || (c1.data.co && c2.data.co)) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
   const cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
   return { loi, tho: giu, cents };

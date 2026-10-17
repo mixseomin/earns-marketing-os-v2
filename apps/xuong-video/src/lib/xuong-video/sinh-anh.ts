@@ -14,6 +14,7 @@ import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './po
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
+import { loiAi3d } from './kiem-ai-3d';
 import { boiCanhCanh, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
 import { uploadToR2 } from '../r2';
@@ -383,6 +384,9 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
     // Mạch: mọi nhân vật mở shot này đúng chỗ lần cuối thấy nó kết + chuỗi chú ý nhìn → thấy → làm (cùng hàm dấu ⚠ trên lưới).
     k.push(...(loiMachTap(ds, nvPhim, r[0] ? [mapBoSet(r[0])] : [], tapQt.phan_canh)[bc.canh.id] ?? []));   // phân cảnh: luồng thời gian (ngày truyện / liền trước)
     if (k.length) chan.push(`Bộ set 3D: ${k.join('; ')}`);
+    // Bộ kiểm riêng cho phim AI (kiem-ai-3d.ts): vật được nhắc phải có khối 3D + thấy ở cú cận · người nói thấy mặt · vật đeo kèm người đeo.
+    const ai = loiAi3d({ ...bc.canh, may_3d: mDu }, nvPhim, r[0] ? mapBoSet(r[0]) : null);
+    if (ai.length) chan.push(`Bộ kiểm AI: ${ai.join('; ')}`);
   }
   if (!bc.canh.prompt_anh.trim()) chan.push('cảnh chưa có prompt ảnh');
   const cm = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });

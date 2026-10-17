@@ -329,6 +329,39 @@ def mo_hinh_that(v):
     for i, o in enumerate(luoi): o.matrix_world = T @ o.matrix_world; o.name = f"{v['ten']} m{i}"
     return True
 
+def anh_cache(url):
+    """Tải ảnh chuẩn về tai-san/anh/<băm>.<đuôi> (một lần) — Blender đọc tệp cục bộ."""
+    import hashlib, urllib.request
+    d = os.path.join(TAI_SAN, 'anh'); os.makedirs(d, exist_ok=True)
+    f = os.path.join(d, hashlib.sha1(url.encode()).hexdigest()[:16] + os.path.splitext(url.split('?')[0])[1].lower())
+    if not os.path.exists(f):
+        try: urllib.request.urlretrieve(url, f)
+        except Exception as e: print('CANH BAO khong tai duoc anh chuan', url, e); return None
+    return f
+
+def dan_anh(v):
+    """ẢNH CHUẨN của đồ nhận dạng (anh 17/10/2026: "tranh trên tường lúc hình A lúc tranh B ở các góc khác nhau"): tấm ảnh phẳng phủ mặt vật (cả
+    hai mặt mỏng nhất của hộp bao — mặt áp tường bị che), chừa viền 8% cho khung. Tên '<vật> anh' → cùng nhóm vật khi kiểm."""
+    f = anh_cache(v['anh']); ds = [o for o in bpy.data.objects if o.type == 'MESH' and (o.name == v['ten'] or o.name.startswith(v['ten'] + ' '))]
+    if not f or not ds: return
+    bpy.context.view_layer.update()
+    bb = [o.matrix_world @ Vector(c) for o in ds for c in o.bound_box]
+    lo = Vector([min(p[i] for p in bb) for i in range(3)]); hi = Vector([max(p[i] for p in bb) for i in range(3)]); sz = hi - lo; tam = (lo + hi) / 2
+    mong = min(range(3), key=lambda i: sz[i]); a, b = [i for i in range(3) if i != mong]
+    m = bpy.data.materials.new(f"anh {v['ten']}"); m.use_nodes = True; nt = m.node_tree
+    tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = bpy.data.images.load(f); bsdf = nt.nodes['Principled BSDF']
+    nt.links.new(tex.outputs['Color'], bsdf.inputs['Base Color']); nt.links.new(tex.outputs['Color'], bsdf.inputs['Emission Color']); bsdf.inputs['Emission Strength'].default_value = 0.25
+    for dau in (-1, 1):
+        bpy.ops.mesh.primitive_plane_add(size=1); o = bpy.context.object; o.name = f"{v['ten']} anh{'' if dau > 0 else ' sau'}"
+        p = tam.copy(); p[mong] = (hi if dau > 0 else lo)[mong] + dau * 0.002; o.location = p
+        # mặt phẳng gốc nằm trong XY, pháp tuyến +Z → xoay cho pháp tuyến dọc trục mỏng, cạnh u theo trục a (ngang), v theo trục b (thường là cao)
+        # pháp tuyến hướng RA NGOÀI vật (người xem đứng ngoài → chữ / hình không bị lật gương)
+        if mong == 0: o.rotation_euler = (math.radians(90), 0, math.radians(90 * dau))          # X90: pháp tuyến −Y → Z±90: ±X
+        elif mong == 1: o.rotation_euler = (math.radians(90), 0, math.radians(0 if dau < 0 else 180))   # −Y / +Y
+        elif dau < 0: o.rotation_euler = (math.radians(180), 0, 0)                                 # mặt dưới: −Z
+        o.scale = (sz[a] * 0.84, sz[b] * 0.84, 1) if mong == 2 else ((sz[1] if mong == 0 else sz[0]) * 0.84, sz[2] * 0.84, 1)
+        o.data.materials.append(m)
+
 def dung_set():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     for v in DL['vat']:
@@ -339,6 +372,8 @@ def dung_set():
     for v in DL['vat']:   # vật liệu thật cho khung màu (Workbench vẫn đọc màu phẳng diffuse_color)
         if not v.get('chat'): continue
         for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]: chat_lieu(o, v['chat'], v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
+    for v in DL['vat']:   # ẢNH CHUẨN (anh: URL — tranh, màn chiếu, bảng chỉ dẫn): dán lên mặt vật → khung 3D gửi AI đã có ĐÚNG bức tranh, mọi góc như nhau
+        if v.get('anh'): dan_anh(v)
     for v in DL['vat']:   # KÍNH (kinh: True — cửa / vách kính): trong suốt ở khung màu, tia đo nhìn xuyên (tia_qua_kinh) — người sau cửa kính là THẤY
         if not v.get('kinh'): continue
         for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]:

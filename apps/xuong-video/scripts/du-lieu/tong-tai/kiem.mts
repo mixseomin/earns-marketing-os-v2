@@ -10,7 +10,8 @@ import { chamKichBan } from '../../../src/lib/xuong-video/cham-kich-ban';
 import { mayShot } from './may-shot';
 import { chanTienKy, chanShot, phimQt } from '../../../src/lib/xuong-video/quy-trinh';
 import { TIEN_TO_NGUOI_XEM } from '../../../src/lib/xuong-video/nguoi-xem';
-import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech, loiNoiMay, shotSoTruc, boSetCuaShot } from '../../../src/lib/xuong-video/bo-set-3d';
+import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech, loiNoiMay, shotSoTruc, boSetCuaShot, mayDayDu, laDoVatPhim } from '../../../src/lib/xuong-video/bo-set-3d';
+import { loiAi3d } from '../../../src/lib/xuong-video/kiem-ai-3d';
 
 const D = dirname(fileURLToPath(import.meta.url));
 const doc = (f: string) => JSON.parse(readFileSync(join(D, f), 'utf8'));
@@ -45,7 +46,10 @@ const chan = loiMachTap(ds as never, nv as never, boSet as never, phanCanh);
 const canh = canhBaoMachTap(ds as never, (t) => nv.some((a) => a.loai === 'nhan_vat' && a.ten === t), phanCanh);
 const khai = thieuKhaiNguoi(ds as never, phanCanh);
 let nChan = 0, nCanh = 0;
-ds.forEach((c, i) => { const sid = boSetCuaShot(c as never, nv as never); if (sid) (chan[c.id] ??= []).push(...loiNoiMay(c as never, nv as never, { id: sid }, i > 0 ? shotSoTruc(ds as never, i) : null)); });   // nối máy: cùng hàm cổng keyframe, không cần dựng
+// máy ĐẦY ĐỦ (sổ đã nối: hướng / trạng thái mở = kết shot trước) — đúng cái cổng keyframe đọc (doc-db.ts › boiCanhCanh.mayDu)
+const du = mayDayDu(ds as never, laDoVatPhim(nv as never), phanCanh as never);
+ds.forEach((c, i) => { const sid = boSetCuaShot(c as never, nv as never); const cd = { ...c, may_3d: du.get(c.id) ?? c.may_3d }; if (sid) (chan[c.id] ??= []).push(...loiNoiMay(cd as never, nv as never, { id: sid }, i > 0 ? shotSoTruc(ds as never, i) : null),
+  ...loiAi3d({ ...cd, thoai: (shots[i] as Record<string, any>).thoai, prompt_anh: (shots[i] as Record<string, any>).prompt_anh ?? '' } as never, nv as never, (boSet.find((b) => b.id === sid) ?? null) as never)); });   // nối máy + bộ kiểm AI: cùng hàm cổng keyframe, không cần dựng   // nối máy: cùng hàm cổng keyframe, không cần dựng
 for (const c of ds) {
   const l = chan[c.id] ?? [];
   const w = [...(canh[c.id] ?? []), ...(khai[c.id] ?? []), gocMayLech(c.may_3d, c.ky_thuat?.goc)].filter((x): x is string => !!x && !(boChu && x.startsWith('chữ lệch 3D')));

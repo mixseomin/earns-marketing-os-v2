@@ -138,7 +138,7 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 17/10/2026 (8): rig người — tư thế theo mã diễn (ap_dien) + đồ cầm vào bàn tay (gan_tay); chỉ ma-nơ-canh người → phim cũ y nguyên → GIỮ 37.
 // 17/10/2026 (9): mocap CMU (mã 'mc_*', mesh/mocap.py) — chỉ ma-nơ-canh người → GIỮ 37.
 // 17/10/2026 (10): mô hình đồ đạc thật (mau_3d, Poly Haven) — chỉ món khai mau_3d → GIỮ 37.
-assert.deepEqual([BAN_DUNG, bam], [41, '0776468b3470'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [42, '5802136104d7'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));
@@ -274,6 +274,8 @@ console.log('bo-set-3d.test: ok');
   assert.equal(coCanhLech({ khung_xam: kx([['Tango', 35.1], ['Lint', 21.3]]), ky_thuat: { co_canh: 'mcu' } as never }, nv).length, 0);       // #23: Lint xa hơn là dàn cảnh chiều sâu
   assert.equal(coCanhLech({ khung_xam: kx([['Tango', 9.4], ['Lint', 8]]), ky_thuat: { co_canh: 'ms' } as never }, nv).length, 1);
   assert.equal(coCanhLech({ khung_xam: kx([['Tango', 5]]), ky_thuat: { co_canh: 'ws' } as never }, nv).length, 0);                         // toàn cảnh: nhỏ là đúng
+  assert.equal(coCanhLech({ khung_xam: kx([['Tango', 5]]), ky_thuat: { co_canh: 'ws' } as never }, nv, (t) => t === 'Tango').length, 1);   // người thật: toàn cảnh 5% là chấm
+  assert.equal(coCanhLech({ khung_xam: kx([['Tango', 30]]), ky_thuat: { co_canh: 'ws' } as never }, nv, (t) => t === 'Tango').length, 0);
 }
 
 // 3D là nguồn duy nhất: vật chạm mép ghi rõ chỉ ló bao nhiêu; danh sách nói chữ ngoài danh sách = ngoài khung (#35: đế cắm ló dải 10% bị vẽ cả cái).

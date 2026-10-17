@@ -44,8 +44,10 @@ const tapId = r[0]
 // BỘ SET 3D (bo-set.json, sinh bằng dung-bo-set.py): mỗi bối cảnh một bộ set, gắn bo_set_id + vùng → trình xem 🧊 và Blender đọc được.
 const sets: Record<string, number> = {};
 for (const b of JSON.parse(readFileSync(new URL('./bo-set.json', import.meta.url), 'utf8'))) {
-  r = await db.execute(sql`SELECT id FROM xv_bo_set WHERE phim_id = ${phimId} AND ten = ${b.ten} LIMIT 1`);
-  const du = j({ vat: b.vat });
+  r = await db.execute(sql`SELECT id, du_lieu FROM xv_bo_set WHERE phim_id = ${phimId} AND ten = ${b.ten} LIMIT 1`);
+  // ẢNH CHUẨN đồ nhận dạng (tranh, màn chiếu… — scripts/sinh-anh-set.mts) chỉ nằm trên DB: nạp lại thì GIỮ theo tên vật, không xoá mất.
+  const anhCu = new Map(((r[0]?.du_lieu as { vat?: { ten: string; anh?: string }[] } | undefined)?.vat ?? []).filter((v) => v.anh).map((v) => [v.ten, v.anh!]));
+  const du = j({ vat: (b.vat as { ten: string; anh?: string }[]).map((v) => (v.anh || !anhCu.has(v.ten) ? v : { ...v, anh: anhCu.get(v.ten) })) });
   const id = r[0]
     ? (await db.execute(sql`UPDATE xv_bo_set SET mo_ta = ${b.mo_ta}, du_lieu = ${du}::jsonb, updated_at = now() WHERE id = ${r[0].id} RETURNING id`))[0]!.id
     : (await db.execute(sql`INSERT INTO xv_bo_set (project, phim_id, ten, mo_ta, du_lieu) VALUES ('studio', ${phimId}, ${b.ten}, ${b.mo_ta}, ${du}::jsonb) RETURNING id`))[0]!.id;

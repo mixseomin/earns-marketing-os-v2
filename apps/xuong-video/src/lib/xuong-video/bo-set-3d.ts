@@ -29,7 +29,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 41;
+export const BAN_DUNG = 42;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -116,8 +116,11 @@ export const chuTheQuaNho = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky
  *  Đo NHÂN VẬT CHÍNH (cao nhất trong số nhân vật chủ thể): nhân vật phụ đứng xa hơn là dàn cảnh theo chiều sâu, không phải lỗi. Sàn theo khung dọc,
  *  nhân vật nặn cao ~2–3 cm: ms ≥ 20%, two ≥ 15%, mcu ≥ 30%. Không đạt → kéo máy lại (giữ hướng máy) hoặc khai cỡ cảnh đúng cái 3D cho thấy. */
 export const SAN_CO: Record<string, number> = { ms: 20, two: 15, mcu: 30 };
-export const coCanhLech = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, laNhanVat: (ten: string) => boolean): string[] => {
-  const co = c.ky_thuat?.co_canh ?? ''; const san = SAN_CO[co]; if (!san) return [];
+/** Toàn cảnh PHIM NGƯỜI THẬT: nhân vật chính ≥ 10% chiều cao khung (tập 122 #15: hai người 2% trong phòng trống — AI vẽ phòng rỗng, người như chấm).
+ *  Hoạt hình không xét: nhân vật đồ chơi tí hon trong toàn cảnh macro nhỏ là đúng ý. */
+export const SAN_WS_NGUOI = 10;
+export const coCanhLech = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, laNhanVat: (ten: string) => boolean, laNguoi: (ten: string) => boolean = () => false): string[] => {
+  const co = c.ky_thuat?.co_canh ?? ''; const san = SAN_CO[co] ?? (co === 'ws' && (c.khung_xam?.kiem ?? []).some((k) => k.bat_buoc && laNguoi(k.nhan_vat)) ? SAN_WS_NGUOI : 0); if (!san) return [];
   const nv = (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung && laNhanVat(k.nhan_vat));
   if (!nv.length) return [];
   const chinh = nv.reduce((a, b) => (b.cao_khung_pt > a.cao_khung_pt ? b : a));
@@ -210,7 +213,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
     for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
     out.push(...chuTheQuaTo(c, set, (t) => nhanVat.some((x) => x.ten === t && x.khoi_3d?.hinh === 'nguoi')));
     out.push(...chuTheQuaNho(c));
-    out.push(...coCanhLech(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
+    out.push(...coCanhLech(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t), (t) => nhanVat.some((x) => x.ten === t && x.khoi_3d?.hinh === 'nguoi')));
     // 'Bố cục nhắc mà khung không thấy' (dò tên trong chữ) KHÔNG chặn nữa — báo nhầm (chữ 'cable' khớp mọi sợi cáp); bộ giải máy vẫn dùng nó làm
     // gợi ý. Vật BẮT BUỘC thấy khai thẳng ở may_3d.khung (đồ của set cũng được) → kiểm như chủ thể (anh 15/10/2026: 3D là nguồn, không dò chữ).
     for (const t of khoiLapKhung(c, set)) out.push(`${t.ten} lấp ${t.pt}% khung — máy dí sát hoặc lọt trong vật: lùi máy / đổi cỡ cảnh`);
@@ -325,7 +328,7 @@ export function moTaThay(thay: VatThay[] | undefined, enCua?: (ten: string) => s
   const ds = (thay ?? []).filter((t) => t.pt >= PT_THAY).map((t) => `${enCua?.(t.ten) ?? t.en ?? t.ten}${t.trang ? ` [${t.trang}]` : ''} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''}${catMep(t.hop)})`);
   // 3D LÀ NGUỒN DUY NHẤT của "có gì, ở đâu, to bao nhiêu" (anh 15/10/2026, keyframe #35: đế cắm 3D chỉ ló một dải ở đáy → ảnh vẽ cả cái đế to; chữ thẻ
   // shot "a cable loop trailing behind" → ảnh thêm vòng cáp): chữ chỉ thêm chất liệu, biểu cảm, dáng, hành động — chữ gọi tên thứ ngoài danh sách = ngoài khung.
-  return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there). This list and Image 1 are the ONLY authority on WHAT is in the frame, WHERE and HOW BIG: if any other sentence of this prompt names a character or object that is not in this list, it is OFF-SCREEN at this instant — do not draw it or any trace of it. The rest of the prompt only adds look, material, expression, pose and action to what IS listed; a block cut off by the frame edge stays cut off exactly that much.` : '';
+  return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; every desk, table and shelf holds ONLY the listed objects — leave all other surfaces bare (no extra cups, notebooks, papers, pens, phones, plants or decor); framed pictures and screens show exactly what the layout image shows; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there). This list and Image 1 are the ONLY authority on WHAT is in the frame, WHERE and HOW BIG: if any other sentence of this prompt names a character or object that is not in this list, it is OFF-SCREEN at this instant — do not draw it or any trace of it. The rest of the prompt only adds look, material, expression, pose and action to what IS listed; a block cut off by the frame edge stays cut off exactly that much.` : '';
 }
 
 // ── ĐỒ ĐỂ LẠI (anh 15/10/2026: "đồ ở các cảnh liên quan trước và sau phải chú ý để không bị mất hình") ──────────────────────────────────

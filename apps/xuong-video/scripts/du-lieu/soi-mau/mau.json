@@ -1,0 +1,96 @@
+{
+ "ghi": "BỘ MẪU CHUẨN của máy soi clip (anh 17/10/2026: 'KO đc bỏ sót'). Mỗi lần đổi máy soi chạy scripts/kiem-may-soi.mts: bắt đủ 100% clip lỗi mới được dùng; clip tốt bị báo = báo nhầm (tốn một lượt sinh lại). Thêm mẫu: mỗi lần người xem bắt được lỗi máy bỏ sót → thêm clip đó vào 'loi'. dai = số giây đầu bản xuất dùng.",
+ "sp": "Men's stretch pants that look like smooth dress trousers cut from denim — NOT classic five-pocket jeans. High rise, straight leg, relaxed but not baggy. Flat front; two slanted (slash) front pockets; NO coin pocket, NO rivets, NO contrast or gold stitching (stitching is tonal, same color as the fabric); zip fly with a single button; belt loops; two back pockets with button-through closure. Fabric: smooth, uniform, solid-color stretch denim twill with a soft sheen — NO fading, NO whiskering, NO distressing, NO wash marks. Main color Light Blue (vivid cobalt/royal blue).",
+ "loi": [
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1062-bce71765-baa1-404d-af5f-56a41442f239.mp4",
+   "dai": 3.7,
+   "loai": "trang_phuc_bien_dang",
+   "ghi": "#120 shot 4 bản đầu: đứng dậy từ ngồi xổm, quần phồng, đũng tụt (anh báo giây 11)"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/865-5e017b37-e87c-45fa-a07d-e7f28d35865d.mp4",
+   "dai": 4.4,
+   "loai": "co_the_meo",
+   "ghi": "#61 shot 12 bản đầu: chân gập ngược, quần phồng quanh đùi gối"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1061-384ee41d-8d6b-4cd2-a367-afa4aaa31e19.mp4",
+   "dai": 4.0,
+   "loai": "chu_tren_vat",
+   "ghi": "#120 shot 3: nhãn chữ JettJeans trong cạp + túi đổi kiểu jeans 5 túi"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1061-3b03adec-d890-4b19-834b-f1ba9f4cae87.mp4",
+   "dai": 4.0,
+   "loai": "chu_tren_vat",
+   "ghi": "#120 shot 3: mở khoá quần lộ cạp quần lót có chữ"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1062-54c3a084-6189-4e4d-a469-ae2479b3c018.mp4",
+   "dai": 3.7,
+   "loai": "vat_the_la",
+   "ghi": "#120 shot 4: chiếc tất lơ lửng cạnh hông"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1062-d709cfa5-43cf-4607-918d-44bdefd1b21d.mp4",
+   "dai": 3.7,
+   "loai": "vat_the_la",
+   "ghi": "#120 shot 4: điện thoại hiện ra trong tay rồi biến mất"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1062-38d30aa3-afbb-41cf-8985-f73f5ef1f530.mp4",
+   "dai": 3.7,
+   "loai": "co_the_meo",
+   "ghi": "#120 shot 4: tất biến dạng + tay méo"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1164-d695f7e4-b6b9-40d2-abda-237f65234646.mp4",
+   "dai": 3.9,
+   "loai": "co_the_meo",
+   "ghi": "#127 shot 12: hai chân dính liền khi co chân (anh báo giây 36)"
+  }
+ ],
+ "tot": [
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1059-5fbcdeb9-da14-489e-95f7-ce79219cb229.mp4",
+   "dai": 3.3,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1060-a5dbba79-e1b1-4863-a32a-f4bb73affc82.mp4",
+   "dai": 4.6,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1061-0868e790-14d6-407e-8be6-a0cd2107707b.mp4",
+   "dai": 3.2,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1062-655b0213-c0f6-4087-9d17-3a3e9edf1f50.mp4",
+   "dai": 3.7,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1063-ea5b424f-3fc1-4ed7-9b7d-bd6bfd5719f8.mp4",
+   "dai": 3.2,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1064-f5a45f73-93ff-47c4-9a8d-3f5d4811e1dd.mp4",
+   "dai": 3.4,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1065-ecd30594-9576-4182-ac62-53750c3146d6.mp4",
+   "dai": 2.6,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  },
+  {
+   "url": "https://img.on.tc/xuong-video/clip/1066-6e290c01-c563-4241-a354-a2876443b894.mp4",
+   "dai": 3.7,
+   "ghi": "#120 bản cuối — đã xem từng khung"
+  }
+ ]
+}

@@ -6,10 +6,10 @@
   "thoi_luong_s": 8,
   "duong_video": "veo",
   "ky_thuat": {
-   "vai": "hanh_dong",
-   "co_canh": "two",
+   "vai": "thiet_lap",
+   "co_canh": "ws",
    "goc": "ngang",
-   "chuyen_dong": "cam_tay",
+   "chuyen_dong": "zoom_gat",
    "ong_kinh": "chuan",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -18,7 +18,7 @@
    ]
   },
   "dan_dung": {
-   "bo_cuc": "Profile two-shot in the aisle: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers soft behind",
+   "bo_cuc": "Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers behind",
    "mo": "Hạ walking with a folder, Vivian blocking her path holding a full coffee cup",
    "ket": "coffee splashed across the chest of Hạ’s white blouse",
    "huong": "they face each other across the frame",
@@ -93,7 +93,7 @@
    "Văn phòng mở tầng 38",
    "Ly cà phê"
   ],
-  "chu_man": "",
+  "chu_man": "09:05 · Tầng 38 · Lục thị",
   "prompt_anh": "",
   "prompt_video": "",
   "bat_dau": 0.0
@@ -101,14 +101,14 @@
  {
   "ma": "1.2",
   "canh": "Cà phê và hồ sơ",
-  "phat_s": 2,
+  "phat_s": 3,
   "thoi_luong_s": 8,
   "duong_video": "veo",
   "ky_thuat": {
    "vai": "chi_tiet",
    "co_canh": "insert",
    "goc": "cao",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "cam_tay",
    "ong_kinh": "macro",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -290,7 +290,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 5.0
+  "bat_dau": 6.0
  },
  {
   "ma": "1.4",
@@ -302,7 +302,7 @@
    "vai": "phan_ung",
    "co_canh": "ots",
    "goc": "ngang",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "vong",
    "ong_kinh": "chan_dung",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -400,7 +400,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 9.0
+  "bat_dau": 10.0
  },
  {
   "ma": "1.5",
@@ -518,7 +518,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 12.0
+  "bat_dau": 13.0
  },
  {
   "ma": "2.1",
@@ -530,7 +530,7 @@
    "vai": "thiet_lap",
    "co_canh": "ws",
    "goc": "thap",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "dan_truoc",
    "ong_kinh": "rong",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -629,7 +629,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 18.0
+  "bat_dau": 19.0
  },
  {
   "ma": "2.2",
@@ -729,7 +729,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 23.0
+  "bat_dau": 24.0
  },
  {
   "ma": "2.3",
@@ -741,7 +741,7 @@
    "vai": "phan_ung",
    "co_canh": "cu",
    "goc": "thap",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "day_vao",
    "ong_kinh": "chan_dung",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -834,7 +834,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 27.0
+  "bat_dau": 28.0
  },
  {
   "ma": "2.4",
@@ -937,7 +937,7 @@
   "chu_man": "Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 32.0
+  "bat_dau": 33.0
  },
  {
   "ma": "3.1",
@@ -946,7 +946,7 @@
   "thoi_luong_s": 6,
   "duong_video": "h3",
   "ky_thuat": {
-   "vai": "hanh_dong",
+   "vai": "tong_the",
    "co_canh": "ws",
    "goc": "ngang",
    "chuyen_dong": "tinh",
@@ -1056,7 +1056,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 36.0
+  "bat_dau": 37.0
  },
  {
   "ma": "3.2",
@@ -1154,7 +1154,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 42.0
+  "bat_dau": 43.0
  },
  {
   "ma": "3.3",
@@ -1252,7 +1252,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 47.0
+  "bat_dau": 48.0
  },
  {
   "ma": "3.4",
@@ -1263,8 +1263,8 @@
   "ky_thuat": {
    "vai": "tam_trang",
    "co_canh": "ms",
-   "goc": "ngang",
-   "chuyen_dong": "tinh",
+   "goc": "thap",
+   "chuyen_dong": "day_vao",
    "ong_kinh": "chuan",
    "anh_sang": "vien",
    "am_thanh": [
@@ -1358,7 +1358,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 53.0
+  "bat_dau": 54.0
  },
  {
   "ma": "4.1",
@@ -1452,7 +1452,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 58.0
+  "bat_dau": 59.0
  },
  {
   "ma": "4.2",
@@ -1464,7 +1464,7 @@
    "vai": "hanh_dong",
    "co_canh": "ws",
    "goc": "thap",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "dan_truoc",
    "ong_kinh": "rong",
    "anh_sang": "tuong_phan",
    "am_thanh": [
@@ -1549,7 +1549,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 63.0
+  "bat_dau": 64.0
  },
  {
   "ma": "4.3",
@@ -1561,7 +1561,7 @@
    "vai": "nguoi_thu_ba",
    "co_canh": "two",
    "goc": "ngang",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "dolly_zoom",
    "ong_kinh": "chuan",
    "anh_sang": "tuong_phan",
    "am_thanh": [
@@ -1630,12 +1630,12 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 68.0
+  "bat_dau": 69.0
  },
  {
   "ma": "4.4",
   "canh": "Phòng họp 3 giờ",
-  "phat_s": 2,
+  "phat_s": 3,
   "thoi_luong_s": 8,
   "duong_video": "veo",
   "ky_thuat": {
@@ -1710,7 +1710,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 72.0
+  "bat_dau": 73.0
  },
  {
   "ma": "4.5",
@@ -1799,7 +1799,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 74.0
+  "bat_dau": 76.0
  },
  {
   "ma": "5.1",
@@ -1871,7 +1871,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 79.0
+  "bat_dau": 81.0
  },
  {
   "ma": "5.2",
@@ -1965,6 +1965,6 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 83.0
+  "bat_dau": 85.0
  }
 ]

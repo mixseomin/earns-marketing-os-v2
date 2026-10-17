@@ -8,6 +8,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chamKichBan } from '../../../src/lib/xuong-video/cham-kich-ban';
 import { mayShot } from './may-shot';
+import { kiemNguPhapMay, diCm } from '../../../src/lib/xuong-video/ngu-phap-may';
+import { kiemNhipHinh, kiemGiayDoc, kiemVaiKe, kiemDanKhongGian } from '../../../src/lib/xuong-video/nhip-hinh';
 import { loiMachTap, canhBaoMachTap, thieuKhaiNguoi, gocMayLech } from '../../../src/lib/xuong-video/bo-set-3d';
 
 const D = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +23,10 @@ const phanCanh = phim.tap.phan_canh as { ten: string; ngay?: string; lien_truoc?
 const idCua = (t: string) => { const x = nv.find((a) => a.ten === t); if (!x) throw new Error(`shot nhắc "${t}" mà phim.json không có anchor`); return x.id; };
 const ds = shots.map((s: Record<string, any>, i) => ({ id: i + 1, thu_tu: i + 1, canh: s.canh, phan_doan: s.canh, nhan_vat: (s.nhan_vat as string[]).map(idCua), may_3d: mayShot(s.may_3d, s.ky_thuat, (t: string) => (phim.nhan_vat as { ten: string; khoi_3d?: { co: number[] } }[]).find((a) => a.ten === t)?.khoi_3d ?? null), ky_thuat: s.ky_thuat, hanh_dong: s.hanh_dong, dan_dung: s.dan_dung, prompt_video: s.prompt_video, ma: s.ma }));
 
+// Cổng tiền kỳ phần dữ liệu shot (quy-trinh.ts › chanTienKy gọi đúng các hàm này) — trước 17/10/2026 bộ chấm này bỏ sót, tập mẫu trượt nhịp hình (12/20 shot đứng yên).
+const nt = ds.map((c, i) => ({ thu_tu: c.thu_tu, ky_thuat: c.ky_thuat, bieu_cam: (shots[i] as Record<string, any>).bieu_cam, dan_dung: c.dan_dung, hanh_dong: c.hanh_dong, di_cm: diCm(c.may_3d?.vi_tri), cuoi: i === ds.length - 1, phan_doan: c.phan_doan, phat_s: (shots[i] as Record<string, any>).phat_s, thoi_luong_s: (shots[i] as Record<string, any>).thoi_luong_s }));
+const tienKy = [...kiemNhipHinh(nt), ...kiemNguPhapMay(nt as never, phim.kinh_thanh.the_loai), ...kiemGiayDoc(nt as never, {}), ...kiemVaiKe(nt as never, {} as never), ...kiemDanKhongGian(ds as never, nv.filter((a) => a.loai === 'boi_canh').map((a) => a.id), {})];
+console.log(`tiền kỳ: ${tienKy.length ? tienKy.map((x) => '\n  CHẶN ' + x).join('') : 'đạt'}`);
 const kb = chamKichBan({ tap: { so: 1, beats: phim.tap.beats, phan_canh: phanCanh as never }, kt: phim.kinh_thanh,
   canh: shots.map((s: Record<string, any>) => ({ phat_s: s.phat_s, thoi_luong_s: s.thoi_luong_s, phan_doan: s.canh, chu_man: s.chu_man, thoai: s.thoai, loi_thoai: '', hanh_dong: s.hanh_dong })) as never });
 console.log(`kịch bản ${kb.diem}/100`); for (const m of kb.muc) if (!m.dat) console.log('  ✗', m.ten, '—', m.ghi);
@@ -35,4 +41,4 @@ for (const c of ds) {
   if (l.length || w.length) console.log(`#${c.thu_tu} (${c.ma})`, [...l.map((x) => 'CHẶN ' + x), ...w.map((x) => '⚐ ' + x)].join('\n    '));
 }
 console.log(`— ${ds.length} shot · ${nChan} chặn · ${nCanh} cảnh báo`);
-process.exitCode = nChan ? 1 : 0;
+process.exitCode = nChan || tienKy.length ? 1 : 0;

@@ -17,6 +17,7 @@ import { nhipHanhDong } from './nhip-hanh-dong';
 import { mapCanh, mapTap, mapNhanVat, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
 import { daDangMay, giayDoc } from './nhip-hinh';
+import { apNguPhapMay, diCm } from './ngu-phap-may';
 import { tranhDayVao } from './san-pham-shot';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -104,14 +105,17 @@ export async function daDangMayTapDb(db: Db, tapId: number, nguoi: string): Prom
   const canh = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   const doi = new Map<number, Canh['ky_thuat']>();
   // Quảng cáo: shot gắn sản phẩm mặc trên người ở cỡ có người thì không chọn đẩy vào (san-pham-shot.ts — đẩy vào cắt mất sản phẩm, #54 shot 9).
-  const phim = ((await db.execute(sql`SELECT p.id, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
+  const phim = ((await db.execute(sql`SELECT p.id, p.loai, p.kinh_thanh->>'the_loai' AS the_loai, coalesce(p.kinh_thanh->'series'->>'dong_co', '') AS dong_co FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
   const sp = phim?.loai === 'quang_cao' ? ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim.id} AND loai = 'san_pham'`)) as unknown as Row[]).map(mapNhanVat) : [];
   for (const nh of ['A', ...cacNhanh(canh).filter((x) => x !== 'A')]) {
     const ds = locNhanh(canh, nh).map((c) => { const kt = doi.get(c.id) ?? c.ky_thuat; return { ...c, ky_thuat: kt, tranh_day: tranhDayVao(kt?.co_canh, sp.filter((v) => c.nhan_vat.includes(v.id))) }; });
-    for (const x of daDangMay(ds)) doi.set(x.id, x.ky_thuat);
+    // Ngữ pháp máy theo nhịp kịch TRƯỚC (phim ngắn dọc — ngu-phap-may.ts), rồi luật nhịp hình đa dạng phần còn lại trên kết quả đó.
+    for (const x of apNguPhapMay(ds.map((c, i) => ({ ...c, di_cm: diCm(c.may_3d?.vi_tri), cuoi: i === ds.length - 1 && !!String(phim?.dong_co ?? '').trim() })), String(phim?.the_loai ?? ''))) doi.set(x.id, x.ky_thuat);
+    const ds2 = ds.map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat }));
+    for (const x of daDangMay(ds2)) doi.set(x.id, x.ky_thuat);
   }
   for (const [id, kt] of doi) {
-    await chupTruoc(db, { bang: 'xv_canh', id, cot: ['ky_thuat'], moTa: 'đa dạng chuyển động máy (nhịp hình)', nguoi });
+    await chupTruoc(db, { bang: 'xv_canh', id, cot: ['ky_thuat'], moTa: 'chuyển động máy (ngữ pháp nhịp kịch + nhịp hình)', nguoi });
     await db.execute(sql`UPDATE xv_canh SET ky_thuat = ${JSON.stringify(kt)}::jsonb, updated_at = now() WHERE id = ${id}`);
   }
   return doi.size;

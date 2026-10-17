@@ -154,7 +154,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
               {!x.ok && <span style={{ ...mono }}>{x.lam}</span>}
               {!x.ok && x.key === 'shot_list' && <button type="button" className="xv-btn" style={{ justifySelf: 'start' }} disabled={ban('nhip')}
                 title="Đổi chuyển động máy đúng các shot phạm luật nhịp hình (trùng shot trước / quá nhiều shot máy đứng yên). Không đổi cỡ cảnh. 0đ, ↶ Hoàn tác được."
-                onClick={() => void chay('nhip', async () => { const r = await daDangMayTap(tap.id); await taiCanh(); return r; })}>🎥 Đa dạng chuyển động máy (0đ)</button>}
+                onClick={() => void chay('nhip', async () => { const r = await daDangMayTap(tap.id); await taiCanh(); return r; })}>🎥 Chuyển động máy theo nhịp (0đ)</button>}
             </div>
           ))}
         </div>

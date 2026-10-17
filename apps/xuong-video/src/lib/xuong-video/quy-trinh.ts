@@ -15,6 +15,7 @@ import type { Series, TapHoSo, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, tomTatNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM, type ShotXem } from './nguoi-xem';
 import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { loiSanPhamShot } from './san-pham-shot';
+import { kiemNguPhapMay, diCm } from './ngu-phap-may';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe } from './qc-cam-xuc';
 
@@ -86,7 +87,7 @@ const chamTap = (tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_lu
 /** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang
  *  sinh shot của nhánh B (truyền canh = nhánh B thì mã phiên bản luôn lệch → chặn oan). Mặc định = canh (tập không có nhánh). */
 /** boiCanh = id các anchor Bối cảnh của phim — có thì xét luật dẫn không gian (nhip-hinh.ts › kiemDanKhongGian). */
-export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong' | 'ky_thuat' | 'nhan_vat' | 'dan_dung' | 'tham_khao'>>)[] = [], canhA = canh, boiCanh?: number[]): string[] {
+export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong' | 'ky_thuat' | 'nhan_vat' | 'dan_dung' | 'tham_khao' | 'bieu_cam' | 'may_3d'>>)[] = [], canhA = canh, boiCanh?: number[]): string[] {
   const out: string[] = [];
   // QC: mọi câu chữ phải có nguồn tham khảo (tham-khao.ts) — cấm câu tự viết không tham khảo (anh 15/10/2026).
   out.push(...chanThamKhao(canh, phim.laQc));
@@ -103,6 +104,10 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   if ((phim.phong_cach ?? '').trim().length < 30) out.push('chưa chốt phong cách hình (style frame: ánh sáng, màu, chất liệu) — mục 1 Kinh thánh');
   // Nhịp hình (nhip-hinh.ts): shot liền nhau trùng cỡ cảnh + chuyển động máy, quá nhiều shot máy đứng yên — sửa 0đ bằng 🎥 trong thanh 🎬.
   out.push(...kiemNhipHinh(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat }))));
+  // Ngữ pháp máy theo nhịp kịch (ngu-phap-may.ts, phim ngắn dọc): sốc / sỉ nhục / quyền lực / hé lộ / phán quyết / móc cuối tập phải có chuyển động
+  // hợp nhịp — sửa 0đ bằng cùng nút 🎥.
+  out.push(...kiemNguPhapMay(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat, bieu_cam: c.bieu_cam, dan_dung: c.dan_dung, hanh_dong: c.hanh_dong,
+    di_cm: diCm(c.may_3d?.vi_tri), cuoi: i === canh.length - 1 && !!phim.series?.dong_co?.trim() })), phim.the_loai));
   // Nhịp đọc (nhip-hinh.ts › giayDoc): shot phim truyện phát quá ngắn → người xem chưa hiểu đã cắt.
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
   out.push(...kiemTheShot(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, dan_dung: c.dan_dung })), phim));

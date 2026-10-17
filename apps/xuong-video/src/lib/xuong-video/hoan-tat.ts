@@ -4,6 +4,7 @@
 // Vì sao Worker: việc sinh chạy ngoài tiến trình studio → deploy/khởi động lại studio không giết ảnh đang sinh dở, và số việc song song
 // do Cloudflare gánh (max_concurrency trong worker/wrangler.toml) chứ không phải 4 khe của một tiến trình Node.
 // Hàng đợi không nhận (thiếu khoá, Cloudflare lỗi) → chạy ngay trong tiến trình như cũ, nút bấm không bao giờ chết theo.
+import { giaAnhCong } from './cong-ai';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { luuVaoKho } from './kho';
@@ -22,6 +23,7 @@ type Row = Record<string, unknown>;
 /** Giá ảnh theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
 export async function giaAnhSv(model: string): Promise<number> {
   if (model.startsWith('fal:')) { const m = await modelFal(model.slice(4)); if (m?.giaCents != null) return m.giaCents; return 4; }
+  const cong = giaAnhCong(model); if (cong != null) return cong;   // cổng đích danh (ckey: / shopaikey:) — giá VNĐ thật, không lấy giá niêm yết Google
   return giaAnhCents(model);
 }
 

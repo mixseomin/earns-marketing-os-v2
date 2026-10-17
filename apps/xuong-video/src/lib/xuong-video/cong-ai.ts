@@ -326,6 +326,8 @@ export function tachKhoa(key: string): { kieu: 'cong'; cong: CongKey; model: str
   if (!m) return { kieu: 'tu_chon', model: key };
   return m[1] === 'google' ? { kieu: 'google', model: m[2]! } : { kieu: 'cong', cong: m[1] as CongKey, model: m[2]! };
 }
+/** Giá THẬT (cent) của một ảnh qua cổng đích danh 'cổng:model' (vd ckey:wowztools/nano-banana-2) — null nếu không phải cổng có bảng giá. */
+export const giaAnhCong = (k: string): number | null => (GIA_ANH_VND[k] != null ? vndRaCent(GIA_ANH_VND[k]!) : null);
 /** Một cổng đích danh cho ảnh: gọi đúng một lần, kèm nguồn. */
 export async function sinhAnhMotCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh; loi?: string }> {
   const t0 = Date.now();

@@ -40,7 +40,7 @@ const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8
 // Shot có bản đồ độ sâu 3D mặc định đi HAI BƯỚC (sinh-anh.ts: FLUX depth fal $0,05 + ảnh sửa nhân dạng) — ước giá phải tính bước FLUX (17/10/2026:
 // ước $0,034/ảnh trong khi đường thật ~ $0,09/ảnh).
 const haiBuoc = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau).length;
-const giaAnh = await giaAnhSv(kt.mo_hinh_anh).catch(() => 0);
+const giaAnh = await giaAnhSv(nguon || kt.mo_hinh_anh).catch(() => 0);
 console.log(`phim #${phimId} · model ảnh ${kt.mo_hinh_anh} ≈ ${tien(giaAnh)}/ảnh`);
 console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(anchorThieu.length * giaAnh)}`);
 console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh + haiBuoc * 5)}${haiBuoc ? ` (gồm ${haiBuoc} shot hai bước: FLUX độ sâu ≈ $0.05/shot)` : ''}${nguon ? ` · nguồn ${nguon}, một bước` : ''}`);

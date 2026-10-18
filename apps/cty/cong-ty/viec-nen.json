@@ -718,11 +718,13 @@
    "nhat_ky": "/Users/htuan/.cache/dang-may.log",
    "hen": {
     "luc": [
+     "02:00",
+     "08:00",
      "20:00",
      "21:00"
     ]
    },
-   "ghi_chu": "Mọi nền của mọi máy studio đang bật mà xv_may.dang[].may = iMac (máy scam: YouTube, FB qua Graph API box3, X). Trần mỗi nền mỗi ngày ở dang-may.mjs nên lượt 21:00 chỉ bù khi 20:00 hỏng. Nền nào giao MacBook thì thêm lại việc MacBook:com.earns.may-dang."
+   "ghi_chu": "Mọi nền của mọi máy studio đang bật mà xv_may.dang[].may = iMac. Mỗi lượt hỏi NHỊP AN TOÀN (puzzle-books scripts/nhip-an-toan.mjs — anh 18/10/2026 'đăng được nhiều nhưng không được spam'): trần theo tuổi kênh (kênh mới 1 bài/nền/ngày, tăng ở 14 / 28 ngày), trần tài khoản, cách ≥ 3 giờ, không trùng chuyện một ngày, dừng khi có cảnh báo rủi ro. 4 khung (02:00 · 08:00 · 20:00 · 21:00 giờ VN = chiều / tối / sáng giờ Mỹ): khung thêm chỉ đăng khi nhịp an toàn cho phép; 21:00 bù khi 20:00 hỏng. Nền nào giao MacBook thì thêm lại việc MacBook:com.earns.may-dang."
   },
   {
    "nhan": "iMac:com.earns.puzzle-short-yt",

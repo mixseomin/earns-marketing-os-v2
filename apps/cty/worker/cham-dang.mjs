@@ -24,6 +24,8 @@ export function doBaiDang(v, ten = '') {
   else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
   if (ten && title.toLowerCase().startsWith(ten.toLowerCase())) chan.push(`câu móc mở bằng tên kênh "${ten}" thay vì tình huống`);
   if (!/[?!]|\d/.test(title)) canh.push('câu móc không có câu hỏi / con số / tình huống');
+  // 6 · đa dạng — đăng nhiều nhưng không spam (anh 18/10/2026, "rule này là quan trọng"): cùng tiêu đề với video khác của máy = nội dung lặp
+  if ((v.trung ?? 1) > 1) chan.push(`tiêu đề trùng với ${v.trung - 1} video khác của máy — mỗi bài một tiêu đề (chống spam)`);
   // 4 · lý do bấm
   if (!d.link) chan.push('không có link trang đích');
   else if (!mo.includes(d.link)) chan.push('chữ đăng không chứa link trang đích');
@@ -43,12 +45,18 @@ async function ketNoi() {
 
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
-  const ds = await sql`select v.id, v.slug, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, m.ma, m.ten, m.mau from xv_may_video v join xv_may m on m.id = v.may_id
-    where not coalesce(v.luu_tru, false) and v.xuat_luc is not null and (v.cham is null or v.cham->>'xuat' is distinct from v.xuat_luc::text) order by v.id`;
+  // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
+  const ds = await sql`select v.id, v.slug, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau,
+      (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
+    from xv_may_video v join xv_may m on m.id = v.may_id
+    where not coalesce(v.luu_tru, false) and v.xuat_luc is not null
+      and (v.cham is null or v.cham->>'xuat' is distinct from v.xuat_luc::text or v.cham->>'dang' is distinct from md5(v.dang::text)
+           or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1))
+    order by v.id`;
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
   for (const v of ds) {
     const r = doBaiDang({ ...v, xuat_luc: v.xuat }, '');
-    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
+    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
     if (r.ket !== 'DUYET') { t.sua++; for (const l of r.chan_cung.length ? r.chan_cung : [`điểm ${r.diem}/10 < ${DIEM_DUYET}`]) t.loi[l] = (t.loi[l] ?? 0) + 1; }
@@ -129,9 +137,11 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.ok(doBaiDang({ ...tot, dang: { ...tot.dang, description: 'no link here at all, just words words words words words words words words words words' } }).chan_cung.some((x) => x.includes('link')), 'thiếu link');
   t.ok(doBaiDang({ ...tot, video_url: null }).chan_cung.includes('chưa có bản xuất'));
   t.ok(doBaiDang({ ...tot, nen_url: null }).diem <= 6, 'chặn cứng thì trần 6');
+  t.equal(doBaiDang({ ...tot, trung: 2 }).ket, 'SUA_LAI', 'tiêu đề trùng video khác = chặn (chống spam)');
+  t.equal(doBaiDang({ ...tot, trung: 1 }).ket, 'DUYET');
   t.ok(tinChamDang({ cham: 2, duyet: 1, sua: 1, theoMau: { m: { ten: '<b>', n: 2, sua: 1, loi: { 'không có ảnh thật': 1 } } } }).includes('&lt;b&gt;'), 'thoát HTML');
   const v = vanDeMay([{ ma: 'm', ten: 'M', nen: 'x', tran: 1, cuoi: '2026-10-17', con: 20 }, { ma: 'm', ten: 'M', nen: 'yt', tran: 1, cuoi: null, con: 3 }, { ma: 'm', ten: 'M', nen: 'fb', tran: 2, cuoi: '2026-10-16', con: 13 }], '2026-10-17');
   t.deepEqual(v.map((x) => x.khoa), ['lo|m|yt', 'kho|m|yt', 'lo|m|fb', 'kho|m|fb'], 'đăng hôm qua + kho đủ = im; chưa có bài = lỡ; 13 bài / 2 mỗi ngày = 6 ngày < 7');
-  console.log('✓ cham-dang: 11 ca đạt (+ lỡ lượt / kho sắp cạn) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
+  console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

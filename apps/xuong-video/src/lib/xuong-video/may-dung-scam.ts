@@ -130,10 +130,26 @@ export function lenhScam(o: { de: DeScam; ass: string; nen?: string | null; font
 /** Trang đích của ngách (trang con trên ratesbyroom.com — nhịp 1 của plan social traffic). */
 export const LINK_SCAM = 'https://ratesbyroom.com/hotel-scam-check/';
 /** Một dòng nguồn đề (mau/may/scam-or-real.json) → dòng nạp của máy: đề + chữ đăng tiếng Anh. */
+/** Câu trích làm móc tiêu đề: dòng gây chú ý nhất của tin (dòng có dấu hiệu đầu tiên; tin thật thì dòng thứ hai), cắt ≤ 52 ký tự theo từ (khung dài nhất + câu trích ≤ 100).
+ *  Không lấy tên chiêu (goi) — "Fake cancellation deadline" lộ luôn đáp án. */
+export function cauMoc(de: DeScam): string {
+  const d = de.dong.find((x) => x.co) ?? de.dong[1] ?? de.dong[0]!;
+  const t = d.t.replace(/\s+/g, ' ').replace(/[:,]$/, '').trim();
+  if (t.length <= 52) return t;
+  let r = ''; for (const w of t.split(' ')) { if (`${r} ${w}`.trim().length > 49) break; r = `${r} ${w}`.trim(); }
+  return `${r}...`;
+}
+/** Tiêu đề MỖI VIDEO MỘT KHÁC (anh 18/10/2026: "đăng được nhiều nhưng không được spam" — 30 video trước dùng chung 2 tiêu đề, đúng dấu hiệu
+ *  nội dung lặp mà nền tảng hạ tầm với / gắn spam): câu trích của chính tin + 3 khung xoay theo slug, không lộ đáp án. */
+export function tieuDeScam(slug: string, de: DeScam): string {
+  const q = cauMoc(de), loai = de.kenh === 'Email' ? 'email' : de.kenh === 'SMS' ? 'text' : 'WhatsApp message';
+  const k = [...slug].reduce((a, c) => a + c.charCodeAt(0), 0) % 3;
+  return [`"${q}" Scam or real?`, `From a "hotel": "${q}" Would you trust it?`, `Scam or real? This ${loai} says "${q}"`][k]!;
+}
 export function tuNguonScam(x: DeScam & { slug: string; nen_url?: string; nen_nguon?: string }) {
   const { slug, nen_url, nen_nguon: _nguon, ...de } = x, lua = de.ket === 'scam';
   return { slug, chu_de: de.goi, de, dang: {
-    title: `Scam or real? This "hotel" ${de.kenh === 'Email' ? 'email' : 'message'}: spot the red flags in 7 seconds`,
+    title: tieuDeScam(slug, de),
     description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message. Call the hotel on the number from its official website. Free checklist (5 red flags before you pay) + real hotel rates: ${LINK_SCAM}`,
     link: LINK_SCAM,
   }, nen_url: nen_url ?? null };

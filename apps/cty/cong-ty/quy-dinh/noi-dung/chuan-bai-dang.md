@@ -39,7 +39,10 @@ Ba thứ đó là thước chấm. Bài đúng mà không ai dừng lại thì v
 - Tiếng Anh tự nhiên, có viết tắt, câu ngắn. Không bịa số liệu, lời chứng thực, tên người thật.
 - Hashtag tối đa 3, đúng chủ đề.
 
-## 6 · Đa dạng
+## 6 · Đa dạng — đăng nhiều nhưng không spam (anh 18/10/2026: "rule này là quan trọng")
+
+- **Chặn cứng:** tiêu đề trùng với bài khác của cùng máy / kênh. Mỗi bài một tiêu đề, một câu móc riêng (trích chính nội dung của bài, không lộ đáp án).
+- Máy đăng tự giữ nhịp (puzzle-books scripts/nhip-an-toan.mjs): trần mỗi nền mỗi ngày tăng theo tuổi kênh, cách nhau ≥ 3 giờ trên một tài khoản, không cùng một chuyện lên hai nền của cùng tài khoản trong một ngày, tài khoản có cảnh báo rủi ro 7 ngày thì dừng.
 
 - Không đăng hai bài cùng dạng, cùng khung hình liền nhau trên một kênh. Máy đăng xoay dạng bài theo lịch; phòng chấm thêm điểm trừ khi một dạng lặp quá 2 lần liên tiếp.
 

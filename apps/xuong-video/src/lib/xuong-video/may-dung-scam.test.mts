@@ -27,3 +27,14 @@ for (const x of ds) {
   assert.ok(boCuc(x).cuoi < d!.cat[1] + d!.cat[3], `${x.slug}: ảnh đáp án cắt mất đuôi tin`);
 }
 console.log(`may-dung-scam: ${ds.length} đề đạt`);
+
+// tiêu đề không trùng (chống spam, 18/10/2026), không lộ đáp án, đủ ngắn cho feed
+{
+  const { tuNguonScam, tieuDeScam } = await import('./may-dung-scam');
+  const nguon = JSON.parse((await import('node:fs')).readFileSync(new URL('../../../mau/may/scam-or-real.json', import.meta.url), 'utf8')) as (Parameters<typeof tuNguonScam>[0])[];
+  const ts = nguon.map((x) => tuNguonScam(x).dang.title);
+  assert.strictEqual(new Set(ts).size, ts.length, 'mỗi video một tiêu đề');
+  for (const [i, t] of ts.entries()) { assert.ok(t.length <= 100, `tiêu đề dài ${t.length}: ${t}`); assert.ok(!/fake|scam:|real:|[—–]/i.test(t.replace(/^Scam or real\?|Scam or real\?$/i, '').replace(/Scam or real\? /, '')), `tiêu đề lộ đáp án / gạch dài: ${t}`); void i; }
+  assert.ok(tieuDeScam('a', { kenh: 'SMS', dong: [{ t: 'x'.repeat(80), co: 1 }] } as never).includes('...'), 'câu trích dài thì cắt');
+  console.log(`tiêu đề scam: ${ts.length} tiêu đề khác nhau, ví dụ: ${ts.slice(0, 3).join(' | ')}`);
+}

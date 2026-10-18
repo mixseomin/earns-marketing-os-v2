@@ -60,7 +60,14 @@ def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, t
         khuyu = n[f'khuyu_{p}'] = _khop(f'{ten}.khuyu_{p}', vai, (0, 0, -L['tay_tren']))
         _khoi(f'{ten}.tay_duoi_{p}', khuyu, L['tay_duoi'], 0.024 * H, 0.024 * H, da)
         cotay = n[f'cotay_{p}'] = _khop(f'{ten}.cotay_{p}', khuyu, (0, 0, -L['tay_duoi']))
-        _khoi(f'{ten}.ban_tay_{p}', cotay, L['ban_tay'], 0.018 * H, 0.008 * H, da)
+        # BÀN TAY CÓ NGÓN: lòng bàn tay + 4 ngón + ngón cái. Khối dẹt một mảnh (mái chèo) thì keyframe AI vẽ thành cánh / lá trắng (tập 122 #11).
+        _khoi(f'{ten}.ban_tay_{p}', cotay, 0.55 * L['ban_tay'], 0.018 * H, 0.008 * H, da)
+        for i, (dx, k) in enumerate(((-0.75, 0.85), (-0.25, 1.0), (0.25, 0.95), (0.75, 0.8))):
+            g_ = _khop(f'{ten}.ngon_goc_{p}{i}', cotay, (dx * 0.0135 * H, 0, -0.5 * L['ban_tay']))
+            _khoi(f'{ten}.ngon_{p}{i}', g_, 0.5 * L['ban_tay'] * k, 0.0043 * H, 0.0043 * H, da)
+        gc = _khop(f'{ten}.ngon_goc_{p}c', cotay, (-s * 0.016 * H, -0.004 * H, -0.12 * L['ban_tay']))
+        gc.rotation_euler = (math.radians(-30), math.radians(s * 25), 0)
+        _khoi(f'{ten}.ngon_{p}c', gc, 0.42 * L['ban_tay'], 0.005 * H, 0.005 * H, da)
         dui = n[f'dui_{p}'] = _khop(f'{ten}.dui_{p}', hong, (s * L['hong_rong'] * 0.55, 0, -L['hong'] * 0.5))
         _khoi(f'{ten}.dui_k_{p}', dui, L['dui'], 0.045 * H, 0.045 * H, ao)
         goi = n[f'goi_{p}'] = _khop(f'{ten}.goi_{p}', dui, (0, 0, -L['dui']))

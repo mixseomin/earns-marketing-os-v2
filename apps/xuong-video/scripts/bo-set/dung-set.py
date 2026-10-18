@@ -184,6 +184,18 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         return dat(o, m, ten)
     elif h == 'non':   # nón cụt (thân khăn rủ Mr. Wipe): đáy rộng co[0]×co[1], đỉnh = đáy × dinh, cao co[2]
         bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * p.get('dinh', 0.4), depth=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
+    elif h == 'coc':   # CỐC / LY: nón cụt RỖNG (bỏ mặt miệng, thành dày) + QUAI bên +x — khối đặc trơn thì AI vẽ khúc ống hở hai đầu (tập 122 #17)
+        import bmesh
+        dn = p.get('dinh', 1.0); goc_ = Vector((gx * CM, gy * CM, (z + c / 2) * CM))
+        bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * dn, depth=1, location=goc_); o = bpy.context.object
+        bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.normal.z > 0.9], context='FACES'); bm.to_mesh(o.data); bm.free()
+        sm = o.modifiers.new('thanh', 'SOLIDIFY'); sm.thickness = 0.06; sm.offset = -1
+        with bpy.context.temp_override(object=o, active_object=o): bpy.ops.object.modifier_apply(modifier=sm.name)
+        if p.get('quai', True):
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.2, minor_radius=0.05, location=goc_ + Vector((0.25 * (1 + dn) + 0.17, 0, 0.05)), rotation=(math.radians(90), 0, 0))
+            q = bpy.context.object
+            with bpy.context.temp_override(active_object=o, selected_editable_objects=[o, q]): bpy.ops.object.join()
+        bpy.context.view_layer.objects.active = o
     o = bpy.context.object
     if h != 'hop':   # khối cong mặt mịn: ảnh nét (lay_net) lộ từng ô đa giác thành vệt sáng ô vuông (16/10/2026)
         for f in o.data.polygons: f.use_smooth = True
@@ -612,7 +624,21 @@ def gan_tay(sh, tat_ca, ket=False):
         else: dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
         bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]
         tam = Vector([(min(p[i] for p in bb) + max(p[i] for p in bb)) / 2 for i in range(3)])
-        for o in objs: o.location += dich - tam
+        treo = float(v.get('treo') or 0)
+        if treo and khop is None:   # ĐỒ TREO (thẻ đeo, chìa khoá…): mép trên món thấp hơn điểm nắm `treo` cm + dây chữ V từ tay xuống — món nắm trong tay thì bàn tay che mất (#11)
+            dinh_ = Vector((tam.x, tam.y, max(p[2] for p in bb)))
+            for o in objs: o.location += dich - Vector((0, 0, treo * CM)) - dinh_
+            bpy.context.view_layer.update()
+            bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]; z0 = max(p[2] for p in bb)
+            ngang = Vector((max(p[0] for p in bb) - min(p[0] for p in bb), max(p[1] for p in bb) - min(p[1] for p in bb), 0)) * 0.25
+            moc = Vector(((min(p[0] for p in bb) + max(p[0] for p in bb)) / 2, (min(p[1] for p in bb) + max(p[1] for p in bb)) / 2, z0))
+            cv = bpy.data.curves.new(f"day {ten}", 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = 0.35 * CM
+            sp = cv.splines.new('POLY'); sp.points.add(2)
+            for i, q in enumerate((moc - ngang, dich, moc + ngang)): sp.points[i].co = (*q, 1)
+            cv.materials.append(mau(v.get('treo_mau', '#1f2a5a')))
+            d_ = bpy.data.objects.new(f"NV {ten}·day", cv); bpy.context.collection.objects.link(d_); tat_ca.append(d_)
+        else:
+            for o in objs: o.location += dich - tam
     bpy.context.view_layer.update()
 
 def nam_xuong(objs, X, Y, Z, hg, d, h):

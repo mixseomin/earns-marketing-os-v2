@@ -94,7 +94,7 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   if (p.hinh === 'hop') g = new THREE.BoxGeometry(1, 1, 1);
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
   else if (p.hinh === 'khan') { g = khanHinh(w / (dd || 1)); }   // tấm khăn rủ: đơn vị tâm ở giữa khối như hộp
-  else if (p.hinh === 'non') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
+  else if (p.hinh === 'non' || p.hinh === 'coc') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
   else if (p.hinh === 'vong') { const r = c / w / 2; g = new THREE.TorusGeometry(0.5 - r, r, 12, 48).rotateX(Math.PI / 2); sy = w; }   // vòng đeo: xuyến trục đứng, tiết diện tròn (CÙNG dung-set.py › khoi 'vong')
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);

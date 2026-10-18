@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
 import { thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
@@ -131,8 +131,11 @@ assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Sticky', tam: [0, 0, 0] }]), sh(2, 
 const setLap = { id: 7, du_lieu: { vat: [...set.du_lieu.vat, { ten: 'MacBook Pro', tuy_chon: true, goc: [0, 100], phan: [] }] } };
 assert.ok(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap).some((x) => x.startsWith('MacBook Pro')));
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: { ...mm, them: ['MacBook Pro'] }, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap), []);
-// Sửa scripts/bo-set/dung-set.py thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi ghi lại băm ở đây.
-const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-set/dung-set.py', import.meta.url))).digest('hex').slice(0, 12);
+// Sửa scripts/bo-set/dung-set.py HOẶC mesh/*.py (ma-nơ-canh, mocap — cùng đi vào hình) thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi
+// ghi lại băm ở đây. 18/10/2026: trước chỉ băm dung-set.py → thêm ngón tay ở mesh/nguoi.py mà khung cũ vẫn tính là mới.
+const thuMesh = new URL('../../../scripts/bo-set/mesh/', import.meta.url);
+const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ...readdirSync(thuMesh).filter((f) => f.endsWith('.py')).sort().map((f) => new URL(f, thuMesh))]
+  .reduce((h, u) => h.update(readFileSync(u)), createHash('sha1')).digest('hex').slice(0, 12);
 // 17/10/2026: đổi chỉ THIẾT BỊ render / khử nhiễu (bat_gpu) + thêm nhánh hinh 'nguoi' (ma-nơ-canh, chỉ phim khai người) — hình phim cũ không đổi → GIỮ BAN_DUNG 37, chỉ ghi lại băm.
 // 17/10/2026 (2): khoi() nhận hinh 'nguoi' cho NGƯỜI PHỤ của bộ set (tu_the ngồi / đứng) — chỉ set khai người phụ đổi hình → GIỮ 37, ghi lại băm.
 // 17/10/2026 (3): khung mặt bằng ôm cả bộ set khi không có 'Mặt bàn' (bộ set phòng thật chết StopIteration) — set có 'Mặt bàn' y cũ → GIỮ 37.
@@ -156,7 +159,7 @@ const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-
 // 18/10/2026 (24): máy phải đứng trong sàn bộ set (trong_phong) → 59.
 // 18/10/2026 (25): 'thay' đánh dấu người (nguoi), đồ nghiêng theo shot (vi_tri.nghieng) → 60.
 // 18/10/2026 (26): nghieng mặc định 0 (khung kết gán None làm Blender sập cả lượt) → 61.
-assert.deepEqual([BAN_DUNG, bam], [67, '079865aba439'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [68, 'd224f10d5585'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

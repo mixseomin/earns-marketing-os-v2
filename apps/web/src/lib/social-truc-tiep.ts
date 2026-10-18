@@ -77,3 +77,14 @@ export async function docSuKienAff(id: string, sites: string[]): Promise<SuKienA
     WHERE e.phien_id = ${id} AND p.site IN ${sql(sites)} ORDER BY e.luc LIMIT 300`;
   return rows.map((r) => ({ luc: iso(r.luc), loai: r.loai, trang: r.trang, chiTiet: r.chi_tiet }));
 }
+
+/** Lượt khách từ BÀI ĐĂNG của máy đăng sang site, 7 ngày: khoá `<nền>|<slug>` → số phiên. Máy đăng gắn utm_source=<nền>&utm_medium=short&utm_campaign=<slug>
+ *  (puzzle-books dang-may.mjs › utm); page-events ghi vào phien_khach.nguon = "<nền> / short", campaign = slug. Bỏ lượt đội nhà. */
+export async function docBamBaiDang(): Promise<Map<string, number>> {
+  const sql = db(), ra = new Map<string, number>(); if (!sql) return ra;
+  const rows = await sql<{ nen: string; campaign: string; n: number }[]>`
+    SELECT split_part(nguon, ' / ', 1) AS nen, campaign, count(*)::int AS n FROM phien_khach
+    WHERE nguon LIKE '% / short' AND campaign IS NOT NULL AND NOT noi_bo AND bat_dau > now() - interval '7 days' GROUP BY 1, 2`;
+  for (const r of rows) ra.set(`${r.nen}|${r.campaign}`, r.n);
+  return ra;
+}

@@ -56,6 +56,41 @@ export async function chamMoi(sql) {
   return kq;
 }
 
+// SỨC KHOẺ MÁY ĐĂNG (kế hoạch S03 bước 2, anh duyệt 18/10/2026): kênh LỠ LƯỢT (máy bật mà hôm qua — giờ VN — không có bài nào lên nền đó) và KHO SẮP CẠN
+// (bài DUYỆT chưa đăng lên nền đó < KHO_TOI_THIEU ngày theo trần mỗi ngày). Chỉ báo khi vấn đề MỚI xuất hiện (tệp trạng thái), hết vấn đề thì xoá khỏi sổ —
+// không nhắc lại cùng một chuyện mỗi ngày.
+export const KHO_TOI_THIEU = 7;
+const NEN_ANH = new Set(['x_anh', 'fb_anh']);
+/** Vấn đề của các máy đang bật. ds = [{ ma, ten, nen, tran, cuoi (YYYY-MM-DD|null), con }], homQua = YYYY-MM-DD (giờ VN). */
+export function vanDeMay(ds, homQua) {
+  const ra = [];
+  for (const x of ds) {
+    if (!x.cuoi || x.cuoi < homQua) ra.push({ khoa: `lo|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: lỡ lượt — bài cuối ${x.cuoi ?? 'chưa có bài nào'}` });
+    const ngay = Math.floor(x.con / Math.max(1, x.tran));
+    if (ngay < KHO_TOI_THIEU) ra.push({ khoa: `kho|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: kho còn ${x.con} bài DUYỆT chưa đăng (~${ngay} ngày, ngưỡng ${KHO_TOI_THIEU})` });
+  }
+  return ra;
+}
+async function docMayDang(sql) {
+  return sql`select m.ma, m.ten, n->>'nen' as nen, coalesce((n->>'tran')::int, 1) as tran,
+      (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi,
+      (select count(*)::int from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false) and v.video_url is not null
+         and v.cham->>'ket' = 'DUYET' and v.cham->>'xuat' = v.xuat_luc::text and not v.da_dang ? (n->>'nen')
+         and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) as con
+    from xv_may m cross join lateral jsonb_array_elements(m.dang) n where m.chay`;
+}
+/** Soi máy đăng, trả các vấn đề MỚI (chưa báo) và ghi sổ trạng thái <DATA>/may-dang-van-de.json. */
+export async function soiMayDang(sql) {
+  const fs = await import('node:fs'), path = await import('node:path');
+  const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'may-dang-van-de.json');
+  let cu = {}; try { cu = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
+  const homQua = new Date(Date.now() + 7 * 3600e3 - 864e5).toISOString().slice(0, 10);
+  const vd = vanDeMay(await docMayDang(sql), homQua), moi = vd.filter((x) => !cu[x.khoa]);
+  fs.mkdirSync(path.dirname(tep), { recursive: true });
+  fs.writeFileSync(tep, JSON.stringify(Object.fromEntries(vd.map((x) => [x.khoa, cu[x.khoa] ?? new Date().toISOString()]))));
+  return moi;
+}
+
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Tin Telegram theo MẪU (máy): một tin cho cả loạt, không một tin mỗi bài. */
 export function tinChamDang(kq) {
@@ -71,8 +106,13 @@ export async function nhipChamDang() {
   try {
     const kq = await chamMoi(sql);
     // báo Telegram chỉ khi có bài SỬA LẠI (xuất lại cả loạt đều DUYỆT thì mỗi phút một tin "toàn DUYỆT" chỉ là tiếng ồn — đo 18/10/2026); số vẫn vào nhật ký nhịp
-    if (kq.sua) { const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao } = await tgNoiDung(); await bao(tinChamDang(kq)); }
-    return kq.cham ? `chấm ${kq.cham} bài đăng (${kq.duyet} duyệt, ${kq.sua} sửa lại)` : 'không có bài đăng mới';
+    const vd = await soiMayDang(sql);
+    if (kq.sua || vd.length) {
+      const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao } = await tgNoiDung();
+      if (kq.sua) await bao(tinChamDang(kq));
+      if (vd.length) await bao(`📣 <b>Ngọc [Nội dung]</b> · máy đăng có ${vd.length} vấn đề mới:\n${vd.map((x) => `• ${esc(x.chu)}`).join('\n')}`);
+    }
+    return [kq.cham ? `chấm ${kq.cham} bài đăng (${kq.duyet} duyệt, ${kq.sua} sửa lại)` : 'không có bài đăng mới', vd.length ? `${vd.length} vấn đề máy đăng mới` : ''].filter(Boolean).join(' · ');
   } finally { await sql.end({ timeout: 2 }).catch(() => {}); }
 }
 
@@ -90,6 +130,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.ok(doBaiDang({ ...tot, video_url: null }).chan_cung.includes('chưa có bản xuất'));
   t.ok(doBaiDang({ ...tot, nen_url: null }).diem <= 6, 'chặn cứng thì trần 6');
   t.ok(tinChamDang({ cham: 2, duyet: 1, sua: 1, theoMau: { m: { ten: '<b>', n: 2, sua: 1, loi: { 'không có ảnh thật': 1 } } } }).includes('&lt;b&gt;'), 'thoát HTML');
-  console.log('✓ cham-dang: 10 ca đạt (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
+  const v = vanDeMay([{ ma: 'm', ten: 'M', nen: 'x', tran: 1, cuoi: '2026-10-17', con: 20 }, { ma: 'm', ten: 'M', nen: 'yt', tran: 1, cuoi: null, con: 3 }, { ma: 'm', ten: 'M', nen: 'fb', tran: 2, cuoi: '2026-10-16', con: 13 }], '2026-10-17');
+  t.deepEqual(v.map((x) => x.khoa), ['lo|m|yt', 'kho|m|yt', 'lo|m|fb', 'kho|m|fb'], 'đăng hôm qua + kho đủ = im; chưa có bài = lỡ; 13 bài / 2 mỗi ngày = 6 ngày < 7');
+  console.log('✓ cham-dang: 11 ca đạt (+ lỡ lượt / kho sắp cạn) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

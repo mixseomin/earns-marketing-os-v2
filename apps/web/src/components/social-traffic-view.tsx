@@ -190,7 +190,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
     { key: 'xem', header: 'Lượt xem', title: 'Video: cộng dồn từ lúc đăng · Pinterest: lượt hiện 30 ngày', sortValue: (k) => k.xem, cell: (k) => (do_(k) ? so(k.xem) : chuaDo) },
     { key: 'x7', header: 'Xem 7 ngày', sortValue: (k) => k.xem7 ?? null, cell: (k) => (k.xem7 == null ? <span style={nho} title={k.nenTang === 'Pinterest' ? 'Pinterest chỉ có số 30 ngày toàn tài khoản' : 'chưa đủ 7 ngày đo'}>—</span> : so(k.xem7)) },
     { key: 'tv', header: 'Trung vị / video', sortValue: (k) => k.trungViXem, cell: (k) => (!do_(k) ? chuaDo : k.nenTang === 'Pinterest' ? <span style={nho} title="Pinterest không trả lượt xem từng ghim">—</span> : <span style={k.ngay >= ST_CAT_NGAY && k.trungViXem < ST_CAT_TRUNG_VI ? { color: 'var(--warn)' } : undefined}>{so(k.trungViXem)}</span>) },
-    { key: 'click', header: 'Về site / shop', title: 'Video: phiên vào trang printables 7 ngày (GA4) · Pinterest: click 30 ngày', sortValue: (k) => k.click, cell: (k) => (do_(k) ? so(k.click) : chuaDo) },
+    { key: 'click', header: 'Về site / shop', title: 'Video: phiên vào trang printables 7 ngày (GA4) · kênh máy đăng: phiên sang site 7 ngày theo UTM (sổ phiên adfond) · Pinterest: click 30 ngày', sortValue: (k) => k.click, cell: (k) => (do_(k) || k.demBam ? so(k.click) : chuaDo) },
     ...(laLive ? [] : [{ key: 'hh', header: 'Hoa hồng', sortValue: (k: StKenh) => k.hh, cell: (k: StKenh) => (k.hh ? usd(k.hh) : '—') }]),
     { key: 'lam', header: '', cell: (k) => (k.tt === 'dung' || k.tt === 'khoa' ? null : catKenh === k.id
       ? <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12 }}>Cắt kênh này?

@@ -1234,8 +1234,7 @@
      ],
      "huong": -90,
      "dien": [
-      "gio_cao",
-      "dua_truoc_mat@0.4-0.7"
+      "dua_truoc_mat"
      ]
     },
     {
@@ -1247,7 +1246,7 @@
      ],
      "huong": -90,
      "cam": "Vivian",
-     "treo": 20
+     "treo": 12
     },
     {
      "ten": "Thùng đồ cá nhân",

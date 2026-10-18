@@ -76,7 +76,7 @@ export const VIEC_NHIP = {
   ],
   'kiem-bai': [
     { ma: 'kiem-bai', ten: 'Kiểm bài mới', lich: (n) => tanSuat(n.kiemMoi), khop: null,
-      mo_ta: 'Mọi bài / trang nội dung mới nộp vào hàng chờ (node worker/kiem-bai.mjs --nop <url> --tu <người>, hoặc --html <bản nháp>) trước khi lên trang. Máy đo không AI (gạch ngang dài, từ máy, số chữ, ví dụ trích, FAQ, phần "nếu đã lỡ", nút) rồi Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md → tin vào chủ đề 📝 Nội dung trên Telegram: ai gửi, thiếu gì, thừa gì, giọng văn, kết luận DUYỆT / SỬA LẠI / KHÔNG DUYỆT. Chặn cứng (gạch dài, từ máy, thiếu ảnh / video / FAQ) không bao giờ DUYỆT. Bài chưa DUYỆT trả về người phụ trách site (--tra-ve) sửa rồi nộp lại, tối đa 3 lượt; hết lượt thì dừng chờ anh (--mo-khoa). Mô hình chỉ được gọi khi có bài.' },
+      mo_ta: 'Bài đăng social của máy studio (video + ảnh tĩnh, xv_may_video) chấm theo cong-ty/quy-dinh/noi-dung/chuan-bai-dang.md bằng máy đo 0đ (worker/cham-dang.mjs: ảnh thật Pexels/Pixabay/Unsplash, câu móc, link, giọng văn) → xv_may_video.cham; máy đăng chỉ lấy bài DUYỆT đúng bản xuất; báo một tin theo mẫu vào 📝 Nội dung. Mọi bài / trang nội dung mới nộp vào hàng chờ (node worker/kiem-bai.mjs --nop <url> --tu <người>, hoặc --html <bản nháp>) trước khi lên trang. Máy đo không AI (gạch ngang dài, từ máy, số chữ, ví dụ trích, FAQ, phần "nếu đã lỡ", nút) rồi Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md → tin vào chủ đề 📝 Nội dung trên Telegram: ai gửi, thiếu gì, thừa gì, giọng văn, kết luận DUYỆT / SỬA LẠI / KHÔNG DUYỆT. Chặn cứng (gạch dài, từ máy, thiếu ảnh / video / FAQ) không bao giờ DUYỆT. Bài chưa DUYỆT trả về người phụ trách site (--tra-ve) sửa rồi nộp lại, tối đa 3 lượt; hết lượt thì dừng chờ anh (--mo-khoa). Mô hình chỉ được gọi khi có bài.' },
   ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
@@ -96,7 +96,8 @@ export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang
 export { NHIP_MAY } from './nhip-may.mjs';   // khai ở nhip-may.mjs — viec-may.mjs nạp từ đó, không vòng về tệp này
 export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
-  'kiem-bai': async (n) => (await import('./kiem-bai.mjs')).nhipKiemBai(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Nội dung: bài nộp → chấm → Telegram
+  'kiem-bai': async (n) => [await (await import('./kiem-bai.mjs')).nhipKiemBai(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Nội dung: bài nộp → chấm → Telegram
+    await (await import('./cham-dang.mjs')).nhipChamDang()].filter(Boolean).join(' · '),   // + bài đăng social của máy studio → cổng trước máy đăng (0đ, máy đo)
 };
 export { trongCa } from './gio-lam.mjs';
 import { trongCa, mocCuoiCa } from './gio-lam.mjs';

@@ -116,8 +116,9 @@ export async function bucAnh(db: Db, videoId: number): Promise<{ ok: true; so: n
 /** Danh sách cho bên đăng / bên đọc số: { slug: { id, file_url, xuat_luc, da_dang, ...chữ đăng } }. Mặc định bỏ video lưu trữ. */
 export async function dsVideoDang(db: Db, ma: string, caLuuTru = false): Promise<Record<string, Row>> {
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
-  const rows = (await db.execute(sql`SELECT * FROM xv_may_video WHERE may_id = ${m.id} AND (${caLuuTru} OR NOT luu_tru) ORDER BY id`)) as unknown as Row[];
-  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, file_url: v.video_url, anh: v.anh, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, ...v.dang, kieu: 'an', mau: m.mau }]; }));
+  // duyet: Phòng Nội dung đã DUYỆT đúng bản xuất này (cham.xuat = xuat_luc — xuất lại là phải chấm lại; apps/cty/worker/cham-dang.mjs). Máy đăng chỉ lấy video duyet.
+  const rows = (await db.execute(sql`SELECT *, (cham->>'ket' = 'DUYET' AND cham->>'xuat' = xuat_luc::text) AS duyet FROM xv_may_video WHERE may_id = ${m.id} AND (${caLuuTru} OR NOT luu_tru) ORDER BY id`)) as unknown as Row[];
+  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, file_url: v.video_url, anh: v.anh, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
 }
 /** Sổ đăng: ghi (hoặc gộp thêm trường, vd binhLuan) lượt đăng của một video lên một nền. Slug lạ → false. */
 export async function ghiDang(db: Db, ma: string, slug: string, nen: string, x: Partial<DaDang>): Promise<boolean> {

@@ -27,5 +27,8 @@ for (const x of ds) {
 }
 assert.strictEqual(coTen('Japan'), 150); assert.strictEqual(coTen('United Arab Emirates'), 76);
 assert.strictEqual(tenGon('Narita International Airport'), 'Narita');
+assert.strictEqual(tenGon('Rome–Fiumicino Leonardo da Vinci International Airport'), 'Rome Fiumicino');   // tên thường gọi
+assert.strictEqual(tenGon('Some Very Long Regional Name Field Airport'), 'Some Very Long Regional');   // dự phòng: giữ trọn từ, ≤24 ký tự, không "…"
+assert.ok(BUOC('Italy')[0]!.startsWith('Install an Italy') && BUOC('Japan')[0]!.startsWith('Install a Japan'), 'mạo từ a/an');
 assert.strictEqual(tpGon("Paris (Roissy-en-France, Val-d'Oise)"), 'Paris'); assert.strictEqual(tpGon('Manchester, Greater Manchester'), 'Manchester');
 console.log(`may-dung-land: ${ds.length} đề đạt`);

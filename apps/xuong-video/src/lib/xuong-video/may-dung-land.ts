@@ -20,16 +20,28 @@ const EM = 1.25;
 const fs = (px: number) => `\\fs${Math.round(px * EM)}`;
 /** Cỡ chữ tên nước theo độ dài (tên dài như "United Arab Emirates" vẫn vừa 1 dòng / 2 dòng). */
 export function coTen(ten: string): number { const n = ten.length; return n <= 7 ? 150 : n <= 10 ? 124 : n <= 14 ? 96 : 76; }
-/** Tên sân bay gọn cho thẻ: bỏ chữ "International Airport"/"Airport" ở cuối, cắt 30 ký tự. */
+/** Tên sân bay gọn cho thẻ: bỏ chữ "International Airport"/"Airport" ở cuối, rồi giữ trọn từ tới ~24 ký tự (ô tên trên thẻ rộng ~690px ở cỡ 46 —
+ *  18/10/2026 ảnh Italy: cắt 30 ký tự + "…" vẫn tràn khỏi thẻ, "Rome–Fiumicino Leonardo da Vi…"). */
 export function tenGon(t: string): string {
   const g = t.replace(/\s+(International\s+)?Airport$/i, '').replace(/\s+Airport\b/i, '').trim();
-  return g.length > 30 ? `${g.slice(0, 29).trimEnd()}…` : g;
+  if (g.length <= 24) return g;
+  if (TEN_QUEN[g]) return TEN_QUEN[g]!;
+  let r = ''; for (const w of g.split(/\s+/)) { if ((r ? `${r} ${w}` : w).length > 24) break; r = r ? `${r} ${w}` : w; }
+  return r || g.slice(0, 24);
 }
+/** Tên thường gọi của sân bay có tên chính thức dài (cắt theo từ ra "Adolfo Suárez" — không ai nhận ra là Madrid). Thành phố đã hiện ở dòng dưới. */
+const TEN_QUEN: Record<string, string> = {
+  'Rome–Fiumicino Leonardo da Vinci': 'Rome Fiumicino', 'Adolfo Suárez Madrid–Barajas': 'Madrid–Barajas', 'Josep Tarradellas Barcelona-El Prat': 'Barcelona–El Prat',
+  'Mexico City Benito Juárez': 'Mexico City', 'Athens Eleftherios Venizelos': 'Athens', 'Heraklion International Nikos Kazantzakis': 'Heraklion',
+  'Denpasar I Gusti Ngurah Rai': 'Bali Ngurah Rai',
+};
+/** Mạo từ tiếng Anh trước tên nước ("an Italy eSIM", "a Japan eSIM"). */
+export const aAn = (w: string) => (/^[AEIOU]/i.test(w) ? 'an' : 'a');
 /** Thành phố gọn: bỏ phần trong ngoặc / sau dấu phẩy (OurAirports hay ghi "Paris (Roissy-en-France, Val-d'Oise)"). */
 export const tpGon = (t: string) => t.replace(/\s*\(.*$/, '').split(',')[0]!.trim();
 export const CHU_MO = 'Do this before the wheels touch down', CHU_CANH = 'Your home SIM can start roaming the moment it connects abroad';
 export const CHU_KET = (nuoc: string) => [`Land connected in ${nuoc}`, 'Compare eSIM plans before you fly:', 'esimfares.com'];
-export const BUOC = (nuoc: string) => [`Install a ${nuoc} eSIM at home, on Wi-Fi`, 'Keep it switched off until you land', 'Turn off data roaming on your home line'];
+export const BUOC = (nuoc: string) => [`Install ${aAn(nuoc)} ${nuoc} eSIM at home, on Wi-Fi`, 'Keep it switched off until you land', 'Turn off data roaming on your home line'];
 
 /** Mốc thời gian của một đề (giây). Mỗi khối: hiện → đứng đủ giayDoc(chữ của khối) → khối kế. */
 export function nhipLand(de: DeLand) {
@@ -128,7 +140,7 @@ export function tuNguonLand(x: DeLand & { slug: string; nen_url?: string; nen_ng
   const cua = de.san_bay.map((a) => `${tpGon(a.tp)} (${a.iata})`).join(', ');
   return { slug, chu_de: de.nuoc, de, dang: {
     title: `Landing in ${de.nuoc}? Do this before your plane touches down`,
-    description: `Main arrival airports: ${cua}. Your home SIM can start roaming the moment it connects abroad. 1) Install a ${de.nuoc} eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for ${de.nuoc}: ${de.link}`,
+    description: `Main arrival airports: ${cua}. Your home SIM can start roaming the moment it connects abroad. 1) Install ${aAn(de.nuoc)} ${de.nuoc} eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for ${de.nuoc}: ${de.link}`,
     link: de.link,
   }, nen_url: nen_url ?? null };
 }

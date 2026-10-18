@@ -311,7 +311,10 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const tamMat = (kt.goc ?? 'ngang') === 'ngang' && chu.length > 0 && chu.every((v) => khoi(v.ten)?.hinh === 'nguoi' && !v.nam);
   // Góc thấp cho NGƯỜI THẬT: máy không xuống dưới ~0,35 thân (đầu gối–hông) — cảnh rộng đi xa thì công thức cũ hạ máy xuống 0,4 cm (sát thảm, cỡ đồ chơi).
   const sanNguoi = chu.length && chu.every((v) => khoi(v.ten)?.hinh === 'nguoi') ? 0.35 * Math.max(...chu.map((v) => khoi(v.ten)?.co[2] ?? 170)) : 0.4;
-  const z = kt.goc === 'sat_dat' ? 0.5 : tamMat ? TAM_MAT_CM : Math.max(sanNguoi, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
+  // Góc thấp NGƯỜI THẬT = máy dưới tầm mắt ngửa ~15° lên tâm khung (chuẩn ngành), KHÔNG hạ thêm 0,3 thân: hạ cố định đó đúng ở cảnh rộng nhưng ở
+  // cận trung đẩy máy xuống sát gối (tập 122 #20: máy 58 cm ngửa gắt → khung thấy trần, FLUX vẽ thành sảnh).
+  const e2 = laNguoi && kt.goc === 'thap' ? (-15 * Math.PI) / 180 : e;
+  const z = kt.goc === 'sat_dat' ? 0.5 : tamMat ? TAM_MAT_CM : Math.max(sanNguoi, cz + d * Math.sin(e2) + (kt.goc === 'thap' && !laNguoi ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
   return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), ...(o.nhay ? { nhay: o.nhay } : {}), tu_dong: { phia: o.phia ?? 0 } };
 }

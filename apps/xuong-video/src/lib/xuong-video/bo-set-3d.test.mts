@@ -56,6 +56,10 @@ assert.ok(kc(cu) < kc(ws));
 assert.ok(cu.dat[1]! < 50);
 assert.ok(datMayTuDong({ vi_tri: vt, phia: 90 }, { co_canh: 'ms' }, k).dat[0]! > 0);
 assert.equal(datMayTuDong({ vi_tri: vt }, { co_canh: 'ws', goc: 'sat_dat' }, k).dat[2], 0.5);
+// GÓC THẤP người thật ở cận trung (tập 122 #20): máy dưới tầm nhìn nhưng không rơi xuống sát gối — ngửa ~15°, không phải 58 cm ngửa gắt thấy trần
+{ const ng = () => ({ co: [45, 30, 165], hinh: 'nguoi' }); const m = datMayTuDong({ vi_tri: [{ ten: 'Hạ', tam: [0, 0, 0] }], khung: ['Hạ'] }, { co_canh: 'mcu', goc: 'thap' }, ng);
+  const ngua = Math.atan2(m.nhin[2]! - m.dat[2]!, Math.hypot(m.nhin[0]! - m.dat[0]!, m.nhin[1]! - m.dat[1]!)) * 180 / Math.PI;
+  assert.ok(m.dat[2]! > 80 && m.dat[2]! < m.nhin[2]! && ngua > 10 && ngua < 20, `thấp cận trung: máy ${m.dat[2]} cm ngửa ${ngua.toFixed(1)}°`); }
 // Cố ý vượt trục (POV): shot đó không bị chặn; shot sau so với shot thường gần nhất, bỏ qua POV.
 const mPov = { ...m([25, 40, 1]), qua_truc: true };
 assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mPov, khung_xam: { ma: maKhungXam(set, mPov, nv), xam: '', sau: '', luc: '', kiem: [] } }, nv, set, { nhan_vat: [1], may_3d: m([25, 4, 1]) }).some((x) => x.includes('trục')));

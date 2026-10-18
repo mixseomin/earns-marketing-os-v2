@@ -172,8 +172,7 @@ shot('4.5', C4, 5, 'veo', {'vai': 'hanh_dong', 'co_canh': 'mcu', 'goc': 'thap', 
      { 'dien': 'Anticipation: Hạ looks down the table at Thần. Action: she states the withdrawal word by word. Reaction: unblinking, she waits.','bo_cuc': 'Low medium close-up on Hạ delivering the line, the board soft behind her', 'mo': 'Hạ looking down the table at Thần', 'ket': 'Hạ unblinking', 'huong': 'Hạ looks screen-left toward Thần', 'muc_dich': 'phán quyết — ngược lại cảnh 2'},
      'Hạ tuyên bố rút vốn, từng chữ', [(HA, 'bình thản, từng chữ', 'Quỹ Harrington rút toàn bộ vốn khỏi Lục thị. Hiệu lực từ bây giờ.')],
      [bc(HA, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
-     {'dat': [-260, 330, 138], 'nhin': [-200, 200, 152], 'ong_kinh': 70, 'khung': [HA],   # thấp vừa (~6°): máy 1,2 m ngửa 16° thấy trần → FLUX vẽ sảnh (18/10)
-      'vi_tri': [vt(HA, [-200, 200, 0], 160), vt(THAN, [0, 740, 0], 0, an=True), vt(TRAN, [-270, 150, 0], 90, an=True)]},
+     {'dat': [-260, 330, 120], 'nhin': [-200, 200, 160], 'ong_kinh': 70, 'khung': [HA], 'vi_tri': [vt(HA, [-200, 200, 0], 160), vt(THAN, [0, 740, 0], 0, an=True), vt(TRAN, [-270, 150, 0], 90, an=True)]},
      [HA, PH])   # trung cận Hạ: Thần cuối bàn ngoài khung
 
 # 4.6 PHẢN ỨNG người bị vả mặt qua mắt Hạ (chủ quan — Hạ vừa nói xong, nhìn Vivian sụp đổ). Luật liền mạch / chamDauTu: cú lật phải có shot phản ứng

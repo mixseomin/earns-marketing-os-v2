@@ -455,17 +455,21 @@ export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[]
  *  khung lệch "tay vẽ"; sinh lại keyframe bằng model của cảnh trước. Model lấy từ job đã sinh ra đúng tệp keyframe (xv_job.output_url). */
 export async function tronModelCanh(db: Db, c: Pick<Canh, 'id' | 'tap_id' | 'phan_doan' | 'keyframe_url'>): Promise<string | null> {
   if (!c.keyframe_url || !c.phan_doan) return null;
-  const r = (await db.execute(sql`SELECT c.id, c.thu_tu, j.model FROM xv_canh c JOIN xv_job j ON j.output_url = c.keyframe_url AND j.loai = 'anh'
+  const r = (await db.execute(sql`SELECT c.id, c.thu_tu, j.model, j.nhan, j.request->>'buoc1' AS buoc1 FROM xv_canh c JOIN xv_job j ON j.output_url = c.keyframe_url AND j.loai = 'anh'
     WHERE c.tap_id = ${c.tap_id} AND c.phan_doan = ${c.phan_doan} AND c.keyframe_url IS NOT NULL`)) as unknown as Row[];
   const cua = r.find((x) => Number(x.id) === c.id); if (!cua || r.length < 2) return null;
   // Cùng model qua cổng khác (ckey / ShopAIKey / Google — chuỗi dự phòng của xưởng) là MỘT tay vẽ: bỏ tiền tố cổng trước khi so.
   // Cùng DÒNG model qua người bán khác cũng là một tay vẽ (17/10/2026 #127: shot nhiều tham chiếu đi Google gemini-nano-banana-2.1, shot khác qua ckey
   // wowztools/Nano-Banana-2 — cùng Nano Banana 2 mà bị chặn "một cảnh một model").
-  const goc = (m: unknown) => { const x = String(m).replace(/^(shopaikey|ckey|google):/, '');
+  // ĐƯỜNG ĐỘ SÂU (18/10/2026 #20 bị chặn oan): mọi keyframe đi qua FLUX độ sâu dựng hình (bước 1 / LoRA một lượt / ghép từng người) — lượt Nano Banana
+  // sau đó chỉ sửa mặt, nước mắt, hoà sáng trên ảnh FLUX — cùng MỘT tay vẽ 'flux-độ-sâu', so theo đường chứ không theo model lượt cuối.
+  const doSau = (x: Row) => !!x.buoc1 || /flux[^ ]*depth|flux-general/i.test(String(x.model)) || /ghép từng người|bước 2|nước mắt/.test(String(x.nhan ?? ''));
+  const goc = (m: unknown, x?: Row) => { if (x && doSau(x)) return 'flux-độ-sâu'; const _ = String(m).replace(/^(shopaikey|ckey|google):/, ''); return goc0(_); };
+  const goc0 = (x: string) => {
     return /nano-banana-2|gemini-3\.1-flash-image/i.test(x) ? 'nano-banana-2' : /nano-banana-pro|gemini-3-pro-image/i.test(x) ? 'nano-banana-pro' : x; };
-  const dem = new Map<string, number>(); for (const x of r) dem.set(goc(x.model), (dem.get(goc(x.model)) ?? 0) + 1);
+  const dem = new Map<string, number>(); for (const x of r) dem.set(goc(x.model, x), (dem.get(goc(x.model, x)) ?? 0) + 1);
   const [daSo, so] = [...dem].sort((a, b) => b[1] - a[1])[0]!;
-  return goc(cua.model) !== daSo && so >= 2 ? `keyframe sinh bằng ${goc(cua.model)} trong khi cảnh "${c.phan_doan}" dùng ${daSo} (${so}/${r.length} shot) — một cảnh một model: sinh lại keyframe bằng ${daSo}` : null;
+  return goc(cua.model, cua) !== daSo && so >= 2 ? `keyframe sinh bằng ${goc(cua.model, cua)} trong khi cảnh "${c.phan_doan}" dùng ${daSo} (${so}/${r.length} shot) — một cảnh một model: sinh lại keyframe bằng ${daSo}` : null;
 }
 
 /** MỌI lý do chặn sinh keyframe của một shot — quy trình cấp tập (brief, khung truyện, phân cảnh, phong cách, người xem hiểu, kịch bản series)

@@ -64,3 +64,25 @@ console.log('cham-kich-ban.test (không lời): ok');
   assert.ok(!cham({ tap: { so: 1, beats: [], phan_canh: [] }, canh: [sh('A', 50)], kt: { the_loai: 'hai' } }).muc.some((y) => y.key === 'nut_day'), 'thể loại khác: không chấm phim dọc');
   console.log('cham-kich-ban.test: phim ngắn dọc ok');
 }
+
+// ĐẦU TƯ CẢM XÚC (chamDauTu): người bị lật vắng mặt / món trả chưa gài → bắt; đủ nhịp + đã gài → qua; người GIÚP nhân vật chính không bị chấm
+{
+  const { chamDauTu } = await import('./cham-kich-ban');
+  const pcD = [{ ten: 'A', beat: 'Hook' }, { ten: 'B', beat: 'Escalation' }, { ten: 'T', beat: 'Twist' }];
+  const bc = (nv: string, dau: string, cuoi = dau) => ({ nv, dau, cuoi });
+  const s = (pd: string, i: number, bcs: ReturnType<typeof bc>[], khung: string[] = [], thoai: { nhan_vat: string; loi: string }[] = [], vt: string[] = []) => ({
+    phat_s: 4, thoi_luong_s: 4, phan_doan: pd, chu_man: '', loi_thoai: '', thu_tu: i, thoai: thoai.map((d) => ({ ...d, dien_xuat: '' })), bieu_cam: bcs,
+    may_3d: { dat: [0, 0, 0], nhin: [0, 1, 0], ong_kinh: 35, khung, vi_tri: [...bcs.map((b) => ({ ten: b.nv, tam: [0, 0, 0] })), ...vt.map((t) => ({ ten: t, tam: [0, 0, 0] }))] } }) as never;
+  const H = (x = 'binh_thuong') => bc('Hạ', x);
+  const mau = (truocThan: number[], gai: boolean) => [
+    ...Array.from({ length: 9 }, (_, i) => s(i < 3 ? 'A' : 'B', i + 1, [H(), ...(truocThan.includes(i + 1) ? [bc('Thần', 'lanh_lung')] : [])], [], truocThan[0] === i + 1 ? [{ nhan_vat: 'Thần', loi: 'Cô bị đuổi.' }] : [], gai && i === 2 ? ['Vòng ngọc'] : [])),
+    s('T', 10, [H('lanh_lung'), bc('Thần', 'tu_tin', 'soc'), bc('Trần', 'binh_thuong', 'tu_tin')]), s('T', 11, [bc('Thần', 'soc')], ['Vòng ngọc'])];
+  const kb = (canh: never[]) => chamDauTu({ tap: { beats: [], phan_canh: pcD }, canh, kt: { the_loai: 'phim_doc' } });
+  let m = kb(mau([2, 3], false));
+  assert.ok(m.some((x) => x.key === 'dau_tu:Thần' && !x.dat), 'Thần 2 nhịp, vắng 6 shot → bắt');
+  assert.ok(m.some((x) => x.key === 'gai:Vòng ngọc' && !x.dat), 'món trả chưa gài → bắt');
+  assert.ok(!m.some((x) => x.key.endsWith(':Trần')), 'người giúp (không sốc) không phải người bị lật');
+  m = kb(mau([2, 5, 8], true));
+  assert.ok(m.every((x) => x.dat), m.filter((x) => !x.dat).map((x) => x.ghi).join(' | '));
+  console.log('cham-kich-ban.test: đầu tư cảm xúc ok');
+}

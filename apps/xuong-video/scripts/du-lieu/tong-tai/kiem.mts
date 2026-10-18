@@ -41,7 +41,7 @@ const tienKy = tatCaTk.filter((x) => !x.startsWith(TIEN_TO_NGUOI_XEM));
 if (tatCaTk.length > tienKy.length) console.log('ℹ người xem ảo: đọc trên DB (kiem-nguoi-xem.mts), không chấm ở đây');
 console.log(`tiền kỳ: ${tienKy.length ? tienKy.map((x) => '\n  CHẶN ' + x).join('') : 'đạt'}`);
 const kb = chamKichBan({ tap: { so: 1, beats: phim.tap.beats, phan_canh: phanCanh as never }, kt: phim.kinh_thanh,
-  canh: shots.map((s: Record<string, any>) => ({ phat_s: s.phat_s, thoi_luong_s: s.thoi_luong_s, phan_doan: s.canh, chu_man: s.chu_man, thoai: s.thoai, loi_thoai: '', hanh_dong: s.hanh_dong })) as never });
+  canh: shots.map((s: Record<string, any>) => ({ phat_s: s.phat_s, thoi_luong_s: s.thoi_luong_s, phan_doan: s.canh, chu_man: s.chu_man, thoai: s.thoai, loi_thoai: '', hanh_dong: s.hanh_dong, thu_tu: s.so ?? undefined, may_3d: s.may_3d, bieu_cam: s.bieu_cam })) as never });
 console.log(`kịch bản ${kb.diem}/100`); for (const m of kb.muc) if (!m.dat) console.log('  ✗', m.ten, '—', m.ghi);
 const chan = loiMachTap(ds as never, nv as never, boSet as never, phanCanh);
 // ảnh chuẩn đồ nhận dạng (vat.anh) chỉ nằm trên DB (sinh-anh-set.mts, nap.mts giữ) — ở đây không đọc được, cổng keyframe trên box mới chấm luật đó

@@ -45,10 +45,52 @@ export function chamPhimDoc(o: VaoKb): MucKb[] {
   return m;
 }
 
+/** ĐẦU TƯ CẢM XÚC trước cú LẬT NGƯỢC (anh 18/10/2026, tập 122: "Lục Thần xuất hiện quá ít nên đến cảnh ngạc nhiên cũng chẳng ai quan tâm"):
+ *  Hitchcock — bất ngờ chỉ có sức nặng khi người xem đã gắn với người bị bất ngờ; phim ngắn Trung Quốc 打脸 — người bị vả mặt phải là người đã
+ *  trực tiếp làm nhục nhân vật chính TRÊN MÀN; gài–trả (Chekhov) — món dùng để lật phải lên hình trước. Chấm thuần từ shot: ai có mặt (may_3d.vi_tri
+ *  không ẩn, không có 3D thì theo biểu cảm), lời thoại, biểu cảm, chủ thể khung. Nhân vật chính = người có mặt lâu nhất cả tập. */
+const SOC = new Set(['soc', 'bat_ngo', 'ngo_vuc', 'nhuc_nha', 'lo_lang', 'that_vong', 'buon']);
+export function chamDauTu(o: VaoKb): MucKb[] {
+  const { tap, canh, kt } = o; const cung = kt.the_loai === 'phim_doc';
+  const pcLat = new Set(tap.phan_canh.filter((p) => nhipCua(p.beat) === 'lat_nguoc').map((p) => p.ten));
+  const iLat = canh.findIndex((c) => pcLat.has(c.phan_doan)); if (iLat <= 0) return [];
+  const nguoi = new Set(canh.flatMap((c) => [...(c.bieu_cam ?? []).map((b) => b.nv), ...c.thoai.map((d) => d.nhan_vat)]).filter(Boolean));
+  // CÓ MẶT = diễn trong shot (có biểu cảm) hoặc là chủ thể khung — không tính đứng trong set mà ngoài khung (Thần ở bàn họp khi máy quay Hạ)
+  const co = (c: VaoKb['canh'][number]) => new Set([...(c.bieu_cam ?? []).map((b) => b.nv), ...(c.may_3d?.khung ?? [])]);
+  const so = (i: number) => `#${canh[i]!.thu_tu ?? i + 1}`;
+  const giay = new Map<string, number>(); canh.forEach((c) => { for (const t of co(c)) if (nguoi.has(t)) giay.set(t, (giay.get(t) ?? 0) + giayPhat(c)); });
+  const chinh = [...giay].sort((a, b) => b[1] - a[1])[0]?.[0]; if (!chinh) return [];
+  const sau = canh.map((c, i) => ({ c, i })).filter(({ i }) => i >= iLat);
+  const muc: MucKb[] = [];
+  // NGƯỜI BỊ LẬT = có biểu cảm sốc / mất thế ở cú lật (người giúp nhân vật chính — luật sư Trần — không phải người bị vả mặt)
+  const biLat = [...new Set(sau.flatMap(({ c }) => (c.bieu_cam ?? []).filter((b) => b.nv !== chinh && (SOC.has(b.dau) || SOC.has(b.cuoi))).map((b) => b.nv)))];
+  for (const t of biLat) {
+    const truoc = canh.slice(0, iLat).map((c, i) => ({ c, i })).filter(({ c }) => co(c).has(t));
+    let vang = 0, tu = -1, dai = 0, tuDai = -1;
+    for (let i = truoc[0]?.i ?? iLat; i < iLat; i++) { if (co(canh[i]!).has(t)) { tu = -1; continue; } if (tu < 0) tu = i; vang = i - tu + 1; if (vang > dai) { dai = vang; tuDai = tu; } }
+    const du = truoc.length >= 3 && dai <= 4;
+    muc.push({ key: `dau_tu:${t}`, ten: `${t}: có mặt đủ trước cú lật`, dat: du, cung,
+      ghi: `${t} có mặt ${truoc.length} shot trước cú lật ở ${so(iLat)} (${truoc.map((x) => so(x.i)).join(', ') || 'không shot nào'})${dai ? `, vắng liền ${dai} shot (${so(tuDai)}–${so(tuDai + dai - 1)})` : ''}${du ? '' : ' — người xem chưa kịp quan tâm khi người này bị lật: cần ≥ 3 nhịp, không vắng quá 4 shot liền'}` });
+    const doiDau = truoc.find(({ c }) => co(c).has(chinh) && (c.thoai.some((d) => d.nhan_vat === t && d.loi.trim()) || CAM_XUC_MANH.test(c.hanh_dong ?? '')));
+    muc.push({ key: `doi_dau:${t}`, ten: `${t}: đối đầu trực tiếp ${chinh}`, dat: !!doiDau, cung: false,
+      ghi: doiDau ? `${so(doiDau.i)}: ${(doiDau.c.hanh_dong ?? '').slice(0, 80)}` : `${t} chưa lần nào cùng khung với ${chinh} mà nói / làm điều gì nặng — người bị vả mặt phải là người đã trực tiếp làm nhục nhân vật chính trên màn` });
+    const pu = sau.find(({ c }) => co(c).has(t) && (c.bieu_cam ?? []).some((b) => b.nv === t && (SOC.has(b.cuoi) || b.dau !== b.cuoi)));
+    muc.push({ key: `phan_ung:${t}`, ten: `${t}: có shot phản ứng`, dat: !!pu, cung: false, ghi: pu ? `${so(pu.i)}` : `cú lật không có shot ${t} đổi sắc mặt — người xem không thấy "cái tát" chạm tới ai` });
+  }
+  // GÀI–TRẢ: đạo cụ là CHỦ THỂ khung (may_3d.khung) ở cú lật / sau lật mà chưa từng lên hình trước đó
+  // đạo cụ đã lên hình = có trong khung (vi_tri không ẩn) ở shot nào trước cú lật, không cần là chủ thể (ly cà phê từ #1)
+  const truocCo = new Set(canh.slice(0, iLat).flatMap((c) => [...co(c), ...(c.may_3d?.vi_tri ?? []).filter((v) => !v.an).map((v) => v.ten)]));
+  for (const { c, i } of sau) for (const v of c.may_3d?.khung ?? []) {
+    if (nguoi.has(v) || truocCo.has(v) || muc.some((m) => m.key === `gai:${v}`)) continue;
+    muc.push({ key: `gai:${v}`, ten: `Gài trước: ${v}`, dat: false, cung, ghi: `${v} là chủ thể ${so(i)} trong cú lật mà chưa lần nào lên hình trước đó — gài ít nhất 2 lần (một lần lướt, một lần cận) thì cú trả mới có nghĩa` });
+  }
+  return muc;
+}
+
 export type MucKb = { key: string; ten: string; dat: boolean; ghi: string; cung: boolean };
 export type VaoKb = {
   tap: { so?: number; beats: Pick<Beat, 'ten'>[]; phan_canh: Pick<PhanCanh, 'ten' | 'beat'>[] };
-  canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong'>>)[];
+  canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong' | 'thu_tu' | 'may_3d' | 'bieu_cam'>>)[];
   kt: { logline?: string; series?: Series | null; khong_loi?: boolean; /** thể loại — 'phim_doc' (phim ngắn dọc) bật bộ chấm nhịp micro-drama */ the_loai?: string };
 };
 /** Logline của tập: series → logline tập trong kinh thánh series; phim lẻ → logline phim. */
@@ -81,6 +123,7 @@ export function chamKichBan(o: VaoKb): { muc: MucKb[]; diem: number; chan: strin
     if (tuLat >= 0 && tong > 0) { const r = tuLat / tong; m.push({ key: 'vi_tri_lat', ten: 'Lật ngược đúng chỗ', dat: r >= 0.55 && r <= 0.92, ghi: `lật ngược bắt đầu ở ${Math.round(r * 100)}% phim${r < 0.55 ? ' — quá sớm, chưa đủ leo thang' : r > 0.92 ? ' — quá muộn, không còn chỗ kết' : ''}`, cung: false }); }
   }
   if (kt.the_loai === 'phim_doc') m.push(...chamPhimDoc(o));
+  m.push(...chamDauTu(o));
   if (series) {
     const conTap = (kt.series!.tap ?? []).some((x) => (x.so ?? 0) > (tap.so ?? 0));
     const cuoi = tap.beats[tap.beats.length - 1]?.ten ?? '';

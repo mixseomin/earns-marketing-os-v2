@@ -21,6 +21,7 @@ import { NhanKhung3D } from './kiem-khung-noi';
 import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { Khung3DSong } from './khung-3d-song';
+import { KhungDauKet } from './khung-dau-ket';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -178,6 +179,11 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 {/* Ô 3D có ở MỌI thẻ, cùng cỡ, dính chân thẻ (thẻ là cột flex, dòng chuyển cảnh marginTop:auto) → khung 3D các thẻ thẳng một hàng. */}
                 {hien !== 'kf' && (boSetCuaShot(c, nhanVat) == null
                   ? <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--fg-4)', borderTop: '1px solid var(--line)', textAlign: 'center' }} title="Shot không gắn bối cảnh nào có bộ set 3D">🧊 ngoài bộ set 3D</div>
+                  : c.may_3d && c.khung_xam?.mau_ket
+                  // ĐẦU → KẾT (khung-dau-ket.tsx): khung dựng có khung kết thì hiện cặp ảnh — thấy shot đi từ đâu tới đâu; chưa có thì ô vẽ sống bên dưới
+                  ? <KhungDauKet kx={c.khung_xam} doc={doc} rong={160} onMo={() => moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id })}>
+                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} />{hien === '3d' && <ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} />}
+                    </KhungDauKet>
                   : c.may_3d
                   ? <Khung3DSong tapId={tap.id} setId={boSetCuaShot(c, nhanVat)!} may={c.may_3d} doc={doc} onMo={() => moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id })}
                       nhanKhoi={doc && (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 4).slice(0, 7).map((t) => (

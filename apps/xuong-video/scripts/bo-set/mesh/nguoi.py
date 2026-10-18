@@ -36,7 +36,7 @@ def _khoi(ten, khop, dai, rx, ry, vl, xuong=True, lech=(0, 0)):
     o.parent = khop; o.location = (lech[0], lech[1], 0); o.data.materials.append(vl)
     return o
 
-def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, ten_goc=None, gioi=None, tuoi=None):
+def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, ten_goc=None, gioi=None, tuoi=None, trang=None):
     """dv = cỡ 1 cm trong cảnh (dung-set: 0.01 — Blender tính mét); ten_goc = tên empty gốc (dung-set đặt 'NV <tên>' để gắn neo diễn)."""
     H = float(cao); L = {k: v * H for k, v in TL.items()}
     da = _vl(f'{ten}.da', mau); ao = _vl(f'{ten}.ao', mau_ao or mau)
@@ -78,7 +78,7 @@ def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, t
         bc.rotation_euler.x = math.radians(90); bc.location = (0, 0.03 * H, -L["chan"] * 0.6)   # bàn chân hướng −y (mũi chân ra trước)
     n['L'] = L
     than_tron(n, ten, H, L, ao, dv)
-    nguoi_mpfb(n, ten, H, gioi, tuoi, ao)   # có MPFB thì thay thân liền bằng người thật (cùng tên 'THAN <ten>')
+    nguoi_mpfb(n, ten, H, gioi, tuoi, ao, trang)   # có MPFB thì thay thân liền bằng người thật (cùng tên 'THAN <ten>')
     tu_the(n, 'dung')
     return n
 
@@ -98,7 +98,9 @@ def _mpfb():
 # xương MPFB (rig 'default', .L = trái nhân vật = 't' của ma-nơ-canh) → khớp đích để NHẮM (Damped Track trục Y của xương)
 # cột sống + cổ nhắm ĐIỂM TRÊN ĐỈNH ĐẦU ('dinh_nham', con của khớp đầu): khớp đầu / cổ của ma-nơ-canh nằm THẤP hơn gốc cổ MPFB (~136 so với ~142 cm)
 # → Damped Track lật chúi xuống, đầu gập vào thân (thử 18/10 hai lần)
-_NHAM = [('spine05', 'dinh_nham'), ('spine04', 'dinh_nham'), ('spine03', 'dinh_nham'), ('spine02', 'dinh_nham'), ('spine01', 'dinh_nham'), ('neck01', 'dinh_nham'),
+# cổ nhắm 'co_nham' lệch RA TRƯỚC một chiều dài đầu: xương cổ MPFB ở tư thế gốc nghiêng tới ~15°, kéo thẳng đứng thì đầu ngửa trời (18/10: mọi
+# ảnh độ sâu / khung màu hất cằm, FLUX vẽ người ngước lên)
+_NHAM = [('spine05', 'dinh_nham'), ('spine04', 'dinh_nham'), ('spine03', 'dinh_nham'), ('spine02', 'dinh_nham'), ('spine01', 'dinh_nham'), ('neck01', 'co_nham'),
          ('upperarm01.L', 'khuyu_t'), ('lowerarm01.L', 'cotay_t'), ('upperarm01.R', 'khuyu_p'), ('lowerarm01.R', 'cotay_p'),
          ('upperleg01.L', 'goi_t'), ('lowerleg01.L', 'cochan_t'), ('upperleg01.R', 'goi_p'), ('lowerleg01.R', 'cochan_p')]
 # BẢNG CẢM XÚC CỦA PHIM → 52 đơn vị cơ mặt ARKit (gói MakeHuman faceunits01, CC0) — anh 18/10/2026 "làm biểu cảm 3D": mặt MPFB diễn đúng nét của shot,
@@ -148,7 +150,7 @@ def bieu_mat(n, ma, cuong_do=1.0):
     except Exception as e:
         print('nét mặt MPFB lỗi:', e); return False
 
-def nguoi_mpfb(n, ten, H, gioi, tuoi, vl):
+def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     """NGƯỜI THẬT MPFB thay thân liền (anh 18/10/2026 chọn "D"): thân người MakeHuman (CC0) đúng giới / tuổi / chiều cao, rig mặc định; mỗi xương
     NHẮM theo khớp tương ứng của ma-nơ-canh (Damped Track) + hông bám khớp hông — thư viện dáng / mocap / đo đạc giữ nguyên, chỉ hình hiển thị là
     người thật. Gắn vào gốc ma-nơ-canh nên đi / quay theo. Chỉ hiện khi vẽ độ sâu (như thân liền). Không có MPFB → giữ thân liền."""
@@ -157,6 +159,7 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl):
     o = bpy.data.objects.get(f'THAN_RIG {ten}')
     if o: bpy.data.objects.remove(o, do_unlink=True)   # rig của shot trước (thân cũ đã bị than_tron dọn)
     if 'dinh_nham' not in n: n['dinh_nham'] = _khop(f'{ten}.dinh_nham', n['dau'], (0, 0, 2.5 * n['L']['dau']))   # trên đỉnh đầu, theo độ nghiêng đầu
+    if 'co_nham' not in n: n['co_nham'] = _khop(f'{ten}.co_nham', n['dau'], (0, -1.0 * n['L']['dau'], 2.5 * n['L']['dau']))
     h = m['hs'].create_human()
     for k, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
         m['op'].set_value(k, v, entity_reference=h)
@@ -175,11 +178,49 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl):
     if pr: c = pr.constraints.new('COPY_LOCATION'); c.target = n['hong']
     cu = n.get('than_tron')
     if cu and cu.name in bpy.data.objects: bpy.data.objects.remove(cu, do_unlink=True)   # thân liền dự phòng: xoá TRƯỚC khi đặt tên, kẻo tên mới thành '.001'
+    for o in [o for o in bpy.data.objects if o.name.startswith(f'THAN {ten}.')]: bpy.data.objects.remove(o, do_unlink=True)   # tóc / đồ của người shot trước
     h.name = f'THAN {ten}'; rig.name = f'THAN_RIG {ten}'
-    h.data.materials.clear(); h.data.materials.append(vl)
-    h.hide_render = h.hide_viewport = True   # chỉ bật trong ve_sau (như thân liền)
+    if not mac_do(m, h, gioi, tuoi, trang or {}):   # da + mắt + lông mày + tóc + đồ + giày; thiếu gói tài sản thì thân trơn một màu như cũ
+        h.data.materials.clear(); h.data.materials.append(vl)
+    for o in [h, *phu_kien(h)]: o.hide_render = o.hide_viewport = True   # chỉ bật khi vẽ độ sâu / khung màu (dung-set.py › nguoi_that)
     n['than_tron'] = h
     return h
+
+# TRANG PHỤC NGƯỜI THẬT (anh 18/10/2026: "3D đã có người thật mẫu sao không thấy trên bản chụp đầu cuối"): gói makehuman_system_assets (CC0, cai-mpfb.sh)
+# — da châu Á theo tuổi / giới, mắt, lông mày, tóc, bộ đồ, giày. Màu đồ = màu áo của shot (ao), màu tóc = khoi_3d.mau_toc; vân vải của gói bỏ đi (vest
+# kẻ sọc của gói làm AI vẽ sai đồ). Khai riêng từng nhân vật ở khoi_3d: toc (long01 · ponytail01 · bob01 · short02 …), do (female_elegantsuit01 …).
+TOC_MAC = {'nu': 'long01', 'nam': 'short02'}
+DO_MAC = {'nu': 'female_elegantsuit01', 'nam': 'male_elegantsuit01'}
+def phu_kien(h):
+    return [o for o in bpy.data.objects if o.name.startswith(h.name + '.')]
+def _to_mau(o, rgba):
+    for ms in o.material_slots:
+        mt = ms.material
+        if not mt or not mt.use_nodes: continue
+        for nd in mt.node_tree.nodes:
+            if nd.type == 'BSDF_PRINCIPLED':
+                for l in list(nd.inputs['Base Color'].links): mt.node_tree.links.remove(l)
+                nd.inputs['Base Color'].default_value = rgba
+def mac_do(m, h, gioi, tuoi, trang):
+    import os
+    dd = os.path.expanduser('~/Library/Application Support/Blender/5.0/extensions/.user/user_default/mpfb/data')
+    if not os.path.isdir(os.path.join(dd, 'hair')): return False
+    g = 'female' if gioi == 'nu' else 'male'; t = tuoi or 30
+    try:
+        m['hs'].set_character_skin(os.path.join(dd, f"skins/{'young' if t < 40 else 'middleage' if t < 60 else 'old'}_asian_{g}/{'young' if t < 40 else 'middleage' if t < 60 else 'old'}_asian_{g}.mhmat"), h)
+    except Exception as e: print('da MPFB lỗi:', e)
+    gk = gioi if gioi in TOC_MAC else 'nu'
+    for thu, ma, kieu in (('eyes', 'high-poly', 'Eyes'), ('eyebrows', 'eyebrow001', 'Eyebrows'), ('hair', trang.get('toc') or TOC_MAC[gk], 'Hair'),
+                          ('clothes', trang.get('do') or DO_MAC[gk], 'Clothes'), ('clothes', 'shoes01', 'Clothes')):
+        try:
+            o = m['hs'].add_mhclo_asset(os.path.join(dd, thu, ma, f'{ma}.mhclo'), h, asset_type=kieu)
+            if kieu == 'Hair' and trang.get('mau_toc'): _to_mau(o, trang['mau_toc'])
+            if kieu == 'Clothes' and ma != 'shoes01' and trang.get('ao'): _to_mau(o, trang['ao'])
+            if kieu == 'Clothes' and ma != 'shoes01':   # vải nổi ra 4 mm: đùi / hông xuyên váy thành lỗ thủng (thử 18/10)
+                dp = o.modifiers.new('noi_vai', 'DISPLACE'); dp.strength = 0.004; dp.mid_level = 0
+            if ma == 'shoes01': _to_mau(o, (0.02, 0.02, 0.02, 1))
+        except Exception as e: print('trang phục MPFB lỗi:', ma, e)
+    return True
 
 def than_tron(n, ten, H, L, vl, dv):
     """THÂN LIỀN (ma-nơ-canh gỗ hoạ sĩ): một mesh Skin dựng trên các khớp, mỗi đỉnh HOOK vào khớp của nó nên tự uốn theo mọi tư thế / mocap.

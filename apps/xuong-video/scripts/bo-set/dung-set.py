@@ -361,9 +361,11 @@ def ve_mau(s, sh, ra):
         lay_net(s.camera, sh)
     else: s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12
     s.view_settings.view_transform = 'AgX'
+    an_, hien_ = nguoi_that(True)   # khung màu vẽ NGƯỜI THẬT (da, tóc, đồ) thay ma-nơ-canh khối
     # JPEG 88: nhẹ 5–8 lần PNG, đủ nét cho mô hình ảnh (anh 15/10/2026: "đẩy nhiều ảnh thì phải nén")
     fm = s.render.image_settings; fm.file_format = 'JPEG'; fm.quality = 88; fm.color_mode = 'RGB'
     s.render.filepath = ra; bpy.ops.render.render(write_still=True)
+    nguoi_that(False, an_, hien_)
     fm.file_format = 'PNG'; fm.color_mode = 'RGBA'
     anh_sang_mau(s, sh, False); s.view_settings.view_transform = 'Standard'
     s.world.node_tree.nodes['Background'].inputs['Color'].default_value = nen; s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = sm
@@ -516,7 +518,9 @@ def nhan_vat(sh, ket=False):
         if mau_nv.get('hinh') == 'nguoi':   # NGƯỜI: ma-nơ-canh có khớp, cao = co[2] cm; gốc tên 'NV <tên>' (vòng diễn gắn neo vào gốc, các khớp đi theo)
             hx = mau_nv['mau'].lstrip('#'); rgb = tuple((int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ha = (mau_nv.get('ao') or mau_nv['mau']).lstrip('#'); rgb_ao = tuple((int(ha[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
-            n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}", gioi=mau_nv.get('gioi'), tuoi=mau_nv.get('tuoi'))
+            ht = (mau_nv.get('mau_toc') or '').lstrip('#'); rgb_toc = tuple((int(ht[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)) if len(ht) == 6 else None
+            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'do': mau_nv.get('do'), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # người thật MPFB: tóc / đồ / màu áo
+            n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}", gioi=mau_nv.get('gioi'), tuoi=mau_nv.get('tuoi'), trang=trang_)
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
             ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_; n_['kieu'] = kieu; n_['dang'] = mau_nv.get('dang') or []
@@ -847,20 +851,31 @@ def ve_lop(s, sh, cam, ra):
         for o in bpy.data.objects:
             if o.name in cu: o.hide_render = cu[o.name]
 
+def nguoi_that(bat, an=None, hien=None):
+    """Đổi ma-nơ-canh khối ↔ NGƯỜI THẬT MPFB (thân 'THAN NG <t>' + tóc / đồ / mắt 'THAN NG <t>.*') của mọi người đang có trong shot. bat=True → trả
+    (an, hien) để gọi lại với bat=False trả về. Dùng cho độ sâu VÀ khung màu đầu / kết (anh 18/10/2026: "3D đã có người thật mẫu sao bản chụp đầu
+    cuối không thấy") — kiểm hình học / mặt nạ vẫn chạy trên khối như cũ."""
+    if not bat:
+        for o in an: o.hide_render = False
+        for x in hien: x.hide_render = x.hide_viewport = True
+        return
+    an, hien = [], []
+    for t in list(NGUOI):
+        x = bpy.data.objects.get(f"THAN NG {t}")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
+        if not x: continue
+        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and not o.hide_render]
+        if not phan: continue   # người không có trong shot này / đang ẩn
+        an += phan; hien += [x, *[o for o in bpy.data.objects if o.name.startswith(f"THAN NG {t}.")]]
+    for o in an: o.hide_render = True
+    for x in hien: x.hide_render = x.hide_viewport = False
+    return an, hien
+
 def ve_sau(s, sh, cam, ra):
     """Bản đồ ĐỘ SÂU của khung MỞ (gần trắng → xa đen), cùng máy + ống kính: bước 1 của keyframe hai bước — model sinh ảnh điều khiển bằng độ
     sâu (FLUX depth) bị khoá theo hình học 3D (anh 15/10/2026: ba model ảnh dựa trên ảnh tham chiếu đều tự dựng lại góc máy #35).
     NGƯỜI trong độ sâu = THÂN LIỀN (mesh/nguoi.py › than_tron), không phải chuỗi khối elip: elip rời cắt sát khung thì FLUX vẽ thành bình / tượng
     (tập 122 #11, 3 lượt); bỏ hẳn người khỏi độ sâu + khung xương (FLUX dev Union) thì ảnh nhoè không dùng được (lượt 4)."""
-    an, hien = [], []
-    for t in list(NGUOI):
-        x = bpy.data.objects.get(f"THAN NG {t}")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
-        if not x: continue
-        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and o is not x and not o.hide_render]
-        if not phan: continue   # người không có trong shot này / đang ẩn
-        an += phan; hien.append(x)
-    for o in an: o.hide_render = True
-    for x in hien: x.hide_render = x.hide_viewport = False
+    an, hien = nguoi_that(True)
     d = (Vector(sh['may']['nhin']) - Vector(sh['may']['dat'])).length * CM
     eng, smp, dn = s.render.engine, s.cycles.samples, s.cycles.use_denoising
     s.view_layers[0].material_override = do_sau(s, d * 0.4, d * 3.0)
@@ -869,8 +884,7 @@ def ve_sau(s, sh, cam, ra):
     s.render.filepath = ra; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
     s.render.engine, s.cycles.samples, s.cycles.use_denoising = eng, smp, dn
-    for o in an: o.hide_render = False
-    for x in hien: x.hide_render = x.hide_viewport = True
+    nguoi_that(False, an, hien)
 
 import re as _re
 # kính: khai kinh=True HOẶC en tả là kính (glass wall / door / partition / panel) — 17/10/2026 'Vách kính phòng TGĐ' chưa khai, che người phía sau
@@ -1593,7 +1607,7 @@ if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng t�
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
-kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}
+kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     dat_khai = list(sh['may']['dat'])   # máy KHAI (trước kẹp / bộ giải) — đường máy chay tính từ chỗ này, máy dời bao nhiêu thì chỗ kết dời theo bấy nhiêu
@@ -1618,7 +1632,8 @@ for sh in ([] if CHI_MB else shots):
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     # ẢNH RA (anh 15/10/2026: "render 30+ shot sao ra 140 ảnh?"): chỉ KHUNG MÀU (JPEG) — ảnh số 1 của keyframe. Khung xám chỉ render khi máy không
     # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
-    if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
+    co_mau = ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg")
+    if co_mau:
         ve_xuong(s, sh, cam, f"{RA}/{sh['ma']}-xuong.png")   # khung xương OpenPose (ControlNet dáng) — chỉ khi có người trong khung
         ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu: người = thân liền
         _lop = ve_lop(s, sh, cam, f"{RA}/{sh['ma']}")   # shot ≥ 2 người: nền + từng người (ghép từng người)
@@ -1641,19 +1656,24 @@ for sh in ([] if CHI_MB else shots):
     for o in nv_het: bpy.data.objects.remove(o, do_unlink=True)
     # CÚ MÁY LIỀN MẠCH cần khung kết (duong-may.ts › chay.ket — chuyển chủ thể / cung): khung cuối khác hẳn khung mở dù không ai đi → máy đặt ở chỗ KẾT
     # của đường máy rồi render khung màu kết (keyframe kết), khung giữa đặt máy ở nửa đường. Xong trả máy về chỗ mở.
-    chay_ = sh['may'].get('chay') if (sh['may'].get('chay') or {}).get('ket') else None
+    # STORYBOARD ĐẦU → KẾT (anh 18/10/2026: "sinh bản 3D có đầu và kết thì nhìn rõ từng shot"): MỌI shot có khung màu đều dựng khung KẾT — người ở
+    # chỗ / dáng / nét mặt cuối shot, máy ở cuối MỌI đường máy (đẩy vào, zoom, cung…). ket_dong = shot thật sự đổi khung (có người đi / quay, hoặc cú
+    # máy liền mạch) → chỉ những shot này mới cần keyframe KẾT (tốn tiền) + khung giữa; shot khác khung kết chỉ để xem.
+    chay_ = sh['may'].get('chay') if (sh['may'].get('chay') or {}).get('dat') else None
+    dong = bool((sh['may'].get('chay') or {}).get('ket')) or any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', []))
+    ket_dong[sh['ma']] = dong
     def may_tai(t):
         if not chay_: return
         d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin'])
         dat_may(cam, list(d0.lerp(d1, t)), list(n0.lerp(n1, t))); cam.data.lens = sh['may']['ong_kinh'] + (chay_['ong_kinh'] - sh['may']['ong_kinh']) * t
-    if chay_ or any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', [])):
+    if co_mau or dong:
         nk, nk_het = nhan_vat(sh, ket=True)
         may_tai(1.0)
         den_ = chieu(nk)
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
-        if MESH_THAT:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
+        if MESH_THAT and dong:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
             may_tai(0.5); ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
             for o in ng_het: bpy.data.objects.remove(o, do_unlink=True)
         may_tai(0.0)
@@ -1714,6 +1734,7 @@ json.dump(thay, open(f'{RA}/thay.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(di, open(f'{RA}/di.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(xuyen, open(f'{RA}/xuyen.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(lop, open(f'{RA}/lop.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(ket_dong, open(f'{RA}/ket_dong.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(mat_na, open(f'{RA}/mat_na.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

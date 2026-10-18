@@ -104,7 +104,9 @@
      "dung_doi_chan"
     ],
     "gioi": "nu",
-    "tuoi": 24
+    "tuoi": 24,
+    "toc": "long01",
+    "mau_toc": "#0d0b0a"
    },
    "bien_the": [
     {
@@ -170,7 +172,9 @@
      "tay_tui"
     ],
     "gioi": "nam",
-    "tuoi": 30
+    "tuoi": 30,
+    "toc": "short02",
+    "mau_toc": "#0d0b0a"
    },
    "bien_the": [
     {
@@ -204,7 +208,9 @@
      "mot_tay_hong"
     ],
     "gioi": "nu",
-    "tuoi": 32
+    "tuoi": 32,
+    "toc": "ponytail01",
+    "mau_toc": "#0d0b0a"
    },
    "bien_the": [
     {
@@ -237,7 +243,9 @@
      "dung_vung"
     ],
     "gioi": "nam",
-    "tuoi": 55
+    "tuoi": 55,
+    "toc": "short02",
+    "mau_toc": "#8a8a88"
    },
    "bien_the": [
     {

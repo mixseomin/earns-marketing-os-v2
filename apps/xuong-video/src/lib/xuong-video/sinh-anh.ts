@@ -7,7 +7,7 @@ import { promptCatNen, catNen, MAU_XANH_NEN } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptBieuCam, cauNuocMat } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
-import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
+import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KhungXam, type KinhThanh, type May3d, type NhanVat } from './kieu';
 import { damBaoAnhMat, demMat } from './soi-mat';
 import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
@@ -29,6 +29,8 @@ export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 /** Prompt ảnh cuối = phong cách bộ phim + prompt cảnh + nhắc giữ đúng anchor theo ảnh tham chiếu. */
 /** Người đã có LoRA: mặt trên ảnh FLUX đã đúng — lượt Nano chỉ được sửa trang phục / phụ kiện / đồ cầm theo ảnh mẫu. */
 export const KHOA_MAT_LORA = 'The FACE in Image 1 is already the right person: keep the face, identity, hair, expression and pose exactly as they are; change only clothing, stains, accessories and held objects to match the reference images.';
+/** Shot cần keyframe KẾT (tốn tiền): có khung màu kết VÀ khung thật sự đổi trong clip. Từ BAN_DUNG 82 mọi shot có khung kết để xem trên storyboard. */
+export const canKeyframeKet = (kx: { mau_ket?: string; ket_dong?: boolean } | null | undefined): boolean => !!kx?.mau_ket && kx.ket_dong !== false;
 export const KHONG_CHU = 'No text, letters, numbers, captions, watermarks or logos anywhere in the image.';
 export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = ''): string {
   // Kỹ thuật điện ảnh của shot (cỡ cảnh, góc, ống kính, ánh sáng, màu — thư viện dien-anh.ts) đứng ngay sau phong cách.
@@ -148,7 +150,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return { ok: false, loi: 'không thấy cảnh' };
   if (!bc.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe mở' };
-  if (!bc.canh.khung_xam?.mau_ket) return { ok: false, loi: 'shot không có khung màu chỗ kết (không ai di chuyển / quay trong shot, hoặc chưa dựng khung 3D)' };
+  if (!canKeyframeKet(bc.canh.khung_xam)) return { ok: false, loi: 'shot không đổi khung trong clip (không ai di chuyển / quay, máy không đi cú liền mạch) — không cần keyframe kết, hoặc chưa dựng khung 3D' };
   if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
   const { prompt, urlRef } = chuanBiKeyframe(bc, true);
   const job = await taoJob(db, { nhan: `Keyframe KẾT · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef, dich: 'keyframe_ket' } });
@@ -413,7 +415,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
  *  khung kết. MỘT chỗ cho cổng (lyChanKeyframe) và sinh-anh-phim --xem-prompt. */
 export function chamKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { diem: number; loi: LoiPrompt[] } {
   let diem = 100; const loi: LoiPrompt[] = [];
-  for (const ket of bc.canh.khung_xam?.mau_ket ? [false, true] : [false]) {
+  for (const ket of canKeyframeKet(bc.canh.khung_xam) ? [false, true] : [false]) {
     const k = chuanBiKeyframe(bc, ket); if (!k.soat) continue; const nhan = ket ? 'khung kết · ' : '';
     const c = chamPrompt((Object.entries(k.khoi ?? {}) as [DuongSinh, Khoi[]][]).map(([d, ds]) => ({ ten: `${nhan}${KHUON[d].ten}`, duong: d, khoi: ds })), k.soat);
     diem = Math.min(diem, c.diem); loi.push(...c.loi);

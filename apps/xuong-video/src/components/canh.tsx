@@ -1,5 +1,6 @@
 'use client';
 // Một shot trên storyboard: thẻ cảnh, keyframe/clip, form sửa 3 tab.
+import { KhungDauKet } from './khung-dau-ket';
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
@@ -117,7 +118,9 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
             : (c.khung_xam?.mau || c.khung_xam?.xam) && <button type="button" title="Khung 3D của shot (Blender) — bấm để xoay xem đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId: c.tap_id, canhId: c.id })}
                 style={{ justifySelf: 'stretch', marginTop: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', gap: 2, justifyItems: 'center' }}>
                 <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', justifySelf: 'start' }}>🧊 Bản 3D</span>
-                <img src={anhNho(c.khung_xam.mau || c.khung_xam.xam, 320)} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />
+                {c.khung_xam.mau_ket
+                  ? <div style={{ width: '100%' }}><KhungDauKet kx={c.khung_xam} doc={kt.ti_le !== '16:9'} onMo={() => moNgan({ loai: 'bo-set', tapId: c.tap_id, canhId: c.id })} /></div>
+                  : <img src={anhNho(c.khung_xam.mau || c.khung_xam.xam, 320)} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />}
               </button>)}
           <div style={{ justifySelf: 'stretch' }}><KyThuatTheoNhom kt={c.ky_thuat} /></div>
         </div>

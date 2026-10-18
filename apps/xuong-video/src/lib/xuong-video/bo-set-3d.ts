@@ -5,7 +5,6 @@
 import type { BienThe, BoSet, Canh, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
 import { vatHien } from './kieu';
 import { duongMay, hopVat } from './duong-may';
-import { CU_MAY_KHUNG_KET } from './dien-anh-nganh';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
  *  Hà Nội trên cao) hoặc shot đi XUYÊN hai thế giới (bay qua ô cửa sổ vào bàn: một bối cảnh có set, một không) — khung đầu nằm ngoài set. */
@@ -31,18 +30,19 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 81;
+export const BAN_DUNG = 82;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
 /** Phần máy ĐI VÀO HÌNH: bỏ các khai chỉ cổng kể chuyện đọc (lam) — khai thêm "Tango chạm phích" không làm khung đã dựng thành cũ. */
 const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o) ? { ...m, vi_tri: m.vi_tri.map(({ lam: _l, lam_o: _o, ...v }) => v) } : m);
-/** NÉT MẶT ở khung mở của từng người (bieu_cam[].dau) — mặt MPFB diễn theo (mesh/nguoi.py › BIEU_CAM_ARKIT); đổi nét là khung cũ hết hiệu lực. */
-export const netMo = (bieu?: { nv: string; dau: string }[] | null) => (bieu ?? []).map((b) => [b.nv, b.dau]);
-/** Cú máy vào mã khung CHỈ khi nó đổi ảnh dựng (CU_MAY_KHUNG_KET → có khung màu chỗ kết) — shot khác giữ nguyên mã cũ, không dựng lại cả kho. */
-const chayMa = (cd?: string | null) => (cd && CU_MAY_KHUNG_KET.includes(cd) ? cd : null);
-export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[], bieu?: { nv: string; dau: string }[] | null, chuyenDong?: string | null) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))), ...(bieu?.length ? { net: bam(netMo(bieu)) } : {}), ...(chayMa(chuyenDong) ? { chay: chayMa(chuyenDong)! } : {}) });
-export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[], bieu?: { nv: string; dau: string }[] | null, chuyenDong?: string | null): string {
+/** NÉT MẶT ở khung mở + khung kết của từng người (bieu_cam[].dau / .cuoi) — mặt MPFB diễn theo (mesh/nguoi.py › BIEU_CAM_ARKIT); đổi nét là khung cũ
+ *  hết hiệu lực. Từ BAN_DUNG 82 mọi shot dựng khung KẾT (storyboard đầu → kết) nên nét cuối cũng vào mã. */
+export const netMo = (bieu?: { nv: string; dau: string; cuoi?: string }[] | null) => (bieu ?? []).map((b) => [b.nv, b.dau, b.cuoi ?? b.dau]);
+/** Cú máy vào mã khung: mọi shot dựng khung KẾT với máy ở cuối đường máy (BAN_DUNG 82) — đổi cú máy là khung kết đổi. Máy đứng yên không vào mã. */
+const chayMa = (cd?: string | null) => (cd && cd !== 'tinh' ? cd : null);
+export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[], bieu?: { nv: string; dau: string; cuoi?: string }[] | null, chuyenDong?: string | null) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))), ...(bieu?.length ? { net: bam(netMo(bieu)) } : {}), ...(chayMa(chuyenDong) ? { chay: chayMa(chuyenDong)! } : {}) });
+export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[], bieu?: { nv: string; dau: string; cuoi?: string }[] | null, chuyenDong?: string | null): string {
   const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat)), ...(bieu?.length ? [netMo(bieu)] : []), ...(chayMa(chuyenDong) ? [chayMa(chuyenDong)] : [])]);
   let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return h.toString(36);

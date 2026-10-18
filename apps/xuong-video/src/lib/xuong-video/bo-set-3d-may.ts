@@ -131,6 +131,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const di = await gop<NonNullable<KhungXam['di']>>('di.json');
     const xuyen = await gop<string[]>('xuyen.json');
     const lopJ = await gop<{ ten: string; tep: string; xa: number }[]>('lop.json');
+    const ketDong = await gop<boolean>('ket_dong.json');
     const matNa = await gop<Record<string, { tep: string; goc?: { p: number[]; uv: number[] | null }[] }>>('mat_na.json');
     const giai = await gop<{ dat: number[] }>('giai.json');
     // Ghi máy đã giải vào máy KHAI của shot (không ghi đồ để lại — chúng là trạng thái tính ra, không phải khai).
@@ -152,7 +153,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       // MẶT NẠ 3D (dung-set.py › ve_mat_na): ghép đè đồ nhận dạng + sửa vùng — đẩy kho kèm 4 góc của tấm ảnh chuẩn
       const mn: NonNullable<KhungXam['mat_na']> = {};
       for (const [k, v] of Object.entries(matNa[String(c.id)] ?? {})) { const u = await len(v.tep, 'png'); if (u) mn[k] = { url: u, ...(v.goc ? { goc: v.goc } : {}) }; }
-      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(sau ? { sau } : {}), ...(xuong ? { xuong } : {}), ...(xuyen[String(c.id)]?.length ? { xuyen: xuyen[String(c.id)] } : {}), ...(lop ? { lop } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), ...(Object.keys(mn).length ? { mat_na: mn } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
+      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet, ket_dong: ketDong[String(c.id)] ?? true } : {}), ...(sau ? { sau } : {}), ...(xuong ? { xuong } : {}), ...(xuyen[String(c.id)]?.length ? { xuyen: xuyen[String(c.id)] } : {}), ...(lop ? { lop } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), ...(Object.keys(mn).length ? { mat_na: mn } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
       if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau ?? '', c.khung_xam.xuong ?? '', c.khung_xam.lop?.nen ?? '', ...(c.khung_xam.lop?.nguoi ?? []).map((x) => x.sau), c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '', c.khung_xam.mau_giua ?? '', ...(c.khung_xam.giua ?? []), c.khung_xam.dien ?? '', ...Object.values(c.khung_xam.mat_na ?? {}).map((x) => x.url));
       dung++;

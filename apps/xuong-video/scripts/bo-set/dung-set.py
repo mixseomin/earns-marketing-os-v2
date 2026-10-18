@@ -531,6 +531,7 @@ def nhan_vat(sh, ket=False):
             di_mo = ket is not True and kieu == 'dung' and bool(nv.get('den')) and math.hypot(nv['den'][0] - X, nv['den'][1] - Y) >= 40
             if di_mo: ng().buoc(n_, 0.25)
             ng().ap_dien(n_, [x for x in dien_hl(n_, nv) if not (di_mo and str(x).split('@')[0] in DI_MC)], 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
+            cham_mat_tua(n_, nv['ten'], dien_hl(n_, nv))   # dáng chống / tựa: cúi tới khi bàn tay chạm mặt đỡ thật
             vet_(n_, nv['ten'], dan_cua(nv, mau_nv, ket is True or bool(ket and float(ket) >= 0.5)))
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
@@ -947,6 +948,27 @@ def vet_(n_, ten, ds):
         o.parent = bp; o.matrix_parent_inverse.identity()
         o.location = (lo.x + (hi.x - lo.x) * lx, lo.y - 1.2, lo.z + (hi.z - lo.z) * lz)   # nhô 1,2 cm trước mặt ngực: nổi ra ngoài áo người MPFB (vải nổi 4 mm + độ phồng áo)
         o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
+
+def cham_mat_tua(n_, ten, dien):
+    """DÁNG TỰA CHẠM MẶT ĐỠ (19/10/2026 #23–#25: Thần 'chống bàn' mà tay cách mặt bàn 17,7 cm — góc cúi khai cứng 28° đo trên ma-nơ-canh cũ, người
+    theo tỉ lệ MPFB cao hơn): cúi thêm / bớt cột sống từng 3–4° tới khi điểm chạm (bàn tay) cách mặt đỡ ngay bên dưới ≤ 3 cm — như diễn viên tự tìm mặt
+    bàn. Không có mặt đỡ dưới tay thì để nguyên (cổng tua_hong báo)."""
+    ben = [b for m in (str(d).split('@')[0] for d in (dien or [])) for b in DANG_TUA.get(m, ())]
+    if not ben: return
+    s_ = bpy.context.scene
+    for _ in range(12):
+        bpy.context.view_layer.update(); dg = bpy.context.evaluated_depsgraph_get(); hong = []
+        for b in ben:
+            p = diem_cam(n_, b); goc = p.copy()
+            for _k in range(6):
+                hit, loc, _, _, ob, _ = s_.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
+                if not hit or not ob: break
+                if ob.name.startswith(f"NG {ten}.") or ob.name == f"NV {ten}" or ob.name.startswith(f"NV {ten}·") or ob.name.startswith('THAN'): goc = loc - Vector((0, 0, 0.002)); continue
+                hong.append((p.z - loc.z) / CM); break
+        if not hong: return
+        g = max(hong)
+        if abs(g) <= 3: return
+        n_['lung'].rotation_euler.x += math.radians(4 if g > 0 else -3)
 
 # DÁNG CẦN MẶT TỰA ở khung MỞ: động tác → điểm chạm (bàn tay). Không có mặt đỡ dưới điểm chạm thì AI tự bịa chỗ tựa — tập 122 #20 Thần "chống bàn"
 # ở chỗ không có bàn → keyframe chống tay lên lưng ghế; #22 cận cổ tay thành bàn tay lơ lửng. Phim thường diễn viên tự tìm mặt bàn; phim AI phải đo.
@@ -1629,7 +1651,10 @@ def ngam_lai(s, cam, sh, khoi, ket=False):
     (mặt trong 0,25–0,75 bề ngang): máy đẩy vào gần thì khung dọc 9:16 hẹp, mặt quay nghiêng trôi ra mép (#24 kết chỉ còn tai + gáy Thần)."""
     from bpy_extras.object_utils import world_to_camera_view
     bpy.context.view_layer.update(); diem = []
-    for cn in sh['bat_buoc']:
+    # cận ĐỒ VẬT (chủ thể đầu là món — insert cổ tay #9 #25): chỉ ngắm các món, người cầm là bối cảnh — lấy cả mặt người vào trung điểm thì máy
+    # ngắm giữa cổ tay và mặt, chuỗi hạt văng khỏi khung. Chủ thể đầu là người (#13 Vivian + thẻ) thì ngắm mọi chủ thể.
+    chu = sh['bat_buoc'] if sh['bat_buoc'][0] in NGUOI else [x for x in sh['bat_buoc'] if x not in NGUOI]
+    for cn in chu:
         mat_ = dich = None
         if cn in NGUOI:
             n_ = NGUOI[cn]

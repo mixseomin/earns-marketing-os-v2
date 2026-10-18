@@ -8,7 +8,8 @@ import { promptCamXuc } from './am-thanh';
 import { promptBieuCam } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
 import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
-import { damBaoAnhMat } from './soi-mat';
+import { damBaoAnhMat, demMat } from './soi-mat';
+import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
@@ -497,6 +498,10 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
     for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
       const b1 = await buocDoSau(db, canhId, bc.canh.thu_tu, haiBuoc, bc.kt.ti_le);
       if (!b1.ok) return loi(`bước 1 (độ sâu): ${b1.loi}`);
+      // CỔNG SAU BƯỚC 1 (0đ, YuNet): khung 3D có người quay mặt về máy (cùng luật câu hỏi kiểm [mat:]) mà ảnh bước 1 không có mặt người nào → dừng,
+      // không trả tiền bước 2 cho ảnh hỏng. Tập 122 #11: 4 lượt bước 1 vẽ ma-nơ-canh thành bình / tượng, bước 2 tự đặt người bừa chỗ khác.
+      const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:')).length;
+      if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
       const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: haiBuoc.prompt2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
       jobs.push(job);
@@ -526,7 +531,7 @@ async function buocDoSau(db: Db, canhId: number, thuTu: number, h: HaiBuoc, tiLe
   const doc = tiLe !== '16:9';
   const kq = h.xuong
     ? await chayAnhFal(MO_HINH_XUONG, { prompt: h.prompt1, image_size: doc ? { width: 720, height: 1280 } : { width: 1280, height: 720 }, num_images: 1, output_format: 'jpeg', num_inference_steps: 28, guidance_scale: 3.5,
-        controlnet_unions: [{ path: UNION_XUONG, controls: [{ control_image_url: h.sau, control_mode: 'depth', conditioning_scale: 0.7 }, { control_image_url: h.xuong, control_mode: 'pose', conditioning_scale: 0.9 }] }] })
+        controlnet_unions: [{ path: UNION_XUONG, controls: [{ control_image_url: h.sau, control_mode: 'depth', conditioning_scale: 0.6 }, { control_image_url: h.xuong, control_mode: 'pose', conditioning_scale: 1 }] }] })
     : await chayAnhFal(MO_HINH_DO_SAU, { prompt: h.prompt1, control_image_url: h.sau, image_size: doc ? { width: 768, height: 1365 } : { width: 1365, height: 768 }, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
   const url = await uploadToR2(`xuong-video/keyframe/${canhId}/buoc1-${Date.now()}.jpg`, kq.data, kq.mimeType);

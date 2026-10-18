@@ -679,13 +679,25 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 const dau = vt.length ? batDau[vt[0]!]! * pps : 0; const cuoi = vt.length ? (batDau[vt[vt.length - 1]!]! + dur(canh[vt[vt.length - 1]!]!)) * pps : 0;
                 return [
                   ...(lien && vt.length ? [<div key={`kb${k.ap.khuon}${vt[0]}`} style={{ position: 'absolute', left: dau + 1, width: Math.max(4, cuoi - dau - 2), bottom: 0, height: 2, background: MAU[k.muc], opacity: 0.7, pointerEvents: 'none' }} />] : []),
-                  ...k.shots.map((x, j) => {
-                    const i = viTriShot.get(x.id); if (i == null) return null;
-                    const cc = canh[i]!; const b = k.kh.buoc[x.buoc];
-                    const tt = [`${k.kh.ten} · bước ${x.buoc + 1}/${k.kh.buoc.length}: ${x.tenBuoc}`, b?.ghi, `Mục đích: ${k.kh.muc_dich}`, k.ap.ghi && `Ở đây: ${k.ap.ghi}`,
-                      ...x.loi.map((l) => `⚠ ${l}`), ...x.goiY.map((l) => `· ${l}`), ...(j === 0 ? k.loi.map((l) => `⚠ cả khuôn: ${l}`) : []), k.kh.ket && `Kết khuôn: ${k.kh.ket}`,
-                      `Nguồn: ${k.kh.nguon.map((n) => `${n.phim} — ${n.ghi}`).join(' · ')}`].filter(Boolean).join('\n');
-                    return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 ? `${k.kh.ten} › ` : ''}${x.tenBuoc}`, tt, `kh${k.ap.khuon}${x.id}`, () => bamShot(cc.id, i), undefined, '');
+                  ...k.shots.flatMap((x, j) => {
+                    const i = viTriShot.get(x.id); if (i == null) return [];
+                    const cc = canh[i]!; const n = x.buocs.length; const x0 = batDau[i]! * pps; const w = (dur(cc) * pps) / n;
+                    // Shot gánh nhiều bước → chia ô theo bước, đúng vị trí nhịp trong shot (gợi ý ✂ tách ở ngăn ✎).
+                    return x.buocs.map((bi, q) => {
+                      const b = k.kh.buoc[bi];
+                      const tt = [`${k.kh.ten} · bước ${bi + 1}/${k.kh.buoc.length}: ${b?.ten ?? '?'}${n > 1 ? ` (nhịp ${q + 1}/${n} trong shot #${cc.thu_tu})` : ''}`, b?.ghi, `Mục đích: ${k.kh.muc_dich}`, k.ap.ghi && `Ở đây: ${k.ap.ghi}`,
+                        ...x.loi.map((l) => `⚠ ${l}`), ...x.goiY.map((l) => `· ${l}`), ...(j === 0 && q === 0 ? k.loi.map((l) => `⚠ cả khuôn: ${l}`) : []), k.kh.ket && `Kết khuôn: ${k.kh.ket}`,
+                        `Nguồn: ${k.kh.nguon.map((nn) => `${nn.phim} — ${nn.ghi}`).join(' · ')}`].filter(Boolean).join('\n');
+                      return khoiAm(x0 + w * q, w, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 && q === 0 ? `${k.kh.ten} › ` : ''}${n > 1 && q === 0 ? '✂ ' : ''}${b?.ten ?? '?'}`, tt, `kh${k.ap.khuon}${x.id}-${q}`, () => bamShot(cc.id, i), undefined, '');
+                    });
+                  }),
+                  // Bước THIẾU: ô gạch đứt đúng chỗ khuôn chỉ (sau shot đứng trước nó) — bấm mở ngăn ✎ để chèn shot.
+                  ...k.thieu.map((t) => {
+                    const iSau = t.sau != null ? viTriShot.get(t.sau) : undefined; const iDau = viTriShot.get(k.shots[0]?.id ?? -1);
+                    const x = iSau != null ? (batDau[iSau]! + dur(canh[iSau]!)) * pps : iDau != null ? batDau[iDau]! * pps : 0;
+                    return <div key={`kt${k.ap.khuon}${t.buoc}${t.sau}`} data-goi-y={`${k.kh.ten} · THIẾU bước ${t.buoc + 1}: ${t.ten}\n${t.ghi}\nNên chèn một shot ở đây — bấm để mở ngăn khuôn (＋ chèn shot, 0đ)`}
+                      onClick={() => onDoiKhuon && setSuaKhuon(true)}
+                      style={{ position: 'absolute', left: x - 13, width: 26, top: 2, bottom: 2, borderRadius: 4, zIndex: 2, cursor: 'pointer', border: `1px dashed ${MAU[t.muc]}`, background: 'var(--bg-1)', color: MAU[t.muc], fontSize: 12, fontWeight: 700, lineHeight: '20px', textAlign: 'center' }}>＋</div>;
                   }),
                 ];
               }), 26, h ? undefined : nutSua)}</Fragment>

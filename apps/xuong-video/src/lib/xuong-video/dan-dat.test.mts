@@ -24,6 +24,9 @@ assert.ok(chamCat(sh(1, 'A', 'hanh_dong', 'ms'), sh(2, 'B', 'thiet_lap', 'ws'), 
 assert.ok(chamCat(sh(1, 'A', 'phan_ung', 'cu'), sh(2, 'C', 'thiet_lap', 'ws'), pc).tru.some((t) => t.ma === 'nhay_thoi_gian'));
 assert.ok(!chamCat(sh(1, 'A', 'phan_ung', 'cu'), sh(2, 'C', 'thoi_gian', 'ws'), pc).tru.some((t) => t.ma === 'nhay_thoi_gian'));
 
+// shot dồn nhịp
+assert.ok(chamCat(sh(1, 'A', 'phan_ung', 'cu'), sh(2, 'A', 'tong_the', 'ws', [1], { hanh_dong: 'Vivian ném giấy; Hạ quỳ nhặt; đồng nghiệp xì xào' }), pc).tru.some((t) => t.ma === 'don_nhip' && t.tru === 16));
+assert.ok(!chamCat(sh(1, 'A', 'phan_ung', 'cu'), sh(2, 'A', 'tong_the', 'ws', [1], { hanh_dong: 'Hạ quỳ nhặt, đồng nghiệp xì xào' }), pc).tru.length);
 // cả tập: khuôn + shot ngoài khuôn
 const ds = [sh(1, 'A', 'thiet_lap', 'ws'), sh(2, 'A', 'chi_tiet', 'insert'), sh(3, 'A', 'phan_ung', 'cu'), sh(4, 'B', 'thiet_lap', 'ws')];
 const k = chamDanDat(ds, [...pc.values()], [{ khuon: 'phat_hien', shots: { 1: 0, 2: 1, 3: 2 } }], 'phim_doc');

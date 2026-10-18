@@ -40,4 +40,13 @@ assert.deepStrictEqual(xepHang([a, b, c], tt).map((h) => h.map((k) => k.kh.key))
 // thiếu mã luật chỉ là gợi ý, không đổi màu
 const khongLuat = kiemKhuon(va, [s(1, 'thiet_lap'), s(2, 'hanh_dong'), s(3, 'nguoi_thu_ba'), s(4, 'hanh_dong')], 'phim_doc')!;
 assert.ok(khongLuat.shots.every((x) => x.muc === 'tot') && khongLuat.shots[1]!.goiY.length === 1);
+// shot gánh nhiều bước → vàng + lời gợi tách, không tính sai vai
+const gop = kiemKhuon({ khuon: 'phat_hien', shots: { 1: [0, 1, 2] } }, [s(1, 'phan_ung')])!;
+assert.strictEqual(gop.shots[0]!.muc, 'vang'); assert.ok(gop.shots[0]!.loi[0]!.includes('tách thành 3 shot'));
+assert.deepStrictEqual(gop.shots[0]!.buocs, [0, 1, 2]);
+// bước thiếu đứng đúng chỗ: sau shot cuối có bước nhỏ hơn
+const th = kiemKhuon(va, [s(1, 'thiet_lap'), s(2, 'hanh_dong', ['gioi_thieu']), s(3, 'nguoi_thu_ba', ['gia_tri_doi']), s(4, 'hanh_dong')], 'phim_doc')!;
+assert.deepStrictEqual(th.thieu.map((t) => [t.ten, t.sau]), [['Mặt kẻ thua', 4]]);
+const thDau = kiemKhuon({ khuon: 'phat_hien', shots: { 5: 1, 6: 2 } }, [s(5, 'chi_tiet'), s(6, 'phan_ung')])!;
+assert.deepStrictEqual(thDau.thieu.map((t) => [t.buoc, t.sau]), [[0, null]], 'bước đầu thiếu → đứng trước shot đầu');
 console.log(`✓ khuon-chuoi (${KHUON_CHUOI.length} khuôn)`);

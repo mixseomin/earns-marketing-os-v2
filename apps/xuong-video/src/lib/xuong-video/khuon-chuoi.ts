@@ -11,8 +11,10 @@ import type { TheLoai, KyThuatShot } from './dien-anh';
 export type BuocKhuon = { ten: string; vai: string[]; luat?: string[]; lap?: boolean; tuy?: boolean; nen?: boolean; ghi: string };
 export type NguonKhuon = { phim: string; ghi: string };
 export type KhuonChuoi = { key: string; ten: string; muc_dich: string; the_loai: TheLoai[] | 'tat_ca'; buoc: BuocKhuon[]; ket?: string; nguon: NguonKhuon[] };
-/** Một lần áp khuôn trong tập: shot (id xv_canh) → chỉ số bước. ghi = vì sao áp (đạo diễn / kịch bản muốn gì ở đoạn này). */
-export type ApKhuon = { khuon: string; shots: Record<string, number>; ghi?: string };
+/** Một lần áp khuôn trong tập: shot (id xv_canh) → chỉ số bước, hoặc MẢNG bước khi một shot gánh nhiều nhịp (timeline chia ô, gợi ý tách shot).
+ *  ghi = vì sao áp (đạo diễn / kịch bản muốn gì ở đoạn này). */
+export type ApKhuon = { khuon: string; shots: Record<string, number | number[]>; ghi?: string };
+export const buocCua = (v: number | number[] | undefined): number[] => (v == null ? [] : Array.isArray(v) ? v : [v]);
 
 const DRAMA: TheLoai[] = ['phim_doc', 'chinh_kich', 'tinh_cam', 'kinh_di', 'hanh_dong', 'vien_tuong'];
 const QC: TheLoai[] = ['qc_ugc', 'qc_cao_cap'];
@@ -147,8 +149,10 @@ export const hopTheLoai = (kh: KhuonChuoi, tl?: TheLoai | '') => !tl || kh.the_l
 export type ShotKhuon = { id: number; thu_tu: number; ky_thuat?: KyThuatShot | null };
 export type MucKiem = 'tot' | 'vang' | 'do';
 /** goiY = luật dựng bước này nên có mà shot chưa gắn mã — chỉ GỢI Ý (không đổi màu): nhiều shot cũ chưa ghi ky_thuat.luat, tô vàng vì thế thì che mất lỗ thật. */
-export type KetShot = { id: number; buoc: number; tenBuoc: string; muc: MucKiem; loi: string[]; goiY: string[] };
-export type KetAp = { ap: ApKhuon; kh: KhuonChuoi; shots: KetShot[]; loi: string[]; muc: MucKiem };
+export type KetShot = { id: number; buoc: number; tenBuoc: string; muc: MucKiem; loi: string[]; goiY: string[]; /** mọi bước shot này gánh (≥ 2 = nên tách shot) */ buocs: number[] };
+/** Bước THIẾU và chỗ nó nên đứng: ngay sau shot `sau` (null = trước shot đầu của khuôn). */
+export type BuocThieu = { buoc: number; ten: string; ghi: string; muc: MucKiem; sau: number | null };
+export type KetAp = { ap: ApKhuon; kh: KhuonChuoi; shots: KetShot[]; loi: string[]; muc: MucKiem; thieu: BuocThieu[] };
 
 const nang = (a: MucKiem, b: MucKiem): MucKiem => (a === 'do' || b === 'do' ? 'do' : a === 'vang' || b === 'vang' ? 'vang' : 'tot');
 
@@ -156,33 +160,44 @@ const nang = (a: MucKiem, b: MucKiem): MucKiem => (a === 'do' || b === 'do' ? 'd
 export function kiemKhuon(ap: ApKhuon, canh: ShotKhuon[], theLoai?: TheLoai | ''): KetAp | null {
   const kh = khuonTheoKey(ap.khuon);
   if (!kh) return null;
-  const ds = canh.filter((c) => ap.shots[String(c.id)] != null).sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds = canh.filter((c) => buocCua(ap.shots[String(c.id)]).length).sort((a, b) => a.thu_tu - b.thu_tu);
   const shots: KetShot[] = [];
   let truoc = -1;
   const dem = new Map<number, number>();
   for (const c of ds) {
-    const i = ap.shots[String(c.id)]!; const b = kh.buoc[i];
-    if (!b) { shots.push({ id: c.id, buoc: i, tenBuoc: `bước ${i + 1}?`, muc: 'do', loi: ['bước không có trong khuôn'], goiY: [] }); continue; }
-    const loi: string[] = []; let muc: MucKiem = 'tot';
-    const vai = c.ky_thuat?.vai;
-    if (!vai) { loi.push(`shot chưa ghi vai kể — bước cần ${b.vai.join(' / ')}`); muc = 'vang'; }
-    else if (!b.vai.includes(vai)) { loi.push(`shot đang đóng vai "${vai}", bước "${b.ten}" cần ${b.vai.join(' / ')}`); muc = 'do'; }
-    const thieuLuat = (b.luat ?? []).filter((l) => !(c.ky_thuat?.luat ?? []).includes(l));
-    const goiY = b.luat?.length && thieuLuat.length === b.luat.length ? [`luật dựng nên có: ${b.luat.join(' / ')}`] : [];
-    if (i < truoc) { loi.push(`lùi về bước "${b.ten}" sau bước "${kh.buoc[truoc]!.ten}"`); muc = 'do'; }
-    dem.set(i, (dem.get(i) ?? 0) + 1);
-    if (!b.lap && (dem.get(i) ?? 0) > 1) { loi.push(`bước "${b.ten}" chỉ nên một shot`); muc = nang(muc, 'vang'); }
-    truoc = Math.max(truoc, i);
-    shots.push({ id: c.id, buoc: i, tenBuoc: b.ten, muc, loi, goiY });
+    const bs = buocCua(ap.shots[String(c.id)]);
+    const loi: string[] = []; const goiY: string[] = []; let muc: MucKiem = 'tot';
+    for (const i of bs) {
+      const b = kh.buoc[i];
+      if (!b) { loi.push(`bước ${i + 1} không có trong khuôn`); muc = 'do'; continue; }
+      const vai = c.ky_thuat?.vai;
+      // Shot gánh nhiều bước: vai chỉ khớp được MỘT bước — các bước còn lại là dấu hiệu phải tách, không phải sai vai.
+      if (bs.length === 1) {
+        if (!vai) { loi.push(`shot chưa ghi vai kể — bước cần ${b.vai.join(' / ')}`); muc = nang(muc, 'vang'); }
+        else if (!b.vai.includes(vai)) { loi.push(`shot đang đóng vai "${vai}", bước "${b.ten}" cần ${b.vai.join(' / ')}`); muc = 'do'; }
+        const thieuLuat = (b.luat ?? []).filter((l) => !(c.ky_thuat?.luat ?? []).includes(l));
+        if (b.luat?.length && thieuLuat.length === b.luat.length) goiY.push(`luật dựng nên có: ${b.luat.join(' / ')}`);
+      }
+      if (i < truoc) { loi.push(`lùi về bước "${b.ten}" sau bước "${kh.buoc[truoc]!.ten}"`); muc = 'do'; }
+      dem.set(i, (dem.get(i) ?? 0) + 1);
+      if (!b.lap && (dem.get(i) ?? 0) > 1) { loi.push(`bước "${b.ten}" chỉ nên một shot`); muc = nang(muc, 'vang'); }
+      truoc = Math.max(truoc, i);
+    }
+    if (bs.length > 1) { loi.push(`một shot gánh ${bs.length} bước (${bs.map((i) => kh.buoc[i]?.ten ?? i + 1).join(' → ')}) — nên tách thành ${bs.length} shot để mỗi nhịp có khung riêng`); muc = nang(muc, 'vang'); }
+    shots.push({ id: c.id, buoc: bs[0]!, tenBuoc: bs.map((i) => kh.buoc[i]?.ten ?? `bước ${i + 1}?`).join(' + '), muc, loi, goiY, buocs: bs });
   }
   const loi: string[] = []; let muc: MucKiem = shots.reduce<MucKiem>((a, s) => nang(a, s.muc), 'tot');
+  const thieu: BuocThieu[] = [];
   kh.buoc.forEach((b, i) => {
-    if (dem.has(i)) return;
-    if (b.nen) { loi.push(`thiếu "${b.ten}" — ${b.ghi}`); muc = nang(muc, 'vang'); }
-    else if (!b.tuy) { loi.push(`thiếu bước bắt buộc "${b.ten}"`); muc = 'do'; }
+    if (dem.has(i) || b.tuy) return;
+    const m: MucKiem = b.nen ? 'vang' : 'do';
+    loi.push(b.nen ? `thiếu "${b.ten}" — ${b.ghi}` : `thiếu bước bắt buộc "${b.ten}"`); muc = nang(muc, m);
+    // Chỗ đứng: sau shot cuối cùng còn ở bước NHỎ hơn bước thiếu (thứ tự khuôn); không có thì đứng trước shot đầu.
+    const sau = [...shots].reverse().find((x) => Math.max(...x.buocs) < i);
+    thieu.push({ buoc: i, ten: b.ten, ghi: b.ghi, muc: m, sau: sau ? sau.id : null });
   });
   if (!hopTheLoai(kh, theLoai)) { loi.push(`khuôn này không thuộc dòng phim hiện tại`); muc = nang(muc, 'vang'); }
-  return { ap, kh, shots, loi, muc };
+  return { ap, kh, shots, loi, muc, thieu };
 }
 
 /** Xếp các lần áp vào hàng (lane) không chồng nhau theo khoảng shot — khuôn trải rộng (gài motif ở cảnh 2, trả ở cảnh 5) sang hàng riêng. */

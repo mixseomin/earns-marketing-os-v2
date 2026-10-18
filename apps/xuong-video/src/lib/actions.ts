@@ -4,6 +4,7 @@
 // Mạch: kịch bản → tachCanhTap (Claude) → sinhKeyframe (Gemini, ứng viên → chọn) → duyệt → sinhVideoCanh (Veo, async) → kiemVideo (poll).
 // Admin-only. Mọi lần gọi model ghi xv_job kèm tiền (cents) để bảng tổng kết chi phí của phim không phải đoán.
 import { khuonTheoKey, type ApKhuon } from '@/lib/xuong-video/khuon-chuoi';
+import { tachShotDb, chenShotKhuonDb } from '@/lib/xuong-video/tach-shot';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -1532,6 +1533,22 @@ export async function khopGiongTapAction(tapId: number): Promise<Kq<{ doi: numbe
   if (!(await admin())) return loi('không có quyền');
   return khopGiongTap(db, tapId, await ai());
 }
+/** ✂ Tách một shot dồn nhiều nhịp thành nhiều shot (tach-shot.ts) — 0đ, shot mới chưa có hình. */
+export async function tachShot(id: number, phan: string[]): Promise<Kq<number[]>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = await tachShotDb(db, id, (Array.isArray(phan) ? phan : []).map(String).slice(0, 8), await ai());
+  return r.ok ? { ok: true, data: r.ids } : loi(r.loi);
+}
+/** ＋ Chèn shot cho bước khuôn đang THIẾU, đúng chỗ khuôn chỉ (tach-shot.ts) — 0đ, shot mới chưa có hình. */
+export async function chenShotKhuon(tapId: number, apIdx: number, buoc: number, moTa: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = await chenShotKhuonDb(db, tapId, apIdx, buoc, String(moTa ?? '').slice(0, 600), await ai());
+  return r.ok ? { ok: true, data: r.id } : loi(r.loi);
+}
 /** Lưu các lần áp KHUÔN CHUỖI của tập (khuon-chuoi.ts) — sửa trên timeline (ngăn 🧭 Khuôn). Lọc: khuôn có thật, shot thuộc tập, bước trong khuôn. 0đ. */
 export async function luuKhuonChuoi(tapId: number, ds: ApKhuon[]): Promise<Kq> {
   const db = getDb();
@@ -1541,8 +1558,11 @@ export async function luuKhuonChuoi(tapId: number, ds: ApKhuon[]): Promise<Kq> {
   const sach: ApKhuon[] = [];
   for (const a of (Array.isArray(ds) ? ds : []).slice(0, 60)) {
     const kh = khuonTheoKey(String(a?.khuon ?? '')); if (!kh) continue;
-    const shots: Record<string, number> = {};
-    for (const [id, b] of Object.entries(a.shots ?? {})) { const i = Number(b); if (ids.has(String(id)) && Number.isInteger(i) && i >= 0 && i < kh.buoc.length) shots[String(id)] = i; }
+    const shots: ApKhuon['shots'] = {};
+    for (const [id, b] of Object.entries(a.shots ?? {})) {
+      const bs = [...new Set((Array.isArray(b) ? b : [b]).map(Number))].filter((i) => Number.isInteger(i) && i >= 0 && i < kh.buoc.length).sort((x, y) => x - y);
+      if (ids.has(String(id)) && bs.length) shots[String(id)] = bs.length === 1 ? bs[0]! : bs;
+    }
     sach.push({ khuon: kh.key, shots, ...(a.ghi ? { ghi: String(a.ghi).slice(0, 300) } : {}) });
   }
   await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['khuon_chuoi'], moTa: `sửa khuôn chuỗi (${sach.length} lần áp)`, nguoi: await ai() });

@@ -1,4 +1,5 @@
 'use client';
+import { createPortal } from 'react-dom';
 // Drawer dùng chung của studio: trượt từ phải, Esc / bấm nền để đóng. `nho` = drawer hẹp.
 // Ngăn kéo XẾP CHỒNG (#1222): drawer mở sau hẹp hơn drawer bên dưới 64px mỗi tầng → ngăn dưới luôn lộ mép trái, bấm vào mép đó
 // (là nền của ngăn trên) thì ngăn trên đóng, quay về ngăn dưới. Tầng đếm lúc mở từ số .xv-drawer đang có trên trang.
@@ -61,4 +62,12 @@ export function Ngan({ onClose, nho, tieuDe, nut, dau, children }: { onClose: ()
       {dau != null && <div style={{ marginTop: tieuDe != null ? 8 : 0 }}>{dau}</div>}
     </div>}{children}</div>
     <div className="xv-keo-mep" style={{ right: `calc(${rong} - 4px)`, zIndex: z }} onPointerDown={keo} onDoubleClick={veMacDinh} title="Kéo để nới/thu drawer · nhấp đúp = về mặc định" /></>;
+}
+
+/** Ngăn mở TỪ BÊN TRONG một khối bấm/kéo được (chip điểm trên khối clip timeline…): portal ra <body> để không kẹt trong ngữ cảnh xếp lớp của
+ *  làn đang dính / khối overflow:hidden, và chặn sự kiện React nổi ngược về khối cha (bấm trong ngăn không chọn shot, không kéo clip). */
+export function NganNoi(p: Parameters<typeof Ngan>[0]) {
+  if (typeof document === 'undefined') return null;
+  const chan = (e: { stopPropagation: () => void }) => e.stopPropagation();
+  return createPortal(<div onClick={chan} onPointerDown={chan} onMouseDown={chan} onDoubleClick={chan}><Ngan {...p} /></div>, document.body);
 }

@@ -331,10 +331,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const thayDs = bc.canh.khung_xam?.thay ?? [];
       // NGÂN SÁCH TỪ cho FLUX (~300 từ): mô tả vật qua thẻ / bộ đồ dài làm vượt (#3, #11 = 303–307 từ) → dựng lại gọn dần (bộ đồ 32 → 20 → 12 từ, hậu cảnh ≤ 6 → 4 món)
       // thay vì để FLUX cắt mất phần cuối (câu chất liệu, "No text").
-      const dungMon = (cap: number) => trongS.map((v) => {
+      const dungMon = (cap: number, gon = false) => trongS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
-        return `${taNv(v, false, cap)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        return `${taNv(v, gon, cap)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nenDu = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).sort((p, q) => q.pt - p.pt).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair"), lớn trước
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
@@ -342,15 +342,16 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // bản NGẮN cho FLUX: số người + ngoài khung gọn (câu đầy đủ ~30 từ mỗi câu làm #3 vượt ngân sách)
       const soNguoiNgan = ket ? '' : chinhNguoi.length + phuNguoi ? `Exactly ${chinhNguoi.length + phuNguoi} ${chinhNguoi.length + phuNguoi === 1 ? 'person' : 'people'}${chinhNguoi.length ? ` (${chinhNguoi.join(', ')})` : ''}; nobody else anywhere.` : 'No people.';
       const ngoaiNgan = ngoaiTen.length ? `Not in frame: ${ngoaiTen.join(', ')}.` : '';
-      const dungKF = (cap: number, nenToiDa: number): Khoi[] => { const mon = dungMon(cap); const nen = nenDu.slice(0, nenToiDa); return [
+      const dungKF = (cap: number, nenToiDa: number, gon = false, pcNgan = false): Khoi[] => { const mon = dungMon(cap, gon); const nen = nenDu.slice(0, nenToiDa); return [
         khoi('anh_dich', CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang')), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`),
         khoi('khoanh_khac', !ket && bc.canh.dan_dung?.mo && `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.`),
         khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', soNguoiNgan), khoi('ngoai_khung', ngoaiNgan), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
         khoi('anh_sang', nguoiThat ? '' : bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.'),
-        khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi),
+        khoi('phong_cach', nguoiThat ? rut(moTaVua(phongCachHinh(bc.kt.phong_cach)), pcNgan ? 16 : undefined) : ''), khoi('chat_lieu', CL.flux_cuoi),
       ]; };
       const soTu = (ds: Khoi[]) => ghep(ds).split(/\s+/).length;
-      const kF = [dungKF(32, 6), dungKF(20, 5), dungKF(12, 4)].find((x) => soTu(x) <= TU_TOI_DA_FLUX - 10) ?? dungKF(12, 3);
+      // hai nấc cuối: tả người / món bản NGẮN (mặt, tóc để bước 2 làm theo ảnh mẫu) rồi cắt câu phong cách — #11 có thẻ là chủ thể (thayRo) = 312 từ ở nấc cũ cuối
+      const kF = [dungKF(32, 6), dungKF(20, 5), dungKF(12, 4), dungKF(12, 3, true), dungKF(12, 3, true, true)].find((x) => soTu(x) <= TU_TOI_DA_FLUX - 10) ?? dungKF(8, 2, true, true);
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trongS) {
         const ta = taNv(v, true);

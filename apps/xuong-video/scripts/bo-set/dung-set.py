@@ -989,11 +989,11 @@ def tua_hong(s, dg, sh, ten):
     hong = 0.0
     for ma in mo:
         for ben in DANG_TUA.get(ma, ()):
-            p = diem_cam(n_, ben); goc = p.copy()
+            p = n_[f'cotay_{ben}'].matrix_world.translation - Vector((0, 0, 3 * CM)); goc = p.copy()   # đo như cham_mat_tua: lòng bàn tay úp dưới cổ tay
             for _ in range(6):
                 hit, loc, _, _, ob, _ = s.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
                 if not hit or not ob: hong = max(hong, 300.0); break
-                if ob.name.startswith(f"NG {ten}.") or ob.name == f"NV {ten}" or ob.name.startswith(f"NV {ten}·"): goc = loc - Vector((0, 0, 0.002)); continue
+                if ob.name.startswith(('NG ', 'NV ', 'THAN')): goc = loc - Vector((0, 0, 0.002)); continue   # mặt đỡ là bộ set, không phải đạo cụ / người
                 hong = max(hong, (p.z - loc.z) / CM); break
     return round(hong, 1) if hong > 6 else None
 

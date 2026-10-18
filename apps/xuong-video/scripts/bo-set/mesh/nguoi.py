@@ -236,7 +236,7 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
         for b in chuoi + [hb]:
             for c in list(b.constraints): b.constraints.remove(c)
         ik = hb.parent.constraints.new('IK'); ik.target = n['dau']; ik.chain_count = len(chuoi)
-        c = hb.constraints.new('DAMPED_TRACK'); c.target = n['co_nham']; c.track_axis = 'TRACK_Y'
+        c = hb.constraints.new('DAMPED_TRACK'); c.target = n['dinh_nham']; c.track_axis = 'TRACK_Y'
     cu = n.get('than_tron')
     if cu and cu.name in bpy.data.objects: bpy.data.objects.remove(cu, do_unlink=True)   # thân liền dự phòng: xoá TRƯỚC khi đặt tên, kẻo tên mới thành '.001'
     for o in [o for o in bpy.data.objects if o.name.startswith(f'THAN {ten}.')]: bpy.data.objects.remove(o, do_unlink=True)   # tóc / đồ của người shot trước
@@ -267,12 +267,14 @@ def mac_do(m, h, gioi, tuoi, trang):
     import os
     dd = os.path.expanduser('~/Library/Application Support/Blender/5.0/extensions/.user/user_default/mpfb/data')
     if not os.path.isdir(os.path.join(dd, 'hair')): return False
-    g = 'female' if gioi == 'nu' else 'male'; t = tuoi or 30
-    try:
-        m['hs'].set_character_skin(os.path.join(dd, f"skins/{'young' if t < 40 else 'middleage' if t < 60 else 'old'}_asian_{g}/{'young' if t < 40 else 'middleage' if t < 60 else 'old'}_asian_{g}.mhmat"), h)
-    except Exception as e: print('da MPFB lỗi:', e)
+    # ĐẤT SÉT PREVIS (anh 18/10/2026 chọn, sau khi da / mắt MakeHuman ở cận trông như quái thai — thung lũng kỳ dị): thân một màu đất sét mờ, KHÔNG
+    # mắt / lông mày / vân da; tóc giữ hình, tô một màu; đồ tô màu áo của shot. Chuẩn previs ngành: đọc bố cục + diễn, mặt thật là việc của keyframe AI.
+    sk = bpy.data.materials.get('dat_set_da') or bpy.data.materials.new('dat_set_da'); sk.use_nodes = True
+    bs_ = sk.node_tree.nodes.get('Principled BSDF')
+    if bs_: bs_.inputs['Base Color'].default_value = (0.62, 0.55, 0.49, 1); bs_.inputs['Roughness'].default_value = 0.85
+    h.data.materials.clear(); h.data.materials.append(sk)
     gk = gioi if gioi in TOC_MAC else 'nu'
-    for thu, ma, kieu in (('eyes', 'high-poly', 'Eyes'), ('eyebrows', 'eyebrow001', 'Eyebrows'), ('hair', trang.get('toc') or TOC_MAC[gk], 'Hair'),
+    for thu, ma, kieu in (('hair', trang.get('toc') or TOC_MAC[gk], 'Hair'),
                           ('clothes', trang.get('do') or DO_MAC[gk], 'Clothes'), ('clothes', 'shoes01', 'Clothes')):
         try:
             o = m['hs'].add_mhclo_asset(os.path.join(dd, thu, ma, f'{ma}.mhclo'), h, asset_type=kieu)

@@ -1620,6 +1620,27 @@ for sh in ([] if CHI_MB else shots):
     if sh.get('giai') and (hong(k) or sai_truc(sh, sh['may']['dat']) or chan_la(s, cam, sh, nv_kiem) or thieu_nhac(s, cam, sh, nv_kiem)):
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
+    # NGẮM LẠI máy đặt tay khi trượt chủ thể (18/10/2026: khung xương đổi theo người thật MPFB → máy toạ độ cũ của #9 #24 #25 ngắm vào chỗ cổ tay / đầu
+    # CŨ): giữ chỗ đặt máy, chỉ xoay đầu máy về chủ thể đầu tiên — món (tâm hộp) hoặc người (ĐẦU khi ống ≥ 60 mm, ngực khi rộng hơn).
+    if not sh.get('giai') and (sh.get('bat_buoc') or []):
+        cn = sh['bat_buoc'][0]; dich = None
+        if cn in NGUOI:
+            n_ = NGUOI[cn]; bpy.context.view_layer.update()
+            dich = (n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * n_['L']['dau'] * CM))) if sh['may']['ong_kinh'] >= 60 else n_['nguc'].matrix_world.translation
+        else:
+            mo = [o for o in nv_het + nv if getattr(o, 'type', '') == 'MESH' and (o.name == f'NV {cn}' or o.name.startswith(f'NV {cn}·'))]
+            if mo: dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
+        if dich is not None:
+            from bpy_extras.object_utils import world_to_camera_view
+            v_ = world_to_camera_view(s, cam, dich)
+            if not (0.12 < v_.x < 0.88 and 0.12 < v_.y < 0.88 and v_.z > 0):
+                nhin_moi = [round(x / CM, 1) for x in dich]; dat_may(cam, sh['may']['dat'], nhin_moi)
+                sh['may']['nhin'] = nhin_moi; giai[sh['ma']] = {'dat': sh['may']['dat'], 'nhin': nhin_moi}; k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
+    # MÁY TRONG ĐẦU NGƯỜI (POV từ mắt nhân vật, #2): đầu / tóc của chính người đó ở sát ống kính che hết khung → cắt gần (clip_start) qua khỏi đầu
+    co_mat = {v_['ten'] for v_ in sh.get('nhan_vat', [])}
+    gan = [(NGUOI[t]['dau'].matrix_world.translation - cam.location).length for t in co_mat if t in NGUOI and NGUOI[t].get('dau') and NGUOI[t]['dau'].name in bpy.data.objects]
+    gan = [d_ for d_ in gan if d_ < 0.35]
+    cam.data.clip_start = max(cam.data.clip_start, (max(gan) + 0.12) if gan else 0)
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     # XUYÊN NHAU ở khung mở: mỗi đạo cụ đang hiện với người / đạo cụ / đồ set — lún > 1 cm thì ghi cho cổng (cầm thì người cầm bỏ bàn tay)
     xy_ = []

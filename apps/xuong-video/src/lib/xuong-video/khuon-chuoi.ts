@@ -146,7 +146,8 @@ export const hopTheLoai = (kh: KhuonChuoi, tl?: TheLoai | '') => !tl || kh.the_l
 
 export type ShotKhuon = { id: number; thu_tu: number; ky_thuat?: KyThuatShot | null };
 export type MucKiem = 'tot' | 'vang' | 'do';
-export type KetShot = { id: number; buoc: number; tenBuoc: string; muc: MucKiem; loi: string[] };
+/** goiY = luật dựng bước này nên có mà shot chưa gắn mã — chỉ GỢI Ý (không đổi màu): nhiều shot cũ chưa ghi ky_thuat.luat, tô vàng vì thế thì che mất lỗ thật. */
+export type KetShot = { id: number; buoc: number; tenBuoc: string; muc: MucKiem; loi: string[]; goiY: string[] };
 export type KetAp = { ap: ApKhuon; kh: KhuonChuoi; shots: KetShot[]; loi: string[]; muc: MucKiem };
 
 const nang = (a: MucKiem, b: MucKiem): MucKiem => (a === 'do' || b === 'do' ? 'do' : a === 'vang' || b === 'vang' ? 'vang' : 'tot');
@@ -161,18 +162,18 @@ export function kiemKhuon(ap: ApKhuon, canh: ShotKhuon[], theLoai?: TheLoai | ''
   const dem = new Map<number, number>();
   for (const c of ds) {
     const i = ap.shots[String(c.id)]!; const b = kh.buoc[i];
-    if (!b) { shots.push({ id: c.id, buoc: i, tenBuoc: `bước ${i + 1}?`, muc: 'do', loi: ['bước không có trong khuôn'] }); continue; }
+    if (!b) { shots.push({ id: c.id, buoc: i, tenBuoc: `bước ${i + 1}?`, muc: 'do', loi: ['bước không có trong khuôn'], goiY: [] }); continue; }
     const loi: string[] = []; let muc: MucKiem = 'tot';
     const vai = c.ky_thuat?.vai;
     if (!vai) { loi.push(`shot chưa ghi vai kể — bước cần ${b.vai.join(' / ')}`); muc = 'vang'; }
     else if (!b.vai.includes(vai)) { loi.push(`shot đang đóng vai "${vai}", bước "${b.ten}" cần ${b.vai.join(' / ')}`); muc = 'do'; }
     const thieuLuat = (b.luat ?? []).filter((l) => !(c.ky_thuat?.luat ?? []).includes(l));
-    if (b.luat?.length && thieuLuat.length === b.luat.length) { loi.push(`nên thực hiện luật ${b.luat.join(' / ')}`); muc = nang(muc, 'vang'); }
+    const goiY = b.luat?.length && thieuLuat.length === b.luat.length ? [`luật dựng nên có: ${b.luat.join(' / ')}`] : [];
     if (i < truoc) { loi.push(`lùi về bước "${b.ten}" sau bước "${kh.buoc[truoc]!.ten}"`); muc = 'do'; }
     dem.set(i, (dem.get(i) ?? 0) + 1);
     if (!b.lap && (dem.get(i) ?? 0) > 1) { loi.push(`bước "${b.ten}" chỉ nên một shot`); muc = nang(muc, 'vang'); }
     truoc = Math.max(truoc, i);
-    shots.push({ id: c.id, buoc: i, tenBuoc: b.ten, muc, loi });
+    shots.push({ id: c.id, buoc: i, tenBuoc: b.ten, muc, loi, goiY });
   }
   const loi: string[] = []; let muc: MucKiem = shots.reduce<MucKiem>((a, s) => nang(a, s.muc), 'tot');
   kh.buoc.forEach((b, i) => {

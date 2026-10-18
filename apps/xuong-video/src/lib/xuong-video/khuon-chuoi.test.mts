@@ -37,4 +37,7 @@ const b = kiemKhuon({ khuon: 'phat_hien', shots: { 4: 0, 5: 1, 6: 2 } }, [s(4, '
 const c = kiemKhuon({ khuon: 'ket_treo', shots: { 10: 0, 11: 1, 12: 2 } }, [s(10, 'hanh_dong'), s(11, 'phan_ung'), s(12, 'chi_tiet')])!;
 const tt = new Map([2, 4, 5, 6, 9, 10, 11, 12].map((x) => [x, x]));
 assert.deepStrictEqual(xepHang([a, b, c], tt).map((h) => h.map((k) => k.kh.key)), [['gai_bi_mat', 'ket_treo'], ['phat_hien']]);
+// thiếu mã luật chỉ là gợi ý, không đổi màu
+const khongLuat = kiemKhuon(va, [s(1, 'thiet_lap'), s(2, 'hanh_dong'), s(3, 'nguoi_thu_ba'), s(4, 'hanh_dong')], 'phim_doc')!;
+assert.ok(khongLuat.shots.every((x) => x.muc === 'tot') && khongLuat.shots[1]!.goiY.length === 1);
 console.log(`✓ khuon-chuoi (${KHUON_CHUOI.length} khuôn)`);

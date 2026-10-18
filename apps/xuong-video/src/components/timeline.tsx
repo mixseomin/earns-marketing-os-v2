@@ -677,7 +677,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                     const i = viTriShot.get(x.id); if (i == null) return null;
                     const cc = canh[i]!; const b = k.kh.buoc[x.buoc];
                     const tt = [`${k.kh.ten} · bước ${x.buoc + 1}/${k.kh.buoc.length}: ${x.tenBuoc}`, b?.ghi, `Mục đích: ${k.kh.muc_dich}`, k.ap.ghi && `Ở đây: ${k.ap.ghi}`,
-                      ...x.loi.map((l) => `⚠ ${l}`), ...(j === 0 ? k.loi.map((l) => `⚠ cả khuôn: ${l}`) : []), k.kh.ket && `Kết khuôn: ${k.kh.ket}`,
+                      ...x.loi.map((l) => `⚠ ${l}`), ...x.goiY.map((l) => `· ${l}`), ...(j === 0 ? k.loi.map((l) => `⚠ cả khuôn: ${l}`) : []), k.kh.ket && `Kết khuôn: ${k.kh.ket}`,
                       `Nguồn: ${k.kh.nguon.map((n) => `${n.phim} — ${n.ghi}`).join(' · ')}`].filter(Boolean).join('\n');
                     return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 ? `${k.kh.ten} › ` : ''}${x.tenBuoc}`, tt, `kh${k.ap.khuon}${x.id}`, () => bamShot(cc.id, i), undefined, '');
                   }),

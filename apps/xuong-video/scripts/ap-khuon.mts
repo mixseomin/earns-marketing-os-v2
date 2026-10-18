@@ -20,7 +20,7 @@ for (const a of ds) for (const id of Object.keys(a.shots)) if (!ids.has(id)) { c
 for (const a of ds) {
   const k = kiemKhuon(a, canh.map((c) => ({ ...c, id: Number(c.id) })), tl)!;
   console.log(`${k.muc === 'tot' ? '✓' : k.muc === 'vang' ? '◐' : '✗'} ${k.kh.ten} — ${a.ghi ?? ''}`);
-  for (const s of k.shots) console.log(`   #${canh.find((c) => Number(c.id) === s.id)?.thu_tu} ${s.tenBuoc}${s.loi.length ? ` · ${s.loi.join(' · ')}` : ''}`);
+  for (const s of k.shots) console.log(`   #${canh.find((c) => Number(c.id) === s.id)?.thu_tu} ${s.tenBuoc}${s.loi.length ? ` · ${s.loi.join(' · ')}` : ''}${s.goiY.length ? ` (${s.goiY.join(' · ')})` : ''}`);
   for (const l of k.loi) console.log(`   ⚠ ${l}`);
 }
 if (process.argv.includes('--xem')) process.exit(0);

@@ -141,6 +141,12 @@ export const QUY_CHUAN_DONG: Partial<Record<TheLoai, { khuon: string[]; luat: st
   kinh_di: { khuon: ['thiet_lap_khong_gian', 'lo_am_muu', 'phat_hien', 'ket_treo'], luat: ['im lặng trước cú doạ', 'khán giả thấy mối nguy trước nhân vật', 'không lộ toàn bộ con quái trước hồi 3'] },
   hoat_hinh: { khuon: ['thiet_lap_khong_gian', 'phat_hien'], luat: ['ít cắt, nhịp chậm, cảm xúc rõ trên mặt', 'mỗi gag đọc được khi tắt tiếng', 'ít mỉa mai kịch tính'] },
   qc_ugc: { khuon: ['loi_chung', 'truoc_sau'], luat: ['móc câu trong 3 giây', 'shot 1–3 giây', 'không màn đen (mất người lướt)', 'sản phẩm lộ trước giây 5'] },
+  // 18/10/2026 (gói thể loại): hài — lệch kỳ vọng + quy tắc ba (Carroll — Humour); tình cảm — ẩn ý, giữ phản ứng (Murch); phiêu lưu — khung rộng mở thế giới;
+  // tài liệu — bằng chứng nhìn thấy được trước kết luận (Bernard — Documentary Storytelling; Nichols — Introduction to Documentary).
+  hai: { khuon: ['thiet_lap_khong_gian', 'phat_hien'], luat: ['gài kỳ vọng rồi bẻ (lệch kỳ vọng)', 'quy tắc ba: lặp hai lần, lần ba bẻ', 'giữ phản ứng sau câu đùa', 'cắt ngay sau điểm cười'] },
+  tinh_cam: { khuon: ['doi_thoai_cang', 'phat_hien', 'ket_treo'], luat: ['cận mặt, giữ phản ứng', 'điều không nói ra quan trọng hơn lời thoại (ẩn ý)', 'ánh sáng ấm đổi theo khoảng cách hai người'] },
+  phieu_luu: { khuon: ['thiet_lap_khong_gian', 'phat_hien', 'ket_treo'], luat: ['khung rộng hùng vĩ mở thế giới', 'mục tiêu rõ, chướng ngại tăng dần', 'máy rộng / cẩu máy ở khoảnh khắc lớn'] },
+  tai_lieu: { khuon: ['thiet_lap_khong_gian', 'phat_hien'], luat: ['câu hỏi rõ ngay đầu', 'hình hiện trường thay lời kể', 'bằng chứng trước kết luận', 'không dàn dựng điều không có thật'] },
   qc_cao_cap: { khuon: ['truoc_sau', 'thiet_lap_khong_gian'], luat: ['sản phẩm hoàn hảo, macro', 'chuyển động mượt, ít cắt thô', 'logo / CTA cuối'] },
 };
 

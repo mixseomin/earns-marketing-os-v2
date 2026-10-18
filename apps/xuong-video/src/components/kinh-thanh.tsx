@@ -4,8 +4,10 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { ImageAttach } from './image-attach';
 import { THE_LOAI, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaPhim, taiAnhLen, layTuLinkSanPham, goiYAIKinhThanh } from '@/lib/actions';
-import { MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, NGON_NGU, docKinhThanh, chatLieuPhim, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
+import { LOAI_PHIM, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, NGON_NGU, docKinhThanh, chatLieuPhim, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
+import { moNgan } from './ngan-chung';
+import { GOI_THE_LOAI, goiTheoKey } from '@/lib/xuong-video/goi-the-loai';
 import { MauQcForm } from './mau-qc';
 import { Khoa, O, Seg, Nut, Loi, mono } from './ui';
 import { MoHinhCtx, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
@@ -108,6 +110,13 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
         </O>
         <O label="Chất liệu hình" hint="Người thật → bật cổng soi mặt (giữ đúng khuôn mặt) + sổ bề ngoài theo ngày. Để trống thì máy đọc chữ phong cách."><Chon value={kt.chat_lieu ?? ''} onChange={(v) => set('chat_lieu', v as NonNullable<KinhThanh['chat_lieu']>)} options={[{ value: '', label: `tự nhận (${chatLieuPhim({ phong_cach: kt.phong_cach }) === 'nguoi_that' ? 'người thật' : 'hoạt hình'})` }, { value: 'nguoi_that', label: 'người thật' }, { value: 'hoat_hinh', label: 'hoạt hình' }]} /></O>
         <O span label="Mô tả / tiền đề"><textarea className="xv-ta" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="Bộ phim kể về… / Sản phẩm là… bán cho…" /></O>
+        {/* GÓI THỂ LOẠI (goi-the-loai.ts): chọn gói = đặt thể loại + khung hình; tách cảnh đọc gói (khung beat, cung khán giả, luật nhấn). Sửa tay thể loại sau vẫn được. */}
+        <O label={<>Gói thể loại{kt.goi ? <button type="button" className="xv-btn" style={{ marginLeft: 6, padding: '0 6px' }} title="Xem gói trong thư viện (khung beat, khuôn, cung khán giả, luật, tham chiếu)" onClick={() => moNgan({ loai: 'ky-thuat', ma: `goi.${kt.goi}` })}>📖</button> : null}</>}
+          hint={(() => { const g = goiTheoKey(kt.goi); if (!g) return 'định dạng sản xuất đóng sẵn: khung beat · khuôn · cung khán giả · luật nhấn · độ dài · khung hình'; const lp = LOAI_PHIM.find((l) => l.key === g.loai); return `${g.mo_ta} · ${g.do_dai_s[0]}–${g.do_dai_s[1]}s/tập${g.loai !== phim.loai ? ` · ⚠ gói dành cho loại "${lp?.label ?? g.loai}", phim này là loại khác` : ''}`; })()}>
+          <Chon value={kt.goi ?? ''} placeholder="chưa chọn gói" minWidth={260}
+            options={[{ value: '', label: '— chưa chọn —' }, ...GOI_THE_LOAI.map((g) => ({ value: g.key, label: `${g.ic} ${g.ten}`, title: g.mo_ta, nhom: g.nhom }))]}
+            onChange={(v) => { const g = goiTheoKey(v); setKt((x) => ({ ...x, goi: v, ...(g ? { the_loai: g.the_loai, ti_le: g.ti_le } : {}) })); }} />
+        </O>
         <O label={<>Thể loại{nutAi('the_loai')}</>} hint="quyết định thư viện cỡ cảnh / ánh sáng / âm thanh / nhạc Claude chọn cho từng shot"><Chon value={kt.the_loai} onChange={(v) => set('the_loai', v as TheLoai)} options={THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta, phu: t.mo_ta.split(',')[0] }))} placeholder="chọn thể loại…" minWidth={220} /></O>
         <O label={<>Logline{nutAi('logline')}</>} hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder={laQc ? "Phụ nữ 50+ mỏi vai vì bra gọng tìm được chiếc bra nâng mặc cả ngày quên" : "Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới"} /></O>
         <O label={<>Chủ đề{nutAi('chu_de')}</>} hint="điều bộ phim muốn nói"><input className="xv-in" value={kt.chu_de} onChange={(e) => set('chu_de', e.target.value)} placeholder={laQc ? "Thoải mái mà vẫn đẹp" : "Chậm mà bền, đi cùng nhau thì tới"} /></O>

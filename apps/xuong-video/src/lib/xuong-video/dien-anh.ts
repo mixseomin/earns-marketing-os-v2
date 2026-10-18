@@ -321,6 +321,25 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
     { ten: 'Lật ngược — đánh mặt', mo_ta: 'Phản đòn: thân phận / sự thật lộ ra, kẻ ép bẽ mặt (face-slap) — khoảnh khắc cảm xúc mạnh nhất tập', phan: 0.25 },
     { ten: 'Cliffhanger — móc tập sau', mo_ta: 'Một câu / hình bỏ lửng mở xung đột mới — dừng đúng lúc người xem muốn biết tiếp', phan: 0.15 },
   ] },
+  // GÓI THỂ LOẠI (goi-the-loai.ts, 18/10/2026) — khung riêng cho định dạng mà khung chung không đúng nhịp:
+  // Series hoạt hình gag (Larva / Shaun the Sheep): quy tắc ba của hài — lặp hai lần, lần ba bẻ; leo thang tới thảm hoạ rồi kết bằng một nút hài.
+  series_hoat_hinh: { ten: 'Tập hoạt hình gag (thế giới → mục tiêu nhỏ → gag ×3 leo thang → thảm hoạ → nút kết)', beats: [
+    { ten: 'Thế giới', mo_ta: 'Nơi chốn + nhân vật quen thuộc, đọc được trong vài giây (không lời)', phan: 0.1 }, { ten: 'Mục tiêu nhỏ', mo_ta: 'Một thứ nhân vật muốn ngay bây giờ (miếng ăn, món đồ, chỗ ngồi)', phan: 0.1 },
+    { ten: 'Gag 1', mo_ta: 'Lần thử đầu hỏng theo kiểu buồn cười', phan: 0.15 }, { ten: 'Gag 2', mo_ta: 'Thử lại, lớn hơn, hỏng to hơn (lặp cấu trúc gag 1)', phan: 0.2 },
+    { ten: 'Gag 3 — bẻ', mo_ta: 'Lần ba bẻ kỳ vọng (quy tắc ba): kết quả bất ngờ, leo tới thảm hoạ', phan: 0.25 }, { ten: 'Nút kết', mo_ta: 'Hậu quả + một cái nháy / gag cuối, có thể móc tập sau', phan: 0.2 },
+  ] },
+  // Trailer ba hồi (lệ dựng trailer điện ảnh): mở thế giới → biến cố → dồn cắt leo thang theo nhạc → khoảng lặng → cú cuối + tựa + button.
+  trailer: { ten: 'Trailer ba hồi (thế giới → biến cố → dồn cắt → lặng → cú cuối + tựa)', beats: [
+    { ten: 'Thế giới', mo_ta: 'Bình thường của nhân vật, khung rộng, nhạc nhẹ', phan: 0.2 }, { ten: 'Biến cố', mo_ta: 'Sự kiện phá vỡ bình thường — câu thoại / hình chốt câu hỏi của phim', phan: 0.2 },
+    { ten: 'Dồn cắt', mo_ta: 'Montage leo thang: shot ngắn dần theo nhạc, không lộ kết', phan: 0.35 }, { ten: 'Khoảng lặng', mo_ta: 'Nhạc tắt, một nhịp đen / im', phan: 0.05 },
+    { ten: 'Cú cuối + tựa', mo_ta: 'Một shot mạnh nhất hoặc câu đùa (button) rồi tựa phim', phan: 0.2 },
+  ] },
+  // Tài liệu ngắn (Sheila Curran Bernard — Documentary Storytelling): câu hỏi rõ ngay đầu, trả lời bằng bằng chứng nhìn thấy được.
+  tai_lieu: { ten: 'Tài liệu ngắn (câu hỏi → bối cảnh → bằng chứng → phát hiện → ý nghĩa)', beats: [
+    { ten: 'Câu hỏi', mo_ta: 'Móc bằng một câu hỏi / hình hiện trường gây tò mò', phan: 0.12 }, { ten: 'Bối cảnh', mo_ta: 'Ở đâu, ai, chuyện bắt đầu thế nào', phan: 0.2 },
+    { ten: 'Bằng chứng', mo_ta: 'Nhân chứng, tư liệu, hình thật — mỗi mảnh một shot rõ', phan: 0.33 }, { ten: 'Phát hiện', mo_ta: 'Điều bất ngờ làm đổi cách hiểu', phan: 0.2 },
+    { ten: 'Ý nghĩa', mo_ta: 'Trả lời câu hỏi mở đầu + điều khán giả mang về', phan: 0.15 },
+  ] },
   // Quảng cáo: `phan` = tỉ lệ thời lượng của beat (cộng = 1) → tách cảnh biết beat nào được mấy giây với thời lượng mục tiêu bất kỳ.
   quang_cao: { ten: 'Quảng cáo (hook → nỗi đau → giải pháp → bằng chứng → ưu đãi)', beats: [
     { ten: 'Hook', mo_ta: '1–3 giây đầu: HÌNH gây dừng tay + chữ trên màn + câu chạm đúng người xem', phan: 0.1 }, { ten: 'Nỗi đau', mo_ta: 'Vấn đề họ gặp mỗi ngày, thấy bằng mắt', phan: 0.15 },
@@ -331,7 +350,8 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
 };
 /** Chia thời lượng mục tiêu cho các beat theo `phan` → "Hook 0–3s · Nỗi đau 3–7s …" (beat không có phan → chia đều phần còn lại). */
 /** Khung beat của một tập: thể loại có khung riêng (phim ngắn dọc) thắng loại sản phẩm; không thì theo loại (phim / short / quảng cáo). MỘT chỗ chọn. */
-export const khoaKhung = (loai: string, theLoai?: string | null): string => (theLoai && CAU_TRUC[theLoai] ? theLoai : CAU_TRUC[loai] ? loai : 'phim');
+/** khungGoi = khung beat của GÓI THỂ LOẠI phim đang chọn (goi-the-loai.ts) — gói thắng thể loại thắng loại sản phẩm. */
+export const khoaKhung = (loai: string, theLoai?: string | null, khungGoi?: string | null): string => (khungGoi && CAU_TRUC[khungGoi] ? khungGoi : theLoai && CAU_TRUC[theLoai] ? theLoai : CAU_TRUC[loai] ? loai : 'phim');
 export function giayBeat(loai: string, tong: number): { ten: string; tu: number; den: number }[] {
   const beats = (CAU_TRUC[loai] ?? CAU_TRUC.phim!).beats;
   const coPhan = beats.reduce((a, b) => a + (b.phan ?? 0), 0);

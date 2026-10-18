@@ -11,6 +11,7 @@ import { giayDoc } from './nhip-hinh';
 import { vanLuatDung, LUAT_DUNG_CANH } from './luat-dung';
 import { vanKhuonChuoi } from './khuon-chuoi';
 import { vanKhanGia } from './khan-gia';
+import { vanGoi, goiTheoKey } from './goi-the-loai';
 import { docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
@@ -137,7 +138,7 @@ ${taQc(kt)}
 ${LUAT_KE_CHUYEN}
 ${vanKhuonChuoi(kt.the_loai)}
 ${vanKhanGia()}
-${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}${kt.ban_do?.trim() ? `BẢN ĐỒ KHÔNG GIAN (các nơi chốn nằm đâu, cạnh nhau thế nào, đường đi — dùng cho chuỗi dẫn và shot hành trình, luật 12):\n${kt.ban_do.trim()}\n` : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình (không viết "như shot trước" — model không thấy shot khác) NHƯNG phải tả lại bằng chữ trạng thái nối tiếp từ shot trước (luật 11: vị trí, đồ đang cầm, biến dạng, ánh sáng, hướng di chuyển). Hai shot liền nhau cùng nơi, cùng khoảnh khắc, máy cùng phía (shot sau tiếp đúng giây cuối shot trước) → ky_thuat.chuyen_canh của shot TRƯỚC = 'lien_may': clip shot trước sẽ kết đúng bằng keyframe shot sau, cắt không giật.`;
+${kt.goi ? `${vanGoi(kt.goi)}\n` : ''}${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}${kt.ban_do?.trim() ? `BẢN ĐỒ KHÔNG GIAN (các nơi chốn nằm đâu, cạnh nhau thế nào, đường đi — dùng cho chuỗi dẫn và shot hành trình, luật 12):\n${kt.ban_do.trim()}\n` : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình (không viết "như shot trước" — model không thấy shot khác) NHƯNG phải tả lại bằng chữ trạng thái nối tiếp từ shot trước (luật 11: vị trí, đồ đang cầm, biến dạng, ánh sáng, hướng di chuyển). Hai shot liền nhau cùng nơi, cùng khoảnh khắc, máy cùng phía (shot sau tiếp đúng giây cuối shot trước) → ky_thuat.chuyen_canh của shot TRƯỚC = 'lien_may': clip shot trước sẽ kết đúng bằng keyframe shot sau, cắt không giật.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
 function taThuVien(tl: string): string {
@@ -187,7 +188,7 @@ export async function tachCanh(opts: {
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
   const laQc = opts.loai === 'quang_cao';
-  const kKhung = khoaKhung(opts.loai, kt.the_loai); const khung = CAU_TRUC[kKhung]!;
+  const kKhung = khoaKhung(opts.loai, kt.the_loai, goiTheoKey(kt.goi)?.khung); const khung = CAU_TRUC[kKhung]!;
   // Có QC MẪU → khuôn của mẫu thắng mọi thứ: số shot = số shot mẫu, thời lượng = tổng giây mẫu, beat chỉ để tham khảo.
   const mau = laQc && coMau(kt.qc) ? kt.qc.mau! : null;
   if (mau) { opts = { ...opts, soCanh: mau.shots.length, thoiLuongS: giayMau(mau) }; }
@@ -260,7 +261,7 @@ export async function vietKichBan(opts: {
     opts.tapSo ? `Viết kịch bản TẬP ${opts.tapSo}.` : '',
     `Tổng thời lượng mục tiêu: ${opts.thoiLuongS ?? 30} giây.`,
     `BRIEF:\n${opts.brief.trim()}`,
-    `KHUNG BEAT (${CAU_TRUC[khoaKhung(opts.loai, kt.the_loai)]!.ten}):\n${CAU_TRUC[khoaKhung(opts.loai, kt.the_loai)]!.beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
+    `KHUNG BEAT (${CAU_TRUC[khoaKhung(opts.loai, kt.the_loai, goiTheoKey(kt.goi)?.khung)]!.ten}):\n${CAU_TRUC[khoaKhung(opts.loai, kt.the_loai, goiTheoKey(kt.goi)?.khung)]!.beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
     'Viết kịch bản đúng định dạng kịch bản phim chuyên nghiệp, đánh số cảnh (Cảnh 1, Cảnh 2…). Một CẢNH = một nơi + một quãng thời gian liền; tiêu đề cảnh ghi THỜI ĐIỂM cụ thể (vd ĐÊM – 23:40, ngay sau khi đèn tắt) và cảnh đầu tập tả bằng hình nơi chốn + giờ (luật 12–13). Đây là KỊCH BẢN của biên kịch: chỉ có truyện — KHÔNG ghi máy, cỡ cảnh, ống kính, số shot (đó là SHOT LIST của đạo diễn ở bước tách cảnh; ngành tách hai tài liệu, không gộp). Mỗi cảnh: dòng tiêu đề (NỘI/NGOẠI. ĐỊA ĐIỂM – THỜI ĐIỂM), đoạn hành động, rồi thoại theo khuôn:\nTÊN NHÂN VẬT\n  (diễn xuất: nhìn lên, giơ tay…)\n  Lời nói.\nĐi đúng khung beat trên. Mỗi cảnh ghi: bối cảnh, mục tiêu + xung đột của nhân vật, hành động, lời thoại (có ẩn ý, đúng giọng từng nhân vật), cảm xúc chuyển từ đâu tới đâu, không khí (ánh sáng, âm thanh). Cảm xúc của tập phải có lên có xuống. Không giải thích thêm, chỉ trả kịch bản.',
   ].filter(Boolean).join('\n\n');
   try {

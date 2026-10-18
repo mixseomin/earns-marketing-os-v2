@@ -16,12 +16,14 @@ import { Chon } from './chon';
 import { useNho } from './nho';
 import { KHUON_CHUOI } from '@/lib/xuong-video/khuon-chuoi';
 import { HIEU_UNG_KHAN_GIA, hieuUngKG } from '@/lib/xuong-video/khan-gia';
+import { GOI_THE_LOAI, goiTheoKey, kiemGoi } from '@/lib/xuong-video/goi-the-loai';
 
 // THƯ VIỆN theo YDNI (anh 18/10/2026 "tổ chức lại thư viện cho dễ tìm, dễ truy cập"): ô tìm luôn trên đầu (tìm cả tên Việt, tên ngành tiếng Anh,
 // mã, mô tả — mọi mục cùng lúc); mục lục trái theo câu hỏi người làm phim mang tới, MỖI LẦN MỘT MỤC (không chồng dọc 300 thẻ); thẻ gọn một tên +
 // hai dòng mô tả, bấm mở ngăn chi tiết (mô tả ngành + ▶ ví dụ video) — chi tiết sau 1 click. Mục / tìm / thể loại nằm trên URL (tvm / tvq / tvl).
 type MucTv = { key: string; ten: string; ic: string };
 const NHOM_MUC: { ten: string; muc: string[] }[] = [
+  { ten: 'Định dạng', muc: ['goi'] },
   { ten: 'Dẫn dắt', muc: ['luat', 'khuon_chuoi', 'khan_gia', 'hook', 'beat'] },
   { ten: 'Hình', muc: ['vai', 'co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'toc_do'] },
   { ten: 'Diễn · sáng · màu', muc: ['dien_xuat', 'anh_sang', 'mau'] },
@@ -29,7 +31,7 @@ const NHOM_MUC: { ten: string; muc: string[] }[] = [
   { ten: 'Kho', muc: ['khuon_shot'] },
 ];
 const MUC_TV: MucTv[] = [
-  { key: 'luat', ten: 'Luật dựng cảnh', ic: '📐' }, { key: 'khuon_chuoi', ten: 'Khuôn chuỗi shot', ic: '🧭' }, { key: 'khan_gia', ten: 'Hiệu ứng khán giả', ic: '🎭' }, { key: 'beat', ten: 'Cấu trúc beat', ic: '📖' },
+  { key: 'goi', ten: 'Gói thể loại', ic: '📦' }, { key: 'luat', ten: 'Luật dựng cảnh', ic: '📐' }, { key: 'khuon_chuoi', ten: 'Khuôn chuỗi shot', ic: '🧭' }, { key: 'khan_gia', ten: 'Hiệu ứng khán giả', ic: '🎭' }, { key: 'beat', ten: 'Cấu trúc beat', ic: '📖' },
   { key: 'khuon_shot', ten: 'Khuôn shot dùng lại', ic: '🧩' }, ...NHOM_KY_THUAT.map((n) => ({ key: n.key, ten: n.ten, ic: n.icon })),
 ];
 const boDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
@@ -44,13 +46,15 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   const kt = (n: string) => THU_VIEN.filter((x) => x.nhom === n && (!tl || hopTheLoai(x, tl)) && khop(q, x.ten, x.key, x.mo_ta, x.nganh?.ten_nganh, x.prompt));
   const luat = LUAT_DUNG_CANH.filter((l) => khop(q, l.ten, l.key, l.luat, l.nganh?.ten_nganh));
   const khuon = KHUON_CHUOI.filter((k) => (!tl || hopKhuon(k, tl)) && khop(q, k.ten, k.key, k.muc_dich, ...k.buoc.map((b) => b.ten)));
+  const goi = GOI_THE_LOAI.filter((g) => khop(q, g.ten, g.key, g.mo_ta, g.tham_chieu, g.nhom));
   const kg = HIEU_UNG_KHAN_GIA.filter((h) => khop(q, h.ten, h.key, h.mo_ta, h.nganh.ten_nganh));
-  const dem = (m: string) => (m === 'luat' ? luat.length : m === 'khuon_chuoi' ? khuon.length : m === 'khan_gia' ? kg.length : m === 'beat' || m === 'khuon_shot' ? -1 : kt(m).length);
+  const dem = (m: string) => (m === 'luat' ? luat.length : m === 'khuon_chuoi' ? khuon.length : m === 'khan_gia' ? kg.length : m === 'goi' ? goi.length : m === 'beat' || m === 'khuon_shot' ? -1 : kt(m).length);
   const theKt = (x: KyThuat) => <TheMuc key={x.key} ten={x.ten} ma={`${x.nhom}.${x.key}`} moTa={x.mo_ta} ten2={x.nganh?.ten_nganh} />;
   const noiDung = (m: string, tieuDe = false) => {
     const dau = tieuDe ? <div className="xv-mono" style={{ margin: '10px 0 4px', textTransform: 'uppercase' }}>{MUC_TV.find((x) => x.key === m)?.ic} {MUC_TV.find((x) => x.key === m)?.ten}</div> : null;
     if (m === 'luat') return luat.length ? <div key={m}>{dau}<LuoiThe>{luat.map((l) => <TheMuc key={l.key} ten={l.ten} ma={`luat.${l.key}`} moTa={l.luat} ten2={l.nganh?.ten_nganh} />)}</LuoiThe></div> : null;
     if (m === 'khuon_chuoi') return khuon.length ? <div key={m}>{dau}<LuoiThe rong={320}>{khuon.map((k) => <TheKhuon key={k.key} k={k} />)}</LuoiThe></div> : null;
+    if (m === 'goi') return goi.length ? <div key={m}>{dau}<LuoiThe>{goi.map((g) => <TheMuc key={g.key} ten={`${g.ic} ${g.ten}`} ma={`goi.${g.key}`} moTa={`${g.mo_ta} · ${g.ti_le} · ${g.do_dai_s[0]}–${g.do_dai_s[1]}s`} ten2={g.nhom} />)}</LuoiThe></div> : null;
     if (m === 'khan_gia') return kg.length ? <div key={m}>{dau}<LuoiThe>{kg.map((h) => <TheMuc key={h.key} ten={`${h.ic} ${h.ten}`} ma={`khan_gia.${h.key}`} moTa={h.mo_ta} ten2={h.nganh.ten_nganh} />)}</LuoiThe></div> : null;
     if (m === 'beat') return q ? null : <div key={m}>{dau}<BeatKhoi /></div>;
     if (m === 'khuon_shot') return q ? null : <div key={m}>{dau}<KhuonShotKhoi /></div>;
@@ -184,6 +188,25 @@ export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
       {nut}
     </div>);
   }
+  if (nhom === 'goi') {
+    const g = goiTheoKey(key);
+    if (!g) return <div className="xv-mono">Không còn gói “{key}” trong thư viện.</div>;
+    const k = kiemGoi(g); const kb = CAU_TRUC[g.khung];
+    return (<div style={{ display: 'grid', gap: 8, fontSize: 12.5 }}>
+      <div className="xv-mono">📦 Gói thể loại · {g.nhom} · {g.key}</div><b style={{ fontSize: 15 }}>{g.ic} {g.ten}</b>
+      <div style={{ color: 'var(--fg-2)' }}>{g.mo_ta}</div>
+      <div className="xv-mono">{THE_LOAI.find((t) => t.key === g.the_loai)?.ten ?? g.the_loai} · khung {g.ti_le} · {g.do_dai_s[0]}–{g.do_dai_s[1]} giây mỗi tập</div>
+      {k.thieu.length ? k.thieu.map((t, i) => <div key={i} style={{ color: 'var(--amber)', fontSize: 12 }}>⚠ {t}</div>) : <div style={{ color: 'var(--green, #4ade80)', fontSize: 12 }}>✓ đủ: khung beat riêng, quy chuẩn dòng phim, hiệu ứng và luật đều có thật</div>}
+      {kb && <div><b>Khung beat:</b> {kb.ten}<ol style={{ margin: '4px 0 0', paddingLeft: 18, display: 'grid', gap: 2 }}>{kb.beats.map((b, i) => <li key={i}><b>{b.ten}</b> — <span style={{ color: 'var(--fg-2)' }}>{b.mo_ta}</span></li>)}</ol></div>}
+      <div><b>Cung khán giả mặc định:</b><div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3, alignItems: 'center' }}>{g.khan_gia.map((y, i) => <span key={i} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{i ? '→' : ''}<LinkMa ma={`khan_gia.${y}`} /></span>)}</div></div>
+      {k.khuon.length > 0 && <div><b>Khuôn chuỗi hay dùng:</b><div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>{k.khuon.map((x) => <LinkMa key={x} ma={`khuon.${x}`} />)}</div></div>}
+      {k.quyChuan.length > 0 && <div><b>Quy chuẩn dòng phim:</b> <span style={{ color: 'var(--fg-2)' }}>{k.quyChuan.join(' · ')}</span></div>}
+      <div><b>Luật dựng nhấn:</b><div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>{g.luat.map((l) => <LinkMa key={l} ma={`luat.${l}`} />)}</div></div>
+      <div style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>📚 Tham chiếu: {g.tham_chieu}</div>
+      <div className="xv-mono">Chọn gói ở Kinh thánh của phim (mục 1) — đặt thể loại + khung hình; tách cảnh đọc khung beat, cung khán giả, luật nhấn của gói.</div>
+      {nut}
+    </div>);
+  }
   if (nhom === 'khan_gia') {
     const h = hieuUngKG(key);
     if (!h) return <div className="xv-mono">Không còn hiệu ứng “{key}” trong thư viện.</div>;
@@ -310,8 +333,8 @@ function ViDuVideo({ ma, nho }: { ma: string; nho?: boolean }) {
 /** Nhãn bấm được của MỘT mục thư viện ('<nhóm>.<key>', 'luat.<key>', 'khuon.<key>') → mở ngăn chi tiết (dùng ở chi tiết khuôn). */
 export function LinkMa({ ma, chu }: { ma: string; chu?: string }) {
   const [nhom, key] = [ma.slice(0, ma.indexOf('.')), ma.slice(ma.indexOf('.') + 1)];
-  const ten = chu ?? (nhom === 'luat' ? luatDung(key)?.ten : nhom === 'khan_gia' ? hieuUngKG(key)?.ten : nhom === 'khuon' ? KHUON_CHUOI.find((x) => x.key === key)?.ten : kyThuat(key, nhom as NhomKyThuat)?.ten) ?? key;
-  const ic = nhom === 'luat' ? '📐' : nhom === 'khuon' ? '🧭' : nhom === 'khan_gia' ? '🎭' : NHOM_KY_THUAT.find((g) => g.key === nhom)?.icon ?? '';
+  const ten = chu ?? (nhom === 'luat' ? luatDung(key)?.ten : nhom === 'khan_gia' ? hieuUngKG(key)?.ten : nhom === 'goi' ? goiTheoKey(key)?.ten : nhom === 'khuon' ? KHUON_CHUOI.find((x) => x.key === key)?.ten : kyThuat(key, nhom as NhomKyThuat)?.ten) ?? key;
+  const ic = nhom === 'luat' ? '📐' : nhom === 'khuon' ? '🧭' : nhom === 'khan_gia' ? '🎭' : nhom === 'goi' ? '📦' : NHOM_KY_THUAT.find((g) => g.key === nhom)?.icon ?? '';
   return <button type="button" className="xv-mono" onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma }); }} title="Mở trong thư viện điện ảnh"
     style={{ fontSize: 10.5, padding: '0 6px', lineHeight: '16px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' }}>{ic} {ten.replace(/\s*\(.*\)$/, '')}</button>;
 }

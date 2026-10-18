@@ -3,6 +3,7 @@
 // Xưởng video AI — server actions: phim (bộ) · anchor (nhân vật/sản phẩm/bối cảnh) · tập · cảnh (storyboard) · job (ảnh/video).
 // Mạch: kịch bản → tachCanhTap (Claude) → sinhKeyframe (Gemini, ứng viên → chọn) → duyệt → sinhVideoCanh (Veo, async) → kiemVideo (poll).
 // Admin-only. Mọi lần gọi model ghi xv_job kèm tiền (cents) để bảng tổng kết chi phí của phim không phải đoán.
+import { khuonTheoKey, type ApKhuon } from '@/lib/xuong-video/khuon-chuoi';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -1531,6 +1532,24 @@ export async function khopGiongTapAction(tapId: number): Promise<Kq<{ doi: numbe
   if (!(await admin())) return loi('không có quyền');
   return khopGiongTap(db, tapId, await ai());
 }
+/** Lưu các lần áp KHUÔN CHUỖI của tập (khuon-chuoi.ts) — sửa trên timeline (ngăn 🧭 Khuôn). Lọc: khuôn có thật, shot thuộc tập, bước trong khuôn. 0đ. */
+export async function luuKhuonChuoi(tapId: number, ds: ApKhuon[]): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ids = new Set(((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => String(r.id)));
+  const sach: ApKhuon[] = [];
+  for (const a of (Array.isArray(ds) ? ds : []).slice(0, 60)) {
+    const kh = khuonTheoKey(String(a?.khuon ?? '')); if (!kh) continue;
+    const shots: Record<string, number> = {};
+    for (const [id, b] of Object.entries(a.shots ?? {})) { const i = Number(b); if (ids.has(String(id)) && Number.isInteger(i) && i >= 0 && i < kh.buoc.length) shots[String(id)] = i; }
+    sach.push({ khuon: kh.key, shots, ...(a.ghi ? { ghi: String(a.ghi).slice(0, 300) } : {}) });
+  }
+  await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['khuon_chuoi'], moTa: `sửa khuôn chuỗi (${sach.length} lần áp)`, nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_tap SET khuon_chuoi = ${JSON.stringify(sach)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: undefined };
+}
+
 export async function luuLop(tapId: number, lop: Lop[]): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');

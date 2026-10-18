@@ -35,6 +35,7 @@ import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
 import { chamDanDat } from '@/lib/xuong-video/dan-dat';
+import { NganKhuon } from './khuon-ui';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
 import { trangThaiDoiTuong, mucDiem, TEN_NHANH, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
@@ -54,10 +55,11 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
   /** bấm một khối của shot trên bất kỳ làn nào → mở ngăn chi tiết shot (anh 18/10/2026: cuộn xuống các làn dưới thì không kéo lên xem panel được) */ onMoShot?: (id: number) => void;
   /** dòng phim (kinh_thanh.the_loai) — khuôn chuỗi kiểm có hợp dòng không + hover làn 🧭 Khuôn hiện quy chuẩn ngành của dòng */ theLoai?: TheLoai | '';
+  /** đã lưu khuôn chuỗi của tập (ngăn 🧭 sửa khuôn) → nạp lại tập */ onDoiKhuon?: () => Promise<void>;
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
@@ -258,6 +260,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   }, [t, khoaT]);
   // Giữ chuột trên thước giây hoặc vạch đỏ rồi kéo = tua liên tục (scrub) như CapCut; đang chạy thì tạm dừng trong lúc kéo.
   /** Bấm khối của một shot (mọi làn): chọn + tua tới đầu shot + mở ngăn chi tiết shot. Phím ←/→ và lúc phát tự sang shot thì KHÔNG mở ngăn. */
+  const [suaKhuon, setSuaKhuon] = useState(false);
   const bamShot = (id: number, i: number) => { onChon(id); tuaToi(batDau[i]!); onMoShot?.(id); };
   const keoDauPhat = (e: PE<HTMLDivElement>, goc: number) => {
     e.preventDefault(); e.stopPropagation();
@@ -662,7 +665,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               thiếu bước nên có, đỏ sai vai / lùi bước / thiếu bước bắt buộc. Khuôn trải rộng (gài ở cảnh 2, trả ở cảnh 5) tự sang hàng riêng. */}
           {(() => {
             const ket = (tap.khuon_chuoi ?? []).map((a) => kiemKhuon(a, canh, theLoai)).filter((k): k is KetAp => !!k);
-            if (!ket.length) return null;
+            const nutSua = onDoiKhuon ? nutNho('✎', 'Sửa khuôn chuỗi của tập: thêm / bỏ khuôn, chọn shot cho từng bước', false, () => setSuaKhuon(true)) : undefined;
+            const moLan0 = 'Khuôn chuỗi shot: mỗi đoạn shot làm một nhiệm vụ kể (làm nhục, vả mặt, kết treo…) — bấm ✎ để áp khuôn';
+            if (!ket.length) return track('🧭 Khuôn', moLan0, <span className="xv-mono" style={{ fontSize: 10.5, lineHeight: '26px', paddingLeft: 6, color: 'var(--fg-3)' }}>chưa áp khuôn nào{onDoiKhuon ? ' — bấm ✎ ở tên làn' : ''}</span>, 26, nutSua);
             const viTriShot = new Map(canh.map((c, i) => [c.id, i] as const));
             const qc = theLoai ? QUY_CHUAN_DONG[theLoai] : undefined;
             const moLan = `Khuôn chuỗi shot đang áp: mỗi khối = một shot ở một BƯỚC của khuôn (rê xem mục đích, bước, lỗi, nguồn) · xanh đúng · vàng nên sửa · đỏ sai${qc ? `\nQuy chuẩn dòng phim: ${qc.luat.join(' · ')}\nKhuôn hay dùng: ${qc.khuon.map((k) => khuonTheoKey(k)?.ten ?? k).join(', ')}` : ''}`;
@@ -683,7 +688,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                     return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 ? `${k.kh.ten} › ` : ''}${x.tenBuoc}`, tt, `kh${k.ap.khuon}${x.id}`, () => bamShot(cc.id, i), undefined, '');
                   }),
                 ];
-              }))}</Fragment>
+              }), 26, h ? undefined : nutSua)}</Fragment>
             ));
           })()}
 
@@ -814,6 +819,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             </Fragment>
           ))}
 
+          {suaKhuon && onDoiKhuon && <NganKhuon tapId={tap.id} khuon={tap.khuon_chuoi ?? []} canh={canh} theLoai={theLoai} onClose={() => setSuaKhuon(false)} onLuu={onDoiKhuon} />}
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}
           <div style={{ position: 'absolute', left: nhanW + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 10 }}>   {/* trên thước + làn Hình đang dính (z 9/8); nhãn dính của làn = 5, trên mọi thứ trong làn (nút ⇄ = 4) */}

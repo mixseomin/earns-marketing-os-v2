@@ -961,7 +961,9 @@ def cham_mat_tua(n_, ten, dien):
     for _ in range(12):
         bpy.context.view_layer.update(); dg = bpy.context.evaluated_depsgraph_get(); hong = []
         for b in ben:
-            p = diem_cam(n_, b); goc = p.copy()
+            # đo tại CỔ TAY − 3 cm (lòng bàn tay úp): người MPFB gập bàn tay úp phẳng ngang cổ tay (mesh/nguoi.py › tay_ap) — đo ở điểm nắm của bàn tay
+            # ma-nơ-canh duỗi thẳng xuống thì đầu ngón chạm bàn là "đủ", bàn tay thật úp lơ lửng cao hơn mặt bàn một bàn tay (#25)
+            p = n_[f'cotay_{b}'].matrix_world.translation - Vector((0, 0, 3 * CM)); goc = p.copy()
             for _k in range(6):
                 hit, loc, _, _, ob, _ = s_.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
                 if not hit or not ob: break
@@ -971,6 +973,7 @@ def cham_mat_tua(n_, ten, dien):
                 hong.append((p.z - loc.z) / CM); break
         if not hong: return
         g = max(hong)
+        if g > 30: return   # mặt đỡ xa hơn 30 cm dưới tay = không có bàn dưới tay (trúng sàn) — đừng cúi tới sàn; cổng tua_hong báo để dời người
         if abs(g) <= 3: return
         n_['lung'].rotation_euler.x += math.radians(4 if g > 0 else -3)
 

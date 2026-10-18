@@ -8,6 +8,8 @@ import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './phan-trang';
 import { useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from './url-shallow';
+import { cotDanhMuc, chuoiTim, gomNhom, locChon, docChon } from './loc-tu-dong';
+import { LocChonNhieu, ChonGomNhom } from './thanh-loc';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -282,6 +284,18 @@ export function DataTable<T>({
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
   }, []);
 
+  // THANH LỌC TỰ ĐỘNG (#1416, loc-tu-dong.ts): ô tìm trên mọi cột khi bảng không khai searchText · lọc chọn nhiều mỗi cột danh mục ·
+  // gom nhóm theo một cột. Bảng không phải khai gì. Bảng `sliced` (chỉ cầm một trang) không có — danh mục của một trang là nói dối.
+  const timCuaDong = useMemo(() => searchText ?? ((r: T) => chuoiTim(r, columns)), [searchText, columns]);
+  const coTim = !sliced && (!!searchText || rows.length >= 6);
+  const danhMuc = useMemo(() => (sliced ? [] : cotDanhMuc(rows, columns)), [rows, columns, sliced]);
+  const gUrlKey = persistKey ? `${persistKey}.g` : undefined;
+  const [gom, setGomTho] = useState(() => pref.g ?? '');
+  useEffect(() => { const u = gUrlKey ? readShallowParam(gUrlKey) : null; if (u != null) setGomTho(u); }, [gUrlKey]);
+  const setGom = (k: string) => { setGomTho(k); writeTablePref(persistKey, { g: k || undefined }); if (gUrlKey) writeShallowParam(gUrlKey, k || null); };
+  const cotGom = danhMuc.some((c) => c.key === gom) ? columns.find((c) => c.key === gom) : undefined;
+  const [dongNhom, setDongNhom] = useState<string[]>([]);   // nhóm đang gập (chỉ là cách xem)
+
   // Cột đang lọc thật sự (có sortValue + có giá trị hoặc là toán tử IS NULL/IS NOT NULL).
   // `sliced` = chỉ cầm một trang do server cắt → lọc/sắp xếp trong bảng sẽ chỉ ăn trên trang đó, tức
   // là nói dối. Tắt hẳn thay vì để nó chạy sai.
@@ -296,7 +310,7 @@ export function DataTable<T>({
   const shownRows = useMemo(() => {
     let out = rows;
     const needle = q.trim().toLowerCase();
-    if (needle && searchText) out = out.filter((r) => searchText(r).toLowerCase().includes(needle));
+    if (needle) out = out.filter((r) => timCuaDong(r).toLowerCase().includes(needle));
     if (activeFilters.length) {
       const colMap = new Map(columns.map((c) => [c.key, c] as const));
       out = out.filter((r) => activeFilters.every(([k, f]) => {
@@ -305,7 +319,7 @@ export function DataTable<T>({
       }));
     }
     return out;
-  }, [rows, q, searchText, activeFilters, columns]);
+  }, [rows, q, timCuaDong, activeFilters, columns]);
 
   const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
   const visibleKeys = visible.map((c) => c.key);   // thứ tự ô tiêu đề — keoCot chốt bề ngang theo đúng cột
@@ -346,6 +360,7 @@ export function DataTable<T>({
   const { setPage } = paged;
   useEffect(() => { setPage(0); }, [q, activeFilters.length, rows.length, setPage]);
   const pageRows = pageSize ? paged.pageItems : sortedRows;
+  const viTriDong = useMemo(() => new Map(pageRows.map((r, i) => [r, i] as const)), [pageRows]);   // chỉ số gốc của dòng khi vẽ theo nhóm
 
   // Ô ghim phải có nền ĐỤC, không thì cột cuộn phía dưới nhìn xuyên qua thành chữ chồng chữ.
   const stick = (i: number, head: boolean): CSSProperties =>
@@ -375,15 +390,15 @@ export function DataTable<T>({
 
   return (
     <div data-comp="ui.DataTable">
-      {((searchText && !sliced) || (groups && groups.length > 0) || showViewToggle || anyColFilter) && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+      {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           {anyColFilter && (
             <button type="button" onClick={clearColFilters} title="Xoá tất cả lọc-cột đang bật"
               style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 'auto' }}>
               ✕ Xoá lọc cột <span style={{ opacity: 0.7 }}>{activeColFilters.length}</span>
             </button>
           )}
-          {searchText && !sliced && (
+          {coTim && (
             <>
               <input
                 value={q} onChange={(e) => setQ(e.target.value)}
@@ -401,6 +416,8 @@ export function DataTable<T>({
               )}
             </>
           )}
+          {danhMuc.map((c) => <LocChonNhieu key={c.key} cot={c} chon={docChon(colFilters[c.key])} onDoi={(ds) => setColFilter(c.key, locChon(ds))} />)}
+          {danhMuc.length > 0 && <ChonGomNhom ds={danhMuc} value={cotGom ? gom : ''} onDoi={setGom} />}
           {effView === 'table' && groups && groups.length > 0 && (
           // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
           // bằng listener ở trên. Right-aligned so it sits where controls conventionally live. Chế độ THẺ
@@ -447,7 +464,9 @@ export function DataTable<T>({
 
       {effView === 'card' && cardOn ? (
         <div className="dt-cards" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${cardCfg.minWidth ?? 260}px, 1fr))`, gap: 12 }}>
-          {pageRows.map((row, i) => (
+          {gomNhom(pageRows, cotGom).flatMap((nh) => [
+            ...(cotGom ? [<div key={`g:${nh.v}`} style={{ gridColumn: '1 / -1', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', marginTop: 4 }}>{nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></div>] : []),
+            ...nh.rows.map((row) => { const i = viTriDong.get(row) ?? 0; return (
             <div key={getRowKey(row, i)} title={rowTitle?.(row)}
                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                  style={onRowClick ? { cursor: 'pointer' } : undefined}>
@@ -470,10 +489,10 @@ export function DataTable<T>({
               {/* Nội dung bung ra (renderExpanded) hiện cả ở chế độ thẻ — trước đây chỉ bảng có, sang điện thoại là mất */}
               {((x) => (x != null && x !== false ? <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 6, padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>{x}</div> : null))(renderExpanded?.(row, i))}
             </div>
-          ))}
+          ); })])}
           {!sortedRows.length && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--fg-3)', fontSize: 12, padding: '20px 5px', fontFamily: 'var(--font-mono)' }}>
-              {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc cột — sửa/xoá ở nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
+              {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
             </div>
           )}
         </div>
@@ -526,7 +545,19 @@ export function DataTable<T>({
           </thead>
           )}
           <tbody>
-            {pageRows.map((row, i) => {
+            {gomNhom(pageRows, cotGom).flatMap((nh) => {
+              const gap = dongNhom.includes(nh.v);
+              const dau = cotGom ? [
+                <tr key={`g:${nh.v}`} className="dt-nhom" onClick={() => setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v]))} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
+                  {visible.map((c, ci) => (
+                    <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
+                      {ci === 0 ? <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></> : c.total ? c.total(nh.rows) : null}
+                    </td>
+                  ))}
+                </tr>,
+              ] : [];
+              return [...dau, ...(gap ? [] : nh.rows.map((row) => {
+              const i = viTriDong.get(row) ?? 0;
               const extra = renderExpanded?.(row, i);
               return [
                 <tr key={getRowKey(row, i)} className="dt-row"
@@ -548,10 +579,10 @@ export function DataTable<T>({
                   </tr>
                 ) : null,
               ];
-            })}
+            }))]; })}
             {!sortedRows.length && (
               <tr><td colSpan={visible.length} style={{ ...baseCell, textAlign: 'center', color: 'var(--fg-3)', whiteSpace: 'normal', padding: '10px 5px' }}>
-                {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc cột — sửa/xoá ở nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
+                {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
               </td></tr>
             )}
             {hasTotals && sortedRows.length > 0 && (

@@ -57,6 +57,8 @@ export function matchColFilter(raw: string | number | null | undefined, op: stri
     case 'NOT REGEXP': { try { return !new RegExp(v, 'i').test(s); } catch { return false; } }
     case 'IN': return v.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(sl);
     case 'NOT IN': return !v.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(sl);
+    // Chọn nhiều giá trị ở thanh lọc trên bảng (loc-tu-dong.ts): val = mảng JSON — giá trị có dấu phẩy vẫn khớp đúng (IN tách theo phẩy).
+    case 'IN LIST': { try { const ds = JSON.parse(v) as unknown[]; return Array.isArray(ds) && ds.some((x) => String(x).toLowerCase() === sl); } catch { return false; } }
     case 'FIND_IN_SET': return sl.split(',').map((x) => x.trim()).includes(vl);   // raw is the set, val a member
     default: return true;
   }

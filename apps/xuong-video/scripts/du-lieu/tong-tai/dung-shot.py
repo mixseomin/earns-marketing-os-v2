@@ -38,7 +38,7 @@ shot('1.1', C1, 3, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 
      {'dat': [120, 590, 150], 'nhin': [300, 590, 140], 'ong_kinh': 40, 'khung': [VIV, HA],
       'vi_tri': [vt(HA, [300, 540, 0], 180, **AO_HA_SANG, trang_phuc_den='Sơ mi trắng dính cà phê'), vt(VIV, [300, 640, 0], 0, **AO_VIV, dien=['cam_truoc', 'hat@0.25-0.45']), vt('Ly cà phê', [312, 622, 105], 0, cam=VIV, trang_den='empty')]},
      [HA, VIV, VP, 'Ly cà phê'], chu_man='09:05 · Tầng 38 · Lục thị')
-shot('1.2', C1, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'cam_tay', 'ong_kinh': 'macro', 'anh_sang': 'cua_so', 'am_thanh': ['rung']},
+shot('1.2', C1, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'cam_tay', 'ong_kinh': 'macro', 'anh_sang': 'cua_so', 'am_thanh': ['tim_dap']},
      { 'dien': "Anticipation: stillness, the stain still spreading. Action: Hạ's hand slowly clenches into a fist at her side. Reaction: a slow controlled exhale.", 'huong': 'Hạ looks down at her own chest.','bo_cuc': 'Insert from Hạ’s eye-line down onto the coffee stain on the white blouse, her clenched hand at frame bottom', 'mo': 'stain still spreading', 'ket': 'Hạ’s hand clenched into a fist', 'muc_dich': 'người xem thấy rõ cái nhục'},
      'Vết cà phê loang trên áo trắng, tay Hạ siết chặt thành nắm đấm', [], [bc(HA, 'soc', 'nhan_nhin', cam=['vui', 'cuoi_lon']), bc(VIV, 'khinh_bi', 'khinh_bi')],
      {'dat': [300, 560, 150], 'nhin': [300, 548, 110], 'ong_kinh': 85, 'khung': [HA], 'qua_truc': True, 'vi_tri': [vt(HA, [300, 540, 0], 180), vt(VIV, [300, 640, 0], 0), LY_RONG(an=True)]},

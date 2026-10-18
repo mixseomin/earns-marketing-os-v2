@@ -389,12 +389,14 @@ export function DataTable<T>({
   ) : null;
 
   return (
-    <div data-comp="ui.DataTable">
+    // minWidth 0: bảng thường là con của grid/flex — min-width:auto mặc định làm khối giãn theo bề rộng bảng (minWidth cột), tràn khỏi ngăn
+    // kéo thay vì cuộn ngang trong .dt-scroll; thanh lọc phía trên rơi ra ngoài màn (#1416).
+    <div data-comp="ui.DataTable" style={{ minWidth: 0, maxWidth: '100%' }}>
       {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter) && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           {anyColFilter && (
             <button type="button" onClick={clearColFilters} title="Xoá tất cả lọc-cột đang bật"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 'auto' }}>
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               ✕ Xoá lọc cột <span style={{ opacity: 0.7 }}>{activeColFilters.length}</span>
             </button>
           )}
@@ -418,6 +420,8 @@ export function DataTable<T>({
           )}
           {danhMuc.map((c) => <LocChonNhieu key={c.key} cot={c} chon={docChon(colFilters[c.key])} onDoi={(ds) => setColFilter(c.key, locChon(ds))} />)}
           {danhMuc.length > 0 && <ChonGomNhom ds={danhMuc} value={cotGom ? gom : ''} onDoi={setGom} />}
+          {/* Lọc · tìm · nhóm bên TRÁI (chỗ mắt đọc trước); cột / thẻ-bảng (chỉnh cách vẽ) dạt PHẢI. */}
+          <span style={{ flex: 1 }} />
           {effView === 'table' && groups && groups.length > 0 && (
           // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
           // bằng listener ở trên. Right-aligned so it sits where controls conventionally live. Chế độ THẺ

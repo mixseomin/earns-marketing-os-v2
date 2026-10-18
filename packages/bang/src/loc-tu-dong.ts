@@ -26,15 +26,16 @@ export function cotDanhMuc<T>(rows: T[], columns: CotLoc[]): CotDanhMuc[] {
     const sv = c.sortValue as ((r: T) => string | number | null | undefined) | undefined;
     if (!sv) continue;
     const dem = new Map<string, number>();
-    let so = 0;
+    let so = 0, co = 0;
     for (const r of rows) {
       const x = sv(r);
+      if (x != null && x !== '') co++;
       if (typeof x === 'number') so++;
       const k = giaTri(x);
       dem.set(k, (dem.get(k) ?? 0) + 1);
       if (dem.size > TRAN_DANH_MUC) break;
     }
-    if (so > rows.length / 2) continue;                       // cột số đo
+    if (so > co / 2) continue;                                // cột số đo (đếm trên ô CÓ giá trị — cột số nhiều ô trống vẫn là số đo)
     if (dem.size < 2 || dem.size > TRAN_DANH_MUC) continue;
     if (dem.size > rows.length * 0.6) continue;               // gần như mỗi dòng một giá trị
     out.push({ key: c.key, nhan: nhanCot(c), giaTri: [...dem].map(([v, n]) => ({ v, n })).sort((a, b) => b.n - a.n || a.v.localeCompare(b.v)) });

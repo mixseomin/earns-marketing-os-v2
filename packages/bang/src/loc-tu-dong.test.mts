@@ -23,4 +23,7 @@ assert.strictEqual(rows.filter((r) => matchColFilter(r.loai, f.op, f.val)).lengt
 assert.deepStrictEqual(docChon(f), ['chữ, dài']);
 assert.strictEqual(locChon([]), null);
 assert.deepStrictEqual(docChon(locChon(['(trống)'])!), ['(trống)']);
+// cột số mà đa số ô trống ("chưa đo") không bị nhận nhầm là danh mục
+const thua = rows.map((r, i) => ({ ...r, od: i < 9 ? null : [60, 47, 100][i - 9]! }));
+assert.deepStrictEqual(cotDanhMuc(thua, [...cols, { key: 'od', header: 'Ổn định', sortValue: (r: { od: number | null }) => r.od }] as never).map((c) => c.key), ['loai']);
 console.log('✓ loc-tu-dong');

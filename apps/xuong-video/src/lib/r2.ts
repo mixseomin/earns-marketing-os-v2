@@ -82,7 +82,20 @@ export function r2KeyFromUrl(url: string): string | null {
   return url.slice(pub.length + 1).split('/').map(decodeURIComponent).join('/');
 }
 
+/** Đẩy một tệp lên R2 — THỬ LẠI 4 lần (1s / 3s / 9s): ảnh vừa trả tiền mà mạng chập một nhịp thì mất luôn (18/10/2026 #20: FLUX vẽ xong, box chập
+ *  mạng, "không đẩy được ảnh bước 1 lên kho" — tiền mất, ảnh mất). Chữ ký tính lại mỗi lần (x-amz-date). */
 export async function uploadToR2(
+  key: string, body: Buffer, contentType: string,
+): Promise<string | null> {
+  if (!r2Enabled()) return null;
+  for (let lan = 0; lan < 4; lan++) {
+    if (lan) await new Promise((o) => setTimeout(o, 1000 * 3 ** (lan - 1)));
+    const url = await uploadToR2Mot(key, body, contentType);
+    if (url) return url;
+  }
+  return null;
+}
+async function uploadToR2Mot(
   key: string, body: Buffer, contentType: string,
 ): Promise<string | null> {
   if (!r2Enabled()) return null;

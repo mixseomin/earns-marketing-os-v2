@@ -117,8 +117,9 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
   const job = await taoJob(db, { nhan: `Sửa vùng (${ten}) · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_SUA_VUNG}`, request: { dich: 'sua_vung', prompt, image: anhGui, mask: maskUrl } });
   const kq = await chayAnhFal(MO_HINH_SUA_VUNG, { prompt, image_url: anhGui, mask_url: maskUrl, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
+  const gia = (await modelFal(MO_HINH_SUA_VUNG))?.giaCents ?? 5;
   const url = await luuUngVien(db, canhId, await sharp(kq.data).jpeg({ quality: 92 }).toBuffer(), 'sua', chon);
-  if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }
-  await xongJob(db, job, { output_url: url, chi_phi_cents: (await modelFal(MO_HINH_SUA_VUNG))?.giaCents ?? 5 });
+  if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho', chi_phi_cents: gia }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }   // đã trả tiền → vẫn vào sổ
+  await xongJob(db, job, { output_url: url, chi_phi_cents: gia });
   return { ok: true, data: { url } };
 }

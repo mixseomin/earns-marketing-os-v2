@@ -579,7 +579,7 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     const kq = await sinhAnh({ model: mh, prompt, thamChieuUrl: urls, thamChieu: (await Promise.all(urls.map(taiAnhBase64))).filter((x): x is NonNullable<typeof x> => !!x), tiLe: doc ? '9:16' : '16:9' });
     if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return { ok: false, loi: kq.loi }; }
     const url = await uploadToR2(`xuong-video/keyframe/${canhId}/lop-${Date.now()}.png`, kq.data, kq.mimeType);
-    if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }
+    if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho', chi_phi_cents: await giaAnhSv(mh) }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }   // đã trả tiền → vẫn vào sổ
     await xongJob(db, job, { output_url: url, model: kq.model, chi_phi_cents: await giaAnhSv(mh) });
     return { ok: true, url };
   };
@@ -664,9 +664,11 @@ async function buocDoSau(db: Db, canhId: number, thuTu: number, h: HaiBuoc, tiLe
         controlnet_unions: [{ path: UNION_XUONG, controls: [{ control_image_url: h.sau, control_mode: 'depth', conditioning_scale: 0.6 }, { control_image_url: h.xuong, control_mode: 'pose', conditioning_scale: 1 }] }] })
     : await chayAnhFal(MO_HINH_DO_SAU, { prompt: h.prompt1, control_image_url: h.sau, image_size: doc ? { width: 768, height: 1365 } : { width: 1365, height: 768 }, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
+  const gia = h.loras?.length ? 3.5 : h.xuong ? GIA_XUONG_CENTS : (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5;
   const url = await uploadToR2(`xuong-video/keyframe/${canhId}/buoc1-${Date.now()}.jpg`, kq.data, kq.mimeType);
-  if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh bước 1 lên kho' }); return { ok: false, loi: 'không đẩy được ảnh bước 1 lên kho' }; }
-  await xongJob(db, job, { output_url: url, chi_phi_cents: h.loras?.length ? 3.5 : h.xuong ? GIA_XUONG_CENTS : (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5 });
+  // ảnh đã vẽ (fal đã tính tiền) mà không đẩy được → vẫn ghi tiền vào sổ: sổ chi phí là tiền THẬT đã ra, không phải tiền ra ảnh
+  if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh bước 1 lên kho', chi_phi_cents: gia }); return { ok: false, loi: 'không đẩy được ảnh bước 1 lên kho' }; }
+  await xongJob(db, job, { output_url: url, chi_phi_cents: gia });
   return { ok: true, url };
 }
 

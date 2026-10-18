@@ -53,6 +53,8 @@ export function assScam(de: DeScam): string {
   const { T_KET, DAI } = nhipScam(de);
   const d: DongAss[] = [], L = boCuc(de), lua = de.ket === 'scam', mauKet = lua ? DO : XANH, kenh = MAU_KENH[de.kenh];
   const nay = (tuX: number) => `\\fscx${tuX}\\fscy${tuX}\\t(0,500,0.5,\\fscx100\\fscy100)`;
+  // lớp phủ đen 38% cả khung trên ẢNH THẬT (lenhScam, nen_url Pexels — luật anh 18/10/2026: ảnh minh hoạ thật, nhìn rõ): đủ cho chữ trắng đọc được, ảnh vẫn hiện
+  d.push([0, 0, T_KET, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.38)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   // tiêu đề: SCAM (đỏ) or REAL? (xanh)
   d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,150)${fs(104)}\\4c&H000000&\\4a&H80&\\shad6${nay(130)}\\1c${mauAss(DO)}}SCAM{\\1c&HFFFFFF&\\fs${Math.round(70 * EM)}} or {\\1c${mauAss(XANH)}\\fs${Math.round(104 * EM)}}REAL?`]);
   d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,262)\\b1${fs(44)}\\1c&HFFFFFF&${nay(130)}}Spot the red flags in 7 seconds`]);
@@ -95,7 +97,7 @@ export function assScam(de: DeScam): string {
   }
   // màn kết
   const fad = '\\fad(300,0)';
-  d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+  d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}\\1a${alpha(0.8)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   d.push([21, T_KET, DAI, 'Den', `{\\an5\\pos(540,640)${fs(76)}\\1c&HFFFFFF&\\q2${fad}}Never pay through\\Na link in a message.`]);
   d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,860)\\b1${fs(46)}\\1c&HFFFFFF&\\1a&H30&${fad}}Call the hotel on the number\\Nfrom its official website.`]);
   d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1060)\\b1${fs(46)}\\1c&HFFFFFF&${fad}}Compare real hotel rates:`]);
@@ -112,10 +114,14 @@ export const amScam = (ket: DeScam['ket']) => `0.3*sin(2*PI*660*t)*exp(-9*t)`
   + (ket === 'scam' ? `+0.3*sgn(sin(2*PI*140*t))*exp(-3*(t-${T_LO}))*gte(t,${T_LO})*lt(t,${(T_LO + 0.6).toFixed(2)})` : `+0.35*sin(2*PI*880*t)*exp(-6*(t-${T_LO}))*gte(t,${T_LO})`);
 
 /** Lệnh ffmpeg: nền dải radial xanh đêm → ass → H.264 + AAC. `khung` (giây) = một khung JPG. */
-export function lenhScam(o: { de: DeScam; ass: string; fontsDir: string; ra: string; khung?: number }): string[] {
+/** Lệnh ffmpeg: nền = ẢNH THẬT của đề (nen_url, Pexels — scripts/nguon/scam-or-real-anh.py) lia chậm → ass → H.264 + AAC. `khung` (giây) = một khung JPG.
+ *  Không có ảnh thì DỪNG (luật anh 18/10/2026: cấm chữ trên nền màu phẳng — bản cũ dựng gradient trơn, anh: "nhìn rất chán"). */
+export function lenhScam(o: { de: DeScam; ass: string; nen?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const DAI = Number(nhipScam(o.de).DAI.toFixed(2));
-  const vao = ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=radial:x0=540:y0=600:x1=540:y1=2100:c0=0x24345E:c1=0x14213D:c2=0x0B1226:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
-  const loc = `[0:v]ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
+  if (!o.nen) throw new Error('mẫu scam-or-real cần ảnh nền thật (nen_url) — chạy scripts/nguon/scam-or-real-anh.py rồi nạp lại nguồn');
+  const vao = ['-i', o.nen];
+  const nen = `[0:v]scale=${Math.round(W * 1.08)}:${Math.round(H * 1.08)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.08)}:${Math.round(H * 1.08)},eq=brightness=-0.04:saturation=0.95,loop=loop=-1:size=1:start=0,fps=${FPS},crop=${W}:${H}:x='(iw-ow)/2':y='(ih-oh)*t/${DAI}'`;
+  const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amScam(o.de.ket)}':s=44100:d=${DAI}`,
     '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
@@ -124,13 +130,13 @@ export function lenhScam(o: { de: DeScam; ass: string; fontsDir: string; ra: str
 /** Trang đích của ngách (trang con trên ratesbyroom.com — nhịp 1 của plan social traffic). */
 export const LINK_SCAM = 'https://ratesbyroom.com/hotel-scam-check/';
 /** Một dòng nguồn đề (mau/may/scam-or-real.json) → dòng nạp của máy: đề + chữ đăng tiếng Anh. */
-export function tuNguonScam(x: DeScam & { slug: string }) {
-  const { slug, ...de } = x, lua = de.ket === 'scam';
+export function tuNguonScam(x: DeScam & { slug: string; nen_url?: string; nen_nguon?: string }) {
+  const { slug, nen_url, nen_nguon: _nguon, ...de } = x, lua = de.ket === 'scam';
   return { slug, chu_de: de.goi, de, dang: {
     title: `Scam or real? This "hotel" ${de.kenh === 'Email' ? 'email' : 'message'}: spot the red flags in 7 seconds`,
     description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message. Call the hotel on the number from its official website. Free checklist (5 red flags before you pay) + real hotel rates: ${LINK_SCAM}`,
     link: LINK_SCAM,
-  } };
+  }, nen_url: nen_url ?? null };
 }
 
 /** Kịch bản 3 shot (tab Mẫu / ngăn video của máy). */

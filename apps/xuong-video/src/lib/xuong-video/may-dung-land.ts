@@ -65,7 +65,7 @@ export function assLand(de: DeLand): string {
   d.push([6, T_CUA, T_KET, 'Chu', `{\\an5\\pos(540,200)\\b1${fs(44)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3\\fad(200,0)}LANDING IN`]);
   d.push([6, T_CUA, T_KET, 'Den', `{\\an5\\pos(540,330)${fs(coTen(de.nuoc))}\\1c&HFFFFFF&\\3c&H000000&\\bord4\\q0\\fad(200,0)}${chu(de.nuoc.toUpperCase())}`]);
   const HANG = 150, caoThe = 130 + sb.length * HANG, yThe = 470;
-  d.push([2, T_CUA, T_KET, 'Ve', `{\\an7\\pos(50,${yThe})\\1c${mauAss(TRANG)}\\1a${alpha(0.96)}\\fad(200,0)\\p1}${bo(980, caoThe, 34)}`]);
+  d.push([2, T_CUA, T_KET, 'Ve', `{\\an7\\pos(50,${yThe})\\1c${mauAss(TRANG)}\\1a${alpha(0.88)}\\fad(200,0)\\p1}${bo(980, caoThe, 34)}`]);
   d.push([3, T_CUA, T_KET, 'Chu', `{\\an4\\pos(100,${yThe + 66})\\b1${fs(36)}\\1c&H6B6B6B&\\fad(200,0)}MAIN ARRIVAL AIRPORTS`]);
   for (const [i, a] of sb.entries()) {
     const y = yThe + 165 + i * HANG, tu = T_CUA + 0.25 + i * 0.4;
@@ -84,14 +84,14 @@ export function assLand(de: DeLand): string {
   d.push([5, T_BUOC, T_KET, 'Chu', `{\\an4\\pos(70,${yB})\\b1${fs(46)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3\\fad(200,0)}3 STEPS, 2 MINUTES`]);
   for (const [i, s] of BUOC(de.nuoc).entries()) {
     const y = Math.round(yB + 60 + buoc * (i + 0.5)), tu = buocTu[i]!;
-    d.push([3, tu, T_KET, 'Ve', `{\\an5\\pos(540,${y})\\1c${mauAss(SAU)}\\1a${alpha(0.82)}\\fad(150,0)\\p1}${bo(980, Math.min(160, buoc - 20), 26)}`]);
+    d.push([3, tu, T_KET, 'Ve', `{\\an5\\pos(540,${y})\\1c${mauAss(SAU)}\\1a${alpha(0.72)}\\fad(150,0)\\p1}${bo(980, Math.min(160, buoc - 20), 26)}`]);
     d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(130,${y})\\1c${mauAss(XANH)}\\fscx50\\fscy50\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(96, 96, 48)}`]);
     d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(130,${y + 2})${fs(46)}\\1c${mauAss(SAU)}}${i + 1}`]);
     d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${ngat(s, 36).map(chu).join('\\N')}`]);   // tên nước dài (United Arab Emirates) → tự xuống dòng, không tràn mép
   }
   // ── màn kết
   const fad = '\\fad(300,0)';
-  d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}\\1a${alpha(0.88)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+  d.push([20, T_KET, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c${mauAss(SAU)}\\1a${alpha(0.76)}${fad}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   d.push([21, T_KET, DAI, 'Den', `{\\an5\\pos(540,700)${fs(92)}\\1c&HFFFFFF&\\q2${fad}}Land connected\\Nin ${chu(de.nuoc)}`]);
   d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,990)\\b1${fs(52)}\\1c&HFFFFFF&\\1a&H20&${fad}}${CHU_KET(de.nuoc)[1]}`]);
   d.push([21, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1150)\\1c${mauAss(NHAN)}${fad}\\p1}${bo(800, 150, 26)}`]);
@@ -108,12 +108,13 @@ export const amLand = (de: DeLand) => { const { T_CUA, buocTu, T_KET } = nhipLan
 /** Lệnh ffmpeg: nền dải xanh đêm → ass → H.264 + AAC. `khung` (giây) = một khung JPG. */
 export function lenhLand(o: { de: DeLand; ass: string; nen?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const DAI = Number(nhipLand(o.de).DAI.toFixed(2));
-  // nền = ảnh thật của nước (nen_url của video, Pexels): phủ kín khung, đẩy chậm (zoom 1 → 1,06), làm tối + mờ nhẹ cho chữ đọc rõ
+  // nền = ảnh thật của nước (nen_url của video, Pexels): phủ kín khung, lia chậm. Chỉ tối nhẹ, KHÔNG làm mờ (anh 18/10/2026: ảnh phải nhìn rõ —
+  // bản cũ brightness -0.22 + boxblur + thẻ đặc 96% làm ảnh gần như mất); chữ đọc được nhờ viền đen của chữ + thẻ bán trong
   // ảnh nền vào MỘT khung (không -loop 1: ffmpeg giải mã lại JPEG mỗi khung — đo box3 17/10/2026: 23,2s → 8,9s khi xử lý ảnh một lần rồi loop)
   const vao = o.nen ? ['-i', o.nen]
     : ['-f', 'lavfi', '-i', `gradients=s=${W}x${H}:type=linear:x0=0:y0=0:x1=0:y1=${H}:c0=0x123B5E:c1=0x0B1D33:c2=0x081424:nb_colors=3:speed=0:r=${FPS}:d=${DAI}`];
   // lia chậm từ trên xuống bằng crop theo t (17/10/2026: zoompan ở cỡ 2x tốn ~35s/video — crop trên ảnh 1,08x rẻ hơn hẳn, vẫn có chuyển động)
-  const nen = o.nen ? `[0:v]scale=${Math.round(W * 1.08)}:${Math.round(H * 1.08)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.08)}:${Math.round(H * 1.08)},eq=brightness=-0.22:saturation=0.85,boxblur=2:1,loop=loop=-1:size=1:start=0,fps=${FPS},crop=${W}:${H}:x='(iw-ow)/2':y='(ih-oh)*t/${DAI}'`
+  const nen = o.nen ? `[0:v]scale=${Math.round(W * 1.08)}:${Math.round(H * 1.08)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.08)}:${Math.round(H * 1.08)},eq=brightness=-0.07:saturation=0.95,loop=loop=-1:size=1:start=0,fps=${FPS},crop=${W}:${H}:x='(iw-ow)/2':y='(ih-oh)*t/${DAI}'`
     : '[0:v]null';
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];

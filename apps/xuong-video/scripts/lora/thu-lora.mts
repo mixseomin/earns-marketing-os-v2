@@ -48,13 +48,14 @@ const ve = async (nhan: string, mh: string, input: Record<string, unknown>, mo: 
   await xongJob(db, job, { output_url: url ?? undefined, chi_phi_cents: 3.5 });
   if (url) { ra.push({ loai: nhan, url, mo }); console.log(`· ${nhan} ${url}`); }
 };
-for (const [i, t] of (manh ? MANH : THU).entries()) await ve(`${manh ? 'cảm xúc mạnh' : 'đa dạng'} ${i + 1}`, 'fal-ai/flux-lora', { prompt: `${goc}. ${t}. ${PHONG}`, loras: manh ? [{ path: L.url, scale: 0.85 }] : loras, image_size: { width: 768, height: 1024 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false, ...(manh ? { guidance_scale: 4.5 } : {}) }, t);
+// Bộ ảnh tự do chỉ chạy khi KHÔNG chỉ định --canh / --mat (18/10/2026 lượt --mat chạy lố 8 ảnh = $0,28 anh không duyệt)
+const mats = (process.argv.find((a) => a.startsWith('--mat=')) ?? '--mat=').slice(6).split(',').filter(Boolean);
+if (!canhIds.length && !mats.length) for (const [i, t] of (manh ? MANH : THU).entries()) await ve(`${manh ? 'cảm xúc mạnh' : 'đa dạng'} ${i + 1}`, 'fal-ai/flux-lora', { prompt: `${goc}. ${t}. ${PHONG}`, loras: manh ? [{ path: L.url, scale: 0.85 }] : loras, image_size: { width: 768, height: 1024 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false, ...(manh ? { guidance_scale: 4.5 } : {}) }, t);
 for (const cid of canhIds) {
   const c = mapCanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${cid}`)) as unknown as Row[])[0]!);
   const sau = c.khung_xam?.sau; if (!sau) { console.log(`✗ #${c.thu_tu}: chưa có độ sâu`); continue; }
   await ve(`độ sâu #${c.thu_tu}`, 'fal-ai/flux-lora-depth', { prompt: `${goc}. ${c.dan_dung?.mo ?? ''}. ${PHONG}`, image_url: sau, loras, image_size: { width: 768, height: 1365 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, `#${c.thu_tu} ${c.dan_dung?.mo ?? ''}`);
 }
-const mats = (process.argv.find((a) => a.startsWith('--mat=')) ?? '--mat=').slice(6).split(',').filter(Boolean);
 for (const f of mats) {
   const key = /sau-(\w+)\.png$/.exec(f)?.[1] ?? ''; const bc = BIEU_CAM.find((b) => b.key === key);
   if (!bc) { console.log(`✗ ${f}: tên tệp không khớp key BIEU_CAM`); continue; }

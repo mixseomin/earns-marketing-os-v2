@@ -14,11 +14,12 @@ import { soLienMach, chuDang, type DongSo } from './so-lien-mach';
 import { boSetCuaShot, huongVoiMay } from './bo-set-3d';
 import { DANG } from './cau-hoi-khung';
 import { LA_NHAN_DANG } from './kiem-ai-3d';
+import { bieuCam, camThuc, loiMachBieuCam } from './qc-cam-xuc';
 import { loiSoiClip, vatHien, type BoSet, type Canh, type May3d, type NhanVat, type PhanCanh, type VatSet } from './kieu';
 
 export type MucDoiTuong = 'tot' | 'vang' | 'do' | 'trong';
-export type MaNhanh = 'mau' | 'ngoai' | 'vi_tri' | 'dang' | 'trang' | 'nd' | 'kiem' | 'soi';
-export const TEN_NHANH: Record<MaNhanh, string> = { mau: 'Mẫu · biến thể', ngoai: 'Trang phục · bề ngoài', vi_tri: 'Vị trí', dang: 'Dáng · động tác', trang: 'Trạng thái', nd: 'Đồ nhận dạng', kiem: 'Kiểm khung', soi: 'Soi clip' };
+export type MaNhanh = 'mau' | 'ngoai' | 'vi_tri' | 'dang' | 'bieu' | 'trang' | 'nd' | 'kiem' | 'soi';
+export const TEN_NHANH: Record<MaNhanh, string> = { mau: 'Mẫu · biến thể', ngoai: 'Trang phục · bề ngoài', vi_tri: 'Vị trí', dang: 'Dáng · động tác', bieu: 'Biểu cảm', trang: 'Trạng thái', nd: 'Đồ nhận dạng', kiem: 'Kiểm khung', soi: 'Soi clip' };
 /** Một nhánh của ô: chữ nhìn được + các khoản trừ (lý do · số điểm). */
 export type ONhanh = { ma: MaNhanh; chu: string; tru: { chu: string; diem: number }[] };
 export type OTrangThai = { canhId: number; co: boolean; muc: MucDoiTuong; chu: string; loi: string[]; diem: number | null; nhanh: ONhanh[] };
@@ -26,7 +27,7 @@ export type DongDoiTuong = { nv: NhanVat; o: OTrangThai[]; diem: number | null; 
 
 const THU_TU: Record<string, number> = { nhan_vat: 0, dao_cu: 1, san_pham: 2, boi_canh: 3 };
 /** Trừ điểm mỗi loại lỗi — một chỗ khai, lane và hover đọc cùng số. */
-export const TRU_DIEM = { thieu_anh: 10, nhac_chua_gan: 6, khac_bien_the: 3, lien_mach: 3, kiem_khung: 3, soi_clip: 4 } as const;
+export const TRU_DIEM = { thieu_anh: 10, nhac_chua_gan: 6, khac_bien_the: 3, lien_mach: 3, kiem_khung: 3, soi_clip: 4, lien_mach_bieu_cam: 3 } as const;
 export const mucDiem = (d: number): MucDoiTuong => (d >= 9 ? 'tot' : d >= 5 ? 'vang' : 'do');
 
 const nhacTen = (chu: string, ten: string) => ten.trim().length >= 2 && chu.toLowerCase().includes(ten.trim().toLowerCase());
@@ -66,6 +67,7 @@ export function moTaViTri(v: ViTri, m: May3d, vat: VatSet[], laNguoi: boolean, n
 export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[] = []): DongDoiTuong[] {
   const bang = bangDoiTuong(canh, nhanVat);
   const so = soLienMach(canh, phanCanh, nhanVat);
+  const machBc = loiMachBieuCam(canh, nhanVat);
   const tenNguoi = new Set(nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   const vatCua = (c: Canh) => { const sid = c.may_3d ? boSetCuaShot(c, nhanVat) : null; const s = sets.find((x) => x.id === sid); return s ? vatHien(s.du_lieu.vat, c.may_3d?.them) : []; };
   return bang
@@ -90,6 +92,14 @@ export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: P
           if (laNguoi) them('dang', [d.an ? 'khuất' : chuDang(d), ...d.dien.map(chuDien), d.cam ? `cầm ${d.cam}` : ''].filter(Boolean).join(' · '));
           else them('trang', [d.trang || 'nguyên', d.trang_den && d.trang_den !== d.trang ? `→ ${d.trang_den}` : '', d.chia ? `chia ${d.chia} mảnh` : '', vt?.nghieng ? `nghiêng ${vt.nghieng}°` : '', vt?.tran ? `${vt.tran} đổ ra` : ''].filter(Boolean).join(' '));
           for (const x of d.loi) them(nhanhLienMach(x, laNguoi)).tru.push({ chu: `liền mạch: ${x}`, diem: TRU_DIEM.lien_mach });
+        }
+        // BIỂU CẢM (#1419): kế hoạch nét mặt đầu → cuối shot (bieu_cam) + nét cấm + lỗi liền mạch biểu cảm với shot trước — cùng nguồn cổng keyframe đọc.
+        // Chưa khai chỉ hiện chữ, không trừ: phim/QC nào bắt khai thì cổng keyframe (batCamXuc) đã chặn riêng.
+        if (laNguoi && b.gan) {
+          const bc = (c.bieu_cam ?? []).find((x) => x.nv === nv.ten && bieuCam(x.dau) && bieuCam(x.cuoi));
+          const ten = (k: string) => bieuCam(k)?.ten ?? k;
+          const bn = them('bieu', bc ? [bc.dau === bc.cuoi ? `giữ ${ten(bc.dau)}` : `${ten(bc.dau)} → ${ten(bc.cuoi)}`, bc.lat ? 'cú lật' : '', camThuc(bc).length ? `cấm ${camThuc(bc).map(ten).join(', ')}` : ''].filter(Boolean).join(' · ') : 'chưa khai');
+          for (const x of machBc[c.id] ?? []) if (x.includes(`: ${nv.ten} cuối`)) bn.tru.push({ chu: x.replace(/^LIỀN MẠCH BIỂU CẢM: /, 'liền mạch: '), diem: TRU_DIEM.lien_mach_bieu_cam });
         }
         // ĐỒ NHẬN DẠNG (bối cảnh): tranh, biểu đồ, màn chiếu, bảng chỉ dẫn… thấy trong khung 3D
         if (nv.loai === 'boi_canh' && c.khung_xam?.thay) {
@@ -116,7 +126,7 @@ export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: P
         return { canhId: c.id, co: b.gan, muc: mucDiem(dd), chu, loi, diem: dd, nhanh };
       });
       const coDiem = oTt.filter((x) => x.diem != null);
-      const thuTuNhanh: MaNhanh[] = ['mau', 'ngoai', 'vi_tri', 'dang', 'trang', 'nd', 'kiem', 'soi'];
+      const thuTuNhanh: MaNhanh[] = ['mau', 'ngoai', 'vi_tri', 'dang', 'bieu', 'trang', 'nd', 'kiem', 'soi'];
       return { nv, o: oTt, diem: coDiem.length ? Math.round((coDiem.reduce((a, x) => a + x.diem!, 0) / coDiem.length) * 10) / 10 : null, soLoi: oTt.reduce((a, x) => a + x.loi.length, 0),
         nhanh: thuTuNhanh.filter((m) => oTt.some((x) => x.nhanh.some((n) => n.ma === m))) };
     })

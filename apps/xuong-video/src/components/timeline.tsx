@@ -250,6 +250,15 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     if (i < 0) return;
     if (t < batDau[i]! - 0.01 || t >= batDau[i]! + dur(canh[i]!)) tuaToi(batDau[i]!);
   }, [chon]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Đầu phát sang shot khác (kéo vạch, bấm thước, phím, đang phát) → shot đang chọn đi theo, để Thuộc tính / ngăn shot luôn là shot dưới vạch đỏ (#1420).
+  // Chỉ chạy khi idx THẬT SỰ đổi — lần dựng đầu để chọn từ ngoài (URL, lưới) giữ nguyên; chọn từ ngoài tua tới shot đó nên idx khớp, không vòng lặp.
+  const idxTruoc = useRef(idx);
+  useEffect(() => {
+    if (idxTruoc.current === idx) return;
+    idxTruoc.current = idx;
+    const id = canh[idx]?.id;
+    if (id != null && id !== chon) onChon(id);
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!daKhoiPhuc.current) return;
     const h = setTimeout(() => {

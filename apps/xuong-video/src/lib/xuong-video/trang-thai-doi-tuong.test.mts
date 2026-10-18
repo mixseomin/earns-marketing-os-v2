@@ -50,3 +50,23 @@ assert.strictEqual(chuDien('mc_sai_buoc'), 'sải bước');
 assert.strictEqual(nhanhLienMach('Hạ đổi trang phục giữa cảnh', true), 'ngoai');
 assert.strictEqual(nhanhLienMach('Hạ nhảy chỗ 120 cm so với shot trước', true), 'vi_tri');
 console.log('trang-thai-doi-tuong: đạt');
+
+// BIỂU CẢM (#1419): nhánh 'bieu' cho người có mặt — đầu → cuối + nét cấm; lệch nét với shot trước cùng bối cảnh → trừ liền mạch
+{
+  const PHONG = nv(7, 'boi_canh', 'Phòng');
+  const rb = trangThaiDoiTuong([
+    shot(1, [1, 7], { bieu_cam: [{ nv: 'Mike', dau: 'buon', cuoi: 'that_vong' }] }),
+    shot(2, [1, 7], { bieu_cam: [{ nv: 'Mike', dau: 'vui', cuoi: 'vui' }] }),
+    shot(3, [1, 7]),
+  ], [MIKE, PHONG]);
+  const m = rb.find((x) => x.nv.ten === 'Mike')!;
+  assert.ok(m.nhanh.includes('bieu'));
+  const b = (i: number) => m.o[i]!.nhanh.find((n) => n.ma === 'bieu')!;
+  assert.match(b(0).chu, /^Buồn → Thất vọng · cấm /);
+  assert.strictEqual(b(0).tru.length, 0);
+  assert.strictEqual(b(1).chu, 'giữ Vui, cười');
+  assert.deepStrictEqual(b(1).tru.map((t) => t.diem), [TRU_DIEM.lien_mach_bieu_cam]);
+  assert.strictEqual(b(2).chu, 'chưa khai');
+  assert.strictEqual(b(2).tru.length, 0, 'chưa khai không trừ');
+  assert.ok(!rb.find((x) => x.nv.ten === 'Phòng')!.nhanh.includes('bieu'), 'bối cảnh không có nhánh biểu cảm');
+}

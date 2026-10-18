@@ -47,11 +47,21 @@ const docDanhSach = unstable_cache(async (): Promise<SpNhom[]> => {
 
 const SONG_SONG = 4;   // 27 lượt cùng lúc làm spy nghẽn (đo 16/10/2026: 32 giây, #1 quá hạn 30s) — gọi từng đợt 4 nhóm
 
+/** Đo từng phần (anh 18/10/2026: "tab social chậm quá") — mỗi lần dựng in MỘT dòng nhật ký `social: góc 120ms · kênh 640ms …` để biết phần nào nặng. */
+const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promise<T> => { const t = Date.now(); try { return await f(); } finally { ghi.push(`${ten} ${Date.now() - t}ms`); } };
 export async function getSocialLive(): Promise<SocialLive> {
-  const luc = new Date().toISOString(), loi: string[] = [];
+  const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
+  // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
+  const [goc, kenh, lo, lich] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
+    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi))]);
+  console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
+  return { luc, ...goc, loi, ...kenh, lo, lich };
+}
+/** Góc thật từ spy: danh sách nhóm rồi từng nhóm (SONG_SONG lượt cùng lúc), xếp chung theo Sức mạnh. */
+async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {
   let nhom: SpNhom[];
   try { nhom = await docDanhSach(); }
-  catch (e) { const l = [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`]; return { luc, goc: [], nhom: 0, loi: l, ...(await docKenhThatVaLanding(l)), lo: await docLoStudio(l), lich: await docLich(l) }; }
+  catch (e) { loi.push(`không đọc được danh sách nhóm của spy: ${(e as Error).message}`); return { goc: [], nhom: 0 }; }
   const ra: StGoc[][] = new Array(nhom.length);
   let tiep = 0;
   await Promise.all(Array.from({ length: Math.min(SONG_SONG, nhom.length) }, async () => {
@@ -61,7 +71,7 @@ export async function getSocialLive(): Promise<SocialLive> {
     }
   }));
   // xếp chung mọi nhóm theo Sức mạnh (spy chấm trong từng nhóm, 0–100 cùng thang) — góc mạnh nhất toàn kho lên đầu
-  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThatVaLanding(loi)), lo: await docLoStudio(loi), lich: await docLich(loi) };
+  return { goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length };
 }
 
 /* LANDING: trang đích = link mà video của các máy (xv_may_video.dang.link) và kênh (kenh_sp.dich) trỏ tới — thêm máy / kênh mới là trang tự hiện,

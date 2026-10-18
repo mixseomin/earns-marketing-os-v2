@@ -18,6 +18,9 @@ assert.equal(boSetCuaShot({ nhan_vat: [4] }, nv), null);                       /
 assert.equal(boSetCuaShot({ nhan_vat: [4, 1] }, nv), null);                    // bay xuyên hai thế giới (cửa sổ → bàn): khung đầu ngoài set
 assert.equal(maKhungXam(set, m([25, 4, 1]), nv), maKhungXam(set, m([25, 4, 1]), nv));
 assert.notEqual(maKhungXam(set, m([25, 4, 1]), nv), maKhungXam(set, m([25, 5, 1]), nv));   // máy dời 1 cm → phải dựng lại
+// cú máy cần khung kết (cung / chuyển chủ thể) → mã đổi, phải dựng lại; cú thường không đổi mã (không dựng lại cả kho)
+assert.notEqual(maKhungXam(set, m([25, 4, 1]), nv, null, 'cung'), maKhungXam(set, m([25, 4, 1]), nv, null, 'dolly_zoom'));
+assert.equal(maKhungXam(set, m([25, 4, 1]), nv, null, 'day_vao'), maKhungXam(set, m([25, 4, 1]), nv));
 assert.ok(!bangDung(set, [{ id: 9, thu_tu: 1, may_3d: { ...m([0, 0, 1]), vi_tri: [{ ten: 'Lint', tam: [0, 0, 0] }] } }], nv).ok);   // thiếu khối → lỗi, không đoán
 assert.ok(bangDung(set, [{ id: 9, thu_tu: 1, may_3d: m([25, 4, 1]) }], nv).ok);
 // Trục Tango–Gummy chạy theo x tại y=25: máy ở y=4 (trước trục) rồi y=40 (sau trục) = vượt trục; cùng phía thì không.
@@ -168,7 +171,9 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (25): 'thay' đánh dấu người (nguoi), đồ nghiêng theo shot (vi_tri.nghieng) → 60.
 // 18/10/2026 (26): nghieng mặc định 0 (khung kết gán None làm Blender sập cả lượt) → 61.
 // 18/10/2026: thêm 9 DÁNG CẢM XÚC (om_mat_khoc, quy_khoc, ngua_mat_gao…) — chỉ thêm mã mới, hình shot cũ không đổi → GIỮ 81, ghi lại băm.
-assert.deepEqual([BAN_DUNG, bam], [81, '338f03379489'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// 18/10/2026: khung màu KẾT khi MÁY đi (chay.ket — chuyển chủ thể / cung / vượt tiền cảnh); chỉ 4 shot tập 122 dùng các cú này và mã khung của chúng đã
+//   đổi theo cú máy (maKhungXam › chuyenDong) → tự dựng lại; hình shot khác không đổi → GIỮ 81, ghi lại băm.
+assert.deepEqual([BAN_DUNG, bam], [81, 'ff76ea637bf5'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

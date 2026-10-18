@@ -81,3 +81,23 @@ export function chamDanDat(canh: ShotDanDat[], phanCanh: CanhDanDat[], khuon: Ap
   const diem = diemKhuon == null ? diemCat : Math.round(diemCat * 0.6 + diemKhuon * 0.4);
   return { diem, diemCat, diemKhuon, cat, canh: canhDiem, ngoaiKhuon, khuon: kq };
 }
+
+/** CỔNG (anh 18/10/2026 "cho vào cổng"): shot không được sinh keyframe / clip khi đoạn chứa nó dẫn dắt sai — điểm cắt VÀO shot dưới ngưỡng,
+ *  hoặc khuôn chứa shot có lỗi đỏ (shot sai vai / lùi bước, hay khuôn thiếu bước bắt buộc). Vàng (thiếu bước "nên có", gợi ý luật) không chặn.
+ *  Gọi từ quy-trinh.ts › chanShot (keyframe) và sinh-video / phu-thuoc (clip) — một luật cho nút trên màn lẫn máy chủ. */
+export const NGUONG_CAT = 70;
+export function chanDanDat(id: number, ds: ShotDanDat[], tap: { phan_canh?: CanhDanDat[]; khuon_chuoi?: ApKhuon[] }, theLoai?: TheLoai | ''): string[] {
+  if (!ds.some((s) => s.id === id)) return [];
+  const k = chamDanDat(ds, tap.phan_canh ?? [], tap.khuon_chuoi ?? [], theLoai);
+  const so = new Map(ds.map((s) => [s.id, s.thu_tu] as const));
+  const out: string[] = [];
+  const cat = k.cat.find((c) => c.sau === id);
+  if (cat && cat.diem < NGUONG_CAT) out.push(`dẫn dắt: cắt #${so.get(cat.truoc)} → #${so.get(id)} chỉ ${cat.diem}/100 (dưới ${NGUONG_CAT}) — ${cat.tru.map((t) => t.chu).join('; ')}`);
+  for (const ap of k.khuon) {
+    const sh = ap.shots.find((s) => s.id === id); if (!sh) continue;
+    if (sh.muc === 'do') out.push(`khuôn "${ap.kh.ten}": ${sh.loi.join('; ')}`);
+    const thieu = ap.thieu.filter((t) => t.muc === 'do');
+    if (thieu.length) out.push(`khuôn "${ap.kh.ten}" thiếu bước bắt buộc ${thieu.map((t) => `"${t.ten}"`).join(', ')} — chèn shot ở ✎ làn 🧭 Khuôn`);
+  }
+  return out;
+}

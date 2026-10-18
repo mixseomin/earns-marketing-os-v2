@@ -4,6 +4,7 @@
 //   chan  = chưa chạy được (server cũng sẽ từ chối) → ô tick khoá, ghi lý do.
 //   luu_y = chạy được nhưng có hệ quả nên biết trước (nối khung lệch, thoại chưa có giọng, đã có bản sẵn…).
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/phu-thuoc.test.mts
+import { chanDanDat } from './dan-dat';
 import { thanhPhanCanh, noiKhungShot, type Canh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, chanVideo, type TapQt, type PhimQt } from './quy-trinh';
 
@@ -17,7 +18,7 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
   const chan: string[] = []; const luu_y: string[] = [];
   if (viec === 'keyframe') {
     if (c.dang_sinh_anh) chan.push('đang sinh ảnh');
-    chan.push(...chanTienKy(o.tap, o.phim, o.ds, o.ds, nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(c, o.tap, nhanVat, { camXucQc: o.phim.camXucQc, ds: o.ds }));
+    chan.push(...chanTienKy(o.tap, o.phim, o.ds, o.ds, nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(c, o.tap, nhanVat, { camXucQc: o.phim.camXucQc, theLoai: o.phim.the_loai, ds: o.ds }));
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');
     if (o.truoc && noiKhungShot(false, o.truoc) && !o.truoc.keyframe_url) luu_y.push(`shot #${o.truoc.thu_tu} liền máy với shot này — sinh keyframe shot #${o.truoc.thu_tu} trước để ảnh này bám đúng chỗ, đúng tư thế`);
@@ -25,6 +26,7 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
   } else {
     if (c.trang_thai === 'dang_sinh') chan.push('đang sinh video');
     chan.push(...chanVideo(c, nhanVat, o.phim.laQc, o.ds ? { hoSo: o.tap.ho_so, ds: o.ds, camXucQc: o.phim.camXucQc } : { camXucQc: o.phim.camXucQc }));
+    if (o.ds) chan.push(...chanDanDat(c.id, o.ds, o.tap as never, o.phim.the_loai as never));   // cổng dẫn dắt — cùng luật với keyframe
     if (noiKhungShot(o.noiKhung, c) && o.ke && !o.ke.keyframe_url) luu_y.push(`shot #${o.ke.thu_tu} chưa có keyframe — clip này sẽ không có khung cuối, nối không liền`);
     if (c.video_url || c.video_cuoi_url) luu_y.push('đã có clip — bản mới thêm vào danh sách phiên bản');
   }

@@ -16,6 +16,7 @@ import type { Series, TapHoSo, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, tomTatNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM, type ShotXem } from './nguoi-xem';
 import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { loiSanPhamShot } from './san-pham-shot';
+import { chanDanDat } from './dan-dat';
 import { kiemNguPhapMay, diCm } from './ngu-phap-may';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe } from './qc-cam-xuc';
@@ -120,7 +121,7 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   return out;
 }
 /** Cổng tiền kỳ cấp SHOT: phân cảnh + mẫu bối cảnh/đối tượng + ảnh mẫu + ngôn ngữ máy (cỡ cảnh). */
-export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[], o?: { camXucQc?: boolean; ds?: ShotQt[] }): string[] {
+export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[], o?: { camXucQc?: boolean; ds?: ShotQt[]; /** dòng phim — khuôn kiểm hợp dòng */ theLoai?: string }): string[] {
   const out: string[] = [];
   // MURCH QC (qc-cam-xuc.ts): kế hoạch biểu cảm đủ người + liền mạch với shot trước — chặn trước khi tiêu tiền keyframe.
   if (o?.camXucQc) {
@@ -133,6 +134,8 @@ export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[], o?: { ca
   out.push(...thieuMau(c, nhanVatPhim));
   out.push(...thanhPhanCanh(c, nhanVatPhim).thieu);
   if (!c.ky_thuat?.co_canh) out.push('chưa chọn cỡ cảnh (shot list: toàn / trung / cận / đặc tả…)');
+  // DẪN DẮT + KHUÔN CHUỖI (dan-dat.ts › chanDanDat): điểm cắt vào shot dưới ngưỡng / khuôn chứa shot có lỗi đỏ → chặn trước khi tiêu tiền.
+  if (o?.ds) out.push(...chanDanDat(c.id, o.ds as never, tap as never, o.theLoai as never));
   return out;
 }
 /** Cổng sản xuất cho VIDEO: keyframe duyệt + GIỌNG TRƯỚC VIDEO (Veo tự đọc thoại lơ lớ, in phụ đề giả — mất $0,40 ngày 09/10/2026). */

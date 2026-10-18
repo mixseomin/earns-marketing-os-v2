@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { chamCat, chamDanDat, type ShotDanDat } from './dan-dat';
+import { chamCat, chamDanDat, chanDanDat, type ShotDanDat } from './dan-dat';
 
 const sh = (id: number, pd: string, vai: string, co: string, nv: number[] = [1], extra: Partial<ShotDanDat> = {}, kt: Record<string, unknown> = {}): ShotDanDat =>
   ({ id, thu_tu: id, phan_doan: pd, nhan_vat: nv, ky_thuat: { vai, co_canh: co, goc: 'ngang', ...kt }, ...extra });
@@ -38,4 +38,13 @@ assert.strictEqual(chamDanDat(ds, [...pc.values()]).diemKhuon, null, 'chưa áp 
 assert.strictEqual(chamDanDat([], []).diem, 100);
 const khongPu = chamDanDat([sh(1, 'A', 'thiet_lap', 'ws'), sh(2, 'A', 'hanh_dong', 'ms', [2]), sh(3, 'A', 'chi_tiet', 'insert', [3])], [...pc.values()]);
 assert.ok(khongPu.canh[0]!.tru.some((t) => t.ma === 'khong_phan_ung') && khongPu.diemCat < 100);
+// CỔNG: cắt dưới ngưỡng chặn đúng shot SAU; khuôn đỏ chặn shot trong khuôn; vàng không chặn; shot lạ không chặn
+const cg = [sh(1, 'A', 'phan_ung', 'cu'), sh(2, 'B', 'hanh_dong', 'mcu', [1], { hanh_dong: 'a; b; c; d' }), sh(3, 'B', 'phan_ung', 'ms', [2])];
+const pcs = [...pc.values()];
+assert.ok(chanDanDat(2, cg, { phan_canh: pcs })[0]!.startsWith('dẫn dắt: cắt #1 → #2'), 'vào cảnh không định vị + dồn nhịp → dưới 70');
+assert.deepStrictEqual(chanDanDat(3, cg, { phan_canh: pcs }), []);
+assert.deepStrictEqual(chanDanDat(99, cg, { phan_canh: pcs }), []);
+const kd = { phan_canh: pcs, khuon_chuoi: [{ khuon: 'phat_hien', shots: { 3: 2 } }] };
+assert.ok(chanDanDat(3, cg, kd).some((x) => x.includes('thiếu bước bắt buộc')), 'khuôn thiếu bước bắt buộc → chặn');
+assert.deepStrictEqual(chanDanDat(3, cg, { phan_canh: pcs, khuon_chuoi: [{ khuon: 'va_mat', shots: { 1: 0, 2: 1, 3: 2 } }] }).filter((x) => x.startsWith('khuôn')).length, 2, 'sai vai (#3 phan_ung ở bước Lộ thân phận) + thiếu Đòn quyết định');
 console.log('✓ dan-dat');

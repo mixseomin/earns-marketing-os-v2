@@ -471,7 +471,7 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${bc.canh.tap_id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   const chan: string[] = [];
   const pq = phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt);
-  const qt = [...chanTienKy(tapQt, pq, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim, { camXucQc: pq.camXucQc, ds: locNhanh(tatCa, bc.canh.nhanh || 'A') })];
+  const qt = [...chanTienKy(tapQt, pq, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim, { camXucQc: pq.camXucQc, ds: locNhanh(tatCa, bc.canh.nhanh || 'A'), theLoai: pq.the_loai })];
   if (qt.length) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);

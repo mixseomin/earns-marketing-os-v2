@@ -156,8 +156,10 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
 /** LỚP GHÉP shot ≥ 2 người (khung_xam.lop): prompt NỀN không người + từng người (FLUX độ sâu riêng → nhân dạng → tách nền xanh) — ghepTungNguoi */
-export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; ref: string[] }[] };
-export type HaiBuoc = { lop?: LopGhep; sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
+/** LoRA mặt nhân vật cho fal flux-lora-depth (xv_nhan_vat.lora) */
+export type LoraVe = { path: string; scale: number };
+export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; ref: string[]; loras?: LoraVe[] }[] };
+export type HaiBuoc = { lop?: LopGhep; /** người trong khung đều có LoRA → bước 1 FLUX LoRA độ sâu vẽ đúng mặt, BỎ bước 2 sửa mặt */ loras?: LoraVe[]; motBuoc?: boolean; sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
 export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
@@ -385,12 +387,18 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           const cam = (mGoc?.vi_tri ?? []).filter((y) => y.cam === v.ten && !y.an).map((y) => bc.nhanVat.find((n) => n.ten === y.ten)).filter((n): n is NhanVat => !!n);
           const ref = [v, ...cam].map((n) => btCanh(n)?.anh_url ?? n.anh_ref[0]).filter((u): u is string => !!u);
           const xanh = `the flat, uniform pure chroma green ${MAU_XANH_NEN} background`;
-          return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref,
-            prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
+          const lo = v.lora?.url ? [{ path: v.lora.url, scale: 1 }] : undefined;
+          return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref, ...(lo ? { loras: lo } : {}),
+            prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
               khoi('hau_canh', `Background: ${xanh} fills everything around the person — no room, no floor line, no shadow on the background.`), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
             prompt2: `EDIT Image 1 (a close crop of ONE person). Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age, outfit)${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the framing, pose, body angle and size exactly as Image 1${h ? ` — ${h}` : ''}; do NOT turn the person toward the camera if Image 1 shows them otherwise. Replace everything around the person with ${xanh}, edge to edge. ${KHONG_CHU}` }];
         }) } : undefined;
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { ...(lop && lop.nguoi.length >= 2 ? { lop } : {}), sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
+      // LoRA (anh 18/10/2026): người trong khung có LoRA → bước 1 vẽ đúng mặt ngay (từ khoá + LoRA), mọi người đều có LoRA thì bỏ bước 2 sửa mặt
+      const nguoiKhung = trongS.filter((v) => v.loai === 'nhan_vat');
+      const coLora = nguoiKhung.filter((v) => v.lora?.url);
+      const loraVe = coLora.map((v) => ({ path: v.lora!.url, scale: 1 }));
+      const tuKhoa = coLora.map((v) => v.lora!.trigger).join(', ');
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { ...(lop && lop.nguoi.length >= 2 ? { lop } : {}), ...(loraVe.length ? { loras: loraVe, motBuoc: coLora.length === nguoiKhung.length } : {}), sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: `${tuKhoa ? `${tuKhoa}. ` : ''}${ghep(kF)}`, prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
@@ -528,6 +536,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
       const lon = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.trong_khung && k.cao_khung_pt >= 30).map((k) => k.nhan_vat));
       const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:') && lon.has(q.ma.slice(4))).length;
       if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
+      if (haiBuoc.motBuoc) { const { chonKeyframe } = await import('./tu-sua-clip'); await chonKeyframe(db, canhId, b1.url, 'LoRA một lượt'); continue; }   // mặt đã đúng nhờ LoRA
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
       const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: haiBuoc.prompt2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
       jobs.push(job);
@@ -561,12 +570,12 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
   };
   const lopPng: string[] = [];
   for (const x of [...lop.nguoi].sort((a, b) => b.xa - a.xa)) {   // xa trước: người gần ghép sau, đè lên
-    const b1 = await buocDoSau(db, canhId, thuTu, { sau: x.sau, prompt1: x.prompt1, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
+    const b1 = await buocDoSau(db, canhId, thuTu, { sau: x.sau, prompt1: x.prompt1, prompt2: '', ref2: [], ...(x.loras ? { loras: x.loras } : {}) }, kt.ti_le ?? '9:16');
     if (!b1.ok) return { ok: false, loi: `${x.ten} (độ sâu): ${b1.loi}` };
     // CẮT – DÁN: sửa nhân dạng trên ẢNH CẮT quanh người (lấp khung) rồi dán về đúng hộp — sửa trên cả khung thì Nano Banana vẽ lại bố cục (#12)
     const cat = await lopCat({ op: 'cat', sau: x.sau, anh: b1.url, le: 0.15 }, 'jpg');
     if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
-    const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
+    const b2 = x.ref.length && !x.loras ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
     if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };
     const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau, goc: b1.url }, 'png');
     if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };
@@ -622,23 +631,27 @@ export const MO_HINH_DO_SAU = 'fal-ai/flux-pro/v1/depth';
 /** BƯỚC 1 khi khung có NGƯỜI: FLUX general + ControlNet Union (InstantX) — độ sâu + khung xương OpenPose cùng lúc. Chỉ độ sâu thì ma-nơ-canh khối elip
  *  bị cắt sát khung thành đồ vật (tập 122 #11: bình đồng cắm cây, không người nào) và bước 2 tự đặt người bừa. Giá $0,075/MP, 720×1280 = 1 MP. */
 export const MO_HINH_XUONG = 'fal-ai/flux-general';
+/** FLUX dev độ sâu + LoRA mặt nhân vật ($0,035 / MP — vẽ 720×1280 = 1 MP; 768×1365 bị làm tròn lên 2 MP, trả gấp đôi) */
+export const MO_HINH_LORA_SAU = 'fal-ai/flux-lora-depth';
 export const GIA_XUONG_CENTS = 7.5;
 /** TẮT 18/10/2026: lượt thử #11 (độ sâu không người + khung xương) ra ảnh nhoè như ảnh ma — FLUX dev Union kém xa FLUX pro depth. Giữ đường để thử
  *  lại khi có model dáng tốt hơn; người trong độ sâu giờ là thân liền (mesh/nguoi.py › than_tron). */
 export const DUNG_XUONG = false;
 const UNION_XUONG = 'InstantX/FLUX.1-dev-Controlnet-Union';
 async function buocDoSau(db: Db, canhId: number, thuTu: number, h: HaiBuoc, tiLe: string): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const mh = h.xuong ? MO_HINH_XUONG : MO_HINH_DO_SAU;
+  const mh = h.loras?.length ? MO_HINH_LORA_SAU : h.xuong ? MO_HINH_XUONG : MO_HINH_DO_SAU;
   const job = await taoJob(db, { nhan: `Keyframe (bước 1 · ${h.xuong ? 'độ sâu + dáng' : 'độ sâu'}) · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${mh}`, request: { dich: 'keyframe_buoc1', prompt: h.prompt1, control: h.sau, ...(h.xuong ? { xuong: h.xuong } : {}) } });
   const doc = tiLe !== '16:9';
-  const kq = h.xuong
+  const kq = h.loras?.length
+    ? await chayAnhFal(MO_HINH_LORA_SAU, { prompt: h.prompt1, image_url: h.sau, loras: h.loras, image_size: doc ? { width: 720, height: 1280 } : { width: 1280, height: 720 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false })
+    : h.xuong
     ? await chayAnhFal(MO_HINH_XUONG, { prompt: h.prompt1, image_size: doc ? { width: 720, height: 1280 } : { width: 1280, height: 720 }, num_images: 1, output_format: 'jpeg', num_inference_steps: 28, guidance_scale: 3.5,
         controlnet_unions: [{ path: UNION_XUONG, controls: [{ control_image_url: h.sau, control_mode: 'depth', conditioning_scale: 0.6 }, { control_image_url: h.xuong, control_mode: 'pose', conditioning_scale: 1 }] }] })
     : await chayAnhFal(MO_HINH_DO_SAU, { prompt: h.prompt1, control_image_url: h.sau, image_size: doc ? { width: 768, height: 1365 } : { width: 1365, height: 768 }, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
   const url = await uploadToR2(`xuong-video/keyframe/${canhId}/buoc1-${Date.now()}.jpg`, kq.data, kq.mimeType);
   if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh bước 1 lên kho' }); return { ok: false, loi: 'không đẩy được ảnh bước 1 lên kho' }; }
-  await xongJob(db, job, { output_url: url, chi_phi_cents: h.xuong ? GIA_XUONG_CENTS : (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5 });
+  await xongJob(db, job, { output_url: url, chi_phi_cents: h.loras?.length ? 3.5 : h.xuong ? GIA_XUONG_CENTS : (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5 });
   return { ok: true, url };
 }
 

@@ -1386,8 +1386,8 @@
      ],
      "huong": 20,
      "den": [
-      150,
-      250,
+      310,
+      310,
       0
      ],
      "trang_phuc": "Com-lê đen ba mảnh",
@@ -1962,8 +1962,8 @@
   },
   "dan_dung": {
    "dien": "Anticipation: Hạ holds for a beat in the open doorway. Action: she strides in toward the camera, chin up, the lawyer a step behind. Reaction: her eyes lock on the far end of the table.",
-   "bo_cuc": "From the boardroom table: a seated board member’s shoulder soft and out of focus in the near foreground at screen-right, the {Cửa đôi mở} beyond, Lâm Hạ striding in through the doorway in a white power suit, Lawyer Trần a step behind her; the camera slides sideways so the shoulder sweeps across the frame",
-   "mo": "a seated board member’s shoulder blurred in the near foreground screen-right; the {Cửa đôi mở} beyond, Hạ in the doorway mid-stride, Trần a step behind",
+   "bo_cuc": "From the boardroom table: a seated board member’s shoulder soft and out of focus in the near foreground at screen-left, the {Cửa đôi mở} beyond, Lâm Hạ striding in through the doorway in a white power suit, Lawyer Trần a step behind her; the camera slides sideways so the shoulder sweeps across the frame",
+   "mo": "a seated board member’s shoulder blurred in the near foreground screen-left; the {Cửa đôi mở} beyond, Hạ in the doorway mid-stride, Trần a step behind",
    "ket": "Hạ standing at the end of the table",
    "huong": "Hạ walks toward the camera, drifting screen-left toward the table",
    "muc_dich": "đảo ngược hình ảnh: từ trắng bị bẩn → trắng quyền lực",
@@ -1991,14 +1991,14 @@
   "may_3d": {
    "tay": true,
    "dat": [
-    -90,
-    175,
+    -80,
+    380,
     120
    ],
    "nhin": [
-    -470,
-    175,
-    135
+    -305,
+    165,
+    125
    ],
    "ong_kinh": 24,
    "khung": [

@@ -392,10 +392,13 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           const ref = [v, ...cam].map((n) => btCanh(n)?.anh_url ?? n.anh_ref[0]).filter((u): u is string => !!u);
           const xanh = `the flat, uniform pure chroma green ${MAU_XANH_NEN} background`;
           const lo = v.lora?.url ? [{ path: v.lora.url, scale: 1 }] : undefined;
+          // TRANG PHỤC CỦA SHOT (vết cà phê, áo đổi…): ảnh sổ người là bộ đồ SẠCH — lớp ghép chỉ bảo "outfit như Image 2" thì vết bẩn mất (#12–#14 Hạ áo
+          // trắng tinh sau khi bị hắt cà phê). Câu trang phục của shot đè lên đồ trong ảnh tham chiếu, như đường một lượt (ghepPromptAnh).
+          const ao = aoCua(v).join('; ');
           return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref, ...(lo ? { loras: lo } : {}),
-            prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
+            prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('trang_thai', ao && `Wearing: ${ao}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
               khoi('hau_canh', `Background: ${xanh} fills everything around the person — no room, no floor line, no shadow on the background.`), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
-            prompt2: `EDIT Image 1 (a close crop of ONE person). Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age, outfit)${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the framing, pose, body angle and size exactly as Image 1${h ? ` — ${h}` : ''}; do NOT turn the person toward the camera if Image 1 shows them otherwise. Replace everything around the person with ${xanh}, edge to edge. ${KHONG_CHU}` }];
+            prompt2: `EDIT Image 1 (a close crop of ONE person). Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age${ao ? '' : ', outfit'})${ao ? `, CLOTHING IN THIS SHOT (overrides the clothing in Image 2): ${ao}` : ''}${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the framing, pose, body angle and size exactly as Image 1${h ? ` — ${h}` : ''}; do NOT turn the person toward the camera if Image 1 shows them otherwise. Replace everything around the person with ${xanh}, edge to edge. ${KHONG_CHU}` }];
         }) } : undefined;
       // LoRA (anh 18/10/2026): người trong khung có LoRA → bước 1 vẽ đúng mặt ngay (từ khoá + LoRA), mọi người đều có LoRA thì bỏ bước 2 sửa mặt
       const nguoiKhung = trongS.filter((v) => v.loai === 'nhan_vat');

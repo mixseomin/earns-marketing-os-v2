@@ -291,7 +291,19 @@ TU_THE_NGUOI = {
     'cam_dien_thoai': {'vai_p': (-12, 10, 0), 'khuyu_p': (-110, 0, 0), 'dau': (22, 0, 0)},                     # nhìn xuống điện thoại trong tay
     'gio_cao': {'vai_p': (-150, 12, 0), 'khuyu_p': (-15, 0, 0), 'lung': (-5, 0, 0)},                            # giơ cao cho cả phòng thấy, ngả nhẹ ra sau
     'dua_truoc_mat': {'vai_p': (-70, 12, 0), 'khuyu_p': (-55, 0, 0)},
-    'lac_treo': {'vai_p': (-105, 10, 0), 'khuyu_p': (-15, 0, 0)},                                             # chìa tay ngang vai, món TREO lủng lẳng ngang mặt người đối diện (#11 thẻ đeo)                                           # đưa món lên trước mặt người đối diện
+    'lac_treo': {'vai_p': (-105, 10, 0), 'khuyu_p': (-15, 0, 0)},                                             # chìa tay ngang vai, món TREO lủng lẳng ngang mặt người đối diện (#11 thẻ đeo)
+    # DÁNG CẢM XÚC (anh 18/10/2026 "hỉ nộ ái ố đầy đủ — tư thế khi diễn biểu cảm"): LoRA chỉ học MẶT, dáng thân do khung 3D quyết; đi kèm nét mặt
+    # (bieu_mat) của cùng shot. Tay hướng vào thân: khuỷu z dương phía phải 'p' / âm phía trái 't' (như khoanh_tay).
+    'om_mat_khoc': {'lung': (14, 0, 0), 'dau': (22, 0, 0), 'vai_t': (-50, 10, 0), 'vai_p': (-50, -10, 0), 'khuyu_t': (-135, 0, -50), 'khuyu_p': (-135, 0, 50)},  # hai tay ôm mặt khóc, cúi
+    'om_nguc_khoc': {'lung': (24, 0, 0), 'nguc': (8, 0, 0), 'dau': (12, 0, 0), 'vai_p': (-28, 4, 0), 'khuyu_p': (-118, 0, 28), 'vai_t': (-30, -4, 0)},        # gập người, tay ấn ngực
+    'quy_khoc': {'hong_cao': 0.27, 'dui_t': (8, 0, 0), 'goi_t': (95, 0, 0), 'dui_p': (8, 0, 0), 'goi_p': (95, 0, 0), 'lung': (30, 0, 0), 'dau': (20, 0, 0),
+                 'vai_t': (-45, -5, 0), 'vai_p': (-45, 5, 0)},                                                  # quỵ hai gối, gục, tay buông trước
+    'ngua_mat_gao': {'lung': (-8, 0, 0), 'dau': (-35, 0, 0), 'vai_t': (4, -14, 0), 'vai_p': (4, 14, 0)},      # ngửa mặt gào khóc, tay buông thõng
+    'chi_tay_gian': {'lung': (8, 0, 0), 'vai_p': (-85, 4, 0), 'khuyu_p': (-6, 0, 0)},                          # chồm tới chỉ thẳng tay
+    'lui_so': {'lung': (-10, 0, 0), 'dau': (-8, 0, 0), 'vai_t': (-50, -12, 0), 'vai_p': (-50, 12, 0), 'khuyu_t': (-60, 0, 0), 'khuyu_p': (-60, 0, 0)},  # lùi lại, hai tay đưa lên che
+    'om_nguoi': {'lung': (10, 0, 0), 'vai_t': (-30, -4, 0), 'vai_p': (-30, 4, 0), 'khuyu_t': (-110, 0, -45), 'khuyu_p': (-110, 0, 45)},  # tự ôm lấy mình
+    'tay_che_mieng': {'vai_t': (-45, 10, 0), 'vai_p': (-45, -10, 0), 'khuyu_t': (-140, 0, -50), 'khuyu_p': (-140, 0, 50)},  # hai tay che miệng (sốc / mừng)
+    'tay_tran_cui': {'lung': (20, 0, 0), 'dau': (15, 0, 0), 'vai_p': (-62, -6, 0), 'khuyu_p': (-150, 0, 18)},  # cúi gập, tay áp trán (cười trong đau)
     'hat': {'vai_p': (-90, 5, 0), 'khuyu_p': (-8, 0, 0), 'lung': (10, 0, 0), 'nguc': (0, 0, 12)},               # hất / ném mạnh ra trước
     'giat': {'vai_p': (-97, 4, 0), 'khuyu_p': (-12, 0, 0), 'lung': (12, 0, 0), 'nguc': (0, 0, 15)},             # vươn tay giật
     'chong_ban': {'lung': (28, 0, 0), 'nguc': (10, 0, 0), 'vai_t': (-85, -10, 0), 'vai_p': (-85, 10, 0),

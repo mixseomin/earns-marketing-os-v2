@@ -99,6 +99,9 @@ const DANG_EN: Record<string, string> = {
   hat: 'standing, flinging {mon} forward', giat: 'standing, reaching out to snatch', khoanh_tay: 'standing with arms crossed', gioi_thieu: 'standing, one open hand extended toward the person beside',
   thuyet_trinh: 'standing, one hand open toward the screen', cam_dien_thoai: 'standing, looking down at {mon} in hand', quy_mot_goi: 'kneeling on one knee',
   mc_di_bo: 'walking', mc_sai_buoc: 'striding forward', mc_quy_xuong: 'kneeling down', mc_dung_day: 'rising from a chair',
+  om_mat_khoc: 'standing, head bowed, both hands covering the face, crying', om_nguc_khoc: 'bent forward, one hand pressed hard against the chest, crying', quy_khoc: 'collapsed on both knees, slumped forward, crying',
+  ngua_mat_gao: 'standing, head thrown back, crying out loud, arms hanging limp', chi_tay_gian: 'leaning forward, pointing a finger hard at someone', lui_so: 'stepping back, both hands raised defensively',
+  om_nguoi: 'standing, arms wrapped tightly around herself', tay_che_mieng: 'standing, both hands over the mouth', tay_tran_cui: 'bent forward, one hand pressed to the forehead',
 };
 export function tuTheEn(v: { nam?: boolean; dien?: string[] }, mon = 'the item'): string {
   if (v.nam) return 'lying down';

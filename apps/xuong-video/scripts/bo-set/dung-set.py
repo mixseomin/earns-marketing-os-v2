@@ -1301,6 +1301,9 @@ DONG_TAC = {
     'gio_cao': 'giơ cao món cho cả phòng thấy', 'dua_truoc_mat': 'đưa món lên trước mặt người đối diện', 'lac_treo': 'chìa tay ngang vai, món treo lủng lẳng ngang mặt người đối diện', 'hat': 'hất / ném mạnh ra trước',
     'giat': 'vươn tay giật', 'chong_ban': 'hai tay chống mặt bàn, ngẩng nhìn', 'cui_nguoi': 'cúi sát về phía trước', 'om_thung': 'ôm thùng trước bụng',
     'khoanh_tay': 'khoanh tay', 'gioi_thieu': 'đưa tay giới thiệu người bên cạnh', 'thuyet_trinh': 'tay mở về phía màn chiếu',
+    # DÁNG CẢM XÚC (mesh/nguoi.py › TU_THE_NGUOI, đi cùng nét mặt bieu_cam của shot)
+    'om_mat_khoc': 'hai tay ôm mặt khóc, cúi đầu', 'om_nguc_khoc': 'gập người, tay ấn ngực khóc', 'quy_khoc': 'quỵ hai gối gục xuống khóc', 'ngua_mat_gao': 'ngửa mặt gào khóc, tay buông thõng',
+    'chi_tay_gian': 'chồm tới chỉ thẳng tay giận', 'lui_so': 'lùi lại, hai tay đưa lên che', 'om_nguoi': 'tự ôm lấy mình', 'tay_che_mieng': 'hai tay che miệng', 'tay_tran_cui': 'cúi gập, tay áp trán',
     # MOCAP THẬT (kho CMU, mesh/mocap.py › MOCAP): 'mc_<ten>[@a-b]'
     'mc_cai_nhau': 'mocap: cãi nhau, vung tay giận', 'mc_giai_thich': 'mocap: nói chuyện, giải thích bằng tay', 'mc_chong_ghe': 'mocap: chống tay, nhìn trừng',
     'mc_quy_xuong': 'mocap: quỳ xuống', 'mc_uong': 'mocap: uống', 'mc_chi_tay': 'mocap: chỉ tay / vẫy', 'mc_dung_day': 'mocap: đứng dậy khỏi ghế',

@@ -12,7 +12,9 @@ import { dauBoiCanh } from './prompt-khoi';
 export type CauHoi = { ma: string; hoi: string; loai: LoaiLoiKhung; phu_thuoc?: string };
 /** DÁNG ở khung mở (mã động tác dung-set.py › DONG_TAC) → câu hỏi nhìn được. Chỉ dáng rõ trên hình; mocap 'mc_*' (đi, chạy) không hỏi. */
 export const DANG: Record<string, string> = { chong_ban: 'chống hai tay lên mặt bàn, người đổ về trước', cui_nguoi: 'cúi người về phía trước', om_thung: 'ôm thùng trước bụng', cam_truoc: 'cầm món đồ trước ngực',
-  khoanh_tay: 'khoanh tay', thuyet_trinh: 'một tay mở về phía màn chiếu', gioi_thieu: 'đưa tay giới thiệu người bên cạnh', gio_cao: 'giơ cao món đồ', lac_treo: 'chìa tay, món đồ treo lủng lẳng ngang mặt người đối diện', hat: 'hất mạnh món đồ ra trước', dua_truoc_mat: 'đưa món đồ lên trước mặt người đối diện' };
+  khoanh_tay: 'khoanh tay', thuyet_trinh: 'một tay mở về phía màn chiếu', gioi_thieu: 'đưa tay giới thiệu người bên cạnh', gio_cao: 'giơ cao món đồ', lac_treo: 'chìa tay, món đồ treo lủng lẳng ngang mặt người đối diện', hat: 'hất mạnh món đồ ra trước', dua_truoc_mat: 'đưa món đồ lên trước mặt người đối diện',
+  om_mat_khoc: 'hai tay ôm mặt, cúi đầu', om_nguc_khoc: 'gập người, tay ấn ngực', quy_khoc: 'quỵ hai gối, gục người', ngua_mat_gao: 'ngửa mặt ra sau, tay buông thõng', chi_tay_gian: 'chỉ thẳng tay về phía trước',
+  lui_so: 'lùi lại, hai tay đưa lên che', om_nguoi: 'hai tay tự ôm lấy mình', tay_che_mieng: 'hai tay che miệng', tay_tran_cui: 'cúi người, một tay áp trán' };
 const ngan = (t: string, n = 90) => { const x = t.trim().replace(/\s+/g, ' '); return x.length > n ? `${x.slice(0, n).replace(/[\s,;]+\S*$/, '')}…` : x; };
 
 export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'dan_dung' | 'may_3d'>; nhanVat: NhanVat[]; may?: May3d | null }): CauHoi[] {

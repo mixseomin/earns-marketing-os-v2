@@ -43,8 +43,9 @@ export async function catNen(urlAnh: string, khoa: string): Promise<string | nul
     if (!r.ok) return null;
     const vao = join(thu, 'vao.png'); const ra = join(thu, 'ra.png');
     await writeFile(vao, Buffer.from(await r.arrayBuffer()));
-    // chromakey (YUV, mép mềm) rồi despill gỡ viền xanh bám tóc / vai; giữ RGBA.
-    await run('ffmpeg', ['-hide_banner', '-nostats', '-y', '-i', vao, '-vf', `format=rgba,chromakey=0x00FF00:0.22:0.10,despill=type=green:mix=0.6:expand=0.3,format=rgba`, ra], { timeout: 60_000 });
+    // chromakey (YUV, mép mềm) rồi despill gỡ viền xanh bám tóc / vai; giữ RGBA. expand=0: expand 0,3 trừ xanh cả trên màu trung tính → áo trắng
+    // hoá hồng (18/10/2026 tổng tài #12/#14: (228,230,225) → (228,199,224)); mix 0,5 + expand 0 giữ trắng (228,226,224).
+    await run('ffmpeg', ['-hide_banner', '-nostats', '-y', '-i', vao, '-vf', `format=rgba,chromakey=0x00FF00:0.22:0.10,despill=type=green:mix=0.5:expand=0,format=rgba`, ra], { timeout: 60_000 });
     return await uploadToR2(`xuong-video/${khoa}-${randomUUID()}.png`, await readFile(ra), 'image/png');
   } catch (e) { console.error('[cat-nen] hỏng', urlAnh, e); return null; }
   finally { await rm(thu, { recursive: true, force: true }).catch(() => {}); }

@@ -181,7 +181,7 @@ shot('4.6', C4, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', '
      { 'dien': "Anticipation: Vivian's smug smile is still on her face. Action: it freezes, then cracks as Hạ's words land. Reaction: her eyes go wide on Hạ, her empty hand still curled in front of her chest.", 'huong': 'Vivian looks almost straight into the lens — at Hạ.','bo_cuc': 'Close-up on Vivian from Hạ’s point of view, the boardroom soft behind her, her empty curled hand at the bottom edge', 'mo': 'Vivian’s smug smile frozen', 'ket': 'Vivian’s eyes wide, the smile gone', 'muc_dich': 'phản ứng của người bị vả mặt'},
      'Cận mặt Vivian: nụ cười đắc ý đông cứng rồi vỡ ra, mắt mở to nhìn Hạ, bàn tay trống vẫn khum trước ngực', [],
      [bc(VIV, 'dac_y', 'soc')],
-     {'tay': True, 'qua_truc': True, 'dat': [36, 615, 155], 'nhin': [110, 745, 145], 'ong_kinh': 85, 'khung': [VIV],   # POV Hạ thật: máy trên đường Vivian→Hạ cách 1,5 m, tầm mắt Hạ — Vivian nhìn gần thẳng ống kính (qua_truc: góc riêng, không kéo hướng máy chủ của cảnh)
+     {'tay': True, 'qua_truc': True, 'dat': [36, 615, 150], 'nhin': [110, 745, 133], 'ong_kinh': 85, 'khung': [VIV],   # POV Hạ thật: máy trên đường Vivian→Hạ cách 1,5 m, tầm mắt Hạ — Vivian nhìn gần thẳng ống kính (qua_truc: góc riêng, không kéo hướng máy chủ của cảnh)
       'vi_tri': [vt(VIV, [110, 745, 0], -30, dien=['cam_truoc']), vt(HA, [-200, 200, 0], 160, an=True), vt(THAN, [0, 740, 0], 0, an=True)]},
      [VIV, PH])
 

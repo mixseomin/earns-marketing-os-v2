@@ -1611,22 +1611,25 @@ if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cả
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
 def ngam_lai(s, cam, sh, khoi, ket=False):
     """Điểm nhìn mới (cm) khi máy đặt tay trượt chủ thể đầu tiên (sh['bat_buoc'][0]), None nếu chủ thể còn trong khung. Món = tâm hộp; người = MẶT
-    (đầu nhích về phía mặt quay — `huong`/`huong_den` lúc kết) khi ống ≥ 60 mm, ngực khi rộng hơn. Khung KẾT kiểm chặt hơn (mặt trong 0,2–0,8 bề
+    (đầu nhích về phía mặt quay — `huong`/`huong_den` lúc kết) khi ống ≥ 60 mm, ngực khi rộng hơn. Khung KẾT kiểm chặt hơn (mặt trong 0,25–0,75 bề
     ngang): máy đẩy vào gần thì khung dọc 9:16 hẹp, mặt quay nghiêng trôi ra mép (#24 kết chỉ còn tai + gáy Thần)."""
     from bpy_extras.object_utils import world_to_camera_view
-    cn = sh['bat_buoc'][0]; dich = None; bpy.context.view_layer.update()
+    cn = sh['bat_buoc'][0]; dich = mat_ = None; bpy.context.view_layer.update()
     if cn in NGUOI:
         n_ = NGUOI[cn]
         if cam.data.lens >= 60:
             v_nv = next((v for v in sh.get('nhan_vat', []) if v.get('ten') == cn), {})
             h = math.radians((v_nv.get('huong_den', v_nv.get('huong', 0)) if ket else v_nv.get('huong', 0)) or 0)
-            dich = n_['dau'].matrix_world.translation + Vector((0.5 * n_['L']['dau'] * CM * math.sin(h), -0.5 * n_['L']['dau'] * CM * math.cos(h), 0.6 * n_['L']['dau'] * CM))
-        else: dich = n_['nguc'].matrix_world.translation
+            # mặt = đầu nhích nửa chiều dài đầu theo hướng mặt; ngắm vào điểm TRƯỚC mặt thêm một chiều dài đầu = chừa khoảng nhìn (lead room) — cận mặt quay
+            # nghiêng mà ngắm giữa mặt thì khung dọc hẹp cắt mất mũi (#24 kết)
+            Ld = n_['L']['dau'] * CM; fw = Vector((math.sin(h), -math.cos(h), 0)); goc_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * Ld))
+            mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 1.5 * Ld
+        else: mat_ = dich = n_['nguc'].matrix_world.translation
     else:
         mo = [o for o in khoi if getattr(o, 'type', '') == 'MESH' and (o.name == f'NV {cn}' or o.name.startswith(f'NV {cn}·'))]
-        if mo: dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
+        if mo: mat_ = dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
     if dich is None: return None
-    v_ = world_to_camera_view(s, cam, dich); bien = 0.2 if ket else 0.12
+    v_ = world_to_camera_view(s, cam, mat_); bien = 0.25 if ket else 0.12
     if bien < v_.x < 1 - bien and 0.12 < v_.y < 0.88 and v_.z > 0: return None
     return [round(x / CM, 1) for x in dich]
 

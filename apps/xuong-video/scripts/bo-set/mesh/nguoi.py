@@ -459,4 +459,23 @@ def ap_dien(n, ds, t, giay=4.0):
                 z0 = n['hong'].location.z; n['hong'].location.z = z0 + (g * n['cao'] - z0) * k; continue
             e = n[khop].rotation_euler; mo = (math.degrees(e.x), math.degrees(e.y), math.degrees(e.z))
             n[khop].rotation_euler = tuple(math.radians(mo[i] + (g[i] - mo[i]) * k) for i in range(3))
+    tay_ap(n, any(d in TAY_AP for d in dang))
     return dang
+
+# BÀN TAY ÁP MẶT PHẲNG (dáng chống bàn): xương cổ tay người MPFB không ràng buộc thì nối thẳng cẳng tay — bàn tay buông đứng lơ lửng trên mặt bàn
+# (tập 122 #25 "hand pressed flat on the table" thành tay dựng đứng). Cổ tay nhắm một điểm 15 cm trước cổ tay theo hướng mặt người, nằm ngang;
+# trục X xương cổ tay MPFB hướng lên → lòng bàn tay úp xuống (thử 18/10/2026: UP_Z ngửa lòng, UP_X úp phẳng).
+TAY_AP = {'chong_ban'}
+def tay_ap(n, bat):
+    rig = bpy.data.objects.get(f"THAN_RIG {n['ten']}")
+    if not rig: return
+    if bat: bpy.context.view_layer.update()
+    for p, bx in (('t', 'L'), ('p', 'R')):
+        w = rig.pose.bones.get(f'wrist.{bx}')
+        if not w or f'cotay_{p}' not in n: continue
+        for c in [c for c in w.constraints if c.name == 'tay_ap']: w.constraints.remove(c)
+        if not bat: continue
+        e = n.get(f'ap_{p}') or _khop(f"{n['ten']}.ap_{p}", n[f'cotay_{p}'], (0, 0, 0)); n[f'ap_{p}'] = e
+        f = n['goc'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); f.z = 0; f.normalize()
+        e.matrix_world.translation = (rig.matrix_world @ w.head) + f * 0.15 * n['cao'] / 175 * (n['goc'].matrix_world.to_scale()[0] * 100)
+        c = w.constraints.new('TRACK_TO'); c.name = 'tay_ap'; c.target = e; c.track_axis = 'TRACK_Y'; c.up_axis = 'UP_X'

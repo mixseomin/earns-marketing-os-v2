@@ -16,7 +16,7 @@ import { Chon } from './chon';
 import { useNho } from './nho';
 import { KHUON_CHUOI } from '@/lib/xuong-video/khuon-chuoi';
 import { HIEU_UNG_KHAN_GIA, hieuUngKG } from '@/lib/xuong-video/khan-gia';
-import { GOI_THE_LOAI, goiTheoKey, kiemGoi } from '@/lib/xuong-video/goi-the-loai';
+import { GOI_THE_LOAI, DIGEN_NHOM, DIGEN_KHONG_TINH, goiTheoKey, kiemGoi } from '@/lib/xuong-video/goi-the-loai';
 
 // THƯ VIỆN theo YDNI (anh 18/10/2026 "tổ chức lại thư viện cho dễ tìm, dễ truy cập"): ô tìm luôn trên đầu (tìm cả tên Việt, tên ngành tiếng Anh,
 // mã, mô tả — mọi mục cùng lúc); mục lục trái theo câu hỏi người làm phim mang tới, MỖI LẦN MỘT MỤC (không chồng dọc 300 thẻ); thẻ gọn một tên +
@@ -54,7 +54,15 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
     const dau = tieuDe ? <div className="xv-mono" style={{ margin: '10px 0 4px', textTransform: 'uppercase' }}>{MUC_TV.find((x) => x.key === m)?.ic} {MUC_TV.find((x) => x.key === m)?.ten}</div> : null;
     if (m === 'luat') return luat.length ? <div key={m}>{dau}<LuoiThe>{luat.map((l) => <TheMuc key={l.key} ten={l.ten} ma={`luat.${l.key}`} moTa={l.luat} ten2={l.nganh?.ten_nganh} />)}</LuoiThe></div> : null;
     if (m === 'khuon_chuoi') return khuon.length ? <div key={m}>{dau}<LuoiThe rong={320}>{khuon.map((k) => <TheKhuon key={k.key} k={k} />)}</LuoiThe></div> : null;
-    if (m === 'goi') return goi.length ? <div key={m}>{dau}<LuoiThe>{goi.map((g) => <TheMuc key={g.key} ten={`${g.ic} ${g.ten}`} ma={`goi.${g.key}`} moTa={`${g.mo_ta} · ${g.ti_le} · ${g.do_dai_s[0]}–${g.do_dai_s[1]}s`} ten2={g.nhom} />)}</LuoiThe></div> : null;
+    if (m === 'goi') {
+      if (!goi.length) return null;
+      const nhomGoi = [...new Set(goi.map((g) => g.nhom))];
+      const tinh = DIGEN_NHOM.filter((n) => !DIGEN_KHONG_TINH.includes(n)); const phu = tinh.filter((n) => GOI_THE_LOAI.some((g) => g.digen?.includes(n)));
+      return <div key={m}>{dau}
+        <div className="xv-mono" title={`Đối chiếu chợ skill Digen (xem 18/10/2026) — mỗi nhóm loại video ngành đang làm có ít nhất một gói.\nGhi chép: apps/xuong-video/tham-khao/digen.md${tinh.length > phu.length ? `\nChưa phủ: ${tinh.filter((n) => !phu.includes(n)).join(', ')}` : ''}`} style={{ fontSize: 11, margin: '0 0 6px' }}>phủ {phu.length}/{tinh.length} nhóm loại video của ngành (đối chiếu Digen)</div>
+        {nhomGoi.map((n) => <div key={n}><div className="xv-mono" style={{ fontSize: 10.5, margin: '8px 0 4px', color: 'var(--fg-3)' }}>{n}</div><LuoiThe>{goi.filter((g) => g.nhom === n).map((g) => <TheMuc key={g.key} ten={`${g.ic} ${g.ten}`} ma={`goi.${g.key}`} moTa={`${g.mo_ta} · ${g.ti_le} · ${g.do_dai_s[0]}–${g.do_dai_s[1]}s`} ten2={g.digen?.length ? `Digen: ${g.digen.join(', ')}` : undefined} />)}</LuoiThe></div>)}
+      </div>;
+    }
     if (m === 'khan_gia') return kg.length ? <div key={m}>{dau}<LuoiThe>{kg.map((h) => <TheMuc key={h.key} ten={`${h.ic} ${h.ten}`} ma={`khan_gia.${h.key}`} moTa={h.mo_ta} ten2={h.nganh.ten_nganh} />)}</LuoiThe></div> : null;
     if (m === 'beat') return q ? null : <div key={m}>{dau}<BeatKhoi /></div>;
     if (m === 'khuon_shot') return q ? null : <div key={m}>{dau}<KhuonShotKhoi /></div>;

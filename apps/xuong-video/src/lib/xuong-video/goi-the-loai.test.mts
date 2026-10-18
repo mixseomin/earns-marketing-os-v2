@@ -24,5 +24,10 @@ assert.strictEqual(khoaKhung('phim', 'hoat_hinh', 'khong_co'), 'phim');
 // khối dặn Claude
 assert.ok(vanGoi('phim_doc_tong_tai').includes('Ức chế') && vanGoi('phim_doc_tong_tai').includes('60–120 giây'));
 assert.strictEqual(vanGoi(''), '');
+// PHỦ ĐỦ loại video ngành đang làm (chợ skill Digen 18/10/2026): mọi nhóm làm video có ít nhất một gói
+import { DIGEN_NHOM, DIGEN_KHONG_TINH } from './goi-the-loai';
+const sot = DIGEN_NHOM.filter((n) => !DIGEN_KHONG_TINH.includes(n) && !GOI_THE_LOAI.some((g) => g.digen?.includes(n)));
+assert.deepStrictEqual(sot, [], `nhóm Digen chưa có gói: ${sot.join(', ')}`);
+for (const g of GOI_THE_LOAI) for (const n of g.digen ?? []) assert.ok((DIGEN_NHOM as readonly string[]).includes(n), `${g.key}: nhóm Digen lạ "${n}"`);
 const sanSang = GOI_THE_LOAI.filter((g) => kiemGoi(g).sanSang).map((g) => g.key);
 console.log(`✓ goi-the-loai (${GOI_THE_LOAI.length} gói · sẵn sàng: ${sanSang.join(', ')})`);

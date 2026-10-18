@@ -340,6 +340,35 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
     { ten: 'Bằng chứng', mo_ta: 'Nhân chứng, tư liệu, hình thật — mỗi mảnh một shot rõ', phan: 0.33 }, { ten: 'Phát hiện', mo_ta: 'Điều bất ngờ làm đổi cách hiểu', phan: 0.2 },
     { ten: 'Ý nghĩa', mo_ta: 'Trả lời câu hỏi mở đầu + điều khán giả mang về', phan: 0.15 },
   ] },
+  // MV: hình theo cấu trúc bài hát (intro–verse–chorus–bridge–outro), điệp khúc là hình mạnh nhất, cắt theo phách.
+  mv: { ten: 'MV ca nhạc (intro → verse → chorus → verse 2 → chorus → bridge → chorus cuối → outro)', beats: [
+    { ten: 'Intro', mo_ta: 'Thế giới / nhân vật của bài, hình gây tò mò', phan: 0.08 }, { ten: 'Verse 1', mo_ta: 'Kể tình huống, hình gần, ít cắt', phan: 0.17 },
+    { ten: 'Chorus', mo_ta: 'Hình mạnh nhất / vũ đạo / bối cảnh lớn, cắt theo phách', phan: 0.15 }, { ten: 'Verse 2', mo_ta: 'Tình huống đi tiếp, thêm chi tiết mới', phan: 0.15 },
+    { ten: 'Chorus 2', mo_ta: 'Lặp hình điệp khúc, lớn hơn', phan: 0.13 }, { ten: 'Bridge', mo_ta: 'Đổi màu / đổi nơi, khoảnh khắc cảm xúc', phan: 0.12 },
+    { ten: 'Chorus cuối', mo_ta: 'Cao trào hình ảnh', phan: 0.14 }, { ten: 'Outro', mo_ta: 'Hình đọng lại', phan: 0.06 },
+  ] },
+  // Video YouTuber (hướng dẫn nhà sáng tạo của YouTube: giữ chân trong những giây đầu, chương mục, kêu gọi cuối).
+  video_youtube: { ten: 'Video YouTuber (móc → hứa giá trị → các phần → tóm lại → kêu gọi)', beats: [
+    { ten: 'Móc', mo_ta: 'Kết quả / câu hỏi / cảnh mạnh nhất trong 5–15 giây đầu', phan: 0.08 }, { ten: 'Hứa giá trị', mo_ta: 'Video này cho người xem điều gì, vì sao nên xem hết', phan: 0.07 },
+    { ten: 'Phần 1', mo_ta: 'Ý chính đầu tiên, có minh hoạ', phan: 0.22 }, { ten: 'Phần 2', mo_ta: 'Ý chính tiếp theo', phan: 0.22 }, { ten: 'Phần 3', mo_ta: 'Ý mạnh nhất để cuối', phan: 0.22 },
+    { ten: 'Tóm lại', mo_ta: 'Nhắc lại điều người xem mang về', phan: 0.1 }, { ten: 'Kêu gọi', mo_ta: 'Theo dõi / xem video sau / bình luận', phan: 0.09 },
+  ] },
+  // Tin tức: kim tự tháp ngược của báo chí — điều quan trọng nhất trước, chi tiết sau, nguồn rõ.
+  tin_tuc: { ten: 'Tin ngắn (kim tự tháp ngược: điều quan trọng nhất → chi tiết → bối cảnh → nguồn)', beats: [
+    { ten: 'Tít + hình chính', mo_ta: 'Chuyện gì xảy ra, ở đâu, khi nào — một câu', phan: 0.2 }, { ten: 'Chi tiết quan trọng', mo_ta: 'Ai, bao nhiêu, vì sao', phan: 0.35 },
+    { ten: 'Bối cảnh', mo_ta: 'Trước đó đã có gì, ảnh hưởng tới ai', phan: 0.3 }, { ten: 'Nguồn + tiếp theo', mo_ta: 'Nguồn tin, điều cần theo dõi', phan: 0.15 },
+  ] },
+  // Explainer (Mayer — Multimedia Learning: hình đúng lời, bỏ chữ thừa, chia nhỏ từng bước).
+  giai_thich: { ten: 'Explainer (vấn đề → cách hoạt động → ví dụ → tóm tắt)', beats: [
+    { ten: 'Vấn đề / câu hỏi', mo_ta: 'Điều người xem đang thắc mắc, một câu', phan: 0.15 }, { ten: 'Ý chính', mo_ta: 'Câu trả lời ngắn nhất trước', phan: 0.15 },
+    { ten: 'Cách hoạt động', mo_ta: 'Chia từng bước, mỗi bước một hình', phan: 0.35 }, { ten: 'Ví dụ', mo_ta: 'Một ví dụ đời thường', phan: 0.2 }, { ten: 'Tóm tắt', mo_ta: 'Nhắc lại ý chính + nên làm gì', phan: 0.15 },
+  ] },
+  // Bài học (Gagné — Nine Events of Instruction, gộp còn 7 nhịp cho video).
+  bai_hoc: { ten: 'Bài học (gây chú ý → mục tiêu → gợi điều đã biết → giảng → ví dụ → thực hành → tóm tắt)', beats: [
+    { ten: 'Gây chú ý', mo_ta: 'Một câu hỏi / tình huống thật', phan: 0.06 }, { ten: 'Mục tiêu', mo_ta: 'Học xong làm được gì', phan: 0.06 },
+    { ten: 'Gợi điều đã biết', mo_ta: 'Nối với kiến thức người học có sẵn', phan: 0.08 }, { ten: 'Giảng', mo_ta: 'Nội dung chia nhỏ, hình minh hoạ đúng lời', phan: 0.35 },
+    { ten: 'Ví dụ', mo_ta: 'Làm mẫu một lần', phan: 0.18 }, { ten: 'Thực hành', mo_ta: 'Câu hỏi / bài tập người học tự thử', phan: 0.15 }, { ten: 'Tóm tắt', mo_ta: 'Nhắc lại + bước tiếp theo', phan: 0.12 },
+  ] },
   // Quảng cáo: `phan` = tỉ lệ thời lượng của beat (cộng = 1) → tách cảnh biết beat nào được mấy giây với thời lượng mục tiêu bất kỳ.
   quang_cao: { ten: 'Quảng cáo (hook → nỗi đau → giải pháp → bằng chứng → ưu đãi)', beats: [
     { ten: 'Hook', mo_ta: '1–3 giây đầu: HÌNH gây dừng tay + chữ trên màn + câu chạm đúng người xem', phan: 0.1 }, { ten: 'Nỗi đau', mo_ta: 'Vấn đề họ gặp mỗi ngày, thấy bằng mắt', phan: 0.15 },

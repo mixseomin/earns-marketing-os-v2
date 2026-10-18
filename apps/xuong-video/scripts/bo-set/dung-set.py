@@ -1687,7 +1687,7 @@ def cat_dau(cam, sh, nhin=None):
     (#14 kết cắt mất đầu Vivian, lòi ruột tóc đen). Gọi lại mỗi lần máy dời (khung kết / giữa)."""
     cam.data.clip_start = 0.002
     nh_ = Vector(nhin or sh['may']['nhin']) * CM - cam.location; d_dich = nh_.length
-    chu = set(sh['may'].get('khung') or []) or {v_['ten'] for v_ in sh.get('nhan_vat', [])}
+    chu = set(sh.get('bat_buoc') or [])   # chủ thể = bat_buoc (đầu vào Blender không mang may.khung — đọc khung thì rơi về MỌI người, #3 cắt mất trọn Hạ tiền cảnh)
     def con(o):   # người khung kết đã dọn (bpy xoá object) mà NGUOI còn trỏ → ReferenceError khi đọc .name
         try: return o is not None and o.name in bpy.data.objects
         except ReferenceError: return False

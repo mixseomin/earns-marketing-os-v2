@@ -196,7 +196,11 @@ export function vatChanTienCanh(c: Pick<Canh, 'may_3d' | 'khung_xam'> & Partial<
   // TÊN TIẾNG ANH của đạo cụ (danh từ chính trong vế đầu mô tả: "Plain brown cardboard office box" → box): tên đồ tiếng Việt không khớp chữ bố cục tiếng
   // Anh — "Thùng đồ cá nhân" với "box edge in foreground" bị báo vật chắn không được nhắc (#11)
   const tenEn = (t: string) => { const m = nhanVat.find((v) => v.ten === t)?.mo_ta; if (!m) return []; const dau = (m.split(/,|:| with | on | in /)[0] ?? '').trim().split(/\s+/); return [dau[dau.length - 1] ?? ''].filter((x) => x.length >= 3); };
-  return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !ct.includes(t.ten) && ![...(set ? tenGoi(t.ten, set) : [t.ten]), ...tenEn(t.ten)].some((g) => nhac(g, chu)));
+  // TÊN GỌI TẮT của nhân vật (19/10/2026 #3: bố cục "Over Hạ’s shoulder… foreground" mà cổng báo Lâm Hạ chắn tiền cảnh không được nhắc — tên đầy đủ
+  // không có trong chữ, còn "Hạ" dưới 3 ký tự bị nhac bỏ qua): tên ≥ 2 chữ thì chữ cuối (tên gọi) cũng tính, cho phép 2 ký tự.
+  const goiTat = (t: string) => { const w = t.trim().split(/\s+/); return w.length >= 2 && nhanVat.some((v) => v.ten === t) ? [w[w.length - 1]!] : []; };
+  const nhacTat = (g: string) => new RegExp(`(^|[^\\p{L}])${g.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^\\p{L}]|$)`, 'u').test(chu);
+  return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !ct.includes(t.ten) && ![...(set ? tenGoi(t.ten, set) : [t.ten]), ...tenEn(t.ten)].some((g) => nhac(g, chu)) && !goiTat(t.ten).some(nhacTat));
 }
 
 /** NỐI MÁY giữa shot này và shot so trục (shotSoTruc) — mặt chủ thể thấy được ở shot phản ứng, hướng nhìn không quay > 100° (trừ đối đáp cùng

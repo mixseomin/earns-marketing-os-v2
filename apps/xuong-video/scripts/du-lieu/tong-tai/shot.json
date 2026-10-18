@@ -528,7 +528,8 @@
       310,
       585,
       0
-     ]
+     ],
+     "cam": "Vivian"
     },
     {
      "ten": "Ly cà phê",
@@ -922,7 +923,7 @@
   "dan_dung": {
    "dien": "Anticipation: Thần turns on his heel. Action: his left shirt cuff rides up for a beat, the {Chuỗi hạt ngọc} catching the window light. Reaction: the cuff slides back over it as he walks away; the camera lets him go, drifts off his wrist and settles on Hạ in the background, eyes down on the {Điện thoại của Hạ} in her hand.",
    "huong": "Thần turns away screen-left; Hạ looks down at the phone in her hand.",
-   "bo_cuc": "Insert on Lục Thần’s left wrist as he turns away: the shirt cuff riding up, the {Chuỗi hạt ngọc} beside the steel watch; Hạ soft in the background",
+   "bo_cuc": "Insert on Lục Thần’s left wrist as he turns away: the shirt cuff riding up, the {Chuỗi hạt ngọc} beside the steel watch",
    "mo": "Thần’s cuff riding up over the {Chuỗi hạt ngọc}",
    "ket": "the camera has drifted off Thần and settled on Hạ, eyes down on the {Điện thoại của Hạ} in her hand",
    "muc_dich": "gài chuỗi hạt ngọc — trả ở cú cuối",
@@ -2033,8 +2034,8 @@
     {
      "ten": "Luật sư Trần",
      "tam": [
-      -490,
-      215,
+      -485,
+      188,
       0
      ],
      "huong": 90,

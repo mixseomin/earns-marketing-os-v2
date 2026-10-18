@@ -85,6 +85,10 @@ const chan = { ten: 'Yellow iMac', pt: 30, hop: [0, 0, 1, 0.3] as [number, numbe
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([chan]) }, nv, setIMac).some((x) => x.includes('Yellow iMac chắn tiền cảnh')));
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([chan]), dan_dung: { bo_cuc: 'Foreground: the yellow iMac stand, blurred.' } }, setIMac), []);
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([{ ...chan, pt: 8 }]) }, setIMac), []);
+// tên gọi tắt nhân vật (#3 "Over Hạ’s shoulder" — Lâm Hạ chắn tiền cảnh là cố ý): tên cuối 2 ký tự vẫn tính; không nhắc thì vẫn chặn
+{ const ha = { ten: 'Lâm Hạ', pt: 22, hop: [0.6, 0.3, 1, 1] as [number, number, number, number], tien: true }; const nvHa = [{ ten: 'Lâm Hạ', mo_ta: 'East Asian woman, 24' }];
+  assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([ha]), dan_dung: { bo_cuc: 'Over Hạ’s shoulder (soft, screen-right foreground) onto Vivian' } }, setIMac, nvHa), []);
+  assert.equal(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([ha]), dan_dung: { bo_cuc: 'Close on Vivian holding the file' } }, setIMac, nvHa).length, 1); }
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxT([]), thay: undefined } }, nv, setIMac).some((x) => x.includes('đời cũ')));
 assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground, cut off by the top edge — only a 30% strip shows)'));
 // CHỦ THỂ NHỎ (#11 tập 122: thẻ 0,6% khung, chủ thể shot) vẫn là THẤY; đồ nhỏ không phải chủ thể thì bỏ
@@ -182,7 +186,7 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (29): người ĐẤT SÉT previs (anh chọn — da / mắt MakeHuman ở cận như quái thai); máy đặt tay trượt chủ thể thì ngắm lại; POV cắt gần qua đầu chính người đó → 84.
 // 18/10/2026 (30): khung kết lệch theo máy đã ngắm lại; đầu chắn giữa máy và chủ thể thì cắt gần → 85.
 // 18/10/2026 (31): khung KẾT ngắm lại vào MẶT (đầu nhích theo hướng mặt, mép 0,2–0,8 — #24 kết còn tai + gáy); vòng đeo cổ tay nằm mép cổ tay áo, nở 30 % (#9 #25 chuỗi hạt chui trong tay áo MPFB) → 86.
-assert.deepEqual([BAN_DUNG, bam], [90, 'ba3dbe448227'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [90, '4d50575074fb'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

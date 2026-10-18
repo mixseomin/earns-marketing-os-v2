@@ -25,6 +25,17 @@ const THU = [
   'medium-wide shot, sitting at a desk, looking out the window in profile, rainy afternoon',
   'close-up from a low angle, angry, jaw clenched, looking down at someone off screen, night office',
 ];
+// BỘ CẢM XÚC MẠNH (--bo=manh, anh 18/10/2026: "phải diễn được khóc thảm thiết, cười trong đau đớn tột cùng mới đi vào cảm xúc người xem"):
+// tả cụ thể cơ mặt / nước mắt / thân thể — chữ chung chung ("crying") thì FLUX ra cau mày; LoRA 0,85 cho mặt được phép biến dạng theo cảm xúc.
+const MANH = [
+  'tight close-up, sobbing uncontrollably, face crumpled and contorted in anguish, mouth open in a choked wail, tears streaming down both cheeks, red swollen eyes, chin trembling, one hand pressed hard against her chest, harsh overhead light, empty office at night',
+  'medium close-up, kneeling on a wet street at night, screaming in grief with her head tilted back, mouth wide open, rain and tears running down her face, soaked hair stuck to her cheeks, streetlight from above',
+  'close-up, laughing hysterically through tears, a broken desperate laugh, eyes squeezed shut, tears pouring, eyebrows knitted together in pain, shoulders shaking, dim bedroom lamp light',
+  'medium shot, sitting on the floor against a wall, hugging her knees, crying with her face half buried in her arms, shoulders heaving, one red tear-filled eye visible, cold blue moonlight',
+  'close-up, forcing a trembling smile while tears pour down, lips quivering, eyes glassy and red, on the edge of breaking down, warm window light',
+  'extreme close-up of her eyes and cheek, a single heavy tear rolling down, lower lip bitten hard to hold back a sob, very shallow depth of field',
+];
+const manh = process.argv.includes('--bo=manh');
 const ra: { loai: string; url: string; mo: string }[] = [];
 const ve = async (nhan: string, mh: string, input: Record<string, unknown>, mo: string) => {
   const job = await taoJob(db, { nhan: `LoRA · thử ${nv.ten} · ${nhan}`, nhan_vat_id: id, loai: 'anh', provider: 'fal', model: `fal:${mh}`, request: input });
@@ -34,7 +45,7 @@ const ve = async (nhan: string, mh: string, input: Record<string, unknown>, mo: 
   await xongJob(db, job, { output_url: url ?? undefined, chi_phi_cents: 3.5 });
   if (url) { ra.push({ loai: nhan, url, mo }); console.log(`· ${nhan} ${url}`); }
 };
-for (const [i, t] of THU.entries()) await ve(`đa dạng ${i + 1}`, 'fal-ai/flux-lora', { prompt: `${goc}. ${t}. ${PHONG}`, loras, image_size: { width: 768, height: 1024 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, t);
+for (const [i, t] of (manh ? MANH : THU).entries()) await ve(`${manh ? 'cảm xúc mạnh' : 'đa dạng'} ${i + 1}`, 'fal-ai/flux-lora', { prompt: `${goc}. ${t}. ${PHONG}`, loras: manh ? [{ path: L.url, scale: 0.85 }] : loras, image_size: { width: 768, height: 1024 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false, ...(manh ? { guidance_scale: 4.5 } : {}) }, t);
 for (const cid of canhIds) {
   const c = mapCanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${cid}`)) as unknown as Row[])[0]!);
   const sau = c.khung_xam?.sau; if (!sau) { console.log(`✗ #${c.thu_tu}: chưa có độ sâu`); continue; }

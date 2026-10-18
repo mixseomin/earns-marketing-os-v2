@@ -108,8 +108,12 @@ def than_tron(n, ten, H, L, vl, dv):
         canh += [('nguc', f'vai_{p}'), (f'vai_{p}', f'khuyu_{p}'), (f'khuyu_{p}', f'cotay_{p}'), (f'cotay_{p}', f'tay_{p}'),
                  ('hong', f'dui_{p}'), (f'dui_{p}', f'goi_{p}'), (f'goi_{p}', f'cochan_{p}'), (f'cochan_{p}', f'mui_chan_{p}')]
     pts = [n[k].matrix_world @ Vector(off) for k, off, _, _ in dinh]
-    me = bpy.data.meshes.new(f'{ten}.than_tron'); me.from_pydata([tuple(q) for q in pts], [(chi[a], chi[b]) for a, b in canh], []); me.update()
-    o = bpy.data.objects.new(f'{ten}.than_tron', me); bpy.context.scene.collection.objects.link(o); o.data.materials.append(vl)
+    # TÊN NGOÀI tiền tố '<ten>.' của ma-nơ-canh: mọi bộ đo gom bộ phận người theo tiền tố 'NG <tên>.' — hộp bao chưa biến dạng (ở gốc toạ độ) của
+    # thân liền làm khung người phình to → cổng báo 'chồng hình 100%' oan (#15, #16, #20).
+    cu = bpy.data.objects.get(f'THAN {ten}')
+    if cu: bpy.data.objects.remove(cu, do_unlink=True)   # thân của shot trước (khớp đã xoá) — không xoá thì tên mới thành '.001', tra theo tên lấy nhầm bản cũ
+    me = bpy.data.meshes.new(f'THAN {ten}'); me.from_pydata([tuple(q) for q in pts], [(chi[a], chi[b]) for a, b in canh], []); me.update()
+    o = bpy.data.objects.new(f'THAN {ten}', me); bpy.context.scene.collection.objects.link(o); o.data.materials.append(vl)
     for i, (k, _, _, _) in enumerate(dinh):
         h = o.modifiers.new(f'moc{i}', 'HOOK'); h.object = n[k]; h.vertex_indices_set([i]); h.matrix_inverse = n[k].matrix_world.inverted(); h.center = pts[i]
     sk = o.modifiers.new('da', 'SKIN')

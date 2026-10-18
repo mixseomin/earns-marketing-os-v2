@@ -652,8 +652,8 @@ def vat_can(sh, ten, cam_boi=None):
     phải mặt nền. Chỉ thứ đang hiện."""
     out = []
     for o in bpy.data.objects:
-        if o.type != 'MESH' or o.hide_render and not o.name.endswith('.than_tron'): continue
-        if o.name.endswith('.than_tron') or o.name.startswith(f"NV {ten}") and (o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")): continue
+        if o.type != 'MESH' or o.hide_render or o.name.startswith('THAN '): continue
+        if o.name.startswith(f"NV {ten}") and (o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")): continue
         if o.name.startswith('NG '):
             if cam_boi and o.name.startswith(f"NG {cam_boi}."): continue
             out.append(o)
@@ -823,7 +823,7 @@ def ve_sau(s, sh, cam, ra):
     (tập 122 #11, 3 lượt); bỏ hẳn người khỏi độ sâu + khung xương (FLUX dev Union) thì ảnh nhoè không dùng được (lượt 4)."""
     an, hien = [], []
     for t in list(NGUOI):
-        x = bpy.data.objects.get(f"NG {t}.than_tron")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
+        x = bpy.data.objects.get(f"THAN NG {t}")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
         if not x: continue
         phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and o is not x and not o.hide_render]
         if not phan: continue   # người không có trong shot này / đang ẩn

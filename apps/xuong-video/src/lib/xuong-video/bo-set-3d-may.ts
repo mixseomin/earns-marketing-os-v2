@@ -89,9 +89,9 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const sid = boSetCuaShot(c, nv); const set = sid ? sets.get(sid) : undefined;
     if (!set || !c.may_3d || (o.ids && !o.ids.includes(c.id))) continue;
     const mDu = day.get(c.id) ?? c.may_3d;
-    if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, mDu, nv)) continue;
+    if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, mDu, nv, c.bieu_cam)) continue;
     // Vì sao dựng lại: phần đầu vào nào đổi so với lần dựng trước (lần dựng toàn tập không lý do = dấu hiệu dữ liệu bị ghi lại vô cớ).
-    const cu0 = c.khung_xam?.ma_phan; const moi = maPhan(set, mDu, nv);
+    const cu0 = c.khung_xam?.ma_phan; const moi = maPhan(set, mDu, nv, c.bieu_cam);
     lyDo.push(`#${c.thu_tu}:${!c.khung_xam ? 'mới' : !cu0 ? 'chưa có mã phần' : Object.keys(moi).filter((k) => cu0[k] !== moi[k as keyof typeof moi]).join('+') || 'tất cả'}`);
     // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
     const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
@@ -138,7 +138,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const luc = new Date().toISOString();
     // Đẩy kho SONG SONG 8 shot một lúc, 4 ảnh mỗi shot cùng lúc (trước đây lần lượt ~140 ảnh → nhiều phút chỉ vì độ trễ mạng mỗi lần gọi).
     await theoLo(shots, 8, async (c) => {
-      const ma = maKhungXam(set, c.may_3d, nv);
+      const ma = maKhungXam(set, c.may_3d, nv, c.bieu_cam);
       const ra = raCua.get(String(c.id))!;
       // Chỉ đẩy ảnh máy ngoài thật sự render: khung màu (JPEG) + khung kết; khung xám (PNG) chỉ khi không có khung màu.
       const len = async (duoi: string, dang: 'jpg' | 'png') => { const f = path.join(ra, `${c.id}-${duoi}.${dang}`); return existsSync(f) ? uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.${dang}`, await readFile(f), dang === 'jpg' ? 'image/jpeg' : 'image/png') : null; };
@@ -152,7 +152,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       // MẶT NẠ 3D (dung-set.py › ve_mat_na): ghép đè đồ nhận dạng + sửa vùng — đẩy kho kèm 4 góc của tấm ảnh chuẩn
       const mn: NonNullable<KhungXam['mat_na']> = {};
       for (const [k, v] of Object.entries(matNa[String(c.id)] ?? {})) { const u = await len(v.tep, 'png'); if (u) mn[k] = { url: u, ...(v.goc ? { goc: v.goc } : {}) }; }
-      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(sau ? { sau } : {}), ...(xuong ? { xuong } : {}), ...(xuyen[String(c.id)]?.length ? { xuyen: xuyen[String(c.id)] } : {}), ...(lop ? { lop } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), ...(Object.keys(mn).length ? { mat_na: mn } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
+      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv, c.bieu_cam), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(sau ? { sau } : {}), ...(xuong ? { xuong } : {}), ...(xuyen[String(c.id)]?.length ? { xuyen: xuyen[String(c.id)] } : {}), ...(lop ? { lop } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), ...(Object.keys(mn).length ? { mat_na: mn } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
       if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau ?? '', c.khung_xam.xuong ?? '', c.khung_xam.lop?.nen ?? '', ...(c.khung_xam.lop?.nguoi ?? []).map((x) => x.sau), c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '', c.khung_xam.mau_giua ?? '', ...(c.khung_xam.giua ?? []), c.khung_xam.dien ?? '', ...Object.values(c.khung_xam.mat_na ?? {}).map((x) => x.url));
       dung++;

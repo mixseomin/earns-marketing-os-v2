@@ -30,26 +30,28 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 80;
+export const BAN_DUNG = 81;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
 /** Phần máy ĐI VÀO HÌNH: bỏ các khai chỉ cổng kể chuyện đọc (lam) — khai thêm "Tango chạm phích" không làm khung đã dựng thành cũ. */
 const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o) ? { ...m, vi_tri: m.vi_tri.map(({ lam: _l, lam_o: _o, ...v }) => v) } : m);
-export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))) });
-export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[]): string {
-  const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))]);
+/** NÉT MẶT ở khung mở của từng người (bieu_cam[].dau) — mặt MPFB diễn theo (mesh/nguoi.py › BIEU_CAM_ARKIT); đổi nét là khung cũ hết hiệu lực. */
+export const netMo = (bieu?: { nv: string; dau: string }[] | null) => (bieu ?? []).map((b) => [b.nv, b.dau]);
+export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[], bieu?: { nv: string; dau: string }[] | null) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))), ...(bieu?.length ? { net: bam(netMo(bieu)) } : {}) });
+export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[], bieu?: { nv: string; dau: string }[] | null): string {
+  const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat)), ...(bieu?.length ? [netMo(bieu)] : [])]);
   let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return h.toString(36);
 }
 
 /** Bảng đầu vào cho dung-set.py: vật của set + khối nhân vật + các shot (ma = id shot). Thiếu khối của một tên → lỗi (không đoán cỡ). */
-export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d; truc?: ReturnType<typeof rangBuocTruc>; /** máy đã khớp keyframe đã sinh — bộ giải không dời */ khoa_may?: boolean } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat' | 'thoai'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
+export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d; truc?: ReturnType<typeof rangBuocTruc>; /** máy đã khớp keyframe đã sinh — bộ giải không dời */ khoa_may?: boolean } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat' | 'thoai' | 'bieu_cam'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
   const mau: Record<string, unknown> = {}; const thieu = new Set<string>();
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
   return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh, chay: duongMay(s.may_3d, s.ky_thuat?.chuyen_dong, hopVat(set.du_lieu.vat, s.may_3d.them ?? []), (t) => Number((mau[t] as { co?: number[] } | undefined)?.co?.[2] ?? 2)) }, nhan_vat: s.may_3d.vi_tri,
-    bat_buoc: chuThe(s.may_3d), co_canh: s.ky_thuat?.co_canh ?? '', mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban })) } };
+    bat_buoc: chuThe(s.may_3d), co_canh: s.ky_thuat?.co_canh ?? '', mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban, net: Object.fromEntries((s.bieu_cam ?? []).map((b) => [b.nv, [b.dau, b.cuoi]])) })) } };
 }
 
 /** NGƯỜI ĐANG NÓI là chủ thể trong khung (không phải giọng ngoài khung) — keyframe AI = khung mở phải thấy mặt họ: luật kiem-ai-3d.ts › matNguoiNoi và
@@ -213,14 +215,14 @@ export function loiNoiMay(c: Pick<Canh, 'may_3d'> & Partial<Pick<Canh, 'ky_thuat
 }
 
 /** Cổng khung xám của một shot (rỗng = qua). Shot không thuộc set nào → không chặn (ngoại lệ đã khai: không có anchor bối cảnh có set). */
-export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat' | 'phan_doan'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> & Partial<Pick<Canh, 'phan_doan'>> | null): string[] {
+export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung' | 'ky_thuat' | 'phan_doan' | 'bieu_cam'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> & Partial<Pick<Canh, 'phan_doan'>> | null): string[] {
   if (!set) return [];
   if (!c.may_3d) return ['shot thuộc bộ set 3D mà chưa đặt máy ảo + vị trí nhân vật (may_3d)'];
   const out: string[] = [];
   const thieu = thieuTrongSet(c, nhanVat, set);
   if (thieu.length) out.push(`bộ set / chỗ đứng chưa có: ${thieu.join(', ')} — thêm vào bộ set (đồ cố định) hoặc vào chỗ đứng của shot`);
   const kx = c.khung_xam;
-  if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
+  if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat, c.bieu_cam)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
   else if (!kx.thay) out.push('khung xám đời cũ chưa đo "thấy gì trong khung" — chạy 🧊 Dựng khung xám lại');
   else {
     // XUYÊN NHAU (dung-set.py › do_lun): đạo cụ lún vào người / đạo cụ khác / đồ set > 1 cm — keyframe AI vẽ đúng cái sai đó (#11 thẻ chìm vào thùng)

@@ -101,6 +101,53 @@ def _mpfb():
 _NHAM = [('spine05', 'dinh_nham'), ('spine04', 'dinh_nham'), ('spine03', 'dinh_nham'), ('spine02', 'dinh_nham'), ('spine01', 'dinh_nham'), ('neck01', 'dinh_nham'),
          ('upperarm01.L', 'khuyu_t'), ('lowerarm01.L', 'cotay_t'), ('upperarm01.R', 'khuyu_p'), ('lowerarm01.R', 'cotay_p'),
          ('upperleg01.L', 'goi_t'), ('lowerleg01.L', 'cochan_t'), ('upperleg01.R', 'goi_p'), ('lowerleg01.R', 'cochan_p')]
+# BẢNG CẢM XÚC CỦA PHIM → 52 đơn vị cơ mặt ARKit (gói MakeHuman faceunits01, CC0) — anh 18/10/2026 "làm biểu cảm 3D": mặt MPFB diễn đúng nét của shot,
+# vào bản đồ độ sâu + khung màu nên ở shot cận FLUX nhận hình khối mặt đã biến dạng (há miệng gào, mắt nhắm siết) thay vì chỉ đọc chữ.
+# Mã = qc-cam-xuc.ts › BIEU_CAM. '*' = cả hai bên (Left + Right).
+BIEU_CAM_ARKIT = {
+    'binh_thuong': {},
+    'hao_huc': {'mouthSmile*': 0.6, 'eyeWide*': 0.4, 'browOuterUp*': 0.3},
+    'vui': {'mouthSmile*': 0.55, 'cheekSquint*': 0.3},
+    'cuoi_lon': {'mouthSmile*': 1.0, 'jawOpen': 0.35, 'cheekSquint*': 0.6, 'eyeSquint*': 0.45},
+    'am_ap': {'mouthSmile*': 0.4, 'eyeSquint*': 0.2},
+    'nhe_nhom': {'mouthSmile*': 0.25, 'browInnerUp': 0.15, 'eyeBlink*': 0.15},
+    'bat_ngo': {'eyeWide*': 0.8, 'browInnerUp': 0.6, 'browOuterUp*': 0.7, 'jawOpen': 0.3},
+    'ngo_vuc': {'browDownLeft': 0.5, 'browOuterUpRight': 0.5, 'eyeSquint*': 0.3, 'mouthPress*': 0.3},
+    'tu_tin': {'mouthSmileLeft': 0.25, 'mouthPress*': 0.2, 'browDown*': 0.1},
+    'lo_lang': {'browInnerUp': 0.65, 'mouthStretch*': 0.3, 'mouthPress*': 0.3, 'eyeWide*': 0.2},
+    'dau': {'browInnerUp': 0.7, 'browDown*': 0.3, 'eyeSquint*': 0.6, 'mouthStretch*': 0.5, 'jawOpen': 0.12},
+    'met': {'eyeBlink*': 0.35, 'mouthFrown*': 0.2, 'browInnerUp': 0.2},
+    'buon': {'browInnerUp': 0.8, 'mouthFrown*': 0.6, 'mouthShrugLower': 0.4, 'eyeLookDown*': 0.3},
+    'that_vong': {'browInnerUp': 0.5, 'mouthFrown*': 0.5, 'eyeLookDown*': 0.4, 'eyeBlink*': 0.2},
+    'lanh_lung': {'browDown*': 0.3, 'eyeSquint*': 0.2, 'mouthPress*': 0.4},
+    'khinh_bi': {'noseSneerLeft': 0.5, 'mouthUpperUpLeft': 0.3, 'mouthSmileLeft': 0.25, 'eyeSquint*': 0.3, 'browDownRight': 0.3},
+    'dac_y': {'mouthSmileLeft': 0.6, 'mouthSmileRight': 0.2, 'eyeSquint*': 0.3, 'browOuterUpLeft': 0.3},
+    'nhuc_nha': {'browInnerUp': 0.6, 'mouthFrown*': 0.4, 'eyeLookDown*': 0.6, 'mouthPress*': 0.4},
+    'nhan_nhin': {'mouthPress*': 0.5, 'browInnerUp': 0.3, 'browDown*': 0.2, 'eyeSquint*': 0.2},
+    'gian': {'browDown*': 1.0, 'eyeSquint*': 0.5, 'noseSneer*': 0.6, 'mouthFrown*': 0.4, 'mouthUpperUp*': 0.3, 'jawForward': 0.2},
+    'soc': {'eyeWide*': 1.0, 'browInnerUp': 0.8, 'browOuterUp*': 0.8, 'jawOpen': 0.55, 'mouthStretch*': 0.3},
+    'quyet_tam': {'browDown*': 0.5, 'mouthPress*': 0.6, 'eyeSquint*': 0.3},
+    'nhech_moi': {'mouthSmileLeft': 0.5, 'eyeSquint*': 0.2},
+    'khoc_tham': {'browInnerUp': 1.0, 'eyeBlink*': 0.65, 'eyeSquint*': 0.8, 'jawOpen': 0.6, 'mouthFrown*': 1.0, 'mouthStretch*': 0.7,
+                  'mouthLowerDown*': 0.6, 'mouthUpperUp*': 0.4, 'noseSneer*': 0.5, 'cheekSquint*': 0.4},
+    'cuoi_dau': {'mouthSmile*': 0.8, 'jawOpen': 0.4, 'browInnerUp': 0.9, 'eyeSquint*': 0.8, 'eyeBlink*': 0.45, 'cheekSquint*': 0.5, 'mouthStretch*': 0.3},
+}
+def bieu_mat(n, ma, cuong_do=1.0):
+    """Áp nét mặt `ma` (BIEU_CAM_ARKIT) lên thân MPFB của ma-nơ-canh n. Không có MPFB / gói faceunits → bỏ qua (mặt trung tính)."""
+    m = _mpfb(); h = n.get('than_tron')
+    if not m or not ma or not h or h.name not in bpy.data.objects or not h.name.startswith('THAN '): return False
+    bang = BIEU_CAM_ARKIT.get(ma)
+    if bang is None: print('nét mặt chưa có trong bảng:', ma); return False
+    try:
+        import importlib, sys
+        FS = next(getattr(importlib.import_module(x), 'FaceService') for x in list(sys.modules) if x.endswith('mpfb.services.faceservice'))
+        d = {}
+        for k, v in bang.items():
+            for kk in ([k[:-1] + 'Left', k[:-1] + 'Right'] if k.endswith('*') else [k]): d[kk] = max(0.0, min(1.0, v * cuong_do))
+        FS.clear_expression(h); FS.set_expression(h, d); return True
+    except Exception as e:
+        print('nét mặt MPFB lỗi:', e); return False
+
 def nguoi_mpfb(n, ten, H, gioi, tuoi, vl):
     """NGƯỜI THẬT MPFB thay thân liền (anh 18/10/2026 chọn "D"): thân người MakeHuman (CC0) đúng giới / tuổi / chiều cao, rig mặc định; mỗi xương
     NHẮM theo khớp tương ứng của ma-nơ-canh (Damped Track) + hông bám khớp hông — thư viện dáng / mocap / đo đạc giữ nguyên, chỉ hình hiển thị là

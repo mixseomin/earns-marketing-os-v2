@@ -520,6 +520,8 @@ def nhan_vat(sh, ket=False):
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
             ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_; n_['kieu'] = kieu; n_['dang'] = mau_nv.get('dang') or []
+            _net = (sh.get('net') or {}).get(nv['ten'])   # nét mặt khung mở / kết (bieu_cam) → mặt MPFB diễn theo
+            if _net: ng().bieu_mat(n_, _net[1] if ket is True else _net[0])
             # ĐANG ĐI ở khung mở / giữa (có 'den' xa ≥ 40 cm): đặt GIỮA SẢI BƯỚC rồi mới chồng tư thế tay (ôm thùng, cầm…) — mocap đi ở t = 0 là dáng
             # đứng chụm chân, keyframe AI vẽ người đứng nghiêm giữa cửa (tập 122 #15 "Hạ sải bước vào" thành hai người đứng yên).
             di_mo = ket is not True and kieu == 'dung' and bool(nv.get('den')) and math.hypot(nv['den'][0] - X, nv['den'][1] - Y) >= 40

@@ -40,6 +40,10 @@ export const BIEU_CAM = [
   { key: 'soc', ten: 'Sốc', en: 'stunned, eyes wide, mouth slightly open, frozen', am: true },
   { key: 'quyet_tam', ten: 'Quyết tâm', en: 'resolute and fearless, steady eye contact', am: false },
   { key: 'nhech_moi', ten: 'Nhếch môi', en: 'a subtle knowing smirk at one corner of the mouth', am: false },
+  // CẢM XÚC MẠNH (anh 18/10/2026: "phải diễn được khóc thảm thiết, cười trong đau đớn tột cùng mới đi vào cảm xúc người xem") — mặt 3D MPFB diễn
+  // đúng nét (mesh/nguoi.py › BIEU_CAM_ARKIT), chữ tả cơ mặt + nước mắt cụ thể (FLUX ra cau mày khi chỉ ghi "crying")
+  { key: 'khoc_tham', ten: 'Khóc thảm thiết', en: 'sobbing uncontrollably, face crumpled, mouth open in a wail, tears streaming down both cheeks, red swollen eyes', am: true },
+  { key: 'cuoi_dau', ten: 'Cười trong đau', en: 'a broken laugh through tears, eyes squeezed shut, brows knitted in pain, tears running down', am: true },
 ] as const;
 export type MaBieuCam = (typeof BIEU_CAM)[number]['key'];
 export const bieuCam = (k: string) => BIEU_CAM.find((x) => x.key === k);

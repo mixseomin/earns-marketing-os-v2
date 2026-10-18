@@ -100,6 +100,17 @@ async function docShot(db: Db, canhId: number) {
   return { c, kt, nv };
 }
 
+/** VÙNG ĐẦU của một người (lớp độ sâu 3D `sau` chỉ ra người nào) trong ảnh `url`: ô vuông px gốc + ảnh 1024² để vẽ lại mặt (dựng tại chỗ). null = không thấy mặt. */
+export async function catVungDau(url: string, sau: string): Promise<{ hop: number[]; b64: string } | null> {
+  const r = await chay<{ hop: number[] | null; b64: string | null }>({ op: 'cat_vung', url, sau }).catch(() => null);
+  return r?.hop && r.b64 ? { hop: r.hop, b64: r.b64 } : null;
+}
+/** Dán vùng đầu đã vẽ lại về đúng ô (mặt nạ elip mờ biên + khớp màu LAB) → ảnh cả khung JPEG (base64). */
+export async function danVungDau(goc: string, sua: string, hop: number[]): Promise<string | null> {
+  const r = await chay<{ b64: string | null }>({ op: 'dan', goc, sua, hop }).catch(() => null);
+  return r?.b64 ?? null;
+}
+
 /** Gửi MỘT lượt sửa mặt cho shot (lan = lần thử, goc = ảnh gốc để mọi lần thử đều sửa từ bản đầu, không sửa chồng lên bản đã hỏng). TỐN TIỀN ~110₫. */
 export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, /** chạy thử: ảnh sửa + điểm soi lại chỉ ghi vào job, shot giữ nguyên, không thử lại */ thu = false): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
   const d = await docShot(db, canhId); if (!d) return { ok: false, loi: 'không thấy shot' };

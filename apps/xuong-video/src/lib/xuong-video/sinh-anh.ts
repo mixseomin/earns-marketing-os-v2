@@ -580,9 +580,9 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
 async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThanh, lop: LopGhep, toan: { sau: string; prompt1: string }, jobs: number[], nuoc = ''): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
   const doc = kt.ti_le !== '16:9'; const [W, H] = doc ? [720, 1280] : [1280, 720]; const mh: string = kt.mo_hinh_anh || MO_HINH_ANH[0]!.key;
   const doSau = { path: UNION_XUONG, controls: [{ control_image_url: toan.sau, control_mode: 'depth', conditioning_scale: 0.6 }] };
-  const veFal = async (nhan: string, model: string, input: Record<string, unknown>): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
+  const veFal = async (nhan: string, model: string, input: Record<string, unknown>, co = { width: W, height: H }): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
     const job = await taoJob(db, { nhan: `${nhan} · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${model}`, request: { dich: 'keyframe_tai_cho', ...input } }); jobs.push(job);
-    const kq = await chayAnhFal(model, { ...input, image_size: { width: W, height: H }, num_images: 1, output_format: 'jpeg', num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false });
+    const kq = await chayAnhFal(model, { ...input, image_size: co, num_images: 1, output_format: 'jpeg', num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false });
     if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
     const url = await uploadToR2(`xuong-video/keyframe/${canhId}/tai-cho-${Date.now()}.jpg`, kq.data, kq.mimeType);
     if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho', chi_phi_cents: GIA_XUONG_CENTS }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }   // đã trả tiền → vẫn vào sổ
@@ -634,6 +634,24 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
       cur = dan.url;
     }
   }
+  // LƯỢT MẶT (kiểu Face Detailer / ADetailer — anh 18/10/2026 "sao mặt vẫn bị méo"): khung rộng nhiều người thì mặt chỉ ~70–80 px trong ảnh 720×1280,
+  // FLUX không đủ điểm ảnh vẽ mắt / mũi / miệng → mặt phồng, lệch. Cắt vùng đầu từng người (định vị theo lớp độ sâu 3D của họ), phóng 1024², vẽ lại
+  // MẶT bằng LoRA của chính người đó (mặt nạ elip giữa ô, giữ góc đầu / nét mặt / ánh sáng), thu về dán đúng ô bằng mặt nạ mờ biên + khớp màu.
+  for (const x of lop.nguoi.filter((y) => y.loras)) {
+    const { catVungDau, danVungDau } = await import('./soi-mat');
+    const v = await catVungDau(cur, x.sau);
+    if (!v) { console.error(`[lượt mặt] ${x.ten}: không thấy mặt trong vùng — bỏ qua`); continue; }
+    const vung = await uploadToR2(`xuong-video/keyframe/${canhId}/mat-vung-${Date.now()}.jpg`, Buffer.from(v.b64, 'base64'), 'image/jpeg');
+    const mn = await matNaElip(canhId);
+    if (!vung || !mn) return { ok: false, loi: `${x.ten}: không đẩy được vùng đầu / mặt nạ` };
+    const n = nuoc && nuoc.includes(x.ten) ? ` ${nuoc}` : '';
+    const r = await veFal(`Keyframe (tại chỗ · ${x.ten} · mặt 1024)`, MO_HINH_VE_TAI_CHO, { prompt: `${KHONG_CHU} Close-up of the face, sharp natural skin detail, same head angle, expression and lighting. ${x.prompt_tai_cho}${n}`, image_url: vung, mask_url: mn, strength: 0.55, loras: x.loras }, { width: 1024, height: 1024 });
+    if (!r.ok) return { ok: false, loi: `${x.ten} (mặt): ${r.loi}` };
+    const b64 = await danVungDau(cur, r.url, v.hop);
+    const url = b64 && await uploadToR2(`xuong-video/keyframe/${canhId}/tai-cho-mat-${Date.now()}.jpg`, Buffer.from(b64, 'base64'), 'image/jpeg');
+    if (!url) return { ok: false, loi: `${x.ten}: dán mặt hỏng` };
+    cur = url;
+  }
   const cuoi = cur;
   const { chonKeyframe } = await import('./tu-sua-clip');
   await chonKeyframe(db, canhId, cuoi, 'dựng tại chỗ');
@@ -666,6 +684,14 @@ export const MO_HINH_DO_SAU = 'fal-ai/flux-pro/v1/depth';
 export const MO_HINH_XUONG = 'fal-ai/flux-general';
 /** Vẽ lại TẠI CHỖ một người trên plate: mặt nạ + LoRA + độ sâu (dựng tại chỗ — ghepTungNguoi). */
 export const MO_HINH_VE_TAI_CHO = 'fal-ai/flux-general/inpainting';
+/** Mặt nạ ELIP giữa ô vùng đầu 1024² (cùng hình elip mà soi-mat.py › dan dán lại) — lượt mặt chỉ vẽ lại mặt, giữ tóc / nền ở mép ô. */
+async function matNaElip(canhId: number): Promise<string | null> {
+  try {
+    const sharp = (await import('sharp')).default;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="1024" height="1024" fill="black"/><ellipse cx="512" cy="481" rx="338" ry="410" fill="white"/></svg>`;
+    return await uploadToR2(`xuong-video/keyframe/${canhId}/mat-na-elip.png`, await sharp(Buffer.from(svg)).png().toBuffer(), 'image/png');
+  } catch (e) { console.error('[mặt nạ elip]', e); return null; }
+}
 /** Mặt nạ một người cỡ khung (W×H): lớp độ sâu 3D của người đó (> 8 = người) nới viền ~1,2 % chiều cao — mép tóc / vai thật rộng hơn bóng 3D. */
 async function matNaNguoi(sauUrl: string, W: number, H: number, canhId: number): Promise<string | null> {
   try {

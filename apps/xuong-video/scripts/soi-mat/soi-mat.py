@@ -71,8 +71,15 @@ if vao.get('op') == 'dem':        # {op, url, nguong} → {mat}: ĐẾM mặt ng
     # ngưỡng 0,8 của so mặt bỏ sót mặt ~70 px ở khung rộng (tập 122 #12: ba người, đếm ra 0 → chặn oan)
     im = doc(vao['url']); det.setScoreThreshold(float(vao.get('nguong', 0.7))); det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
     print(json.dumps({'mat': 0 if f is None else len(f)})); sys.exit(0)
-if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y}} → {hop:[x0,y0,x1,y1] px gốc, b64: vùng đầu 1024²}
-    im = doc_goc(vao['url']); hop = vung_dau(im, vao['o'])
+if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y} | sau:<url lớp độ sâu một người>} → {hop:[x0,y0,x1,y1] px gốc, b64: vùng đầu 1024²}
+    im = doc_goc(vao['url']); o = vao.get('o')
+    if not o and vao.get('sau'):   # DỰNG TẠI CHỖ: mặt của ĐÚNG người này = mặt gần đỉnh bóng người trong lớp độ sâu 3D của họ (khung nhiều người)
+        m = cv2.resize(doc_goc(vao['sau']), (im.shape[1], im.shape[0]), interpolation=cv2.INTER_NEAREST)
+        m = (m.max(axis=2) if m.ndim == 3 else m) > 8; ys, xs = np.nonzero(m)
+        if not len(ys): print(json.dumps({'hop': None, 'b64': None})); sys.exit(0)
+        top, cao = ys.min(), ys.max() - ys.min() + 1; dai = ys < top + 0.15 * cao
+        o = {'x': float(xs[dai].mean()) / im.shape[1], 'y': float(top + 0.07 * cao) / im.shape[0]}
+    hop = vung_dau(im, o)
     print(json.dumps({'hop': hop, 'b64': b64jpg(cv2.resize(im[hop[1]:hop[3], hop[0]:hop[2]], (1024, 1024))) if hop else None})); sys.exit(0)
 if vao.get('op') == 'dan':        # {op, goc, sua, hop} → {b64: khung gốc với vùng đầu đã sửa dán lại, mặt nạ elip mờ biên, khớp màu}
     im = doc_goc(vao['goc']); x0, y0, x1, y1 = vao['hop']; vg = im[y0:y1, x0:x1]

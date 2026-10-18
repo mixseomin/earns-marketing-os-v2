@@ -877,7 +877,8 @@ def nguoi_that(bat, an=None, hien=None):
     for t in list(NGUOI):
         x = bpy.data.objects.get(f"THAN NG {t}")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
         if not x: continue
-        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and not o.hide_render]
+        # DẤU biến thể (vết cà phê 'NG <t>.dan_i') GIỮ hiện trên người MPFB — ẩn theo ma-nơ-canh thì khung màu mất vết, AI không có chỗ bám (18/10/2026)
+        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and '.dan_' not in o.name and not o.hide_render]
         if not phan: continue   # người không có trong shot này / đang ẩn
         an += phan; hien += [x, *[o for o in bpy.data.objects if o.name.startswith(f"THAN NG {t}.")]]
     for o in an: o.hide_render = True
@@ -944,7 +945,7 @@ def vet_(n_, ten, ds):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1); o = bpy.context.object
         dat(o, mau(d.get('mau', '#6b3f1d')), f"NG {ten}.dan_{i}")
         o.parent = bp; o.matrix_parent_inverse.identity()
-        o.location = (lo.x + (hi.x - lo.x) * lx, lo.y, lo.z + (hi.z - lo.z) * lz)
+        o.location = (lo.x + (hi.x - lo.x) * lx, lo.y - 1.2, lo.z + (hi.z - lo.z) * lz)   # nhô 1,2 cm trước mặt ngực: nổi ra ngoài áo người MPFB (vải nổi 4 mm + độ phồng áo)
         o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
 
 # DÁNG CẦN MẶT TỰA ở khung MỞ: động tác → điểm chạm (bàn tay). Không có mặt đỡ dưới điểm chạm thì AI tự bịa chỗ tựa — tập 122 #20 Thần "chống bàn"

@@ -321,7 +321,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // DÁNG + ĐỒ CẦM cho đường Nano (19/10/2026 #13: câu Nano chỉ tả thẻ "trông như ảnh 4", không nói AI cầm, cầm thế nào → thẻ lơ lửng giữa không trung,
   // tay Vivian trống). Trước chỉ bước 1 FLUX nhận câu dáng; giờ plate Nano là đường chính của shot nhiều người.
   const dangChu = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && vtCua(v) && !vtCua(v)!.an).map((v) => { const t = tuTheEn(vtCua(v)!, monCam(v)); return t === 'standing' ? '' : `${v.ten}: ${t}`; }).filter(Boolean);
-  const dangCau = dangChu.length ? `POSES AND HELD ITEMS, as Image 1 shows (every held item stays physically in its holder's hand — never floating in the air): ${dangChu.join('; ')}.` : '';
+  const dangCau = dangChu.length ? `POSES AND HELD ITEMS, as Image 1 shows (every held item stays physically in its holder's hand — never floating in the air; a held item's reference image shows only what it looks like, not where it goes): ${dangChu.join('; ')}.` : '';
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").

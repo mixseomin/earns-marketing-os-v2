@@ -20,4 +20,9 @@ if [ ! -f "$DU/packs/makehuman_system_assets.json" ]; then
   done
   mkdir -p "$DU" && unzip -qo "$T/sys.zip" -d "$DU"
 fi
+# GÓI 52 ĐƠN VỊ CƠ MẶT ARKit (faceunits01, CC0, 0,2 MB) — biểu cảm mặt theo nét của shot (mesh/nguoi.py › BIEU_CAM_ARKIT)
+if [ ! -f "$DU/packs/faceunits01.json" ]; then
+  curl -sfL -m 300 -o "$T/fu.zip" https://files2.makehumancommunity.org/functional/faceunits01.zip || curl -sfL -m 300 -o "$T/fu.zip" https://files.makehumancommunity.org/functional/faceunits01.zip
+  mkdir -p "$DU" && unzip -qo "$T/fu.zip" -d "$DU"
+fi
 ls "$DU" | tr '\n' ' '; echo

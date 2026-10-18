@@ -38,8 +38,10 @@ try {
     const kq = (await (await fetch(t.r, { headers: h })).json()) as { diffusers_lora_file?: { url?: string }; detail?: unknown };
     const url = kq.diffusers_lora_file?.url;
     if (!url) { await xongJob(db, job, { loi: JSON.stringify(kq).slice(0, 300) }); throw new Error('fal xong mà không có tệp LoRA'); }
-    await xongJob(db, job, { output_url: url, chi_phi_cents: 200 });
-    await db.execute(sql`UPDATE xv_nhan_vat SET lora = ${JSON.stringify({ url, trigger, bo_hoc: boHoc, so_anh: anh.length, luc: new Date().toISOString() })}::jsonb, updated_at = now() WHERE id = ${id}`);
+    // chép tệp LoRA về R2 nhà mình — đường fal.media là kho tạm, có thể hết hạn
+    const r2 = await uploadToR2(`xuong-video/lora/${id}/${trigger}-${Date.now()}.safetensors`, Buffer.from(await (await fetch(url)).arrayBuffer()), 'application/octet-stream');
+    await xongJob(db, job, { output_url: r2 ?? url, chi_phi_cents: 200 });
+    await db.execute(sql`UPDATE xv_nhan_vat SET lora = ${JSON.stringify({ url: r2 ?? url, url_fal: url, trigger, bo_hoc: boHoc, so_anh: anh.length, luc: new Date().toISOString() })}::jsonb, updated_at = now() WHERE id = ${id}`);
     console.log(JSON.stringify({ lora: url, trigger, so_anh: anh.length })); process.exit(0);
   }
   await xongJob(db, job, { loi: `quá 60 phút — tra: ${t.r}` }); throw new Error(`quá 60 phút — tra: ${t.r}`);

@@ -12,8 +12,10 @@ export const GIA_REF2V = { khong_tieng: 8.4, co_tieng: 11.2 } as const;
 const TOI_DA_S = 15;
 /** Tổng element + ảnh tham chiếu — tài liệu fal ghi tối đa 4 khi có video; giữ 4 cho chắc. */
 const TOI_DA_THAM_CHIEU = 4;
-/** Giới hạn ký tự MỖI prompt shot của model (422 từ fal, job #3088). */
-export const TOI_DA_PROMPT = 512;
+/** Giới hạn MỖI prompt shot của model là 512 (422 từ fal, job #3088) — nhưng model gốc đo SAU khi xử lý: prompt 479 ký tự vẫn bị trả "size must be
+ *  between 0 and 512" (job #3098, 19/10/2026; có thể đếm byte UTF-8 và / hoặc mở rộng @Element). Đo theo BYTE và chừa khoảng an toàn. */
+export const TOI_DA_PROMPT = 380;
+const doDai = (x: string) => Buffer.byteLength(x, 'utf8');
 const DUOI = 'Photorealistic, same faces and wardrobe, no on-screen text.';
 /** Ghép các phần theo thứ tự ưu tiên vào tối đa `max` ký tự: phần vừa thì lấy cả, không vừa thì lấy các CÂU đầu còn vừa; phần đầu tiên dài quá
  *  một câu thì cắt ở ranh giới từ (luôn có nội dung). */
@@ -21,9 +23,9 @@ export function gonPrompt(phan: string[], max: number): string {
   let out = '';
   for (const p of phan.filter(Boolean)) {
     const them = (x: string) => (out ? `${out} ${x}` : x);
-    if (them(p).length <= max) { out = them(p); continue; }
-    for (const cau of p.split(/(?<=[.!?])\s+/)) { if (them(cau).length <= max) out = them(cau); else break; }
-    if (!out) out = p.slice(0, max).replace(/\s+\S*$/, '');
+    if (doDai(them(p)) <= max) { out = them(p); continue; }
+    for (const cau of p.split(/(?<=[.!?])\s+/)) { if (doDai(them(cau)) <= max) out = them(cau); else break; }
+    if (!out) { let c = p; while (doDai(c) > max) c = c.slice(0, -10); out = c.replace(/\s+\S*$/, ''); }
   }
   return out;
 }
@@ -83,7 +85,7 @@ export function dungRef2v(shots: ShotR[], nhanVat: NvR[], o: { tiLe: string; tie
     const d = s.dan_dung ?? {};
     const mayDu = promptKyThuatVideo(s.ky_thuat); const may = (tieng ? mayDu : mayDu.replace(/\s*Sound:[^.]*\.?/g, '')).trim();
     const phan = s.prompt_video?.trim() ? [s.prompt_video.trim(), may] : [d.dien || s.hanh_dong, may, d.bo_cuc, d.mo && d.ket ? `From: ${d.mo} — to: ${d.ket}.` : ''];
-    return { id: s.id, thu_tu: s.thu_tu, giay, prompt: gonPrompt(phan.map((x) => { const t = doi(String(x ?? '').replace(/\s+/g, ' ').trim()); return t && !/[.!?]$/.test(t) ? `${t}.` : t; }), TOI_DA_PROMPT - DUOI.length - 1) };
+    return { id: s.id, thu_tu: s.thu_tu, giay, prompt: gonPrompt(phan.map((x) => { const t = doi(String(x ?? '').replace(/\s+/g, ' ').trim()); return t && !/[.!?]$/.test(t) ? `${t}.` : t; }), TOI_DA_PROMPT - doDai(DUOI) - 1) };
   });
   const input: Record<string, unknown> = {
     multi_prompt: sp.map((x) => ({ prompt: `${x.prompt} ${DUOI}`, duration: String(x.giay) })),

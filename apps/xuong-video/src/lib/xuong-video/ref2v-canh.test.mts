@@ -39,11 +39,12 @@ assert.ok(dungRef2v([], NV, { tiLe: '16:9' }).loi.length >= 1);
   const dai = 'Anticipation: Vivian plants herself in Hạ path, the cup raised high above the aisle. Action: a sharp flick of the wrist, coffee arcs onto the chest. Reaction: Hạ freezes, breath caught, eyes drop to the stain.';
   const bc = 'Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash, rows of desks and coworkers behind, window light from the left. '.repeat(3);
   const r = dungRef2v([sh(1, 3, [1, 2], { dien: dai, bo_cuc: bc, mo: 'x '.repeat(200), ket: 'y' }), sh(2, 3, [1], { dien: 'z '.repeat(400) })], NV, { tiLe: '9:16' });
-  for (const m of r.input.multi_prompt as { prompt: string }[]) assert.ok(m.prompt.length <= TOI_DA_PROMPT, `prompt ${m.prompt.length} ký tự`);
+  for (const m of r.input.multi_prompt as { prompt: string }[]) assert.ok(Buffer.byteLength(m.prompt, 'utf8') <= TOI_DA_PROMPT, `prompt ${Buffer.byteLength(m.prompt, 'utf8')} byte`);
   assert.ok(r.shots[0]!.prompt.startsWith('Anticipation: @Element2'), 'diễn nguyên câu đứng đầu');
   assert.ok(!r.shots[0]!.prompt.includes('From:'), 'mở/kết quá dài thì bỏ nguyên phần');
   assert.ok(r.shots[1]!.prompt.length > 100, 'phần đầu quá dài vẫn có nội dung (cắt ở ranh giới từ)');
-  assert.strictEqual(gonPrompt(['Một câu. Hai câu dài hơn nhiều lắm.'], 9), 'Một câu.');
+  assert.ok(Buffer.byteLength(gonPrompt(['Hạ — ’ ” '.repeat(80)], 100), 'utf8') <= 100, 'đếm theo byte (chữ có dấu, gạch dài)');
+  assert.strictEqual(gonPrompt(['Một câu. Hai câu dài hơn nhiều lắm.'], 11), 'Một câu.');
   assert.ok(!(r.input.multi_prompt as { prompt: string }[])[0]!.prompt.includes('Sound:'), 'không sinh tiếng thì bỏ Sound:');
 }
 console.log('✓ ref2v-canh');

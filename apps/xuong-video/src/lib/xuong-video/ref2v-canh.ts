@@ -12,6 +12,21 @@ export const GIA_REF2V = { khong_tieng: 8.4, co_tieng: 11.2 } as const;
 const TOI_DA_S = 15;
 /** Tổng element + ảnh tham chiếu — tài liệu fal ghi tối đa 4 khi có video; giữ 4 cho chắc. */
 const TOI_DA_THAM_CHIEU = 4;
+/** Giới hạn ký tự MỖI prompt shot của model (422 từ fal, job #3088). */
+export const TOI_DA_PROMPT = 512;
+const DUOI = 'Photorealistic, same faces and wardrobe, no on-screen text.';
+/** Ghép các phần theo thứ tự ưu tiên vào tối đa `max` ký tự: phần vừa thì lấy cả, không vừa thì lấy các CÂU đầu còn vừa; phần đầu tiên dài quá
+ *  một câu thì cắt ở ranh giới từ (luôn có nội dung). */
+export function gonPrompt(phan: string[], max: number): string {
+  let out = '';
+  for (const p of phan.filter(Boolean)) {
+    const them = (x: string) => (out ? `${out} ${x}` : x);
+    if (them(p).length <= max) { out = them(p); continue; }
+    for (const cau of p.split(/(?<=[.!?])\s+/)) { if (them(cau).length <= max) out = them(cau); else break; }
+    if (!out) out = p.slice(0, max).replace(/\s+\S*$/, '');
+  }
+  return out;
+}
 
 type ShotR = Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'nhan_vat' | 'phat_s' | 'thoi_luong_s' | 'hanh_dong' | 'prompt_video' | 'ky_thuat'> & { dan_dung?: Canh['dan_dung']; nhanh?: string; keyframe_url?: string | null };
 type NvR = Pick<NhanVat, 'id' | 'ten' | 'loai' | 'anh_ref'> & { anh_mat?: NhanVat['anh_mat'] };
@@ -61,15 +76,17 @@ export function dungRef2v(shots: ShotR[], nhanVat: NvR[], o: { tiLe: string; tie
     for (const { c, g } of goi) x = x.replace(new RegExp(`(?<![\\p{L}\\p{M}@])${g}(?![\\p{L}\\p{M}])`, 'gu'), c.ma);
     return x;
   };
+  const tieng = !!o.tieng;
+  // MỖI prompt shot ≤ TOI_DA_PROMPT ký tự (model trả 422 "Prompt must not exceed 512 characters" — job #3088, 19/10/2026). Ghép theo ƯU TIÊN, phần
+  // không vừa thì bỏ NGUYÊN CÂU (không cắt giữa câu): diễn (hành động) → máy → bố cục → mở/kết. Không sinh tiếng thì bỏ phần "Sound:" của máy.
   const sp = chon.map(({ s, giay }) => {
     const d = s.dan_dung ?? {};
-    const khoanh = s.prompt_video?.trim() || [d.bo_cuc, d.mo && d.ket ? `From: ${d.mo} — to: ${d.ket}` : d.mo || d.ket, d.dien].filter(Boolean).join('. ') || s.hanh_dong;
-    const may = promptKyThuatVideo(s.ky_thuat);
-    return { id: s.id, thu_tu: s.thu_tu, giay, prompt: doi([khoanh, may].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()).slice(0, 900) };
+    const mayDu = promptKyThuatVideo(s.ky_thuat); const may = (tieng ? mayDu : mayDu.replace(/\s*Sound:[^.]*\.?/g, '')).trim();
+    const phan = s.prompt_video?.trim() ? [s.prompt_video.trim(), may] : [d.dien || s.hanh_dong, may, d.bo_cuc, d.mo && d.ket ? `From: ${d.mo} — to: ${d.ket}.` : ''];
+    return { id: s.id, thu_tu: s.thu_tu, giay, prompt: gonPrompt(phan.map((x) => doi(String(x ?? '').replace(/\s+/g, ' ').trim())), TOI_DA_PROMPT - DUOI.length - 1) };
   });
-  const tieng = !!o.tieng;
   const input: Record<string, unknown> = {
-    multi_prompt: sp.map((x) => ({ prompt: `${x.prompt} Photorealistic, consistent faces and wardrobe; no on-screen text or subtitles.`, duration: String(x.giay) })),
+    multi_prompt: sp.map((x) => ({ prompt: `${x.prompt} ${DUOI}`, duration: String(x.giay) })),
     shot_type: 'customize', duration: String(Math.max(3, Math.min(TOI_DA_S, tong))), aspect_ratio: o.tiLe === '16:9' ? '16:9' : o.tiLe === '1:1' ? '1:1' : '9:16', generate_audio: tieng,
     elements: tc.filter((c) => c.vai === 'element').map((c) => ({ frontal_image_url: c.anh[0], reference_image_urls: (c.anh.length > 1 ? c.anh.slice(1, 4) : [c.anh[0]]) })),
     image_urls: tc.filter((c) => c.vai === 'anh').map((c) => c.anh[0]),

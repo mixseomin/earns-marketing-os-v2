@@ -5,6 +5,7 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
@@ -14,7 +15,15 @@ const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[] }
+export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[] }
+/** LỊCH ĐĂNG (anh 18/10/2026: "cần show lịch đăng trên tab social"): mỗi dòng = một nơi đăng của một máy studio (xv_may.dang[]) — giờ, máy Mac chạy,
+ *  trần/ngày, hôm nay đã đăng chưa, lần gần nhất, video kế. Đọc thẳng cấu hình máy + sổ đăng (xv_may_video.da_dang) nên máy / nền mới tự hiện. */
+export interface StLich {
+  may: string; mayMa: string; chay: boolean; nen: string; nenTen: string; tk: string; gio: string; mayMac: string; tran: number;
+  homNay: number; homNayUrl: string | null; cuoiLuc: string | null; cuoiUrl: string | null; daDang: number; conCho: number; ke: string | null;
+  /** giờ chạy THẬT của máy Mac này trong sổ việc nền cty (lượt dang-may --het) — rỗng = không có lượt nào, nơi đăng này không đăng được */
+  luot: string[];
+}
 
 type SpNhom = { id: number; ten: string; ai: number };
 type SpGoc = { id: number; ten: string; loai: string; cach_tim: string; so_qc: number | null; suc?: { diem: number }; bc?: { nguoi: number } | null; bat_ngo?: boolean; dang_len?: boolean };
@@ -42,7 +51,7 @@ export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [];
   let nhom: SpNhom[];
   try { nhom = await docDanhSach(); }
-  catch (e) { const l = [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`]; return { luc, goc: [], nhom: 0, loi: l, ...(await docKenhThatVaLanding(l)), lo: await docLoStudio(l) }; }
+  catch (e) { const l = [`không đọc được danh sách nhóm của spy: ${(e as Error).message}`]; return { luc, goc: [], nhom: 0, loi: l, ...(await docKenhThatVaLanding(l)), lo: await docLoStudio(l), lich: await docLich(l) }; }
   const ra: StGoc[][] = new Array(nhom.length);
   let tiep = 0;
   await Promise.all(Array.from({ length: Math.min(SONG_SONG, nhom.length) }, async () => {
@@ -52,7 +61,7 @@ export async function getSocialLive(): Promise<SocialLive> {
     }
   }));
   // xếp chung mọi nhóm theo Sức mạnh (spy chấm trong từng nhóm, 0–100 cùng thang) — góc mạnh nhất toàn kho lên đầu
-  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThatVaLanding(loi)), lo: await docLoStudio(loi) };
+  return { luc, goc: ra.flat().sort((a, b) => (b.suc ?? -1) - (a.suc ?? -1)), nhom: nhom.length, loi, ...(await docKenhThatVaLanding(loi)), lo: await docLoStudio(loi), lich: await docLich(loi) };
 }
 
 /* LANDING: trang đích = link mà video của các máy (xv_may_video.dang.link) và kênh (kenh_sp.dich) trỏ tới — thêm máy / kênh mới là trang tự hiện,
@@ -88,6 +97,49 @@ async function docLanding(trang: StTrang[], loi: string[]): Promise<StLanding[]>
 /* HÀNG ĐỢI SẢN XUẤT (LIVE): video thật của các MÁY trên studio.on.tc (xv_may / xv_may_video, cùng DB mos2_prod — từ 17/10/2026 video máy không còn
    là phim). Chưa dựng → Dựng · đã dựng mà còn nền chưa đăng → Lên lịch · đăng đủ mọi nền của máy → rời hàng đợi (sổ đăng xv_may_video.da_dang).
    Máy dựng bằng máy nên không qua Kịch bản / Kiểm. Video lưu trữ (video cũ, không dựng / không đăng nữa) không vào hàng đợi. */
+/* Video KẾ của một nền = cùng luật puzzle-books dang-may.mjs › chonVideo (id tăng, đã dựng, chưa lưu trữ, chưa đăng lên nền này; nền ảnh x_anh / fb_anh
+   cần ảnh tĩnh). Hai nơi chạy hai runtime (máy Mac đăng · mos2 hiện) nên luật chép ở đây — đổi luật bên đó thì đổi cả chỗ này. */
+const NEN_ANH_LICH = ['x_anh', 'fb_anh'];
+/** Lượt dang-may --het của từng máy Mac trong sổ việc nền cty (apps/cty/cong-ty/viec-nen.json) → { iMac: ['20:00', '21:00'] }. Thiếu tệp = {} (bảng báo không có lượt). */
+function luotMayDang(): Record<string, string[]> {
+  for (const f of [`${process.cwd()}/apps/cty/cong-ty/viec-nen.json`, `${process.cwd()}/../cty/cong-ty/viec-nen.json`, '/opt/earns-marketing-os-v2/apps/cty/cong-ty/viec-nen.json']) {
+    try {
+      const so = JSON.parse(readFileSync(f, 'utf8')) as { viec?: { nhan: string; chay?: string[]; hen?: { luc?: string[] } }[] } | { nhan: string; chay?: string[]; hen?: { luc?: string[] } }[];
+      const ds = Array.isArray(so) ? so : so.viec ?? [];
+      const ra: Record<string, string[]> = {};
+      for (const v of ds) if ((v.chay ?? []).some((c) => c.endsWith('dang-may.mjs')) && (v.chay ?? []).includes('--het')) ra[v.nhan.split(':')[0]!] = v.hen?.luc ?? [];
+      return ra;
+    } catch { /* thử đường kế */ }
+  }
+  return {};
+}
+async function docLich(loi: string[]): Promise<StLich[]> {
+  const d = getDb(); if (!d) return [];
+  try {
+    const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);   // ngày theo giờ Việt Nam — sổ đăng ghi 'ngay' theo giờ VN
+    const r = (await d.execute(sql`SELECT m.ma, m.ten AS may, m.chay, n->>'nen' AS nen, coalesce(n->>'ten', n->>'nen') AS nen_ten, coalesce(n->>'tk', '') AS tk,
+        coalesce(n->>'gio', '') AS gio, coalesce(n->>'may', '') AS may_mac, coalesce((n->>'tran')::int, 1) AS tran,
+        (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang->(n->>'nen')->>'ngay' = ${hom}) AS hom_nay,
+        (SELECT v.da_dang->(n->>'nen')->>'url' FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang->(n->>'nen')->>'ngay' = ${hom} ORDER BY v.da_dang->(n->>'nen')->>'luc' DESC NULLS LAST LIMIT 1) AS hom_nay_url,
+        (SELECT v.da_dang->(n->>'nen')->>'luc' FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen') ORDER BY v.da_dang->(n->>'nen')->>'luc' DESC NULLS LAST LIMIT 1) AS cuoi_luc,
+        (SELECT v.da_dang->(n->>'nen')->>'url' FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen') ORDER BY v.da_dang->(n->>'nen')->>'luc' DESC NULLS LAST LIMIT 1) AS cuoi_url,
+        (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND v.da_dang ? (n->>'nen')) AS da_dang,
+        (SELECT count(*)::int FROM xv_may_video v WHERE v.may_id = m.id AND v.video_url IS NOT NULL AND NOT v.luu_tru AND NOT v.da_dang ? (n->>'nen')
+           AND (NOT (n->>'nen') = ANY(${sql.raw(`ARRAY['${NEN_ANH_LICH.join("','")}']`)}) OR jsonb_array_length(v.anh) > 0)) AS con_cho,
+        (SELECT coalesce(v.dang->>'title', v.chu_de) FROM xv_may_video v WHERE v.may_id = m.id AND v.video_url IS NOT NULL AND NOT v.luu_tru AND NOT v.da_dang ? (n->>'nen')
+           AND (NOT (n->>'nen') = ANY(${sql.raw(`ARRAY['${NEN_ANH_LICH.join("','")}']`)}) OR jsonb_array_length(v.anh) > 0) ORDER BY v.id LIMIT 1) AS ke
+      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n
+      ORDER BY m.chay DESC, n->>'gio', m.id, n->>'nen'`)) as unknown as Record<string, unknown>[];
+    const luot = luotMayDang();
+    return r.map((x): StLich => ({
+      may: String(x.may), mayMa: String(x.ma), chay: !!x.chay, nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac),
+      tran: Number(x.tran), homNay: Number(x.hom_nay), homNayUrl: (x.hom_nay_url as string | null) ?? null, cuoiLuc: (x.cuoi_luc as string | null) ?? null,
+      cuoiUrl: (x.cuoi_url as string | null) ?? null, daDang: Number(x.da_dang), conCho: Number(x.con_cho), ke: (x.ke as string | null) ?? null,
+      luot: String(x.ma) === 'front-porch-only-one' ? [String(x.gio)] : luot[String(x.may_mac)] ?? [],   // Front Porch đăng bằng lượt riêng (dang-short), không qua dang-may
+    }));
+  } catch (e) { loi.push(`lịch đăng: ${(e as Error).message}`); return []; }
+}
+
 const STUDIO = 'https://studio.on.tc';
 async function docLoStudio(loi: string[]): Promise<StLo[]> {
   const d = getDb(); if (!d) return [];

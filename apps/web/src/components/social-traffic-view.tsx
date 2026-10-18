@@ -12,14 +12,14 @@ import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
 import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
-import type { SocialLive } from '@/lib/social-traffic';
+import type { SocialLive, StLich } from '@/lib/social-traffic';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 
-type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'landing' | 'trang' | 'tien';
+type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
   // Icon trước chữ (card #1407, YDNI "trực quan trước chữ"): nhận ra mục bằng mắt, chữ để xác nhận.
   { key: 'tong', label: '📊 Tổng quan' }, { key: 'goc', label: '🎯 Góc' }, { key: 'sx', label: '🎬 Sản xuất' },
-  { key: 'kenh', label: '📺 Kênh' }, { key: 'landing', label: '🛬 Landing' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
+  { key: 'kenh', label: '📺 Kênh' }, { key: 'lich', label: '🗓 Lịch đăng' }, { key: 'landing', label: '🛬 Landing' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
 ];
 const TT_GOC = { chua: ['var(--fg-3)', '○ Chưa làm'], dang: ['var(--accent)', '🧪 Đang thử'], thang: ['var(--ok)', '💰 Ra tiền'], chet: ['var(--bad)', '⏹ Dừng'] } as const;
 const TT_KENH = { song: ['var(--ok)', '✅ Sống'], co: ['var(--warn)', '🚩 Dính cờ'], khoa: ['var(--bad)', '🔒 Bị khoá'], dung: ['var(--fg-3)', '✂️ Đã cắt'] } as const;
@@ -30,6 +30,26 @@ const nho = { fontSize: 11, color: 'var(--fg-3)' } as const;
 /** Favicon THẬT của nền tảng (YDNI: nhận diện bằng mắt, không emoji). Tên hiển thị 'YouTube Shorts' / 'Facebook Reels' /
  *  'Gumroad' → khoá /api/platform-icon theo chữ đầu. Một chỗ cho bảng Kênh, Trang đích, Sổ tiền, Cửa bán. */
 const Logo = ({ ten, khoa, co = 16 }: { ten: string; khoa?: string; co?: number }) => <SiteFavicon platformKey={khoa ?? ten.split(/\s+/)[0]!.toLowerCase()} size={co} title={ten} />;   // khoa = platforms.key thật; thiếu mới đoán từ tên (cửa bán Gumroad/Etsy/KDP)
+/** Nơi đăng của máy (xv_may.dang[].nen) → khoá platforms để lấy favicon: bài ảnh dùng logo nền gốc. */
+const KHOA_NEN: Record<string, string> = { x: 'twitter', x_anh: 'twitter', fb_anh: 'facebook' };
+/** Mốc ISO → 'HH:mm dd/MM' giờ Việt Nam (luật giờ GMT+7). */
+const gioVN = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+const COT_LICH: DataColumn<StLich>[] = [
+  { key: 'gio', header: 'Giờ', sortValue: (l) => l.gio, cell: (l) => (l.luot.length
+      ? <span title={`lượt thật trên ${l.mayMac}: ${l.luot.join(', ')} (sổ việc nền cty)`}>{l.luot[0]} · {l.mayMac}</span>
+      : <span style={{ color: 'var(--bad)' }} title={`cấu hình ghi ${l.gio} · ${l.mayMac} nhưng sổ việc nền cty không có lượt máy đăng nào trên ${l.mayMac} — nơi này KHÔNG đăng`}>⛔ không có lượt · {l.mayMac}</span>) },
+  { key: 'nen', header: 'Nơi đăng', align: 'left', sortValue: (l) => l.nenTen, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={l.nenTen} khoa={KHOA_NEN[l.nen] ?? l.nen} />{l.nenTen}<span style={nho}>{l.tk}</span></span> },
+  { key: 'may', header: 'Máy', align: 'left', sortValue: (l) => l.may, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{l.may}{!l.chay && <Pill color="var(--fg-3)" label="⏸ tắt" uppercase={false} />}</span> },
+  { key: 'hom', header: 'Hôm nay', sortValue: (l) => l.homNay / Math.max(1, l.tran), cell: (l) => (l.homNay >= l.tran
+      ? <a href={l.homNayUrl ? `https://href.li/?${l.homNayUrl}` : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--ok)' }} title="mở bài đã đăng hôm nay">✅ {l.homNay}/{l.tran}</a>
+      : <span style={{ color: l.chay ? 'var(--fg-2)' : 'var(--fg-3)' }} title={l.chay ? `chờ lượt ${l.gio}` : 'máy đang tắt — không đăng'}>⏳ {l.homNay}/{l.tran}</span>) },
+  { key: 'cuoi', header: 'Lần gần nhất', sortValue: (l) => l.cuoiLuc ?? '', cell: (l) => (l.cuoiLuc
+      ? <a href={l.cuoiUrl ? `https://href.li/?${l.cuoiUrl}` : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{gioVN(l.cuoiLuc)}</a> : <span style={nho}>chưa đăng</span>) },
+  { key: 'da', header: 'Đã đăng', sortValue: (l) => l.daDang, cell: (l) => l.daDang },
+  { key: 'cho', header: 'Còn chờ', title: 'Video đã dựng chưa đăng lên nơi này (bài ảnh: video đã có ảnh tĩnh)', sortValue: (l) => l.conCho,
+    cell: (l) => <span style={l.conCho < 3 ? { color: 'var(--warn)' } : undefined} title={l.conCho < 3 ? 'sắp hết video — dựng thêm trong studio' : undefined}>{l.conCho}</span> },
+  { key: 'ke', header: 'Video kế', align: 'left', sortValue: (l) => l.ke ?? '', cell: (l) => (l.ke ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: 360 }} title={l.ke}>{l.ke}</span> : <span style={{ color: 'var(--warn)' }}>hết video</span>) },
+];
 const coLogo = (ten: string, chu: React.ReactNode = ten, khoa?: string) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={ten} khoa={khoa} />{chu}</span>;
 const chuaDo = <span style={{ fontSize: 11, color: 'var(--fg-3)' }} title="có trong vault, chưa có máy đọc số">chưa đo</span>;
 const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang xưởng studio.on.tc (tốn tiền sinh video) — chờ nối luồng ghi và anh bấm duyệt từng lô';
@@ -211,7 +231,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
 
       <DaiLuong nut={nut} value={changDang} onChange={(k) => setMuc(CHANG[k] ?? 'tong')} urlKey="sts" />
 
-      <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
+      <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'lich' ? `${live.lich.length} nơi đăng` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
@@ -302,6 +322,13 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             </>; })()}
             <span style={nho}>Mỗi kênh một thiết bị + một proxy riêng. Luật cắt: sau {ST_CAT_NGAY} ngày trung vị dưới {ST_CAT_TRUNG_VI} lượt xem thì dừng, dồn video sang kênh đang lên.</span></>
         : trong('Chưa có kênh nào', 'Kênh lấy từ vault tài khoản (Resources › Accounts), mỗi kênh một thiết bị + proxy riêng. Có kênh đầu tiên thì bảng hiện trung vị lượt xem, click về site, hoa hồng.'))}
+
+      {muc === 'lich' && (!laLive
+        ? <span style={nho}>Lịch đăng là dữ liệu thật của máy studio — bật LIVE để xem.</span>
+        : live.lich.length
+          ? <><DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
+              <span style={nho}>Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng) — thêm nền hoặc máy mới là tự hiện. Giờ theo GMT+7. Lượt chạy thật (sổ việc nền cty, apps/cty/cong-ty/viec-nen.json): máy đăng chung iMac 20:00 + chạy bù 21:00; Front Porch có lượt riêng.</span></>
+          : trong('Chưa có lịch đăng', 'Lịch hiện khi một máy studio (studio.on.tc › Máy) có nơi đăng.'))}
 
       {muc === 'landing' && (!laLive
         ? trong('Landing chỉ có số thật', 'Bật LIVE: mỗi trang đích mà video của các máy và kênh trỏ tới, kèm phiên 7 ngày, đọc tới đâu, bấm sang shop.')

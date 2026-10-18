@@ -216,6 +216,18 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   for (const m of b.daDoc) await tg('sendMessage', { message_thread_id: st.topic, text: tinDaDoc(m, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   for (const id of b.tha) await tg('setMessageReaction', { message_id: id, reaction: [{ type: 'emoji', emoji: '❤' }] });
   for (const id of b.xoa) await tg('deleteMessage', { message_id: id });
+  // SỔ CẢNH BÁO NỀN TẢNG (worker/canh-bao.mjs, anh 18/10/2026): mỗi thông báo rủi ro tài khoản (br tự soi · máy đăng · tay) → một tin chủ đề Bảo mật
+  let nCanh = 0;
+  if (process.env.DATABASE_URL && st.topic) {
+    const C = await import('./canh-bao.mjs'); const sql = (await import('postgres')).default(process.env.DATABASE_URL, { max: 1, prepare: false, connect_timeout: 5 });
+    try {
+      const ds2 = await C.chuaBao(sql), xong = [];
+      for (const a of ds2) { if ((await tg('sendMessage', { message_thread_id: st.topic, text: C.tinCanhBao(a, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } })).ok) xong.push(a.id); }
+      await C.daBao(sql, xong); nCanh = xong.length;
+      if (nCanh) await vpBao(nguoi, 'lam', `${nCanh} cảnh báo tài khoản`);
+    } catch (e) { console.error(`✗ sổ cảnh báo: ${e.message}`); }
+    finally { await sql.end({ timeout: 2 }).catch(() => {}); }
+  }
   if (ds && st.baoCaoNgay !== ngay && G.quaMoc(G.mocCuoiCa(ca), bay, ca)) {   // 🌙 báo cáo cuối ngày (5 phút trước hết ca)
     const tu = G.dauCa(bay, ca), trong = (x) => Date.parse(x) >= tu;
     const { docLog } = await import('./log.mjs'); const goi = docLog({ n: 5000 }).filter((e) => e.tu === nguoi && e.loai === 'goi' && trong(e.ts));
@@ -225,7 +237,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   const vp = b.cho ? 'cho' : 'xong';   // người phụ trách: còn thư chờ → "chờ người" trên pixel; hết → về ghế (chỉ báo khi đổi)
   if (ds && st.vp !== vp) { await vpBao(nguoi, vp, `${b.cho} thư bảo mật`); st.vp = vp; }
   fs.writeFileSync(`${tep}.tam`, JSON.stringify(st)); fs.renameSync(`${tep}.tam`, tep);
-  return `${bc}${moiNho ? `${moiNho} tin đã nhớ · ` : ''}${day ? `${day} lần anh dạy · ` : ''}${ds ? ds.length : '?'} thư đã đọc · ${b.gui.length} báo · ${b.daDoc.length} trả lời · ${b.tha.length} ❤ · ${b.xoa.length} gỡ · ${b.cho ?? '?'} thư chờ`;
+  return `${bc}${nCanh ? `${nCanh} cảnh báo tài khoản · ` : ''}${moiNho ? `${moiNho} tin đã nhớ · ` : ''}${day ? `${day} lần anh dạy · ` : ''}${ds ? ds.length : '?'} thư đã đọc · ${b.gui.length} báo · ${b.daDoc.length} trả lời · ${b.tha.length} ❤ · ${b.xoa.length} gỡ · ${b.cho ?? '?'} thư chờ`;
 }
 
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu-kiem')) {

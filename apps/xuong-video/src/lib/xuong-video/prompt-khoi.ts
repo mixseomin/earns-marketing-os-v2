@@ -107,7 +107,7 @@ export function tuTheEn(v: { nam?: boolean; dien?: string[] }, mon = 'the item')
   if (v.nam) return 'lying down';
   const ma = (v.dien ?? []).map(String).filter((d) => !d.includes('@') || Number(d.split('@')[1]!.split('-')[0]) <= 0.01).map((d) => d.split('@')[0]!);
   const t = ma.map((m) => DANG_EN[m]).filter(Boolean)[0];
-  return (t ?? 'standing').replace('{mon}', mon);
+  return (t ?? 'standing').replaceAll('{mon}', mon);   // mọi chỗ {mon} (câu lắc thẻ có hai — replace chỉ thay chỗ đầu, bộ chấm chặn #13)
 }
 /** SỐ NGƯỜI TRONG KHUNG theo 3D (nhân vật chính + người phụ của set lọt khung): ô trống trong khung (hành lang, ô cửa, hậu cảnh) thì AI hay thêm người —
  *  #15 mọc thêm một người mặc vest trắng ngoài hành lang. Không có người nào thì nói thẳng "no people". */

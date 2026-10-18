@@ -16,6 +16,10 @@ export type MayDi = { kieu: 'dung' | 'tien' | 'lui' | 'ngang' | 'len' | 'xuong' 
 
 import { NGANH_THEM } from './dien-anh-them';
 import { NGANH_LUAT } from './nganh-luat-dung';
+import { NGANH_CHUYEN_CANH } from './nganh-ky-thuat-chuyen-canh';
+import { NGANH_AM_THANH } from './nganh-ky-thuat-am-thanh';
+import { NGANH_HINH } from './nganh-ky-thuat-hinh';
+import { NGANH_KHUNG } from './nganh-ky-thuat-khung';
 
 /** CÚ MÁY LIỀN MẠCH CẦN KHUNG KẾT (luật khong_cat_giua_may): khung cuối khác hẳn khung mở (dừng trên người khác / phía bên kia) — bản 3D dựng thêm khung
  *  màu chỗ kết (bo-set-3d.ts › chay.ket → dung-set.py), video phải nhận ảnh đầu + ảnh cuối (keyframe_ket), không thì model tự bịa chỗ dừng.
@@ -427,4 +431,6 @@ export const NGANH: Record<string, { nganh: NganhKyThuat; may_di?: MayDi }> = {
   ...NGANH_THEM,
   // Kiến thức ngành cho các luật dựng cảnh (nganh-luat-dung.ts) — anh 18/10/2026: "Luôn phải refer với kiến thức ngành".
   ...NGANH_LUAT,
+  // Kiến thức ngành cho mọi nhóm kỹ thuật còn lại (18/10/2026): chuyển cảnh · âm thanh + nhạc · ánh sáng / màu / ống kính / tốc độ · cỡ cảnh / góc / vai / móc câu.
+  ...NGANH_CHUYEN_CANH, ...NGANH_AM_THANH, ...NGANH_HINH, ...NGANH_KHUNG,
 };

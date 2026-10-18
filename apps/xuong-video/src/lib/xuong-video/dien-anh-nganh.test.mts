@@ -5,7 +5,8 @@ import { THU_VIEN, promptKyThuatVideo, lamSachKyThuat } from './dien-anh';
 import { NGANH } from './dien-anh-nganh';
 import { LUAT_DUNG_CANH, luatDung } from './luat-dung';
 
-const can = THU_VIEN.filter((x) => x.nhom === 'chuyen_dong' || x.nhom === 'dien_xuat');
+// MỌI kỹ thuật trong thư viện (mọi nhóm) phải có mô tả ngành đủ trường + nguồn (anh 18/10/2026: "Luôn phải refer với kiến thức ngành").
+const can = THU_VIEN;
 const thieu = can.filter((x) => !x.nganh || Object.values(x.nganh).some((v) => !String(v).trim())).map((x) => `${x.nhom}.${x.key}`);
 assert.deepStrictEqual(thieu, [], `thiếu mô tả ngành: ${thieu.join(', ')}`);
 const khongSo = THU_VIEN.filter((x) => x.nhom === 'chuyen_dong' && !x.may_di).map((x) => x.key);

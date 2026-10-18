@@ -140,7 +140,7 @@ export const NGANH_THEM: Record<string, { nganh: NganhKyThuat; may_di?: MayDi }>
     'Lộ một người / một thông tin như tình cờ: kẻ theo dõi đứng chờ, người thứ ba chứng kiến; chuyển điểm nhìn từ nhân vật này sang nhân vật kia mà không cắt; dẫn khán giả theo luồng thông tin (lộ âm mưu).',
     'Khán giả không được báo trước — phát hiện B cùng lúc máy phát hiện; cảm giác "có ai đó luôn ở đó" (hồi hộp, chênh lệch thông tin).',
     'Lia sang B mà không có chuyển động nào của A dẫn đường (máy chuyển vô cớ); B nhảy vào khung đúng lúc máy tới (giả); dừng trên B quá ngắn; tốc độ đổi giữa chừng.') },
-  'chuyen_dong.vuot_tien_canh': { may_di: { kieu: 'ngang', toc: 'vua' }, nganh: n('Wipe reveal / foreground pass reveal',
+  'chuyen_dong.vuot_tien_canh': { may_di: { kieu: 'truot_qua', ti_le: 0.3, toc: 'vua' }, nganh: n('Wipe reveal / foreground pass reveal',
     'Khung mở bị một vật tiền cảnh che phần lớn (cột, tường, lưng người) → máy trượt ngang → khung kết lộ chủ thể rõ ràng phía sau.',
     'Trượt ngang (slider / dolly) song song mặt phẳng vật che; vật che phải gần máy và mờ nét để lướt qua nhanh; chủ thể đã nét sẵn.',
     'Giới thiệu nhân vật / nơi chốn có kịch tính; tiết lộ ai đang ở đó; nối hai cảnh (vật che lấp kín khung có thể giấu cú cắt).',

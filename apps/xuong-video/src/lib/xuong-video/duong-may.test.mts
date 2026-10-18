@@ -43,4 +43,7 @@ assert.deepEqual(cc.dat, ho.dat, 'máy đứng'); assert.deepEqual(cc.nhin, [200
 assert.deepEqual(duongMay({ ...ho, chuyen_toi: 'Thần' }, 'chuyen_chu_the', [], () => 165)!.nhin, [-100, 50, 140.25], 'chuyen_toi khai tay thắng');
 assert.ok(!duongMay(ho, 'day_vao')!.ket, 'cú thường không cần khung kết');
 assert.equal(duongMay(ho, 'cung')!.ket, true);
+// VƯỢT TIỀN CẢNH: trượt ngang 30 % khoảng cách, vuông góc hướng nhìn, không bám quãng người đi (người đi THẲNG về máy thì máy không lùi)
+const vq = duongMay({ dat: [-90, 175, 120], nhin: [-470, 175, 135], ong_kinh: 24, vi_tri: [{ ten: 'Hạ', tam: [-470, 160, 0], den: [-200, 200, 0] }] }, 'vuot_tien_canh')!;
+assert.equal(vq.dat[0], -90, 'không lùi theo người'); assert.ok(vq.dat[1]! > 175 + 100, 'trượt ngang về phía người trôi'); assert.equal(vq.ket, true);
 console.log('duong-may: mọi bài tự kiểm qua');

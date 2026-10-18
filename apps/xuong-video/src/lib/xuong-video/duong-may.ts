@@ -82,6 +82,9 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
       const dv = dai(di) > 0.3 ? di : nhan(phai, 0.2 * kc); datK = cong(dat, dv); nhinK = cong(nhin, dv); break;
     }
     case 'theo': datK = cong(dat, di); nhinK = cong(nhin, di); break;   // bám theo: máy dời đúng quãng chủ thể đi
+    case 'truot_qua': {   // VƯỢT TIỀN CẢNH: slider song song mặt phẳng vật che — máy + điểm nhìn cùng dời ngang ti_le × khoảng cách, về phía chủ thể trôi (đứng yên: sang phải)
+      const dv = nhan(phai, chieu * (md.ti_le ?? 0.3) * kc); datK = cong(dat, dv); nhinK = cong(nhin, dv); break;
+    }
     case 'chuyen': {   // CHUYỂN CHỦ THỂ (relay shot, kiểu HBO): máy đứng, đầu máy rời A rồi DỪNG trên B — nhắm 85 % chiều cao B (mặt người / thân vật) ở chỗ B đứng lúc kết
       if (!ctKet) { nhinK = cong(dat, xoayZ(tru(nhin, dat), -chieu * 70)); break; }   // không có B → lia 70° như cũ
       const p = v(ctKet.den ?? ctKet.tam); nhinK = [p[0], p[1], p[2] + cao(ctKet.ten) * 0.85];

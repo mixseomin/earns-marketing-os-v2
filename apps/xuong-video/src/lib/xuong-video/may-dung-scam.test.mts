@@ -38,3 +38,14 @@ console.log(`may-dung-scam: ${ds.length} đề đạt`);
   assert.ok(tieuDeScam('a', { kenh: 'SMS', dong: [{ t: 'x'.repeat(80), co: 1 }] } as never).includes('...'), 'câu trích dài thì cắt');
   console.log(`tiêu đề scam: ${ts.length} tiêu đề khác nhau, ví dụ: ${ts.slice(0, 3).join(' | ')}`);
 }
+
+// trang đích chia đều ba nơi, câu mời khớp trang, không đi cặp cố định với khung tiêu đề
+{
+  const { tuNguonScam, DICH_SCAM } = await import('./may-dung-scam');
+  const nguon = JSON.parse((await import('node:fs')).readFileSync(new URL('../../../mau/may/scam-or-real.json', import.meta.url), 'utf8')) as (Parameters<typeof tuNguonScam>[0])[];
+  const dem = new Map<string, number>(), cap = new Set<string>();
+  for (const x of nguon) { const d = tuNguonScam(x).dang; dem.set(d.link, (dem.get(d.link) ?? 0) + 1); const moi = DICH_SCAM.find((t) => t.link === d.link)!.moi; assert.ok(d.description.includes(`${moi} ${d.link}`), `${x.slug}: câu mời không khớp trang`); cap.add(`${d.title.slice(0, 6)}|${d.link}`); }
+  assert.strictEqual(dem.size, 3, 'đủ ba trang đích'); for (const [l, n] of dem) assert.ok(n >= nguon.length / 6, `${l} chỉ ${n} video`);
+  assert.ok(cap.size > 3, 'khung tiêu đề không đi cặp cố định với trang đích');
+  console.log(`trang đích: ${[...dem].map(([l, n]) => `${l.replace('https://ratesbyroom.com', '')} ${n}`).join(' · ')}`);
+}

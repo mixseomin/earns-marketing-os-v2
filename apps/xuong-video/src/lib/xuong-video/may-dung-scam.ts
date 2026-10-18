@@ -129,6 +129,14 @@ export function lenhScam(o: { de: DeScam; ass: string; nen?: string | null; font
 
 /** Trang đích của ngách (trang con trên ratesbyroom.com — nhịp 1 của plan social traffic). */
 export const LINK_SCAM = 'https://ratesbyroom.com/hotel-scam-check/';
+/** BA trang đích, chia theo video (S03 bước 3, 18/10/2026): bài 5 dấu hiệu · quiz · công cụ kiểm tin — mỗi trang một câu mời KHỚP thứ người bấm nhận được.
+ *  Chọn bằng băm slug KHÁC băm khung tiêu đề (tieuDeScam) để khung tiêu đề và trang đích không đi cặp cố định — đo được trang nào kéo người (UTM campaign = slug). */
+export const DICH_SCAM = [
+  { link: LINK_SCAM, moi: 'Free checklist (5 red flags before you pay) + real hotel rates:' },
+  { link: 'https://ratesbyroom.com/scam-quiz/', moi: "Think you'd spot it every time? Take the 10-message scam-or-real quiz:" },
+  { link: 'https://ratesbyroom.com/check-message/', moi: 'Got a message like this? Paste it into the free checker:' },
+] as const;
+export const dichScam = (slug: string) => DICH_SCAM[[...slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1000003, 7) % DICH_SCAM.length]!;
 /** Một dòng nguồn đề (mau/may/scam-or-real.json) → dòng nạp của máy: đề + chữ đăng tiếng Anh. */
 /** Câu trích làm móc tiêu đề: dòng gây chú ý nhất của tin (dòng có dấu hiệu đầu tiên; tin thật thì dòng thứ hai), cắt ≤ 52 ký tự theo từ (khung dài nhất + câu trích ≤ 100).
  *  Không lấy tên chiêu (goi) — "Fake cancellation deadline" lộ luôn đáp án. */
@@ -150,8 +158,8 @@ export function tuNguonScam(x: DeScam & { slug: string; nen_url?: string; nen_ng
   const { slug, nen_url, nen_nguon: _nguon, ...de } = x, lua = de.ket === 'scam';
   return { slug, chu_de: de.goi, de, dang: {
     title: tieuDeScam(slug, de),
-    description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message. Call the hotel on the number from its official website. Free checklist (5 red flags before you pay) + real hotel rates: ${LINK_SCAM}`,
-    link: LINK_SCAM,
+    description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message. Call the hotel on the number from its official website. ${dichScam(slug).moi} ${dichScam(slug).link}`,
+    link: dichScam(slug).link,
   }, nen_url: nen_url ?? null };
 }
 

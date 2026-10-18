@@ -211,3 +211,28 @@ export function xepHang(ket: KetAp[], thuTu: Map<number, number>): KetAp[][] {
   }
   return hang.map((h) => h.ds);
 }
+
+/** Khối lời dặn cho bước TÁCH SHOT (claude.ts › heThong): khuôn hợp dòng phim + từng bước cần vai nào, quy chuẩn ngành — Claude ghi mỗi shot
+ *  `khuon` + `buoc_khuon`, máy chủ gom lại thành xv_tap.khuon_chuoi (khuonTuShot). */
+export function vanKhuonChuoi(theLoai?: TheLoai | ''): string {
+  const ds = KHUON_CHUOI.filter((k) => hopTheLoai(k, theLoai));
+  const qc = theLoai ? QUY_CHUAN_DONG[theLoai] : undefined;
+  return `KHUÔN CHUỖI SHOT (dẫn dắt kiểu phim HBO: mỗi đoạn 2–6 shot làm MỘT nhiệm vụ kể, khán giả luôn biết đang ở đâu, vì sao cắt, ai biết gì). Mỗi phân cảnh chọn 1–2 khuôn hợp mục đích của nó; mỗi shot ghi \`khuon\` = mã khuôn đoạn đó thực hiện và \`buoc_khuon\` = số bước (1, 2, …) — VAI KỂ của shot (ky_thuat.vai) phải đúng vai bước cần, đi đúng thứ tự bước, không bỏ bước bắt buộc. Một shot chỉ một bước: nhịp nào cần khung riêng thì tách shot. Shot nối không thuộc khuôn nào thì để khuon rỗng.
+${ds.map((k) => `- ${k.key} — ${k.ten}: ${k.muc_dich} Bước: ${k.buoc.map((b, i) => `${i + 1}. ${b.ten} (${b.vai.join('/')}${b.tuy ? ', tuỳ chọn' : b.nen ? ', nên có' : ''})`).join(' → ')}${k.ket ? `. Kết: ${k.ket}` : ''}`).join('\n')}${qc ? `\nQUY CHUẨN DÒNG PHIM: ${qc.luat.join(' · ')}` : ''}`;
+}
+
+/** Gom khuôn Claude ghi trên từng shot (đã lưu, có id) thành các lần áp: shot liền nhau cùng phân cảnh + cùng mã khuôn = một lần áp. */
+export function khuonTuShot(shots: { id: number; phan_doan: string; khuon?: string; buoc_khuon?: number }[]): ApKhuon[] {
+  const out: ApKhuon[] = [];
+  let cur: (ApKhuon & { pd: string; cuoi: number }) | null = null;
+  for (const s of shots) {
+    const kh = s.khuon ? khuonTheoKey(s.khuon) : undefined;
+    const b = Math.round(Number(s.buoc_khuon ?? 0)) - 1;
+    if (!kh || b < 0 || b >= kh.buoc.length) { cur = null; continue; }
+    // Cùng khuôn + cùng cảnh nhưng bước quay về đầu (bước mới < bước cuối, bước không lặp được) = lần áp MỚI (đè nén lần 2…).
+    const moi = !cur || cur.khuon !== kh.key || cur.pd !== s.phan_doan || (b < cur.cuoi) || (b === cur.cuoi && !kh.buoc[b]!.lap);
+    if (moi) { cur = { khuon: kh.key, shots: {}, pd: s.phan_doan, cuoi: b }; out.push(cur); }
+    cur!.shots[String(s.id)] = b; cur!.cuoi = b;
+  }
+  return out.map(({ khuon, shots: sh }) => ({ khuon, shots: sh }));
+}

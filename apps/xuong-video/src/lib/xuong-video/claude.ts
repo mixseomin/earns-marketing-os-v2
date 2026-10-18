@@ -9,6 +9,7 @@ import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, khoaKhung, hopTheLoai, NHOM_KY_
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { giayDoc } from './nhip-hinh';
 import { vanLuatDung, LUAT_DUNG_CANH } from './luat-dung';
+import { vanKhuonChuoi } from './khuon-chuoi';
 import { docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
@@ -50,6 +51,8 @@ const DanDungSchema = z.object({
   nhan: z.string().describe('Tiếng Việt: ĐIỂM NHẤN âm–hình nếu shot có cú bùng của gag (giây nào, tiếng gì đập đúng lúc nào, nhạc ngắt ở đâu); rỗng nếu không'),
 });
 const ShotSchema = CanhSchema.extend({
+  khuon: z.string().describe('Mã KHUÔN CHUỖI (khối KHUÔN CHUỖI SHOT) mà đoạn chứa shot này thực hiện; rỗng nếu shot không thuộc khuôn nào'),
+  buoc_khuon: z.number().int().describe('Số bước (1, 2, …) của shot trong khuôn đó; 0 nếu không thuộc khuôn'),
   dan_dung: DanDungSchema.describe('THẺ SHOT trước keyframe (khuôn shot list của ngành) — điền đủ, máy chặn keyframe khi thiếu'),
   trang_phuc: z.string().describe('Trang phục của người trong shot NẾU khác bộ đồ trong mô tả anchor, ghi rõ và đủ (tiếng Anh hoặc Việt), vd "chỉ mặc áo bra không gọng màu be và quần jean, KHÔNG áo ngoài, lộ vai". Quảng cáo đồ mặc (áo lót, đồ bơi, áo…): shot khoe/demo sản phẩm phải ghi rõ người CHỈ mặc sản phẩm ở phần đó, không áo khoác ngoài. Rỗng nếu giữ bộ đồ mặc định.'),
   thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
@@ -126,6 +129,7 @@ NGÔN NGỮ PHIM: ${tenNgonNgu(kt.ngon_ngu)}. ${kt.ngon_ngu === 'vi' ? '' : `M�
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 ${taQc(kt)}
 ${LUAT_KE_CHUYEN}
+${vanKhuonChuoi(kt.the_loai)}
 ${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}${kt.ban_do?.trim() ? `BẢN ĐỒ KHÔNG GIAN (các nơi chốn nằm đâu, cạnh nhau thế nào, đường đi — dùng cho chuỗi dẫn và shot hành trình, luật 12):\n${kt.ban_do.trim()}\n` : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình (không viết "như shot trước" — model không thấy shot khác) NHƯNG phải tả lại bằng chữ trạng thái nối tiếp từ shot trước (luật 11: vị trí, đồ đang cầm, biến dạng, ánh sáng, hướng di chuyển). Hai shot liền nhau cùng nơi, cùng khoảnh khắc, máy cùng phía (shot sau tiếp đúng giây cuối shot trước) → ky_thuat.chuyen_canh của shot TRƯỚC = 'lien_may': clip shot trước sẽ kết đúng bằng keyframe shot sau, cắt không giật.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */

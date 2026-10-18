@@ -8,6 +8,7 @@ import { lamSachKyThuat } from './dien-anh';
 import { ghepThoai, type NhanVat } from './kieu';
 import type { tachCanh } from './claude';
 import { mauNhacTen } from './quy-trinh';
+import { khuonTuShot } from './khuon-chuoi';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type KqTach = Extract<Awaited<ReturnType<typeof tachCanh>>, { ok: true }>;
@@ -29,6 +30,7 @@ export async function luuCanhTach(db: Db, o: { tapId: number; tenTap: string; kq
     const giu = (await db.execute(sql`SELECT coalesce(max(thu_tu), 0) AS m FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as { m: unknown }[];
     thuTu = Number(giu[0]?.m ?? 0);
   }
+  const daLuu: { id: number; phan_doan: string; khuon?: string; buoc_khuon?: number }[] = [];
   for (const c of kq.canh) {
     thuTu += 1;
     const ids0 = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
@@ -36,10 +38,15 @@ export async function luuCanhTach(db: Db, o: { tapId: number; tenTap: string; kq
     const ids = [...ids0, ...mauNhacTen({ nhan_vat: ids0, prompt_anh: c.prompt_anh }, o.nhanVat).map((v) => v.id)];
     const bts = (c.bien_the ?? []).map((t) => btToId.get(t.replace(/\s*[·\-–|]\s*/, ' · ').trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
     const thoai = (c.thoai ?? []).filter((d) => d.loi.trim());
-    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh, dan_dung)
+    const rr = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh, dan_dung)
       VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${thoai.length ? ghepThoai(thoai) : c.loi_thoai}, ${JSON.stringify(thoai)}::jsonb, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${JSON.stringify(bts)}::jsonb, ${c.prompt_anh}, ${c.prompt_video},
-        ${c.phan_doan}, ${c.cam_xuc}, ${JSON.stringify(lamSachKyThuat(c.ky_thuat as unknown as Record<string, unknown>))}::jsonb, ${c.trang_phuc ?? ''}, ${c.phat_s}, ${c.chu_man ?? ''}, ${c.nhanh ?? ''}, ${JSON.stringify(c.dan_dung ?? {})}::jsonb)`);
+        ${c.phan_doan}, ${c.cam_xuc}, ${JSON.stringify(lamSachKyThuat(c.ky_thuat as unknown as Record<string, unknown>))}::jsonb, ${c.trang_phuc ?? ''}, ${c.phat_s}, ${c.chu_man ?? ''}, ${c.nhanh ?? ''}, ${JSON.stringify(c.dan_dung ?? {})}::jsonb) RETURNING id`)) as unknown as { id: unknown }[];
+    daLuu.push({ id: Number(rr[0]!.id), phan_doan: c.phan_doan, khuon: c.khuon, buoc_khuon: c.buoc_khuon });
   }
+  // Khuôn chuỗi Claude chọn cho từng shot → các lần áp của tập (khuon-chuoi.ts › khuonTuShot). Tách lại = thay; chèn shot = nối thêm.
+  const apMoi = khuonTuShot(daLuu);
+  if (o.chenTruoc) { if (apMoi.length) await db.execute(sql`UPDATE xv_tap SET khuon_chuoi = khuon_chuoi || ${JSON.stringify(apMoi)}::jsonb WHERE id = ${tapId}`); }
+  else await db.execute(sql`UPDATE xv_tap SET khuon_chuoi = ${JSON.stringify(apMoi)}::jsonb WHERE id = ${tapId}`);
   // Phần cấp tập của hồ sơ tiền kỳ (ho-so.ts) — tách cảnh của Claude và tệp nạp đều mang theo.
   const hoSo = (kq as { hoSo?: unknown }).hoSo;
   if (hoSo && typeof hoSo === 'object') await db.execute(sql`UPDATE xv_tap SET ho_so = ${JSON.stringify(hoSo)}::jsonb WHERE id = ${tapId}`);

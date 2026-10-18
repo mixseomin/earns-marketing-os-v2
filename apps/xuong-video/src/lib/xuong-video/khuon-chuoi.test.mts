@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { KHUON_CHUOI, QUY_CHUAN_DONG, kiemKhuon, xepHang, khuonTheoKey } from './khuon-chuoi';
+import { KHUON_CHUOI, QUY_CHUAN_DONG, kiemKhuon, xepHang, khuonTheoKey, khuonTuShot, vanKhuonChuoi } from './khuon-chuoi';
 import { THU_VIEN, THE_LOAI } from './dien-anh';
 import { LUAT_DUNG_CANH } from './luat-dung';
 
@@ -49,4 +49,9 @@ const th = kiemKhuon(va, [s(1, 'thiet_lap'), s(2, 'hanh_dong', ['gioi_thieu']), 
 assert.deepStrictEqual(th.thieu.map((t) => [t.ten, t.sau]), [['Mặt kẻ thua', 4]]);
 const thDau = kiemKhuon({ khuon: 'phat_hien', shots: { 5: 1, 6: 2 } }, [s(5, 'chi_tiet'), s(6, 'phan_ung')])!;
 assert.deepStrictEqual(thDau.thieu.map((t) => [t.buoc, t.sau]), [[0, null]], 'bước đầu thiếu → đứng trước shot đầu');
+// khuonTuShot: liền nhau cùng cảnh cùng khuôn = một lần áp; bước quay về đầu = lần áp mới; mã lạ / bước 0 = bỏ
+const g = khuonTuShot([{ id: 1, phan_doan: 'A', khuon: 'lam_nhuc', buoc_khuon: 1 }, { id: 2, phan_doan: 'A', khuon: 'lam_nhuc', buoc_khuon: 4 }, { id: 3, phan_doan: 'A', khuon: 'lam_nhuc', buoc_khuon: 1 },
+  { id: 4, phan_doan: 'A', khuon: 'xx', buoc_khuon: 1 }, { id: 5, phan_doan: 'B', khuon: 'ket_treo', buoc_khuon: 1 }, { id: 6, phan_doan: 'B', khuon: 'ket_treo', buoc_khuon: 1 }, { id: 7, phan_doan: 'B', khuon: '', buoc_khuon: 0 }]);
+assert.deepStrictEqual(g, [{ khuon: 'lam_nhuc', shots: { 1: 0, 2: 3 } }, { khuon: 'lam_nhuc', shots: { 3: 0 } }, { khuon: 'ket_treo', shots: { 5: 0, 6: 0 } }]);
+assert.ok(vanKhuonChuoi('phim_doc').includes('va_mat') && !vanKhuonChuoi('phim_doc').includes('truoc_sau'), 'lời dặn chỉ khuôn hợp dòng');
 console.log(`✓ khuon-chuoi (${KHUON_CHUOI.length} khuôn)`);

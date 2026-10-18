@@ -73,6 +73,9 @@ export async function ghiNhatKy(db: Db, ma: string, x: { buoc: string; ok?: bool
   await db.execute(sql`INSERT INTO xv_may_nhat_ky (may_id, buoc, ok, slug, nen, noi_dung, url) SELECT id, ${x.buoc}, ${x.ok ?? true}, ${x.slug ?? null}, ${x.nen ?? null}, ${x.noi_dung ?? ''}, ${x.url ?? null} FROM xv_may WHERE ma = ${ma}`);
 }
 
+/** JSON không phụ thuộc thứ tự khoá — jsonb của Postgres tự xếp lại khoá, so JSON.stringify thô thì mọi lần nạp đều thành "đề đổi" và xoá bản xuất
+ *  (đo 18/10/2026: chỉ đổi tiêu đề mà 30 video Hotel mất bản xuất). */
+export const jsonChuan = (x: unknown): string => JSON.stringify(x, (_k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, (v as Record<string, unknown>)[k]])) : v));
 /** Nạp đề (khoá = slug trong máy): chưa có → thêm; đề đổi → ghi đề mới, bỏ video cũ (xuất lại); chỉ chữ đăng đổi → cập nhật chữ. */
 export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ moi: number; doi: number; giu: number }> {
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
@@ -85,7 +88,7 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
       await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang, nen_url) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb, ${nen})`);
       moi++; continue;
     }
-    const deDoi = JSON.stringify(cu.de) !== JSON.stringify(x.de) || (coNen && (cu.nen_url ?? null) !== nen), chuDoi = JSON.stringify(cu.dang) !== JSON.stringify(x.dang) || cu.chu_de !== x.chu_de;
+    const deDoi = jsonChuan(cu.de) !== jsonChuan(x.de) || (coNen && (cu.nen_url ?? null) !== nen), chuDoi = jsonChuan(cu.dang) !== jsonChuan(x.dang) || cu.chu_de !== x.chu_de;
     if (!deDoi && !chuDoi) { giu++; continue; }
     if (deDoi) await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(x.de)}::jsonb, dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, nen_url = ${nen}, video_url = NULL, khung = '[]'::jsonb, anh = '[]'::jsonb, xuat_luc = NULL, updated_at = now() WHERE id = ${Number(cu.id)}`);
     else await db.execute(sql`UPDATE xv_may_video SET dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, updated_at = now() WHERE id = ${Number(cu.id)}`);

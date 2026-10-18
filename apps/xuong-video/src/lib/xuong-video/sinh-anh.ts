@@ -315,13 +315,17 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // toiDaTu: bước 1 FLUX đọc ~300 từ — bộ đồ rút còn vế đầu (dáng bộ đồ, chi tiết vết / hoạ tiết để bước 2 làm theo ảnh mẫu + mô tả đủ); #6 vết cà phê đủ chữ = 305 từ
   const rut = (t: string, n?: number) => { if (!n) return t; const w = t.split(/\s+/); return w.length <= n ? t : `${w.slice(0, n).join(' ').replace(/[,;:]+$/, '')}…`; };
   // tư thế theo 3D (đứng / ngồi / nằm / dáng tay + món đang cầm) — chỉ bước 1 FLUX (đọc độ sâu ma-nơ-canh, dễ hiểu sai dáng); bước 2 giữ ảnh bước 1
-  const monCam = (v: NhanVat) => { const mm = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.cam === v.ten && !x.an); return mm ? goiTenEn([...bc.nhanVat, ...bc.nvPhim])(mm.ten) : undefined; };
+  // ĐỒ CẦM ≠ ĐỒ ĐEO (19/10/2026 #25: chuỗi hạt khai deo 'cotay_t' mà câu đồ cầm gọi là món Thần cầm → Nano đặt chuỗi hạt vào lòng bàn tay ngửa)
+  const monCam = (v: NhanVat) => { const mm = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.cam === v.ten && !x.an && !(x as { deo?: string }).deo); return mm ? goiTenEn([...bc.nhanVat, ...bc.nvPhim])(mm.ten) : undefined; };
+  const CHO_DEO: Record<string, string> = { cotay_t: 'around the left wrist', cotay_p: 'around the right wrist', co: 'around the neck' };
+  const monDeo = (v: NhanVat) => ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((x) => x.cam === v.ten && !x.an && (x as { deo?: string }).deo)
+    .map((x) => `wearing exactly ONE ${goiTenEn([...bc.nhanVat, ...bc.nvPhim])(x.ten)} ${CHO_DEO[(x as { deo?: string }).deo!] ?? 'on the body'} (worn, not held; no second one anywhere)`);
   const taNv = (v: NhanVat, gon = false, toiDaTu?: number) => chuNguoi(v, { ao: aoCua(v).map((x) => rut(x, toiDaTu)), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua,
     tu_the: toiDaTu && v.loai === 'nhan_vat' && vtCua(v) ? tuTheEn(vtCua(v)!, monCam(v)) : undefined });
   // DÁNG + ĐỒ CẦM cho đường Nano (19/10/2026 #13: câu Nano chỉ tả thẻ "trông như ảnh 4", không nói AI cầm, cầm thế nào → thẻ lơ lửng giữa không trung,
   // tay Vivian trống). Trước chỉ bước 1 FLUX nhận câu dáng; giờ plate Nano là đường chính của shot nhiều người.
-  const dangChu = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && vtCua(v) && !vtCua(v)!.an).map((v) => { const t = tuTheEn(vtCua(v)!, monCam(v)); return t === 'standing' ? '' : `${v.ten}: ${t}`; }).filter(Boolean);
-  const dangCau = dangChu.length ? `POSES AND HELD ITEMS, as Image 1 shows (every held item stays physically in its holder's hand — never floating in the air; a held item's reference image shows only what it looks like, not where it goes): ${dangChu.join('; ')}.` : '';
+  const dangChu = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && vtCua(v) && !vtCua(v)!.an).map((v) => { const t = tuTheEn(vtCua(v)!, monCam(v)); const d = monDeo(v); const ca = [t === 'standing' ? '' : t, ...d].filter(Boolean); return ca.length ? `${v.ten}: ${ca.join('; ')}` : ''; }).filter(Boolean);
+  const dangCau = dangChu.length ? `POSES, HELD AND WORN ITEMS, as Image 1 shows (every held item stays physically in its holder's hand, every worn item stays where it is worn — never floating in the air; a held item's reference image shows only what it looks like, not where it goes): ${dangChu.join('; ')}.` : '';
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").

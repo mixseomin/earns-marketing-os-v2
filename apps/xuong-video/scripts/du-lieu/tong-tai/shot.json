@@ -2306,6 +2306,101 @@
   "bat_dau": 82.0
  },
  {
+  "ma": "4.6",
+  "canh": "Phòng họp 3 giờ",
+  "phat_s": 3,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chu_quan",
+   "co_canh": "cu",
+   "goc": "ngang",
+   "chuyen_dong": "zoom_gat",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "tuong_phan",
+   "am_thanh": [
+    "im_lang"
+   ]
+  },
+  "dan_dung": {
+   "dien": "Anticipation: Vivian's smug smile is still on her face. Action: it freezes, then cracks as Hạ's words land. Reaction: her eyes go wide on Hạ, her empty hand still curled as if holding the {Ly cà phê}.",
+   "huong": "Vivian looks screen-left toward Hạ.",
+   "bo_cuc": "Close-up on Vivian from Hạ’s point of view, the boardroom soft behind her, her empty curled hand at the bottom edge",
+   "mo": "Vivian’s smug smile frozen",
+   "ket": "Vivian’s eyes wide, the smile gone",
+   "muc_dich": "phản ứng của người bị vả mặt",
+   "ma": "4.6"
+  },
+  "hanh_dong": "Cận mặt Vivian: nụ cười đắc ý đông cứng rồi vỡ ra, mắt mở to nhìn Hạ, bàn tay vẫn khum như còn cầm ly cà phê",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "soc"
+   }
+  ],
+  "may_3d": {
+   "tay": true,
+   "dat": [
+    -150,
+    560,
+    160
+   ],
+   "nhin": [
+    110,
+    745,
+    158
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Vivian",
+     "tam": [
+      110,
+      745,
+      0
+     ],
+     "huong": -30,
+     "dien": [
+      "cam_truoc"
+     ]
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -200,
+      200,
+      0
+     ],
+     "huong": 160,
+     "an": true
+    },
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      0,
+      740,
+      0
+     ],
+     "huong": 0,
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Vivian",
+   "Phòng họp HĐQT"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 87.0
+ },
+ {
   "ma": "5.1",
   "canh": "Sếp mới",
   "phat_s": 4,
@@ -2396,7 +2491,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 87.0
+  "bat_dau": 90.0
  },
  {
   "ma": "5.2",
@@ -2497,7 +2592,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 91.0
+  "bat_dau": 94.0
  },
  {
   "ma": "5.3",
@@ -2586,7 +2681,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 97.0
+  "bat_dau": 100.0
  },
  {
   "ma": "5.4",
@@ -2683,6 +2778,6 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 100.0
+  "bat_dau": 103.0
  }
 ]

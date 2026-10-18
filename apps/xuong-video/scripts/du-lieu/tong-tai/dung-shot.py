@@ -175,6 +175,16 @@ shot('4.5', C4, 5, 'veo', {'vai': 'hanh_dong', 'co_canh': 'mcu', 'goc': 'thap', 
      {'dat': [-260, 330, 120], 'nhin': [-200, 200, 160], 'ong_kinh': 70, 'khung': [HA], 'vi_tri': [vt(HA, [-200, 200, 0], 160), vt(THAN, [0, 740, 0], 0, an=True), vt(TRAN, [-270, 150, 0], 90, an=True)]},
      [HA, PH])   # trung cận Hạ: Thần cuối bàn ngoài khung
 
+# 4.6 PHẢN ỨNG người bị vả mặt qua mắt Hạ (chủ quan — Hạ vừa nói xong, nhìn Vivian sụp đổ). Luật liền mạch / chamDauTu: cú lật phải có shot phản ứng
+# của chính người bị lật — anh thêm trên studio 18/10/2026
+shot('4.6', C4, 3, 'veo', {'vai': 'chu_quan', 'co_canh': 'cu', 'goc': 'ngang', 'chuyen_dong': 'zoom_gat', 'ong_kinh': 'chan_dung', 'anh_sang': 'tuong_phan', 'am_thanh': ['im_lang']},
+     { 'dien': "Anticipation: Vivian's smug smile is still on her face. Action: it freezes, then cracks as Hạ's words land. Reaction: her eyes go wide on Hạ, her empty hand still curled as if holding the {Ly cà phê}.", 'huong': 'Vivian looks screen-left toward Hạ.','bo_cuc': 'Close-up on Vivian from Hạ’s point of view, the boardroom soft behind her, her empty curled hand at the bottom edge', 'mo': 'Vivian’s smug smile frozen', 'ket': 'Vivian’s eyes wide, the smile gone', 'muc_dich': 'phản ứng của người bị vả mặt'},
+     'Cận mặt Vivian: nụ cười đắc ý đông cứng rồi vỡ ra, mắt mở to nhìn Hạ, bàn tay vẫn khum như còn cầm ly cà phê', [],
+     [bc(VIV, 'dac_y', 'soc')],
+     {'tay': True, 'dat': [-150, 560, 160], 'nhin': [110, 745, 158], 'ong_kinh': 85, 'khung': [VIV],   # cùng phía trục Hạ–Thần với các shot trước, chéo trước mặt Vivian (lệch ~25°)
+      'vi_tri': [vt(VIV, [110, 745, 0], -30, dien=['cam_truoc']), vt(HA, [-200, 200, 0], 160, an=True), vt(THAN, [0, 740, 0], 0, an=True)]},
+     [VIV, PH])
+
 # ── CẢNH 5 · liền sau (79–89 s) ──
 shot('5.1', C5, 4, 'h3', {'vai': 'phan_ung', 'co_canh': 'ms', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chuan', 'anh_sang': 'tuong_phan', 'am_thanh': ['tim_dap']},
      { 'dien': "Anticipation: the {Bút ký} stops mid-air in Thần's hand. Action: he drops it, strides to the table corner and slams both palms onto the wood. Reaction: he leans in, breathing hard, staring at Hạ.", 'huong': 'Thần moves screen-left to the table corner and looks screen-left at Hạ.','bo_cuc': 'Lục Thần drops the {Bút ký} and strides to the corner of the table, both palms slamming onto the tabletop', 'mo': 'Thần at the head of the table, the {Bút ký} in hand', 'ket': 'Thần leaning on the table corner, hands flat on the wood', 'muc_dich': 'lần đầu mất thế chủ động'},

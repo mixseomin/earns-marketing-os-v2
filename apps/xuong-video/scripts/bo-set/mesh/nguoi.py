@@ -183,7 +183,8 @@ TU_THE_NGUOI = {
     'cam_truoc': {'vai_p': (-15, 8, 0), 'khuyu_p': (-85, 0, 0)},                                                # cầm món trước ngực
     'cam_dien_thoai': {'vai_p': (-12, 10, 0), 'khuyu_p': (-110, 0, 0), 'dau': (22, 0, 0)},                     # nhìn xuống điện thoại trong tay
     'gio_cao': {'vai_p': (-150, 12, 0), 'khuyu_p': (-15, 0, 0), 'lung': (-5, 0, 0)},                            # giơ cao cho cả phòng thấy, ngả nhẹ ra sau
-    'dua_truoc_mat': {'vai_p': (-70, 12, 0), 'khuyu_p': (-55, 0, 0)},                                           # đưa món lên trước mặt người đối diện
+    'dua_truoc_mat': {'vai_p': (-70, 12, 0), 'khuyu_p': (-55, 0, 0)},
+    'lac_treo': {'vai_p': (-105, 10, 0), 'khuyu_p': (-15, 0, 0)},                                             # chìa tay ngang vai, món TREO lủng lẳng ngang mặt người đối diện (#11 thẻ đeo)                                           # đưa món lên trước mặt người đối diện
     'hat': {'vai_p': (-90, 5, 0), 'khuyu_p': (-8, 0, 0), 'lung': (10, 0, 0), 'nguc': (0, 0, 12)},               # hất / ném mạnh ra trước
     'giat': {'vai_p': (-97, 4, 0), 'khuyu_p': (-12, 0, 0), 'lung': (12, 0, 0), 'nguc': (0, 0, 15)},             # vươn tay giật
     'chong_ban': {'lung': (28, 0, 0), 'nguc': (10, 0, 0), 'vai_t': (-85, -10, 0), 'vai_p': (-85, 10, 0),

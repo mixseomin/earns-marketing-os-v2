@@ -1203,7 +1203,7 @@ if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ �
 DONG_TAC = {
     # NGƯỜI (rig ma-nơ-canh — mesh/nguoi.py › TU_THE_NGUOI): tư thế chồng lên đứng / bước; 'ten' = cả shot, 'ten@a-b' = chuyển dần trong a..b
     'quy_mot_goi': 'quỳ một gối, tay với xuống sàn', 'cam_truoc': 'cầm món trước ngực', 'cam_dien_thoai': 'nhìn điện thoại trong tay',
-    'gio_cao': 'giơ cao món cho cả phòng thấy', 'dua_truoc_mat': 'đưa món lên trước mặt người đối diện', 'hat': 'hất / ném mạnh ra trước',
+    'gio_cao': 'giơ cao món cho cả phòng thấy', 'dua_truoc_mat': 'đưa món lên trước mặt người đối diện', 'lac_treo': 'chìa tay ngang vai, món treo lủng lẳng ngang mặt người đối diện', 'hat': 'hất / ném mạnh ra trước',
     'giat': 'vươn tay giật', 'chong_ban': 'hai tay chống mặt bàn, ngẩng nhìn', 'cui_nguoi': 'cúi sát về phía trước', 'om_thung': 'ôm thùng trước bụng',
     'khoanh_tay': 'khoanh tay', 'gioi_thieu': 'đưa tay giới thiệu người bên cạnh', 'thuyet_trinh': 'tay mở về phía màn chiếu',
     # MOCAP THẬT (kho CMU, mesh/mocap.py › MOCAP): 'mc_<ten>[@a-b]'

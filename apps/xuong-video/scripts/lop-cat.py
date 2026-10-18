@@ -3,7 +3,7 @@
 # Hạ nhỏ ở góc thành chân dung giữa khung, Vivian quay lưng thành quay mặt) → cắt đúng hộp bao người (đo từ lớp độ sâu 3D), phóng lên cho người lấp khung,
 # sửa trên ảnh cắt, rồi thu về đúng hộp và dán lên nền xanh cùng cỡ khung. 0đ (OpenCV, venv /opt/xv-soi-mat).
 #   stdin {"op":"cat","sau":"<url độ sâu người>","anh":"<url ảnh FLUX>","ra":"<tệp jpg>","le":0.15} → {"hop":[x0,y0,x1,y1] (px trên ảnh), "w","h"}
-#   stdin {"op":"dan","anh":"<url ảnh đã sửa>","hop":[…],"w":W,"h":H,"ra":"<tệp png>"} → {"ok":true} (nền xanh #00FF00 cùng cỡ khung)
+#   stdin {"op":"dan","anh":"<url ảnh đã sửa>","hop":[…],"w":W,"h":H,"sau":"<url độ sâu người>","ra":"<tệp png>"} → {"ok":true} (nền xanh #00FF00 cùng cỡ khung)
 import json, sys, urllib.request, os
 import numpy as np, cv2
 def doc(u, mau=cv2.IMREAD_COLOR):
@@ -26,5 +26,10 @@ if v['op'] == 'cat':
 elif v['op'] == 'dan':
     x0, y0, x1, y1 = v['hop']; W, H = int(v['w']), int(v['h'])
     sua = cv2.resize(doc(v['anh']), (x1 - x0, y1 - y0), interpolation=cv2.INTER_AREA)
-    nen = np.zeros((H, W, 3), np.uint8); nen[:] = (0, 255, 0); nen[y0:y1, x0:x1] = sua
+    nen = np.zeros((H, W, 3), np.uint8); nen[:] = (0, 255, 0); vung = nen[y0:y1, x0:x1]
+    if v.get('sau'):   # chỉ dán điểm ảnh trong BÓNG NGƯỜI của lớp độ sâu (nới ~2,5% chiều cao) — model trả nền không xanh thuần thì không lộ hình chữ nhật
+        m = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
+        r = max(3, int(H * 0.025)); m = cv2.dilate(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))[y0:y1, x0:x1] > 0
+        vung[m] = sua[m]
+    else: vung[:] = sua
     cv2.imwrite(v['ra'], nen); print(json.dumps({'ok': True}))

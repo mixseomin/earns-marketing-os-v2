@@ -388,7 +388,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref,
             prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
               khoi('hau_canh', `Background: ${xanh} fills everything around the person — no room, no floor line, no shadow on the background.`), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
-            prompt2: `EDIT Image 1. Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age, outfit)${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the exact pose, position, size and outline from Image 1, and keep ${xanh} untouched edge to edge. ${KHONG_CHU}` }];
+            prompt2: `EDIT Image 1 (a close crop of ONE person). Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age, outfit)${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the framing, pose, body angle and size exactly as Image 1${h ? ` — ${h}` : ''}; do NOT turn the person toward the camera if Image 1 shows them otherwise. Replace everything around the person with ${xanh}, edge to edge. ${KHONG_CHU}` }];
         }) } : undefined;
       return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { ...(lop && lop.nguoi.length >= 2 ? { lop } : {}), sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
@@ -563,9 +563,14 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
   for (const x of [...lop.nguoi].sort((a, b) => b.xa - a.xa)) {   // xa trước: người gần ghép sau, đè lên
     const b1 = await buocDoSau(db, canhId, thuTu, { sau: x.sau, prompt1: x.prompt1, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
     if (!b1.ok) return { ok: false, loi: `${x.ten} (độ sâu): ${b1.loi}` };
-    const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [b1.url, ...x.ref]) : b1;
+    // CẮT – DÁN: sửa nhân dạng trên ẢNH CẮT quanh người (lấp khung) rồi dán về đúng hộp — sửa trên cả khung thì Nano Banana vẽ lại bố cục (#12)
+    const cat = await lopCat({ op: 'cat', sau: x.sau, anh: b1.url, le: 0.15 }, 'jpg');
+    if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
+    const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
     if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };
-    const png = await catNen(b2.url, `keyframe/${canhId}/lop-${x.ten.replace(/\s+/g, '_')}`);
+    const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h }, 'png');
+    if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };
+    const png = await catNen(dan.url, `keyframe/${canhId}/lop-${x.ten.replace(/\s+/g, '_')}`);
     if (!png) return { ok: false, loi: `${x.ten}: tách nền xanh hỏng` };
     lopPng.push(png);
   }
@@ -576,6 +581,24 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
   const { chonKeyframe } = await import('./tu-sua-clip');
   await chonKeyframe(db, canhId, cuoi, 'ghép từng người');
   return { ok: true, url: cuoi };
+}
+
+/** scripts/lop-cat.py (OpenCV, venv soi mặt): cắt vùng người theo lớp độ sâu / dán ảnh đã sửa về đúng hộp trên nền xanh. Ảnh ra đẩy kho. null = hỏng. */
+async function lopCat(vao: Record<string, unknown>, duoi: 'jpg' | 'png'): Promise<{ url: string; kq: { hop: number[]; w: number; h: number } } | null> {
+  const { execFile } = await import('node:child_process'); const { existsSync } = await import('node:fs'); const { mkdtemp, readFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const kb = [join(process.cwd(), 'scripts/lop-cat.py'), '/opt/earns-marketing-os-v2/apps/xuong-video/scripts/lop-cat.py'].find((p) => existsSync(p));
+  const py = process.env.XV_SOI_MAT_PY || '/opt/xv-soi-mat/bin/python';
+  if (!kb || !existsSync(py)) { console.error('[lop-cat] thiếu kịch bản / python'); return null; }
+  const thu = await mkdtemp(join(tmpdir(), 'lop-cat-')); const ra = join(thu, `ra.${duoi}`);
+  try {
+    const out = await new Promise<string>((ok, hong) => { const p = execFile(py, [kb], { timeout: 120_000, maxBuffer: 1 << 20 }, (e, o) => (e ? hong(e) : ok(o))); p.stdin?.end(JSON.stringify({ ...vao, ra })); });
+    const kq = JSON.parse(out.trim().split('\n').pop() || '{}') as { hop?: number[]; w?: number; h?: number; loi?: string };
+    if (kq.loi) { console.error('[lop-cat]', kq.loi); return null; }
+    const url = await uploadToR2(`xuong-video/keyframe/lop-${Date.now()}-${Math.round(Math.random() * 1e6)}.${duoi}`, await readFile(ra), duoi === 'png' ? 'image/png' : 'image/jpeg');
+    return url ? { url, kq: { hop: kq.hop ?? (vao.hop as number[]), w: kq.w ?? Number(vao.w), h: kq.h ?? Number(vao.h) } } : null;
+  } catch (e) { console.error('[lop-cat] hỏng', e); return null; }
+  finally { await rm(thu, { recursive: true, force: true }).catch(() => {}); }
 }
 
 /** Ghép các lớp PNG trong suốt (cùng máy, cùng khung) lên ảnh nền theo thứ tự — ffmpeg overlay, kéo mọi lớp về đúng cỡ nền. null = hỏng. */

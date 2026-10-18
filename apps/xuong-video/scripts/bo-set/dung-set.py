@@ -516,7 +516,7 @@ def nhan_vat(sh, ket=False):
         if mau_nv.get('hinh') == 'nguoi':   # NGƯỜI: ma-nơ-canh có khớp, cao = co[2] cm; gốc tên 'NV <tên>' (vòng diễn gắn neo vào gốc, các khớp đi theo)
             hx = mau_nv['mau'].lstrip('#'); rgb = tuple((int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ha = (mau_nv.get('ao') or mau_nv['mau']).lstrip('#'); rgb_ao = tuple((int(ha[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
-            n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}")
+            n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}", gioi=mau_nv.get('gioi'), tuoi=mau_nv.get('tuoi'))
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
             ng().tu_the(n_, kieu); NGUOI[nv['ten']] = n_; n_['kieu'] = kieu; n_['dang'] = mau_nv.get('dang') or []

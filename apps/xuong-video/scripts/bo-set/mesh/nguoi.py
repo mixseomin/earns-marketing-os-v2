@@ -36,7 +36,7 @@ def _khoi(ten, khop, dai, rx, ry, vl, xuong=True, lech=(0, 0)):
     o.parent = khop; o.location = (lech[0], lech[1], 0); o.data.materials.append(vl)
     return o
 
-def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, ten_goc=None):
+def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, ten_goc=None, gioi=None, tuoi=None):
     """dv = cỡ 1 cm trong cảnh (dung-set: 0.01 — Blender tính mét); ten_goc = tên empty gốc (dung-set đặt 'NV <tên>' để gắn neo diễn)."""
     H = float(cao); L = {k: v * H for k, v in TL.items()}
     da = _vl(f'{ten}.da', mau); ao = _vl(f'{ten}.ao', mau_ao or mau)
@@ -78,8 +78,61 @@ def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, t
         bc.rotation_euler.x = math.radians(90); bc.location = (0, 0.03 * H, -L["chan"] * 0.6)   # bàn chân hướng −y (mũi chân ra trước)
     n['L'] = L
     than_tron(n, ten, H, L, ao, dv)
+    nguoi_mpfb(n, ten, H, gioi, tuoi, ao)   # có MPFB thì thay thân liền bằng người thật (cùng tên 'THAN <ten>')
     tu_the(n, 'dung')
     return n
+
+_MPFB = {}
+def _mpfb():
+    """Bật add-on MPFB (cài bằng scripts/bo-set/cai-mpfb.sh) một lần; không có (máy thuê chưa cài) → None, rơi về thân liền."""
+    if 'hs' not in _MPFB:
+        try:
+            import addon_utils, importlib, sys
+            addon_utils.enable('bl_ext.user_default.mpfb', default_set=True)
+            lay = lambda p, k: next(getattr(importlib.import_module(m), k) for m in list(sys.modules) if m.endswith(p))
+            _MPFB.update(hs=lay('mpfb.services.humanservice', 'HumanService'), op=lay('mpfb.entities.objectproperties', 'HumanObjectProperties'), ts=lay('mpfb.services.targetservice', 'TargetService'))
+        except Exception as e:
+            print('MPFB không có — dùng thân liền:', e); _MPFB['hs'] = None
+    return _MPFB if _MPFB.get('hs') else None
+
+# xương MPFB (rig 'default', .L = trái nhân vật = 't' của ma-nơ-canh) → khớp đích để NHẮM (Damped Track trục Y của xương)
+# cột sống + cổ nhắm ĐIỂM TRÊN ĐỈNH ĐẦU ('dinh_nham', con của khớp đầu): khớp đầu / cổ của ma-nơ-canh nằm THẤP hơn gốc cổ MPFB (~136 so với ~142 cm)
+# → Damped Track lật chúi xuống, đầu gập vào thân (thử 18/10 hai lần)
+_NHAM = [('spine05', 'dinh_nham'), ('spine04', 'dinh_nham'), ('spine03', 'dinh_nham'), ('spine02', 'dinh_nham'), ('spine01', 'dinh_nham'), ('neck01', 'dinh_nham'),
+         ('upperarm01.L', 'khuyu_t'), ('lowerarm01.L', 'cotay_t'), ('upperarm01.R', 'khuyu_p'), ('lowerarm01.R', 'cotay_p'),
+         ('upperleg01.L', 'goi_t'), ('lowerleg01.L', 'cochan_t'), ('upperleg01.R', 'goi_p'), ('lowerleg01.R', 'cochan_p')]
+def nguoi_mpfb(n, ten, H, gioi, tuoi, vl):
+    """NGƯỜI THẬT MPFB thay thân liền (anh 18/10/2026 chọn "D"): thân người MakeHuman (CC0) đúng giới / tuổi / chiều cao, rig mặc định; mỗi xương
+    NHẮM theo khớp tương ứng của ma-nơ-canh (Damped Track) + hông bám khớp hông — thư viện dáng / mocap / đo đạc giữ nguyên, chỉ hình hiển thị là
+    người thật. Gắn vào gốc ma-nơ-canh nên đi / quay theo. Chỉ hiện khi vẽ độ sâu (như thân liền). Không có MPFB → giữ thân liền."""
+    m = _mpfb()
+    if not m: return None
+    o = bpy.data.objects.get(f'THAN_RIG {ten}')
+    if o: bpy.data.objects.remove(o, do_unlink=True)   # rig của shot trước (thân cũ đã bị than_tron dọn)
+    if 'dinh_nham' not in n: n['dinh_nham'] = _khop(f'{ten}.dinh_nham', n['dau'], (0, 0, 2.5 * n['L']['dau']))   # trên đỉnh đầu, theo độ nghiêng đầu
+    h = m['hs'].create_human()
+    for k, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
+        m['op'].set_value(k, v, entity_reference=h)
+    if tuoi: m['op'].set_value('age', 0.1875 + (tuoi - 11) / 14 * 0.3125 if tuoi < 25 else min(1.0, 0.5 + (tuoi - 25) / 65 * 0.5), entity_reference=h)
+    m['ts'].reapply_macro_details(h)
+    rig = m['hs'].add_builtin_rig(h, 'default')
+    bpy.context.view_layer.update()
+    bb = [h.matrix_world @ Vector(c) for c in h.bound_box]; cao_m = max(v.z for v in bb) - min(v.z for v in bb)
+    rig.scale = (H * 0.01 / cao_m,) * 3; bpy.context.view_layer.update()
+    goc = n['goc']; rig.parent = goc; rig.matrix_parent_inverse = goc.matrix_world.inverted()   # theo gốc (đi / quay), giữ cỡ mét thật
+    for xuong, khop in _NHAM:
+        pb = rig.pose.bones.get(xuong)
+        if not pb or khop not in n: continue
+        c = pb.constraints.new('DAMPED_TRACK'); c.target = n[khop]; c.track_axis = 'TRACK_Y'
+    pr = rig.pose.bones.get('root')
+    if pr: c = pr.constraints.new('COPY_LOCATION'); c.target = n['hong']
+    cu = n.get('than_tron')
+    if cu and cu.name in bpy.data.objects: bpy.data.objects.remove(cu, do_unlink=True)   # thân liền dự phòng: xoá TRƯỚC khi đặt tên, kẻo tên mới thành '.001'
+    h.name = f'THAN {ten}'; rig.name = f'THAN_RIG {ten}'
+    h.data.materials.clear(); h.data.materials.append(vl)
+    h.hide_render = h.hide_viewport = True   # chỉ bật trong ve_sau (như thân liền)
+    n['than_tron'] = h
+    return h
 
 def than_tron(n, ten, H, L, vl, dv):
     """THÂN LIỀN (ma-nơ-canh gỗ hoạ sĩ): một mesh Skin dựng trên các khớp, mỗi đỉnh HOOK vào khớp của nó nên tự uốn theo mọi tư thế / mocap.

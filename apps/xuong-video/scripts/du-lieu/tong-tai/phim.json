@@ -102,7 +102,9 @@
     "ao": "#f2f2f0",
     "dang": [
      "dung_doi_chan"
-    ]
+    ],
+    "gioi": "nu",
+    "tuoi": 24
    },
    "bien_the": [
     {
@@ -166,7 +168,9 @@
     "dang": [
      "dung_doi_chan",
      "tay_tui"
-    ]
+    ],
+    "gioi": "nam",
+    "tuoi": 30
    },
    "bien_the": [
     {
@@ -198,7 +202,9 @@
     "dang": [
      "dung_doi_chan_p",
      "mot_tay_hong"
-    ]
+    ],
+    "gioi": "nu",
+    "tuoi": 32
    },
    "bien_the": [
     {
@@ -229,7 +235,9 @@
     "ao": "#1c2840",
     "dang": [
      "dung_vung"
-    ]
+    ],
+    "gioi": "nam",
+    "tuoi": 55
    },
    "bien_the": [
     {

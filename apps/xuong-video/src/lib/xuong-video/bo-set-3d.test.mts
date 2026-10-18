@@ -163,7 +163,7 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (24): máy phải đứng trong sàn bộ set (trong_phong) → 59.
 // 18/10/2026 (25): 'thay' đánh dấu người (nguoi), đồ nghiêng theo shot (vi_tri.nghieng) → 60.
 // 18/10/2026 (26): nghieng mặc định 0 (khung kết gán None làm Blender sập cả lượt) → 61.
-assert.deepEqual([BAN_DUNG, bam], [78, '388a75880dbc'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [79, '7a336b6c19f8'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

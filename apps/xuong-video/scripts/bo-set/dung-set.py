@@ -816,6 +816,35 @@ def ve_xuong(s, sh, cam, tep):
     im.pixels.foreach_set(px.ravel()); im.filepath_raw = tep; im.file_format = 'PNG'; im.save(); bpy.data.images.remove(im)
     return True
 
+# LỚP GHÉP cho shot NHIỀU NGƯỜI (anh 18/10/2026 chọn "A — ghép từng người theo mặt nạ 3D"): một lượt FLUX cho cả khung không gắn được đúng mô tả vào
+# đúng khối người (#12: Hạ + Vivian trộn thành một, Thần quay lưng), nên tách: bản đồ độ sâu NỀN không người + bản đồ độ sâu RIÊNG từng người (kèm
+# đồ người đó cầm / đeo), cùng máy, cùng thang độ sâu với bản đầy đủ → sinh từng lớp rồi ghép theo thứ tự xa → gần (sinh-anh.ts › ghepTungNguoi).
+def ve_lop(s, sh, cam, ra):
+    """Ghi <ma>-sau-nen.png + <ma>-sau-n<i>.png; trả [{ten, tep, xa}] (xa = cm tới máy, ghép xa trước) hoặc None khi shot dưới hai người trong khung."""
+    nguoi = [v for v in sh.get('nhan_vat', []) if not v.get('an') and (DL['nhan_vat_mau'].get(v['ten']) or {}).get('hinh') == 'nguoi' and v['ten'] in NGUOI]
+    if len(nguoi) < 2: return None
+    cua = lambda t: [o for o in bpy.data.objects if o.type in ('MESH', 'CURVE') and (o.name.startswith(f"NG {t}.") or o.name == f"THAN NG {t}"
+              or any(o.name == f"NV {m}" or o.name.startswith(f"NV {m}·") for m, (c, _) in tay_cam(sh).items() if c == t))]
+    cu = {o.name: o.hide_render for o in bpy.data.objects}
+    moi_nguoi = {v['ten']: cua(v['ten']) for v in nguoi}
+    tat_ca_nguoi = {o for ds in moi_nguoi.values() for o in ds}
+    try:
+        for o in tat_ca_nguoi: o.hide_render = True
+        ve_sau(s, sh, cam, f"{ra}-sau-nen.png")   # NỀN: bối cảnh + đồ không ai cầm
+        out = []; tf = s.render.film_transparent; s.render.film_transparent = True   # ngoài người = trong suốt → đen (xa nhất)
+        for i, v in enumerate(nguoi):
+            giu = set(moi_nguoi[v['ten']])
+            for o in bpy.data.objects:
+                if o.type in ('MESH', 'CURVE'): o.hide_render = cu.get(o.name, o.hide_render) if o in giu else True
+            ve_sau(s, sh, cam, f"{ra}-sau-n{i}.png")
+            p = Vector(v['tam'][:2] + [0]) * CM; xa = (Vector((cam.location.x, cam.location.y, 0)) - p).length / CM
+            out.append({'ten': v['ten'], 'tep': f"sau-n{i}", 'xa': round(xa, 1)})
+        s.render.film_transparent = tf
+        return out
+    finally:
+        for o in bpy.data.objects:
+            if o.name in cu: o.hide_render = cu[o.name]
+
 def ve_sau(s, sh, cam, ra):
     """Bản đồ ĐỘ SÂU của khung MỞ (gần trắng → xa đen), cùng máy + ống kính: bước 1 của keyframe hai bước — model sinh ảnh điều khiển bằng độ
     sâu (FLUX depth) bị khoá theo hình học 3D (anh 15/10/2026: ba model ảnh dựa trên ảnh tham chiếu đều tự dựng lại góc máy #35).
@@ -1559,7 +1588,7 @@ if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng t�
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
-kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}
+kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
@@ -1586,6 +1615,8 @@ for sh in ([] if CHI_MB else shots):
     if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
         ve_xuong(s, sh, cam, f"{RA}/{sh['ma']}-xuong.png")   # khung xương OpenPose (ControlNet dáng) — chỉ khi có người trong khung
         ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu: người = thân liền
+        _lop = ve_lop(s, sh, cam, f"{RA}/{sh['ma']}")   # shot ≥ 2 người: nền + từng người (ghép từng người)
+        if _lop: lop[sh['ma']] = _lop
         mn = ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}")   # mặt nạ ghép đè / sửa vùng
         if mn: mat_na[sh['ma']] = mn
     else:
@@ -1667,6 +1698,7 @@ json.dump(giai, open(f'{RA}/giai.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(thay, open(f'{RA}/thay.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(di, open(f'{RA}/di.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(xuyen, open(f'{RA}/xuyen.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(lop, open(f'{RA}/lop.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(mat_na, open(f'{RA}/mat_na.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

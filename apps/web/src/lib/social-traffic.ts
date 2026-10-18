@@ -15,7 +15,11 @@ const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[] }
+export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi }
+/** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
+ *  da = đã đăng (sổ xv_may_video.da_dang, có link) · du_kien = máy sẽ đăng (xv_lich_du_kien — dang-may tính bằng luật nhịp an toàn, mos2 không tính lại). */
+export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien' }
+export interface StLuoi { hom: string; tinhLuc: string | null; o: StLuoiO[] }
 /** LỊCH ĐĂNG (anh 18/10/2026: "cần show lịch đăng trên tab social"): mỗi dòng = một nơi đăng của một máy studio (xv_may.dang[]) — giờ, máy Mac chạy,
  *  trần/ngày, hôm nay đã đăng chưa, lần gần nhất, video kế. Đọc thẳng cấu hình máy + sổ đăng (xv_may_video.da_dang) nên máy / nền mới tự hiện. */
 export interface StLich {
@@ -52,10 +56,10 @@ const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promi
 export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
-  const [goc, kenh, lo, lich] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
-    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi))]);
+  const [goc, kenh, lo, lich, luoi] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
+    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi))]);
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi };
 }
 /** Góc thật từ spy: danh sách nhóm rồi từng nhóm (SONG_SONG lượt cùng lúc), xếp chung theo Sức mạnh. */
 async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {
@@ -122,6 +126,25 @@ function luotMayDang(): Record<string, string[]> {
     } catch { /* thử đường kế */ }
   }
   return {};
+}
+/** Lưới lịch: bài đã đăng 3 ngày qua (giờ thật) + bài dự kiến từ hôm nay (lượt chưa tới giờ). */
+async function docLuoi(loi: string[]): Promise<StLuoi> {
+  const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), rong: StLuoi = { hom, tinhLuc: null, o: [] };
+  const d = getDb(); if (!d) return rong;
+  try {
+    const [da, dk] = await Promise.all([
+      d.execute(sql`SELECT m.ma, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, coalesce(v.dang->>'title', v.chu_de) AS title
+        FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(v.da_dang) e
+        WHERE e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 3, 'YYYY-MM-DD')`) as unknown as Promise<Record<string, string | null>[]>,
+      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string }[] }[]>,
+    ]);
+    // giờ VN của lượt đăng thật: luc (ISO, UTC) + 7 giờ; sổ cũ không có luc thì không có giờ → xếp vào '—'
+    const gioVn = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) : '—');
+    const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url ?? null, loai: 'da' as const }));
+    const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien' });
+    return { hom, tinhLuc: dk[0]?.luc ?? null, o };
+  } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }
 }
 async function docLich(loi: string[]): Promise<StLich[]> {
   const d = getDb(); if (!d) return [];

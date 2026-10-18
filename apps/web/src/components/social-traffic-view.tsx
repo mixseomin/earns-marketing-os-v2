@@ -13,6 +13,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive, StLich } from '@/lib/social-traffic';
+import { LichLuoi } from './social-lich-luoi';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 
 type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
@@ -326,8 +327,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       {muc === 'lich' && (!laLive
         ? <span style={nho}>Lịch đăng là dữ liệu thật của máy studio — bật LIVE để xem.</span>
         : live.lich.length
-          ? <><DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
-              <span style={nho}>Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng) — thêm nền hoặc máy mới là tự hiện. Giờ theo GMT+7. Lượt chạy thật (sổ việc nền cty, apps/cty/cong-ty/viec-nen.json): máy đăng chung iMac 20:00 + chạy bù 21:00; Front Porch có lượt riêng.</span></>
+          ? <><LichLuoi luoi={live.luoi} /><DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
+              <span style={nho}>Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng) — thêm nền hoặc máy mới là tự hiện. Giờ theo GMT+7. Lượt chạy thật (sổ việc nền cty, apps/cty/cong-ty/viec-nen.json): máy đăng chung iMac 02:00 · 08:00 · 20:00 + chạy bù 21:00, mỗi lượt hỏi nhịp an toàn (trần theo tuổi kênh, cách ≥ 3 giờ); Front Porch có lượt riêng.</span></>
           : trong('Chưa có lịch đăng', 'Lịch hiện khi một máy studio (studio.on.tc › Máy) có nơi đăng.'))}
 
       {muc === 'landing' && (!laLive

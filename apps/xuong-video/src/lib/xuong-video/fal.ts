@@ -297,7 +297,8 @@ export async function chayAnhFal(id: string, input: Record<string, unknown>): Pr
   // hỏi trạng thái lỗi mạng thì hỏi lại lượt sau (tối đa 5 lần liền); tải kết quả / ảnh lỗi mạng thì thử lại 3 lần rồi trả lỗi thường.
   const lay = async (u: string, lan = 3): Promise<Response | null> => { for (let i = 0; i < lan; i++) { try { return await fetch(u, { headers: u.startsWith('https://queue.fal.run') ? h : undefined, signal: AbortSignal.timeout(30_000) }); } catch { await new Promise((o) => setTimeout(o, 2000)); } } return null; };
   let loiMang = 0;
-  for (let i = 0; i < 90; i++) {
+  // CHỜ 8 PHÚT (18/10/2026: FLUX pro depth đo 2–3 phút giờ cao điểm; cắt ở 3 phút thì fal vẫn chạy xong và vẫn tính tiền, sổ không ghi)
+  for (let i = 0; i < 240; i++) {
     await new Promise((o) => setTimeout(o, 2000));
     const rs = await lay(t.s, 1); if (!rs) { if (++loiMang >= 5) return { ok: false, loi: 'mất kết nối fal khi chờ kết quả (5 lần liền) — job đã gửi, xem lại trên fal' }; continue; }
     loiMang = 0;
@@ -311,5 +312,5 @@ export async function chayAnhFal(id: string, input: Record<string, unknown>): Pr
     const b = await lay(url); if (!b) return { ok: false, loi: 'fal xong nhưng không tải được ảnh (lỗi mạng)' };
     return { ok: true, model: `fal:${id}`, mimeType: b.headers.get('content-type')?.split(';')[0] || 'image/png', data: Buffer.from(await b.arrayBuffer()) };
   }
-  return { ok: false, loi: 'fal quá 3 phút chưa xong' };
+  return { ok: false, loi: `fal quá 8 phút chưa xong — yêu cầu vẫn chạy và có thể tính tiền, tra: ${t.r}` };
 }

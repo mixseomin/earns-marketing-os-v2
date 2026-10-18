@@ -370,7 +370,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
         khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
         khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
       ];
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, ...(bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
@@ -524,6 +524,9 @@ export const MO_HINH_DO_SAU = 'fal-ai/flux-pro/v1/depth';
  *  bị cắt sát khung thành đồ vật (tập 122 #11: bình đồng cắm cây, không người nào) và bước 2 tự đặt người bừa. Giá $0,075/MP, 720×1280 = 1 MP. */
 export const MO_HINH_XUONG = 'fal-ai/flux-general';
 export const GIA_XUONG_CENTS = 7.5;
+/** TẮT 18/10/2026: lượt thử #11 (độ sâu không người + khung xương) ra ảnh nhoè như ảnh ma — FLUX dev Union kém xa FLUX pro depth. Giữ đường để thử
+ *  lại khi có model dáng tốt hơn; người trong độ sâu giờ là thân liền (mesh/nguoi.py › than_tron). */
+export const DUNG_XUONG = false;
 const UNION_XUONG = 'InstantX/FLUX.1-dev-Controlnet-Union';
 async function buocDoSau(db: Db, canhId: number, thuTu: number, h: HaiBuoc, tiLe: string): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
   const mh = h.xuong ? MO_HINH_XUONG : MO_HINH_DO_SAU;

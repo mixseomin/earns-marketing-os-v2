@@ -15,7 +15,7 @@
 import { lookPhim } from '../src/lib/xuong-video/look';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb, chuanBiKeyframe, chamKeyframe } from '../src/lib/xuong-video/sinh-anh';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhAnhBienTheDb, chuanBiKeyframe, chamKeyframe, DUNG_XUONG } from '../src/lib/xuong-video/sinh-anh';
 import { boiCanhCanh, boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
@@ -48,7 +48,7 @@ const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8
 // Shot có bản đồ độ sâu 3D mặc định đi HAI BƯỚC (sinh-anh.ts: FLUX depth fal $0,05 + ảnh sửa nhân dạng) — ước giá phải tính bước FLUX (17/10/2026:
 // ước $0,034/ảnh trong khi đường thật ~ $0,09/ảnh).
 const haiBuoc = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau).length;
-const xuongN = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau && c.co_xuong).length;   // bước 1 độ sâu + dáng: $0,075 thay $0,05
+const xuongN = nguon || kt.keyframe_hai_buoc === false ? 0 : (DUNG_XUONG ? canhThieu.filter((c) => c.co_sau && c.co_xuong).length : 0);   // bước 1 độ sâu + dáng: $0,075 thay $0,05
 const giaAnh = await giaAnhSv(nguon || kt.mo_hinh_anh).catch(() => 0);
 console.log(`phim #${phimId} · model ảnh ${kt.mo_hinh_anh} ≈ ${tien(giaAnh)}/ảnh`);
 console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(anchorThieu.length * giaAnh)}`);

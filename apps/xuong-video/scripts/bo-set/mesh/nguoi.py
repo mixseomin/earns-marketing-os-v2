@@ -6,6 +6,7 @@
 #   tu_the(n, 'dung' | 'ngoi' | 'nam')  ·  buoc(n, pha)  (chu kỳ đi, pha 0..1)  ·  nhin(n, do)  (quay đầu, độ)
 #   di(n, tu, den, f0, f1, toc=110)  — đi từ chỗ tu tới den (cm) trong khung f0..f1, chân tay đánh nhịp theo quãng đường
 import bpy, bmesh, math, os
+from mathutils import Vector
 
 # Tỉ lệ (phần chiều cao) — số đo nhân trắc trung bình người lớn (Drillis & Contini).
 TL = dict(chan=0.039, cang=0.246, dui=0.245, hong=0.10, bung=0.10, nguc=0.13, co=0.052, dau=0.13,
@@ -76,8 +77,47 @@ def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, t
         bc = _khoi(f'{ten}.ban_chan_{p}', cochan, 0.15 * H, 0.025 * H, 0.012 * H, ao, xuong=False)
         bc.rotation_euler.x = math.radians(90); bc.location = (0, 0.03 * H, -L["chan"] * 0.6)   # bàn chân hướng −y (mũi chân ra trước)
     n['L'] = L
+    than_tron(n, ten, H, L, ao, dv)
     tu_the(n, 'dung')
     return n
+
+def than_tron(n, ten, H, L, vl, dv):
+    """THÂN LIỀN (ma-nơ-canh gỗ hoạ sĩ): một mesh Skin dựng trên các khớp, mỗi đỉnh HOOK vào khớp của nó nên tự uốn theo mọi tư thế / mocap.
+    Chỉ hiện khi vẽ ĐỘ SÂU (dung-set.py › ve_sau): chuỗi khối elip rời bị cắt sát khung thì FLUX depth đọc thành bình / tượng (tập 122 #11, 3 lượt);
+    thân liền thì ở cỡ cảnh nào cũng là hình người. Khung màu + kiểm hình học vẫn dùng khối elip (màu áo / da riêng)."""
+    bpy.context.view_layer.update()
+    dinh, chi = [], {}
+    def v(k, ma, off, rx, ry): chi[ma] = len(dinh); dinh.append((k, off, rx, ry))
+    v('hong', 'hong', (0, 0, -0.02 * H), 0.10 * H, 0.07 * H)
+    v('nguc', 'eo', (0, 0, 0), 0.085 * H, 0.06 * H)
+    v('nguc', 'nguc', (0, 0, 0.6 * L['nguc']), 0.11 * H, 0.068 * H)
+    v('co', 'co', (0, 0, 0.3 * L['co']), 0.032 * H, 0.032 * H)
+    v('dau', 'cam', (0, -0.01 * H, 0.2 * L['dau']), 0.036 * H, 0.04 * H)
+    v('dau', 'dau', (0, 0, 0.55 * L['dau']), 0.048 * H, 0.056 * H)
+    v('dau', 'dinh', (0, 0.005 * H, 0.92 * L['dau']), 0.03 * H, 0.035 * H)
+    canh = [('hong', 'eo'), ('eo', 'nguc'), ('nguc', 'co'), ('co', 'cam'), ('cam', 'dau'), ('dau', 'dinh')]
+    for p in 'tp':
+        v(f'vai_{p}', f'vai_{p}', (0, 0, 0), 0.034 * H, 0.034 * H)
+        v(f'khuyu_{p}', f'khuyu_{p}', (0, 0, 0), 0.026 * H, 0.026 * H)
+        v(f'cotay_{p}', f'cotay_{p}', (0, 0, 0), 0.02 * H, 0.015 * H)
+        v(f'cotay_{p}', f'tay_{p}', (0, 0, -0.75 * L['ban_tay']), 0.016 * H, 0.008 * H)
+        v(f'dui_{p}', f'dui_{p}', (0, 0, 0), 0.05 * H, 0.05 * H)
+        v(f'goi_{p}', f'goi_{p}', (0, 0, 0), 0.036 * H, 0.036 * H)
+        v(f'cochan_{p}', f'cochan_{p}', (0, 0, 0), 0.026 * H, 0.026 * H)
+        v(f'cochan_{p}', f'mui_chan_{p}', (0, -0.11 * H, -0.03 * H), 0.022 * H, 0.014 * H)
+        canh += [('nguc', f'vai_{p}'), (f'vai_{p}', f'khuyu_{p}'), (f'khuyu_{p}', f'cotay_{p}'), (f'cotay_{p}', f'tay_{p}'),
+                 ('hong', f'dui_{p}'), (f'dui_{p}', f'goi_{p}'), (f'goi_{p}', f'cochan_{p}'), (f'cochan_{p}', f'mui_chan_{p}')]
+    pts = [n[k].matrix_world @ Vector(off) for k, off, _, _ in dinh]
+    me = bpy.data.meshes.new(f'{ten}.than_tron'); me.from_pydata([tuple(q) for q in pts], [(chi[a], chi[b]) for a, b in canh], []); me.update()
+    o = bpy.data.objects.new(f'{ten}.than_tron', me); bpy.context.scene.collection.objects.link(o); o.data.materials.append(vl)
+    for i, (k, _, _, _) in enumerate(dinh):
+        h = o.modifiers.new(f'moc{i}', 'HOOK'); h.object = n[k]; h.vertex_indices_set([i]); h.matrix_inverse = n[k].matrix_world.inverted(); h.center = pts[i]
+    sk = o.modifiers.new('da', 'SKIN')
+    for i, (_, _, rx, ry) in enumerate(dinh): me.skin_vertices[0].data[i].radius = (rx * dv, ry * dv)
+    me.skin_vertices[0].data[0].use_root = True
+    sd = o.modifiers.new('min', 'SUBSURF'); sd.levels = sd.render_levels = 1
+    o.hide_render = True   # chỉ bật trong ve_sau
+    n['than_tron'] = o
 
 def _dat(n, ten, x=0.0, y=0.0, z=0.0):
     n[ten].rotation_euler = (math.radians(x), math.radians(y), math.radians(z))

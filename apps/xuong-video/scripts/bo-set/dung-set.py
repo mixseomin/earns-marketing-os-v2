@@ -752,13 +752,20 @@ def ve_xuong(s, sh, cam, tep):
     im.pixels.foreach_set(px.ravel()); im.filepath_raw = tep; im.file_format = 'PNG'; im.save(); bpy.data.images.remove(im)
     return True
 
-def ve_sau(s, sh, cam, ra, bo_nguoi=False):
+def ve_sau(s, sh, cam, ra):
     """Bản đồ ĐỘ SÂU của khung MỞ (gần trắng → xa đen), cùng máy + ống kính: bước 1 của keyframe hai bước — model sinh ảnh điều khiển bằng độ
     sâu (FLUX depth) bị khoá theo hình học 3D (anh 15/10/2026: ba model ảnh dựa trên ảnh tham chiếu đều tự dựng lại góc máy #35).
-    bo_nguoi: shot đã có KHUNG XƯƠNG (ve_xuong) → ma-nơ-canh KHÔNG vào độ sâu, người chỉ đi qua khung xương. Còn khối ma-nơ-canh trong độ sâu thì
-    model tin hình khối hơn khung xương, vẽ thành tượng / bình (tập 122 #11 hai lượt: bình đồng, tượng vàng trên tường)."""
-    an = [o for o in bpy.data.objects if bo_nguoi and not o.hide_render and any(o.name.startswith(f"NG {t}.") for t in NGUOI)] if bo_nguoi else []
+    NGƯỜI trong độ sâu = THÂN LIỀN (mesh/nguoi.py › than_tron), không phải chuỗi khối elip: elip rời cắt sát khung thì FLUX vẽ thành bình / tượng
+    (tập 122 #11, 3 lượt); bỏ hẳn người khỏi độ sâu + khung xương (FLUX dev Union) thì ảnh nhoè không dùng được (lượt 4)."""
+    an, hien = [], []
+    for t, n_ in NGUOI.items():
+        x = n_.get('than_tron')
+        if not x or x.name not in bpy.data.objects: continue
+        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and o is not x and not o.hide_render]
+        if not phan: continue   # người không có trong shot này / đang ẩn
+        an += phan; hien.append(x)
     for o in an: o.hide_render = True
+    for x in hien: x.hide_render = False
     d = (Vector(sh['may']['nhin']) - Vector(sh['may']['dat'])).length * CM
     eng, smp, dn = s.render.engine, s.cycles.samples, s.cycles.use_denoising
     s.view_layers[0].material_override = do_sau(s, d * 0.4, d * 3.0)
@@ -768,6 +775,7 @@ def ve_sau(s, sh, cam, ra, bo_nguoi=False):
     s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
     s.render.engine, s.cycles.samples, s.cycles.use_denoising = eng, smp, dn
     for o in an: o.hide_render = False
+    for x in hien: x.hide_render = True
 
 import re as _re
 # kính: khai kinh=True HOẶC en tả là kính (glass wall / door / partition / panel) — 17/10/2026 'Vách kính phòng TGĐ' chưa khai, che người phía sau
@@ -1504,8 +1512,8 @@ for sh in ([] if CHI_MB else shots):
     # ẢNH RA (anh 15/10/2026: "render 30+ shot sao ra 140 ảnh?"): chỉ KHUNG MÀU (JPEG) — ảnh số 1 của keyframe. Khung xám chỉ render khi máy không
     # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
     if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
-        co_xuong = ve_xuong(s, sh, cam, f"{RA}/{sh['ma']}-xuong.png")   # khung xương OpenPose (ControlNet dáng) — chỉ khi có người trong khung
-        ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png", bo_nguoi=co_xuong)   # độ sâu: có khung xương thì bỏ ma-nơ-canh (người đi qua khung xương)
+        ve_xuong(s, sh, cam, f"{RA}/{sh['ma']}-xuong.png")   # khung xương OpenPose (ControlNet dáng) — chỉ khi có người trong khung
+        ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu: người = thân liền
         mn = ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}")   # mặt nạ ghép đè / sửa vùng
         if mn: mat_na[sh['ma']] = mn
     else:

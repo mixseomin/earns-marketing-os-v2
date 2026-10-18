@@ -568,7 +568,7 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
     const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
     if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };
-    const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau }, 'png');
+    const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau, goc: b1.url }, 'png');
     if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };
     const png = await catNen(dan.url, `keyframe/${canhId}/lop-${x.ten.replace(/\s+/g, '_')}`);
     if (!png) return { ok: false, loi: `${x.ten}: tách nền xanh hỏng` };

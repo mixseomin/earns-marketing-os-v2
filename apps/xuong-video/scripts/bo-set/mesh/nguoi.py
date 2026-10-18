@@ -36,9 +36,44 @@ def _khoi(ten, khop, dai, rx, ry, vl, xuong=True, lech=(0, 0)):
     o.parent = khop; o.location = (lech[0], lech[1], 0); o.data.materials.append(vl)
     return o
 
+_TL_MPFB = {}
+def tl_mpfb(gioi, tuoi):
+    """TỈ LỆ THÂN của người MPFB cùng giới / tuổi (phần chiều cao), đo trên rig ở tư thế gốc — ma-nơ-canh dựng theo đúng số này để khớp xương trùng
+    người thật: IK với tới đúng cổ tay (đồ cầm không lơ lửng), đầu đúng chỗ (máy cận ngắm trúng mặt). Anh 18/10/2026 thấy #3 cặp hồ sơ lơ lửng trên tay,
+    #24 cận chỉ thấy vai: tỉ lệ ma-nơ-canh cũ (TL) lệch người MPFB vài cm–chục cm. Không có MPFB → None (giữ TL)."""
+    k = (gioi, tuoi)
+    if k in _TL_MPFB: return _TL_MPFB[k]
+    m = _mpfb()
+    if not m: return None
+    try:
+        h = m['hs'].create_human()
+        for kk, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
+            m['op'].set_value(kk, v, entity_reference=h)
+        if tuoi: m['op'].set_value('age', 0.1875 + (tuoi - 11) / 14 * 0.3125 if tuoi < 25 else min(1.0, 0.5 + (tuoi - 25) / 65 * 0.5), entity_reference=h)
+        m['ts'].reapply_macro_details(h)
+        rig = m['hs'].add_builtin_rig(h, 'default'); bpy.context.view_layer.update()
+        bb = [h.matrix_world @ Vector(c) for c in h.bound_box]; z0 = min(v.z for v in bb); C = max(v.z for v in bb) - z0
+        P = lambda b, dau=True: rig.matrix_world @ (rig.data.bones[b].head_local if dau else rig.data.bones[b].tail_local)
+        z = lambda v: (v.z - z0) / C
+        co_chan, goi, hang = P('foot.L'), P('lowerleg01.L'), P('upperleg02.L')
+        vai, khuyu, cotay = P('upperarm02.L'), P('lowerarm01.L'), P('lowerarm02.L', False)
+        co, dau = P('neck01'), P('head')
+        t = dict(TL)
+        t['chan'] = z(co_chan); t['cang'] = (goi - co_chan).length / C; t['dui'] = (hang - goi).length / C
+        z_hong = t['chan'] + t['cang'] + t['dui'] + t['hong'] * 0.5    # khớp đùi nằm dưới khớp hông nửa đoạn hông (dung_nguoi)
+        S = z(co) - z_hong
+        t['nguc'] = min(0.85 * S, max(0.5 * S, (z(co) - z(vai)) / 0.12)); t['bung'] = S - t['nguc']
+        t['co'] = z(dau) - z(co); t['dau'] = 1.0 - z(dau)
+        t['vai'] = abs(vai.x - co.x) / C; t['tay_tren'] = (khuyu - vai).length / C; t['tay_duoi'] = (cotay - khuyu).length / C
+        t['hong_rong'] = abs(hang.x - co.x) / C / 0.55
+        for o in [h, rig]: bpy.data.objects.remove(o, do_unlink=True)
+        _TL_MPFB[k] = t; return t
+    except Exception as e:
+        print('đo tỉ lệ MPFB lỗi — giữ TL:', e); _TL_MPFB[k] = None; return None
+
 def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, ten_goc=None, gioi=None, tuoi=None, trang=None):
     """dv = cỡ 1 cm trong cảnh (dung-set: 0.01 — Blender tính mét); ten_goc = tên empty gốc (dung-set đặt 'NV <tên>' để gắn neo diễn)."""
-    H = float(cao); L = {k: v * H for k, v in TL.items()}
+    H = float(cao); L = {k: v * H for k, v in (tl_mpfb(gioi, tuoi) or TL).items()}
     da = _vl(f'{ten}.da', mau); ao = _vl(f'{ten}.ao', mau_ao or mau)
     n = {'cao': H, 'ten': ten}
     goc = n['goc'] = _khop(ten_goc or f'{ten}.goc', None, (0, 0, 0)); goc.scale = (dv, dv, dv)
@@ -192,6 +227,16 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
         bs[3].lock_ik_x = bs[3].lock_ik_y = bs[3].lock_ik_z = True
         pole = _khop(f'{ten}.pole_{k1}_{p}', n[f'{k1}_{p}'], (0, lech, 0))
         ik = bs[3].constraints.new('IK'); ik.target = n[f'{k2}_{p}']; ik.pole_target = pole; ik.pole_angle = goc_pole; ik.chain_count = 3
+    # CỘT SỐNG bằng IK: đỉnh cổ MPFB (neck01) bám ĐÚNG khớp đầu ma-nơ-canh (vị trí, không chỉ hướng) — Damped Track cũ để đầu lệch 6–17 cm khi cúi / quỳ
+    # → máy cận ngắm trượt mặt (#24). Đầu MPFB xoay theo điểm 'co_nham' như cổ trước đây (hết ngửa trời).
+    hb = rig.pose.bones.get('head')
+    if hb and hb.parent:
+        chuoi = []; b = hb.parent   # xương ngay dưới đầu (neck0x) → lên tới spine05: chuỗi IK để GỐC ĐẦU trùng khớp đầu ma-nơ-canh
+        while b and b.name != 'root' and not b.name.startswith('pelvis'): chuoi.append(b); b = b.parent
+        for b in chuoi + [hb]:
+            for c in list(b.constraints): b.constraints.remove(c)
+        ik = hb.parent.constraints.new('IK'); ik.target = n['dau']; ik.chain_count = len(chuoi)
+        c = hb.constraints.new('DAMPED_TRACK'); c.target = n['co_nham']; c.track_axis = 'TRACK_Y'
     cu = n.get('than_tron')
     if cu and cu.name in bpy.data.objects: bpy.data.objects.remove(cu, do_unlink=True)   # thân liền dự phòng: xoá TRƯỚC khi đặt tên, kẻo tên mới thành '.001'
     for o in [o for o in bpy.data.objects if o.name.startswith(f'THAN {ten}.')]: bpy.data.objects.remove(o, do_unlink=True)   # tóc / đồ của người shot trước

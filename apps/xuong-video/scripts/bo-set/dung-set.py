@@ -607,6 +607,51 @@ def tay_cam(sh):
         out[v['ten']] = (c, 'om' if om and k == 0 else 'p' if k == 0 else 't')
     return out
 
+# XUYÊN NHAU (anh 18/10/2026: "hình nộm, thùng đồ là đối tượng vật lý thì thẻ rơi lên sẽ bị chặn lại chứ không đi vào trong"): đo hình học như
+# game / previs đặt đồ tĩnh — không mô phỏng vật lý (mô phỏng là cho chuyển động theo thời gian). Độ lún = khoảng cách sâu nhất từ một đỉnh của món
+# vào TRONG mesh kín của vật kia (BVH find_nearest + pháp tuyến). Tập 122 #11: thẻ treo chìm vào thùng đồ Hạ ôm.
+from mathutils.bvhtree import BVHTree
+def _bvh(o, dg):
+    oe = o.evaluated_get(dg); me = oe.to_mesh()
+    try: return BVHTree.FromPolygons([oe.matrix_world @ v.co for v in me.vertices], [tuple(p.vertices) for p in me.polygons]) if me.polygons else None
+    finally: oe.to_mesh_clear()
+def _hop(objs):
+    bb = [o.matrix_world @ Vector(c) for o in objs for c in o.bound_box]
+    return Vector([min(p[i] for p in bb) for i in range(3)]), Vector([max(p[i] for p in bb) for i in range(3)])
+def do_lun(objs, khac):
+    """(độ lún sâu nhất cm, tên vật bị xuyên) của các mesh objs vào các mesh kín khac; bỏ vật không chạm hộp bao."""
+    objs = [o for o in objs if o.type == 'MESH']; khac = [k for k in khac if k.type == 'MESH']
+    if not objs or not khac: return 0.0, ''
+    dg = bpy.context.evaluated_depsgraph_get(); lo, hi = _hop(objs); best, ten = 0.0, ''
+    for k in khac:
+        klo, khi = _hop([k])
+        if any(klo[i] > hi[i] or khi[i] < lo[i] for i in range(3)): continue
+        bv = _bvh(k, dg)
+        if not bv: continue
+        for o in objs:
+            oe = o.evaluated_get(dg); me = oe.to_mesh()
+            try:
+                for v in me.vertices:
+                    q = oe.matrix_world @ v.co; loc, nor, _, d = bv.find_nearest(q)
+                    if loc is not None and (q - loc).dot(nor) < 0 and d / CM > best: best, ten = d / CM, k.name
+            finally: oe.to_mesh_clear()
+    return best, ten
+def vat_can(sh, ten, cam_boi=None):
+    """Vật có thể bị món `ten` xuyên: người khác (cả thân người cầm, trừ bàn tay / ngón), đạo cụ khác, đồ set không phải mặt nền. Chỉ thứ đang hiện."""
+    out = []
+    for o in bpy.data.objects:
+        if o.type != 'MESH' or o.hide_render and not o.name.endswith('.than_tron'): continue
+        if o.name.endswith('.than_tron') or o.name.startswith(f"NV {ten}") and (o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")): continue
+        if o.name.startswith('NG '):
+            if cam_boi and o.name.startswith(f"NG {cam_boi}.") and ('ban_tay' in o.name or 'ngon' in o.name): continue
+            out.append(o)
+        elif o.name.startswith('NV '):
+            if '·day' in o.name or '·tran' in o.name: continue
+            out.append(o)
+        elif o.name in bpy.data.objects and not any(thuoc(t, o.name.split('·')[0]) for t in NEN) and not o.name.startswith(('cam ', 'sau ', 'Đèn', 'den ')):
+            out.append(o)
+    return out
+
 def gan_tay(sh, tat_ca, ket=False):
     """RIG — đồ đang cầm nằm ĐÚNG trong bàn tay người cầm (anh 17/10/2026: ly, thẻ lơ lửng cạnh tay → AI vẽ sai tay cầm): dời món sao cho tâm món
     trùng điểm nắm (ôm thùng: giữa hai tay). Khung kết của món cầm + đặt xuống (cam + den) thì không gắn."""
@@ -629,6 +674,13 @@ def gan_tay(sh, tat_ca, ket=False):
             dinh_ = Vector((tam.x, tam.y, max(p[2] for p in bb)))
             for o in objs: o.location += dich - Vector((0, 0, treo * CM)) - dinh_
             bpy.context.view_layer.update()
+            # NẰM LÊN MẶT VẬT BÊN DƯỚI: món treo lún vào thùng / bàn → nhấc lên đỉnh hộp bao của vật bị xuyên (dây chùng), chỉ khi vẫn thấp hơn tay
+            lun, ten_b = do_lun(objs, vat_can(sh, ten, c))
+            if lun > 0.5 and ten_b in bpy.data.objects:
+                dz = _hop([bpy.data.objects[ten_b]])[1].z - _hop(objs)[0].z + 0.3 * CM
+                if _hop(objs)[1].z + dz <= dich.z:
+                    for o in objs: o.location.z += dz
+                    bpy.context.view_layer.update()
             bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]; z0 = max(p[2] for p in bb)
             ngang = Vector((max(p[0] for p in bb) - min(p[0] for p in bb), max(p[1] for p in bb) - min(p[1] for p in bb), 0)) * 0.25
             moc = Vector(((min(p[0] for p in bb) + max(p[0] for p in bb)) / 2, (min(p[1] for p in bb) + max(p[1] for p in bb)) / 2, z0))
@@ -1495,7 +1547,7 @@ if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng t�
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
-kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}
+kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
@@ -1508,6 +1560,14 @@ for sh in ([] if CHI_MB else shots):
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
+    # XUYÊN NHAU ở khung mở: mỗi đạo cụ đang hiện với người / đạo cụ / đồ set — lún > 1 cm thì ghi cho cổng (cầm thì người cầm bỏ bàn tay)
+    xy_ = []
+    for v_ in sh.get('nhan_vat', []):
+        if v_.get('an') or (DL['nhan_vat_mau'].get(v_['ten']) or {}).get('hinh') == 'nguoi': continue
+        mon = [o for o in nv_het if o.type == 'MESH' and (o.name == f"NV {v_['ten']}" or o.name.startswith(f"NV {v_['ten']}·")) and '·tran' not in o.name and not o.hide_render]
+        lun, ten_b = do_lun(mon, vat_can(sh, v_['ten'], v_.get('cam')))
+        if lun > 1.0: xy_.append(f"{v_['ten']} xuyên vào {ten_b.replace('NG ', '').split('.')[0].replace('NV ', '').split('·')[0]} {round(lun, 1)} cm")
+    if xy_: xuyen[sh['ma']] = xy_
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     # ẢNH RA (anh 15/10/2026: "render 30+ shot sao ra 140 ảnh?"): chỉ KHUNG MÀU (JPEG) — ảnh số 1 của keyframe. Khung xám chỉ render khi máy không
     # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
@@ -1594,6 +1654,7 @@ json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(giai, open(f'{RA}/giai.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(thay, open(f'{RA}/thay.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(di, open(f'{RA}/di.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(xuyen, open(f'{RA}/xuyen.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(mat_na, open(f'{RA}/mat_na.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

@@ -37,6 +37,10 @@ assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: null }, nv, se
 const kx = (kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[]) => ({ ma: maKhungXam(set, mm, nv), xam: '', sau: '', luc: '', kiem, thay: [] });
 assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: [] }]) }, nv, set), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['White Keyboard'] }]) }, nv, set)[0]!.includes('White Keyboard che'));
+// XUYÊN NHAU (dung-set.py › do_lun): khung đo ra đạo cụ lún vào vật khác → cổng chặn; không xuyên → qua
+const kxSach = kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: [] }]);
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxSach, xuyen: ['Thẻ nhân viên xuyên vào Thùng đồ cá nhân 6.2 cm'] } }, nv, set).some((x) => x.startsWith('Thẻ nhân viên xuyên vào Thùng đồ cá nhân')));
+assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxSach, xuyen: [] } }, nv, set), []);
 // Trục chỉ giữa NHÂN VẬT: Tango–Gummy (đồ vật) không dựng trục; coi Gummy là nhân vật thì vượt trục bị bắt.
 assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nv, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
 const nvHaiNguoi = nv.map((v) => (v.ten === 'Gummy Bear' ? { ...v, loai: 'nhan_vat' as const } : v));
@@ -159,7 +163,7 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (24): máy phải đứng trong sàn bộ set (trong_phong) → 59.
 // 18/10/2026 (25): 'thay' đánh dấu người (nguoi), đồ nghiêng theo shot (vi_tri.nghieng) → 60.
 // 18/10/2026 (26): nghieng mặc định 0 (khung kết gán None làm Blender sập cả lượt) → 61.
-assert.deepEqual([BAN_DUNG, bam], [73, 'ef71b8ff4a88'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [74, 'a327ee52f261'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

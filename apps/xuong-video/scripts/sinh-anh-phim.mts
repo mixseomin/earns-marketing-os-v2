@@ -42,19 +42,20 @@ const tapId = Number(tap[0]?.id ?? 0);
 const lamLai = arg('lam-lai');
 // --chi=<số shot,…>: chỉ các shot này (thứ tự trên lưới) — sinh lại đúng shot hỏng, không cả tập
 const chi = new Set((process.argv.find((a) => a.startsWith('--chi=')) ?? '').slice(6).split(',').filter(Boolean).map(Number));
-const canhThieu = (tapId ? await q(sql`SELECT id, thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : []).filter((c) => !chi.size || chi.has(Number(c.thu_tu)));
+const canhThieu = (tapId ? await q(sql`SELECT id, thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau, (khung_xam->>'xuong') IS NOT NULL AS co_xuong FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : []).filter((c) => !chi.size || chi.has(Number(c.thu_tu)));
 // --nguon=<cổng:model> (vd ckey:wowztools/nano-banana-2): sinh keyframe ĐÚNG nguồn đó, một bước — không tự rơi sang cổng đắt hơn, không qua FLUX độ sâu.
 const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8);
 // Shot có bản đồ độ sâu 3D mặc định đi HAI BƯỚC (sinh-anh.ts: FLUX depth fal $0,05 + ảnh sửa nhân dạng) — ước giá phải tính bước FLUX (17/10/2026:
 // ước $0,034/ảnh trong khi đường thật ~ $0,09/ảnh).
 const haiBuoc = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau).length;
+const xuongN = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau && c.co_xuong).length;   // bước 1 độ sâu + dáng: $0,075 thay $0,05
 const giaAnh = await giaAnhSv(nguon || kt.mo_hinh_anh).catch(() => 0);
 console.log(`phim #${phimId} · model ảnh ${kt.mo_hinh_anh} ≈ ${tien(giaAnh)}/ảnh`);
 console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(anchorThieu.length * giaAnh)}`);
 // --bien-the: ảnh tham chiếu cho BIẾN THỂ chưa có ảnh (sổ trang phục — bo-set-3d.ts › lookChuaChuan chặn keyframe khi biến thể sổ người trỏ tới thiếu ảnh)
 const btThieu = await q(sql`SELECT b.id, b.ten, v.ten AS nv FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId} AND b.anh_url IS NULL ORDER BY b.id`);
 console.log(`  biến thể chưa ảnh: ${btThieu.length} → ≈ ${tien(btThieu.length * giaAnh)}`);
-console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh + haiBuoc * 5)}${haiBuoc ? ` (gồm ${haiBuoc} shot hai bước: FLUX độ sâu ≈ $0.05/shot)` : ''}${nguon ? ` · nguồn ${nguon}, một bước` : ''}`);
+console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh + (haiBuoc - xuongN) * 5 + xuongN * 7.5)}${haiBuoc ? ` (gồm ${haiBuoc} shot hai bước: ${xuongN ? `${xuongN} shot độ sâu + dáng ≈ $0.075, ` : ''}FLUX độ sâu ≈ $0.05/shot)` : ''}${nguon ? ` · nguồn ${nguon}, một bước` : ''}`);
 // --xem-prompt (0đ): in câu lệnh keyframe SẼ gửi (một bước, hoặc bước 1 FLUX + bước 2 sửa nhân dạng) của các shot đang chọn — soát chữ trước khi xin duyệt tiền
 if (arg('xem-prompt')) {
   for (const c of canhThieu) {

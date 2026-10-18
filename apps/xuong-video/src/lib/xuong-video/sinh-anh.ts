@@ -153,7 +153,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 }
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
-export type HaiBuoc = { sau: string; prompt1: string; prompt2: string; ref2: string[] };
+export type HaiBuoc = { sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
 export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
@@ -369,7 +369,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
         khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
         khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
       ];
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, ...(bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
@@ -515,14 +515,23 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
 /** BƯỚC 1 của keyframe hai bước: FLUX depth (fal) từ bản đồ độ sâu 3D + chữ → ảnh thật đúng góc máy / bố cục. Chạy tại chỗ (10–30s), có job
  *  riêng trên sổ (tiền theo bảng giá fal, không đọc được thì 5 ¢ — giá công bố $0,05/MP). Ảnh lên kho để bước 2 dùng làm ảnh gốc. */
 export const MO_HINH_DO_SAU = 'fal-ai/flux-pro/v1/depth';
+/** BƯỚC 1 khi khung có NGƯỜI: FLUX general + ControlNet Union (InstantX) — độ sâu + khung xương OpenPose cùng lúc. Chỉ độ sâu thì ma-nơ-canh khối elip
+ *  bị cắt sát khung thành đồ vật (tập 122 #11: bình đồng cắm cây, không người nào) và bước 2 tự đặt người bừa. Giá $0,075/MP, 720×1280 = 1 MP. */
+export const MO_HINH_XUONG = 'fal-ai/flux-general';
+export const GIA_XUONG_CENTS = 7.5;
+const UNION_XUONG = 'InstantX/FLUX.1-dev-Controlnet-Union';
 async function buocDoSau(db: Db, canhId: number, thuTu: number, h: HaiBuoc, tiLe: string): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const job = await taoJob(db, { nhan: `Keyframe (bước 1 · độ sâu) · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_DO_SAU}`, request: { dich: 'keyframe_buoc1', prompt: h.prompt1, control: h.sau } });
+  const mh = h.xuong ? MO_HINH_XUONG : MO_HINH_DO_SAU;
+  const job = await taoJob(db, { nhan: `Keyframe (bước 1 · ${h.xuong ? 'độ sâu + dáng' : 'độ sâu'}) · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${mh}`, request: { dich: 'keyframe_buoc1', prompt: h.prompt1, control: h.sau, ...(h.xuong ? { xuong: h.xuong } : {}) } });
   const doc = tiLe !== '16:9';
-  const kq = await chayAnhFal(MO_HINH_DO_SAU, { prompt: h.prompt1, control_image_url: h.sau, image_size: doc ? { width: 768, height: 1365 } : { width: 1365, height: 768 }, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
+  const kq = h.xuong
+    ? await chayAnhFal(MO_HINH_XUONG, { prompt: h.prompt1, image_size: doc ? { width: 720, height: 1280 } : { width: 1280, height: 720 }, num_images: 1, output_format: 'jpeg', num_inference_steps: 28, guidance_scale: 3.5,
+        controlnet_unions: [{ path: UNION_XUONG, controls: [{ control_image_url: h.sau, control_mode: 'depth', conditioning_scale: 0.7 }, { control_image_url: h.xuong, control_mode: 'pose', conditioning_scale: 0.9 }] }] })
+    : await chayAnhFal(MO_HINH_DO_SAU, { prompt: h.prompt1, control_image_url: h.sau, image_size: doc ? { width: 768, height: 1365 } : { width: 1365, height: 768 }, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
   if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
   const url = await uploadToR2(`xuong-video/keyframe/${canhId}/buoc1-${Date.now()}.jpg`, kq.data, kq.mimeType);
   if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh bước 1 lên kho' }); return { ok: false, loi: 'không đẩy được ảnh bước 1 lên kho' }; }
-  await xongJob(db, job, { output_url: url, chi_phi_cents: (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5 });
+  await xongJob(db, job, { output_url: url, chi_phi_cents: h.xuong ? GIA_XUONG_CENTS : (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5 });
   return { ok: true, url };
 }
 

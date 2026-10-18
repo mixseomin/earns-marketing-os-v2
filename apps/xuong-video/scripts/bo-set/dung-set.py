@@ -701,6 +701,57 @@ def do_sau(s, gan, xa):
     nt.links.new(cam.outputs['View Distance'], mr.inputs['Value']); nt.links.new(mr.outputs['Result'], em.inputs['Color']); nt.links.new(em.outputs['Emission'], ra.inputs['Surface'])
     return m
 
+# KHUNG XƯƠNG OpenPose (COCO-18) của mọi người trong khung MỞ — ảnh điều khiển thứ hai cho bước 1 (ControlNet Union: độ sâu + dáng). 18/10/2026
+# tập 122 #11: ma-nơ-canh khối elip bị cắt sát khung → FLUX depth đọc thành bình đồng cắm cây, không vẽ người nào; bước 2 tự đặt người bừa.
+# Khung xương nói thẳng "người, dáng này, mặt nhìn hướng này" (mặt quay đi thì không có mũi / mắt — đúng cách OpenPose mã hoá quay lưng).
+_MAU_XUONG = [(255, 0, 0), (255, 85, 0), (255, 170, 0), (255, 255, 0), (170, 255, 0), (85, 255, 0), (0, 255, 0), (0, 255, 85), (0, 255, 170), (0, 255, 255),
+              (0, 170, 255), (0, 85, 255), (0, 0, 255), (85, 0, 255), (170, 0, 255), (255, 0, 255), (255, 0, 170), (255, 0, 85)]
+_CHI_XUONG = [(1, 2), (1, 5), (2, 3), (3, 4), (5, 6), (6, 7), (1, 8), (8, 9), (9, 10), (1, 11), (11, 12), (12, 13), (1, 0), (0, 14), (14, 16), (0, 15), (15, 17)]
+def diem_xuong(n_, cam):
+    """18 điểm OpenPose (thế giới) của một ma-nơ-canh; None = điểm không vẽ (mặt quay đi thì bỏ mũi + mắt, tai phía khuất)."""
+    w = lambda k: n_[k].matrix_world.translation.copy()
+    D = n_['dau'].matrix_world.to_3x3(); len_ = lambda v: v.normalized() if v.length else v
+    len_dau = n_['L']['dau'] * CM; r = 0.05 * n_['cao'] * CM
+    tam = w('dau') + len_(D @ Vector((0, 0, 1))) * (0.5 * len_dau)
+    truoc, trai = len_(D @ Vector((0, -1, 0))), len_(D @ Vector((1, 0, 0)))
+    nhin_may = truoc.dot(len_(cam.location - tam)) > 0.15
+    mat_t, mat_p = tam + truoc * (0.8 * r) + trai * (0.35 * r), tam + truoc * (0.8 * r) - trai * (0.35 * r)
+    tai_t, tai_p = tam + trai * r, tam - trai * r
+    thay_tai = lambda ben: (ben * trai).dot(len_(cam.location - tam)) > -0.3
+    ds = [tam + truoc * r if nhin_may else None, w('co'), w('vai_p'), w('khuyu_p'), w('cotay_p'), w('vai_t'), w('khuyu_t'), w('cotay_t'),
+          w('dui_p'), w('goi_p'), w('cochan_p'), w('dui_t'), w('goi_t'), w('cochan_t'), mat_p if nhin_may else None, mat_t if nhin_may else None,
+          tai_p if thay_tai(-1) else None, tai_t if thay_tai(1) else None]
+    return ds
+
+def ve_xuong(s, sh, cam, tep):
+    """Ảnh khung xương OpenPose 720×1280 (ngang 1280×720) nền đen, đúng máy của shot. Không người nào trong khung → không ghi tệp."""
+    import numpy as np
+    from bpy_extras.object_utils import world_to_camera_view
+    doc = s.render.resolution_x < s.render.resolution_y; W, H = (720, 1280) if doc else (1280, 720)
+    anh = np.zeros((H, W, 3), dtype=np.float32); day = max(4.0, H / 220); co_nguoi = False
+    yy, xx = np.mgrid[0:H, 0:W]
+    for nv in sh.get('nhan_vat', []):
+        n_ = NGUOI.get(nv['ten'])
+        if nv.get('an') or not n_ or (DL['nhan_vat_mau'].get(nv['ten']) or {}).get('hinh') != 'nguoi': continue
+        bpy.context.view_layer.update()
+        pts = []
+        for p in diem_xuong(n_, cam):
+            if p is None: pts.append(None); continue
+            q = world_to_camera_view(s, cam, p); pts.append((q.x * W, q.y * H) if q.z > 0 else None)   # gốc dưới-trái = thứ tự điểm ảnh Blender
+        if sum(1 for p in pts if p and 0 <= p[0] < W and 0 <= p[1] < H) < 3: continue
+        co_nguoi = True
+        for i, (a, b) in enumerate(_CHI_XUONG):
+            if not pts[a] or not pts[b]: continue
+            (x0, y0), (x1, y1) = pts[a], pts[b]; dx, dy = x1 - x0, y1 - y0; L2 = dx * dx + dy * dy or 1e-6
+            t = np.clip(((xx - x0) * dx + (yy - y0) * dy) / L2, 0, 1); d2 = (xx - (x0 + t * dx)) ** 2 + (yy - (y0 + t * dy)) ** 2
+            anh[d2 <= day * day] = np.array(_MAU_XUONG[i]) * 0.6
+        for i, p in enumerate(pts):
+            if p: anh[(xx - p[0]) ** 2 + (yy - p[1]) ** 2 <= day * day] = _MAU_XUONG[i]
+    if not co_nguoi: return False
+    im = bpy.data.images.new('xuong', W, H, alpha=True); px = np.ones((H, W, 4), dtype=np.float32); px[..., :3] = anh / 255.0
+    im.pixels.foreach_set(px.ravel()); im.filepath_raw = tep; im.file_format = 'PNG'; im.save(); bpy.data.images.remove(im)
+    return True
+
 def ve_sau(s, sh, cam, ra):
     """Bản đồ ĐỘ SÂU của khung MỞ (gần trắng → xa đen), cùng máy + ống kính: bước 1 của keyframe hai bước — model sinh ảnh điều khiển bằng độ
     sâu (FLUX depth) bị khoá theo hình học 3D (anh 15/10/2026: ba model ảnh dựa trên ảnh tham chiếu đều tự dựng lại góc máy #35)."""
@@ -1449,6 +1500,7 @@ for sh in ([] if CHI_MB else shots):
     # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
     if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
         ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu cho keyframe hai bước (FLUX depth)
+        ve_xuong(s, sh, cam, f"{RA}/{sh['ma']}-xuong.png")   # khung xương OpenPose (ControlNet dáng) — chỉ khi có người trong khung
         mn = ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}")   # mặt nạ ghép đè / sửa vùng
         if mn: mat_na[sh['ma']] = mn
     else:

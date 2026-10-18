@@ -256,7 +256,7 @@ const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, 
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 /** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
-export const BAN_MAY = 7;   // 7: món người thật đang cầm nhắm chỗ tay
+export const BAN_MAY = 8;   // 7: món người thật đang cầm nhắm chỗ tay · 8: góc thấp người thật ngửa ~15°, bỏ hạ 0,3 thân
 //   // 6: người đi trong shot không cho tràn mép · 5: bề ngang đo vuông góc hướng máy
 //   // 3–4 (17/10/2026): người thật khung theo dải cơ thể từ đỉnh đầu (BANG_NGUOI), thêm OTS / two / insert
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };

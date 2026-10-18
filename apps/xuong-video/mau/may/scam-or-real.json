@@ -864,5 +864,363 @@
   ],
   "nen_url": "https://images.pexels.com/photos/5900135/pexels-photo-5900135.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
   "nen_nguon": "https://www.pexels.com/photo/hands-holding-receipt-and-notes-5900135/"
+ },
+ {
+  "slug": "real-deposit-at-checkin",
+  "goi": "Deposit taken at check-in",
+  "kenh": "Email",
+  "gui": "Hotel Marenco",
+  "tieu_de": "Before you arrive",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "We look forward to welcoming you on 22 Nov."
+   },
+   {
+    "t": "At check-in we place a €100 hold on your card for incidentals."
+   },
+   {
+    "t": "It is released when you check out. Nothing to do now."
+   }
+  ],
+  "ly_do": [
+   "Hold happens at the desk, in person",
+   "Explains when it is released",
+   "Asks you to do nothing now"
+  ],
+  "nen_url": "https://images.pexels.com/photos/7820359/pexels-photo-7820359.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/man-handing-a-credit-card-to-a-hotel-receptionist-7820359/"
+ },
+ {
+  "slug": "real-card-update-in-app",
+  "goi": "Card problem, fix it in the app",
+  "kenh": "Email",
+  "gui": "Booking app notifications",
+  "tieu_de": "Action needed on your reservation",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "The hotel could not charge the card on your booking."
+   },
+   {
+    "t": "Open your reservation in the app to update it."
+   },
+   {
+    "t": "We never ask for card details by email or chat."
+   }
+  ],
+  "ly_do": [
+   "Sends you to your own app",
+   "No link to a strange site",
+   "Never asks for the card here"
+  ],
+  "nen_url": "https://images.pexels.com/photos/6353659/pexels-photo-6353659.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/anonymous-guy-with-plastic-card-making-online-payment-using-smartphone-on-street-6353659/"
+ },
+ {
+  "slug": "real-resort-fee-at-desk",
+  "goi": "Resort fee paid at the desk",
+  "kenh": "Email",
+  "gui": "Palm Isle Resort",
+  "tieu_de": "Your stay: good to know",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "As shown on your booking, a $25 nightly resort fee applies."
+   },
+   {
+    "t": "It covers Wi-Fi, the pool and beach towels."
+   },
+   {
+    "t": "You pay it at the front desk at check-in."
+   }
+  ],
+  "ly_do": [
+   "Fee was on your booking",
+   "Paid at the desk, not online",
+   "No link, no deadline"
+  ],
+  "nen_url": "https://images.pexels.com/photos/28733384/pexels-photo-28733384.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/man-relaxing-by-window-with-laptop-in-hotel-28733384/"
+ },
+ {
+  "slug": "real-early-checkin-offer",
+  "goi": "Early check-in offer",
+  "kenh": "SMS",
+  "gui": "The Halden",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Good news, your room is ready early."
+   },
+   {
+    "t": "You can check in from 11 AM today at no extra cost."
+   },
+   {
+    "t": "Just show your ID at the front desk."
+   }
+  ],
+  "ly_do": [
+   "No payment asked",
+   "ID shown in person only",
+   "Nothing to click"
+  ],
+  "nen_url": "https://images.pexels.com/photos/7820321/pexels-photo-7820321.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/a-hotel-receptionist-handing-a-key-card-to-a-guest-7820321/"
+ },
+ {
+  "slug": "real-late-arrival-question",
+  "goi": "Hotel asks about late arrival",
+  "kenh": "WhatsApp",
+  "gui": "Albergo Sole",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Hello, we see your flight lands at 11:40 PM."
+   },
+   {
+    "t": "Our desk is open all night, so no problem."
+   },
+   {
+    "t": "Safe travels, see you tonight!"
+   }
+  ],
+  "ly_do": [
+   "Only shares useful info",
+   "Asks for nothing",
+   "No link or pressure"
+  ],
+  "nen_url": "https://images.pexels.com/photos/9799395/pexels-photo-9799395.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/close-up-photo-of-person-s-hands-holding-smartphone-9799395/"
+ },
+ {
+  "slug": "real-online-checkin-app",
+  "goi": "Online check-in in the app",
+  "kenh": "Email",
+  "gui": "Nordhavn Hotel",
+  "tieu_de": "Check in online and skip the line",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Your stay starts tomorrow."
+   },
+   {
+    "t": "If you like, complete online check-in in the app you booked with."
+   },
+   {
+    "t": "Or check in at the desk as usual. Both are fine."
+   }
+  ],
+  "ly_do": [
+   "Optional, no deadline",
+   "Done in your booking app",
+   "Desk check-in still offered"
+  ],
+  "nen_url": "https://images.pexels.com/photos/7821341/pexels-photo-7821341.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/illuminated-decoration-in-the-shape-of-stars-under-the-reception-sign-in-a-hotel-7821341/"
+ },
+ {
+  "slug": "real-free-upgrade-desk",
+  "goi": "Free upgrade, no catch",
+  "kenh": "SMS",
+  "gui": "Seaglass Inn",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Hi Daniel, we have upgraded you to a sea view room."
+   },
+   {
+    "t": "There is no extra charge."
+   },
+   {
+    "t": "Your key will be ready at the front desk."
+   }
+  ],
+  "ly_do": [
+   "Upgrade with no fee",
+   "Nothing to pay or click",
+   "Handled at the desk"
+  ],
+  "nen_url": "https://images.pexels.com/photos/34496702/pexels-photo-34496702.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/luxurious-modern-hotel-room-in-mumbai-34496702/"
+ },
+ {
+  "slug": "real-city-tax-at-hotel",
+  "goi": "City tax paid at the hotel",
+  "kenh": "Email",
+  "gui": "Hotel Brisa Barcelona",
+  "tieu_de": "Tourist tax information",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Barcelona charges a tourist tax per person per night."
+   },
+   {
+    "t": "It is not included in your booking price."
+   },
+   {
+    "t": "You pay it at the hotel by card or cash."
+   }
+  ],
+  "ly_do": [
+   "Explains a real local tax",
+   "Paid at the hotel itself",
+   "No link to pay online"
+  ],
+  "nen_url": "https://images.pexels.com/photos/17871474/pexels-photo-17871474.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/hotel-near-street-in-santiago-de-compostela-17871474/"
+ },
+ {
+  "slug": "real-parking-info",
+  "goi": "Parking directions",
+  "kenh": "WhatsApp",
+  "gui": "Hotel Corvo",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Thanks for asking about parking!"
+   },
+   {
+    "t": "Use the garage behind the hotel, entrance on Via Roma."
+   },
+   {
+    "t": "Show your room key at the barrier."
+   }
+  ],
+  "ly_do": [
+   "Answers your question",
+   "No payment requested",
+   "No link to click"
+  ],
+  "nen_url": "https://images.pexels.com/photos/10155095/pexels-photo-10155095.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/person-holding-a-smartphone-10155095/"
+ },
+ {
+  "slug": "real-booking-change-confirmed",
+  "goi": "Date change confirmed",
+  "kenh": "Email",
+  "gui": "Casa Lumen Lisbon",
+  "tieu_de": "Your dates have been changed",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Your booking now runs 5 to 8 Dec, as you requested."
+   },
+   {
+    "t": "The price stays the same."
+   },
+   {
+    "t": "See the details in your booking app."
+   }
+  ],
+  "ly_do": [
+   "Matches the change you made",
+   "No new payment",
+   "Points to your app"
+  ],
+  "nen_url": "https://images.pexels.com/photos/4133783/pexels-photo-4133783.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/unrecognizable-woman-using-chat-while-typing-on-laptop-at-home-4133783/"
+ },
+ {
+  "slug": "real-wifi-password-desk",
+  "goi": "Wi-Fi details at check-in",
+  "kenh": "SMS",
+  "gui": "Kestrel Hotel",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Welcome to Kestrel Hotel!"
+   },
+   {
+    "t": "Wi-Fi: Kestrel-Guest, password on your key card sleeve."
+   },
+   {
+    "t": "It is free for all guests."
+   }
+  ],
+  "ly_do": [
+   "Free Wi-Fi, no card needed",
+   "Password is in your room",
+   "No link to a login page"
+  ],
+  "nen_url": "https://images.pexels.com/photos/7675870/pexels-photo-7675870.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/person-typing-on-laptop-at-home-7675870/"
+ },
+ {
+  "slug": "real-review-request-no-reward",
+  "goi": "Review request after stay",
+  "kenh": "Email",
+  "gui": "The Larkspur",
+  "tieu_de": "How was your stay?",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Thank you for staying with us last week."
+   },
+   {
+    "t": "If you have a minute, you can leave a review in the app you booked with."
+   },
+   {
+    "t": "No reward, no pressure. We read every one."
+   }
+  ],
+  "ly_do": [
+   "Review in your booking app",
+   "No reward bait",
+   "No deadline"
+  ],
+  "nen_url": "https://images.pexels.com/photos/16294848/pexels-photo-16294848.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/sb-16294848/"
+ },
+ {
+  "slug": "real-maintenance-notice",
+  "goi": "Pool closed notice",
+  "kenh": "SMS",
+  "gui": "Palm Isle Resort",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Good morning! The main pool is closed today for cleaning."
+   },
+   {
+    "t": "The rooftop pool is open 8 AM to 8 PM."
+   },
+   {
+    "t": "Sorry for the trouble."
+   }
+  ],
+  "ly_do": [
+   "Just information",
+   "Asks for nothing",
+   "No link or payment"
+  ],
+  "nen_url": "https://images.pexels.com/photos/13917289/pexels-photo-13917289.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/man-in-a-white-sweater-holding-a-smartphone-13917289/"
+ },
+ {
+  "slug": "real-prepaid-confirmation",
+  "goi": "Prepaid booking confirmation",
+  "kenh": "Email",
+  "gui": "Hotel Velaro",
+  "tieu_de": "Payment received",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "We have received full payment for your stay, 2 to 4 Jan."
+   },
+   {
+    "t": "Nothing more is due before you arrive."
+   },
+   {
+    "t": "Bring the card you paid with to check-in."
+   }
+  ],
+  "ly_do": [
+   "Says nothing more is due",
+   "No link or new account",
+   "Matches what you paid"
+  ],
+  "nen_url": "https://images.pexels.com/photos/4939604/pexels-photo-4939604.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/photograph-of-a-person-typing-on-a-silver-laptop-4939604/"
  }
 ]

@@ -10,10 +10,12 @@
 //   --ghi-dang <slug> <nền>        stdin JSON { url, ngay, luc?, binhLuan? } → sổ đăng của video (gộp vào lượt đã có)
 //   --nap-nguon <tệp.json>         nạp cả tệp nguồn đề của mẫu (vd mau/may/scam-or-real.json) qua tuNguon của mẫu (mau-dung.ts)
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
+//   --ghi-du-kien                  stdin JSON { may, ds: [{ ngay, gio, may, nen, slug, title }] } → lịch dự kiến 7 ngày (tab Social › Lịch đăng)
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
 import { getDb } from '@mos2/db';
+import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { bucAnh, dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
@@ -63,6 +65,11 @@ if (a.includes('--nap')) {
   process.stdout.write(JSON.stringify(m));
 } else if (a.includes('--may-chay')) {
   process.stdout.write(JSON.stringify((await dsMay(db)).filter((m) => m.chay).map((m) => m.ma)));
+} else if (a.includes('--ghi-du-kien')) {   // lịch dự kiến 7 ngày do dang-may tính (nhip-an-toan.mjs › duKienTuan) — stdin { may, ds: [...] }
+  const x = await docStdin(); if (!Array.isArray(x?.ds)) { console.error('stdin phải là { may, ds: [] }'); process.exit(2); }
+  await db.execute(sql`INSERT INTO xv_lich_du_kien (id, luc, may, ds) VALUES (1, now(), ${String(x.may ?? '')}, ${JSON.stringify(x.ds)}::jsonb)
+    ON CONFLICT (id) DO UPDATE SET luc = now(), may = EXCLUDED.may, ds = EXCLUDED.ds`);
+  console.log(`✓ lịch dự kiến ${x.ds.length} lượt`);
 } else if (a.includes('--nguon')) {
   await ghiNguon(db, ma, await docStdin()); console.log('✓ nguồn');
 } else { console.error('dùng: may-dung.mts [--may mã] --nap < de.json | --ds [--ca-luu-tru] | --xuat <slug|all-chua> | --anh <slug|all-chua> | --ghi-dang <slug> <nền> < x.json | --nguon < n.json | --nhat-ky < x.json | --may-info | --may-chay'); process.exit(2); }

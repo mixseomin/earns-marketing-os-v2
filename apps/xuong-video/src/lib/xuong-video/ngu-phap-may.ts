@@ -13,10 +13,10 @@ export type NhipKich = 'moc' | 'soc' | 'he_lo' | 'nhuc' | 'quyen_luc' | 'doi_dau
 /** may = chuyển động hợp nhịp (ưu tiên trước → sau, key thư viện dien-anh.ts); goc = góc máy nên đi kèm (chỉ gợi ý, không chặn). */
 export const NGU_PHAP_MAY: Record<NhipKich, { ten: string; may: string[]; goc?: string[]; vi_sao: string }> = {
   moc: { ten: 'móc cuối tập', may: ['day_vao', 'zoom_cham'], vi_sao: 'cliffhanger: máy dồn vào mặt tới câu cuối rồi cắt đen — người xem bị kéo sang tập sau' },
-  soc: { ten: 'cú sốc', may: ['zoom_gat', 'speed_ramp', 'dolly_zoom'], vi_sao: 'cú đánh mặt bằng hình: zoom gắt / chậm hẳn khoảnh khắc đỉnh / hậu cảnh giãn ra' },
+  soc: { ten: 'cú sốc', may: ['zoom_gat', 'speed_ramp', 'dolly_zoom', 'cung'], vi_sao: 'cú đánh mặt bằng hình: zoom gắt / chậm hẳn khoảnh khắc đỉnh / hậu cảnh giãn ra / máy đi cung quanh người đang chết lặng (anh 18/10/2026 giữ cung cho #23 tổng tài)' },
   he_lo: { ten: 'hé lộ thân phận', may: ['dolly_zoom', 'vong', 'day_vao', 'nghieng_len', 'doi_net'], vi_sao: 'thế giới của nhân vật đảo chiều — dolly zoom / vòng quanh khoảnh khắc lộ diện; cận chi tiết thì lia dọc hoặc đổi nét (reveal shot)' },
   nhuc: { ten: 'bị sỉ nhục', may: ['cam_tay', 'day_vao'], goc: ['cao'], vi_sao: 'máy rung nhẹ + nhìn xuống: người xem đứng giữa đám đông, nóng mặt thay nhân vật' },
-  quyen_luc: { ten: 'quyền lực bước vào', may: ['dan_truoc', 'day_vao', 'theo', 'truot_ngang'], goc: ['thap'], vi_sao: 'góc thấp, máy dẫn trước / đẩy theo bước chân — nhân vật chiếm không gian' },
+  quyen_luc: { ten: 'quyền lực bước vào', may: ['dan_truoc', 'day_vao', 'theo', 'truot_ngang', 'vuot_tien_canh'], goc: ['thap'], vi_sao: 'góc thấp, máy dẫn trước / đẩy theo bước chân / trượt qua vai người ngồi lộ nhân vật ở cửa (anh 18/10/2026 giữ cho #17 tổng tài) — nhân vật chiếm không gian' },
   doi_dau: { ten: 'đối đầu', may: ['vong', 'day_vao'], vi_sao: 'máy vòng quanh hai người khi thế lực đảo — căng thẳng không đứng yên' },
   phan_quyet: { ten: 'phán quyết / nhận ra', may: ['day_vao', 'zoom_cham'], vi_sao: 'đẩy chậm vào mặt khi câu then chốt rơi xuống — cảm xúc dâng' },
 };
@@ -52,7 +52,7 @@ export function nhipKich(c: ShotNguPhap): NhipKich | null {
 /** Bộ chuyển động hợp nhịp của MỘT shot: quyền lực đi ngắn bỏ các kiểu chạy theo quãng đi; đối đầu trong khung qua vai (một người) ưu tiên đẩy vào. */
 export function mayHop(c: ShotNguPhap, n: NhipKich): string[] {
   const m = NGU_PHAP_MAY[n].may;
-  if (n === 'quyen_luc' && (c.di_cm ?? 0) < DI_DAI_CM) return m.filter((x) => !['dan_truoc', 'theo', 'truot_ngang'].includes(x));
+  if (n === 'quyen_luc' && (c.di_cm ?? 0) < DI_DAI_CM) return m.filter((x) => !['dan_truoc', 'theo', 'truot_ngang', 'vuot_tien_canh'].includes(x));
   if (n === 'doi_dau' && c.ky_thuat?.co_canh === 'ots') return ['day_vao', 'vong'];
   return m;
 }

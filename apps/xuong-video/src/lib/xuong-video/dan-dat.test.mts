@@ -47,4 +47,7 @@ assert.deepStrictEqual(chanDanDat(99, cg, { phan_canh: pcs }), []);
 const kd = { phan_canh: pcs, khuon_chuoi: [{ khuon: 'phat_hien', shots: { 3: 2 } }] };
 assert.ok(chanDanDat(3, cg, kd).some((x) => x.includes('thiếu bước bắt buộc')), 'khuôn thiếu bước bắt buộc → chặn');
 assert.deepStrictEqual(chanDanDat(3, cg, { phan_canh: pcs, khuon_chuoi: [{ khuon: 'va_mat', shots: { 1: 0, 2: 1, 3: 2 } }] }).filter((x) => x.startsWith('khuôn')).length, 2, 'sai vai (#3 phan_ung ở bước Lộ thân phận) + thiếu Đòn quyết định');
+// mọi mã trừ trỏ vào luật dựng CÓ THẬT (timeline bấm mở luật)
+{ const { LUAT_DUNG_CANH } = await import('./luat-dung'); const { luatCuaTru } = await import('./dan-dat');
+  for (const ma of ['nhay_hinh', 'nhin_khong_dap', 'vao_khong_dinh_vi', 'ra_giua_chung', 'nhay_thoi_gian', 'don_nhip', 'khong_phan_ung']) assert.ok(LUAT_DUNG_CANH.some((l) => l.key === luatCuaTru(ma)), `mã ${ma} không trỏ vào luật có thật`); }
 console.log('✓ dan-dat');

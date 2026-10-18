@@ -3,6 +3,7 @@
 // gán. Mở từ nút ✎ ở nhãn làn 🧭 Khuôn trên timeline. Lưu = luuKhuonChuoi (0đ, có ↶ hoàn tác qua chupTruoc).
 import { useState } from 'react';
 import { Ngan } from './ngan';
+import { moNgan } from './ngan-chung';
 import { Chon, type LuaChon } from './chon';
 import { Loi, mono, goiAction } from './ui';
 import { luuKhuonChuoi, tachShot, chenShotKhuon } from '@/lib/actions';
@@ -45,6 +46,7 @@ export function NganKhuon({ tapId, khuon, canh, theLoai, onClose, onLuu }: { tap
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Chon value={a.khuon} onChange={(v) => sua(i, (x) => ({ ...x, khuon: v, shots: {} }))} options={chonKhuon} minWidth={240} title="Khuôn" />
                 <input className="xv-in" style={{ flex: 1, minWidth: 200 }} placeholder="Ở đây khuôn làm gì (ý đạo diễn / kịch bản)" value={a.ghi ?? ''} onChange={(e) => sua(i, (x) => ({ ...x, ghi: e.target.value }))} />
+                <button type="button" className="xv-btn" title="Xem khuôn trong thư viện (bước · vai · luật · máy · nguồn)" onClick={() => moNgan({ loai: 'ky-thuat', ma: `khuon.${a.khuon}` })}>📖</button>
                 <button type="button" className="xv-btn" title="Bỏ lần áp này" onClick={() => setDs((d) => d.filter((_, j) => j !== i))}>🗑</button>
               </div>
               {kh && <div style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>{kh.muc_dich}</div>}

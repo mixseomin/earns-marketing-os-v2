@@ -103,7 +103,7 @@ function TheMuc({ ten, ma, moTa, ten2 }: { ten: string; ma: string; moTa: string
 /** Khuôn chuỗi shot (khuon-chuoi.ts): mục đích + các bước + nguồn — áp trên timeline ở làn 🧭 Khuôn. */
 function TheKhuon({ k }: { k: (typeof KHUON_CHUOI)[number] }) {
   return (
-    <div className="xv-canh" style={{ display: 'grid', gap: 4 }}>
+    <div className="xv-canh" role="button" tabIndex={0} onClick={() => moNgan({ loai: 'ky-thuat', ma: `khuon.${k.key}` })} title="Bấm xem chi tiết khuôn (bước · vai · luật · máy · nguồn)" style={{ display: 'grid', gap: 4, cursor: 'pointer' }}>
       <b style={{ fontSize: 12 }}>{k.ten}</b>
       <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{k.muc_dich}</span>
       <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{k.buoc.map((b, i) => `${i + 1}. ${b.ten}${b.tuy ? ' (tuỳ)' : b.nen ? ' (nên có)' : ''}`).join(' → ')}{k.ket ? ` · kết: ${k.ket}` : ''}</span>
@@ -163,6 +163,24 @@ function MoTaNganh({ x, n }: { x?: KyThuat; n?: NganhKyThuat }) {
 export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
   const [nhom, key] = [ma.slice(0, ma.indexOf('.')), ma.slice(ma.indexOf('.') + 1)];
   const nut = <div style={{ marginTop: 12 }}><button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'thu-vien' })}>🎬 Mở cả thư viện điện ảnh</button></div>;
+  if (nhom === 'khuon') {
+    const k = KHUON_CHUOI.find((x) => x.key === key);
+    if (!k) return <div className="xv-mono">Không còn khuôn “{key}” trong thư viện.</div>;
+    return (<div style={{ display: 'grid', gap: 8, fontSize: 12.5 }}>
+      <div className="xv-mono">🧭 Khuôn chuỗi shot · {k.key}</div><b style={{ fontSize: 15 }}>{k.ten}</b>
+      <div style={{ color: 'var(--fg-2)' }}>{k.muc_dich}</div>
+      <ol style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6 }}>{k.buoc.map((b, i) => (
+        <li key={i}><b>{b.ten}</b>{b.tuy ? <span className="xv-mono"> · tuỳ chọn</span> : b.nen ? <span className="xv-mono"> · nên có</span> : null}
+          <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>{b.ghi}</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+            {b.vai.map((v) => <LinkMa key={v} ma={`vai.${v}`} />)}{(b.luat ?? []).map((l) => <LinkMa key={l} ma={`luat.${l}`} />)}{(b.may ?? []).map((m) => <LinkMa key={m} ma={`chuyen_dong.${m}`} />)}
+          </div></li>))}</ol>
+      {k.ket && <div className="xv-mono">kết khuôn: {k.ket}</div>}
+      <div className="xv-mono">hợp thể loại: {k.the_loai === 'tat_ca' ? 'mọi thể loại' : k.the_loai.map((t) => THE_LOAI.find((y) => y.key === t)?.ten ?? t).join(', ')}</div>
+      <div style={{ display: 'grid', gap: 2 }}>{k.nguon.map((n, i) => <div key={i} style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>📚 <b>{n.phim}</b> — {n.ghi}</div>)}</div>
+      {nut}
+    </div>);
+  }
   if (nhom === 'luat') {
     const l = luatDung(key);
     if (!l) return <div className="xv-mono">Không còn luật “{key}” trong thư viện.</div>;
@@ -275,4 +293,13 @@ function ViDuVideo({ ma, nho }: { ma: string; nho?: boolean }) {
     </div>
   );
   return nho ? <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>▶ Ví dụ video</summary>{than}</details> : <div><div className="xv-mono" style={{ marginTop: 6 }}>▶ Ví dụ video (đoạn đúng chapter)</div>{than}</div>;
+}
+
+/** Nhãn bấm được của MỘT mục thư viện ('<nhóm>.<key>', 'luat.<key>', 'khuon.<key>') → mở ngăn chi tiết (dùng ở chi tiết khuôn). */
+export function LinkMa({ ma, chu }: { ma: string; chu?: string }) {
+  const [nhom, key] = [ma.slice(0, ma.indexOf('.')), ma.slice(ma.indexOf('.') + 1)];
+  const ten = chu ?? (nhom === 'luat' ? luatDung(key)?.ten : nhom === 'khuon' ? KHUON_CHUOI.find((x) => x.key === key)?.ten : kyThuat(key, nhom as NhomKyThuat)?.ten) ?? key;
+  const ic = nhom === 'luat' ? '📐' : nhom === 'khuon' ? '🧭' : NHOM_KY_THUAT.find((g) => g.key === nhom)?.icon ?? '';
+  return <button type="button" className="xv-mono" onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma }); }} title="Mở trong thư viện điện ảnh"
+    style={{ fontSize: 10.5, padding: '0 6px', lineHeight: '16px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' }}>{ic} {ten.replace(/\s*\(.*\)$/, '')}</button>;
 }

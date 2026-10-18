@@ -34,7 +34,7 @@ import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
-import { chamDanDat } from '@/lib/xuong-video/dan-dat';
+import { chamDanDat, luatCuaTru } from '@/lib/xuong-video/dan-dat';
 import { NganKhuon } from './khuon-ui';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -688,8 +688,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                       const tt = [`${k.kh.ten} · bước ${bi + 1}/${k.kh.buoc.length}: ${b?.ten ?? '?'}${n > 1 ? ` (nhịp ${q + 1}/${n} trong shot #${cc.thu_tu})` : ''}`, b?.ghi, `Mục đích: ${k.kh.muc_dich}`, k.ap.ghi && `Ở đây: ${k.ap.ghi}`,
                         ...x.loi.map((l) => `⚠ ${l}`), ...x.goiY.map((l) => `· ${l}`), ...(j === 0 && q === 0 ? k.loi.map((l) => `⚠ cả khuôn: ${l}`) : []), k.kh.ket && `Kết khuôn: ${k.kh.ket}`,
                         `Nguồn: ${k.kh.nguon.map((nn) => `${nn.phim} — ${nn.ghi}`).join(' · ')}`].filter(Boolean).join('\n');
-                      return khoiAm(x0 + w * q, w, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 && q === 0 ? `${k.kh.ten} › ` : ''}${n > 1 && q === 0 ? '✂ ' : ''}${b?.ten ?? '?'}`, tt, `kh${k.ap.khuon}${x.id}-${q}`, () => bamShot(cc.id, i), undefined, '');
-                    });
+                      const khoi = khoiAm(x0 + w * q, w, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 && q === 0 ? `${k.kh.ten} › ` : ''}${n > 1 && q === 0 ? '✂ ' : ''}${b?.ten ?? '?'}`, tt, `kh${k.ap.khuon}${x.id}-${q}`, () => bamShot(cc.id, i), undefined, '');
+                      // 📖 ở khối đầu mỗi lần áp: mở khuôn trong thư viện (bước · vai · luật · máy · nguồn) — nền khối vẫn mở chi tiết shot.
+                      return j === 0 && q === 0 ? [khoi, <button key={`kb${k.ap.khuon}${x.id}`} type="button" title={`Mở khuôn “${k.kh.ten}” trong thư viện`} onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: `khuon.${k.kh.key}` }); }}
+                        style={{ position: 'absolute', left: x0 + Math.max(0, w - 20), top: 5, zIndex: 3, width: 16, height: 16, padding: 0, fontSize: 10, lineHeight: '16px', border: 0, borderRadius: 3, background: 'var(--bg-1)', cursor: 'pointer' }}>📖</button>] : [khoi];
+                    }).flat();
                   }),
                   // Bước THIẾU: ô gạch đứt đúng chỗ khuôn chỉ (sau shot đứng trước nó) — bấm mở ngăn ✎ để chèn shot.
                   ...k.thieu.map((t) => {
@@ -716,7 +719,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const x = batDau[j]! * pps; const a = canh[j - 1]!, b = canh[j]!;
               const tt = [`Cắt #${a.thu_tu} → #${b.thu_tu}${c.sangCanh ? ' · sang cảnh' : ''}: ${c.diem}/100`, ...(c.tru.length ? c.tru.map((t) => `−${t.tru} ${t.chu}`) : ['cắt có lý do — không trừ'])].join('\n');
               const w = c.sangCanh ? 30 : 22;
-              return <div key={`dd${c.sau}`} data-goi-y={tt} onClick={() => bamShot(b.id, j)}
+              const luat = c.tru.map((t) => luatCuaTru(t.ma)).find(Boolean);
+              return <div key={`dd${c.sau}`} data-goi-y={`${tt}${luat ? '\nbấm = mở luật bị vi phạm trong thư viện' : ''}`} onClick={() => (luat ? moNgan({ loai: 'ky-thuat', ma: `luat.${luat}` }) : bamShot(b.id, j))}
                 style={{ position: 'absolute', left: x - w / 2, width: w, top: 4, bottom: 4, borderRadius: 4, cursor: 'pointer', zIndex: 1, fontSize: 9.5, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
                   background: c.tru.length ? `${mau(c.diem)}33` : 'transparent', border: `1px ${c.tru.length ? 'solid' : 'dotted'} ${mau(c.diem)}${c.tru.length ? '' : '88'}`, color: mau(c.diem) }}>
                 {c.tru.length ? c.diem : c.sangCanh ? '⇥' : '·'}
@@ -752,7 +756,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             const chu = [kyThuat(kt.co_canh, 'co_canh')?.ten, kyThuat(kt.chuyen_dong, 'chuyen_dong')?.ten, kyThuat(kt.anh_sang, 'anh_sang')?.ten].filter(Boolean).join(' · ');
             if (!chu) return null;
             const day = ['co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'anh_sang', 'mau', 'chuyen_canh', 'nhac'].map((n) => kyThuat((kt as Record<string, string>)[n])?.ten).filter(Boolean).join('\n');
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#38d9f5', chu, day, cc.id, () => { bamShot(cc.id, i); });
+            // Tên kỹ thuật trong khối bấm được → mở đúng mục thư viện (anh 18/10/2026); bấm nền khối vẫn mở chi tiết shot.
+            const ds = (['co_canh', 'chuyen_dong', 'anh_sang'] as const).map((n) => [n, kt[n]] as const).filter(([n, k]) => k && kyThuat(k, n));
+            return (
+              <div key={cc.id} data-goi-y={`${day}\nbấm tên kỹ thuật = mở trong thư viện · bấm nền = chi tiết shot`} onClick={() => bamShot(cc.id, i)}
+                style={{ position: 'absolute', left: batDau[i]! * pps + 1, width: Math.max(4, dur(cc) * pps - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: 'pointer', background: '#38d9f533', border: '1px solid #38d9f5', color: '#38d9f5', fontSize: 'var(--khoi-co, 10px)', lineHeight: 'var(--khoi-lh, 20px)', padding: '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                {ds.map(([n, k], j) => <span key={n}>{j ? ' · ' : ''}<span onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: `${n}.${k}` }); }} style={{ textDecoration: 'underline dotted', cursor: 'help' }}>{kyThuat(k, n)!.ten.replace(/\s*\(.*\)$/, '')}</span></span>)}
+              </div>
+            );
           }))}
 
           {/* MỖI nhân vật một NHÓM làn (#1237, #1244), viền màu nhân vật: 🎭 cảm xúc/diễn xuất theo shot (có mặt mà không nói cũng hiện) · 🗣 thoại. */}

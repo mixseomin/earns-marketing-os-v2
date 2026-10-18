@@ -8,7 +8,10 @@ import type { TheLoai } from './dien-anh';
 
 export type ShotDanDat = { id: number; thu_tu: number; phan_doan: string; hanh_dong?: string; canh?: string; nhan_vat?: number[]; ky_thuat?: KyThuatShot | null };
 export type CanhDanDat = { ten: string; noi?: string; luc?: string; ngay?: string };
-export type KhoanTru = { ma: string; tru: number; chu: string };
+/** luat = luật dựng cảnh (luat-dung.ts) mà khoản trừ này vi phạm — timeline bấm mở đúng luật trong thư viện. */
+export type KhoanTru = { ma: string; tru: number; chu: string; luat?: string };
+const LUAT_CUA: Record<string, string> = { nhay_hinh: 'luat_30', nhin_khong_dap: 'nhan_qua_huong_nhin', vao_khong_dinh_vi: 'dan_khong_gian', ra_giua_chung: 'khoang_lang', nhay_thoi_gian: 'dan_thoi_gian', don_nhip: 'nhip_doc', khong_phan_ung: 'giu_phan_ung' };
+export const luatCuaTru = (ma: string) => LUAT_CUA[ma];
 /** Một điểm cắt giữa shot `truoc` và `sau`. sangCanh = điểm nối hai phân cảnh. */
 export type DiemCat = { truoc: number; sau: number; sangCanh: boolean; diem: number; tru: KhoanTru[] };
 export type KetDanDat = { diem: number; diemCat: number; diemKhuon: number | null; cat: DiemCat[]; canh: { ten: string; diem: number; tru: KhoanTru[] }[]; ngoaiKhuon: number[]; khuon: KetAp[] };

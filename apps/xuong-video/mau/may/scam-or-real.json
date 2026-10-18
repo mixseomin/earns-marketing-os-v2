@@ -1222,5 +1222,236 @@
   ],
   "nen_url": "https://images.pexels.com/photos/4939604/pexels-photo-4939604.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
   "nen_nguon": "https://www.pexels.com/photo/photograph-of-a-person-typing-on-a-silver-laptop-4939604/"
+ },
+ {
+  "slug": "scam-surprise-fee-tip",
+  "goi": "Surprise fee and tip after booking",
+  "kenh": "SMS",
+  "gui": "Hotel Lumo Billing",
+  "ket": "scam",
+  "dong": [
+   {
+    "t": "Your booking total did not include a $38 service fee and a 12% staff tip.",
+    "co": 1
+   },
+   {
+    "t": "Pay both here before 8 PM:",
+    "co": 2
+   },
+   {
+    "t": "lumo-guest-billing.com",
+    "co": 3
+   }
+  ],
+  "ly_do": [
+   "New fees after you booked",
+   "Deadline to pay tonight",
+   "Billing site isn't your booking app"
+  ],
+  "nen_url": "https://images.pexels.com/photos/20591534/pexels-photo-20591534.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/man-hands-holding-smartphone-and-reading-news-20591534/"
+ },
+ {
+  "slug": "scam-fake-direct-site",
+  "goi": "Look-alike site, book direct and save",
+  "kenh": "Email",
+  "gui": "Reservations - Hotel Aurelio Roma",
+  "tieu_de": "Book direct and save 40%",
+  "ket": "scam",
+  "dong": [
+   {
+    "t": "Thanks for your interest in Hotel Aurelio."
+   },
+   {
+    "t": "Book direct on hotelaurelio-roma.com and save 40%.",
+    "co": 1
+   },
+   {
+    "t": "Payment by bank transfer only to confirm the rate.",
+    "co": 2
+   },
+   {
+    "t": "This offer is valid until tonight.",
+    "co": 3
+   }
+  ],
+  "ly_do": [
+   "Look-alike website",
+   "Transfer-only payment",
+   "Tonight-only deal"
+  ],
+  "nen_url": "https://images.pexels.com/photos/24877181/pexels-photo-24877181.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/a-woman-in-a-robe-reading-a-book-on-a-bed-24877181/"
+ },
+ {
+  "slug": "scam-nonrefundable-refund",
+  "goi": "Refund offered on a no-refund rate",
+  "kenh": "WhatsApp",
+  "gui": "Refunds Desk - Bay View Inn",
+  "ket": "scam",
+  "dong": [
+   {
+    "t": "Good news: your non-refundable booking can be refunded."
+   },
+   {
+    "t": "Confirm your card number and expiry date here",
+    "co": 1
+   },
+   {
+    "t": "within 1 hour of this message.",
+    "co": 2
+   },
+   {
+    "t": "A $9.99 processing fee applies.",
+    "co": 3
+   }
+  ],
+  "ly_do": [
+   "Asks for full card details",
+   "1-hour deadline",
+   "Refund bait with a fee"
+  ],
+  "nen_url": "https://images.pexels.com/photos/15692686/pexels-photo-15692686.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/woman-sitting-on-the-desk-and-using-a-smart-phone-15692686/"
+ },
+ {
+  "slug": "scam-no-record-pay-direct",
+  "goi": "Hotel says the app booking is missing",
+  "kenh": "SMS",
+  "gui": "+1 (415) 555 0182",
+  "ket": "scam",
+  "dong": [
+   {
+    "t": "This is the Seaview Hotel front desk. We have no record of your booking from the app."
+   },
+   {
+    "t": "To keep the room, pay us directly tonight:",
+    "co": 1
+   },
+   {
+    "t": "seaview-hotel-direct.com/pay",
+    "co": 2
+   },
+   {
+    "t": "Do not contact the app, they cannot help.",
+    "co": 3
+   }
+  ],
+  "ly_do": [
+   "Pay outside the app, tonight",
+   "Unknown payment site",
+   "Tells you to avoid the app"
+  ],
+  "nen_url": "https://images.pexels.com/photos/6331232/pexels-photo-6331232.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/woman-using-smartphone-while-drinking-hot-beverage-on-cafe-terrace-6331232/"
+ },
+ {
+  "slug": "scam-members-deal-zelle",
+  "goi": "Members deal too good to be true",
+  "kenh": "Email",
+  "gui": "Luxe Escapes Club",
+  "tieu_de": "Members only: 70% off 5-star resorts",
+  "ket": "scam",
+  "dong": [
+   {
+    "t": "Your membership unlocked 70% off at Palm Cove Resort."
+   },
+   {
+    "t": "Pay the $1,240 deposit by Zelle to secure it.",
+    "co": 1
+   },
+   {
+    "t": "Only 3 villas left at this price.",
+    "co": 2
+   },
+   {
+    "t": "luxe-escapes-club.net",
+    "co": 3
+   }
+  ],
+  "ly_do": [
+   "Zelle deposit, no protection",
+   "Only 3 left pressure",
+   "Unknown deal website"
+  ],
+  "nen_url": "https://images.pexels.com/photos/4049509/pexels-photo-4049509.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/photo-of-person-using-laptop-4049509/"
+ },
+ {
+  "slug": "real-booking-received-from-app",
+  "goi": "Hotel confirms the app booking",
+  "kenh": "SMS",
+  "gui": "Seaview Hotel",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Hi Lena, we have your booking from the app for 3 nights."
+   },
+   {
+    "t": "Payment is at check-in, as shown in your booking."
+   },
+   {
+    "t": "Questions? Reply here or message us in the app."
+   }
+  ],
+  "ly_do": [
+   "Confirms what the app shows",
+   "Payment at check-in",
+   "Keeps you in the app"
+  ],
+  "nen_url": "https://images.pexels.com/photos/29474410/pexels-photo-29474410.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/person-using-laptop-indoors-in-talgar-kazakhstan-29474410/"
+ },
+ {
+  "slug": "real-price-drop-rebook",
+  "goi": "Price drop notice in the app",
+  "kenh": "Email",
+  "gui": "Booking app notifications",
+  "tieu_de": "Price drop on your stay",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "The price for your stay at Hotel Lumo dropped by $22."
+   },
+   {
+    "t": "Your booking has free cancellation until Friday."
+   },
+   {
+    "t": "If you like, you can rebook at the new price in the app."
+   }
+  ],
+  "ly_do": [
+   "Optional, no pressure",
+   "Everything happens in the app",
+   "No card or code requested"
+  ],
+  "nen_url": "https://images.pexels.com/photos/18096282/pexels-photo-18096282.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/website-displayed-on-a-laptop-standing-on-a-wooden-table-18096282/"
+ },
+ {
+  "slug": "real-all-fees-included",
+  "goi": "Total with all fees, no surprises",
+  "kenh": "Email",
+  "gui": "Hotel Lumo",
+  "tieu_de": "Your total, before you arrive",
+  "ket": "real",
+  "dong": [
+   {
+    "t": "Your total of $412 includes all taxes and fees."
+   },
+   {
+    "t": "Nothing more is charged at check-in."
+   },
+   {
+    "t": "Tips for staff are optional and never added to your bill."
+   }
+  ],
+  "ly_do": [
+   "Total matches your booking",
+   "No new fees",
+   "Nothing to pay by link"
+  ],
+  "nen_url": "https://images.pexels.com/photos/4112363/pexels-photo-4112363.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
+  "nen_nguon": "https://www.pexels.com/photo/photo-of-person-using-black-laptop-4112363/"
  }
 ]

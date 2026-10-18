@@ -17,7 +17,7 @@ export function useDiemMurch(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'i
   return { sets, diemM, tbM: diemMurchCanh(canh, diemM) };
 }
 
-export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMurch | undefined; canh: number | undefined; tap: number; soShot: number; /** máy tự chấm clip (cham-may.ts) — ✓ / ◐ / ✗ ngay sau điểm */ may?: KqMay | null; /** chỗ đặt chip trong ô (mặc định góc phải trên) */ viTri?: { left?: number; right?: number; top?: number; bottom?: number } }) {
+export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMurch | undefined; canh: number | undefined; tap: number; soShot: number; /** máy tự chấm clip (cham-may.ts) — ✓ / ◐ / ✗ ngay sau điểm */ may?: KqMay | null; /** chỗ đặt chip trong ô (mặc định góc phải trên) */ viTri?: { left?: number; right?: number; top?: number; bottom?: number } | 'dong' }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [mo, setMo] = useState(false);
   const [ngan, setNgan] = useState(false);
@@ -56,7 +56,7 @@ export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMur
   return (<>
     <span ref={ref} className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} title=""
       onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMo(false); setNgan(true); }}
-      style={{ position: 'absolute', ...(vt ?? { right: 4, top: 4 }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700 }}>
+      style={{ ...(vt === 'dong' ? { position: 'relative' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700 }}>
       M {d.tong}{may && <span style={{ color: KY_MAY[may.ket].mau, marginLeft: 4 }}>🤖{KY_MAY[may.ket].ky}</span>}
     </span>
     {mo && (

@@ -616,8 +616,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                   background: anh ? `url(${anh}) left center / auto 100% repeat-x, #111` : 'var(--bg-2)', opacity: keo === cc.id ? 0.4 : 1 }}>
                 {(cc.dang_sinh_anh || cc.trang_thai === 'dang_sinh') && <div className="xv-dang"><span>⏳ {cc.dang_sinh_anh ? 'ảnh' : 'video'}</span></div>}
                 <span style={{ position: 'absolute', left: 3, top: 2, fontSize: 10, color: '#fff', textShadow: '0 1px 3px #000', whiteSpace: 'nowrap', zIndex: 2 }}>{coVid ? '▶ ' : ''}#{cc.thu_tu} · {dur(cc)}s</span>
-                <ChipMurch d={diemM[cc.id]} canh={tbM.canh[cc.phan_doan]} tap={tbM.tap} soShot={cc.thu_tu} viTri={{ left: 3, bottom: 2 }} may={mayClip(cc)} />
-                <ChipPrompt d={cc.diem_prompt} soShot={cc.thu_tu} viTri={{ right: 10, bottom: 2 }} />
+                {/* Hai chip điểm chung MỘT hàng (viTri 'dong'): đặt tuyệt đối trái / phải thì clip hẹp chip P đè lên M, bấm M trúng P. */}
+                <div style={{ position: 'absolute', left: 3, right: 10, bottom: 2, display: 'flex', gap: 3, overflow: 'hidden', zIndex: 2 }}>
+                  <ChipMurch d={diemM[cc.id]} canh={tbM.canh[cc.phan_doan]} tap={tbM.tap} soShot={cc.thu_tu} viTri="dong" may={mayClip(cc)} />
+                  <ChipPrompt d={cc.diem_prompt} soShot={cc.thu_tu} viTri="dong" />
+                </div>
                 <div onPointerDown={keoMep(cc)} title="Kéo để cắt / kéo dài giây phát" style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 7, cursor: 'ew-resize', background: 'rgba(255,255,255,.25)' }} />
               </div>
             );

@@ -8,7 +8,7 @@ import { mauDiem } from '@/lib/xuong-video/diem-murch';
 import type { DiemPrompt } from '@/lib/xuong-video/kieu';
 
 const CHAN = 20;
-export function ChipPrompt({ d, soShot, viTri: vt }: { d: DiemPrompt | null | undefined; soShot: number; viTri?: { left?: number; right?: number; top?: number; bottom?: number } }) {
+export function ChipPrompt({ d, soShot, viTri: vt }: { d: DiemPrompt | null | undefined; soShot: number; viTri?: { left?: number; right?: number; top?: number; bottom?: number } | 'dong' }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [mo, setMo] = useState(false);
   const [ngan, setNgan] = useState(false);
@@ -38,7 +38,7 @@ export function ChipPrompt({ d, soShot, viTri: vt }: { d: DiemPrompt | null | un
   return (<>
     <span ref={ref} className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} title=""
       onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMo(false); setNgan(true); }}
-      style={{ position: 'absolute', ...(vt ?? { right: 4, top: 4 }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700, zIndex: 2 }}>
+      style={{ ...(vt === 'dong' ? { position: 'relative' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700, zIndex: 2 }}>
       P {d.diem}{chan ? ' ⛔' : ''}
     </span>
     {mo && (

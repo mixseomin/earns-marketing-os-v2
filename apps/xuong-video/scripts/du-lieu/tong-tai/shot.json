@@ -902,14 +902,14 @@
  {
   "ma": "2.3b",
   "canh": "Tổng tài đuổi việc",
-  "phat_s": 3,
+  "phat_s": 5,
   "thoi_luong_s": 8,
   "duong_video": "veo",
   "ky_thuat": {
    "vai": "chi_tiet",
    "co_canh": "insert",
    "goc": "ngang",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "chuyen_chu_the",
    "ong_kinh": "macro",
    "anh_sang": "cua_so",
    "luat": [
@@ -920,21 +920,26 @@
    ]
   },
   "dan_dung": {
-   "dien": "Anticipation: Thần turns on his heel. Action: his left shirt cuff rides up for a beat, the {Chuỗi hạt ngọc} catching the window light. Reaction: the cuff slides back over it as he walks away.",
-   "huong": "Thần turns away screen-left.",
-   "bo_cuc": "Insert on Lục Thần’s left wrist as he turns away: the shirt cuff riding up, the {Chuỗi hạt ngọc} beside the steel watch",
+   "dien": "Anticipation: Thần turns on his heel. Action: his left shirt cuff rides up for a beat, the {Chuỗi hạt ngọc} catching the window light. Reaction: the cuff slides back over it as he walks away; the camera lets him go, drifts off his wrist and settles on Hạ in the background, eyes down on the {Điện thoại của Hạ} in her hand.",
+   "huong": "Thần turns away screen-left; Hạ looks down at the phone in her hand.",
+   "bo_cuc": "Insert on Lục Thần’s left wrist as he turns away: the shirt cuff riding up, the {Chuỗi hạt ngọc} beside the steel watch; Hạ soft in the background",
    "mo": "Thần’s cuff riding up over the {Chuỗi hạt ngọc}",
-   "ket": "the cuff sliding back over the bracelet",
+   "ket": "the camera has drifted off Thần and settled on Hạ, eyes down on the {Điện thoại của Hạ} in her hand",
    "muc_dich": "gài chuỗi hạt ngọc — trả ở cú cuối",
    "ma": "2.3b"
   },
-  "hanh_dong": "Thần quay đi, tay áo xô lên một nhịp lộ chuỗi hạt ngọc rồi phủ lại",
+  "hanh_dong": "Thần quay đi, tay áo xô lên một nhịp lộ chuỗi hạt ngọc rồi phủ lại; máy rời cổ tay anh, dừng trên Hạ đang cúi nhìn điện thoại",
   "thoai": [],
   "bieu_cam": [
    {
     "nv": "Lục Thần",
     "dau": "lanh_lung",
     "cuoi": "lanh_lung"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin"
    }
   ],
   "may_3d": {
@@ -954,6 +959,7 @@
     "Chuỗi hạt ngọc",
     "Lục Thần"
    ],
+   "chuyen_toi": "Lâm Hạ",
    "vi_tri": [
     {
      "ten": "Lục Thần",
@@ -985,7 +991,20 @@
       560,
       0
      ],
-     "huong": 180
+     "huong": 180,
+     "dien": [
+      "cam_dien_thoai"
+     ]
+    },
+    {
+     "ten": "Điện thoại của Hạ",
+     "tam": [
+      300,
+      548,
+      110
+     ],
+     "huong": 180,
+     "cam": "Lâm Hạ"
     },
     {
      "ten": "Vivian",
@@ -1012,8 +1031,10 @@
   },
   "nhan_vat": [
    "Lục Thần",
+   "Lâm Hạ",
    "Văn phòng mở tầng 38",
-   "Chuỗi hạt ngọc"
+   "Chuỗi hạt ngọc",
+   "Điện thoại của Hạ"
   ],
   "chu_man": "",
   "prompt_anh": "",
@@ -1151,7 +1172,7 @@
   "chu_man": "Quỹ Harrington của cô: họp HĐQT 3 giờ. — LS Trần",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 36.0
+  "bat_dau": 38.0
  },
  {
   "ma": "3.1",
@@ -1280,19 +1301,19 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 40.0
+  "bat_dau": 42.0
  },
  {
   "ma": "3.1b",
   "canh": "Thang máy",
-  "phat_s": 3,
+  "phat_s": 4,
   "thoi_luong_s": 8,
   "duong_video": "veo",
   "ky_thuat": {
    "vai": "hanh_dong",
    "co_canh": "ms",
    "goc": "ngang",
-   "chuyen_dong": "tinh",
+   "chuyen_dong": "chuyen_chu_the",
    "ong_kinh": "chuan",
    "anh_sang": "vien",
    "am_thanh": [
@@ -1305,7 +1326,7 @@
    "huong": "Thần walks toward camera, drifting screen-right; Hạ and Vivian stay facing each other.",
    "bo_cuc": "Medium shot: Lục Thần striding out of the {Thang máy 2} toward camera, Vivian at screen-left holding the {Thẻ nhân viên}, Hạ with the {Thùng đồ cá nhân} at the left edge",
    "mo": "Thần mid-stride out of the {Thang máy 2}",
-   "ket": "Thần walking out of frame screen-right",
+   "ket": "Thần has walked out of frame screen-right; the camera has drifted off him and settled on Hạ, gripping the {Thùng đồ cá nhân}",
    "muc_dich": "Thần tự tay hạ nhục Hạ — gài cho cú vả mặt",
    "ma": "3.1b"
   },
@@ -1354,6 +1375,7 @@
     "Lục Thần",
     "Lâm Hạ"
    ],
+   "chuyen_toi": "Lâm Hạ",
    "vi_tri": [
     {
      "ten": "Lục Thần",
@@ -1444,7 +1466,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 46.0
+  "bat_dau": 48.0
  },
  {
   "ma": "3.2",
@@ -1567,7 +1589,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 49.0
+  "bat_dau": 52.0
  },
  {
   "ma": "3.3",
@@ -1688,7 +1710,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 54.0
+  "bat_dau": 57.0
  },
  {
   "ma": "3.4",
@@ -1813,7 +1835,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 60.0
+  "bat_dau": 63.0
  },
  {
   "ma": "4.1",
@@ -1918,7 +1940,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 65.0
+  "bat_dau": 68.0
  },
  {
   "ma": "4.2",
@@ -2038,7 +2060,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 70.0
+  "bat_dau": 73.0
  },
  {
   "ma": "4.3",
@@ -2125,7 +2147,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 75.0
+  "bat_dau": 78.0
  },
  {
   "ma": "4.4",
@@ -2212,7 +2234,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 79.0
+  "bat_dau": 82.0
  },
  {
   "ma": "4.5",
@@ -2303,7 +2325,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 82.0
+  "bat_dau": 85.0
  },
  {
   "ma": "4.6",
@@ -2399,7 +2421,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 87.0
+  "bat_dau": 90.0
  },
  {
   "ma": "5.1",
@@ -2492,7 +2514,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 90.0
+  "bat_dau": 93.0
  },
  {
   "ma": "5.2",
@@ -2504,7 +2526,7 @@
    "vai": "tong_the",
    "co_canh": "two",
    "goc": "ngang",
-   "chuyen_dong": "dolly_zoom",
+   "chuyen_dong": "cung",
    "ong_kinh": "chuan",
    "anh_sang": "tuong_phan",
    "chuyen_canh": "mo_cheo",
@@ -2593,7 +2615,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 94.0
+  "bat_dau": 97.0
  },
  {
   "ma": "5.3",
@@ -2682,7 +2704,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 100.0
+  "bat_dau": 103.0
  },
  {
   "ma": "5.4",
@@ -2779,6 +2801,6 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 103.0
+  "bat_dau": 106.0
  }
 ]

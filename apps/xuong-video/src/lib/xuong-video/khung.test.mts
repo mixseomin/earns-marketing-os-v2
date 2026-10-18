@@ -56,3 +56,11 @@ console.log('khung.test: laQc bắt buộc ok');
   assert.equal(chatLieuPhim({ phong_cach: 'warm light, cozy', chat_lieu: 'nguoi_that' }), 'nguoi_that', 'khai tay thắng');
   console.log('khung.test: chất liệu ok');
 }
+// CÚ MÁY LIỀN MẠCH (luật khong_cat_giua_may): chuyển chủ thể / cung thiếu keyframe KẾT → chặn video; có rồi thì qua; cú thường không xét
+{
+  const cm = (cd: string, ket?: string) => ({ ...shot, ky_thuat: { chuyen_dong: cd }, ...(ket ? { keyframe_ket: ket } : {}) }) as unknown as Parameters<typeof chanVideo>[0];
+  assert.ok(chanVideo(cm('chuyen_chu_the'), [], true, { ds: [] }).some((x) => x.includes('keyframe KẾT')));
+  assert.ok(chanVideo(cm('cung'), [], true, { ds: [] }).some((x) => x.includes('Đi cung')));
+  assert.deepEqual(chanVideo(cm('chuyen_chu_the', 'k'), [], true, { ds: [] }), []);
+  assert.deepEqual(chanVideo(cm('day_vao'), [], true, { ds: [] }), []);
+}

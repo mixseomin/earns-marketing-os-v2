@@ -10,9 +10,17 @@
 export type NganhKyThuat = { ten_nganh: string; dau_cuoi: string; thuc_hien: string; dong_co: string; cam_xuc: string; tranh: string; nguon: string };
 /** Phần SỐ của chuyển động máy cho bản 3D (máy lúc kết so với lúc mở): kieu = máy đi thế nào; ti_le = cỡ chủ thể trong khung lúc kết / lúc mở
  *  (đẩy vào 1,6 = chủ thể to thêm 60%); goc = số độ máy quay (lia / nghiêng) hoặc đi vòng quanh chủ thể; toc = nhịp của chuyển động. */
-export type MayDi = { kieu: 'dung' | 'tien' | 'lui' | 'ngang' | 'len' | 'xuong' | 'lia' | 'nghieng' | 'vong' | 'zoom' | 'theo' | 'tu_do'; ti_le?: number; goc?: number; toc: 'cham' | 'vua' | 'nhanh' };
+/** kieu 'chuyen' = chuyển chủ thể: máy rời chủ thể mở (nham), đầu máy quay tới DỪNG trên chủ thể kết (may_3d.chuyen_toi) — duong-may.ts */
+export type MayDi = { kieu: 'dung' | 'tien' | 'lui' | 'ngang' | 'len' | 'xuong' | 'lia' | 'nghieng' | 'vong' | 'zoom' | 'theo' | 'chuyen' | 'tu_do'; ti_le?: number; goc?: number; toc: 'cham' | 'vua' | 'nhanh' };
 
 import { NGANH_THEM } from './dien-anh-them';
+
+/** CÚ MÁY LIỀN MẠCH CẦN KHUNG KẾT (luật khong_cat_giua_may): khung cuối khác hẳn khung mở (dừng trên người khác / phía bên kia) — bản 3D dựng thêm khung
+ *  màu chỗ kết (bo-set-3d.ts › chay.ket → dung-set.py), video phải nhận ảnh đầu + ảnh cuối (keyframe_ket), không thì model tự bịa chỗ dừng.
+ *  MỘT nguồn cho bản 3D, cổng video (quy-trinh.ts › chanVideo) và chấm điểm cắt (dan-dat.ts). */
+export const CU_MAY_KHUNG_KET: readonly string[] = ['chuyen_chu_the', 'cung'];
+/** Cú máy liền mạch — hai shot liền nhau cùng cú này = một cú máy bị cắt đôi (dan-dat.ts › cat_giua_may). */
+export const CU_MAY_LIEN: readonly string[] = [...CU_MAY_KHUNG_KET, 'mot_cu_may'];
 
 const M = 'Mascelli — The Five C\'s of Cinematography; Bowen — Grammar of the Shot; Mercado — The Filmmaker\'s Eye';
 const H = 'Ed Hooks — Acting for Animators; Thomas & Johnston — The Illusion of Life';

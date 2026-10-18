@@ -1596,6 +1596,7 @@ if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cả
 kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
+    dat_khai = list(sh['may']['dat'])   # máy KHAI (trước kẹp / bộ giải) — đường máy chay tính từ chỗ này, máy dời bao nhiêu thì chỗ kết dời theo bấy nhiêu
     nv, nv_het = nhan_vat(sh)
     _k = trong_phong(sh['may']['dat'])   # máy khai / tự đặt ra ngoài phòng (trên trần, ngoài sàn) → kẹp vào trong, ghi lại như máy đã giải
     if [round(a, 1) for a in _k] != [round(a, 1) for a in sh['may']['dat']]: sh['may']['dat'] = _k; giai[sh['ma']] = {'dat': _k, 'nhin': sh['may']['nhin']}
@@ -1638,15 +1639,24 @@ for sh in ([] if CHI_MB else shots):
         return out
     tu = chieu(nv)
     for o in nv_het: bpy.data.objects.remove(o, do_unlink=True)
-    if any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', [])):
+    # CÚ MÁY LIỀN MẠCH cần khung kết (duong-may.ts › chay.ket — chuyển chủ thể / cung): khung cuối khác hẳn khung mở dù không ai đi → máy đặt ở chỗ KẾT
+    # của đường máy rồi render khung màu kết (keyframe kết), khung giữa đặt máy ở nửa đường. Xong trả máy về chỗ mở.
+    chay_ = sh['may'].get('chay') if (sh['may'].get('chay') or {}).get('ket') else None
+    def may_tai(t):
+        if not chay_: return
+        d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin'])
+        dat_may(cam, list(d0.lerp(d1, t)), list(n0.lerp(n1, t))); cam.data.lens = sh['may']['ong_kinh'] + (chay_['ong_kinh'] - sh['may']['ong_kinh']) * t
+    if chay_ or any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', [])):
         nk, nk_het = nhan_vat(sh, ket=True)
+        may_tai(1.0)
         den_ = chieu(nk)
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
         if MESH_THAT:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
-            ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
+            may_tai(0.5); ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
             for o in ng_het: bpy.data.objects.remove(o, do_unlink=True)
+        may_tai(0.0)
     else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]
 
 dat_tuy_chon({t for sh in shots for t in (sh.get('them') or [])})   # mặt bằng: đồ tuỳ chọn hiện khi có shot dùng nó

@@ -49,5 +49,10 @@ assert.ok(chanDanDat(3, cg, kd).some((x) => x.includes('thiếu bước bắt bu
 assert.deepStrictEqual(chanDanDat(3, cg, { phan_canh: pcs, khuon_chuoi: [{ khuon: 'va_mat', shots: { 1: 0, 2: 1, 3: 2 } }] }).filter((x) => x.startsWith('khuôn')).length, 2, 'sai vai (#3 phan_ung ở bước Lộ thân phận) + thiếu Đòn quyết định');
 // mọi mã trừ trỏ vào luật dựng CÓ THẬT (timeline bấm mở luật)
 { const { LUAT_DUNG_CANH } = await import('./luat-dung'); const { luatCuaTru } = await import('./dan-dat');
-  for (const ma of ['nhay_hinh', 'nhin_khong_dap', 'vao_khong_dinh_vi', 'ra_giua_chung', 'nhay_thoi_gian', 'don_nhip', 'khong_phan_ung']) assert.ok(LUAT_DUNG_CANH.some((l) => l.key === luatCuaTru(ma)), `mã ${ma} không trỏ vào luật có thật`); }
+  for (const ma of ['nhay_hinh', 'nhin_khong_dap', 'vao_khong_dinh_vi', 'ra_giua_chung', 'nhay_thoi_gian', 'don_nhip', 'khong_phan_ung', 'cat_giua_may']) assert.ok(LUAT_DUNG_CANH.some((l) => l.key === luatCuaTru(ma)), `mã ${ma} không trỏ vào luật có thật`); }
+// CẮT GIỮA CÚ MÁY (khong_cat_giua_may): hai shot liền cùng cú chuyển chủ thể → trừ; cú thường (đẩy vào) lặp không tính; sang cảnh không tính
+const kt = (x: ReturnType<typeof sh>, cd: string) => ({ ...x, ky_thuat: { ...x.ky_thuat, chuyen_dong: cd } });
+assert.ok(chamCat(kt(sh(1, 'A', 'hanh_dong', 'ms'), 'chuyen_chu_the'), kt(sh(2, 'A', 'phan_ung', 'cu'), 'chuyen_chu_the'), pc).tru.some((t) => t.ma === 'cat_giua_may' && t.tru === 10));
+assert.ok(!chamCat(kt(sh(1, 'A', 'hanh_dong', 'ms'), 'day_vao'), kt(sh(2, 'A', 'phan_ung', 'cu'), 'day_vao'), pc).tru.some((t) => t.ma === 'cat_giua_may'));
+assert.ok(!chamCat(kt(sh(1, 'A', 'hanh_dong', 'ms'), 'chuyen_chu_the'), kt(sh(2, 'A', 'phan_ung', 'cu'), 'tinh'), pc).tru.some((t) => t.ma === 'cat_giua_may'), 'cắt SAU khi máy dừng là đúng');
 console.log('✓ dan-dat');

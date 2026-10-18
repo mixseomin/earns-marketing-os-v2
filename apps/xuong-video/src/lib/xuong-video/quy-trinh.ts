@@ -8,7 +8,8 @@ import { lintPrompt } from './tu-sua-clip-do';
 import { chanKhung } from './khung';
 import { maAnimatic, conTapSau } from './ho-so';
 import { thanhPhanCanh, cauVideo, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
-import type { Beat } from './dien-anh';
+import { kyThuat, type Beat } from './dien-anh';
+import { CU_MAY_KHUNG_KET } from './dien-anh-nganh';
 import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
@@ -155,6 +156,9 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   // Máy kiểm khung (khung.ts): keyframe chưa kiểm / lệch bố trí, trục, nhân vật → không cho tiêu tiền video lên một khung sai.
   // Quảng cáo KHÔNG xét (anh 15/10/2026: "gỡ cổng kiểm khung cho QC") — luật bố trí set / trục 180° là của phim truyện; QC duyệt keyframe bằng mắt.
   if (c.keyframe_url && !laQc) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null, soi_mat: c.soi_mat ?? null }); if (k) out.push(k); }
+  // CÚ MÁY LIỀN MẠCH (luật khong_cat_giua_may): chuyển chủ thể / cung kết ở khung khác hẳn khung mở → phải có keyframe KẾT làm ảnh cuối, không thì model tự bịa chỗ dừng.
+  const cm = c.ky_thuat?.chuyen_dong;
+  if (c.keyframe_url && cm && CU_MAY_KHUNG_KET.includes(cm) && !c.keyframe_ket) out.push(`cú máy "${kyThuat(cm, 'chuyen_dong')?.ten ?? cm}" kết ở khung khác khung mở — cần keyframe KẾT (dựng lại khung 3D để có khung màu chỗ kết, rồi sinh keyframe kết) trước khi sinh video`);
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
   // Quảng cáo: cử chỉ phải dồn vào sản phẩm + máy không đẩy cắt mất sản phẩm mặc trên người (san-pham-shot.ts) — chặn trước khi tiêu tiền clip.

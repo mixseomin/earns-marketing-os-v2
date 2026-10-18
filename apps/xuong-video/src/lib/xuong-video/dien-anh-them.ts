@@ -134,7 +134,7 @@ export const THU_VIEN_THEM_MAY: KyThuat[] = [
 ];
 
 export const NGANH_THEM: Record<string, { nganh: NganhKyThuat; may_di?: MayDi }> = {
-  'chuyen_dong.chuyen_chu_the': { may_di: { kieu: 'lia', goc: 70, toc: 'vua' }, nganh: n('Hand-off / motivated pan between subjects (relay shot)',
+  'chuyen_dong.chuyen_chu_the': { may_di: { kieu: 'chuyen', toc: 'vua' }, nganh: n('Hand-off / motivated pan between subjects (relay shot)',
     'Khung mở: A chiếm khung (xe chạy, người đi) → máy theo A → A ra khỏi khung hoặc máy rời A → khung kết dừng trên B (đã đứng sẵn, thường ở rìa khung mở).',
     'Một cú máy liền: lia / trượt theo chuyển động của A làm ĐỘNG CƠ, rồi tiếp tục trôi đúng tốc độ đó sang B và dừng mềm. B phải có mặt trong không gian từ trước (không xuất hiện đột ngột); dừng trên B đủ lâu để khán giả đọc được B đang làm gì.',
     'Lộ một người / một thông tin như tình cờ: kẻ theo dõi đứng chờ, người thứ ba chứng kiến; chuyển điểm nhìn từ nhân vật này sang nhân vật kia mà không cắt; dẫn khán giả theo luồng thông tin (lộ âm mưu).',

@@ -2,10 +2,10 @@
 // máy lúc KẾT tính từ mã chuyển động của shot (ky_thuat.chuyen_dong) theo SỐ NGHỀ đã có ở dien-anh-nganh.ts › may_di (đẩy vào: chủ thể ×1,6 ·
 // lùi ra ×0,5 · lia 30° · quay vòng 60° · zoom gắt ×2,5…) — một nguồn số cho cả thư viện kỹ thuật lẫn bản diễn Blender. Toạ độ dữ liệu: cm,
 // x phải, y sâu vào bàn, z lên. Blender (dung-set.py › dien_shot) nội suy mở → kết theo `toc`, cộng rung tay khi `rung`.
-import { NGANH, type MayDi } from './dien-anh-nganh';
+import { NGANH, CU_MAY_KHUNG_KET, type MayDi } from './dien-anh-nganh';
 import type { May3d, VatSet } from './kieu';
 
-export type DuongMay = { kieu: MayDi['kieu']; dat: number[]; nhin: number[]; ong_kinh: number; toc: MayDi['toc']; rung?: boolean; /** vật che chủ thể lúc kết dù đã cẩu máy — phải đặt lại máy shot */ che?: string };
+export type DuongMay = { kieu: MayDi['kieu']; dat: number[]; nhin: number[]; ong_kinh: number; toc: MayDi['toc']; rung?: boolean; /** cú máy liền mạch cần khung màu chỗ kết (CU_MAY_KHUNG_KET) — dung-set.py dựng thêm khung kết */ ket?: boolean; /** vật che chủ thể lúc kết dù đã cẩu máy — phải đặt lại máy shot */ che?: string };
 
 type V3 = [number, number, number];
 const v = (p: number[]): V3 => [p[0] ?? 0, p[1] ?? 0, p[2] ?? 0];
@@ -38,7 +38,7 @@ export function hopVat(vat: VatSet[], them: string[] = []): Hop[] {
 const trong = (p: V3, hs: Hop[], le = 0.3) => hs.find((b) => [0, 1, 2].every((i) => p[i]! > b.min[i]! - le && p[i]! < b.max[i]! + le));
 
 /** Máy lúc kết của shot; null = máy đứng yên (không có mã, mã tĩnh, hoặc kiểu bay tự do chưa dựng được — FPV / hyperlapse). */
-export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' | 'khung' | 'nham'>, chuyenDong: string | undefined | null, can: Hop[] = [], cao: (ten: string) => number = () => 2): DuongMay | null {
+export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' | 'khung' | 'nham' | 'chuyen_toi'>, chuyenDong: string | undefined | null, can: Hop[] = [], cao: (ten: string) => number = () => 2): DuongMay | null {
   const md = chuyenDong ? NGANH[`chuyen_dong.${chuyenDong}`]?.may_di : undefined;
   if (!md) return null;
   const rung = chuyenDong === 'cam_tay';
@@ -53,6 +53,9 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
   const ngangDi = di[0] * phai[0] + di[1] * phai[1];
   const chieu = ngangDi < 0 ? -1 : 1;   // lia / trượt / vòng về phía chủ thể đi; đứng yên thì sang phải
   let datK = dat, nhinK = nhin, ok = m.ong_kinh; let cheBoi = '';
+  // Chủ thể KẾT của cú chuyển chủ thể: khai `chuyen_toi`, không thì người / vật thứ hai của khung (không ẩn, khác chủ thể mở).
+  const ctKet = md.kieu === 'chuyen' ? m.vi_tri.find((x) => x.ten === m.chuyen_toi) ?? m.vi_tri.find((x) => !x.an && x.ten !== ten && (!m.khung || m.khung.includes(x.ten))) : undefined;
+  const dichCt = ctKet ?? ct;
   switch (md.kieu) {
     case 'tien': case 'lui': datK = cong(nhin, nhan(D, 1 / (md.ti_le ?? (md.kieu === 'tien' ? 1.6 : 0.5)))); break;   // chủ thể ×ti_le ⇔ khoảng cách ÷ti_le
     case 'len': case 'xuong': { const k = 1 / (md.ti_le ?? 1); datK = cong(dat, [0, 0, kc * (k - 1)]); break; }   // cẩu: nâng (ti_le < 1) / hạ (> 1) máy, giữ điểm nhìn
@@ -79,6 +82,11 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
       const dv = dai(di) > 0.3 ? di : nhan(phai, 0.2 * kc); datK = cong(dat, dv); nhinK = cong(nhin, dv); break;
     }
     case 'theo': datK = cong(dat, di); nhinK = cong(nhin, di); break;   // bám theo: máy dời đúng quãng chủ thể đi
+    case 'chuyen': {   // CHUYỂN CHỦ THỂ (relay shot, kiểu HBO): máy đứng, đầu máy rời A rồi DỪNG trên B — nhắm 85 % chiều cao B (mặt người / thân vật) ở chỗ B đứng lúc kết
+      if (!ctKet) { nhinK = cong(dat, xoayZ(tru(nhin, dat), -chieu * 70)); break; }   // không có B → lia 70° như cũ
+      const p = v(ctKet.den ?? ctKet.tam); nhinK = [p[0], p[1], p[2] + cao(ctKet.ten) * 0.85];
+      break;
+    }
   }
   nhinK = [nhinK[0], nhinK[1], Math.max(nhinK[2], 0)];   // điểm nhìn không dưới mặt bàn
   // Máy không chui xuống dưới mặt bàn (z = 0): chủ thể trượt dốc xuống thì máy bám theo dừng ở 0,3 cm (hoặc chỗ thấp ban đầu nếu đã thấp hơn) — #28.
@@ -91,13 +99,13 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
   }
   // ĐƯỜNG NHÌN bị che lúc kết (#28: máy đứng lại sau chân iMac → nửa sau clip chỉ thấy chân máy vàng): cẩu máy lên từng nấc tới khi nhìn thấy chủ thể
   // (người quay boom lên vượt vật chắn), đường máy vẫn phải thông.
-  if (can.length && ct) {
-    const dich = v(ct.den ?? ct.tam); const thay = (d: V3) => Array.from({ length: 21 }, (_, i) => (i + 1) / 22).every((t) => !trong(cong(d, nhan(tru(dich, d), t)), can, 0.1));
+  if (can.length && dichCt) {
+    const dich = v(dichCt.den ?? dichCt.tam); const thay = (d: V3) => Array.from({ length: 21 }, (_, i) => (i + 1) / 22).every((t) => !trong(cong(d, nhan(tru(dich, d), t)), can, 0.1));
     if (!thay(datK)) {
       let ok = false;
       for (const len of [1, 2, 4, 6, 9, 13, 18, 25]) { const d: V3 = [datK[0], datK[1], datK[2] + len]; if (thay(d) && !trong(d, can)) { datK = d; ok = true; break; } }
       if (!ok) cheBoi = Array.from({ length: 21 }, (_, i) => (i + 1) / 22).map((t) => trong(cong(datK, nhan(tru(dich, datK), t)), can, 0.1)?.ten).find(Boolean) ?? '?';
     }
   }
-  return { kieu: md.kieu, dat: tron(datK), nhin: tron(nhinK), ong_kinh: Math.round(ok * 10) / 10, toc: md.toc, ...(rung ? { rung } : {}), ...(cheBoi ? { che: cheBoi } : {}) };
+  return { kieu: md.kieu, dat: tron(datK), nhin: tron(nhinK), ong_kinh: Math.round(ok * 10) / 10, toc: md.toc, ...(rung ? { rung } : {}), ...(CU_MAY_KHUNG_KET.includes(chuyenDong!) ? { ket: true } : {}), ...(cheBoi ? { che: cheBoi } : {}) };
 }

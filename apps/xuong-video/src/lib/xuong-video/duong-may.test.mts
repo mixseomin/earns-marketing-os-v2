@@ -36,4 +36,11 @@ const tuong = hopVat([{ ten: 'Tường', hinh: 'hop', tam: [10, -9, 0], co: [60,
 assert.equal(duongMay({ ...m, dat: [0, -20, 1], vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], den: [20, 0, 0] }] }, 'truot_ngang', tuong)!.che, 'Tường', 'che hẳn → gắn cờ');
 const ph3 = duongMay({ ...m2, vi_tri: [m2.vi_tri[0]!, { ten: 'Lint', tam: [5, 3, 0], dien: ['phong3@0.05-0.3'] }] }, 'zoom_gat', [], () => 2)!;
 assert.ok(ph3.nhin[2]! >= 3 && ph3.ong_kinh < 100, 'phồng ×3: nhắm giữa thân phồng, zoom chừa chỗ');
+// CHUYỂN CHỦ THỂ: máy đứng, đầu máy rời A dừng trên B (khai chuyen_toi, không thì người thứ hai của khung) ở 85 % chiều cao B; cờ ket cho bản 3D
+const ho = { dat: [0, -300, 150], nhin: [0, 0, 140], ong_kinh: 35, khung: ['Thần', 'Hạ'], vi_tri: [{ ten: 'Thần', tam: [0, 0, 0], den: [-100, 50, 0] }, { ten: 'Hạ', tam: [200, 100, 0] }] };
+const cc = duongMay(ho, 'chuyen_chu_the', [], () => 165)!;
+assert.deepEqual(cc.dat, ho.dat, 'máy đứng'); assert.deepEqual(cc.nhin, [200, 100, 140.25], 'dừng trên Hạ ở tầm mặt'); assert.equal(cc.ket, true);
+assert.deepEqual(duongMay({ ...ho, chuyen_toi: 'Thần' }, 'chuyen_chu_the', [], () => 165)!.nhin, [-100, 50, 140.25], 'chuyen_toi khai tay thắng');
+assert.ok(!duongMay(ho, 'day_vao')!.ket, 'cú thường không cần khung kết');
+assert.equal(duongMay(ho, 'cung')!.ket, true);
 console.log('duong-may: mọi bài tự kiểm qua');

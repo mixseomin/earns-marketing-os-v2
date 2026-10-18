@@ -5,12 +5,13 @@
 import type { KyThuatShot } from './dien-anh';
 import { kiemKhuon, type ApKhuon, type KetAp } from './khuon-chuoi';
 import type { TheLoai } from './dien-anh';
+import { CU_MAY_LIEN } from './dien-anh-nganh';
 
 export type ShotDanDat = { id: number; thu_tu: number; phan_doan: string; hanh_dong?: string; canh?: string; nhan_vat?: number[]; ky_thuat?: KyThuatShot | null };
 export type CanhDanDat = { ten: string; noi?: string; luc?: string; ngay?: string };
 /** luat = luật dựng cảnh (luat-dung.ts) mà khoản trừ này vi phạm — timeline bấm mở đúng luật trong thư viện. */
 export type KhoanTru = { ma: string; tru: number; chu: string; luat?: string };
-const LUAT_CUA: Record<string, string> = { nhay_hinh: 'luat_30', nhin_khong_dap: 'nhan_qua_huong_nhin', vao_khong_dinh_vi: 'dan_khong_gian', ra_giua_chung: 'khoang_lang', nhay_thoi_gian: 'dan_thoi_gian', don_nhip: 'nhip_doc', khong_phan_ung: 'giu_phan_ung' };
+const LUAT_CUA: Record<string, string> = { nhay_hinh: 'luat_30', nhin_khong_dap: 'nhan_qua_huong_nhin', vao_khong_dinh_vi: 'dan_khong_gian', ra_giua_chung: 'khoang_lang', nhay_thoi_gian: 'dan_thoi_gian', don_nhip: 'nhip_doc', khong_phan_ung: 'giu_phan_ung', cat_giua_may: 'khong_cat_giua_may' };
 export const luatCuaTru = (ma: string) => LUAT_CUA[ma];
 /** Một điểm cắt giữa shot `truoc` và `sau`. sangCanh = điểm nối hai phân cảnh. */
 export type DiemCat = { truoc: number; sau: number; sangCanh: boolean; diem: number; tru: KhoanTru[] };
@@ -41,6 +42,9 @@ export function chamCat(a: ShotDanDat, b: ShotDanDat, pc: Map<string, CanhDanDat
       tru.push({ ma: 'nhay_hinh', tru: 25, chu: 'hai shot cùng cỡ, cùng góc, cùng người — cắt thành nhảy hình (luật 30°: đổi cỡ ≥ 2 bậc hoặc góc ≥ 30°)' });
     if (NHIN.test(chu(a)) && ['phan_ung', 'chu_quan'].includes(ka.vai ?? '') && cungNguoi(a, b) && kb.vai === 'phan_ung')
       tru.push({ ma: 'nhin_khong_dap', tru: 10, chu: 'shot trước có người NHÌN, shot sau vẫn ở trên mặt họ — chưa cho khán giả thấy thứ được nhìn (khớp hướng nhìn)' });
+    // Hai shot liền nhau cùng MỘT cú máy liền mạch (chuyển chủ thể / cung / một cú máy) = một cú máy bị cắt đôi — gộp lại, mở trên A kết trên B.
+    if (ka.chuyen_dong && ka.chuyen_dong === kb.chuyen_dong && CU_MAY_LIEN.includes(ka.chuyen_dong))
+      tru.push({ ma: 'cat_giua_may', tru: 10, chu: `hai shot liền cùng cú máy "${ka.chuyen_dong}" — một cú máy liền mạch đang bị cắt làm đôi; gộp thành một shot (mở trên chủ thể đầu, kết trên chủ thể sau)` });
   } else {
     const p1 = pc.get(a.phan_doan), p2 = pc.get(b.phan_doan);
     const cau = CAU_NOI.includes(ka.chuyen_canh ?? '');

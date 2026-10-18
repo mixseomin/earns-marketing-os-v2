@@ -24,6 +24,11 @@ const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensi
 // Mỗi url tối đa TRAN_LUOT lượt chấm chưa DUYỆT; hết lượt thì hàng chờ từ chối nộp, chờ anh `--mo-khoa <url>`.
 export const TRAN_LUOT = 3;
 const PHU_TRACH = { 'ratesbyroom.com': 'long', 'staymarlow.com': 'long', 'ratesbycar.com': 'long', 'hotelrateguide.com': 'long', 'trafficbuyersguide.com': 'long' };   // host (cả subdomain) → người phụ trách
+// Người nộp TỰ SỬA bài của mình (phiên Claude nộp bằng --tu claude): chưa DUYỆT thì KHÔNG giao người phụ trách site. 18/10/2026: phiên Claude nộp
+// /check-message/, bị SỬA LẠI → hệ giao luôn Long → hai bên cùng sửa một tệp, Long commit đè làm bản đã DUYỆT của phiên không đưa lên được,
+// tốn thêm một lượt Claude Code ~$0,86.
+export const TU_SUA = new Set(['claude']);
+export const nguoiSua = (url, tu) => (TU_SUA.has(String(tu ?? '').toLowerCase()) ? null : phuTrach(url));
 export const phuTrach = (url) => { const h = (() => { try { return new URL(url).hostname; } catch { return ''; } })(); const k = Object.keys(PHU_TRACH).find((d) => h === d || h.endsWith(`.${d}`)); return k ? PHU_TRACH[k] : null; };
 const TRA = () => path.join(VP(), 'tra-ve');
 // Tên người trong tin: "Long [Xưởng Aff]" (anh 17/10/2026) — tên + phòng (bỏ chữ "Phòng " đầu). Nhận id hoặc tên; không khớp ai thì giữ nguyên.
@@ -269,14 +274,14 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
       fs.mkdirSync(DANG(), { recursive: true }); fs.writeFileSync(path.join(DANG(), `${b.id}.json`), JSON.stringify({ id: b.id, url: b.url, tu: b.tu, ban: b.ban, tin: j.ok ? j.result.message_id : null, luc: new Date().toISOString() }, null, 1));
       await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', reply_parameters: j.ok ? { message_id: j.result.message_id } : undefined, text: `✅ Duyệt bản ${esc(b.ban.slice(0, 8))} — máy đưa lên trang ở lượt kế (≤ 5 phút)` });
     }
-    const pt = phuTrach(b.url), luot = soLuot(b.url);
+    const pt = nguoiSua(b.url, b.tu), luot = soLuot(b.url);
     if (ket !== 'DUYET') {
       const het = luot >= TRAN_LUOT, tenPt = pt ? tenNguoi(pt) : null;
       if (!het && pt) traVe({ id: b.id, url: b.url, phu_trach: pt, luot, ket, kq, tin: j.ok ? j.result.message_id : null });
       await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: j.ok ? { message_id: j.result.message_id } : undefined, parse_mode: 'HTML',
         ...(het ? { reply_markup: nutQuyet(b.id) } : {}),
         text: het ? `⛔ <b>Hết ${TRAN_LUOT}/${TRAN_LUOT} lượt</b> mà ${esc(b.url)} chưa DUYỆT — anh quyết bằng nút dưới đây.`
-          : pt ? `↩️ Giao <b>${esc(tenPt)}</b> sửa theo nhận xét trên rồi nộp lại · lượt ${luot}/${TRAN_LUOT}` : `↩️ ${esc(b.url)} chưa có người phụ trách (PHU_TRACH trong kiem-bai.mjs) · lượt ${luot}/${TRAN_LUOT}` });
+          : pt ? `↩️ Giao <b>${esc(tenPt)}</b> sửa theo nhận xét trên rồi nộp lại · lượt ${luot}/${TRAN_LUOT}` : TU_SUA.has(String(b.tu ?? '').toLowerCase()) ? `↩️ ${esc(b.tu)} tự sửa theo nhận xét rồi nộp lại · lượt ${luot}/${TRAN_LUOT}` : `↩️ ${esc(b.url)} chưa có người phụ trách (PHU_TRACH trong kiem-bai.mjs) · lượt ${luot}/${TRAN_LUOT}` });
     }
     fs.unlinkSync(path.join(CHO(), f));
     ra.push(`${b.url || 'nháp'} → ${ket}`);
@@ -290,6 +295,9 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
   if (a.includes('--tu-kiem')) {
     const { strict: t } = await import('node:assert');
     const nham = '<html><body><main><div class="prose"><h1>X</h1><p>We delve into it — fast.</p><h2>Questions people ask</h2></div></main></body></html>';
+    t.equal(nguoiSua('https://ratesbyroom.com/x/', 'claude'), null, 'phiên Claude tự nộp thì tự sửa, không giao Long');
+    t.equal(nguoiSua('https://ratesbyroom.com/x/', 'Anh'), 'long', 'anh / người khác nộp → giao người phụ trách');
+    t.equal(nguoiSua('https://ratesbyroom.com/x/', 'Long'), 'long');
     const d = mayDo(nham); t.equal(d.gach_dai, 1); t.deepEqual(d.tu_may, ['delve']); t.ok(d.co_faq && !d.co_neu_da_lo && d.chan_cung.length === 5, 'gạch dài + từ máy + không hình + không ảnh + không video');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, d), 'SUA_LAI', 'chặn cứng kéo DUYỆT xuống SỬA LẠI');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo('<main><div class="prose"><p>Plain words.</p></div></main>')), 'SUA_LAI', 'tường chữ không hình không được DUYỆT');

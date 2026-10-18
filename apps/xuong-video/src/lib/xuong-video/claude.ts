@@ -34,6 +34,7 @@ const KyThuatSchema = z.object({
   dien_xuat: enumNhom('dien_xuat').describe(`NHỊP DIỄN cảm xúc chính của shot (mắt rưng rưng, nhìn lại hai lần, nhận ra…) — rỗng nếu shot không có nhịp diễn cảm xúc. Một key trong: ${THU_VIEN.filter((x) => x.nhom === 'dien_xuat').map((x) => x.key).join(', ')}`),
   anh_sang: enumNhom('anh_sang'), mau: enumNhom('mau'), chuyen_canh: enumNhom('chuyen_canh'),
   am_thanh: z.array(enumNhom('am_thanh')).describe('1-2 lớp âm thanh hiện trường của shot'), nhac: enumNhom('nhac'),
+  hook: enumNhom('hook').describe(`MÓC CÂU — CHỈ 1–2 shot MỞ tập (người xem quyết ở lại trong 1–3 giây); shot khác để rỗng. Một key trong: ${THU_VIEN.filter((x) => x.nhom === 'hook').map((x) => `${x.key} (${x.ten})`).join(', ')}`),
 });
 const DongThoaiSchema = z.object({
   nhan_vat: z.string().describe('Tên CHÍNH XÁC nhân vật nói (từ danh sách anchor); rỗng nếu là lời dẫn'),

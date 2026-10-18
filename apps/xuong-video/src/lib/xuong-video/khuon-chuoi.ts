@@ -8,7 +8,8 @@ import type { TheLoai, KyThuatShot } from './dien-anh';
 
 /** vai = các vai kể (dien-anh.ts › nhóm 'vai') chấp nhận cho bước · luat = luật dựng nên có · lap = được nhiều shot liền · tuy = bước tuỳ chọn ·
  *  nen = không bắt buộc nhưng thiếu thì cảnh báo (cái "sướng" của khuôn nằm ở đó). */
-export type BuocKhuon = { ten: string; vai: string[]; luat?: string[]; lap?: boolean; tuy?: boolean; nen?: boolean; ghi: string };
+/** may = chuyển động máy gợi ý cho bước (dien-anh.ts › nhóm chuyen_dong) — vd "Lộ kẻ đứng sau" = chuyển chủ thể (cú máy HBO A → B). */
+export type BuocKhuon = { ten: string; vai: string[]; luat?: string[]; may?: string[]; lap?: boolean; tuy?: boolean; nen?: boolean; ghi: string };
 export type NguonKhuon = { phim: string; ghi: string };
 export type KhuonChuoi = { key: string; ten: string; muc_dich: string; the_loai: TheLoai[] | 'tat_ca'; buoc: BuocKhuon[]; ket?: string; nguon: NguonKhuon[] };
 /** Một lần áp khuôn trong tập: shot (id xv_canh) → chỉ số bước, hoặc MẢNG bước khi một shot gánh nhiều nhịp (timeline chia ô, gợi ý tách shot).
@@ -23,7 +24,7 @@ export const KHUON_CHUOI: KhuonChuoi[] = [
   {
     key: 'thiet_lap_khong_gian', ten: 'Thiết lập không gian', muc_dich: 'Cho khán giả biết đang ở đâu, lúc nào, ai đứng chỗ nào — trước khi chuyện xảy ra.', the_loai: 'tat_ca',
     buoc: [
-      { ten: 'Toàn cảnh nơi chốn', vai: ['thiet_lap', 'thoi_gian'], luat: ['dan_khong_gian', 'dan_thoi_gian'], ghi: 'rộng nhất: nơi + giờ trong ngày qua ánh sáng' },
+      { ten: 'Toàn cảnh nơi chốn', vai: ['thiet_lap', 'thoi_gian'], luat: ['dan_khong_gian', 'dan_thoi_gian'], may: ['drone_len', 'cau_xuong', 'lia'], ghi: 'rộng nhất: nơi + giờ trong ngày qua ánh sáng' },
       { ten: 'Master', vai: ['tong_the'], luat: ['du_diem_nhin'], tuy: true, ghi: 'mọi nhân vật trong một khung, thấy khoảng cách giữa họ' },
       { ten: 'Vào người', vai: ['hanh_dong', 'phan_ung'], lap: true, ghi: 'hẹp dần vào người làm việc chính' },
     ],
@@ -34,7 +35,7 @@ export const KHUON_CHUOI: KhuonChuoi[] = [
     buoc: [
       { ten: 'Nhân chứng nhìn', vai: ['phan_ung', 'chu_quan'], luat: ['nhan_qua_huong_nhin'], ghi: 'ai đó nhìn ra xa — mọi thứ sau được xem qua mắt một nhân chứng' },
       { ten: 'Sự kiện', vai: ['hanh_dong', 'tong_the', 'chu_quan', 'thiet_lap'], ghi: 'thứ nhân chứng thấy (khớp hướng nhìn)' },
-      { ten: 'Lộ kẻ đứng sau', vai: ['nguoi_thu_ba', 'hanh_dong'], luat: ['may_co_dong_co', 'chenh_thong_tin'], ghi: 'máy theo sự kiện rồi trượt sang kẻ chờ sẵn — lộ ra như tình cờ, không giới thiệu' },
+      { ten: 'Lộ kẻ đứng sau', vai: ['nguoi_thu_ba', 'hanh_dong'], luat: ['may_co_dong_co', 'chenh_thong_tin'], may: ['chuyen_chu_the', 'vuot_tien_canh', 'doi_net'], ghi: 'máy theo sự kiện rồi trượt sang kẻ chờ sẵn — lộ ra như tình cờ, không giới thiệu' },
       { ten: 'Kẻ đó hành động', vai: ['hanh_dong', 'nguoi_thu_ba'], ghi: 'nhân quả đặt sát nhau → khán giả tự suy ra động cơ' },
       { ten: 'Chấm câu', vai: ['tam_trang', 'chi_tiet', 'phan_ung'], luat: ['khoang_lang'], nen: true, ghi: 'khoảng lặng / màn đen để nỗi lo ngấm trước cảnh mới' },
     ],
@@ -56,7 +57,7 @@ export const KHUON_CHUOI: KhuonChuoi[] = [
   {
     key: 'ra_mat_quyen_luc', ten: 'Ra mắt người quyền lực', muc_dich: 'Một nhân vật bước vào là cả phòng đổi thái độ — quyền lực đo bằng phản ứng của người khác.', the_loai: DRAMA,
     buoc: [
-      { ten: 'Bước vào', vai: ['thiet_lap', 'hanh_dong', 'tong_the'], luat: ['gioi_thieu'], ghi: 'góc thấp, cả phòng im — người đó chiếm khung' },
+      { ten: 'Bước vào', vai: ['thiet_lap', 'hanh_dong', 'tong_the'], luat: ['gioi_thieu'], may: ['dan_truoc', 'nghieng_len', 'nang_ha'], ghi: 'góc thấp, cả phòng im — người đó chiếm khung' },
       { ten: 'Người khác đổi thái độ', vai: ['chu_quan', 'nguoi_thu_ba', 'phan_ung', 'hanh_dong'], lap: true, ghi: 'kẻ ác đổi giọng ngọt, đám đông cúi đầu' },
       { ten: 'Ánh mắt phán xét', vai: ['phan_ung'], luat: ['giu_phan_ung'], ghi: 'cận mặt người quyền lực: một cái nhìn là đủ quyết định' },
     ],
@@ -74,7 +75,7 @@ export const KHUON_CHUOI: KhuonChuoi[] = [
     key: 'va_mat', ten: 'Vả mặt (lật thế)', muc_dich: 'Nhân vật bị coi thường lộ thân phận thật trước đúng những người đã chà đạp mình.', the_loai: ['phim_doc', 'chinh_kich', 'hanh_dong'],
     buoc: [
       { ten: 'Kẻ ác đắc ý', vai: ['thiet_lap', 'tong_the', 'hanh_dong'], ghi: 'đỉnh tự mãn ngay trước cú lật' },
-      { ten: 'Chính diện xuất hiện', vai: ['hanh_dong', 'thiet_lap'], luat: ['gioi_thieu'], ghi: 'góc thấp, trang phục khác hẳn — đổi vị thế bằng hình' },
+      { ten: 'Chính diện xuất hiện', vai: ['hanh_dong', 'thiet_lap'], luat: ['gioi_thieu'], may: ['dan_truoc', 'vuot_tien_canh', 'nghieng_len'], ghi: 'góc thấp, trang phục khác hẳn — đổi vị thế bằng hình' },
       { ten: 'Lộ thân phận', vai: ['nguoi_thu_ba', 'hanh_dong', 'tong_the'], luat: ['gia_tri_doi'], ghi: 'người thứ ba xác nhận (luật sư, chủ tịch) — khán giả được thấy trước kẻ ác' },
       { ten: 'Chi tiết sụp đổ', vai: ['chi_tiet'], tuy: true, ghi: 'vật rơi / vỡ thay cho câu nói' },
       { ten: 'Đòn quyết định', vai: ['hanh_dong'], ghi: 'câu tuyên bố / hành động chốt hạ, từng chữ' },
@@ -218,7 +219,7 @@ export function vanKhuonChuoi(theLoai?: TheLoai | ''): string {
   const ds = KHUON_CHUOI.filter((k) => hopTheLoai(k, theLoai));
   const qc = theLoai ? QUY_CHUAN_DONG[theLoai] : undefined;
   return `KHUÔN CHUỖI SHOT (dẫn dắt kiểu phim HBO: mỗi đoạn 2–6 shot làm MỘT nhiệm vụ kể, khán giả luôn biết đang ở đâu, vì sao cắt, ai biết gì). Mỗi phân cảnh chọn 1–2 khuôn hợp mục đích của nó; mỗi shot ghi \`khuon\` = mã khuôn đoạn đó thực hiện và \`buoc_khuon\` = số bước (1, 2, …) — VAI KỂ của shot (ky_thuat.vai) phải đúng vai bước cần, đi đúng thứ tự bước, không bỏ bước bắt buộc. Một shot chỉ một bước: nhịp nào cần khung riêng thì tách shot. Shot nối không thuộc khuôn nào thì để khuon rỗng.
-${ds.map((k) => `- ${k.key} — ${k.ten}: ${k.muc_dich} Bước: ${k.buoc.map((b, i) => `${i + 1}. ${b.ten} (${b.vai.join('/')}${b.tuy ? ', tuỳ chọn' : b.nen ? ', nên có' : ''})`).join(' → ')}${k.ket ? `. Kết: ${k.ket}` : ''}`).join('\n')}${qc ? `\nQUY CHUẨN DÒNG PHIM: ${qc.luat.join(' · ')}` : ''}`;
+${ds.map((k) => `- ${k.key} — ${k.ten}: ${k.muc_dich} Bước: ${k.buoc.map((b, i) => `${i + 1}. ${b.ten} (${b.vai.join('/')}${b.may?.length ? `; máy: ${b.may.join('/')}` : ''}${b.tuy ? ', tuỳ chọn' : b.nen ? ', nên có' : ''})`).join(' → ')}${k.ket ? `. Kết: ${k.ket}` : ''}`).join('\n')}${qc ? `\nQUY CHUẨN DÒNG PHIM: ${qc.luat.join(' · ')}` : ''}`;
 }
 
 /** Gom khuôn Claude ghi trên từng shot (đã lưu, có id) thành các lần áp: shot liền nhau cùng phân cảnh + cùng mã khuôn = một lần áp. */

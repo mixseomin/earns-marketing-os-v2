@@ -4,10 +4,11 @@
 // nên ảnh + clip ra đúng cỡ cảnh, ánh sáng, chuyển động. File thuần dữ liệu — client lẫn server import được.
 import { luatDung } from './luat-dung';
 import { NGANH, type NganhKyThuat, type MayDi } from './dien-anh-nganh';
+import { THU_VIEN_THEM, THU_VIEN_THEM_MAY } from './dien-anh-them';
 export type { NganhKyThuat, MayDi } from './dien-anh-nganh';
 
 export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap' | 'phim_doc';
-export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'dien_xuat' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
+export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'dien_xuat' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac' | 'hook';
 /** xfade/nhom_cc/giay_cc: riêng nhóm chuyển cảnh — kiểu ffmpeg xfade mà BẢN XUẤT dựng thật giữa shot này và shot sau, nhóm kiểu CapCut, độ dài (giây). */
 /** nganh = mô tả ngành đầy đủ (khung mở → kết, cách làm, động cơ, tác động, lỗi hay gặp, nguồn) và may_di = phần số cho máy 3D — dien-anh-nganh.ts. */
 export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca'; xfade?: string; nhom_cc?: NhomChuyenCanh; giay_cc?: number; nganh?: NganhKyThuat; may_di?: MayDi };
@@ -42,6 +43,7 @@ export const NHOM_KY_THUAT: { key: NhomKyThuat; ten: string; icon: string }[] = 
   { key: 'vai', ten: 'Vai kể / điểm nhìn', icon: '👁' }, { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' }, { key: 'dien_xuat', ten: 'Diễn xuất cảm xúc', icon: '🎭' }, { key: 'toc_do', ten: 'Tốc độ (dựng)', icon: '⏩' },
   { key: 'ong_kinh', ten: 'Ống kính', icon: '🔭' }, { key: 'anh_sang', ten: 'Ánh sáng', icon: '💡' }, { key: 'mau', ten: 'Màu', icon: '🎨' },
   { key: 'chuyen_canh', ten: 'Chuyển cảnh', icon: '✂' }, { key: 'am_thanh', ten: 'Âm thanh', icon: '🔊' }, { key: 'nhac', ten: 'Nhạc', icon: '🎵' },
+  { key: 'hook', ten: 'Móc câu (hook)', icon: '🪝' },
 ];
 
 const T = 'tat_ca' as const;
@@ -243,7 +245,8 @@ const THU_VIEN_GOC: KyThuat[] = [
 ];
 
 /** Thư viện đầy đủ: mỗi kỹ thuật kèm mô tả ngành + phần số máy (nếu có) từ dien-anh-nganh.ts. */
-export const THU_VIEN: KyThuat[] = THU_VIEN_GOC.map((x) => { const n = NGANH[`${x.nhom}.${x.key}`]; return n ? { ...x, nganh: n.nganh, ...(n.may_di ? { may_di: n.may_di } : {}) } : x; });
+// Bổ sung ngành (dien-anh-them.ts, anh 18/10/2026 "thêm tất cả kỹ thuật của ngành điện ảnh") gộp sau bản gốc — key trùng thì bản gốc thắng.
+export const THU_VIEN: KyThuat[] = [...THU_VIEN_GOC, ...[...THU_VIEN_THEM, ...THU_VIEN_THEM_MAY].filter((x) => !THU_VIEN_GOC.some((g) => g.nhom === x.nhom && g.key === x.key))].map((x) => { const n = NGANH[`${x.nhom}.${x.key}`]; return n ? { ...x, nganh: n.nganh, ...(n.may_di ? { may_di: n.may_di } : {}) } : x; });
 export const kyThuat = (key: string | undefined, nhom?: NhomKyThuat) => (key ? THU_VIEN.find((x) => x.key === key && (!nhom || x.nhom === nhom)) : undefined);
 export const hopTheLoai = (x: KyThuat, tl: TheLoai | undefined) => x.the_loai === 'tat_ca' || !tl || x.the_loai.includes(tl);
 /** Kỹ thuật của một nhóm, cái hợp thể loại đứng trước. */

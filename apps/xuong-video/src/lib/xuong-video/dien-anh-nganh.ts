@@ -12,6 +12,8 @@ export type NganhKyThuat = { ten_nganh: string; dau_cuoi: string; thuc_hien: str
  *  (đẩy vào 1,6 = chủ thể to thêm 60%); goc = số độ máy quay (lia / nghiêng) hoặc đi vòng quanh chủ thể; toc = nhịp của chuyển động. */
 export type MayDi = { kieu: 'dung' | 'tien' | 'lui' | 'ngang' | 'len' | 'xuong' | 'lia' | 'nghieng' | 'vong' | 'zoom' | 'theo' | 'tu_do'; ti_le?: number; goc?: number; toc: 'cham' | 'vua' | 'nhanh' };
 
+import { NGANH_THEM } from './dien-anh-them';
+
 const M = 'Mascelli — The Five C\'s of Cinematography; Bowen — Grammar of the Shot; Mercado — The Filmmaker\'s Eye';
 const H = 'Ed Hooks — Acting for Animators; Thomas & Johnston — The Illusion of Life';
 
@@ -407,4 +409,6 @@ export const NGANH: Record<string, { nganh: NganhKyThuat; may_di?: MayDi }> = {
     dong_co: 'Mọi cảnh; nhất là đối thoại và chuyển cảnh.',
     cam_xuc: 'Cú cắt "tan" đi — khán giả nghe liền một không gian.',
     tranh: 'Tiếng cắt đúng mép hình: mỗi cú cắt một tiếng "khựng".', nguon: 'Thompson & Bowen — Grammar of the Edit; David Sonnenschein — Sound Design' } },
+  // Bổ sung ngành (dien-anh-them.ts): chuyển chủ thể, lướt qua vật che, đi cung, pedestal, drone, oner… + nhịp diễn mới.
+  ...NGANH_THEM,
 };

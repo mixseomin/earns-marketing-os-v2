@@ -11,6 +11,7 @@ for (const k of KHUON_CHUOI) {
   for (const b of k.buoc) {
     for (const v of b.vai) assert.ok(vai.has(v), `${k.key}/${b.ten}: vai lạ ${v}`);
     for (const l of b.luat ?? []) assert.ok(luat.has(l), `${k.key}/${b.ten}: luật lạ ${l}`);
+    for (const m of b.may ?? []) assert.ok(THU_VIEN.some((x) => x.nhom === 'chuyen_dong' && x.key === m), `${k.key}/${b.ten}: máy lạ ${m}`);
   }
   if (k.the_loai !== 'tat_ca') for (const t of k.the_loai) assert.ok(tl.has(t), `${k.key}: thể loại lạ ${t}`);
   assert.ok(k.nguon.length > 0, `${k.key}: khuôn phải có nguồn`);

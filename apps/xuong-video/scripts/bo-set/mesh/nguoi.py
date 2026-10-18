@@ -415,7 +415,7 @@ TU_THE_NGUOI = {
                   'khuyu_t': (0, 0, 0), 'khuyu_p': (0, 0, 0), 'dau': (-35, 0, 0)},                              # cúi 38°, hai tay đổ xuống chống mặt bàn, ngẩng nhìn
     'cui_nguoi': {'lung': (20, 0, 0), 'nguc': (8, 0, 0), 'dau': (-15, 0, 0)},                                   # cúi sát về phía trước, mắt giữ ngang
     'om_thung': {'vai_t': (-22, -6, 0), 'vai_p': (-22, 6, 0), 'khuyu_t': (-88, 0, 0), 'khuyu_p': (-88, 0, 0)},  # ôm thùng trước bụng
-    'khoanh_tay': {'vai_t': (-25, -4, 0), 'vai_p': (-25, 4, 0), 'khuyu_t': (-115, 0, -35), 'khuyu_p': (-115, 0, 35)},
+    'khoanh_tay': {'vai_t': (-10, -4, 0), 'vai_p': (-10, 4, 0), 'khuyu_t': (-95, 0, -60), 'khuyu_p': (-95, 0, 60)},   # khoanh tay trước ngực — (−25, −115, ±35) trên người MPFB thành hai tay giơ lên mặt (#15 AI vẽ Vivian cầm ly); đo 6 biến thể 18/10/2026
     'gioi_thieu': {'vai_p': (-40, 35, 0), 'khuyu_p': (-15, 0, 0)},                                              # đưa tay giới thiệu người bên cạnh
     'thuyet_trinh': {'vai_p': (-50, 28, 0), 'khuyu_p': (-30, 0, 0), 'dau': (0, 0, -10)},                        # tay mở về phía màn chiếu
     # DÁNG ĐỨNG TỰ NHIÊN (anh 17/10/2026: "ai đứng cũng thẳng đuỗn, nhìn chán") — dáng NGHỈ của nhân vật (khoi_3d.dang), máy tự chồng khi nhân vật

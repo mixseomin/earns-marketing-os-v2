@@ -79,6 +79,12 @@ if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y} | sau:<url lớp độ sâ
         if not len(ys): print(json.dumps({'hop': None, 'b64': None})); sys.exit(0)
         top, cao = ys.min(), ys.max() - ys.min() + 1; dai = ys < top + 0.15 * cao
         o = {'x': float(xs[dai].mean()) / im.shape[1], 'y': float(top + 0.07 * cao) / im.shape[0]}
+        # MẶT PHẢI NẰM TRONG BÓNG CHÍNH NGƯỜI ĐÓ: người quay lưng (#12 Vivian) không có mặt → trước lấy mặt gần nhất (người khác / gáy) rồi vẽ "mặt"
+        # lên gáy thành mảng nhoè. Không có mặt nào có tâm trong bóng (nới 3 %) → không cắt, lượt mặt bỏ qua người này.
+        det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+        r_ = max(3, int(im.shape[0] * 0.03)); md = cv2.dilate(m.astype(np.uint8), np.ones((r_, r_), np.uint8)) > 0
+        if f is None or not any(md[min(im.shape[0] - 1, int(x[1] + x[3] / 2)), min(im.shape[1] - 1, int(x[0] + x[2] / 2))] for x in f):
+            print(json.dumps({'hop': None, 'b64': None})); sys.exit(0)
     hop = vung_dau(im, o)
     print(json.dumps({'hop': hop, 'b64': b64jpg(cv2.resize(im[hop[1]:hop[3], hop[0]:hop[2]], (1024, 1024))) if hop else None})); sys.exit(0)
 if vao.get('op') == 'dan':        # {op, goc, sua, hop} → {b64: khung gốc với vùng đầu đã sửa dán lại, mặt nạ elip mờ biên, khớp màu}

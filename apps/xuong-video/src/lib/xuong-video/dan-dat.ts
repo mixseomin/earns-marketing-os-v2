@@ -22,8 +22,10 @@ const LIEN_SAU = /liền sau|ngay sau|cùng lúc|tiếp theo/i;
 
 const cungNguoi = (a: ShotDanDat, b: ShotDanDat) => { const x = [...(a.nhan_vat ?? [])].sort().join(','); return x !== '' && x === [...(b.nhan_vat ?? [])].sort().join(','); };
 const chu = (s: ShotDanDat) => `${s.hanh_dong ?? ''} ${s.canh ?? ''}`;
-/** Các nhịp hành động một shot gánh (mô tả ngăn bằng ';') — ≥ 2 nhịp là dồn: mỗi nhịp nên có khung riêng (tach-shot.ts). */
-export const nhipCua = (s: Pick<ShotDanDat, 'hanh_dong'>) => (s.hanh_dong ?? '').split(/;\s*/).map((x) => x.trim()).filter(Boolean);
+/** Các nhịp hành động một shot gánh (mô tả ngăn bằng ';'), bỏ ghi chú dựng (cắt đen, mờ, chuyển…). ≥ 3 nhịp mới là dồn: 2 nhịp liền một
+ *  khoảnh khắc ('cửa mở, Hạ bước vào; luật sư theo sau') vẫn là một khung đúng — mỗi nhịp thừa ra nên có khung riêng (tach-shot.ts). */
+const GHI_DUNG = /^(cắt|tắt|mờ|hoà tan|chuyển|fade|cut)\b/i;
+export const nhipCua = (s: Pick<ShotDanDat, 'hanh_dong'>) => (s.hanh_dong ?? '').split(/;\s*/).map((x) => x.trim()).filter((x) => x && !GHI_DUNG.test(x));
 
 /** Chấm MỘT điểm cắt. */
 export function chamCat(a: ShotDanDat, b: ShotDanDat, pc: Map<string, CanhDanDat>): DiemCat {
@@ -49,7 +51,7 @@ export function chamCat(a: ShotDanDat, b: ShotDanDat, pc: Map<string, CanhDanDat
       tru.push({ ma: 'nhay_thoi_gian', tru: 10, chu: `thời gian nhảy (${p1?.luc ?? '?'} → ${p2!.luc}) mà không có dấu hiệu thời gian hay chuyển cảnh thời gian (hoà tan / tắt đen)` });
   }
   const nhip = nhipCua(b);
-  if (nhip.length >= 2) tru.push({ ma: 'don_nhip', tru: Math.min(20, 8 * (nhip.length - 1)), chu: `shot sau dồn ${nhip.length} nhịp hành động trong một khung (${nhip.join(' / ')}) — nên tách để mỗi nhịp có khung riêng` });
+  if (nhip.length >= 3) tru.push({ ma: 'don_nhip', tru: Math.min(20, 8 * (nhip.length - 2)), chu: `shot sau dồn ${nhip.length} nhịp hành động trong một khung (${nhip.join(' / ')}) — nên tách để mỗi nhịp có khung riêng` });
   return { truoc: a.id, sau: b.id, sangCanh, diem: Math.max(0, 100 - tru.reduce((s, x) => s + x.tru, 0)), tru };
 }
 

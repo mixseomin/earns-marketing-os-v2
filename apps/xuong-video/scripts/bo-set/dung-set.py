@@ -1639,7 +1639,10 @@ def ngam_lai(s, cam, sh, khoi, ket=False):
                 fw = n_['dau'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); fw.z = 0   # hướng mặt THẬT của khớp đầu, không phải huong khai
                 fw = fw.normalized() if fw.length > 1e-3 else Vector((math.sin(h), -math.cos(h), 0))
                 mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 0.8 * Ld
-            else: mat_ = dich = n_['nguc'].matrix_world.translation
+            else:   # ống rộng: ngắm ngực, nhưng MẶT phải trong khung (#14 kết đẩy vào 50 mm, ngực giữa khung mà mặt cắt ở mép trên)
+                dau_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * n_['L']['dau'] * CM)); nguc_ = n_['nguc'].matrix_world.translation
+                if all(0.12 < c_ < 0.88 for c_ in world_to_camera_view(s, cam, nguc_)[:2]): mat_, dich = dau_, (dau_ + nguc_) / 2
+                else: mat_ = dich = nguc_
         else:
             mo = [o for o in khoi if getattr(o, 'type', '') == 'MESH' and (o.name == f'NV {cn}' or o.name.startswith(f'NV {cn}·'))]
             if mo: mat_ = dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
@@ -1659,7 +1662,10 @@ def cat_dau(cam, sh, nhin=None):
     cam.data.clip_start = 0.002
     nh_ = Vector(nhin or sh['may']['nhin']) * CM - cam.location; d_dich = nh_.length
     chu = set(sh['may'].get('khung') or []) or {v_['ten'] for v_ in sh.get('nhan_vat', [])}
-    cat = [ (h_ - cam.location).length for t in chu if t in NGUOI and NGUOI[t].get('dau') and NGUOI[t]['dau'].name in bpy.data.objects
+    def con(o):   # người khung kết đã dọn (bpy xoá object) mà NGUOI còn trỏ → ReferenceError khi đọc .name
+        try: return o is not None and o.name in bpy.data.objects
+        except ReferenceError: return False
+    cat = [ (h_ - cam.location).length for t in chu if t in NGUOI and con(NGUOI[t].get('dau'))
             for h_ in [NGUOI[t]['dau'].matrix_world.translation + Vector((0, 0, 0.5 * NGUOI[t]['L']['dau'] * CM))]
             if (h_ - cam.location).length < 0.8 * d_dich and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
     if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)

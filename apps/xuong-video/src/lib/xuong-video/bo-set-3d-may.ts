@@ -137,12 +137,15 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     // Ghi máy đã giải vào máy KHAI của shot (không ghi đồ để lại — chúng là trạng thái tính ra, không phải khai).
     for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; c.goc = { ...c.goc, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.goc)}::jsonb WHERE id = ${c.id}`); } }
     const luc = new Date().toISOString();
+    // MỖI LƯỢT DỰNG MỘT ĐƯỜNG DẪN ẢNH: dựng lại cùng mã (--tat-ca, sửa dung-set.py mà giữ BAN_DUNG) ghi đè đúng tệp cũ → CDN img.on.tc trả ảnh CŨ cho
+    // studio lẫn bước sinh keyframe (18/10/2026 #13 #14 dựng lại mà ảnh y nguyên). Thêm dấu lượt vào tên; dọn ảnh cũ vẫn theo khung_xam cũ như trước.
+    const lan = Date.now().toString(36);
     // Đẩy kho SONG SONG 8 shot một lúc, 4 ảnh mỗi shot cùng lúc (trước đây lần lượt ~140 ảnh → nhiều phút chỉ vì độ trễ mạng mỗi lần gọi).
     await theoLo(shots, 8, async (c) => {
       const ma = maKhungXam(set, c.may_3d, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong);
       const ra = raCua.get(String(c.id))!;
       // Chỉ đẩy ảnh máy ngoài thật sự render: khung màu (JPEG) + khung kết; khung xám (PNG) chỉ khi không có khung màu.
-      const len = async (duoi: string, dang: 'jpg' | 'png') => { const f = path.join(ra, `${c.id}-${duoi}.${dang}`); return existsSync(f) ? uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.${dang}`, await readFile(f), dang === 'jpg' ? 'image/jpeg' : 'image/png') : null; };
+      const len = async (duoi: string, dang: 'jpg' | 'png') => { const f = path.join(ra, `${c.id}-${duoi}.${dang}`); return existsSync(f) ? uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${lan}-${duoi}.${dang}`, await readFile(f), dang === 'jpg' ? 'image/jpeg' : 'image/png') : null; };
       const [mau, mauKet, xamRieng, sau, mauGiua, xuong] = await Promise.all([len('mau', 'jpg'), len('mau-ket', 'jpg'), len('xam', 'png'), len('sau', 'png'), len('mau-giua', 'jpg'), len('xuong', 'png')]);   // sau = độ sâu (keyframe hai bước)
       // LỚP GHÉP (shot ≥ 2 người): đẩy độ sâu nền + từng người
       const lopC = lopJ[String(c.id)]; let lop: KhungXam['lop'] | undefined;

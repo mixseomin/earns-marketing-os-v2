@@ -786,6 +786,22 @@ export function matQuayDi(c: { may_3d?: May3d | null; ky_thuat?: Canh['ky_thuat'
 // cảnh 7 nhảy 145° → 136° → −10° → 129° → 52°… — hậu cảnh đổi mỗi cú cắt, người xem phải định vị lại. Mỗi phân cảnh có HƯỚNG MÁY CHỦ (hướng gom được
 // nhiều shot nhất trong ±45°); shot thường lệch quá → chặn. Shot qua trục (POV, chèn) được miễn nhưng không đứng liền nhau.
 export const NHIP_DAN = 45;
+/** ÁNH MẮT (eyeline) cho prompt hình — anh 19/10/2026: "phim AI rất hay bị nhân vật nhìn vào máy quay trực diện". Phim thật: diễn viên quay người về
+ *  máy nhưng MẮT đặt lên bạn diễn ngay sát mép ống kính (eyeline just off-lens), không bao giờ nhìn vào ống kính trừ khi cố ý phá bức tường thứ tư.
+ *  Chữ "facing the camera" + ảnh mẫu / ảnh học LoRA (chân dung nhìn máy) làm model vẽ mắt nhìn thẳng máy (#12 Thần + Hạ, #14 Hạ). Đích nhìn = người
+ *  (kể cả người ngoài khung) gần hướng mặt nhất (< 75°); phía trên màn = đích nằm bên nào của người đó trên khung. Không có đích → vẫn cấm nhìn máy. */
+export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, nguoi: ViTri[], ket = false): string {
+  const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return '';
+  const p = ket ? v.den ?? v.tam : v.tam;
+  const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const rx = fy, ry = -fx;   // vectơ phải-màn-hình của máy
+  const dich = nguoi.filter((x) => x.ten !== v.ten).map((x) => { const q = ket ? x.den ?? x.tam : x.tam; return { ten: x.ten, q, lech: gocLech(h, huongToi(p, q)) }; })
+    .filter((x) => x.lech < 75).sort((a, b) => a.lech - b.lech)[0];
+  const sat = gocLech(h, huongToi(p, m.dat)) <= 35;
+  if (!dich) return sat ? 'eyes just off the lens, NOT looking into the camera' : 'NOT looking at the camera';
+  const ben = (dich.q[0]! - p[0]!) * rx + (dich.q[1]! - p[1]!) * ry >= 0 ? 'screen-right' : 'screen-left';
+  return sat ? `eyes on ${dich.ten}, just off the lens toward ${ben} — NOT looking into the camera` : `eyes on ${dich.ten} (${ben}), not at the camera`;
+}
+
 /** Vai kể có GÓC RIÊNG (không tính vào hướng máy chủ): shot thiết lập mở cảnh (#12 trong chuỗi #11–#15 anh khen), người thứ ba rình, góc nhìn nhân vật. */
 export const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan']);
 export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[]): Record<number, string[]> {

@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { nhinCau, thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -258,6 +258,12 @@ assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: 0 })!.chu, 'faci
 assert.ok(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: 180 })!.chu.startsWith('back to the camera'));
 assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: 90 })!.chu, 'in profile, facing screen-right');
 assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: -90 })!.chu, 'in profile, facing screen-left');
+// ánh mắt (anh 19/10/2026 "nhân vật cứ nhìn vào máy"): quay về máy mà có bạn diễn hơi lệch phải → mắt lên bạn diễn sát mép ống kính, cấm nhìn máy
+{ const A = { ten: 'A', tam: [0, 0, 0], huong: 0 }, B = { ten: 'B', tam: [3, -6, 0], huong: 180 };
+  const c = nhinCau(mT, A, [A, B]); assert.ok(c.includes('eyes on B') && c.includes('screen-right') && c.includes('NOT looking into the camera'), c);
+  assert.ok(nhinCau(mT, A, [A]).includes('NOT looking into the camera'));   // không đích → vẫn cấm nhìn máy
+  const P = { ten: 'P', tam: [0, 0, 0], huong: 90 }, Q = { ten: 'Q', tam: [5, 0, 0], huong: -90 };
+  assert.equal(nhinCau(mT, P, [P, Q]), 'eyes on Q (screen-right), not at the camera'); }
 // shot phản ứng thấy nghiêng (98°, như #38) → chặn; thấy 3/4 mặt → qua; cỡ rộng không phản ứng → không đo
 const laNv = (t: string) => t === 'T';
 assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 98 }] }, ky_thuat: { vai: 'phan_ung', co_canh: 'two' } as never }, laNv).length, 1);

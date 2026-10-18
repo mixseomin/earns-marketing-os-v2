@@ -13,7 +13,7 @@ import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
-import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, chuTheThay, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
+import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, chuTheThay, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
@@ -267,10 +267,19 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const goc0 = nvKhung[0]; const h0 = goc0 ? caoCua(goc0)! : 0;
   const tiLeCau = nvKhung.length >= 2 && h0 > 0 ? `SCALE (relative heights, exactly as Image 1 shows): ${nvKhung.slice(1).map((t) => `${t} is ${Math.round((caoCua(t)! / h0) * 10) / 10}× the height of ${goc0}`).join('; ')}.` : '';
   // HƯỚNG NHÂN VẬT so với máy, từ số 3D (15/10/2026 #38: 3D thấy Tango nghiêng hẳn, keyframe vẽ mặt nhìn thẳng máy theo ảnh mẫu — prompt không nói hướng).
+  // HƯỚNG + ÁNH MẮT: thân quay đâu (huongVoiMay) + mắt nhìn ai (nhinCau, đích = mọi nhân vật có chỗ đứng kể cả ngoài khung). Shot cố ý nhìn máy
+  // (dan_dung.huong nói 'into the lens' / 'to camera' — #21) thì không cấm.
+  const nhinMay = /into the (lens|camera)|to camera|at the camera/i.test(String(bc.canh.dan_dung?.huong ?? ''));
+  const laNv = (t: string) => bc.nhanVat.some((n) => n.ten === t && n.loai === 'nhan_vat');
+  const huongNhin = (m: NonNullable<typeof bc.canh.may_3d>, v: NonNullable<typeof bc.canh.may_3d>['vi_tri'][number]) => {
+    const h = huongVoiMay(m, v, ket)?.chu; if (!h) return undefined;
+    const e = nhinMay ? '' : nhinCau(m, v, m.vi_tri.filter((x) => laNv(x.ten)), ket);
+    return e ? `${h}, ${e}` : h;
+  };
   const mHuong = bc.mayDu ?? bc.canh.may_3d; const trongKhung = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.ten));
   const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
-    .map((v) => { const h = huongVoiMay(mHuong, v, ket); return h ? `${v.ten}: ${h.chu}` : ''; }).filter(Boolean) : [];
-  const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.` : '';
+    .map((v) => { const h = huongNhin(mHuong, v); return h ? `${v.ten}: ${h}` : ''; }).filter(Boolean) : [];
+  const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.${nhinMay ? '' : ' Candid film still: nobody looks into the camera lens — every person keeps their eyes on who or what they are dealing with.'}` : '';
   // CỠ NHÂN VẬT TRONG KHUNG bằng SỐ (15/10/2026, kiểm khung tập 19: #9 / #30 3D là cận mặt Tango mà keyframe vẽ cỡ trung — prompt chỉ bảo
   // "theo bố cục ảnh 1", không nói chủ thể to bao nhiêu): chiều cao + vùng đo trên chính khung 3D (khung_xam.kiem / thay). Chỉ khung MỞ.
   const trongKhungAnchor = bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)).map((v) => v.ten);
@@ -343,7 +352,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // thay vì để FLUX cắt mất phần cuối (câu chất liệu, "No text").
       const dungMon = (cap: number, gon = false) => trongS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
-        const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
+        const h = hg && v.loai === 'nhan_vat' ? huongNhin(mGoc!, hg) : undefined;
         return `${taNv(v, gon, cap)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nenDu = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).sort((p, q) => q.pt - p.pt).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair"), lớn trước
@@ -387,7 +396,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]) },   // cấm chữ: biển / logo vẽ thành chữ méo (#12 'B-GROP') — đồ nhận dạng đi đường ghép ảnh chuẩn
         nguoi: lopKx.nguoi.flatMap((x) => {
           const v = trongS.find((n) => n.ten === x.ten); if (!v) return [];
-          const hg = mGoc?.vi_tri.find((y) => y.ten === v.ten); const h = hg ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
+          const hg = mGoc?.vi_tri.find((y) => y.ten === v.ten); const h = hg ? huongNhin(mGoc!, hg) : undefined;
           const cam = (mGoc?.vi_tri ?? []).filter((y) => y.cam === v.ten && !y.an).map((y) => bc.nhanVat.find((n) => n.ten === y.ten)).filter((n): n is NhanVat => !!n);
           const ref = [v, ...cam].map((n) => btCanh(n)?.anh_url ?? n.anh_ref[0]).filter((u): u is string => !!u);
           const xanh = `the flat, uniform pure chroma green ${MAU_XANH_NEN} background`;

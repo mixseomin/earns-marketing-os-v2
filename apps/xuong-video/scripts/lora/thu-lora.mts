@@ -62,7 +62,7 @@ await songSong(mats, async (f) => {
   if (!bc) { console.log(`✗ ${f}: tên tệp không khớp key BIEU_CAM`); return; }
   const sau = await uploadToR2(`xuong-video/lora/${id}/mat-${key}-${Date.now()}.png`, readFileSync(f), 'image/png');
   if (!sau) { console.log(`✗ ${key}: tải độ sâu lỗi`); return; }
-  const t = `tight close-up portrait, ${bc.en}, harsh window side light, dim office background`;
+  const t = `tight close-up portrait at eye level, ${bc.en}, wearing a white tailored blazer, harsh window side light, dim office background`;
   await ve(`mặt 3D ${bc.ten}`, 'fal-ai/flux-lora-depth', { prompt: `${goc}. ${t}. ${PHONG}`, image_url: sau, loras: [{ path: L.url, scale: 0.85 }], image_size: { width: 720, height: 1280 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, `${bc.ten} (độ sâu ${sau})`);
 });
 console.log(JSON.stringify({ so: ra.length, tien: `$${(ra.length * 0.035).toFixed(2)}` }));

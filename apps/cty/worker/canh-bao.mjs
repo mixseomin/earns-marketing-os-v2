@@ -7,6 +7,7 @@
 //   · tay (~/bin/canh-bao ghi … — người hoặc Claude thấy thông báo mà máy không bắt được)
 // Trùng lặp: cùng tài khoản + loại + đoạn chữ đầu trong 12 giờ = một dòng (br soi lại trang đó nhiều lần không đẻ dòng mới).
 //   echo '{json}' | node worker/canh-bao.mjs ghi        → in {id, moi}
+//   echo '{chu, ...bối cảnh}' | node worker/canh-bao.mjs soi   → soi chữ, khớp thì ghi (máy không có repo — MacBook — gửi chữ sang đây)
 //   node worker/canh-bao.mjs list [--ngay 7]            → in JSON các dòng gần đây
 //   node worker/canh-bao.mjs --tu-kiem
 const LOAI = { han_che: '⛔ Bị hạn chế', khoa: '🔒 Bị khoá / vô hiệu hoá', xac_minh: '🪪 Đòi xác minh', tu_choi: '🚫 Từ chối thao tác', canh_bao: '⚠️ Cảnh báo' };
@@ -74,6 +75,11 @@ if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv.includes('--tu-kie
 if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv[2] === 'ghi') {
   let raw = ''; for await (const c of process.stdin) raw += c;
   console.log(JSON.stringify(await ghi(JSON.parse(raw)))); process.exit(0);
+}
+if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv[2] === 'soi') {
+  let raw = ''; for await (const c of process.stdin) raw += c;
+  const { chu, ...bc } = JSON.parse(raw), r = soi(chu);
+  console.log(JSON.stringify(r ? await ghi({ ...bc, loai: r.loai, noi_dung: r.doan }) : { khop: false })); process.exit(0);
 }
 if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv[2] === 'list') {
   const i = process.argv.indexOf('--ngay'), n = i > 0 ? Number(process.argv[i + 1]) || 7 : 7, sql = await ketNoi();

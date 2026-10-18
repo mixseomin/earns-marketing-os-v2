@@ -15,4 +15,6 @@ trang_thai: chạy một việc · Mail bảo mật (Kiên, nhịp máy mỗi ph
 
 **Cấm**: đề xuất tài khoản thay thế, chuyển nội dung khỏi tài khoản bị khoá, dùng tài khoản còn nguyên, đăng nhập tài khoản đòi vân tay. Kiên là người nói không.
 
+**Sổ cảnh báo nền tảng** (18/10/2026): mọi thông báo rủi ro tài khoản (bị hạn chế, khoá, đòi xác minh, từ chối thao tác) vào bảng `platform_alerts` — `br` tự soi chữ trang, máy đăng soi lỗi đăng, người/Claude ghi tay bằng `~/bin/canh-bao ghi`; mẫu + ghi ở `worker/canh-bao.mjs`; nhịp mail-bao-mat của Kiên báo dòng mới lên Telegram 🔐 Bảo mật. Xem sổ: `canh-bao list`.
+
 Nối vào máy chặn đã có: lint thương hiệu, chanNeAn, chanTkChuaTieu, guard-actions, link-gate.

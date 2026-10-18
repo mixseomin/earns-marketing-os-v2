@@ -95,7 +95,10 @@ def than_tron(n, ten, H, L, vl, dv):
     v('dau', 'cam', (0, -0.01 * H, 0.2 * L['dau']), 0.036 * H, 0.04 * H)
     v('dau', 'dau', (0, 0, 0.55 * L['dau']), 0.048 * H, 0.056 * H)
     v('dau', 'dinh', (0, 0.005 * H, 0.92 * L['dau']), 0.03 * H, 0.035 * H)
-    canh = [('hong', 'eo'), ('eo', 'nguc'), ('nguc', 'co'), ('co', 'cam'), ('cam', 'dau'), ('dau', 'dinh')]
+    # HƯỚNG MẶT trong độ sâu: mũi + cằm nhô về trước (−y cục bộ của đầu) — đầu trơn thì FLUX không biết mặt quay đâu, vẽ người quay lưng (#12 lượt 2)
+    v('dau', 'mui', (0, -0.062 * H, 0.45 * L['dau']), 0.012 * H, 0.012 * H)
+    v('dau', 'cam_nho', (0, -0.04 * H, 0.18 * L['dau']), 0.022 * H, 0.016 * H)
+    canh = [('hong', 'eo'), ('eo', 'nguc'), ('nguc', 'co'), ('co', 'cam'), ('cam', 'dau'), ('dau', 'dinh'), ('dau', 'mui'), ('cam', 'cam_nho')]
     for p in 'tp':
         v(f'vai_{p}', f'vai_{p}', (0, 0, 0), 0.034 * H, 0.034 * H)
         v(f'khuyu_{p}', f'khuyu_{p}', (0, 0, 0), 0.026 * H, 0.026 * H)

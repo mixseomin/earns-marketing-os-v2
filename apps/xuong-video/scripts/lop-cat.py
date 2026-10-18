@@ -3,7 +3,7 @@
 # Hạ nhỏ ở góc thành chân dung giữa khung, Vivian quay lưng thành quay mặt) → cắt đúng hộp bao người (đo từ lớp độ sâu 3D), phóng lên cho người lấp khung,
 # sửa trên ảnh cắt, rồi thu về đúng hộp và dán lên nền xanh cùng cỡ khung. 0đ (OpenCV, venv /opt/xv-soi-mat).
 #   stdin {"op":"cat","sau":"<url độ sâu người>","anh":"<url ảnh FLUX>","ra":"<tệp jpg>","le":0.15} → {"hop":[x0,y0,x1,y1] (px trên ảnh), "w","h"}
-#   stdin {"op":"dan","anh":"<url ảnh đã sửa>","hop":[…],"w":W,"h":H,"sau":"<url độ sâu người>","ra":"<tệp png>"} → {"ok":true} (nền xanh #00FF00 cùng cỡ khung)
+#   stdin {"op":"dan","anh":"<url ảnh đã sửa>","hop":[…],"w":W,"h":H,"sau":"<url độ sâu người>","ra":"<tệp png>"[,"nen":"<url plate>"]} → {"ok":true} (nền xanh #00FF00 cùng cỡ khung; có nen = dán lên plate)
 import json, sys, urllib.request, os
 import numpy as np, cv2
 def doc(u, mau=cv2.IMREAD_COLOR):
@@ -39,12 +39,14 @@ elif v['op'] == 'dan':
     ox0, oy0, ox1, oy1 = max(0, x0), max(0, y0), min(W, x1), min(H, y1)   # hộp vượt mép ảnh (phần độn xanh) → cắt về trong khung
     sua = sua[oy0 - y0:oy1 - y0, ox0 - x0:ox1 - x0]; x0, y0, x1, y1 = ox0, oy0, ox1, oy1
     nen = np.zeros((H, W, 3), np.uint8); nen[:] = (0, 255, 0)
+    if v.get('nen'):   # DỰNG TẠI CHỖ: dán về đúng ô trên chính ảnh plate (theo mặt nạ người 3D), không khớp bóng / không co
+        g = doc(v['nen']); nen = cv2.resize(g, (W, H), interpolation=cv2.INTER_AREA) if g.shape[:2] != (H, W) else g
     hsv = cv2.cvtColor(sua, cv2.COLOR_BGR2HSV); xanh = cv2.inRange(hsv, (35, 90, 70), (85, 255, 255)) > 0
     nguoi = cv2.morphologyEx((~xanh).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)) > 0
     ok = False; cut = False
     # CỤT: người model vẽ chạm mép dưới ảnh cắt mà bóng 3D thì kết trước mép (còn chân) → model tự cắt nửa người (#12 Thần) — giãn ra là sai tỷ lệ:
     # dùng người của ảnh FLUX gốc (đủ người, đúng dáng) thay cho bản sửa
-    if v.get('sau') and v.get('goc') and nguoi.mean() < 0.9 and nguoi[-3:].mean() > 0.02:
+    if not v.get('nen') and v.get('sau') and v.get('goc') and nguoi.mean() < 0.9 and nguoi[-3:].mean() > 0.02:
         m3 = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
         if m3[y1 - 3:y1].mean() < 0.005:
             g = doc(v['goc']); g = cv2.resize(g, (W, H)) if g.shape[:2] != (H, W) else g
@@ -52,7 +54,7 @@ elif v['op'] == 'dan':
             r = max(3, int(H * 0.012)); m = cv2.dilate(m3.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))[y0:y1, x0:x1] > 0
             vung = nen[y0:y1, x0:x1]; vung[m] = sua[m]; ok = True
     if ok: pass
-    elif v.get('sau') and nguoi.mean() < 0.9:   # có nền xanh thật thì khớp bóng; không (model bỏ nền xanh) → dán theo mặt nạ cũ
+    elif not v.get('nen') and v.get('sau') and nguoi.mean() < 0.9:   # có nền xanh thật thì khớp bóng; không (model bỏ nền xanh) → dán theo mặt nạ cũ
         m3 = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
         ty, tx = np.nonzero(m3); sy, sx = np.nonzero(nguoi)
         # BÓNG 3D BỊ MÉP KHUNG CẮT (cú qua vai: chỉ lộ vai / lưng người tiền cảnh, #14 Vivian) → chiều cao bóng không phải chiều cao người; co người
@@ -73,4 +75,4 @@ elif v['op'] == 'dan':
             r = max(3, int(H * 0.025)); m = cv2.dilate(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))[y0:y1, x0:x1] > 0
             vung[m] = sua[m]
         else: vung[:] = sua
-    cv2.imwrite(v['ra'], nen); print(json.dumps({'ok': True, 'khop': ok, 'cut': cut}))
+    cv2.imwrite(v['ra'], nen, [cv2.IMWRITE_JPEG_QUALITY, 95]) if v['ra'].endswith('.jpg') else cv2.imwrite(v['ra'], nen); print(json.dumps({'ok': True, 'khop': ok, 'cut': cut}))

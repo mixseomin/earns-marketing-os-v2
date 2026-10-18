@@ -98,6 +98,7 @@ export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
   'kiem-bai': async (n) => [await (await import('./kiem-bai.mjs')).nhipKiemBai(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Nội dung: bài nộp → chấm → Telegram
     await (await import('./cham-dang.mjs')).nhipChamDang()].filter(Boolean).join(' · '),   // + bài đăng social của máy studio → cổng trước máy đăng (0đ, máy đo)
+  'kiem-tai-nguyen': async (n) => { const r = await (await import('./tai-nguyen.mjs')).nhipTaiNguyen(n.id, { ten: n.ten }); return `${r.canh_bao} cảnh báo · gửi ${r.gui}`; },   // Phòng Tài nguyên: slot proxy · làn cào · tải box3 → Telegram (0đ, chỉ báo)
 };
 export { trongCa } from './gio-lam.mjs';
 import { trongCa, mocCuoiCa } from './gio-lam.mjs';

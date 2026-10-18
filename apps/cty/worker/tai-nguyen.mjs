@@ -57,6 +57,12 @@ export async function chupTaiNguyen() {
     select 'goc_thuong', max(greatest(lan_cao, dang_cao)) from goc_sp where coalesce(cao_luong, 'thuong') = 'thuong' union all
     select 'goc_uu', max(greatest(lan_cao, dang_cao)) from goc_sp where cao_luong = 'uu' union all
     select 'doi_thu', max(luc) from quet_trang union all select 'spypro', max(lan_cuoi) from spypro_truy_van`).map(([a, b]) => [a, b || null]));
+  // Lượt cào chính chỉ ghi luot_cao khi XONG (lượt dài hàng giờ) → đang chạy thì lấy nhịp sống của lượt (luot-song.json, 30 giây/lần) hoặc
+  // trạng thái lượt (trang-thai-cao.json dang_chay) — 19/10/2026 báo nhầm "cao_chinh đứng 43 giờ" khi lượt iMac đang chạy.
+  const docJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+  const song = docJson('/opt/spy/tep/luot-song.json'), tt = docJson('/opt/spy/tep/trang-thai-cao.json');
+  const dangChay = [song?.luc ? new Date(song.luc * 1000).toISOString() : null, tt?.dang_chay && Date.now() - Date.parse(tt.bat_dau) < 12 * 36e5 ? new Date().toISOString() : null].filter(Boolean).sort().pop();
+  if (dangChay && (!cuoi.cao_chinh || dangChay > new Date(cuoi.cao_chinh).toISOString())) cuoi.cao_chinh = dangChay;
   const lan = psqlSpy(env, 'select lan, may from may_cao_lan order by lan').map(([l, m]) => ({ lan: l, may: m, cuoi: cuoi[l] ? new Date(cuoi[l]).toISOString() : null }));
   const het = await hanKhoa(env, `${DATA()}/tai-nguyen-khoa.json`);
   const khoa = [];

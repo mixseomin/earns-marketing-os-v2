@@ -162,7 +162,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 /** LỚP GHÉP shot ≥ 2 người (khung_xam.lop): prompt NỀN không người + từng người (FLUX độ sâu riêng → nhân dạng → tách nền xanh) — ghepTungNguoi */
 /** LoRA mặt nhân vật cho fal flux-lora-depth (xv_nhan_vat.lora) */
 export type LoraVe = { path: string; scale: number };
-export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; /** vẽ lại TẠI CHỖ trên plate (inpainting) — không câu nền xanh */ prompt_tai_cho: string; ref: string[]; loras?: LoraVe[] }[] };
+export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; /** vẽ lại TẠI CHỖ trên plate (inpainting) — không câu nền xanh */ prompt_tai_cho: string; /** câu trang phục của shot (en) — lượt sửa đồ tại chỗ */ ao?: string; ref: string[]; loras?: LoraVe[] }[] };
 export type HaiBuoc = { lop?: LopGhep; /** người trong khung đều có LoRA → bước 1 FLUX LoRA độ sâu vẽ đúng mặt, BỎ bước 2 sửa mặt */ loras?: LoraVe[]; motBuoc?: boolean; sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
 export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
@@ -398,8 +398,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref, ...(lo ? { loras: lo } : {}),
             prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('trang_thai', ao && `Wearing: ${ao}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
               khoi('hau_canh', `Background: ${xanh} fills everything around the person — no room, no floor line, no shadow on the background.`), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
-            prompt_tai_cho: ghep([khoi('anh_dich', dau), khoi('trang_thai', ao && `Wearing: ${ao}.`), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`),
-              khoi('so_nguoi', 'Exactly one person in the masked area, nobody else.'), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
+            ao,
+            prompt_tai_cho: ghep([khoi('cam_chu', KHONG_CHU), khoi('anh_dich', dau), khoi('trang_thai', ao && `Wearing: ${ao}.`), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`),
+              khoi('so_nguoi', 'Exactly one person in the masked area, nobody else.'), khoi('chat_lieu', CL.flux_cuoi)]),
             prompt2: `EDIT Image 1 (a close crop of ONE person). Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age${ao ? '' : ', outfit'})${ao ? `, CLOTHING IN THIS SHOT (overrides the clothing in Image 2): ${ao}` : ''}${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the framing, pose, body angle and size exactly as Image 1${h ? ` — ${h}` : ''}; do NOT turn the person toward the camera if Image 1 shows them otherwise. Replace everything around the person with ${xanh}, edge to edge. ${KHONG_CHU}` }];
         }) } : undefined;
       // LoRA (anh 18/10/2026): người trong khung có LoRA → bước 1 vẽ đúng mặt ngay (từ khoá + LoRA), mọi người đều có LoRA thì bỏ bước 2 sửa mặt
@@ -599,7 +600,8 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
   };
   // PLATE bám độ sâu CHẶT (FLUX Pro độ sâu — đường nền / bước 1 cũ): union depth 0,6 thả lỏng thì người plate lệch khỏi bóng 3D, mặt nạ vẽ lại
   // theo bóng 3D thành hai Vivian (#15 lượt đầu).
-  const plate = await buocDoSau(db, canhId, thuTu, { sau: toan.sau, prompt1: toan.prompt1, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
+  // câu cấm chữ ĐẦU câu: prompt cả khung dài quá trần T5 của FLUX, phần đuôi (cấm chữ, vết bẩn) bị cắt → logo 'LU GROUP', số '2' trên thùng (#15)
+  const plate = await buocDoSau(db, canhId, thuTu, { sau: toan.sau, prompt1: `${KHONG_CHU} ${toan.prompt1}`, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
   if (!plate.ok) return { ok: false, loi: `plate: ${plate.loi}` };
   let cur = plate.url;
   for (const x of [...lop.nguoi].sort((a, b) => b.xa - a.xa)) {   // xa trước: người gần vẽ sau, mép người gần đè lên người xa đúng thứ tự che
@@ -612,6 +614,16 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
       const r = await veFal(`Keyframe (tại chỗ · ${x.ten})`, MO_HINH_VE_TAI_CHO, { prompt: `${x.prompt_tai_cho}${n}`, image_url: cur, mask_url: mask, strength: 0.8, loras: x.loras.map((l) => ({ ...l, scale: 0.8 })), controlnet_unions: [doSau] });
       if (!r.ok) return { ok: false, loi: `${x.ten} (tại chỗ): ${r.loi}` };
       cur = r.url;
+      if (x.ao) {   // ĐỒ CỦA SHOT (vết cà phê, áo đổi): FLUX inpaint giữ màu áo plate nhưng không tự vẽ chi tiết (#15 mất vết cà phê) → Nano sửa ĐỒ trên ô cắt
+        // cùng tỷ lệ ảnh model, giữ nguyên mặt LoRA, dán đúng ô theo mặt nạ 3D
+        const cat = await lopCat({ op: 'cat', sau: x.sau, anh: cur, le: 0.15, ti: doc ? 9 / 16 : 16 / 9 }, 'jpg');
+        if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
+        const b2 = await suaAnh(`Keyframe (tại chỗ · ${x.ten} · trang phục)`, `EDIT Image 1 (a crop of a photo). Change ONLY ${x.ten}'s CLOTHING to exactly: ${x.ao}. Keep the face, hair, pose, body angle, size, position, lighting and everything around the person exactly as Image 1; do not add or remove anyone or anything. ${KHOA_MAT_LORA} ${KHONG_CHU}`, [cat.url]);
+        if (!b2.ok) return { ok: false, loi: `${x.ten} (trang phục): ${b2.loi}` };
+        const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau, nen: cur }, 'jpg');
+        if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };
+        cur = dan.url;
+      }
     } else if (x.ref.length) {
       const cat = await lopCat({ op: 'cat', sau: x.sau, anh: cur, le: 0.15, ti: doc ? 9 / 16 : 16 / 9 }, 'jpg');
       if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };

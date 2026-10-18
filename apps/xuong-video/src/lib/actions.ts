@@ -5,6 +5,7 @@
 // Admin-only. Mọi lần gọi model ghi xv_job kèm tiền (cents) để bảng tổng kết chi phí của phim không phải đoán.
 import { khuonTheoKey, type ApKhuon } from '@/lib/xuong-video/khuon-chuoi';
 import { lamSachKhanGia, type YDoKhanGia } from '@/lib/xuong-video/khan-gia';
+import { napRef2v, guiRef2v, dsRef2v, type KetRef2v } from '@/lib/xuong-video/ref2v-chay';
 import { tachShotDb, chenShotKhuonDb } from '@/lib/xuong-video/tach-shot';
 import 'server-only';
 import { sql } from 'drizzle-orm';
@@ -1549,6 +1550,26 @@ export async function chenShotKhuon(tapId: number, apIdx: number, buoc: number, 
   if (!(await admin())) return loi('không có quyền');
   const r = await chenShotKhuonDb(db, tapId, apIdx, buoc, String(moTa ?? '').slice(0, 600), await ai());
   return r.ok ? { ok: true, data: r.id } : loi(r.loi);
+}
+/** THỬ nhiều shot trong một clip cho một phân cảnh (ref2v-chay.ts, học Movie Maker của Digen). Xem trước: 0đ, chỉ dựng yêu cầu + giá. */
+export async function xemRef2vCanh(tapId: number, phanDoan: string, tieng = false) {
+  const db = getDb();
+  if (!db || !(await admin())) return null;
+  return napRef2v(db, tapId, phanDoan, tieng);
+}
+/** Gửi MỘT lượt thử (TỐN TIỀN — nút trong studio, anh bấm; giá hiện trên nút). Kết quả chỉ ở sổ job, không thay clip shot nào. */
+export async function thuRef2vCanh(tapId: number, phanDoan: string, tieng = false): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return guiRef2v(db, tapId, phanDoan, tieng);
+}
+/** Các lượt thử nhiều-shot của tập (mới nhất trước) — hỏi provider trước cho lượt đang chạy. */
+export async function dsThuRef2v(tapId: number): Promise<KetRef2v[]> {
+  const db = getDb();
+  if (!db || !(await admin())) return [];
+  await kiemVideoTap(db, tapId).catch(() => null);
+  return dsRef2v(db, tapId);
 }
 /** Lưu Ý ĐỒ KHÁN GIẢ của tập (khan-gia.ts) — sửa trên timeline (ngăn 🎭). Lọc: hiệu ứng có thật, shot thuộc tập. Có ảnh chụp để ↶ hoàn tác. 0đ. */
 export async function luuKhanGia(tapId: number, ds: YDoKhanGia[]): Promise<Kq> {

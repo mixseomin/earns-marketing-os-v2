@@ -38,6 +38,7 @@ import { chamDanDat, luatCuaTru } from '@/lib/xuong-video/dan-dat';
 import { KY_HIEU_CAT, CU_MAY_LIEN_BANG } from '@/lib/xuong-video/dien-anh-nganh';
 import { NganKhuon } from './khuon-ui';
 import { NganKhanGia } from './khan-gia-ui';
+import { NganRef2v } from './ref2v-ui';
 import { soatKhanGia, xepHangYDo, hieuUngKG } from '@/lib/xuong-video/khan-gia';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -274,6 +275,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   /** Bấm khối của một shot (mọi làn): chọn + tua tới đầu shot + mở ngăn chi tiết shot. Phím ←/→ và lúc phát tự sang shot thì KHÔNG mở ngăn. */
   const [suaKhuon, setSuaKhuon] = useState(false);
   const [suaKG, setSuaKG] = useState(false);
+  const [thuRef, setThuRef] = useState<string | null>(null);
   const bamShot = (id: number, i: number) => { onChon(id); tuaToi(batDau[i]!); onMoShot?.(id); };
   const keoDauPhat = (e: PE<HTMLDivElement>, goc: number) => {
     e.preventDefault(); e.stopPropagation();
@@ -667,7 +669,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const mau = pc ? beatMau(pc.beat) : '#64748b';
               const tt = pc ? `${tenPhanDoan(pc.ten)}\nBeat: ${pc.beat} · nhịp ${pc.nhip}\nMục tiêu: ${pc.muc_tieu}\nXung đột: ${pc.xung_dot}${pc.an_y ? `\nẨn ý: ${pc.an_y}` : ''}\nCảm xúc: ${pc.cam_xuc_dau} → ${pc.cam_xuc_cuoi}` : kh.ten || '(chưa đặt phân cảnh)';
               return (
-                <div key={j} data-goi-y={tt} style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div key={j} data-goi-y={`${tt}${onDoiKhuon && kh.ten ? '\n🧪 bấm = thử nhiều shot của cảnh này trong MỘT clip (ref2v, xem giá trước khi sinh)' : ''}`} onClick={() => onDoiKhuon && kh.ten && setThuRef(kh.ten)} style={{ cursor: onDoiKhuon && kh.ten ? 'pointer' : 'default', position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {pc?.beat ? <b style={{ color: mau }}>{pc.beat} · </b> : null}{tenPhanDoan(kh.ten) || '—'}{pc ? ` (${pc.cam_xuc_dau > 0 ? '+' : ''}${pc.cam_xuc_dau}→${pc.cam_xuc_cuoi > 0 ? '+' : ''}${pc.cam_xuc_cuoi})` : ''}
                 </div>
               );
@@ -901,6 +903,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             </Fragment>
           ))}
 
+          {thuRef && onDoiKhuon && <NganRef2v tapId={tap.id} phanDoan={thuRef} onClose={() => setThuRef(null)} />}
           {suaKG && onDoiKhuon && <NganKhanGia tapId={tap.id} ds={tap.khan_gia ?? []} canh={canh} onClose={() => setSuaKG(false)} onLuu={onDoiKhuon} />}
           {suaKhuon && onDoiKhuon && <NganKhuon tapId={tap.id} khuon={tap.khuon_chuoi ?? []} canh={canh} theLoai={theLoai} onClose={() => setSuaKhuon(false)} onLuu={onDoiKhuon} />}
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}

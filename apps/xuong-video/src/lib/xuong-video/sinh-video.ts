@@ -249,6 +249,16 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     const laCong = CONG_VIDEO.includes(r.provider ?? '');
     const kq = r.provider === 'fal' ? await docFal(r.task_id!) : laCong ? await docVideoCong(r.provider, r.task_id!, r.created_at) : await docVeo(r.task_id!);
     if (!kq.done) { conChay++; continue; }
+    // THỬ nhiều shot / một clip (ref2v-chay.ts): job gắn vào shot đầu cảnh chỉ để vòng này hỏi tới — KHÔNG đụng clip / trạng thái shot nào.
+    const thuRef = ((await db.execute(sql`SELECT request->>'ref2v' AS ref, request->>'cents' AS cents FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[])[0];
+    if (thuRef?.ref === 'true') {
+      if (!kq.ok) { await xongJob(db, r.id, { loi: kq.loi }); continue; }
+      const b = await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null);
+      const u = b ? await uploadToR2(`xuong-video/ref2v/${r.id}-${randomUUID()}.mp4`, b, 'video/mp4') : null;
+      await xongJob(db, r.id, u ? { output_url: u, chi_phi_cents: Number(thuRef.cents) || 0 } : { loi: 'tải/lưu video thất bại' });
+      if (u) vuaXong++;
+      continue;
+    }
     if (!kq.ok) {
       await xongJob(db, r.id, { loi: kq.loi });
       // Task cổng treo / hỏng → sinh lại thẳng qua Google (không qua cổng nữa), shot không đứng chờ.

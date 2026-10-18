@@ -20,6 +20,10 @@ import { NGANH_THEM } from './dien-anh-them';
  *  màu chỗ kết (bo-set-3d.ts › chay.ket → dung-set.py), video phải nhận ảnh đầu + ảnh cuối (keyframe_ket), không thì model tự bịa chỗ dừng.
  *  MỘT nguồn cho bản 3D, cổng video (quy-trinh.ts › chanVideo) và chấm điểm cắt (dan-dat.ts). */
 export const CU_MAY_KHUNG_KET: readonly string[] = ['chuyen_chu_the', 'cung', 'vuot_tien_canh'];
+/** KÝ HIỆU trên timeline (làn ↪ Dẫn dắt) — đọc mạch dựng kiểu HBO bằng mắt: mỗi điểm cắt một ký hiệu kiểu cắt (chuyen_canh), mỗi cú máy liền mạch
+ *  một dải giữa shot (chuyen_dong). Thiếu khoá = cắt thẳng (│) / không vẽ dải. */
+export const KY_HIEU_CAT: Record<string, string> = { cat: '│', lien_may: '∞', cat_khop: '⧉', j_cut: 'J', l_cut: 'L', hoa_tan: '◐', toi_den: '■', quat_chuyen: '»', cat_soc: '⚡', nhay: '⋮', cat_hanh_dong: '⇢', cau_am: '♪', quet_vat: '▌', cat_thoi_gian: '⏭', xen_ke: '⇅', mo_cheo: '◑' };
+export const KY_HIEU_MAY_LIEN: Record<string, string> = { chuyen_chu_the: '↝', cung: '↻', vuot_tien_canh: '▸', mot_cu_may: '∞' };
 /** Cú máy liền mạch — hai shot liền nhau cùng cú này = một cú máy bị cắt đôi (dan-dat.ts › cat_giua_may). */
 export const CU_MAY_LIEN: readonly string[] = [...CU_MAY_KHUNG_KET, 'mot_cu_may'];
 

@@ -35,6 +35,7 @@ import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
 import { chamDanDat, luatCuaTru } from '@/lib/xuong-video/dan-dat';
+import { KY_HIEU_CAT, KY_HIEU_MAY_LIEN } from '@/lib/xuong-video/dien-anh-nganh';
 import { NganKhuon } from './khuon-ui';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -722,19 +723,33 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             const k = chamDanDat(canh, (tap.phan_canh ?? []) as never, tap.khuon_chuoi ?? [], theLoai);
             const viTriShot = new Map(canh.map((c, i) => [c.id, i] as const));
             const mau = (d: number) => (d >= 90 ? '#4ade80' : d >= 70 ? '#fbbf24' : '#f87171');
-            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}${c.tru.length ? ` (${c.tru.map((t) => `−${t.tru} ${t.chu}`).join('; ')})` : ''}`).join('\n')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
-            return track('↪ Dẫn dắt', mo, k.cat.map((c) => {
+            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nKý hiệu cắt: │ cắt thẳng · ■ tắt đen · ◐ hoà tan / mờ chéo · ⧉ khớp hình · ⇢ giữa động tác · J / L tiếng dẫn · ♪ cầu âm · ∞ liền máy · ✦ hiệu ứng; số = điểm cắt bị trừ\nDải xanh giữa shot = cú máy LIỀN, không cắt: A ↝ B chuyển chủ thể · ↻ cung · ▸ vượt tiền cảnh · ∞ một cú máy\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}${c.tru.length ? ` (${c.tru.map((t) => `−${t.tru} ${t.chu}`).join('; ')})` : ''}`).join('\n')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
+            // MẠCH DỰNG kiểu HBO đọc bằng mắt: dải giữa shot = cú máy LIỀN MẠCH (chuyển chủ thể A ↝ B, cung, vượt tiền cảnh, một cú máy) — nối mà không cắt;
+            // dấu ở điểm cắt = KIỂU cắt (│ thẳng · ■ tắt đen · ◐ hoà tan · ⧉ khớp hình · J/L tiếng…), có trừ điểm thì thay bằng điểm. Ký hiệu: dien-anh-nganh.ts.
+            const dai = canh.map((cc, i) => {
+              const cd = cc.ky_thuat?.chuyen_dong; const kh = cd ? KY_HIEU_MAY_LIEN[cd] : undefined; if (!kh) return null;
+              const m = cc.may_3d; const a0 = m?.nham ?? m?.khung?.[0]; const b0 = m?.chuyen_toi ?? m?.khung?.find((t) => t !== a0);
+              const ten = kyThuat(cd, 'chuyen_dong')?.ten ?? cd!;
+              const chu = cd === 'chuyen_chu_the' && a0 && b0 ? `${a0} ${kh} ${b0}` : `${kh} ${ten.replace(/ \(.*$/, '')}`;
+              const x0 = batDau[i]! * pps + 14, w = Math.max(16, dur(cc) * pps - 28);
+              return <div key={`ml${cc.id}`} data-goi-y={`Shot #${cc.thu_tu} · ${ten} — một cú máy liền, KHÔNG cắt${cd === 'chuyen_chu_the' && a0 && b0 ? `: mở trên ${a0}, máy rời đi rồi dừng trên ${b0}` : ''}\nbấm = mở kỹ thuật trong thư viện`}
+                onClick={() => moNgan({ loai: 'ky-thuat', ma: `chuyen_dong.${cd}` })}
+                style={{ position: 'absolute', left: x0, width: w, top: 6, height: 14, borderRadius: 7, cursor: 'pointer', fontSize: 9.5, lineHeight: '13px', padding: '0 6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                  color: '#22d3ee', border: '1px dashed #22d3ee88', background: '#22d3ee14' }}>{chu}</div>;
+            });
+            return track('↪ Dẫn dắt', mo, [...dai, ...k.cat.map((c) => {
               const j = viTriShot.get(c.sau); if (j == null || j < 1) return null;
               const x = batDau[j]! * pps; const a = canh[j - 1]!, b = canh[j]!;
-              const tt = [`Cắt #${a.thu_tu} → #${b.thu_tu}${c.sangCanh ? ' · sang cảnh' : ''}: ${c.diem}/100`, ...(c.tru.length ? c.tru.map((t) => `−${t.tru} ${t.chu}`) : ['cắt có lý do — không trừ'])].join('\n');
+              const kc = a.ky_thuat?.chuyen_canh || 'cat'; const kieu = kyThuat(kc, 'chuyen_canh')?.ten ?? kc; const kh = KY_HIEU_CAT[kc] ?? '✦';
+              const tt = [`Cắt #${a.thu_tu} → #${b.thu_tu}${c.sangCanh ? ' · sang cảnh' : ''} · ${kh} ${kieu}: ${c.diem}/100`, ...(c.tru.length ? c.tru.map((t) => `−${t.tru} ${t.chu}`) : ['cắt có lý do — không trừ'])].join('\n');
               const w = c.sangCanh ? 30 : 22;
               const luat = c.tru.map((t) => luatCuaTru(t.ma)).find(Boolean);
               return <div key={`dd${c.sau}`} data-goi-y={`${tt}${luat ? '\nbấm = mở luật bị vi phạm trong thư viện' : ''}`} onClick={() => (luat ? moNgan({ loai: 'ky-thuat', ma: `luat.${luat}` }) : bamShot(b.id, j))}
                 style={{ position: 'absolute', left: x - w / 2, width: w, top: 4, bottom: 4, borderRadius: 4, cursor: 'pointer', zIndex: 1, fontSize: 9.5, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
                   background: c.tru.length ? `${mau(c.diem)}33` : 'transparent', border: `1px ${c.tru.length ? 'solid' : 'dotted'} ${mau(c.diem)}${c.tru.length ? '' : '88'}`, color: mau(c.diem) }}>
-                {c.tru.length ? c.diem : c.sangCanh ? '⇥' : '·'}
+                {c.tru.length ? c.diem : kh}
               </div>;
-            }), 26, <span title={`Điểm dẫn dắt cả tập (rê tên làn xem cách tính)`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: mau(k.diem), border: '1px solid currentColor' }}>{k.diem}</span>);
+            })], 26, <span title={`Điểm dẫn dắt cả tập (rê tên làn xem cách tính)`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: mau(k.diem), border: '1px solid currentColor' }}>{k.diem}</span>);
           })()}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}

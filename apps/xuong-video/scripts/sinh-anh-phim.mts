@@ -62,7 +62,8 @@ if (arg('xem-prompt')) {
     const bc = await boiCanhCanh(db as never, Number(c.id)); if (!bc) continue;
     const k = chuanBiKeyframe(bc);
     console.log(`\n#${c.thu_tu} ${c.canh}`);
-    if (k.haiBuoc && !nguon) console.log(`  [bước 1 FLUX]\n  ${k.haiBuoc.prompt1}\n  [bước 2 · ${k.haiBuoc.ref2.length + 1} ảnh]\n  ${k.haiBuoc.prompt2}`);
+    if (k.haiBuoc?.lop && !nguon) console.log(`  [GHÉP TỪNG NGƯỜI · ${k.haiBuoc.lop.nguoi.length} người ≈ $${(0.05 + k.haiBuoc.lop.nguoi.length * 0.084 + 0.034).toFixed(2)}]\n  [nền]\n  ${k.haiBuoc.lop.nen.prompt}\n${k.haiBuoc.lop.nguoi.map((x) => `  [${x.ten} · xa ${x.xa} cm · ${x.ref.length} ảnh mẫu]\n  ${x.prompt1}\n  → ${x.prompt2}`).join('\n')}`);
+    else if (k.haiBuoc && !nguon) console.log(`  [bước 1 FLUX]\n  ${k.haiBuoc.prompt1}\n  [bước 2 · ${k.haiBuoc.ref2.length + 1} ảnh]\n  ${k.haiBuoc.prompt2}`);
     else console.log(`  [một bước · ${k.urlRef.length} ảnh]\n  ${k.prompt}`);
     console.log(`  [video]\n  ${promptVideoCanh(bc)}`);
     const ck = chamKeyframe(bc); const cv = chamVideo(bc); const loi = [...ck.loi, ...cv.loi];

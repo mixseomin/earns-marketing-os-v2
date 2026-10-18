@@ -1,9 +1,9 @@
 // Sinh ảnh gốc anchor + keyframe shot — lõi dùng chung cho server action (actions.ts, đã kiểm quyền) và script trên box.
 import 'server-only';
 import { sql } from 'drizzle-orm';
-import { dayViecAnh } from './hoan-tat';
+import { dayViecAnh, giaAnhSv } from './hoan-tat';
 import { promptAnhMau, promptBienThe } from './claude';
-import { promptCatNen } from './cat-nen';
+import { promptCatNen, catNen, MAU_XANH_NEN } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptBieuCam } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
@@ -21,6 +21,7 @@ import { CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHUON, soNguoiCau, tuTheEn, 
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
+import { sinhAnh, taiAnhBase64 } from './google';
 import { uploadToR2 } from '../r2';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -154,7 +155,9 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 }
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
-export type HaiBuoc = { sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
+/** LỚP GHÉP shot ≥ 2 người (khung_xam.lop): prompt NỀN không người + từng người (FLUX độ sâu riêng → nhân dạng → tách nền xanh) — ghepTungNguoi */
+export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; ref: string[] }[] };
+export type HaiBuoc = { lop?: LopGhep; sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
 export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
@@ -370,7 +373,24 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
         khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
         khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
       ];
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
+      // LỚP GHÉP (anh 18/10/2026 chọn "ghép từng người"): một lượt FLUX cho cả khung nhiều người không gắn đúng mô tả vào đúng khối (#12 trộn Hạ + Vivian,
+      // Thần quay lưng) → mỗi người MỘT lượt riêng trên nền xanh (một chủ thể thì đạt như các shot một người), nền một lượt riêng không người.
+      const lopKx = bc.canh.khung_xam?.lop; const dau = CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang');
+      const lop: LopGhep | undefined = lopKx ? {
+        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('hau_canh', nenDu.length && `Background: ${nenDu.slice(0, 6).join(', ')}.`),
+          khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi)]) },
+        nguoi: lopKx.nguoi.flatMap((x) => {
+          const v = trongS.find((n) => n.ten === x.ten); if (!v) return [];
+          const hg = mGoc?.vi_tri.find((y) => y.ten === v.ten); const h = hg ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
+          const cam = (mGoc?.vi_tri ?? []).filter((y) => y.cam === v.ten && !y.an).map((y) => bc.nhanVat.find((n) => n.ten === y.ten)).filter((n): n is NhanVat => !!n);
+          const ref = [v, ...cam].map((n) => btCanh(n)?.anh_url ?? n.anh_ref[0]).filter((u): u is string => !!u);
+          const xanh = `the flat, uniform pure chroma green ${MAU_XANH_NEN} background`;
+          return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref,
+            prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
+              khoi('hau_canh', `Background: ${xanh} fills everything around the person — no room, no floor line, no shadow on the background.`), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
+            prompt2: `EDIT Image 1. Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age, outfit)${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the exact pose, position, size and outline from Image 1, and keep ${xanh} untouched edge to edge. ${KHONG_CHU}` }];
+        }) } : undefined;
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { ...(lop && lop.nguoi.length >= 2 ? { lop } : {}), sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: ghep(kF), prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
@@ -494,6 +514,10 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);
   const jobs: number[] = [];
   // Chọn đích danh model khác (so A/B) → đi đường một bước như cũ; mặc định có độ sâu 3D → hai bước.
+  if (haiBuoc?.lop && !moHinh) {   // shot ≥ 2 người: ghép từng người (đồng bộ, chọn ảnh khi xong)
+    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, jobs);
+    return r.ok ? { ok: true, data: jobs } : loi(`ghép từng người: ${r.loi}`);
+  }
   if (haiBuoc && !moHinh) {
     for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
       const b1 = await buocDoSau(db, canhId, bc.canh.thu_tu, haiBuoc, bc.kt.ti_le);
@@ -517,6 +541,56 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
     await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
   }
   return { ok: true, data: jobs };
+}
+
+/** GHÉP TỪNG NGƯỜI (shot ≥ 2 người): nền (FLUX độ sâu không người) → mỗi người: FLUX độ sâu riêng trên nền xanh → Nano Banana nhân dạng một người →
+ *  tách nền xanh (ffmpeg, 0đ) → ghép xa → gần theo đúng điểm ảnh (cùng máy, cùng cỡ ảnh) → một lượt hoà ánh sáng / bóng đổ, cấm dời người. Mỗi lượt
+ *  tốn tiền một job trên sổ. Ảnh xong chọn làm keyframe đang dùng (ảnh cũ còn trong dải ứng viên). */
+async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThanh, lop: LopGhep, jobs: number[]): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
+  const doc = kt.ti_le !== '16:9'; const [W, H] = doc ? [768, 1365] : [1365, 768]; const mh: string = kt.mo_hinh_anh || MO_HINH_ANH[0]!.key;
+  const nen = await buocDoSau(db, canhId, thuTu, { sau: lop.nen.sau, prompt1: lop.nen.prompt, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
+  if (!nen.ok) return { ok: false, loi: `nền: ${nen.loi}` };
+  const suaAnh = async (nhan: string, prompt: string, urls: string[]): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
+    const job = await taoJob(db, { nhan: `${nhan} · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'google', model: mh, request: { prompt, thamChieu: urls } }); jobs.push(job);
+    const kq = await sinhAnh({ model: mh, prompt, thamChieuUrl: urls, thamChieu: (await Promise.all(urls.map(taiAnhBase64))).filter((x): x is NonNullable<typeof x> => !!x), tiLe: doc ? '9:16' : '16:9' });
+    if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return { ok: false, loi: kq.loi }; }
+    const url = await uploadToR2(`xuong-video/keyframe/${canhId}/lop-${Date.now()}.png`, kq.data, kq.mimeType);
+    if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }
+    await xongJob(db, job, { output_url: url, model: kq.model, chi_phi_cents: await giaAnhSv(mh) });
+    return { ok: true, url };
+  };
+  const lopPng: string[] = [];
+  for (const x of [...lop.nguoi].sort((a, b) => b.xa - a.xa)) {   // xa trước: người gần ghép sau, đè lên
+    const b1 = await buocDoSau(db, canhId, thuTu, { sau: x.sau, prompt1: x.prompt1, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
+    if (!b1.ok) return { ok: false, loi: `${x.ten} (độ sâu): ${b1.loi}` };
+    const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [b1.url, ...x.ref]) : b1;
+    if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };
+    const png = await catNen(b2.url, `keyframe/${canhId}/lop-${x.ten.replace(/\s+/g, '_')}`);
+    if (!png) return { ok: false, loi: `${x.ten}: tách nền xanh hỏng` };
+    lopPng.push(png);
+  }
+  const ghepUrl = await ghepLop(nen.url, lopPng, W, H, `xuong-video/keyframe/${canhId}/ghep-${Date.now()}.jpg`);
+  if (!ghepUrl) return { ok: false, loi: 'ghép lớp (ffmpeg) hỏng' };
+  const hoa = await suaAnh('Keyframe (ghép từng người · hoà ánh sáng)', `EDIT Image 1. Image 1 is a photo composite: the people were photographed separately and placed into this place. Make it look like ONE photograph: match the lighting direction, colour temperature, contrast and grain of the people to the place, and add soft contact shadows on the floor under their feet. Do NOT move, add, remove, resize, re-pose or re-order anyone or anything; keep every face, outfit, hand and held object exactly as it is. ${KHONG_CHU}`, [ghepUrl]);
+  const cuoi = hoa.ok ? hoa.url : ghepUrl;
+  const { chonKeyframe } = await import('./tu-sua-clip');
+  await chonKeyframe(db, canhId, cuoi, 'ghép từng người');
+  return { ok: true, url: cuoi };
+}
+
+/** Ghép các lớp PNG trong suốt (cùng máy, cùng khung) lên ảnh nền theo thứ tự — ffmpeg overlay, kéo mọi lớp về đúng cỡ nền. null = hỏng. */
+async function ghepLop(nen: string, lopPng: string[], W: number, H: number, khoa: string): Promise<string | null> {
+  const { execFile } = await import('node:child_process'); const { promisify } = await import('node:util'); const { mkdtemp, readFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const thu = await mkdtemp(join(tmpdir(), 'ghep-lop-'));
+  try {
+    const vao = [nen, ...lopPng].flatMap((u) => ['-i', u]);
+    const loc = [`[0:v]scale=${W}:${H},format=rgba[b0]`, ...lopPng.map((_, i) => `[${i + 1}:v]scale=${W}:${H},format=rgba[l${i}];[b${i}][l${i}]overlay=0:0:format=auto[b${i + 1}]`)].join(';');
+    const ra = join(thu, 'ra.jpg');
+    await promisify(execFile)('ffmpeg', ['-hide_banner', '-nostats', '-y', ...vao, '-filter_complex', loc, '-map', `[b${lopPng.length}]`, '-frames:v', '1', '-q:v', '2', ra], { timeout: 120_000 });
+    return await uploadToR2(khoa, await readFile(ra), 'image/jpeg');
+  } catch (e) { console.error('[ghép lớp] hỏng', e); return null; }
+  finally { await rm(thu, { recursive: true, force: true }).catch(() => {}); }
 }
 
 /** BƯỚC 1 của keyframe hai bước: FLUX depth (fal) từ bản đồ độ sâu 3D + chữ → ảnh thật đúng góc máy / bố cục. Chạy tại chỗ (10–30s), có job

@@ -27,6 +27,8 @@ import { uploadToR2 } from '../r2';
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
 /** Prompt ảnh cuối = phong cách bộ phim + prompt cảnh + nhắc giữ đúng anchor theo ảnh tham chiếu. */
+/** Người đã có LoRA: mặt trên ảnh FLUX đã đúng — lượt Nano chỉ được sửa trang phục / phụ kiện / đồ cầm theo ảnh mẫu. */
+export const KHOA_MAT_LORA = 'The FACE in Image 1 is already the right person: keep the face, identity, hair, expression and pose exactly as they are; change only clothing, stains, accessories and held objects to match the reference images.';
 export const KHONG_CHU = 'No text, letters, numbers, captions, watermarks or logos anywhere in the image.';
 export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = ''): string {
   // Kỹ thuật điện ảnh của shot (cỡ cảnh, góc, ống kính, ánh sáng, màu — thư viện dien-anh.ts) đứng ngay sau phong cách.
@@ -543,16 +545,9 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
       const lon = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.trong_khung && k.cao_khung_pt >= 30).map((k) => k.nhan_vat));
       const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:') && lon.has(q.ma.slice(4))).length;
       if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
-      if (haiBuoc.motBuoc && !nuoc) { const { chonKeyframe } = await import('./tu-sua-clip'); await chonKeyframe(db, canhId, b1.url, 'LoRA một lượt'); continue; }   // mặt đã đúng nhờ LoRA
-      if (haiBuoc.motBuoc) {   // LoRA + cần nước mắt: một lượt sửa ảnh, giữ nguyên mọi thứ khác (ảnh xong tự thành keyframe qua hàng hoàn tất)
-        const p = `EDIT Image 1. ${nuoc} Keep EVERYTHING else exactly as it is: the face, identity, expression, pose, hair, clothes, framing, background and lighting. ${KHONG_CHU}`;
-        const job = await taoJob(db, { nhan: `Keyframe (nước mắt) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: p, thamChieu: 1, thamChieuUrl: [b1.url], buoc1: b1.url } });
-        jobs.push(job);
-        await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: p, thamChieuUrl: [b1.url], tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
-        continue;
-      }
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
-      const p2 = [haiBuoc.prompt2, nuoc].filter(Boolean).join(' ');
+      // LoRA lo MẶT; trang phục / vết bẩn / đạo cụ vẫn phải qua lượt sửa theo ảnh mẫu (18/10/2026: bỏ lượt này thì #12–#15 mất áo dính cà phê, đổi màu váy)
+      const p2 = [haiBuoc.prompt2, haiBuoc.motBuoc ? KHOA_MAT_LORA : '', nuoc].filter(Boolean).join(' ');
       const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: p2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
       jobs.push(job);
       await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: p2, thamChieuUrl, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
@@ -590,7 +585,7 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     // CẮT – DÁN: sửa nhân dạng trên ẢNH CẮT quanh người (lấp khung) rồi dán về đúng hộp — sửa trên cả khung thì Nano Banana vẽ lại bố cục (#12)
     const cat = await lopCat({ op: 'cat', sau: x.sau, anh: b1.url, le: 0.15 }, 'jpg');
     if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
-    const b2 = x.ref.length && !x.loras ? await suaAnh(`Keyframe (lớp ${x.ten} · nhân dạng)`, x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
+    const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · ${x.loras ? 'trang phục' : 'nhân dạng'})`, x.loras ? `${x.prompt2} ${KHOA_MAT_LORA}` : x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
     if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };
     const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau, goc: b1.url }, 'png');
     if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };

@@ -951,6 +951,18 @@ def vet_(n_, ten, ds):
         o.location = (lo.x + (hi.x - lo.x) * lx, lo.y - 1.2, lo.z + (hi.z - lo.z) * lz)   # nhô 1,2 cm trước mặt ngực: nổi ra ngoài áo người MPFB (vải nổi 4 mm + độ phồng áo)
         o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
 
+def ho_tua(s_, dg, n_, ben):
+    """Khoảng hở (cm, âm = lún) từ LÒNG BÀN TAY ÚP (cổ tay − 3 cm — người MPFB gập bàn tay úp ngang cổ tay, mesh/nguoi.py › tay_ap) tới mặt đỡ của BỘ
+    SET ngay dưới. Tia bắn từ 25 cm TRÊN cổ tay xuống (bắt từ dưới mặt bàn thì trúng sàn — #23–#25 báo oan 75 cm); bỏ qua đạo cụ / người ('NG',
+    'NV', 'THAN' — #25 trúng cây bút dựng trên bàn). None = không có gì bên dưới. MỘT hàm cho bước cúi (cham_mat_tua) và cổng (tua_hong)."""
+    w = n_[f'cotay_{ben}'].matrix_world.translation; p_z = w.z - 3 * CM; goc = w + Vector((0, 0, 25 * CM))
+    for _k in range(8):
+        hit, loc, _, _, ob, _ = s_.ray_cast(dg, goc, Vector((0, 0, -1)), distance=5.0)
+        if not hit or not ob: return None
+        if ob.name.startswith(('NG ', 'NV ', 'THAN')): goc = loc - Vector((0, 0, 0.002)); continue
+        return (p_z - loc.z) / CM
+    return None
+
 def cham_mat_tua(n_, ten, dien):
     """DÁNG TỰA CHẠM MẶT ĐỠ (19/10/2026 #23–#25: Thần 'chống bàn' mà tay cách mặt bàn 17,7 cm — góc cúi khai cứng 28° đo trên ma-nơ-canh cũ, người
     theo tỉ lệ MPFB cao hơn): cúi thêm / bớt cột sống từng 3–4° tới khi điểm chạm (bàn tay) cách mặt đỡ ngay bên dưới ≤ 3 cm — như diễn viên tự tìm mặt
@@ -961,16 +973,8 @@ def cham_mat_tua(n_, ten, dien):
     for _ in range(12):
         bpy.context.view_layer.update(); dg = bpy.context.evaluated_depsgraph_get(); hong = []
         for b in ben:
-            # đo tại CỔ TAY − 3 cm (lòng bàn tay úp): người MPFB gập bàn tay úp phẳng ngang cổ tay (mesh/nguoi.py › tay_ap) — đo ở điểm nắm của bàn tay
-            # ma-nơ-canh duỗi thẳng xuống thì đầu ngón chạm bàn là "đủ", bàn tay thật úp lơ lửng cao hơn mặt bàn một bàn tay (#25)
-            p = n_[f'cotay_{b}'].matrix_world.translation - Vector((0, 0, 3 * CM)); goc = p.copy()
-            for _k in range(6):
-                hit, loc, _, _, ob, _ = s_.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
-                if not hit or not ob: break
-                # bỏ qua chính người đó + MỌI đạo cụ / người khác ('NV …', 'NG …'): mặt đỡ là bộ set (#25 dò trúng cây bút dựng trên bàn, dừng cúi khi tay
-                # còn cách mặt bàn)
-                if ob.name.startswith(('NG ', 'NV ', 'THAN')): goc = loc - Vector((0, 0, 0.002)); continue
-                hong.append((p.z - loc.z) / CM); break
+            g_ = ho_tua(s_, dg, n_, b)
+            if g_ is not None: hong.append(g_)
         if not hong: return
         g = max(hong)
         if g > 30: return   # mặt đỡ xa hơn 30 cm dưới tay = không có bàn dưới tay (trúng sàn) — đừng cúi tới sàn; cổng tua_hong báo để dời người
@@ -989,12 +993,7 @@ def tua_hong(s, dg, sh, ten):
     hong = 0.0
     for ma in mo:
         for ben in DANG_TUA.get(ma, ()):
-            p = n_[f'cotay_{ben}'].matrix_world.translation - Vector((0, 0, 3 * CM)); goc = p.copy()   # đo như cham_mat_tua: lòng bàn tay úp dưới cổ tay
-            for _ in range(6):
-                hit, loc, _, _, ob, _ = s.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
-                if not hit or not ob: hong = max(hong, 300.0); break
-                if ob.name.startswith(('NG ', 'NV ', 'THAN')): goc = loc - Vector((0, 0, 0.002)); continue   # mặt đỡ là bộ set, không phải đạo cụ / người
-                hong = max(hong, (p.z - loc.z) / CM); break
+            g_ = ho_tua(s, dg, n_, ben); hong = max(hong, 300.0 if g_ is None else g_)
     return round(hong, 1) if hong > 6 else None
 
 def kiem_hinh_hoc(s, cam, sh, nv_obj):

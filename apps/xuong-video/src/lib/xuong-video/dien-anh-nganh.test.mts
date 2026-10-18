@@ -22,3 +22,7 @@ console.log(`dien-anh-nganh.test: ok (${can.length} kỹ thuật có mô tả ng
 const tho = LUAT_DUNG_CANH.filter((l) => l.xem === false);
 assert.ok(tho.length >= 15 && tho.every((l) => l.nganh), `luật thợ thiếu mô tả ngành: ${tho.filter((l) => !l.nganh).map((l) => l.key).join(', ')}`);
 console.log('dien-anh-nganh.test: ok (luật thợ)');
+// MỌI luật dựng (không chỉ luật thợ) phải dẫn kiến thức ngành có NGUỒN (anh 18/10/2026: "Luôn phải refer với kiến thức ngành") — luật mới thiếu mục 'luat.<key>' là đỏ.
+const khongNguon = LUAT_DUNG_CANH.filter((l) => !l.nganh || !l.nganh.nguon.trim() || Object.values(l.nganh).some((v) => !String(v).trim())).map((l) => l.key);
+assert.deepStrictEqual(khongNguon, [], `luật dựng thiếu kiến thức ngành / nguồn: ${khongNguon.join(', ')}`);
+console.log(`dien-anh-nganh.test: ok (${LUAT_DUNG_CANH.length} luật dựng đều có nguồn ngành)`);

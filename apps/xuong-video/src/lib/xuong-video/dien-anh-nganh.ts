@@ -15,6 +15,7 @@ export type NganhKyThuat = { ten_nganh: string; dau_cuoi: string; thuc_hien: str
 export type MayDi = { kieu: 'dung' | 'tien' | 'lui' | 'ngang' | 'len' | 'xuong' | 'lia' | 'nghieng' | 'vong' | 'zoom' | 'theo' | 'chuyen' | 'truot_qua' | 'tu_do'; ti_le?: number; goc?: number; toc: 'cham' | 'vua' | 'nhanh' };
 
 import { NGANH_THEM } from './dien-anh-them';
+import { NGANH_LUAT } from './nganh-luat-dung';
 
 /** CÚ MÁY LIỀN MẠCH CẦN KHUNG KẾT (luật khong_cat_giua_may): khung cuối khác hẳn khung mở (dừng trên người khác / phía bên kia) — bản 3D dựng thêm khung
  *  màu chỗ kết (bo-set-3d.ts › chay.ket → dung-set.py), video phải nhận ảnh đầu + ảnh cuối (keyframe_ket), không thì model tự bịa chỗ dừng.
@@ -424,4 +425,6 @@ export const NGANH: Record<string, { nganh: NganhKyThuat; may_di?: MayDi }> = {
     tranh: 'Tiếng cắt đúng mép hình: mỗi cú cắt một tiếng "khựng".', nguon: 'Thompson & Bowen — Grammar of the Edit; David Sonnenschein — Sound Design' } },
   // Bổ sung ngành (dien-anh-them.ts): chuyển chủ thể, lướt qua vật che, đi cung, pedestal, drone, oner… + nhịp diễn mới.
   ...NGANH_THEM,
+  // Kiến thức ngành cho các luật dựng cảnh (nganh-luat-dung.ts) — anh 18/10/2026: "Luôn phải refer với kiến thức ngành".
+  ...NGANH_LUAT,
 };

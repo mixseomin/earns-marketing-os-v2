@@ -67,6 +67,10 @@ def doc_goc(u):
     return cv2.imdecode(np.frombuffer(b, np.uint8), cv2.IMREAD_COLOR)
 
 vao = json.load(sys.stdin)
+if vao.get('op') == 'dem':        # {op, url, nguong} → {mat}: ĐẾM mặt người, ngưỡng tin cậy riêng (0,5) — cổng sau bước 1 keyframe chỉ hỏi "có mặt người không";
+    # ngưỡng 0,8 của so mặt bỏ sót mặt ~70 px ở khung rộng (tập 122 #12: ba người, đếm ra 0 → chặn oan)
+    im = doc(vao['url']); det.setScoreThreshold(float(vao.get('nguong', 0.5))); det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+    print(json.dumps({'mat': 0 if f is None else len(f)})); sys.exit(0)
 if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y}} → {hop:[x0,y0,x1,y1] px gốc, b64: vùng đầu 1024²}
     im = doc_goc(vao['url']); hop = vung_dau(im, vao['o'])
     print(json.dumps({'hop': hop, 'b64': b64jpg(cv2.resize(im[hop[1]:hop[3], hop[0]:hop[2]], (1024, 1024))) if hop else None})); sys.exit(0)

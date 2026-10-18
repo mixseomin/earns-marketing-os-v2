@@ -500,7 +500,9 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
       if (!b1.ok) return loi(`bước 1 (độ sâu): ${b1.loi}`);
       // CỔNG SAU BƯỚC 1 (0đ, YuNet): khung 3D có người quay mặt về máy (cùng luật câu hỏi kiểm [mat:]) mà ảnh bước 1 không có mặt người nào → dừng,
       // không trả tiền bước 2 cho ảnh hỏng. Tập 122 #11: 4 lượt bước 1 vẽ ma-nơ-canh thành bình / tượng, bước 2 tự đặt người bừa chỗ khác.
-      const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:')).length;
+      // chỉ người ĐỦ LỚN (≥ 30% chiều cao khung 3D) mới bắt buộc thấy mặt — người nhỏ ở khung rộng mặt vài chục px, bộ dò không chắc bắt được
+      const lon = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.trong_khung && k.cao_khung_pt >= 30).map((k) => k.nhan_vat));
+      const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:') && lon.has(q.ma.slice(4))).length;
       if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
       const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: haiBuoc.prompt2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });

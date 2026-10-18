@@ -65,7 +65,7 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
 /** ĐẾM MẶT NGƯỜI trong một ảnh (YuNet, 0đ) — cổng sau bước 1 keyframe hai bước (sinh-anh.ts). null = không đếm được (chưa cài / lỗi): bên gọi
  *  bỏ qua cổng, không chặn — có ghi lý do ra log. */
 export async function demMat(url: string): Promise<number | null> {
-  try { const r = await chay({ mau: {}, anh: [{ id: 1, url, ten: [] }] }); return r.anh[0]?.mat ?? null; }
+  try { return (await chay<{ mat: number }>({ op: 'dem', url, nguong: 0.5 })).mat; }
   catch (e) { console.warn(`demMat: ${e instanceof Error ? e.message : String(e)}`); return null; }
 }
 

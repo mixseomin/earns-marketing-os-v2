@@ -389,8 +389,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   /** Làn CON của cây đối tượng: thụt vào, thấp hơn, không vào menu ẩn làn (ẩn theo làn cha). */
   const lanCon = (nhan: string, mo: string, noiDung: ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'stretch', height: 20, marginTop: 1 }}>
-      <div data-goi-y={mo} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', color: 'var(--fg-3)', fontSize: 11, display: 'flex', alignItems: 'center', paddingLeft: 30, borderLeft: '2px solid var(--line)', marginLeft: 12, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{nhan}</div>
-      <div style={{ position: 'relative', width: W, flexShrink: 0, fontSize: 10.5 }}>{noiDung}</div>
+      {/* Thụt bằng đệm + vạch bóng trong, KHÔNG margin/viền trái: margin làm ô nhãn rộng nhanW+14 → khối của làn con lệch phải 14px so với
+          làn cha, và nhãn dính hở khe cho khối cuộn ló qua (#1417, cùng gốc #1413). */}
+      <div data-goi-y={mo} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', color: 'var(--fg-3)', fontSize: 11, display: 'flex', alignItems: 'center', paddingLeft: 44, boxShadow: 'inset 14px 0 0 var(--bg-1), inset 16px 0 0 var(--line)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{nhan}</div>
+      {/* Làn con thấp 20px → khối trong đó chữ nhỏ + dòng 14px cho nằm giữa (khoiAm đọc --khoi-co / --khoi-lh). */}
+      <div style={{ position: 'relative', width: W, flexShrink: 0, '--khoi-co': '9.5px', '--khoi-lh': '14px' } as React.CSSProperties}>{noiDung}</div>
     </div>
   );
   const nutNho = (chu: string, title: string, tat: boolean, onClick: () => void) => (
@@ -418,7 +421,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     <div key={key} data-goi-y={title} onClick={onClick}
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
-        color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? '0 22px 0 5px' : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        color: co ? mau : 'var(--fg-3)', fontSize: 'var(--khoi-co, 10px)', lineHeight: 'var(--khoi-lh, 20px)', padding: nutSinh ? '0 22px 0 5px' : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
       {nutSinh?.dang && <div className="xv-dang" style={{ borderRadius: 4 }}><span>⏳ đang sinh</span></div>}
       {nutSinh?.nghe?.length ? (
         // Nghe riêng đúng khối này (#1206) — không cần chạy cả timeline.
@@ -523,10 +526,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       <TayKeo truc="y" onPointerDown={hangPan.keo('y')} onDoubleClick={hangPan.veMacDinh} title="Kéo để đổi chiều cao khung hình · nhấp đúp = mặc định" />
       {/* Các track */}
       {/* Không đệm TRÁI ở khung cuộn (#1413): cột nhãn dính left:0 bám mép trong lớp đệm → khe 10px bên trái nhãn để khối đang cuộn ló qua; đầu phát kéo cũng lệch 10px. */}
-      <div ref={vungRef} style={{ marginTop: 0, padding: '6px 10px 0 0', borderTop: '1px solid var(--line)', overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
+      {/* Khung cuộn CẢ HAI chiều, cao tối đa 78vh (#1418): overflowX đã biến nó thành hộp cuộn nên sticky-top không bám được trang —
+          tự cuộn dọc bên trong thì thước giây + làn 🎬 Hình dính trên cùng khi cuộn xuống các làn dưới. */}
+      <div ref={vungRef} style={{ marginTop: 0, padding: '0 10px 0 0', borderTop: '1px solid var(--line)', overflow: 'auto', maxHeight: '78vh', position: 'relative', paddingBottom: 4 }}>
         <div style={{ width: W + nhanW, position: 'relative' }}>
-          {/* Thước giây — bấm/kéo để tua */}
-          <div style={{ display: 'flex', height: 18 }}>
+          {/* Thước giây — bấm/kéo để tua; dính trên cùng khi cuộn dọc */}
+          <div style={{ display: 'flex', height: 24, paddingTop: 6, position: 'sticky', top: 0, zIndex: 6, background: 'var(--bg-1)' }}>
             <div style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, ...mono }}>
               <span title="Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip = cắt giây phát · kéo clip đổi thứ tự · nét đứt = chưa sinh" style={{ cursor: 'help' }}>⌨</span>
               {nutNho('🔍−', 'Thu nhỏ thước thời gian', zoom <= 1, () => setZoom((z) => Math.max(1, z - 0.5)))}
@@ -596,6 +601,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {khung && <div style={{ position: 'fixed', left: Math.min(khung.x0, khung.x1), top: Math.min(khung.y0, khung.y1), width: Math.abs(khung.x1 - khung.x0), height: Math.abs(khung.y1 - khung.y0), border: '1px solid var(--cyan)', background: 'color-mix(in srgb, var(--cyan) 12%, transparent)', pointerEvents: 'none', zIndex: 50 }} />}
           </div>
+          {/* Làn 🎬 Hình dính ngay dưới thước (#1418) — cuộn xuống các làn đối tượng vẫn thấy shot nào đang ở đâu. */}
+          <div style={{ position: 'sticky', top: 24, zIndex: 5, background: 'var(--bg-1)', paddingBottom: 3, boxShadow: '0 1px 0 var(--line)' }}>
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = anhNho(cc.keyframe_url, 160);
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);
@@ -621,6 +628,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k, g) => onDoiChuyenCanh(cc.id, k, g))}
                 onImpact={onDoiChuyenCanh && onDoiKyThuat && (() => { const tc = batDau[i + 1]!; datLop((ds) => [...ds, ...lopImpact(tc)]); onDoiChuyenCanh(cc.id, 'cat_soc'); onDoiKyThuat([{ id: sau.id, ky_thuat: themTieng(sau.ky_thuat, 'dap') }]); })} />;
           })), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
+          </div>
 
           {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}
           {canh.some((x) => x.phan_doan) && track('🎞 Phân cảnh', 'Shot cùng phân cảnh gộp một khối — mỗi phân cảnh có mục tiêu, xung đột, cảm xúc đổi từ đầu tới cuối', (() => {
@@ -749,7 +757,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}
-          <div style={{ position: 'absolute', left: nhanW + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>
+          <div style={{ position: 'absolute', left: nhanW + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 7 }}>   {/* trên thước + làn Hình đang dính (z 6/5) */}
             <div title="Kéo để tua" onPointerDown={(e) => keoDauPhat(e, (vungRef.current?.getBoundingClientRect().left ?? 0) + nhanW - (vungRef.current?.scrollLeft ?? 0))}
               style={{ position: 'absolute', top: 0, left: -7, width: 16, height: 16, background: '#ef4444', borderRadius: '3px 3px 8px 8px', cursor: 'ew-resize', pointerEvents: 'auto', boxShadow: '0 1px 4px #0008' }} />
           </div>

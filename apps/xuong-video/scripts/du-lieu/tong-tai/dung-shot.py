@@ -135,7 +135,7 @@ shot('3.4', C3, 5, 'veo', {'vai': 'tam_trang', 'co_canh': 'ms', 'goc': 'thap', '
      { 'dien': "Anticipation: Hạ steps backward into the elevator. Action: the {Thang máy 1} slides shut between them. Reaction: Vivian's smile falters as her reflection appears in the steel.", 'huong': 'Hạ backs away from camera into the elevator; Vivian stays facing her.','bo_cuc': 'Hạ steps into the elevator; the {Thang máy 1} slides shut between her and Vivian', 'mo': 'Hạ stepping back into the elevator', 'ket': 'doors closed, Vivian’s reflection in the steel', 'muc_dich': 'khép một chương'},
      'Hạ lùi vào thang máy, cửa thép khép lại giữa hai người', [],
      [bc(HA, 'nhech_moi', 'quyet_tam'), bc(VIV, 'dac_y', 'ngo_vuc')],
-     {'tay': True, 'dat': [60, 230, 160], 'nhin': [-100, 440, 150], 'ong_kinh': 45, 'khung': [HA, VIV],   # máy đặt tay: bộ giải dời ra hướng 68°, lệch hướng chủ cảnh (~125°) 60° 'vi_tri': [vt(HA, [-100, 380, 0], 90, den=[-100, 470, 0], huong_den=0, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['cam_truoc']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV, an=True), vt(HOP, [-95, 365, 95], 90, cam=HA, het=True)]},
+     {'tay': True, 'dat': [60, 230, 160], 'nhin': [-100, 440, 150], 'ong_kinh': 45, 'khung': [HA, VIV], 'vi_tri': [vt(HA, [-100, 380, 0], 90, den=[-100, 470, 0], huong_den=0, dien=['om_thung']), vt(VIV, [0, 365, 0], -90, dien=['cam_truoc']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV, an=True), vt(HOP, [-95, 365, 95], 90, cam=HA, het=True)]},   # máy đặt tay: bộ giải dời ra hướng 68°, lệch hướng chủ cảnh (~125°) 60°
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
 
 # ── CẢNH 4 · Phòng họp HĐQT 15:00 (58–79 s) — thời gian nhảy, Hạ đã thay vest trắng ──

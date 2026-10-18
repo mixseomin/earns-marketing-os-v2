@@ -147,7 +147,7 @@ export const QUY_CHUAN_DONG: Partial<Record<TheLoai, { khuon: string[]; luat: st
   tinh_cam: { khuon: ['doi_thoai_cang', 'phat_hien', 'ket_treo'], luat: ['cận mặt, giữ phản ứng', 'điều không nói ra quan trọng hơn lời thoại (ẩn ý)', 'ánh sáng ấm đổi theo khoảng cách hai người'] },
   phieu_luu: { khuon: ['thiet_lap_khong_gian', 'phat_hien', 'ket_treo'], luat: ['khung rộng hùng vĩ mở thế giới', 'mục tiêu rõ, chướng ngại tăng dần', 'máy rộng / cẩu máy ở khoảnh khắc lớn'] },
   tai_lieu: { khuon: ['thiet_lap_khong_gian', 'phat_hien'], luat: ['câu hỏi rõ ngay đầu', 'hình hiện trường thay lời kể', 'bằng chứng trước kết luận', 'không dàn dựng điều không có thật'] },
-  hanh_dong: { khuon: ['thiet_lap_khong_gian', 'ra_mat_quyen_luc', 'ket_treo'], luat: ['địa lý cảnh đánh rõ trước khi đánh', 'cắt giữa động tác', 'giữ trục 180° trong cảnh đánh', 'nhịp nhanh nhưng mỗi đòn đọc được'] },
+  hanh_dong: { khuon: ['thiet_lap_khong_gian', 'ra_mat_quyen_luc', 'ket_treo'], luat: ['địa lý cảnh đánh rõ trước khi đánh', 'cắt giữa động tác', 'giữ trục 180° trong cảnh đánh', 'nhịp nhanh nhưng mỗi đòn đọc được', 'mỗi đòn có hậu quả thấy được (trúng, ngã, đau) và có sức nặng', 'hai phe phân biệt rõ bằng màu / trang phục; đòn luôn nhắm đúng phe đối địch'] },
   vien_tuong: { khuon: ['thiet_lap_khong_gian', 'phat_hien', 'ket_treo'], luat: ['luật của thế giới nói sớm bằng hình', 'quy mô (người làm tỉ lệ) ở khung rộng', 'công nghệ lạ cho thấy dùng thế nào, không giải thích dài'] },
   qc_cao_cap: { khuon: ['truoc_sau', 'thiet_lap_khong_gian'], luat: ['sản phẩm hoàn hảo, macro', 'chuyển động mượt, ít cắt thô', 'logo / CTA cuối'] },
 };

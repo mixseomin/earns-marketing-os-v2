@@ -21,7 +21,7 @@ export const GOI_THE_LOAI: GoiTheLoai[] = [
   // ── Sẵn sàng: đang sản xuất trong studio ──
   { key: 'phim_doc_tong_tai', ten: 'Phim ngắn dọc · tổng tài', ic: '📱', nhom: 'Phim truyện', loai: 'phim', the_loai: 'phim_doc', khung: 'phim_doc', ti_le: '9:16', do_dai_s: [60, 120],
     mo_ta: 'Đoản kịch nhiều tập: móc 3 giây, đè nén → vả mặt, mỗi 15–30 giây một nút thắt, cuối tập treo.',
-    khan_gia: ['uc_che', 'danh_lua', 'to_mo', 'hoi_hop', 'bat_ngo', 'ha_he', 'to_mo'], luat: ['muon_gi_5s', 'gia_tri_doi', 'chenh_thong_tin', 'giu_phan_ung', 'ket_ro'],
+    khan_gia: ['uc_che', 'danh_lua', 'to_mo', 'hoi_hop', 'bat_ngo', 'ha_he', 'to_mo'], luat: ['muon_gi_5s', 'gia_tri_doi', 'chenh_thong_tin', 'giu_phan_ung', 'ket_ro', 'noi_tap'],
     tham_chieu: 'Đoản kịch dọc Trung Quốc (ứng dụng ReelShort, DramaBox); quy ước "ức chế → vả mặt" là quy ước thể loại' , digen: ['Short Drama', 'Series'] },
   { key: 'qc_ugc', ten: 'Quảng cáo sản phẩm · UGC', ic: '🛍', nhom: 'Quảng cáo', loai: 'quang_cao', the_loai: 'qc_ugc', khung: 'quang_cao', ti_le: '9:16', do_dai_s: [15, 45],
     mo_ta: 'Người thật cầm điện thoại nói về sản phẩm: móc câu → nỗi đau → giải pháp → bằng chứng → ưu đãi.',
@@ -115,7 +115,7 @@ export const GOI_THE_LOAI: GoiTheLoai[] = [
     mo_ta: 'Đi tới → khám phá → khoảnh khắc đẹp nhất → muốn đi.', khan_gia: ['to_mo', 'vui', 'nhe_nhom'], luat: ['dan_khong_gian', 'khung_dong'],
     tham_chieu: 'Travel reel trên Instagram / TikTok', digen: ['Travel'] },
   { key: 'game_trailer', ten: 'Trailer game', ic: '🎮', nhom: 'Mạng xã hội', loai: 'short', the_loai: 'vien_tuong', khung: 'trailer', ti_le: '16:9', do_dai_s: [60, 120],
-    mo_ta: 'Thế giới game → xung đột → dồn cắt gameplay → logo + ngày ra mắt.', khan_gia: ['to_mo', 'hoi_hop', 'ha_he'], luat: ['nhip_doc', 'khoang_lang', 'ket_ro'],
+    mo_ta: 'Thế giới game → xung đột → dồn cắt gameplay → logo + ngày ra mắt; HUD (máu, đạn, bản đồ) giữ cùng kiểu và vị trí mọi khung, phe ta / phe địch phân biệt rõ.', khan_gia: ['to_mo', 'hoi_hop', 'ha_he'], luat: ['nhip_doc', 'khoang_lang', 'ket_ro'],
     tham_chieu: 'Trailer game (cinematic xen gameplay, kết logo + ngày phát hành)', digen: ['Game'] },
   { key: 'the_thao', ten: 'Thể thao', ic: '⚽', nhom: 'Mạng xã hội', loai: 'short', the_loai: 'hanh_dong', khung: 'short', ti_le: '16:9', do_dai_s: [15, 60],
     mo_ta: 'Dồn tới khoảnh khắc quyết định, quay chậm phát lại.', khan_gia: ['hoi_hop', 'ha_he'], luat: ['khop_hanh_dong', 'nhip_doc'],

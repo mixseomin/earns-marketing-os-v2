@@ -1,11 +1,14 @@
 // THỬ LoRA một nhân vật: ảnh đa dạng (biểu cảm / góc / hướng nhìn / vị trí) bằng fal flux-lora + ảnh theo ĐỘ SÂU 3D của shot thật bằng fal flux-lora-depth.
 // TỐN TIỀN (~$0,035 / ảnh) — chỉ chạy với DUYET_SINH_1_LAN=1. In bảng URL để soát bằng mắt.
-//   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/lora/thu-lora.mts <nhan_vat_id> [--canh=<id,…>]
+//   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/lora/thu-lora.mts <nhan_vat_id> [--canh=<id,…>] [--mat=<sau-khoc_tham.png,…>]
+// --mat: độ sâu MẶT 3D đã diễn biểu cảm (MPFB + 52 cơ mặt ARKit, tên tệp sau-<key BIEU_CAM>.png) → ảnh theo đúng nét mặt đó.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapNhanVat, mapCanh, taoJob, xongJob, type Row } from '../../src/lib/xuong-video/doc-db';
 import { chayAnhFal } from '../../src/lib/xuong-video/fal';
+import { readFileSync } from 'node:fs';
 import { uploadToR2 } from '../../src/lib/r2';
+import { BIEU_CAM } from '../../src/lib/xuong-video/qc-cam-xuc';
 
 const id = Number(process.argv[2]); const canhIds = (process.argv.find((a) => a.startsWith('--canh=')) ?? '--canh=').slice(7).split(',').filter(Boolean).map(Number);
 if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('TỐN TIỀN — chỉ chạy với DUYET_SINH_1_LAN=1'); process.exit(1); }
@@ -50,6 +53,15 @@ for (const cid of canhIds) {
   const c = mapCanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${cid}`)) as unknown as Row[])[0]!);
   const sau = c.khung_xam?.sau; if (!sau) { console.log(`✗ #${c.thu_tu}: chưa có độ sâu`); continue; }
   await ve(`độ sâu #${c.thu_tu}`, 'fal-ai/flux-lora-depth', { prompt: `${goc}. ${c.dan_dung?.mo ?? ''}. ${PHONG}`, image_url: sau, loras, image_size: { width: 768, height: 1365 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, `#${c.thu_tu} ${c.dan_dung?.mo ?? ''}`);
+}
+const mats = (process.argv.find((a) => a.startsWith('--mat=')) ?? '--mat=').slice(6).split(',').filter(Boolean);
+for (const f of mats) {
+  const key = /sau-(\w+)\.png$/.exec(f)?.[1] ?? ''; const bc = BIEU_CAM.find((b) => b.key === key);
+  if (!bc) { console.log(`✗ ${f}: tên tệp không khớp key BIEU_CAM`); continue; }
+  const sau = await uploadToR2(`xuong-video/lora/${id}/mat-${key}-${Date.now()}.png`, readFileSync(f), 'image/png');
+  if (!sau) { console.log(`✗ ${key}: tải độ sâu lỗi`); continue; }
+  const t = `tight close-up portrait, ${bc.en}, harsh window side light, dim office background`;
+  await ve(`mặt 3D ${bc.ten}`, 'fal-ai/flux-lora-depth', { prompt: `${goc}. ${t}. ${PHONG}`, image_url: sau, loras: [{ path: L.url, scale: 0.85 }], image_size: { width: 720, height: 1280 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, `${bc.ten} (độ sâu ${sau})`);
 }
 console.log(JSON.stringify({ so: ra.length, tien: `$${(ra.length * 0.035).toFixed(2)}` }));
 process.exit(0);

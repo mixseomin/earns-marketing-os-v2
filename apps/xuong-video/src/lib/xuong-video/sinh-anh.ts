@@ -398,7 +398,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
           return [{ ten: v.ten, sau: x.sau, xa: x.xa, ref, ...(lo ? { loras: lo } : {}),
             prompt1: ghep([khoi('anh_dich', dau), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('trang_thai', ao && `Wearing: ${ao}.`), khoi('so_nguoi', `Exactly 1 person (${v.ten}); nobody else.`),
               khoi('hau_canh', `Background: ${xanh} fills everything around the person — no room, no floor line, no shadow on the background.`), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
-            prompt_tai_cho: ghep([khoi('anh_dich', dau), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`), khoi('trang_thai', ao && `Wearing: ${ao}.`),
+            prompt_tai_cho: ghep([khoi('anh_dich', dau), khoi('trang_thai', ao && `Wearing: ${ao}.`), khoi('nguoi', `${v.lora?.trigger ? `${v.lora.trigger}, ` : ''}${taNv(v, false, 20)}${h ? `, ${h}` : ''}.`),
               khoi('so_nguoi', 'Exactly one person in the masked area, nobody else.'), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]),
             prompt2: `EDIT Image 1 (a close crop of ONE person). Change ONLY how the person LOOKS: ${v.ten} — exactly like Image 2 (same face, hair, age${ao ? '' : ', outfit'})${ao ? `, CLOTHING IN THIS SHOT (overrides the clothing in Image 2): ${ao}` : ''}${cam.length ? `; ${cam.map((m, i) => `${m.ten} — exactly like Image ${i + 3}`).join('; ')}` : ''}. Keep the framing, pose, body angle and size exactly as Image 1${h ? ` — ${h}` : ''}; do NOT turn the person toward the camera if Image 1 shows them otherwise. Replace everything around the person with ${xanh}, edge to edge. ${KHONG_CHU}` }];
         }) } : undefined;
@@ -597,7 +597,9 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     await xongJob(db, job, { output_url: url, model: kq.model, chi_phi_cents: await giaAnhSv(mh) });
     return { ok: true, url };
   };
-  const plate = await veFal('Keyframe (tại chỗ · plate cả khung)', MO_HINH_XUONG, { prompt: toan.prompt1, controlnet_unions: [doSau] });
+  // PLATE bám độ sâu CHẶT (FLUX Pro độ sâu — đường nền / bước 1 cũ): union depth 0,6 thả lỏng thì người plate lệch khỏi bóng 3D, mặt nạ vẽ lại
+  // theo bóng 3D thành hai Vivian (#15 lượt đầu).
+  const plate = await buocDoSau(db, canhId, thuTu, { sau: toan.sau, prompt1: toan.prompt1, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
   if (!plate.ok) return { ok: false, loi: `plate: ${plate.loi}` };
   let cur = plate.url;
   for (const x of [...lop.nguoi].sort((a, b) => b.xa - a.xa)) {   // xa trước: người gần vẽ sau, mép người gần đè lên người xa đúng thứ tự che
@@ -605,7 +607,9 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     if (!mask) return { ok: false, loi: `${x.ten}: không dựng được mặt nạ` };
     if (x.loras) {
       const n = nuoc && nuoc.includes(x.ten) ? ` ${nuoc}` : '';
-      const r = await veFal(`Keyframe (tại chỗ · ${x.ten})`, MO_HINH_VE_TAI_CHO, { prompt: `${x.prompt_tai_cho}${n}`, image_url: cur, mask_url: mask, strength: 0.9, loras: x.loras, controlnet_unions: [doSau] });
+      // 0,8 / LoRA 0,8: giữ màu áo + dáng của plate (đã đúng câu trang phục), LoRA chỉ kéo mặt — 0,9 / LoRA 1 thì đồ trong ảnh học LoRA lấn (#15 Hạ
+      // áo đen, Vivian vest nâu thay sơ mi trắng vết cà phê / đầm đỏ đô)
+      const r = await veFal(`Keyframe (tại chỗ · ${x.ten})`, MO_HINH_VE_TAI_CHO, { prompt: `${x.prompt_tai_cho}${n}`, image_url: cur, mask_url: mask, strength: 0.8, loras: x.loras.map((l) => ({ ...l, scale: 0.8 })), controlnet_unions: [doSau] });
       if (!r.ok) return { ok: false, loi: `${x.ten} (tại chỗ): ${r.loi}` };
       cur = r.url;
     } else if (x.ref.length) {

@@ -85,13 +85,21 @@ shot('2.3', C2, 5, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'thap', 'c
      [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
      {'dat': [230, 690, 120], 'nhin': [230, 760, 172], 'ong_kinh': 85, 'khung': [THAN], 'vi_tri': [vt(THAN, [230, 760, 0], 30, huong_den=180), vt(HA, [300, 560, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [THAN, VP, 'Ly cà phê'])   # cận Thần: Hạ / Vivian ngoài khung
+# 2.3b GÀI chuỗi hạt ngọc (anh 18/10/2026: Lục Thần xuất hiện quá ít, cú trả #22 rơi vào khoảng trống — bộ chấm chamDauTu): soi gương cú trả cuối tập
+shot('2.3b', C2, 3, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'macro', 'anh_sang': 'cua_so', 'luat': ['motif'], 'am_thanh': ['nen_phong']},
+     { 'dien': "Anticipation: Thần turns on his heel. Action: his left shirt cuff rides up for a beat, the {Chuỗi hạt ngọc} catching the window light. Reaction: the cuff slides back over it as he walks away.", 'huong': 'Thần turns away screen-left.','bo_cuc': 'Insert on Lục Thần’s left wrist as he turns away: the shirt cuff riding up, the {Chuỗi hạt ngọc} beside the steel watch', 'mo': 'Thần’s cuff riding up over the {Chuỗi hạt ngọc}', 'ket': 'the cuff sliding back over the bracelet', 'muc_dich': 'gài chuỗi hạt ngọc — trả ở cú cuối'},
+     'Thần quay đi, tay áo xô lên một nhịp lộ chuỗi hạt ngọc rồi phủ lại', [],
+     [bc(THAN, 'lanh_lung', 'lanh_lung')],
+     {'tay': True, 'dat': [150, 740, 100], 'nhin': [205, 765, 85], 'ong_kinh': 85, 'khung': ['Chuỗi hạt ngọc', THAN],
+      'vi_tri': [vt(THAN, [230, 760, 0], 180, trang_phuc='Com-lê đen ba mảnh', do_deo='steel wristwatch and a thin pale-green jade bead bracelet on the left wrist, shirt cuff riding up as he turns so the bracelet shows', nhay='cận chèn: tay áo xô lên một nhịp khi quay đi'), vt('Chuỗi hạt ngọc', [208, 762, 86], 0, cam=THAN, deo='cotay_t'), vt(HA, [300, 560, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
+     [THAN, VP, 'Chuỗi hạt ngọc'])
 shot('2.4', C2, 4, 'veo', {'vai': 'chi_tiet', 'co_canh': 'insert', 'goc': 'cao', 'chuyen_dong': 'doi_net', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['ding']},
      { 'dien': "Anticipation: the {Điện thoại của Hạ} lights up in Hạ's hand. Action: she reads the message; focus racks from the {Điện thoại của Hạ} to her face. Reaction: the faintest smirk at the corner of her mouth.", 'huong': 'Hạ looks down at the {Điện thoại của Hạ}, then up and off screen-left.','bo_cuc': 'Insert on the screen of the {Điện thoại của Hạ} in Hạ’s hand lighting up with a message, her face soft behind it, then focus racks to her face', 'mo': 'the {Điện thoại của Hạ} screen lights up', 'ket': 'Hạ’s subtle smirk', 'muc_dich': 'khán giả biết thân phận trước nhân vật', 'motif': 'tin nhắn luật sư — gieo cho cảnh 4'},
      'Điện thoại trong tay Hạ sáng: tin nhắn của luật sư Trần; Hạ khẽ nhếch môi', [],
      [bc(HA, 'nhan_nhin', 'nhech_moi', lat=True)],
      # 2.4: trung cận từ ngực (điện thoại trong tay) lên mặt — cận riêng món 15 cm trước thân thì máy dí vào áo
      {'tay': True, 'qua_truc': True, 'dat': [360, 610, 165], 'nhin': [313, 583, 115], 'ong_kinh': 65, 'khung': [DT, HA],   # điện thoại đo từ khung 3D lần trước (điểm ảnh + máy cũ); đổi nét điện thoại → mặt (lia lên thì khung mở nhìn xuống sàn)   # khung MỞ = cận điện thoại trong tay Hạ (rồi lia lên mặt); cú chèn được khác phía trục
-      'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
+      'vi_tri': [vt(HA, [300, 560, 0], 180, dien=['cam_dien_thoai']), vt(DT, [300, 548, 110], 180, cam=HA), vt(THAN, [230, 760, 0], 180), vt('Chuỗi hạt ngọc', [208, 762, 86], 0, cam=THAN, deo='cotay_t', an=True), vt(VIV, [300, 640, 0], -150), LY_RONG(an=True)]},
      [HA, VP, DT, 'Ly cà phê'], chu_man='Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần')
 
 # ── CẢNH 3 · Sảnh thang máy (36–58 s) ──
@@ -102,6 +110,14 @@ shot('3.1', C3, 6, 'h3', {'vai': 'tong_the', 'co_canh': 'ws', 'goc': 'ngang', 'c
      {'dat': [180, 40, 160], 'nhin': [-60, 400, 140], 'ong_kinh': 30, 'khung': [HA, VIV], 'nhay': 'Hạ thu dọn đồ rồi ra sảnh (thời gian trôi ngoài khung)',
       'vi_tri': [vt(HA, [-100, 380, 0], 180, huong_den=90, trang_phuc='Sơ mi trắng dính cà phê', do_deo='jade bangle on the left wrist; white staff ID badge on a dark blue lanyard', do_deo_den='jade bangle on the left wrist', dien=['om_thung']), vt(VIV, [260, 150, 0], -60, den=[0, 365, 0], huong_den=-90, **AO_VIV, dien=['mc_sai_buoc@0-0.55', 'giat@0.55-0.8']), vt('Thẻ nhân viên', [-100, 368, 140], 180, den=[10, 360, 120]), vt(HOP, [-100, 362, 95], 180, cam=HA)]},
      [HA, VIV, SANH, 'Thẻ nhân viên', HOP])
+# 3.1b THẦN TỰ TAY HẠ NHỤC HẠ (phim ngắn 打脸: người bị vả mặt phải là người đã làm nhục nhân vật chính trên màn) + gài chuỗi hạt lần hai (lướt)
+shot('3.1b', C3, 3, 'veo', {'vai': 'hanh_dong', 'co_canh': 'ms', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chuan', 'anh_sang': 'vien', 'am_thanh': ['nen_phong', 'foley']},
+     { 'dien': "Anticipation: the {Thang máy 2} doors part. Action: Lục Thần strides out past Hạ without a glance and speaks to Vivian. Reaction: Vivian bows, smug; Hạ's grip tightens on the {Thùng đồ cá nhân}.", 'huong': 'Thần walks toward camera, drifting screen-right; Hạ and Vivian stay facing each other.','bo_cuc': 'Medium shot: Lục Thần striding out of the {Thang máy 2} toward camera, Vivian at screen-left holding the {Thẻ nhân viên}, Hạ with the {Thùng đồ cá nhân} at the left edge', 'mo': 'Thần mid-stride out of the {Thang máy 2}', 'ket': 'Thần walking out of frame screen-right', 'muc_dich': 'Thần tự tay hạ nhục Hạ — gài cho cú vả mặt'},
+     'Lục Thần bước ra từ thang máy, lướt qua Hạ không thèm nhìn, ra lệnh cho Vivian', [(THAN, 'không dừng bước, không nhìn Hạ', 'Người ngoài thì đừng đứng chắn thang máy.')],
+     [bc(THAN, 'lanh_lung', 'khinh_bi'), bc(VIV, 'khinh_bi', 'khinh_bi'), bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui'])],
+     {'tay': True, 'dat': [40, 100, 160], 'nhin': [40, 400, 150], 'ong_kinh': 24, 'khung': [THAN],   # trước mặt Thần (đang nói), trong ±45° hướng chủ cảnh 3; Vivian giữa, Hạ mép trái
+      'vi_tri': [vt(THAN, [100, 420, 0], 0, den=[150, 250, 0], **AO_THAN, dien=['mc_sai_buoc'], nhay='bước ra từ thang máy — thời gian trôi sau cảnh 2, không nối dáng quay đi ở #9'), vt('Chuỗi hạt ngọc', [100, 420, 90], 0, cam=THAN, deo='cotay_t'), vt(VIV, [0, 365, 0], -90, dien=['cam_truoc']), vt('Thẻ nhân viên', [10, 360, 120], -90, cam=VIV), vt(HA, [-100, 380, 0], 90, dien=['om_thung']), vt(HOP, [-95, 365, 95], 90, cam=HA)]},
+     [THAN, HA, VIV, SANH, 'Thẻ nhân viên', HOP, 'Chuỗi hạt ngọc'])
 shot('3.2', C3, 5, 'veo', {'vai': 'nguoi_thu_ba', 'co_canh': 'ots', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'vien', 'am_thanh': ['nen_phong']},
      { 'dien': "Anticipation: Vivian holds the {Thẻ nhân viên} up between two fingers. Action: she swings it in front of Hạ's face. Reaction: leans in with a sneer.",'bo_cuc': 'Over Hạ’s right shoulder onto Vivian dangling the {Thẻ nhân viên} in front of Hạ’s face', 'mo': 'Vivian dangling the {Thẻ nhân viên}', 'ket': 'Vivian leaning in, sneering', 'huong': 'Vivian looks screen-left at Hạ', 'muc_dich': 'Vivian tưởng mình thắng'},
      'Vivian lắc lắc tấm thẻ trước mặt Hạ', [(VIV, 'cười khẩy', 'Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa.')],

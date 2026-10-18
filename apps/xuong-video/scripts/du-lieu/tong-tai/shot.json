@@ -900,6 +900,127 @@
   "bat_dau": 28.0
  },
  {
+  "ma": "2.3b",
+  "canh": "Tổng tài đuổi việc",
+  "phat_s": 3,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "chi_tiet",
+   "co_canh": "insert",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "macro",
+   "anh_sang": "cua_so",
+   "luat": [
+    "motif"
+   ],
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "dien": "Anticipation: Thần turns on his heel. Action: his left shirt cuff rides up for a beat, the {Chuỗi hạt ngọc} catching the window light. Reaction: the cuff slides back over it as he walks away.",
+   "huong": "Thần turns away screen-left.",
+   "bo_cuc": "Insert on Lục Thần’s left wrist as he turns away: the shirt cuff riding up, the {Chuỗi hạt ngọc} beside the steel watch",
+   "mo": "Thần’s cuff riding up over the {Chuỗi hạt ngọc}",
+   "ket": "the cuff sliding back over the bracelet",
+   "muc_dich": "gài chuỗi hạt ngọc — trả ở cú cuối",
+   "ma": "2.3b"
+  },
+  "hanh_dong": "Thần quay đi, tay áo xô lên một nhịp lộ chuỗi hạt ngọc rồi phủ lại",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "lanh_lung",
+    "cuoi": "lanh_lung"
+   }
+  ],
+  "may_3d": {
+   "tay": true,
+   "dat": [
+    150,
+    740,
+    100
+   ],
+   "nhin": [
+    205,
+    765,
+    85
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Chuỗi hạt ngọc",
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      230,
+      760,
+      0
+     ],
+     "huong": 180,
+     "trang_phuc": "Com-lê đen ba mảnh",
+     "do_deo": "steel wristwatch and a thin pale-green jade bead bracelet on the left wrist, shirt cuff riding up as he turns so the bracelet shows",
+     "nhay": "cận chèn: tay áo xô lên một nhịp khi quay đi"
+    },
+    {
+     "ten": "Chuỗi hạt ngọc",
+     "tam": [
+      208,
+      762,
+      86
+     ],
+     "huong": 0,
+     "cam": "Lục Thần",
+     "deo": "cotay_t"
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      560,
+      0
+     ],
+     "huong": 180
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": -150
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Văn phòng mở tầng 38",
+   "Chuỗi hạt ngọc"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 33.0
+ },
+ {
   "ma": "2.4",
   "canh": "Tổng tài đuổi việc",
   "phat_s": 4,
@@ -987,6 +1108,18 @@
      "huong": 180
     },
     {
+     "ten": "Chuỗi hạt ngọc",
+     "tam": [
+      208,
+      762,
+      86
+     ],
+     "huong": 0,
+     "cam": "Lục Thần",
+     "deo": "cotay_t",
+     "an": true
+    },
+    {
      "ten": "Vivian",
      "tam": [
       300,
@@ -1018,7 +1151,7 @@
   "chu_man": "Cô Hạ, họp HĐQT lúc 3 giờ. — Luật sư Trần",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 33.0
+  "bat_dau": 36.0
  },
  {
   "ma": "3.1",
@@ -1147,7 +1280,170 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 37.0
+  "bat_dau": 40.0
+ },
+ {
+  "ma": "3.1b",
+  "canh": "Thang máy",
+  "phat_s": 3,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "hanh_dong",
+   "co_canh": "ms",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chuan",
+   "anh_sang": "vien",
+   "am_thanh": [
+    "nen_phong",
+    "foley"
+   ]
+  },
+  "dan_dung": {
+   "dien": "Anticipation: the {Thang máy 2} doors part. Action: Lục Thần strides out past Hạ without a glance and speaks to Vivian. Reaction: Vivian bows, smug; Hạ's grip tightens on the {Thùng đồ cá nhân}.",
+   "huong": "Thần walks toward camera, drifting screen-right; Hạ and Vivian stay facing each other.",
+   "bo_cuc": "Medium shot: Lục Thần striding out of the {Thang máy 2} toward camera, Vivian at screen-left holding the {Thẻ nhân viên}, Hạ with the {Thùng đồ cá nhân} at the left edge",
+   "mo": "Thần mid-stride out of the {Thang máy 2}",
+   "ket": "Thần walking out of frame screen-right",
+   "muc_dich": "Thần tự tay hạ nhục Hạ — gài cho cú vả mặt",
+   "ma": "3.1b"
+  },
+  "hanh_dong": "Lục Thần bước ra từ thang máy, lướt qua Hạ không thèm nhìn, ra lệnh cho Vivian",
+  "thoai": [
+   {
+    "nhan_vat": "Lục Thần",
+    "dien_xuat": "không dừng bước, không nhìn Hạ",
+    "loi": "Người ngoài thì đừng đứng chắn thang máy."
+   }
+  ],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "lanh_lung",
+    "cuoi": "khinh_bi"
+   },
+   {
+    "nv": "Vivian",
+    "dau": "khinh_bi",
+    "cuoi": "khinh_bi"
+   },
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui"
+    ]
+   }
+  ],
+  "may_3d": {
+   "tay": true,
+   "dat": [
+    40,
+    100,
+    160
+   ],
+   "nhin": [
+    40,
+    400,
+    150
+   ],
+   "ong_kinh": 24,
+   "khung": [
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      100,
+      420,
+      0
+     ],
+     "huong": 0,
+     "den": [
+      150,
+      250,
+      0
+     ],
+     "trang_phuc": "Com-lê đen ba mảnh",
+     "do_deo": "steel wristwatch on the left wrist; thin pale-green jade bead bracelet hidden under the left shirt cuff",
+     "dien": [
+      "mc_sai_buoc"
+     ],
+     "nhay": "bước ra từ thang máy — thời gian trôi sau cảnh 2, không nối dáng quay đi ở #9"
+    },
+    {
+     "ten": "Chuỗi hạt ngọc",
+     "tam": [
+      100,
+      420,
+      90
+     ],
+     "huong": 0,
+     "cam": "Lục Thần",
+     "deo": "cotay_t"
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      0,
+      365,
+      0
+     ],
+     "huong": -90,
+     "dien": [
+      "cam_truoc"
+     ]
+    },
+    {
+     "ten": "Thẻ nhân viên",
+     "tam": [
+      10,
+      360,
+      120
+     ],
+     "huong": -90,
+     "cam": "Vivian"
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      -100,
+      380,
+      0
+     ],
+     "huong": 90,
+     "dien": [
+      "om_thung"
+     ]
+    },
+    {
+     "ten": "Thùng đồ cá nhân",
+     "tam": [
+      -95,
+      365,
+      95
+     ],
+     "huong": 90,
+     "cam": "Lâm Hạ"
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Lâm Hạ",
+   "Vivian",
+   "Sảnh thang máy",
+   "Thẻ nhân viên",
+   "Thùng đồ cá nhân",
+   "Chuỗi hạt ngọc"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 46.0
  },
  {
   "ma": "3.2",
@@ -1270,7 +1566,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 43.0
+  "bat_dau": 49.0
  },
  {
   "ma": "3.3",
@@ -1391,7 +1687,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 48.0
+  "bat_dau": 54.0
  },
  {
   "ma": "3.4",
@@ -1505,7 +1801,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 54.0
+  "bat_dau": 60.0
  },
  {
   "ma": "4.1",
@@ -1610,7 +1906,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 59.0
+  "bat_dau": 65.0
  },
  {
   "ma": "4.2",
@@ -1730,7 +2026,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 64.0
+  "bat_dau": 70.0
  },
  {
   "ma": "4.3",
@@ -1817,7 +2113,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 69.0
+  "bat_dau": 75.0
  },
  {
   "ma": "4.4",
@@ -1904,7 +2200,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 73.0
+  "bat_dau": 79.0
  },
  {
   "ma": "4.5",
@@ -1995,7 +2291,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 76.0
+  "bat_dau": 82.0
  },
  {
   "ma": "5.1",
@@ -2088,7 +2384,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 81.0
+  "bat_dau": 87.0
  },
  {
   "ma": "5.2",
@@ -2189,7 +2485,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 85.0
+  "bat_dau": 91.0
  },
  {
   "ma": "5.3",
@@ -2278,7 +2574,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 91.0
+  "bat_dau": 97.0
  },
  {
   "ma": "5.4",
@@ -2375,6 +2671,6 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 94.0
+  "bat_dau": 100.0
  }
 ]

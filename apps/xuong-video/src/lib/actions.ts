@@ -4,6 +4,7 @@
 // Mạch: kịch bản → tachCanhTap (Claude) → sinhKeyframe (Gemini, ứng viên → chọn) → duyệt → sinhVideoCanh (Veo, async) → kiemVideo (poll).
 // Admin-only. Mọi lần gọi model ghi xv_job kèm tiền (cents) để bảng tổng kết chi phí của phim không phải đoán.
 import { khuonTheoKey, type ApKhuon } from '@/lib/xuong-video/khuon-chuoi';
+import { lamSachKhanGia, type YDoKhanGia } from '@/lib/xuong-video/khan-gia';
 import { tachShotDb, chenShotKhuonDb } from '@/lib/xuong-video/tach-shot';
 import 'server-only';
 import { sql } from 'drizzle-orm';
@@ -1548,6 +1549,17 @@ export async function chenShotKhuon(tapId: number, apIdx: number, buoc: number, 
   if (!(await admin())) return loi('không có quyền');
   const r = await chenShotKhuonDb(db, tapId, apIdx, buoc, String(moTa ?? '').slice(0, 600), await ai());
   return r.ok ? { ok: true, data: r.id } : loi(r.loi);
+}
+/** Lưu Ý ĐỒ KHÁN GIẢ của tập (khan-gia.ts) — sửa trên timeline (ngăn 🎭). Lọc: hiệu ứng có thật, shot thuộc tập. Có ảnh chụp để ↶ hoàn tác. 0đ. */
+export async function luuKhanGia(tapId: number, ds: YDoKhanGia[]): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ids = new Set(((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => Number(r.id)));
+  const sach = lamSachKhanGia(ds).filter((x) => ids.has(x.tu) && ids.has(x.den) && (x.lat == null || ids.has(x.lat))).slice(0, 80);
+  await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['khan_gia'], moTa: `sửa ý đồ khán giả (${sach.length} đoạn)`, nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_tap SET khan_gia = ${JSON.stringify(sach)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: undefined };
 }
 /** Lưu các lần áp KHUÔN CHUỖI của tập (khuon-chuoi.ts) — sửa trên timeline (ngăn 🧭 Khuôn). Lọc: khuôn có thật, shot thuộc tập, bước trong khuôn. 0đ. */
 export async function luuKhuonChuoi(tapId: number, ds: ApKhuon[]): Promise<Kq> {

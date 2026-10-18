@@ -37,6 +37,8 @@ import { laShotCta } from '@/lib/xuong-video/cta';
 import { chamDanDat, luatCuaTru } from '@/lib/xuong-video/dan-dat';
 import { KY_HIEU_CAT, CU_MAY_LIEN_BANG } from '@/lib/xuong-video/dien-anh-nganh';
 import { NganKhuon } from './khuon-ui';
+import { NganKhanGia } from './khan-gia-ui';
+import { soatKhanGia, xepHangYDo, hieuUngKG } from '@/lib/xuong-video/khan-gia';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
 import { trangThaiDoiTuong, mucDiem, TEN_NHANH, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
@@ -271,6 +273,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Giữ chuột trên thước giây hoặc vạch đỏ rồi kéo = tua liên tục (scrub) như CapCut; đang chạy thì tạm dừng trong lúc kéo.
   /** Bấm khối của một shot (mọi làn): chọn + tua tới đầu shot + mở ngăn chi tiết shot. Phím ←/→ và lúc phát tự sang shot thì KHÔNG mở ngăn. */
   const [suaKhuon, setSuaKhuon] = useState(false);
+  const [suaKG, setSuaKG] = useState(false);
   const bamShot = (id: number, i: number) => { onChon(id); tuaToi(batDau[i]!); onMoShot?.(id); };
   const keoDauPhat = (e: PE<HTMLDivElement>, goc: number) => {
     e.preventDefault(); e.stopPropagation();
@@ -755,6 +758,35 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             })], 26, <span title={`Điểm dẫn dắt cả tập (rê tên làn xem cách tính)`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: mau(k.diem), border: '1px solid currentColor' }}>{k.diem}</span>);
           })()}
 
+          {/* 🎭 Ý ĐỒ KHÁN GIẢ (khan-gia.ts, xv_tap.khan_gia): mỗi đoạn shot một hiệu ứng đạo diễn muốn khán giả cảm — tò mò, hồi hộp, bất ngờ, đánh lừa A → thật ra B
+              (dấu ⟲ ở shot lật), gieo phân vân, sợ, ức chế → hả hê… Viền vàng ⚠ = máy soát theo ngành thấy thiếu (đánh lừa không lật, bất ngờ không gieo…).
+              Đoạn chồng nhau tự sang hàng; bấm đoạn hoặc ✎ ở tên làn để sửa. */}
+          {(() => {
+            const ket = soatKhanGia(tap.khan_gia, canh);
+            const nutSua = onDoiKhuon ? nutNho('✎', 'Sửa ý đồ khán giả: đoạn shot nào, khán giả cần cảm gì (đánh lừa ghi A / B + shot lật)', false, () => setSuaKG(true)) : undefined;
+            const moLan = 'Ý đồ khán giả: đạo diễn muốn khán giả cảm gì ở từng đoạn — vui, buồn, tò mò, hồi hộp, bất ngờ, đánh lừa (A → thật ra B), gieo phân vân, sợ, ức chế, hả hê, nhẹ nhõm\nViền vàng ⚠ = máy soát theo ngành: đánh lừa phải có cú lật · bất ngờ phải gieo trước · hồi hộp cần khán giả biết trước · hả hê / nhẹ nhõm đến sau căng thẳng\nBấm đoạn hoặc ✎ để sửa; rê xem nguồn ngành của hiệu ứng trong thư viện (📖 trong ngăn sửa)';
+            const loiMat = ket.filter((k) => k.tu < 0).length;
+            if (!ket.length || loiMat === ket.length) return track('🎭 Ý đồ khán giả', moLan, <span className="xv-mono" style={{ fontSize: 10.5, lineHeight: '26px', paddingLeft: 6, color: 'var(--fg-3)' }}>{loiMat ? `⚠ ${loiMat} đoạn trỏ vào shot đã mất — bấm ✎ chọn lại` : 'chưa ghi ý đồ khán giả'}{onDoiKhuon && !loiMat ? ' — bấm ✎ ở tên làn' : ''}</span>, 26, nutSua);
+            return xepHangYDo(ket).map((hang, h) => (
+              <Fragment key={`kg${h}`}>{track(h ? `🎭 Ý đồ khán giả · ${h + 1}` : '🎭 Ý đồ khán giả', moLan, hang.flatMap((k) => {
+                const hu = hieuUngKG(k.yd.y); const mau = hu?.mau ?? '#94a3b8';
+                const x0 = batDau[k.tu]! * pps, x1 = (batDau[k.den]! + dur(canh[k.den]!)) * pps;
+                const chu = k.yd.y === 'danh_lua' && (k.yd.a || k.yd.b) ? `${hu?.ic} ${k.yd.a || '?'} → thật ra ${k.yd.b || '?'}` : `${hu?.ic ?? ''} ${hu?.ten ?? k.yd.y}${k.yd.ghi ? ` · ${k.yd.ghi}` : ''}`;
+                const tt = [`${hu?.ic ?? ''} ${hu?.ten ?? k.yd.y} · shot #${canh[k.tu]!.thu_tu} → #${canh[k.den]!.thu_tu}`, k.yd.ghi, k.yd.y === 'danh_lua' ? `A (khán giả tin): ${k.yd.a || '—'}\nB (sự thật): ${k.yd.b || '—'}` : '', hu?.mo_ta, ...k.loi.map((l) => `⚠ ${l}`), onDoiKhuon ? 'bấm = sửa ý đồ khán giả' : ''].filter(Boolean).join('\n');
+                const lat = k.yd.lat != null ? canh.findIndex((c) => c.id === k.yd.lat) : -1;
+                return [
+                  <div key={`kg${k.i}`} data-goi-y={tt} onClick={() => onDoiKhuon && setSuaKG(true)}
+                    style={{ position: 'absolute', left: x0 + 1, width: Math.max(6, x1 - x0 - 2), top: 3, bottom: 3, borderRadius: 4, cursor: onDoiKhuon ? 'pointer' : 'default', fontSize: 10, lineHeight: '18px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      background: `${mau}26`, borderLeft: `3px solid ${mau}`, outline: k.loi.length ? '1px solid var(--amber)' : undefined, color: 'var(--fg-2)' }}>
+                    {k.loi.length ? '⚠ ' : ''}{chu}
+                  </div>,
+                  ...(lat >= 0 ? [<div key={`kgl${k.i}`} data-goi-y={`⟲ Cú lật: shot #${canh[lat]!.thu_tu} lộ sự thật — ${k.yd.b || 'B'}`} onClick={() => bamShot(canh[lat]!.id, lat)}
+                    style={{ position: 'absolute', left: batDau[lat]! * pps - 9, width: 18, top: 3, bottom: 3, borderRadius: 4, cursor: 'pointer', fontSize: 11, lineHeight: '18px', textAlign: 'center', background: `${mau}55`, color: '#fff', zIndex: 1 }}>⟲</div>] : []),
+                ];
+              }), 26, h ? undefined : nutSua)}</Fragment>
+            ));
+          })()}
+
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
           {/* Hiện cả khi mọi shot ghi 0: "trung tính hết" chính là thứ cần thấy, ẩn làn đi là giấu lỗi. Nét đứt xám = cảm xúc MỤC TIÊU theo loại beat. */}
           {canh.some((x) => x.cam_xuc || camXucMucTieu(x) != null) && track('❤ Khán giả', 'Khán giả cảm thấy gì ở cuối mỗi shot (cảm xúc ta MUỐN họ có): dưới vạch = khó chịu/đau (đúng nỗi đau của họ), trên vạch = tò mò → thích → muốn mua. QC tốt: chạm đáy ở nỗi đau rồi leo lên muốn mua.', (() => {
@@ -869,6 +901,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             </Fragment>
           ))}
 
+          {suaKG && onDoiKhuon && <NganKhanGia tapId={tap.id} ds={tap.khan_gia ?? []} canh={canh} onClose={() => setSuaKG(false)} onLuu={onDoiKhuon} />}
           {suaKhuon && onDoiKhuon && <NganKhuon tapId={tap.id} khuon={tap.khuon_chuoi ?? []} canh={canh} theLoai={theLoai} onClose={() => setSuaKhuon(false)} onLuu={onDoiKhuon} />}
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}

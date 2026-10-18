@@ -520,7 +520,8 @@ export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; c
   /** animatic đã duyệt: keyframe ghép đúng số giây + âm (bản xuất từ keyframe); ma = mã keyframe + giây lúc duyệt — đổi là phải duyệt lại */
   animatic?: { url: string; ma: string; luc: string } | null };
 /** khuon_chuoi = các lần áp khuôn chuỗi shot trong tập (khuon-chuoi.ts, xv_tap.khuon_chuoi) — làn 🧭 Khuôn trên timeline. */
-export type Tap = { khuon_chuoi?: ApKhuon[]; ho_so?: TapHoSo; id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
+/** khan_gia = ý đồ khán giả theo đoạn shot (khan-gia.ts, xv_tap.khan_gia) — làn 🎭 trên timeline. */
+export type Tap = { khuon_chuoi?: ApKhuon[]; khan_gia?: import('./khan-gia').YDoKhanGia[]; ho_so?: TapHoSo; id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
 /** Khoá THƯƠNG HIỆU của kho tài sản = tên miền shop của phim QC (qc.link, bỏ www) — project của studio là nhãn chung ('studio'), không phải

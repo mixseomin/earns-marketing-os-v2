@@ -43,3 +43,12 @@ export const TRUFFAUT = 'François Truffaut — Hitchcock/Truffaut (1966)';
 // ── Diễn / hoạt hình ──
 export const HOOKS = 'Ed Hooks — Acting for Animators';
 export const ILLUSION = 'Frank Thomas & Ollie Johnston — The Illusion of Life';
+// ── Khán giả / tâm lý xem phim ──
+export const TAN = 'Ed S. Tan — Emotion and the Structure of Narrative Film (1996)';
+export const SMITH = 'Murray Smith — Engaging Characters: Fiction, Emotion, and the Cinema (1995)';
+export const STERNBERG = 'Meir Sternberg — Expositional Modes and Temporal Ordering in Fiction (1978), bộ ba tò mò · hồi hộp · bất ngờ';
+export const BORDWELL_NARRATION = 'David Bordwell — Narration in the Fiction Film (1985), khán giả đặt giả thuyết';
+export const CARROLL_HORROR = 'Noël Carroll — The Philosophy of Horror (1990)';
+export const LOEWENSTEIN = 'George Loewenstein — The Psychology of Curiosity (1994), thuyết khoảng trống thông tin';
+export const ZILLMANN = 'Dolf Zillmann — lý thuyết chuyển kích thích (excitation transfer), nghiên cứu hồi hộp và giải toả';
+export const ARISTOTLE = 'Aristotle — Poetics (catharsis)';

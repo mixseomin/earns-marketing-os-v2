@@ -13,6 +13,7 @@ import { sinhAnh, taiAnhBase64 } from '../../src/lib/xuong-video/google';
 import { giaAnhSv } from '../../src/lib/xuong-video/hoan-tat';
 import { docKinhThanh } from '../../src/lib/xuong-video/kieu';
 import { uploadToR2 } from '../../src/lib/r2';
+import { songSong } from '../../src/lib/xuong-video/song-song';
 
 const id = Number(process.argv[2]); const so = Number((process.argv.find((a) => a.startsWith('--so=')) ?? '--so=30').slice(5));
 if (!id) { console.error('cần <nhan_vat_id>'); process.exit(1); }
@@ -65,18 +66,18 @@ const DS: { co: string; goc: string; cam: string; nen?: string }[] = process.arg
     ...CAM_CANH.map(([co, cam, nen], i) => ({ co, goc: GOC[i % 3]!, cam, nen }))]
   : Array.from({ length: so }, (_, i) => ({ co: CO[i % CO.length]!, goc: GOC[i % GOC.length]!, cam: CAM[(i * 3) % CAM.length]! }));
 const ra: { url: string; giong: number | null; dat: boolean; prompt: string }[] = []; let tien = 0;
-for (const [i, d] of DS.entries()) {
+await songSong(DS, async (d, i) => {   // song song có trần (song-song.ts) — 29 ảnh tuần tự mất ~25 phút
   const co = d.co; const day = co.startsWith('full');
   const prompt = `Photorealistic photograph of the SAME person as in Image 1${ref.length > 1 ? ` and Image 2` : ''}: identical face, eyes, eyebrows, nose, lips, jawline, skin tone and hair (${nv.mo_ta}). ${co}, ${d.goc}, ${d.cam}, ${d.nen ? '' : `wearing ${AO[i % AO.length]}, ${SANG[i % SANG.length]}, `}${d.nen ?? NEN[(i * 2) % NEN.length]}. Natural skin texture, sharp focus on the eyes, 35mm photo. Exactly one person. No text, no watermark.`;
   const job = await taoJob(db, { nhan: `LoRA · ảnh học ${nv.ten} ${i + 1}/${DS.length}`, nhan_vat_id: id, loai: 'anh', provider: 'google', model, request: { prompt, thamChieu: ref } });
   const kq = await sinhAnh({ model, prompt, thamChieuUrl: ref, thamChieu: (await Promise.all(ref.map(taiAnhBase64))).filter((x): x is NonNullable<typeof x> => !!x), tiLe: day ? '9:16' : '4:5' });
-  if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); console.log(`✗ ${i + 1}: ${kq.loi.slice(0, 120)}`); continue; }
+  if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); console.log(`✗ ${i + 1}: ${kq.loi.slice(0, 120)}`); return; }
   const url = await uploadToR2(`xuong-video/lora/${id}/hoc-${i + 1}-${Date.now()}.png`, kq.data, kq.mimeType);
   const gia = await giaAnhSv(model); tien += gia;
   await xongJob(db, job, { output_url: url ?? undefined, model: kq.model, chi_phi_cents: gia });
   if (url) ra.push({ url, giong: null, dat: false, prompt });
   process.stdout.write(`· ${i + 1}/${DS.length} $${(tien / 100).toFixed(2)}\n`);
-}
+});
 // LỌC MẶT (SFace, 0đ): giống ảnh sát mặt ≥ ngưỡng cùng người; mặt nghiêng hẳn (profile) bộ so không tin được → giữ nếu ≥ 0,25
 const vao = { mau: { [nv.ten]: mat.length ? mat : ref }, anh: ra.map((x, i) => ({ id: i, url: x.url, ten: [nv.ten] })) };
 const soi = await new Promise<{ anh: { id: number; ket?: { ten: string; giong: number | null; dat: boolean; nghieng?: boolean }[] }[] }>((ok, hong) => {

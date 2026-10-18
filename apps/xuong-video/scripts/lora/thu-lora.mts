@@ -9,6 +9,7 @@ import { chayAnhFal } from '../../src/lib/xuong-video/fal';
 import { readFileSync } from 'node:fs';
 import { uploadToR2 } from '../../src/lib/r2';
 import { BIEU_CAM } from '../../src/lib/xuong-video/qc-cam-xuc';
+import { songSong } from '../../src/lib/xuong-video/song-song';
 
 const id = Number(process.argv[2]); const canhIds = (process.argv.find((a) => a.startsWith('--canh=')) ?? '--canh=').slice(7).split(',').filter(Boolean).map(Number);
 if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('TỐN TIỀN — chỉ chạy với DUYET_SINH_1_LAN=1'); process.exit(1); }
@@ -50,19 +51,19 @@ const ve = async (nhan: string, mh: string, input: Record<string, unknown>, mo: 
 };
 // Bộ ảnh tự do chỉ chạy khi KHÔNG chỉ định --canh / --mat (18/10/2026 lượt --mat chạy lố 8 ảnh = $0,28 anh không duyệt)
 const mats = (process.argv.find((a) => a.startsWith('--mat=')) ?? '--mat=').slice(6).split(',').filter(Boolean);
-if (!canhIds.length && !mats.length) for (const [i, t] of (manh ? MANH : THU).entries()) await ve(`${manh ? 'cảm xúc mạnh' : 'đa dạng'} ${i + 1}`, 'fal-ai/flux-lora', { prompt: `${goc}. ${t}. ${PHONG}`, loras: manh ? [{ path: L.url, scale: 0.85 }] : loras, image_size: { width: 768, height: 1024 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false, ...(manh ? { guidance_scale: 4.5 } : {}) }, t);
-for (const cid of canhIds) {
+if (!canhIds.length && !mats.length) await songSong(manh ? MANH : THU, (t, i) => ve(`${manh ? 'cảm xúc mạnh' : 'đa dạng'} ${i + 1}`, 'fal-ai/flux-lora', { prompt: `${goc}. ${t}. ${PHONG}`, loras: manh ? [{ path: L.url, scale: 0.85 }] : loras, image_size: { width: 768, height: 1024 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false, ...(manh ? { guidance_scale: 4.5 } : {}) }, t));
+await songSong(canhIds, async (cid) => {
   const c = mapCanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${cid}`)) as unknown as Row[])[0]!);
-  const sau = c.khung_xam?.sau; if (!sau) { console.log(`✗ #${c.thu_tu}: chưa có độ sâu`); continue; }
+  const sau = c.khung_xam?.sau; if (!sau) { console.log(`✗ #${c.thu_tu}: chưa có độ sâu`); return; }
   await ve(`độ sâu #${c.thu_tu}`, 'fal-ai/flux-lora-depth', { prompt: `${goc}. ${c.dan_dung?.mo ?? ''}. ${PHONG}`, image_url: sau, loras, image_size: { width: 768, height: 1365 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, `#${c.thu_tu} ${c.dan_dung?.mo ?? ''}`);
-}
-for (const f of mats) {
+});
+await songSong(mats, async (f) => {
   const key = /sau-(\w+)\.png$/.exec(f)?.[1] ?? ''; const bc = BIEU_CAM.find((b) => b.key === key);
-  if (!bc) { console.log(`✗ ${f}: tên tệp không khớp key BIEU_CAM`); continue; }
+  if (!bc) { console.log(`✗ ${f}: tên tệp không khớp key BIEU_CAM`); return; }
   const sau = await uploadToR2(`xuong-video/lora/${id}/mat-${key}-${Date.now()}.png`, readFileSync(f), 'image/png');
-  if (!sau) { console.log(`✗ ${key}: tải độ sâu lỗi`); continue; }
+  if (!sau) { console.log(`✗ ${key}: tải độ sâu lỗi`); return; }
   const t = `tight close-up portrait, ${bc.en}, harsh window side light, dim office background`;
   await ve(`mặt 3D ${bc.ten}`, 'fal-ai/flux-lora-depth', { prompt: `${goc}. ${t}. ${PHONG}`, image_url: sau, loras: [{ path: L.url, scale: 0.85 }], image_size: { width: 720, height: 1280 }, num_images: 1, output_format: 'jpeg', enable_safety_checker: false }, `${bc.ten} (độ sâu ${sau})`);
-}
+});
 console.log(JSON.stringify({ so: ra.length, tien: `$${(ra.length * 0.035).toFixed(2)}` }));
 process.exit(0);

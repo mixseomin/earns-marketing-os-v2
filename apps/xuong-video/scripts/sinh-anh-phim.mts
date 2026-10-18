@@ -12,6 +12,7 @@
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/sinh-anh-phim.mts --phim=5 --uoc
 //   (chạy từ apps/xuong-video để tsx đọc tsconfig có alias @/lib; --conditions=react-server để 'server-only' không ném lỗi ngoài Next)
+import { songSong } from '../src/lib/xuong-video/song-song';
 import { lookPhim } from '../src/lib/xuong-video/look';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -87,14 +88,14 @@ async function doi(jobs: number[], nhan: string, phutToiDa = 25) {
 }
 if (arg('anchor') && anchorThieu.length) {
   const jobs: number[] = [];
-  for (const a of anchorThieu) { const r = await sinhAnhGoc(db, Number(a.id)); if (r.ok) jobs.push(r.data); else console.log(`  ✗ ${a.ten}: ${r.loi}`); }
+  for (const [i, x] of (await songSong(anchorThieu, (a) => sinhAnhGoc(db, Number(a.id)))).entries()) { const r = x.ok ? x.data : { ok: false as const, loi: x.loi }; if (r.ok) jobs.push(r.data); else console.log(`  ✗ ${anchorThieu[i]!.ten}: ${r.loi}`); }
   await doi(jobs, 'ảnh gốc');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
 }
 if (arg('bien-the') && btThieu.length) {
   const jobs: number[] = [];
-  for (const b of btThieu) { const r = await sinhAnhBienTheDb(db, Number(b.id), nguon || undefined); if (r.ok) jobs.push(r.data); else console.log(`  ✗ ${b.nv} · ${b.ten}: ${r.loi}`); }
+  for (const [i, x] of (await songSong(btThieu, (b) => sinhAnhBienTheDb(db, Number(b.id), nguon || undefined))).entries()) { const r = x.ok ? x.data : { ok: false as const, loi: x.loi }; const b = btThieu[i]!; if (r.ok) jobs.push(r.data); else console.log(`  ✗ ${b.nv} · ${b.ten}: ${r.loi}`); }
   await doi(jobs, 'biến thể');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
@@ -120,13 +121,14 @@ if (arg('tiep-job') && tapId) {
 }
 if (arg('keyframe') && canhThieu.length) {
   const jobs: number[] = [];
-  for (const c of canhThieu) {
+  // SONG SONG có trần (song-song.ts): bước 1 FLUX gọi đồng bộ từng shot — tuần tự thì 25 shot × ~1 phút
+  await songSong(canhThieu, async (c) => {
     if (lamLai) await db.execute(sql`UPDATE xv_canh SET keyframe_url = NULL WHERE id = ${c.id}`);   // ảnh mới về thì thành ảnh chọn (hoan-tat: coalesce)
     // MỖI SHOT BỌC RIÊNG: một lỗi (mạng, cổng) không đổ cả lượt — 17/10/2026 ConnectTimeout ở shot #12 làm chết tiến trình, 4 job hàng nền treo, 5 shot mất ảnh chọn
     const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined).catch((e: unknown) => ({ ok: false as const, loi: `lỗi không bắt được: ${e instanceof Error ? e.message : String(e)}` }));
     if (r.ok) jobs.push(...r.data);
     else { console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); if (lamLai && c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = coalesce(keyframe_url, ${String(c.keyframe_url)}) WHERE id = ${c.id}`); }
-  }
+  });
   await doi(jobs, 'keyframe');
   // --lam-lai: job hỏng SAU khi đã gửi (cổng từ chối, hết giờ) → shot không còn ảnh chọn; trả lại ảnh cũ (vẫn nằm trong keyframe_uv), không để trống.
   if (lamLai) for (const c of canhThieu) if (c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${String(c.keyframe_url)} WHERE id = ${c.id} AND keyframe_url IS NULL`);

@@ -134,6 +134,11 @@ export function lenhLand(o: { de: DeLand; ass: string; nen?: string | null; font
     '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
+/** Kiểu nội dung của video Before You Land = vùng của nước (thống kê kho theo kiểu nội dung trên mos2 Social › Lịch đăng). */
+const VUNG: Record<string, string> = { jp: 'Châu Á', kr: 'Châu Á', th: 'Châu Á', vn: 'Châu Á', id: 'Châu Á', ph: 'Châu Á', sg: 'Châu Á', tw: 'Châu Á',
+  ae: 'Trung Đông / Phi', eg: 'Trung Đông / Phi', ma: 'Trung Đông / Phi', tr: 'Trung Đông / Phi', mx: 'Mỹ Latinh', pe: 'Mỹ Latinh', cr: 'Mỹ Latinh', co: 'Mỹ Latinh',
+  au: 'Châu Đại Dương', nz: 'Châu Đại Dương' };
+export const vungLand = (iso: string | undefined) => VUNG[String(iso ?? '').toLowerCase()] ?? 'Châu Âu';
 /** Một dòng nguồn đề (mau/may/before-you-land.json) → dòng nạp của máy: đề + chữ đăng tiếng Anh (không giá, không nhà mạng). */
 export function tuNguonLand(x: DeLand & { slug: string; nen_url?: string; nen_nguon?: string }) {
   const { slug, nen_url, nen_nguon: _nguon, ...de } = x;
@@ -141,7 +146,7 @@ export function tuNguonLand(x: DeLand & { slug: string; nen_url?: string; nen_ng
   return { slug, chu_de: de.nuoc, de, dang: {
     title: `Landing in ${de.nuoc}? Do this before your plane touches down`,
     description: `Main arrival airports: ${cua}. Your home SIM can start roaming the moment it connects abroad. 1) Install ${aAn(de.nuoc)} ${de.nuoc} eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for ${de.nuoc}: ${de.link}`,
-    link: de.link,
+    link: de.link, nhom: vungLand(de.iso),
   }, nen_url: nen_url ?? null };
 }
 

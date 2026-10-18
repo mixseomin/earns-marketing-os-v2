@@ -154,12 +154,12 @@ export function tieuDeScam(slug: string, de: DeScam): string {
   const k = [...slug].reduce((a, c) => a + c.charCodeAt(0), 0) % 3;
   return [`"${q}" Scam or real?`, `From a "hotel": "${q}" Would you trust it?`, `Scam or real? This ${loai} says "${q}"`][k]!;
 }
-export function tuNguonScam(x: DeScam & { slug: string; nen_url?: string; nen_nguon?: string }) {
-  const { slug, nen_url, nen_nguon: _nguon, ...de } = x, lua = de.ket === 'scam';
+export function tuNguonScam(x: DeScam & { slug: string; nen_url?: string; nen_nguon?: string; nhom?: string }) {
+  const { slug, nen_url, nen_nguon: _nguon, nhom, ...de } = x, lua = de.ket === 'scam';   // nhom = kiểu nội dung (nhóm chiêu / Tin thật) — vào dang (không vào đề: đổi đề là dựng lại video)
   return { slug, chu_de: de.goi, de, dang: {
     title: tieuDeScam(slug, de),
     description: `${lua ? `Scam: ${de.ly_do.join(' · ')}.` : `Real: ${de.ly_do.join(' · ')}.`} Never pay through a link in a message. Call the hotel on the number from its official website. ${dichScam(slug).moi} ${dichScam(slug).link}`,
-    link: dichScam(slug).link,
+    link: dichScam(slug).link, nhom: nhom ?? (lua ? 'Khác' : 'Tin thật'),
   }, nen_url: nen_url ?? null };
 }
 

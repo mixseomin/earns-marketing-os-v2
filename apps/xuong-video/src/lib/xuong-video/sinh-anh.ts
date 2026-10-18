@@ -318,6 +318,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const monCam = (v: NhanVat) => { const mm = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.cam === v.ten && !x.an); return mm ? goiTenEn([...bc.nhanVat, ...bc.nvPhim])(mm.ten) : undefined; };
   const taNv = (v: NhanVat, gon = false, toiDaTu?: number) => chuNguoi(v, { ao: aoCua(v).map((x) => rut(x, toiDaTu)), deo: deoCua(v), them: themCua(v), chen, gon, moTa: gon ? moTaNgan : moTaVua,
     tu_the: toiDaTu && v.loai === 'nhan_vat' && vtCua(v) ? tuTheEn(vtCua(v)!, monCam(v)) : undefined });
+  // DÁNG + ĐỒ CẦM cho đường Nano (19/10/2026 #13: câu Nano chỉ tả thẻ "trông như ảnh 4", không nói AI cầm, cầm thế nào → thẻ lơ lửng giữa không trung,
+  // tay Vivian trống). Trước chỉ bước 1 FLUX nhận câu dáng; giờ plate Nano là đường chính của shot nhiều người.
+  const dangChu = bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && vtCua(v) && !vtCua(v)!.an).map((v) => { const t = tuTheEn(vtCua(v)!, monCam(v)); return t === 'standing' ? '' : `${v.ten}: ${t}`; }).filter(Boolean);
+  const dangCau = dangChu.length ? `POSES AND HELD ITEMS, as Image 1 shows (every held item stays physically in its holder's hand — never floating in the air): ${dangChu.join('; ')}.` : '';
   // SỬA TỪ ẢNH 3D (anh 15/10/2026, #35 ba lần: "dựng lại cảnh theo ảnh 1" + 9 ảnh + đoạn chữ dài → model tự sắp lại: ngang tầm, nhìn thẳng máy,
   // thêm cáp / màn hình theo chữ). Ngành giữ hình học bằng img2img / restyle: ảnh màu 3D LÀ ảnh gốc, model chỉ vẽ lại bề mặt. Ảnh mẫu: 1 tấm
   // cho mỗi nhân vật / đạo cụ CÓ TRONG KHUNG. Không gửi chữ hành động của thẻ shot (dáng + chỗ đã ở 3D; chữ là nơi lọt "cable loop").
@@ -431,7 +435,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
   // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
-  const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc, camChu(chuPhim)), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
+  const prompt = [kxChu, mayCau, framingCau, huongCau, dangCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc, camChu(chuPhim)), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 

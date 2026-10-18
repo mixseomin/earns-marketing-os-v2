@@ -385,7 +385,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         {...(keoLop ? { draggable: true, onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData('text/xv-lop', keoLop); e.dataTransfer.effectAllowed = 'move'; },
           onDragOver: (e: React.DragEvent) => { if (e.dataTransfer.types.includes('text/xv-lop')) { e.preventDefault(); setDangThaVao(keoLop); } },
           onDragLeave: () => setDangThaVao(null), onDrop: (e: React.DragEvent) => { e.preventDefault(); setDangThaVao(null); doiThuTuLop(e.dataTransfer.getData('text/xv-lop'), keoLop); } } : {})}
-        style={{ cursor: keoLop ? 'grab' : onNhan ? 'pointer' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: dangChon ? 'color-mix(in srgb, var(--cyan) 22%, var(--bg-1))' : 'var(--bg-1)', color: dangChon ? 'var(--fg-1)' : undefined, ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
+        style={{ cursor: keoLop ? 'grab' : onNhan ? 'pointer' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 5, background: dangChon ? 'color-mix(in srgb, var(--cyan) 22%, var(--bg-1))' : 'var(--bg-1)', color: dangChon ? 'var(--fg-1)' : undefined, ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
         {dau}<span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
       {/* Bấm vào CHỖ TRỐNG của làn (không trúng khối nào) = tua đầu phát tới đó (#1398) — mọi làn, không chỉ thước giờ. */}
@@ -397,7 +397,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     <div style={{ display: 'flex', alignItems: 'stretch', height: 20, marginTop: 1 }}>
       {/* Thụt bằng đệm + vạch bóng trong, KHÔNG margin/viền trái: margin làm ô nhãn rộng nhanW+14 → khối của làn con lệch phải 14px so với
           làn cha, và nhãn dính hở khe cho khối cuộn ló qua (#1417, cùng gốc #1413). */}
-      <div data-goi-y={mo} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', color: 'var(--fg-3)', fontSize: 11, display: 'flex', alignItems: 'center', paddingLeft: 44, boxShadow: 'inset 14px 0 0 var(--bg-1), inset 16px 0 0 var(--line)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{nhan}</div>
+      <div data-goi-y={mo} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 5, background: 'var(--bg-1)', color: 'var(--fg-3)', fontSize: 11, display: 'flex', alignItems: 'center', paddingLeft: 44, boxShadow: 'inset 14px 0 0 var(--bg-1), inset 16px 0 0 var(--line)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{nhan}</div>
       {/* Làn con thấp 20px → khối trong đó chữ nhỏ + dòng 14px cho nằm giữa (khoiAm đọc --khoi-co / --khoi-lh). */}
       <div style={{ position: 'relative', width: W, flexShrink: 0, '--khoi-co': '9.5px', '--khoi-lh': '14px' } as React.CSSProperties}>{noiDung}</div>
     </div>
@@ -537,8 +537,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       <div ref={vungRef} style={{ marginTop: 0, padding: '0 10px 0 0', borderTop: '1px solid var(--line)', overflow: 'auto', maxHeight: '78vh', position: 'relative', paddingBottom: 4 }}>
         <div style={{ width: W + nhanW, position: 'relative' }}>
           {/* Thước giây — bấm/kéo để tua; dính trên cùng khi cuộn dọc */}
-          <div style={{ display: 'flex', height: 24, paddingTop: 6, position: 'sticky', top: 0, zIndex: 6, background: 'var(--bg-1)' }}>
-            <div style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, ...mono }}>
+          <div style={{ display: 'flex', height: 24, paddingTop: 6, position: 'sticky', top: 0, zIndex: 9, background: 'var(--bg-1)' }}>
+            <div style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 5, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, ...mono }}>
               <span title="Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip = cắt giây phát · kéo clip đổi thứ tự · nét đứt = chưa sinh" style={{ cursor: 'help' }}>⌨</span>
               {nutNho('🔍−', 'Thu nhỏ thước thời gian', zoom <= 1, () => setZoom((z) => Math.max(1, z - 0.5)))}
               <span title="Độ phóng thước thời gian (giữ qua F5)" style={{ minWidth: 22, textAlign: 'center' }}>{zoom}×</span>
@@ -608,7 +608,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {khung && <div style={{ position: 'fixed', left: Math.min(khung.x0, khung.x1), top: Math.min(khung.y0, khung.y1), width: Math.abs(khung.x1 - khung.x0), height: Math.abs(khung.y1 - khung.y0), border: '1px solid var(--cyan)', background: 'color-mix(in srgb, var(--cyan) 12%, transparent)', pointerEvents: 'none', zIndex: 50 }} />}
           </div>
           {/* Làn 🎬 Hình dính ngay dưới thước (#1418) — cuộn xuống các làn đối tượng vẫn thấy shot nào đang ở đâu. */}
-          <div style={{ position: 'sticky', top: 24, zIndex: 5, background: 'var(--bg-1)', paddingBottom: 3, boxShadow: '0 1px 0 var(--line)' }}>
+          <div style={{ position: 'sticky', top: 24, zIndex: 8, background: 'var(--bg-1)', paddingBottom: 3, boxShadow: '0 1px 0 var(--line)' }}>
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = anhNho(cc.keyframe_url, 160);
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);
@@ -795,7 +795,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}
-          <div style={{ position: 'absolute', left: nhanW + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 7 }}>   {/* trên thước + làn Hình đang dính (z 6/5) */}
+          <div style={{ position: 'absolute', left: nhanW + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 10 }}>   {/* trên thước + làn Hình đang dính (z 9/8); nhãn dính của làn = 5, trên mọi thứ trong làn (nút ⇄ = 4) */}
             <div title="Kéo để tua" onPointerDown={(e) => keoDauPhat(e, (vungRef.current?.getBoundingClientRect().left ?? 0) + nhanW - (vungRef.current?.scrollLeft ?? 0))}
               style={{ position: 'absolute', top: 0, left: -7, width: 16, height: 16, background: '#ef4444', borderRadius: '3px 3px 8px 8px', cursor: 'ew-resize', pointerEvents: 'auto', boxShadow: '0 1px 4px #0008' }} />
           </div>

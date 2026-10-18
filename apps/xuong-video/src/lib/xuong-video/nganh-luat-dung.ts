@@ -3,17 +3,9 @@
 // Luật nào không tìm được gốc ngành thì ghi rõ là lệ riêng của studio trong `nguon` — không trình như chuẩn ngành.
 // Gộp vào NGANH (dien-anh-nganh.ts); test dien-anh-nganh.test.mts bắt MỌI luật dựng phải có mục ở đây hoặc ở NGANH.
 import type { NganhKyThuat } from './dien-anh-nganh';
+import { mucNganh as n, GRAMMAR_SHOT, GRAMMAR_EDIT, BLOCK, BROWN_CINE, BROWN_LIGHT, TRUFFAUT, CHION, MCKEE, MURCH, REISZ, MASCELLI, ARIJON, DMYTRYK } from './nguon-nganh';
 
-const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon: string): { nganh: NganhKyThuat } =>
-  ({ nganh: { ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon } });
-
-const MCKEE = 'Robert McKee — Story (1997)';
-const MURCH = 'Walter Murch — In the Blink of an Eye (2001)';
-const REISZ = 'Karel Reisz & Gavin Millar — The Technique of Film Editing';
-const MASCELLI = "Joseph V. Mascelli — The Five C's of Cinematography (1965)";
-const BOWEN = 'Christopher J. Bowen — Grammar of the Shot / Grammar of the Edit';
-const ARIJON = 'Daniel Arijon — Grammar of the Film Language (1976)';
-const DMYTRYK = 'Edward Dmytryk — On Film Editing (1984)';
+const BOWEN = `${GRAMMAR_SHOT}; ${GRAMMAR_EDIT}`;
 
 export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
   'luat.tu_ke_du': n('Setup / payoff (Chekhov’s gun)',
@@ -78,7 +70,7 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Mọi chuỗi shot; nặng hơn ở phim ngắn dọc.',
     'Mắt luôn có thứ mới để đọc, không ngấy.',
     'Chuỗi shot cùng cỡ cùng góc (dễ thành jump cut); toàn mặt nói không có hành động.',
-    `Bruce Block — The Visual Story (2001), tương phản / tương đồng; ${MASCELLI} — luật 30°; tỉ lệ ≤ 40% shot đứng yên là lệ riêng của studio`),
+    `${BLOCK}, tương phản / tương đồng; ${MASCELLI} — luật 30°; tỉ lệ ≤ 40% shot đứng yên là lệ riêng của studio`),
   'luat.nhip_doc': n('Shot duration / reading time (pacing)',
     'Mỗi shot đủ dài để khán giả đọc hết thông tin của nó, không dài hơn.',
     'Shot càng nhiều chi tiết càng cần thời gian; một hành động chính mỗi shot; sau cú bất ngờ giữ phản ứng.',
@@ -106,7 +98,7 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Đầu tập, mỗi lần thời gian nhảy.',
     'Không lẫn lộn trước sau.',
     'Nhảy từ sáng sang tối bằng cắt thẳng không dấu hiệu.',
-    `${REISZ} — dấu hiệu thời gian khi chuyển cảnh; Blain Brown — Cinematography: Theory and Practice, ánh sáng theo giờ`),
+    `${REISZ} — dấu hiệu thời gian khi chuyển cảnh; ${BROWN_CINE}, ánh sáng theo giờ`),
   'luat.du_diem_nhin': n('Coverage (master, singles, reaction, insert, cutaway, POV)',
     'Mỗi cảnh có đủ loại shot để dựng: shot tổng (master), shot từng người, phản ứng, cận chi tiết, cutaway.',
     'Quay master trước rồi phủ dần vào gần; mỗi cảnh ít nhất một shot cho thấy cả quan hệ không gian.',
@@ -141,21 +133,21 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Phim có chủ đề hoặc bí mật cần nối các đoạn.',
     'Khán giả nối các mảnh truyện bằng hình, thấy phim có chủ ý.',
     'Lặp mà không đổi nghĩa; motif quá kín không ai thấy.',
-    `${MCKEE} — image systems; Bruce Block — The Visual Story (2001)`),
+    `${MCKEE} — image systems; ${BLOCK}`),
   'luat.chenh_thong_tin': n('Dramatic irony / suspense (superior position)',
     'Khán giả biết điều nhân vật chưa biết → hồi hộp; hoặc giấu chi tiết thấy được để trả ở cú lật.',
     'Cho khán giả thấy mối nguy trước (quả bom dưới bàn); hoặc để chi tiết trong hậu cảnh.',
     'Cảnh cần căng; cú lật cần "à ra thế".',
     'Hồi hộp kéo dài thay vì bất ngờ một giây.',
     'Lộ hết rồi mà vẫn kéo dài; giấu tới mức gian lận.',
-    'François Truffaut — Hitchcock/Truffaut (1966), thuyết "quả bom dưới bàn"; Robert McKee — Story (1997)'),
+    `${TRUFFAUT}, thuyết “quả bom dưới bàn”; ${MCKEE}`),
   'luat.anh_sang_cam_xuc': n('Motivated lighting + color script',
     'Ánh sáng có nguồn trong thế giới truyện và đổi theo cung cảm xúc; màu cả phim được lên kế hoạch theo cảnh.',
     'Đặt nguồn sáng thấy được (cửa sổ, đèn bàn); bảng màu theo cảnh (color script) trước khi quay.',
     'Mọi cảnh; nặng ở cảnh đổi cảm xúc.',
     'Khán giả cảm trước khi hiểu.',
     'Ánh sáng không nguồn đổi vô cớ; màu nhảy giữa hai shot cùng cảnh.',
-    'Blain Brown — Motion Picture and Video Lighting; color script của Pixar (Ralph Eggleston, Lou Romano)'),
+    `${BROWN_LIGHT}; color script của Pixar (Ralph Eggleston, Lou Romano)`),
   'luat.giu_phan_ung': n('Holding on the reaction shot',
     'Sau điểm xoay giữ trên mặt người chịu tác động đủ lâu để khán giả cảm cùng.',
     'Cắt sang phản ứng thay vì ở lại người nói; giữ ≥ 1,5–2 giây.',
@@ -169,14 +161,14 @@ export const NGANH_LUAT: Record<string, { nganh: NganhKyThuat }> = {
     'Trước cao trào, sau mất mát, trước câu thoại quyết định.',
     'Khán giả nín thở; cú tiếp theo nặng hơn.',
     'Lặng quá dài thành chết nhịp; nhạc phủ kín cả phim.',
-    `Michel Chion — Audio-Vision (1994); ${MURCH}`),
+    `${CHION}; ${MURCH}`),
   'luat.may_co_dong_co': n('Motivated camera movement',
     'Máy chỉ chuyển khi có lý do trong truyện: theo người, theo ánh nhìn, đẩy vào khi nhận ra, lùi ra khi cô đơn.',
     'Mỗi chuyển động có khung mở và khung kết đều đẹp; tốc độ theo cảm xúc.',
     'Mọi shot có máy chuyển.',
     'Khán giả không thấy máy — chỉ thấy cảm xúc dâng.',
     'Máy trôi vô cớ cho "điện ảnh"; khung giữa đẹp mà khung kết hụt.',
-    `${BOWEN} — motivated camera movement; Blain Brown — Cinematography: Theory and Practice`),
+    `${BOWEN} — motivated camera movement; ${BROWN_CINE}`),
   'luat.khong_cat_giua_may': n('Unbroken camera move (relay / hand-off shot, oner)',
     'Một cú máy nối hai chủ thể / hai nơi là một shot: mở trên A, kết trên B; không cắt là nghĩa của cú máy (cùng lúc, cùng chỗ, có liên quan).',
     'Lên khung mở và khung kết; cắt SAU khi máy dừng trên B; cú quá dài thì giấu điểm nối bằng vật lướt sát ống kính hoặc vụt máy.',

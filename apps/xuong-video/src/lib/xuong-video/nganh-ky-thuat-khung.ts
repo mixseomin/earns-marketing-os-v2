@@ -1,19 +1,8 @@
 // KIẾN THỨC NGÀNH cho kỹ thuật nhóm cỡ cảnh · góc máy · vai kể · móc câu (anh 18/10/2026: "Luôn phải refer với kiến thức ngành"). Gộp vào NGANH (dien-anh-nganh.ts).
 import type { NganhKyThuat } from './dien-anh-nganh';
-const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon: string): { nganh: NganhKyThuat } =>
-  ({ nganh: { ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon } });
+import { mucNganh as n, TRUFFAUT as TRUFFAUT_SACH, MASCELLI, GRAMMAR_SHOT as BOWEN, ARIJON, KATZ, MERCADO, BORDWELL as BT, MURCH, DMYTRYK, REISZ, MCKEE } from './nguon-nganh';
 
-const MASCELLI = 'Joseph V. Mascelli — The Five C’s of Cinematography (1965)';
-const BOWEN = 'Christopher J. Bowen — Grammar of the Shot';
-const ARIJON = 'Daniel Arijon — Grammar of the Film Language (1976)';
-const KATZ = 'Steven D. Katz — Film Directing Shot by Shot (1991)';
-const MERCADO = 'Gustavo Mercado — The Filmmaker’s Eye (2011)';
-const BT = 'David Bordwell & Kristin Thompson — Film Art: An Introduction';
-const MURCH = 'Walter Murch — In the Blink of an Eye (1995)';
-const DMYTRYK = 'Edward Dmytryk — On Film Editing (1984)';
-const REISZ = 'Karel Reisz & Gavin Millar — The Technique of Film Editing';
-const MCKEE = 'Robert McKee — Story (1997)';
-const TRUFFAUT = 'François Truffaut — Hitchcock/Truffaut (1966), thuyết “quả bom dưới gầm bàn”';
+const TRUFFAUT = `${TRUFFAUT_SACH}, thuyết “quả bom dưới gầm bàn”`;
 const HEATH = 'Chip & Dan Heath — Made to Stick (2007), chương Unexpected';
 const LOEW = 'George Loewenstein (1994) — The Psychology of Curiosity: A Review and Reinterpretation (thuyết khoảng trống thông tin)';
 const TT = 'hướng dẫn sáng tạo của TikTok / Meta cho quảng cáo video ngắn (móc câu trong 1–3 giây đầu)';

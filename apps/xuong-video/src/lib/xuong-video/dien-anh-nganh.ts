@@ -21,16 +21,18 @@ import { NGANH_AM_THANH } from './nganh-ky-thuat-am-thanh';
 import { NGANH_HINH } from './nganh-ky-thuat-hinh';
 import { NGANH_KHUNG } from './nganh-ky-thuat-khung';
 
-/** CÚ MÁY LIỀN MẠCH CẦN KHUNG KẾT (luật khong_cat_giua_may): khung cuối khác hẳn khung mở (dừng trên người khác / phía bên kia) — bản 3D dựng thêm khung
- *  màu chỗ kết (bo-set-3d.ts › chay.ket → dung-set.py), video phải nhận ảnh đầu + ảnh cuối (keyframe_ket), không thì model tự bịa chỗ dừng.
- *  MỘT nguồn cho bản 3D, cổng video (quy-trinh.ts › chanVideo) và chấm điểm cắt (dan-dat.ts). */
-export const CU_MAY_KHUNG_KET: readonly string[] = ['chuyen_chu_the', 'cung', 'vuot_tien_canh'];
-/** KÝ HIỆU trên timeline (làn ↪ Dẫn dắt) — đọc mạch dựng kiểu HBO bằng mắt: mỗi điểm cắt một ký hiệu kiểu cắt (chuyen_canh), mỗi cú máy liền mạch
- *  một dải giữa shot (chuyen_dong). Thiếu khoá = cắt thẳng (│) / không vẽ dải. */
+/** KÝ HIỆU KIỂU CẮT trên timeline (làn ↪ Dẫn dắt) — đọc mạch dựng kiểu HBO bằng mắt; khoá = mã chuyen_canh (thiếu = ✦ hiệu ứng, không có mã = cắt thẳng │). */
 export const KY_HIEU_CAT: Record<string, string> = { cat: '│', lien_may: '∞', cat_khop: '⧉', j_cut: 'J', l_cut: 'L', hoa_tan: '◐', toi_den: '■', quat_chuyen: '»', cat_soc: '⚡', nhay: '⋮', cat_hanh_dong: '⇢', cau_am: '♪', quet_vat: '▌', cat_thoi_gian: '⏭', xen_ke: '⇅', mo_cheo: '◑' };
-export const KY_HIEU_MAY_LIEN: Record<string, string> = { chuyen_chu_the: '↝', cung: '↻', vuot_tien_canh: '▸', mot_cu_may: '∞' };
+/** CÚ MÁY LIỀN MẠCH (luật khong_cat_giua_may) — MỘT bảng: ký hiệu dải trên timeline + có cần KHUNG KẾT không (khung cuối khác hẳn khung mở: dừng trên người
+ *  khác / phía bên kia → bản 3D dựng khung màu chỗ kết qua chay.ket, video phải nhận ảnh đầu + ảnh cuối, không thì model tự bịa chỗ dừng). Mọi nơi đọc từ đây:
+ *  bản 3D (duong-may.ts), mã khung (bo-set-3d.ts), cổng video (quy-trinh.ts › chanVideo), chấm điểm cắt (dan-dat.ts), timeline. */
+export const CU_MAY_LIEN_BANG: Record<string, { ky_hieu: string; khung_ket: boolean }> = {
+  chuyen_chu_the: { ky_hieu: '↝', khung_ket: true }, cung: { ky_hieu: '↻', khung_ket: true }, vuot_tien_canh: { ky_hieu: '▸', khung_ket: true },
+  mot_cu_may: { ky_hieu: '∞', khung_ket: false },   // bay tự do (may_di 'tu_do') — bản 3D chưa dựng được khung kết
+};
 /** Cú máy liền mạch — hai shot liền nhau cùng cú này = một cú máy bị cắt đôi (dan-dat.ts › cat_giua_may). */
-export const CU_MAY_LIEN: readonly string[] = [...CU_MAY_KHUNG_KET, 'mot_cu_may'];
+export const CU_MAY_LIEN: readonly string[] = Object.keys(CU_MAY_LIEN_BANG);
+export const CU_MAY_KHUNG_KET: readonly string[] = CU_MAY_LIEN.filter((k) => CU_MAY_LIEN_BANG[k]!.khung_ket);
 
 const M = 'Mascelli — The Five C\'s of Cinematography; Bowen — Grammar of the Shot; Mercado — The Filmmaker\'s Eye';
 const H = 'Ed Hooks — Acting for Animators; Thomas & Johnston — The Illusion of Life';

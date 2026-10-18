@@ -1,16 +1,7 @@
 // KIẾN THỨC NGÀNH cho kỹ thuật nhóm chuyển cảnh (anh 18/10/2026: "Luôn phải refer với kiến thức ngành"). Gộp vào NGANH (dien-anh-nganh.ts).
 import type { NganhKyThuat } from './dien-anh-nganh';
-const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon: string): { nganh: NganhKyThuat } =>
-  ({ nganh: { ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon } });
+import { mucNganh as n, REISZ, GRAMMAR_EDIT as GRAMMAR, MURCH, DMYTRYK, DANCYGER, BORDWELL, CHION, SONNENSCHEIN as SONNEN } from './nguon-nganh';
 
-const REISZ = 'Karel Reisz & Gavin Millar — The Technique of Film Editing';
-const GRAMMAR = 'Roy Thompson & Christopher J. Bowen — Grammar of the Edit';
-const MURCH = 'Walter Murch — In the Blink of an Eye';
-const DMYTRYK = 'Edward Dmytryk — On Film Editing';
-const DANCYGER = 'Ken Dancyger — The Technique of Film and Video Editing';
-const BORDWELL = 'David Bordwell & Kristin Thompson — Film Art';
-const CHION = 'Michel Chion — Audio-Vision';
-const SONNEN = 'David Sonnenschein — Sound Design';
 const NLE = 'Hiệu ứng dựng sẵn của phần mềm dựng (NLE: Premiere, Final Cut, CapCut…), không phải ngữ pháp phim cổ điển';
 const NLE_WIPE = `${NLE}; ngữ pháp wipe: ${GRAMMAR}`;
 

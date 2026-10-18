@@ -1,14 +1,7 @@
 // KIẾN THỨC NGÀNH cho kỹ thuật nhóm âm thanh + nhạc (anh 18/10/2026: "Luôn phải refer với kiến thức ngành"). Gộp vào NGANH (dien-anh-nganh.ts).
 import type { NganhKyThuat } from './dien-anh-nganh';
-const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon: string): { nganh: NganhKyThuat } =>
-  ({ nganh: { ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon } });
+import { mucNganh as n, SONNENSCHEIN as SONN, CHION, HOLMAN, AMENT, GORBMAN, KARLIN } from './nguon-nganh';
 
-const SONN = 'David Sonnenschein — Sound Design: The Expressive Power of Music, Voice and Sound Effects in Cinema (2001)';
-const CHION = 'Michel Chion — Audio-Vision: Sound on Screen (1994)';
-const HOLMAN = 'Tomlinson Holman — Sound for Film and Television';
-const AMENT = 'Vanessa Theme Ament — The Foley Grail';
-const GORBMAN = 'Claudia Gorbman — Unheard Melodies: Narrative Film Music (1987)';
-const KARLIN = 'Fred Karlin & Rayburn Wright — On the Track: A Guide to Contemporary Film Scoring';
 const QUYUOC = 'Quy ước quảng cáo / video ngắn (TikTok, Reels), không có nền lý thuyết điện ảnh riêng';
 
 export const NGANH_AM_THANH: Record<string, { nganh: NganhKyThuat }> = {

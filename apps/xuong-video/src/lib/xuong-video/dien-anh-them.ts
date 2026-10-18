@@ -7,6 +7,7 @@
 // David Sonnenschein — Sound Design; Hook QC: Meta Creative Best Practices (3 giây đầu), TikTok Creative Center (hook types).
 import type { KyThuat, NhomKyThuat, NhomChuyenCanh, TheLoai } from './dien-anh';
 import type { NganhKyThuat, MayDi } from './dien-anh-nganh';
+import { moTaNganh, MASCELLI, KATZ, GRAMMAR_SHOT, HOOKS, ILLUSION } from './nguon-nganh';
 
 const T = 'tat_ca' as const;
 const DRAMA: TheLoai[] = ['chinh_kich', 'tinh_cam', 'phim_doc', 'kinh_di', 'hanh_dong', 'vien_tuong', 'phieu_luu'];
@@ -107,9 +108,9 @@ export const THU_VIEN_THEM: KyThuat[] = [
 ];
 
 /** Mô tả ngành cho chuyển động máy + nhịp diễn mới (khoá '<nhóm>.<key>') — gộp vào NGANH của dien-anh-nganh.ts. */
-const M = 'Mascelli — The Five C\'s of Cinematography; Katz — Film Directing Shot by Shot; Bowen — Grammar of the Shot';
-const H = 'Ed Hooks — Acting for Animators; Thomas & Johnston — The Illusion of Life';
-const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon = M): NganhKyThuat => ({ ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon });
+const M = `${MASCELLI}; ${KATZ}; ${GRAMMAR_SHOT}`;
+const H = `${HOOKS}; ${ILLUSION}`;
+const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon = M): NganhKyThuat => moTaNganh(ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon);
 
 export const THU_VIEN_THEM_MAY: KyThuat[] = [
   k('chuyen_dong', 'chuyen_chu_the', 'Chuyển chủ thể (hand-off)', 'Máy bám theo A rồi rời A, trượt sang dừng trên B đang chờ sẵn — lộ B như tình cờ, không cú cắt (kiểu HBO).', 'the camera follows the first subject, then drifts off it and settles on a second subject waiting nearby, one continuous move', [...DRAMA, 'tai_lieu']),

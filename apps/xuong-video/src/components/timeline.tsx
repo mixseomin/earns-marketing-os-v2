@@ -35,7 +35,7 @@ import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
 import { chamDanDat, luatCuaTru } from '@/lib/xuong-video/dan-dat';
-import { KY_HIEU_CAT, KY_HIEU_MAY_LIEN } from '@/lib/xuong-video/dien-anh-nganh';
+import { KY_HIEU_CAT, CU_MAY_LIEN_BANG } from '@/lib/xuong-video/dien-anh-nganh';
 import { NganKhuon } from './khuon-ui';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -723,11 +723,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             const k = chamDanDat(canh, (tap.phan_canh ?? []) as never, tap.khuon_chuoi ?? [], theLoai);
             const viTriShot = new Map(canh.map((c, i) => [c.id, i] as const));
             const mau = (d: number) => (d >= 90 ? '#4ade80' : d >= 70 ? '#fbbf24' : '#f87171');
-            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nKý hiệu cắt: │ cắt thẳng · ■ tắt đen · ◐ hoà tan / mờ chéo · ⧉ khớp hình · ⇢ giữa động tác · J / L tiếng dẫn · ♪ cầu âm · ∞ liền máy · ✦ hiệu ứng; số = điểm cắt bị trừ\nDải xanh giữa shot = cú máy LIỀN, không cắt: A ↝ B chuyển chủ thể · ↻ cung · ▸ vượt tiền cảnh · ∞ một cú máy\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}${c.tru.length ? ` (${c.tru.map((t) => `−${t.tru} ${t.chu}`).join('; ')})` : ''}`).join('\n')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
+            // Chú thích dựng TỪ bảng ký hiệu (dien-anh-nganh.ts) — thêm ký hiệu mới là chú thích tự có, không chép tay hai nơi.
+            const chuKyHieuCat = Object.entries(KY_HIEU_CAT).map(([k, g]) => `${g} ${(kyThuat(k, 'chuyen_canh')?.ten ?? k).replace(/ \(.*$/, '')}`).join(' · ');
+            const chuCuMayLien = Object.entries(CU_MAY_LIEN_BANG).map(([k, x]) => `${k === 'chuyen_chu_the' ? 'A ↝ B' : x.ky_hieu} ${(kyThuat(k, 'chuyen_dong')?.ten ?? k).replace(/ \(.*$/, '')}`).join(' · ');
+            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nKý hiệu cắt: ${chuKyHieuCat} · ✦ hiệu ứng; số = điểm cắt bị trừ\nDải xanh giữa shot = cú máy LIỀN, không cắt: ${chuCuMayLien}\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}${c.tru.length ? ` (${c.tru.map((t) => `−${t.tru} ${t.chu}`).join('; ')})` : ''}`).join('\n')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
             // MẠCH DỰNG kiểu HBO đọc bằng mắt: dải giữa shot = cú máy LIỀN MẠCH (chuyển chủ thể A ↝ B, cung, vượt tiền cảnh, một cú máy) — nối mà không cắt;
             // dấu ở điểm cắt = KIỂU cắt (│ thẳng · ■ tắt đen · ◐ hoà tan · ⧉ khớp hình · J/L tiếng…), có trừ điểm thì thay bằng điểm. Ký hiệu: dien-anh-nganh.ts.
             const dai = canh.map((cc, i) => {
-              const cd = cc.ky_thuat?.chuyen_dong; const kh = cd ? KY_HIEU_MAY_LIEN[cd] : undefined; if (!kh) return null;
+              const cd = cc.ky_thuat?.chuyen_dong; const kh = cd ? CU_MAY_LIEN_BANG[cd]?.ky_hieu : undefined; if (!kh) return null;
               const m = cc.may_3d; const a0 = m?.nham ?? m?.khung?.[0]; const b0 = m?.chuyen_toi ?? m?.khung?.find((t) => t !== a0);
               const ten = kyThuat(cd, 'chuyen_dong')?.ten ?? cd!;
               const chu = cd === 'chuyen_chu_the' && a0 && b0 ? `${a0} ${kh} ${b0}` : `${kh} ${ten.replace(/ \(.*$/, '')}`;

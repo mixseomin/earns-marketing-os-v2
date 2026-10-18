@@ -1,18 +1,7 @@
 // KIẾN THỨC NGÀNH cho kỹ thuật nhóm ánh sáng · màu · ống kính · tốc độ (anh 18/10/2026: "Luôn phải refer với kiến thức ngành"). Gộp vào NGANH (dien-anh-nganh.ts).
 import type { NganhKyThuat } from './dien-anh-nganh';
-const n = (ten_nganh: string, dau_cuoi: string, thuc_hien: string, dong_co: string, cam_xuc: string, tranh: string, nguon: string): { nganh: NganhKyThuat } =>
-  ({ nganh: { ten_nganh, dau_cuoi, thuc_hien, dong_co, cam_xuc, tranh, nguon } });
+import { mucNganh as n, BROWN_LIGHT as BB_L, BROWN_CINE as BB_C, MALKIEWICZ as KM, VAN_HURKMAN as VH, BELLANTONI as PB, BLOCK as BL, ASC, MASCELLI as MA, GRAMMAR_SHOT as BO, MURCH as WM } from './nguon-nganh';
 
-const BB_L = 'Blain Brown — Motion Picture and Video Lighting';
-const BB_C = 'Blain Brown — Cinematography: Theory and Practice';
-const KM = 'Kris Malkiewicz — Film Lighting';
-const VH = 'Alexis Van Hurkman — Color Correction Handbook';
-const PB = 'Patti Bellantoni — If It’s Purple, Someone’s Gonna Die';
-const BL = 'Bruce Block — The Visual Story';
-const ASC = 'ASC — American Cinematographer Manual';
-const MA = 'Joseph V. Mascelli — The Five C’s of Cinematography';
-const BO = 'Christopher J. Bowen — Grammar of the Shot';
-const WM = 'Walter Murch — In the Blink of an Eye';
 
 export const NGANH_HINH: Record<string, { nganh: NganhKyThuat }> = {
   // ── TỐC ĐỘ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -66,7 +55,7 @@ export const NGANH_HINH: Record<string, { nganh: NganhKyThuat }> = {
     'Quảng cáo sản phẩm, đồ ăn, thế giới tí hon — quy ước quảng cáo thương mại hơn là thủ pháp điện ảnh cổ điển.',
     'Lạ mắt, tò mò, như nhìn qua mắt côn trùng.',
     'Thiếu sáng do khẩu nhỏ → nhiễu; lướt nhanh làm mất chi tiết; bóng ống kính đổ lên vật.',
-    'Quy ước quay quảng cáo / sản phẩm (studio convention), dựa trên thông số ống Laowa Probe; nền macro: Blain Brown — Cinematography: Theory and Practice'),
+    `Quy ước quay quảng cáo / sản phẩm (studio convention), dựa trên thông số ống Laowa Probe; nền macro: ${BB_C}`),
   'ong_kinh.rong': n('Wide-angle lens (24mm)',
     'Không gian giãn rộng, tiền cảnh to hậu cảnh xa; đứng gần thì mặt hơi phình méo.',
     'Tiêu cự khoảng 18–28mm (full frame), máy đặt gần chủ thể để khai thác phối cảnh mạnh.',

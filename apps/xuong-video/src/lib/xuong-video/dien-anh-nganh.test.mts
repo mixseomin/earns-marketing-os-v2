@@ -2,7 +2,7 @@
 // Thư viện phải ĐỦ mô tả ngành cho mọi chuyển động máy + nhịp diễn (anh 15/10/2026: "lưu vào thư viện hết"), và mô tả không trỏ vào kỹ thuật ma.
 import assert from 'node:assert';
 import { THU_VIEN, promptKyThuatVideo, lamSachKyThuat } from './dien-anh';
-import { NGANH } from './dien-anh-nganh';
+import { NGANH, KY_HIEU_CAT, CU_MAY_LIEN_BANG, CU_MAY_KHUNG_KET } from './dien-anh-nganh';
 import { LUAT_DUNG_CANH, luatDung } from './luat-dung';
 
 // MỌI kỹ thuật trong thư viện (mọi nhóm) phải có mô tả ngành đủ trường + nguồn (anh 18/10/2026: "Luôn phải refer với kiến thức ngành").
@@ -27,3 +27,10 @@ console.log('dien-anh-nganh.test: ok (luật thợ)');
 const khongNguon = LUAT_DUNG_CANH.filter((l) => !l.nganh || !l.nganh.nguon.trim() || Object.values(l.nganh).some((v) => !String(v).trim())).map((l) => l.key);
 assert.deepStrictEqual(khongNguon, [], `luật dựng thiếu kiến thức ngành / nguồn: ${khongNguon.join(', ')}`);
 console.log(`dien-anh-nganh.test: ok (${LUAT_DUNG_CANH.length} luật dựng đều có nguồn ngành)`);
+// Bảng ký hiệu timeline trỏ vào kỹ thuật CÓ THẬT; cú máy cần khung kết phải dựng được đường máy (không 'tu_do') — không thì cổng chặn mãi.
+const ma2 = [...Object.keys(KY_HIEU_CAT).filter((k) => !THU_VIEN.some((x) => x.nhom === 'chuyen_canh' && x.key === k)).map((k) => `chuyen_canh.${k}`),
+  ...Object.keys(CU_MAY_LIEN_BANG).filter((k) => !THU_VIEN.some((x) => x.nhom === 'chuyen_dong' && x.key === k)).map((k) => `chuyen_dong.${k}`)];
+assert.deepStrictEqual(ma2, [], `ký hiệu trỏ vào kỹ thuật không có: ${ma2.join(', ')}`);
+const khongDung = CU_MAY_KHUNG_KET.filter((k) => ['tu_do', 'dung'].includes(NGANH[`chuyen_dong.${k}`]?.may_di?.kieu ?? 'dung'));
+assert.deepStrictEqual(khongDung, [], `cú máy cần khung kết mà bản 3D không dựng được đường máy: ${khongDung.join(', ')}`);
+console.log('dien-anh-nganh.test: ok (ký hiệu timeline)');

@@ -158,7 +158,7 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], laQc: boolean, o?: { ho
   if (c.keyframe_url && !laQc) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null, soi_mat: c.soi_mat ?? null }); if (k) out.push(k); }
   // CÚ MÁY LIỀN MẠCH (luật khong_cat_giua_may): chuyển chủ thể / cung kết ở khung khác hẳn khung mở → phải có keyframe KẾT làm ảnh cuối, không thì model tự bịa chỗ dừng.
   const cm = c.ky_thuat?.chuyen_dong;
-  if (c.keyframe_url && cm && CU_MAY_KHUNG_KET.includes(cm) && !c.keyframe_ket) out.push(`cú máy "${kyThuat(cm, 'chuyen_dong')?.ten ?? cm}" kết ở khung khác khung mở — cần keyframe KẾT (dựng lại khung 3D để có khung màu chỗ kết, rồi sinh keyframe kết) trước khi sinh video`);
+  if (c.keyframe_url && cm && CU_MAY_KHUNG_KET.includes(cm) && !c.keyframe_ket) out.push(`cú máy "${kyThuat(cm, 'chuyen_dong')?.ten ?? cm}" kết ở khung khác khung mở — cần keyframe KẾT trước khi sinh video (khung 3D có khung kết → chưa có nút trên studio: scripts/sinh-shot.mts --canh=<id> --keyframe-ket)`);
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
   // Quảng cáo: cử chỉ phải dồn vào sản phẩm + máy không đẩy cắt mất sản phẩm mặc trên người (san-pham-shot.ts) — chặn trước khi tiêu tiền clip.

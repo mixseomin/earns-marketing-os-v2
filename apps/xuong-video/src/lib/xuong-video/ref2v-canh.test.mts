@@ -15,7 +15,7 @@ assert.deepStrictEqual(g.tham_chieu.map((t) => `${t.ma}=${t.ten}`), ['@Element1=
 const el = g.input.elements as { frontal_image_url: string; reference_image_urls: string[] }[];
 assert.deepStrictEqual(el[1], { frontal_image_url: 'v1', reference_image_urls: ['v1'] });
 // tên trong prompt → mã; {Tên} cũng đổi
-assert.ok(g.shots[0]!.prompt.startsWith('flicks the @Image2') && g.shots[0]!.prompt.includes('@Element2 blocks @Element1'), g.shots[0]!.prompt);   // diễn trước, bố cục sau
+assert.ok(g.shots[0]!.prompt.startsWith('@Element2 blocks @Element1') && g.shots[0]!.prompt.includes('flicks the @Image2'), g.shots[0]!.prompt);   // bố cục trước, diễn sau (job #3104)
 // đầu vào đúng khuôn model: multi_prompt có số giây từng shot, tổng duration, khung dọc, không tiếng
 const mp = g.input.multi_prompt as { duration: string }[];
 assert.deepStrictEqual(mp.map((x) => x.duration), ['3', '4', '5']); assert.strictEqual(g.input.duration, '12'); assert.strictEqual(g.input.aspect_ratio, '9:16'); assert.strictEqual(g.input.generate_audio, false);
@@ -40,9 +40,10 @@ assert.ok(dungRef2v([], NV, { tiLe: '16:9' }).loi.length >= 1);
   const bc = 'Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash, rows of desks and coworkers behind, window light from the left. '.repeat(3);
   const r = dungRef2v([sh(1, 3, [1, 2], { dien: dai, bo_cuc: bc, mo: 'x '.repeat(200), ket: 'y' }), sh(2, 3, [1], { dien: 'z '.repeat(400) })], NV, { tiLe: '9:16' });
   for (const m of r.input.multi_prompt as { prompt: string }[]) assert.ok(Buffer.byteLength(m.prompt, 'utf8') <= TOI_DA_PROMPT, `prompt ${Buffer.byteLength(m.prompt, 'utf8')} byte`);
-  assert.ok(r.shots[0]!.prompt.startsWith('Anticipation: @Element2'), 'diễn nguyên câu đứng đầu');
+  assert.ok(r.shots[0]!.prompt.startsWith('Wide in the aisle'), 'bố cục đứng đầu');
   assert.ok(!r.shots[0]!.prompt.includes('From:'), 'mở/kết quá dài thì bỏ nguyên phần');
   assert.ok(r.shots[1]!.prompt.length > 100, 'phần đầu quá dài vẫn có nội dung (cắt ở ranh giới từ)');
+  assert.ok(r.shots[0]!.prompt.includes('Anticipation:'), 'bố cục dài vẫn chừa chỗ cho câu diễn đầu');
   assert.ok(Buffer.byteLength(gonPrompt(['Hạ — ’ ” '.repeat(80)], 100), 'utf8') <= 100, 'đếm theo byte (chữ có dấu, gạch dài)');
   assert.strictEqual(gonPrompt(['Một câu. Hai câu dài hơn nhiều lắm.'], 11), 'Một câu.');
   assert.ok(!(r.input.multi_prompt as { prompt: string }[])[0]!.prompt.includes('Sound:'), 'không sinh tiếng thì bỏ Sound:');

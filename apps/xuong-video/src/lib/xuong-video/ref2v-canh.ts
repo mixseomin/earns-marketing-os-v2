@@ -80,11 +80,13 @@ export function dungRef2v(shots: ShotR[], nhanVat: NvR[], o: { tiLe: string; tie
   };
   const tieng = !!o.tieng;
   // MỖI prompt shot ≤ TOI_DA_PROMPT ký tự (model trả 422 "Prompt must not exceed 512 characters" — job #3088, 19/10/2026). Ghép theo ƯU TIÊN, phần
-  // không vừa thì bỏ NGUYÊN CÂU (không cắt giữa câu): diễn (hành động) → máy → bố cục → mở/kết. Không sinh tiếng thì bỏ phần "Sound:" của máy.
+  // không vừa thì bỏ NGUYÊN CÂU (không cắt giữa câu): bố cục → diễn (hành động) → máy → mở/kết. Không sinh tiếng thì bỏ phần "Sound:" của máy.
   const sp = chon.map(({ s, giay }) => {
     const d = s.dan_dung ?? {};
     const mayDu = promptKyThuatVideo(s.ky_thuat); const may = (tieng ? mayDu : mayDu.replace(/\s*Sound:[^.]*\.?/g, '')).trim();
-    const phan = s.prompt_video?.trim() ? [s.prompt_video.trim(), may] : [d.dien || s.hanh_dong, may, d.bo_cuc, d.mo && d.ket ? `From: ${d.mo} — to: ${d.ket}.` : ''];
+    // Thứ tự (soát clip job #3104, 19/10/2026): để DIỄN đứng đầu thì model bỏ cỡ cảnh / góc qua vai và đẩy người phụ ra khỏi khung (Vivian mất ở shot 1, 3)
+    // → BỐ CỤC (cỡ cảnh, ai ở đâu) trước, rồi diễn, rồi máy, cuối cùng mở / kết.
+    const phan = s.prompt_video?.trim() ? [s.prompt_video.trim(), may] : [d.bo_cuc ? gonPrompt([d.bo_cuc], 170) : '', d.dien || s.hanh_dong, may, d.mo && d.ket ? `From: ${d.mo} — to: ${d.ket}.` : ''];   // bố cục ≤ 170 byte: chừa chỗ cho diễn
     return { id: s.id, thu_tu: s.thu_tu, giay, prompt: gonPrompt(phan.map((x) => { const t = doi(String(x ?? '').replace(/\s+/g, ' ').trim()); return t && !/[.!?]$/.test(t) ? `${t}.` : t; }), TOI_DA_PROMPT - doDai(DUOI) - 1) };
   });
   const input: Record<string, unknown> = {

@@ -157,6 +157,8 @@ export const MUC_SOAT = [
   { key: 'hanh_dong', ten: 'Đúng hành động của shot' },
   { key: 'bieu_cam', ten: 'Nét mặt đúng kế hoạch' },
   { key: 'bien_dang', ten: 'Không biến dạng thân / vật (clip)' },
+  { key: 'vat_ly', ten: 'Vật lý thật: chất lỏng / đồ rơi theo trọng lực, không bay ngược (clip)' },   // 19/10/2026 #1 cà phê vọt lên trời
+  { key: 'noi_canh', ten: 'Trạng thái cuối nối shot sau: vết, đồ cầm, chỗ đứng (clip)' },
 ] as const;
 export type KqSoat = { url: string; luc: string; nguoi: string; dat: boolean; loi: string[]; /** có = kết quả của MÁY (soatClip đổi từ soat.may) — mức đạt / cần mắt / trượt */ may?: KqMay['ket']; /** nét đo được (clip): đầu / cuối */ do?: { dau?: string; cuoi?: string } };
 /** may = MÁY TỰ CHẤM clip (cham-may.ts, 0đ) — người soát (clip) luôn thắng máy; máy "cần mắt" = chưa đạt cho tới khi người soát. */

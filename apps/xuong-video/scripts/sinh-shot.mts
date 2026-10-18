@@ -132,6 +132,16 @@ if (arg('video')) {
   }
   const tong = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t, count(*) FILTER (WHERE trang_thai = 'xong') AS xong, count(*) FILTER (WHERE trang_thai <> 'xong') AS hong FROM xv_job WHERE id = ANY(${`{${jobs.join(',') || 0}}`}::int[])`);
   console.log(`  video: ${tong[0]?.xong} xong · ${tong[0]?.hong} hỏng/chưa xong · ${tien(Number(tong[0]?.t))}${cho.length ? ` · còn ${cho.length} chưa gửi` : ''}`);
+  // SOÁT CLIP TRONG PHIÊN là bước BẮT BUỘC sau mỗi lượt video (anh 19/10/2026: "phải tự check sau mỗi lần có video… tao phải check từng tí 1 thế
+  // này à" — clip #1 cà phê vọt lên trời gửi thẳng cho anh, không ai đối chiếu kịch bản). Máy soi chữ / nét mặt không bắt được hành động sai, vật lý
+  // sai, lệch nối shot — phải xem khung. In luôn tờ soát (8 khung + kế hoạch shot) của đúng các shot vừa có clip; chưa ghi soát (--ghi) thì chưa báo.
+  const coClip = (await q(sql`SELECT DISTINCT c.thu_tu FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',') || 0}}`}::int[]) AND j.trang_thai = 'xong' ORDER BY 1`)).map((r) => Number(r.thu_tu));
+  if (coClip.length) {
+    const { execFileSync } = await import('node:child_process');
+    console.log(`\n⚠ CLIP CHƯA SOÁT #${coClip.join(', #')} — xem tờ khung bên dưới, đối chiếu kế hoạch (hành động · vật lý · nối shot sau · người · mặt), ghi bằng soat-cam-xuc.mts --ghi TRƯỚC khi báo anh:`);
+    try { console.log(execFileSync(process.execPath, [...process.execArgv, 'scripts/soat-cam-xuc.mts', String(tapId), '--in', `--shot=${coClip.join(',')}`], { encoding: 'utf8', maxBuffer: 32 << 20, timeout: 600_000 })); }
+    catch (e) { console.log(`  ! không in được tờ soát: ${e instanceof Error ? e.message : String(e)}`); }
+  }
 }
 if (arg('giong')) {
   // Chỉ dòng CHƯA có giọng (giữ giọng đã duyệt); --giong-lai để sinh lại cả dòng đã có.

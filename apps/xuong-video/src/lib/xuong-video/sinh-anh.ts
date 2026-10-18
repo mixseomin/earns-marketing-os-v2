@@ -5,7 +5,7 @@ import { dayViecAnh, giaAnhSv } from './hoan-tat';
 import { promptAnhMau, promptBienThe } from './claude';
 import { promptCatNen, catNen, MAU_XANH_NEN } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
-import { promptBieuCam } from './qc-cam-xuc';
+import { promptBieuCam, cauNuocMat } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
 import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
 import { damBaoAnhMat, demMat } from './soi-mat';
@@ -522,8 +522,11 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);
   const jobs: number[] = [];
   // Chọn đích danh model khác (so A/B) → đi đường một bước như cũ; mặc định có độ sâu 3D → hai bước.
+  // LƯỢT NƯỚC MẮT (qc-cam-xuc.ts › NUOC_MAT): nét khóc / cười đau / nhục nhã ở đầu shot → thêm nước mắt bằng một lượt sửa ảnh (đường LoRA) hoặc gộp
+  // vào lượt sửa sẵn có (bước 2 nhân dạng, lượt hoà ánh sáng của ghép từng người) — FLUX độ sâu không tự vẽ nước mắt.
+  const nuoc = cauNuocMat(bc.canh.bieu_cam);
   if (haiBuoc?.lop && !moHinh) {   // shot ≥ 2 người: ghép từng người (đồng bộ, chọn ảnh khi xong)
-    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, jobs);
+    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, jobs, nuoc);
     return r.ok ? { ok: true, data: jobs } : loi(`ghép từng người: ${r.loi}`);
   }
   if (haiBuoc && !moHinh) {
@@ -536,11 +539,19 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
       const lon = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.trong_khung && k.cao_khung_pt >= 30).map((k) => k.nhan_vat));
       const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:') && lon.has(q.ma.slice(4))).length;
       if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
-      if (haiBuoc.motBuoc) { const { chonKeyframe } = await import('./tu-sua-clip'); await chonKeyframe(db, canhId, b1.url, 'LoRA một lượt'); continue; }   // mặt đã đúng nhờ LoRA
+      if (haiBuoc.motBuoc && !nuoc) { const { chonKeyframe } = await import('./tu-sua-clip'); await chonKeyframe(db, canhId, b1.url, 'LoRA một lượt'); continue; }   // mặt đã đúng nhờ LoRA
+      if (haiBuoc.motBuoc) {   // LoRA + cần nước mắt: một lượt sửa ảnh, giữ nguyên mọi thứ khác (ảnh xong tự thành keyframe qua hàng hoàn tất)
+        const p = `EDIT Image 1. ${nuoc} Keep EVERYTHING else exactly as it is: the face, identity, expression, pose, hair, clothes, framing, background and lighting. ${KHONG_CHU}`;
+        const job = await taoJob(db, { nhan: `Keyframe (nước mắt) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: p, thamChieu: 1, thamChieuUrl: [b1.url], buoc1: b1.url } });
+        jobs.push(job);
+        await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: p, thamChieuUrl: [b1.url], tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
+        continue;
+      }
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
-      const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: haiBuoc.prompt2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
+      const p2 = [haiBuoc.prompt2, nuoc].filter(Boolean).join(' ');
+      const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: p2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
       jobs.push(job);
-      await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: haiBuoc.prompt2, thamChieuUrl, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
+      await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: p2, thamChieuUrl, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
     }
     return { ok: true, data: jobs };
   }
@@ -555,7 +566,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
 /** GHÉP TỪNG NGƯỜI (shot ≥ 2 người): nền (FLUX độ sâu không người) → mỗi người: FLUX độ sâu riêng trên nền xanh → Nano Banana nhân dạng một người →
  *  tách nền xanh (ffmpeg, 0đ) → ghép xa → gần theo đúng điểm ảnh (cùng máy, cùng cỡ ảnh) → một lượt hoà ánh sáng / bóng đổ, cấm dời người. Mỗi lượt
  *  tốn tiền một job trên sổ. Ảnh xong chọn làm keyframe đang dùng (ảnh cũ còn trong dải ứng viên). */
-async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThanh, lop: LopGhep, jobs: number[]): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
+async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThanh, lop: LopGhep, jobs: number[], nuoc = ''): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
   const doc = kt.ti_le !== '16:9'; const [W, H] = doc ? [768, 1365] : [1365, 768]; const mh: string = kt.mo_hinh_anh || MO_HINH_ANH[0]!.key;
   const nen = await buocDoSau(db, canhId, thuTu, { sau: lop.nen.sau, prompt1: lop.nen.prompt, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
   if (!nen.ok) return { ok: false, loi: `nền: ${nen.loi}` };
@@ -585,7 +596,7 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
   }
   const ghepUrl = await ghepLop(nen.url, lopPng, W, H, `xuong-video/keyframe/${canhId}/ghep-${Date.now()}.jpg`);
   if (!ghepUrl) return { ok: false, loi: 'ghép lớp (ffmpeg) hỏng' };
-  const hoa = await suaAnh('Keyframe (ghép từng người · hoà ánh sáng)', `EDIT Image 1. Image 1 is a photo composite: the people were photographed separately and placed into this place. Make it look like ONE photograph: match the lighting direction, colour temperature, contrast and grain of the people to the place, and add soft contact shadows on the floor under their feet. Do NOT move, add, remove, resize, re-pose or re-order anyone or anything; keep every face, outfit, hand and held object exactly as it is. ${KHONG_CHU}`, [ghepUrl]);
+  const hoa = await suaAnh('Keyframe (ghép từng người · hoà ánh sáng)', `EDIT Image 1. Image 1 is a photo composite: the people were photographed separately and placed into this place. Make it look like ONE photograph: match the lighting direction, colour temperature, contrast and grain of the people to the place, and add soft contact shadows on the floor under their feet. Do NOT move, add, remove, resize, re-pose or re-order anyone or anything; keep every face, outfit, hand and held object exactly as it is.${nuoc ? ` The ONLY change to faces: ${nuoc}` : ''} ${KHONG_CHU}`, [ghepUrl]);
   const cuoi = hoa.ok ? hoa.url : ghepUrl;
   const { chonKeyframe } = await import('./tu-sua-clip');
   await chonKeyframe(db, canhId, cuoi, 'ghép từng người');

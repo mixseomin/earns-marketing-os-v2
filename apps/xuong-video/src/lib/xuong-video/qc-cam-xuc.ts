@@ -56,6 +56,18 @@ export function camThuc(b: BieuCamNv): MaBieuCam[] {
   return [...new Set([...(b.cam ?? []), ...tu])].filter((k) => k !== b.dau && k !== b.cuoi);
 }
 
+/** LƯỢT NƯỚC MẮT (anh 18/10/2026 duyệt): FLUX độ sâu + LoRA diễn được nét mặt khóc nhưng KHÔNG vẽ nước mắt (đo 18/10: 10/10 ảnh khóc khô) — ngành thêm
+ *  nước mắt ở hậu kỳ, không trông vào cảnh quay gốc. Nét nào cần nước mắt → câu sửa ảnh (Nano Banana) cho keyframe; rỗng = không cần lượt này. */
+export const NUOC_MAT: Partial<Record<MaBieuCam, string>> = {
+  khoc_tham: 'heavy tears streaming down both cheeks, wet shining tear tracks to the chin, red swollen eyelids, wet lashes',
+  cuoi_dau: 'tears running down both cheeks from the squeezed-shut eyes, wet shining tear tracks, reddened eyes',
+  nhuc_nha: 'eyes brimming with welled-up tears that have not fallen yet, glistening wet lower lids, slightly reddened eyes',
+};
+export function cauNuocMat(ds: BieuCamNv[] | null | undefined): string {
+  const co = (ds ?? []).filter((b) => NUOC_MAT[b.dau]);
+  return co.length ? `ADD TEARS: ${co.map((b) => `${b.nv}: ${NUOC_MAT[b.dau]}`).join('; ')}. Photoreal liquid tears with natural highlights.` : '';
+}
+
 /** Câu biểu cảm cho prompt. anh = keyframe (nét ĐẦU); video = đầu → cuối + cấm. */
 export function promptBieuCam(ds: BieuCamNv[] | undefined, loai: 'anh' | 'video'): string {
   const ok = (ds ?? []).filter((b) => bieuCam(b.dau) && bieuCam(b.cuoi));

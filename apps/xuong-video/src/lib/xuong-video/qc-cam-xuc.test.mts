@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/qc-cam-xuc.test.mts
 import assert from 'node:assert';
-import { camThuc, promptBieuCam, loiMachBieuCam, thieuBieuCam, laTreEm, doiModelVideo, loiCanCanhDongLon, loiCauTraiBieuCam, chamMay, soatKeyframe, soatClip, camXucDo, type BieuCamNv } from './qc-cam-xuc';
+import { camThuc, promptBieuCam, loiMachBieuCam, thieuBieuCam, laTreEm, doiModelVideo, loiCanCanhDongLon, loiCauTraiBieuCam, chamMay, soatKeyframe, soatClip, camXucDo, type BieuCamNv, cauNuocMat } from './qc-cam-xuc';
 
 // Nét tiêu cực cả đầu lẫn cuối → tự cấm cười (Jett #61 #2: đang đau mà cười)
 assert.deepStrictEqual(camThuc({ nv: 'Frank', dau: 'dau', cuoi: 'met' }).sort(), ['cuoi_lon', 'vui']);
@@ -72,3 +72,9 @@ assert.ok(soatClip({ video_url: url, video_cuoi_url: null, soat: { may: { ...may
 console.log('qc-cam-xuc chấm máy ok');
 assert.strictEqual(loiCanCanhDongLon({ hanh_dong: 'The narrator watches, the dancing blurs behind, a small worried glance', ky_thuat: { co_canh: 'mcu' } }), null, 'nhảy ở hậu cảnh không phải động tác chủ thể');
 assert.ok(loiCanCanhDongLon({ hanh_dong: 'He spins her around, laughing', ky_thuat: { co_canh: 'mcu' } }));
+// LƯỢT NƯỚC MẮT: nét khóc / cười đau / nhục nhã (đầu shot) → câu thêm nước mắt; nét khô hoặc chỉ khóc ở CUỐI shot → rỗng
+assert.match(cauNuocMat([{ nv: 'Lâm Hạ', dau: 'khoc_tham', cuoi: 'khoc_tham' }]), /Lâm Hạ: heavy tears/);
+assert.strictEqual(cauNuocMat([{ nv: 'Vivian', dau: 'dac_y', cuoi: 'soc' }]), '');
+assert.strictEqual(cauNuocMat([{ nv: 'Lâm Hạ', dau: 'buon', cuoi: 'khoc_tham' }]), '');
+assert.strictEqual(cauNuocMat(null), '');
+console.log('qc-cam-xuc nước mắt ok');

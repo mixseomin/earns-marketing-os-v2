@@ -13,9 +13,24 @@ git clone -q --depth 1 --branch "$V" https://github.com/makehumancommunity/mpfb2
 # GÓI TÀI SẢN HỆ THỐNG (CC0, 267 MB): tóc (long01, bob, ponytail01, short01–04), vest (male/female_elegantsuit01), giày, mắt, lông mày — giải nén vào
 # thư mục dữ liệu người dùng của MPFB (LocationService.get_user_data). Nguồn: trang gói makehuman_system_assets (mirror1 = files2.…, mirror2 = files.…).
 DU="$HOME/Library/Application Support/Blender/$("$B" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+')/extensions/.user/user_default/mpfb/data"
+# Tải một tệp lớn bằng N luồng song song (Range), mỗi khúc tự tải tiếp chỗ đứt; ghép lại theo thứ tự.
+tai_nhieu_luong() {
+  local U="$1" RA="$2" N="${3:-8}" DAI K TU DEN
+  DAI=$(curl -sfIL "$U" | awk 'tolower($1)=="content-length:"{v=$2} END{gsub(/\r/,"",v); print v}')
+  [ -n "$DAI" ] || { curl -sfL -C - -o "$RA" "$U"; return; }
+  for ((K = 0; K < N; K++)); do
+    TU=$((K * DAI / N)); DEN=$(((K + 1) * DAI / N - 1))
+    ( for _ in 1 2 3 4 5 6 7 8; do
+        CO=$(wc -c < "$RA.$K" 2>/dev/null | tr -d " " || echo 0); CO=${CO:-0}; [ "$CO" -ge $((DEN - TU + 1)) ] && break
+        curl -sf -r $((TU + CO))-$DEN "$U" >> "$RA.$K" || sleep 3
+      done ) &
+  done
+  wait
+  : > "$RA"; for ((K = 0; K < N; K++)); do cat "$RA.$K" >> "$RA" && rm -f "$RA.$K"; done
+}
 if [ ! -f "$DU/packs/makehuman_system_assets.json" ]; then
   for U in https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip; do
-    for _ in 1 2 3 4 5; do curl -sfL -C - -o "$T/sys.zip" "$U" && break; sleep 5; done   # 267 MB, mạng chậm: tải tiếp chỗ đứt, không giới hạn giờ (-m 900 làm zip cụt 18/10)
+    tai_nhieu_luong "$U" "$T/sys.zip"   # 267 MB; máy chủ makehuman bóp ~75 KB/s MỖI kết nối (đo 18/10 cả iMac lẫn box3) → 8 luồng theo khoảng byte
     unzip -tq "$T/sys.zip" && break
   done
   mkdir -p "$DU" && unzip -qo "$T/sys.zip" -d "$DU"

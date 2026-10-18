@@ -1622,30 +1622,47 @@ if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng t�
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
 def ngam_lai(s, cam, sh, khoi, ket=False):
-    """Điểm nhìn mới (cm) khi máy đặt tay trượt chủ thể đầu tiên (sh['bat_buoc'][0]), None nếu chủ thể còn trong khung. Món = tâm hộp; người = MẶT
-    (đầu nhích về phía mặt quay — `huong`/`huong_den` lúc kết) khi ống ≥ 60 mm, ngực khi rộng hơn. Khung KẾT kiểm chặt hơn (mặt trong 0,25–0,75 bề
-    ngang): máy đẩy vào gần thì khung dọc 9:16 hẹp, mặt quay nghiêng trôi ra mép (#24 kết chỉ còn tai + gáy Thần)."""
+    """Điểm nhìn mới (cm) khi máy đặt tay trượt CHỦ THỂ (sh['bat_buoc'] — mọi món, #13 Vivian + thẻ lủng lẳng: thẻ ngoài khung mà Vivian trong khung
+    thì chỉ xét Vivian là trượt thẻ), None nếu chủ thể nào cũng trong khung. Món = tâm hộp; người = MẶT (đầu nhích về phía mặt thật quay) khi ống
+    ≥ 60 mm, ngực khi rộng hơn — ngắm vào điểm trước mặt một chút (khoảng nhìn). Nhiều chủ thể → ngắm vào giữa chúng. Khung KẾT kiểm chặt hơn
+    (mặt trong 0,25–0,75 bề ngang): máy đẩy vào gần thì khung dọc 9:16 hẹp, mặt quay nghiêng trôi ra mép (#24 kết chỉ còn tai + gáy Thần)."""
     from bpy_extras.object_utils import world_to_camera_view
-    cn = sh['bat_buoc'][0]; dich = mat_ = None; bpy.context.view_layer.update()
-    if cn in NGUOI:
-        n_ = NGUOI[cn]
-        if cam.data.lens >= 60:
-            v_nv = next((v for v in sh.get('nhan_vat', []) if v.get('ten') == cn), {})
-            h = math.radians((v_nv.get('huong_den', v_nv.get('huong', 0)) if ket else v_nv.get('huong', 0)) or 0)
-            # mặt = đầu nhích nửa chiều dài đầu theo hướng mặt; ngắm vào điểm TRƯỚC mặt thêm 0,3 chiều dài đầu = chừa khoảng nhìn (lead room) — cận mặt quay
-            # nghiêng mà ngắm giữa mặt thì khung dọc hẹp cắt mất mũi (#24 kết)
-            Ld = n_['L']['dau'] * CM; goc_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * Ld))
-            fw = n_['dau'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); fw.z = 0   # hướng mặt THẬT của khớp đầu (đầu quay nhìn theo ai đó), không phải huong khai
-            fw = fw.normalized() if fw.length > 1e-3 else Vector((math.sin(h), -math.cos(h), 0))
-            mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 0.8 * Ld
-        else: mat_ = dich = n_['nguc'].matrix_world.translation
-    else:
-        mo = [o for o in khoi if getattr(o, 'type', '') == 'MESH' and (o.name == f'NV {cn}' or o.name.startswith(f'NV {cn}·'))]
-        if mo: mat_ = dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
-    if dich is None: return None
-    v_ = world_to_camera_view(s, cam, mat_); bien = 0.25 if ket else 0.12
-    if bien < v_.x < 1 - bien and 0.12 < v_.y < 0.88 and v_.z > 0: return None
-    return [round(x / CM, 1) for x in dich]
+    bpy.context.view_layer.update(); diem = []
+    for cn in sh['bat_buoc']:
+        mat_ = dich = None
+        if cn in NGUOI:
+            n_ = NGUOI[cn]
+            if cam.data.lens >= 60:
+                v_nv = next((v for v in sh.get('nhan_vat', []) if v.get('ten') == cn), {})
+                h = math.radians((v_nv.get('huong_den', v_nv.get('huong', 0)) if ket else v_nv.get('huong', 0)) or 0)
+                Ld = n_['L']['dau'] * CM; goc_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * Ld))
+                fw = n_['dau'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); fw.z = 0   # hướng mặt THẬT của khớp đầu, không phải huong khai
+                fw = fw.normalized() if fw.length > 1e-3 else Vector((math.sin(h), -math.cos(h), 0))
+                mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 0.8 * Ld
+            else: mat_ = dich = n_['nguc'].matrix_world.translation
+        else:
+            mo = [o for o in khoi if getattr(o, 'type', '') == 'MESH' and (o.name == f'NV {cn}' or o.name.startswith(f'NV {cn}·'))]
+            if mo: mat_ = dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
+        if dich is not None: diem.append((mat_, dich))
+    if not diem: return None
+    bien = 0.25 if ket else 0.12
+    def trong(p):
+        v_ = world_to_camera_view(s, cam, p); return bien < v_.x < 1 - bien and 0.12 < v_.y < 0.88 and v_.z > 0
+    if all(trong(m) for m, _ in diem): return None
+    tam_ = sum((d for _, d in diem), Vector()) / len(diem)
+    return [round(x / CM, 1) for x in tam_]
+
+def cat_dau(cam, sh, nhin=None):
+    """ĐẦU CHÍNH CHỦ THỂ CHẮN MÁY (POV từ mắt nhân vật, #2 nhìn xuống vết cà phê trên ngực mình): đầu / tóc của người TRONG khung (sh['may'].khung)
+    nằm gần máy hơn điểm nhìn và gần tia nhìn (< 25°) → cắt gần (clip_start) qua khỏi đầu. Đầu người KHÁC ở tiền cảnh là cú qua vai cố ý — giữ
+    (#14 kết cắt mất đầu Vivian, lòi ruột tóc đen). Gọi lại mỗi lần máy dời (khung kết / giữa)."""
+    cam.data.clip_start = 0.002
+    nh_ = Vector(nhin or sh['may']['nhin']) * CM - cam.location; d_dich = nh_.length
+    chu = set(sh['may'].get('khung') or []) or {v_['ten'] for v_ in sh.get('nhan_vat', [])}
+    cat = [ (h_ - cam.location).length for t in chu if t in NGUOI and NGUOI[t].get('dau') and NGUOI[t]['dau'].name in bpy.data.objects
+            for h_ in [NGUOI[t]['dau'].matrix_world.translation + Vector((0, 0, 0.5 * NGUOI[t]['L']['dau'] * CM))]
+            if (h_ - cam.location).length < 0.8 * d_dich and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
+    if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)
 
 kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}; LECH_NHIN = {}
 for sh in ([] if CHI_MB else shots):
@@ -1667,13 +1684,7 @@ for sh in ([] if CHI_MB else shots):
         if nhin_moi:
             LECH_NHIN[sh['ma']] = [a_ - b_ for a_, b_ in zip(nhin_moi, sh['may']['nhin'])]; dat_may(cam, sh['may']['dat'], nhin_moi)
             sh['may']['nhin'] = nhin_moi; giai[sh['ma']] = {'dat': sh['may']['dat'], 'nhin': nhin_moi}; k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
-    # ĐẦU CHẮN GIỮA MÁY VÀ CHỦ THỂ (POV từ mắt nhân vật, #2 nhìn xuống vết cà phê trên ngực): đầu / tóc người thật nằm gần máy hơn điểm nhìn và gần tia
-    # nhìn (< 25°) → cắt gần (clip_start) qua khỏi đầu, không cắt tới chủ thể.
-    co_mat = {v_['ten'] for v_ in sh.get('nhan_vat', [])}; nh_ = Vector(sh['may']['nhin']) * CM - cam.location; d_dich = nh_.length
-    cat = [ (h_ - cam.location).length for t in co_mat if t in NGUOI and NGUOI[t].get('dau') and NGUOI[t]['dau'].name in bpy.data.objects
-            for h_ in [NGUOI[t]['dau'].matrix_world.translation + Vector((0, 0, 0.5 * NGUOI[t]['L']['dau'] * CM))]
-            if (h_ - cam.location).length < 0.8 * d_dich and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
-    if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)
+    cat_dau(cam, sh)
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     # XUYÊN NHAU ở khung mở: mỗi đạo cụ đang hiện với người / đạo cụ / đồ set — lún > 1 cm thì ghi cho cổng (cầm thì người cầm bỏ bàn tay)
     xy_ = []
@@ -1720,12 +1731,13 @@ for sh in ([] if CHI_MB else shots):
         if not chay_: return
         d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin']) + Vector(LECH_NHIN.get(sh['ma'], (0, 0, 0)))   # máy đã ngắm lại ở khung mở → khung kết lệch theo
         dat_may(cam, list(d0.lerp(d1, t)), list(n0.lerp(n1, t))); cam.data.lens = sh['may']['ong_kinh'] + (chay_['ong_kinh'] - sh['may']['ong_kinh']) * t
+        cat_dau(cam, sh, list(n0.lerp(n1, t)))
     if co_mau or dong:
         nk, nk_het = nhan_vat(sh, ket=True)
         may_tai(1.0)
         if not sh.get('giai') and (sh.get('bat_buoc') or []) and not (chay_ and chay_.get('ket')):   # khung KẾT: người ở dáng / hướng cuối, máy cuối đường máy → ngắm lại; cú CHUYỂN chủ thể (chay.ket, #9 cổ tay → Hạ) thì chủ thể kết là người khác, giữ nguyên
             nk_moi = ngam_lai(s, cam, sh, nk_het + nk, ket=True)
-            if nk_moi: dat_may(cam, [x / CM for x in cam.location], nk_moi)
+            if nk_moi: dat_may(cam, [x / CM for x in cam.location], nk_moi); cat_dau(cam, sh, nk_moi)
         den_ = chieu(nk)
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")

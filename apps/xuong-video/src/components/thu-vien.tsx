@@ -205,7 +205,7 @@ function NhanKyThuat({ m, nho }: { m: MucKyThuat; nho?: boolean }) {
 }
 
 const mmss = (g: number) => `${Math.floor(g / 60)}:${String(g % 60).padStart(2, '0')}`;
-/** ▶ VÍ DỤ VIDEO của một kỹ thuật (vi-du-yt.ts — đoạn ĐÚNG chapter của video YouTube, mốc đọc từ chapter thật): ảnh thu nhỏ của video, bấm phát
+/** ▶ VÍ DỤ VIDEO của một kỹ thuật (khung nhúng gửi referrer CHỈ tên miền: trang studio đặt same-origin, YouTube thiếu referrer thì báo "video unavailable") (vi-du-yt.ts — đoạn ĐÚNG chapter của video YouTube, mốc đọc từ chapter thật): ảnh thu nhỏ của video, bấm phát
  *  ngay tại chỗ đúng đoạn (youtube-nocookie, start → end), ↗ mở YouTube đúng giây. nho = thẻ trong lưới thư viện (ẩn trong <details>). */
 function ViDuVideo({ ma, nho }: { ma: string; nho?: boolean }) {
   const ds = viDuCua(ma);
@@ -216,7 +216,7 @@ function ViDuVideo({ ma, nho }: { ma: string; nho?: boolean }) {
       {ds.map((v, i) => (
         <div key={`${v.yt}${v.tu}`} style={{ display: 'grid', gap: 4 }}>
           {mo === i
-            ? <iframe src={nhungYt(v)} title={v.chuong} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 6, background: '#000' }} />
+            ? <iframe src={nhungYt(v)} title={v.chuong} referrerPolicy="strict-origin" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 6, background: '#000' }} />
             : <button type="button" onClick={() => setMo(i)} title={`Phát đoạn "${v.chuong}" (${mmss(v.tu)}${v.den ? `–${mmss(v.den)}` : ''}) ngay tại đây`}
                 style={{ position: 'relative', padding: 0, border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#000', aspectRatio: '16 / 9', width: '100%' }}>
                 <img src={anhYt(v.yt)} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0.85 }} />

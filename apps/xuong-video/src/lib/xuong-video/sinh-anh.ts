@@ -377,8 +377,8 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // Thần quay lưng) → mỗi người MỘT lượt riêng trên nền xanh (một chủ thể thì đạt như các shot một người), nền một lượt riêng không người.
       const lopKx = bc.canh.khung_xam?.lop; const dau = CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang');
       const lop: LopGhep | undefined = lopKx ? {
-        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('hau_canh', nenDu.length && `Background: ${nenDu.slice(0, 6).join(', ')}.`),
-          khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi)]) },
+        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('hau_canh', nenDu.length && `Background: ${nenDu.filter((x) => !/["“”]|\blogo\b|\bsign\b/i.test(x)).slice(0, 6).join(', ')}.`),
+          khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]) },   // cấm chữ: biển / logo vẽ thành chữ méo (#12 'B-GROP') — đồ nhận dạng đi đường ghép ảnh chuẩn
         nguoi: lopKx.nguoi.flatMap((x) => {
           const v = trongS.find((n) => n.ten === x.ten); if (!v) return [];
           const hg = mGoc?.vi_tri.find((y) => y.ten === v.ten); const h = hg ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;

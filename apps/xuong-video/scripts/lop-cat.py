@@ -24,12 +24,30 @@ if v['op'] == 'cat':
     cv2.imwrite(v['ra'], cv2.resize(cat, None, fx=k, fy=k, interpolation=cv2.INTER_LANCZOS4), [cv2.IMWRITE_JPEG_QUALITY, 95])
     print(json.dumps({'hop': [x0, y0, x1, y1], 'w': W, 'h': H}))
 elif v['op'] == 'dan':
+    # KHỚP BÓNG NGƯỜI: tách nền xanh ảnh đã sửa → bóng người model vẽ ra; co giãn + dời cho khớp HỘP BÓNG NGƯỜI của lớp độ sâu 3D (khớp chiều cao,
+    # chân chạm cùng đáy, giữa theo chiều ngang). Model hay phóng / thu người trong ảnh cắt (#12 Thần thành nửa người) → dán thẳng thì sai cỡ, cụt.
     x0, y0, x1, y1 = v['hop']; W, H = int(v['w']), int(v['h'])
     sua = cv2.resize(doc(v['anh']), (x1 - x0, y1 - y0), interpolation=cv2.INTER_AREA)
-    nen = np.zeros((H, W, 3), np.uint8); nen[:] = (0, 255, 0); vung = nen[y0:y1, x0:x1]
-    if v.get('sau'):   # chỉ dán điểm ảnh trong BÓNG NGƯỜI của lớp độ sâu (nới ~2,5% chiều cao) — model trả nền không xanh thuần thì không lộ hình chữ nhật
-        m = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
-        r = max(3, int(H * 0.025)); m = cv2.dilate(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))[y0:y1, x0:x1] > 0
-        vung[m] = sua[m]
-    else: vung[:] = sua
-    cv2.imwrite(v['ra'], nen); print(json.dumps({'ok': True}))
+    nen = np.zeros((H, W, 3), np.uint8); nen[:] = (0, 255, 0)
+    hsv = cv2.cvtColor(sua, cv2.COLOR_BGR2HSV); xanh = cv2.inRange(hsv, (35, 90, 70), (85, 255, 255)) > 0
+    nguoi = cv2.morphologyEx((~xanh).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)) > 0
+    ok = False
+    if v.get('sau') and nguoi.mean() < 0.9:   # có nền xanh thật thì khớp bóng; không (model bỏ nền xanh) → dán theo mặt nạ cũ
+        m3 = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
+        ty, tx = np.nonzero(m3); sy, sx = np.nonzero(nguoi)
+        if len(tx) and len(sx):
+            th = ty.max() - ty.min() + 1; sh = sy.max() - sy.min() + 1; k = th / sh
+            cat = sua[sy.min():sy.max() + 1, sx.min():sx.max() + 1]; mk = nguoi[sy.min():sy.max() + 1, sx.min():sx.max() + 1].astype(np.uint8)
+            cat = cv2.resize(cat, None, fx=k, fy=k, interpolation=cv2.INTER_LANCZOS4); mk = cv2.resize(mk, (cat.shape[1], cat.shape[0]), interpolation=cv2.INTER_NEAREST) > 0
+            cx = int((tx.min() + tx.max()) / 2); bx = cx - cat.shape[1] // 2; by = ty.max() + 1 - cat.shape[0]
+            ax0, ay0 = max(0, bx), max(0, by); ax1, ay1 = min(W, bx + cat.shape[1]), min(H, by + cat.shape[0])
+            vung = nen[ay0:ay1, ax0:ax1]; c2 = cat[ay0 - by:ay1 - by, ax0 - bx:ax1 - bx]; m2 = mk[ay0 - by:ay1 - by, ax0 - bx:ax1 - bx]
+            vung[m2] = c2[m2]; ok = True
+    if not ok:
+        vung = nen[y0:y1, x0:x1]
+        if v.get('sau'):
+            m = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
+            r = max(3, int(H * 0.025)); m = cv2.dilate(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))[y0:y1, x0:x1] > 0
+            vung[m] = sua[m]
+        else: vung[:] = sua
+    cv2.imwrite(v['ra'], nen); print(json.dumps({'ok': True, 'khop': ok}))

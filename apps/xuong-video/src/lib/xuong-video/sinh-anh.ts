@@ -540,7 +540,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   // vào lượt sửa sẵn có (bước 2 nhân dạng, lượt hoà ánh sáng của ghép từng người) — FLUX độ sâu không tự vẽ nước mắt.
   const nuoc = cauNuocMat(bc.canh.bieu_cam);
   if (haiBuoc?.lop && !moHinh) {   // shot ≥ 2 người: ghép từng người (đồng bộ, chọn ảnh khi xong)
-    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, { sau: haiBuoc.sau, prompt1: haiBuoc.prompt1 }, jobs, nuoc);
+    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, { prompt, refs: urlRef }, jobs, nuoc);
     return r.ok ? { ok: true, data: jobs } : loi(`ghép từng người: ${r.loi}`);
   }
   if (haiBuoc && !moHinh) {
@@ -570,17 +570,16 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   return { ok: true, data: jobs };
 }
 
-/** DỰNG TẠI CHỖ (shot ≥ 2 người — anh 18/10/2026: "ảnh người thật cứ méo", "sửa triệt để giống cách phim bom tấn làm"): VFX ghép mọi yếu tố theo
- *  MỘT máy — tấm nền (plate) quay một lần, từng người chỉnh trong đúng toạ độ của plate, không co kéo. Bản cũ vẽ từng người riêng trên nền xanh rồi
- *  cắt / co / dán: hộp cắt hẹp cao dán ngược ảnh 9:16 là bóp ngang người x1,2–1,9 (#12, #15), bóng bị mép khung cắt thì người tí hon (#14), mỗi người
- *  một ánh sáng phải "hoà" lại bằng một lượt sửa cả khung (lượt đó vẽ thêm người — #15 hai Vivian).
- *  Giờ: plate = FLUX độ sâu CẢ KHUNG (đủ người, đúng chỗ, đúng cỡ theo máy 3D, một nguồn sáng) → mỗi người xa → gần vẽ lại TẠI CHỖ bằng FLUX
- *  inpainting: mặt nạ = lớp độ sâu 3D của chính người đó (nới viền), LoRA mặt người đó, cùng bản độ sâu cả khung giữ dáng. Người không LoRA:
- *  sửa nhân dạng trên ô cắt CÙNG tỷ lệ ảnh model rồi dán đúng ô theo mặt nạ (không khớp bóng, không co). Mỗi lượt một job trên sổ. */
-async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThanh, lop: LopGhep, toan: { sau: string; prompt1: string }, jobs: number[], nuoc = ''): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const doc = kt.ti_le !== '16:9'; const [W, H] = doc ? [720, 1280] : [1280, 720]; const mh: string = kt.mo_hinh_anh || MO_HINH_ANH[0]!.key;
-  const doSau = { path: UNION_XUONG, controls: [{ control_image_url: toan.sau, control_mode: 'depth', conditioning_scale: 0.6 }] };
-  const veFal = async (nhan: string, model: string, input: Record<string, unknown>, co = { width: W, height: H }): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
+/** DỰNG TẠI CHỖ (shot ≥ 2 người). Chặng đường 18/10/2026: ghép từng người trên nền xanh rồi cắt / co / dán → người bóp ngang x1,2–1,9 (#12, #15),
+ *  bóng bị mép khung cắt thì người tí hon (#14), lượt "hoà ánh sáng" cả khung vẽ thêm người (#15 hai Vivian) → thử plate FLUX độ sâu + vẽ lại thân
+ *  tại chỗ: đúng chỗ đúng cỡ nhưng ánh sáng phẳng như ảnh stock (anh: "bản ghép 3D VFX không đẹp so với bản sinh bằng Nano thuần") — FLUX chỉ thấy
+ *  KHỐI (độ sâu), không thấy màu / ánh sáng của khung 3D.
+ *  Cách phim làm: CHẤT ẢNH + ÁNH SÁNG đến từ tấm plate đẹp, MẶT chỉnh riêng ở độ phân giải cao rồi ghép đúng chỗ. Giờ: plate = Nano Banana MỘT lượt cả
+ *  khung (khung 3D màu làm bố cục + ánh sáng, ảnh mẫu từng người — đường một bước vốn đẹp), đếm mặt chặn người thừa (vẽ lại một lần), rồi LƯỢT MẶT
+ *  từng người có LoRA ở 1024². Không vẽ lại thân (làm phẳng ánh sáng), không lượt hoà sáng cả khung (vẽ thêm người). */
+async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThanh, lop: LopGhep, nano: { prompt: string; refs: string[] }, jobs: number[], nuoc = ''): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
+  const doc = kt.ti_le !== '16:9'; const mh: string = kt.mo_hinh_anh || MO_HINH_ANH[0]!.key;
+  const veFal = async (nhan: string, model: string, input: Record<string, unknown>, co: { width: number; height: number }): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
     const job = await taoJob(db, { nhan: `${nhan} · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${model}`, request: { dich: 'keyframe_tai_cho', ...input } }); jobs.push(job);
     const kq = await chayAnhFal(model, { ...input, image_size: co, num_images: 1, output_format: 'jpeg', num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false });
     if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
@@ -589,51 +588,25 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     await xongJob(db, job, { output_url: url, chi_phi_cents: GIA_XUONG_CENTS });
     return { ok: true, url };
   };
-  const suaAnh = async (nhan: string, prompt: string, urls: string[]): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
-    const job = await taoJob(db, { nhan: `${nhan} · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'google', model: mh, request: { prompt, thamChieu: urls } }); jobs.push(job);
+  const veNano = async (nhan: string, prompt: string, urls: string[]): Promise<{ ok: true; url: string } | { ok: false; loi: string }> => {
+    const job = await taoJob(db, { nhan: `${nhan} · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'google', model: mh, request: { prompt, thamChieu: urls.length, thamChieuUrl: urls } }); jobs.push(job);
     const kq = await sinhAnh({ model: mh, prompt, thamChieuUrl: urls, thamChieu: (await Promise.all(urls.map(taiAnhBase64))).filter((x): x is NonNullable<typeof x> => !!x), tiLe: doc ? '9:16' : '16:9' });
     if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return { ok: false, loi: kq.loi }; }
-    const url = await uploadToR2(`xuong-video/keyframe/${canhId}/lop-${Date.now()}.png`, kq.data, kq.mimeType);
+    const url = await uploadToR2(`xuong-video/keyframe/${canhId}/plate-${Date.now()}.jpg`, kq.data, kq.mimeType);
     if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho', chi_phi_cents: await giaAnhSv(mh) }); return { ok: false, loi: 'không đẩy được ảnh lên kho' }; }   // đã trả tiền → vẫn vào sổ
     await xongJob(db, job, { output_url: url, model: kq.model, chi_phi_cents: await giaAnhSv(mh) });
     return { ok: true, url };
   };
-  // PLATE bám độ sâu CHẶT (FLUX Pro độ sâu — đường nền / bước 1 cũ): union depth 0,6 thả lỏng thì người plate lệch khỏi bóng 3D, mặt nạ vẽ lại
-  // theo bóng 3D thành hai Vivian (#15 lượt đầu).
-  // câu cấm chữ ĐẦU câu: prompt cả khung dài quá trần T5 của FLUX, phần đuôi (cấm chữ, vết bẩn) bị cắt → logo 'LU GROUP', số '2' trên thùng (#15)
-  const plate = await buocDoSau(db, canhId, thuTu, { sau: toan.sau, prompt1: `${KHONG_CHU} ${toan.prompt1}`, prompt2: '', ref2: [] }, kt.ti_le ?? '9:16');
+  const pPlate = [nano.prompt, nuoc].filter(Boolean).join(' ');
+  let plate = await veNano('Keyframe (tại chỗ · plate Nano)', pPlate, nano.refs);
   if (!plate.ok) return { ok: false, loi: `plate: ${plate.loi}` };
-  let cur = plate.url;
-  for (const x of [...lop.nguoi].sort((a, b) => b.xa - a.xa)) {   // xa trước: người gần vẽ sau, mép người gần đè lên người xa đúng thứ tự che
-    const mask = await matNaNguoi(x.sau, W, H, canhId);
-    if (!mask) return { ok: false, loi: `${x.ten}: không dựng được mặt nạ` };
-    if (x.loras) {
-      const n = nuoc && nuoc.includes(x.ten) ? ` ${nuoc}` : '';
-      // 0,8 / LoRA 0,8: giữ màu áo + dáng của plate (đã đúng câu trang phục), LoRA chỉ kéo mặt — 0,9 / LoRA 1 thì đồ trong ảnh học LoRA lấn (#15 Hạ
-      // áo đen, Vivian vest nâu thay sơ mi trắng vết cà phê / đầm đỏ đô)
-      const r = await veFal(`Keyframe (tại chỗ · ${x.ten})`, MO_HINH_VE_TAI_CHO, { prompt: `${x.prompt_tai_cho}${n}`, image_url: cur, mask_url: mask, strength: 0.8, loras: x.loras.map((l) => ({ ...l, scale: 0.8 })), controlnet_unions: [doSau] });
-      if (!r.ok) return { ok: false, loi: `${x.ten} (tại chỗ): ${r.loi}` };
-      cur = r.url;
-      if (x.ao) {   // ĐỒ CỦA SHOT (vết cà phê, áo đổi): FLUX inpaint giữ màu áo plate nhưng không tự vẽ chi tiết (#15 mất vết cà phê) → Nano sửa ĐỒ trên ô cắt
-        // cùng tỷ lệ ảnh model, giữ nguyên mặt LoRA, dán đúng ô theo mặt nạ 3D
-        const cat = await lopCat({ op: 'cat', sau: x.sau, anh: cur, le: 0.15, ti: doc ? 9 / 16 : 16 / 9 }, 'jpg');
-        if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
-        const b2 = await suaAnh(`Keyframe (tại chỗ · ${x.ten} · trang phục)`, `EDIT Image 1 (a crop of a photo). Change ONLY ${x.ten}'s CLOTHING to exactly: ${x.ao}. Keep the face, hair, pose, body angle, size, position, lighting and everything around the person exactly as Image 1; do not add or remove anyone or anything. ${KHOA_MAT_LORA} ${KHONG_CHU}`, [cat.url]);
-        if (!b2.ok) return { ok: false, loi: `${x.ten} (trang phục): ${b2.loi}` };
-        const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau, nen: cur }, 'jpg');
-        if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };
-        cur = dan.url;
-      }
-    } else if (x.ref.length) {
-      const cat = await lopCat({ op: 'cat', sau: x.sau, anh: cur, le: 0.15, ti: doc ? 9 / 16 : 16 / 9 }, 'jpg');
-      if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
-      const b2 = await suaAnh(`Keyframe (tại chỗ · ${x.ten} · nhân dạng)`, `EDIT Image 1 (a crop of a photo). Change ONLY how ${x.ten} LOOKS — face, hair, age and outfit exactly like Image 2${x.ref.length > 1 ? ' (held items like Image 3+)' : ''}. Keep the pose, body angle, size, position, lighting and everything around the person exactly as Image 1; do not add or remove anyone. ${KHONG_CHU}`, [cat.url, ...x.ref]);
-      if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };
-      const dan = await lopCat({ op: 'dan', anh: b2.url, hop: cat.kq.hop, w: cat.kq.w, h: cat.kq.h, sau: x.sau, nen: cur }, 'jpg');
-      if (!dan) return { ok: false, loi: `${x.ten}: dán vùng người hỏng` };
-      cur = dan.url;
-    }
+  // NGƯỜI THỪA: Nano đôi khi vẽ thêm người (bóng phản chiếu thành người thứ ba — #15) → đếm mặt; thừa thì vẽ lại plate MỘT lần, vẫn thừa thì giữ bản ít mặt hơn
+  const mat0 = await demMat(plate.url);
+  if (mat0 !== null && mat0 > lop.nguoi.length) {
+    const lai = await veNano('Keyframe (tại chỗ · plate Nano · vẽ lại vì thừa người)', `${pPlate} EXACTLY ${lop.nguoi.length} people in the whole image — no reflections or extra figures that look like people.`, nano.refs);
+    if (lai.ok && ((await demMat(lai.url)) ?? 99) < mat0) plate = lai;
   }
+  let cur = plate.url;
   // LƯỢT MẶT (kiểu Face Detailer / ADetailer — anh 18/10/2026 "sao mặt vẫn bị méo"): khung rộng nhiều người thì mặt chỉ ~70–80 px trong ảnh 720×1280,
   // FLUX không đủ điểm ảnh vẽ mắt / mũi / miệng → mặt phồng, lệch. Cắt vùng đầu từng người (định vị theo lớp độ sâu 3D của họ), phóng 1024², vẽ lại
   // MẶT bằng LoRA của chính người đó (mặt nạ elip giữa ô, giữ góc đầu / nét mặt / ánh sáng), thu về dán đúng ô bằng mặt nạ mờ biên + khớp màu.
@@ -658,24 +631,6 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
   return { ok: true, url: cuoi };
 }
 
-/** scripts/lop-cat.py (OpenCV, venv soi mặt): cắt vùng người theo lớp độ sâu / dán ảnh đã sửa về đúng hộp trên nền xanh. Ảnh ra đẩy kho. null = hỏng. */
-async function lopCat(vao: Record<string, unknown>, duoi: 'jpg' | 'png'): Promise<{ url: string; kq: { hop: number[]; w: number; h: number } } | null> {
-  const { execFile } = await import('node:child_process'); const { existsSync } = await import('node:fs'); const { mkdtemp, readFile, rm } = await import('node:fs/promises');
-  const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
-  const kb = [join(process.cwd(), 'scripts/lop-cat.py'), '/opt/earns-marketing-os-v2/apps/xuong-video/scripts/lop-cat.py'].find((p) => existsSync(p));
-  const py = process.env.XV_SOI_MAT_PY || '/opt/xv-soi-mat/bin/python';
-  if (!kb || !existsSync(py)) { console.error('[lop-cat] thiếu kịch bản / python'); return null; }
-  const thu = await mkdtemp(join(tmpdir(), 'lop-cat-')); const ra = join(thu, `ra.${duoi}`);
-  try {
-    const out = await new Promise<string>((ok, hong) => { const p = execFile(py, [kb], { timeout: 120_000, maxBuffer: 1 << 20 }, (e, o) => (e ? hong(e) : ok(o))); p.stdin?.end(JSON.stringify({ ...vao, ra })); });
-    const kq = JSON.parse(out.trim().split('\n').pop() || '{}') as { hop?: number[]; w?: number; h?: number; loi?: string };
-    if (kq.loi) { console.error('[lop-cat]', kq.loi); return null; }
-    const url = await uploadToR2(`xuong-video/keyframe/lop-${Date.now()}-${Math.round(Math.random() * 1e6)}.${duoi}`, await readFile(ra), duoi === 'png' ? 'image/png' : 'image/jpeg');
-    return url ? { url, kq: { hop: kq.hop ?? (vao.hop as number[]), w: kq.w ?? Number(vao.w), h: kq.h ?? Number(vao.h) } } : null;
-  } catch (e) { console.error('[lop-cat] hỏng', e); return null; }
-  finally { await rm(thu, { recursive: true, force: true }).catch(() => {}); }
-}
-
 /** BƯỚC 1 của keyframe hai bước: FLUX depth (fal) từ bản đồ độ sâu 3D + chữ → ảnh thật đúng góc máy / bố cục. Chạy tại chỗ (10–30s), có job
  *  riêng trên sổ (tiền theo bảng giá fal, không đọc được thì 5 ¢ — giá công bố $0,05/MP). Ảnh lên kho để bước 2 dùng làm ảnh gốc. */
 export const MO_HINH_DO_SAU = 'fal-ai/flux-pro/v1/depth';
@@ -691,14 +646,6 @@ async function matNaElip(canhId: number): Promise<string | null> {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="1024" height="1024" fill="black"/><ellipse cx="512" cy="481" rx="338" ry="410" fill="white"/></svg>`;
     return await uploadToR2(`xuong-video/keyframe/${canhId}/mat-na-elip.png`, await sharp(Buffer.from(svg)).png().toBuffer(), 'image/png');
   } catch (e) { console.error('[mặt nạ elip]', e); return null; }
-}
-/** Mặt nạ một người cỡ khung (W×H): lớp độ sâu 3D của người đó (> 8 = người) nới viền ~1,2 % chiều cao — mép tóc / vai thật rộng hơn bóng 3D. */
-async function matNaNguoi(sauUrl: string, W: number, H: number, canhId: number): Promise<string | null> {
-  try {
-    const sharp = (await import('sharp')).default; const r = await fetch(sauUrl); if (!r.ok) return null;
-    const png = await sharp(Buffer.from(await r.arrayBuffer())).greyscale().resize(W, H, { fit: 'fill', kernel: 'nearest' }).threshold(9).blur(Math.max(2, Math.round(H * 0.012))).threshold(12).png().toBuffer();
-    return await uploadToR2(`xuong-video/keyframe/${canhId}/mat-na-${Date.now()}-${Math.round(Math.random() * 1e6)}.png`, png, 'image/png');
-  } catch (e) { console.error('[mặt nạ người]', e); return null; }
 }
 /** FLUX dev độ sâu + LoRA mặt nhân vật ($0,035 / MP — vẽ 720×1280 = 1 MP; 768×1365 bị làm tròn lên 2 MP, trả gấp đôi) */
 export const MO_HINH_LORA_SAU = 'fal-ai/flux-lora-depth';

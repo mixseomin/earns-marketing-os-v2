@@ -1,6 +1,6 @@
 // Tự kiểm xếp ảnh tham chiếu (#1256): sản phẩm đứng đầu, bản đồ ảnh đúng số, trần 10 ảnh.
 import assert from 'node:assert';
-import { xepThamChieu, ghepPromptAnh, KHONG_CHU } from './sinh-anh';
+import { xepThamChieu, ghepPromptAnh, KHONG_CHU, chuTrongKhung, camChu } from './sinh-anh';
 const nv = [
   { id: 1, loai: 'nhan_vat', ten: 'Ông Tom', mo_ta: 'đàn ông 62', anh_ref: ['t1', 't2', 't3'] },
   { id: 2, loai: 'san_pham', ten: 'JettJeans3', mo_ta: 'quần', anh_ref: ['p1', 'p2', 'p3', 'p4'] },
@@ -82,3 +82,9 @@ console.log('sinh-anh.test: ok');
   assert.ok(!xepThamChieu(nv).banDoRef.includes('CLOSE-UP'), 'không có ảnh mặt: không thêm câu');
   console.log('sinh-anh.test: ảnh sát mặt ok');
 }
+// chữ trong thế giới phim (anh 19/10/2026): chữ KHAI trong ngoặc kép ở mô tả món set có trong khung được hiện đúng chính tả; còn lại vẫn cấm
+{ const cho = chuTrongKhung(['navy blue feature wall with gold metal letters "LU GROUP"', 'large screen showing a chart titled “HARRINGTON FUND · LU GROUP”', 'a potted plant', 'gold "LU GROUP" logo']);
+  assert.deepEqual(cho, ['LU GROUP', 'HARRINGTON FUND · LU GROUP']);
+  const c = camChu(cho); assert.ok(c.includes('"LU GROUP"') && /No captions, subtitles, watermarks/.test(c), c);
+  assert.equal(camChu([]), KHONG_CHU);   // không khai chữ nào → cấm hết như cũ
+  assert.ok(ghepPromptAnh('x', '', [] as never, '', '', c).includes('"LU GROUP"')); }

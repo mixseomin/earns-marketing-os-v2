@@ -32,9 +32,17 @@ export const KHOA_MAT_LORA = 'The FACE in Image 1 is already the right person: k
 /** Shot cần keyframe KẾT (tốn tiền): có khung màu kết VÀ khung thật sự đổi trong clip. Từ BAN_DUNG 82 mọi shot có khung kết để xem trên storyboard. */
 export const canKeyframeKet = (kx: { mau_ket?: string; ket_dong?: boolean } | null | undefined): boolean => !!kx?.mau_ket && kx.ket_dong !== false;
 export const KHONG_CHU = 'No text, letters, numbers, captions, watermarks or logos anywhere in the image.';
-export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = ''): string {
+/** CHỮ TRONG THẾ GIỚI PHIM (anh 19/10/2026: "chữ của film sao lại có luật cấm chữ?"): biển "LU GROUP" ở sảnh, màn chiếu "HARRINGTON FUND · LU GROUP"…
+ *  là một phần bối cảnh, không phải phụ đề. Luật cũ (09/10/2026 #1251: Seedream bịa chữ giả / phụ đề lên khung; 18/10 biển méo "B-GROP") cấm mọi chữ
+ *  → phim mất biển hiệu. Giờ: chữ được KHAI trong ngoặc kép ở mô tả (en) của món set có trong khung là chữ phim — cho hiện ĐÚNG chính tả đó; phụ đề,
+ *  chú thích, watermark và mọi chữ không khai vẫn cấm (chữ màn do xưởng vẽ lúc xuất). */
+export const chuTrongKhung = (moTa: string[]): string[] => [...new Set(moTa.flatMap((t) => [...t.matchAll(/["“]([^"”]{1,60})["”]/g)].map((m) => m[1]!.trim())).filter(Boolean))];
+export const camChu = (cho: string[] = []): string => cho.length
+  ? `The ONLY lettering allowed anywhere in the image is the in-world signage ${cho.map((c) => `"${c}"`).join(', ')} — spelled exactly like that, crisp and correct, nothing added. No captions, subtitles, watermarks, labels or any other text, letters or numbers anywhere.`
+  : KHONG_CHU;
+export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = '', cam = KHONG_CHU): string {
   // Kỹ thuật điện ảnh của shot (cỡ cảnh, góc, ống kính, ánh sáng, màu — thư viện dien-anh.ts) đứng ngay sau phong cách.
-  const dong = [KHONG_CHU, phongCach ? `Visual style: ${phongCach}.` : '', kyThuatAnh ? `Cinematography: ${kyThuatAnh}.` : '', prompt.trim()];
+  const dong = [cam, phongCach ? `Visual style: ${phongCach}.` : '', kyThuatAnh ? `Cinematography: ${kyThuatAnh}.` : '', prompt.trim()];
   // DANH TÍNH ≠ TRANG PHỤC: người giữ y mặt/tóc/tuổi/dáng; quần áo theo shot nếu shot ghi trang phục. Trước đây "giữ ĐÚNG như mô tả"
   // khoá luôn bộ đồ trong mô tả anchor → shot khoe áo bra bị chồng lên áo thun (09/10/2026).
   const nguoi = nv.filter((v) => v.loai === 'nhan_vat');
@@ -53,7 +61,7 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
   if (spCoAnh.length) dong.push(`THE PRODUCT in this shot must be copied EXACTLY from its reference images — never a generic version. Product facts (must all hold): ${spCoAnh.map((v) => v.mo_ta).join(' | ')}`);
   if (vatTa.length) dong.push(`Keep these places / props EXACTLY as described and as in the reference images (same color, shape, details): ${vatTa.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}.`);
   // Chữ màn do xưởng tự vẽ lúc xuất (drawtext, đúng font) — model ảnh KHÔNG được tự vẽ phụ đề: Seedream bịa chữ giả "hử le œ hiút nốp dòos" lên keyframe (#1251).
-  dong.push(KHONG_CHU);
+  dong.push(cam);
   return dong.filter(Boolean).join(' ');
 }
 
@@ -276,6 +284,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     const e = nhinMay ? '' : nhinCau(m, v, m.vi_tri.filter((x) => laNv(x.ten)), ket);
     return e ? `${h}, ${e}` : h;
   };
+  const chuPhim = chuTrongKhung((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.en ?? ''));
   const mHuong = bc.mayDu ?? bc.canh.may_3d; const trongKhung = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.ten));
   const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
     .map((v) => { const h = huongNhin(mHuong, v); return h ? `${v.ten}: ${h}` : ''; }).filter(Boolean) : [];
@@ -332,7 +341,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
       khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
       khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
-      khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', KHONG_CHU),
+      khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', camChu(chuPhim)),
       khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
     ];
     const pS = ghep(k1);
@@ -385,15 +394,15 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
         khoi('giu', 'Keep everything else exactly as Image 1 (camera, framing, every position, size and outline, background, light, colours); Image 2 is the 3D layout of this frame. Do not add, remove, move or resize anything.'),
         khoi('huong', chen ? '' : huongCau), khoi('so_nguoi', soNguoi), khoi('ngoai_khung', ngoaiCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
         khoi('nhan_dang', coDinh.length && `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there.`),
-        khoi('cam_chu', coDinh.length ? 'Apart from that, absolutely NO text, letters, numbers, captions, labels, watermarks or logos anywhere.' : KHONG_CHU),
+        khoi('cam_chu', coDinh.length ? `Apart from that: ${camChu(chuPhim)}` : camChu(chuPhim)),
         khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
       ];
       // LỚP GHÉP (anh 18/10/2026 chọn "ghép từng người"): một lượt FLUX cho cả khung nhiều người không gắn đúng mô tả vào đúng khối (#12 trộn Hạ + Vivian,
       // Thần quay lưng) → mỗi người MỘT lượt riêng trên nền xanh (một chủ thể thì đạt như các shot một người), nền một lượt riêng không người.
       const lopKx = bc.canh.khung_xam?.lop; const dau = CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang');
       const lop: LopGhep | undefined = lopKx ? {
-        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('hau_canh', nenDu.length && `Background: ${nenDu.filter((x) => !/["“”]|\blogo\b|\bsign\b/i.test(x)).slice(0, 6).join(', ')}.`),
-          khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', KHONG_CHU)]) },   // cấm chữ: biển / logo vẽ thành chữ méo (#12 'B-GROP') — đồ nhận dạng đi đường ghép ảnh chuẩn
+        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('hau_canh', nenDu.length && `Background: ${nenDu.slice(0, 6).join(', ')}.`),
+          khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', camChu(chuPhim))]) },   // cấm chữ: biển / logo vẽ thành chữ méo (#12 'B-GROP') — đồ nhận dạng đi đường ghép ảnh chuẩn
         nguoi: lopKx.nguoi.flatMap((x) => {
           const v = trongS.find((n) => n.ten === x.ten); if (!v) return [];
           const hg = mGoc?.vi_tri.find((y) => y.ten === v.ten); const h = hg ? huongNhin(mGoc!, hg) : undefined;
@@ -422,7 +431,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
   // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
-  const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
+  const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc, camChu(chuPhim)), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 

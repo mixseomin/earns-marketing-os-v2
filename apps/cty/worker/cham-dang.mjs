@@ -70,7 +70,8 @@ export async function nhipChamDang() {
   const sql = await ketNoi();
   try {
     const kq = await chamMoi(sql);
-    if (kq.cham) { const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao } = await tgNoiDung(); await bao(tinChamDang(kq)); }
+    // báo Telegram chỉ khi có bài SỬA LẠI (xuất lại cả loạt đều DUYỆT thì mỗi phút một tin "toàn DUYỆT" chỉ là tiếng ồn — đo 18/10/2026); số vẫn vào nhật ký nhịp
+    if (kq.sua) { const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao } = await tgNoiDung(); await bao(tinChamDang(kq)); }
     return kq.cham ? `chấm ${kq.cham} bài đăng (${kq.duyet} duyệt, ${kq.sua} sửa lại)` : 'không có bài đăng mới';
   } finally { await sql.end({ timeout: 2 }).catch(() => {}); }
 }

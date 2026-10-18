@@ -12,64 +12,110 @@ import { LUAT_DUNG_CANH, luatDung } from '@/lib/xuong-video/luat-dung';
 import type { NganhKyThuat } from '@/lib/xuong-video/dien-anh-nganh';
 import { viDuCua, linkYt, nhungYt, anhYt } from '@/lib/xuong-video/vi-du-yt';
 import { LinkNgoai } from './ui';
+import { Chon } from './chon';
+import { useNho } from './nho';
+import { KHUON_CHUOI } from '@/lib/xuong-video/khuon-chuoi';
+
+// THƯ VIỆN theo YDNI (anh 18/10/2026 "tổ chức lại thư viện cho dễ tìm, dễ truy cập"): ô tìm luôn trên đầu (tìm cả tên Việt, tên ngành tiếng Anh,
+// mã, mô tả — mọi mục cùng lúc); mục lục trái theo câu hỏi người làm phim mang tới, MỖI LẦN MỘT MỤC (không chồng dọc 300 thẻ); thẻ gọn một tên +
+// hai dòng mô tả, bấm mở ngăn chi tiết (mô tả ngành + ▶ ví dụ video) — chi tiết sau 1 click. Mục / tìm / thể loại nằm trên URL (tvm / tvq / tvl).
+type MucTv = { key: string; ten: string; ic: string };
+const NHOM_MUC: { ten: string; muc: string[] }[] = [
+  { ten: 'Dẫn dắt', muc: ['luat', 'khuon_chuoi', 'hook', 'beat'] },
+  { ten: 'Hình', muc: ['vai', 'co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'toc_do'] },
+  { ten: 'Diễn · sáng · màu', muc: ['dien_xuat', 'anh_sang', 'mau'] },
+  { ten: 'Dựng · tiếng', muc: ['chuyen_canh', 'am_thanh', 'nhac'] },
+  { ten: 'Kho', muc: ['khuon_shot'] },
+];
+const MUC_TV: MucTv[] = [
+  { key: 'luat', ten: 'Luật dựng cảnh', ic: '📐' }, { key: 'khuon_chuoi', ten: 'Khuôn chuỗi shot', ic: '🧭' }, { key: 'beat', ten: 'Cấu trúc beat', ic: '📖' },
+  { key: 'khuon_shot', ten: 'Khuôn shot dùng lại', ic: '🧩' }, ...NHOM_KY_THUAT.map((n) => ({ key: n.key, ten: n.ten, ic: n.icon })),
+];
+const boDau = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+const khop = (q: string, ...ds: (string | undefined)[]) => !q || ds.some((d) => d && boDau(d).includes(q));
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
-  const [tl, setTl] = useState<TheLoai | ''>(tlDau as TheLoai | '');
-  const chip = (k: TheLoai | '', chu: string, title?: string) => (
-    <button key={k || 'tat'} type="button" title={title} onClick={() => setTl(k)} className={`xv-btn${tl === k ? ' chinh' : ''}`} style={{ padding: '2px 9px' }}>{chu}</button>
-  );
+  const [muc, setMuc] = useNho<string>('xv-tv-muc', 'chuyen_dong', MUC_TV.map((m) => m.key), 'tvm');
+  const [qTho, setQ] = useNho<string>('xv-tv-q', '', undefined, 'tvq');
+  const [tlNho, setTl] = useNho<string>('xv-tv-tl', tlDau, ['', ...THE_LOAI.map((t) => t.key)], 'tvl');
+  const tl = tlNho as TheLoai | '';
+  const q = boDau(qTho.trim());
+  const kt = (n: string) => THU_VIEN.filter((x) => x.nhom === n && (!tl || hopTheLoai(x, tl)) && khop(q, x.ten, x.key, x.mo_ta, x.nganh?.ten_nganh, x.prompt));
+  const luat = LUAT_DUNG_CANH.filter((l) => khop(q, l.ten, l.key, l.luat, l.nganh?.ten_nganh));
+  const khuon = KHUON_CHUOI.filter((k) => (!tl || hopKhuon(k, tl)) && khop(q, k.ten, k.key, k.muc_dich, ...k.buoc.map((b) => b.ten)));
+  const dem = (m: string) => (m === 'luat' ? luat.length : m === 'khuon_chuoi' ? khuon.length : m === 'beat' || m === 'khuon_shot' ? -1 : kt(m).length);
+  const theKt = (x: KyThuat) => <TheMuc key={x.key} ten={x.ten} ma={`${x.nhom}.${x.key}`} moTa={x.mo_ta} ten2={x.nganh?.ten_nganh} />;
+  const noiDung = (m: string, tieuDe = false) => {
+    const dau = tieuDe ? <div className="xv-mono" style={{ margin: '10px 0 4px', textTransform: 'uppercase' }}>{MUC_TV.find((x) => x.key === m)?.ic} {MUC_TV.find((x) => x.key === m)?.ten}</div> : null;
+    if (m === 'luat') return luat.length ? <div key={m}>{dau}<LuoiThe>{luat.map((l) => <TheMuc key={l.key} ten={l.ten} ma={`luat.${l.key}`} moTa={l.luat} ten2={l.nganh?.ten_nganh} />)}</LuoiThe></div> : null;
+    if (m === 'khuon_chuoi') return khuon.length ? <div key={m}>{dau}<LuoiThe rong={320}>{khuon.map((k) => <TheKhuon key={k.key} k={k} />)}</LuoiThe></div> : null;
+    if (m === 'beat') return q ? null : <div key={m}>{dau}<BeatKhoi /></div>;
+    if (m === 'khuon_shot') return q ? null : <div key={m}>{dau}<KhuonShotKhoi /></div>;
+    const ds = kt(m); return ds.length ? <div key={m}>{dau}<LuoiThe>{ds.map(theKt)}</LuoiThe></div> : null;
+  };
+  const tong = MUC_TV.reduce((a, m) => a + Math.max(0, dem(m.key)), 0);
   return (
-    <div>
-      <div style={{ marginBottom: 8 }}><button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'kho' })}>📦 Kho tài sản dùng lại (clip · keyframe · nhạc)</button></div>
-      <div className="xv-mono" style={{ marginBottom: 8 }}>Claude chọn kỹ thuật cho từng shot từ thư viện này theo thể loại của phim; đổi được trong form shot. {THU_VIEN.length} kỹ thuật · {THE_LOAI.length} thể loại.</div>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
-        {chip('', 'Tất cả')}
-        {THE_LOAI.map((t) => chip(t.key, t.ten, t.mo_ta))}
-      </div>
-      <details className="xv-det xv-panel" open>
-        <summary>📐 Luật dựng cảnh <small>{LUAT_DUNG_CANH.length} — mỗi shot ghi mã luật mình thực hiện; Claude viết kịch bản, tách cảnh, xem thử đều theo đúng danh sách này</small></summary>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 6, marginTop: 8 }}>
-          {LUAT_DUNG_CANH.map((l, i) => (
-            <div key={l.key} className="xv-canh">
-              <b style={{ fontSize: 12 }}>{i + 1}. {l.ten}</b> <span className="xv-mono">{l.key}</span>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{l.luat}</div>
-              <div className="xv-mono" style={{ marginTop: 2 }}>máy kiểm: {l.may}{l.xem === false ? ' · luật của thợ (không vào người xem ảo)' : ''}</div>
-              {l.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {l.nganh.ten_nganh}</summary><MoTaNganh n={l.nganh} /></details>}
-              <ViDuVideo ma={`luat.${l.key}`} nho />
-            </div>
-          ))}
-        </div>
-      </details>
-      {NHOM_KY_THUAT.map((n) => {
-        const ds = THU_VIEN.filter((x) => x.nhom === n.key && (!tl || hopTheLoai(x, tl)));
-        if (!ds.length) return null;
-        return (
-          <details key={n.key} className="xv-det xv-panel" open={n.key === 'vai'}>
-            <summary title={`${ds.length} kỹ thuật`}>{n.icon} {n.ten}</summary>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6, marginTop: 8 }}>
-              {ds.map((x) => (
-                <div key={x.key} className="xv-canh" title={x.prompt ? `prompt: ${x.prompt}` : undefined}>
-                  <b style={{ fontSize: 12 }}>{x.ten}</b> <span className="xv-mono">{x.key}</span>
-                  <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{x.mo_ta}</div>
-                  {x.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {x.nganh.ten_nganh}</summary><MoTaNganh x={x} /></details>}
-                  <ViDuVideo ma={`${x.nhom}.${x.key}`} nho />
-                </div>
-              ))}
-            </div>
-          </details>
-        );
-      })}
-      <KhuonShotKhoi />
-      <details className="xv-det xv-panel">
-        <summary>📖 Cấu trúc beat theo loại phim <small>{Object.keys(CAU_TRUC).length}</small></summary>
-        {Object.entries(CAU_TRUC).map(([k, c]) => (
-          <div key={k} style={{ margin: '8px 0' }}><b style={{ fontSize: 12 }}>{c.ten}</b>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>{c.beats.map((b, i) => <span key={b.ten} className="xv-mono" title={b.mo_ta} style={{ padding: '2px 8px', border: '1px solid var(--line)', borderRadius: 6 }}>{i + 1}. {b.ten}</span>)}</div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 180px) 1fr', gap: 14, alignItems: 'start' }}>
+      {/* Mục lục — dính khi cuộn; nhãn chỉ tên, số ở hover */}
+      <nav style={{ position: 'sticky', top: 0, display: 'grid', gap: 10, fontSize: 12.5 }}>
+        {NHOM_MUC.map((g) => (
+          <div key={g.ten} style={{ display: 'grid', gap: 1 }}>
+            <div className="xv-mono" style={{ textTransform: 'uppercase', fontSize: 9.5, padding: '0 8px 2px' }}>{g.ten}</div>
+            {g.muc.map((k) => { const m = MUC_TV.find((x) => x.key === k)!; const n = dem(k); const on = !q && muc === k;
+              return <button key={k} type="button" onClick={() => { setMuc(k); if (q) setQ(''); }} title={n >= 0 ? `${n} mục${q ? ' khớp tìm' : ''}` : undefined}
+                style={{ textAlign: 'left', padding: '4px 8px', borderRadius: 6, border: 0, cursor: 'pointer', background: on ? 'var(--bg-2)' : 'transparent', color: on ? 'var(--fg-1)' : n === 0 ? 'var(--fg-4)' : 'var(--fg-2)', fontWeight: on ? 600 : 400 }}>{m.ic} {m.ten}</button>; })}
           </div>
         ))}
-      </details>
+        <button type="button" className="xv-btn" style={{ fontSize: 11.5 }} onClick={() => moNgan({ loai: 'kho' })} title="Clip · keyframe · nhạc đã làm, dùng lại được">📦 Kho tài sản</button>
+      </nav>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-0, var(--bg-1))', paddingBottom: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input className="xv-in" autoFocus value={qTho} onChange={(e) => setQ(e.target.value)} placeholder={`Tìm trong ${THU_VIEN.length + LUAT_DUNG_CANH.length + KHUON_CHUOI.length} mục — "dolly", "đẩy vào", "hook", "rack focus"…`}
+            onKeyDown={(e) => { if (e.key === 'Escape' && qTho) { e.stopPropagation(); setQ(''); } }} style={{ flex: '1 1 260px', minWidth: 0 }} />
+          <Chon value={tl} onChange={(v) => setTl(v)} minWidth={170} title="Chỉ hiện kỹ thuật hợp thể loại"
+            options={[{ value: '', label: 'Mọi thể loại' }, ...THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta }))]} />
+        </div>
+        {q ? (tong ? MUC_TV.map((m) => noiDung(m.key, true)) : <div className="xv-mono" style={{ padding: 12 }}>Không có mục nào khớp “{qTho}”.</div>)
+          : noiDung(muc)}
+      </div>
     </div>
   );
+}
+
+const hopKhuon = (k: (typeof KHUON_CHUOI)[number], tl: TheLoai) => k.the_loai === 'tat_ca' || k.the_loai.includes(tl);
+function LuoiThe({ children, rong = 230 }: { children: React.ReactNode; rong?: number }) {
+  return <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${rong}px, 1fr))`, gap: 6 }}>{children}</div>;
+}
+/** Thẻ gọn: tên (+ ▶ khi có ví dụ video) + hai dòng mô tả — bấm mở ngăn chi tiết (ngành + video). Chiều cao đều để quét ngang được. */
+function TheMuc({ ten, ma, moTa, ten2 }: { ten: string; ma: string; moTa: string; ten2?: string }) {
+  const vd = viDuCua(ma).length;
+  return (
+    <button type="button" className="xv-canh" onClick={() => moNgan({ loai: 'ky-thuat', ma })} title={`${ten2 ? `${ten2}\n` : ''}${moTa}\n— bấm xem chi tiết${vd ? ' + video ví dụ' : ''}`}
+      style={{ textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3, alignContent: 'start', font: 'inherit', color: 'inherit' }}>
+      <span style={{ display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0 }}>
+        <b style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ten}</b>
+        {vd > 0 && <span title="có video ví dụ" style={{ fontSize: 10, color: 'var(--fg-3)' }}>▶</span>}
+      </span>
+      <span style={{ fontSize: 11.5, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{moTa}</span>
+    </button>
+  );
+}
+/** Khuôn chuỗi shot (khuon-chuoi.ts): mục đích + các bước + nguồn — áp trên timeline ở làn 🧭 Khuôn. */
+function TheKhuon({ k }: { k: (typeof KHUON_CHUOI)[number] }) {
+  return (
+    <div className="xv-canh" style={{ display: 'grid', gap: 4 }}>
+      <b style={{ fontSize: 12 }}>{k.ten}</b>
+      <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{k.muc_dich}</span>
+      <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{k.buoc.map((b, i) => `${i + 1}. ${b.ten}${b.tuy ? ' (tuỳ)' : b.nen ? ' (nên có)' : ''}`).join(' → ')}{k.ket ? ` · kết: ${k.ket}` : ''}</span>
+      <span className="xv-mono" style={{ fontSize: 10 }}>nguồn: {k.nguon.map((n) => n.phim).join(' · ')}</span>
+    </div>
+  );
+}
+function BeatKhoi() {
+  return <div style={{ display: 'grid', gap: 8 }}>{Object.entries(CAU_TRUC).map(([k, c]) => (
+    <div key={k}><b style={{ fontSize: 12 }}>{c.ten}</b>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>{c.beats.map((b, i) => <span key={b.ten} className="xv-mono" title={b.mo_ta} style={{ padding: '2px 8px', border: '1px solid var(--line)', borderRadius: 6 }}>{i + 1}. {b.ten}</span>)}</div>
+    </div>))}</div>;
 }
 
 /** Khuôn shot máy tự ghi từ QC mẫu + cảnh đã tách (xv_khuon_shot) — xem theo loại, hay gặp trước. */
@@ -81,11 +127,11 @@ function KhuonShotKhoi() {
   const loc = (ds ?? []).filter((k) => !loai || k.loai === loai);
   const cac = [...new Set((ds ?? []).map((k) => k.loai))];
   return (
-    <details className="xv-det xv-panel" open>
-      <summary>🧩 Khuôn shot dùng lại <small>{ds ? `${ds.length} khuôn — máy tự ghi từ QC mẫu và cảnh đã tách, tên riêng đã thay bằng {sản phẩm} {nhân vật}; Claude đọc lại khi tách cảnh` : '…'}</small></summary>
+    <div>
+      <div className="xv-mono" style={{ marginBottom: 6 }}>{ds ? 'Máy tự ghi từ QC mẫu và cảnh đã tách, tên riêng đã thay bằng {sản phẩm} {nhân vật}; Claude đọc lại khi tách cảnh' : '…'}</div>
       {!!cac.length && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', margin: '8px 0' }}>
         <button type="button" className={`xv-btn${!loai ? ' chinh' : ''}`} style={{ padding: '2px 9px' }} onClick={() => setLoai('')}>Tất cả</button>
-        {cac.map((k) => <button key={k} type="button" className={`xv-btn${loai === k ? ' chinh' : ''}`} style={{ padding: '2px 9px' }} onClick={() => setLoai(k)}>{ten(k)} <span className="xv-mono">{(ds ?? []).filter((x) => x.loai === k).length}</span></button>)}
+        {cac.map((k) => <button key={k} type="button" className={`xv-btn${loai === k ? ' chinh' : ''}`} style={{ padding: '2px 9px' }} onClick={() => setLoai(k)} title={`${(ds ?? []).filter((x) => x.loai === k).length} khuôn`}>{ten(k)}</button>)}
       </div>}
       {ds && !ds.length && <div className="xv-mono">Chưa có khuôn nào — tách cảnh một QC hoặc phân tích một video mẫu là máy tự ghi.</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6, marginTop: 6 }}>
@@ -97,7 +143,7 @@ function KhuonShotKhoi() {
           </div>
         ))}
       </div>
-    </details>
+    </div>
   );
 }
 

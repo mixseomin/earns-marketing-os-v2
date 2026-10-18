@@ -829,7 +829,7 @@ def ve_sau(s, sh, cam, ra):
         if not phan: continue   # người không có trong shot này / đang ẩn
         an += phan; hien.append(x)
     for o in an: o.hide_render = True
-    for x in hien: x.hide_render = False
+    for x in hien: x.hide_render = x.hide_viewport = False
     d = (Vector(sh['may']['nhin']) - Vector(sh['may']['dat'])).length * CM
     eng, smp, dn = s.render.engine, s.cycles.samples, s.cycles.use_denoising
     s.view_layers[0].material_override = do_sau(s, d * 0.4, d * 3.0)
@@ -839,7 +839,7 @@ def ve_sau(s, sh, cam, ra):
     s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
     s.render.engine, s.cycles.samples, s.cycles.use_denoising = eng, smp, dn
     for o in an: o.hide_render = False
-    for x in hien: x.hide_render = True
+    for x in hien: x.hide_render = x.hide_viewport = True
 
 import re as _re
 # kính: khai kinh=True HOẶC en tả là kính (glass wall / door / partition / panel) — 17/10/2026 'Vách kính phòng TGĐ' chưa khai, che người phía sau

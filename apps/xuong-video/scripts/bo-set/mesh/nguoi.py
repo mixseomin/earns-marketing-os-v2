@@ -116,7 +116,7 @@ def than_tron(n, ten, H, L, vl, dv):
     for i, (_, _, rx, ry) in enumerate(dinh): me.skin_vertices[0].data[i].radius = (rx * dv, ry * dv)
     me.skin_vertices[0].data[0].use_root = True
     sd = o.modifiers.new('min', 'SUBSURF'); sd.levels = sd.render_levels = 1
-    o.hide_render = True   # chỉ bật trong ve_sau
+    o.hide_render = o.hide_viewport = True   # chỉ bật trong ve_sau — hiện ở viewport thì tia đo (che / cỡ khung) đụng thân liền, người 'to' ra (#3, #12)
     n['than_tron'] = o
 
 def _dat(n, ten, x=0.0, y=0.0, z=0.0):

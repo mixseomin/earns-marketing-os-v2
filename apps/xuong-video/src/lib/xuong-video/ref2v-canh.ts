@@ -83,7 +83,7 @@ export function dungRef2v(shots: ShotR[], nhanVat: NvR[], o: { tiLe: string; tie
     const d = s.dan_dung ?? {};
     const mayDu = promptKyThuatVideo(s.ky_thuat); const may = (tieng ? mayDu : mayDu.replace(/\s*Sound:[^.]*\.?/g, '')).trim();
     const phan = s.prompt_video?.trim() ? [s.prompt_video.trim(), may] : [d.dien || s.hanh_dong, may, d.bo_cuc, d.mo && d.ket ? `From: ${d.mo} — to: ${d.ket}.` : ''];
-    return { id: s.id, thu_tu: s.thu_tu, giay, prompt: gonPrompt(phan.map((x) => doi(String(x ?? '').replace(/\s+/g, ' ').trim())), TOI_DA_PROMPT - DUOI.length - 1) };
+    return { id: s.id, thu_tu: s.thu_tu, giay, prompt: gonPrompt(phan.map((x) => { const t = doi(String(x ?? '').replace(/\s+/g, ' ').trim()); return t && !/[.!?]$/.test(t) ? `${t}.` : t; }), TOI_DA_PROMPT - DUOI.length - 1) };
   });
   const input: Record<string, unknown> = {
     multi_prompt: sp.map((x) => ({ prompt: `${x.prompt} ${DUOI}`, duration: String(x.giay) })),

@@ -3,7 +3,6 @@
 // xv_canh.diem_prompt (diem-prompt.ts — ghi mỗi lượt cổng / dựng 3D); lỗi trừ ≥ 20 là lỗi CHẶN sinh (kiem-prompt.ts › NGUONG_CHAN).
 import { useRef, useState } from 'react';
 import { useViTriNoi } from './vi-tri-noi';
-import { NganNoi } from './ngan';
 import { mauDiem } from '@/lib/xuong-video/diem-murch';
 import type { DiemPrompt } from '@/lib/xuong-video/kieu';
 
@@ -11,12 +10,11 @@ const CHAN = 20;
 export function ChipPrompt({ d, soShot, viTri: vt }: { d: DiemPrompt | null | undefined; soShot: number; viTri?: { left?: number; right?: number; top?: number; bottom?: number } | 'dong' }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [mo, setMo] = useState(false);
-  const [ngan, setNgan] = useState(false);
   const viTri = useViTriNoi(ref, mo, { rong: 380, caoToiDa: 440 });
   if (!d) return null;
   const chan = d.loi.filter((l) => l.phat >= CHAN).length;
   const mau = chan ? 'var(--red)' : mauDiem(d.diem);
-  // Nội dung chi tiết dùng chung: thẻ nổi khi rê + ngăn khi bấm (anh 18/10/2026: "cần xem chi tiết khi bấm vào (drawer)").
+  // Thân thẻ nổi (bấm chip = bấm khối clip → ngăn chi tiết SHOT, tap.tsx › xemShot).
   const than = (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
           <span className="xv-mono" style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Điểm prompt · shot #{soShot}</span>
@@ -37,8 +35,7 @@ export function ChipPrompt({ d, soShot, viTri: vt }: { d: DiemPrompt | null | un
   </>);
   return (<>
     <span ref={ref} className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} title=""
-      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMo(false); setNgan(true); }}
-      style={{ ...(vt === 'dong' ? { position: 'relative' as const, flexShrink: 0, whiteSpace: 'nowrap' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700, zIndex: 2 }}>
+      style={{ ...(vt === 'dong' ? { position: 'relative' as const, flexShrink: 0, whiteSpace: 'nowrap' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'help', fontWeight: 700, zIndex: 2 }}>
       P {d.diem}{chan ? ' ⛔' : ''}
     </span>
     {mo && (
@@ -46,6 +43,5 @@ export function ChipPrompt({ d, soShot, viTri: vt }: { d: DiemPrompt | null | un
         {than}
       </div>
     )}
-    {ngan && <NganNoi nho onClose={() => setNgan(false)} tieuDe={`Điểm prompt · shot #${soShot}`}><div style={{ display: 'grid', gap: 10, fontSize: 12.5 }}>{than}</div></NganNoi>}
   </>);
 }

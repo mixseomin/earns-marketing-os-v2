@@ -3,7 +3,6 @@
 // cảnh hiện tại và toàn cảnh"). Số là ƯỚC LƯỢNG để so shot trong tập (diem-murch.ts), không phải điểm tuyệt đối — thẻ nói rõ.
 import { useEffect, useRef, useState } from 'react';
 import { useViTriNoi } from './vi-tri-noi';
-import { NganNoi } from './ngan';
 import { TRONG_SO, TEN_TIEU_CHI, mauDiem, diemMurchTap, diemMurchCanh, type DiemMurch, type TieuChi } from '@/lib/xuong-video/diem-murch';
 import { boSetCuaTap } from '@/lib/actions';
 import type { BoSet, Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
@@ -20,11 +19,10 @@ export function useDiemMurch(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'i
 export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMurch | undefined; canh: number | undefined; tap: number; soShot: number; /** máy tự chấm clip (cham-may.ts) — ✓ / ◐ / ✗ ngay sau điểm */ may?: KqMay | null; /** chỗ đặt chip trong ô (mặc định góc phải trên) */ viTri?: { left?: number; right?: number; top?: number; bottom?: number } | 'dong' }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [mo, setMo] = useState(false);
-  const [ngan, setNgan] = useState(false);
   const viTri = useViTriNoi(ref, mo, { rong: 340, caoToiDa: 420 });
   if (!d) return null;
   const mau = mauDiem(d.tong);
-  // Nội dung chi tiết dùng chung: thẻ nổi khi rê + ngăn khi bấm (anh 18/10/2026: "cần xem chi tiết khi bấm vào (drawer)").
+  // Thân thẻ nổi (bấm chip = bấm khối clip → ngăn chi tiết SHOT, tap.tsx › xemShot).
   const than = (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
           <span className="xv-mono" style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Điểm Murch · shot #{soShot}</span>
@@ -55,8 +53,7 @@ export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMur
   </>);
   return (<>
     <span ref={ref} className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} title=""
-      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMo(false); setNgan(true); }}
-      style={{ ...(vt === 'dong' ? { position: 'relative' as const, flexShrink: 0, whiteSpace: 'nowrap' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700 }}>
+      style={{ ...(vt === 'dong' ? { position: 'relative' as const, flexShrink: 0, whiteSpace: 'nowrap' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'help', fontWeight: 700 }}>
       M {d.tong}{may && <span style={{ color: KY_MAY[may.ket].mau, marginLeft: 4 }}>🤖{KY_MAY[may.ket].ky}</span>}
     </span>
     {mo && (
@@ -64,6 +61,5 @@ export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMur
         {than}
       </div>
     )}
-    {ngan && <NganNoi nho onClose={() => setNgan(false)} tieuDe={`Điểm Murch · shot #${soShot}`}><div style={{ display: 'grid', gap: 10, fontSize: 12.5 }}>{than}</div></NganNoi>}
   </>);
 }

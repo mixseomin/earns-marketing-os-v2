@@ -51,8 +51,9 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
+  /** bấm một khối của shot trên bất kỳ làn nào → mở ngăn chi tiết shot (anh 18/10/2026: cuộn xuống các làn dưới thì không kéo lên xem panel được) */ onMoShot?: (id: number) => void;
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
@@ -252,6 +253,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     return () => clearTimeout(h);
   }, [t, khoaT]);
   // Giữ chuột trên thước giây hoặc vạch đỏ rồi kéo = tua liên tục (scrub) như CapCut; đang chạy thì tạm dừng trong lúc kéo.
+  /** Bấm khối của một shot (mọi làn): chọn + tua tới đầu shot + mở ngăn chi tiết shot. Phím ←/→ và lúc phát tự sang shot thì KHÔNG mở ngăn. */
+  const bamShot = (id: number, i: number) => { onChon(id); tuaToi(batDau[i]!); onMoShot?.(id); };
   const keoDauPhat = (e: PE<HTMLDivElement>, goc: number) => {
     e.preventDefault(); e.stopPropagation();
     const dangChay = chay; setChay(false);
@@ -554,7 +557,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {/* Thứ tự làn như After Effects: trên cùng = vẽ trên cùng (chữ màn → lớp phủ → video), rồi làn tham chiếu, rồi âm thanh. */}
           {canh.some((x) => x.chu_man.trim()) && track('✎ Chữ màn', 'Chữ hiện trên màn của từng shot (hook, số liệu, ưu đãi, CTA) — sửa ở form cảnh; bản xuất vẽ đúng chữ này', canh.map((cc, i) => {
             if (!cc.chu_man.trim()) return null;
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', chuManHien(cc.chu_man), cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', chuManHien(cc.chu_man), cc.chu_man, cc.id, () => { bamShot(cc.id, i); });
           }), 26, nutNho(anChuMan ? '🙈' : '👁', anChuMan ? 'Chữ màn đang ẩn khỏi khung xem (bản xuất vẫn có) — bấm để hiện' : 'Ẩn chữ màn khỏi khung xem để nhìn hình sạch (bản xuất vẫn có)', anChuMan, () => doiAnLan('xem:chu_man')))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
@@ -609,7 +612,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             return (
               <div key={cc.id} draggable onDragStart={() => setKeo(cc.id)} onDragEnd={() => { setKeo(null); setTha(null); }}
                 onDragOver={(e) => { e.preventDefault(); setTha(cc.id); }} onDrop={() => { thaVao(cc.id); setKeo(null); setTha(null); }}
-                onClick={() => { onChon(cc.id); tuaToi(batDau[i]!); }}
+                onClick={() => { bamShot(cc.id, i); }}
                 data-goi-y={[`#${cc.thu_tu} ${cc.canh}`, `Phát: ${dur(cc)}s${dur(cc) !== (cc.thoi_luong_s || 4) ? ` (clip ${cc.thoi_luong_s || 4}s, cắt phần đầu)` : ''}`, `Hình: ${cc.video_cuoi_url ? 'bản cuối' : cc.video_url ? 'nháp' : cc.keyframe_url ? 'keyframe (chưa có clip)' : 'chưa có'}`, cc.hanh_dong && `Hành động: ${cc.hanh_dong}`, cc.chu_man && `Chữ màn: ${cc.chu_man}`, `Khán giả: ${tenCamXuc(cc.cam_xuc)}`, 'Kéo mép phải = cắt giây · kéo khối = đổi thứ tự'].filter(Boolean).join('\n')}
                 style={{ position: 'absolute', left: x + 1, width: Math.max(6, w - 2), top: 0, bottom: 0, borderRadius: 5, overflow: 'hidden', cursor: 'grab',
                   border: `2px solid ${dangChon ? 'var(--cyan)' : tha === cc.id && keo !== cc.id ? 'var(--amber)' : coVid ? '#4ade8088' : 'var(--line)'}`,
@@ -664,7 +667,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 <polygon points={`0,${y(0)} ${duong.split(' ').slice(1).join(' ')} ${diem.length ? `${diem[diem.length - 1]!.x},${y(0)}` : ''}`} fill="rgba(244,114,182,.12)" />
                 {mucTieu && <polyline points={mucTieu} fill="none" stroke="var(--fg-3)" strokeWidth={1.5} strokeDasharray="5 4"><title>Cảm xúc mục tiêu theo loại beat</title></polyline>}
                 <polyline points={duong} fill="none" stroke="#f472b6" strokeWidth={2} />
-                {diem.map((d) => { const lech = lechCamXuc(d.cc); const m = camXucMucTieu(d.cc); return <g key={d.cc.id} style={{ cursor: 'pointer' }} onClick={() => { onChon(d.cc.id); tuaToi(batDau[canh.indexOf(d.cc)]!); }}>
+                {diem.map((d) => { const lech = lechCamXuc(d.cc); const m = camXucMucTieu(d.cc); return <g key={d.cc.id} style={{ cursor: 'pointer' }} onClick={() => { bamShot(d.cc.id, canh.indexOf(d.cc)); }}>
                   {lech && <circle cx={d.x} cy={d.y} r={7} fill="none" stroke="var(--red)" strokeWidth={1.5} />}
                   <circle cx={d.x} cy={d.y} r={3.5} fill={d.v >= 0 ? '#4ade80' : '#f87171'} />
                   <title>{`#${d.cc.thu_tu} ${d.cc.canh}: ${tenCamXuc(d.v)} (${d.v > 0 ? '+' : ''}${d.v})${m != null ? `\nmục tiêu (${d.cc.phan_doan}): ${tenCamXuc(m)} (${m > 0 ? '+' : ''}${m})` : ''}${lech ? '\n⚠ lệch mục tiêu — sửa cảm xúc ở form shot' : ''}`}</title></g>; })}
@@ -679,7 +682,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             const chu = [kyThuat(kt.co_canh, 'co_canh')?.ten, kyThuat(kt.chuyen_dong, 'chuyen_dong')?.ten, kyThuat(kt.anh_sang, 'anh_sang')?.ten].filter(Boolean).join(' · ');
             if (!chu) return null;
             const day = ['co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'anh_sang', 'mau', 'chuyen_canh', 'nhac'].map((n) => kyThuat((kt as Record<string, string>)[n])?.ten).filter(Boolean).join('\n');
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#38d9f5', chu, day, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#38d9f5', chu, day, cc.id, () => { bamShot(cc.id, i); });
           }))}
 
           {/* MỖI nhân vật một NHÓM làn (#1237, #1244), viền màu nhân vật: 🎭 cảm xúc/diễn xuất theo shot (có mặt mà không nói cũng hiện) · 🗣 thoại. */}
@@ -692,7 +695,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               if (!cua.length && !coMat) return null;
               const dx = [...new Set(cua.map((d) => d.dien_xuat.trim()).filter(Boolean))].join(' → ');
               const chu = dx || (cua.length ? 'nói, chưa ghi diễn xuất' : 'có mặt, không nói');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\nCảm xúc: ${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\nCảm xúc: ${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { bamShot(cc.id, i); });
             });
             return (
               <div key={ten} className="xv-tl-nhom" style={{ '--mau-nhom': mauNv(v), marginTop: 4 } as React.CSSProperties}>
@@ -703,7 +706,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               if (!cua.length) return null;
               const co = cua.filter((d) => d.url).length;
               const tt = cua.map((d, j) => `Câu ${j + 1}: ${d.dien_xuat ? `(${d.dien_xuat}) ` : ''}${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cua.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${cua.map((d) => d.loi).join(' · ')}${co && co < cua.length ? ` (${co}/${cua.length})` : ''}`, `${ten} · shot #${cc.thu_tu}\n${tt}\nGiọng: ${co}/${cua.length} câu đã sinh`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cua.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${cua.map((d) => d.loi).join(' · ')}${co && co < cua.length ? ` (${co}/${cua.length})` : ''}`, `${ten} · shot #${cc.thu_tu}\n${tt}\nGiọng: ${co}/${cua.length} câu đã sinh`, cc.id, () => { bamShot(cc.id, i); },
                 sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_giong || sinh.ban(`g${cc.id}`), nghe: cua.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh giọng cả shot` });
             }), 26, ten === nguoiNoiDau ? <>{nutNho('🤖', docThu ? 'Đang đọc thử thoại chưa có giọng bằng giọng máy — bấm để tắt' : 'Bấm để đọc thử thoại chưa có giọng bằng giọng máy', !docThu, () => setDocThu((x) => !x))}{nutNho(tat.thoai ? '🔇' : '🔊', tat.thoai ? 'Thoại đang tắt — bấm để bật' : 'Tắt tiếng thoại', !!tat.thoai, () => batTat('thoai'))}</> : undefined)}
               </div>
@@ -715,7 +718,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               style={{ position: 'absolute', left: m.tu * pps, width: Math.max(3, m.dai * pps), bottom: 1, height: 7, borderRadius: 2, background: '#ea580c', opacity: 0.9, zIndex: 2, pointerEvents: 'auto' }} />
           )), ...canh.map((cc, i) => {
             if (!cc.am_thanh.trim()) return null;
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { bamShot(cc.id, i); },
               sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_sfx || sinh.ban(`s${cc.id}`), nghe: cc.am_thanh_url ? [cc.am_thanh_url] : [], title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
           })], 26, nutNho(tat.sfx ? '🔇' : '🔊', tat.sfx ? 'Hiệu ứng đang tắt — bấm để bật' : 'Tắt tiếng hiệu ứng', !!tat.sfx, () => batTat('sfx')))}
 
@@ -740,7 +743,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 if (o.diem == null) return null;
                 const cc = canh[i]!;
                 return khoiAm(batDau[i]! * pps, dur(cc) * pps, o.co, MAU_DOI_TUONG[o.muc], `${o.loi.length ? '⚠ ' : ''}${o.chu}`,
-                  `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); }, undefined, '');
+                  `${r.nv.ten} · shot #${cc.thu_tu} · ${o.diem}/10${o.chu ? `\n${o.chu}` : ''}${o.loi.length ? `\n${o.loi.map((x) => `− ${x}`).join('\n')}` : ''}`, `dt${r.nv.id}-${cc.id}`, () => { bamShot(cc.id, i); }, undefined, '');
               }), 26, r.diem != null ? <span title={`Điểm cả tập: trung bình các shot có ${r.nv.ten}${r.soLoi ? ` · ${r.soLoi} lỗi` : ''}`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: MAU_DOI_TUONG[r.diem >= 9 ? 'tot' : r.diem >= 5 ? 'vang' : 'do'], border: '1px solid currentColor' }}>{r.diem}</span> : undefined, undefined, undefined, undefined, <>
                 <button type="button" title={moCay.includes(r.nv.id) ? 'Thu cây' : 'Mở cây: từng mục đang tính điểm (mẫu, trang phục, vị trí, dáng, kiểm khung…)'} onClick={() => doiMoCay(r.nv.id)}
                   style={{ flexShrink: 0, width: 14, padding: 0, border: 'none', background: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 10 }}>{moCay.includes(r.nv.id) ? '▾' : '▸'}</button>
@@ -751,7 +754,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                     const n = o.nhanh.find((x) => x.ma === ma); if (!n) return null;
                     const cc = canh[i]!; const tru = n.tru.reduce((a, t) => a + t.diem, 0);
                     return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, MAU_DOI_TUONG[tru ? mucDiem(10 - tru) : 'tot'], `${tru ? `−${tru} ` : ''}${n.chu || '—'}`,
-                      `${r.nv.ten} › ${TEN_NHANH[ma]} · shot #${cc.thu_tu}\n${n.chu || '—'}${n.tru.length ? `\n${n.tru.map((t) => `−${t.diem} ${t.chu}`).join('\n')}` : '\nkhông bị trừ'}`, `dt${r.nv.id}-${ma}-${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); }, undefined, '');
+                      `${r.nv.ten} › ${TEN_NHANH[ma]} · shot #${cc.thu_tu}\n${n.chu || '—'}${n.tru.length ? `\n${n.tru.map((t) => `−${t.diem} ${t.chu}`).join('\n')}` : '\nkhông bị trừ'}`, `dt${r.nv.id}-${ma}-${cc.id}`, () => { bamShot(cc.id, i); }, undefined, '');
                   }))}
                 </Fragment>
               ))}

@@ -1,0 +1,979 @@
+[
+ {
+  "id": "AyML8xuKfoc",
+  "tieu_de": "Ultimate Guide to Camera Shots: Every Shot Size Explained [The Shot List, Ep 1]",
+  "kenh": "StudioBinder",
+  "dai": 763,
+  "chuong": [
+   {
+    "ten": "Introduction to shot sizes",
+    "tu": 0
+   },
+   {
+    "ten": "The establishing shot",
+    "tu": 84
+   },
+   {
+    "ten": "The master shot",
+    "tu": 161
+   },
+   {
+    "ten": "The wide shot",
+    "tu": 262
+   },
+   {
+    "ten": "The full shot",
+    "tu": 333
+   },
+   {
+    "ten": "The cowboy shot",
+    "tu": 386
+   },
+   {
+    "ten": "The medium shot",
+    "tu": 438
+   },
+   {
+    "ten": "The medium close-up",
+    "tu": 532
+   },
+   {
+    "ten": "The close-up",
+    "tu": 605
+   },
+   {
+    "ten": "Extreme close-ups and inserts",
+    "tu": 636
+   },
+   {
+    "ten": "Conclusion and resources",
+    "tu": 713
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "qQNiqzuXjoM",
+  "tieu_de": "Camera Framing: Shot Composition & Cinematography Techniques Explained [The Shot List, Ep 2]",
+  "kenh": "StudioBinder",
+  "dai": 514,
+  "chuong": [
+   {
+    "ten": "Intro",
+    "tu": 0
+   },
+   {
+    "ten": "Framing",
+    "tu": 37
+   },
+   {
+    "ten": "bongju nose parasite",
+    "tu": 345
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "wLfZL9PZI9k",
+  "tieu_de": "Ultimate Guide to Camera Angles: Every Camera Shot Explained [Shot List, Ep. 3]",
+  "kenh": "StudioBinder",
+  "dai": 812,
+  "chuong": [
+   {
+    "ten": "Intro — Camera Angles in Filmmaking",
+    "tu": 0
+   },
+   {
+    "ten": "Low Angle Shot",
+    "tu": 75
+   },
+   {
+    "ten": "High Angle Shot",
+    "tu": 148
+   },
+   {
+    "ten": "Overhead Shot",
+    "tu": 245
+   },
+   {
+    "ten": "Dutch Angle Shot",
+    "tu": 306
+   },
+   {
+    "ten": "Eye Level Shot",
+    "tu": 401
+   },
+   {
+    "ten": "Shoulder Level Shot",
+    "tu": 472
+   },
+   {
+    "ten": "Hip Level",
+    "tu": 536
+   },
+   {
+    "ten": "Knee Level",
+    "tu": 598
+   },
+   {
+    "ten": "Ground Level",
+    "tu": 662
+   },
+   {
+    "ten": "Final Takeaways",
+    "tu": 736
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "ZGNUqNFfD8M",
+  "tieu_de": "Depth of Field Explained: Ultimate Guide to Camera Focus [Shot List Ep. 4]",
+  "kenh": "StudioBinder",
+  "dai": 894,
+  "chuong": [
+   {
+    "ten": "Intro — Depth of Field Explained",
+    "tu": 0
+   },
+   {
+    "ten": "Deep Focus",
+    "tu": 95
+   },
+   {
+    "ten": "Shallow Focus",
+    "tu": 212
+   },
+   {
+    "ten": "Soft Focus",
+    "tu": 342
+   },
+   {
+    "ten": "Rack Focus",
+    "tu": 462
+   },
+   {
+    "ten": "Split Diopter Lens",
+    "tu": 593
+   },
+   {
+    "ten": "Tilt Shift Lens",
+    "tu": 730
+   },
+   {
+    "ten": "Final Takeaways",
+    "tu": 816
+   },
+   {
+    "ten": "In the Next Ep: Camera Gear",
+    "tu": 852
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "heJ9hWNb10g",
+  "tieu_de": "Camera Gear: Every Type of Camera Rig Explained [The Shot List, Ep 5]",
+  "kenh": "StudioBinder",
+  "dai": 1455,
+  "chuong": [
+   {
+    "ten": "Intro to Camera Rigs & Gear",
+    "tu": 0
+   },
+   {
+    "ten": "Handheld — Avengers: Endgame (2019)",
+    "tu": 93
+   },
+   {
+    "ten": "Tripod — Grand Budapest Hotel (2014)",
+    "tu": 208
+   },
+   {
+    "ten": "Pedestal — Inglourious Basterds (2009)",
+    "tu": 300
+   },
+   {
+    "ten": "Crane & Jib — Spectre (2015)",
+    "tu": 433
+   },
+   {
+    "ten": "Overhead Rigs — Casino (1995)",
+    "tu": 551
+   },
+   {
+    "ten": "Dolly, Slider, & Cable Cam — Oldboy (2003)",
+    "tu": 655
+   },
+   {
+    "ten": "Stabilizers — Parasite (2019)",
+    "tu": 760
+   },
+   {
+    "ten": "Snorricam — Requiem for a Dream (2000)",
+    "tu": 846
+   },
+   {
+    "ten": "Vehicle Mounts — Rogue Nation (2015)",
+    "tu": 933
+   },
+   {
+    "ten": "Drones — Bohemian Rhapsody (2018)",
+    "tu": 1021
+   },
+   {
+    "ten": "Motion Control — The Social Network (2010)",
+    "tu": 1112
+   },
+   {
+    "ten": "Underwater Housing — Moonlight (2016)",
+    "tu": 1210
+   },
+   {
+    "ten": "Camera Gear Exercise: Dunkirk Scene",
+    "tu": 1314
+   },
+   {
+    "ten": "Final Takeaways",
+    "tu": 1383
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "IiyBo-qLDeM",
+  "tieu_de": "Ultimate Guide to Camera Movement — Every Camera Movement Technique Explained [The Shot List Ep6]",
+  "kenh": "StudioBinder",
+  "dai": 1748,
+  "chuong": [
+   {
+    "ten": "Camera Movement Techniques",
+    "tu": 0
+   },
+   {
+    "ten": "Static Shots",
+    "tu": 78
+   },
+   {
+    "ten": "Pan",
+    "tu": 192
+   },
+   {
+    "ten": "Whip Pan",
+    "tu": 235
+   },
+   {
+    "ten": "Tilt",
+    "tu": 311
+   },
+   {
+    "ten": "Push In",
+    "tu": 427
+   },
+   {
+    "ten": "Pull Out",
+    "tu": 545
+   },
+   {
+    "ten": "Zoom",
+    "tu": 624
+   },
+   {
+    "ten": "Crash Zoom",
+    "tu": 715
+   },
+   {
+    "ten": "Dolly Zoom",
+    "tu": 770
+   },
+   {
+    "ten": "Camera Roll",
+    "tu": 936
+   },
+   {
+    "ten": "Tracking",
+    "tu": 1063
+   },
+   {
+    "ten": "Trucking",
+    "tu": 1165
+   },
+   {
+    "ten": "Arc",
+    "tu": 1240
+   },
+   {
+    "ten": "Boom",
+    "tu": 1367
+   },
+   {
+    "ten": "Random Movement",
+    "tu": 1463
+   },
+   {
+    "ten": "Camera Movement Exercise: Star Wars Scene",
+    "tu": 1587
+   },
+   {
+    "ten": "Final Takeaways",
+    "tu": 1685
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "uSsIqR3DuK8",
+  "tieu_de": "Ultimate Guide to Camera Lenses — Every Type of Camera Lens Explained [Shot List Ep. 7]",
+  "kenh": "StudioBinder",
+  "dai": 1185,
+  "chuong": [
+   {
+    "ten": "Intro to Camera Lenses",
+    "tu": 0
+   },
+   {
+    "ten": "How Does a Lens Work?",
+    "tu": 75
+   },
+   {
+    "ten": "Extreme Wide Angle",
+    "tu": 245
+   },
+   {
+    "ten": "Wide Angle",
+    "tu": 358
+   },
+   {
+    "ten": "Standard",
+    "tu": 433
+   },
+   {
+    "ten": "Telephoto",
+    "tu": 531
+   },
+   {
+    "ten": "Macro",
+    "tu": 649
+   },
+   {
+    "ten": "Tilt Shift",
+    "tu": 794
+   },
+   {
+    "ten": "Exercise",
+    "tu": 884
+   },
+   {
+    "ten": "Final Takeaways",
+    "tu": 1134
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "7lUFluLOh-s",
+  "tieu_de": "What is Frame Rate? — Ultimate Guide to Frames Per Second Explained [Shot List, Ep. 8]",
+  "kenh": "StudioBinder",
+  "dai": 947,
+  "chuong": [
+   {
+    "ten": "Intro to Frame Rates",
+    "tu": 0
+   },
+   {
+    "ten": "What is FPS?",
+    "tu": 69
+   },
+   {
+    "ten": "Low Frame Rate (Fast Motion and Step Printing)",
+    "tu": 309
+   },
+   {
+    "ten": "High Frame Rate (Slow Motion and Speed Ramps)",
+    "tu": 481
+   },
+   {
+    "ten": "Frame Rate Comparison (Capture vs Presentation)",
+    "tu": 679
+   },
+   {
+    "ten": "Exercise: Sherlock Holmes",
+    "tu": 882
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "TKXBAaQB03U",
+  "tieu_de": "Ultimate Guide to Scene Transitions – Every Editing Transition Explained [The Shot List, Ep 9]",
+  "kenh": "StudioBinder",
+  "dai": 1168,
+  "chuong": [
+   {
+    "ten": "Intro — 9 Essential Editing Transitions",
+    "tu": 0
+   },
+   {
+    "ten": "Editing Basics: The Cut",
+    "tu": 79
+   },
+   {
+    "ten": "Fade",
+    "tu": 130
+   },
+   {
+    "ten": "Dissolve",
+    "tu": 287
+   },
+   {
+    "ten": "Match Cut",
+    "tu": 403
+   },
+   {
+    "ten": "Iris",
+    "tu": 533
+   },
+   {
+    "ten": "Wipe",
+    "tu": 624
+   },
+   {
+    "ten": "Passing",
+    "tu": 736
+   },
+   {
+    "ten": "Whip Pan",
+    "tu": 799
+   },
+   {
+    "ten": "Smash Cut",
+    "tu": 846
+   },
+   {
+    "ten": "J-Cut / L-Cut",
+    "tu": 962
+   },
+   {
+    "ten": "Honorable Mentions",
+    "tu": 1091
+   },
+   {
+    "ten": "Get your FREE Editing Transition Shot List",
+    "tu": 1116
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "FVR8zz8ci2k",
+  "tieu_de": "6 Ways to Edit Any Scene — Essential Film & Video Editing Techniques Explained [Shot List Ep. 10]",
+  "kenh": "StudioBinder",
+  "dai": 1128,
+  "chuong": [
+   {
+    "ten": "Intro — Editing: Creative Uses of the Cut",
+    "tu": 0
+   },
+   {
+    "ten": "Walter Murch & The Rule of Six",
+    "tu": 92
+   },
+   {
+    "ten": "Eyeline Match",
+    "tu": 166
+   },
+   {
+    "ten": "Cross Cutting",
+    "tu": 355
+   },
+   {
+    "ten": "Eye Trace",
+    "tu": 477
+   },
+   {
+    "ten": "Split Edit",
+    "tu": 613
+   },
+   {
+    "ten": "Intellectual Montage",
+    "tu": 794
+   },
+   {
+    "ten": "Cut on Action",
+    "tu": 940
+   },
+   {
+    "ten": "Honorable Mentions and FREE Reference Shot List",
+    "tu": 1074
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "hUmZldt0DTg",
+  "tieu_de": "Ultimate Guide to Film Composition & Framing — Key Elements Explained [Shot List Ep. 11]",
+  "kenh": "StudioBinder",
+  "dai": 1069,
+  "chuong": [
+   {
+    "ten": "Intro — Composition: Creative Ways to Build a Shot",
+    "tu": 0
+   },
+   {
+    "ten": "Composition Definition and History",
+    "tu": 52
+   },
+   {
+    "ten": "Aspect Ratio in Composition",
+    "tu": 89
+   },
+   {
+    "ten": "Points",
+    "tu": 119
+   },
+   {
+    "ten": "Lines",
+    "tu": 208
+   },
+   {
+    "ten": "Shapes",
+    "tu": 260
+   },
+   {
+    "ten": "Textures & Patterns",
+    "tu": 320
+   },
+   {
+    "ten": "Space",
+    "tu": 417
+   },
+   {
+    "ten": "Depth",
+    "tu": 499
+   },
+   {
+    "ten": "Balance",
+    "tu": 588
+   },
+   {
+    "ten": "Angles",
+    "tu": 716
+   },
+   {
+    "ten": "Color & Tone",
+    "tu": 776
+   },
+   {
+    "ten": "Combining Composition Elements",
+    "tu": 902
+   },
+   {
+    "ten": "Skyfall Exercise",
+    "tu": 917
+   },
+   {
+    "ten": "Takeaways",
+    "tu": 1021
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "r2nD_knsNrc",
+  "tieu_de": "Ultimate Guide to Cinematic Lighting — Types of Light & Gear Explained [Shot List Ep. 12]",
+  "kenh": "StudioBinder",
+  "dai": 833,
+  "chuong": [
+   {
+    "ten": "Intro — Cinematic Lighting",
+    "tu": 0
+   },
+   {
+    "ten": "Why Film Lighting Matters",
+    "tu": 60
+   },
+   {
+    "ten": "Types of Light",
+    "tu": 115
+   },
+   {
+    "ten": "Lighting Terms",
+    "tu": 289
+   },
+   {
+    "ten": "Lighting Gear and Equipment",
+    "tu": 532
+   },
+   {
+    "ten": "Outro — Cinematic Lighting Part Two Tease",
+    "tu": 774
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "N9mPQBZe06s",
+  "tieu_de": "Ultimate Guide to Cinematic Lighting Pt. 2 — How to Light Subjects and Locations",
+  "kenh": "StudioBinder",
+  "dai": 1400,
+  "chuong": [
+   {
+    "ten": "Intro — Cinematic Lighting",
+    "tu": 0
+   },
+   {
+    "ten": "Why Film Lighting Matters",
+    "tu": 60
+   },
+   {
+    "ten": "Single Subjects",
+    "tu": 69
+   },
+   {
+    "ten": "Multiple Subjects",
+    "tu": 375
+   },
+   {
+    "ten": "Exterior Day",
+    "tu": 535
+   },
+   {
+    "ten": "Exterior Night",
+    "tu": 762
+   },
+   {
+    "ten": "Interior Day",
+    "tu": 981
+   },
+   {
+    "ten": "Interior Night",
+    "tu": 1126
+   },
+   {
+    "ten": "Takeaways",
+    "tu": 1339
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "NzCXVfzQ-EI",
+  "tieu_de": "Chiaroscuro Lighting in Film — Balancing Cinematic Light & Darkness",
+  "kenh": "StudioBinder",
+  "dai": 404,
+  "chuong": [
+   {
+    "ten": "What is Chiaroscuro Lighting?",
+    "tu": 0
+   },
+   {
+    "ten": "Chiaroscuro Meaning & Definition",
+    "tu": 19
+   },
+   {
+    "ten": "Origin of Chiaroscuro",
+    "tu": 49
+   },
+   {
+    "ten": "Usage in Cinema",
+    "tu": 104
+   },
+   {
+    "ten": "Chiaroscuro in Mid-Century",
+    "tu": 154
+   },
+   {
+    "ten": "Scene Examples",
+    "tu": 194
+   },
+   {
+    "ten": "Chiaroscuro Takeaways",
+    "tu": 314
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "iiiwihwJH5Y",
+  "tieu_de": "What is an Anamorphic Lens — Anamorphic vs Spherical Lens Explained",
+  "kenh": "StudioBinder",
+  "dai": 924,
+  "chuong": [
+   {
+    "ten": "Intro — Anamorphic vs. Spherical Lenses",
+    "tu": 0
+   },
+   {
+    "ten": "The History of Anamorphic Lenses",
+    "tu": 59
+   },
+   {
+    "ten": "Anamorphic Squeeze Factor Explained",
+    "tu": 146
+   },
+   {
+    "ten": "Lens Anatomy",
+    "tu": 169
+   },
+   {
+    "ten": "The 6 Main Visual Differences",
+    "tu": 216
+   },
+   {
+    "ten": "Bokeh",
+    "tu": 229
+   },
+   {
+    "ten": "Distortion",
+    "tu": 269
+   },
+   {
+    "ten": "Focus Falloff & Roll Off",
+    "tu": 313
+   },
+   {
+    "ten": "Focus Breathing",
+    "tu": 381
+   },
+   {
+    "ten": "Lens Flares",
+    "tu": 419
+   },
+   {
+    "ten": "Field of View",
+    "tu": 454
+   },
+   {
+    "ten": "Practical Considerations",
+    "tu": 477
+   },
+   {
+    "ten": "Exercise: Identify the Lens",
+    "tu": 697
+   },
+   {
+    "ten": "Final Takeaways",
+    "tu": 865
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "VfaZXlJso-s",
+  "tieu_de": "Close-up Shots in Film — Ultimate Guide to Lighting, Framing and Editing Close-ups",
+  "kenh": "StudioBinder",
+  "dai": 993,
+  "chuong": [
+   {
+    "ten": "Introduction to Close Up Shots in Film",
+    "tu": 0
+   },
+   {
+    "ten": "Close Up Definition and Purpose",
+    "tu": 120
+   },
+   {
+    "ten": "Aspect Ratio",
+    "tu": 124
+   },
+   {
+    "ten": "Camera Lenses",
+    "tu": 265
+   },
+   {
+    "ten": "Angles and Staging",
+    "tu": 410
+   },
+   {
+    "ten": "How Much Face to Show?",
+    "tu": 582
+   },
+   {
+    "ten": "Editing",
+    "tu": 708
+   },
+   {
+    "ten": "Wrap Up/Takeaways",
+    "tu": 948
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "HDJ-q2Q2X9I",
+  "tieu_de": "The Split Screen — The Ultimate Guide for Filmmakers",
+  "kenh": "StudioBinder",
+  "dai": 860,
+  "chuong": [
+   {
+    "ten": "Introduction to Split Screen Shots in Film",
+    "tu": 0
+   },
+   {
+    "ten": "Definition and Types",
+    "tu": 50
+   },
+   {
+    "ten": "Chapter 1: Multiple Perspectives",
+    "tu": 152
+   },
+   {
+    "ten": "Chapter 2: Character Relationships",
+    "tu": 371
+   },
+   {
+    "ten": "Chapter 3: Creative Examples",
+    "tu": 533
+   },
+   {
+    "ten": "Takeaways",
+    "tu": 799
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "2vlwm4VyyTc",
+  "tieu_de": "Ultimate Guide to Diegetic vs Non-Diegetic Sound — Definitions, Examples, & How to Break the Rules",
+  "kenh": "StudioBinder",
+  "dai": 1047,
+  "chuong": [
+   {
+    "ten": "Introduction to Diegetic Sound",
+    "tu": 0
+   },
+   {
+    "ten": "Origin of Diegetic Sound",
+    "tu": 51
+   },
+   {
+    "ten": "Types of Sound in Film",
+    "tu": 124
+   },
+   {
+    "ten": "Diegetic Sound",
+    "tu": 185
+   },
+   {
+    "ten": "Non-Diegetic Sound",
+    "tu": 391
+   },
+   {
+    "ten": "Trans-Diegetic Sound",
+    "tu": 580
+   },
+   {
+    "ten": "Creative Exceptions",
+    "tu": 781
+   },
+   {
+    "ten": "Takeaways",
+    "tu": 993
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "an07U4DWXDo",
+  "tieu_de": "Why Silence Is Louder Than Sound in Film",
+  "kenh": "StudioBinder",
+  "dai": 695,
+  "chuong": [
+   {
+    "ten": "How silence can be louder than sound",
+    "tu": 0
+   },
+   {
+    "ten": "What is movie silence?",
+    "tu": 32
+   },
+   {
+    "ten": "A lack of dialogue",
+    "tu": 87
+   },
+   {
+    "ten": "Music-less scenes",
+    "tu": 218
+   },
+   {
+    "ten": "No such thing as absolute silence",
+    "tu": 375
+   },
+   {
+    "ten": "Silence as perspective",
+    "tu": 529
+   },
+   {
+    "ten": "Outro",
+    "tu": 612
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "91IQJEzLHY4",
+  "tieu_de": "What is a Leitmotif — 4 Ways to Tell a Story With Film Music",
+  "kenh": "StudioBinder",
+  "dai": 634,
+  "chuong": [
+   {
+    "ten": "Intro",
+    "tu": 0
+   },
+   {
+    "ten": "Leitmotif Definition and History",
+    "tu": 49
+   },
+   {
+    "ten": "Technique 1: Character",
+    "tu": 116
+   },
+   {
+    "ten": "Technique 2: Setting",
+    "tu": 212
+   },
+   {
+    "ten": "Technique 3: Emotion",
+    "tu": 315
+   },
+   {
+    "ten": "Technique 4: Evolution",
+    "tu": 432
+   },
+   {
+    "ten": "Wrap Up",
+    "tu": 572
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ },
+ {
+  "id": "LWQ1OGAvJqc",
+  "tieu_de": "What is Room Tone? (And Why Filmmakers NEED It)",
+  "kenh": "StudioBinder Academy",
+  "dai": 230,
+  "chuong": [
+   {
+    "ten": "Introduction to Room Tone",
+    "tu": 0
+   },
+   {
+    "ten": "Chapter 1: What is Room Tone?",
+    "tu": 15
+   },
+   {
+    "ten": "Chapter 2: How to Capture Room Tone",
+    "tu": 93
+   },
+   {
+    "ten": "Chapter 3: Room Tone in Post",
+    "tu": 148
+   },
+   {
+    "ten": "Final Thoughts",
+    "tu": 186
+   }
+  ],
+  "ngay_doc": "2026-10-18"
+ }
+]

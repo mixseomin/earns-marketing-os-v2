@@ -10,6 +10,8 @@ import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, kyThuat, chiTietKyThuat, type TheLoai, type KyThuat, type KyThuatShot, type NhomKyThuat, type MucKyThuat } from '@/lib/xuong-video/dien-anh';
 import { LUAT_DUNG_CANH, luatDung } from '@/lib/xuong-video/luat-dung';
 import type { NganhKyThuat } from '@/lib/xuong-video/dien-anh-nganh';
+import { viDuCua, linkYt, nhungYt, anhYt } from '@/lib/xuong-video/vi-du-yt';
+import { LinkNgoai } from './ui';
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   const [tl, setTl] = useState<TheLoai | ''>(tlDau as TheLoai | '');
@@ -33,6 +35,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
               <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{l.luat}</div>
               <div className="xv-mono" style={{ marginTop: 2 }}>máy kiểm: {l.may}{l.xem === false ? ' · luật của thợ (không vào người xem ảo)' : ''}</div>
               {l.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {l.nganh.ten_nganh}</summary><MoTaNganh n={l.nganh} /></details>}
+              <ViDuVideo ma={`luat.${l.key}`} nho />
             </div>
           ))}
         </div>
@@ -49,6 +52,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
                   <b style={{ fontSize: 12 }}>{x.ten}</b> <span className="xv-mono">{x.key}</span>
                   <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{x.mo_ta}</div>
                   {x.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {x.nganh.ten_nganh}</summary><MoTaNganh x={x} /></details>}
+                  <ViDuVideo ma={`${x.nhom}.${x.key}`} nho />
                 </div>
               ))}
             </div>
@@ -119,7 +123,7 @@ export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
     return (<div style={{ display: 'grid', gap: 6, fontSize: 12.5 }}>
       <div className="xv-mono">📐 Luật dựng cảnh · {l.key}</div><b style={{ fontSize: 15 }}>{l.ten}</b>
       <div style={{ color: 'var(--fg-2)' }}>{l.luat}</div><div className="xv-mono">máy kiểm: {l.may}</div>
-      {l.nganh && <><div className="xv-mono" style={{ marginTop: 4 }}>📘 Ngành gọi: {l.nganh.ten_nganh}</div><MoTaNganh n={l.nganh} /></>}{nut}
+      {l.nganh && <><div className="xv-mono" style={{ marginTop: 4 }}>📘 Ngành gọi: {l.nganh.ten_nganh}</div><MoTaNganh n={l.nganh} /></>}<ViDuVideo ma={ma} />{nut}
     </div>);
   }
   const x = kyThuat(key, nhom as NhomKyThuat); const n = NHOM_KY_THUAT.find((g) => g.key === nhom);
@@ -130,6 +134,7 @@ export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
     {x.nganh ? <><div className="xv-mono" style={{ marginTop: 4 }}>📘 Ngành gọi: {x.nganh.ten_nganh}</div><MoTaNganh x={x} /></> : <div className="xv-mono">Chưa có mô tả ngành chi tiết cho kỹ thuật này.</div>}
     {x.prompt && <div className="xv-mono" style={{ marginTop: 4 }}>prompt gửi model: {x.prompt}</div>}
     <div className="xv-mono">hợp thể loại: {x.the_loai === 'tat_ca' ? 'mọi thể loại' : x.the_loai.map((t) => THE_LOAI.find((y) => y.key === t)?.ten ?? t).join(', ')}</div>
+    <ViDuVideo ma={ma} />
     {nut}
   </div>);
 }
@@ -197,4 +202,31 @@ function NhanKyThuat({ m, nho }: { m: MucKyThuat; nho?: boolean }) {
       </div>
     )}
   </>);
+}
+
+const mmss = (g: number) => `${Math.floor(g / 60)}:${String(g % 60).padStart(2, '0')}`;
+/** ▶ VÍ DỤ VIDEO của một kỹ thuật (vi-du-yt.ts — đoạn ĐÚNG chapter của video YouTube, mốc đọc từ chapter thật): ảnh thu nhỏ của video, bấm phát
+ *  ngay tại chỗ đúng đoạn (youtube-nocookie, start → end), ↗ mở YouTube đúng giây. nho = thẻ trong lưới thư viện (ẩn trong <details>). */
+function ViDuVideo({ ma, nho }: { ma: string; nho?: boolean }) {
+  const ds = viDuCua(ma);
+  const [mo, setMo] = useState<number | null>(null);
+  if (!ds.length) return null;
+  const than = (
+    <div style={{ display: 'grid', gap: 6, marginTop: 6 }}>
+      {ds.map((v, i) => (
+        <div key={`${v.yt}${v.tu}`} style={{ display: 'grid', gap: 4 }}>
+          {mo === i
+            ? <iframe src={nhungYt(v)} title={v.chuong} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 6, background: '#000' }} />
+            : <button type="button" onClick={() => setMo(i)} title={`Phát đoạn "${v.chuong}" (${mmss(v.tu)}${v.den ? `–${mmss(v.den)}` : ''}) ngay tại đây`}
+                style={{ position: 'relative', padding: 0, border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#000', aspectRatio: '16 / 9', width: '100%' }}>
+                <img src={anhYt(v.yt)} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0.85 }} />
+                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 26, color: '#fff', textShadow: '0 2px 8px #000' }}>▶</span>
+                <span className="xv-mono" style={{ position: 'absolute', left: 6, bottom: 4, color: '#fff', background: 'rgba(0,0,0,.65)', padding: '1px 6px', borderRadius: 4 }}>{mmss(v.tu)}{v.den ? `–${mmss(v.den)}` : ''}</span>
+              </button>}
+          <span className="xv-mono" style={{ fontSize: 10.5 }}>“{v.chuong}” · {v.video.split(/ [—–-] | \[/)[0]} · <LinkNgoai href={linkYt(v)} title={`Mở YouTube đúng giây ${mmss(v.tu)} · ${v.kenh} · đọc chapter ${v.ngay_doc}`}>↗ YouTube {mmss(v.tu)}</LinkNgoai></span>
+        </div>
+      ))}
+    </div>
+  );
+  return nho ? <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>▶ Ví dụ video</summary>{than}</details> : <div><div className="xv-mono" style={{ marginTop: 6 }}>▶ Ví dụ video (đoạn đúng chapter)</div>{than}</div>;
 }

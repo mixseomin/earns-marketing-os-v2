@@ -184,7 +184,7 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         return dat(o, m, ten)
     elif h == 'non':   # nón cụt (thân khăn rủ Mr. Wipe): đáy rộng co[0]×co[1], đỉnh = đáy × dinh, cao co[2]
         bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * p.get('dinh', 0.4), depth=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
-    elif h == 'coc':   # CỐC / LY: nón cụt RỖNG (bỏ mặt miệng, thành dày) + QUAI bên +x — khối đặc trơn thì AI vẽ khúc ống hở hai đầu (tập 122 #17)
+    elif h == 'coc':   # CỐC / LY: nón cụt RỖNG (bỏ mặt miệng, thành dày) + QUAI bên −x (p.quai_x = 1 → +x) — khối đặc trơn thì AI vẽ khúc ống hở hai đầu (tập 122 #17)
         import bmesh
         dn = p.get('dinh', 1.0); goc_ = Vector((gx * CM, gy * CM, (z + c / 2) * CM))
         bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * dn, depth=1, location=goc_); o = bpy.context.object
@@ -192,7 +192,7 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         sm = o.modifiers.new('thanh', 'SOLIDIFY'); sm.thickness = 0.06; sm.offset = -1
         with bpy.context.temp_override(object=o, active_object=o): bpy.ops.object.modifier_apply(modifier=sm.name)
         if p.get('quai', True):
-            bpy.ops.mesh.primitive_torus_add(major_radius=0.2, minor_radius=0.05, location=goc_ + Vector((0.25 * (1 + dn) + 0.17, 0, 0.05)), rotation=(math.radians(90), 0, 0))
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.2, minor_radius=0.05, location=goc_ + Vector(((1 if p.get('quai_x') == 1 else -1) * (0.25 * (1 + dn) + 0.17), 0, 0.05)), rotation=(math.radians(90), 0, 0))
             q = bpy.context.object
             with bpy.context.temp_override(active_object=o, selected_editable_objects=[o, q]): bpy.ops.object.join()
         bpy.context.view_layer.objects.active = o

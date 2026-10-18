@@ -134,7 +134,7 @@ fi
 # 5b. Mặt tiền shop (apps/store, cổng 3830, mos2-store.service) — khách thật đang mua trên đó: CHỈ đổi bản dựng + khởi động lại
 #     khi phần của nó đổi (apps/store, packages/shop, packages/db, deps), không giật theo mọi lượt đẩy của MOS2.
 STORE_CHANGED=false
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/store/|packages/shop/|packages/db/src/|package-lock\.json)"; then
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | node scripts/app-cham.mjs apps/store; then
   STORE_CHANGED=true
 fi
 if [ -f apps/store/.next.new/BUILD_ID ] && { [ "$STORE_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f apps/store/.next/BUILD_ID ]; }; then
@@ -167,7 +167,7 @@ if ! cmp -s deploy/nginx-studio.conf /etc/nginx/sites-enabled/studio.on.tc; then
   cp deploy/nginx-studio.conf /etc/nginx/sites-enabled/studio.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx studio.on.tc cài/cập nhật" || { echo "✗ nginx studio.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/studio.on.tc; }
 fi
 STUDIO_CHANGED=false
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/xuong-video/|packages/db/src/|package-lock\.json)"; then
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | node scripts/app-cham.mjs apps/xuong-video; then
   STUDIO_CHANGED=true
 fi
 # Luôn thay khi artifact mới khác bản đang chạy: so git diff PREV..NEW hỏng khi hai lượt deploy chồng nhau (lượt trước đã kéo code
@@ -202,7 +202,7 @@ VP_CHANGED=false
 if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/cong-ty/nhan-su/|apps/cty/scripts/seed-van-phong\.mjs|deploy/mos2-vp)"; then
   VP_CHANGED=true
 fi
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/|packages/db/src/|package-lock\.json)"; then
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | node scripts/app-cham.mjs apps/cty; then
   CTY_CHANGED=true
 fi
 if [ -f apps/cty/.next.new/BUILD_ID ] && ! cmp -s apps/cty/.next.new/BUILD_ID apps/cty/.next/BUILD_ID; then

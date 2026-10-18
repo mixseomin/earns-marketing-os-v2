@@ -55,10 +55,13 @@ jobs:
             echo "$F" | grep -q '^\.github/workflows/' && F="__HET__"
           fi
           co() { [ "$F" = "__HET__" ] || echo "$F" | grep -qE "$1"; }
-          co '^(apps/store/|packages/(shop|db)/|package-lock\.json)' && echo "store=1" >> "$GITHUB_OUTPUT"
-          co '^(apps/xuong-video/|packages/(db|gop-y)/|package-lock\.json)' && echo "studio=1" >> "$GITHUB_OUTPUT"
+          # App con bị chạm = tệp trong app, trong packages/* mà package.json của app phụ thuộc (@mos2/*), hoặc lockfile — scripts/app-cham.mjs
+          # đọc phụ thuộc từ package.json (danh sách gõ tay ở đây từng thiếu packages/bang → sửa bảng dùng chung mà studio không dựng lại).
+          cham() { [ "$F" = "__HET__" ] || echo "$F" | node scripts/app-cham.mjs "$@"; }
+          cham apps/store && echo "store=1" >> "$GITHUB_OUTPUT"
+          cham apps/xuong-video && echo "studio=1" >> "$GITHUB_OUTPUT"
           # cong-ty/** chỉ là dữ liệu đọc lúc render: máy chủ git pull là đủ, không dựng lại cty.
-          if [ "$F" = "__HET__" ] || echo "$F" | grep -E '^(apps/cty/|packages/(db|gop-y)/|package-lock\.json)' | grep -qv '^apps/cty/cong-ty/'; then echo "cty=1" >> "$GITHUB_OUTPUT"; fi
+          cham apps/cty --tru apps/cty/cong-ty/ && echo "cty=1" >> "$GITHUB_OUTPUT"
           co '^apps/cty/cong-ty/' && echo "cty_du_lieu=1" >> "$GITHUB_OUTPUT"
           # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
           if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi

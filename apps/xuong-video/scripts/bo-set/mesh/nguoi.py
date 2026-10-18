@@ -176,6 +176,22 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
         c = pb.constraints.new('DAMPED_TRACK'); c.target = n[khop]; c.track_axis = 'TRACK_Y'
     pr = rig.pose.bones.get('root')
     if pr: c = pr.constraints.new('COPY_LOCATION'); c.target = n['hong']
+    # GỐI / KHUỶU bằng IK có ĐIỂM HƯỚNG (pole) — chuẩn rig ngành: Damped Track từng xương không quy định gối quay về đâu, gập mạnh (quỳ, ngồi) là gối lật
+    # ngược ra sau (anh 18/10/2026: "chân ngược hết cả", #5 quỳ). Pole = điểm 40 cm trước gối / sau khuỷu, con của khớp gối / khuỷu ma-nơ-canh nên
+    # xoay theo dáng; đích IK = cổ chân / cổ tay ma-nơ-canh.
+    import os as _os
+    goc_pole = math.radians(float(_os.environ.get('XV_POLE_GOC', POLE_GOC)))
+    for p, bx, k1, k2, lech in (('t', 'L', 'goi', 'cochan', -40), ('p', 'R', 'goi', 'cochan', -40), ('t', 'L', 'khuyu', 'cotay', 40), ('p', 'R', 'khuyu', 'cotay', 40)):
+        # rig MakeHuman chia mỗi đoạn chi làm HAI xương: *01 (đoạn hông / vai ngắn) + *02 (đùi / cánh tay thật), lower*01 + lower*02 (ống chân / cẳng tay
+        # chia đôi để xoắn). Chuỗi IK = lower*02 → lower*01 → upper*02; lower*02 khoá IK (thẳng hàng lower*01) để chỉ GẬP ở gối / khuỷu.
+        g = 'leg' if k1 == 'goi' else 'arm'
+        bs = [rig.pose.bones.get(f'{x}{g}0{i}.{bx}') for x, i in (('upper', 1), ('upper', 2), ('lower', 1), ('lower', 2))]
+        if None in bs or f'{k1}_{p}' not in n or f'{k2}_{p}' not in n: continue
+        for b in bs:
+            for c in list(b.constraints): b.constraints.remove(c)
+        bs[3].lock_ik_x = bs[3].lock_ik_y = bs[3].lock_ik_z = True
+        pole = _khop(f'{ten}.pole_{k1}_{p}', n[f'{k1}_{p}'], (0, lech, 0))
+        ik = bs[3].constraints.new('IK'); ik.target = n[f'{k2}_{p}']; ik.pole_target = pole; ik.pole_angle = goc_pole; ik.chain_count = 3
     cu = n.get('than_tron')
     if cu and cu.name in bpy.data.objects: bpy.data.objects.remove(cu, do_unlink=True)   # thân liền dự phòng: xoá TRƯỚC khi đặt tên, kẻo tên mới thành '.001'
     for o in [o for o in bpy.data.objects if o.name.startswith(f'THAN {ten}.')]: bpy.data.objects.remove(o, do_unlink=True)   # tóc / đồ của người shot trước
@@ -189,6 +205,7 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
 # TRANG PHỤC NGƯỜI THẬT (anh 18/10/2026: "3D đã có người thật mẫu sao không thấy trên bản chụp đầu cuối"): gói makehuman_system_assets (CC0, cai-mpfb.sh)
 # — da châu Á theo tuổi / giới, mắt, lông mày, tóc, bộ đồ, giày. Màu đồ = màu áo của shot (ao), màu tóc = khoi_3d.mau_toc; vân vải của gói bỏ đi (vest
 # kẻ sọc của gói làm AI vẽ sai đồ). Khai riêng từng nhân vật ở khoi_3d: toc (long01 · ponytail01 · bob01 · short02 …), do (female_elegantsuit01 …).
+POLE_GOC = -90   # độ: trục xoay của xương MPFB so với hướng pole (đo bằng ảnh thử 18/10)
 TOC_MAC = {'nu': 'long01', 'nam': 'short02'}
 DO_MAC = {'nu': 'female_elegantsuit01', 'nam': 'male_elegantsuit01'}
 def phu_kien(h):

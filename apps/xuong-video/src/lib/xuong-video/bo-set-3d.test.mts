@@ -177,8 +177,8 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026: khung màu KẾT khi MÁY đi (chay.ket — chuyển chủ thể / cung / vượt tiền cảnh); chỉ 4 shot tập 122 dùng các cú này và mã khung của chúng đã
 //   đổi theo cú máy (maKhungXam › chuyenDong) → tự dựng lại; hình shot khác không đổi → GIỮ 81, ghi lại băm.
 // 18/10/2026 (27): STORYBOARD ĐẦU → KẾT — mọi shot dựng khung kết (máy cuối mọi đường máy, nét mặt cuối) + khung màu vẽ NGƯỜI THẬT MPFB (da, tóc, đồ, giày; cổ
-// hết ngửa trời) → 82.
-assert.deepEqual([BAN_DUNG, bam], [82, '6ee380525334'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// hết ngửa trời; gối / khuỷu bằng IK có pole trên đúng chuỗi xương *02 — hết chân ngược) → 82.
+assert.deepEqual([BAN_DUNG, bam], [82, '5dc4c64b401c'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

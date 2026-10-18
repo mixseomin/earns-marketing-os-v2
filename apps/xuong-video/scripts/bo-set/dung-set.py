@@ -618,8 +618,19 @@ def _bvh(o, dg):
 def _hop(objs):
     bb = [o.matrix_world @ Vector(c) for o in objs for c in o.bound_box]
     return Vector([min(p[i] for p in bb) for i in range(3)]), Vector([max(p[i] for p in bb) for i in range(3)])
+_TIA = Vector((0.5773, 0.5774, 0.5773))
+def _trong(bv, q):
+    """Điểm q nằm TRONG mesh kín bv: bắn tia một hướng cố định, đếm số lần cắt mặt — lẻ là trong."""
+    n, o = 0, q.copy()
+    for _ in range(32):
+        loc, _, _, _ = bv.ray_cast(o, _TIA)
+        if loc is None: break
+        n += 1; o = loc + _TIA * 1e-5
+    return n % 2 == 1
 def do_lun(objs, khac):
-    """(độ lún sâu nhất cm, tên vật bị xuyên) của các mesh objs vào các mesh kín khac; bỏ vật không chạm hộp bao."""
+    """(độ lún sâu nhất cm, tên vật bị xuyên) của các mesh objs vào các mesh kín khac; bỏ vật không chạm hộp bao. TRONG / NGOÀI đo bằng TIA (đếm số
+    lần cắt mặt, lẻ = trong) — không tin chiều pháp tuyến: khối elip rủ xuống của ma-nơ-canh dựng bằng lật trục z nên mặt quay vào trong (lần đo
+    đầu báo "thùng xuyên vào Hạ 52 cm")."""
     objs = [o for o in objs if o.type == 'MESH']; khac = [k for k in khac if k.type == 'MESH']
     if not objs or not khac: return 0.0, ''
     dg = bpy.context.evaluated_depsgraph_get(); lo, hi = _hop(objs); best, ten = 0.0, ''
@@ -632,18 +643,19 @@ def do_lun(objs, khac):
             oe = o.evaluated_get(dg); me = oe.to_mesh()
             try:
                 for v in me.vertices:
-                    q = oe.matrix_world @ v.co; loc, nor, _, d = bv.find_nearest(q)
-                    if loc is not None and (q - loc).dot(nor) < 0 and d / CM > best: best, ten = d / CM, k.name
+                    q = oe.matrix_world @ v.co; loc, _, _, d = bv.find_nearest(q)
+                    if loc is not None and d / CM > best and _trong(bv, q): best, ten = d / CM, k.name
             finally: oe.to_mesh_clear()
     return best, ten
 def vat_can(sh, ten, cam_boi=None):
-    """Vật có thể bị món `ten` xuyên: người khác (cả thân người cầm, trừ bàn tay / ngón), đạo cụ khác, đồ set không phải mặt nền. Chỉ thứ đang hiện."""
+    """Vật có thể bị món `ten` xuyên: người KHÁC (đồ đang cầm thì bỏ hẳn người cầm — ôm thùng thì thùng sát bụng là đúng), đạo cụ khác, đồ set không
+    phải mặt nền. Chỉ thứ đang hiện."""
     out = []
     for o in bpy.data.objects:
         if o.type != 'MESH' or o.hide_render and not o.name.endswith('.than_tron'): continue
         if o.name.endswith('.than_tron') or o.name.startswith(f"NV {ten}") and (o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")): continue
         if o.name.startswith('NG '):
-            if cam_boi and o.name.startswith(f"NG {cam_boi}.") and ('ban_tay' in o.name or 'ngon' in o.name): continue
+            if cam_boi and o.name.startswith(f"NG {cam_boi}."): continue
             out.append(o)
         elif o.name.startswith('NV '):
             if '·day' in o.name or '·tran' in o.name: continue
@@ -810,9 +822,9 @@ def ve_sau(s, sh, cam, ra):
     NGƯỜI trong độ sâu = THÂN LIỀN (mesh/nguoi.py › than_tron), không phải chuỗi khối elip: elip rời cắt sát khung thì FLUX vẽ thành bình / tượng
     (tập 122 #11, 3 lượt); bỏ hẳn người khỏi độ sâu + khung xương (FLUX dev Union) thì ảnh nhoè không dùng được (lượt 4)."""
     an, hien = [], []
-    for t, n_ in NGUOI.items():
-        x = n_.get('than_tron')
-        if not x or x.name not in bpy.data.objects: continue
+    for t in list(NGUOI):
+        x = bpy.data.objects.get(f"NG {t}.than_tron")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
+        if not x: continue
         phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and o is not x and not o.hide_render]
         if not phan: continue   # người không có trong shot này / đang ẩn
         an += phan; hien.append(x)

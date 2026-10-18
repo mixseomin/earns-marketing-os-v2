@@ -191,7 +191,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // tập 19: ảnh mẫu USB Hub đi kèm dù hub nằm ngoài khung → keyframe đặt Tango đứng trên hub). Trạng thái vật vẫn nói ở câu OBJECT STATE.
   // Chỉ khung MỞ: khung kết chưa đo "thấy gì" riêng.
   // Nhân vật ngoài khung cũng không gửi ảnh mẫu (15/10/2026 #35: gửi 4 ảnh mẫu Tango + Lint khi cả hai nằm ngoài khung — mời model vẽ thêm).
-  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && v.loai !== 'boi_canh' && (bc.ptAnchor.get(v.ten) ?? 0) < PT_THAY && !chuTheThay(bc.canh.khung_xam, v.ten);
+  const hienKhung = (ten: string) => (bc.ptAnchor?.get(ten) ?? 0) >= PT_THAY || chuTheThay(bc.canh.khung_xam, ten);
+  // ĐỒ ĐANG CẦM của người có mặt trong khung KHÔNG BAO GIỜ là ngoài khung (19/10/2026 #1: cốc cà phê trong tay Vivian ở góc rộng chỉ vài điểm ảnh 3D
+  // → bị xếp OFF-SCREEN "do not draw" → keyframe Vivian tay không, shot hắt cà phê mất cốc)
+  const cuaNguoiHien = (ten: string) => { const vt = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === ten && x.cam && !x.an); return !!vt && hienKhung(vt.cam!); };
+  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && v.loai !== 'boi_canh' && !hienKhung(v.ten) && !cuaNguoiHien(v.ten);
   const nvRef = coKx ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)) : bc.nhanVat;
   // Khung xám là ẢNH SỐ 1 (thử #23: đứng thứ 8/9 sau bảy ảnh mẫu thì model coi nhẹ bố trí).
   // Có khung MÀU (vật liệu + ánh sáng theo kịch bản) thì nó là ảnh số 1 — gần ảnh thật hơn khung xám, model ít phải đoán khối nào là gì.
@@ -346,7 +350,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
     const k1: Khoi[] = [
       khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything; no props, cables, screens, people or hands that are not in Image 1.`),
-      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
+      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
       khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
       khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
       khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', camChu(chuPhim)),

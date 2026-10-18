@@ -1,0 +1,1258 @@
+{
+ "ngach": "esim",
+ "sp_id": 181,
+ "nguon": "spy (box3, DB spy: goc / goc_dan / goc_nguon / qc_meta)",
+ "goc": [
+  {
+   "id": 19188,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch quốc tế nói chung",
+   "mo_ta": "Những người chuẩn bị cho chuyến du lịch, kỳ nghỉ ngắn ngày ra nước ngoài. Họ cần eSIM để giữ kết nối internet trong suốt chuyến đi.",
+   "so_nhac": 247,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Why did you not just download a new esim while abroad and instead pay for roaming data? Unless your phone was locked or something.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/shitposting/comments/1uwtob6/_/oxm5xdo/",
+     "diem": 184
+    },
+    {
+     "cau": "I travel mostly in SE Asia, so buy Airalo Regional eSIM. Those now cover Singapore, so don't have to buy another for that area",
+     "nguon": "youtube",
+     "url": "https://www.youtube.com/watch?v=8HxWyjIRSVo",
+     "diem": 33
+    },
+    {
+     "cau": "Seriously, Telus? No international Wi-Fi calling I’m abroad in Japan for a few weeks, using an Airalo eSIM for data only. I was looking forward to messaging my friends back in Canada using RCS on my iPhone, but apparently I can’t do that because Telus doesn’t support wifi calling internationally. I’",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/telus/comments/1taymyp/seriously_telus_no_international_wifi_calling/",
+     "diem": 22
+    },
+    {
+     "cau": "As an European I am listening to the options and I am astounded how much these packages cost. I travel to Italy often and I buy esims for data there. I can get a plan for 30 days with Unlimited Italy calls, 100 text and 200GB for 6,99 Euros on Lyca mobile. I mean, how does that compare to these plan",
+     "nguon": "youtube",
+     "url": "https://www.youtube.com/watch?v=9ykbZbAlRqE",
+     "diem": 10
+    },
+    {
+     "cau": "Turn off your roaming before your international flight takes off and only use eSIM or WiFi abroad to prevent wild charges.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1u6ofb4/leaving_the_us_for_the_first_time/orudwxt/",
+     "diem": 9
+    },
+    {
+     "cau": "More annoying in every way.  If your phone is important to you, and/or you travel internationally, make sure you keep a physical sim.  You can always swap to eSIM abroad if your telco will let you.  But if they don’t you can’t pop the eSIM out of your broken phone while in Fiji and pop it in to a ne",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/TechNook/comments/1uu8xcy/has_esim_made_switching_phones_easier_or_more/ox1s9qv/",
+     "diem": 7
+    }
+   ]
+  },
+  {
+   "id": 19189,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch Châu Âu",
+   "mo_ta": "Khách du lịch đến châu Âu, thường đi qua nhiều quốc gia trong một chuyến đi. eSIM giúp duy trì kết nối xuyên suốt các nước châu Âu.",
+   "so_nhac": 171,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Best hotspot device for international use with data-only esim I'm traveling internationally to Egypt and Turkey and trying to find the best unlocked hotspot device for use here in the US and abroad. Any one has experience or recommendations?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleFi/comments/1vfmrym/best_hotspot_device_for_international_use_with/",
+     "diem": 3
+    },
+    {
+     "cau": "Just curious why you couldnt buy a phone abroad and just use an esim that will work in turkey?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/mildlyinfuriating/comments/1vgbpr2/turkish_people_pay_more_than_2500_for_a_single/p1x0s7o/",
+     "diem": 2
+    },
+    {
+     "cau": "Does it work in Gibraltar? I travel there fairly often and pain to use local esims.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/PopcornMobile/comments/1wqfqq5/does_it_work_in_gibraltar/",
+     "diem": 1
+    },
+    {
+     "cau": "Anyone tried a vodafone travel esim for travel in greece. Are there any issues with it or do you have suggestions for a better esim? It’s only for 10 days and i just need data to stay connected no heavy use.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GreeceTravel/comments/1wkgkn3/anyone_tried_a_vodafone_travel_esim_for_travel_in/",
+     "diem": 1
+    },
+    {
+     "cau": "International Calls and SMS with out active roaming pack Hello I have postpaid connection and will be traveling to europe for 12 days and planning to take esim. But i may need to get SMS or some emergency calls on my existing number. can we get SMS or phone with out any active pack..?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Airtel/comments/1wtx6le/international_calls_and_sms_with_out_active/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19190,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch Châu Á và Đông Nam Á",
+   "mo_ta": "Khách du lịch đi một hoặc nhiều nước châu Á và Đông Nam Á. Họ cần gói eSIM vùng châu Á để tiện di chuyển giữa các quốc gia mà không phải đổi SIM nhiều lần.",
+   "so_nhac": 112,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Do you need Chinese number for food delivery? I’m travelling to Shanghai and wanted to ask if there’s anyway around making purchases on Meituan (for food deliveries) without a Chinese number? I’ll have an eSIM but I saw that you can’t use an international number. Also any recommendations for VPN to ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/chinatravel/comments/1uuznn1/do_you_need_chinese_number_for_food_delivery/",
+     "diem": 7
+    },
+    {
+     "cau": "No need for ordering a Didi ride. International eSim with Hong Kong Roaming works. But you will need usual sim to receive SMS to set things up. No need for Didi app either. The mini app within WeChat works.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travelchina/comments/1wogk0u/is_didi_actually_this_cheap_compared_to_european/pboix53/",
+     "diem": 2
+    },
+    {
+     "cau": "eSIM usually is always better to install it before you are going to travel, eSIMGlobe have good options for eSIM Vietnam",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Vietnam_Tourism/comments/1wtnub7/esim_pre_arrival_or_not/pczy5t7/",
+     "diem": 1
+    },
+    {
+     "cau": "If you are there for several days, esim is fine but for the whole month, you better book grab from the airport the nearest Viettel store. Forget travel esim.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/VietNam/comments/1wxktye/esim_from_agoda_has_anyone_purchased_which_option/pdvaz7f/",
+     "diem": 1
+    },
+    {
+     "cau": "as a southeast Asia travel lover used both data links I recommend esim. then I tried esim which wasnt as troublesome and was much cheaper.... Redteago has a 50gb 10days Thailand plan you can check it out...",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1wn61ww/should_i_use_my_own_carriers_roaming_or_get_an/pelgxzi/",
+     "diem": 1
+    },
+    {
+     "cau": "Need help regarding esim My wife is planning to travel to Singapore and Malaysia for 7 days via a women's only trip. She doesnt want to buy simcard from there. Any similar esim options are available that I can buy from India for her?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/best_eSIM_providers/comments/1wfzmh7/need_help_regarding_esim/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19191,
+   "loai": "ai_noi_dau",
+   "ten": "Phí chuyển vùng quốc tế (roaming) đắt đỏ",
+   "mo_ta": "Người dùng lo ngại hoặc từng trải qua việc bị tính phí chuyển vùng quốc tế (roaming) quá cao và khó kiểm soát khi đi nước ngoài. Họ cần eSIM để tiết kiệm chi phí.",
+   "so_nhac": 94,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Turn off your roaming before your international flight takes off and only use eSIM or WiFi abroad to prevent wild charges.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1u6ofb4/leaving_the_us_for_the_first_time/orudwxt/",
+     "diem": 9
+    },
+    {
+     "cau": "You’re asking too much 🤣 All carriers have a limited amount of data abroad and you can get international data passes Honestly though, if your phone is unlocked, getting a Sim or eSim from that country would be better and cheaper than any US based data plan",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/tmobile/comments/1v90wlu/tmobile_ceo_doubles_down_on_reducing_free_offers/p0ab6mx/",
+     "diem": 3
+    },
+    {
+     "cau": "eSIM usually is always better to install it before you are going to travel, eSIMGlobe have good options for eSIM Vietnam",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Vietnam_Tourism/comments/1wtnub7/esim_pre_arrival_or_not/pczy5t7/",
+     "diem": 1
+    },
+    {
+     "cau": "An eSIM is cheaper as you've read. In addition, you can get eSIMs that cover many countries and get a year long package which is great if you have other travel plans. I use Airalo.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1wtk1gh/international_travel_turn_on_roaming/pcvaxx9/",
+     "diem": 1
+    },
+    {
+     "cau": "is it because of no esim inside of it? Wait that's actually a very valid point, I do travel from time to time, so having no esim is downside, cause that's what I use when I travel.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Xiaomi/comments/1wrjyao/xiaomi_18_pro_max_or_xiaomi_17_pro_max/pcd38fh/",
+     "diem": 1
+    },
+    {
+     "cau": "Get orange travel Europe esim You’ll get (50GB) 4g internet + 120 international minutes and 1000 international sms for $54 also you get unlimited calls and texts within eu. It’s will be cheaper than making calls using your us sim",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1wtjv1n/question_about_combining_a_global_roaming_addon/pcxfgyp/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19192,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch nghỉ dưỡng, kỳ nghỉ đông, lễ",
+   "mo_ta": "Người đi du lịch nghỉ đông, tránh rét hoặc nghỉ lễ. Cần data du lịch để tận hưởng kỳ nghỉ trọn vẹn.",
+   "so_nhac": 75,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Which travel eSIM are you using around Asia? For context, my last international travel was pre-pandemic. So while planning the past couple of weeks,I realize things are a lot easier now. I will be backpacking for a couple of days around East and Southeast Asia and I haven’t decided yet which one to ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/kwarentahin/comments/1vmu2pv/which_travel_esim_are_you_using_around_asia/",
+     "diem": 3
+    },
+    {
+     "cau": "AD Call, text, email . Email is the most reliable , especially when you travel abroad and use a different eSIM.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/rolex/comments/1vauhps/first_rolex/p0onju2/",
+     "diem": 2
+    },
+    {
+     "cau": "Honestly I think unlimited starter is fine for me after reading up. Idk if I ever used more than 40gb a month. I buy a travel esim when abroad too.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/tmobile/comments/1vo8pc3/had_my_55_plan_finally_updated_and_my_god_like_a/p3tcrej/",
+     "diem": 2
+    },
+    {
+     "cau": "Yup, like I said, it works perfectly (hotspot too). My partner uses it on an old plan that's $5/mo for 6GB nationwide. It can also use eSim, so will load that up with a travel sim or Freedom roaming data pass if we ever go abroad. They likely only post which carriers have internally tested and confi",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/freedommobile/comments/1v2v2u8/commodore_callback_flip_phone/oz30ihb/",
+     "diem": 2
+    },
+    {
+     "cau": "Travelling abroad: stick with your Indian number or switch to an eSIM? ✈️",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMforTravelers/comments/1x3wjm3/travelling_abroad_stick_with_your_indian_number/",
+     "diem": 1
+    },
+    {
+     "cau": "its like 20 bucks to get an esim for a trip anywhere, stop using your provider when you travel abroad.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/interesting/comments/1wot7j8/they_went_on_vacation_and_come_home_to_a_78240/pc4vhy6/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19194,
+   "loai": "ai_chan_dung",
+   "ten": "Người dùng dữ liệu mạng lớn khi du lịch",
+   "mo_ta": "Người đi du lịch có nhu cầu sử dụng data rất cao cho việc xem video, dịch thuật, livestream, Google Maps.",
+   "so_nhac": 61,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Best hotspot device for international use with data-only esim I'm traveling internationally to Egypt and Turkey and trying to find the best unlocked hotspot device for use here in the US and abroad. Any one has experience or recommendations?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleFi/comments/1vfmrym/best_hotspot_device_for_international_use_with/",
+     "diem": 3
+    },
+    {
+     "cau": "travel esim on trip.com is dirt cheap for data and shi",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tampere/comments/1wpw1c2/affordable_finnish_phone_plans_for_erasmus_in/pc03fn0/",
+     "diem": 2
+    },
+    {
+     "cau": "I just use cruise eSIM now and/or buy one WiFi package and use a travel router to share it with my wife.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/PrincessCruises/comments/1wso8x5/premierplus_wifi_package_price_increases_and/pcrp9ow/",
+     "diem": 1
+    },
+    {
+     "cau": "Just get a temporary international ESIM when you travel abroad. It’s what I do and then you can use maps and phone everywhere",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ChaseSapphire/comments/1ws86xm/surprise_fee_at_hotel_after_booking_through_chase/pckct2a/",
+     "diem": 1
+    },
+    {
+     "cau": "Honestly, for a short trip, just get a travel eSIM for mobile data and use a VPN for Wi-Fi. Saves you so much headache. This is the way.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1wje6fz/should_i_use_a_vpn_or_esim_in_china/pctmc24/",
+     "diem": 1
+    },
+    {
+     "cau": "If it's data only and WhatsApp is required then a travel eSIM would suffice. And for a 10 day trip depending on your usage, however a normal traveller would be fine with 10/20gb of data.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMforTravelers/comments/1wq6z3a/using_iphone_15_in_ireland/pc1smeb/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19193,
+   "loai": "ai_chan_dung",
+   "ten": "Du học sinh và người sống xa nhà",
+   "mo_ta": "Du học sinh, sinh viên trao đổi và những người sống xa nhà dài hạn.",
+   "so_nhac": 61,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Complimentary International 10GB eSIM! WHAT?! THANK YOU! Going on an international trip soon and have been shopping around for eSIM data plans and US Mobile is giving complimentary 10 GB/30 day eSIM! To top it off, for this country, this eSIM is for the top cell provider there! Holy smokes thank you",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/USMobile/comments/1vhd19w/complimentary_international_10gb_esim_what_thank/",
+     "diem": 77
+    },
+    {
+     "cau": "For international stuff, you are always better off buying a local sim/esim (better service + rates). In NYC, Verizon, AT&T and Tmobile are all fine .",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AskNYC/comments/1wpc0kq/best_phone_plan_for_living_in_nyc_and_occasional/pbu3958/",
+     "diem": 23
+    },
+    {
+     "cau": "best eSiM for 4 months hi! I’m an international student who’ll study in the US for 4 months and I need the best eSiM card with unlimited data (4G/5G) and an american number, and it’d be great if I could pay for the whole semester beforehand. can you recommend the best option please?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1uwju6c/best_esim_for_4_months/",
+     "diem": 6
+    },
+    {
+     "cau": "It you're a U.S. resident living abroad and have a us phone number via an esim like Google Fi or Google voice mail, you can just lie and not say you're overseas. I sometimes had to have 11pm or 1am meetings with coordinators and they'd be all \"good morning, it's 8 am there right?\" I mean, the classe",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Internationalteachers/comments/1ut22vq/does_the_university_of_the_subject_masters_matter/owuxjy3/",
+     "diem": 3
+    },
+    {
+     "cau": "Need a eSIM as an international student in university.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/best_eSIM_providers/comments/1vliq9k/need_a_esim_as_an_international_student_in/",
+     "diem": 2
+    },
+    {
+     "cau": "Transferring eSIM while living abroad",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMforTravelers/comments/1wd8hlx/transferring_esim_while_living_abroad/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19195,
+   "loai": "ai_phan_doi",
+   "ten": "Điện thoại bị khoá nhà mạng không hỗ trợ eSIM",
+   "mo_ta": "Máy điện thoại bị khóa mạng (carrier-locked) nên không thể cài đặt hoặc sử dụng eSIM của nhà cung cấp khác khi đi nước ngoài. Thông điệp QC cần hướng dẫn cách kiểm tra tình trạng khóa mạng trước khi mua.",
+   "so_nhac": 59,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Upgraded phone using eSIM If I upgrade to an iPhone 17 pro max and trade in my existing iPhone 15 pro max, can I use an eSIM when traveling abroad or is the new phone locked down?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/T_mobile_/comments/1sq8kwv/upgraded_phone_using_esim/",
+     "diem": 3
+    },
+    {
+     "cau": "Is your phone paid off? If so, unlock it and get a local or travel eSIM",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ATT/comments/1wx5o1k/how_can_i_keep_using_my_phone_when_i_leave_the/pdrinfz/",
+     "diem": 1
+    },
+    {
+     "cau": "Just make sure your phone is unlocked, grab an eSIM from any travel eSIM provider and you’re good to go, I wish your brother a speedy recovery",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1wtr1kq/esim_questions/pcyv8qi/",
+     "diem": 1
+    },
+    {
+     "cau": "I travel often and it would be an issue for me since I can’t get an esim from another country. You’re stuck with an expensive, bad internet connection if you’re locked.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/verizon/comments/1wtsdol/need_guidance_on_an_iphone_upgrade/pd00uba/",
+     "diem": 1
+    },
+    {
+     "cau": "If your device is locked it will stay locked until paid off and can’t use an international eSIM. T-Mobile don’t temporarily unlock devices anymore so I suggest the data plan.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/tmobile/comments/1wr9w0j/ttravel_esim/pcgfvxi/",
+     "diem": 1
+    },
+    {
+     "cau": "I talked to her again and I think the locking is a deal-breaker for her. She travels a lot with esims. She's not going to pay AT&T's international rates for 3 years for a free phone.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ATT/comments/1wk4vhi/tradein_sounds_too_good_to_be_true/parciu9/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19196,
+   "loai": "ai_chan_dung",
+   "ten": "Người cần giữ số chính để nhận OTP",
+   "mo_ta": "Người ra nước ngoài nhưng bắt buộc phải giữ số gốc hoạt động để nhận tin nhắn OTP ngân hàng, iMessage.",
+   "so_nhac": 59,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "I have also seen people load up a basic international plan to receive OTP etc, and get a local eSIM. Services like Saily are pretty smooth. They give you a local number to the country you are visiting",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/VodafoneIdeaIndia/comments/1wl61hn/vi_international_roaming_plans_suggestions/pawbzvu/",
+     "diem": 1
+    },
+    {
+     "cau": "Thanks for this tip! I did check and I can get the 10gb/30 day International eSIM for $0. and I can still use my regular number as long as I’m using the roaming estimate for data, right? My number basically acts like it’s at home for calls & texts.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/USMobile/comments/1wxnp6w/international_roaming_data_add_ons/pdy1gyy/",
+     "diem": 1
+    },
+    {
+     "cau": "Can Tello eSIM be activated from outside the U.S.? I'm currently located outside the U.S. and I need a U.S. number mainly for SMS and OTP verifications. Can I purchase and activate a Tello eSIM directly from abroad using Wi-Fi, or is physical presence on the U.S. network strictly required for the in",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1w84s6s/can_tello_esim_be_activated_from_outside_the_us/",
+     "diem": 1
+    },
+    {
+     "cau": "Since your T-Mobile line is not locked, the easy setup is a travel eSIM for data and your T-Mobile line kept on with data roaming off. Most Magenta and Go5G plans already include free texts abroad plus slow 256 kbps data in Ireland, so your texts keep arriving on your own number while the eSIM does ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMforTravelers/comments/1wq6z3a/using_iphone_15_in_ireland/pc92dsv/",
+     "diem": 1
+    },
+    {
+     "cau": "If you mainly need it to keep US accounts active and receive verification texts, I’d go with a real US mobile number rather than a data-only travel eSIM or VoIP number. A lot of services can reject virtual numbers for verification. I’ve seen people use Tello for this, especially if they’re staying o",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/best_eSIM_providers/comments/1wltjts/what_sim_to_buy_for_maintaining_usa_accounts/pb85qa1/",
+     "diem": 1
+    },
+    {
+     "cau": "I’ve used it last year when I layover in Germany on my way to Japan. In both countries it worked fine, no major issues. Once in a while I lost signal on my phone and had to toggled on and off flight mode and it came back on. I would only use it as the last resort or if you need to maintain your numb",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/tmobile/comments/1wr5rgq/any_experience_with_their_international_data_pass/pc9xz77/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19197,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch Trung Quốc và nhu cầu vượt tường lửa",
+   "mo_ta": "Người đi Trung Quốc cần mạng không bị chặn. eSIM giúp họ vượt tường lửa để dùng Google, Facebook và các ứng dụng địa phương (DiDi, Meituan).",
+   "so_nhac": 56,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Getting an eSIM from abroad lets you access your usual websites and apps instead of being restricted by the great firewall, whereas getting a local SIM lets you have a Chinese phone number, which is often required to buy things and use mini apps. Up to you which option you go with, or choose both.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1upv024/journeying_through_chinas_wild_west_along_the/ow6810d/",
+     "diem": 3
+    },
+    {
+     "cau": "You must activate always if you want to use travel eSIM, eSIMGlobe has China plans too",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Airalo/comments/1pqllgb/has_anyone_used_the_airalo_chinacom_esim_in_china/pehd3a9/",
+     "diem": 1
+    },
+    {
+     "cau": "international etc esims that just give service in china will work, just not actual chinese esims aka 86 phone numbers etc.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/chinalife/comments/1uc9gj3/can_foreigners_get_an_esim_in_china_in_2026/pblwll3/",
+     "diem": 1
+    },
+    {
+     "cau": "Did not need one. Had an international esim (you must install before entering china, as most Chinese apps) Everything worked, DiDi, WeChat,…",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travelchina/comments/1wwmvj6/do_you_actually_need_a_chinese_phone_number_when/pdn9mur/",
+     "diem": 1
+    },
+    {
+     "cau": "That’s actually what I’m confused about. From what I understand, most China travel eSIMs (Airalo, Holafly, Nomad, etc.) are data-only and don’t give you a Chinese +86 number. Is there a particular eSIM/provider you’re referring to that actually gives you a Chinese number?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travelchina/comments/1wwmvj6/do_you_actually_need_a_chinese_phone_number_when/pdltu3k/",
+     "diem": 1
+    },
+    {
+     "cau": "Had a trip esim for our most recent travel there. Doesn't work for wechat registration as far as I'm aware of unless you already have it activated. Alipay had no issues this time doing multiple transactions ... A few years ago we kept having to reverify daily or something.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/chinatravel/comments/1wrcf50/going_to_china_for_3_weeks_esim_or_local_sim/pcdo6iu/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19198,
+   "loai": "ai_phan_doi",
+   "ten": "Eo sê-ri-ca hay nhiễu bị gọi nhầm vì cước roaming",
+   "mo_ta": "Khách sợ dùng số gốc để nhận cuộc gọi hoặc tin nhắn sẽ phát sinh cước roaming khó đoán. QC cần chứng minh là có bảng giá rõ ràng hoặc cách tắt roaming dữ liệu nền để tránh bị tính phí.",
+   "so_nhac": 47,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Does Sharm ElSheikh Airport have a bank open 24hr for currency exchange? and what about mobile network stalls for SIM cards? I'm considering an eSIM but the number is French for some reason so that will be inconvenient and other Egyptians will be charged an international call when they ring me",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Egypt/comments/1uxxb9d/does_sharm_elsheikh_airport_have_a_bank_open_24hr/",
+     "diem": 2
+    },
+    {
+     "cau": "Oh ok good to know. Don’t seems like I should get an eSIM and upgrade the plan to have my bases covered and keep an eye on the daily travel pass charge (turn off if the plan upgrade doesn’t kick in)",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travelchina/comments/1ocxmx9/20_day_china_trip_esim_or_stick_with_verizon/pcq8o7w/",
+     "diem": 1
+    },
+    {
+     "cau": "Get a plan at O2/Vodafone/Giffgaff/whatever is the cheapest. When you go back to the US for a month just get an eSIM, not worth the trouble of getting an international plan which will be way more expensive.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/LSE/comments/1w940xx/cell_plans_for_international_students/p90w9cw/",
+     "diem": 1
+    },
+    {
+     "cau": "Is your phone paid off/unlocked? If so, an eSIM will be way cheaper than Verizon’s international plan. I’ve used Airalo in the past in Europe without issue! You can get a country specific plan or a regional one, which would probably be better for your situation.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Cruise/comments/1whxiip/phone_advice_we_will_be_traveling_to_italy_but/pa5uscg/",
+     "diem": 1
+    },
+    {
+     "cau": "tello to keep your US number, and tello also has roaming plans or get a Visible plan for your U.S. number and pay for the service annually (around $250-400 per year) you can also get travel esim phone/data plans and/or esim data plans through companies like Airalo $280/month is completely insane to ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/longtermtravel/comments/1wt5u2y/best_phone_set_up/pcrdfdy/",
+     "diem": 1
+    },
+    {
+     "cau": "International plan vs e-sim I’m moving to Lebanon for 6mo and trying to assess if I should pay for T-Mobile’s international plan (did it once for 2 weeks in Jordan) or get an ESIM. anyone have thoughts on cost & service quality for either options? And if ESim, what are some good options? Haven’t got",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/tmobile/comments/1uqc6so/international_plan_vs_esim/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19199,
+   "loai": "ai_phan_doi",
+   "ten": "Gói eSIM du lịch đắt, nhất là khi ở lâu",
+   "mo_ta": "Khách thấy phí data theo ngày hoặc gói lẻ đắt hơn nhiều so với eSIM/SIM địa phương, đặc biệt chuyến dài ngày. QC cần so sánh giá cụ thể theo ngày và theo GB, nêu rõ không phụ phí ẩn.",
+   "so_nhac": 46,
+   "so_qc": 1,
+   "bat_ngo": false,
+   "cau": [
+    {
+     "cau": "Why did you not just download a new esim while abroad and instead pay for roaming data? Unless your phone was locked or something.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/shitposting/comments/1uwtob6/_/oxm5xdo/",
+     "diem": 184
+    },
+    {
+     "cau": "As an European I am listening to the options and I am astounded how much these packages cost. I travel to Italy often and I buy esims for data there. I can get a plan for 30 days with Unlimited Italy calls, 100 text and 200GB for 6,99 Euros on Lyca mobile. I mean, how does that compare to these plan",
+     "nguon": "youtube",
+     "url": "https://www.youtube.com/watch?v=9ykbZbAlRqE",
+     "diem": 10
+    },
+    {
+     "cau": "We like the Airalo global eSIM that includes calling and texting - you have to use a different number but having that ability to call while abroad has proven very helpful on several occasions. The 20 gb plans are expensive but good for a year which is helpful.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/TravelProperly/comments/1vblpzq/which_esim_do_you_trust_for_international_travel/p0uf6vt/",
+     "diem": 3
+    },
+    {
+     "cau": "You’re asking too much 🤣 All carriers have a limited amount of data abroad and you can get international data passes Honestly though, if your phone is unlocked, getting a Sim or eSim from that country would be better and cheaper than any US based data plan",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/tmobile/comments/1v90wlu/tmobile_ceo_doubles_down_on_reducing_free_offers/p0ab6mx/",
+     "diem": 3
+    },
+    {
+     "cau": "Do you recommend us mobile? I use esims abroad and this kind of bill scares me",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ATT/comments/1v6bman/att_suspended_my_service_over_a_77000/ozpae8n/",
+     "diem": 2
+    },
+    {
+     "cau": "Why am I getting charged for roaming? I bought an eSIM and I have activated that while I am abroad. I also disabled roaming on my 3 SIM, and now I have got a charge of £5 for roaming abroad. Why?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ThreeUK/comments/1rvmn5z/why_am_i_getting_charged_for_roaming/",
+     "diem": 2
+    }
+   ]
+  },
+  {
+   "id": 19200,
+   "loai": "ai_phan_doi",
+   "ten": "Không kích hoạt được eSIM khi đã ở nước ngoài",
+   "mo_ta": "Một số eSIM yêu cầu kích hoạt trên mạng gốc hoặc gặp lỗi khi thao tác lúc đã sang nước ngoài. QC cần hướng dẫn khách cài eSIM từ lúc ở nhà trước khi bay để đảm bảo kết nối ngay khi hạ cánh.",
+   "so_nhac": 43,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "International data Am I able to switch my esim on my pixel 9 pro xl to my OnePlus 15 while abroad and still get the international data? Or will it stop and not let me download it",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleFi/comments/1tcnlix/international_data/",
+     "diem": 6
+    },
+    {
+     "cau": "Original activation was abroad (I transferred my cellphone number from another carrier). But I already asked my relatives in the US to activate eSIM, then I tried to activate it again abroad - it didn’t work.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1v5kean/tello_abandoned_expats_looking_for_alternatives/ozjki90/",
+     "diem": 4
+    },
+    {
+     "cau": "If you’re moving outside of the USA, a physical SIM is less risky as Tello has been cracking down on eSIM activations while abroad. While they seem to allow it for existing customers (just not new ones), a physical SIM means you don’t need to worry about it if things change down the line.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1vh5s2s/esim_or_physical_sim/p22kk19/",
+     "diem": 3
+    },
+    {
+     "cau": "This was an issue for me last year when I dropped my phone on safari. However, last week I needed to switch phones and Tello aakowws me to generate the eSIM online and set up my new phone while abroad. Idk if I got lucky or if they recently changed things.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1vh5s2s/esim_or_physical_sim/p247d1x/",
+     "diem": 2
+    },
+    {
+     "cau": "Near the end of your video you talked about setting up the ESIM before leaving home because you need a stable connection I don't have internet at home but I do have my home network plan through my cell phone well I'm setting up an ESIM can I do that using my data plan on my mobile network?",
+     "nguon": "youtube",
+     "url": "https://www.youtube.com/watch?v=9ykbZbAlRqE",
+     "diem": 2
+    },
+    {
+     "cau": "Not going to happen, it won’t activate while abroad Get a local eSIM",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/1pmobile/comments/1vf663j/replace_esim_while_being_abroad/p1mft3c/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19201,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch Hàn Quốc và Nhật Bản",
+   "mo_ta": "Du khách đi Hàn Quốc hoặc Nhật Bản. Đây là những thị trường lớn cần data tốc độ cao để sử dụng bản đồ, dịch thuật và mạng xã hội.",
+   "so_nhac": 42,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "I did, otherwise I wouldn’t reach out to Reddit. There are plenty of eSIMs that work inside Korea, but as soon as you are abroad the eSIM doesn’t work anymore. Which one did you find?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1uepgm5/korean_010_esim_for_use_abroad/oto9v2o/",
+     "diem": 1
+    },
+    {
+     "cau": "I've been using the Journey Japan eSIM from Abroad in Japan and has worked fine, Kyushu had some areas that didn't work that well but overall good. It was cheaper than the Ubigi esim i was checking.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1uoja6r/japan_wireless_esim_question/ovt0rnd/",
+     "diem": 1
+    },
+    {
+     "cau": "My wife has Xfinity Mobile. She adds the international package for the month when we travel to Japan and yes it \"just works\". People buy eSims because it is generally significantly cheaper than paying for the international plan through your home carrier.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1ww17e9/esim_question_for_international_travel_noobs/pdh9ez4/",
+     "diem": 1
+    },
+    {
+     "cau": "If you're using Boost Mobile, I'd check whether your phone is carrier-unlocked first. You can usually find it in your phone settings, or contact Boost Mobile to confirm. If it's unlocked and supports eSIM, you should be able to use a travel eSIM in Japan while keeping your Boost SIM in the phone.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1wvkvbe/esim_or_pocket_wifi/pdd7ofv/",
+     "diem": 1
+    },
+    {
+     "cau": "No experience with Korean Samsung phones but could be network/location dependent. Was just there with my pixel 11 and when i was using T-Mobile international roaming, all was normal but once my 5gb was up, i signed up with LG U+ esim, the camera shutter sound was on and i had no way to disable it.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/koreatravel/comments/1wlhtxo/planning_to_buy_s26_ultra_in_korea_whats_the_price/payoju2/",
+     "diem": 1
+    },
+    {
+     "cau": "Copying from my comment to another post: ATM/debit card with no international transaction fee, eSIM, external battery, notify bank/credit card of your travel dates (with some you can do it online.) Make sure passport is valid (hahaha I missed this one once.) Download Japanese language pack for Googl",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1wh7e4l/last_minute_tips/pa07dkc/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19202,
+   "loai": "ai_phan_doi",
+   "ten": "Không nhận được SMS/OTP vì không có số điện thoại nội địa",
+   "mo_ta": "Khách hàng cần số điện thoại nội địa để nhận SMS xác minh OTP cho các ứng dụng gọi xe, ngân hàng nhưng eSIM data không đáp ứng được. QC nên đề xuất các gói có kèm số điện thoại nội địa nếu có.",
+   "so_nhac": 41,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Do you need Chinese number for food delivery? I’m travelling to Shanghai and wanted to ask if there’s anyway around making purchases on Meituan (for food deliveries) without a Chinese number? I’ll have an eSIM but I saw that you can’t use an international number. Also any recommendations for VPN to ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/chinatravel/comments/1uuznn1/do_you_need_chinese_number_for_food_delivery/",
+     "diem": 7
+    },
+    {
+     "cau": "No need for ordering a Didi ride. International eSim with Hong Kong Roaming works. But you will need usual sim to receive SMS to set things up. No need for Didi app either. The mini app within WeChat works.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travelchina/comments/1wogk0u/is_didi_actually_this_cheap_compared_to_european/pboix53/",
+     "diem": 2
+    },
+    {
+     "cau": "Sim ni chalegi sirf data chalega roaming ke through international esim hogi ap call wagera ni kar paoge sirf data package subscribe hoga",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/PakistaniTech/comments/1wvmghl/non_pta_iphone_sim_working_service/pdd2roa/",
+     "diem": 1
+    },
+    {
+     "cau": "Data only eSIM for international travel Has anyone had success using a data only eSIM for travel? I know some of them make you download their app.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/LightPhone/comments/1v8dpex/data_only_esim_for_international_travel/",
+     "diem": 1
+    },
+    {
+     "cau": "thank you for this! although if i open my travel esim, it just shows like this https://preview.redd.it/j1q0d9qkcrsh1.jpeg?width=1284&format=pjpg&auto=webp&s=b5d667404ff01ceeaebcaf8f8ed5aab547fe92e9",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMforTravelers/comments/1wtb1fm/bought_an_esim_without_deleting_previous_ones/pd4elen/",
+     "diem": 1
+    },
+    {
+     "cau": "If you buy a travel eSIM, you will have a completely different phone number and then they will immediately know that something is strange when they see you calling them from a totally different phone number.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/LifeAdvice/comments/1wmou7o/how_do_i_stop_my_family_knowing_im_abroad_from/pc26uv7/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19203,
+   "loai": "ai_chan_dung",
+   "ten": "Người sống xa xứ (Expat) và chuyển ra nước ngoài",
+   "mo_ta": "Người chuyển khẩu ra nước ngoài sống, làm việc lâu dài (expat). Cần mạng ban đầu khi mới sang.",
+   "so_nhac": 37,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Best eSIM for travel: What I learned after 6 months abroad So... after long-term travel, I realized: * No universal “best eSIM” * Performance varies by country * Flexibility is key Still better than physical SIMs overall. You're welcome!",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMforTravelers/comments/1sbbt83/best_esim_for_travel_what_i_learned_after_6/",
+     "diem": 12
+    },
+    {
+     "cau": "If your phone supports it, I'd recommend getting an eSIM if you stay abroad. You can buy those very cheap online and activate them by simply scanning a QR code, which they send you. That way is much cheaper compared to getting it from any mobile plan offered here.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Switzerland/comments/1u02qb6/no_other_mobile_internet_subscription_gets_even/oqf3nn6/",
+     "diem": 2
+    },
+    {
+     "cau": "I did get ePlus JP set up while in the country, but there is allegedly a way to get a Japanese esim capable of calling Japan from abroad now (although I have no source on this). Mobal is the carrier I used but you need to make sure your phone is compatible with their cellular network (or just buy a ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/D4DJ/comments/1re6tyw/abyssmare_2nd_concert_alive_attending_via_the/owhee7e/",
+     "diem": 2
+    },
+    {
+     "cau": "If you are abroad for a long period, just port to Google Voice and then get a local number/esim.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/NoContract/comments/1wygg45/title_us_mobile_cut_my_service_while_living/pe2idiy/",
+     "diem": 1
+    },
+    {
+     "cau": "I’m a settled expat. Try getting Tello to install your eSIM on your phone while you’re abroad when you need to change phones. Or T Mobile Or Verizon I use almost none of the Popcorn data. For me, it’s the value of being able to install the eSIM from anywhere that I happen to be and have calling that",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/PopcornMobile/comments/1vubdpw/popcorns_value_prop_great_for_road_warriors_less/p50ovml/",
+     "diem": 1
+    },
+    {
+     "cau": "One question - do you run Dual SIM, either by nano + eSIM or 2 nano SIM (China, Hong Kong, Macao model) ? That may be the cause. I live abroad so I keep my US eSIM on for calls and texts (no data on plan) and my Irish SIM (calls, text, data), but data is always through my Irish carrier. Dual SIM can",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/iPhone12/comments/1wnfkvq/am_i_cooked/pbj371y/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19205,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch Bắc Mỹ (Mỹ, Canada, Mexico)",
+   "mo_ta": "Du khách đến Mỹ, Canada, Mexico. Họ cần data cho khu vực Bắc Mỹ để kết nối mạng khi vượt biên giới giữa các nước này.",
+   "so_nhac": 36,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Need advice on eSim travel provider for Perú trip.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1waykmh/need_advice_on_esim_travel_provider_for_perú_trip/",
+     "diem": 1
+    },
+    {
+     "cau": "I need advice on eSIM for travel - Xiamen layover and Canada",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1wo2moj/i_need_advice_on_esim_for_travel_xiamen_layover/",
+     "diem": 1
+    },
+    {
+     "cau": "Do you have a Jamaican SIM or travel eSIM? Why do you want to bring your Canadian SIM to Jamaica?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/mobilecanada/comments/1x0irzi/roaming_fees_if_line_is_off/penh00l/",
+     "diem": 1
+    },
+    {
+     "cau": "The biggest benefit is the travel SIM providers now doing eSIM, when I first went to America I had to spend $70 for 1 month pay as you go for fuck all data for 8 days. Now you can get a week of an eSIM for like 7 euro",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AskIreland/comments/1wy78ix/3_mobile_physical_sim_to_esim_anyone_gone_through/pe0jk3a/",
+     "diem": 1
+    },
+    {
+     "cau": "Not sure if this helps, had an issue once where using vpn on a data plan on the phone, the eSIM still registers your location . What worked was I hotspotted to a phone that was vpn to Canada, so my connection allowed me to bypass Canadian carrier rules. Safe travels",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/freedommobile/comments/1x089nt/unable_to_enable_wificalling/pelosnl/",
+     "diem": 1
+    },
+    {
+     "cau": "Travel eSIM for Mexico City! Hi! I’m travelling to Mexico City next week and was wondering if I needed to get an eSim/which one I should get? I currently have a prepaid AT&T plan that has unlimited data and calling in Mexico but I would get a travel eSIM if the service quality is bad! Thank you!!",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/MexicoTravel/comments/1wyffq9/travel_esim_for_mexico_city/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19204,
+   "loai": "ai_phan_doi",
+   "ten": "Khó khăn khi chuyển đổi hoặc mất thiết bị chứa eSIM",
+   "mo_ta": "Khách hàng lo lắng không thể chuyển eSIM sang máy mới nếu đổi điện thoại hoặc điện thoại cũ bị hỏng, mất giữa chuyến đi. QC cần nêu rõ chính sách cấp lại hoặc chuyển đổi eSIM dễ dàng.",
+   "so_nhac": 36,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "More annoying in every way.  If your phone is important to you, and/or you travel internationally, make sure you keep a physical sim.  You can always swap to eSIM abroad if your telco will let you.  But if they don’t you can’t pop the eSIM out of your broken phone while in Fiji and pop it in to a ne",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/TechNook/comments/1uu8xcy/has_esim_made_switching_phones_easier_or_more/ox1s9qv/",
+     "diem": 7
+    },
+    {
+     "cau": "International data Am I able to switch my esim on my pixel 9 pro xl to my OnePlus 15 while abroad and still get the international data? Or will it stop and not let me download it",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleFi/comments/1tcnlix/international_data/",
+     "diem": 6
+    },
+    {
+     "cau": "Hi! May i know what is plan zero? Is your sim under postpaid? Having issues with my prepaid abroad and looking to convert to esim but sadly it only works sa postpaid",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/phmigrate/comments/1t4b1wr/globe_roaming_issue/owv4d7j/",
+     "diem": 2
+    },
+    {
+     "cau": "Not sure about all that but I did get an iPhone 17 in early July. Now traveling abroad and had to get travel eSIM due to all of this breaking down. do not have the ultimate ultimate plan. Got airalo (luckily this happened while I was in a cafe with WiFi)",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/verizon/comments/1v38b1y/no_service_overseas_even_though_my_friend_is_fine/oz1tmit/",
+     "diem": 2
+    },
+    {
+     "cau": "I did get ePlus JP set up while in the country, but there is allegedly a way to get a Japanese esim capable of calling Japan from abroad now (although I have no source on this). Mobal is the carrier I used but you need to make sure your phone is compatible with their cellular network (or just buy a ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/D4DJ/comments/1re6tyw/abyssmare_2nd_concert_alive_attending_via_the/owhee7e/",
+     "diem": 2
+    },
+    {
+     "cau": "You must activate always if you want to use travel eSIM, eSIMGlobe has China plans too",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Airalo/comments/1pqllgb/has_anyone_used_the_airalo_chinacom_esim_in_china/pehd3a9/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19206,
+   "loai": "ai_chan_dung",
+   "ten": "Người đi công tác nước ngoài",
+   "mo_ta": "Người đi công tác nước ngoài, kể cả đi thường xuyên. Cần data ổn định, tốc độ cao để họp online và làm việc.",
+   "so_nhac": 31,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Has anyone found eSIM for international travel ? I’m planning a few trips this year, and I’m trying to find an eSIM that I can rely on. I’ve tried a few options before, but I’m still looking for something that works consistently when traveling. For anyone who travels often, what eSIM has worked best",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1vbktd6/has_anyone_found_esim_for_international_travel/",
+     "diem": 3
+    },
+    {
+     "cau": "My bf and I live in different countries, like so many here but I also travel abroad for work frequently, different countries every time and I just get an eSIM (airalo or holafly but it depends on your destination. Sometimes your carrier from your country also offers travel eSIMs). Works like a charm",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/LongDistance/comments/1ujyksc/going_to_be_out_of_the_country_but_i_cant_bring/ourr7sx/",
+     "diem": 2
+    },
+    {
+     "cau": "They will not care, but if it is a VPN provided by your IT department to connect to your work network, it will get blocked within hours/minutes. If you really need that connection for work, get a travel eSIM for your phone and connect your work VPN through that.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/chinatravel/comments/1wz714c/problems_entering_with_vpnenabled_laptop/pemka6k/",
+     "diem": 1
+    },
+    {
+     "cau": "Travelling abroad for business across 3+ countries and looking for a good eSIM with reliable coverage without overspending. I came across SIMZY and the pricing + global coverage look pretty good. Has anyone used SIMZY for frequent international business trips?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1vp4xau/what_esim_do_you_recommend/p5zqd7d/",
+     "diem": 1
+    },
+    {
+     "cau": "A bit off topic, but I do a lot of International traveling to different countries, and I try different eSIM’s just to see if I have a better experience with one over another. In general, I did not find big differences among the major brands, but I did find Nomad to be worse.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/best_eSIM_providers/comments/1wh3zhc/what_actually_matters_when_choosing_a_travel_esim/paiqyz9/",
+     "diem": 1
+    },
+    {
+     "cau": "First of all I use non-PTA phones so I basically have to use the SIMs app like B&E eSIM and eSIMco. In the second place when I'm traveling abroad, I have the global package on B&E eSIM, which is not that expensive and it works for me everywhere on their local networks roaming",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/PakistaniTech/comments/1w3a8e5/rant_about_international_roaming/p6yhq2q/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19207,
+   "loai": "ai_chan_dung",
+   "ten": "Sinh viên đại học và sinh viên quốc tế",
+   "mo_ta": "Sinh viên đại học, sinh viên quốc tế đi du lịch hoặc học hè. Cần mạng linh hoạt, chi phí rẻ, dễ mua trực tuyến.",
+   "so_nhac": 31,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "best eSiM for 4 months hi! I’m an international student who’ll study in the US for 4 months and I need the best eSiM card with unlimited data (4G/5G) and an american number, and it’d be great if I could pay for the whole semester beforehand. can you recommend the best option please?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1uwju6c/best_esim_for_4_months/",
+     "diem": 6
+    },
+    {
+     "cau": "Need a eSIM as an international student in university.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/best_eSIM_providers/comments/1vliq9k/need_a_esim_as_an_international_student_in/",
+     "diem": 2
+    },
+    {
+     "cau": "ESIMS FOR STUDY ABROAD Hello! I will be in Germany for June and July and am trying to find a esim to use, are there any you'd recommend/ what did you do for phone service for your study abroad?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/studyAbroad/comments/1t5zdpc/esims_for_study_abroad/",
+     "diem": 1
+    },
+    {
+     "cau": "Building an eSIM business focused on students who travel abroad for further studies and would be opting for longer plans like 6 months prepaid Any suggestions or help will be deeply appreciated! Thanks",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1seqkjx/building_an_esim_business_focused_on_students_who/",
+     "diem": 1
+    },
+    {
+     "cau": "Need an eSim for study abroad in Spain. Any recommendations for an eSim while in spain? I will be there for a year and need a spanish phone plan. Mostly have seen Holafly, Orange, and Vodafone when I look it up. Don’t really know what to choose or how to go about it. Appreciate any help!",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1vwtdqf/need_an_esim_for_study_abroad_in_spain/",
+     "diem": 1
+    },
+    {
+     "cau": "Affordable eSIM recommendations for an international student in Cardiff? Hi everyone! I’m an international student moving to Cardiff soon and I’m looking for a reasonably priced eSIM that works well in Cardiff. What eSIM providers/plans would you recommend for a student? Also, are there any provider",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/best_eSIM_providers/comments/1wfxacp/affordable_esim_recommendations_for_an/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19208,
+   "loai": "ai_phan_doi",
+   "ten": "eSIM chỉ có data, không hỗ trợ gọi và nhắn tin",
+   "mo_ta": "eSIM du lịch thường chỉ có data, không cấp số điện thoại nên khách không thể gọi điện, nhắn tin thông thường. QC cần hướng dẫn khách dùng Zalo, WhatsApp, Telegram qua kết nối data để liên lạc.",
+   "so_nhac": 28,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Seriously, Telus? No international Wi-Fi calling I’m abroad in Japan for a few weeks, using an Airalo eSIM for data only. I was looking forward to messaging my friends back in Canada using RCS on my iPhone, but apparently I can’t do that because Telus doesn’t support wifi calling internationally. I’",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/telus/comments/1taymyp/seriously_telus_no_international_wifi_calling/",
+     "diem": 22
+    },
+    {
+     "cau": "That is what I have been using. I have assumed that local esim data would support tello calling and texting abroad if wifi calling is enabled. Didn't know backup calling is blocked on US version of galaxy s25. 😡",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1uxs9fm/using_local_esim_data_for_wifi_callingtexting/oxts6dg/",
+     "diem": 3
+    },
+    {
+     "cau": "Traveling and can't get rcs to work I've seen a few posts but can't quite get the answer. For the 2nd time traveling abroad, I got an esim and rcs won't work via esim or WiFi. I have Verizon at home. I've got a galaxy s22. Is there a setting or something I should be doing or is this not possible?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleMessages/comments/1rs7so7/traveling_and_cant_get_rcs_to_work/",
+     "diem": 2
+    },
+    {
+     "cau": "Yes its expensive but I havent figured out how to use a local esim to recieve calls and texts abroad on my telus number ?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/telus/comments/1w8wx8f/telus_you_are_destroying_my_trip/p86zmkz/",
+     "diem": 1
+    },
+    {
+     "cau": "Hey not sure if this helps, I just activated a new Esim from abroad no problems at all here, my problem was setting up wifi calling which needs to be enabled.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1tpla4v/recent_change_to_international_activation/oooo1l0/",
+     "diem": 1
+    },
+    {
+     "cau": "Are you saying that getting txt messages on a US Tello number isn't reliable abroad even with Wifi calling on and using a local esim for data? I want to port my US number to Tello",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1ulqtc4/moving_abroad_soon_is_tello_a_good_move/ovye0dp/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19210,
+   "loai": "ai_chan_dung",
+   "ten": "Khách du lịch ngắn ngày",
+   "mo_ta": "Khách du lịch đi các chuyến đi ngắn ngày, cuối tuần hoặc 7-10 ngày.",
+   "so_nhac": 27,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Keep the same Fi plan, get a international data only eSIM when traveling from Airlo or alike. It will be a lot cheaper.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleFi/comments/1whibez/really_considering_the_unlimited_standard_for_50/pa59okv/",
+     "diem": 1
+    },
+    {
+     "cau": "Oh ok good to know. Don’t seems like I should get an eSIM and upgrade the plan to have my bases covered and keep an eye on the daily travel pass charge (turn off if the plan upgrade doesn’t kick in)",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travelchina/comments/1ocxmx9/20_day_china_trip_esim_or_stick_with_verizon/pcq8o7w/",
+     "diem": 1
+    },
+    {
+     "cau": "Transferring unactivated eSIM to new phone Installed a Ubigi eSIM on an iPhone for travel next week. Decided last minute to buy a new iPhone and trade in the old. Will we be able to delete it off the old and reinstall it on the new?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSim/comments/1x2ibpu/transferring_unactivated_esim_to_new_phone/",
+     "diem": 1
+    },
+    {
+     "cau": "Lyca has an unlimited plan for $18/month, not sure if it's a multi-month contract I would have to sign, they don't have a specific travel eSim one. I'm not sure if Lyca will charge a early termination fee since I'm only using it for 7 days",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1wxsid4/best_esim_for_7_day_trip_to_united_kingdom/pdy5z9h/",
+     "diem": 1
+    },
+    {
+     "cau": "Singapore - eSIM for travel We’re going to Singapore for 10 days with family in November and looking at eSIM options. We’ll mainly need data for Maps, train routes, translation, and some scrolling. Does hotspot work with eSIMs? Thinking one person could share data with the rest of us.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/SouthEastAsia_Travel/comments/1w9nxkh/singapore_esim_for_travel/",
+     "diem": 1
+    },
+    {
+     "cau": "One of the advantages of using Ubigi for travel is that you can keep the same eSIM on your phone and simply choose a new data plan depending on the country or destination you’re visiting. So even if you’re only in the UK for another month, the eSIM can stay on your phone and be reused for future tri",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GooglePixel/comments/1wjjvje/looking_for_feedback_on_esims_for_the_uk/pb5ki1i/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19209,
+   "loai": "ai_phan_doi",
+   "ten": "Giá eSIM đắt hơn so với SIM nội địa",
+   "mo_ta": "Khách hàng thất vọng vì các gói eSIM du lịch có giá quá đắt so với việc mua SIM vật lý nội địa tại điểm đến. QC cần làm nổi bật giá trị tiện lợi, tiết kiệm thời gian và các gói cước cạnh tranh.",
+   "so_nhac": 27,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Travel eSim cards are overprived af. Lounge entrys for 30€ IMO pretty good.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Revolut/comments/1wyl7p7/are_revolut_travel_products_any_good/peowi0q/",
+     "diem": 1
+    },
+    {
+     "cau": "eSIM is less than £1/ day Can’t really be going abroad if you can’t afford that tbh",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/chinatravel/comments/1v6yq0q/do_you_know_any_free_vpns_for_china/ozu3onu/",
+     "diem": 1
+    },
+    {
+     "cau": "I think one of the best deals is Tello international roaming using pay-as-you-go credits. 1¢/min, 1¢/SMS and 1¢/MB. The call and text prices are great. The data price is equal to $10/GB, which is expensive. Just use a cheap travel eSIM or local SIM for data.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/NoContract/comments/1x1ja3j/international_travel_phone_plans_that_let_you/pevemmo/",
+     "diem": 1
+    },
+    {
+     "cau": "The Canary Islands is Spain. If Spain is listed it will work there, the networks are the same as the mainland. Any of the general European recommendations will work more than well. If you don't already have an esim adapter I would just get a physical SIM on arrival, it will cost €20-30 (if that) for",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/eSIMs/comments/1x0oj9q/reliable_mobile_data_service_for_paris_barcelona/pemr7gg/",
+     "diem": 1
+    },
+    {
+     "cau": "esim for travel cheap",
+     "nguon": "google_goi_y",
+     "url": "https://www.google.com/search?q=esim%20for%20travel%20cheap",
+     "diem": null
+    },
+    {
+     "cau": "international esim price",
+     "nguon": "google_goi_y",
+     "url": "https://www.google.com/search?q=international%20esim%20price",
+     "diem": null
+    }
+   ]
+  },
+  {
+   "id": 19211,
+   "loai": "ai_tinh_huong",
+   "ten": "Đổi máy hoặc mất máy khi đang ở nước ngoài",
+   "mo_ta": "Người dùng bị hỏng, mất điện thoại hoặc cần đổi máy khi đang ở nước ngoài. Họ cần cấp lại hoặc kích hoạt eSIM trên máy mới để giữ kết nối.",
+   "so_nhac": 25,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "International data Am I able to switch my esim on my pixel 9 pro xl to my OnePlus 15 while abroad and still get the international data? Or will it stop and not let me download it",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/GoogleFi/comments/1tcnlix/international_data/",
+     "diem": 6
+    },
+    {
+     "cau": "Upgraded phone using eSIM If I upgrade to an iPhone 17 pro max and trade in my existing iPhone 15 pro max, can I use an eSIM when traveling abroad or is the new phone locked down?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/T_mobile_/comments/1sq8kwv/upgraded_phone_using_esim/",
+     "diem": 3
+    },
+    {
+     "cau": "Why am I getting charged for roaming? I bought an eSIM and I have activated that while I am abroad. I also disabled roaming on my 3 SIM, and now I have got a charge of £5 for roaming abroad. Why?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ThreeUK/comments/1rvmn5z/why_am_i_getting_charged_for_roaming/",
+     "diem": 2
+    },
+    {
+     "cau": "This was an issue for me last year when I dropped my phone on safari. However, last week I needed to switch phones and Tello aakowws me to generate the eSIM online and set up my new phone while abroad. Idk if I got lucky or if they recently changed things.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1vh5s2s/esim_or_physical_sim/p247d1x/",
+     "diem": 2
+    },
+    {
+     "cau": "From all the comments I've seen here, people aren't having a problem replacing an eSIM abroad. Though some people recommend using a VPN when doing. I'm not sure if it's actually actually necessary. Here are a couple of examples. https://www.reddit.com/r/Tello/s/URRkiu92pE https://www.reddit.com/r/Te",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1uzsnem/tello_not_receiving_incoming_calls_outside_the_us/oybkpy4/",
+     "diem": 2
+    },
+    {
+     "cau": "Slightly off topic - does activating an existing line (esim) on a new phone when abroad still work ?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1unu663/tello_esim_outside_the_us_stuck_in_a_catch22/ovpbag4/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 19213,
+   "loai": "ai_tinh_huong",
+   "ten": "Chuyến đi dài ngày, lưu trú lâu",
+   "mo_ta": "Những người có chuyến đi dài 3-4 tuần hoặc lưu trú lâu hạn ở nước ngoài. Họ cần các gói data dung lượng lớn và thời hạn sử dụng dài.",
+   "so_nhac": 23,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "If you’re moving outside of the USA, a physical SIM is less risky as Tello has been cracking down on eSIM activations while abroad. While they seem to allow it for existing customers (just not new ones), a physical SIM means you don’t need to worry about it if things change down the line.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Tello/comments/1vh5s2s/esim_or_physical_sim/p22kk19/",
+     "diem": 3
+    },
+    {
+     "cau": "One question - do you run Dual SIM, either by nano + eSIM or 2 nano SIM (China, Hong Kong, Macao model) ? That may be the cause. I live abroad so I keep my US eSIM on for calls and texts (no data on plan) and my Irish SIM (calls, text, data), but data is always through my Irish carrier. Dual SIM can",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/iPhone12/comments/1wnfkvq/am_i_cooked/pbj371y/",
+     "diem": 1
+    },
+    {
+     "cau": "That's fine if you just want to receive regular calls and texts. It can be problematic if you need to receive 2FA texts from US banks, etc, though, since it's a VOIP number and they're often not supported by these services. Tello seems to be a popular option for people who are moving abroad - it's a",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/MovingToTheUK/comments/1vuluo8/wanting_to_keep_my_us_number_but_not_sure_how/p52643g/",
+     "diem": 1
+    },
+    {
+     "cau": "Hi! For 21 days, it's best to get separate eSIMs for each person with plenty of data or an unlimited plan. Think of a travel eSIM as temporary WiFi: it connects directly to local network providers in your destination for a safe, seamless connection to use WhatsApp, maps, and social media right away.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1wv6nk9/vpn_and_esim_for_traveling_to_china/pekwl6p/",
+     "diem": 1
+    },
+    {
+     "cau": "esim for moving abroad",
+     "nguon": "google_goi_y",
+     "url": "https://www.google.com/search?q=esim%20for%20moving%20abroad",
+     "diem": null
+    },
+    {
+     "cau": "esim for living abroad",
+     "nguon": "google_goi_y",
+     "url": "https://www.google.com/search?q=esim%20for%20living%20abroad",
+     "diem": null
+    }
+   ]
+  }
+ ],
+ "qc": [
+  {
+   "library_id": "1719068575933422",
+   "page_ten": "Lifestyle Discovery Hub",
+   "chu": "ESIMPLEHEALTH.COM Learn more about Bluetooth earbuds for wireless audio listening experience Bluetooth earbuds have transformed audio experiences by offering wireless convenience paired with high-quality sound. As these devices evolve, they now boast features like noise cancellation, extended battery life, and fitness tracking. With a plethora of options available, understanding key feature... See",
+   "ngay": 159,
+   "bat_dau": "2026-05-12",
+   "dang_chay": true
+  },
+  {
+   "library_id": "2123884565125150",
+   "page_ten": "Lifestyle Discovery Hub",
+   "chu": "ESIMPLEHEALTH.COM Learn more about modern phone cases for stylish everyday protection Modern phone cases have transcended their original purpose, evolving into essential fashion statements that blend style with protection. Leading brands like BURGA, Casely, and CASETiFY offer innovative designs that cater to diverse preferences, from eco-friendly materials to luxurious aesthetics. Di... See detail",
+   "ngay": 159,
+   "bat_dau": "2026-05-12",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1005511341961361",
+   "page_ten": "Flourish with Louriz",
+   "chu": "🏨 Agoda Hote Codel: 𝗔𝗚𝗢𝗗𝗔𝗟𝗢𝗨𝗥𝗜𝗭 https://ago-da.co/AGODALOURIZ 🎟️ Agoda Activities: 𝗔𝗚𝗢𝗗𝗔𝗟𝗢𝗨𝗥𝗜𝗭𝗕 🧳 Klook: 𝗞𝗟𝗢𝗢𝗞𝗟𝗢𝗨𝗥𝗜𝗭 https://www.klook.com/en-SG/tetris/promo/lourizann-kreator-shop/?aid=40316&fbclid= 🌍 GetYourGuide: 𝗙𝗟𝗢𝗨𝗥𝗜𝗦𝗛𝗪𝗜𝗧𝗛𝗟𝗢𝗨𝗥𝗜𝗭𝟱 https://gyg.me/zvQcV8Rd 📶 Airalo eSIM: 𝗟𝗢𝗨𝗥𝗜𝗭𝟵𝟮𝟭𝟮 or 𝗟𝗢𝗨𝗥𝗜𝗭 🍜 Booky: 𝗕𝗢𝗢𝗞𝗬𝗟𝗢𝗨𝗥𝗜𝗭 📅 Later.com: 𝗟𝗢𝗨𝗥𝗜𝗭𝗙𝗟𝗬 🌟𝗚𝘂𝗶𝗱𝗲 𝗵𝗼𝘄 𝘁𝗼 𝗿𝗲𝗱𝗲𝗲𝗺 𝗗𝗜𝗦𝗖𝗢𝗨𝗡𝗧 𝗖𝗢𝗗𝗘𝗦 𝗜𝗡 𝗔𝗚𝗢𝗗𝗔, 𝗞𝗟𝗢𝗢𝗞, 𝗚𝗘𝗧𝗚𝗨𝗜𝗗",
+   "ngay": 131,
+   "bat_dau": "2026-06-09",
+   "dang_chay": true
+  },
+  {
+   "library_id": "2445517555960063",
+   "page_ten": "Cupshe",
+   "chu": "The one you've been looking for. Don't let it get away! CUPSHE.COM Roaming River Sporty Back Bralette & Banded Hipster Bikini Set Turn everyday into a getaway with Cupshe 2026. Shop our chic vacation fashion, supportive swimwear & breezy resortwear designed for every body. Feel confident & limitless. Shop Now",
+   "ngay": 118,
+   "bat_dau": "2026-06-22",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1033086939117844",
+   "page_ten": "Montana Tuff Co.",
+   "chu": "🚨 Are you feeding your dog PLASTIC? Most dog chews from Petco & PetSmart are loaded with harmful microplastics — and your dog is swallowing them every single day. 😰 Tuff's Natural Elk Antlers are 100% organic, naturally shed, and sourced from free-roaming elk & moose in America's pristine wilderness. 🦌🇺🇸 ✅ No microplastics. No chemicals. No junk. ✅ Lasts 10X longer than store-bought chews ✅ Safe f",
+   "ngay": 110,
+   "bat_dau": "2026-06-30",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1337397787897562",
+   "page_ten": "Orbit Mobile Travel App",
+   "chu": "Tired of expensive roaming charges? Get a travel eSIM with 20% extra off on top of 40% discount and enjoy seamless data worldwide. No contracts, no hidden fees—just instant connectivity! ITUNES.APPLE.COM ⏳ Extra 20% Off – Offer Ends Soon! Install now",
+   "ngay": 107,
+   "bat_dau": "2026-07-03",
+   "dang_chay": true
+  },
+  {
+   "library_id": "912977311109726",
+   "page_ten": "Living in a Bubble",
+   "chu": "Your favourite magnetic vanlife hacks just got even better. 🧲✨ From flyscreens, window covers, and storage solutions to our NEW Magnetic Projector Screen and Magnetic Sunroof Bug Screen, our magnetic collection keeps growing, so your setup gets easier with every adventure. 🚐 No drilling. No complicated installs. Just snap, stick, and enjoy more time doing what you love. Which magnetic product is a",
+   "ngay": 94,
+   "bat_dau": "2026-07-16",
+   "dang_chay": true
+  },
+  {
+   "library_id": "896809539613365",
+   "page_ten": "Curiosity Scope",
+   "chu": "ESIMPLEHEALTH.COM Learn more about robot vacuum cleaners for automated floor cleaning convenience Robot vacuum cleaners have transformed home cleaning with their automated convenience and advanced features. From self-emptying dustbins to smart navigation systems, these devices cater to diverse cleaning needs. Discover the top features, customization options, and considerations for choosing the r..",
+   "ngay": 90,
+   "bat_dau": "2026-07-20",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1534584475071602",
+   "page_ten": "travelbellaaa with Saily",
+   "chu": "🇪🇺유럽에서 핸드폰 요금 폭탄 맞음! (광고) 📌15% 할인코드: bella ▶️ 프로필 링크에서 Saily 다운로드 링크 확인하세요! 유럽에서 2주 만에 로밍비만 13만 원 나왔어요🥲 (핸드폰 요금 총 24만 원…) 장기 여행할 땐 데이터 비용 부담 되더라고요😶 근데 Saily 이심(eSIM) “무제한 데이터” 사용하면 “라운지 이용권”까지 준다길래 살펴봤더니, 이런게 좋더라고요👇 1️⃣ 여행지 도착하자마자 바로 사용 가능 2️⃣ 여러 국가 여행시 지역 플랜 하나로 끝 3️⃣ 데이터 부족하면 앱에서 바로 충전 가능 4️⃣ 광고 차단으로 데이터 절약 5️⃣ 악성 URL 차단으로 개인정보보호 6️⃣ VPN으로 한국 콘텐츠 감상 가능 ▪️프로 야구, K 리그, 드라마, 영화 등 지금 Saily 앱에 할인코드 b",
+   "ngay": 74,
+   "bat_dau": "2026-08-05",
+   "dang_chay": true
+  },
+  {
+   "library_id": "2276378579863912",
+   "page_ten": "Mike Bates",
+   "chu": "I am offering an extremely rare item Warner Bros. Workingman’s Dead cover, catalog 1869. Autographed by Jerry Garcia, Brent Mydland, Phil Lesh, Bob Weir, Mickey Hart, and Bill Kreutzmann. *****PLEASE NOTE THIS ITEM WAS AUNTHENTICATED BY AUTOGRAPH'S AMERICA. PLEASE SEE, \"Ceterficate Of Aunthenticity\" in photos **** Below are notes from Meta AI&*** I also found a firsthand account specifically menti",
+   "ngay": 62,
+   "bat_dau": "2026-08-17",
+   "dang_chay": true
+  }
+ ]
+}

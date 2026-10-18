@@ -1,0 +1,1185 @@
+{
+ "ngach": "hotel",
+ "sp_id": 179,
+ "nguon": "spy (box3, DB spy: goc / goc_dan / goc_nguon / qc_meta)",
+ "goc": [
+  {
+   "id": 21053,
+   "loai": "ai_mong_muon",
+   "ten": "Tìm chỗ lưu trú giá rẻ tiết kiệm",
+   "mo_ta": "Mong muốn tìm kiếm chỗ lưu trú, vé máy bay giá rẻ nhất nhằm tiết kiệm tối đa chi phí.",
+   "so_nhac": 43,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Is luxury escapes legit? A resort we’d like to book in palm cove is coming up as over $1500 cheaper on luxury escapes than either the hotels website or booking.com. Without that discount the resort is out of our budget so I’d love to book, but it certainly feels too good to be true. Just wanting to ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AustraliaTravel/comments/1vcibqr/is_luxury_escapes_legit/",
+     "diem": 36
+    },
+    {
+     "cau": "If my hotel is cheaper days before checking in compared to booking weeks ago, should I cancel and rebook today if I didn’t pay ahead/free cancelation?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/traveladvice/comments/1va1om9/if_my_hotel_is_cheaper_days_before_checking_in/",
+     "diem": 8
+    },
+    {
+     "cau": "Check the currency used on the booking website, if not that try another online booking agency. I think Google hotels gives you a range of booking agencies, sometimes quite different in price. Same with hotelscombined dot com",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ThailandTourism/comments/1x0sxwd/ao_nang_crazy_hotel_costs/peso68i/",
+     "diem": 1
+    },
+    {
+     "cau": "We had a private pickup. It was super easy and they met us right outside of customs with a name plate. Not thought in navigating anything. The hotel charged 85 euros but when booking directly through them it's 75€. Worth it to me.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ParisTravelGuide/comments/1x17g9i/taxi_or_private_car_from_cdg_to_hotel_near_arche/pet1msp/",
+     "diem": 1
+    },
+    {
+     "cau": "Is Booking.com Classified as 4x Points or Something Else? As title states. Can book through hotel directly if needed but saw [booking.com](http://booking.com) was a little cheaper for the same hotel so curious if anyone has done this or any similar website",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ChaseSapphireReserve/comments/1v4aro8/is_bookingcom_classified_as_4x_points_or/",
+     "diem": 1
+    },
+    {
+     "cau": "Lol, no. Only if its a rubbish venue then Booking.com tries to squeeze the hotel. If its a good hotel they just increase the rate on booking.com to cover the additional fees they suck. If you do see a cheaper rate most hotels will happily match it as they get all the money that way.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JimBrowningOfficial/comments/1wz0d1g/ive_been_scammed_by_a_hotel_with_help_from/pevp19y/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21054,
+   "loai": "ai_phan_doi",
+   "ten": "Lừa đảo và phishing giả mạo khách sạn",
+   "mo_ta": "Khách hoang mang trước các tin nhắn lừa đảo, giả mạo khách sạn gửi qua WhatsApp, Email yêu cầu thanh toán. Nội dung QC cần thông báo các kênh thanh toán chính thức an toàn.",
+   "so_nhac": 34,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Is luxury escapes legit? A resort we’d like to book in palm cove is coming up as over $1500 cheaper on luxury escapes than either the hotels website or booking.com. Without that discount the resort is out of our budget so I’d love to book, but it certainly feels too good to be true. Just wanting to ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AustraliaTravel/comments/1vcibqr/is_luxury_escapes_legit/",
+     "diem": 36
+    },
+    {
+     "cau": "Make sure you book real, formal hotels. There are so many informal or fake \"hotels\" on Booking and Airbnb.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/rome/comments/1x07vln/hotel_scam_warning_to_other_travelers/pek1ugp/",
+     "diem": 1
+    },
+    {
+     "cau": "same here. However, had the same issue booking in another city. The date breach happens to Booking or hotel like yours?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wxyj73/bookingcom_has_been_hacked_again/pesy9ae/",
+     "diem": 1
+    },
+    {
+     "cau": "I booked a hotel on booking.com yesterday and right away received an email to not answer any Whatsapp messages asking for $$$ as there was a security breach.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1wzxbs6/bookingcom_may_have_had_a_breach/pegvje9/",
+     "diem": 1
+    },
+    {
+     "cau": "What about booking hotels in gozayaan? Actually, I'm very much concerned about the security issue. I've checked some eco resorts but I heard that these isolated ecoresorts are not that much safe especially when you are with your wife.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Dhaka/comments/1wzydx7/coxs_bazar_room_booking_guidelines/pemifi3/",
+     "diem": 1
+    },
+    {
+     "cau": "I've just been contacted on WhatsApp by PicPay, asking me to click on a link. The message looked very realistic, but the message was from Brazil instead of UK. I rang the hotel and they said its a booking.com hack and they've had 4 calls already today from clients about this.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1w61hjo/bookingcom_phishing_with_exact_reservation/pevo3tp/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21055,
+   "loai": "ai_phan_doi",
+   "ten": "Hỗ trợ kém và chính sách OTA cứng nhắc",
+   "mo_ta": "Khách hàng gặp khó khăn do dịch vụ chăm sóc khách hàng của OTA kém, chính sách cứng nhắc và đùn đẩy trách nhiệm. Nội dung QC cần cam kết hỗ trợ 24/7 trực tiếp và linh hoạt.",
+   "so_nhac": 33,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "It’s good to call in a case like this. Hotels allocate a block of rooms to online booking sites and can have unsold rooms even when online shows sold out.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/saskatoon/comments/1wr2a4s/events_oct_7/pc9exe6/",
+     "diem": 1
+    },
+    {
+     "cau": "This is true for almost everything in life. Try dealing with CS if you book an airline or hotel through sites like [booking.com](http://booking.com) or hotels.com. Horrible.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ATT/comments/1wg9z51/upgrade_through_costco_or_go_online_with_att/p9svvax/",
+     "diem": 1
+    },
+    {
+     "cau": "No, the point of booking direct with the hotel is not having to deal with BS like AI or call centers in India. You speak to a person at the hotel, or someone that's actually heard of the hotel. Hotels are meant to be personal, turning everything AI defeats the purpose.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/askhotels/comments/1x14tde/hotel_owners_are_you_thinking_about_customers/peqwh9f/",
+     "diem": 1
+    },
+    {
+     "cau": "I’m not saying the five defenders on here work for Booking, but here’s two ways they sure are similar: 1. Nobody has their stories straight. They just say nonsense until you hopefully move on from it. 2. They pass the buck. To you, the hotel, other third parties - but oh, never dear Booking.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1x06skl/73_days_without_my_refund_im_not_just_disappointed/peicvel/",
+     "diem": 1
+    },
+    {
+     "cau": "I use a booking site, like booking to see what is in the area, but I normally go directly to the hotel website to make the reservation. Booking doesn't really save me money, and if there are issues, the hotel can handle problems if they are the ones who control the reservation. I don't want to be de",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wxasgt/we_know_bookingscam_is_awful_now_what_is_the_good/pdtit9h/",
+     "diem": 1
+    },
+    {
+     "cau": "They can cause issues, especially some of the shader sites, but the bigger ones like expedia/priceline are generally fine. Sometimes for sold out/near sold out hotels, they can be slower to update than direct booking. So if youre ever looking direct and it shows sold out, but then shows up on a thir",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1wu6n4w/stay_far_far_away_from_priceline/pd1r9xm/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21056,
+   "loai": "ai_phan_doi",
+   "ten": "Giá phòng quá đắt đỏ",
+   "mo_ta": "Khách cảm thấy giá phòng quá đắt đỏ, đặc biệt vào những dịp cao điểm hoặc trên các nền tảng lớn. Nội dung QC cần đưa ra deal tốt, giá cạnh tranh.",
+   "so_nhac": 32,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Valencia Hotel in Cullera Due to the high prices for accommodations in the city I'm thinking of booking a hotel package through the marathon site which includes transfer to and from the race. Has anyone had experience with this? Is it a reliable option?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Marathon_Training/comments/1v72dlt/valencia_hotel_in_cullera/",
+     "diem": 4
+    },
+    {
+     "cau": "Booking a Hotel in Nikko vs Making it a Day Trip I am booking my last two hotels of my first Japan trip. I really wanted to see Nikko for their UNESCO sites, but after looking at hotels, the prices are double or even triple what some hotels cost in Tokyo. I was wondering if it would be an good idea ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1va9vgy/booking_a_hotel_in_nikko_vs_making_it_a_day_trip/",
+     "diem": 4
+    },
+    {
+     "cau": "Is booking a hotel too expensive for you? I'm assuming you're here on holiday?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/malta/comments/1x15z1p/arriving_in_malta_latenight/per5lqo/",
+     "diem": 1
+    },
+    {
+     "cau": "Look up hotel prices on booking sites. Half the people in Korea live in Seoul and travel that weekend, so most places wjll be more expensive,",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/koreatravel/comments/1wivvq1/cheaper_cities_to_visit_during_chuseok_holidays/pae414i/",
+     "diem": 1
+    },
+    {
+     "cau": "As someone else mentioned, all hotels will require a rooms block if you are booking >6 months out. That won’t increase the price for you, but depending on the hotel, it could get very expensive for your guests.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/bermuda/comments/1x11jva/bermuda_wedding_recommendations/peqsm7u/",
+     "diem": 1
+    },
+    {
+     "cau": "My parents are coming to Vic for Christmas, he was looking for an Airbnb downtown (where I live) and the cheapest one for 6 nights was $2200, I ended up booking a room and the Rialto hotel for $1100, fuck Airbnb",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/VictoriaBC/comments/1x041k6/forever_renters/pehjiws/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21057,
+   "loai": "ai_mong_muon",
+   "ten": "Tích lũy đổi điểm lấy phòng giá rẻ",
+   "mo_ta": "Tận dụng điểm thưởng, thẻ tín dụng và thẻ thành viên để quy đổi lấy phòng ở giá rẻ.",
+   "so_nhac": 29,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Get a usbank altitude card, no AF, easy 4 points per dollar on hotel website booking",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AmexPlatinum/comments/1x0axdf/psa_amex_travel_will_refund_the_difference_if_you/peldsoy/",
+     "diem": 1
+    },
+    {
+     "cau": "You get points through AMEX travel. You do not get points booking directly with the hotel.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AmexPlatinum/comments/1x0axdf/psa_amex_travel_will_refund_the_difference_if_you/pekqh3c/",
+     "diem": 1
+    },
+    {
+     "cau": "The Bilt hotel credit is better than Amex’s FHR and Chase’s The Edit because you can use it in any hotel when booking on Bilt",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/biltrewards/comments/1x0onhy/2000_in_value/pen6ut9/",
+     "diem": 1
+    },
+    {
+     "cau": "I have a niche use of the journey. 5x multiplier on hotel booking transfer 1:2 to choice or Wyndham. It is surprisingly good value especially for wyndham",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/CreditCards/comments/1x1bj6o/autograph_vs_autograph_journey_which_to_choose/petk93c/",
+     "diem": 1
+    },
+    {
+     "cau": "When booking a hotel with points. It was a no brainer to book a hotel at 6K points on the budget end -20K points. You just can’t get that with Hilton/ Marriott",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/biltrewards/comments/1x0nxz0/unpopular_opinion_the_hyatt_43_move_says_more/pem98xk/",
+     "diem": 1
+    },
+    {
+     "cau": "Exactly I’ve double dipped on this card quite a lot. Used it for lots of ICICI instant discount offers and got 1% MMT points and used them for free hotel bookings.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/CreditCardsIndia/comments/1x1jh27/makemytrip_icici_big_changes/peu47u3/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21058,
+   "loai": "ai_phan_doi",
+   "ten": "Phụ phí và phí ẩn bất ngờ",
+   "mo_ta": "Khách hàng bức xúc vì phải trả thêm các khoản phụ phí, thuế hoặc phí ẩn mà lúc đặt không thấy. Nội dung QC cần nhấn mạnh tính minh bạch, 'giá cuối cùng' không phụ phí.",
+   "so_nhac": 27,
+   "so_qc": 1,
+   "bat_ngo": false,
+   "cau": [
+    {
+     "cau": "I had a hotel booking site ask for tip after they added all their fees to my trip...",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Xennials/comments/1wqqkud/im_tipped_out/pc73vm0/",
+     "diem": 1
+    },
+    {
+     "cau": "Yep booked ITC, Lemon tree etc via MMT and similar sites. Always read the fine print properly and check with hotel once booking is done.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/kolkata/comments/1wrow6h/has_anyone_ever_booked_the_park_through_makemytrip/pced2w2/",
+     "diem": 1
+    },
+    {
+     "cau": "its a newish hotel booking site... I like it cause unlike agoda, mmt etc, what you see on pg1 is what you pay, no surprise fees or random taxes added at checkout",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/CreditCardsIndia/comments/1we6xpp/suggest_credit_cards_for_travel_discounts/pbre6ue/",
+     "diem": 1
+    },
+    {
+     "cau": "Not really a \"scam\" but it is deceptive, like when you look up a hotel availability and the first link is a booking site that charges you to do the booking for you, as opposed to the actual hotel.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Scams/comments/1x1rajn/passport_scam_how_bad_is_this/pew4hui/",
+     "diem": 1
+    },
+    {
+     "cau": "A hotel might be on the lower end of the range, but booking cheaper experiences would have fees on th higher end. This is for rich-ass people who just want the easy-button experience and don't care",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/explainlikeimfive/comments/1weh8v7/eli5how_does_a_travel_agent_get_paid_are_there/p9g7xmq/",
+     "diem": 1
+    },
+    {
+     "cau": "This annoyed me so much, I actively started looking for alternatives and found this hotel booking site. The price you see on page 1 is what you pay, no mental gymnastics of adding per night cost and the gst and fees etc.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ThirtiesIndia/comments/1wkl88s/hotel_booking_platforms_are_ragebaiting_us/parxrmw/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21059,
+   "loai": "ai_tinh_huong",
+   "ten": "Đặt phòng phút chót, đi nghỉ ngắn ngày",
+   "mo_ta": "Khách quyết định đi chơi cuối tuần hoặc đi ngắn ngày sát giờ khởi hành. Cần gợi ý các deal phút chót giá hời, thủ tục nhanh chóng.",
+   "so_nhac": 26,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "For a single night is recommend booking an off-site hotel that is on or right next to a shuttle route stop.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/dragoncon/comments/1wdv2k8/hotel_indigo_questions/pagi7of/",
+     "diem": 1
+    },
+    {
+     "cau": "This, I’d definitely look into the towns you are stopping in. I typically don’t book in advance for travel days on my roadtrips. I either plan on stopping at a friends place or booking a cheap hotel day of.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/roadtrip/comments/1wzotx3/advice_on_driving_from_arizona_to_new_jersey_in/pefzewb/",
+     "diem": 1
+    },
+    {
+     "cau": "Look into booking hotel rooms through the Southwest website. Maybe a short staycation here and there. But look for the rooms with the bonus points. You can hit 20k pretty quickly, and much cheaper than flights.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/SouthwestAirlines/comments/1wmgkuz/need_20k_companion_pass_miles/pb6qni2/",
+     "diem": 1
+    },
+    {
+     "cau": "Priceline and other hotel booking sites also do great discounts for 1-2 night stays the week of. Airbnb can be hit and miss, found some great discounts before but the flat rate cleaning fees are rough for the shorter stays.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/COsnow/comments/1wg4y0t/loveland_pass_trip/p9rv2q2/",
+     "diem": 1
+    },
+    {
+     "cau": "The really good last-minute deals seem to be much more about flexibility than a specific website. I’d keep an eye on package deals and unsold hotel inventory, but always compare the bundle against booking the flight and hotel separately. Sometimes the deal isn’t actually much cheaper",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Shoestring/comments/1wa12d3/any_recs_for_websites_that_do_reliable_lastminute/pal9c7c/",
+     "diem": 1
+    },
+    {
+     "cau": "Yep, this is it. Booking brand name hotels that rarely discount in third-party channels (due to brands’s own best price guarantees) is a good use of Bilt cash in the portal. But you’ll always find last-minute deals on Trip.com, Agoda, Super, Vio, and similar sites that you won’t find on Bilt, Chase,",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/biltrewards/comments/1wjhuzr/hotel_price_markup/pak1ufu/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21062,
+   "loai": "ai_phan_doi",
+   "ten": "Giá OTA cao hơn đặt trực tiếp",
+   "mo_ta": "Khách phát hiện giá trên các OTA (như Booking, Agoda) bị đội lên so với giá đặt trực tiếp tại khách sạn. Nội dung QC nên khuyến khích đặt trực tiếp để có giá tốt nhất.",
+   "so_nhac": 24,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "The prices are higher when booking edit hotels vs from other sites. I’ve only been able to use the credits in Asia",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ChaseSapphire/comments/1weegs3/the_edit_credit_is_absolutely_garbage/p9hosl1/",
+     "diem": 1
+    },
+    {
+     "cau": "Calling a hotel and asking to book direct for the same rate offered on third party booking sites. Never works now. They just tell you to book through the third party if you want that rate.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AskReddit/comments/1wz44oh/whats_a_life_hack_that_used_to_work_but_is/pe89f9i/",
+     "diem": 1
+    },
+    {
+     "cau": "I used it once when the hotel I was booking for work was actually cheaper than online. It was fine, but like most have said, check the prices, every once in awhile you'll find a better deal than online but it's not common.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AtlasEarthOfficial/comments/1x10hgo/atlas_travel/pexebdx/",
+     "diem": 1
+    },
+    {
+     "cau": "It's more expensive to use Atlas Travel. When booking hotel rooms I've always been able to find the same room anywhere from $20 to $50 a night cheaper going through hotels.com or some other booking site. Not worth the AB.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AtlasEarthOfficial/comments/1x10hgo/atlas_travel/peqktmb/",
+     "diem": 1
+    },
+    {
+     "cau": "I have used it 3x, twice I got an upgrade. Always got the early check in and late check out, both breakfast credit and $100 hotel credit to spent for the parking and bar table. I guess I got lucky and the price was only 50$ more per night than booking directly from the hotel or other sites.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AmexPlatinum/comments/1wyv4u7/amex_travel_is_atrocious/pexr8d8/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21061,
+   "loai": "ai_phan_doi",
+   "ten": "Khách sạn không nhận được xác nhận từ OTA",
+   "mo_ta": "Khách hàng bị khách sạn từ chối vì không tìm thấy mã đặt phòng trên hệ thống, dù đã thanh toán qua OTA. Nội dung QC cần cam kết hệ thống kết nối trực tiếp, xác nhận tức thì.",
+   "so_nhac": 24,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Hotel bookings can take a little longer to show as pending I’d give it another day or two",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Rakuten/comments/1x0cisp/question_regarding_pending/peppun7/",
+     "diem": 1
+    },
+    {
+     "cau": "Don’t listen to the horse sh!t people are posting here. Booking.com is fine. If you’re worried confirm with the hotel after making the booking. Better rates don’t exist, people are lying.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1x1sbxj/how_should_i_use_bookingcom/pewpx84/",
+     "diem": 1
+    },
+    {
+     "cau": "Hilton Berlin on booking.com: 307 euros Direct: 286 euros You’re talking out of your ass. Of course hotels offer cheaper prices direct because they don’t have to pay 20% of your nightly fee to booking.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wyymjw/ive_booked_an_apartment_in_milan_is_this_a_scam/petkk33/",
+     "diem": 1
+    },
+    {
+     "cau": "Still confusing. Are you saying you booked a hotel through a third party site, and the hotel never got that booking? Did you contact the third party booking site first? What documentation did you provide to Goldman Sachs?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AppleCard/comments/1wwa6tl/dispute/pdje8q8/",
+     "diem": 1
+    },
+    {
+     "cau": "Heard a story like a month ago about someone booking a hotel with a 3rd party site and the hotel telling them they had no reservation although payment was taken from them by the hotel and booking. The savings of the universal ticket would be $14. Do with that as you may.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/UniversalHollywood/comments/1wz3fwx/has_anyone_bought_tickets_through_bookingcom/pe87rwn/",
+     "diem": 1
+    },
+    {
+     "cau": "no they won't allow. idk why , but hotels and booking sites don't have seamless communication. I have been denied my normal mmt booking after reaching the hotel due to wedding taking place( they did refund and compensated tho ) . So obviously this is a much bigger event .",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/indianrealestate/comments/1wdihlg/hotel_rooms_are_costing_as_much_as_your_apartment/p96oqcl/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21060,
+   "loai": "ai_phan_doi",
+   "ten": "Chính sách không hoàn tiền và sợ mất phí hủy",
+   "mo_ta": "Khách sợ bị mất tiền nếu phải hủy chuyến vì chính sách không hoàn tiền hoặc phí hủy quá phức tạp. Nội dung QC cần nêu rõ khả năng hủy linh hoạt và miễn phí hủy.",
+   "so_nhac": 24,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "third party booking sites suck ass if you can book directly with the place. i tried to book a hotel with [booking.com](http://booking.com), i went to the place directly and cancelled but [booking.com](http://booking.com) wouldn't give me back my money for weeks so i disputed the transaction. eventua",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hostels/comments/1wo4q9p/hostelworld_sent_all_my_debit_card_info_to_an/pbmpbbo/",
+     "diem": 2
+    },
+    {
+     "cau": "Literally said I CAN MOVE MY TRAVEL DATES. My travel is flexible. I’m just concerned about the hotel booking that becomes nonrefundable.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/travel/comments/1wzmtxi/ireland_irish_touristvisit_visa_london_office_any/peiqh5v/",
+     "diem": 1
+    },
+    {
+     "cau": "I used a similar trick to cancel a hotel booking. Pre-paid and can't cancel within 24 hours? No problem, let's change the date to November. Hang up and call back, I'd like to cancel my November booking.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/technology/comments/1x0ow0f/software_is_over_developer_uses_ai_to_build_free/pemwjqs/",
+     "diem": 1
+    },
+    {
+     "cau": "As someone else mentioned, all hotels will require a rooms block if you are booking >6 months out. That won’t increase the price for you, but depending on the hotel, it could get very expensive for your guests.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/bermuda/comments/1x11jva/bermuda_wedding_recommendations/peqsm7u/",
+     "diem": 1
+    },
+    {
+     "cau": "My hotel canceled on me because of natural disaster and I still haven’t gotten any refund, but in the case of OP, StayForLong states “In cases of force majeure (such as hotel closures or natural disasters), customers will receive a full refund if the booking cannot be used.”",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1wy6g2s/stayforlong_negligence_mishandeling_cancellation/pegmyg3/",
+     "diem": 1
+    },
+    {
+     "cau": "They never discussed wedding plans with me or my family. The soonest I heard about the wedding was when they already chose the date. I did have a hotel and plane ticket booked as well as some other activities. I got most of my money back (some reservations were non-refundable but I did get my plane ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AmIOverreacting/comments/1x1m4sx/aio_for_feeling_sad_that_my_brother_picked_his/peux4b8/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21063,
+   "loai": "ai_chan_dung",
+   "ten": "Gia đình đi du lịch",
+   "mo_ta": "Những gia đình có con cái hoặc gia đình đa thế hệ đi du lịch cùng nhau. QC có thể tập trung vào tiện ích phù hợp cho trẻ em, không gian rộng rãi và các dịch vụ thân thiện với gia đình.",
+   "so_nhac": 22,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Here’s the plan honey. I’m booking a suite at the hotel, starting tomorrow. When mom gets here she will stay at the hotel with me. I’ll come back once your cousin leaves.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AITApod/comments/1x0pc83/aita_for_telling_my_husbands_cousin_she_has_to/perk7ck/",
+     "diem": 1
+    },
+    {
+     "cau": "My parents are coming to Vic for Christmas, he was looking for an Airbnb downtown (where I live) and the cheapest one for 6 nights was $2200, I ended up booking a room and the Rialto hotel for $1100, fuck Airbnb",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/VictoriaBC/comments/1x041k6/forever_renters/pehjiws/",
+     "diem": 1
+    },
+    {
+     "cau": "Hotels or bed and breakfasts? Planning a 7-10 trip hitting Dublin, Cork and Galway. Avg 2-3 nights per city. What are the best lodging options for a family of 5? Do most people do hotels or are there better options using local sites for booking bed and breakfast?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/irishtourism/comments/1v22ypb/hotels_or_bed_and_breakfasts/",
+     "diem": 1
+    },
+    {
+     "cau": "[Booking.com](http://Booking.com) verified the price from Klook for the same hotel, dates, room type and four adults and actually approved the price match request before the stay, however after the stay, [Booking.com](http://Booking.com) declined the approved price match.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wz2aq4/bookingcom_reduced_my_approved_pricematch_credit/peiwy3n/",
+     "diem": 1
+    },
+    {
+     "cau": "Hyatt Ziva Puerto Vallarta Has anyone stayed there recently and how was your stay? Do you have kids? Did they use the kids club? Any other details are great! I can only find year old posts on Reddit. I am pretty set on booking this hotel but only know of people who have stayed at Hyatt Ziva in Cabo ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hyatt/comments/1w1zo1x/hyatt_ziva_puerto_vallarta/",
+     "diem": 1
+    },
+    {
+     "cau": "What hotel to stay in 🙈 Looking at booking Disney next Jan, we went back in Jan this year and stayed off site. We are looking at Cheyenne or Newport bay also eyeing up marvel as well but my kids aren't really fussed about marvel. Looking to find out people's thoughts of the hotels i'm leaning toward",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/disneylandparis/comments/1wlaw60/what_hotel_to_stay_in/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21064,
+   "loai": "ai_chan_dung",
+   "ten": "Người đi Tokyo và Nhật Bản lần đầu hoặc tự túc",
+   "mo_ta": "Những người lên kế hoạch chuyến đi Nhật, gồm chuyến đầu tiên, chuyến tháng 12 hay tháng 3 năm 2027, muốn chọn đúng khu (Shibuya, Shinjuku) và đặt sớm. QC nên nhấn mạnh gợi ý khu lưu trú và đặt phòng trước dễ dàng.",
+   "so_nhac": 19,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Booking a Hotel in Nikko vs Making it a Day Trip I am booking my last two hotels of my first Japan trip. I really wanted to see Nikko for their UNESCO sites, but after looking at hotels, the prices are double or even triple what some hotels cost in Tokyo. I was wondering if it would be an good idea ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1va9vgy/booking_a_hotel_in_nikko_vs_making_it_a_day_trip/",
+     "diem": 4
+    },
+    {
+     "cau": "Yes, I have noticed for many of my advance hotel bookings, when I check back later I don’t find anything cheaper or better value. This applies for Japan (multiple trips) as well as my current trip in the Caucasus",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1wephze/how_to_get_the_best_hotel_prices/p9hkx95/",
+     "diem": 1
+    },
+    {
+     "cau": "Also note that Japanese hotels usually open booking window only 3 months before. The prices you see now for December might be only the very expensive hotels who you book via booking etc. I usually have a japanese book hotels for me, it is much cheaper.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1we0hux/17night_solo_japan_trip_am_i_spending_too_much_on/p9bf56f/",
+     "diem": 1
+    },
+    {
+     "cau": "Rates change day to day too, it might be an overall cheap hotel, but one or two of the dates can be 3-4x the normal rate driving the cost up. Depending on where you are booking you should be able to get a specified receipt showing what you are paying each day.  Booking a hotel in one area then swapp",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/JapanTravelTips/comments/1we0hux/17night_solo_japan_trip_am_i_spending_too_much_on/p9af660/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21065,
+   "loai": "ai_tinh_huong",
+   "ten": "Đi sự kiện, concert, lễ hội",
+   "mo_ta": "Khách đi dự sự kiện lớn, concert, lễ hội cần khách sạn gần địa điểm tổ chức. Nhấn mạnh sự thuận tiện tiếp cận sự kiện và nên đặt sớm.",
+   "so_nhac": 17,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Hotels for the LA games When do hotels start opening up bookings? 1 year in advance? Is there a way to early book through any hospitality site?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/olympics/comments/1vw8non/hotels_for_the_la_games/",
+     "diem": 1
+    },
+    {
+     "cau": "It’s good to call in a case like this. Hotels allocate a block of rooms to online booking sites and can have unsold rooms even when online shows sold out.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/saskatoon/comments/1wr2a4s/events_oct_7/pc9exe6/",
+     "diem": 1
+    },
+    {
+     "cau": "I’m under the impression that the entire value proposition of a hotel is that they won’t cancel your booking. Airbnb owners do that, especially in Coachella Valley. I haven’t heard or seen a hotel booking flop yet.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/electricdaisycarnival/comments/1x15ug6/strat_hotel_question_will_they_cancel_my/perkqzs/",
+     "diem": 1
+    },
+    {
+     "cau": "no they won't allow. idk why , but hotels and booking sites don't have seamless communication. I have been denied my normal mmt booking after reaching the hotel due to wedding taking place( they did refund and compensated tho ) . So obviously this is a much bigger event .",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/indianrealestate/comments/1wdihlg/hotel_rooms_are_costing_as_much_as_your_apartment/p96oqcl/",
+     "diem": 1
+    },
+    {
+     "cau": "They can cause issues, especially some of the shader sites, but the bigger ones like expedia/priceline are generally fine. Sometimes for sold out/near sold out hotels, they can be slower to update than direct booking. So if youre ever looking direct and it shows sold out, but then shows up on a thir",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1wu6n4w/stay_far_far_away_from_priceline/pd1r9xm/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21067,
+   "loai": "ai_phan_doi",
+   "ten": "Sợ khách sạn ảo và trang web giả mạo",
+   "mo_ta": "Khách sợ gặp phải các khách sạn ma, listing giả mạo hoặc trang web lừa đảo để chiếm đoạt tiền. Nội dung QC cần chứng nhận uy tín, đánh giá thật và thanh toán an toàn.",
+   "so_nhac": 16,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Baware of fake online sites for puri hotel booking. Book from reputed travel website only",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Odisha/comments/1wtyv6c/has_anyone_stayed_at_puri_hotel_near_golden_beach/pd01cmv/",
+     "diem": 1
+    },
+    {
+     "cau": "Acontece quando ele tem o anúncio em varios sites. Apenas nao pague nada fora do site booking ou pessoalmente no hotel.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/viagens/comments/1wyb8x2/booking/pe2zfx8/",
+     "diem": 1
+    },
+    {
+     "cau": "Hi, for hotels (and flighths) you have already cheaper options than booking here: vaisalerno.hotel.eu For the intinerary advises, I will suggest in next chat ;)",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/amalficoast/comments/1weqv17/1_hotel_or_2/p9i9ras/",
+     "diem": 1
+    },
+    {
+     "cau": "Trippybid Recently coming across a site called Trippybid for monitoring and booking hotels at the lowest price. Has anyone had any experience with it being legitimate?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/asktravel/comments/1w8rf2p/trippybid/",
+     "diem": 1
+    },
+    {
+     "cau": "Scam, the same happened to my wife, reported it to booking and they removed the hotel from the site, offered to pay the difference for a different stay. This happened in Rome for a proper hotel, not even a private host.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wwz9a2/private_host_in_croatia_asking_me_for_100_bank/pdps51h/",
+     "diem": 1
+    },
+    {
+     "cau": "Has anyone used Trippybid Recently coming across a site called Trippybid for monitoring and booking hotels at the lowest price. Has anyone had any experience with it being legitimate? Been trying to find any posts, just about anything about it but have come up with nothing.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1w9ks0y/has_anyone_used_trippybid/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21068,
+   "loai": "ai_chan_dung",
+   "ten": "Khách công tác",
+   "mo_ta": "Doanh nhân hoặc nhân viên công ty thường xuyên di chuyển vì công việc hoặc tham dự hội nghị. QC có thể làm nổi bật sự tiện nghi, tốc độ, vị trí gần các trung tâm kinh doanh và các ưu đãi cho khách thân thiết.",
+   "so_nhac": 16,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "It is in their language that you may not be reimbursed if you book your own hotel without prior written authorization. This is in place likely because of people like this booking a $500 hotel.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/americanairlines/comments/1x0tt3d/refusal_to_refund_hotel/peo7onx/",
+     "diem": 1
+    },
+    {
+     "cau": "I used it once when the hotel I was booking for work was actually cheaper than online. It was fine, but like most have said, check the prices, every once in awhile you'll find a better deal than online but it's not common.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AtlasEarthOfficial/comments/1x10hgo/atlas_travel/pexebdx/",
+     "diem": 1
+    },
+    {
+     "cau": "Have your company chat with your Oracle rep, they can often get you complimentary passes though this is going to depend on the level of involvement you have with both Oracle and the rep. If you get to this a bit more timely in the future there are also hotel discounts available through block booking",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/oracle/comments/1wzmvuj/does_anyone_know_the_best_way_to_get_an_ai_world/pevfd3q/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21069,
+   "loai": "ai_mong_muon",
+   "ten": "So sánh, theo dõi và săn giá thấp nhất",
+   "mo_ta": "Người dùng luôn so sánh giá giữa nhiều bên, cài đặt cảnh báo giảm giá và yêu cầu khớp giá (price match) để chắc chắn mua được rẻ nhất. QC cam kết giá tốt nhất, hoàn tiền nếu tìm thấy giá rẻ hơn.",
+   "so_nhac": 16,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "$100 annual credit is solid. Just find the hotel or flight you want on another better made site first and then compare prices before booking",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ChaseSapphire/comments/1wazdk9/chase_keeps_pushing_cspcsr_users_into_chase/p8mgjwn/",
+     "diem": 1
+    },
+    {
+     "cau": "Trippybid Recently coming across a site called Trippybid for monitoring and booking hotels at the lowest price. Has anyone had any experience with it being legitimate?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/asktravel/comments/1w8rf2p/trippybid/",
+     "diem": 1
+    },
+    {
+     "cau": "I use it for collating data. Like. If im looking at hotels, I can ctrl A and copy loke booking.com trip.com pagoda etc and paste into gpt and it'll find where the cheapest places to book hotels and find any stand out deals.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/randomquestions/comments/1wav0y2/how_many_people_actually_use_chatgpt_day_to_day/p8mh84i/",
+     "diem": 1
+    },
+    {
+     "cau": "Has anyone used Trippybid Recently coming across a site called Trippybid for monitoring and booking hotels at the lowest price. Has anyone had any experience with it being legitimate? Been trying to find any posts, just about anything about it but have come up with nothing.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1w9ks0y/has_anyone_used_trippybid/",
+     "diem": 1
+    },
+    {
+     "cau": "I never had a problem booking international flights, hotels through the portal. I always call afterwards to price match to the best deal I found. I had an issue with one way car rental where the destination fee what not included and not disclosed. The portal price looked cheaper tha",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Venturex/comments/1wuu4lv/how_has_booking_flights_hotels_on_capitol_one/pd88c6h/",
+     "diem": 1
+    },
+    {
+     "cau": "depends what you mean by \"affordable\". get yourself on [booking.com](http://booking.com) and start searching! Also check Premier Inn and Travelodge which are good budget hotel chains but they don't feature on the booking search engine sites. If you're on a really tight budget then try YHA hostels, s",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/TravelUK/comments/1wocb43/need_help_im_planning_a_trip_to_uk_for_7_days_in/pbxw1mr/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21066,
+   "loai": "ai_phan_doi",
+   "ten": "Khách sạn từ chối hoặc hết phòng khi đến nơi",
+   "mo_ta": "Khách sạn báo hết phòng hoặc không giữ phòng khi khách tới nơi dù đã đặt qua bên thứ ba (overbooking). Nội dung QC cần cam kết đảm bảo có phòng khi đã xác nhận.",
+   "so_nhac": 16,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Stop using 3rd party booking sites and book direct with a known hotel chain’s official website.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wbxrme/is_this_normal_for_miami_hotels_or_are_we_being/p9viwoz/",
+     "diem": 1
+    },
+    {
+     "cau": "Unfortunately, you didn’t really learn the true lesson Quit booking through third-party travel sites book directly with the travel provider, the hotel, the airplane airline, etc.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hotels/comments/1wfte9g/trivago_horror_story/pa1y7ok/",
+     "diem": 1
+    },
+    {
+     "cau": "95% be fine. If you're worried call the hotel to make sure your booking is in their system. Most of the issues with 3rd party is when hotels are over booked but in Vegas and especially large properties that's not really an issue.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/electricdaisycarnival/comments/1x15ug6/strat_hotel_question_will_they_cancel_my/pernd90/",
+     "diem": 1
+    },
+    {
+     "cau": "I’ve never done it but every year I see horror stories from people finding out they don’t have a room after booking through those types of sites. You should definitely confirm the booking with the hotel directly, or have backup plans.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/dragoncon/comments/1x0cls5/hotel_booking/pejk40e/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21070,
+   "loai": "ai_chan_dung",
+   "ten": "Cặp đôi đi nghỉ lãng mạn",
+   "mo_ta": "Các cặp đôi đi nghỉ dưỡng lãng mạn hoặc cần không gian riêng tư.",
+   "so_nhac": 14,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Risk of booking a new hotel. Wouldn’t have done it for a honeymoon.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/hyatt/comments/1wzzn13/thompson_rome_hotel_opening_pushback/peg89wk/",
+     "diem": 1
+    },
+    {
+     "cau": "hotel booking app for couples",
+     "nguon": "google_goi_y",
+     "url": "https://www.google.com/search?q=hotel%20booking%20app%20for%20couples",
+     "diem": null
+    },
+    {
+     "cau": "hotel booking app for unmarried couples",
+     "nguon": "google_goi_y",
+     "url": "https://www.google.com/search?q=hotel%20booking%20app%20for%20unmarried%20couples",
+     "diem": null
+    }
+   ]
+  },
+  {
+   "id": 21071,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch châu Âu",
+   "mo_ta": "Khách du lịch lên kế hoạch cho chuyến đi đến các nước châu Âu. Quảng cáo nên hiển thị đa dạng lựa chọn chỗ ở tại các thành phố lớn ở châu Âu.",
+   "so_nhac": 14,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Valencia Hotel in Cullera Due to the high prices for accommodations in the city I'm thinking of booking a hotel package through the marathon site which includes transfer to and from the race. Has anyone had experience with this? Is it a reliable option?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Marathon_Training/comments/1v72dlt/valencia_hotel_in_cullera/",
+     "diem": 4
+    },
+    {
+     "cau": "Is this site legit for booking a hotel for Valencia?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Marathon_Training/comments/1vsol4o/is_this_site_legit_for_booking_a_hotel_for/",
+     "diem": 1
+    },
+    {
+     "cau": "I use them almost exclusively when i go to Paris. You can always call the hotel and ask to confirm the booking. Google their name and number (so you’re getting it from a source other than the booking.com site) and just say you made a booking through booking.com and you want to confirm that they have",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ParisTravelGuide/comments/1wt4csi/how_reliable_is_bookingcom_for_getting_a_hotel/pcrzgn3/",
+     "diem": 1
+    },
+    {
+     "cau": "Só abre o olho com hotel barato pois Roma tem muito golpe de hospedagem com o booking, você chega la no local e não existe hotel nenhum, antes de reservar vai no google maps, pesquisa a localização do hotel, olha como é a rua ao redor, veja se o hotel realmente existe e tudo mais. Além disso sempre ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/viagens/comments/1wdzlcw/hoteis_em_roma/p9ci4wh/",
+     "diem": 1
+    },
+    {
+     "cau": "We just had that happen too for a place on italy. We booked directly with the hotel so when the whatsapp took me to the booking.com site to enter a cc, I figured it was scam. It appears to be common so if you do receive this and you did book through booking.com, check the app first to see if the sam",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/rome/comments/1w7l89y/very_likely_hotel_scam_babuino_181_rome/p8eeuwh/",
+     "diem": 1
+    },
+    {
+     "cau": "Is secure-hotel-booking.com legit website for booking hotels? I am looking for hotels in Paris, and many websites that seem to be official hotel sites offer to book through secure-hotel-booking.com. I am confused by Trustpilot's low score and reviews claiming the website is a scam (despite only 8 re",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/ParisTravelGuide/comments/1vnfke9/is_securehotelbookingcom_legit_website_for/",
+     "diem": 0
+    }
+   ]
+  },
+  {
+   "id": 21072,
+   "loai": "ai_chan_dung",
+   "ten": "Người làm trong ngành khách sạn",
+   "mo_ta": "Nhân sự, quản lý và những người làm việc chuyên môn trong ngành khách sạn.",
+   "so_nhac": 14,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Not entirely true. Our hotel, despite many, MANY attempts to get Booking to remove or change it, displays options to book with or without breakfast with additional fees due to the add on. Our breakfast is complimentary and always has been, and no other 3rd party had a problem with this other than bo",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wzn3np/booked_a_hotel_with_breakfast_included_then_got/pegc1tn/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21076,
+   "loai": "ai_tinh_huong",
+   "ten": "Đặt phòng để xin visa",
+   "mo_ta": "Cần booking phòng khách sạn nhằm mục đích hoàn thiện hồ sơ xin visa và nhập cảnh.",
+   "so_nhac": 13,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Is it necessary to show hotel booking also?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Chinavisa/comments/1x0l2j7/i_applied_for_m_visa_but_forgot_to_upload_cover/penigq5/",
+     "diem": 1
+    },
+    {
+     "cau": "Hello did the embassy accept the hotel booking?",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/germany/comments/1odru7w/german_visa_accommodation_requirement_for_study/peo6oxw/",
+     "diem": 1
+    },
+    {
+     "cau": "No... Occasionally, only return tickets and hotel bookings or an itinerary may be asked for.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/SchengenVisa/comments/1wzki0p/i_already_have_visa_do_they_ask_noc_when/penyhw1/",
+     "diem": 1
+    },
+    {
+     "cau": "2nd time Schengen Visa refused Can anyone help me in understanding why my Visa got rejected? This is the second time I am applying for Schengen Visa. First I applied in the month of March 2026 from BLS it got rejected and now for the second time from Czech Republic. I have given all the documents co",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/SchengenVisa/comments/1x4udjp/2nd_time_schengen_visa_refused/",
+     "diem": 1
+    },
+    {
+     "cau": "EES gets update immediately (in most cases) once the visa is issued (even before the passport is couriered bacK). I have never heard of anyone who was initially NOT OK and then status changed to OK but they did not receive the visa. In any case, no harm in waiting for another day or two and confirm ",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/visas/comments/1x0qiwg/schengen_visa_does_ees_get_updated_immediately/peoj3uz/",
+     "diem": 1
+    },
+    {
+     "cau": "hotel booking cheap aayi engane edukam ennoode parayamo. Also, transit visa edukeno ennu engane ariyam",
+     "nguon": "youtube",
+     "url": "https://www.youtube.com/watch?v=YebwbMGo0_A",
+     "diem": 0
+    }
+   ]
+  },
+  {
+   "id": 21073,
+   "loai": "ai_phan_doi",
+   "ten": "Phòng không giống quảng cáo hoặc kém chất lượng",
+   "mo_ta": "Khách hàng phàn nàn vì phòng thực tế khác xa hoặc rất tệ so với ảnh và quảng cáo ban đầu. Nội dung QC cần nhấn mạnh vào hình ảnh thực tế, minh bạch và cam kết chất lượng.",
+   "so_nhac": 13,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "Normally I’d be all about the customer for booking vacations/hotels, but you should have said something about the room during check in. I’ve had as low as Holiday Inn be willing to change my room on the first day",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/AmiInTheWrong/comments/1x03mt7/was_my_610_accommodation_review_unfair_lodge/peiqyzz/",
+     "diem": 1
+    },
+    {
+     "cau": "Do you know if the fancy hotels like Park Hyatt and Alvear have good air conditioning? I have stayed at some 5 star hotels in Europe and they always have terrible air conditioning in the summer. I will be going to BA with my boyfriend after Christmas and am looking at some options for us and I’m not",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/BuenosAires/comments/1lhsl0a/45_star_hotels_in_a_safe_area_of_buenos_aires/pej007i/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21075,
+   "loai": "ai_tinh_huong",
+   "ten": "Du lịch quốc tế và Ấn Độ",
+   "mo_ta": "Khách du lịch quốc tế tìm kiếm khách sạn tại Ấn Độ, Dubai,... trong các dịp lễ. Nhấn mạnh sự đa dạng lựa chọn khách sạn toàn cầu.",
+   "so_nhac": 13,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "How long can I wait to book air? Looking at 3rd week of May 2027. Planning on booking hotel this week. Any advice on how quickly Icelandair flights fill up? We'd be doing direct out of Baltimore. TIA",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/VisitingIceland/comments/1x2lbnt/how_long_can_i_wait_to_book_air/",
+     "diem": 1
+    },
+    {
+     "cau": "I never had a problem booking international flights, hotels through the portal. I always call afterwards to price match to the best deal I found. I had an issue with one way car rental where the destination fee what not included and not disclosed. The portal price looked cheaper tha",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Venturex/comments/1wuu4lv/how_has_booking_flights_hotels_on_capitol_one/pd88c6h/",
+     "diem": 1
+    },
+    {
+     "cau": "Zanzibar trip self booked Hi All, we are looking at going to Zanzibar October next year. Normally we don't do package deals we do separate trip elements. But Africa is outside of our previous experience so any advice suggestions are welcome, we would only be booking flights and hotel separately, but",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/zanzibar/comments/1w954ab/zanzibar_trip_self_booked/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21074,
+   "loai": "ai_phan_doi",
+   "ten": "Khó khăn xuất hóa đơn khớp số tiền",
+   "mo_ta": "Khách không lấy được hóa đơn từ khách sạn hoặc số tiền hóa đơn không khớp với số tiền đã trả cho OTA. Nội dung QC cần khẳng định quy trình xuất hóa đơn minh bạch, khớp giá.",
+   "so_nhac": 13,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": [
+    {
+     "cau": "It is in their language that you may not be reimbursed if you book your own hotel without prior written authorization. This is in place likely because of people like this booking a $500 hotel.",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/americanairlines/comments/1x0tt3d/refusal_to_refund_hotel/peo7onx/",
+     "diem": 1
+    },
+    {
+     "cau": "Here's the problem with what booking.com says about the hotel providing it...when it comes to prepaid reservations, the amount they pay the hotel does not match what you pay booking.com So even if the hotel did provide the receipt it wouldn't match what you paid. Which is why they send you back to b",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/Bookingcom/comments/1wzv0a2/i_used_bookingcom_for_years_without_problems_one/peg0ff6/",
+     "diem": 1
+    },
+    {
+     "cau": "My preferred airline has a hotel booking portal (powered by Agoda) and on the checkout page they allow you to pay more to earn more air miles as cash back. They then make a point of saying their receipts don’t include this extra charge or the points awarded and even give you a preview of such a rece",
+     "nguon": "reddit",
+     "url": "https://www.reddit.com/r/marriott/comments/1x10jms/this_was_a_nice_surprise/perh5bd/",
+     "diem": 1
+    }
+   ]
+  },
+  {
+   "id": 21077,
+   "loai": "ai_chan_dung",
+   "ten": "Nhóm đi du lịch đông người",
+   "mo_ta": "Những nhóm bạn hoặc gia đình đông người có nhu cầu thuê phòng chung không gian.",
+   "so_nhac": 12,
+   "so_qc": 0,
+   "bat_ngo": true,
+   "cau": null
+  }
+ ],
+ "qc": [
+  {
+   "library_id": "1315617832268035",
+   "page_ten": "The Oliver Hotel",
+   "chu": "Stay at Downtown Knoxville's Favorite Hotel THEOLIVERHOTEL.COM The Best Deals in Knoxville Learn More THEOLIVERHOTEL.COM Drink, Dine and have a ball Learn More THEOLIVERHOTEL.COM Learn More",
+   "ngay": 1753,
+   "bat_dau": "2021-12-30",
+   "dang_chay": true
+  },
+  {
+   "library_id": "278742494336658",
+   "page_ten": "Hotel Mission De Oro",
+   "chu": "Dogs love road trips too! Bring your furry friend along for the ride. Enjoy newly renovated rooms, a dog bed/bowls and on-site patio dining so they never leave your side. HOTELMISSIONDEORO.COM Discover Santa Nella's top rated Hotel Mission de Oro Learn more",
+   "ngay": 1685,
+   "bat_dau": "2022-03-08",
+   "dang_chay": true
+  },
+  {
+   "library_id": "570964591075516",
+   "page_ten": "Hotel Mission De Oro",
+   "chu": "We offer dog beds and bowls to ensure their stay is as comfortable as possible. Our outdoor dining patio welcomes our furry food lovers too. HOTELMISSIONDEORO.COM Discover Santa Nella's top rated Hotel Mission de Oro Learn more",
+   "ngay": 1685,
+   "bat_dau": "2022-03-08",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1446326469124613",
+   "page_ten": "Iveagh Garden Hotel",
+   "chu": "Travelling for business? Ensure your stay has everything you need for excellent business travel! WWW.IVEAGHGARDENHOTEL.IE Corporate Travel with The Iveagh Garden Hotel Learn more",
+   "ngay": 1523,
+   "bat_dau": "2022-08-17",
+   "dang_chay": true
+  },
+  {
+   "library_id": "646459510776655",
+   "page_ten": "Discovery Inn Hayward - Castro Valley",
+   "chu": "Stay at Discovery Inn Hayward - Castro Valley! Newly remodeled. Book now for exclusive deals. Jacuzzi Suites Available. DISCOVERYINNHAYWARD.COM Discovery Inn Hotel in Hayward CA | Hayward California Hotel Learn more",
+   "ngay": 1154,
+   "bat_dau": "2023-08-21",
+   "dang_chay": true
+  },
+  {
+   "library_id": "216406651493623",
+   "page_ten": "Visit Irving, Texas",
+   "chu": "🎶 Calling all music enthusiasts! Irving's concert scene is on fire. Explore our lineup of live events and experience the magic of music like never before. Check out the lineup and book your stay today. Unlock Fantastic Hotel Deals for Concert Nights Learn More",
+   "ngay": 977,
+   "bat_dau": "2024-02-14",
+   "dang_chay": true
+  },
+  {
+   "library_id": "751137993659912",
+   "page_ten": "Visit Irving, Texas",
+   "chu": "Dive into a world of excitement with upcoming events at the Irving Convention Center. Book your stay now for an unforgettable experience! Stay, Play, and Save: Unbeatable Packages at Irving Hotels Learn More",
+   "ngay": 963,
+   "bat_dau": "2024-02-28",
+   "dang_chay": true
+  },
+  {
+   "library_id": "580122474763589",
+   "page_ten": "Quest Plus Conference Center, Clark",
+   "chu": "Welcome the weekend with a luxurious staycation at Quest Plus Hotel Clark. 🏨✨ Enjoy great food, stunning views, and access to our 36-hole golf course for the ultimate escape! Book now and make your weekend unforgettable! #QuestPlusClark #LuxuryStaycation #GolfGetaway #WeekendEscape SIMPLEBOOKING.IT Best Family Golf Resort Book Now SIMPLEBOOKING.IT Best Family Golf Resort Book Now SIMPLEBOOKING.IT ",
+   "ngay": 696,
+   "bat_dau": "2024-11-21",
+   "dang_chay": true
+  },
+  {
+   "library_id": "2054841894984041",
+   "page_ten": "priceline",
+   "chu": "Exclusive hotel deals for you in ROQUEMAURE. ✅ Lowest prices in the app, guaranteed ✅ Quick & secure hotel bookings ✅ Trip details on the go ITUNES.APPLE.COM Save up to 60% off hotels! ‎Get exclusive app-only hotel deals, discounts on rental cars, and cheap flights all in one place, with the Priceline app. Join millions of happy travelers who book great deals with us every day - download now! NEW ",
+   "ngay": 607,
+   "bat_dau": "2025-02-18",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1155552959299563",
+   "page_ten": "priceline",
+   "chu": "Exclusive hotel deals for you in SKROVA. ✅ Lowest prices in the app, guaranteed ✅ Quick & secure hotel bookings ✅ Trip details on the go ITUNES.APPLE.COM Save up to 60% off hotels! ‎Get exclusive app-only hotel deals, discounts on rental cars, and cheap flights all in one place, with the Priceline app. Join millions of happy travelers who book great deals with us every day - download now! NEW - St",
+   "ngay": 607,
+   "bat_dau": "2025-02-18",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1671815803425032",
+   "page_ten": "Executive Hotels & Resorts",
+   "chu": "Make each stay unique with exclusive package deals. You're guaranteed the best rate, no matter when you book. See what each destination has too offer. EXECUTIVEHOTELS.NET Hotel Le Soleil New York Manhattan, NY Book Now Manhattan, NY EXECUTIVEHOTELS.NET EXchange Hotel Vancouver Downtown Vancouver, BC Book Now Downtown Vancouver, BC EXECUTIVEHOTELS.NET Seaside Hotel North Vancouver, BC Book Now Nort",
+   "ngay": 545,
+   "bat_dau": "2025-04-21",
+   "dang_chay": true
+  },
+  {
+   "library_id": "907335281526879",
+   "page_ten": "trivago",
+   "chu": "Always know when prices drop at your dream hotels with price alerts on the trivago app. ITUNES.APPLE.COM Hotel deals in Fukuoka ‎The trivago app is the easy way to search and compare hotel prices from your favorite booking sites so you can find a hotel or accommodation in the location you want, with the amenities you need, and for a deal you’ll feel amazing about. - Compare accommodation prices fr",
+   "ngay": 502,
+   "bat_dau": "2025-06-03",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1806344369912125",
+   "page_ten": "PAWNIXANC",
+   "chu": "Noise Cancelling Headphones designed for dogs that are scared of thunderstorms, fireworks, alarms, the vacuum. Good to use when traveling and in hotel rooms to keep your dog quiet from noisy neighbors. Relieve anxiety with swaddling compression. Play your dogs favorite music to soothe them. PAWNIX.COM PAWNIX Noise-Cancelling Headphones for Dogs Noise Cancelling Headphones designed for dogs that ar",
+   "ngay": 501,
+   "bat_dau": "2025-06-04",
+   "dang_chay": true
+  },
+  {
+   "library_id": "3786913341452880",
+   "page_ten": "SpyFinder Pro",
+   "chu": "Guard Your Personal Space with SpyFinder PRO - Your Ultimate Hidden Camera Detector! 🚨 SHOCKING NEWS: Hidden cameras were recently discovered in public restrooms along Ocean City’s boardwalk, invading the privacy of unsuspecting beachgoers (FOX 29). No one should feel unsafe in a public space! 🔍 Take Control with Our Hidden Camera Detector Our #1-rated device (https://www.amazon.com/dp/B07HVJ8VZR)",
+   "ngay": 491,
+   "bat_dau": "2025-06-14",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1789750591939653",
+   "page_ten": "priceline",
+   "chu": "Exclusive deals for you. Only in the app! ✅ Lowest prices in the app, guaranteed ✅ Quick & secure hotel bookings ✅ Trip details on the go",
+   "ngay": 458,
+   "bat_dau": "2025-07-17",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1310662017086586",
+   "page_ten": "priceline",
+   "chu": "Exclusive hotel deals for you in CHENNAI. ✅ Lowest prices in the app, guaranteed ✅ Quick & secure hotel bookings ✅ Trip details on the go PLAY.GOOGLE.COM Save up to 60% off hotels! Save on your next trip with exclusive deals on hotels, flights & rental cars. Install Now",
+   "ngay": 458,
+   "bat_dau": "2025-07-17",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1454133512449646",
+   "page_ten": "Quick Stay Finders",
+   "chu": "🎢 Adventure meets comfort in Pigeon Forge — stays from just $59/night! From Dollywood thrills to mountain chill, explore 100+ hotel deals in one place. A getaway full of fun and fresh air is waiting for you.",
+   "ngay": 443,
+   "bat_dau": "2025-08-01",
+   "dang_chay": true
+  },
+  {
+   "library_id": "1450299566091976",
+   "page_ten": "EMOI Vietnam Travel",
+   "chu": "🇻🇳 14-DAY VIETNAM ADVENTURE: HANOI - DANANG - HO CHI MINH - PHU QUOC ONLY $1,100 USD/PERSON! ✨ What’s Included? - Domestic flights for seamless travel: Hanoi - Danang; Danang - Phu Quoc; Phu Quoc - Hochiminh - Land transportation for a smooth journey - Comfortable 3-star accommodation (double/twin sharing) - Knowledgeable English-speaking guide - All entrance fees covered – no hidden costs - A lux",
+   "ngay": 432,
+   "bat_dau": "2025-08-12",
+   "dang_chay": true
+  },
+  {
+   "library_id": "664645743306697",
+   "page_ten": "Hotel Direct Finder",
+   "chu": "🌊 Save Up to 45% on Rhode Island Hotels! 🏖️ Looking for affordable stays in Rhode Island? We’ve found the best deals just for you! ✨ Rooms under $99/Person ✨ Up to 45% off on prime Rhode Island accommodations Book now and save on your perfect beach getaway! 🏨💰",
+   "ngay": 432,
+   "bat_dau": "2025-08-12",
+   "dang_chay": true
+  },
+  {
+   "library_id": "4235542436772483",
+   "page_ten": "Top Tier Hotels",
+   "chu": "🏖️ Puerto Rico hotels from only $69/night—book smarter, not pricier. One quick search checks 100+ sites instantly, so you never miss a deal. Start your island adventure at the best price.",
+   "ngay": 407,
+   "bat_dau": "2025-09-06",
+   "dang_chay": true
+  },
+  {
+   "library_id": "653893204420013",
+   "page_ten": "Next Nest Locator",
+   "chu": "Whether it’s snorkeling in turquoise waters 🐠 or strolling palm-lined shores 🌴, Aruba is the perfect getaway. Book smarter today with hotel deals starting from just $59/night. HOTELS.MYTRIPMASTERS.COM Discover Aruba Getaway Deals — Luxury Beach Resorts at Lower Prices Your Aruba escape doesn’t need a high price tag ✨. Learn more",
+   "ngay": 405,
+   "bat_dau": "2025-09-08",
+   "dang_chay": true
+  },
+  {
+   "library_id": "765527466280887",
+   "page_ten": "Search Hotels Now",
+   "chu": "🌞 Clearwater Hotels & Resorts — Up to 45% Off! 🏖️ Looking for the perfect beach escape? Clearwater offers amazing deals for you! ✨ Save up to 45% on luxurious beachfront resorts ✨ Beautiful oceanfront views at unbeatable prices Book today and enjoy your Clearwater getaway for less! 💰 Your dream beach vacation is just a click away! 🏨✨ DIRECTHOTELFINDER.COM 🌞 Clearwater Beachfront Hotels — Save Up t",
+   "ngay": 404,
+   "bat_dau": "2025-09-09",
+   "dang_chay": true
+  },
+  {
+   "library_id": "24203906282615025",
+   "page_ten": "Prime Stay Hotels",
+   "chu": "🌅 Montauk hotels from just $66/night — and some travelers are saving up to $100 on the same room. Search once and compare rates from over 100 travel sites in one place. 💡 Each hotel may show multiple offers — the best deal is often found by comparing a few options. Start exploring and find the perfect rate for your next Montauk getaway! HOTELSEARCHTODAY.COM 💵 Montauk Hotel Deals from $66/Night — C",
+   "ngay": 402,
+   "bat_dau": "2025-09-11",
+   "dang_chay": true
+  },
+  {
+   "library_id": "593513359625493",
+   "page_ten": "Seacrest Oceanfront Hotel Pismo Beach",
+   "chu": "Get Ready for a California Getaway. Check out our Hot Deals Savings plan for 5% off next your next stay with us! SEACRESTPISMO.COM Real. Good. Fun. Your Pismo Beach Hotel for the Perfect Coastal California Getaway Book Now Your Pismo Beach Hotel for the Perfect Coastal California Getaway SEACRESTPISMO.COM Real. Good. Fun. Your Pismo Beach Hotel for the Perfect Coastal California Getaway Book Now Y",
+   "ngay": 397,
+   "bat_dau": "2025-09-16",
+   "dang_chay": true
+  },
+  {
+   "library_id": "807313038806754",
+   "page_ten": "Polonia Palace Hotel",
+   "chu": "Discover our historical hotel in Warsaw center. Whenever you decide to visit us, our special deals with flexible terms & conditions are always available! POLONIAPALACE.COM Unlock Your Exclusive Rates! Private Offers Book now",
+   "ngay": 390,
+   "bat_dau": "2025-09-23",
+   "dang_chay": true
+  }
+ ]
+}

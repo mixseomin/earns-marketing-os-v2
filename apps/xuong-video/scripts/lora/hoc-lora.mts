@@ -1,6 +1,7 @@
 // HỌC LoRA cho một nhân vật từ bộ ảnh học (scripts/lora/sinh-anh-hoc.mts): gom ảnh ĐẠT so mặt → zip → fal flux-lora-fast-training ($2 / lượt) →
 // ghi xv_nhan_vat.lora { url, trigger, bo_hoc, so_anh, luc }. TỐN TIỀN — chỉ chạy với DUYET_SINH_1_LAN=1 sau khi anh duyệt.
-//   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/lora/hoc-lora.mts <nhan_vat_id> <url bo-hoc.json> [--trigger=xxx]
+//   cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/lora/hoc-lora.mts <nhan_vat_id> <url bo-hoc.json[,url bo-hoc 2,…]> [--trigger=xxx]
+// Nhiều bộ (bộ thường + bộ cảm xúc --bo=cam-xuc) gộp chung một lượt học; LoRA cũ giữ lại trong lora.truoc (không mất bản cũ).
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -16,8 +17,8 @@ const id = Number(process.argv[2]); const boHoc = process.argv[3];
 if (!id || !boHoc) { console.error('cần <nhan_vat_id> <url bo-hoc.json>'); process.exit(1); }
 if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('TỐN TIỀN ($2) — chỉ chạy với DUYET_SINH_1_LAN=1 sau khi anh duyệt'); process.exit(1); }
 const trigger = (process.argv.find((a) => a.startsWith('--trigger=')) ?? `--trigger=nv${id}xv`).slice(10);
-const bo = (await (await fetch(boHoc)).json()) as { ten: string; anh: { url: string; dat: boolean }[] };
-const anh = bo.anh.filter((x) => x.dat);
+const bos = await Promise.all(boHoc.split(',').map(async (u) => (await (await fetch(u)).json()) as { ten: string; anh: { url: string; dat: boolean }[] }));
+const bo = bos[0]!; const anh = bos.flatMap((b) => b.anh.filter((x) => x.dat));
 if (anh.length < 10) { console.error(`chỉ ${anh.length} ảnh đạt so mặt — cần ≥ 10`); process.exit(1); }
 const thu = await mkdtemp(join(tmpdir(), 'lora-'));
 try {
@@ -41,7 +42,9 @@ try {
     // chép tệp LoRA về R2 nhà mình — đường fal.media là kho tạm, có thể hết hạn
     const r2 = await uploadToR2(`xuong-video/lora/${id}/${trigger}-${Date.now()}.safetensors`, Buffer.from(await (await fetch(url)).arrayBuffer()), 'application/octet-stream');
     await xongJob(db, job, { output_url: r2 ?? url, chi_phi_cents: 200 });
-    await db.execute(sql`UPDATE xv_nhan_vat SET lora = ${JSON.stringify({ url: r2 ?? url, url_fal: url, trigger, bo_hoc: boHoc, so_anh: anh.length, luc: new Date().toISOString() })}::jsonb, updated_at = now() WHERE id = ${id}`);
+    const cu = ((await db.execute(sql`SELECT lora FROM xv_nhan_vat WHERE id = ${id}`)) as unknown as { lora: { truoc?: unknown[] } | null }[])[0]?.lora;
+    const truoc = cu ? [...(cu.truoc ?? []), { ...cu, truoc: undefined }] : [];
+    await db.execute(sql`UPDATE xv_nhan_vat SET lora = ${JSON.stringify({ url: r2 ?? url, url_fal: url, trigger, bo_hoc: boHoc, so_anh: anh.length, luc: new Date().toISOString(), truoc })}::jsonb, updated_at = now() WHERE id = ${id}`);
     console.log(JSON.stringify({ lora: url, trigger, so_anh: anh.length })); process.exit(0);
   }
   await xongJob(db, job, { loi: `quá 60 phút — tra: ${t.r}` }); throw new Error(`quá 60 phút — tra: ${t.r}`);

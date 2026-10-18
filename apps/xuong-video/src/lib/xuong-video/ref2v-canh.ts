@@ -13,8 +13,8 @@ const TOI_DA_S = 15;
 /** Tổng element + ảnh tham chiếu — tài liệu fal ghi tối đa 4 khi có video; giữ 4 cho chắc. */
 const TOI_DA_THAM_CHIEU = 4;
 
-type ShotR = Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'nhan_vat' | 'phat_s' | 'thoi_luong_s' | 'hanh_dong' | 'prompt_video' | 'ky_thuat'> & { dan_dung?: Canh['dan_dung']; nhanh?: string };
-type NvR = Pick<NhanVat, 'id' | 'ten' | 'loai' | 'anh_ref'>;
+type ShotR = Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'nhan_vat' | 'phat_s' | 'thoi_luong_s' | 'hanh_dong' | 'prompt_video' | 'ky_thuat'> & { dan_dung?: Canh['dan_dung']; nhanh?: string; keyframe_url?: string | null };
+type NvR = Pick<NhanVat, 'id' | 'ten' | 'loai' | 'anh_ref'> & { anh_mat?: NhanVat['anh_mat'] };
 export type ThamChieu = { ten: string; loai: string; vai: 'element' | 'anh'; ma: string; anh: string[] };
 export type GoiRef2v = { input: Record<string, unknown>; giay: number; cents: number; shots: { id: number; thu_tu: number; giay: number; prompt: string }[]; tham_chieu: ThamChieu[]; bo: string[]; loi: string[] };
 
@@ -34,18 +34,31 @@ export function dungRef2v(shots: ShotR[], nhanVat: NvR[], o: { tiLe: string; tie
   const dem = new Map<number, number>();
   for (const { s } of chon) for (const id of s.nhan_vat) dem.set(id, (dem.get(id) ?? 0) + 1);
   const thu = (l: string) => (l === 'nhan_vat' ? 0 : l === 'boi_canh' ? 1 : 2);
-  const ung = nhanVat.filter((v) => dem.has(v.id) && v.anh_ref.length).sort((a, b) => thu(a.loai) - thu(b.loai) || (dem.get(b.id)! - dem.get(a.id)!));
-  const thieuAnh = nhanVat.filter((v) => dem.has(v.id) && !v.anh_ref.length).map((v) => v.ten);
+  // Ảnh của từng anchor: người = ảnh SÁT MẶT (soi-mat.ts › anh_mat) làm ảnh chính diện, ảnh mẫu (thường là bảng nhiều góc) làm ảnh phụ; bối cảnh dựng bằng
+  // bộ set 3D (không có ảnh mẫu) = keyframe đầu tiên của cảnh có nơi đó — keyframe chính là hình bối cảnh đã duyệt.
+  const anhCua = (v: NvR): string[] => {
+    if (v.loai === 'nhan_vat') return [...new Set([...(v.anh_mat?.url ?? []).slice(0, 1), ...v.anh_ref])].slice(0, 4);
+    if (v.anh_ref.length) return v.anh_ref.slice(0, 1);
+    const kf = v.loai === 'boi_canh' ? chon.find(({ s }) => s.nhan_vat.includes(v.id) && s.keyframe_url)?.s.keyframe_url : null;
+    return kf ? [kf] : [];
+  };
+  const coAnh = nhanVat.filter((v) => dem.has(v.id)).map((v) => ({ v, anh: anhCua(v) }));
+  const ung = coAnh.filter((x) => x.anh.length).sort((a, b) => thu(a.v.loai) - thu(b.v.loai) || (dem.get(b.v.id)! - dem.get(a.v.id)!));
+  const thieuAnh = coAnh.filter((x) => !x.anh.length).map((x) => x.v.ten);
   if (thieuAnh.length) loi.push(`chưa có ảnh mẫu: ${thieuAnh.join(', ')}`);
   let ne = 0, na = 0;
-  const tc: ThamChieu[] = ung.slice(0, TOI_DA_THAM_CHIEU).map((v) => v.loai === 'nhan_vat'
-    ? { ten: v.ten, loai: v.loai, vai: 'element', ma: `@Element${++ne}`, anh: v.anh_ref.slice(0, 4) }
-    : { ten: v.ten, loai: v.loai, vai: 'anh', ma: `@Image${++na}`, anh: v.anh_ref.slice(0, 1) });
-  for (const v of ung.slice(TOI_DA_THAM_CHIEU)) bo.push(v.ten);
-  // Tên → mã tham chiếu trong prompt ({Tên} của thẻ shot và tên trần). Tên dài thay trước để "Lâm Hạ" không bị "Hạ" nuốt.
+  const tc: ThamChieu[] = ung.slice(0, TOI_DA_THAM_CHIEU).map(({ v, anh }) => v.loai === 'nhan_vat'
+    ? { ten: v.ten, loai: v.loai, vai: 'element', ma: `@Element${++ne}`, anh }
+    : { ten: v.ten, loai: v.loai, vai: 'anh', ma: `@Image${++na}`, anh });
+  for (const { v } of ung.slice(TOI_DA_THAM_CHIEU)) bo.push(v.ten);
+  // Tên → mã tham chiếu trong prompt ({Tên} của thẻ shot, tên đầy đủ, và TÊN GỌI — chữ cuối của tên người, "Hạ" của "Lâm Hạ" — khi chỉ một người mang nó).
+  // Tên dài thay trước để "Lâm Hạ" không bị "Hạ" nuốt; tên gọi chỉ khớp nguyên từ (không ăn vào giữa chữ khác).
+  const goi = tc.filter((c) => c.vai === 'element').map((c) => ({ c, g: c.ten.trim().split(/\s+/).pop()! }))
+    .filter(({ c, g }) => g.length >= 2 && g !== c.ten && tc.filter((x) => x.vai === 'element' && x.ten.trim().split(/\s+/).pop() === g).length === 1);
   const doi = (t: string) => {
     let x = t.replace(/\{([^}]+)\}/g, (_m, ten: string) => tc.find((c) => c.ten === ten.trim())?.ma ?? ten.trim());
     for (const c of [...tc].sort((a, b) => b.ten.length - a.ten.length)) x = x.split(c.ten).join(c.ma);
+    for (const { c, g } of goi) x = x.replace(new RegExp(`(?<![\\p{L}\\p{M}@])${g}(?![\\p{L}\\p{M}])`, 'gu'), c.ma);
     return x;
   };
   const sp = chon.map(({ s, giay }) => {

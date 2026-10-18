@@ -22,4 +22,15 @@ assert.deepStrictEqual(mp.map((x) => x.duration), ['3', '4', '5']); assert.stric
 // thiếu ảnh mẫu / quá ngắn → báo lỗi, không im lặng
 assert.ok(dungRef2v([sh(9, 2, [6])], [...NV, nv(6, 'Trần', 'nhan_vat', [])], { tiLe: '9:16' }).loi.some((l) => l.includes('Trần')));
 assert.ok(dungRef2v([], NV, { tiLe: '16:9' }).loi.length >= 1);
+// (soát ngăn thật 19/10): tên gọi "Hạ" cũng thành mã; ảnh sát mặt làm ảnh chính diện; bối cảnh 3D không ảnh mẫu → lấy keyframe đầu của cảnh
+{
+  const ha = { id: 1, ten: 'Lâm Hạ', loai: 'nhan_vat', anh_ref: ['sheet'], anh_mat: { tu: 'sheet', url: ['mat1'] } } as never;
+  const vp = { id: 3, ten: 'Văn phòng', loai: 'boi_canh', anh_ref: [] } as never;
+  const s1 = { ...(sh(1, 4, [1, 3], { bo_cuc: 'Hạ walks; Hạ’s blouse. Hạnh is someone else.' }) as object), keyframe_url: 'kf1' } as never;
+  const r = dungRef2v([s1], [ha, vp], { tiLe: '9:16' });
+  assert.deepStrictEqual(r.loi, [], 'bối cảnh có keyframe thì không báo thiếu ảnh');
+  assert.ok(r.shots[0]!.prompt.startsWith('@Element1 walks; @Element1’s blouse. Hạnh'), r.shots[0]!.prompt);
+  assert.deepStrictEqual((r.input.elements as { frontal_image_url: string; reference_image_urls: string[] }[])[0], { frontal_image_url: 'mat1', reference_image_urls: ['sheet'] });
+  assert.deepStrictEqual(r.input.image_urls, ['kf1']);
+}
 console.log('✓ ref2v-canh');

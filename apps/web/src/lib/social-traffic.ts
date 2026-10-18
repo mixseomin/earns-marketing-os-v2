@@ -217,14 +217,16 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
       -- Facebook: kênh là PAGE (vault ghi "(Page)"); tài khoản FB cá nhân chỉ để đăng nhập (htuan82@, mixseo@…) không phải kênh — trừ khi máy đăng khai nó
       AND (a.platform_key <> 'facebook' OR a.handle ILIKE '%(Page)%' OR may.ten IS NOT NULL)
     ORDER BY (may.ten IS NULL), may.ten, du_an, a.platform_key`)) as unknown as { id: number; platform_key: string; handle: string; status: string | null; proxy_id: number | null; tao: string; du_an: string; may: string | null; da_dang: number | null }[];
-  // lượt sang site của từng tài khoản = cộng phiên (sổ phiên adfond, UTM của máy đăng) qua mọi cặp nền × video của các máy dùng tài khoản đó
+  // lượt sang site của từng tài khoản = cộng phiên (sổ phiên adfond, utm_source của máy đăng) qua mọi cặp nền × site của các máy dùng tài khoản đó
   const [cap, bam] = await Promise.all([
-    d.execute(sql`SELECT n->'br'->>'acct' AS acct, n->>'nen' AS nen, v.slug FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n JOIN xv_may_video v ON v.may_id = m.id
-      WHERE n->'br'->>'acct' IS NOT NULL`) as unknown as Promise<{ acct: string; nen: string; slug: string }[]>,
+    // site của máy = host trong link video của máy (ratesbyroom.com, esimfares.com, pickjot.com…) — một tài khoản × nền × site là một kênh
+    d.execute(sql`SELECT DISTINCT n->'br'->>'acct' AS acct, n->>'nen' AS nen, regexp_replace(split_part(split_part(v.dang->>'link', '//', 2), '/', 1), '^www\.', '') AS site
+      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n JOIN xv_may_video v ON v.may_id = m.id
+      WHERE n->'br'->>'acct' IS NOT NULL AND v.dang->>'link' IS NOT NULL`) as unknown as Promise<{ acct: string; nen: string; site: string }[]>,
     docBamBaiDang().catch(() => null),
   ]);
   const bamTk = new Map<number, number>();
-  if (bam) for (const c of cap) { const n = bam.get(`${c.nen}|${c.slug}`); if (n) bamTk.set(Number(c.acct), (bamTk.get(Number(c.acct)) ?? 0) + n); }
+  if (bam) for (const c of cap) { const n = bam.get(`${c.nen}|${c.site}`); if (n) bamTk.set(Number(c.acct), (bamTk.get(Number(c.acct)) ?? 0) + n); }
   return r.filter((x) => !daCo.has(x.id)).map((x): StKenh => ({
     id: x.id, ten: x.handle, nenTang: NEN_TEN[x.platform_key] ?? x.platform_key, nenKey: x.platform_key, nhom: x.may ?? x.du_an, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
     tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: bamTk.get(x.id) ?? 0, hh: 0, daDo: false, demBai: x.may != null,

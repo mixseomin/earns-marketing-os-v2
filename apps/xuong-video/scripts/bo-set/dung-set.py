@@ -686,7 +686,9 @@ def gan_tay(sh, tat_ca, ket=False):
             # (nhích 1,2 cm về phía bàn tay) và nở 45 % ra ngoài lớp vải (ống tay vest dày như #9).
             q = khop.matrix_world.to_quaternion()
             for o in objs: o.rotation_euler = q.to_euler(); o.scale = (o.scale[0] * 1.45, o.scale[1] * 1.45, o.scale[2])
-            bpy.context.view_layer.update(); dich = khop.matrix_world @ Vector((0, 0, -1.2))
+            chong = any(str(x).split('@')[0] in DANG_TUA for x in (next((y for y in sh['nhan_vat'] if y['ten'] == c), {}).get('dien') or []))
+            # tay đang chống / úp (cổ tay gập 90°, #25): nhích về phía bàn tay là rơi vào lòng bàn tay → lùi 1 cm về phía khuỷu, ngay trên nếp cổ tay
+            bpy.context.view_layer.update(); dich = khop.matrix_world @ Vector((0, 0, 1.0 if chong else -1.2))
         else: dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
         if khop is None and ben in ('p', 't') and not float(v.get('treo') or 0):
             # ĐỒ DẸT CẦM TAY (điện thoại, tài liệu, thẻ — cạnh mỏng < 0,3 cạnh dài) XOAY THEO BÀN TAY (anh 18/10/2026: "có điện thoại trên tay mà không xoay
@@ -963,7 +965,9 @@ def cham_mat_tua(n_, ten, dien):
             for _k in range(6):
                 hit, loc, _, _, ob, _ = s_.ray_cast(dg, goc, Vector((0, 0, -1)), distance=3.0)
                 if not hit or not ob: break
-                if ob.name.startswith(f"NG {ten}.") or ob.name == f"NV {ten}" or ob.name.startswith(f"NV {ten}·") or ob.name.startswith('THAN'): goc = loc - Vector((0, 0, 0.002)); continue
+                # bỏ qua chính người đó + MỌI đạo cụ / người khác ('NV …', 'NG …'): mặt đỡ là bộ set (#25 dò trúng cây bút dựng trên bàn, dừng cúi khi tay
+                # còn cách mặt bàn)
+                if ob.name.startswith(('NG ', 'NV ', 'THAN')): goc = loc - Vector((0, 0, 0.002)); continue
                 hong.append((p.z - loc.z) / CM); break
         if not hong: return
         g = max(hong)

@@ -1565,7 +1565,7 @@
      ],
      "huong": -90,
      "cam": "Vivian",
-     "treo": 12
+     "treo": 4
     },
     {
      "ten": "Thùng đồ cá nhân",
@@ -1610,7 +1610,7 @@
   },
   "dan_dung": {
    "dien": "Anticipation: a long silence, Hạ's face still. Action: she speaks quietly, eyes never leaving her. Reaction: a faint smile that does not reach her eyes.",
-   "bo_cuc": "Reverse close-up on Hạ over Vivian’s shoulder; long silence before she speaks",
+   "bo_cuc": "Reverse close-up on Hạ over Vivian’s shoulder, the {Thùng đồ cá nhân} still hugged against her chest; long silence before she speaks",
    "mo": "Hạ looking straight at Vivian",
    "ket": "Hạ’s faint smile",
    "huong": "Hạ looks screen-right at Vivian",
@@ -1696,8 +1696,7 @@
       95
      ],
      "huong": 90,
-     "cam": "Lâm Hạ",
-     "an": true
+     "cam": "Lâm Hạ"
     }
    ]
   },

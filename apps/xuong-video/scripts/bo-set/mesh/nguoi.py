@@ -466,6 +466,17 @@ def ap_dien(n, ds, t, giay=4.0):
 # (tập 122 #25 "hand pressed flat on the table" thành tay dựng đứng). Cổ tay nhắm một điểm 15 cm trước cổ tay theo hướng mặt người, nằm ngang;
 # trục X xương cổ tay MPFB hướng lên → lòng bàn tay úp xuống (thử 18/10/2026: UP_Z ngửa lòng, UP_X úp phẳng).
 TAY_AP = {'chong_ban'}
+def ban_tay(n, p):
+    """Hướng bàn tay THẬT (ma trận 3×3 chuẩn hoá, thế giới): cột Y = dọc ngón, X = mu bàn tay, Z = ngang bàn tay. Người MPFB: xương cổ tay; không có
+    thì khớp cổ tay ma-nơ-canh (−z dọc bàn tay)."""
+    from mathutils import Matrix
+    rig = bpy.data.objects.get(f"THAN_RIG {n['ten']}"); w = rig.pose.bones.get(f"wrist.{'L' if p == 't' else 'R'}") if rig else None
+    if w: m = (rig.matrix_world @ w.matrix).to_3x3()
+    else: q = n[f'cotay_{p}'].matrix_world.to_3x3(); m = Matrix((q.col[0], -q.col[2], q.col[1])).transposed()
+    m = m.copy()
+    for i in range(3): m.col[i] = m.col[i].normalized()
+    return m
+
 def tay_ap(n, bat):
     rig = bpy.data.objects.get(f"THAN_RIG {n['ten']}")
     if not rig: return
@@ -477,5 +488,6 @@ def tay_ap(n, bat):
         if not bat: continue
         e = n.get(f'ap_{p}') or _khop(f"{n['ten']}.ap_{p}", n[f'cotay_{p}'], (0, 0, 0)); n[f'ap_{p}'] = e
         f = n['goc'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); f.z = 0; f.normalize()
-        e.matrix_world.translation = (rig.matrix_world @ w.head) + f * 0.15 * n['cao'] / 175 * (n['goc'].matrix_world.to_scale()[0] * 100)
+        m_ = e.matrix_world.copy(); m_.translation = (rig.matrix_world @ w.head) + f * 0.15 * n['cao'] / 175 * (n['goc'].matrix_world.to_scale()[0] * 100)
+        e.matrix_world = m_   # gán cả ma trận: gán .translation của matrix_world không ghi ngược vào empty có cha (đích nằm lại ở cổ tay → bàn tay ngửa)
         c = w.constraints.new('TRACK_TO'); c.name = 'tay_ap'; c.target = e; c.track_axis = 'TRACK_Y'; c.up_axis = 'UP_X'

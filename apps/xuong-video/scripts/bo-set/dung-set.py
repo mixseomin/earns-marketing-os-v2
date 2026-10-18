@@ -687,6 +687,18 @@ def gan_tay(sh, tat_ca, ket=False):
             for o in objs: o.rotation_euler = q.to_euler(); o.scale = (o.scale[0] * 1.45, o.scale[1] * 1.45, o.scale[2])
             bpy.context.view_layer.update(); dich = khop.matrix_world @ Vector((0, 0, -1.2))
         else: dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
+        if khop is None and ben in ('p', 't') and not float(v.get('treo') or 0):
+            # ĐỒ DẸT CẦM TAY (điện thoại, tài liệu, thẻ — cạnh mỏng < 0,3 cạnh dài) XOAY THEO BÀN TAY (anh 18/10/2026: "có điện thoại trên tay mà không xoay
+            # theo tay cầm", #10): cạnh dài dọc ngón, mặt dẹt áp lòng bàn tay, tâm nằm trên lòng tay. Ly / thùng / hộp giữ đứng như cũ.
+            o0 = objs[0]; dm = [max(c[i] for c in o0.bound_box) - min(c[i] for c in o0.bound_box) for i in range(3)]
+            dm = [dm[i] * o0.scale[i] for i in range(3)]; mong, dai = dm.index(min(dm)), dm.index(max(dm))
+            if mong != dai and min(dm) < 0.3 * max(dm):
+                from mathutils import Matrix
+                B = ng().ban_tay(n_, ben); giua = 3 - mong - dai; A = Matrix.Identity(3)
+                A.col[dai] = B.col[1]; A.col[mong] = B.col[0]; A.col[giua] = B.col[2]
+                if A.determinant() < 0: A.col[giua] = -B.col[2]
+                for o in objs: o.rotation_euler = A.to_euler()
+                bpy.context.view_layer.update(); dich = dich - B.col[0] * (0.5 * dm[mong] + 1.5 * CM)   # dm: mét (hộp bao × scale)
         bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]
         tam = Vector([(min(p[i] for p in bb) + max(p[i] for p in bb)) / 2 for i in range(3)])
         treo = float(v.get('treo') or 0)
@@ -1620,10 +1632,12 @@ def ngam_lai(s, cam, sh, khoi, ket=False):
         if cam.data.lens >= 60:
             v_nv = next((v for v in sh.get('nhan_vat', []) if v.get('ten') == cn), {})
             h = math.radians((v_nv.get('huong_den', v_nv.get('huong', 0)) if ket else v_nv.get('huong', 0)) or 0)
-            # mặt = đầu nhích nửa chiều dài đầu theo hướng mặt; ngắm vào điểm TRƯỚC mặt thêm một chiều dài đầu = chừa khoảng nhìn (lead room) — cận mặt quay
+            # mặt = đầu nhích nửa chiều dài đầu theo hướng mặt; ngắm vào điểm TRƯỚC mặt thêm 0,3 chiều dài đầu = chừa khoảng nhìn (lead room) — cận mặt quay
             # nghiêng mà ngắm giữa mặt thì khung dọc hẹp cắt mất mũi (#24 kết)
-            Ld = n_['L']['dau'] * CM; fw = Vector((math.sin(h), -math.cos(h), 0)); goc_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * Ld))
-            mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 1.5 * Ld
+            Ld = n_['L']['dau'] * CM; goc_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * Ld))
+            fw = n_['dau'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); fw.z = 0   # hướng mặt THẬT của khớp đầu (đầu quay nhìn theo ai đó), không phải huong khai
+            fw = fw.normalized() if fw.length > 1e-3 else Vector((math.sin(h), -math.cos(h), 0))
+            mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 0.8 * Ld
         else: mat_ = dich = n_['nguc'].matrix_world.translation
     else:
         mo = [o for o in khoi if getattr(o, 'type', '') == 'MESH' and (o.name == f'NV {cn}' or o.name.startswith(f'NV {cn}·'))]

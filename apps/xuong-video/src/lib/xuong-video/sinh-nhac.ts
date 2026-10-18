@@ -6,6 +6,7 @@ import { dayViecAm } from './hoan-tat';
 import { giaAm, moHinhAm, giayNhac } from './am-thanh';
 import { promptKyThuatVideo } from './dien-anh';
 import { boiCanhTap, mapCanh, taoJob, type Db, type Row } from './doc-db';
+import { cauNhacKhanGia, cueNhacKhanGia, hieuUngTaiShot } from './khan-gia';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -23,7 +24,9 @@ export async function sinhNhacTap(db: Db, tapId: number, model = 'cassetteai/mus
   if (phanDoan === undefined) {
     const giay = giayNhac(ds);
     const cx = ds.map((c) => c.cam_xuc);
-    const prompt = [moTaThem || bc.tap.nhac_mo_ta, tl, nhacCua(ds).length ? `Style: ${nhacCua(ds).join('; ')}` : '', cx.length ? `emotional arc from ${cx[0]} to ${cx[cx.length - 1]} (scale -5..5)` : '', 'instrumental background score, no vocals'].filter(Boolean).join('. ');
+    // Ý đồ khán giả (khan-gia.ts) → bảng cue theo giây: nhạc nói thẳng với khán giả — ức chế nặng nề, hồi hộp nén, hả hê bung…
+    const cue = cueNhacKhanGia(bc.tap.khan_gia, ds.filter((c) => !c.nhanh || c.nhanh === 'A').map((c) => ({ id: c.id, giay: c.phat_s || c.thoi_luong_s })));
+    const prompt = [moTaThem || bc.tap.nhac_mo_ta, tl, nhacCua(ds).length ? `Style: ${nhacCua(ds).join('; ')}` : '', cx.length ? `emotional arc from ${cx[0]} to ${cx[cx.length - 1]} (scale -5..5)` : '', cue, 'instrumental background score, no vocals'].filter(Boolean).join('. ');
     const gia = giaAm(model, giay);
     const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Nhạc nền cả tập ${bc.tap.so} (${giay}s)`, loai: 'am', provider: 'fal', model: `fal:${model}`, request: { dich: 'nhac', gia, tap_id: tapId, prompt } });
     if (moTaThem) await db.execute(sql`UPDATE xv_tap SET nhac_mo_ta = ${moTaThem}, updated_at = now() WHERE id = ${tapId}`);
@@ -38,7 +41,10 @@ export async function sinhNhacTap(db: Db, tapId: number, model = 'cassetteai/mus
     const pc = bc.tap.phan_canh.find((x) => x.ten === ten);
     const giay = giayNhac(shots);
     const nhip = pc?.nhip === 'nhanh' ? 'fast tempo' : pc?.nhip === 'cham' ? 'slow tempo' : 'medium tempo';
-    const prompt = [moTaThem, tl, nhacCua(shots).length ? `Style: ${nhacCua(shots).join('; ')}` : '', pc ? `Scene mood moves from ${pc.cam_xuc_dau} to ${pc.cam_xuc_cuoi} on a -5..5 scale (${pc.cam_xuc_cuoi > pc.cam_xuc_dau ? 'building hope/energy' : pc.cam_xuc_cuoi < pc.cam_xuc_dau ? 'darkening, tension or sadness' : 'steady'})` : '', nhip, 'instrumental cue, no vocals, clean start and ending'].filter(Boolean).join('. ');
+    // Ý đồ khán giả phủ phân cảnh này (khan-gia.ts) — theo thứ tự xuất hiện, gộp trùng.
+    const idsTap = ds.filter((c) => !c.nhanh || c.nhanh === 'A').map((c) => c.id);
+    const ysPc = [...new Set(shots.flatMap((c) => hieuUngTaiShot(bc.tap.khan_gia, idsTap, c.id)))];
+    const prompt = [moTaThem, tl, nhacCua(shots).length ? `Style: ${nhacCua(shots).join('; ')}` : '', cauNhacKhanGia(ysPc), pc ? `Scene mood moves from ${pc.cam_xuc_dau} to ${pc.cam_xuc_cuoi} on a -5..5 scale (${pc.cam_xuc_cuoi > pc.cam_xuc_dau ? 'building hope/energy' : pc.cam_xuc_cuoi < pc.cam_xuc_dau ? 'darkening, tension or sadness' : 'steady'})` : '', nhip, 'instrumental cue, no vocals, clean start and ending'].filter(Boolean).join('. ');
     const gia = giaAm(model, giay);
     const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Nhạc phân cảnh · ${ten} (${giay}s)`, loai: 'am', provider: 'fal', model: `fal:${model}`, request: { dich: 'nhac', gia, tap_id: tapId, phan_doan: ten, prompt } });
     await dayViecAm({ kieu: 'am', job, model, input: dauVao(prompt, giay), thuMuc: `nhac/${tapId}` });

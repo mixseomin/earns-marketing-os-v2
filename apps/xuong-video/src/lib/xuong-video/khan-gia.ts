@@ -93,3 +93,64 @@ export function lamSachKhanGia(ds: unknown): YDoKhanGia[] {
     return [{ y, tu, den, ...(s(o.ghi) ? { ghi: s(o.ghi) } : {}), ...(s(o.a) ? { a: s(o.a) } : {}), ...(s(o.b) ? { b: s(o.b) } : {}), ...(lat > 0 ? { lat } : {}) }];
   });
 }
+
+/** Khối dặn Claude khi tách cảnh (claude.ts › heThong): thư viện hiệu ứng + luật soát; mỗi shot ghi hiệu ứng khán giả đạo diễn nhắm. */
+export function vanKhanGia(): string {
+  return `Ý ĐỒ KHÁN GIẢ (đạo diễn định trước khán giả cảm gì ở từng đoạn — làn 🎭 trên timeline, máy soát lại): mỗi shot ghi \`khan_gia\` = 0–2 mã hiệu ứng khán giả cần cảm ở shot đó (shot liền nhau cùng mã = một đoạn). CẢM XÚC KHÁN GIẢ KHÁC CẢM XÚC NHÂN VẬT (khán giả ức chế trong khi nhân vật nhẫn nhịn; khán giả hồi hộp trong khi nhân vật chưa hay biết) — chọn kỹ thuật (thông tin cho thấy / giấu, cỡ cảnh, máy, nhịp, âm) để TẠO ra hiệu ứng, không bắt nhân vật diễn hiệu ứng đó. Đánh lừa: shot đầu đoạn ghi \`danh_lua\` = "A: <khán giả tin> | B: <sự thật>", và shot lộ B ghi \`lat\` = true. Luật: đánh lừa phải có shot lật sau đoạn + dấu hiệu B có sẵn trong hình; bất ngờ phải có thứ gieo trước; hồi hộp cần shot cho khán giả biết trước điều nhân vật chưa biết (gắn luật chenh_thong_tin); hả hê / nhẹ nhõm đến sau một đoạn dồn căng.
+${HIEU_UNG_KHAN_GIA.map((h) => `- ${h.key} — ${h.ten}: ${h.mo_ta} Cách tạo: ${h.nganh.thuc_hien}`).join('\n')}`;
+}
+
+/** Gom hiệu ứng Claude ghi trên từng shot (đã lưu, có id) thành các đoạn: mỗi mã, shot liền nhau = một đoạn; đánh lừa lấy A/B từ shot đầu đoạn,
+ *  shot lật = shot `lat` đầu tiên sau đoạn. */
+export function khanGiaTuShot(shots: { id: number; khan_gia?: string[]; khan_gia_ghi?: string; danh_lua?: string; lat?: boolean }[]): YDoKhanGia[] {
+  const out: (YDoKhanGia & { cuoi: number })[] = [];
+  shots.forEach((s, i) => {
+    for (const y of [...new Set(s.khan_gia ?? [])]) {
+      if (!hieuUngKG(y)) continue;
+      const cur = out.find((d) => d.y === y && d.cuoi === i - 1);
+      if (cur) { cur.den = s.id; cur.cuoi = i; continue; }
+      const d: YDoKhanGia & { cuoi: number } = { y: y as MaKhanGia, tu: s.id, den: s.id, cuoi: i, ...(s.khan_gia_ghi?.trim() ? { ghi: s.khan_gia_ghi.trim().slice(0, 300) } : {}) };
+      if (y === 'danh_lua' && s.danh_lua) { const m = /A:\s*(.*?)\s*\|\s*B:\s*(.*)$/i.exec(s.danh_lua); if (m) { d.a = m[1]!.trim().slice(0, 300); d.b = m[2]!.trim().slice(0, 300); } }
+      out.push(d);
+    }
+  });
+  for (const d of out) if (d.y === 'danh_lua') { const l = shots.slice(d.cuoi + 1).find((s) => s.lat); if (l) d.lat = l.id; }
+  return out.map(({ cuoi: _c, ...d }) => d);
+}
+
+/** Hiệu ứng khán giả đang phủ shot `canhId` (thứ tự shot của tập = `ids`). */
+export function hieuUngTaiShot(ds: YDoKhanGia[] | null | undefined, ids: number[], canhId: number): MaKhanGia[] {
+  const i = ids.indexOf(canhId); if (i < 0) return [];
+  return [...new Set((ds ?? []).filter((d) => { const a = ids.indexOf(d.tu), b = ids.indexOf(d.den); return a >= 0 && b >= 0 && i >= Math.min(a, b) && i <= Math.max(a, b); }).map((d) => d.y))];
+}
+/** KHÔNG KHÍ cho prompt video theo ý đồ khán giả — chỉ không khí / ánh sáng / nhịp (hướng dẫn prompt Veo của Google có mục "ambiance"), KHÔNG đụng nét
+ *  mặt nhân vật: cảm xúc khán giả khác cảm xúc nhân vật (khán giả ức chế khi Hạ nhẫn nhịn). Tò mò / bất ngờ / đánh lừa / phân vân là chuyện THỨ TỰ thông
+ *  tin — một clip không tạo được → không thêm gì. Rỗng = không có hiệu ứng nào có không khí tương ứng. */
+const KHONG_KHI: Partial<Record<MaKhanGia, string>> = {
+  vui: 'light, playful air', buon: 'quiet, melancholic air with soft, subdued light', hoi_hop: 'tense, hushed stillness, as if something is about to happen',
+  so_hai: 'ominous air with deep shadows', uc_che: 'cold, oppressive air', ha_he: 'charged air as the balance of power swings', nhe_nhom: 'the air eases, light feels softer and warmer',
+};
+export function cauKhongKhi(ys: MaKhanGia[]): string {
+  const ds = ys.map((y) => KHONG_KHI[y]).filter(Boolean);
+  return ds.length ? `Ambiance: ${ds.join('; ')}. This is the mood of the scene for the viewer — it does not change any character’s facial expression or acting described above.` : '';
+}
+
+/** NHẠC theo ý đồ khán giả — nhạc nền nói THẲNG với khán giả (khác nét mặt nhân vật), nên mọi hiệu ứng đều có cách chấm nhạc của ngành
+ *  (Karlin & Wright — On the Track; Gorbman — Unheard Melodies). Đánh lừa: nhạc theo hướng A, KHÔNG báo trước B (nhạc lộ twist là hỏng twist). */
+const NHAC: Record<MaKhanGia, string> = {
+  vui: 'light, playful, bouncy rhythm', buon: 'sparse, slow, melancholic, minor key, soft piano or strings',
+  to_mo: 'mysterious, unresolved motif, questioning harmony', hoi_hop: 'suspense: low sustained strings, steady pulse or ostinato slowly building, no release',
+  bat_ngo: 'a sharp sting or hit at the reveal, then a held beat', danh_lua: 'play the false lead straight — support what the audience believes, never hint at the twist',
+  phan_van: 'ambiguous harmony that never resolves, neither warm nor threatening', so_hai: 'dark dissonant drones, unsettling textures, moments of near-silence',
+  uc_che: 'heavy, oppressive, dissonant low drone, cold', ha_he: 'triumphant swell, driving rhythm, bold brass or percussion — release of built-up tension',
+  nhe_nhom: 'tension resolves to a warm major chord, calmer tempo',
+};
+export const cauNhacKhanGia = (ys: MaKhanGia[]): string => (ys.length ? `Audience intent (score for the viewer): ${ys.map((y) => NHAC[y]).join('; ')}` : '');
+/** Bảng cue cho nhạc cả tập: hiệu ứng theo giây (giây phát của từng shot, thứ tự shot của tập). */
+export function cueNhacKhanGia(ds: YDoKhanGia[] | null | undefined, shots: { id: number; giay: number }[]): string {
+  const bd: number[] = []; shots.reduce((t, s, i) => { bd[i] = t; return t + s.giay; }, 0);
+  const vt = new Map(shots.map((s, i) => [s.id, i] as const));
+  const cue = (ds ?? []).flatMap((d) => { const a = vt.get(d.tu), b = vt.get(d.den); if (a == null || b == null) return []; const [x, y] = [Math.min(a, b), Math.max(a, b)];
+    return [{ tu: bd[x]!, den: bd[y]! + shots[y]!.giay, y: d.y }]; }).sort((p, q) => p.tu - q.tu);
+  return cue.length ? `Cue sheet: ${cue.map((c) => `${Math.round(c.tu)}–${Math.round(c.den)}s ${NHAC[c.y]}`).join(' | ')}` : '';
+}

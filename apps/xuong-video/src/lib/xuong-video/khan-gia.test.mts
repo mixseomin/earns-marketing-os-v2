@@ -34,3 +34,38 @@ assert.deepStrictEqual(lamSachKhanGia([{ y: 'la', tu: 1, den: 2 }, { y: 'vui', t
   [{ y: 'danh_lua', tu: 1, den: 3, a: 'A', b: 'B', lat: 5 }]);
 assert.deepStrictEqual(lamSachKhanGia('x'), []);
 console.log(`✓ khan-gia (${HIEU_UNG_KHAN_GIA.length} hiệu ứng)`);
+// Từ shot Claude ghi → đoạn: liền nhau gom; đánh lừa lấy A/B + shot lật sau đoạn; mã lạ bỏ
+{
+  const { khanGiaTuShot, vanKhanGia } = await import('./khan-gia');
+  const r = khanGiaTuShot([
+    { id: 11, khan_gia: ['uc_che', 'danh_lua'], danh_lua: 'A: Hạ yếu thế | B: Hạ nắm vốn', khan_gia_ghi: 'nhục công khai' },
+    { id: 12, khan_gia: ['uc_che', 'danh_lua', 'la'] }, { id: 13, khan_gia: ['to_mo'] }, { id: 14, lat: true }, { id: 15, khan_gia: ['uc_che'] },
+  ]);
+  assert.deepStrictEqual(r, [
+    { y: 'uc_che', tu: 11, den: 12, ghi: 'nhục công khai' }, { y: 'danh_lua', tu: 11, den: 12, ghi: 'nhục công khai', a: 'Hạ yếu thế', b: 'Hạ nắm vốn', lat: 14 },
+    { y: 'to_mo', tu: 13, den: 13 }, { y: 'uc_che', tu: 15, den: 15 }]);
+  assert.ok(vanKhanGia().includes('danh_lua') && vanKhanGia().includes('KHÁC CẢM XÚC NHÂN VẬT'));
+  console.log('✓ khan-gia (từ shot)');
+}
+// Không khí cho prompt video: chỉ hiệu ứng có hình tương ứng; không bao giờ ra chữ nét mặt; shot ngoài mọi đoạn → rỗng
+{
+  const { hieuUngTaiShot, cauKhongKhi } = await import('./khan-gia');
+  const ids = [10, 11, 12, 13];
+  const kg = [{ y: 'uc_che' as const, tu: 10, den: 11 }, { y: 'danh_lua' as const, tu: 10, den: 12, a: 'a', b: 'b', lat: 13 }, { y: 'hoi_hop' as const, tu: 12, den: 12 }];
+  assert.deepStrictEqual(hieuUngTaiShot(kg, ids, 11), ['uc_che', 'danh_lua']);
+  assert.deepStrictEqual(hieuUngTaiShot(kg, ids, 13), []);
+  assert.ok(cauKhongKhi(['uc_che', 'danh_lua']).startsWith('Ambiance: cold, oppressive air.'));
+  assert.strictEqual(cauKhongKhi(['danh_lua', 'to_mo', 'bat_ngo', 'phan_van']), '', 'thứ tự thông tin — clip không tạo được');
+  assert.ok(!/angry|smil|frown|cry|scared face/i.test(cauKhongKhi(['vui', 'buon', 'hoi_hop', 'so_hai', 'uc_che', 'ha_he', 'nhe_nhom'])), 'không chữ nét mặt');
+  console.log('✓ khan-gia (không khí prompt)');
+}
+// Nhạc: mọi hiệu ứng có cách chấm nhạc; cue theo giây phát; đánh lừa không lộ twist
+{
+  const { cauNhacKhanGia, cueNhacKhanGia, HIEU_UNG_KHAN_GIA: H } = await import('./khan-gia');
+  for (const h of H) assert.ok(cauNhacKhanGia([h.key]).length > 40, `thiếu nhạc cho ${h.key}`);
+  assert.ok(cauNhacKhanGia(['danh_lua']).includes('never hint at the twist'));
+  assert.strictEqual(cauNhacKhanGia([]), '');
+  const cue = cueNhacKhanGia([{ y: 'ha_he', tu: 3, den: 4 }, { y: 'uc_che', tu: 1, den: 2 }], [{ id: 1, giay: 5 }, { id: 2, giay: 3 }, { id: 3, giay: 4 }, { id: 4, giay: 6 }]);
+  assert.ok(cue.startsWith('Cue sheet: 0–8s heavy') && cue.includes('| 8–18s triumphant'), cue);
+  console.log('✓ khan-gia (nhạc)');
+}

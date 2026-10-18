@@ -34,6 +34,7 @@ import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
+import { chamDanDat } from '@/lib/xuong-video/dan-dat';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
 import { trangThaiDoiTuong, mucDiem, TEN_NHANH, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
@@ -684,6 +685,26 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 ];
               }))}</Fragment>
             ));
+          })()}
+
+          {/* ↪ DẪN DẮT (dan-dat.ts): mỗi điểm cắt một dấu — xanh cắt có lý do, vàng / đỏ: nhảy hình, nhìn mà không cho thấy thứ được nhìn, vào cảnh
+              không định vị, khép cảnh giữa chừng, nhảy thời gian không dấu. Điểm tập = 60% điểm cắt + 40% khuôn (khi đã áp khuôn). */}
+          {canh.length > 1 && (() => {
+            const k = chamDanDat(canh, (tap.phan_canh ?? []) as never, tap.khuon_chuoi ?? [], theLoai);
+            const viTriShot = new Map(canh.map((c, i) => [c.id, i] as const));
+            const mau = (d: number) => (d >= 90 ? '#4ade80' : d >= 70 ? '#fbbf24' : '#f87171');
+            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}`).join(' · ')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
+            return track('↪ Dẫn dắt', mo, k.cat.map((c) => {
+              const j = viTriShot.get(c.sau); if (j == null || j < 1) return null;
+              const x = batDau[j]! * pps; const a = canh[j - 1]!, b = canh[j]!;
+              const tt = [`Cắt #${a.thu_tu} → #${b.thu_tu}${c.sangCanh ? ' · sang cảnh' : ''}: ${c.diem}/100`, ...(c.tru.length ? c.tru.map((t) => `−${t.tru} ${t.chu}`) : ['cắt có lý do — không trừ'])].join('\n');
+              const w = c.sangCanh ? 30 : 22;
+              return <div key={`dd${c.sau}`} data-goi-y={tt} onClick={() => bamShot(b.id, j)}
+                style={{ position: 'absolute', left: x - w / 2, width: w, top: 4, bottom: 4, borderRadius: 4, cursor: 'pointer', zIndex: 1, fontSize: 9.5, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
+                  background: c.tru.length ? `${mau(c.diem)}33` : 'transparent', border: `1px ${c.tru.length ? 'solid' : 'dotted'} ${mau(c.diem)}${c.tru.length ? '' : '88'}`, color: mau(c.diem) }}>
+                {c.tru.length ? c.diem : c.sangCanh ? '⇥' : '·'}
+              </div>;
+            }), 26, <span title={`Điểm dẫn dắt cả tập (rê tên làn xem cách tính)`} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '0 5px', borderRadius: 3, color: mau(k.diem), border: '1px solid currentColor' }}>{k.diem}</span>);
           })()}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}

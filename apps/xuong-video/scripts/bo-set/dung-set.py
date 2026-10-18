@@ -682,10 +682,10 @@ def gan_tay(sh, tat_ca, ket=False):
         if not objs: continue
         if khop is not None:   # ĐEO: trục vòng theo trục xương (cẳng tay). Người thật MPFB mặc áo dài tay: vòng nằm chỗ thật (lùi 2 cm về khuỷu) thì
             # chui trong cổ tay áo, khung kết #9 #25 mất chuỗi hạt — đúng câu kịch bản "tay áo xô lên lộ chuỗi hạt": vòng ngay mép cổ tay áo
-            # (nhích 0,5 cm về phía bàn tay) và nở 30 % ra ngoài lớp vải.
+            # (nhích 1,2 cm về phía bàn tay) và nở 45 % ra ngoài lớp vải (ống tay vest dày như #9).
             q = khop.matrix_world.to_quaternion()
-            for o in objs: o.rotation_euler = q.to_euler(); o.scale = (o.scale[0] * 1.3, o.scale[1] * 1.3, o.scale[2])
-            bpy.context.view_layer.update(); dich = khop.matrix_world @ Vector((0, 0, -0.5))
+            for o in objs: o.rotation_euler = q.to_euler(); o.scale = (o.scale[0] * 1.45, o.scale[1] * 1.45, o.scale[2])
+            bpy.context.view_layer.update(); dich = khop.matrix_world @ Vector((0, 0, -1.2))
         else: dich = (diem_cam(n_, 't') + diem_cam(n_, 'p')) / 2 if ben == 'om' else diem_cam(n_, ben)
         bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]
         tam = Vector([(min(p[i] for p in bb) + max(p[i] for p in bb)) / 2 for i in range(3)])
@@ -1706,7 +1706,7 @@ for sh in ([] if CHI_MB else shots):
     if co_mau or dong:
         nk, nk_het = nhan_vat(sh, ket=True)
         may_tai(1.0)
-        if not sh.get('giai') and (sh.get('bat_buoc') or []):   # khung KẾT: người đã ở dáng / hướng cuối, máy ở cuối đường máy → ngắm lại lần nữa
+        if not sh.get('giai') and (sh.get('bat_buoc') or []) and not (chay_ and chay_.get('ket')):   # khung KẾT: người ở dáng / hướng cuối, máy cuối đường máy → ngắm lại; cú CHUYỂN chủ thể (chay.ket, #9 cổ tay → Hạ) thì chủ thể kết là người khác, giữ nguyên
             nk_moi = ngam_lai(s, cam, sh, nk_het + nk, ket=True)
             if nk_moi: dat_may(cam, [x / CM for x in cam.location], nk_moi)
         den_ = chieu(nk)

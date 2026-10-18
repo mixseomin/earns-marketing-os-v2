@@ -95,7 +95,7 @@ export const goiTenEn = (nv: { ten: string; loai: string; mo_ta: string }[]) => 
  *  {mon} = món người đó đang cầm (tên en). Không có mã nào → đứng. */
 const DANG_EN: Record<string, string> = {
   chong_ban: 'standing, leaning forward with both palms flat on the table', cui_nguoi: 'standing, leaning forward', om_thung: 'standing, hugging {mon} against the stomach',
-  cam_truoc: 'standing, holding {mon} in front of the chest', gio_cao: 'standing, raising {mon} high for everyone to see', dua_truoc_mat: 'standing, holding {mon} up right in front of the other person', lac_treo: 'standing, arm stretched straight out and up to the other person\'s face height, the hand NOT open — thumb and index finger pinch the strap of {mon}, and {mon} hangs a few centimetres below her fingers, swinging right in front of the other person\'s face',
+  cam_truoc: 'standing, holding {mon} in front of the chest', gio_cao: 'standing, raising {mon} high for everyone to see', dua_truoc_mat: 'standing, holding {mon} up right in front of the other person', lac_treo: 'arm raised to the other person\'s face height, hand not open: thumb and index finger pinch the strap of {mon}, which hangs just below her fingers',
   hat: 'standing, flinging {mon} forward', giat: 'standing, reaching out to snatch', khoanh_tay: 'standing with arms crossed', gioi_thieu: 'standing, one open hand extended toward the person beside',
   thuyet_trinh: 'standing, one hand open toward the screen', cam_dien_thoai: 'standing, looking down at {mon} in hand', quy_mot_goi: 'kneeling on one knee',
   mc_di_bo: 'walking', mc_sai_buoc: 'striding forward', mc_quy_xuong: 'kneeling down', mc_dung_day: 'rising from a chair',

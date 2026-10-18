@@ -693,7 +693,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             const k = chamDanDat(canh, (tap.phan_canh ?? []) as never, tap.khuon_chuoi ?? [], theLoai);
             const viTriShot = new Map(canh.map((c, i) => [c.id, i] as const));
             const mau = (d: number) => (d >= 90 ? '#4ade80' : d >= 70 ? '#fbbf24' : '#f87171');
-            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}`).join(' · ')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
+            const mo = `Dẫn dắt: mỗi dấu là một điểm cắt giữa hai shot — cắt có lý do không, vào cảnh có biết đang ở đâu / lúc nào, cảnh khép có dứt\nĐiểm tập ${k.diem}/100 = điểm cắt ${k.diemCat}${k.diemKhuon != null ? ` × 60% + khuôn ${k.diemKhuon} × 40%` : ''}\n${k.canh.map((c) => `${c.ten}: ${c.diem}${c.tru.length ? ` (${c.tru.map((t) => `−${t.tru} ${t.chu}`).join('; ')})` : ''}`).join('\n')}${k.ngoaiKhuon.length ? `\nShot chưa thuộc khuôn nào: ${k.ngoaiKhuon.map((id) => `#${canh[viTriShot.get(id)!]?.thu_tu}`).join(' ')}` : ''}`;
             return track('↪ Dẫn dắt', mo, k.cat.map((c) => {
               const j = viTriShot.get(c.sau); if (j == null || j < 1) return null;
               const x = batDau[j]! * pps; const a = canh[j - 1]!, b = canh[j]!;

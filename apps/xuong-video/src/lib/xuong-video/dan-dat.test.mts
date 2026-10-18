@@ -9,6 +9,7 @@ const pc = new Map([['A', { ten: 'A', noi: 'Văn phòng', luc: '09:00', ngay: 'D
 assert.ok(chamCat(sh(1, 'A', 'hanh_dong', 'ms'), sh(2, 'A', 'phan_ung', 'ms'), pc).tru.some((t) => t.ma === 'nhay_hinh'));
 assert.ok(!chamCat(sh(1, 'A', 'hanh_dong', 'ms'), sh(2, 'A', 'phan_ung', 'cu'), pc).tru.length, 'đổi cỡ thì không trừ');
 assert.ok(!chamCat(sh(1, 'A', 'hanh_dong', 'ms', [1]), sh(2, 'A', 'phan_ung', 'ms', [2]), pc).tru.length, 'khác người thì không trừ');
+assert.ok(!chamCat(sh(1, 'A', 'nguoi_thu_ba', 'ots', [1, 2]), sh(2, 'A', 'phan_ung', 'ots', [1, 2]), pc).tru.length, 'qua vai ↔ qua vai (shot / ngược shot) không phải nhảy hình');
 // nhìn mà không đáp
 assert.ok(chamCat(sh(1, 'A', 'phan_ung', 'cu', [1], { hanh_dong: 'Thần nhìn Hạ từ trên xuống' }), sh(2, 'A', 'phan_ung', 'mcu'), pc).tru.some((t) => t.ma === 'nhin_khong_dap'));
 assert.ok(!chamCat(sh(1, 'A', 'phan_ung', 'cu', [1], { hanh_dong: 'Thần nhìn Hạ' }), sh(2, 'A', 'chi_tiet', 'insert', [2]), pc).tru.length, 'cho thấy thứ được nhìn');
@@ -30,4 +31,6 @@ assert.deepStrictEqual(k.ngoaiKhuon, [4]);
 assert.ok(k.diemKhuon != null && k.diemKhuon < 100, 'thiếu phủ khuôn thì điểm khuôn < 100');
 assert.strictEqual(chamDanDat(ds, [...pc.values()]).diemKhuon, null, 'chưa áp khuôn thì không chấm khuôn');
 assert.strictEqual(chamDanDat([], []).diem, 100);
+const khongPu = chamDanDat([sh(1, 'A', 'thiet_lap', 'ws'), sh(2, 'A', 'hanh_dong', 'ms', [2]), sh(3, 'A', 'chi_tiet', 'insert', [3])], [...pc.values()]);
+assert.ok(khongPu.canh[0]!.tru.some((t) => t.ma === 'khong_phan_ung') && khongPu.diemCat < 100);
 console.log('✓ dan-dat');

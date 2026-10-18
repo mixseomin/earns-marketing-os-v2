@@ -13,7 +13,7 @@ const canh = ((await db.execute(sql`SELECT id, thu_tu, phan_doan, hanh_dong, can
 const k = chamDanDat(canh, t.phan_canh ?? [], t.khuon_chuoi ?? [], t.tl as never);
 const so = new Map(canh.map((c) => [c.id, c.thu_tu]));
 console.log(`Dẫn dắt tập ${tapId}: ${k.diem}/100 (điểm cắt ${k.diemCat} · khuôn ${k.diemKhuon ?? '—'})`);
-for (const c of k.canh) console.log(`  cảnh "${c.ten}": ${c.diem}`);
+for (const c of k.canh) console.log(`  cảnh "${c.ten}": ${c.diem}${c.tru.length ? ` — ${c.tru.map((t) => `−${t.tru} ${t.chu}`).join('; ')}` : ''}`);
 for (const c of k.cat.filter((x) => x.tru.length)) console.log(`  #${so.get(c.truoc)}→#${so.get(c.sau)}${c.sangCanh ? ' (sang cảnh)' : ''} ${c.diem}: ${c.tru.map((x) => `−${x.tru} ${x.chu}`).join(' | ')}`);
 if (k.ngoaiKhuon.length) console.log(`  shot ngoài khuôn: ${k.ngoaiKhuon.map((id) => `#${so.get(id)}`).join(' ')}`);
 process.exit(0);

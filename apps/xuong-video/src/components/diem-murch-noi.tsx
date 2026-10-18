@@ -56,7 +56,7 @@ export function ChipMurch({ d, canh, tap, soShot, viTri: vt, may }: { d: DiemMur
   return (<>
     <span ref={ref} className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} title=""
       onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMo(false); setNgan(true); }}
-      style={{ ...(vt === 'dong' ? { position: 'relative' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700 }}>
+      style={{ ...(vt === 'dong' ? { position: 'relative' as const, flexShrink: 0, whiteSpace: 'nowrap' as const } : { position: 'absolute' as const, ...(vt ?? { right: 4, top: 4 }) }), fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.72)', color: mau, cursor: 'pointer', fontWeight: 700 }}>
       M {d.tong}{may && <span style={{ color: KY_MAY[may.ket].mau, marginLeft: 4 }}>🤖{KY_MAY[may.ket].ky}</span>}
     </span>
     {mo && (

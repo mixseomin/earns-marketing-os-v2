@@ -588,7 +588,7 @@ async function ghepTungNguoi(db: Db, canhId: number, thuTu: number, kt: KinhThan
     const b1 = await buocDoSau(db, canhId, thuTu, { sau: x.sau, prompt1: x.prompt1, prompt2: '', ref2: [], ...(x.loras ? { loras: x.loras } : {}) }, kt.ti_le ?? '9:16');
     if (!b1.ok) return { ok: false, loi: `${x.ten} (độ sâu): ${b1.loi}` };
     // CẮT – DÁN: sửa nhân dạng trên ẢNH CẮT quanh người (lấp khung) rồi dán về đúng hộp — sửa trên cả khung thì Nano Banana vẽ lại bố cục (#12)
-    const cat = await lopCat({ op: 'cat', sau: x.sau, anh: b1.url, le: 0.15 }, 'jpg');
+    const cat = await lopCat({ op: 'cat', sau: x.sau, anh: b1.url, le: 0.15, ti: doc ? 9 / 16 : 16 / 9 }, 'jpg');
     if (!cat) return { ok: false, loi: `${x.ten}: cắt vùng người hỏng` };
     const b2 = x.ref.length ? await suaAnh(`Keyframe (lớp ${x.ten} · ${x.loras ? 'trang phục' : 'nhân dạng'})`, x.loras ? `${x.prompt2} ${KHOA_MAT_LORA}` : x.prompt2, [cat.url, ...x.ref]) : { ok: true as const, url: cat.url };
     if (!b2.ok) return { ok: false, loi: `${x.ten} (nhân dạng): ${b2.loi}` };

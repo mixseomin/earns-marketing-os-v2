@@ -19,15 +19,25 @@ if v['op'] == 'cat':
     sx, sy = W / sau.shape[1], H / sau.shape[0]
     x0, x1, y0, y1 = xs.min() * sx, (xs.max() + 1) * sx, ys.min() * sy, (ys.max() + 1) * sy
     le = float(v.get('le', 0.15)); dx, dy = (x1 - x0) * le, (y1 - y0) * le
-    x0, y0, x1, y1 = [int(round(t)) for t in (max(0, x0 - dx), max(0, y0 - dy), min(W, x1 + dx), min(H, y1 + dy))]
-    cat = anh[y0:y1, x0:x1]; k = 1024 / max(cat.shape[:2])
+    x0, y0, x1, y1 = x0 - dx, y0 - dy, x1 + dx, y1 + dy
+    # HỘP CÙNG TỶ LỆ ẢNH MODEL TRẢ (ti = rộng/cao, mặc định 9:16): Nano Banana luôn trả khung cố định — hộp cắt hẹp cao (người đứng) mà dán ngược
+    # về hộp cũ là kéo dãn lệch hai chiều, người méo (anh 18/10/2026: "sao ảnh người thật cứ méo"). Nới hộp về đúng tỷ lệ quanh tâm người; phần
+    # vượt mép ảnh độn nền xanh.
+    A = float(v.get('ti', 9 / 16)); cx, cy, bw, bh = (x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0
+    if bw / bh < A: bw = bh * A
+    else: bh = bw / A
+    x0, y0, x1, y1 = [int(round(t)) for t in (cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2)]
+    p0, q0, p1, q1 = max(0, -x0), max(0, -y0), max(0, x1 - W), max(0, y1 - H)
+    cat = cv2.copyMakeBorder(anh[max(0, y0):min(H, y1), max(0, x0):min(W, x1)], q0, q1, p0, p1, cv2.BORDER_CONSTANT, value=(0, 255, 0)); k = 1024 / max(cat.shape[:2])
     cv2.imwrite(v['ra'], cv2.resize(cat, None, fx=k, fy=k, interpolation=cv2.INTER_LANCZOS4), [cv2.IMWRITE_JPEG_QUALITY, 95])
     print(json.dumps({'hop': [x0, y0, x1, y1], 'w': W, 'h': H}))
 elif v['op'] == 'dan':
     # KHỚP BÓNG NGƯỜI: tách nền xanh ảnh đã sửa → bóng người model vẽ ra; co giãn + dời cho khớp HỘP BÓNG NGƯỜI của lớp độ sâu 3D (khớp chiều cao,
     # chân chạm cùng đáy, giữa theo chiều ngang). Model hay phóng / thu người trong ảnh cắt (#12 Thần thành nửa người) → dán thẳng thì sai cỡ, cụt.
     x0, y0, x1, y1 = v['hop']; W, H = int(v['w']), int(v['h'])
-    sua = cv2.resize(doc(v['anh']), (x1 - x0, y1 - y0), interpolation=cv2.INTER_AREA)
+    sua = cv2.resize(doc(v['anh']), (x1 - x0, y1 - y0), interpolation=cv2.INTER_AREA)   # hộp đã cùng tỷ lệ ảnh model (op cat) → co đều hai chiều
+    ox0, oy0, ox1, oy1 = max(0, x0), max(0, y0), min(W, x1), min(H, y1)   # hộp vượt mép ảnh (phần độn xanh) → cắt về trong khung
+    sua = sua[oy0 - y0:oy1 - y0, ox0 - x0:ox1 - x0]; x0, y0, x1, y1 = ox0, oy0, ox1, oy1
     nen = np.zeros((H, W, 3), np.uint8); nen[:] = (0, 255, 0)
     hsv = cv2.cvtColor(sua, cv2.COLOR_BGR2HSV); xanh = cv2.inRange(hsv, (35, 90, 70), (85, 255, 255)) > 0
     nguoi = cv2.morphologyEx((~xanh).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)) > 0
@@ -45,7 +55,10 @@ elif v['op'] == 'dan':
     elif v.get('sau') and nguoi.mean() < 0.9:   # có nền xanh thật thì khớp bóng; không (model bỏ nền xanh) → dán theo mặt nạ cũ
         m3 = cv2.resize(doc(v['sau'], cv2.IMREAD_GRAYSCALE), (W, H), interpolation=cv2.INTER_NEAREST) > 8
         ty, tx = np.nonzero(m3); sy, sx = np.nonzero(nguoi)
-        if len(tx) and len(sx):
+        # BÓNG 3D BỊ MÉP KHUNG CẮT (cú qua vai: chỉ lộ vai / lưng người tiền cảnh, #14 Vivian) → chiều cao bóng không phải chiều cao người; co người
+        # model vẽ cho bằng nó là người tí hon. Bỏ khớp bóng, dán ảnh sửa đúng hộp (đã cùng tỷ lệ, không méo).
+        cham_mep = len(tx) and (tx.min() <= 1 or ty.min() <= 1 or tx.max() >= W - 2 or ty.max() >= H - 2)
+        if len(tx) and len(sx) and not cham_mep:
             th = ty.max() - ty.min() + 1; sh = sy.max() - sy.min() + 1; k = th / sh
             cat = sua[sy.min():sy.max() + 1, sx.min():sx.max() + 1]; mk = nguoi[sy.min():sy.max() + 1, sx.min():sx.max() + 1].astype(np.uint8)
             cat = cv2.resize(cat, None, fx=k, fy=k, interpolation=cv2.INTER_LANCZOS4); mk = cv2.resize(mk, (cat.shape[1], cat.shape[0]), interpolation=cv2.INTER_NEAREST) > 0

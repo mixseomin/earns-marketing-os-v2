@@ -1607,7 +1607,7 @@ if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng t�
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
-kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}
+kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}; LECH_NHIN = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     dat_khai = list(sh['may']['dat'])   # máy KHAI (trước kẹp / bộ giải) — đường máy chay tính từ chỗ này, máy dời bao nhiêu thì chỗ kết dời theo bấy nhiêu
@@ -1634,13 +1634,15 @@ for sh in ([] if CHI_MB else shots):
             from bpy_extras.object_utils import world_to_camera_view
             v_ = world_to_camera_view(s, cam, dich)
             if not (0.12 < v_.x < 0.88 and 0.12 < v_.y < 0.88 and v_.z > 0):
-                nhin_moi = [round(x / CM, 1) for x in dich]; dat_may(cam, sh['may']['dat'], nhin_moi)
+                nhin_moi = [round(x / CM, 1) for x in dich]; LECH_NHIN[sh['ma']] = [a_ - b_ for a_, b_ in zip(nhin_moi, sh['may']['nhin'])]; dat_may(cam, sh['may']['dat'], nhin_moi)
                 sh['may']['nhin'] = nhin_moi; giai[sh['ma']] = {'dat': sh['may']['dat'], 'nhin': nhin_moi}; k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
-    # MÁY TRONG ĐẦU NGƯỜI (POV từ mắt nhân vật, #2): đầu / tóc của chính người đó ở sát ống kính che hết khung → cắt gần (clip_start) qua khỏi đầu
-    co_mat = {v_['ten'] for v_ in sh.get('nhan_vat', [])}
-    gan = [(NGUOI[t]['dau'].matrix_world.translation - cam.location).length for t in co_mat if t in NGUOI and NGUOI[t].get('dau') and NGUOI[t]['dau'].name in bpy.data.objects]
-    gan = [d_ for d_ in gan if d_ < 0.35]
-    cam.data.clip_start = max(cam.data.clip_start, (max(gan) + 0.12) if gan else 0)
+    # ĐẦU CHẮN GIỮA MÁY VÀ CHỦ THỂ (POV từ mắt nhân vật, #2 nhìn xuống vết cà phê trên ngực): đầu / tóc người thật nằm gần máy hơn điểm nhìn và gần tia
+    # nhìn (< 25°) → cắt gần (clip_start) qua khỏi đầu, không cắt tới chủ thể.
+    co_mat = {v_['ten'] for v_ in sh.get('nhan_vat', [])}; nh_ = Vector(sh['may']['nhin']) * CM - cam.location; d_dich = nh_.length
+    cat = [ (h_ - cam.location).length for t in co_mat if t in NGUOI and NGUOI[t].get('dau') and NGUOI[t]['dau'].name in bpy.data.objects
+            for h_ in [NGUOI[t]['dau'].matrix_world.translation + Vector((0, 0, 0.5 * NGUOI[t]['L']['dau'] * CM))]
+            if (h_ - cam.location).length < 0.8 * d_dich and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
+    if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     # XUYÊN NHAU ở khung mở: mỗi đạo cụ đang hiện với người / đạo cụ / đồ set — lún > 1 cm thì ghi cho cổng (cầm thì người cầm bỏ bàn tay)
     xy_ = []
@@ -1685,7 +1687,7 @@ for sh in ([] if CHI_MB else shots):
     ket_dong[sh['ma']] = dong
     def may_tai(t):
         if not chay_: return
-        d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin'])
+        d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin']) + Vector(LECH_NHIN.get(sh['ma'], (0, 0, 0)))   # máy đã ngắm lại ở khung mở → khung kết lệch theo
         dat_may(cam, list(d0.lerp(d1, t)), list(n0.lerp(n1, t))); cam.data.lens = sh['may']['ong_kinh'] + (chay_['ong_kinh'] - sh['may']['ong_kinh']) * t
     if co_mau or dong:
         nk, nk_het = nhan_vat(sh, ket=True)

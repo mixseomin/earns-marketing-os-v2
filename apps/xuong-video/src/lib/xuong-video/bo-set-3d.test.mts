@@ -180,7 +180,8 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // hết ngửa trời; gối / khuỷu bằng IK có pole trên đúng chuỗi xương *02 — hết chân ngược; ma-nơ-canh dựng theo tỉ lệ đo từ người MPFB + cột sống IK — đầu / cổ tay trùng 0 cm) → 82.
 // 18/10/2026 (28): khung xương ma-nơ-canh theo tỉ lệ người MPFB → 83.
 // 18/10/2026 (29): người ĐẤT SÉT previs (anh chọn — da / mắt MakeHuman ở cận như quái thai); máy đặt tay trượt chủ thể thì ngắm lại; POV cắt gần qua đầu chính người đó → 84.
-assert.deepEqual([BAN_DUNG, bam], [84, '3cbb0b25cbe7'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// 18/10/2026 (30): khung kết lệch theo máy đã ngắm lại; đầu chắn giữa máy và chủ thể thì cắt gần → 85.
+assert.deepEqual([BAN_DUNG, bam], [85, 'dfe29b1b3c9d'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

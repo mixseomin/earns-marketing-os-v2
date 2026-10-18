@@ -1,4 +1,5 @@
 import type { TheLoai, KyThuatShot, Beat } from './dien-anh';
+import type { ApKhuon } from './khuon-chuoi';
 import { boChamCuoi, chiaCum } from './ngat-dong';
 // Xưởng video AI — kiểu dữ liệu + bảng model/giá. File THƯỜNG (không 'use server'), client lẫn server import được.
 // Giá: ai.google.dev/gemini-api/docs/pricing đọc 08/10/2026 (Veo 3.1 Lite 720p $0,05/giây; Nano Banana 2.1 1K $0,0336/ảnh).
@@ -516,7 +517,8 @@ export type ThuNguoiXem = {
 export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; cung?: string;
   /** animatic đã duyệt: keyframe ghép đúng số giây + âm (bản xuất từ keyframe); ma = mã keyframe + giây lúc duyệt — đổi là phải duyệt lại */
   animatic?: { url: string; ma: string; luc: string } | null };
-export type Tap = { ho_so?: TapHoSo; id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
+/** khuon_chuoi = các lần áp khuôn chuỗi shot trong tập (khuon-chuoi.ts, xv_tap.khuon_chuoi) — làn 🧭 Khuôn trên timeline. */
+export type Tap = { khuon_chuoi?: ApKhuon[]; ho_so?: TapHoSo; id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
 /** Khoá THƯƠNG HIỆU của kho tài sản = tên miền shop của phim QC (qc.link, bỏ www) — project của studio là nhãn chung ('studio'), không phải

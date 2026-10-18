@@ -34,6 +34,8 @@ import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
+import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
+import type { TheLoai } from '@/lib/xuong-video/dien-anh';
 import { trangThaiDoiTuong, mucDiem, TEN_NHANH, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
 
 /** Màu khối làn Đối tượng theo mức điểm (khoiAm cần mã hex để ghép độ trong). */
@@ -51,9 +53,10 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
   /** bấm một khối của shot trên bất kỳ làn nào → mở ngăn chi tiết shot (anh 18/10/2026: cuộn xuống các làn dưới thì không kéo lên xem panel được) */ onMoShot?: (id: number) => void;
+  /** dòng phim (kinh_thanh.the_loai) — khuôn chuỗi kiểm có hợp dòng không + hover làn 🧭 Khuôn hiện quy chuẩn ngành của dòng */ theLoai?: TheLoai | '';
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
@@ -653,6 +656,35 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               );
             });
           })())}
+
+          {/* 🧭 KHUÔN CHUỖI (khuon-chuoi.ts, xv_tap.khuon_chuoi): mỗi lần áp khuôn tô các shot của nó theo BƯỚC — xanh đúng vai, vàng thiếu luật /
+              thiếu bước nên có, đỏ sai vai / lùi bước / thiếu bước bắt buộc. Khuôn trải rộng (gài ở cảnh 2, trả ở cảnh 5) tự sang hàng riêng. */}
+          {(() => {
+            const ket = (tap.khuon_chuoi ?? []).map((a) => kiemKhuon(a, canh, theLoai)).filter((k): k is KetAp => !!k);
+            if (!ket.length) return null;
+            const viTriShot = new Map(canh.map((c, i) => [c.id, i] as const));
+            const qc = theLoai ? QUY_CHUAN_DONG[theLoai] : undefined;
+            const moLan = `Khuôn chuỗi shot đang áp: mỗi khối = một shot ở một BƯỚC của khuôn (rê xem mục đích, bước, lỗi, nguồn) · xanh đúng · vàng nên sửa · đỏ sai${qc ? `\nQuy chuẩn dòng phim: ${qc.luat.join(' · ')}\nKhuôn hay dùng: ${qc.khuon.map((k) => khuonTheoKey(k)?.ten ?? k).join(', ')}` : ''}`;
+            const MAU = { tot: '#4ade80', vang: '#fbbf24', do: '#f87171' } as const;
+            return xepHang(ket, viTriShot).map((hang, h) => (
+              <Fragment key={`kh${h}`}>{track(h ? `🧭 Khuôn · ${h + 1}` : '🧭 Khuôn', moLan, hang.flatMap((k) => {
+                const vt = k.shots.map((x) => viTriShot.get(x.id)).filter((i): i is number => i != null);
+                const lien = vt.every((i, j) => !j || i === vt[j - 1]! + 1);
+                const dau = vt.length ? batDau[vt[0]!]! * pps : 0; const cuoi = vt.length ? (batDau[vt[vt.length - 1]!]! + dur(canh[vt[vt.length - 1]!]!)) * pps : 0;
+                return [
+                  ...(lien && vt.length ? [<div key={`kb${k.ap.khuon}${vt[0]}`} style={{ position: 'absolute', left: dau + 1, width: Math.max(4, cuoi - dau - 2), bottom: 0, height: 2, background: MAU[k.muc], opacity: 0.7, pointerEvents: 'none' }} />] : []),
+                  ...k.shots.map((x, j) => {
+                    const i = viTriShot.get(x.id); if (i == null) return null;
+                    const cc = canh[i]!; const b = k.kh.buoc[x.buoc];
+                    const tt = [`${k.kh.ten} · bước ${x.buoc + 1}/${k.kh.buoc.length}: ${x.tenBuoc}`, b?.ghi, `Mục đích: ${k.kh.muc_dich}`, k.ap.ghi && `Ở đây: ${k.ap.ghi}`,
+                      ...x.loi.map((l) => `⚠ ${l}`), ...(j === 0 ? k.loi.map((l) => `⚠ cả khuôn: ${l}`) : []), k.kh.ket && `Kết khuôn: ${k.kh.ket}`,
+                      `Nguồn: ${k.kh.nguon.map((n) => `${n.phim} — ${n.ghi}`).join(' · ')}`].filter(Boolean).join('\n');
+                    return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, MAU[x.muc === 'tot' && j === 0 ? k.muc : x.muc], `${j === 0 ? `${k.kh.ten} › ` : ''}${x.tenBuoc}`, tt, `kh${k.ap.khuon}${x.id}`, () => bamShot(cc.id, i), undefined, '');
+                  }),
+                ];
+              }))}</Fragment>
+            ));
+          })()}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
           {/* Hiện cả khi mọi shot ghi 0: "trung tính hết" chính là thứ cần thấy, ẩn làn đi là giấu lỗi. Nét đứt xám = cảm xúc MỤC TIÊU theo loại beat. */}

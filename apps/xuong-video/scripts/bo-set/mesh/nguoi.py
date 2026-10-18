@@ -396,7 +396,7 @@ TU_THE_NGUOI = {
     'cam_dien_thoai': {'vai_p': (-12, 10, 0), 'khuyu_p': (-110, 0, 0), 'dau': (22, 0, 0)},                     # nhìn xuống điện thoại trong tay
     'gio_cao': {'vai_p': (-150, 12, 0), 'khuyu_p': (-15, 0, 0), 'lung': (-5, 0, 0)},                            # giơ cao cho cả phòng thấy, ngả nhẹ ra sau
     'dua_truoc_mat': {'vai_p': (-70, 12, 0), 'khuyu_p': (-55, 0, 0)},
-    'lac_treo': {'vai_p': (-88, 10, 0), 'khuyu_p': (-15, 0, 0)},                                               # chìa tay ngang vai (−88°: −105° với tay MPFB dài thành giơ tay quá đầu như vẫy chào, #13), món TREO lủng lẳng ngang mặt người đối diện (#11 thẻ đeo)
+    'lac_treo': {'vai_p': (-97, 10, 0), 'khuyu_p': (-15, 0, 0)},                                               # chìa tay hơi trên vai (−97°: −105° với tay MPFB dài thành giơ quá đầu như vẫy chào; −88° ngang vai thì thẻ rơi vào thùng Hạ ôm ngực, #13), món TREO lủng lẳng ngang mặt người đối diện (#11 thẻ đeo)
     # DÁNG CẢM XÚC (anh 18/10/2026 "hỉ nộ ái ố đầy đủ — tư thế khi diễn biểu cảm"): LoRA chỉ học MẶT, dáng thân do khung 3D quyết; đi kèm nét mặt
     # (bieu_mat) của cùng shot. Tay hướng vào thân: khuỷu z dương phía phải 'p' / âm phía trái 't' (như khoanh_tay).
     'om_mat_khoc': {'lung': (14, 0, 0), 'dau': (22, 0, 0), 'vai_t': (-50, 10, 0), 'vai_p': (-50, -10, 0), 'khuyu_t': (-135, 0, -50), 'khuyu_p': (-135, 0, 50)},  # hai tay ôm mặt khóc, cúi

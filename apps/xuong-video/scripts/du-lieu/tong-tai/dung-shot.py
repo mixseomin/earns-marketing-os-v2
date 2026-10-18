@@ -178,10 +178,10 @@ shot('4.5', C4, 5, 'veo', {'vai': 'hanh_dong', 'co_canh': 'mcu', 'goc': 'thap', 
 # 4.6 PHẢN ỨNG người bị vả mặt qua mắt Hạ (chủ quan — Hạ vừa nói xong, nhìn Vivian sụp đổ). Luật liền mạch / chamDauTu: cú lật phải có shot phản ứng
 # của chính người bị lật — anh thêm trên studio 18/10/2026
 shot('4.6', C4, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', 'chuyen_dong': 'zoom_gat', 'ong_kinh': 'chan_dung', 'anh_sang': 'tuong_phan', 'am_thanh': ['im_lang']},
-     { 'dien': "Anticipation: Vivian's smug smile is still on her face. Action: it freezes, then cracks as Hạ's words land. Reaction: her eyes go wide on Hạ, her empty hand still curled in front of her chest.", 'huong': 'Vivian looks screen-left toward Hạ.','bo_cuc': 'Close-up on Vivian from Hạ’s point of view, the boardroom soft behind her, her empty curled hand at the bottom edge', 'mo': 'Vivian’s smug smile frozen', 'ket': 'Vivian’s eyes wide, the smile gone', 'muc_dich': 'phản ứng của người bị vả mặt'},
+     { 'dien': "Anticipation: Vivian's smug smile is still on her face. Action: it freezes, then cracks as Hạ's words land. Reaction: her eyes go wide on Hạ, her empty hand still curled in front of her chest.", 'huong': 'Vivian looks almost straight into the lens — at Hạ.','bo_cuc': 'Close-up on Vivian from Hạ’s point of view, the boardroom soft behind her, her empty curled hand at the bottom edge', 'mo': 'Vivian’s smug smile frozen', 'ket': 'Vivian’s eyes wide, the smile gone', 'muc_dich': 'phản ứng của người bị vả mặt'},
      'Cận mặt Vivian: nụ cười đắc ý đông cứng rồi vỡ ra, mắt mở to nhìn Hạ, bàn tay trống vẫn khum trước ngực', [],
      [bc(VIV, 'dac_y', 'soc')],
-     {'tay': True, 'qua_truc': True, 'dat': [4, 670, 158], 'nhin': [110, 745, 148], 'ong_kinh': 85, 'khung': [VIV],   # POV Hạ (qua_truc: góc riêng, không kéo hướng máy chủ của cảnh) — cùng hướng chéo trước mặt Vivian, ~1,3 m cho cận thật (máy xa 3,2 m thừa nửa khung trên đầu)
+     {'tay': True, 'qua_truc': True, 'dat': [36, 615, 155], 'nhin': [110, 745, 145], 'ong_kinh': 85, 'khung': [VIV],   # POV Hạ thật: máy trên đường Vivian→Hạ cách 1,5 m, tầm mắt Hạ — Vivian nhìn gần thẳng ống kính (qua_truc: góc riêng, không kéo hướng máy chủ của cảnh)
       'vi_tri': [vt(VIV, [110, 745, 0], -30, dien=['cam_truoc']), vt(HA, [-200, 200, 0], 160, an=True), vt(THAN, [0, 740, 0], 0, an=True)]},
      [VIV, PH])
 

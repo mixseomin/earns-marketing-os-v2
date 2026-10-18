@@ -2324,7 +2324,7 @@
   },
   "dan_dung": {
    "dien": "Anticipation: Vivian's smug smile is still on her face. Action: it freezes, then cracks as Hạ's words land. Reaction: her eyes go wide on Hạ, her empty hand still curled in front of her chest.",
-   "huong": "Vivian looks screen-left toward Hạ.",
+   "huong": "Vivian looks almost straight into the lens — at Hạ.",
    "bo_cuc": "Close-up on Vivian from Hạ’s point of view, the boardroom soft behind her, her empty curled hand at the bottom edge",
    "mo": "Vivian’s smug smile frozen",
    "ket": "Vivian’s eyes wide, the smile gone",
@@ -2344,14 +2344,14 @@
    "tay": true,
    "qua_truc": true,
    "dat": [
-    4,
-    670,
-    158
+    36,
+    615,
+    155
    ],
    "nhin": [
     110,
     745,
-    148
+    145
    ],
    "ong_kinh": 85,
    "khung": [

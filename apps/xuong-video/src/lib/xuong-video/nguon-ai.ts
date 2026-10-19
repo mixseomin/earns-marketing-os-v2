@@ -3,7 +3,7 @@
 // File thường (client lẫn server import): kiểu + bảng hằng + phép tính thuần. Tự kiểm: nguon-ai.test.mts.
 
 export type TrangThaiNguon = 'dang' | 'co_tk' | 'tham_khao' | 'ngung';
-export type LoaiNguon = 'video' | 'anh' | 'giong' | 'am' | 'chu' | 'nhung';
+export type LoaiNguon = 'video' | 'anh' | 'giong' | 'am' | 'chu' | 'nhung' | 'gpu';
 /** Ô khớp nội dung: 1 nên dùng · 0 được · -1 cấm · null chưa rõ — theo thứ tự VIEC_NGUON. */
 export type O = 1 | 0 | -1 | null;
 
@@ -16,6 +16,8 @@ export const LOAI_NGUON: { key: LoaiNguon; ten: string; donVi: string }[] = [
   { key: 'am', ten: 'Âm thanh', donVi: '1 bản 30s' },
   { key: 'chu', ten: 'Chữ', donVi: '1 lượt ≈ 20k token vào + 5k ra' },
   { key: 'nhung', ten: 'Embedding', donVi: '1 triệu token vào' },
+  // máy GPU thuê giờ (dựng Blender, model tự host) — giá on-demand 1 thẻ; kha_nang ghi tốc độ Cycles so RTX 4090 để quy ra giá theo việc (0298)
+  { key: 'gpu', ten: 'Máy GPU', donVi: '1 giờ · 1 thẻ' },
 ];
 export const VIEC_NGUON = ['QC người thật', 'Giữ nhân vật', 'Cận sản phẩm', 'Hoạt hình / 3D', 'Thoại khớp miệng', 'Nối khung khoá'] as const;
 

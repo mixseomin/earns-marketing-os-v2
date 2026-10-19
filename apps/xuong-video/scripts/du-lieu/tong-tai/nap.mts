@@ -75,10 +75,14 @@ for (const [i, c] of shots.entries()) {
   const loiThoai = c.thoai.map((d) => `${d.nhan_vat} (${d.dien_xuat}): "${d.loi}"`).join('\n');
   const pa = c.prompt_anh || `${dd.bo_cuc}. Opening moment: ${dd.mo}.`;
   const pv = c.prompt_video || '';   // không chèn câu mẫu: khuôn video (sinh-video.ts › khoiVideoCanh) tự dựng từ mở / kết / diễn / phong cách — câu mẫu cũ lặp hai lần
-  r = await db.execute(sql`SELECT id, may_3d FROM xv_canh WHERE tap_id = ${tapId} AND dan_dung->>'ma' = ${c.ma} LIMIT 1`);
+  r = await db.execute(sql`SELECT id, may_3d, thoai FROM xv_canh WHERE tap_id = ${tapId} AND dan_dung->>'ma' = ${c.ma} LIMIT 1`);
+  // GIỮ GIỌNG ĐÃ SINH (19/10/2026: nạp lại ghi đè cột thoại → 15 dòng mất đường dẫn file giọng sau mỗi lần sửa dữ liệu shot): dòng cùng vị trí, câu chữ
+  // không đổi thì giữ mọi trường của dòng cũ (url, giong, dich…), chỉ cập nhật phần khai; đổi chữ thì phải đọc lại — bỏ giọng cũ.
+  const thoaiCu = ((r[0]?.thoai ?? []) as Record<string, unknown>[]);
+  const thoaiMoi = c.thoai.map((d, k) => (thoaiCu[k] && thoaiCu[k]!.loi === d.loi ? { ...thoaiCu[k], ...d } : d));
   const may = mayShot(c.may_3d as never, kt, khoiCua, (r[0]?.may_3d ?? null) as never);
   const vals = sql`thu_tu = ${i + 1}, canh = ${`Cảnh ${soCanh(c.canh)} · ${c.canh}`}, phan_doan = ${c.canh}, nhan_vat = ${j(ids)}::jsonb, hanh_dong = ${c.hanh_dong}, goc_may = ${gocMay},
-    loi_thoai = ${loiThoai}, thoai = ${j(c.thoai)}::jsonb, thoi_luong_s = ${c.thoi_luong_s}, phat_s = ${c.phat_s}, ky_thuat = ${j(c.ky_thuat)}::jsonb, dan_dung = ${j(dd)}::jsonb,
+    loi_thoai = ${loiThoai}, thoai = ${j(thoaiMoi)}::jsonb, thoi_luong_s = ${c.thoi_luong_s}, phat_s = ${c.phat_s}, ky_thuat = ${j(c.ky_thuat)}::jsonb, dan_dung = ${j(dd)}::jsonb,
     bieu_cam = ${j(c.bieu_cam)}::jsonb, may_3d = ${j(may)}::jsonb, chu_man = ${c.chu_man}, prompt_anh = ${pa}, prompt_video = ${pv}, updated_at = now()`;
   if (r[0]) await db.execute(sql`UPDATE xv_canh SET ${vals} WHERE id = ${r[0].id}`);
   else await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, dan_dung) VALUES (${tapId}, ${i + 1}, ${j(dd)}::jsonb)`).then(async () => {

@@ -11,6 +11,8 @@ import { chuThe } from './bo-set-3d';
 const C = 27, R = 48;
 type Kiem = KhungXam['kiem'][number];
 const tenCua = (o: THREE.Object3D | null): THREE.Object3D | null => { let x = o; while (x && x.userData.ten == null) x = x.parent; return x; };
+/** Raycaster của three KHÔNG xét visible — vật ẩn (vách đã cắt lớp: cha ẩn) vẫn bị trúng; lọc theo cả chuỗi cha. */
+const hien = (o: THREE.Object3D | null): boolean => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
 
 /** Đo một shot. may = máy ĐẦY ĐỦ (bo-set-3d.ts › mayDayDu — có đồ để lại), cùng máy cổng keyframe tính mã khung. */
 export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten: string) => KhoiNv | undefined, laNguoi: (ten: string) => boolean = () => false): Pick<KhungXam, 'thay' | 'kiem'> {
@@ -41,7 +43,7 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
   /** Tia đầu tiên trúng vật KHÔNG phải kính (kính: ghi riêng, tia đi xuyên — như dung-set.py › tia_qua_kinh). */
   const ban = (d: THREE.Vector3, xa = Infinity) => {
     ray.set(cam.position, d.clone().normalize()); ray.far = xa;
-    const hs = ray.intersectObjects(canh.children, true).filter((h) => h.object.visible && tenCua(h.object)?.visible !== false && (h.object as THREE.Mesh).isMesh);
+    const hs = ray.intersectObjects(canh.children, true).filter((h) => hien(h.object) && (h.object as THREE.Mesh).isMesh);
     const kinh = hs.find((h) => tenCua(h.object)?.userData.kinh); const tr = hs.find((h) => !tenCua(h.object)?.userData.kinh);
     return { tr, kinh };
   };
@@ -85,7 +87,7 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
   const nd = new THREE.Vector2();
   for (let j = 0; j < R; j++) for (let i = 0; i < C; i++) {
     const u = (i + 0.5) / C, w = (j + 0.5) / R; nd.set(u * 2 - 1, 1 - w * 2); ray.setFromCamera(nd, cam); ray.far = Infinity;
-    const hs = ray.intersectObjects(canh.children, true).filter((h) => h.object.visible && (h.object as THREE.Mesh).isMesh);
+    const hs = ray.intersectObjects(canh.children, true).filter((h) => hien(h.object) && (h.object as THREE.Mesh).isMesh);
     const k0 = hs[0] && tenCua(hs[0].object); if (k0?.userData.kinh) { const k = kinh.get(k0.userData.ten) ?? { n: 0, u0: 1, v0: 1, u1: 0, v1: 0, o: k0 }; k.n++; k.u0 = Math.min(k.u0, u); k.v0 = Math.min(k.v0, w); k.u1 = Math.max(k.u1, u); k.v1 = Math.max(k.v1, w); kinh.set(k0.userData.ten, k); }
     const h = hs.find((x) => !tenCua(x.object)?.userData.kinh); if (!h) continue;
     const g = tenCua(h.object)!; const t = g.userData.ten as string;

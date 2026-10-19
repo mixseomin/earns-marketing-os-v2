@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { V, khoi, nhanVat, catLop, fovMay, type KhoiNv, type Phan } from './bo-set-three';
 import { laKinh, vatHien, type BoSet, type KhungXam, type May3d, type VatThay } from './kieu';
 import { chuThe } from './bo-set-3d';
+import { duongMay } from './duong-may';
 
 const C = 27, R = 48;
 type Kiem = KhungXam['kiem'][number];
@@ -15,7 +16,7 @@ const tenCua = (o: THREE.Object3D | null): THREE.Object3D | null => { let x = o;
 const hien = (o: THREE.Object3D | null): boolean => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
 
 /** Đo một shot. may = máy ĐẦY ĐỦ (bo-set-3d.ts › mayDayDu — có đồ để lại), cùng máy cổng keyframe tính mã khung. */
-export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten: string) => KhoiNv | undefined, laNguoi: (ten: string) => boolean = () => false): Pick<KhungXam, 'thay' | 'kiem'> {
+export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten: string) => KhoiNv | undefined, laNguoi: (ten: string) => boolean = () => false, chuyenDong?: string | null): Pick<KhungXam, 'thay' | 'kiem' | 'di'> {
   const canh = new THREE.Scene();
   const vat = vatHien(set.du_lieu.vat, may.them);
   for (const v of vat) {
@@ -103,5 +104,13 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
     thay.push({ ten: t, ...(ud.en ? { en: ud.en } : {}), ...(ud.nguoi || laNguoi(t) ? { nguoi: true } : {}), pt, hop: hop(x), tien: !bb.has(t) && !ud.nen && x.gan < kcChu * 0.8 && x.mat < 0.8 * x.n } as VatThay);
   }
   for (const [t, x] of kinh) { const pt = Math.round((x.n * 1000) / (C * R)) / 10; if (pt >= 0.5 && !dem.has(t)) thay.push({ ten: t, ...(x.o.userData.en ? { en: x.o.userData.en } : {}), pt, hop: hop(x), tien: false } as VatThay); }
-  return { thay: thay.sort((a, b) => b.pt - a.pt), kiem };
+  // ── di: chỗ trên màn lúc MỞ (máy mở) → lúc KẾT (máy cuối đường máy, người ở 'den') — như dung-set.py › chieu (tâm hộp, 0..1 gốc trên-trái).
+  // Cổng chữ lệch 3D coi món ĐI VÀO khung (den trong khung) là thấy — thiếu di thì người đi vào khung bị báo "3D không thấy".
+  const dm = duongMay(may, chuyenDong ?? null);
+  const camK = cam.clone(); if (dm) { camK.position.copy(V(dm.dat)); camK.fov = fovMay(dm.ong_kinh, true); camK.lookAt(V(dm.nhin)); camK.updateMatrixWorld(); camK.updateProjectionMatrix(); }
+  const pr = (c: THREE.Camera, p: THREE.Vector3) => { const q = p.clone().project(c); return [Math.round(((q.x + 1) / 2) * 1000) / 1000, Math.round(((1 - q.y) / 2) * 1000) / 1000]; };
+  const di = vt.flatMap((v) => { const h = hopCua.get(v.ten); if (!h) return [];
+    const c0 = h.getCenter(new THREE.Vector3()); const c1 = v.den ? c0.clone().add(V(v.den).sub(V(v.tam))) : c0;
+    return [{ ten: v.ten, tu: pr(cam, c0), den: pr(dm ? camK : cam, c1) }]; });
+  return { thay: thay.sort((a, b) => b.pt - a.pt), kiem, di };
 }

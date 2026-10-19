@@ -280,7 +280,13 @@ async function docKie(k: string, taskId: string, taoLuc: string): Promise<KqDoc>
   const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
   if (!r?.ok) return { done: false };
   const d = ((await r.json().catch(() => ({}))) as { data?: { state?: string; resultJson?: string; failMsg?: string } }).data ?? {};
-  if (d.state === 'success') { let url: string | undefined; try { url = (JSON.parse(d.resultJson ?? '{}') as { resultUrls?: string[] }).resultUrls?.[0]; } catch { url = undefined; } return url ? { done: true, ok: true, uri: url } : { done: true, ok: false, loi: 'Kie.ai báo xong nhưng không có link video' }; }
+  if (d.state === 'success') {
+    // 720p: resultJson.resultUrls · 1080p (19/10/2026): resultJson.data.result_urls (bản upsample) + high_resolution_pending — đọc cả hai, đang upsample thì chờ
+    let url: string | undefined; let cho = false;
+    try { const j = JSON.parse(d.resultJson ?? '{}') as { resultUrls?: string[]; data?: { result_urls?: string[]; high_resolution_pending?: boolean } }; cho = j.data?.high_resolution_pending === true; url = j.resultUrls?.[0] ?? j.data?.result_urls?.[0]; } catch { url = undefined; }
+    if (cho && !quaHan(taoLuc)) return { done: false };
+    return url ? { done: true, ok: true, uri: url } : { done: true, ok: false, loi: 'Kie.ai báo xong nhưng không có link video' };
+  }
   if (d.state === 'fail') return { done: true, ok: false, loi: `Kie.ai báo hỏng: ${d.failMsg || 'không rõ'}` };
   if ((d.state === 'waiting' || d.state === 'queuing') && quaHan(taoLuc)) return { done: true, ok: false, treo: true, loi: `Kie.ai treo hàng đợi ${TREO_PHUT} phút` };
   return { done: false };

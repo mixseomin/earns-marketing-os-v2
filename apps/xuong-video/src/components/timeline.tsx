@@ -383,11 +383,33 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     f(); window.addEventListener('resize', f); const ro = el ? new ResizeObserver(f) : null; if (el) ro!.observe(el);
     return () => { window.removeEventListener('resize', f); ro?.disconnect(); };
   }, []);
+  // Bề rộng cột xem KÉO TAY được (anh 19/10/2026: "phải cho resize các khối linh hoạt"): 0 = tự (≤ 40% khung); kéo mép trong để đổi, nhấp đúp = về tự.
+  const khoaCot = `xv-tl-cot-xem-${doc916 ? 'doc' : 'ngang'}`;
+  const [cotTay, setCotTay] = useState<number>(() => Number(docLT(khoaCot)) || 0);
+  const tiLeKhung = (w: number) => Math.round(doc916 ? (w * 16) / 9 : (w * 9) / 16);
   let caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
   if (xemCanh) {
-    caoXem = Math.max(360, man.h - 120); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
-    const tran = Math.round(man.w * 0.4); if (rongXem > tran) { rongXem = tran; caoXem = Math.round(doc916 ? (tran * 16) / 9 : (tran * 9) / 16); }
+    const caoToiDa = Math.max(360, man.h - 80);
+    if (cotTay > 0) { rongXem = Math.max(220, Math.min(cotTay, Math.round(man.w * 0.75))); caoXem = tiLeKhung(rongXem); }
+    else { caoXem = Math.max(360, man.h - 120); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); const tran = Math.round(man.w * 0.4); if (rongXem > tran) { rongXem = tran; caoXem = tiLeKhung(tran); } }
+    if (caoXem > caoToiDa) { caoXem = caoToiDa; rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9); }
   }
+  const keoCot = (e: PE<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation(); const el = e.currentTarget; el.setPointerCapture(e.pointerId);
+    const x0 = e.clientX, w0 = rongXem; let moi = w0;
+    const di = (ev: PointerEvent) => { moi = Math.round(Math.max(220, Math.min(man.w * 0.75, w0 + (boCuc === 'phai' ? -1 : 1) * (ev.clientX - x0)))); setCotTay(moi); };
+    const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); ghiLT(khoaCot, String(moi)); };
+    el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
+  };
+  // Chiều cao khu các làn: kéo góc dưới (resize dọc của trình duyệt) — nhớ theo máy; chưa kéo = tối đa 78% màn hình như cũ.
+  const khoaCaoLan = 'xv-tl-cao-lan';
+  const [caoLan, setCaoLan] = useState<number>(() => Number(docLT(khoaCaoLan)) || 0);
+  useEffect(() => {
+    const el = vungRef.current; if (!el) return;
+    let h: ReturnType<typeof setTimeout> | undefined;
+    const ro = new ResizeObserver(() => { if (!el.style.height) return; clearTimeout(h); h = setTimeout(() => { const v = el.offsetHeight; setCaoLan(v); ghiLT(khoaCaoLan, String(v)); }, 250); });
+    ro.observe(el); return () => { ro.disconnect(); clearTimeout(h); };
+  }, []);
   const [dangThaVao, setDangThaVao] = useState<string | null>(null);
   /** Thả lớp `tu` vào chỗ lớp `den` (mảng: cuối = trên cùng; làn hiển thị đảo ngược như After Effects). */
   const doiThuTuLop = (tu: string, den: string) => { if (!tu || tu === den) return; datLop((ds) => { const l = ds.find((x) => x.id === tu); if (!l) return ds; const con = ds.filter((x) => x.id !== tu); const i = con.findIndex((x) => x.id === den); if (i < 0) return ds; const j = ds.findIndex((x) => x.id === tu) < ds.findIndex((x) => x.id === den) ? i + 1 : i; return [...con.slice(0, j), l, ...con.slice(j)]; }); };
@@ -512,6 +534,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     <div ref={khungRef} className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
       {xemCanh && <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
         <div style={{ position: 'sticky', top: 0 }}>{khungXem}</div>
+        <TayKeo truc="x" onPointerDown={keoCot} onDoubleClick={() => { setCotTay(0); ghiLT(khoaCot, null); }} title="Kéo để đổi bề rộng màn xem · nhấp đúp = về tự động"
+          style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'left' : 'right']: -2, width: 5, zIndex: 3 }} />
       </div>}
       {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
           Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
@@ -579,7 +603,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       {/* Không đệm TRÁI ở khung cuộn (#1413): cột nhãn dính left:0 bám mép trong lớp đệm → khe 10px bên trái nhãn để khối đang cuộn ló qua; đầu phát kéo cũng lệch 10px. */}
       {/* Khung cuộn CẢ HAI chiều, cao tối đa 78vh (#1418): overflowX đã biến nó thành hộp cuộn nên sticky-top không bám được trang —
           tự cuộn dọc bên trong thì thước giây + làn 🎬 Hình dính trên cùng khi cuộn xuống các làn dưới. */}
-      <div ref={vungRef} style={{ marginTop: 0, padding: '0 10px 0 0', borderTop: '1px solid var(--line)', overflow: 'auto', maxHeight: '78vh', position: 'relative', paddingBottom: 4 }}>
+      <div ref={vungRef} title="" style={{ marginTop: 0, padding: '0 10px 0 0', borderTop: '1px solid var(--line)', overflow: 'auto', ...(caoLan ? { height: caoLan } : { maxHeight: '78vh' }), minHeight: 160, resize: 'vertical', position: 'relative', paddingBottom: 4 }}>
         <div style={{ width: W + nhanW, position: 'relative' }}>
           {/* Thước giây — bấm/kéo để tua; dính trên cùng khi cuộn dọc */}
           <div style={{ display: 'flex', height: 24, paddingTop: 6, position: 'sticky', top: 0, zIndex: 9, background: 'var(--bg-1)' }}>

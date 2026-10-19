@@ -81,7 +81,10 @@ export function tachLink(html) {
   for (const m of String(html).matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
     let u; try { u = new URL(m[1].replace(/&amp;/g, '&')); } catch { continue; }
     if (!/^https?:$/.test(u.protocol)) continue;
-    ra.push(u.hostname);
+    // lớp bọc chuyển hướng của Google (google.com/url?q=…): Gmail bọc MỌI link khi anh chuyển tiếp thư → chỉ xét link thật bên trong, không tính
+    // google.com là tên miền lạ (19/10/2026: thư Etsy Trust & Safety thật bị kết luận GIẢ vì "link dẫn sang www.google.com")
+    const boc = /^(www\.)?google\.[a-z.]+$/i.test(u.hostname) && u.pathname === '/url';
+    if (!boc) ra.push(u.hostname);
     for (const [, v] of u.searchParams) if (/^https?:\/\//i.test(v)) { try { ra.push(new URL(v).hostname); } catch { /* không phải URL */ } }
   }
   return [...new Set(ra)];
@@ -279,6 +282,9 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
 
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: a } = await import('node:assert');
+  a.deepEqual(tachLink('<a href="https://www.google.com/url?q=https://help.etsy.com/hc/x&amp;source=gmail">x</a>'), ['help.etsy.com'], 'Gmail bọc link: chỉ xét link thật');
+  a.equal(thamDinh({ from: 'htuan82@gmail.com', subject: 'Fwd: An important message from Etsy Trust & Safety', html: '---------- Forwarded message ---------<br>From: Etsy &lt;noreply@etsy.com&gt;<br>Please review our policy <a href="https://www.google.com/url?q=https://www.etsy.com/legal/policy/x">policy</a>' }).ket !== 'gia', true, 'thư Etsy chuyển tiếp qua Gmail không bị gắn giả');
+  a.deepEqual(tachLink('<a href="https://www.google.com/search?q=x">x</a>'), ['www.google.com'], 'link google thường vẫn tính');
   a.equal(nhomTuChu('Thật'), 'quen'); a.equal(nhomTuChu('thật đấy, của Etsy'), 'quen'); a.equal(nhomTuChu('Giả'), 'gia'); a.equal(nhomTuChu('Nhà mình'), 'nha'); a.equal(nhomTuChu('ok'), null);
   a.equal(phuTrachMien('etsy.com'), 'thao'); a.equal(phuTrachMien('mail.etsy.com'), 'thao'); a.equal(phuTrachMien('evil-etsy.com'), null); a.equal(phuTrachMien('kdp.amazon.com'), 'thao');
   a.equal(mienGoc('www.amazon.co.uk'), 'amazon.co.uk'); a.equal(mienGoc('smile.amazon.in'), 'amazon.in'); a.equal(mienGoc('amazon-in.verify-acct.top'), 'verify-acct.top');

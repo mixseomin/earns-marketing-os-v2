@@ -878,6 +878,10 @@ export function canNhin(m: Pick<May3d, 'dat' | 'nhin' | 'vi_tri'>, ten: string, 
   const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!;
   return (d.q[0]! - v.tam[0]!) * fy + (d.q[1]! - v.tam[1]!) * -fx >= 0 ? 1 : -1;
 }
+/** Bỏ vế "không nhìn máy" khỏi câu hướng của MỘT người — khung có ≥ 2 người thì câu đó nói MỘT lần cho cả khung (tập 135 #16: ba người mỗi người một
+ *  "NOT looking into the camera" → bộ chấm prompt trừ lặp, bước 1 FLUX vượt 300 từ). Giữ phần "eyes on X, just off the lens toward …". */
+export const boCauMay = (s: string): string => s.replace(/\s*—\s*NOT looking into the camera/gi, '').replace(/,?\s*(?:eyes just off the lens,\s*)?NOT looking (?:into|at) the camera/gi, '')
+  .replace(/,\s*not at the camera/gi, '').replace(/^\s*,\s*|\s*,\s*$/g, '').trim();
 export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, nguoi: ViTri[], ket = false): string {
   const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return '';
   const p = ket ? v.den ?? v.tam : v.tam;

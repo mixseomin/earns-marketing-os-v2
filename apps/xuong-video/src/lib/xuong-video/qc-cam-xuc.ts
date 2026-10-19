@@ -72,11 +72,15 @@ export function cauNuocMat(ds: BieuCamNv[] | null | undefined): string {
 export function promptBieuCam(ds: BieuCamNv[] | undefined, loai: 'anh' | 'video'): string {
   const ok = (ds ?? []).filter((b) => bieuCam(b.dau) && bieuCam(b.cuoi));
   if (!ok.length) return '';
-  return ok.map((b) => {
+  // Người CÙNG nét (đầu, cuối, cấm) gộp một câu — hai người cùng 'khinh_bi' từng ra hai lần nguyên câu dài (bộ chấm prompt trừ lặp, tập 135 #16)
+  const nhom = new Map<string, { nv: string[]; b: BieuCamNv }>();
+  for (const b of ok) { const k = loai === 'anh' ? b.dau : `${b.dau}|${b.cuoi}|${camThuc(b).join(',')}`; const g = nhom.get(k); if (g) g.nv.push(b.nv); else nhom.set(k, { nv: [b.nv], b }); }
+  return [...nhom.values()].map(({ nv, b }) => {
+    const ai = nv.join(' and ');
     const cam = camThuc(b).map((k) => bieuCam(k)!.en);
-    if (loai === 'anh') return `EXPRESSION of ${b.nv}: ${bieuCam(b.dau)!.en}.`;
-    const doi = b.dau === b.cuoi ? `keeps ${bieuCam(b.dau)!.en} the whole shot` : `starts with ${bieuCam(b.dau)!.en} and only gradually ends with ${bieuCam(b.cuoi)!.en}`;
-    return `EXPRESSION of ${b.nv}: ${doi}${cam.length ? `; never ${cam.join(', never ')}` : ''}.`;
+    if (loai === 'anh') return `EXPRESSION of ${ai}: ${bieuCam(b.dau)!.en}.`;
+    const doi = b.dau === b.cuoi ? `${nv.length > 1 ? 'keep' : 'keeps'} ${bieuCam(b.dau)!.en} the whole shot` : `${nv.length > 1 ? 'start' : 'starts'} with ${bieuCam(b.dau)!.en} and only gradually ${nv.length > 1 ? 'end' : 'ends'} with ${bieuCam(b.cuoi)!.en}`;
+    return `EXPRESSION of ${ai}: ${doi}${cam.length ? `; never ${cam.join(', never ')}` : ''}.`;
   }).join(' ');
 }
 

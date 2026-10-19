@@ -13,7 +13,7 @@ import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
-import { bienTheTheoSo, boSetCuaShot, catMep, chanKhungXam, chuTheThay, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
+import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
@@ -323,6 +323,8 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const mHuong = bc.mayDu ?? bc.canh.may_3d; const trongKhung = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.ten));
   const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
     .map((v) => { const h = huongNhin(mHuong, v); return h ? `${v.ten}: ${h}` : ''; }).filter(Boolean) : [];
+  // ≥ 2 người: vế "không nhìn máy" nói MỘT lần ở câu cuối (nobody looks into the camera lens), bỏ khỏi từng người
+  if (huongChu.length >= 2 && !nhinMay) huongChu.splice(0, huongChu.length, ...huongChu.map((x) => boCauMay(x)));
   const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.${nhinMay ? '' : ' Candid film still: nobody looks into the camera lens — every person keeps their eyes on who or what they are dealing with.'}` : '';
   // CỠ NHÂN VẬT TRONG KHUNG bằng SỐ (15/10/2026, kiểm khung tập 19: #9 / #30 3D là cận mặt Tango mà keyframe vẽ cỡ trung — prompt chỉ bảo
   // "theo bố cục ảnh 1", không nói chủ thể to bao nhiêu): chiều cao + vùng đo trên chính khung 3D (khung_xam.kiem / thay). Chỉ khung MỞ.
@@ -408,10 +410,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const thayDs = bc.canh.khung_xam?.thay ?? [];
       // NGÂN SÁCH TỪ cho FLUX (~300 từ): mô tả vật qua thẻ / bộ đồ dài làm vượt (#3, #11 = 303–307 từ) → dựng lại gọn dần (bộ đồ 32 → 20 → 12 từ, hậu cảnh ≤ 6 → 4 món)
       // thay vì để FLUX cắt mất phần cuối (câu chất liệu, "No text").
+      const soNguoiKhung = trongS.filter((v) => v.loai === 'nhan_vat').length;
       const dungMon = (cap: number, gon = false) => trongS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongNhin(mGoc!, hg) : undefined;
-        return `${taNv(v, gon, cap)}${h && !chen ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        const hh = h && soNguoiKhung >= 2 && !nhinMay ? boCauMay(h) : h;   // ≥ 2 người: "không nhìn máy" nói một lần (khoi khong_nhin_may)
+        return `${taNv(v, gon, cap)}${hh && !chen ? `, ${hh}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nenDu = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).sort((p, q) => q.pt - p.pt).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair"), lớn trước
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
@@ -422,7 +426,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const dungKF = (cap: number, nenToiDa: number, gon = false, pcNgan = false): Khoi[] => { const mon = dungMon(cap, gon); const nen = nenDu.slice(0, nenToiDa); return [
         khoi('anh_dich', CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang')), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`),
         khoi('khoanh_khac', !ket && bc.canh.dan_dung?.mo && `Moment: ${bc.canh.dan_dung.mo.replace(/[.\s]+$/, '')}.`),
-        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', soNguoiNgan), khoi('ngoai_khung', ngoaiNgan), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
+        khoi('nguoi', mon.length && `${mon.join('. ')}.`), khoi('so_nguoi', `${soNguoiNgan}${soNguoiKhung >= 2 && !nhinMay && !chen ? ' Nobody looks into the camera.' : ''}`.trim()), khoi('ngoai_khung', ngoaiNgan), khoi('hau_canh', nen.length && `Background: ${nen.join(', ')}.`),
         khoi('anh_sang', nguoiThat ? '' : bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.'),
         khoi('phong_cach', nguoiThat ? rut(moTaVua(phongCachHinh(bc.kt.phong_cach)), pcNgan ? 16 : undefined) : ''), khoi('chat_lieu', CL.flux_cuoi),
       ]; };

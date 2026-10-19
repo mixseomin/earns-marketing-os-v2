@@ -27,7 +27,16 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
   for (const v of vt) { const k = khoiCua(v.ten); if (!k) continue; const g = nhanVat(k, v); g.userData = { ten: v.ten, nguoi: laNguoi(v.ten), cam: v.cam }; canh.add(g); }
   const cam = new THREE.PerspectiveCamera(fovMay(may.ong_kinh, true), 9 / 16, 0.2, 20000);
   cam.position.copy(V(may.dat)); cam.lookAt(V(may.nhin)); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
-  catLop(canh, cam); canh.updateMatrixWorld(true);
+  catLop(canh, cam);
+  // CẮT LỚP cả VÁCH (không chỉ mặt nền): vách mỏng nằm giữa máy và lòng phòng thì ẩn — máy đứng ngoài tường trước nhìn vào (tập 135 #22: 'Tường trước 100%')
+  { const tam = canh.userData.tamPhong as THREE.Vector3 | undefined;
+    if (tam) for (const o of canh.children) { if (!o.userData.ten || o.userData.nen || vt.some((v) => v.ten === o.userData.ten)) continue;
+      const h = new THREE.Box3().setFromObject(o); const sz = h.getSize(new THREE.Vector3()); const ax = (['x', 'y', 'z'] as const).reduce((a, b) => (sz[a] <= sz[b] ? a : b));
+      const dai = [sz.x, sz.y, sz.z].sort((a, b) => b - a); if (sz[ax] > 12 || dai[1]! < 150) continue;   // chỉ tấm vách lớn, mỏng
+      const p = cam.position[ax]; if ((h.min[ax] + h.max[ax]) / 2 >= tam[ax] ? p < h.min[ax] : p > h.max[ax]) o.visible = false; } }
+  // tia trúng CẢ MẶT TRONG (máy lọt trong khối người / vật — như Blender ray_cast): three mặc định chỉ trúng mặt ngoài → máy trong lòng Vivian vẫn "thấy rõ" (#14)
+  canh.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined; for (const x of Array.isArray(m) ? m : m ? [m] : []) x.side = THREE.DoubleSide; });
+  canh.updateMatrixWorld(true);
   const ray = new THREE.Raycaster();
   /** Tia đầu tiên trúng vật KHÔNG phải kính (kính: ghi riêng, tia đi xuyên — như dung-set.py › tia_qua_kinh). */
   const ban = (d: THREE.Vector3, xa = Infinity) => {
@@ -47,6 +56,8 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
     const tam = h.getCenter(new THREE.Vector3());
     const goc = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => new THREE.Vector3(i & 1 ? h.max.x : h.min.x, i & 2 ? h.max.y : h.min.y, i & 4 ? h.max.z : h.min.z));
     const diem = [tam, ...goc.map((c) => tam.clone().lerp(c, 0.7))];
+    // NGƯỜI: thêm cột điểm dọc thân (gót → đỉnh đầu) — cận mặt chỉ đầu / ngực lọt khung; Blender xét tâm từng bộ phận (đầu, ngực, tay…)
+    const doc = laNguoi(v.ten) ? [0.1, 0.3, 0.5, 0.7, 0.82, 0.92].map((f) => new THREE.Vector3(tam.x, h.min.y + (h.max.y - h.min.y) * f, tam.z)) : [];
     const che: Record<string, number> = {};
     for (const p of diem) {
       const d = p.clone().sub(cam.position); const { tr } = ban(d, d.length() - 0.05);
@@ -56,11 +67,11 @@ export function do3dSong(set: Pick<BoSet, 'du_lieu'>, may: May3d, khoiCua: (ten:
       if (cua === v.ten) continue;   // món người này đang cầm che một phần thân: tự nhiên
       che[t] = (che[t] ?? 0) + 1;
     }
-    const pd = diem.map(chieu); const pg = goc.map(chieu);
+    const pd = diem.map(chieu); const pg = goc.map(chieu); const pc = doc.map(chieu);
     const laN = laNguoi(v.ten);
     // người: trong khung = một bộ phận lọt khung (đầu / ngực / tay…); món: tâm trong khung
-    const trong = laN ? pd.some((q) => q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1) : (() => { const q = pd[0]!; return q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1; })();
-    const ys = pg.filter((q) => q.truoc).map((q) => Math.min(1, Math.max(0, q.y)));
+    const trong = laN ? [...pd, ...pc].some((q) => q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1) : (() => { const q = pd[0]!; return q.truoc && q.x >= 0 && q.x <= 1 && q.y >= 0 && q.y <= 1; })();
+    const ys = pd.filter((q) => q.truoc).map((q) => Math.min(1, Math.max(0, q.y)));   // cao = 9 điểm (tâm + 70% về góc) như Blender, kẹp mép khung
     const kx = pg.map((q) => Math.min(1, Math.max(0, q.x))), ky = pg.map((q) => Math.min(1, Math.max(0, q.y)));
     kiem.push({ nhan_vat: v.ten, bat_buoc: bb.has(v.ten), trong_khung: trong, cao_khung_pt: ys.length ? Math.round((Math.max(...ys) - Math.min(...ys)) * 1000) / 10 : 0,
       bi_che_boi: Object.entries(che).filter(([, n]) => n > diem.length / 2).map(([t]) => t).sort(), khung: [Math.min(...kx), Math.min(...ky), Math.max(...kx), Math.max(...ky)].map((x) => Math.round(x * 1000) / 1000),

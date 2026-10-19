@@ -6,6 +6,7 @@
 //   · Khoi — một thành phần có mã (máy, bối cảnh, người, đồ vật…); prompt = ghep(khối theo KHUON của đường sinh).
 //   · KHUON — mỗi đường sinh khai khối nào BẮT BUỘC: bộ chấm (kiem-prompt.ts) báo thiếu khối, không chỉ soi chữ.
 // Thuần (client lẫn server import được). Tự kiểm: prompt-khoi.test.mts
+import { THAN_EN, thanMacDinh, type KhoiSet } from './kieu';
 export type ChatLieu = 'nguoi_that' | 'hoat_hinh';
 
 type Goc = 'thap' | 'cao' | 'ngang';
@@ -150,7 +151,9 @@ export const boTrung = (t: string, khac: string) => { const k = khac.toLowerCase
 
 /** KHỐI NGƯỜI: nhân dạng (bỏ quần áo khi có bộ đồ sổ) + bộ đồ (mô tả MỌI biến thể sổ người đang trỏ) + đồ đeo (không trùng bộ đồ). Cận chèn: chỉ tay.
  *  gon = bản ngắn cho bước sửa nhân dạng (ảnh mẫu đã mang mặt). MỘT hàm cho mọi đường. */
-export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { ao: string[]; deo?: string; them?: string[]; tu_the?: string; chen: boolean; gon?: boolean; moTa: (t: string) => string }): string {
+/** chữ dáng người đã có trong mô tả gốc → không chèn THAN_EN (khỏi "slim … heavyset" tự mâu thuẫn). */
+const CO_DANG = /\b(slim|slender|petite|lean|fit|thin|skinny|gaunt|heavyset|overweight|chubby|plump|stocky|muscular|athletic|broad-shouldered|curvy|build)\b/i;
+export function chuNguoi(a: { ten: string; mo_ta: string; loai: string; khoi_3d?: Pick<KhoiSet, 'hinh' | 'than' | 'gioi' | 'tuoi'> | null }, o: { ao: string[]; deo?: string; them?: string[]; tu_the?: string; chen: boolean; gon?: boolean; moTa: (t: string) => string }): string {
   const ao = o.ao.map((x) => (o.chen ? boMat(x) : x)).filter(Boolean).join('; ');
   const deo = o.deo && !ao.toLowerCase().includes(o.deo.toLowerCase().replace(/^(a|an|the)\s+/, '')) ? o.deo : '';
   // tóc / trang điểm của sổ người (khác ngày, khác cảnh) — cận chèn không tả
@@ -158,6 +161,8 @@ export function chuNguoi(a: { ten: string; mo_ta: string; loai: string }, o: { a
   const nguoi = a.loai === 'nhan_vat';
   const goc = nguoi && o.chen ? (o.gon ? 'skin tone and sleeve only, face out of frame' : `${a.ten.split(' ').pop()}'s hand and forearm only (face out of frame)`)
     : ao ? boTrung(boDo(o.moTa(a.mo_ta)), ao) : o.moTa(a.mo_ta);
+  // DÁNG NGƯỜI (THAN_EN): cùng ô với hình khối 3D — người béo / gầy trong 3D thì chữ cũng nói thế, AI không phải đoán từ bóng người.
+  const k3 = a.khoi_3d; const dang = nguoi && !o.chen && k3?.hinh === 'nguoi' && !CO_DANG.test(a.mo_ta) ? THAN_EN[k3.than ?? thanMacDinh(k3.gioi, k3.tuoi)] : '';
   const n = o.gon ? '; ' : ', ';
-  return `${goc}${o.tu_the && !o.chen ? `${n}${o.tu_the}` : ''}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}${them ? `${n}${them}` : ''}`;
+  return `${goc}${dang ? `${n}${dang}` : ''}${o.tu_the && !o.chen ? `${n}${o.tu_the}` : ''}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}${them ? `${n}${them}` : ''}`;
 }

@@ -121,6 +121,7 @@ def khan_diem(wd, NT=56, NV=26):
             mat.append((a, b, b + NT, a + NT))
     return ds, mat
 
+PHU = []   # tên người phụ của bộ set đã dựng (nguoi_that bật người thật cho họ như nhân vật chính)
 def khoi(p, ten, goc=(0, 0), xoay=0):
     """Một khối: tam = (x, y, z ĐÁY) tương đối với gốc nhóm; co = (rộng x, sâu y, cao z)."""
     h = p['hinh']
@@ -128,8 +129,12 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         # mau = da, ao = áo. Các phần tên '<ten> ng.<khớp>' → ten_vat gom về <ten> (NHOM) để khung xám gọi đúng tên + en. CÙNG bo-set-three.ts › nguoiThree.
         x, y, z = p['tam']; a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
         lin = lambda hx: (*[(int(hx.lstrip('#')[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)], 1)
-        n_ = ng().dung_nguoi(f'{ten} ng', cao=p['co'][2], mau=lin(p['mau']), mau_ao=lin(p.get('ao') or p['mau']), dv=CM, ten_goc=ten)
-        ng().tu_the(n_, p.get('tu_the') or 'dung')
+        # NGƯỜI PHỤ CŨNG LÀ NGƯỜI THẬT (anh 19/10/2026 "fix toàn bộ mẫu"): trước đây không khai giới / tuổi → thân MPFB trung tính, và nguoi_that chỉ bật
+        # người thật cho nhân vật chính → người phụ hiện ma-nơ-canh gỗ khớp tròn. Giới không khai thì xen kẽ ổn định theo tên (không dùng hash() — đổi mỗi lần chạy).
+        gioi_ = p.get('gioi') or ('nu' if sum(map(ord, ten)) % 2 else 'nam')
+        n_ = ng().dung_nguoi(f'{ten} ng', cao=p['co'][2], mau=lin(p['mau']), mau_ao=lin(p.get('ao') or p['mau']), dv=CM, ten_goc=ten, gioi=gioi_, tuoi=p.get('tuoi') or 30,
+                             trang={'ao': lin(p.get('ao') or p['mau']), 'than': p.get('than')})
+        ng().tu_the(n_, p.get('tu_the') or 'dung'); PHU.append(ten)
         n_['goc'].location = (gx * CM, gy * CM, z * CM); n_['goc'].rotation_euler.z = math.radians(xoay + p.get('xoay', 0))
         return n_['goc']
     m = mau(p['mau'], p.get('sang', 0))
@@ -622,7 +627,7 @@ def nhan_vat(sh, ket=False):
             hx = mau_nv['mau'].lstrip('#'); rgb = tuple((int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ha = (mau_nv.get('ao') or mau_nv['mau']).lstrip('#'); rgb_ao = tuple((int(ha[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ht = (mau_nv.get('mau_toc') or '').lstrip('#'); rgb_toc = tuple((int(ht[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)) if len(ht) == 6 else None
-            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'do': mau_nv.get('do'), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # người thật MPFB: tóc / đồ / màu áo
+            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'do': mau_nv.get('do'), 'than': mau_nv.get('than'), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # than: dáng người (nguoi.py › THAN_HINH)   # người thật MPFB: tóc / đồ / màu áo
             n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}", gioi=mau_nv.get('gioi'), tuoi=mau_nv.get('tuoi'), trang=trang_)
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
@@ -638,6 +643,9 @@ def nhan_vat(sh, ket=False):
             vet_(n_, nv['ten'], dan_cua(nv, mau_nv, ket is True or bool(ket and float(ket) >= 0.5)))
             _nm = (sh.get('nhin_mat') or {}).get('ket' if ket is True or bool(ket and float(ket) >= 0.5) else 'mo', {}).get(nv['ten'])   # mắt nhìn người được nhìn (bo-set-3d.ts › dichNhin)
             if not (_nm and ng().mat_nhin(n_, [x * CM for x in _nm])): ng().dat_con_nguoi(n_)   # không có đích: con ngươi nhìn thẳng theo mặt
+            # NGÓN: tay đang cầm đồ (tay_cam) nắm lại, tay rảnh cong nhẹ; ôm thùng giữ bàn tay mở áp thùng; khung kết của món đã đặt xuống (cam + den) = tay rảnh
+            _ben = {b_ for t_, (c_, b_) in tay_cam(sh).items() if c_ == nv['ten'] and not (ket is True and (next((x for x in sh['nhan_vat'] if x['ten'] == t_), {}).get('den')))}
+            for b_ in ('t', 'p'): ng().nam_ngon(n_, b_, 1.0 if b_ in _ben else 0.3)
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
             than.append(bpy.data.objects[f"NG {nv['ten']}.nguc_k"]); tat_ca.extend([n_['goc'], *phan_ng]); continue
@@ -982,13 +990,14 @@ def nguoi_that(bat, an=None, hien=None):
         for x in hien: x.hide_render = x.hide_viewport = True
         return
     an, hien = [], []
-    for t in list(NGUOI):
-        x = bpy.data.objects.get(f"THAN NG {t}")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
+    # nhân vật chính ('NG <t>') + người phụ của bộ set ('<ten> ng') — cùng một luật đổi khối ↔ người thật
+    for goc_ in [f"NG {t}" for t in NGUOI] + [f"{t} ng" for t in PHU]:
+        x = bpy.data.objects.get(f"THAN {goc_}")   # tra theo TÊN: NGUOI giữ cả người của shot trước, object đã xoá → ReferenceError (phòng họp sập)
         if not x: continue
         # DẤU biến thể (vết cà phê 'NG <t>.dan_i') GIỮ hiện trên người MPFB — ẩn theo ma-nơ-canh thì khung màu mất vết, AI không có chỗ bám (18/10/2026)
-        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"NG {t}.") and '.dan_' not in o.name and not o.hide_render]
+        phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"{goc_}.") and '.dan_' not in o.name and not o.hide_render]
         if not phan: continue   # người không có trong shot này / đang ẩn
-        an += phan; hien += [x, *[o for o in bpy.data.objects if o.name.startswith(f"THAN NG {t}.")]]
+        an += phan; hien += [x, *[o for o in bpy.data.objects if o.name.startswith(f"THAN {goc_}.")]]
     for o in an: o.hide_render = True
     for x in hien: x.hide_render = x.hide_viewport = False
     return an, hien
@@ -1115,7 +1124,9 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
     for o in nv_obj:
         ng_ = nguoi_cua(o.name)
         cam_ = next((x.get('cam') for x in sh.get('nhan_vat', []) if x.get('ten') and (thuoc(x['ten'], o.name) or o.name == f"NV {x['ten']}")), None)
-        phan = [x for x in bpy.data.objects if x.name.startswith(f"NG {ng_}.")] if ng_ else [o]
+        # chỉ KHỐI CÓ HÌNH (MESH): empty cùng tiền tố — đích mắt '<NG tên>.dich_mat' đặt 2 m về phía người được nhìn (bản 95) — có bound_box
+        # ±1 quanh chỗ đặt, gộp vào làm hộp đo kéo ~80 cm về phía người kia (tập 122 #6 #8 báo chồng hình oan)
+        phan = [x for x in bpy.data.objects if x.type == 'MESH' and x.name.startswith(f"NG {ng_}.")] if ng_ else [o]
         pts = [x.matrix_world @ Vector(c) for x in phan for c in x.bound_box]
         lo = Vector([min(q[i] for q in pts) for i in range(3)]); hi = Vector([max(q[i] for q in pts) for i in range(3)])
         bb = [Vector((hi.x if i & 1 else lo.x, hi.y if i & 2 else lo.y, hi.z if i & 4 else lo.z)) for i in range(8)] if ng_ else pts

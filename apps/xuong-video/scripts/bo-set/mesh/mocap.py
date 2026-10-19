@@ -30,7 +30,9 @@ MOCAP = {
 DOAN = [('lung', 'Hips', 'Spine1', 1), ('nguc', 'Spine1', 'Neck1', 1), ('co', 'Neck1', 'Head', 1), ('dau', 'Neck1', 'Head', 1),
         ('vai_t', 'LeftArm', 'LeftForeArm', -1), ('khuyu_t', 'LeftForeArm', 'LeftHand', -1), ('cotay_t', 'LeftHand', 'LeftHandIndex1', -1),
         ('vai_p', 'RightArm', 'RightForeArm', -1), ('khuyu_p', 'RightForeArm', 'RightHand', -1), ('cotay_p', 'RightHand', 'RightHandIndex1', -1),
-        ('dui_t', 'LeftUpLeg', 'LeftLeg', -1), ('goi_t', 'LeftLeg', 'LeftFoot', -1), ('dui_p', 'RightUpLeg', 'RightLeg', -1), ('goi_p', 'RightLeg', 'RightFoot', -1)]
+        ('dui_t', 'LeftUpLeg', 'LeftLeg', -1), ('goi_t', 'LeftLeg', 'LeftFoot', -1), ('dui_p', 'RightUpLeg', 'RightLeg', -1), ('goi_p', 'RightLeg', 'RightFoot', -1),
+        # BÀN CHÂN (19/10/2026): trục nghỉ = hướng khớp mũi chân của chính ma-nơ-canh (nguoi.py › mui_chan_*) — thiếu đoạn này thì quỳ / ngồi bàn chân lộn ngược
+        ('cochan_t', 'LeftFoot', 'LeftToeBase', 'mui_chan_t'), ('cochan_p', 'RightFoot', 'RightToeBase', 'mui_chan_p')]
 TREN = {'lung', 'nguc', 'co', 'dau', 'vai_t', 'khuyu_t', 'cotay_t', 'vai_p', 'khuyu_p', 'cotay_p'}
 
 def _mat(rx, ry, rz):
@@ -112,6 +114,10 @@ def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0):
     else: w = 1.0
     if w <= 0: return False
     huong, ti_hong = huong_doan(ma, k)
+    # CẬP NHẬT TRƯỚC KHI ĐỌC hướng gốc (anh 19/10/2026: tập 122 #5 Hạ quỳ quay lưng về Vivian, chân sau lộn ngược): goc.rotation_euler vừa đặt theo
+    # huong mà matrix_world chưa tính lại → mocap dựng theo hướng CŨ (0°) — mọi nhân vật không quay về −y đều quỳ / đi ngược. Đo: huong 0 và 180 cho
+    # cùng toạ độ đầu (0,2; −0,39) trước khi sửa.
+    bpy.context.view_layer.update()
     goc = n['goc'].matrix_world.to_3x3().normalized().to_quaternion()   # gốc có scale (dv) — bỏ scale trước khi lấy phép xoay
     if vung == 'tat_ca':
         z0 = n['L']['chan'] + n['L']['cang'] + n['L']['dui']; n['hong'].location.z += (z0 * ti_hong - n['hong'].location.z) * w
@@ -120,7 +126,8 @@ def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0):
         e = n[khop]; bpy.context.view_layer.update()
         cha = e.parent.matrix_world.to_3x3().normalized().to_quaternion() if e.parent else goc
         dich = cha.inverted() @ (goc @ Vector(huong[khop]))
-        q = Vector((0, 0, truc)).rotation_difference(dich)
+        nghi = Vector(n[truc].location).normalized() if isinstance(truc, str) else Vector((0, 0, truc))   # trục nghỉ của khối: ±z, hoặc hướng tới khớp con (bàn chân)
+        q = nghi.rotation_difference(dich)
         cu = e.rotation_euler.copy(); moi = q.to_euler('XYZ', cu)
         e.rotation_euler = tuple(cu[i] + (moi[i] - cu[i]) * w for i in range(3))
     bpy.context.view_layer.update()

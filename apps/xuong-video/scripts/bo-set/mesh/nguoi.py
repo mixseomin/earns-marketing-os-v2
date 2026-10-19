@@ -37,20 +37,33 @@ def _khoi(ten, khop, dai, rx, ry, vl, xuong=True, lech=(0, 0)):
     return o
 
 _TL_MPFB = {}
-def tl_mpfb(gioi, tuoi):
+# DÁNG NGƯỜI (anh 19/10/2026: "nữ nhìn thon thả tí, nam trẻ gọn lại; phim có người béo, người gầy thì AI phân biệt sao"): macro MakeHuman
+# weight / muscle / proportions (0..1, 0,5 = trung bình — trước đây để cả ba ở 0,5 nên nữ đẫy, nam bè). Khai ở khoi_3d.than; không khai thì theo
+# giới + tuổi (than_mac_dinh). CÙNG khoá với bo-set-3d.ts › THAN_EN (chữ đưa vào prompt) — một ô dáng cho cả hình khối 3D lẫn chữ.
+THAN_HINH = {'thon': {'weight': 0.3, 'muscle': 0.42, 'proportions': 0.9}, 'gon': {'weight': 0.36, 'muscle': 0.62, 'proportions': 0.9},
+             'vua': {'weight': 0.5, 'muscle': 0.5, 'proportions': 0.6}, 'beo': {'weight': 0.92, 'muscle': 0.35, 'proportions': 0.3},
+             'gay': {'weight': 0.12, 'muscle': 0.3, 'proportions': 0.5}, 'vam': {'weight': 0.6, 'muscle': 0.95, 'proportions': 0.85}}
+def than_mac_dinh(gioi, tuoi):
+    t = tuoi or 30
+    return 'thon' if gioi == 'nu' and t < 45 else 'gon' if gioi == 'nam' and t < 40 else 'vua'
+def _dat_than(m, h, gioi, tuoi, than=None):
+    """Đặt giới / chủng / tuổi / dáng cho thân MPFB h — MỘT chỗ cho tl_mpfb (đo tỉ lệ) và nguoi_mpfb (thân hiển thị), khỏi lệch nhau."""
+    for kk, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
+        m['op'].set_value(kk, v, entity_reference=h)
+    if tuoi: m['op'].set_value('age', 0.1875 + (tuoi - 11) / 14 * 0.3125 if tuoi < 25 else min(1.0, 0.5 + (tuoi - 25) / 65 * 0.5), entity_reference=h)
+    for kk, v in THAN_HINH.get(than or than_mac_dinh(gioi, tuoi), THAN_HINH['vua']).items(): m['op'].set_value(kk, v, entity_reference=h)
+    m['ts'].reapply_macro_details(h)
+
+def tl_mpfb(gioi, tuoi, than=None):
     """TỈ LỆ THÂN của người MPFB cùng giới / tuổi (phần chiều cao), đo trên rig ở tư thế gốc — ma-nơ-canh dựng theo đúng số này để khớp xương trùng
     người thật: IK với tới đúng cổ tay (đồ cầm không lơ lửng), đầu đúng chỗ (máy cận ngắm trúng mặt). Anh 18/10/2026 thấy #3 cặp hồ sơ lơ lửng trên tay,
     #24 cận chỉ thấy vai: tỉ lệ ma-nơ-canh cũ (TL) lệch người MPFB vài cm–chục cm. Không có MPFB → None (giữ TL)."""
-    k = (gioi, tuoi)
+    k = (gioi, tuoi, than)
     if k in _TL_MPFB: return _TL_MPFB[k]
     m = _mpfb()
     if not m: return None
     try:
-        h = m['hs'].create_human()
-        for kk, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
-            m['op'].set_value(kk, v, entity_reference=h)
-        if tuoi: m['op'].set_value('age', 0.1875 + (tuoi - 11) / 14 * 0.3125 if tuoi < 25 else min(1.0, 0.5 + (tuoi - 25) / 65 * 0.5), entity_reference=h)
-        m['ts'].reapply_macro_details(h)
+        h = m['hs'].create_human(); _dat_than(m, h, gioi, tuoi, than)
         rig = m['hs'].add_builtin_rig(h, 'default'); bpy.context.view_layer.update()
         bb = [h.matrix_world @ Vector(c) for c in h.bound_box]; z0 = min(v.z for v in bb); C = max(v.z for v in bb) - z0
         P = lambda b, dau=True: rig.matrix_world @ (rig.data.bones[b].head_local if dau else rig.data.bones[b].tail_local)
@@ -66,6 +79,7 @@ def tl_mpfb(gioi, tuoi):
         t['co'] = z(dau) - z(co); t['dau'] = 1.0 - z(dau)
         t['vai'] = abs(vai.x - co.x) / C; t['tay_tren'] = (khuyu - vai).length / C; t['tay_duoi'] = (cotay - khuyu).length / C
         t['hong_rong'] = abs(hang.x - co.x) / C / 0.55
+        mui = P('foot.L', False); t['mui_y'] = (mui.y - co_chan.y) / C; t['mui_z'] = (mui.z - co_chan.z) / C   # mũi bàn chân so với cổ chân (MPFB nhìn −y)
         for o in [h, rig]: bpy.data.objects.remove(o, do_unlink=True)
         _TL_MPFB[k] = t; return t
     except Exception as e:
@@ -73,7 +87,8 @@ def tl_mpfb(gioi, tuoi):
 
 def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, ten_goc=None, gioi=None, tuoi=None, trang=None):
     """dv = cỡ 1 cm trong cảnh (dung-set: 0.01 — Blender tính mét); ten_goc = tên empty gốc (dung-set đặt 'NV <tên>' để gắn neo diễn)."""
-    H = float(cao); L = {k: v * H for k, v in (tl_mpfb(gioi, tuoi) or TL).items()}
+    trang = {**(trang or {}), 'da': (trang or {}).get('da') or mau}   # màu da của nhân vật → đất sét màu da (mac_do)
+    H = float(cao); L = {k: v * H for k, v in (tl_mpfb(gioi, tuoi, trang.get('than')) or TL).items()}
     da = _vl(f'{ten}.da', mau); ao = _vl(f'{ten}.ao', mau_ao or mau)
     n = {'cao': H, 'ten': ten}
     goc = n['goc'] = _khop(ten_goc or f'{ten}.goc', None, (0, 0, 0)); goc.scale = (dv, dv, dv)
@@ -109,6 +124,9 @@ def dung_nguoi(ten, cao=175.0, mau=(0.78, 0.66, 0.52, 1), mau_ao=None, dv=1.0, t
         goi = n[f'goi_{p}'] = _khop(f'{ten}.goi_{p}', dui, (0, 0, -L['dui']))
         _khoi(f'{ten}.cang_k_{p}', goi, L['cang'], 0.034 * H, 0.034 * H, ao)
         cochan = n[f'cochan_{p}'] = _khop(f'{ten}.cochan_{p}', goi, (0, 0, -L['cang']))
+        # MŨI CHÂN (anh 19/10/2026 "khớp chân lộn ngược"): khớp đích cho đoạn bàn chân của mocap + xương foot MPFB — trước đây không có, bàn chân giữ góc
+        # vuông với cẳng chân ở mọi dáng → quỳ thì mũi giày chổng lên trời. Hướng = bàn chân MPFB đo ở tl_mpfb (mui_y / mui_z).
+        n[f'mui_chan_{p}'] = _khop(f'{ten}.mui_chan_{p}', cochan, (0, L.get('mui_y', -0.06 * H), L.get('mui_z', -0.03 * H)))
         bc = _khoi(f'{ten}.ban_chan_{p}', cochan, 0.15 * H, 0.025 * H, 0.012 * H, ao, xuong=False)
         bc.rotation_euler.x = math.radians(90); bc.location = (0, 0.03 * H, -L["chan"] * 0.6)   # bàn chân hướng −y (mũi chân ra trước)
     n['L'] = L
@@ -137,7 +155,7 @@ def _mpfb():
 # ảnh độ sâu / khung màu hất cằm, FLUX vẽ người ngước lên)
 _NHAM = [('spine05', 'dinh_nham'), ('spine04', 'dinh_nham'), ('spine03', 'dinh_nham'), ('spine02', 'dinh_nham'), ('spine01', 'dinh_nham'), ('neck01', 'co_nham'),
          ('upperarm01.L', 'khuyu_t'), ('lowerarm01.L', 'cotay_t'), ('upperarm01.R', 'khuyu_p'), ('lowerarm01.R', 'cotay_p'),
-         ('upperleg01.L', 'goi_t'), ('lowerleg01.L', 'cochan_t'), ('upperleg01.R', 'goi_p'), ('lowerleg01.R', 'cochan_p')]
+         ('upperleg01.L', 'goi_t'), ('lowerleg01.L', 'cochan_t'), ('upperleg01.R', 'goi_p'), ('lowerleg01.R', 'cochan_p'), ('foot.L', 'mui_chan_t'), ('foot.R', 'mui_chan_p')]
 # BẢNG CẢM XÚC CỦA PHIM → 52 đơn vị cơ mặt ARKit (gói MakeHuman faceunits01, CC0) — anh 18/10/2026 "làm biểu cảm 3D": mặt MPFB diễn đúng nét của shot,
 # vào bản đồ độ sâu + khung màu nên ở shot cận FLUX nhận hình khối mặt đã biến dạng (há miệng gào, mắt nhắm siết) thay vì chỉ đọc chữ.
 # Mã = qc-cam-xuc.ts › BIEU_CAM. '*' = cả hai bên (Left + Right).
@@ -239,6 +257,20 @@ def dat_con_nguoi(n):
         o.location = M[x].translation + truc * 0.0118 * k; o.scale = (k, k, k)
     return True
 
+# NGÓN TAY NGƯỜI THẬT (19/10/2026, nhịp 3 "tay cầm đồ"): xương bám ma-nơ-canh (_NHAM) không có ngón → bàn tay MPFB luôn DUỖI PHẲNG, kể cả khi cầm
+# ly / giấy / điện thoại (keyframe AI chép tay xoè đỡ đồ). Khép 15 xương ngón finger{1..5}-{1..3}.{L,R} quanh trục X (+ = khép vào lòng — dựng thử
+# hai tay 19/10). muc 1,0 = nắm đồ; 0,3 = tay rảnh cong nhẹ như người thật (tay duỗi thẳng là dấu hiệu ma-nơ-canh). Ngón cái khép ít hơn.
+NGON_DO = {1: 25.0, 2: 50.0, 3: 52.0, 4: 54.0, 5: 56.0}
+def nam_ngon(n, ben, muc):
+    """Khép ngón bàn tay `ben` ('t' = trái nhân vật = .L, 'p' = .R) mức muc 0..1 trên rig MPFB của n."""
+    rig = bpy.data.objects.get(n.get('rig_ten') or '')
+    if not rig: return False
+    hau = '.L' if ben == 't' else '.R'
+    for b in rig.pose.bones:
+        if b.name.startswith('finger') and b.name.endswith(hau) and b.name[6:7].isdigit():
+            b.rotation_mode = 'XYZ'; b.rotation_euler.x = math.radians(NGON_DO.get(int(b.name[6]), 50.0) * muc)
+    return True
+
 def mat_nhin(n, dich):
     """Xoay mắt ma-nơ-canh n về điểm `dich` (toạ độ thế giới, m) — gọi SAU khi đã đặt dáng / mocap (hướng đầu cuối cùng)."""
     from mathutils import Vector
@@ -279,11 +311,7 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     if o: bpy.data.objects.remove(o, do_unlink=True)   # rig của shot trước (thân cũ đã bị than_tron dọn)
     if 'dinh_nham' not in n: n['dinh_nham'] = _khop(f'{ten}.dinh_nham', n['dau'], (0, 0, 2.5 * n['L']['dau']))   # trên đỉnh đầu, theo độ nghiêng đầu
     if 'co_nham' not in n: n['co_nham'] = _khop(f'{ten}.co_nham', n['dau'], (0, -1.0 * n['L']['dau'], 2.5 * n['L']['dau']))
-    h = m['hs'].create_human()
-    for k, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
-        m['op'].set_value(k, v, entity_reference=h)
-    if tuoi: m['op'].set_value('age', 0.1875 + (tuoi - 11) / 14 * 0.3125 if tuoi < 25 else min(1.0, 0.5 + (tuoi - 25) / 65 * 0.5), entity_reference=h)
-    m['ts'].reapply_macro_details(h)
+    h = m['hs'].create_human(); _dat_than(m, h, gioi, tuoi, (trang or {}).get('than'))
     rig = m['hs'].add_builtin_rig(h, 'default')
     bpy.context.view_layer.update()
     bb = [h.matrix_world @ Vector(c) for c in h.bound_box]; cao_m = max(v.z for v in bb) - min(v.z for v in bb)
@@ -354,9 +382,12 @@ def mac_do(m, h, gioi, tuoi, trang):
     if not os.path.isdir(os.path.join(dd, 'hair')): return False
     # ĐẤT SÉT PREVIS (anh 18/10/2026 chọn, sau khi da / mắt MakeHuman ở cận trông như quái thai — thung lũng kỳ dị): thân một màu đất sét mờ, KHÔNG
     # mắt / lông mày / vân da; tóc giữ hình, tô một màu; đồ tô màu áo của shot. Chuẩn previs ngành: đọc bố cục + diễn, mặt thật là việc của keyframe AI.
-    sk = bpy.data.materials.get('dat_set_da') or bpy.data.materials.new('dat_set_da'); sk.use_nodes = True
+    sk = bpy.data.materials.new('dat_set_da'); sk.use_nodes = True   # mỗi người một vật liệu (màu da riêng)
     bs_ = sk.node_tree.nodes.get('Principled BSDF')
-    if bs_: bs_.inputs['Base Color'].default_value = (0.62, 0.55, 0.49, 1); bs_.inputs['Roughness'].default_value = 0.85
+    # ĐẤT SÉT MÀU DA (anh 19/10/2026 "làm sao con mẫu nhìn đỡ ghê"): trước là một màu đất sét chung → dưới đèn ngày thành mặt trắng bệch. Nay tông
+    # da CỦA nhân vật (khoi_3d.mau), mờ, không vân — AI đọc đúng tông da + ánh sáng trên da, mặt vẫn không chi tiết để tranh danh tính với ảnh mẫu.
+    da = trang.get('da') or (0.62, 0.55, 0.49, 1); sk.name = f'dat_set_da_{"%.2f_%.2f_%.2f" % tuple(da[:3])}'
+    if bs_: bs_.inputs['Base Color'].default_value = (*da[:3], 1); bs_.inputs['Roughness'].default_value = 0.7
     h.data.materials.clear(); h.data.materials.append(sk)
     gk = gioi if gioi in TOC_MAC else 'nu'
     for thu, ma, kieu in (('hair', trang.get('toc') or TOC_MAC[gk], 'Hair'),

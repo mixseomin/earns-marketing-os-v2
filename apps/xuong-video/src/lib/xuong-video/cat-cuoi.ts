@@ -13,7 +13,9 @@ export function doDaiNhip(F: Uint8Array[], A: Uint8Array, B: Uint8Array): number
 export function tinhCatCuoi(F: Uint8Array[], A: Uint8Array, B: Uint8Array, fps: number): number | null {
   const a = doDaiNhip(F, A, B); if (!a.length) return null;
   const buoc = Math.max(1, Math.round(fps * 0.25));
-  for (let i = Math.floor(a.length * 0.4); i + buoc < a.length; i++) if (a[i + buoc]! - a[i]! > 0.1) return Math.max(0, Math.round((i / fps - 0.15) * 100) / 100);
+  // dải đã hiện thì Ở tới cuối clip: α không tụt lại về mức trước (cú máy lia qua làm α nhảy rồi tụt — #9 rời cổ tay sang Hạ, bắt nhầm 3,5 s)
+  const oLai = (i: number) => { for (let k = i + buoc; k < a.length; k++) if (a[k]! < a[i]! + 0.05) return false; return true; };
+  for (let i = Math.floor(a.length * 0.4); i + buoc < a.length; i++) if (a[i + buoc]! - a[i]! > 0.1 && oLai(i)) return Math.max(0, Math.round((i / fps - 0.15) * 100) / 100);
   // không thấy dải tăng nhanh (hoà tan rất mờ / rất muộn, #25) → lùi an toàn 0,8 s trước cuối clip
   return Math.max(0, Math.round((a.length / fps - 0.8) * 100) / 100);
 }

@@ -4,7 +4,7 @@ import { chanDanDat } from './dan-dat';
 import { CHAT_LIEU, ghep, goiTenEn, khoi, KHUON, LOAI_VIDEO, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
 import { chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
-import { moTaChuyenDong } from './bo-set-3d';
+import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -76,12 +76,21 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // GIỮ KHUNG ĐẦU theo chất liệu (CHAT_LIEU.giu_video): hoạt hình chỉ khi khung đầu là ảnh render 3D; người thật luôn (giữ mặt, đồ, bối cảnh).
   const giuAnh = CHAT_LIEU[cl].giu_video;
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
+  // AI LÀ AI (19/10/2026 #1: hai phụ nữ tóc đen, prompt chỉ gọi tên + "she" → Veo đảo vai, Hạ hắt cà phê vào Vivian): model video không biết tên —
+  // gắn mỗi tên với dáng nhìn thấy (người + bộ đồ của shot) và chỗ trên khung đầu (khung 3D › di.tu). Chỉ khi khung có ≥ 2 nhân vật.
+  const di3 = bc.canh.khung_xam?.di ?? [];
+  const aiLaAi = (bc.canh.may_3d?.vi_tri ?? []).filter((v) => !v.an && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat')).map((v) => {
+    const nv = bc.nhanVat.find((n) => n.ten === v.ten)!; const ao = (bienTheTheoSo(v, nv)[0]?.mo_ta ?? '').split(/[,;]/)[0]!.trim();
+    const x = di3.find((d) => d.ten === v.ten)?.tu?.[0]; const ben = x == null ? '' : x < 0.4 ? ', on the LEFT of the frame' : x > 0.6 ? ', on the RIGHT of the frame' : ', in the middle of the frame';
+    return `${v.ten} = the ${(nv.mo_ta ?? '').split(',').slice(0, 2).join(',').trim()}${ao ? ` wearing ${ao}` : ''}${ben}`;
+  });
+  const aiCau = aiLaAi.length >= 2 ? `WHO IS WHO (the names used below): ${aiLaAi.join('; ')}. Every action belongs only to the person named — never swap who does what to whom.` : '';
   return [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
     // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || (bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
-    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'))), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
+    khoi('nhan_dang', aiCau), khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'))), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
     khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),

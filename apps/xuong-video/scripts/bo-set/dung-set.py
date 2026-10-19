@@ -1763,7 +1763,10 @@ for sh in ([] if CHI_MB else shots):
     # chỗ / dáng / nét mặt cuối shot, máy ở cuối MỌI đường máy (đẩy vào, zoom, cung…). ket_dong = shot thật sự đổi khung (có người đi / quay, hoặc cú
     # máy liền mạch) → chỉ những shot này mới cần keyframe KẾT (tốn tiền) + khung giữa; shot khác khung kết chỉ để xem.
     chay_ = sh['may'].get('chay') if (sh['may'].get('chay') or {}).get('dat') else None
-    dong = bool((sh['may'].get('chay') or {}).get('ket')) or any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', []))
+    # TRẠNG THÁI ĐỔI cũng cần ảnh cuối (19/10/2026 #1: không ai đi, chỉ áo Hạ từ sạch thành dính cà phê → không có keyframe kết, Veo tự đoán kết cục:
+    # cà phê vọt lên trời, đảo vai người hắt, vết sai màu). Mọi ô *_den khác ô mở (đồ, vết, trạng thái món, tóc, trang điểm, đồ đeo, nằm) = khung đổi.
+    doi_tt = any(x.get(f'{k}_den') is not None and x.get(f'{k}_den') != x.get(k) for x in sh.get('nhan_vat', []) for k in ('trang_phuc', 'trang', 'vet', 'toc', 'trang_diem', 'do_deo', 'nam'))
+    dong = bool((sh['may'].get('chay') or {}).get('ket')) or doi_tt or any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', []))
     ket_dong[sh['ma']] = dong
     def may_tai(t):
         if not chay_: return

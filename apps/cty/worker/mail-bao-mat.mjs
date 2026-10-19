@@ -35,12 +35,20 @@ export const nhomTuChu = (t) => { const x = String(t).trim().toLowerCase(); cons
 // thư THẬT từ nền tảng có tài khoản của một phòng → giao đúng trưởng phòng đó, ngay dưới tin báo. Thêm nền tảng = thêm một dòng.
 export const PHU_TRACH_MIEN = { 'etsy.com': 'thao', 'amazon.com': 'thao', 'kdp.amazon.com': 'thao', 'gumroad.com': 'thao', 'google.com': 'lan', 'ads.google.com': 'lan' };
 export const phuTrachMien = (mien) => { const m = String(mien || '').toLowerCase(); const k = Object.keys(PHU_TRACH_MIEN).filter((d) => m === d || m.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0]; return k ? PHU_TRACH_MIEN[k] : null; };
+/** Chuyển thư thật vào PHÒNG phụ trách (anh 19/10/2026: "Kiên đọc mail xong phải biết forward vào phòng liên quan"): tin đầy đủ vào chủ đề Telegram
+ *  của phòng đó (tạo nếu chưa có) + một dòng dưới tin báo ở 🔐 Bảo mật + nhật ký người phụ trách. Trả true khi đã chuyển. */
 export async function giaoPhuTrach(tg, topic, mail, ten, goc) {
   const ai = phuTrachMien(mail.mien); const fs = await import('node:fs'), path = await import('node:path'); const { GOC } = await import('./goc.mjs');
-  let ten2 = ai; try { const t = fs.readFileSync(path.join(GOC, 'cong-ty', 'nhan-su', ai, 'SOUL.md'), 'utf8'); const ph = t.match(/^phong:\s*(\S+)/m)?.[1]; const tp = ph ? fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${ph}.md`), 'utf8').match(/^ten:\s*(.+)$/m)?.[1].replace(/^Phòng\s+/, '') : ''; ten2 = `${t.match(/^ten:\s*(.+)$/m)[1].trim()}${tp ? ` [${tp.trim()}]` : ''}`; } catch { /* không có hồ sơ */ }
-  const chu = ai ? `📌 Thư thật từ <b>${esc(mail.mien)}</b> — giao <b>${esc(ten2)}</b> xử lý: <i>${esc(mail.tieuDe)}</i>` : `📌 Thư thật từ <b>${esc(mail.mien)}</b> nhưng chưa có phòng phụ trách tên miền này (PHU_TRACH_MIEN trong mail-bao-mat.mjs) — anh chỉ định giúp em.`;
-  await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: chu });
-  if (ai) try { fs.mkdirSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip'), { recursive: true }); fs.appendFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip', `${ai}.jsonl`), JSON.stringify({ luc: new Date().toISOString(), viec: 'thu-giao', ket: `${ten} giao: ${mail.mien} · ${mail.tieuDe}` }) + '\n'); } catch { /* không ghi được nhật ký: tin Telegram vẫn đi */ }
+  if (!ai) { await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', text: `📌 Thư thật từ <b>${esc(mail.mien)}</b> nhưng chưa có phòng phụ trách tên miền này (PHU_TRACH_MIEN trong mail-bao-mat.mjs) — anh chỉ định giúp em.` }); return false; }
+  const doc = (...p) => fs.readFileSync(path.join(GOC, 'cong-ty', ...p), 'utf8'), fm = (t, k) => t.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim();
+  const soul = doc('nhan-su', ai, 'SOUL.md'), ph = fm(soul, 'phong'), tenPh = fm(doc('phong', `${ph}.md`), 'ten').replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, ''), tenAi = `${fm(soul, 'ten')} [${tenPh}]`;
+  const { topicPhong } = await import('./tg-phong.mjs'); const tp = await topicPhong(ph, `📂 ${tenPh}`, tg);
+  const j = tp ? await tg('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', link_preview_options: { is_disabled: true },
+    text: `📨 <b>${esc(ten)} [Bảo mật]</b> chuyển thư cho <b>${esc(tenAi)}</b> xử lý\n<b>${esc(mail.tieuDe)}</b> — ${esc(mail.gui)}\n${esc(mail.chu)}\n<b>Việc:</b> ${esc(mail.viec)}\nThư gốc trong hòm claude@orit.app; xử xong thì lưu trữ thư.` }) : { ok: false };
+  await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', link_preview_options: { is_disabled: true },
+    text: j.ok ? `📌 Thư thật từ <b>${esc(mail.mien)}</b> — đã chuyển vào chủ đề 📂 ${esc(tenPh)}, giao <b>${esc(tenAi)}</b> xử lý.` : `⚠️ Thư thật từ <b>${esc(mail.mien)}</b> — chuyển vào phòng ${esc(tenPh)} KHÔNG được (Telegram lỗi), giao <b>${esc(tenAi)}</b>.` });
+  try { const d = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip'); fs.mkdirSync(d, { recursive: true }); fs.appendFileSync(path.join(d, `${ai}.jsonl`), JSON.stringify({ luc: new Date().toISOString(), viec: 'thu-giao', ket: `${ten} chuyển: ${mail.mien} · ${mail.tieuDe}` }) + '\n'); } catch { /* nhật ký hỏng: tin Telegram vẫn đi */ }
+  return j.ok;
 }
 const tepDay = () => `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/mien-day.json`;
 export async function docDay() { const fs = await import('node:fs'); try { return JSON.parse(fs.readFileSync(tepDay(), 'utf8')); } catch { return { nha: [], quen: [], gia: [] }; } }
@@ -205,7 +213,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
       const mid = Object.entries(st.tin ?? {}).find(([, t]) => t.id === goc)?.[0], nh = nhomTuChu(chuTra);
       const mail = mid ? (await docMailBaoMat())?.find((m) => m.id === mid) : null;
       if (!mail || !nh) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: !mail ? `${ten}: tin này không phải tin báo thư em còn giữ — anh trả lời ngay dưới tin báo thư nhé.` : `${ten}: em chưa hiểu — anh trả lời "Thật", "Giả" hoặc "Nhà mình".` }); continue; }
-      try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia') await giaoPhuTrach(tg, st.topic, mail, ten, goc); }
+      try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia' && !st.chuyen?.[mail.id]) { await giaoPhuTrach(tg, st.topic, mail, ten, goc); (st.chuyen ??= {})[mail.id] = new Date().toISOString(); } }
       catch (e) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: `${ten}: ${e.message}` }); }
       continue;
     }
@@ -234,6 +242,11 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
     await vpBao(nguoi, 'lam', `báo thư ${m.mien}`);
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinBao(m, ten, await loiMo(nguoi, model, m, phong)), parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutDay(m.mien) });
     if (j.ok) st.tin[m.id] = { id: j.result.message_id, nut: 1 }; st.vp = 'lam';
+  }
+  // thư Kiên kết luận THẬT, tên miền có phòng phụ trách → tự chuyển vào phòng đó MỘT lần (không đợi anh)
+  for (const m of (ds ?? []).filter((x) => x.ket === 'that' && !x.xong && x.luc >= BAT_TU && !st.chuyen?.[x.id] && phuTrachMien(x.mien))) {
+    await vpBao(nguoi, 'lam', `chuyển thư ${m.mien}`);
+    if (await giaoPhuTrach(tg, st.topic, m, ten, st.tin?.[m.id]?.id)) (st.chuyen ??= {})[m.id] = new Date().toISOString();
   }
   // tin gửi trước khi có nút (vd amazon.in 13/10) → gắn thêm ba nút dạy một lần
   for (const [mid, t] of Object.entries(st.tin ?? {})) { const m = ds?.find((x) => x.id === mid); if (m && !t.nut && !t.xong && (await tg('editMessageReplyMarkup', { message_id: t.id, reply_markup: nutDay(m.mien) })).ok) t.nut = 1; }

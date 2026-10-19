@@ -729,7 +729,7 @@ export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][
   { ten: 'nghe điện thoại', tu: /(nghe (điện thoại|máy)|áp (điện thoại|máy) (lên|vào) tai|answers? the phone|on the phone)/i, co: (v) => (v.dien ?? []).some((x) => /^nghe_dien_thoai/.test(x)) },
   { ten: 'kéo tay', tu: /(kéo (tay|cánh tay|khuỷu)|lôi (tay|đi)|pulls? [^.;]{0,20}by the (arm|elbow))/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_keo_tay|mc_bi_keo)/.test(x)) },
   { ten: 'đặt tay lên vai', tu: /((đặt|vỗ|đặt nhẹ) tay (lên )?vai|hand on [^.;]{0,15}shoulder)/i, co: (v) => (v.dien ?? []).some((x) => /^mc_dat_tay_vai/.test(x)) },
-  { ten: 'nhặt', tu: /(nhặt|cúi lượm|picks? up)/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_nhat_do|quy|mc_quy|mc_dang_quy)/.test(x)) },   // quỳ một gối nhặt giấy cũng là nhặt (tập 135 #5, #8 báo oan)
+  { ten: 'nhặt', tu: /(nhặt|cúi lượm|picks? up)/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_nhat_do|quy|mc_quy|mc_dang_quy|mc_dung_len_quy)/.test(x)) },   // quỳ nhặt rồi đứng lên cũng là nhặt (tập 135 #5, #8, #9 báo oan)
   { ten: 'đập bàn', tu: /(đập (bàn|tay xuống bàn)|pounds? the (table|desk))/i, co: (v) => (v.dien ?? []).some((x) => /^mc_dap_ban_chi/.test(x)) },
 ];
 export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'> & { bieu_cam?: unknown[] | null }): string[] {

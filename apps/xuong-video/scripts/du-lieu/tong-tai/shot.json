@@ -576,7 +576,7 @@
   },
   "dan_dung": {
    "dien": "Anticipation: the office noise cuts out as we enter the glass room. Action: Lục Thần stands motionless at the glass wall, hands in pockets, watching the floor outside. Reaction: none — he only watches.",
-   "bo_cuc": "Inside the CEO office: wide from the back corner, Lục Thần three-quarter back to camera at the glass wall screen-left, the open office beyond the glass with Hạ kneeling small in the distance",
+   "bo_cuc": "Inside the CEO office: wide from behind the walnut desk, Lục Thần three-quarter back to camera at the glass wall screen-left, the open office beyond the glass with Hạ kneeling small in the distance",
    "mo": "Thần standing at the glass, back three-quarter to camera",
    "ket": "camera has drifted closer to Thần’s shoulder",
    "huong": "Thần looks out through the glass toward Hạ",
@@ -598,14 +598,15 @@
   ],
   "may_3d": {
    "tay": true,
+   "qua_truc": true,
    "dat": [
-    30,
-    1130,
-    160
+    420,
+    1230,
+    165
    ],
    "nhin": [
-    130,
-    990,
+    100,
+    1000,
     150
    ],
    "ong_kinh": 28,
@@ -678,7 +679,7 @@
    "vai": "phan_ung",
    "co_canh": "cu",
    "goc": "ngang",
-   "chuyen_dong": "day_vao",
+   "chuyen_dong": "zoom_cham",
    "ong_kinh": "chan_dung",
    "anh_sang": "cua_so",
    "am_thanh": [
@@ -841,16 +842,6 @@
     "Vivian"
    ],
    "vi_tri": [
-    {
-     "ten": "Lục Thần",
-     "tam": [
-      80,
-      1040,
-      0
-     ],
-     "huong": 0,
-     "an": true
-    },
     {
      "ten": "Lâm Hạ",
      "tam": [

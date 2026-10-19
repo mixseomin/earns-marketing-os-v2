@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """BẢN B creative Ethopex = mẫu thắng số 3 "NHÂN VẬT ~10s" — ghép (0đ) từ MỘT clip hero studio (tao-nhan-vat.mts → tu-lam-phim.mts).
 Khuôn theo mẫu thắng (soi 19/10/2026): MỘT cảnh liền, nhân vật nhìn thẳng ống kính; LOGO tên phim kiểu poster (chữ vàng
-chuyển sắc + viền tối + quầng sáng, dòng "EXCLUSIVE" nhỏ bên dưới) hiện từ giây 1; nút đỏ viền vàng có bóng hiện từ giây 2,5 và
+chuyển sắc + viền tối + quầng sáng, dòng "EXCLUSIVE" nhỏ bên dưới) hiện từ giây 4 (sau hook 0–4s, đúng nhịp chữ "@giây" của cảnh trong studio); nút đỏ viền vàng có bóng hiện từ giây 4,6 và
 nhún nhẹ tới hết. ÂM = CHỈ NHẠC (anh 19/10/2026: tiếng gốc của clip bị cắt → "voice cụt cụt").
 Bỏ hẳn bản cũ (3 đoạn cắt ghép + chữ trên dải đen — anh: "nhìn cứ rác rác").
 Chữ (tên phim, CTA) = chữ màn của cảnh hero trong studio (đã khai để người xem studio chấm; qua luật chữ studio).
 Dòng HOOK (chữ trắng viền đen, trên đầu khung, từ giây 0,3) — người xem studio đòi câu gợi chuyện (19/10/2026: 5/10 khi chỉ có logo).
 Mọi chữ qua chu-studio.mts (luật chữ studio: không dấu chấm cuối câu…) trước khi vẽ.
-Dùng: python3 ghep-b.py <clip.mp4> <nhac.mp3|-> <hook> <ten phim> <CTA> <font.json|-> <ra.mp4> [giây=10]"""
+Dùng: python3 ghep-b.py <job.json>  (job = {doan:[{file,giay,hook}], nhac, ten, cta, font, ra} — cảnh cuối là hero, logo + nút hiện trong cảnh đó)"""
 import json, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw, ImageFilter
 import importlib.util
@@ -74,22 +74,36 @@ def lop_nut(cta, cfg, ra):
     d.text(((W - rong) / 2, y0 + 28), cta, font=fc, fill=(255, 255, 255), stroke_width=2, stroke_fill=(90, 0, 0))
     im.save(ra)
 
-def dung(clip, nhac, hook, ten, cta, cfg, out, T=10.0):
+def dung(doan, nhac, ten, cta, cfg, out):
+    """doan = [{file, giay, hook}] — các cảnh nối liền (cảnh 1 bất công, cảnh cuối hero); logo + nút hiện ở cảnh cuối (sau hook của nó)"""
     tmp = os.path.splitext(out)[0]; nhan = "EXCLUSIVO" if any(k in cta.upper() for k in ("MÁS", "MÍRALA")) else "EXCLUSIVE"
-    hook, ten, cta = chu_studio(hook, ten, cta); ten = ten.replace("\n", " ").strip('"'); cta = cta.replace("\n", " ")
-    lop_logo(ten, nhan, cfg, tmp + "-logo.png"); lop_nut(cta, cfg, tmp + "-nut.png"); lop_hook(hook, tmp + "-hook.png")
-    toc = min(1.0, gx.dur(clip) / T)   # clip 8s giãn đủ ~10s bằng làm chậm nhẹ, không lặp, không cắt
-    vao = ["-i", clip, "-loop", "1", "-t", f"{T}", "-i", tmp + "-logo.png", "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{T}", "-i", tmp + "-hook.png"]
+    chu = chu_studio(*[d["hook"] for d in doan], ten, cta); hooks, ten, cta = chu[:len(doan)], chu[-2].replace("\n", " ").strip('"'), chu[-1].replace("\n", " ")
+    lop_logo(ten, nhan, cfg, tmp + "-logo.png"); lop_nut(cta, cfg, tmp + "-nut.png")
+    T = sum(d["giay"] for d in doan); bd = [sum(d["giay"] for d in doan[:i]) for i in range(len(doan))]
+    logo_tu = bd[-1] + min(2.5, doan[-1]["giay"] / 2)
+    vao, loc = [], []
+    for i, d in enumerate(doan):
+        vao += ["-t", f"{d['giay']}", "-i", d["file"]]
+        loc.append(f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1,trim=0:{d['giay']},setpts=PTS-STARTPTS[c{i}]")
+    n = len(doan); loc.append("".join(f"[c{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0[v0]")
+    vao += ["-loop", "1", "-t", f"{T}", "-i", tmp + "-logo.png", "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png"]
+    loc.append(f"[{n}:v]format=rgba,fade=in:st={logo_tu}:d=0.6:alpha=1[logo];[{n + 1}:v]format=rgba,fade=in:st={logo_tu + 0.6}:d=0.4:alpha=1[nut]")
+    loc.append(f"[v0][logo]overlay=0:'if(lt(t,{logo_tu + 0.6}),30*({logo_tu + 0.6}-t)/0.6,0)'[l0];[l0][nut]overlay=0:'1540+8*sin(2*PI*1.6*t)'[h0]")
+    cuoi = "h0"
+    for i, h in enumerate(hooks):
+        if not h.strip(): continue
+        f = f"{tmp}-hook{i}.png"; lop_hook(h, f); k = n + 2 + i
+        het = (bd[i] + doan[i]["giay"]) if i < n - 1 else logo_tu
+        vao += ["-loop", "1", "-t", f"{T}", "-i", f]
+        loc.append(f"[{k}:v]format=rgba,fade=in:st={bd[i] + 0.2}:d=0.3:alpha=1,fade=out:st={het - 0.3}:d=0.3:alpha=1[hk{i}];[{cuoi}][hk{i}]overlay=0:0[h{i + 1}]"); cuoi = f"h{i + 1}"
+    ia = len([x for x in vao if x == "-i"])
     vao += ["-i", nhac] if nhac and nhac != "-" else ["-f", "lavfi", "-t", f"{T}", "-i", "anullsrc=r=44100:cl=stereo"]
-    loc = (f"[0:v]setpts=PTS/{toc:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[v0];"
-           f"[1:v]format=rgba,fade=in:st=1.0:d=0.7:alpha=1[logo];[2:v]format=rgba,fade=in:st=2.5:d=0.4:alpha=1[nut];"
-           f"[v0][logo]overlay=0:'if(lt(t,1.7),30*(1.7-t)/0.7,0)'[v1];[v1][nut]overlay=0:'1540+8*sin(2*PI*1.6*t)'[v2];[3:v]format=rgba,fade=in:st=0.3:d=0.4:alpha=1[hk];[v2][hk]overlay=0:0[v];"
-           f"[4:a]aresample=44100,volume=0.9,afade=out:st={T - 0.8}:d=0.8[a]")
-    gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{T}",
+    loc.append(f"[{ia}:a]aresample=44100,volume=0.9,afade=out:st={T - 0.8}:d=0.8[a]")
+    gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", ";".join(loc), "-map", f"[{cuoi}]", "-map", "[a]", "-t", f"{T}",
           "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
     print(out, round(gx.dur(out), 1))
 
 if __name__ == "__main__":
-    a = sys.argv[1:]
-    cfg = json.load(open(a[5])) if a[5] != "-" else None
-    dung(a[0], a[1], a[2], a[3], a[4], cfg, a[6], float(a[7]) if len(a) > 7 else 10.0)
+    # python3 ghep-b.py <job.json>   job = {doan:[{file,giay,hook}], nhac, ten, cta, font:{…}|null, ra}
+    j = json.load(open(sys.argv[1]))
+    dung(j["doan"], j.get("nhac"), j["ten"], j["cta"], j.get("font"), j["ra"])

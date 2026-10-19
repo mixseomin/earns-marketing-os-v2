@@ -24,6 +24,11 @@ export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
  *  keyframe của shot chính là mẫu nơi đó nên không cần anchor Bối cảnh (quy-trinh.ts › thieuMau); nơi lặp lại vẫn phải có anchor. */
 export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number; luat?: string[]; nen_ghep?: boolean };
 
+/** VẬT LÝ THẬT trong clip (19/10/2026 #1 tổng tài: câu diễn "coffee arcs" → cà phê vọt lên trời): chất lỏng / đồ vật theo trọng lực. Thể loại được
+ *  phép phá vật lý (anh: "các dạng viễn tưởng… sẽ có ngoại lệ về vật lý") — viễn tưởng (phép thuật, phản trọng lực), hoạt hình (cường điệu), kinh dị
+ *  (vật bay, siêu nhiên) — không nhận câu này. */
+export const THE_LOAI_PHA_VAT_LY: ReadonlySet<TheLoai> = new Set<TheLoai>(['vien_tuong', 'hoat_hinh', 'kinh_di']);
+export const cauVatLy = (tl: TheLoai | '' | undefined): string => (tl && THE_LOAI_PHA_VAT_LY.has(tl) ? '' : 'Real-world physics: liquids pour and splash downward with gravity, objects fall naturally — nothing flies upward or hangs in the air unless it is thrown upward.');
 export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
   { key: 'hoat_hinh', ten: 'Hoạt hình gia đình', mo_ta: 'Ấm áp, màu tươi, máy mềm, cảm xúc rõ ràng' },
   { key: 'phieu_luu', ten: 'Phiêu lưu', mo_ta: 'Khung rộng hùng vĩ, cẩu máy, nhạc dàn nhạc' },

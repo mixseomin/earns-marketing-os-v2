@@ -28,6 +28,20 @@ const cungNha = (host, mien) => { const m = mienGoc(host); return nhan(m) === nh
 // dòng thư ở cty → tên miền vào một trong ba nhóm. nha = site nhà (thư từ đó là thư thường) · quen = nhà thật có tài khoản (như NHA) · gia = giả,
 // thư từ đó luôn là THƯ GIẢ. Một miền chỉ nằm một nhóm (dạy lại thì chuyển nhóm). Nằm ở dữ liệu box, không phải sửa mã.
 export const NHOM_DAY = { nha: '🏠 Nhà mình', quen: '✅ Thật, quen', gia: '⛔ Giả' };
+/** Chữ anh trả lời → nhóm dạy. "Thật" = thư thật từ nhà quen; "Giả"; "Nhà mình". */
+export const nhomTuChu = (t) => { const x = String(t).trim().toLowerCase(); const het = '(?=$|[\\s,.!])';   // \\b của JS không coi chữ có dấu (ả, ậ) là chữ → 'Giả' trượt
+  return new RegExp(`^(nh[aà] m[iì]nh|nha)${het}`).test(x) ? 'nha' : new RegExp(`^(th[aậ]t|real|that|đúng)${het}`).test(x) ? 'quen' : new RegExp(`^(gi[aả]|fake|gia)${het}`).test(x) ? 'gia' : null; };
+// NGƯỜI PHỤ TRÁCH theo tên miền gửi (anh 19/10/2026: "mail Etsy yêu cầu rà soát policy quan trọng mày báo cho con nào phụ trách xử lý"):
+// thư THẬT từ nền tảng có tài khoản của một phòng → giao đúng trưởng phòng đó, ngay dưới tin báo. Thêm nền tảng = thêm một dòng.
+export const PHU_TRACH_MIEN = { 'etsy.com': 'thao', 'amazon.com': 'thao', 'kdp.amazon.com': 'thao', 'gumroad.com': 'thao', 'google.com': 'lan', 'ads.google.com': 'lan' };
+export const phuTrachMien = (mien) => { const m = String(mien || '').toLowerCase(); const k = Object.keys(PHU_TRACH_MIEN).filter((d) => m === d || m.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0]; return k ? PHU_TRACH_MIEN[k] : null; };
+export async function giaoPhuTrach(tg, topic, mail, ten, goc) {
+  const ai = phuTrachMien(mail.mien); const fs = await import('node:fs'), path = await import('node:path'); const { GOC } = await import('./goc.mjs');
+  let ten2 = ai; try { const t = fs.readFileSync(path.join(GOC, 'cong-ty', 'nhan-su', ai, 'SOUL.md'), 'utf8'); const ph = t.match(/^phong:\s*(\S+)/m)?.[1]; const tp = ph ? fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${ph}.md`), 'utf8').match(/^ten:\s*(.+)$/m)?.[1].replace(/^Phòng\s+/, '') : ''; ten2 = `${t.match(/^ten:\s*(.+)$/m)[1].trim()}${tp ? ` [${tp.trim()}]` : ''}`; } catch { /* không có hồ sơ */ }
+  const chu = ai ? `📌 Thư thật từ <b>${esc(mail.mien)}</b> — giao <b>${esc(ten2)}</b> xử lý: <i>${esc(mail.tieuDe)}</i>` : `📌 Thư thật từ <b>${esc(mail.mien)}</b> nhưng chưa có phòng phụ trách tên miền này (PHU_TRACH_MIEN trong mail-bao-mat.mjs) — anh chỉ định giúp em.`;
+  await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: chu });
+  if (ai) try { fs.mkdirSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip'), { recursive: true }); fs.appendFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip', `${ai}.jsonl`), JSON.stringify({ luc: new Date().toISOString(), viec: 'thu-giao', ket: `${ten} giao: ${mail.mien} · ${mail.tieuDe}` }) + '\n'); } catch { /* không ghi được nhật ký: tin Telegram vẫn đi */ }
+}
 const tepDay = () => `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/mien-day.json`;
 export async function docDay() { const fs = await import('node:fs'); try { return JSON.parse(fs.readFileSync(tepDay(), 'utf8')); } catch { return { nha: [], quen: [], gia: [] }; } }
 /** Dạy một tên miền vào nhóm (nha | quen | gia). Trả sổ mới. */
@@ -185,6 +199,16 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   let day = 0;
   for (const x of moHop(phong || 'an-toan-tk')) {
     x.xong(); const c = x.callback_query; const [, nhom, mien] = String(c?.data ?? '').split(':');
+    // anh TRẢ LỜI một tin báo bằng chữ ("Thật" / "Giả" / "Nhà mình") = bấm nút tương ứng (anh 19/10/2026: báo giả, anh trả lời "Thật" mà Kiên im)
+    const tr = x.message, goc = tr?.reply_to_message?.message_id, chuTra = String(tr?.text ?? '');
+    if (tr && !tr.from?.is_bot && goc) {
+      const mid = Object.entries(st.tin ?? {}).find(([, t]) => t.id === goc)?.[0], nh = nhomTuChu(chuTra);
+      const mail = mid ? (await docMailBaoMat())?.find((m) => m.id === mid) : null;
+      if (!mail || !nh) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: !mail ? `${ten}: tin này không phải tin báo thư em còn giữ — anh trả lời ngay dưới tin báo thư nhé.` : `${ten}: em chưa hiểu — anh trả lời "Thật", "Giả" hoặc "Nhà mình".` }); continue; }
+      try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia') await giaoPhuTrach(tg, st.topic, mail, ten, goc); }
+      catch (e) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: `${ten}: ${e.message}` }); }
+      continue;
+    }
     if (!c || !String(c.data).startsWith('km:')) continue;
     try { await dayMien(nhom, mien, c.from?.username ?? String(c.from?.id ?? '')); day++; await tg('answerCallbackQuery', { callback_query_id: c.id, text: `${ten} đã nhớ: ${mien} = ${NOM_CHU[nhom] ?? nhom}` }); }
     catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message, show_alert: true }); }
@@ -242,6 +266,8 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
 
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: a } = await import('node:assert');
+  a.equal(nhomTuChu('Thật'), 'quen'); a.equal(nhomTuChu('thật đấy, của Etsy'), 'quen'); a.equal(nhomTuChu('Giả'), 'gia'); a.equal(nhomTuChu('Nhà mình'), 'nha'); a.equal(nhomTuChu('ok'), null);
+  a.equal(phuTrachMien('etsy.com'), 'thao'); a.equal(phuTrachMien('mail.etsy.com'), 'thao'); a.equal(phuTrachMien('evil-etsy.com'), null); a.equal(phuTrachMien('kdp.amazon.com'), 'thao');
   a.equal(mienGoc('www.amazon.co.uk'), 'amazon.co.uk'); a.equal(mienGoc('smile.amazon.in'), 'amazon.in'); a.equal(mienGoc('amazon-in.verify-acct.top'), 'verify-acct.top');
   // thư thật amazon.in 13/10/2026 (anh chuyển tiếp từ iPhone): link qua bộ chuyển tiếp gp/f.html, đích thật nằm ở tham số U
   const THAT = '<div>Begin forwarded message:</div><b>From:</b> "amazon.in" &lt;account-update@amazon.in&gt;<br>Subject: amazon.in: Account confirmation request<br>'

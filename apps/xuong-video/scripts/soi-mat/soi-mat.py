@@ -142,7 +142,15 @@ if vao.get('op') == 'dan':        # {op, goc, sua, hop} → {b64: khung gốc v�
     a = (a - a.mean((0, 1))) / (a.std((0, 1)) + 1e-6) * b.std((0, 1)) + b.mean((0, 1))
     sua = cv2.cvtColor(np.clip(a, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
     hh, ww = vg.shape[:2]; m = np.zeros((hh, ww), np.float32)
-    cv2.ellipse(m, (ww // 2, int(hh * 0.47)), (int(ww * 0.33), int(hh * 0.4)), 0, 0, 360, 1.0, -1)
+    # MẶT NẠ ĐẶT ĐÚNG CHỖ MẶT trong ô (tìm lại mặt trên vùng gốc): ô cắt sát mép khung bị kẹp (vung_dau) → mặt lệch về góc ô, elip cố định giữa ô
+    # phủ lên ngực áo, mặt giữ ảnh cũ — 19/10/2026 tập 122 #13: mô hình vẽ rõ nụ cười nửa miệng mà ảnh dán ra không đổi (ô 768×994, mặt ở góc trên-trái).
+    # Cỡ elip = như cũ khi mặt ở giữa (ô = 2,6 × mặt → bán trục 0,86 × rộng, 1,04 × cao mặt). Không thấy mặt → elip giữa ô như trước.
+    f = tim_mat(vg)
+    if f is not None and len(f):
+        fx, fy, fw, fh = max(f, key=lambda r: r[2] * r[3])[:4]
+        cv2.ellipse(m, (int(fx + fw / 2), int(fy + fh / 2 - 0.05 * fh)), (int(fw * 0.86), int(fh * 1.04)), 0, 0, 360, 1.0, -1)
+    else:
+        cv2.ellipse(m, (ww // 2, int(hh * 0.47)), (int(ww * 0.33), int(hh * 0.4)), 0, 0, 360, 1.0, -1)
     k = max(3, int(min(hh, ww) * 0.12) | 1); m = cv2.GaussianBlur(m, (k, k), 0)[..., None]
     im[y0:y1, x0:x1] = (sua * m + vg * (1 - m)).astype(np.uint8)
     print(json.dumps({'b64': b64jpg(im)})); sys.exit(0)

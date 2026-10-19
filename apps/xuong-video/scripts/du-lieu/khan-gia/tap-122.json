@@ -2,6 +2,7 @@
  { "y": "uc_che", "tu": 1039, "den": 1043, "ghi": "Hạ bị hất cà phê, vu oan, quỳ nhặt giấy trước cả phòng — khán giả nóng mặt thay cô" },
  { "y": "danh_lua", "tu": 1039, "den": 1043, "a": "Hạ chỉ là nhân viên quèn, yếu thế, sắp bị đuổi", "b": "Hạ là người nắm vốn — nhẫn nhịn có chủ đích", "lat": 1054, "ghi": "dựng Hạ yếu thế thật thuyết phục; dấu hiệu B: bình thản (#4), tin nhắn luật sư (#10)" },
  { "y": "to_mo", "tu": 1042, "den": 1042, "ghi": "bị vu oan mà bình thản lạ — cô ấy biết điều gì?" },
+ { "y": "phan_van", "tu": 1175, "den": 1177, "ghi": "Thần đứng sau kính thấy hết mà không ra tay — anh lạnh lùng thật hay đang thử cô? Khán giả biết anh đã chứng kiến, Hạ thì không" },
  { "y": "danh_lua", "tu": 1044, "den": 1046, "a": "Thần là tổng tài lạnh lùng đứng về phía Vivian, khinh Hạ", "b": "Thần và Hạ có sợi dây cũ — chuỗi hạt ngọc cùng chất ngọc với vòng tay Hạ", "lat": 1068, "ghi": "giữ Thần lạnh suốt tập; chỉ hé chuỗi hạt một nhịp" },
  { "y": "phan_van", "tu": 1167, "den": 1167, "ghi": "máy rời chuỗi hạt của Thần dừng trên Hạ — hai người có liên quan? chưa trả lời" },
  { "y": "to_mo", "tu": 1047, "den": 1047, "ghi": "tin nhắn luật sư + Hạ nhếch môi — khán giả biết cô có quân bài, nhân vật chưa biết" },

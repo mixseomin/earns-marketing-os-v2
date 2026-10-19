@@ -21,13 +21,15 @@ const SHOT_TRONG: Record<string, string> = {
 
 const ketQua = await db.transaction(async (tx) => {
   const q = async (s: ReturnType<typeof sql>) => (await tx.execute(s)) as unknown as Row[];
-  const cot = async (bang: string) => (await q(sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ${bang} ORDER BY ordinal_position`))
-    .map((r) => ({ ten: String(r.column_name), kieu: String(r.data_type) })).filter((c) => !['id', 'created_at', 'updated_at'].includes(c.ten));
+  const cot = async (bang: string) => (await q(sql`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = ${bang} ORDER BY ordinal_position`))
+    .map((r) => ({ ten: String(r.column_name), kieu: String(r.data_type), rong: r.is_nullable === 'YES', mac: r.column_default == null ? null : String(r.column_default) }))
+    .filter((c) => !['id', 'created_at', 'updated_at'].includes(c.ten));
   /** INSERT … SELECT mọi cột, đè một số cột bằng biểu thức SQL; trả id mới. */
   const chep = async (bang: string, id: number, de: Record<string, string>): Promise<number> => {
     const cs = await cot(bang);
     const ten = cs.map((c) => `"${c.ten}"`).join(', ');
-    const gt = cs.map((c) => (c.ten in de ? `${de[c.ten]}` : `"${c.ten}"`)).join(', ');
+    // để trống (NULL) cột KHÔNG nhận NULL → lấy giá trị mặc định của chính cột (vd nguon_video)
+    const gt = cs.map((c) => (c.ten in de ? (de[c.ten] === 'NULL' && !c.rong ? (c.mac ?? `''`) : `${de[c.ten]}`) : `"${c.ten}"`)).join(', ');
     return Number((await q(sql.raw(`INSERT INTO ${bang} (${ten}) SELECT ${gt} FROM ${bang} WHERE id = ${Number(id)} RETURNING id`)))[0]!.id);
   };
   const lit = (x: unknown) => `'${JSON.stringify(x).replace(/'/g, "''")}'::jsonb`;

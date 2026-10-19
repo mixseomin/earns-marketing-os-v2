@@ -1,0 +1,13 @@
+{
+ "ghi_chu": "Lô bản B 'cảnh phim thật' (cách A + chữ QC spy cách B), 19–20/10/2026, 0đ. Nguồn = video QC của app gốc trong spy.on.tc (qc_meta.video_hd, 720p phóng lên 1080x1920). Cắt bằng cat-canh.py; chữ QC = creative-1910c.json.",
+ "phim": [
+  {"content_id": 150301, "tap": 139, "library_id": "3387240581447930", "tu": 46.2, "den": 95.5, "creative": 51940},
+  {"content_id": 94344, "tap": 136, "library_id": "1087219410831092", "tu": 26, "den": 82, "creative": 51941},
+  {"content_id": 101767, "tap": 138, "library_id": "2547361329109929", "tu": 0, "den": 48, "creative": 51942},
+  {"content_id": 156393, "tap": 140, "library_id": "2082634935699448", "tu": 120, "den": 179, "creative": 51943},
+  {"content_id": 81104, "tap": 141, "library_id": "2352373032256102", "tu": 82, "den": 125, "creative": 51944},
+  {"content_id": 103669, "tap": 145, "library_id": "1045287928413904", "tu": 0, "den": 50, "creative": 51945},
+  {"content_id": 90680, "tap": 146, "library_id": "1078268151678763", "tu": 0, "den": 67, "creative": 51946}
+ ],
+ "thieu_video": {"70634": "Votos destrozados — 144 QC, link video đều hết hạn", "156572": "Reborn To Win — 4 QC, link hết hạn", "156881": "They Called Her Fool — 5 QC, link hết hạn"}
+}

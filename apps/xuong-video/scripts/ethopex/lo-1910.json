@@ -1,0 +1,435 @@
+{
+ "ghi_chu": "Lô Ethopex 19/10/2026 — 10 phim × 2 bản (hook A gốc + hook B dựng lại 0đ). Phim chọn từ spy.on.tc view ethopex_uu_tien (app gốc đang chạy nhiều QC nhất). Khuôn = video thắng #1 Ethopex: kể ngôi thứ nhất + phụ đề + thẻ cuối WATCH NOW FOR FREE, hook nhanh. Ảnh tham chiếu nhân vật = poster Ethopex.",
+ "khuon": {
+  "ti_le": "9:16",
+  "do_phan_giai": "1080p",
+  "so_canh": 6,
+  "giong_mac_dinh": "Aria",
+  "the_cuoi": {
+   "en": "WATCH NOW FOR FREE",
+   "es": "MÍRALA GRATIS AHORA"
+  }
+ },
+ "phim": [
+  {
+   "content_id": 94344,
+   "ten": "Number One, Nobody",
+   "lang": "en",
+   "nguon": "reelshort",
+   "giong": "Brian",
+   "poster": "1/3ykky6memralhbhcdv.webp",
+   "nhan_vat": "MALIK = young Black basketball player from the poster; MOM = his tired, loving single mother",
+   "canh": [
+    {
+     "loi": "They called me a nobody. Then the NBA picked me number one.",
+     "anh": "Night, cracked outdoor basketball court under one flickering streetlight. MALIK in a worn hoodie sinks a jump shot, sweat on his face, determined.",
+     "dong": "MALIK shoots, the ball swishes through a chain net, slow push-in on his face."
+    },
+    {
+     "loi": "My mom worked three jobs so I could eat.",
+     "anh": "Tiny kitchen at dawn. MOM in a diner uniform hands MALIK a paper lunch bag, exhausted but smiling.",
+     "dong": "MOM presses the bag into his hands and kisses his forehead; warm handheld camera."
+    },
+    {
+     "loi": "Then I vanished for a month of sealed testing...",
+     "anh": "Sterile sports science lab, MALIK running on a treadmill wearing sensors, phone locked in a clear box on a table.",
+     "dong": "Treadmill speeds up, MALIK glances at the locked phone, camera tracks sideways."
+    },
+    {
+     "loi": "...and my whole hometown decided I was dead or in jail.",
+     "anh": "Neighborhood barbershop: people stare at a TV news ticker, whispering, one man shaking his head.",
+     "dong": "Neighbors whisper and point at the TV, slow pan across judging faces."
+    },
+    {
+     "loi": "They mocked my mother to her face.",
+     "anh": "Outside a church, gossiping neighbors laugh at MOM, who holds her purse tight with tears in her eyes.",
+     "dong": "Neighbors laugh, MOM turns away fighting tears, slow push-in."
+    },
+    {
+     "loi": "Tonight, they'll watch me walk on that stage.",
+     "anh": "NBA draft stage with bright lights, MALIK in a sharp suit holding a jersey with number 1, crowd cheering.",
+     "dong": "MALIK lifts the number 1 jersey, confetti falls, camera rises."
+    }
+   ],
+   "url": "https://www.reelshort.com/episodes/episode-1-number-one-nobody-6ab392059db6f3a57a070ae9-4rbgaox3h4"
+  },
+  {
+   "content_id": 70634,
+   "ten": "Votos destrozados",
+   "lang": "es",
+   "nguon": "reelshort",
+   "giong": "Aria",
+   "poster": "1/9kegyyk5tnvzrz1l22.webp",
+   "nhan_vat": "VANESSA = elegant dark-haired heiress from the poster; COLE = her husband in a suit; ANNA = her younger sister",
+   "canh": [
+    {
+     "loi": "Mi esposo ayudó al asesino de mi hermana a escapar.",
+     "anh": "Rainy night outside a police station, COLE shakes hands with a hooded man in the shadows while VANESSA watches from a car window, horrified.",
+     "dong": "Rain streaks the car window, VANESSA's eyes widen as COLE shakes the man's hand."
+    },
+    {
+     "loi": "Anna tenía solo veinte años.",
+     "anh": "Funeral under grey sky, VANESSA in black veil places a white rose on a coffin with a framed photo of ANNA smiling.",
+     "dong": "VANESSA lays the white rose on the coffin, slow push-in on her trembling hand."
+    },
+    {
+     "loi": "Mi mejor amigo también le mintió a la policía.",
+     "anh": "Interrogation room, a handsome man in a leather jacket (GABE) smirks while a detective takes notes.",
+     "dong": "GABE leans back and smirks; the detective closes the notebook."
+    },
+    {
+     "loi": "Esa noche, la princesa mimada murió.",
+     "anh": "VANESSA alone in a dark luxury bathroom, mascara running, staring at her reflection in a cracked mirror.",
+     "dong": "VANESSA wipes her tears and her expression hardens in the mirror."
+    },
+    {
+     "loi": "Ahora sonrío en sus fiestas...",
+     "anh": "Glamorous gala, VANESSA in a red gown raises a champagne glass beside COLE, smiling coldly.",
+     "dong": "VANESSA clinks glasses with COLE, her smile does not reach her eyes."
+    },
+    {
+     "loi": "...mientras les quito todo, uno por uno.",
+     "anh": "VANESSA at a desk at night slides three photos (COLE, GABE, hooded man) across the table, a red X on the first.",
+     "dong": "VANESSA draws a red X over COLE's photo and looks up at camera."
+    }
+   ],
+   "url": "https://www.reelshort.com/es/episodes/episode-1-votos-destrozados-6a82801937dbbee9c500f981-4wz9x38ee1"
+  },
+  {
+   "content_id": 101767,
+   "ten": "My 100x Cashback Life",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Callum",
+   "poster": "1/vriwohea79dhb5zp58.webp",
+   "nhan_vat": "DARIUS = the rugged young man from the poster; his ex-GIRLFRIEND = glamorous woman from the poster",
+   "canh": [
+    {
+     "loi": "I did three years in prison for my girlfriend.",
+     "anh": "Prison gate opening at dawn, DARIUS walks out in a cheap jacket carrying a plastic bag, squinting at the sun.",
+     "dong": "The steel gate slides open, DARIUS steps out and takes a deep breath."
+    },
+    {
+     "loi": "The day I got out, she left me to die.",
+     "anh": "Dark alley, DARIUS on the ground beaten, his GIRLFRIEND in a fur coat walks away with a rich man.",
+     "dong": "GIRLFRIEND glances back coldly and keeps walking; DARIUS reaches out."
+    },
+    {
+     "loi": "Then a voice in my head said: every dollar I spend comes back a hundred times.",
+     "anh": "DARIUS staring at a glowing holographic system panel that reads 100x CASHBACK floating in front of him.",
+     "dong": "The holographic panel flickers to life, DARIUS's eyes widen."
+    },
+    {
+     "loi": "So I spent my last ten bucks.",
+     "anh": "Corner store counter, DARIUS hands over a crumpled ten dollar bill; his phone screen shows a bank alert.",
+     "dong": "He pays, his phone buzzes, he looks down in disbelief."
+    },
+    {
+     "loi": "A thousand came back. Then a million.",
+     "anh": "DARIUS in a luxury car showroom, salespeople bowing, stacks of cash on the hood of a supercar.",
+     "dong": "DARIUS tosses car keys in the air and catches them, camera orbits the car."
+    },
+    {
+     "loi": "Now the girl who left me is begging at my door.",
+     "anh": "Mansion doorway, the GIRLFRIEND in a wet dress pleading, DARIUS in a tailored suit looking down at her.",
+     "dong": "GIRLFRIEND grabs his arm, DARIUS calmly removes her hand."
+    }
+   ],
+   "url": "https://netshort.com/episode/my-100x-cashback-life-2094629504457564161"
+  },
+  {
+   "content_id": 150301,
+   "ten": "Athena's Chosen Queen",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Aria",
+   "poster": "1/1xegiguap6yvue9ezl.webp",
+   "nhan_vat": "CALLISTA = the warrior princess from the poster",
+   "canh": [
+    {
+     "loi": "They threw me away the day I was born.",
+     "anh": "Stormy night, a crying newborn in a basket left on temple steps, golden owl symbol carved above.",
+     "dong": "Lightning flashes, a hooded figure sets the basket down and runs."
+    },
+    {
+     "loi": "Twenty years later, I came back for my crown.",
+     "anh": "CALLISTA in battle armor walks through palace gates, guards stepping back.",
+     "dong": "CALLISTA strides forward, cape blowing, guards lower their spears."
+    },
+    {
+     "loi": "The fake princess laughed at me.",
+     "anh": "Throne room, a spoiled princess in gold silk laughs from the throne, nobles smirking.",
+     "dong": "The fake princess points and laughs, nobles join in."
+    },
+    {
+     "loi": "Until Athena's spear answered only me.",
+     "anh": "Ancient spear embedded in marble glowing blue as CALLISTA grips it.",
+     "dong": "CALLISTA pulls the spear free, blue light bursts out."
+    },
+    {
+     "loi": "Every god in the hall knelt.",
+     "anh": "Nobles and guards kneeling in a glowing throne room, the fake princess frozen in shock.",
+     "dong": "Everyone drops to one knee in a wave, camera rises."
+    },
+    {
+     "loi": "Now the throne is mine.",
+     "anh": "CALLISTA seated on the golden throne, spear in hand, looking straight at camera.",
+     "dong": "CALLISTA slams the spear down, light ripples across the floor."
+    }
+   ],
+   "url": "https://netshort.com/episode/athenas-chosen-queen-2106331471572516866"
+  },
+  {
+   "content_id": 156393,
+   "ten": "The Rejected Luna Claimed by the Alpha King",
+   "lang": "en",
+   "nguon": "dramabox",
+   "giong": "Aria",
+   "poster": "1/v43c99w1868v1ob71c.webp",
+   "nhan_vat": "VERA = young brunette college student; WOLF = tall powerful tycoon with golden eyes",
+   "canh": [
+    {
+     "loi": "My father gambled away my tuition.",
+     "anh": "Small apartment, VERA holding a torn tuition letter while her drunk father counts poker chips.",
+     "dong": "VERA crumples the letter; her father laughs drunkenly."
+    },
+    {
+     "loi": "So I took a job at the wrong bar.",
+     "anh": "Dark upscale nightclub, VERA in a waitress uniform carrying a tray past dangerous men in suits.",
+     "dong": "VERA walks between tables, men turn to watch her."
+    },
+    {
+     "loi": "One night with a stranger...",
+     "anh": "VERA's eyes lock with WOLF across a smoky VIP room, his eyes glowing faint gold.",
+     "dong": "WOLF slowly stands and walks toward her through the smoke."
+    },
+    {
+     "loi": "...and now I'm pregnant with twins.",
+     "anh": "Bathroom, VERA staring at a positive pregnancy test, hand over her mouth.",
+     "dong": "VERA's hand trembles as she reads the test."
+    },
+    {
+     "loi": "He's New York's most dangerous man. And a cursed Wolf King.",
+     "anh": "Penthouse at night, WOLF by the window, a shadow of a giant wolf cast on the wall behind him.",
+     "dong": "WOLF turns, his eyes flare gold, the wolf shadow moves."
+    },
+    {
+     "loi": "He hasn't had an heir in ten years. Until me.",
+     "anh": "WOLF kneels and places his hand on VERA's belly, golden light glowing.",
+     "dong": "Golden light spreads under his palm, VERA gasps."
+    }
+   ],
+   "url": "https://www.dramabox.com/video/42000029954_The-Rejected-Luna-Claimed-by-the-Alpha-King/701742946_Episode-1"
+  },
+  {
+   "content_id": 81104,
+   "ten": "Phantom Returns",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Brian",
+   "poster": "1/alt5xwyxumvxkhutuh.webp",
+   "nhan_vat": "ETHAN = the racer from the poster; CLAIRE = his wife, a businesswoman",
+   "canh": [
+    {
+     "loi": "For five years, I hid that I was the legendary racer Phantom.",
+     "anh": "Garage at night, ETHAN in mechanic overalls wipes oil off a black helmet with a silver P logo, hidden under a tarp.",
+     "dong": "ETHAN lifts the tarp revealing a supercar, then covers it again."
+    },
+    {
+     "loi": "All to save my wife's car company.",
+     "anh": "Boardroom, CLAIRE presenting to investors, ETHAN silently fixing a projector in the back.",
+     "dong": "CLAIRE presents confidently; ETHAN watches proudly from the back."
+    },
+    {
+     "loi": "She called me useless in front of everyone.",
+     "anh": "Company party, CLAIRE throws a drink in ETHAN's face while a rich rival laughs beside her.",
+     "dong": "The drink splashes, guests gasp, ETHAN stays calm."
+    },
+    {
+     "loi": "Then her rival challenged her to a race she couldn't win.",
+     "anh": "Night race track, a smug rival leaning on a red supercar, CLAIRE pale and desperate.",
+     "dong": "The rival tosses his keys and smirks at CLAIRE."
+    },
+    {
+     "loi": "So I put the helmet back on.",
+     "anh": "ETHAN pulling on the black Phantom helmet, visor reflecting stadium lights.",
+     "dong": "The visor snaps down, engine roars, crowd lights flare."
+    },
+    {
+     "loi": "When I crossed the line, the whole world screamed: Phantom is back.",
+     "anh": "Black supercar crossing the finish line in sparks, crowd going wild, CLAIRE frozen in shock.",
+     "dong": "The car blasts past the line, CLAIRE's jaw drops."
+    }
+   ],
+   "url": "https://netshort.com/base/n/LVWjdfB"
+  },
+  {
+   "content_id": 100096,
+   "ten": "Taming My Five Beast Stepsons",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Brian",
+   "poster": "1/2lb983267z8fpv44jv.webp",
+   "nhan_vat": "VALERIUS = elegant pale vampire lord (from the poster); five handsome beastkin young men with animal ears",
+   "canh": [
+    {
+     "loi": "I woke up inside a novel as the villain.",
+     "anh": "Gothic castle bedroom, a man in office clothes wakes up in a velvet bed, reflected in a mirror as a pale vampire lord.",
+     "dong": "He sits up, sees the vampire reflection, and touches his fangs in shock."
+    },
+    {
+     "loi": "A vampire lord fated to be killed by his five adopted sons.",
+     "anh": "Throne hall, five beastkin young men (wolf, lion, fox, tiger, snake) glare at VALERIUS with hatred.",
+     "dong": "The five brothers step forward, eyes glowing."
+    },
+    {
+     "loi": "In the book, I tortured them.",
+     "anh": "Flashback in sepia: chains and a cold dungeon, the young beastkin boys crying.",
+     "dong": "Chains rattle, a boy looks up in fear."
+    },
+    {
+     "loi": "So this time, I cooked them dinner.",
+     "anh": "Castle kitchen, VALERIUS in an apron serving a feast, the five brothers staring suspiciously.",
+     "dong": "VALERIUS sets down a steaming plate and smiles awkwardly."
+    },
+    {
+     "loi": "They thought it was poison.",
+     "anh": "The wolf brother sniffs the food warily while the fox brother hides a dagger under the table.",
+     "dong": "The wolf brother sniffs, the fox brother grips the dagger."
+    },
+    {
+     "loi": "Now they'd kill anyone who touches me.",
+     "anh": "Castle courtyard, the five brothers surround VALERIUS protectively, facing armed knights.",
+     "dong": "The brothers transform halfway, growling at the knights."
+    }
+   ],
+   "url": "https://netshort.com/episode/taming-my-five-beast-stepsons-2103739617441558529"
+  },
+  {
+   "content_id": 156881,
+   "ten": "They Called Her Fool, She Saved Their Fortune",
+   "lang": "en",
+   "nguon": "dramabox",
+   "giong": "Aria",
+   "poster": "1/mvlhkmkp6bxn3ij4w3.webp",
+   "nhan_vat": "IVY = youngest daughter, sweet-looking young woman; the STONE family in luxury clothes",
+   "canh": [
+    {
+     "loi": "My whole family is brilliant. They call me the fool.",
+     "anh": "Luxury dining room, the Stone family in designer clothes laughing while IVY eats cake with a childish smile.",
+     "dong": "The family laughs at IVY; she licks frosting off her finger innocently."
+    },
+    {
+     "loi": "What they don't know: I was reborn.",
+     "anh": "IVY alone at night, her smile gone, eyes sharp, a glowing memory of an old master's study behind her.",
+     "dong": "IVY's childish smile drops into a cold, knowing stare."
+    },
+    {
+     "loi": "With the memories of a legendary master.",
+     "anh": "IVY's hands moving quickly over an antique abacus and ancient scrolls in candlelight.",
+     "dong": "Her fingers fly over the abacus, candles flicker."
+    },
+    {
+     "loi": "Then a scammer came for our family fortune.",
+     "anh": "Office, a slick businessman pushes a contract to IVY's father, everyone nodding.",
+     "dong": "The father picks up the pen to sign."
+    },
+    {
+     "loi": "Everyone was about to sign.",
+     "anh": "Close-up of the pen touching the paper, IVY's hand suddenly slamming on the contract.",
+     "dong": "IVY's hand slaps down on the contract, the pen stops."
+    },
+    {
+     "loi": "The fool just saved them all.",
+     "anh": "The scammer led away by police, the family staring at IVY in total shock.",
+     "dong": "The scammer is dragged out, IVY smiles sweetly at camera."
+    }
+   ],
+   "url": "https://www.dramabox.com/video/42000029224_They-Called-Her-Fool-She-Saved-Their-Fortune-DUBBED/701692255_Episode-1"
+  },
+  {
+   "content_id": 156572,
+   "ten": "Reborn To Win What They Stole",
+   "lang": "en",
+   "nguon": "dramabox",
+   "giong": "Aria",
+   "poster": "1/6pep6kxgrwb300setm.webp",
+   "nhan_vat": "EILEEN = elven princess with silver hair; KAEL = dark broken-winged black dragon prince in human form",
+   "canh": [
+    {
+     "loi": "In my last life, they betrayed me and burned my kingdom.",
+     "anh": "Elven palace in flames, EILEEN in a torn white gown reaching out as a red dragon flies overhead.",
+     "dong": "Flames roar, the red dragon passes, EILEEN screams."
+    },
+    {
+     "loi": "I woke up the morning I choose my dragon.",
+     "anh": "Grand ceremony hall, EILEEN in white gown, dragons in human form lined up, a proud red-haired prince in front.",
+     "dong": "EILEEN opens her eyes, looks at the red prince coldly."
+    },
+    {
+     "loi": "Everyone expected the red dragon.",
+     "anh": "Nobles applaud the red-haired prince, who smirks confidently.",
+     "dong": "The red prince steps forward expecting to be chosen."
+    },
+    {
+     "loi": "I chose the broken one they call a useless beast.",
+     "anh": "EILEEN walks past him to KAEL, a scarred dark-haired man with a torn black wing, kneeling in chains.",
+     "dong": "EILEEN offers her hand to KAEL; the hall gasps."
+    },
+    {
+     "loi": "On our wedding night, my blood healed his wings.",
+     "anh": "Moonlit chamber, black wings unfurling whole behind KAEL as silver light flows from EILEEN's hands.",
+     "dong": "KAEL's black wings spread wide, silver light swirls."
+    },
+    {
+     "loi": "Now the whole kingdom bows to us.",
+     "anh": "Throne room, EILEEN and KAEL on twin thrones, the red prince kneeling.",
+     "dong": "Nobles kneel, KAEL's wings fold around EILEEN."
+    }
+   ],
+   "url": "https://www.dramabox.com/video/42000029141_Reborn-To-Win-What-They-Stole/701727633_Episode-1"
+  },
+  {
+   "content_id": 103669,
+   "ten": "My Cheating Wife's Downfall",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Brian",
+   "poster": "1/4yfbcwrm7e7l12b7n3.webp",
+   "nhan_vat": "KIERAN = calm handsome man from the poster; LAURA = his glamorous wife; her BOY TOY = flashy young man",
+   "canh": [
+    {
+     "loi": "For five years I hid that I'm a billionaire.",
+     "anh": "Modest apartment, KIERAN in a cheap sweater cooking dinner, a hidden black credit card in a drawer.",
+     "dong": "KIERAN closes the drawer over the black card and keeps cooking."
+    },
+    {
+     "loi": "Just to support my wife's dream.",
+     "anh": "LAURA at a startup office signing papers, KIERAN bringing her coffee.",
+     "dong": "LAURA takes the coffee without looking at him."
+    },
+    {
+     "loi": "Then she let her boy toy humiliate me.",
+     "anh": "Fancy restaurant, the BOY TOY pours wine on KIERAN's head while LAURA laughs.",
+     "dong": "Wine pours down, LAURA laughs, diners stare."
+    },
+    {
+     "loi": "She threw divorce papers in my face.",
+     "anh": "LAURA tossing divorce papers at KIERAN in a lobby.",
+     "dong": "Papers flutter around KIERAN; he catches one calmly."
+    },
+    {
+     "loi": "So I made one phone call.",
+     "anh": "KIERAN on the phone in the rain, a fleet of black luxury cars arriving behind him.",
+     "dong": "Black cars pull up one by one, bodyguards step out."
+    },
+    {
+     "loi": "Now her company belongs to me.",
+     "anh": "Boardroom, KIERAN in a sharp suit at the head of the table, LAURA and the BOY TOY pale.",
+     "dong": "KIERAN slides a contract across the table, LAURA trembles."
+    }
+   ],
+   "url": "https://netshort.com/episode/my-cheating-wifes-downfall-2084222701332320258"
+  }
+ ]
+}

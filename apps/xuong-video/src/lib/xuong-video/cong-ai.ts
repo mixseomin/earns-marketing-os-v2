@@ -227,7 +227,7 @@ export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; mo
 }
 
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
-export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
+export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number ; /** độ phân giải của phim (kinh_thanh.do_phan_giai) — Kie Veo nhận 1080p; cổng khác giữ 720p */ doPhanGiai?: '720p' | '1080p' }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
   const k = khoa(cong);
   if (!k || !CONG_VIDEO.includes(cong)) return { ok: false, loi: `cổng ${cong} chưa có đường video` };
   if (cong === 'kie') return guiKie(k, model, o);
@@ -267,10 +267,10 @@ export async function docVideoCong(cong: string, taskId: string, taoLuc: string)
 type KqGui = { ok: true; taskId: string } | { ok: false; loi: string; status?: number };
 type KqDoc = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean };
 const quaHan = (taoLuc: string) => Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000;
-async function guiKie(k: string, model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number }): Promise<KqGui> {
+async function guiKie(k: string, model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
   try {
     const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-      body: JSON.stringify({ model: 'veo-3-1', input: { prompt: o.prompt, model, image_urls: o.anhCuoi ? [o.anhDau, o.anhCuoi] : [o.anhDau], generation_type: 'FIRST_AND_LAST_FRAMES_2_VIDEO'   /* 19/10/2026: trước chỉ gửi ảnh đầu — keyframe KẾT có mà không bao giờ tới Veo, #1 đoán kết cục */, aspect_ratio: '9:16', resolution: '720p', duration: o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8 } }) });
+      body: JSON.stringify({ model: 'veo-3-1', input: { prompt: o.prompt, model, image_urls: o.anhCuoi ? [o.anhDau, o.anhCuoi] : [o.anhDau], generation_type: 'FIRST_AND_LAST_FRAMES_2_VIDEO'   /* 19/10/2026: trước chỉ gửi ảnh đầu — keyframe KẾT có mà không bao giờ tới Veo, #1 đoán kết cục */, aspect_ratio: '9:16', resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p'   /* 19/10/2026: creative QC luôn HD — phim khai 1080p thì clip 1080p (trước gắn cứng 720p) */, duration: o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8 } }) });
     const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
     if (j.code !== 200 || !j.data?.taskId) return { ok: false, status: j.code === 402 ? 402 : r.status, loi: `Kie.ai ${j.code ?? r.status}: ${j.msg || 'không nhận task'}`.slice(0, 300) };
     return { ok: true, taskId: j.data.taskId };

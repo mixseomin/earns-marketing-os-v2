@@ -47,7 +47,7 @@ for (const p of lo.phim) {
   for (const [i, c] of shots.entries()) {
     const s = SHOT_QC_PHIM[i + 1]!;
     await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, prompt_anh, prompt_video, loi_thoai, thoai, chu_man, nhan_vat, phan_doan, ky_thuat, dan_dung, tham_khao, thoi_luong_s, trang_thai)
-      VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1}${i === 0 ? ' · hook' : i === shots.length - 1 ? ' · thẻ cuối' : ''}`}, ${c.anh}, ${c.anh}, ${c.dong}, ${c.loi},
+      VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1}${i === 0 ? ' · hook' : i === shots.length - 1 ? ' · end card' : ''}`}, ${c.anh}, ${c.anh}, ${c.dong}, ${c.loi},
         ${j([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${c.chu}, ${anchors}::jsonb, ${s.phan_doan},
         ${j({ co_canh: s.co_canh, am_thanh: [], chuyen_dong: s.chuyen_dong })}::jsonb,
         ${j({ mo: c.anh.slice(0, 220), ket: c.dong, dien: c.dong, muc_dich: s.muc_dich })}::jsonb,

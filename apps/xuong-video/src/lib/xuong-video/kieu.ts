@@ -300,6 +300,10 @@ export function boThoaiTrongPrompt(p: string): string {
 const VIET_RIENG = /[ăâđêôơưĂÂĐÊÔƠƯảãạẻẽẹỉĩịỏõọủũụỷỹỵỳẢÃẠẺẼẸỈĨỊỎÕỌỦŨỤỶỸỴỲằắẳẵặầấẩẫậềếểễệồốổỗộờớởỡợừứửữựẰẮẲẴẶẦẤẨẪẬỀẾỂỄỆỒỐỔỖỘỜỚỞỠỢỪỨỬỮỰ]/;
 const TIENG_NGAN_DAU = /(^|[^\p{L}])(?=\p{L}{1,3}(?![\p{L}]))\p{L}*[àáèéìíòóùúýÀÁÈÉÌÍÒÓÙÚÝ]/u;
 export const coTiengViet = (s: string): boolean => VIET_RIENG.test(s) || TIENG_NGAN_DAU.test(s);
+/** Ngôn ngữ dùng dấu sắc/huyền trên từ ngắn (es: más, sí, tú, él · pt · fr · it) → luật (b) bắt nhầm (19/10/2026 phim ES "Votos destrozados":
+ *  "Toca Más información" bị coi là tiếng Việt, cổng chặn cả giọng). Với các ngôn ngữ này chỉ xét chữ RIÊNG của tiếng Việt. */
+const DAU_LATIN = new Set(['es', 'pt', 'fr', 'it', 'ca']);
+export const coTiengVietTheo = (ngonNgu: string | undefined, s: string): boolean => (DAU_LATIN.has(String(ngonNgu ?? '').slice(0, 2).toLowerCase()) ? VIET_RIENG.test(s) : coTiengViet(s));
 /** Mọi chữ của một shot (nhãn, góc máy, hành động, âm thanh, phân đoạn, trang phục, prompt, chữ màn, thoại kể cả diễn xuất + người nói). */
 type ShotChu = Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'am_thanh' | 'phan_doan' | 'trang_phuc' | 'prompt_anh' | 'prompt_video' | 'dan_dung'>>;
 /** Chữ của shot ĐI VÀO MODEL hoặc TỚI KHÁN GIẢ: chữ màn, lời + diễn xuất, prompt ảnh/video, trang phục, mô tả âm thanh; hành động chỉ khi
@@ -336,9 +340,9 @@ export const loaiCongCuVe = (pc?: string, coTay = false): string => (coTay ? '' 
 export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
   if (!ngonNgu || ngonNgu === 'vi') return null;
   const cho: string[] = [];
-  if (o.phongCach && coTiengViet(o.phongCach)) cho.push('phong cách phim');
-  if (o.shot && coTiengViet(chuShot({ thu_tu: 0, chu_man: '', thoai: [], loi_thoai: '', ...o.shot }))) cho.push(`shot${o.shot.thu_tu ? ` #${o.shot.thu_tu}` : ''}`);
-  for (const a of o.anchor ?? []) if (coTiengViet(`${a.ten} ${a.mo_ta}`)) cho.push(`anchor "${a.ten}"`);
+  if (o.phongCach && coTiengVietTheo(ngonNgu, o.phongCach)) cho.push('phong cách phim');
+  if (o.shot && coTiengVietTheo(ngonNgu, chuShot({ thu_tu: 0, chu_man: '', thoai: [], loi_thoai: '', ...o.shot }))) cho.push(`shot${o.shot.thu_tu ? ` #${o.shot.thu_tu}` : ''}`);
+  for (const a of o.anchor ?? []) if (coTiengVietTheo(ngonNgu, `${a.ten} ${a.mo_ta}`)) cho.push(`anchor "${a.ten}"`);
   return cho.length ? `Phim ${tenNgonNgu(ngonNgu)} nhưng chữ đi vào model còn tiếng Việt (${cho.slice(0, 5).join(', ')}${cho.length > 5 ? '…' : ''}) — bấm 🌐 Dịch cả phim trước, không sinh để khỏi mất tiền.` : null;
 }
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {

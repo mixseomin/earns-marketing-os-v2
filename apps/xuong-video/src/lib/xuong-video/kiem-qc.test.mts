@@ -135,6 +135,11 @@ console.log('kiem-qc.test: mẫu ok');
   const { coTiengViet } = await import('./kieu');
   assert.ok(!coTiengViet('Café') && !coTiengViet('résumé') && !coTiengViet('piñata'));
   assert.ok(coTiengViet('Giảm giá hôm nay') && coTiengViet('Đi chơi') && coTiengViet('người'));
+  // 19/10/2026 phim ES: "Más información" không phải tiếng Việt khi phim là tiếng Tây Ban Nha; chữ Việt thật vẫn bị bắt
+  const { coTiengVietTheo, chanChuModel } = await import('./kieu');
+  assert.ok(!coTiengVietTheo('es', 'MÍRALA GRATIS · TOCA MÁS INFORMACIÓN') && !coTiengVietTheo('es', 'Sí, tú lo sabías.'));
+  assert.ok(coTiengVietTheo('es', 'Giảm giá hôm nay') && coTiengVietTheo('en', 'bà'));
+  assert.equal(chanChuModel('es', { shot: { thu_tu: 7, chu_man: 'MÍRALA GRATIS · TOCA MÁS INFORMACIÓN', thoai: [], loi_thoai: 'Mira gratis. Toca Más información.' } }), null);
   console.log('kiem-qc.test: dò tiếng Việt ok');
 }
 { // Màn kết có tên sản phẩm (phim #36 15/10/2026): shot cuối cta không tên → trượt; có tên → đạt; shot cuối không phải cta + có ưu đãi → bản xuất tự gắn end card, không xét.

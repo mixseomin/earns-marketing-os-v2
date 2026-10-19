@@ -80,7 +80,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // KHÔNG GỌI TÊN trong prompt video (19/10/2026 #1): model video không biết tên ai — hai phụ nữ tóc đen chỉ gọi "Vivian" / "Hạ" thì Veo đảo vai, và
   // tên trong prompt bị in lên hình ("Vivian" ở góc khung). Mọi tên nhân vật (đầy đủ + tên gọi tắt) thay bằng DÁNG NHÌN THẤY: giới + bộ đồ của shot.
   const moTaNhin = new Map<string, string>();
-  for (const v of (bc.canh.may_3d?.vi_tri ?? []).filter((x) => bc.nhanVat.some((n) => n.ten === x.ten && n.loai === 'nhan_vat'))) {
+  for (const v of ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((x) => bc.nhanVat.some((n) => n.ten === x.ten && n.loai === 'nhan_vat'))) {   // mayDu: bộ đồ kế thừa từ shot trước (shot chỉ khai chỗ đổi) — đọc may_3d trơn thì mất đồ, ra 'the woman' trơn
     const nv = bc.nhanVat.find((n) => n.ten === v.ten)!; const ao = (bienTheTheoSo(v, nv)[0]?.mo_ta ?? '').split(/[,;]| with | tucked /)[0]!.trim().toLowerCase();
     const gioi = /\bwoman\b/i.test(nv.mo_ta ?? '') ? 'woman' : /\bman\b/i.test(nv.mo_ta ?? '') ? 'man' : 'person';
     moTaNhin.set(v.ten, ao ? `the ${gioi} in the ${ao}` : `the ${gioi}`);
@@ -104,7 +104,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     // Ý đồ khán giả → KHÔNG KHÍ (khan-gia.ts › cauKhongKhi): chỉ không khí / ánh sáng / nhịp, không đổi nét mặt đã khai ở khối bieu_cam.
     khoi('khong_khi', cauKhongKhi(bc.khanGia ?? [])),
-    khoi('thoai', coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''),
+    khoi('thoai', coGiong ? (trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} speak their lines with natural lip movement; the dialogue audio is replaced by a separate voice recording in the edit.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.') : ''   /* 19/10/2026: "audio must contain NO spoken words" + mấp máy môi nói → Veo báo 'unable to generate audio' (4 shot tập 122, hỏng lặp lại); bản xuất đã bỏ tiếng clip khi có giọng riêng */),
   ];
   return ds.map((k) => ({ ...k, chu: thayTen(k.chu) }));
 }

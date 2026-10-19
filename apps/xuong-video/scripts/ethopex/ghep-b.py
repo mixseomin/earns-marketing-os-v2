@@ -1,63 +1,95 @@
 #!/usr/bin/env python3
-"""BẢN B creative Ethopex = mẫu thắng số 3 "NHÂN VẬT ~10s" (0đ, chỉ dựng lại clip studio đã sinh + đã chấm).
-Khuôn: 3 đoạn nhân vật chính (~3,3s/đoạn, cảm xúc → xung đột → cao trào), KHÔNG lời kể / phụ đề; tên phim chữ động
-(font + màu poster, hiện từ giây 0,2) ở dưới; nút đỏ CTA hiện từ giây 6,5 và nhún nhẹ tới hết. Âm = nhạc phim + tiếng clip nhỏ.
-Chữ lấy từ ds.json ĐÃ qua chu-studio.mts (luật chữ studio) — dòng 1 tên phim, dòng 2 CTA của cảnh cuối.
-Dùng: python3 ghep-b.py <ds.json> <thư mục clip đã tải (ghep-xem: <tap>-<tt>.mp4, nhac<tap>.mp3)> <chọn.json> <thư mục ra>
-  chọn.json = {"<tap>": [tt, tt, tt]}"""
-import importlib.util, json, os, subprocess, sys
-from PIL import Image, ImageDraw
+"""BẢN B creative Ethopex = mẫu thắng số 3 "NHÂN VẬT ~10s" — ghép (0đ) từ MỘT clip hero studio (tao-nhan-vat.mts → tu-lam-phim.mts).
+Khuôn theo mẫu thắng (soi 19/10/2026): MỘT cảnh liền, nhân vật nhìn thẳng ống kính; LOGO tên phim kiểu poster (chữ vàng
+chuyển sắc + viền tối + quầng sáng, dòng "EXCLUSIVE" nhỏ bên dưới) hiện từ giây 1; nút đỏ viền vàng có bóng hiện từ giây 2,5 và
+nhún nhẹ tới hết. ÂM = CHỈ NHẠC (anh 19/10/2026: tiếng gốc của clip bị cắt → "voice cụt cụt").
+Bỏ hẳn bản cũ (3 đoạn cắt ghép + chữ trên dải đen — anh: "nhìn cứ rác rác").
+Chữ (tên phim, CTA) = chữ màn của cảnh hero trong studio (đã khai để người xem studio chấm; qua luật chữ studio).
+Dòng HOOK (chữ trắng viền đen, trên đầu khung, từ giây 0,3) — người xem studio đòi câu gợi chuyện (19/10/2026: 5/10 khi chỉ có logo).
+Mọi chữ qua chu-studio.mts (luật chữ studio: không dấu chấm cuối câu…) trước khi vẽ.
+Dùng: python3 ghep-b.py <clip.mp4> <nhac.mp3|-> <hook> <ten phim> <CTA> <font.json|-> <ra.mp4> [giây=10]"""
+import json, os, re, subprocess, sys, tempfile
+from PIL import Image, ImageDraw, ImageFilter
+import importlib.util
 
 spec = importlib.util.spec_from_file_location("gx", os.path.join(os.path.dirname(os.path.abspath(__file__)), "ghep-xem.py"))
 gx = importlib.util.module_from_spec(spec); spec.loader.exec_module(gx)
-W, H, DOAN, CTA_TU = gx.W, gx.H, 3.3, 6.5
+W, H = gx.W, gx.H
+VANG_SANG, VANG_TOI = (255, 236, 170), (196, 132, 34)
 
-def lop_ten(ten, cfg, ra, nhan):
-    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im, "RGBA")
-    ft, mt = gx.font_poster(cfg, 92); dong = gx.ngat_can(ten, 18); y = 1180 - 50 * (len(dong) - 1)
-    d.rectangle([0, y - 110, W, y + 112 * len(dong) + 20], fill=(0, 0, 0, 110))
-    gx.ve_dong(d, y - 88, nhan, gx.ImageFont.truetype(gx.FA, 46), True, 5)
-    for x in dong: gx.ve_dong(d, y, x, ft, True, 8, mau=mt); y += 112
+def chu_vang(kt, chu, f):
+    """mặt nạ chữ → tô vàng chuyển sắc dọc"""
+    m = Image.new("L", kt, 0); ImageDraw.Draw(m).text((10, 10), chu, font=f, fill=255)
+    g = Image.new("RGBA", kt); dg = ImageDraw.Draw(g)
+    for y in range(kt[1]):
+        t = y / max(1, kt[1] - 1); dg.line([(0, y), (kt[0], y)], fill=tuple(int(VANG_SANG[i] + (VANG_TOI[i] - VANG_SANG[i]) * t) for i in range(3)) + (255,))
+    g.putalpha(m); return g, m
+
+def mau_phang(kt, rgb, alpha):
+    return Image.merge("RGBA", (*[Image.new("L", kt, v) for v in rgb], alpha))
+
+def lop_logo(ten, nhan, cfg, ra):
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); f, _ = gx.font_poster(cfg, 104)
+    dong = gx.ngat_can(ten, 16); y = 1130 - 60 * (len(dong) - 1)
+    for x in dong:
+        bb = f.getbbox(x); kt = (int(bb[2]) + 20, int(bb[3]) + 30); x0 = int((W - kt[0]) / 2)
+        mat, m = chu_vang(kt, x, f)
+        quang = m.filter(ImageFilter.MaxFilter(15)).filter(ImageFilter.GaussianBlur(14)).point(lambda p: int(p * 0.55))
+        im.alpha_composite(mau_phang(kt, (255, 190, 80), quang), (x0, y))                       # quầng sáng
+        im.alpha_composite(mau_phang(kt, (40, 18, 4), m.filter(ImageFilter.MaxFilter(9))), (x0, y))  # viền tối
+        im.alpha_composite(mat, (x0, y)); y += int(kt[1] * 0.9)
+    fn = gx.ImageFont.truetype(gx.FA, 40); d = ImageDraw.Draw(im); rong = d.textlength(nhan, font=fn)
+    d.text(((W - rong) / 2, y + 6), nhan, font=fn, fill=(255, 244, 214), stroke_width=4, stroke_fill=(40, 18, 4))
     im.save(ra)
 
-def lop_cta(cta, cfg, ra):
-    im = Image.new("RGBA", (W, 260), (0, 0, 0, 0)); d = ImageDraw.Draw(im, "RGBA"); fs = 58
-    while fs > 34 and d.textlength(cta, font=gx.font_poster(cfg, fs, True)[0]) > W - 220: fs -= 2
-    fc = gx.font_poster(cfg, fs, True)[0]; rong = d.textlength(cta, font=fc); y = 60
-    d.rounded_rectangle([(W - rong) / 2 - 50, y, (W + rong) / 2 + 50, y + fs + 54], radius=(fs + 54) // 2, fill=gx.DO + (255,), outline=(255, 255, 255, 255), width=4)
-    d.text(((W - rong) / 2, y + 24), cta, font=fc, fill=gx.TRANG)
+def lop_hook(hook, ra):
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); f = gx.ImageFont.truetype(gx.FA, 66); y = 250
+    cau = [k.strip() for k in re.split(r"\n|(?<=[.!?])\s+", hook) if k.strip()]   # mỗi câu một khối, không để chữ mồ côi
+    for x in [z for k in cau for z in gx.ngat_can(k, 26)]:
+        gx.ve_dong(d, y, x, f, vien=8); y += 84
     im.save(ra)
 
-def dung(ds, nguon, chon, ra_dir):
-    os.makedirs(ra_dir, exist_ok=True)
-    for tap, tts in sorted(chon.items(), key=lambda x: int(x[0])):
-        tap = int(tap); hang = [r for r in ds if r["tap"] == tap]; cuoi = max(hang, key=lambda r: r["tt"])
-        dong = [x for x in cuoi["chu"].split("\n") if x.strip()]; ten = dong[0].strip('"'); cta = dong[1]
-        nhan = "MINISERIE" if "MÍRALA" in cta else "SHORT DRAMA"; cfg = cuoi.get("font")
-        p = lambda f: os.path.join(ra_dir, f)
-        lop_ten(ten, cfg, p(f"b-ten{tap}.png"), nhan); lop_cta(cta, cfg, p(f"b-cta{tap}.png"))
-        vao, loc = [], []
-        for i, tt in enumerate(tts):
-            v = os.path.join(nguon, f"{tap}-{tt}.mp4"); L = gx.dur(v); bd = max(0.0, min(L - DOAN - 0.1, L * 0.35))
-            vao += ["-ss", f"{bd:.2f}", "-t", f"{DOAN}", "-i", v]
-            co_tieng = bool(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", v],
-                                           capture_output=True, text=True).stdout.strip())
-            nguon_a = f"[{i}:a]aresample=44100,aformat=channel_layouts=stereo,volume=0.35" if co_tieng else f"anullsrc=r=44100:cl=stereo,atrim=0:{DOAN}"
-            loc.append(f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[v{i}];{nguon_a}[a{i}]")
-        n = len(tts); T = DOAN * n
-        vao += ["-loop", "1", "-t", f"{T}", "-i", p(f"b-ten{tap}.png"), "-loop", "1", "-t", f"{T}", "-i", p(f"b-cta{tap}.png"),
-                "-i", os.path.join(nguon, f"nhac{tap}.mp3")]
-        it, ic, im_ = n, n + 1, n + 2
-        loc.append("".join(f"[v{i}][a{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=1[cv][ca]")
-        loc.append(f"[{it}:v]format=rgba,fade=in:st=0.2:d=0.6:alpha=1[ten]")
-        loc.append(f"[{ic}:v]format=rgba,fade=in:st={CTA_TU}:d=0.4:alpha=1[cta]")
-        loc.append(f"[cv][ten]overlay=0:'if(lt(t,0.8),40*(0.8-t)/0.6,0)'[v1]")
-        loc.append(f"[v1][cta]overlay=0:'1560+10*sin(2*PI*2*t)'[v]")
-        loc.append(f"[{im_}:a]volume=0.5[m];[ca][m]amix=inputs=2:duration=first:normalize=0[a]")
-        out = p(f"creative-b-{tap}.mp4")
-        gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", ";".join(loc), "-map", "[v]", "-map", "[a]", "-t", f"{T}",
-              "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "19", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
-        print(tap, round(gx.dur(out), 1), flush=True)
+def chu_studio(*cau):
+    """đưa chữ qua đúng luật chữ của studio (chu-studio.mts → doanChuMan)"""
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as o: json.dump([{"chu": c, "phat": 3} for c in cau], o)
+    goc = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+    subprocess.run([os.path.join(goc, "node_modules/.bin/tsx"), os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-studio.mts"), o.name],
+                   check=True, cwd=os.path.join(goc, "apps/xuong-video"), env={**os.environ, "NODE_OPTIONS": "--conditions=react-server"}, capture_output=True)
+    return [r["chu"] for r in json.load(open(o.name))]
+
+def lop_nut(cta, cfg, ra):
+    im = Image.new("RGBA", (W, 300), (0, 0, 0, 0)); d = ImageDraw.Draw(im); fs = 54
+    while fs > 32 and d.textlength(cta, font=gx.font_poster(cfg, fs, True)[0]) > W - 260: fs -= 2
+    fc = gx.font_poster(cfg, fs, True)[0]; rong = d.textlength(cta, font=fc)
+    x0, x1, y0, y1 = int((W - rong) / 2 - 60), int((W + rong) / 2 + 60), 70, 70 + fs + 60; r = (y1 - y0) // 2
+    bong = Image.new("RGBA", im.size, (0, 0, 0, 0)); ImageDraw.Draw(bong).rounded_rectangle([x0 + 6, y0 + 12, x1 + 6, y1 + 12], radius=r, fill=(0, 0, 0, 170))
+    im.alpha_composite(bong.filter(ImageFilter.GaussianBlur(10)))
+    nen = Image.new("RGBA", im.size, (0, 0, 0, 0)); dn = ImageDraw.Draw(nen)
+    for i in range(y1 - y0):   # đỏ chuyển sắc: trên sáng, dưới thẫm
+        t = i / (y1 - y0); dn.line([(x0, y0 + i), (x1, y0 + i)], fill=(int(235 - 90 * t), int(40 - 25 * t), int(45 - 25 * t), 255))
+    m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle([x0, y0, x1, y1], radius=r, fill=255); nen.putalpha(m)
+    im.alpha_composite(nen); d = ImageDraw.Draw(im)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=r, outline=(250, 205, 90, 255), width=6)
+    d.rounded_rectangle([x0 + 18, y0 + 8, x1 - 18, y0 + int((y1 - y0) * 0.42)], radius=r // 2, fill=(255, 255, 255, 40))   # bóng kính
+    d.text(((W - rong) / 2, y0 + 28), cta, font=fc, fill=(255, 255, 255), stroke_width=2, stroke_fill=(90, 0, 0))
+    im.save(ra)
+
+def dung(clip, nhac, hook, ten, cta, cfg, out, T=10.0):
+    tmp = os.path.splitext(out)[0]; nhan = "EXCLUSIVO" if any(k in cta.upper() for k in ("MÁS", "MÍRALA")) else "EXCLUSIVE"
+    hook, ten, cta = chu_studio(hook, ten, cta); ten = ten.replace("\n", " ").strip('"'); cta = cta.replace("\n", " ")
+    lop_logo(ten, nhan, cfg, tmp + "-logo.png"); lop_nut(cta, cfg, tmp + "-nut.png"); lop_hook(hook, tmp + "-hook.png")
+    toc = min(1.0, gx.dur(clip) / T)   # clip 8s giãn đủ ~10s bằng làm chậm nhẹ, không lặp, không cắt
+    vao = ["-i", clip, "-loop", "1", "-t", f"{T}", "-i", tmp + "-logo.png", "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{T}", "-i", tmp + "-hook.png"]
+    vao += ["-i", nhac] if nhac and nhac != "-" else ["-f", "lavfi", "-t", f"{T}", "-i", "anullsrc=r=44100:cl=stereo"]
+    loc = (f"[0:v]setpts=PTS/{toc:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[v0];"
+           f"[1:v]format=rgba,fade=in:st=1.0:d=0.7:alpha=1[logo];[2:v]format=rgba,fade=in:st=2.5:d=0.4:alpha=1[nut];"
+           f"[v0][logo]overlay=0:'if(lt(t,1.7),30*(1.7-t)/0.7,0)'[v1];[v1][nut]overlay=0:'1540+8*sin(2*PI*1.6*t)'[v2];[3:v]format=rgba,fade=in:st=0.3:d=0.4:alpha=1[hk];[v2][hk]overlay=0:0[v];"
+           f"[4:a]aresample=44100,volume=0.9,afade=out:st={T - 0.8}:d=0.8[a]")
+    gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{T}",
+          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
+    print(out, round(gx.dur(out), 1))
 
 if __name__ == "__main__":
-    dung(json.load(open(sys.argv[1])), sys.argv[2], json.load(open(sys.argv[3])), sys.argv[4])
+    a = sys.argv[1:]
+    cfg = json.load(open(a[5])) if a[5] != "-" else None
+    dung(a[0], a[1], a[2], a[3], a[4], cfg, a[6], float(a[7]) if len(a) > 7 else 10.0)

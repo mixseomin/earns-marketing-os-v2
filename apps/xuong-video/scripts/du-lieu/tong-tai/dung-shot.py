@@ -102,11 +102,11 @@ shot('2.1', C2, 5, 'h3', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'thap', 'c
       'vi_tri': [vt(THAN, [80, 1040, 0], 0, den=[230, 760, 0], **AO_THAN, dien=['mc_sai_buoc']), vt(HA, [300, 560, 0], 180, nam=False), vt(VIV, [300, 640, 0], 0, huong_den=-150), LY_RONG(an=True)]},
      [THAN, HA, VIV, VP, 'Ly cà phê'])
 shot('2.2', C2, 4, 'veo', {'vai': 'chu_quan', 'co_canh': 'mcu', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
-     { 'dien': "Anticipation: Vivian's sneer drops. Action: she turns to Thần with a sweet smile and a soft voice. Reaction: a quick sidelong glance back at Hạ.",'bo_cuc': 'Vivian MCU from Thần’s side, her face switching to a sweet smile', 'mo': 'Vivian turns from Hạ to Thần', 'ket': 'Vivian smiling up at Thần', 'huong': 'Vivian looks screen-left up at Thần', 'muc_dich': 'hai mặt của Vivian'},
+     { 'dien': "Anticipation: Vivian's sneer drops. Action: she turns to Thần with a sweet smile and a soft voice. Reaction: a quick sidelong glance back at Hạ.",'bo_cuc': 'Vivian MCU from Thần’s side, her face switching to a sweet smile', 'mo': 'Vivian already turned to Thần, the sneer fading', 'ket': 'Vivian smiling up at Thần', 'huong': 'Vivian looks screen-left up at Thần', 'muc_dich': 'hai mặt của Vivian'},
      'Vivian đổi giọng ngọt ngào với Lục Thần', [(VIV, 'đổi giọng ngọt ngào', 'Thư ký mới làm mất hồ sơ Harrington, thưa tổng giám đốc.')],
      [bc(VIV, 'dac_y', 'vui')],
-     {'dat': [200, 700, 160], 'nhin': [300, 640, 150], 'ong_kinh': 70, 'khung': [VIV], 'vi_tri': [vt(VIV, [300, 640, 0], 0, huong_den=-150), vt(THAN, [230, 760, 0], 0), vt(HA, [300, 560, 0], 180), LY_RONG(an=True)]},
-     [VIV, VP, 'Ly cà phê'])   # cận Vivian: Thần / Hạ ngoài khung — không làm ảnh tham chiếu
+     {'dat': [200, 700, 160], 'nhin': [300, 640, 150], 'ong_kinh': 70, 'khung': [VIV], 'vi_tri': [vt(VIV, [300, 640, 0], -150), vt(THAN, [230, 760, 0], 0), vt(HA, [300, 560, 0], 180), LY_RONG(an=True)]},
+     [VIV, VP, 'Ly cà phê'])   # cận Vivian: Thần / Hạ ngoài khung — không làm ảnh tham chiếu. Vivian quay về Thần TỪ ĐẦU shot (huong −150): khung mở huong 0 nhìn Hạ thì cổng hướng nhìn đòi keyframe nhìn Hạ, trái ý shot (19/10)
 shot('2.3', C2, 5, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'thap', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong', 'tim_dap']},
      { 'dien': 'Anticipation: Thần looks down at Hạ, expressionless. Action: he delivers the line flatly. Reaction: he is already turning away before she can answer.','bo_cuc': 'Low close-up on Lục Thần looking down at Hạ, cold; he turns away at the end', 'mo': 'Thần staring down at Hạ', 'ket': 'Thần already turning away', 'huong': 'Thần looks down screen-right', 'muc_dich': 'phán quyết lạnh lùng'},
      'Lục Thần nhìn Hạ từ trên xuống, ánh mắt lạnh, rồi quay đi', [(THAN, 'dứt khoát, quay đi ngay', 'Cô bị đuổi việc.')],

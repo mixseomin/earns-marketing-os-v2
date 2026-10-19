@@ -1066,7 +1066,7 @@
   "dan_dung": {
    "dien": "Anticipation: Vivian's sneer drops. Action: she turns to Thần with a sweet smile and a soft voice. Reaction: a quick sidelong glance back at Hạ.",
    "bo_cuc": "Vivian MCU from Thần’s side, her face switching to a sweet smile",
-   "mo": "Vivian turns from Hạ to Thần",
+   "mo": "Vivian already turned to Thần, the sneer fading",
    "ket": "Vivian smiling up at Thần",
    "huong": "Vivian looks screen-left up at Thần",
    "muc_dich": "hai mặt của Vivian",
@@ -1099,8 +1099,7 @@
       640,
       0
      ],
-     "huong": 0,
-     "huong_den": -150
+     "huong": -150
     },
     {
      "ten": "Lục Thần",

@@ -29,5 +29,10 @@ import { DIGEN_NHOM, DIGEN_KHONG_TINH } from './goi-the-loai';
 const sot = DIGEN_NHOM.filter((n) => !DIGEN_KHONG_TINH.includes(n) && !GOI_THE_LOAI.some((g) => g.digen?.includes(n)));
 assert.deepStrictEqual(sot, [], `nhóm Digen chưa có gói: ${sot.join(', ')}`);
 for (const g of GOI_THE_LOAI) for (const n of g.digen ?? []) assert.ok((DIGEN_NHOM as readonly string[]).includes(n), `${g.key}: nhóm Digen lạ "${n}"`);
+// bố cục màn xem mặc định theo gói: dọc → phải, ngang → giữa, khai riêng thắng
+import { boCucGoi } from './goi-the-loai';
+assert.strictEqual(boCucGoi(goiTheoKey('phim_doc_tong_tai')!), 'phai');
+assert.strictEqual(boCucGoi(goiTheoKey('series_hoat_hinh')!), 'giua');
+assert.strictEqual(boCucGoi({ ti_le: '9:16', bo_cuc: 'trai' }), 'trai');
 const sanSang = GOI_THE_LOAI.filter((g) => kiemGoi(g).sanSang).map((g) => g.key);
 console.log(`✓ goi-the-loai (${GOI_THE_LOAI.length} gói · sẵn sàng: ${sanSang.join(', ')})`);

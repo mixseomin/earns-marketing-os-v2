@@ -9,12 +9,15 @@ import { hieuUngKG, type MaKhanGia } from './khan-gia';
 import { luatDung } from './luat-dung';
 import type { LoaiPhim, TiLe } from './kieu';
 
+/** Bố cục màn xem trên timeline (timeline.tsx › công tắc ◧ ▣ ◨). */
+export type BoCucXem = 'trai' | 'giua' | 'phai';
 export type GoiTheLoai = {
   key: string; ten: string; ic: string; nhom: 'Phim truyện' | 'Quảng cáo' | 'Mạng xã hội' | 'Kiến thức' | 'Doanh nghiệp';
   mo_ta: string; loai: LoaiPhim; the_loai: TheLoai; /** khung beat định dạng này CẦN (khoá CAU_TRUC) — máy so với khung tách cảnh thật sự dùng */ khung: string; ti_le: TiLe; /** giây mỗi tập / mỗi video [ít nhất, nhiều nhất] */ do_dai_s: [number, number];
   /** cung khán giả mặc định theo thứ tự thời gian của tập */ khan_gia: MaKhanGia[]; /** luật dựng nhấn mạnh cho định dạng này (khoá luat-dung.ts) */ luat: string[];
   tham_chieu: string;
   /** nhóm tương ứng trên chợ skill Digen (DIGEN_NHOM) — để biết đã phủ đủ loại video ngành đang làm */ digen?: string[];
+  /** bố cục màn xem mặc định trên timeline (trái / giữa / phải); trống = theo khung hình (boCucGoi) */ bo_cuc?: BoCucXem;
 };
 
 export const GOI_THE_LOAI: GoiTheLoai[] = [
@@ -149,6 +152,9 @@ export const DIGEN_NHOM = ['Short Drama', 'Anime', 'Music', 'Roleplay', 'Manhua'
   'Game', 'News', 'Health', 'Finance', 'Sports', 'YouTuber', 'Custom', 'Other'] as const;
 export const DIGEN_KHONG_TINH: readonly string[] = ['Poster', 'Custom', 'Other'];
 export const goiTheoKey = (k: string | undefined | null) => GOI_THE_LOAI.find((g) => g.key === k);
+/** BỐ CỤC MẶC ĐỊNH của gói (anh 19/10/2026: "gắn layout này thành default của mỗi gói"): khai riêng thắng; không khai thì phim dọc 9:16 → màn xem bên phải
+ *  (cao, thấy timeline cùng lúc — kiểu CapCut), phim ngang → giữa hàng panel. Timeline dùng khi công tắc đang ở "tự động". */
+export const boCucGoi = (g: Pick<GoiTheLoai, 'bo_cuc' | 'ti_le'>): BoCucXem => g.bo_cuc ?? (g.ti_le === '9:16' ? 'phai' : 'giua');
 
 export type KetGoi = { goi: GoiTheLoai; khung: string; khungDung: string; khuon: string[]; quyChuan: string[]; thieu: string[]; sanSang: boolean };
 /** Đọc các sổ THẬT để biết gói có gì + còn thiếu gì: khung beat gói cần có trong CAU_TRUC không, tách cảnh có thật sự dùng khung đó không

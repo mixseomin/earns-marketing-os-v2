@@ -21,6 +21,7 @@ import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu, Seg } from './ui';
 import { useNho } from './nho';
+import { goiTheoKey, boCucGoi } from '@/lib/xuong-video/goi-the-loai';
 import { Chon } from './chon';
 import { docLT, ghiLT } from '@/lib/luu-tru';
 import { lopMoi, idLop, tenLop, tenNhom, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop, gopLaiNhomCu, soNhomCu, themVaoNhom, dsNhom } from '@/lib/xuong-video/lop';
@@ -60,9 +61,10 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon, goi }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
   /** bấm một khối của shot trên bất kỳ làn nào → mở ngăn chi tiết shot (anh 18/10/2026: cuộn xuống các làn dưới thì không kéo lên xem panel được) */ onMoShot?: (id: number) => void;
+  /** gói thể loại của phim (kinh_thanh.goi, goi-the-loai.ts) — bố cục màn xem mặc định theo gói */ goi?: string;
   /** dòng phim (kinh_thanh.the_loai) — khuôn chuỗi kiểm có hợp dòng không + hover làn 🧭 Khuôn hiện quy chuẩn ngành của dòng */ theLoai?: TheLoai | '';
   /** đã lưu khuôn chuỗi của tập (ngăn 🧭 sửa khuôn) → nạp lại tập */ onDoiKhuon?: () => Promise<void>;
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
@@ -371,9 +373,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const hangPan = useKichThuoc(`xv-tl-hang-${doc916 ? 'doc' : 'ngang'}`, doc916 ? 524 : 360, 260, 1000);
   // BỐ CỤC MÀN XEM (thẻ #1402 "cho hết cái này sang phải" + anh 19/10/2026: "có option chỉnh layout cho linh hoạt", tham chiếu CapCut): giữa = hàng panel
   // như cũ; phải / trái = màn xem thành CỘT cao gần hết màn hình, đứng yên khi cuộn timeline (phim dọc 9:16 to + thấy timeline cùng lúc). Tự động: phim dọc
-  // → phải, phim ngang → giữa. Nhớ theo máy + URL (?tlb=).
-  const [boCucChon, setBoCuc] = useNho<'tu_dong' | 'giua' | 'phai' | 'trai'>('xv-tl-bo-cuc', 'tu_dong', ['tu_dong', 'giua', 'phai', 'trai'], 'tlb');
-  const boCuc = boCucChon === 'tu_dong' ? (doc916 ? 'phai' : 'giua') : boCucChon;
+  // → phải, phim ngang → giữa; phim có GÓI THỂ LOẠI thì theo bố cục của gói (boCucGoi). Chọn tay nhớ THEO TỪNG PHIM (không đè phim khác) + URL (?tlb=).
+  const [boCucChon, setBoCuc] = useNho<'tu_dong' | 'giua' | 'phai' | 'trai'>(`xv-tl-bo-cuc-${tap.phim_id}`, 'tu_dong', ['tu_dong', 'giua', 'phai', 'trai'], 'tlb');
+  const goiPhim = goiTheoKey(goi);
+  const boCuc = boCucChon === 'tu_dong' ? (goiPhim ? boCucGoi(goiPhim) : doc916 ? 'phai' : 'giua') : boCucChon;
   const xemCanh = boCuc !== 'giua';
   // Bề rộng THẬT của khung timeline (phim mở trong ngăn kéo hẹp hơn cửa sổ — đo cửa sổ thì cột xem ăn mất timeline) + chiều cao cửa sổ.
   const khungRef = useRef<HTMLDivElement>(null);

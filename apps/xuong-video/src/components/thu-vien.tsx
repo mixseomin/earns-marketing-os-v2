@@ -16,7 +16,7 @@ import { Chon } from './chon';
 import { useNho } from './nho';
 import { KHUON_CHUOI } from '@/lib/xuong-video/khuon-chuoi';
 import { HIEU_UNG_KHAN_GIA, hieuUngKG } from '@/lib/xuong-video/khan-gia';
-import { GOI_THE_LOAI, DIGEN_NHOM, DIGEN_KHONG_TINH, goiTheoKey, kiemGoi } from '@/lib/xuong-video/goi-the-loai';
+import { GOI_THE_LOAI, DIGEN_NHOM, DIGEN_KHONG_TINH, goiTheoKey, kiemGoi, boCucGoi } from '@/lib/xuong-video/goi-the-loai';
 
 // THƯ VIỆN theo YDNI (anh 18/10/2026 "tổ chức lại thư viện cho dễ tìm, dễ truy cập"): ô tìm luôn trên đầu (tìm cả tên Việt, tên ngành tiếng Anh,
 // mã, mô tả — mọi mục cùng lúc); mục lục trái theo câu hỏi người làm phim mang tới, MỖI LẦN MỘT MỤC (không chồng dọc 300 thẻ); thẻ gọn một tên +
@@ -203,7 +203,7 @@ export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
     return (<div style={{ display: 'grid', gap: 8, fontSize: 12.5 }}>
       <div className="xv-mono">📦 Gói thể loại · {g.nhom} · {g.key}</div><b style={{ fontSize: 15 }}>{g.ic} {g.ten}</b>
       <div style={{ color: 'var(--fg-2)' }}>{g.mo_ta}</div>
-      <div className="xv-mono">{THE_LOAI.find((t) => t.key === g.the_loai)?.ten ?? g.the_loai} · khung {g.ti_le} · {g.do_dai_s[0]}–{g.do_dai_s[1]} giây mỗi tập</div>
+      <div className="xv-mono">{THE_LOAI.find((t) => t.key === g.the_loai)?.ten ?? g.the_loai} · khung {g.ti_le} · {g.do_dai_s[0]}–{g.do_dai_s[1]} giây mỗi tập · màn xem timeline: {({ trai: '◧ bên trái', giua: '▣ giữa', phai: '◨ bên phải' } as const)[boCucGoi(g)]}</div>
       {k.thieu.length ? k.thieu.map((t, i) => <div key={i} style={{ color: 'var(--amber)', fontSize: 12 }}>⚠ {t}</div>) : <div style={{ color: 'var(--green, #4ade80)', fontSize: 12 }}>✓ đủ: khung beat riêng, quy chuẩn dòng phim, hiệu ứng và luật đều có thật</div>}
       {kb && <div><b>Khung beat:</b> {kb.ten}<ol style={{ margin: '4px 0 0', paddingLeft: 18, display: 'grid', gap: 2 }}>{kb.beats.map((b, i) => <li key={i}><b>{b.ten}</b> — <span style={{ color: 'var(--fg-2)' }}>{b.mo_ta}</span></li>)}</ol></div>}
       <div><b>Cung khán giả mặc định:</b><div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3, alignItems: 'center' }}>{g.khan_gia.map((y, i) => <span key={i} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{i ? '→' : ''}<LinkMa ma={`khan_gia.${y}`} /></span>)}</div></div>

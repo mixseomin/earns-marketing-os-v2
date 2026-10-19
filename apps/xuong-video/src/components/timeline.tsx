@@ -19,7 +19,8 @@ import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, phatTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
-import { mono, Menu } from './ui';
+import { mono, Menu, Seg } from './ui';
+import { useNho } from './nho';
 import { Chon } from './chon';
 import { docLT, ghiLT } from '@/lib/luu-tru';
 import { lopMoi, idLop, tenLop, tenNhom, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop, gopLaiNhomCu, soNhomCu, themVaoNhom, dsNhom } from '@/lib/xuong-video/lop';
@@ -368,7 +369,19 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const panTrai = useKichThuoc('xv-tl-trai', 200, 140, 440);
   const panPhai = useKichThuoc('xv-tl-phai2', 420, 260, 720);   // rộng hơn: chứa cả thẻ shot (13/10/2026)
   const hangPan = useKichThuoc(`xv-tl-hang-${doc916 ? 'doc' : 'ngang'}`, doc916 ? 524 : 360, 260, 1000);
-  const caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
+  // BỐ CỤC MÀN XEM (thẻ #1402 "cho hết cái này sang phải" + anh 19/10/2026: "có option chỉnh layout cho linh hoạt", tham chiếu CapCut): giữa = hàng panel
+  // như cũ; phải / trái = màn xem thành CỘT cao gần hết màn hình, đứng yên khi cuộn timeline (phim dọc 9:16 to + thấy timeline cùng lúc). Tự động: phim dọc
+  // → phải, phim ngang → giữa. Nhớ theo máy + URL (?tlb=).
+  const [boCucChon, setBoCuc] = useNho<'tu_dong' | 'giua' | 'phai' | 'trai'>('xv-tl-bo-cuc', 'tu_dong', ['tu_dong', 'giua', 'phai', 'trai'], 'tlb');
+  const boCuc = boCucChon === 'tu_dong' ? (doc916 ? 'phai' : 'giua') : boCucChon;
+  const xemCanh = boCuc !== 'giua';
+  const [man, setMan] = useState({ w: 1600, h: 900 });
+  useEffect(() => { const f = () => setMan({ w: window.innerWidth, h: window.innerHeight }); f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
+  let caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
+  if (xemCanh) {
+    caoXem = Math.max(360, man.h - 120); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
+    const tran = Math.round(man.w * 0.42); if (rongXem > tran) { rongXem = tran; caoXem = Math.round(doc916 ? (tran * 16) / 9 : (tran * 9) / 16); }
+  }
   const [dangThaVao, setDangThaVao] = useState<string | null>(null);
   /** Thả lớp `tu` vào chỗ lớp `den` (mảng: cuối = trên cùng; làn hiển thị đảo ngược như After Effects). */
   const doiThuTuLop = (tu: string, den: string) => { if (!tu || tu === den) return; datLop((ds) => { const l = ds.find((x) => x.id === tu); if (!l) return ds; const con = ds.filter((x) => x.id !== tu); const i = con.findIndex((x) => x.id === den); if (i < 0) return ds; const j = ds.findIndex((x) => x.id === tu) < ds.findIndex((x) => x.id === den) ? i + 1 : i; return [...con.slice(0, j), l, ...con.slice(j)]; }); };
@@ -467,43 +480,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   );
 
   if (!canh.length) return null;
-  return (
-    <div className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'hidden' }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
-      {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
-          Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <button type="button" className="xv-btn" title="Cảnh trước (←)" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
-        <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} title="Chạy / dừng (Space)" onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
-        <button type="button" className="xv-btn" title="Cảnh sau (→)" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
-        <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)', minWidth: 96 }}>{dongHo(t)} / {dongHo(tong)}</span>
-        <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
-        <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
-        <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
-        {onDoiKyThuat && <button type="button" className="xv-btn" title={'Nhịp hành động cả tập: cắt sốc → chớp/rung/zoom + tiếng đập · quất/phóng → tiếng vút · loé trắng → âm doạ.\nĐiểm cắt đã có hiệu ứng thì để nguyên; chạy lại không nhân đôi.'}
-          onClick={() => { const r = nhipHanhDong(canh, batDau, lop); if (r.lop.length) datLop((ds) => [...ds, ...r.lop]); if (r.kt.length) onDoiKyThuat(r.kt); setBaoNhip(r.lop.length || r.kt.length ? `⚡ +${r.lop.length / 3} impact · ${r.kt.length} shot thêm tiếng` : '⚡ không có điểm cắt nào cần thêm'); }}>⚡ Nhịp hành động</button>}
-        {onKhopGiong && <button type="button" className="xv-btn" title="Khớp giây phát mỗi shot theo giọng đã sinh: đủ đọc hết câu (tốc ≤1,1×), mốc chữ màn co giãn theo, lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được." onClick={() => { if (dangKhop) return; setDangKhop(true); void onKhopGiong().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); }}>⏱ Khớp giọng</button>}
-        {baoNhip && <span style={mono}>{baoNhip}</span>}
-        <span style={{ flex: 1 }} />
-        {vuaXoa && <span style={mono}>{vuaXoa.chu} · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
-        {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: hangPan.v }}>
-        <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
-          <div style={{ ...mono, letterSpacing: 0.5 }}>DỰ ÁN</div>
-          {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
-          {c && <div style={mono}>phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</div>}
-          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ {chuManHien(c.chu_man)}</div>}
-          {c?.hanh_dong && <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{c.hanh_dong}</div>}
-          {c && <div style={mono}>❤ khán giả: {tenCamXuc(c.cam_xuc)}</div>}
-          <div style={{ ...mono, letterSpacing: 0.5, marginTop: 6 }}>NGUYÊN LIỆU</div>
-          <LopNguyenLieu t={t} anh={anhSan} onThem={themLop} />
-          {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
-          {c && (c.keyframe_url || c.video_url) && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'nguon', canhId: c.id })}>🔗 Nguồn của shot này</button>}
-          {c && laQc && onDoiCta && laShotCta(c.phan_doan) && <ChonCta hienTai={qc?.cta} onDoi={onDoiCta} />}
-          {c && <ThamKhaoShot c={c} laQc={!!laQc} />}
-        </aside>
-        <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
-        {/* Bấm vào chỗ trống (ngoài lớp, trong hay ngoài khung hình) = bỏ chọn (#1288) — lớp và tay nắm tự chặn sự kiện của mình. */}
+  const khungXem = (
         <main style={{ display: 'grid', placeItems: 'center', padding: 8, background: 'var(--bg-0, #0b0b0d)' }} onPointerDown={(e) => { if (!e.shiftKey && !e.metaKey && !e.ctrlKey) setChonLops([]); }}>
           <div style={{ position: 'relative', width: rongXem, height: caoXem, overflow: 'hidden', borderRadius: 4, background: '#000' }}>
             {/* Hiệu ứng khung (lớp ✦, lop.ts › hieuUngKhungTai): rung/zoom/mờ/đen trắng/glitch áp lên hình + lớp phủ; chớp/tối viền/hạt là lớp phủ trên đó, dưới chữ màn. */}
@@ -524,7 +501,50 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
           </div>
         </main>
-        <TayKeo truc="x" onPointerDown={panPhai.keo('x', -1)} onDoubleClick={panPhai.veMacDinh} />
+  );
+  return (
+    <div className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
+      {xemCanh && <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
+        <div style={{ position: 'sticky', top: 0 }}>{khungXem}</div>
+      </div>}
+      {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
+          Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <button type="button" className="xv-btn" title="Cảnh trước (←)" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
+        <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} title="Chạy / dừng (Space)" onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
+        <button type="button" className="xv-btn" title="Cảnh sau (→)" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
+        <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)', minWidth: 96 }}>{dongHo(t)} / {dongHo(tong)}</span>
+        <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
+        <Seg value={boCuc} onChange={(v) => setBoCuc(v)} options={[{ value: 'trai', label: '◧', title: 'Màn xem bên TRÁI, cao gần hết màn hình — timeline bên phải' }, { value: 'giua', label: '▣', title: 'Màn xem ở GIỮA hàng panel (Dự án | Khung hình | Thuộc tính) như cũ' }, { value: 'phai', label: '◨', title: 'Màn xem bên PHẢI, cao gần hết màn hình — kiểu CapCut (mặc định cho phim dọc 9:16)' }]} />
+        <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
+        <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
+        {onDoiKyThuat && <button type="button" className="xv-btn" title={'Nhịp hành động cả tập: cắt sốc → chớp/rung/zoom + tiếng đập · quất/phóng → tiếng vút · loé trắng → âm doạ.\nĐiểm cắt đã có hiệu ứng thì để nguyên; chạy lại không nhân đôi.'}
+          onClick={() => { const r = nhipHanhDong(canh, batDau, lop); if (r.lop.length) datLop((ds) => [...ds, ...r.lop]); if (r.kt.length) onDoiKyThuat(r.kt); setBaoNhip(r.lop.length || r.kt.length ? `⚡ +${r.lop.length / 3} impact · ${r.kt.length} shot thêm tiếng` : '⚡ không có điểm cắt nào cần thêm'); }}>⚡ Nhịp hành động</button>}
+        {onKhopGiong && <button type="button" className="xv-btn" title="Khớp giây phát mỗi shot theo giọng đã sinh: đủ đọc hết câu (tốc ≤1,1×), mốc chữ màn co giãn theo, lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được." onClick={() => { if (dangKhop) return; setDangKhop(true); void onKhopGiong().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); }}>⏱ Khớp giọng</button>}
+        {baoNhip && <span style={mono}>{baoNhip}</span>}
+        <span style={{ flex: 1 }} />
+        {vuaXoa && <span style={mono}>{vuaXoa.chu} · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
+        {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: xemCanh ? `${panTrai.v}px 4px minmax(0, 1fr)` : `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: hangPan.v }}>
+        <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
+          <div style={{ ...mono, letterSpacing: 0.5 }}>DỰ ÁN</div>
+          {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
+          {c && <div style={mono}>phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</div>}
+          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ {chuManHien(c.chu_man)}</div>}
+          {c?.hanh_dong && <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{c.hanh_dong}</div>}
+          {c && <div style={mono}>❤ khán giả: {tenCamXuc(c.cam_xuc)}</div>}
+          <div style={{ ...mono, letterSpacing: 0.5, marginTop: 6 }}>NGUYÊN LIỆU</div>
+          <LopNguyenLieu t={t} anh={anhSan} onThem={themLop} />
+          {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
+          {c && (c.keyframe_url || c.video_url) && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'nguon', canhId: c.id })}>🔗 Nguồn của shot này</button>}
+          {c && laQc && onDoiCta && laShotCta(c.phan_doan) && <ChonCta hienTai={qc?.cta} onDoi={onDoiCta} />}
+          {c && <ThamKhaoShot c={c} laQc={!!laQc} />}
+        </aside>
+        <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
+        {/* Bấm vào chỗ trống (ngoài lớp, trong hay ngoài khung hình) = bỏ chọn (#1288) — lớp và tay nắm tự chặn sự kiện của mình. */}
+        {!xemCanh && khungXem}
+        {!xemCanh && <TayKeo truc="x" onPointerDown={panPhai.keo('x', -1)} onDoubleClick={panPhai.veMacDinh} />}
         {/* minmax(0,1fr): ô lưới không nở theo nội dung dài (thẻ shot) — co theo bề rộng panel và tự xuống dòng. */}
         <aside style={{ overflowY: 'auto', overflowX: 'hidden', padding: 8, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, alignContent: 'start' }}>
           <div style={{ ...mono, letterSpacing: 0.5 }}>THUỘC TÍNH</div>

@@ -166,8 +166,10 @@ export async function canhDangSinhAm(db: Db, canhIds: number[], dich: 'thoai' | 
 }
 
 /** Ghi sổ một lượt Claude (chữ) theo token thật × giá model — MỘT chỗ cho mọi lượt gọi Claude (gợi ý, dịch, kiểm/sửa theo người xem…). Trả cents. */
-export async function ghiTienChu(db: Db, phimId: number | null, nhan: string, model: string, tk: { in: number; out: number }, provider = 'anthropic'): Promise<number> {
-  const gia = giaChuCents(model, tk.in, tk.out);
+export async function ghiTienChu(db: Db, phimId: number | null, nhan: string, model: string, tk: { in: number; out: number; vnd?: number }, provider?: string): Promise<number> {
+  // đường đã đi nằm ở tiền tố model ('ckey:…', 'shopaikey:…' — claude.ts › client); ckey báo tiền thật VNĐ (tk.vnd, 26.000₫ ≈ $1)
+  provider = provider ?? (/^(ckey|shopaikey):/.exec(model)?.[1] ?? 'anthropic');
+  const gia = tk.vnd != null ? (tk.vnd / 26000) * 100 : giaChuCents(model, tk.in, tk.out);
   await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
     VALUES (${phimId}, ${nhan}, 'chu', ${provider}, ${model}, 'xong', ${Math.round(gia * 100) / 100}, ${tk.in}, ${tk.out})`);
   return gia;

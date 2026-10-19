@@ -3,7 +3,7 @@
 // Bước bắt buộc: chưa đạt / kịch bản đổi sau lần thử → chặn sinh keyframe + xuất.
 import { Fragment, useState } from 'react';
 import { thuNguoiXemTap, thuNguoiXemCanh, suaTheoNguoiXem } from '@/lib/actions';
-import { giaChuCents, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
+import { giaChuUoc, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
 import { chanNguoiXem, phuTheoCanh, tomTatNguoiXem, TEN_NUT_NGUOI_XEM, TEN_NUT_NGUOI_XEM_CANH } from '@/lib/xuong-video/nguoi-xem';
 import { Nut, Loi, mono, goiAction } from './ui';
 
@@ -16,8 +16,8 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
   const t = tap.thu_nguoi_xem;
   const chan = chanNguoiXem(t, canh);
   const cu = !!t && chan.some((x) => x.includes('đã sửa sau lần kiểm'));
-  const gia = giaChuCents(moHinhChu, 6000, 3000);
-  const giaSua = giaChuCents(moHinhChu, 8000, 5000);
+  const gia = giaChuUoc(moHinhChu, 6000, 3000);
+  const giaSua = giaChuUoc(moHinhChu, 8000, 5000);
   const sua = async () => {
     setBanSua(true); setLoi(''); setDaSua('');
     const { loi: l, kq: r } = await goiAction(() => suaTheoNguoiXem(tap.id));

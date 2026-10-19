@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { khoaGoogle } from './google';
 import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
-import { giaChuCents } from './kieu';
+import { congTk, giaChuCents } from './kieu';
 import { xacNhanLoiClaude, MO_HINH_XAC_NHAN_CLAUDE } from './claude';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
@@ -66,7 +66,7 @@ async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: 
     if (!cu || g < cu.giay) gop.set(l.loai, { giay: g, mo_ta: l.mo_ta, khung: l.khung });
   }
   // xác nhận từng loại bằng khung nét cao quanh đúng giây
-  const giu: LoiBienDang[] = []; const loi: string[] = []; const canhBao: string[] = []; let tkXn = { in: 0, out: 0 }; let modelXn = MO_HINH_XAC_NHAN_CLAUDE;
+  const giu: LoiBienDang[] = []; const loi: string[] = []; const canhBao: string[] = []; let tkXn: { in: number; out: number; vnd?: number } | null = null; let modelXn = MO_HINH_XAC_NHAN_CLAUDE;
   for (const [loai, v] of gop) {
     // PHÂN XỬ THEO LOẠI (đo bộ mẫu 17/10/2026): Claude bác nhầm cả 3 ca chân gập ngược / dính liền ở mọi cách xem → lỗi chân, quần, chữ, vật thể, sản phẩm
     // Flash thấy là CHẶN, không cho bác (không sót). Chỉ lỗi dính tới NGÓN TAY / BÀN TAY (nơi báo nhầm nhiều nhất) mới qua Claude xác nhận.
@@ -79,14 +79,14 @@ async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: 
     const cauHoi = `These 6 images are consecutive frames (0.25 s apart) of ONE AI-generated ad clip.${o.yDo ? ` Shot intent (intentional, not a defect): ${o.yDo}` : ''}
 A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Look very closely at the hands and fingers in EVERY frame. co=true if that defect is really there; co=false if it looks normal, is only motion blur, or is part of the shot intent. muc: "nang" ONLY if an ordinary viewer watching ONCE at normal speed on a phone would clearly notice it (legs or arms merging, missing or duplicated, a body bending impossibly, clothing ballooning or fusing between the legs, readable text or a logo on clothing, an object floating or popping in / out, the product turning into a different garment or color); otherwise "nhe" (slightly soft fingers, small wrinkle / rip / texture changes, small edge objects, slight color shift, anything smaller than ~5% of the frame).`;
     const c = anh ? await xacNhanLoiClaude({ anh, cauHoi }) : null;
-    if (c?.ok) { tkXn = { in: tkXn.in + c.tokens.in, out: tkXn.out + c.tokens.out }; modelXn = c.model; }
+    if (c?.ok) { tkXn = tkXn ? congTk(tkXn, c.tokens) : c.tokens; modelXn = c.model; }
     const cd = c?.ok ? c.data : null;
     // lỗi NHẸ (chỉ thấy khi dừng hình) không chặn — ghi cảnh báo; không xác nhận được (lỗi mạng) → GIỮ lỗi: thà sinh lại oan còn hơn lọt
     if (cd?.co && cd.muc === 'nhe') { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (nhẹ) giây ${Math.round(v.giay * 10) / 10}: ${cd.ly_do.slice(0, 140)}`); continue; }
     if (!cd || cd.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
   let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
-  if (tkXn.in) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', modelXn, tkXn, modelXn.startsWith('shopaikey:') ? 'shopaikey' : 'anthropic') : giaChuCents(modelXn, tkXn.in, tkXn.out);
+  if (tkXn) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', modelXn, tkXn) : giaChuCents(modelXn, tkXn.in, tkXn.out);
   return { loi, tho: giu, cents, canhBao };
 }
 /** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */

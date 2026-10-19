@@ -36,7 +36,7 @@ export async function kiemNguoiXemTap(db: Db, tapId: number, cham: typeof thuNgu
   const { qc, yDo } = yDoQc(bc.loai, kt);
   const kq = await cham({ ban, nhanVat: nvTa, logline: qc ? yDo : logline, brief: bc.tap.brief, kt, doDai, qc });
   if (!kq.ok) return kq;
-  await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens, kq.model.startsWith('gemini') ? 'google' : kq.model.startsWith('shopaikey:') ? 'shopaikey' : 'anthropic');
+  await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens, kq.model.startsWith('gemini') ? 'google' : undefined);
   const { xem, doi } = kq.data;
   // Đạt hay không tính trên ĐÚNG con số hiện ra (đã làm tròn) — trước đây so điểm thô: 6,6 hiện "7/10, khớp ý" mà vẫn chặn (Tango & Lint tập 1, 14/10/2026).
   const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));

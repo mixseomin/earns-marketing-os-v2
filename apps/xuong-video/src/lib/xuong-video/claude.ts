@@ -12,7 +12,7 @@ import { vanLuatDung, LUAT_DUNG_CANH } from './luat-dung';
 import { vanKhuonChuoi } from './khuon-chuoi';
 import { vanKhanGia } from './khan-gia';
 import { vanGoi, goiTheoKey } from './goi-the-loai';
-import { docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
+import { congTk, giaChuCents, docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -104,11 +104,79 @@ const StoryboardSchema = z.object({
 export type CanhSinh = z.infer<typeof ShotSchema> & { phan_doan: string; nhanh: string };
 export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][number], 'shots'>;
 
-function client(): Anthropic | null {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  chotTien('gọi Claude');   // script thiếu duyệt → dừng (chot-tien.ts)
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+/** CHUỖI DỰ PHÒNG CHO MỌI LƯỢT CLAUDE (anh 20/10/2026: "cứ dùng kiểu fallback này với ckey là chính"): ckey.vn (người bán Claude trên chợ, đường
+ *  /v1/messages chuẩn Anthropic, nhận cả khuôn JSON) → ShopAIKey (/v1/messages, KHÔNG nhận output_config → dặn khuôn trong system, máy tự đọc JSON)
+ *  → Anthropic trực tiếp. Đo 19/10/2026 một lượt Opus điển hình (6,8k vào / 3,5k ra): ckey ≈ 30–125₫ · ShopAIKey ≈ 315₫ · Anthropic ≈ 2.500₫.
+ *  Bước nào lỗi / từ chối / trả sai khuôn → bước sau. r.model trả về mang tiền tố đường đã đi ('ckey:…', 'shopaikey:…'; Anthropic = tên trơn);
+ *  ckey báo tiền thật mỗi lượt (usage.x_ckey.cost, VNĐ) → tkCua(r).vnd → ghiTienChu ghi đúng tiền. */
+export const CKEY_CLAUDE: Record<string, string[]> = {
+  // người bán xếp theo giá đã đo (ckey.vn/ajax/apiai-public-catalog, 19/10/2026) — lỗi người trước thì thử người sau
+  'claude-opus-5-5': ['anhyeu00m/claude-opus-5-5', 'tranhieu13102003/claude-opus-5.5'],
+  'claude-sonnet-5-5': ['duc121026ab/claude-sonnet-5-5', 'thanhnhan9023/claude-sonnet-5.5'],
+  'claude-haiku-4-5': ['anhyeu00m/claude-haiku-4.5', 'sypham98/claude-haiku-4.5'],
+};
+type DuongChu = { ten: 'ckey' | 'shopaikey' | 'anthropic'; c: Anthropic; model: string; jsonTay: boolean };
+const duongChu = (model: string): DuongChu[] => {
+  const ds: DuongChu[] = [];
+  const kc = process.env.CKEY_API_KEY, ks = process.env.SHOPAIKEY_API_KEY, ka = process.env.ANTHROPIC_API_KEY;
+  const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 1 });
+  if (kc) for (const m of CKEY_CLAUDE[model] ?? []) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: false });
+  if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });
+  if (ka) ds.push({ ten: 'anthropic', c: new Anthropic({ apiKey: ka }), model, jsonTay: false });
+  return ds;
+};
+type DinhDang = { schema?: unknown; parse?: (s: string) => unknown };
+type ThamSoChu = { model: string; system?: string | Anthropic.TextBlockParam[]; output_config?: { format?: DinhDang } } & Record<string, unknown>;
+/** Khối JSON trong chữ trả về (bỏ ```json bọc ngoài, chữ thừa trước / sau). */
+const layJson = (t: string): string => { const a = t.indexOf('{'), b = t.lastIndexOf('}'); return a >= 0 && b > a ? t.slice(a, b + 1) : t; };
+/** Đường không nhận output_config: bỏ nó, dặn khuôn JSON ở cuối system. */
+const dangJsonTay = (p: ThamSoChu): ThamSoChu => {
+  const f = p.output_config?.format; if (!f) return p;
+  const { output_config: _o, ...con } = p;
+  const dan = `\n\nTrả lời CHỈ bằng MỘT đối tượng JSON đúng JSON Schema dưới đây — không bọc \`\`\`, không một chữ nào khác ngoài JSON:\n${JSON.stringify(f.schema)}`;
+  const system = typeof p.system === 'string' || p.system == null ? `${p.system ?? ''}${dan}` : [...p.system, { type: 'text' as const, text: dan }];
+  return { ...con, system };
+};
+type TinChu = Anthropic.Message & { parsed_output?: unknown; vnd?: number };
+async function quaChuoi(p: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promise<TinChu>): Promise<TinChu> {
+  // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới 1¢ tự chạy
+  chotTien('gọi Claude', { cents: giaChuCents(p.model, Math.ceil(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3), Number(p.max_tokens) || 0) });
+  const ds = duongChu(p.model); const loi: string[] = [];
+  if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');
+  const f = p.output_config?.format;
+  for (let i = 0; i < ds.length; i++) {
+    const d = ds[i]!; const cuoi = i === ds.length - 1;
+    try {
+      const r = await goi(d, { ...(d.jsonTay ? dangJsonTay(p) : p), model: d.model });
+      if (r.stop_reason === 'refusal' && !cuoi) { loi.push(`${d.ten} ${d.model}: từ chối`); continue; }
+      if (f) {   // có khuôn JSON: chuẩn hoá chữ về đúng khối JSON (bên bán lại hay bọc ```json) + tự đọc khi đường không đọc hộ
+        for (const b of r.content) if (b.type === 'text') b.text = layJson(b.text);
+        if (d.jsonTay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
+      }
+      const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
+      if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten);
+      return Object.assign(r, { model: d.ten === 'anthropic' ? p.model : `${d.ten}:${p.model}`, ...(d.ten === 'ckey' && typeof x === 'number' ? { vnd: x } : {}) });
+    } catch (e) {
+      const m = e instanceof Anthropic.APIError ? `${e.status}: ${e.message}` : e instanceof Error ? e.message : String(e);
+      if (cuoi) throw Object.assign(e instanceof Error ? e : new Error(m), { message: [...loi, `${d.ten}: ${m}`].join(' · ') });
+      loi.push(`${d.ten} ${d.model}: ${m.slice(0, 160)}`);
+    }
+  }
+  throw new Error(loi.join(' · '));
 }
+/** Khách Claude của studio: cùng bộ hàm messages.create / parse / stream của SDK, đi qua chuỗi dự phòng. null khi không có khoá nào. */
+type KhachChu = { messages: { create(p: ThamSoChu): Promise<TinChu>; parse(p: ThamSoChu): Promise<TinChu>; stream(p: ThamSoChu): { finalMessage(): Promise<TinChu> } } };
+function client(): KhachChu | null {
+  if (!process.env.CKEY_API_KEY && !process.env.SHOPAIKEY_API_KEY && !process.env.ANTHROPIC_API_KEY) return null;
+  const tao = (d: DuongChu, q: ThamSoChu) => d.c.messages.create({ ...(q as unknown as Anthropic.MessageCreateParamsNonStreaming), stream: false }) as Promise<TinChu>;
+  return { messages: {
+    create: (p) => quaChuoi(p, tao),
+    parse: (p) => quaChuoi(p, (d, q) => (d.jsonTay ? tao(d, q) : d.c.messages.parse(q as unknown as Parameters<Anthropic['messages']['parse']>[0]) as unknown as Promise<TinChu>)),
+    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams).finalMessage() as Promise<TinChu>) }),
+  } };
+}
+/** Token + tiền thật (ckey báo VNĐ) của một lượt — ghiTienChu dùng vnd khi có, không thì token × giá model. */
+export const tkCua = (...rs: TinChu[]): { in: number; out: number; vnd?: number } => congTk(...rs.map((r) => ({ in: r.usage.input_tokens, out: r.usage.output_tokens, ...(typeof r.vnd === 'number' ? { vnd: r.vnd } : {}) })));
 
 function taAnchor(nv: NhanVat[]): string {
   if (!nv.length) return '(chưa khai anchor nào — tự đặt tên nhân vật/bối cảnh và tả cố định, dùng cùng một mô tả ở mọi cảnh)';
@@ -183,7 +251,7 @@ const HUONG_DAN_MAU = (so: number) => `BÁM QC MẪU 1:1 (bắt buộc, máy ch�
 export async function tachCanh(opts: {
   loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; kichBan: string; soCanh?: number; tapTruoc?: string[]; thoiLuongS?: number;
   /** Đoạn THƯ VIỆN KHUÔN SHOT (khuon-shot.taKhuon) — hình đã dùng ở QC trước để Claude dùng lại. */ khuon?: string;
-}): Promise<{ ok: true; tomTat: string; hoSo?: { thoi_gian: string; duong_di: string; motif: string; cung: string }; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
+}): Promise<{ ok: true; tomTat: string; hoSo?: { thoi_gian: string; duong_di: string; motif: string; cung: string }; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
@@ -240,7 +308,7 @@ export async function tachCanh(opts: {
     if (pcHook) bienThe.forEach((h, i) => { const nhanh = String.fromCharCode(66 + i); canh.push(...h.shots.map((x) => chuan(x, `${pcHook.ten} · ${h.ten}`, nhanh))); });
     const phanCanh: PhanCanhSinh[] = p.phan_canh.map(({ shots: _s, ...pc }) => ({ ...pc, cam_xuc_dau: kep(pc.cam_xuc_dau), cam_xuc_cuoi: kep(pc.cam_xuc_cuoi) }));
     const beats = p.beats.map((b) => ({ ...b, cam_xuc: kep(b.cam_xuc) }));
-    return { ok: true, tomTat: p.tom_tat, hoSo: p.ho_so, canh, beats, phanCanh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+    return { ok: true, tomTat: p.tom_tat, hoSo: p.ho_so, canh, beats, phanCanh, model: r.model, tokens: tkCua(r) };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -270,7 +338,7 @@ export async function vietKichBan(opts: {
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const text = r.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('\n').trim();
-    return text ? { ok: true, kichBan: text, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude không trả chữ' };
+    return text ? { ok: true, kichBan: text, model: r.model, tokens: tkCua(r) } : { ok: false, loi: 'Claude không trả chữ' };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -335,7 +403,7 @@ const BoAnchorSchema = z.object({
 const BriefSchema = z.object({ brief: z.string().describe('Brief 4-8 dòng cho tập này: mục tiêu, hook, diễn biến chính, xung đột, kết/CTA; nối mạch các tập trước') });
 const CanhLaiSchema = ShotSchema;   // viết lại một shot: kèm cảm xúc + kỹ thuật điện ảnh từ thư viện
 
-export type DungChu = { model: string; tokens: { in: number; out: number } };
+export type DungChu = { model: string; tokens: { in: number; out: number; vnd?: number } };
 type GoiYKq<T> = ({ ok: true; data: T } & DungChu) | { ok: false; loi: string };
 
 /** Sản phẩm / dịch vụ của phim quảng cáo — nằm trong MỌI ngữ cảnh gửi Claude (gợi ý, kịch bản, tách cảnh). */
@@ -380,7 +448,7 @@ async function hoi<T>(schema: z.ZodType<T>, kt: Required<KinhThanh>, system: str
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as T | null;
-    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -467,7 +535,7 @@ export async function doiChieuAnchor(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta' |
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as z.infer<typeof DoiChieuSchema> | null;
-    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -517,7 +585,7 @@ export async function kiemKhungCanh(o: { canh: string; banDo: string; phongCach:
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as z.infer<typeof KiemKhungSchema> | null;
-    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -559,7 +627,7 @@ export async function vietBaiDang(opts: { kinhThanh: KinhThanh; kichBan: string;
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as z.infer<typeof BaiDangSchema> | null;
-    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -593,7 +661,7 @@ export async function phanTichMau(khung: { giay: number; b64: string }[], tongGi
     const p = r.parsed_output as z.infer<typeof MauSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const shots: ShotMau[] = p.shots.map((s) => ({ giay: Math.max(0.5, Math.min(8, Math.round(s.giay * 2) / 2)), loai: s.loai, chu_man: s.chu_man.trim(), hinh: s.hinh.trim() }));
-    return { ok: true, data: { shots, ghi_chu: p.ghi_chu }, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+    return { ok: true, data: { shots, ghi_chu: p.ghi_chu }, model: r.model, tokens: tkCua(r) };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -624,7 +692,7 @@ Luật:
     const p = r.parsed_output as z.infer<typeof DichChuoiSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const out = o.ds.map((g, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() || g);
-    return { ok: true, data: out, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+    return { ok: true, data: out, model: r.model, tokens: tkCua(r) };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -646,7 +714,7 @@ export async function dichMoTaVi(ds: string[]): Promise<GoiYKq<string[]>> {
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as z.infer<typeof DichChuoiSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
-    return { ok: true, data: ds.map((_, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() ?? ''), model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+    return { ok: true, data: ds.map((_, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() ?? ''), model: r.model, tokens: tkCua(r) };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -730,7 +798,7 @@ export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: st
     });
     const doi = r2.parsed_output as z.infer<typeof DoiChieuYSchema> | null;
     if (!doi) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt đối chiếu)' };
-    return { ok: true, data: { xem, doi }, model: r1.model, tokens: { in: r1.usage.input_tokens + r2.usage.input_tokens, out: r1.usage.output_tokens + r2.usage.output_tokens } };
+    return { ok: true, data: { xem, doi }, model: r1.model, tokens: tkCua(r1, r2) };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -772,7 +840,7 @@ export async function suaKichBanTheoNguoiXem(o: { bang: string; anchor: string; 
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as z.infer<typeof SuaKbSchema> | null;
-    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }
@@ -804,48 +872,43 @@ Luật:
 - Ngôn ngữ chữ: ${tenNgonNgu(kt.ngon_ngu)}.`, user);
 }
 
-/** CLAUDE QUA ĐẠI LÝ trước, ANTHROPIC trực tiếp dự phòng (anh 17/10/2026: "ok, làm đi"). ShopAIKey bán Claude thật (usage_source anthropic) tính bằng credit
- *  $1 = 3.250₫ (≈ 1/8 giá gốc); lỗi (hết credit, sập, quá tải) → gọi thẳng api.anthropic.com bằng ANTHROPIC_API_KEY trên box. Một hàm cho mọi
- *  lượt Claude tự động của máy (xác nhận lỗi clip, kiểm người xem). `nguon` cho biết đường đã đi để ghi tiền đúng giá. */
-export type KqClaude = { ok: true; text: string; tokens: { in: number; out: number }; nguon: 'shopaikey' | 'anthropic'; model: string } | { ok: false; loi: string };
+/** Lượt Claude tự động của máy (xác nhận lỗi clip, kiểm người xem…): nội dung ảnh + chữ, đi CÙNG chuỗi dự phòng ckey → ShopAIKey → Anthropic
+ *  của client(). `nguon` = đường đã đi, `model` trơn; tiền thật (ckey) ở tokens.vnd. */
+export type KqClaude = { ok: true; text: string; tokens: { in: number; out: number; vnd?: number }; nguon: 'ckey' | 'shopaikey' | 'anthropic'; model: string } | { ok: false; loi: string };
 export async function goiClaude(o: { noiDung: ({ anh: string } | { text: string })[]; maxTokens: number; model?: string; he?: string }): Promise<KqClaude> {
-  chotTien('gọi Claude');   // script thiếu duyệt → dừng (chot-tien.ts)
   const model = o.model ?? 'claude-sonnet-5-5';
-  const loiShop: string[] = [];
-  const khoaShop = process.env.SHOPAIKEY_API_KEY;
-  if (khoaShop) {
-    try {
-      const r = await fetch('https://api.shopaikey.com/v1/chat/completions', { method: 'POST', signal: AbortSignal.timeout(180_000),
-        headers: { authorization: `Bearer ${khoaShop}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: o.maxTokens, messages: [...(o.he ? [{ role: 'system', content: o.he }] : []),
-          { role: 'user', content: o.noiDung.map((x) => ('anh' in x ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${x.anh}` } } : { type: 'text', text: x.text })) }] }) });
-      const j = await r.json() as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
-      const text = j.choices?.[0]?.message?.content ?? '';
-      if (r.ok && text) return { ok: true, text, tokens: { in: j.usage?.prompt_tokens ?? 0, out: j.usage?.completion_tokens ?? 0 }, nguon: 'shopaikey', model };
-      loiShop.push(`ShopAIKey ${r.status}: ${j.error?.message ?? 'không có chữ'}`);
-    } catch (e) { loiShop.push(`ShopAIKey: ${e instanceof Error ? e.message : String(e)}`); }
-  }
-  if (!process.env.ANTHROPIC_API_KEY) return { ok: false, loi: [...loiShop, 'Thiếu ANTHROPIC_API_KEY'].join(' · ') };
+  const c = client(); if (!c) return { ok: false, loi: 'Thiếu khoá Claude trên máy chủ' };
   try {
-    const c = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const r = await c.messages.create({ model, max_tokens: o.maxTokens, ...(o.he ? { system: o.he } : {}),
       messages: [{ role: 'user', content: o.noiDung.map((x) => ('anh' in x ? { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.anh } } : { type: 'text' as const, text: x.text })) }] });
-    if (loiShop.length) console.error('[claude] đại lý lỗi, dùng Anthropic trực tiếp:', loiShop.join(' · '));
-    return { ok: true, text: r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''), tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens }, nguon: 'anthropic', model };
-  } catch (e) { return { ok: false, loi: [...loiShop, loiGoi(e)].join(' · ') }; }
+    const nguon = (r.model.split(':')[0] === 'ckey' || r.model.split(':')[0] === 'shopaikey' ? r.model.split(':')[0] : 'anthropic') as 'ckey' | 'shopaikey' | 'anthropic';
+    return { ok: true, text: r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''), tokens: tkCua(r), nguon, model };
+  } catch (e) { return { ok: false, loi: loiGoi(e) }; }
 }
 /** Khoá ghi sổ tiền của một lượt goiClaude: đi đại lý thì 'shopaikey:<model>' (bảng GIA_CHU tính theo tiền thật), trực tiếp thì đúng tên model. */
-export const modelSoTien = (k: { nguon: 'shopaikey' | 'anthropic'; model: string }): string => (k.nguon === 'shopaikey' ? `shopaikey:${k.model}` : k.model);
+export const modelSoTien = (k: { nguon: 'ckey' | 'shopaikey' | 'anthropic'; model: string }): string => (k.nguon === 'anthropic' ? k.model : `${k.nguon}:${k.model}`);
 /** Lấy khối JSON đầu tiên trong chữ Claude trả (có thể bọc ```json). */
 export const tachJson = <T>(t: string): T | null => { const m = t.match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]) as T; } catch { return null; } };
 
 /** XÁC NHẬN LỖI CLIP bằng Claude nhìn ảnh (máy soi bản 3, soi-bien-dang.ts): Gemini quét rộng khoanh lỗi, Claude xem các khung nét cao quanh đúng giây
  *  và quyết có / không + mức nặng / nhẹ. Đo 17/10/2026 trên bộ mẫu: bắt 8/8, báo nhầm 3/8 (Gemini Pro 4–6/8). */
 export const MO_HINH_XAC_NHAN_CLAUDE = 'claude-sonnet-5-5';
-export async function xacNhanLoiClaude(o: { anh: string[]; cauHoi: string }): Promise<{ ok: true; data: { co: boolean; muc: 'nang' | 'nhe'; ly_do: string }; tokens: { in: number; out: number }; model: string } | { ok: false; loi: string }> {
+export async function xacNhanLoiClaude(o: { anh: string[]; cauHoi: string }): Promise<{ ok: true; data: { co: boolean; muc: 'nang' | 'nhe'; ly_do: string }; tokens: { in: number; out: number; vnd?: number }; model: string } | { ok: false; loi: string }> {
   const r = await goiClaude({ noiDung: [...o.anh.map((anh) => ({ anh })), { text: `${o.cauHoi}\nReply with ONLY a JSON object: {"co": true|false, "muc": "nang"|"nhe", "ly_do": "<frame number and exactly what is wrong, or why it is fine>"}` }], maxTokens: 400, model: MO_HINH_XAC_NHAN_CLAUDE });
   if (!r.ok) return r;
   const d = tachJson<{ co: boolean; muc: string; ly_do: string }>(r.text);
   if (!d) return { ok: false, loi: `Claude không trả JSON: ${r.text.slice(0, 120)}` };
   return { ok: true, data: { co: !!d.co, muc: d.muc === 'nhe' ? 'nhe' : 'nang', ly_do: String(d.ly_do ?? '') }, tokens: r.tokens, model: modelSoTien(r) };
+}
+
+/** Một lượt THỬ chuỗi Claude (scripts/thu-chuoi-claude.mts): messages.parse có khuôn JSON, trần 200 token — kiểm đường đi + đọc khuôn + tiền. */
+export async function goiYThu(): Promise<GoiYKq<{ diem: number; ly_do: string }>> {
+  const c = client(); if (!c) return { ok: false, loi: 'Thiếu khoá Claude' };
+  const S = z.object({ diem: z.number().describe('0–10'), ly_do: z.string().describe('một câu') });
+  try {
+    const r = await c.messages.parse({ model: 'claude-opus-5-5', max_tokens: 200, system: 'Bạn chấm shot phim ngắn.', messages: [{ role: 'user', content: 'Chấm 0–10 một shot: người phụ nữ cúi nhặt tờ giấy cuối cùng rồi đứng dậy, ngẩng đầu. Một câu lý do.' }],
+      output_config: { format: zodOutputFormat(S as unknown as Parameters<typeof zodOutputFormat>[0]) } });
+    const p = r.parsed_output as { diem: number; ly_do: string } | null;
+    return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: `không đọc được khuôn: ${r.content.map((b) => (b.type === 'text' ? b.text : '')).join('').slice(0, 120)}` };
+  } catch (e) { return { ok: false, loi: loiGoi(e) }; }
 }

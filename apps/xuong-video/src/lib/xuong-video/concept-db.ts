@@ -9,7 +9,7 @@ import { docGocSpy, type GocSpy } from './goc-spy';
 import { docSpy } from './spy-api';
 import { cauThieuNguon, type ThamKhaoCau } from './tham-khao';
 import { sanPhamPhim } from './nhom-phim';
-import { giaChuCents, type KinhThanh } from './kieu';
+import { giaChuUoc, type KinhThanh } from './kieu';
 import { vietPhuongAnCap } from './claude';
 import { oChuTuKhung, mucNb, PA_DU_KIEN, nguonCreative, gtBienThe, type SubAvatar } from './concept';
 
@@ -52,7 +52,7 @@ export async function uocVietPhuongAnDb(db: Db, capId: number): Promise<Kq<{ cen
   if (!x) return { ok: false, loi: 'không thấy cặp' };
   const model = x.kt.mo_hinh_chu || 'claude-opus-5-5';
   const soPa = x.oChu.reduce((a, _o, i) => a + PA_DU_KIEN(x.oChu, i), 0);
-  return { ok: true, data: { cents: Math.round(giaChuCents(model, Math.ceil(x.user.length / 3.2) + 1600, soPa * 70 + 300) * 100) / 100, model, so_o: x.oChu.length } };
+  return { ok: true, data: { cents: Math.round(giaChuUoc(model, Math.ceil(x.user.length / 3.2) + 1600, soPa * 70 + 300) * 100) / 100, model, so_o: x.oChu.length } };
 }
 /** AI viết phương án cho mọi ô của một cặp (TỐN TIỀN — một lượt Claude, anh bấm). Phương án mới nối sau phương án đã có. */
 export async function vietPhuongAnDb(db: Db, capId: number): Promise<Kq<number>> {

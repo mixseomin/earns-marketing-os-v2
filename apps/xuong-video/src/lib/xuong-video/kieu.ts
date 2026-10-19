@@ -636,7 +636,17 @@ const GIA_CHU: Record<string, [number, number]> = { 'claude-opus-5-5': [4, 20], 
   // tới 31/12/2026, từ 01/01/2027 là [1.5, 7.5] (ai.google.dev/gemini-api/docs/pricing, tra 17/10/2026)
   'gemini-3.8-flash': [0.75, 3.75], 'gemini-3.5-flash-lite': [0.3, 2.5], 'gemini-3.1-pro-preview': [2, 12],
   // Claude qua đại lý ShopAIKey: credit $1 = 3.250₫ thật (≈ 1/8 giá đô) → giá gốc × 0,125 (claude.ts › goiClaude)
-  'shopaikey:claude-sonnet-5-5': [0.25, 1.25], 'shopaikey:claude-opus-5-5': [0.5, 2.5] };
+  'shopaikey:claude-sonnet-5-5': [0.25, 1.25], 'shopaikey:claude-opus-5-5': [0.5, 2.5],
+  // Claude qua ckey.vn (đường CHÍNH từ 20/10/2026, claude.ts › client): ckey báo tiền thật mỗi lượt (ghiTienChu dùng số đó); bảng này chỉ để ƯỚC trước
+  // khi chạy — lấy mức cao của 3 lượt đo 19/10/2026 (3–12₫ / 1k token, 26.000₫ ≈ $1) để giá trên nút không thấp hơn thật
+  'ckey:claude-opus-5-5': [0.46, 0.46], 'ckey:claude-sonnet-5-5': [0.4, 0.4], 'ckey:claude-haiku-4-5': [0.15, 0.15] };
+/** Cộng token của nhiều lượt chữ; vnd (tiền thật ckey báo) chỉ giữ khi MỌI lượt có — thiếu một lượt thì cả cụm ước theo token (ghiTienChu). */
+export const congTk = (...ts: { in: number; out: number; vnd?: number }[]): { in: number; out: number; vnd?: number } => {
+  const t = { in: ts.reduce((a, x) => a + x.in, 0), out: ts.reduce((a, x) => a + x.out, 0) };
+  return ts.length && ts.every((x) => x.vnd != null) ? { ...t, vnd: ts.reduce((a, x) => a + x.vnd!, 0) } : t;
+};
+/** Giá ƯỚC trước khi chạy một lượt Claude theo đường sẽ đi (ckey trước — claude.ts › client); model không có trên ckey thì giá trực tiếp. */
+export const giaChuUoc = (model: string, tin: number, tout: number): number => giaChuCents(GIA_CHU[`ckey:${model}`] ? `ckey:${model}` : model, tin, tout);
 export const giaChuCents = (model: string, tin: number, tout: number): number => {
   const g = GIA_CHU[model] ?? GIA_CHU[Object.keys(GIA_CHU).find((k) => model.startsWith(k)) ?? ''] ?? [4, 20];
   return (tin * g[0] + tout * g[1]) / 10_000;   // USD/1M token → cents/token = /1e6*100

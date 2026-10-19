@@ -19,3 +19,10 @@ assert.strictEqual(fmtVnd(null), '—');
 assert.strictEqual(giaHien({ gia_vnd: 3250, link: '' }), null);
 assert.strictEqual(giaHien({ gia_vnd: 3250, link: 'https://shopaikey.com/models' }), 3250);
 console.log('nguon-ai: đạt');
+
+// Tiền chữ (kieu.ts): cộng token nhiều lượt — vnd (tiền thật ckey) chỉ giữ khi mọi lượt có; giá ước trước khi chạy đi theo đường ckey.
+{ const { congTk, giaChuUoc, giaChuCents } = await import('./kieu');
+  assert.deepStrictEqual(congTk({ in: 10, out: 2, vnd: 11.3 }, { in: 5, out: 1, vnd: 4 }), { in: 15, out: 3, vnd: 15.3 });
+  assert.deepStrictEqual(congTk({ in: 10, out: 2, vnd: 11.3 }, { in: 5, out: 1 }), { in: 15, out: 3 }, 'thiếu vnd một lượt → ước theo token cả cụm');
+  assert.ok(giaChuUoc('claude-opus-5-5', 6800, 3500) < giaChuCents('claude-opus-5-5', 6800, 3500) / 10, 'giá trên nút theo ckey, không theo Anthropic trực tiếp');
+  assert.strictEqual(giaChuUoc('gemini-3.8-flash', 1000, 100), giaChuCents('gemini-3.8-flash', 1000, 100), 'model không có trên ckey → giá gốc'); }

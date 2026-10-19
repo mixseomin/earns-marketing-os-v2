@@ -11,7 +11,7 @@ import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { luuKhuonTap, apDiemNhan, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction, doiCta } from '@/lib/actions';
-import { thanhPhanCanh, docKinhThanh, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
+import { thanhPhanCanh, docKinhThanh, giaChuUoc, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
 import { GiongNhanVat } from './nhan-vat';
@@ -260,9 +260,9 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           </Nut>
           {/* Bản lồng tiếng Việt: cùng hình + nhịp, chữ màn dịch, mọi câu đọc lại bằng đúng giọng nhân vật (ban-dich.ts) — vừa để người chỉ
               biết tiếng Việt xem hộ, vừa là track tiếng Việt gắn vào video gốc trên YouTube. Không thay bản xuất chính. */}
-          {!mayDung && kt.ngon_ngu !== 'vi' && <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào')} ban={jobXuat != null} gia={giaChuCents(kt.mo_hinh_chu, 2500, 2500)}
+          {!mayDung && kt.ngon_ngu !== 'vi' && <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào')} ban={jobXuat != null} gia={giaChuUoc(kt.mo_hinh_chu, 2500, 2500)}
             title={`Lồng tiếng Việt: dịch chữ màn + lời (1 lượt Claude, cùng nội dung thì nhớ bản dịch, 0đ lần sau), đọc lại ~${kyTuLoi} ký tự bằng đúng giọng từng nhân vật (tính vào gói ElevenLabs; câu đã đọc thì dùng lại). Ra MP4 để gửi người xem hộ + track tiếng M4A để gắn vào video gốc trên YouTube. Không thay bản xuất chính.`}
-            onClick={async () => { setLoiXuat(''); const r = await xuatLongTiengVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Lồng tiếng Việt · ~{tien(giaChuCents(kt.mo_hinh_chu, 2500, 2500))} + {kyTuLoi} ký tự</Nut>}
+            onClick={async () => { setLoiXuat(''); const r = await xuatLongTiengVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Lồng tiếng Việt · ~{tien(giaChuUoc(kt.mo_hinh_chu, 2500, 2500))} + {kyTuLoi} ký tự</Nut>}
           {/* Kho tài sản (ít dùng) → sau ⋯: cả tập thành khuôn QC dùng lại; tạo tập mới từ khuôn đã lưu. */}
           {!mayDung && <Menu>
             <MucMenu onClick={() => void chay('nhan', () => apDiemNhan(tap.id))}>✨ Điểm nhấn tự động — mỗi điểm cắt một hiệu ứng hình + tiếng theo loại shot (hook zoom + pop, nỗi đau rung + đập, CTA zoom + ka-ching…) · 0đ</MucMenu>

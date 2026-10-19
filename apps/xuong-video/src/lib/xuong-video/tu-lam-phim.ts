@@ -15,7 +15,7 @@ import { sinhNhacTap } from './sinh-nhac';
 import { tuSuaClipTap, sinhKeyframeCoDuPhong, ANH_DU_PHONG, type KetTuSua } from './tu-sua-clip';
 import { chonGiongDan, MODEL_GIONG_DAN } from './tu-sua-clip-do';
 import { boiCanhTap, ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
-import { docKinhThanh, locNhanh, tien } from './kieu';
+import { congTk, docKinhThanh, locNhanh, tien } from './kieu';
 
 const ngu = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 async function doiJob(db: Db, ids: number[], phut = 10): Promise<void> {
@@ -48,7 +48,7 @@ const chamClaude1: typeof thuNguoiXem = async (o) => {
   if (!d.ok) return d;
   const doi = tachJson<{ khop: boolean; lech: string }>(d.text);
   if (!doi || typeof doi.khop !== 'boolean') return { ok: false, loi: 'Claude không trả đúng khuôn (lượt đối chiếu)' };
-  return { ok: true, data: { xem: xem as never, doi: { khop: doi.khop, lech: String(doi.lech ?? '') } }, model: modelSoTien(x), tokens: { in: x.tokens.in + d.tokens.in, out: x.tokens.out + d.tokens.out } } as Awaited<ReturnType<typeof thuNguoiXem>>;
+  return { ok: true, data: { xem: xem as never, doi: { khop: doi.khop, lech: String(doi.lech ?? '') } }, model: modelSoTien(x), tokens: congTk(x.tokens, d.tokens) } as Awaited<ReturnType<typeof thuNguoiXem>>;
 };
 
 export type KetLamPhim = { ok: boolean; buoc: string; loi: string[]; clip: KetTuSua[] };

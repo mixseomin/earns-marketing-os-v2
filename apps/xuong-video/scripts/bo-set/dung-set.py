@@ -1776,6 +1776,9 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     rong = int(os.environ.get('XV_RONG', '1080')); s.render.resolution_x, s.render.resolution_y = rong, rong * 16 // 9
     if os.environ.get('XV_THU_KHUNG'): s.frame_start = s.frame_end = int(os.environ['XV_THU_KHUNG'])   # thử nét: một khung
     fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'RGB'
+    # NGƯỜI THẬT MPFB như khung màu đầu / kết (anh 19/10/2026: clip diễn tập 135 ra ma-nơ-canh khối — đường diễn chưa từng đổi khối ↔ người thật).
+    # Rig MPFB nhắm theo khớp ma-nơ-canh nên vẫn diễn đúng dáng / mocap; tiến trình thoát ngay sau nên không cần trả về khối.
+    nguoi_that(True)
     s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
     for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):
         f = 1 + round(t * (N - 1)); print('KHOA', i, f)

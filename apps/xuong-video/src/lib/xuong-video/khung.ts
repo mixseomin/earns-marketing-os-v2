@@ -47,7 +47,20 @@ export const chuLechMat = (m: SoiMat) => m.ket.filter((k) => !k.dat).map((k) => 
 export const NGUONG_NHIN = 15;
 type MatDo = SoiMat['ket'][number];
 /** Mặt đo được mà nhìn SAI so với phía cần nhìn (nhìn ống kính / sai phía). */
-export const nhinSai = (k: MatDo): boolean => !!k.nhin?.can && k.nhin.can * k.nhin.g < NGUONG_NHIN;
+/** Cúi / ngẩng quá ngưỡng này (độ) mà góc ngang gần 0 = đang nhìn xuống / lên một thứ (vết bẩn, điện thoại, sàn), KHÔNG phải nhìn ống kính
+ *  (tập 122 #2: Hạ cúi nhìn vết cà phê, ngang +1°, cúi 29° — luật cũ chỉ xét góc ngang nên báo "nhìn ống kính"). */
+export const NGUONG_CUI = 20;
+export const nhinSai = (k: MatDo): boolean => {
+  const n = k.nhin; if (!n?.can || n.can * n.g >= NGUONG_NHIN) return false;
+  return !(Math.abs(n.g) < NGUONG_NHIN && Math.abs(n.doc) >= NGUONG_CUI);   // cúi / ngẩng nhìn thứ khác: không phải nhìn máy, không phải sai phía
+};
+/** NGƯỜI ĐỂ GÁN MẶT trong một shot: người 3D thấy TRONG KHUNG (khung_xam.kiem › trong_khung) nếu shot có khung 3D, không thì mọi nhân vật của shot.
+ *  Tập 122 #2: 3D chỉ có Hạ trong khung, bộ so mặt gán mặt Hạ cho Vivian (giống 49%) vì Vivian cũng gắn shot → báo Vivian nhìn sai, 🩹 sửa nhầm người. */
+export const nguoiSoiMat = (c: Partial<Pick<Canh, 'khung_xam'>>, ten: string[]): string[] => {
+  const k = c.khung_xam?.kiem; if (!k?.length) return ten;
+  const trong = new Set(k.filter((x) => x.trong_khung).map((x) => x.nhan_vat));
+  return ten.filter((t) => trong.has(t));
+};
 export const loiNhin = (m: SoiMat): string[] => m.ket.filter(nhinSai).map((k) => {
   const n = k.nhin!; return `${k.ten} ${Math.abs(n.g) < NGUONG_NHIN ? 'nhìn vào ống kính' : 'nhìn sai phía'} (đo ${n.g > 0 ? '+' : ''}${n.g}°, cần nhìn sang ${n.can! > 0 ? 'PHẢI' : 'TRÁI'} màn ${n.tu ? `— ngược phía người đối diện ở shot #${n.tu} (khớp ánh mắt qua cú cắt)` : 'về phía người đối diện'})`;
 });

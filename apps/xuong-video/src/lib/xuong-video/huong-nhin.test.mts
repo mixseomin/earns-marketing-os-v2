@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { canNhin, dichNhin } from './bo-set-3d';
-import { loiNhin, chanKhung, NGUONG_NHIN, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat } from './khung';
+import { loiNhin, chanKhung, NGUONG_NHIN, nguoiSoiMat, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat } from './khung';
 import type { SoiMat } from './kieu';
 
 // Hai người đối mặt: Vivian (300,640) nhìn về −y (huong 0) tới Hạ (300,540). Máy ở bên trái (x nhỏ) nhìn sang +x → phải màn = −y.
@@ -65,4 +65,10 @@ const shot = (id: number, ket: SoiMat['ket'], vi: string[], pd = 'P1') => ({ id,
   assert.ok(!nhanSuaMat({ url: 'k', luc: '', mat: 1, ket: [mat('Hạ', 5, -1)], dat: true }, 'Hạ'), 'ảnh sửa giống mặt mà còn nhìn ống kính → KHÔNG nhận');
   assert.ok(nhanSuaMat({ url: 'k', luc: '', mat: 1, ket: [mat('Hạ', -25, -1)], dat: true }, 'Hạ'));
 }
+// ── tập 122 #2 (thử thật 19/10/2026): Hạ cúi nhìn vết cà phê — ngang +1,2°, cúi 29° → KHÔNG phải nhìn ống kính
+assert.deepEqual(loiNhin(sm([{ ten: 'Hạ', giong: 0.6, dat: true, nhin: { g: 1.2, dau: 1, mat: 0, doc: 29, can: 1 } }])), [], 'cúi nhìn xuống ≠ nhìn máy');
+assert.match(loiNhin(sm([{ ten: 'Hạ', giong: 0.6, dat: true, nhin: { g: -30, dau: -25, mat: -0.1, doc: 29, can: 1 } }]))[0]!, /sai phía/, 'cúi mà quay hẳn sai phía vẫn lỗi');
+// gán mặt chỉ cho người 3D thấy trong khung (#2: chỉ Hạ trong khung, mặt từng bị gán cho Vivian)
+assert.deepEqual(nguoiSoiMat({ khung_xam: { kiem: [{ nhan_vat: 'Lâm Hạ', trong_khung: true }, { nhan_vat: 'Vivian', trong_khung: false }] } } as never, ['Lâm Hạ', 'Vivian']), ['Lâm Hạ']);
+assert.deepEqual(nguoiSoiMat({}, ['Lâm Hạ', 'Vivian']), ['Lâm Hạ', 'Vivian'], 'không có khung 3D: mọi nhân vật của shot');
 console.log('huong-nhin.test: ok');

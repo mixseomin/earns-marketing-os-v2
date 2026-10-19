@@ -49,8 +49,8 @@ def van(im, ti_mat=0.4, ti_khung=0.0):
     return [(rec.feature(rec.alignCrop(im, x)).flatten(), float(x[3]), x[:4], nghieng(x)) for x in f if x[3] >= ti_mat * h0 and x[3] >= ti_khung * im.shape[0]]
 
 # HƯỚNG NHÌN (19/10/2026 — anh: "ánh nhìn, hướng nhìn rồi chuyển cảnh … làm mấy lần mà vẫn chưa ổn"): đo trên ẢNH ĐÃ SINH, không chỉ dặn trong prompt.
-# MediaPipe Face Landmarker (478 điểm gồm con ngươi + ma trận hướng đầu). g = góc nhìn ngang (độ, + = phía PHẢI màn) ≈ quay đầu + 60 × lệch con
-# ngươi khỏi giữa mắt. Hiệu chỉnh trên keyframe tập 122 (19/10/2026): #3 Vivian nhìn ống kính +10° · #11 Thần nhìn ống kính +10° · #4 Hạ nhìn
+# MediaPipe Face Landmarker (478 điểm gồm con ngươi + ma trận hướng đầu). g = góc nhìn ngang (độ, + = phía PHẢI màn) ≈ quay đầu + asin(2,5 × lệch
+# con ngươi khỏi giữa mắt) (hình học nhãn cầu, xem nhin_mat). Hiệu chỉnh trên keyframe tập 122 (19/10/2026): #3 Vivian nhìn ống kính +10° · #11 Thần nhìn ống kính +10° · #4 Hạ nhìn
 # trái −48° · #10 Vivian nhìn trái −34° → |g| < 15° về phía cần nhìn = nhìn ống kính / sai phía. Không có mediapipe → bỏ qua (không đo).
 _LM = None
 def _lm():
@@ -77,7 +77,10 @@ def nhin_mat(im):
         R = np.array(M)[:3, :3]; yaw = math.degrees(math.atan2(R[0, 2], R[2, 2])); doc_ = math.degrees(math.asin(-max(-1.0, min(1.0, R[1, 2]))))
         ti = lambda i, a, b: (f[i].x - f[a].x) / ((f[b].x - f[a].x) or 1e-6)
         ix = (ti(468, 33, 133) + ti(473, 362, 263)) / 2 - 0.5   # con ngươi: mắt phải người (33 ngoài → 133 trong) + mắt trái (362 trong → 263 ngoài)
-        out.append({'x': round(sum(p.x for p in f) / len(f), 3), 'y': round(sum(p.y for p in f) / len(f), 3), 'g': round(yaw + 60 * ix, 1), 'dau': round(yaw, 1), 'mat': round(ix, 2), 'doc': round(doc_, 1)})
+        # mắt xoay θ: con ngươi lệch 12·sinθ mm trên mắt rộng ~30 mm → θ = asin(2,5 · lệch). Trước 19/10/2026 lấy 60 × lệch: ảnh sửa #2 con ngươi
+        # lệch 0,17 (liếc rõ sang bên, ~25°) chỉ ra +10° → máy chấm "nhìn ống kính" một ảnh đã nhìn đúng phía.
+        mat_ = math.degrees(math.asin(max(-1.0, min(1.0, 2.5 * ix))))
+        out.append({'x': round(sum(p.x for p in f) / len(f), 3), 'y': round(sum(p.y for p in f) / len(f), 3), 'g': round(yaw + mat_, 1), 'dau': round(yaw, 1), 'mat': round(ix, 2), 'doc': round(doc_, 1)})
     return out
 
 def cos(a, b): return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))

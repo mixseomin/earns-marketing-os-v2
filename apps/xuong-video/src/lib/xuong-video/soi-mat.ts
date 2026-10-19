@@ -13,7 +13,7 @@ import { sql } from 'drizzle-orm';
 import { chatLieuPhim, docKinhThanh, locNhanh, type Canh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
 import { matTroiClip } from './soi-clip-do';
 import { uploadToR2 } from '../r2';
-import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat, chuLoiMat } from './khung';
+import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat, chuLoiMat, nguoiSoiMat } from './khung';
 import { canNhin, dichNhin } from './bo-set-3d';
 /** Gắn phía cần nhìn (3D) vào kết quả đo hướng nhìn của từng mặt — cổng khung.ts › loiNhin so hai thứ. */
 const ganNhin = (ket: SoiMat['ket'], c: Pick<Canh, 'may_3d'>, nv: Pick<NhanVat, 'ten'>[]): SoiMat['ket'] => ket.map((k) => { if (!k.nhin || !c.may_3d) return k; const can = canNhin(c.may_3d, k.ten, (t) => nv.some((v) => v.ten === t)); return can ? { ...k, nhin: { ...k.nhin, can } } : k; });
@@ -51,7 +51,7 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
   const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
   const tenCua = (ids: number[]) => ids.map((id) => nv.find((v) => v.id === id)?.ten).filter((x): x is string => !!x);
   let ra: Ra;
-  try { ra = await chay({ mau, anh: ds.map((c) => ({ id: c.id, url: c.keyframe_url, ten: tenCua(c.nhan_vat) })) }); }
+  try { ra = await chay({ mau, anh: ds.map((c) => ({ id: c.id, url: c.keyframe_url, ten: nguoiSoiMat(c, tenCua(c.nhan_vat)) })) }); }
   catch (e) { return { ok: false, loi: `soi mặt lỗi: ${e instanceof Error ? e.message : String(e)}` }; }
   const luc = new Date().toISOString(); const lech: { thu_tu: number; chu: string }[] = []; const moi: Record<number, SoiMat> = {};
   for (const c of ds) {
@@ -171,7 +171,7 @@ export async function xongSuaMat(db: Db, canhId: number, url: string, gia: numbe
   const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
   let sm: SoiMat | null = null;
   try {
-    const ra = await chay({ mau, anh: [{ id: canhId, url, ten: nv.map((v) => v.ten) }] }); const a = ra.anh[0];
+    const ra = await chay({ mau, anh: [{ id: canhId, url, ten: nguoiSoiMat(c, nv.map((v) => v.ten)) }] }); const a = ra.anh[0];
     // phía cần nhìn: 3D như lúc soi, cộng phía lấy theo cặp shot của lần đo trước (canTheoCap — đo lại một shot không thấy shot bên cạnh)
     if (a && !a.loi) sm = { url, luc: new Date().toISOString(), mat: a.mat ?? 0, ket: giuCanCap(ganNhin(a.ket ?? [], c, nv), c.soi_mat?.ket), dat: (a.ket ?? []).every((k) => k.dat) };
   } catch (e) { console.error('[sửa mặt › soi lại]', e); }

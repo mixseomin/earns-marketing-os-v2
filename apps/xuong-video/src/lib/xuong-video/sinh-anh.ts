@@ -568,6 +568,8 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   if (qt.length) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);
+  // KHUNG ĐO TRÊN 3D SỐNG (do-3d-song.ts): đủ để chấm, không có ảnh độ sâu / khung màu → chưa sinh keyframe được
+  if (sid && bc.canh.khung_xam?.nguon === 'song') chan.push('Khung 3D mới đo trên 3D sống để chấm (chưa dựng Blender — chưa có ảnh độ sâu / khung màu cho keyframe): 🧊 Dựng khung xám trước khi sinh');
   if (sid) {
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
     const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);

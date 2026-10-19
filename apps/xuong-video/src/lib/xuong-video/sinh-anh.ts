@@ -97,6 +97,30 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
 /** Sinh "ảnh mẫu" cho anchor từ mô tả (character sheet). Ảnh thêm vào anh_ref; các cảnh sau dùng nó làm tham chiếu.
  *  so = số ảnh một lượt (#1351, anh 13/10/2026: "mỗi lần sinh cần thêm vài góc khác chứ không chỉ một góc chính"): ảnh thứ k lấy góc thứ
  *  (đã có + k) trong claude.ts › GOC_THEM — lần đầu = ảnh chính + các góc phụ, lần sau = các góc chưa có. Trả job đầu tiên. */
+/** ẢNH MẶT QUAY TRÁI / PHẢI cho nhân vật người (anh 19/10/2026 "sinh đủ ảnh đi"): ảnh mẫu chỉ có mặt nhìn thẳng thì 🩹 sửa hướng nhìn không có ảnh
+ *  cùng phía để đưa mô hình (soi-mat.ts › keHoachSuaMat) — mô hình chép luôn ánh mắt nhìn ống kính của ảnh mẫu. Chân dung đầu–vai quay 3/4 về bên trái /
+ *  phải NGƯỜI XEM, mắt nhìn tiếp về phía đó, nền xám trơn. Ảnh về nối CUỐI anh_ref (hoan-tat.ts › 'mat_goc') — ảnh mẫu chính không đổi. */
+export const promptMatGoc = (nv: Pick<NhanVat, 'mo_ta'>, ben: 'trai' | 'phai', kt: KinhThanh): string => {
+  const b = ben === 'trai' ? 'LEFT' : 'RIGHT';
+  return `Photorealistic head-and-shoulders portrait of EXACTLY the same person as the reference images (same face, bone structure, eyes, nose, mouth, hairline, hairstyle, skin tone and age): ${nv.mo_ta}. `
+    + `Head turned about 35 degrees toward the viewer's ${b} (three-quarter view), eyes looking further toward the viewer's ${b}, NOT at the camera. Neutral, natural expression. `
+    + `Plain light grey studio background, soft even light, sharp focus on the face, natural skin texture. Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'cinematic'}. No text, no watermark.`;
+};
+export async function sinhMatGoc(db: Db, nhanVatId: number, ben: ('trai' | 'phai')[] = ['trai', 'phai']): Promise<KqSinh<number[]>> {
+  const r = (await db.execute(sql`SELECT v.*, p.kinh_thanh AS kt FROM xv_nhan_vat v JOIN xv_phim p ON p.id = v.phim_id WHERE v.id = ${nhanVatId}`)) as unknown as Row[];
+  if (!r[0]) return { ok: false, loi: 'không thấy nhân vật' };
+  const nv = mapNhanVat(r[0]); if (nv.loai !== 'nhan_vat' || !nv.anh_ref.length) return { ok: false, loi: `${nv.ten}: chỉ nhân vật người đã có ảnh mẫu` };
+  const kt = docKinhThanh(r[0].kt as KinhThanh);
+  const ref = [...new Set([...(nv.anh_mat?.url ?? []).slice(0, 1), nv.anh_ref[0]!])];
+  const jobs: number[] = [];
+  for (const b of ben) {
+    const prompt = promptMatGoc(nv, b, kt);
+    const job = await taoJob(db, { nhan: `Ảnh mặt quay ${b === 'trai' ? 'trái' : 'phải'} · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt, dich: 'mat_goc', ben: b } });
+    await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: ref, tiLe: '1:1', thuMuc: `anchor/${nhanVatId}` });
+    jobs.push(job);
+  }
+  return { ok: true, data: jobs };
+}
 export async function sinhAnhGoc(db: Db, nhanVatId: number, so = 1): Promise<KqSinh<number>> {
   const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
   const r = (await db.execute(sql`SELECT v.*, p.kinh_thanh AS kt FROM xv_nhan_vat v JOIN xv_phim p ON p.id = v.phim_id WHERE v.id = ${nhanVatId}`)) as unknown as Row[];

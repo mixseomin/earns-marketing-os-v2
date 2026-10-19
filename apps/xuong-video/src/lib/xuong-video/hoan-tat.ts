@@ -169,7 +169,7 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
       output_url = ${kq.ok ? kq.url : null}, model = coalesce(${kq.ok ? kq.model : null}, model),
       provider = CASE WHEN ${prov ?? ''} <> '' THEN ${prov ?? ''} WHEN ${kq.ok ? kq.model : ''} LIKE 'gpt-%' THEN 'openai' WHEN ${kq.ok ? kq.model : ''} LIKE 'fal:%' THEN 'fal' ELSE provider END,
       chi_phi_cents = ${Math.round(gia * 1000) / 1000}, loi = ${kq.ok ? '' : kq.loi}, nguon = ${n0 ? JSON.stringify(n0) : null}::jsonb, updated_at = now()
-    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich, request->>'anh_qc_id' AS anh_qc_id, request->>'lan' AS lan, request->>'goc' AS goc, request->>'thu' AS thu, request->'hop' AS hop`)) as unknown as Row[];
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich, request->>'anh_qc_id' AS anh_qc_id, request->>'lan' AS lan, request->>'goc' AS goc, request->>'thu' AS thu, request->'hop' AS hop, request->'ten' AS ten`)) as unknown as Row[];   // ten: người vừa 🩹 (soi-mat.ts › xongSuaMat xét đúng người đó)
   const j = r[0];
   if (!j) return false;
   // Một cổng trong chuỗi hỏng vì HẾT TIỀN → báo Telegram để nạp (studio đã tự sang cổng kế). Không chặn việc ghi sổ.
@@ -209,6 +209,10 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     const png = await catNen(kq.url, `cat-nen/${Number(j.nhan_vat_id)}`);
     if (png) { const n = await ganCatNenVaoLop(db, Number(j.phim_id), png); await db.execute(sql`UPDATE xv_job SET loi = ${n ? '' : 'tách nền xong nhưng tập không có lớp phủ cat-nen (template không mang lớp này)'} WHERE id = ${kq.job}`); }
     else await db.execute(sql`UPDATE xv_job SET loi = 'tách nền hỏng (ffmpeg) — ảnh nền xanh giữ ở output_url' WHERE id = ${kq.job}`);
+  } else if (j.dich === 'mat_goc' && j.nhan_vat_id != null) {
+    // ẢNH MẶT QUAY TRÁI / PHẢI (sinh-anh.ts › sinhMatGoc) nối CUỐI anh_ref: ảnh mẫu chính (anh_ref[0]) mọi keyframe đang tham chiếu giữ nguyên;
+    // lần soi mặt sau damBaoAnhMat cắt lại ảnh sát mặt (khoá đổi theo anh_ref) và lấy được mặt quay đúng phía cho 🩹 hướng nhìn
+    await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (anh_ref || ${JSON.stringify([kq.url])}::jsonb), updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);
   } else if (j.nhan_vat_id != null) {
     // ảnh gốc mới lên ĐẦU: thẻ anchor hiện ảnh đầu, nối vào cuối thì trông như bấm không ăn (08/10/2026)
     await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (${JSON.stringify([kq.url])}::jsonb || anh_ref), updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);

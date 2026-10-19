@@ -134,12 +134,13 @@ if vao.get('op') == 'dan':        # {op, goc, sua, hop} → {b64: khung gốc v�
 ra = {'mau': {}, 'anh': [], 'cat': {}}
 mau = {}
 for ten, urls in vao.get('mau', {}).items():
-    vs, ung = [], []
+    vs, ung, to = [], [], []
     for u in urls:
         try: im = doc(u); v = [x for x in van(im, 0.0) if x[1] >= 40]   # ảnh mẫu: MỌI mặt đủ rõ, kể cả mặt nghiêng nhỏ của dáng toàn thân (Jett #11 Frank cười nghiêng)
         except Exception as e: print(f'bỏ ảnh mẫu {u}: {e}', file=sys.stderr); continue
         vs.extend(x for x, _, _, _ in v[:16])
         ung.extend((x, h, hop, im) for x, h, hop, ng in v[:16] if h >= 80 and not ng)
+        to.extend((hop, im) for x, h, hop, ng in v[:16] if h >= 80)   # cả mặt NGHIÊNG — nguồn ảnh mặt quay trái / phải
     # cat: mặt ĐIỂN HÌNH nhất của ảnh mẫu (gần trung bình mọi mặt — thường là mặt trung tính nhìn thẳng, không phải mặt "ngạc nhiên"),
     # cộng một mặt khác góc nhất → ảnh sát mặt kèm lượt sinh keyframe / sửa mặt.
     # HƯỚNG ĐẦU (19/10/2026, sửa hướng nhìn): thêm mặt QUAY TRÁI và QUAY PHẢI rõ nhất (|quay đầu| ≥ 12°) — sửa mặt / hướng nhìn đưa ảnh mẫu cùng phía
@@ -153,7 +154,7 @@ for ten, urls in vao.get('mau', {}).items():
             q = nhin_mat(cv2.imdecode(np.frombuffer(base64.b64decode(b), np.uint8), cv2.IMREAD_COLOR)); return q[0]['dau'] if q else None
         dau = [_dau(b) for b in anh]
         if _lm():
-            ung_ = [(b, _dau(b)) for b in (cat_mat(im_, hop) for _, _, hop, im_ in ung[:24]) if b]
+            ung_ = [(b, _dau(b)) for b in (cat_mat(im_, hop) for hop, im_ in to[:24]) if b]
             for ben in (-1, 1):
                 if any(d is not None and d * ben >= 12 for d in dau): continue
                 tot = max(((b, d) for b, d in ung_ if d is not None and d * ben >= 12), key=lambda x: x[1] * ben, default=None)

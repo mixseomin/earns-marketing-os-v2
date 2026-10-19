@@ -142,11 +142,23 @@ for ten, urls in vao.get('mau', {}).items():
         ung.extend((x, h, hop, im) for x, h, hop, ng in v[:16] if h >= 80 and not ng)
     # cat: mặt ĐIỂN HÌNH nhất của ảnh mẫu (gần trung bình mọi mặt — thường là mặt trung tính nhìn thẳng, không phải mặt "ngạc nhiên"),
     # cộng một mặt khác góc nhất → ảnh sát mặt kèm lượt sinh keyframe / sửa mặt.
+    # HƯỚNG ĐẦU (19/10/2026, sửa hướng nhìn): thêm mặt QUAY TRÁI và QUAY PHẢI rõ nhất (|quay đầu| ≥ 12°) — sửa mặt / hướng nhìn đưa ảnh mẫu cùng phía
+    # cần nhìn; chỉ có mặt nhìn thẳng thì mô hình chép luôn ánh mắt nhìn ống kính. ra['cat_dau'][ten] = góc quay đầu từng ảnh (None = không đo được).
     if vao.get('cat') and ung:
         tb = np.mean([x / np.linalg.norm(x) for x, _, _, _ in ung], axis=0)
         xep = sorted(ung, key=lambda u: -cos(u[0], tb))
         chon = [xep[0]] + ([xep[-1]] if len(xep) > 2 else [])
-        ra['cat'][ten] = [b for b in (cat_mat(im_, hop) for _, _, hop, im_ in chon) if b]   # ảnh mẫu / bảng nhân vật nhiều góc + biểu cảm: mọi mặt cỡ lớn đều là nhân vật — so với mặt gần nhất
+        anh = [b for b in (cat_mat(im_, hop) for _, _, hop, im_ in chon) if b]   # ảnh mẫu / bảng nhân vật nhiều góc + biểu cảm: mọi mặt cỡ lớn đều là nhân vật — so với mặt gần nhất
+        def _dau(b):
+            q = nhin_mat(cv2.imdecode(np.frombuffer(base64.b64decode(b), np.uint8), cv2.IMREAD_COLOR)); return q[0]['dau'] if q else None
+        dau = [_dau(b) for b in anh]
+        if _lm():
+            ung_ = [(b, _dau(b)) for b in (cat_mat(im_, hop) for _, _, hop, im_ in ung[:24]) if b]
+            for ben in (-1, 1):
+                if any(d is not None and d * ben >= 12 for d in dau): continue
+                tot = max(((b, d) for b, d in ung_ if d is not None and d * ben >= 12), key=lambda x: x[1] * ben, default=None)
+                if tot: anh.append(tot[0]); dau.append(tot[1])
+        ra['cat'][ten] = anh; ra.setdefault('cat_dau', {})[ten] = dau
     ra['mau'][ten] = len(vs)
     if vs: mau[ten] = vs
 for a in vao.get('anh', []):

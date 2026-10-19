@@ -186,7 +186,7 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   } else if (canh != null && j.dich === 'sua_mat') {
     // 🩹 sửa mặt (soi-mat.ts › suaMatCanh): soi lại ảnh sửa → đạt thì thành keyframe, chưa thì thử lại từ ảnh gốc (tối đa 3 lần)
     const { xongSuaMat } = await import('./soi-mat');
-    await xongSuaMat(db, canh, kq.url, gia, { lan: j.lan as string | null, goc: j.goc as string | null, thu: j.thu as string | null, job: kq.job, hop: (j.hop as number[] | null) ?? null });
+    await xongSuaMat(db, canh, kq.url, gia, { lan: j.lan as string | null, goc: j.goc as string | null, thu: j.thu as string | null, job: kq.job, hop: (j.hop as number[] | null) ?? null, ten: (j.ten as string[] | null) ?? null });
   } else if (canh != null && j.dich === 'keyframe_giua') {
     // keyframe GIỮA (sinh-anh.ts › sinhKeyframeKetCanh): ô giữa của dải nhịp ảnh thứ 2 gửi model video
     await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);

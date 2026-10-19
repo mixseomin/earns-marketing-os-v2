@@ -217,6 +217,7 @@ export function keHoachXuat(o: {
     canhBao.push('bản nháp THIẾU nhạc nền — giữa các câu lời dẫn là khoảng im');
   }
   // ĐIỂM CẮT CUỐI (cat-cuoi.ts): shot khai phát dài hơn đoạn dùng được của clip → giayPhat đã cắt ở điểm cắt; báo để chỉnh giây / giọng.
+  for (const c of ds) if (c.cat_cuoi_s === 0 && (c.video_url || c.video_cuoi_url)) canhBao.push(`#${c.thu_tu} clip hỏng: dải nhịp của ảnh thứ 2 hiện từ nửa đầu clip — sinh lại clip`);
   for (const c of ds) if (c.cat_cuoi_s && c.phat_s && c.phat_s > c.cat_cuoi_s + 0.05) canhBao.push(`#${c.thu_tu} khai phát ${c.phat_s}s nhưng clip chỉ dùng được tới ${c.cat_cuoi_s}s (sau đó hoà tan ra dải nhịp) — đã cắt ở ${c.cat_cuoi_s}s`);
   const dauVao: string[] = [];           // tham số -i theo thứ tự chỉ số
   const chiSo = new Map<string, number>();

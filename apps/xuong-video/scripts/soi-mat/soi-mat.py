@@ -36,6 +36,38 @@ def van(im, ti_mat=0.4, ti_khung=0.0):
     f = sorted(f, key=lambda x: -x[3]); h0 = f[0][3]
     return [(rec.feature(rec.alignCrop(im, x)).flatten(), float(x[3]), x[:4], nghieng(x)) for x in f if x[3] >= ti_mat * h0 and x[3] >= ti_khung * im.shape[0]]
 
+# HƯỚNG NHÌN (19/10/2026 — anh: "ánh nhìn, hướng nhìn rồi chuyển cảnh … làm mấy lần mà vẫn chưa ổn"): đo trên ẢNH ĐÃ SINH, không chỉ dặn trong prompt.
+# MediaPipe Face Landmarker (478 điểm gồm con ngươi + ma trận hướng đầu). g = góc nhìn ngang (độ, + = phía PHẢI màn) ≈ quay đầu + 60 × lệch con
+# ngươi khỏi giữa mắt. Hiệu chỉnh trên keyframe tập 122 (19/10/2026): #3 Vivian nhìn ống kính +10° · #11 Thần nhìn ống kính +10° · #4 Hạ nhìn
+# trái −48° · #10 Vivian nhìn trái −34° → |g| < 15° về phía cần nhìn = nhìn ống kính / sai phía. Không có mediapipe → bỏ qua (không đo).
+_LM = None
+def _lm():
+    global _LM
+    if _LM is None:
+        try:
+            import mediapipe as mp
+            from mediapipe.tasks import python as mpt
+            from mediapipe.tasks.python import vision as mv
+            _LM = (mp, mv.FaceLandmarker.create_from_options(mv.FaceLandmarkerOptions(base_options=mpt.BaseOptions(model_asset_path=f'{MO}/face_landmarker.task'), output_facial_transformation_matrixes=True, num_faces=6)))
+        except Exception as e:
+            print(f'không đo hướng nhìn: {e}', file=sys.stderr); _LM = False
+    return _LM
+
+def nhin_mat(im):
+    """Các mặt + hướng nhìn: [{x, y (tâm mặt, phần khung), g (độ ngang, + = phải màn), dau (quay đầu), mat (lệch con ngươi −0,5..0,5), doc (ngẩng)}]."""
+    import math
+    L = _lm()
+    if not L: return []
+    mp, lm = L
+    r = lm.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(im, cv2.COLOR_BGR2RGB)))
+    out = []
+    for f, M in zip(r.face_landmarks, r.facial_transformation_matrixes):
+        R = np.array(M)[:3, :3]; yaw = math.degrees(math.atan2(R[0, 2], R[2, 2])); doc_ = math.degrees(math.asin(-max(-1.0, min(1.0, R[1, 2]))))
+        ti = lambda i, a, b: (f[i].x - f[a].x) / ((f[b].x - f[a].x) or 1e-6)
+        ix = (ti(468, 33, 133) + ti(473, 362, 263)) / 2 - 0.5   # con ngươi: mắt phải người (33 ngoài → 133 trong) + mắt trái (362 trong → 263 ngoài)
+        out.append({'x': round(sum(p.x for p in f) / len(f), 3), 'y': round(sum(p.y for p in f) / len(f), 3), 'g': round(yaw + 60 * ix, 1), 'dau': round(yaw, 1), 'mat': round(ix, 2), 'doc': round(doc_, 1)})
+    return out
+
 def cos(a, b): return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
 
 if len(sys.argv) == 4 and sys.argv[1] == '--tu-kiem':
@@ -128,12 +160,15 @@ for a in vao.get('anh', []):
     for g, i, t in cap:
         if t in gan or i in dung: continue
         gan[t] = (g, mat[i][1], mat[i][2], mat[i][3]); dung.add(i)
+    nm = nhin_mat(im) if gan else []
     ket = []
     for t in ten:
         if t not in gan: ket.append({'ten': t, 'giong': None, 'dat': True}); continue
         g, h, hop, ng = gan[t]; nho = h < NHO
         # tâm mặt theo phần khung (0..1) — để lệnh sửa mặt chỉ đúng mặt nào khi khung có nhiều người
         o = {'x': round((float(hop[0]) + float(hop[2]) / 2) / W, 3), 'y': round((float(hop[1]) + float(hop[3]) / 2) / H, 3)}
-        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'o': o, **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {})})
+        hn = min(nm, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # mặt MediaPipe trùng mặt YuNet đã gán
+        hn = hn if hn and abs(hn['x'] - o['x']) < 0.08 and abs(hn['y'] - o['y']) < 0.08 else None
+        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'o': o, **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
     ra['anh'].append({'id': a['id'], 'mat': len(mat), 'ket': ket})
 print(json.dumps(ra, ensure_ascii=False))

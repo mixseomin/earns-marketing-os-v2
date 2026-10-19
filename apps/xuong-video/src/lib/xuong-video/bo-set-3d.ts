@@ -30,7 +30,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 94;
+export const BAN_DUNG = 95;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -41,9 +41,10 @@ const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o) ? {
 export const netMo = (bieu?: { nv: string; dau: string; cuoi?: string }[] | null) => (bieu ?? []).map((b) => [b.nv, b.dau, b.cuoi ?? b.dau]);
 /** Cú máy vào mã khung: mọi shot dựng khung KẾT với máy ở cuối đường máy (BAN_DUNG 82) — đổi cú máy là khung kết đổi. Máy đứng yên không vào mã. */
 const chayMa = (cd?: string | null) => (cd && cd !== 'tinh' ? cd : null);
-export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[], bieu?: { nv: string; dau: string; cuoi?: string }[] | null, chuyenDong?: string | null) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))), ...(bieu?.length ? { net: bam(netMo(bieu)) } : {}), ...(chayMa(chuyenDong) ? { chay: chayMa(chuyenDong)! } : {}) });
-export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[], bieu?: { nv: string; dau: string; cuoi?: string }[] | null, chuyenDong?: string | null): string {
-  const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat)), ...(bieu?.length ? [netMo(bieu)] : []), ...(chayMa(chuyenDong) ? [chayMa(chuyenDong)] : [])]);
+export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[], bieu?: { nv: string; dau: string; cuoi?: string }[] | null, chuyenDong?: string | null, anhSang?: string | null) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))), ...(bieu?.length ? { net: bam(netMo(bieu)) } : {}), ...(chayMa(chuyenDong) ? { chay: chayMa(chuyenDong)! } : {}), ...(anhSang ? { den: anhSang } : {}) });
+/** anhSang: khoá ánh sáng của thẻ shot — bộ đèn khung màu đổi theo (dung-set.py › DEN_KIEU) nên đổi ánh sáng = khung cũ. Không khai thì không vào băm. */
+export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: NvKhoi[], bieu?: { nv: string; dau: string; cuoi?: string }[] | null, chuyenDong?: string | null, anhSang?: string | null): string {
+  const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat)), ...(bieu?.length ? [netMo(bieu)] : []), ...(chayMa(chuyenDong) ? [chayMa(chuyenDong)] : []), ...(anhSang ? [`den:${anhSang}`] : [])]);
   let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return h.toString(36);
 }
@@ -54,7 +55,15 @@ export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
   return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh, chay: duongMay(s.may_3d, s.ky_thuat?.chuyen_dong, hopVat(set.du_lieu.vat, s.may_3d.them ?? []), (t) => Number((mau[t] as { co?: number[] } | undefined)?.co?.[2] ?? 2)) }, nhan_vat: s.may_3d.vi_tri,
-    bat_buoc: chuThe(s.may_3d), co_canh: s.ky_thuat?.co_canh ?? '', mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban, net: Object.fromEntries((s.bieu_cam ?? []).map((b) => [b.nv, [b.dau, b.cuoi]])) })) } };
+    bat_buoc: chuThe(s.may_3d), co_canh: s.ky_thuat?.co_canh ?? '', mat: nguoiNoiTrongKhung(s), mat_nguong: ['ws', 'ews', 'two'].includes(s.ky_thuat?.co_canh ?? '') ? 100 : 80, giai: !!s.may_3d.tu_dong && !s.khoa_may, nhac: vatDuocNhac(s, set), truc: s.truc ?? null, them: s.may_3d.them ?? [], den_ban: !!s.may_3d.den_ban, net: Object.fromEntries((s.bieu_cam ?? []).map((b) => [b.nv, [b.dau, b.cuoi]])),
+    // ÁNH SÁNG THEO KỊCH BẢN (anh 19/10/2026): khoá anh_sang của thẻ shot (dien-anh.ts › nhóm anh_sang) → bộ đèn khung màu (dung-set.py › DEN_KIEU).
+    anh_sang: s.ky_thuat?.anh_sang ?? '',
+    // MẮT NHÌN NGƯỜI ĐƯỢC NHÌN: toạ độ mắt (cm) của đích lúc mở / kết — Blender xoay mắt bằng khoá eyeLook* (mesh/nguoi.py › mat_nhin).
+    nhin_mat: Object.fromEntries(['mo', 'ket'].map((k) => [k, Object.fromEntries(s.may_3d.vi_tri.filter((v) => (mau[v.ten] as KhoiSet | undefined)?.hinh === 'nguoi' && !v.cam).flatMap((v) => {
+      const nguoi = s.may_3d.vi_tri.filter((x) => (mau[x.ten] as KhoiSet | undefined)?.hinh === 'nguoi' && !x.cam);
+      const d = dichNhin(v, nguoi, k === 'ket'); if (!d) return [];
+      const cao = Number((mau[d.ten] as KhoiSet | undefined)?.co?.[2] ?? 170); return [[v.ten, [d.q[0]!, d.q[1]!, (d.q[2] ?? 0) + cao * 0.93]]];
+    }))])) })) } };
 }
 
 /** NGƯỜI ĐANG NÓI là chủ thể trong khung (không phải giọng ngoài khung) — keyframe AI = khung mở phải thấy mặt họ: luật kiem-ai-3d.ts › matNguoiNoi và
@@ -244,7 +253,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   const thieu = thieuTrongSet(c, nhanVat, set);
   if (thieu.length) out.push(`bộ set / chỗ đứng chưa có: ${thieu.join(', ')} — thêm vào bộ set (đồ cố định) hoặc vào chỗ đứng của shot`);
   const kx = c.khung_xam;
-  if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat, c.bieu_cam, c.ky_thuat?.chuyen_dong)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
+  if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
   else if (!kx.thay) out.push('khung xám đời cũ chưa đo "thấy gì trong khung" — chạy 🧊 Dựng khung xám lại');
   else {
     // XUYÊN NHAU (dung-set.py › do_lun): đạo cụ lún vào người / đạo cụ khác / đồ set > 1 cm — keyframe AI vẽ đúng cái sai đó (#11 thẻ chìm vào thùng)
@@ -843,12 +852,27 @@ export const NHIP_DAN = 45;
  *  máy nhưng MẮT đặt lên bạn diễn ngay sát mép ống kính (eyeline just off-lens), không bao giờ nhìn vào ống kính trừ khi cố ý phá bức tường thứ tư.
  *  Chữ "facing the camera" + ảnh mẫu / ảnh học LoRA (chân dung nhìn máy) làm model vẽ mắt nhìn thẳng máy (#12 Thần + Hạ, #14 Hạ). Đích nhìn = người
  *  (kể cả người ngoài khung) gần hướng mặt nhất (< 75°); phía trên màn = đích nằm bên nào của người đó trên khung. Không có đích → vẫn cấm nhìn máy. */
+/** NGƯỜI ĐƯỢC NHÌN của v (lúc mở / kết): người khác gần hướng mặt nhất (< 75°), kể cả ngoài khung. MỘT luật cho chữ ánh mắt trong prompt (nhinCau)
+ *  và mắt ma-nơ-canh 3D (bangDung › nhin_mat — dung-set.py xoay mắt bằng khoá eyeLook*), để ảnh 3D và chữ cùng nói một hướng nhìn. */
+export function dichNhin(v: ViTri, nguoi: ViTri[], ket = false): { ten: string; q: number[]; lech: number } | undefined {
+  const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return undefined;
+  const p = ket ? v.den ?? v.tam : v.tam;
+  return nguoi.filter((x) => x.ten !== v.ten).map((x) => { const q = ket ? x.den ?? x.tam : x.tam; return { ten: x.ten, q, lech: gocLech(h, huongToi(p, q)) }; })
+    .filter((x) => x.lech < 75).sort((a, b) => a.lech - b.lech)[0];
+}
+/** PHÍA MÀN người `ten` phải nhìn ở khung mở (+1 phải / −1 trái; 0 = không có người để nhìn) — cổng hướng nhìn đo trên keyframe (khung.ts › loiNhin). */
+export function canNhin(m: Pick<May3d, 'dat' | 'nhin' | 'vi_tri'>, ten: string, laNguoi: (t: string) => boolean): 1 | -1 | 0 {
+  if (!m.dat || !m.nhin) return 0;
+  const nguoi = m.vi_tri.filter((x) => laNguoi(x.ten) && !x.cam); const v = nguoi.find((x) => x.ten === ten); if (!v) return 0;
+  const d = dichNhin(v, nguoi); if (!d) return 0;
+  const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!;
+  return (d.q[0]! - v.tam[0]!) * fy + (d.q[1]! - v.tam[1]!) * -fx >= 0 ? 1 : -1;
+}
 export function nhinCau(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, nguoi: ViTri[], ket = false): string {
   const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return '';
   const p = ket ? v.den ?? v.tam : v.tam;
   const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const rx = fy, ry = -fx;   // vectơ phải-màn-hình của máy
-  const dich = nguoi.filter((x) => x.ten !== v.ten).map((x) => { const q = ket ? x.den ?? x.tam : x.tam; return { ten: x.ten, q, lech: gocLech(h, huongToi(p, q)) }; })
-    .filter((x) => x.lech < 75).sort((a, b) => a.lech - b.lech)[0];
+  const dich = dichNhin(v, nguoi, ket);
   const sat = gocLech(h, huongToi(p, m.dat)) <= 35;
   if (!dich) return sat ? 'eyes just off the lens, NOT looking into the camera' : 'NOT looking at the camera';
   const ben = (dich.q[0]! - p[0]!) * rx + (dich.q[1]! - p[1]!) * ry >= 0 ? 'screen-right' : 'screen-left';

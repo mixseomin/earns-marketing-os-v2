@@ -205,6 +205,41 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
 
 # ── KHUNG MÀU (previs có màu — anh 14/10/2026: "dùng luôn Blender tạo khung và màu sắc"): vật liệu theo `chat`, nhân vật theo `mo_hinh`,
 # ánh sáng theo kịch bản (đèn bàn bật / chỉ ánh xanh màn hình). Render EEVEE qua Xvfb → ảnh <ma>-mau.png làm ảnh tham chiếu số 1 cho keyframe.
+# VẬT LIỆU QUÉT TỪ ĐỒ THẬT (anh 19/10/2026, nhịp 2 "Blender tăng độ chân thật"): mỗi chất một bộ texture PBR CC0 Poly Haven 2k (màu · nhám · pháp
+# tuyến), tải bằng tai-tai-san.sh vào tai-san/vl/<mã>/. Thiếu tệp → rơi về vật liệu dựng tay như cũ. o_m = ô vân bao nhiêu cm.
+VL_QUET = {'go': ('wood_table_001', 30), 'da_cam_thach': ('marble_01', 120), 'tuong_son': ('painted_plaster_wall', 150), 'vai': ('fabric_pattern_07', 25),
+           'tham': ('dirty_carpet', 100), 'kim_loai': ('metal_plate', 60), 'be_tong': ('concrete_floor_02', 150), 'da_thuoc': ('brown_leather', 40),
+           'gach': ('floor_tiles_06', 120)}
+# Món chưa khai `chat` → đoán theo mô tả tiếng Anh (en) của bộ set — một bảng, không phải sửa dữ liệu từng phim. Kính / cửa sổ / màn hình không đoán.
+CHAT_TU_EN = [(r'\bmarble\b', 'da_cam_thach'), (r'\bcarpet|\brug\b', 'tham'), (r'\bconcrete\b', 'be_tong'), (r'\bleather\b', 'da_thuoc'),
+              (r'\btiles?\b', 'gach'), (r'\b(walnut|oak|wood(en)?|timber)\b', 'go'), (r'\b(steel|metal|aluminium|aluminum|chrome)\b', 'kim_loai'),
+              (r'\b(fabric|upholster|sofa|cushion|curtain)', 'vai'), (r'\b(wall|plaster)\b', 'tuong_son')]
+def doan_chat(v):
+    en = v.get('en') or ''
+    if v.get('kinh') or v.get('sang') or _re.search(r'\b(glass|window|screen|monitor|display)\b', en, _re.I): return ''
+    return next((c for k, c in CHAT_TU_EN if _re.search(k, en, _re.I)), '')
+
+def vl_quet(nt, b, chat, rgb, nhuom=0.85):
+    """Gắn bộ texture quét (VL_QUET) vào Principled b; tô theo màu khai (nhân, nhuom). Trả False khi thiếu tệp (rơi về dựng tay)."""
+    if chat not in VL_QUET: return False
+    ma, o_m = VL_QUET[chat]; d = os.path.join(TAI_SAN, 'vl', ma)
+    tep = {k: os.path.join(d, f'{k}.jpg') for k in ('mau', 'nham', 'phap')}
+    if chat == 'go' and not os.path.exists(tep['mau']): tep = {'mau': os.path.join(TAI_SAN, 'go_mau.jpg'), 'nham': os.path.join(TAI_SAN, 'go_nham.jpg'), 'phap': os.path.join(TAI_SAN, 'go_phap.jpg')}
+    if not all(os.path.exists(x) for x in tep.values()): return False
+    tc = nt.nodes.new('ShaderNodeTexCoord'); mp = nt.nodes.new('ShaderNodeMapping'); k = 100.0 / o_m; mp.inputs['Scale'].default_value = (k, k, k)
+    nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+    def tex(f, mau=True):
+        t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(f, check_existing=True); t.projection = 'BOX'; t.projection_blend = 0.2
+        if not mau: t.image.colorspace_settings.name = 'Non-Color'
+        nt.links.new(mp.outputs['Vector'], t.inputs['Vector']); return t
+    tm, tn, tp = tex(tep['mau']), tex(tep['nham'], False), tex(tep['phap'], False)
+    mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = nhuom
+    nt.links.new(tm.outputs['Color'], mx.inputs['A']); mx.inputs['B'].default_value = (*[min(1, c * 2.2) for c in rgb], 1)
+    nt.links.new(mx.outputs['Result'], b.inputs['Base Color']); nt.links.new(tn.outputs['Color'], b.inputs['Roughness'])
+    nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.6; nt.links.new(tp.outputs['Color'], nm.inputs['Color']); nt.links.new(nm.outputs['Normal'], b.inputs['Normal'])
+    if chat == 'kim_loai': b.inputs['Metallic'].default_value = 0.85
+    return True
+
 def chat_lieu(o, chat, hex_):
     """Gắn vật liệu thật cho một khối: go (gỗ), dat_set (đất sét), long (lông), vai (vải), keo (kẹo dẻo), bong (bông), kim_loai, nhua, cao_su."""
     if not chat or not hasattr(o.data, 'materials'): return
@@ -214,19 +249,7 @@ def chat_lieu(o, chat, hex_):
     def gon(scale, manh):
         nz = nt.nodes.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = scale; bm = nt.nodes.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = manh
         nt.links.new(nz.outputs['Fac'], bm.inputs['Height']); nt.links.new(bm.outputs['Normal'], b.inputs['Normal'])
-    anh = lambda ten: os.path.join(TAI_SAN, ten)
-    if chat == 'go' and os.path.exists(anh('go_mau.jpg')):   # gỗ quét từ bàn thật (Poly Haven wood_table_001), tô theo màu khai, vân ~30 cm một ô
-        tc = nt.nodes.new('ShaderNodeTexCoord'); mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (3.3, 3.3, 3.3)
-        nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
-        def tex(ten, mau=True):
-            t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(anh(ten), check_existing=True); t.projection = 'BOX'; t.projection_blend = 0.2
-            if not mau: t.image.colorspace_settings.name = 'Non-Color'
-            nt.links.new(mp.outputs['Vector'], t.inputs['Vector']); return t
-        tm, tn, tp = tex('go_mau.jpg'), tex('go_nham.jpg', False), tex('go_phap.jpg', False)
-        mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 0.85
-        nt.links.new(tm.outputs['Color'], mx.inputs['A']); mx.inputs['B'].default_value = (*[min(1, c * 2.2) for c in rgb], 1)
-        nt.links.new(mx.outputs['Result'], b.inputs['Base Color']); nt.links.new(tn.outputs['Color'], b.inputs['Roughness'])
-        nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.6; nt.links.new(tp.outputs['Color'], nm.inputs['Color']); nt.links.new(nm.outputs['Normal'], b.inputs['Normal'])
+    if vl_quet(nt, b, chat, rgb, 0.4 if chat == 'da_cam_thach' else 0.85): pass   # texture quét đồ thật (VL_QUET) — đá cẩm thạch giữ vân trắng, tô nhẹ
     elif chat == 'go':
         nz = nt.nodes.new('ShaderNodeTexWave'); nz.inputs['Scale'].default_value = 3; nz.inputs['Distortion'].default_value = 6
         cr = nt.nodes.new('ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (*[c * 0.55 for c in rgb], 1); cr.color_ramp.elements[1].color = (*[min(1, c * 1.35) for c in rgb], 1)
@@ -239,7 +262,10 @@ def chat_lieu(o, chat, hex_):
     elif chat == 'kim_loai': b.inputs['Metallic'].default_value = 0.9; b.inputs['Roughness'].default_value = 0.32
     elif chat == 'nhua': b.inputs['Roughness'].default_value = 0.35
     elif chat == 'cao_su': b.inputs['Roughness'].default_value = 0.7
-    if MESH_THAT and chat != 'go': dnv.khuyet_diem(nt, b)   # vết tay / chỗ bóng chỗ mờ (dnv.khuyet_diem)
+    elif chat in ('da_cam_thach', 'gach'): b.inputs['Roughness'].default_value = 0.18   # thiếu tệp quét: mặt bóng
+    elif chat in ('tuong_son', 'be_tong', 'tham'): b.inputs['Roughness'].default_value = 0.9
+    elif chat == 'da_thuoc': b.inputs['Roughness'].default_value = 0.45; gon(1800, 0.2)
+    if MESH_THAT and chat not in VL_QUET: dnv.khuyet_diem(nt, b)   # vết tay / chỗ bóng chỗ mờ (dnv.khuyet_diem)
     o.data.materials.clear(); o.data.materials.append(m)
 
 def hoan_thien(o, kieu, w, d, h):
@@ -255,16 +281,92 @@ def hoan_thien(o, kieu, w, d, h):
         dp = o.modifiers.new('go', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = {'dat_set': 0.0008, 'bong': 0.004, 'vai': 0.004, 'long': 0.0025}[kieu]
     # Lông (Lint): mặt xù dày + sheen thay cho hệ sợi lông — sợi lông Blender chạy không giao diện ra sợi dài cả khung (thử #23), khó kiểm.
 
+# BỘ ĐÈN THEO KỊCH BẢN (anh 19/10/2026: "Blender có nhiều tính năng tăng độ chân thật mà cứ xón ra ít một"): khoá anh_sang của thẻ shot
+# (dien-anh.ts › nhóm anh_sang) → bộ đèn khung màu, đặt theo máy + chủ thể như đèn trên set thật (key / fill / rim — Brown, Motion Picture and
+# Video Lighting; Blain Brown, Cinematography: Theory and Practice). Trước đây MỌI shot một kiểu ánh xanh đêm (đúng cho Tango đêm, sai cho tổng
+# tài ban ngày cửa sổ — khung 3D #7, #8 tập 122 ám xanh). Đèn: (phương vị so với hướng chủ thể → máy, độ; cao cm so với mắt; xa cm; W; màu; cỡ cm).
+# Mức đèn chỉnh theo ảnh thử 19/10 (bản đầu dư sáng: áo đỏ thành hồng, tóc đen thành xám — giảm ~½). phương vị 0 = đứng sau máy, +90 = bên TRÁI khung nhìn từ máy, 180 = sau lưng chủ thể (viền). 'cua_so' ưu tiên đèn tấm ở đúng cửa kính của set.
+NGAY = (1.0, 0.96, 0.9); LANH = (0.82, 0.88, 1.0); AM = (1.0, 0.72, 0.45)
+DEN_KIEU = {
+    'cua_so':     {'the_gioi': ((0.85, 0.88, 0.92), 0.3), 'cua_so': 900, 'den': [(55, 50, 260, 350, NGAY, 220), (-55, 10, 220, 60, LANH, 160)]},
+    'sang_deu':   {'the_gioi': ((0.95, 0.95, 0.95), 0.5), 'den': [(30, 60, 260, 330, NGAY, 260), (-35, 20, 240, 210, NGAY, 220)]},
+    'studio':     {'the_gioi': ((0.9, 0.9, 0.9), 0.4), 'den': [(45, 60, 220, 400, (1, 1, 1), 200), (-45, 30, 220, 240, (1, 1, 1), 200), (175, 60, 200, 200, (1, 1, 1), 80)]},
+    'toi':        {'the_gioi': ((0.6, 0.65, 0.8), 0.04), 'den': [(80, 50, 200, 420, NGAY, 30)]},
+    'nhap_nhay':  {'the_gioi': ((0.6, 0.65, 0.8), 0.04), 'den': [(80, 50, 200, 380, AM, 30)]},
+    'tuong_phan': {'the_gioi': ((0.6, 0.65, 0.8), 0.05), 'den': [(90, 30, 190, 520, NGAY, 40), (-90, 0, 220, 25, LANH, 120)]},
+    'hoang_hon':  {'the_gioi': ((0.95, 0.68, 0.48), 0.3), 'mat_troi': (70, 8, 4.0, (1.0, 0.6, 0.33)), 'den': [(-60, 10, 230, 70, LANH, 150)]},
+    'gio_xanh':   {'the_gioi': ((0.35, 0.45, 0.8), 0.8), 'den': [(0, 30, 240, 90, (0.6, 0.7, 1.0), 200)]},
+    'nguoc':      {'the_gioi': ((0.7, 0.75, 0.85), 0.12), 'den': [(180, 40, 180, 1300, NGAY, 100), (0, 0, 260, 50, LANH, 160)]},
+    'vien':       {'the_gioi': ((0.6, 0.65, 0.8), 0.08), 'den': [(45, 40, 220, 380, NGAY, 120), (160, 50, 180, 850, (1, 1, 1), 60)]},
+    'neon':       {'the_gioi': ((0.3, 0.3, 0.45), 0.05), 'den': [(70, 20, 160, 320, (1.0, 0.2, 0.6), 60), (-70, 20, 160, 320, (0.2, 0.9, 1.0), 60)]},
+    'trang':      {'the_gioi': ((0.12, 0.15, 0.25), 0.3), 'mat_troi': (120, 35, 0.8, (0.6, 0.7, 1.0)), 'den': []},
+    'duoi_len':   {'the_gioi': ((0.6, 0.65, 0.8), 0.05), 'den': [(0, -75, 120, 380, NGAY, 40)]},
+}
+CUA_SO_TU = ('cửa sổ', 'cửa kính lớn', 'window')
+PHOI_KIEU = -1.1   # stop phơi sáng chung cho bộ đèn theo kịch bản (một nút thay vì chỉnh từng đèn)
+
+def _the_gioi(s, mau, manh, nhuom):
+    """Nền thế giới: màu + độ mạnh; có HDRI phòng thật thì HDRI nhuộm `nhuom` hắt sáng + phản chiếu, máy vẫn thấy nền xám trơn (#14)."""
+    wn = s.world.node_tree; bg = wn.nodes['Background']
+    bg.inputs['Color'].default_value = (*mau, 1); bg.inputs['Strength'].default_value = manh
+    if MESH_THAT and os.path.exists(os.path.join(TAI_SAN, 'phong.hdr')):   # ánh hắt + phản chiếu từ một căn phòng THẬT (HDRI)
+        ev = wn.nodes.get('hdri') or wn.nodes.new('ShaderNodeTexEnvironment'); ev.name = 'hdri'; ev.image = bpy.data.images.load(os.path.join(TAI_SAN, 'phong.hdr'), check_existing=True)
+        mx = wn.nodes.get('hdri_nhuom') or wn.nodes.new('ShaderNodeMix'); mx.name = 'hdri_nhuom'; mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1.0
+        mx.inputs['B'].default_value = (*nhuom, 1); wn.links.new(ev.outputs['Color'], mx.inputs['A'])
+        # MÁY NHÌN THẤY NỀN = XÁM TRƠN (HDRI chỉ để hắt sáng + phản chiếu): chỗ trống lộ ảnh HDRI căn phòng thật → AI chép thành một căn phòng (#14)
+        lp = wn.nodes.get('duong_tia') or wn.nodes.new('ShaderNodeLightPath'); lp.name = 'duong_tia'
+        mc = wn.nodes.get('nen_may') or wn.nodes.new('ShaderNodeMix'); mc.name = 'nen_may'; mc.data_type = 'RGBA'; mc.inputs['B'].default_value = (0.18, 0.18, 0.18, 1)
+        wn.links.new(mx.outputs['Result'], mc.inputs['A']); wn.links.new(lp.outputs['Is Camera Ray'], mc.inputs['Factor']); wn.links.new(mc.outputs['Result'], bg.inputs['Color'])
+        return True
+    return False
+
+def _chu_the_cm(s, sh):
+    """Tâm chủ thể (cm): trung bình chỗ đứng của chủ thể bắt buộc là người / vật có trong shot; không có thì điểm nhìn của máy."""
+    ds = [v for v in sh.get('nhan_vat') or [] if v.get('ten') in (sh.get('bat_buoc') or [])] or list(sh.get('nhan_vat') or [])
+    if not ds: return Vector(sh['may']['nhin'])
+    p = [Vector(v.get('tam') or [0, 0, 0]) for v in ds]; c = sum(p, Vector((0, 0, 0))) / len(p); c.z += 150; return c
+
+def den_kieu(s, sh, kieu, den):
+    """Dựng bộ đèn DEN_KIEU[kieu] quanh chủ thể theo hướng máy (đơn vị cm). Trả False khi kiểu không có trong bảng."""
+    k = DEN_KIEU.get(kieu)
+    if not k: return False
+    s.view_settings.exposure = k.get('phoi', PHOI_KIEU)   # đo 19/10: bộ đèn đầu sáng hơn khung cũ ~1,5× (141–186 so với 89–125), màu bạc; −0,8 còn +25 % → −1,1
+    mau, manh = k['the_gioi']; co_hdri = _the_gioi(s, mau, manh, tuple(min(1.0, x) for x in mau))
+    if co_hdri: s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = manh * 0.6
+    S = _chu_the_cm(s, sh); cam = s.camera
+    C = (cam.matrix_world.translation / CM) if cam else Vector(sh['may']['dat'])
+    a0 = math.atan2(C.y - S.y, C.x - S.x)
+    def nham(L, T): return (Vector(T) - Vector(L)).to_track_quat('-Z', 'Y').to_euler()
+    for i, (pv, cao, xa, nl, mau_, co) in enumerate(k['den']):
+        a = a0 + math.radians(pv); L = [S.x + xa * math.cos(a), S.y + xa * math.sin(a), S.z + cao]
+        den(f'L~k{i}', 'AREA', L, mau_, nl, tuple(nham(L, S)), co)
+    if k.get('mat_troi'):
+        pv, cao_do, nl, mau_ = k['mat_troi']; a = a0 + math.radians(pv); e = math.radians(cao_do)
+        huong = Vector((-math.cos(a) * math.cos(e), -math.sin(a) * math.cos(e), -math.sin(e)))   # tia đi TỪ phía mặt trời về chủ thể
+        ld = bpy.data.lights.new('L~mt', 'SUN'); ld.color = mau_; ld.energy = nl; ld.angle = math.radians(1.5)
+        o = bpy.data.objects.new('L~mt', ld); s.collection.objects.link(o); o.rotation_euler = huong.to_track_quat('-Z', 'Y').to_euler()
+    if k.get('cua_so'):   # ánh cửa sổ thật: đèn tấm đúng ô kính của set (cỡ = cỡ ô kính), lùi vào trong 25 cm, nhắm về chủ thể
+        for o in bpy.data.objects:
+            if o.type != 'MESH' or o.hide_render or not any(t in o.name.lower() for t in CUA_SO_TU): continue
+            p = o.matrix_world.translation / CM; d = o.dimensions / CM
+            vao = (S - p); vao.z = 0; vao = vao.normalized() if vao.length > 1e-6 else Vector((0, 1, 0))
+            L = [p.x + vao.x * 25, p.y + vao.y * 25, p.z + max(d.z, 100) * 0.55]
+            den(f'L~cs{o.name}', 'AREA', L, NGAY, k['cua_so'], tuple(nham(L, S)), max(60, min(400, max(d.x, d.y))))
+    return True
+
 def anh_sang_mau(s, sh, bat):
-    """Ánh sáng khung màu: đèn bàn vàng ấm khi shot khai den_ban, luôn có ánh xanh từ các màn hình; trời tối. bat=False → dọn đèn."""
+    """Ánh sáng khung màu. sh['anh_sang'] có trong DEN_KIEU → bộ đèn theo kịch bản (den_kieu). Không khai → cách cũ: đèn bàn vàng ấm khi shot khai
+    den_ban, ánh xanh từ các màn hình, trời tối (cảnh đêm Tango). bat=False → dọn đèn."""
     for o in [x for x in bpy.data.objects if x.name.startswith('L~')]: bpy.data.objects.remove(o, do_unlink=True)
     for o in bpy.data.objects:
         if o.type == 'LIGHT': o.hide_render = bat
+    s.view_settings.exposure = 0.0   # bộ đèn theo kịch bản tự đặt lại; ảnh độ sâu / mặt nạ / khung cũ luôn ở 0
     if not bat: return
     def den(ten, loai, vt, mau_, nl, xoay=(0, 0, 0), co=10):   # vt, co: cm
         ld = bpy.data.lights.new(ten, loai); ld.color = mau_; ld.energy = nl
         if loai == 'AREA': ld.size = co * CM
         o = bpy.data.objects.new(ten, ld); s.collection.objects.link(o); o.location = Vector(vt) * CM; o.rotation_euler = Euler(xoay)
+    if den_kieu(s, sh, sh.get('anh_sang') or '', den): return
     if sh.get('den_ban'):
         dd = [o for o in bpy.data.objects if o.name.startswith('Desk Lamp ')]
         if dd:
@@ -278,18 +380,7 @@ def anh_sang_mau(s, sh, bat):
         p = o.matrix_world.translation / CM
         den(f'L~mh{o.name}', 'AREA', [p.x, p.y - 6, p.z], (0.55, 0.7, 1.0), 25 if sh.get('den_ban') else 40, (math.radians(-90), 0, 0), max(o.dimensions) * 0.8 / CM)
     # Ánh xanh đêm dịu phủ cả phòng + đèn phụ mềm từ phía máy (đủ đọc hình khối cho model — không phải ánh sáng cuối cùng của phim).
-    s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.05, 0.07, 0.12, 1)
-    s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.5
-    if MESH_THAT and os.path.exists(os.path.join(TAI_SAN, 'phong.hdr')):   # ánh hắt + phản chiếu từ một căn phòng THẬT (HDRI), nhuộm xanh đêm, rất dịu
-        wn = s.world.node_tree; bg = wn.nodes['Background']
-        ev = wn.nodes.get('hdri') or wn.nodes.new('ShaderNodeTexEnvironment'); ev.name = 'hdri'; ev.image = bpy.data.images.load(os.path.join(TAI_SAN, 'phong.hdr'), check_existing=True)
-        mx = wn.nodes.get('hdri_nhuom') or wn.nodes.new('ShaderNodeMix'); mx.name = 'hdri_nhuom'; mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1.0
-        mx.inputs['B'].default_value = (0.35, 0.45, 0.8, 1); wn.links.new(ev.outputs['Color'], mx.inputs['A'])
-        # MÁY NHÌN THẤY NỀN = XÁM TRƠN (HDRI chỉ để hắt sáng + phản chiếu): chỗ trống lộ ảnh HDRI căn phòng thật → AI chép thành một căn phòng (#14)
-        lp = wn.nodes.get('duong_tia') or wn.nodes.new('ShaderNodeLightPath'); lp.name = 'duong_tia'
-        mc = wn.nodes.get('nen_may') or wn.nodes.new('ShaderNodeMix'); mc.name = 'nen_may'; mc.data_type = 'RGBA'; mc.inputs['B'].default_value = (0.18, 0.18, 0.18, 1)
-        wn.links.new(mx.outputs['Result'], mc.inputs['A']); wn.links.new(lp.outputs['Is Camera Ray'], mc.inputs['Factor']); wn.links.new(mc.outputs['Result'], bg.inputs['Color'])
-        bg.inputs['Strength'].default_value = 0.25
+    if _the_gioi(s, (0.05, 0.07, 0.12), 1.5, (0.35, 0.45, 0.8)): s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.25
     cam = s.camera
     if cam:
         p = cam.matrix_world.translation / CM
@@ -385,6 +476,17 @@ def hop_vat(v):
         xs += [p['tam'][0] - p['co'][0] / 2, p['tam'][0] + p['co'][0] / 2]; ys += [p['tam'][1] - p['co'][1] / 2, p['tam'][1] + p['co'][1] / 2]; zs += [p['tam'][2], p['tam'][2] + p['co'][2]]
     return v['goc'][0], v['goc'][1], min(zs), max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs), v.get('xoay', 0)
 
+# ĐỒ THẬT TỰ CHỌN (19/10/2026, nhịp 2): món bộ set là MỘT khối (không 'phan'), chưa khai mau_3d, mô tả en khớp một mô hình CC0 đã tải
+# (tai-tai-san.sh) → dùng mô hình thật thay khối hộp. Không khớp / chưa tải → giữ khối như cũ.
+MO_HINH_TU_EN = [(r'\bpotted (plant|tree)|\bplant in a pot|\bhouseplant', 'potted_plant_01'), (r'\barm ?chair\b', 'modern_arm_chair_01'),
+                 (r'\b(sofa|couch)\b', 'sofa_02'), (r'\bpicture frame|\bframed (picture|painting|photo|print)', 'hanging_picture_frame_01'),
+                 (r'\bcardboard box', 'cardboard_box_01'), (r'\bvase\b', 'ceramic_vase_01'), (r'\bnotepads?\b', 'office_notepads')]
+def doan_mo_hinh(v):
+    import glob
+    if v.get('mau_3d') or 'phan' in v: return v.get('mau_3d') or ''
+    ma = next((m for k, m in MO_HINH_TU_EN if _re.search(k, v.get('en') or '', _re.I)), '')
+    return ma if ma and glob.glob(os.path.join(TAI_SAN, 'mo-hinh', ma, '*.gltf')) else ''
+
 def mo_hinh_that(v):
     import glob
     from mathutils import Matrix
@@ -445,13 +547,14 @@ def thuoc(ten, ten_khoi):
 def dung_set():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     for v in DL['vat']:
-        if v.get('mau_3d') and mo_hinh_that(v): continue
+        if doan_mo_hinh(v) and mo_hinh_that({**v, 'mau_3d': doan_mo_hinh(v)}): continue   # mau_3d khai hoặc tự chọn theo en
         if 'phan' in v:
             for i, p in enumerate(v['phan']): khoi(p, f"{v['ten']} {i}", v['goc'], v.get('xoay', 0))
         else: khoi(v, v['ten'])
-    for v in DL['vat']:   # vật liệu thật cho khung màu (Workbench vẫn đọc màu phẳng diffuse_color)
-        if not v.get('chat'): continue
-        for o in [x for x in bpy.data.objects if thuoc(v['ten'], x.name)]: chat_lieu(o, v['chat'], v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
+    for v in DL['vat']:   # vật liệu thật cho khung màu (Workbench vẫn đọc màu phẳng diffuse_color) — khai `chat`, không khai thì đoán theo en (doan_chat)
+        c_ = v.get('chat') or doan_chat(v)
+        if not c_ or doan_mo_hinh(v): continue
+        for o in [x for x in bpy.data.objects if thuoc(v['ten'], x.name)]: chat_lieu(o, c_, v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
     for v in DL['vat']:   # ẢNH CHUẨN (anh: URL — tranh, màn chiếu, bảng chỉ dẫn): dán lên mặt vật → khung 3D gửi AI đã có ĐÚNG bức tranh, mọi góc như nhau
         if v.get('anh'): dan_anh(v)
     for v in DL['vat']:   # KÍNH (kinh: True — cửa / vách kính): trong suốt ở khung màu, tia đo nhìn xuyên (tia_qua_kinh) — người sau cửa kính là THẤY
@@ -533,6 +636,8 @@ def nhan_vat(sh, ket=False):
             ng().ap_dien(n_, [x for x in dien_hl(n_, nv) if not (di_mo and str(x).split('@')[0] in DI_MC)], 1.0 if ket is True else float(ket) if ket else 0.0)   # rig: tư thế theo mã diễn lúc mở / giữa / kết
             cham_mat_tua(n_, nv['ten'], dien_hl(n_, nv))   # dáng chống / tựa: cúi tới khi bàn tay chạm mặt đỡ thật
             vet_(n_, nv['ten'], dan_cua(nv, mau_nv, ket is True or bool(ket and float(ket) >= 0.5)))
+            _nm = (sh.get('nhin_mat') or {}).get('ket' if ket is True or bool(ket and float(ket) >= 0.5) else 'mo', {}).get(nv['ten'])   # mắt nhìn người được nhìn (bo-set-3d.ts › dichNhin)
+            if not (_nm and ng().mat_nhin(n_, [x * CM for x in _nm])): ng().dat_con_nguoi(n_)   # không có đích: con ngươi nhìn thẳng theo mặt
             bpy.context.view_layer.update()
             phan_ng = [o for o in bpy.data.objects if o.name.startswith(f"NG {nv['ten']}.")]
             than.append(bpy.data.objects[f"NG {nv['ten']}.nguc_k"]); tat_ca.extend([n_['goc'], *phan_ng]); continue
@@ -1045,7 +1150,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
         out.append(d_)
     return out
 
-NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or v.get('mau_3d')}
+NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v or v.get('hinh') == 'nguoi' or doan_mo_hinh(v)}   # mô hình thật (khai hoặc tự chọn) = nhiều lưới
 NGUOI_SET = {v['ten'] for v in DL['vat'] if v.get('hinh') == 'nguoi'}   # người phụ / quần chúng của bộ set — 'thay' đánh dấu nguoi để prompt đếm đúng số người   # nhóm khối + người phụ (phần '<ten> ng.<khớp>')
 NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}
 EN = {v['ten']: v['en'] for v in DL['vat'] if v.get('en')}   # tên tiếng Anh cho prompt keyframe   # mặt bàn, tường, kệ: không phải vật chắn

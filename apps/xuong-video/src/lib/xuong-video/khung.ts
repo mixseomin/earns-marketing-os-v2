@@ -42,11 +42,19 @@ export const SUA_MAT_TOI_DA = 3;
 export const GIA_SUA_MAT_VND = 110.5;
 export const chuLechMat = (m: SoiMat) => m.ket.filter((k) => !k.dat).map((k) => `${k.ten} (giống ${Math.round((k.giong ?? 0) * 100)}%)`).join(', ');
 
+/** HƯỚNG NHÌN đo trên keyframe (anh 19/10/2026 "ánh nhìn … làm mấy lần mà vẫn chưa ổn"): người có phía phải nhìn (3D) mà góc đo về phía đó dưới
+ *  NGUONG_NHIN° = nhìn vào ống kính / sai phía → cắt sang người kia không khớp ánh mắt (eyeline match). Hiệu chỉnh 4 keyframe tập 122 (soi-mat.py). */
+export const NGUONG_NHIN = 15;
+export const loiNhin = (m: SoiMat): string[] => m.ket.filter((k) => k.nhin?.can && k.nhin.can * k.nhin.g < NGUONG_NHIN).map((k) => {
+  const n = k.nhin!; return `${k.ten} ${Math.abs(n.g) < NGUONG_NHIN ? 'nhìn vào ống kính' : 'nhìn sai phía'} (đo ${n.g > 0 ? '+' : ''}${n.g}°, cần nhìn sang ${n.can! > 0 ? 'PHẢI' : 'TRÁI'} màn về phía người đối diện)`;
+});
 /** Lý do chặn (rỗng = qua) — MỘT luật cho cổng video, duyệt animatic, lưới. */
 export function chanKhung(c: Pick<Canh, 'keyframe_url' | 'kiem_khung'> & Partial<Pick<Canh, 'soi_mat'>>): string | null {
   const tm = trangThaiMat(c);
   if (tm === 'lech') return `mặt lệch ảnh mẫu: ${chuLechMat(c.soi_mat!)} — sinh lại keyframe (kèm ảnh mẫu mặt / LoRA nhân vật) rồi ${TEN_NUT_MAT} lại`;
   if (tm === 'chua') return `keyframe đổi sau lần ${TEN_NUT_MAT} — soi lại`;
+  const ln = c.soi_mat && c.soi_mat.url === c.keyframe_url && !c.soi_mat.duyet_tay ? loiNhin(c.soi_mat) : [];
+  if (ln.length) return `ánh mắt: ${ln.join('; ')} — sinh lại keyframe (giữ hướng mắt) rồi ${TEN_NUT_MAT} lại; cố ý nhìn máy thì bấm nhận tay`;
   const t = trangThaiKhung(c);
   if (t === 'chua') return `keyframe chưa qua ${TEN_NUT_KHUNG} (bố trí set, trục máy, nhân vật) — hoặc đã sinh lại sau lần kiểm`;
   if (t === 'lech') return `keyframe lệch: ${(c.kiem_khung as KiemKhung).loi.map((l) => `${tenLoiKhung(l.loai)} — ${l.mo_ta}`).join('; ')} — sinh lại keyframe rồi kiểm lại`;

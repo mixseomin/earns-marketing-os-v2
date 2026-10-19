@@ -169,21 +169,105 @@ BIEU_CAM_ARKIT = {
                   'mouthLowerDown*': 0.6, 'mouthUpperUp*': 0.4, 'noseSneer*': 0.5, 'cheekSquint*': 0.4},
     'cuoi_dau': {'mouthSmile*': 0.8, 'jawOpen': 0.4, 'browInnerUp': 0.9, 'eyeSquint*': 0.8, 'eyeBlink*': 0.45, 'cheekSquint*': 0.5, 'mouthStretch*': 0.3},
 }
-def bieu_mat(n, ma, cuong_do=1.0):
-    """Áp nét mặt `ma` (BIEU_CAM_ARKIT) lên thân MPFB của ma-nơ-canh n. Không có MPFB / gói faceunits → bỏ qua (mặt trung tính)."""
+def bieu_mat(n, ma, cuong_do=1.0, mat=None):
+    """Áp nét mặt `ma` (BIEU_CAM_ARKIT) lên thân MPFB của ma-nơ-canh n; `mat` = khoá eyeLook* (mat_nhin) đè lên phần mắt của nét mặt.
+    Nhớ nét đang áp vào n để mat_nhin áp lại cả hai một lượt (FaceService.set_expression thay TOÀN BỘ biểu cảm). Không có MPFB → bỏ qua."""
     m = _mpfb(); h = n.get('than_tron')
-    if not m or not ma or not h or h.name not in bpy.data.objects or not h.name.startswith('THAN '): return False
-    bang = BIEU_CAM_ARKIT.get(ma)
-    if bang is None: print('nét mặt chưa có trong bảng:', ma); return False
+    if not m or not h or h.name not in bpy.data.objects or not h.name.startswith('THAN '): return False
+    if ma is not None: n['net_ma'] = (ma, cuong_do)
+    ma, cuong_do = n.get('net_ma') or ('', 1.0)
+    bang = BIEU_CAM_ARKIT.get(ma, {}) if ma else {}
+    if ma and ma not in BIEU_CAM_ARKIT: print('nét mặt chưa có trong bảng:', ma)
+    if not bang and not mat: return False
     try:
         import importlib, sys
         FS = next(getattr(importlib.import_module(x), 'FaceService') for x in list(sys.modules) if x.endswith('mpfb.services.faceservice'))
         d = {}
         for k, v in bang.items():
             for kk in ([k[:-1] + 'Left', k[:-1] + 'Right'] if k.endswith('*') else [k]): d[kk] = max(0.0, min(1.0, v * cuong_do))
+        if mat:
+            for k in [x for x in d if x.startswith('eyeLook')]: del d[k]
+            d.update(mat)
         FS.clear_expression(h); FS.set_expression(h, d); return True
     except Exception as e:
         print('nét mặt MPFB lỗi:', e); return False
+
+# MẮT NHÌN ĐÍCH (anh 19/10/2026: "ánh nhìn, hướng nhìn rồi chuyển cảnh … làm mấy lần vẫn chưa ổn"): trước đây chỉ QUAY ĐẦU (nhin / huong) — mắt
+# ma-nơ-canh luôn nhìn thẳng theo mặt, ảnh 3D không mang hướng mắt, model tự vẽ (thường nhìn ống kính). Nay mắt xoay về đích bằng khoá ARKit
+# eyeLook{In,Out,Up,Down}{Left,Right}: 1,0 ≈ 30° ngang / 25° dọc (biên độ mắt người thật ~30–35°; quá biên thì đầu phải quay — việc của huong).
+MAT_NGANG, MAT_DOC = 30.0, 25.0
+def mat_khoa(yaw, pitch):
+    """Góc (độ) của đích so với mặt — yaw + = sang TRÁI nhân vật, pitch + = lên — thành khoá eyeLook*. Thuần (không cần Blender)."""
+    k = min(1.0, abs(yaw) / MAT_NGANG); d = {}
+    if yaw > 0: d.update({'eyeLookOutLeft': k, 'eyeLookInRight': k})
+    elif yaw < 0: d.update({'eyeLookInLeft': k, 'eyeLookOutRight': k})
+    kd = min(1.0, abs(pitch) / MAT_DOC)
+    if pitch > 0: d.update({'eyeLookUpLeft': kd, 'eyeLookUpRight': kd})
+    elif pitch < 0: d.update({'eyeLookDownLeft': kd, 'eyeLookDownRight': kd})
+    return {k_: round(v, 3) for k_, v in d.items() if v > 0.02}
+
+def con_nguoi(n, h, rig):
+    """CHẤM CON NGƯƠI (anh 19/10/2026 chọn "chấm con ngươi tối"): thân đất sét KHÔNG mắt (anh 18/10 — mắt MakeHuman ở cận trông như quái thai), nên ảnh
+    3D không cho AI biết nhân vật nhìn đâu. Hai chấm tròn tối ở mặt trước nhãn cầu, theo xương eye.L / eye.R của rig MPFB. KHÔNG gắn cha-con vào
+    xương (thử 19/10: rig bị dời / co theo ma-nơ-canh sau khi gắn → chấm nổi trên đỉnh đầu) — dat_con_nguoi đặt lại SAU khi đã đặt dáng."""
+    vl = bpy.data.materials.get('con_nguoi') or bpy.data.materials.new('con_nguoi'); vl.use_nodes = True
+    b_ = vl.node_tree.nodes.get('Principled BSDF')
+    if b_: b_.inputs['Base Color'].default_value = (0.025, 0.022, 0.02, 1); b_.inputs['Roughness'].default_value = 0.35
+    import bmesh
+    ten = []
+    for x in ('eye.L', 'eye.R'):
+        if x not in rig.data.bones: continue
+        me = bpy.data.meshes.new(f'{h.name}.con_nguoi_{x[-1]}'); o = bpy.data.objects.new(me.name, me); bpy.context.scene.collection.objects.link(o)
+        bm = bmesh.new(); bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.0042); bm.to_mesh(me); bm.free()
+        me.materials.append(vl); [setattr(pl, 'use_smooth', True) for pl in me.polygons]; ten.append((x, o.name))
+    n['rig_ten'] = rig.name; n['con_nguoi'] = ten
+
+def dat_con_nguoi(n):
+    """Đặt chấm con ngươi theo xương mắt ĐÃ ĐẶT DÁNG (sau tư thế / mocap / xoay mắt): tâm nhãn cầu + 11,8 mm theo hướng xương, co theo khoảng cách
+    hai mắt (người thật ~5,8 cm)."""
+    from mathutils import Vector
+    rig = bpy.data.objects.get(n.get('rig_ten') or '')
+    if not rig or not n.get('con_nguoi'): return False
+    bpy.context.view_layer.update()
+    M = {x: rig.matrix_world @ rig.pose.bones[x].matrix for x, _ in n['con_nguoi'] if x in rig.pose.bones}
+    if len(M) < 2: return False
+    k = (M['eye.L'].translation - M['eye.R'].translation).length / 0.058
+    for x, ten in n['con_nguoi']:
+        o = bpy.data.objects.get(ten)
+        if not o or x not in M: continue
+        truc = (M[x].to_3x3() @ Vector((0, 1, 0))).normalized()
+        o.location = M[x].translation + truc * 0.0118 * k; o.scale = (k, k, k)
+    return True
+
+def mat_nhin(n, dich):
+    """Xoay mắt ma-nơ-canh n về điểm `dich` (toạ độ thế giới, m) — gọi SAU khi đã đặt dáng / mocap (hướng đầu cuối cùng)."""
+    from mathutils import Vector
+    if not dich or 'dau' not in n: return False
+    bpy.context.view_layer.update()
+    M = n['dau'].matrix_world; R = M.to_3x3().normalized()
+    truoc, trai, len_ = R @ Vector((0, -1, 0)), R @ Vector((1, 0, 0)), R @ Vector((0, 0, 1))
+    mat = M.translation + len_ * (0.065 * n.get('cao', 175.0) / 175.0)   # mắt ~6,5 cm trên khớp đầu (cao tính bằng cm, thế giới bằng m)
+    d = Vector(dich) - mat
+    f = d.dot(truoc)
+    if f <= 0.05: return False   # đích sau lưng / ngang tai — đầu phải quay (huong), mắt không với tới
+    yaw = math.degrees(math.atan2(d.dot(trai), f)); pitch = math.degrees(math.atan2(d.dot(len_), f))
+    # XOAY XƯƠNG MẮT (chấm con ngươi đi theo) về đích, kẹp trong biên độ mắt người — quá biên thì đầu phải quay (huong), mắt dừng ở mép
+    rig = bpy.data.objects.get(n.get('rig_ten') or '')
+    if rig:
+        from mathutils import Matrix
+        y_, p_ = math.radians(max(-MAT_NGANG, min(MAT_NGANG, yaw))), math.radians(max(-MAT_DOC, min(MAT_DOC, pitch)))
+        huong = (Matrix.Rotation(y_, 3, len_) @ Matrix.Rotation(-p_, 3, trai) @ truoc).normalized()
+        e = bpy.data.objects.get(f"{n['ten']}.dich_mat") or bpy.data.objects.new(f"{n['ten']}.dich_mat", None)
+        if e.name not in bpy.context.scene.collection.objects: bpy.context.scene.collection.objects.link(e)
+        e.location = mat + huong * 2.0
+        for x in ('eye.L', 'eye.R'):
+            pb = rig.pose.bones.get(x)
+            if not pb: continue
+            for c_ in [c_ for c_ in pb.constraints if c_.name == 'nhin_dich']: pb.constraints.remove(c_)
+            c_ = pb.constraints.new('DAMPED_TRACK'); c_.name = 'nhin_dich'; c_.target = e; c_.track_axis = 'TRACK_Y'
+        bpy.context.view_layer.update()
+    dat_con_nguoi(n)
+    return bieu_mat(n, None, mat=mat_khoa(yaw, pitch))   # mí mắt theo hướng nhìn (khoá eyeLook*)
 
 def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     """NGƯỜI THẬT MPFB thay thân liền (anh 18/10/2026 chọn "D"): thân người MakeHuman (CC0) đúng giới / tuổi / chiều cao, rig mặc định; mỗi xương
@@ -243,6 +327,7 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     h.name = f'THAN {ten}'; rig.name = f'THAN_RIG {ten}'
     if not mac_do(m, h, gioi, tuoi, trang or {}):   # da + mắt + lông mày + tóc + đồ + giày; thiếu gói tài sản thì thân trơn một màu như cũ
         h.data.materials.clear(); h.data.materials.append(vl)
+    con_nguoi(n, h, rig)   # chấm con ngươi tối gắn xương mắt — hướng nhìn đọc được trên ảnh 3D (mat_nhin xoay xương)
     for o in [h, *phu_kien(h)]: o.hide_render = o.hide_viewport = True   # chỉ bật khi vẽ độ sâu / khung màu (dung-set.py › nguoi_that)
     n['than_tron'] = h
     return h

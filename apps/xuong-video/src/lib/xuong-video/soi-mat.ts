@@ -14,6 +14,9 @@ import { chatLieuPhim, docKinhThanh, locNhanh, type Canh, type KinhThanh, type N
 import { matTroiClip } from './soi-clip-do';
 import { uploadToR2 } from '../r2';
 import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA } from './khung';
+import { canNhin } from './bo-set-3d';
+/** Gắn phía cần nhìn (3D) vào kết quả đo hướng nhìn của từng mặt — cổng khung.ts › loiNhin so hai thứ. */
+const ganNhin = (ket: SoiMat['ket'], c: Pick<Canh, 'may_3d'>, nv: Pick<NhanVat, 'ten'>[]): SoiMat['ket'] => ket.map((k) => { if (!k.nhin || !c.may_3d) return k; const can = canNhin(c.may_3d, k.ten, (t) => nv.some((v) => v.ten === t)); return can ? { ...k, nhin: { ...k.nhin, can } } : k; });
 import { VND_MOI_USD } from './cong-ai';
 import { kemBienThe, mapCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 
@@ -53,7 +56,7 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
   const luc = new Date().toISOString(); const lech: { thu_tu: number; chu: string }[] = [];
   for (const c of ds) {
     const a = ra.anh.find((x) => x.id === c.id); if (!a) continue;
-    const ket = a.ket ?? [];
+    const ket = ganNhin(a.ket ?? [], c, nv);
     const sm: SoiMat = { url: c.keyframe_url!, luc, mat: a.mat ?? 0, ket, dat: !a.loi && ket.every((k) => k.dat), ...(a.loi ? { loi: a.loi } : {}) };
     if (o.ghi !== false) await db.execute(sql`UPDATE xv_canh SET soi_mat = ${JSON.stringify(sm)}::jsonb WHERE id = ${c.id}`);
     if (!sm.dat && ket.length) lech.push({ thu_tu: c.thu_tu, chu: ket.filter((k) => !k.dat).map((k) => `${k.ten} ${Math.round((k.giong ?? 0) * 100)}%`).join(', ') });
@@ -154,7 +157,7 @@ export async function xongSuaMat(db: Db, canhId: number, url: string, gia: numbe
   let sm: SoiMat | null = null;
   try {
     const ra = await chay({ mau, anh: [{ id: canhId, url, ten: nv.map((v) => v.ten) }] }); const a = ra.anh[0];
-    if (a && !a.loi) sm = { url, luc: new Date().toISOString(), mat: a.mat ?? 0, ket: a.ket ?? [], dat: (a.ket ?? []).every((k) => k.dat) };
+    if (a && !a.loi) sm = { url, luc: new Date().toISOString(), mat: a.mat ?? 0, ket: ganNhin(a.ket ?? [], c, nv), dat: (a.ket ?? []).every((k) => k.dat) };
   } catch (e) { console.error('[sửa mặt › soi lại]', e); }
   if (req.thu === 'true' && req.job) { await db.execute(sql`UPDATE xv_job SET request = request || ${JSON.stringify({ soi_lai: sm, ghep: url })}::jsonb WHERE id = ${req.job}`); return; }
   if (sm?.dat) {

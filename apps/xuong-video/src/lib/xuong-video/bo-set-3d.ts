@@ -2,7 +2,7 @@
 // máy ảo của từng shot (xv_canh.may_3d) render ra khung xám + bản đồ độ sâu (scripts/bo-set/dung-set.py, Blender trên box) làm khung xương
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
-import type { BienThe, BoSet, Canh, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
+import type { BienThe, BoSet, Canh, KhoiSet, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
 import { vatHien } from './kieu';
 import { duongMay, hopVat } from './duong-may';
 
@@ -203,6 +203,20 @@ export function vatChanTienCanh(c: Pick<Canh, 'may_3d' | 'khung_xam'> & Partial<
   return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !ct.includes(t.ten) && ![...(set ? tenGoi(t.ten, set) : [t.ten]), ...tenEn(t.ten)].some((g) => nhac(g, chu)) && !goiTat(t.ten).some(nhacTat));
 }
 
+/** MÁY TRONG THÂN NGƯỜI (19/10/2026, tổng tài 2.0c: góc nhìn đặt máy ở mắt Thần, Thần khai 'an' — thân 3D vẫn dựng, khung trắng kín, mất một lượt GPU):
+ *  máy cách trục thân (chỗ mở hoặc chỗ kết) < 30 cm ngang và thấp hơn đỉnh đầu → chặn trước khi dựng. Góc nhìn (POV) thì bỏ người đó khỏi chỗ đứng. */
+export function mayTrongNguoi(m: Pick<May3d, 'dat' | 'vi_tri' | 'tu_dong'>, khoiNguoi: (ten: string) => { co?: number[] } | null): string[] {
+  const out: string[] = [];
+  if (m.tu_dong) return out;   // máy tự đặt: bộ giải Blender (giai_may) tự dời khi chủ thể bị che — chỉ chặn máy ĐẶT TAY
+  for (const v of m.vi_tri) {
+    const k = v.cam ? null : khoiNguoi(v.ten); if (!k) continue;
+    const co = k.co ?? [50, 30, 175]; const r = Math.max(co[0]!, co[1]!) / 2;
+    const d = Math.min(...[v.tam, ...(v.den ? [v.den] : [])].map((p) => Math.hypot(m.dat[0]! - p[0]!, m.dat[1]! - p[1]!)));
+    if (d < r && (m.dat[2] ?? 0) < co[2]! + 5) out.push(`máy đặt TRONG thân ${v.ten} (cách trục thân ${Math.round(d)} cm, thân rộng ${Math.round(r)} cm) — thân 3D vẫn dựng dù khai 'an', lấp kín khung: góc nhìn thì bỏ ${v.ten} khỏi chỗ đứng, còn lại lùi máy ra ngoài thân`);
+  }
+  return out;
+}
+
 /** NỐI MÁY giữa shot này và shot so trục (shotSoTruc) — mặt chủ thể thấy được ở shot phản ứng, hướng nhìn không quay > 100° (trừ đối đáp cùng
  *  phía trục), không vượt trục 180°. CHỈ cần toạ độ máy, không cần khung xám đã dựng → cổng keyframe (chanKhungXam) và bộ chấm tại chỗ trước khi
  *  thuê máy dựng (scripts/du-lieu/tong-tai/kiem.mts) gọi CÙNG hàm này (17/10/2026: phải dựng 3 lượt GPU mới lộ hết lỗi nối máy). */
@@ -210,6 +224,7 @@ export function loiNoiMay(c: Pick<Canh, 'may_3d'> & Partial<Pick<Canh, 'ky_thuat
   const out: string[] = [];
   if (!c.may_3d) return out;
   out.push(...matQuayDi(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
+  if (c.may_3d.dat) out.push(...mayTrongNguoi(c.may_3d, (t) => { const k = (nhanVat as { ten: string; khoi_3d?: KhoiSet | null }[]).find((x) => x.ten === t)?.khoi_3d; return k?.hinh === 'nguoi' ? { co: k.co } : null; }));
   // NỐI HƯỚNG MÁY: hai shot liền nhau CÙNG cảnh mà hướng nhìn của máy lệch > 100° → hậu cảnh + cỡ đổi hẳn, cắt như sang nơi khác (5.4 → 5.5
   // tập 19: một máy nhìn về iMac từ góc sau, một máy nhìn rừng cáp từ bên trái). Cố ý (POV, lật trục) thì khai qua_truc.
   if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {

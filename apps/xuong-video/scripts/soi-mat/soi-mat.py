@@ -14,6 +14,18 @@ cv2.setLogLevel(2) if hasattr(cv2, 'setLogLevel') else None
 det = cv2.FaceDetectorYN.create(f'{MO}/face_detection_yunet_2023mar.onnx', '', (320, 320), 0.8, 0.3, 5000)
 rec = cv2.FaceRecognizerSF.create(f'{MO}/face_recognition_sface_2021dec.onnx', '')
 
+def tim_mat(im):
+    """YuNet trên ảnh `im`; KHÔNG thấy mặt nào thì thử lại ở 1/2 rồi 1/3 cỡ ảnh, đổi toạ độ (khung + 5 điểm mốc) về cỡ gốc. Đo 19/10/2026: YuNet bỏ
+    sót mặt QUÁ TO trong khung — chân dung mặt cao 600 px / ảnh 1024 px ra 0 mặt, thu 1/2 thấy ngay (tin 0,93). Cùng lỗi với keyframe cận mặt /
+    đặc tả: trước đây báo 'không thấy mặt' → lọt khỏi soi mặt lẫn đo hướng nhìn."""
+    for s in (1.0, 0.5, 0.33):
+        x = im if s == 1.0 else cv2.resize(im, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
+        det.setInputSize((x.shape[1], x.shape[0])); _, f = det.detect(x)
+        if f is not None and len(f):
+            if s != 1.0: f = f.copy(); f[:, :14] /= s
+            return f
+    return None
+
 def doc(u):
     if os.path.exists(u): b = open(u, 'rb').read()
     else: b = urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': 'xv-soi-mat'}), timeout=30).read()
@@ -31,7 +43,7 @@ def nghieng(x):
 def van(im, ti_mat=0.4, ti_khung=0.0):
     """Vân các mặt ĐỦ LỚN trong ảnh (to trước): cao ≥ ti_mat × mặt lớn nhất và ≥ ti_khung × chiều cao ảnh — người qua đường nhỏ ở nền bỏ qua
     (Jett #12: cận cạp quần, mặt khách tí xíu phía sau bị gán cho Frank)."""
-    det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+    f = tim_mat(im)
     if f is None: return []
     f = sorted(f, key=lambda x: -x[3]); h0 = f[0][3]
     return [(rec.feature(rec.alignCrop(im, x)).flatten(), float(x[3]), x[:4], nghieng(x)) for x in f if x[3] >= ti_mat * h0 and x[3] >= ti_khung * im.shape[0]]
@@ -83,7 +95,7 @@ def cat_mat(im, hop, co=512):
 
 def vung_dau(im, o):
     """Vùng ĐẦU vuông quanh mặt gần điểm o (phần khung) — cắt ra cho mô hình sửa (kiểu face detailer: mặt to → giữ đúng người hơn)."""
-    det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+    f = tim_mat(im)
     if f is None: return None
     H, W = im.shape[:2]; x, y, w, h = min(f, key=lambda r: ((r[0] + r[2] / 2) / W - o['x']) ** 2 + ((r[1] + r[3] / 2) / H - o['y']) ** 2)[:4]
     c = max(w, h) * 2.6; cx, cy = x + w / 2, y + h / 2 - h * 0.15
@@ -101,7 +113,7 @@ def doc_goc(u):
 vao = json.load(sys.stdin)
 if vao.get('op') == 'dem':        # {op, url, nguong} → {mat}: ĐẾM mặt người, ngưỡng tin cậy riêng (0,7 — đo 18/10: #12 ba người 4 mặt, bình đồng 0; mặt tượng vàng vẫn đếm 1) — cổng sau bước 1 keyframe chỉ hỏi "có mặt người không";
     # ngưỡng 0,8 của so mặt bỏ sót mặt ~70 px ở khung rộng (tập 122 #12: ba người, đếm ra 0 → chặn oan)
-    im = doc(vao['url']); det.setScoreThreshold(float(vao.get('nguong', 0.7))); det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+    im = doc(vao['url']); det.setScoreThreshold(float(vao.get('nguong', 0.7))); f = tim_mat(im)
     print(json.dumps({'mat': 0 if f is None else len(f)})); sys.exit(0)
 if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y} | sau:<url lớp độ sâu một người>} → {hop:[x0,y0,x1,y1] px gốc, b64: vùng đầu 1024²}
     im = doc_goc(vao['url']); o = vao.get('o')
@@ -113,7 +125,7 @@ if vao.get('op') == 'cat_vung':   # {op, url, o:{x,y} | sau:<url lớp độ sâ
         o = {'x': float(xs[dai].mean()) / im.shape[1], 'y': float(top + 0.07 * cao) / im.shape[0]}
         # MẶT PHẢI NẰM TRONG BÓNG CHÍNH NGƯỜI ĐÓ: người quay lưng (#12 Vivian) không có mặt → trước lấy mặt gần nhất (người khác / gáy) rồi vẽ "mặt"
         # lên gáy thành mảng nhoè. Không có mặt nào có tâm trong bóng (nới 3 %) → không cắt, lượt mặt bỏ qua người này.
-        det.setInputSize((im.shape[1], im.shape[0])); _, f = det.detect(im)
+        f = tim_mat(im)
         r_ = max(3, int(im.shape[0] * 0.03)); md = cv2.dilate(m.astype(np.uint8), np.ones((r_, r_), np.uint8)) > 0
         if f is None or not any(md[min(im.shape[0] - 1, int(x[1] + x[3] / 2)), min(im.shape[1] - 1, int(x[0] + x[2] / 2))] for x in f):
             print(json.dumps({'hop': None, 'b64': None})); sys.exit(0)

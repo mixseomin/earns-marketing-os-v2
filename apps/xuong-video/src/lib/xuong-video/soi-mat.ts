@@ -85,8 +85,9 @@ export async function duyetMatTay(db: Db, canhId: number, nguoi: string): Promis
 /** ẢNH SÁT MẶT cho các nhân vật (phim người thật): cắt từ ảnh mẫu bằng soi-mat.py (mặt điển hình + một mặt khác góc), đẩy kho, ghi xv_nhan_vat.anh_mat.
  *  Chỉ cắt lại khi bộ ảnh mẫu đổi (tu = mã các URL). Sửa thẳng nv[] truyền vào để lượt sinh đang chạy dùng ngay. 0đ. */
 export async function damBaoAnhMat(db: Db, nv: NhanVat[]): Promise<void> {
-  // 'v2' (19/10/2026): thêm ảnh mặt quay trái / phải + góc quay đầu (dau) — đổi khoá để mọi nhân vật cắt lại một lần (0đ)
-  const ma = (v: NhanVat) => createHash('sha1').update(['v2', ...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url ?? '')].join('|')).digest('hex').slice(0, 12);
+  // 'v2' (19/10/2026): thêm ảnh mặt quay trái / phải + góc quay đầu (dau); 'v3': soi-mat.py › tim_mat thấy mặt quá to trong khung — đổi khoá để mọi
+  // nhân vật cắt lại một lần (0đ)
+  const ma = (v: NhanVat) => createHash('sha1').update(['v3', ...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url ?? '')].join('|')).digest('hex').slice(0, 12);
   const can = nv.filter((v) => v.loai === 'nhan_vat' && v.anh_ref.length && v.anh_mat?.tu !== ma(v));
   if (!can.length) return;
   const ra = await chay<Ra & { cat?: Record<string, string[]>; cat_dau?: Record<string, (number | null)[]> }>({ cat: true, mau: Object.fromEntries(can.map((v) => [v.ten, v.anh_ref.slice(0, 4)])), anh: [] });

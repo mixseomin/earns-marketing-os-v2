@@ -18,6 +18,7 @@ const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown 
 
 const nv = (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND jsonb_array_length(anh_ref) > 0 ORDER BY id`)).map(mapNhanVat)
   .filter((v) => !chiNv.length || chiNv.includes(v.id));
+await damBaoAnhMat(db, nv);   // cắt lại ảnh sát mặt nếu ảnh mẫu / bộ cắt đổi (0đ) — đếm thiếu theo số đo mới nhất
 const thieu = nv.map((v) => {
   const dau = v.anh_mat?.dau ?? [];
   return { v, ben: (['trai', 'phai'] as const).filter((b) => !dau.some((d) => d != null && d * (b === 'trai' ? -1 : 1) >= 12)) };

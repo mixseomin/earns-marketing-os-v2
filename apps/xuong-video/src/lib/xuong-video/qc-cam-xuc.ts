@@ -32,7 +32,7 @@ export const BIEU_CAM = [
   { key: 'that_vong', ten: 'Thất vọng', en: 'defeated, a heavy sigh', am: true },
   // Nét KỊCH (phim ngắn dọc / tổng tài, 17/10/2026): bất công → nhẫn nhịn → đánh mặt cần các nét này, bộ QC không có.
   { key: 'lanh_lung', ten: 'Lạnh lùng', en: 'cold and expressionless, piercing stare, jaw set', am: false },
-  { key: 'khinh_bi', ten: 'Khinh bỉ', en: 'contemptuous, chin raised, looking down the nose', am: true },
+  { key: 'khinh_bi', ten: 'Khinh bỉ', en: 'contemptuous: a thin cold smirk with one corner of the mouth raised, relaxed brows, chin raised, looking down the nose — never frowning, worried or upset', am: true },   // 19/10/2026 #1: chỉ 'contemptuous, chin raised' → Veo vẽ Vivian cau mày lo âu
   { key: 'dac_y', ten: 'Đắc ý', en: 'smug and triumphant, a self-satisfied half smile', am: false },
   { key: 'nhuc_nha', ten: 'Nhục nhã', en: 'humiliated, cheeks flushed, eyes glistening but holding back tears', am: true },
   { key: 'nhan_nhin', ten: 'Nhẫn nhịn', en: 'composed restraint, calm face hiding anger, steady breathing', am: false },

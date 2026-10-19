@@ -210,7 +210,7 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (31): khung KẾT ngắm lại vào MẶT (đầu nhích theo hướng mặt, mép 0,2–0,8 — #24 kết còn tai + gáy); vòng đeo cổ tay nằm mép cổ tay áo, nở 30 % (#9 #25 chuỗi hạt chui trong tay áo MPFB) → 86.
 // BAN_DUNG 93 (19/10/2026): nhin_thay đếm xuyên kính (tia_qua_kinh) — người sau cửa / vách kính là thấy, mặt kính ghi tien=False.
 // BAN_DUNG 94: tia_qua_kinh tối đa 16 mặt (cửa kính chồng trong vách kính = 4 mặt, trần 4 cũ trả 'không trúng gì').
-assert.deepEqual([BAN_DUNG, bam], [98, '91968c03c24a'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [99, '7df1e5fe5f76'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

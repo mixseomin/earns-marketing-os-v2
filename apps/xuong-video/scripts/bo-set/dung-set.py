@@ -1836,7 +1836,9 @@ def cat_dau(cam, sh, nhin=None):
         except ReferenceError: return False
     cat = [ (h_ - cam.location).length for t in chu if t in NGUOI and con(NGUOI[t].get('dau'))
             for h_ in [NGUOI[t]['dau'].matrix_world.translation + Vector((0, 0, 0.5 * NGUOI[t]['L']['dau'] * CM))]
-            if (h_ - cam.location).length < 0.8 * d_dich and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
+            # chỉ đầu SÁT máy (máy đặt ở mắt nhân vật, < 0,6 m) — thiếu ngưỡng này thì cú toàn cảnh có chủ thể đứng trên trục nhìn cách vài mét cũng bị cắt
+            # gần qua đầu họ: 19/10/2026 tập 135 #9 cắt mất Hạ (3,2 m) + trần / sàn gần thành dải đen, #14 Vivian còn mỗi bàn tay + giày, #6 Thần mất đầu
+            if (h_ - cam.location).length < min(0.6, 0.8 * d_dich) and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
     if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)
 
 kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}; LECH_NHIN = {}

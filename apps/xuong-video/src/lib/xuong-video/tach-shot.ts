@@ -21,9 +21,13 @@ async function chenSau(db: Db, tapId: number, goc: Row, so: number, moi: { canh:
   await db.execute(sql`UPDATE xv_canh SET thu_tu = thu_tu + ${so}, updated_at = now() WHERE tap_id = ${tapId} AND thu_tu > ${thuTu}`);
   const ids: number[] = [];
   for (const [i, m] of moi.entries()) {
-    const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, phan_doan, nhan_vat, bien_the, ky_thuat, thoi_luong_s)
+    // MANG THEO 3D + chỉ đạo của shot gốc (19/10/2026: shot tách ra không có may_3d / dan_dung → không dựng được khung 3D, không chấm được, tập 135 #5):
+    // cùng set, cùng chỗ đứng, cùng máy — sửa máy / động tác cho nhịp mới sau. Mã shot nối hậu tố (1.5 → 1.5b) để không trùng. Thoại ở lại shot gốc.
+    const dd = goc.dan_dung && typeof goc.dan_dung === 'object' ? { ...(goc.dan_dung as Record<string, unknown>), ...((goc.dan_dung as { ma?: string }).ma ? { ma: `${(goc.dan_dung as { ma: string }).ma}${'bcdefghij'[i]}` } : {}) } : null;
+    const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, phan_doan, nhan_vat, bien_the, ky_thuat, thoi_luong_s, may_3d, dan_dung, cam_xuc, trang_phuc, bieu_cam)
       VALUES (${tapId}, ${thuTu + 1 + i}, ${m.canh}, ${m.hanh_dong}, ${goc.phan_doan ?? ''}, ${JSON.stringify(goc.nhan_vat ?? [])}::jsonb, ${JSON.stringify(goc.bien_the ?? [])}::jsonb,
-        ${JSON.stringify(m.ky_thuat)}::jsonb, ${Number(goc.thoi_luong_s) || 4}) RETURNING id`)) as unknown as Row[];
+        ${JSON.stringify(m.ky_thuat)}::jsonb, ${Number(goc.thoi_luong_s) || 4}, ${goc.may_3d ? JSON.stringify(goc.may_3d) : null}::jsonb, ${dd ? JSON.stringify(dd) : null}::jsonb,
+        ${Number(goc.cam_xuc) || 0}, ${String(goc.trang_phuc ?? '')}, ${goc.bieu_cam ? JSON.stringify(goc.bieu_cam) : null}::jsonb) RETURNING id`)) as unknown as Row[];
     ids.push(Number(r[0]!.id));
   }
   return ids;

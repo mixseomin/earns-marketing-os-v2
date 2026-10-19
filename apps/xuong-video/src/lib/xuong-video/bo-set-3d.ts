@@ -31,7 +31,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 98;
+export const BAN_DUNG = 99;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -702,7 +702,7 @@ export function doiMat<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => 
 /** MÔ TẢ ↔ ĐỘNG TÁC (anh 16/10/2026: "cần lưu làm chuẩn và có bộ tính điểm, kiểm soát nếu thiếu"): mô tả hành động của shot nhắc một động tác thân
  *  thể (ngã, đứng dậy, lăn, nhảy, run, phồng, xẹp, cười, xoay tít, tóc rũ / dựng) mà KHÔNG nhân vật nào trong shot khai động tác đó (dien / nam_den)
  *  → bản diễn 3D sẽ thiếu đúng cái kịch bản viết. Luật thư viện: luat-dung.ts › mo_ta_dong_tac. */
-export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][number]) => boolean }[] = [
+export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][number]) => boolean; /** nét MẶT cũng đủ (shot khai biểu cảm — mặt 3D diễn theo bieu_cam) */ mat?: boolean }[] = [
   { ten: 'ngã', tu: /(ngã|té xuống|úp mặt|đổ (vật|xuống)|falls?|trips?)/i, co: (v) => !!v.nam || !!v.nam_den || (v.dien ?? []).some((x) => /^(nga|nga_ngoi)/.test(x)) },   // đang nằm sẵn = mô tả trạng thái, không đòi cú ngã
   { ten: 'đứng dậy / bung ra', tu: /(đứng dậy|bung ra|ngồi dậy|gets? up|stands? up)/i, co: (v) => (!!v.nam && v.nam_den === false) || (v.dien ?? []).some((x) => /^day/.test(x) || (DANG_DIEN[String(x).split('@')[0]!]?.[1] === 'dung' && DANG_DIEN[String(x).split('@')[0]!]?.[0] !== 'dung')) },   // đứng dậy từ quỳ / ghế (bảng DANG_DIEN) cũng là đứng dậy
   { ten: 'lăn tròn', tu: /(lăn (vèo|theo|tới|tiếp|đi|lông lốc)|rolls?\b)/i /* phải có LĂN — 'cuộn tròn' tại chỗ là tư thế */, co: (v) => (v.dien ?? []).some((x) => /^lan_tron/.test(x)) },
@@ -710,7 +710,7 @@ export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][
   { ten: 'run', tu: /(run bần bật|rùng mình|run rẩy|trembl|shiver)/i, co: (v) => (v.dien ?? []).some((x) => /^run/.test(x)) },
   { ten: 'phồng to', tu: /(phồng (to|lên)|puffs? up|inflat)/i, co: (v) => (v.dien ?? []).some((x) => /^phong/.test(x)) },
   { ten: 'xẹp', tu: /(xẹp|deflat)/i, co: (v) => (v.dien ?? []).some((x) => /^(xep|phong0)/.test(x)) },
-  { ten: 'cười', tu: /(cười lăn|cười|laugh)/i, co: (v) => (v.dien ?? []).some((x) => /^(cuoi_lan|nheo_mat)/.test(x)) },
+  { ten: 'cười', tu: /(cười lăn|cười|laugh)/i, co: (v) => (v.dien ?? []).some((x) => /^(cuoi_lan|nheo_mat)/.test(x)), mat: true },   // người thật: nụ cười là nét mặt (bieu_cam → mặt MPFB), không phải động tác thân
   { ten: 'xoay tít', tu: /(xoay tít|spins?\b)/i, co: (v) => (v.dien ?? []).some((x) => /^xoay_tit/.test(x)) },
   { ten: 'tóc rũ', tu: /(tóc rũ|sợi tóc rũ|droop)/i, co: (v) => (v.dien ?? []).some((x) => /^toc_ru/.test(x)) },
   { ten: 'tóc / chỉ dựng', tu: /((tóc|sợi chỉ|lông)[^.;]{0,25}(dựng|bật)|BOING)/i, co: (v) => (v.dien ?? []).some((x) => /^(toc_dung|toc_bat)/.test(x)) },
@@ -729,12 +729,13 @@ export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][
   { ten: 'nghe điện thoại', tu: /(nghe (điện thoại|máy)|áp (điện thoại|máy) (lên|vào) tai|answers? the phone|on the phone)/i, co: (v) => (v.dien ?? []).some((x) => /^nghe_dien_thoai/.test(x)) },
   { ten: 'kéo tay', tu: /(kéo (tay|cánh tay|khuỷu)|lôi (tay|đi)|pulls? [^.;]{0,20}by the (arm|elbow))/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_keo_tay|mc_bi_keo)/.test(x)) },
   { ten: 'đặt tay lên vai', tu: /((đặt|vỗ|đặt nhẹ) tay (lên )?vai|hand on [^.;]{0,15}shoulder)/i, co: (v) => (v.dien ?? []).some((x) => /^mc_dat_tay_vai/.test(x)) },
-  { ten: 'nhặt', tu: /(nhặt|cúi lượm|picks? up)/i, co: (v) => (v.dien ?? []).some((x) => /^mc_nhat_do/.test(x)) },
+  { ten: 'nhặt', tu: /(nhặt|cúi lượm|picks? up)/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_nhat_do|quy|mc_quy|mc_dang_quy)/.test(x)) },   // quỳ một gối nhặt giấy cũng là nhặt (tập 135 #5, #8 báo oan)
   { ten: 'đập bàn', tu: /(đập (bàn|tay xuống bàn)|pounds? the (table|desk))/i, co: (v) => (v.dien ?? []).some((x) => /^mc_dap_ban_chi/.test(x)) },
 ];
-export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'>): string[] {
+export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'> & { bieu_cam?: unknown[] | null }): string[] {
   const m = c.may_3d; const mt = c.hanh_dong ?? ''; if (!m || !mt.trim()) return [];
-  return DONG_TAC_MO_TA.filter((d) => d.tu.test(mt) && !m.vi_tri.some((v) => d.co(v))).map((d) => `thiếu động tác: mô tả có "${d.ten}" mà chưa nhân vật nào khai (dien / nam_den) — bản diễn 3D sẽ thiếu đúng cái kịch bản viết`);
+  const coMat = (c.bieu_cam ?? []).length > 0;
+  return DONG_TAC_MO_TA.filter((d) => d.tu.test(mt) && !(d.mat && coMat) && !m.vi_tri.some((v) => d.co(v))).map((d) => `thiếu động tác: mô tả có "${d.ten}" mà chưa nhân vật nào khai (dien / nam_den) — bản diễn 3D sẽ thiếu đúng cái kịch bản viết`);
 }
 /** THIẾU KHAI BỀ NGOÀI (bảng trang phục theo ngày của script supervisor): nhân vật đã khai một thuộc tính bề ngoài ở BẤT KỲ đâu trong tập (tức là
  *  phim theo dõi nó — phim hoạt hình không khai thì không bị đòi) thì mỗi ngày truyện, lần xuất hiện đầu phải có giá trị — sau đó hookup tự nối.

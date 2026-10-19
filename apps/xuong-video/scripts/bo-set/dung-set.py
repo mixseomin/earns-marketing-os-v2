@@ -1363,7 +1363,7 @@ DONG_TAC = {
     'chi_tay_gian': 'chồm tới chỉ thẳng tay giận', 'lui_so': 'lùi lại, hai tay đưa lên che', 'om_nguoi': 'tự ôm lấy mình', 'tay_che_mieng': 'hai tay che miệng', 'tay_tran_cui': 'cúi gập, tay áp trán',
     # MOCAP THẬT (kho CMU, mesh/mocap.py › MOCAP): 'mc_<ten>[@a-b]'
     'mc_cai_nhau': 'mocap: cãi nhau, vung tay giận', 'mc_giai_thich': 'mocap: nói chuyện, giải thích bằng tay', 'mc_chong_ghe': 'mocap: chống tay, nhìn trừng',
-    'mc_quy_xuong': 'mocap: quỳ xuống', 'mc_uong': 'mocap: uống', 'mc_chi_tay': 'mocap: chỉ tay / vẫy', 'mc_dung_day': 'mocap: đứng dậy khỏi ghế',
+    'mc_quy_xuong': 'mocap: quỳ xuống', 'mc_uong': 'mocap: uống', 'mc_chi_tay': 'mocap: chỉ tay / vẫy', 'mc_dung_day': 'mocap: đứng dậy khỏi ghế', 'mc_dung_len_quy': 'mocap: đứng lên từ tư thế quỳ (mở shot bằng quỳ)', 'mc_dang_quy': 'mocap: giữ quỳ một gối cả shot',
     'mc_di_bo': 'mocap: đi bộ', 'mc_sai_buoc': 'mocap: sải bước',
     'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',

@@ -68,7 +68,7 @@
    {
     "nv": "Lục Thần",
     "ngay": "D1",
-    "tu_canh": "Tổng tài đuổi việc",
+    "tu_canh": "Sau vách kính",
     "bien_the": "Com-lê đen ba mảnh"
    },
    {
@@ -470,6 +470,30 @@
      {
       "loai": "hd",
       "chu": "Hạ quỳ một gối nhặt từng tờ. Tiếng cười khẽ quanh phòng."
+     }
+    ]
+   },
+   {
+    "ten": "Sau vách kính",
+    "beat": "Leo thang — nút 1",
+    "ngay": "D1",
+    "noi": "Văn phòng tổng giám đốc (sau vách kính, tầng 38)",
+    "luc": "liền sau",
+    "muc_tieu": "Lục Thần quan sát trước khi ra mặt — anh muốn biết ai gây ồn trước ngày họp HĐQT",
+    "xung_dot": "Anh thấy Hạ bị làm nhục mà không ra tay ngay",
+    "an_y": "Khán giả biết anh đã chứng kiến hết, Hạ thì không — gieo phân vân: anh lạnh lùng hay đang thử cô?",
+    "nhip": "lặng, chậm — tiếng ồn tắt sau lớp kính",
+    "cam_xuc_dau": -4,
+    "cam_xuc_cuoi": -4,
+    "anh_sang": "cua_so",
+    "kich_ban": [
+     {
+      "loai": "hd",
+      "chu": "Bên trong phòng tổng giám đốc, sau vách kính. Tiếng ồn ngoài kia tắt hẳn. LỤC THẦN (30, vest đen may đo) đứng lặng, nhìn ra sàn văn phòng."
+     },
+     {
+      "loai": "hd",
+      "chu": "Qua lớp kính, từ chỗ anh đứng: Hạ nhặt tờ giấy cuối cùng, đứng dậy, ngẩng đầu."
      }
     ]
    },

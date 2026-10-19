@@ -98,7 +98,7 @@ const DANG_EN: Record<string, string> = {
   cam_truoc: 'standing, holding {mon} in front of the chest', gio_cao: 'standing, raising {mon} high for everyone to see', dua_truoc_mat: 'standing, holding {mon} up right in front of the other person', lac_treo: 'arm raised to the other person\'s face height, hand not open: thumb and index finger pinch the strap of {mon}, which hangs just below her fingers',
   hat: 'standing, flinging {mon} forward', giat: 'standing, reaching out to snatch', khoanh_tay: 'standing with arms crossed', gioi_thieu: 'standing, one open hand extended toward the person beside',
   thuyet_trinh: 'standing, one hand open toward the screen', cam_dien_thoai: 'standing, looking down at {mon} in hand', quy_mot_goi: 'kneeling on one knee',
-  mc_di_bo: 'walking', mc_sai_buoc: 'striding forward', mc_quy_xuong: 'kneeling down', mc_dung_day: 'rising from a chair',
+  mc_di_bo: 'walking', mc_sai_buoc: 'striding forward', mc_quy_xuong: 'kneeling down', mc_dung_day: 'rising from a chair', mc_dung_len_quy: 'rising from kneeling to standing', mc_dang_quy: 'kneeling on one knee',
   om_mat_khoc: 'standing, head bowed, both hands covering the face, crying', om_nguc_khoc: 'bent forward, one hand pressed hard against the chest, crying', quy_khoc: 'collapsed on both knees, slumped forward, crying',
   ngua_mat_gao: 'standing, head thrown back, crying out loud, arms hanging limp', chi_tay_gian: 'leaning forward, pointing a finger hard at someone', lui_so: 'stepping back, both hands raised defensively',
   om_nguoi: 'standing, arms wrapped tightly around herself', tay_che_mieng: 'standing, both hands over the mouth', tay_tran_cui: 'bent forward, one hand pressed to the forehead',

@@ -30,7 +30,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 91;
+export const BAN_DUNG = 92;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -497,10 +497,42 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
   return { may, lech };
 }
 
+/** DÁNG CƠ THỂ qua cú cắt (anh 19/10/2026, tổng tài #5 → #6: "cuối cảnh trước Hạ đang quỳ, cắt sang cảnh sau đã đứng sẵn — cụt"). Ngành: dáng là
+ *  một mục của sổ liên tục (script supervisor — Rowlands, *The Continuity Supervisor*; Murch: cắt giữa động tác thì động tác phải nối) — đổi dáng phải
+ *  DIỄN trong khung (hoặc khai nhay). Trước đây cổng chỉ biết NẰM / ĐỨNG. Bảng: mã diễn → [dáng đầu, dáng cuối]; cùng tên với mesh/mocap.py › MOCAP. */
+export type Dang = 'dung' | 'ngoi' | 'quy' | 'nam';
+export const TEN_DANG: Record<Dang, string> = { dung: 'ĐỨNG', ngoi: 'NGỒI', quy: 'QUỲ', nam: 'NẰM' };
+export const DANG_DIEN: Record<string, [Dang, Dang]> = {
+  mc_quy_xuong: ['dung', 'quy'], mc_dang_quy: ['quy', 'quy'], quy_khoc: ['dung', 'quy'], mc_dung_len_quy: ['quy', 'dung'],
+  mc_dung_day: ['ngoi', 'dung'], nga_ngoi: ['dung', 'ngoi'], nga: ['dung', 'nam'], day: ['nam', 'dung'],
+};
+/** Động tác máy gợi ý cho từng lần đổi dáng (đặt ở shot TRƯỚC, cuối shot). */
+const DOI_DANG: Partial<Record<`${Dang}>${Dang}`, string>> = {
+  'quy>dung': "dien: 'mc_dung_len_quy@0.6-1'", 'ngoi>dung': "dien: 'mc_dung_day@0.6-1'", 'nam>dung': "nam_den: false + 'day'",
+  'dung>quy': "dien: 'mc_quy_xuong@0.6-1'", 'dung>ngoi': "dien: 'nga_ngoi' hoặc mã 'ngoi…'", 'dung>nam': "nam_den: true + 'nga'",
+};
+type CoDang = { nam?: boolean; nam_den?: boolean; dien?: string[] };
+const dienDoiDang = (v: CoDang) => (v.dien ?? []).map((x) => { const [ten, mt] = String(x).split('@'); const b = mt ? Number(mt.split('-')[1] || 1) : 1; return { d: DANG_DIEN[ten!], b }; })
+  .filter((x): x is { d: [Dang, Dang]; b: number } => !!x.d).sort((a, b) => a.b - b.b);
+/** Dáng lúc MỞ shot: nằm theo cờ nam; còn lại theo động tác đổi dáng SỚM nhất (đứng dậy từ quỳ → mở bằng quỳ), không có thì mã 'ngoi…' = ngồi. */
+export function dangMo(v: CoDang): Dang {
+  if (v.nam) return 'nam';
+  const dd = dienDoiDang(v)[0]; if (dd) return dd.d[0] === 'nam' ? 'dung' : dd.d[0];
+  return (v.dien ?? []).some((x) => /^ngoi/.test(String(x))) ? 'ngoi' : 'dung';
+}
+/** Dáng lúc KẾT shot: nam_den thắng; còn lại theo động tác đổi dáng KẾT MUỘN nhất. */
+export function dangKet(v: CoDang): Dang {
+  const nam = v.nam_den ?? v.nam;
+  if (nam) return 'nam';
+  const ds = dienDoiDang(v).filter((x) => x.d[1] !== 'nam'); const l = ds[ds.length - 1];
+  if (l) return l.d[1];
+  const mo = dangMo(v); return mo === 'nam' ? 'dung' : mo;
+}
+
 export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null; canh?: string }>(ds0: T[], khoi: (ten: string) => { co: number[] } | null, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
   // Kiểm trên bản ĐÃ NỐI hookup (noiHookup) — đúng thứ Blender / keyframe dựng. Chỗ khai lệch KHÔNG phải lỗi (máy đã dựng đúng): sổ hiện thành ghi chú, cổng không chặn.
   const hk = noiHookup(ds0, phanCanh); const ds = ds0.map((c) => (hk.may.has(c.id) ? { ...c, may_3d: hk.may.get(c.id)! } : c));
-  const cuoi = new Map<string, { p: number[]; huong?: number; nam: boolean; shot: number }>(); const out: Record<number, string[]> = {};
+  const cuoi = new Map<string, { p: number[]; huong?: number; dang: Dang; shot: number }>(); const out: Record<number, string[]> = {};
   // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
   // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
   const camBoi = new Map<string, { nguoi: string; shot: number }>();
@@ -561,10 +593,12 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
         // DÁNG — chỉ khi nhân vật CÓ MẶT ở shot liền trước (vắng một shot = thời gian trôi ngoài khung, #14 nằm → vắng #15 → #16 đứng là hợp lệ).
         // (anh 16/10/2026: "#8 đang đứng mà #9 đã nằm — hệ thống điểm không phát hiện được à"): đứng / nằm không tự đổi qua cú cắt — ngã phải
         // diễn trong shot (nam_den ở shot trước) hoặc khai nhay. Trước đây cổng chỉ so chỗ + hướng + trạng thái chữ.
-        if (tr.nam !== !!v.nam && truocCo.has(v.ten)) (out[c.id] ??= []).push(`${v.ten} kết #${tr.shot} đang ${tr.nam ? 'NẰM' : 'ĐỨNG'} mà mở shot này ${v.nam ? 'NẰM' : 'ĐỨNG'} — cho ${tr.nam ? 'đứng dậy' : 'ngã'} trong #${tr.shot} (nam_den: ${!tr.nam}) hoặc khai nhay nếu cố ý cắt thời gian`);
+        // Dáng đủ bốn trạng thái (đứng / ngồi / quỳ / nằm — anh 19/10/2026): quỳ cuối #5 mà #6 mở đứng là đứt như đứng → nằm.
+        const mo = dangMo(v);
+        if (tr.dang !== mo && truocCo.has(v.ten)) (out[c.id] ??= []).push(`${v.ten} kết #${tr.shot} đang ${TEN_DANG[tr.dang]} mà mở shot này ${TEN_DANG[mo]} — dáng không tự đổi qua cú cắt: cho đổi dáng trong #${tr.shot} (${DOI_DANG[`${tr.dang}>${mo}`] ?? 'thêm động tác đổi dáng'}), hoặc mở shot này bằng động tác đổi dáng, hoặc chèn shot thấy động tác (góc nhìn / cắt xen), hoặc khai nhay nếu cố ý cắt thời gian`);
         if (tr.huong != null && v.huong != null && gocLech(tr.huong, v.huong) > 60) (out[c.id] ??= []).push(`${v.ten} quay ngoắt ${Math.round(gocLech(tr.huong, v.huong))}° qua cú cắt (kết #${tr.shot} nhìn ${tr.huong}°, mở shot này ${v.huong}°)`);
       }
-      cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: !!(v.nam_den ?? v.nam), shot: c.thu_tu });
+      cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, dang: dangKet(v), shot: c.thu_tu });
     }
     truocCo = co;
   }
@@ -645,7 +679,7 @@ export function doiMat<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => 
  *  → bản diễn 3D sẽ thiếu đúng cái kịch bản viết. Luật thư viện: luat-dung.ts › mo_ta_dong_tac. */
 export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][number]) => boolean }[] = [
   { ten: 'ngã', tu: /(ngã|té xuống|úp mặt|đổ (vật|xuống)|falls?|trips?)/i, co: (v) => !!v.nam || !!v.nam_den || (v.dien ?? []).some((x) => /^(nga|nga_ngoi)/.test(x)) },   // đang nằm sẵn = mô tả trạng thái, không đòi cú ngã
-  { ten: 'đứng dậy / bung ra', tu: /(đứng dậy|bung ra|ngồi dậy|gets? up|stands? up)/i, co: (v) => (!!v.nam && v.nam_den === false) || (v.dien ?? []).some((x) => /^day/.test(x)) },
+  { ten: 'đứng dậy / bung ra', tu: /(đứng dậy|bung ra|ngồi dậy|gets? up|stands? up)/i, co: (v) => (!!v.nam && v.nam_den === false) || (v.dien ?? []).some((x) => /^day/.test(x) || (DANG_DIEN[String(x).split('@')[0]!]?.[1] === 'dung' && DANG_DIEN[String(x).split('@')[0]!]?.[0] !== 'dung')) },   // đứng dậy từ quỳ / ghế (bảng DANG_DIEN) cũng là đứng dậy
   { ten: 'lăn tròn', tu: /(lăn (vèo|theo|tới|tiếp|đi|lông lốc)|rolls?\b)/i /* phải có LĂN — 'cuộn tròn' tại chỗ là tư thế */, co: (v) => (v.dien ?? []).some((x) => /^lan_tron/.test(x)) },
   { ten: 'nhảy', tu: /(nhảy|jumps?|leaps?)/i /* 'bật lên' hay nói về tóc — không tính */, co: (v) => (v.dien ?? []).some((x) => /^(nhay|cuoi_lan)/.test(x)) },
   { ten: 'run', tu: /(run bần bật|rùng mình|run rẩy|trembl|shiver)/i, co: (v) => (v.dien ?? []).some((x) => /^run/.test(x)) },

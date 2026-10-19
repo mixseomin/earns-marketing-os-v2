@@ -37,7 +37,7 @@ export const nhanhLienMach = (x: string, laNguoi: boolean): MaNhanh =>
     : /chỗ|vị trí|hướng|quay|nhảy|dời|trục|đi ngược|màn/i.test(x) ? 'vi_tri' : laNguoi ? 'dang' : 'trang';
 
 type ViTri = May3d['vi_tri'][number];
-const TEN_MC: Record<string, string> = { mc_di_bo: 'đi bộ', mc_sai_buoc: 'sải bước', mc_quy_xuong: 'quỳ xuống', mc_dung_day: 'đứng dậy khỏi ghế', mc_cai_nhau: 'cãi nhau, vung tay', mc_giai_thich: 'nói, giải thích bằng tay', mc_chong_ghe: 'chống tay lên ghế', mc_uong: 'uống', mc_chi_tay: 'chỉ tay', giat: 'giật phắt món đồ' };
+const TEN_MC: Record<string, string> = { mc_di_bo: 'đi bộ', mc_sai_buoc: 'sải bước', mc_quy_xuong: 'quỳ xuống', mc_dung_day: 'đứng dậy khỏi ghế', mc_dung_len_quy: 'đứng lên từ tư thế quỳ', mc_dang_quy: 'đang quỳ một gối', mc_cai_nhau: 'cãi nhau, vung tay', mc_giai_thich: 'nói, giải thích bằng tay', mc_chong_ghe: 'chống tay lên ghế', mc_uong: 'uống', mc_chi_tay: 'chỉ tay', giat: 'giật phắt món đồ' };
 /** Mã động tác (vi_tri.dien) → chữ: 'hat@0.25-0.45' → "hất mạnh món đồ ra trước (25–45% shot)". */
 export const chuDien = (d: string) => {
   const [ma, mt] = String(d).split('@'); const ten = DANG[ma!] ?? TEN_MC[ma!] ?? ma!;

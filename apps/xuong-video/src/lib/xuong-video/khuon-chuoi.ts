@@ -56,12 +56,20 @@ export const KHUON_CHUOI: KhuonChuoi[] = [
   },
   {
     key: 'ra_mat_quyen_luc', ten: 'Ra mắt người quyền lực', muc_dich: 'Một nhân vật bước vào là cả phòng đổi thái độ — quyền lực đo bằng phản ứng của người khác.', the_loai: DRAMA,
+    // BÁO TRƯỚC (anh 19/10/2026, tổng tài #5 → #6: "khi xuất hiện Thần là đã thấy đang đi rồi — thiếu cái dẫn dắt; HBO quay vào văn phòng trước,
+    // thấy người đó đang nhìn ra, rồi mới bước ra"): người quyền lực xuất hiện TRONG THẾ GIỚI CỦA MÌNH và đã QUAN SÁT trước khi hành động —
+    // thiết lập → nhìn → thứ được nhìn (khớp hướng nhìn), rồi mới bước vào. Ba bước tuỳ chọn (phim dọc ngắn có thể bỏ), thiếu thì cảnh báo nhẹ.
     buoc: [
-      { ten: 'Bước vào', vai: ['thiet_lap', 'hanh_dong', 'tong_the'], luat: ['gioi_thieu'], may: ['dan_truoc', 'nghieng_len', 'nang_ha'], ghi: 'góc thấp, cả phòng im — người đó chiếm khung' },
+      { ten: 'Thế giới của người quyền lực', vai: ['thiet_lap', 'tong_the'], luat: ['dan_khong_gian'], may: ['day_vao'], tuy: true, nen: true, ghi: 'cắt vào lãnh địa của họ (văn phòng kính, xe, ban công) — tiếng ồn bên ngoài tắt khi vào' },
+      { ten: 'Người quyền lực quan sát', vai: ['phan_ung', 'tam_trang'], luat: ['nhan_qua_huong_nhin', 'chenh_thong_tin'], tuy: true, nen: true, ghi: 'cận mặt nhìn ra, chưa hành động — khán giả biết họ đã thấy hết, nhân vật chính thì không' },
+      { ten: 'Thứ họ thấy', vai: ['chu_quan', 'nguoi_thu_ba'], luat: ['nhan_qua_huong_nhin', 'dang_lien_mach'], tuy: true, ghi: 'góc nhìn của họ (qua kính / từ trên xuống) — nơi đặt các thay đổi dáng của nhân vật chính để cú cắt sau không cụt' },
+      { ten: 'Bước vào', vai: ['thiet_lap', 'hanh_dong', 'tong_the'], luat: ['gioi_thieu', 'khop_hanh_dong'], may: ['dan_truoc', 'nghieng_len', 'nang_ha'], ghi: 'góc thấp, cả phòng im — người đó chiếm khung; cắt từ góc nhìn vào đúng lúc đẩy cửa' },
       { ten: 'Người khác đổi thái độ', vai: ['chu_quan', 'nguoi_thu_ba', 'phan_ung', 'hanh_dong'], lap: true, ghi: 'kẻ ác đổi giọng ngọt, đám đông cúi đầu' },
       { ten: 'Ánh mắt phán xét', vai: ['phan_ung'], luat: ['giu_phan_ung'], ghi: 'cận mặt người quyền lực: một cái nhìn là đủ quyết định' },
     ],
-    nguon: [{ phim: 'The Devil Wears Prada (2006)', ghi: 'Miranda bước ra thang máy: cả toà soạn chạy tán loạn trước khi bà nói một chữ' }],
+    nguon: [{ phim: 'The Devil Wears Prada (2006)', ghi: 'Miranda bước ra thang máy: cả toà soạn chạy tán loạn trước khi bà nói một chữ' },
+      { phim: 'Succession (HBO, 2018–2023)', ghi: 'Logan được giới thiệu trong không gian của mình và đã quan sát trước khi cả phòng biết ông ở đó' },
+      { phim: 'Hitchcock / Truffaut (1966); Reisz & Millar, The Technique of Film Editing', ghi: 'nhìn → thứ được nhìn → phản ứng: chuỗi chủ quan (POV, eyeline match) gắn khán giả vào ánh mắt người quan sát' }],
   },
   {
     key: 'gai_bi_mat', ten: 'Gài bí mật cho khán giả', muc_dich: 'Lộ cho khán giả một chi tiết nhân vật khác không thấy — để trả ở cảnh sau.', the_loai: 'tat_ca',

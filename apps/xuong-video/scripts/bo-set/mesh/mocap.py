@@ -8,15 +8,20 @@
 import math, os
 
 THU_MUC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mocap')
-# ten: (mã đoạn CMU, giây bắt đầu trong đoạn, vùng thân áp: 'tren' = thân trên (đè lên dáng đứng / bước), 'tat_ca' = cả người kể cả hạ hông)
+# ten: (mã đoạn CMU, giây bắt đầu trong đoạn, vùng thân áp: 'tren' = thân trên (đè lên dáng đứng / bước), 'tat_ca' = cả người kể cả hạ hông,
+#       [giây DỪNG trong đoạn: tới đó giữ khung — không chạy sang động tác kế của đoạn gốc; None = lặp], [dáng ĐẦU, dáng CUỐI: 'dung' · 'quy' · 'ngoi'])
+# DÁNG ĐẦU / CUỐI khác 'dung' (anh 19/10/2026, #5 → #6 tổng tài: Hạ quỳ cuối #5 mà đầu #6 đã đứng): ngoài cửa sổ [a, b] KHÔNG trả về dáng đứng —
+# trước a giữ khung đầu, sau b giữ khung cuối. Bảng dáng phía TS (bo-set-3d.ts › DANG_DIEN) đọc cùng tên này để cổng liền mạch biết ai đang quỳ.
 MOCAP = {
     'cai_nhau':   ('18_10', 2.0, 'tren'),     # quarrel — angry hand gestures
     'giai_thich': ('18_08', 2.0, 'tren'),     # conversation — explain with hand gestures
     'chong_ghe':  ('22_18', 1.0, 'tat_ca'),   # stares down, leans with hands on high stool (đo: cúi ở 0 s, chống hẳn từ 1 s)
-    'quy_xuong':  ('23_03', 0.0, 'tat_ca'),   # B kneels, comforts A (subject B — 22_03 là người NGỒI)
+    'quy_xuong':  ('23_03', 0.0, 'tat_ca', 3.9, 'dung', 'quy'),   # B kneels, comforts A (subject B — 22_03 là người NGỒI). Đo cao hông: quỳ hẳn 2,0 s, giữ tới 4,0 s
+    'dang_quy':   ('23_03', 2.6, 'tat_ca', 2.6, 'quy', 'quy'),   # GIỮ quỳ một gối cả shot (khung 2,6 s của đoạn — hông 0,55): shot nối sau shot quỳ xuống
+    'dung_len_quy': ('23_03', 3.9, 'tat_ca', 5.2, 'quy', 'dung'),   # cùng đoạn, khúc ĐỨNG LÊN từ quỳ: hông 0,56 (4,0 s) → 0,96 (4,7 s) → đứng hẳn 5,0 s
     'uong':       ('13_09', 1.0, 'tren'),     # drink
     'chi_tay':    ('13_27', 3.0, 'tren'),     # point / wave
-    'dung_day':   ('13_01', 7.0, 'tat_ca'),   # sit on high stool, stand up (đo: ngồi 4,7–7,5 s, đứng hẳn 8,5 s)
+    'dung_day':   ('13_01', 7.0, 'tat_ca', 9.5, 'ngoi', 'dung'),   # sit on high stool, stand up (đo: ngồi 4,7–7,5 s, đứng hẳn 8,5 s; 12 s ngồi lại → dừng 9,5)
     'di_bo':      ('08_01', 0.0, 'tat_ca'),   # walk
     'sai_buoc':   ('08_05', 0.0, 'tat_ca'),   # walk / stride
 }
@@ -97,10 +102,14 @@ def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0):
     vào / ra cửa sổ hoà dần 10% để không giật. Cần mathutils (Blender)."""
     from mathutils import Vector
     import bpy
-    if ten not in MOCAP or t < a: return False
-    ma, bd, vung = MOCAP[ten]; _, khung, dt = doc_bvh(ma)
-    k = int((bd + (min(t, b) - a) * giay) / dt) % len(khung)
-    w = min(1.0, (t - a) / max(1e-6, 0.1 * (b - a)), 1.0 if t <= b else 0.0) if b > a else 1.0
+    if ten not in MOCAP: return False
+    ma, bd, vung, kt, dau, cuoi = (tuple(MOCAP[ten]) + (None, 'dung', 'dung'))[:6]; _, khung, dt = doc_bvh(ma)
+    s = bd + (min(max(t, a), b) - a) * giay
+    k = int((min(s, kt) if kt is not None else s) / dt) % len(khung)
+    if t < a: w = 0.0 if dau == 'dung' else 1.0           # mở bằng dáng quỳ / ngồi: giữ khung đầu từ t = 0
+    elif t > b: w = 0.0 if cuoi == 'dung' else 1.0        # kết bằng dáng quỳ / ngồi: giữ khung cuối, không bật về đứng
+    elif b > a and dau == 'dung': w = min(1.0, (t - a) / max(1e-6, 0.1 * (b - a)))
+    else: w = 1.0
     if w <= 0: return False
     huong, ti_hong = huong_doan(ma, k)
     goc = n['goc'].matrix_world.to_3x3().normalized().to_quaternion()   # gốc có scale (dv) — bỏ scale trước khi lấy phép xoay

@@ -29,6 +29,7 @@ def shot(ma, canh, phat, video, kt, dd, hd, thoai, bieu, may, nv, chu_man='', pr
               'bieu_cam': bieu, 'may_3d': may, 'nhan_vat': nv, 'chu_man': chu_man, 'prompt_anh': prompt_anh, 'prompt_video': prompt_video})
 
 C1, C2, C3, C4, C5 = 'Cà phê và hồ sơ', 'Tổng tài đuổi việc', 'Thang máy', 'Phòng họp 3 giờ', 'Sếp mới'
+C2A = 'Sau vách kính'   # phòng TGĐ — nơi khác (INT. PHÒNG TGĐ – LIỀN SAU), cảnh riêng: hướng máy chủ / trục không lẫn với sàn văn phòng
 
 # ── CẢNH 1 · Văn phòng mở 09:00 (0–22 s; #1 phát 7 s — thiết lập + giật máy + hắt cà phê, 3 s cắt mất cú hắt, 19/10/2026) ──
 shot('1.1', C1, 7, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 'chuyen_dong': 'zoom_gat', 'ong_kinh': 'chuan', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong', 'vut']},
@@ -65,13 +66,40 @@ shot('1.5', C1, 6, 'h3', {'vai': 'tong_the', 'co_canh': 'ws', 'goc': 'cao', 'chu
      [HA, VIV, VP, 'Hồ sơ Harrington', 'Ly cà phê'])
 
 # ── CẢNH 2 · liền sau (18–36 s) ──
+# 2.0a–c BÁO TRƯỚC người quyền lực (anh 19/10/2026: "khi xuất hiện Thần là đã thấy đang đi rồi — thiếu dẫn dắt; HBO: Hạ cúi nhặt → quay vào văn phòng
+# của Thần trước → thấy Thần đang nhìn ra → rồi mới bước ra"). Khuôn ra_mat_quyen_luc bước 0–2: thế giới của anh → anh quan sát → thứ anh thấy.
+# Dáng liền mạch (cổng lienMachTap › dáng): Hạ quỳ từ cuối 1.5, giữ quỳ (mc_dang_quy) qua 2.0a–b, ĐỨNG DẬY trong 2.0c (góc nhìn của Thần) → 2.1 mở đứng.
+# Thần đứng sau cửa kính [80, 1040] — 2.1 đẩy cửa bước ra từ đúng chỗ đó; góc nhìn từ chỗ anh tới Hạ lướt trái Vivian (~15 cm), không bị chắn.
+HA_QUY = lambda **k: vt(HA, [300, 540, 0], 180, dien=['mc_dang_quy'], **k)
+VIV_DUNG = lambda **k: vt(VIV, [300, 640, 0], 0, **k)
+shot('2.0a', C2A, 3, 'h3', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'rong', 'anh_sang': 'cua_so', 'am_thanh': ['im_lang']},
+     { 'dien': 'Anticipation: the office noise cuts out as we enter the glass room. Action: Lục Thần stands motionless at the glass wall, hands in pockets, watching the floor outside. Reaction: none — he only watches.', 'bo_cuc': 'Inside the CEO office: wide from the back corner, Lục Thần three-quarter back to camera at the glass wall screen-left, the open office beyond the glass with Hạ kneeling small in the distance', 'mo': 'Thần standing at the glass, back three-quarter to camera', 'ket': 'camera has drifted closer to Thần’s shoulder', 'huong': 'Thần looks out through the glass toward Hạ', 'muc_dich': 'thế giới của người quyền lực — anh đã ở đó từ trước'},
+     'Bên trong phòng tổng giám đốc: Lục Thần đứng sau vách kính, lặng lẽ nhìn ra sàn văn phòng', [],
+     [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
+     {'tay': True, 'dat': [30, 1130, 160], 'nhin': [130, 990, 150], 'ong_kinh': 28, 'khung': [THAN],   # góc trái phòng, sau vai TRÁI Thần: Thần trái màn, Hạ phải màn — cùng phía trục với 2.1 (sau vai phải thì đảo, cổng vuotTruc chặn)
+      'vi_tri': [vt(THAN, [80, 1040, 0], 0, **AO_THAN), HA_QUY(), VIV_DUNG(), LY_RONG(an=True)]},
+     [THAN, VP])
+shot('2.0b', C2A, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang', 'chuyen_dong': 'day_vao', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['im_lang', 'tim_dap']},
+     { 'dien': 'Anticipation: Thần’s eyes track something on the floor. Action: a barely visible narrowing of the eyes; jaw still. Reaction: he does not move — the decision is made in silence.', 'bo_cuc': 'Close-up on Lục Thần through the glass wall of his office, faint reflections of the open office on the glass over his face', 'mo': 'Thần watching, expressionless', 'ket': 'eyes narrowed slightly, still watching', 'huong': 'Thần looks out screen-right and down toward Hạ, just off the lens', 'muc_dich': 'anh đã thấy hết — khán giả biết, Hạ không'},
+     'Cận Lục Thần sau lớp kính, ánh mắt lạnh dõi theo Hạ', [],
+     [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
+     {'tay': True, 'dat': [55, 945, 168], 'nhin': [80, 1040, 168], 'ong_kinh': 85, 'khung': [THAN],   # ngoài vách kính, lệch trái: cùng phía trục Thần–Hạ với máy 2.1; mắt Thần nhìn về Hạ lướt phải ống kính
+      'vi_tri': [vt(THAN, [80, 1040, 0], 0), HA_QUY(), VIV_DUNG(), LY_RONG(an=True)]},
+     [THAN, VP])   # cận Thần: Hạ / Vivian ngoài khung
+shot('2.0c', C2A, 4, 'h3', {'vai': 'chu_quan', 'co_canh': 'pov', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
+     { 'dien': 'Anticipation: Hạ picks up the last sheet from the floor. Action: she rises from one knee to standing, the papers held to her chest. Reaction: she smooths her stained blouse and lifts her chin; Vivian watches her with a smirk.', 'bo_cuc': 'Point of view from inside the CEO office through the glass wall: across the open office, Lâm Hạ in the middle distance rising from the floor, Vivian beside her screen-right, coworkers at their desks', 'mo': 'Hạ on one knee picking up the last sheet', 'ket': 'Hạ standing, papers against her chest, chin up', 'huong': 'Hạ looks down at the papers, then straight ahead', 'muc_dich': 'thứ anh thấy — Hạ tự đứng dậy (dáng liền mạch sang 2.1)'},
+     'Qua vách kính, từ chỗ Lục Thần: Hạ nhặt tờ cuối, đứng dậy, ngẩng đầu', [],
+     [bc(HA, 'nhan_nhin', 'nhan_nhin', cam=['vui', 'cuoi_lon']), bc(VIV, 'dac_y', 'dac_y')],
+     {'tay': True, 'qua_truc': True, 'dat': [80, 1030, 170], 'nhin': [300, 560, 90], 'ong_kinh': 70, 'khung': [HA, VIV],   # đúng mắt Thần (góc nhìn) — POV ngược hướng shot trước: qua trục có chủ đích
+      'vi_tri': [vt(THAN, [80, 1040, 0], 0, an=True), vt(HA, [300, 540, 0], 180, dien=['mc_dung_len_quy@0.3-0.75']), VIV_DUNG(), LY_RONG(an=True)]},
+     [HA, VIV, VP, 'Ly cà phê'])
 shot('2.1', C2, 5, 'h3', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'thap', 'chuyen_dong': 'dan_truoc', 'ong_kinh': 'rong', 'anh_sang': 'cua_so', 'am_thanh': ['im_lang', 'foley']},
      { 'dien': 'Anticipation: the {Cửa phòng TGĐ} swings open, the room goes silent. Action: Lục Thần strides out toward the group, unhurried. Reaction: everyone straightens; heads turn to follow him.','bo_cuc': 'Low angle from between the desks: the {Cửa phòng TGĐ} opens at the back, Lục Thần walks out toward camera, the office falls silent', 'mo': '{Cửa phòng TGĐ} closed, Thần visible behind the glass', 'ket': 'Thần standing a few steps from Hạ and Vivian', 'huong': 'Thần walks toward camera', 'muc_dich': 'quyền lực bước vào'},
      'Cửa kính phòng tổng giám đốc mở, Lục Thần bước ra, cả phòng im bặt', [(THAN, 'không cao giọng', 'Chuyện gì?')],
      [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon']), bc(HA, 'nhan_nhin', 'nhan_nhin'), bc(VIV, 'dac_y', 'dac_y')],
      {'tay': True, 'dat': [230, 250, 140], 'nhin': [200, 800, 140], 'ong_kinh': 24, 'khung': [THAN, HA, VIV],   # tổng thể cảnh 2: máy thấp sau lưng Hạ + Vivian, Thần từ cửa kính bước tới
      
-      'vi_tri': [vt(THAN, [80, 1020, 0], 0, den=[230, 760, 0], **AO_THAN, dien=['mc_sai_buoc']), vt(HA, [300, 560, 0], 180, nam=False), vt(VIV, [300, 640, 0], 0, huong_den=-150), LY_RONG(an=True)]},
+      'vi_tri': [vt(THAN, [80, 1040, 0], 0, den=[230, 760, 0], **AO_THAN, dien=['mc_sai_buoc']), vt(HA, [300, 560, 0], 180, nam=False), vt(VIV, [300, 640, 0], 0, huong_den=-150), LY_RONG(an=True)]},
      [THAN, HA, VIV, VP, 'Ly cà phê'])
 shot('2.2', C2, 4, 'veo', {'vai': 'chu_quan', 'co_canh': 'mcu', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},
      { 'dien': "Anticipation: Vivian's sneer drops. Action: she turns to Thần with a sweet smile and a soft voice. Reaction: a quick sidelong glance back at Hạ.",'bo_cuc': 'Vivian MCU from Thần’s side, her face switching to a sweet smile', 'mo': 'Vivian turns from Hạ to Thần', 'ket': 'Vivian smiling up at Thần', 'huong': 'Vivian looks screen-left up at Thần', 'muc_dich': 'hai mặt của Vivian'},

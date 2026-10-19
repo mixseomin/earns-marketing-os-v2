@@ -558,6 +558,346 @@
   "bat_dau": 17.0
  },
  {
+  "ma": "2.0a",
+  "canh": "Sau vách kính",
+  "phat_s": 3,
+  "thoi_luong_s": 5,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "thiet_lap",
+   "co_canh": "ws",
+   "goc": "ngang",
+   "chuyen_dong": "day_vao",
+   "ong_kinh": "rong",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "im_lang"
+   ]
+  },
+  "dan_dung": {
+   "dien": "Anticipation: the office noise cuts out as we enter the glass room. Action: Lục Thần stands motionless at the glass wall, hands in pockets, watching the floor outside. Reaction: none — he only watches.",
+   "bo_cuc": "Inside the CEO office: wide from the back corner, Lục Thần three-quarter back to camera at the glass wall screen-left, the open office beyond the glass with Hạ kneeling small in the distance",
+   "mo": "Thần standing at the glass, back three-quarter to camera",
+   "ket": "camera has drifted closer to Thần’s shoulder",
+   "huong": "Thần looks out through the glass toward Hạ",
+   "muc_dich": "thế giới của người quyền lực — anh đã ở đó từ trước",
+   "ma": "2.0a"
+  },
+  "hanh_dong": "Bên trong phòng tổng giám đốc: Lục Thần đứng sau vách kính, lặng lẽ nhìn ra sàn văn phòng",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "lanh_lung",
+    "cuoi": "lanh_lung",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "tay": true,
+   "dat": [
+    30,
+    1130,
+    160
+   ],
+   "nhin": [
+    130,
+    990,
+    150
+   ],
+   "ong_kinh": 28,
+   "khung": [
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      80,
+      1040,
+      0
+     ],
+     "huong": 0,
+     "trang_phuc": "Com-lê đen ba mảnh",
+     "do_deo": "steel wristwatch on the left wrist; thin pale-green jade bead bracelet hidden under the left shirt cuff"
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180,
+     "dien": [
+      "mc_dang_quy"
+     ]
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Văn phòng mở tầng 38"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 23.0
+ },
+ {
+  "ma": "2.0b",
+  "canh": "Sau vách kính",
+  "phat_s": 3,
+  "thoi_luong_s": 8,
+  "duong_video": "veo",
+  "ky_thuat": {
+   "vai": "phan_ung",
+   "co_canh": "cu",
+   "goc": "ngang",
+   "chuyen_dong": "day_vao",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "im_lang",
+    "tim_dap"
+   ]
+  },
+  "dan_dung": {
+   "dien": "Anticipation: Thần’s eyes track something on the floor. Action: a barely visible narrowing of the eyes; jaw still. Reaction: he does not move — the decision is made in silence.",
+   "bo_cuc": "Close-up on Lục Thần through the glass wall of his office, faint reflections of the open office on the glass over his face",
+   "mo": "Thần watching, expressionless",
+   "ket": "eyes narrowed slightly, still watching",
+   "huong": "Thần looks out screen-right and down toward Hạ, just off the lens",
+   "muc_dich": "anh đã thấy hết — khán giả biết, Hạ không",
+   "ma": "2.0b"
+  },
+  "hanh_dong": "Cận Lục Thần sau lớp kính, ánh mắt lạnh dõi theo Hạ",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lục Thần",
+    "dau": "lanh_lung",
+    "cuoi": "lanh_lung",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   }
+  ],
+  "may_3d": {
+   "tay": true,
+   "dat": [
+    55,
+    945,
+    168
+   ],
+   "nhin": [
+    80,
+    1040,
+    168
+   ],
+   "ong_kinh": 85,
+   "khung": [
+    "Lục Thần"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      80,
+      1040,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180,
+     "dien": [
+      "mc_dang_quy"
+     ]
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lục Thần",
+   "Văn phòng mở tầng 38"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 26.0
+ },
+ {
+  "ma": "2.0c",
+  "canh": "Sau vách kính",
+  "phat_s": 4,
+  "thoi_luong_s": 5,
+  "duong_video": "h3",
+  "ky_thuat": {
+   "vai": "chu_quan",
+   "co_canh": "pov",
+   "goc": "ngang",
+   "chuyen_dong": "tinh",
+   "ong_kinh": "chan_dung",
+   "anh_sang": "cua_so",
+   "am_thanh": [
+    "nen_phong"
+   ]
+  },
+  "dan_dung": {
+   "dien": "Anticipation: Hạ picks up the last sheet from the floor. Action: she rises from one knee to standing, the papers held to her chest. Reaction: she smooths her stained blouse and lifts her chin; Vivian watches her with a smirk.",
+   "bo_cuc": "Point of view from inside the CEO office through the glass wall: across the open office, Lâm Hạ in the middle distance rising from the floor, Vivian beside her screen-right, coworkers at their desks",
+   "mo": "Hạ on one knee picking up the last sheet",
+   "ket": "Hạ standing, papers against her chest, chin up",
+   "huong": "Hạ looks down at the papers, then straight ahead",
+   "muc_dich": "thứ anh thấy — Hạ tự đứng dậy (dáng liền mạch sang 2.1)",
+   "ma": "2.0c"
+  },
+  "hanh_dong": "Qua vách kính, từ chỗ Lục Thần: Hạ nhặt tờ cuối, đứng dậy, ngẩng đầu",
+  "thoai": [],
+  "bieu_cam": [
+   {
+    "nv": "Lâm Hạ",
+    "dau": "nhan_nhin",
+    "cuoi": "nhan_nhin",
+    "cam": [
+     "vui",
+     "cuoi_lon"
+    ]
+   },
+   {
+    "nv": "Vivian",
+    "dau": "dac_y",
+    "cuoi": "dac_y"
+   }
+  ],
+  "may_3d": {
+   "tay": true,
+   "qua_truc": true,
+   "dat": [
+    80,
+    1030,
+    170
+   ],
+   "nhin": [
+    300,
+    560,
+    90
+   ],
+   "ong_kinh": 70,
+   "khung": [
+    "Lâm Hạ",
+    "Vivian"
+   ],
+   "vi_tri": [
+    {
+     "ten": "Lục Thần",
+     "tam": [
+      80,
+      1040,
+      0
+     ],
+     "huong": 0,
+     "an": true
+    },
+    {
+     "ten": "Lâm Hạ",
+     "tam": [
+      300,
+      540,
+      0
+     ],
+     "huong": 180,
+     "dien": [
+      "mc_dung_len_quy@0.3-0.75"
+     ]
+    },
+    {
+     "ten": "Vivian",
+     "tam": [
+      300,
+      640,
+      0
+     ],
+     "huong": 0
+    },
+    {
+     "ten": "Ly cà phê",
+     "tam": [
+      312,
+      622,
+      105
+     ],
+     "huong": 0,
+     "cam": "Vivian",
+     "trang": "empty",
+     "an": true
+    }
+   ]
+  },
+  "nhan_vat": [
+   "Lâm Hạ",
+   "Vivian",
+   "Văn phòng mở tầng 38",
+   "Ly cà phê"
+  ],
+  "chu_man": "",
+  "prompt_anh": "",
+  "prompt_video": "",
+  "bat_dau": 29.0
+ },
+ {
   "ma": "2.1",
   "canh": "Tổng tài đuổi việc",
   "phat_s": 5,
@@ -636,7 +976,7 @@
      "ten": "Lục Thần",
      "tam": [
       80,
-      1020,
+      1040,
       0
      ],
      "huong": 0,
@@ -695,7 +1035,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 23.0
+  "bat_dau": 33.0
  },
  {
   "ma": "2.2",
@@ -794,7 +1134,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 28.0
+  "bat_dau": 38.0
  },
  {
   "ma": "2.3",
@@ -898,7 +1238,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 32.0
+  "bat_dau": 42.0
  },
  {
   "ma": "2.3b",
@@ -1040,7 +1380,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 37.0
+  "bat_dau": 47.0
  },
  {
   "ma": "2.4",
@@ -1173,7 +1513,7 @@
   "chu_man": "Quỹ Harrington của cô: họp HĐQT 3 giờ. — LS Trần",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 42.0
+  "bat_dau": 52.0
  },
  {
   "ma": "3.1",
@@ -1302,7 +1642,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 46.0
+  "bat_dau": 56.0
  },
  {
   "ma": "3.1b",
@@ -1467,7 +1807,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 52.0
+  "bat_dau": 62.0
  },
  {
   "ma": "3.2",
@@ -1590,7 +1930,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 56.0
+  "bat_dau": 66.0
  },
  {
   "ma": "3.3",
@@ -1710,7 +2050,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 61.0
+  "bat_dau": 71.0
  },
  {
   "ma": "3.4",
@@ -1835,7 +2175,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 67.0
+  "bat_dau": 77.0
  },
  {
   "ma": "4.1",
@@ -1940,7 +2280,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 72.0
+  "bat_dau": 82.0
  },
  {
   "ma": "4.2",
@@ -2060,7 +2400,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 77.0
+  "bat_dau": 87.0
  },
  {
   "ma": "4.3",
@@ -2147,7 +2487,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 82.0
+  "bat_dau": 92.0
  },
  {
   "ma": "4.4",
@@ -2234,7 +2574,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 86.0
+  "bat_dau": 96.0
  },
  {
   "ma": "4.5",
@@ -2325,7 +2665,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 89.0
+  "bat_dau": 99.0
  },
  {
   "ma": "4.6",
@@ -2421,7 +2761,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 94.0
+  "bat_dau": 104.0
  },
  {
   "ma": "5.1",
@@ -2514,7 +2854,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 97.0
+  "bat_dau": 107.0
  },
  {
   "ma": "5.2",
@@ -2615,7 +2955,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 101.0
+  "bat_dau": 111.0
  },
  {
   "ma": "5.3",
@@ -2704,7 +3044,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 107.0
+  "bat_dau": 117.0
  },
  {
   "ma": "5.4",
@@ -2801,6 +3141,6 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 110.0
+  "bat_dau": 120.0
  }
 ]

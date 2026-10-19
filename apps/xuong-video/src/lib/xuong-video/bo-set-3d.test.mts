@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { nhinCau, thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { nhinCau, thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, dangMo, dangKet, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -105,6 +105,16 @@ assert.ok(noiHookup([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]),
 // dáng: đứng → nằm qua cú cắt là lỗi; ngã trong shot (nam_den) thì qua; vắng một shot thì được đổi ngoài khung
 assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh)[2]?.some((x) => x.includes('NẰM')) !== true && noiHookup([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])]).lech[2]?.[0]?.includes('khai mở nằm'), 'đứng → nằm qua cú cắt: hookup nối đứng, cổng không chặn, ghi chú khai lệch');
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam_den: true }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }])], kh), {});
+// DÁNG bốn trạng thái (anh 19/10/2026, tổng tài 1.5 → 2.1): quỳ cuối shot trước mà shot sau mở đứng = đứt; đứng dậy trong khung = liền.
+assert.equal(dangKet({ dien: ['mc_quy_xuong@0.3-1'] }), 'quy'); assert.equal(dangMo({ dien: ['mc_quy_xuong@0.3-1'] }), 'dung');
+assert.equal(dangMo({ dien: ['mc_dung_len_quy@0-0.5'] }), 'quy'); assert.equal(dangKet({ dien: ['mc_dung_len_quy@0-0.5'] }), 'dung');
+assert.equal(dangKet({ dien: ['mc_quy_xuong@0-0.3', 'mc_dung_len_quy@0.5-1'] }), 'dung', 'quỳ rồi đứng: dáng kết theo động tác kết muộn nhất');
+assert.equal(dangMo({ dien: ['mc_dung_day'] }), 'ngoi'); assert.equal(dangMo({ dien: ['mc_dang_quy'] }), 'quy'); assert.equal(dangKet({ dien: ['mc_dang_quy'] }), 'quy'); assert.equal(dangKet({ nam: true, nam_den: false }), 'dung'); assert.equal(dangKet({}), 'dung');
+const quy = (d2?: string[]) => lienMachTap([sh(1, [{ ten: 'Hạ', tam: [0, 0, 0], dien: ['mc_quy_xuong@0.3-1'] }]), sh(2, [{ ten: 'Hạ', tam: [0, 0, 0], ...(d2 ? { dien: d2 } : {}) }])], kh)[2] ?? [];
+assert.ok(quy().some((x) => x.includes('QUỲ') && x.includes('mc_dung_len_quy')), 'quỳ → đứng qua cú cắt: cổng báo + gợi động tác');
+assert.deepEqual(quy(['mc_dung_len_quy@0-0.4']), [], 'mở shot sau bằng đứng dậy từ quỳ: liền');
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Hạ', tam: [0, 0, 0], dien: ['mc_quy_xuong@0-0.4', 'mc_dung_len_quy@0.6-1'] }]), sh(2, [{ ten: 'Hạ', tam: [0, 0, 0] }])], kh), {}, 'đứng dậy trong shot trước: liền');
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Hạ', tam: [0, 0, 0], dien: ['mc_quy_xuong@0.3-1'] }]), sh(2, [{ ten: 'Thần', tam: [50, 0, 0] }]), sh(3, [{ ten: 'Hạ', tam: [0, 0, 0] }])], kh), {}, 'vắng một shot = thời gian trôi ngoài khung: không chặn');
 assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], nam: true }]), sh(2, [{ ten: 'Lint', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Tango', tam: [0, 0, 0] }])], kh), {});
 // nằm mà đi: lỗi; khai lan_tron / truot thì qua
 assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0], nam: true }])], kh)[1]?.some((x) => x.includes('NẰM mà đi')), 'nằm trượt đi');
@@ -186,7 +196,7 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (29): người ĐẤT SÉT previs (anh chọn — da / mắt MakeHuman ở cận như quái thai); máy đặt tay trượt chủ thể thì ngắm lại; POV cắt gần qua đầu chính người đó → 84.
 // 18/10/2026 (30): khung kết lệch theo máy đã ngắm lại; đầu chắn giữa máy và chủ thể thì cắt gần → 85.
 // 18/10/2026 (31): khung KẾT ngắm lại vào MẶT (đầu nhích theo hướng mặt, mép 0,2–0,8 — #24 kết còn tai + gáy); vòng đeo cổ tay nằm mép cổ tay áo, nở 30 % (#9 #25 chuỗi hạt chui trong tay áo MPFB) → 86.
-assert.deepEqual([BAN_DUNG, bam], [91, '8f2bd3230c93'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [92, '6d469bcba1ae'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

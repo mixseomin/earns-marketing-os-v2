@@ -9,7 +9,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 
-const tapId = Number(process.argv[2]); if (!tapId) { console.error('cần <tap_id>'); process.exit(1); }
+const tapId = Number(process.argv[2]); if (!tapId && process.argv[2] !== '--noi-lai') { console.error('cần <tap_id>'); process.exit(1); }
 const duoi = (process.argv.find((a) => a.startsWith('--ten=')) ?? '--ten=(bản 3D)').slice(6);
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 /** Cột của shot là KẾT QUẢ SINH / ĐO — bản sao để trống (giá trị = biểu thức SQL). */
@@ -19,6 +19,21 @@ const SHOT_TRONG: Record<string, string> = {
   soat: 'NULL', trang_thai: `'nhap'`, loi: `''`, chi_phi_cents: '0',
 };
 
+/** Đổi id shot trong khuôn chuỗi của tập theo bảng cũ → mới. */
+function doiKhuon(k: unknown, doi: Map<number, number>): unknown {
+  if (!Array.isArray(k)) return k ?? [];
+  return k.map((x: { shots?: Record<string, number> }) => (x && x.shots ? { ...x, shots: Object.fromEntries(Object.entries(x.shots).map(([id, v]) => [String(doi.get(Number(id)) ?? id), v])) } : x));
+}
+// --noi-lai <tap gốc> <tap bản sao>: nối lại khoá shot cho bản sao đã tạo (ghép theo thứ tự thu_tu, id)
+if (process.argv[2] === '--noi-lai') {
+  const [g, m] = [Number(process.argv[3]), Number(process.argv[4])];
+  const ids = async (t: number) => ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${t} ORDER BY thu_tu, id`)) as unknown as Row[]).map((r) => Number(r.id));
+  const [a, b] = [await ids(g), await ids(m)]; if (a.length !== b.length) { console.error(`số shot lệch ${a.length} ≠ ${b.length}`); process.exit(1); }
+  const doi = new Map(a.map((x, i) => [x, b[i]!]));
+  const k = ((await db.execute(sql`SELECT khuon_chuoi FROM xv_tap WHERE id = ${m}`)) as unknown as Row[])[0]?.khuon_chuoi;
+  await db.execute(sql`UPDATE xv_tap SET khuon_chuoi = ${JSON.stringify(doiKhuon(k, doi))}::jsonb WHERE id = ${m}`);
+  console.log(`nối lại ${doi.size} shot cho tập ${m}`); process.exit(0);
+}
 const ketQua = await db.transaction(async (tx) => {
   const q = async (s: ReturnType<typeof sql>) => (await tx.execute(s)) as unknown as Row[];
   const cot = async (bang: string) => (await q(sql`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = ${bang} ORDER BY ordinal_position`))
@@ -49,11 +64,15 @@ const ketQua = await db.transaction(async (tx) => {
   const canh = await q(sql`SELECT id, nhan_vat, bien_the FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`);
   const cotShot = new Set((await cot('xv_canh')).map((c) => c.ten));
   const trong = Object.fromEntries(Object.entries(SHOT_TRONG).filter(([k]) => cotShot.has(k)));
+  const doiShot = new Map<number, number>();
   for (const c of canh) {
     const nv = ((c.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x): x is number => x != null);
     const bt = ((c.bien_the as number[]) ?? []).map((x) => doiBt.get(Number(x))).filter((x): x is number => x != null);
-    await chep('xv_canh', Number(c.id), { ...trong, tap_id: String(tapMoi), nhan_vat: lit(nv), bien_the: lit(bt) });
+    doiShot.set(Number(c.id), await chep('xv_canh', Number(c.id), { ...trong, tap_id: String(tapMoi), nhan_vat: lit(nv), bien_the: lit(bt) }));
   }
+  // KHOÁ SHOT trong dữ liệu tập: khuôn chuỗi (khuon_chuoi[].shots = { id shot: vị trí trong khuôn }) — 19/10/2026 bản sao 135 giữ id shot của tập
+  // 122 → cả 28 shot "ngoài khuôn", điểm dẫn dắt 59 thay vì 97.
+  await q(sql`UPDATE xv_tap SET khuon_chuoi = ${JSON.stringify(doiKhuon((await q(sql`SELECT khuon_chuoi FROM xv_tap WHERE id = ${tapMoi}`))[0]?.khuon_chuoi, doiShot))}::jsonb WHERE id = ${tapMoi}`);
   return { phim_goc: phimGoc, phim_moi: phim, tap_moi: tapMoi, shot: canh.length, nhan_vat: doiNv.size, bien_the: doiBt.size, bo_set: doiSet.size };
 });
 console.log(JSON.stringify(ketQua));

@@ -909,8 +909,9 @@ import re as _re
 LA_KINH = lambda v: bool(v.get('kinh')) or bool(_re.search(r'\bglass (wall|door|partition|panel)s?\b', v.get('en') or '', _re.I))
 KINH = {v['ten'] for v in DL['vat'] if LA_KINH(v)}
 def tia_qua_kinh(s, dg, goc, huong, kc):
-    """ray_cast bỏ qua vật kính (KINH): trúng kính thì bắn tiếp từ sau mặt kính, tối đa 4 lớp."""
-    for _ in range(4):
+    """ray_cast bỏ qua vật kính (KINH): trúng kính thì bắn tiếp từ sau mặt kính, tối đa 16 mặt. Mỗi tấm kính là HAI mặt; cửa kính nằm chồng trong
+    vách kính là 4 mặt liền — trần cũ 4 lớp làm tia qua cửa trả 'không trúng gì' (19/10/2026 tổng tài 2.0b–c: Thần sau cửa kính không thấy)."""
+    for _ in range(16):
         hit, loc, nor, i, ob, mx = s.ray_cast(dg, goc, huong, distance=kc)
         g = ob.name.split('·')[0] if hit and ob else ''
         if not (g in KINH or g.rsplit(' ', 1)[0] in KINH): return hit, loc, nor, i, ob, mx

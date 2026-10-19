@@ -12,6 +12,8 @@ import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE
 import { LOAI_NHAN_VAT, chuManHien, giayPhat, tenCamXuc, tenPhanDoan, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat, type KyThuatShot } from '@/lib/xuong-video/dien-anh';
 import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-dong';
+import { theTenTap } from '@/lib/xuong-video/the-ten';
+import { nhipCat } from '@/lib/xuong-video/nhip-cat';
 import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM } from '@/lib/xuong-video/sfx';
 import { doLufsAm } from '@/lib/actions';
 import { keHoachToc, nguonTai } from '@/lib/xuong-video/toc-do';
@@ -553,6 +555,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
         {onDoiKyThuat && <button type="button" className="xv-btn" title={'Nhịp hành động cả tập: cắt sốc → chớp/rung/zoom + tiếng đập · quất/phóng → tiếng vút · loé trắng → âm doạ.\nĐiểm cắt đã có hiệu ứng thì để nguyên; chạy lại không nhân đôi.'}
           onClick={() => { const r = nhipHanhDong(canh, batDau, lop); if (r.lop.length) datLop((ds) => [...ds, ...r.lop]); if (r.kt.length) onDoiKyThuat(r.kt); setBaoNhip(r.lop.length || r.kt.length ? `⚡ +${r.lop.length / 3} impact · ${r.kt.length} shot thêm tiếng` : '⚡ không có điểm cắt nào cần thêm'); }}>⚡ Nhịp hành động</button>}
+        <button type="button" className="xv-btn" title={'Thẻ tên nhân vật (luật the_ten_nhan_vat): shot ĐẦU mỗi nhân vật là chủ thể rõ mặt → tên vàng ~2,5 giây giữa khung.\nThêm thành lớp phủ — sửa chữ / thêm vai / dời / xoá như lớp thường. Bấm lại không nhân đôi.'}
+          onClick={() => { const r = theTenTap(canh, batDau, nhanVat, lop); if (r.lop.length) datLop((ds) => [...ds, ...r.lop]); const so = r.lop.filter((l) => !l.ten?.endsWith(' · vai')).length; setBaoNhip(`🏷 +${so} thẻ tên${r.khongCho.length ? ` · chưa có shot rõ mặt: ${r.khongCho.join(', ')}` : ''}`); }}>🏷 Thẻ tên</button>
+        {(() => { const n = nhipCat(canh, theLoai); return n.asl > 0 && <span style={{ ...mono, color: n.canhBao.length ? 'var(--warn, #d97706)' : undefined }} title={`Nhịp cắt (luật nhip_cat_doc): trung bình ${n.asl} s/shot${n.asl_thoai != null ? ` · đoạn thoại ${n.asl_thoai} s` : ''}${n.canhBao.length ? `\n${n.canhBao.map((x) => `• ${x.chu}`).join('\n')}` : ''}`}>⏲ {n.asl}s{n.canhBao.length ? ' ⚠' : ''}</span>; })()}
         {onKhopGiong && <button type="button" className="xv-btn" title="Khớp giây phát mỗi shot theo giọng đã sinh: đủ đọc hết câu (tốc ≤1,1×), mốc chữ màn co giãn theo, lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được." onClick={() => { if (dangKhop) return; setDangKhop(true); void onKhopGiong().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); }}>⏱ Khớp giọng</button>}
         {baoNhip && <span style={mono}>{baoNhip}</span>}
         <span style={{ flex: 1 }} />

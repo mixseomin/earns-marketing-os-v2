@@ -375,12 +375,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [boCucChon, setBoCuc] = useNho<'tu_dong' | 'giua' | 'phai' | 'trai'>('xv-tl-bo-cuc', 'tu_dong', ['tu_dong', 'giua', 'phai', 'trai'], 'tlb');
   const boCuc = boCucChon === 'tu_dong' ? (doc916 ? 'phai' : 'giua') : boCucChon;
   const xemCanh = boCuc !== 'giua';
+  // Bề rộng THẬT của khung timeline (phim mở trong ngăn kéo hẹp hơn cửa sổ — đo cửa sổ thì cột xem ăn mất timeline) + chiều cao cửa sổ.
+  const khungRef = useRef<HTMLDivElement>(null);
   const [man, setMan] = useState({ w: 1600, h: 900 });
-  useEffect(() => { const f = () => setMan({ w: window.innerWidth, h: window.innerHeight }); f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
+  useEffect(() => {
+    const el = khungRef.current; const f = () => setMan({ w: el?.clientWidth || window.innerWidth, h: window.innerHeight });
+    f(); window.addEventListener('resize', f); const ro = el ? new ResizeObserver(f) : null; if (el) ro!.observe(el);
+    return () => { window.removeEventListener('resize', f); ro?.disconnect(); };
+  }, []);
   let caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
   if (xemCanh) {
     caoXem = Math.max(360, man.h - 120); rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
-    const tran = Math.round(man.w * 0.42); if (rongXem > tran) { rongXem = tran; caoXem = Math.round(doc916 ? (tran * 16) / 9 : (tran * 9) / 16); }
+    const tran = Math.round(man.w * 0.4); if (rongXem > tran) { rongXem = tran; caoXem = Math.round(doc916 ? (tran * 16) / 9 : (tran * 9) / 16); }
   }
   const [dangThaVao, setDangThaVao] = useState<string | null>(null);
   /** Thả lớp `tu` vào chỗ lớp `den` (mảng: cuối = trên cùng; làn hiển thị đảo ngược như After Effects). */
@@ -503,7 +509,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         </main>
   );
   return (
-    <div className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
+    <div ref={khungRef} className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'clip', position: 'relative', ...(xemCanh ? { [boCuc === 'phai' ? 'paddingRight' : 'paddingLeft']: rongXem + 17 } : {}) }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
       {xemCanh && <div style={{ position: 'absolute', top: 0, bottom: 0, [boCuc === 'phai' ? 'right' : 'left']: 0, width: rongXem + 17, [boCuc === 'phai' ? 'borderLeft' : 'borderRight']: '1px solid var(--line)', background: 'var(--bg-0, #0b0b0d)' }}>
         <div style={{ position: 'sticky', top: 0 }}>{khungXem}</div>
       </div>}

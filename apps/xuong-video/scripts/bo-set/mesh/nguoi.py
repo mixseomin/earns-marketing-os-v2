@@ -145,7 +145,10 @@ def _mpfb():
             lay = lambda p, k: next(getattr(importlib.import_module(m), k) for m in list(sys.modules) if m.endswith(p))
             _MPFB.update(hs=lay('mpfb.services.humanservice', 'HumanService'), op=lay('mpfb.entities.objectproperties', 'HumanObjectProperties'), ts=lay('mpfb.services.targetservice', 'TargetService'))
         except Exception as e:
-            print('MPFB không có — dùng thân liền:', e); _MPFB['hs'] = None
+            # KHÔNG lặng lẽ rơi về thân liền (19/10/2026: máy thuê không có MPFB → cả tập 135 dựng ra thân khối kiểu cũ, không ai báo): dừng hẳn,
+            # render-khung báo ✗, không nạp. Muốn cố ý dùng thân liền: XV_CHO_THAN_LIEN=1.
+            if os.environ.get('XV_CHO_THAN_LIEN') != '1': raise SystemExit(f'THIẾU MPFB trên máy dựng ({e}) — cài bằng scripts/bo-set/cai-mpfb.sh (image xv-render đã đóng sẵn)')
+            print('MPFB không có — dùng thân liền (XV_CHO_THAN_LIEN=1):', e); _MPFB['hs'] = None
     return _MPFB if _MPFB.get('hs') else None
 
 # xương MPFB (rig 'default', .L = trái nhân vật = 't' của ma-nơ-canh) → khớp đích để NHẮM (Damped Track trục Y của xương)
@@ -378,7 +381,9 @@ def _to_mau(o, rgba):
                 nd.inputs['Base Color'].default_value = rgba
 def mac_do(m, h, gioi, tuoi, trang):
     import os
-    dd = os.path.expanduser('~/Library/Application Support/Blender/5.0/extensions/.user/user_default/mpfb/data')
+    # thư mục dữ liệu MPFB theo Blender (macOS / Linux đều đúng) — trước 19/10/2026 viết cứng đường Mac: máy thuê Linux không thấy tóc / đồ
+    try: dd = os.path.join(bpy.utils.extension_path_user('bl_ext.user_default.mpfb'), 'data')
+    except Exception: dd = os.path.expanduser('~/Library/Application Support/Blender/5.0/extensions/.user/user_default/mpfb/data')
     if not os.path.isdir(os.path.join(dd, 'hair')): return False
     # ĐẤT SÉT PREVIS (anh 18/10/2026 chọn, sau khi da / mắt MakeHuman ở cận trông như quái thai — thung lũng kỳ dị): thân một màu đất sét mờ, KHÔNG
     # mắt / lông mày / vân da; tóc giữ hình, tô một màu; đồ tô màu áo của shot. Chuẩn previs ngành: đọc bố cục + diễn, mặt thật là việc của keyframe AI.

@@ -12,7 +12,10 @@ git clone -q --depth 1 --branch "$V" https://github.com/makehumancommunity/mpfb2
 "$B" -b --factory-startup --command extension list 2>&1 | grep -i -A1 mpfb | head -3
 # GÓI TÀI SẢN HỆ THỐNG (CC0, 267 MB): tóc (long01, bob, ponytail01, short01–04), vest (male/female_elegantsuit01), giày, mắt, lông mày — giải nén vào
 # thư mục dữ liệu người dùng của MPFB (LocationService.get_user_data). Nguồn: trang gói makehuman_system_assets (mirror1 = files2.…, mirror2 = files.…).
-DU="$HOME/Library/Application Support/Blender/$("$B" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+')/extensions/.user/user_default/mpfb/data"
+# thư mục dữ liệu người dùng của MPFB HỎI CHÍNH BLENDER (macOS ~/Library/Application Support/…, Linux ~/.config/blender/… — máy thuê / image
+# xv-render chạy Linux; trước 19/10/2026 viết cứng đường Mac nên máy thuê không bao giờ có tài sản)
+DU="$("$B" -b --factory-startup --python-expr "import bpy; print('DU=' + bpy.utils.extension_path_user('bl_ext.user_default.mpfb', create=True))" 2>/dev/null | sed -n 's/^DU=//p' | tail -1)/data"
+[ "$DU" != /data ] || { echo "không hỏi được thư mục dữ liệu MPFB"; exit 1; }
 # Tải một tệp lớn bằng N luồng song song (Range), mỗi khúc tự tải tiếp chỗ đứt; ghép lại theo thứ tự.
 tai_nhieu_luong() {
   local U="$1" RA="$2" N="${3:-8}" DAI K TU DEN

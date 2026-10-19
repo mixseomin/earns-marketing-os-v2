@@ -4,13 +4,18 @@
 # máy chủ RunPod gắn vào (NVIDIA_DRIVER_CAPABILITIES=all để có cả thư viện OptiX).
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive NVIDIA_DRIVER_CAPABILITIES=all NVIDIA_VISIBLE_DEVICES=all
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync xz-utils curl ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync xz-utils curl ca-certificates git zip unzip \
       libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 libxxf86vm1 libxfixes3 libglu1-mesa \
     && rm -rf /var/lib/apt/lists/*
 ARG BAN=5.0.1
 RUN cd /opt && curl -fsSL -A 'Mozilla/5.0' -o b.tar.xz https://download.blender.org/release/Blender5.0/blender-${BAN}-linux-x64.tar.xz \
     && tar -xJf b.tar.xz && rm b.tar.xz && mv blender-${BAN}-linux-x64 blender && /opt/blender/blender --version | head -1
+# MPFB (người MakeHuman, CC0) + gói tài sản hệ thống + cơ mặt ARKit ĐÓNG SẴN (19/10/2026: máy thuê không có MPFB → cả tập dựng ra thân khối cũ).
+# Cùng script cài của iMac (cai-mpfb.sh, hỏi Blender thư mục dữ liệu — Linux ~/.config/blender/…). Context build = scripts/bo-set.
+COPY cai-mpfb.sh /tmp/cai-mpfb.sh
+RUN bash /tmp/cai-mpfb.sh /opt/blender/blender && rm -rf /tmp/* \
+    && /opt/blender/blender -b --factory-startup --python-expr "import addon_utils; addon_utils.enable('bl_ext.user_default.mpfb', default_set=True); import sys; assert any(m.endswith('mpfb.services.humanservice') for m in sys.modules); print('MPFB OK')" 2>&1 | grep 'MPFB OK'
 RUN mkdir -p /run/sshd /root/.ssh /root/xv/scripts/bo-set && chmod 700 /root/.ssh
-COPY start.sh /start.sh
+COPY may-thue/start.sh /start.sh
 RUN chmod +x /start.sh
 CMD ["/start.sh"]

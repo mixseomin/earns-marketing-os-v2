@@ -102,7 +102,9 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
     # GPU qua OptiX hoặc CUDA — không thấy thì thoát mã 2, lam xoá máy này và thuê máy khác.
     TB=$($SSH "/opt/blender/blender -b --factory-startup --python-expr \"import bpy; p=bpy.context.preferences.addons['cycles'].preferences; [print('THIET BI', k, [d.name for d in (p.get_devices_for_type(k) or []) if d.type != 'CPU']) for k in ('OPTIX','CUDA')]\" 2>/dev/null | grep THIET" || true)
     echo "$TB"
-    echo "$TB" | grep -qE "THIET BI (OPTIX|CUDA) \[.+\]" || { echo "GPU KHÔNG DÙNG ĐƯỢC trên máy này"; exit 2; } ;;
+    echo "$TB" | grep -qE "THIET BI (OPTIX|CUDA) \[.+\]" || { echo "GPU KHÔNG DÙNG ĐƯỢC trên máy này"; exit 2; }
+    # KIỂM MPFB BẮT BUỘC (19/10/2026: image cũ không có MPFB → cả tập 135 ra thân khối kiểu cũ): thiếu là lỗi CẤU HÌNH (image) — mã 3, không thuê máy khác
+    $SSH "/opt/blender/blender -b --factory-startup --python-expr \"import addon_utils, sys; addon_utils.enable('bl_ext.user_default.mpfb', default_set=True); print('MPFB', 'OK' if any(m.endswith('mpfb.services.humanservice') for m in sys.modules) else 'THIEU')\"" 2>/dev/null | grep -q "MPFB OK" || { echo "MÁY THUÊ THIẾU MPFB — image xv-render chưa đóng MPFB (build lại .github/workflows/xv-render-image.yml)"; exit 3; } ;;
   do)
     D=${4:-$(ls -d ~/xuong-video-render/tap19/09-* | head -1)}
     $SSH "rm -rf /root/xv/do && mkdir -p /root/xv/do" && rsync -aq -e "ssh -p $CONG" "$D/vao.json" $HOST:/root/xv/do/

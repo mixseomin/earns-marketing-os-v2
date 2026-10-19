@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['apps/xuong-video/scripts/bo-set/may-thue/**', '.github/workflows/xv-render-image.yml']
+    paths: ['apps/xuong-video/scripts/bo-set/may-thue/**', 'apps/xuong-video/scripts/bo-set/cai-mpfb.sh', '.github/workflows/xv-render-image.yml']
 permissions:
   contents: read
   packages: write
@@ -20,7 +20,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: apps/xuong-video/scripts/bo-set/may-thue
+          context: apps/xuong-video/scripts/bo-set
+          file: apps/xuong-video/scripts/bo-set/may-thue/Dockerfile
           push: true
           tags: ghcr.io/mixseomin/xv-render:blender-5.0.1,ghcr.io/mixseomin/xv-render:latest
           labels: org.opencontainers.image.source=https://github.com/mixseomin/earns-marketing-os-v2

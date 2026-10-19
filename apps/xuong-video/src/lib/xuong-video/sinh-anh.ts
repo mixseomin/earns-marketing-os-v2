@@ -341,6 +341,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       if (u && ref.length < 6) { ref.push(u); vaiS.push({ url: u, nhan: `${v.loai === 'nhan_vat' ? '🧍' : '🧸'} ${v.ten}` }); so = ` — looks exactly like Image ${ref.length}`; }
       return `${v.ten}${so}: ${taNv(v, true)}`;
     });
+    // ẢNH ĐẦU CỦA CHÍNH SHOT làm tham chiếu cho keyframe KẾT / GIỮA (19/10/2026 #1: ảnh kết vẽ ra một văn phòng khác — sàn gỗ, đèn vàng — vì chỉ có
+    // khung 3D + ảnh mẫu nhân vật; ảnh đầu / cuối không nối thì video biến hình giữa hai nơi). Giữ phòng / ánh sáng / người theo ảnh đầu, chỉ đổi phần 3D đổi.
+    const dauShot = ket && bc.canh.keyframe_url ? (ref.push(bc.canh.keyframe_url), vaiS.push({ url: bc.canh.keyframe_url, nhan: '🎬 ảnh ĐẦU của shot' }), ref.length) : 0;
+    const dauCau = dauShot ? `Image ${dauShot} = the FIRST frame of this same shot, a split second earlier: keep its room, set dressing, light, colour grade, people, faces and wardrobe exactly; change only what Image 1 shows differently (positions, framing, held items, stains).` : '';
     const trang3d = trangCauCua(true);
     // SỐ NGƯỜI theo 3D: nhân vật lọt khung + người phụ của set lọt khung (khung_xam.thay.nguoi)
     const thayAll = bc.canh.khung_xam?.thay ?? [];
@@ -350,7 +354,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
     const k1: Khoi[] = [
       khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything; no props, cables, screens, people or hands that are not in Image 1.`),
-      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
+      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('giu', dauCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
       khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
       khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
       khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', camChu(chuPhim)),

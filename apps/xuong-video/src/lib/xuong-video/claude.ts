@@ -901,12 +901,12 @@ export async function xacNhanLoiClaude(o: { anh: string[]; cauHoi: string }): Pr
   return { ok: true, data: { co: !!d.co, muc: d.muc === 'nhe' ? 'nhe' : 'nang', ly_do: String(d.ly_do ?? '') }, tokens: r.tokens, model: modelSoTien(r) };
 }
 
-/** Một lượt THỬ chuỗi Claude (scripts/thu-chuoi-claude.mts): messages.parse có khuôn JSON, trần 200 token — kiểm đường đi + đọc khuôn + tiền. */
+/** Một lượt THỬ chuỗi Claude (scripts/thu-chuoi-claude.mts): messages.parse có khuôn JSON, trần 450 token (Anthropic trực tiếp viết dài hơn — 200 chạm trần) — kiểm đường đi + đọc khuôn + tiền. */
 export async function goiYThu(): Promise<GoiYKq<{ diem: number; ly_do: string }>> {
   const c = client(); if (!c) return { ok: false, loi: 'Thiếu khoá Claude' };
   const S = z.object({ diem: z.number().describe('0–10'), ly_do: z.string().describe('một câu') });
   try {
-    const r = await c.messages.parse({ model: 'claude-opus-5-5', max_tokens: 200, system: 'Bạn chấm shot phim ngắn.', messages: [{ role: 'user', content: 'Chấm 0–10 một shot: người phụ nữ cúi nhặt tờ giấy cuối cùng rồi đứng dậy, ngẩng đầu. Một câu lý do.' }],
+    const r = await c.messages.parse({ model: 'claude-opus-5-5', max_tokens: 450, system: 'Bạn chấm shot phim ngắn.', messages: [{ role: 'user', content: 'Chấm 0–10 một shot: người phụ nữ cúi nhặt tờ giấy cuối cùng rồi đứng dậy, ngẩng đầu. Một câu lý do.' }],
       output_config: { format: zodOutputFormat(S as unknown as Parameters<typeof zodOutputFormat>[0]) } });
     const p = r.parsed_output as { diem: number; ly_do: string } | null;
     return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: `không đọc được khuôn: ${r.content.map((b) => (b.type === 'text' ? b.text : '')).join('').slice(0, 120)}` };

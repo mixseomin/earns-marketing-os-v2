@@ -190,7 +190,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const chuoi = khoaVid.kieu === 'cong' ? [{ cong: khoaVid.cong, model: khoaVid.model, giay: MO_HINH_CONG.find((m) => m.key === `${khoaVid.cong}:${khoaVid.model}`)?.giay ?? 10 }] : chuoiVideo(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao');
   if (!laFal && !boQuaCong) {
     for (const b of chuoi) {
-      const g = await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, giay: b.giay });
+      const g = await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: b.giay });
       if (g.ok) {
         thuCong.push({ cong: b.cong, model: b.model, ok: true });
         const nguon: NguonSinh = { cong: b.cong, model: b.model, ...giaVideoCong(b.cong, b.model), thu: thuCong };

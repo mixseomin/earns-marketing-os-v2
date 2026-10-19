@@ -80,7 +80,7 @@ export const VIEC_NHIP = {
   ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
-      mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình chỉ được gọi khi có thư cần viết lời báo.' },
+      mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình (não của Kiên) đọc mỗi thư đang chờ MỘT lần: thật / giả / thường, phòng nào nhận, việc gì — chốt máy (tên miền anh dạy, link nhái tên hãng) mô hình không vượt được; thư thật có việc thì tự chuyển vào chủ đề Telegram của phòng đó.' },
     { ma: 'diem-danh', ten: 'Điểm danh đầu ngày', lich: (n) => n.diemDanh, khop: /điểm danh/, can_diem_danh: true,
       mo_ta: 'Một lần mỗi ngày làm việc, đúng giờ điểm danh: báo lên Telegram "đã vào ca" kèm số thư đang chờ, rồi thả các thư bảo mật đến ngoài giờ đã giữ lại từ tối hôm trước.' },
     { ma: 'bao-cao', ten: 'Báo cáo cuối ngày', lich: (n) => mocCuoiCa(n.ca), khop: /báo cáo cuối ngày/, can_diem_danh: true,

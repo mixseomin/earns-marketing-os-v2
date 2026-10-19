@@ -37,8 +37,16 @@ export const PHU_TRACH_MIEN = { 'etsy.com': 'thao', 'amazon.com': 'thao', 'kdp.a
 export const phuTrachMien = (mien) => { const m = String(mien || '').toLowerCase(); const k = Object.keys(PHU_TRACH_MIEN).filter((d) => m === d || m.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0]; return k ? PHU_TRACH_MIEN[k] : null; };
 /** Chuyển thư thật vào PHÒNG phụ trách (anh 19/10/2026: "Kiên đọc mail xong phải biết forward vào phòng liên quan"): tin đầy đủ vào chủ đề Telegram
  *  của phòng đó (tạo nếu chưa có) + một dòng dưới tin báo ở 🔐 Bảo mật + nhật ký người phụ trách. Trả true khi đã chuyển. */
+/** Trưởng phòng của một phòng (nhân sự cùng phòng, chức danh "Trưởng…"; không có thì người đầu tiên của phòng). */
+export async function truongPhong(ph) {
+  const fs = await import('node:fs'), path = await import('node:path'); const { GOC } = await import('./goc.mjs'); const d = path.join(GOC, 'cong-ty', 'nhan-su');
+  const ds = fs.readdirSync(d).map((id) => { try { const t = fs.readFileSync(path.join(d, id, 'SOUL.md'), 'utf8'); return { id, phong: t.match(/^phong:\s*(\S+)/m)?.[1], cd: t.match(/^chuc_danh:\s*(.+)$/m)?.[1] ?? '' }; } catch { return null; } }).filter((x) => x?.phong === ph);
+  return (ds.find((x) => /^Trưởng/i.test(x.cd)) ?? ds[0])?.id ?? null;
+}
+/** Người nhận thư: phòng não chọn → trưởng phòng; không có thì bảng PHU_TRACH_MIEN theo tên miền. */
+export const nguoiNhanThu = async (mail) => (mail.phong && mail.phong !== 'an-toan-tk' ? await truongPhong(mail.phong) : null) ?? phuTrachMien(mail.mien);
 export async function giaoPhuTrach(tg, topic, mail, ten, goc) {
-  const ai = phuTrachMien(mail.mien); const fs = await import('node:fs'), path = await import('node:path'); const { GOC } = await import('./goc.mjs');
+  const ai = await nguoiNhanThu(mail); const fs = await import('node:fs'), path = await import('node:path'); const { GOC } = await import('./goc.mjs');
   if (!ai) { await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', text: `📌 Thư thật từ <b>${esc(mail.mien)}</b> nhưng chưa có phòng phụ trách tên miền này (PHU_TRACH_MIEN trong mail-bao-mat.mjs) — anh chỉ định giúp em.` }); return false; }
   const doc = (...p) => fs.readFileSync(path.join(GOC, 'cong-ty', ...p), 'utf8'), fm = (t, k) => t.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim();
   const soul = doc('nhan-su', ai, 'SOUL.md'), ph = fm(soul, 'phong'), tenPh = fm(doc('phong', `${ph}.md`), 'ten').replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, ''), tenAi = `${fm(soul, 'ten')} [${tenPh}]`;
@@ -117,24 +125,81 @@ export function thamDinh({ from, subject = '', html = '' }, day = { nha: [], que
       : 'Thư thông báo, không đòi duyệt gì — đọc rồi lưu trữ.' };
 }
 
+// ── NÃO CỦA KIÊN (anh 19/10/2026: "làm sao cho thằng này có sẵn não"): luật cứng ở thamDinh vỡ với thứ không lường trước (link Gmail tự gắn vào
+// địa chỉ chân thư → thư Etsy thật bị gắn GIẢ). Giờ MÔ HÌNH đọc thư và kết luận thật/giả, phòng nào nhận, việc gì; máy chỉ giữ CHỐT AN TOÀN mô hình
+// không được vượt: tên miền anh dạy giả → giả · anh dạy site nhà → thường · link NHÁI tên hãng (amazon-in.verify-acct.top) → giả.
+// Mỗi thư gọi mô hình MỘT lần, lưu <DATA>/mail-nao.json; anh dạy thêm (lich_su dài ra) thì chấm lại. Chỉ chấm thư đang chờ (chưa xử, sau BAT_TU).
+const tepNao = () => `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/mail-nao.json`;
+function docNao(day) { try { const n = JSON.parse(require_fs().readFileSync(tepNao(), 'utf8')); const k = (day.lich_su ?? []).length; return Object.fromEntries(Object.entries(n).filter(([, v]) => v.day === k)); } catch { return {}; } }
+let _fs = null; const require_fs = () => _fs;   // fs nạp một lần ở đầu nhịp / docMailBaoMat (tệp ESM không có require)
+/** Link nhái tên hãng: host chứa tên hãng của người gửi mà KHÔNG cùng nhà (amazon-in.verify-acct.top khi người gửi amazon.in). */
+export const linkNhai = (x) => (x.mien ? (x.la ?? []).filter((h) => h.toLowerCase().includes(nhan(x.mien)) && !cungNha(h, x.mien)) : []);
+/** Áp kết luận của não lên kết luận máy, giữ chốt an toàn. */
+export function apNao(x, n, day = {}) {
+  if (!n || !x.mien) return x;
+  if ((day.gia ?? []).includes(x.mien) || (day.nha ?? []).includes(x.mien) || linkNhai(x).length) return { ...x, phong: n.phong ?? null };   // chốt máy thắng
+  return { ...x, ket: n.ket, chu: `${n.ly_do} (Kiên đọc thư)`, viec: n.viec || x.viec, phong: n.phong ?? null, nao: true };
+}
+const NAO_KET = ['gia', 'that', 'thuong', 'chua-ro'];
+/** Mô hình đọc một thư → { ket, ly_do, viec, phong } hoặc null khi lỗi (giữ kết luận máy). */
+export async function nhanDinh(nguoi, model, x, phongDs, ph = '') {
+  if (!model) return null;
+  const system = `Bạn là Kiên, trưởng phòng Bảo mật của một công ty nhỏ (chủ là "anh"). Hòm claude@orit.app nhận thư anh chuyển tiếp từ Gmail. Việc của bạn: đọc MỘT thư, kết luận và giao đúng phòng.
+- ket: "gia" (lừa đảo / mạo danh: người gửi giả, link dẫn sang tên miền lạ hay nhái, đòi mật khẩu/mã/tiền bất thường), "that" (thư thật của nền tảng/đối tác, CÓ việc cần người xử lý: cảnh báo vi phạm, yêu cầu xác nhận, thanh toán, khoá tài khoản, hạn chót), "thuong" (thư thật, chỉ thông báo, không cần làm gì), "chua-ro".
+- Gmail khi chuyển tiếp tự thêm link (google.com/url, Google Maps cho địa chỉ ở chân thư): KHÔNG coi là dấu hiệu giả. Danh sách tên miền link bên dưới đã bỏ các link đó.
+- phong: id phòng phải xử lý (chọn trong danh sách), null nếu không phòng nào. Thư về tài khoản bán hàng / sàn của phòng nào thì giao phòng đó.
+- viec: một câu tiếng Việt, việc CỤ THỂ người phụ trách phải làm (thư giả: không bấm link, xoá thư).
+- ly_do: một câu tiếng Việt, dựa trên bằng chứng trong thư.
+Trả DUY NHẤT JSON: {"ket":"…","ly_do":"…","viec":"…","phong":"…"}.`;
+  const user = `Người gửi thật: ${x.gui}${x.chuyenTiep ? ' (thư anh chuyển tiếp)' : ''}\nTiêu đề: ${x.tieuDe}\nTên miền các link trong thư: ${[...new Set((x.links ?? []).map(mienGoc))].join(', ') || '(không có)'}\nMáy đo: ${x.ket} — ${x.chu}\n\nCÁC PHÒNG:\n${phongDs}\n\nNỘI DUNG THƯ:\n${x.than ?? ''}`;
+  try {
+    const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': nguoi, 'x-cty-luot': `nao-${Date.now()}`, ...(ph ? { 'x-cty-phong': ph } : {}) },
+      body: JSON.stringify({ model, max_tokens: 400, temperature: 0.1, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
+    const d = await r.json(); if (!r.ok) { console.error(`✗ não ${model}: ${r.status} ${JSON.stringify(d).slice(0, 200)}`); return null; }
+    const t = (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''); const o = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+    if (!NAO_KET.includes(o.ket)) return null;
+    return { ket: o.ket, ly_do: String(o.ly_do || '').slice(0, 300), viec: String(o.viec || '').slice(0, 300), phong: o.phong && /^[a-z0-9-]+$/.test(o.phong) ? o.phong : null };
+  } catch (e) { console.error(`✗ não: ${e.message}`); return null; }
+}
+/** Danh sách phòng cho mô hình chọn: "id: tên — tóm tắt" (đọc cong-ty/phong/*.md). */
+async function dsPhong() {
+  const path = await import('node:path'); const { GOC } = await import('./goc.mjs'); const d = path.join(GOC, 'cong-ty', 'phong');
+  return _fs.readdirSync(d).filter((f) => f.endsWith('.md')).map((f) => { const t = _fs.readFileSync(path.join(d, f), 'utf8'); const g = (k) => t.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim() ?? '';
+    return `${f.slice(0, -3)}: ${g('ten')} — ${g('tom_tat')}`; }).join('\n');
+}
+/** Nhịp: chấm bằng não các thư đang chờ chưa có kết luận não; tối đa `tran` thư mỗi nhịp (trần chi). Trả số thư vừa chấm. */
+export async function chamNao(nguoi, model, ds, day, ph = '', tran = 5) {
+  if (!model || !ds) return 0;
+  let n = {}; try { n = JSON.parse(_fs.readFileSync(tepNao(), 'utf8')); } catch { /* lần đầu */ }
+  const k = (day.lich_su ?? []).length, can = ds.filter((x) => !x.xong && x.luc >= BAT_TU && x.mien && n[x.id]?.day !== k).slice(0, tran);
+  if (!can.length) return 0;
+  const phongDs = await dsPhong(); let lam = 0;
+  for (const x of can) { const o = await nhanDinh(nguoi, model, x, phongDs, ph); if (o) { n[x.id] = { ...o, day: k, luc: new Date().toISOString(), model }; lam++; } }
+  _fs.writeFileSync(`${tepNao()}.tam`, JSON.stringify(n, null, 1)); _fs.renameSync(`${tepNao()}.tam`, tepNao());
+  return lam;
+}
+
 // Đọc hòm: MỌI thư 30 ngày → kết luận (thư thường = ket 'thuong'). Lỗi đọc trả null (trang hiện lỗi, không giấu thành "không có thư").
 export async function docMailBaoMat({ ngay = 30, url = process.env.DIRECTUS_URL, token = process.env.DIRECTUS_TOKEN } = {}) {
   if (!url || !token) return null;
   const tu = new Date(Date.now() - ngay * 86_400_000).toISOString();
   const q = new URLSearchParams({ limit: '200', sort: '-captured_at', fields: 'id,from_addr,from_name,subject,body_html,captured_at,status',
     filter: JSON.stringify({ captured_at: { _gte: tu } }) });   // MỌI thư (anh 14/10/2026) — thư thường ra ket 'thuong'
+  _fs ??= await import('node:fs');
   try {
     const day = await docDay();
     const r = await fetch(`${url}/items/claude_inbox?${q}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
     if (!r.ok) return null;
-    return (await r.json()).data.map((m) => ({ id: m.id, luc: m.captured_at, tieuDe: String(m.subject ?? '').replace(/^(fwd?|tr|chuyển tiếp):\s*/i, ''), xong: m.status !== 'new',
-      ...thamDinh({ from: m.from_addr, subject: m.subject, html: m.body_html }, day) }));
+    const nao = docNao(day);
+    return (await r.json()).data.map((m) => { const x = { id: m.id, luc: m.captured_at, tieuDe: String(m.subject ?? '').replace(/^(fwd?|tr|chuyển tiếp):\s*/i, ''), xong: m.status !== 'new',
+      ...thamDinh({ from: m.from_addr, subject: m.subject, html: m.body_html }, day), chuyenTiep: nguoiGui(m.from_addr, m.body_html ?? '').chuyenTiep, than: chu(m.body_html ?? '').replace(/\s+\n/g, '\n').slice(0, 3500) };
+      return apNao(x, nao[m.id], day); });
   } catch { return null; }
 }
 
 // ── NHỊP CỦA NGƯỜI PHỤ TRÁCH (worker/nhip.mjs gọi mỗi phút, anh bật 13/10/2026 "hệ thống phải tự làm việc, không phải nhắc mới làm"):
 // thư bảo mật chưa xử → MỘT tin vào nhóm Telegram MINE, topic "🔐 Bảo mật" (bot tự tạo topic lần đầu); thư đã xử (đọc / lưu trữ trong hòm)
-// → thả ❤ rồi 1 phút sau xoá tin; còn thư chờ → người phụ trách "chờ người" trên văn phòng pixel. Câu báo theo khuôn: 0 tiền mô hình.
+// → thả ❤ rồi 1 phút sau xoá tin; còn thư chờ → người phụ trách "chờ người" trên văn phòng pixel. Mô hình: chấm mỗi thư chờ MỘT lần (não) + lời mở.
 const CTY = 'https://cty.on.tc/?dc=mail&ngan=phong%3Aan-toan-tk';
 const XOA_SAU = 60_000;
 const NOM_CHU = { nha: 'site nhà', quen: 'nhà thật, quen', gia: 'giả' };
@@ -229,7 +294,9 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   const ls = ((await docDay()).lich_su ?? []); if (st.daNho === undefined) st.daNho = 0;
   for (const x of ls.slice(st.daNho)) await tg('sendMessage', { message_thread_id: st.topic, text: tinDaNho(x, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   const moiNho = ls.length - st.daNho; st.daNho = ls.length;
-  const ds = await docMailBaoMat(); if (!ds) console.error('✗ không đọc được hòm claude@orit.app');
+  let ds = await docMailBaoMat(); if (!ds) console.error('✗ không đọc được hòm claude@orit.app');
+  // não: thư đang chờ chưa có kết luận của mô hình → chấm (≤ 5 thư/nhịp), rồi đọc lại để ds mang kết luận não
+  const nao = ds ? await chamNao(nguoi, model, ds, await docDay(), phong) : 0; if (nao) ds = await docMailBaoMat() ?? ds;
   const G = await import('./gio-lam.mjs'); const bay = Date.now(), ngay = G.ngayLam(bay, ca);
   if (!st.topic) { const j = await tg('createForumTopic', { name: '🔐 Bảo mật' }); if (j.ok) st.topic = j.result.message_thread_id; }
   const tuMoc = st.diemDanhLuc ?? BAT_TU;   // thư ngoài giờ đến SAU lần điểm danh trước = phải báo dồn ở lần điểm danh này
@@ -248,7 +315,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
     if (j.ok) st.tin[m.id] = { id: j.result.message_id, nut: 1 }; st.vp = 'lam';
   }
   // thư Kiên kết luận THẬT, tên miền có phòng phụ trách → tự chuyển vào phòng đó MỘT lần (không đợi anh)
-  for (const m of (ds ?? []).filter((x) => x.ket === 'that' && !x.xong && x.luc >= BAT_TU && !st.chuyen?.[x.id] && phuTrachMien(x.mien))) {
+  for (const m of (ds ?? []).filter((x) => x.ket === 'that' && !x.xong && x.luc >= BAT_TU && !st.chuyen?.[x.id] && ((x.phong && x.phong !== 'an-toan-tk') || phuTrachMien(x.mien)))) {
     await vpBao(nguoi, 'lam', `chuyển thư ${m.mien}`);
     if (await giaoPhuTrach(tg, st.topic, m, ten, st.tin?.[m.id]?.id)) (st.chuyen ??= {})[m.id] = new Date().toISOString();
   }
@@ -287,6 +354,11 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   a.equal(thamDinh({ from: 'htuan82@gmail.com', subject: 'Fwd: An important message from Etsy Trust & Safety', html: '---------- Forwarded message ---------<br>From: Etsy &lt;noreply@etsy.com&gt;<br>Please review our policy <a href="https://www.google.com/url?q=https://www.etsy.com/legal/policy/x">policy</a>' }).ket !== 'gia', true, 'thư Etsy chuyển tiếp qua Gmail không bị gắn giả');
   a.deepEqual(tachLink('<a href="https://www.google.com/search?q=x">x</a>'), ['www.google.com'], 'link google thường vẫn tính');
   a.deepEqual(tachLink('<a href="https://www.google.com/maps/search/117+Adams+Street,+Brooklyn?entry=gmail&amp;source=g">117 Adams</a>'), [], 'địa chỉ Gmail tự gắn Maps không tính');
+  { const x = { mien: 'etsy.com', ket: 'gia', chu: 'máy', viec: 'xoá', la: ['www.google.com'] }, n = { ket: 'that', ly_do: 'cảnh báo chính sách thật', viec: 'rà listing', phong: 'sach' };
+    a.equal(apNao(x, n).ket, 'that', 'não thắng luật cứng khi không có chốt'); a.equal(apNao(x, n).phong, 'sach');
+    a.equal(apNao({ ...x, la: ['etsy-verify.top'] }, n).ket, 'gia', 'link nhái tên hãng: chốt máy thắng não');
+    a.equal(apNao(x, n, { gia: ['etsy.com'] }).ket, 'gia', 'anh dạy giả: chốt máy thắng não'); a.equal(apNao(x, null).ket, 'gia', 'não lỗi: giữ kết luận máy');
+    a.deepEqual(linkNhai({ mien: 'amazon.in', la: ['amazon-in.verify-acct.top', 'www.google.com'] }), ['amazon-in.verify-acct.top']); }
   a.equal(nhomTuChu('Thật'), 'quen'); a.equal(nhomTuChu('thật đấy, của Etsy'), 'quen'); a.equal(nhomTuChu('Giả'), 'gia'); a.equal(nhomTuChu('Nhà mình'), 'nha'); a.equal(nhomTuChu('ok'), null);
   a.equal(phuTrachMien('etsy.com'), 'thao'); a.equal(phuTrachMien('mail.etsy.com'), 'thao'); a.equal(phuTrachMien('evil-etsy.com'), null); a.equal(phuTrachMien('kdp.amazon.com'), 'thao');
   a.equal(mienGoc('www.amazon.co.uk'), 'amazon.co.uk'); a.equal(mienGoc('smile.amazon.in'), 'amazon.in'); a.equal(mienGoc('amazon-in.verify-acct.top'), 'verify-acct.top');

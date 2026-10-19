@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { khuonQcPhim } from './khuon-qc-phim';
 
 type Canh = { loi: string; anh: string; dong: string };
 type Phim = { content_id: number; ten: string; lang: 'en' | 'es'; nguon: string; giong: string; poster: string; url: string; nhan_vat: string; canh: Canh[] };
@@ -17,12 +18,13 @@ for (const p of lo.phim) {
   const co = (await db.execute(sql`SELECT id FROM xv_phim WHERE project = 'ethopex' AND (kinh_thanh->'ethopex'->>'content_id')::int = ${p.content_id} AND kinh_thanh->'ethopex'->>'lo' = ${process.argv[2]!}`)) as unknown as { id: number }[];
   if (co.length) { console.log(`· ${p.ten}: đã có phim #${co[0]!.id} — bỏ qua`); continue; }
   const poster = `https://acdn.dofez.com/${p.poster}`;
+  const k = khuonQcPhim(p.ten, p.lang, p.nguon, p.canh.map((c) => c.loi));   // chữ ngắn + tên phim shot 1 + thẻ cuối (cổng người xem, 19/10/2026)
   const kt = {
     ti_le: '9:16', do_phan_giai: '1080p', ngon_ngu: p.lang, the_loai: 'qc_ke_chuyen', phong_cach: PHONG_CACH,
     mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview',
     giong_dan: { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: p.giong },
     logline: p.canh[0]!.loi,
-    qc: { ten: `${p.ten} (Ethopex)`, link: p.url, the_cuoi: lo.khuon.the_cuoi[p.lang] },
+    qc: { ten: k.qcTen, link: p.url, the_cuoi: lo.khuon.the_cuoi[p.lang] },
     ethopex: { content_id: p.content_id, nguon: p.nguon, lo: process.argv[2]!, khuon: 'video thắng #1: kể ngôi thứ nhất + phụ đề + thẻ cuối, hook nhanh' },
   };
   const ph = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai, poster_url)
@@ -37,8 +39,11 @@ for (const p of lo.phim) {
   for (const [i, c] of p.canh.entries()) {
     await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, prompt_anh, prompt_video, loi_thoai, thoai, chu_man, nhan_vat, phan_doan, thoi_luong_s, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1}${i === 0 ? ' · hook' : ''}`}, ${c.anh}, ${c.anh}, ${c.dong}, ${c.loi},
-        ${JSON.stringify([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${c.loi}, ${JSON.stringify([nv[0]!.id])}::jsonb, ${i === 0 ? 'hook' : 'than'}, 8, 'nhap')`);
+        ${JSON.stringify([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${k.chu[i]!}, ${JSON.stringify([nv[0]!.id])}::jsonb, ${i === 0 ? 'hook' : 'than'}, 8, 'nhap')`);
   }
+  await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, prompt_anh, prompt_video, loi_thoai, thoai, chu_man, nhan_vat, phan_doan, thoi_luong_s, trang_thai)
+    VALUES (${tapId}, ${p.canh.length + 1}, ${`Shot ${p.canh.length + 1} · thẻ cuối`}, ${k.theCuoi.anh}, ${k.theCuoi.anh}, ${k.theCuoi.dong}, ${k.theCuoi.loi},
+      ${JSON.stringify([{ nhan_vat: '', loi: k.theCuoi.loi }])}::jsonb, ${k.theCuoi.chu}, ${JSON.stringify([nv[0]!.id])}::jsonb, 'cta', 4, 'nhap')`);
   ra.push({ content_id: p.content_id, phim: phimId, tap: tapId });
   console.log(`✓ ${p.ten}: phim #${phimId} · tập #${tapId} · ${p.canh.length} cảnh`);
 }

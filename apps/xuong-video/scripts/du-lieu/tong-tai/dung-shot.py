@@ -83,7 +83,7 @@ shot('2.0b', C2A, 3, 'veo', {'vai': 'phan_ung', 'co_canh': 'cu', 'goc': 'ngang',
      { 'dien': 'Anticipation: Thần’s eyes track something on the floor. Action: a barely visible narrowing of the eyes; jaw still. Reaction: he does not move — the decision is made in silence.', 'bo_cuc': 'Close-up on Lục Thần through the glass wall of his office, faint reflections of the open office on the glass over his face', 'mo': 'Thần watching, expressionless', 'ket': 'eyes narrowed slightly, still watching', 'huong': 'Thần looks out screen-right and down toward Hạ, just off the lens', 'muc_dich': 'anh đã thấy hết — khán giả biết, Hạ không'},
      'Cận Lục Thần sau lớp kính, ánh mắt lạnh dõi theo Hạ', [],
      [bc(THAN, 'lanh_lung', 'lanh_lung', cam=['vui', 'cuoi_lon'])],
-     {'tay': True, 'dat': [55, 945, 168], 'nhin': [80, 1040, 168], 'ong_kinh': 85, 'khung': [THAN],   # ngoài vách kính, lệch trái: cùng phía trục Thần–Hạ với máy 2.1; mắt Thần nhìn về Hạ lướt phải ống kính
+     {'tay': True, 'dat': [55, 945, 168], 'nhin': [80, 1040, 150], 'ong_kinh': 85, 'khung': [THAN],   # ngoài vách kính, lệch trái: cùng phía trục Thần–Hạ với máy 2.1; mắt Thần nhìn về Hạ lướt phải ống kính; nhìn hạ xuống cằm (150) cho mắt lên phần ba trên — nhìn ngang mắt thì trên đầu trống nửa khung (khung 3D 19/10)
       'vi_tri': [vt(THAN, [80, 1040, 0], 0), HA_QUY(), VIV_DUNG(), LY_RONG(an=True)]},
      [THAN, VP])   # cận Thần: Hạ / Vivian ngoài khung
 shot('2.0c', C2A, 4, 'h3', {'vai': 'chu_quan', 'co_canh': 'pov', 'goc': 'ngang', 'chuyen_dong': 'tinh', 'ong_kinh': 'chan_dung', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong']},

@@ -4,9 +4,9 @@
 //   cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/cham-3d-song.mts <tap_id> [--tat-ca]
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { mapCanh, mapNhanVat, type Row } from '../src/lib/xuong-video/doc-db';
+import { mapCanh, mapNhanVat, boiCanhCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { mapBoSet } from '../src/lib/xuong-video/bo-set-3d-may';
-import { boSetCuaShot, maKhungXam, mayDayDu, laDoVatPhim } from '../src/lib/xuong-video/bo-set-3d';
+import { boSetCuaShot, maKhungXam } from '../src/lib/xuong-video/bo-set-3d';
 import { do3dSong } from '../src/lib/xuong-video/do-3d-song';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 import { locNhanh, type KhungXam } from '../src/lib/xuong-video/kieu';
@@ -20,14 +20,14 @@ const tap = (await q(sql`SELECT phim_id, phan_canh FROM xv_tap WHERE id = ${tapI
 const nv = (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(tap.phim_id)} ORDER BY id`)).map(mapNhanVat);
 const sets = (await q(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${Number(tap.phim_id)} OR phim_id IS NULL`)).map(mapBoSet);
 const ds = locNhanh((await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)).map(mapCanh), 'A');
-const du = mayDayDu(ds, laDoVatPhim(nv), (tap.phan_canh as never) ?? []);
 const khoiCua = (t: string) => (nv.find((v) => v.ten === t)?.khoi_3d ?? undefined) as KhoiNv | undefined;
 const laNguoi = (t: string) => nv.some((v) => v.ten === t && v.loai === 'nhan_vat');
 let doMoi = 0, giu = 0;
 for (const c of ds) {
-  const sid = boSetCuaShot(c, nv); const set = sets.find((s) => s.id === sid); const m = du.get(c.id) ?? c.may_3d;
-  if (!set || !m) continue;
-  const ma = maKhungXam(set, m, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang);
+  // máy ĐẦY ĐỦ + nhân vật (kèm biến thể) lấy ĐÚNG đường cổng keyframe dùng (doc-db.ts › boiCanhCanh) — tự tính lại thì mã khung lệch cổng
+  const sid = boSetCuaShot(c, nv); const set = sets.find((s) => s.id === sid); if (!set || !c.may_3d) continue;
+  const bc = await boiCanhCanh(db, c.id); const m = bc?.mayDu ?? c.may_3d; const nvP = bc?.nvPhim ?? nv;
+  const ma = maKhungXam(set, m, nvP, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang);
   if (process.argv.includes('--so')) {   // SO với khung Blender còn đúng mã — không ghi gì (kiểm độ tin của đo sống)
     if (c.khung_xam?.ma !== ma || c.khung_xam.nguon) continue;
     const s = do3dSong(set, m, khoiCua, laNguoi); const b = c.khung_xam;

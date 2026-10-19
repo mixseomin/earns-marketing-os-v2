@@ -17,7 +17,7 @@ const [tapId, tep] = [Number(process.argv[2]), process.argv[3]];
 if (!tapId || !tep) { console.error('cần <tap_id> <vá.json>'); process.exit(1); }
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 type Va = { thu_tu: number; ky_thuat?: Record<string, unknown>; dan_dung?: Record<string, unknown>; may_3d?: Record<string, unknown> & { vi_tri?: Record<string, Record<string, unknown>> };
-  hanh_dong?: string; canh?: string; phat_s?: number; thoi_luong_s?: number; bieu_cam?: unknown; /** tách shot thành các nhịp (tach-shot.ts) — chạy TRƯỚC mọi vá khác; thu_tu các mục sau tính theo thứ tự SAU khi tách */ tach?: string[] };
+  hanh_dong?: string; canh?: string; prompt_anh?: string; prompt_video?: string; phat_s?: number; thoi_luong_s?: number; bieu_cam?: unknown; /** tách shot thành các nhịp (tach-shot.ts) — chạy TRƯỚC mọi vá khác; thu_tu các mục sau tính theo thứ tự SAU khi tách */ tach?: string[] };
 const va = JSON.parse(readFileSync(tep, 'utf8')) as Va[];
 const la = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
 /** Gộp sâu: object gộp từng khoá, mảng / giá trị đè; null = xoá khoá. */
@@ -48,7 +48,7 @@ for (const v of va.filter((x) => !x.tach?.length)) {
     if (viVa) m.vi_tri = (cu.vi_tri ?? []).map((x) => (viVa[String(x.ten)] ? gop(x, viVa[String(x.ten)]) : x)) as Record<string, unknown>[];
     await ghi('may_3d', m);
   }
-  for (const k of ['hanh_dong', 'canh', 'phat_s', 'thoi_luong_s'] as const) if (v[k] != null) await ghi(k, v[k]);
+  for (const k of ['hanh_dong', 'canh', 'prompt_anh', 'prompt_video', 'phat_s', 'thoi_luong_s'] as const) if (v[k] != null) await ghi(k, v[k]);
   if (v.bieu_cam !== undefined) await ghi('bieu_cam', v.bieu_cam);
   if (!cot.length) continue;
   await chupTruoc(db, { bang: 'xv_canh', id, cot, moTa: `sửa shot #${v.thu_tu} (sua-shot.mts)`, nguoi: 'sua-shot', nhom });

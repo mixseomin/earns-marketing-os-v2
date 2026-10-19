@@ -135,13 +135,17 @@ export async function anhCuoiChuoi(canhId: number, nhip: string[]): Promise<stri
     return await uploadToR2(`xuong-video/keyframe/${canhId}-chuoi-${Date.now()}.jpg`, out, 'image/jpeg');
   } catch (e) { console.error('[ảnh cuối chuỗi]', e); return null; }
 }
-/** Tải clip, đọc khung xám 90×160 bằng ffmpeg rồi tinhCatCuoi. */
-export async function catCuoiClip(url: string): Promise<number | null> {
+/** Đọc ảnh / clip thành khung xám 90×160 (24 khung/giây) bằng ffmpeg. */
+async function khungXam(url: string): Promise<Uint8Array[]> {
   const { execFile } = await import('node:child_process'); const { promisify } = await import('node:util');
-  const W = 90, H = 160;
-  const { stdout } = await promisify(execFile)('ffmpeg', ['-v', 'error', '-i', url, '-vf', `scale=${W}:${H},format=gray,fps=24`, '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 256 << 20, timeout: 120_000 });
-  const n = W * H; const F: Uint8Array[] = []; for (let i = 0; i + n <= stdout.length; i += n) F.push(new Uint8Array(stdout.subarray(i, i + n)));
-  return tinhCatCuoi(F, W, H, 24);
+  const { stdout } = await promisify(execFile)('ffmpeg', ['-v', 'error', '-i', url, '-vf', 'scale=90:160,format=gray,fps=24', '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 256 << 20, timeout: 120_000 });
+  const n = 90 * 160; const F: Uint8Array[] = []; for (let i = 0; i + n <= stdout.length; i += n) F.push(new Uint8Array(stdout.subarray(i, i + n)));
+  return F;
+}
+/** Điểm cắt cuối của clip: so từng khung với ảnh thứ 2 (có dải nhịp) và ảnh kết (không dải) — cat-cuoi.ts. */
+export async function catCuoiClip(url: string, anhChuoi: string, anhKet: string): Promise<number | null> {
+  const [F, A, B] = await Promise.all([khungXam(url), khungXam(anhChuoi), khungXam(anhKet)]);
+  return A[0] && B[0] ? tinhCatCuoi(F, A[0], B[0], 24) : null;
 }
 export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | null> {
   // Keyframe KẾT của chính shot (sinh từ khung màu chỗ kết của bản 3D) thắng mọi nguồn khác: video phải đi đúng từ chỗ mở tới chỗ kết.
@@ -345,7 +349,8 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     // Máy soi clip (soi-clip.ts, 0đ): chữ lạ model tự in + sản phẩm còn trong khung — lỗi hiện trên thẻ shot, bản xuất không nhận clip lỗi.
     // ĐIỂM CẮT CUỐI (ảnh thứ 2 có dải nhịp): dò lúc dải nhịp hiện ra → cat_cuoi_s; bản xuất không phát quá điểm này.
     if (r.canh_id != null && (rq as { chuoiCuoi?: boolean }).chuoiCuoi) {
-      const cat = await catCuoiClip(url).catch((e: unknown) => { console.error(`cắt cuối shot ${r.canh_id}:`, e); return null; });
+      const ket = ((await db.execute(sql`SELECT keyframe_ket FROM xv_canh WHERE id = ${r.canh_id}`)) as unknown as Row[])[0]?.keyframe_ket;
+      const cat = rq.khungCuoi && ket ? await catCuoiClip(url, String(rq.khungCuoi), String(ket)).catch((e: unknown) => { console.error(`cắt cuối shot ${r.canh_id}:`, e); return null; }) : null;
       await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = ${cat} WHERE id = ${r.canh_id}`);
     } else if (r.canh_id != null) await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = NULL WHERE id = ${r.canh_id}`);
     if (r.canh_id != null) await soiClipCanh(db, r.canh_id).catch((e) => console.error(`soi clip shot ${r.canh_id}:`, e));

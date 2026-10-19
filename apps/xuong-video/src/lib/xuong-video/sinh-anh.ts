@@ -154,16 +154,23 @@ export async function sinhAnhCatNen(db: Db, nhanVatId: number, dang: string): Pr
 }
 
 /** Sinh KEYFRAME KẾT cho một shot (khung cuối, từ khung màu chỗ kết của bản 3D) — cần keyframe mở + khung màu kết. Lưu vào xv_canh.keyframe_ket. */
-export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSinh<number>> {
+/** Sinh keyframe KẾT (khung 3D kết → keyframe_ket) và keyframe GIỮA (khung 3D giữa clip → keyframe_giua, khi 3D có mau_giua) của một shot.
+ *  Cả hai lấy ảnh đầu của shot cho dáng vẻ, cỡ khung theo 3D (chuanBiKeyframe ket). Ba ảnh đầu / giữa / kết làm DẢI NHỊP của ảnh thứ 2 gửi model video
+ *  (sinh-video.ts › anhCuoiChuoi). ep = sinh cả cho shot không bị gắn cờ đổi khung (ket_dong) — miễn có khung 3D kết. Trả các job đã gửi. */
+export async function sinhKeyframeKetCanh(db: Db, canhId: number, o: { ep?: boolean } = {}): Promise<KqSinh<number[]>> {
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return { ok: false, loi: 'không thấy cảnh' };
   if (!bc.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe mở' };
-  if (!canKeyframeKet(bc.canh.khung_xam)) return { ok: false, loi: 'shot không đổi khung trong clip (không ai di chuyển / quay, máy không đi cú liền mạch) — không cần keyframe kết, hoặc chưa dựng khung 3D' };
+  if (!(o.ep ? !!bc.canh.khung_xam?.mau_ket : canKeyframeKet(bc.canh.khung_xam))) return { ok: false, loi: 'shot không đổi khung trong clip (không ai di chuyển / quay, máy không đi cú liền mạch) — không cần keyframe kết, hoặc chưa dựng khung 3D' };
   if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
-  const { prompt, urlRef } = chuanBiKeyframe(bc, true);
-  const job = await taoJob(db, { nhan: `Keyframe KẾT · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef, dich: 'keyframe_ket' } });
-  await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}-ket` });
-  return { ok: true, data: job };
+  const jobs: number[] = [];
+  for (const giua of bc.canh.khung_xam?.mau_giua ? [false, true] : [false]) {
+    const { prompt, urlRef } = chuanBiKeyframe(bc, true, giua);
+    const job = await taoJob(db, { nhan: `Keyframe ${giua ? 'GIỮA' : 'KẾT'} · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef, dich: giua ? 'keyframe_giua' : 'keyframe_ket' } });
+    await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}-${giua ? 'giua' : 'ket'}` });
+    jobs.push(job);
+  }
+  return { ok: true, data: jobs };
 }
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
@@ -172,7 +179,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 export type LoraVe = { path: string; scale: number };
 export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; /** vẽ lại TẠI CHỖ trên plate (inpainting) — không câu nền xanh */ prompt_tai_cho: string; /** câu trang phục của shot (en) — lượt sửa đồ tại chỗ */ ao?: string; ref: string[]; loras?: LoraVe[] }[] };
 export type HaiBuoc = { lop?: LopGhep; /** người trong khung đều có LoRA → bước 1 FLUX LoRA độ sâu vẽ đúng mặt, BỎ bước 2 sửa mặt */ loras?: LoraVe[]; motBuoc?: boolean; sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
-export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
+export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false, /** keyframe GIỮA: ảnh 3D giữa clip (mau_giua), trạng thái theo khung kết */ giua = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
@@ -200,7 +207,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Khung xám là ẢNH SỐ 1 (thử #23: đứng thứ 8/9 sau bảy ảnh mẫu thì model coi nhẹ bố trí).
   // Có khung MÀU (vật liệu + ánh sáng theo kịch bản) thì nó là ảnh số 1 — gần ảnh thật hơn khung xám, model ít phải đoán khối nào là gì.
   // ket = keyframe KẾT: ảnh số 1 là khung màu ở chỗ kết (khung_xam.mau_ket).
-  const kxMau = coKx ? (ket ? bc.canh.khung_xam!.mau_ket ?? null : bc.canh.khung_xam!.mau ?? null) : null;
+  const kxMau = coKx ? (ket && giua ? bc.canh.khung_xam!.mau_giua ?? null : ket ? bc.canh.khung_xam!.mau_ket ?? null : bc.canh.khung_xam!.mau ?? null) : null;
   const kx = coKx ? kxMau ?? bc.canh.khung_xam!.xam : null;
   const tc = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`), kx ? 1 : 0);
   const urlRef = [...(kx ? [kx] : []), ...tc.urlRef]; const banDoRef = tc.banDoRef;

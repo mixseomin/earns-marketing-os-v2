@@ -5,6 +5,7 @@ import { CHAT_LIEU, ghep, goiTenEn, khoi, KHUON, LOAI_VIDEO, tenNgonNguEn, type 
 import { chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
+import { tinhCatCuoi } from './cat-cuoi';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -118,6 +119,30 @@ export function chamVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>
 
 /** Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.
  *  Một chỗ cho lúc sinh thật và sơ đồ nguồn. */
+/** Câu giải thích ảnh thứ 2 có dải nhịp (thử 19/10/2026: không giải thích thì model coi cả tờ là khung cuối). */
+export const cauChuoiCuoi = (soNhip: number): string => `The SECOND reference image is the FINAL SHOT of this clip with a small white-framed storyboard strip of ${soNhip} beats laid over its top edge. The strip is NOT part of the film — it only shows the beats in order (${soNhip === 3 ? 'the opening, the middle of the action, the final moment' : 'the opening, the final moment'}). Follow those beats and end on the full-frame scene underneath the strip; never show the strip, panels, borders or white frames at any moment.`;
+/** Dựng ảnh thứ 2: ảnh KẾT đầy khung + dải nhịp (các ảnh theo thứ tự, ô cuối = ảnh kết) trong khung trắng ở mép trên (~21 % chiều cao). null = hỏng. */
+export async function anhCuoiChuoi(canhId: number, nhip: string[]): Promise<string | null> {
+  try {
+    const sharp = (await import('sharp')).default;
+    const tai = async (u: string) => Buffer.from(await (await fetch(u)).arrayBuffer());
+    const ket = await tai(nhip[nhip.length - 1]!); const m = await sharp(ket).metadata(); const W = m.width!, H = m.height!;
+    const th = Math.round(H * 0.21), tw = Math.round((th * W) / H), gap = Math.round(W * 0.017), vien = Math.round(W * 0.011);
+    const tong = nhip.length * tw + (nhip.length - 1) * gap; const x0 = Math.round((W - tong) / 2), y0 = Math.round(H * 0.008);
+    const o = await Promise.all(nhip.map(async (u) => sharp(await tai(u)).resize(tw, th, { fit: 'cover' }).jpeg().toBuffer()));
+    const nen = await sharp({ create: { width: tong + 2 * vien, height: th + 2 * vien, channels: 3, background: '#ffffff' } }).jpeg().toBuffer();
+    const out = await sharp(ket).composite([{ input: nen, left: x0 - vien, top: y0 }, ...o.map((b, i) => ({ input: b, left: x0 + i * (tw + gap), top: y0 + vien }))]).jpeg({ quality: 92 }).toBuffer();
+    return await uploadToR2(`xuong-video/keyframe/${canhId}-chuoi-${Date.now()}.jpg`, out, 'image/jpeg');
+  } catch (e) { console.error('[ảnh cuối chuỗi]', e); return null; }
+}
+/** Tải clip, đọc khung xám 90×160 bằng ffmpeg rồi tinhCatCuoi. */
+export async function catCuoiClip(url: string): Promise<number | null> {
+  const { execFile } = await import('node:child_process'); const { promisify } = await import('node:util');
+  const W = 90, H = 160;
+  const { stdout } = await promisify(execFile)('ffmpeg', ['-v', 'error', '-i', url, '-vf', `scale=${W}:${H},format=gray,fps=24`, '-f', 'rawvideo', '-'], { encoding: 'buffer', maxBuffer: 256 << 20, timeout: 120_000 });
+  const n = W * H; const F: Uint8Array[] = []; for (let i = 0; i + n <= stdout.length; i += n) F.push(new Uint8Array(stdout.subarray(i, i + n)));
+  return tinhCatCuoi(F, W, H, 24);
+}
 export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | null> {
   // Keyframe KẾT của chính shot (sinh từ khung màu chỗ kết của bản 3D) thắng mọi nguồn khác: video phải đi đúng từ chỗ mở tới chỗ kết.
   const kk = (await db.execute(sql`SELECT keyframe_ket FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[];
@@ -183,15 +208,21 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   if (khoaVid.kieu === 'google') { bc.kt.mo_hinh_video = khoaVid.model as typeof bc.kt.mo_hinh_video; boQuaCong = true; }
   // BỘ CHẤM PROMPT VIDEO: lỗi nặng (chất liệu sai, tiếng Việt lọt vào…) thì không tiêu tiền video lên prompt rác — kể cả lượt thử
   { const cv = chamVideo(bc).loi.filter((l) => l.phat >= NGUONG_CHAN); if (cv.length) return loi(`Shot #${bc.canh.thu_tu} — bộ chấm prompt video: ${cv.map((l) => l.chu).join(' · ')}`); }
-  const prompt = promptVideoCanh(bc);
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
-  const khungCuoi = await khungCuoiCanh(db, canhId);
+  const khungCuoi0 = await khungCuoiCanh(db, canhId);
+  // ẢNH THỨ 2 = ẢNH KẾT THẬT + DẢI NHỊP (anh 19/10/2026, thử #1 tập 122): model video luôn "đi tới" ảnh thứ 2 — ảnh kết thật đầy khung kèm dải 3 nhịp
+  // (đầu → giữa → kết) ở mép trên dẫn hành động + ghim kết cục; ~0,5 giây cuối clip hoà tan ra dải nhịp → máy dò lúc dải hiện (catCuoiClip) và
+  // bản xuất cắt trước đó. Chỉ khi ảnh cuối là keyframe KẾT của chính shot (không áp cho nối khung sang shot kế).
+  const chuoiCuoi = !!(khungCuoi0 && bc.canh.keyframe_ket && khungCuoi0 === bc.canh.keyframe_ket && bc.canh.keyframe_url)
+    ? await anhCuoiChuoi(canhId, [bc.canh.keyframe_url!, bc.canh.keyframe_giua ?? '', bc.canh.keyframe_ket!].filter(Boolean)) : null;
+  const khungCuoi = chuoiCuoi ?? khungCuoi0;
+  const prompt = chuoiCuoi ? `${promptVideoCanh(bc)} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : promptVideoCanh(bc);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
   // Google Veo (Gemini API) không có công tắc tiếng: vẫn sinh, bản xuất tự bỏ.
   const tieng = dungTiengClip(bc.canh, bc.nhanVat);
   const uocCents = await giaVideoSv(bc.kt.mo_hinh_video, bc.kt.do_phan_giai, giay, laFal ? tieng : true).catch(() => undefined);
-  const job = await taoJob(db, { cents: uocCents, nhan: `${thu ? '🧪 THỬ (ngoài quy trình) · ' : ''}Video ${ban === 'cuoi' ? 'BẢN CUỐI' : 'nháp'} · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s${tieng ? '' : ' · không tiếng'}`, canh_id: canhId, loai: 'video', provider: laFal ? 'fal' : 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le, ban, khungDau: bc.canh.keyframe_url, khungCuoi, tieng: laFal ? tieng : true } });
+  const job = await taoJob(db, { cents: uocCents, nhan: `${thu ? '🧪 THỬ (ngoài quy trình) · ' : ''}Video ${ban === 'cuoi' ? 'BẢN CUỐI' : 'nháp'} · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s${tieng ? '' : ' · không tiếng'}`, canh_id: canhId, loai: 'video', provider: laFal ? 'fal' : 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le, ban, khungDau: bc.canh.keyframe_url, khungCuoi, chuoiCuoi: !!chuoiCuoi, tieng: laFal ? tieng : true } });
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
   // CHUỖI CỔNG (cong-ai.ts): shot dùng Veo → thử Grok qua ShopAIKey trước (rẻ hơn, ~95s); không nhận thì gọi Google như cũ.
   const thuCong: BuocNguon[] = [];
@@ -312,6 +343,11 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
       await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
     }
     // Máy soi clip (soi-clip.ts, 0đ): chữ lạ model tự in + sản phẩm còn trong khung — lỗi hiện trên thẻ shot, bản xuất không nhận clip lỗi.
+    // ĐIỂM CẮT CUỐI (ảnh thứ 2 có dải nhịp): dò lúc dải nhịp hiện ra → cat_cuoi_s; bản xuất không phát quá điểm này.
+    if (r.canh_id != null && (rq as { chuoiCuoi?: boolean }).chuoiCuoi) {
+      const cat = await catCuoiClip(url).catch((e: unknown) => { console.error(`cắt cuối shot ${r.canh_id}:`, e); return null; });
+      await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = ${cat} WHERE id = ${r.canh_id}`);
+    } else if (r.canh_id != null) await db.execute(sql`UPDATE xv_canh SET cat_cuoi_s = NULL WHERE id = ${r.canh_id}`);
     if (r.canh_id != null) await soiClipCanh(db, r.canh_id).catch((e) => console.error(`soi clip shot ${r.canh_id}:`, e));
     // Máy tự chấm cảm xúc (cham-may.ts, 0đ, ~6s): clip QC có điểm ngay — chip Murch + cổng xuất đọc kết quả này, không chờ người soát.
     if (r.canh_id != null) await chamMayCanh(db, r.canh_id).catch((e) => console.error(`chấm máy shot ${r.canh_id}:`, e));

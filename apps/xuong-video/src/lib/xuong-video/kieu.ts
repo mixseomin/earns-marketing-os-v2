@@ -445,7 +445,11 @@ export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): strin
 /** Độ dài clip model sinh được: 4 / 6 / 8 giây (Veo). Shot phát ngắn hơn thì cắt (phat_s). */
 export const lamTronClip = (giay: number): 4 | 6 | 8 => (giay <= 4 ? 4 : giay <= 6 ? 6 : 8);
 /** Số giây shot THỰC PHÁT trên timeline / bản dựng: phat_s nếu đã cắt, không thì cả clip. */
-export const giayPhat = (c: Pick<Canh, 'phat_s' | 'thoi_luong_s'>): number => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4);
+/** Giây phát của shot. Clip có ĐIỂM CẮT CUỐI (ảnh thứ 2 có dải nhịp — cat-cuoi.ts) thì không phát quá điểm đó: sau nó là đoạn hoà tan ra dải nhịp. */
+export const giayPhat = (c: Pick<Canh, 'phat_s' | 'thoi_luong_s'> & { cat_cuoi_s?: number | null }): number => {
+  const g = c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4;
+  return c.cat_cuoi_s && c.cat_cuoi_s > 0 ? Math.min(g, c.cat_cuoi_s) : g;
+};
 /** Clip của shot này kết bằng keyframe shot sau? Cả tập bật nối khung (tap.noi_khung), HOẶC riêng shot chọn chuyển cảnh 'lien_may' (shot sau
  *  tiếp đúng giây cuối, cùng nơi). MỘT luật cho lúc sinh clip (sinh-video.ts), sơ đồ nối/phụ thuộc và tham chiếu keyframe shot sau (sinh-anh.ts). */
 export const noiKhungShot = (tapNoiKhung: boolean, c: { ky_thuat?: { chuyen_canh?: string } | null } | null | undefined): boolean =>
@@ -602,7 +606,7 @@ export type Canh = {
   video_dang?: { ngan: string; day: string };
   /** nguồn tham khảo của từng câu chữ màn / lời (tham-khao.ts) — QC bắt buộc */ tham_khao?: import('./tham-khao').ThamKhaoCau[];
   keyframe_url: string | null; keyframe_uv: string[];
-  /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
+  /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; /** keyframe GIỮA (khung 3D giữa clip) — ô giữa dải nhịp của ảnh thứ 2 */ keyframe_giua?: string | null; /** giây cắt cuối clip (trước lúc dải nhịp hiện) */ cat_cuoi_s?: number | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {
   id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; provider: string; model: string;

@@ -216,6 +216,8 @@ export function keHoachXuat(o: {
     if (!o.choThieuNhac) return { args: [], tep: [], giay: 0, canhThieu: [], canhBao, loi: 'quảng cáo có lời dẫn nhưng chưa có nhạc nền — sinh/chọn nhạc cho tập trước (bản xuất sẽ có khoảng im giữa các câu)' };
     canhBao.push('bản nháp THIẾU nhạc nền — giữa các câu lời dẫn là khoảng im');
   }
+  // ĐIỂM CẮT CUỐI (cat-cuoi.ts): shot khai phát dài hơn đoạn dùng được của clip → giayPhat đã cắt ở điểm cắt; báo để chỉnh giây / giọng.
+  for (const c of ds) if (c.cat_cuoi_s && c.phat_s && c.phat_s > c.cat_cuoi_s + 0.05) canhBao.push(`#${c.thu_tu} khai phát ${c.phat_s}s nhưng clip chỉ dùng được tới ${c.cat_cuoi_s}s (sau đó hoà tan ra dải nhịp) — đã cắt ở ${c.cat_cuoi_s}s`);
   const dauVao: string[] = [];           // tham số -i theo thứ tự chỉ số
   const chiSo = new Map<string, number>();
   let soDauVao = 0;

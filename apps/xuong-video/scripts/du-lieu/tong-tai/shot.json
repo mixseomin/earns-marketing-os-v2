@@ -2,7 +2,7 @@
  {
   "ma": "1.1",
   "canh": "Cà phê và hồ sơ",
-  "phat_s": 3,
+  "phat_s": 7,
   "thoi_luong_s": 8,
   "duong_video": "veo",
   "ky_thuat": {
@@ -197,7 +197,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 3.0
+  "bat_dau": 7.0
  },
  {
   "ma": "1.3",
@@ -320,7 +320,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 6.0
+  "bat_dau": 10.0
  },
  {
   "ma": "1.4",
@@ -431,7 +431,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 10.0
+  "bat_dau": 14.0
  },
  {
   "ma": "1.5",
@@ -555,7 +555,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 13.0
+  "bat_dau": 17.0
  },
  {
   "ma": "2.1",
@@ -695,7 +695,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 19.0
+  "bat_dau": 23.0
  },
  {
   "ma": "2.2",
@@ -794,7 +794,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 24.0
+  "bat_dau": 28.0
  },
  {
   "ma": "2.3",
@@ -898,7 +898,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 28.0
+  "bat_dau": 32.0
  },
  {
   "ma": "2.3b",
@@ -1040,7 +1040,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 33.0
+  "bat_dau": 37.0
  },
  {
   "ma": "2.4",
@@ -1173,7 +1173,7 @@
   "chu_man": "Quỹ Harrington của cô: họp HĐQT 3 giờ. — LS Trần",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 38.0
+  "bat_dau": 42.0
  },
  {
   "ma": "3.1",
@@ -1302,7 +1302,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 42.0
+  "bat_dau": 46.0
  },
  {
   "ma": "3.1b",
@@ -1467,7 +1467,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 48.0
+  "bat_dau": 52.0
  },
  {
   "ma": "3.2",
@@ -1590,7 +1590,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 52.0
+  "bat_dau": 56.0
  },
  {
   "ma": "3.3",
@@ -1710,7 +1710,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 57.0
+  "bat_dau": 61.0
  },
  {
   "ma": "3.4",
@@ -1835,7 +1835,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 63.0
+  "bat_dau": 67.0
  },
  {
   "ma": "4.1",
@@ -1940,7 +1940,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 68.0
+  "bat_dau": 72.0
  },
  {
   "ma": "4.2",
@@ -2060,7 +2060,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 73.0
+  "bat_dau": 77.0
  },
  {
   "ma": "4.3",
@@ -2147,7 +2147,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 78.0
+  "bat_dau": 82.0
  },
  {
   "ma": "4.4",
@@ -2234,7 +2234,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 82.0
+  "bat_dau": 86.0
  },
  {
   "ma": "4.5",
@@ -2325,7 +2325,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 85.0
+  "bat_dau": 89.0
  },
  {
   "ma": "4.6",
@@ -2421,7 +2421,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 90.0
+  "bat_dau": 94.0
  },
  {
   "ma": "5.1",
@@ -2514,7 +2514,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 93.0
+  "bat_dau": 97.0
  },
  {
   "ma": "5.2",
@@ -2615,7 +2615,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 97.0
+  "bat_dau": 101.0
  },
  {
   "ma": "5.3",
@@ -2704,7 +2704,7 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 103.0
+  "bat_dau": 107.0
  },
  {
   "ma": "5.4",
@@ -2801,6 +2801,6 @@
   "chu_man": "",
   "prompt_anh": "",
   "prompt_video": "",
-  "bat_dau": 106.0
+  "bat_dau": 110.0
  }
 ]

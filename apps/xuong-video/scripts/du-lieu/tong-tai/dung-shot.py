@@ -30,8 +30,8 @@ def shot(ma, canh, phat, video, kt, dd, hd, thoai, bieu, may, nv, chu_man='', pr
 
 C1, C2, C3, C4, C5 = 'Cà phê và hồ sơ', 'Tổng tài đuổi việc', 'Thang máy', 'Phòng họp 3 giờ', 'Sếp mới'
 
-# ── CẢNH 1 · Văn phòng mở 09:00 (0–18 s) ──
-shot('1.1', C1, 3, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 'chuyen_dong': 'zoom_gat', 'ong_kinh': 'chuan', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong', 'vut']},
+# ── CẢNH 1 · Văn phòng mở 09:00 (0–22 s; #1 phát 7 s — thiết lập + giật máy + hắt cà phê, 3 s cắt mất cú hắt, 19/10/2026) ──
+shot('1.1', C1, 7, 'veo', {'vai': 'thiet_lap', 'co_canh': 'ws', 'goc': 'ngang', 'chuyen_dong': 'zoom_gat', 'ong_kinh': 'chuan', 'anh_sang': 'cua_so', 'am_thanh': ['nen_phong', 'vut']},
      { 'dien': "Anticipation: Vivian plants herself in Hạ's path, {Ly cà phê} raised. Action: Vivian tips HER cup forward at chest height and the dark brown coffee pours out in one short, low splash straight onto Hạ's chest, running down the blouse — nothing sprays upward; it leaves a soft-edged light milky-coffee stain on her chest, no long drips. Reaction: Hạ freezes, breath caught, eyes drop to the stain.",'bo_cuc': 'Wide in the aisle of the open-plan office, then a crash zoom onto the two women at the splash: Vivian screen-left, Lâm Hạ screen-right, rows of desks and coworkers behind', 'mo': 'Hạ walking down the aisle, Vivian blocking her path holding a full {Ly cà phê}', 'ket': 'a soft-edged light milky-coffee stain on the chest of Hạ’s white blouse, no drips running down', 'huong': 'they face each other across the frame', 'muc_dich': 'HOOK: bất công ngay giây đầu'},
      'Vivian chặn đường, hất cả ly cà phê vào ngực áo Hạ', [(VIV, 'lạnh, rít qua kẽ răng', 'Dọn sạch đi. Rồi cút.')],
      [bc(VIV, 'khinh_bi', 'khinh_bi'), bc(HA, 'binh_thuong', 'soc')],

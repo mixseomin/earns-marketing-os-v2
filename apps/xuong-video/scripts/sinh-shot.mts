@@ -3,7 +3,7 @@
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
 //   --mo-hinh=<key>              : model ảnh cho --keyframe (so A/B, vd gemini-nano-banana-2.1); mặc định theo kinh thánh.
 //   --video --thu                : sinh THỬ video ngoài quy trình (như nút 🧪 Sinh thử), ảnh cuối = keyframe kết nếu có
-//   --keyframe-ket               : sinh keyframe KẾT (khung cuối từ khung màu chỗ kết của 3D) → keyframe_ket, video nhận làm ảnh cuối
+//   --keyframe-ket [--ep]        : sinh keyframe KẾT + GIỮA (khung 3D kết / giữa) → keyframe_ket / keyframe_giua — dải nhịp ảnh thứ 2 của video; --ep = cả shot không gắn cờ đổi khung
 //   --keyframe                   : sinh lại 1 keyframe cho mỗi shot, đợi xong, CHỌN ảnh mới làm keyframe đang dùng (ảnh cũ vẫn trong dải ứng viên,
 //                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
 //   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
@@ -89,7 +89,7 @@ if (arg('keyframe')) {
 // --keyframe-ket: sinh KEYFRAME KẾT (khung cuối, từ khung màu chỗ kết của bản 3D) → xv_canh.keyframe_ket; video nhận làm ảnh cuối.
 if (arg('keyframe-ket')) {
   const jobs: number[] = [];
-  for (const bc of bcs) { const r = await sinhKeyframeKetCanh(db, bc.canh.id); if (r.ok) jobs.push(r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
+  for (const bc of bcs) { const r = await sinhKeyframeKetCanh(db, bc.canh.id, { ep: arg('ep') }); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
   for (let i = 0; i < 120 && jobs.length; i++) {
     const r = await q(sql`SELECT count(*) FILTER (WHERE trang_thai = 'cho') AS cho FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[])`);
     if (Number(r[0]?.cho) === 0) break; await doi(5000);

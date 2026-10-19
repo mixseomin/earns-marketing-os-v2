@@ -79,22 +79,26 @@ export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
   const s = await chupTaiNguyen();
   fs.mkdirSync(DATA(), { recursive: true });
   fs.writeFileSync(`${DATA()}/tai-nguyen.json`, JSON.stringify(s, null, 1));
-  const cb = xetCanhBao(s), tep = `${DATA()}/tai-nguyen-tg.json`;
+  // số dư cổng API + báo cáo ngày (tai-nguyen-api.mjs) — đọc lỗi thì phần proxy / máy vẫn chạy
+  let api = null; try { api = await (await import('./tai-nguyen-api.mjs')).nhipApi({ ten, tep: `${DATA()}/tai-nguyen-api.json` }); } catch (e) { console.error('✗ số dư API:', e.message); }
+  const cb = [...xetCanhBao(s), ...(api?.canhBao ?? [])], tep = `${DATA()}/tai-nguyen-tg.json`;
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   const nhac = st.nhac ?? {}, bay = Date.now();
   const moi = cb.filter((c) => !nhac[c.khoa] || bay - nhac[c.khoa] > NGUONG.nhacLaiGio * 36e5);
-  if (moi.length) {
+  if (moi.length || api?.bao) {
     const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env;
     if (T && C) {
       const tg = async (m, b) => (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json();
       if (!st.topic) { const j = await tg('createForumTopic', { name: '🧰 Tài nguyên' }); if (j.ok) st.topic = j.result.message_thread_id; }
-      const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: `<b>${ten} · Phòng Tài nguyên</b>\n${moi.map((c) => `• ${c.chu}`).join('\n')}` });
-      if (j.ok) for (const c of moi) nhac[c.khoa] = bay;
+      if (moi.length) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: `<b>${ten} · Phòng Tài nguyên</b>\n${moi.map((c) => `• ${c.chu}`).join('\n')}` });
+        if (j.ok) for (const c of moi) nhac[c.khoa] = bay; }
+      if (api?.bao) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: api.bao }); if (j.ok) api.ghiBao(); }
     }
   }
   for (const k of Object.keys(nhac)) if (!cb.some((c) => c.khoa === k)) delete nhac[k];   // hết chuyện → lần sau tái phát báo lại ngay
   fs.writeFileSync(tep, JSON.stringify({ ...st, nhac }));
-  return { canh_bao: cb.length, gui: moi.length };
+  if (api) fs.writeFileSync(`${DATA()}/tai-nguyen-api.json`, JSON.stringify({ ...api.st, du: api.du, loi: api.loi, luc: new Date().toISOString() }, null, 1));
+  return { canh_bao: cb.length, gui: moi.length, ...(api?.bao ? { bao_cao: api.st.baoNgay ? 'đã gửi' : 'chưa gửi được' } : {}) };
 }
 
 if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {

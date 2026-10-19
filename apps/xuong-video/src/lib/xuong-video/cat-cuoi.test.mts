@@ -12,5 +12,4 @@ assert.equal(tinhCatCuoi(F, B, B, fps), null);   // ảnh thứ 2 không có d�
 // cú máy lia qua: α nhảy 3–4 s rồi tụt về 0, dải thật vào 7,45 s → không bắt nhầm 3 s
 { const G = Array.from({ length: n }, (_, i) => { const t = i / fps; const lia = t > 3 && t < 4 ? 0.5 : 0; return tron(t < 7.45 ? lia : Math.min(1, (t - 7.45) / 0.3)); });
   const c2 = tinhCatCuoi(G, A, B, fps); assert.ok(c2 !== null && c2 >= 7.0, `lia máy: cắt ${c2}`); }
-assert.equal(tinhCatCuoi(Array.from({ length: n }, (_, i) => tron(i / fps > 1.5 ? 0.9 : 0)), A, B, fps), 0);   // dải suốt từ giây 1,5 → hỏng
 console.log('cat-cuoi.test: ok', c);

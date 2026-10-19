@@ -9,13 +9,11 @@ export function doDaiNhip(F: Uint8Array[], A: Uint8Array, B: Uint8Array): number
   if (M.length < A.length * 0.01) return [];
   return F.map((f) => { let num = 0, den = 0; for (const i of M) { const ab = A[i]! - B[i]!; num += (f[i]! - B[i]!) * ab; den += ab * ab; } return den ? num / den : 0; });
 }
-/** Giây cắt (0,15 s trước lúc dải bắt đầu tăng nhanh, chỉ xét nửa sau clip; không thấy thì 0,8 s trước cuối). 0 = dải hiện từ nửa đầu — clip hỏng.
- *  null = A, B không có dải. */
+/** Giây cắt (0,15 s trước lúc dải bắt đầu tăng nhanh, chỉ xét nửa sau clip; không thấy thì 0,8 s trước cuối). null = A, B không có dải. */
 export function tinhCatCuoi(F: Uint8Array[], A: Uint8Array, B: Uint8Array, fps: number): number | null {
   const a = doDaiNhip(F, A, B); if (!a.length) return null;
-  // dải đã hiện từ NỬA ĐẦU clip (model dán dải suốt clip — #21 tập 122 thấy dải từ giây 2): clip hỏng → 0 (bản xuất + tờ soát báo, không cắt bừa)
-  const dau = a.slice(Math.floor(a.length * 0.2), Math.floor(a.length * 0.5)).sort((p, q) => p - q);
-  if (dau.length && dau[Math.floor(dau.length / 2)]! > 0.5) return 0;
+  // (Không dùng mức α tuyệt đối để kết luận 'dải hiện từ đầu': cảnh nền giống màu dải cho α nửa đầu 0,5+ dù không có dải — bắt nhầm 4 clip đạt, 19/10/2026.
+  //  Clip dán dải suốt clip do người soát bắt ở tờ soát.)
   const buoc = Math.max(1, Math.round(fps * 0.25));
   // dải đã hiện thì Ở tới cuối clip: α không tụt lại về mức trước (cú máy lia qua làm α nhảy rồi tụt — #9 rời cổ tay sang Hạ, bắt nhầm 3,5 s)
   const oLai = (i: number) => { for (let k = i + buoc; k < a.length; k++) if (a[k]! < a[i]! + 0.05) return false; return true; };

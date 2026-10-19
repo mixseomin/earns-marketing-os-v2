@@ -51,7 +51,11 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
   // Trục ngang của khung (phải màn hình) = hướng nhìn × trục đứng.
   const huong = nhan(tru(nhin, dat), 1 / kc); const phai = ((): V3 => { const p: V3 = [huong[1], -huong[0], 0]; const l = Math.hypot(p[0], p[1]) || 1; return [p[0] / l, p[1] / l, 0]; })();
   const ngangDi = di[0] * phai[0] + di[1] * phai[1];
-  const chieu = ngangDi < 0 ? -1 : 1;   // lia / trượt / vòng về phía chủ thể đi; đứng yên thì sang phải
+  // lia / trượt / vòng về phía chủ thể đi; chủ thể ĐỨNG YÊN: về phía mặt nó đang hướng (vòng vào đường nhìn — giữ mặt trong khung; trước 19/10/2026 luôn
+  // sang phải → tập 135 #4 Hạ nhìn trái màn, máy vòng phải, khung kết ra sau gáy). Hướng 0 = −y dữ liệu: véc-tơ mặt = (sin h, −cos h).
+  const mat = ct?.huong != null ? [Math.sin((ct.huong * Math.PI) / 180), -Math.cos((ct.huong * Math.PI) / 180)] : null;
+  const matNgang = mat ? mat[0]! * phai[0] + mat[1]! * phai[1] : 0;
+  const chieu = Math.abs(ngangDi) > 1 ? (ngangDi < 0 ? -1 : 1) : matNgang < -0.15 ? -1 : 1;
   let datK = dat, nhinK = nhin, ok = m.ong_kinh; let cheBoi = '';
   // Chủ thể KẾT của cú chuyển chủ thể: khai `chuyen_toi`, không thì người / vật thứ hai của khung (không ẩn, khác chủ thể mở).
   const ctKet = md.kieu === 'chuyen' ? m.vi_tri.find((x) => x.ten === m.chuyen_toi) ?? m.vi_tri.find((x) => !x.an && x.ten !== ten && (!m.khung || m.khung.includes(x.ten))) : undefined;

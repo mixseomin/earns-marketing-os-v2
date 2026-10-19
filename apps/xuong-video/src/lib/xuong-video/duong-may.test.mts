@@ -46,4 +46,14 @@ assert.equal(duongMay(ho, 'cung')!.ket, true);
 // VƯỢT TIỀN CẢNH: trượt ngang 30 % khoảng cách, vuông góc hướng nhìn, không bám quãng người đi (người đi THẲNG về máy thì máy không lùi)
 const vq = duongMay({ dat: [-90, 175, 120], nhin: [-470, 175, 135], ong_kinh: 24, vi_tri: [{ ten: 'Hạ', tam: [-470, 160, 0], den: [-200, 200, 0] }] }, 'vuot_tien_canh')!;
 assert.equal(vq.dat[0], -90, 'không lùi theo người'); assert.ok(vq.dat[1]! > 175 + 100, 'trượt ngang về phía người trôi'); assert.equal(vq.ket, true);
+// VÒNG vào ĐƯỜNG NHÌN (tập 135 #4): chủ thể đứng yên — máy vòng về phía mặt hướng tới, không luôn sang phải (khung kết ra sau gáy)
+{ const goc = { dat: [192.9, 676.1, 150], nhin: [300, 540, 132], ong_kinh: 85 };
+  const traiMan = duongMay({ ...goc, vi_tri: [{ ten: 'Hạ', tam: [300, 540, 0], huong: 180 }] }, 'vong')!;   // Hạ nhìn +y = trái màn của máy này
+  const phaiMan = duongMay({ ...goc, vi_tri: [{ ten: 'Hạ', tam: [300, 540, 0], huong: 0 }] }, 'vong')!;
+  assert.notDeepEqual(traiMan.dat, phaiMan.dat, 'mặt hướng hai phía → vòng hai phía');
+  const kc = (p: number[]) => Math.hypot(p[0]! - goc.nhin[0]!, p[1]! - goc.nhin[1]!);
+  assert.ok(Math.abs(kc(traiMan.dat) - kc(goc.dat)) < 1, 'vòng giữ khoảng cách');
+  // máy vòng về phía mặt: sau vòng, hướng mặt Hạ (0, 1) gần hướng về máy hơn lúc đầu
+  const huongMay = (p: number[]) => { const d = [p[0]! - 300, p[1]! - 540]; const l = Math.hypot(d[0]!, d[1]!); return d[1]! / l; };
+  assert.ok(huongMay(traiMan.dat) > huongMay(goc.dat), 'vòng vào đường nhìn: máy về phía mặt Hạ'); }
 console.log('duong-may: mọi bài tự kiểm qua');

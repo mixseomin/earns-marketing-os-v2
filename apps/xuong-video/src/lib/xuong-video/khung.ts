@@ -126,6 +126,8 @@ export function khoiCanKiem<T extends Pick<Canh, 'id' | 'phan_doan' | 'keyframe_
 export const tokenKhoi = (n: number) => ({ in: 3500 + n * 2500, out: 300 + n * 180 });   // mỗi khung + khung xám 3D của nó
 export const giaKiemKhung = (model: string, khoi: number[]): number => khoi.reduce((a, n) => { const t = tokenKhoi(n); return a + giaChuCents(model, t.in, t.out); }, 0);
 
+/** Đuôi lệnh mọi lượt vẽ lại VÙNG ĐẦU (cắt → sửa → dán lại): giữ mọi thứ khác để dán khớp từng điểm ảnh. */
+export const GIU_VUNG_DAU = 'lighting direction, hair, ears, clothes, background, framing and scale exactly the same — the result must line up with image 1 pixel for pixel so it can be pasted back into the frame. Natural skin texture, no beauty filter, no text, no watermark.';
 /** KẾ HOẠCH MỘT LƯỢT 🩹 (soi-mat.ts › suaMatCanh) — thuần, có test (huong-nhin.test.mts). Mặt lệch ảnh mẫu nặng nhất trước ('mat': vẽ lại mặt theo
  *  ảnh mẫu); không còn mặt lệch thì mặt nhìn sai ('nhin': chỉ xoay mắt / đầu). Cả hai chế độ đều nói RÕ phía cần nhìn khi biết (trước 19/10/2026 lệnh
  *  sửa mặt chỉ nói "giữ ánh nhìn", ảnh mẫu là mặt nhìn thẳng → mô hình chép luôn ánh mắt nhìn ống kính). Ảnh mẫu: mặt quay đầu CÙNG phía cần nhìn
@@ -138,7 +140,7 @@ export function keHoachSuaMat(sm: SoiMat, nv: { ten: string; anh_mat?: { url: st
   const am = nv.find((v) => v.ten === k.ten)!.anh_mat!; const can = k.nhin?.can;
   const i = can ? (am.dau ?? []).map((d, j) => ({ d, j })).filter((x) => x.d != null && x.d * can >= 12).sort((a, b) => Math.abs(a.d! - can * 25) - Math.abs(b.d! - can * 25))[0]?.j : undefined;
   const mau = am.url[i ?? 0]!; const huong = can ? cauHuongNhin(k.ten, can, dichCua(k.ten)) : '';
-  const giu = 'lighting direction, hair, ears, clothes, background, framing and scale exactly the same — the result must line up with image 1 pixel for pixel so it can be pasted back into the frame. Natural skin texture, no beauty filter, no text, no watermark.';
+  const giu = GIU_VUNG_DAU;
   const che_do = k.dat ? 'nhin' : 'mat';
   const prompt = che_do === 'mat'
     ? `Image 1 is a close-up crop of a photorealistic film frame showing the person ${k.ten}. Redraw ONLY the face so it is exactly the person in image 2: same bone structure, eyes, nose, mouth, hairline, skin tone and age. ${huong ? `GAZE: ${huong}. Image 2 is for identity only — ignore its head angle and where its eyes look. Keep image 1's head angle, expression, ` : "Keep image 1's head angle, expression, gaze, "}${giu}`

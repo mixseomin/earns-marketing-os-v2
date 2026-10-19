@@ -13,7 +13,7 @@ import { sql } from 'drizzle-orm';
 import { chatLieuPhim, docKinhThanh, locNhanh, type Canh, type KinhThanh, type NhanVat, type SoiMat } from './kieu';
 import { matTroiClip } from './soi-clip-do';
 import { uploadToR2 } from '../r2';
-import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat, chuLoiMat, nguoiSoiMat } from './khung';
+import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat, chuLoiMat, nguoiSoiMat, GIU_VUNG_DAU } from './khung';
 import { canNhin, dichNhin } from './bo-set-3d';
 /** Gắn phía cần nhìn (3D) vào kết quả đo hướng nhìn của từng mặt — cổng khung.ts › loiNhin so hai thứ. */
 const ganNhin = (ket: SoiMat['ket'], c: Pick<Canh, 'may_3d'>, nv: Pick<NhanVat, 'ten'>[]): SoiMat['ket'] => ket.map((k) => { if (!k.nhin || !c.may_3d) return k; const can = canNhin(c.may_3d, k.ten, (t) => nv.some((v) => v.ten === t)); return can ? { ...k, nhin: { ...k.nhin, can } } : k; });
@@ -153,6 +153,29 @@ export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, 
     request: { prompt, thamChieu: refs, dich: 'sua_mat', che_do: kh.che_do, lan, goc: anh, ten: [x.k.ten], hop: cv.hop, ...(thu ? { thu: true } : {}) } });
   const { dayViecAnh } = await import('./hoan-tat');   // nạp muộn: hoan-tat gọi lại xongSuaMat
   await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: refs, tiLe: '1:1', thuMuc: `keyframe/${canhId}-sua-mat` });
+  return { ok: true, data: job };
+}
+
+/** 🎭 THỬ DIỄN TRÊN MẶT (anh 19/10/2026 "liếc nhìn của Vi, nhoẻn cười của Hạ — thử sinh"): cùng đường cắt vùng đầu → mô hình sửa ảnh → dán lại như 🩹,
+ *  nhưng lệnh là MỘT NHỊP DIỄN của kịch bản (liếc mắt, nhếch môi…) trên một ảnh của shot (mở / giữa / kết). Luôn CHẠY THỬ: ảnh ghép + soi lại chỉ ghi
+ *  vào job, shot giữ nguyên. TỐN TIỀN ~110₫ / lượt. */
+export async function thuDienMat(db: Db, canhId: number, url: string, ten: string, lenh: string): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+  const d = await docShot(db, canhId); if (!d) return { ok: false, loi: 'không thấy shot' };
+  const { c, kt, nv } = d; const v = nv.find((x) => x.ten === ten); if (!v) return { ok: false, loi: `${ten} không gắn shot này` };
+  await damBaoAnhMat(db, [v]);
+  const mau = { [ten]: [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u) };
+  const a = (await chay({ mau, anh: [{ id: canhId, url, ten: [ten] }] })).anh[0];
+  const k = a?.ket?.find((x) => x.ten === ten); if (!k?.o) return { ok: false, loi: `không thấy mặt ${ten} trong ảnh` };
+  const cv = await chay<{ hop: number[] | null; b64: string | null }>({ op: 'cat_vung', url, o: k.o });
+  if (!cv.hop || !cv.b64) return { ok: false, loi: `không cắt được vùng đầu ${ten}` };
+  const vung = await uploadToR2(`xuong-video/keyframe/${canhId}-thu-dien-vung-${randomUUID()}.jpg`, Buffer.from(cv.b64, 'base64'), 'image/jpeg');
+  if (!vung) return { ok: false, loi: 'không đẩy được vùng đầu lên kho' };
+  const refs = [vung, v.anh_mat?.url[0] ?? v.anh_ref[0]!];
+  const prompt = `Image 1 is a close-up crop of a photorealistic film frame showing the person ${ten}. ${lenh.trim()} Keep the same person (image 2 shows ${ten} for identity only — ignore its pose, gaze and expression), ${GIU_VUNG_DAU}`;
+  const job = await taoJob(db, { nhan: `🎭 Thử diễn · #${c.thu_tu} · ${ten}`, canh_id: canhId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, cents: Math.round((GIA_SUA_MAT_VND / VND_MOI_USD) * 100 * 1000) / 1000,
+    request: { prompt, thamChieu: refs, dich: 'sua_mat', che_do: 'dien', lan: 1, goc: url, ten: [ten], hop: cv.hop, thu: true } });
+  const { dayViecAnh } = await import('./hoan-tat');
+  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: refs, tiLe: '1:1', thuMuc: `keyframe/${canhId}-thu-dien` });
   return { ok: true, data: job };
 }
 

@@ -24,7 +24,40 @@ MOCAP = {
     'dung_day':   ('13_01', 7.0, 'tat_ca', 9.5, 'ngoi', 'dung'),   # sit on high stool, stand up (đo: ngồi 4,7–7,5 s, đứng hẳn 8,5 s; 12 s ngồi lại → dừng 9,5)
     'di_bo':      ('08_01', 0.0, 'tat_ca'),   # walk
     'sai_buoc':   ('08_05', 0.0, 'tat_ca'),   # walk / stride
+    # KHO MỞ RỘNG (anh 19/10/2026 "làm cả đi", nhịp 4): động tác phim tâm lý / văn phòng. Giây đo bằng do-mocap.py (cao hông, tay so đầu, tốc độ
+    # tay; khung 0 chữ T đã bỏ ở doc_bvh). Nguồn: CMU 79 (actor everyday activities / cảm xúc),
+    # 80, 141 (general), 142 (stylized walks), 143, 17 (walk with anger), 18/19/23 (hai người tương tác).
+    'khoc':        ('79_72', 1.0, 'tren', 7.0),    # crying — hai tay co lên ngực / mặt, vai rung
+    'buon':        ('79_71', 1.0, 'tren', 8.5),    # sad — tay đưa lên mặt rồi buông
+    'so_hai':      ('79_73', 1.0, 'tren', 5.5),    # scared — co người, tay thu lên ngực
+    'buc_doi':     ('79_74', 1.0, 'tren', 7.4),    # upset — vung hai tay lên rồi buông (bực tức)
+    # (79_36 / 80_25 'answering the phone' KHÔNG dùng: kịch câm, tay cách đầu ~34 cm phía trước, không áp tai — nghe điện thoại là dáng chốt
+    #  nguoi.py › TU_THE_NGUOI['nghe_dien_thoai'])
+    'bam_dien_thoai':  ('79_37', 2.0, 'tren', 4.5),   # dialing phone — tay trái cầm máy trước ngực, tay phải bấm
+    'go_phim':     ('79_85', 2.5, 'tren', 7.5),    # typing on a laptop — hai tay ngang bàn
+    'nhap_ca_phe': ('79_41', 1.5, 'tren', 8.5),    # sipping coffee — tay phải đưa tách lên môi
+    'bat_tay':     ('79_06', 1.2, 'tren', 3.8),    # hand shake — tay phải chìa ra ngang hông–ngực
+    'nhun_vai':    ('141_21', 0.6, 'tren', 2.2),   # shrug
+    'cho_doi':     ('141_20', 1.0, 'tren', 6.0),   # waiting — đổi chân, nhìn quanh
+    'vay_chao':    ('141_16', 0.5, 'tren', 2.0),   # wave hello
+    'u_ru':        ('141_27', 0.8, 'tren', 4.4),   # mope — cúi đầu, vai sụp
+    'dat_tay_vai': ('23_04', 0.8, 'tren', 4.0),    # B comforts A, one hand on A's shoulder (subject B) — tay phải lên vai người kia
+    'keo_tay':     ('18_05', 0.5, 'tat_ca', 3.6),  # A pulls B by the elbow (subject A) — người kéo CHỒM 30–40° về hướng đi: khai huong QUAY LƯNG về người bị kéo
+    'bi_keo':      ('19_05', 0.5, 'tat_ca', 3.6),  # A pulls B by the elbow; B resists (subject B) — ghì lại
+    'dap_ban_chi': ('23_21', 0.5, 'tren', 3.1),    # conversation — B pounds high stool, points at A (subject B)
+    'ngoi_xuong':  ('143_18', 0.5, 'tat_ca', 2.2, 'dung', 'ngoi'),   # sit down (đo: hông 0,99 → 0,58 ở 1,5 s → 0,56 ở 2,0 s), ghế thường
+    'dung_day_ghe': ('143_18', 2.4, 'tat_ca', 3.3, 'ngoi', 'dung'),  # get up (cùng đoạn: hông 0,59 ở 2,5 s → 0,99 ở 3,0 s)
+    'nhat_do':     ('80_08', 0.6, 'tat_ca', 6.0),  # picking up something — gập người, tay xuống thấp (−1,55) rồi đứng nâng món lên (5,5 s)
+    'di_buon':     ('142_15', 3.0, 'tat_ca'),      # stylized walk: sad
+    'di_rau_ru':   ('142_05', 3.0, 'tat_ca'),      # stylized walk: depressed
+    'di_voi':      ('142_14', 2.0, 'tat_ca'),      # stylized walk: rushed
+    'di_tu_tin':   ('142_04', 2.0, 'tat_ca'),      # stylized walk: cool
+    'di_di_lai':   ('143_29', 1.0, 'tat_ca'),      # pacing
+    'di_gian':     ('17_01', 4.0, 'tat_ca', 13.5), # walk with anger, frustration — dừng trước 14,5 s (tay ôm đầu là mã riêng)
+    'om_dau_buc':  ('17_01', 14.3, 'tat_ca', 16.3),   # cùng đoạn: hai tay ôm đầu bực bội khi đang đi (tay ngang đầu 14,5–16 s)
 }
+# ĐI (đổi chỗ): khung tĩnh của shot đặt giữa sải bước (dung-set.py › DI_MC)
+DI = {'di_bo', 'sai_buoc', 'di_buon', 'di_rau_ru', 'di_voi', 'di_tu_tin', 'di_di_lai', 'di_gian'}
 # khớp ma-nơ-canh ← (khớp nguồn đầu, khớp nguồn cuối, trục nghỉ của khối: −z tay chân treo xuống, +z thân / đầu dựng lên)
 # Đoạn nguồn phải DÀI THẬT: khung CMU có khớp trùng chỗ (Spine1 ≡ Neck, LeftHand ≡ LeftFingerBase) → hướng (0,0,0) lật cả thân (đo 17/10/2026).
 DOAN = [('lung', 'Hips', 'Spine1', 1), ('nguc', 'Spine1', 'Neck1', 1), ('co', 'Neck1', 'Head', 1), ('dau', 'Neck1', 'Head', 1),
@@ -58,6 +91,9 @@ def doc_bvh(ma):
         i += 1
     so = int(dong[i + 1].split()[1]); dt = float(dong[i + 2].split()[2])
     khung = [[float(x) for x in l.split()] for l in dong[i + 3:i + 3 + so] if l.strip()]
+    # KHUNG 0 của mọi đoạn CMU (bản cgspeed) là TƯ THẾ CHỮ T hiệu chỉnh (đo 19/10/2026: khoảng hai bàn tay 3,1 × thân ở khung 0, 1,0–1,8 từ khung 1) —
+    # bỏ ngay lúc đọc: mã bắt đầu ở 0 giây và đoạn đi lặp vòng (k % số khung) từng chạm đúng khung này → dang thẳng hai tay một nhịp.
+    khung = khung[1:]
     _KHO[ma] = (khop, khung, dt); return _KHO[ma]
 
 def vi_tri_khop(ma, k):

@@ -524,6 +524,7 @@ TU_THE_NGUOI = {
     'lui_so': {'lung': (-10, 0, 0), 'dau': (-8, 0, 0), 'vai_t': (-50, -12, 0), 'vai_p': (-50, 12, 0), 'khuyu_t': (-60, 0, 0), 'khuyu_p': (-60, 0, 0)},  # lùi lại, hai tay đưa lên che
     'om_nguoi': {'lung': (10, 0, 0), 'vai_t': (-30, -4, 0), 'vai_p': (-30, 4, 0), 'khuyu_t': (-110, 0, -45), 'khuyu_p': (-110, 0, 45)},  # tự ôm lấy mình
     'tay_che_mieng': {'vai_t': (-45, 10, 0), 'vai_p': (-45, -10, 0), 'khuyu_t': (-140, 0, -50), 'khuyu_p': (-140, 0, 50)},  # hai tay che miệng (sốc / mừng)
+    'nghe_dien_thoai': {'vai_p': (-35, 25, 0), 'khuyu_p': (-145, 0, 40), 'dau': (0, 6, 0)},   # áp điện thoại vào tai phải (mocap CMU 79_36 là kịch câm, tay không tới tai)
     'tay_tran_cui': {'lung': (20, 0, 0), 'dau': (15, 0, 0), 'vai_p': (-62, -6, 0), 'khuyu_p': (-150, 0, 18)},  # cúi gập, tay áp trán (cười trong đau)
     'hat': {'vai_p': (-90, 5, 0), 'khuyu_p': (-8, 0, 0), 'lung': (10, 0, 0), 'nguc': (0, 0, 12)},               # hất / ném mạnh ra trước
     'giat': {'vai_p': (-97, 4, 0), 'khuyu_p': (-12, 0, 0), 'lung': (12, 0, 0), 'nguc': (0, 0, 15)},             # vươn tay giật

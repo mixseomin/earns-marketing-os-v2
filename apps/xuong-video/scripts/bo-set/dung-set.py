@@ -392,19 +392,33 @@ def anh_sang_mau(s, sh, bat):
         den('L~phu', 'AREA', [p.x, p.y, p.z + 12], (0.75, 0.82, 1.0), 4, tuple(cam.rotation_euler), 40)
         if MESH_THAT: den('L~phu2', 'AREA', [p.x, p.y, p.z + 4], (0.85, 0.88, 1.0), 2.5, tuple(cam.rotation_euler), 30)   # Cycles tối hơn EEVEE: thêm fill từ phía máy (như đèn phụ trên set thật) cho mặt nhân vật không chìm
 
+# sàn khẩu (f-số nhỏ nhất) theo cỡ cảnh — cỡ không có trong bảng (toàn cảnh, chèn, cỡ lạ) giữ f/11 cũ
+KHAU_CO_CANH = {'ecu': 2.0, 'cu': 2.8, 'mcu': 2.8, 'ots': 2.8, 'pov': 4.0, 'ms': 4.0, 'two': 5.6, 'insert': 4.0}
 def lay_net(cam, sh, goc=None):
     """NÉT như ảnh chụp mô hình thật (anh 16/10/2026: "sao ảnh nó cứ mờ mờ không nét như Veo"). Trước: nét đặt vào ĐIỂM NHÌN của máy (thường sau
     chủ thể) ở f/8 — ở tỉ lệ mô hình (máy cách ~7 cm) vùng nét chỉ vài mm nên chủ thể nhoè. Giờ: nét đặt giữa các CHỦ THỂ (bat_buoc, cả chỗ mở lẫn
     chỗ kết), khẩu tính theo độ sâu giữa chủ thể gần nhất và xa nhất (+1 cm) để tất cả cùng nét, nền vẫn mềm: N = f²·Δ / (2·c·s²), c = 0,03 mm,
-    trong khoảng f/11–f/64 (XV_FSTOP ép một số cố định)."""
+    trong khoảng f/11–f/64 (XV_FSTOP ép một số cố định).
+    KHẨU THEO CỠ CẢNH (anh 19/10/2026 "làm cả đi", nhịp 5 ống kính): sàn f/11 cũ đặt khi cảnh còn tỉ lệ mô hình; ở cỡ người thật f/11 nét từ trước
+    ra sau ở MỌI cỡ cảnh — cận mặt không tách nền, ảnh 3D (ảnh số 1 của keyframe) dạy AI vẽ phông nét căng như ảnh điện thoại. Ngành: cận / trung
+    cận mở khẩu T2–T2.8 để tách nhân vật khỏi nền, cảnh rộng khép khẩu cho sâu (Brown, *Cinematography: Theory and Practice*, ch. "Optics &
+    Focus"; Mercado, *The Filmmaker's Eye* — shallow focus ở CU/MCU). Sàn khẩu mới theo co_canh (KHAU_CO_CANH); chủ thể VẪN luôn nét: N tính từ
+    độ sâu giữa các chủ thể như cũ, chỉ sàn hạ xuống."""
     d = cam.data.dof; d.use_dof = True; goc = cam.matrix_world.translation if goc is None else goc   # goc = chỗ máy (m) khi máy đang chạy
     chu = set(sh.get('bat_buoc') or [])
-    diem = [Vector(p + ([0] if len(p) < 3 else [])) + Vector((0, 0, 1.2)) for v in sh.get('nhan_vat', []) if v['ten'] in chu for p in [v['tam']] + ([v['den']] if v.get('den') else [])]
-    kc = [(p * CM - goc).length * 1000 for p in diem] or [(Vector(sh['may']['nhin']) * CM - goc).length * 1000]   # mm
+    # ĐIỂM NÉT = chỗ THẬT của chủ thể trong cảnh lúc dựng (khớp đầu người 'NG <t>.dau_k', khối vật 'NV <t>'). Trước 19/10/2026 lấy tam + (0, 0, 1,2)
+    # trong khi tam tính bằng cm và tam của người là CHÂN trên sàn → +1,2 cm: đo tới cổ chân, độ sâu giữa chủ thể phồng ra (tập 122 #1041: f/6,4 mở,
+    # f/16,7 kết thay vì mở khẩu) và nét đặt dưới mặt. Khung kết dựng sau khi người đã đi tới 'den' nên vị trí hiện tại là đủ.
+    def _cho(t):
+        o = bpy.data.objects.get(f"NG {t}.dau_k") or bpy.data.objects.get(f"NV {t}")
+        return o.matrix_world.translation.copy() if o else None
+    diem = [q for q in (_cho(v['ten']) for v in sh.get('nhan_vat', []) if v['ten'] in chu) if q is not None]
+    kc = [(q - goc).length * 1000 for q in diem] or [(Vector(sh['may']['nhin']) * CM - goc).length * 1000]   # mm
     s_ = (min(kc) + max(kc)) / 2; de = max(kc) - min(kc) + 10
     d.focus_distance = s_ / 1000
     f = cam.data.lens; N = f * f * de / (2 * 0.03 * s_ * s_)
-    d.aperture_fstop = float(os.environ['XV_FSTOP']) if os.environ.get('XV_FSTOP') else min(64.0, max(11.0, N))
+    d.aperture_fstop = float(os.environ['XV_FSTOP']) if os.environ.get('XV_FSTOP') else min(64.0, max(KHAU_CO_CANH.get(sh.get('co_canh') or '', 11.0), N))
+    print(f"NET {sh.get('ma')} {sh.get('co_canh')} f/{d.aperture_fstop:.1f} nét {d.focus_distance:.2f} m ống {f:.0f} mm")
 
 def ve_mat_na(s, sh, cam, goc_ra):
     """MẶT NẠ 3D cho GHÉP ĐÈ đồ nhận dạng và SỬA VÙNG (anh 17/10/2026, học từ topview.ai: ghép đồ thật vào keyframe thay vì để model vẽ; sửa một vùng thay vì
@@ -454,8 +468,8 @@ def ve_mau(s, sh, ra):
     if MESH_THAT:   # render = keyframe: Cycles GPU, khử nhiễu, DOF macro
         s.render.engine = 'CYCLES'; s.cycles.samples = 12 if THO else 64; s.cycles.use_denoising = True
         bat_gpu(s)
-        lay_net(s.camera, sh)
     else: s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12
+    lay_net(s.camera, sh)   # cả nhánh EEVEE (khung màu phim người thật): trước 19/10/2026 chỉ Cycles đặt nét → khung màu EEVEE không có độ sâu trường ảnh
     s.view_settings.view_transform = 'AgX'
     an_, hien_ = nguoi_that(True)   # khung màu vẽ NGƯỜI THẬT (da, tóc, đồ) thay ma-nơ-canh khối
     # JPEG 88: nhẹ 5–8 lần PNG, đủ nét cho mô hình ảnh (anh 15/10/2026: "đẩy nhiều ảnh thì phải nén")
@@ -679,7 +693,7 @@ def nhan_vat(sh, ket=False):
     gan_tay(sh, tat_ca, ket)
     return than, tat_ca
 
-DI_MC = ('mc_di_bo', 'mc_sai_buoc')   # mocap ĐI: khung tĩnh thay bằng giữa sải bước (nhan_vat › di_mo)
+DI_MC = tuple(f'mc_{k}' for k in ng()._mocap().DI)   # mocap ĐI: khung tĩnh thay bằng giữa sải bước (nhan_vat › di_mo) — sổ ở mesh/mocap.py › DI
 
 def tran_(o, nv, w, h, dinh=1.0):
     """CHẤT LỎNG ĐỔ RA từ vật đựng đang nghiêng (vi_tri.tran = tên chất lỏng tiếng Anh, tran_mau = màu): MẶT CHẤT LỎNG trong lòng miệng vật + MỘT
@@ -1478,17 +1492,16 @@ if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ �
 # thì rũ tới hết shot). Chớp mắt + chúi tới khi đi là TỰ ĐỘNG, không cần khai.
 DONG_TAC = {
     # NGƯỜI (rig ma-nơ-canh — mesh/nguoi.py › TU_THE_NGUOI): tư thế chồng lên đứng / bước; 'ten' = cả shot, 'ten@a-b' = chuyển dần trong a..b
-    'quy_mot_goi': 'quỳ một gối, tay với xuống sàn', 'cam_truoc': 'cầm món trước ngực', 'cam_dien_thoai': 'nhìn điện thoại trong tay',
+    'quy_mot_goi': 'quỳ một gối, tay với xuống sàn', 'cam_truoc': 'cầm món trước ngực', 'cam_dien_thoai': 'nhìn điện thoại trong tay', 'nghe_dien_thoai': 'áp điện thoại vào tai nghe',
     'gio_cao': 'giơ cao món cho cả phòng thấy', 'dua_truoc_mat': 'đưa món lên trước mặt người đối diện', 'lac_treo': 'chìa tay ngang vai, món treo lủng lẳng ngang mặt người đối diện', 'hat': 'hất / ném mạnh ra trước',
     'giat': 'vươn tay giật', 'chong_ban': 'hai tay chống mặt bàn, ngẩng nhìn', 'cui_nguoi': 'cúi sát về phía trước', 'om_thung': 'ôm thùng trước bụng',
     'khoanh_tay': 'khoanh tay', 'gioi_thieu': 'đưa tay giới thiệu người bên cạnh', 'thuyet_trinh': 'tay mở về phía màn chiếu',
     # DÁNG CẢM XÚC (mesh/nguoi.py › TU_THE_NGUOI, đi cùng nét mặt bieu_cam của shot)
     'om_mat_khoc': 'hai tay ôm mặt khóc, cúi đầu', 'om_nguc_khoc': 'gập người, tay ấn ngực khóc', 'quy_khoc': 'quỵ hai gối gục xuống khóc', 'ngua_mat_gao': 'ngửa mặt gào khóc, tay buông thõng',
     'chi_tay_gian': 'chồm tới chỉ thẳng tay giận', 'lui_so': 'lùi lại, hai tay đưa lên che', 'om_nguoi': 'tự ôm lấy mình', 'tay_che_mieng': 'hai tay che miệng', 'tay_tran_cui': 'cúi gập, tay áp trán',
-    # MOCAP THẬT (kho CMU, mesh/mocap.py › MOCAP): 'mc_<ten>[@a-b]'
-    'mc_cai_nhau': 'mocap: cãi nhau, vung tay giận', 'mc_giai_thich': 'mocap: nói chuyện, giải thích bằng tay', 'mc_chong_ghe': 'mocap: chống tay, nhìn trừng',
-    'mc_quy_xuong': 'mocap: quỳ xuống', 'mc_uong': 'mocap: uống', 'mc_chi_tay': 'mocap: chỉ tay / vẫy', 'mc_dung_day': 'mocap: đứng dậy khỏi ghế', 'mc_dung_len_quy': 'mocap: đứng lên từ tư thế quỳ (mở shot bằng quỳ)', 'mc_dang_quy': 'mocap: giữ quỳ một gối cả shot',
-    'mc_di_bo': 'mocap: đi bộ', 'mc_sai_buoc': 'mocap: sải bước',
+    # MOCAP THẬT (kho CMU, mesh/mocap.py › MOCAP): 'mc_<ten>[@a-b]' — sinh từ chính bảng MOCAP (trước 19/10/2026 chép tay ở đây, thêm mã bên kia là
+    # mã mới bị 'dong tac la' bỏ qua). Chữ đọc của từng mã: src/lib/xuong-video/mocap-kho.ts.
+    **{f'mc_{k}': f'mocap {v[0]}' for k, v in ng()._mocap().MOCAP.items()},
     'mat_to': 'mắt mở to (×1,3, bật nảy)', 'nheo_mat': 'nheo mắt', 'toc_ru': 'tóc / sợi chỉ rũ xuống', 'toc_bat': 'tóc bật lò xo BOING',
     'toc_dung': 'tóc / sợi chỉ dựng đứng', 'run': 'run bần bật', 'phong': 'phồng to (phong3 = ×3)', 'xep': 'xẹp lại', 'nhay': 'nhảy bật lên',
     'lan_tron': 'cuộn tròn thành quả bóng lăn (chân tay / mắt / tóc thu vào)', 'truot': 'trượt nằm (xe trượt / băng / dây) — thân nằm di chuyển', 'nga_ngoi': 'ngã ngồi ra sau', 'nga': 'mốc cú ngã đứng → nằm (cần nam_den)', 'day': 'mốc đứng dậy nằm → đứng (cần nam_den: false)', 'cuoi_lan': 'cười lăn lắc lư', 'nhun_vai': 'nhún vai', 'xoay_tit': 'xoay tít tại chỗ (xoay_tit3 = 3 vòng)',

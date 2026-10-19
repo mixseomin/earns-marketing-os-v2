@@ -5,6 +5,7 @@
 import type { BienThe, BoSet, Canh, KhoiSet, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
 import { laKinh, vatHien } from './kieu';
 import { duongMay, hopVat } from './duong-may';
+import { MOCAP_DANG } from './mocap-kho';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
  *  Hà Nội trên cao) hoặc shot đi XUYÊN hai thế giới (bay qua ô cửa sổ vào bàn: một bối cảnh có set, một không) — khung đầu nằm ngoài set. */
@@ -30,7 +31,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 96;
+export const BAN_DUNG = 97;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -527,13 +528,13 @@ export function noiHookup<T extends { id: number; thu_tu?: number; may_3d?: May3
 export type Dang = 'dung' | 'ngoi' | 'quy' | 'nam';
 export const TEN_DANG: Record<Dang, string> = { dung: 'ĐỨNG', ngoi: 'NGỒI', quy: 'QUỲ', nam: 'NẰM' };
 export const DANG_DIEN: Record<string, [Dang, Dang]> = {
-  mc_quy_xuong: ['dung', 'quy'], mc_dang_quy: ['quy', 'quy'], quy_khoc: ['dung', 'quy'], mc_dung_len_quy: ['quy', 'dung'],
-  mc_dung_day: ['ngoi', 'dung'], nga_ngoi: ['dung', 'ngoi'], nga: ['dung', 'nam'], day: ['nam', 'dung'],
+  ...MOCAP_DANG,   // mã mocap đổi dáng — sổ mocap-kho.ts
+  quy_khoc: ['dung', 'quy'], nga_ngoi: ['dung', 'ngoi'], nga: ['dung', 'nam'], day: ['nam', 'dung'],
 };
 /** Động tác máy gợi ý cho từng lần đổi dáng (đặt ở shot TRƯỚC, cuối shot). */
 const DOI_DANG: Partial<Record<`${Dang}>${Dang}`, string>> = {
-  'quy>dung': "dien: 'mc_dung_len_quy@0.6-1'", 'ngoi>dung': "dien: 'mc_dung_day@0.6-1'", 'nam>dung': "nam_den: false + 'day'",
-  'dung>quy': "dien: 'mc_quy_xuong@0.6-1'", 'dung>ngoi': "dien: 'nga_ngoi' hoặc mã 'ngoi…'", 'dung>nam': "nam_den: true + 'nga'",
+  'quy>dung': "dien: 'mc_dung_len_quy@0.6-1'", 'ngoi>dung': "dien: 'mc_dung_day_ghe@0.6-1'", 'nam>dung': "nam_den: false + 'day'",
+  'dung>quy': "dien: 'mc_quy_xuong@0.6-1'", 'dung>ngoi': "dien: 'mc_ngoi_xuong@0.6-1' (ngã: 'nga_ngoi')", 'dung>nam': "nam_den: true + 'nga'",
 };
 type CoDang = { nam?: boolean; nam_den?: boolean; dien?: string[] };
 const dienDoiDang = (v: CoDang) => (v.dien ?? []).map((x) => { const [ten, mt] = String(x).split('@'); const b = mt ? Number(mt.split('-')[1] || 1) : 1; return { d: DANG_DIEN[ten!], b }; })
@@ -721,7 +722,15 @@ export const DONG_TAC_MO_TA: { ten: string; tu: RegExp; co: (v: May3d['vi_tri'][
   { ten: 'giơ', tu: /(giơ|raises?\b|holds? up)/i, co: (v) => (v.dien ?? []).some((x) => /^(gio_cao|dua_truoc_mat|gioi_thieu)/.test(x)) },
   { ten: 'chống tay', tu: /(chống[^.;]{0,15}(tay|bàn)|palms? on|hands? on the table)/i, co: (v) => (v.dien ?? []).some((x) => /^(chong_ban|mc_chong)/.test(x)) },
   { ten: 'ôm', tu: /(ôm thùng|ôm hộp|carry(ing)? a (cardboard )?box)/i, co: (v) => (v.dien ?? []).some((x) => /^om_thung/.test(x)) },
-  { ten: 'cúi người', tu: /(cúi (xuống|người|sát)|leans? in)/i, co: (v) => (v.dien ?? []).some((x) => /^(cui_nguoi|quy|chong_ban|mc_quy|mc_chong)/.test(x)) },
+  { ten: 'cúi người', tu: /(cúi (xuống|người|sát)|leans? in)/i, co: (v) => (v.dien ?? []).some((x) => /^(cui_nguoi|quy|chong_ban|mc_quy|mc_chong|mc_nhat_do)/.test(x)) },
+  // KHO MOCAP MỞ RỘNG (19/10/2026, mocap-kho.ts): động tác có mã mocap riêng — chỉ những cụm từ hẹp, đọc ra là đúng một động tác
+  { ten: 'ngồi xuống', tu: /(ngồi xuống|sits? down)/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_ngoi_xuong|nga_ngoi|ngoi)/.test(x)) },
+  { ten: 'bắt tay', tu: /(bắt tay|shakes? hands)/i, co: (v) => (v.dien ?? []).some((x) => /^mc_bat_tay/.test(x)) },
+  { ten: 'nghe điện thoại', tu: /(nghe (điện thoại|máy)|áp (điện thoại|máy) (lên|vào) tai|answers? the phone|on the phone)/i, co: (v) => (v.dien ?? []).some((x) => /^nghe_dien_thoai/.test(x)) },
+  { ten: 'kéo tay', tu: /(kéo (tay|cánh tay|khuỷu)|lôi (tay|đi)|pulls? [^.;]{0,20}by the (arm|elbow))/i, co: (v) => (v.dien ?? []).some((x) => /^(mc_keo_tay|mc_bi_keo)/.test(x)) },
+  { ten: 'đặt tay lên vai', tu: /((đặt|vỗ|đặt nhẹ) tay (lên )?vai|hand on [^.;]{0,15}shoulder)/i, co: (v) => (v.dien ?? []).some((x) => /^mc_dat_tay_vai/.test(x)) },
+  { ten: 'nhặt', tu: /(nhặt|cúi lượm|picks? up)/i, co: (v) => (v.dien ?? []).some((x) => /^mc_nhat_do/.test(x)) },
+  { ten: 'đập bàn', tu: /(đập (bàn|tay xuống bàn)|pounds? the (table|desk))/i, co: (v) => (v.dien ?? []).some((x) => /^mc_dap_ban_chi/.test(x)) },
 ];
 export function thieuDongTac(c: Pick<ShotMach, 'hanh_dong' | 'may_3d'>): string[] {
   const m = c.may_3d; const mt = c.hanh_dong ?? ''; if (!m || !mt.trim()) return [];

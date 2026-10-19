@@ -344,7 +344,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // ẢNH ĐẦU CỦA CHÍNH SHOT làm tham chiếu cho keyframe KẾT / GIỮA (19/10/2026 #1: ảnh kết vẽ ra một văn phòng khác — sàn gỗ, đèn vàng — vì chỉ có
     // khung 3D + ảnh mẫu nhân vật; ảnh đầu / cuối không nối thì video biến hình giữa hai nơi). Giữ phòng / ánh sáng / người theo ảnh đầu, chỉ đổi phần 3D đổi.
     const dauShot = ket && bc.canh.keyframe_url ? (ref.push(bc.canh.keyframe_url), vaiS.push({ url: bc.canh.keyframe_url, nhan: '🎬 ảnh ĐẦU của shot' }), ref.length) : 0;
-    const dauCau = dauShot ? `Image ${dauShot} = the FIRST frame of this same shot, a split second earlier: keep its room, set dressing, light, colour grade, people, faces and wardrobe exactly; change only what Image 1 shows differently (positions, framing, held items, stains).` : '';
+    // CỠ KHUNG / VỊ TRÍ MÁY chỉ theo khung 3D (ảnh 1): bản trước nói "giữ theo ảnh đầu" chung chung → Nano giữ luôn toàn cảnh của ảnh đầu dù 3D kết là cận
+    // hai người sau cú giật máy (#1) — video phải hoà tan đổi cả khung ở giây cuối.
+    const dauCau = dauShot ? `Image ${dauShot} = the FIRST frame of this same shot, a moment earlier — use it ONLY for the look: the room, set dressing, light, colour grade, faces, hair and wardrobe. The CAMERA comes ONLY from Image 1: copy Image 1's zoom, framing, camera angle, subject sizes and positions exactly, even where they differ completely from Image ${dauShot} (the camera may have zoomed or moved during the shot). Held items and stains as Image 1 shows.` : '';
     const trang3d = trangCauCua(true);
     // SỐ NGƯỜI theo 3D: nhân vật lọt khung + người phụ của set lọt khung (khung_xam.thay.nguoi)
     const thayAll = bc.canh.khung_xam?.thay ?? [];

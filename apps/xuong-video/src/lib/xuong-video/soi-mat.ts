@@ -33,7 +33,7 @@ function chay<T = Ra>(vao: unknown): Promise<T> {
   });
 }
 
-export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /** false = chạy thử, không ghi DB */ ghi?: boolean } = {}): Promise<{ ok: true; data: { soi: number; lech: { thu_tu: number; chu: string }[]; theo_doi: string[] } } | { ok: false; loi: string }> {
+export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /** false = chạy thử, không ghi DB */ ghi?: boolean } = {}): Promise<{ ok: true; data: { soi: number; lech: { thu_tu: number; chu: string }[]; theo_doi: string[]; /** kết quả đo từng shot (cả khi ghi: false) */ ket?: Record<number, SoiMat> } } | { ok: false; loi: string }> {
   const t = (await db.execute(sql`SELECT t.phim_id, p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   // Phim HOẠT HÌNH: không soi mặt (bộ so mặt người chấm mặt hoạt hình không tin được) — ghi "không theo dõi" đè kết quả cũ để lưới / cổng không đọc nhầm.
@@ -53,21 +53,25 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
   let ra: Ra;
   try { ra = await chay({ mau, anh: ds.map((c) => ({ id: c.id, url: c.keyframe_url, ten: tenCua(c.nhan_vat) })) }); }
   catch (e) { return { ok: false, loi: `soi mặt lỗi: ${e instanceof Error ? e.message : String(e)}` }; }
-  const luc = new Date().toISOString(); const lech: { thu_tu: number; chu: string }[] = [];
+  const luc = new Date().toISOString(); const lech: { thu_tu: number; chu: string }[] = []; const moi: Record<number, SoiMat> = {};
   for (const c of ds) {
     const a = ra.anh.find((x) => x.id === c.id); if (!a) continue;
     const ket = ganNhin(a.ket ?? [], c, nv);
     const sm: SoiMat = { url: c.keyframe_url!, luc, mat: a.mat ?? 0, ket, dat: !a.loi && ket.every((k) => k.dat), ...(a.loi ? { loi: a.loi } : {}) };
+    moi[c.id] = sm;
     if (o.ghi !== false) await db.execute(sql`UPDATE xv_canh SET soi_mat = ${JSON.stringify(sm)}::jsonb WHERE id = ${c.id}`);
     if (!sm.dat && ket.length) lech.push({ thu_tu: c.thu_tu, chu: ket.filter((k) => !k.dat).map((k) => `${k.ten} ${Math.round((k.giong ?? 0) * 100)}%`).join(', ') });
   }
   // HƯỚNG NHÌN THEO CẶP SHOT (khung.ts › canTheoCap): đọc lại cả tập (shot vừa soi + shot đã soi trước) — mặt mà 3D không cho phía cần nhìn lấy ngược
   // phía người đối đáp ở shot liền kề. Chạy sau khi đã ghi kết quả đo của lượt này.
-  if (o.ghi !== false) {
-    const tap = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
-    for (const [id, ket] of canTheoCap(tap)) await db.execute(sql`UPDATE xv_canh SET soi_mat = jsonb_set(soi_mat, '{ket}', ${JSON.stringify(ket)}::jsonb) WHERE id = ${id}`);
+  // ghi: false (chạy thử) → luật cặp chạy trên số đo trong bộ nhớ, không ghi gì
+  const tap = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A')
+    .map((c) => (moi[c.id] ? { ...c, soi_mat: moi[c.id] } : c));
+  for (const [id, ket] of canTheoCap(tap)) {
+    if (moi[id]) moi[id] = { ...moi[id]!, ket };
+    if (o.ghi !== false) await db.execute(sql`UPDATE xv_canh SET soi_mat = jsonb_set(soi_mat, '{ket}', ${JSON.stringify(ket)}::jsonb) WHERE id = ${id}`);
   }
-  return { ok: true, data: { soi: ds.length, lech, theo_doi: Object.entries(ra.mau).filter(([, n]) => n > 0).map(([ten]) => ten) } };
+  return { ok: true, data: { soi: ds.length, lech, theo_doi: Object.entries(ra.mau).filter(([, n]) => n > 0).map(([ten]) => ten), ket: moi } };
 }
 
 /** Người nhận một khung máy báo lệch mặt (máy báo nhầm: góc nghiêng gắt, ánh sáng lạ) — 0đ. Keyframe đổi thì soi lại từ đầu. */
@@ -123,9 +127,9 @@ export async function danVungDau(goc: string, sua: string, hop: number[]): Promi
 }
 
 /** Gửi MỘT lượt sửa mặt cho shot (lan = lần thử, goc = ảnh gốc để mọi lần thử đều sửa từ bản đầu, không sửa chồng lên bản đã hỏng). TỐN TIỀN ~110₫. */
-export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, /** chạy thử: ảnh sửa + điểm soi lại chỉ ghi vào job, shot giữ nguyên, không thử lại */ thu = false): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
+export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, /** chạy thử: ảnh sửa + điểm soi lại chỉ ghi vào job, shot giữ nguyên, không thử lại */ thu = false, /** chạy thử với số đo chưa ghi (soiMatTap ghi: false) */ smThu?: SoiMat): Promise<{ ok: true; data: number } | { ok: false; loi: string }> {
   const d = await docShot(db, canhId); if (!d) return { ok: false, loi: 'không thấy shot' };
-  const { c, kt, nv } = d; const sm = c.soi_mat;
+  const { kt, nv } = d; const c = smThu && thu ? { ...d.c, soi_mat: smThu } : d.c; const sm = c.soi_mat;
   if (chatLieuPhim(kt) !== 'nguoi_that') return { ok: false, loi: 'phim hoạt hình không sửa mặt' };
   if (!c.keyframe_url || !sm || sm.url !== c.keyframe_url || !canSuaMat(c)) return { ok: false, loi: `shot #${c.thu_tu} không lệch mặt / ánh mắt (chưa soi, hoặc đã đạt)` };
   await damBaoAnhMat(db, nv);

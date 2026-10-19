@@ -2,7 +2,9 @@
 """GHÉP BẢN XEM / BẢN NỘP creative Ethopex từ đúng clip + giọng + nhạc studio đã sinh (0đ, ffmpeg + PIL).
 CHUẨN CHỮ (anh 19/10/2026): giọng nhanh 1.15×; phụ đề ngắt dòng CÂN, không cắt giữa tên phim / "Learn More"; màu nhấn vàng cho nhãn
 SHORT DRAMA, tên phim, con số, chữ IN HOA; thẻ cuối = tên phim to màu vàng + NÚT ĐỎ CTA một dòng (tự co chữ cho vừa nút).
-Dùng: python3 ghep-xem.py <ds.json> <thư mục ra>   (ds.json = mảng {tap, tt, phat, v, g, chu, nhac} — lấy từ xv_canh/xv_tap)"""
+FONT POSTER (anh 19/10/2026): tên phim + chữ nút CTA dùng font & màu giống chữ tên phim trên poster (kinh_thanh.ethopex.font
+{file, wght?, mau, cta_file?, cta_wght?} — font OFL ở apps/xuong-video/assets/fonts/poster/); phụ đề thường giữ chữ dễ đọc.
+Dùng: python3 ghep-xem.py <ds.json> <thư mục ra>   (ds.json = mảng {tap, tt, phat, v, g, chu, nhac, font} — lấy từ xv_canh/xv_tap/xv_phim)"""
 import json, os, re, subprocess, sys, textwrap, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
@@ -13,10 +15,30 @@ VANG, TRANG, DO = (255, 214, 10), (255, 255, 255), (220, 20, 50)
 GIU_LIEN = ["Learn More", "LEARN MORE", "Más información", "MÁS INFORMACIÓN", "SHORT DRAMA", "MINISERIE"]
 NB = " "
 
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "assets", "fonts", "poster")
+def font_poster(cfg, co, cta=False):
+    """font + màu theo poster; thiếu cấu hình thì Arial Bold + vàng"""
+    if not cfg: return ImageFont.truetype(FA, co), VANG
+    ten = cfg.get("cta_file") if cta and cfg.get("cta_file") else cfg["file"]; w = cfg.get("cta_wght") if cta and cfg.get("cta_file") else cfg.get("wght")
+    f = ImageFont.truetype(os.path.join(FONT_DIR, ten), co)
+    if w:
+        try: f.set_variation_by_axes([100, w] if "wdth" in ten else [w])   # Fredoka: trục (wdth, wght)
+        except Exception: pass
+    return f, tuple(cfg.get("mau", VANG))
+
 def sh(*a): subprocess.run(a, check=True)
 def dur(f): return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]))
 def tai(u, f):
-    if u and not os.path.exists(f): urllib.request.urlretrieve(u, f)
+    """tải có hạn chờ + thử lại (19/10/2026: urlretrieve không hạn chờ treo cả lượt ghép 10 phút ở 0% CPU)"""
+    hong = os.path.exists(f) and subprocess.run(["ffprobe", "-v", "error", f], capture_output=True).returncode != 0   # tệp dở của lượt bị ngắt
+    if u and (hong or not (os.path.exists(f) and os.path.getsize(f) > 0)):
+        for lan in range(4):
+            try:
+                with urllib.request.urlopen(u, timeout=60) as r, open(f + ".tam", "wb") as o: o.write(r.read())
+                os.replace(f + ".tam", f); break
+            except Exception as e:
+                if lan == 3: raise
+                print(f"  tải lại ({lan + 1}) {u[-50:]}: {e}", flush=True)
     return f if u else None
 
 def khoa_cum(s):
@@ -41,36 +63,38 @@ def ngat_can(s, toi_da=24):
 def mau_tu(w, nhan):
     return VANG if nhan or re.search(r"\d", w) or (len(w) > 1 and w.isupper()) else TRANG
 
-def ve_dong(d, y, dong, f, nhan=False, vien=7):
-    """vẽ một dòng căn giữa, tô màu từng chữ"""
+def ve_dong(d, y, dong, f, nhan=False, vien=7, mau=None):
+    """vẽ một dòng căn giữa, tô màu từng chữ (mau = màu cố định, vd màu tên phim theo poster)"""
     tu = dong.split(" "); sp = d.textlength(" ", font=f)
     rong = sum(d.textlength(w, font=f) for w in tu) + sp * (len(tu) - 1); x = (W - rong) / 2
     for w in tu:
-        d.text((x, y), w, font=f, fill=mau_tu(w, nhan), stroke_width=vien, stroke_fill="black"); x += d.textlength(w, font=f) + sp
+        d.text((x, y), w, font=f, fill=mau or mau_tu(w, nhan), stroke_width=vien, stroke_fill="black"); x += d.textlength(w, font=f) + sp
 
-def phu_de(chu, ra):
-    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); f = ImageFont.truetype(FA, 64)
+def phu_de(chu, ra, cfg=None):
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); f = ImageFont.truetype(FA, 64); fp, mp = font_poster(cfg, 70)
     khoi = [x.strip() for x in (chu or "").split("\n") if x.strip()]
     dong = []
     for k in khoi:
         m = re.match(r"^(SHORT DRAMA|MINISERIE)\s*:\s*(.+)$", k)
-        if m: dong += [(m.group(1), True)] + [(x, True) for x in ngat_can(m.group(2))]   # nhãn một dòng riêng, tên phim ngắt theo từ
-        else: dong += [(x, False) for x in ngat_can(k)]
+        if m: dong += [(m.group(1), "nhan")] + [(x.strip('"'), "ten") for x in ngat_can(m.group(2))]   # nhãn một dòng riêng, tên phim ngắt theo từ
+        else: dong += [(x, "")] if False else [(x, "") for x in ngat_can(k)]
     y = 1240
-    for x, nhan in dong: ve_dong(d, y, x, f, nhan); y += 82
+    for x, loai in dong:
+        if loai == "ten": ve_dong(d, y, x, fp, vien=6, mau=mp); y += 88      # tên phim = font + màu poster
+        else: ve_dong(d, y, x, f, loai == "nhan"); y += 82
     im.save(ra)
 
-def the_cuoi(chu, nen, ra):
+def the_cuoi(chu, nen, ra, cfg=None):
     """nền = khung cuối clip thẻ cuối (poster) làm mờ nhẹ; tên phim to vàng + nút đỏ CTA một dòng"""
     khoi = [x.strip() for x in (chu or "").split("\n") if x.strip()]
     ten = khoi[0].strip('"') if khoi else ""; cta = khoi[1] if len(khoi) > 1 else "WATCH FREE · TAP LEARN MORE"
     im = Image.open(nen).convert("RGB").resize((W, H)); d = ImageDraw.Draw(im, "RGBA")
     d.rectangle([0, 1180, W, H], fill=(0, 0, 0, 150))
-    ft = ImageFont.truetype(FA, 78); y = 1230
-    for x in ngat_can(ten, 20): ve_dong(d, y, x, ft, True, 8); y += 96
+    ft, mt = font_poster(cfg, 88); y = 1220
+    for x in ngat_can(ten, 18): ve_dong(d, y, x, ft, True, 8, mau=mt); y += 104
     fs = 58
-    while fs > 34 and ImageDraw.Draw(im).textlength(cta, font=ImageFont.truetype(FA, fs)) > W - 220: fs -= 2
-    fc = ImageFont.truetype(FA, fs); rong = d.textlength(cta, font=fc); y += 40
+    while fs > 34 and ImageDraw.Draw(im).textlength(cta, font=font_poster(cfg, fs, True)[0]) > W - 220: fs -= 2
+    fc = font_poster(cfg, fs, True)[0]; rong = d.textlength(cta, font=fc); y += 40
     d.rounded_rectangle([(W - rong) / 2 - 50, y, (W + rong) / 2 + 50, y + fs + 54], radius=(fs + 54) // 2, fill=DO + (255,))
     d.text(((W - rong) / 2, y + 24), cta, font=fc, fill=TRANG)
     im.save(ra)
@@ -88,13 +112,13 @@ def ghep(ds, ra_dir):
             png = f"o{tap}-{tt}.png"
             if cuoi:
                 sh("ffmpeg", "-v", "error", "-y", "-sseof", "-0.2", "-i", v, "-frames:v", "1", "-update", "1", f"n{tap}.png")
-                the_cuoi(r["chu"], f"n{tap}.png", f"tc{tap}.png")
+                the_cuoi(r["chu"], f"n{tap}.png", f"tc{tap}.png", r.get("font"))
                 o = f"seg{tap}-{tt}.mp4"
                 sh("ffmpeg", "-v", "error", "-y", "-loop", "1", "-i", f"tc{tap}.png", *(["-i", g] if g else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]),
                    "-filter_complex", "[0:v]scale=1080:1920,zoompan=z='1+0.03*on/90':d=1:s=1080x1920:fps=30,setsar=1[v];[1:a]apad,volume=1.6[g]",
                    "-map", "[v]", "-map", "[g]", "-t", f"{L:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "19", "-c:a", "aac", "-ar", "44100", "-ac", "2", o)
             else:
-                phu_de(r["chu"], png); o = f"seg{tap}-{tt}.mp4"
+                phu_de(r["chu"], png, r.get("font")); o = f"seg{tap}-{tt}.mp4"
                 sh("ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", v, "-i", png, *(["-i", g] if g else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]),
                    "-filter_complex", f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[a];[a][1:v]overlay[v];[2:a]apad,volume=1.6[g]",
                    "-map", "[v]", "-map", "[g]", "-t", f"{L:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "19", "-c:a", "aac", "-ar", "44100", "-ac", "2", o)
@@ -108,4 +132,8 @@ def ghep(ds, ra_dir):
     return kq
 
 if __name__ == "__main__":
+    # chữ phải qua luật chữ của studio trước (chu-studio.mts: không dấu chấm cuối câu…) — ghép không tự xử lý chữ
+    goc = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+    subprocess.run([os.path.join(goc, "node_modules/.bin/tsx"), os.path.join(os.path.dirname(os.path.abspath(__file__)), "chu-studio.mts"), os.path.abspath(sys.argv[1])],
+                   check=True, cwd=os.path.join(goc, "apps/xuong-video"), env={**os.environ, "NODE_OPTIONS": "--conditions=react-server"})
     ghep(json.load(open(sys.argv[1])), sys.argv[2])

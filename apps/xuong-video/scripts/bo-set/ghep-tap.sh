@@ -21,9 +21,9 @@ x0, y0, x1, y1 = ImageDraw.Draw(Image.new('RGBA', (1, 1))).textbbox((0, 0), chu,
 im = Image.new('RGBA', (x1 + 16, y1 + 12), (0, 0, 0, 150)); ImageDraw.Draw(im).text((8, 4), chu, font=f, fill=(255, 255, 255, 255)); im.save(ra)
 PY
   if [ -f "$V" ]; then
-    ffmpeg -y -loglevel error -i "$V" -i "$T/n$i.png" -filter_complex "[0:v]scale=$W:$H:force_original_aspect_ratio=decrease,pad=$W:$H:-1:-1,setsar=1,fps=24[v];[v][1:v]overlay=8:8,format=yuv420p" -an -c:v libx264 -crf 18 "$T/c$i.mp4"
+    ffmpeg -nostdin -y -loglevel error -i "$V" -i "$T/n$i.png" -filter_complex "[0:v]scale=$W:$H:force_original_aspect_ratio=decrease,pad=$W:$H:-1:-1,setsar=1,fps=24[v];[v][1:v]overlay=8:8,format=yuv420p" -an -c:v libx264 -crf 18 "$T/c$i.mp4"
   else
-    ffmpeg -y -loglevel error -f lavfi -i "color=black:s=${W}x${H}:r=24:d=$GIAY" -i "$T/n$i.png" -filter_complex "[0:v][1:v]overlay=8:8,format=yuv420p" -c:v libx264 -crf 18 "$T/c$i.mp4"
+    ffmpeg -nostdin -y -loglevel error -f lavfi -i "color=black:s=${W}x${H}:r=24:d=$GIAY" -i "$T/n$i.png" -filter_complex "[0:v][1:v]overlay=8:8,format=yuv420p" -c:v libx264 -crf 18 "$T/c$i.mp4"
   fi
   echo "file '$T/c$i.mp4'" >> "$T/ds.txt"
 done < "$RA/viec.txt"

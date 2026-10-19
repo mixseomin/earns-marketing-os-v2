@@ -2,7 +2,7 @@
 // Cùng luật dung-set.py (Blender) để khung nhìn qua máy shot ở trình duyệt khớp khung xám. Toạ độ dữ liệu: cm, x phải, y sâu vào bàn, z lên → three: (x, z, −y).
 import * as THREE from 'three';
 import type { BoSet, KhoiSet, May3d, NhanVat } from './kieu';
-import { vatHien } from './kieu';
+import { laKinh, vatHien } from './kieu';
 
 export type Khoi = NonNullable<NhanVat['khoi_3d']>;
 export type Phan = Omit<KhoiSet, 'ten'> & { ten?: string; bac?: number };
@@ -137,7 +137,7 @@ export function dungCanhShot(set: BoSet, khoiCua: (ten: string) => KhoiNv | unde
   const hien = may ? new Set(vatHien(set.du_lieu.vat, may.them).map((v) => v.ten)) : null;
   for (const v of set.du_lieu.vat) {
     if (hien && !hien.has(v.ten)) continue;
-    const mo = v.kinh || /\bglass (wall|door|partition|panel)s?\b/i.test(v.en ?? '') ? 0.25 : v.tuy_chon && !may ? 0.35 : 1;   // kính: CÙNG luật dung-set.py › LA_KINH   // kính: trong suốt như khung Blender (dung-set.py › KINH)
+    const mo = laKinh(v) ? 0.25 : v.tuy_chon && !may ? 0.35 : 1;   // kính: CÙNG luật dung-set.py › LA_KINH   // kính: trong suốt như khung Blender (dung-set.py › KINH)
     const g = new THREE.Group();
     if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0, mo));
     else g.add(khoi(v as Phan, undefined, 0, mo));

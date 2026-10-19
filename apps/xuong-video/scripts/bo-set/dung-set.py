@@ -1069,13 +1069,17 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
     bb_ten = set(sh.get('bat_buoc') or [])
     chu = [o for o in nv_obj if ten_vat(o) in bb_ten] or nv_obj
     kc_chu = min(((sum((o.matrix_world @ Vector(c) for c in o.bound_box), Vector()) / 8) - cam.location).length for o in chu) if chu else 1e9
-    dem = {}
+    dem = {}; kinh = {}
     for j in range(R):
         for i in range(C):
             u, v = (i + 0.5) / C, (j + 0.5) / R
             p = tl + (tr - tl) * u + (bl - tl) * v
             d = (p - cam.location).normalized()
-            hit, loc, nor, _, ob, _ = s.ray_cast(dg, cam.location, d)
+            # KÍNH: tia đếm xuyên kính như khung màu vẽ (tia_qua_kinh) — 19/10/2026 tổng tài 2.0b–c máy sau cửa kính đếm ra 'cửa lấp 100%', Lục Thần
+            # đứng ngay sau kính thành không thấy. Mặt kính vẫn ghi (tien=False) để prompt biết có lớp kính.
+            h0, _, _, _, o0, _ = s.ray_cast(dg, cam.location, d)
+            if h0 and o0 and ten_vat(o0) in KINH: k = kinh.setdefault(ten_vat(o0), {'n': 0, 'u0': 1, 'v0': 1, 'u1': 0, 'v1': 0}); k['n'] += 1; k['u0'] = min(k['u0'], u); k['v0'] = min(k['v0'], v); k['u1'] = max(k['u1'], u); k['v1'] = max(k['v1'], v)
+            hit, loc, nor, _, ob, _ = tia_qua_kinh(s, dg, cam.location, d, 1000.0)
             if not hit or not ob: continue
             t = ten_vat(ob); x = dem.setdefault(t, {'n': 0, 'u0': 1, 'v0': 1, 'u1': 0, 'v1': 0, 'gan': 1e9, 'mat': 0})
             x['n'] += 1; x['mat'] += nor.z > 0.75; x['u0'] = min(x['u0'], u); x['v0'] = min(x['v0'], v); x['u1'] = max(x['u1'], u); x['v1'] = max(x['v1'], v)
@@ -1087,6 +1091,9 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
         out.append({'ten': t, 'en': EN.get(t, t), **({'trang': TRANG[t]} if t in TRANG else {}), **({'nguoi': True} if t in NGUOI_SET or t in NGUOI else {}), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
                     # mặt nhìn từ trên xuống (≥ 80% tia trúng mặt ngửa: thẻ cam hai bạn đứng lên, sổ mở) là MẶT NỀN, không phải vật chắn
                     'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8 and x['mat'] < 0.8 * x['n']})
+    for t, x in kinh.items():
+        pt = round(x['n'] * 100 / (C * R), 1)
+        if pt >= 0.5 and t not in dem: out.append({'ten': t, 'en': EN.get(t, t), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)], 'tien': False})
     return sorted(out, key=lambda x: -x['pt'])
 
 def hong(k): return sum(1 for x in k if x['bat_buoc'] and (not x['trong_khung'] or x['bi_che_boi']))

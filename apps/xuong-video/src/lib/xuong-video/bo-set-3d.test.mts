@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { nhinCau, thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, dangMo, dangKet, mayTrongNguoi, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { nhinCau, thayRo, noiHookup, luongShot, boSetCuaShot, maKhungXam, bangDung, vuotTruc, doiDapCungPhia, bienTheTheoSo, lookChuaChuan, khoiCua, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, khoiLapKhung, moTaThay, lienMachTap, dangMo, dangKet, mayTrongNguoi, thieuDongTac, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -80,7 +80,7 @@ assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cu
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { thay: 'Tango nghĩ tới cái Remote.' } as never }, nv2, set), []);
 // Vật chắn tiền cảnh: iMac chắn 30% khung trước chủ thể, bố cục không nhắc → chặn; bố cục có nhắc "iMac" → cố ý, qua; mặt nền / dưới 12% → không tính.
 const setIMac = { id: 7, du_lieu: { vat: [...set.du_lieu.vat, { ten: 'Yellow iMac', goc: [0, 0], phan: [] }] } };
-const kxT = (thay: { ten: string; pt: number; hop: [number, number, number, number]; tien: boolean }[]) => ({ ma: maKhungXam(setIMac, mm, nv), xam: '', sau: '', luc: '', kiem: [], thay });
+const kxT = (thay: { ten: string; en?: string; pt: number; hop: [number, number, number, number]; tien: boolean }[]) => ({ ma: maKhungXam(setIMac, mm, nv), xam: '', sau: '', luc: '', kiem: [], thay });
 const chan = { ten: 'Yellow iMac', pt: 30, hop: [0, 0, 1, 0.3] as [number, number, number, number], tien: true };
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([chan]) }, nv, setIMac).some((x) => x.includes('Yellow iMac chắn tiền cảnh')));
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([chan]), dan_dung: { bo_cuc: 'Foreground: the yellow iMac stand, blurred.' } }, setIMac), []);
@@ -89,6 +89,12 @@ assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([{ ...chan, pt: 8 
 { const ha = { ten: 'Lâm Hạ', pt: 22, hop: [0.6, 0.3, 1, 1] as [number, number, number, number], tien: true }; const nvHa = [{ ten: 'Lâm Hạ', mo_ta: 'East Asian woman, 24' }];
   assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([ha]), dan_dung: { bo_cuc: 'Over Hạ’s shoulder (soft, screen-right foreground) onto Vivian' } }, setIMac, nvHa), []);
   assert.equal(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([ha]), dan_dung: { bo_cuc: 'Close on Vivian holding the file' } }, setIMac, nvHa).length, 1); }
+// KÍNH không phải vật lấp / chắn (tổng tài 2.0b–c: máy sau cửa kính bị báo lấp 100%): khai kinh trong set, hoặc chỉ có tên Anh 'glass door' (gọi không kèm set)
+{ const cua = { ten: 'Cửa kính', en: 'glass door of the CEO office', pt: 100, hop: [0, 0, 1, 1] as [number, number, number, number], tien: true };
+  const setKinh = { id: 7, du_lieu: { vat: [...setIMac.du_lieu.vat, { ten: 'Cửa kính', goc: [0, 0], phan: [], kinh: true }] } };
+  assert.deepEqual(khoiLapKhung({ khung_xam: kxT([cua]) }, null), []); assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([cua]) }, null), []);
+  assert.deepEqual(khoiLapKhung({ khung_xam: kxT([{ ...cua, en: undefined }]) }, setKinh), []);
+  assert.equal(khoiLapKhung({ khung_xam: kxT([{ ...cua, ten: 'Tủ gỗ', en: 'wooden cabinet' }]) }, null).length, 1); }
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxT([]), thay: undefined } }, nv, setIMac).some((x) => x.includes('đời cũ')));
 assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground, cut off by the top edge — only a 30% strip shows)'));
 // CHỦ THỂ NHỎ (#11 tập 122: thẻ 0,6% khung, chủ thể shot) vẫn là THẤY; đồ nhỏ không phải chủ thể thì bỏ
@@ -202,7 +208,8 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // 18/10/2026 (29): người ĐẤT SÉT previs (anh chọn — da / mắt MakeHuman ở cận như quái thai); máy đặt tay trượt chủ thể thì ngắm lại; POV cắt gần qua đầu chính người đó → 84.
 // 18/10/2026 (30): khung kết lệch theo máy đã ngắm lại; đầu chắn giữa máy và chủ thể thì cắt gần → 85.
 // 18/10/2026 (31): khung KẾT ngắm lại vào MẶT (đầu nhích theo hướng mặt, mép 0,2–0,8 — #24 kết còn tai + gáy); vòng đeo cổ tay nằm mép cổ tay áo, nở 30 % (#9 #25 chuỗi hạt chui trong tay áo MPFB) → 86.
-assert.deepEqual([BAN_DUNG, bam], [92, '6d469bcba1ae'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// BAN_DUNG 93 (19/10/2026): nhin_thay đếm xuyên kính (tia_qua_kinh) — người sau cửa / vách kính là thấy, mặt kính ghi tien=False.
+assert.deepEqual([BAN_DUNG, bam], [93, 'd9d5c5e6df25'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

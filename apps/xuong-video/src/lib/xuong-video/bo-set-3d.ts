@@ -3,7 +3,7 @@
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
 import type { BienThe, BoSet, Canh, KhoiSet, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
-import { vatHien } from './kieu';
+import { laKinh, vatHien } from './kieu';
 import { duongMay, hopVat } from './duong-may';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
@@ -30,7 +30,7 @@ export const khoiCua = (ten: string, nhanVat: NvKhoi[]) => {
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 92;
+export const BAN_DUNG = 93;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -175,7 +175,7 @@ const tenGoi = (ten: string, set: Pick<BoSet, 'du_lieu'>) => {
 };
 
 /** KHỐI LẤP KHUNG: một khối (không phải mặt nền) chiếm ≥ 85% khung — máy dí sát / nằm trong vật, khung xám thành một mảng màu vô nghĩa. */
-export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten)); };
+export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen || laKinh(v)).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten) && !laKinh(t)); };
 
 /** VẬT ĐƯỢC NHẮC MÀ KHÔNG THẤY: chữ tả khung (bố cục / mở / kết / prompt ảnh) nhắc một vật của set mà khung 3D không thấy nó (< 1% khung) — thử
  *  7.3 tập 19: bố cục "ấn tay lên đế cắm sát phích" mà máy đứng sau lưng Tango, đế cắm không có trong khung → keyframe vẽ một cảnh khác. */
@@ -192,7 +192,7 @@ export const vatDuocNhac = (c: Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, s
  *  Mặt nền (nen: mặt bàn, tường, kệ) không tính. Dữ liệu từ khung_xam.thay (dung-set.py › nhin_thay). */
 export function vatChanTienCanh(c: Pick<Canh, 'may_3d' | 'khung_xam'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, set: Pick<BoSet, 'du_lieu'> | null, nhanVat: { ten: string; mo_ta?: string }[] = []): VatThay[] {
   const ct = c.may_3d ? chuThe(c.may_3d) : []; const chu = chuKhung(c);
-  const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen).map((v) => v.ten));
+  const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen || laKinh(v)).map((v) => v.ten));   // kính: nhìn xuyên, không phải vật chắn
   // TÊN TIẾNG ANH của đạo cụ (danh từ chính trong vế đầu mô tả: "Plain brown cardboard office box" → box): tên đồ tiếng Việt không khớp chữ bố cục tiếng
   // Anh — "Thùng đồ cá nhân" với "box edge in foreground" bị báo vật chắn không được nhắc (#11)
   const tenEn = (t: string) => { const m = nhanVat.find((v) => v.ten === t)?.mo_ta; if (!m) return []; const dau = (m.split(/,|:| with | on | in /)[0] ?? '').trim().split(/\s+/); return [dau[dau.length - 1] ?? ''].filter((x) => x.length >= 3); };
@@ -200,7 +200,7 @@ export function vatChanTienCanh(c: Pick<Canh, 'may_3d' | 'khung_xam'> & Partial<
   // không có trong chữ, còn "Hạ" dưới 3 ký tự bị nhac bỏ qua): tên ≥ 2 chữ thì chữ cuối (tên gọi) cũng tính, cho phép 2 ký tự.
   const goiTat = (t: string) => { const w = t.trim().split(/\s+/); return w.length >= 2 && nhanVat.some((v) => v.ten === t) ? [w[w.length - 1]!] : []; };
   const nhacTat = (g: string) => new RegExp(`(^|[^\\p{L}])${g.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^\\p{L}]|$)`, 'u').test(chu);
-  return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !ct.includes(t.ten) && ![...(set ? tenGoi(t.ten, set) : [t.ten]), ...tenEn(t.ten)].some((g) => nhac(g, chu)) && !goiTat(t.ten).some(nhacTat));
+  return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !laKinh(t) && !ct.includes(t.ten) && ![...(set ? tenGoi(t.ten, set) : [t.ten]), ...tenEn(t.ten)].some((g) => nhac(g, chu)) && !goiTat(t.ten).some(nhacTat));
 }
 
 /** MÁY TRONG THÂN NGƯỜI (19/10/2026, tổng tài 2.0c: góc nhìn đặt máy ở mắt Thần, Thần khai 'an' — thân 3D vẫn dựng, khung trắng kín, mất một lượt GPU):

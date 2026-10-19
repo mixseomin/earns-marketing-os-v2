@@ -378,6 +378,10 @@ export type KhoiSet = { ten: string; /** người (hinh 'nguoi'): giới + tuổ
 export type VatSet = (KhoiSet | { ten: string; goc: number[]; xoay?: number; phan: Omit<KhoiSet, 'ten'>[] }) & { anchor?: string; /** mặt nền (mặt bàn, tường, kệ): ở đâu cũng có, không tính là vật chắn tiền cảnh */ nen?: boolean; /** KÍNH (cửa / vách kính): khung màu vẽ trong suốt, tia đo nhìn xuyên — người sau kính là thấy (dung-set.py › KINH) */ kinh?: boolean; /** đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ có ở shot khai may_3d.them */ tuy_chon?: boolean; /** đồ tuỳ chọn là TRẠNG THÁI KHÁC của một / vài đồ set (cửa đôi MỞ thay cửa đóng + mảng tường khoét lỗ): shot khai them món này thì đồ tên này ẩn */ thay_cho?: string | string[]; /** tên tiếng Anh gửi mô hình ảnh (tên tiếng Việt như 'Mặt bàn') */ en?: string; /** mô hình đồ đạc THẬT (mã Poly Haven, tai-san/mo-hinh/<mã>) thay khối khi dựng Blender — dung-set.py › mo_hinh_that; en phải tả đúng mô hình */ mau_3d?: string };
 /** ĐỒ SET ĐANG HIỆN của một shot: đồ thường + đồ tuỳ chọn shot khai them, trừ đồ bị một món tuỳ chọn đang hiện THAY (thay_cho). MỘT luật cho
  *  khung Blender (dung-set.py › dat_tuy_chon), xem trước three, kiểm đủ đạo cụ và bộ kiểm AI. */
+/** KÍNH (cửa / vách kính): vật khai kinh, hoặc tên tiếng Anh là glass wall/door/partition/panel — CÙNG luật dung-set.py › LA_KINH. Khung màu vẽ trong
+ *  suốt, tia đo nhìn xuyên; nhìn qua kính là cố ý nên cổng không tính kính là vật lấp / chắn khung (tổng tài 2.0b–c: máy sau cửa kính bị báo lấp 100%). */
+export const laKinh = (v: { kinh?: boolean; en?: string }): boolean => !!v.kinh || /\bglass (wall|door|partition|panel)s?\b/i.test(v.en ?? '');
+
 export const vatHien = <V extends Pick<VatSet, 'ten' | 'tuy_chon' | 'thay_cho'>>(vat: V[], them: Iterable<string> | null | undefined): V[] => {
   const t = new Set(them ?? []); const bo = new Set(vat.filter((v) => v.tuy_chon && v.thay_cho && t.has(v.ten)).flatMap((v) => (Array.isArray(v.thay_cho) ? v.thay_cho : [v.thay_cho!])));
   return vat.filter((v) => (!v.tuy_chon || t.has(v.ten)) && !bo.has(v.ten));

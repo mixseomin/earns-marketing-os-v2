@@ -51,3 +51,33 @@ export const demKieu = (ds: Phim[], luuTru = false): Record<KieuNhom, number> =>
   for (const p of ds) if (luuTru || !laLuuTru(p)) d[kieuPhim(p)]++;
   return d;
 };
+
+/** Số liệu QC Ethopex của một creative (scripts/ethopex/dong-bo-so-lieu.sh ghi vào kinh_thanh.ethopex.so_lieu). */
+type SoLieuQc = { chi?: number; thu?: number; lai?: number; khoang?: string; luc?: string; camp?: { id: number; lai?: number; roi?: number | null; spending?: number; budget?: number }[] };
+type EthopexKt = { creative_id?: number; camp_id?: number | null; camp_nhan_ban?: number[]; so_lieu?: SoLieuQc };
+const ethopexCua = (p: Pick<Phim, 'kinh_thanh'>): EthopexKt => ((p.kinh_thanh as unknown as { ethopex?: EthopexKt }).ethopex ?? {});
+/** Creative đủ nấc trên danh sách: có cảnh, mọi cảnh có hình + clip (cùng luật kho-creative.ts › dongCreative, đọc từ tap_tom). */
+export const duNac = (p: Pick<Phim, 'tap_tom'>): boolean => { const t = p.tap_tom ?? []; const c = t.reduce((a, x) => a + x.so_canh, 0); return c > 0 && t.every((x) => x.so_hinh >= x.so_canh && x.so_clip >= x.so_canh); };
+export type TongSanPham = {
+  key: string; ten: string; anh: string | null; nguon: string; ngon_ngu: string[]; so_creative: number; du: number; ket: number;
+  loai: Record<string, number>; so_camp: number; camp_lai: number; chi: number; thu: number; lai: number; roi: number | null; chi_sx_cents: number; cap_nhat: string; khoang: string;
+};
+/** Bảng quản lý trang 📦 Sản phẩm (anh 20/10/2026: "page này phải show đủ thông tin để quản lý"): mỗi sản phẩm một dòng tổng. Thuần. */
+export function tongSanPham(g: Pick<NhomPhim, 'key' | 'ten' | 'phim'>): TongSanPham {
+  const ds = g.phim; const e = ds.map(ethopexCua);
+  const link = (ds.find((p) => p.kinh_thanh?.qc?.link)?.kinh_thanh?.qc?.link ?? '').trim();
+  let nguon = ''; try { nguon = link ? new URL(link).host.replace(/^www\./, '').replace(/\.(com|net|tv|app)$/, '') : ''; } catch { nguon = ''; }
+  const loai: Record<string, number> = {};
+  for (const p of ds) { const l = p.kinh_thanh?.the_loai || 'khac'; loai[l] = (loai[l] ?? 0) + 1; }
+  const camp = new Map<number, { lai?: number }>();
+  for (const x of e) {
+    for (const c of x.so_lieu?.camp ?? []) camp.set(c.id, c);
+    for (const id of [x.camp_id, ...(x.camp_nhan_ban ?? [])]) if (id && !camp.has(id)) camp.set(id, {});
+  }
+  const cong = (k: 'chi' | 'thu' | 'lai') => Math.round(e.reduce((a, x) => a + (x.so_lieu?.[k] ?? 0), 0) * 100) / 100;
+  const chi = cong('chi'), thu = cong('thu'), du = ds.filter(duNac).length;
+  return { key: g.key, ten: g.ten, anh: ds.map(anhDaiDien).find(Boolean) ?? null, nguon, ngon_ngu: [...new Set(ds.map((p) => (p.kinh_thanh?.ngon_ngu || 'vi').toUpperCase()))],
+    so_creative: ds.length, du, ket: ds.length - du, loai, so_camp: camp.size, camp_lai: [...camp.values()].filter((c) => (c.lai ?? 0) > 0).length,
+    chi, thu, lai: cong('lai'), roi: chi > 0 ? Math.round(((thu - chi) / chi) * 1000) / 10 : null, chi_sx_cents: ds.reduce((a, p) => a + p.chi_phi_cents, 0),
+    cap_nhat: ds.map((p) => p.updated_at).sort().pop() ?? '', khoang: e.find((x) => x.so_lieu?.khoang)?.so_lieu?.khoang ?? '' };
+}

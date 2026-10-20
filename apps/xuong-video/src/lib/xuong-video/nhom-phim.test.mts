@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { nhomPhim, tenNhomPhim, demKieu, sanPhamPhim } from './nhom-phim';
+import { nhomPhim, tenNhomPhim, demKieu, sanPhamPhim, tongSanPham, duNac } from './nhom-phim';
 import type { Phim } from './kieu';
 const sr = (ten: string) => ({ dong_co: 'x', khan_gia: '', dinh_dang: '', tap: [], ten });
 const p = (id: number, ten: string, loai: Phim['loai'], kt: Partial<Phim['kinh_thanh']> = {}, tap: string[] = []): Phim => ({ id, project: 's', ten, loai, mo_ta: '', kinh_thanh: kt as Phim['kinh_thanh'], trang_thai: '', so_tap: tap.length, so_nhan_vat: 0, so_canh: 0, chi_phi_cents: 10, updated_at: '', tap_tom: tap.map((t, i) => ({ id: i, so: i + 1, ten: t, so_canh: 0, so_hinh: 0, so_clip: 0 })) });
@@ -33,3 +33,17 @@ assert.deepStrictEqual(g.map((x) => [x.ten, x.phim.map((y) => y.id)]), [['JettJe
 assert.strictEqual(sanPhamPhim({ loai: 'short', kinh_thanh: qc('x', 'https://a.com/b') as Phim['kinh_thanh'] }), null, 'chỉ phim QC');
 assert.deepStrictEqual(nhomPhim(ds2, { tim: 'jettjeans3' }).map((x) => x.phim.length), [2], 'tìm theo tên sản phẩm');
 console.log('nhom-phim.test: ok');
+
+// tongSanPham: bảng quản lý trang Sản phẩm — đếm creative đủ nấc / kẹt, camp (kể cả nhân bản), cộng số liệu QC, ROI
+{
+  const qc = { ten: 'Phim A', link: 'https://www.reelshort.com/episodes/a' };
+  const a = { ...p(1, 'Ethopex · A · cảnh thật', 'quang_cao', { qc, ngon_ngu: 'en', the_loai: 'qc_canh_that', ethopex: { creative_id: 1, camp_id: 10, camp_nhan_ban: [11, 12], so_lieu: { chi: 2, thu: 5, lai: 3, camp: [{ id: 10, lai: 3 }] } } } as never), tap_tom: [{ id: 1, so: 1, ten: '', so_canh: 2, so_hinh: 2, so_clip: 2 }] };
+  const b = { ...p(2, 'Ethopex · A · kể chuyện', 'quang_cao', { qc, ngon_ngu: 'en', the_loai: 'qc_ke_chuyen', ethopex: { creative_id: 2, camp_id: 20, so_lieu: { chi: 1, thu: 0.5, lai: -0.5, camp: [{ id: 20, lai: -0.5 }] } } } as never), tap_tom: [{ id: 2, so: 1, ten: '', so_canh: 7, so_hinh: 7, so_clip: 5 }] };
+  assert.equal(duNac(a), true); assert.equal(duNac(b), false);
+  const t = tongSanPham({ key: 'sp:x', ten: 'A', phim: [a, b] });
+  assert.equal(t.so_creative, 2); assert.equal(t.du, 1); assert.equal(t.ket, 1);
+  assert.equal(t.so_camp, 4, 'camp 10, 11, 12 (nhân bản), 20');
+  assert.equal(t.camp_lai, 1); assert.equal(t.chi, 3); assert.equal(t.thu, 5.5); assert.equal(t.roi, 83.3);
+  assert.equal(t.nguon, 'reelshort'); assert.deepEqual(t.ngon_ngu, ['EN']); assert.equal(t.loai.qc_canh_that, 1);
+}
+console.log('nhom-phim tongSanPham: ok');

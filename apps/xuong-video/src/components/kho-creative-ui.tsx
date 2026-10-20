@@ -12,8 +12,8 @@ import { TaoTuTemplate } from './template-ui';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { LOAI_GOC_SPY, loaiGocSpy, linkGocSpy, linkSpSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { COT_DONG, COT_KHUON, LOAI_THANH_PHAN, banDo, dongCua, oMaTran, cumCua, type CumGoc, type DongCreative, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
-import { nhomPhim, anhDaiDien } from '@/lib/xuong-video/nhom-phim';
-import { DONG_TEMPLATE, type Phim } from '@/lib/xuong-video/kieu';
+import { nhomPhim, tongSanPham, type TongSanPham } from '@/lib/xuong-video/nhom-phim';
+import { DONG_TEMPLATE, tien, type Phim } from '@/lib/xuong-video/kieu';
 import { KhoCreative } from './kho-concept-ui';
 import { docKhoConcept, type KhoConcept } from '@/lib/actions-concept';
 
@@ -27,22 +27,42 @@ const TAB_SP: { value: TabSp; label: string }[] = [
 const tenKhuon = (c: Pick<DongCreative, 'tpl'>) => (c.tpl ? DONG_TEMPLATE.find((d) => d.key === c.tpl!.dong)?.khuon.find((k) => k.key === c.tpl!.khuon)?.ten ?? c.tpl.khuon : 'Ngoài template');
 
 /** Danh sách sản phẩm (tab 📦 Sản phẩm): mỗi sản phẩm một dòng, bấm mở ngăn. Nhóm theo sản phẩm của phim QC (nhom-phim.ts › sanPhamPhim). */
+const LOAI_CR: Record<string, string> = { qc_canh_that: 'cảnh thật', qc_ke_chuyen: 'kể chuyện AI', qc_nhan_vat: 'nhân vật AI' };
+const usd = (x: number) => `${x < 0 ? '−' : ''}$${Math.abs(x).toFixed(2)}`;
+/** Danh sách sản phẩm = BẢNG QUẢN LÝ (anh 20/10/2026: "page này phải show đủ thông tin để quản lý, mỗi cái tên thì xem gì"): mỗi sản phẩm một dòng —
+ *  creative (đủ nấc / kẹt), loại, camp (kể cả nhân bản), chi / thu / lãi / ROI QC (dong-bo-so-lieu.sh), chi phí sản xuất, lần sửa. Bấm dòng = mở ngăn sản phẩm. */
 export function DanhSachSanPham({ phim, onMo }: { phim: Phim[]; onMo: (key: string) => void }) {
-  const ds = nhomPhim(phim, { kieu: 'quang_cao' }).filter((g) => g.key.startsWith('sp:'));
+  const ds = useMemo(() => nhomPhim(phim, { kieu: 'quang_cao' }).filter((g) => g.key.startsWith('sp:')).map(tongSanPham), [phim]);
   if (!ds.length) return <div className="xv-panel" style={mono}>Chưa có creative quảng cáo nào gắn sản phẩm (ô Sản phẩm + link trang bán ở tab 🎭 Phim của phim QC).</div>;
+  const mau = (x: number) => (x > 0 ? 'var(--green, #3fb950)' : x < 0 ? 'var(--red, #f85149)' : 'var(--fg-2)');
+  const cot: DataColumn<TongSanPham>[] = [
+    { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: (s) => s.ten, cellTitle: (s) => `${s.ten}${s.khoang ? ` · số liệu QC: ${s.khoang}` : ''}`, cell: (s) => (
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <span style={{ flex: '0 0 auto', width: 26, height: 38, borderRadius: 3, border: '1px solid var(--line)', background: s.anh ? `center / cover no-repeat url(${anhNho(s.anh, 160)}), #111` : 'var(--bg-2)' }} />
+        <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.ten}</b>
+      </span>) },
+    { key: 'nguon', header: 'Nguồn', width: 90, align: 'left', sortValue: (s) => s.nguon, cell: (s) => s.nguon || '—' },
+    { key: 'nn', header: 'NN', width: 52, align: 'center', sortValue: (s) => s.ngon_ngu.join(), cell: (s) => <Pill color="var(--cyan)">{s.ngon_ngu.join(' ')}</Pill> },
+    { key: 'cr', header: 'Creative', title: 'Tổng creative · đủ nấc (mọi cảnh có hình + clip) · kẹt', width: 120, align: 'right', sortValue: (s) => s.so_creative,
+      cellTitle: (s) => `${s.so_creative} creative · ${s.du} đủ nấc · ${s.ket} kẹt`,
+      cell: (s) => <span>{s.so_creative} <span style={{ color: 'var(--fg-2)' }}>· {s.du} đủ</span>{s.ket > 0 && <span style={{ color: 'var(--red, #f85149)' }}> · {s.ket} kẹt</span>}</span> },
+    { key: 'loai', header: 'Loại', width: 170, align: 'left', sortValue: (s) => s.loai.qc_canh_that ?? 0,
+      cell: (s) => <span style={{ fontSize: 12 }}>{Object.entries(s.loai).map(([k, v]) => `${v} ${LOAI_CR[k] ?? k}`).join(' · ')}</span> },
+    { key: 'camp', header: 'Camp', title: 'Camp Ethopex đang gắn creative của sản phẩm (kể cả nhân bản) · số camp đang lãi', width: 90, align: 'right', sortValue: (s) => s.so_camp,
+      cell: (s) => <span>{s.so_camp}{s.camp_lai > 0 && <span style={{ color: 'var(--green, #3fb950)' }}> · {s.camp_lai} lãi</span>}</span> },
+    { key: 'chi', header: 'Chi QC', width: 80, align: 'right', sortValue: (s) => s.chi, cell: (s) => usd(s.chi) },
+    { key: 'thu', header: 'Thu', width: 80, align: 'right', sortValue: (s) => s.thu, cell: (s) => usd(s.thu) },
+    { key: 'lai', header: 'Lãi', width: 80, align: 'right', sortValue: (s) => s.lai, cell: (s) => <b style={{ color: mau(s.lai) }}>{usd(s.lai)}</b> },
+    { key: 'roi', header: 'ROI', width: 70, align: 'right', sortValue: (s) => s.roi ?? -1e9, cell: (s) => (s.roi == null ? '—' : <b style={{ color: mau(s.roi) }}>{s.roi}%</b>) },
+    { key: 'sx', header: 'Chi SX', title: 'Chi phí sản xuất creative trong studio (ảnh, video, giọng)', width: 80, align: 'right', sortValue: (s) => s.chi_sx_cents, cell: (s) => tien(s.chi_sx_cents) },
+    { key: 'sua', header: 'Cập nhật', width: 100, align: 'right', sortValue: (s) => s.cap_nhat,
+      cell: (s) => (s.cap_nhat ? new Date(s.cap_nhat).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—') },
+  ];
+  const khoang = ds.find((s) => s.khoang)?.khoang;
   return (
-    <div className="xv-panel" style={{ padding: 0, marginBottom: 0 }}>
-      {ds.map((g) => {
-        const anh = g.phim.map(anhDaiDien).find(Boolean) ?? null;
-        const goc = new Set(g.phim.flatMap((p) => (p.goc_spy ?? []).map((x) => x.id)));
-        return (
-          <button key={g.key} type="button" onClick={() => onMo(g.key.slice(3))} title={`${g.phim.length} creative · ${goc.size} góc spy đã dùng`}
-            style={{ all: 'unset', cursor: 'pointer', display: 'grid', gridTemplateColumns: '26px 1fr', columnGap: 10, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', width: '100%', boxSizing: 'border-box' }}>
-            <span style={{ width: 26, height: 38, borderRadius: 3, border: '1px solid var(--line)', background: anh ? `center / cover no-repeat url(${anhNho(anh, 160)}), #111` : 'var(--bg-2)' }} />
-            <b style={{ fontSize: 14.5 }}>📦 {g.ten}</b>
-          </button>
-        );
-      })}
+    <div style={{ display: 'grid', gap: 4 }}>
+      {khoang && <span style={mono} title="Đồng bộ bằng scripts/ethopex/dong-bo-so-lieu.sh">Số liệu QC Ethopex: {khoang}</span>}
+      <DataTable rows={[...ds].sort((a, b) => b.lai - a.lai)} columns={cot} getRowKey={(s) => s.key} onRowClick={(s) => onMo(s.key.slice(3))} fixedLayout stickyFirst={false} minWidth={1180} persistKey="xv-ds-san-pham" />
     </div>
   );
 }

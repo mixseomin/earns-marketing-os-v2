@@ -18,16 +18,18 @@ const cong = (ngay, n) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).
 const dm = (n) => `${n.slice(8)}/${n.slice(5, 7)}`;
 const tenNgan = (t) => String(t).split(' · ')[0];
 
-/** Thuần: số liệu → chữ tin. s = { hom, may: [{ma, ten}], da: [{may, nen, url}], lich: {luc, ds: [{may, nen, ngay, format}]} }, bayGio = epoch ms. */
+/** Thuần: số liệu → chữ tin. s = { hom, may: [{ma, ten}], da: [{may, nen, url}], lich: {luc, ds: [{may, nen, ngay, gio, format}]} }, bayGio = epoch ms. */
 export function tinBaoCao(s, bayGio = Date.now()) {
   const { hom } = s, ds = s.lich?.ds ?? [], ten = Object.fromEntries(s.may.map((m) => [m.ma, tenNgan(m.ten)]));
   const dinh = ds.filter((x) => x.ngay === hom), sau7 = cong(hom, SAP_CAN_NGAY);
-  const dong = [], canh = [];
+  const dong = [], canh = [], gioVn = new Date(bayGio + 7 * 3600e3).toISOString().slice(11, 16); let tongLo = 0, tongCho = 0;
   for (const m of s.may) {
     const da = s.da.filter((x) => x.may === m.ma), dk = dinh.filter((x) => x.may === m.ma);
-    const lo = [...new Set(dk.map((x) => x.nen))].filter((n) => !da.some((x) => x.nen === n));
+    const chua = dk.filter((x) => !da.some((d) => d.nen === x.nen)), lo = [...new Set(chua.filter((x) => x.gio <= gioVn).map((x) => x.nen))];
+    const cho = [...new Set(chua.filter((x) => x.gio > gioVn).map((x) => x.nen))]; tongLo += lo.length; tongCho += cho.length;   // giờ chưa tới thì là CHỜ, không phải lỡ
     const nen = da.map((x) => (x.url ? `<a href="${esc(x.url)}">${esc(NEN[x.nen] ?? x.nen)}</a>` : esc(NEN[x.nen] ?? x.nen)));
-    dong.push(`• <b>${esc(ten[m.ma])}</b>: ${da.length}/${Math.max(da.length, dk.length)} lượt${nen.length ? ` · ${nen.join(', ')}` : ''}${lo.length ? `\n   ✗ lỡ: ${lo.map((n) => esc(NEN[n] ?? n)).join(', ')}` : ''}`);
+    const ds2 = (xs) => xs.map((n) => esc(NEN[n] ?? n)).join(', ');
+    dong.push(`• <b>${esc(ten[m.ma])}</b>: ${da.length} lượt${nen.length ? ` · ${nen.join(', ')}` : ''}${lo.length ? `\n   ✗ lỡ: ${ds2(lo)}` : ''}${cho.length ? `\n   ⏳ chờ: ${ds2(cho)}` : ''}`);
   }
   // kho đã xếp lịch: máy × format — số lượt còn trong lịch từ mai + ngày lượt cuối
   const kho = new Map();
@@ -39,8 +41,8 @@ export function tinBaoCao(s, bayGio = Date.now()) {
   for (const m of s.may) if (!ds.some((x) => x.may === m.ma && x.ngay > hom)) canh.push(`${ten[m.ma]}: không còn lượt nào trong lịch (hết bài DUYỆT hoặc kênh bị dừng)`);
   const gioLich = s.lich?.luc ? (bayGio - Date.parse(s.lich.luc)) / 36e5 : Infinity;
   if (gioLich > LICH_CU_GIO) canh.push(`lịch dự kiến không được cập nhật ${gioLich === Infinity ? 'lần nào' : `${Math.round(gioLich)} giờ`} — máy đăng iMac (dang-may) có thể không chạy`);
-  const tong = s.da.length, tongDinh = Math.max(tong, dinh.length);
-  return `📊 <b>Vân [Social Traffic]</b> · báo cáo ngày ${dm(hom)}\n\n<b>Hôm nay đăng ${tong}/${tongDinh} lượt</b>\n${dong.join('\n')}`
+  if (tongLo) canh.unshift(`${tongLo} lượt lỡ hôm nay — xem nhật ký máy đăng (dang-may) trên iMac / MacBook`);
+  return `📊 <b>Vân [Social Traffic]</b> · báo cáo ngày ${dm(hom)} (lúc ${gioVn})\n\n<b>Hôm nay đăng ${s.da.length} lượt · lỡ ${tongLo}${tongCho ? ` · còn chờ ${tongCho}` : ''}</b>\n${dong.join('\n')}`
     + `\n\n<b>Kho đã xếp lịch</b> (luật nhịp an toàn)\n${dongKho.join('\n') || '(trống)'}`
     + (canh.length ? `\n\n⚠️ <b>Cần xử</b>\n${canh.map((x) => `• ${esc(x)}`).join('\n')}` : '\n\n✅ Không có gì cần xử.')
     + '\n\nBảng đủ (kho theo kiểu nội dung, lưới lịch 10 ngày): mos2 › Social › Lịch đăng';
@@ -84,17 +86,19 @@ if (process.argv[1]?.endsWith('bao-social.mjs') && process.argv.includes('--tu-k
   const bay = Date.parse('2026-10-20T14:30:00Z'), luc = '2026-10-20T13:10:00Z';
   const s = { hom: '2026-10-20', may: [{ ma: 'h', ten: 'Hotel · tin' }, { ma: 'f', ten: 'Front Porch' }],
     da: [{ may: 'h', nen: 'youtube', url: 'https://youtu.be/a' }, { may: 'h', nen: 'x', url: null }],
-    lich: { luc, ds: [{ may: 'h', nen: 'youtube', ngay: '2026-10-20', format: 'Video ngắn' }, { may: 'h', nen: 'x', ngay: '2026-10-20', format: 'Video ngắn' }, { may: 'h', nen: 'facebook', ngay: '2026-10-20', format: 'Video ngắn' },
+    lich: { luc, ds: [{ may: 'h', nen: 'youtube', gio: '20:00', ngay: '2026-10-20', format: 'Video ngắn' }, { may: 'h', nen: 'x', gio: '20:00', ngay: '2026-10-20', format: 'Video ngắn' }, { may: 'h', nen: 'facebook', gio: '20:00', ngay: '2026-10-20', format: 'Video ngắn' },
       { may: 'h', nen: 'youtube', ngay: '2026-11-20', format: 'Video ngắn' }, { may: 'f', nen: 'tiktok', ngay: '2026-10-22', format: 'Video ngắn' }] } };
   const a = tinBaoCao(s, bay);
-  t.ok(a.includes('Hôm nay đăng 2/3 lượt') && a.includes('lỡ: FB'), 'đếm đã đăng / định + lỡ lượt');
+  t.ok(a.includes('Hôm nay đăng 2 lượt · lỡ 1') && a.includes('lỡ: FB') && a.includes('1 lượt lỡ hôm nay'), 'đếm đã đăng + lỡ lượt (giờ đã qua)');
+  const c = tinBaoCao(s, Date.parse('2026-10-20T11:00:00Z'));   // 18:00 VN, lượt 20:00 chưa tới
+  t.ok(c.includes('lỡ 0 · còn chờ 1') && c.includes('⏳ chờ: FB') && !c.includes('✗ lỡ'), 'giờ chưa tới = chờ, không phải lỡ');
   t.ok(a.includes('<a href="https://youtu.be/a">YT</a>'), 'link bài đã đăng');
   t.ok(a.includes('🔴 22/10') && a.includes('Front Porch · Video ngắn: kho chỉ đủ tới 22/10'), 'kho cạn trong 7 ngày → đỏ + cần xử');
   t.ok(a.includes('đủ tới 20/11') && !a.includes('🔴 20/11'), 'kho xa không đỏ');
   t.ok(!a.includes('không được cập nhật'), 'lịch mới → không cảnh báo');
   t.ok(tinBaoCao({ ...s, lich: { ...s.lich, luc: '2026-10-18T00:00:00Z' } }, bay).includes('không được cập nhật 63 giờ'), 'lịch cũ → cảnh báo');
   const b = tinBaoCao({ ...s, lich: null, da: [] }, bay);
-  t.ok(b.includes('0/0') && b.includes('không còn lượt nào') && b.includes('không được cập nhật lần nào'), 'không có lịch → báo rõ, không vỡ');
+  t.ok(b.includes('đăng 0 lượt · lỡ 0') && b.includes('không còn lượt nào') && b.includes('không được cập nhật lần nào'), 'không có lịch → báo rõ, không vỡ');
   t.ok(!a.includes('<script') && tinBaoCao({ ...s, may: [{ ma: 'h', ten: '<b>x' }, s.may[1]] }, bay).includes('&lt;b&gt;x'), 'tên được escape');
   const dir = fs.mkdtempSync('/tmp/bao-social-'); process.env.CTY_DATA_DIR = dir;
   fs.writeFileSync(path.join(dir, 'bao-social.json'), JSON.stringify({ ngay: ngayVn() }));

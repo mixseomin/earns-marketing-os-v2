@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { dsNguonAi, doiTrangThaiNguon, themNguonModel } from '@/lib/actions';
-import { LOAI_NGUON, TEN_TRANG_THAI, VIEC_NGUON, fmtVnd, giaHien, mucOnDinh, tiLeDat, vndMoiLuot, type LoaiNguon, type Nguon, type NguonModel, type O } from '@/lib/xuong-video/nguon-ai';
+import { LOAI_NGUON, TEN_TRANG_THAI, VIEC_NGUON, fmtSoDu, fmtVnd, giaHien, mucOnDinh, tiLeDat, vndMoiLuot, type LoaiNguon, type Nguon, type NguonModel, type O } from '@/lib/xuong-video/nguon-ai';
 import { Seg, Loi, LinkNgoai, mono, goiAction } from './ui';
 import { Chon } from './chon';
 import { Ngan } from './ngan';
@@ -45,6 +45,7 @@ export function SoNguonAi() {
   const [tab, setTab] = useNho<Tab>('xv-nguon-tab', 'gia', ['gia', 'nguon', 'khop', 'odinh', 'tk']);
   const [loai, setLoai] = useNho<LoaiNguon>('xv-nguon-loai', 'video', LOAI_NGUON.map((l) => l.key));
   const [tt, setTt] = useState<'tat_ca' | 'dang' | 'chua'>('tat_ca');
+  const [kieuNguon, setKieuNguon] = useNho<'the' | 'bang'>('xv-nguon-kieu', 'bang', ['the', 'bang']);
   const [mo, setMo] = useState<{ model: number } | { nguon: string } | null>(null);
   const tai = async () => { const r = await goiAction(() => dsNguonAi()); setLoi(r.loi); if (r.kq?.ok) setD(r.kq.data); };
   useEffect(() => { void tai(); }, []);
@@ -96,7 +97,10 @@ export function SoNguonAi() {
 
       {tab === 'gia' && <DataTable key={`gia-${loai}`} rows={dsGia} columns={cotGia} getRowKey={(m) => String(m.id)} onRowClick={moModel} persistKey="xv-nguon-gia"
         searchText={(m) => `${m.model} ${m.goi} ${tenNguon(m.nguon_key)}`} searchPlaceholder="model, nguồn…" minWidth={900} />}
-      {tab === 'nguon' && <TheNguon ds={d.nguon} model={d.model} onMo={(k) => setMo({ nguon: k })} />}
+      {tab === 'nguon' && <Seg options={[{ value: 'bang' as const, label: 'Bảng' }, { value: 'the' as const, label: 'Thẻ' }]} value={kieuNguon} onChange={setKieuNguon} />}
+      {tab === 'nguon' && kieuNguon === 'the' && <TheNguon ds={d.nguon} model={d.model} onMo={(k) => setMo({ nguon: k })} />}
+      {tab === 'nguon' && kieuNguon === 'bang' && <DataTable rows={d.nguon} columns={cotNguonBang(d.model)} getRowKey={(n) => n.key} onRowClick={(n) => setMo({ nguon: n.key })} persistKey="xv-nguon-bang"
+        searchText={(n) => `${n.ten} ${n.kieu} ${n.loai}`} searchPlaceholder="nguồn, loại…" minWidth={1000} />}
       {tab === 'khop' && <DataTable key={`khop-${loai}`} rows={dsLoai} columns={cotKhop} getRowKey={(m) => String(m.id)} onRowClick={moModel} persistKey="xv-nguon-khop" minWidth={820} />}
       {tab === 'odinh' && <DataTable key={`od-${loai}`} rows={dsLoai.filter((m) => m.on_dinh)} columns={cotOd} getRowKey={(m) => String(m.id)} onRowClick={moModel} persistKey="xv-nguon-odinh" minWidth={860} />}
       {tab === 'tk' && <ThamKhao ds={d.nguon.filter((n) => n.trang_thai !== 'dang')} model={d.model} onMo={(k) => setMo({ nguon: k })} onDoi={tai} />}
@@ -107,6 +111,21 @@ export function SoNguonAi() {
   );
 }
 
+/** Tab Nguồn dạng BẢNG (anh 21/10/2026: "trình bày cả dạng table, có thêm số dư"): số dư = ảnh chụp 30 phút của Phòng Tài nguyên. */
+const cotNguonBang = (model: NguonModel[]): DataColumn<Nguon>[] => [
+  { key: 'ten', header: 'Nguồn', align: 'left', cell: (n) => <><Cham tt={n.trang_thai} /><b>{n.ten}</b></>, sortValue: (n) => n.ten },
+  { key: 'tt', header: 'Trạng thái', align: 'left', cell: (n) => <span style={{ color: MAU_TT[n.trang_thai] }}>{TEN_TRANG_THAI[n.trang_thai]}</span>, sortValue: (n) => n.trang_thai },
+  { key: 'du', header: 'Số dư', title: 'Đọc thẳng từ cổng mỗi 30 phút (Phòng Tài nguyên) — cổng không có API số dư thì để trống', cell: (n) => <b style={{ color: n.so_du ? 'var(--fg-1)' : 'var(--fg-4)' }}>{fmtSoDu(n.so_du)}</b>,
+    cellTitle: (n) => (n.so_du?.luc ? `đọc lúc ${new Date(n.so_du.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` : undefined), sortValue: (n) => n.so_du?.gia_tri ?? null },
+  { key: 'kieu', header: 'Kiểu', align: 'left', cell: (n) => n.kieu, sortValue: (n) => n.kieu },
+  { key: 'loai', header: 'Loại', align: 'left', cell: (n) => <span style={{ color: 'var(--fg-2)' }}>{n.loai}</span> },
+  { key: 'model', header: 'Model', title: 'số model của nguồn trong sổ', cell: (n) => model.filter((m) => m.nguon_key === n.key).length, sortValue: (n) => model.filter((m) => m.nguon_key === n.key).length },
+  { key: 'tra', header: 'Trả tiền', align: 'left', cell: (n) => <span style={mono}>{n.tra_tien}</span> },
+  { key: 'khoa', header: 'Khoá trên box', cell: (n) => (n.co_khoa ? <span style={{ color: 'var(--lime)' }}>có</span> : '—'), sortValue: (n) => (n.co_khoa ? 1 : 0) },
+  { key: 'vault', header: 'Vault', cell: (n) => n.vault || '—' },
+  { key: 'rui', header: 'Rủi ro', align: 'left', cell: (n) => <span style={{ color: 'var(--fg-3)' }}>{n.rui_ro.slice(0, 80)}</span>, cellTitle: (n) => n.rui_ro || undefined },
+];
+
 function TheNguon({ ds, model, onMo }: { ds: Nguon[]; model: NguonModel[]; onMo: (k: string) => void }) {
   return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 8 }}>{ds.map((n) => (
     <button key={n.key} type="button" onClick={() => onMo(n.key)} title={`${model.filter((m) => m.nguon_key === n.key).length} model`} style={{ textAlign: 'left', display: 'grid', gap: 5, padding: 10, cursor: 'pointer', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', color: 'inherit', font: 'inherit', minWidth: 0 }}>
@@ -114,6 +133,7 @@ function TheNguon({ ds, model, onMo }: { ds: Nguon[]; model: NguonModel[]; onMo:
       <span><span className="xv-pill" style={{ color: MAU_TT[n.trang_thai], marginRight: 3 }}>{TEN_TRANG_THAI[n.trang_thai]}</span><span className="xv-pill" style={{ marginRight: 3 }}>{n.kieu}</span>{n.co_khoa && <span className="xv-pill" style={{ color: 'var(--lime)' }}>có khoá trên box</span>}</span>
       <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{n.loai}</span>
       <span style={mono}>{n.tra_tien}{n.vault ? ` · vault ${n.vault}` : ''}</span>
+      {n.so_du && <span style={{ fontSize: 12 }}>Số dư <b>{fmtSoDu(n.so_du)}</b></span>}
       {n.rui_ro && <span style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>{n.rui_ro}</span>}
     </button>))}</div>;
 }

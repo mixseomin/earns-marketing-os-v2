@@ -13,7 +13,7 @@ import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema, khoaFal } from './fal';
 import './cong-plenxai';   // đăng ký cổng PlenX (token ở tệp trên box — chỉ máy chủ) vào chuỗi video
-import { CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
+import { donVideoCong, CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo, cauVatLy } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
@@ -309,7 +309,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
       const b = await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null);
       const u = b ? await uploadToR2(`xuong-video/ref2v/${r.id}-${randomUUID()}.mp4`, b, 'video/mp4') : null;
       await xongJob(db, r.id, u ? { output_url: u, chi_phi_cents: Number(thuRef.cents) || 0 } : { loi: 'tải/lưu video thất bại' });
-      if (u) vuaXong++;
+      if (u) { vuaXong++; await donVideoCong(r.provider, kq.uri); }
       continue;
     }
     if (!kq.ok) {
@@ -325,6 +325,7 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     }
     const buf = r.provider === 'fal' || laCong ? await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null) : await taiVeo(kq.uri);
     const url = buf ? await uploadToR2(`xuong-video/clip/${r.canh_id}-${randomUUID()}.mp4`, buf, 'video/mp4') : null;
+    if (url) await donVideoCong(r.provider, kq.uri);   // đã lưu về R2 → xoá bản trên nền tảng cổng (PlenX)
     if (!url) {
       await xongJob(db, r.id, { loi: 'tải/lưu video thất bại' });
       await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = 'tải/lưu video thất bại', updated_at = now() WHERE id = ${r.canh_id}`);

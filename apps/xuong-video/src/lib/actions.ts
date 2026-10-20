@@ -33,7 +33,7 @@ import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { dichMoTaVi } from '@/lib/xuong-video/claude';
-import { coKhoa, LOAI_NGUON, TEN_TRANG_THAI, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
+import { coKhoa, DON_SO_DU, LOAI_NGUON, TEN_TRANG_THAI, type SoDu, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
 import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -761,8 +761,12 @@ export async function dsNguonAi(ngay = 14): Promise<Kq<{ nguon: Nguon[]; model: 
         (array_agg(left(j.loi, 160) ORDER BY j.created_at DESC) FILTER (WHERE j.trang_thai <> 'xong' AND coalesce(j.loi, '') <> ''))[1] AS loi_gan
       FROM xv_job j WHERE cardinality(m.ma_job) > 0 AND (j.provider || '|' || j.model) = ANY(m.ma_job) AND j.created_at > now() - make_interval(days => ${ngay})) od ON true
     ORDER BY m.loai, m.gia_vnd NULLS LAST, m.model`)) as unknown as Row[];
+  // số dư: ảnh chụp Phòng Tài nguyên trên cùng box (apps/cty/worker/tai-nguyen-api.mjs) — chưa có tệp thì cột số dư để trống
+  let anh: { du?: Record<string, number | null>; luc?: string } = {};
+  try { anh = JSON.parse(await (await import('node:fs/promises')).readFile(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tai-nguyen-api.json`, 'utf8')); } catch { /* chưa có ảnh chụp */ }
+  const soDu = (k: string): SoDu | null => { const v = anh.du?.[k]; return typeof v === 'number' && DON_SO_DU[k] ? { gia_tri: v, don_vi: DON_SO_DU[k]!, luc: anh.luc ?? '' } : null; };
   return { ok: true, data: {
-    nguon: ng.map((r) => ({ key: s(r.key), ten: s(r.ten), kieu: s(r.kieu), trang_thai: s(r.trang_thai) as TrangThaiNguon, loai: s(r.loai), tra_tien: s(r.tra_tien), vault: s(r.vault), nap_tien: s(r.nap_tien), rui_ro: s(r.rui_ro), co_khoa: coKhoa(s(r.khoa_env), process.env) })),
+    nguon: ng.map((r) => ({ so_du: soDu(s(r.key)), key: s(r.key), ten: s(r.ten), kieu: s(r.kieu), trang_thai: s(r.trang_thai) as TrangThaiNguon, loai: s(r.loai), tra_tien: s(r.tra_tien), vault: s(r.vault), nap_tien: s(r.nap_tien), rui_ro: s(r.rui_ro), co_khoa: coKhoa(s(r.khoa_env), process.env) })),
     model: md.map((r) => ({ id: n(r.id), nguon_key: s(r.nguon_key), loai: s(r.loai) as LoaiNguon, model: s(r.model), goi: s(r.goi), gia_vnd: r.gia_vnd == null ? null : Number(r.gia_vnd), gia_goc: s(r.gia_goc), link: s(r.link), link_phu: s(r.link_phu),
       ngay_doc: r.ngay_doc == null ? null : String(r.ngay_doc).slice(0, 10), kha_nang: s(r.kha_nang), khop: (Array.isArray(r.khop) ? r.khop : []) as O[], tat: s(r.tat),
       // cột ổn định đặt bí danh od_*: xv_nguon_model đã có cột `goi` (tên gói) — trùng tên thì số lượt ghi đè tên gói

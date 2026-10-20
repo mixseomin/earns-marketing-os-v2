@@ -233,8 +233,13 @@ export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; mo
 
 /** Cổng CHỈ CHẠY TRÊN MÁY CHỦ (cần node:fs — PlenX giữ token ở tệp): tệp đó tự đăng ký vào đây khi được import ở phía máy chủ (sinh-video.ts),
  *  để cong-ai.ts (giao diện + Worker cũng import) không kéo node:fs vào bản build trình duyệt. */
-type CongMay = { gui: (model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc> };
+type CongMay = { gui: (model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc>; /** xoá clip trên nền tảng của họ SAU khi đã lưu về R2 (anh 21/10/2026) */ xoa?: (uri: string) => Promise<void> };
 export const CONG_MAY: Partial<Record<CongKey, CongMay>> = {};
+/** Clip đã lưu về kho của mình (R2) → xoá bản trên nền tảng cổng nếu cổng có lệnh xoá (PlenX). Không chặn: lỗi chỉ ghi log. */
+export async function donVideoCong(cong: string | null | undefined, uri: string): Promise<void> {
+  const x = cong ? CONG_MAY[cong as CongKey]?.xoa : undefined; if (!x) return;
+  try { await x(uri); } catch (e) { console.error(`[${cong}] không xoá được clip trên nền tảng:`, e instanceof Error ? e.message : e); }
+}
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
 export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number ; /** độ phân giải của phim (kinh_thanh.do_phan_giai) — Kie Veo nhận 1080p; cổng khác giữ 720p */ doPhanGiai?: '720p' | '1080p' }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
   const k = khoa(cong);

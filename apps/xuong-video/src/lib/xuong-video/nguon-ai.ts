@@ -21,7 +21,12 @@ export const LOAI_NGUON: { key: LoaiNguon; ten: string; donVi: string }[] = [
 ];
 export const VIEC_NGUON = ['QC người thật', 'Giữ nhân vật', 'Cận sản phẩm', 'Hoạt hình / 3D', 'Thoại khớp miệng', 'Nối khung khoá'] as const;
 
-export type Nguon = { key: string; ten: string; kieu: string; trang_thai: TrangThaiNguon; loai: string; tra_tien: string; vault: string; nap_tien: string; rui_ro: string; co_khoa: boolean };
+/** Số dư một nguồn — ảnh chụp của Phòng Tài nguyên (apps/cty/worker/tai-nguyen-api.mjs, 30 phút/lần, /var/lib/cty/tai-nguyen-api.json). */
+export type SoDu = { gia_tri: number; don_vi: '$' | '₫' | 'credit'; luc: string };
+export type Nguon = { key: string; ten: string; kieu: string; trang_thai: TrangThaiNguon; loai: string; tra_tien: string; vault: string; nap_tien: string; rui_ro: string; co_khoa: boolean; so_du: SoDu | null };
+/** Đơn vị số dư theo nguồn — CÙNG bảng DON của tai-nguyen-api.mjs. */
+export const DON_SO_DU: Record<string, SoDu['don_vi']> = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit' };
+export const fmtSoDu = (d: SoDu | null | undefined): string => (!d ? '—' : d.don_vi === '$' ? `$${d.gia_tri.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}` : d.don_vi === '₫' ? fmtVnd(d.gia_tri) : `${Math.round(d.gia_tri).toLocaleString('vi-VN')} credit`);
 export type OnDinh = { goi: number; dat: number; giay: number | null; cents: number; dat_gan: string | null; loi_gan: string | null };
 export type NguonModel = { id: number; nguon_key: string; loai: LoaiNguon; model: string; goi: string; gia_vnd: number | null; gia_goc: string; /** trang chứa giá — BẮT BUỘC khi có gia_vnd (CHECK trong 0263) */ link: string; /** trang thứ hai khi phép quy đổi cần */ link_phu: string; ngay_doc: string | null; kha_nang: string; khop: O[]; tat: string; on_dinh: OnDinh | null };
 

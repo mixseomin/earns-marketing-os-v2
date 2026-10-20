@@ -80,5 +80,17 @@ export async function hoSoPlenx(): Promise<Record<string, unknown>> {
   return (await r.json()) as Record<string, unknown>;
 }
 
+/** Xoá clip trên PlenX sau khi đã lưu về R2 (anh 21/10/2026: "sinh xong và tải về thì xoá … trên nền tảng của họ") — nút "Xoá tài nguyên" của trang:
+ *  DELETE /api/v1/video/history/<id>; id lịch sử KHÁC task_id → tìm theo result_url trong 100 clip gần nhất. Không thấy thì thôi (đã xoá rồi). */
+export async function xoaPlenx(uri: string): Promise<void> {
+  const r = await goi('/video/history?limit=100&offset=0');
+  if (!r.ok) throw new Error(`video/history ${r.status}`);
+  const ds = (await r.json().catch(() => [])) as { id: string; result_url?: string | null }[];
+  for (const x of (Array.isArray(ds) ? ds : []).filter((x) => x.result_url === uri)) {
+    const d = await goi(`/video/history/${encodeURIComponent(x.id)}`, { method: 'DELETE' });
+    if (!d.ok) throw new Error(`xoá ${x.id}: ${d.status}`);
+  }
+}
+
 // đăng ký vào chuỗi cổng video (cong-ai.ts › CONG_MAY) — import tệp này ở phía máy chủ là đủ
-CONG_MAY.plenxai = { gui: guiPlenx, doc: docPlenx };
+CONG_MAY.plenxai = { gui: guiPlenx, doc: docPlenx, xoa: xoaPlenx };

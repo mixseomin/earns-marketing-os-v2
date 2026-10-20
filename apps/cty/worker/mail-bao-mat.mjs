@@ -56,10 +56,15 @@ export async function bangPhong(id8) {
   return { inline_keyboard: [...hang, [{ text: '✖ Huỷ', callback_data: `kc:x:${id8}` }]] };
 }
 /** Anh chỉ phòng đúng → ghi sổ học (mô hình đọc làm ví dụ; thư cùng người gửi + cùng tiêu đề đi thẳng phòng này). */
-export function hocChuyen(mail, phong, ai = '') {
-  const h = docHoc(); h.push({ luc: new Date().toISOString(), mien: mail.mien, tieuDe: mail.tieuDe, tu: mail.phong ?? null, phong, ai });
+export function hocChuyen(mail, phong, ai = '', chiTiet = {}) {
+  const h = docHoc(), dong = { luc: new Date().toISOString(), id: mail.id, mien: mail.mien, gui: mail.gui, tieuDe: mail.tieuDe, tu: mail.phong ?? null, phong, ai, ...chiTiet };
+  h.push(dong);
+  // nhật ký người phụ trách (ngăn Nhật ký trên cty) — dùng lại khi rà Kiên chia sai bao nhiêu, sai kiểu gì
+  try { const d = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/nhip`; _fs.mkdirSync(d, { recursive: true }); _fs.appendFileSync(`${d}/kien.jsonl`, JSON.stringify({ luc: dong.luc, viec: 'chuyen-lai', ket: `${ai} chuyển lại ${mail.mien} · ${mail.tieuDe}: ${dong.tu ?? '?'} → ${phong}${chiTiet.xoa_ok ? ' · đã xoá tin sai' : ''}` }) + '\n'); } catch { /* nhật ký hỏng: sổ học vẫn ghi */ }
   _fs.writeFileSync(`${tepHoc()}.tam`, JSON.stringify(h.slice(-200), null, 1)); _fs.renameSync(`${tepHoc()}.tam`, tepHoc());
 }
+/** Ghi một lần chuyển vào trạng thái nhịp: st.chuyen (đã chuyển) + st.chuyenTin (mã tin để sửa / xoá về sau). */
+export const ghiChuyen = (st, id, kq) => { if (!kq) return; (st.chuyen ??= {})[id] = kq.luc; (st.chuyenTin ??= {})[id] = kq; };
 export async function giaoPhuTrach(tg, topic, mail, ten, goc) {
   const ai = await nguoiNhanThu(mail); const fs = await import('node:fs'), path = await import('node:path'); const { GOC } = await import('./goc.mjs');
   if (!ai) { await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', text: `📌 Thư thật từ <b>${esc(mail.mien)}</b> nhưng chưa có phòng phụ trách tên miền này (PHU_TRACH_MIEN trong mail-bao-mat.mjs) — anh chỉ định giúp em.` }); return false; }
@@ -68,10 +73,11 @@ export async function giaoPhuTrach(tg, topic, mail, ten, goc) {
   const { topicPhong } = await import('./tg-phong.mjs'); const tp = await topicPhong(ph, `📂 ${tenPh}`, tg);
   const j = tp ? await tg('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
     text: `📨 <b>${esc(ten)} [Bảo mật]</b> chuyển thư cho <b>${esc(tenAi)}</b> xử lý\n<b>${esc(mail.tieuDe)}</b> — ${esc(mail.gui)}\n${esc(mail.chu)}\n<b>Việc:</b> ${esc(mail.viec)}\nThư gốc trong hòm claude@orit.app; xử xong thì lưu trữ thư.` }) : { ok: false };
-  await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
+  const b = await tg('sendMessage', { message_thread_id: topic, reply_parameters: { message_id: goc, allow_sending_without_reply: true }, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
     text: j.ok ? `📌 Thư thật từ <b>${esc(mail.mien)}</b> — đã chuyển vào chủ đề 📂 ${esc(tenPh)}, giao <b>${esc(tenAi)}</b> xử lý.` : `⚠️ Thư thật từ <b>${esc(mail.mien)}</b> — chuyển vào phòng ${esc(tenPh)} KHÔNG được (Telegram lỗi), giao <b>${esc(tenAi)}</b>.` });
   try { const d = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip'); fs.mkdirSync(d, { recursive: true }); fs.appendFileSync(path.join(d, `${ai}.jsonl`), JSON.stringify({ luc: new Date().toISOString(), viec: 'thu-giao', ket: `${ten} chuyển: ${mail.mien} · ${mail.tieuDe}` }) + '\n'); } catch { /* nhật ký hỏng: tin Telegram vẫn đi */ }
-  return j.ok;
+  // trả MÃ TIN để lần anh sửa phòng xoá đúng tin ở phòng sai + sửa dòng 📌 (anh 20/10/2026)
+  return j.ok ? { phong: ph, ai, idPhong: j.result.message_id, idBm: b.ok ? b.result.message_id : null, luc: new Date().toISOString() } : false;
 }
 const tepDay = () => `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/mien-day.json`;
 export async function docDay() { const fs = await import('node:fs'); try { return JSON.parse(fs.readFileSync(tepDay(), 'utf8')); } catch { return { nha: [], quen: [], gia: [] }; } }
@@ -321,7 +327,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
       const mid = Object.entries(st.tin ?? {}).find(([, t]) => t.id === goc)?.[0], nh = nhomTuChu(chuTra);
       const mail = mid ? (await docMailBaoMat())?.find((m) => m.id === mid) : null;
       if (!mail || !nh) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: !mail ? `${ten}: tin này không phải tin báo thư em còn giữ — anh trả lời ngay dưới tin báo thư nhé.` : `${ten}: em chưa hiểu — anh trả lời "Thật", "Giả" hoặc "Nhà mình".` }); continue; }
-      try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia' && !st.chuyen?.[mail.id]) { await giaoPhuTrach(tg, st.topic, mail, ten, goc); (st.chuyen ??= {})[mail.id] = new Date().toISOString(); } }
+      try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia' && !st.chuyen?.[mail.id]) ghiChuyen(st, mail.id, await giaoPhuTrach(tg, st.topic, mail, ten, goc)); }
       catch (e) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: `${ten}: ${e.message}` }); }
       continue;
     }
@@ -330,10 +336,19 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
       try {
         if (dich === '?' || dich === 'x') { await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: dich === '?' ? await bangPhong(id8) : nutSai(id8) }); await tg('answerCallbackQuery', { callback_query_id: c.id, text: dich === '?' ? 'Chọn phòng đúng' : 'Đã huỷ' }); continue; }
         const mail = (await docMailBaoMat())?.find((m) => m.id.startsWith(id8)); if (!mail) throw new Error('không còn thấy thư này trong hòm (30 ngày)');
-        hocChuyen(mail, dich, ai);
-        await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } });
-        await tg('answerCallbackQuery', { callback_query_id: c.id, text: `Kiên chuyển lại sang ${dich} và nhớ cách chia này` });
-        await giaoPhuTrach(tg, st.topic, { ...mail, phong: dich }, ten, st.tin?.[mail.id]?.id); (st.chuyen ??= {})[mail.id] = new Date().toISOString();
+        // tin chuyển SAI: xoá tin ở chủ đề phòng sai, sửa dòng 📌 ở Bảo mật thành dòng ghi lại việc chuyển lại (anh 20/10/2026: "tin chuyển sai phải xoá,
+        // update được, log lại để còn dùng"). Tin cũ trước khi có mã tin (st.chuyenTin) thì xử đúng tin anh vừa bấm.
+        const cu = st.chuyenTin?.[mail.id] ?? null, bam = c.message, oBm = bam.message_thread_id === st.topic;
+        const idXoa = cu?.idPhong ?? (oBm ? null : bam.message_id), idSua = cu?.idBm ?? (oBm ? bam.message_id : null);
+        const daDung = cu?.phong === dich;
+        const xoa = idXoa && !(daDung && idXoa === cu?.idPhong) ? (await tg('deleteMessage', { message_id: idXoa })).ok : null;
+        if (daDung && bam.message_id !== cu?.idPhong && bam.message_id !== cu?.idBm) await tg('deleteMessage', { message_id: bam.message_id });   // tin trùng cũ ở phòng sai
+        const sua = idSua ? (await tg('editMessageText', { message_id: idSua, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: { inline_keyboard: [] },
+          text: `↪️ <b>${esc(ai)}</b> chuyển lại thư <b>${esc(mail.mien)}</b> (<i>${esc(mail.tieuDe)}</i>) từ ${esc(cu?.phong ?? mail.phong ?? '?')} sang <b>${esc(dich)}</b> — tin ở phòng sai đã xoá.` })).ok : null;
+        if (!sua) await tg('editMessageReplyMarkup', { message_id: bam.message_id, reply_markup: { inline_keyboard: [] } });
+        hocChuyen(mail, dich, ai, { tu: cu?.phong ?? mail.phong ?? null, xoa_tin: idXoa, xoa_ok: xoa, sua_tin: idSua, sua_ok: sua, da_dung: daDung });
+        await tg('answerCallbackQuery', { callback_query_id: c.id, text: daDung ? `Thư đã ở ${dich} — đã dọn tin trùng` : `Kiên chuyển lại sang ${dich}, xoá tin sai và nhớ cách chia này` });
+        if (!daDung) ghiChuyen(st, mail.id, await giaoPhuTrach(tg, st.topic, { ...mail, phong: dich }, ten, st.tin?.[mail.id]?.id));
       } catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message.slice(0, 190), show_alert: true }); }
       continue;
     }
@@ -368,7 +383,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
   // thư Kiên kết luận THẬT, tên miền có phòng phụ trách → tự chuyển vào phòng đó MỘT lần (không đợi anh)
   for (const m of (ds ?? []).filter((x) => x.ket === 'that' && !x.xong && x.luc >= BAT_TU && !st.chuyen?.[x.id] && ((x.phong && x.phong !== 'an-toan-tk') || phuTrachMien(x.mien)))) {
     await vpBao(nguoi, 'lam', `chuyển thư ${m.mien}`);
-    if (await giaoPhuTrach(tg, st.topic, m, ten, st.tin?.[m.id]?.id)) (st.chuyen ??= {})[m.id] = new Date().toISOString();
+    ghiChuyen(st, m.id, await giaoPhuTrach(tg, st.topic, m, ten, st.tin?.[m.id]?.id));
   }
   // tin gửi trước khi có nút (vd amazon.in 13/10) → gắn thêm ba nút dạy một lần
   for (const [mid, t] of Object.entries(st.tin ?? {})) { const m = ds?.find((x) => x.id === mid); if (m && !t.nut && !t.xong && (await tg('editMessageReplyMarkup', { message_id: t.id, reply_markup: nutDay(m.mien) })).ok) t.nut = 1; }

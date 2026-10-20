@@ -1,4 +1,5 @@
 'use server';
+import type { SoLieuQc } from '@/lib/xuong-video/nhom-phim';
 
 // Xưởng video AI — server actions: phim (bộ) · anchor (nhân vật/sản phẩm/bối cảnh) · tập · cảnh (storyboard) · job (ảnh/video).
 // Mạch: kịch bản → tachCanhTap (Claude) → sinhKeyframe (Gemini, ứng viên → chọn) → duyệt → sinhVideoCanh (Veo, async) → kiemVideo (poll).
@@ -51,7 +52,7 @@ import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienT
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
-import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumGoc, type DongCreative, type ShotKho, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
+import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumGoc, type DongCreative, type ShotKho, type ThanhPhan , type EtpCr } from '@/lib/xuong-video/kho-creative';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { giaTriSanPhamDb } from '@/lib/xuong-video/concept-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
@@ -1817,6 +1818,13 @@ export async function boSet3dSet(setId: number): Promise<Kq<{ sets: BoSet[]; kho
 // ── KHO CREATIVE THEO SẢN PHẨM (kho-creative.ts) ─────────────────────────────────────────────────────────────────────────────────
 export type KhoSanPham = { sp: { key: string; ten: string; link: string; spy: number | null }; creative: DongCreative[]; thanh_phan: ThanhPhan[] };
 /** Mọi creative QC của MỘT sản phẩm (khoá = nhom-phim.ts › sanPhamPhim) + thành phần gom từ shot / anchor. Chỉ đọc, 0đ. */
+/** Phần Ethopex của creative QC (kinh_thanh.ethopex — scripts/ethopex/*): null nếu creative chưa lên Ethopex. */
+function etpCua(kt: KinhThanh): EtpCr | null {
+  const e = (kt as unknown as { ethopex?: { creative_id?: number; camp_id?: number | null; camp_nhan_ban?: number[]; nguon_qc?: string | null; tu?: number; den?: number; so_lieu?: SoLieuQc } }).ethopex;
+  if (!e?.creative_id) return null;
+  return { creative_id: e.creative_id, camp: [e.camp_id, ...(e.camp_nhan_ban ?? [])].filter((x): x is number => typeof x === 'number'), nguon_qc: e.nguon_qc ?? null,
+    doan: e.tu != null && e.den != null ? `${e.tu}–${e.den}s` : '', the_loai: kt.the_loai ?? '', so_lieu: e.so_lieu ?? null };
+}
 export async function docKhoSanPham(key: string): Promise<Kq<KhoSanPham>> {
   const db = getDb();
   if (!db) return loi('no db');
@@ -1848,7 +1856,8 @@ export async function docKhoSanPham(key: string): Promise<Kq<KhoSanPham>> {
   const cr: CreativeKho[] = phim.map((r) => {
     const kt = (r.kinh_thanh ?? {}) as KinhThanh;
     return { id: n(r.id), ten: s(r.ten), sua_luc: new Date(s(r.updated_at)).toISOString(), anh: (r.poster_url ? s(r.poster_url) : null) || (r.anh_kf ? s(r.anh_kf) : null),
-      goc: docGocSpy(r.goc_spy), ngon_ngu: kt.ngon_ngu ?? 'vi', phong_cach: kt.phong_cach ?? '', tpl: khuon.get(Number(kt.tu_template?.id)) ?? null, xuat: xuat.get(n(r.id)) ?? null };
+      goc: docGocSpy(r.goc_spy), ngon_ngu: kt.ngon_ngu ?? 'vi', phong_cach: kt.phong_cach ?? '', tpl: khuon.get(Number(kt.tu_template?.id)) ?? null, xuat: xuat.get(n(r.id)) ?? null,
+      etp: etpCua(kt) };
   });
   const kt0 = (phim[0]!.kinh_thanh ?? {}) as KinhThanh;
   const spy = cr.flatMap((c) => nhomCuaGoc(c.goc))[0] ?? null;

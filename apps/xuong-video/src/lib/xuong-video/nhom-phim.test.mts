@@ -45,5 +45,8 @@ console.log('nhom-phim.test: ok');
   assert.equal(t.so_camp, 4, 'camp 10, 11, 12 (nhân bản), 20');
   assert.equal(t.camp_lai, 1); assert.equal(t.chi, 3); assert.equal(t.thu, 5.5); assert.equal(t.roi, 83.3);
   assert.equal(t.nguon, 'reelshort'); assert.deepEqual(t.ngon_ngu, ['EN']); assert.equal(t.loai.qc_canh_that, 1);
+  // số liệu sống ghi đè bản chụp: creative 1 có số mới, creative 2 không có dòng → 0
+  const s = tongSanPham({ key: 'sp:x', ten: 'A', phim: [a, b] }, { 1: { chi: 4, thu: 10, lai: 6, camp: [{ id: 10, lai: 6 }, { id: 11, lai: 1 }] } });
+  assert.equal(s.chi, 4); assert.equal(s.thu, 10); assert.equal(s.camp_lai, 2); assert.equal(s.roi, 150);
 }
 console.log('nhom-phim tongSanPham: ok');

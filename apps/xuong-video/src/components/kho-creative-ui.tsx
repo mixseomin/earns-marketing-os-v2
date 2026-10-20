@@ -12,10 +12,11 @@ import { TaoTuTemplate } from './template-ui';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { LOAI_GOC_SPY, loaiGocSpy, linkGocSpy, linkSpSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { COT_DONG, COT_KHUON, LOAI_THANH_PHAN, banDo, dongCua, oMaTran, cumCua, type CumGoc, type DongCreative, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
-import { nhomPhim, tongSanPham, type TongSanPham } from '@/lib/xuong-video/nhom-phim';
+import { nhomPhim, tongSanPham, type TongSanPham, type SoLieuQc } from '@/lib/xuong-video/nhom-phim';
 import { DONG_TEMPLATE, tien, type Phim } from '@/lib/xuong-video/kieu';
 import { KhoCreative } from './kho-concept-ui';
 import { docKhoConcept, type KhoConcept } from '@/lib/actions-concept';
+import { soLieuQcSong, type SoLieuSong } from '@/lib/actions-ethopex';
 
 // 4 tab đầu = kho creative theo CONCEPT (kho-concept-ui.tsx, 17/10/2026): Concept → Template → Phương án → Đề xuất; "Đã làm" = creative đã thành phim
 // Tab đầu = BẢNG CREATIVE duy nhất + bộ lọc (kho-concept-ui.tsx › KhoCreative, anh 17/10/2026); concept / template / phương án nằm trong ⚙ Cấu hình của nó
@@ -27,12 +28,43 @@ const TAB_SP: { value: TabSp; label: string }[] = [
 const tenKhuon = (c: Pick<DongCreative, 'tpl'>) => (c.tpl ? DONG_TEMPLATE.find((d) => d.key === c.tpl!.dong)?.khuon.find((k) => k.key === c.tpl!.khuon)?.ten ?? c.tpl.khuon : 'Ngoài template');
 
 /** Danh sách sản phẩm (tab 📦 Sản phẩm): mỗi sản phẩm một dòng, bấm mở ngăn. Nhóm theo sản phẩm của phim QC (nhom-phim.ts › sanPhamPhim). */
+
+/** Tên ngắn của creative trong ngăn sản phẩm: bỏ "Ethopex · <phim> · " (đã ở tiêu đề ngăn) — còn "Cảnh thật 84–141s (lô 2010)" / "QC kể chuyện (lô 19/10)". */
+const tenNgan = (c: Pick<DongCreative, 'ten'>): string => { const p = c.ten.split(' · '); return p.length >= 3 ? p.slice(2).join(' · ') : c.ten.replace(/^[^·]*·\s*/, ''); };
+/** Số liệu QC của creative: sống (Ethopex, lúc mở ngăn) nếu có, không thì bản chụp trong kinh_thanh. */
+const soLieuCr = (c: Pick<DongCreative, 'etp'>, song: SoLieuSong | null): SoLieuQc | null =>
+  c.etp?.creative_id && song ? (song.theo_creative[c.etp.creative_id] ?? null) : (c.etp?.so_lieu ?? null);
+/** Kéo số liệu QC sống từ Ethopex (actions-ethopex.ts) khi mở; làm mới tay; đồng hồ "bao lâu rồi" tự chạy. */
+function useSoLieuSong() {
+  const [data, setData] = useState<SoLieuSong | null>(null); const [loi, setLoi] = useState(''); const [dang, setDang] = useState(false); const [, nhip] = useState(0);
+  const tai = async () => { setDang(true); const r = await soLieuQcSong(); setDang(false); if (r.ok) { setData(r.data); setLoi(''); } else setLoi(r.loi); };
+  useEffect(() => { void tai(); const t = setInterval(() => nhip((x) => x + 1), 30_000); return () => clearInterval(t); }, []);
+  return { data, loi, dang, tai };
+}
+/** "x phút trước" (giờ VN cho mốc tuyệt đối ở hover). */
+export const truoc = (iso: string | null | undefined): string => {
+  if (!iso) return '—'; const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  return s < 60 ? 'vừa xong' : s < 3600 ? `${Math.floor(s / 60)} phút trước` : s < 86400 ? `${Math.floor(s / 3600)} giờ ${Math.floor((s % 3600) / 60)} phút trước` : `${Math.floor(s / 86400)} ngày trước`;
+};
+const gioVn = (iso: string | null | undefined): string => (iso ? new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
+/** Dòng mốc cập nhật số liệu QC — dùng ở bảng Sản phẩm và ngăn sản phẩm. */
+function MocSoLieu({ s }: { s: ReturnType<typeof useSoLieuSong> }) {
+  return <span style={{ ...mono, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+    {s.data ? <>
+      <span title={`Kéo trực tiếp từ Ethopex lúc ${gioVn(s.data.luc)} · khoảng ${s.data.khoang}`}>Số liệu QC (từ đầu tháng) cập nhật <b>{truoc(s.data.luc)}</b></span>
+      <span title={`Ethopex đồng bộ chi tiêu Facebook lần cuối lúc ${gioVn(s.data.ethopex_dong_bo)}`}>· Ethopex đồng bộ Facebook {truoc(s.data.ethopex_dong_bo)}</span>
+    </> : s.loi ? <span style={{ color: 'var(--red, #f85149)' }}>Không kéo được số liệu sống: {s.loi} — đang hiện bản chụp</span> : <span>Đang kéo số liệu QC từ Ethopex…</span>}
+    <Nut ban={s.dang} onClick={() => void s.tai()}>{s.dang ? 'Đang kéo…' : '↻ Làm mới'}</Nut>
+  </span>;
+}
+
 const LOAI_CR: Record<string, string> = { qc_canh_that: 'cảnh thật', qc_ke_chuyen: 'kể chuyện AI', qc_nhan_vat: 'nhân vật AI' };
 const usd = (x: number) => `${x < 0 ? '−' : ''}$${Math.abs(x).toFixed(2)}`;
 /** Danh sách sản phẩm = BẢNG QUẢN LÝ (anh 20/10/2026: "page này phải show đủ thông tin để quản lý, mỗi cái tên thì xem gì"): mỗi sản phẩm một dòng —
  *  creative (đủ nấc / kẹt), loại, camp (kể cả nhân bản), chi / thu / lãi / ROI QC (dong-bo-so-lieu.sh), chi phí sản xuất, lần sửa. Bấm dòng = mở ngăn sản phẩm. */
 export function DanhSachSanPham({ phim, onMo }: { phim: Phim[]; onMo: (key: string) => void }) {
-  const ds = useMemo(() => nhomPhim(phim, { kieu: 'quang_cao' }).filter((g) => g.key.startsWith('sp:')).map(tongSanPham), [phim]);
+  const song = useSoLieuSong();
+  const ds = useMemo(() => nhomPhim(phim, { kieu: 'quang_cao' }).filter((g) => g.key.startsWith('sp:')).map((g) => tongSanPham(g, song.data?.theo_creative ?? null)), [phim, song.data]);
   if (!ds.length) return <div className="xv-panel" style={mono}>Chưa có creative quảng cáo nào gắn sản phẩm (ô Sản phẩm + link trang bán ở tab 🎭 Phim của phim QC).</div>;
   const mau = (x: number) => (x > 0 ? 'var(--green, #3fb950)' : x < 0 ? 'var(--red, #f85149)' : 'var(--fg-2)');
   const cot: DataColumn<TongSanPham>[] = [
@@ -61,7 +93,8 @@ export function DanhSachSanPham({ phim, onMo }: { phim: Phim[]; onMo: (key: stri
   const khoang = ds.find((s) => s.khoang)?.khoang;
   return (
     <div style={{ display: 'grid', gap: 4 }}>
-      {khoang && <span style={mono} title="Đồng bộ bằng scripts/ethopex/dong-bo-so-lieu.sh">Số liệu QC Ethopex: {khoang}</span>}
+      <MocSoLieu s={song} />
+      {!song.data && khoang && <span style={mono} title="Bản chụp ghi bằng scripts/ethopex/dong-bo-so-lieu.sh">Bản chụp: {khoang}</span>}
       <DataTable rows={[...ds].sort((a, b) => b.lai - a.lai)} columns={cot} getRowKey={(s) => s.key} onRowClick={(s) => onMo(s.key.slice(3))} fixedLayout stickyFirst={false} minWidth={1180} persistKey="xv-ds-san-pham" />
     </div>
   );
@@ -83,6 +116,7 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
   const [cum, setCum] = useState<{ cum: CumGoc[]; nguon: string } | null>(null);
   const taiLo = async () => { const r = await dsLo(spKey); if (r.ok) setLo(r.data); };
   const taiKho = async () => { const r = await docKhoSanPham(spKey); if (r.ok) setD(r.data); else setLoi(r.loi); };
+  const song = useSoLieuSong();
   useEffect(() => { void taiKho(); void taiLo(); void taiKc(); }, [spKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (d?.sp.spy) { void dsGocSpy(d.sp.spy).then((r) => r.ok && setGoc(r.data)); void docCumGoc(d.sp.spy).then((r) => r.ok && setCum(r.data)); } }, [d?.sp.spy]);
   const moGoc = (id: number) => { setLocGoc(id); setTab('creative'); };
@@ -94,7 +128,8 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
       {d.sp.link && <LinkNgoai href={d.sp.link} className="xv-lienket xv-mono" title={d.sp.link}>trang bán ↗</LinkNgoai>}
     </>} dau={<Seg options={TAB_SP} value={tab} onChange={setTab} />}>
       {tab === 'kho' && (kc ? <KhoCreative d={kc} spKey={spKey} phim={d.creative} onDoi={async () => { await taiKc(); await taiKho(); }} onMoPhim={onMoPhim} /> : <Loi>{kcLoi}</Loi>)}
-      {tab === 'creative' && <BangCreative d={d} goc={goc} cum={cum?.cum ?? []} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
+      {tab === 'creative' && <MocSoLieu s={song} />}
+      {tab === 'creative' && <BangCreative song={song.data} d={d} goc={goc} cum={cum?.cum ?? []} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
       {tab === 'ban_do' && <BanDo d={d} goc={goc} lo={lo} spKey={spKey} onLo={taiLo} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
       {tab === 'goc' && <CayGoc d={d} goc={goc} cum={cum} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
       {tab === 'thanh_phan' && <ThuVienThanhPhan tp={d.thanh_phan} onMoPhim={onMoPhim} />}
@@ -125,7 +160,7 @@ const ChipGoc = ({ g, on }: { g: GocSpy; on?: () => void }) => (
 
 type Gom = 'khong' | 'loai' | 'cum' | 'khuon';
 const diemSx = (c: DongCreative) => c.nac.filter((x) => x.tt === 'xong').length;
-function BangCreative({ d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim, onSoSanh }: { d: KhoSanPham; goc: GocSpy[]; cum: CumGoc[]; locGoc: number | null; setLocGoc: (x: number | null) => void; chon: number[]; setChon: (x: number[]) => void; onMoPhim: (id: number) => void; onSoSanh: () => void }) {
+function BangCreative({ song, d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim, onSoSanh }: { song: SoLieuSong | null; d: KhoSanPham; goc: GocSpy[]; cum: CumGoc[]; locGoc: number | null; setLocGoc: (x: number | null) => void; chon: number[]; setChon: (x: number[]) => void; onMoPhim: (id: number) => void; onSoSanh: () => void }) {
   const [gom, setGom] = useNho<Gom>('xv-sp-gom', 'loai', ['khong', 'loai', 'cum', 'khuon']);
   const [tim, setTim] = useState('');
   // Lọc góc + ô tìm áp TRƯỚC khi gom: mọi nhóm cùng một bộ lọc (mỗi nhóm là một DataTable — ô tìm riêng từng bảng thì lọc lệch nhau).
@@ -146,10 +181,14 @@ function BangCreative({ d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim,
     { key: 'ten', header: 'Creative', width: '22%', align: 'left', sortValue: (c) => c.ten, cell: (c) => (
       <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
         <span style={{ width: 22, height: 32, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: c.anh ? `center / cover no-repeat url(${anhNho(c.anh, 160)}), #111` : 'var(--bg-2)' }} />
-        <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</b>
+        <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{tenNgan(c)}</b>
         {c.sua_sau_xuat && <span style={{ color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
       </span>), cellTitle: (c) => `#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}` },
-    { key: 'goc', header: 'Góc', width: '17%', align: 'left', sortValue: (c) => c.goc[0]?.ten ?? null, cell: (c) => {
+    { key: 'goc', header: 'Góc', width: '17%', align: 'left', sortValue: (c) => c.goc[0]?.ten ?? c.etp?.nguon_qc ?? null, cell: (c) => {
+      // Creative phim (Ethopex) chưa có góc spy kiểu shop: góc = QC gốc của app mà creative cắt từ đó (Thư viện QC Meta) + đoạn cắt
+      if (!c.goc.length && c.etp?.nguon_qc) return <a href={`https://www.facebook.com/ads/library/?id=${c.etp.nguon_qc}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+        title={`QC gốc của app (Thư viện QC Meta #${c.etp.nguon_qc})${c.etp.doan ? ` · đoạn cắt ${c.etp.doan}` : ''}`} style={{ fontSize: 11, color: 'var(--cyan)' }}>🎬 QC gốc{c.etp.doan ? ` · ${c.etp.doan}` : ''}</a>;
+      if (!c.goc.length && c.etp) return <span style={{ fontSize: 11 }} title="Kể lại theo cốt truyện chính thức của phim (QC kể chuyện / nhân vật AI)">📖 cốt truyện phim</span>;
       const chinh = (gom === 'loai' ? c.goc.find((x) => `${loaiGocSpy(x.loai).ic} ${loaiGocSpy(x.loai).ten}` === tenNhom) : null) ?? c.goc[0];
       const phu = c.goc.filter((x) => x !== chinh);
       return <>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : 'chưa gắn'}{phu.length > 0 && <span style={{ marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</>;
@@ -159,6 +198,17 @@ function BangCreative({ d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim,
       cell: (c) => <Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id} · bấm để mở template` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill> },
     { key: 'hook', header: 'Hook', align: 'left', sortValue: (c) => c.hook, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.hook || '—'}</span>, cellTitle: (c) => c.hook },
     { key: 'cta', header: 'CTA', width: '12%', align: 'left', sortValue: (c) => c.cta, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cta || '—'}</span>, cellTitle: (c) => c.cta },
+    { key: 'camp', header: 'Camp', title: 'Camp Ethopex đang dùng creative này (gốc + nhân bản) — xanh = đang lãi', width: 120, align: 'left', sortValue: (c) => c.etp?.camp.length ?? 0, cell: (c) => {
+      const sl = soLieuCr(c, song); const ds = c.etp?.camp ?? [];
+      if (!c.etp) return <span style={{ color: 'var(--fg-2)' }}>chưa lên</span>;
+      return <span style={{ fontSize: 11.5 }}>{ds.length ? ds.map((id) => { const x = sl?.camp?.find((k) => k.id === id); return <span key={id} title={x ? `#${id} · budget $${x.budget} · spending ${x.spending ?? '—'}% · chi $${x.chi?.toFixed(2)} · thu $${x.thu?.toFixed(2)} · ROI ${x.roi ?? '—'}%` : `#${id}`}
+        style={{ marginRight: 4, color: (x?.lai ?? 0) > 0 ? 'var(--green, #3fb950)' : (x?.lai ?? 0) < 0 ? 'var(--red, #f85149)' : 'var(--fg-1)' }}>#{id}{x && x.budget !== 1 ? ` $${x.budget}` : ''}</span>; }) : `creative #${c.etp.creative_id}`}</span>;
+    } },
+    { key: 'lai', header: 'Lãi · ROI', title: 'Lãi và ROI cộng các camp của creative (số liệu sống từ Ethopex, từ đầu tháng)', width: 110, align: 'right', sortValue: (c) => soLieuCr(c, song)?.lai ?? -1e9, cell: (c) => {
+      const sl = soLieuCr(c, song); if (!sl || !sl.chi) return '—';
+      const roi = Math.round(((sl.thu! - sl.chi) / sl.chi) * 1000) / 10; const m = sl.lai! > 0 ? 'var(--green, #3fb950)' : 'var(--red, #f85149)';
+      return <span title={`chi $${sl.chi.toFixed(2)} · thu $${sl.thu!.toFixed(2)}`}><b style={{ color: m }}>{sl.lai! < 0 ? '−' : ''}${Math.abs(sl.lai!).toFixed(2)}</b> <span style={{ color: m }}>{roi}%</span></span>;
+    } },
     { key: 'nn', header: 'NN', title: 'Ngôn ngữ của lời / chữ màn (kinh thánh)', width: 46, align: 'center', sortValue: (c) => c.ngon_ngu, cell: (c) => <Pill color="var(--cyan)">{c.ngon_ngu.toUpperCase()}</Pill> },
     { key: 'sx', header: 'Sản xuất', title: 'Bấm tiêu đề để xếp theo số bước đã xong', width: 205, align: 'left', sortValue: diemSx, cell: (c) => <NacSx c={c} /> },
   ];

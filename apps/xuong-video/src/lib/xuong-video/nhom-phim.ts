@@ -53,7 +53,7 @@ export const demKieu = (ds: Phim[], luuTru = false): Record<KieuNhom, number> =>
 };
 
 /** Số liệu QC Ethopex của một creative (scripts/ethopex/dong-bo-so-lieu.sh ghi vào kinh_thanh.ethopex.so_lieu). */
-type SoLieuQc = { chi?: number; thu?: number; lai?: number; khoang?: string; luc?: string; camp?: { id: number; lai?: number; roi?: number | null; spending?: number; budget?: number }[] };
+export type SoLieuQc = { chi?: number; thu?: number; lai?: number; khoang?: string; luc?: string; camp?: { id: number; lai?: number; roi?: number | null; spending?: number | null; budget?: number; chi?: number; thu?: number }[] };
 type EthopexKt = { creative_id?: number; camp_id?: number | null; camp_nhan_ban?: number[]; so_lieu?: SoLieuQc };
 const ethopexCua = (p: Pick<Phim, 'kinh_thanh'>): EthopexKt => ((p.kinh_thanh as unknown as { ethopex?: EthopexKt }).ethopex ?? {});
 /** Creative đủ nấc trên danh sách: có cảnh, mọi cảnh có hình + clip (cùng luật kho-creative.ts › dongCreative, đọc từ tap_tom). */
@@ -63,8 +63,9 @@ export type TongSanPham = {
   loai: Record<string, number>; so_camp: number; camp_lai: number; chi: number; thu: number; lai: number; roi: number | null; chi_sx_cents: number; cap_nhat: string; khoang: string;
 };
 /** Bảng quản lý trang 📦 Sản phẩm (anh 20/10/2026: "page này phải show đủ thông tin để quản lý"): mỗi sản phẩm một dòng tổng. Thuần. */
-export function tongSanPham(g: Pick<NhomPhim, 'key' | 'ten' | 'phim'>): TongSanPham {
-  const ds = g.phim; const e = ds.map(ethopexCua);
+export function tongSanPham(g: Pick<NhomPhim, 'key' | 'ten' | 'phim'>, song?: Record<number, SoLieuQc> | null): TongSanPham {
+  // song = số liệu kéo trực tiếp từ Ethopex lúc mở trang (actions-ethopex.ts) — có thì dùng thay bản chụp trong kinh_thanh
+  const ds = g.phim; const e = ds.map((p) => { const x = ethopexCua(p); return song && x.creative_id ? { ...x, so_lieu: song[x.creative_id] ?? { chi: 0, thu: 0, lai: 0, camp: [] } } : x; });
   const link = (ds.find((p) => p.kinh_thanh?.qc?.link)?.kinh_thanh?.qc?.link ?? '').trim();
   let nguon = ''; try { nguon = link ? new URL(link).host.replace(/^www\./, '').replace(/\.(com|net|tv|app)$/, '') : ''; } catch { nguon = ''; }
   const loai: Record<string, number> = {};

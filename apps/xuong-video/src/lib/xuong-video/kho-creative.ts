@@ -10,7 +10,10 @@ export type KhuonKho = { id: number; dong: string; khuon: string; ten: string };
 export type CreativeKho = {
   id: number; ten: string; sua_luc: string; anh: string | null; goc: GocSpy[]; ngon_ngu: string; phong_cach: string;
   tpl: KhuonKho | null; xuat: { url: string; luc: string } | null;
+  /** Creative đã lên camp Ethopex (kinh_thanh.ethopex): creative · camp (gốc + nhân bản) · QC gốc của app cắt từ đó · số liệu bản chụp */
+  etp?: EtpCr | null;
 };
+export type EtpCr = { creative_id: number | null; camp: number[]; nguon_qc: string | null; doan: string; the_loai: string; so_lieu: import('./nhom-phim').SoLieuQc | null };
 /** Một nấc sản xuất: xong · đang (có một phần) · chưa. so/tong để hover. */
 export type Nac = { key: 'kich_ban' | 'hinh' | 'giong' | 'clip' | 'xuat'; ten: string; tt: 'xong' | 'dang' | 'chua'; so: number; tong: number };
 export type DongCreative = CreativeKho & { nac: Nac[]; ket: string; hook: string; cta: string; sua_sau_xuat: boolean; so_shot: number };

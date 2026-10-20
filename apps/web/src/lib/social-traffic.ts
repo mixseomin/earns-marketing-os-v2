@@ -10,12 +10,13 @@ import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docBamBaiDang, docSoLanding, siteCoMa } from './social-truc-tiep';
+import { tinhSucKhoe, type StSucKhoe, type VaoSuc } from './social-suc-khoe';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi }
+export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
  *  da = đã đăng (sổ xv_may_video.da_dang, có link) · du_kien = máy sẽ đăng (xv_lich_du_kien — dang-may tính bằng luật nhịp an toàn, mos2 không tính lại). */
 export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien' }
@@ -59,10 +60,10 @@ const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promi
 export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
-  const [goc, kenh, lo, lich, luoi] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
-    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi))]);
+  const [goc, kenh, lo, lich, luoi, suc] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
+    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi))]);
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich, luoi };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc };
 }
 /** Góc thật từ spy: danh sách nhóm rồi từng nhóm (SONG_SONG lượt cùng lúc), xếp chung theo Sức mạnh. */
 async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {
@@ -131,6 +132,35 @@ function luotMayDang(): Record<string, string[]> {
   return {};
 }
 /** Lưới lịch: bài đã đăng 3 ngày qua (giờ thật) + bài dự kiến từ hôm nay (lượt chưa tới giờ). */
+/** Sức khoẻ đăng (đầu tab Tổng quan): nơi đăng của máy đang chạy · bài 5 ngày · lỗi đăng 7 ngày · cảnh báo rủi ro 7 ngày · lịch dự kiến. Tính ở social-suc-khoe.ts. */
+async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
+  const rong = tinhSucKhoe({ bay: Date.now(), noi: [], da: [], hong: [], canhBao: [], lich: [] });
+  const d = getDb(); if (!d) return rong;
+  type R = Record<string, string | null>;
+  try {
+    const [noi, da, hong, cb, lich] = await Promise.all([
+      d.execute(sql`SELECT m.ma AS may, m.ten AS may_ten, n->>'nen' AS nen, coalesce(n->>'ten', n->>'nen') AS nen_ten, coalesce(n->>'tk', '') AS tk,
+          coalesce(n->>'gio', '') AS gio, coalesce(n->>'may', '') AS may_mac, n->'br'->>'acct' AS acct
+        FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay ORDER BY m.id, n->>'nen'`) as unknown as Promise<R[]>,
+      d.execute(sql`SELECT m.ma AS may, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url
+        FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(coalesce(v.da_dang, '{}'::jsonb)) e
+        WHERE m.chay AND e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 30, 'YYYY-MM-DD')`) as unknown as Promise<R[]>,
+      d.execute(sql`SELECT m.ma AS may, k.nen, k.luc::text AS luc, k.noi_dung AS chu FROM xv_may_nhat_ky k JOIN xv_may m ON m.id = k.may_id
+        WHERE m.chay AND NOT k.ok AND k.buoc = 'dang' AND k.nen IS NOT NULL AND k.luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
+      d.execute(sql`SELECT account_id::text AS acct, loai, luc::text AS luc, noi_dung AS chu FROM platform_alerts WHERE account_id IS NOT NULL AND luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
+      d.execute(sql`SELECT ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ ds: { may: string; nen: string; ngay: string; gio: string }[] }[]>,
+    ]);
+    const vao: VaoSuc = {
+      bay: Date.now(),
+      noi: noi.map((x) => ({ may: String(x.may), mayTen: String(x.may_ten), nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac), acct: x.acct ?? null })),
+      da: da.map((x) => ({ may: String(x.may), nen: String(x.nen), ngay: String(x.ngay), luc: x.luc ?? null, url: x.url ?? null })),
+      hong: hong.map((x) => ({ may: String(x.may), nen: String(x.nen), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu) })),
+      canhBao: cb.map((x) => ({ acct: String(x.acct), loai: String(x.loai), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu) })),
+      lich: (lich[0]?.ds ?? []).map((x) => ({ may: x.may, nen: x.nen, ngay: x.ngay, gio: x.gio })),
+    };
+    return tinhSucKhoe(vao);
+  } catch (e) { loi.push(`sức khoẻ đăng: ${(e as Error).message}`); return rong; }
+}
 async function docLuoi(loi: string[]): Promise<StLuoi> {
   const hom = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), rong: StLuoi = { hom, tinhLuc: null, o: [], kho: [] };
   const d = getDb(); if (!d) return rong;

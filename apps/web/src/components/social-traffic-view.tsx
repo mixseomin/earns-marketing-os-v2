@@ -14,6 +14,7 @@ import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive, StLich } from '@/lib/social-traffic';
 import { LichLuoi } from './social-lich-luoi';
+import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 
 type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
@@ -235,6 +236,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'lich' ? `${live.lich.length} nơi đăng` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
+      {muc === 'tong' && laLive && <SucKhoeDang suc={live.suc} />}
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
         <Panel title="🔻 Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>
           {t.xem ? <div style={{ display: 'grid', gap: 8 }}>{pheu.map(([ten, v], i) => (
@@ -245,7 +247,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
             </div>))}</div>
             : trong('Chưa có lượt xem', 'Phễu hiện khi kênh đầu tiên đăng video và trang đích bắt đầu nhận khách.')}
         </Panel>
-        <Panel title="⚠️ Cần xử lý" subtitle={canhBao.length ? `${canhBao.length} việc` : undefined}>
+        <Panel title="⚠️ Kênh & đo lường" subtitle={canhBao.length ? `${canhBao.length} việc` : undefined}>
           {canhBao.length ? <div style={{ display: 'grid', gap: 6 }}>{canhBao.map((c, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 6 }}>
               <Pill color={c.mau} label={`${c.mau === 'var(--bad)' ? '⛔' : '⚠️'} ${c.nhan}`} uppercase={false} /><span>{c.chu}</span></div>))}</div>

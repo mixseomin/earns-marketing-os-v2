@@ -82,6 +82,10 @@ export const VIEC_NHIP = {
     { ma: 'kiem-bai', ten: 'Kiểm bài mới', lich: (n) => tanSuat(n.kiemMoi), khop: null,
       mo_ta: 'Bài đăng social của máy studio (video + ảnh tĩnh, xv_may_video) chấm theo cong-ty/quy-dinh/noi-dung/chuan-bai-dang.md bằng máy đo 0đ (worker/cham-dang.mjs: ảnh thật Pexels/Pixabay/Unsplash, câu móc, link, giọng văn) → xv_may_video.cham; máy đăng chỉ lấy bài DUYỆT đúng bản xuất; báo một tin theo mẫu vào 📝 Nội dung. Mọi bài / trang nội dung mới nộp vào hàng chờ (node worker/kiem-bai.mjs --nop <url> --tu <người>, hoặc --html <bản nháp>) trước khi lên trang. Máy đo không AI (gạch ngang dài, từ máy, số chữ, ví dụ trích, FAQ, phần "nếu đã lỡ", nút) rồi Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md → tin vào chủ đề 📝 Nội dung trên Telegram: ai gửi, thiếu gì, thừa gì, giọng văn, kết luận DUYỆT / SỬA LẠI / KHÔNG DUYỆT. Chặn cứng (gạch dài, từ máy, thiếu ảnh / video / FAQ) không bao giờ DUYỆT. Bài chưa DUYỆT trả về người phụ trách site (--tra-ve) sửa rồi nộp lại, tối đa 3 lượt; hết lượt thì dừng chờ anh (--mo-khoa). Mô hình chỉ được gọi khi có bài.' },
   ],
+  'bao-social': [
+    { ma: 'bao-ngay', ten: 'Báo cáo ngày Social Traffic', lich: (n) => `${n.gio || '21:30'} hằng ngày · box3`, khop: /báo cáo ngày/,
+      mo_ta: 'Mỗi ngày một tin vào chủ đề 📂 Social Traffic, sau giờ admin đặt ở cột Tự làm (mặc định 21:30, sau lượt đăng cuối 21:00): hôm nay máy đăng lên được bao nhiêu lượt / lịch định bao nhiêu và lỡ nền nào (kèm link bài), kho đã xếp lịch theo máy × format tới ngày nào (đỏ khi cạn trong 7 ngày), lịch dự kiến còn được máy đăng iMac cập nhật không. Máy đọc xv_may_video + xv_lich_du_kien (worker/bao-social.mjs), không gọi mô hình. Bảng đủ: mos2 Social › Lịch đăng.' },
+  ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
       mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình (não của Kiên) đọc mỗi thư đang chờ MỘT lần: thật / giả / thường, phòng nào nhận, việc gì — chốt máy (tên miền anh dạy, link nhái tên hãng) mô hình không vượt được; thư thật có việc thì tự chuyển vào chủ đề Telegram của phòng đó.' },
@@ -94,7 +98,7 @@ export const VIEC_NHIP = {
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
 export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n), gio: x.gio?.(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
-export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)' };
+export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)' };
 /** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
  *  qua ssh trước mỗi lượt và tự ghi nhật ký nhịp (<DATA>/nhip/<người>.json[l]) như ghiLam. */
 export { NHIP_MAY } from './nhip-may.mjs';   // khai ở nhip-may.mjs — viec-may.mjs nạp từ đó, không vòng về tệp này
@@ -102,6 +106,7 @@ export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
   'kiem-bai': async (n) => [await (await import('./kiem-bai.mjs')).nhipKiemBai(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Nội dung: bài nộp → chấm → Telegram
     await (await import('./cham-dang.mjs')).nhipChamDang()].filter(Boolean).join(' · '),   // + bài đăng social của máy studio → cổng trước máy đăng (0đ, máy đo)
+  'bao-social': async (n) => (await import('./bao-social.mjs')).nhipBaoSocial(n.id),   // Phòng Social Traffic: báo cáo ngày của trưởng phòng → Telegram (0đ, máy đọc)
   'kiem-tai-nguyen': async (n) => { const r = await (await import('./tai-nguyen.mjs')).nhipTaiNguyen(n.id, { ten: n.ten }); return `${r.canh_bao} cảnh báo · gửi ${r.gui}`; },   // Phòng Tài nguyên: slot proxy · làn cào · tải box3 → Telegram (0đ, chỉ báo)
 };
 export { trongCa } from './gio-lam.mjs';

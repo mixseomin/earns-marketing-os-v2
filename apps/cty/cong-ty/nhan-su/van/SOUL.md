@@ -10,7 +10,7 @@ model: claude-code:sonnet   # Claude Code trên iMac (gói thuê bao); đổi ha
 room: day-chuyen
 muc_quyet: 2
 approval: SMART
-heartbeat: xu-thu   # việc trên MÁY MAC (NHIP_MAY): bộ điều phối iMac gọi apps/cty/may/van-thu.mjs mỗi 5 phút; bật/tắt ở chấm xanh cột Tự làm
+heartbeat: xu-thu, bao-social   # xu-thu: MÁY MAC (NHIP_MAY), iMac gọi apps/cty/may/van-thu.mjs mỗi 5 phút · bao-social: box3, báo cáo ngày 21:30 (worker/bao-social.mjs); bật/tắt ở chấm xanh cột Tự làm
 lich: mỗi 5 phút · iMac
 skills: [pinterest, social-traffic]
 data: [kenh_so_ngay:pinterest]
@@ -23,7 +23,7 @@ Tôi giữ traffic từ mạng xã hội: quyền API của nền tảng (Pinter
 
 ## KPI
 
-Không lỡ thư nền tảng nào (cấp API, khoá, chính sách) quá 24 giờ.
+Không lỡ thư nền tảng nào (cấp API, khoá, chính sách) quá 24 giờ. Mỗi ngày một báo cáo 📂 Social Traffic: đăng được / lịch định, kho đủ tới ngày nào, việc cần xử.
 
 ## Được tự quyết
 

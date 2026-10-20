@@ -153,6 +153,22 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
         searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
         onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
+      {du.hangCho.length ? (
+        <div style={{ marginTop: 16 }}>
+          <Panel title="Hàng chờ test" subtitle={`// ${du.hangCho.length} phim spy chưa vào lô — studio xv_khoa_ngoai ethopex_hang_cho`}>
+            {du.hangCho.map((p) => (
+              <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12, opacity: p.trang_thai === 'cho' ? 1 : 0.7 }}>
+                <div>
+                  <LinkChip href={p.url} tone="neutral" size="xs" title={p.url}>{p.ten} ↗</LinkChip>{' '}
+                  <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>#{p.id} · {p.nguon} · {p.locale.toUpperCase()} · {p.so_page} Page / {p.so_qc} QC</span>
+                  <div style={{ fontSize: 11, color: p.trang_thai === 'can_xem' ? MUC_MAU.ha : 'var(--fg-3)' }}>{p.ghi}</div>
+                </div>
+                <span style={{ ...mono, fontSize: 10, color: p.trang_thai === 'can_xem' ? MUC_MAU.ha : 'var(--fg-2)' }}>{p.trang_thai === 'cho' ? 'chờ test' : p.trang_thai === 'can_xem' ? 'cần anh xem' : 'bản trùng'}</span>
+              </div>
+            ))}
+          </Panel>
+        </div>
+      ) : null}
       <div style={{ marginTop: 16 }}>
         <Panel title="Sổ luật Ethopex" subtitle="// kb #261 mục 8–8d · lib/ethopex-luat.ts">
           {LUAT.map((l) => (

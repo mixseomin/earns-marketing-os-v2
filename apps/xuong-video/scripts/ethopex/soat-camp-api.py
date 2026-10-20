@@ -15,7 +15,7 @@ for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex
     cr, ct, nn, pid = l.split("|"); studio[int(cr)] = (int(ct) if ct else None, nn, int(pid))
 NGAN_SACH_DUYET = {65176: 3}  # camp anh đã duyệt tăng
 ds = api("/api/v1/campaigns?page_size=500")["data"]
-loi_tong = 0; content_lp = {}
+loi_tong = 0; content_lp = {}; duyet = {}; bi_tu_choi = []   # content → creative đã được Meta duyệt (để gợi ý thay ad bị từ chối)
 for c in sorted(ds, key=lambda x: x["id"]):
     d = api(f"/api/v1/campaigns/{c['id']}"); cp = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
     loi = []
@@ -45,8 +45,15 @@ for c in sorted(ds, key=lambda x: x["id"]):
     slug = re.search(r"/movie/([^/]+)/", a.get("final_url") or ""); slug = slug.group(1) if slug else None
     content_lp.setdefault(a.get("content_id"), set()).add((slug, a.get("landing_page_id")))
     trang = f"{cp.get('source_status')}/{a.get('delivery_status') or g.get('delivery_status') or '-'}"
+    if "DISAPPROVED" in str(a.get("error") or "") or a.get("delivery_status") == "DISAPPROVED": bi_tu_choi.append((cp["id"], a.get("content_id"), cr))
+    elif a.get("delivery_status") in ("ACTIVE", "ADSET_PAUSED", "CAMPAIGN_PAUSED") and not a.get("error"): duyet.setdefault(a.get("content_id"), []).append((cr, cp["id"]))
     print(("❌ " if loi else "✅ ") + f"#{cp['id']} {ten[:58]:58} ct{a.get('content_id')} cr{cr} ${ns} {trang}" + ("".join("\n     - " + x for x in loi)))
     loi_tong += bool(loi)
 for ct, s in content_lp.items():
     if len({x[0] for x in s}) > 1: print(f"❌ content {ct} dùng nhiều link phim khác nhau: {s}"); loi_tong += 1
+# AD BỊ META TỪ CHỐI (Dol Dang 21/10/2026): KHÔNG xoá — vào Edit camp, thay bằng creative SẠCH cùng phim đã được duyệt, Update để Meta duyệt lại.
+# Trước khi thay: kiem-thoai-creative.sh <creative> phải OK.
+for camp, ct, cr in bi_tu_choi:
+    goi_y = [f"#{c} (camp #{k})" for c, k in duyet.get(ct, []) if c != cr][:4]
+    print(f"⚠ #{camp} bị Meta từ chối (creative {cr}) → Edit camp, thay creative sạch đã duyệt cùng phim: " + (", ".join(goi_y) or "chưa có — dựng creative mới qua cổng thoại"))
 print(f"\n{len(ds)} camp · {loi_tong} chỗ lỗi")

@@ -18,6 +18,9 @@ CAM = [
     r"\bstrip\w*\b.{0,25}\b(down|naked|off|him|her|you|them|this)\b", r"\b(take|took) off (your|his|her) clothes", r"\bnaked\b",
     r"\bputa\b", r"\bputo\b", r"\bviol(ar|ación|ó|aron)\b", r"\bdesn[uú]d", r"\bacost(arte|arse|ó) con", r"\bvende su cuerpo",
 ]
+# Nhóm BẠO LỰC / CHẾT CHÓC (Dol Dang 21/10/2026: "mấy từ 'dead',… cũng có thể bị meta quét") — chặn khi cắt đoạn MỚI, camp đang chạy không động
+CAM += [r"\bdead\b", r"\bkill(s|ed|ing|er)?\b", r"\bmurder", r"\bsuicid", r"\bbehead", r"\bslaughter",
+        r"\bmuert[oa]s?\b", r"\bmat(ar|aré|arte|arlo|arla|ó)\b", r"\basesin", r"\bsuicid"]
 MAU = re.compile("|".join(CAM), re.I)
 
 def soat(cau):
@@ -45,10 +48,10 @@ def tu_kiem():
     chan = ["Lord knows how many old grannies you banged out there.", "You really thought you could just run off and prostitute yourself,",
             "is that you're a *** manwhore!", "How could you afford them if not with your dirty prostitute money?", "from those old women he sells himself to.",
             "Let's strip this fraud down and donate his gear to the church!", "Everyone knows he got locked up for doing sex work for old hags.",
-            "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo"]
+            "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo", "You're dead to me!", "I'll kill you", "Lo voy a matar", "Ponle un dedo encima y estás muerto."]
     qua = ["You've humiliated this whole town!", "Kneel before the Lord and beg forgiveness for your sins!", "The top pick in the mba Draft Combine",
            "His clothes are drenched in sin!", "stripped of his title", "No money, no help, no nothing.", "¿De verdad me acabas de golpear?",
-           "Ponle un dedo encima y estás muerto.", "sé que estás molesto.", "Your stepbrother is a bully"]
+           "sé que estás molesto.", "deadline is tomorrow", "Matarazzo", "skilled player", "Your stepbrother is a bully"]
     for c in chan: assert soat(c), "phải chặn: " + c
     for c in qua: assert not soat(c), "không được chặn: %s (khớp %s)" % (c, soat(c))
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))

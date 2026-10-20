@@ -41,6 +41,7 @@ export function laHetTien(cong: string, loi: string, status?: number): boolean {
 const GIA_ANH_VND: Record<string, number> = {
   'ckey:wowztools/nano-banana-2': 110.5, 'ckey:wowztools/nano-banana-pro': 110.5, 'ckey:danielnguyenkarate/nano-banana-2': 480,
   'shopaikey:gemini-nano-banana-2.1': 683,
+  'plenxai:nano-banana-2': 200, 'plenxai:nano-banana-pro': 500,
 };
 
 /** Chuỗi cổng cho một model ảnh Google (Nano Banana): rẻ + ổn định trước, Google trực tiếp cuối (sinhAnh lo). Chỉ cổng có khoá. */
@@ -52,6 +53,7 @@ export function chuoiAnh(modelGoogle: string): { cong: CongKey; model: string }[
     // Người bán THỨ HAI trên chợ ckey (danh mục 15/10/2026, 480₫ — vẫn rẻ hơn ShopAIKey 683₫ / Google 874₫): wowztools đổi tên / gỡ model thì
     // ảnh chưa phải rơi thẳng sang cổng đắt (30 giờ ngày 15/10 rơi hết sang Google).
     { cong: 'ckey', model: 'danielnguyenkarate/nano-banana-2' },
+    { cong: 'plenxai', model: 'nano-banana-2' },              // 200₫ (2 credit, 21/10/2026) — sau ckey 110₫, trước ShopAIKey 683₫
     { cong: 'shopaikey', model: 'gemini-nano-banana-2.1' },    // 683₫, ~29s
   ];
   return ds.filter((x) => coCong(x.cong));
@@ -88,7 +90,7 @@ export async function tenThatCkey(model: string, k: string): Promise<string | nu
 
 /** Số ảnh tham chiếu tối đa từng cổng nhận. ckey (đo 15/10/2026, wowztools Nano-Banana-2): 3 ảnh đạt, 4–5 ảnh "upstream AI gateway rejected the
  *  request" trong 0,4s — keyframe phim #49 (7 ảnh) cả 9 shot rơi sang Google 874₫; trước đó follow-up #1379 "ckey 400 khi nhiều ảnh". */
-export const TOI_DA_REF: Partial<Record<CongKey, number>> = { ckey: 3 };
+export const TOI_DA_REF: Partial<Record<CongKey, number>> = { ckey: 3, plenxai: 8 };
 
 /** NGƯỜI BÁN CKEY CÙNG MODEL dự phòng cho nhau (anh 15/10/2026: "ckey có nhiều nhà cung cấp, fallback trong số họ với nhau"). Thuần.
  *  Chỉ lấy ĐÚNG dòng Nano Banana (2 / gemini-3.1-flash-image trước, Pro sau) — model khác (Qwen, Seedream, gpt-image, bản Lite) ra hình khác
@@ -128,9 +130,48 @@ async function hetTienShopaikey(k: string, status: number): Promise<string | nul
 }
 
 /** Gọi MỘT cổng sinh ảnh. Ảnh tham chiếu đi bằng URL công khai (R2). Hết giờ chờ: ShopAIKey vẫn trừ tiền → chờ đủ lâu (240s). */
+// ── PlenX AI · ẢNH (đọc mã trang 21/10/2026, TextToImage): POST /api/v1/queue/submit {task_type:'image/<model>', payload:{prompt, aspect_ratio,
+// resolution_tier:'1k', uses_credits, references_urls}} → GET /api/v1/queue/status/<task_id> (result.result_url | image_urls[0]) → tải về →
+// DELETE /api/v1/generations/<generation_id> (anh: sinh xong tải về thì xoá trên nền tảng của họ). Chỉ fetch — chạy được cả trong Worker:
+// token lấy từ máy chủ (CONG_MAY.plenxai.token, có tệp) hoặc hỏi studio /api/xv/plenx-token (Worker, khoá XV_WORKER_SECRET).
+async function tokenPlenx(): Promise<string> {
+  if (CONG_MAY.plenxai?.token) return CONG_MAY.plenxai.token();
+  const goc = process.env.STUDIO_URL, bi = process.env.XV_WORKER_SECRET;
+  if (!goc || !bi) throw new Error('không có đường lấy token PlenX (máy chủ chưa đăng ký, Worker thiếu STUDIO_URL / XV_WORKER_SECRET)');
+  const r = await fetch(`${goc}/api/xv/plenx-token`, { headers: { 'x-xv-secret': bi }, signal: AbortSignal.timeout(30_000) });
+  const j = (await r.json().catch(() => ({}))) as { access_token?: string; loi?: string };
+  if (!r.ok || !j.access_token) throw new Error(`studio không cấp token PlenX (${r.status}${j.loi ? `: ${j.loi}` : ''})`);
+  return j.access_token;
+}
+async function anhPlenx(model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<KqAnhCong> {
+  try {
+    const h = { authorization: `Bearer ${await tokenPlenx()}`, 'content-type': 'application/json' };
+    const r = await fetch('https://plenxai.com/api/v1/queue/submit', { method: 'POST', headers: h, signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({ task_type: `image/${model}`, payload: { prompt: o.prompt, aspect_ratio: o.tiLe, num_outputs: 1, output_format: 'jpeg', resolution_tier: '1k', uses_credits: true, references_urls: o.thamChieuUrl.slice(0, 8) } }) });
+    const j = (await r.json().catch(() => ({}))) as { success?: boolean; task_id?: string; message?: string; error?: string };
+    if (!r.ok || !j.success || !j.task_id) return { ok: false, status: r.status, loi: `PlenX ${r.status}: ${j.message || j.error || 'không nhận task'}`.slice(0, 300) };
+    for (let i = 0; i < 80; i++) {   // ≤ 4 phút
+      await new Promise((ok) => setTimeout(ok, 3000));
+      const s = await fetch(`https://plenxai.com/api/v1/queue/status/${encodeURIComponent(j.task_id)}`, { headers: h, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+      if (!s?.ok) continue;
+      const d = (await s.json().catch(() => ({}))) as { status?: string; result_url?: string; generation_id?: string; error?: string; error_message?: string; result?: { result_url?: string; image_urls?: string[]; images?: string[]; generation_id?: string } };
+      const url = d.result?.result_url || d.result?.image_urls?.[0] || d.result?.images?.[0] || d.result_url;
+      if (d.status === 'completed' && url) {
+        const anh = await taiVe(url);
+        const gid = d.generation_id || d.result?.generation_id;
+        if (anh && gid) await fetch(`https://plenxai.com/api/v1/generations/${encodeURIComponent(gid)}`, { method: 'DELETE', headers: h, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+        return anh ? { ok: true, ...anh, modelThat: `plenxai/${model}` } : { ok: false, loi: 'PlenX xong nhưng không tải được ảnh' };
+      }
+      if (['failed', 'error', 'cancelled', 'nsfw'].includes(String(d.status))) return { ok: false, loi: `PlenX báo ${d.status}: ${d.error || d.error_message || ''}`.slice(0, 300) };
+    }
+    return { ok: false, loi: 'PlenX quá 4 phút chưa xong' };
+  } catch (e) { return { ok: false, loi: `PlenX: ${e instanceof Error ? e.message.slice(0, 200) : 'lỗi mạng'}` }; }
+}
+
 export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<KqAnhCong> {
   const k = khoa(cong);
   if (!k) return { ok: false, loi: `thiếu khoá ${cong}` };
+  if (cong === 'plenxai') return anhPlenx(model, o);
   if (cong === 'ckey') {
     const that = await tenThatCkey(model, k);
     if (!that) return { ok: false, loi: `ckey: người bán đã gỡ model ${model} khỏi chợ (không có trong danh mục) — chọn người bán khác` };
@@ -233,7 +274,7 @@ export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; mo
 
 /** Cổng CHỈ CHẠY TRÊN MÁY CHỦ (cần node:fs — PlenX giữ token ở tệp): tệp đó tự đăng ký vào đây khi được import ở phía máy chủ (sinh-video.ts),
  *  để cong-ai.ts (giao diện + Worker cũng import) không kéo node:fs vào bản build trình duyệt. */
-type CongMay = { gui: (model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc>; /** xoá clip trên nền tảng của họ SAU khi đã lưu về R2 (anh 21/10/2026) */ xoa?: (uri: string) => Promise<void> };
+type CongMay = { gui: (model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc>; /** xoá clip trên nền tảng của họ SAU khi đã lưu về R2 (anh 21/10/2026) */ xoa?: (uri: string) => Promise<void>; /** token còn hạn (PlenX) */ token?: () => Promise<string> };
 export const CONG_MAY: Partial<Record<CongKey, CongMay>> = {};
 /** Clip đã lưu về kho của mình (R2) → xoá bản trên nền tảng cổng nếu cổng có lệnh xoá (PlenX). Không chặn: lỗi chỉ ghi log. */
 export async function donVideoCong(cong: string | null | undefined, uri: string): Promise<void> {
@@ -334,6 +375,8 @@ export type MoHinhCong = { key: string; label: string; nhom: string; vnd: number
 export const MO_HINH_CONG: MoHinhCong[] = [
   { key: 'ckey:wowztools/nano-banana-2', label: 'Nano Banana 2 (Gemini 3.1 Flash Image)', nhom: 'ckey.vn', vnd: 110.5, donVi: 'anh' },
   { key: 'ckey:wowztools/nano-banana-pro', label: 'Nano Banana Pro (Gemini 3 Pro Image)', nhom: 'ckey.vn', vnd: 110.5, donVi: 'anh' },
+  { key: 'plenxai:nano-banana-2', label: 'Nano Banana 2 · PlenX AI', nhom: 'PlenX AI', vnd: 200, donVi: 'anh' },
+  { key: 'plenxai:nano-banana-pro', label: 'Nano Banana Pro (Full) · PlenX AI', nhom: 'PlenX AI', vnd: 500, donVi: 'anh' },
   { key: 'shopaikey:gemini-nano-banana-2.1', label: 'Nano Banana 2.1', nhom: 'ShopAIKey', vnd: 683, donVi: 'anh' },
   { key: 'shopaikey:grok-video-3-10s', label: 'Grok Video 3 · 10s (khung 2:3, xuất tự cắt 9:16)', nhom: 'ShopAIKey', vnd: 3250, donVi: 'clip', giay: 10 },
   { key: 'shopaikey:grok-imagine-video-1.5', label: 'Grok Imagine Video 1.5 · 6s (khung 2:3)', nhom: 'ShopAIKey', vnd: 6500, donVi: 'clip', giay: 6 },

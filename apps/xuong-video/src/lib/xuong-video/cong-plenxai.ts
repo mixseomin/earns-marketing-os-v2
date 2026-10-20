@@ -93,4 +93,4 @@ export async function xoaPlenx(uri: string): Promise<void> {
 }
 
 // đăng ký vào chuỗi cổng video (cong-ai.ts › CONG_MAY) — import tệp này ở phía máy chủ là đủ
-CONG_MAY.plenxai = { gui: guiPlenx, doc: docPlenx, xoa: xoaPlenx };
+CONG_MAY.plenxai = { gui: guiPlenx, doc: docPlenx, xoa: xoaPlenx, token: () => layToken() };

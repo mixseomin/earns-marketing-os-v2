@@ -13,6 +13,7 @@ import { modelFal } from './fal';
 import { jobDangCho } from './doc-db';
 import { lamSanNho } from './anh-nho-may';
 import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
+import './cong-plenxai';   // máy chủ chạy việc ảnh dự phòng (hàng đợi Cloudflare lỗi) → cổng PlenX lấy token từ tệp trên box
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
 import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
 import { baoHetTien } from './bao-het-tien';

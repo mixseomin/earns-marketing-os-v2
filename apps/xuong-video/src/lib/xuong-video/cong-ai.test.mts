@@ -8,10 +8,10 @@ assert.strictEqual(laHetTien('shopaikey', 'HTTP 403: user quota is not enough'),
 assert.strictEqual(laHetTien('ckey', 'x', 402), true);
 // chuỗi: chỉ model ảnh Google, chỉ cổng có khoá, ckey trước ShopAIKey
 process.env.CKEY_API_KEY = 'k'; process.env.SHOPAIKEY_API_KEY = 'k';
-assert.deepStrictEqual(chuoiAnh('gemini-nano-banana-2.1').map((x) => x.cong), ['ckey', 'ckey', 'ckey', 'shopaikey']);
+assert.deepStrictEqual(chuoiAnh('gemini-nano-banana-2.1').map((x) => x.cong), ['ckey', 'ckey', 'ckey', 'plenxai', 'shopaikey'], 'PlenX 200₫ sau ckey 110₫, trước ShopAIKey 683₫ (21/10/2026)');
 assert.deepStrictEqual(chuoiAnh('fal:bytedance/seedream'), []);
 delete process.env.CKEY_API_KEY;
-assert.deepStrictEqual(chuoiAnh('gemini-nano-banana-2.1').map((x) => x.cong), ['shopaikey']);
+assert.deepStrictEqual(chuoiAnh('gemini-nano-banana-2.1').map((x) => x.cong), ['plenxai', 'shopaikey']);
 // dòng nguồn
 const n = { cong: 'ckey' as const, model: 'wowztools/nano-banana-2', model_that: 'gemini-3.1-flash-image-portrait', vnd: 110.5, giay: 39, thu: [{ cong: 'ckey' as const, model: 'wowztools/nano-banana-2', ok: true }] };
 assert.strictEqual(taNguon(n), 'ckey.vn · wowztools/nano-banana-2 → gemini-3.1-flash-image-portrait · 110,5₫ · 39s');

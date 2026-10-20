@@ -46,4 +46,6 @@ const s2 = tinhSucKhoe({ ...v, hong: [...v.hong, { may: 'h', nen: 'facebook', lu
 assert.ok(!s2.suCo.some((x) => x.tieuDe.startsWith('Đăng qua API')), 'tài khoản đang bị dừng vì cảnh báo: không đẻ thêm dòng lỗi đăng');
 assert.ok(!s.suCo.some((x) => x.tieuDe.includes('@h ') && x.kenh.includes('H · YOUTUBE') && x.tieuDe.includes('dừng')), 'xác minh ghi tay không làm máy dừng → không báo dừng');
 assert.ok(s.suCo.some((x) => x.tieuDe === 'br chặn bấm nút Publish'), 'tài khoản có cảnh báo không-dừng vẫn hiện lỗi đăng thật');
+assert.equal(nguyenNhan('Đăng hỏng: X: không đứng ở tài khoản @beforeyouland — dừng').ten, 'Trang chưa đứng đúng tài khoản');
+assert.equal(nguyenNhan('Đăng hỏng: TikTok: 90 giây chưa rời màn đăng').ten, 'TikTok: đã bấm Post nhưng không xác nhận được');
 console.log('✓ social-suc-khoe: ô 4 ngày · gom sự cố theo nguyên nhân · cảnh báo dừng 7 ngày · lỗi đã khỏi không báo · kho cạn · im lặng');

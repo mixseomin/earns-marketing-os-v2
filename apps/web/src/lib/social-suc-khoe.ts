@@ -31,6 +31,8 @@ const NGUYEN_NHAN: [RegExp, string, string][] = [
   [/Confirm your identity|xác minh danh tính|verify (it.s you|your identity)/i, 'Nền tảng đòi xác minh danh tính', 'Chỉ chủ tài khoản xác minh được (app trên điện thoại).'],
   [/is not a function|TypeError|ReferenceError|SyntaxError/i, 'Lỗi mã máy đăng', 'Script đăng vỡ trước khi tới nền tảng.'],
   [/br (eval|click|goto)/i, 'Trình duyệt (br) lỗi giữa chừng', 'Trang không phản hồi / đổi giao diện khi máy đang thao tác (bản ghi cũ không giữ lý do).'],
+  [/không đứng ở tài khoản|chưa chuyển sang danh tính|không phải Page/i, 'Trang chưa đứng đúng tài khoản', 'Kiểm danh tính trước khi đăng không khớp (trang tải chậm / phiên đứng ở tài khoản khác) — máy dừng để không đăng nhầm.'],
+  [/chưa rời màn đăng/i, 'TikTok: đã bấm Post nhưng không xác nhận được', 'App chưa quay về bảng tin trong thời gian chờ; bài có thể đã lên — sổ ghi "chưa xác nhận", không đăng lại.'],
   [/oembed|chưa công khai/i, 'Đăng xong nhưng chưa công khai', 'Bài lên nhưng kiểm công khai không qua.'],
   [/Hết video|hết video/i, 'Hết bài đã duyệt', 'Kho không còn bài DUYỆT chưa đăng cho nền này.'],
 ];

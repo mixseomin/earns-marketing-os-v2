@@ -14,6 +14,9 @@ def kiem(dong, ten, cr):
     d = json.loads(dong[8:]); loi = []
     if d.get("ten") != ten: loi.append("tên camp '%s' khác '%s'" % (d.get("ten"), ten))
     if d.get("cr") != cr: loi.append("creative %s khác %s" % (d.get("cr"), cr))
+    # anh 21/10/2026: "ko đc thêm ad thứ 2 trong 1 camp của Ethopex" — mỗi camp đúng 1 nhóm, 1 ad
+    if d.get("so_nhom", 1) != 1: loi.append("camp có %s nhóm quảng cáo, chỉ được 1" % d.get("so_nhom"))
+    if d.get("so_ad", 1) != 1: loi.append("camp có %s ad, chỉ được 1 ad / camp" % d.get("so_ad"))
     for k, (v, mo_ta) in KHUON.items():
         if d.get(k) != v: loi.append("%s: đang là %s, phải là %s" % (mo_ta, d.get(k), v))
     return loi
@@ -27,7 +30,9 @@ def tu_kiem():
     assert kiem(ok.replace('"nuoc":39', '"nuoc":1'), "A", 5), "thiếu nước phải chặn"
     assert kiem(ok, "A", 6), "sai creative phải chặn"
     assert kiem("", "A", 5), "không có payload phải chặn"
-    print("tự kiểm: 7/7 đạt")
+    assert kiem(ok.replace('"nuoc":39', '"nuoc":39,"so_nhom":1,"so_ad":2'), "A", 5), "2 ad trong 1 camp phải chặn"
+    assert kiem(ok.replace('"nuoc":39', '"nuoc":39,"so_nhom":1,"so_ad":1'), "A", 5) == [], "1 nhóm 1 ad phải qua"
+    print("tự kiểm: 9/9 đạt")
 
 if __name__ == "__main__":
     if "--tu-kiem" in sys.argv: tu_kiem(); sys.exit(0)

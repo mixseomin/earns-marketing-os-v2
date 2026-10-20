@@ -1,0 +1,23 @@
+{
+ "_": "Quy trình máy chạy của Phòng Social Traffic.",
+ "phong": "social-traffic",
+ "quy_trinh": [
+  {
+   "id": "xu-thu",
+   "ten": "Xử thư Kiên chuyển vào phòng",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Thư nền tảng xã hội Kiên chuyển vào 📂 Social Traffic → Vân (Claude Code, CHỈ ĐỌC) đọc thư + mã dây chuyền Pinterest + tài liệu nền tảng → báo việc tiếp theo, việc cần anh cung cấp, rủi ro chính sách vào chủ đề phòng.",
+   "ma": "apps/cty/may/van-thu.mjs · apps/cty/worker/phong-thu.mjs",
+   "chu_tri": "van",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 5 phút",
+   "lich": [
+    "iMac:tc.on.cty.van-thu"
+   ],
+   "chi_phi": "gói thuê bao Claude Code; token mỗi lượt ghi nhật ký Vân"
+  }
+ ]
+}

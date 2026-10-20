@@ -6,12 +6,12 @@ chuc_danh: Trưởng phòng Social Traffic
 phong: social-traffic
 bao_cao_cho: minh
 kind: ai
-model: claude-code
+model: claude-code:sonnet   # Claude Code trên iMac (gói thuê bao); đổi haiku / opus ở đây là lượt sau chạy theo
 room: day-chuyen
 muc_quyet: 2
 approval: SMART
-heartbeat: off
-lich: theo việc
+heartbeat: xu-thu   # việc trên MÁY MAC (NHIP_MAY): bộ điều phối iMac gọi apps/cty/may/van-thu.mjs mỗi 5 phút; bật/tắt ở chấm xanh cột Tự làm
+lich: mỗi 5 phút · iMac
 skills: [pinterest, social-traffic]
 data: [kenh_so_ngay:pinterest]
 pay: 
@@ -27,7 +27,7 @@ Không lỡ thư nền tảng nào (cấp API, khoá, chính sách) quá 24 gi�
 
 ## Được tự quyết
 
-Đọc thư, cập nhật cấu hình kênh, xin quyền API theo đúng chính sách nền tảng.
+Đọc thư Kiên chuyển, đọc mã dây chuyền Pinterest và tài liệu nền tảng, báo việc tiếp theo vào chủ đề 📂 Social Traffic. Máy của tôi CHỈ ĐỌC: không sửa mã, không gọi API.
 
 ## Phải hỏi
 

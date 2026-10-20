@@ -26,7 +26,55 @@ export async function topicPhong(phong, ten, tg) {
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   if (st.topic) return st.topic;
   const j = await tg('createForumTopic', { name: ten }); if (!j.ok) return null;
-  st.topic = j.result.message_thread_id; fs.writeFileSync(tep, JSON.stringify(st)); return st.topic;
+  st.topic = j.result.message_thread_id; fs.writeFileSync(tep, JSON.stringify(st));
+  try { await ghimNhanSu(phong, tg); } catch { /* bảng ghim hỏng không chặn việc chuyển thư */ }
+  return st.topic;
+}
+// BẢNG NHÂN SỰ GHIM ở đầu chủ đề mỗi phòng (anh 20/10/2026: "ở mỗi phòng trên Tele hãy tạo 1 pin danh sách nhân sự"). Ghi rõ ai ĐANG
+// CHẠY THẬT (có nhịp máy, đang bật) và ai MỚI CÓ HỒ SƠ — để thấy ngay phòng nào chưa có người làm việc tiếp theo.
+const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const fmV = (t, k) => t.match(new RegExp(`^${k}:\\s*(.+?)\\s*(#.*)?$`, 'm'))?.[1]?.trim() ?? '';
+export async function bangNhanSu(phong) {
+  const { GOC } = await import('./goc.mjs'); const goc = path.join(GOC, 'cong-ty');
+  let tp = ''; try { tp = fs.readFileSync(path.join(goc, 'phong', `${phong}.md`), 'utf8'); } catch { return null; }
+  let chinh = {}; try { chinh = JSON.parse(fs.readFileSync(path.join(DATA(), 'nhip-chinh.json'), 'utf8')); } catch { /* chưa chỉnh */ }
+  const ns = fs.readdirSync(path.join(goc, 'nhan-su')).map((id) => { try { const t = fs.readFileSync(path.join(goc, 'nhan-su', id, 'SOUL.md'), 'utf8');
+    return { id, ten: fmV(t, 'ten'), cd: fmV(t, 'chuc_danh'), phong: fmV(t, 'phong'), hb: fmV(t, 'heartbeat'), model: fmV(t, 'model') }; } catch { return null; } })
+    .filter((x) => x?.phong === phong).sort((a, b) => /^Trưởng/i.test(b.cd) - /^Trưởng/i.test(a.cd));
+  const tenPh = fmV(tp, 'ten');
+  // việc MÁY của phòng (quy-trinh/<phòng>/danh-sach.json, có lịch chạy): chủ trì ghi theo mã người hoặc theo VAI → vai_<vai> trong tệp phòng, trưởng phòng mặc định
+  let qt = []; try { qt = JSON.parse(fs.readFileSync(path.join(goc, 'quy-trinh', phong, 'danh-sach.json'), 'utf8')).quy_trinh ?? []; } catch { /* phòng chưa khai quy trình */ }
+  const truong = ns.find((x) => /^Trưởng/i.test(x.cd))?.id;
+  const nguoiCua = (ct) => (ns.some((x) => x.id === ct) ? ct : fmV(tp, `vai_${String(ct).replace(/-/g, '_')}`) || (ct === 'truong-phong' ? truong : null));
+  const may = {}; for (const q of qt) if ((q.lam ?? []).includes('may') && (q.lich ?? []).length) { const ai = nguoiCua(q.chu_tri); if (ai) (may[ai] ??= []).push(q.ten); }
+  const dong = ns.map((x) => { const nhip = x.hb && x.hb !== 'off' && chinh[x.id]?.bat !== false, vm = may[x.id] ?? [], chay = nhip || vm.length;
+    const viec = [nhip ? `nhịp ${x.hb}` : '', vm.length ? `máy chạy ${vm.length} việc (${vm.slice(0, 3).join(', ')}${vm.length > 3 ? '…' : ''})` : ''].filter(Boolean).join(' · ');
+    return `${chay ? '🟢' : '⚪️'} <b>${esc(x.ten)}</b> — ${esc(x.cd)}\n    ${chay ? esc(viec) : chinh[x.id]?.bat === false ? 'đang TẮT (cột Tự làm)' : 'mới có hồ sơ — chưa có máy chạy việc'}${x.model && x.model !== 'không' ? ` · não ${esc(x.model)}` : ''}`; });
+  const cho = [...tp.matchAll(/^cho_thu:\s*(.+)$/gm)].map(([, v]) => `• ${esc(v.split(' | ').slice(1).join(' | ') || v)}`);
+  return `📌 <b>Nhân sự · ${esc(tenPh)}</b>\n\n${dong.join('\n') || '(chưa có ai)'}${cho.length ? `\n\n<b>Đang chờ thư:</b>\n${cho.join('\n')}` : ''}\n\n🟢 đang chạy thật · ⚪️ chỉ có hồ sơ\n<a href="https://cty.on.tc/phong/${phong}">↗ cty · ${esc(tenPh)}</a>`;
+}
+/** Gửi + ghim bảng nhân sự lần đầu; các lần sau chỉ sửa khi chữ đổi. Nhớ mã tin ghim trong tệp chủ đề của phòng. */
+export async function ghimNhanSu(phong, tg) {
+  const tep = CHU_DE[phong] ? path.join(DATA(), CHU_DE[phong]) : path.join(DATA(), `tg-${phong}.json`);
+  let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { return 'chưa có chủ đề'; }
+  if (!st.topic) return 'chưa có chủ đề';
+  const chu = await bangNhanSu(phong); if (!chu || chu === st.ghimChu) return 'không đổi';
+  const opt = { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: chu };
+  if (st.ghim && (await tg('editMessageText', { message_id: st.ghim, ...opt })).ok) { st.ghimChu = chu; fs.writeFileSync(tep, JSON.stringify(st)); return 'đã sửa'; }
+  const j = await tg('sendMessage', { message_thread_id: st.topic, ...opt }); if (!j.ok) return 'gửi hỏng';
+  await tg('pinChatMessage', { message_id: j.result.message_id, disable_notification: true });
+  // đọc lại tệp trước khi ghi: phòng khác (Kiên, Ngọc) có thể vừa ghi khoá riêng của nó vào cùng tệp
+  try { st = { ...JSON.parse(fs.readFileSync(tep, 'utf8')), ghim: j.result.message_id, ghimChu: chu }; } catch { st = { ...st, ghim: j.result.message_id, ghimChu: chu }; }
+  fs.writeFileSync(tep, JSON.stringify(st)); return 'đã ghim';
+}
+/** Mọi phòng đang có chủ đề → ghim / cập nhật bảng nhân sự; tối đa mỗi giờ một lần (gomTin gọi). */
+export async function capNhatGhim(tg, { ep = false } = {}) {
+  const tLan = path.join(GOC_HOP(), 'ghim.json'); let lan = 0; try { lan = JSON.parse(fs.readFileSync(tLan, 'utf8')).luc; } catch { /* lần đầu */ }
+  if (!ep && Date.now() - lan < 3600_000) return null;
+  fs.mkdirSync(GOC_HOP(), { recursive: true }); fs.writeFileSync(tLan, JSON.stringify({ luc: Date.now() }));
+  let them = []; try { them = fs.readdirSync(DATA()).filter((f) => /^tg-[a-z0-9-]+\.json$/.test(f)).map((f) => f.slice(3, -5)); } catch { /* không có */ }
+  const ra = {}; for (const ph of [...Object.keys(CHU_DE), ...them]) { try { ra[ph] = await ghimNhanSu(ph, tg); } catch (e) { ra[ph] = `lỗi: ${e.message}`; } }
+  return ra;
 }
 const topicCua = (x) => x.message?.message_thread_id ?? x.callback_query?.message?.message_thread_id ?? null;
 
@@ -45,6 +93,7 @@ export async function gomTin(tg) {
       offset = x.update_id + 1; n++;
     }
     fs.writeFileSync(tOffset, JSON.stringify({ offset }));
+    try { await capNhatGhim(tg); } catch (e) { console.error(`✗ ghim nhân sự: ${e.message}`); }
     try { for (const f of fs.readdirSync(HOP(KHAC))) if (Date.now() - fs.statSync(path.join(HOP(KHAC), f)).mtimeMs > GIU_KHAC_NGAY * 864e5) fs.rmSync(path.join(HOP(KHAC), f)); } catch { /* chưa có hộp khác */ }
     return n;
   } finally { fs.rmSync(khoa, { recursive: true, force: true }); }
@@ -60,7 +109,7 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
   const { strict: t } = await import('node:assert'); const os = await import('node:os');
   process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'tg-phong-'));
   fs.writeFileSync(path.join(DATA(), 'noi-dung-tg.json'), JSON.stringify({ topic: 7 })); fs.writeFileSync(path.join(DATA(), 'bao-mat-tg.json'), JSON.stringify({ topic: 3 }));
-  let goi = null; const tg = async (m, b) => { goi = b; return { ok: true, result: [
+  let goi = null; const tg = async (m, b) => { if (m === 'getUpdates') goi = b; return { ok: true, result: [
     { update_id: 10, message: { message_thread_id: 7, text: 'https://ratesbyroom.com/a/' } },
     { update_id: 11, callback_query: { data: 'km:x:y', message: { message_thread_id: 3 } } },
     { update_id: 12, message: { text: 'chủ đề chung' } },

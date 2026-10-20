@@ -1,4 +1,5 @@
-# Số App Store (lượt hiển thị/xem trang/tải) → Directus product_stats → tab Tài sản. Xem scripts/app-store-so.mjs.
+# Số App Store (lượt hiển thị/xem trang/tải) + doanh thu AdMob → Directus product_stats → tab Tài sản.
+# Xem scripts/app-store-so.mjs và scripts/admob-doanh-thu.mjs (cùng timer, anh duyệt app-store-so 06/10, AdMob 20/10/2026).
 [Unit]
 Description=App Store analytics -> product_stats
 After=network-online.target
@@ -8,3 +9,4 @@ Type=oneshot
 WorkingDirectory=/opt/earns-marketing-os-v2
 EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
 ExecStart=/usr/bin/node scripts/app-store-so.mjs --days 35
+ExecStart=/usr/bin/node scripts/admob-doanh-thu.mjs --days 35

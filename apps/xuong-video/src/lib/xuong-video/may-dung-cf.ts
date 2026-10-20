@@ -3,6 +3,7 @@
 // Cắt khung / ảnh tĩnh từ MP4 vẫn ở box3 (vài trăm ms). Có DUNG_CF_URL + DUNG_CF_KHOA trong env thì đi Cloudflare; không có, hoặc Cloudflare lỗi
 // → dựng tại chỗ như cũ (không mất lượt), nhật ký ghi rõ đường nào.
 import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 /** Thay đường dẫn máy này bằng mã chỗ của container: thư mục lượt → @DIR@, thư mục font → @FONTS@ (cả khi nằm giữa chuỗi filter ffmpeg). */
@@ -24,9 +25,14 @@ async function dungCf(args: string[], o: { thuMuc: string; fontsDir: string; ra:
   return Number(r.headers.get('x-giay-dung') ?? 0);
 }
 
+/** Khoá máy dựng: env trước, không có thì đọc tệp bí mật trên box3 (/root/.secrets/dung-cf.env — mọi đường gọi dựng: app studio, may-dung.mts qua ssh). */
+function cauHinh(): { url?: string; khoa?: string } {
+  if (!process.env.DUNG_CF_URL) try { for (const l of readFileSync('/root/.secrets/dung-cf.env', 'utf8').split('\n')) { const m = l.match(/^(DUNG_CF_URL|DUNG_CF_KHOA)=(.+)$/); if (m) process.env[m[1]!] = m[2]!.trim(); } } catch { /* không phải box3 */ }
+  return { url: process.env.DUNG_CF_URL, khoa: process.env.DUNG_CF_KHOA };
+}
 /** Lệnh ffmpeg dựng chính: Cloudflare trước (nếu cấu hình), lỗi thì chạy tại chỗ bằng `chayTaiCho`. Trả nơi đã dựng để ghi nhật ký. */
 export async function dungFfmpeg(args: string[], o: { thuMuc: string; fontsDir: string; ra: string; chayTaiCho: () => Promise<unknown> }): Promise<{ noi: 'cloudflare' | 'box3'; giay?: number; loiCf?: string }> {
-  const url = process.env.DUNG_CF_URL, khoa = process.env.DUNG_CF_KHOA;
+  const { url, khoa } = cauHinh();
   if (url && khoa) {
     try { return { noi: 'cloudflare', giay: await dungCf(args, { ...o, url, khoa }) }; }
     catch (e) { const loiCf = (e as Error).message.slice(0, 200); console.warn(`dựng cloudflare hỏng → dựng tại box3: ${loiCf}`); await o.chayTaiCho(); return { noi: 'box3', loiCf }; }

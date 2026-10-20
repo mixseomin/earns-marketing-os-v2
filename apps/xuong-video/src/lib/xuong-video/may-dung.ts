@@ -1,6 +1,7 @@
 // DỰNG VIDEO MÁY (0đ, không AI): đề của mẫu → ASS + ffmpeg trên box3 → MP4 + 3 khung (giữa từng shot của mẫu) → R2.
 // Dùng ở hai chỗ: video của MÁY (may.ts › xuatVideo — đường chính từ 17/10/2026) và phim Máy Dựng cũ đã lưu trữ (tab ⬇ Xuất của tập,
 // xuat-tap.ts › xuatMayDungTap — để phim cũ mở ra vẫn xuất được).
+import { dungFfmpeg } from './may-dung-cf';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
@@ -37,7 +38,9 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
     }
     const ass = `${thuMuc}/de.ass`, ra = `${thuMuc}/ra.mp4`;
     await writeFile(ass, bo.ass(o.de), 'utf8');
-    try { await run('ffmpeg', bo.lenh({ de: o.de, ass, nen, fontsDir: FONTS_DIR, ra }), { timeout: 5 * 60_000, maxBuffer: 8 << 20 }); }
+    // lệnh dựng chính: máy dựng Cloudflare (nhẹ tải box3), lỗi / chưa cấu hình thì tại chỗ — may-dung-cf.ts
+    const args = bo.lenh({ de: o.de, ass, nen, fontsDir: FONTS_DIR, ra });
+    try { const d = await dungFfmpeg(args, { thuMuc, fontsDir: FONTS_DIR, ra, chayTaiCho: () => run('ffmpeg', args, { timeout: 5 * 60_000, maxBuffer: 8 << 20 }) }); console.log(`dựng ${o.slug}: ${d.noi}${d.giay ? ` ${d.giay}s` : ''}${d.loiCf ? ` (cloudflare lỗi: ${d.loiCf})` : ''}`); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
     const goc = `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`;
     const url = await uploadToR2(`${goc}.mp4`, await readFile(ra), 'video/mp4');

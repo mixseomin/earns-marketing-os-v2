@@ -1,0 +1,12 @@
+{
+  "name": "dung-video",
+  "private": true,
+  "type": "module",
+  "description": "Máy dựng ffmpeg của studio trên Cloudflare Containers — ngoài workspace (box3 npm ci không cài)",
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.3"
+  }
+}

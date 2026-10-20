@@ -1,0 +1,13 @@
+{
+  // Máy dựng ffmpeg của studio trên Cloudflare Containers (tài khoản Workers Paid). Deploy: cloudflare/dung-video/dong-goi.sh
+  "name": "dung-video",
+  "account_id": "f1fefdd1431b68732ec5eab5cd5d7e23",   // Eimagini — tài khoản có Workers Paid (Containers cần gói Paid)
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  "containers": [
+    { "class_name": "MayDung", "image": "./container/Dockerfile", "image_build_context": ".", "max_instances": 4, "instance_type": "standard-1" }
+  ],
+  "durable_objects": { "bindings": [{ "name": "MAY_DUNG", "class_name": "MayDung" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MayDung"] }],
+  "observability": { "enabled": true }
+}

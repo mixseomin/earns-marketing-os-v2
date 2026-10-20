@@ -182,13 +182,13 @@ function BangCreative({ song, d, goc, cum, locGoc, setLocGoc, chon, setChon, onM
   // Cột dùng chung cho mọi nhóm; bảng cố định bề rộng cột (fixedLayout) để các bảng nhóm xếp chồng thẳng cột với nhau.
   const cot = (tenNhom: string): DataColumn<DongCreative>[] => [
     { key: 'chon', header: '', width: 30, align: 'center', cell: (c) => <input type="checkbox" checked={chon.includes(c.id)} onChange={() => doi(c.id)} onClick={(e) => e.stopPropagation()} aria-label={`chọn #${c.id}`} /> },
-    { key: 'ten', header: 'Creative', width: '22%', align: 'left', sortValue: (c) => c.ten, cell: (c) => (
+    { key: 'ten', header: 'Creative', width: 240, align: 'left', sortValue: (c) => c.ten, cell: (c) => (
       <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
         <span style={{ width: 22, height: 32, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: c.anh ? `center / cover no-repeat url(${anhNho(c.anh, 160)}), #111` : 'var(--bg-2)' }} />
         <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{tenNgan(c)}</b>
         {c.sua_sau_xuat && <span style={{ color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
       </span>), cellTitle: (c) => `#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}` },
-    { key: 'goc', header: 'Góc', width: '17%', align: 'left', sortValue: (c) => c.goc[0]?.ten ?? c.etp?.nguon_qc ?? null, cell: (c) => {
+    { key: 'goc', header: 'Góc', width: 170, align: 'left', sortValue: (c) => c.goc[0]?.ten ?? c.etp?.nguon_qc ?? null, cell: (c) => {
       // Creative phim (Ethopex) chưa có góc spy kiểu shop: góc = QC gốc của app mà creative cắt từ đó (Thư viện QC Meta) + đoạn cắt
       if (!c.goc.length && c.etp?.nguon_qc) return <a href={`https://www.facebook.com/ads/library/?id=${c.etp.nguon_qc}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         title={`QC gốc của app (Thư viện QC Meta #${c.etp.nguon_qc})${c.etp.doan ? ` · đoạn cắt ${c.etp.doan}` : ''}`} style={{ fontSize: 11, color: 'var(--cyan)' }}>🎬 QC gốc{c.etp.doan ? ` · ${c.etp.doan}` : ''}</a>;
@@ -198,20 +198,24 @@ function BangCreative({ song, d, goc, cum, locGoc, setLocGoc, chon, setChon, onM
       return <>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : 'chưa gắn'}{phu.length > 0 && <span style={{ marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</>;
     } },
     // Bấm khuôn = mở ĐÚNG template đó (góp ý #1400) — onCellClick chặn lan lên hàng, không mở phim creative chồng lên
-    { key: 'khuon', header: 'Khuôn', width: 150, align: 'left', sortValue: tenKhuon, onCellClick: (c) => { if (c.tpl) onMoPhim(c.tpl.id); },
+    { key: 'khuon', header: 'Khuôn', width: 130, align: 'left', sortValue: tenKhuon, onCellClick: (c) => { if (c.tpl) onMoPhim(c.tpl.id); },
       cell: (c) => <Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id} · bấm để mở template` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill> },
-    { key: 'hook', header: 'Hook', align: 'left', sortValue: (c) => c.hook, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.hook || '—'}</span>, cellTitle: (c) => c.hook },
-    { key: 'cta', header: 'CTA', width: '12%', align: 'left', sortValue: (c) => c.cta, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cta || '—'}</span>, cellTitle: (c) => c.cta },
+    { key: 'hook', header: 'Hook', width: 200, align: 'left', sortValue: (c) => c.hook, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.hook || '—'}</span>, cellTitle: (c) => c.hook },
+    { key: 'cta', header: 'CTA', width: 170, align: 'left', sortValue: (c) => c.cta, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cta || '—'}</span>, cellTitle: (c) => c.cta },
     { key: 'camp', header: 'Camp', title: 'Camp Ethopex đang dùng creative này (gốc + nhân bản) — xanh = đang lãi', width: 150, align: 'left', sortValue: (c) => c.etp?.camp.length ?? 0, cell: (c) => {
       const sl = soLieuCr(c, song); const ds = c.etp?.camp ?? [];
       if (!c.etp) return <span style={{ color: 'var(--fg-2)' }}>chưa lên</span>;
       return <span style={{ fontSize: 11.5, display: 'flex', flexWrap: 'wrap', whiteSpace: 'normal', lineHeight: 1.35 }}>{ds.length ? ds.map((id) => { const x = sl?.camp?.find((k) => k.id === id); return <span key={id} title={x ? `#${id} · budget $${x.budget} · spending ${x.spending ?? '—'}% · chi $${x.chi?.toFixed(2)} · thu $${x.thu?.toFixed(2)} · ROI ${x.roi ?? '—'}%` : `#${id}`}
         style={{ marginRight: 4, color: (x?.lai ?? 0) > 0 ? 'var(--green, #3fb950)' : (x?.lai ?? 0) < 0 ? 'var(--red, #f85149)' : 'var(--fg-1)' }}>#{id}{x && x.budget !== 1 ? ` $${x.budget}` : ''}</span>; }) : `creative #${c.etp.creative_id}`}</span>;
     } },
-    { key: 'lai', header: 'Lãi · ROI', title: 'Lãi và ROI cộng các camp của creative (số liệu sống từ Ethopex, từ đầu tháng)', width: 110, align: 'right', sortValue: (c) => soLieuCr(c, song)?.lai ?? -1e9, cell: (c) => {
+    { key: 'lai', header: 'Lãi', title: 'Lãi cộng các camp của creative (số liệu sống từ Ethopex, từ đầu tháng)', width: 80, align: 'right', sortValue: (c) => soLieuCr(c, song)?.lai ?? -1e9, cell: (c) => {
       const sl = soLieuCr(c, song); if (!sl || !sl.chi) return '—';
-      const roi = Math.round(((sl.thu! - sl.chi) / sl.chi) * 1000) / 10; const m = sl.lai! > 0 ? 'var(--green, #3fb950)' : 'var(--red, #f85149)';
-      return <span title={`chi $${sl.chi.toFixed(2)} · thu $${sl.thu!.toFixed(2)}`}><b style={{ color: m }}>{sl.lai! < 0 ? '−' : ''}${Math.abs(sl.lai!).toFixed(2)}</b> <span style={{ color: m }}>{roi}%</span></span>;
+      return <b title={`chi $${sl.chi.toFixed(2)} · thu $${(sl.thu ?? 0).toFixed(2)}`} style={{ color: (sl.lai ?? 0) > 0 ? 'var(--green, #3fb950)' : 'var(--red, #f85149)' }}>{(sl.lai ?? 0) < 0 ? '−' : ''}${Math.abs(sl.lai ?? 0).toFixed(2)}</b>;
+    } },
+    { key: 'roi', header: 'ROI', width: 70, align: 'right', sortValue: (c) => { const sl = soLieuCr(c, song); return sl?.chi ? ((sl.thu ?? 0) - sl.chi) / sl.chi : -1e9; }, cell: (c) => {
+      const sl = soLieuCr(c, song); if (!sl || !sl.chi) return '—';
+      const roi = Math.round((((sl.thu ?? 0) - sl.chi) / sl.chi) * 1000) / 10;
+      return <span style={{ color: roi > 0 ? 'var(--green, #3fb950)' : 'var(--red, #f85149)' }}>{roi}%</span>;
     } },
     { key: 'nn', header: 'NN', title: 'Ngôn ngữ của lời / chữ màn (kinh thánh)', width: 46, align: 'center', sortValue: (c) => c.ngon_ngu, cell: (c) => <Pill color="var(--cyan)">{c.ngon_ngu.toUpperCase()}</Pill> },
     { key: 'sx', header: 'Sản xuất', title: 'Bấm tiêu đề để xếp theo số bước đã xong', width: 205, align: 'left', sortValue: diemSx, cell: (c) => <NacSx c={c} /> },
@@ -227,7 +231,7 @@ function BangCreative({ song, d, goc, cum, locGoc, setLocGoc, chon, setChon, onM
       {nhom.map((g) => (
         <div key={g.ten || 'tat_ca'} style={{ display: 'grid', gap: 4 }}>
           {g.ten && <b style={{ fontSize: 12.5 }} title={`${g.ds.length} creative`}>{g.ten}</b>}
-          <DataTable rows={g.ds} columns={cot(g.ten)} getRowKey={(c) => `${g.ten}-${c.id}`} onRowClick={(c) => onMoPhim(c.id)} fixedLayout stickyFirst={false} minWidth={1100}
+          <DataTable rows={g.ds} columns={cot(g.ten)} getRowKey={(c) => `${g.ten}-${c.id}`} onRowClick={(c) => onMoPhim(c.id)} fixedLayout stickyFirst={false} minWidth={1560}
             persistKey="xv-sp-creative" rowStyle={(c) => (chon.includes(c.id) ? { background: 'color-mix(in srgb, var(--cyan) 8%, transparent)' } : undefined)} />
         </div>
       ))}

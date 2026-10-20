@@ -4,7 +4,7 @@
 //   --tiep-job   : đẩy lại job ảnh treo của tập (tiến trình chạy nó đã chết) bằng đúng đầu vào đã lưu — không chạy lại bước đã trả tiền.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --bien-the   : sinh ảnh tham chiếu cho biến thể chưa có ảnh (sinh-anh.sinhAnhBienTheDb — sổ trang phục), đợi xong.
-//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
+//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --cong-anh=<cổng:model> = vẫn nhiều bước, bước Nano qua cổng đó. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
 //   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
 //                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
@@ -46,6 +46,8 @@ const chi = new Set((process.argv.find((a) => a.startsWith('--chi=')) ?? '').sli
 const canhThieu = (tapId ? await q(sql`SELECT id, thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau, (khung_xam->>'xuong') IS NOT NULL AS co_xuong FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : []).filter((c) => !chi.size || chi.has(Number(c.thu_tu)));
 // --nguon=<cổng:model> (vd ckey:wowztools/nano-banana-2): sinh keyframe ĐÚNG nguồn đó, một bước — không tự rơi sang cổng đắt hơn, không qua FLUX độ sâu.
 const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8);
+// --cong-anh=<cổng:model> (vd plenxai:nano-banana-2): GIỮ đường nhiều bước (độ sâu / ghép từng người / sửa mặt), riêng các bước Nano đi đúng cổng này.
+const congAnh = (process.argv.find((a) => a.startsWith('--cong-anh=')) ?? '').slice(11);
 // Shot có bản đồ độ sâu 3D mặc định đi HAI BƯỚC (sinh-anh.ts: FLUX depth fal $0,05 + ảnh sửa nhân dạng) — ước giá phải tính bước FLUX (17/10/2026:
 // ước $0,034/ảnh trong khi đường thật ~ $0,09/ảnh).
 const haiBuoc = nguon || kt.keyframe_hai_buoc === false ? 0 : canhThieu.filter((c) => c.co_sau).length;
@@ -125,7 +127,7 @@ if (arg('keyframe') && canhThieu.length) {
   await songSong(canhThieu, async (c) => {
     if (lamLai) await db.execute(sql`UPDATE xv_canh SET keyframe_url = NULL WHERE id = ${c.id}`);   // ảnh mới về thì thành ảnh chọn (hoan-tat: coalesce)
     // MỖI SHOT BỌC RIÊNG: một lỗi (mạng, cổng) không đổ cả lượt — 17/10/2026 ConnectTimeout ở shot #12 làm chết tiến trình, 4 job hàng nền treo, 5 shot mất ảnh chọn
-    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined).catch((e: unknown) => ({ ok: false as const, loi: `lỗi không bắt được: ${e instanceof Error ? e.message : String(e)}` }));
+    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined, congAnh || undefined).catch((e: unknown) => ({ ok: false as const, loi: `lỗi không bắt được: ${e instanceof Error ? e.message : String(e)}` }));
     if (r.ok) jobs.push(...r.data);
     else { console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); if (lamLai && c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = coalesce(keyframe_url, ${String(c.keyframe_url)}) WHERE id = ${c.id}`); }
   });

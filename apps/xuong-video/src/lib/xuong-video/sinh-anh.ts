@@ -597,14 +597,17 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
 }
 
 /** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. Mọi cổng ở lyChanKeyframe. */
-export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string): Promise<KqSinh<number[]>> {
+/** congAnh (vd 'plenxai:nano-banana-2'): GIỮ đường nhiều bước (độ sâu / ghép từng người / sửa mặt) nhưng các bước Nano đi đúng cổng này — khác
+ *  moHinh (chọn model khác = đường một bước). Anh 21/10/2026: thử keyframe qua PlenX mà vị trí người vẫn khoá theo 3D. */
+export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string, congAnh?: string): Promise<KqSinh<number[]>> {
   const loi = (x: string): KqSinh<number[]> => ({ ok: false, loi: x });
   const g = await lyChanKeyframe(db, canhId);
   if (!g) return loi('không thấy cảnh');
   if (g.chan.length) return loi(g.chan.join(' · '));
   const { bc } = g;
   if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));   // phim người thật: kèm ảnh sát mặt
-  if (moHinh && (/^(fal|ckey|shopaikey|google):/.test(moHinh) || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;   // ckey:/shopaikey:/google: = chọn đích danh nguồn (cong-ai.ts)
+  if (moHinh && (/^(fal|ckey|shopaikey|google|plenxai):/.test(moHinh) || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;   // ckey:/shopaikey:/google:/plenxai: = chọn đích danh nguồn (cong-ai.ts)
+  if (congAnh && /^(ckey|shopaikey|google|plenxai):/.test(congAnh)) bc.kt.mo_hinh_anh = congAnh as typeof bc.kt.mo_hinh_anh;   // cổng cho các bước Nano, vẫn nhiều bước
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
   const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);
   const jobs: number[] = [];

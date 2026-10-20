@@ -9,6 +9,7 @@
 // Chỉ chạy trên máy chủ Next (node:fs) — cong-ai.ts gọi qua import động để Worker ảnh không kéo theo.
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { CONG_MAY } from './cong-ai';
 
 export const TOKEN_TEP = process.env.PLENXAI_TOKEN_FILE || '/root/.secrets/plenxai.json';
 const GOC = 'https://plenxai.com/api/v1';
@@ -78,3 +79,6 @@ export async function hoSoPlenx(): Promise<Record<string, unknown>> {
   if (!r.ok) throw new Error(`PlenX users/me ${r.status}`);
   return (await r.json()) as Record<string, unknown>;
 }
+
+// đăng ký vào chuỗi cổng video (cong-ai.ts › CONG_MAY) — import tệp này ở phía máy chủ là đủ
+CONG_MAY.plenxai = { gui: guiPlenx, doc: docPlenx };

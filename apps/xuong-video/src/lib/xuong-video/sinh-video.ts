@@ -12,6 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema, khoaFal } from './fal';
+import './cong-plenxai';   // đăng ký cổng PlenX (token ở tệp trên box — chỉ máy chủ) vào chuỗi video
 import { CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo, cauVatLy } from './dien-anh';

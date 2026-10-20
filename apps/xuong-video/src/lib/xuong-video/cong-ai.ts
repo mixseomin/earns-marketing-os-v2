@@ -231,12 +231,16 @@ export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; mo
   return ds.filter((b) => coCong(b.cong) && hopQc(`${b.cong}:${b.model}`, laQc));
 }
 
+/** Cổng CHỈ CHẠY TRÊN MÁY CHỦ (cần node:fs — PlenX giữ token ở tệp): tệp đó tự đăng ký vào đây khi được import ở phía máy chủ (sinh-video.ts),
+ *  để cong-ai.ts (giao diện + Worker cũng import) không kéo node:fs vào bản build trình duyệt. */
+type CongMay = { gui: (model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc> };
+export const CONG_MAY: Partial<Record<CongKey, CongMay>> = {};
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
 export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number ; /** độ phân giải của phim (kinh_thanh.do_phan_giai) — Kie Veo nhận 1080p; cổng khác giữ 720p */ doPhanGiai?: '720p' | '1080p' }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
   const k = khoa(cong);
   if (!k || !CONG_VIDEO.includes(cong)) return { ok: false, loi: `cổng ${cong} chưa có đường video` };
   if (cong === 'kie') return guiKie(k, model, o);
-  if (cong === 'plenxai') return (await import('./cong-plenxai')).guiPlenx(model, o);
+  if (cong === 'plenxai') return CONG_MAY.plenxai ? CONG_MAY.plenxai.gui(model, o) : { ok: false, loi: 'cổng PlenX chỉ chạy trên máy chủ (cong-plenxai.ts chưa đăng ký)' };
   if (cong === 'wavespeed') return guiWavespeed(k, model, o);
   try {
     const r = await fetch('https://api.shopaikey.com/v1/video/generations', {
@@ -258,7 +262,7 @@ export async function docVideoCong(cong: string, taskId: string, taoLuc: string)
   const k = khoa(cong as CongKey);
   if (!k) return { done: true, ok: false, loi: `thiếu khoá ${cong}` };
   if (cong === 'kie') return docKie(k, taskId, taoLuc);
-  if (cong === 'plenxai') return (await import('./cong-plenxai')).docPlenx(taskId, taoLuc, TREO_PHUT);
+  if (cong === 'plenxai') return CONG_MAY.plenxai ? CONG_MAY.plenxai.doc(taskId, taoLuc, TREO_PHUT) : { done: true, ok: false, loi: 'cổng PlenX chưa đăng ký trên máy chủ' };
   if (cong === 'wavespeed') return docWavespeed(k, taskId, taoLuc);
   const r = await fetch(`https://api.shopaikey.com/v1/video/generations/${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
   if (!r?.ok) return { done: false };

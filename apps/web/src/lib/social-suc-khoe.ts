@@ -25,9 +25,12 @@ const NGUYEN_NHAN: [RegExp, string, string][] = [
   [/nut-nhay-cam[^]*Publish|click Publish/i, 'br chặn bấm nút Publish', 'Gác nút nhạy cảm của br coi Publish là nút cấm — máy chọn xong mọi thứ nhưng không bấm đăng được.'],
   [/URL không có nguồn/i, 'br chặn mở trang đăng (URL không có nguồn)', 'Luật chặn bịa URL của br từ chối trang soạn bài — máy đăng phải khai nguồn URL.'],
   [/Studio đang ở kênh khác/i, 'YouTube Studio đứng nhầm kênh', 'Gmail giữ nhiều kênh; đổi kênh qua menu không ăn nên máy dừng để không đăng nhầm kênh.'],
-  [/boot không lên|os up|máy ảo/i, 'Máy ảo không lên', 'Lệnh bật máy ảo Android treo / quá giờ trước khi đăng.'],
+  [/boot không lên|os up|máy ảo|\badb\b|uiautomator|emulator-\d/i, 'Máy ảo không lên / không phản hồi', 'Máy ảo Android treo hoặc quá giờ trước khi đăng (TikTok đăng qua máy ảo).'],
+  [/ssh [^]*scripts\/dang-(fb-reel|dailymotion)/i, 'Đăng qua API trên box3 hỏng', 'Lệnh đăng Graph API / Dailymotion trên box3 trả lỗi (bản ghi cũ không giữ lý do).'],
+  [/br use \d+/i, 'br không mở được tài khoản', 'Trình duyệt không vào được hồ sơ của tài khoản (profile đang mở ở máy khác / Mac đó tắt).'],
   [/Confirm your identity|xác minh danh tính|verify (it.s you|your identity)/i, 'Nền tảng đòi xác minh danh tính', 'Chỉ chủ tài khoản xác minh được (app trên điện thoại).'],
   [/is not a function|TypeError|ReferenceError|SyntaxError/i, 'Lỗi mã máy đăng', 'Script đăng vỡ trước khi tới nền tảng.'],
+  [/br (eval|click|goto)/i, 'Trình duyệt (br) lỗi giữa chừng', 'Trang không phản hồi / đổi giao diện khi máy đang thao tác (bản ghi cũ không giữ lý do).'],
   [/oembed|chưa công khai/i, 'Đăng xong nhưng chưa công khai', 'Bài lên nhưng kiểm công khai không qua.'],
   [/Hết video|hết video/i, 'Hết bài đã duyệt', 'Kho không còn bài DUYỆT chưa đăng cho nền này.'],
 ];
@@ -67,7 +70,9 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
     const g = gom.get(khoa) ?? { muc, tieuDe, chiTiet, kenh: [], luc: null };
     if (!g.kenh.includes(kenh)) g.kenh.push(kenh); if (luc && (!g.luc || luc > g.luc)) g.luc = luc; gom.set(khoa, g);
   };
+  const dangDung = (n: VaoSuc['noi'][number]) => !!n.acct && v.canhBao.some((c) => c.acct === n.acct);   // tài khoản đang bị dừng vì cảnh báo: lý do là cảnh báo, không tính lỗi đăng riêng
   for (const n of v.noi) {
+    if (dangDung(n)) continue;
     const hong = v.hong.filter((x) => x.may === n.may && x.nen === n.nen).sort((a, b) => b.luc.localeCompare(a.luc))[0];
     const okLuc = v.da.filter((x) => x.may === n.may && x.nen === n.nen).map((x) => x.luc ?? `${x.ngay}T00:00:00Z`).sort().pop();
     if (hong && (!okLuc || okLuc < hong.luc)) { const nn = nguyenNhan(hong.chu); them(`loi|${nn.ten}`, 'bad', nn.ten, nn.giai, ten(n), hong.luc); }

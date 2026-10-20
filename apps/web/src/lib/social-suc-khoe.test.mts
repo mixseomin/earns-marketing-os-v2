@@ -36,4 +36,11 @@ assert.equal(s.suCo[0]!.muc, 'bad', 'lỗi đỏ đứng trước cảnh báo v�
 // fb Hotel: không bài, không lỗi đăng nhưng có cảnh báo tài khoản → không báo thêm "im lặng"
 assert.ok(!s.suCo.find((x) => x.tieuDe.startsWith('Không đăng'))?.kenh.includes('H · FACEBOOK'), 'đã có lý do thì không báo im lặng');
 assert.equal(nguyenNhan('Đăng hỏng: thứ gì đó lạ | dòng 2').ten, 'thứ gì đó lạ', 'lỗi lạ giữ câu đầu');
+assert.equal(nguyenNhan('Đăng hỏng: Command failed: /x/adb -s emulator-5554 shell uiautomator dump').ten, 'Máy ảo không lên / không phản hồi');
+assert.equal(nguyenNhan('Đăng hỏng: Command failed: ssh root@h cd /opt && tsx scripts/dang-fb-reel.mts').ten, 'Đăng qua API trên box3 hỏng');
+assert.equal(nguyenNhan('Đăng hỏng: Command failed: /Users/htuan/bin/br use 508').ten, 'br không mở được tài khoản');
+assert.equal(nguyenNhan('Đăng hỏng: Command failed: /Users/htuan/bin/br eval location.href').ten, 'Trình duyệt (br) lỗi giữa chừng');
+assert.equal(nguyenNhan('br click Publish: {"chan":"nut-nhay-cam"}').ten, 'br chặn bấm nút Publish', 'Publish vẫn xếp đúng, không rơi vào nhóm br chung');
+const s2 = tinhSucKhoe({ ...v, hong: [...v.hong, { may: 'h', nen: 'facebook', luc: '2026-10-19T01:03:30Z', chu: 'Command failed: ssh x scripts/dang-fb-reel.mts' }] });
+assert.ok(!s2.suCo.some((x) => x.tieuDe.startsWith('Đăng qua API')), 'tài khoản đang bị dừng vì cảnh báo: không đẻ thêm dòng lỗi đăng');
 console.log('✓ social-suc-khoe: ô 4 ngày · gom sự cố theo nguyên nhân · cảnh báo dừng 7 ngày · lỗi đã khỏi không báo · kho cạn · im lặng');

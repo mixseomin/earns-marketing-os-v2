@@ -29,7 +29,17 @@ const x = JSON.parse(pt(`--cho ${PHONG} --json`))[0];
 if (!x) { log('không có thư chờ'); process.exit(0); }
 const phong = box(`sed -n '1,/^---$/!p' ${APP}/cong-ty/phong/${PHONG}.md | head -40`);
 
-const giao = `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc): giữ traffic từ mạng xã hội (Pinterest trước tiên) cho các dự án.
+const truoc = x.truoc;
+const giao = x.loai === 'tra-loi' ? `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc). Anh (Giám đốc) vừa nhắn trong chủ đề phòng${truoc ? ', trả lời dưới báo cáo của bạn về một thư' : ''}.
+Việc của bạn: đọc tin anh, trả lời câu anh hỏi và CẬP NHẬT kế hoạch theo điều anh nói (đọc lại mã / tài liệu nếu cần).
+BẠN CHỈ ĐỌC: không sửa tệp, không chạy lệnh, không gọi API nền tảng, không tiêu tiền. Việc cần sửa mã / cấu hình thì ghi rõ bước để người có quyền làm.
+Không có ai trả lời giữa chừng: đừng hỏi lại, tự quyết theo điều anh nói. Không đụng ~/.claude hay thứ gì ngoài repo này.
+
+TIN ANH (${x.tu}): ${x.loi_anh}
+${truoc ? `\nTHƯ GỐC: ${truoc.tieuDe} — ${truoc.gui}\nKiên đọc: ${truoc.chu}\nNỘI DUNG THƯ:\n${truoc.than}\n\nBÁO CÁO TRƯỚC CỦA BẠN:\n${truoc.bao_cao}${truoc.loi_anh ? `\n(lần trước anh nhắn: ${truoc.loi_anh})` : ''}` : ''}
+
+TRẢ LỜI bằng tiếng Việt, ngắn: trả lời thẳng câu anh hỏi; kế hoạch đã cập nhật (các bước, tệp nào); còn thiếu gì (chỉ khi máy thật sự không tự lấy được, kèm vì sao).
+Dòng CUỐI: "KET: OK" khi đã trả lời xong, hoặc "KET: DUNG <lý do>".` : `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc): giữ traffic từ mạng xã hội (Pinterest trước tiên) cho các dự án.
 Kiên (phòng Bảo mật) vừa chuyển cho bạn một thư. Việc của bạn: đọc thư, đọc mã liên quan trong repo đang đứng (puzzle-books — dây chuyền
 Pinterest: scripts/pins.mjs, pin-hang.mjs, pin-so.mjs, kenh.mjs…), đọc tài liệu chính thức của nền tảng nếu cần, rồi lập VIỆC TIẾP THEO.
 
@@ -63,7 +73,7 @@ const chu = String(kq.result || '').trim(), ket = (chu.match(/^\s*\**KET:\**\s*(
 log(`claude thoát ${r.status ?? r.signal} · ${kq.num_turns ?? '?'} lượt · ${JSON.stringify(token)} · ${ket || 'không có dòng KET'}`);
 if (ket && /KET:\**\s*OK/i.test(ket)) {
   pt(`--xong ${PHONG} ${q(x.id)} --ai ${NGUOI} --bao -`, chu.replace(/^\s*\**KET:.*$/gim, '').trim());
-  nhatKy({ viec: 'thu-phong', ket: `${x.mien} · ${x.tieuDe} → đã lập việc tiếp theo`, token }); log('đã báo xong');
+  nhatKy({ viec: 'thu-phong', ket: `${x.mien ?? 'anh nhắn'} · ${x.tieuDe} → ${x.loai === 'tra-loi' ? 'đã trả lời anh' : 'đã lập việc tiếp theo'}`, token }); log('đã báo xong');
 } else {
   const lyDo = ket ? ket.replace(/^\s*\**KET:\**\s*DUNG\s*/i, '') : r.signal || r.error?.code === 'ETIMEDOUT' ? `quá ${TRAN_PHUT} phút` : (String(r.stderr || chu || 'Claude Code không trả kết quả').split('\n').pop()).slice(0, 300);
   pt(`--dung ${PHONG} ${q(x.id)} --ai ${NGUOI} --ly-do ${q(lyDo)}`); nhatKy({ viec: 'thu-phong', ket: `${x.mien} · ${x.tieuDe} → dừng: ${lyDo}`, token }); log(`dừng: ${lyDo}`);

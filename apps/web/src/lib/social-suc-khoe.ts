@@ -42,8 +42,10 @@ export function nguyenNhan(chu: string): { ten: string; giai: string } {
   return { ten: dau || 'Lỗi không rõ', giai: '' };
 }
 /** Cảnh báo nào làm máy đăng DỪNG tài khoản — chép đúng luật của máy đăng (puzzle-books scripts/nhip-an-toan.mjs › canhBaoDung, repo khác nên không
- *  import được): khoá / hạn chế / từ chối luôn dừng; đòi xác minh chỉ dừng khi máy bắt được (may-dang, br-tu-dong), ghi tay thì không. Đổi bên đó thì đổi đây. */
-export const canhBaoDung = (c: { loai: string; nguon: string }) => ['khoa', 'han_che', 'tu_choi'].includes(c.loai) || (c.loai === 'xac_minh' && /^(may-dang|br-tu-dong)/.test(c.nguon));
+ *  import được): khoá / hạn chế / từ chối luôn dừng; đòi xác minh chỉ dừng khi máy bắt được (may-dang, br-tu-dong), ghi tay thì không; chỉ ĐƯỜNG API bị
+ *  đòi xác minh (Graph mã 368) thì KHÔNG dừng — máy đăng chuyển sang br (anh 20/10/2026). Đổi bên đó thì đổi đây. */
+export const chiChanApi = (c: { loai: string; nguon: string; chu: string }) => c.loai === 'xac_minh' && /^may-dang/.test(c.nguon) && /Graph \d{3}|Open the Facebook app|mã 368/i.test(c.chu);
+export const canhBaoDung = (c: { loai: string; nguon: string; chu: string }) => ['khoa', 'han_che', 'tu_choi'].includes(c.loai) || (c.loai === 'xac_minh' && /^(may-dang|br-tu-dong)/.test(c.nguon) && !chiChanApi(c));
 const LOAI_CB: Record<string, string> = { han_che: 'bị hạn chế', khoa: 'bị khoá', xac_minh: 'bị đòi xác minh', tu_choi: 'bị từ chối thao tác', canh_bao: 'có cảnh báo' };
 const dm = (n: string) => `${n.slice(8, 10)}/${n.slice(5, 7)}`;
 const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -79,7 +81,9 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
   for (const n of v.noi) {
     if (dangDung(n)) continue;
     const hong = v.hong.filter((x) => x.may === n.may && x.nen === n.nen).sort((a, b) => b.luc.localeCompare(a.luc))[0];
-    const okLuc = v.da.filter((x) => x.may === n.may && x.nen === n.nen).map((x) => x.luc ?? `${x.ngay}T00:00:00Z`).sort().pop();
+    // đã khỏi khi sau lỗi có bài thành công trên chính nền đó HOẶC nền cùng họ của cùng tài khoản (x ↔ x_anh: cùng phiên trình duyệt, cùng đường đăng)
+    const ho = (nen: string) => nen.replace(/_anh$/, ''), cungHo = v.noi.filter((m) => m.may === n.may && (m.nen === n.nen || (!!n.acct && m.acct === n.acct && ho(m.nen) === ho(n.nen))));
+    const okLuc = v.da.filter((x) => cungHo.some((m) => m.may === x.may && m.nen === x.nen)).map((x) => x.luc ?? `${x.ngay}T00:00:00Z`).sort().pop();
     if (hong && (!okLuc || okLuc < hong.luc)) { const nn = nguyenNhan(hong.chu); them(`loi|${nn.ten}`, 'bad', nn.ten, nn.giai, ten(n), hong.luc); }
   }
   // cảnh báo rủi ro 7 ngày trên tài khoản của nơi đăng → máy đăng dừng tài khoản đó (nhip-an-toan › canhBaoDung)
@@ -87,10 +91,12 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
     const het = new Date(Date.parse(c.luc) + 7 * 864e5 + 7 * 3600e3).toISOString();
     them(`cb|${c.acct}|${c.loai}`, 'bad', `Tài khoản ${n.tk || n.acct} ${LOAI_CB[c.loai] ?? c.loai} — máy dừng đăng tới ${dm(het)}`, c.chu.replace(/\s+/g, ' ').slice(0, 220), ten(n), c.luc);
   }
+  for (const n of v.noi) for (const c of v.canhBao.filter((x) => n.acct && x.acct === n.acct && chiChanApi(x)))
+    them(`api|${c.acct}`, 'warn', `Graph API của ${n.tk || n.acct} đòi xác minh — không dừng: Reels đăng qua trình duyệt, bài ảnh (chỉ có đường API) tạm bỏ`, 'Chủ tài khoản xác minh trong app Facebook trên điện thoại thì đường API mở lại.', ten(n), c.luc);
   // im lặng: ≥ 2 ngày không bài, không lỗi (không có lượt chạy / máy Mac tắt / bị trần chặn)
   for (const d of dong) {
     const coLoi = [...gom.values()].some((g) => g.kenh.includes(`${d.mayTen.split(' · ')[0]} · ${d.nenTen}`));
-    if (!coLoi && d.o.slice(-3, -1).every((x) => x.tt === 'khong') && d.o.at(-1)!.tt !== 'da' && d.o.at(-1)!.tt !== 'cho')
+    if (!coLoi && d.o.slice(-3).every((x) => x.tt === 'khong'))   // im lặng = 3 ngày gần nhất không bài, không lỗi, không lượt chờ
       them('im', 'warn', 'Không đăng mà không báo lỗi', 'Hai ngày qua không bài, không lỗi: không có lượt chạy, máy Mac tắt, hoặc nhịp an toàn chặn. Xem nhật ký máy đăng.', ten(d), null);
   }
   // kho sắp cạn (lịch còn ≤ 7 ngày)

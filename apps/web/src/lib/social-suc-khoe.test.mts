@@ -5,7 +5,7 @@ const bay = Date.parse('2026-10-20T11:00:00Z');   // 18:00 VN 20/10
 const noi = (may: string, nen: string, acct: string | null = null) => ({ may, mayTen: `${may.toUpperCase()} · máy`, nen, nenTen: nen.toUpperCase(), tk: `@${may}`, gio: '20:00', mayMac: 'iMac', acct });
 const v: VaoSuc = {
   bay,
-  noi: [noi('h', 'youtube', '777'), noi('h', 'x'), noi('b', 'x'), noi('h', 'facebook', '544'), noi('f', 'tiktok'), noi('b', 'facebook')],
+  noi: [noi('h', 'youtube', '777'), noi('h', 'x'), noi('b', 'x', '546'), noi('b', 'x_anh', '546'), noi('h', 'facebook', '544'), noi('f', 'tiktok'), noi('b', 'facebook')],
   da: [
     { may: 'h', nen: 'youtube', ngay: '2026-10-17', luc: '2026-10-17T13:00:00Z', url: 'https://yt/1' },
     { may: 'b', nen: 'facebook', ngay: '2026-10-20', luc: '2026-10-20T01:00:00Z', url: 'https://fb/1' },
@@ -29,7 +29,10 @@ assert.equal(hy.o[3]!.loi, 'br chặn bấm nút Publish');
 assert.equal(s.dong.find((d) => d.may === 'f')!.o[3]!.tt, 'cho', 'lượt 20:00 hôm nay chưa tới = chờ');
 const goto = s.suCo.find((x) => x.tieuDe.includes('URL không có nguồn'))!;
 assert.deepEqual(goto.kenh.sort(), ['B · X', 'H · X'], 'cùng nguyên nhân gom một dòng, đủ kênh dính');
-assert.ok(s.suCo.some((x) => x.tieuDe.includes('@h') && x.tieuDe.includes('đòi xác minh') && x.tieuDe.includes('26/10')), 'cảnh báo rủi ro → dừng tới +7 ngày');
+assert.ok(!s.suCo.some((x) => x.tieuDe.includes('dừng đăng tới')), 'Graph đòi xác minh (chỉ chặn API) → KHÔNG báo dừng');
+assert.ok(s.suCo.some((x) => x.tieuDe.startsWith('Graph API của @h') && x.muc === 'warn'), 'Graph đòi xác minh → dòng vàng: đăng qua trình duyệt');
+const s3 = tinhSucKhoe({ ...v, canhBao: [{ acct: '544', loai: 'khoa', luc: '2026-10-19T01:03:00Z', chu: 'Account disabled', nguon: 'may-dang:h:facebook' }] });
+assert.ok(s3.suCo.some((x) => x.tieuDe.includes('bị khoá') && x.tieuDe.includes('26/10')), 'khoá thật → dừng tới +7 ngày');
 assert.ok(!s.suCo.some((x) => x.tieuDe.includes('lỗi cũ')), 'lỗi đã có lần đăng thành công sau nó thì không còn là sự cố');
 assert.ok(s.suCo.some((x) => x.tieuDe.startsWith('Kho F') && x.tieuDe.includes('23/10')), 'kho ≤ 7 ngày');
 assert.ok(!s.suCo.some((x) => x.tieuDe.startsWith('Kho B')), 'kho xa không báo');
@@ -42,10 +45,12 @@ assert.equal(nguyenNhan('Đăng hỏng: Command failed: ssh root@h cd /opt && ts
 assert.equal(nguyenNhan('Đăng hỏng: Command failed: /Users/htuan/bin/br use 508').ten, 'br không mở được tài khoản');
 assert.equal(nguyenNhan('Đăng hỏng: Command failed: /Users/htuan/bin/br eval location.href').ten, 'Trình duyệt (br) lỗi giữa chừng');
 assert.equal(nguyenNhan('br click Publish: {"chan":"nut-nhay-cam"}').ten, 'br chặn bấm nút Publish', 'Publish vẫn xếp đúng, không rơi vào nhóm br chung');
-const s2 = tinhSucKhoe({ ...v, hong: [...v.hong, { may: 'h', nen: 'facebook', luc: '2026-10-19T01:03:30Z', chu: 'Command failed: ssh x scripts/dang-fb-reel.mts' }] });
+const s2 = tinhSucKhoe({ ...v, canhBao: [{ acct: '544', loai: 'khoa', luc: '2026-10-19T01:03:00Z', chu: 'Account disabled', nguon: 'may-dang:h:facebook' }], hong: [...v.hong, { may: 'h', nen: 'facebook', luc: '2026-10-19T01:03:30Z', chu: 'Command failed: ssh x scripts/dang-fb-reel.mts' }] });
 assert.ok(!s2.suCo.some((x) => x.tieuDe.startsWith('Đăng qua API')), 'tài khoản đang bị dừng vì cảnh báo: không đẻ thêm dòng lỗi đăng');
 assert.ok(!s.suCo.some((x) => x.tieuDe.includes('@h ') && x.kenh.includes('H · YOUTUBE') && x.tieuDe.includes('dừng')), 'xác minh ghi tay không làm máy dừng → không báo dừng');
 assert.ok(s.suCo.some((x) => x.tieuDe === 'br chặn bấm nút Publish'), 'tài khoản có cảnh báo không-dừng vẫn hiện lỗi đăng thật');
 assert.equal(nguyenNhan('Đăng hỏng: X: không đứng ở tài khoản @beforeyouland — dừng').ten, 'Trang chưa đứng đúng tài khoản');
 assert.equal(nguyenNhan('Đăng hỏng: TikTok: 90 giây chưa rời màn đăng').ten, 'TikTok: đã bấm Post nhưng không xác nhận được');
+{ const s4 = tinhSucKhoe({ ...v, hong: [...v.hong, { may: 'b', nen: 'x_anh', luc: '2026-10-20T01:04:00Z', chu: 'X: không đứng ở tài khoản @b' }], da: [...v.da, { may: 'b', nen: 'x', ngay: '2026-10-20', luc: '2026-10-20T02:00:00Z', url: null }] });
+  assert.ok(!s4.suCo.some((x) => x.kenh.includes('B · X_ANH')), 'x đăng được sau lỗi x_anh cùng tài khoản → lỗi x_anh coi như đã khỏi'); }
 console.log('✓ social-suc-khoe: ô 4 ngày · gom sự cố theo nguyên nhân · cảnh báo dừng 7 ngày · lỗi đã khỏi không báo · kho cạn · im lặng');

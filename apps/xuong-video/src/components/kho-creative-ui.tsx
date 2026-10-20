@@ -172,7 +172,11 @@ function BangCreative({ song, d, goc, cum, locGoc, setLocGoc, chon, setChon, onM
   const nhom: { ten: string; ds: DongCreative[] }[] = gom === 'khong' ? [{ ten: '', ds }]
     : gom === 'khuon' ? [...new Set(ds.map(tenKhuon))].map((k) => ({ ten: k, ds: ds.filter((c) => tenKhuon(c) === k) }))
     : gom === 'cum' ? [...cum.map((c) => c.ten), 'Chưa vào cụm'].map((t) => ({ ten: `🧩 ${t}`, ds: ds.filter((c) => c.goc.some((g) => (cumCua(g.id, cum) ?? 'Chưa vào cụm') === t)) })).filter((x) => x.ds.length)
-    : LOAI_GOC_SPY.map((l) => ({ ten: `${l.ic} ${l.ten}`, ds: ds.filter((c) => c.goc.some((g) => g.loai === l.key)) })).filter((x) => x.ds.length);
+    : [...LOAI_GOC_SPY.map((l) => ({ ten: `${l.ic} ${l.ten}`, ds: ds.filter((c) => c.goc.some((g) => g.loai === l.key)) })),
+      // creative KHÔNG có góc spy vẫn phải hiện (20/10/2026: gom theo loại góc làm mất hết creative phim → bảng trống)
+      { ten: '🎬 QC gốc của app', ds: ds.filter((c) => !c.goc.length && !!c.etp?.nguon_qc) },
+      { ten: '📖 Cốt truyện phim', ds: ds.filter((c) => !c.goc.length && !!c.etp && !c.etp.nguon_qc) },
+      { ten: 'Chưa gắn góc', ds: ds.filter((c) => !c.goc.length && !c.etp) }].filter((x) => x.ds.length);
   const gocLoc = locGoc != null ? (goc.find((g) => g.id === locGoc) ?? d.creative.flatMap((c) => c.goc).find((g) => g.id === locGoc)) : null;
   const doi = (id: number) => setChon(chon.includes(id) ? chon.filter((x) => x !== id) : [...chon, id]);
   // Cột dùng chung cho mọi nhóm; bảng cố định bề rộng cột (fixedLayout) để các bảng nhóm xếp chồng thẳng cột với nhau.

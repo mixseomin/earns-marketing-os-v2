@@ -53,5 +53,9 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
 
 if __name__ == "__main__":
     a = sys.argv[1:]
+    # CỔNG THOẠI (20/10/2026, Meta từ chối #65717/#65719 "Adult Sexual Exploitation"): phụ đề/chữ trong đoạn dính mua bán dâm, quan hệ,
+    # đe doạ lột đồ → KHÔNG cắt (kiem-thoai.py đọc chữ mỗi giây bằng Vision macOS)
+    k = __import__("subprocess").run(["python3", os.path.join(D, "kiem-thoai.py"), a[0], a[1], a[2]], capture_output=True, text=True)
+    if k.returncode != 0: sys.exit(k.stdout.strip() or k.stderr.strip() or "THOAI CHAN: không đọc được phụ đề")
     dung(a[0], float(a[1]), float(a[2]), a[3], json.load(open(a[4])) if a[4] != "-" else None, a[5], a[6],
          a[7] if len(a) > 7 and a[7] != "-" else None, a[8] if len(a) > 8 else "WHAT HAPPENS NEXT?")

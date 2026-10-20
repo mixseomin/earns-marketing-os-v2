@@ -3,7 +3,8 @@
 #   Campaign: ETP_440 · $1/ngày (mặc định form) · Ad Set: Pixel_AFC_02 + whitelist 39 nước + ngôn ngữ · Ad: Page Andrew Rebecca Akumiah + creative
 # Cách gọi (br đã `br use 557`, iMac):
 #   dung-camp.sh "<tên camp>" <creative_id> <en|es>
-# Ba cổng trước Publish: cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-ngon-ngu.py (cùng một tiếng).
+# Bốn cổng trước Publish: cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-thoai-creative.sh (không thoại/chữ
+# mua bán dâm, quan hệ, đe doạ lột đồ — Meta 'Adult Sexual Exploitation') + kiem-ngon-ngu.py (cùng một tiếng).
 # Publish (chỉ khi anh cho trong lượt đó) là một lệnh RIÊNG để khớp rule allow:
 #   ~/bin/br post click '{"selector":"[data-pb=pub]","sensitive":"(?!x)x"}'
 set -u
@@ -72,6 +73,10 @@ $BR eval '(()=>{const p=JSON.parse(document.querySelector("[role=dialog] pre").t
 CID=$(echo "$K" | python3 -c 'import json,sys;d=json.loads(sys.stdin.read());d=json.loads(d) if isinstance(d,str) else d;print(d["content_id"])')
 # CỔNG STUDIO (kiem-studio.sh): creative phải có trong studio, đúng sản phẩm, có bản xuất — chưa có thì KHÔNG đánh dấu Publish
 "$(dirname "$0")/kiem-studio.sh" "$CR" "$CID" || { echo "PUB CHAN — creative chưa ghi vào studio, KHÔNG Publish"; exit 2; }
+# CỔNG THOẠI (kiem-thoai-creative.sh, 20/10/2026 Meta từ chối #65717/#65719 "Adult Sexual Exploitation"): đọc chữ trên chính video creative —
+# dính mua bán dâm / quan hệ / đe doạ lột đồ thì KHÔNG đánh dấu Publish
+KT=$("$(dirname "$0")/kiem-thoai-creative.sh" "$CR" 2>&1) || { echo "$KT" | tail -3; echo "PUB CHAN — thoại/chữ nhạy cảm trong video, KHÔNG Publish"; exit 2; }
+echo "$KT" | tail -1
 CL=$(ssh root@167.233.241.16 ". /root/.secrets/spy.env; psql \"\$DATABASE_URL\" -tAc 'select locale from ethopex_content where id=$CID'")
 if echo "$K" | python3 -c 'import json,sys;d=json.loads(sys.stdin.read());d=json.loads(d) if isinstance(d,str) else d;d.update(lang=sys.argv[1],content_locale=sys.argv[2]);print(json.dumps(d))' "$LANG_" "$CL" | python3 "$(dirname "$0")/kiem-ngon-ngu.py"; then
   # đánh dấu nút Publish cho lệnh bấm riêng

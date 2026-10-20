@@ -3,7 +3,7 @@
 #   Campaign: ETP_440 · $1/ngày (mặc định form) · Ad Set: Pixel_AFC_02 + whitelist 39 nước + ngôn ngữ · Ad: Page Andrew Rebecca Akumiah + creative
 # Cách gọi (br đã `br use 557`, iMac):
 #   dung-camp.sh "<tên camp>" <creative_id> <en|es>
-# Hai cổng trước Publish: kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-ngon-ngu.py (cùng một tiếng).
+# Ba cổng trước Publish: cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-ngon-ngu.py (cùng một tiếng).
 # Publish (chỉ khi anh cho trong lượt đó) là một lệnh RIÊNG để khớp rule allow:
 #   ~/bin/br post click '{"selector":"[data-pb=pub]","sensitive":"(?!x)x"}'
 set -u
@@ -19,6 +19,9 @@ $BR goto https://app.ethopex.dev/campaign/list-campaign --here >/dev/null 2>&1; 
 $BR eval 'Object.keys(localStorage).filter(k=>/draft/i.test(k)).forEach(k=>localStorage.removeItem(k));"ok"' >/dev/null
 bam '[...document.querySelectorAll("button,a")].find(x=>x.innerText?.trim()=="Add campaign")'; sleep 2
 bam '[...document.querySelectorAll("[role=dialog] *")].filter(x=>x.innerText?.trim().startsWith("Facebook Ads")).pop()'; sleep 4
+# chờ form dựng camp sẵn sàng (ô tên + nút chọn tài khoản) — 20/10/2026 điền sớm khi form chưa dựng xong → tên mặc định, Page trống
+for _ in $(seq 1 15); do R=$($BR eval '!!document.querySelector("input[name=name]")&&[...document.querySelectorAll("main button,[role=combobox]")].some(x=>/Select Facebook ad account/.test(x.innerText))' | tail -1); [ "$R" = true ] && break; sleep 1; done
+[ "$R" = true ] || { echo "PUB CHAN — form dựng camp không mở được"; exit 2; }
 $BR eval 'location.href' | tail -1
 
 # Campaign
@@ -52,7 +55,10 @@ $BR eval 'const t=document.querySelector("main").innerText;"AD | "+(t.match(/Fac
 
 # kiểm payload sẽ gửi (View create payload) — in gọn
 bam '[...document.querySelectorAll("button")].find(x=>/View create payload/.test(x.innerText))' >/dev/null; sleep 2
-$BR eval '(()=>{const p=JSON.parse(document.querySelector("[role=dialog] pre").textContent);const g=p.campaign.ad_groups[0],s=g.source_payload,a=g.ads[0];[...document.querySelectorAll("[role=dialog] button")].find(x=>x.innerText.trim()=="Close")?.click();return "PAYLOAD "+JSON.stringify({ten:p.name,tk:p.ad_account_id,page:a.facebook_page_id,cr:a.creative_id,content:a.content_id,ngan_sach:p.campaign.source_payload.daily_budget,pixel:s.promoted_object.pixel_id,su_kien:s.promoted_object.custom_event_type,nuoc:s.targeting.geo_locations.countries.length,ngon_ngu:s.targeting.locales,adset:s.name,lich:g.type_run})})()' | tail -1
+PL=$($BR eval '(()=>{const p=JSON.parse(document.querySelector("[role=dialog] pre").textContent);const g=p.campaign.ad_groups[0],s=g.source_payload,a=g.ads[0];[...document.querySelectorAll("[role=dialog] button")].find(x=>x.innerText.trim()=="Close")?.click();return "PAYLOAD "+JSON.stringify({ten:p.name,tk:p.ad_account_id,page:a.facebook_page_id,cr:a.creative_id,content:a.content_id,ngan_sach:p.campaign.source_payload.daily_budget,pixel:s.promoted_object.pixel_id,su_kien:s.promoted_object.custom_event_type,nuoc:s.targeting.geo_locations.countries.length,ngon_ngu:s.targeting.locales,adset:s.name,lich:g.type_run})})()' | tail -1)
+echo "$PL"
+# CỔNG CẤU HÌNH (20/10/2026: lượt dựng lỗi để tên mặc định + Page trống mà 2 cổng kia vẫn qua): payload phải đúng khuôn — sai là KHÔNG Publish
+echo "$PL" | python3 "$(dirname "$0")/kiem-cau-hinh.py" "$TEN" "$CR" || { echo "PUB CHAN — cấu hình camp sai, KHÔNG Publish"; exit 2; }
 
 # CỔNG NGÔN NGỮ (kiem-ngon-ngu.py): phim · creative · nhắm ngôn ngữ phải cùng một tiếng — lệch thì KHÔNG đánh dấu Publish
 $BR eval '(()=>{document.querySelectorAll("[data-pb=pub]").forEach(x=>x.removeAttribute("data-pb"));window.__k=null;const pre=document.querySelector("[role=dialog] pre");return 1})()' >/dev/null

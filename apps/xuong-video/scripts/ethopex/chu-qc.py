@@ -2,7 +2,7 @@
 """CHỮ QC CHO LÔ CREATIVE (anh: chữ QC lấy từ QC spy xếp theo số Page). Ra mảng item cho POST /api/v1/creatives/bulk-jobs.
 Lọc (21/10/2026): bỏ câu nhắc app khác / tên miền (NetShort, DramaBox, ReelShort, H5SHORT…), bỏ chữ không khớp tên phim (QC spy ghép nhầm phim),
 cho mọi câu qua CỔNG THOẠI (kiem-thoai.soat — Meta đọc cả chữ QC), thiếu chữ thì dùng câu mở bằng tên phim; kèm câu chung EN / ES.
-Dùng: chu-qc.py <lo.json của dung-lo-dai> <chu.tsv: qc-spy-phim.sql> <lô (vd 2110ns)> <url gốc video R2> <ra.json>"""
+Dùng: chu-qc.py <lo.json của dung-lo-dai> <chu.tsv: qc-spy-phim.sql> <lô (vd 2110ns)> <url gốc video R2> <ra.json> [ten.tsv: id..ten ở cột 6]"""
 import collections, csv, importlib.util, json, os, re, sys
 
 D = os.path.dirname(os.path.abspath(__file__))
@@ -12,16 +12,25 @@ CHUNG = {"en": ["You won't get tired of watching it. Who can resist this short d
 APP = re.compile(r"\b(net\s?short|drama\s?box|reel\s?short|h5short|shortmax|goodshort)\b|\b[A-Z0-9-]+\.(COM|NET|APP)\b|Low impression count|Continue Watching", re.I)
 
 def lam_sach(chu, ten):
+    """khối chữ → các đoạn sạch: tách theo tên miền, bỏ tên phim lặp đầu đoạn, bỏ TỪNG CÂU nhắc app khác (không bỏ cả đoạn — 21/10/2026 tóm tắt hay
+    đi chung khối với câu "Todo gratis en Netshort" nên bị loại oan)"""
     chu = re.sub(r"\b(?:[A-Z0-9-]+\.)+(?:COM|NET|APP)\b", " | ", chu)
-    cau = [c.strip() for c in re.split(r"\s*\|\s*", chu) if c.strip()]
-    cau = [c for c in cau if not APP.search(c) and c.strip().lower() != ten.lower()]
-    cau = [re.sub(r"^" + re.escape(ten) + r"\s*", "", c).strip() for c in cau]
-    return [c for c in cau if len(c) > 40]
+    ra = []
+    for doan in [c.strip() for c in re.split(r"\s*\|\s*", chu) if c.strip()]:
+        doan = re.sub(r"^" + re.escape(ten) + r"\s*", "", doan).strip()
+        cau = [c for c in re.split(r"(?<=[.!?¡¿])\s+", doan) if c and not APP.search(c)]
+        doan = " ".join(cau).strip()
+        if len(doan) > 40 and doan.lower() != ten.lower(): ra.append(doan)
+    return ra
 
-def tu_khoa(ten):   # chữ khớp phim: ít nhất một từ dài của tên phim xuất hiện, hoặc QC không nhắc tên phim nào khác
-    return [w.lower() for w in re.findall(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]{5,}", ten)]
+TEN_KHAC: list[str] = []   # tên các phim khác trong kho (nạp ở main) — chữ QC nhắc tên phim khác = QC spy ghép nhầm landing
+def nham_phim(chu, ten):
+    t = chu.lower()
+    return any(k in t for k in TEN_KHAC if k != ten.lower() and len(k) >= 12 and k not in ten.lower())
 
-def main(lo, tsv, ma_lo, goc_url, ra):
+def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None):
+    if ten_tsv:   # danh sách tên phim kho (vd ethopex_uu_tien) để nhận QC ghép nhầm
+        TEN_KHAC.extend(r[5].strip().lower() for r in csv.reader(open(ten_tsv), delimiter="\t") if len(r) > 5)
     pg = collections.defaultdict(lambda: collections.defaultdict(set))
     for r in csv.reader(open(tsv), delimiter="\t"):
         if len(r) >= 7 and r[6].strip(): pg[r[0]][r[6].strip()].add(r[2])
@@ -29,10 +38,10 @@ def main(lo, tsv, ma_lo, goc_url, ra):
     for x in json.load(open(lo)):
         if "loi" in x: continue
         cid, ten, nn = str(x["content_id"]), x["ten"], x["lang"]
-        kw = tu_khoa(ten); ds = []
+        ds = []
         for chu, p in sorted(pg[cid].items(), key=lambda z: -len(z[1])):
+            if nham_phim(chu, ten): continue                                 # QC spy của phim khác (ghép nhầm landing)
             for c in lam_sach(chu, ten):
-                if kw and not any(k in (chu.lower()) for k in kw): continue   # QC spy của phim khác (ghép nhầm landing)
                 if KT.soat(c): continue                                      # cổng thoại cho chữ QC
                 if c not in ds: ds.append(c)
         mo = f"{ten} — {'mira la historia completa gratis' if nn == 'es' else 'watch the full story free'}. {'Mira más' if nn == 'es' else 'Watch more'}"
@@ -45,4 +54,4 @@ def main(lo, tsv, ma_lo, goc_url, ra):
     for i in items: print(i["content_id"], "|", i["asset_spec"]["primaryTexts"][0][:110])
 
 if __name__ == "__main__":
-    main(*sys.argv[1:6])
+    main(*sys.argv[1:7])

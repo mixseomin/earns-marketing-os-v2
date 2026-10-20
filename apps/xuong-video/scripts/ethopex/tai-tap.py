@@ -2,7 +2,7 @@
 """TẢI TẬP PHIM TỪ SITE GỐC (anh 21/10/2026: đợt NetShort + DramaBox — creative cắt đoạn 20–30s + 2–3' trong phim; nguồn = tập miễn phí trên site,
 không phụ thuộc QC spy). Chỉ đọc trang công khai + tải mp4 tập miễn phí (NetShort mở ~tập 1–8, DramaBox tập đầu) + poster (og:image).
 Dùng: tai-tap.py <link phim> <thư mục ra> [số tập=3]  → <ra>/tap01.mp4 …, <ra>/poster.jpg, <ra>/tap.json ([{tap, giay, url}])"""
-import json, os, re, subprocess, sys, urllib.request
+import html as H, json, os, re, subprocess, sys, urllib.request
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 def lay(url, ref=None):
@@ -28,8 +28,10 @@ def main(goc, ra, so=3):
     og = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+property="og:image"', html1)
     if og:
         try:
-            u = (og.group(1) or og.group(2)).replace("&amp;", "&").split("@")[0]
-            open(os.path.join(ra, "poster.jpg"), "wb").write(lay(u, ref=goc))
+            u = H.unescape(og.group(1) or og.group(2)).split("@")[0]   # 21/10/2026: tên có dấu nháy ra "&#x27;" → 400 nếu không giải mã HTML
+            b = lay(u, ref=goc)
+            if len(b) < 2000 or b[:1] in (b"<", b"{"): raise ValueError("poster không phải ảnh")
+            open(os.path.join(ra, "poster.jpg"), "wb").write(b)
         except Exception as e: print("poster loi:", e, file=sys.stderr)
     for n in range(1, so + 1):
         u = tap_url(goc, html1, n)
@@ -42,7 +44,7 @@ def main(goc, ra, so=3):
         giay = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", ra_tap]).strip() or 0)
         kq.append({"tap": n, "giay": round(giay, 1), "url": u})
     json.dump(kq, open(os.path.join(ra, "tap.json"), "w"), ensure_ascii=False)
-    print(json.dumps({"phim": goc, "tap": [(x["tap"], x["giay"]) for x in kq], "poster": os.path.exists(os.path.join(ra, "poster.jpg"))}, ensure_ascii=False))
+    print(json.dumps({"phim": goc, "tap": [(x["tap"], x["giay"]) for x in kq], "poster": os.path.exists(os.path.join(ra, "poster.jpg")) and os.path.getsize(os.path.join(ra, "poster.jpg")) > 2000}, ensure_ascii=False))
 
 if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 3)

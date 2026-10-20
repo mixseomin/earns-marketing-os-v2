@@ -9,6 +9,8 @@ import path from 'node:path';
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json' };
 const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
+// Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Kiên chuyển vào chủ đề phòng khác vẫn về Kiên.
+export const NUT_CUA = { km: 'an-toan-tk', kc: 'an-toan-tk', nd: 'noi-dung' };
 const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
 
 /** topic → phòng, đọc từ tệp trạng thái từng phòng (CHU_DE) + chủ đề phòng tạo qua topicPhong (tg-<phòng>.json). */
@@ -38,7 +40,7 @@ export async function gomTin(tg) {
     const u = await tg('getUpdates', { offset, timeout: 0, allowed_updates: ['message', 'callback_query'] });
     let n = 0;
     for (const x of u.ok ? u.result : []) {
-      const phong = phongCuaTopic(topicCua(x)) ?? KHAC;
+      const phong = (x.callback_query && NUT_CUA[String(x.callback_query.data ?? '').split(':')[0]]) ?? phongCuaTopic(topicCua(x)) ?? KHAC;
       fs.mkdirSync(HOP(phong), { recursive: true }); fs.writeFileSync(path.join(HOP(phong), `${x.update_id}.json`), JSON.stringify(x));
       offset = x.update_id + 1; n++;
     }
@@ -61,10 +63,11 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
   let goi = null; const tg = async (m, b) => { goi = b; return { ok: true, result: [
     { update_id: 10, message: { message_thread_id: 7, text: 'https://ratesbyroom.com/a/' } },
     { update_id: 11, callback_query: { data: 'km:x:y', message: { message_thread_id: 3 } } },
-    { update_id: 12, message: { text: 'chủ đề chung' } }] }; };
-  t.equal(await gomTin(tg), 3); t.deepEqual(goi.allowed_updates, ['message', 'callback_query'], 'đọc cả tin lẫn nút');
-  t.equal(moHop('noi-dung').length, 1); t.equal(moHop('an-toan-tk')[0].callback_query.data, 'km:x:y'); t.equal(moHop(KHAC).length, 1, 'chủ đề chung không lọt vào phòng nào');
-  await gomTin(tg); t.equal(goi.offset, 13, 'lần sau đọc tiếp sau tin cuối');
+    { update_id: 12, message: { text: 'chủ đề chung' } },
+    { update_id: 13, callback_query: { data: 'kc:?:abcd1234', message: { message_thread_id: 7 } } }] }; };
+  t.equal(await gomTin(tg), 4); t.deepEqual(goi.allowed_updates, ['message', 'callback_query'], 'đọc cả tin lẫn nút');
+  t.equal(moHop('noi-dung').length, 1, 'nút kc: bấm trong chủ đề Nội dung KHÔNG vào hộp Nội dung'); t.equal(moHop('an-toan-tk').length, 2, 'nút kc: về hộp Bảo mật'); t.equal(moHop('an-toan-tk')[0].callback_query.data, 'km:x:y'); t.equal(moHop(KHAC).length, 1, 'chủ đề chung không lọt vào phòng nào');
+  await gomTin(tg); t.equal(goi.offset, 14, 'lần sau đọc tiếp sau tin cuối');
   const [a] = moHop('noi-dung'); a.xong(); t.equal(moHop('noi-dung').length, 0, 'xong() rút tin khỏi hộp');
   fs.mkdirSync(path.join(GOC_HOP(), '.khoa')); t.equal(await gomTin(tg), 0, 'nhịp khác đang gom thì bỏ qua');
   let tao = 0; const tg2 = async () => ({ ok: true, result: { message_thread_id: 40 + ++tao } });

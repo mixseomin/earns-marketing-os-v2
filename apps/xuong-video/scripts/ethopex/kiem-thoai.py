@@ -14,7 +14,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 CAM = [
     r"prostitut", r"\bman ?whore", r"\bwhore", r"\bhooker", r"\bslut", r"\bescort(s|ing)?\b", r"\bgigolo", r"\bgigoló",
     r"\bsex ?work", r"\bsells? (him|her)sel(f|ves)", r"\bsold (him|her)self", r"\bbang(ed|ing)? (out|her|him|you)|\bbanged\b",
-    r"\brap(e|ed|ist)\b", r"\bmolest", r"\bgrop(e|ed|ing)\b",
+    r"\brap(e|ed|ist)\b", r"\bmolest(ed|ing|er|ers|ation|s)?\b", r"\bgrop(e|ed|ing)\b",
     r"\bstrip\w*\b.{0,25}\b(down|naked|off|him|her|you|them|this)\b", r"\b(take|took) off (your|his|her) clothes", r"\bnaked\b",
     r"\bputa\b", r"\bputo\b", r"\bviol(ar|ación|ó|aron)\b", r"\bdesn[uú]d", r"\bacost(arte|arse|ó) con", r"\bvende su cuerpo",
 ]
@@ -48,7 +48,7 @@ def tu_kiem():
             "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo"]
     qua = ["You've humiliated this whole town!", "Kneel before the Lord and beg forgiveness for your sins!", "The top pick in the mba Draft Combine",
            "His clothes are drenched in sin!", "stripped of his title", "No money, no help, no nothing.", "¿De verdad me acabas de golpear?",
-           "Ponle un dedo encima y estás muerto.", "Your stepbrother is a bully"]
+           "Ponle un dedo encima y estás muerto.", "sé que estás molesto.", "Your stepbrother is a bully"]
     for c in chan: assert soat(c), "phải chặn: " + c
     for c in qua: assert not soat(c), "không được chặn: %s (khớp %s)" % (c, soat(c))
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))

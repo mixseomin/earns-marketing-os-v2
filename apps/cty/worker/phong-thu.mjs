@@ -26,7 +26,8 @@ async function tg() {
 }
 async function bao(ph, x, text) {
   const goi = await tg(); const { topicPhong } = await import('./tg-phong.mjs');
-  const tp = await topicPhong(ph, `📂 ${ph}`, goi);
+  // phòng chưa có chủ đề (anh chưa cho tạo) → báo ở 🔐 Bảo mật, không tự tạo chủ đề
+  const tp = await topicPhong(ph, `📂 ${ph}`, goi) ?? (() => { try { return JSON.parse(fs.readFileSync(path.join(DATA(), 'bao-mat-tg.json'), 'utf8')).topic; } catch { return null; } })();
   // Telegram giới hạn 4096 ký tự / tin: báo cáo dài thì cắt thành nhiều tin, tin đầu trả lời ngay dưới thư Kiên chuyển
   const phan = []; for (let i = 0; i < text.length; i += 3800) phan.push(text.slice(i, i + 3800));
   for (const [i, p] of phan.entries()) await goi('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', text: p, ...(i === 0 && x.tin ? { reply_parameters: { message_id: x.tin, allow_sending_without_reply: true } } : {}) });

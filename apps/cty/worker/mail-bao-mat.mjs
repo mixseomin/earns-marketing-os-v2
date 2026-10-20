@@ -71,9 +71,13 @@ export async function giaoPhuTrach(tg, topic, mail, ten, goc) {
   const doc = (...p) => fs.readFileSync(path.join(GOC, 'cong-ty', ...p), 'utf8'), fm = (t, k) => t.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim();
   const soul = doc('nhan-su', ai, 'SOUL.md'), ph = fm(soul, 'phong'), tenPh = fm(doc('phong', `${ph}.md`), 'ten').replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, ''), tenAi = `${fm(soul, 'ten')} [${tenPh}]`;
   const { topicPhong } = await import('./tg-phong.mjs'); const tp = await topicPhong(ph, `📂 ${tenPh}`, tg);
-  const j = tp ? await tg('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
-    text: `📨 <b>${esc(ten)} [Bảo mật]</b> chuyển thư cho <b>${esc(tenAi)}</b> xử lý\n<b>${esc(mail.tieuDe)}</b> — ${esc(mail.gui)}\n${esc(mail.chu)}\n<b>Việc:</b> ${esc(mail.viec)}\nThư gốc trong hòm claude@orit.app; xử xong thì lưu trữ thư.` }) : { ok: false };
-  const b = await tg('sendMessage', { message_thread_id: topic, ...(goc ? { reply_parameters: { message_id: goc, allow_sending_without_reply: true } } : {}), parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
+  // phòng CHƯA có chủ đề: không tự tạo — thư hiện ngay ở 🔐 Bảo mật (không mất) + nút hỏi anh có tạo chủ đề cho phòng không
+  const noi = tp ?? topic;
+  const j = await tg('sendMessage', { message_thread_id: noi, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
+    text: `📨 <b>${esc(ten)} [Bảo mật]</b> chuyển thư cho <b>${esc(tenAi)}</b> xử lý\n<b>${esc(mail.tieuDe)}</b> — ${esc(mail.gui)}\n${esc(mail.chu)}\n<b>Việc:</b> ${esc(mail.viec)}\nThư gốc trong hòm claude@orit.app; xử xong thì lưu trữ thư.` });
+  if (!tp) await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', text: `📂 Phòng <b>${esc(tenPh)}</b> chưa có chủ đề Telegram — em không tự tạo. Anh cho tạo không?`,
+    reply_markup: { inline_keyboard: [[{ text: `✅ Tạo chủ đề ${tenPh}`.slice(0, 40), callback_data: `tp:${ph}:ok`.slice(0, 64) }, { text: '✖ Không, để ở Bảo mật', callback_data: `tp:${ph}:no`.slice(0, 64) }]] } });
+  const b = !tp ? { ok: false } : await tg('sendMessage', { message_thread_id: topic, ...(goc ? { reply_parameters: { message_id: goc, allow_sending_without_reply: true } } : {}), parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutSai(mail.id),
     text: j.ok ? `📌 Thư thật từ <b>${esc(mail.mien)}</b> — đã chuyển vào chủ đề 📂 ${esc(tenPh)}, giao <b>${esc(tenAi)}</b> xử lý.` : `⚠️ Thư thật từ <b>${esc(mail.mien)}</b> — chuyển vào phòng ${esc(tenPh)} KHÔNG được (Telegram lỗi), giao <b>${esc(tenAi)}</b>.` });
   try { const d = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhip'); fs.mkdirSync(d, { recursive: true }); fs.appendFileSync(path.join(d, `${ai}.jsonl`), JSON.stringify({ luc: new Date().toISOString(), viec: 'thu-giao', ket: `${ten} chuyển: ${mail.mien} · ${mail.tieuDe}` }) + '\n'); } catch { /* nhật ký hỏng: tin Telegram vẫn đi */ }
   // HÀNG VIỆC CỦA PHÒNG NHẬN (<DATA>/phong-thu/<phòng>/<mail>.json): người phụ trách có máy chạy (vd Vân, may/van-thu.mjs) lấy thư ở đây mà làm việc tiếp theo
@@ -332,6 +336,19 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
       if (!mail || !nh) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: !mail ? `${ten}: tin này không phải tin báo thư em còn giữ — anh trả lời ngay dưới tin báo thư nhé.` : `${ten}: em chưa hiểu — anh trả lời "Thật", "Giả" hoặc "Nhà mình".` }); continue; }
       try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia' && !st.chuyen?.[mail.id]) ghiChuyen(st, mail.id, await giaoPhuTrach(tg, st.topic, mail, ten, goc)); }
       catch (e) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: `${ten}: ${e.message}` }); }
+      continue;
+    }
+    if (c && /^tp:/.test(String(c.data))) {   // anh trả lời câu "phòng X chưa có chủ đề — có tạo không?"
+      const [, ph, y] = String(c.data).split(':'), ai = c.from?.first_name || c.from?.username || 'Anh';
+      try {
+        await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } });
+        if (y === 'ok') { const { topicPhong, ghimNhanSu } = await import('./tg-phong.mjs'); const path = await import('node:path'); const { GOC } = await import('./goc.mjs');
+          const tenPh = (_fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${ph}.md`), 'utf8').match(/^ten:\s*(.+)$/m)?.[1] ?? ph).replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, '').trim();
+          const tp = await topicPhong(ph, `📂 ${tenPh}`, tg, { duocTao: true }); await ghimNhanSu(ph, tg).catch(() => {});
+          await tg('answerCallbackQuery', { callback_query_id: c.id, text: tp ? `Đã tạo chủ đề 📂 ${tenPh}` : 'Tạo chủ đề hỏng' });
+          await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: c.message.message_id, allow_sending_without_reply: true }, parse_mode: 'HTML', text: `✅ ${esc(ai)} cho tạo chủ đề 📂 ${esc(tenPh)} — thư phòng này từ giờ vào đó.` });
+        } else await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Không tạo — thư phòng này tiếp tục hiện ở Bảo mật' });
+      } catch (e) { await tg('answerCallbackQuery', { callback_query_id: c.id, text: e.message.slice(0, 190), show_alert: true }); }
       continue;
     }
     if (c && /^kc:/.test(String(c.data))) {   // ↪️ Sai phòng: ? = mở bảng chọn · x = huỷ · <phòng> = chuyển lại + học

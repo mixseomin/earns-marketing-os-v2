@@ -10,7 +10,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json' };
 const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
 // Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Kiên chuyển vào chủ đề phòng khác vẫn về Kiên.
-export const NUT_CUA = { km: 'an-toan-tk', kc: 'an-toan-tk', nd: 'noi-dung' };
+export const NUT_CUA = { km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung' };
 const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
 
 /** topic → phòng, đọc từ tệp trạng thái từng phòng (CHU_DE) + chủ đề phòng tạo qua topicPhong (tg-<phòng>.json). */
@@ -20,11 +20,13 @@ export function phongCuaTopic(topic) {
   for (const [phong, tep] of [...Object.entries(CHU_DE), ...them]) { try { if (JSON.parse(fs.readFileSync(path.join(DATA(), tep), 'utf8')).topic === topic) return phong; } catch { /* phòng chưa tạo chủ đề */ } }
   return null;
 }
-/** Chủ đề Telegram của một phòng: có thì trả mã, chưa có thì bot tạo (tên `ten`) rồi nhớ ở tg-<phòng>.json — tin chuyển vào phòng nào nằm đúng chủ đề phòng đó. */
-export async function topicPhong(phong, ten, tg) {
+/** Chủ đề Telegram của một phòng: có thì trả mã. CHƯA CÓ thì trả null — KHÔNG tự tạo (anh 20/10/2026: "cấm tự đẻ ra phòng, phải xin phép",
+ *  sau khi Kiên tự tạo 📂 Dựng sản phẩm). Chỉ nút "✅ Tạo chủ đề" anh bấm mới gọi với { duocTao: true }. */
+export async function topicPhong(phong, ten, tg, { duocTao = false } = {}) {
   const tep = CHU_DE[phong] ? path.join(DATA(), CHU_DE[phong]) : path.join(DATA(), `tg-${phong}.json`);
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   if (st.topic) return st.topic;
+  if (!duocTao) return null;
   const j = await tg('createForumTopic', { name: ten }); if (!j.ok) return null;
   st.topic = j.result.message_thread_id; fs.writeFileSync(tep, JSON.stringify(st));
   try { await ghimNhanSu(phong, tg); } catch { /* bảng ghim hỏng không chặn việc chuyển thư */ }
@@ -120,6 +122,7 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
   const [a] = moHop('noi-dung'); a.xong(); t.equal(moHop('noi-dung').length, 0, 'xong() rút tin khỏi hộp');
   fs.mkdirSync(path.join(GOC_HOP(), '.khoa')); t.equal(await gomTin(tg), 0, 'nhịp khác đang gom thì bỏ qua');
   let tao = 0; const tg2 = async () => ({ ok: true, result: { message_thread_id: 40 + ++tao } });
-  t.equal(await topicPhong('sach', '📂 Sách', tg2), 41); t.equal(await topicPhong('sach', '📂 Sách', tg2), 41, 'chủ đề phòng tạo một lần'); t.equal(phongCuaTopic(41), 'sach', 'tin trong chủ đề phòng về hộp phòng đó');
+  t.equal(await topicPhong('sach', '📂 Sách', tg2), null, 'KHÔNG tự tạo chủ đề phòng khi chưa được anh cho'); t.equal(tao, 0);
+  t.equal(await topicPhong('sach', '📂 Sách', tg2, { duocTao: true }), 41); t.equal(await topicPhong('sach', '📂 Sách', tg2), 41, 'chủ đề phòng tạo một lần'); t.equal(phongCuaTopic(41), 'sach', 'tin trong chủ đề phòng về hộp phòng đó');
   console.log('tg-phong: tự kiểm đạt');
 }

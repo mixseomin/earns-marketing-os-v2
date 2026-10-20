@@ -23,6 +23,7 @@ export const TAB_TRANG = {
     { key: 'seo', label: 'SEO', title: 'Chỉ số nội bộ một site: GSC/Bing 30 ngày · truy vấn · Keyword Research · SteamSolo' },
     { key: 'email', label: 'Email', title: 'MailWizz · deliverability' },
     { key: 'duan', label: 'Dự án' },
+    { key: 'ethopex', label: 'Ethopex', title: 'Camp FB phim ngắn trên Ethopex: số liệu sống + luật đang áp cho từng camp (tăng bậc, trần, khung giờ, giảm/tắt, ad từ chối, số camp/phim)' },
     { key: 'social', label: 'Social Traffic', title: 'Kênh video tự đăng → site aff: góc từ spy · sản xuất ở xưởng · kênh · trang đích · tiền (DEMO / LIVE)' },
   ] },
   // Xếp theo ĐƯỜNG ĐI CỦA KHÁCH (anh chốt 02/10/2026): quảng cáo kéo khách → khách trên site → đặt đơn + trả tiền → sau bán;

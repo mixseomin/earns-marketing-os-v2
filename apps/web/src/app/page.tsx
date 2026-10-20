@@ -1,5 +1,7 @@
 import { SocialTrafficView } from '@/components/social-traffic-view';
 import { getSocialLive } from '@/lib/social-traffic';
+import { EthopexView } from '@/components/ethopex-view';
+import { docEthopex } from '@/lib/ethopex-doc';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
@@ -115,10 +117,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {tab === 'lenh' && <Lenh />}
           {tab === 'duan' && <DuAn projects={projects} />}
           {tab === 'social' && <Suspense fallback={cho}><SocialTab /></Suspense>}
+          {tab === 'ethopex' && <Suspense fallback={cho}><EthopexTab /></Suspense>}
         </div>
       </div>
     </AppShell>
   );
+}
+
+// Ethopex — camp FB phim ngắn: kéo sống API Ethopex (nhớ 60s) + luật từng camp (lib/ethopex-luat.ts)
+async function EthopexTab() {
+  return <EthopexView du={await docEthopex()} />;
 }
 
 // Social Traffic — góc thật đọc từ spy.on.tc (nhớ 5 phút) cho chế độ LIVE; DEMO nằm sẵn trong view.

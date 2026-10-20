@@ -7,7 +7,8 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./ethopex": "./src/ethopex.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",

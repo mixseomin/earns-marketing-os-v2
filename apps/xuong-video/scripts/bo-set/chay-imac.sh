@@ -10,7 +10,10 @@ TAP="$1"; THEM="${2:-}"
 BOX=root@167.233.241.16
 BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
 KB="$(cd "$(dirname "$0")" && pwd)/dung-set.py"
-D="/tmp/bo-set-imac-$(date +%s)"; L="$(mktemp -d)"
+# Thư mục trao đổi trên box: `kho tam` (ĐĨA, tự dọn 3 ngày) — không /tmp (RAM của box3: 74 thư mục bỏ quên ăn 650 MB, 20/10/2026).
+# trap: xong hay hỏng giữa chừng cũng xoá đúng thư mục của lượt này trên box.
+D="$(ssh "$BOX" kho tam xuong-video)/bo-set-imac-$(date +%s)"; L="$(mktemp -d)"
+trap 'ssh "$BOX" "rm -rf -- $D" 2>/dev/null || true' EXIT
 CHAY='cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set.mts'
 t0=$(date +%s)
 ssh "$BOX" "$CHAY --dung --tap=$TAP $THEM --xuat=$D" | tail -1 | cut -c1-200

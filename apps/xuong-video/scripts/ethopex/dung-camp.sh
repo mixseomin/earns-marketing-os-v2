@@ -3,7 +3,7 @@
 #   Campaign: ETP_440 · $1/ngày (mặc định form) · Ad Set: Pixel_AFC_02 + whitelist 39 nước + ngôn ngữ · Ad: Page Andrew Rebecca Akumiah + creative
 # Cách gọi (br đã `br use 557`, iMac):
 #   dung-camp.sh "<tên camp>" <creative_id> <en|es>
-# Bốn cổng trước Publish: cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-thoai-creative.sh (không thoại/chữ
+# Năm cổng trước Publish: kiem-so-camp.sh (phim test ≤ 2 camp, phim thắng ≤ 30) + cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-thoai-creative.sh (không thoại/chữ
 # mua bán dâm, quan hệ, đe doạ lột đồ — Meta 'Adult Sexual Exploitation') + kiem-ngon-ngu.py (cùng một tiếng).
 # Publish (chỉ khi anh cho trong lượt đó) là một lệnh RIÊNG để khớp rule allow:
 #   ~/bin/br post click '{"selector":"[data-pb=pub]","sensitive":"(?!x)x"}'
@@ -75,6 +75,9 @@ CID=$(echo "$K" | python3 -c 'import json,sys;d=json.loads(sys.stdin.read());d=j
 "$(dirname "$0")/kiem-studio.sh" "$CR" "$CID" || { echo "PUB CHAN — creative chưa ghi vào studio, KHÔNG Publish"; exit 2; }
 # CỔNG THOẠI (kiem-thoai-creative.sh, 20/10/2026 Meta từ chối #65717/#65719 "Adult Sexual Exploitation"): đọc chữ trên chính video creative —
 # dính mua bán dâm / quan hệ / đe doạ lột đồ thì KHÔNG đánh dấu Publish
+# CỔNG SỐ CAMP (kiem-so-camp.sh, anh 21/10/2026 "test 1 phim chỉ lên 1–2 camp", áp dụng cho camp MỚI từ 21/10 — camp đang chạy giữ nguyên):
+# phim chưa thắng tối đa 2 camp, phim thắng (xv_khoa_ngoai ethopex_phim_thang, anh duyệt) tối đa 30
+"$(dirname "$0")/kiem-so-camp.sh" "$CID" || { echo "PUB CHAN — vượt số camp cho phim, KHÔNG Publish"; exit 2; }
 KT=$("$(dirname "$0")/kiem-thoai-creative.sh" "$CR" 2>&1) || { echo "$KT" | tail -3; echo "PUB CHAN — thoại/chữ nhạy cảm trong video, KHÔNG Publish"; exit 2; }
 echo "$KT" | tail -1
 CL=$(ssh root@167.233.241.16 ". /root/.secrets/spy.env; psql \"\$DATABASE_URL\" -tAc 'select locale from ethopex_content where id=$CID'")

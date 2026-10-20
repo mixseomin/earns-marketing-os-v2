@@ -8,9 +8,9 @@ import { hopQc, type TiLeAnh } from './kieu';
 export const VND_MOI_USD = 26000;
 const vndRaCent = (vnd: number) => Math.round((vnd / VND_MOI_USD) * 100 * 1000) / 1000;
 
-export type CongKey = 'ckey' | 'shopaikey' | 'google' | 'kie' | 'wavespeed';
+export type CongKey = 'ckey' | 'shopaikey' | 'google' | 'kie' | 'wavespeed' | 'plenxai';
 /** Cổng có đường VIDEO qua guiVideoCong / docVideoCong (sinh-video.ts nhận clip theo provider này). */
-export const CONG_VIDEO: readonly string[] = ['shopaikey', 'kie', 'wavespeed'];
+export const CONG_VIDEO: readonly string[] = ['shopaikey', 'kie', 'wavespeed', 'plenxai'];
 /** Thông tin nhà cung cấp — dùng cho tin báo hết tiền (tên, nơi nạp, vault giữ email/mật khẩu). */
 export const CONG: Record<CongKey, { ten: string; napTien: string; vault: number | null; ghiChu: string }> = {
   ckey: { ten: 'CKEY.VN', napTien: 'https://ckey.vn/deposit', vault: 534, ghiChu: 'đăng nhập trên Chrome thường (Cloudflare chặn trình duyệt tự động); mã xác minh về Spam' },
@@ -18,14 +18,16 @@ export const CONG: Record<CongKey, { ten: string; napTien: string; vault: number
   google: { ten: 'Google AI Studio (Gemini API)', napTien: 'https://ai.studio/projects', vault: null, ghiChu: 'tín dụng trả trước của project gắn GOOGLE_API_KEY' },
   kie: { ten: 'Kie.ai', napTien: 'https://kie.ai/', vault: null, ghiChu: 'Veo 3.1 rẻ (lite 1080p 8s $0,175, đọc 16/10/2026); khoá KIE_API_KEY' },
   wavespeed: { ten: 'WaveSpeedAI', napTien: 'https://wavespeed.ai/pricing', vault: null, ghiChu: 'Kling 3.0 Std $0,084/s; khoá WAVESPEED_API_KEY' },
+  plenxai: { ten: 'PlenX AI', napTien: 'https://plenxai.com/new/credits', vault: 560, ghiChu: 'Veo 3.1 Lite 600–800₫/clip (nạp VietQR 100₫ = 1 credit, credit nạp hạn 3 tháng); token đăng nhập Google mikerey887 ở /root/.secrets/plenxai.json (cong-plenxai.ts)' },
 };
 
 export type BuocNguon = { cong: CongKey | 'fal' | 'openai'; model: string; ok: boolean; loi?: string; het_tien?: boolean; giay?: number };
 /** Nguồn của MỘT lượt sinh: cổng + model đã gọi + model thật phía sau + người bán + tiền thật + các bước đã thử. */
 export type NguonSinh = { cong: CongKey | 'fal' | 'openai'; model: string; model_that?: string; nguoi_ban?: string; vnd?: number; cents?: number; giay?: number; thu: BuocNguon[] };
 
-const KHOA_ENV: Record<CongKey, string[]> = { ckey: ['CKEY_API_KEY'], shopaikey: ['SHOPAIKEY_API_KEY'], google: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'], kie: ['KIE_API_KEY'], wavespeed: ['WAVESPEED_API_KEY'] };
-const khoa = (k: CongKey) => KHOA_ENV[k].map((e) => process.env[e]).find(Boolean) || null;
+const KHOA_ENV: Record<CongKey, string[]> = { ckey: ['CKEY_API_KEY'], shopaikey: ['SHOPAIKEY_API_KEY'], google: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'], kie: ['KIE_API_KEY'], wavespeed: ['WAVESPEED_API_KEY'], plenxai: [] };
+// PlenX không có khoá env: cặp token nằm ở tệp trên box (cong-plenxai.ts › TOKEN_TEP, máy tự xoay) — luôn coi là có; thiếu tệp thì guiPlenx lỗi ngay, chuỗi sang cổng sau
+const khoa = (k: CongKey) => (k === 'plenxai' ? 'tep' : KHOA_ENV[k].map((e) => process.env[e]).find(Boolean) || null);
 export const coCong = (k: CongKey) => !!khoa(k);
 
 /** Lỗi kiểu HẾT TIỀN của từng cổng (để báo nạp, không phải lỗi model). */
@@ -190,7 +192,7 @@ export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; t
   return { anh: null, nguon: null, thu };
 }
 
-const TEN_CONG: Record<string, string> = { ckey: 'ckey.vn', shopaikey: 'ShopAIKey', google: 'Google', fal: 'fal', openai: 'OpenAI', kie: 'Kie.ai', wavespeed: 'WaveSpeedAI' };
+const TEN_CONG: Record<string, string> = { plenxai: 'PlenX AI', ckey: 'ckey.vn', shopaikey: 'ShopAIKey', google: 'Google', fal: 'fal', openai: 'OpenAI', kie: 'Kie.ai', wavespeed: 'WaveSpeedAI' };
 /** Một dòng nguồn để hiện cạnh ảnh/clip: "ckey.vn · wowztools/nano-banana-2 → gemini-3.1-flash-image · 110,5₫ · 39s". */
 export function taNguon(n: NguonSinh | null | undefined): string {
   if (!n) return '';
@@ -207,7 +209,7 @@ export const taThu = (n: NguonSinh | null | undefined): string =>
 // là dự phòng cuối (sinh-video.ts). Task cổng treo quá TREO_PHUT phút chưa chạy → bỏ, sinh lại qua Google.
 export const TREO_PHUT = 12;
 // Kie / WaveSpeed: giá đọc trang giá 16/10/2026 (sổ nguồn AI, migration 0265) — Kie ghi giá clip 8s 1080p, studio gọi 720p nên đây là mức trần.
-const GIA_VIDEO_VND: Record<string, number> = { 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500, 'kie:veo3_lite': 4550, 'kie:veo3_fast': 8450, 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video': 17472 };
+const GIA_VIDEO_VND: Record<string, number> = { 'plenxai:veo3-lite': 800, 'plenxai:veo3-fast': 1400, 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500, 'kie:veo3_lite': 4550, 'kie:veo3_fast': 8450, 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video': 17472 };
 export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents?: number } => {
   const vnd = GIA_VIDEO_VND[`${cong}:${model}`];
   return vnd != null ? { vnd, cents: vndRaCent(vnd) } : {};
@@ -219,7 +221,10 @@ export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents
 export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; model: string; giay: number }[] {
   if (!/^veo/i.test(modelGoc)) return [];
   const kie = /lite/i.test(modelGoc) ? 'veo3_lite' : /fast/i.test(modelGoc) ? 'veo3_fast' : null;
+  const plenx = /lite/i.test(modelGoc) ? 'veo3-lite' : /fast/i.test(modelGoc) ? 'veo3-fast' : null;
   const ds: { cong: CongKey; model: string; giay: number }[] = [
+    // PlenX ĐẦU chuỗi (21/10/2026): cùng Veo 3.1, 600–800₫ / clip (Kie 4.550₫); token hỏng / hết credit → Kie
+    ...(plenx ? [{ cong: 'plenxai' as const, model: plenx, giay: 8 }] : []),
     ...(kie ? [{ cong: 'kie' as const, model: kie, giay: 8 }] : []),
     { cong: 'shopaikey', model: 'grok-video-3-10s', giay: 10 }, { cong: 'shopaikey', model: 'grok-imagine-video-1.5', giay: 6 },
   ];
@@ -231,6 +236,7 @@ export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: st
   const k = khoa(cong);
   if (!k || !CONG_VIDEO.includes(cong)) return { ok: false, loi: `cổng ${cong} chưa có đường video` };
   if (cong === 'kie') return guiKie(k, model, o);
+  if (cong === 'plenxai') return (await import('./cong-plenxai')).guiPlenx(model, o);
   if (cong === 'wavespeed') return guiWavespeed(k, model, o);
   try {
     const r = await fetch('https://api.shopaikey.com/v1/video/generations', {
@@ -252,6 +258,7 @@ export async function docVideoCong(cong: string, taskId: string, taoLuc: string)
   const k = khoa(cong as CongKey);
   if (!k) return { done: true, ok: false, loi: `thiếu khoá ${cong}` };
   if (cong === 'kie') return docKie(k, taskId, taoLuc);
+  if (cong === 'plenxai') return (await import('./cong-plenxai')).docPlenx(taskId, taoLuc, TREO_PHUT);
   if (cong === 'wavespeed') return docWavespeed(k, taskId, taoLuc);
   const r = await fetch(`https://api.shopaikey.com/v1/video/generations/${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
   if (!r?.ok) return { done: false };
@@ -321,6 +328,8 @@ export const MO_HINH_CONG: MoHinhCong[] = [
   { key: 'shopaikey:gemini-nano-banana-2.1', label: 'Nano Banana 2.1', nhom: 'ShopAIKey', vnd: 683, donVi: 'anh' },
   { key: 'shopaikey:grok-video-3-10s', label: 'Grok Video 3 · 10s (khung 2:3, xuất tự cắt 9:16)', nhom: 'ShopAIKey', vnd: 3250, donVi: 'clip', giay: 10 },
   { key: 'shopaikey:grok-imagine-video-1.5', label: 'Grok Imagine Video 1.5 · 6s (khung 2:3)', nhom: 'ShopAIKey', vnd: 6500, donVi: 'clip', giay: 6 },
+  { key: 'plenxai:veo3-lite', label: 'Veo 3.1 Lite · PlenX AI (clip 4–8s, 9:16)', nhom: 'PlenX AI', vnd: 800, donVi: 'clip', giay: 8 },
+  { key: 'plenxai:veo3-fast', label: 'Veo 3.1 Fast · PlenX AI (clip 4–8s, 9:16)', nhom: 'PlenX AI', vnd: 1400, donVi: 'clip', giay: 8 },
   { key: 'kie:veo3_lite', label: 'Veo 3.1 Lite · Kie.ai (clip 4–8s, 9:16)', nhom: 'Kie.ai', vnd: 4550, donVi: 'clip', giay: 8 },
   { key: 'kie:veo3_fast', label: 'Veo 3.1 Fast · Kie.ai (clip 4–8s, 9:16)', nhom: 'Kie.ai', vnd: 8450, donVi: 'clip', giay: 8 },
   { key: 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video', label: 'Kling 3.0 Std · WaveSpeedAI (5 / 10s)', nhom: 'WaveSpeedAI', vnd: 17472, donVi: 'clip', giay: 8 },
@@ -328,7 +337,7 @@ export const MO_HINH_CONG: MoHinhCong[] = [
 export const centsCong = (vnd: number) => vndRaCent(vnd);
 /** Tách khoá model: cổng đích danh / Google trực tiếp / tự chọn. */
 export function tachKhoa(key: string): { kieu: 'cong'; cong: CongKey; model: string } | { kieu: 'google'; model: string } | { kieu: 'tu_chon'; model: string } {
-  const m = /^(ckey|shopaikey|google|kie|wavespeed):(.+)$/.exec(key);
+  const m = /^(ckey|shopaikey|google|kie|wavespeed|plenxai):(.+)$/.exec(key);
   if (!m) return { kieu: 'tu_chon', model: key };
   return m[1] === 'google' ? { kieu: 'google', model: m[2]! } : { kieu: 'cong', cong: m[1] as CongKey, model: m[2]! };
 }

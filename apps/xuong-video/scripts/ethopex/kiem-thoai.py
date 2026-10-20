@@ -25,11 +25,20 @@ def soat(cau):
     m = MAU.search(cau or "")
     return m.group(0) if m else None
 
+def may_doc():
+    """doc-chu.swift biên dịch MỘT lần thành ~/.cache/ethopex/doc-chu (dịch lại khi tệp nguồn mới hơn). 20/10/2026: chạy `swift doc-chu.swift`
+    (thông dịch) 4 lượt song song thì treo nhau hơn 1 giờ ở khoá module cache → luôn dùng bản đã biên dịch."""
+    src = os.path.join(D, "doc-chu.swift"); bin_ = os.path.expanduser("~/.cache/ethopex/doc-chu")
+    if not os.path.exists(bin_) or os.path.getmtime(bin_) < os.path.getmtime(src):
+        os.makedirs(os.path.dirname(bin_), exist_ok=True); tmp = bin_ + ".%d" % os.getpid()
+        subprocess.run(["swiftc", "-O", src, "-o", tmp], check=True, capture_output=True, timeout=600); os.replace(tmp, bin_)
+    return bin_
+
 def doc(video, tu, den):
     with tempfile.TemporaryDirectory() as t:
         subprocess.run(["ffmpeg", "-v", "error", "-ss", str(tu), "-t", str(den - tu), "-i", video, "-vf", "fps=1,scale=540:-2", f"{t}/k%04d.png"], check=True)
         anh = sorted(os.listdir(t))
-        r = subprocess.run(["swift", os.path.join(D, "doc-chu.swift")] + [f"{t}/{a}" for a in anh], capture_output=True, text=True, check=True)
+        r = subprocess.run([may_doc()] + [f"{t}/{a}" for a in anh], capture_output=True, text=True, check=True, timeout=600)
         return [(tu + i, json.loads(l)["chu"]) for i, l in enumerate(r.stdout.splitlines())]
 
 def tu_kiem():

@@ -202,10 +202,10 @@ function BangCreative({ song, d, goc, cum, locGoc, setLocGoc, chon, setChon, onM
       cell: (c) => <Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id} · bấm để mở template` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill> },
     { key: 'hook', header: 'Hook', align: 'left', sortValue: (c) => c.hook, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.hook || '—'}</span>, cellTitle: (c) => c.hook },
     { key: 'cta', header: 'CTA', width: '12%', align: 'left', sortValue: (c) => c.cta, cell: (c) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cta || '—'}</span>, cellTitle: (c) => c.cta },
-    { key: 'camp', header: 'Camp', title: 'Camp Ethopex đang dùng creative này (gốc + nhân bản) — xanh = đang lãi', width: 120, align: 'left', sortValue: (c) => c.etp?.camp.length ?? 0, cell: (c) => {
+    { key: 'camp', header: 'Camp', title: 'Camp Ethopex đang dùng creative này (gốc + nhân bản) — xanh = đang lãi', width: 150, align: 'left', sortValue: (c) => c.etp?.camp.length ?? 0, cell: (c) => {
       const sl = soLieuCr(c, song); const ds = c.etp?.camp ?? [];
       if (!c.etp) return <span style={{ color: 'var(--fg-2)' }}>chưa lên</span>;
-      return <span style={{ fontSize: 11.5 }}>{ds.length ? ds.map((id) => { const x = sl?.camp?.find((k) => k.id === id); return <span key={id} title={x ? `#${id} · budget $${x.budget} · spending ${x.spending ?? '—'}% · chi $${x.chi?.toFixed(2)} · thu $${x.thu?.toFixed(2)} · ROI ${x.roi ?? '—'}%` : `#${id}`}
+      return <span style={{ fontSize: 11.5, display: 'flex', flexWrap: 'wrap', whiteSpace: 'normal', lineHeight: 1.35 }}>{ds.length ? ds.map((id) => { const x = sl?.camp?.find((k) => k.id === id); return <span key={id} title={x ? `#${id} · budget $${x.budget} · spending ${x.spending ?? '—'}% · chi $${x.chi?.toFixed(2)} · thu $${x.thu?.toFixed(2)} · ROI ${x.roi ?? '—'}%` : `#${id}`}
         style={{ marginRight: 4, color: (x?.lai ?? 0) > 0 ? 'var(--green, #3fb950)' : (x?.lai ?? 0) < 0 ? 'var(--red, #f85149)' : 'var(--fg-1)' }}>#{id}{x && x.budget !== 1 ? ` $${x.budget}` : ''}</span>; }) : `creative #${c.etp.creative_id}`}</span>;
     } },
     { key: 'lai', header: 'Lãi · ROI', title: 'Lãi và ROI cộng các camp của creative (số liệu sống từ Ethopex, từ đầu tháng)', width: 110, align: 'right', sortValue: (c) => soLieuCr(c, song)?.lai ?? -1e9, cell: (c) => {

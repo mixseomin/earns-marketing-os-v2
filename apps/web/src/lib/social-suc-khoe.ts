@@ -16,7 +16,7 @@ export interface VaoSuc {
   noi: { may: string; mayTen: string; nen: string; nenTen: string; tk: string; gio: string; mayMac: string; acct: string | null }[];
   da: { may: string; nen: string; ngay: string; luc: string | null; url: string | null }[];
   hong: { may: string; nen: string; luc: string; chu: string }[];   // xv_may_nhat_ky ok=false, buoc='dang'
-  canhBao: { acct: string; loai: string; luc: string; chu: string }[];   // platform_alerts 7 ngày có account_id
+  canhBao: { acct: string; loai: string; luc: string; chu: string; nguon: string }[];   // platform_alerts 7 ngày có account_id
   lich: { may: string; nen: string; ngay: string; gio: string }[];
 }
 
@@ -39,6 +39,9 @@ export function nguyenNhan(chu: string): { ten: string; giai: string } {
   const dau = chu.replace(/^Đăng hỏng:\s*/, '').split(/[|\n]/)[0]!.trim().slice(0, 120);
   return { ten: dau || 'Lỗi không rõ', giai: '' };
 }
+/** Cảnh báo nào làm máy đăng DỪNG tài khoản — chép đúng luật của máy đăng (puzzle-books scripts/nhip-an-toan.mjs › canhBaoDung, repo khác nên không
+ *  import được): khoá / hạn chế / từ chối luôn dừng; đòi xác minh chỉ dừng khi máy bắt được (may-dang, br-tu-dong), ghi tay thì không. Đổi bên đó thì đổi đây. */
+export const canhBaoDung = (c: { loai: string; nguon: string }) => ['khoa', 'han_che', 'tu_choi'].includes(c.loai) || (c.loai === 'xac_minh' && /^(may-dang|br-tu-dong)/.test(c.nguon));
 const LOAI_CB: Record<string, string> = { han_che: 'bị hạn chế', khoa: 'bị khoá', xac_minh: 'bị đòi xác minh', tu_choi: 'bị từ chối thao tác', canh_bao: 'có cảnh báo' };
 const dm = (n: string) => `${n.slice(8, 10)}/${n.slice(5, 7)}`;
 const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -70,7 +73,7 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
     const g = gom.get(khoa) ?? { muc, tieuDe, chiTiet, kenh: [], luc: null };
     if (!g.kenh.includes(kenh)) g.kenh.push(kenh); if (luc && (!g.luc || luc > g.luc)) g.luc = luc; gom.set(khoa, g);
   };
-  const dangDung = (n: VaoSuc['noi'][number]) => !!n.acct && v.canhBao.some((c) => c.acct === n.acct);   // tài khoản đang bị dừng vì cảnh báo: lý do là cảnh báo, không tính lỗi đăng riêng
+  const dangDung = (n: VaoSuc['noi'][number]) => !!n.acct && v.canhBao.some((c) => c.acct === n.acct && canhBaoDung(c));   // tài khoản đang bị dừng vì cảnh báo: lý do là cảnh báo, không tính lỗi đăng riêng
   for (const n of v.noi) {
     if (dangDung(n)) continue;
     const hong = v.hong.filter((x) => x.may === n.may && x.nen === n.nen).sort((a, b) => b.luc.localeCompare(a.luc))[0];
@@ -78,7 +81,7 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
     if (hong && (!okLuc || okLuc < hong.luc)) { const nn = nguyenNhan(hong.chu); them(`loi|${nn.ten}`, 'bad', nn.ten, nn.giai, ten(n), hong.luc); }
   }
   // cảnh báo rủi ro 7 ngày trên tài khoản của nơi đăng → máy đăng dừng tài khoản đó (nhip-an-toan › canhBaoDung)
-  for (const n of v.noi) for (const c of v.canhBao.filter((x) => n.acct && x.acct === n.acct)) {
+  for (const n of v.noi) for (const c of v.canhBao.filter((x) => n.acct && x.acct === n.acct && canhBaoDung(x))) {
     const het = new Date(Date.parse(c.luc) + 7 * 864e5 + 7 * 3600e3).toISOString();
     them(`cb|${c.acct}|${c.loai}`, 'bad', `Tài khoản ${n.tk || n.acct} ${LOAI_CB[c.loai] ?? c.loai} — máy dừng đăng tới ${dm(het)}`, c.chu.replace(/\s+/g, ' ').slice(0, 220), ten(n), c.luc);
   }

@@ -147,7 +147,7 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
         WHERE m.chay AND e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 30, 'YYYY-MM-DD')`) as unknown as Promise<R[]>,
       d.execute(sql`SELECT m.ma AS may, k.nen, k.luc::text AS luc, k.noi_dung AS chu FROM xv_may_nhat_ky k JOIN xv_may m ON m.id = k.may_id
         WHERE m.chay AND NOT k.ok AND k.buoc = 'dang' AND k.nen IS NOT NULL AND k.luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
-      d.execute(sql`SELECT account_id::text AS acct, loai, luc::text AS luc, noi_dung AS chu FROM platform_alerts WHERE account_id IS NOT NULL AND luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
+      d.execute(sql`SELECT account_id::text AS acct, loai, luc::text AS luc, noi_dung AS chu, nguon FROM platform_alerts WHERE account_id IS NOT NULL AND luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
       d.execute(sql`SELECT ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ ds: { may: string; nen: string; ngay: string; gio: string }[] }[]>,
     ]);
     const vao: VaoSuc = {
@@ -155,7 +155,7 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
       noi: noi.map((x) => ({ may: String(x.may), mayTen: String(x.may_ten), nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac), acct: x.acct ?? null })),
       da: da.map((x) => ({ may: String(x.may), nen: String(x.nen), ngay: String(x.ngay), luc: x.luc ?? null, url: x.url ?? null })),
       hong: hong.map((x) => ({ may: String(x.may), nen: String(x.nen), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu) })),
-      canhBao: cb.map((x) => ({ acct: String(x.acct), loai: String(x.loai), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu) })),
+      canhBao: cb.map((x) => ({ acct: String(x.acct), loai: String(x.loai), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu), nguon: String(x.nguon ?? '') })),
       lich: (lich[0]?.ds ?? []).map((x) => ({ may: x.may, nen: x.nen, ngay: x.ngay, gio: x.gio })),
     };
     return tinhSucKhoe(vao);

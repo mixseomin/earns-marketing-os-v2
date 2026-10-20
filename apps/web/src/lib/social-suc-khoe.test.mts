@@ -5,7 +5,7 @@ const bay = Date.parse('2026-10-20T11:00:00Z');   // 18:00 VN 20/10
 const noi = (may: string, nen: string, acct: string | null = null) => ({ may, mayTen: `${may.toUpperCase()} · máy`, nen, nenTen: nen.toUpperCase(), tk: `@${may}`, gio: '20:00', mayMac: 'iMac', acct });
 const v: VaoSuc = {
   bay,
-  noi: [noi('h', 'youtube'), noi('h', 'x'), noi('b', 'x'), noi('h', 'facebook', '544'), noi('f', 'tiktok'), noi('b', 'facebook')],
+  noi: [noi('h', 'youtube', '777'), noi('h', 'x'), noi('b', 'x'), noi('h', 'facebook', '544'), noi('f', 'tiktok'), noi('b', 'facebook')],
   da: [
     { may: 'h', nen: 'youtube', ngay: '2026-10-17', luc: '2026-10-17T13:00:00Z', url: 'https://yt/1' },
     { may: 'b', nen: 'facebook', ngay: '2026-10-20', luc: '2026-10-20T01:00:00Z', url: 'https://fb/1' },
@@ -17,7 +17,8 @@ const v: VaoSuc = {
     { may: 'b', nen: 'x', luc: '2026-10-20T01:03:00Z', chu: 'Đăng hỏng: br goto https://x.com/home: br: TỪ CHỐI mở — URL không có nguồn' },
     { may: 'b', nen: 'x', luc: '2026-10-18T19:00:00Z', chu: 'lỗi cũ trước lần đăng thành công' },
   ],
-  canhBao: [{ acct: '544', loai: 'xac_minh', luc: '2026-10-19T01:03:00Z', chu: 'Graph 400: Confirm your identity before you can publish as this Page.' }],
+  canhBao: [{ acct: '544', loai: 'xac_minh', luc: '2026-10-19T01:03:00Z', chu: 'Graph 400: Confirm your identity before you can publish as this Page.', nguon: 'may-dang:h:facebook' },
+    { acct: '777', loai: 'xac_minh', luc: '2026-10-19T01:03:00Z', chu: 'ghi tay', nguon: 'tay' }],
   lich: [{ may: 'b', nen: 'facebook', ngay: '2026-11-08', gio: '20:00' }, { may: 'f', nen: 'tiktok', ngay: '2026-10-20', gio: '20:00' }, { may: 'f', nen: 'tiktok', ngay: '2026-10-23', gio: '20:00' }],
 };
 const s = tinhSucKhoe(v);
@@ -43,4 +44,6 @@ assert.equal(nguyenNhan('Đăng hỏng: Command failed: /Users/htuan/bin/br eval
 assert.equal(nguyenNhan('br click Publish: {"chan":"nut-nhay-cam"}').ten, 'br chặn bấm nút Publish', 'Publish vẫn xếp đúng, không rơi vào nhóm br chung');
 const s2 = tinhSucKhoe({ ...v, hong: [...v.hong, { may: 'h', nen: 'facebook', luc: '2026-10-19T01:03:30Z', chu: 'Command failed: ssh x scripts/dang-fb-reel.mts' }] });
 assert.ok(!s2.suCo.some((x) => x.tieuDe.startsWith('Đăng qua API')), 'tài khoản đang bị dừng vì cảnh báo: không đẻ thêm dòng lỗi đăng');
+assert.ok(!s.suCo.some((x) => x.tieuDe.includes('@h ') && x.kenh.includes('H · YOUTUBE') && x.tieuDe.includes('dừng')), 'xác minh ghi tay không làm máy dừng → không báo dừng');
+assert.ok(s.suCo.some((x) => x.tieuDe === 'br chặn bấm nút Publish'), 'tài khoản có cảnh báo không-dừng vẫn hiện lỗi đăng thật');
 console.log('✓ social-suc-khoe: ô 4 ngày · gom sự cố theo nguyên nhân · cảnh báo dừng 7 ngày · lỗi đã khỏi không báo · kho cạn · im lặng');

@@ -50,7 +50,11 @@ $BR fill 'input[name=adName]' "$TEN" >/dev/null
 bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select a FB Page/.test(x.innerText))'; sleep 2
 bam '[...document.querySelectorAll("[role=option]")].find(x=>/Andrew Rebecca/.test(x.textContent))'; sleep 1
 bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select a creative/.test(x.innerText))'; sleep 3
-bam "[...document.querySelectorAll('[role=option]')].find(x=>/$CR/.test(x.textContent))"; sleep 2
+# ô chọn chỉ liệt kê ~50 creative mới nhất (20/10/2026: nhân bản camp #65110 dùng creative cũ #51921 → không thấy, creative trống) → gõ mã vào ô Search của ô chọn rồi chờ kết quả
+if [ "$(bam "[...document.querySelectorAll('[role=option]')].find(x=>/\\($CR\\)/.test(x.textContent))")" != ok ]; then
+  $BR eval "(()=>{const i=[...document.querySelectorAll('input[placeholder^=Search]')].filter(x=>x.offsetParent).pop();if(!i)return 'no search';const s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;s.call(i,'$CR');i.dispatchEvent(new Event('input',{bubbles:true}));return 'ok'})()" >/dev/null
+  for _ in 1 2 3 4 5 6 7 8; do sleep 1; [ "$(bam "[...document.querySelectorAll('[role=option]')].find(x=>/\\($CR\\)/.test(x.textContent))")" = ok ] && break; done
+fi; sleep 2
 $BR eval 'const t=document.querySelector("main").innerText;"AD | "+(t.match(/Facebook Page[\s\S]{0,60}/)||["?"])[0]+" || "+(t.match(/Set up creative[\s\S]{0,120}/)||["?"])[0]' | tail -1
 
 # kiểm payload sẽ gửi (View create payload) — in gọn

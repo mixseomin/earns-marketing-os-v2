@@ -2,6 +2,7 @@
 # KIỂM CAMP ĐỦ ĐIỀU KIỆN TĂNG NGÂN SÁCH (rule Ethopex — nhóm Support Ads, anh chuyển 20/10/2026):
 #   cột Spending = cost / budget. Camp ROI CAO và Spending > 50% (chi tiêu lên mà ROI vẫn giữ) → tăng MỘT bậc theo thang
 #   $1 → 3 → 5 → 7 → 10 → 15 → 20, TRẦN $20/camp (anh 20/10/2026, để giữ ROI cao); không thì giữ. Một ngày tác động tăng tối đa 2–3 lần.
+#   Phim có camp đạt → còn NHÂN BẢN: Duplicate camp đó + làm thêm creative cùng phim lên camp mới (≤ 30 camp/phim) — in cột "phim cần nhân".
 # LUẬT CỦA ANH: chỉ ĐỌC + BÁO. Mọi lần tăng phải được anh DUYỆT đúng camp đó trước — script này không bao giờ sửa budget.
 # Cách gọi (br đã mở profile htuan82, `br use 557`): kiem-ngan-sach.sh [roi_toi_thieu=20] [spending_toi_thieu=50]
 set -u
@@ -29,6 +30,8 @@ for d in sys.stdin.read().splitlines():
     elif roi >= roi_min or sp > sp_min * 0.8: gan.append(dong)
 print(f"ĐỦ ĐIỀU KIỆN (ROI ≥ {roi_min:g}% và spending > {sp_min:g}%) — CHỜ ANH DUYỆT trước khi tăng:")
 print("\n".join("  " + x for x in dat) or "  (chưa có)")
+phim = sorted({re.sub(r"^\d+: \d+ ", "", x.split(" · ")[0]).replace(" - canh that", "").replace(" - ke chuyen", "").strip() for x in dat})
+print("PHIM CẦN NHÂN BẢN (Duplicate camp đạt + thêm creative cùng phim):", ", ".join(phim) or "(chưa có)")
 print("GẦN ĐẠT (theo dõi tiếp):")
 print("\n".join("  " + x for x in gan) or "  (không)")
 ' "$ROI_MIN" "$SP_MIN"

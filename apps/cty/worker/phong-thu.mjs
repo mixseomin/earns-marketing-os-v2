@@ -12,6 +12,26 @@ import { GOC } from './goc.mjs';
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const HANG = (ph) => path.join(DATA(), 'phong-thu', ph), XONG = (ph) => path.join(DATA(), 'phong-thu', ph, 'da-xu');
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Markdown của mô hình → HTML Telegram (anh 20/10/2026: "sao không format được" — Telegram không hiểu **, `, bảng nên hiện nguyên ký hiệu).
+ *  Đậm / nghiêng / mã / tiêu đề → thẻ Telegram; bảng → mỗi hàng một dòng "• ô1 · ô2"; bỏ dòng kẻ. Thoát HTML trước rồi mới gắn thẻ. */
+export function mdTele(md) {
+  const ra = [];
+  for (let l of String(md).replace(/\r/g, '').split('\n')) {
+    if (/^\s*\|?\s*:?-{2,}/.test(l) || /^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(l)) continue;   // dòng kẻ bảng / kẻ ngang
+    l = esc(l);
+    if (/^\s*\|.*\|\s*$/.test(l)) { const o = l.trim().replace(/^\||\|$/g, '').split('|').map((x) => x.trim()).filter(Boolean); l = `• ${o.join(' · ')}`; }
+    l = l.replace(/^\s*#{1,6}\s+(.+)$/, '<b>$1</b>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<b>$1</b>')
+      .replace(/(^|[\s(])\*(?!\s)([^*]+?)\*(?=[\s).,:;!?]|$)/g, '$1<i>$2</i>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/^(\s*)[-*]\s+/, '$1• ');
+    ra.push(l);
+  }
+  return ra.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+/** Báo cáo của người phụ trách có hai phần: "BÁO ANH:" (lên Telegram) và "KỸ THUẬT:" (chỉ lưu hồ sơ việc). Không chia phần thì cả bài là phần báo. */
+export function tachBao(chu) {
+  const t = String(chu), i = t.search(/^\s*\**\s*KỸ THUẬT\s*:?\**\s*:?/mi);
+  const bao = (i >= 0 ? t.slice(0, i) : t).replace(/^\s*\**\s*BÁO ANH\s*:?\**\s*:?/mi, '').trim();
+  return { bao, kyThuat: i >= 0 ? t.slice(i).replace(/^\s*\**\s*KỸ THUẬT\s*:?\**\s*:?/mi, '').trim() : '' };
+}
 const tenNguoi = (id) => { try { const t = fs.readFileSync(path.join(GOC, 'cong-ty', 'nhan-su', id, 'SOUL.md'), 'utf8'); const ph = t.match(/^phong:\s*(\S+)/m)?.[1];
   const tp = ph ? fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${ph}.md`), 'utf8').match(/^ten:\s*(.+)$/m)?.[1].replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, '').trim() : '';
   return `${t.match(/^ten:\s*(.+)$/m)[1].trim()}${tp ? ` [${tp}]` : ''}`; } catch { return id; } };
@@ -58,9 +78,10 @@ export async function nhan(ph, id, ai) {
 }
 export async function xong(ph, id, ai, baoCao) {
   const [f, x] = doc(ph, id); fs.mkdirSync(XONG(ph), { recursive: true });
-  const tinBao = await bao(ph, x, `${x.loai === 'tra-loi' ? '💬' : '✅'} <b>${esc(tenNguoi(ai))}</b> — ${x.loai === 'tra-loi' ? 'trả lời anh' : 'thư'} <i>${esc(x.tieuDe)}</i>\n\n${esc(baoCao)}`);
+  const { bao: phanBao, kyThuat } = tachBao(baoCao);
+  const tinBao = await bao(ph, x, `${x.loai === 'tra-loi' ? '💬' : '✅'} <b>${esc(tenNguoi(ai))}</b> — ${x.loai === 'tra-loi' ? 'trả lời anh' : 'thư'} <i>${esc(x.tieuDe)}</i>\n\n${mdTele(phanBao)}${kyThuat ? '\n\n<i>(chi tiết kỹ thuật đã lưu vào hồ sơ việc trên cty)</i>' : ''}`);
   // giữ thân thư gốc trong bản đã xử: anh trả lời dưới báo cáo thì người phụ trách còn đọc lại được thư
-  fs.writeFileSync(path.join(XONG(ph), `${id}.json`), JSON.stringify({ ...x, xong_luc: new Date().toISOString(), xong_boi: ai, bao_cao: baoCao, tin_bao: tinBao }, null, 1)); fs.rmSync(f);
+  fs.writeFileSync(path.join(XONG(ph), `${id}.json`), JSON.stringify({ ...x, xong_luc: new Date().toISOString(), xong_boi: ai, bao_cao: phanBao, ky_thuat: kyThuat, tin_bao: tinBao }, null, 1)); fs.rmSync(f);
 }
 export async function dung(ph, id, ai, lyDo) {
   const [f, x] = doc(ph, id); x.dung = String(lyDo || 'không rõ'); x.dung_luc = new Date().toISOString(); fs.writeFileSync(f, JSON.stringify(x, null, 1));
@@ -76,6 +97,10 @@ if (process.argv[1]?.endsWith('phong-thu.mjs')) {
     fs.writeFileSync(path.join(HANG('x'), 'b.json'), JSON.stringify({ id: 'b', luc: '2026-10-20T00:00:00Z', tieuDe: 'B', nhan_luc: 'x' }));
     t.deepEqual(choXu('x').map((v) => v.id), ['a'], 'thư đã nhận không chờ nữa'); t.deepEqual(choXu('khong-co'), []);
     t.equal(tenNguoi('van'), 'Vân [Social Traffic]');
+    t.equal(mdTele('**Trial** đọc `pins:read`'), '<b>Trial</b> đọc <code>pins:read</code>');
+    t.equal(mdTele('| Số liệu | Có |\n|---|---|\n| Impressions | Có |'), '• Số liệu · Có\n• Impressions · Có', 'bảng thành dòng');
+    t.equal(mdTele('a < b & c'), 'a &lt; b &amp; c'); t.equal(mdTele('## Việc tiếp\n- bước 1'), '<b>Việc tiếp</b>\n• bước 1');
+    { const r = tachBao('BÁO ANH:\nđã duyệt\n\nKỸ THUẬT:\nGET /v5/pins'); t.equal(r.bao, 'đã duyệt'); t.equal(r.kyThuat, 'GET /v5/pins'); t.equal(tachBao('chỉ báo').bao, 'chỉ báo'); }
     fs.mkdirSync(XONG('x'), { recursive: true }); fs.writeFileSync(path.join(XONG('x'), 'm1.json'), JSON.stringify({ id: 'm1', tieuDe: 'Pinterest API', xong_luc: '2026-10-20T02:00:00Z', tin_bao: [70, 71], bao_cao: 'cần App ID', ai: 'van' }));
     const hop = path.join(DATA(), 'tg-hop', 'x'); fs.mkdirSync(hop, { recursive: true });
     fs.writeFileSync(path.join(hop, '5.json'), JSON.stringify({ update_id: 5, message: { message_id: 90, text: 'App ID đã có trong vault #503', reply_to_message: { message_id: 71 }, from: { first_name: 'Tuấn' } } }));

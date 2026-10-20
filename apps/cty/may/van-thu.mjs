@@ -38,7 +38,10 @@ Không có ai trả lời giữa chừng: đừng hỏi lại, tự quyết theo
 TIN ANH (${x.tu}): ${x.loi_anh}
 ${truoc ? `\nTHƯ GỐC: ${truoc.tieuDe} — ${truoc.gui}\nKiên đọc: ${truoc.chu}\nNỘI DUNG THƯ:\n${truoc.than}\n\nBÁO CÁO TRƯỚC CỦA BẠN:\n${truoc.bao_cao}${truoc.loi_anh ? `\n(lần trước anh nhắn: ${truoc.loi_anh})` : ''}` : ''}
 
-TRẢ LỜI bằng tiếng Việt, ngắn: trả lời thẳng câu anh hỏi; kế hoạch đã cập nhật (các bước, tệp nào); còn thiếu gì (chỉ khi máy thật sự không tự lấy được, kèm vì sao).
+VIẾT CHO GIÁM ĐỐC đọc trên điện thoại: hai phần.
+BÁO ANH: lời thường, ngắn (tối đa ~10 dòng): chuyện gì, việc tiếp theo, cần anh gì. KHÔNG bảng, KHÔNG mã, KHÔNG endpoint / tên hàm / scope API.
+KỸ THUẬT: chi tiết cho người làm (tệp, hàm, endpoint, giới hạn API…) — phần này KHÔNG gửi anh, chỉ lưu hồ sơ việc.
+Nội dung: trả lời thẳng câu anh hỏi; kế hoạch đã cập nhật; còn thiếu gì (chỉ khi máy thật sự không tự lấy được, kèm vì sao).
 Dòng CUỐI: "KET: OK" khi đã trả lời xong, hoặc "KET: DUNG <lý do>".` : `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc): giữ traffic từ mạng xã hội (Pinterest trước tiên) cho các dự án.
 Kiên (phòng Bảo mật) vừa chuyển cho bạn một thư. Việc của bạn: đọc thư, đọc mã liên quan trong repo đang đứng (puzzle-books — dây chuyền
 Pinterest: scripts/pins.mjs, pin-hang.mjs, pin-so.mjs, kenh.mjs…), đọc tài liệu chính thức của nền tảng nếu cần, rồi lập VIỆC TIẾP THEO.
@@ -56,7 +59,10 @@ ${x.than}
 VỀ PHÒNG:
 ${phong}
 
-TRẢ LỜI bằng tiếng Việt, ngắn, đúng 4 mục (không chào hỏi, không tóm tắt lại thư dài dòng):
+VIẾT CHO GIÁM ĐỐC đọc trên điện thoại: hai phần.
+BÁO ANH: lời thường, ngắn (tối đa ~10 dòng): chuyện gì, việc tiếp theo, cần anh gì. KHÔNG bảng, KHÔNG mã, KHÔNG endpoint / tên hàm / scope API.
+KỸ THUẬT: chi tiết cho người làm (tệp, hàm, endpoint, giới hạn API…) — phần này KHÔNG gửi anh, chỉ lưu hồ sơ việc.
+Nội dung (không chào hỏi), BÁO ANH theo 4 ý:
 1. Thư nói gì (1–2 câu, có số liệu / quyền / hạn chót nếu có).
 2. Việc tiếp theo: các bước cụ thể, tệp nào trong repo phải sửa và sửa gì.
 3. Cần anh cung cấp gì (vd khoá ứng dụng trong trang nhà phát triển) — chỉ ghi khi máy thật sự không tự lấy được, kèm vì sao.

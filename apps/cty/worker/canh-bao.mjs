@@ -83,6 +83,15 @@ if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv[2] === 'soi') {
 }
 if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv[2] === 'list') {
   const i = process.argv.indexOf('--ngay'), n = i > 0 ? Number(process.argv[i + 1]) || 7 : 7, sql = await ketNoi();
-  console.log(JSON.stringify(await sql`select id, luc, loai, platform, handle, account_id, nguon, left(noi_dung, 160) as noi_dung, da_bao from platform_alerts where luc > now() - ${`${n} days`}::interval order by luc desc`));
+  // chỉ cảnh báo CHƯA XỬ (xong_luc null) — dòng đã xử giữ trong sổ nhưng không còn dừng máy đăng
+  console.log(JSON.stringify(await sql`select id, luc, loai, platform, handle, account_id, nguon, left(noi_dung, 160) as noi_dung, da_bao from platform_alerts where luc > now() - ${`${n} days`}::interval and xong_luc is null order by luc desc`));
+  await sql.end(); process.exit(0);
+}
+// ĐÃ XỬ (anh 21/10/2026): node worker/canh-bao.mjs xong <id>[,<id>…] "<ghi chú>" — đánh dấu, không xoá dòng; máy đăng thôi dừng tài khoản ở lượt kế.
+if (process.argv[1]?.endsWith('canh-bao.mjs') && process.argv[2] === 'xong') {
+  const ids = String(process.argv[3] ?? '').split(',').map(Number).filter(Number.isInteger), ghi = String(process.argv[4] ?? '');
+  if (!ids.length || ghi.length < 5) { console.error('dùng: canh-bao.mjs xong <id>[,<id>] "<ghi chú ≥5 ký tự: đã xử thế nào>"'); process.exit(1); }
+  const sql = await ketNoi();
+  console.log(JSON.stringify(await sql`update platform_alerts set xong_luc = now(), xong_ghi = ${ghi} where id = any(${ids}) and xong_luc is null returning id, account_id, loai`));
   await sql.end(); process.exit(0);
 }

@@ -147,7 +147,7 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
         WHERE m.chay AND e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 30, 'YYYY-MM-DD')`) as unknown as Promise<R[]>,
       d.execute(sql`SELECT m.ma AS may, k.nen, k.luc::text AS luc, k.noi_dung AS chu FROM xv_may_nhat_ky k JOIN xv_may m ON m.id = k.may_id
         WHERE m.chay AND NOT k.ok AND k.buoc = 'dang' AND k.nen IS NOT NULL AND k.luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
-      d.execute(sql`SELECT account_id::text AS acct, loai, luc::text AS luc, noi_dung AS chu, nguon FROM platform_alerts WHERE account_id IS NOT NULL AND luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
+      d.execute(sql`SELECT account_id::text AS acct, loai, luc::text AS luc, noi_dung AS chu, nguon FROM platform_alerts WHERE account_id IS NOT NULL AND xong_luc IS NULL AND luc > now() - interval '7 days'`) as unknown as Promise<R[]>,
       d.execute(sql`SELECT ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ ds: { may: string; nen: string; ngay: string; gio: string }[] }[]>,
     ]);
     const vao: VaoSuc = {

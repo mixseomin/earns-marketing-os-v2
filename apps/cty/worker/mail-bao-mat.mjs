@@ -149,10 +149,17 @@ function docNao(day) { try { const n = JSON.parse(require_fs().readFileSync(tepN
 let _fs = null, _goc = ''; const require_fs = () => _fs;   // fs nạp một lần ở đầu nhịp / docMailBaoMat (tệp ESM không có require)
 /** Link nhái tên hãng: host chứa tên hãng của người gửi mà KHÔNG cùng nhà (amazon-in.verify-acct.top khi người gửi amazon.in). */
 export const linkNhai = (x) => (x.mien ? (x.la ?? []).filter((h) => h.toLowerCase().includes(nhan(x.mien)) && !cungNha(h, x.mien)) : []);
-// SỔ CHỜ THƯ (cong-ty/quy-dinh/bao-mat/cho-thu.json, trong git) + SỔ HỌC CHUYỂN PHÒNG (<DATA>/mail-hoc-phong.json, anh bấm "↪️ Sai phòng" là ghi):
+// PHÒNG ĐANG CHỜ THƯ (anh 19/10/2026: "các phòng chờ thông tin thì phải có chỗ cho Kiên biết mà phân loại"): mỗi phòng tự khai trong
+// cong-ty/phong/<phòng>.md, phần đầu tệp, một dòng một thứ: `cho_thu: <mẫu> | <lý do>`. + SỔ HỌC CHUYỂN PHÒNG (<DATA>/mail-hoc-phong.json, anh bấm "↪️ Sai phòng" là ghi):
 // hai nguồn chỉ đường mà mô hình không được cãi — người đang chờ thư thì nhận thư; anh đã sửa một thư cùng người gửi + cùng tiêu đề thì đi đúng chỗ anh sửa.
+/** Mọi dòng `cho_thu:` trong phần đầu các tệp phòng → [{ mau, ly_do, phong }]. */
+export function docChoThu() {
+  const d = `${_goc}/cong-ty/phong`; let ds = []; try { ds = _fs.readdirSync(d).filter((f) => f.endsWith('.md')); } catch { return []; }
+  return ds.flatMap((f) => { const dau = (_fs.readFileSync(`${d}/${f}`, 'utf8').match(/^---\n([\s\S]*?)\n---/) ?? [, ''])[1];
+    return [...dau.matchAll(/^cho_thu:\s*(.+)$/gm)].map(([, v]) => { const [mau, ...ly] = v.split(' | '); return { mau: mau.trim(), ly_do: ly.join(' | ').trim(), phong: f.slice(0, -3) }; }); });
+}
 export function choThu(x, ds = null) {
-  if (!ds) { try { ds = JSON.parse(_fs.readFileSync(`${_goc}/cong-ty/quy-dinh/bao-mat/cho-thu.json`, 'utf8')).cho; } catch { ds = []; } }
+  ds ??= docChoThu();
   const t = `${x.gui ?? ''}\n${x.tieuDe ?? ''}\n${String(x.than ?? '').slice(0, 800)}`;
   return ds.find((c) => { try { return new RegExp(c.mau, 'i').test(t); } catch { return false; } }) ?? null;
 }
@@ -182,7 +189,8 @@ export async function nhanDinh(nguoi, model, x, phongDs, ph = '') {
 - ly_do: một câu tiếng Việt, dựa trên bằng chứng trong thư.
 Trả DUY NHẤT JSON: {"ket":"…","ly_do":"…","viec":"…","phong":"…"}.`;
   const vd = docHoc().slice(-15).map((h) => `- ${h.mien} · "${h.tieuDe}" → ${h.phong}`).join('\n');
-  const user = `${vd ? `ANH ĐÃ SỬA (thư Kiên chuyển sai phòng → phòng đúng; theo đúng cách chia này):\n${vd}\n\n` : ''}Người gửi thật: ${x.gui}${x.chuyenTiep ? ' (thư anh chuyển tiếp)' : ''}\nTiêu đề: ${x.tieuDe}\nTên miền các link trong thư: ${[...new Set((x.links ?? []).map(mienGoc))].join(', ') || '(không có)'}\nMáy đo: ${x.ket} — ${x.chu}\n\nCÁC PHÒNG:\n${phongDs}\n\nNỘI DUNG THƯ:\n${x.than ?? ''}`;
+  const cho = docChoThu().map((c) => `- ${c.phong}: ${c.ly_do} (mẫu: ${c.mau})`).join('\n');
+  const user = `${cho ? `PHÒNG ĐANG CHỜ THƯ (thư khớp thì giao đúng phòng đó):\n${cho}\n\n` : ''}${vd ? `ANH ĐÃ SỬA (thư Kiên chuyển sai phòng → phòng đúng; theo đúng cách chia này):\n${vd}\n\n` : ''}Người gửi thật: ${x.gui}${x.chuyenTiep ? ' (thư anh chuyển tiếp)' : ''}\nTiêu đề: ${x.tieuDe}\nTên miền các link trong thư: ${[...new Set((x.links ?? []).map(mienGoc))].join(', ') || '(không có)'}\nMáy đo: ${x.ket} — ${x.chu}\n\nCÁC PHÒNG:\n${phongDs}\n\nNỘI DUNG THƯ:\n${x.than ?? ''}`;
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': nguoi, 'x-cty-luot': `nao-${Date.now()}`, ...(ph ? { 'x-cty-phong': ph } : {}) },
       body: JSON.stringify({ model, max_tokens: 400, temperature: 0.1, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
@@ -410,6 +418,9 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
     a.equal(hocKhop({ ...x, tieuDe: 'Fwd: Your Pinterest API trial access is approved' }, hoc)?.phong, 'marketing', 'thư cùng người gửi + tiêu đề đi chỗ anh đã sửa');
     a.equal(hocKhop({ ...x, tieuDe: 'New follower' }, hoc), null);
     { const y = apNao({ ...x, la: ['pinterest-api.top'] }, null, {}, { cho }); a.notEqual(y.phong, 'xuong-st', 'link nhái: chốt máy thắng cả sổ chờ'); a.notEqual(y.ket, 'that'); } }
+  _fs ??= await import('node:fs'); _goc ||= (await import('./goc.mjs')).GOC;
+  { const c = choThu({ gui: 'pinbot@account.pinterest.com', tieuDe: 'Your Pinterest API trial access request was approved', than: '' });
+    a.equal(c?.phong, 'social-traffic', 'phòng tự khai cho_thu trong phong/<id>.md → Kiên giao đúng phòng'); a.equal(choThu({ gui: 'x@etsy.com', tieuDe: 'order', than: '' }), null); }
   a.equal(nhomTuChu('Thật'), 'quen'); a.equal(nhomTuChu('thật đấy, của Etsy'), 'quen'); a.equal(nhomTuChu('Giả'), 'gia'); a.equal(nhomTuChu('Nhà mình'), 'nha'); a.equal(nhomTuChu('ok'), null);
   a.equal(phuTrachMien('etsy.com'), 'thao'); a.equal(phuTrachMien('mail.etsy.com'), 'thao'); a.equal(phuTrachMien('evil-etsy.com'), null); a.equal(phuTrachMien('kdp.amazon.com'), 'thao');
   a.equal(mienGoc('www.amazon.co.uk'), 'amazon.co.uk'); a.equal(mienGoc('smile.amazon.in'), 'amazon.in'); a.equal(mienGoc('amazon-in.verify-acct.top'), 'verify-acct.top');

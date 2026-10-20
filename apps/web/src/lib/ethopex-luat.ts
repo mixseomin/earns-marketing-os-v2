@@ -41,6 +41,7 @@ export type SoLieu = { chi: number; thu: number };
 export type CampEtp = {
   id: number; ten: string; trang_thai: string; giao: string; ngan_sach: number; dong_bo: string | null; tao: string;
   content_id: number | null; creative_id: number | null; phim: string | null; ngon_ngu: string | null; studio_phim_id: number | null;
+  link_phim: string | null; video: string | null; anh: string | null; dang_creative: string | null; trang_dich: string | null; fb_ad: string | null; fb_video: string | null;
   loi: string | null; thang: SoLieu; hom_nay: SoLieu; gan: SoLieu; truoc: SoLieu;
 };
 export type DieuKien = { ten: string; hien: string; nguong: string; dat: boolean };

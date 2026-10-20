@@ -3,7 +3,7 @@
 // ô biểu tượng (luật nặng nhất đang chạm, tô theo mức dung > ha > bao > len) + chip mã luật (rê = câu luật với số thật của camp + vì sao);
 // bấm hàng → ngăn chi tiết: từng luật, điều kiện ✓/○ (hiện tại vs ngưỡng), "Chạm thì: …". Sổ luật: lib/ethopex-luat.ts. Dữ liệu: lib/ethopex-doc.ts.
 import { useMemo, useState, useEffect } from 'react';
-import { DataTable, Drawer, FilterChips, Panel, StatsStrip, type DataColumn } from '@/components/ui';
+import { DataTable, Drawer, FilterChips, LinkChip, Panel, StatsStrip, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, nangNhat, roi, type CampEtp, type LuatCham } from '@/lib/ethopex-luat';
 import type { DuLieuEthopex } from '@/lib/ethopex-doc';
@@ -45,10 +45,22 @@ function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
         { key: 'lai', label: 'Lãi tháng', value: usd(c.thang.thu - c.thang.chi), color: mauTien(c.thang.thu - c.thang.chi) },
         { key: 'roi', label: 'ROI tháng', value: pct(r), color: mauTien(r ?? 0) },
       ]} />
-      <div style={{ ...mono, fontSize: 11, color: 'var(--fg-2)', margin: '10px 0 14px', lineHeight: 1.6 }}>
-        Phim: {c.phim ?? '—'} {c.content_id ? `(content ${c.content_id})` : ''} · {c.ngon_ngu?.toUpperCase() ?? '—'}<br />
-        Creative #{c.creative_id ?? '—'} {c.studio_phim_id ? <a href={`https://studio.on.tc/?m=phim&mId=${c.studio_phim_id}`} target="_blank" rel="noreferrer">· mở trong studio</a> : null}<br />
-        Trạng thái {c.trang_thai} · giao {c.giao || '—'}{c.loi ? <><br /><span style={{ color: MUC_MAU.dung }}>{c.loi.slice(0, 220)}</span></> : null}
+      <div style={{ display: 'grid', gridTemplateColumns: c.video ? '200px 1fr' : '1fr', gap: 14, margin: '12px 0 14px' }}>
+        {c.video ? <video src={c.video} poster={c.anh ?? undefined} controls preload="none" playsInline style={{ width: 200, aspectRatio: '9 / 16', background: '#000', borderRadius: 6 }} /> : null}
+        <div style={{ ...mono, fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.7 }}>
+          <div><span style={{ color: 'var(--fg-3)' }}>Phim:</span> {c.phim ?? '—'} {c.content_id ? `(content ${c.content_id})` : ''} · {c.ngon_ngu?.toUpperCase() ?? '—'}</div>
+          <div><span style={{ color: 'var(--fg-3)' }}>Creative:</span> #{c.creative_id ?? '—'}{c.dang_creative ? ` · ${c.dang_creative}` : ''}</div>
+          <div><span style={{ color: 'var(--fg-3)' }}>Trạng thái:</span> {c.trang_thai} · giao {c.giao || '—'}</div>
+          {c.fb_ad ? <div><span style={{ color: 'var(--fg-3)' }}>FB ad:</span> {c.fb_ad}{c.fb_video ? ` · video ${c.fb_video}` : ''}</div> : null}
+          {c.loi ? <div style={{ color: MUC_MAU.dung }}>{c.loi.slice(0, 220)}</div> : null}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            {c.link_phim ? <LinkChip href={c.link_phim} title={c.link_phim}>Phim trên site gốc ↗</LinkChip> : null}
+            {c.trang_dich ? <LinkChip href={c.trang_dich} tone="neutral" title={c.trang_dich}>Trang đích ↗</LinkChip> : null}
+            {c.video ? <LinkChip href={c.video} tone="neutral">Video creative ↗</LinkChip> : null}
+            <LinkChip href={`https://app.ethopex.dev/campaign/facebook/edit/${c.id}`} tone="neutral">Camp trên Ethopex ↗</LinkChip>
+            {c.studio_phim_id ? <LinkChip href={`https://studio.on.tc/?m=phim&mId=${c.studio_phim_id}`} tone="neutral">Creative trong studio ↗</LinkChip> : null}
+          </div>
+        </div>
       </div>
       <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Luật đang áp cho camp này</div>
       {c.luat.map((x) => {
@@ -97,8 +109,13 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
 
   const cot: DataColumn<Dong>[] = [
     { key: 'luat', header: 'Luật', align: 'left', width: 120, cell: (d) => <OLuat ds={d.luat} />, sortValue: (d) => (nangNhat(d.luat) ? 10 : 0) + d.luat.filter((x) => x.trang_thai === 'cham').length },
+    { key: 'cr', header: 'Creative', align: 'left', width: 74, cell: (d) => (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title={d.dang_creative ?? undefined}>
+        {d.anh ? <img src={d.anh} alt="" loading="lazy" style={{ width: 22, height: 39, objectFit: 'cover', borderRadius: 2, background: 'var(--bg-2)' }} /> : <span style={{ width: 22, height: 39, display: 'inline-block', background: 'var(--bg-2)', borderRadius: 2 }} />}
+        <span style={{ ...mono, color: 'var(--fg-3)' }}>#{d.creative_id ?? '—'}</span>
+      </span>), sortValue: (d) => d.creative_id ?? 0 },
     { key: 'camp', header: 'Camp', align: 'left', cell: (d) => <span><span style={{ ...mono, color: 'var(--fg-3)' }}>#{d.id}</span> {d.ten}</span>, sortValue: (d) => d.id },
-    { key: 'phim', header: 'Phim', align: 'left', cell: (d) => d.phim ?? '—', sortValue: (d) => d.phim ?? '' },
+    { key: 'phim', header: 'Phim', align: 'left', cell: (d) => (d.link_phim ? <LinkChip href={d.link_phim} tone="neutral" size="xs" title={d.link_phim} onClick={(e) => e.stopPropagation()}>{d.phim ?? 'phim'} ↗</LinkChip> : d.phim ?? '—'), sortValue: (d) => d.phim ?? '' },
     { key: 'nn', header: 'NN', align: 'center', cell: (d) => d.ngon_ngu?.toUpperCase() ?? '—', sortValue: (d) => d.ngon_ngu ?? '' },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (d) => <span style={{ color: d.trang_thai === 'ACTIVE' ? 'var(--fg-1)' : 'var(--fg-3)' }}>{d.trang_thai === 'ACTIVE' ? 'Bật' : 'Tắt'}{d.giao ? ` · ${d.giao}` : ''}</span>, sortValue: (d) => d.trang_thai + d.giao },
     { key: 'ns', header: 'Ngân sách', cell: (d) => `$${d.ngan_sach}`, sortValue: (d) => d.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },

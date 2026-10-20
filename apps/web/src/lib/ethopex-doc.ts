@@ -8,7 +8,8 @@ import { goiEthopex } from '@mos2/db/ethopex';
 import type { CampEtp, SoLieu } from './ethopex-luat';
 
 type CtCamp = { campaign: { id: number; name: string; state: string; budget_daily: number; last_synced_at: string | null; created_at: string; error?: string };
-  ad_groups?: { ads?: { content_id?: number; creative_id?: number; delivery_status?: string; error?: string }[] }[] };
+  ad_groups?: { ads?: { content_id?: number; creative_id?: number; delivery_status?: string; error?: string; final_url?: string; external_ad_id?: string; name?: string;
+    media_info?: { video_id?: string; thumbnail_url?: string } | string }[] }[] };
 type DongBc = { campaign_id: number; cost: number; revenue: number };
 export type DuLieuEthopex = { luc: string; camps: CampEtp[]; phimThang: number[]; loi: string | null };
 
@@ -37,8 +38,13 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
     for (const x of lo) if (x.ok) ct.push(x.data);
   }
   const [thang, hom, gan, truoc] = await Promise.all([baoCao(`${nay.slice(0, 8)}01`, nay), baoCao(nay, nay), baoCao(lui(2), nay), baoCao(lui(6), lui(3))]);
-  const sx = (await db.execute(sql`SELECT id, ten, (kinh_thanh->'ethopex'->>'creative_id')::int AS cr, kinh_thanh->>'ngon_ngu' AS nn FROM xv_phim
-    WHERE project = 'ethopex' AND kinh_thanh->'ethopex' ? 'creative_id'`)) as unknown as { id: number; ten: string; cr: number; nn: string | null }[];
+  // studio: phim + link phim trên site gốc (kinh_thanh.qc.link) + poster + video xuất mới nhất + ảnh khung đầu (cảnh #1)
+  const sx = (await db.execute(sql`SELECT p.id, p.ten, (p.kinh_thanh->'ethopex'->>'creative_id')::int AS cr, p.kinh_thanh->>'ngon_ngu' AS nn,
+      p.kinh_thanh->'qc'->>'link' AS link, p.poster_url AS poster, p.kinh_thanh->>'the_loai' AS loai,
+      (SELECT x->>'url' FROM xv_tap t, jsonb_array_elements(coalesce(t.xuat, '[]'::jsonb)) x WHERE t.phim_id = p.id AND coalesce(x->>'url', '') <> '' ORDER BY x->>'luc' DESC LIMIT 1) AS video,
+      (SELECT c.keyframe_url FROM xv_tap t JOIN xv_canh c ON c.tap_id = t.id WHERE t.phim_id = p.id ORDER BY t.so, c.thu_tu LIMIT 1) AS anh
+    FROM xv_phim p WHERE p.project = 'ethopex' AND p.kinh_thanh->'ethopex' ? 'creative_id'`)) as unknown as
+    { id: number; ten: string; cr: number; nn: string | null; link: string | null; poster: string | null; loai: string | null; video: string | null; anh: string | null }[];
   const theoCr = new Map(sx.map((r) => [r.cr, r]));
   const thangRow = (await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_thang'`)) as unknown as { gia_tri: { content?: number[] } }[];
   const rong: SoLieu = { chi: 0, thu: 0 };
@@ -48,6 +54,8 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
     return { id: c.id, ten, trang_thai: c.state, giao: a.delivery_status ?? '', ngan_sach: +c.budget_daily || 0, dong_bo: c.last_synced_at, tao: c.created_at,
       content_id: a.content_id ?? null, creative_id: a.creative_id ?? null, phim: p?.ten.split(' · ')[1] ?? null,
       ngon_ngu: p?.nn ?? (/\bES\b/.test(ten) ? 'es' : /\bEN\b/.test(ten) ? 'en' : null), studio_phim_id: p?.id ?? null,
+      link_phim: p?.link ?? null, video: p?.video ?? null, anh: p?.anh ?? p?.poster ?? null, dang_creative: p?.loai === 'qc_canh_that' ? 'cảnh thật' : p?.loai === 'qc_ke_chuyen' ? 'kể chuyện' : p?.loai ?? null,
+      trang_dich: a.final_url ?? null, fb_ad: a.external_ad_id ?? null, fb_video: ((typeof a.media_info === 'string' ? (() => { try { return JSON.parse(a.media_info as string); } catch { return {}; } })() : a.media_info ?? {}) as { video_id?: string }).video_id ?? null,
       loi: a.error || c.error || null, thang: thang.get(c.id) ?? rong, hom_nay: hom.get(c.id) ?? rong, gan: gan.get(c.id) ?? rong, truoc: truoc.get(c.id) ?? rong };
   }).sort((x, y) => y.id - x.id);
   const data = { luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], loi: null };

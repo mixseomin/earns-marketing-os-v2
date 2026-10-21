@@ -1,5 +1,5 @@
 // NẠP BẢN DIỄN BLENDER của một shot (anh 16/10/2026: "thêm khung chuyển động vật lý cho chúng để đồng bộ"). dung-set.py XV_DIEN=1 render cả clip
-// (f####.png, 12 khung/giây) → lệnh này đẩy lên kho: clip mp4 + 5 khung khoá (đầu · ¼ · ½ · ¾ · cuối) rồi gán khung đầu làm keyframe, khung cuối
+// (f####.png, fps.txt: 24 người thật / 12 đất sét) → lệnh này đẩy lên kho: clip mp4 + 5 khung khoá (đầu · ¼ · ½ · ¾ · cuối) rồi gán khung đầu làm keyframe, khung cuối
 // làm keyframe_ket, ba khung giữa vào khung_xam.giua (video nhiều khung — Pikaframes — nhận đủ 5). Ghi job 0đ, chụp hoàn tác như keyframe-tu-3d. 0đ.
 //   cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set/nap-dien.mts --canh=<id> --thu-muc=<dir>
 //   <dir> chứa f0001.png … + dien.mp4 (ghep-dien.sh <dir>: ghép + hậu kỳ ống kính). Clip vào làm video của shot (video_url).
@@ -22,6 +22,7 @@ const gon = tep.includes('khoa-0.jpg') && tep.includes('so-khung.txt');
 const khung = gon ? Array.from({ length: Number((await readFile(path.join(dir, 'so-khung.txt'), 'utf8')).trim()) }, (_, i) => `f${String(i + 1).padStart(4, '0')}.png`) : tep.filter((f) => /^f\d{4}\.png$/.test(f)).sort();
 if (khung.length < 2) { console.log('thư mục không có khung f####.png (hoặc khoa-*.jpg + so-khung.txt)'); process.exit(1); }
 const db = getDb()!;
+const fps = tep.includes('fps.txt') ? Number((await readFile(path.join(dir, 'fps.txt'), 'utf8')).trim()) || 12 : 12;   // dung-set.py ghi: 24 người thật / 12 đất sét
 const r = (await db.execute(sql`SELECT c.thu_tu, c.khung_xam, p.kinh_thanh FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canh}`)) as unknown as { thu_tu: number; khung_xam: KhungXam | null; kinh_thanh: KinhThanh | null }[];
 if (!r[0]) { console.log('không có shot này'); process.exit(1); }   // shot ngoài bộ set (mở đầu vũ trụ / thành phố — mo-dau.py) chưa có khung_xam: tạo mới bên dưới
 const ma = Date.now().toString(36);
@@ -61,7 +62,7 @@ await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb
 if (clip) {
   const job = (await db.execute(sql`SELECT max(id) AS id FROM xv_job WHERE canh_id = ${canh} AND model = 'blender:cycles'`)) as unknown as { id: number }[];
   const pb = JSON.stringify([{ url: clip, ban: 'nhap', model: 'blender:cycles', job: Number(job[0]?.id ?? 0), luc: new Date().toISOString() }]);
-  const nguon = { model: 'blender:cycles', prompt: '', khung_dau: url[0], khung_cuoi: url[4], giay: khung.length / 12, job: Number(job[0]?.id ?? 0) };
+  const nguon = { model: 'blender:cycles', prompt: '', khung_dau: url[0], khung_cuoi: url[4], giay: khung.length / fps, job: Number(job[0]?.id ?? 0) };
   await db.execute(sql`UPDATE xv_canh SET video_url = ${clip}, video_phien_ban = video_phien_ban || ${pb}::jsonb, nguon_video = ${JSON.stringify(nguon)}::jsonb,
     trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${canh}`);
 }

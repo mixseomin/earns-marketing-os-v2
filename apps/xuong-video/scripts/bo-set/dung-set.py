@@ -1592,7 +1592,7 @@ def dong_tac_luc(hd, t, r):
 
 def dien_shot(s, sh, ra, giay=4.0, fps=12):
     """DIỄN CẢ SHOT trong Blender (anh 16/10/2026: "thêm khung chuyển động vật lý cho chúng để đồng bộ"): mỗi nhân vật gắn một KHUNG NEO (empty)
-    chạy từ chỗ mở → chỗ kết trên MỘT trục thời gian (fps khung/giây, đúng nhịp stop-motion 12): đi trên bàn có nhịp nhún theo bước, bay lên
+    chạy từ chỗ mở → chỗ kết trên MỘT trục thời gian (fps khung/giây: 24 người thật, 12 đất sét stop-motion): đi trên bàn có nhịp nhún theo bước, bay lên
     thì nhanh dần chậm dần + lắc nhẹ, hướng mặt xoay dần; đồ đang CẦM gắn theo khung neo người cầm; đồ đứng yên giữ nguyên chỗ. Render cả clip
     (<ra>/f####.png) + in số khung của 5 khung khoá 0 · ¼ · ½ · ¾ · cuối (dòng 'KHOA i f') cho video nhiều khung. Máy đứng yên như máy shot."""
     dat_tuy_chon(set(sh.get('them') or []))
@@ -1770,17 +1770,21 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         kc = (d0 - n0).length; rr = random.Random(4242); pha = [rr.uniform(0, 6.283) for _ in range(6)]
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1); k = em(min(1.0, t / 0.3) if chay.get('toc') == 'nhanh' else t)
-            dp = d0.lerp(d1, k); npt = n0.lerp(n1, k)
+            dp = d0.lerp(d1, k); npt = n0.lerp(n1, k); dp_net = dp.copy()
             if chay.get('rung'):
-                gi = t * giay; r_ = random.Random(9000 + f)
-                dp = dp + Vector([0.012 * kc * math.sin(2 * math.pi * (0.5 + 0.2 * i) * gi + pha[i]) + r_.uniform(-0.002, 0.002) * kc for i in range(3)])
-                npt = npt + Vector([0.02 * kc * math.sin(2 * math.pi * (0.4 + 0.15 * i) * gi + pha[3 + i]) for i in range(3)])
+                # MÁY CẦM TAY theo chuẩn ngành: trôi CHẬM tần số thấp (0,3–1,3 Hz, hai sóng lệch nhịp mỗi trục), lệch góc ~0,3°, KHÔNG nhiễu từng khung.
+                # Trước 21/10/2026: cộng nhiễu ngẫu nhiên ±0,2 % khoảng cách MỖI khung (ở 12 khung/giây thành giật lắc) + ngắm lệch ±2 % (±1,1°) →
+                # tập 135 #2 "rung loạn". Nét đo theo vị trí CHƯA rung (dp_net) — đo theo vị trí rung thì nét co giãn từng khung ở khẩu mở.
+                gi = t * giay
+                song = lambda i, a_: a_ * kc * (math.sin(2 * math.pi * (0.33 + 0.11 * i) * gi + pha[i]) * 0.7 + math.sin(2 * math.pi * (0.9 + 0.17 * i) * gi + pha[(i + 3) % 6]) * 0.3)
+                dp = dp + Vector([song(i, 0.004) for i in range(3)])
+                npt = npt + Vector([song(i + 3, 0.005) for i in range(3)])
             cam.location = dp * CM; cam.rotation_euler = (npt * CM - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.lens = l0 + (l1 - l0) * k
             cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f); cam.data.keyframe_insert('lens', frame=f)
             for o in vat_dung:   # lưới an toàn: máy chui vào đồ vật trên set → báo (dữ liệu / đường máy phải sửa, không render lặng im)
                 mn, mx_ = o[1], o[2]
                 if all(mn[i] < dp[i] < mx_[i] for i in range(3)): print('CANH BAO may xuyen', o[0], 'khung', f); break
-            lay_net(cam, sh, dp * CM); cam.data.dof.keyframe_insert('focus_distance', frame=f); cam.data.dof.keyframe_insert('aperture_fstop', frame=f)
+            lay_net(cam, sh, dp_net * CM); cam.data.dof.keyframe_insert('focus_distance', frame=f); cam.data.dof.keyframe_insert('aperture_fstop', frame=f)
     if boil:   # lông boil: độ rối sợi đổi nhẹ mỗi khung (như lông thật bị tay chạm giữa hai lần chụp)
         for st in {ps.settings for o in objs for ps in getattr(o, 'particle_systems', [])}:
             r1, re_ = st.roughness_1, st.roughness_endpoint; r = random.Random(len(st.name) * 97)
@@ -1825,7 +1829,10 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     print('XONG dien', sh['ma'], N, 'khung')
 
 if os.environ.get('XV_DIEN'):   # đường riêng: diễn + render cả shot (shot đầu tiên trong tệp đầu vào)
-    dien_shot(s, DL['shot'][0], RA, float(os.environ.get('XV_GIAY', '4'))); sys.exit(0)
+    # 24 khung/giây cho phim người thật (MESH_THAT — anh 21/10/2026 "khung hình khi quay cứ rung rung": máy lia / đẩy ở 12 khung/giây giật từng nấc);
+    # 12 giữ cho phim đất sét (nhịp stop-motion). Số khung/giây ghi fps.txt → ghep-dien.sh ghép đúng nhịp.
+    _fps = int(os.environ.get('XV_FPS') or (24 if MESH_THAT else 12)); open(os.path.join(RA, 'fps.txt'), 'w').write(str(_fps))
+    dien_shot(s, DL['shot'][0], RA, float(os.environ.get('XV_GIAY', '4')), _fps); sys.exit(0)
 if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng tỉ lệ nhân vật
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)

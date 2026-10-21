@@ -31,6 +31,10 @@ ${LUAT_PROMPT.map((l) => `- ${l.en}`).join('\n')}
 }
 /** Lỗi TẠM của nhà cung cấp (không phải do prompt): gửi lại đúng prompt cũ sau một lúc, không tính là một lần thử, không viết lại prompt.
  *  17/10/2026 #120 shot 3: Kie "Internal Error, Please try again later" ba lần liền → vòng cũ đốt cả 3 lần thử + viết lại prompt thêm người vào shot sản phẩm. */
+/** PlenX bận (đo 21/10/2026 #222): nhận task rồi tự hỏng vì gửi dồn, hoặc 429 đủ 4 video đang xử lý. */
+export const laPlenxBan = (loi: string): boolean => /quá nhiều request|too many requests|tạo nội dung thất bại|giới hạn \d+ video đang xử lý/i.test(loi);
+/** Model PlenX → cùng model Veo 3.1 trên Kie (cổng tràn). */
+export const tranPlenx = (model: string): string => (/fast/i.test(model) ? 'kie:veo3_fast' : 'kie:veo3_lite');
 export const laLoiTam = (loi: string): boolean => /internal error|try again later|temporarily|timeout|timed out|503|502|rate limit|hạn mức|quá nhiều request|too many requests|overloaded|busy|系统繁忙|请稍后重试/i.test(loi);   // 'Quá nhiều request': PlenX khi gửi dồn (21/10/2026)
 /** Giọng lời dẫn theo mô tả người kể (ô giong / nhân vật): nữ → Jessica, còn lại → Chris (giọng nam Mỹ #120). ElevenLabs v3 qua fal. */
 export const MODEL_GIONG_DAN = 'fal-ai/elevenlabs/tts/eleven-v3';

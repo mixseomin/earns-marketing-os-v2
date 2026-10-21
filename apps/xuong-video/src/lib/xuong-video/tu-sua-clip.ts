@@ -3,14 +3,13 @@
 // vừa gặp + luật đã học (tu-sua-clip-do.ts) → lint → sinh lại QUA ĐÚNG CỔNG STUDIO (batDauVideoCanh) → máy soi tự chạy lúc nhận clip.
 // Tối đa `toiDa` lần mỗi shot; vẫn hỏng thì dừng, để lại lỗi trên shot (bản xuất không nhận). Mọi lượt tốn tiền ghi xv_job như thường.
 import 'server-only';
-import { chuoiVideo } from './cong-ai';
 import { sql } from 'drizzle-orm';
 import { batDauVideoCanh, kiemVideoTap } from './sinh-video';
 import { sinhKeyframeCanh } from './sinh-anh';
 import { chupTruoc } from './hoan-tac';
 import { taiAnhBase64 } from './google';
 import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
-import { lintPrompt, loiDanSuaPrompt, laLoiTam, laTuChoiModel, laMatNoiTieng, VIDEO_DU_PHONG } from './tu-sua-clip-do';
+import { lintPrompt, loiDanSuaPrompt, laLoiTam, laTuChoiModel, laMatNoiTieng, laPlenxBan, tranPlenx, VIDEO_DU_PHONG } from './tu-sua-clip-do';
 import { coNguoi } from './quy-trinh';
 import { ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
 import { loiSoiClip, locNhanh, type Canh } from './kieu';
@@ -101,21 +100,24 @@ const kiemDang = new Map<number, Promise<unknown>>();
 const kiemChung = (db: Db, tapId: number) => { let p = kiemDang.get(tapId);
   if (!p) { p = kiemVideoTap(db, tapId).catch(() => null).finally(() => kiemDang.delete(tapId)); kiemDang.set(tapId, p); } return p; };
 async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string, moHinh?: string): Promise<{ ok: true } | { ok: false; loi: string }> {
-  let loiCuoi = ''; let m = moHinh;
+  let loiCuoi = ''; let m = moHinh; let tran: string | undefined;
   for (let tam = 0; tam <= 4; tam++) {
     // lỗi tạm lần đầu: gửi lại đúng model sau 30s; từ lần hai chuyển hẳn sang dự phòng (#127: Kie "Internal Error" 11/45 lượt, mỗi lượt đợi 90s)
-    if (tam) { if (tam >= 2) m = m === VIDEO_DU_PHONG ? undefined : VIDEO_DU_PHONG; log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — gửi lại lần ${tam}${tam >= 2 ? ` qua ${m ?? 'model của phim'}` : ''}`); await ngu(30_000); }
+    if (tam && tran) { m = tran; log(`  ${nhan}: PlenX bận (${loiCuoi.slice(0, 80)}) — gửi lại NGAY qua ${m}`); tran = undefined; }
+    else if (tam) { if (tam >= 2) m = m === VIDEO_DU_PHONG ? undefined : VIDEO_DU_PHONG; log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — gửi lại lần ${tam}${tam >= 2 ? ` qua ${m ?? 'model của phim'}` : ''}`); await ngu(30_000); }
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
     const r = await batDauVideoCanh(db, id, m, 'nhap');
     if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
     const t0 = Date.now(); let j: Row | undefined;
     while (Date.now() - t0 < 15 * 60_000) {
       await ngu(10_000); await kiemChung(db, tapId);
-      j = ((await db.execute(sql`SELECT trang_thai, loi FROM xv_job WHERE id = ${r.data}`)) as unknown as Row[])[0];
+      j = ((await db.execute(sql`SELECT trang_thai, loi, provider, model FROM xv_job WHERE id = ${r.data}`)) as unknown as Row[])[0];
       if (j && j.trang_thai !== 'chay') break;
     }
     if (j?.trang_thai === 'xong') return { ok: true };
     loiCuoi = `lượt sinh bị từ chối: ${String(j?.loi ?? 'quá 15 phút chưa xong').slice(0, 200)}`;
+    // PlenX nhận rồi tự hỏng vì bận (gửi dồn) → không đợi PlenX: gửi lại ngay cùng model Veo qua Kie (anh 21/10/2026, cách 2)
+    if (j?.provider === 'plenxai' && laPlenxBan(String(j?.loi ?? ''))) { tran = tranPlenx(String(j.model ?? '')); continue; }
     if (!laLoiTam(loiCuoi)) return { ok: false, loi: loiCuoi };
   }
   return { ok: false, loi: loiCuoi };
@@ -200,10 +202,8 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
     ra.push({ thu_tu: c.thu_tu, ket, lan, loi: ket === 'sach' ? [] : loi });
     if (ly) dungHet = true;
   };
-  // song song THEO CỔNG đầu chuỗi (21/10/2026 #225: 10 shot dồn vào PlenX → 4 shot "Quá nhiều request"): PlenX tối đa XV_PLENX_SONG_SONG (mặc định 3)
-  const mh = String(((((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.kinh_thanh ?? {}) as { mo_hinh_video?: string }).mo_hinh_video ?? '');
-  const congDau = (o.moHinhVideo ?? mh).split(':')[0] === 'plenxai' || (!o.moHinhVideo && chuoiVideo(mh, true)[0]?.cong === 'plenxai') ? 'plenxai' : '';
-  const songSong = congDau === 'plenxai' ? Math.max(1, Number(process.env.XV_PLENX_SONG_SONG || 3)) : SONG_SONG;
+  // song song SONG_SONG suất cho mọi cổng: PlenX đầy ô thì chuỗi tự tràn sang Kie (sinh-video.ts › oPlenx), không hạ suất cả tập (anh 21/10/2026)
+  const songSong = SONG_SONG;
   let i = 0;
   await Promise.all(Array.from({ length: Math.min(songSong, hang.length) }, async () => { while (i < hang.length) await xuLy(hang[i++]!); }));
   return ra.sort((a, b) => a.thu_tu - b.thu_tu);

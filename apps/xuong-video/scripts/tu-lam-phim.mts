@@ -16,6 +16,7 @@ import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/do
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { lookPhim } from '../src/lib/xuong-video/look';
 import { docKinhThanh, tien } from '../src/lib/xuong-video/kieu';
+import { giaVideoCong } from '../src/lib/xuong-video/cong-ai';
 
 if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('TỐN TIỀN — cần DUYET_SINH_1_LAN=1 sau khi anh bảo'); process.exit(1); }
 const db = getDb()!;
@@ -40,6 +41,9 @@ const truoc = await tongPhim();
 const hetGioPhut = Number((process.argv.find((a) => a.startsWith('--het-gio=')) ?? '').split('=')[1] || 25);
 const soShot = Number(((await db.execute(sql`SELECT count(*) AS n FROM xv_canh WHERE tap_id = ${tapId} AND video_url IS NULL`)) as unknown as Row[])[0]?.n ?? 0);
 console.log(`dự kiến ~${uocPhut(soShot, Number(process.env.XV_CLIP_SONG_SONG || 10), 1)} phút cho ${soShot} shot chưa có clip · dừng cứng sau ${hetGioPhut} phút`);
+// giá THẬT của đường sẽ đi (Veo trên PlenX đầy ô → tràn Kie): trần = PlenX lấy đủ ô, còn lại qua Kie (anh 21/10/2026)
+{ const oP = Math.min(soShot, Math.max(1, Number(process.env.XV_PLENX_TOI_DA || 3))), vP = giaVideoCong('plenxai', 'veo3-lite').vnd ?? 800, vK = giaVideoCong('kie', 'veo3_lite').vnd ?? 4550;
+  if (soShot) console.log(`giá clip (Veo Lite) tối đa ~${((oP * vP + (soShot - oP) * vK) / 1000).toFixed(1)}k₫: ${oP} shot PlenX × ${vP}₫ + ${soShot - oP} shot tràn Kie × ${vK}₫ (chưa tính sinh lại)`); }
 // --chi=4,11,12 (thứ tự shot): vòng clip CHỈ chạy các shot này — anh duyệt chạy nốt N shot thì không sinh lại clip khác đang bị chấm lỗi (21/10/2026, #225)
 // --xuat-du-loi: mọi shot đã có clip thì vẫn xuất bản (kèm cảnh báo) dù còn clip bị soi lỗi — bản để anh duyệt chất lượng cổng, không lên camp
 const chiThuTu = ((process.argv.find((a) => a.startsWith('--chi=')) ?? '').slice(6)).split(',').map(Number).filter(Boolean);

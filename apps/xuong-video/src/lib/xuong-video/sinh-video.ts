@@ -170,6 +170,23 @@ const VEO_SANG_FAL: Record<string, string> = {
 /** thu = SINH THỬ ngoài quy trình (anh 14/10/2026: "phải cho thử ngoài quy trình"): bỏ cổng sản xuất (duyệt keyframe, kiểm khung, animatic,
  *  giọng trước) — vẫn cần keyframe; job ghi rõ 🧪 THỬ. Chỉ admin bấm, tiền tính như thường. */
 /** boQuaCong: đi thẳng model đã chọn (Google), không qua chuỗi cổng — dùng khi task cổng vừa treo/hỏng và đang sinh lại. */
+/** Ô PlenX (đo 21/10/2026, phim #222): một tài khoản nhận tối đa 4 video đang xử lý (quá → 429 "Đã đạt giới hạn 4 video"), và 4 task gửi dồn trong vài
+ *  giây thì PlenX NHẬN rồi tự hỏng "Quá nhiều request" / "Tạo nội dung thất bại". Nên: đếm ô đang chạy trong DB (mọi tiến trình) — đủ XV_PLENX_TOI_DA
+ *  (mặc định 3) thì trả lý do để chuỗi tràn sang cổng sau; và các lần gửi PlenX trong một tiến trình xếp lần lượt, cách nhau ≥ XV_PLENX_GIAN_MS (4s). */
+const PLENX_TOI_DA = Math.max(1, Number(process.env.XV_PLENX_TOI_DA || 3));
+async function oPlenx(db: Db): Promise<string | null> {
+  const n = Number(((await db.execute(sql`SELECT count(*) AS n FROM xv_job WHERE provider = 'plenxai' AND loai = 'video' AND trang_thai = 'chay' AND created_at > now() - interval '30 minutes'`)) as unknown as Row[])[0]?.n ?? 0);
+  return n >= PLENX_TOI_DA ? `PlenX đầy ô (${n}/${PLENX_TOI_DA} đang chạy) — tràn sang cổng sau` : null;
+}
+let hangPlenx: Promise<unknown> = Promise.resolve(); let lanCuoiPlenx = 0;
+function guiPlenxGian<T>(f: () => Promise<T>): Promise<T> {
+  const p = hangPlenx.then(async () => {
+    const cho = lanCuoiPlenx + Math.max(0, Number(process.env.XV_PLENX_GIAN_MS || 4000)) - Date.now();
+    if (cho > 0) await new Promise((r) => setTimeout(r, cho));
+    try { return await f(); } finally { lanCuoiPlenx = Date.now(); }
+  });
+  hangPlenx = p.catch(() => null); return p;
+}
 export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false, thu = false, boQuaCong = false): Promise<Kq<number>> {
   let bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
@@ -233,8 +250,12 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const thuCong: BuocNguon[] = [];
   const chuoi = khoaVid.kieu === 'cong' ? [{ cong: khoaVid.cong, model: khoaVid.model, giay: MO_HINH_CONG.find((m) => m.key === `${khoaVid.cong}:${khoaVid.model}`)?.giay ?? 10 }] : chuoiVideo(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao');
   if (!laFal && !boQuaCong) {
-    for (const b of chuoi) {
-      const g = await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
+    for (const [iB, b] of chuoi.entries()) {
+      // PlenX đầy ô → TRÀN sang bậc sau (Kie, cùng Veo 3.1) thay vì xếp hàng chờ (anh 21/10/2026: "ko thể để chậm lại đc"). Chỉ khi còn bậc sau.
+      const tran = b.cong === 'plenxai' && iB < chuoi.length - 1 ? await oPlenx(db) : null;
+      if (tran) { thuCong.push({ cong: b.cong, model: b.model, ok: false, loi: tran }); continue; }
+      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url!, anhCuoi: khungCuoi, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai }))
+        : await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
       if (g.ok) {
         thuCong.push({ cong: b.cong, model: b.model, ok: true });
         const nguon: NguonSinh = { cong: b.cong, model: b.model, ...giaVideoCong(b.cong, b.model), thu: thuCong };

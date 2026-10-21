@@ -4,7 +4,7 @@
 import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
 
-const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', x: 'X', x_anh: 'X ảnh', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
+const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', fb_link: 'FB link', x: 'X', x_anh: 'X ảnh', x_link: 'X link', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
 const MAU = ['#2563eb', '#d97706', '#059669', '#db2777', '#7c3aed', '#0891b2'];
 const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);

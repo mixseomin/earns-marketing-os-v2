@@ -108,6 +108,12 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     catch (e) { return { ok: false, loi: `ảnh nền: ${(e as Error).message}` }; }
     await db.execute(sql`UPDATE xv_may_video SET nen_url = ${r.nen_url as string}, updated_at = now() WHERE id = ${videoId}`);
   }
+  // BÀI LINK (S03 bước 4, anh chọn 21/10/2026): dòng không có video — bài FB / X dẫn về trang đích, ảnh = ảnh thật nen_url (cũng là ảnh của trang đích).
+  // "Xuất" = chốt bản (xuat_luc) để Phòng Nội dung chấm đúng bản, anh = [nen_url]; không dựng ffmpeg.
+  if ((r.de as { loai?: string } | null)?.loai === 'bai-link') {
+    await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = ${JSON.stringify([r.nen_url])}::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
+    return { ok: true, url: String(r.nen_url) };
+  }
   const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, slug: String(r.slug) });
   if (!v.ok) return v;
   await db.execute(sql`UPDATE xv_may_video SET video_url = ${v.url}, khung = ${JSON.stringify(v.khung)}::jsonb, anh = ${JSON.stringify(v.anh)}::jsonb, giay = ${v.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);

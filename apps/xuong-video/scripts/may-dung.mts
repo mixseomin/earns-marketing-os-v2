@@ -38,7 +38,7 @@ if (a.includes('--nap')) {
 } else if (a.includes('--ds')) {
   process.stdout.write(JSON.stringify(await dsVideoDang(db, ma, a.includes('--ca-luu-tru'))));
 } else if (lay('--xuat') != null) {
-  const muc = lay('--xuat')!, ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url : slug === muc));
+  const muc = lay('--xuat')!, ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url && !(x.loai === 'link' && x.xuat_luc) : slug === muc));   // bài link không có video: đã chốt bản (xuat_luc) là xong
   if (!ds.length) { console.error(muc === 'all-chua' ? 'không còn video nào chưa dựng' : `không có video "${muc}" (đang dùng) trong máy ${ma}`); process.exit(muc === 'all-chua' ? 0 : 1); }
   let hong = 0, i = 0;
   const SONG_SONG = 3, lam = async () => { while (i < ds.length) {

@@ -118,6 +118,7 @@ async function docLanding(trang: StTrang[], loi: string[]): Promise<StLanding[]>
 /* Video KẾ của một nền = cùng luật puzzle-books dang-may.mjs › chonVideo (id tăng, đã dựng, chưa lưu trữ, chưa đăng lên nền này; nền ảnh x_anh / fb_anh
    cần ảnh tĩnh). Hai nơi chạy hai runtime (máy Mac đăng · mos2 hiện) nên luật chép ở đây — đổi luật bên đó thì đổi cả chỗ này. */
 const NEN_ANH_LICH = ['x_anh', 'fb_anh'];
+const NEN_LINK_LICH = ['x_link', 'fb_link'];   // bài link (S03 bước 4): dòng studio dang.loai 'link', không video
 /** Lượt dang-may --het của từng máy Mac trong sổ việc nền cty (apps/cty/cong-ty/viec-nen.json) → { iMac: ['20:00', '21:00'] }. Thiếu tệp = {} (bảng báo không có lượt). */
 function luotMayDang(): Record<string, string[]> {
   for (const f of [`${process.cwd()}/apps/cty/cong-ty/viec-nen.json`, `${process.cwd()}/../cty/cong-ty/viec-nen.json`, '/opt/earns-marketing-os-v2/apps/cty/cong-ty/viec-nen.json']) {
@@ -174,11 +175,13 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     // kho + đã đăng theo máy × nền × kiểu nội dung (dang.nhom); cùng điều kiện "DUYỆT đúng bản" như máy đăng (may.ts › dsVideoDang) và nền ảnh cần ảnh tĩnh
     const kr = (await d.execute(sql`SELECT m.ma, m.ten, n->>'nen' AS nen, coalesce(v.dang->>'nhom', '—') AS nhom,
         count(*) FILTER (WHERE v.da_dang ? (n->>'nen'))::int AS da,
-        count(*) FILTER (WHERE NOT v.da_dang ? (n->>'nen') AND NOT coalesce(v.luu_tru, false) AND v.video_url IS NOT NULL
+        count(*) FILTER (WHERE NOT v.da_dang ? (n->>'nen') AND NOT coalesce(v.luu_tru, false)
+          AND ((n->>'nen') = ANY(${sql.raw(`ARRAY['${NEN_LINK_LICH.join("','")}']`)})) = (coalesce(v.dang->>'loai', '') = 'link')
+          AND (v.video_url IS NOT NULL OR (n->>'nen') = ANY(${sql.raw(`ARRAY['${NEN_LINK_LICH.join("','")}']`)}))
           AND v.cham->>'ket' = 'DUYET' AND v.cham->>'xuat' = v.xuat_luc::text AND v.cham->>'dang' = md5(v.dang::text)
           AND (NOT (n->>'nen') = ANY(${sql.raw(`ARRAY['${NEN_ANH_LICH.join("','")}']`)}) OR jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0))::int AS kho
       FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n JOIN xv_may_video v ON v.may_id = m.id WHERE m.chay GROUP BY 1, 2, 3, 4`)) as unknown as { ma: string; ten: string; nen: string; nhom: string; da: number; kho: number }[];
-    const ds = dk[0]?.ds ?? [], fmt = (nen: string) => (NEN_ANH_LICH.includes(nen) ? 'Bài 2 ảnh' : 'Video ngắn');
+    const ds = dk[0]?.ds ?? [], fmt = (nen: string) => (NEN_LINK_LICH.includes(nen) ? 'Bài link' : NEN_ANH_LICH.includes(nen) ? 'Bài 2 ảnh' : 'Video ngắn');
     const gom = new Map<string, StKho>();
     for (const x of kr) for (const [chieu, nhan] of [['format', fmt(x.nen)], ['kieu', x.nhom]] as const) {
       const k = `${x.ma}|${chieu}|${nhan}`, g = gom.get(k) ?? { may: x.ma, mayTen: x.ten, chieu, nhan, da: 0, kho: 0, den: null }; g.da += x.da; g.kho += x.kho; gom.set(k, g);

@@ -18,7 +18,7 @@ export function doBaiDang(v, ten = '') {
   // 1 · ảnh thật
   if (!v.nen_url) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
   else if (!NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash (${String(v.nen_url).slice(0, 60)})`);
-  if (!v.video_url || !v.xuat_luc) chan.push('chưa có bản xuất');
+  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link')) chan.push('chưa có bản xuất');   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
   // 2 · câu móc
   if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
   else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
@@ -68,7 +68,7 @@ export async function chamMoi(sql) {
 // (bài DUYỆT chưa đăng lên nền đó < KHO_TOI_THIEU ngày theo trần mỗi ngày). Chỉ báo khi vấn đề MỚI xuất hiện (tệp trạng thái), hết vấn đề thì xoá khỏi sổ —
 // không nhắc lại cùng một chuyện mỗi ngày.
 export const KHO_TOI_THIEU = 7;
-const NEN_ANH = new Set(['x_anh', 'fb_anh']);
+const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']);   // nền bài link: dòng dang.loai 'link', không video
 /** Vấn đề của các máy đang bật. ds = [{ ma, ten, nen, tran, cuoi (YYYY-MM-DD|null), con }], homQua = YYYY-MM-DD (giờ VN). */
 export function vanDeMay(ds, homQua) {
   const ra = [];
@@ -82,7 +82,8 @@ export function vanDeMay(ds, homQua) {
 async function docMayDang(sql) {
   return sql`select m.ma, m.ten, n->>'nen' as nen, coalesce((n->>'tran')::int, 1) as tran,
       (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi,
-      (select count(*)::int from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false) and v.video_url is not null
+      (select count(*)::int from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false)
+         and ((n->>'nen') = any(${[...NEN_LINK]})) = (coalesce(v.dang->>'loai', '') = 'link') and (v.video_url is not null or (n->>'nen') = any(${[...NEN_LINK]}))
          and v.cham->>'ket' = 'DUYET' and v.cham->>'xuat' = v.xuat_luc::text and not v.da_dang ? (n->>'nen')
          and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) as con
     from xv_may m cross join lateral jsonb_array_elements(m.dang) n where m.chay`;
@@ -129,6 +130,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
     dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/' } };
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
+  t.equal(doBaiDang({ ...tot, video_url: null, dang: { ...tot.dang, loai: 'link' } }).ket, 'DUYET', 'bài link không video vẫn DUYỆT');
+  t.ok(doBaiDang({ ...tot, video_url: null }).chan_cung.includes('chưa có bản xuất'), 'bài video thiếu video thì chặn');
   t.ok(doBaiDang({ ...tot, nen_url: null }).chan_cung.some((x) => x.includes('ảnh thật')), 'thiếu ảnh thật = chặn cứng');
   t.equal(doBaiDang({ ...tot, nen_url: null }).ket, 'SUA_LAI');
   t.ok(doBaiDang({ ...tot, nen_url: 'https://example.com/a.jpg' }).chan_cung.length, 'ảnh không từ nguồn free = chặn');

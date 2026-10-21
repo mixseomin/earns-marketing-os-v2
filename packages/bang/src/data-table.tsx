@@ -401,6 +401,7 @@ export function DataTable<T>({
   const thanRef = useRef<HTMLDivElement>(null), dauRef = useRef<HTMLDivElement>(null), bangRef = useRef<HTMLTableElement>(null), doRef = useRef<HTMLTableSectionElement>(null);
   const [cotDo, setCotDo] = useState<{ w: number[]; bang: number; cao: number }>({ w: [], bang: 0, cao: 0 });
   const [dinhTren, setDinhTren] = useState(0);
+  const [leDuoi, setLeDuoi] = useState(0);   // lề dưới của khung cuộn (main.main 56px máy tính) — thanh trang dính sát MÉP, không nổi giữa chừng
   useEffect(() => {
     if (!theoTrang || effView !== 'table') return;
     const doNgay = () => {
@@ -416,6 +417,8 @@ export function DataTable<T>({
         if (cs.position === 'sticky' && !el.contains(thanRef.current) && (el.compareDocumentPosition(thanRef.current) & Node.DOCUMENT_POSITION_FOLLOWING)) tren = Math.max(tren, (parseFloat(cs.top) || 0) + el.getBoundingClientRect().height);
       }
       setDinhTren((o) => (Math.abs(o - tren) < 0.5 ? o : tren));
+      const le = sc ? parseFloat(getComputedStyle(sc).paddingBottom) || 0 : 0;
+      setLeDuoi((o) => (Math.abs(o - le) < 0.5 ? o : le));
     };
     doNgay();
     const ro = new ResizeObserver(() => doNgay());
@@ -671,7 +674,7 @@ export function DataTable<T>({
         );
       })()}
       {pager && (theoTrang && effView === 'table'
-        ? <div className="dt-trang" style={{ position: 'sticky', bottom: 0, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line)', paddingTop: 2 }}>{pager}</div>
+        ? <div className="dt-trang" style={{ position: 'sticky', bottom: -leDuoi, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line)', paddingTop: 2 }}>{pager}</div>
         : pager)}
     </div>
   );

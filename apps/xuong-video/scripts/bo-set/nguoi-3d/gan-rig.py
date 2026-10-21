@@ -4,7 +4,7 @@
 # mà mocap / IK / dáng của dung-set.py đang lái, không phải viết lại phần diễn.
 #   1. chuẩn hoá mesh: chân chạm đất, giữa gốc, cao đúng cm nhân vật
 #   2. dáng tay của thân MPFB (chữ A) xoay theo dáng tay của ảnh (buông) → chép trọng số (gần mặt nhất, nội suy)
-#   3. đưa mesh về dáng nghỉ chữ A của rig gốc → lưu .blend: thả vào bất kỳ rig MPFB 'default' cùng cỡ là chạy
+#   3. đưa mesh về dáng nghỉ chữ A của rig gốc → lưu da.blend: thả vào bất kỳ rig MPFB 'default' cùng giới / tuổi / cao là chạy (khoi_3d.da_3d)
 #   4. màu: chiếu ảnh TRƯỚC lên mặt hướng trước, ảnh SAU lên mặt hướng sau (trộn theo pháp tuyến)
 #   5. thử: vài dáng (đứng, chỉ tay, bước, ngồi, quay đầu) → ảnh soát
 #   Blender -b --factory-startup -P gan-rig.py -- <mesh.glb> <truoc.png> <sau.png|-> <gioi nu|nam> <tuoi> <cao_cm> <thu-muc-ra>
@@ -125,6 +125,13 @@ D.parent = rig; am = D.modifiers.new('xuong', 'ARMATURE'); am.object = rig
 h.hide_render = h.hide_viewport = True
 for o in [o for o in bpy.data.objects if o.parent == h]: o.hide_render = o.hide_viewport = True
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(RA, 'nguoi.blend'))
+# da.blend = CHỈ mesh DA (trọng số + vật liệu, ảnh đóng gói) — máy dựng (mesh/nguoi.py › gan_da_3d) nạp rồi gắn vào rig MPFB của shot. Bỏ cha + bộ
+# biến dạng trước khi ghi, kẻo kéo cả rig / thân mẫu theo vào tệp.
+D.parent = None; D.modifiers.remove(D.modifiers['xuong'])
+for im in bpy.data.images:
+    if im.source == 'FILE' and not im.packed_file: im.pack()
+bpy.data.libraries.write(os.path.join(RA, 'da.blend'), {D}, compress=True)
+D.parent = rig; am = D.modifiers.new('xuong', 'ARMATURE'); am.object = rig
 print('NHOM', len(D.vertex_groups), 'DINH', len(D.data.vertices))
 
 # 5. thử dáng

@@ -641,7 +641,7 @@ def nhan_vat(sh, ket=False):
             hx = mau_nv['mau'].lstrip('#'); rgb = tuple((int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ha = (mau_nv.get('ao') or mau_nv['mau']).lstrip('#'); rgb_ao = tuple((int(ha[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ht = (mau_nv.get('mau_toc') or '').lstrip('#'); rgb_toc = tuple((int(ht[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)) if len(ht) == 6 else None
-            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'do': mau_nv.get('do'), 'than': mau_nv.get('than'), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # than: dáng người (nguoi.py › THAN_HINH)   # người thật MPFB: tóc / đồ / màu áo
+            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'do': mau_nv.get('do'), 'than': mau_nv.get('than'), 'da_3d': mau_nv.get('da_3d'), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # than: dáng người (nguoi.py › THAN_HINH)   # người thật MPFB: tóc / đồ / màu áo
             n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}", gioi=mau_nv.get('gioi'), tuoi=mau_nv.get('tuoi'), trang=trang_)
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'
@@ -1011,7 +1011,7 @@ def nguoi_that(bat, an=None, hien=None):
         # DẤU biến thể (vết cà phê 'NG <t>.dan_i') GIỮ hiện trên người MPFB — ẩn theo ma-nơ-canh thì khung màu mất vết, AI không có chỗ bám (18/10/2026)
         phan = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith(f"{goc_}.") and '.dan_' not in o.name and not o.hide_render]
         if not phan: continue   # người không có trong shot này / đang ẩn
-        an += phan; hien += [x, *[o for o in bpy.data.objects if o.name.startswith(f"THAN {goc_}.")]]
+        an += phan; hien += [o for o in [x, *[o for o in bpy.data.objects if o.name.startswith(f"THAN {goc_}.")]] if not o.get('an_han')]   # an_han: thân MPFB nhường da 3D (nguoi.py › gan_da_3d)
     for o in an: o.hide_render = True
     for x in hien: x.hide_render = x.hide_viewport = False
     return an, hien

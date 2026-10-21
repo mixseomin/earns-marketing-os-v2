@@ -6,7 +6,7 @@
 #   tu_the(n, 'dung' | 'ngoi' | 'nam')  ·  buoc(n, pha)  (chu kỳ đi, pha 0..1)  ·  nhin(n, do)  (quay đầu, độ)
 #   di(n, tu, den, f0, f1, toc=110)  — đi từ chỗ tu tới den (cm) trong khung f0..f1, chân tay đánh nhịp theo quãng đường
 import bpy, bmesh, math, os
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 # Tỉ lệ (phần chiều cao) — số đo nhân trắc trung bình người lớn (Drillis & Contini).
 TL = dict(chan=0.039, cang=0.246, dui=0.245, hong=0.10, bung=0.10, nguc=0.13, co=0.052, dau=0.13,
@@ -359,9 +359,33 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     if not mac_do(m, h, gioi, tuoi, trang or {}):   # da + mắt + lông mày + tóc + đồ + giày; thiếu gói tài sản thì thân trơn một màu như cũ
         h.data.materials.clear(); h.data.materials.append(vl)
     con_nguoi(n, h, rig)   # chấm con ngươi tối gắn xương mắt — hướng nhìn đọc được trên ảnh 3D (mat_nhin xoay xương)
+    gan_da_3d(ten, h, rig, (trang or {}).get('da_3d'))
     for o in [h, *phu_kien(h)]: o.hide_render = o.hide_viewport = True   # chỉ bật khi vẽ độ sâu / khung màu (dung-set.py › nguoi_that)
     n['than_tron'] = h
     return h
+
+def gan_da_3d(ten, h, rig, url):
+    """DA 3D SINH TỪ ẢNH (khoi_3d.da_3d — anh 21/10/2026 "người đủ chi tiết và rig", kiểu Tripo): mesh ảnh→3D đã chép trọng số da từ thân MPFB cùng giới /
+    tuổi / cao (scripts/bo-set/nguoi-3d/gan-rig.py → da.blend trên R2). Gắn vào ĐÚNG rig MPFB của người này → mocap / IK / dáng lái như thân MPFB; thân
+    MPFB + tóc / đồ / chấm mắt của nó đánh dấu an_han (nguoi_that không bật). Tải một lần vào tai-san/da-3d/. Không khai / tải hỏng → giữ thân MPFB."""
+    if not url: return None
+    import os, urllib.request
+    kho = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tai-san', 'da-3d'); os.makedirs(kho, exist_ok=True)
+    tep = os.path.join(kho, url.rstrip('/').split('/')[-1])
+    try:
+        if not os.path.exists(tep):
+            urllib.request.urlretrieve(url, tep + '.tai'); os.replace(tep + '.tai', tep)
+        with bpy.data.libraries.load(tep, link=False) as (src, dst): dst.objects = [x for x in src.objects if x == 'DA']
+        da = dst.objects[0]
+    except Exception as e:
+        print(f'CANH BAO da_3d {ten} không tải được ({e}) — giữ thân MPFB'); return None
+    bpy.context.scene.collection.objects.link(da)
+    for o in [h, *phu_kien(h)]: o['an_han'] = True
+    da.name = f'{h.name}.da'; da.parent = rig; da.matrix_parent_inverse = Matrix.Identity(4)
+    da.location = (0, 0, 0); da.rotation_euler = (0, 0, 0); da.scale = tuple(1 / x for x in rig.scale)   # da tính bằng mét, rig mang scale MPFB → mét
+    for md in [md for md in da.modifiers if md.type == 'ARMATURE']: da.modifiers.remove(md)
+    md = da.modifiers.new('xuong', 'ARMATURE'); md.object = rig
+    return da
 
 # TRANG PHỤC NGƯỜI THẬT (anh 18/10/2026: "3D đã có người thật mẫu sao không thấy trên bản chụp đầu cuối"): gói makehuman_system_assets (CC0, cai-mpfb.sh)
 # — da châu Á theo tuổi / giới, mắt, lông mày, tóc, bộ đồ, giày. Màu đồ = màu áo của shot (ao), màu tóc = khoi_3d.mau_toc; vân vải của gói bỏ đi (vest

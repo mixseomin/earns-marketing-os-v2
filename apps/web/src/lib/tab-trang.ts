@@ -25,6 +25,7 @@ export const TAB_TRANG = {
     { key: 'duan', label: 'Dự án' },
     { key: 'ethopex', label: 'Ethopex', title: 'Camp FB phim ngắn trên Ethopex: số liệu sống + luật đang áp cho từng camp (tăng bậc, trần, khung giờ, giảm/tắt, ad từ chối, số camp/phim)' },
     { key: 'social', label: 'Social Traffic', title: 'Kênh video tự đăng → site aff: góc từ spy · sản xuất ở xưởng · kênh · trang đích · tiền (DEMO / LIVE)' },
+    { key: 'thuvien', label: 'Thư viện', title: 'Thư viện thiết kế (mẫu + ảnh minh hoạ, lọc thẻ) và các trang Library cũ: Công cụ & Skill, Kiến thức, Catalog, Offers, Nền tảng, Công nghệ' },
   ] },
   // Xếp theo ĐƯỜNG ĐI CỦA KHÁCH (anh chốt 02/10/2026): quảng cáo kéo khách → khách trên site → đặt đơn + trả tiền → sau bán;
   // rồi phía sau quầy: hàng + nguồn, thiết lập shop. Tab mặc định vẫn là Đơn hàng (việc vận hành hằng ngày) — `mac`.

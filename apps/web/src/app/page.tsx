@@ -29,6 +29,7 @@ import { getMode, listProjects, getAiUsageSummary, listStrategyTrades, listStrat
 import { getRevenueByDay } from '@/lib/revenue/by-day';
 import { getPhu, listPhuProjects } from '@/lib/phu';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
+import { ThuVienTab } from '@/components/thu-vien-tab';
 
 // Read DB at request time, not build time — server isn't migrated yet on first deploy.
 export const dynamic = 'force-dynamic';
@@ -44,7 +45,7 @@ const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const cho = <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>đang đọc…</div>;
 const pill = (active: boolean): React.CSSProperties => ({ padding: '3px 9px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', textDecoration: 'none', background: 'var(--bg-2)', ...(active ? { borderColor: 'var(--fg-2)', color: 'var(--fg-1)' } : { color: 'var(--fg-3)' }) });
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string; tv?: string }> }) {
   const sp = await searchParams;
   const tab: HomeTab = TABS.includes(sp.tab as HomeTab) ? (sp.tab as HomeTab) : HOME_TAB_MAC_DINH;
   const thuTu = ((await cookies()).get(HOME_TABS_COOKIE)?.value ?? '').split('.').filter((k): k is HomeTab => TABS.includes(k as HomeTab));
@@ -117,6 +118,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {tab === 'lenh' && <Lenh />}
           {tab === 'duan' && <DuAn projects={projects} />}
           {tab === 'social' && <Suspense fallback={cho}><SocialTab /></Suspense>}
+          {tab === 'thuvien' && <Suspense fallback={cho}><ThuVienTab tv={sp.tv} /></Suspense>}
           {tab === 'ethopex' && <Suspense fallback={cho}><EthopexTab /></Suspense>}
         </div>
       </div>

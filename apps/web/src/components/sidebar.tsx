@@ -267,14 +267,16 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
     {
       // LIBRARY — catalog tra cứu / tái dùng
       key: 'library', label: 'Library',
+      // Mọi mục trỏ vào tab Thư viện (/?tab=thuvien&tv=…, anh 21/10/2026: gom chung một chỗ); trang cũ vẫn mở được ở URL riêng.
       items: [
-        { href: '/catalog',      icon: '📋', color: 'var(--neon-amber)',  label: 'Catalog',        sub: 'phương pháp · method library', role: 'admin' },
-        { href: '/offers',       icon: '💸', color: 'var(--neon-lime)',   label: 'Offers',         sub: 'affiliate CJ · Awin · duyệt', role: 'admin' },
-        { href: '/knowledge?kind=source', icon: '📰', color: 'var(--neon-cyan)', label: 'Content Sources', sub: 'nguồn tham khảo viết', role: 'admin' },
-        { href: '/library',      icon: '🗂', color: 'var(--neon-cyan)',   label: 'Tools & Skills', sub: 'shared catalog' },
-        { href: '/knowledge',    icon: '📚', color: 'var(--neon-violet)', label: 'Knowledge',      sub: 'shared templates', role: 'admin' },
-        { href: '/platforms',    icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',      sub: 'catalog · 59 entries' },
-        { href: '/technologies', icon: '⚙', color: 'var(--neon-amber)',   label: 'Technologies',   sub: 'selectors · signup fields', role: 'admin' },
+        { href: '/?tab=thuvien&tv=thiet-ke', icon: '🎨', color: 'var(--neon-violet)', label: 'Thiết kế', sub: 'mẫu + ảnh minh hoạ' },
+        { href: '/?tab=thuvien&tv=catalog',      icon: '📋', color: 'var(--neon-amber)',  label: 'Catalog',        sub: 'phương pháp · method library', role: 'admin' },
+        { href: '/?tab=thuvien&tv=offers',       icon: '💸', color: 'var(--neon-lime)',   label: 'Offers',         sub: 'affiliate CJ · Awin · duyệt', role: 'admin' },
+        { href: '/?tab=thuvien&tv=kien-thuc&kind=source', icon: '📰', color: 'var(--neon-cyan)', label: 'Content Sources', sub: 'nguồn tham khảo viết', role: 'admin' },
+        { href: '/?tab=thuvien&tv=cong-cu',      icon: '🗂', color: 'var(--neon-cyan)',   label: 'Tools & Skills', sub: 'shared catalog' },
+        { href: '/?tab=thuvien&tv=kien-thuc',    icon: '📚', color: 'var(--neon-violet)', label: 'Knowledge',      sub: 'shared templates', role: 'admin' },
+        { href: '/?tab=thuvien&tv=nen-tang',    icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',      sub: 'catalog · 59 entries' },
+        { href: '/?tab=thuvien&tv=cong-nghe', icon: '⚙', color: 'var(--neon-amber)',   label: 'Technologies',   sub: 'selectors · signup fields', role: 'admin' },
       ],
     },
     {

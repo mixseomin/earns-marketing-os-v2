@@ -81,10 +81,14 @@ export async function capNhatGhim(tg, { ep = false } = {}) {
 }
 /** Nút vừa bấm → "⏳ <chữ nút> — đã nhận" (callback x:cho, không phòng nào xử), các nút khác giữ nguyên; trả lời callback "Đã nhận". */
 export const banDaNhan = (markup, data) => ({ inline_keyboard: (markup?.inline_keyboard ?? []).map((hang) => hang.map((b) => (b.callback_data === data ? { text: `⏳ ${b.text} — đã nhận, đang xử`.slice(0, 64), callback_data: 'x:cho' } : b))) });
-async function daNhanNut(tg, c) {
+async function daNhanNut(tg, c, bang = new Map()) {
   if (String(c.data) === 'x:cho') return tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận rồi — đang xử, đợi báo kết quả' });
   await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận — đang xử, kết quả báo ngay dưới tin' });
-  if (c.message?.reply_markup) await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: banDaNhan(c.message.reply_markup, c.data) });
+  // NHIỀU NÚT CÙNG TIN bấm trong một lượt gom: mỗi lần bấm mang ảnh chụp bàn phím lúc bấm → dùng bàn phím đã sửa của lần trước (bang), không thì
+  // lần sau ghi đè lần trước và chỉ nút cuối hiện ⏳ (21/10/2026: anh bấm 7 nút, 6 nút không đổi gì)
+  const mid = c.message?.message_id; if (!mid || !c.message.reply_markup) return;
+  const moi = banDaNhan(bang.get(mid) ?? c.message.reply_markup, c.data); bang.set(mid, moi);
+  await tg('editMessageReplyMarkup', { message_id: mid, reply_markup: moi });
 }
 const topicCua = (x) => x.message?.message_thread_id ?? x.callback_query?.message?.message_thread_id ?? null;
 
@@ -96,12 +100,12 @@ export async function gomTin(tg) {
   try {
     const tOffset = path.join(GOC_HOP(), 'offset.json'); let offset = 0; try { offset = JSON.parse(fs.readFileSync(tOffset, 'utf8')).offset; } catch { /* lần đầu */ }
     const u = await tg('getUpdates', { offset, timeout: 0, allowed_updates: ['message', 'callback_query'] });
-    let n = 0;
+    let n = 0; const banPhim = new Map();   // bàn phím đã đánh dấu trong lượt này, theo mã tin
     for (const x of u.ok ? u.result : []) {
       const phong = (x.callback_query && NUT_CUA[String(x.callback_query.data ?? '').split(':')[0]]) ?? phongCuaTopic(topicCua(x)) ?? KHAC;
       // ĐÃ NHẬN ngay khi gom (≤ 1 phút), không đợi nhịp của phòng (Ethopex 30 phút): nút anh bấm đổi thành "⏳ … — đã nhận, đang xử" và không bấm
       // lại được (tránh tăng ngân sách hai lần). Kết quả thành / bại do phòng sở hữu nút báo khi xử xong (anh 21/10/2026: "bấm không có tác dụng gì").
-      if (x.callback_query) try { await daNhanNut(tg, x.callback_query); } catch { /* đánh dấu hỏng không chặn việc xếp hộp */ }
+      if (x.callback_query) try { await daNhanNut(tg, x.callback_query, banPhim); } catch { /* đánh dấu hỏng không chặn việc xếp hộp */ }
       fs.mkdirSync(HOP(phong), { recursive: true }); fs.writeFileSync(path.join(HOP(phong), `${x.update_id}.json`), JSON.stringify(x));
       offset = x.update_id + 1; n++;
     }
@@ -137,5 +141,9 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
   t.equal(await topicPhong('sach', '📂 Sách', tg2, { duocTao: true }), 41); t.equal(await topicPhong('sach', '📂 Sách', tg2), 41, 'chủ đề phòng tạo một lần'); t.equal(phongCuaTopic(41), 'sach', 'tin trong chủ đề phòng về hộp phòng đó');
   { const mk = { inline_keyboard: [[{ text: '✅ #65483 lên $3', callback_data: 'et:tang:65483:3' }, { text: 'Bỏ qua', callback_data: 'et:bo:65483' }]] };
     const b = banDaNhan(mk, 'et:tang:65483:3'); t.equal(b.inline_keyboard[0][0].callback_data, 'x:cho', 'nút đã bấm không bấm lại được'); t.match(b.inline_keyboard[0][0].text, /^⏳ .*đã nhận/); t.equal(b.inline_keyboard[0][1].callback_data, 'et:bo:65483', 'nút khác giữ nguyên'); }
+  { const sua = []; const tg3 = async (m, b) => { if (m === 'editMessageReplyMarkup') sua.push(b.reply_markup); return { ok: true }; };
+    const mk = { inline_keyboard: [[{ text: 'A', callback_data: 'et:tang:1:3' }, { text: 'Bỏ', callback_data: 'et:bo:1' }], [{ text: 'B', callback_data: 'et:tang:2:3' }, { text: 'Bỏ', callback_data: 'et:bo:2' }]] };
+    const bp = new Map(); await daNhanNut(tg3, { id: 'a', data: 'et:tang:1:3', message: { message_id: 9, reply_markup: mk } }, bp); await daNhanNut(tg3, { id: 'b', data: 'et:tang:2:3', message: { message_id: 9, reply_markup: mk } }, bp);
+    t.ok(sua.at(-1).inline_keyboard.every((h) => h[0].callback_data === 'x:cho'), 'hai nút bấm cùng lượt: cả hai đều hiện ⏳'); }
   console.log('tg-phong: tự kiểm đạt');
 }

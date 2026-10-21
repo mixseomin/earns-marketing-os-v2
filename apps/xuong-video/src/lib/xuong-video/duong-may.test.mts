@@ -56,4 +56,11 @@ assert.equal(vq.dat[0], -90, 'không lùi theo người'); assert.ok(vq.dat[1]! 
   // máy vòng về phía mặt: sau vòng, hướng mặt Hạ (0, 1) gần hướng về máy hơn lúc đầu
   const huongMay = (p: number[]) => { const d = [p[0]! - 300, p[1]! - 540]; const l = Math.hypot(d[0]!, d[1]!); return d[1]! / l; };
   assert.ok(huongMay(traiMan.dat) > huongMay(goc.dat), 'vòng vào đường nhìn: máy về phía mặt Hạ'); }
+// NGƯỜI là vật cản (tập 135 #7): máy sau lưng Thần đẩy về sàn văn phòng — cuối cú đẩy không được nằm trong thân Thần
+{ const m7 = { dat: [40, 1250, 165], nhin: [195, 670, 110], ong_kinh: 28, vi_tri: [{ ten: 'Lục Thần', tam: [80, 1040, 0] }, { ten: 'Lâm Hạ', tam: [300, 540, 0] }], khung: ['Lâm Hạ'] } as never;
+  const caoNguoi = (t: string) => (t === 'Lục Thần' || t === 'Lâm Hạ' ? 180 : 2);
+  const r = duongMay(m7, 'day_vao', [], caoNguoi)!;
+  const trongThan = (p: number[]) => Math.abs(p[0]! - 80) < 25.3 && Math.abs(p[1]! - 1040) < 25.3 && p[2]! < 180;
+  const doc = Array.from({ length: 13 }, (_, i) => i / 12).map((t) => { const k = t * t * (3 - 2 * t); return [40 + (r.dat[0]! - 40) * k, 1250 + (r.dat[1]! - 1250) * k, 165 + (r.dat[2]! - 165) * k]; });
+  assert.ok(!doc.some(trongThan), 'đường máy đẩy không xuyên người đứng giữa'); }
 console.log('duong-may: mọi bài tự kiểm qua');

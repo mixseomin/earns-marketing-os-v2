@@ -100,6 +100,10 @@ export function duongMay(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh' | 'vi_tri' |
   datK = [datK[0], datK[1], Math.max(datK[2], Math.min(dat[2], 0.3))];
   // KHÔNG XUYÊN ĐỒ VẬT (#28: dolly chui vào chân Yellow iMac → nửa clip đen): dò 12 điểm trên đường máy (cùng nhịp nhanh dần – chậm dần như Blender);
   // chạm vật thì thu ngắn quãng dời máy (60 % → 35 % → 15 % → đứng yên), điểm nhìn / ống kính giữ nguyên — máy đứng lại, đầu máy vẫn bám chủ thể.
+  // NGƯỜI cũng là vật cản (tập 135 #7: máy đẩy từ sau lưng Thần về sàn văn phòng, xuyên ngực Thần ở cuối cú đẩy): khối thân 50 × 50 cm cao bằng người
+  // (chỉ vị trí cao > 100 cm — người, không phải đạo cụ), ở cả chỗ mở lẫn chỗ kết. Chủ thể khung vẫn tính: máy không được chui vào chính người được quay.
+  const nguoi: Hop[] = m.vi_tri.filter((x) => !x.an && cao(x.ten) > 100).flatMap((x) => [x.tam, ...(x.den ? [x.den] : [])].map((p) => ({ ten: x.ten, min: [p[0]! - 25, p[1]! - 25, 0] as V3, max: [p[0]! + 25, p[1]! + 25, cao(x.ten)] as V3 })));
+  can = [...can, ...nguoi.filter((h) => !trong(dat, [h]))];   // máy MỞ đã nằm trong khối người (máy qua vai sát người) thì khối đó không tính
   if (can.length && !trong(dat, can)) {
     const goc = datK; const thong = (d: V3) => Array.from({ length: 13 }, (_, i) => i / 12).every((t) => !trong(cong(dat, nhan(tru(d, dat), t * t * (3 - 2 * t))), can));
     for (const k of [1, 0.6, 0.35, 0.15, 0]) { const d = cong(dat, nhan(tru(goc, dat), k)); if (thong(d)) { datK = d; break; } }

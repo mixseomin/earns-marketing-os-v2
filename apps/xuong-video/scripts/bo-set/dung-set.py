@@ -1590,6 +1590,20 @@ def dong_tac_luc(hd, t, r):
         elif ten == 'toc_dung': v['toc_dai'] *= 1 + 0.25 * em_(c); v['toc_goc'] -= 10 * em_(c)
     return v
 
+def do_sang_may(s, f_giua, dich=0.3, tran=4.0):
+    import tempfile, numpy as np
+    pct, fp = s.render.resolution_percentage, s.render.filepath
+    tep = os.path.join(tempfile.gettempdir(), f'do_sang_{os.getpid()}.png')
+    s.frame_set(f_giua); s.render.resolution_percentage = 15; s.render.filepath = tep
+    for _ in range(2):
+        bpy.ops.render.render(write_still=True)
+        im = bpy.data.images.load(tep); px = np.array(im.pixels[:]).reshape(-1, 4)[:, :3]; bpy.data.images.remove(im)
+        y = float((0.2126 * px[:, 0] + 0.7152 * px[:, 1] + 0.0722 * px[:, 2]).mean())
+        if y >= 0.2 or y <= 0: break
+        s.view_settings.exposure = min(tran, s.view_settings.exposure + 2.2 * math.log2(dich / y))   # sáng hiển thị ~ tuyến tính^(1/2,2)
+    print('DO SANG', round(y, 3), 'exposure', round(s.view_settings.exposure, 2))
+    s.render.resolution_percentage = pct; s.render.filepath = fp; s.frame_set(s.frame_start)
+
 def dien_shot(s, sh, ra, giay=4.0, fps=12):
     """DIỄN CẢ SHOT trong Blender (anh 16/10/2026: "thêm khung chuyển động vật lý cho chúng để đồng bộ"): mỗi nhân vật gắn một KHUNG NEO (empty)
     chạy từ chỗ mở → chỗ kết trên MỘT trục thời gian (fps khung/giây: 24 người thật, 12 đất sét stop-motion): đi trên bàn có nhịp nhún theo bước, bay lên
@@ -1818,6 +1832,10 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     # NGƯỜI THẬT MPFB như khung màu đầu / kết (anh 19/10/2026: clip diễn tập 135 ra ma-nơ-canh khối — đường diễn chưa từng đổi khối ↔ người thật).
     # Rig MPFB nhắm theo khớp ma-nơ-canh nên vẫn diễn đúng dáng / mocap; tiến trình thoát ngay sau nên không cần trả về khối.
     nguoi_that(True)
+    # ĐO SÁNG như máy ảnh (anh 21/10/2026 "một số cảnh thì tối lâu quá"): render nhỏ khung giữa, trung bình sáng hiển thị < 0,2 thì tăng phơi sáng
+    # (stop, trước AgX — như mở khẩu / tăng ISO, không phải nhân sáng hậu kỳ) cho về ~0,3, tối đa +4 stop, đo hai vòng. #18 / #21 khung gốc gần đen
+    # tuyệt đối — nhân sáng sau render không cứu được.
+    do_sang_may(s, N // 2 + 1)
     # mắt bám đầu từng khung (dat_mat_moi_nguoi); khoá giao diện khi render để handler sửa vị trí an toàn
     s.render.use_lock_interface = True; bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
     if s.render.engine != 'CYCLES':

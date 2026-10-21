@@ -38,11 +38,21 @@ roi = lambda a: (a["thu"] - a["chi"]) / a["chi"] * 100 if a["chi"] else None
 BAC = [1, 3, 5, 7, 10, 15, 20]
 ke = lambda b: next((x for x in BAC if x > b + 1e-9), None)
 dat, theo, giam, dau_phien, moc30 = [], [], [], [], []
+# KHUNG 0–5h VN (anh 22/10/2026: "giờ đang là giờ tối ưu tốt (21h–5h sáng VN) thì phải check xem tăng được không"): qua 0h số HÔM NAY về 0 nên
+# "Spending hôm nay > 50%" không bao giờ đạt đúng lúc Mỹ đang mua → trong khung này xét chi tiêu + ROI của NGÀY HÔM QUA (trọn ngày) thay cho hôm nay;
+# thêm điều kiện ROI hôm qua ≥ 0% (không tăng camp vừa có một ngày lỗ).
+KHUNG_DEM = 0 <= vn.hour < 5
+hqua = bc(d(1), d(1))
 for cid, a in sorted(thang.items()):
-    h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); sp = h["chi"] / a["budget"] * 100 if a["budget"] else 0; r = roi(a)
-    dong = f"#{a['ten'][:70]} · ${a['budget']:g}" + (f" → ${ke(a['budget']):g}" if ke(a['budget']) else " (trần $20)") + f" · spending hôm nay {sp:.0f}% · ROI tháng {r:+.0f}% · lãi ${a['thu'] - a['chi']:+.2f}" if r is not None else ""
+    h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); r = roi(a)
+    if KHUNG_DEM:
+        y = hqua.get(cid, {"chi": 0.0, "thu": 0.0}); sp = y["chi"] / a["budget"] * 100 if a["budget"] else 0; ry = roi(y)
+        nhan, them_dk = "spending hôm qua", (ry is not None and ry >= 0)
+    else:
+        sp = h["chi"] / a["budget"] * 100 if a["budget"] else 0; ry = None; nhan, them_dk = "spending hôm nay", True
+    dong = f"#{a['ten'][:70]} · ${a['budget']:g}" + (f" → ${ke(a['budget']):g}" if ke(a['budget']) else " (trần $20)") + f" · {nhan} {sp:.0f}%" + (f" · ROI hôm qua {ry:+.0f}%" if ry is not None else "") + f" · ROI tháng {r:+.0f}% · lãi ${a['thu'] - a['chi']:+.2f}" if r is not None else ""
     if not dong: continue
-    if r >= ROI_TANG and sp > sp_min and ke(a["budget"]): dat.append((cid, dong))
+    if r >= ROI_TANG and sp > sp_min and them_dk and ke(a["budget"]): dat.append((cid, dong))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
     if h["chi"] >= 0.5 and a["budget"] < 3:
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100
@@ -101,7 +111,6 @@ dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
 # → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
 ha = []
 if 6 <= vn.hour < 13:
-    hqua = bc(d(1), d(1))
     for cid, a in thang.items():
         ns = a["budget"]; y = hqua.get(cid)
         if ns <= 1 or not y or y["chi"] < 0.5 * ns: continue

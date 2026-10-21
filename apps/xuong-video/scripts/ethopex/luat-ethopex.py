@@ -6,6 +6,8 @@ Dùng (trên box3, đã nạp .env.production):  python3 luat-ethopex.py [roi_to
   --json: in một đối tượng {luc, tang, dau_phien, giam, tat, moc30, tu_choi, gan} — mỗi mục {id, ten, chu} để máy theo dõi so trùng."""
 import json, os, subprocess, sys, urllib.request, datetime as dt
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+# TĂNG BẬC chỉ khi ROI tháng > 50% (Support Dol 21/10/2026: "a chỉ tăng budget những camp rois > 50% nhé") — roi_min (20) còn dùng cho luật giảm / theo dõi
+ROI_TANG = 50
 roi_min = float(ARGS[0]) if ARGS else 20; sp_min = float(ARGS[1]) if len(ARGS) > 1 else 50; JSON = '--json' in sys.argv
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -40,7 +42,7 @@ for cid, a in sorted(thang.items()):
     h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); sp = h["chi"] / a["budget"] * 100 if a["budget"] else 0; r = roi(a)
     dong = f"#{a['ten'][:70]} · ${a['budget']:g}" + (f" → ${ke(a['budget']):g}" if ke(a['budget']) else " (trần $20)") + f" · spending hôm nay {sp:.0f}% · ROI tháng {r:+.0f}% · lãi ${a['thu'] - a['chi']:+.2f}" if r is not None else ""
     if not dong: continue
-    if r >= roi_min and sp > sp_min and ke(a["budget"]): dat.append((cid, dong))
+    if r >= ROI_TANG and sp > sp_min and ke(a["budget"]): dat.append((cid, dong))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
     if h["chi"] >= 0.5 and a["budget"] < 3:
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100

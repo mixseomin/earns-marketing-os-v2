@@ -151,6 +151,12 @@ if (process.argv[1]?.endsWith('nhip.mjs')) {
     const truoc = lanLam(n.id); if (truoc && Date.now() - Date.parse(truoc.luc) < n.kiemMoi * 60_000 - 15_000) continue;   // chưa tới lượt kiểm của người này
     try { const ket = await NHIP[v](n); ghiLam(n.id, ket, v); console.log(`${n.id} · ${v}: ${ket}`); } catch (e) { console.error(`✗ ${n.id} · ${v}: ${e.message}`); process.exitCode = 1; }
   }
+  // GIAO BAN SÁNG 08:00 (worker/giao-ban.mjs): một tin tổng mọi phòng vào topic Quản lý, một lần mỗi ngày (anh 21/10/2026)
+  try { const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (T && C) {
+    const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) throw new Error(`telegram ${m}: ${j.description}`); return j; };
+    const nguoi = dangBat().map((n) => ({ ...n, mac: !n.viec.some((v) => NHIP[v]), viecNhip: dauViec(n).map((x) => ({ ten: x.ten, lich: x.lich })) }));
+    const r = await (await import('./giao-ban.mjs')).nhipGiaoBan({ nguoi, nhatKy: nhatKyNhip, tg }); if (r) console.log(r);
+  } } catch (e) { console.error(`✗ giao ban sáng: ${e.message}`); }
   // VIỆC MÁY (worker/viec-may.mjs): dò lại timer / cron / LaunchAgent mọi máy mỗi 10 phút để bảng nhân sự thấy việc mới + lần chạy cuối
   const vm = await import('./viec-may.mjs'); let tuoi = Infinity; try { tuoi = Date.now() - fs.statSync(vm.TEP()).mtimeMs; } catch { /* chưa có ảnh */ }
   // admin vừa đổi lịch một việc trên box → áp + dò lại ngay, không đợi lượt 10 phút

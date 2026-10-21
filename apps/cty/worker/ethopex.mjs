@@ -41,17 +41,41 @@ export function gopCamp(ds) {
 }
 
 /** Nút anh bấm: et:tang:<id>:<$> · et:tat:<id> · et:bo:<id>. */
+/** Gỡ HÀNG NÚT của một camp khỏi tin báo khi việc đã xong (anh 22/10/2026: "khi đã duyệt và chạy xong thì ko hiện kiểu này. Bỏ nút Bỏ qua sau đó").
+ *  Nhớ các camp đã gỡ theo mã tin (DATA/ethopex-nut-xong.json) — ảnh chụp bàn phím lúc bấm có thể cũ, không được dựng lại hàng đã gỡ. */
+export function goHangNut(markup, idsXong) {
+  const coId = (b) => idsXong.some((id) => String(b.callback_data || '').split(':')[2] === String(id) || new RegExp(`#${id}\\b`).test(String(b.text || '')));
+  return { inline_keyboard: (markup?.inline_keyboard ?? []).filter((hang) => !hang.some(coId)) };
+}
+async function goNut(tg, c, id) {
+  const mid = c.message?.message_id; if (!mid) return;
+  const tep = path.join(DATA(), 'ethopex-nut-xong.json'), st = docJ(tep, {});
+  const ids = [...new Set([...(st[mid] ?? []), String(id)])]; st[mid] = ids;
+  for (const k of Object.keys(st).sort((x, y) => +x - +y).slice(0, -300)) delete st[k];   // giữ 300 tin gần nhất
+  fs.writeFileSync(tep, JSON.stringify(st));
+  await tg('editMessageReplyMarkup', { message_id: mid, reply_markup: goHangNut(c.message.reply_markup, ids) });
+}
 async function xuNut(tg, x) {
   const c = x.callback_query; x.xong(); if (!c || !/^et:/.test(c.data || '')) return null;
   const [, lenh, id, ns] = c.data.split(':'), ai = esc(c.from?.first_name || c.from?.username || 'Anh');
-  if (lenh === 'bo') { await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã bỏ qua' }); await tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: `↩️ ${ai} bỏ qua #${esc(id)}`, reply_parameters: { message_id: c.message.message_id } }); return 'bo'; }
+  // tên camp lấy từ dòng của nó trong tin báo — kết quả đọc ra được ngay là camp nào
+  const dongTin = String(c.message?.text || '').split('\n'), dongCamp = (dongTin.find((d) => d.includes(`#${id}`)) || '').replace(/^•\s*/, '');
+  const tenCamp = esc(dongCamp.replace(/^#?\d+:\s*/, '').split(' · ')[0].slice(0, 70));
+  const tra = (tin) => tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: tin, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_parameters: { message_id: c.message.message_id } });
+  if (lenh === 'bo') {
+    await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã bỏ qua' });
+    await goNut(tg, c, id); await tra(`⏭ <b>BỎ QUA</b> #${esc(id)} ${tenCamp}\n   giữ nguyên · ${ai}`); return 'bo';
+  }
   await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đang làm…' });
   // LUẬT kích hoạt = dòng của camp trong chính tin báo (+ tiêu đề nhóm) → lam-ethopex ghi nhật ký luật (anh 21/10/2026: "khi tăng phải log rule cho việc tăng đó")
-  const dongTin = String(c.message?.text || '').split('\n'), luat = `${dongTin[0] || ''} · ${(dongTin.find((d) => d.includes(`#${id}`)) || '').replace(/^•\s*/, '')}`.slice(0, 400);
+  const luat = `${dongTin[0] || ''} · ${dongCamp}`.slice(0, 400);
   let kq; try { kq = JSON.parse((await chay(LAM, [...(lenh === 'tang' || lenh === 'giam' ? [lenh, id, ns] : ['tat', id]), '--luat', luat, '--ai', `${c.from?.first_name || c.from?.username || 'Anh'} (nút Telegram)`], 120)).trim().split('\n').pop()); } catch (e) { kq = { ok: false, loi: e.message }; }
-  const tin = kq.ok ? (lenh === 'tang' || lenh === 'giam' ? `${lenh === 'tang' ? '✅' : '↘'} ${ai} duyệt: #${esc(id)} $${esc(kq.truoc?.ns)} → <b>$${esc(kq.sau?.ns)}</b> (đã đọc lại)` : `⏹ ${ai} duyệt: #${esc(id)} đã <b>tắt</b> (đã đọc lại: ${esc(kq.sau?.tt)})`)
-    : `⚠️ #${esc(id)} chưa làm được: ${esc(kq.loi || 'không rõ')}`;
-  await tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: tin, parse_mode: 'HTML', reply_parameters: { message_id: c.message.message_id } });
+  // MỖI VIỆC MỘT ICON + ĐỘNG TỪ IN ĐẬM: ⬆️ ĐÃ TĂNG · ⬇️ ĐÃ GIẢM · ⏹ ĐÃ TẮT · ⏭ BỎ QUA · ⚠️ CHƯA LÀM ĐƯỢC (nút giữ lại để bấm thử lại)
+  const VIEC = { tang: ['⬆️', 'ĐÃ TĂNG'], giam: ['⬇️', 'ĐÃ GIẢM'], tat: ['⏹', 'ĐÃ TẮT'] }[lenh] ?? ['✔', 'XONG'];
+  if (kq.ok) {
+    await goNut(tg, c, id);
+    await tra(`${VIEC[0]} <b>${VIEC[1]}</b> #${esc(id)} ${tenCamp}\n   ${lenh === 'tat' ? `trạng thái ${esc(kq.sau?.tt)}` : `$${esc(kq.truoc?.ns)} → <b>$${esc(kq.sau?.ns)}</b>`} · ${ai} duyệt · đã đọc lại trên Ethopex`);
+  } else await tra(`⚠️ <b>CHƯA LÀM ĐƯỢC</b> #${esc(id)} ${tenCamp}\n   ${esc(kq.loi || 'không rõ')}`);
   return kq.ok ? lenh : 'loi';
 }
 
@@ -132,7 +156,7 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
       daTu.push({ k, m, d, r });
     }
     if (daTu.length) {
-      const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `✅ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 160))}`).join('\n');
+      const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `⬆️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 160))}`).join('\n');
       await tg('sendMessage', { message_thread_id: topic, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới hết ${esc(tt.den.slice(0, 10))}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
@@ -152,6 +176,10 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
 }
 
 if (process.argv.includes('--tu-kiem')) {
+  { const { strict: t } = await import('node:assert');
+    const mk = { inline_keyboard: [[{ text: '⏳ ✅ #65678 lên $3 — đã nhận', callback_data: 'x:cho' }, { text: 'Bỏ qua', callback_data: 'et:bo:65678' }], [{ text: '✅ #65110 lên $7', callback_data: 'et:tang:65110:7' }, { text: 'Bỏ qua', callback_data: 'et:bo:65110' }]] };
+    t.deepEqual(goHangNut(mk, ['65678']).inline_keyboard.map((h) => h[0].callback_data), ['et:tang:65110:7'], 'gỡ cả hàng ⏳ + Bỏ qua của camp đã xong, giữ camp khác');
+    t.equal(goHangNut(mk, ['65678', '65110']).inline_keyboard.length, 0); }
   { const { strict: t } = await import('node:assert'); const z = { chi: 1, thu: 2, lai: 1, roi: 100, camp: 1 };
     const b = tinBang({ luc: '17:19 21/10', hom: { chi: 149.48, thu: 171.67, lai: 22.19, roi: 14.8, camp: 88, budget: 174 }, qua: { ...z, lai: -11.33, roi: -34.6 }, thang: z, tron: z, top: [], day: [],
       noi_dung: [{ ten: 'Dear Brother, Your Regret Came Too Late', roi: 113, lai: 4.01, chi: 3.56 }, { ten: 'Number One, Nobody', roi: 83, lai: 30.01, chi: 36.05 }, { ten: 'Black Life', roi: -3, lai: -0.25, chi: 9.62 }] });

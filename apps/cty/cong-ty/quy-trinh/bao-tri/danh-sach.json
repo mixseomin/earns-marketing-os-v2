@@ -125,6 +125,23 @@
     "iMac:com.earns.mt5hb"
    ],
    "chi_phi": "0"
+  },
+  {
+   "id": "macbook-thuc",
+   "ten": "MacBook không tự ngủ khi tắt màn hình",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook thường trực (caffeinate -i)",
+   "mo_ta": "Chặn ngủ vì không dùng (pmset sleep đang 1 phút, sửa pmset cần sudo); màn hình vẫn tắt theo giờ, gập máy vẫn ngủ. Anh 21/10/2026.",
+   "ma": "~/Library/LaunchAgents/com.htuan.thuc.plist",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "thường trực",
+   "lich": [
+    "MacBook:com.htuan.thuc"
+   ],
+   "chi_phi": "0"
   }
  ]
 }

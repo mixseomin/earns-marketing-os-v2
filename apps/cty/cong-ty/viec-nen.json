@@ -766,6 +766,17 @@
     "moi_giay": 300
    },
    "uu_tien_thap": true
+  },
+  {
+   "nhan": "MacBook:com.htuan.thuc",
+   "ten": "Bảo trì - MacBook không ngủ khi tắt màn hình",
+   "chay": [
+    "/usr/bin/caffeinate",
+    "-i"
+   ],
+   "hen": {
+    "luon": true
+   }
   }
  ]
 }

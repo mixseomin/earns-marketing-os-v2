@@ -181,7 +181,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
       </div>
       <div>   {/* cuộn THEO TRANG: đầu tab trôi đi, tiêu đề bảng + thanh trang dính (DataTable mặc định, học Ethopex 22/10/2026) */}
         {xem === 'camp' ? (
-          <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100}
+          <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100} pageSize={50}
             groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
             searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
             onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />

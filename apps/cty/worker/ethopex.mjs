@@ -125,6 +125,13 @@ export async function xuNutBang(tg) {
 }
 
 export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
+  // KHOÁ MỘT NHỊP (22/10/2026: lượt kích tay 02:18 chạy chồng nhịp tự động → cùng camp bị gửi lệnh tăng 2 lần): nhịp khác đang chạy thì bỏ lượt này;
+  // khoá kẹt > 15 phút (nhịp trước chết giữa chừng) thì gỡ.
+  const khoa = path.join(DATA(), 'ethopex-nhip.khoa');
+  try { fs.mkdirSync(khoa); } catch { try { if (Date.now() - fs.statSync(khoa).mtimeMs < 15 * 60_000) return { gui: 0, nut: 0, bo: 'nhịp khác đang chạy' }; fs.rmSync(khoa, { recursive: true, force: true }); fs.mkdirSync(khoa); } catch { return { gui: 0, nut: 0, bo: 'không lấy được khoá' }; } }
+  try { return await nhipEthopexTrong(nguoi, { ten }); } finally { fs.rmSync(khoa, { recursive: true, force: true }); }
+}
+async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { gomTin, moHop, topicPhong } = await import('./tg-phong.mjs');
   const { tg } = await tgNoiDung();
   const topic = await topicPhong('ethopex', '📂 Ethopex', tg, { duocTao: true });   // anh lập phòng 21/10/2026 = cho tạo chủ đề

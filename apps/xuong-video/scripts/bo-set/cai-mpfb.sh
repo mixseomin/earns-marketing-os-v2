@@ -45,7 +45,7 @@ if [ ! -f "$DU/packs/faceunits01.json" ]; then
 fi
 ls "$DU" | tr '\n' ' '; echo
 # GÓI ĐỒ CỘNG ĐỒNG (anh 21/10/2026 "kho thiếu thì tải về"): kho hệ thống chỉ có 4 bộ đồ nữ → phim đổi trang phục (sơ mi, vest, váy, đầm, quần)
-# không mặc được đúng dáng. Chỉ lấy gói CC0 / CC-BY (dùng thương mại được; CC-BY phải ghi tên tác giả — tai-san/GHI-CONG-DO.md, mesh/nguoi.py chỉ
+# không mặc được đúng dáng. Chỉ lấy gói CC0 / CC-BY (dùng thương mại được; CC-BY phải ghi tên tác giả — scripts/bo-set/GHI-CONG-DO.md (ghi-cong-do.py), mesh/nguoi.py chỉ
 # dùng tên asset). Trang gói: static.makehumancommunity.org/assets/assetpacks/<gói>.html (đã đọc giấy phép từng gói 21/10/2026).
 # thứ tự = gói nhỏ / hay dùng trước (máy chủ makehuman đo 21/10: ~7 KB/s mỗi luồng → 24 luồng)
 # đuôi tệp lấy ĐÚNG như trang gói ghi (không đều: _cc-by / _ccby)

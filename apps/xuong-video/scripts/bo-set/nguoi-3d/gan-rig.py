@@ -6,13 +6,17 @@
 #   2. dáng tay của thân MPFB (chữ A) xoay theo dáng tay của ảnh (buông) → chép trọng số (gần mặt nhất, nội suy)
 #   3. đưa mesh về dáng nghỉ chữ A của rig gốc → lưu da.blend: thả vào bất kỳ rig MPFB 'default' cùng giới / tuổi / cao là chạy (khoi_3d.da_3d)
 #   4. màu: chiếu ảnh TRƯỚC lên mặt hướng trước, ảnh SAU lên mặt hướng sau (trộn theo pháp tuyến)
+#   6. MẶT: căn mặt MPFB trùng mặt da theo 5 điểm mốc YuNet (moc-mat.py) rồi NƯỚNG từng đơn vị cơ mặt ARKit của MPFB thành shape key của da
+#      (Surface Deform → shape key) — bieu_mat lái cả da; vị trí con ngươi trên da (da['mat_da']) cho chấm mắt (dat_con_nguoi)
 #   5. thử: vài dáng (đứng, chỉ tay, bước, ngồi, quay đầu) → ảnh soát
-#   Blender -b --factory-startup -P gan-rig.py -- <mesh.glb> <truoc.png> <sau.png|-> <gioi nu|nam> <tuoi> <cao_cm> <thu-muc-ra>
+#   Blender -b --factory-startup -P gan-rig.py -- <mesh.glb> <truoc.png> <sau.png|-> <gioi nu|nam> <tuoi> <cao_cm> <thu-muc-ra> [moc.json]
 import bpy, sys, os, math, importlib.util
 from mathutils import Vector, Matrix
 
 a = sys.argv[sys.argv.index('--') + 1:]
 GLB, TRUOC, SAU, GIOI, TUOI, CAO, RA = a[0], a[1], (a[2] if a[2] != '-' else None), a[3], int(a[4]), float(a[5]), a[6]
+import json
+MOC = json.load(open(a[7])) if len(a) > 7 and os.path.exists(a[7]) else None
 os.makedirs(RA, exist_ok=True)
 _sp = importlib.util.spec_from_file_location('nguoi', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mesh', 'nguoi.py'))
 ng = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(ng)
@@ -39,6 +43,9 @@ lo, hi = bb([D]); k = CAO / 100 / (hi.z - lo.z)
 D.scale = (k,) * 3; D.location = (-(lo.x + hi.x) / 2 * k, -(lo.y + hi.y) / 2 * k, -lo.z * k)
 chon(D); bpy.ops.object.transform_apply(location=True, rotation=False, scale=True)
 D.data.materials.clear()
+# mesh ảnh→3D dày (~90 nghìn đỉnh): giảm còn ≤ 50 nghìn — đủ nét ở cận, da.blend nhẹ (mỗi shape key biểu cảm chép đủ toạ độ mọi đỉnh)
+if len(D.data.vertices) > 50000:
+    dm = D.modifiers.new('giam', 'DECIMATE'); dm.ratio = 50000 / len(D.data.vertices); chon(D); bpy.ops.object.modifier_apply(modifier='giam')
 
 # 2. thân MPFB cùng giới / tuổi / cao + rig 'default'
 m = ng._mpfb()
@@ -76,6 +83,12 @@ dt = D.modifiers.new('chep', 'DATA_TRANSFER'); dt.object = h; dt.use_vert_data =
 dt.vert_mapping = 'POLYINTERP_NEAREST'; dt.layers_vgroup_select_src = 'ALL'; dt.layers_vgroup_select_dst = 'NAME'
 bpy.ops.object.modifier_apply(modifier='chep')
 bpy.ops.object.vertex_group_normalize_all(lock_active=False)
+# làm mượt trọng số: chép gần-nhất để lại bậc thang ở chỗ thân mẫu và mesh lệch nhau (nách / vạt áo căng khi giơ tay) — chuẩn rig: smooth rồi giới hạn 4 xương / đỉnh
+bpy.ops.object.mode_set(mode='WEIGHT_PAINT')   # hai lệnh này chỉ chạy ở chế độ tô trọng số
+bpy.ops.object.vertex_group_smooth(group_select_mode='ALL', factor=0.5, repeat=3)
+bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
+bpy.ops.object.mode_set(mode='OBJECT')
+bpy.ops.object.vertex_group_normalize_all(lock_active=False)
 for g in list(D.vertex_groups):   # nhóm rỗng (xương mặt không chạm mesh…) bỏ
     if not any(gg.group == g.index and gg.weight > 1e-3 for v in D.data.vertices for gg in v.groups): D.vertex_groups.remove(g)
 
@@ -96,6 +109,15 @@ for ten, p, guong in (('UVtruoc', TRUOC, False), ('UVsau', SAU, True)):
             fx = (c.x - lo.x) / (hi.x - lo.x); fx = 1 - fx if guong else fx
             fz = (hi.z - c.z) / (hi.z - lo.z)
             uv.data[li].uv = (bx0 + fx * (bx1 - bx0), 1 - (by0 + fz * (by1 - by0)))
+# ĐIỂM MỐC MẶT trên da (dáng ảnh = dáng nghỉ ở vùng đầu): toạ độ ảnh → x, z theo đúng phép chiếu màu ở trên, y = tia từ phía trước chạm da
+MOC3 = {}
+if MOC and 'loi' not in MOC:
+    _, (bx0, by0, bx1, by1) = hop_anh(TRUOC)
+    for kh, (u, v) in MOC.items():
+        x = lo.x + (u - bx0) / (bx1 - bx0) * (hi.x - lo.x); z = hi.z - (v - by0) / (by1 - by0) * (hi.z - lo.z)
+        ok, p, *_ = D.ray_cast(Vector((x, lo.y - 1, z)), Vector((0, 1, 0)))
+        if ok: MOC3[kh] = p.copy()
+    print('MOC3', {k: tuple(round(c, 3) for c in v) for k, v in MOC3.items()})
 # trọng số trước / sau theo pháp tuyến (mặt hướng −y = trước), lưu thành thuộc tính đỉnh → đi theo da khi diễn
 at = me.color_attributes.new('truoc', 'FLOAT_COLOR', 'POINT')
 for v in me.vertices:
@@ -121,6 +143,43 @@ for b, M in dang_tay.items(): P[b].matrix_basis = M.inverted()
 bpy.context.view_layer.update()
 chon(D); bpy.ops.object.modifier_apply(modifier='xuong')
 chon(rig); bpy.ops.object.mode_set(mode='POSE'); bpy.ops.pose.armature_apply(selected=False); bpy.ops.object.mode_set(mode='OBJECT')
+# 6. MẶT: nướng biểu cảm. Căn thân MPFB (cả khối) cho tâm + khoảng hai mắt trùng mắt da, buộc Surface Deform vùng mặt của da vào thân MPFB, rồi
+# mỗi đơn vị cơ mặt ARKit (bảng nét mặt của máy dựng) đặt = 1 trên thân MPFB → kết quả thành một shape key của da.
+def nuong_mat():
+    if not {'mat_t', 'mat_p'} <= MOC3.keys(): print('CANH BAO không có điểm mốc mắt — bỏ nướng biểu cảm'); return 0
+    bL, bR = rig.data.bones.get('eye.L'), rig.data.bones.get('eye.R')
+    if not bL or not bR: return 0
+    eL, eR = rig.matrix_world @ bL.head_local, rig.matrix_world @ bR.head_local
+    dL, dR = MOC3['mat_t'], MOC3['mat_p']   # mat_t = mắt TRÁI của người = bên phải ảnh = +x (cùng phía eye.L)
+    D['mat_da'] = {'eye.L': list(dL), 'eye.R': list(dR)}
+    cDA = (dL + dR) / 2 + Vector((0, 0.011, 0)); cMP = (eL + eR) / 2; k = (dL - dR).length / (eL - eR).length
+    print('CAN MAT', 'lech cm', tuple(round(c * 100, 1) for c in (cDA - cMP)), 'ti le', round(k, 3))
+    mw0 = h.matrix_world.copy()
+    h.matrix_world = Matrix.Translation(cDA) @ Matrix.Scale(k, 4) @ Matrix.Translation(-cMP) @ mw0
+    h.hide_viewport = h.hide_render = False; bpy.context.view_layer.update()
+    dau_ = {b.name for b in rig.data.bones if b.name == 'head' or any(x.name == 'head' for x in b.parent_recursive)}
+    gid = {g.index for g in D.vertex_groups if g.name in dau_}
+    vm = D.vertex_groups.new(name='mat')
+    for v in D.data.vertices:
+        w = min(1.0, sum(gg.weight for gg in v.groups if gg.group in gid)) * max(0.0, min(1.0, (-v.normal.y + 0.2) / 0.5))
+        if w > 0.01: vm.add([v.index], w, 'REPLACE')
+    sd = D.modifiers.new('sd', 'SURFACE_DEFORM'); sd.target = h; sd.vertex_group = 'mat'; sd.falloff = 4
+    chon(D); bpy.ops.object.surfacedeform_bind(modifier='sd')
+    import importlib as _il
+    FS = next(getattr(_il.import_module(x), 'FaceService') for x in list(sys.modules) if x.endswith('mpfb.services.faceservice'))
+    dv = sorted({kk for bang in ng.BIEU_CAM_ARKIT.values() for k_ in bang for kk in ([k_[:-1] + 'Left', k_[:-1] + 'Right'] if k_.endswith('*') else [k_]) if not kk.startswith('eyeLook')})
+    so = 0
+    for u in dv:
+        FS.clear_expression(h); FS.set_expression(h, {u: 1.0}); bpy.context.view_layer.update()
+        bpy.ops.object.modifier_apply_as_shapekey(keep_modifier=True, modifier='sd')
+        kb = D.data.shape_keys.key_blocks[-1]; kb.name = u
+        nen = D.data.shape_keys.key_blocks[0]
+        if max((kb.data[i].co - nen.data[i].co).length for i in range(0, len(kb.data), 7)) < 0.0005: D.shape_key_remove(kb)   # đơn vị không đụng da
+        else: so += 1
+    FS.clear_expression(h); D.modifiers.remove(sd); D.vertex_groups.remove(vm)
+    h.matrix_world = mw0; bpy.context.view_layer.update()
+    return so
+print('BIEU CAM', nuong_mat(), 'shape key')
 D.parent = rig; am = D.modifiers.new('xuong', 'ARMATURE'); am.object = rig
 h.hide_render = h.hide_viewport = True
 for o in [o for o in bpy.data.objects if o.parent == h]: o.hide_render = o.hide_viewport = True

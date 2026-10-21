@@ -199,6 +199,12 @@ def bieu_mat(n, ma, cuong_do=1.0, mat=None):
     ma, cuong_do = n.get('net_ma') or ('', 1.0)
     bang = BIEU_CAM_ARKIT.get(ma, {}) if ma else {}
     if ma and ma not in BIEU_CAM_ARKIT: print('nét mặt chưa có trong bảng:', ma)
+    da = bpy.data.objects.get(h.name + '.da')
+    if da and da.data.shape_keys:   # da 3D (gan_da_3d): biểu cảm đã nướng thành shape key cùng tên đơn vị ARKit (nguoi-3d/gan-rig.py › nuong_mat)
+        dd = {}
+        for k, v in bang.items():
+            for kk in ([k[:-1] + 'Left', k[:-1] + 'Right'] if k.endswith('*') else [k]): dd[kk] = max(0.0, min(1.0, v * cuong_do))
+        for kb in da.data.shape_keys.key_blocks[1:]: kb.value = dd.get(kb.name, 0.0)
     if not bang and not mat: return False
     try:
         import importlib, sys
@@ -253,6 +259,17 @@ def dat_con_nguoi(n):
     M = {x: rig.matrix_world @ rig.pose.bones[x].matrix for x, _ in n['con_nguoi'] if x in rig.pose.bones}
     if len(M) < 2: return False
     k = (M['eye.L'].translation - M['eye.R'].translation).length / 0.058
+    md = n.get('mat_da')
+    if md:   # da 3D: chấm nằm trên CON NGƯƠI VẼ của da, xoay quanh tâm nhãn cầu của da theo xương mắt (mắt da không trùng mắt MPFB)
+        pb = rig.pose.bones; hd = pb.get('head'); s_ = rig.scale[0]
+        for x, ten in n['con_nguoi']:
+            o = bpy.data.objects.get(ten)
+            if not o or x not in md or x not in pb or not hd: continue
+            p = Vector(md[x]) / s_; tam = p + Vector((0, 0.011, 0)) / s_
+            tam_p = hd.matrix @ hd.bone.matrix_local.inverted() @ tam
+            R = (pb[x].matrix @ pb[x].bone.matrix_local.inverted()).to_3x3()
+            o.location = rig.matrix_world @ (tam_p + R @ (p - tam + Vector((0, -0.0015, 0)) / s_)); o.scale = (k, k, k)
+        return True
     for x, ten in n['con_nguoi']:
         o = bpy.data.objects.get(ten)
         if not o or x not in M: continue
@@ -371,7 +388,7 @@ def gan_da_3d(n, ten, h, rig, url):
     if not url: return None
     import os, urllib.request
     kho = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tai-san', 'da-3d'); os.makedirs(kho, exist_ok=True)
-    tep = os.path.join(kho, url.rstrip('/').split('/')[-1])
+    tep = url if os.path.isfile(url) else os.path.join(kho, url.rstrip('/').split('/')[-1])   # đường dẫn tệp cục bộ: thử da trước khi đưa lên kho (thu-da.py)
     try:
         if not os.path.exists(tep):
             tam = f'{tep}.{os.getpid()}.tai'   # tên tạm RIÊNG từng tiến trình: dien-tap chạy 3 shot song song cùng tải một da (21/10: hai shot rơi về MPFB)
@@ -381,11 +398,15 @@ def gan_da_3d(n, ten, h, rig, url):
     except Exception as e:
         print(f'CANH BAO da_3d {ten} không tải được ({e}) — giữ thân MPFB'); return None
     bpy.context.scene.collection.objects.link(da)
-    for o in [h, *phu_kien(h)]: o['an_han'] = True
-    # chấm con ngươi đặt theo mắt MPFB — mặt da 3D không trùng mắt MPFB, chấm nổi trên má (21/10/2026 tập 135 #2): bỏ, da đã có mắt vẽ từ ảnh
-    for _, t_ in n.get('con_nguoi', []):
-        if t_ in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[t_], do_unlink=True)
-    n['con_nguoi'] = []
+    cn = {t_ for _, t_ in n.get('con_nguoi', [])}
+    for o in [h, *phu_kien(h)]:
+        if o.name not in cn: o['an_han'] = True
+    if 'mat_da' in da:   # con ngươi vẽ trên da (gan-rig.py đo bằng điểm mốc YuNet) → chấm mắt đặt theo đó (dat_con_nguoi)
+        n['mat_da'] = {k_: list(v_) for k_, v_ in da['mat_da'].items()}
+    else:   # da cũ chưa đo mắt: chấm theo mắt MPFB nổi trên má (21/10/2026 tập 135 #2) → bỏ
+        for t_ in cn:
+            if t_ in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[t_], do_unlink=True)
+        n['con_nguoi'] = []
     da.name = f'{h.name}.da'; da.parent = rig; da.matrix_parent_inverse = Matrix.Identity(4)
     da.location = (0, 0, 0); da.rotation_euler = (0, 0, 0); da.scale = tuple(1 / x for x in rig.scale)   # da tính bằng mét, rig mang scale MPFB → mét
     for md in [md for md in da.modifiers if md.type == 'ARMATURE']: da.modifiers.remove(md)

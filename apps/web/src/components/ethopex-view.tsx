@@ -20,10 +20,10 @@ function useKhung() {
     const do_ = () => {
       const el = ref.current; if (!el) return; const sc = cuon();
       const day = sc ? sc.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(sc).paddingBottom) || 0) : window.innerHeight;   // main.main có lề dưới 56px
-      const c0 = Math.max(200, day - el.getBoundingClientRect().top - 4);
+      const c0 = Math.max(160, day - el.getBoundingClientRect().top - 4);
       el.style.maxHeight = `${c0}px`;
       const tran = sc ? sc.scrollHeight - sc.clientHeight : 0;
-      setCao(Math.max(200, c0 - Math.max(0, tran)));
+      setCao(Math.max(160, c0 - Math.max(0, tran)));
     };
     do_(); window.addEventListener('resize', do_); const ro = new ResizeObserver(() => requestAnimationFrame(do_)); if (ref.current?.parentElement) ro.observe(ref.current.parentElement);
     return () => { window.removeEventListener('resize', do_); ro.disconnect(); };
@@ -116,6 +116,8 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const [loc, setLoc] = useState<Loc>('all');
   const [xem, setXem] = useState<Xem>('camp');
   const khung = useKhung();
+  const [hep, setHep] = useState(false);
+  useEffect(() => { const mq = window.matchMedia('(max-width: 640px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x) setXem(x); }, []);
   useEffect(() => { const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(history.state, '', u); }, [xem]);
   useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(history.state, '', u); }, [loc]);
@@ -174,7 +176,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         Số liệu sống từ Ethopex · cập nhật {truoc(du.luc)} · ROI/lãi từ đầu tháng (giờ VN) · luật chỉ báo, tăng / giảm / tắt anh duyệt từng camp
         {du.loi ? <span style={{ color: MUC_MAU.dung }}> · lỗi: {du.loi}</span> : null}
       </div>
-      <StatsStrip minColWidth={120} cards={[
+      <StatsStrip minColWidth={hep ? 80 : 120} cards={([
         { key: 'chay', label: 'Camp đang bật', value: dong.filter((d) => d.trang_thai === 'ACTIVE').length, sub: `${dong.length} camp` },
         { key: 'chi', label: 'Chi tháng', value: usd(tong.chi) },
         { key: 'lai', label: 'Lãi tháng', value: usd(tong.thu - tong.chi), color: mauTien(tong.thu - tong.chi) },
@@ -183,7 +185,9 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         { key: 'gb', label: 'Đủ đk giảm bậc', value: dem('GB'), color: dem('GB') ? MUC_MAU.ha : undefined, title: 'Luật GB — số trọn ngày hôm qua, nút ↘ phiên sáng' },
         { key: 'gt', label: 'Cần xem giảm/tắt', value: dem('GT'), color: dem('GT') ? MUC_MAU.ha : undefined },
         { key: 'tc', label: 'Ad bị từ chối', value: dem('TC'), color: dem('TC') ? MUC_MAU.dung : undefined },
-      ]} />
+      ] as { key: string; label: string; value: React.ReactNode; title?: string }[]).filter((c) => !hep || ['lai', 'roi', 'tb', 'gb'].includes(c.key))
+        // màn hẹp (điện thoại): chỉ 4 số chính, cả dải nằm ở hover của "Lãi tháng" — để bảng còn chỗ, trang không cuộn (YDNI)
+        .map((c) => (hep && c.key === 'lai' ? { ...c, title: `Camp bật ${dong.filter((d) => d.trang_thai === 'ACTIVE').length}/${dong.length} · chi tháng ${usd(tong.chi)} · cần xem giảm/tắt ${dem('GT')} · ad bị từ chối ${dem('TC')}` } : c))} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: '12px 0 8px' }}>
         <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
           { value: 'camp', label: 'Camp', title: `${dong.length} camp` },

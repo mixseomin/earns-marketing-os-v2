@@ -13,7 +13,8 @@ def api(p):
 studio = {}
 for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex'->>'content_id', kinh_thanh->>'ngon_ngu', id from xv_phim where project='ethopex' and kinh_thanh->'ethopex' ? 'creative_id'").splitlines():
     cr, ct, nn, pid = l.split("|"); studio[int(cr)] = (int(ct) if ct else None, nn, int(pid))
-NGAN_SACH_DUYET = {65176: 3}  # camp anh đã duyệt tăng
+# Mức ngân sách hợp lệ: $1 lúc lên camp, $2 (luật lãi đầu phiên, Dol Dang 21/10/2026), thang $3 → 5 → 7 → 10 → 15 → 20; trần $20/camp (anh 20/10/2026).
+MUC_HOP_LE = {1, 2, 3, 5, 7, 10, 15, 20}
 ds = api("/api/v1/campaigns?page_size=500")["data"]
 loi_tong = 0; content_lp = {}; duyet = {}; bi_tu_choi = []   # content → creative đã được Meta duyệt (để gợi ý thay ad bị từ chối)
 for c in sorted(ds, key=lambda x: x["id"]):
@@ -22,8 +23,8 @@ for c in sorted(ds, key=lambda x: x["id"]):
     if cp.get("ad_account_id") != 11183179: loi.append(f"tài khoản {cp.get('ad_account_id')}")
     if str(a.get("facebook_page_id")) != "1295495": loi.append(f"Page {a.get('facebook_page_id')}")
     if not any(m.get("status") == "active" for m in d.get("pixel_mappings") or []): loi.append("không có pixel")
-    ns = cp.get("budget_daily"); muon = NGAN_SACH_DUYET.get(cp["id"], 1)
-    if ns != muon: loi.append(f"ngân sách ${ns} (phải ${muon})")
+    ns = cp.get("budget_daily")
+    if ns not in MUC_HOP_LE: loi.append(f"ngân sách ${ns} ngoài mức hợp lệ {sorted(MUC_HOP_LE)} (trần $20)")
     for k, v in (("camp", cp), ("adset", g), ("ad", a)):
         if v.get("error"): loi.append(f"lỗi {k}: {str(v['error'])[:80]}")
     if a.get("media_status") != "done": loi.append(f"video {a.get('media_status')}")

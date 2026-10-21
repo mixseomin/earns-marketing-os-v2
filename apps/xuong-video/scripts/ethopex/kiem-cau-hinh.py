@@ -3,12 +3,18 @@
 Vào: dòng "PAYLOAD {json}" do dung-camp.sh in từ View create payload; tham số: <tên camp> <creative_id>.
 Payload phải đúng khuôn đang chạy (kb #261 mục 4, anh chốt): ETP_440 · Page Andrew Rebecca Akumiah · $1 · Pixel_AFC_02 + PURCHASE · 39 nước.
 Ra: "CAU HINH OK" (mã 0) hoặc từng dòng "CAU HINH CHAN: …" (mã 2). Tự kiểm: python3 kiem-cau-hinh.py --tu-kiem"""
-import json, sys
+import json, os, sys
 
 KHUON = {"tk": (11183179, "tài khoản ETP_440"), "page": (1295495, "Page Andrew Rebecca Akumiah"), "ngan_sach": (1, "ngân sách $1 (camp mới luôn $1, tăng theo rule)"),
          "pixel": (2096879631042039, "Pixel_AFC_02"), "su_kien": ("PURCHASE", "sự kiện PURCHASE"), "nuoc": (39, "39 nước whitelist")}
 
-def kiem(dong, ten, cr):
+# LỊCH CHẠY của Ad Set (Budget & schedule › Type: Today / Tomorrow / Custom → payload ad_groups[0].type_run). Mặc định form = "tomorrow" — mọi lô trước
+# đều chạy từ hôm sau (vì thế lô 2010 không có chi phí ngày 20/10). Anh 21/10/2026: "hôm nay đã hết slot camp mới → lên camp dạng Schedule" → giữ
+# tomorrow; muốn khác thì đặt ETP_LICH=today|custom khi gọi dung-camp.sh.
+LICH = os.environ.get("ETP_LICH", "tomorrow")
+
+def kiem(dong, ten, cr, lich=None):
+    lich = lich or LICH
     dong = (dong or "").strip()
     if not dong.startswith("PAYLOAD "): return ["không đọc được payload"]
     d = json.loads(dong[8:]); loi = []
@@ -17,6 +23,7 @@ def kiem(dong, ten, cr):
     # anh 21/10/2026: "ko đc thêm ad thứ 2 trong 1 camp của Ethopex" — mỗi camp đúng 1 nhóm, 1 ad
     if d.get("so_nhom", 1) != 1: loi.append("camp có %s nhóm quảng cáo, chỉ được 1" % d.get("so_nhom"))
     if d.get("so_ad", 1) != 1: loi.append("camp có %s ad, chỉ được 1 ad / camp" % d.get("so_ad"))
+    if "lich" in d and d.get("lich") != lich: loi.append("lịch chạy (Schedule › Type) đang là %s, phải là %s" % (d.get("lich"), lich))
     for k, (v, mo_ta) in KHUON.items():
         if d.get(k) != v: loi.append("%s: đang là %s, phải là %s" % (mo_ta, d.get(k), v))
     return loi
@@ -32,7 +39,9 @@ def tu_kiem():
     assert kiem("", "A", 5), "không có payload phải chặn"
     assert kiem(ok.replace('"nuoc":39', '"nuoc":39,"so_nhom":1,"so_ad":2'), "A", 5), "2 ad trong 1 camp phải chặn"
     assert kiem(ok.replace('"nuoc":39', '"nuoc":39,"so_nhom":1,"so_ad":1'), "A", 5) == [], "1 nhóm 1 ad phải qua"
-    print("tự kiểm: 9/9 đạt")
+    assert kiem(ok.replace('"nuoc":39', '"nuoc":39,"lich":"today"'), "A", 5), "lịch today khi cần tomorrow phải chặn"
+    assert kiem(ok.replace('"nuoc":39', '"nuoc":39,"lich":"tomorrow"'), "A", 5) == [], "lịch tomorrow phải qua"
+    print("tự kiểm: 11/11 đạt")
 
 if __name__ == "__main__":
     if "--tu-kiem" in sys.argv: tu_kiem(); sys.exit(0)

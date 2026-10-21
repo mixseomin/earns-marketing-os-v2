@@ -3,6 +3,7 @@
 #   Campaign: ETP_440 · $1/ngày (mặc định form) · Ad Set: Pixel_AFC_02 + whitelist 39 nước + ngôn ngữ · Ad: Page Andrew Rebecca Akumiah + creative
 # Cách gọi (br đã `br use 557`, iMac):
 #   dung-camp.sh "<tên camp>" <creative_id> <en|es>
+# Lịch chạy: giữ Schedule › Type = Tomorrow (mặc định form; ETP_LICH đổi) — cổng cấu hình kiểm.
 # Năm cổng trước Publish: kiem-so-camp.sh (phim test ≤ 2 camp, phim thắng ≤ 30) + cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-thoai-creative.sh (không thoại/chữ
 # mua bán dâm, quan hệ, đe doạ lột đồ — Meta 'Adult Sexual Exploitation') + kiem-ngon-ngu.py (cùng một tiếng).
 # Publish (chỉ khi anh cho trong lượt đó) là một lệnh RIÊNG để khớp rule allow:

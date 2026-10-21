@@ -2,7 +2,7 @@
 """CHỮ QC CHO LÔ CREATIVE (anh: chữ QC lấy từ QC spy xếp theo số Page). Ra mảng item cho POST /api/v1/creatives/bulk-jobs.
 Lọc (21/10/2026): bỏ câu nhắc app khác / tên miền (NetShort, DramaBox, ReelShort, H5SHORT…), bỏ chữ không khớp tên phim (QC spy ghép nhầm phim),
 cho mọi câu qua CỔNG THOẠI (kiem-thoai.soat — Meta đọc cả chữ QC), thiếu chữ thì dùng câu mở bằng tên phim; kèm câu chung EN / ES.
-Dùng: chu-qc.py <lo.json của dung-lo-dai> <chu.tsv: qc-spy-phim.sql> <lô (vd 2110ns)> <url gốc video R2> <ra.json> [ten.tsv: id..ten ở cột 6]"""
+Dùng: chu-qc.py <lo.json của dung-lo-dai> <chu.tsv: qc-spy-phim.sql> <lô (vd 2110ns)> <url gốc video R2> <ra.json> [ten.tsv: id..ten ở cột 6 | -] [dạng, mặc định "phim dai"]"""
 import collections, csv, importlib.util, json, os, re, sys
 
 D = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +28,8 @@ def nham_phim(chu, ten):
     t = chu.lower()
     return any(k in t for k in TEN_KHAC if k != ten.lower() and len(k) >= 12 and k not in ten.lower())
 
-def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None):
+def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
+    ten_tsv = ten_tsv if ten_tsv and ten_tsv != "-" else None   # "-" = không có danh sách tên kho (để truyền được tham số dang)
     if ten_tsv:   # danh sách tên phim kho (vd ethopex_uu_tien) để nhận QC ghép nhầm
         TEN_KHAC.extend(r[5].strip().lower() for r in csv.reader(open(ten_tsv), delimiter="\t") if len(r) > 5)
     pg = collections.defaultdict(lambda: collections.defaultdict(set))
@@ -46,12 +47,12 @@ def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None):
                 if c not in ds: ds.append(c)
         mo = f"{ten} — {'mira la historia completa gratis' if nn == 'es' else 'watch the full story free'}. {'Mira más' if nn == 'es' else 'Watch more'}"
         pt = (ds[:2] or [mo]) + CHUNG[nn]
-        f = os.path.basename(x["file"])
-        items.append({"name": f"{ma_lo} {ten} {nn.upper()} - phim dai {int(x['tu'])}-{int(x['den'])}s", "content_id": int(cid), "creative_type": "single_video", "traffic_source": "facebook",
+        f = x.get("ten_tep") or os.path.basename(x["file"])   # tên tệp trên kho có thể khác tệp máy (kho phat <tep> … <ten>)
+        items.append({"name": f"{ma_lo} {ten} {nn.upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s", "content_id": int(cid), "creative_type": "single_video", "traffic_source": "facebook",
                       "status": "active", "call_to_action": "LEARN_MORE", "link_url": "search.com", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"],
                       "asset_spec": {"primaryTexts": pt[:5], "headlines": [ten], "descriptions": ["Episodios completos gratis" if nn == "es" else "Watch Full Episodes!"]}})
     json.dump(items, open(ra, "w"), ensure_ascii=False, indent=1)
     for i in items: print(i["content_id"], "|", i["asset_spec"]["primaryTexts"][0][:110])
 
 if __name__ == "__main__":
-    main(*sys.argv[1:7])
+    main(*sys.argv[1:8])

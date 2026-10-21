@@ -24,6 +24,10 @@ CAM += [r"\bdead\b", r"\bkill(s|ed|ing|er)?\b", r"\bmurder", r"\bsuicid", r"\bbe
 # Ám chỉ tình dục trong chữ QC / phụ đề (21/10/2026: QC spy "Basketball 1 vs 5" — omegaverse "drugged, triggering his heat… ruts";
 # "The Godfather's Secret Lover" — "slept with … her boyfriend's father")
 CAM += [r"\bdrugg(ed|ing)\b", r"\b(his|her|in) heat\b", r"\bruts\b", r"\bslept with\b", r"\bsleep(s|ing)? with\b", r"\bin (my|his|her|their) bed\b", r"\bseduc", r"\bone[- ]night stand"]
+# CHỬI TỤC + ĐÁNH ĐẬP (21/10/2026 lô cắt cuối: phụ đề app gốc "who in the flying fuck are you?", "teach this bitch a lesson!", "Beat up that fat pig!"
+# — Meta cấm ngôn từ tục tĩu trong QC; bạo lực thể xác cùng lớp với nhóm trên)
+CAM += [r"\bf+u+c+k", r"\bshit", r"\bbitch", r"\bbastards?\b", r"\bass ?hole", r"\bmotherf", r"\bbeat(s|ing)? (\w+ ){0,2}up\b", r"\bstab(bed|bing|s)?\b",
+        r"\bmierda", r"\bpendej", r"\bcabr[oó]n", r"\bperra\b", r"\bjoder\b", r"\bco[ñn]o\b", r"\bhijo de p"]
 MAU = re.compile("|".join(CAM), re.I)
 
 def soat(cau):
@@ -52,9 +56,10 @@ def tu_kiem():
             "is that you're a *** manwhore!", "How could you afford them if not with your dirty prostitute money?", "from those old women he sells himself to.",
             "Let's strip this fraud down and donate his gear to the church!", "Everyone knows he got locked up for doing sex work for old hags.",
             "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo", "You're dead to me!", "I'll kill you", "Lo voy a matar", "Zane quits but is drugged, triggering his heat.", "she slept with the man who rules the underworld", "As ruts near, they obsess over him.", "Ponle un dedo encima y estás muerto."]
+    chan += ["By the way, who in the flying fuck are you?", "Neil, get over here and teach this bitch a lesson!", "Beat up that fat pig!", "¡Eres una perra!", "Qué mierda"]
     qua = ["You've humiliated this whole town!", "Kneel before the Lord and beg forgiveness for your sins!", "The top pick in the mba Draft Combine",
            "His clothes are drenched in sin!", "stripped of his title", "No money, no help, no nothing.", "¿De verdad me acabas de golpear?",
-           "sé que estás molesto.", "deadline is tomorrow", "Matarazzo", "skilled player", "the heat of the game", "stuck in a rut", "go to bed early", "Your stepbrother is a bully"]
+           "sé que estás molesto.", "deadline is tomorrow", "Matarazzo", "skilled player", "the heat of the game", "stuck in a rut", "go to bed early", "Your stepbrother is a bully", "beautiful assessment", "a classic passage", "Watch Mr. Bastardo", "the beat goes on", "Hitchcock"]
     for c in chan: assert soat(c), "phải chặn: " + c
     for c in qua: assert not soat(c), "không được chặn: %s (khớp %s)" % (c, soat(c))
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))

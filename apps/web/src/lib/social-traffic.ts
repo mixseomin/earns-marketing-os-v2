@@ -5,7 +5,7 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
@@ -77,7 +77,8 @@ async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }>
     if (r.goc.length) try { mkdirSync(dirname(TEP_GOC), { recursive: true }); writeFileSync(TEP_GOC, JSON.stringify({ luc: new Date().toISOString(), ...r })); } catch { /* ghi đĩa hỏng: lần sau vẫn đọc spy */ }
     return r;
   }).finally(() => { dangNapGoc = null; });
-  const het = new Promise<null>((xong) => setTimeout(() => xong(null), CHO_GOC_MS));
+  // có bản lưu thì chỉ chờ spy 0,8 giây (đổi lấy bản mới nhất không đáng bắt anh chờ); chưa có thì chờ CHO_GOC_MS
+  const het = new Promise<null>((xong) => setTimeout(() => xong(null), existsSync(TEP_GOC) ? 800 : CHO_GOC_MS));
   const r = await Promise.race([dangNapGoc, het]);
   if (r) { loi.push(...loiNen); return r; }
   try { const c = JSON.parse(readFileSync(TEP_GOC, 'utf8')) as { luc: string; goc: StGoc[]; nhom: number }; loi.push(`spy chậm — đang hiện góc lưu lúc ${new Date(Date.parse(c.luc) + 7 * 3600e3).toISOString().slice(11, 16)} ${c.luc.slice(8, 10)}/${c.luc.slice(5, 7)}, bản mới nạp ở nền`); return { goc: c.goc, nhom: c.nhom }; }

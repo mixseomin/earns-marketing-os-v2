@@ -11,6 +11,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
 const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py');
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
+const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
 const TEP = () => path.join(DATA(), 'ethopex-da-bao.json');
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 const chay = (tep, args, giay = 240) => new Promise((ok, hong) => execFile('python3', [tep, ...args], { timeout: giay * 1000, maxBuffer: 8 << 20, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
@@ -161,6 +162,19 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
       await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới hết ${esc(tt.den.slice(0, 10))}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
+  }
+  // NHÂN BẢN CAMP THẮNG (luật NB, anh 22/10/2026: tự động + "nhân bản thì cũng báo lên tele"): máy tạo bản $1 qua nhan-ban.py (khuôn của camp gốc,
+  // chặn 30 camp đang chạy / phim), giờ yên thì báo im lặng; bản lịch Today trong khung 21h–5h (giờ Mỹ đang mua), ngoài khung để Tomorrow.
+  const daNb = [];
+  for (const m of kq.nb || []) {
+    const lich = gioVn >= 21 || gioVn < 5 ? 'today' : 'tomorrow';
+    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--lich', lich, '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    daNb.push({ m, r, lich });
+  }
+  if (daNb.length) {
+    const dong = daNb.map(({ m, r, lich }) => (r.ok ? `🧬 #${m.id} → <b>#${r.moi}</b> $1 · lịch ${lich === 'today' ? 'hôm nay' : 'ngày mai'}` : `⚠️ #${m.id} chưa nhân bản được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 170))}`).join('\n');
+    await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI tháng ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    gui++;
   }
   const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(khoa(k, m)) && !lamRoi.has(m.id)).map((m) => ({ ...m, dich: dichCua(m) }))]));
   for (const [k, tieu, nutCho] of NHOM) {

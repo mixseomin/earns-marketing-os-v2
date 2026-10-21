@@ -4,7 +4,7 @@ Ai dùng: kiem-ngan-sach.sh (gọi tay từ Mac qua ssh) · phòng Ethopex của
 Dùng (trên box3, đã nạp .env.production):  python3 luat-ethopex.py [roi_toi_thieu=20] [spending_toi_thieu=50] [--json]
   --tong: chỉ tổng số (hôm nay / hôm qua / tháng / từ đầu + camp lãi / lỗ nhất) cho bảng ghim, không chấm luật.
   --json: in một đối tượng {luc, tang, dau_phien, giam, tat, moc30, tu_choi, gan} — mỗi mục {id, ten, chu} để máy theo dõi so trùng."""
-import json, os, subprocess, sys, urllib.request, datetime as dt
+import json, os, re, subprocess, sys, urllib.request, datetime as dt
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
 # TĂNG BẬC chỉ khi ROI tháng > 50% (Support Dol 21/10/2026: "a chỉ tăng budget những camp rois > 50% nhé") — roi_min (20) còn dùng cho luật giảm / theo dõi
 ROI_TANG = 50
@@ -121,8 +121,10 @@ if 6 <= vn.hour < 13:
         except Exception: ly = None
         if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 else "")))
 tu_choi, dong_l = [], []
+phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
+        ds_camp.append(c)
         if c.get("state") == "ARCHIVED": continue
         if c.get("state") == "PAUSED":   # camp đã bị đóng (rule Ethopex / tay) — anh 21/10/2026: "các camp chạm rule đóng cũng gửi lên telegram"
             # camp MỚI đang đồng bộ lên FB (sync_status checking_video / checking_ads…) Ethopex để PAUSED tạm — không phải bị đóng (21/10/2026 báo nhầm #66054/#66055)
@@ -134,14 +136,39 @@ try:
             dong_l.append((c["id"], f"#{c['id']}: {c['name'][:60]} · dừng lúc {luc} · lý do: {ly[0]}" + (f" · tháng này chi ${a['chi']:.2f}, thu ${a.get('thu', 0):.2f}" + (f", ROI {r:+.0f}%" if r is not None else "") if a else "")))
             continue
         dct = api(f"/api/v1/campaigns/{c['id']}"); ad = ((dct.get("ad_groups") or [{}])[0].get("ads") or [{}])[0]
+        if ad.get("content_id"): phim_cua[c["id"]] = ad["content_id"]
         if "DISAPPROVED" in str(ad.get("error") or "") or ad.get("delivery_status") == "DISAPPROVED":
             tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối → Edit camp, thay creative sạch đã duyệt cùng phim (soat-camp-api.py gợi ý)"))
 except Exception as e:
     tu_choi.append((0, f"không đọc được chi tiết camp: {str(e)[:80]}"))
+# LUẬT NB — NHÂN BẢN CAMP THẮNG (anh 22/10/2026: tự động, báo Telegram, mỗi phim tối đa 30 camp ĐANG CHẠY — camp thua tắt thì nhường chỗ cho creative mới).
+# Camp đang bật, ROI tháng ≥ 100%, đã tiêu ≥ $10, ROI 3 ngày ≥ 50% (còn đang thắng) → 1 bản $1; mỗi camp gốc tối đa 1 bản / 24 giờ, mỗi phim tối đa
+# 3 bản / ngày. Bản nhân bản do nhan-ban.py tạo (tên "(nhan ban N cua <gốc>)"), Phòng Ethopex tự chạy + báo 🧬.
+NB_ROI, NB_CHI, NB_ROI3, NB_PHIM_NGAY, TRAN_PHIM_CHAY = 100, 10, 50, 3, 30
+nb = []
+try:
+    gio24 = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
+    tao = lambda c: dt.datetime.fromisoformat(str(c.get("created_at")).replace("Z", "+00:00")) if c.get("created_at") else gio24 - dt.timedelta(days=1)
+    goc_moi = {int(m.group(1)) for c in ds_camp if tao(c) > gio24 for m in [re.search(r"\(nhan ban \d+ cua (\d+)\)$", c.get("name", ""))] if m}
+    dang_chay = {}
+    for cid, p in phim_cua.items(): dang_chay[p] = dang_chay.get(p, 0) + 1
+    ban_phim = {}
+    for c in ds_camp:
+        m = re.search(r"\(nhan ban \d+ cua (\d+)\)$", c.get("name", ""))
+        if m and tao(c) > gio24 and phim_cua.get(int(m.group(1))): ban_phim[phim_cua[int(m.group(1))]] = ban_phim.get(phim_cua[int(m.group(1))], 0) + 1
+    bat = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"}
+    for cid, a in sorted(thang.items(), key=lambda z: -(roi(z[1]) or 0)):
+        r, g3, p = roi(a), roi(gan.get(cid) or {"chi": 0, "thu": 0}), phim_cua.get(cid)
+        if cid not in bat or not p or r is None or r < NB_ROI or a["chi"] < NB_CHI or g3 is None or g3 < NB_ROI3 or cid in goc_moi: continue
+        if dang_chay.get(p, 0) >= TRAN_PHIM_CHAY or ban_phim.get(p, 0) >= NB_PHIM_NGAY: continue
+        dang_chay[p] = dang_chay.get(p, 0) + 1; ban_phim[p] = ban_phim.get(p, 0) + 1
+        nb.append((cid, f"#{a['ten'][:70]} · ROI tháng {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nhân bản 1 camp $1 (phim {p}: {dang_chay[p]}/{TRAN_PHIM_CHAY} camp chạy)"))
+except Exception as e:
+    tu_choi.append((0, f"luật NB lỗi: {str(e)[:80]}"))
 tat_l = [(cid, f"#{a['ten'][:70]} · tiêu ${a['chi']:.2f} từ trước tới nay · ROI {roi(a):+.0f}% → TẮT") for cid, a in tron.items() if a["chi"] > 10 and roi(a) is not None and roi(a) < -50]
 if JSON:
     m = lambda ds: [{"id": i, "chu": s} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "moc30": m(moc30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "moc30": m(moc30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)

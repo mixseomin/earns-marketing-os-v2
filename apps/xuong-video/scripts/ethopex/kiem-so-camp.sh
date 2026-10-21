@@ -14,10 +14,11 @@ cid = int(sys.argv[1]); DB = os.environ["DATABASE_URL"]
 q = lambda s: subprocess.run(["psql", DB, "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 cfg = json.loads(q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_phim_thang'") or '{"content":[]}'); thang = cfg.get("content", [])
-tran = int((cfg.get("tran") or {}).get(str(cid)) or (10 if cid in thang else 2))   # anh nới trần riêng một phim: ethopex_phim_thang.tran["<id>"]
+tran = int((cfg.get("tran") or {}).get(str(cid)) or (30 if cid in thang else 2))   # phim thắng: tối đa 30 camp ĐANG CHẠY (anh 22/10/2026)   # anh nới trần riêng một phim: ethopex_phim_thang.tran["<id>"]
 api = lambda p: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=30))
 n = 0
 for c in api("/api/v1/campaigns?page_size=500")["data"]:
+    if c.get("state") != "ACTIVE" and c.get("sync_status") == "done": continue   # chỉ đếm camp ĐANG CHẠY (anh 22/10/2026: camp thua tắt thì nhường chỗ cho creative mới)
     d = api(f"/api/v1/campaigns/{c['id']}")
     if any(a.get("content_id") == cid for g in d.get("ad_groups") or [] for a in g.get("ads") or []): n += 1
 print(n, tran, int(cid in thang))

@@ -131,7 +131,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(history.state, '', u); }, [loc]);
   const dong: Dong[] = useMemo(() => {
     const soCamp = new Map<number, number>();
-    for (const c of du.camps) if (c.content_id) soCamp.set(c.content_id, (soCamp.get(c.content_id) ?? 0) + 1);
+    for (const c of du.camps) if (c.content_id && c.trang_thai === 'ACTIVE') soCamp.set(c.content_id, (soCamp.get(c.content_id) ?? 0) + 1);   // chỉ camp ĐANG CHẠY tính vào trần phim
     return du.camps.map((c) => ({ ...c, luat: chamLuat(c, { soCampPhim: c.content_id ? soCamp.get(c.content_id) ?? 0 : 0, phimThang: !!c.content_id && du.phimThang.includes(c.content_id) }) }));
   }, [du]);
   const coCham = (d: Dong) => d.luat.some((x) => x.trang_thai === 'cham' && LUAT_THEO_MA[x.ma]!.muc !== 'bao');

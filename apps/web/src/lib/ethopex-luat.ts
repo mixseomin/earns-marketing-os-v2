@@ -10,7 +10,7 @@ export const ROI_TANG = 50;             // % ROI tháng tối thiểu để TĂN
 export const NGHI_TANG_GIO = 3;         // giờ giữa hai lần tăng (scripts/ethopex/nhip_tang.py)
 export const SPENDING_TOI_THIEU = 50;   // % = chi hôm nay / ngân sách ngày
 export const TEST_TOI_DA = 2;           // camp / phim đang test (từ 21/10/2026)
-export const THANG_TOI_DA = 10;         // camp / phim thắng — ban đầu ~10 camp cho tiêu ổn định (Dol Dang 21/10/2026; trước 30)
+export const THANG_TOI_DA = 30;         // camp ĐANG CHẠY / phim thắng (anh 22/10/2026: camp thua tắt thì nhường chỗ cho creative mới; trước 10)
 export const KHUNG_TANG = [21, 0, 8];   // giờ VN
 export const NGAN_SACH_CHUA_CAN_GIO = 3;
 
@@ -46,8 +46,9 @@ export const LUAT: Luat[] = [
   { ma: 'DC', ten: 'Dạng creative theo phim (đề xuất)', icon: '◇', muc: 'bao', gac: 'nguoi', khi: 'Chấm theo PHIM (gộp mọi camp cùng content): phim thắng / đang test / phim dài lỗ',
     lam: 'Phim chưa thắng: test bằng cảnh thật cắt đoạn sâu (0đ), không làm kể chuyện · Phim thắng: thêm kể chuyện (dùng lại hình bản thắng, thay lời/giọng) · Phim dài 2–3\' lỗ: bỏ dạng này · Mọi dạng đều lỗ sâu: dừng làm creative mới',
     vi: 'Số 01–21/10: kể chuyện +198% trên Number One (cảnh thật +51%) nhưng bỏ Number One ra thì kể chuyện ≈ −46%, cảnh thật ≈ +10%; phim dài −29%. Kể chuyện là bộ khuếch đại phim mạnh, không phải công cụ tìm phim.', nguon: 'anh 22/10/2026' },
-  { ma: 'NB', ten: 'Nhân bản phim thắng', icon: '⧉', muc: 'len', gac: 'nguoi', khi: 'Phim có camp đủ điều kiện tăng (TB)', lam: 'Duplicate camp + làm thêm creative cùng phim lên camp mới (trong trần SC)',
-    vi: 'Phim có tín hiệu lãi thì mở rộng nhiều creative.', nguon: 'anh 20/10/2026' },
+  { ma: 'NB', ten: 'Nhân bản camp thắng (máy tự làm)', icon: '⧉', muc: 'len', gac: 'may', khi: 'Camp đang bật, ROI tháng ≥ 100%, đã tiêu ≥ $10, ROI 3 ngày ≥ 50%',
+    lam: 'Máy tự nhân bản 1 camp $1 (cùng khuôn camp gốc; Today trong khung 21h–5h, ngoài khung Tomorrow), báo 🧬 Telegram, ghi nhật ký — mỗi camp gốc 1 bản / 24 giờ, mỗi phim 3 bản / ngày, tối đa 30 camp đang chạy / phim',
+    vi: 'Nhân bản không bị giới hạn số camp mới trong ngày; camp thua tắt thì chỗ đó dành cho creative mới.', nguon: 'anh 22/10/2026' },
 ];
 export const LUAT_THEO_MA = Object.fromEntries(LUAT.map((l) => [l.ma, l])) as Record<string, Luat>;
 
@@ -110,7 +111,9 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
   out.push({ ma: 'SC', trang_thai: ctx.soCampPhim >= tran ? 'cham' : 'ap', cau: `${ctx.phimThang ? 'Phim thắng' : 'Phim đang test'}: ${ctx.soCampPhim}/${tran} camp`,
     dk: [{ ten: 'Số camp của phim', hien: String(ctx.soCampPhim), nguong: `≤ ${tran}`, dat: ctx.soCampPhim >= tran }] });
   out.push({ ma: 'TH', trang_thai: 'ap', cau: 'Creative đã qua cổng thoại lúc dựng / Publish (camp từ 21/10)', dk: [] });
-  if (tbDat) out.push({ ma: 'NB', trang_thai: 'cham', cau: 'Phim có camp đạt → nhân bản + thêm creative', dk: [] });
+  { const r3 = roi(c.gan), dat = c.trang_thai === 'ACTIVE' && r != null && r >= 100 && c.thang.chi >= 10 && r3 != null && r3 >= 50;
+    if (c.trang_thai === 'ACTIVE' && r != null && r >= 100) out.push({ ma: 'NB', trang_thai: dat ? 'cham' : 'gan', cau: dat ? 'Đủ điều kiện nhân bản — máy tự làm ở nhịp kế (30 phút)' : `ROI ${pct(r)} · tiêu $${c.thang.chi.toFixed(2)} (cần ≥ $10) · ROI 3 ngày ${pct(r3)}`,
+      dk: [{ ten: 'ROI tháng', hien: pct(r), nguong: '≥ 100%', dat: r >= 100 }, { ten: 'Đã tiêu', hien: `$${c.thang.chi.toFixed(2)}`, nguong: '≥ $10', dat: c.thang.chi >= 10 }, { ten: 'ROI 3 ngày', hien: pct(r3), nguong: '≥ 50%', dat: r3 != null && r3 >= 50 }] }); }
   return out;
 }
 

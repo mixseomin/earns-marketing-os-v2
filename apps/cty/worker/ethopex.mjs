@@ -27,6 +27,18 @@ const NHOM = [
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
 ];
 
+const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/) || [, k])[1].toLowerCase()]));
+/** [[nhóm, nutCho, mục mới]] → Map nhóm → mục; camp lặp ở nhóm sau gộp vào mục đầu: cung[] = {k, dich}, nut = nút mọi nhóm, trùng callback_data giữ một. */
+export function gopCamp(ds) {
+  const ra = new Map(), cua = new Map();
+  for (const [k, nutCho, moi] of ds) for (const m of moi) {
+    const nut = (nutCho && nutCho(m)) || [], dau = cua.get(String(m.id));
+    if (!dau) { const x = { ...m, cung: [], nut: [...nut] }; cua.set(String(m.id), x); ra.set(k, [...(ra.get(k) ?? []), x]); continue; }
+    dau.cung.push({ k, dich: m.dich }); for (const b of nut) if (!dau.nut.some((c) => c.callback_data === b.callback_data)) dau.nut.splice(dau.nut.length - 1, 0, b);   // nút mới chèn trước nút Bỏ qua / Giữ
+  }
+  return ra;
+}
+
 /** Nút anh bấm: et:tang:<id>:<$> · et:tat:<id> · et:bo:<id>. */
 async function xuNut(tg, x) {
   const c = x.callback_query; x.xong(); if (!c || !/^et:/.test(c.data || '')) return null;
@@ -53,17 +65,29 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
   const dongTruoc = new Set(st.dong ?? []), dongNay = new Set((kq.dong || []).map((m) => String(m.id)));
   for (const id of dongTruoc) if (dongNay.has(id)) da.add(`dong:${id}`);
   let gui = 0;
-  for (const [k, tieu, nutCho] of NHOM) {
-    const moi = (kq[k] || []).filter((m) => !da.has(`${k}:${m.id}`)).map((m) => ({ ...m, dich: (String(m.chu).match(/→ \$(\d+)/) || [])[1] }));
+  // MỘT CAMP MỘT MỤC (anh 21/10/2026: "cùng 1 camp thì gộp được không"): camp chạm nhiều luật trong lượt này chỉ hiện ở nhóm ĐẦU TIÊN nó chạm,
+  // kèm dòng "cũng: <luật khác>" và gộp nút của mọi luật (trùng nút thì giữ một) — vd lãi đầu phiên $2 + đủ bậc $3 thành một mục, hai nút lên $2 / $3.
+  const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(`${k}:${m.id}`)).map((m) => ({ ...m, dich: (String(m.chu).match(/→ \$(\d+)/) || [])[1] }))]));
+  for (const [k, tieu] of NHOM) {
+    const moi = gom.get(k) ?? [];
     if (!moi.length) continue;
-    const dong = moi.slice(0, 15).map((m) => `• ${esc(m.chu)}`).join('\n');
-    const bang = nutCho ? moi.slice(0, 15).map(nutCho).filter(Boolean) : [];
+    const dong = moi.slice(0, 15).map((m) => `• ${esc(m.chu)}${m.cung.map((c) => `\n   ↳ cũng: ${esc(TEN[c.k])}${c.dich ? ` → $${c.dich}` : ''}`).join('')}`).join('\n');
+    const bang = moi.slice(0, 15).map((m) => m.nut).filter((h) => h.length);
     await tg('sendMessage', { message_thread_id: topic, text: `${tieu}\n${dong}${moi.length > 15 ? `\n… và ${moi.length - 15} camp nữa (xem tab Ethopex mos2)` : ''}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML',
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
-    for (const m of moi) da.add(`${k}:${m.id}`); gui++;
+    for (const m of moi) for (const kk of [k, ...m.cung.map((c) => c.k)]) da.add(`${kk}:${m.id}`); gui++;
   }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
   return { gui, nut };
+}
+
+if (process.argv.includes('--tu-kiem')) {
+  const { strict: t } = await import('node:assert'); const nut = Object.fromEntries(NHOM.map(([k, , n]) => [k, n]));
+  const g = gopCamp([['dau_phien', nut.dau_phien, [{ id: 65735, chu: 'a', dich: '2' }]], ['tang', nut.tang, [{ id: 65735, chu: 'b', dich: '3' }, { id: 1, chu: 'c', dich: '3' }]]]);
+  t.equal(g.get('dau_phien').length, 1); t.equal(g.get('tang').length, 1, 'camp trùng không hiện lần hai'); const m = g.get('dau_phien')[0];
+  t.deepEqual(m.nut.map((b) => b.callback_data), ['et:tang:65735:2', 'et:tang:65735:3', 'et:bo:65735'], 'gộp nút $2 + $3, một nút Bỏ qua ở cuối'); t.deepEqual(m.cung, [{ k: 'tang', dich: '3' }]);
+  t.equal(TEN.tang, 'đủ điều kiện tăng bậc');
+  console.log('ethopex: tự kiểm đạt');
 }
 
 if (process.argv.includes('--in')) {   // xem tại chỗ, không gửi: node worker/ethopex.mjs --in

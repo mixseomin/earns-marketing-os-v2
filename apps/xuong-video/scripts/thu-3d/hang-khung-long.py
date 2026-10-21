@@ -97,7 +97,7 @@ da_dat(vom, vl_quet('Đá cát cam 2', 'cliff_side', 0.25, nhuom=(1.0, 0.6, 0.35
 
 # ---------- đồ CC0: đá tảng, rêu, tổ cành khô, dương xỉ ----------
 def nap(ma, vt, cao=None, xoay=0.0, ti=1.0):
-    f = glob.glob(os.path.join(TS, 'mo-hinh', ma, '*.gltf'))
+    f = glob.glob(os.path.join(TS, 'mo-hinh', ma, '*.gltf')) + glob.glob(os.path.join(TS, 'mo-hinh', ma, '*.glb'))
     if not f: print('THIEU', ma); return []
     truoc = set(bpy.data.objects); bpy.ops.import_scene.gltf(filepath=f[0]); moi = [o for o in bpy.data.objects if o not in truoc]
     goc = [o for o in moi if o.parent is None]
@@ -106,7 +106,14 @@ def nap(ma, vt, cao=None, xoay=0.0, ti=1.0):
     h0 = max(p.z for p in bb) - min(p.z for p in bb) if bb else 1
     k = (cao / h0) if cao else ti   # cao = chiều cao thật (m) — mô hình Poly Haven mỗi món một cỡ gốc
     for o in goc:
+        o.rotation_mode = 'XYZ'   # nút gốc glTF nhập ở chế độ QUATERNION → đổi rotation_euler không có tác dụng (bronto 21/10/2026)
         o.location = Vector(vt); o.rotation_euler[2] += math.radians(xoay); o.scale = (k,) * 3
+    # ĐÁY chạm đất + tâm đúng chỗ khai: gốc toạ độ mỗi nguồn một kiểu (Poly Haven ở đáy, TRELLIS ở GIỮA khối → chìm nửa thân, 21/10/2026)
+    bpy.context.view_layer.update()
+    bb = [o.matrix_world @ Vector(c) for o in moi if o.type == 'MESH' for c in o.bound_box]
+    if bb:
+        lech = Vector(vt) - Vector(((min(p.x for p in bb) + max(p.x for p in bb)) / 2, (min(p.y for p in bb) + max(p.y for p in bb)) / 2, min(p.z for p in bb)))
+        for o in goc: o.location += lech
     return moi
 # (mã, chỗ, xoay, cao m)
 for ma, vt, xo, ca in (('namaqualand_boulder_02', (-3.6, 3.5, 0), 20, 1.6), ('namaqualand_boulder_04', (4.2, 4.5, 0), 140, 2.0),
@@ -148,7 +155,10 @@ khung_long(-1.3, 1.2, (0.55, 0.18, 0.12), 1.0, sung=True, nhin=(0.4, -1, 0.1))  
 khung_long(-0.3, 1.8, (0.75, 0.38, 0.12), 0.9, nhin=(0.2, -1, 0.2))                  # cam tròn (giữa sau)
 khung_long(-1.0, -0.6, (0.3, 0.42, 0.16), 0.75, nhin=(0.6, -1, 0.1))                  # xanh nhỏ (trái trước)
 khung_long(0.6, 0.2, (0.5, 0.2, 0.15), 0.85, nhin=(-0.3, -1, 0.1))                    # đỏ (giữa trước)
-khung_long(1.8, 1.8, (0.48, 0.55, 0.4), 1.15, co_dai=True, nhin=(-1, -0.3, -0.2))      # cổ dài (phải)
+# NHÂN VẬT 3D THẬT (ảnh concept → TRELLIS fal, $0,02 / con): có tệp tai-san/mo-hinh/<mã>/*.glb thì thay khối nặn thô; --tho = giữ khối thô để so
+XOAY_NV = float(next((a.split('=')[1] for a in args if a.startswith('--xoay-bronto=')), '0'))
+if glob.glob(os.path.join(TS, 'mo-hinh', 'bronto', '*.glb')) and '--tho' not in args: nap('bronto', (1.85, 1.7, 0), cao=2.1, xoay=XOAY_NV)   # mặt gốc nhìn −y (về máy)
+else: khung_long(1.8, 1.8, (0.48, 0.55, 0.4), 1.15, co_dai=True, nhin=(-1, -0.3, -0.2))      # cổ dài (phải)
 
 # ---------- bụi lấp lánh trong không khí (đốm phát sáng nhỏ — xoá phông thành bokeh) ----------
 BUI = vl_phang('Bụi sáng', (1.0, 0.55, 0.2), phat=8)
@@ -162,8 +172,10 @@ bpy.ops.object.light_add(type='AREA', location=(-3.5, 19, 3)); n = bpy.context.o
 n.data.color = (1.0, 0.62, 0.3); n.rotation_euler = (math.radians(95), 0, math.radians(180))
 bpy.ops.object.light_add(type='AREA', location=(5, 3, 6)); h = bpy.context.object; h.data.energy = 1500; h.data.size = 4
 h.data.color = (1.0, 0.55, 0.28); h.rotation_euler = (math.radians(50), math.radians(30), math.radians(60))
-bpy.ops.object.light_add(type='AREA', location=(-1, -6, 3)); f = bpy.context.object; f.data.energy = 350; f.data.size = 6   # đèn phụ phía máy: mặt + mắt
+bpy.ops.object.light_add(type='AREA', location=(-1, -6, 3)); f = bpy.context.object; f.data.energy = 700; f.data.size = 6   # đèn phụ phía máy: mặt + mắt
 f.data.color = (1.0, 0.85, 0.7); f.rotation_euler = (math.radians(70), 0, 0)
+bpy.ops.object.light_add(type='AREA', location=(3.8, -1.5, 3.2)); k_ = bpy.context.object; k_.data.energy = 500; k_.data.size = 2.5   # đèn chính phải-trước: nhân vật cao bên phải khỏi bị ngược sáng
+k_.data.color = (1.0, 0.8, 0.6); k_.rotation_euler = (Vector((1.6, 1.7, 1.3)) - k_.location).to_track_quat('-Z', 'Y').to_euler()
 bpy.ops.object.light_add(type='POINT', location=(0.2, 3.5, 2.5)); g = bpy.context.object; g.data.energy = 400; g.data.color = (1.0, 0.5, 0.2); g.data.shadow_soft_size = 1.5
 w = bpy.data.worlds.new('Hang'); sc.world = w; w.use_nodes = True; nt = w.node_tree
 env = nt.nodes.new('ShaderNodeTexEnvironment'); env.image = bpy.data.images.load(os.path.join(TS, 'hang.hdr'))

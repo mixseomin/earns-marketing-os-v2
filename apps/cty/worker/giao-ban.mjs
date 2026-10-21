@@ -36,8 +36,8 @@ export function tinGiaoBan({ phongs, nguoi, viec, nhatKy, cho, daXu = () => [], 
     if (!toi && (vm.length || nv.length)) dong.push(`• Hôm nay: ${[vm.length ? `${vm.length} việc nền (${vm.filter(dangChay).length} đang chạy)` : '', ...nv.map((n) => `${esc(n.ten)}: ${n.viecNhip.map((x) => `${esc(x.ten.toLowerCase())} (${esc(x.lich)})`).join(', ')}`)].filter(Boolean).join(' · ')}`);
     const luot = nv.map((n) => [n, nhatKy(n.id).filter((e) => Date.parse(e.luc) >= tu)]);
     if (luot.some(([, l]) => l.length)) dong.push(`• ${toi ? 'Đã làm hôm nay' : '24 giờ qua'}: ${luot.filter(([, l]) => l.length).map(([n, l]) => `${esc(n.ten)} chạy ${l.length.toLocaleString('vi-VN')} lượt, cuối ${gio(Date.parse(l[0].luc))} — ${esc(String(l[0].ket).slice(0, 80))}`).join(' · ')}`);
-    const h = vm.filter(hong); if (h.length) dong.push(`• ⚠️ Việc nền hỏng (${h.length}): ${h.slice(0, 4).map((v) => esc(tenViec(v).slice(0, 50))).join(', ')}${h.length > 4 ? ` … +${h.length - 4}` : ''}`);
     if (toi && vm.length) dong.push(`• Việc nền: ${vm.length} việc, ${vm.filter(hong).length ? `${vm.filter(hong).length} đang hỏng (dòng dưới)` : 'không việc nào hỏng'}`);
+    const h = vm.filter(hong); if (h.length) dong.push(`• ⚠️ Việc nền hỏng (${h.length}): ${h.slice(0, 4).map((v) => esc(tenViec(v).slice(0, 50))).join(', ')}${h.length > 4 ? ` … +${h.length - 4}` : ''}`);
     const xu = toi ? daXu(p.id, dauNgay) : []; if (xu.length) dong.push(`• Đã xử hôm nay: ${xu.length} việc — ${xu.slice(0, 3).map((x) => esc(String(x.tieuDe ?? x.id).slice(0, 50))).join('; ')}`);
     if (ch.length) dong.push(`• ${toi ? 'Còn chờ sang mai' : 'Hàng chờ phòng'}: ${ch.length} việc — ${ch.slice(0, 2).map((x) => esc(String(x.tieuDe ?? x.id).slice(0, 60))).join('; ')}`);
     // nhịp chạy trên box mà đứng quá 3 lần kiểm (tối thiểu 30 phút) trong ca = kẹt; nhịp trên Mac tự báo riêng, không xét

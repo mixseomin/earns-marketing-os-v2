@@ -31,7 +31,7 @@ ${LUAT_PROMPT.map((l) => `- ${l.en}`).join('\n')}
 }
 /** Lỗi TẠM của nhà cung cấp (không phải do prompt): gửi lại đúng prompt cũ sau một lúc, không tính là một lần thử, không viết lại prompt.
  *  17/10/2026 #120 shot 3: Kie "Internal Error, Please try again later" ba lần liền → vòng cũ đốt cả 3 lần thử + viết lại prompt thêm người vào shot sản phẩm. */
-export const laLoiTam = (loi: string): boolean => /internal error|try again later|temporarily|timeout|timed out|503|502|rate limit|hạn mức|overloaded|busy|系统繁忙|请稍后重试/i.test(loi);
+export const laLoiTam = (loi: string): boolean => /internal error|try again later|temporarily|timeout|timed out|503|502|rate limit|hạn mức|quá nhiều request|too many requests|overloaded|busy|系统繁忙|请稍后重试/i.test(loi);   // 'Quá nhiều request': PlenX khi gửi dồn (21/10/2026)
 /** Giọng lời dẫn theo mô tả người kể (ô giong / nhân vật): nữ → Jessica, còn lại → Chris (giọng nam Mỹ #120). ElevenLabs v3 qua fal. */
 export const MODEL_GIONG_DAN = 'fal-ai/elevenlabs/tts/eleven-v3';
 /** Giọng theo giới + tuổi trong mô tả (ô giong): nam <30 Liam · 30–44 Chris · 45–59 Brian · ≥60 Bill; nữ <35 Jessica · 35–59 Sarah · ≥60 Matilda;

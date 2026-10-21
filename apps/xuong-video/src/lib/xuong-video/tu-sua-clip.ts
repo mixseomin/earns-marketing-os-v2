@@ -3,6 +3,7 @@
 // vừa gặp + luật đã học (tu-sua-clip-do.ts) → lint → sinh lại QUA ĐÚNG CỔNG STUDIO (batDauVideoCanh) → máy soi tự chạy lúc nhận clip.
 // Tối đa `toiDa` lần mỗi shot; vẫn hỏng thì dừng, để lại lỗi trên shot (bản xuất không nhận). Mọi lượt tốn tiền ghi xv_job như thường.
 import 'server-only';
+import { chuoiVideo } from './cong-ai';
 import { sql } from 'drizzle-orm';
 import { batDauVideoCanh, kiemVideoTap } from './sinh-video';
 import { sinhKeyframeCanh } from './sinh-anh';
@@ -199,7 +200,11 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
     ra.push({ thu_tu: c.thu_tu, ket, lan, loi: ket === 'sach' ? [] : loi });
     if (ly) dungHet = true;
   };
+  // song song THEO CỔNG đầu chuỗi (21/10/2026 #225: 10 shot dồn vào PlenX → 4 shot "Quá nhiều request"): PlenX tối đa XV_PLENX_SONG_SONG (mặc định 3)
+  const mh = String(((((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.kinh_thanh ?? {}) as { mo_hinh_video?: string }).mo_hinh_video ?? '');
+  const congDau = (o.moHinhVideo ?? mh).split(':')[0] === 'plenxai' || (!o.moHinhVideo && chuoiVideo(mh, true)[0]?.cong === 'plenxai') ? 'plenxai' : '';
+  const songSong = congDau === 'plenxai' ? Math.max(1, Number(process.env.XV_PLENX_SONG_SONG || 3)) : SONG_SONG;
   let i = 0;
-  await Promise.all(Array.from({ length: Math.min(SONG_SONG, hang.length) }, async () => { while (i < hang.length) await xuLy(hang[i++]!); }));
+  await Promise.all(Array.from({ length: Math.min(songSong, hang.length) }, async () => { while (i < hang.length) await xuLy(hang[i++]!); }));
   return ra.sort((a, b) => a.thu_tu - b.thu_tu);
 }

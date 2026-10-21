@@ -26,4 +26,8 @@ if __name__ == '__main__':
     k = int(tuy.get('phong', 3)); w, h = anh.size; anh = anh.resize((w * k, h * k), Image.LANCZOS)
     o = Image.new('RGB', (max(w, h) * k,) * 2, anh.getpixel((5, 5))); o.paste(anh, ((max(w, h) * k - w * k) // 2, 0))   # vuông, người giữa
     im = np.asarray(o); a = tach_nen(im)
-    Image.fromarray(np.dstack([im, a])).save(ra); print(ra, o.size)
+    # LOANG MÀU ra mép: dải viền người (6 px) + phần nền lấy màu điểm trong-người gần nhất — gan-rig.py chiếu ảnh lên mặt bên của mesh, viền
+    # còn lẫn màu phông thành vệt trắng dọc hông / tay (21/10/2026)
+    trong = ndimage.binary_erosion(a > 128, iterations=6)
+    _, (iy, ix) = ndimage.distance_transform_edt(~trong, return_indices=True)
+    Image.fromarray(np.dstack([im[iy, ix], a])).save(ra); print(ra, o.size)

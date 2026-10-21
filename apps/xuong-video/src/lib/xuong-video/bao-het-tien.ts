@@ -12,8 +12,9 @@ const TOPIC = 'Quản lý';
 export const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gioVn = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(11, 16) + ' ' + new Date(Date.now() + 7 * 3600_000).toISOString().slice(8, 10) + '/' + new Date(Date.now() + 7 * 3600_000).toISOString().slice(5, 7);
 
-/** Gửi một tin HTML vào nhóm MINE, topic Quản lý (bot đọc từ vault). Dùng chung: hết tiền cổng, lượt sinh vượt ngân sách. */
-export async function baoTelegram(db: Db, text: string): Promise<boolean> {
+/** Gửi một tin HTML vào nhóm MINE, topic Quản lý (bot đọc từ vault). Dùng chung: hết tiền cổng, lượt sinh vượt ngân sách. `nut` = hàng nút (cty phim-nut.mjs xử),
+ *  `traLoi` = mã tin để trả lời dưới nó. */
+export async function baoTelegram(db: Db, text: string, { nut, traLoi }: { nut?: { text: string; callback_data: string }[]; traLoi?: number } = {}): Promise<boolean> {
   const k = process.env.MOS2_SECRET_KEY;
   if (!k) { console.log('[bao-telegram] thiếu MOS2_SECRET_KEY'); return false; }
   const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
@@ -22,7 +23,8 @@ export async function baoTelegram(db: Db, text: string): Promise<boolean> {
   if (!tok.includes(':') || !g?.chat_id) { console.log('[bao-telegram] không đọc được bot/nhóm từ vault'); return false; }
   const r = await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ chat_id: g.chat_id, message_thread_id: g.topics?.[TOPIC], text, parse_mode: 'HTML', disable_web_page_preview: true }),
+    body: JSON.stringify({ chat_id: g.chat_id, message_thread_id: g.topics?.[TOPIC], text, parse_mode: 'HTML', disable_web_page_preview: true,
+      ...(nut ? { reply_markup: { inline_keyboard: [nut] } } : {}), ...(traLoi ? { reply_parameters: { message_id: traLoi, allow_sending_without_reply: true } } : {}) }),
   }).catch((e) => { console.log('[bao-telegram] gửi lỗi', String(e)); return null; });
   if (r && !r.ok) console.log('[bao-telegram] Telegram trả', r.status, (await r.text()).slice(0, 200));
   return !!r?.ok;

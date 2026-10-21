@@ -256,7 +256,10 @@ def chat_lieu(o, chat, hex_):
     def gon(scale, manh):
         nz = nt.nodes.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = scale; bm = nt.nodes.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = manh
         nt.links.new(nz.outputs['Fac'], bm.inputs['Height']); nt.links.new(bm.outputs['Normal'], b.inputs['Normal'])
-    if vl_quet(nt, b, chat, rgb, 0.4 if chat == 'da_cam_thach' else 0.85): pass   # texture quét đồ thật (VL_QUET) — đá cẩm thạch giữ vân trắng, tô nhẹ
+    # đá cẩm thạch SÁNG tô nhẹ (0,4) để giữ vân trắng; đá TỐI (đen / xám đậm) tô đậm — trước đây đá đen cũng 0,4 → 60 % là màu be của ảnh vân, sảnh
+    # "đá cẩm thạch đen" dựng ra tường be, đổi sáng tối theo góc máy như hai căn phòng khác nhau (anh 21/10/2026, tập 135 #15–#19)
+    nhuom_da = 0.4 if 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 0.12 else 0.92
+    if vl_quet(nt, b, chat, rgb, nhuom_da if chat == 'da_cam_thach' else 0.85): pass   # texture quét đồ thật (VL_QUET)
     elif chat == 'go':
         nz = nt.nodes.new('ShaderNodeTexWave'); nz.inputs['Scale'].default_value = 3; nz.inputs['Distortion'].default_value = 6
         cr = nt.nodes.new('ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (*[c * 0.55 for c in rgb], 1); cr.color_ramp.elements[1].color = (*[min(1, c * 1.35) for c in rgb], 1)

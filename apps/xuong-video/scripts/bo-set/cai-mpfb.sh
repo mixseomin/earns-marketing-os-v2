@@ -48,11 +48,13 @@ ls "$DU" | tr '\n' ' '; echo
 # không mặc được đúng dáng. Chỉ lấy gói CC0 / CC-BY (dùng thương mại được; CC-BY phải ghi tên tác giả — tai-san/GHI-CONG-DO.md, mesh/nguoi.py chỉ
 # dùng tên asset). Trang gói: static.makehumancommunity.org/assets/assetpacks/<gói>.html (đã đọc giấy phép từng gói 21/10/2026).
 # thứ tự = gói nhỏ / hay dùng trước (máy chủ makehuman đo 21/10: ~7 KB/s mỗi luồng → 24 luồng)
-for GOI in suits01:cc0 pants01:cc0 shirts01:cc0 skirts01:cc0 dress01:cc0 shoes01:cc0 shirts03:cc-by skirts02:cc-by suits03:cc-by pants02:cc-by shirts02:cc-by; do
+# đuôi tệp lấy ĐÚNG như trang gói ghi (không đều: _cc-by / _ccby)
+for GOI in suits01:cc0 pants01:cc0 shirts01:cc0 skirts01:cc0 dress01:cc0 shoes01:cc0 shirts03:ccby skirts02:cc-by suits03:cc-by pants02:ccby shirts02:ccby; do
   P=${GOI%%:*}; L=${GOI##*:}
   [ -f "$DU/packs/$P.json" ] && continue
   for U in https://files2.makehumancommunity.org/asset_packs/$P/${P}_$L.zip https://files.makehumancommunity.org/asset_packs/$P/${P}_$L.zip; do
-    rm -f "$T/$P.zip"; tai_nhieu_luong "$U" "$T/$P.zip" 24; unzip -tq "$T/$P.zip" >/dev/null 2>&1 && break
+    rm -f "$T/$P.zip"; tai_nhieu_luong "$U" "$T/$P.zip" 24 || true; unzip -tq "$T/$P.zip" >/dev/null 2>&1 && break
   done
+  unzip -tq "$T/$P.zip" >/dev/null 2>&1 || { echo "✗ gói $P tải hỏng — bỏ qua"; continue; }   # một gói hỏng không chặn các gói sau
   unzip -qo "$T/$P.zip" -d "$DU" && echo "gói $P ($L): $(ls "$DU/clothes" | wc -l | tr -d ' ') đồ"
 done

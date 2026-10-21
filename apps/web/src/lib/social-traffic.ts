@@ -5,7 +5,8 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
@@ -66,7 +67,23 @@ export async function getSocialLive(): Promise<SocialLive> {
   return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc };
 }
 /** Góc thật từ spy: danh sách nhóm rồi từng nhóm (SONG_SONG lượt cùng lúc), xếp chung theo Sức mạnh. */
+/** GÓC SPY KHÔNG CHẶN TRANG (anh 21/10/2026: "tab social treo rồi" — bộ nhớ đệm 5 phút hết / vừa deploy thì trang đứng chờ spy 65–150 giây).
+ *  Đợi spy tối đa CHO_GOC_MS; quá thì trả bản góc gần nhất lưu trên đĩa (sống qua deploy / khởi động lại), spy nạp tiếp ở nền rồi ghi bản mới. */
+const CHO_GOC_MS = 3000, TEP_GOC = `${process.env.MOS2_DATA_DIR || '/var/lib/mos2'}/social-goc.json`;
+let dangNapGoc: Promise<{ goc: StGoc[]; nhom: number }> | null = null;
 async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {
+  const loiNen: string[] = [];
+  dangNapGoc ??= napGocSpy(loiNen).then((r) => {
+    if (r.goc.length) try { mkdirSync(dirname(TEP_GOC), { recursive: true }); writeFileSync(TEP_GOC, JSON.stringify({ luc: new Date().toISOString(), ...r })); } catch { /* ghi đĩa hỏng: lần sau vẫn đọc spy */ }
+    return r;
+  }).finally(() => { dangNapGoc = null; });
+  const het = new Promise<null>((xong) => setTimeout(() => xong(null), CHO_GOC_MS));
+  const r = await Promise.race([dangNapGoc, het]);
+  if (r) { loi.push(...loiNen); return r; }
+  try { const c = JSON.parse(readFileSync(TEP_GOC, 'utf8')) as { luc: string; goc: StGoc[]; nhom: number }; loi.push(`spy chậm — đang hiện góc lưu lúc ${new Date(Date.parse(c.luc) + 7 * 3600e3).toISOString().slice(11, 16)} ${c.luc.slice(8, 10)}/${c.luc.slice(5, 7)}, bản mới nạp ở nền`); return { goc: c.goc, nhom: c.nhom }; }
+  catch { loi.push('spy chậm, chưa có bản góc lưu — góc nạp ở nền, mở lại sau ít phút'); return { goc: [], nhom: 0 }; }
+}
+async function napGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {
   let nhom: SpNhom[];
   try { nhom = await docDanhSach(); }
   catch (e) { loi.push(`không đọc được danh sách nhóm của spy: ${(e as Error).message}`); return { goc: [], nhom: 0 }; }

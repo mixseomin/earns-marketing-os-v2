@@ -9,8 +9,9 @@ import path from 'node:path';
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json' };
 const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
+const KHAC_NUT = '_khac';   // nút đã nhận (x:cho) — không phòng nào xử
 // Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Kiên chuyển vào chủ đề phòng khác vẫn về Kiên.
-export const NUT_CUA = { km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex
+export const NUT_CUA = { x: KHAC_NUT, km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex
 const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
 
 /** topic → phòng, đọc từ tệp trạng thái từng phòng (CHU_DE) + chủ đề phòng tạo qua topicPhong (tg-<phòng>.json). */
@@ -78,6 +79,13 @@ export async function capNhatGhim(tg, { ep = false } = {}) {
   const ra = {}; for (const ph of [...Object.keys(CHU_DE), ...them]) { try { ra[ph] = await ghimNhanSu(ph, tg); } catch (e) { ra[ph] = `lỗi: ${e.message}`; } }
   return ra;
 }
+/** Nút vừa bấm → "⏳ <chữ nút> — đã nhận" (callback x:cho, không phòng nào xử), các nút khác giữ nguyên; trả lời callback "Đã nhận". */
+export const banDaNhan = (markup, data) => ({ inline_keyboard: (markup?.inline_keyboard ?? []).map((hang) => hang.map((b) => (b.callback_data === data ? { text: `⏳ ${b.text} — đã nhận, đang xử`.slice(0, 64), callback_data: 'x:cho' } : b))) });
+async function daNhanNut(tg, c) {
+  if (String(c.data) === 'x:cho') return tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận rồi — đang xử, đợi báo kết quả' });
+  await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã nhận — đang xử, kết quả báo ngay dưới tin' });
+  if (c.message?.reply_markup) await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: banDaNhan(c.message.reply_markup, c.data) });
+}
 const topicCua = (x) => x.message?.message_thread_id ?? x.callback_query?.message?.message_thread_id ?? null;
 
 /** Đọc mọi tin mới của bot một lần, xếp vào hộp phòng. tg(method, body) = hàm gọi Bot API của bên gọi. Có khoá: hai nhịp cùng lúc thì một bên bỏ qua. */
@@ -91,6 +99,9 @@ export async function gomTin(tg) {
     let n = 0;
     for (const x of u.ok ? u.result : []) {
       const phong = (x.callback_query && NUT_CUA[String(x.callback_query.data ?? '').split(':')[0]]) ?? phongCuaTopic(topicCua(x)) ?? KHAC;
+      // ĐÃ NHẬN ngay khi gom (≤ 1 phút), không đợi nhịp của phòng (Ethopex 30 phút): nút anh bấm đổi thành "⏳ … — đã nhận, đang xử" và không bấm
+      // lại được (tránh tăng ngân sách hai lần). Kết quả thành / bại do phòng sở hữu nút báo khi xử xong (anh 21/10/2026: "bấm không có tác dụng gì").
+      if (x.callback_query) try { await daNhanNut(tg, x.callback_query); } catch { /* đánh dấu hỏng không chặn việc xếp hộp */ }
       fs.mkdirSync(HOP(phong), { recursive: true }); fs.writeFileSync(path.join(HOP(phong), `${x.update_id}.json`), JSON.stringify(x));
       offset = x.update_id + 1; n++;
     }
@@ -124,5 +135,7 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
   let tao = 0; const tg2 = async () => ({ ok: true, result: { message_thread_id: 40 + ++tao } });
   t.equal(await topicPhong('sach', '📂 Sách', tg2), null, 'KHÔNG tự tạo chủ đề phòng khi chưa được anh cho'); t.equal(tao, 0);
   t.equal(await topicPhong('sach', '📂 Sách', tg2, { duocTao: true }), 41); t.equal(await topicPhong('sach', '📂 Sách', tg2), 41, 'chủ đề phòng tạo một lần'); t.equal(phongCuaTopic(41), 'sach', 'tin trong chủ đề phòng về hộp phòng đó');
+  { const mk = { inline_keyboard: [[{ text: '✅ #65483 lên $3', callback_data: 'et:tang:65483:3' }, { text: 'Bỏ qua', callback_data: 'et:bo:65483' }]] };
+    const b = banDaNhan(mk, 'et:tang:65483:3'); t.equal(b.inline_keyboard[0][0].callback_data, 'x:cho', 'nút đã bấm không bấm lại được'); t.match(b.inline_keyboard[0][0].text, /^⏳ .*đã nhận/); t.equal(b.inline_keyboard[0][1].callback_data, 'et:bo:65483', 'nút khác giữ nguyên'); }
   console.log('tg-phong: tự kiểm đạt');
 }

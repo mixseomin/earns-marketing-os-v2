@@ -1,6 +1,6 @@
 # THỬ DA 3D trên đúng đường máy dựng (mesh/nguoi.py › dung_nguoi + gan_da_3d): dựng người có khoi_3d.da_3d, áp nét mặt (bieu_mat) + hướng nhìn
 # (mat_nhin) + vài dáng, chụp cận mặt / toàn thân — soát da trước khi dựng cả tập. 0đ, iMac.
-#   Blender -b --factory-startup -P thu-da.py -- <url da.blend> <gioi> <tuoi> <cao_cm> <thu-muc-ra> [net1,net2,…]
+#   [XV_THU_CHE_DO=dau XV_THU_DO='áo:#fff+quần:#111'] Blender -b --factory-startup -P thu-da.py -- <url da.blend> <gioi> <tuoi> <cao_cm> <thu-muc-ra> [net1,net2,…]
 import bpy, sys, os, math, importlib.util
 from mathutils import Vector
 a = sys.argv[sys.argv.index('--') + 1:]
@@ -10,7 +10,7 @@ os.makedirs(RA, exist_ok=True)
 _sp = importlib.util.spec_from_file_location('nguoi', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mesh', 'nguoi.py'))
 ng = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(ng)
 bpy.ops.wm.read_factory_settings(use_empty=True); s = bpy.context.scene
-n = ng.dung_nguoi('NG Ha', cao=CAO, dv=0.01, gioi=GIOI, tuoi=TUOI, trang={'da_3d': URL, 'ao': (0.9, 0.9, 0.9, 1)})
+n = ng.dung_nguoi('NG Ha', cao=CAO, dv=0.01, gioi=GIOI, tuoi=TUOI, trang={'da_3d': URL, 'ao': (0.9, 0.9, 0.9, 1), 'da_che_do': os.environ.get('XV_THU_CHE_DO') or 'ca', 'do': os.environ.get('XV_THU_DO') or None, 'toc': 'long01'})
 h = n['than_tron']; da = bpy.data.objects.get(f'{h.name}.da')
 print('DA', bool(da), 'CON_NGUOI', n.get('con_nguoi'))
 for o in bpy.data.objects:   # khung màu: như nguoi_that(True) — ma-nơ-canh ẩn, người thật (không an_han) hiện
@@ -32,4 +32,7 @@ for ma in NET:
 ng.bieu_mat(n, 'binh_thuong')
 for ten, d in (('nhin_trai', Vector((-2, -3, 1.55))), ('nhin_phai', Vector((2, -3, 1.55)))):
     ng.mat_nhin(n, d); chup(ten, mat(), 0.9)
+ng.mat_nhin(n, Vector((0, -3, 1.55))); ng.dat_con_nguoi(n)
+c = Vector((0, 0, CAO / 200))
+chup('toan_truoc', c, 4.5, 15, 50, 400, 700); chup('toan_sau', c, 4.5, 160, 50, 400, 700)
 print('XONG')

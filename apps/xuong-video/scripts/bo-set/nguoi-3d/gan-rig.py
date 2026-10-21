@@ -154,6 +154,7 @@ def nuong_mat():
     D['mat_da'] = {'eye.L': list(dL), 'eye.R': list(dR)}
     cDA = (dL + dR) / 2 + Vector((0, 0.011, 0)); cMP = (eL + eR) / 2; k = (dL - dR).length / (eL - eR).length
     print('CAN MAT', 'lech cm', tuple(round(c * 100, 1) for c in (cDA - cMP)), 'ti le', round(k, 3))
+    D['dau_ve_mpfb'] = {'tam_da': list(cDA), 'tam_mpfb': list(cMP), 'ti_le': k}   # chế độ CHỈ ĐẦU: v' = tam_mpfb + (v − tam_da) / ti_le
     mw0 = h.matrix_world.copy()
     h.matrix_world = Matrix.Translation(cDA) @ Matrix.Scale(k, 4) @ Matrix.Translation(-cMP) @ mw0
     h.hide_viewport = h.hide_render = False; bpy.context.view_layer.update()
@@ -180,6 +181,50 @@ def nuong_mat():
     h.matrix_world = mw0; bpy.context.view_layer.update()
     return so
 print('BIEU CAM', nuong_mat(), 'shape key')
+
+# 7. VÙNG ĐẦU cho chế độ CHỈ ĐẦU (mesh/nguoi.py › gan_da_3d che_do='dau': đầu + tóc từ da, thân + đồ MPFB theo trang phục từng shot — anh 21/10/2026
+# "trang phục cần linh hoạt"). Nhóm 'giu_dau' = đỉnh nghiêng về xương đầu / cổ ≥ 0,5, cộng TÓC dài rủ xuống vai / lưng: màu tóc (tối, không ngả xanh như
+# vải navy) ở mặt bên / sau, không ở giữa ngực (áo hai dây đen trong vest sẽ bị nhận nhầm là tóc).
+def vung_dau():
+    import numpy as np
+    dau_ = {b.name for b in rig.data.bones if b.name in ('head', 'neck01', 'neck02', 'neck03') or any(x.name == 'head' for x in b.parent_recursive)}
+    gid = {g.index for g in D.vertex_groups if g.name in dau_}
+    anh = {}
+    for ten, p in (('UVtruoc', TRUOC), ('UVsau', SAU)):
+        if p: im = bpy.data.images.load(p, check_existing=True); w, hh = im.size; anh[ten] = (np.array(im.pixels[:]).reshape(hh, w, 4), w, hh)
+    uv_dinh = {}
+    for ten in anh:
+        uvl = me.uv_layers[ten].data; d = {}
+        for l in me.loops: d.setdefault(l.vertex_index, uvl[l.index].uv)
+        uv_dinh[ten] = d
+    at_ = me.color_attributes['truoc'].data
+    z_co = (rig.matrix_world @ rig.data.bones['neck01'].head_local).z if 'neck01' in rig.data.bones else CAO / 100 * 0.82
+    g = D.vertex_groups.new(name='giu_dau'); so_toc = 0; chon_ = set(); toc_ = set()
+    for v in me.vertices:
+        w = sum(gg.weight for gg in v.groups if gg.group in gid)
+        toc = False
+        if w < 0.5 and v.co.z > z_co - 0.35 and abs(v.co.x) < 0.24 and (v.normal.y > -0.3 or abs(v.co.x) > 0.09) and anh:
+            ten = 'UVtruoc' if at_[v.index].color[0] > 0.5 or 'UVsau' not in anh else 'UVsau'
+            px, iw, ih = anh[ten]; u, vv = uv_dinh[ten][v.index]
+            r, g_, b, a_ = px[min(ih - 1, max(0, int(vv * ih))), min(iw - 1, max(0, int(u * iw)))]
+            # tóc đen dưới đèn studio ngả xanh nhẹ (đo 21/10 trên Hạ: lưng xanh − đỏ ≈ 0,045) — vải navy ≥ 0,09 → ngưỡng 0,065 ở giữa
+            toc = max(r, g_, b) < 0.24 and max(r, g_, b) - min(r, g_, b) < 0.08 and (b - r) < 0.065
+        if w >= 0.5 or toc: chon_.add(v.index); so_toc += toc
+        if toc: toc_.add(v.index)
+    # chỉ giữ mảng NỐI LIỀN với đầu: điểm rời lọt ngưỡng màu (cổ áo, nếp tối của vải) thành vụn đen lơ lửng quanh vai (thử 21/10)
+    ke = {i: [] for i in chon_}
+    for e in me.edges:
+        a_, b_ = e.vertices
+        if a_ in chon_ and b_ in chon_: ke[a_].append(b_); ke[b_].append(a_)
+    goc = max(chon_, key=lambda i: me.vertices[i].co.z); giu, hang = {goc}, [goc]
+    while hang:
+        i = hang.pop()
+        for j in ke[i]:
+            if j not in giu: giu.add(j); hang.append(j)
+    g.add(list(giu), 1.0, 'REPLACE')
+    D.vertex_groups.new(name='toc_duoi').add(list(giu & toc_), 1.0, 'REPLACE')   # tóc rủ dưới gáy: chế độ chỉ đầu đẩy ra khỏi áo MPFB
+    print('VUNG DAU', sum(1 for v in me.vertices if any(gg.group == g.index for gg in v.groups)), 'dinh, tóc dưới cổ', so_toc)
+vung_dau()
 D.parent = rig; am = D.modifiers.new('xuong', 'ARMATURE'); am.object = rig
 h.hide_render = h.hide_viewport = True
 for o in [o for o in bpy.data.objects if o.parent == h]: o.hide_render = o.hide_viewport = True

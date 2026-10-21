@@ -376,12 +376,12 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     if not mac_do(m, h, gioi, tuoi, trang or {}):   # da + mắt + lông mày + tóc + đồ + giày; thiếu gói tài sản thì thân trơn một màu như cũ
         h.data.materials.clear(); h.data.materials.append(vl)
     con_nguoi(n, h, rig)   # chấm con ngươi tối gắn xương mắt — hướng nhìn đọc được trên ảnh 3D (mat_nhin xoay xương)
-    gan_da_3d(n, ten, h, rig, (trang or {}).get('da_3d'))
+    gan_da_3d(n, ten, h, rig, (trang or {}).get('da_3d'), (trang or {}).get('da_che_do') or 'ca')
     for o in [h, *phu_kien(h)]: o.hide_render = o.hide_viewport = True   # chỉ bật khi vẽ độ sâu / khung màu (dung-set.py › nguoi_that)
     n['than_tron'] = h
     return h
 
-def gan_da_3d(n, ten, h, rig, url):
+def gan_da_3d(n, ten, h, rig, url, che_do='ca'):
     """DA 3D SINH TỪ ẢNH (khoi_3d.da_3d — anh 21/10/2026 "người đủ chi tiết và rig", kiểu Tripo): mesh ảnh→3D đã chép trọng số da từ thân MPFB cùng giới /
     tuổi / cao (scripts/bo-set/nguoi-3d/gan-rig.py → da.blend trên R2). Gắn vào ĐÚNG rig MPFB của người này → mocap / IK / dáng lái như thân MPFB; thân
     MPFB + tóc / đồ / chấm mắt của nó đánh dấu an_han (nguoi_that không bật). Tải một lần vào tai-san/da-3d/. Không khai / tải hỏng → giữ thân MPFB."""
@@ -399,8 +399,36 @@ def gan_da_3d(n, ten, h, rig, url):
         print(f'CANH BAO da_3d {ten} không tải được ({e}) — giữ thân MPFB'); return None
     bpy.context.scene.collection.objects.link(da)
     cn = {t_ for _, t_ in n.get('con_nguoi', [])}
-    for o in [h, *phu_kien(h)]:
-        if o.name not in cn: o['an_han'] = True
+    if che_do == 'dau' and 'giu_dau' in da.vertex_groups and 'dau_ve_mpfb' in da:
+        # CHỈ ĐẦU: da còn đầu + tóc (nhóm giu_dau), dời / co về đúng đầu MPFB; thân + đồ MPFB theo trang phục của shot giữ nguyên. Đầu MPFB giấu bằng
+        # Mask (nhóm 'dau_an'), tóc MPFB an_han — tóc là của da.
+        import bmesh
+        dv = da['dau_ve_mpfb']; tda, tmp, k_ = Vector(dv['tam_da']), Vector(dv['tam_mpfb']), dv['ti_le']
+        gi = da.vertex_groups['giu_dau'].index
+        bm = bmesh.new(); bm.from_mesh(da.data); dl = bm.verts.layers.deform.active
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not (dl and v[dl].get(gi, 0) >= 0.5)], context='VERTS')
+        cac = [bm.verts.layers.shape[x] for x in bm.verts.layers.shape.keys()]
+        ti = da.vertex_groups['toc_duoi'].index if 'toc_duoi' in da.vertex_groups else None
+        bm.normal_update()
+        for v in bm.verts:
+            # tóc rủ dưới gáy nằm trên lưng của DA, mà lưng thân MPFB + áo dày hơn → tóc chìm trong áo; đẩy ra 2 cm theo pháp tuyến (thử 21/10)
+            day = v.normal * 0.02 if ti is not None and dl and v[dl].get(ti, 0) > 0.5 else Vector()
+            v.co = tmp + (v.co - tda) / k_ + day
+            for L_ in cac: v[L_] = tmp + (v[L_] - tda) / k_ + day
+        bm.to_mesh(da.data); bm.free(); da.data.update()
+        if 'mat_da' in da: da['mat_da'] = {x: list(tmp + (Vector(p_) - tda) / k_) for x, p_ in da['mat_da'].items()}
+        dau_ = {b.name for b in rig.data.bones if b.name == 'head' or any(x.name == 'head' for x in b.parent_recursive)}
+        ga = h.vertex_groups.new(name='dau_an'); gid = {g.index for g in h.vertex_groups if g.name in dau_}
+        for v in h.data.vertices:
+            if sum(gg.weight for gg in v.groups if gg.group in gid) > 0.5: ga.add([v.index], 1.0, 'REPLACE')
+        mk = h.modifiers.new('an_dau', 'MASK'); mk.vertex_group = 'dau_an'; mk.invert_vertex_group = True
+        try: toc = set(os.listdir(os.path.join(bpy.utils.extension_path_user('bl_ext.user_default.mpfb'), 'data', 'hair')))
+        except Exception: toc = set(TOC_MAC.values())
+        for o in phu_kien(h):
+            if o.name.split('.', 1)[-1].split('.')[0] in toc: o['an_han'] = True
+    else:
+        for o in [h, *phu_kien(h)]:
+            if o.name not in cn: o['an_han'] = True
     if 'mat_da' in da:   # con ngươi vẽ trên da (gan-rig.py đo bằng điểm mốc YuNet) → chấm mắt đặt theo đó (dat_con_nguoi)
         n['mat_da'] = {k_: list(v_) for k_, v_ in da['mat_da'].items()}
     else:   # da cũ chưa đo mắt: chấm theo mắt MPFB nổi trên má (21/10/2026 tập 135 #2) → bỏ
@@ -446,11 +474,15 @@ def mac_do(m, h, gioi, tuoi, trang):
     h.data.materials.clear(); h.data.materials.append(sk)
     gk = gioi if gioi in TOC_MAC else 'nu'
     for thu, ma, kieu in (('hair', trang.get('toc') or TOC_MAC[gk], 'Hair'),
-                          ('clothes', trang.get('do') or DO_MAC[gk], 'Clothes'), ('clothes', 'shoes01', 'Clothes')):
+                          *[('clothes', x, 'Clothes') for x in (trang.get('do') or DO_MAC[gk]).split('+')],   # món 'tên:#màu' = giữ màu riêng (áo trắng + quần đen)
+                          *([] if any(t_ in (trang.get('do') or '') for t_ in ('shoe', 'boot', 't-bar', 'heel')) else [('clothes', 'shoes01', 'Clothes')])):   # do: 'áo+quần[+giày]' (gói cộng đồng — cai-mpfb.sh)
+        ma, _, mau_rieng = ma.partition(':')
         try:
             o = m['hs'].add_mhclo_asset(os.path.join(dd, thu, ma, f'{ma}.mhclo'), h, asset_type=kieu)
+            if mau_rieng:
+                hx = mau_rieng.lstrip('#'); _to_mau(o, (*[(int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)], 1)); mau_rieng = 'xong'
             if kieu == 'Hair' and trang.get('mau_toc'): _to_mau(o, trang['mau_toc'])
-            if kieu == 'Clothes' and ma != 'shoes01' and trang.get('ao'): _to_mau(o, trang['ao'])
+            if kieu == 'Clothes' and ma != 'shoes01' and trang.get('ao') and not mau_rieng: _to_mau(o, trang['ao'])
             if kieu == 'Clothes' and ma != 'shoes01':   # vải nổi ra 4 mm: đùi / hông xuyên váy thành lỗ thủng (thử 18/10)
                 dp = o.modifiers.new('noi_vai', 'DISPLACE'); dp.strength = 0.004; dp.mid_level = 0
             if ma == 'shoes01': _to_mau(o, (0.02, 0.02, 0.02, 1))

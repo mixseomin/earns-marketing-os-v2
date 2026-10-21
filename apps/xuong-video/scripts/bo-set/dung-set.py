@@ -607,11 +607,19 @@ def dat_tuy_chon(co):
             if o.hide_render: AN_TUY.add(o.name)
     bpy.context.view_layer.update()
 
+def theo_trang_phuc(x, do):
+    """Trường khoi_3d khai MỘT giá trị hoặc theo trang phục: { tên trang phục: giá trị, '': mặc định } (đồ MPFB 'do', da 3D)."""
+    if not isinstance(x, dict): return x or None
+    return x.get(do or '') or x.get('') or None
+
 def da_theo_do(da, do):
-    """khoi_3d.da_3d: một link (mọi trang phục) hoặc { tên trang phục: link, '': link mặc định } — da 3D mặc sẵn đồ, nên mỗi bộ một da (tập 135: Hạ sơ mi
-    trắng / vest trắng). Không có da cho bộ đang mặc → None (giữ thân MPFB, đồ theo màu áo) thay vì mặc nhầm bộ khác."""
-    if not da or isinstance(da, str): return da or None
-    return da.get(do or '') or (da.get('') if not do else None)
+    """DA 3D theo trang phục (khoi_3d.da_3d): link (mọi bộ) · { tên trang phục: link } (da mặc sẵn đúng bộ đó → cả người) · { 'dau': link } (CHỈ ĐẦU:
+    mặt + tóc từ da, thân + đồ MPFB theo khoi_3d.do của bộ đang mặc — anh 21/10/2026 "trang phục cần linh hoạt"). Bộ có da riêng thì ưu tiên da riêng."""
+    if not da: return {}
+    if isinstance(da, str): return {'da_3d': da, 'da_che_do': 'ca'}
+    if do and da.get(do): return {'da_3d': da[do], 'da_che_do': 'ca'}
+    if da.get('dau'): return {'da_3d': da['dau'], 'da_che_do': 'dau'}
+    return {}
 
 def nhan_vat(sh, ket=False):
     """Khối nhân vật / đạo cụ của shot ở chỗ MỞ shot (tam), quay theo huong (độ, 0 = mặt nhìn về phía người ngồi −y, 90 = nhìn sang phải +x).
@@ -647,7 +655,7 @@ def nhan_vat(sh, ket=False):
             hx = mau_nv['mau'].lstrip('#'); rgb = tuple((int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ha = (mau_nv.get('ao') or mau_nv['mau']).lstrip('#'); rgb_ao = tuple((int(ha[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))
             ht = (mau_nv.get('mau_toc') or '').lstrip('#'); rgb_toc = tuple((int(ht[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)) if len(ht) == 6 else None
-            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'do': mau_nv.get('do'), 'than': mau_nv.get('than'), 'da_3d': da_theo_do(mau_nv.get('da_3d'), nv.get('trang_phuc')), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # than: dáng người (nguoi.py › THAN_HINH)   # người thật MPFB: tóc / đồ / màu áo
+            trang_ = {'ao': (*rgb_ao, 1), 'toc': mau_nv.get('toc'), 'than': mau_nv.get('than'), **da_theo_do(mau_nv.get('da_3d'), nv.get('trang_phuc')), 'do': theo_trang_phuc(mau_nv.get('do'), nv.get('trang_phuc')), **({'mau_toc': (*rgb_toc, 1)} if rgb_toc else {})}   # than: dáng người (nguoi.py › THAN_HINH)   # người thật MPFB: tóc / đồ / màu áo
             n_ = ng().dung_nguoi(f"NG {nv['ten']}", cao=h, mau=(*rgb, 1), mau_ao=(*rgb_ao, 1), dv=CM, ten_goc=f"NV {nv['ten']}", gioi=mau_nv.get('gioi'), tuoi=mau_nv.get('tuoi'), trang=trang_)
             n_['goc'].location = Vector((X, Y, Z)) * CM; n_['goc'].rotation_euler.z = math.radians(hg)
             kieu = 'nam' if nv.get('nam') else 'ngoi' if any(str(x).startswith('ngoi') for x in (nv.get('dien') or [])) else 'dung'

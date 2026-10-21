@@ -42,6 +42,14 @@ export async function quetTraLoi(ph) {
   const { moHop } = await import('./tg-phong.mjs'); let n = 0;
   const daXu = () => { try { return fs.readdirSync(XONG(ph)).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(XONG(ph), f), 'utf8'))).sort((a, b) => (b.xong_luc ?? '').localeCompare(a.xong_luc ?? '')); } catch { return []; } };
   for (const u of moHop(ph)) {
+    const c = u.callback_query;
+    if (c && /^vh:/.test(String(c.data))) {   // ↩️ Hoàn tác dưới báo cáo đã áp commit → việc 'hoan-tac' (máy revert, không qua mô hình; anh bấm = anh xác nhận)
+      u.xong(); const ref = String(c.data).slice(3); let d = null; try { d = JSON.parse(fs.readFileSync(path.join(XONG(ph), `${ref}.json`), 'utf8')); } catch { /* không thấy */ }
+      const goi = await tg(); await goi('answerCallbackQuery', { callback_query_id: c.id, text: d?.ap ? 'Sẽ hoàn tác ở lượt kế (≤ 5 phút)' : 'Không thấy commit đã áp để hoàn tác', show_alert: !d?.ap });
+      if (d?.ap) { await goi('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } }); fs.mkdirSync(HANG(ph), { recursive: true });
+        fs.writeFileSync(path.join(HANG(ph), `ht-${u.update_id}.json`), JSON.stringify({ id: `ht-${u.update_id}`, loai: 'hoan-tac', phong: ph, ai: d.ai, tieuDe: `Hoàn tác: ${d.tieuDe}`, ap: d.ap, tin: c.message.message_id, luc: new Date().toISOString() }, null, 1)); n++; }
+      continue;
+    }
     const m = u.message; u.xong();
     if (!m || m.from?.is_bot || !String(m.text ?? m.caption ?? '').trim()) continue;
     const goc = m.reply_to_message?.message_id, ds = daXu();
@@ -54,6 +62,8 @@ export async function quetTraLoi(ph) {
   }
   return n;
 }
+/** Việc đã xử xong từ mốc tu (ms) — báo cáo cuối ngày (giao-ban.mjs). */
+export const daXuTu = (ph, tu) => { try { return fs.readdirSync(XONG(ph)).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(XONG(ph), f), 'utf8'))).filter((x) => Date.parse(x.xong_luc) >= tu); } catch { return []; } };
 export const choXu = (ph) => { try { return fs.readdirSync(HANG(ph)).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(HANG(ph), f), 'utf8'))).filter((x) => !x.nhan_luc && !x.dung).sort((a, b) => a.luc.localeCompare(b.luc)); } catch { return []; } };
 const doc = (ph, id) => { const f = path.join(HANG(ph), `${id}.json`); if (!fs.existsSync(f)) throw new Error(`không có thư ${id} trong hàng ${ph}`); return [f, JSON.parse(fs.readFileSync(f, 'utf8'))]; };
 
@@ -62,26 +72,27 @@ async function tg() {
   const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
   return async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, link_preview_options: { is_disabled: true }, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
 }
-async function bao(ph, x, text) {
+async function bao(ph, x, text, nutHoanTac = false) {
   const goi = await tg(); const { topicPhong } = await import('./tg-phong.mjs');
   // phòng chưa có chủ đề (anh chưa cho tạo) → báo ở 🔐 Bảo mật, không tự tạo chủ đề
   const tp = await topicPhong(ph, `📂 ${ph}`, goi) ?? (() => { try { return JSON.parse(fs.readFileSync(path.join(DATA(), 'bao-mat-tg.json'), 'utf8')).topic; } catch { return null; } })();
   // Telegram giới hạn 4096 ký tự / tin: báo cáo dài thì cắt thành nhiều tin, tin đầu trả lời ngay dưới thư Kiên chuyển
   const phan = []; for (let i = 0; i < text.length; i += 3800) phan.push(text.slice(i, i + 3800));
   const ids = [];
-  for (const [i, p] of phan.entries()) { const j = await goi('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', text: p, ...(i === 0 && x.tin ? { reply_parameters: { message_id: x.tin, allow_sending_without_reply: true } } : {}) }); if (j.ok) ids.push(j.result.message_id); }
+  for (const [i, p] of phan.entries()) { const j = await goi('sendMessage', { message_thread_id: tp, parse_mode: 'HTML', text: p, ...(i === 0 && x.tin ? { reply_parameters: { message_id: x.tin, allow_sending_without_reply: true } } : {}),
+    ...(nutHoanTac && i === phan.length - 1 ? { reply_markup: { inline_keyboard: [[{ text: '↩️ Hoàn tác', callback_data: `vh:${String(x.id).slice(0, 40)}` }]] } } : {}) }); if (j.ok) ids.push(j.result.message_id); }
   return ids;
 }
 export async function nhan(ph, id, ai) {
   const [f, x] = doc(ph, id); x.nhan_luc = new Date().toISOString(); x.nhan_boi = ai; fs.writeFileSync(f, JSON.stringify(x, null, 1));
   await bao(ph, x, x.loai === 'tra-loi' ? `🛠 <b>${esc(tenNguoi(ai))}</b> đã nhận tin anh — đang đọc và cập nhật kế hoạch` : `🛠 <b>${esc(tenNguoi(ai))}</b> nhận thư <i>${esc(x.tieuDe)}</i> (${esc(x.mien)}) — đang đọc và lập việc tiếp theo`);
 }
-export async function xong(ph, id, ai, baoCao) {
+export async function xong(ph, id, ai, baoCao, ap = null) {
   const [f, x] = doc(ph, id); fs.mkdirSync(XONG(ph), { recursive: true });
   const { bao: phanBao, kyThuat } = tachBao(baoCao);
-  const tinBao = await bao(ph, x, `${x.loai === 'tra-loi' ? '💬' : '✅'} <b>${esc(tenNguoi(ai))}</b> — ${x.loai === 'tra-loi' ? 'trả lời anh' : 'thư'} <i>${esc(x.tieuDe)}</i>\n\n${mdTele(phanBao)}${kyThuat ? '\n\n<i>(chi tiết kỹ thuật đã lưu vào hồ sơ việc trên cty)</i>' : ''}`);
+  const tinBao = await bao(ph, x, `${x.loai === 'tra-loi' ? '💬' : '✅'} <b>${esc(tenNguoi(ai))}</b> — ${x.loai === 'tra-loi' ? 'trả lời anh' : 'thư'} <i>${esc(x.tieuDe)}</i>\n\n${mdTele(phanBao)}${kyThuat ? '\n\n<i>(chi tiết kỹ thuật đã lưu vào hồ sơ việc trên cty)</i>' : ''}`, !!ap);
   // giữ thân thư gốc trong bản đã xử: anh trả lời dưới báo cáo thì người phụ trách còn đọc lại được thư
-  fs.writeFileSync(path.join(XONG(ph), `${id}.json`), JSON.stringify({ ...x, xong_luc: new Date().toISOString(), xong_boi: ai, bao_cao: phanBao, ky_thuat: kyThuat, tin_bao: tinBao }, null, 1)); fs.rmSync(f);
+  fs.writeFileSync(path.join(XONG(ph), `${id}.json`), JSON.stringify({ ...x, xong_luc: new Date().toISOString(), xong_boi: ai, bao_cao: phanBao, ky_thuat: kyThuat, tin_bao: tinBao, ...(ap ? { ap } : {}) }, null, 1)); fs.rmSync(f);
 }
 export async function dung(ph, id, ai, lyDo) {
   const [f, x] = doc(ph, id); x.dung = String(lyDo || 'không rõ'); x.dung_luc = new Date().toISOString(); fs.writeFileSync(f, JSON.stringify(x, null, 1));
@@ -106,12 +117,17 @@ if (process.argv[1]?.endsWith('phong-thu.mjs')) {
     fs.writeFileSync(path.join(hop, '5.json'), JSON.stringify({ update_id: 5, message: { message_id: 90, text: 'App ID đã có trong vault #503', reply_to_message: { message_id: 71 }, from: { first_name: 'Tuấn' } } }));
     fs.writeFileSync(path.join(hop, '6.json'), JSON.stringify({ update_id: 6, message: { message_id: 91, text: 'tin bot', from: { is_bot: true } } }));
     t.equal(await quetTraLoi('x'), 1, 'chỉ tin người, bỏ tin bot'); const tl = choXu('x').find((v) => v.loai === 'tra-loi');
-    t.equal(tl.truoc.id, 'm1', 'trả lời dưới báo cáo → gắn đúng thư'); t.equal(tl.loi_anh, 'App ID đã có trong vault #503'); t.equal(tl.tin, 90);
+    t.equal(tl.truoc.id, 'm1', 'trả lời dưới báo cáo → gắn đúng thư');
+    fs.writeFileSync(path.join(XONG('x'), 'm2.json'), JSON.stringify({ id: 'm2', tieuDe: 'Sửa pin-so', ai: 'van', ap: { base: 'aaa', head: 'bbb', so: 1 } }));
+    process.env.TG_BOT_TOKEN = 'x'; process.env.TG_CHAT = 'y'; const f0 = globalThis.fetch; globalThis.fetch = async () => ({ json: async () => ({ ok: true }) });
+    fs.writeFileSync(path.join(hop, '7.json'), JSON.stringify({ update_id: 7, callback_query: { id: 'c', data: 'vh:m2', message: { message_id: 95 } } }));
+    await quetTraLoi('x'); globalThis.fetch = f0; const ht = choXu('x').find((v) => v.loai === 'hoan-tac');
+    t.deepEqual(ht?.ap, { base: 'aaa', head: 'bbb', so: 1 }, 'nút ↩️ thành việc hoàn tác mang đúng dải commit'); t.equal(tl.loi_anh, 'App ID đã có trong vault #503'); t.equal(tl.tin, 90);
     console.log('phong-thu: tự kiểm đạt'); process.exit(0);
   }
   const ph = lay('--cho') ?? lay('--nhan') ?? lay('--xong') ?? lay('--dung'), id = ph ? a[a.indexOf(ph) + 1] : null, ai = lay('--ai') ?? '';
   if (lay('--cho')) { await quetTraLoi(ph); } if (lay('--cho')) console.log(a.includes('--json') ? JSON.stringify(choXu(ph)) : choXu(ph).map((x) => `${x.id} · ${x.mien} · ${x.tieuDe}`).join('\n') || 'không có thư chờ');
   else if (lay('--nhan')) { await nhan(ph, id, ai); console.log(`đã nhận ${id}`); }
-  else if (lay('--xong')) { await xong(ph, id, ai, lay('--bao') === '-' ? fs.readFileSync(0, 'utf8') : (lay('--bao') ?? '')); console.log(`đã báo xong ${id}`); }
+  else if (lay('--xong')) { await xong(ph, id, ai, lay('--bao') === '-' ? fs.readFileSync(0, 'utf8') : (lay('--bao') ?? ''), lay('--ap') ? JSON.parse(lay('--ap')) : null); console.log(`đã báo xong ${id}`); }
   else if (lay('--dung')) { await dung(ph, id, ai, lay('--ly-do')); console.log(`đã báo dừng ${id}`); }
 }

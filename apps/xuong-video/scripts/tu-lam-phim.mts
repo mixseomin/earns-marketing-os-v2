@@ -40,7 +40,15 @@ const truoc = await tongPhim();
 const hetGioPhut = Number((process.argv.find((a) => a.startsWith('--het-gio=')) ?? '').split('=')[1] || 25);
 const soShot = Number(((await db.execute(sql`SELECT count(*) AS n FROM xv_canh WHERE tap_id = ${tapId} AND video_url IS NULL`)) as unknown as Row[])[0]?.n ?? 0);
 console.log(`dự kiến ~${uocPhut(soShot, Number(process.env.XV_CLIP_SONG_SONG || 10), 1)} phút cho ${soShot} shot chưa có clip · dừng cứng sau ${hetGioPhut} phút`);
-const kq = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa, nganSachCents, moHinhVideo, hetGio: Date.now() + hetGioPhut * 60_000 });
+// --chi=4,11,12 (thứ tự shot): vòng clip CHỈ chạy các shot này — anh duyệt chạy nốt N shot thì không sinh lại clip khác đang bị chấm lỗi (21/10/2026, #225)
+// --xuat-du-loi: mọi shot đã có clip thì vẫn xuất bản (kèm cảnh báo) dù còn clip bị soi lỗi — bản để anh duyệt chất lượng cổng, không lên camp
+const chiThuTu = ((process.argv.find((a) => a.startsWith('--chi=')) ?? '').slice(6)).split(',').map(Number).filter(Boolean);
+const chi = chiThuTu.length ? ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND thu_tu = ANY(${`{${chiThuTu.join(',')}}`}::int[])`)) as unknown as Row[]).map((r) => Number(r.id)) : undefined;
+const xuatDuLoi = process.argv.includes('--xuat-du-loi');
+const kq0 = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa, nganSachCents, moHinhVideo, hetGio: Date.now() + hetGioPhut * 60_000, chi });
+const duClip = Number(((await db.execute(sql`SELECT count(*) AS n FROM xv_canh WHERE tap_id = ${tapId} AND video_url IS NULL`)) as unknown as Row[])[0]?.n ?? 1) === 0;
+const kq = xuatDuLoi && duClip && kq0.buoc === 'clip' ? { ...kq0, ok: true } : kq0;
+if (xuatDuLoi && duClip && !kq0.ok && kq0.buoc === 'clip') console.log(`⚠ xuất bản dù còn clip lỗi (--xuat-du-loi):\n  ${kq0.loi.join('\n  ')}`);
 if (!kq.ok) {
   console.log(`✗ dừng ở bước ${kq.buoc} — KHÔNG xuất:\n  ${kq.loi.join('\n  ')}`);
   if (kq.buoc === BUOC_NGAN_SACH) await baoTelegram(db, [

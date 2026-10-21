@@ -226,6 +226,10 @@ assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxH([{ ten: '
 const cd = moTaChuyenDong([{ ten: 'Lint', tu: [0.5, 0.7], den: [0.55, 0.4] }, { ten: 'Cotton Ball', tu: [0.8, 0.7], den: [0.8, 0.7] }]);
 assert.ok(cd.includes('Lint moves screen-right and upward from the lower centre of the frame to the middle centre') && cd.includes('Cotton Ball stays in place'), cd);
 assert.equal(moTaChuyenDong([{ ten: 'Tango', tu: [0.5, 0.5], den: [0.51, 0.5] }]), '');
+// Máy đẩy vào (tập 122 #6): người đứng yên trong set trôi trên màn → KHÔNG tả là đi, chỉ "stay in place"; người đi thật vẫn tả.
+const cdMay = moTaChuyenDong([{ ten: 'Vivian', tu: [0.3, 0.5], den: [0.5, 0.45] }, { ten: 'Folder', tu: [0.3, 0.6], den: [0.5, 0.6] }, { ten: 'Ha', tu: [0.5, 0.6], den: [0.7, 0.6] }], (t) => t, (t) => t !== 'Folder', (t) => t === 'Ha');
+assert.ok(cdMay.includes('Ha moves screen-right') && !cdMay.includes('Vivian moves') && !cdMay.includes('Folder') && cdMay.includes('Vivian stays in place'), cdMay);
+assert.equal(moTaChuyenDong([{ ten: 'Vivian', tu: [0.3, 0.5], den: [0.5, 0.45] }], (t) => t, () => true, () => false), '');
 // Đồ đang cầm: Mr. Wipe cầm bình xịt ở #1, #2 có Mr. Wipe mà vắng bình → báo; có bình (cầm) → qua; đặt xuống (không cam) → hết theo dõi.
 const sp = (id: number, vt: { ten: string; tam: number[]; cam?: string }[]) => sh(id, vt as never);
 assert.ok(lienMachTap([sp(1, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }, { ten: 'Spray', tam: [0, 0, 4], cam: 'Mr. Wipe' }]), sp(2, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }])], kh)[2]![0]!.includes('đang cầm Spray'));

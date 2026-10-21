@@ -131,6 +131,12 @@ interface DataTableProps<T> {
    * toán tử (=/LIKE/REGEXP/IN…) khớp hệt. Không truyền = giữ nguyên (lọc client, hoặc tắt nếu `sliced`).
    */
   serverFilter?: { filters: Record<string, { op: string; val: string }>; onChange: (next: Record<string, { op: string; val: string }>) => void };
+  /**
+   * HỘP CUỘN RIÊNG (kiểu cũ): bảng cuộn dọc trong hộp cao tối đa 78vh, tiêu đề dính trong hộp. Mặc định TẮT — bảng cuộn THEO TRANG
+   * (một thanh cuộn duy nhất), hàng tiêu đề dính mép trên khung cuộn, thanh trang dính mép dưới (học bảng Content của Ethopex, anh 22/10/2026:
+   * "học cách scroll của họ khi full màn hình"). Bật lại cho bảng nhỏ nằm giữa các khối khác cần giới hạn chiều cao.
+   */
+  hopCuon?: boolean;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -150,7 +156,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, fixedLayout = false,
-  serverSort, serverFilter,
+  serverSort, serverFilter, hopCuon = false,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
@@ -388,6 +394,85 @@ export function DataTable<T>({
     <Pager page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
   ) : null;
 
+  // ── CUỘN THEO TRANG (mặc định, hopCuon=false) ── học bảng Content của Ethopex (22/10/2026): một thanh cuộn (khung cuộn của trang), hàng tiêu đề
+  // là bảng RIÊNG nằm trong khối dính mép trên (position:sticky không dính theo trang được khi nằm trong hộp overflow-x của thân bảng), cuộn ngang
+  // đồng bộ với thân bảng; bề rộng cột lấy từ hàng tiêu đề ẩn trong thân bảng (đo bằng ResizeObserver) → hai bảng luôn thẳng cột.
+  const theoTrang = !hopCuon && !hideHeader;
+  const thanRef = useRef<HTMLDivElement>(null), dauRef = useRef<HTMLDivElement>(null), bangRef = useRef<HTMLTableElement>(null), doRef = useRef<HTMLTableSectionElement>(null);
+  const [cotDo, setCotDo] = useState<{ w: number[]; bang: number; cao: number }>({ w: [], bang: 0, cao: 0 });
+  const [dinhTren, setDinhTren] = useState(0);
+  useEffect(() => {
+    if (!theoTrang || effView !== 'table') return;
+    const doNgay = () => {
+      const th = doRef.current ? Array.from(doRef.current.querySelectorAll('th')) : [];
+      const w = th.map((x) => x.getBoundingClientRect().width), bang = bangRef.current?.getBoundingClientRect().width ?? 0, cao = doRef.current?.getBoundingClientRect().height ?? 0;
+      setCotDo((o) => (o.bang === bang && o.cao === cao && o.w.length === w.length && o.w.every((v, i) => Math.abs(v - w[i]!) < 0.5) ? o : { w, bang, cao }));
+      // thanh tab / thanh dính của TRANG (cùng khung cuộn, nằm trên bảng) đang dính mép trên → tiêu đề bảng dính ngay dưới nó, không chui xuống dưới
+      let sc: HTMLElement | null = thanRef.current?.parentElement ?? null;
+      while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+      let tren = 0;
+      if (sc && thanRef.current) for (const el of Array.from(sc.querySelectorAll<HTMLElement>('[data-comp="ui.Tabs"],[data-comp="ui.StickyBar"]'))) {
+        const cs = getComputedStyle(el);
+        if (cs.position === 'sticky' && !el.contains(thanRef.current) && (el.compareDocumentPosition(thanRef.current) & Node.DOCUMENT_POSITION_FOLLOWING)) tren = Math.max(tren, (parseFloat(cs.top) || 0) + el.getBoundingClientRect().height);
+      }
+      setDinhTren((o) => (Math.abs(o - tren) < 0.5 ? o : tren));
+    };
+    doNgay();
+    const ro = new ResizeObserver(() => doNgay());
+    if (bangRef.current) ro.observe(bangRef.current);
+    if (doRef.current) ro.observe(doRef.current);
+    window.addEventListener('resize', doNgay);
+    return () => { ro.disconnect(); window.removeEventListener('resize', doNgay); };
+  }, [theoTrang, effView, visible.length, rong, pageRows.length]);
+  // hàng tiêu đề: dao=true là bản bấm được (sort / lọc / kéo giãn); dao=false là bản ĐO bề rộng nằm ẩn trong thân bảng (cùng nội dung, không tay cầm)
+  const hangDau = (dao: boolean) => (
+<tr aria-hidden={dao ? undefined : true}>
+              {visible.map((c, ci) => {
+                // sliced + serverSort = vẫn sắp xếp được, chỉ là việc sắp chạy ở server trên TOÀN tập.
+                const sortable = !!c.sortValue && (!sliced || !!serverSort);
+                const ts = !sortable ? null : (serverSort ? srvTh(c.key) : thProps(c.key));
+                const dir = ts && ts.idx >= 0 ? ts.dir : null;   // CHỈ in mũi tên khi đang asc/desc; tắt = không in gì (yêu cầu)
+                const cf = colFilters[c.key];
+                const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');
+                const searchOpen = searchCol === c.key;
+                // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
+                // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
+                return (
+                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), userSelect: 'none', ...(dao && theoTrang && cotDo.w[ci] ? { width: cotDo.w[ci], minWidth: cotDo.w[ci], maxWidth: cotDo.w[ci], boxSizing: 'border-box' } : {}) }}   /* KHÔNG đặt position ở đây: headStyle đang cho sticky (ghim tiêu đề + cột đầu), ghi relative sau spread là vứt sạch. sticky cũng làm mốc cho .dt-th-actions như relative. */ title={c.title}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
+                      <span className="dt-th-name" onClick={dao && ts ? ts.onClick : undefined}
+                            title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}
+                            style={{ cursor: sortable ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+                        {c.header}
+                      </span>
+                      {dir && (
+                        <span aria-hidden style={{ color: 'var(--accent)', fontSize: 9, whiteSpace: 'nowrap' }}>
+                          {dir === 'asc' ? '▲' : '▼'}{ts!.count > 1 && <sup style={{ fontSize: 7, fontWeight: 700 }}>{ts!.idx + 1}</sup>}
+                        </span>
+                      )}
+                      {filtering && <span aria-hidden title="đang lọc cột này" style={{ fontSize: 9, color: 'var(--accent)' }}>⚑</span>}
+                      {dao && sortable && (
+                        <span className="dt-th-actions" style={searchOpen ? { opacity: 1, pointerEvents: 'auto' } : undefined}>
+                          <button type="button" title="Sắp xếp (↑ / ↓ / tắt)" onClick={ts!.onClick}>↕</button>
+                          <button type="button" title="Lọc cột" aria-label="Lọc cột"
+                                  ref={searchOpen ? searchAnchor : undefined}
+                                  onClick={() => setSearchCol(searchOpen ? null : c.key)}
+                                  style={filtering ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>🔍</button>
+                        </span>
+                      )}
+                    </span>
+                    {dao && <span className="dt-keo" aria-hidden title="Kéo để đổi bề ngang cột · nhấp đúp để về mặc định"
+                          onPointerDown={(e) => keoCot(e, c.key)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); veMacDinh(c.key); }} />}
+                  </th>
+                );
+              })}
+            </tr>
+  );
+  const dongCuon = (tu: 'than' | 'dau') => () => {
+    const a = tu === 'than' ? thanRef.current : dauRef.current, b = tu === 'than' ? dauRef.current : thanRef.current;
+    if (a && b && Math.abs(b.scrollLeft - a.scrollLeft) > 0.5) b.scrollLeft = a.scrollLeft;
+  };
+
   return (
     // minWidth 0: bảng thường là con của grid/flex — min-width:auto mặc định làm khối giãn theo bề rộng bảng (minWidth cột), tràn khỏi ngăn
     // kéo thay vì cuộn ngang trong .dt-scroll; thanh lọc phía trên rơi ra ngoài màn (#1416).
@@ -501,53 +586,20 @@ export function DataTable<T>({
           )}
         </div>
       ) : (
-      <div className="dt-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth }}>
-          {!hideHeader && (
-          <thead>
-            <tr>
-              {visible.map((c, ci) => {
-                // sliced + serverSort = vẫn sắp xếp được, chỉ là việc sắp chạy ở server trên TOÀN tập.
-                const sortable = !!c.sortValue && (!sliced || !!serverSort);
-                const ts = !sortable ? null : (serverSort ? srvTh(c.key) : thProps(c.key));
-                const dir = ts && ts.idx >= 0 ? ts.dir : null;   // CHỈ in mũi tên khi đang asc/desc; tắt = không in gì (yêu cầu)
-                const cf = colFilters[c.key];
-                const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');
-                const searchOpen = searchCol === c.key;
-                // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
-                // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
-                return (
-                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), userSelect: 'none' }}   /* KHÔNG đặt position ở đây: headStyle đang cho sticky (ghim tiêu đề + cột đầu), ghi relative sau spread là vứt sạch. sticky cũng làm mốc cho .dt-th-actions như relative. */ title={c.title}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
-                      <span className="dt-th-name" onClick={ts ? ts.onClick : undefined}
-                            title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}
-                            style={{ cursor: sortable ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
-                        {c.header}
-                      </span>
-                      {dir && (
-                        <span aria-hidden style={{ color: 'var(--accent)', fontSize: 9, whiteSpace: 'nowrap' }}>
-                          {dir === 'asc' ? '▲' : '▼'}{ts!.count > 1 && <sup style={{ fontSize: 7, fontWeight: 700 }}>{ts!.idx + 1}</sup>}
-                        </span>
-                      )}
-                      {filtering && <span aria-hidden title="đang lọc cột này" style={{ fontSize: 9, color: 'var(--accent)' }}>⚑</span>}
-                      {sortable && (
-                        <span className="dt-th-actions" style={searchOpen ? { opacity: 1, pointerEvents: 'auto' } : undefined}>
-                          <button type="button" title="Sắp xếp (↑ / ↓ / tắt)" onClick={ts!.onClick}>↕</button>
-                          <button type="button" title="Lọc cột" aria-label="Lọc cột"
-                                  ref={searchOpen ? searchAnchor : undefined}
-                                  onClick={() => setSearchCol(searchOpen ? null : c.key)}
-                                  style={filtering ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>🔍</button>
-                        </span>
-                      )}
-                    </span>
-                    <span className="dt-keo" aria-hidden title="Kéo để đổi bề ngang cột · nhấp đúp để về mặc định"
-                          onPointerDown={(e) => keoCot(e, c.key)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); veMacDinh(c.key); }} />
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          )}
+      <>
+      {theoTrang && (
+        <div ref={dauRef} className="dt-dau" onScroll={dongCuon('dau')}
+             style={{ position: 'sticky', top: dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%', minWidth: cotDo.bang ? undefined : minWidth }}>
+            <thead>{hangDau(true)}</thead>
+          </table>
+        </div>
+      )}
+      <div ref={thanRef} className={`dt-scroll${theoTrang ? '' : ' dt-hop'}`} onScroll={theoTrang ? dongCuon('than') : undefined} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
+        <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
+          {!hideHeader && (theoTrang
+            ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangDau(false)}</thead>
+            : <thead>{hangDau(true)}</thead>)}
           <tbody>
             {gomNhom(pageRows, cotGom).flatMap((nh) => {
               const gap = dongNhom.includes(nh.v);
@@ -601,6 +653,7 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
+      </>
       )}
 
       {(() => {
@@ -617,7 +670,9 @@ export function DataTable<T>({
           </AnchoredPopover>
         );
       })()}
-      {pager}
+      {pager && (theoTrang && effView === 'table'
+        ? <div className="dt-trang" style={{ position: 'sticky', bottom: 0, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line)', paddingTop: 2 }}>{pager}</div>
+        : pager)}
     </div>
   );
 }

@@ -4,7 +4,12 @@
    có hộp dọc mà dính. KHÔNG dùng overscroll-behavior:contain — nó CHẶN wheel chuyền xuống TRANG khi
    cuộn tới đáy bảng: bảng cao hơn 78vh (>~20 hàng) là kẹt, chuột đặt trong bảng không scroll trang
    được nữa (user 15/08). Mặc định (auto) = cuộn hết bảng thì chuyền tiếp cho trang. */
-.dt-scroll { max-height: min(78vh, 880px); overflow: auto; }
+.dt-scroll.dt-hop { max-height: min(78vh, 880px); overflow: auto; }
+/* Cuộn THEO TRANG (mặc định từ 22/10/2026, học bảng Content Ethopex): thân bảng chỉ cuộn NGANG; hàng tiêu đề là khối .dt-dau dính mép trên khung
+   cuộn của trang, cuộn ngang đồng bộ với thân (ẩn thanh cuộn của nó — thanh ngang nằm ở thân bảng). */
+.dt-scroll:not(.dt-hop) { overflow-x: auto; overflow-y: visible; }
+.dt-dau { scrollbar-width: none; }
+.dt-dau::-webkit-scrollbar { display: none; }
 /* ⚙ Columns popover: hide the native <details> disclosure triangle. */
 .dt-cols summary { list-style: none; }
 .dt-cols summary::-webkit-details-marker { display: none; }

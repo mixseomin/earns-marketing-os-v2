@@ -2,7 +2,7 @@
 
 Áp MẶC ĐỊNH, không đợi user nhắc. Component nhà đã có sẵn — **dùng lại, đừng dựng raw/bespoke.**
 
-**Mọi thiết kế = YDNI (anh 22/10/2026: "mặc định mọi thiết kế phải tuân thủ YDNI").** Đọc skill `design/ydni` TRƯỚC khi dựng; >2 nhóm nội dung = chia tab con (`Segmented` + `?…=` URL), cấm thêm khối chồng dọc (tab Ethopex 22/10 thêm khối "Đề xuất theo phim" dưới đáy → anh chửi). Trước khi báo xong: `~/bin/do-man cuon <url> --kho 1440x900,1280x800,390x844 --cho 8000` (tunnel + phiên theo "Phiên đo màn" ở CLAUDE.md) — trang KHÔNG được cuộn ở `main.main`, chỉ khung nội dung được cuộn. Khung cuộn của trang là `main.main` (lề dưới 56px), không phải cửa sổ.
+**Mọi thiết kế = YDNI (anh 22/10/2026: "mặc định mọi thiết kế phải tuân thủ YDNI").** Đọc skill `design/ydni` TRƯỚC khi dựng; >2 nhóm nội dung = chia tab con (`Segmented` + `?…=` URL), cấm thêm khối chồng dọc (tab Ethopex 22/10 thêm khối "Đề xuất theo phim" dưới đáy → anh chửi). Trước khi báo xong: `~/bin/do-man cuon <url> --kho 1440x900,1280x800,390x844 --cho 8000` (tunnel + phiên theo "Phiên đo màn" ở CLAUDE.md) — bề mặt nhiều nhóm thì không cuộn trang; **bảng dài thì cuộn THEO TRANG** (DataTable mặc định: tiêu đề cột dính trên + phân trang dính dưới, đầu trang trôi — skill ydni mục "BẢNG DÀI"), cấm hộp cuộn lồng + cấm JS đo chiều cao. Khung cuộn của trang là `main.main` (lề dưới 56px).
 
 ## 0. INVENTORY — quét ở đây TRƯỚC khi tự viết bất kỳ UI nào
 

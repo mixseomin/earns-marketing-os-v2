@@ -104,7 +104,8 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
   // chưa có ảnh nền → tự lấy ảnh thật Pexels theo chủ đề, không trùng trong máy (luật anh 18/10/2026: mọi bài đăng có ảnh minh hoạ thật; anh-nen.ts)
   if (!r.nen_url) {
     const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => idPexels(x.nen_url as string)).filter((x): x is number => x != null));
-    try { r.nen_url = await timAnhNen(truyVanAnhMau(r.mau as MauMayDung, r.de as DeMay, String(r.chu_de ?? '')), daDung); }
+    // de.truy: dòng tự khai từ khoá ảnh (bài link — mỗi bài một ảnh riêng, anh 21/10/2026 "bài phải đa dạng không thành spam"); không có thì theo mẫu
+    try { r.nen_url = await timAnhNen((r.de as { truy?: string } | null)?.truy ?? truyVanAnhMau(r.mau as MauMayDung, r.de as DeMay, String(r.chu_de ?? '')), daDung); }
     catch (e) { return { ok: false, loi: `ảnh nền: ${(e as Error).message}` }; }
     await db.execute(sql`UPDATE xv_may_video SET nen_url = ${r.nen_url as string}, updated_at = now() WHERE id = ${videoId}`);
   }

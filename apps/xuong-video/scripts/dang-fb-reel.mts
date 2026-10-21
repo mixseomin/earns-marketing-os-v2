@@ -5,7 +5,7 @@
 //   BÀI ẢNH (nền fb_anh, 18/10/2026): stdin { page_id, ten, anh: [url R2…], mo_ta } → ảnh tải lên chưa xuất bản (/photos published=false) rồi một bài
 //   /feed gắn attached_media — Facebook hiện thành album trượt. Cùng token + kiểm danh tính như Reel.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/dang-fb-reel.mts < x.json
-//   BÀI LINK (nền fb_link, 21/10/2026): stdin { page_id, ten, link, mo_ta } → một bài /feed message + link (thẻ xem trước của trang đích).
+//   BÀI LINK (nền fb_link, 21/10/2026): đi đúng đường bài ảnh với 1 ảnh riêng của bài, link UTM nằm trong chữ.
 //   ... --kiem <page_id>     chỉ kiểm danh tính token ↔ Page (không đăng)
 import { readFileSync } from 'node:fs';
 
@@ -62,22 +62,14 @@ async function dangAnh(pageId: string, token: string, anh: string[], moTa: strin
   return { url: String(l.permalink_url ?? `https://www.facebook.com/${p.id}`), post_id: String(p.id) };
 }
 
-/** BÀI LINK (nền fb_link, 21/10/2026): một bài /feed có message + link — Facebook tự dựng thẻ xem trước từ trang đích (ảnh thật của trang). */
-async function dangLink(pageId: string, token: string, link: string, moTa: string): Promise<{ url: string; post_id: string }> {
-  const p = await goi(`${G}/${pageId}/feed`, { method: 'POST', body: new URLSearchParams({ message: moTa, link, access_token: token }) });
-  const l = await goi(`${G}/${p.id}?${qs({ fields: 'permalink_url', access_token: token })}`);
-  return { url: String(l.permalink_url ?? `https://www.facebook.com/${p.id}`), post_id: String(p.id) };
-}
-
 const a = process.argv.slice(2);
 if (a[0] === '--kiem') {
   const id = a[1]!, t = docSo()[id]; if (!t) { console.error(`không có Page ${id} trong sổ`); process.exit(1); }
   await kiemTrang(id, t.ten); console.log(`✓ token khớp Page ${t.ten} (${id})`); process.exit(0);
 }
 let raw = ''; for await (const c of process.stdin) raw += c;
-const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; link?: string; mo_ta: string; binh_luan?: string };
+const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; mo_ta: string; binh_luan?: string };
 const t = await kiemTrang(x.page_id, x.ten);
-if (x.link) { process.stdout.write(JSON.stringify({ ...(await dangLink(x.page_id, t.token, x.link, x.mo_ta)), binh_luan: false })); process.exit(0); }
 if (x.anh) { process.stdout.write(JSON.stringify({ ...(await dangAnh(x.page_id, t.token, x.anh, x.mo_ta)), binh_luan: false })); process.exit(0); }
 if (!x.video_url) { console.error('thiếu video_url (hoặc anh cho bài ảnh)'); process.exit(1); }
 const r = await dangReel(x.page_id, t.token, x.video_url, x.mo_ta);

@@ -22,6 +22,9 @@ def doc(cid):
     return {"ns": c.get("budget_daily"), "tt": c.get("state")}
 
 def main(a):
+    # --luat "<mã luật · số liệu>" (BẮT BUỘC ghi khi tăng — anh 21/10/2026) · --ai "<ai duyệt: anh (chat) / anh (nút Telegram)>"
+    luat = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--luat"), None); ai = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--ai"), None)
+    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
     try:
         truoc = doc(cid); kq["truoc"] = truoc
@@ -42,13 +45,24 @@ def main(a):
             ok = lambda s: s["tt"] == "PAUSED"
         else:
             raise ValueError("việc không hợp lệ (tang / tat)")
-        for _ in range(6):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại vài lần
-            time.sleep(3); sau = doc(cid)
+        for _ in range(12):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại tới ~60s (21/10/2026: 7/15 camp sau 18s chưa thấy, 20s sau mới đổi)
+            time.sleep(5); sau = doc(cid)
             if ok(sau): break
         kq.update(sau=sau, ok=ok(sau)); kq["loi"] = None if kq["ok"] else "đã gửi nhưng đọc lại chưa thấy đổi — kiểm tab Ethopex"
     except Exception as e:
         kq["loi"] = str(e)[:200]
+    ghi_nhat_ky(kq, luat, ai)
     print(json.dumps(kq, ensure_ascii=False))
+
+def ghi_nhat_ky(kq, luat, ai):
+    """NHẬT KÝ LUẬT (anh 21/10/2026: "khi tăng phải log rule cho việc tăng đó"): mỗi lệnh tăng / tắt ghi một dòng vào studio
+    xv_khoa_ngoai['ethopex_nhat_ky'] (giữ 1000 dòng gần nhất): lúc (giờ VN) · việc · camp · trước → sau · ok · LUẬT kích hoạt kèm số · ai duyệt."""
+    import datetime as dt
+    dong = {"luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y"), "viec": kq.get("viec"), "id": kq.get("id"),
+            "truoc": (kq.get("truoc") or {}).get("ns"), "sau": (kq.get("sau") or {}).get("ns"), "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?"}
+    v = json.dumps(dong, ensure_ascii=False).replace("'", "''")
+    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_nhat_ky', '[]'::jsonb) on conflict (ten) do nothing")
+    q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 1000, 0)) t) where ten = 'ethopex_nhat_ky'")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -21,7 +21,7 @@ const NHOM = [
   ['tat', '⏹ <b>CẦN TẮT</b> — tiêu > $10 từ trước tới nay, ROI < −50%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — Edit camp, thay creative sạch đã duyệt cùng phim', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
-  ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI tháng ≥ 20%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
+  ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI tháng ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['giam', '↓ <b>ROI TỤT</b> — phim down trend / creative bão hoà, xem giảm hoặc tắt', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['moc30', '★ <b>CHẠM MỐC $30 MÀ VẪN LÃI</b> — hỏi Support cách scale bài viết cũ + bid ROAS', null],
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
@@ -45,7 +45,9 @@ async function xuNut(tg, x) {
   const [, lenh, id, ns] = c.data.split(':'), ai = esc(c.from?.first_name || c.from?.username || 'Anh');
   if (lenh === 'bo') { await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã bỏ qua' }); await tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: `↩️ ${ai} bỏ qua #${esc(id)}`, reply_parameters: { message_id: c.message.message_id } }); return 'bo'; }
   await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đang làm…' });
-  let kq; try { kq = JSON.parse((await chay(LAM, lenh === 'tang' ? ['tang', id, ns] : ['tat', id], 90)).trim().split('\n').pop()); } catch (e) { kq = { ok: false, loi: e.message }; }
+  // LUẬT kích hoạt = dòng của camp trong chính tin báo (+ tiêu đề nhóm) → lam-ethopex ghi nhật ký luật (anh 21/10/2026: "khi tăng phải log rule cho việc tăng đó")
+  const dongTin = String(c.message?.text || '').split('\n'), luat = `${dongTin[0] || ''} · ${(dongTin.find((d) => d.includes(`#${id}`)) || '').replace(/^•\s*/, '')}`.slice(0, 400);
+  let kq; try { kq = JSON.parse((await chay(LAM, [...(lenh === 'tang' ? ['tang', id, ns] : ['tat', id]), '--luat', luat, '--ai', `${c.from?.first_name || c.from?.username || 'Anh'} (nút Telegram)`], 120)).trim().split('\n').pop()); } catch (e) { kq = { ok: false, loi: e.message }; }
   const tin = kq.ok ? (lenh === 'tang' ? `✅ ${ai} duyệt: #${esc(id)} $${esc(kq.truoc?.ns)} → <b>$${esc(kq.sau?.ns)}</b> (đã đọc lại)` : `⏹ ${ai} duyệt: #${esc(id)} đã <b>tắt</b> (đã đọc lại: ${esc(kq.sau?.tt)})`)
     : `⚠️ #${esc(id)} chưa làm được: ${esc(kq.loi || 'không rõ')}`;
   await tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: tin, parse_mode: 'HTML', reply_parameters: { message_id: c.message.message_id } });

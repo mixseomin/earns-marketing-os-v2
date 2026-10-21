@@ -3,14 +3,16 @@
 // ô biểu tượng (luật nặng nhất đang chạm, tô theo mức dung > ha > bao > len) + chip mã luật (rê = câu luật với số thật của camp + vì sao);
 // bấm hàng → ngăn chi tiết: từng luật, điều kiện ✓/○ (hiện tại vs ngưỡng), "Chạm thì: …". Sổ luật: lib/ethopex-luat.ts. Dữ liệu: lib/ethopex-doc.ts.
 import { useMemo, useState, useEffect } from 'react';
-import { DataTable, Drawer, FilterChips, LinkChip, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
+import { DataTable, Drawer, FilterChips, LinkChip, MultiSelect, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
+import { useRouter } from 'next/navigation';
+import { CotAmDuong } from '@/components/cot-am-duong';
 import { useModalParam } from '@/lib/use-modal-param';
-import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, deXuatPhim, nangNhat, roi, type CampEtp, type DangCr, type LuatCham, type PhimDeXuat } from '@/lib/ethopex-luat';
+import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, dangCamp, deXuatPhim, nangNhat, roi, type CampEtp, type DangCr, type LuatCham, type PhimDeXuat } from '@/lib/ethopex-luat';
 import type { DuLieuEthopex } from '@/lib/ethopex-doc';
 
 type Dong = CampEtp & { luat: LuatCham[] };
 type Loc = 'all' | 'chay' | 'tat' | 'cham';
-type Xem = 'camp' | 'phim' | 'cho' | 'luat';   // YDNI: chia tab con — không chồng khối dọc (anh 22/10/2026)
+type Xem = 'camp' | 'ngay' | 'phim' | 'cho' | 'luat';   // YDNI: chia tab con — không chồng khối dọc (anh 22/10/2026)
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const pct = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`);
 const mauTien = (v: number) => (v > 0 ? 'var(--neon-lime, #9be15d)' : v < 0 ? 'var(--neon-red, #ff5c5c)' : 'var(--fg-3)');
@@ -120,10 +122,70 @@ function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
   );
 }
 
+/** TAB "THEO NGÀY" — mỗi ngày thực sự kiếm được bao nhiêu (anh 22/10/2026), lọc theo phim / camp / dạng creative / ngôn ngữ; tự làm mới mỗi phút.
+ *  Hai góc: theo NGÀY QUẢNG CÁO (Report group_by date — 2 ngày gần nhất còn về thêm, vẽ nhạt) và TIỀN MỚI VÀO (điểm chụp cộng dồn — chỉ tổng tài khoản). */
+function TabNgay({ du }: { du: DuLieuEthopex }) {
+  const [phim, setPhim] = useState<string[]>([]), [camp, setCamp] = useState<number[]>([]), [dang, setDang] = useState<string[]>([]), [nn, setNn] = useState<string[]>([]);
+  const [goc, setGoc] = useState<'qc' | 'moi'>('qc');
+  const loc = phim.length + camp.length + dang.length + nn.length > 0;
+  const tenPhim = (c: CampEtp) => c.phim ?? c.ten.replace(/^(TEST )?\d{4}(ns)? /, '').split(/ (EN|ES) - /)[0]!;
+  const opt = useMemo(() => {
+    const dem = <K extends string | number>(f: (c: CampEtp) => K | null) => { const m = new Map<K, number>(); for (const c of du.camps) { const k = f(c); if (k != null) m.set(k, (m.get(k) ?? 0) + 1); } return m; };
+    return { phim: [...dem(tenPhim)].map(([value, count]) => ({ value, label: value, count })).sort((a, b) => b.count - a.count),
+      camp: du.camps.map((c) => ({ value: c.id, label: `#${c.id} ${c.ten}` })),
+      dang: [...dem((c) => dangCamp(c))].map(([value, count]) => ({ value: String(value), label: String(value), count })),
+      nn: [...dem((c) => c.ngon_ngu?.toUpperCase() ?? null)].map(([value, count]) => ({ value: String(value), label: String(value), count })) };
+  }, [du]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chon = useMemo(() => new Set(du.camps.filter((c) => (!phim.length || phim.includes(tenPhim(c))) && (!camp.length || camp.includes(c.id)) && (!dang.length || dang.includes(dangCamp(c))) && (!nn.length || nn.includes(c.ngon_ngu?.toUpperCase() ?? ''))).map((c) => c.id)), [du, phim, camp, dang, nn]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ngayQc = useMemo(() => {
+    if (!loc) return du.theoNgay;
+    const m = new Map<string, { ngay: string; chi: number; thu: number }>();
+    for (const r of du.ngayCamp) if (chon.has(r.camp)) { const o = m.get(r.ngay) ?? { ngay: r.ngay, chi: 0, thu: 0 }; o.chi += r.chi; o.thu += r.thu; m.set(r.ngay, o); }
+    return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
+  }, [du, chon, loc]);
+  const dongNgay = goc === 'moi' && !loc ? du.tienMoi.map((r) => ({ ...r, mo: !r.du })) : ngayQc.map((r, i, a) => ({ ...r, mo: i >= a.length - 2 }));
+  const dd = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  const tong = dongNgay.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
+  const cot: DataColumn<(typeof dongNgay)[number]>[] = [
+    { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => <span>{dd(r.ngay)}{r.mo ? <span style={{ color: 'var(--fg-3)' }}> · còn về thêm</span> : null}</span>, sortValue: (r) => r.ngay },
+    { key: 'chi', header: 'Chi', cell: (r) => usd(r.chi), sortValue: (r) => r.chi, total: (rs) => usd(rs.reduce((a, r) => a + r.chi, 0)) },
+    { key: 'thu', header: 'Thu', cell: (r) => usd(r.thu), sortValue: (r) => r.thu, total: (rs) => usd(rs.reduce((a, r) => a + r.thu, 0)) },
+    { key: 'lai', header: 'Lãi', cell: (r) => <span style={{ color: mauTien(r.thu - r.chi) }}>{usd(r.thu - r.chi)}</span>, sortValue: (r) => r.thu - r.chi, total: (rs) => { const v = rs.reduce((a, r) => a + r.thu - r.chi, 0); return <span style={{ color: mauTien(v) }}>{usd(v)}</span>; } },
+    { key: 'roi', header: 'ROI', cell: (r) => pct(r.chi ? ((r.thu - r.chi) / r.chi) * 100 : null), sortValue: (r) => (r.chi ? (r.thu - r.chi) / r.chi : -1e9) },
+  ];
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+        <MultiSelect<string> label="Phim" options={opt.phim} selected={phim} onChange={setPhim} compact searchPlaceholder="Tìm phim…" />
+        <MultiSelect<number> label="Camp" options={opt.camp} selected={camp} onChange={setCamp} compact searchPlaceholder="Tìm camp…" />
+        <MultiSelect<string> label="Dạng" options={opt.dang} selected={dang} onChange={setDang} compact />
+        <MultiSelect<string> label="Ngôn ngữ" options={opt.nn} selected={nn} onChange={setNn} compact />
+        <span style={{ flex: 1 }} />
+        <Segmented<'qc' | 'moi'> value={loc ? 'qc' : goc} onChange={setGoc} options={[
+          { value: 'qc', label: 'Theo ngày quảng cáo', title: 'Chi / thu của các click trong ngày (Report Ethopex) — 2 ngày gần nhất doanh thu còn về thêm' },
+          { value: 'moi', label: 'Tiền mới vào', title: loc ? 'Chỉ có cho tổng tài khoản — bỏ bộ lọc để xem' : 'Tiền thật vào / ra trong ngày (giờ VN), kể cả doanh thu về trễ của click cũ — đếm từ 22/10/2026' },
+        ]} />
+      </div>
+      <StatsStrip minColWidth={110} cards={[
+        { key: 'lai', label: 'Lãi cả kỳ', value: usd(tong.thu - tong.chi), color: mauTien(tong.thu - tong.chi) },
+        { key: 'roi', label: 'ROI', value: pct(roi(tong)), color: mauTien(roi(tong) ?? 0) },
+        { key: 'chi', label: 'Chi', value: usd(tong.chi) },
+        { key: 'thu', label: 'Thu', value: usd(tong.thu) },
+      ]} />
+      <div style={{ margin: '10px 0' }}>
+        <CotAmDuong data={dongNgay.map((r) => ({ x: dd(r.ngay), v: r.thu - r.chi, mo: r.mo, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${pct(r.chi ? ((r.thu - r.chi) / r.chi) * 100 : null)}` }))} dinhDang={usd} />
+      </div>
+      <DataTable rows={[...dongNgay].reverse()} columns={cot} getRowKey={(r) => r.ngay} persistKey="ethopex-ngay" minWidth={520} />
+    </div>
+  );
+}
+
 export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const modal = useModalParam('em');
   const [loc, setLoc] = useState<Loc>('all');
   const [xem, setXem] = useState<Xem>('camp');
+  const router = useRouter();
+  useEffect(() => { if (xem !== 'ngay') return; const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [xem, router]);   // "realtime": làm mới mỗi phút (server nhớ 60s)
   const [hep, setHep] = useState(false);
   useEffect(() => { const mq = window.matchMedia('(max-width: 640px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x) setXem(x); }, []);
@@ -199,6 +261,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: '12px 0 8px' }}>
         <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
           { value: 'camp', label: 'Camp', title: `${dong.length} camp` },
+          { value: 'ngay', label: 'Theo ngày', title: 'Mỗi ngày kiếm được bao nhiêu — biểu đồ lãi, lọc theo phim / camp / dạng / ngôn ngữ, tự làm mới mỗi phút' },
           { value: 'phim', label: 'Theo phim', title: `${phim.length} phim — đề xuất dạng creative (luật DC)` },
           { value: 'cho', label: 'Hàng chờ', title: `${du.hangCho.length} phim chờ test` },
           { value: 'luat', label: 'Sổ luật', title: `${LUAT.length} luật · kb #261 mục 8–8i` },
@@ -213,6 +276,8 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
             groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
             searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
             onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
+        ) : xem === 'ngay' ? (
+          <TabNgay du={du} />
         ) : xem === 'phim' ? (
           <DataTable<PhimDeXuat> rows={phim} columns={cotPhim} getRowKey={(p) => String(p.content_id)} persistKey="ethopex-phim" minWidth={980}
             searchText={(p) => `${p.phim} ${p.content_id}`} searchPlaceholder="Tìm phim…" />

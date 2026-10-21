@@ -12,6 +12,7 @@ const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
 const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py');
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
+const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
 const TEP = () => path.join(DATA(), 'ethopex-da-bao.json');
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 const chay = (tep, args, giay = 240) => new Promise((ok, hong) => execFile('python3', [tep, ...args], { timeout: giay * 1000, maxBuffer: 8 << 20, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
@@ -42,6 +43,20 @@ export function gopCamp(ds) {
 }
 
 /** Nút anh bấm: et:tang:<id>:<$> · et:tat:<id> · et:bo:<id>. */
+/** Tin 📊 báo cáo ngày: hôm qua (theo ngày quảng cáo + tiền mới vào nếu đã có số chụp) · bảng 7 ngày · cả tháng. Bảng trong <pre> cho thẳng cột. */
+export function tinBaoNgay(sn, homNay) {
+  const usd = (v) => `${v < 0 ? '−' : '+'}$${Math.abs(v).toFixed(2)}`, pct = (v) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${Math.round(v)}%`);
+  const qua = new Date(Date.parse(`${homNay}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10), dd = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  const tn = (sn.theo_ngay || []).filter((r) => r.chi > 0 || r.thu > 0), h = tn.find((r) => r.ngay === qua), tm = (sn.tien_moi || []).find((r) => r.ngay === qua && r.du);
+  const bang = tn.slice(-7).map((r) => `${dd(r.ngay)}  ${('$' + r.chi.toFixed(0)).padStart(6)} ${('$' + r.thu.toFixed(0)).padStart(6)} ${usd(r.lai).padStart(9)} ${pct(r.roi).padStart(6)}`).join('\n');
+  const th = sn.thang || { chi: 0, thu: 0 };
+  return [`📊 <b>BÁO CÁO NGÀY ${dd(homNay)}</b> — Ethopex`,
+    h ? `<b>Hôm qua ${dd(qua)}</b> (theo ngày quảng cáo): lãi <b>${usd(h.lai)}</b> · ROI ${pct(h.roi)} · chi $${h.chi.toFixed(2)} · thu $${h.thu.toFixed(2)} <i>(doanh thu còn về thêm vài ngày)</i>` : `Hôm qua ${dd(qua)}: chưa có số`,
+    tm ? `<b>Tiền mới vào hôm qua</b> (cộng cả doanh thu về trễ của click cũ): lãi <b>${usd(tm.lai)}</b> · thu $${tm.thu.toFixed(2)} · chi $${tm.chi.toFixed(2)}` : '',
+    `<pre>Ngày     Chi    Thu       Lãi    ROI\n${bang}</pre>`,
+    `Tháng này: lãi <b>${usd(th.thu - th.chi)}</b> · chi $${th.chi.toFixed(2)} · thu $${th.thu.toFixed(2)}`,
+    `Biểu đồ sống: mos2 › Ethopex › Theo ngày`].filter(Boolean).join('\n');
+}
 /** Gỡ HÀNG NÚT của một camp khỏi tin báo khi việc đã xong (anh 22/10/2026: "khi đã duyệt và chạy xong thì ko hiện kiểu này. Bỏ nút Bỏ qua sau đó").
  *  Nhớ các camp đã gỡ theo mã tin (DATA/ethopex-nut-xong.json) — ảnh chụp bàn phím lúc bấm có thể cũ, không được dựng lại hàng đã gỡ. */
 export function goHangNut(markup, idsXong) {
@@ -196,11 +211,25 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
     for (const m of moi) { da.add(khoa(k, m)); for (const c of m.cung) da.add(`${c.k}:${m.id}${c.dich ? `:${c.dich}` : ''}`); } gui++;
   }
+  // TIỀN THẬT MỖI NGÀY (anh 22/10/2026): mỗi nhịp chụp tổng cộng dồn (so-ngay.py --chup → tiền mới vào theo ngày); 9h mỗi sáng (hết giờ yên)
+  // gửi MỘT tin 📊 báo cáo ngày hôm qua + 7 ngày gần nhất. Lỗi thì bỏ qua, không chặn nhịp.
+  try { await chay(SO_NGAY, ['--chup'], 120); } catch (e) { console.error('so-ngay chụp:', e.message); }
+  const tepBc = path.join(DATA(), 'ethopex-bao-ngay.json');
+  if (gioVn >= 9 && docJ(tepBc, {}).ngay !== homNay) {
+    try {
+      const sn = JSON.parse((await chay(SO_NGAY, ['--json'], 120)).trim().split('\n').pop());
+      await tg('sendMessage', { message_thread_id: topic, text: tinBaoNgay(sn, homNay), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      fs.writeFileSync(tepBc, JSON.stringify({ ngay: homNay })); gui++;
+    } catch (e) { console.error('báo cáo ngày:', e.message); }
+  }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
   return { gui, nut };
 }
 
 if (process.argv.includes('--tu-kiem')) {
+  { const { strict: t } = await import('node:assert');
+    const m = tinBaoNgay({ theo_ngay: [{ ngay: '2026-10-20', chi: 32.74, thu: 21.4, lai: -11.34, roi: -34.6 }, { ngay: '2026-10-21', chi: 298.72, thu: 473.7, lai: 174.98, roi: 58.6 }], tien_moi: [], thang: { chi: 331.46, thu: 495.1 } }, '2026-10-22');
+    t.match(m, /Hôm qua 21\/10<\/b> \(theo ngày quảng cáo\): lãi <b>\+\$174\.98/); t.match(m, /20\/10 +\$33 +\$21 +−\$11\.34 +-35%/); t.ok(!/Tiền mới vào/.test(m), 'chưa đủ số chụp thì không in dòng tiền mới'); }
   { const { strict: t } = await import('node:assert');
     const mk = { inline_keyboard: [[{ text: '⏳ ✅ #65678 lên $3 — đã nhận', callback_data: 'x:cho' }, { text: 'Bỏ qua', callback_data: 'et:bo:65678' }], [{ text: '✅ #65110 lên $7', callback_data: 'et:tang:65110:7' }, { text: 'Bỏ qua', callback_data: 'et:bo:65110' }]] };
     t.deepEqual(goHangNut(mk, ['65678']).inline_keyboard.map((h) => h[0].callback_data), ['et:tang:65110:7'], 'gỡ cả hàng ⏳ + Bỏ qua của camp đã xong, giữ camp khác');

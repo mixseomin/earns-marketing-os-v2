@@ -12,7 +12,9 @@ type CtCamp = { campaign: { id: number; name: string; state: string; budget_dail
     media_info?: { video_id?: string; thumbnail_url?: string } | string }[] }[] };
 type DongBc = { campaign_id: number; cost: number; revenue: number };
 export type PhimCho = { id: number; nguon: string; locale: string; ten: string; url: string; so_page: number; so_qc: number; trang_thai: 'cho' | 'can_xem' | 'trung' | 'de_xuat'; ghi: string };
-export type DuLieuEthopex = { luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; loi: string | null };
+export type NgayEtp = { ngay: string; chi: number; thu: number };
+/** theoNgay: Report group_by date (theo ngày quảng cáo — vài ngày gần còn tăng) · tienMoi: tiền thật vào/ra mỗi ngày VN từ điểm chụp cộng dồn (so-ngay.py) */
+export type DuLieuEthopex = { luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; theoNgay: NgayEtp[]; tienMoi: (NgayEtp & { du: boolean })[]; ngayCamp: (NgayEtp & { camp: number })[]; loi: string | null };
 
 let nho: { luc: number; data: DuLieuEthopex } | null = null;
 
@@ -28,10 +30,10 @@ async function baoCao(tu: string, den: string): Promise<Map<number, SoLieu>> {
 export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
   if (!lamMoi && nho && Date.now() - nho.luc < 60_000) return nho.data;
   const db = getDb();
-  if (!db) return { luc: new Date().toISOString(), camps: [], phimThang: [], hangCho: [], loi: 'chưa nối DB' };
+  if (!db) return { luc: new Date().toISOString(), camps: [], phimThang: [], hangCho: [], theoNgay: [], tienMoi: [], ngayCamp: [], loi: 'chưa nối DB' };
   const vn = new Date(Date.now() + 7 * 3600_000), nay = ngay(vn), lui = (n: number) => ngay(new Date(vn.getTime() - n * 86_400_000));
   const ds = await goiEthopex<{ data: { id: number }[] }>(db, '/api/v1/campaigns?page_size=500');
-  if (!ds.ok) return { luc: new Date().toISOString(), camps: [], phimThang: [], hangCho: [], loi: ds.loi };
+  if (!ds.ok) return { luc: new Date().toISOString(), camps: [], phimThang: [], hangCho: [], theoNgay: [], tienMoi: [], ngayCamp: [], loi: ds.loi };
   const ids = ds.data.data.map((c) => c.id);
   const ct: CtCamp[] = [];
   for (let i = 0; i < ids.length; i += 12) {   // 12 lượt song song mỗi đợt — đủ nhanh, không dồn API
@@ -61,7 +63,18 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
       trang_dich: a.final_url ?? null, fb_ad: a.external_ad_id ?? null, fb_video: ((typeof a.media_info === 'string' ? (() => { try { return JSON.parse(a.media_info as string); } catch { return {}; } })() : a.media_info ?? {}) as { video_id?: string }).video_id ?? null,
       loi: a.error || c.error || null, thang: thang.get(c.id) ?? rong, hom_nay: hom.get(c.id) ?? rong, hom_qua: homQua.get(c.id) ?? rong, gan: gan.get(c.id) ?? rong, truoc: truoc.get(c.id) ?? rong };
   }).sort((x, y) => y.id - x.id);
-  const data = { luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], loi: null };
+  // TIỀN THẬT MỖI NGÀY (anh 22/10/2026) — cùng cách tính với scripts/ethopex/so-ngay.py (Telegram 9h dùng bản đó)
+  const nd = await goiEthopex<{ rows: { report_date: string; cost: number; revenue: number }[] }>(db, '/api/v1/report', { method: 'POST', body: { columns: ['date', 'cost', 'revenue'], group_by: ['date'], filters: {}, metric_conditions: [], limit: 1000, page: 1, page_size: 1000, date_from: '2026-10-19', date_to: nay } });
+  const theoNgay: NgayEtp[] = nd.ok ? nd.data.rows.map((r) => ({ ngay: String(r.report_date).slice(0, 10), chi: +r.cost || 0, thu: +r.revenue || 0 })).filter((r) => r.chi || r.thu).sort((a, b) => a.ngay.localeCompare(b.ngay)) : [];
+  // ngày × camp (group_by campaign_name + date) — để biểu đồ "Theo ngày" lọc được theo camp / phim / dạng / ngôn ngữ (anh 22/10/2026)
+  const nc = await goiEthopex<{ rows: { report_date: string; campaign_id: number; cost: number; revenue: number }[] }>(db, '/api/v1/report', { method: 'POST', body: { columns: ['campaign_name', 'date', 'cost', 'revenue'], group_by: ['campaign_name', 'date'], filters: {}, metric_conditions: [], limit: 10000, page: 1, page_size: 10000, date_from: '2026-10-19', date_to: nay } });
+  const ngayCamp = nc.ok ? nc.data.rows.map((r) => ({ ngay: String(r.report_date).slice(0, 10), camp: r.campaign_id, chi: +r.cost || 0, thu: +r.revenue || 0 })).filter((r) => r.chi || r.thu) : [];
+  const luy = ((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_so_luy'`)) as unknown as { gia_tri: { luc: string; chi: number; thu: number }[] }[])[0]?.gia_tri ?? [];
+  const cuoi = new Map<string, { dau: { chi: number; thu: number }; cuoi: { chi: number; thu: number } }>();
+  for (const p of luy) { const d = ngay(new Date(Date.parse(p.luc) + 7 * 3600_000)); const o = cuoi.get(d); if (o) o.cuoi = p; else cuoi.set(d, { dau: p, cuoi: p }); }
+  const tienMoi: (NgayEtp & { du: boolean })[] = []; let truocDiem: { chi: number; thu: number } | null = null;
+  for (const [d, x] of [...cuoi.entries()].sort((a, b) => a[0].localeCompare(b[0]))) { const a = truocDiem ?? x.dau; tienMoi.push({ ngay: d, chi: x.cuoi.chi - a.chi, thu: x.cuoi.thu - a.thu, du: truocDiem != null && d < nay }); truocDiem = x.cuoi; }
+  const data = { luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], theoNgay, tienMoi, ngayCamp, loi: null };
   nho = { luc: Date.now(), data };
   return data;
 }

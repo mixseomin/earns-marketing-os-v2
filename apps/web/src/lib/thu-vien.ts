@@ -9,6 +9,15 @@ export const DANH_MUC: DanhMuc[] = [
     { key: 'video-code', ten: 'Dựng bằng code', icon: '💻', mo_ta: 'three.js / canvas / shader — khung hình là hàm của thời gian, xuất bằng máy' },
     { key: 'video-chu', ten: 'Chữ động · karaoke', icon: '🔤', mo_ta: 'kinetic typography, chữ khớp lời / nhịp' },
     { key: 'video-chuyen-canh', ten: 'Chuyển cảnh · nhịp dựng', icon: '✂️', mo_ta: 'cắt theo nhịp, chuyển cảnh, hiệu ứng' },
+    { key: 'video-motion', ten: 'Motion graphics', icon: '🎞', mo_ta: 'After Effects / Lottie, icon & minh hoạ chuyển động' },
+    { key: 'video-mau', ten: 'Mẫu viral · prompt', icon: '🔥', mo_ta: 'video đã lan truyền kèm prompt / công thức dựng' },
+  ] },
+  { key: 'hieu-ung', ten: 'Hiệu ứng', icon: '✨', mo_ta: 'shader, hạt, nền động, cuộn, rê chuột — dùng cho web lẫn video', con: [
+    { key: 'hieu-ung-shader', ten: 'Shader · hậu kỳ', icon: '🌈', mo_ta: 'GLSL, bloom, grain, khúc xạ, hậu kỳ three.js' },
+    { key: 'hieu-ung-hat', ten: 'Hạt · chất lỏng', icon: '💧', mo_ta: 'particles, confetti, mô phỏng chất lỏng' },
+    { key: 'hieu-ung-nen-3d', ten: 'Nền động 3D', icon: '🌌', mo_ta: 'nền hero chuyển động bằng three.js' },
+    { key: 'hieu-ung-cuon', ten: 'Cuộn · chuyển trang', icon: '📜', mo_ta: 'cuộn mượt, hiệu ứng theo cuộn, chuyển trang' },
+    { key: 'hieu-ung-hover', ten: 'Rê chuột · thành phần', icon: '👆', mo_ta: 'hover, component có hiệu ứng, animation CSS' },
   ] },
   { key: 'giao-dien', ten: 'Giao diện', icon: '🖥', mo_ta: 'web · app · dashboard', con: [
     { key: 'giao-dien-trang', ten: 'Trang đích · bán hàng', icon: '🛬', mo_ta: 'landing, trang sản phẩm, CTA' },

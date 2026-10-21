@@ -59,6 +59,17 @@ def ly_do_dong(c):
     t = tron.get(c["id"]) or tron.get(str(c["id"]))
     if t and t["chi"] > 10 and roi(t) is not None and roi(t) < -50: cau += f" · khớp luật OFF (tiêu ${t['chi']:.2f}, ROI {roi(t):+.0f}%)"
     return (cau, luc)
+# NHỊP TĂNG (nhip_tang.py): camp vừa tăng < 3 giờ hoặc đã tăng 2 lần hôm nay thì KHÔNG hiện nút tăng / đầu phiên nữa
+import importlib.util as _iu
+_s = _iu.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = _iu.module_from_spec(_s); _s.loader.exec_module(NT)
+def _loc(ds):
+    ra = []
+    for cid, chu in ds:
+        try: ly = NT.chan_tang(api, cid)
+        except Exception: ly = None
+        if not ly: ra.append((cid, chu))
+    return ra
+dat, dau_phien = _loc(dat), _loc(dau_phien)
 tu_choi, dong_l = [], []
 try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:

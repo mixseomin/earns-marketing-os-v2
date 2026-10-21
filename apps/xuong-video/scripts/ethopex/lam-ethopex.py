@@ -3,9 +3,10 @@
 Chỉ hai việc, đúng API giao diện Ethopex dùng (đọc từ mã app 21/10/2026):
   tang <camp_id> <ngân sách>   → POST /api/v1/campaigns/update {campaign:{campaign_id, source_payload:{daily_budget}}}
   tat  <camp_id>               → POST /api/v1/campaigns/control/batch/bulk [{entity_type:'campaign', entity_ids:[id], status:'paused'}]
-Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE. Làm xong ĐỌC LẠI camp để xác nhận.
+Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: ≥ 3 giờ giữa hai lần, ≤ 2 lần/ngày). Làm xong ĐỌC LẠI camp để xác nhận.
 In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
-import json, os, subprocess, sys, time, urllib.request
+import json, os, subprocess, sys, time, urllib.request, importlib.util
+_s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = importlib.util.module_from_spec(_s); _s.loader.exec_module(NT)
 
 MUC = {2, 3, 5, 7, 10, 15, 20}
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
@@ -29,6 +30,8 @@ def main(a):
             if ns not in MUC: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}")
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
+            ly = NT.chan_tang(lambda p: api(p), cid)   # nhịp tăng: ≥ 3 giờ giữa hai lần, ≤ 2 lần/ngày (nút cũ bấm muộn cũng bị chặn)
+            if ly: raise ValueError(ly)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
             ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "tat":

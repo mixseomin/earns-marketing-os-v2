@@ -1612,6 +1612,16 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     dat_tuy_chon(set(sh.get('them') or []))
     than, objs = nhan_vat(sh); bpy.context.view_layer.update()
     cam = may(s, sh['may'], f"dien {sh['ma']}")
+    # NGẮM LẠI theo DÁNG THẬT như khung tĩnh (ngam_lai): điểm nhìn khai là chỗ chủ thể lúc đứng thẳng / chỗ đặt món, dáng diễn dời nó đi — clip
+    # trước đây không ngắm lại nên #28 (Thần chống bàn cúi xuống) chỉ thấy bảng biểu đồ, #29 (chuỗi hạt đeo cổ tay đang chống bàn) thấy ngực áo.
+    # Cả đường máy (chay.nhin) dời cùng độ lệch.
+    if sh.get('bat_buoc'):
+        nm = ngam_lai(s, cam, sh, objs + than)
+        if nm:
+            lech_ = Vector(nm) - Vector(sh['may']['nhin']); sh['may']['nhin'] = nm
+            cam.rotation_euler = (Vector(nm) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
+            if sh['may'].get('chay'): sh['may']['chay'] = {**sh['may']['chay'], 'nhin': list(Vector(sh['may']['chay']['nhin']) + lech_)}
+            print('NGAM LAI', sh['ma'], [round(x) for x in lech_])
     N = max(2, int(round(giay * fps)))
     s.render.fps = fps; s.frame_start = 1; s.frame_end = N
     neo = {}
@@ -1890,7 +1900,8 @@ def ngam_lai(s, cam, sh, khoi, ket=False):
             if mo: mat_ = dich = sum((o.matrix_world @ Vector(c) for o in mo for c in o.bound_box), Vector()) / (8 * len(mo))
         if dich is not None: diem.append((mat_, dich))
     if not diem: return None
-    bien = 0.25 if ket else 0.12
+    # cận ĐỒ VẬT (chủ thể là món, không phải người — insert chuỗi hạt #29): món phải gần giữa khung, không chỉ "còn trong khung"
+    bien = 0.3 if sh['bat_buoc'][0] not in NGUOI else 0.25 if ket else 0.12
     def trong(p):
         v_ = world_to_camera_view(s, cam, p); return bien < v_.x < 1 - bien and 0.12 < v_.y < 0.88 and v_.z > 0
     if all(trong(m) for m, _ in diem): return None

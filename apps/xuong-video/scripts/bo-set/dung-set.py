@@ -1665,7 +1665,9 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         if t < 0.1: return -0.025 * math.sin(math.pi * t / 0.1)   # lấy đà: lùi nhẹ trước khi đi
         u = (t - 0.1) / 0.9
         return em(u) + 0.04 * math.sin(math.pi * min(1, max(0, (u - 0.7) / 0.3)))   # vượt quá ~4 % rồi khựng về đúng chỗ kết
-    boil = float(os.environ.get('XV_BOIL', '1'))
+    # BOIL (xê dịch / xoay ngẫu nhiên mỗi khung như tay nặn chạm giữa hai lần chụp) chỉ cho phim ĐẤT SÉT — phim người thật (MESH_THAT) mà boil thì
+    # mọi nhân vật giật vài điểm ảnh mỗi khung (anh 21/10/2026 "khung hình rung rung", tập 135 #11 Vivian đứng yên chênh 14/255 mỗi khung)
+    boil = float(os.environ.get('XV_BOIL') or (0 if MESH_THAT else 1))
     import random
     for ten, (e, nv) in neo.items():
         if nv.get('cam') and nv['cam'] in neo: continue
@@ -1700,9 +1702,12 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             q = [math.radians(r.uniform(-0.4, 0.4) * boil) for _ in range(3)]
             dt = dong_tac_luc(hd, t, r)   # {phong, nhay, lui, lan, run, nghieng...} theo thư viện
             p += Vector((0, 0, dt['nhay'] - dt['lun'])) + Vector([r.uniform(-1, 1) * dt['run'] for _ in range(3)])
-            hh = math.radians(h0 + dh * k); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
+            # QUAY tại chỗ (huong_den, không đi): GIỮ hướng mở tới 55 % shot rồi quay trong 45 % cuối — nhịp diễn "nhìn → rồi quay đi". Quay đều cả shot thì
+            # giữa shot đã thấy sau gáy, mất cái nhìn chính (anh 21/10/2026, tập 135 #12 Thần nhìn Hạ rồi quay đi). Đang đi: đổi hướng theo bước như cũ.
+            kq = k if di else em(min(1.0, max(0.0, (t - 0.55) / 0.45)))
+            hh = math.radians(h0 + dh * kq); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
             nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di else 0.0) - math.radians(dt['nga'])   # đi: chúi tới · ngã ngồi: ngả ra sau
-            R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * k + dt['xoay']) + q[2]) @ Quaternion((1, 0, 0), q[0]))
+            R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(dh * kq + dt["xoay"]) + q[2]) @ Quaternion((1, 0, 0), q[0]))
             e.rotation_mode = 'QUATERNION'
             cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 and ten not in NGUOI else 0.0   # 1 = chân vừa chạm đất (người thật không bẹp như đất nặn)
             bep = 0.035 * cham + dt['bep']; ph = dt['phong']

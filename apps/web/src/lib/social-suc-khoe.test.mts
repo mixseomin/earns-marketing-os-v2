@@ -53,4 +53,6 @@ assert.equal(nguyenNhan('Đăng hỏng: X: không đứng ở tài khoản @befo
 assert.equal(nguyenNhan('Đăng hỏng: TikTok: 90 giây chưa rời màn đăng').ten, 'TikTok: đã bấm Post nhưng không xác nhận được');
 { const s4 = tinhSucKhoe({ ...v, hong: [...v.hong, { may: 'b', nen: 'x_anh', luc: '2026-10-20T01:04:00Z', chu: 'X: không đứng ở tài khoản @b' }], da: [...v.da, { may: 'b', nen: 'x', ngay: '2026-10-20', luc: '2026-10-20T02:00:00Z', url: null }] });
   assert.ok(!s4.suCo.some((x) => x.kenh.includes('B · X_ANH')), 'x đăng được sau lỗi x_anh cùng tài khoản → lỗi x_anh coi như đã khỏi'); }
+{ const s5 = tinhSucKhoe({ ...v, noi: [...v.noi, noi('h', 'x_link', '540')], lich: [...v.lich, { may: 'h', nen: 'x_link', ngay: '2026-10-22', gio: '02:00' }] });
+  assert.ok(!s5.suCo.some((x) => x.tieuDe.startsWith('Không đăng') && x.kenh.includes('H · X_LINK')), 'nền mới chưa tới lượt đầu → không báo im lặng'); }
 console.log('✓ social-suc-khoe: ô 4 ngày · gom sự cố theo nguyên nhân · cảnh báo dừng 7 ngày · lỗi đã khỏi không báo · kho cạn · im lặng');

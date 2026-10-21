@@ -96,7 +96,7 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
   // im lặng: ≥ 2 ngày không bài, không lỗi (không có lượt chạy / máy Mac tắt / bị trần chặn)
   for (const d of dong) {
     const coLoi = [...gom.values()].some((g) => g.kenh.includes(`${d.mayTen.split(' · ')[0]} · ${d.nenTen}`));
-    if (!coLoi && d.o.slice(-3).every((x) => x.tt === 'khong'))   // im lặng = 3 ngày gần nhất không bài, không lỗi, không lượt chờ
+    if (!coLoi && !(d.cuoiOk == null && d.khoDen) && d.o.slice(-3).every((x) => x.tt === 'khong'))   // nền mới chưa tới lượt đầu (chưa đăng lần nào, đã có lịch) không phải im lặng   // im lặng = 3 ngày gần nhất không bài, không lỗi, không lượt chờ
       them('im', 'warn', 'Không đăng mà không báo lỗi', 'Hai ngày qua không bài, không lỗi: không có lượt chạy, máy Mac tắt, hoặc nhịp an toàn chặn. Xem nhật ký máy đăng.', ten(d), null);
   }
   // kho sắp cạn (lịch còn ≤ 7 ngày)

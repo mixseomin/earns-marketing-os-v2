@@ -10,6 +10,7 @@ URL=$(ssh -o ConnectTimeout=15 root@167.233.241.16 "cd /opt/earns-marketing-os-v
   WHERE p.project = 'ethopex' AND (p.kinh_thanh->'ethopex'->>'creative_id')::int = $CR AND coalesce(x->>'url','') <> '' ORDER BY x->>'luc' DESC LIMIT 1\"" 2>/dev/null)
 [ -z "$URL" ] && { echo "THOAI CHAN: không tìm thấy video của creative #$CR trong studio"; exit 2; }
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
-curl -sfL -m 300 -o "$T/v.mp4" "$URL" || { echo "THOAI CHAN: không tải được video $URL"; exit 2; }
+# R2 → Mac lượt đầu ~340 KB/s (21/10/2026: video 45 MB mất 2'14") — 300s là sát nút, nên 900s + thử lại 2 lần
+curl -sfL -m 900 --retry 2 -o "$T/v.mp4" "$URL" || { echo "THOAI CHAN: không tải được video $URL"; exit 2; }
 L=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/v.mp4")
 python3 "$D/kiem-thoai.py" "$T/v.mp4" 0 "$L"

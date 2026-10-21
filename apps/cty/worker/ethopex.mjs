@@ -58,13 +58,20 @@ const TEP_BANG = () => path.join(DATA(), 'ethopex-bang.json');
 export const BANG_MOI_PHUT = 5;
 const tienUsd = (x) => `${x < 0 ? '−' : '+'}$${Math.abs(x).toFixed(2)}`;
 const roiChu = (r) => (r == null ? '—' : `${r > 0 ? '+' : ''}${Math.round(r)}%`);
+/** Bảng theo nội dung kiểu màn Report Ethopex (Content · ROI · Profit · Cost, ROI giảm dần, dòng tổng) — chữ đơn cách trong <pre> cho thẳng cột. */
+export function bangNoiDung(ds, tong, rong = 15) {
+  const cat = (x) => (x.length > rong ? `${x.slice(0, rong - 1)}…` : x.padEnd(rong));
+  const hang = (ten, roi, lai, chi) => `${cat(ten)} ${roi.padStart(5)} ${lai.padStart(7)} ${chi.padStart(6)}`;
+  const usd = (x) => `${x < 0 ? '-' : '+'}$${Math.abs(x).toFixed(2)}`;
+  return [hang('Nội dung', 'ROI', 'Lãi', 'Chi'), '─'.repeat(rong + 21), ...ds.map((x) => hang(x.ten, roiChu(x.roi), usd(x.lai), `$${x.chi.toFixed(2)}`)), '─'.repeat(rong + 21),
+    hang(`Tổng ${ds.length} phim`, roiChu(tong.roi), usd(tong.lai), `$${tong.chi.toFixed(0)}`)].map(esc).join('\n');
+}
 export function tinBang(t) {
-  const dong = (nhan, a, them = '') => `<b>${nhan}</b>: lãi <b>${tienUsd(a.lai)}</b> · ROI <b>${roiChu(a.roi)}</b> · chi $${a.chi.toFixed(2)} → thu $${a.thu.toFixed(2)}${them}`;
-  return [`📊 <b>ETHOPEX — số tổng</b> · cập nhật ${esc(t.luc)}`, '',
-    dong('Hôm nay', t.hom, ` · ${t.hom.camp} camp chạy · ngân sách $${t.hom.budget}/ngày`), dong('Hôm qua', t.qua), dong('Tháng này', t.thang), dong('Từ đầu', t.tron), '',
-    t.top.length ? `🏆 Lãi nhất hôm nay:\n${t.top.map((x) => `• #${esc(x.ten)} ${tienUsd(x.lai)} (ROI ${roiChu(x.roi)}, $${x.budget}/ngày)`).join('\n')}` : '',
-    t.day.length ? `🔻 Lỗ nhất hôm nay:\n${t.day.map((x) => `• #${esc(x.ten)} ${tienUsd(x.lai)} (ROI ${roiChu(x.roi)})`).join('\n')}` : '',
-    `<i>Tự cập nhật mỗi ${BANG_MOI_PHUT} phút · bấm 🔄 để lấy số ngay</i>`].filter((x, i, a) => x !== '' || a[i - 1] !== '').join('\n');
+  const dong = (nhan, a) => `<b>${nhan}</b>: lãi <b>${tienUsd(a.lai)}</b> · ROI <b>${roiChu(a.roi)}</b> · chi $${a.chi.toFixed(2)}`;
+  return [`📊 <b>ETHOPEX hôm nay</b> · cập nhật ${esc(t.luc)}`,
+    `<pre>${bangNoiDung(t.noi_dung ?? [], t.hom)}</pre>`,
+    `${t.hom.camp} camp chạy · ngân sách $${t.hom.budget}/ngày`, dong('Hôm qua', t.qua), dong('Tháng này', t.thang),
+    `<i>Tự cập nhật mỗi ${BANG_MOI_PHUT} phút · bấm 🔄 để lấy số ngay</i>`].join('\n');
 }
 const NUT_BANG = { inline_keyboard: [[{ text: '🔄 Làm mới', callback_data: 'eb:moi' }]] };
 /** Cập nhật tin ghim: ep = bỏ qua hẹn 5 phút (nút 🔄). Trả 'sua' | 'moi' | null (chưa tới lượt). */
@@ -120,8 +127,10 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
 
 if (process.argv.includes('--tu-kiem')) {
   { const { strict: t } = await import('node:assert'); const z = { chi: 1, thu: 2, lai: 1, roi: 100, camp: 1 };
-    const b = tinBang({ luc: '17:19 21/10', hom: { chi: 149.48, thu: 165.5, lai: 16.02, roi: 10.7, camp: 88, budget: 174 }, qua: { ...z, lai: -11.33, roi: -34.6 }, thang: z, tron: z, top: [{ ten: '65724: Nobody', lai: 13.29, roi: 457, budget: 5 }], day: [] });
-    t.match(b, /Hôm nay<\/b>: lãi <b>\+\$16\.02<\/b> · ROI <b>\+11%<\/b>/); t.match(b, /Hôm qua<\/b>: lãi <b>−\$11\.33/); t.match(b, /88 camp chạy · ngân sách \$174\/ngày/); t.match(b, /#65724: Nobody \+\$13\.29 \(ROI \+457%/); t.doesNotMatch(b, /Lỗ nhất/);
+    const b = tinBang({ luc: '17:19 21/10', hom: { chi: 149.48, thu: 171.67, lai: 22.19, roi: 14.8, camp: 88, budget: 174 }, qua: { ...z, lai: -11.33, roi: -34.6 }, thang: z, tron: z, top: [], day: [],
+      noi_dung: [{ ten: 'Dear Brother, Your Regret Came Too Late', roi: 113, lai: 4.01, chi: 3.56 }, { ten: 'Number One, Nobody', roi: 83, lai: 30.01, chi: 36.05 }, { ten: 'Black Life', roi: -3, lai: -0.25, chi: 9.62 }] });
+    t.match(b, /<pre>Nội dung +ROI +Lãi +Chi\n/); t.match(b, /\nDear Brother, … +\+113% +\+\$4\.01 +\$3\.56\n/); t.match(b, /\nBlack Life +-3% +-\$0\.25 +\$9\.62\n/); t.match(b, /Tổng 3 phim +\+15% +\+\$22\.19 +\$149<\/pre>/);
+    t.equal(new Set(b.split('<pre>')[1].split('</pre>')[0].split('\n').map((l) => l.length)).size, 1, 'mọi hàng cùng độ dài = thẳng cột'); t.match(b, /Hôm qua<\/b>: lãi <b>−\$11\.33/);
     const os = await import('node:os'); process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'eb-')); fs.writeFileSync(path.join(DATA(), 'tg-ethopex.json'), JSON.stringify({ topic: 9 }));
     const goi = []; let sua = { ok: false, description: 'message to edit not found' }; const tg = async (m, x) => { goi.push([m, x]); return m === 'sendMessage' ? { ok: true, result: { message_id: 77 } } : m === 'editMessageText' ? sua : { ok: true }; };
     const doc = async () => ({ luc: 'x', hom: { ...z, budget: 1 }, qua: z, thang: z, tron: z, top: [], day: [] });

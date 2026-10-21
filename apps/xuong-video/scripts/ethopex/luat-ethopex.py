@@ -42,10 +42,15 @@ for cid, a in sorted(thang.items()):
 
 def api(p):
     return json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=30))
-tu_choi = []
+tu_choi, dong_l = [], []
 try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
         if c.get("state") == "ARCHIVED": continue
+        if c.get("state") == "PAUSED":   # camp đã bị đóng (rule Ethopex / tay) — anh 21/10/2026: "các camp chạm rule đóng cũng gửi lên telegram"
+            a = thang.get(c["id"]) or thang.get(str(c["id"])) or {}; r = roi(a) if a else None
+            luc = (dt.datetime.fromisoformat(str(c.get("updated_at", "")).replace("Z", "+00:00")) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m") if c.get("updated_at") else "?"
+            dong_l.append((c["id"], f"#{c['id']}: {c['name'][:60]} · dừng lúc {luc}" + (f" · tháng này chi ${a['chi']:.2f}, thu ${a.get('thu', 0):.2f}" + (f", ROI {r:+.0f}%" if r is not None else "") if a else "")))
+            continue
         dct = api(f"/api/v1/campaigns/{c['id']}"); ad = ((dct.get("ad_groups") or [{}])[0].get("ads") or [{}])[0]
         if "DISAPPROVED" in str(ad.get("error") or "") or ad.get("delivery_status") == "DISAPPROVED":
             tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối → Edit camp, thay creative sạch đã duyệt cùng phim (soat-camp-api.py gợi ý)"))
@@ -54,7 +59,7 @@ except Exception as e:
 tat_l = [(cid, f"#{a['ten'][:70]} · tiêu ${a['chi']:.2f} từ trước tới nay · ROI {roi(a):+.0f}% → TẮT") for cid, a in tron.items() if a["chi"] > 10 and roi(a) is not None and roi(a) < -50]
 if JSON:
     m = lambda ds: [{"id": i, "chu": s} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "moc30": m(moc30), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "moc30": m(moc30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)

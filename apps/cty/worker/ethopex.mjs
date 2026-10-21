@@ -24,6 +24,7 @@ const NHOM = [
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI tháng ≥ 20%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['giam', '↓ <b>ROI TỤT</b> — phim down trend / creative bão hoà, xem giảm hoặc tắt', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['moc30', '★ <b>CHẠM MỐC $30 MÀ VẪN LÃI</b> — hỏi Support cách scale bài viết cũ + bid ROAS', null],
+  ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
 ];
 
 /** Nút anh bấm: et:tang:<id>:<$> · et:tat:<id> · et:bo:<id>. */
@@ -48,6 +49,9 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
   const kq = JSON.parse((await chay(LUAT, ['--json'])).trim().split('\n').pop());
   const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   const st = docJ(TEP(), {}); const da = st.ngay === homNay ? new Set(st.da) : new Set();
+  // camp ĐÃ ĐÓNG báo một lần mỗi lần dừng (không theo ngày): nhớ tập đang dừng; camp chạy lại thì rời tập, dừng lần sau báo lại
+  const dongTruoc = new Set(st.dong ?? []), dongNay = new Set((kq.dong || []).map((m) => String(m.id)));
+  for (const id of dongTruoc) if (dongNay.has(id)) da.add(`dong:${id}`);
   let gui = 0;
   for (const [k, tieu, nutCho] of NHOM) {
     const moi = (kq[k] || []).filter((m) => !da.has(`${k}:${m.id}`)).map((m) => ({ ...m, dich: (String(m.chu).match(/→ \$(\d+)/) || [])[1] }));
@@ -58,7 +62,7 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
     for (const m of moi) da.add(`${k}:${m.id}`); gui++;
   }
-  fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da] }));
+  fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
   return { gui, nut };
 }
 

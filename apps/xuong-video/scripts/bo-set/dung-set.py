@@ -642,6 +642,7 @@ def nhan_vat(sh, ket=False):
     than, tat_ca = [], []
     TRANG.clear()
     for nv in sh.get('nhan_vat', []):
+        if nv.get('an'): continue   # ẨN (đã rời cảnh / ngoài shot): không dựng — trước 22/10/2026 vẫn dựng nên #28 thấy Hạ đứng giữa khung dù kịch bản cô đã đi
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
         cam_luc_nay = nv.get('cam') and not (ket and nv.get('den'))   # cam + den = đặt xuống trong shot: khung kết không còn cầm
         if ket is True: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam')), 'nghieng': nv.get('nghieng_den', nv.get('nghieng'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
@@ -1611,17 +1612,8 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     (<ra>/f####.png) + in số khung của 5 khung khoá 0 · ¼ · ½ · ¾ · cuối (dòng 'KHOA i f') cho video nhiều khung. Máy đứng yên như máy shot."""
     dat_tuy_chon(set(sh.get('them') or []))
     than, objs = nhan_vat(sh); bpy.context.view_layer.update()
+    khoi_ngam = objs + than   # giữ riêng: vòng diễn bên dưới dùng lại tên `than`
     cam = may(s, sh['may'], f"dien {sh['ma']}")
-    # NGẮM LẠI theo DÁNG THẬT như khung tĩnh (ngam_lai): điểm nhìn khai là chỗ chủ thể lúc đứng thẳng / chỗ đặt món, dáng diễn dời nó đi — clip
-    # trước đây không ngắm lại nên #28 (Thần chống bàn cúi xuống) chỉ thấy bảng biểu đồ, #29 (chuỗi hạt đeo cổ tay đang chống bàn) thấy ngực áo.
-    # Cả đường máy (chay.nhin) dời cùng độ lệch.
-    if sh.get('bat_buoc'):
-        nm = ngam_lai(s, cam, sh, objs + than)
-        if nm:
-            lech_ = Vector(nm) - Vector(sh['may']['nhin']); sh['may']['nhin'] = nm
-            cam.rotation_euler = (Vector(nm) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
-            if sh['may'].get('chay'): sh['may']['chay'] = {**sh['may']['chay'], 'nhin': list(Vector(sh['may']['chay']['nhin']) + lech_)}
-            print('NGAM LAI', sh['ma'], [round(x) for x in lech_])
     N = max(2, int(round(giay * fps)))
     s.render.fps = fps; s.frame_start = 1; s.frame_end = N
     neo = {}
@@ -1784,6 +1776,17 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                     P.location = Vector(P['goc_tay']) + Vector((0, 0, dt['vai'] * CM)); P.keyframe_insert('location', frame=f)
     # MÁY CHẠY (duong-may.ts › duongMay, số nghề may_di): mở → kết theo tốc độ (nhanh = xong trong 30 % đầu như crash zoom), ống kính đổi theo
     # (zoom), nét tính lại từng khung theo chỗ máy. Cầm tay: lắc chậm + run từng khung (người cầm máy thở), biên độ theo khoảng cách máy.
+    # NGẮM LẠI theo DÁNG THẬT như khung tĩnh (ngam_lai): điểm nhìn khai là chỗ chủ thể lúc đứng thẳng / chỗ đặt món, dáng diễn dời nó đi — clip
+    # trước đây không ngắm lại nên #28 (Thần chống bàn cúi xuống) chỉ thấy bảng biểu đồ, #29 (chuỗi hạt đeo cổ tay đang chống bàn) thấy ngực áo.
+    # Cả đường máy (chay.nhin) dời cùng độ lệch.
+    if sh.get('bat_buoc'):
+        s.frame_set(1); bpy.context.view_layer.update()   # đo ở KHUNG 1 sau khi khoá dáng diễn đã đặt — dáng dựng tĩnh lệch (#28 đầu 127 vs 145 cm)
+        nm = ngam_lai(s, cam, sh, khoi_ngam)
+        if nm:
+            lech_ = Vector(nm) - Vector(sh['may']['nhin']); sh['may']['nhin'] = nm
+            cam.rotation_euler = (Vector(nm) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
+            if sh['may'].get('chay'): sh['may']['chay'] = {**sh['may']['chay'], 'nhin': list(Vector(sh['may']['chay']['nhin']) + lech_)}
+            print('NGAM LAI', sh['ma'], [round(x) for x in lech_])
     chay = sh['may'].get('chay')
     if chay and chay.get('che'): print('CANH BAO duong nhin bi che boi', chay['che'], '— dat lai may shot', sh.get('so'))
     if chay:
@@ -1861,11 +1864,6 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         f = 1 + round(t * (N - 1)); print('KHOA', i, f)
     print('XONG dien', sh['ma'], N, 'khung')
 
-if os.environ.get('XV_DIEN'):   # đường riêng: diễn + render cả shot (shot đầu tiên trong tệp đầu vào)
-    # 24 khung/giây cho phim người thật (MESH_THAT — anh 21/10/2026 "khung hình khi quay cứ rung rung": máy lia / đẩy ở 12 khung/giây giật từng nấc);
-    # 12 giữ cho phim đất sét (nhịp stop-motion). Số khung/giây ghi fps.txt → ghep-dien.sh ghép đúng nhịp.
-    _fps = int(os.environ.get('XV_FPS') or (24 if MESH_THAT else 12)); open(os.path.join(RA, 'fps.txt'), 'w').write(str(_fps))
-    dien_shot(s, DL['shot'][0], RA, float(os.environ.get('XV_GIAY', '4')), _fps); sys.exit(0)
 if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng tỉ lệ nhân vật
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
@@ -1890,7 +1888,11 @@ def ngam_lai(s, cam, sh, khoi, ket=False):
                 Ld = n_['L']['dau'] * CM; goc_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * Ld))
                 fw = n_['dau'].matrix_world.to_quaternion() @ Vector((0, -1, 0)); fw.z = 0   # hướng mặt THẬT của khớp đầu, không phải huong khai
                 fw = fw.normalized() if fw.length > 1e-3 else Vector((math.sin(h), -math.cos(h), 0))
-                mat_ = goc_ + fw * 0.5 * Ld; dich = goc_ + fw * 0.8 * Ld
+                # KHOẢNG NHÌN tính theo BỀ NGANG KHUNG ở khoảng cách đó (≤ 12 %), không theo cỡ đầu: khung dọc 9:16 ống dài chỉ rộng ~30 cm ở 1 m — đẩy
+                # 0,8 chiều dài đầu (~20–30 cm) thì đầu văng khỏi khung (22/10/2026 tập 135 #28 Thần nhìn ngang máy, khung chỉ còn tay + người phụ)
+                rx_, ry_ = s.render.resolution_x, s.render.resolution_y
+                w_ = (goc_ - cam.matrix_world.translation).length * cam.data.sensor_width / cam.data.lens * (min(rx_, ry_) / max(rx_, ry_))
+                mat_ = goc_ + fw * min(0.5 * Ld, 0.08 * w_); dich = goc_ + fw * min(0.8 * Ld, 0.12 * w_)
             else:   # ống rộng: ngắm ngực, nhưng MẶT phải trong khung (#14 kết đẩy vào 50 mm, ngực giữa khung mà mặt cắt ở mép trên)
                 dau_ = n_['dau'].matrix_world.translation + Vector((0, 0, 0.6 * n_['L']['dau'] * CM)); nguc_ = n_['nguc'].matrix_world.translation
                 if all(0.12 < c_ < 0.88 for c_ in world_to_camera_view(s, cam, nguc_)[:2]): mat_, dich = dau_, (dau_ + nguc_) / 2
@@ -1926,6 +1928,13 @@ def cat_dau(cam, sh, nhin=None):
     if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)
 
 kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}; LECH_NHIN = {}
+# Clip diễn (XV_DIEN): chạy SAU khi mọi hàm ngắm / cắt đã định nghĩa (ngam_lai, cat_dau — 22/10/2026 gọi trước định nghĩa → NameError)
+if os.environ.get('XV_DIEN'):   # đường riêng: diễn + render cả shot (shot đầu tiên trong tệp đầu vào)
+    # 24 khung/giây cho phim người thật (MESH_THAT — anh 21/10/2026 "khung hình khi quay cứ rung rung": máy lia / đẩy ở 12 khung/giây giật từng nấc);
+    # 12 giữ cho phim đất sét (nhịp stop-motion). Số khung/giây ghi fps.txt → ghep-dien.sh ghép đúng nhịp.
+    _fps = int(os.environ.get('XV_FPS') or (24 if MESH_THAT else 12)); open(os.path.join(RA, 'fps.txt'), 'w').write(str(_fps))
+    dien_shot(s, DL['shot'][0], RA, float(os.environ.get('XV_GIAY', '4')), _fps); sys.exit(0)
+
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     dat_khai = list(sh['may']['dat'])   # máy KHAI (trước kẹp / bộ giải) — đường máy chay tính từ chỗ này, máy dời bao nhiêu thì chỗ kết dời theo bấy nhiêu

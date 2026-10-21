@@ -8,7 +8,7 @@ export const TRAN_CAMP = 20;
 export const ROI_TOI_THIEU = 20;        // % ROI từ đầu tháng
 export const SPENDING_TOI_THIEU = 50;   // % = chi hôm nay / ngân sách ngày
 export const TEST_TOI_DA = 2;           // camp / phim đang test (từ 21/10/2026)
-export const THANG_TOI_DA = 30;         // camp / phim thắng
+export const THANG_TOI_DA = 10;         // camp / phim thắng — ban đầu ~10 camp cho tiêu ổn định (Dol Dang 21/10/2026; trước 30)
 export const KHUNG_TANG = [21, 0, 8];   // giờ VN
 export const NGAN_SACH_CHUA_CAN_GIO = 3;
 
@@ -21,6 +21,10 @@ export type Luat = { ma: string; ten: string; icon: string; muc: MucLuat; gac: '
 export const LUAT: Luat[] = [
   { ma: 'TB', ten: 'Tăng một bậc', icon: '↑', muc: 'len', gac: 'nguoi', khi: `ROI từ đầu tháng ≥ ${ROI_TOI_THIEU}% và Spending hôm nay > ${SPENDING_TOI_THIEU}%`,
     lam: `Tăng một bậc ${THANG.map((x) => '$' + x).join(' → ')} — anh duyệt từng camp, tối đa 2–3 lần tăng / ngày`, vi: 'Chi tiêu lên mà ROI vẫn giữ = camp còn sức ăn thêm.', nguon: 'Support Ads 20/10/2026' },
+  { ma: 'LD', ten: 'Lãi đầu phiên → tăng luôn', icon: '⇑', muc: 'len', gac: 'nguoi', khi: 'Camp lãi hôm nay, đã chi ≥ $0,5, ROI hôm nay > 50%, ngân sách < $3',
+    lam: 'Tăng luôn lên $2 (ROI 50–100%) hoặc $3 (ROI ≥ 100%) — không chờ Spending > 50%', vi: 'Phim đang trend thắng: đầu phiên đã lãi thì tăng ngay để ăn trọn phiên. Chỉ camp ROI > 50%.', nguon: 'Dol Dang 21/10/2026' },
+  { ma: 'M30', ten: 'Mốc $30 / camp', icon: '★', muc: 'bao', gac: 'nguoi', khi: 'Camp đã tiêu ~$30 mà vẫn lãi',
+    lam: 'Báo nhóm Support để học cách scale bằng bài viết cũ + bid ROAS (rule mới lúc đó)', vi: 'Camp chịu tiền mà vẫn lãi là lúc chuyển sang cách scale khác.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'TR20', ten: 'Trần $20 / camp', icon: '⊤', muc: 'bao', gac: 'nguoi', khi: `Ngân sách đã $${TRAN_CAMP}`, lam: 'Không tăng nữa — muốn thêm tiền thì nhân bản camp', vi: 'Giữ ROI cao, không dồn một camp.', nguon: 'anh 20/10/2026' },
   { ma: 'KG', ten: 'Khung giờ tăng', icon: '◷', muc: 'bao', gac: 'nguoi', khi: `Lúc tăng ngân sách (camp > $${NGAN_SACH_CHUA_CAN_GIO})`,
     lam: 'Tăng vào ~21h · ~24h · 8h giờ VN; không thu lại sau khung', vi: 'Camp chạy chủ yếu Mỹ — hiệu suất tốt nhất 21h → 5h sáng giờ VN. Ngân sách $1–3 chưa cần canh giờ.', nguon: 'Dol Dang 21/10/2026' },
@@ -64,6 +68,13 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
   const tbDat = tbDk.every((d) => d.dat);
   if (c.trang_thai === 'ACTIVE') out.push({ ma: 'TB', trang_thai: tbDat ? 'cham' : tbDk.filter((d) => d.dat).length >= 2 ? 'gan' : 'ap',
     cau: tbDat ? `Đủ điều kiện: $${c.ngan_sach} → $${ke} — chờ anh duyệt` : `ROI ${pct(r)} · spending ${sp.toFixed(0)}% → chưa tăng`, dk: tbDk });
+  const rh = roi(c.hom_nay);
+  if (c.trang_thai === 'ACTIVE' && c.ngan_sach < 3) {
+    const dich = rh != null && rh >= 100 ? 3 : 2, dat = c.hom_nay.chi >= 0.5 && rh != null && rh > 50 && dich > c.ngan_sach;
+    out.push({ ma: 'LD', trang_thai: dat ? 'cham' : rh != null && rh > 0 ? 'gan' : 'ap', cau: dat ? `Lãi đầu phiên: $${c.ngan_sach} → $${dich} — tăng luôn` : `ROI hôm nay ${pct(rh)} · chi $${c.hom_nay.chi.toFixed(2)}`,
+      dk: [{ ten: 'Đã chi hôm nay', hien: `$${c.hom_nay.chi.toFixed(2)}`, nguong: '≥ $0,5', dat: c.hom_nay.chi >= 0.5 }, { ten: 'ROI hôm nay', hien: pct(rh), nguong: '> 50%', dat: rh != null && rh > 50 }] });
+  }
+  if (c.thang.chi >= 30 && c.thang.thu > c.thang.chi) out.push({ ma: 'M30', trang_thai: 'cham', cau: `Đã tiêu $${c.thang.chi.toFixed(2)} mà vẫn lãi — hỏi Support scale bài viết cũ + bid ROAS`, dk: [] });
   if (ke == null) out.push({ ma: 'TR20', trang_thai: 'cham', cau: `Đã ở trần $${TRAN_CAMP}`, dk: [{ ten: 'Ngân sách', hien: `$${c.ngan_sach}`, nguong: `$${TRAN_CAMP}`, dat: true }] });
   if (c.ngan_sach > NGAN_SACH_CHUA_CAN_GIO || tbDat) out.push({ ma: 'KG', trang_thai: 'ap', cau: 'Khi tăng: chọn mốc ~21h · ~24h · 8h giờ VN', dk: [] });
   const rg = roi(c.gan), rt = roi(c.truoc);

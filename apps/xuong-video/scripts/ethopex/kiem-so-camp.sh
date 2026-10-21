@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# CỔNG SỐ CAMP MỖI PHIM (anh 21/10/2026: "test 1 phim mình sẽ chỉ lên 1 - 2 camp là đủ"; Ethopex: 1 camp - 1 nhóm - 2 ads 20–30s + 2–3').
-# Phim CHƯA thắng → tối đa 2 camp. Phim đã thắng (anh cho scale) nằm trong studio xv_khoa_ngoai['ethopex_phim_thang'].content → tối đa 30 camp (kb #261).
+# CỔNG SỐ CAMP MỖI PHIM (anh 21/10/2026: "test 1 phim mình sẽ chỉ lên 1 - 2 camp là đủ"; mỗi camp đúng 1 nhóm 1 ad — kiem-cau-hinh.py).
+# Phim CHƯA thắng → tối đa 2 camp. Phim đã thắng (anh cho scale) nằm trong studio xv_khoa_ngoai['ethopex_phim_thang'].content → ban đầu tối đa 10 camp
+# (Dol Dang 21/10/2026: "với phim lãi đó, ban đầu nhân khoảng 10 camp thôi, để nó tiêu và ổn định vào 10 camp đó"; trước là 30).
 # Đếm camp trên Ethopex có ad dùng content đó (API campaigns, khoá đọc server-side). Vượt → mã 2, dung-camp.sh KHÔNG đánh dấu Publish.
 # Dùng: kiem-so-camp.sh <content_id>
 set -u
@@ -17,7 +18,7 @@ n = 0
 for c in api("/api/v1/campaigns?page_size=500")["data"]:
     d = api(f"/api/v1/campaigns/{c['id']}")
     if any(a.get("content_id") == cid for g in d.get("ad_groups") or [] for a in g.get("ads") or []): n += 1
-print(n, 30 if cid in thang else 2, int(cid in thang))
+print(n, 10 if cid in thang else 2, int(cid in thang))
 EOF
 ) || { echo "SO CAMP CHAN: không đếm được ($KQ)"; exit 2; }
 read -r N TRAN THANG <<< "$(echo "$KQ" | tail -1)"

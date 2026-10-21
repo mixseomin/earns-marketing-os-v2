@@ -27,6 +27,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const dung = new Set<number>();
   const ra: DongNhatKy[] = [];
   for (const h of ls.ok ? ls.data.data : []) {
+    if (h.action_label === 'Created campaign') {   // lúc tạo Ethopex ghi mỗi trường một dòng → gộp thành một dòng "tạo camp"
+      ra.push({ luc: h.created_at, viec: 'tạo camp', truoc: null, sau: null, ai: `${h.actor_name ?? h.actor_type ?? '?'}${h.source_label ? ` · ${h.source_label}` : ''}`, luat: null, loi: null }); continue;
+    }
     for (const c of h.changes ?? []) {
       if (h.action_label === 'Change requested') continue;   // dòng "yêu cầu" đi đôi với dòng đổi thật — chỉ giữ dòng đổi
       const la = /budget/.test(c.field) ? 'ngân sách' : c.field === 'state' ? 'trạng thái' : c.field === 'source_status' ? null : c.field_label ?? c.field;

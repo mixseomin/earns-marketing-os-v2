@@ -1,13 +1,13 @@
 """NHỊP TĂNG NGÂN SÁCH (anh 21/10/2026 hỏi "có camp nào âm do tăng budget nhanh hơn bình thường"): ngày 21/10 phòng Ethopex chấm luật 30 phút/lần
 mà không có khoảng nghỉ → cùng một camp hiện nút đầu phiên $2 rồi nút tăng $3, $5 → nhiều camp $1→$3→$5 trong 1–3 giờ, có camp $1→$2→$3 trong 2 phút;
 7 camp âm hôm đó đều thuộc nhóm tăng dồn. Luật (kb #261 mục 8: tối đa 2–3 lần tăng/ngày, ưu tiên mốc 21h/24h/8h) → máy giữ:
-  - mỗi camp tối đa TOI_DA_NGAY lần tăng trong một ngày giờ VN
   - hai lần tăng cách nhau ít nhất NGHI_GIO giờ
+  - KHÔNG giới hạn số lần tăng/ngày (anh 21/10/2026: "ko nhất thiết phải giới hạn ngày tăng max 2 lần") — TOI_DA_NGAY = None; đặt số thì bật lại
 Đọc lịch sử camp Ethopex (/campaigns/<id>/history — mỗi lần đổi có 2 dòng requested + status_changed → gộp các dòng cách nhau < 10 phút).
 Dùng chung: luat-ethopex.py (không hiện nút) + lam-ethopex.py (nút cũ bấm muộn vẫn bị chặn)."""
 import datetime as dt
 
-NGHI_GIO, TOI_DA_NGAY = 3, 2
+NGHI_GIO, TOI_DA_NGAY = 3, None
 
 def lan_tang(api, cid):
     """→ danh sách thời điểm (UTC) các lần TĂNG ngân sách, mới nhất trước"""
@@ -31,7 +31,7 @@ def chan_tang(api, cid, bay_gio=None):
     if ls and (now - ls[0]).total_seconds() < NGHI_GIO * 3600:
         return f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ)"
     hom = [x for x in ls if vn(x).date() == vn(now).date()]
-    if len(hom) >= TOI_DA_NGAY: return f"đã tăng {len(hom)} lần hôm nay (tối đa {TOI_DA_NGAY}/ngày) — để sang mốc 8h mai"
+    if TOI_DA_NGAY and len(hom) >= TOI_DA_NGAY: return f"đã tăng {len(hom)} lần hôm nay (tối đa {TOI_DA_NGAY}/ngày) — để sang mốc 8h mai"
     return None
 
 if __name__ == "__main__":   # tự kiểm (không gọi mạng)
@@ -41,7 +41,7 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     api = lambda p: gia
     assert len(lan_tang(api, 1)) == 2, "2 dòng cách 20 giây là MỘT lần tăng"
     assert chan_tang(api, 1, u("2026-10-21T08:00:00")).startswith("vừa tăng"), "23 phút sau lần tăng phải chặn"
-    assert chan_tang(api, 1, u("2026-10-21T11:00:00")).startswith("đã tăng 2"), "đủ 2 lần trong ngày phải chặn"
+    assert chan_tang(api, 1, u("2026-10-21T11:00:00")) is None, "đủ 3 giờ thì tăng tiếp — không giới hạn số lần/ngày"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00")) is None, "sang ngày mới (8h30 VN) được tăng"
     api0 = lambda p: {"data": []}
     assert chan_tang(api0, 1) is None

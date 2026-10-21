@@ -114,7 +114,30 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
   let gui = 0;
   // MỘT CAMP MỘT MỤC (anh 21/10/2026: "cùng 1 camp thì gộp được không"): camp chạm nhiều luật trong lượt này chỉ hiện ở nhóm ĐẦU TIÊN nó chạm,
   // kèm dòng "cũng: <luật khác>" và gộp nút của mọi luật (trùng nút thì giữ một) — vd lãi đầu phiên $2 + đủ bậc $3 thành một mục, hai nút lên $2 / $3.
-  const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(`${k}:${m.id}`)).map((m) => ({ ...m, dich: (String(m.chu).match(/→ \$(\d+)/) || [])[1] }))]));
+  // KHOÁ CHỐNG BÁO TRÙNG theo MỨC ĐÍCH (22/10/2026: khoá cũ `luật:camp` trong ngày → camp đã tăng một lần thì cả ngày không được đề xuất bậc kế,
+  // anh hỏi "nhiều camp dương mà ko thấy đề xuất tăng tiếp"): cùng camp lên mức MỚI là mục mới.
+  const dichCua = (m) => (String(m.chu).match(/→ \$(\d+)/) || [])[1];
+  const khoa = (k, m) => `${k}:${m.id}${dichCua(m) ? `:${dichCua(m)}` : ''}`;
+  // TỰ TĂNG (anh 22/10/2026: "bật cơ chế tự tăng ngân sách lên tối đa $5 mà ko cần xin phép hôm nay để xem hoạt động thế nào"): cấu hình
+  // DATA/ethopex-tu-tang.json {den: ISO hết hạn, tran: $} — trong hạn thì camp chạm luật tăng (đầu phiên / tăng bậc) có mức đích ≤ trần được máy
+  // tăng luôn qua lam-ethopex (vẫn chặn mức sai, camp phải bật, nhịp ≥ 3 giờ; ghi nhật ký luật) rồi báo một tin; mức đích > trần vẫn ra nút như cũ.
+  const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
+  const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
+  const daTu = []; const lamRoi = new Set();
+  if (tuTang) {
+    for (const k of ['dau_phien', 'tang']) for (const m of kq[k] || []) {
+      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id)) continue;
+      lamRoi.add(m.id);
+      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', `máy tự tăng (anh cho phép tới ${tt.den.slice(0, 16)}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      daTu.push({ k, m, d, r });
+    }
+    if (daTu.length) {
+      const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `✅ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 160))}`).join('\n');
+      await tg('sendMessage', { message_thread_id: topic, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới hết ${esc(tt.den.slice(0, 10))}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      gui++;
+    }
+  }
+  const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(khoa(k, m)) && !lamRoi.has(m.id)).map((m) => ({ ...m, dich: dichCua(m) }))]));
   for (const [k, tieu] of NHOM) {
     const moi = gom.get(k) ?? [];
     if (!moi.length) continue;
@@ -122,7 +145,7 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
     const bang = moi.slice(0, 15).map((m) => m.nut).filter((h) => h.length);
     await tg('sendMessage', { message_thread_id: topic, text: `${tieu}\n${dong}${moi.length > 15 ? `\n… và ${moi.length - 15} camp nữa (xem tab Ethopex mos2)` : ''}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML',
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
-    for (const m of moi) for (const kk of [k, ...m.cung.map((c) => c.k)]) da.add(`${kk}:${m.id}`); gui++;
+    for (const m of moi) { da.add(khoa(k, m)); for (const c of m.cung) da.add(`${c.k}:${m.id}${c.dich ? `:${c.dich}` : ''}`); } gui++;
   }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
   return { gui, nut };

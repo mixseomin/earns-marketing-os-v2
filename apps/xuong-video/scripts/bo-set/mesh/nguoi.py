@@ -359,12 +359,12 @@ def nguoi_mpfb(n, ten, H, gioi, tuoi, vl, trang=None):
     if not mac_do(m, h, gioi, tuoi, trang or {}):   # da + mắt + lông mày + tóc + đồ + giày; thiếu gói tài sản thì thân trơn một màu như cũ
         h.data.materials.clear(); h.data.materials.append(vl)
     con_nguoi(n, h, rig)   # chấm con ngươi tối gắn xương mắt — hướng nhìn đọc được trên ảnh 3D (mat_nhin xoay xương)
-    gan_da_3d(ten, h, rig, (trang or {}).get('da_3d'))
+    gan_da_3d(n, ten, h, rig, (trang or {}).get('da_3d'))
     for o in [h, *phu_kien(h)]: o.hide_render = o.hide_viewport = True   # chỉ bật khi vẽ độ sâu / khung màu (dung-set.py › nguoi_that)
     n['than_tron'] = h
     return h
 
-def gan_da_3d(ten, h, rig, url):
+def gan_da_3d(n, ten, h, rig, url):
     """DA 3D SINH TỪ ẢNH (khoi_3d.da_3d — anh 21/10/2026 "người đủ chi tiết và rig", kiểu Tripo): mesh ảnh→3D đã chép trọng số da từ thân MPFB cùng giới /
     tuổi / cao (scripts/bo-set/nguoi-3d/gan-rig.py → da.blend trên R2). Gắn vào ĐÚNG rig MPFB của người này → mocap / IK / dáng lái như thân MPFB; thân
     MPFB + tóc / đồ / chấm mắt của nó đánh dấu an_han (nguoi_that không bật). Tải một lần vào tai-san/da-3d/. Không khai / tải hỏng → giữ thân MPFB."""
@@ -374,13 +374,18 @@ def gan_da_3d(ten, h, rig, url):
     tep = os.path.join(kho, url.rstrip('/').split('/')[-1])
     try:
         if not os.path.exists(tep):
-            urllib.request.urlretrieve(url, tep + '.tai'); os.replace(tep + '.tai', tep)
+            tam = f'{tep}.{os.getpid()}.tai'   # tên tạm RIÊNG từng tiến trình: dien-tap chạy 3 shot song song cùng tải một da (21/10: hai shot rơi về MPFB)
+            urllib.request.urlretrieve(url, tam); os.replace(tam, tep)
         with bpy.data.libraries.load(tep, link=False) as (src, dst): dst.objects = [x for x in src.objects if x == 'DA']
         da = dst.objects[0]
     except Exception as e:
         print(f'CANH BAO da_3d {ten} không tải được ({e}) — giữ thân MPFB'); return None
     bpy.context.scene.collection.objects.link(da)
     for o in [h, *phu_kien(h)]: o['an_han'] = True
+    # chấm con ngươi đặt theo mắt MPFB — mặt da 3D không trùng mắt MPFB, chấm nổi trên má (21/10/2026 tập 135 #2): bỏ, da đã có mắt vẽ từ ảnh
+    for _, t_ in n.get('con_nguoi', []):
+        if t_ in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[t_], do_unlink=True)
+    n['con_nguoi'] = []
     da.name = f'{h.name}.da'; da.parent = rig; da.matrix_parent_inverse = Matrix.Identity(4)
     da.location = (0, 0, 0); da.rotation_euler = (0, 0, 0); da.scale = tuple(1 / x for x in rig.scale)   # da tính bằng mét, rig mang scale MPFB → mét
     for md in [md for md in da.modifiers if md.type == 'ARMATURE']: da.modifiers.remove(md)

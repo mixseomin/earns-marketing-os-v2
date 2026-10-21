@@ -5,10 +5,11 @@
 //     DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/tu-lam-phim.mts <tap_id> [--toi-da=3]
 //     … scripts/tu-lam-phim.mts --creative=<sp_key>:<số creative> [--toi-da=3] [--ngan-sach=4]
 // --video=<model> (vd shopaikey:grok-video-3-10s): model video cho các lượt sinh lại thay model của phim.
+// --het-gio=<phút> (mặc định 25): dừng cứng khi quá giờ, in thời gian dự kiến lúc bắt đầu.
 // --ngan-sach=<USD> (mặc định 4 ≈ một phim gốc sạch #120): lượt tiêu quá mức thì DỪNG, báo Telegram (MINE › Quản lý), chờ anh bảo chạy tiếp.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { lamPhimTuDau, tienPhim, BUOC_NGAN_SACH } from '../src/lib/xuong-video/tu-lam-phim';
+import { lamPhimTuDau, tienPhim, uocPhut, BUOC_NGAN_SACH } from '../src/lib/xuong-video/tu-lam-phim';
 import { baoTelegram, esc, gioVn } from '../src/lib/xuong-video/bao-het-tien';
 import { taoPhimGocDb } from '../src/lib/xuong-video/concept-db';
 import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
@@ -35,7 +36,11 @@ const bc = await boiCanhTap(db, tapId); if (!bc) { console.error('không thấy 
 const phimId = bc.tap.phim_id;
 const tongPhim = () => tienPhim(db, phimId);
 const truoc = await tongPhim();
-const kq = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa, nganSachCents, moHinhVideo });
+// --het-gio=<phút> (mặc định 25): quá mốc thì dừng trước lần sinh kế. In thời gian dự kiến ngay đầu lượt (anh 21/10/2026).
+const hetGioPhut = Number((process.argv.find((a) => a.startsWith('--het-gio=')) ?? '').split('=')[1] || 25);
+const soShot = Number(((await db.execute(sql`SELECT count(*) AS n FROM xv_canh WHERE tap_id = ${tapId} AND video_url IS NULL`)) as unknown as Row[])[0]?.n ?? 0);
+console.log(`dự kiến ~${uocPhut(soShot, Number(process.env.XV_CLIP_SONG_SONG || 4), 1)} phút cho ${soShot} shot chưa có clip · dừng cứng sau ${hetGioPhut} phút`);
+const kq = await lamPhimTuDau(db, tapId, (s) => console.log(s), { toiDa, nganSachCents, moHinhVideo, hetGio: Date.now() + hetGioPhut * 60_000 });
 if (!kq.ok) {
   console.log(`✗ dừng ở bước ${kq.buoc} — KHÔNG xuất:\n  ${kq.loi.join('\n  ')}`);
   if (kq.buoc === BUOC_NGAN_SACH) await baoTelegram(db, [

@@ -58,16 +58,22 @@ export const tienPhim = async (db: Db, phimId: number): Promise<number> =>
 /** NGÂN SÁCH LƯỢT CHẠY (anh 17/10/2026: "sinh mà tốn tiền quá thì phải báo"): #127 đốt $8,18 vì vòng tự sửa sinh lại mãi không ai hay.
  *  `nganSachCents`: lượt chạy tiêu quá mức này thì DỪNG trước lần tiêu kế, trả buoc 'ngân sách' (script báo Telegram, chờ anh bảo chạy tiếp). */
 export const BUOC_NGAN_SACH = 'ngân sách';
-export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => void, o: { toiDa?: number; nganSachCents?: number; moHinhVideo?: string } = {}): Promise<KetLamPhim> {
+/** HẾT GIỜ (anh 21/10/2026: "phải giới hạn thời gian chạy chứ, lâu thế" — lượt #225 chạy 36 phút không mốc): `hetGio` = mốc epoch ms; quá mốc thì
+ *  dừng trước bước / lần sinh kế (như ngân sách), trả buoc 'hết giờ'. Script in thời gian dự kiến lúc bắt đầu (uocPhut). */
+export const BUOC_HET_GIO = 'hết giờ';
+/** Phút dự kiến cho một tập n shot: keyframe ~5' + giọng ~1' + clip theo lượt song song (~4'/lượt sinh + soi) + nhạc ~1'. Đo từ #225 (21/10/2026). */
+export const uocPhut = (n: number, songSong: number, toiDa = 1) => Math.round(5 + 1 + Math.ceil(n / Math.max(1, songSong)) * 4 * toiDa + 1);
+export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => void, o: { toiDa?: number; nganSachCents?: number; moHinhVideo?: string; hetGio?: number } = {}): Promise<KetLamPhim> {
   const bc = await boiCanhTap(db, tapId); if (!bc) return { ok: false, buoc: 'tập', loi: ['không thấy tập'], clip: [] };
   const phimId = bc.tap.phim_id; const kt = docKinhThanh(bc.kt);
   const truoc = await tienPhim(db, phimId);
   const vuot = async (): Promise<string | null> => {
+    if (o.hetGio && Date.now() > o.hetGio) return `${BUOC_HET_GIO}: quá mốc thời gian lượt chạy (${new Date(o.hetGio + 7 * 3600_000).toISOString().slice(11, 16)} giờ VN)`;
     if (o.nganSachCents == null) return null;
     const da = (await tienPhim(db, phimId)) - truoc;
     return da >= o.nganSachCents ? `vượt ngân sách lượt chạy: đã tiêu ${tien(da)} / ${tien(o.nganSachCents)}` : null;
   };
-  const dungVi = async (): Promise<KetLamPhim | null> => { const l = await vuot(); return l ? { ok: false, buoc: BUOC_NGAN_SACH, loi: [l], clip: [] } : null; };
+  const dungVi = async (): Promise<KetLamPhim | null> => { const l = await vuot(); return l ? { ok: false, buoc: l.startsWith(BUOC_HET_GIO) ? BUOC_HET_GIO : BUOC_NGAN_SACH, loi: [l], clip: [] } : null; };
   const canhA = () => db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`).then((r) => locNhanh((r as unknown as Row[]).map(mapCanh), 'A'));
   // 1. người xem CẢ PHIM (cùng cổng: thu_nguoi_xem.ma = mã kịch bản) — trượt thì dừng trước khi tiêu tiền hình
   if (!bc.tap.thu_nguoi_xem?.dat) {

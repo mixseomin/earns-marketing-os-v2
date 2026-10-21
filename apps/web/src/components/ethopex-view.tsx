@@ -19,8 +19,8 @@ function useKhung() {
     const cuon = (): HTMLElement | null => { let e = ref.current?.parentElement ?? null; while (e && !/(auto|scroll)/.test(getComputedStyle(e).overflowY)) e = e.parentElement; return e; };
     const do_ = () => {
       const el = ref.current; if (!el) return; const sc = cuon();
-      const day = sc ? sc.getBoundingClientRect().bottom : window.innerHeight;
-      const c0 = Math.max(200, day - el.getBoundingClientRect().top - 12);
+      const day = sc ? sc.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(sc).paddingBottom) || 0) : window.innerHeight;   // main.main có lề dưới 56px
+      const c0 = Math.max(200, day - el.getBoundingClientRect().top - 4);
       el.style.maxHeight = `${c0}px`;
       const tran = sc ? sc.scrollHeight - sc.clientHeight : 0;
       setCao(Math.max(200, c0 - Math.max(0, tran)));

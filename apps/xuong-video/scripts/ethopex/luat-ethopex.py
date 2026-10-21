@@ -2,6 +2,7 @@
 """LUẬT ETHOPEX — MỘT chỗ chấm mọi luật vận hành camp (kb #261 mục 8–8g) trên box3 (đọc API Report + chi tiết camp, khoá ở studio xv_khoa_ngoai).
 Ai dùng: kiem-ngan-sach.sh (gọi tay từ Mac qua ssh) · phòng Ethopex của cty (theo dõi định kỳ, báo Telegram). CHỈ ĐỌC + BÁO — không sửa camp.
 Dùng (trên box3, đã nạp .env.production):  python3 luat-ethopex.py [roi_toi_thieu=20] [spending_toi_thieu=50] [--json]
+  --tong: chỉ tổng số (hôm nay / hôm qua / tháng / từ đầu + camp lãi / lỗ nhất) cho bảng ghim, không chấm luật.
   --json: in một đối tượng {luc, tang, dau_phien, giam, tat, moc30, tu_choi, gan} — mỗi mục {id, ten, chu} để máy theo dõi so trùng."""
 import json, os, subprocess, sys, urllib.request, datetime as dt
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -18,6 +19,14 @@ def bc(tu, den):
     return g
 vn = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7); nay = vn.date()
 d = lambda n: (nay - dt.timedelta(days=n)).isoformat()
+if '--tong' in sys.argv:   # bảng số rút gọn (cty ethopex.mjs bangEthopex — tin ghim phòng Ethopex): tổng hôm nay / tháng / từ đầu + camp lãi / lỗ nhất hôm nay
+    def tong(g):
+        chi = sum(a["chi"] for a in g.values()); thu = sum(a["thu"] for a in g.values())
+        return {"chi": round(chi, 2), "thu": round(thu, 2), "lai": round(thu - chi, 2), "roi": round((thu - chi) / chi * 100, 1) if chi else None, "camp": sum(1 for a in g.values() if a["chi"] > 0)}
+    h = bc(d(0), d(0)); co = [dict(id=k, ten=a["ten"][:40], lai=round(a["thu"] - a["chi"], 2), roi=round((a["thu"] - a["chi"]) / a["chi"] * 100) if a["chi"] else None, budget=a["budget"]) for k, a in h.items() if a["chi"] > 0]
+    co.sort(key=lambda x: -x["lai"])
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "hom": {**tong(h), "budget": round(sum(x["budget"] for x in co), 2)}, "qua": tong(bc(d(1), d(1))), "thang": tong(bc(nay.replace(day=1).isoformat(), d(0))), "tron": tong(bc("2026-01-01", d(0))),
+                      "top": co[:3], "day": [x for x in co[::-1] if x["lai"] < 0][:2]}, ensure_ascii=False)); sys.exit(0)
 hom = bc(d(0), d(0)); thang = bc(nay.replace(day=1).isoformat(), d(0)); gan = bc(d(2), d(0)); truoc = bc(d(6), d(3)); tron = bc("2026-01-01", d(0))
 roi = lambda a: (a["thu"] - a["chi"]) / a["chi"] * 100 if a["chi"] else None
 BAC = [1, 3, 5, 7, 10, 15, 20]

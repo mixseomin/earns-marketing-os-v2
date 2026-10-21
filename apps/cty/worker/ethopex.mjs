@@ -52,6 +52,43 @@ async function xuNut(tg, x) {
   return kq.ok ? lenh : 'loi';
 }
 
+// BẢNG SỐ GHIM (anh 21/10/2026: "1 tin nhắn cố định show report rút gọn thời gian thực gồm ROI, profit tổng… và 1 nút refresh"): MỘT tin ghim trong 📂 Ethopex,
+// sửa tại chỗ (không gửi tin mới) mỗi 5 phút từ dịch vụ nghe (tg-nghe.mjs) và ngay khi anh bấm 🔄 (eb:moi → hộp ethopex-bang). Tin bị xoá thì gửi + ghim lại.
+const TEP_BANG = () => path.join(DATA(), 'ethopex-bang.json');
+export const BANG_MOI_PHUT = 5;
+const tienUsd = (x) => `${x < 0 ? '−' : '+'}$${Math.abs(x).toFixed(2)}`;
+const roiChu = (r) => (r == null ? '—' : `${r > 0 ? '+' : ''}${Math.round(r)}%`);
+export function tinBang(t) {
+  const dong = (nhan, a, them = '') => `<b>${nhan}</b>: lãi <b>${tienUsd(a.lai)}</b> · ROI <b>${roiChu(a.roi)}</b> · chi $${a.chi.toFixed(2)} → thu $${a.thu.toFixed(2)}${them}`;
+  return [`📊 <b>ETHOPEX — số tổng</b> · cập nhật ${esc(t.luc)}`, '',
+    dong('Hôm nay', t.hom, ` · ${t.hom.camp} camp chạy · ngân sách $${t.hom.budget}/ngày`), dong('Hôm qua', t.qua), dong('Tháng này', t.thang), dong('Từ đầu', t.tron), '',
+    t.top.length ? `🏆 Lãi nhất hôm nay:\n${t.top.map((x) => `• #${esc(x.ten)} ${tienUsd(x.lai)} (ROI ${roiChu(x.roi)}, $${x.budget}/ngày)`).join('\n')}` : '',
+    t.day.length ? `🔻 Lỗ nhất hôm nay:\n${t.day.map((x) => `• #${esc(x.ten)} ${tienUsd(x.lai)} (ROI ${roiChu(x.roi)})`).join('\n')}` : '',
+    `<i>Tự cập nhật mỗi ${BANG_MOI_PHUT} phút · bấm 🔄 để lấy số ngay</i>`].filter((x, i, a) => x !== '' || a[i - 1] !== '').join('\n');
+}
+const NUT_BANG = { inline_keyboard: [[{ text: '🔄 Làm mới', callback_data: 'eb:moi' }]] };
+/** Cập nhật tin ghim: ep = bỏ qua hẹn 5 phút (nút 🔄). Trả 'sua' | 'moi' | null (chưa tới lượt). */
+export async function bangEthopex(tg, { ep = false, doc = async () => JSON.parse((await chay(LUAT, ['--tong'], 90)).trim().split('\n').pop()) } = {}) {
+  const { topicPhong } = await import('./tg-phong.mjs');
+  const st = docJ(TEP_BANG(), {}); if (!ep && st.luc && Date.now() - Date.parse(st.luc) < (BANG_MOI_PHUT * 60 - 10) * 1000) return null;
+  const topic = await topicPhong('ethopex', '📂 Ethopex', tg); if (!topic) return null;
+  fs.writeFileSync(TEP_BANG(), JSON.stringify({ ...st, luc: new Date().toISOString() }));   // ghi hẹn trước: API Ethopex hỏng thì thử lại sau 5 phút, không mỗi vòng
+  let text; try { text = tinBang(await doc()); } catch (e) { text = null; if (!ep) throw e; await tg('sendMessage', { message_thread_id: topic, text: `⚠️ Chưa lấy được số Ethopex: ${esc(e.message.slice(0, 200))}` }); }
+  if (!text) return null;
+  if (st.mid) { const r = await tg('editMessageText', { message_id: st.mid, text, parse_mode: 'HTML', reply_markup: NUT_BANG, link_preview_options: { is_disabled: true } });
+    if (r.ok || /not modified/.test(r.description || '')) { if (!r.ok) await tg('editMessageReplyMarkup', { message_id: st.mid, reply_markup: NUT_BANG }); return 'sua'; } }
+  const m = await tg('sendMessage', { message_thread_id: topic, text, parse_mode: 'HTML', reply_markup: NUT_BANG, link_preview_options: { is_disabled: true } });
+  if (!m.ok) throw new Error(`gửi bảng: ${m.description}`);
+  await tg('pinChatMessage', { message_id: m.result.message_id, disable_notification: true });
+  fs.writeFileSync(TEP_BANG(), JSON.stringify({ mid: m.result.message_id, luc: new Date().toISOString() })); return 'moi';
+}
+/** Nút 🔄 trong hộp ethopex-bang (dịch vụ nghe gọi ngay sau gom tin). */
+export async function xuNutBang(tg) {
+  const { moHop } = await import('./tg-phong.mjs'); let n = 0;
+  for (const x of moHop('ethopex-bang')) { x.xong(); if (x.callback_query) { await bangEthopex(tg, { ep: true }); n++; } }
+  return n;
+}
+
 export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { gomTin, moHop, topicPhong } = await import('./tg-phong.mjs');
   const { tg } = await tgNoiDung();
@@ -82,6 +119,17 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
 }
 
 if (process.argv.includes('--tu-kiem')) {
+  { const { strict: t } = await import('node:assert'); const z = { chi: 1, thu: 2, lai: 1, roi: 100, camp: 1 };
+    const b = tinBang({ luc: '17:19 21/10', hom: { chi: 149.48, thu: 165.5, lai: 16.02, roi: 10.7, camp: 88, budget: 174 }, qua: { ...z, lai: -11.33, roi: -34.6 }, thang: z, tron: z, top: [{ ten: '65724: Nobody', lai: 13.29, roi: 457, budget: 5 }], day: [] });
+    t.match(b, /Hôm nay<\/b>: lãi <b>\+\$16\.02<\/b> · ROI <b>\+11%<\/b>/); t.match(b, /Hôm qua<\/b>: lãi <b>−\$11\.33/); t.match(b, /88 camp chạy · ngân sách \$174\/ngày/); t.match(b, /#65724: Nobody \+\$13\.29 \(ROI \+457%/); t.doesNotMatch(b, /Lỗ nhất/);
+    const os = await import('node:os'); process.env.CTY_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'eb-')); fs.writeFileSync(path.join(DATA(), 'tg-ethopex.json'), JSON.stringify({ topic: 9 }));
+    const goi = []; let sua = { ok: false, description: 'message to edit not found' }; const tg = async (m, x) => { goi.push([m, x]); return m === 'sendMessage' ? { ok: true, result: { message_id: 77 } } : m === 'editMessageText' ? sua : { ok: true }; };
+    const doc = async () => ({ luc: 'x', hom: { ...z, budget: 1 }, qua: z, thang: z, tron: z, top: [], day: [] });
+    t.equal(await bangEthopex(tg, { doc }), 'moi'); t.ok(goi.some(([m, x]) => m === 'pinChatMessage' && x.message_id === 77), 'lần đầu gửi + ghim');
+    t.equal(await bangEthopex(tg, { doc }), null, 'chưa tới 5 phút thì không đọc lại');
+    sua = { ok: true }; t.equal(await bangEthopex(tg, { doc, ep: true }), 'sua', 'nút 🔄: sửa tại chỗ'); t.equal(goi.filter(([m]) => m === 'sendMessage').length, 1, 'không gửi tin mới');
+    sua = { ok: false, description: 'message to edit not found' }; t.equal(await bangEthopex(tg, { doc, ep: true }), 'moi', 'tin bị xoá → gửi + ghim lại'); }
+
   const { strict: t } = await import('node:assert'); const nut = Object.fromEntries(NHOM.map(([k, , n]) => [k, n]));
   const g = gopCamp([['dau_phien', nut.dau_phien, [{ id: 65735, chu: 'a', dich: '2' }]], ['tang', nut.tang, [{ id: 65735, chu: 'b', dich: '3' }, { id: 1, chu: 'c', dich: '3' }]]]);
   t.equal(g.get('dau_phien').length, 1); t.equal(g.get('tang').length, 1, 'camp trùng không hiện lần hai'); const m = g.get('dau_phien')[0];

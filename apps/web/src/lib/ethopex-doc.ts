@@ -38,7 +38,7 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
     const lo = await Promise.all(ids.slice(i, i + 12).map((id) => goiEthopex<CtCamp>(db, `/api/v1/campaigns/${id}`)));
     for (const x of lo) if (x.ok) ct.push(x.data);
   }
-  const [thang, hom, gan, truoc] = await Promise.all([baoCao(`${nay.slice(0, 8)}01`, nay), baoCao(nay, nay), baoCao(lui(2), nay), baoCao(lui(6), lui(3))]);
+  const [thang, hom, homQua, gan, truoc] = await Promise.all([baoCao(`${nay.slice(0, 8)}01`, nay), baoCao(nay, nay), baoCao(lui(1), lui(1)), baoCao(lui(2), nay), baoCao(lui(6), lui(3))]);
   // studio: phim + link phim trên site gốc (kinh_thanh.qc.link) + poster + video xuất mới nhất + ảnh khung đầu (cảnh #1)
   const sx = (await db.execute(sql`SELECT p.id, p.ten, (p.kinh_thanh->'ethopex'->>'creative_id')::int AS cr, p.kinh_thanh->>'ngon_ngu' AS nn,
       p.kinh_thanh->'qc'->>'link' AS link, p.poster_url AS poster, p.kinh_thanh->>'the_loai' AS loai,
@@ -59,7 +59,7 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
       ngon_ngu: p?.nn ?? (/\bES\b/.test(ten) ? 'es' : /\bEN\b/.test(ten) ? 'en' : null), studio_phim_id: p?.id ?? null,
       link_phim: p?.link ?? null, video: p?.video ?? null, anh: p?.anh ?? p?.poster ?? null, dang_creative: p?.loai === 'qc_canh_that' ? 'cảnh thật' : p?.loai === 'qc_ke_chuyen' ? 'kể chuyện' : p?.loai ?? null,
       trang_dich: a.final_url ?? null, fb_ad: a.external_ad_id ?? null, fb_video: ((typeof a.media_info === 'string' ? (() => { try { return JSON.parse(a.media_info as string); } catch { return {}; } })() : a.media_info ?? {}) as { video_id?: string }).video_id ?? null,
-      loi: a.error || c.error || null, thang: thang.get(c.id) ?? rong, hom_nay: hom.get(c.id) ?? rong, gan: gan.get(c.id) ?? rong, truoc: truoc.get(c.id) ?? rong };
+      loi: a.error || c.error || null, thang: thang.get(c.id) ?? rong, hom_nay: hom.get(c.id) ?? rong, hom_qua: homQua.get(c.id) ?? rong, gan: gan.get(c.id) ?? rong, truoc: truoc.get(c.id) ?? rong };
   }).sort((x, y) => y.id - x.id);
   const data = { luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], loi: null };
   nho = { luc: Date.now(), data };

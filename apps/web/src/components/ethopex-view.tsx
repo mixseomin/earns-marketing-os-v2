@@ -5,7 +5,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { DataTable, Drawer, FilterChips, LinkChip, Panel, StatsStrip, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
-import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, nangNhat, roi, type CampEtp, type LuatCham } from '@/lib/ethopex-luat';
+import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, deXuatPhim, nangNhat, roi, type CampEtp, type DangCr, type LuatCham, type PhimDeXuat } from '@/lib/ethopex-luat';
 import type { DuLieuEthopex } from '@/lib/ethopex-doc';
 
 type Dong = CampEtp & { luat: LuatCham[] };
@@ -106,6 +106,22 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const tong = dong.reduce((a, d) => ({ chi: a.chi + d.thang.chi, thu: a.thu + d.thang.thu }), { chi: 0, thu: 0 });
   const dem = (ma: string) => dong.filter((d) => d.luat.some((x) => x.ma === ma && x.trang_thai === 'cham')).length;
   const dangMo = modal.numId ? dong.find((d) => d.id === modal.numId) : undefined;
+  const phim = useMemo(() => deXuatPhim(du.camps, du.phimThang), [du]);
+  const DANG: DangCr[] = ['kể chuyện', 'cảnh thật', 'cảnh cuối', 'phim dài'];
+  const cotPhim: DataColumn<PhimDeXuat>[] = [
+    { key: 'phim', header: 'Phim', align: 'left', cell: (p) => (p.link ? <LinkChip href={p.link} tone="neutral" size="xs" title={p.link}>{p.phim} ↗</LinkChip> : p.phim), sortValue: (p) => p.phim },
+    { key: 'nn', header: 'NN', align: 'center', cell: (p) => p.ngon_ngu?.toUpperCase() ?? '—', sortValue: (p) => p.ngon_ngu ?? '' },
+    { key: 'tt', header: 'Phim', align: 'center', title: `Phim thắng: tiêu ≥ $10 và ROI ≥ 50%, hoặc anh đã duyệt scale`, cell: (p) => <span style={{ color: p.thang ? MUC_MAU.len : 'var(--fg-3)' }}>{p.thang ? 'thắng' : 'test'}</span>, sortValue: (p) => (p.thang ? 1 : 0) },
+    { key: 'n', header: 'Camp', cell: (p) => p.so_camp, sortValue: (p) => p.so_camp },
+    { key: 'chi', header: 'Chi tháng', cell: (p) => usd(p.tong.chi), sortValue: (p) => p.tong.chi },
+    { key: 'roi', header: 'ROI phim', cell: (p) => { const v = roi(p.tong); return <span style={{ color: mauTien(v ?? 0) }}>{pct(v)}</span>; }, sortValue: (p) => roi(p.tong) ?? -1e9 },
+    { key: 'dang', header: 'ROI theo dạng', align: 'left', cell: (p) => (
+      <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+        {DANG.filter((d) => p.theo_dang[d]).map((d) => { const s = p.theo_dang[d]!, v = roi(s); return <span key={d} title={`${d}: ${s.n} camp · chi ${usd(s.chi)} · thu ${usd(s.thu)}`} style={{ ...mono, fontSize: 10, color: mauTien(v ?? 0) }}>{d} {pct(v)}</span>; })}
+      </span>) },
+    { key: 'dx', header: 'Đề xuất (luật DC)', align: 'left', cell: (p) => (
+      <span style={{ display: 'grid', gap: 2 }}>{p.de_xuat.map((x, i) => <span key={i} style={{ fontSize: 11, color: x.muc === 'bao' ? 'var(--fg-2)' : MUC_MAU[x.muc] }}>{x.cau}</span>)}</span>) },
+  ];
 
   const cot: DataColumn<Dong>[] = [
     { key: 'luat', header: 'Luật', align: 'left', width: 120, cell: (d) => <OLuat ds={d.luat} />, sortValue: (d) => (nangNhat(d.luat) ? 10 : 0) + d.luat.filter((x) => x.trang_thai === 'cham').length },
@@ -141,6 +157,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         { key: 'lai', label: 'Lãi tháng', value: usd(tong.thu - tong.chi), color: mauTien(tong.thu - tong.chi) },
         { key: 'roi', label: 'ROI tháng', value: pct(roi(tong)), color: mauTien(roi(tong) ?? 0) },
         { key: 'tb', label: 'Đủ đk tăng', value: dem('TB'), color: dem('TB') ? MUC_MAU.len : undefined, title: 'Luật TB — chờ anh duyệt' },
+        { key: 'gb', label: 'Đủ đk giảm bậc', value: dem('GB'), color: dem('GB') ? MUC_MAU.ha : undefined, title: 'Luật GB — số trọn ngày hôm qua, nút ↘ phiên sáng' },
         { key: 'gt', label: 'Cần xem giảm/tắt', value: dem('GT'), color: dem('GT') ? MUC_MAU.ha : undefined },
         { key: 'tc', label: 'Ad bị từ chối', value: dem('TC'), color: dem('TC') ? MUC_MAU.dung : undefined },
       ]} />
@@ -153,6 +170,12 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
         searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
         onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
+      <div style={{ marginTop: 16 }}>
+        <Panel title="Đề xuất theo phim" subtitle="// luật DC — gộp mọi camp cùng phim · chỉ đề xuất, anh quyết">
+          <DataTable<PhimDeXuat> rows={phim} columns={cotPhim} getRowKey={(p) => String(p.content_id)} persistKey="ethopex-phim" minWidth={980}
+            searchText={(p) => `${p.phim} ${p.content_id}`} searchPlaceholder="Tìm phim…" />
+        </Panel>
+      </div>
       {du.hangCho.length ? (
         <div style={{ marginTop: 16 }}>
           <Panel title="Hàng chờ test" subtitle={`// ${du.hangCho.length} phim spy chưa vào lô — studio xv_khoa_ngoai ethopex_hang_cho`}>
@@ -170,7 +193,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         </div>
       ) : null}
       <div style={{ marginTop: 16 }}>
-        <Panel title="Sổ luật Ethopex" subtitle="// kb #261 mục 8–8d · lib/ethopex-luat.ts">
+        <Panel title="Sổ luật Ethopex" subtitle="// kb #261 mục 8–8i · lib/ethopex-luat.ts">
           {LUAT.map((l) => (
             <div key={l.ma} style={{ display: 'grid', gridTemplateColumns: '18px 44px 1fr', gap: 8, padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
               <span style={{ color: MUC_MAU[l.muc], textAlign: 'center' }}>{l.icon}</span>

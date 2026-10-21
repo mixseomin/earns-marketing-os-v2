@@ -2,7 +2,7 @@
 // TAB ETHOPEX (trang chủ) — quản lý camp FB phim ngắn trên Ethopex + LUẬT đang áp cho từng camp, khuôn cột "Luật" của adfond /report2:
 // ô biểu tượng (luật nặng nhất đang chạm, tô theo mức dung > ha > bao > len) + chip mã luật (rê = câu luật với số thật của camp + vì sao);
 // bấm hàng → ngăn chi tiết: từng luật, điều kiện ✓/○ (hiện tại vs ngưỡng), "Chạm thì: …". Sổ luật: lib/ethopex-luat.ts. Dữ liệu: lib/ethopex-doc.ts.
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { DataTable, Drawer, FilterChips, LinkChip, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, deXuatPhim, nangNhat, roi, type CampEtp, type DangCr, type LuatCham, type PhimDeXuat } from '@/lib/ethopex-luat';
@@ -11,7 +11,14 @@ import type { DuLieuEthopex } from '@/lib/ethopex-doc';
 type Dong = CampEtp & { luat: LuatCham[] };
 type Loc = 'all' | 'chay' | 'tat' | 'cham';
 type Xem = 'camp' | 'phim' | 'cho' | 'luat';   // YDNI: một màn hình, chia tab — không chồng khối dọc (anh 22/10/2026)
-const KHUNG: React.CSSProperties = { maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' };   // chỉ vùng nội dung cuộn, đầu trang đứng yên
+/** Vùng nội dung cuộn trong khung, cao = phần màn còn lại dưới mép trên của nó (đo thật, không đoán số px — phần đầu trang cao thấp theo khổ màn). */
+function useKhung() {
+  const ref = useRef<HTMLDivElement>(null); const [cao, setCao] = useState<number | null>(null);
+  useEffect(() => { const do_ = () => { const t = ref.current?.getBoundingClientRect().top ?? 0; setCao(Math.max(240, window.innerHeight - t - 16)); };
+    do_(); window.addEventListener('resize', do_); const ro = new ResizeObserver(do_); if (ref.current?.parentElement) ro.observe(ref.current.parentElement);
+    return () => { window.removeEventListener('resize', do_); ro.disconnect(); }; }, []);
+  return { ref, style: { maxHeight: cao ?? 'calc(100vh - 320px)', overflowY: 'auto' } as React.CSSProperties };
+}
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const pct = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`);
 const mauTien = (v: number) => (v > 0 ? 'var(--neon-lime, #9be15d)' : v < 0 ? 'var(--neon-red, #ff5c5c)' : 'var(--fg-3)');
@@ -97,6 +104,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const modal = useModalParam('em');
   const [loc, setLoc] = useState<Loc>('all');
   const [xem, setXem] = useState<Xem>('camp');
+  const khung = useKhung();
   useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x) setXem(x); }, []);
   useEffect(() => { const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(history.state, '', u); }, [xem]);
   useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(history.state, '', u); }, [loc]);
@@ -176,7 +184,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
           counts={{ all: dong.length, chay: dong.filter((d) => d.trang_thai === 'ACTIVE').length, tat: dong.filter((d) => d.trang_thai !== 'ACTIVE').length, cham: dong.filter(coCham).length }}
           options={[{ value: 'all', label: 'Tất cả' }, { value: 'chay', label: 'Đang bật' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cham', label: 'Chạm luật', title: 'Có luật tăng / giảm / từ chối đang chạm' }]} /> : null}
       </div>
-      <div style={KHUNG}>
+      <div ref={khung.ref} style={khung.style}>
         {xem === 'camp' ? (
           <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100}
             groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}

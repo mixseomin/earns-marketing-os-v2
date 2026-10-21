@@ -67,11 +67,12 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
   const bc = await boiCanhTap(db, tapId); if (!bc) return { ok: false, buoc: 'tập', loi: ['không thấy tập'], clip: [] };
   const phimId = bc.tap.phim_id; const kt = docKinhThanh(bc.kt);
   const truoc = await tienPhim(db, phimId);
-  const vuot = async (): Promise<string | null> => {
+  // sapCents = giá bước SẮP tiêu (21/10/2026 #225: trần $0,10, đã tiêu $0,02 → gửi clip tràn Kie $0,175 → lượt ra $0,19; trước chỉ so số đã tiêu)
+  const vuot = async (sapCents = 0): Promise<string | null> => {
     if (o.hetGio && Date.now() > o.hetGio) return `${BUOC_HET_GIO}: quá mốc thời gian lượt chạy (${new Date(o.hetGio + 7 * 3600_000).toISOString().slice(11, 16)} giờ VN)`;
     if (o.nganSachCents == null) return null;
     const da = (await tienPhim(db, phimId)) - truoc;
-    return da >= o.nganSachCents ? `vượt ngân sách lượt chạy: đã tiêu ${tien(da)} / ${tien(o.nganSachCents)}` : null;
+    return da + sapCents > o.nganSachCents ? `vượt ngân sách lượt chạy: đã tiêu ${tien(da)}${sapCents ? ` + bước kế ~${tien(sapCents)}` : ''} > ${tien(o.nganSachCents)}` : null;
   };
   const dungVi = async (): Promise<KetLamPhim | null> => { const l = await vuot(); return l ? { ok: false, buoc: l.startsWith(BUOC_HET_GIO) ? BUOC_HET_GIO : BUOC_NGAN_SACH, loi: [l], clip: [] } : null; };
   const canhA = () => db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`).then((r) => locNhanh((r as unknown as Row[]).map(mapCanh), 'A'));

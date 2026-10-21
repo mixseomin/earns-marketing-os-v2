@@ -9,6 +9,7 @@ import { sinhKeyframeCanh } from './sinh-anh';
 import { chupTruoc } from './hoan-tac';
 import { taiAnhBase64 } from './google';
 import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { giaVideoCong } from './cong-ai';
 import { lintPrompt, loiDanSuaPrompt, laLoiTam, laTuChoiModel, laMatNoiTieng, laPlenxBan, tranPlenx, VIDEO_DU_PHONG } from './tu-sua-clip-do';
 import { coNguoi } from './quy-trinh';
 import { ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
@@ -99,12 +100,20 @@ async function keyframeSach(db: Db, id: number, phimId: number, toiDa: number, l
 const kiemDang = new Map<number, Promise<unknown>>();
 const kiemChung = (db: Db, tapId: number) => { let p = kiemDang.get(tapId);
   if (!p) { p = kiemVideoTap(db, tapId).catch(() => null).finally(() => kiemDang.delete(tapId)); kiemDang.set(tapId, p); } return p; };
-async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string, moHinh?: string): Promise<{ ok: true } | { ok: false; loi: string }> {
+/** Giá TỐI ĐA một lượt clip theo model sẽ gửi (cents) — để cổng ngân sách chặn TRƯỚC khi tiêu: chuỗi tự chọn của Veo có thể tràn sang Kie
+ *  (PlenX bận) nên tính theo Kie; chọn đích danh cổng thì đúng giá cổng đó. Không biết giá → 0 (cổng chỉ so số đã tiêu). */
+function giaToiDaClip(m?: string): number {
+  const [cong, model] = (m ?? '').includes(':') ? m!.split(':') as [string, string] : ['', ''];
+  if (cong) return giaVideoCong(cong, model).cents ?? 0;
+  return giaVideoCong('kie', 'veo3_lite').cents ?? 0;
+}
+async function guiVaDoi(db: Db, tapId: number, id: number, log: (s: string) => void, nhan: string, moHinh?: string, dung?: (sapCents?: number) => Promise<string | null>): Promise<{ ok: true } | { ok: false; loi: string }> {
   let loiCuoi = ''; let m = moHinh; let tran: string | undefined;
   for (let tam = 0; tam <= 4; tam++) {
     // lỗi tạm lần đầu: gửi lại đúng model sau 30s; từ lần hai chuyển hẳn sang dự phòng (#127: Kie "Internal Error" 11/45 lượt, mỗi lượt đợi 90s)
     if (tam && tran) { m = tran; log(`  ${nhan}: PlenX bận (${loiCuoi.slice(0, 80)}) — gửi lại NGAY qua ${m}`); tran = undefined; }
     else if (tam) { if (tam >= 2) m = m === VIDEO_DU_PHONG ? undefined : VIDEO_DU_PHONG; log(`  ${nhan}: lỗi tạm (${loiCuoi.slice(0, 80)}) — gửi lại lần ${tam}${tam >= 2 ? ` qua ${m ?? 'model của phim'}` : ''}`); await ngu(30_000); }
+    { const ly = await dung?.(giaToiDaClip(m)); if (ly) return { ok: false, loi: ly }; }
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${id}`);
     const r = await batDauVideoCanh(db, id, m, 'nhap');
     if (!r.ok) { loiCuoi = `không gửi được: ${r.loi}`; if (laLoiTam(r.loi)) continue; return { ok: false, loi: loiCuoi }; }
@@ -151,7 +160,7 @@ export const SONG_SONG = Math.max(1, Number(process.env.XV_CLIP_SONG_SONG || 10)
 export type KetTuSua = { thu_tu: number; ket: 'sach' | 'het_luot' | 'loi'; lan: number; loi: string[] };
 /** Chạy vòng tự sửa cho mọi shot nhánh A của tập có clip lỗi (hoặc chỉ `chi`). log: in tiến độ. */
 /** `dung`: hỏi trước MỖI lần tiêu tiền (keyframe / video) — trả lý do thì dừng hẳn cả tập (vd vượt ngân sách lượt chạy, tu-lam-phim.ts). */
-export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; chi?: number[]; log?: (s: string) => void; dung?: () => Promise<string | null>; moHinhVideo?: string } = {}): Promise<KetTuSua[]> {
+export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; chi?: number[]; log?: (s: string) => void; dung?: (sapCents?: number) => Promise<string | null>; moHinhVideo?: string } = {}): Promise<KetTuSua[]> {
   const log = o.log ?? (() => {}); const toiDa = o.toiDa ?? 3;
   const phimId = Number(((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]?.phim_id);
   const tatCa = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
@@ -191,7 +200,7 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
         await db.execute(sql`UPDATE xv_canh SET prompt_video = ${moi}, updated_at = now() WHERE id = ${c.id}`);
         log(`  #${c.thu_tu} lần ${lan}: ${moi}`);
       }
-      const kq = await guiVaDoi(db, tapId, c.id, log, `#${c.thu_tu} lần ${lan}`, moHinhVideo);
+      const kq = await guiVaDoi(db, tapId, c.id, log, `#${c.thu_tu} lần ${lan}`, moHinhVideo, o.dung);
       c = await docCanh(db, c.id);
       loi = kq.ok ? loiSoiClip(c) : [kq.loi];
       log(`  #${c.thu_tu} lần ${lan}: ${kq.ok ? (loi.length ? `clip còn lỗi — ${loi.join(' | ')}` : 'SẠCH') : loi.join(' | ')}`);

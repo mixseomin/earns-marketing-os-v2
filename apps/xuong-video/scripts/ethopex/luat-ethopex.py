@@ -85,6 +85,32 @@ def _loc(ds):
         if not ly: ra.append((cid, chu))
     return ra
 dat, dau_phien = _loc(dat), _loc(dau_phien)
+# TĂNG LẠI sau một lần giảm: ROI phải ≥ 50% trên số TỪ NGÀY SAU lần giảm (không dùng ROI tháng cũ — tránh vòng tăng–giảm, anh 21/10/2026)
+_sau = {}
+def _sau_giam_ok(cid):
+    g = NT.lan_giam(api, cid)
+    if not g: return True
+    tu = ((g[0] + dt.timedelta(hours=7)).date() + dt.timedelta(days=1)).isoformat()
+    if tu > d(0): return False
+    if tu not in _sau: _sau[tu] = bc(tu, d(0))
+    a = _sau[tu].get(cid) or _sau[tu].get(str(cid))
+    return bool(a and a["chi"] > 0 and roi(a) >= ROI_TANG)
+dat = [(cid, chu) for cid, chu in dat if _sau_giam_ok(cid)]
+dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
+# GIẢM BẬC (luật GB): chỉ phiên sáng (6–13h VN), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
+# → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
+ha = []
+if 6 <= vn.hour < 13:
+    hqua = bc(d(1), d(1))
+    for cid, a in thang.items():
+        ns = a["budget"]; y = hqua.get(cid)
+        if ns <= 1 or not y or y["chi"] < 0.5 * ns: continue
+        ry = roi(y); g3 = gan.get(cid); r3 = roi(g3) if g3 else ry
+        if ry is None or ry >= 0 or (r3 is not None and r3 >= 20): continue
+        buoc = 2 if ry < -50 and y["chi"] >= ns else 1; dich = NT.xuong(ns, buoc)
+        try: ly = NT.chan_giam(api, cid)
+        except Exception: ly = None
+        if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 else "")))
 tu_choi, dong_l = [], []
 try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
@@ -106,7 +132,7 @@ except Exception as e:
 tat_l = [(cid, f"#{a['ten'][:70]} · tiêu ${a['chi']:.2f} từ trước tới nay · ROI {roi(a):+.0f}% → TẮT") for cid, a in tron.items() if a["chi"] > 10 and roi(a) is not None and roi(a) < -50]
 if JSON:
     m = lambda ds: [{"id": i, "chu": s} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "moc30": m(moc30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "moc30": m(moc30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)

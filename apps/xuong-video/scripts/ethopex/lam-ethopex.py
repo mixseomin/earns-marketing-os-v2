@@ -2,6 +2,7 @@
 """LÀM THEO LỆNH ANH DUYỆT (nút Telegram phòng Ethopex, anh 21/10/2026: "tao có thể duyệt trên đó luôn"). Chạy trên box3 (khoá ở studio xv_khoa_ngoai).
 Chỉ hai việc, đúng API giao diện Ethopex dùng (đọc từ mã app 21/10/2026):
   tang <camp_id> <ngân sách>   → POST /api/v1/campaigns/update {campaign:{campaign_id, source_payload:{daily_budget}}}
+  giam <camp_id> <ngân sách>   → cùng API update, chỉ xuống thang (luật GB, nhip_tang.chan_giam)
   tat  <camp_id>               → POST /api/v1/campaigns/control/batch/bulk [{entity_type:'campaign', entity_ids:[id], status:'paused'}]
 Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: ≥ 3 giờ giữa hai lần). Làm xong ĐỌC LẠI camp để xác nhận.
 In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
@@ -37,6 +38,15 @@ def main(a):
             if ly: raise ValueError(ly)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
             ok = lambda s: float(s["ns"] or 0) == ns
+        elif viec == "giam":   # luật GB giảm bậc — chỉ xuống trên thang, tối thiểu $1, cách lần đổi trước ≥ 6 giờ (nhip_tang.py)
+            ns = int(a[2])
+            if ns not in MUC | {1}: raise ValueError(f"${ns} không phải mức hợp lệ")
+            if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không giảm")
+            if ns >= float(truoc["ns"] or 0): raise ValueError(f"camp đang ${truoc['ns']} ≤ ${ns}, không phải giảm")
+            ly = NT.chan_giam(lambda p: api(p), cid)
+            if ly: raise ValueError(ly)
+            api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
+            ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "tat":
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đã {truoc['tt']}")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
@@ -44,7 +54,7 @@ def main(a):
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")
             ok = lambda s: s["tt"] == "PAUSED"
         else:
-            raise ValueError("việc không hợp lệ (tang / tat)")
+            raise ValueError("việc không hợp lệ (tang / giam / tat)")
         for _ in range(12):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại tới ~60s (21/10/2026: 7/15 camp sau 18s chưa thấy, 20s sau mới đổi)
             time.sleep(5); sau = doc(cid)
             if ok(sau): break

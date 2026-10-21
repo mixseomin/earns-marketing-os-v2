@@ -2,6 +2,8 @@
 
 Áp MẶC ĐỊNH, không đợi user nhắc. Component nhà đã có sẵn — **dùng lại, đừng dựng raw/bespoke.**
 
+**Mọi thiết kế = YDNI (anh 22/10/2026: "mặc định mọi thiết kế phải tuân thủ YDNI").** Đọc skill `design/ydni` TRƯỚC khi dựng; >2 nhóm nội dung = chia tab con (`Segmented` + `?…=` URL), cấm thêm khối chồng dọc (tab Ethopex 22/10 thêm khối "Đề xuất theo phim" dưới đáy → anh chửi). Trước khi báo xong: `~/bin/do-man cuon <url> --kho 1440x900,1280x800,390x844 --cho 8000` (tunnel + phiên theo "Phiên đo màn" ở CLAUDE.md) — trang KHÔNG được cuộn ở `main.main`, chỉ khung nội dung được cuộn. Khung cuộn của trang là `main.main` (lề dưới 56px), không phải cửa sổ.
+
 ## 0. INVENTORY — quét ở đây TRƯỚC khi tự viết bất kỳ UI nào
 
 Import tất cả từ `@/components/ui` (hoặc `./ui`). Cần 1 thứ dưới đây mà đang định tự viết `<div>`/`<span>`/`<select>` tay → **DÙNG CÁI NÀY**. Cần gì không có → mở `components/ui/` xem, rồi mới cân nhắc tạo (và tạo trong `ui/` để lần sau tái dùng).

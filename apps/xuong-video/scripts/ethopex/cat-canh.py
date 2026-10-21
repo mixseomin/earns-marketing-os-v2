@@ -7,7 +7,7 @@ thêm tên phim) + dòng vàng "WHAT HAPPENS NEXT?" + mũi tên chỉ xuống n�
   (assets/ethopex/cta-<lang>-<giọng>.mp3, sinh MỘT lần dùng lại) nhanh 1.15×, vào trước cú cắt 1s (tiếng phim lặng dần dưới giọng),
   thẻ cuối kéo dài theo câu đọc.
 - Cắt ở đầu một cảnh và ngay sau khoảnh khắc treo (cliffhanger); tiếng mờ hai đầu để không cụt thoại.
-- Phóng lên 1080x1920 (lanczos) khi nguồn < 1080p — báo rõ nguồn gốc trong ghi chú lô.
+- Phóng lên 1080x1920 (lanczos, 0đ) khi nguồn < 1080p — báo rõ nguồn gốc trong ghi chú lô. Phim THẮNG: nâng nguồn bằng Topaz trước (nang-hd.py, chặn phim chưa thắng).
 - Mọi chữ (nút, dòng hỏi) qua luật chữ studio (ghep-b.chu_studio).
 Dùng: python3 cat-canh.py <nguon.mp4> <tu_giay> <den_giay> <poster.png> <font.json|-> <CTA> <ra.mp4> [giong.mp3|-] [cau_hoi]"""
 import json, os, sys, importlib.util

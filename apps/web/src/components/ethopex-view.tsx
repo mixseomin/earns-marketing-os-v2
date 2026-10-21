@@ -33,8 +33,34 @@ function OLuat({ ds }: { ds: LuatCham[] }) {
   );
 }
 
+type DongNk = { luc: string; viec: string; truoc: string | null; sau: string | null; ai: string; luat: string | null; loi: string | null };
+/** NHẬT KÝ THAY ĐỔI của camp (anh 22/10/2026: "log mọi thay đổi trong từng camp") — lịch sử Ethopex (mọi người, mọi đường) + luật kích hoạt của máy. */
+function NhatKyCamp({ id }: { id: number }) {
+  const [ds, setDs] = useState<DongNk[] | null>(null); const [loi, setLoi] = useState<string | null>(null);
+  useEffect(() => { let bo = false; fetch(`/api/ethopex/lich-su/${id}`).then((r) => r.json()).then((j) => { if (!bo) { setDs(j.dong ?? []); setLoi(j.ok ? j.loi : j.error); } }).catch((e) => !bo && setLoi(String(e))); return () => { bo = true; }; }, [id]);
+  if (!ds) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{loi ?? 'Đang đọc lịch sử…'}</div>;
+  if (!ds.length) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có thay đổi nào.</div>;
+  return (
+    <div>
+      {loi ? <div style={{ fontSize: 11, color: MUC_MAU.ha }}>Lịch sử Ethopex lỗi: {loi} — chỉ hiện nhật ký của máy</div> : null}
+      {ds.map((d, i) => (
+        <div key={i} style={{ borderTop: '1px solid var(--line)', padding: '5px 0', fontSize: 12 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+            <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{new Date(d.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
+            <span style={{ flex: 1 }}><b>{d.viec}</b> {d.truoc != null || d.sau != null ? <span style={mono}>{d.viec === 'ngân sách' ? `$${d.truoc ?? '—'} → $${d.sau ?? '—'}` : `${d.truoc ?? '—'} → ${d.sau ?? '—'}`}</span> : null}</span>
+            <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{d.ai}</span>
+          </div>
+          {d.luat ? <div style={{ fontSize: 11, color: 'var(--fg-3)', marginLeft: 4 }}>luật: {d.luat}</div> : null}
+          {d.loi ? <div style={{ fontSize: 11, color: MUC_MAU.dung, marginLeft: 4 }}>không làm được: {d.loi}</div> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
   const [mo, setMo] = useState<string | null>(null);
+  const [tab, setTab] = useState<'luat' | 'nk'>('luat');
   const r = roi(c.thang);
   return (
     <Drawer onClose={onClose} width={640}>
@@ -63,8 +89,10 @@ function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Luật đang áp cho camp này</div>
-      {c.luat.map((x) => {
+      <div style={{ marginBottom: 8 }}>
+        <Segmented<'luat' | 'nk'> value={tab} onChange={setTab} options={[{ value: 'luat', label: 'Luật đang áp' }, { value: 'nk', label: 'Nhật ký thay đổi', title: 'Mọi thay đổi ngân sách / trạng thái: lịch sử Ethopex + luật kích hoạt của máy' }]} />
+      </div>
+      {tab === 'nk' ? <NhatKyCamp id={c.id} /> : c.luat.map((x) => {
         const l = LUAT_THEO_MA[x.ma]!, mau = x.trang_thai === 'cham' ? MUC_MAU[l.muc] : 'var(--fg-2)';
         return (
           <div key={x.ma} style={{ borderTop: '1px solid var(--line)', padding: '6px 0' }}>

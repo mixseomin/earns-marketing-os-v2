@@ -73,4 +73,6 @@ if (a.includes('--nap')) {
 } else if (a.includes('--nguon')) {
   await ghiNguon(db, ma, await docStdin()); console.log('✓ nguồn');
 } else { console.error('dùng: may-dung.mts [--may mã] --nap < de.json | --ds [--ca-luu-tru] | --xuat <slug|all-chua> | --anh <slug|all-chua> | --ghi-dang <slug> <nền> < x.json | --nguon < n.json | --nhat-ky < x.json | --may-info | --may-chay'); process.exit(2); }
+// chờ stdout xả hết rồi mới thoát: stdout là ống (ssh) thì ghi bất đồng bộ — exit ngay cắt mất phần sau ~64 KB (21/10/2026: --ds máy Hotel 65 KB → JSON cụt)
+await new Promise<void>((xong) => process.stdout.write('', () => xong()));
 process.exit(0);

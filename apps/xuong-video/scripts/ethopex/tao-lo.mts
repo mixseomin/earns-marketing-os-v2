@@ -10,7 +10,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { khuonQcPhim, BEATS_QC_PHIM, PHAN_CANH_QC_PHIM, shotQc, thamKhaoQcGoc, briefQcPhim, nenCua, type QcGoc } from './khuon-qc-phim';
 
-type Canh = { loi: string; anh: string; dong: string };
+type Canh = { loi: string; anh: string; dong: string; co_canh?: string; chuyen_dong?: string };   // co_canh / chuyen_dong: đạo diễn khai tay (vào bối cảnh mới = ws…), thiếu thì shotQc chia
 type Phim = { content_id: number; ten: string; lang: 'en' | 'es'; nguon: string; giong: string; poster: string; url: string; nhan_vat: string; qc_goc?: QcGoc; boi_canh?: { ten: string; mo_ta: string }; canh: Canh[] };
 // khuon.giay_canh (mặc định 3s) + khuon.mo_hinh_video: QC kể chuyện dài 2–3' (anh 21/10/2026) dùng ~20 shot 8s
 const lo = JSON.parse(readFileSync(process.argv[2]!, 'utf8')) as { ghi_chu: string; khuon: { the_cuoi: Record<string, string>; giay_canh?: number; mo_hinh_video?: string }; phim: Phim[] };
@@ -46,8 +46,11 @@ for (const p of lo.phim) {
       ${j(BEATS_QC_PHIM)}::jsonb, ${j(PHAN_CANH_QC_PHIM)}::jsonb, 'storyboard') RETURNING id`)) as unknown as { id: number }[];
   const tapId = tap[0]!.id;
   const shots = [...p.canh.map((c, i) => ({ ...c, chu: k.chu[i]! })), { loi: k.theCuoi.loi, anh: k.theCuoi.anh, dong: k.theCuoi.dong, chu: k.theCuoi.chu }];
+  let truocKt: { co_canh: string; chuyen_dong: string } | undefined;
   for (const [i, c] of shots.entries()) {
-    const s = shotQc(i, shots.length);
+    const g = shotQc(i, shots.length, truocKt);
+    const s = { ...g, co_canh: (c as Canh).co_canh ?? g.co_canh, chuyen_dong: (c as Canh).chuyen_dong ?? g.chuyen_dong };
+    truocKt = { co_canh: s.co_canh, chuyen_dong: s.chuyen_dong };
     await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, prompt_anh, prompt_video, loi_thoai, thoai, chu_man, nhan_vat, phan_doan, ky_thuat, dan_dung, tham_khao, thoi_luong_s, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1}${i === 0 ? ' · hook' : i === shots.length - 1 ? ' · end card' : ''}`}, ${c.anh}, ${c.anh}, ${c.dong}, ${c.loi},
         ${j([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${c.chu}, ${anchors}::jsonb, ${s.phan_doan},

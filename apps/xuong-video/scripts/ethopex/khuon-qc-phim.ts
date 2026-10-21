@@ -48,7 +48,7 @@ export const SHOT_QC_PHIM: Record<number, { phan_doan: string; co_canh: string; 
 };
 /** Vai shot i (0-based) trong tập n shot (shot cuối = thẻ cuối). n = 7 → đúng SHOT_QC_PHIM; dài hơn (QC kể chuyện 2–3', anh 21/10/2026) → chia theo nhịp:
  *  hook 1 shot · bất công ~40% · nút thắt ~15% · lật ngược ~25% · đỉnh phần còn lại · cta cuối; cỡ cảnh + máy xoay vòng (≤ 2 shot máy đứng yên). */
-export function shotQc(i: number, n: number): { phan_doan: string; co_canh: string; chuyen_dong: string; muc_dich: string } {
+export function shotQc(i: number, n: number, truoc?: { co_canh: string; chuyen_dong: string }): { phan_doan: string; co_canh: string; chuyen_dong: string; muc_dich: string } {
   if (n === 7) return SHOT_QC_PHIM[i + 1]!;
   if (i === 0) return SHOT_QC_PHIM[1]!;
   if (i === n - 1) return SHOT_QC_PHIM[7]!;
@@ -56,7 +56,11 @@ export function shotQc(i: number, n: number): { phan_doan: string; co_canh: stri
   const pd = k < 0.4 ? 'bat_cong' : k < 0.55 ? 'nut_that' : k < 0.8 ? 'lat_nguoc' : 'dinh';
   const goc = { bat_cong: SHOT_QC_PHIM[2]!, nut_that: SHOT_QC_PHIM[4]!, lat_nguoc: SHOT_QC_PHIM[5]!, dinh: SHOT_QC_PHIM[6]! }[pd];
   const CO = ['ms', 'cu', 'mcu', 'ws', 'ms', 'cu'], MAY = ['cam_tay', 'day_vao', 'truot_ngang', 'lia', 'day_vao', 'cau'];
-  return { ...goc, co_canh: CO[i % CO.length]!, chuyen_dong: MAY[i % MAY.length]! };
+  // studio chặn "nhịp hình" khi 2 shot liền nhau cùng cỡ cảnh + cùng máy (21/10/2026: shot 1 cu/day_vao, shot 2 xoay vòng trúng đúng cu/day_vao) → né shot trước
+  let co = CO[i % CO.length]!, may = MAY[i % MAY.length]!;
+  if (truoc && co === truoc.co_canh) co = CO[(i + 1) % CO.length]!;
+  if (truoc && may === truoc.chuyen_dong) may = MAY[(i + 1) % MAY.length]!;
+  return { ...goc, co_canh: co, chuyen_dong: may };
 }
 
 export type QcGoc = { ma: string; page: string; ngay: number };

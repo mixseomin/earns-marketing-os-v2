@@ -28,8 +28,12 @@ $BR eval 'location.href' | tail -1
 
 # Campaign
 $BR fill 'input[name=name]' "$TEN" >/dev/null
-bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select Facebook ad account/.test(x.innerText))'; sleep 2
-bam '[...document.querySelectorAll("[role=option]")].find(x=>/ETP_440/.test(x.textContent))'; sleep 1
+# chọn tài khoản — kiểm lại & chọn lại tới 3 lần (21/10/2026 lô 2210: 3/9 camp tài khoản/Page trống vì ô chọn mở chậm, cổng cấu hình chặn)
+for _ in 1 2 3; do
+  bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select Facebook ad account/.test(x.innerText))' >/dev/null; sleep 2
+  bam '[...document.querySelectorAll("[role=option]")].find(x=>/ETP_440/.test(x.textContent))' >/dev/null; sleep 1
+  [ "$($BR eval '/ETP_440/.test(document.querySelector("main").innerText)' | tail -1)" = true ] && break
+done
 
 # Ad Set
 bam '[...document.querySelectorAll("main *")].find(x=>x.children.length<3&&x.innerText?.trim()=="New Sales Ad Set")'; sleep 2
@@ -49,8 +53,11 @@ $BR eval 'const t=document.querySelector("main").innerText;"ADSET | "+(t.match(/
 $BR eval '(()=>{const e=[...document.querySelectorAll("div,span,button")].filter(x=>x.innerText?.trim()=="New Sales Ad");e[0].setAttribute("data-pb","adlv");return e.length})()' >/dev/null
 $BR post click '{"selector":"[data-pb=adlv]"}' >/dev/null 2>&1; sleep 2
 $BR fill 'input[name=adName]' "$TEN" >/dev/null
-bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select a FB Page/.test(x.innerText))'; sleep 2
-bam '[...document.querySelectorAll("[role=option]")].find(x=>/Andrew Rebecca/.test(x.textContent))'; sleep 1
+for _ in 1 2 3; do
+  bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select a FB Page/.test(x.innerText))' >/dev/null; sleep 2
+  bam '[...document.querySelectorAll("[role=option]")].find(x=>/Andrew Rebecca/.test(x.textContent))' >/dev/null; sleep 1
+  [ "$($BR eval '/Andrew Rebecca/.test(document.querySelector("main").innerText)' | tail -1)" = true ] && break
+done
 bam '[...document.querySelectorAll("main button,[role=combobox]")].find(x=>/Select a creative/.test(x.innerText))'; sleep 3
 # ô chọn chỉ liệt kê ~50 creative mới nhất (20/10/2026: nhân bản camp #65110 dùng creative cũ #51921 → không thấy, creative trống) → gõ mã vào ô Search của ô chọn rồi chờ kết quả
 if [ "$(bam "[...document.querySelectorAll('[role=option]')].find(x=>/\\($CR\\)/.test(x.textContent))")" != ok ]; then

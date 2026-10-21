@@ -11,7 +11,7 @@ type CtCamp = { campaign: { id: number; name: string; state: string; budget_dail
   ad_groups?: { ads?: { content_id?: number; creative_id?: number; delivery_status?: string; error?: string; final_url?: string; external_ad_id?: string; name?: string;
     media_info?: { video_id?: string; thumbnail_url?: string } | string }[] }[] };
 type DongBc = { campaign_id: number; cost: number; revenue: number };
-export type PhimCho = { id: number; nguon: string; locale: string; ten: string; url: string; so_page: number; so_qc: number; trang_thai: 'cho' | 'can_xem' | 'trung'; ghi: string };
+export type PhimCho = { id: number; nguon: string; locale: string; ten: string; url: string; so_page: number; so_qc: number; trang_thai: 'cho' | 'can_xem' | 'trung' | 'de_xuat'; ghi: string };
 export type DuLieuEthopex = { luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; loi: string | null };
 
 let nho: { luc: number; data: DuLieuEthopex } | null = null;

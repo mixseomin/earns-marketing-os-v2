@@ -3,13 +3,15 @@
 // ô biểu tượng (luật nặng nhất đang chạm, tô theo mức dung > ha > bao > len) + chip mã luật (rê = câu luật với số thật của camp + vì sao);
 // bấm hàng → ngăn chi tiết: từng luật, điều kiện ✓/○ (hiện tại vs ngưỡng), "Chạm thì: …". Sổ luật: lib/ethopex-luat.ts. Dữ liệu: lib/ethopex-doc.ts.
 import { useMemo, useState, useEffect } from 'react';
-import { DataTable, Drawer, FilterChips, LinkChip, Panel, StatsStrip, type DataColumn } from '@/components/ui';
+import { DataTable, Drawer, FilterChips, LinkChip, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { LUAT, LUAT_THEO_MA, MUC_MAU, chamLuat, deXuatPhim, nangNhat, roi, type CampEtp, type DangCr, type LuatCham, type PhimDeXuat } from '@/lib/ethopex-luat';
 import type { DuLieuEthopex } from '@/lib/ethopex-doc';
 
 type Dong = CampEtp & { luat: LuatCham[] };
 type Loc = 'all' | 'chay' | 'tat' | 'cham';
+type Xem = 'camp' | 'phim' | 'cho' | 'luat';   // YDNI: một màn hình, chia tab — không chồng khối dọc (anh 22/10/2026)
+const KHUNG: React.CSSProperties = { maxHeight: 'calc(100vh - 290px)', overflowY: 'auto' };   // chỉ vùng nội dung cuộn, đầu trang đứng yên
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const pct = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`);
 const mauTien = (v: number) => (v > 0 ? 'var(--neon-lime, #9be15d)' : v < 0 ? 'var(--neon-red, #ff5c5c)' : 'var(--fg-3)');
@@ -94,7 +96,9 @@ function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
 export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const modal = useModalParam('em');
   const [loc, setLoc] = useState<Loc>('all');
-  useEffect(() => { const v = new URLSearchParams(location.search).get('etl') as Loc | null; if (v) setLoc(v); }, []);
+  const [xem, setXem] = useState<Xem>('camp');
+  useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x) setXem(x); }, []);
+  useEffect(() => { const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(history.state, '', u); }, [xem]);
   useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(history.state, '', u); }, [loc]);
   const dong: Dong[] = useMemo(() => {
     const soCamp = new Map<number, number>();
@@ -120,7 +124,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         {DANG.filter((d) => p.theo_dang[d]).map((d) => { const s = p.theo_dang[d]!, v = roi(s); return <span key={d} title={`${d}: ${s.n} camp · chi ${usd(s.chi)} · thu ${usd(s.thu)}`} style={{ ...mono, fontSize: 10, color: mauTien(v ?? 0) }}>{d} {pct(v)}</span>; })}
       </span>) },
     { key: 'dx', header: 'Đề xuất (luật DC)', align: 'left', cell: (p) => (
-      <span style={{ display: 'grid', gap: 2 }}>{p.de_xuat.map((x, i) => <span key={i} style={{ fontSize: 11, color: x.muc === 'bao' ? 'var(--fg-2)' : MUC_MAU[x.muc] }}>{x.cau}</span>)}</span>) },
+      <span style={{ display: 'grid', gap: 2 }}>{p.de_xuat.map((x, i) => <span key={i} style={{ fontSize: 11, color: x.muc === 'ha' || x.muc === 'dung' ? MUC_MAU[x.muc] : 'var(--fg-1)' }}>{x.muc === 'len' ? '↑ ' : ''}{x.cau}</span>)}</span>) },
   ];
 
   const cot: DataColumn<Dong>[] = [
@@ -161,51 +165,50 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         { key: 'gt', label: 'Cần xem giảm/tắt', value: dem('GT'), color: dem('GT') ? MUC_MAU.ha : undefined },
         { key: 'tc', label: 'Ad bị từ chối', value: dem('TC'), color: dem('TC') ? MUC_MAU.dung : undefined },
       ]} />
-      <div style={{ margin: '12px 0 8px' }}>
-        <FilterChips<Loc> urlKey="etl" value={loc} onChange={setLoc}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: '12px 0 8px' }}>
+        <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
+          { value: 'camp', label: 'Camp', title: `${dong.length} camp` },
+          { value: 'phim', label: 'Theo phim', title: `${phim.length} phim — đề xuất dạng creative (luật DC)` },
+          { value: 'cho', label: 'Hàng chờ', title: `${du.hangCho.length} phim chờ test` },
+          { value: 'luat', label: 'Sổ luật', title: `${LUAT.length} luật · kb #261 mục 8–8i` },
+        ]} />
+        {xem === 'camp' ? <FilterChips<Loc> urlKey="etl" value={loc} onChange={setLoc}
           counts={{ all: dong.length, chay: dong.filter((d) => d.trang_thai === 'ACTIVE').length, tat: dong.filter((d) => d.trang_thai !== 'ACTIVE').length, cham: dong.filter(coCham).length }}
-          options={[{ value: 'all', label: 'Tất cả' }, { value: 'chay', label: 'Đang bật' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cham', label: 'Chạm luật', title: 'Có luật tăng / giảm / từ chối đang chạm' }]} />
+          options={[{ value: 'all', label: 'Tất cả' }, { value: 'chay', label: 'Đang bật' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cham', label: 'Chạm luật', title: 'Có luật tăng / giảm / từ chối đang chạm' }]} /> : null}
       </div>
-      <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100}
-        groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
-        searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
-        onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
-      <div style={{ marginTop: 16 }}>
-        <Panel title="Đề xuất theo phim" subtitle="// luật DC — gộp mọi camp cùng phim · chỉ đề xuất, anh quyết">
+      <div style={KHUNG}>
+        {xem === 'camp' ? (
+          <DataTable<Dong> rows={hien} columns={cot} getRowKey={(d) => String(d.id)} persistKey="ethopex-camp" minWidth={1100}
+            groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
+            searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
+            onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
+        ) : xem === 'phim' ? (
           <DataTable<PhimDeXuat> rows={phim} columns={cotPhim} getRowKey={(p) => String(p.content_id)} persistKey="ethopex-phim" minWidth={980}
             searchText={(p) => `${p.phim} ${p.content_id}`} searchPlaceholder="Tìm phim…" />
-        </Panel>
-      </div>
-      {du.hangCho.length ? (
-        <div style={{ marginTop: 16 }}>
-          <Panel title="Hàng chờ test" subtitle={`// ${du.hangCho.length} phim spy chưa vào lô — studio xv_khoa_ngoai ethopex_hang_cho`}>
-            {du.hangCho.map((p) => (
-              <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12, opacity: p.trang_thai === 'cho' ? 1 : 0.7 }}>
-                <div>
-                  <LinkChip href={p.url} tone="neutral" size="xs" title={p.url}>{p.ten} ↗</LinkChip>{' '}
-                  <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>#{p.id} · {p.nguon} · {p.locale.toUpperCase()} · {p.so_page} Page / {p.so_qc} QC</span>
-                  <div style={{ fontSize: 11, color: p.trang_thai === 'can_xem' ? MUC_MAU.ha : 'var(--fg-3)' }}>{p.ghi}</div>
-                </div>
-                <span style={{ ...mono, fontSize: 10, color: p.trang_thai === 'can_xem' ? MUC_MAU.ha : 'var(--fg-2)' }}>{p.trang_thai === 'cho' ? 'chờ test' : p.trang_thai === 'can_xem' ? 'cần anh xem' : 'bản trùng'}</span>
+        ) : xem === 'cho' ? (
+          du.hangCho.length ? du.hangCho.map((p) => (
+            <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12, opacity: p.trang_thai === 'cho' ? 1 : 0.7 }}>
+              <div>
+                <LinkChip href={p.url} tone="neutral" size="xs" title={p.url}>{p.ten} ↗</LinkChip>{' '}
+                <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>#{p.id} · {p.nguon} · {p.locale.toUpperCase()} · {p.so_page} Page / {p.so_qc} QC</span>
+                <div style={{ fontSize: 11, color: p.trang_thai === 'can_xem' ? MUC_MAU.ha : 'var(--fg-3)' }}>{p.ghi}</div>
               </div>
-            ))}
-          </Panel>
-        </div>
-      ) : null}
-      <div style={{ marginTop: 16 }}>
-        <Panel title="Sổ luật Ethopex" subtitle="// kb #261 mục 8–8i · lib/ethopex-luat.ts">
-          {LUAT.map((l) => (
+              <span style={{ ...mono, fontSize: 10, color: p.trang_thai === 'can_xem' ? MUC_MAU.ha : 'var(--fg-2)' }}>{p.trang_thai === 'cho' ? 'chờ test' : p.trang_thai === 'can_xem' ? 'cần anh xem' : p.trang_thai === 'trung' ? 'bản trùng' : 'đề xuất'}</span>
+            </div>
+          )) : <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có phim chờ test</div>
+        ) : (
+          LUAT.map((l) => (
             <div key={l.ma} style={{ display: 'grid', gridTemplateColumns: '18px 44px 1fr', gap: 8, padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
-              <span style={{ color: MUC_MAU[l.muc], textAlign: 'center' }}>{l.icon}</span>
-              <span style={{ ...mono, fontSize: 10, color: MUC_MAU[l.muc] }}>{l.ma}</span>
+              <span style={{ color: 'var(--fg-2)', textAlign: 'center' }}>{l.icon}</span>
+              <span style={{ ...mono, fontSize: 10, color: 'var(--fg-2)' }}>{l.ma}</span>
               <div>
                 <b>{l.ten}</b> <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{l.gac === 'may' ? 'máy chặn' : 'anh duyệt'} · {l.nguon}</span>
                 <div style={{ color: 'var(--fg-2)' }}>Khi {l.khi} → {l.lam}</div>
                 <div style={{ color: 'var(--fg-3)', fontSize: 11 }}>Vì sao: {l.vi}</div>
               </div>
             </div>
-          ))}
-        </Panel>
+          ))
+        )}
       </div>
       {dangMo && modal.is('camp') ? <NganCamp c={dangMo} onClose={modal.close} /> : null}
     </div>

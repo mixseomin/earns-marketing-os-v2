@@ -122,6 +122,7 @@ def khan_diem(wd, NT=56, NV=26):
     return ds, mat
 
 PHU = []   # tên người phụ của bộ set đã dựng (nguoi_that bật người thật cho họ như nhân vật chính)
+PHU_N = []   # ma-nơ-canh người phụ (dat_mat_moi_nguoi đặt chấm mắt cho họ như nhân vật chính)
 def khoi(p, ten, goc=(0, 0), xoay=0):
     """Một khối: tam = (x, y, z ĐÁY) tương đối với gốc nhóm; co = (rộng x, sâu y, cao z)."""
     h = p['hinh']
@@ -136,6 +137,7 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
                              trang={'ao': lin(p.get('ao') or p['mau']), 'than': p.get('than')})
         ng().tu_the(n_, p.get('tu_the') or 'dung'); PHU.append(ten)
         n_['goc'].location = (gx * CM, gy * CM, z * CM); n_['goc'].rotation_euler.z = math.radians(xoay + p.get('xoay', 0))
+        PHU_N.append(n_)
         return n_['goc']
     m = mau(p['mau'], p.get('sang', 0))
     if h == 'day':
@@ -621,6 +623,15 @@ def da_theo_do(da, do):
     if da.get('dau'): return {'da_3d': da['dau'], 'da_che_do': 'dau'}
     return {}
 
+def dat_mat_moi_nguoi(*_):
+    """CHẤM MẮT bám theo đầu ở MỌI khung (anh 21/10/2026 "mắt của Thần nhảy ra ngoài, mắt các nhân vật nhảy lung tung"): chấm con ngươi không gắn cha
+    vào xương (nguoi.py › con_nguoi) nên chỉ đúng ở dáng lúc đặt — clip diễn quay đầu thì chấm đứng lại giữa không trung / ra sau gáy (#12); người phụ
+    thì chưa từng được đặt (chấm nằm ở gốc toạ độ). Gọi sau khi dựng shot và ở frame_change_post của clip diễn: mắt nhìn đích (nhin_dich) theo đầu hiện tại."""
+    for n_ in [*NGUOI.values(), *PHU_N]:
+        try:
+            if not (n_.get('nhin_dich') and ng().mat_nhin(n_, n_['nhin_dich'])): ng().dat_con_nguoi(n_)
+        except (ReferenceError, KeyError): pass   # người của shot trước, object đã xoá
+
 def nhan_vat(sh, ket=False):
     """Khối nhân vật / đạo cụ của shot ở chỗ MỞ shot (tam), quay theo huong (độ, 0 = mặt nhìn về phía người ngồi −y, 90 = nhìn sang phải +x).
     Khối có `mat` → gắn hai mắt (lòng trắng + con ngươi) ở mặt trước: khung xám cho thấy nhân vật NHÌN ĐI ĐÂU, không chỉ đứng ở đâu.
@@ -670,7 +681,8 @@ def nhan_vat(sh, ket=False):
             cham_mat_tua(n_, nv['ten'], dien_hl(n_, nv))   # dáng chống / tựa: cúi tới khi bàn tay chạm mặt đỡ thật
             vet_(n_, nv['ten'], dan_cua(nv, mau_nv, ket is True or bool(ket and float(ket) >= 0.5)))
             _nm = (sh.get('nhin_mat') or {}).get('ket' if ket is True or bool(ket and float(ket) >= 0.5) else 'mo', {}).get(nv['ten'])   # mắt nhìn người được nhìn (bo-set-3d.ts › dichNhin)
-            if not (_nm and ng().mat_nhin(n_, [x * CM for x in _nm])): ng().dat_con_nguoi(n_)   # không có đích: con ngươi nhìn thẳng theo mặt
+            n_['nhin_dich'] = [x * CM for x in _nm] if _nm else None
+            if not (_nm and ng().mat_nhin(n_, n_['nhin_dich'])): ng().dat_con_nguoi(n_)   # không có đích: con ngươi nhìn thẳng theo mặt
             # NGÓN: tay đang cầm đồ (tay_cam) nắm lại, tay rảnh cong nhẹ; ôm thùng giữ bàn tay mở áp thùng; khung kết của món đã đặt xuống (cam + den) = tay rảnh
             _ben = {b_ for t_, (c_, b_) in tay_cam(sh).items() if c_ == nv['ten'] and not (ket is True and (next((x for x in sh['nhan_vat'] if x['ten'] == t_), {}).get('den')))}
             for b_ in ('t', 'p'): ng().nam_ngon(n_, b_, 1.0 if b_ in _ben else 0.3)
@@ -705,6 +717,7 @@ def nhan_vat(sh, ket=False):
             if p.get('chat'): chat_lieu(pk, p['chat'], p['mau'])
         if nv.get('nam'): nam_xuong(tat_ca[dau:], X, Y, Z, hg, d, h)
     gan_tay(sh, tat_ca, ket)
+    dat_mat_moi_nguoi()   # người phụ + người chính: chấm mắt theo dáng vừa đặt
     return than, tat_ca
 
 DI_MC = tuple(f'mc_{k}' for k in ng()._mocap().DI)   # mocap ĐI: khung tĩnh thay bằng giữa sải bước (nhan_vat › di_mo) — sổ ở mesh/mocap.py › DI
@@ -1793,6 +1806,16 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     # NGƯỜI THẬT MPFB như khung màu đầu / kết (anh 19/10/2026: clip diễn tập 135 ra ma-nơ-canh khối — đường diễn chưa từng đổi khối ↔ người thật).
     # Rig MPFB nhắm theo khớp ma-nơ-canh nên vẫn diễn đúng dáng / mocap; tiến trình thoát ngay sau nên không cần trả về khối.
     nguoi_that(True)
+    # mắt bám đầu từng khung (dat_mat_moi_nguoi); khoá giao diện khi render để handler sửa vị trí an toàn
+    s.render.use_lock_interface = True; bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
+    if s.render.engine != 'CYCLES':
+        # KÍNH ở bản nháp EEVEE: khúc xạ hai lớp kính chồng (cửa kính trong vách kính) ra ĐEN KỊT (tập 135 #9 — POV qua kính) → vẽ kính bằng độ trong
+        for m_ in [m for m in bpy.data.materials if m.name.startswith('kinh ') and m.use_nodes]:
+            b_ = m_.node_tree.nodes.get('Principled BSDF')
+            if not b_: continue
+            b_.inputs['Transmission Weight'].default_value = 0.0; b_.inputs['Alpha'].default_value = 0.12
+            if hasattr(m_, 'surface_render_method'): m_.surface_render_method = 'BLENDED'
+            else: m_.blend_method = 'BLEND'
     s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
     for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):
         f = 1 + round(t * (N - 1)); print('KHOA', i, f)

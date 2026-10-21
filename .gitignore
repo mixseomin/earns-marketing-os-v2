@@ -31,3 +31,5 @@ npm-debug.log*
 *.sql.gz
 .xv-worker-sha
 apps/xuong-video/scripts/bo-set/tai-san/
+apps/xuong-video/scripts/thu-3d/tai-san/
+apps/xuong-video/scripts/thu-3d/ra/

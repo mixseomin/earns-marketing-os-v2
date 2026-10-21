@@ -14,9 +14,20 @@ type Xem = 'camp' | 'phim' | 'cho' | 'luat';   // YDNI: một màn hình, chia t
 /** Vùng nội dung cuộn trong khung, cao = phần màn còn lại dưới mép trên của nó (đo thật, không đoán số px — phần đầu trang cao thấp theo khổ màn). */
 function useKhung() {
   const ref = useRef<HTMLDivElement>(null); const [cao, setCao] = useState<number | null>(null);
-  useEffect(() => { const do_ = () => { const t = ref.current?.getBoundingClientRect().top ?? 0; setCao(Math.max(240, window.innerHeight - t - 16)); };
-    do_(); window.addEventListener('resize', do_); const ro = new ResizeObserver(do_); if (ref.current?.parentElement) ro.observe(ref.current.parentElement);
-    return () => { window.removeEventListener('resize', do_); ro.disconnect(); }; }, []);
+  useEffect(() => {
+    // khung cuộn của trang là main.main (không phải cửa sổ) và còn lề dưới → đặt cao theo phần còn lại, rồi đo phần trang còn tràn và trừ đi cho vừa khít
+    const cuon = (): HTMLElement | null => { let e = ref.current?.parentElement ?? null; while (e && !/(auto|scroll)/.test(getComputedStyle(e).overflowY)) e = e.parentElement; return e; };
+    const do_ = () => {
+      const el = ref.current; if (!el) return; const sc = cuon();
+      const day = sc ? sc.getBoundingClientRect().bottom : window.innerHeight;
+      const c0 = Math.max(200, day - el.getBoundingClientRect().top - 12);
+      el.style.maxHeight = `${c0}px`;
+      const tran = sc ? sc.scrollHeight - sc.clientHeight : 0;
+      setCao(Math.max(200, c0 - Math.max(0, tran)));
+    };
+    do_(); window.addEventListener('resize', do_); const ro = new ResizeObserver(() => requestAnimationFrame(do_)); if (ref.current?.parentElement) ro.observe(ref.current.parentElement);
+    return () => { window.removeEventListener('resize', do_); ro.disconnect(); };
+  }, []);
   return { ref, style: { maxHeight: cao ?? 'calc(100vh - 320px)', overflowY: 'auto' } as React.CSSProperties };
 }
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;

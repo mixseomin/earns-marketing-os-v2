@@ -122,8 +122,11 @@ if MOC and 'loi' not in MOC:
 at = me.color_attributes.new('truoc', 'FLOAT_COLOR', 'POINT')
 for v in me.vertices:
     t = max(0.0, min(1.0, 0.5 - v.normal.y * 2.5)); at.data[v.index].color = (t, t, t, 1)
-mat = bpy.data.materials.new('da'); mat.use_nodes = True; nt = mat.node_tree; bsdf = nt.nodes['Principled BSDF']
-bsdf.inputs['Roughness'].default_value = 0.55
+mat = bpy.data.materials.new('da'); mat.use_nodes = True; nt = mat.node_tree
+# CHỈ TÁN XẠ, không bóng: ảnh chiếu đã mang sẵn ánh sáng studio; Principled (kể cả nhám 0,8 / bóng 0,2) dưới đèn tương phản của cảnh hắt tóc đen
+# thành vỏ xám trùm đầu (tập 135 #24, 21/10/2026 — soi bằng tự phát sáng thì màu đúng, bằng Diffuse thì tóc đen lại)
+nt.nodes.remove(nt.nodes['Principled BSDF']); bsdf = nt.nodes.new('ShaderNodeBsdfDiffuse')
+nt.links.new(bsdf.outputs[0], nt.nodes['Material Output'].inputs['Surface'])
 def tex(uvten, p):
     t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(p); t.extension = 'EXTEND'
     u = nt.nodes.new('ShaderNodeUVMap'); u.uv_map = uvten; nt.links.new(u.outputs[0], t.inputs[0]); return t
@@ -132,8 +135,8 @@ if SAU:
     ts = tex('UVsau', SAU); mix = nt.nodes.new('ShaderNodeMix'); mix.data_type = 'RGBA'
     atn = nt.nodes.new('ShaderNodeAttribute'); atn.attribute_name = 'truoc'
     nt.links.new(atn.outputs['Fac'], mix.inputs['Factor']); nt.links.new(ts.outputs['Color'], mix.inputs[6]); nt.links.new(tt.outputs['Color'], mix.inputs[7])
-    nt.links.new(mix.outputs[2], bsdf.inputs['Base Color'])
-else: nt.links.new(tt.outputs['Color'], bsdf.inputs['Base Color'])
+    nt.links.new(mix.outputs[2], bsdf.inputs['Color'])
+else: nt.links.new(tt.outputs['Color'], bsdf.inputs['Color'])
 D.data.materials.append(mat)
 
 # 3. đưa mesh về dáng nghỉ chữ A của rig gốc: nghỉ = dáng ảnh → buộc da → trả xương về chữ A → nướng da → nghỉ lại chữ A

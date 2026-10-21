@@ -1,0 +1,19 @@
+# /etc/systemd/system/cty-tg-nghe.service
+# Nghe Telegram liên tục (apps/cty/worker/tg-nghe.mjs) — nút / tin anh gửi vào hộp phòng trong 1–2 giây thay vì đợi nhịp mỗi phút. Cài trên box3 từ bản git:
+#   cp apps/cty/deploy/cty-tg-nghe.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now cty-tg-nghe.service
+# Biến môi trường lấy cùng hai tệp với cty-nhip.service (xem tệp đó).
+[Unit]
+Description=cty - nghe Telegram lien tuc (tg-nghe.mjs)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/cty
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+EnvironmentFile=/root/.secrets/mine-tg.env
+Environment=CTY_DATA_DIR=/var/lib/cty
+ExecStart=/usr/bin/node worker/tg-nghe.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

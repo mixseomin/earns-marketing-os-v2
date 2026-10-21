@@ -93,13 +93,15 @@ async function daNhanNut(tg, c, bang = new Map()) {
 const topicCua = (x) => x.message?.message_thread_id ?? x.callback_query?.message?.message_thread_id ?? null;
 
 /** Đọc mọi tin mới của bot một lần, xếp vào hộp phòng. tg(method, body) = hàm gọi Bot API của bên gọi. Có khoá: hai nhịp cùng lúc thì một bên bỏ qua. */
-export async function gomTin(tg) {
+export async function gomTin(tg, { cho = 0 } = {}) {   // cho = giây chờ tin mới (long-poll) — dịch vụ nghe (tg-nghe.mjs) dùng; nhịp mỗi phút để 0
   fs.mkdirSync(GOC_HOP(), { recursive: true });
   const khoa = path.join(GOC_HOP(), '.khoa');
+  // dịch vụ nghe đang sống (tim đập < 90 giây) thì nhịp mỗi phút KHÔNG gom: một nơi đọc bot thôi, nơi kia sẽ nuốt tin
+  if (!cho) { try { if (Date.now() - fs.statSync(path.join(GOC_HOP(), 'nghe.tim')).mtimeMs < 90_000) return 0; } catch { /* không có dịch vụ nghe */ } }
   try { fs.mkdirSync(khoa); } catch { if (Date.now() - fs.statSync(khoa).mtimeMs < 120000) return 0; fs.rmSync(khoa, { recursive: true, force: true }); fs.mkdirSync(khoa); }   // khoá kẹt > 2 phút = nhịp trước chết giữa chừng
   try {
     const tOffset = path.join(GOC_HOP(), 'offset.json'); let offset = 0; try { offset = JSON.parse(fs.readFileSync(tOffset, 'utf8')).offset; } catch { /* lần đầu */ }
-    const u = await tg('getUpdates', { offset, timeout: 0, allowed_updates: ['message', 'callback_query'] });
+    const u = await tg('getUpdates', { offset, timeout: cho, allowed_updates: ['message', 'callback_query'] });
     let n = 0; const banPhim = new Map();   // bàn phím đã đánh dấu trong lượt này, theo mã tin
     for (const x of u.ok ? u.result : []) {
       const phong = (x.callback_query && NUT_CUA[String(x.callback_query.data ?? '').split(':')[0]]) ?? phongCuaTopic(topicCua(x)) ?? KHAC;

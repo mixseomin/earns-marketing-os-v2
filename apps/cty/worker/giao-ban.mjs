@@ -79,7 +79,6 @@ if (process.argv[1]?.endsWith('giao-ban.mjs') && process.argv.includes('--tu-kie
 }
 
 if (process.argv[1]?.endsWith('giao-ban.mjs') && process.argv.includes('--in')) {   // xem tin tại chỗ (box3), không gửi
-  const { dangBat, dauViec, nhatKyNhip, NHIP } = await import('./nhip.mjs');
-  const nguoi = dangBat().map((n) => ({ ...n, mac: !n.viec.some((v) => NHIP[v]), viecNhip: dauViec(n).map((x) => ({ ten: x.ten, lich: x.lich })) }));
-  console.log(chiaTin(tinGiaoBan({ phongs: cacPhong(), nguoi, viec: docViecMay()?.ds ?? [], nhatKy: nhatKyNhip, cho: choXu })).join('\n\n──── (tin kế) ────\n\n'));
+  const { nguoiGiaoBan, nhatKyNhip } = await import('./nhip.mjs');
+  console.log(chiaTin(tinGiaoBan({ phongs: cacPhong(), nguoi: nguoiGiaoBan(), viec: docViecMay()?.ds ?? [], nhatKy: nhatKyNhip, cho: choXu })).join('\n\n──── (tin kế) ────\n\n'));
 }

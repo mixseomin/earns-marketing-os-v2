@@ -102,10 +102,11 @@ export const VIEC_NHIP = {
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
 export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n), gio: x.gio?.(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
-export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)', 'kiem-ethopex': 'Theo dõi luật camp Ethopex, báo Telegram + duyệt bằng nút (box3, 0đ)' };
+export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)', 'kiem-tai-nguyen': 'Kiểm tài nguyên: proxy, làn cào, tải box3, số dư API (box3, 0đ)', 'kiem-ethopex': 'Theo dõi luật camp Ethopex, báo Telegram + duyệt bằng nút (box3, 0đ)' };
 /** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
  *  qua ssh trước mỗi lượt và tự ghi nhật ký nhịp (<DATA>/nhip/<người>.json[l]) như ghiLam. */
-export { NHIP_MAY } from './nhip-may.mjs';   // khai ở nhip-may.mjs — viec-may.mjs nạp từ đó, không vòng về tệp này
+export { NHIP_MAY } from './nhip-may.mjs';
+import { NHIP_MAY as NHIP_MAY_ } from './nhip-may.mjs';   // khai ở nhip-may.mjs — viec-may.mjs nạp từ đó, không vòng về tệp này
 export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
   'kiem-bai': async (n) => [await (await import('./kiem-bai.mjs')).nhipKiemBai(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Nội dung: bài nộp → chấm → Telegram
@@ -124,6 +125,10 @@ export function dangBat() {
       ca: c.ca || x.fm.ca, diemDanh: c.diem_danh !== undefined ? c.diem_danh : x.fm.diem_danh, kiemMoi: Number(c.kiem_moi || x.fm.kiem_moi || 1), viec: String(x.fm.heartbeat).split(',').map((v) => v.trim()).filter(Boolean) }; });
 }
 
+/** Người đang bật nhịp MÁY (box hoặc Mac) kèm đầu việc bằng chữ — cho giao ban sáng (giao-ban.mjs). Heartbeat không phải nhịp máy (vd "khi bấm nút") không tính;
+ *  nhịp chưa khai đầu việc ở VIEC_NHIP thì lấy tên TEN_NHIP + tần suất kiểm. mac = chỉ chạy trên Mac (box không xét kẹt). */
+export const nguoiGiaoBan = () => dangBat().map((n) => { const may = n.viec.filter((v) => NHIP[v] || NHIP_MAY_[v]);
+  return { ...n, mac: !may.some((v) => NHIP[v]), viecNhip: may.flatMap((v) => { const d = dauViec({ ...n, viec: [v] }); return d.length ? d.map((x) => ({ ten: x.ten, lich: x.lich })) : [{ ten: String(TEN_NHIP[v] ?? v).replace(/\s*\(.*\)$/, ''), lich: tanSuat(n.kiemMoi) }]; }) }; }).filter((n) => n.viecNhip.length);
 if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: a } = await import('node:assert'); const g = (h, p = 0) => new Date(Date.UTC(2026, 9, 13, (h + 17) % 24, p));   // giờ VN h:p
   a.ok(trongCa('08:00-24:00', g(8)) && trongCa('08:00-24:00', g(23, 59)) && !trongCa('08:00-24:00', g(0)) && !trongCa('08:00-24:00', g(7, 59)));
@@ -154,8 +159,7 @@ if (process.argv[1]?.endsWith('nhip.mjs')) {
   // GIAO BAN SÁNG 08:00 (worker/giao-ban.mjs): một tin tổng mọi phòng vào topic Quản lý, một lần mỗi ngày (anh 21/10/2026)
   try { const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (T && C) {
     const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) throw new Error(`telegram ${m}: ${j.description}`); return j; };
-    const nguoi = dangBat().map((n) => ({ ...n, mac: !n.viec.some((v) => NHIP[v]), viecNhip: dauViec(n).map((x) => ({ ten: x.ten, lich: x.lich })) }));
-    const r = await (await import('./giao-ban.mjs')).nhipGiaoBan({ nguoi, nhatKy: nhatKyNhip, tg }); if (r) console.log(r);
+    const r = await (await import('./giao-ban.mjs')).nhipGiaoBan({ nguoi: nguoiGiaoBan(), nhatKy: nhatKyNhip, tg }); if (r) console.log(r);
   } } catch (e) { console.error(`✗ giao ban sáng: ${e.message}`); }
   // VIỆC MÁY (worker/viec-may.mjs): dò lại timer / cron / LaunchAgent mọi máy mỗi 10 phút để bảng nhân sự thấy việc mới + lần chạy cuối
   const vm = await import('./viec-may.mjs'); let tuoi = Infinity; try { tuoi = Date.now() - fs.statSync(vm.TEP()).mtimeMs; } catch { /* chưa có ảnh */ }

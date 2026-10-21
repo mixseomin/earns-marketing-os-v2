@@ -30,6 +30,7 @@ export const LUAT: Luat[] = [
     lam: 'Tăng vào ~21h · ~24h · 8h giờ VN; không thu lại sau khung', vi: 'Camp chạy chủ yếu Mỹ — hiệu suất tốt nhất 21h → 5h sáng giờ VN. Ngân sách $1–3 chưa cần canh giờ.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'GT', ten: 'Giảm / tắt khi ROI tụt', icon: '↓', muc: 'ha', gac: 'nguoi', khi: `ROI 3 ngày gần tụt ≥ 30 điểm so với 4 ngày trước, hoặc từ ≥ ${ROI_TOI_THIEU}% xuống < 0 (đã chi ≥ $3)`,
     lam: 'Anh xem giảm ngân sách hoặc tắt camp', vi: 'Phim đi xuống hoặc creative bão hoà → CPC/CPA tăng, ROI tụt. Ngoài ca này không cần đụng ngân sách.', nguon: 'Dol Dang 21/10/2026' },
+  { ma: 'OFF', ten: 'Tắt camp lỗ sâu', icon: '■', muc: 'dung', gac: 'nguoi', khi: 'Tiêu từ trước tới nay > $10 mà ROI < −50%', lam: 'Tắt camp', vi: 'Đã đủ tiền để biết camp không ăn — tạm thời theo ngưỡng này.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'TC', ten: 'Ad bị Meta từ chối', icon: '⛔', muc: 'dung', gac: 'nguoi', khi: 'Ad DISAPPROVED', lam: 'Không xoá — Edit camp, thay creative SẠCH cùng phim đã được duyệt, Update cho Meta duyệt lại',
     vi: 'Giữ camp + lịch sử; Meta đôi khi duyệt nhầm, thay creative tuân thủ là qua.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'SC', ten: 'Số camp / phim', icon: '#', muc: 'bao', gac: 'may', khi: `Phim đang test: tối đa ${TEST_TOI_DA} camp · phim thắng (anh duyệt): tối đa ${THANG_TOI_DA}`,
@@ -74,6 +75,8 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
     out.push({ ma: 'LD', trang_thai: dat ? 'cham' : rh != null && rh > 0 ? 'gan' : 'ap', cau: dat ? `Lãi đầu phiên: $${c.ngan_sach} → $${dich} — tăng luôn` : `ROI hôm nay ${pct(rh)} · chi $${c.hom_nay.chi.toFixed(2)}`,
       dk: [{ ten: 'Đã chi hôm nay', hien: `$${c.hom_nay.chi.toFixed(2)}`, nguong: '≥ $0,5', dat: c.hom_nay.chi >= 0.5 }, { ten: 'ROI hôm nay', hien: pct(rh), nguong: '> 50%', dat: rh != null && rh > 50 }] });
   }
+  // all-time ≈ từ đầu tháng (dự án bắt đầu 19/10/2026) — đổi sang report all-time khi qua tháng
+  { const r = roi(c.thang); if (c.thang.chi > 10 && r != null && r < -50) out.push({ ma: 'OFF', trang_thai: 'cham', cau: `Tiêu $${c.thang.chi.toFixed(2)}, ROI ${pct(r)} → tắt`, dk: [{ ten: 'Đã tiêu', hien: `$${c.thang.chi.toFixed(2)}`, nguong: '> $10', dat: true }, { ten: 'ROI', hien: pct(r), nguong: '< −50%', dat: true }] }); }
   if (c.thang.chi >= 30 && c.thang.thu > c.thang.chi) out.push({ ma: 'M30', trang_thai: 'cham', cau: `Đã tiêu $${c.thang.chi.toFixed(2)} mà vẫn lãi — hỏi Support scale bài viết cũ + bid ROAS`, dk: [] });
   if (ke == null) out.push({ ma: 'TR20', trang_thai: 'cham', cau: `Đã ở trần $${TRAN_CAMP}`, dk: [{ ten: 'Ngân sách', hien: `$${c.ngan_sach}`, nguong: `$${TRAN_CAMP}`, dat: true }] });
   if (c.ngan_sach > NGAN_SACH_CHUA_CAN_GIO || tbDat) out.push({ ma: 'KG', trang_thai: 'ap', cau: 'Khi tăng: chọn mốc ~21h · ~24h · 8h giờ VN', dk: [] });

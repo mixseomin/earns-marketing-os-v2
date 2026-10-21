@@ -9,6 +9,7 @@
 #        Máy so ROI 3 ngày gần nhất với 4 ngày trước đó (camp đã chi ≥ $3): ROI tụt từ ≥ ngưỡng xuống < 0, hoặc tụt ≥ 30 điểm → "CẦN XEM GIẢM / TẮT".
 #  LÃI ĐẦU PHIÊN (Dol Dang 21/10/2026: "phim trends win… đầu phiên nó lãi thì mình tăng luôn" + "chỉ tăng budget những camp ROI > 50%"): camp lãi hôm nay,
 #        đã chi ≥ $0,5, ROI hôm nay > 50% → tăng luôn lên $2 (ROI 50–100%) / $3 (ROI ≥ 100%), không chờ Spending > 50%. Camp ≥ $3 đi theo thang trên.
+#  TẮT CAMP (Dol Dang 21/10/2026, tạm thời): camp tiêu TỪ TRƯỚC TỚI NAY > $10 mà ROI < −50% → tắt. Máy đọc report all-time, báo "CẦN TẮT"; tắt = anh.
 #  MỐC $30 (Dol Dang 21/10/2026): camp tiêu tới ~$30 mà vẫn lãi → báo để nhóm Support chỉ cách scale bài viết cũ + bid ROAS (rule mới lúc đó).
 #  NHÂN BẢN: phim có camp đạt → Duplicate camp + thêm creative cùng phim (phim phải nằm trong danh sách phim thắng anh duyệt, kiem-so-camp.sh).
 # Đọc API Report Ethopex ở máy chủ (khoá trong studio xv_khoa_ngoai, không in) — đủ mọi camp, không phụ thuộc bảng trên màn (bảng chỉ hiện ~15 dòng).
@@ -30,7 +31,7 @@ def bc(tu, den):
     return g
 vn = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7); nay = vn.date()
 d = lambda n: (nay - dt.timedelta(days=n)).isoformat()
-hom = bc(d(0), d(0)); thang = bc(nay.replace(day=1).isoformat(), d(0)); gan = bc(d(2), d(0)); truoc = bc(d(6), d(3))
+hom = bc(d(0), d(0)); thang = bc(nay.replace(day=1).isoformat(), d(0)); gan = bc(d(2), d(0)); truoc = bc(d(6), d(3)); tron = bc("2026-01-01", d(0))
 roi = lambda a: (a["thu"] - a["chi"]) / a["chi"] * 100 if a["chi"] else None
 BAC = [1, 3, 5, 7, 10, 15, 20]
 ke = lambda b: next((x for x in BAC if x > b + 1e-9), None)
@@ -55,6 +56,8 @@ gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)
 trong = any(abs(((gio - m + 12) % 24) - 12) <= 1 for m in (21, 0, 8))
 print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: " + ("ĐANG TRONG KHUNG" if trong else f"mốc kế ~{int(moc) % 24}h") + " (ngân sách còn thấp $1–3 thì chưa cần canh giờ; không thu lại sau khung)")
+tat = [f"#{a['ten'][:70]} · tiêu ${a['chi']:.2f} từ trước tới nay · ROI {roi(a):+.0f}% → TẮT" for a in tron.values() if a["chi"] > 10 and roi(a) is not None and roi(a) < -50]
+print("CẦN TẮT (tiêu > $10 từ trước tới nay, ROI < −50%) — CHỜ ANH TẮT:"); print("\n".join("  " + x for x in tat) or "  (không)")
 print("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):"); print("\n".join("  " + x for x in dau_phien) or "  (chưa có)")
 print("CHẠM MỐC $30 MÀ VẪN LÃI — hỏi Support scale bài viết cũ + bid ROAS:"); print("\n".join("  " + x for x in moc30) or "  (chưa có)")
 print(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI tháng ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:"); print("\n".join("  " + x for x in dat) or "  (chưa có)")

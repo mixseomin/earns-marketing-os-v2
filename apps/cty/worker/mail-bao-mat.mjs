@@ -454,9 +454,14 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
     a.equal(hocKhop({ ...x, tieuDe: 'Fwd: Your Pinterest API trial access is approved' }, hoc)?.phong, 'marketing', 'thư cùng người gửi + tiêu đề đi chỗ anh đã sửa');
     a.equal(hocKhop({ ...x, tieuDe: 'New follower' }, hoc), null);
     { const y = apNao({ ...x, la: ['pinterest-api.top'] }, null, {}, { cho }); a.notEqual(y.phong, 'xuong-st', 'link nhái: chốt máy thắng cả sổ chờ'); a.notEqual(y.ket, 'that'); } }
-  _fs ??= await import('node:fs'); _goc ||= (await import('./goc.mjs')).GOC;
-  { const c = choThu({ gui: 'pinbot@account.pinterest.com', tieuDe: 'Your Pinterest API trial access request was approved', than: '' });
-    a.equal(c?.phong, 'social-traffic', 'phòng tự khai cho_thu trong phong/<id>.md → Kiên giao đúng phòng'); a.equal(choThu({ gui: 'x@etsy.com', tieuDe: 'order', than: '' }), null); }
+  _fs ??= await import('node:fs');
+  // hồ sơ phòng GIẢ trong thư mục tạm — không đọc dữ liệu thật (phòng xoá dòng cho_thu khi hết chờ là đúng luật, bài kiểm không được đỏ theo)
+  { const os = await import('node:os'), path = await import('node:path'); const goc0 = _goc; _goc = _fs.mkdtempSync(path.join(os.tmpdir(), 'cho-thu-'));
+    _fs.mkdirSync(`${_goc}/cong-ty/phong`, { recursive: true }); _fs.writeFileSync(`${_goc}/cong-ty/phong/social-traffic.md`, '---\nten: Phòng Social Traffic\ncho_thu: pinterest.*(api|trial access) | đang chờ Pinterest cấp API\n---\nthân');
+    _fs.writeFileSync(`${_goc}/cong-ty/phong/sach.md`, '---\nten: Phòng Sách\n---\ncho_thu: dòng trong thân không tính');
+    a.equal(docChoThu().length, 1, 'chỉ đọc cho_thu ở phần đầu tệp');
+    const c = choThu({ gui: 'pinbot@account.pinterest.com', tieuDe: 'Your Pinterest API trial access request was approved', than: '' });
+    a.equal(c?.phong, 'social-traffic', 'phòng tự khai cho_thu trong phong/<id>.md → Kiên giao đúng phòng'); a.equal(choThu({ gui: 'x@etsy.com', tieuDe: 'order', than: '' }), null); _goc = goc0; }
   a.equal(nhomTuChu('Thật'), 'quen'); a.equal(nhomTuChu('thật đấy, của Etsy'), 'quen'); a.equal(nhomTuChu('Giả'), 'gia'); a.equal(nhomTuChu('Nhà mình'), 'nha'); a.equal(nhomTuChu('ok'), null);
   a.equal(phuTrachMien('etsy.com'), 'thao'); a.equal(phuTrachMien('mail.etsy.com'), 'thao'); a.equal(phuTrachMien('evil-etsy.com'), null); a.equal(phuTrachMien('kdp.amazon.com'), 'thao');
   a.equal(mienGoc('www.amazon.co.uk'), 'amazon.co.uk'); a.equal(mienGoc('smile.amazon.in'), 'amazon.in'); a.equal(mienGoc('amazon-in.verify-acct.top'), 'verify-acct.top');

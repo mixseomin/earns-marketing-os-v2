@@ -20,10 +20,10 @@ function useKhung() {
     const do_ = () => {
       const el = ref.current; if (!el) return; const sc = cuon();
       const day = sc ? sc.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(sc).paddingBottom) || 0) : window.innerHeight;   // main.main có lề dưới 56px
-      const c0 = Math.max(160, day - el.getBoundingClientRect().top - 4);
+      const c0 = Math.max(100, day - el.getBoundingClientRect().top - 4);
       el.style.maxHeight = `${c0}px`;
       const tran = sc ? sc.scrollHeight - sc.clientHeight : 0;
-      setCao(Math.max(160, c0 - Math.max(0, tran)));
+      setCao(Math.max(100, c0 - Math.max(0, tran)));
     };
     do_(); window.addEventListener('resize', do_); const ro = new ResizeObserver(() => requestAnimationFrame(do_)); if (ref.current?.parentElement) ro.observe(ref.current.parentElement);
     return () => { window.removeEventListener('resize', do_); ro.disconnect(); };

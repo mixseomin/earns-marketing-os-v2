@@ -46,10 +46,23 @@ export const SHOT_QC_PHIM: Record<number, { phan_doan: string; co_canh: string; 
   6: { phan_doan: 'dinh', co_canh: 'ws', chuyen_dong: 'cau', muc_dich: 'thắng thế, hả hê' },
   7: { phan_doan: 'cta', co_canh: 'ms', chuyen_dong: 'zoom_cham', muc_dich: 'kêu gọi xem phim' },
 };
+/** Vai shot i (0-based) trong tập n shot (shot cuối = thẻ cuối). n = 7 → đúng SHOT_QC_PHIM; dài hơn (QC kể chuyện 2–3', anh 21/10/2026) → chia theo nhịp:
+ *  hook 1 shot · bất công ~40% · nút thắt ~15% · lật ngược ~25% · đỉnh phần còn lại · cta cuối; cỡ cảnh + máy xoay vòng (≤ 2 shot máy đứng yên). */
+export function shotQc(i: number, n: number): { phan_doan: string; co_canh: string; chuyen_dong: string; muc_dich: string } {
+  if (n === 7) return SHOT_QC_PHIM[i + 1]!;
+  if (i === 0) return SHOT_QC_PHIM[1]!;
+  if (i === n - 1) return SHOT_QC_PHIM[7]!;
+  const giua = n - 2, k = (i - 1) / giua;
+  const pd = k < 0.4 ? 'bat_cong' : k < 0.55 ? 'nut_that' : k < 0.8 ? 'lat_nguoc' : 'dinh';
+  const goc = { bat_cong: SHOT_QC_PHIM[2]!, nut_that: SHOT_QC_PHIM[4]!, lat_nguoc: SHOT_QC_PHIM[5]!, dinh: SHOT_QC_PHIM[6]! }[pd];
+  const CO = ['ms', 'cu', 'mcu', 'ws', 'ms', 'cu'], MAY = ['cam_tay', 'day_vao', 'truot_ngang', 'lia', 'day_vao', 'cau'];
+  return { ...goc, co_canh: CO[i % CO.length]!, chuyen_dong: MAY[i % MAY.length]! };
+}
+
 export type QcGoc = { ma: string; page: string; ngay: number };
 /** nguồn tham khảo cho mọi câu (chữ màn + lời đọc): QC thật của app gốc cho đúng phim (spy.on.tc · ethopex_uu_tien) */
 export const thamKhaoQcGoc = (cau: string[], g: QcGoc) => cau.filter((c) => c.trim()).map((c) => ({ cau: c, nguon: [{ ma: g.ma, link: `https://www.facebook.com/ads/library/?id=${g.ma}`, loai: 'qc_thang', nguon: 'qc_meta',
   trich: `QC của chính app gốc cho đúng phim này (${g.page} · đang chạy ${g.ngay} ngày, Meta ${g.ma}) — cùng cốt truyện, kể bất công → lật ngược → xem phim`,
   ky_thuat: 'Kể ngôi thứ nhất theo cốt truyện chính thức của phim (khuôn video thắng #1 Ethopex)' }] }));
-export const briefQcPhim = (ten: string, nen: string, lang: 'en' | 'es') => `QC Facebook Ads cho PHIM NGẮN "${ten}" (${nen}, ${lang === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}). Sản phẩm = bộ phim; người xem là người lướt Facebook mê phim ngắn drama. Mục tiêu duy nhất: tò mò cốt truyện → bấm nút 'Learn More' để xem phim miễn phí trên trang phim. Không bán hàng, không giảm giá. Khuôn: hook kịch tính ngay giây đầu, kể ngôi thứ nhất 6 nhịp, chữ trên màn ngắn, thẻ cuối tên phim + 'xem miễn phí, bấm Learn More'.`;
+export const briefQcPhim = (ten: string, nen: string, lang: 'en' | 'es', soNhip = 6) => `QC Facebook Ads cho PHIM NGẮN "${ten}" (${nen}, ${lang === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}). Sản phẩm = bộ phim; người xem là người lướt Facebook mê phim ngắn drama. Mục tiêu duy nhất: tò mò cốt truyện → bấm nút 'Learn More' để xem phim miễn phí trên trang phim. Không bán hàng, không giảm giá. Khuôn: hook kịch tính ngay giây đầu, kể ngôi thứ nhất ${soNhip} nhịp, chữ trên màn ngắn, thẻ cuối tên phim + 'xem miễn phí, bấm Learn More'.`;
 export const nenCua = (nguon: string) => NEN[nguon] ?? 'our app';

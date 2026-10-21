@@ -141,7 +141,10 @@ async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daT
   return null;
 }
 
-const SONG_SONG = 4;
+/** Số shot sửa cùng lúc. Nút thắt là CHỜ cổng AI trả clip (đo #225, 21/10/2026: sinh ~3,5' + soi ~2' mỗi suất, 4 suất → 19 shot mất 25'), không phải CPU
+ *  box — nâng suất mới nhanh. Mặc định 10; đổi bằng XV_CLIP_SONG_SONG. Soi (ffmpeg + YuNet/SFace + Gemini) vẫn chạy box3; CPU nghẽn thì đẩy soi sang
+ *  máy Cloudflare (cloudflare/dung-video). */
+export const SONG_SONG = Math.max(1, Number(process.env.XV_CLIP_SONG_SONG || 10));
 export type KetTuSua = { thu_tu: number; ket: 'sach' | 'het_luot' | 'loi'; lan: number; loi: string[] };
 /** Chạy vòng tự sửa cho mọi shot nhánh A của tập có clip lỗi (hoặc chỉ `chi`). log: in tiến độ. */
 /** `dung`: hỏi trước MỖI lần tiêu tiền (keyframe / video) — trả lý do thì dừng hẳn cả tập (vd vượt ngân sách lượt chạy, tu-lam-phim.ts). */

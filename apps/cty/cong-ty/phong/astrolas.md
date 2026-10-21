@@ -19,7 +19,7 @@ trang_thai: đang hoạt động · lịch theo hạn
 | Mã bang | 2026-002103126 · lập 09/10/2026 |
 | Địa chỉ công ty | 30 N Gould St Ste N, Sheridan, WY 82801 (Northwest) |
 | Đại lý đăng ký | Northwest Registered Agent · Active · tự gia hạn $125 ngày 10/09 hằng năm (Visa 5252) |
-| EIN | nộp IRS 10/10/2026 qua Northwest, hồ sơ giấy 4–6 tuần (chưa có) |
+| EIN | 36-5198269 · cấp 16/10/2026 (IRS fax; CP575 chính thức gửi thư về Northwest) |
 | Giấy tờ | `~/Me/Certification/Astrolas-LLC/` trên MacBook: Articles of Organization, Initial Resolutions, Operating Agreement (bản điền sẵn, chờ ký lại) |
 | Cổng | accounts.northwestregisteredagent.com · htuan82@gmail.com · mật khẩu Keychain · mã đăng nhập gửi qua email |
 

@@ -365,6 +365,9 @@ export function moTaChuyenDong(di: KhungXam['di'] | undefined, goi: (ten: string
     return `${goi(d.ten)} moves ${huong} from the ${o(d.tu)} of the frame to the ${o(d.den)}`;
   });
   const yen = (di ?? []).filter((d) => !dich(d) && laNguoi(d.ten)).map((d) => goi(d.ten));
+  // Chỉ máy đi (mọi món trôi trên màn đều đứng yên trong set): nói thẳng người giữ chỗ — im lặng thì Veo tự cho đi lại.
+  const mayDi = (di ?? []).some((d) => !dich(d) && Math.hypot(d.den[0]! - d.tu[0]!, d.den[1]! - d.tu[1]!) >= 0.04);
+  if (!ds.length && mayDi && yen.length) return `Blocking (from the 3D layout): ${yen.join(', ')} keep${yen.length === 1 ? 's' : ''} the exact same position and facing for the whole clip — no one walks or turns; only the camera moves.`;
   return ds.length ? `Blocking (from the 3D layout — follow it exactly): ${ds.join('; ')}.${yen.length ? ` ${yen.join(', ')} stay${yen.length === 1 ? 's' : ''} in place.` : ''} The last frame shows where everyone ends up.` : '';
 }
 

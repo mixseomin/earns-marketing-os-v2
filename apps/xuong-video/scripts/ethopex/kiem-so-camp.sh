@@ -2,6 +2,7 @@
 # CỔNG SỐ CAMP MỖI PHIM (anh 21/10/2026: "test 1 phim mình sẽ chỉ lên 1 - 2 camp là đủ"; mỗi camp đúng 1 nhóm 1 ad — kiem-cau-hinh.py).
 # Phim CHƯA thắng → tối đa 2 camp. Phim đã thắng (anh cho scale) nằm trong studio xv_khoa_ngoai['ethopex_phim_thang'].content → ban đầu tối đa 10 camp
 # (Dol Dang 21/10/2026: "với phim lãi đó, ban đầu nhân khoảng 10 camp thôi, để nó tiêu và ổn định vào 10 camp đó"; trước là 30).
+# Anh nới trần riêng một phim (21/10/2026: Number One "nới trần camp EN của phim này để thử tiếp" cắt đoạn cuối) → ethopex_phim_thang.tran {"<content_id>": N}.
 # Đếm camp trên Ethopex có ad dùng content đó (API campaigns, khoá đọc server-side). Vượt → mã 2, dung-camp.sh KHÔNG đánh dấu Publish.
 # Dùng: kiem-so-camp.sh <content_id>
 set -u
@@ -12,13 +13,14 @@ import json, os, subprocess, sys, urllib.request
 cid = int(sys.argv[1]); DB = os.environ["DATABASE_URL"]
 q = lambda s: subprocess.run(["psql", DB, "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
-thang = json.loads(q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_phim_thang'") or '{"content":[]}').get("content", [])
+cfg = json.loads(q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_phim_thang'") or '{"content":[]}'); thang = cfg.get("content", [])
+tran = int((cfg.get("tran") or {}).get(str(cid)) or (10 if cid in thang else 2))   # anh nới trần riêng một phim: ethopex_phim_thang.tran["<id>"]
 api = lambda p: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=30))
 n = 0
 for c in api("/api/v1/campaigns?page_size=500")["data"]:
     d = api(f"/api/v1/campaigns/{c['id']}")
     if any(a.get("content_id") == cid for g in d.get("ad_groups") or [] for a in g.get("ads") or []): n += 1
-print(n, 10 if cid in thang else 2, int(cid in thang))
+print(n, tran, int(cid in thang))
 EOF
 ) || { echo "SO CAMP CHAN: không đếm được ($KQ)"; exit 2; }
 read -r N TRAN THANG <<< "$(echo "$KQ" | tail -1)"

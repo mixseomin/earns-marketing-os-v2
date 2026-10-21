@@ -81,8 +81,10 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   // trước đó chỉ lượt kiểm người xem bằng Claude mới bắt được). Bản xuất tự gắn end card (có tên) khi shot cuối không phải cta/end_card → bỏ qua.
   const ten = opts.qc?.ten?.trim();
   if (ten && opts.loai === 'quang_cao' && (coMau(opts.qc) || ['cta', 'end_card'].includes(cuoi.phan_doan ?? '') || !opts.qc?.uu_dai?.trim())) {
-    const coTen = cuoi.chu_man.toLowerCase().includes(ten.toLowerCase());
-    out.push({ key: 'ten_cuoi', ok: coTen, chu: 'Màn kết có tên sản phẩm', chiTiet: coTen ? undefined : `Chữ màn shot cuối thiếu “${ten}” — người xem tới cuối không biết mua gì` });
+    // qc.ten dạng "<tên> — <mô tả>" (QC phim Ethopex: "Number One, Nobody — short drama, free on ReelShort") → màn kết chỉ cần TÊN, phần sau gạch là mô tả
+    const tenSp = ten.split(/\s+—\s+/)[0]!.trim();
+    const coTen = cuoi.chu_man.toLowerCase().includes(tenSp.toLowerCase());
+    out.push({ key: 'ten_cuoi', ok: coTen, chu: 'Màn kết có tên sản phẩm', chiTiet: coTen ? undefined : `Chữ màn shot cuối thiếu “${tenSp}” — người xem tới cuối không biết mua gì` });
   }
   // 6. Trấn an trước CTA: một trong 3 shot cuối nhắc đổi trả / size / bảo hành / miễn phí ship (chữ màn hoặc thoại).
   const tranAn = /đổi|trả|hoàn|size|bảo hành|ship|miễn phí|return|exchange|refund|guarantee|free shipping|risk/i;

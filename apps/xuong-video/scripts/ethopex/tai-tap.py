@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """TẢI TẬP PHIM TỪ SITE GỐC (anh 21/10/2026: đợt NetShort + DramaBox — creative cắt đoạn 20–30s + 2–3' trong phim; nguồn = tập miễn phí trên site,
-không phụ thuộc QC spy). Chỉ đọc trang công khai + tải mp4 tập miễn phí (NetShort mở ~tập 1–8, DramaBox tập đầu) + poster (og:image).
+không phụ thuộc QC spy). Chỉ đọc trang công khai + tải mp4 tập miễn phí (NetShort mở ~tập 1–8, DramaBox tập đầu, ReelShort tập trước paid_start — chỉ 720p) + poster (og:image).
 Dùng: tai-tap.py <link phim> <thư mục ra> [số tập=3]  → <ra>/tap01.mp4 …, <ra>/poster.jpg, <ra>/tap.json ([{tap, giay, url}])"""
 import html as H, json, os, re, subprocess, sys, urllib.request
 
@@ -15,9 +15,27 @@ def video_trong(html):
     """link mp4 của tập đang mở trên trang (NetShort cfcdn · DramaBox hwvideo…narrowv3.mp4)"""
     for m in re.findall(r'https?:(?:\\u002F|\\?/){2}cfcdn\.netshort\.com[^"\s]+', html): return sach(m)
     for m in re.findall(r'https?:(?:\\u002F|\\?/){2}[^"\s]*dramaboxdb\.com[^"\s]+?\.mp4\?[^"\s]+', html): return sach(m)
+    for m in re.findall(r'"video_url":"(https?:[^"]+?\.m3u8)"', html): return sach(m)   # ReelShort (crazymaplestudios HLS, 720p — 21/10/2026)
     return None
 
+_RS = {}
+def chuong_rs(goc, html):
+    """ReelShort: số tập → chapter_id (trang tập chỉ liệt kê vài tập đầu → đọc thêm trang /movie/ của phim). Tập từ paid_start trở đi bị khoá."""
+    if goc in _RS: return _RS[goc]
+    ds = {int(n): c for c, n in re.findall(r'"chapter_id":"([a-z0-9]{10})"[^{}]*?"serial_number":(\d+)', html)}
+    m = re.search(r'href="(/(?:[a-z]{2}/)?movie/[^"]+)"', html)
+    if m:
+        try: ds |= {int(n): c for c, n in re.findall(r'"chapter_id":"([a-z0-9]{10})"[^{}]*?"serial_number":(\d+)', lay("https://www.reelshort.com" + H.unescape(m.group(1))).decode("utf-8", "ignore"))}
+        except Exception as e: print("trang movie loi:", e, file=sys.stderr)
+    tra = re.search(r'"paid_start":"?(\d+)', html); bid = re.search(r'"book_id":"([0-9a-f]{24})"', html)
+    _RS[goc] = (ds, int(tra.group(1)) if tra else 10**6, bid.group(1) if bid else None); return _RS[goc]
+
 def tap_url(goc, html, n):
+    if "reelshort.com" in goc:
+        ds, tra, bid = chuong_rs(goc, html)
+        if n >= tra or n not in ds: return None
+        # link trên trang có thể mang mã sách cũ (bản đổi tên) — ghép lại bằng book_id thật của trang
+        return goc if n == 1 else re.sub(r'episode-1-(.+)-[0-9a-f]{24}-[a-z0-9]{10}', lambda m: f"episode-{n}-{m.group(1)}-{bid}-{ds[n]}", goc.split("?")[0])
     if "netshort.com" in goc: return goc if n == 1 else f"{goc.split('?')[0]}-ep-{n}"
     m = [sach(x) for x in re.findall(r'(?:https?://www\.dramabox\.com)?/video/\d{11}_[^"\s/]+/\d+_Episode-' + str(n) + r'\b', html)]
     return (m[0] if m[0].startswith("http") else "https://www.dramabox.com" + m[0]) if m else (goc if n == 1 else None)

@@ -19,8 +19,27 @@ def bc(tu, den):
         a = g.setdefault(x["campaign_id"], {"ten": x["campaign_name"], "budget": float(x.get("daily_budget") or 0), "chi": 0.0, "thu": 0.0})
         a["chi"] += float(x.get("cost") or 0); a["thu"] += float(x.get("revenue") or 0); a["budget"] = max(a["budget"], float(x.get("daily_budget") or 0))
     return g
-vn = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7); nay = vn.date()
+# LUẬT ĐỔI THEO DUYỆT TRÊN TELEGRAM (cty ethopex.mjs nút el:, tệp DATA/ethopex-luat-duyet.json) — mỗi khoá anh duyệt mới có hiệu lực
+try: DUYET = json.load(open(os.path.join(os.environ.get("CTY_DATA_DIR", "/var/lib/cty"), "ethopex-luat-duyet.json")))
+except Exception: DUYET = {}
+TANG_CHOT, CHOT_GIAM, GB_9H, HIEN_CHOT = (bool(DUYET.get(k)) for k in ("tang_chot", "chot_giam", "gb_9h", "hien_chot"))
+vn = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7)
+# NGÀY ETHOPEX = NGÀY UTC (07:00 → 07:00 giờ VN; Report mặc định timezone utc+00:00, đo 22/10/2026). Hỏi theo ngày VN thì 0–7h sáng VN hỏi một
+# ngày UTC chưa bắt đầu → số "hôm nay" = 0 (gốc của khung đêm cũ). tang_chot duyệt → dùng ngày UTC.
+nay = dt.datetime.now(dt.timezone.utc).date() if (TANG_CHOT or HIEN_CHOT) else vn.date()
 d = lambda n: (nay - dt.timedelta(days=n)).isoformat()
+def chot_chi():
+    """SỐ HÔM NAY ĐÃ CHỐT CHI: Ethopex ghi tiền chi theo ĐỢT (giờ 14 UTC 22/10: chi $0 thu $55, giờ 15: chi $46) còn doanh thu ghi liên tục → chỉ cộng
+    các giờ tới giờ cuối cùng đã có đợt chi (toàn tài khoản). → (giờ chốt UTC | None, {camp: {chi, thu}})"""
+    body = json.dumps({"columns": ["hour", "campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000, "date_from": d(0), "date_to": d(0)}).encode()
+    rows = json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=90)).get("rows", [])
+    co = [int(x.get("hour") or 0) for x in rows if float(x.get("cost") or 0) > 0]
+    if not co: return None, {}
+    H = max(co); g = {}
+    for x in rows:
+        if int(x.get("hour") or 0) > H: continue
+        a = g.setdefault(x["campaign_id"], {"chi": 0.0, "thu": 0.0}); a["chi"] += float(x.get("cost") or 0); a["thu"] += float(x.get("revenue") or 0)
+    return H, g
 if '--tong' in sys.argv:   # bảng số rút gọn (cty ethopex.mjs bangEthopex — tin ghim phòng Ethopex): tổng hôm nay / tháng / từ đầu + camp lãi / lỗ nhất hôm nay
     def tong(g):
         chi = sum(a["chi"] for a in g.values()); thu = sum(a["thu"] for a in g.values())
@@ -31,9 +50,19 @@ if '--tong' in sys.argv:   # bảng số rút gọn (cty ethopex.mjs bangEthopex
     body = json.dumps({"columns": ["content_name", "roi", "profit", "cost", "revenue"], "group_by": ["content_name"], "filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, "date_from": d(0), "date_to": d(0)}).encode()
     nd = json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=60)).get("rows", [])
     nd = sorted([dict(ten=x.get("content_group_name") or "?", roi=round(x["roi"]) if x.get("roi") is not None else None, lai=round(float(x.get("profit") or 0), 2), chi=round(float(x.get("cost") or 0), 2)) for x in nd if float(x.get("cost") or 0) > 0], key=lambda x: -(x["roi"] if x["roi"] is not None else -1e9))
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "hom": {**tong(h), "budget": round(sum(x["budget"] for x in co), 2)}, "qua": tong(bc(d(1), d(1))), "thang": tong(bc(nay.replace(day=1).isoformat(), d(0))), "tron": tong(bc("2026-01-01", d(0))),
+    if HIEN_CHOT:
+        try: _H, _ = chot_chi()
+        except Exception: _H = None
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", **({"chot_toi": f"{(_H + 1 + 7) % 24:02d}:00", "ngay_tu": "07:00"} if HIEN_CHOT and _H is not None else {}), "hom": {**tong(h), "budget": round(sum(x["budget"] for x in co), 2)}, "qua": tong(bc(d(1), d(1))), "thang": tong(bc(nay.replace(day=1).isoformat(), d(0))), "tron": tong(bc("2026-01-01", d(0))),
                       "top": co[:3], "day": [x for x in co[::-1] if x["lai"] < 0][:2], "noi_dung": nd}, ensure_ascii=False)); sys.exit(0)
-hom = bc(d(0), d(0)); thang = bc(nay.replace(day=1).isoformat(), d(0)); gan = bc(d(2), d(0)); truoc = bc(d(6), d(3)); tron = bc("2026-01-01", d(0))
+hom = bc(d(0), d(0)); thang = bc(nay.replace(day=1).isoformat(), d(0))
+# chot_giam duyệt: luật giảm / tắt / so xu hướng chỉ dùng NGÀY ĐÃ KHÉP (bỏ hôm nay đang chạy, chi chưa ghi đủ): 3 ngày gần = D−3..D−1, 4 ngày trước = D−7..D−4, cộng dồn tới D−1
+gan, truoc, tron = (bc(d(3), d(1)), bc(d(7), d(4)), bc("2026-01-01", d(1))) if CHOT_GIAM else (bc(d(2), d(0)), bc(d(6), d(3)), bc("2026-01-01", d(0)))
+if TANG_CHOT:   # luật tăng đọc số hôm nay ĐÃ CHỐT CHI (giữ ngân sách từ Report ngày)
+    try:
+        _H, _ch = chot_chi()
+        hom = {cid: {**a, "chi": _ch.get(cid, {}).get("chi", 0.0), "thu": _ch.get(cid, {}).get("thu", 0.0)} for cid, a in hom.items()}
+    except Exception as e: print(f"chot_chi lỗi: {e}", file=sys.stderr)
 roi = lambda a: (a["thu"] - a["chi"]) / a["chi"] * 100 if a["chi"] else None
 BAC = [1, 3, 5, 7, 10, 15, 20]
 ke = lambda b: next((x for x in BAC if x > b + 1e-9), None)
@@ -41,9 +70,7 @@ dat, theo, giam, dau_phien, moc30 = [], [], [], [], []
 # KHUNG 0–5h VN (anh 22/10/2026: "giờ đang là giờ tối ưu tốt (21h–5h sáng VN) thì phải check xem tăng được không"): qua 0h số HÔM NAY về 0 nên
 # "Spending hôm nay > 50%" không bao giờ đạt đúng lúc Mỹ đang mua → trong khung này xét chi tiêu + ROI của NGÀY HÔM QUA (trọn ngày) thay cho hôm nay;
 # thêm điều kiện ROI hôm qua ≥ 0% (không tăng camp vừa có một ngày lỗ).
-KHUNG_DEM = 0 <= vn.hour < 5
-try: DUYET = json.load(open(os.path.join(os.environ.get("CTY_DATA_DIR", "/var/lib/cty"), "ethopex-luat-duyet.json")))
-except Exception: DUYET = {}
+KHUNG_DEM = 0 <= vn.hour < 5 and not TANG_CHOT   # ngày UTC (tang_chot) thì 0–5h VN số hôm nay đã có thật, không cần mượn hôm qua
 LD_SIET = bool(DUYET.get("ld_siet"))
 hqua = bc(d(1), d(1))
 for cid, a in sorted(thang.items()):
@@ -55,13 +82,18 @@ for cid, a in sorted(thang.items()):
         sp = h["chi"] / a["budget"] * 100 if a["budget"] else 0; ry = None; nhan, them_dk = "spending hôm nay", True
     dong = f"#{a['ten'][:70]} · ${a['budget']:g}" + (f" → ${ke(a['budget']):g}" if ke(a['budget']) else " (trần $20)") + f" · {nhan} {sp:.0f}%" + (f" · ROI hôm qua {ry:+.0f}%" if ry is not None else "") + f" · ROI tháng {r:+.0f}% · lãi ${a['thu'] - a['chi']:+.2f}" if r is not None else ""
     if not dong: continue
-    if r >= ROI_TANG and sp > sp_min and them_dk and ke(a["budget"]): dat.append((cid, dong))
+    # TĂNG TRONG NGÀY (tang_chot duyệt, anh 22/10/2026 "nếu không tăng sẽ lỡ nhịp tối ưu và trend"): ROI hôm nay đã chốt chi ≥ 50%, đã chi ≥ 30% ngân sách,
+    # ROI hôm qua ≥ 0% (camp chưa có hôm qua thì bỏ qua điều kiện này) → một bậc; nhịp ≥ 3 giờ giữa hai lần tăng vẫn do nhip_tang chặn
+    _yq = hqua.get(cid); _ryq = roi(_yq) if _yq and _yq["chi"] >= 0.3 else None; _rh = roi(h) if h.get("chi", 0) >= 0.3 else None
+    tb_ngay = TANG_CHOT and _rh is not None and _rh >= 50 and h["chi"] >= 0.3 * a["budget"] and (_ryq is None or _ryq >= 0)
+    if tb_ngay and not (r >= ROI_TANG and sp > sp_min and them_dk): dong += f" · ROI hôm nay (chốt chi) {_rh:+.0f}%, chi {h['chi'] / a['budget'] * 100:.0f}% ngân sách"
+    if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay) and ke(a["budget"]): dat.append((cid, dong))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
     # LD SIẾT (khi anh duyệt trên Telegram — DATA/ethopex-luat-duyet.json "ld_siet"): camp vừa lỗ hôm qua / lỗ cả tháng thì không tăng vì vài chục cent
     # lãi đầu phiên (22/10/2026: #65115 lên $2 nhờ lãi $0,36 buổi sáng trong khi hôm qua −86%, tháng −62%)
     _y = hqua.get(cid); _ry = roi(_y) if _y and _y["chi"] >= 0.3 else None
     ld_chan = LD_SIET and ((_ry is not None and _ry < 0) or (r is not None and r < 0))
-    if h["chi"] >= 0.5 and a["budget"] < 3 and not ld_chan:
+    if h["chi"] >= (1.5 if TANG_CHOT else 0.5) and a["budget"] < 3 and not ld_chan:
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100
         dich = 3 if rh >= 100 else 2
         if rh > 50 and dich > a["budget"]: dau_phien.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g} → ${dich} · ROI hôm nay {rh:+.0f}% · lãi hôm nay ${h.get('thu', 0) - h['chi']:+.2f}"))
@@ -137,7 +169,7 @@ dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
 # GIẢM BẬC (luật GB): chỉ phiên sáng (6–13h VN), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
 # → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
 ha = []
-if 6 <= vn.hour < 13:
+if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua khép 07:00 VN + ~2 giờ cho đợt chi cuối → 9h mới đủ số trọn
     for cid, a in thang.items():
         ns = a["budget"]; y = hqua.get(cid)
         if ns <= 1 or not y or y["chi"] < 0.5 * ns: continue

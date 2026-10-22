@@ -292,7 +292,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   return (
     <div>
       <div style={{ ...mono, fontSize: 11, color: 'var(--fg-3)', marginBottom: 10 }}>
-        Số liệu sống từ Ethopex · cập nhật {truoc(du.luc)} · ROI/lãi từ đầu tháng (giờ VN) · luật chỉ báo, tăng / giảm / tắt anh duyệt từng camp
+        Số liệu sống từ Ethopex · cập nhật {truoc(du.luc)} · ROI/lãi từ đầu tháng ({du.ngayUtc ? 'ngày Ethopex 07:00–07:00 giờ VN; tiền chi ghi theo đợt, hôm nay + hôm qua chưa chốt' : 'giờ VN'}) · luật chỉ báo, tăng / giảm / tắt anh duyệt từng camp
         {du.loi ? <span style={{ color: MUC_MAU.dung }}> · lỗi: {du.loi}</span> : null}
       </div>
       <StatsStrip minColWidth={hep ? 80 : 120} cards={([

@@ -2,6 +2,7 @@
 // giống bên adfond"). Kéo sống từ API Ethopex khi mở tab (khoá ở xv_khoa_ngoai, gói chung @mos2/db/ethopex) + nối studio (phim / creative).
 // Nhớ 60 giây trong tiến trình để bấm qua lại tab không gọi lại 70+ lượt API. Chỉ đọc.
 import 'server-only';
+import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { goiEthopex } from '@mos2/db/ethopex';
@@ -14,7 +15,7 @@ type DongBc = { campaign_id: number; cost: number; revenue: number };
 export type PhimCho = { id: number; nguon: string; locale: string; ten: string; url: string; so_page: number; so_qc: number; trang_thai: 'cho' | 'can_xem' | 'trung' | 'de_xuat'; ghi: string };
 export type NgayEtp = { ngay: string; chi: number; thu: number };
 /** theoNgay: Report group_by date (theo ngày quảng cáo — vài ngày gần còn tăng) · tienMoi: tiền thật vào/ra mỗi ngày VN từ điểm chụp cộng dồn (so-ngay.py) */
-export type DuLieuEthopex = { luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; theoNgay: NgayEtp[]; tienMoi: (NgayEtp & { du: boolean })[]; ngayCamp: (NgayEtp & { camp: number })[]; loi: string | null };
+export type DuLieuEthopex = { ngayUtc?: boolean; luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; theoNgay: NgayEtp[]; tienMoi: (NgayEtp & { du: boolean })[]; ngayCamp: (NgayEtp & { camp: number })[]; loi: string | null };
 
 let nho: { luc: number; data: DuLieuEthopex } | null = null;
 
@@ -31,7 +32,9 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
   if (!lamMoi && nho && Date.now() - nho.luc < 60_000) return nho.data;
   const db = getDb();
   if (!db) return { luc: new Date().toISOString(), camps: [], phimThang: [], hangCho: [], theoNgay: [], tienMoi: [], ngayCamp: [], loi: 'chưa nối DB' };
-  const vn = new Date(Date.now() + 7 * 3600_000), nay = ngay(vn), lui = (n: number) => ngay(new Date(vn.getTime() - n * 86_400_000));
+  // hien_chot duyệt trên Telegram (cty DATA/ethopex-luat-duyet.json): ngày theo UTC như Ethopex (07:00–07:00 VN) — hỏi theo ngày VN thì 0–7h sáng "hôm nay" = 0
+  let ngayUtc = false; try { ngayUtc = !!JSON.parse(readFileSync(process.env.CTY_DATA_DIR ? `${process.env.CTY_DATA_DIR}/ethopex-luat-duyet.json` : '/var/lib/cty/ethopex-luat-duyet.json', 'utf8')).hien_chot; } catch { /* chưa duyệt */ }
+  const vn = new Date(Date.now() + (ngayUtc ? 0 : 7) * 3600_000), nay = ngay(vn), lui = (n: number) => ngay(new Date(vn.getTime() - n * 86_400_000));
   const ds = await goiEthopex<{ data: { id: number }[] }>(db, '/api/v1/campaigns?page_size=500');
   if (!ds.ok) return { luc: new Date().toISOString(), camps: [], phimThang: [], hangCho: [], theoNgay: [], tienMoi: [], ngayCamp: [], loi: ds.loi };
   const ids = ds.data.data.map((c) => c.id);
@@ -74,7 +77,7 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
   for (const p of luy) { const d = ngay(new Date(Date.parse(p.luc) + 7 * 3600_000)); const o = cuoi.get(d); if (o) o.cuoi = p; else cuoi.set(d, { dau: p, cuoi: p }); }
   const tienMoi: (NgayEtp & { du: boolean })[] = []; let truocDiem: { chi: number; thu: number } | null = null;
   for (const [d, x] of [...cuoi.entries()].sort((a, b) => a[0].localeCompare(b[0]))) { const a = truocDiem ?? x.dau; tienMoi.push({ ngay: d, chi: x.cuoi.chi - a.chi, thu: x.cuoi.thu - a.thu, du: truocDiem != null && d < nay }); truocDiem = x.cuoi; }
-  const data = { luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], theoNgay, tienMoi, ngayCamp, loi: null };
+  const data = { ngayUtc, luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], theoNgay, tienMoi, ngayCamp, loi: null };
   nho = { luc: Date.now(), data };
   return data;
 }

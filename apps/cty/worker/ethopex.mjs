@@ -114,7 +114,11 @@ async function xuChuBoPhim(tg, x) {
 const TEP_DUYET = () => path.join(DATA(), 'ethopex-luat-duyet.json');
 export const LUAT_DOI = {
   ld_siet: { ten: 'Siết luật LD (lãi đầu phiên)', ap: 'Từ nhịp kế: camp hôm qua lỗ hoặc lỗ cả tháng không được tự tăng nhờ lãi đầu phiên.' },
-  gb_tu_giam: { ten: 'Máy tự giảm bậc (luật GB)', ap: 'Từ phiên sáng kế (6–13h giờ VN): camp chạm GB được máy giảm luôn một bậc (lỗ nặng hai bậc), báo một tin. Không tắt camp nào.' },
+  gb_tu_giam: { ten: 'Máy tự giảm bậc (luật GB)', ap: 'Từ phiên sáng kế: camp chạm GB được máy giảm luôn một bậc (lỗ nặng hai bậc), báo một tin. Không tắt camp nào.' },
+  chot_giam: { ten: 'Luật giảm / tắt chỉ dùng ngày đã khép', ap: 'Từ nhịp kế: GT so 3 ngày D−3..D−1 với D−7..D−4, OFF tính tới hết hôm qua — không dùng số hôm nay đang chạy.' },
+  gb_9h: { ten: 'GB chạy 9h–13h giờ VN', ap: 'Từ sáng mai: GB chờ ngày UTC hôm qua khép (07:00 VN) + đợt chi cuối, chấm từ 9h.' },
+  tang_chot: { ten: 'Tăng trong ngày theo ROI đã chốt chi', ap: 'Từ nhịp kế: ngày tính theo UTC (07:00–07:00 VN); camp ROI hôm nay (chốt chi) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không lỗ → tăng một bậc; LD cần chi ≥ $1,5.' },
+  hien_chot: { ten: 'Ghi rõ số đã chốt tới mấy giờ', ap: 'Bảng ghim + tab Ethopex mos2 ghi "ngày 07:00–07:00 VN · chi ghi tới HH:00"; hai ngày gần nhất đánh dấu chưa chốt.' },
 };
 async function xuDuyetLuat(tg, c) {
   const [, y, ma] = c.data.split(':'), ai = c.from?.first_name || c.from?.username || 'Anh', L = LUAT_DOI[ma]; if (!L) return null;
@@ -142,6 +146,21 @@ export function tinDeXuatLuat() {
     ``,
     `<i>Bấm nút từng mục. Duyệt xong tin này tự xoá.</i>`].join('\n');
 }
+/** Đề xuất lượt 2 (anh 22/10/2026: "data từ Ethopex về trễ thì việc đánh giá camp của các rule phải thay đổi thế nào", rồi "ok"). */
+export function tinDeXuatLuat2() {
+  return [`🧾 <b>ĐỀ XUẤT SỬA LUẬT THEO ĐỘ TRỄ DỮ LIỆU</b> — Ethopex (duyệt từng mục)`,
+    ``,
+    `<b>Đo được 22/10:</b> ngày của Ethopex là ngày <b>UTC</b> (07:00 → 07:00 giờ VN). Tiền chi ghi theo <b>đợt</b>, doanh thu ghi liên tục: giờ 14 UTC chi $0 thu $55, giờ 15 chi $46 → ROI trong ngày nhảy 70% → 35% → 53% chỉ vì đợt chi. Ngày đã khép vẫn về thêm ~3–5% (21/10: ROI +58,6% → +62,2%).`,
+    ``,
+    `<b>1. Giảm / tắt chỉ dùng ngày đã khép</b> — GT so 3 ngày D−3..D−1 với 4 ngày D−7..D−4 (bỏ hôm nay đang chạy, đang báo tụt giả); OFF (review ≥ 7 ngày) tính tới hết hôm qua.`,
+    `<b>2. GB chạy 9h–13h</b> thay vì 6h–13h — 6h sáng ngày UTC hôm qua chưa khép.`,
+    `<b>3. Tăng trong ngày theo ROI đã chốt chi</b> — chỉ cộng các giờ tới đợt chi gần nhất. Tăng một bậc khi ROI hôm nay (chốt) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không lỗ (camp mới bỏ qua điều kiện này); vẫn ≥ 3 giờ giữa hai lần, trần $20; LD cần chi ≥ $1,5. Ngày tính theo UTC nên 0–7h VN số hôm nay có thật. Chạy thử tối nay: bắt thêm #65176 Number One Nobody (+51% hôm nay) và #65727 Runaway Single Mom (+66%) mà luật cũ bỏ sót.`,
+    `<b>4. Ghi rõ số đã chốt</b> — bảng ghim + tab Ethopex mos2: "ngày 07:00–07:00 VN · chi ghi tới HH:00".`,
+    ``,
+    `Song song (chỉ đọc, $0): đo độ trễ 3–4 ngày để đặt ngưỡng chốt chính xác. Quyền máy tự tăng đã gia hạn: trần $10, tới khi anh rút lại.`,
+    `<i>Duyệt hết thì tin này tự xoá.</i>`].join('\n');
+}
+export const NUT_DE_XUAT_LUAT2 = { inline_keyboard: ['chot_giam', 'gb_9h', 'tang_chot', 'hien_chot'].map((k, i) => [{ text: `✅ Duyệt mục ${i + 1}`, callback_data: `el:ok:${k}` }, { text: `✖ Không mục ${i + 1}`, callback_data: `el:no:${k}` }]) };
 export const NUT_DE_XUAT_LUAT = { inline_keyboard: [
   [{ text: '✅ Duyệt siết LD', callback_data: 'el:ok:ld_siet' }, { text: '✖ Không đổi LD', callback_data: 'el:no:ld_siet' }],
   [{ text: '✅ Duyệt máy tự giảm GB', callback_data: 'el:ok:gb_tu_giam' }, { text: '✖ Không đổi GB', callback_data: 'el:no:gb_tu_giam' }]] };
@@ -187,7 +206,7 @@ export function bangNoiDung(ds, tong, rong = 15) {
 }
 export function tinBang(t) {
   const dong = (nhan, a) => `<b>${nhan}</b>: lãi <b>${tienUsd(a.lai)}</b> · ROI <b>${roiChu(a.roi)}</b> · chi $${a.chi.toFixed(2)}`;
-  return [`📊 <b>ETHOPEX hôm nay</b> · cập nhật ${esc(t.luc)}`,
+  return [`📊 <b>ETHOPEX hôm nay</b> · cập nhật ${esc(t.luc)}${t.chot_toi ? `\n<i>ngày Ethopex 07:00–07:00 VN · chi ghi tới ${esc(t.chot_toi)} (doanh thu còn về thêm)</i>` : ''}`,
     `<pre>${bangNoiDung(t.noi_dung ?? [], t.hom)}</pre>`,
     `${t.hom.camp} camp chạy · ngân sách $${t.hom.budget}/ngày`, dong('Hôm qua', t.qua), dong('Tháng này', t.thang),
     `<i>Tự cập nhật mỗi ${BANG_MOI_PHUT} phút · bấm 🔄 để lấy số ngay</i>`].join('\n');
@@ -270,12 +289,12 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     for (const k of ['dau_phien', 'tang']) for (const m of kq[k] || []) {
       const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id)) continue;
       lamRoi.add(m.id);
-      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', `máy tự tăng (anh cho phép tới ${tt.den.slice(0, 16)}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', `máy tự tăng (anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
     }
     if (daTu.length) {
       const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `⬆️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 160))}`).join('\n');
-      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới hết ${esc(tt.den.slice(0, 10))}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
   }
@@ -363,14 +382,15 @@ if (process.argv.includes('--tu-kiem')) {
     t.deepEqual(deXuatHet(so, new Set(['dau_phien:1:2', 'tang:2:3'])), [], 'còn chạm luật → giữ');
     const r = deXuatHet(so, new Set(['dau_phien:1:2'])); t.equal(r[0].kb.length, 1, 'camp hết liên quan → gỡ hàng'); t.equal(r[0].kb[0][0].callback_data, 'et:tang:1:2');
     t.deepEqual(deXuatHet(so, new Set()), [{ mid: 9, kb: null }], 'hết hàng → xoá tin'); t.deepEqual(so, {});
-    t.match(tinDeXuatLuat(), /Siết luật LD/); t.equal(NUT_DE_XUAT_LUAT.inline_keyboard.flat().every((b) => b.callback_data.split(':')[2] in LUAT_DOI), true, 'nút el: mang mã luật ở vị trí 3 (goNut gỡ đúng hàng)'); }
+    t.match(tinDeXuatLuat(), /Siết luật LD/); t.ok(NUT_DE_XUAT_LUAT2.inline_keyboard.flat().every((b) => b.callback_data.split(':')[2] in LUAT_DOI)); t.equal(NUT_DE_XUAT_LUAT.inline_keyboard.flat().every((b) => b.callback_data.split(':')[2] in LUAT_DOI), true, 'nút el: mang mã luật ở vị trí 3 (goNut gỡ đúng hàng)'); }
   console.log('ethopex: tự kiểm đạt');
 }
 
 if (process.argv.includes('--de-xuat-luat')) {   // gửi tin đề xuất đổi luật (anh 22/10/2026 "báo chi tiết qua tele rồi ta duyệt"): node worker/ethopex.mjs --de-xuat-luat
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   const topic = await topicPhong('ethopex', '📂 Ethopex', tg); if (!topic) { console.error('chưa có chủ đề Ethopex'); process.exit(1); }
-  const j = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: tinDeXuatLuat(), reply_markup: NUT_DE_XUAT_LUAT });
+  const hai = process.argv.includes('2');
+  const j = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: hai ? tinDeXuatLuat2() : tinDeXuatLuat(), reply_markup: hai ? NUT_DE_XUAT_LUAT2 : NUT_DE_XUAT_LUAT });
   console.log(j.ok ? `đã gửi tin ${j.result.message_id}` : `lỗi: ${j.description}`);
 }
 

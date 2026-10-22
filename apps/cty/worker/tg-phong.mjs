@@ -11,7 +11,7 @@ export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-t
 const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
 const KHAC_NUT = '_khac';   // nút đã nhận (x:cho) — không phòng nào xử
 // Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Kiên chuyển vào chủ đề phòng khác vẫn về Kiên.
-export const NUT_CUA = { x: KHAC_NUT, km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex', eb: 'ethopex-bang', ph: 'phim', sp: 'sp' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex · eb: 🔄 bảng số Ethopex (xử ngay ở tg-nghe) · ph: chạy tiếp / dừng phim vượt ngân sách (phim-nut.mjs) · sp: 🚀 máy đăng một sản phẩm (sp-nut.mjs)
+export const NUT_CUA = { x: KHAC_NUT, km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex', el: 'ethopex', eb: 'ethopex-bang', ph: 'phim', sp: 'sp' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex · eb: 🔄 bảng số Ethopex (xử ngay ở tg-nghe) · ph: chạy tiếp / dừng phim vượt ngân sách (phim-nut.mjs) · sp: 🚀 máy đăng một sản phẩm (sp-nut.mjs)
 const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
 
 /** topic → phòng, đọc từ tệp trạng thái từng phòng (CHU_DE) + chủ đề phòng tạo qua topicPhong (tg-<phòng>.json). */
@@ -146,6 +146,7 @@ export async function gomTin(tg, { cho = 0 } = {}) {   // cho = giây chờ tin 
     for (let x of u.ok ? u.result : []) {
       const d = doiThanhNut(x);
       if (d && !d.nut) { try { await tg('sendMessage', { message_thread_id: d.topic ?? undefined, ...(d.hoi ? { reply_parameters: { message_id: d.hoi } } : { reply_parameters: { message_id: d.mid } }), text: 'Tin này có nhiều lựa chọn — anh bấm đúng nút giúp em nhé.' }); } catch { /* báo hỏng không chặn */ } offset = x.update_id + 1; n++; continue; }
+      if (d?.hoi) tinNhanh(d.hoi);   // câu "ok"/"ko" anh gõ để duyệt — xong việc thì dọn như tin nhanh
       if (d) x = { update_id: x.update_id, callback_query: { id: null, data: d.nut.callback_data, from: d.from, tu_chu: true, message: { message_id: d.mid, message_thread_id: d.topic, reply_markup: { inline_keyboard: d.kb } } } };
       if (x.message_reaction) { offset = x.update_id + 1; continue; }   // cảm xúc không phải đồng ý / từ chối trên tin có nút → bỏ
       const phong = (x.callback_query && NUT_CUA[String(x.callback_query.data ?? '').split(':')[0]]) ?? phongCuaTopic(topicCua(x)) ?? KHAC;
@@ -156,10 +157,39 @@ export async function gomTin(tg, { cho = 0 } = {}) {   // cho = giây chờ tin 
       offset = x.update_id + 1; n++;
     }
     fs.writeFileSync(tOffset, JSON.stringify({ offset }));
+    if ((u.ok ? u.result : []).some(laAnh)) fs.writeFileSync(TEP_DOC(), JSON.stringify({ luc: Date.now() }));
+    try { await donTinNhanh(tg); } catch (e) { console.error(`✗ dọn tin nhanh: ${e.message}`); }
     try { await capNhatGhim(tg); } catch (e) { console.error(`✗ ghim nhân sự: ${e.message}`); }
     try { for (const f of fs.readdirSync(HOP(KHAC))) if (Date.now() - fs.statSync(path.join(HOP(KHAC), f)).mtimeMs > GIU_KHAC_NGAY * 864e5) fs.rmSync(path.join(HOP(KHAC), f)); } catch { /* chưa có hộp khác */ }
     return n;
   } finally { fs.rmSync(khoa, { recursive: true, force: true }); }
+}
+
+// DỌN TIN (anh 22/10/2026: "cái nào đã duyệt hoặc không liên quan trong tele thì xoá sau khi xong việc. Cái nào là thông báo nhanh thì tự xoá 15' sau khi đã được đọc").
+// Bot Telegram KHÔNG đọc được trạng thái "đã xem" của người dùng → "đã đọc" = anh có hoạt động trong nhóm (gõ tin, bấm nút, thả cảm xúc) SAU lúc tin gửi;
+// tính 15 phút từ lần hoạt động đầu tiên đó rồi xoá. Tin quá 47 giờ thì bỏ khỏi sổ (Telegram chỉ cho bot xoá tin < 48 giờ).
+// Phòng gọi tinNhanh(mã tin) sau khi gửi; gomTin (mỗi vòng nghe ~30 giây) ghi lúc anh hoạt động + gọi donTinNhanh.
+const TEP_TAM = () => path.join(GOC_HOP(), 'tin-nhanh.json'), TEP_DOC = () => path.join(GOC_HOP(), 'anh-doc.json');
+export const XOA_SAU_DOC_PHUT = 15;
+const laAnh = (x) => { const f = x.message?.from ?? x.callback_query?.from ?? x.message_reaction?.user; return !!f && !f.is_bot; };
+const docTep = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return mac; } };
+export function tinNhanh(mid, luc = Date.now()) {
+  if (!mid) return; fs.mkdirSync(GOC_HOP(), { recursive: true }); const so = docTep(TEP_TAM(), {}); so[mid] = { luc }; fs.writeFileSync(TEP_TAM(), JSON.stringify(so));
+}
+/** → mã tin đã tới lúc xoá; cập nhật sổ (gắn mốc đọc). Thuần để tự kiểm. */
+export function buocDon(so, anhLuc, now) {
+  const xoa = [];
+  for (const [mid, t] of Object.entries(so)) {
+    if (!t.doc && anhLuc && anhLuc > t.luc) t.doc = anhLuc;
+    if ((t.doc && now - t.doc >= XOA_SAU_DOC_PHUT * 60_000) || now - t.luc > 47 * 3600_000) { xoa.push(Number(mid)); delete so[mid]; }
+  }
+  return xoa;
+}
+export async function donTinNhanh(tg, now = Date.now()) {
+  const so = docTep(TEP_TAM(), {}); if (!Object.keys(so).length) return 0;
+  const xoa = buocDon(so, docTep(TEP_DOC(), {}).luc ?? 0, now);
+  for (const mid of xoa) await tg('deleteMessage', { message_id: mid });
+  fs.writeFileSync(TEP_TAM(), JSON.stringify(so)); return xoa.length;
 }
 
 /** Tin trong hộp một phòng, cũ trước. Mỗi tin có xong() — gọi sau khi xử xong thì tin rời hộp (xử hỏng thì lượt sau xử lại). */
@@ -204,5 +234,10 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
     let goi2 = []; const tg4 = async (m, b) => { goi2.push([m, b]); return m === 'getUpdates' ? { ok: true, result: [{ update_id: 50, message_reaction: { message_id: 500, user: { first_name: 'Tuấn' }, new_reaction: [{ type: 'emoji', emoji: '👍' }] } }] } : { ok: true }; };
     fs.rmSync(path.join(GOC_HOP(), '.khoa'), { recursive: true, force: true }); await gomTin(tg4); t.equal(moHop('an-toan-tk').at(-1).callback_query.data, 'tp:kinh-doanh:ok', 'thả 👍 vào hộp phòng sở hữu nút');
     t.ok(goi2.some(([m, b]) => m === 'editMessageReplyMarkup' && b.reply_markup.inline_keyboard[0][0].callback_data === 'x:cho'), 'nút hiện ⏳ như bấm'); t.ok(!goi2.some(([m]) => m === 'answerCallbackQuery'), 'không trả lời lần bấm giả'); }
+  { const so = { 1: { luc: 1000 }, 2: { luc: 5000 } }, P = 60_000;
+    t.deepEqual(buocDon(so, 0, 2000), [], 'anh chưa hoạt động → chưa xoá'); t.deepEqual(buocDon(so, 3000, 3000 + 14 * P), [], 'đọc chưa đủ 15 phút');
+    t.equal(so[1].doc, 3000, 'mốc đọc = lần hoạt động đầu sau tin'); t.equal(so[2].doc, undefined, 'hoạt động TRƯỚC lúc tin gửi không tính là đọc');
+    t.deepEqual(buocDon(so, 3000, 3000 + 15 * P), [1], 'đọc đủ 15 phút → xoá'); t.ok(!so[1] && so[2]);
+    t.deepEqual(buocDon(so, 3000, 5000 + 48 * 3600_000), [2], 'quá 47 giờ thì bỏ khỏi sổ'); }
   console.log('tg-phong: tự kiểm đạt');
 }

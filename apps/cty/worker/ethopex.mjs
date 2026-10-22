@@ -69,7 +69,24 @@ async function goNut(tg, c, id) {
   const ids = [...new Set([...(st[mid] ?? []), String(id)])]; st[mid] = ids;
   for (const k of Object.keys(st).sort((x, y) => +x - +y).slice(0, -300)) delete st[k];   // giữ 300 tin gần nhất
   fs.writeFileSync(tep, JSON.stringify(st));
-  await tg('editMessageReplyMarkup', { message_id: mid, reply_markup: goHangNut(c.message.reply_markup, ids) });
+  const con = goHangNut(c.message.reply_markup, ids);
+  // XONG HẾT VIỆC TRONG TIN → XOÁ TIN (anh 22/10/2026: "cái nào đã duyệt … thì xoá sau khi xong việc") — kết quả còn ở tin trả lời (tin nhanh, tự xoá sau khi đọc)
+  if (!con.inline_keyboard.length) { await tg('deleteMessage', { message_id: mid }); boDeXuat(mid); return; }
+  await tg('editMessageReplyMarkup', { message_id: mid, reply_markup: con });
+}
+// SỔ TIN ĐỀ XUẤT CÒN NÚT (DATA/ethopex-de-xuat.json: mã tin → {kb, khoa: {camp: khoá luật}}) — mỗi nhịp đối chiếu với lượt chấm luật mới: camp không còn chạm
+// luật đó (đã đổi ngân sách, đã tắt, hết điều kiện) thì gỡ hàng nút; tin hết hàng thì xoá (anh 22/10/2026: "cái nào … ko liên quan trong tele thì xoá").
+const TEP_DX = () => path.join(DATA(), 'ethopex-de-xuat.json');
+function boDeXuat(mid) { const so = docJ(TEP_DX(), {}); if (so[mid]) { delete so[mid]; fs.writeFileSync(TEP_DX(), JSON.stringify(so)); } }
+/** → [{mid, kb|null}] cần sửa (kb rỗng = xoá tin). Thuần để tự kiểm. */
+export function deXuatHet(so, khoaNay) {
+  const ra = [];
+  for (const [mid, t] of Object.entries(so)) {
+    const het = Object.entries(t.khoa).filter(([, k]) => !khoaNay.has(k)).map(([id]) => id); if (!het.length) continue;
+    const kb = goHangNut({ inline_keyboard: t.kb }, het).inline_keyboard; for (const id of het) delete t.khoa[id];
+    if (!kb.length || !Object.keys(t.khoa).length) { delete so[mid]; ra.push({ mid: Number(mid), kb: null }); } else { t.kb = kb; ra.push({ mid: Number(mid), kb }); }
+  }
+  return ra;
 }
 // BỎ CẢ PHIM (anh 22/10/2026: "phim này bị vi phạm, bỏ cả phim thì không thông báo liên quan nữa"): anh trả lời dưới một tin của phòng câu có "bỏ phim" /
 // "bỏ cả phim" / "vi phạm" → mọi phim nhắc trong tin đó vào sổ <DATA>/ethopex-bo-phim.json; từ đó mọi luật (kể cả máy tự tăng) bỏ qua camp của phim đó.
@@ -84,20 +101,59 @@ async function xuChuBoPhim(tg, x) {
   const bo = /bỏ\s*(cả\s*)?phim|vi phạm/i.test(chu), lai = /báo lại phim/i.test(chu); if (!bo && !lai) return null;
   const phim = [...new Set(String(tr.reply_to_message?.text ?? '').split('\n').map(tenPhim).filter(Boolean))];
   if (lai) { const ten = chu.replace(/.*báo lại phim/i, '').trim().toLowerCase(); fs.writeFileSync(TEP_BO(), JSON.stringify(docBoPhim().filter((p) => p.phim !== ten), null, 1));
-    await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, text: `🔔 Báo lại phim "${ten}".` }); return 'lai'; }
+    await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, text: `🔔 Báo lại phim "${ten}".` }).then(async (j) => (await import('./tg-phong.mjs')).tinNhanh(j?.result?.message_id)); return 'lai'; }
   if (!phim.length) { await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, text: 'Em chưa thấy phim nào — anh trả lời ngay dưới tin có tên camp của phim đó nhé.' }); return 'chua'; }
   const cu = docBoPhim(), them = phim.filter((p) => !cu.some((c) => c.phim === p));
   fs.writeFileSync(TEP_BO(), JSON.stringify([...cu, ...them.map((p) => ({ phim: p, luc: new Date().toISOString(), ai: tr.from?.first_name || '', ly_do: chu.slice(0, 200) }))], null, 1));
   await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, parse_mode: 'HTML', text: `🚫 Đã bỏ phim ${phim.map((p) => `<b>${esc(p.toUpperCase())}</b>`).join(', ')} — không báo / không tự tăng camp nào của phim này nữa. Gỡ: trả lời "báo lại phim &lt;tên&gt;".` });
   return 'bo';
 }
+// DUYỆT ĐỔI LUẬT TRÊN TELEGRAM (anh 22/10/2026: "báo chi tiết qua tele rồi ta duyệt"): nút el:ok:<mã> / el:no:<mã> → DATA/ethopex-luat-duyet.json
+//   ld_siet     — luật LD chỉ tăng khi ROI hôm qua ≥ 0% và ROI tháng ≥ 0% (luat-ethopex.py đọc tệp này)
+//   gb_tu_giam  — máy tự giảm bậc theo luật GB (phiên sáng 6–13h, số trọn ngày hôm qua), không tắt camp nào; báo một tin
+const TEP_DUYET = () => path.join(DATA(), 'ethopex-luat-duyet.json');
+export const LUAT_DOI = {
+  ld_siet: { ten: 'Siết luật LD (lãi đầu phiên)', ap: 'Từ nhịp kế: camp hôm qua lỗ hoặc lỗ cả tháng không được tự tăng nhờ lãi đầu phiên.' },
+  gb_tu_giam: { ten: 'Máy tự giảm bậc (luật GB)', ap: 'Từ phiên sáng kế (6–13h giờ VN): camp chạm GB được máy giảm luôn một bậc (lỗ nặng hai bậc), báo một tin. Không tắt camp nào.' },
+};
+async function xuDuyetLuat(tg, c) {
+  const [, y, ma] = c.data.split(':'), ai = c.from?.first_name || c.from?.username || 'Anh', L = LUAT_DOI[ma]; if (!L) return null;
+  if (c.id) await tg('answerCallbackQuery', { callback_query_id: c.id, text: y === 'ok' ? 'Đã duyệt' : 'Đã bỏ' });
+  if (y === 'ok') { const d = docJ(TEP_DUYET(), {}); d[ma] = { luc: new Date().toISOString(), ai }; fs.writeFileSync(TEP_DUYET(), JSON.stringify(d, null, 1)); }
+  await goNut(tg, c, ma);
+  const j = await tg('sendMessage', { message_thread_id: c.message.message_thread_id, parse_mode: 'HTML', reply_parameters: { message_id: c.message.message_id, allow_sending_without_reply: true },
+    text: y === 'ok' ? `✅ <b>ĐÃ ÁP LUẬT</b> ${esc(L.ten)} · ${esc(ai)} duyệt
+   ${esc(L.ap)}` : `⏭ <b>KHÔNG ĐỔI</b> ${esc(L.ten)} · ${esc(ai)}` });
+  (await import('./tg-phong.mjs')).tinNhanh(j?.result?.message_id);
+  return y === 'ok' ? 'duyet' : 'bo';
+}
+export function tinDeXuatLuat() {
+  return [`🧾 <b>ĐỀ XUẤT SỬA LUẬT CAMP</b> — Ethopex (chờ anh duyệt từng mục)`,
+    ``,
+    `<b>1. Siết luật LD (lãi đầu phiên)</b>`,
+    `Hiện tại: camp ngân sách &lt; $3, hôm nay chi ≥ $0,5 và ROI hôm nay &gt; 50% → máy tăng lên $2/$3.`,
+    `Vấn đề: vài chục cent buổi sáng không đủ tin. 22/10 máy tăng 12 camp $1 → $2–3 dù hôm qua lỗ nặng, vd #65115 Phantom Returns lên $2 nhờ lãi $0,36 sáng nay trong khi hôm qua −86%, cả tháng −62%; #65642 The Rejected Luna (hôm qua −78%).`,
+    `Đề xuất: thêm hai điều kiện — <b>ROI hôm qua ≥ 0%</b> và <b>ROI tháng ≥ 0%</b>. Camp mới chưa có số hôm qua vẫn tăng như cũ.`,
+    ``,
+    `<b>2. Máy tự giảm bậc (luật GB)</b>`,
+    `Hiện tại: GB chỉ báo nút ↘, phải anh bấm — tới nay 0 lần giảm được chạy. 17 camp đã tăng nay có ngày âm (vd #65676 $5 → $10 rồi hôm nay −52%).`,
+    `Đề xuất: phiên sáng 6–13h giờ VN, trên số TRỌN ngày hôm qua — hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua &lt; 0% và ROI 3 ngày &lt; 20% → <b>máy giảm luôn một bậc</b> (lỗ nặng: ROI &lt; −50% và tiêu đủ ngân sách → hai bậc), ghi luật vào nhật ký, báo một tin.`,
+    `Giữ nguyên các chốt: <b>không tắt camp nào</b> (tắt vẫn chỉ anh duyệt, camp ≥ 7 ngày); cách lần đổi ngân sách trước ≥ 6 giờ; sau giảm khoá tăng 24 giờ và muốn tăng lại phải ROI ≥ 50% trên số từ sau lần giảm.`,
+    ``,
+    `<i>Bấm nút từng mục. Duyệt xong tin này tự xoá.</i>`].join('\n');
+}
+export const NUT_DE_XUAT_LUAT = { inline_keyboard: [
+  [{ text: '✅ Duyệt siết LD', callback_data: 'el:ok:ld_siet' }, { text: '✖ Không đổi LD', callback_data: 'el:no:ld_siet' }],
+  [{ text: '✅ Duyệt máy tự giảm GB', callback_data: 'el:ok:gb_tu_giam' }, { text: '✖ Không đổi GB', callback_data: 'el:no:gb_tu_giam' }]] };
+
 async function xuNut(tg, x) {
-  const c = x.callback_query; x.xong(); if (!c || !/^et:/.test(c.data || '')) return null;
+  const c = x.callback_query; x.xong(); if (!c || !/^e[tl]:/.test(c.data || '')) return null;
+  if (c.data.startsWith('el:')) return xuDuyetLuat(tg, c);
   const [, lenh, id, ns] = c.data.split(':'), ai = esc(c.from?.first_name || c.from?.username || 'Anh');
   // tên camp lấy từ dòng của nó trong tin báo — kết quả đọc ra được ngay là camp nào
   const dongTin = String(c.message?.text || '').split('\n'), dongCamp = (dongTin.find((d) => d.includes(`#${id}`)) || '').replace(/^•\s*/, '');
   const tenCamp = esc(dongCamp.replace(/^#?\d+:\s*/, '').split(' · ')[0].slice(0, 70));
-  const tra = (tin) => tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: tin, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_parameters: { message_id: c.message.message_id } });
+  const tra = async (tin) => { const j = await tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: tin, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_parameters: { message_id: c.message.message_id, allow_sending_without_reply: true } }); (await import('./tg-phong.mjs')).tinNhanh(j?.result?.message_id); return j; };
   if (lenh === 'bo') {
     await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã bỏ qua' });
     await goNut(tg, c, id); await tra(`⏭ <b>BỎ QUA</b> #${esc(id)} ${tenCamp}\n   giữ nguyên · ${ai}`); return 'bo';
@@ -192,6 +248,24 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();
+  const { tinNhanh } = await import('./tg-phong.mjs');
+  const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
+  // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
+  // mức phải trên thang); không bao giờ tắt. Camp đã giảm không ra nút ↘ nữa.
+  const duyet = docJ(TEP_DUYET(), {});
+  if (duyet.gb_tu_giam) {
+    const daGiam = [];
+    for (const m of kq.ha || []) {
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
+      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `giảm bậc (GB) · ${m.chu}`.slice(0, 400), '--ai', `máy tự giảm (anh duyệt luật GB tự giảm ${duyet.gb_tu_giam.luc.slice(0, 10)})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      daGiam.push({ m, d, r });
+    }
+    if (daGiam.length) {
+      const dong = daGiam.map(({ m, d, r }) => (r.ok ? `⬇️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa giảm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 170))}`).join('\n');
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ GIẢM BẬC</b> (luật GB, anh duyệt) — số trọn ngày hôm qua; không tắt camp nào; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+      gui++;
+    }
+  }
   if (tuTang) {
     for (const k of ['dau_phien', 'tang']) for (const m of kq[k] || []) {
       const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id)) continue;
@@ -201,7 +275,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     }
     if (daTu.length) {
       const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `⬆️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 160))}`).join('\n');
-      await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới hết ${esc(tt.den.slice(0, 10))}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép tới hết ${esc(tt.den.slice(0, 10))}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
   }
@@ -215,9 +289,14 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   if (daNb.length) {
     const dong = daNb.map(({ m, r, lich }) => (r.ok ? `🧬 #${m.id} → <b>#${r.moi}</b> $1 · lịch ${lich === 'today' ? 'hôm nay' : 'ngày mai'}` : `⚠️ #${m.id} chưa nhân bản được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 170))}`).join('\n');
-    await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI tháng ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI tháng ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
+  // ĐỀ XUẤT CŨ HẾT LIÊN QUAN: camp không còn chạm đúng luật + mức đó ở lượt chấm này → gỡ hàng nút; tin hết hàng thì xoá
+  const khoaNay = new Set(NHOM.flatMap(([k]) => (kq[k] || []).map((m) => khoa(k, m))));
+  { const so = docJ(TEP_DX(), {});
+    for (const { mid, kb } of deXuatHet(so, khoaNay)) await (kb ? tg('editMessageReplyMarkup', { message_id: mid, reply_markup: { inline_keyboard: kb } }) : tg('deleteMessage', { message_id: mid }));
+    fs.writeFileSync(TEP_DX(), JSON.stringify(so)); }
   const gom = gopCamp(NHOM.map(([k, , nutCho]) => [k, nutCho, (kq[k] || []).filter((m) => !da.has(khoa(k, m)) && !lamRoi.has(m.id)).map((m) => ({ ...m, dich: dichCua(m) }))]));
   for (const [k, tieu, nutCho] of NHOM) {
     const moi = gom.get(k) ?? [];
@@ -227,8 +306,11 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (yen && nutCho) continue;
     const dong = moi.slice(0, 15).map((m) => `• ${esc(m.chu)}${m.cung.map((c) => `\n   ↳ cũng: ${esc(TEN[c.k])}${c.dich ? ` → $${c.dich}` : ''}`).join('')}`).join('\n');
     const bang = moi.slice(0, 15).map((m) => m.nut).filter((h) => h.length);
-    await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `${tieu}\n${dong}${moi.length > 15 ? `\n… và ${moi.length - 15} camp nữa (xem tab Ethopex mos2)` : ''}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML',
+    const j = await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `${tieu}\n${dong}${moi.length > 15 ? `\n… và ${moi.length - 15} camp nữa (xem tab Ethopex mos2)` : ''}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML',
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
+    const mid = j?.result?.message_id;
+    if (mid && bang.length) { const so = docJ(TEP_DX(), {}); so[mid] = { kb: bang, khoa: Object.fromEntries(moi.slice(0, 15).map((m) => [String(m.id), khoa(k, m)])) }; fs.writeFileSync(TEP_DX(), JSON.stringify(so)); }
+    else if (mid && k === 'dong') tinNhanh(mid);   // camp đã bị đóng = thông báo nhanh
     for (const m of moi) { da.add(khoa(k, m)); for (const c of m.cung) da.add(`${c.k}:${m.id}${c.dich ? `:${c.dich}` : ''}`); } gui++;
   }
   // TIỀN THẬT MỖI NGÀY (anh 22/10/2026): mỗi nhịp chụp tổng cộng dồn (so-ngay.py --chup → tiền mới vào theo ngày); 9h mỗi sáng (hết giờ yên)
@@ -276,7 +358,20 @@ if (process.argv.includes('--tu-kiem')) {
   t.equal(g.get('dau_phien').length, 1); t.equal(g.get('tang').length, 1, 'camp trùng không hiện lần hai'); const m = g.get('dau_phien')[0];
   t.deepEqual(m.nut.map((b) => b.callback_data), ['et:tang:65735:2', 'et:tang:65735:3', 'et:bo:65735'], 'gộp nút $2 + $3, một nút Bỏ qua ở cuối'); t.deepEqual(m.cung, [{ k: 'tang', dich: '3' }]);
   t.equal(TEN.tang, 'đủ điều kiện tăng bậc');
+  { const { strict: t } = await import('node:assert');
+    const so = { 9: { kb: [[{ text: '✅ #1 lên $2', callback_data: 'et:tang:1:2' }, { text: 'Bỏ qua', callback_data: 'et:bo:1' }], [{ text: '✅ #2 lên $3', callback_data: 'et:tang:2:3' }, { text: 'Bỏ qua', callback_data: 'et:bo:2' }]], khoa: { 1: 'dau_phien:1:2', 2: 'tang:2:3' } } };
+    t.deepEqual(deXuatHet(so, new Set(['dau_phien:1:2', 'tang:2:3'])), [], 'còn chạm luật → giữ');
+    const r = deXuatHet(so, new Set(['dau_phien:1:2'])); t.equal(r[0].kb.length, 1, 'camp hết liên quan → gỡ hàng'); t.equal(r[0].kb[0][0].callback_data, 'et:tang:1:2');
+    t.deepEqual(deXuatHet(so, new Set()), [{ mid: 9, kb: null }], 'hết hàng → xoá tin'); t.deepEqual(so, {});
+    t.match(tinDeXuatLuat(), /Siết luật LD/); t.equal(NUT_DE_XUAT_LUAT.inline_keyboard.flat().every((b) => b.callback_data.split(':')[2] in LUAT_DOI), true, 'nút el: mang mã luật ở vị trí 3 (goNut gỡ đúng hàng)'); }
   console.log('ethopex: tự kiểm đạt');
+}
+
+if (process.argv.includes('--de-xuat-luat')) {   // gửi tin đề xuất đổi luật (anh 22/10/2026 "báo chi tiết qua tele rồi ta duyệt"): node worker/ethopex.mjs --de-xuat-luat
+  const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
+  const topic = await topicPhong('ethopex', '📂 Ethopex', tg); if (!topic) { console.error('chưa có chủ đề Ethopex'); process.exit(1); }
+  const j = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, text: tinDeXuatLuat(), reply_markup: NUT_DE_XUAT_LUAT });
+  console.log(j.ok ? `đã gửi tin ${j.result.message_id}` : `lỗi: ${j.description}`);
 }
 
 if (process.argv.includes('--in')) {   // xem tại chỗ, không gửi: node worker/ethopex.mjs --in

@@ -42,6 +42,9 @@ dat, theo, giam, dau_phien, moc30 = [], [], [], [], []
 # "Spending hôm nay > 50%" không bao giờ đạt đúng lúc Mỹ đang mua → trong khung này xét chi tiêu + ROI của NGÀY HÔM QUA (trọn ngày) thay cho hôm nay;
 # thêm điều kiện ROI hôm qua ≥ 0% (không tăng camp vừa có một ngày lỗ).
 KHUNG_DEM = 0 <= vn.hour < 5
+try: DUYET = json.load(open(os.path.join(os.environ.get("CTY_DATA_DIR", "/var/lib/cty"), "ethopex-luat-duyet.json")))
+except Exception: DUYET = {}
+LD_SIET = bool(DUYET.get("ld_siet"))
 hqua = bc(d(1), d(1))
 for cid, a in sorted(thang.items()):
     h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); r = roi(a)
@@ -54,7 +57,11 @@ for cid, a in sorted(thang.items()):
     if not dong: continue
     if r >= ROI_TANG and sp > sp_min and them_dk and ke(a["budget"]): dat.append((cid, dong))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
-    if h["chi"] >= 0.5 and a["budget"] < 3:
+    # LD SIẾT (khi anh duyệt trên Telegram — DATA/ethopex-luat-duyet.json "ld_siet"): camp vừa lỗ hôm qua / lỗ cả tháng thì không tăng vì vài chục cent
+    # lãi đầu phiên (22/10/2026: #65115 lên $2 nhờ lãi $0,36 buổi sáng trong khi hôm qua −86%, tháng −62%)
+    _y = hqua.get(cid); _ry = roi(_y) if _y and _y["chi"] >= 0.3 else None
+    ld_chan = LD_SIET and ((_ry is not None and _ry < 0) or (r is not None and r < 0))
+    if h["chi"] >= 0.5 and a["budget"] < 3 and not ld_chan:
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100
         dich = 3 if rh >= 100 else 2
         if rh > 50 and dich > a["budget"]: dau_phien.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g} → ${dich} · ROI hôm nay {rh:+.0f}% · lãi hôm nay ${h.get('thu', 0) - h['chi']:+.2f}"))

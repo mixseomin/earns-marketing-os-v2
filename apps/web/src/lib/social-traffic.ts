@@ -145,7 +145,7 @@ const docCongTy = unstable_cache(async () => {
   return readdirSync(goc).filter((f) => f.endsWith('.md')).map((f) => {
     const t = doc(`${goc}/${f}`, 'utf8'), fm = (k: string) => new RegExp(`^${k}:\\s*(.*)$`, 'm').exec(t.split('---')[1] ?? '')?.[1]?.trim() ?? '';
     const truong = fm('truong'), nguoi = chuanTen(truong.split(/[\s(·,]/)[0] ?? ''), tep = `${nhip}/${nguoi}.jsonl`;
-    const viec = co(tep) ? doc(tep, 'utf8').trim().split('\n').slice(-200).flatMap((l) => { try { return [JSON.parse(l) as { luc: string; viec: string; ket?: string }]; } catch { return []; } }) : [];
+    const viec = co(tep) ? doc(tep, 'utf8').trim().split('\n').slice(-5000).flatMap((l) => { try { return [JSON.parse(l) as { luc: string; viec: string; ket?: string }]; } catch { return []; } }) : [];
     const gan = viec.filter((v) => Date.parse(v.luc) > tu);
     return { khoa: f.replace(/\.md$/, ''), ten: fm('ten'), truong, duAn: (fm('du_an').match(/[\w-]+/g) ?? []), hoatDong: !/chưa hoạt động/.test(fm('trang_thai')) && fm('trang_thai') !== '',
       trangThai: fm('trang_thai'), viec24: gan.length, cuoi: viec.at(-1) ?? null };

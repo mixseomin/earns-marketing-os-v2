@@ -257,8 +257,11 @@ def vl_quet(nt, b, chat, rgb, nhuom=0.85):
         if not mau: t.image.colorspace_settings.name = 'Non-Color'
         nt.links.new(mp.outputs['Vector'], t.inputs['Vector']); return t
     tm, tn, tp = tex(tep['mau']), tex(tep['nham'], False), tex(tep['phap'], False)
+    # MÀU KHAI THẮNG MÀU ẢNH QUÉT (phim #132 23/10/2026: tường đá khai #151517 đen, ảnh quét marble_01 màu be → khung màu ra tường nâu be, keyframe kết
+    # sửa từ khung màu chép tường be, video đi tới ảnh kết đổi cả sảnh): lấy ảnh quét THÀNH ĐỘ SÁNG (vân, vết) rồi nhân màu khai — không mang sắc ảnh quét.
+    bw = nt.nodes.new('ShaderNodeRGBToBW'); nt.links.new(tm.outputs['Color'], bw.inputs['Color'])
     mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = nhuom
-    nt.links.new(tm.outputs['Color'], mx.inputs['A']); mx.inputs['B'].default_value = (*[min(1, c * 2.2) for c in rgb], 1)
+    nt.links.new(bw.outputs['Val'], mx.inputs['A']); mx.inputs['B'].default_value = (*[min(1, c * 2.2) for c in rgb], 1)
     nt.links.new(mx.outputs['Result'], b.inputs['Base Color']); nt.links.new(tn.outputs['Color'], b.inputs['Roughness'])
     nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.6; nt.links.new(tp.outputs['Color'], nm.inputs['Color']); nt.links.new(nm.outputs['Normal'], b.inputs['Normal'])
     if chat == 'kim_loai': b.inputs['Metallic'].default_value = 0.85

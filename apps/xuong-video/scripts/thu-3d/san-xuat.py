@@ -35,6 +35,21 @@ if 'FINISHED' not in kq:
     r = T.modifiers.new('voxel', 'REMESH'); r.mode = 'VOXEL'; r.voxel_size = H / 150 * (f0 / MAT) ** 0.5; r.use_smooth_shade = True
     bpy.ops.object.modifier_apply(modifier='voxel'); cach = 'voxel'
     sm = T.modifiers.new('muot', 'SMOOTH'); sm.factor = 0.5; sm.iterations = 3; bpy.ops.object.modifier_apply(modifier='muot')
+# bỏ MẢNH RỜI nhỏ (< 0,5 % số mặt): rác từ chữ / viền ảnh concept bị dựng thành khối lơ lửng (tàu Leviathan)
+import bmesh
+bm = bmesh.new(); bm.from_mesh(T.data); bm.faces.ensure_lookup_table(); da = set(); manh = []
+for f in bm.faces:
+    if f in da: continue
+    st = [f]; c = []; da.add(f)
+    while st:
+        x = st.pop(); c.append(x)
+        for e in x.edges:
+            for g in e.link_faces:
+                if g not in da: da.add(g); st.append(g)
+    manh.append(c)
+nho = [f for c in manh if len(c) < 0.005 * len(bm.faces) for f in c]
+bmesh.ops.delete(bm, geom=nho, context='FACES'); bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+bm.to_mesh(T.data); bm.free(); print('BO MANH NHO', len(nho), 'mat')
 tu_giac = sum(1 for p in T.data.polygons if len(p.vertices) == 4) / max(1, len(T.data.polygons))
 bpy.ops.object.shade_smooth()
 
@@ -62,6 +77,12 @@ def bake(loai, ten):
     bk = sc.render.bake; bk.use_selected_to_active = True; bk.cage_extrusion = 0.02 * H; bk.max_ray_distance = 0.06 * H; bk.margin = 8
     if loai == 'DIFFUSE': bk.use_pass_direct = False; bk.use_pass_indirect = False; bk.use_pass_color = True
     print('BAKE', loai, bpy.ops.object.bake(type=loai))
+# chép KIM LOẠI / NHÁM của vật liệu gốc (TRELLIS: kim loại 1,0 nhám 1,0 — chính nó làm màu đậm, bão hoà; đặt 0 / 0,6 thì bản sản xuất bạc nhạt)
+goc_kl, goc_nham = 0.0, 0.85
+for m_ in DAY.data.materials:
+    b_ = next((n for n in m_.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None) if m_ and m_.use_nodes else None
+    if b_ and b_.inputs['Base Color'].links and not b_.inputs['Metallic'].links and not b_.inputs['Roughness'].links:
+        goc_kl, goc_nham = b_.inputs['Metallic'].default_value, b_.inputs['Roughness'].default_value
 # MÀU: nối tạm ảnh màu của lưới dày vào EMISSION rồi bake EMIT — bake DIFFUSE ra ảnh ĐEN khi vật liệu glTF của TRELLIS mang metallic cao
 # (màu khuếch tán của kim loại = 0; đo 22/10/2026 trên ankylo). Bản đồ pháp tuyến bake bình thường.
 for m_ in DAY.data.materials:
@@ -76,7 +97,7 @@ for m_ in DAY.data.materials:
 bake('EMIT', 'mau'); bake('NORMAL', 'phap')
 nt.links.new(anh['mau_nut'].outputs['Color'], bs.inputs['Base Color'])
 nm = nt.nodes.new('ShaderNodeNormalMap'); nt.links.new(anh['phap_nut'].outputs['Color'], nm.inputs['Color']); nt.links.new(nm.outputs['Normal'], bs.inputs['Normal'])
-bs.inputs['Roughness'].default_value = 0.6
+bs.inputs['Metallic'].default_value = goc_kl; bs.inputs['Roughness'].default_value = goc_nham
 for k in ('mau', 'phap'):   # ghi ảnh bake ra cạnh tệp .glb (soát bằng mắt) rồi đóng gói vào .glb
     im = anh[k]; im.filepath_raw = os.path.splitext(RA)[0] + f'_{k}.png'; im.file_format = 'PNG'; im.save(); im.pack()
 

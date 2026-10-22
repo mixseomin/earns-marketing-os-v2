@@ -27,10 +27,13 @@ for f in glob.glob(f'{ra}/vao/*/p*.json'):
         json.dump({**d, 'shot': [s]}, open(f"{ra}/{so:02d}-{s['ma']}/vao.json", 'w')); ds.append((so, s['ma'], g))
 open(f'{ra}/viec.txt', 'w').write('\n'.join(f'{so:02d}-{ma} {ma} {g}' for so, ma, g in sorted(ds)) + '\n')
 PY
-# XV_NHAP=1 = BẢN NHÁP (playblast, anh 16/10/2026 "tao chỉ cần xem bản nháp cho nhanh"): EEVEE 360px, 4 mẫu, lông thưa, 3 shot song song.
-if [ -n "$XV_NHAP" ]; then export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-4} XV_SONG=${XV_SONG:-3}; fi
+# XV_NHAP=1 = BẢN NHÁP (playblast, anh 16/10/2026 "tao chỉ cần xem bản nháp cho nhanh"): EEVEE 360px, 4 mẫu, lông thưa.
+# MỘT SHOT MỘT LÚC, ưu tiên NỀN của macOS (taskpolicy -b: chỉ dùng CPU dư, việc của anh luôn đi trước) — anh 22/10/2026 "ko được chạy song song
+# như vậy nặng máy của tao. Chạy 1 con 1". Chạy song song chỉ khi đặt XV_SONG rõ ràng (máy thuê).
+if [ -n "$XV_NHAP" ]; then export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-4}; fi
 export XV_MAY XV_NHAP XV_RONG XV_MAU
-while read -r TEN MA GIAY; do echo "$RA/$TEN $MA $GIAY"; done < "$RA/viec.txt" | xargs -P "${XV_SONG:-1}" -L1 "$DIR/scripts/bo-set/dien-mot.sh"
+NEN=""; [ -z "$XV_MAY_THUE" ] && command -v taskpolicy >/dev/null && NEN="taskpolicy -b"
+while read -r TEN MA GIAY; do echo "$RA/$TEN $MA $GIAY"; done < "$RA/viec.txt" | xargs -P "${XV_SONG:-1}" -L1 $NEN "$DIR/scripts/bo-set/dien-mot.sh"
 echo "HET tap $TAP"
 [ -n "$XV_MAY_THUE" ] && echo "⚠ MÁY THUÊ còn đang tính tiền — tắt: scripts/bo-set/may-thue.sh tat $XV_MAY_THUE ${XV_MAY_THUE_CONG:-22}"
 true

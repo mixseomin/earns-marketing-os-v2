@@ -6,6 +6,11 @@ a = sys.argv[sys.argv.index('--') + 1:]; VAO, RA = a[0], a[1]
 bpy.ops.wm.read_factory_settings(use_empty=True); sc = bpy.context.scene
 bpy.ops.import_scene.gltf(filepath=VAO); bpy.context.view_layer.update()
 me = [o for o in bpy.data.objects if o.type == 'MESH']
+if '--luoi' in a:   # phủ KHUNG LƯỚI đen lên bề mặt (so tam giác thô của AI với tứ giác của khâu sản xuất)
+    den = bpy.data.materials.new('khung'); den.use_nodes = True; den.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.02, 0.02, 0.02, 1)
+    for o in me:
+        k = o.copy(); k.data = o.data.copy(); bpy.context.collection.objects.link(k); k.data.materials.clear(); k.data.materials.append(den)
+        w = k.modifiers.new('khung', 'WIREFRAME'); w.thickness = 0.0025 * max(o.dimensions); w.use_replace = True
 bb = [o.matrix_world @ Vector(c) for o in me for c in o.bound_box]
 lo = Vector([min(p[i] for p in bb) for i in range(3)]); hi = Vector([max(p[i] for p in bb) for i in range(3)]); tam = (lo + hi) / 2; R = max(hi - lo)
 bpy.ops.mesh.primitive_plane_add(size=R * 20, location=(0, 0, lo.z)); s = bpy.context.object

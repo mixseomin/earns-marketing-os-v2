@@ -14,16 +14,21 @@ export async function POST(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false }, { status: 503 });
   let b: Record<string, string> = {};
+  const ct = req.headers.get('content-type') ?? '';
+  // form thường (trình duyệt tắt JS) → quay về đúng trang sản phẩm với ?cho=ok|loi; fetch JSON → trả JSON
+  const ve = (ok: boolean, ma = 200) => {
+    if (ct.includes('json')) return NextResponse.json(ok ? { ok } : { ok, loi: 'email' }, { status: ma });
+    const nguon = /^https:\/\/clane\.app\/[a-z0-9/-]*$/.test(String(b.nguon ?? '')) ? String(b.nguon) : 'https://clane.app/';
+    return NextResponse.redirect(`${nguon}?cho=${ok ? 'ok' : 'loi'}#cho`, 303);
+  };
   try {
-    const ct = req.headers.get('content-type') ?? '';
     b = ct.includes('json') ? await req.json() : Object.fromEntries((await req.formData()).entries()) as Record<string, string>;
   } catch { return NextResponse.json({ ok: false, loi: 'body' }, { status: 400 }); }
-  if (String(b.web ?? '').trim()) return NextResponse.json({ ok: true });   // bẫy spam
+  if (String(b.web ?? '').trim()) return ve(true);   // bẫy spam
   const sp = String(b.sp ?? '').trim().toLowerCase(), email = String(b.email ?? '').trim().toLowerCase();
-  if (!SP.test(sp)) return NextResponse.json({ ok: false, loi: 'sp' }, { status: 400 });
-  if (!EMAIL.test(email)) return NextResponse.json({ ok: false, loi: 'email' }, { status: 400 });
+  if (!SP.test(sp) || !EMAIL.test(email)) return ve(false, 400);
   const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0]!.trim().slice(0, 64) || null;
   await db.execute(sql`INSERT INTO app_cho_tin (sp, email, nguon, ip) VALUES (${sp}, ${email}, ${String(b.nguon ?? '').slice(0, 200) || null}, ${ip})
     ON CONFLICT (sp, email) DO NOTHING`);
-  return NextResponse.json({ ok: true });
+  return ve(true);
 }

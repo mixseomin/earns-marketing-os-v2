@@ -7,7 +7,8 @@
 #   may-thue-vast.sh cho <id>               đợi SSH → in "root@<ip> <cổng>"
 #   may-thue-vast.sh xoa <id>               xoá máy (hết tính tiền)
 #   may-thue-vast.sh lam <tap> [chi]        CẢ MẠCH: thuê → chuẩn bị (may-thue.sh chuan-bi: kiểm GPU + MPFB) → dien-tap trên máy thuê → XOÁ máy (trap, cả khi lỗi)
-# Lọc máy: độ tin cậy ≥ 0,97 · mạng xuống ≥ 300 Mbps · CUDA ≥ 12.4 · ổ ≥ 40 GB. Tốc độ Cycles so 4090: cùng bảng xv_nguon_model (Blender Open Data).
+# Lọc máy: CHỈ máy một thẻ (gpu_frac = 1 — 22/10/2026 sáu máy nhiều thẻ liền lỗi "unresolvable CDI devices …/gpu=1" khi Vast cấp thẻ thứ hai; máy
+# một thẻ A6000 chạy được) · độ tin cậy ≥ 0,97 · mạng xuống ≥ 300 Mbps · CUDA ≥ 12.4 · ổ ≥ 40 GB. Tốc độ Cycles so 4090: cùng bảng xv_nguon_model (Blender Open Data).
 set -e
 VIEC=$1; ID=$2
 DIR=${XV_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
@@ -28,7 +29,7 @@ TOC = {'RTX 4090': 1.0, 'RTX 5090': 1.25, 'RTX 3090': 0.48, 'RTX 5080': 0.7, 'RT
 ra = []
 for g, toc in TOC.items():
     q = {'gpu_name': {'eq': g}, 'num_gpus': {'eq': 1}, 'rentable': {'eq': True}, 'reliability2': {'gte': 0.97}, 'inet_down': {'gte': 300},
-         'cuda_max_good': {'gte': 12.4}, 'disk_space': {'gte': 40}, 'type': loai, 'order': [['dph_total', 'asc']], 'limit': 4}
+         'cuda_max_good': {'gte': 12.4}, 'disk_space': {'gte': 40}, 'gpu_frac': {'gte': 0.99}, 'type': loai, 'order': [['dph_total', 'asc']], 'limit': 4}
     try:
         o = json.load(urllib.request.urlopen('https://console.vast.ai/api/v0/bundles/?q=' + urllib.parse.quote(json.dumps(q)), timeout=20)).get('offers', [])
     except Exception:
@@ -40,7 +41,9 @@ for g, toc in TOC.items():
         if str(x.get('machine_id')) in bo: continue   # máy vừa hỏng trong lượt này
         gia = (x.get('min_bid') or x['dph_total']) * (1.15 if loai == 'bid' else 1)   # đặt giá thầu cao hơn sàn 15 % cho đỡ bị giành
         ra.append((gia / toc, x['id'], g, gia, x['reliability2'], x.get('geolocation') or '', x.get('machine_id')))
-for v, i, g, gia, tc, noi, may in sorted(ra)[:8]: print(f"{i}|{g}|{gia:.3f}|{v:.3f}|{tc:.3f}|{noi}|{may}")
+so_tot = os.path.expanduser('~/.cache/vast-may-tot.txt')   # máy chủ đã dựng được — đứng trước (đỡ thử máy lỗi gắn GPU, 22/10/2026 năm máy 3090 liền lỗi)
+tot = set(open(so_tot).read().split()) if os.path.exists(so_tot) else set()
+for v, i, g, gia, tc, noi, may in sorted(ra, key=lambda r: (str(r[6]) not in tot, r[0]))[:8]: print(f"{i}|{g}|{gia:.3f}|{v:.3f}|{tc:.3f}|{noi}|{may}")
 PY
 }
 case "$VIEC" in
@@ -93,7 +96,7 @@ print(st or "-", ip.strip() or "-", p or "-")')
       echo "máy $MAY không dùng được ($DC) — xoá, thuê máy khác"; bash "$0" xoa "$MAY"; MAY=""; export XV_BO_MAY="${XV_BO_MAY:-} $MAYCHU"; mkdir -p ~/.cache; echo "$MAYCHU" >> ~/.cache/vast-may-hong.txt
       [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
     done
-    echo "máy: $H cổng $P"
+    echo "máy: $H cổng $P"; mkdir -p ~/.cache; grep -qx "$MAYCHU" ~/.cache/vast-may-tot.txt 2>/dev/null || echo "$MAYCHU" >> ~/.cache/vast-may-tot.txt
     if [ -n "${XV_DO_SHOT:-}" ]; then   # ĐO một shot (XV_DO_SHOT=<thư mục shot>): 1,5 giây đầu, in thời gian từng khung (dung-set.py › XV_DO_KHUNG), không nạp
       R=/root/xv/do; ssh -p $P $H "rm -rf $R && mkdir -p $R" && rsync -aq -e "ssh -p $P" "$XV_DO_SHOT/vao.json" $H:$R/
       ssh -p $P $H "cd /root/xv && env XV_MAY=cycles XV_NHAP=1 XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=1.5 XV_MAU=16 XV_RONG=360 XV_DO_KHUNG=1 timeout 900 /opt/blender/blender -b --factory-startup -P scripts/bo-set/dung-set.py -- $R/vao.json $R 2>&1" | grep -E "^DO |Traceback|Error" | head -60

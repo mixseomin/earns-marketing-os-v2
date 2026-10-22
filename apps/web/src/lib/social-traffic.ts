@@ -90,7 +90,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
     // mọi tài khoản cửa bán kể cả đã khoá: cửa bán mà mọi tài khoản đều bị khoá (Udemy) → sản phẩm ra khu 'tài khoản bị khoá' ở rìa; 'closed' = tự đóng, không tính
     (d.execute(sql`SELECT platform_key, handle, project_id, coalesce(status, '') IN ('banned', 'suspended', 'locked') AS khoa FROM platform_accounts WHERE coalesce(status, '') <> 'closed'
-      AND platform_key IN ('etsy', 'kdp', 'gumroad', 'udemy', 'app-store', 'ms-store', 'mql5-market', 'rapidapi')`) as unknown as Promise<{ platform_key: string; handle: string; project_id: string | null; khoa: boolean }[]>).catch(() => []),
+      AND platform_key IN ('etsy', 'kdp', 'gumroad', 'udemy', 'app-store', 'ms-store', 'mql5-market', 'rapidapi', 'chaturbate', 'stripcash', 'stripe')`) as unknown as Promise<{ platform_key: string; handle: string; project_id: string | null; khoa: boolean }[]>).catch(() => []),
     getProductsView(30).catch((e: Error) => { loi.push(`sản phẩm: ${e.message}`); return null; }),
     docNguonApp().catch((e: Error) => { loi.push(`nguồn app (Apple): ${e.message}`); return []; }),
     (d.execute(sql`SELECT product_id, refs FROM product_daily WHERE refs IS NOT NULL AND date >= to_char(current_date - 30, 'YYYY-MM-DD')`) as unknown as Promise<{ product_id: string; refs: Record<string, number> | null }[]>).catch(() => []),

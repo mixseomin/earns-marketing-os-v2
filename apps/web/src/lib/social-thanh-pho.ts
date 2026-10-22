@@ -116,6 +116,7 @@ export function duAnCuaSanPham(sp: VaoHeSinhThai['sanPham'][number], v: VaoHeSin
   const ten = chuan(sp.ten);
   const app = v.app.find((a) => chuan(a.ten).length >= 4 && ten.startsWith(chuan(a.ten))); if (app) return app.duAn;
   const tk = v.tkCua.find((t) => t.duAn && t.nen === sp.nen && sp.store && chuan(t.handle) === chuan(sp.store)); if (tk) return tk.duAn;
+  const motTk = v.tkCua.filter((t) => t.duAn && !t.khoa && t.nen === sp.nen); if (!sp.store && motTk.length === 1) return motTk[0]!.duAn;   // cửa bán chỉ có MỘT tài khoản gắn dự án (Chaturbate → Chat When Bored)
   const theoTen = v.duAn.filter((d) => chuan(d.ten).length >= 5 && ten.includes(chuan(d.ten))).sort((a, b) => b.ten.length - a.ten.length)[0]; if (theoTen) return theoTen.id;
   const dau = chuan(sp.ten.split(/[:(\-–]/)[0]!); if (dau.length >= 4) for (const [ten2, d] of daGan) if (ten2.startsWith(dau)) return d;
   return null;
@@ -231,7 +232,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     if (d.loai === 'site' && d.laShop) { const ten = chuan(d.site!.split('.')[0]!); const b = live.ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === ten || chuan(x.duAn) === ten)); if (b.length) d.don = b.reduce((a, x) => a + (x.ban30 ?? 0), 0); }
   }
   // ── TIỀN 30 ngày (USD): sản phẩm = thực nhận kho products (App Store, AdMob, Gumroad, Udemy, KDP…) · cửa hàng Gumroad / Etsy = bán 30 ngày · shop mặt tiền = đơn shop_don
-  const LOAI_TIEN: Record<string, string> = { 'app-store': 'App', 'ms-store': 'App', 'play-store': 'App', gumroad: 'Bán sản phẩm số', etsy: 'Bán sản phẩm số', kdp: 'Sách', udemy: 'Khoá học', 'mql5-market': 'Bán sản phẩm số', rapidapi: 'API' };
+  const LOAI_TIEN: Record<string, string> = { 'app-store': 'App', 'ms-store': 'App', 'play-store': 'App', gumroad: 'Bán sản phẩm số', etsy: 'Bán sản phẩm số', kdp: 'Sách', udemy: 'Khoá học', 'mql5-market': 'Bán sản phẩm số', rapidapi: 'API', chaturbate: 'Hoa hồng aff', stripcash: 'Hoa hồng aff', stripe: 'Thanh toán', astrolas: 'Đăng ký' };
   for (const d of dichMap.values()) {
     if (d.loai === 'sp') { d.tien30 = d.net ?? null; d.loaiTien = LOAI_TIEN[d.nenBan ?? ''] ?? 'Khác'; }
     if (d.loai === 'site') {

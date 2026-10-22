@@ -30,4 +30,4 @@ html, body { height: 100%; margin: 0; background: var(--nen); }
 <script>${js.replace(/<\/script/gi, '<\\/script')}</script>
 `;
 mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, html);
-console.log(`${ra} · ${(html.length / 1024).toFixed(0)} KB · ${tl.mh.tk.length} toà · ${tl.mh.cum.length} cụm · ${tl.mh.dich.length} site · số lúc ${gioVn}`);
+console.log(`${ra} · ${(html.length / 1024).toFixed(0)} KB · ${tl.mh.tk.length} toà nguồn · ${tl.mh.duAn.length} khu · ${tl.mh.dich.length} đích · số lúc ${gioVn}`);

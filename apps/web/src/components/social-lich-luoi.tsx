@@ -1,6 +1,7 @@
 'use client';
 // LƯỚI LỊCH ĐĂNG (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): cột = ngày (3 ngày qua → 6 ngày tới), hàng = giờ (GMT+7),
 // mỗi ô = các bài trên các kênh. ✓ đặc = đã đăng (bấm mở bài) · viền nét đứt = máy SẼ đăng (dang-may tính bằng luật nhịp an toàn — xv_lich_du_kien).
+import { useState } from 'react';
 import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
 
@@ -74,6 +75,65 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
           ])}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** LỊCH TUẦN / THÁNG (anh 22/10/2026, bước 4): cùng dữ liệu lưới (đã đăng 6 tuần qua + máy sẽ đăng 6 tuần tới), xếp như lịch thật.
+ *  Tuần: 7 cột T2 → CN, mỗi ngày liệt kê bài theo giờ. Tháng: lưới 6 × 7, mỗi ngày = chấm màu theo máy (đặc = đã đăng, rỗng = sẽ đăng), bấm ngày → danh sách bên dưới.
+ *  ‹ › đổi tuần / tháng; giờ GMT+7. */
+export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'thang' }) {
+  const [moc, setMoc] = useState(luoi.hom);
+  const [chon, setChon] = useState<string | null>(null);
+  const may = [...new Map(luoi.o.map((x) => [x.may, x.mayTen])).entries()];
+  const mauMay = Object.fromEntries(may.map(([m], i) => [m, MAU[i % MAU.length]!]));
+  const thu = (n: string) => new Date(`${n}T00:00:00Z`).getUTCDay();
+  const dauTuan = (n: string) => cong(n, -((thu(n) + 6) % 7));   // thứ Hai
+  const ngay = kieu === 'tuan'
+    ? Array.from({ length: 7 }, (_, i) => cong(dauTuan(moc), i))
+    : (() => { const dau = `${moc.slice(0, 8)}01`, bd = dauTuan(dau); return Array.from({ length: 42 }, (_, i) => cong(bd, i)); })();
+  const cua = (n: string) => luoi.o.filter((x) => x.ngay === n).sort((a, b) => a.gio.localeCompare(b.gio));
+  const tenKy = kieu === 'tuan' ? `${ngay[0]!.slice(8)}/${ngay[0]!.slice(5, 7)} – ${ngay[6]!.slice(8)}/${ngay[6]!.slice(5, 7)}` : `Tháng ${Number(moc.slice(5, 7))}/${moc.slice(0, 4)}`;
+  const doi = (b: number) => { setChon(null); setMoc(kieu === 'tuan' ? cong(moc, b * 7) : (() => { const d = new Date(Date.parse(`${moc.slice(0, 8)}01T00:00:00Z`)); d.setUTCMonth(d.getUTCMonth() + b); return d.toISOString().slice(0, 10); })()); };
+  const nut = { border: '1px solid var(--border)', background: 'var(--bg-1, transparent)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer', color: 'inherit' } as const;
+  const Bai = ({ x }: { x: StLuoiO }) => {
+    const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${NEN_NHAN[x.nen] ?? x.nen}`, tip = `${x.mayTen} · ${NEN_NHAN[x.nen] ?? x.nen} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
+    const st = { display: 'block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `3px solid ${mauMay[x.may]}`, fontSize: 11,
+      ...(x.loai === 'da' ? { background: 'var(--bg-2, rgba(0,0,0,.05))', color: 'var(--fg-1, inherit)', textDecoration: 'none' } : { border: `1px dashed ${mauMay[x.may]}`, borderLeftWidth: 3, borderLeftStyle: 'solid' as const, color: 'var(--fg-2)' }) };
+    return x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" title={tip} style={st}>{nhan}</a> : <span title={tip} style={st}>{nhan}</span>;
+  };
+  return (
+    <div style={{ margin: '4px 0 18px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', fontSize: 12, color: 'var(--fg-2)', marginBottom: 8 }}>
+        <button type="button" style={nut} onClick={() => doi(-1)} aria-label="Kỳ trước">‹</button>
+        <b style={{ color: 'var(--fg-1, inherit)', fontSize: 13, minWidth: 120, textAlign: 'center' }}>{tenKy}</b>
+        <button type="button" style={nut} onClick={() => doi(1)} aria-label="Kỳ sau">›</button>
+        <button type="button" style={nut} onClick={() => { setMoc(luoi.hom); setChon(null); }}>Hôm nay</button>
+        {may.map(([m, ten]) => <span key={m} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: mauMay[m] }} />{ten.split(' · ')[0]}</span>)}
+        <span>· ✓ đã đăng · nét đứt = sẽ đăng · lịch giữ 6 tuần mỗi phía</span>
+      </div>
+      <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', minWidth: 7 * 120, fontSize: 12 }}>
+          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((t) => <div key={t} style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', color: 'var(--fg-2)', fontWeight: 600 }}>{t}</div>)}
+          {ngay.map((n) => {
+            const bs = cua(n), homNay = n === luoi.hom, ngoaiThang = kieu === 'thang' && n.slice(0, 7) !== moc.slice(0, 7), da = bs.filter((x) => x.loai === 'da').length;
+            return (
+              <div key={n} onClick={kieu === 'thang' ? () => setChon(chon === n ? null : n) : undefined} title={`${da} đã đăng · ${bs.length - da} sẽ đăng`}
+                style={{ padding: 5, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', minHeight: kieu === 'tuan' ? 180 : 74, cursor: kieu === 'thang' ? 'pointer' : undefined,
+                  background: chon === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : homNay ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined, opacity: ngoaiThang ? .45 : 1, display: 'grid', alignContent: 'start', gap: 3 }}>
+                <span style={{ fontWeight: homNay ? 700 : 500, color: n < luoi.hom ? 'var(--fg-3)' : undefined }}>{homNay ? 'Hôm nay' : `${n.slice(8)}/${n.slice(5, 7)}`}{bs.length ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}> · {bs.length}</span> : null}</span>
+                {kieu === 'tuan' ? bs.map((x, i) => <Bai key={i} x={x} />)
+                  : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>{bs.slice(0, 24).map((x, i) => <i key={i} title={`${x.gio} ${NEN_NHAN[x.nen] ?? x.nen} · ${x.title}`} style={{ width: 8, height: 8, borderRadius: 2, background: x.loai === 'da' ? mauMay[x.may] : 'transparent', border: `1.5px solid ${mauMay[x.may]}` }} />)}</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {kieu === 'thang' && chon && <div style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
+        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{THU[thu(chon)]} {chon.slice(8)}/{chon.slice(5, 7)} · {cua(chon).length} bài</div>
+        <div style={{ display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>{cua(chon).map((x, i) => <Bai key={i} x={x} />)}</div>
+        {!cua(chon).length && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có bài nào.</span>}
+      </div>}
     </div>
   );
 }

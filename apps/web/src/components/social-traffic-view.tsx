@@ -13,7 +13,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive, StLich } from '@/lib/social-traffic';
-import { LichLuoi } from './social-lich-luoi';
+import { LichLuoi, LichThangTuan } from './social-lich-luoi';
 import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 import { SocialThanhPho } from './social-thanh-pho';
@@ -71,6 +71,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [skg, setSkg] = useShallowParam('skg', '');   // góc đang lọc, nhiều góc nối bằng ',' ('' = mọi góc)
   const gocChon = skg ? skg.split(',') : [];
   const [gopKenh, setGopKenh] = useShallowParam('skb', 'khong');
+  const [kieuLich, setKieuLich] = useShallowParam('slv', 'gio');   // lịch: lưới giờ / tuần / tháng (anh 22/10/2026)
   const laLive = cheDo === 'live';
   // Số người đang trên site aff — badge trên tab Trực tiếp (card #1411), gọi lại mỗi 10 giây khi trang đang hiện, chỉ ở LIVE.
   const [online, setOnline] = useState<number | null>(null);
@@ -331,7 +332,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       {muc === 'lich' && (!laLive
         ? <span style={nho}>Lịch đăng là dữ liệu thật của máy studio — bật LIVE để xem.</span>
         : live.lich.length
-          ? <><LichLuoi luoi={live.luoi} /><DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
+          ? <><div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'gio', label: '🕐 Lưới giờ', title: '10 ngày quanh hôm nay, hàng = giờ' }, { value: 'tuan', label: '📅 Tuần' }, { value: 'thang', label: '🗓 Tháng' }]} value={kieuLich} onChange={setKieuLich} /></div>
+            {kieuLich === 'gio' ? <LichLuoi luoi={live.luoi} /> : <LichThangTuan key={kieuLich} luoi={live.luoi} kieu={kieuLich === 'tuan' ? 'tuan' : 'thang'} />}<DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
               <span style={nho}>Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng) — thêm nền hoặc máy mới là tự hiện. Giờ theo GMT+7. Lượt chạy thật (sổ việc nền cty, apps/cty/cong-ty/viec-nen.json): máy đăng chung iMac 02:00 · 08:00 · 20:00 + chạy bù 21:00, mỗi lượt hỏi nhịp an toàn (trần theo tuổi kênh, cách ≥ 3 giờ); Front Porch có lượt riêng.</span></>
           : trong('Chưa có lịch đăng', 'Lịch hiện khi một máy studio (studio.on.tc › Máy) có nơi đăng.'))}
 

@@ -10,14 +10,19 @@ import { dirname } from 'node:path';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
-import { docBamBaiDang, docSoLanding, siteCoMa } from './social-truc-tiep';
+import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
+import { MAY_TIM } from './social-thanh-pho';
 import { tinhSucKhoe, type StSucKhoe, type VaoSuc } from './social-suc-khoe';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe }
+export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe;
+  /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
+  fav: Record<string, string | null>;
+  /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
+  nguonSite: { site: string; phien30: number; tim: Record<string, number> }[] }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
  *  da = đã đăng (sổ xv_may_video.da_dang, có link) · du_kien = máy sẽ đăng (xv_lich_du_kien — dang-may tính bằng luật nhịp an toàn, mos2 không tính lại). */
 export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien' }
@@ -61,10 +66,25 @@ const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promi
 export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
-  const [goc, kenh, lo, lich, luoi, suc] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
-    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi))]);
+  const [goc, kenh, lo, lich, luoi, suc, nguonSite] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
+    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
+    doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; }))]);
+  const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host)])];
+  const fav = await doGio('favicon', gio, () => docFav(site));
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite };
+}
+/** FAVICON SITE ĐÍCH (thành phố Social): Google s2 cỡ 128 → data URI, nhớ 1 ngày mỗi site. Site không có favicon riêng thì s2 trả quả địa cầu
+ *  16×16 → null (thành phố vẽ chữ cái đầu). Lỗi mạng / quá 3 giây → null, không chặn trang. */
+const favMot = (site: string) => unstable_cache(async (): Promise<string | null> => {
+  const r = await fetch(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(site)}&sz=128`, { signal: AbortSignal.timeout(3000) });
+  if (!r.ok) return null;
+  const b = Buffer.from(await r.arrayBuffer());
+  if (b.length < 24 || b.readUInt32BE(16) < 32) return null;   // IHDR: rộng ở byte 16
+  return `data:${r.headers.get('content-type') ?? 'image/png'};base64,${b.toString('base64')}`;
+}, ['social-fav-v1', site], { revalidate: 86400 })();
+async function docFav(site: string[]): Promise<Record<string, string | null>> {
+  return Object.fromEntries(await Promise.all(site.map(async (s) => [s, await favMot(s).catch(() => null)] as const)));
 }
 /** Góc thật từ spy: danh sách nhóm rồi từng nhóm (SONG_SONG lượt cùng lúc), xếp chung theo Sức mạnh. */
 /** GÓC SPY KHÔNG CHẶN TRANG (anh 21/10/2026: "tab social treo rồi" — bộ nhớ đệm 5 phút hết / vừa deploy thì trang đứng chờ spy 65–150 giây).
@@ -159,7 +179,9 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
   try {
     const [noi, da, hong, cb, lich] = await Promise.all([
       d.execute(sql`SELECT m.ma AS may, m.ten AS may_ten, n->>'nen' AS nen, coalesce(n->>'ten', n->>'nen') AS nen_ten, coalesce(n->>'tk', '') AS tk,
-          coalesce(n->>'gio', '') AS gio, coalesce(n->>'may', '') AS may_mac, n->'br'->>'acct' AS acct
+          coalesce(n->>'gio', '') AS gio, coalesce(n->>'may', '') AS may_mac, n->'br'->>'acct' AS acct,
+          (SELECT regexp_replace(split_part(split_part(v.dang->>'link', '//', 2), '/', 1), '^www\.', '') FROM xv_may_video v WHERE v.may_id = m.id AND coalesce(v.dang->>'link', '') <> ''
+            GROUP BY 1 ORDER BY count(*) DESC LIMIT 1) AS site
         FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay ORDER BY m.id, n->>'nen'`) as unknown as Promise<R[]>,
       d.execute(sql`SELECT m.ma AS may, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(coalesce(v.da_dang, '{}'::jsonb)) e
@@ -171,7 +193,7 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
     ]);
     const vao: VaoSuc = {
       bay: Date.now(),
-      noi: noi.map((x) => ({ may: String(x.may), mayTen: String(x.may_ten), nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac), acct: x.acct ?? null })),
+      noi: noi.map((x) => ({ may: String(x.may), mayTen: String(x.may_ten), nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac), acct: x.acct ?? null, site: x.site ?? null })),
       da: da.map((x) => ({ may: String(x.may), nen: String(x.nen), ngay: String(x.ngay), luc: x.luc ?? null, url: x.url ?? null })),
       hong: hong.map((x) => ({ may: String(x.may), nen: String(x.nen), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu) })),
       canhBao: cb.map((x) => ({ acct: String(x.acct), loai: String(x.loai), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu), nguon: String(x.nguon ?? '') })),
@@ -299,7 +321,7 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
   if (bam) for (const c of cap) { const n = bam.get(`${c.nen}|${c.site}`); if (n) bamTk.set(Number(c.acct), (bamTk.get(Number(c.acct)) ?? 0) + n); }
   return r.filter((x) => !daCo.has(x.id)).map((x): StKenh => ({
     id: x.id, ten: x.handle, nenTang: NEN_TEN[x.platform_key] ?? x.platform_key, nenKey: x.platform_key, nhom: x.may ?? x.du_an, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
-    tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: bamTk.get(x.id) ?? 0, hh: 0, daDo: false, demBai: x.may != null,
+    duAn: x.du_an, tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: bamTk.get(x.id) ?? 0, hh: 0, daDo: false, demBai: x.may != null,
     demBam: x.may != null && bam != null,
   }));
 }
@@ -353,7 +375,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         const landing = [...dem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
         const daDang = key === 'pinterest' ? kenhSp.filter((x) => x.project === da).reduce((a, x) => a + (x.o.pinterest?.xong ?? 0), 0) : n?.soVideo ?? 0;
         kenh.push({
-          id: t?.id ?? -(kenh.length + 1), ten: t?.handle ?? nen.ten, nenTang: nen.ten, nenKey: nen.pk, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN',
+          id: t?.id ?? -(kenh.length + 1), ten: t?.handle ?? nen.ten, nenTang: nen.ten, nenKey: nen.pk, nhom: tenDuAn[da] ?? da, duAn: tenDuAn[da] ?? da, ngonNgu: 'EN',
           proxy: t?.proxy_id ? `proxy #${t.proxy_id}` : t ? 'chưa gắn proxy' : 'chưa có trong vault', tt: TT_TK(t?.status ?? null),
           ngay: Math.max(0, Math.round((homMs - Date.parse(ngayDau)) / 864e5)), video: daDang,
           trungViXem: key === 'pinterest' ? 0 : giua(tv.video.map((v) => v.nen[key]?.tong).filter((x): x is number => x != null)),
@@ -363,7 +385,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
       }
       // kênh MXH khác của dự án (twitter, threads…) có trong vault nhưng chưa có máy đo
       for (const t of tk.filter((x) => x.project_id === da && !daDung.has(x.id)))
-        kenh.push({ id: t.id, ten: t.handle, nenTang: NEN_TEN[t.platform_key] ?? t.platform_key, nenKey: t.platform_key, nhom: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
+        kenh.push({ id: t.id, ten: t.handle, nenTang: NEN_TEN[t.platform_key] ?? t.platform_key, nenKey: t.platform_key, nhom: tenDuAn[da] ?? da, duAn: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
     kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));

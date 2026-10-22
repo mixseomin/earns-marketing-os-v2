@@ -7,13 +7,14 @@
 
 export type OTrangThai = 'da' | 'hong' | 'cho' | 'khong';
 export interface StSucO { ngay: string; tt: OTrangThai; url?: string | null; loi?: string }
-export interface StSucDong { may: string; mayTen: string; nen: string; nenTen: string; tk: string; gio: string; mayMac: string; o: StSucO[]; cuoiOk: string | null; khoDen: string | null }
+/** acct = tài khoản vault của nơi đăng (null: nền chưa khai br.acct, vd TikTok qua máy ảo) · site = site đích chính của máy (host link nhiều video nhất) */
+export interface StSucDong { may: string; mayTen: string; nen: string; nenTen: string; tk: string; gio: string; mayMac: string; acct: string | null; site: string | null; o: StSucO[]; cuoiOk: string | null; khoDen: string | null }
 export interface StSuCo { muc: 'bad' | 'warn'; tieuDe: string; chiTiet: string; kenh: string[]; luc: string | null }
 export interface StSucKhoe { hom: string; ngay: string[]; dong: StSucDong[]; suCo: StSuCo[] }
 
 export interface VaoSuc {
   bay: number;   // epoch ms
-  noi: { may: string; mayTen: string; nen: string; nenTen: string; tk: string; gio: string; mayMac: string; acct: string | null }[];
+  noi: { may: string; mayTen: string; nen: string; nenTen: string; tk: string; gio: string; mayMac: string; acct: string | null; site?: string | null }[];
   da: { may: string; nen: string; ngay: string; luc: string | null; url: string | null }[];
   hong: { may: string; nen: string; luc: string; chu: string }[];   // xv_may_nhat_ky ok=false, buoc='dang'
   canhBao: { acct: string; loai: string; luc: string; chu: string; nguon: string }[];   // platform_alerts 7 ngày có account_id
@@ -68,7 +69,7 @@ export function tinhSucKhoe(v: VaoSuc, soNgay = 4): StSucKhoe {
     });
     const cuoiOk = da.map((x) => x.ngay).sort().pop() ?? null;
     const khoDen = v.lich.filter((x) => x.may === n.may && x.nen === n.nen).map((x) => x.ngay).sort().pop() ?? null;
-    return { may: n.may, mayTen: n.mayTen, nen: n.nen, nenTen: n.nenTen, tk: n.tk, gio: n.gio, mayMac: n.mayMac, o, cuoiOk, khoDen };
+    return { may: n.may, mayTen: n.mayTen, nen: n.nen, nenTen: n.nenTen, tk: n.tk, gio: n.gio, mayMac: n.mayMac, acct: n.acct, site: n.site ?? null, o, cuoiOk, khoDen };
   });
 
   // SỰ CỐ: lỗi gần nhất của mỗi nền mà sau nó chưa có lần đăng thành công → gom theo nguyên nhân

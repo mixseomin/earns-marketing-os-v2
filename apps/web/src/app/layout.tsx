@@ -16,6 +16,8 @@ const GA_ID = 'G-GBENC4P7CB';
 export const metadata: Metadata = {
   title: 'MOS — Mission Orchestration System',
   description: 'Earns Marketing OS — orchestrate AI agents across all your portfolio projects.',
+  // "Thêm vào MH chính" trên iPhone → mở như app riêng, không thanh trình duyệt (thành phố Social dùng trọn màn — anh 22/10/2026)
+  appleWebApp: { capable: true, title: 'MOS', statusBarStyle: 'black-translucent' },
 };
 
 export const viewport = {

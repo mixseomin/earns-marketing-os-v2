@@ -20,6 +20,7 @@ export interface StKenh {
   xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)
   dangCuoi?: string | null;  // LIVE: ngày đăng video mới nhất trên nền này (YYYY-MM-DD); null = chưa có máy đo
   landing?: string | null;   // LIVE: link đích được nhiều sản phẩm của kênh trỏ tới nhất (kenh_sp.dich)
+  duAn?: string;             // LIVE: tên dự án của tài khoản (projects.name) — thành phố Social gom cụm theo đây khi tài khoản chưa gắn máy đăng
 }
 export interface StLo {
   id: number; goc: number; kenh: number; buoc: number;

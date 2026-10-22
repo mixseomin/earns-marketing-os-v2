@@ -16,11 +16,12 @@ import type { SocialLive, StLich } from '@/lib/social-traffic';
 import { LichLuoi } from './social-lich-luoi';
 import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
+import { SocialThanhPho } from './social-thanh-pho';
 
-type Muc = 'tong' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
+type Muc = 'tong' | 'pho' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
   // Icon trước chữ (card #1407, YDNI "trực quan trước chữ"): nhận ra mục bằng mắt, chữ để xác nhận.
-  { key: 'tong', label: '📊 Tổng quan' }, { key: 'goc', label: '🎯 Góc' }, { key: 'sx', label: '🎬 Sản xuất' },
+  { key: 'tong', label: '📊 Tổng quan' }, { key: 'pho', label: '🏙 Thành phố' }, { key: 'goc', label: '🎯 Góc' }, { key: 'sx', label: '🎬 Sản xuất' },
   { key: 'kenh', label: '📺 Kênh' }, { key: 'lich', label: '🗓 Lịch đăng' }, { key: 'landing', label: '🛬 Landing' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
 ];
 const TT_GOC = { chua: ['var(--fg-3)', '○ Chưa làm'], dang: ['var(--accent)', '🧪 Đang thử'], thang: ['var(--ok)', '💰 Ra tiền'], chet: ['var(--bad)', '⏹ Dừng'] } as const;
@@ -236,6 +237,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'lich' ? `${live.lich.length} nơi đăng` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
+      {muc === 'pho' && (laLive ? <SocialThanhPho live={live} /> : <span style={nho}>Thành phố dựng từ số thật — bật LIVE để xem.</span>)}
       {muc === 'tong' && laLive && <SucKhoeDang suc={live.suc} />}
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
         <Panel title="🔻 Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>

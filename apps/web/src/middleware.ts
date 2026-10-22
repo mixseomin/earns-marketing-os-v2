@@ -5,6 +5,7 @@ const PUBLIC_PATHS = [
   '/login',
   '/icon.svg',
   '/favicon.ico',
+  '/manifest.webmanifest',   // PWA: iPhone đọc khi "Thêm vào MH chính" — trước đăng nhập, không chứa dữ liệu
 ];
 
 // API routes that have their own auth (cron secret, ext key, etc.) — pass through
@@ -124,5 +125,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest).*)'],
 };

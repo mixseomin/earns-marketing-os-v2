@@ -154,4 +154,12 @@ const hub = mE.dich.find((x) => x.khoa === 'n:ethopex')!, cs = mE.dich.filter((x
 assert.ok(hub && hub.tien30 === 500 && hub.chi30 === 300 && hub.duAn === 'd:ethopex', 'tiền / chi Ethopex vào toà nền tảng');
 assert.ok(cs.length === 18 && cs.every((c) => c.cha === 'n:ethopex') && cs[0]!.tien30 === 24 && !cs.some((c) => c.khoa === 'c:99'), 'camp nhiều tiền nhất, tối đa 18, camp tắt không tiền bỏ');
 assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một lần, không cộng thêm camp');
+// QUY MÔ = max(tiền + ROI, lưu lượng): khu có tiền nhất = 1, khu đông khách nhất = 1, khu không tiền không khách = 0, xưởng = 0
+{ const qm = (k: string) => mE.duAn.find((x) => x.khoa === k)?.quyMo;
+  assert.equal(qm('d:ethopex'), 1, 'Ethopex nhiều tiền nhất → quy mô 1');
+  const dong = [...mE.duAn].filter((k) => k.khoa !== 'xuong').sort((a, b) => (b.luu ?? 0) - (a.luu ?? 0))[0]!; assert.ok(dong.luu! > 0 && dong.quyMo === 1, 'khu đông khách nhất → quy mô 1 dù ít tiền');
+  assert.ok(mE.duAn.every((k) => k.quyMo! >= 0 && k.quyMo! <= 1), 'quy mô trong 0..1');
+  assert.ok(mE.duAn.some((k) => !(k.tien30 ?? 0) && !(k.luu ?? 0) && k.quyMo === 0), 'không tiền không khách → 0');
+  assert.equal(qm('xuong'), 0, 'xưởng không phình theo tiền / khách');
+  assert.ok(mE.duAn.some((k) => k.quyMo! > 0 && k.quyMo! < 1), 'khu vừa thì cỡ vừa'); }
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

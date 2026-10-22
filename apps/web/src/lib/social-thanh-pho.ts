@@ -80,7 +80,12 @@ export interface PhoDich {
   nenBan?: string; hostBan?: string; trangThai?: string | null; sapLen?: boolean; url?: string | null; xem7?: number | null; tai?: number | null; net?: number | null;
 }
 /** KHU: dự án (laDuAn) hoặc một site đứng riêng; ngung = dự án ngừng hoạt động (đặt ở rìa); nhan = dòng đầu biển trên toà khu ('DỰ ÁN', 'DỰ ÁN · NGỪNG', 'TÀI KHOẢN BỊ KHOÁ') */
-export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string; linhVuc: string }
+export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string; linhVuc: string;
+  /** tiền 30 ngày của khu (đích không phải bản con), lưu lượng (phiên 30 ngày + lượt xem sản phẩm 7 ngày) và QUY MÔ 0..1 để vẽ to nhỏ
+   *  (anh 22/10/2026 "dự án có doanh thu hoặc ROI lớn phải trông to hơn" + "những con có traffic nhiều cũng được to lên"):
+   *  quy mô = max(điểm tiền, điểm lưu lượng), mỗi điểm chia theo log so với khu cao nhất; điểm tiền = thu × (1 + ROI kẹp 0..3 / 3),
+   *  ROI = (thu − chi) / chi, khu có thu mà không chi tính ROI 1 */
+  tien30?: number; chi30?: number; luu?: number; quyMo?: number }
 /** một dòng xe: toà nguồn → đích, số khách (kỳ theo nguồn) */
 export interface PhoLuong { tu: string; den: string; so: number }
 /** KHO BẠC: tiền thật 30 ngày (USD) theo loại nguồn tiền */
@@ -333,6 +338,11 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   // trong phường: khu có tiền thật đứng đầu (Ethopex), rồi theo lưu lượng
   const tienKhu = (k: string) => dich.filter((d) => d.duAn === k && !d.cha).reduce((a, d) => a + (d.tien30 ?? 0), 0);
   const tongKhu = (k: string) => dich.filter((d) => d.duAn === k).reduce((a, d) => a + (d.phien30 ?? 0) + (d.xem7 ?? 0), 0);
+  for (const k of duAn) { const ds = dich.filter((d) => d.duAn === k.khoa && !d.cha); k.tien30 = ds.reduce((a, d) => a + (d.tien30 ?? 0), 0); k.chi30 = ds.reduce((a, d) => a + (d.chi30 ?? 0), 0); k.luu = tongKhu(k.khoa); }
+  const diemTien = (k: PhoDuAn) => { const thu = k.tien30 ?? 0, chi = k.chi30 ?? 0, roi = chi > 0 ? (thu - chi) / chi : thu > 0 ? 1 : 0; return thu * (1 + Math.max(0, Math.min(3, roi)) / 3); };
+  const chuan01 = (v: number, max: number) => (max > 0 ? Math.log10(1 + v) / Math.log10(1 + max) : 0);
+  const maxTien = Math.max(0, ...duAn.map(diemTien)), maxLuu = Math.max(0, ...duAn.filter((k) => k.khoa !== KHU_XUONG).map((k) => k.luu ?? 0));
+  for (const k of duAn) k.quyMo = k.khoa === KHU_XUONG ? 0 : Math.max(chuan01(diemTien(k), maxTien), chuan01(k.luu ?? 0, maxLuu));
   // phường liền nhau: xếp theo thứ tự lĩnh vực, trong phường theo lưu lượng
   const thuLv = Object.keys(LINH_VUC);
   duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tienKhu(b.khoa) - tienKhu(a.khoa) || tongKhu(b.khoa) - tongKhu(a.khoa));

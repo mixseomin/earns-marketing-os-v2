@@ -7,6 +7,8 @@
 //   kdp            sách đang chờ duyệt (in_review/pending) có ISBN — tìm trên Amazon theo ISBN qua proxy (IP box3 bị Amazon chặn 503),
 //                  mở trang /dp/ khớp ĐÚNG ISBN mới tính là đã lên
 //   wordpress.org  plugin đang chờ duyệt — API plugins/info (slug = sku)
+//   ms-store       app Windows (sku = Store ID 12 ký tự trên Partner Center) — API công khai storeedgefd mà app Store dùng: thấy sản phẩm ở
+//                  thị trường US = đã lên (Giỗ Chạp Windows lên 20/10/2026 mà sổ không biết — đường app Windows trước đây không ghi sổ)
 //   node scripts/theo-doi-duyet.mjs [--dry]      node scripts/theo-doi-duyet.mjs --tu-kiem
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -162,6 +164,15 @@ const KIEM = {
       if (trangCoIsbn(trang, isbn)) return { status: 'published', dong: `⟳ Duyệt KDP: đã lên Amazon ${asin} (${ngayVn()})`, url: `https://www.amazon.com/dp/${asin}` };
     }
     return { status: p.status, dong: `⟳ Duyệt KDP: chưa thấy trên Amazon (kiểm ${ngayVn()})` };
+  },
+  'ms-store': async (p) => {
+    if (!/^9[0-9A-Z]{11}$/.test(String(p.sku ?? ''))) return null;
+    const r = await fetch(`https://storeedgefd.dsx.mp.microsoft.com/v9.0/products/${p.sku}?market=US&locale=en-US&deviceFamily=Windows.Desktop`, { signal: AbortSignal.timeout(20_000) });
+    const url = `https://apps.microsoft.com/detail/${p.sku.toLowerCase()}`;
+    if (r.ok) { const j = await r.json().catch(() => null); if (j?.Payload?.Title) return { status: 'published', dong: `⟳ Duyệt MS Store: đang bán (${ngayVn()})`, url }; }
+    if (r.status !== 404 && !r.ok) return null;   // Store lỗi tạm: không kết luận
+    if (p.status === 'published') return { status: 'published', dong: `⟳ Duyệt MS Store: KHÔNG thấy trên Store US (kiểm ${ngayVn()})` };
+    return { status: p.status === 'draft' ? 'draft' : 'in_review', dong: `⟳ Duyệt MS Store: chưa lên (kiểm ${ngayVn()})` };
   },
   'wordpress.org': async (p) => {
     if (!['in_review', 'pending'].includes(p.status) || !p.sku) return null;

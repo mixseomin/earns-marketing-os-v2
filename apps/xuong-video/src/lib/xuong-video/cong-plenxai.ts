@@ -63,9 +63,10 @@ export async function guiPlenx(model: string, o: { prompt: string; anhDau: strin
       const r = await goi('/see-dance-studio/generate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
         prompt: o.prompt, model, duration: giay, aspect_ratio: '9:16', resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p', generate_audio: true,
         mode: 'i2v', input_image_url: o.anhDau, ...(o.anhCuoi ? { end_image_url: o.anhCuoi } : {}), server_id: st.server }) });
-      const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; detail?: unknown; message?: string };
-      const id = j.task_id || j.id;
-      if (!r.ok || !id) return { ok: false, status: r.status, loi: `PlenX ${r.status}: ${typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail ?? j.message ?? 'không nhận task')}`.slice(0, 300) };
+      const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; data?: { task_id?: string; id?: string }; detail?: unknown; message?: string; error?: unknown };
+      const id = j.task_id || j.id || j.data?.task_id || j.data?.id;
+      // 200 mà không có task (23/10/2026: lượt thứ hai gửi cùng lúc trên gói Free) → ghi NGUYÊN câu trả lời, không đoán
+      if (!r.ok || !id) return { ok: false, status: r.status === 200 ? 429 : r.status, loi: `PlenX ${r.status}: ${JSON.stringify(j).slice(0, 260)}` };
       return { ok: true, taskId: String(id) };
     } catch (e) { return { ok: false, loi: `không gửi được PlenX (${e instanceof Error ? e.message.slice(0, 160) : 'lỗi mạng'})` }; }
   }

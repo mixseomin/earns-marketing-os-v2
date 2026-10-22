@@ -32,6 +32,11 @@ def chup():
     v = json.dumps({"luc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "chi": round(chi, 2), "thu": round(thu, 2)}).replace("'", "''")
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_so_luy', '[]'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 4000, 0)) t) where ten = 'ethopex_so_luy'")
+    # ĐO ĐỘ TRỄ (anh 22/10/2026 duyệt): mỗi lần chụp ghi thêm chi / thu của 4 ngày Ethopex (UTC) gần nhất → xem một ngày còn tăng bao nhiêu sau khi khép
+    # (+1 giờ, +6 giờ, +24 giờ, +48 giờ) để đặt ngưỡng "đã chốt" cho luật. Studio xv_khoa_ngoai['ethopex_do_tre'], giữ 3000 điểm.
+    tre = json.dumps({"luc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "ngay": {r["ngay"]: [r["chi"], r["thu"]] for r in ds[-4:]}}).replace("'", "''")
+    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_do_tre', '[]'::jsonb) on conflict (ten) do nothing")
+    q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{tre}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 3000, 0)) t) where ten = 'ethopex_do_tre'")
     return {"chi": round(chi, 2), "thu": round(thu, 2)}
 
 def tien_moi():

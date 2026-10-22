@@ -333,7 +333,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     gioiHan = { x0: k.xa, x1: k.xb, z: k.zN };
     const rong = k.xb - k.xa;
     if (doc) { CAM0.set(-rong * .62, rong * .7, 0); TAM0.set(0, 0, 0); scene.fog.near = rong * .9; scene.fog.far = rong * 2.2; ctl.maxDistance = rong * 1.6; }
-    else { CAM0.set(0, rong * .42, rong * .5); TAM0.set(0, 0, 10); scene.fog.near = rong * .7; scene.fog.far = rong * 1.8; ctl.maxDistance = rong * 1.1; }
+    else { const vua = (rong / 2) / Math.tan(Math.atan(Math.tan(Math.PI / 9) * (W() / H())));   // lùi đủ xa để bề ngang thành phố vừa khung
+      CAM0.set(0, vua * .62, vua * .72); TAM0.set(0, 0, 10); scene.fog.near = vua * 1.1; scene.fog.far = vua * 2.6; ctl.maxDistance = vua * 1.6; }
     cam.far = rong * 3; cam.updateProjectionMatrix();
     if (!daDatCam) { cam.position.copy(CAM0); ctl.target.copy(TAM0); daDatCam = true; }
     apNgayDem(); apLop();

@@ -60,6 +60,8 @@ export function canhDaThayThe<B extends { canh: Canh; nhanVat: NhanVat[]; nvPhim
   const dd = Object.fromEntries(Object.entries(bc.canh.dan_dung ?? {}).map(([k, v]) => [k, typeof v === 'string' ? dienThe(v, goi) : v])) as Canh['dan_dung'];
   return { ...bc, canh: { ...bc.canh, dan_dung: dd, prompt_anh: dienThe(bc.canh.prompt_anh ?? '', goi), prompt_video: dienThe(bc.canh.prompt_video ?? '', goi) } };
 }
+/** Cỡ cảnh từ rộng tới hẹp (dien-anh.ts › co_canh) — chọn ảnh chuẩn bối cảnh thấy nhiều phòng nhất. */
+const RONG_CO_CANH = ['ews', 'ws', 'ms', 'two', 'ots', 'mcu', 'cu', 'ecu', 'insert'];
 export async function boiCanhCanh(db: Db, canhId: number) {
   const r = (await db.execute(sql`SELECT c.*, p.kinh_thanh AS kt, p.id AS p_id, p.loai AS p_loai, t.khan_gia AS t_khan_gia FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
   if (!r[0]) return null;
@@ -102,11 +104,13 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // ẢNH CHUẨN BỐI CẢNH (anh 22/10/2026, phim #132 #3: "bàn này nếu quay sang khung ảnh khác có thể bị thay đổi ko?"): độ sâu 3D khoá vị trí / khối,
   // còn màu gỗ, chất liệu, đồ để trên mặt bàn thì mỗi shot vẽ lại từ chữ → lệch giữa các góc. Keyframe ĐÃ DUYỆT sớm nhất của cùng BỘ SET (cả phim, mọi
   // tập — cùng một phòng thật) là ảnh chuẩn: shot sau chép bề ngoài phòng theo nó. Chỉ ảnh đã duyệt (duyet / dang_sinh / xong), không lấy ảnh nháp.
+  // Ưu tiên cỡ cảnh RỘNG nhất (thấy nhiều phòng nhất), cùng cỡ thì shot sớm nhất — cận đồ vật (#2 insert nắm tay) gần như không thấy bàn.
   let anhSet: { thu_tu: number; tap_so: number; url: string } | null = null;
   if (sid) {
-    const ds = ((await db.execute(sql`SELECT c.thu_tu, c.nhan_vat, c.keyframe_url, t.so FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${Number(r[0].p_id)}
+    const ds = ((await db.execute(sql`SELECT c.thu_tu, c.nhan_vat, c.keyframe_url, t.so, c.ky_thuat->>'co_canh' AS co FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${Number(r[0].p_id)}
       AND c.id <> ${canh.id} AND c.may_3d IS NOT NULL AND c.keyframe_url IS NOT NULL AND c.trang_thai IN ('duyet', 'dang_sinh', 'xong') ORDER BY t.so, c.thu_tu, c.id`)) as unknown as Row[])
-      .find((x) => boSetCuaShot({ nhan_vat: (x.nhan_vat as number[]) ?? [] }, nvPhim) === sid);
+      .filter((x) => boSetCuaShot({ nhan_vat: (x.nhan_vat as number[]) ?? [] }, nvPhim) === sid)
+      .map((x, i) => ({ x, i, r: RONG_CO_CANH.indexOf(s(x.co)) < 0 ? RONG_CO_CANH.length : RONG_CO_CANH.indexOf(s(x.co)) })).sort((p, q) => p.r - q.r || p.i - q.i)[0]?.x;
     if (ds) anhSet = { thu_tu: n(ds.thu_tu), tap_so: n(ds.so), url: s(ds.keyframe_url) };
   }
   // nvPhim: mọi nhân vật / đạo cụ của phim (tên, loại, mô tả) — gọi tên en cho món không gắn shot mà có trong 3D (đồ để lại: "Ly cà phê stays in place")

@@ -121,17 +121,23 @@
     const nhanCamp = (k) => k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>';
     const the = ds.slice(0, 12).map((c) => {
       const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:76px;height:135px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:76px;height:135px;background:#333;border-radius:4px;flex:none"></div>';
-      const camps = c.camp.slice(0, 4).map((k) => '<tr><td style="padding:1px 0;color:inherit;border:0">#' + k.id + '</td><td colspan="3" style="padding:1px 0 1px 8px;border:0">' + nhanCamp(k) + '</td><td style="' + td_ + '">' + phanTram(k.roi) + '</td></tr>').join('') +
+      const camps = c.camp.slice(0, 4).map((k) => '<tr><td style="padding:1px 0;color:inherit;border:0">Camp #' + k.id + '</td><td colspan="3" style="padding:1px 0 1px 8px;border:0">' + nhanCamp(k) + '</td><td style="' + td_ + '">' + phanTram(k.roi) + '</td></tr>').join('') +
         (c.camp.length > 4 ? '<tr><td colspan="5" style="padding:1px 0;opacity:.7;color:inherit;border:0">+' + (c.camp.length - 4) + ' camp</td></tr>' : '');
       return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #3a3631">' + anh + '<div style="min-width:0">' +
-        '<b>' + esc(c.dang || 'creative') + '</b>' + (c.doan ? ' · ' + esc(c.doan) : '') + (c.creative_id ? ' · #' + c.creative_id : '') +
+        '<b>Creative' + (c.creative_id ? ' #' + c.creative_id : '') + '</b> · ' + esc(c.dang || '') + (c.doan ? ' · ' + esc(c.doan) : '') +
         ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt luật</span>' : '<span style="color:#ffb74d">CTA cũ</span>') +
-        '<table style="border-collapse:collapse;table-layout:fixed;width:300px;margin-top:3px;color:inherit;font:inherit;font-variant-numeric:tabular-nums;background:none">' +
-        '<colgroup><col style="width:66px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' + dong('Tháng', c.thang) + dong('Hôm nay', c.hom_nay) + dong('Hôm qua', c.hom_qua) +
-        '<tr><td colspan="5" style="height:5px;padding:0;border:0"></td></tr>' + camps + '</table>' +
+        '<table style="border-collapse:collapse;table-layout:fixed;width:326px;margin-top:3px;color:inherit;font:inherit;font-variant-numeric:tabular-nums;background:none">' +
+        '<colgroup><col style="width:92px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' + dong('Tháng', c.thang) + dong('Hôm nay', c.hom_nay) + dong('Hôm qua', c.hom_qua) +
+        '<tr><td colspan="5" style="padding:5px 0 1px;border:0;font-size:11px;opacity:.6;color:inherit">' + (c.camp.length > 1 ? c.camp.length + ' camp dùng creative này (chỉ số trên = tổng) · ROI tháng' : 'Camp dùng creative này · ROI tháng') + '</td></tr>' + camps + '</table>' +
         (c.video ? '<a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff;font-size:12px">mở video</a>' : '') + '</div></div>';
     }).join('');
-    hien('<b>🎬 ' + esc(ten) + '</b> · ' + ds.length + ' creative · ' + r.so_camp + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + the, ev);
+    // TỔNG PHIM = cộng mọi creative (anh 22/10/2026 hỏi "có 4 camp à?") — dòng Hôm nay khớp hàng phim trên Report khi Report đang xem hôm nay
+    const tong = (f) => { const x = ds.reduce((a, c) => ({ chi: a.chi + c[f].chi, thu: a.thu + c[f].thu }), { chi: 0, thu: 0 }); return { chi: x.chi, thu: x.thu, roi: x.chi >= 0.1 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null }; };
+    const dauKhung = '<table style="border-collapse:collapse;table-layout:fixed;width:326px;margin:6px 0 2px 86px;color:inherit;font:inherit;font-variant-numeric:tabular-nums;background:none">' +
+      '<colgroup><col style="width:92px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' +
+      '<tr><td colspan="5" style="padding:0 0 1px;border:0;font-size:11px;opacity:.6;color:inherit">CẢ PHIM (cộng mọi creative)</td></tr>' +
+      dong('<b>Tháng</b>', tong('thang')).replace('opacity:.75', 'opacity:1') + dong('<b>Hôm nay</b>', tong('hom_nay')).replace('opacity:.75', 'opacity:1') + '</table>';
+    hien('<b>🎬 ' + esc(ten) + '</b> · ' + ds.length + ' creative · ' + r.so_camp + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
   };
 
   document.addEventListener('mouseover', (ev) => {

@@ -59,7 +59,12 @@ export interface PhoTk {
 }
 /** ĐÍCH: site ('s:<host>') hoặc sản phẩm ('p:<id>'). duAn = khoá khu (PhoDuAn.khoa). */
 export interface PhoDich {
-  khoa: string; loai: 'site' | 'sp' | 'app'; ten: string; site: string | null; duAn: string;
+  /** 'nen' = nền tảng chạy chiến dịch (Ethopex) — tâm của khu, các camp ('camp') đứng quanh như bản cửa hàng quanh app */
+  khoa: string; loai: 'site' | 'sp' | 'app' | 'nen' | 'camp'; ten: string; site: string | null; duAn: string;
+  /** đích đang ở XƯỞNG SX (chưa lên — đang duyệt / sẵn sàng): khu dự án gốc của nó, lên xong tự về đó */
+  duAnGoc?: string; duAnGocTen?: string;
+  /** camp: ngôn ngữ, trạng thái chạy, phim */
+  ngonNgu?: string | null; phim?: string | null;
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
   online?: number; ngay?: Record<string, number>; canhBao?: string | null;
   /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
@@ -118,12 +123,20 @@ export interface VaoHeSinhThai {
   hat?: { kind: string; label: string; duAn: string | null; het: string | null; ip: string | null; chi: number; tien: string }[];
   /** phòng ban công ty AI: trưởng phòng, dự án phụ trách, đang hoạt động, số việc nền 24 giờ, việc gần nhất */
   congTy?: PhoPhong[];
+  /** CAMP ETHOPEX (ethopex-doc): thu / chi 30 ngày mỗi camp (cùng cửa sổ với tiền Ethopex của Kho bạc) */
+  camps?: { id: number; ten: string; phim: string | null; ngonNgu: string | null; trangThai: string; thu30: number; chi30: number }[];
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null }[];
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
 const NEN_APP = new Set(['app-store', 'ms-store', 'play-store']);
+/** cửa bán → tên người đọc (thẻ hover, biển tường) */
+export const TEN_BAN: Record<string, string> = { 'app-store': 'App Store', 'ms-store': 'Microsoft Store', 'play-store': 'Google Play', gumroad: 'Gumroad', etsy: 'Etsy', kdp: 'Amazon KDP', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI', 'wordpress.org': 'WordPress.org', stripe: 'Stripe', course: 'Khoá học', camp: 'Camp Meta' };
+/** khu XƯỞNG SX (anh 22/10/2026): mọi đích chưa lên — đứng cạnh Công ty AI, không chen vào khu dự án */
+export const KHU_XUONG = 'xuong';
+/** số camp Ethopex dựng thành toà quanh khu (nhiều tiền nhất); phần còn lại cộng vào toà Ethopex */
+const CAMP_TOI_DA = 18;
 /** tên nguồn cửa hàng → chữ người đọc + host lấy favicon */
 const NGUON_CH: Record<string, [string, string | null]> = { 'App Store search': ['Tìm trên App Store', 'apps.apple.com'], 'App Store browse': ['Duyệt App Store', 'apps.apple.com'], 'Web referrer': ['Từ web', null], 'App referrer': ['Từ app khác', null], 'Institutional purchase': ['Mua tổ chức', null], direct: ['Trực tiếp', null], Unavailable: ['Không rõ', null] };
 const TRANG_THAI_LEN = new Set(['published', 'active', 'live']);
@@ -285,11 +298,24 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     if (da && hst.duAn.find((x) => x.id === da)?.site == null && !hst.duAnSite.some((x) => x.duAn === da) && dich.filter((y) => y.loai === 'site' && tuTk(y.khoa) === da).length > 1) da = null;
     d.duAn = da ? `d:${da}` : `rieng:${site}`;
   }
+  // ── ETHOPEX (anh 22/10/2026 "dự án chính với dòng tiền đang có"): toà nền tảng ở tâm khu, mỗi camp một toà quanh (thu / chi 30 ngày, vòng lãi lỗ);
+  //    tiền Kho bạc vẫn tính một lần ở toà nền tảng (camp không mang tienPhan) — tổng camp lệch tổng nền tảng khi có camp ngoài top
+  if (hst.camps?.length && hst.duAn.some((p) => p.id === 'ethopex')) {
+    const hub: PhoDich = { khoa: 'n:ethopex', loai: 'nen', ten: 'Ethopex', site: null, duAn: 'd:ethopex', phien30: null, laShop: false, don: null, coNguon: false, nenBan: 'camp', hostBan: 'facebook.com' };
+    dich.push(hub);
+    const top = [...hst.camps].filter((c) => c.thu30 || c.chi30 || c.trangThai === 'active').sort((a, b) => b.chi30 + b.thu30 - (a.chi30 + a.thu30)).slice(0, CAMP_TOI_DA);
+    for (const c of top) dich.push({ khoa: `c:${c.id}`, loai: 'camp', ten: c.ten, site: null, duAn: 'd:ethopex', cha: hub.khoa, phien30: null, laShop: false, don: null, coNguon: false,
+      nenBan: 'camp', hostBan: 'facebook.com', trangThai: c.trangThai, tien30: c.thu30, chi30: c.chi30, ngonNgu: c.ngonNgu, phim: c.phim });
+  }
   // tiền / chi theo DỰ ÁN (Ethopex, chi quảng cáo PHỦ): gắn vào đích chính của khu (đích nhiều tiền nhất, không có thì site đông nhất) — chưa có đích thì dựng một đích đại diện
   const dichChinh = (khoa: string) => dich.filter((d) => d.duAn === khoa && !d.cha).sort((a, b) => (b.tien30 ?? 0) - (a.tien30 ?? 0) || (b.phien30 ?? 0) - (a.phien30 ?? 0))[0];
   const ganKhu = (duAn: string, ten: string) => { const k = `d:${duAn}`; let d = dichChinh(k); if (!d && hst.duAn.some((p) => p.id === duAn)) { d = { khoa: `p:${duAn}-tien`, loai: 'sp', ten, site: null, duAn: k, phien30: null, laShop: false, don: null, coNguon: false, nenBan: duAn, hostBan: hst.duAn.find((p) => p.id === duAn)?.site ?? undefined }; dich.push(d); } return d; };
   for (const x of (hst.tienAff ?? []).filter((y) => !y.site && y.duAn && y.usd)) { const d = ganKhu(x.duAn!, x.mang); if (d) { d.tienPhan = [...(d.tienPhan ?? []), { loai: `Hoa hồng aff · ${x.mang}`, so: x.usd }]; d.tien30 = (d.tien30 ?? 0) + x.usd; } }
   for (const x of (hst.chi ?? []).filter((y) => y.duAn && y.usd)) { const d = ganKhu(x.duAn!, x.nguon); if (d) d.chi30 = (d.chi30 ?? 0) + x.usd; }
+  // XƯỞNG SX: đích chưa lên (sản phẩm / app mà mọi bản đang duyệt) rời khu dự án, giữ dự án gốc; bản cửa hàng của app đi theo app (cha)
+  const tenKhuGoc = (k: string) => (k.startsWith('d:') ? hst.duAn.find((x) => x.id === k.slice(2))?.ten ?? k.slice(2) : k.startsWith('rieng:') ? k.slice(6) : k.startsWith('khoa:') ? k.slice(5) : 'Chưa gán dự án');
+  const vaoXuong = (x: PhoDich) => { x.duAnGoc = x.duAn; x.duAnGocTen = tenKhuGoc(x.duAn); x.duAn = KHU_XUONG; };
+  for (const d of dich) if (d.sapLen && !d.cha) { vaoXuong(d); for (const b of dich) if (b.cha === d.khoa) vaoXuong(b); }
   const khoaDa = [...new Set(dich.map((d) => d.duAn))];
   const lvMap = new Map((hst.linhVuc ?? []).map((x) => [x.khoa, x.linhVuc]));
   const lvCua = (khoa: string, site: string | null) => { const lv = (khoa.startsWith('d:') ? lvMap.get(`p:${khoa.slice(2)}`) : khoa.startsWith('rieng:') ? lvMap.get(`s:${khoa.slice(6)}`) : null) ?? (site ? lvMap.get(`s:${site}`) : null); return lv && LINH_VUC[lv] ? lv : 'khac'; };
@@ -297,16 +323,19 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     const ds = dich.filter((d) => d.duAn === khoa), p = khoa.startsWith('d:') ? hst.duAn.find((x) => x.id === khoa.slice(2)) : null;
     const siteChinh = ds.filter((d) => d.loai === 'site').sort((a, b) => (b.phien30 ?? -1) - (a.phien30 ?? -1))[0]?.site ?? null;
     const khoaTk = khoa.startsWith('khoa:'), tenCua = khoaTk ? khoa.slice(5).replace(/^./, (c) => c.toUpperCase()) : '';
+    if (khoa === KHU_XUONG) return { khoa, ten: 'Xưởng SX', laDuAn: true, ngung: false, mau: '#c98a2f', site: null, nhan: 'XƯỞNG SX', linhVuc: 'khac' };
     return { khoa, ten: khoa === 'chua-sp' ? 'Sản phẩm chưa gán dự án' : khoaTk ? tenCua : p ? p.ten : khoa.startsWith('rieng:') ? khoa.slice(6) : khoa, laDuAn: !!p || khoa === 'chua-sp' || khoaTk,
       ngung: !!p?.ngung || khoaTk, mau: MAU_CUM[i % MAU_CUM.length]!, site: khoaTk ? HOST_BAN[khoa.slice(5)] ?? null : p?.site ?? siteChinh, nhan: khoaTk ? 'TÀI KHOẢN BỊ KHOÁ' : p?.ngung ? 'DỰ ÁN · NGỪNG' : 'DỰ ÁN',
       linhVuc: lvCua(khoa, p?.site ?? siteChinh) };
   });
+  // trong phường: khu có tiền thật đứng đầu (Ethopex), rồi theo lưu lượng
+  const tienKhu = (k: string) => dich.filter((d) => d.duAn === k && !d.cha).reduce((a, d) => a + (d.tien30 ?? 0), 0);
   const tongKhu = (k: string) => dich.filter((d) => d.duAn === k).reduce((a, d) => a + (d.phien30 ?? 0) + (d.xem7 ?? 0), 0);
   // phường liền nhau: xếp theo thứ tự lĩnh vực, trong phường theo lưu lượng
   const thuLv = Object.keys(LINH_VUC);
-  duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tongKhu(b.khoa) - tongKhu(a.khoa));
+  duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tienKhu(b.khoa) - tienKhu(a.khoa) || tongKhu(b.khoa) - tongKhu(a.khoa));
   const theoTien = new Map<string, number>();
-  for (const d of dich) if (d.loai !== 'app') for (const p of d.tienPhan ?? []) { const loai = p.loai.startsWith('Hoa hồng aff') ? 'Hoa hồng aff' : p.loai; theoTien.set(loai, (theoTien.get(loai) ?? 0) + p.so); }
+  for (const d of dich) if (d.loai !== 'app' && d.loai !== 'camp') for (const p of d.tienPhan ?? []) { const loai = p.loai.startsWith('Hoa hồng aff') ? 'Hoa hồng aff' : p.loai; theoTien.set(loai, (theoTien.get(loai) ?? 0) + p.so); }
   const affChung = (hst.tienAff ?? []).filter((y) => !y.site && !y.duAn).reduce((a, y) => a + y.usd, 0); if (affChung) theoTien.set('Hoa hồng aff (chưa rõ site)', affChung);
   const chiN = (hst.chi ?? []).filter((x) => x.usd > 0);
   const tien: PhoTien = { tong: [...theoTien.values()].reduce((a, x) => a + x, 0), theo: [...theoTien].map(([ten, so]) => ({ ten, so })).sort((a, b) => b.so - a.so),

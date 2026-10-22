@@ -108,7 +108,12 @@ const khu = (k: string) => m.duAn.find((x) => x.khoa === k)!;
 assert.ok(khu('d:bra').ngung && m.duAn[m.duAn.length - 1]!.ngung, 'dự án ngừng → cờ ngung, xếp cuối');
 assert.ok(khu('d:steamsolo').laDuAn && !khu('rieng:ratesbyroom.com').laDuAn, 'khu dự án khác khu site đứng riêng');
 // sản phẩm
-assert.equal(d('p:a1').duAn, 'd:militarycalc', 'app MilitaryCalc ở cùng dự án MilitaryCalc (anh 22/10/2026)'); assert.equal(d('p:a4').duAn, 'd:clane', 'app chưa thuộc dự án nào → dự án gốc Clane');
+assert.equal(d('p:a1').duAn, 'd:militarycalc', 'app MilitaryCalc ở cùng dự án MilitaryCalc (anh 22/10/2026)'); assert.equal(d('p:a4').duAnGoc, 'd:clane', 'app chưa thuộc dự án nào → dự án gốc Clane');
+// XƯỞNG SX: app mà mọi bản đang duyệt rời khu dự án (giữ dự án gốc), bản cửa hàng đi theo; app có một bản đã lên thì ở lại khu, bản đang duyệt đứng cạnh nó
+const appA4 = m.dich.find((x) => x.loai === 'app' && x.ten.startsWith('Sidecue'))!;
+assert.ok(appA4.duAn === 'xuong' && appA4.duAnGoc === 'd:clane' && d('p:a4').duAn === 'xuong', 'app chưa lên ở Xưởng SX, nhớ dự án gốc');
+assert.ok(d('p:a3').duAn !== 'xuong', 'bản Windows đang duyệt của app đã lên không ra xưởng');
+assert.equal(khu('xuong').nhan, 'XƯỞNG SX'); assert.equal(appA4.duAnGocTen, 'Clane', 'xưởng biết tên dự án gốc để ghi biển hàng');
 assert.equal(d('p:a2').duAn, 'd:ios-app', 'app theo app_ung_dung');
 assert.equal(d('p:a3').duAn, 'd:ios-app', 'bản Windows cùng đầu tên với app đã gán');
 assert.equal(t('ch:App Store search@p:a1').chiTiet!.hien, 400, 'nguồn trong cửa hàng đứng quanh app'); assert.equal(t('ch:App Store search@p:a1').ten, 'Tìm trên App Store');
@@ -140,4 +145,13 @@ assert.match(mH.dich.find((x) => x.khoa === 's:steamsolo.com')?.canhBao ?? '', /
 // siteOf: URL, tên miền trần, rỗng, rác
 assert.equal(siteOf('https://www.ratesbyroom.com/x?y=1'), 'ratesbyroom.com'); assert.equal(siteOf('clane.app/giochap'), 'clane.app');
 assert.equal(siteOf(null), null); assert.equal(siteOf(''), null); assert.equal(siteOf('http://'), null);
+// ETHOPEX: toà nền tảng giữ tiền Kho bạc (một lần), camp quanh nó mang thu / chi 30 ngày, camp không tiền không chạy thì bỏ, tối đa 18
+const camps = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, ten: `Phim ${i + 1} EN`, phim: `Phim ${i + 1}`, ngonNgu: 'en', trangThai: i < 20 ? 'active' : 'paused', thu30: i, chi30: i / 2 }));
+const mE = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, duAn: [...live.heSinhThai.duAn, { id: 'ethopex', ten: 'Ethopex', site: 'app.ethopex.dev', ngung: false }],
+  camps: [...camps, { id: 99, ten: 'Tắt', phim: null, ngonNgu: null, trangThai: 'paused', thu30: 0, chi30: 0 }],
+  tienAff: [...((live.heSinhThai as any).tienAff ?? []), { site: null, mang: 'Ethopex', duAn: 'ethopex', usd: 500 }], chi: [...((live.heSinhThai as any).chi ?? []), { nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: 300 }] } } as any);
+const hub = mE.dich.find((x) => x.khoa === 'n:ethopex')!, cs = mE.dich.filter((x) => x.loai === 'camp');
+assert.ok(hub && hub.tien30 === 500 && hub.chi30 === 300 && hub.duAn === 'd:ethopex', 'tiền / chi Ethopex vào toà nền tảng');
+assert.ok(cs.length === 18 && cs.every((c) => c.cha === 'n:ethopex') && cs[0]!.tien30 === 24 && !cs.some((c) => c.khoa === 'c:99'), 'camp nhiều tiền nhất, tối đa 18, camp tắt không tiền bỏ');
+assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một lần, không cộng thêm camp');
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

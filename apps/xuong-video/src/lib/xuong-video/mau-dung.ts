@@ -5,9 +5,10 @@
 import { assMotDung, kichBanMotDung, lenhMotDung, DAI as DAI_DO_CHU, type DeMotDung } from './may-dung-do-chu';
 import { anhScam, assScam, kichBanScam, lenhScam, nhipScam, tuNguonScam, type DeScam } from './may-dung-scam';
 import { anhLand, assLand, kichBanLand, lenhLand, nhipLand, tuNguonLand, type DeLand } from './may-dung-land';
+import { anhThi, assThi, kichBanThi, lenhThi, nhipThi, truyVanThi, tuNguonThi, type DeThi } from './may-dung-thi';
 import type { MauMayDung } from './may-dung-mau';
 
-export type DeMay = DeMotDung | DeScam | DeLand;
+export type DeMay = DeMotDung | DeScam | DeLand | DeThi;
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
 type LenhVao = { de: DeMay; ass: string; nen: string | null; fontsDir: string; ra: string; khung?: number };
 /** tuNguon: một dòng tệp nguồn đề của mẫu → dòng nạp máy { slug, chu_de, de, dang } (may-dung.mts --nap-nguon). */
@@ -17,6 +18,7 @@ export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'do-chu-mot-dung': { ass: (de) => assMotDung(de as DeMotDung), lenh: (o) => lenhMotDung({ ...o, de: o.de as DeMotDung }), shots: (de) => kichBanMotDung(de as DeMotDung).shots, dai: () => DAI_DO_CHU, truyVanAnh: (_de, chuDe) => `${chuDe} cozy` },
   'scam-or-real': { ass: (de) => assScam(de as DeScam), lenh: (o) => lenhScam({ ...o, de: o.de as DeScam }), shots: (de) => kichBanScam(de as DeScam).shots, dai: (de) => nhipScam(de as DeScam).DAI, anh: (de) => anhScam(de as DeScam), tuNguon: tuNguonScam as never },
   'before-you-land': { ass: (de) => assLand(de as DeLand), lenh: (o) => lenhLand({ ...o, de: o.de as DeLand }), shots: (de) => kichBanLand(de as DeLand).shots, dai: (de) => nhipLand(de as DeLand).DAI, anh: (de) => anhLand(de as DeLand), tuNguon: tuNguonLand as never },
+  'cau-hoi-thi': { ass: (de) => assThi(de as DeThi), lenh: (o) => lenhThi({ ...o, de: o.de as DeThi }), shots: (de) => kichBanThi(de as DeThi).shots, dai: (de) => nhipThi(de as DeThi).DAI, anh: (de) => anhThi(de as DeThi), truyVanAnh: (de) => truyVanThi(de as DeThi), tuNguon: tuNguonThi as never },
 };
 /** 3 shot kịch bản của một video theo mẫu của máy (tab Mẫu, ngăn video). */
 /** Truy vấn ảnh nền thật cho video chưa có nen_url (xuatVideo → anh-nen.ts). */

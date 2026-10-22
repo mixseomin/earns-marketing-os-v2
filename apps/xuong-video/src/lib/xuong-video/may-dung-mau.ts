@@ -4,5 +4,6 @@ export const MAU_MAY_DUNG = {
   'do-chu-mot-dung': { ten: 'Đố chữ · Only ONE is spelled right' },
   'scam-or-real': { ten: 'Scam or Real? · tin nhắn khách sạn' },
   'before-you-land': { ten: 'Before you land · eSIM theo nước' },
+  'cau-hoi-thi': { ten: 'Câu hỏi luyện thi · ExamWeight' },
 } as const;
 export type MauMayDung = keyof typeof MAU_MAY_DUNG;

@@ -1,0 +1,1682 @@
+[
+ {
+  "slug": "ptcb-1-1-001",
+  "ky": "PTCB",
+  "hoi": "Which of the following is the correct brand name for atorvastatin?",
+  "lua": {
+   "A": "Crestor",
+   "B": "Zocor",
+   "C": "Lipitor",
+   "D": "Pravachol"
+  },
+  "dung": "C",
+  "giai": "Atorvastatin is marketed under the brand name Lipitor and belongs to the HMG-CoA reductase inhibitor (statin) class used to lower LDL cholesterol.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-1-004",
+  "ky": "PTCB",
+  "hoi": "Per USP <800>, what is the minimum hand protection required for personnel compounding a NIOSH-listed hazardous drug?",
+  "lua": {
+   "A": "One pair of standard nitrile gloves",
+   "B": "One pair of chemotherapy-tested gloves meeting ASTM D6978",
+   "C": "Two pairs of chemotherapy-tested gloves meeting ASTM D6978",
+   "D": "One pair of sterile gloves over one pair of latex examination gloves"
+  },
+  "dung": "C",
+  "giai": "USP <800> mandates two pairs of gloves that meet ASTM D6978 (chemotherapy-tested) when compounding NIOSH-listed hazardous drugs.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-1-001",
+  "ky": "PTCB",
+  "hoi": "According to the ISMP high-alert medication list for community/ambulatory care pharmacies, which of the following medication classes requires the MOST rigorous safety precautions due to the potential for serious patient harm?",
+  "lua": {
+   "A": "Oral antihistamines",
+   "B": "Proton pump inhibitors",
+   "C": "Oral anticoagulants",
+   "D": "Topical corticosteroids"
+  },
+  "dung": "C",
+  "giai": "Oral anticoagulants (warfarin, apixaban, rivaroxaban, dabigatran, edoxaban) appear on the ISMP high-alert medication list for community pharmacies because dosing errors or drug interactions can cause life-threatening bleeding or thrombosis.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-002",
+  "ky": "PTCB",
+  "hoi": "A prescription is written with the sig: 'ii tabs PO b.i.d. pc.' Which of the following correctly translates this direction?",
+  "lua": {
+   "A": "Two tablets by mouth twice daily after meals",
+   "B": "Two tablets by mouth three times daily before meals",
+   "C": "One tablet by mouth twice daily with meals",
+   "D": "Two tablets by mouth twice daily before meals"
+  },
+  "dung": "A",
+  "giai": "'ii' is the Roman numeral for 2. 'PO' means by mouth (per os). 'b.i.d.' means twice daily (bis in die). 'pc' means after meals (post cibum). Option B confuses b.i.d. (twice daily) with t.i.d.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-002",
+  "ky": "PTCB",
+  "hoi": "A prescription is written for Glucophage 500 mg twice daily. Which generic drug should the pharmacy technician select from stock?",
+  "lua": {
+   "A": "Glipizide",
+   "B": "Metformin",
+   "C": "Sitagliptin",
+   "D": "Pioglitazone"
+  },
+  "dung": "B",
+  "giai": "Glucophage is the brand name for metformin, a biguanide antidiabetic agent and the preferred first-line oral therapy for type 2 diabetes.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-1-005",
+  "ky": "PTCB",
+  "hoi": "A retail pharmacy wishes to destroy expired Schedule II controlled substances on-site after receiving DEA approval. Which DEA form must be completed to document this destruction?",
+  "lua": {
+   "A": "DEA Form 222",
+   "B": "DEA Form 106",
+   "C": "DEA Form 363",
+   "D": "DEA Form 41"
+  },
+  "dung": "D",
+  "giai": "DEA Form 41 (Registrant Record of Controlled Substances Destroyed) is required to document the destruction of controlled substances.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-1-014",
+  "ky": "PTCB",
+  "hoi": "Which of the following sodium chloride injection products is classified by ISMP as a high-alert medication requiring segregated storage, restricted access, and prominent warning labels in acute care facilities?",
+  "lua": {
+   "A": "Sodium chloride 0.9% (normal saline) 1,000 mL bags",
+   "B": "Sodium chloride 0.45% (half-normal saline) 500 mL bags",
+   "C": "Sodium chloride 3% injection (hypertonic saline)",
+   "D": "Sodium chloride 0.9% bacteriostatic 30 mL multi-dose vials"
+  },
+  "dung": "C",
+  "giai": "ISMP designates concentrated sodium chloride solutions , specifically those ≥3%, including 3%, 14.6%, and 23.4% formulations , as high-alert medications.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-005",
+  "ky": "PTCB",
+  "hoi": "A prescription reads 'Disp: XXIV caps.' How many capsules should be dispensed?",
+  "lua": {
+   "A": "14",
+   "B": "19",
+   "C": "24",
+   "D": "26"
+  },
+  "dung": "C",
+  "giai": "In Roman numerals, X = 10, so XX = 20. IV uses subtractive notation: I (1) placed before V (5) equals 5 − 1 = 4. Therefore XXIV = 20 + 4 = 24. Option A (14) results from reading XX as a single X (10).",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-003",
+  "ky": "PTCB",
+  "hoi": "A patient's new prescription is for lisinopril 10 mg for hypertension. Which pharmacological class does lisinopril belong to?",
+  "lua": {
+   "A": "Beta-adrenergic blocker",
+   "B": "Angiotensin II receptor blocker (ARB)",
+   "C": "Calcium channel blocker",
+   "D": "Angiotensin-converting enzyme (ACE) inhibitor"
+  },
+  "dung": "D",
+  "giai": "Lisinopril (brand names Prinivil, Zestril) is an ACE inhibitor that prevents conversion of angiotensin I to angiotensin II, lowering blood pressure and reducing cardiac workload.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-2-004",
+  "ky": "PTCB",
+  "hoi": "Under federal law (21 CFR 1306.22), a Schedule III controlled substance prescription may be refilled no more than:",
+  "lua": {
+   "A": "3 times within 6 months of the date issued",
+   "B": "5 times within 6 months of the date issued",
+   "C": "5 times within 12 months of the date issued",
+   "D": "An unlimited number of times within 6 months of the date issued"
+  },
+  "dung": "B",
+  "giai": "Per 21 CFR 1306.22(a), Schedule III and IV prescriptions may be refilled no more than 5 times, and no refill may occur more than 6 months after the date the prescription was issued.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-2-001",
+  "ky": "PTCB",
+  "hoi": "Which pair of drug names correctly applies ISMP-recommended Tall Man lettering?",
+  "lua": {
+   "A": "HYDROMORPHONE / HYDROCODONE",
+   "B": "hydrALAzine / hydrOXYzine",
+   "C": "metformin / metoprolol",
+   "D": "LORAZEPAM / CLONAZEPAM"
+  },
+  "dung": "B",
+  "giai": "ISMP Tall Man lettering uses mixed-case characters to highlight the dissimilar letter strings within look-alike name pairs.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-017",
+  "ky": "PTCB",
+  "hoi": "A prescription reads 'Disp: tabs # XLV.' How many tablets should be dispensed?",
+  "lua": {
+   "A": "35 tablets",
+   "B": "40 tablets",
+   "C": "45 tablets",
+   "D": "55 tablets"
+  },
+  "dung": "C",
+  "giai": "In Roman numerals, when a smaller numeral precedes a larger one it is subtracted: XL = 50 − 10 = 40. Adding V (5) gives XLV = 45. Option A (35) results from misreading XL as XXX (30) and adding V.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-011",
+  "ky": "PTCB",
+  "hoi": "Which of the following is the correct brand name for omeprazole?",
+  "lua": {
+   "A": "Nexium",
+   "B": "Protonix",
+   "C": "Prilosec",
+   "D": "Prevacid"
+  },
+  "dung": "C",
+  "giai": "Omeprazole is marketed as Prilosec, a proton pump inhibitor (PPI). Nexium is esomeprazole (the S-enantiomer of omeprazole), Protonix is pantoprazole, and Prevacid is lansoprazole.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-2-017",
+  "ky": "PTCB",
+  "hoi": "Under 21 CFR 1306.05, which of the following is a federally required element that must appear on every controlled substance prescription at the time of issuance?",
+  "lua": {
+   "A": "The patient's date of birth",
+   "B": "The prescriber's state medical license number",
+   "C": "The prescriber's DEA registration number",
+   "D": "The patient's health insurance identification number"
+  },
+  "dung": "C",
+  "giai": "21 CFR 1306.05 requires: full name and address of the patient, date of issue, drug name and strength, quantity prescribed, directions for use, and the practitioner's name, address, DEA registration number, and manual signature.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-4-001",
+  "ky": "PTCB",
+  "hoi": "A hospital pharmacist suspects that a patient experienced a serious, unexpected adverse reaction to a newly approved anticoagulant. Which FDA MedWatch form should the pharmacist use to VOLUNTARILY report this event?",
+  "lua": {
+   "A": "Form 3500A",
+   "B": "Form 3500",
+   "C": "Form 2516",
+   "D": "Form 1649"
+  },
+  "dung": "B",
+  "giai": "FDA Form 3500 is the voluntary MedWatch reporting form used by healthcare professionals and consumers to report suspected adverse drug reactions, product quality problems, and medication errors.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-019",
+  "ky": "PTCB",
+  "hoi": "Which of the following abbreviations correctly means 'right ear'?",
+  "lua": {
+   "A": "OS",
+   "B": "OD",
+   "C": "AS",
+   "D": "AD"
+  },
+  "dung": "D",
+  "giai": "AD = auris dextra = right ear. AS = auris sinistra = left ear. OD = oculus dexter = right eye. OS = oculus sinister = left eye.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-012",
+  "ky": "PTCB",
+  "hoi": "A cardiologist prescribes Eliquis 5 mg twice daily for a patient with nonvalvular atrial fibrillation. Which generic drug should the pharmacy technician select from stock?",
+  "lua": {
+   "A": "rivaroxaban",
+   "B": "dabigatran",
+   "C": "apixaban",
+   "D": "edoxaban"
+  },
+  "dung": "C",
+  "giai": "Eliquis is the brand name for apixaban, a direct oral anticoagulant (DOAC) that inhibits Factor Xa. Rivaroxaban is Xarelto, dabigatran is Pradaxa, and edoxaban is Savaysa.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-3-014",
+  "ky": "PTCB",
+  "hoi": "A pharmacy dispenses a Schedule III controlled substance prescription on September 17, 2026. Under federal DEA regulations, what is the minimum period this dispensing record must be retained?",
+  "lua": {
+   "A": "1 year from the date of dispensing",
+   "B": "2 years from the date the record was created",
+   "C": "3 years from the date the prescription was issued",
+   "D": "5 years from the date the prescription expires"
+  },
+  "dung": "B",
+  "giai": "Under 21 CFR 1304.04(a), all records required by DEA regulations,including controlled substance dispensing records for every schedule,must be maintained for a minimum of two years from the date the record was created.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-4-004",
+  "ky": "PTCB",
+  "hoi": "The Vaccine Adverse Event Reporting System (VAERS) is a national post-market surveillance program co-administered by which two federal agencies?",
+  "lua": {
+   "A": "FDA and DEA",
+   "B": "CDC and CMS",
+   "C": "FDA and CDC",
+   "D": "CMS and HRSA"
+  },
+  "dung": "C",
+  "giai": "VAERS is co-administered by the FDA and the CDC.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-023",
+  "ky": "PTCB",
+  "hoi": "A compounding prescription includes the instruction 'qs ad 120 mL with purified water.' What does the abbreviation 'qs ad' indicate?",
+  "lua": {
+   "A": "Every morning, add to 120 mL",
+   "B": "Add a sufficient quantity to make 120 mL",
+   "C": "Take 120 mL four times daily",
+   "D": "Mix and dispense in divided doses of 120 mL"
+  },
+  "dung": "B",
+  "giai": "'qs' stands for quantum sufficit ('a sufficient quantity') and 'ad' means 'to' or 'up to'; together 'qs ad' means 'add a sufficient quantity to make' the stated final volume.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-015",
+  "ky": "PTCB",
+  "hoi": "A prescription reads 'Synthroid 50 mcg once daily for hypothyroidism.' Which generic drug does this represent?",
+  "lua": {
+   "A": "liothyronine",
+   "B": "methimazole",
+   "C": "levothyroxine",
+   "D": "propylthiouracil"
+  },
+  "dung": "C",
+  "giai": "Synthroid is the brand name for levothyroxine, a synthetic T4 thyroid hormone replacement used to treat hypothyroidism. Liothyronine (Cytomel) is synthetic T3, a different thyroid hormone.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-5-001",
+  "ky": "PTCB",
+  "hoi": "Which FDA recall classification is defined as a situation in which there is a reasonable probability that use of or exposure to a violative product will cause serious adverse health consequences or death?",
+  "lua": {
+   "A": "Class I",
+   "B": "Class II",
+   "C": "Class III",
+   "D": "Class IV"
+  },
+  "dung": "A",
+  "giai": "Class I is the most serious FDA recall category and indicates a reasonable probability of serious adverse health consequences or death.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-5-009",
+  "ky": "PTCB",
+  "hoi": "A prescriber writes a prescription for 'hydrOXYzine 25 mg by mouth every 6 hours for anxiety.' The technician retrieves hydrALAZINE 25 mg tablets from the shelf. Which type of error does this represent?",
+  "lua": {
+   "A": "Incorrect route error",
+   "B": "Incorrect dose error",
+   "C": "Incorrect drug error",
+   "D": "Incorrect quantity error"
+  },
+  "dung": "C",
+  "giai": "Hydroxyzine (antihistamine/anxiolytic) and hydralazine (antihypertensive/vasodilator) are a well-established look-alike/sound-alike (LASA) drug pair.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-030",
+  "ky": "PTCB",
+  "hoi": "A patient's medication administration record contains the notation 'NPO after midnight.' What does the abbreviation NPO indicate?",
+  "lua": {
+   "A": "Administer no parenteral opioids",
+   "B": "Nothing by mouth",
+   "C": "Dispense as a non-prescription product only",
+   "D": "Administer at night per orders"
+  },
+  "dung": "B",
+  "giai": "NPO is derived from the Latin 'nil per os,' meaning nothing by mouth. It is a standard medical order requiring the patient to abstain from all oral intake, typically before surgery or procedures.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-019",
+  "ky": "PTCB",
+  "hoi": "Which of the following is the correct brand name for warfarin?",
+  "lua": {
+   "A": "Pradaxa",
+   "B": "Xarelto",
+   "C": "Coumadin",
+   "D": "Savaysa"
+  },
+  "dung": "C",
+  "giai": "Warfarin is marketed as Coumadin, a vitamin K antagonist (VKA) anticoagulant requiring routine INR monitoring.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-5-006",
+  "ky": "PTCB",
+  "hoi": "The vast majority of drug recalls in the United States are initiated by which of the following?",
+  "lua": {
+   "A": "FDA mandate under the Food, Drug, and Cosmetic Act",
+   "B": "Manufacturer or distributor on a voluntary basis",
+   "C": "Drug Enforcement Administration",
+   "D": "State boards of pharmacy"
+  },
+  "dung": "B",
+  "giai": "Most U.S. drug recalls are voluntary actions initiated by manufacturers or distributors, often after internal quality testing, customer complaints, or FDA inspection findings.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-6-001",
+  "ky": "PTCB",
+  "hoi": "Per CDC guidelines, what is the minimum recommended duration for scrubbing hands with soap and water during hand hygiene in a pharmacy setting?",
+  "lua": {
+   "A": "5 seconds",
+   "B": "10 seconds",
+   "C": "20 seconds",
+   "D": "60 seconds"
+  },
+  "dung": "C",
+  "giai": "The CDC recommends scrubbing all surfaces of the hands with soap and water for at least 20 seconds before rinsing. Five or ten seconds is insufficient to mechanically remove pathogens.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-033",
+  "ky": "PTCB",
+  "hoi": "A prescription contains the sig: 'ii gtts AU t.i.d.' Which of the following correctly translates this direction?",
+  "lua": {
+   "A": "Instill 2 drops in both ears three times daily",
+   "B": "Instill 2 drops in both eyes three times daily",
+   "C": "Instill 2 drops in both ears twice daily",
+   "D": "Instill 2 drops in the right ear three times daily"
+  },
+  "dung": "A",
+  "giai": "'ii' = 2; 'gtts' = drops; 'AU' (auris uterque) = both ears; 't.i.d.' = ter in die = three times daily. Option B confuses 'AU' (ears) with 'OU' (oculus uterque, both eyes).",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-021",
+  "ky": "PTCB",
+  "hoi": "Which of the following is the correct brand name for furosemide?",
+  "lua": {
+   "A": "Aldactone",
+   "B": "Lasix",
+   "C": "Bumex",
+   "D": "Zaroxolyn"
+  },
+  "dung": "B",
+  "giai": "Furosemide is marketed under the brand name Lasix; it is a loop diuretic acting at the ascending loop of Henle. Aldactone is spironolactone, a potassium-sparing diuretic.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-5-009",
+  "ky": "PTCB",
+  "hoi": "A pharmacy technician wants to report a serious adverse event involving a medication error that resulted in patient hospitalization. Which FDA program should the technician use?",
+  "lua": {
+   "A": "Drug Enforcement Administration (DEA) Form 106",
+   "B": "FDA MedWatch Safety Reporting Program",
+   "C": "Drug Supply Chain Security Act (DSCSA) tracing portal",
+   "D": "National Drug Code (NDC) directory"
+  },
+  "dung": "B",
+  "giai": "MedWatch is the FDA Safety Information and Adverse Event Reporting Program used by healthcare professionals and consumers to voluntarily report serious adverse drug events, product quality problems, and medication errors associated with FDA-regulated products.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-6-003",
+  "ky": "PTCB",
+  "hoi": "Which agent is recommended for disinfecting a tablet-counting tray between patients in a community pharmacy?",
+  "lua": {
+   "A": "Soap and warm water only",
+   "B": "70% isopropyl alcohol (IPA)",
+   "C": "Undiluted household bleach",
+   "D": "Sterile water for injection"
+  },
+  "dung": "B",
+  "giai": "70% isopropyl alcohol is the standard disinfectant for counting trays because it is effective against a broad spectrum of pathogens, evaporates quickly, and leaves no residue that could contaminate medications.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-1-043",
+  "ky": "PTCB",
+  "hoi": "A prescription sig reads: 'i tab PO a.c. t.i.d. × xiv d.' Which of the following correctly translates this direction?",
+  "lua": {
+   "A": "Take one tablet by mouth after meals three times daily for 14 days.",
+   "B": "Take one tablet by mouth before meals three times daily for 7 days.",
+   "C": "Take one tablet by mouth before meals twice daily for 14 days.",
+   "D": "Take one tablet by mouth before meals three times daily for 14 days."
+  },
+  "dung": "D",
+  "giai": "'a.c.' = ante cibum = before meals; 't.i.d.' = three times daily; 'xiv' = Roman numeral 14. Option A incorrectly renders 'a.c.' as after meals, which is 'p.c.' (post cibum).",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-022",
+  "ky": "PTCB",
+  "hoi": "Which of the following is the correct brand name for azithromycin?",
+  "lua": {
+   "A": "Biaxin",
+   "B": "Keflex",
+   "C": "Levaquin",
+   "D": "Zithromax"
+  },
+  "dung": "D",
+  "giai": "Azithromycin is sold under the brand name Zithromax; it is a macrolide antibiotic. Biaxin is clarithromycin, also a macrolide but a different drug.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-6-003",
+  "ky": "PTCB",
+  "hoi": "For how many years must a licensed pharmacy (dispenser) retain the transaction documents it receives under DSCSA?",
+  "lua": {
+   "A": "2 years from the date of receipt",
+   "B": "3 years from the date of receipt",
+   "C": "6 years from the date of receipt",
+   "D": "10 years from the date of receipt"
+  },
+  "dung": "C",
+  "giai": "DSCSA requires all trading partners , including dispensers , to maintain transaction documents (TI, TH, and TS) for 6 years from the date of the transaction.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-6-010",
+  "ky": "PTCB",
+  "hoi": "Which concentration of isopropyl alcohol (IPA) provides optimal disinfection of pharmacy surfaces and equipment?",
+  "lua": {
+   "A": "30%",
+   "B": "50%",
+   "C": "70%",
+   "D": "99%"
+  },
+  "dung": "C",
+  "giai": "70% isopropyl alcohol is the standard disinfectant concentration because water is required to facilitate protein denaturation and penetration of microbial cell membranes.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-2-029",
+  "ky": "PTCB",
+  "hoi": "When dispensing insulin syringes for routine subcutaneous self-injection in adult patients with diabetes, which needle gauge range is standard for commercially available insulin syringes?",
+  "lua": {
+   "A": "16 to 18 gauge",
+   "B": "20 to 22 gauge",
+   "C": "23 to 25 gauge",
+   "D": "28 to 31 gauge"
+  },
+  "dung": "D",
+  "giai": "Insulin syringes are manufactured with 28- to 31-gauge needles (typically 4-8 mm in length) specifically for subcutaneous injection comfort and accuracy in people with diabetes.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "ptcb-1-1-025",
+  "ky": "PTCB",
+  "hoi": "A prescription is written for Neurontin 300 mg three times daily for postherpetic neuralgia. Which generic drug should the pharmacy technician select from stock?",
+  "lua": {
+   "A": "Pregabalin",
+   "B": "Gabapentin",
+   "C": "Topiramate",
+   "D": "Carbamazepine"
+  },
+  "dung": "B",
+  "giai": "Neurontin is the brand name for gabapentin, an alpha-2-delta ligand anticonvulsant also indicated for neuropathic pain.",
+  "mang": "Medications"
+ },
+ {
+  "slug": "ptcb-2-6-011",
+  "ky": "PTCB",
+  "hoi": "Under DSCSA, which entity in the pharmaceutical supply chain bears primary responsibility for affixing the standardized, serialized product identifier to each saleable unit before it enters commerce?",
+  "lua": {
+   "A": "Wholesale distributor",
+   "B": "Repackager, for all prescription drug products",
+   "C": "Manufacturer",
+   "D": "Dispenser (pharmacy)"
+  },
+  "dung": "C",
+  "giai": "Under DSCSA, the manufacturer is responsible for applying the serialized product identifier , encoding the NDC, serial number, lot number, and expiration date , to every package before it enters the supply chain.",
+  "mang": "Federal Requirements"
+ },
+ {
+  "slug": "ptcb-3-1-004",
+  "ky": "PTCB",
+  "hoi": "Which of the following represents the BEST application of tall man lettering to differentiate a high-priority ISMP LASA pair?",
+  "lua": {
+   "A": "WARFARIN vs. Coumadin",
+   "B": "cloNIDine vs. cloNAZEpam",
+   "C": "insulin glargine vs. INSULIN GLARGINE",
+   "D": "HEPARIN (HIGH ALERT) vs. heparin (standard dose)"
+  },
+  "dung": "B",
+  "giai": "Tall man lettering uses mixed-case capitalization to emphasize the differing portions of similar drug names, helping readers visually distinguish them.",
+  "mang": "Patient Safety and Quality Assurance"
+ },
+ {
+  "slug": "ptcb-4-2-040",
+  "ky": "PTCB",
+  "hoi": "A caregiver is being counseled on cleaning a home piston-compressor jet nebulizer after each treatment. Which component must the caregiver be instructed to NEVER submerge in water?",
+  "lua": {
+   "A": "Medication cup (nebulizer cup)",
+   "B": "Mouthpiece",
+   "C": "Compressor unit",
+   "D": "T-piece connector"
+  },
+  "dung": "C",
+  "giai": "The compressor unit contains an electric motor and power components; submerging it in any liquid causes irreversible electrical damage and creates an electrocution hazard.",
+  "mang": "Order Entry and Processing"
+ },
+ {
+  "slug": "nremt-1-1-007",
+  "ky": "NREMT",
+  "hoi": "Which piece of information provided by dispatch is MOST useful when planning a safe approach to a potential hazardous materials incident?",
+  "lua": {
+   "A": "The patient's age and chief complaint",
+   "B": "Current wind direction relative to the spill location",
+   "C": "The number of ambulances currently available in the region",
+   "D": "The name of the business where the incident occurred"
+  },
+  "dung": "B",
+  "giai": "For hazardous materials incidents, approaching from upwind ensures that the crew avoids exposure to toxic vapors, gases, or fumes carried by the wind.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-1-001",
+  "ky": "NREMT",
+  "hoi": "When first approaching a conscious, alert adult patient, which action BEST establishes initial rapport?",
+  "lua": {
+   "A": "Immediately begin a head-to-toe physical assessment",
+   "B": "Introduce yourself by name and role, then ask the patient's name",
+   "C": "Ask bystanders what happened before speaking to the patient",
+   "D": "Apply oxygen via nonrebreather mask before asking any questions"
+  },
+  "dung": "B",
+  "giai": "Introducing yourself by name and role, then asking the patient's name, signals respect and professional intent, immediately establishing trust.",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-3-1-001",
+  "ky": "NREMT",
+  "hoi": "When using the SAMPLE mnemonic during the focused history, the letter 'E' represents:",
+  "lua": {
+   "A": "Events leading up to the incident",
+   "B": "Estimated time of symptom onset",
+   "C": "Environmental exposures at the scene",
+   "D": "Evidence of prior trauma"
+  },
+  "dung": "A",
+  "giai": "In SAMPLE , Signs/Symptoms, Allergies, Medications, Pertinent past history, Last oral intake, Events prior to the incident , 'E' stands for what the patient was doing or experiencing when symptoms began.",
+  "mang": "Secondary Assessment"
+ },
+ {
+  "slug": "nremt-4-1-001",
+  "ky": "NREMT",
+  "hoi": "An EMT responds to a motor vehicle collision where a restrained driver is unresponsive with a suspected cervical spine injury. Which airway maneuver should the EMT use to open this patient's airway?",
+  "lua": {
+   "A": "Head-tilt chin-lift",
+   "B": "Jaw thrust without head extension",
+   "C": "Modified head-tilt with one hand stabilizing the occiput",
+   "D": "Neck-lift chin-lift"
+  },
+  "dung": "B",
+  "giai": "The jaw thrust without head extension is the preferred maneuver when spinal injury is suspected because it opens the airway with minimal cervical movement.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-2-001",
+  "ky": "NREMT",
+  "hoi": "At what point during a shift should an EMT inspect, verify quantities, and document the medication inventory on the unit?",
+  "lua": {
+   "A": "Only after any call during which a medication was administered",
+   "B": "At the beginning of each shift, before the unit is placed in service",
+   "C": "Once weekly during the agency's scheduled maintenance inspection",
+   "D": "Whenever the medical director requests an audit"
+  },
+  "dung": "B",
+  "giai": "Standard EMS practice requires a complete inventory check at the start of every shift so that shortages, expirations, or damage from a previous crew are caught before the unit responds to a call.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-1-008",
+  "ky": "NREMT",
+  "hoi": "You are dispatched to a 'man down, unknown cause' at a city park. Dispatch has no additional information. Prior to arrival, how should the EMT PRIMARILY use this limited dispatch information?",
+  "lua": {
+   "A": "Establish a working diagnosis of cardiac arrest to guide treatment",
+   "B": "Anticipate potential scene hazards and prepare a variety of equipment",
+   "C": "Contact medical direction for standing orders before arriving",
+   "D": "Complete the patient care report based on the most likely complaint"
+  },
+  "dung": "B",
+  "giai": "When dispatch information is limited, the EMT should use it to anticipate a wide range of possible hazards and patient needs, preparing equipment for both trauma and medical emergencies.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-2-001",
+  "ky": "NREMT",
+  "hoi": "What is the PRIMARY purpose of forming a general impression during the primary assessment?",
+  "lua": {
+   "A": "To establish a definitive field diagnosis before transport",
+   "B": "To identify immediate life threats and establish patient priority",
+   "C": "To obtain a thorough past medical history from the patient",
+   "D": "To complete a head-to-toe physical examination"
+  },
+  "dung": "B",
+  "giai": "The general impression is formed within seconds of approaching the patient and serves to identify immediate life threats and determine priority (urgent vs. non-urgent).",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-3-1-003",
+  "ky": "NREMT",
+  "hoi": "An EMT documents 'patient denies shortness of breath, nausea, and diaphoresis' while caring for a patient with chest pain. These documented denials are BEST described as:",
+  "lua": {
+   "A": "Objective signs",
+   "B": "Chief complaint components",
+   "C": "Pertinent negatives",
+   "D": "Mechanism-of-injury findings"
+  },
+  "dung": "C",
+  "giai": "Pertinent negatives are symptoms expected in a given presentation that the patient specifically denies; their absence is clinically meaningful and helps narrow the differential.",
+  "mang": "Secondary Assessment"
+ },
+ {
+  "slug": "nremt-4-1-002",
+  "ky": "NREMT",
+  "hoi": "An EMT is selecting an oropharyngeal airway (OPA) for an unresponsive adult. Which measurement correctly determines the appropriate size?",
+  "lua": {
+   "A": "From the tip of the nose to the earlobe",
+   "B": "From the corner of the mouth to the earlobe",
+   "C": "From the earlobe to the tip of the chin",
+   "D": "From the center of the forehead to the base of the chin"
+  },
+  "dung": "B",
+  "giai": "The OPA is sized by measuring from the corner of the mouth to the earlobe (or equivalently from the center of the mouth to the angle of the jaw).",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-3-017",
+  "ky": "NREMT",
+  "hoi": "Which of the following is a required element on EVERY prehospital care report, regardless of call type or patient condition?",
+  "lua": {
+   "A": "The patient's health insurance policy number",
+   "B": "The names of all bystanders present at the scene",
+   "C": "Date, key call times, and unit or agency identification",
+   "D": "A signed patient consent form"
+  },
+  "dung": "C",
+  "giai": "Date, key call times (including dispatch, scene arrival, patient contact, departure, and hospital arrival), and unit or agency identification are required on every PCR to establish an accurate administrative and legal record of the call.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-3-004",
+  "ky": "NREMT",
+  "hoi": "EMTs arrive first at a highway motor-vehicle crash where traffic lanes remain open. Before exiting the ambulance to assess patients, which item should each EMT add to gloves and eye protection?",
+  "lua": {
+   "A": "Turnout gear",
+   "B": "A high-visibility safety vest",
+   "C": "An N95 respirator",
+   "D": "Chemical-resistant gloves"
+  },
+  "dung": "B",
+  "giai": "OSHA regulations require emergency responders working on or near roadways to wear ANSI/ISEA Class 2 or higher high-visibility apparel to reduce the risk of being struck by passing vehicles , the identified hazard at this scene.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-2-011",
+  "ky": "NREMT",
+  "hoi": "The Pediatric Assessment Triangle (PAT), used to rapidly form a general impression in pediatric patients before any hands-on contact, evaluates which three components?",
+  "lua": {
+   "A": "Level of consciousness, skin temperature, and lung sounds",
+   "B": "Appearance, work of breathing, and circulation to skin",
+   "C": "Heart rate, respiratory rate, and blood pressure",
+   "D": "Mental status, airway patency, and capillary refill time"
+  },
+  "dung": "B",
+  "giai": "The PAT provides a rapid across-the-room general impression using three visual domains: Appearance (tone, interactiveness, consolability, gaze, speech/cry), Work of Breathing (abnormal sounds, positioning, retractions, nasal flaring), and Circulation to Skin (color , pallor, mottling, cyanosis).",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-3-2-002",
+  "ky": "NREMT",
+  "hoi": "When performing a reassessment on a medical patient during transport, which action should the EMT perform FIRST?",
+  "lua": {
+   "A": "Reassess the patient's vital signs",
+   "B": "Verify that all interventions remain effective",
+   "C": "Repeat the primary assessment",
+   "D": "Reassess the chief complaint"
+  },
+  "dung": "C",
+  "giai": "Reassessment always begins by repeating the primary assessment,re-evaluating mental status, airway, breathing, and circulation,because a sudden change in any of these represents an immediate life threat that must be identified before evaluating vital sign trends or intervention effectiveness.",
+  "mang": "Secondary Assessment"
+ },
+ {
+  "slug": "nremt-4-1-003",
+  "ky": "NREMT",
+  "hoi": "When suctioning the oropharynx of an adult patient, the EMT should limit each suction attempt to no longer than:",
+  "lua": {
+   "A": "5 seconds",
+   "B": "10 seconds",
+   "C": "15 seconds",
+   "D": "30 seconds"
+  },
+  "dung": "C",
+  "giai": "Each oropharyngeal suction attempt in an adult must not exceed 15 seconds to avoid prolonged interruption of oxygenation and the risk of hypoxia or cardiac dysrhythmia.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-4-015",
+  "ky": "NREMT",
+  "hoi": "The principle of 'standard precautions' requires an EMT to treat blood and body fluids as potentially infectious for which patients?",
+  "lua": {
+   "A": "Only patients confirmed positive for a bloodborne pathogen",
+   "B": "Patients who appear visibly ill or have open wounds",
+   "C": "All patients, regardless of diagnosis or perceived infection risk",
+   "D": "Patients who are unable to provide a reliable medical history"
+  },
+  "dung": "C",
+  "giai": "Standard precautions mandate that every patient's blood and body fluids be treated as potentially infectious, regardless of known diagnosis, appearance, or history.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-3-009",
+  "ky": "NREMT",
+  "hoi": "An EMT has just removed contaminated gloves after treating a patient. To properly complete hand decontamination, the EMT should:",
+  "lua": {
+   "A": "Rinse hands briefly with water only",
+   "B": "Perform hand hygiene with soap and water or an alcohol-based hand rub",
+   "C": "Wipe hands with the same antiseptic towelette used on equipment",
+   "D": "Don new gloves immediately without additional hand hygiene"
+  },
+  "dung": "B",
+  "giai": "Standard precautions require hand hygiene , handwashing with soap and water for at least 20 seconds, or an alcohol-based hand rub , immediately after glove removal.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-2-016",
+  "ky": "NREMT",
+  "hoi": "Which of the following findings requires a tool or physical contact with the patient and therefore belongs to a later assessment phase rather than the general impression?",
+  "lua": {
+   "A": "Approximate patient age based on visual appearance",
+   "B": "Bilateral lung sounds via auscultation",
+   "C": "An open femur fracture with active bleeding visible on the thigh",
+   "D": "Whether the patient is awake and speaking"
+  },
+  "dung": "B",
+  "giai": "Auscultation of lung sounds requires a stethoscope placed on the patient's chest, placing it in the secondary or detailed physical assessment.",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-3-2-004",
+  "ky": "NREMT",
+  "hoi": "An EMT assists a patient with his prescribed sublingual nitroglycerin for crushing chest pain. Before administering a second dose five minutes later, which reassessment finding should cause the EMT to withhold the medication?",
+  "lua": {
+   "A": "The patient reports a headache that began after the first dose",
+   "B": "Systolic blood pressure of 86 mmHg",
+   "C": "Pulse oximetry reading of 97% on room air",
+   "D": "Heart rate of 92 beats per minute"
+  },
+  "dung": "B",
+  "giai": "A systolic blood pressure below 90 mmHg is a contraindication to nitroglycerin administration or repeat dosing because further vasodilation can cause life-threatening hypotension and cardiovascular collapse; reassessing BP before each dose is a required step.",
+  "mang": "Secondary Assessment"
+ },
+ {
+  "slug": "nremt-4-1-006",
+  "ky": "NREMT",
+  "hoi": "An EMT applies a nonrebreather mask to a patient with acute chest pain. To deliver the highest possible inspired oxygen concentration and prevent the reservoir bag from collapsing on inhalation, the flow rate should be set to:",
+  "lua": {
+   "A": "4 L/min",
+   "B": "6 L/min",
+   "C": "10 L/min",
+   "D": "15 L/min"
+  },
+  "dung": "D",
+  "giai": "A nonrebreather mask should be run at 15 L/min, which keeps the reservoir bag at least two-thirds full during inhalation and delivers approximately 90% FiO2.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-3-006",
+  "ky": "NREMT",
+  "hoi": "An EMT is documenting a call for a 58-year-old male with sudden onset facial droop and left arm weakness. Which documented time is MOST critical for the receiving facility's treatment decisions?",
+  "lua": {
+   "A": "Time the ambulance was dispatched",
+   "B": "Time the EMT crew went back in service",
+   "C": "Time of symptom onset or last known well",
+   "D": "Time the patient last ate a meal"
+  },
+  "dung": "C",
+  "giai": "For a patient with signs consistent with stroke, time of symptom onset , or last known well if exact onset is unknown , determines eligibility for time-sensitive therapies such as thrombolytics, which have strict treatment windows.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-3-013",
+  "ky": "NREMT",
+  "hoi": "You arrive to find a 27-year-old male who is actively vomiting. You have already donned examination gloves. Which additional PPE should you add BEFORE approaching this patient?",
+  "lua": {
+   "A": "N95 respirator only",
+   "B": "Eye protection and a surgical mask",
+   "C": "High-visibility vest",
+   "D": "No additional PPE is needed beyond gloves"
+  },
+  "dung": "B",
+  "giai": "Active vomiting creates a high-risk splash hazard to the eyes and mucous membranes; eye protection (goggles or face shield) and a surgical mask protect against direct splatter of vomitus, which may contain bloodborne or enteric pathogens.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-3-001",
+  "ky": "NREMT",
+  "hoi": "What does the 'V' in the AVPU scale indicate about a patient's level of consciousness?",
+  "lua": {
+   "A": "The patient speaks spontaneously when approached",
+   "B": "The patient opens eyes only when spoken to loudly",
+   "C": "The patient responds in any manner to a verbal stimulus",
+   "D": "The patient verbalizes but cannot follow commands"
+  },
+  "dung": "C",
+  "giai": "The 'V' category means the patient responds in ANY way,eye opening, moaning, turning the head, or purposeful movement,when a verbal stimulus is applied; speech is not required.",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-3-2-008",
+  "ky": "NREMT",
+  "hoi": "An EMT applied a tourniquet to a patient's right mid-thigh for uncontrolled arterial hemorrhage. Which finding during reassessment BEST confirms the tourniquet is functioning effectively?",
+  "lua": {
+   "A": "The patient reports intense pain at the tourniquet site",
+   "B": "Capillary refill in the right foot is 2 seconds",
+   "C": "Bright red pulsatile bleeding from the wound has ceased",
+   "D": "The patient's systolic blood pressure has risen to 118 mmHg"
+  },
+  "dung": "C",
+  "giai": "The sole purpose of a tourniquet is to stop hemorrhage; cessation of bright red arterial bleeding from the wound is the direct indicator that the device is functioning correctly.",
+  "mang": "Secondary Assessment"
+ },
+ {
+  "slug": "nremt-4-1-009",
+  "ky": "NREMT",
+  "hoi": "An unconscious adult patient is breathing adequately with no suspected spinal injury. After completing the initial assessment, the EMT should place this patient in which position?",
+  "lua": {
+   "A": "Supine with legs elevated 8 to 12 inches",
+   "B": "High-Fowler's (sitting upright at 90°)",
+   "C": "Lateral recumbent (recovery position)",
+   "D": "Prone with the head turned to one side"
+  },
+  "dung": "C",
+  "giai": "The lateral recumbent (recovery) position is used for unconscious patients with spontaneous breathing and no suspected spinal injury.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-4-005",
+  "ky": "NREMT",
+  "hoi": "At a prolonged structure fire, the incident commander activates a rehabilitation sector. After five minutes of rest, which finding in a firefighter would be MOST concerning and require further evaluation?",
+  "lua": {
+   "A": "Pulse rate of 110 beats per minute",
+   "B": "Profuse diaphoresis with cool, pale skin",
+   "C": "Complaints of thirst and mild fatigue",
+   "D": "Respiratory rate of 22 breaths per minute"
+  },
+  "dung": "B",
+  "giai": "Cool, pale skin combined with profuse sweating after heat exposure suggests heat exhaustion with compensatory peripheral vasoconstriction , a sign the body is struggling to maintain adequate perfusion and a finding requiring prompt evaluation.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-5-001",
+  "ky": "NREMT",
+  "hoi": "Dispatched to a bus collision with 18 patients, you begin the START triage pass. A woman walks toward you, crying, and says her arm hurts. Under the START triage system, she should be assigned which tag?",
+  "lua": {
+   "A": "Red (Immediate) , she is visibly distressed",
+   "B": "Yellow (Delayed) , she has a potential fracture",
+   "C": "Green (Minimal) , she is ambulatory",
+   "D": "Black (Expectant) , resources are limited"
+  },
+  "dung": "C",
+  "giai": "In START triage the very first step is to direct all walking patients to a designated collection area and tag them Green (Minimal), regardless of their complaint, because ambulatory status indicates they do not have immediately life-threatening conditions.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-3-002",
+  "ky": "NREMT",
+  "hoi": "When assessing level of consciousness in an unresponsive-appearing adult during the primary assessment, which action should the EMT perform FIRST?",
+  "lua": {
+   "A": "Apply a sternal rub",
+   "B": "Pinch the patient's trapezius muscle",
+   "C": "Speak to the patient in a loud, clear voice",
+   "D": "Check the patient's pupils for reactivity"
+  },
+  "dung": "C",
+  "giai": "The AVPU scale requires progressing from the least invasive to the most invasive stimulus. The EMT must attempt verbal stimulation before escalating to painful stimuli.",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-4-1-018",
+  "ky": "NREMT",
+  "hoi": "While ventilating an apneic adult with a bag-valve mask, which finding BEST confirms that ventilations are being delivered effectively?",
+  "lua": {
+   "A": "Resistance felt in the bag during each breath delivery",
+   "B": "Visible, symmetric rise and fall of the chest with each ventilation",
+   "C": "Absence of gurgling sounds over the epigastrium",
+   "D": "An increase in the patient's heart rate after each ventilation"
+  },
+  "dung": "B",
+  "giai": "Visible, symmetric chest rise with each ventilation is the primary clinical indicator that air is entering the lungs and tidal volume is adequate.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-4-006",
+  "ky": "NREMT",
+  "hoi": "An EMT is assisting ventilations for a patient with suspected active tuberculosis (TB). Which respiratory protection is MOST appropriate for the EMT?",
+  "lua": {
+   "A": "A standard surgical mask worn by the EMT",
+   "B": "An N-95 respirator worn by the EMT",
+   "C": "A surgical mask worn by the patient only; no EMT protection is needed",
+   "D": "No special protection is needed if a HEPA-filtered BVM is used"
+  },
+  "dung": "B",
+  "giai": "Tuberculosis spreads via airborne droplet nuclei small enough to penetrate standard surgical masks. A fit-tested N-95 (or higher) respirator is required to protect the EMT during close airway contact.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-5-009",
+  "ky": "NREMT",
+  "hoi": "Under the START triage system, after directing all ambulatory patients to a collection area, a rescuer assessing non-ambulatory patients should proceed in which sequence?",
+  "lua": {
+   "A": "Mental status → respirations → perfusion",
+   "B": "Respirations → perfusion → mental status",
+   "C": "Perfusion → respirations → mental status",
+   "D": "Respirations → mental status → perfusion"
+  },
+  "dung": "B",
+  "giai": "START uses a fixed three-step sequence for non-ambulatory patients: (1) Respirations , absent after repositioning = Black; >30/min = Red; (2) Perfusion (radial pulse) , absent = Red; (3) Mental status (follow simple command) , unable = Red; able = Yellow.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-3-009",
+  "ky": "NREMT",
+  "hoi": "While applying a painful stimulus to an unresponsive adult, the EMT observes the patient withdraw the stimulated arm away from the source of pain. Which AVPU classification does this response represent?",
+  "lua": {
+   "A": "Alert",
+   "B": "Verbal",
+   "C": "Pain",
+   "D": "Unresponsive"
+  },
+  "dung": "C",
+  "giai": "Purposeful withdrawal from a painful stimulus satisfies the 'P' (responsive to pain) category of the AVPU scale.",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-4-3-004",
+  "ky": "NREMT",
+  "hoi": "Which assessment must the EMT perform BOTH before and after applying any extremity splint?",
+  "lua": {
+   "A": "Pupil response and Glasgow Coma Scale score",
+   "B": "Blood pressure and respiratory rate",
+   "C": "Circulation, sensation, and movement distal to the injury",
+   "D": "Capillary refill and skin temperature at the fracture site"
+  },
+  "dung": "C",
+  "giai": "Distal CSM , circulation (pulse, skin color, temperature), sensation (ability to feel light touch), and movement (ability to wiggle digits) , must be checked and documented before and after splinting.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-4-009",
+  "ky": "NREMT",
+  "hoi": "An EMT responds to a patient who is vomiting forcefully and has soiled clothing from diarrhea. Before making patient contact, which combination of PPE is MOST appropriate?",
+  "lua": {
+   "A": "Gloves only",
+   "B": "Gloves and eye protection",
+   "C": "Gloves, eye protection, and a gown",
+   "D": "Gloves, eye protection, a gown, and an N-95 respirator"
+  },
+  "dung": "C",
+  "giai": "Standard precautions require selecting PPE based on the anticipated type of exposure.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-6-005",
+  "ky": "NREMT",
+  "hoi": "You respond to a report of a worker who collapsed inside a grain silo. Bystanders state the patient is unresponsive at the bottom. Which resource is MOST critical to request?",
+  "lua": {
+   "A": "Additional BLS ambulances for transport after the patient is retrieved",
+   "B": "Technical rescue team with confined space entry capability",
+   "C": "Helicopter air medical transport for the unresponsive patient",
+   "D": "ALS intercept to manage the patient's airway at the scene"
+  },
+  "dung": "B",
+  "giai": "Grain silos are permit-required confined spaces that routinely contain oxygen-deficient atmospheres, toxic gases, and engulfment hazards.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-3-013",
+  "ky": "NREMT",
+  "hoi": "When an EMT documents a patient as 'alert and oriented × 4,' which four domains of orientation have been confirmed as intact?",
+  "lua": {
+   "A": "Name, date of birth, current address, and chief complaint",
+   "B": "Person, place, time, and event",
+   "C": "Name, current location, the treating EMT's name, and the year",
+   "D": "Person, place, nearest relative, and past medical history"
+  },
+  "dung": "B",
+  "giai": "Orientation × 4 encompasses four standard domains: person (does the patient know who they are?), place (do they know where they are?), time (do they know the approximate date or day?), and event (do they know what happened or why EMS was called?).",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-4-3-008",
+  "ky": "NREMT",
+  "hoi": "Rapid extrication should be used in place of a vest-type short backboard when the patient:",
+  "lua": {
+   "A": "Has a suspected cervical fracture based on mechanism of injury",
+   "B": "Is cooperative but requests to be moved as quickly as possible",
+   "C": "Has a life-threatening condition requiring immediate intervention",
+   "D": "Is in a vehicle that is difficult to access with standard equipment"
+  },
+  "dung": "C",
+  "giai": "Rapid extrication is indicated when the patient's condition is immediately life-threatening , such as airway compromise, hemodynamic instability, or respiratory failure , or when the scene itself is unsafe.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "nremt-5-4-013",
+  "ky": "NREMT",
+  "hoi": "At a prolonged outdoor extrication in August heat, the rehabilitation sector officer offers an EMT who has completed two work cycles a choice of beverages. Which option should the officer DISCOURAGE?",
+  "lua": {
+   "A": "Plain cool water",
+   "B": "Sports drink containing sodium and potassium",
+   "C": "Caffeinated energy drink",
+   "D": "Diluted fruit juice"
+  },
+  "dung": "C",
+  "giai": "Caffeine is a stimulant and mild diuretic that elevates heart rate and impairs heat dissipation, worsening heat stress during rehabilitation.",
+  "mang": "Operations"
+ },
+ {
+  "slug": "nremt-1-6-008",
+  "ky": "NREMT",
+  "hoi": "You are dispatched to a residence where a patient is threatening self-harm with a firearm. Dispatch confirms law enforcement has been notified. Which condition must be met BEFORE EMTs enter?",
+  "lua": {
+   "A": "ALS intercept is confirmed and en route",
+   "B": "Law enforcement has arrived and declared the scene secure",
+   "C": "A family member advises the patient has put the weapon down",
+   "D": "The patient has called dispatch requesting EMS assistance"
+  },
+  "dung": "B",
+  "giai": "Only law enforcement has the training and authority to neutralize a firearm threat and formally clear a scene; no other resource substitutes for this.",
+  "mang": "Scene Size-up and Safety"
+ },
+ {
+  "slug": "nremt-2-4-001",
+  "ky": "NREMT",
+  "hoi": "An EMT hears a loud gurgling sound when assessing the airway of an unresponsive 55-year-old male. This sound MOST likely indicates:",
+  "lua": {
+   "A": "Partial obstruction of the upper airway by the relaxed tongue",
+   "B": "Fluid or secretions pooled in the upper airway",
+   "C": "Bronchospasm in the lower airways",
+   "D": "Partial obstruction of the larynx by a foreign body"
+  },
+  "dung": "B",
+  "giai": "Gurgling is the hallmark sound of fluid,blood, vomit, or secretions,in the upper airway and demands immediate suctioning.",
+  "mang": "Primary Assessment"
+ },
+ {
+  "slug": "nremt-4-3-013",
+  "ky": "NREMT",
+  "hoi": "After log-rolling a trauma patient onto a long backboard, the team is ready to apply securing straps. Which sequence is CORRECT?",
+  "lua": {
+   "A": "Head, then torso, then legs",
+   "B": "Legs, then torso, then head",
+   "C": "Torso, then legs, then head",
+   "D": "Torso, then head, then legs"
+  },
+  "dung": "C",
+  "giai": "Standard technique requires securing the torso first, then the legs, and finally the head. Securing the torso first prevents lateral shifting if the board is tilted during movement to the stretcher.",
+  "mang": "Patient Treatment and Transport"
+ },
+ {
+  "slug": "teas-1-3-004",
+  "ky": "TEAS",
+  "hoi": "A writer argues: 'My grandfather smoked his whole life and lived to age 94, so smoking cannot be as dangerous as scientists claim.' This reasoning is an example of which logical error?",
+  "lua": {
+   "A": "Ad hominem",
+   "B": "Straw man",
+   "C": "Anecdotal fallacy",
+   "D": "False dilemma"
+  },
+  "dung": "C",
+  "giai": "An anecdotal fallacy occurs when a single personal story is used to counter well-established statistical evidence about a population.",
+  "mang": "Reading"
+ },
+ {
+  "slug": "teas-2-1-032",
+  "ky": "TEAS",
+  "hoi": "Which of the following is equivalent to 7/8?",
+  "lua": {
+   "A": "0.78",
+   "B": "87%",
+   "C": "87.5%",
+   "D": "0.857"
+  },
+  "dung": "C",
+  "giai": "Dividing 7 ÷ 8 = 0.875, which converts to 87.5%. Option A (0.78) incorrectly places the digits rather than performing the division. Option B (87%) drops the fractional half-percent.",
+  "mang": "Mathematics"
+ },
+ {
+  "slug": "teas-3-1-002",
+  "ky": "TEAS",
+  "hoi": "Which part of a neuron is responsible for carrying electrical impulses away from the cell body toward the next neuron or effector organ?",
+  "lua": {
+   "A": "Dendrite",
+   "B": "Myelin sheath",
+   "C": "Nucleus",
+   "D": "Axon"
+  },
+  "dung": "D",
+  "giai": "The axon conducts action potentials away from the cell body; at its terminal end it releases neurotransmitters across the synapse.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-1-008",
+  "ky": "TEAS",
+  "hoi": "Which sentence contains a sentence fragment?",
+  "lua": {
+   "A": "The package arrived two days late.",
+   "B": "Running through the park every morning before breakfast.",
+   "C": "He forgot his umbrella, so he got soaked.",
+   "D": "The deadline passed without any submissions."
+  },
+  "dung": "B",
+  "giai": "A sentence fragment lacks either a subject, a verb, or a complete thought.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-1-3-011",
+  "ky": "TEAS",
+  "hoi": "A city council member states: 'We should ignore Dr. Rivera's proposal for a new recycling program , she received a traffic citation five years ago.' This statement is an example of which logical fallacy?",
+  "lua": {
+   "A": "Hasty generalization",
+   "B": "Ad hominem",
+   "C": "False dichotomy",
+   "D": "Circular reasoning"
+  },
+  "dung": "B",
+  "giai": "Ad hominem attacks the person making an argument rather than the argument itself.",
+  "mang": "Reading"
+ },
+ {
+  "slug": "teas-2-1-050",
+  "ky": "TEAS",
+  "hoi": "Which of the following fractions is equivalent to 37.5%?",
+  "lua": {
+   "A": "3/7",
+   "B": "3/8",
+   "C": "7/20",
+   "D": "2/5"
+  },
+  "dung": "B",
+  "giai": "37.5% means 37.5 per 100, or 375/1000, which simplifies to 3/8; confirm by dividing: 3 ÷ 8 = 0.375 = 37.5%.",
+  "mang": "Mathematics"
+ },
+ {
+  "slug": "teas-3-1-003",
+  "ky": "TEAS",
+  "hoi": "The femur is an example of which bone classification?",
+  "lua": {
+   "A": "Short bone",
+   "B": "Flat bone",
+   "C": "Long bone",
+   "D": "Irregular bone"
+  },
+  "dung": "C",
+  "giai": "Long bones have a shaft (diaphysis) that is greater in length than width and epiphyses at each end; the femur is the textbook example and functions in support and movement.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-1-019",
+  "ky": "TEAS",
+  "hoi": "Which sentence contains a double negative?",
+  "lua": {
+   "A": "She did not find any errors in the draft report.",
+   "B": "He couldn't find nothing wrong with the submitted application.",
+   "C": "They did not have any questions after the presentation.",
+   "D": "The child had no interest in the afternoon activity."
+  },
+  "dung": "B",
+  "giai": "A double negative uses two negative words to express a single negative, which is nonstandard in written English. Option B combines 'couldn't' (could not) with 'nothing,' creating a double negative.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-2-1-028",
+  "ky": "TEAS",
+  "hoi": "Which of the following values falls between 5/8 and 3/4?",
+  "lua": {
+   "A": "0.60",
+   "B": "0.62",
+   "C": "0.70",
+   "D": "0.80"
+  },
+  "dung": "C",
+  "giai": "Convert the boundary fractions to decimals: 5/8 = 0.625 and 3/4 = 0.75. A value between them must be greater than 0.625 and less than 0.75. Option C, 0.70, satisfies both conditions.",
+  "mang": "Mathematics"
+ },
+ {
+  "slug": "teas-3-1-007",
+  "ky": "TEAS",
+  "hoi": "Which type of muscle tissue lines the walls of blood vessels, is non-striated, and is controlled involuntarily?",
+  "lua": {
+   "A": "Skeletal muscle",
+   "B": "Cardiac muscle",
+   "C": "Smooth muscle",
+   "D": "Voluntary muscle"
+  },
+  "dung": "C",
+  "giai": "Smooth muscle is found in the walls of hollow organs such as blood vessels, the digestive tract, and the bladder; it lacks the striations of the other types and is controlled by the autonomic nervous system without conscious effort.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-1-028",
+  "ky": "TEAS",
+  "hoi": "Which sentence uses 'than' or 'then' correctly?",
+  "lua": {
+   "A": "She studies harder then anyone else enrolled in the program.",
+   "B": "First, add the flour; than stir in the eggs and butter.",
+   "C": "The results were better then the research team had expected.",
+   "D": "Marcus finished the practice test faster than his classmates did."
+  },
+  "dung": "D",
+  "giai": "'Than' is a conjunction used in comparisons. 'Then' is an adverb indicating time or sequence ('after that,' 'next'). D correctly uses 'than' in a comparison of speed.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-2-1-064",
+  "ky": "TEAS",
+  "hoi": "Which of the following is NOT a prime number?",
+  "lua": {
+   "A": "41",
+   "B": "43",
+   "C": "47",
+   "D": "49"
+  },
+  "dung": "D",
+  "giai": "A prime number has exactly two distinct factors: 1 and itself.",
+  "mang": "Mathematics"
+ },
+ {
+  "slug": "teas-3-1-024",
+  "ky": "TEAS",
+  "hoi": "When the biceps brachii contracts to flex the forearm at the elbow, the triceps brachii simultaneously relaxes to allow smooth, controlled movement. In this functional pairing, the triceps brachii is best classified as the:",
+  "lua": {
+   "A": "Prime mover (agonist)",
+   "B": "Synergist",
+   "C": "Antagonist",
+   "D": "Fixator"
+  },
+  "dung": "C",
+  "giai": "The antagonist is the muscle that opposes the action of the prime mover; it relaxes while the agonist contracts, ensuring smooth rather than jerky movement.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-1-037",
+  "ky": "TEAS",
+  "hoi": "Which sentence correctly uses 'there,' 'their,' or 'they're'?",
+  "lua": {
+   "A": "The students forgot to bring there textbooks to the review session.",
+   "B": "They're clinical uniforms are kept in the staff locker room.",
+   "C": "The instructors left there keys in the conference room by mistake.",
+   "D": "The volunteers said they're planning to return again next weekend."
+  },
+  "dung": "D",
+  "giai": "'They're' is the contraction of 'they are,' 'their' is a possessive pronoun, and 'there' refers to a location or introduces a clause.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-1-025",
+  "ky": "TEAS",
+  "hoi": "Which cells, found primarily in the stratum basale of the epidermis, synthesize the pigment melanin and transfer it to surrounding keratinocytes to form a protective cap over the cell nucleus against UV radiation?",
+  "lua": {
+   "A": "Keratinocytes",
+   "B": "Langerhans cells",
+   "C": "Melanocytes",
+   "D": "Merkel cells"
+  },
+  "dung": "C",
+  "giai": "Melanocytes produce melanin within organelles called melanosomes and donate them to neighboring keratinocytes via long cytoplasmic extensions; the melanin then concentrates on the sun-exposed side of the nucleus to shield DNA from UV damage.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-1-041",
+  "ky": "TEAS",
+  "hoi": "Which sentence correctly uses 'to,' 'too,' or 'two'?",
+  "lua": {
+   "A": "She studied to hard the night before the exam.",
+   "B": "The lab results came back to quickly for anyone to review.",
+   "C": "There were too many appointments scheduled for one afternoon.",
+   "D": "The doctor asked the patient too explain her symptoms."
+  },
+  "dung": "C",
+  "giai": "'Too' in option C means 'excessively,' which is the correct word when modifying an adjective or adverb to indicate degree ('too many').",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-1-027",
+  "ky": "TEAS",
+  "hoi": "Which microscopic projections extend from the mucosal lining of the small intestine and dramatically increase the surface area available for absorption of nutrients into the bloodstream and lymphatic vessels?",
+  "lua": {
+   "A": "Rugae",
+   "B": "Haustra",
+   "C": "Lacteals",
+   "D": "Villi"
+  },
+  "dung": "D",
+  "giai": "Villi are finger-like mucosal projections that increase the absorptive surface area roughly tenfold.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-2-004",
+  "ky": "TEAS",
+  "hoi": "Which of the following sentences is written in active voice?",
+  "lua": {
+   "A": "The annual report was reviewed by the board of directors.",
+   "B": "Mistakes were made during the planning phase of the project.",
+   "C": "The lead researcher presented the findings at the national conference.",
+   "D": "The package had been delivered before noon by the courier."
+  },
+  "dung": "C",
+  "giai": "In active voice, the subject performs the action. In C, \"the lead researcher\" (subject) performs \"presented\" (action) , active voice. In A, the report receives the action of being reviewed.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-1-028",
+  "ky": "TEAS",
+  "hoi": "The normal electrical impulse that triggers each heartbeat is spontaneously generated by which structure of the cardiac conduction system?",
+  "lua": {
+   "A": "Atrioventricular (AV) node",
+   "B": "Bundle of His (atrioventricular bundle)",
+   "C": "Sinoatrial (SA) node",
+   "D": "Purkinje fibers"
+  },
+  "dung": "C",
+  "giai": "The SA node, located in the wall of the right atrium near the superior vena cava, is the heart's natural pacemaker; it fires spontaneously 60-100 times per minute and initiates each cardiac cycle.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-2-006",
+  "ky": "TEAS",
+  "hoi": "Which transition word or phrase best completes the sentence below? \"The study participants reported feeling more energetic after the intervention; _______, their measured productivity scores did not improve significantly.\"",
+  "lua": {
+   "A": "furthermore",
+   "B": "therefore",
+   "C": "however",
+   "D": "similarly"
+  },
+  "dung": "C",
+  "giai": "The two clauses present contrasting information , participants felt better, yet productivity did not rise , so a contrast transition is needed. \"However\" correctly signals that contrast.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-1-039",
+  "ky": "TEAS",
+  "hoi": "Bile is synthesized by the liver and plays an essential role in fat digestion by emulsifying dietary lipids. Between meals, bile is stored and concentrated in which organ until fat in the duodenum triggers its release?",
+  "lua": {
+   "A": "Pancreas",
+   "B": "Stomach",
+   "C": "Gallbladder",
+   "D": "Jejunum"
+  },
+  "dung": "C",
+  "giai": "The gallbladder stores and concentrates bile; when dietary fat enters the duodenum, the hormone cholecystokinin (CCK) signals the gallbladder to contract and release bile through the common bile duct into the duodenum.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-2-013",
+  "ky": "TEAS",
+  "hoi": "Which of the following is a sentence fragment?",
+  "lua": {
+   "A": "Running through the park every morning before work.",
+   "B": "She runs through the park every morning.",
+   "C": "He ran through the park, and she followed close behind.",
+   "D": "Although she was tired, she finished the race."
+  },
+  "dung": "A",
+  "giai": "A sentence fragment lacks the elements needed to form a complete sentence , typically a subject, a finite verb, or both.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-1-040",
+  "ky": "TEAS",
+  "hoi": "A nurse documents that a patient's elbow is closer to the trunk of the body than the patient's wrist is. Which anatomical directional term correctly describes the position of the elbow relative to the wrist?",
+  "lua": {
+   "A": "Distal",
+   "B": "Proximal",
+   "C": "Lateral",
+   "D": "Inferior"
+  },
+  "dung": "B",
+  "giai": "Proximal means closer to the point of attachment to the trunk; because the elbow is nearer the shoulder and trunk than the wrist is, the elbow is proximal to the wrist.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-2-014",
+  "ky": "TEAS",
+  "hoi": "Which of the following words has the most negative connotation when describing a person's physique in a formal written health summary?",
+  "lua": {
+   "A": "Slender",
+   "B": "Lean",
+   "C": "Scrawny",
+   "D": "Slim"
+  },
+  "dung": "C",
+  "giai": "All four words share the same basic denotation , a thin physique , but their connotations differ significantly.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-1-042",
+  "ky": "TEAS",
+  "hoi": "Which organ, located in the upper left quadrant of the abdomen, filters the blood by removing and destroying aged or damaged red blood cells, stores a reserve of blood, and houses lymphocytes for immune surveillance?",
+  "lua": {
+   "A": "Liver",
+   "B": "Thymus",
+   "C": "Spleen",
+   "D": "Appendix"
+  },
+  "dung": "C",
+  "giai": "The spleen performs blood filtration through its red pulp (macrophages engulf old or malformed RBCs) and immune surveillance through its white pulp (lymphocyte-rich tissue).",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-002",
+  "ky": "TEAS",
+  "hoi": "After misinterpreting the bus schedule, Marcus ended up waiting at the wrong stop for forty minutes. Based on the prefix in 'misinterpreting,' what does the word most likely mean?",
+  "lua": {
+   "A": "Interpreting very carefully",
+   "B": "Interpreting again from the beginning",
+   "C": "Interpreting incorrectly",
+   "D": "Interpreting for the first time"
+  },
+  "dung": "C",
+  "giai": "The prefix mis- means 'wrong' or 'incorrectly,' as seen in misspell and misread. The outcome , waiting at the wrong stop , confirms an incorrect understanding.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-001",
+  "ky": "TEAS",
+  "hoi": "Which organelle is primarily responsible for producing ATP through aerobic cellular respiration?",
+  "lua": {
+   "A": "Ribosome",
+   "B": "Mitochondrion",
+   "C": "Golgi apparatus",
+   "D": "Lysosome"
+  },
+  "dung": "B",
+  "giai": "The mitochondrion is the site of aerobic cellular respiration, where the majority of a cell's ATP is generated via the citric acid cycle and oxidative phosphorylation.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-003",
+  "ky": "TEAS",
+  "hoi": "A college catalog describes 'Gerontology' as the study of aging populations. Based on the suffix '-ology,' what would a course in 'dermatology' most likely cover?",
+  "lua": {
+   "A": "The treatment of physical injuries",
+   "B": "The practice of surgical procedures",
+   "C": "The study of the skin",
+   "D": "A diagnostic instrument used by physicians"
+  },
+  "dung": "C",
+  "giai": "The suffix -ology, from Greek logos, means 'the study of.' The root dermat- comes from the Greek word for skin, so dermatology is the study of the skin.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-002",
+  "ky": "TEAS",
+  "hoi": "In a DNA double helix, adenine always forms a complementary base pair with which nitrogenous base?",
+  "lua": {
+   "A": "Cytosine",
+   "B": "Guanine",
+   "C": "Uracil",
+   "D": "Thymine"
+  },
+  "dung": "D",
+  "giai": "DNA follows strict Chargaff base-pairing rules: adenine (A) pairs with thymine (T) via two hydrogen bonds, and cytosine (C) pairs with guanine (G) via three hydrogen bonds.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-008",
+  "ky": "TEAS",
+  "hoi": "The professor asked students to preview the assigned readings before the first lecture so that class time could be spent entirely on discussion. What does the prefix 'pre-' indicate about the meaning of 'preview'?",
+  "lua": {
+   "A": "To view something again after forgetting it",
+   "B": "To view something beforehand",
+   "C": "To view something together as a group",
+   "D": "To view something incorrectly"
+  },
+  "dung": "B",
+  "giai": "The prefix pre- means 'before' or 'in advance,' as in predict, prepare, and precaution. The phrase 'before the first lecture' in the sentence directly reinforces this meaning.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-005",
+  "ky": "TEAS",
+  "hoi": "Which sequence correctly represents the central dogma of molecular biology?",
+  "lua": {
+   "A": "RNA → DNA → Protein",
+   "B": "DNA → Protein → RNA",
+   "C": "DNA → RNA → Protein",
+   "D": "Protein → RNA → DNA"
+  },
+  "dung": "C",
+  "giai": "The central dogma states that genetic information flows from DNA to messenger RNA (transcription in the nucleus) and then from mRNA to protein (translation at ribosomes).",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-012",
+  "ky": "TEAS",
+  "hoi": "A recipe card instructs the cook to 'submerge the vegetables in boiling water for three minutes.' Based on the prefix 'sub-,' what does 'submerge' most likely mean?",
+  "lua": {
+   "A": "To remove from a container",
+   "B": "To cut into small pieces",
+   "C": "To place completely under a liquid",
+   "D": "To stir rapidly in a circular motion"
+  },
+  "dung": "C",
+  "giai": "The prefix 'sub-' comes from Latin meaning 'under' or 'below,' as seen in words like 'submarine' (below the sea) and 'subway' (below the street).",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-006",
+  "ky": "TEAS",
+  "hoi": "The cell membrane is best described by the fluid mosaic model. Which molecule forms the structural bilayer of this membrane, with hydrophilic heads facing outward and hydrophobic tails facing inward?",
+  "lua": {
+   "A": "Glycoproteins",
+   "B": "Cholesterol",
+   "C": "Phospholipids",
+   "D": "Integral proteins"
+  },
+  "dung": "C",
+  "giai": "Phospholipids are amphipathic molecules whose hydrophilic (water-loving) phosphate heads orient toward the aqueous extracellular and intracellular environments, while their hydrophobic (water-fearing) fatty-acid tails point inward , forming the bilayer.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-015",
+  "ky": "TEAS",
+  "hoi": "A chef prepared a meal entirely from leftover ingredients found in the refrigerator at the end of the week. Which of the following words carries the most POSITIVE connotation when describing the chef's approach?",
+  "lua": {
+   "A": "Wasteful",
+   "B": "Haphazard",
+   "C": "Resourceful",
+   "D": "Reckless"
+  },
+  "dung": "C",
+  "giai": "'Resourceful' implies creativity and skill in making good use of whatever is available, giving the chef's behavior an admirable quality.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-009",
+  "ky": "TEAS",
+  "hoi": "In the Linnaean classification hierarchy, which taxonomic rank is immediately MORE specific than family and immediately LESS specific than species?",
+  "lua": {
+   "A": "Order",
+   "B": "Class",
+   "C": "Genus",
+   "D": "Phylum"
+  },
+  "dung": "C",
+  "giai": "The Linnaean hierarchy from broadest to most specific is: Domain → Kingdom → Phylum → Class → Order → Family → Genus → Species. Genus sits directly between family and species.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-018",
+  "ky": "TEAS",
+  "hoi": "Elena was so frugal that she clipped coupons every Sunday, bought only sale items at the grocery store, and rarely ate at restaurants. As used in this sentence, what does 'frugal' most nearly mean?",
+  "lua": {
+   "A": "Generous and charitable with money",
+   "B": "Careful and sparing in the use of money",
+   "C": "Disorganized and forgetful about finances",
+   "D": "Wealthy and financially secure"
+  },
+  "dung": "B",
+  "giai": "Each detail , clipping coupons, buying only sale items, avoiding restaurants , points to a deliberate effort to spend as little as possible, which matches 'careful and sparing with money.' Option A is essentially the opposite: generosity means spending freely.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-014",
+  "ky": "TEAS",
+  "hoi": "Which type of RNA molecule carries a specific amino acid to the ribosome and contains an anticodon that base-pairs with mRNA during translation?",
+  "lua": {
+   "A": "Messenger RNA (mRNA)",
+   "B": "Ribosomal RNA (rRNA)",
+   "C": "Transfer RNA (tRNA)",
+   "D": "Small nuclear RNA (snRNA)"
+  },
+  "dung": "C",
+  "giai": "Transfer RNA (tRNA) has two key features: an amino-acid attachment site and an anticodon loop that pairs with the complementary codon on mRNA, ensuring amino acids are added in the correct sequence during translation.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-022",
+  "ky": "TEAS",
+  "hoi": "The Latin prefix 'trans-' means 'across' or 'through.' Based on this meaning, a transcontinental railroad would most likely be one that does which of the following?",
+  "lua": {
+   "A": "Runs underground through the center of a mountain range",
+   "B": "Crosses an entire continent from one side to the other",
+   "C": "Connects two countries that are separated by an ocean",
+   "D": "Operates only during winter months when roads are impassable"
+  },
+  "dung": "B",
+  "giai": "Trans- (across) + continental (relating to a continent) = crossing an entire continent.",
+  "mang": "English and Language Usage"
+ },
+ {
+  "slug": "teas-3-2-016",
+  "ky": "TEAS",
+  "hoi": "During which phase of the cell cycle does the replication of DNA take place?",
+  "lua": {
+   "A": "G1 phase",
+   "B": "S phase",
+   "C": "G2 phase",
+   "D": "M phase"
+  },
+  "dung": "B",
+  "giai": "DNA replication occurs during the S (synthesis) phase of interphase. During G1 the cell grows and produces proteins in preparation for replication.",
+  "mang": "Science"
+ },
+ {
+  "slug": "teas-4-3-026",
+  "ky": "TEAS",
+  "hoi": "The suffix '-ify' means 'to make' or 'to cause to become.' Based on this meaning, which of the following words most likely means 'to make something simple or easier to understand'?",
+  "lua": {
+   "A": "Simplistic",
+   "B": "Simpleness",
+   "C": "Simpleton",
+   "D": "Simplify"
+  },
+  "dung": "D",
+  "giai": "Simple + -ify = simplify, meaning to make simple. 'Simplistic' uses the suffix '-ic' (relating to a quality) and often implies an oversimplified or naive view.",
+  "mang": "English and Language Usage"
+ }
+]

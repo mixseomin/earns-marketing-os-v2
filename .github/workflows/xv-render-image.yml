@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['apps/xuong-video/scripts/bo-set/may-thue/**', 'apps/xuong-video/scripts/bo-set/cai-mpfb.sh', '.github/workflows/xv-render-image.yml']
+    paths: ['apps/xuong-video/scripts/bo-set/may-thue/**', 'apps/xuong-video/scripts/bo-set/cai-mpfb.sh', 'apps/xuong-video/scripts/bo-set/tai-tai-san.sh', 'apps/xuong-video/scripts/bo-set/mocap/**', '.github/workflows/xv-render-image.yml']
 permissions:
   contents: read
   packages: write

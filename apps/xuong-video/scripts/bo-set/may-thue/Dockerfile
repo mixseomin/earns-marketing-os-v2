@@ -4,7 +4,7 @@
 # máy chủ RunPod gắn vào (NVIDIA_DRIVER_CAPABILITIES=all để có cả thư viện OptiX).
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive NVIDIA_DRIVER_CAPABILITIES=all NVIDIA_VISIBLE_DEVICES=all
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync xz-utils curl ca-certificates git zip unzip \
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server rsync xz-utils curl ca-certificates git zip unzip python3 \
       libxi6 libxrender1 libxkbcommon0 libsm6 libgl1 libegl1 libxxf86vm1 libxfixes3 libglu1-mesa \
     && rm -rf /var/lib/apt/lists/*
 ARG BAN=5.0.1
@@ -16,6 +16,11 @@ COPY cai-mpfb.sh /tmp/cai-mpfb.sh
 RUN bash /tmp/cai-mpfb.sh /opt/blender/blender && rm -rf /tmp/* \
     && /opt/blender/blender -b --factory-startup --python-expr "import addon_utils; addon_utils.enable('bl_ext.user_default.mpfb', default_set=True); import sys; assert any(m.endswith('mpfb.services.humanservice') for m in sys.modules); print('MPFB OK')" 2>&1 | grep 'MPFB OK'
 RUN mkdir -p /run/sshd /root/.ssh /root/xv/scripts/bo-set && chmod 700 /root/.ssh
+# TÀI SẢN + MOCAP ĐÓNG SẴN (22/10/2026: máy thuê mất ~10 phút nhận 160 MB tài sản đẩy từ iMac mỗi lần thuê): tai-san (Poly Haven / NASA, CC0) tải ngay
+# lúc build bằng đúng script của iMac; mocap (CMU) chép từ repo. may-thue.sh chuan-bi chỉ còn đẩy mã (dung-set.py, mesh/) + tệp mới thiếu.
+COPY tai-tai-san.sh /root/xv/scripts/bo-set/tai-tai-san.sh
+RUN cd /root/xv/scripts/bo-set && bash tai-tai-san.sh >/dev/null && du -sh tai-san
+COPY mocap /root/xv/scripts/bo-set/mocap
 COPY may-thue/start.sh /start.sh
 RUN chmod +x /start.sh
 CMD ["/start.sh"]

@@ -30,7 +30,12 @@ PY
 # XV_NHAP=1 = BẢN NHÁP (playblast, anh 16/10/2026 "tao chỉ cần xem bản nháp cho nhanh"): EEVEE 360px, 4 mẫu, lông thưa.
 # MỘT SHOT MỘT LÚC, ưu tiên NỀN của macOS (taskpolicy -b: chỉ dùng CPU dư, việc của anh luôn đi trước) — anh 22/10/2026 "ko được chạy song song
 # như vậy nặng máy của tao. Chạy 1 con 1". Chạy song song chỉ khi đặt XV_SONG rõ ràng (máy thuê).
-if [ -n "$XV_NHAP" ]; then export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-4}; fi
+# Máy THUÊ (Linux, NVIDIA): EEVEE không mở được EGL ("EGL_BAD_MATCH", 22/10/2026 Vast A6000 — Blender kẹt, GPU 0 %) → bản nháp dùng Cycles GPU
+# (OptiX) 360px, 16 mẫu + khử nhiễu. iMac giữ EEVEE.
+if [ -n "$XV_NHAP" ]; then
+  if [ -n "$XV_MAY_THUE" ]; then export XV_MAY=cycles XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-16}
+  else export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-4}; fi
+fi
 export XV_MAY XV_NHAP XV_RONG XV_MAU
 if [ -n "$XV_CHI_DEM" ]; then   # chỉ đếm: shot nào sẽ phải dựng lại (dấu đổi), không render
   while read -r TEN MA GIAY; do X="$RA/$TEN/xong${XV_NHAP:+-nhap}"; [ -f "$X" ] && [ "$(cat "$X")" = "$("$DIR/scripts/bo-set/dau-shot.sh" "$RA/$TEN")" ] || echo "SE DUNG $TEN"; done < "$RA/viec.txt"

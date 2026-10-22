@@ -97,7 +97,10 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
         tar -xJf $TEP && rm -f $TEP && mv blender-$BAN-linux-x64 blender; fi
       mkdir -p /root/xv/scripts/bo-set; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || echo 'không thấy nvidia-smi'"
     "$DIR/scripts/bo-set/tai-tai-san.sh" >/dev/null
-    rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/render-khung.sh" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" "$DIR/scripts/bo-set/mocap" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
+    rsync -aq -e "ssh -p $CONG" --exclude __pycache__ --exclude '*.mp4' "$DIR/scripts/bo-set/dung-set.py" "$DIR/scripts/bo-set/render-khung.sh" "$DIR/scripts/bo-set/mo-dau.py" "$DIR/scripts/bo-set/mesh" $HOST:/root/xv/scripts/bo-set/
+    # tai-san + mocap đã đóng trong image (may-thue/Dockerfile) — chỉ gửi tệp image CHƯA có (so theo tên, không so giờ sửa)
+    # anh/ + da-3d/ là bộ đệm tải theo URL (dung-set.py › anh_cache, nguoi.py › gan_da_3d) — máy thuê tự tải thẳng từ R2, nhanh hơn đẩy từ iMac
+    rsync -aq --ignore-existing -e "ssh -p $CONG" --exclude __pycache__ --exclude 'tai-san/anh/' --exclude 'tai-san/da-3d/' "$DIR/scripts/bo-set/mocap" "$DIR/scripts/bo-set/tai-san" $HOST:/root/xv/scripts/bo-set/
     # KIỂM GPU BẮT BUỘC (17/10/2026: máy 3090 Community báo CUDA cuInit lỗi → Blender lặng lẽ render CPU, 20 phút được 6 ảnh): Blender phải thấy
     # GPU qua OptiX hoặc CUDA — không thấy thì thoát mã 2, lam xoá máy này và thuê máy khác.
     TB=$($SSH "/opt/blender/blender -b --factory-startup --python-expr \"import bpy; p=bpy.context.preferences.addons['cycles'].preferences; [print('THIET BI', k, [d.name for d in (p.get_devices_for_type(k) or []) if d.type != 'CPU']) for k in ('OPTIX','CUDA')]\" 2>/dev/null | grep THIET" || true)

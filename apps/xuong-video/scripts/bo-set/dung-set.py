@@ -1110,6 +1110,29 @@ def dan_cua(nv, mau_nv, ket):
         out += bang.get(t.strip().lower(), [])
     return out
 
+def mau_vet(h, o):
+    """VẾT LOANG thấm vải (cà phê, rượu, bùn): màu đậm ở viền khô, nhạt + trong dần vào giữa, mép mờ gợn theo nhiễu — không phải miếng dán đặc mép sắc
+    (tập 135 #2 #4 #13 #14, 22/10/2026). Toạ độ đo theo vị trí GỐC của đỉnh (thuộc tính 'goc', ghi trước Shrinkwrap): ép lên áo xong hình vẫn tròn."""
+    att = o.data.attributes.new('goc', 'FLOAT_VECTOR', 'POINT')
+    for i, v in enumerate(o.data.vertices): att.data[i].vector = v.co
+    m = mau(h).copy(); m.name = f'vet {h}'; nt = m.node_tree; N, L = nt.nodes, nt.links; b = N['Principled BSDF']
+    a = N.new('ShaderNodeAttribute'); a.attribute_name = 'goc'
+    xz = N.new('ShaderNodeVectorMath'); xz.operation = 'MULTIPLY'; xz.inputs[1].default_value = (1, 0, 1); L.new(a.outputs['Vector'], xz.inputs[0])
+    r = N.new('ShaderNodeVectorMath'); r.operation = 'LENGTH'; L.new(xz.outputs['Vector'], r.inputs[0])
+    nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 2.5; nz.inputs['Detail'].default_value = 4; L.new(a.outputs['Vector'], nz.inputs['Vector'])
+    g = N.new('ShaderNodeMath'); g.operation = 'MULTIPLY_ADD'; g.inputs[1].default_value = 0.45; L.new(nz.outputs['Fac'], g.inputs[0])
+    L.new(r.outputs['Value'], g.inputs[2])   # bán kính méo = r + 0,45·nhiễu (≈ r + 0,22 ± gợn)
+    an = N.new('ShaderNodeMapRange'); an.inputs['From Min'].default_value = 1.12; an.inputs['From Max'].default_value = 0.92
+    an.inputs['To Min'].default_value = 0; an.inputs['To Max'].default_value = 1; L.new(g.outputs['Value'], an.inputs['Value'])
+    vien = N.new('ShaderNodeMapRange'); vien.inputs['From Min'].default_value = 0.95; vien.inputs['From Max'].default_value = 0.4
+    vien.inputs['To Min'].default_value = 0.92; vien.inputs['To Max'].default_value = 0.55; L.new(g.outputs['Value'], vien.inputs['Value'])
+    al = N.new('ShaderNodeMath'); al.operation = 'MULTIPLY'; L.new(an.outputs['Result'], al.inputs[0]); L.new(vien.outputs['Result'], al.inputs[1])
+    L.new(al.outputs['Value'], b.inputs['Alpha'])
+    b.inputs['Roughness'].default_value = 0.85
+    if hasattr(m, 'surface_render_method'): m.surface_render_method = 'BLENDED'
+    else: m.blend_method = 'BLEND'
+    return m
+
 BO_PHAN = {'nguc': 'nguc_k', 'dau': 'dau_k'}
 def vet_(n_, ten, ds):
     """Dán DẤU của biến thể lên ma-nơ-canh (Dan3d: cho · mau · rong · cao · lech): khối dẹt bám mặt trước bộ phận, đi theo người khi cúi / quay —
@@ -1120,8 +1143,11 @@ def vet_(n_, ten, ds):
         bb = [Vector(c) for c in bp.bound_box]
         lo = Vector([min(q[k] for q in bb) for k in range(3)]); hi = Vector([max(q[k] for q in bb) for k in range(3)])
         lx, lz = (d.get('lech') or [0.5, 0.55])
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1); o = bpy.context.object
-        dat(o, mau(d.get('mau', '#6b3f1d')), f"NG {ten}.dan_{i}")
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=1); o = bpy.context.object
+        # chỉ giữ NỬA TRƯỚC (y < 0): ép lên áo thì nửa sau cũng dẹt xuống cùng chỗ → hai lớp vết chồng lệch, mép dưới thành vệt kép (#2, 22/10/2026)
+        import bmesh as _bm
+        bm_ = _bm.new(); bm_.from_mesh(o.data); _bm.ops.delete(bm_, geom=[v for v in bm_.verts if v.co.y > 0.05], context='VERTS'); bm_.to_mesh(o.data); bm_.free()
+        dat(o, mau_vet(d.get('mau', '#6b3f1d'), o), f"NG {ten}.dan_{i}")
         o.parent = bp; o.matrix_parent_inverse.identity()
         o.location = (lo.x + (hi.x - lo.x) * lx, lo.y - 1.2, lo.z + (hi.z - lo.z) * lz)   # nhô 1,2 cm trước mặt ngực: nổi ra ngoài áo người MPFB (vải nổi 4 mm + độ phồng áo)
         o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
@@ -1132,7 +1158,10 @@ def vet_(n_, ten, ds):
                and not any(k in x.name.lower() for k in ('shoe', 'boot', 'con_nguoi', '.da', 'hair', 'long0', 'short0', 'bob0', 'ponytail', 'braid', 'afro'))]
         dich_ = do_[0] if do_ else bpy.data.objects.get(goc_)
         if dich_:
-            sw = o.modifiers.new('ep_ao', 'SHRINKWRAP'); sw.target = dich_; sw.wrap_method = 'NEAREST_SURFACEPOINT'; sw.offset = 0.002
+            sw = o.modifiers.new('ep_ao', 'SHRINKWRAP'); sw.target = dich_; sw.offset = 0.004
+            # luôn nằm PHÍA NGOÀI mặt vải (OUTSIDE_SURFACE): ON_SURFACE + 2 mm thì đỉnh rơi vào mặt trong / sau nếp áo → vải che vết thành cạnh thẳng (#2).
+            # Chiếu theo trục sâu (PROJECT) thử rồi: tia trượt mép nếp áo → vết rách thành vệt.
+            sw.wrap_method = 'NEAREST_SURFACEPOINT'; sw.wrap_mode = 'OUTSIDE_SURFACE'
 
 def ho_tua(s_, dg, n_, ben):
     """Khoảng hở (cm, âm = lún) từ LÒNG BÀN TAY ÚP (cổ tay − 3 cm — người MPFB gập bàn tay úp ngang cổ tay, mesh/nguoi.py › tay_ap) tới mặt đỡ của BỘ
@@ -1167,6 +1196,7 @@ def cham_mat_tua(n_, ten, dien):
 # DÁNG CẦN MẶT TỰA ở khung MỞ: động tác → điểm chạm (bàn tay). Không có mặt đỡ dưới điểm chạm thì AI tự bịa chỗ tựa — tập 122 #20 Thần "chống bàn"
 # ở chỗ không có bàn → keyframe chống tay lên lưng ghế; #22 cận cổ tay thành bàn tay lơ lửng. Phim thường diễn viên tự tìm mặt bàn; phim AI phải đo.
 DANG_TUA = {'chong_ban': ('t', 'p')}
+DIEN_KHOE = {'gio_cao', 'dua_truoc_mat', 'lac_treo'}   # mã diễn ĐƯA MÓN cho người khác / máy xem (dien_shot: món dẹt quay mặt về máy)
 def tua_hong(s, dg, sh, ten):
     """Khoảng hở lớn nhất (cm) từ điểm chạm của dáng tựa đang diễn ở khung mở tới mặt đỡ ngay dưới nó (bỏ qua thân chính người đó). None = không có
     dáng tựa hoặc chạm đủ (≤ 6 cm)."""
@@ -1622,10 +1652,14 @@ def do_sang_may(s, f_giua, dich=0.3, tran=4.0):
     for _ in range(2):
         bpy.ops.render.render(write_still=True)
         im = bpy.data.images.load(tep); px = np.array(im.pixels[:]).reshape(-1, 4)[:, :3]; bpy.data.images.remove(im)
-        y = float((0.2126 * px[:, 0] + 0.7152 * px[:, 1] + 0.0722 * px[:, 2]).mean())
+        lum = 0.2126 * px[:, 0] + 0.7152 * px[:, 1] + 0.0722 * px[:, 2]; y = float(lum.mean()); p90 = float(np.percentile(lum, 90))
         if y >= 0.2 or y <= 0: break
-        s.view_settings.exposure = min(tran, s.view_settings.exposure + 2.2 * math.log2(dich / y))   # sáng hiển thị ~ tuyến tính^(1/2,2)
-    print('DO SANG', round(y, 3), 'exposure', round(s.view_settings.exposure, 2))
+        # GIỮ VÙNG SÁNG: người mặc đồ tối che nửa khung (#7 lưng Thần) kéo trung bình xuống, tăng tới khi trung bình đạt thì tường sau cháy trắng
+        # (22/10/2026). Không tăng quá mức đưa 10 % sáng nhất lên 0,85 — như máy ảnh đo sáng ưu tiên vùng sáng.
+        tang = min(2.2 * math.log2(dich / y), 2.2 * math.log2(0.85 / max(p90, 1e-3)))
+        if tang <= 0.05: break
+        s.view_settings.exposure = min(tran, s.view_settings.exposure + tang)   # sáng hiển thị ~ tuyến tính^(1/2,2)
+    print('DO SANG', round(y, 3), 'p90', round(p90, 3), 'exposure', round(s.view_settings.exposure, 2))
     s.render.resolution_percentage = pct; s.render.filepath = fp; s.frame_set(s.frame_start)
 
 def dien_shot(s, sh, ra, giay=4.0, fps=12):
@@ -1696,6 +1730,12 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             elif ten in tc and tc[ten][1] in NGUOI[cam_]: cha = NGUOI[cam_][tc[ten][1]]   # đồ đeo: theo khớp đeo
             elif ten in tc: cha = NGUOI[cam_]['nguc']
             mw = e.matrix_world.copy(); e.parent = cha; e.matrix_parent_inverse = cha.matrix_world.inverted(); e.matrix_world = mw
+            # MÓN DẸT ĐƯA RA CHO NGƯỜI XEM (giơ cao / đưa trước mặt / chìa ra): mặt in (+z của món nằm) quay về máy — món gắn cứng cổ tay thì tay
+            # giơ 150° là hồ sơ nằm dựng cạnh, máy chỉ thấy một cái que (tập 135 #3, 22/10/2026). Damped Track sau cha: vẫn ở trong tay.
+            co_ = DL['nhan_vat_mau'].get(ten, {}).get('co') or [1, 1, 1]
+            khoe = {str(x).split('@')[0] for x in (neo[cam_][1].get('dien') or [])} & DIEN_KHOE
+            if khoe and min(co_) < 0.2 * max(co_) and ten in tc and tc[ten][1] in ('p', 't'):
+                c_ = e.constraints.new('DAMPED_TRACK'); c_.target = cam; c_.track_axis = 'TRACK_Z'
     # NGÔN NGỮ STOP-MOTION (anh 16/10/2026: "blender tạo chuyển động dạng stopmotion đã đúng chưa"), theo nghề Laika / Aardman:
     #   lấy đà + vượt rồi khựng (dien_k) · BOIL: mỗi khung nhân vật xê dịch li ti như tay người chỉnh, lông nhảy nhẹ (ngẫu nhiên CỐ ĐỊNH theo
     #   tên + số khung — render lại ra y hệt) · đất nặn bẹp nhẹ mỗi lần chân chạm đất. Biên độ: XV_BOIL (1 = mặc định, 0 = tắt boil).
@@ -1871,17 +1911,22 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     # ĐO SÁNG như máy ảnh (anh 21/10/2026 "một số cảnh thì tối lâu quá"): render nhỏ khung giữa, trung bình sáng hiển thị < 0,2 thì tăng phơi sáng
     # (stop, trước AgX — như mở khẩu / tăng ISO, không phải nhân sáng hậu kỳ) cho về ~0,3, tối đa +4 stop, đo hai vòng. #18 / #21 khung gốc gần đen
     # tuyệt đối — nhân sáng sau render không cứu được.
-    do_sang_may(s, N // 2 + 1)
-    # mắt bám đầu từng khung (dat_mat_moi_nguoi); khoá giao diện khi render để handler sửa vị trí an toàn
-    s.render.use_lock_interface = True; bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
+    # (đổi kính TRƯỚC khi đo sáng: đo lúc kính còn khúc xạ đen thì máy tưởng tối, đẩy +5 stop → kính trong ra là cháy trắng — #7 #9, 22/10/2026)
     if s.render.engine != 'CYCLES':
         # KÍNH ở bản nháp EEVEE: khúc xạ hai lớp kính chồng (cửa kính trong vách kính) ra ĐEN KỊT (tập 135 #9 — POV qua kính) → vẽ kính bằng độ trong
         for m_ in [m for m in bpy.data.materials if m.name.startswith('kinh ') and m.use_nodes]:
             b_ = m_.node_tree.nodes.get('Principled BSDF')
             if not b_: continue
-            b_.inputs['Transmission Weight'].default_value = 0.0; b_.inputs['Alpha'].default_value = 0.12
+            # một lớp mỗi tấm (khuất mặt sau) + gần trong: vách 2 cm có 2 mặt × vách + cửa = 4 lớp α 0,12 nhạt màu → MÀN SƯƠNG trắng che cả mặt
+            # Thần (tập 135 #8 #9, 22/10/2026). Kính thật ở máy quay chỉ để lại chút phản chiếu.
+            b_.inputs['Transmission Weight'].default_value = 0.0; b_.inputs['Alpha'].default_value = 0.04
+            m_.use_backface_culling = True
+            b_.inputs['Specular IOR Level'].default_value = 0.1; b_.inputs['Base Color'].default_value = (0.02, 0.025, 0.03, 1)   # phản xạ trắng đầy đủ dù α nhỏ
             if hasattr(m_, 'surface_render_method'): m_.surface_render_method = 'BLENDED'
             else: m_.blend_method = 'BLEND'
+    do_sang_may(s, N // 2 + 1)
+    # mắt bám đầu từng khung (dat_mat_moi_nguoi); khoá giao diện khi render để handler sửa vị trí an toàn
+    s.render.use_lock_interface = True; bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
     s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
     for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):
         f = 1 + round(t * (N - 1)); print('KHOA', i, f)

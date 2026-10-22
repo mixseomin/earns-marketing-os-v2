@@ -675,7 +675,11 @@ def ban_tay(n, p):
     thì khớp cổ tay ma-nơ-canh (−z dọc bàn tay)."""
     from mathutils import Matrix
     rig = bpy.data.objects.get(f"THAN_RIG {n['ten']}"); w = rig.pose.bones.get(f"wrist.{'L' if p == 't' else 'R'}") if rig else None
-    if w: m = (rig.matrix_world @ w.matrix).to_3x3()
+    if w:
+        m = (rig.matrix_world @ w.matrix).to_3x3()
+        # xương cổ tay MPFB ĐỐI XỨNG GƯƠNG: ngón tay phải gập về −X (mu = +X), tay trái gập về +X (đo 22/10/2026, tập 135 #29: hướng ngón khi gập ·
+        # trục X = −0,88 / +0,88) → tay trái quay 180° quanh dọc ngón để X luôn là mu bàn tay
+        if p == 't': m = m @ Matrix(((-1, 0, 0), (0, 1, 0), (0, 0, -1)))
     else: q = n[f'cotay_{p}'].matrix_world.to_3x3(); m = Matrix((q.col[0], -q.col[2], q.col[1])).transposed()
     m = m.copy()
     for i in range(3): m.col[i] = m.col[i].normalized()
@@ -695,3 +699,7 @@ def tay_ap(n, bat):
         m_ = e.matrix_world.copy(); m_.translation = (rig.matrix_world @ w.head) + f * 0.15 * n['cao'] / 175 * (n['goc'].matrix_world.to_scale()[0] * 100)
         e.matrix_world = m_   # gán cả ma trận: gán .translation của matrix_world không ghi ngược vào empty có cha (đích nằm lại ở cổ tay → bàn tay ngửa)
         c = w.constraints.new('TRACK_TO'); c.name = 'tay_ap'; c.target = e; c.track_axis = 'TRACK_Y'; c.up_axis = 'UP_X'
+        if bx == 'L':   # mu bàn tay trái là −X (ban_tay): UP_X ngửa lòng tay trái (tập 135 #29 vòng tay nằm trên lòng bàn tay ngửa) → lật X xuống dưới
+            d_ = n.get(f'ap_duoi_{p}') or _khop(f"{n['ten']}.ap_duoi_{p}", n[f'cotay_{p}'], (0, 0, 0)); n[f'ap_duoi_{p}'] = d_
+            md = d_.matrix_world.copy(); md.translation = (rig.matrix_world @ w.head) - Vector((0, 0, 0.3 * n['cao'] / 175 * (n['goc'].matrix_world.to_scale()[0] * 100))); d_.matrix_world = md
+            c2 = w.constraints.new('LOCKED_TRACK'); c2.name = 'tay_ap'; c2.target = d_; c2.lock_axis = 'LOCK_Y'; c2.track_axis = 'TRACK_X'

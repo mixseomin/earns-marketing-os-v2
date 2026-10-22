@@ -5,7 +5,7 @@
 // Cửa sổ sáng = bài đang chạy · thùng tím ở chân = bài sắp đăng · cột sáng xanh = lượt xem · xe trên phố = khách về site · đèn đỏ + khói = hỏng ·
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
-import { KHU_XUONG, LINH_VUC, TEN_BAN, TRANG_THAI_VN, TT_TK, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
+import { KHU_XUONG, LINH_VUC, TEN_BAN, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 import { wrapExternalUrl } from '@/lib/external-url';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
 
@@ -756,33 +756,47 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // XƯỞNG SX (anh 22/10/2026): lô chữ nhật có rào phía đối diện Công ty AI qua đại lộ — nhà xưởng mái răng cưa ở đáy lô, sản phẩm / app chưa lên
     // xếp hàng theo dự án gốc (biển đầu hàng); lên xong máy tự đưa về khu dự án của nó
     let zXuong = 0;
+    // XƯỞNG SX = TỔ HỢP NHÀ MÁY (góp ý city #1437): mỗi loại sản phẩm một khu nhà máy (App, Sách, Sản phẩm số, Plugin…) — sản phẩm đang làm / sẵn sàng
+    // chưa nộp đứng trong sân khu; PHÒNG THẨM ĐỊNH cạnh đó giữ mọi thứ đã nộp chờ duyệt (cửa hàng / anh), xếp hàng trước cửa. Tên khu in dưới nền.
     if (xuongK) {
-      // xếp GỌN (anh 23/10/2026 "chẳng ai để dàn hàng ra như vậy"): mỗi dự án gốc một cụm vuông (lưới tối đa 4 cột, sát nhau như kệ hàng), cụm xếp lưới trong lô;
-      // app chưa lên đứng như một hộp (logo cửa hàng của bản đầu), không bày quảng trường + bản cửa hàng
-      const xs = xuongK.sites.concat(xuongK.sps), nhom = [...new Set(xs.map((d) => d.duAnGocTen ?? '—'))].sort((a, b) => xs.filter((d) => (d.duAnGocTen ?? '—') === b).length - xs.filter((d) => (d.duAnGocTen ?? '—') === a).length);
+      const xs = xuongK.sites.concat(xuongK.sps), sx = xs.filter((d) => d.giaiDoan !== 'tham-dinh'), td = xs.filter((d) => d.giaiDoan === 'tham-dinh');
       for (const d of xs) if (d.loai === 'app' && !d.hostBan) d.hostBan = mh.dich.find((b2) => b2.cha === d.khoa)?.hostBan;
-      const O = 25, cum = nhom.map((g) => { const ds2 = xs.filter((d) => (d.duAnGocTen ?? '—') === g), cot = Math.min(4, Math.ceil(Math.sqrt(ds2.length))); return { g, ds2, cot, rong: cot * O + 12, sau: Math.ceil(ds2.length / cot) * O + 22 }; });
-      const RONG_LO = Math.max(180, Math.min(320, cum.reduce((a, c) => a + c.rong + 14, 0))), dai = RONG_LO + 20;
-      let cx2 = 0, cz2 = 0, hangSau = 0; const vt2 = cum.map((c) => { if (cx2 + c.rong > RONG_LO) { cx2 = 0; cz2 += hangSau + 14; hangSau = 0; } const v = { x: cx2, z: cz2 }; cx2 += c.rong + 14; hangSau = Math.max(hangSau, c.sau); return v; });
-      const cao = cz2 + hangSau + 90, x0 = (coCty ? xCty : xKho + 150) - dai / 2, z0 = -40;
+      const O = 25, vung = Object.keys(VUNG_SX).filter((v) => sx.some((d) => d.vungSx === v)).map((v) => { const ds2 = sx.filter((d) => d.vungSx === v), cot = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(ds2.length)))); return { v, ds2, cot, rong: cot * O + 14, sau: Math.ceil(ds2.length / cot) * O + 40 }; });
+      const cotTd = Math.min(5, Math.max(2, Math.ceil(Math.sqrt(td.length)))), rongTd = Math.max(70, cotTd * O + 16), sauTd = Math.ceil(td.length / cotTd) * O + 70;
+      const rongSx = vung.reduce((a, c) => a + c.rong + 14, 0), dai = Math.max(160, rongSx + rongTd + 30), sauMax = Math.max(sauTd, ...vung.map((c) => c.sau));
+      const cao = sauMax + 70, x0 = (coCty ? xCty : xKho + 150) - dai / 2, z0 = -40;
       pho(x0 + dai / 2, 0, x0 + dai / 2, z0, 12);
       const nenX = add(new THREE.BoxGeometry(dai + 20, .4, cao), M({ color: '#2a2216', roughness: 1 }), false); nenX.position.set(x0 + dai / 2, .2, z0 - cao / 2); ds.san!.push(nenX);
-      raoQuanh([new THREE.Vector3(x0 - 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0 - cao), new THREE.Vector3(x0 - 10, 0, z0 - cao)], '#c98a2f', x0 + dai / 2, z0 - cao / 2, -1, 'Xưởng SX', [{ ic: '🏭', so: String(xs.length), nhan: 'chờ lên', ma: 'xuong' }], KHU_XUONG);
-      cum.forEach((c, k) => { const bx = x0 + 10 + vt2[k]!.x, bz = z0 - 24 - vt2[k]!.z;
-        const sanC = add(new THREE.BoxGeometry(c.rong, .5, c.sau), M({ color: '#3a2e1c', roughness: .9 }), false); sanC.position.set(bx + c.rong / 2, .45, bz - c.sau / 2); ds.san!.push(sanC);
-        // tên cụm IN XUỐNG NỀN dải đầu cụm (card góp ý #1431 "chữ phải viết ở dưới nền khu vực") — không biển nổi che hộp
-        const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128; const gc = cv.getContext('2d')!; gc.fillStyle = '#ffd27a'; gc.textAlign = 'center'; gc.textBaseline = 'middle';
-        let co = 84; gc.font = `800 ${co}px system-ui, sans-serif`; const chu = `${c.g} · ${c.ds2.length}`; while (gc.measureText(chu).width > 990 && co > 30) { co -= 4; gc.font = `800 ${co}px system-ui, sans-serif`; } gc.fillText(chu, 512, 66);
-        const nenChu = add(new THREE.PlaneGeometry(c.rong - 2, (c.rong - 2) / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false);
-        nenChu.rotation.x = -Math.PI / 2; nenChu.position.set(bx + c.rong / 2, .75, bz - 5); nenChu.userData = { chu: null };
-        c.ds2.forEach((d, n) => toaSp(d, bx + 6 + O / 2 + (n % c.cot) * O, bz - 14 - Math.floor(n / c.cot) * O)); });
-      // nhà xưởng: thân thấp + mái răng cưa
-      const xx = x0 + dai / 2, zz = z0 - cao + 20, than = add(new THREE.BoxGeometry(70, 14, 24), M({ color: '#6b5636', roughness: .7 })); than.position.set(xx, 7, zz); than.userData = { loai: 'khu', khoa: KHU_XUONG };
-      for (let i = 0; i < 5; i++) { const r2 = add(new THREE.CylinderGeometry(7, 7, 24, 3), M({ color: '#c98a2f', emissive: '#7a4f12', emissiveIntensity: .25 })); r2.rotation.set(-Math.PI / 2, 0, 0); r2.position.set(xx - 28 + i * 14, 17, zz); r2.userData = { chu: than }; }
-      const c = document.createElement('canvas'); c.width = 512; c.height = 140; const gc = c.getContext('2d')!; gc.fillStyle = 'rgba(40,28,8,.92)'; gc.beginPath(); gc.roundRect(4, 4, 504, 132, 20); gc.fill(); gc.strokeStyle = '#ffd27a'; gc.lineWidth = 5; gc.stroke();
-      gc.fillStyle = '#ffd27a'; gc.font = '800 52px system-ui, "Apple Color Emoji", sans-serif'; gc.textAlign = 'center'; gc.fillText('🏭 XƯỞNG SX', 256, 62); gc.fillStyle = '#fff'; gc.font = '700 34px system-ui, sans-serif'; gc.fillText(`${xs.length} sản phẩm chờ lên`, 256, 112);
-      const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(60, 16, 1); bien.position.set(xx, 38, zz); bien.userData = { chu: than }; the.add(bien);
-      chiMuc.push({ ten: 'Xưởng SX', nhan: 'khu', obj: than }); khuPos[KHU_XUONG] = { cx: xx, cz: zz, phia: -1 }; banKinhKhu[KHU_XUONG] = Math.max(dai, cao) / 2; zXuong = cao - z0;
+      raoQuanh([new THREE.Vector3(x0 - 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0 - cao), new THREE.Vector3(x0 - 10, 0, z0 - cao)], '#c98a2f', x0 + dai / 2, z0 - cao / 2, -1, 'Xưởng SX',
+        [{ ic: '🏭', so: String(sx.length), nhan: 'đang sản xuất', ma: 'xuong' }, { ic: '🔍', so: String(td.length), nhan: 'chờ thẩm định', ma: 'xuong' }], KHU_XUONG);
+      const chuNen = (chu: string, x: number, z: number, rong: number, mau: string) => { const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128; const gc = cv.getContext('2d')!; gc.fillStyle = mau; gc.textAlign = 'center'; gc.textBaseline = 'middle';
+        let co = 84; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; while (gc.measureText(chu).width > 990 && co > 30) { co -= 4; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; } gc.fillText(chu, 512, 66);
+        const pl = add(new THREE.PlaneGeometry(rong, rong / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false); pl.rotation.x = -Math.PI / 2; pl.position.set(x, .8, z); pl.userData = { chu: null }; };
+      // khu nhà máy: sân + nhà xưởng mái răng cưa ở đáy sân, sản phẩm lưới phía trước, tên khu in dưới nền
+      let xv = x0 + 6; let thanDau: any = null;
+      for (const c of vung) { const zA = z0 - 14, cx3 = xv + c.rong / 2;
+        const san = add(new THREE.BoxGeometry(c.rong, .5, c.sau), M({ color: '#3a2e1c', roughness: .9 }), false); san.position.set(cx3, .45, zA - c.sau / 2); ds.san!.push(san);
+        const than = add(new THREE.BoxGeometry(c.rong - 6, 10, 12), M({ color: '#6b5636', roughness: .7 })); than.position.set(cx3, 5, zA - c.sau + 8); than.userData = { loai: 'xuong-vung', vung: c.v }; thanDau ??= than;
+        for (let k = 0; k < Math.max(2, Math.floor((c.rong - 6) / 12)); k++) { const r2 = add(new THREE.CylinderGeometry(5, 5, 12, 3), M({ color: '#c98a2f', emissive: '#7a4f12', emissiveIntensity: .25 }), false); r2.rotation.set(-Math.PI / 2, 0, 0); r2.position.set(xv + 9 + k * 12, 12.5, zA - c.sau + 8); r2.userData = { chu: than }; }
+        chuNen(`${VUNG_SX[c.v]!.ic} ${VUNG_SX[c.v]!.ten} · ${c.ds2.length}`, cx3, zA - 6, c.rong - 2, '#ffd27a');
+        c.ds2.forEach((d, n) => toaSp(d, xv + 7 + O / 2 + (n % c.cot) * O, zA - 20 - Math.floor(n / c.cot) * O));
+        chiMuc.push({ ten: `Xưởng SX · ${VUNG_SX[c.v]!.ten}`, nhan: 'khu nhà máy', obj: than }); xv += c.rong + 14; }
+      // PHÒNG THẨM ĐỊNH: toà kính xanh + con dấu, hàng chờ duyệt trước cửa
+      const xT = x0 + dai - rongTd / 2 - 6, zT = z0 - 14;
+      const sanT = add(new THREE.BoxGeometry(rongTd, .5, sauTd), M({ color: '#1c2a3a', roughness: .9 }), false); sanT.position.set(xT, .45, zT - sauTd / 2); ds.san!.push(sanT);
+      const tdToa = add(new THREE.BoxGeometry(rongTd - 10, 20, 16), M({ color: '#1d3a66', emissive: '#3a6ff0', emissiveIntensity: .3, roughness: .25, metalness: .5 })); tdToa.position.set(xT, 10, zT - sauTd + 10); tdToa.userData = { loai: 'tham-dinh' };
+      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 140; const gc = cv.getContext('2d')!; gc.fillStyle = 'rgba(12,24,48,.94)'; gc.beginPath(); gc.roundRect(4, 4, 504, 132, 20); gc.fill(); gc.strokeStyle = '#6ea8ff'; gc.lineWidth = 5; gc.stroke();
+      gc.fillStyle = '#9fc0ff'; gc.font = '800 46px system-ui, "Apple Color Emoji", sans-serif'; gc.textAlign = 'center'; gc.fillText('🔍 PHÒNG THẨM ĐỊNH', 256, 62); gc.fillStyle = '#fff'; gc.font = '700 34px system-ui, sans-serif'; gc.fillText(`${td.length} chờ duyệt`, 256, 112);
+      const bienT = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false })); bienT.scale.set(52, 14, 1); bienT.position.set(xT, 34, zT - sauTd + 10); bienT.userData = { chu: tdToa }; the.add(bienT);
+      chuNen(`🔍 Chờ duyệt · ${td.length}`, xT, zT - 6, rongTd - 2, '#9fc0ff');
+      td.forEach((d, n) => toaSp(d, xT - (cotTd - 1) * O / 2 + (n % cotTd) * O, zT - 20 - Math.floor(n / cotTd) * O));
+      chiMuc.push({ ten: 'Phòng thẩm định', nhan: 'xưởng sx', obj: tdToa });
+      // biển XƯỞNG SX nổi trên tổ hợp nhà máy
+      const cv2 = document.createElement('canvas'); cv2.width = 512; cv2.height = 140; const g2 = cv2.getContext('2d')!; g2.fillStyle = 'rgba(40,28,8,.92)'; g2.beginPath(); g2.roundRect(4, 4, 504, 132, 20); g2.fill(); g2.strokeStyle = '#ffd27a'; g2.lineWidth = 5; g2.stroke();
+      g2.fillStyle = '#ffd27a'; g2.font = '800 52px system-ui, "Apple Color Emoji", sans-serif'; g2.textAlign = 'center'; g2.fillText('🏭 XƯỞNG SX', 256, 62); g2.fillStyle = '#fff'; g2.font = '700 34px system-ui, sans-serif'; g2.fillText(`${sx.length} đang SX · ${td.length} chờ duyệt`, 256, 112);
+      const xx = x0 + 6 + rongSx / 2, zz = z0 - cao + 20, than0 = add(new THREE.BoxGeometry(Math.max(40, rongSx * .5), 1, 1), new THREE.MeshBasicMaterial({ visible: false }), false); than0.position.set(xx, 30, zz); than0.userData = { loai: 'khu', khoa: KHU_XUONG };
+      const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv2), depthWrite: false })); bien.scale.set(60, 16, 1); bien.position.set(xx, 40, z0 - sauMax - 10); bien.userData = { loai: 'khu', khoa: KHU_XUONG }; the.add(bien);
+      chiMuc.push({ ten: 'Xưởng SX', nhan: 'khu', obj: thanDau ?? than0 }); khuPos[KHU_XUONG] = { cx: x0 + dai / 2, cz: z0 - cao / 2, phia: -1 }; banKinhKhu[KHU_XUONG] = Math.max(dai, cao) / 2; zXuong = cao - z0;
     }
     dungGop();
     const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), Math.max(coCty ? xCty + 110 : xKho + 60, xTnPhai), Math.max(zTrong, coCty ? 260 : 0, zXuong + 20), zNgoai);
@@ -917,6 +931,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         : p.ma === 'xem' ? { cot: ['Sản phẩm', '👁 Xem 7 ngày'], dong: ds2.filter((d) => d.xem7).sort((a, b) => b.xem7! - a.xem7!).map((d) => [ten(d), d.xem7!]) }
         : { cot: ['Camp', '💵 Thu 30n', '💸 Chi 30n'], dong: ds2.sort((a, b) => (b.chi30 ?? 0) - (a.chi30 ?? 0)).slice(0, 14).map((d) => [ten(d), tienO(d.tien30), tienO(d.chi30)]) };
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
+    }
+    if (u.loai === 'xuong-vung' || u.loai === 'tham-dinh') { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha && (u.loai === 'tham-dinh' ? d.giaiDoan === 'tham-dinh' : d.giaiDoan !== 'tham-dinh' && d.vungSx === u.vung));
+      return { dau: u.loai === 'tham-dinh' ? '🔍 Phòng thẩm định' : `🏭 Xưởng SX · ${VUNG_SX[u.vung]!.ic} ${VUNG_SX[u.vung]!.ten}`, h: [[u.loai === 'tham-dinh' ? 'Đã nộp, chờ duyệt' : 'Đang làm / sẵn sàng', xs.length]],
+        bang: { cot: ['Sản phẩm', 'Dự án', 'Trạng thái'], dong: xs.map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : d.loai === 'app' ? '📱' : '🛍'} ${esc(d.ten.slice(0, 28))}`, esc((d.duAnGocTen ?? '—').slice(0, 16)), esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? (d.giaiDoan === 'tham-dinh' ? 'đang duyệt' : 'đang làm'))]) } };
     }
     // XƯỞNG SX: thẻ riêng — không có phường / nguồn; mỗi đích chưa lên một hàng kèm dự án gốc và trạng thái duyệt
     if (u.loai === 'khu' && u.khoa === KHU_XUONG) { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha);

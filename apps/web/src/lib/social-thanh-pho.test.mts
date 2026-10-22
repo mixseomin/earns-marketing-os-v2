@@ -182,4 +182,10 @@ assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một l�
   assert.ok(k.raRia && !k.ngung && iR >= dauNgung, 'khu rìa: không ngừng, xếp vào dãy rìa');
   const kh = mR.taiNguyen.tk.find((x) => x.nen === 'khac')!; assert.ok(kh && kh.canhBao === 3, 'cảnh báo lạc nền về kho Nền khác, không mất');
   assert.equal(mR.taiNguyen.canhBaoDs[0]!.nen, 'khac', 'dòng cảnh báo trỏ đúng kho hiển thị'); }
+// XƯỞNG SX = tổ hợp nhà máy (góp ý #1437): 'ready' ở nhà máy (giai đoạn sx), đã nộp (in_review…) ở Phòng thẩm định; khu theo loại cửa bán
+assert.equal(appA4.giaiDoan, 'tham-dinh', 'app có bản đang duyệt → Phòng thẩm định'); assert.equal(appA4.vungSx, 'app', 'app vào khu App');
+{ const mX = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, sanPham: [...live.heSinhThai.sanPham, { id: 'k9', ten: 'Sách thử', nen: 'kdp', trangThai: 'ready', url: null, store: null, xem7: null, tai: null, net: null }, { id: 'k8', ten: 'Sách nộp', nen: 'kdp', trangThai: 'owner_review', url: null, store: null, xem7: null, tai: null, net: null }] } } as any);
+  const k9 = mX.dich.find((x) => x.khoa === 'p:k9')!, k8 = mX.dich.find((x) => x.khoa === 'p:k8')!;
+  assert.ok(k9.duAn === 'xuong' && k9.giaiDoan === 'sx' && k9.vungSx === 'sach', 'sẵn sàng chưa nộp → nhà máy, khu Sách');
+  assert.ok(k8.giaiDoan === 'tham-dinh', 'chờ anh duyệt → Phòng thẩm định'); }
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

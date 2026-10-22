@@ -63,6 +63,9 @@ export interface PhoDich {
   khoa: string; loai: 'site' | 'sp' | 'app' | 'nen' | 'camp'; ten: string; site: string | null; duAn: string;
   /** đích đang ở XƯỞNG SX (chưa lên — đang duyệt / sẵn sàng): khu dự án gốc của nó, lên xong tự về đó */
   duAnGoc?: string; duAnGocTen?: string;
+  /** trong XƯỞNG SX (góp ý city #1437): giai đoạn — 'sx' (đang làm / sẵn sàng, chưa nộp) · 'tham-dinh' (đã nộp, chờ duyệt — Phòng thẩm định);
+   *  vungSx = khu nhà máy theo loại sản phẩm (khoá VUNG_SX) */
+  giaiDoan?: 'sx' | 'tham-dinh'; vungSx?: string;
   /** camp: ngôn ngữ, trạng thái chạy, phim */
   ngonNgu?: string | null; phim?: string | null;
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
@@ -167,6 +170,12 @@ const NEN_APP = new Set(['app-store', 'ms-store', 'play-store']);
 export const TEN_BAN: Record<string, string> = { 'app-store': 'App Store', 'ms-store': 'Microsoft Store', 'play-store': 'Google Play', gumroad: 'Gumroad', etsy: 'Etsy', kdp: 'Amazon KDP', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI', 'wordpress.org': 'WordPress.org', stripe: 'Stripe', course: 'Khoá học', camp: 'Camp Meta' };
 /** trạng thái chưa lên của sản phẩm → chữ người đọc (thẻ Xưởng SX, bản cửa hàng) */
 export const TRANG_THAI_VN: Record<string, string> = { ready: 'sẵn sàng', in_review: 'đang duyệt', owner_review: 'chờ anh duyệt', pending: 'chờ xử lý' };
+/** khu trong tổ hợp nhà máy Xưởng SX — theo loại sản phẩm (cửa bán) */
+export const VUNG_SX: Record<string, { ten: string; ic: string }> = { app: { ten: 'App', ic: '📱' }, sach: { ten: 'Sách', ic: '📚' }, so: { ten: 'Sản phẩm số', ic: '🧩' }, plugin: { ten: 'Plugin', ic: '🔌' }, 'khoa-hoc': { ten: 'Khoá học', ic: '🎓' }, website: { ten: 'Website', ic: '🌐' }, khac: { ten: 'Khác', ic: '📦' } };
+const vungCua = (d: { loai: string; nenBan?: string }) => (d.loai === 'app' || NEN_APP.has(d.nenBan ?? '') ? 'app' : d.loai === 'site' ? 'website' : d.nenBan === 'kdp' ? 'sach'
+  : ['gumroad', 'etsy', 'mql5-market', 'rapidapi', 'stripe'].includes(d.nenBan ?? '') ? 'so' : d.nenBan === 'wordpress.org' ? 'plugin' : ['udemy', 'course'].includes(d.nenBan ?? '') ? 'khoa-hoc' : 'khac');
+/** đã nộp, đang chờ bên duyệt (cửa hàng / anh) → Phòng thẩm định; 'ready' = làm xong nhưng chưa nộp → còn trong nhà máy */
+const CHO_DUYET = new Set(['in_review', 'owner_review', 'pending', 'submitted']);
 /** khu XƯỞNG SX (anh 22/10/2026): mọi đích chưa lên — đứng cạnh Công ty AI, không chen vào khu dự án */
 export const KHU_XUONG = 'xuong';
 /** số camp Ethopex dựng thành toà quanh khu (nhiều tiền nhất); phần còn lại cộng vào toà Ethopex */
@@ -350,6 +359,11 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const tenKhuGoc = (k: string) => (k.startsWith('d:') ? hst.duAn.find((x) => x.id === k.slice(2))?.ten ?? k.slice(2) : k.startsWith('rieng:') ? k.slice(6) : k.startsWith('khoa:') ? k.slice(5) : 'Chưa gán dự án');
   const vaoXuong = (x: PhoDich) => { x.duAnGoc = x.duAn; x.duAnGocTen = tenKhuGoc(x.duAn); x.duAn = KHU_XUONG; };
   for (const d of dich) if (d.sapLen && !d.cha) { vaoXuong(d); for (const b of dich) if (b.cha === d.khoa) vaoXuong(b); }
+  // giai đoạn + khu nhà máy: app chờ duyệt khi có bản cửa hàng nào đã nộp
+  for (const d of dich) if (d.duAn === KHU_XUONG && !d.cha) {
+    const cho = d.loai === 'app' ? dich.some((b) => b.cha === d.khoa && CHO_DUYET.has(b.trangThai ?? '')) : CHO_DUYET.has(d.trangThai ?? '');
+    d.giaiDoan = cho ? 'tham-dinh' : 'sx'; d.vungSx = vungCua(d);
+  }
   const khoaDa = [...new Set(dich.map((d) => d.duAn))];
   const lvMap = new Map((hst.linhVuc ?? []).map((x) => [x.khoa, x.linhVuc]));
   const lvCua = (khoa: string, site: string | null) => { const lv = (khoa.startsWith('d:') ? lvMap.get(`p:${khoa.slice(2)}`) : khoa.startsWith('rieng:') ? lvMap.get(`s:${khoa.slice(6)}`) : null) ?? (site ? lvMap.get(`s:${site}`) : null); return lv && LINH_VUC[lv] ? lv : 'khac'; };

@@ -27,7 +27,7 @@
     'td[data-etp-so]::before{content:"$";position:absolute;left:var(--etp-pl,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);opacity:.55;font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums}' +
     'td[data-etp-so]::after{content:attr(data-etp-so);position:absolute;right:var(--etp-pr,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums;white-space:nowrap}' +
     'td[data-etp-am]::after,td[data-etp-am]::before{color:#d93025}html.dark td[data-etp-am]::after,html.dark td[data-etp-am]::before{color:#ff8a80}' +
-    '#etp-theme{position:fixed;left:12px;bottom:12px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
+    '#etp-theme{position:fixed;right:16px;top:14px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
   document.documentElement.appendChild(st);
   const laTat = (tr) => tr.classList.contains('opacity-30') || [...tr.children].some((x) => /^\s*Paused\s*$/i.test(x.textContent || ''));
   const TIEN = /^\s*([+\-−]?)\s*\$\s*([\d,]+(?:\.\d+)?)\s*$/;
@@ -45,7 +45,7 @@
       if (am) td.dataset.etpAm = '1'; else delete td.dataset.etpAm;
     }
   };
-  // THEME TỐI (anh 22/10/2026): bật giao diện tối CÓ SẴN của Ethopex (next-themes: localStorage 'theme' + class 'dark' trên <html>) — nút 🌙/☀️ góc trái dưới
+  // THEME TỐI (anh 22/10/2026): bật giao diện tối CÓ SẴN của Ethopex (next-themes: localStorage 'theme' + class 'dark' trên <html>) — nút 🌙/☀️ góc phải trên (góc trái dưới đè Sign out)
   const datTheme = (toi) => { try { localStorage.setItem('theme', toi ? 'dark' : 'light'); } catch {}
     document.documentElement.classList.toggle('dark', toi); document.documentElement.classList.toggle('light', !toi); document.documentElement.style.colorScheme = toi ? 'dark' : 'light';
     for (const td of document.querySelectorAll('td[data-etp-so]')) { delete td.dataset.etpSo; delete td.dataset.etpGoc; td.style.removeProperty('--etp-mau'); }   // đọc lại màu chữ theo theme mới

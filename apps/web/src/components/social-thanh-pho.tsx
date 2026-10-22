@@ -8,21 +8,24 @@ import { dungThanhPho, napThree } from './social-thanh-pho-canh';
 
 const LAM_MOI_MS = 60_000;
 
-/** toanTrang = trang riêng city.on.tc: chiếm trọn khung nhìn, không viền */
-export function SocialThanhPho({ live, toanTrang = false }: { live: SocialLive; toanTrang?: boolean }) {
-  const mh0 = useMemo(() => tinhThanhPho(live), [live]);
+/** live = số thô (tab Social, tự tính mô hình) · mh + luc = mô hình dựng sẵn (city.on.tc, từ bản lưu) · toanTrang = chiếm trọn khung nhìn ·
+ *  lamMoiNgay = mô hình là bản lưu → gọi số mới ngay khi dựng xong, không đợi một phút */
+export function SocialThanhPho({ live, mh, luc: luc0, toanTrang = false, lamMoiNgay = false }: { live?: SocialLive; mh?: PhoMoHinh; luc?: string; toanTrang?: boolean; lamMoiNgay?: boolean }) {
+  const mh0 = useMemo(() => mh ?? tinhThanhPho(live!), [mh, live]);
   const ref = useRef<HTMLDivElement>(null);
   const [loi, setLoi] = useState('');
-  const [luc, setLuc] = useState(live.luc);
+  const [luc, setLuc] = useState(luc0 ?? live?.luc ?? '');
   useEffect(() => {
     let canh: { don: () => void; capNhat: (mh: PhoMoHinh) => void } | null = null, song = true;
     napThree().then((T) => { if (song && ref.current) canh = dungThanhPho(ref.current, mh0, T); }).catch((e: Error) => song && setLoi(e.message));
-    const id = setInterval(() => {
+    const lamMoi = () => {
       if (document.visibilityState !== 'visible' || !canh) return;
       fetch('/api/social/thanh-pho', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((x: { luc: string; mh: PhoMoHinh } | null) => { if (song && x && canh) { canh.capNhat(x.mh); setLuc(x.luc); } }).catch(() => { /* mạng chập chờn: giữ số cũ, lượt sau gọi lại */ });
-    }, LAM_MOI_MS);
+    };
+    const id = setInterval(lamMoi, LAM_MOI_MS);
+    if (lamMoiNgay) { const cho = setInterval(() => { if (canh) { clearInterval(cho); lamMoi(); } }, 300); setTimeout(() => clearInterval(cho), 20_000); }
     return () => { song = false; clearInterval(id); canh?.don(); };
-  }, [mh0]);
+  }, [mh0, lamMoiNgay]);
   if (loi) return <div style={{ padding: 16, color: 'var(--bad)' }}>Không dựng được thành phố: {loi}</div>;
   return <div style={{ position: 'relative' }}>
     <div ref={ref} aria-label="Thành phố 3D social traffic" style={toanTrang ? { height: '100dvh' } : { height: 'calc(100dvh - 210px)', minHeight: 460, borderRadius: 12, border: '1px solid var(--border)' }} />

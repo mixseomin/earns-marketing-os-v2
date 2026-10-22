@@ -12,7 +12,7 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 /** ĐỒ CỦA MỘT NƠI trong câu PHONG CÁCH PHIM (anh 22/10/2026, phim #132: phong cách "daylight from floor-to-ceiling windows" đi vào mọi shot, kể cả sảnh
  *  thang máy đá đen không có cửa sổ → nền sau lưng người đổi giữa các shot). Phong cách chỉ nói chất ảnh / ống kính / tông; đồ đạc là của bối cảnh.
@@ -54,6 +54,10 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
     const chuLap = b.khoi ? ghep(b.khoi.filter((k) => k.ma !== 'bo_tri' && k.ma !== 'khung')) : chu;
     const flux = b.flux ?? (b.duong ? !!KHUON[b.duong].flux : false);
     if (b.khoi && b.duong) for (const m of thieuKhoi(b.duong, b.khoi, s.nguoi.length > 0)) them(b.ten, 'thieu_khoi', `thiếu khối "${m}" mà khuôn ${KHUON[b.duong].ten} bắt buộc — model tự đoán phần đó`);
+    // KHỐI KHÔNG THÊM phải là DANH SÁCH TRẮNG (prompt-khoi.ts › KHONG_THEM_ANH): liệt kê thứ cấm ("no phone, smoke, cups…", "nobody films") = vá từng ca,
+    // không bao giờ đủ, lại gợi ý cho model vẽ đúng thứ bị nêu tên
+    { const kt = (b.khoi ?? []).filter((k) => k.ma === 'khong_them').map((k) => k.chu).join(' ');
+      const lk = kt.match(/\b(no|without|nobody)\b[^.;]*?,[^.;]*?,[^.;]*/i); if (lk) them(b.ten, 'liet_ke_cam', `khối không thêm đang LIỆT KÊ thứ cấm "${lk[0].slice(0, 80)}…" — viết danh sách trắng: chỉ cái được nêu mới có / mới đổi, còn lại giữ nguyên`); }
     // bỏ tên riêng trước khi soi dấu: tên khai (cả tên tắt) + chữ VIẾT HOA đầu (tên nhân vật ngoài khung được nhắc); chữ thường có dấu mới là tiếng Việt lọt vào
     const tron = rieng.reduce((c, t) => c.split(t).join(' '), chuViet).replace(/(^|[^\p{L}])\p{Lu}[\p{L}]*/gu, '$1');
     if (coTiengViet(tron)) them(b.ten, 'tieng_viet', `lẫn tiếng Việt ${doan(tron, VIET)} — model đọc tiếng Anh: dùng mô tả en (biến thể, vật), không dùng tên / ghi chú tiếng Việt`);

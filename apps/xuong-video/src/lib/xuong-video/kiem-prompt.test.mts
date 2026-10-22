@@ -62,4 +62,6 @@ assert.deepEqual(noiChonPhongCach('glossy look, cool steel-blue key light with w
 assert.equal(hanhDongTrongMoTa('young female office worker in a light blue blouse, seated, turned toward the aisle, holding up a phone to film'), 'holding up a phone');
 assert.equal(hanhDongTrongMoTa('male office worker in a charcoal shirt, seated, smirking'), 'smirking');
 assert.equal(hanhDongTrongMoTa('female office worker in a cream blouse and grey pencil skirt, standing by the window'), null);
+// KHỐI KHÔNG THÊM liệt kê thứ cấm → chặn; danh sách trắng → qua
+assert.equal(loiPrompt([{ ten: 'bước 1', duong: 'flux', khoi: [...kh('Boardroom'), khoi('khong_them', 'No extra objects, props, cups, cables or people.')] }], s).length, 1);
 console.log('kiem-prompt: ok');

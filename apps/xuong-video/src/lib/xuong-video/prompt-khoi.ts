@@ -35,7 +35,7 @@ export const CHAT_LIEU: Record<ChatLieu, {
     // NỀN KHOÁ (anh 22/10/2026, phim #132 cảnh thang máy: "phần đằng sau lưng 2 người lúc sinh video hay ảnh hay bị thay đổi"): câu cũ "background stays
     // naturally alive (people breathing, slight shifts…) — never frozen" mời model cho nền chuyển động / vẽ lại; sống là việc của diễn viên, set đứng yên.
     song_video: (chen) => chen ? 'Only the described detail moves; everything else in frame stays still, with natural subtle life (a breath, a slight shift of light).' : 'Keep the actors alive with natural, motivated movement and readable body language — they never freeze. The set behind them is a fixed physical place: walls, doors, furniture, artwork, signs, logos and reflections keep exactly the same shape, position and content for the whole clip; nothing in the background morphs, slides or is redrawn (only natural light and focus may shift).',
-    khong_them: (vao) => `Nothing new appears (no extra people or objects${vao}, no visual effects); things cut off by the frame edge stay cut off. Background people only keep doing what they do in the first frame — nobody takes out a phone, films, photographs, points or walks in unless the action above says so.`,
+    khong_them: (vao) => `WHITELIST: the only things that change in this clip are the ones the action above names${vao}. Every person, object and part of the set it does not name stays exactly as in the first frame — same place, same pose, same activity; nothing and nobody is added; things cut off by the frame edge stay cut off.`,
     cam: /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top|desk lamp|squash and stretch|cartoon acting|puppet|fur, leaves|simply floats)\b/i,
   },
   hoat_hinh: {
@@ -49,7 +49,7 @@ export const CHAT_LIEU: Record<ChatLieu, {
     dien_video: (r) => r ? 'Performance like a real stop-motion puppet (small, deliberate moves; every body keeps its solid shape — no stretching, melting or bending of limbs)' : 'Cartoon acting (anticipation, action, follow-through, squash and stretch, hold the reaction)',
     giu_video: 'Keep the exact look of the first frame: same materials, textures, lighting, colours and depth of field; it is a real photographed miniature, not a cartoon. Every character keeps exactly the face and eyes it has in the first frame — never draw, add or animate a cartoon face, mouth or expression lines that are not there.',
     song_video: () => 'Keep the whole frame alive: the characters perform the action with clear, readable whole-body movement (not just a small facial change), and secondary motion never stops — fur, leaves, grass, clouds and small background details keep drifting.',
-    khong_them: (vao) => `Nothing new appears during the clip: no extra characters, props, cables, hands or objects beyond what is in the first frame${vao}; things cut off by the frame edge stay cut off; no fire, smoke, sparks, exhaust, glow, dust or particle effects of any kind (a character that rises simply floats); only movement, expression and camera motion change.`,
+    khong_them: (vao) => `WHITELIST: the only things that change in this clip are the ones the action above names${vao}. Every character, object and part of the set it does not name stays exactly as in the first frame; nothing is added, no effects of any kind; things cut off by the frame edge stay cut off; only movement, expression and camera motion change.`,
     cam: /\b(live-action film still|real actors|35mm film look)\b/i,
   },
 };
@@ -89,10 +89,13 @@ export const KHUON: Record<DuongSinh, { ten: string; bat_buoc: MaKhoi[]; flux?: 
  *  set. Ngành: diễn xuất của quần chúng do trợ lý đạo diễn giao THEO TỪNG SHOT; hồ sơ người chỉ có ngoại hình + tư thế đứng / ngồi. Trả cụm hành động lọt vào. */
 const HANH_DONG_NGUOI = /\b(film(s|ing)?|to film|record(s|ing)?|photograph(s|ing)|taking (a )?(photo|picture|video)|holding up a phone|on (her|his|their) phone|smirk\w*|watch(es|ing)|glanc\w*|typ(es|ing)|whisper\w*|laugh\w*|point(s|ing)|star(es|ing)|shout\w*|talking|chatting|gossip\w*)\b/i;
 export const hanhDongTrongMoTa = (t: string): string | null => t.match(HANH_DONG_NGUOI)?.[0] ?? null;
-/** KHÔNG THÊM VẬT LẠ — ảnh sửa (một bước, bước 2, plate): chỉ vật có trong bố cục 3D + mô tả. */
-export const KHONG_THEM_ANH = 'Draw ONLY what Image 1 and this description contain: no extra objects, props, papers, cups, bottles, plants, screens, cables, signs, decorations, animals or people that are not there.';
+/** KHÔNG THÊM = DANH SÁCH TRẮNG (anh 22/10/2026: "cấm thế này thì sau này phát sinh thêm hàng tỷ loại bất ngờ thì thêm từng cái vào prompt à?"): nói CÁI GÌ
+ *  ĐƯỢC CÓ / ĐƯỢC ĐỔI (bố cục 3D + mô tả + hành động thẻ shot), mọi thứ khác giữ nguyên — KHÔNG liệt kê thứ cấm (điện thoại, khói, cốc…): danh sách đen
+ *  không bao giờ đủ, và mỗi tên vật nêu ra lại gợi ý cho model vẽ nó. Bộ chấm chặn chữ liệt kê kiểu "no phone / no smoke" trong khối này (kiem-prompt).
+ *  Ảnh sửa (một bước, bước 2, plate): chỉ vật có trong bố cục 3D + mô tả. */
+export const KHONG_THEM_ANH = 'WHITELIST: the image contains ONLY what Image 1 shows and this description names — nothing else, of any kind.';
 /** Bản NGẮN cho FLUX (ngân sách ~300 từ, FLUX không có prompt âm): nói theo hướng khẳng định. */
-export const KHONG_THEM_FLUX = 'Only the objects shaped by the layout and named here; nothing else added on any surface.';
+export const KHONG_THEM_FLUX = 'Only what the layout shapes and this text names; nothing else.';
 /** ẢNH CHUẨN BỐI CẢNH (doc-db.ts › anhSet): keyframe đã duyệt của shot khác cùng bộ set — chép BỀ NGOÀI phòng, không chép máy / bố trí. */
 export const cauAnhSet = (so: number, nhan: string) => `Image ${so} = an approved frame from another shot (${nhan}) on this SAME set: match the LOOK of the place to it exactly — the desk and furniture (same material, wood tone, colour and finish), what lies on each surface, walls, floor, glass, plants, light and colour grade. Do NOT copy its camera, framing, people, poses or object positions: those come only from Image 1. Do not bring in anything from Image ${so} that Image 1 does not show.`;
 /** Khối bắt buộc mà rỗng (có người trong khung mới bắt khối người). */

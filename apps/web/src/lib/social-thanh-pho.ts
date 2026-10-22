@@ -93,7 +93,23 @@ export interface PhoTien { tong: number; theo: { ten: string; so: number }[]; ch
 /** NHÀ MÁY = máy chủ chạy site: tên, nhà cung cấp, chi tháng, hạn, các site nó cấp điện, cảnh báo (sắp hết hạn) */
 export interface PhoNhaMay { khoa: string; ten: string; chiThang: string | null; het: string | null; sites: string[]; canhBao: string | null; tai?: number | null; nhan?: number | null; ramMB?: number | null; diaPct?: number | null }
 export interface PhoPhong { khoa: string; ten: string; truong: string; duAn: string[]; hoatDong: boolean; trangThai: string; viec24: number; cuoi: { luc: string; viec: string; ket?: string } | null }
-export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; fav: Record<string, string | null> }
+/** KHU TÀI NGUYÊN (anh 23/10/2026 "bộ phận quản lý tài nguyên, tài khoản, ngân sách trong các tài khoản, trạng thái; các bộ quản lý br"):
+ *  tài khoản theo nền (đếm theo nhóm trạng thái + cảnh báo chưa xử), hồ sơ trình duyệt br / máy ảo, proxy, ngân sách (ngày · tháng · chi 30 ngày · một lần) */
+export interface PhoTaiNguyen {
+  tk: { nen: string; ten: string; tong: number; theo: Record<TtTk, number>; canhBao: number }[];
+  hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
+  proxy: { suc: string; n: number }[];
+  nganSach: { ten: string; ky: 'ngày' | 'tháng' | '30 ngày qua' | 'một lần' | 'hạn mức'; so: number; tienTe: string }[];
+  canhBao: { nen: string; loai: string; n: number }[];
+  chuaNoi: string[];
+}
+export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; taiNguyen: PhoTaiNguyen; fav: Record<string, string | null> }
+/** trạng thái tài khoản (platform_accounts.status) → nhóm người đọc */
+export type TtTk = 'song' | 'nuoi' | 'han' | 'khoa' | 'dong';
+export const TT_TK: Record<TtTk, { ten: string; mau: string }> = { song: { ten: 'đang dùng', mau: '#3fd68a' }, nuoi: { ten: 'đang nuôi / tạo', mau: '#ffd166' }, han: { ten: 'bị hạn chế', mau: '#ff9f1c' }, khoa: { ten: 'bị khoá / chặn', mau: '#ff4d5e' }, dong: { ten: 'đã đóng', mau: '#5a6070' } };
+export const nhomTt = (st: string): TtTk => (st === 'active' ? 'song' : ['warming', 'creating', 'pending', 'todo'].includes(st) ? 'nuoi' : st === 'limited' ? 'han' : ['banned', 'blocked', 'suspended', 'locked'].includes(st) ? 'khoa' : 'dong');
+const TEN_NEN_TK: Record<string, string> = { facebook: 'Facebook', google: 'Google', twitter: 'X', instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', pinterest: 'Pinterest', reddit: 'Reddit', outlook: 'Outlook', gumroad: 'Gumroad', producthunt: 'Product Hunt', dailymotion: 'Dailymotion', threads: 'Threads', quora: 'Quora', 'app-store': 'App Store', 'ms-store': 'Microsoft Store', etsy: 'Etsy', kdp: 'Amazon KDP', udemy: 'Udemy', khac: 'Nền khác' };
+const SO_NEN_TK = 14;
 /** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
 export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
   'du-lich': { ten: 'Du lịch', ic: '✈️', mau: '#2f8fbf' }, 'thuong-mai': { ten: 'Thương mại · Dropship', ic: '🛍', mau: '#c0507a' }, app: { ten: 'App', ic: '📱', mau: '#3a6ff0' },
@@ -129,7 +145,10 @@ export interface VaoHeSinhThai {
   /** phòng ban công ty AI: trưởng phòng, dự án phụ trách, đang hoạt động, số việc nền 24 giờ, việc gần nhất */
   congTy?: PhoPhong[];
   /** CAMP ETHOPEX (ethopex-doc): thu / chi 30 ngày mỗi camp (cùng cửa sổ với tiền Ethopex của Kho bạc) */
-  camps?: { id: number; ten: string; phim: string | null; ngonNgu: string | null; trangThai: string; thu30: number; chi30: number }[];
+  camps?: { id: number; ten: string; phim: string | null; ngonNgu: string | null; trangThai: string; thu30: number; chi30: number; nganSachNgay?: number }[];
+  /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
+  taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
+    proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[] };
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null }[];
 }
@@ -376,5 +395,24 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   }
   const nhaMay = [...may.values()].filter((m) => m.sites.length || m.canhBao || m.tai != null).sort((a, b) => b.sites.length - a.sites.length);
   const congTy = [...(hst.congTy ?? [])].sort((a, b) => Number(b.hoatDong) - Number(a.hoatDong) || b.viec24 - a.viec24);
-  return { tk, dich, duAn, luong, tien, nhaMay, congTy, fav: live.fav };
+  // ── TÀI NGUYÊN
+  const vt = hst.taiNguyen;
+  const theoNen = new Map<string, { tong: number; theo: Record<TtTk, number> }>();
+  for (const x of vt?.tk ?? []) { const g = theoNen.get(x.nen) ?? { tong: 0, theo: { song: 0, nuoi: 0, han: 0, khoa: 0, dong: 0 } }; g.tong += x.n; g.theo[nhomTt(x.status)] += x.n; theoNen.set(x.nen, g); }
+  const xepNen = [...theoNen].sort((a, b) => b[1].tong - a[1].tong), dau = xepNen.slice(0, SO_NEN_TK), con = xepNen.slice(SO_NEN_TK);
+  if (con.length) { const g = { tong: 0, theo: { song: 0, nuoi: 0, han: 0, khoa: 0, dong: 0 } as Record<TtTk, number> }; for (const [, x] of con) { g.tong += x.tong; for (const k of Object.keys(g.theo) as TtTk[]) g.theo[k] += x.theo[k]; } dau.push(['khac', g]); }
+  const cbNen = (nen: string) => (vt?.canhBao ?? []).filter((c) => (nen === 'khac' ? con.some(([n]) => n === c.nen) : c.nen === nen)).reduce((a, c) => a + c.n, 0);
+  const campChay = (hst.camps ?? []).filter((c) => c.trangThai === 'active');
+  const taiNguyen: PhoTaiNguyen = {
+    tk: dau.map(([nen, g]) => ({ nen, ten: TEN_NEN_TK[nen] ?? nen.replace(/^./, (c) => c.toUpperCase()), tong: g.tong, theo: g.theo, canhBao: cbNen(nen) })),
+    hoSo: vt?.hoSo ?? [], proxy: vt?.proxy ?? [], canhBao: vt?.canhBao ?? [],
+    nganSach: [
+      ...(campChay.length ? [{ ten: `Ethopex · ${campChay.length} camp đang chạy`, ky: 'ngày' as const, so: campChay.reduce((a, c) => a + (c.nganSachNgay ?? 0), 0), tienTe: 'USD' }] : []),
+      ...(hst.chi ?? []).filter((x) => x.usd > 0).map((x) => ({ ten: `Chi QC · ${x.nguon}`, ky: '30 ngày qua' as const, so: x.usd, tienTe: 'USD' })),
+      ...(vt?.soNganSach ?? []).map((x) => ({ ten: x.ten, ky: (x.chuKy ? 'tháng' : 'một lần') as 'tháng' | 'một lần', so: x.chuKy ? (x.so * 30) / x.chuKy : x.so, tienTe: x.tienTe })),
+      ...(vt?.tkQcShop ?? []).filter((x) => x.hanMuc != null).map((x) => ({ ten: `TK QC shop · ${x.ten}`, ky: 'hạn mức' as const, so: x.hanMuc!, tienTe: x.tienTe })),
+    ],
+    chuaNoi: ['Ngân sách / số dư Google Ads (DB adfond — mos2 chưa có quyền đọc)'],
+  };
+  return { tk, dich, duAn, luong, tien, nhaMay, congTy, taiNguyen, fav: live.fav };
 }

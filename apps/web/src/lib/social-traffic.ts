@@ -117,7 +117,14 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     doc('hoa hồng aff', networkRows(tu30), null),
     doc('Ethopex', docEthopex(), null),
   ]);
-  const [mayChu, congTy] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), [])]);
+  const [mayChu, congTy, tnTk, tnCb, tnHs, tnPx, tnNs, tnQc] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
+    // tài nguyên (khu TÀI NGUYÊN): tài khoản × trạng thái, cảnh báo chưa xử, hồ sơ trình duyệt (br / máy ảo), proxy, sổ ngân sách, tài khoản QC shop
+    q<{ nen: string; status: string; n: number }>('tài khoản theo nền', sql`SELECT platform_key AS nen, status, count(*)::int AS n FROM platform_accounts GROUP BY 1, 2`),
+    q<{ nen: string | null; loai: string; n: number }>('cảnh báo nền tảng', sql`SELECT coalesce(platform, 'khac') AS nen, loai, count(*)::int AS n FROM platform_alerts WHERE xong_luc IS NULL GROUP BY 1, 2`),
+    q<{ tool: string; n: number; gan7: number; cuoi: string | null }>('hồ sơ trình duyệt', sql`SELECT tool, count(*)::int AS n, (count(*) FILTER (WHERE last_opened_at > now() - interval '7 days'))::int AS gan7, max(last_opened_at)::text AS cuoi FROM browser_profiles WHERE archived_at IS NULL GROUP BY 1`),
+    q<{ suc: string; n: number }>('proxy', sql`SELECT coalesce(health, 'chưa đo') AS suc, count(*)::int AS n FROM proxies WHERE archived_at IS NULL GROUP BY 1`),
+    q<{ ten: string; so: number; tien_te: string; chu_ky: number | null }>('sổ ngân sách', sql`SELECT label AS ten, amount_cents / 100.0 AS so, currency AS tien_te, recurring_interval_days AS chu_ky FROM budget_entries WHERE kind IN ('expense', 'recurring')`),
+    q<{ ten: string; trang_thai: string; han_muc: number | null; tien_te: string }>('tài khoản QC shop', sql`SELECT ten, trang_thai, han_muc::float AS han_muc, coalesce(tien_te, 'USD') AS tien_te FROM shop_qc_tk`)]);
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
@@ -136,7 +143,9 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     congTy,
     // camp Ethopex: thu / chi 30 ngày cộng từ báo cáo ngày × camp (cùng cửa sổ tu30 với tiền Ethopex ở Kho bạc)
     camps: etp ? etp.camps.map((c) => { const ng = etp.ngayCamp.filter((x) => x.camp === c.id && x.ngay >= tu30);
-      return { id: c.id, ten: c.ten, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: c.trang_thai.toLowerCase(), thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0) }; }) : [],
+      return { id: c.id, ten: c.ten, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: c.trang_thai.toLowerCase(), thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach }; }) : [],
+    taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), hoSo: tnHs, proxy: tnPx,
+      soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })) },
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
       ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
     tienAff: [...(aff?.rows ?? []).filter((r) => r.source === 'affiliate' && r.date >= tu30).map((r) => ({ site: r.site ? r.site.replace(/^www\./, '') : null, mang: r.group ?? r.channel, usd: r.amount })),

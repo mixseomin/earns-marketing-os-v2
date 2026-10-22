@@ -162,4 +162,16 @@ assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một l�
   assert.ok(mE.duAn.some((k) => !(k.tien30 ?? 0) && !(k.luu ?? 0) && k.quyMo === 0), 'không tiền không khách → 0');
   assert.equal(qm('xuong'), 0, 'xưởng không phình theo tiền / khách');
   assert.ok(mE.duAn.some((k) => k.quyMo! > 0 && k.quyMo! < 1), 'khu vừa thì cỡ vừa'); }
+// TÀI NGUYÊN: tài khoản gom theo nền × nhóm trạng thái, nền thứ 15 trở đi vào "Nền khác", cảnh báo chưa xử theo nền, ngân sách ngày Ethopex = tổng camp đang chạy
+{ const tkTho = Array.from({ length: 16 }, (_, i) => ({ nen: `nen${i}`, status: 'active', n: 20 - i })).concat([{ nen: 'nen0', status: 'banned', n: 2 }, { nen: 'nen0', status: 'warming', n: 3 }, { nen: 'nen15', status: 'closed', n: 1 }]);
+  const mT = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, camps: [{ id: 1, ten: 'A', phim: null, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0, nganSachNgay: 5 }, { id: 2, ten: 'B', phim: null, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0, nganSachNgay: 3 }, { id: 3, ten: 'C', phim: null, ngonNgu: 'en', trangThai: 'paused', thu30: 0, chi30: 0, nganSachNgay: 9 }],
+    taiNguyen: { tk: tkTho, canhBao: [{ nen: 'nen0', loai: 'khoa', n: 2 }, { nen: 'nen15', loai: 'xac_minh', n: 1 }], hoSo: [{ tool: 'chrome', n: 57, gan7: 12, cuoi: null }], proxy: [{ suc: 'ok', n: 4 }],
+      soNganSach: [{ ten: 'VPS', kieu: 'định kỳ', so: 15, tienTe: 'USD', chuKy: 15 }], tkQcShop: [{ ten: 'TK mẫu', trangThai: 'song', hanMuc: null, tienTe: 'USD' }] } } } as any).taiNguyen;
+  const n0 = mT.tk.find((x) => x.nen === 'nen0')!, khac = mT.tk.find((x) => x.nen === 'khac')!;
+  assert.ok(n0.tong === 25 && n0.theo.song === 20 && n0.theo.khoa === 2 && n0.theo.nuoi === 3 && n0.canhBao === 2, 'một nền: đếm theo nhóm trạng thái + cảnh báo');
+  assert.ok(mT.tk.length === 15 && khac.tong === 6 + 5 + 1 && khac.theo.dong === 1 && khac.canhBao === 1, '14 nền đông nhất + Nền khác gộp phần còn lại');
+  assert.equal(mT.nganSach.find((x) => x.ten.startsWith('Ethopex'))!.so, 8, 'ngân sách ngày Ethopex = camp đang chạy (5 + 3), camp dừng không tính');
+  assert.equal(mT.nganSach.find((x) => x.ten === 'VPS')!.so, 30, 'khoản định kỳ quy về tháng (15 / 15 ngày → 30)');
+  assert.ok(!mT.nganSach.some((x) => x.ten.includes('TK mẫu')), 'tài khoản QC chưa có hạn mức thì không hiện');
+  assert.ok(mT.chuaNoi.length > 0, 'nói rõ phần chưa nối'); }
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

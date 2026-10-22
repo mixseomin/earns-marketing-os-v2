@@ -5,8 +5,12 @@
 // Khung hiện ra rê chuột vào được (xem video, bấm link); rời cả hàng lẫn khung thì ẩn.
 // 3. TRẠNG THÁI CAMP NHÌN LÀ THẤY (anh 22/10/2026: "camp bị tắt hay bật phải show rõ ra, giờ nhìn mãi mới thấy"): Ethopex chỉ làm mờ hàng Paused
 //    (class opacity-30) → mọi hàng camp được gắn nhãn ở ô tên: đỏ "⏸ TẮT" / xanh "▶ BẬT", hàng tắt nền đỏ nhạt + vạch đỏ bên trái, chữ vẫn đọc được.
-(() => {
+// HAI CÁCH CHẠY (2.1): (a) vỏ nạp chèn <script src=mos2…/js?k=…> → chạy ở thế giới của trang, khoá lấy từ URL của chính script, báo 'etp-chay' cho vỏ nạp;
+// (b) bản kèm extension (content script) chỉ ĐĂNG KÝ window.__etpKhoiDong — vỏ nạp gọi khi mã mos2 không chạy được sau 2 lần (dự phòng).
+{ const __etpKhoaUrl = (() => { try { return new URL(document.currentScript.src).searchParams.get('k') || ''; } catch { return ''; } })();
+  const __etpChay = () => {
   if (window.__etpLyDo) return; window.__etpLyDo = true;   // vỏ nạp + userscript cũ cùng chạy thì chỉ một bản
+  window.dispatchEvent(new CustomEvent('etp-chay'));
   const st = document.createElement('style');
   st.textContent = 'tr[data-etp="tat"]{opacity:.85!important;background:#fdecea!important;box-shadow:inset 5px 0 0 #d93025}' +
     'tr[data-etp="tat"] td{color:#7a2a24!important}' +
@@ -31,7 +35,7 @@
     .observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   gan();
 
-  const API = 'https://mos2.on.tc/api/ext/ethopex-ly-do?k=' + encodeURIComponent(window.ETHOPEX_LY_DO_KHOA || document.documentElement.dataset.etpKhoa || '');
+  const API = 'https://mos2.on.tc/api/ext/ethopex-ly-do?k=' + encodeURIComponent(window.ETHOPEX_LY_DO_KHOA || __etpKhoaUrl || document.documentElement.dataset.etpKhoa || '');
   let bang = null, luc = 0; const le = {}, phimNho = {};
   const lay = async () => { if (!bang || Date.now() - luc > 120000) { try { const r = await (await fetch(API)).json(); if (r.ok) { bang = r.camp; luc = Date.now(); } } catch (e) {} } return bang || {}; };
   const o = document.createElement('div');
@@ -158,4 +162,5 @@
     anSau();
   }, true);
   document.addEventListener('scroll', (ev) => { if (!o.contains(ev.target)) { o.style.display = 'none'; dang = null; } }, true);
-})();
+};
+  if (globalThis.chrome?.runtime?.id && !window.__etpGoiThang) window.__etpKhoiDong = __etpChay; else __etpChay(); }

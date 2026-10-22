@@ -50,6 +50,7 @@ export async function GET(req: Request) {
   if (!db) return NextResponse.json({ ok: false, error: 'thiếu DB' }, { status: 500, headers: CORS });
   const r = (await db.execute(sql`SELECT gia_tri->>'token' AS t FROM xv_khoa_ngoai WHERE ten = 'ethopex_ext'`)) as unknown as { t: string | null }[];
   if (!r[0]?.t || u.searchParams.get('k') !== r[0].t) return NextResponse.json({ ok: false, error: 'sai mã' }, { status: 403, headers: CORS });
+  if (u.searchParams.get('bao')) console.log(`ethopex-nap BAO=${u.searchParams.get('bao')} ua=${(req.headers.get('user-agent') ?? '').slice(0, 90)}`);
   const phim = u.searchParams.get('phim'), phims = u.searchParams.get('phims');
   if (phim === '__lam_nong__') { await camps(); return NextResponse.json({ ok: true, creative: [] }, { headers: CORS }); }
   if (phim || phims) {

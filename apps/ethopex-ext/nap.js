@@ -1,9 +1,14 @@
-// VỎ NẠP (anh 22/10/2026: không phải copy extension sang từng máy mỗi lần cập nhật): extension chỉ chèn code mới nhất từ mos2 vào trang
-// (app.ethopex.dev không đặt CSP nên <script src> ngoài chạy được). Khoá đọc API đưa qua thuộc tính của <html>, vì code chạy ở thế giới của trang
-// không thấy biến của content script. Vỏ này hầu như không bao giờ đổi — cập nhật tính năng = sửa apps/ethopex-ext/ly-do.js rồi deploy mos2.
+// VỎ NẠP 2.1 (anh 22/10/2026: không phải copy extension sang từng máy mỗi lần cập nhật): chèn code mới nhất từ mos2 vào trang (app.ethopex.dev
+// không đặt CSP). Khoá đi trong URL của script (2.0 đặt ở thuộc tính <html> — React của trang có thể ghi đè, MacBook không chạy).
+// Mã mos2 chạy thì phát sự kiện 'etp-chay'; 5 giây không thấy → nạp lại; thêm 5 giây vẫn không → chạy BẢN KÈM extension (ly-do.js, content script)
+// và báo mos2 (?bao=du-phong) để thấy máy nào hỏng. Vỏ này hầu như không đổi — cập nhật tính năng = sửa ly-do.js rồi deploy mos2.
 (() => {
-  document.documentElement.dataset.etpKhoa = window.ETHOPEX_LY_DO_KHOA || '';
-  const s = document.createElement('script');
-  s.src = 'https://mos2.on.tc/api/ext/ethopex-ly-do/js?t=' + Date.now();
-  (document.head || document.documentElement).appendChild(s);
+  const k = encodeURIComponent(window.ETHOPEX_LY_DO_KHOA || ''), GOC = 'https://mos2.on.tc/api/ext/ethopex-ly-do';
+  let chay = false; window.addEventListener('etp-chay', () => { chay = true; });
+  const nap = (lan) => { const s = document.createElement('script'); s.src = `${GOC}/js?k=${k}&lan=${lan}&t=${Date.now()}`;
+    s.onerror = () => console.warn(`[ethopex] lần ${lan}: không tải được mã từ mos2`); (document.head || document.documentElement).appendChild(s); };
+  nap(1);
+  setTimeout(() => { if (chay) return; nap(2);
+    setTimeout(() => { if (chay) return; console.warn('[ethopex] mã mos2 không chạy — dùng bản kèm extension');
+      fetch(`${GOC}?k=${k}&bao=du-phong`).catch(() => {}); window.__etpGoiThang = true; window.__etpKhoiDong && window.__etpKhoiDong(); }, 5000); }, 5000);
 })();

@@ -2,6 +2,7 @@
 // được /js, chỉ báo dự phòng) → dùng API User Scripts của Chrome (chạy ở thế giới USER_SCRIPT, không bị CSP của trang chặn): mỗi lần mở trang Ethopex,
 // nền tải code mới nhất từ mos2 rồi cập nhật bản đăng ký → cập nhật tính năng = deploy mos2, không chép, không Reload.
 // Cần bật một lần: chrome://extensions → Details của extension → "Allow User Scripts". Chưa bật → content script chạy bản kèm (ly-do.js).
+self.window = self;   // khoa.js ghi window.ETHOPEX_LY_DO_KHOA — service worker không có window (2.2 chết ngay ở dòng này, anh luôn chạy bản kèm)
 importScripts('khoa.js');
 const GOC = 'https://mos2.on.tc/api/ext/ethopex-ly-do/js', KHOA = self.ETHOPEX_LY_DO_KHOA || '';
 // MỖI LẦN MỞ TRANG = TẢI CODE MỚI NHẤT NGAY LÚC ĐÓ (anh 22/10/2026: "đã dùng bản chung thì lúc nào cũng phải là mới nhất"): không đăng ký sẵn

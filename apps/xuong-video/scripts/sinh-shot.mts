@@ -80,11 +80,15 @@ if (arg('keyframe')) {
     const r = await q(sql`SELECT count(*) FILTER (WHERE trang_thai = 'cho') AS cho FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[])`);
     if (Number(r[0]?.cho) === 0) break; await doi(5000);
   }
-  const kq = await q(sql`SELECT j.canh_id, j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, c.thu_tu FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu`);
+  // Đường nhiều bước (ghép từng người, bước 1 + bước 2) đã tự chọn ảnh CUỐI (sinh-anh.ts › chonKeyframe); job giữa chừng (plate, ô mặt 1024²) chỉ là
+  // bước trung gian — chọn đè từng job làm #3 / #15 (22/10/2026) nhận ô mặt vuông làm keyframe. Chỉ chọn khi shot chưa có ảnh nào.
+  const kq = await q(sql`SELECT j.canh_id, j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, j.nhan, c.thu_tu, c.keyframe_url FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu, j.id`);
   for (const r of kq) {
-    if (r.trang_thai === 'xong' && r.output_url) await chonKf(Number(r.canh_id), String(r.output_url));
-    console.log(`  #${r.thu_tu} ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}${r.output_url ? ' · ĐÃ CHỌN làm keyframe (cần --duyet lại trước --video)' : ''}`);
+    const chon = r.trang_thai === 'xong' && r.output_url && !r.keyframe_url;
+    if (chon) await chonKf(Number(r.canh_id), String(r.output_url));
+    console.log(`  #${r.thu_tu} ${r.trang_thai} ${String(r.nhan).replace(/ · cảnh #\d+.*$/, '')} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}${chon ? ' · ĐÃ CHỌN làm keyframe' : ''}`);
   }
+  for (const bc of bcs) { const c = await q(sql`SELECT keyframe_url FROM xv_canh WHERE id = ${bc.canh.id}`); console.log(`  #${bc.canh.thu_tu} keyframe đang chọn: ${c[0]?.keyframe_url ?? '(chưa có)'} (cần --duyet trước --video)`); }
 }
 // --keyframe-ket: sinh KEYFRAME KẾT (khung cuối, từ khung màu chỗ kết của bản 3D) → xv_canh.keyframe_ket; video nhận làm ảnh cuối.
 if (arg('keyframe-ket')) {

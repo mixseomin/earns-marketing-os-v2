@@ -103,7 +103,7 @@ export function mayDo(html, loai = 'bai') {
     co_faq: coFaq,
     co_neu_da_lo: /##\s.*(already|if you (clicked|paid)|what to do now)/i.test(chu),
     co_nut: /class="[^"]*\bcta\b|<a [^>]*class="[^"]*btn/i.test(String(html)),
-    so_nut: (String(h).match(/<a [^>]*class="[^"]*\b(btn|cta)\b/gi) || []).length,
+    so_nut: (String(h).match(/<a [^>]*class="[^"]*\b(btn|cta)\b|<form [^>]*data-cho/gi) || []).length,
     co_gia: /[$€£₫]\s?\d|\d\s?(USD|VND|EUR)\b/.test(chu),
     co_demo: video > 0 || /class="[^"]*\bdemo\b/i.test(h),
     loai,
@@ -116,7 +116,7 @@ export function mayDo(html, loai = 'bai') {
 
 /** Chặn cứng TRANG BÁN (chuan-trang-ban.md "Bắt buộc" — phần đo được bằng máy; phần còn lại người chấm so với thư viện mẫu). */
 function chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) {
-  const nut = (h.match(/<a [^>]*class="[^"]*\b(btn|cta)\b/gi) || []).length;
+  const nut = (h.match(/<a [^>]*class="[^"]*\b(btn|cta)\b|<form [^>]*data-cho/gi) || []).length;   // form "Notify me" (chưa bán) tính là nút mua
   return [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
     ...(!(video || /class="[^"]*\bdemo\b/i.test(h)) ? ['không có video / demo sản phẩm đang chạy (bắt buộc 1)'] : []),
     ...(anhThat < 3 ? [`${anhThat} ảnh thật của sản phẩm (tối thiểu 3 — bắt buộc 4)`] : []),
@@ -337,6 +337,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.ok(mayDo(tb().replace('<video src=d.mp4></video>', '<div class="sc-demo demo"></div>'), 'trang-ban').chan_cung.every((x) => !x.includes('demo')), 'demo tương tác thay được video');
     t.ok(mayDo(tb({ chu: 2000 }), 'trang-ban').chan_cung.some((x) => x.includes('quá 1.600')), 'trang bán quá dài → chặn');
     t.throws(() => nopBai({ url: 'https://x.test/', loai: 'quang-cao' }), /--loai/, 'loại lạ bị từ chối');
+    t.ok(mayDo(tb({ nut: 0 }).replace('</main>', '<form class="cho" action="/cho-tin" data-cho></form><form class="cho" data-cho></form></main>'), 'trang-ban').chan_cung.every((x) => !x.includes('nút mua')), 'chưa bán: 2 form Notify me thay 2 nút mua');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du.replace('Questions people ask', 'Book now'))), 'SUA_LAI', 'thiếu FAQ');
     t.equal(diemCuoi({ diem: 10 }, mayDo(du.replace('<img src=a.png alt=x>', ''))), 6, 'chặn cứng thì không 10/10');
     const tin = tinKiem({ tu: 'A', url: 'https://x.com/a/', kq: { thieu: ['cảnh mở'], thua: [], giong: [], diem: 3, ket_luan: 'KHONG_DUYET', tom_tat: 'sơ sài' }, d, ket: 'KHONG_DUYET' });

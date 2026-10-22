@@ -24,6 +24,8 @@ MOCAP = {
     'dung_day':   ('13_01', 7.0, 'tat_ca', 9.5, 'ngoi', 'dung'),   # sit on high stool, stand up (đo: ngồi 4,7–7,5 s, đứng hẳn 8,5 s; 12 s ngồi lại → dừng 9,5)
     'di_bo':      ('08_01', 0.0, 'tat_ca'),   # walk
     'sai_buoc':   ('08_05', 0.0, 'tat_ca'),   # walk / stride
+    'di_cham':    ('08_04', 0.0, 'tat_ca'),   # slow walk — đo 1,12 cao-hông/s (~1,0 m/s)
+    'di_thuong':  ('35_01', 0.0, 'tat_ca'),   # walk — đo 1,35 cao-hông/s (~1,2 m/s)
     # KHO MỞ RỘNG (anh 19/10/2026 "làm cả đi", nhịp 4): động tác phim tâm lý / văn phòng. Giây đo bằng do-mocap.py (cao hông, tay so đầu, tốc độ
     # tay; khung 0 chữ T đã bỏ ở doc_bvh). Nguồn: CMU 79 (actor everyday activities / cảm xúc),
     # 80, 141 (general), 142 (stylized walks), 143, 17 (walk with anger), 18/19/23 (hai người tương tác).
@@ -57,7 +59,11 @@ MOCAP = {
     'om_dau_buc':  ('17_01', 14.3, 'tat_ca', 16.3),   # cùng đoạn: hai tay ôm đầu bực bội khi đang đi (tay ngang đầu 14,5–16 s)
 }
 # ĐI (đổi chỗ): khung tĩnh của shot đặt giữa sải bước (dung-set.py › DI_MC)
-DI = {'di_bo', 'sai_buoc', 'di_buon', 'di_rau_ru', 'di_voi', 'di_tu_tin', 'di_di_lai', 'di_gian'}
+DI = {'di_bo', 'sai_buoc', 'di_cham', 'di_thuong', 'di_buon', 'di_rau_ru', 'di_voi', 'di_tu_tin', 'di_di_lai', 'di_gian'}
+# ĐI THƯỜNG (không mang sắc thái): máy chọn đoạn có tốc độ gốc GẦN tốc độ kịch bản nhất — như blendspace / bộ clip theo tốc độ của Lyra (Epic, "Adapting
+# Lyra animation to your UE5 game"): chỉnh nhịp phát / sải chân quá 15–20 % là hỏng hình. Đi có sắc thái (buồn, vội, giận…) giữ đoạn của nó.
+DI_THUONG = ('di_cham', 'di_thuong', 'di_bo', 'sai_buoc')
+TOC_PHAT = (0.8, 1.2)   # trần chỉnh nhịp phát (distance matching, Epic AnimDistanceMatchingLibrary mặc định 0,75–1,25; Lyra 15–20 %)
 # khớp ma-nơ-canh ← (khớp nguồn đầu, khớp nguồn cuối, trục nghỉ của khối: −z tay chân treo xuống, +z thân / đầu dựng lên)
 # Đoạn nguồn phải DÀI THẬT: khung CMU có khớp trùng chỗ (Spine1 ≡ Neck, LeftHand ≡ LeftFingerBase) → hướng (0,0,0) lật cả thân (đo 17/10/2026).
 DOAN = [('lung', 'Hips', 'Spine1', 1), ('nguc', 'Spine1', 'Neck1', 1), ('co', 'Neck1', 'Head', 1), ('dau', 'Neck1', 'Head', 1),
@@ -152,21 +158,31 @@ def do_di(ma):
             if d < tot[0]: tot = (d, i, j)
     _DI_DO[ma] = (toc, tot[1], tot[2]); return _DI_DO[ma]
 
-def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0, quang=None, cao_hong=None):
+def chon_di(ten, toc):
+    """Đoạn đi dùng cho tốc độ `toc` (cao-hông / giây): đi thường → đoạn gần tốc độ nhất (tỉ lệ log); đi có sắc thái → chính nó."""
+    if ten not in DI_THUONG or not toc: return ten
+    return min(DI_THUONG, key=lambda x: abs(math.log(max(1e-3, do_di(MOCAP[x][0])[0]) / toc)))
+
+def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0, quang=None, cao_hong=None, toc=None):
     """Áp đoạn mocap `ten` lên ma-nơ-canh n lúc t (0..1 của shot), trong cửa sổ [a, b] — phát đúng tốc độ thật từ giây bắt đầu của đoạn;
     vào / ra cửa sổ hoà dần 10% để không giật. Cần mathutils (Blender).
-    ĐI (ten ∈ DI, có quang = quãng đã đi, cùng đơn vị cao_hong): pha bước theo QUÃNG chứ không theo đồng hồ — đoạn CMU đi 1,6 m/s mà kịch bản đi
-    1 m/s thì chân sải dài, người trôi chậm như vồ tới (#15). Lặp trong một vòng bước liền mạch (do_di). Đoạn đi tại chỗ (tốc độ ≈ 0) giữ đồng hồ."""
+    ĐI (ten ∈ DI, có quang = quãng đã đi, cùng đơn vị cao_hong; toc = tốc độ đi đều của kịch bản, cao-hông / giây) — theo chuẩn Epic:
+      chọn đoạn theo tốc độ (chon_di) → DISTANCE MATCHING: pha bước theo quãng, nhịp phát hiệu dụng kẹp trong TOC_PHAT → phần lệch còn lại là
+      STRIDE WARPING: hệ số sải S = tốc độ kịch bản / (tốc độ đoạn × nhịp đã kẹp) — co / giãn thành phần trước–sau của đùi + cẳng chân
+      (Epic Pose Warping: StrideScale = LocomotionSpeed / RootMotionSpeed). Lặp trong một vòng bước liền mạch (do_di). Đoạn đi tại chỗ giữ đồng hồ."""
     from mathutils import Vector
     import bpy
+    if quang is not None and ten in DI: ten = chon_di(ten, toc)
     if ten not in MOCAP: return False
     ma, bd, vung, kt, dau, cuoi = (tuple(MOCAP[ten]) + (None, 'dung', 'dung'))[:6]; _, khung, dt = doc_bvh(ma)
     s = bd + (min(max(t, a), b) - a) * giay
     k = int((min(s, kt) if kt is not None else s) / dt) % len(khung)
+    S = 1.0
     if quang is not None and cao_hong and ten in DI:
-        toc, k0, k1 = do_di(ma)
-        if toc > 0.3:
-            s = bd + quang / cao_hong / toc; L = (k1 - k0) * dt
+        toc_g, k0, k1 = do_di(ma)
+        if toc_g > 0.3:
+            ti = (toc / toc_g) if toc else 1.0; nhip = min(TOC_PHAT[1], max(TOC_PHAT[0], ti)); S = ti / nhip
+            s = bd + quang / cao_hong / (toc_g * S); L = (k1 - k0) * dt
             if s > k1 * dt: s = k0 * dt + (s - k0 * dt) % L
             k = min(len(khung) - 1, int(s / dt))
     if t < a: w = 0.0 if dau == 'dung' else 1.0           # mở bằng dáng quỳ / ngồi: giữ khung đầu từ t = 0
@@ -175,6 +191,10 @@ def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0, quang=None, cao_hong=None):
     else: w = 1.0
     if w <= 0: return False
     huong, ti_hong = huong_doan(ma, k)
+    if abs(S - 1) > 1e-3:   # stride warping: co / giãn phần trước–sau (−y khung mặt) của đùi + cẳng chân
+        for kk in ('dui_t', 'dui_p', 'goi_t', 'goi_p'):
+            if kk in huong:
+                x, y, z = huong[kk]; y *= S; m_ = math.sqrt(x * x + y * y + z * z) or 1; huong[kk] = (x / m_, y / m_, z / m_)
     # CẬP NHẬT TRƯỚC KHI ĐỌC hướng gốc (anh 19/10/2026: tập 122 #5 Hạ quỳ quay lưng về Vivian, chân sau lộn ngược): goc.rotation_euler vừa đặt theo
     # huong mà matrix_world chưa tính lại → mocap dựng theo hướng CŨ (0°) — mọi nhân vật không quay về −y đều quỳ / đi ngược. Đo: huong 0 và 180 cho
     # cùng toạ độ đầu (0,2; −0,39) trước khi sửa.

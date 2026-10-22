@@ -1196,6 +1196,7 @@ def cham_mat_tua(n_, ten, dien):
 # DÁNG CẦN MẶT TỰA ở khung MỞ: động tác → điểm chạm (bàn tay). Không có mặt đỡ dưới điểm chạm thì AI tự bịa chỗ tựa — tập 122 #20 Thần "chống bàn"
 # ở chỗ không có bàn → keyframe chống tay lên lưng ghế; #22 cận cổ tay thành bàn tay lơ lửng. Phim thường diễn viên tự tìm mặt bàn; phim AI phải đo.
 DANG_TUA = {'chong_ban': ('t', 'p')}
+TOC_QUAY = 75.0   # °/s — người thật rẽ khi đang đi (CMU 16_17…16_20 đo 22/10/2026: 90° trong ~1,0 s, tb 68–79°/s); dien_shot quay theo hướng đi
 DIEN_KHOE = {'gio_cao', 'dua_truoc_mat', 'lac_treo'}   # mã diễn ĐƯA MÓN cho người khác / máy xem (dien_shot: món dẹt quay mặt về máy)
 def tua_hong(s, dg, sh, ten):
     """Khoảng hở lớn nhất (cm) từ điểm chạm của dáng tựa đang diễn ở khung mở tới mặt đỡ ngay dưới nó (bỏ qua thân chính người đó). None = không có
@@ -1740,7 +1741,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
     #   lấy đà + vượt rồi khựng (dien_k) · BOIL: mỗi khung nhân vật xê dịch li ti như tay người chỉnh, lông nhảy nhẹ (ngẫu nhiên CỐ ĐỊNH theo
     #   tên + số khung — render lại ra y hệt) · đất nặn bẹp nhẹ mỗi lần chân chạm đất. Biên độ: XV_BOIL (1 = mặc định, 0 = tắt boil).
     em = lambda t: t * t * (3 - 2 * t)   # nhanh dần – chậm dần
-    def di_deu(u, r=0.15):   # người đi: tăng tốc 15 % đầu, đều, giảm tốc 15 % cuối (vận tốc hình thang) — quãng 0..1
+    def di_deu(u, r=0.15):   # người đi: tăng tốc phần r đầu, đều, giảm tốc phần r cuối (vận tốc hình thang) — quãng 0..1
         if u < r: return u * u / (2 * r * (1 - r))
         if u > 1 - r: return 1 - (1 - u) ** 2 / (2 * r * (1 - r))
         return (u - r / 2) / (1 - r)
@@ -1775,17 +1776,30 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             lt = [x for x in hd if x[0] == 'lan_tron']
             if lt and not mac and lt[0][2] < 0.999: doi_dang['cua'] = (lt[0][2], min(1.0, lt[0][2] + GIAY_TU_THE['day'] / giay))   # bóng bung ra xong mới đứng dậy (#12)
         rb = random.Random(hat); chop = [rb.uniform(0.2, 0.45), rb.uniform(0.65, 0.9)]   # hai lần chớp mắt tự nhiên, lệch nhịp mỗi nhân vật
-        # NGƯỜI THẬT ĐI: đi trong CỬA SỔ của mã mocap đi (mc_sai_buoc@0-0.55 → tới nơi lúc 55 % rồi mới giật thẻ — trước đây quãng trải cả shot, vừa giật
-        # vừa trôi), tốc độ đều có tăng / giảm tốc ngắn — không lấy đà lùi + vượt rồi khựng (ngôn ngữ đất sét) — chúi 3° thay 8° (#15 Vivian 'dật dẹo').
+        # NGƯỜI THẬT ĐI — theo chuẩn ngành, không tự đặt dáng (anh 22/10/2026 "ko bịa dáng đi nữa, tìm nguồn để học lại cho chuẩn"):
+        #   · đi trong CỬA SỔ của mã mocap đi (mc_…@a-b): tới nơi đúng b rồi mới làm động tác kế (#15 Vivian tới nơi rồi mới giật thẻ);
+        #   · tăng / giảm tốc trong MỘT BƯỚC (~0,55 s — nhịp đi người lớn ~110 bước/phút) ở hai đầu, giữa đi đều; ngôn ngữ đất sét (lấy đà, vượt khựng, chúi, nhún) bỏ — thân / hông theo mocap;
+        #   · tốc độ đi đều → ap_mocap chọn đoạn CMU gần tốc độ nhất + distance matching kẹp ±20 % + stride warping (mesh/mocap.py);
+        #   · ORIENT ROTATION TO MOVEMENT (Unreal CharacterMovement): thân quay theo hướng đi, tốc độ quay ĐO từ người thật — CMU 16_17…16_20 rẽ 90°
+        #     khi đang đi mất ~1,0 s (10→90 %), trung bình 68–79°/s → TOC_QUAY 75°/s; tới nơi quay về hướng kết cùng tốc độ.
         ng_di = ten in NGUOI and di; cua_di = (0.0, 1.0); h_di = math.degrees(math.atan2(b.x - a.x, -(b.y - a.y)))   # hướng đi (quy ước mặt = (sin h, −cos h))
         for x in (nv.get('dien') or []) if ng_di else []:
             ma_, _, mt_ = str(x).partition('@')
             if ma_ in DI_MC and mt_: a_, _, b_ = mt_.partition('-'); cua_di = (float(a_), float(b_) if b_ else 1.0); break
+        T_di = max(1e-3, (cua_di[1] - cua_di[0]) * giay); r_tang = min(0.3, 0.55 / T_di)
+        toc_di = None
+        if ng_di:
+            n0_ = NGUOI[ten]; cao_hong = n0_['L']['chan'] + n0_['L']['cang'] + n0_['L']['dui']
+            toc_di = dai / T_di / (1 - r_tang) / cao_hong   # tốc độ đi ĐỀU (cao-hông / s) của hồ sơ vận tốc hình thang
+        g_ = lambda x: ((x + 180) % 360) - 180
+        d_quay0 = g_(h_di - h0); d_quay1 = g_(h1 - h_di)
+        tq0 = abs(d_quay0) / TOC_QUAY / giay; tq1 = abs(d_quay1) / TOC_QUAY / giay   # thời lượng hai lần quay (phần shot)
+        bd_quay1 = min(cua_di[1], 1 - tq1)
         for f in range(1, N + 1):
             t = (f - 1) / (N - 1)
             td = min(1.0, max(0.0, (t - cua_di[0]) / max(1e-6, cua_di[1] - cua_di[0])))
-            k = di_deu(td) if ng_di else dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
-            if di: p.z += 0.14 * abs(math.sin(math.pi * buoc * k))   # nhún theo bước
+            k = di_deu(td, r_tang) if ng_di else dien_k(t) if (dai > 0.4 or bay) else em(t); p = a.lerp(b, k)
+            if di and not ng_di: p.z += 0.14 * abs(math.sin(math.pi * buoc * k))   # nhún theo bước (đất sét; người thật: hông nhún theo mocap)
             lac = 0.0
             if bay: lac = 5 * math.sin(2 * math.pi * 2 * t); p.z += 0.08 * math.sin(2 * math.pi * 3 * t)   # bay: lắc + bồng bềnh nhẹ
             r = random.Random(hat * 1000 + f)
@@ -1798,13 +1812,12 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             kq = k if di else em(min(1.0, max(0.0, (t - 0.55) / 0.45)))
             lech_h = dh * kq   # độ quay so với hướng mở
             if ng_di:
-                # NGƯỜI ĐI QUAY MẶT THEO HƯỚNG ĐI (chuẩn hoạt hình / game: thân hướng theo vận tốc), tới nơi mới quay về hướng kết. Giữ hướng kịch bản
-                # cả quãng thì đi chéo như cua: #15 Vivian hướng −60° mà đường đi lệch ~70° → chân sải ngang, tay vung ngang ('dật dẹo', 22/10/2026).
-                vao_h, ra_h = em(min(1.0, td / 0.15)), em(min(1.0, max(0.0, (td - 0.85) / 0.15)))
-                g_ = lambda x: ((x + 180) % 360) - 180
-                lech_h = g_(h_di - h0) * vao_h; lech_h += (g_(h1 - h0) - lech_h) * ra_h
+                # quay theo hướng đi từ lúc bắt đầu đi, rồi quay về hướng kết khi tới nơi (giữ hướng kịch bản cả quãng = đi chéo như cua: #15)
+                vao_h = em(min(1.0, max(0.0, (t - cua_di[0]) / max(1e-6, tq0)))) if tq0 > 0 else 1.0
+                ra_h = em(min(1.0, max(0.0, (t - bd_quay1) / max(1e-6, tq1)))) if tq1 > 0 else (1.0 if t >= cua_di[1] else 0.0)
+                lech_h = d_quay0 * vao_h + d_quay1 * ra_h
             hh = math.radians(h0 + lech_h); ngang = Vector((math.cos(hh), math.sin(hh), 0)); toi = Vector((math.sin(hh), -math.cos(hh), 0))
-            nghieng = ((math.radians(3) * min(1.0, 4 * min(td, 1 - td)) if ng_di else math.radians(8) * min(1.0, 4 * min(t, 1 - t))) if di else 0.0) - math.radians(dt['nga'])   # đi: chúi tới · ngã ngồi: ngả ra sau
+            nghieng = (math.radians(8) * min(1.0, 4 * min(t, 1 - t)) if di and not ng_di else 0.0) - math.radians(dt['nga'])   # đất sét đi: chúi tới (người thật: thân theo mocap) · ngã ngồi: ngả ra sau
             R = (Quaternion(ngang, nghieng) @ Quaternion(toi, math.radians(lac + dt['lan']) + q[1]) @ Quaternion((0, 0, 1), math.radians(lech_h + dt["xoay"]) + q[2]) @ Quaternion((1, 0, 0), q[0]))
             e.rotation_mode = 'QUATERNION'
             cham = 1 - abs(math.sin(math.pi * buoc * k)) if di and 0 < t < 1 and ten not in NGUOI else 0.0   # 1 = chân vừa chạm đất (người thật không bẹp như đất nặn)
@@ -1837,7 +1850,7 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
                 n_ = NGUOI[ten]
                 if di: ng().buoc(n_, (p - a).xy.length / (2 * 0.41 * n_['cao']))
                 else: ng().tu_the(n_, n_.get('kieu', 'dung'))
-                ng().ap_dien(n_, dien_hl(n_, nv, di), t, giay, (p - a).xy.length if di else None)   # rig: mã diễn (+ mocap thật; đi: pha bước theo quãng)
+                ng().ap_dien(n_, dien_hl(n_, nv, di), t, giay, (p - a).xy.length if di else None, toc_di)   # rig: mã diễn (+ mocap thật; đi: pha theo quãng)
                 for kk in ng().KHOP_KEY: n_[kk].keyframe_insert('rotation_euler', frame=f)
                 n_['hong'].keyframe_insert('location', frame=f)
             for o, sc in mat_cua.get(ten, []):   # mắt: chớp (2 khung) · mở to · nheo

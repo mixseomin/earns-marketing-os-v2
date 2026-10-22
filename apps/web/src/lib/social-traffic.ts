@@ -111,7 +111,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     networkRows(tu30).catch((e: Error) => { loi.push(`hoa hồng aff: ${e.message}`); return null; }),
     docEthopex().catch((e: Error) => { loi.push(`Ethopex: ${e.message}`); return null; }),
   ]);
-  const mayChu = await docMayChu().catch((e: Error) => { loi.push(`máy chủ: ${e.message}`); return []; });
+  const [mayChu, congTy] = await Promise.all([docMayChu().catch((e: Error) => { loi.push(`máy chủ: ${e.message}`); return []; }), docCongTy().catch(() => [])]);
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
@@ -127,12 +127,30 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     tienAds: ads.map((x) => ({ site: x.site, usd: Number(x.usd) || 0 })),
     hat: hat.map((x) => ({ kind: x.kind, label: x.label, duAn: x.project_id, het: x.het ? x.het.slice(0, 10) : null, ip: x.ip ?? (x.origin?.match(/\d+\.\d+\.\d+\.\d+/)?.[0] ?? null), chi: Number(x.chi) || 0, tien: x.currency })),
     mayChu,
+    congTy,
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
       ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
     tienAff: [...(aff?.rows ?? []).filter((r) => r.source === 'affiliate' && r.date >= tu30).map((r) => ({ site: r.site ? r.site.replace(/^www\./, '') : null, mang: r.group ?? r.channel, usd: r.amount })),
       ...(etp ? [{ site: null, mang: 'Ethopex', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.thu, 0) }] : [])],
   };
 }
+/** CÔNG TY AI (thành phố › khu văn phòng): phòng ban đọc từ sổ cty (apps/cty/cong-ty/phong/*.md, cùng repo trên máy chủ) + việc nền 24 giờ của trưởng phòng
+ *  (/var/lib/cty/nhip/<người>.jsonl: {luc, viec, ket}). Máy không có cty (máy dev) → rỗng. Nhớ 2 phút. */
+const docCongTy = unstable_cache(async () => {
+  const { readdirSync, readFileSync: doc, existsSync: co } = await import('node:fs');
+  const goc = `${process.cwd().replace(/\/apps\/web$/, '')}/apps/cty/cong-ty/phong`, nhip = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/nhip`;
+  if (!co(goc)) return [];
+  const chuanTen = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z]/g, '');
+  const tu = Date.now() - 864e5;
+  return readdirSync(goc).filter((f) => f.endsWith('.md')).map((f) => {
+    const t = doc(`${goc}/${f}`, 'utf8'), fm = (k: string) => new RegExp(`^${k}:\\s*(.*)$`, 'm').exec(t.split('---')[1] ?? '')?.[1]?.trim() ?? '';
+    const truong = fm('truong'), nguoi = chuanTen(truong.split(/[\s(·,]/)[0] ?? ''), tep = `${nhip}/${nguoi}.jsonl`;
+    const viec = co(tep) ? doc(tep, 'utf8').trim().split('\n').slice(-200).flatMap((l) => { try { return [JSON.parse(l) as { luc: string; viec: string; ket?: string }]; } catch { return []; } }) : [];
+    const gan = viec.filter((v) => Date.parse(v.luc) > tu);
+    return { khoa: f.replace(/\.md$/, ''), ten: fm('ten'), truong, duAn: (fm('du_an').match(/[\w-]+/g) ?? []), hoatDong: !/chưa hoạt động/.test(fm('trang_thai')) && fm('trang_thai') !== '',
+      trangThai: fm('trang_thai'), viec24: gan.length, cuoi: viec.at(-1) ?? null };
+  });
+}, ['tp-cong-ty-v1'], { revalidate: 120 });
 /** MÁY CHỦ (thành phố › nhà máy điện): mỗi máy tự kê site nó phục vụ (server_name trong nginx) + tải CPU / RAM / đĩa. Máy chạy mos2 đọc tại chỗ,
  *  máy khác qua ssh (box3 có khoá). Nhớ 15 phút. Thêm máy = thêm một dòng ở đây; máy không ssh được (box2) chỉ hiện theo sổ hạ tầng. */
 const MAY_CHU: { ten: string; ip: string; ssh: string | null }[] = [

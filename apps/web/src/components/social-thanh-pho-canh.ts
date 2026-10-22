@@ -306,7 +306,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (const o of ngung) o.cx += lech + (xChay - xNgung) / 2;
     const zNgoai = Math.max(0, ...ngung.map((o) => Math.abs(o.cz) + o.D));
     const xKho = xChay + lech + 90;   // Kho bạc ở cuối đại lộ
-    pho(lech - 40, 0, xKho + 60, 0, 20);
+    const xCty = xKho + 150, coCty = mh.congTy.length > 0;   // khu Công ty AI sau Kho bạc
+    pho(lech - 40, 0, (coCty ? xCty + 110 : xKho + 60), 0, 20);
     // nền phường (màu lĩnh vực) + cổng chào trên đại lộ
     for (const p of phuong) {
       const lv = LINH_VUC[p.lv]!, nenP = add(new THREE.PlaneGeometry(p.x1 - p.x0 + 20, p.z * 2), new THREE.MeshBasicMaterial({ color: lv.mau, transparent: true, opacity: .07, depthWrite: false }), false);
@@ -400,8 +401,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     // TIỀN: đồng xu chồng cạnh đích có tiền 30 ngày; xe vàng chở về Kho bạc
     const coTien: { d: typeof mh.dich[number]; khu: { cx: number; cz: number; phia: number } }[] = [];
+    const khuPos: Record<string, { cx: number; cz: number; phia: number }> = {};
     for (const o of ks) {
-      const { k, cx, cz } = o;
+      const { k, cx, cz } = o; khuPos[k.khoa] = o;
       pho(cx, 0, cx, cz, 12);
       if (!k.laDuAn && o.sites.length === 1 && !o.sps.length) { quangTruongSite(o.sites[0]!, cx, cz); continue; }   // site đứng riêng: tự là một khu
       const nen_ = add(new THREE.CylinderGeometry(o.D, o.D, .4, 48), M({ color: k.ngung ? '#14161f' : new THREE.Color('#121a30').lerp(new THREE.Color(LINH_VUC[k.linhVuc]!.mau), .22), roughness: 1 }), false); nen_.position.set(cx, .2, cz);
@@ -463,7 +465,36 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const tia = add(new THREE.SphereGeometry(.9, 8, 8), new THREE.MeshBasicMaterial({ color: '#fff3b0' }), false); tia.userData = { chu: null, duong, t: (j * .17) % 1, toc: .004, tia: true }; ds.dien!.push(tia);
       });
     });
-    const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), xKho + 60, zTrong, zNgoai);
+    // CÔNG TY AI: toà trụ sở ở giữa, mỗi phòng một toà kính quanh đó (biển "Phòng · trưởng"); cửa sổ sáng = việc nền 24 giờ; phòng chưa hoạt động mờ;
+    // phòng có việc 24 giờ qua → xe công trình chạy từ văn phòng tới khu dự án nó phụ trách
+    if (coCty) {
+      const zc = 150, ts = add(new THREE.CylinderGeometry(9, 12, 46, 6), M({ color: '#2a3a66', emissive: '#3a6ff0', emissiveIntensity: .35, roughness: .3, metalness: .5 })); ts.position.set(xCty, 23, zc); ts.userData = { loai: 'cty' };
+      pho(xCty, 0, xCty, zc, 12);
+      const c0 = document.createElement('canvas'); c0.width = 512; c0.height = 110; const g0 = c0.getContext('2d')!; g0.fillStyle = 'rgba(17,24,48,.92)'; g0.beginPath(); g0.roundRect(4, 4, 504, 102, 20); g0.fill(); g0.fillStyle = '#9fc0ff'; g0.font = '800 50px system-ui, sans-serif'; g0.textAlign = 'center'; g0.fillText('🏢 CÔNG TY AI', 256, 72);
+      const b0 = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c0), depthWrite: false })); b0.scale.set(56, 12, 1); b0.position.set(xCty, 58, zc); b0.userData = { chu: ts }; the.add(b0);
+      const n = mh.congTy.length, R = 46 + n * 2.6;
+      mh.congTy.forEach((p, i) => {
+        const g = (i / n) * Math.PI * 2, x = xCty + Math.cos(g) * R, z = zc + Math.sin(g) * R * .8, h = 16 + Math.min(24, p.viec24 * 1.5);
+        pho(x, z, xCty + Math.cos(g) * 14, zc + Math.sin(g) * 11, 5);
+        const than = M({ color: p.hoatDong ? '#3b5a8f' : '#3a3f50', emissive: p.hoatDong ? '#6ea8ff' : '#000', emissiveIntensity: p.hoatDong ? .2 : 0, roughness: .25, metalness: .45, transparent: !p.hoatDong, opacity: p.hoatDong ? 1 : .55 });
+        const m = add(new THREE.BoxGeometry(12, h, 12), than); m.position.set(x, h / 2, z); m.userData = { loai: 'phong', p };
+        // cửa sổ sáng = số việc nền 24 giờ (tối đa 24 ô)
+        for (let k2 = 0; k2 < Math.min(24, p.viec24); k2++) { const w = add(new THREE.PlaneGeometry(2.4, 1.8), new THREE.MeshBasicMaterial({ color: '#ffe08a' }), false); const tang = Math.floor(k2 / 3), cot = k2 % 3; w.position.set(x - 3.6 + cot * 3.6, 3 + tang * 2.6, z + 6.05); w.userData = { chu: m }; }
+        const c = document.createElement('canvas'); c.width = 512; c.height = 120; const gc = c.getContext('2d')!;
+        gc.fillStyle = p.hoatDong ? 'rgba(20,30,60,.92)' : 'rgba(50,54,66,.9)'; gc.beginPath(); gc.roundRect(4, 4, 504, 112, 18); gc.fill();
+        gc.fillStyle = '#fff'; gc.textAlign = 'center'; gc.font = '800 36px system-ui, sans-serif'; gc.fillText(p.ten.replace(/^Phòng\s+/, '').split(/[(·]/)[0]!.trim().slice(0, 26), 256, 52, 490);
+        gc.fillStyle = p.hoatDong ? '#9fc0ff' : '#a0a6b8'; gc.font = '600 28px system-ui, sans-serif'; gc.fillText(`${p.truong.split(/[(·]/)[0]!.trim()}${p.viec24 ? ` · ${p.viec24} việc/24h` : ''}`, 256, 96, 490);
+        const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(34, 8, 1); bien.position.set(x, h + 7, z); bien.userData = { chu: m }; the.add(bien);
+        chiMuc.push({ ten: p.ten, nhan: 'phòng ban', obj: m });
+        if (!p.viec24) return;
+        for (const da of p.duAn) { const kp = khuPos[`d:${da}`]; if (!kp) continue;
+          const lan = -2.5, pts = [new THREE.Vector3(x, 1.5, z), new THREE.Vector3(xCty, 1.5, zc), new THREE.Vector3(xCty, 1.5, lan), new THREE.Vector3(kp.cx, 1.5, lan), new THREE.Vector3(kp.cx, 1.5, kp.cz)];
+          const duong = new THREE.CurvePath(); for (let k2 = 0; k2 < pts.length - 1; k2++) duong.add(new THREE.LineCurve3(pts[k2], pts[k2 + 1]));
+          for (let j = 0; j < Math.min(3, 1 + Math.floor(p.viec24 / 8)); j++) { const xe = add(new THREE.BoxGeometry(5.5, 3.2, 3), M({ color: '#ff9f1c', emissive: '#ff7b00', emissiveIntensity: .6 })); xe.userData = { duong, t: j / 3, toc: .0011, chu: m }; ds.xu!.push(xe); }
+        }
+      });
+    }
+    const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), coCty ? xCty + 110 : xKho + 60, Math.max(zTrong, coCty ? 260 : 0), zNgoai);
     gioiHan = { x0: kn.xa, x1: kn.xb, z: kn.zDat };
     const rong = kn.xb - kn.xa;
     if (doc) { CAM0.set(-rong * .62, rong * .7, 0); TAM0.set(0, 0, 0); scene.fog.near = rong * .9; scene.fog.far = rong * 2.2; ctl.maxDistance = rong * 1.6; }
@@ -530,6 +561,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${oNen(t.nen)} ${esc(t.ten)}`, h: [['Nền', NEN[t.nen][1]], ['Đổ vào', tenDich(t.dich)], ['🪟 Bài đã đăng', t.chay], ['📦 Sắp đăng 7 ngày', t.sap], ['🔦 Lượt xem', so(t.xem)],
         [`🚗 Khách về đích (${t.phienKy})`, t.phien], ['Trạng thái', t.dung ? '⏸ dừng' : t.hong ? `🔴 ${esc(t.hong)}` : '🟢 chạy']] };
     }
+    if (u.loai === 'phong') { const p = u.p as typeof mh.congTy[number], gio = (iso: string) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) + ' ' + iso.slice(8, 10) + '/' + iso.slice(5, 7);
+      return { dau: `🏢 ${esc(p.ten)}`, h: [['Trưởng phòng', esc(p.truong)], ['Trạng thái', esc(p.trangThai || '—')], ['Dự án', esc(p.duAn.join(', ') || '—')], ['Việc nền 24 giờ', p.viec24],
+        ...(p.cuoi ? [['Việc gần nhất', `${esc(p.cuoi.viec)} · ${gio(p.cuoi.luc)}`] as [string, string], ['Kết quả', esc((p.cuoi.ket ?? '').slice(0, 90))] as [string, string]] : [])] };
+    }
+    if (u.loai === 'cty') return { dau: '🏢 Công ty AI', h: [['Phòng ban', mh.congTy.length], ['Đang hoạt động', mh.congTy.filter((p) => p.hoatDong).length], ['Việc nền 24 giờ', mh.congTy.reduce((a, p) => a + p.viec24, 0)]] };
     if (u.loai === 'may') { const nm = u.nm as typeof mh.nhaMay[number];
       return { dau: `⚡ ${esc(nm.ten)}`, h: [['Site đang chạy', nm.sites.length], ...(nm.tai != null ? [['⚙ Tải CPU', `${nm.tai} / ${nm.nhan} nhân`] as [string, string], ['🧠 RAM trống', `${nm.ramMB} MB`] as [string, string], ['💾 Đĩa', `${nm.diaPct}%`] as [string, string]] : []), ...(nm.chiThang ? [['Chi tháng', esc(nm.chiThang)] as [string, string]] : []), ...(nm.het ? [['Hạn', `${nm.het.slice(8)}/${nm.het.slice(5, 7)}/${nm.het.slice(0, 4)}`] as [string, string]] : []),
         ...(nm.canhBao ? [['⚠️', esc(nm.canhBao)] as [string, string]] : []), ...nm.sites.slice(0, 12).map((x) => [`↳ ${esc(x)}`, ''] as [string, string])] };
@@ -602,6 +638,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (u.loai === 'tk' && u.tk.loai === 'mxh') ds_.push(a(`${MOS2}/?tab=social&sts=kenh`, '📺 Kênh'), a(`${MOS2}/?tab=social&sts=lich`, '🗓 Lịch'));
     if (u.loai === 'khu' && u.khoa.startsWith('d:')) ds_.push(a(`${MOS2}/p/${encodeURIComponent(u.khoa.slice(2))}`, '📁 Mở dự án'));
     if (u.loai === 'kho') ds_.push(a(`${MOS2}/?tab=doanhthu`, '💵 Doanh thu'));
+    if (u.loai === 'phong' || u.loai === 'cty') ds_.push(a('https://cty.on.tc', '🏢 Mở cty'));
     return ds_.length ? `<div class="nut-mo">${ds_.join('')}</div>` : '';
   }
   // TÌM + BAY TỚI: gõ tên → danh sách → chọn là camera bay tới và mở ngăn

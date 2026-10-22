@@ -82,7 +82,8 @@ export interface PhoLuong { tu: string; den: string; so: number }
 export interface PhoTien { tong: number; theo: { ten: string; so: number }[]; chi: { tong: number; theo: { ten: string; so: number }[] } }
 /** NHÀ MÁY = máy chủ chạy site: tên, nhà cung cấp, chi tháng, hạn, các site nó cấp điện, cảnh báo (sắp hết hạn) */
 export interface PhoNhaMay { khoa: string; ten: string; chiThang: string | null; het: string | null; sites: string[]; canhBao: string | null; tai?: number | null; nhan?: number | null; ramMB?: number | null; diaPct?: number | null }
-export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; fav: Record<string, string | null> }
+export interface PhoPhong { khoa: string; ten: string; truong: string; duAn: string[]; hoatDong: boolean; trangThai: string; viec24: number; cuoi: { luc: string; viec: string; ket?: string } | null }
+export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; fav: Record<string, string | null> }
 /** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
 export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
   'du-lich': { ten: 'Du lịch', ic: '✈️', mau: '#2f8fbf' }, 'thuong-mai': { ten: 'Thương mại · Dropship', ic: '🛍', mau: '#c0507a' }, app: { ten: 'App', ic: '📱', mau: '#3a6ff0' },
@@ -116,6 +117,8 @@ export interface VaoHeSinhThai {
   /** sổ hạ tầng (infra_resources): máy chủ (hosting: ip) và tên miền (domain: hạn, ip máy gốc) */
   hat?: { kind: string; label: string; duAn: string | null; het: string | null; ip: string | null; chi: number; tien: string }[];
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
+  /** phòng ban công ty AI: trưởng phòng, dự án phụ trách, đang hoạt động, số việc nền 24 giờ, việc gần nhất */
+  congTy?: PhoPhong[];
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null }[];
 }
 /** cửa bán → host để lấy favicon */
@@ -325,8 +328,9 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     const qt = mc.tai != null && mc.nhan ? mc.tai / mc.nhan : 0;
     if (mc.loi) m.canhBao = m.canhBao ?? `Không đo được máy (${mc.loi})`;
     else if (qt > .9) m.canhBao = m.canhBao ?? `Quá tải: ${mc.tai} / ${mc.nhan} nhân`;
-    else if ((mc.diaPct ?? 0) >= 90) m.canhBao = m.canhBao ?? `Đĩa đầy ${mc.diaPct}%`;
+    else if ((mc.diaPct ?? 0) >= 90) m.canhBao = m.canhBao ?? `Đĩa đầy ${mc.diaPct}%`;   // 85–89% chỉ đèn vàng (cảnh), ≥ 90% mới báo
   }
-  const nhaMay = [...may.values()].filter((m) => m.sites.length || m.canhBao).sort((a, b) => b.sites.length - a.sites.length);
-  return { tk, dich, duAn, luong, tien, nhaMay, fav: live.fav };
+  const nhaMay = [...may.values()].filter((m) => m.sites.length || m.canhBao || m.tai != null).sort((a, b) => b.sites.length - a.sites.length);
+  const congTy = [...(hst.congTy ?? [])].sort((a, b) => Number(b.hoatDong) - Number(a.hoatDong) || b.viec24 - a.viec24);
+  return { tk, dich, duAn, luong, tien, nhaMay, congTy, fav: live.fav };
 }

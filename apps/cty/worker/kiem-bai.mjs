@@ -76,7 +76,9 @@ export function thanBai(html) {
   return m ? (m[1] ?? m[0]) : h;
 }
 export function chuBai(html) {
-  const h = thanBai(html).replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, '');
+  const h = thanBai(html).replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, '')
+    // người chấm chỉ đọc CHỮ → ảnh / video hiện thành một dòng mô tả (alt), không thì nó chấm "toàn chữ, thiếu hình" trong khi trang đầy ảnh (giochap.com 23/10/2026)
+    .replace(/<img\b[^>]*\balt="([^"]+)"[^>]*>/gi, '\n[ẢNH: $1]\n').replace(/<video\b[^>]*(?:aria-label|title)="([^"]+)"[^>]*>/gi, '\n[VIDEO: $1]\n');
   return h.replace(/<h1[^>]*>/gi, '\n# ').replace(/<h2[^>]*>/gi, '\n## ').replace(/<h3[^>]*>/gi, '\n### ').replace(/<blockquote[^>]*>/gi, '\n> ')
     .replace(/<li[^>]*>/gi, '\n- ').replace(/<(p|br|tr|div|table|details|summary)[^>]*>/gi, '\n').replace(/<td[^>]*>/gi, ' | ').replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ').replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/&euro;/g, '€').replace(/&ndash;/g, '–').replace(/&mdash;/g, '—').replace(/&#39;|&rsquo;/g, "'")
@@ -104,7 +106,7 @@ export function mayDo(html, loai = 'bai') {
     co_neu_da_lo: /##\s.*(already|if you (clicked|paid)|what to do now)/i.test(chu),
     co_nut: /class="[^"]*\bcta\b|<a [^>]*class="[^"]*btn/i.test(String(html)),
     so_nut: (String(h).match(/<a [^>]*class="[^"]*\b(btn|cta)\b|<form [^>]*data-cho/gi) || []).length,
-    co_gia: /[$€£₫]\s?\d|\d\s?(USD|VND|EUR)\b/.test(chu),
+    co_gia: /[$€£₫]\s?\d|\d\s?(₫|đ\b|USD|VND|EUR\b)/.test(chu),
     co_demo: video > 0 || /class="[^"]*\bdemo\b/i.test(h),
     loai,
     chan_cung: loai === 'trang-ban' ? chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) : [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
@@ -121,7 +123,7 @@ function chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) 
     ...(!(video || /class="[^"]*\bdemo\b/i.test(h)) ? ['không có video / demo sản phẩm đang chạy (bắt buộc 1)'] : []),
     ...(anhThat < 3 ? [`${anhThat} ảnh thật của sản phẩm (tối thiểu 3 — bắt buộc 4)`] : []),
     ...(nut < 2 ? [`nút mua xuất hiện ${nut} lần (tối thiểu 2: đầu + cuối — bắt buộc 3)`] : []),
-    ...(!/[$€£₫]\s?\d|\d\s?(USD|VND|EUR)\b/.test(chu) ? ['không thấy giá (bắt buộc 6)'] : []),
+    ...(!/[$€£₫]\s?\d|\d\s?(₫|đ\b|USD|VND|EUR\b)/.test(chu) ? ['không thấy giá (bắt buộc 6)'] : []),
     ...(!coFaq ? ['không có FAQ (bắt buộc 7)'] : []),
     ...(soChu < 400 ? [`${soChu} chữ — dưới 400, thiếu lý do mua`] : soChu > 1600 ? [`${soChu} chữ — quá 1.600, đang viết bài chứ không phải trang bán`] : [])];
 }
@@ -338,6 +340,8 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.ok(mayDo(tb({ chu: 2000 }), 'trang-ban').chan_cung.some((x) => x.includes('quá 1.600')), 'trang bán quá dài → chặn');
     t.throws(() => nopBai({ url: 'https://x.test/', loai: 'quang-cao' }), /--loai/, 'loại lạ bị từ chối');
     t.ok(mayDo('<main><h2>Câu hỏi hay gặp</h2></main>').co_faq, 'FAQ tiếng Việt được nhận');
+    t.ok(mayDo('<main><p>Miễn phí, 0 ₫</p></main>', 'trang-ban').co_gia, 'giá kiểu Việt (0 ₫) được nhận');
+    t.ok(chuBai('<main><img src=a.jpg alt="Màn lịch tháng"><p>x</p></main>').includes('[ẢNH: Màn lịch tháng]'), 'người chấm thấy ảnh qua alt');
     t.ok(mayDo(tb({ nut: 0 }).replace('</main>', '<form class="cho" action="/cho-tin" data-cho></form><form class="cho" data-cho></form></main>'), 'trang-ban').chan_cung.every((x) => !x.includes('nút mua')), 'chưa bán: 2 form Notify me thay 2 nút mua');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du.replace('Questions people ask', 'Book now'))), 'SUA_LAI', 'thiếu FAQ');
     t.equal(diemCuoi({ diem: 10 }, mayDo(du.replace('<img src=a.png alt=x>', ''))), 6, 'chặn cứng thì không 10/10');

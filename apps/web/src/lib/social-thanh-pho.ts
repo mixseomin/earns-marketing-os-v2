@@ -151,6 +151,7 @@ const laShop = (site: string) => /(^|\.)(gumroad\.com|etsy\.com|amazon\.com)$/.t
 
 export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'landing' | 'ban' | 'fav' | 'nguonSite' | 'heSinhThai'>): PhoMoHinh {
   const { kenh, luoi, suc } = live;
+  const het7 = new Date(Date.parse(`${luoi.hom}T00:00:00Z`) + 6 * 864e5).toISOString().slice(0, 10);
   const nhanDong = (d: { mayTen: string; nenTen: string }) => `${d.mayTen.split(' · ')[0]} · ${d.nenTen}`;   // trùng cách social-suc-khoe ghi tên kênh trong sự cố
   const suCoBad = suc.suCo.filter((x) => x.muc === 'bad');
   const duAnCua = new Map(kenh.map((k) => [String(k.id), k.duAn ?? k.nhom]));
@@ -164,7 +165,8 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
 
   const tho = kenh.filter((k) => NEN_KEY[k.nenKey ?? '']).map((k) => {
     const id = String(k.id), duAn = k.duAn ?? k.nhom, dongs = dongCua(id, k.nenKey!, duAn);
-    const sap = luoi.o.filter((o) => o.loai === 'du_kien' && dongs.some((d) => d.may === o.may && d.nen === o.nen)).length;
+    // sắp đăng = 7 ngày tới (lưới lịch giữ 6 tuần cho lịch tháng — phải cắt ở đây, không thì số phình theo kỳ lịch)
+    const sap = luoi.o.filter((o) => o.loai === 'du_kien' && o.ngay <= het7 && dongs.some((d) => d.may === o.may && d.nen === o.nen)).length;
     const loi = suCoBad.find((s) => dongs.some((d) => s.kenh.includes(nhanDong(d))));
     const hong = k.tt === 'khoa' ? 'Tài khoản bị khoá' : k.tt === 'co' ? 'Tài khoản dính cờ' : loi?.tieuDe ?? null;
     return { k, id, duAn, site: nhieuNhat(dongs.map((d) => d.site)), sap, hong };

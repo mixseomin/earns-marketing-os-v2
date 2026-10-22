@@ -18,6 +18,7 @@ const live = {
     { ngay: '2026-10-23', gio: '15:00', may: 'hotel', mayTen: 'Scam or Real?', nen: 'x_anh', title: '', url: null, loai: 'du_kien' },
     { ngay: '2026-10-22', gio: '08:00', may: 'hotel', mayTen: 'Scam or Real?', nen: 'x', title: '', url: 'u', loai: 'da' },
     { ngay: '2026-10-23', gio: '10:00', may: 'fp', mayTen: 'Only ONE', nen: 'tiktok', title: '', url: null, loai: 'du_kien' },
+    { ngay: '2026-11-20', gio: '09:00', may: 'hotel', mayTen: 'Scam or Real?', nen: 'x', title: '', url: null, loai: 'du_kien' },   // ngoài 7 ngày: không tính
   ] },
   suc: { hom: '', ngay: [], dong: [
     dong('hotel', 'Scam or Real? · tin nhắn', 'x', 'X', '540', 'ratesbyroom.com'), dong('hotel', 'Scam or Real? · tin nhắn', 'x_anh', 'X ảnh', '540', 'ratesbyroom.com'),

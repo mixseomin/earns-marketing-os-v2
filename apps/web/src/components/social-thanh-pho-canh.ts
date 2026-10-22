@@ -164,6 +164,22 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (let i = 0; i < 4; i++) { const goc = Math.PI / 8 + i * Math.PI / 2, p = add(new THREE.PlaneGeometry(rong, cao), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }), false);
       p.position.set(x + Math.sin(goc) * rGiua, y0 + h / 2, z + Math.cos(goc) * rGiua); p.rotation.set(0, goc, 0, 'YXZ'); p.rotateX(-nghieng); p.userData = { chu }; }
   }
+  // BẢNG TÊN TRÊN TƯỜNG (anh 22/10/2026 "phải tận dụng thân toà để điền tên và thông tin, nhìn vào biết ai"): dải biển sát mái, 4 mặt,
+  // dòng 1 = tên, dòng 2 = số chính; chữ trắng viền tối cho đọc được cả ngày lẫn đêm
+  const texBang = (d1: string, d2: string, mau: string) => {
+    const k = `b:${d1}|${d2}|${mau}`; if (tex[k]) return tex[k];
+    const c = document.createElement('canvas'); c.width = 512; c.height = 176; const g = c.getContext('2d')!;
+    g.fillStyle = 'rgba(8,12,26,.88)'; g.beginPath(); g.roundRect(0, 0, 512, 176, 18); g.fill(); g.fillStyle = mau; g.fillRect(0, 0, 512, 12);
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; let co = 68; g.font = `800 ${co}px system-ui, sans-serif`; while (g.measureText(d1).width > 490 && co > 30) { co -= 4; g.font = `800 ${co}px system-ui, sans-serif`; } g.fillText(d1, 256, 70);
+    if (d2) { g.fillStyle = '#ffd27a'; let c2 = 50; g.font = `700 ${c2}px system-ui, "Apple Color Emoji", sans-serif`; while (g.measureText(d2).width > 490 && c2 > 24) { c2 -= 3; g.font = `700 ${c2}px system-ui, "Apple Color Emoji", sans-serif`; } g.fillText(d2, 256, 136); }
+    return (tex[k] = new THREE.CanvasTexture(c));
+  };
+  function bangTen(x: number, z: number, w: number, yTren: number, d1: string, d2: string, mau: string, chu: any) {
+    const t = texBang(d1, d2, mau), rong = w * .98, cao = Math.min(rong * .36, Math.max(4, yTren * .5));
+    for (let i = 0; i < 4; i++) { const g = (i * Math.PI) / 2, p = add(new THREE.PlaneGeometry(rong, cao), new THREE.MeshBasicMaterial({ map: t, transparent: true }), false);
+      p.position.set(x + Math.sin(g) * (w / 2 + .12), yTren - cao / 2 - .4, z + Math.cos(g) * (w / 2 + .12)); p.rotation.y = g; p.userData = { chu }; }
+  }
+  const gon = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : String(Math.round(n)));
   const khuCua = (k: string) => mh.duAn.find((c) => c.khoa === k);
   const dichCua = (k: string) => mh.dich.find((d) => d.khoa === k);
   const texNen = (k: Nen) => texIc(`n:${k}`, NEN[k][0], P[k]);
@@ -183,7 +199,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       sp.userData = { tk, chu, goc: new THREE.Vector3(x, y, z), pha: k / 22, toc: .0035 + Math.random() * .002, lech: Math.random() * 6.28 }; the.add(sp); ds.khoi!.push(sp); }
   }
   function toaNha(x: number, z: number, tk: PhoTk, mai: any) {
-    const w = Math.min(26, 9 + 2.3 * Math.log2(1 + (tk.xem ?? 0) / 40 + tk.phien));   // to theo lượt xem + khách đẩy về đích
+    const w = Math.min(28, 15 + 1.8 * Math.log2(1 + (tk.xem ?? 0) / 40 + tk.phien));   // to theo lượt xem + khách đẩy về đích; tối thiểu 15 để bảng tên trên tường đọc được
     const tang = Math.max(3, Math.min(20, Math.ceil(tk.chay / 12) + 1)), h = tang * 5 + 3, mau = new THREE.Color(mauTk(tk)).lerp(new THREE.Color('#2a3150'), .35);
     const than = M({ color: mau, roughness: .6, transparent: tk.dung, opacity: tk.dung ? .35 : 1 });
     const noc = M({ map: mai, emissive: '#ffffff', emissiveMap: mai, emissiveIntensity: .4, transparent: tk.dung, opacity: tk.dung ? .35 : 1 });
@@ -198,6 +214,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (let k = 0; k < Math.min(14, tk.sap); k++) { const t = add(new THREE.BoxGeometry(3.6, 3.6, 3.6), M({ color: '#9b7bff', emissive: '#7c5cff', emissiveIntensity: .45 })); t.position.set(x + w / 2 + 4 + (k % 2) * 4.2, 1.8 + (Math.floor(k / 2) % 2) * 3.8, z - w / 2 + 3 + Math.floor(k / 4) * 4.2); t.userData = { tk, chu: m }; ds.thung!.push(t); }
     if (tk.xem) { const hc = 10 + 14 * Math.log10(1 + tk.xem), c = add(new THREE.CylinderGeometry(1.4, 3.2, hc, 12, 1, true), new THREE.MeshBasicMaterial({ color: '#6ea8ff', transparent: true, opacity: .45, side: THREE.DoubleSide }), false); c.position.set(x, h + hc / 2, z); c.userData = { tk, chu: m }; ds.cot!.push(c); }
     if (tk.hong) { const d = add(new THREE.SphereGeometry(2.2, 12, 12), new THREE.MeshBasicMaterial({ color: '#ff3b4e' }), false); d.position.set(x, h + 2.5, z); d.userData = { tk, chu: m }; ds.hong!.push(d); khoi(x, h + 3, z, tk, m); }
+    const so2 = tk.loai === 'mxh' ? [`🪟${tk.chay}`, tk.sap ? `📦${tk.sap}` : '', tk.xem ? `👁${gon(tk.xem)}` : '', tk.phien ? `🚗${gon(tk.phien)}` : ''].filter(Boolean).join(' ')
+      : tk.chiTiet ? `👁${gon(tk.chiTiet.hien)} · ⬇${tk.chiTiet.tai}` : `🚗 ${gon(tk.phien)} khách`;
+    bangTen(x, z, w, h, tk.loai === 'mxh' ? `${NEN[tk.nen][1]} · ${tk.ten}` : tk.ten, so2, mauTk(tk), m);
     return { m, cua: new THREE.Vector3(x, 1.5, z) };
   }
 
@@ -337,7 +356,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const phien = d.phien30 ?? 0, h = 14 + 8 * Math.log2(1 + phien), rT = Math.min(14, 5 + 2 * Math.log2(1 + phien));
         m = add(new THREE.CylinderGeometry(rT * .8, rT, h, 8), d.coNguon ? M({ color: '#2a9c7a', emissive: '#1f8f6c', emissiveIntensity: .25, roughness: .4 }) : M({ color: '#3a4058', emissive: '#000000', emissiveIntensity: 0, roughness: .8 })); m.position.set(x, h / 2, z);
         if (d.coNguon) { const sang = add(new THREE.CylinderGeometry(rT * .8 + .2, rT + .2, h * .7, 8, 1, true), new THREE.MeshBasicMaterial({ color: '#5effc4', wireframe: true, transparent: true, opacity: .18 }), false); sang.position.set(x, h * .35 + 2, z); sang.userData = { chu: m }; }
-        chuDoc(d.site!, d.coNguon ? '#5effc4' : '#8e9abd', x, z, rT, rT * .8, h, m);
+        chuDoc(`${d.site} · ${gon(phien)} phiên${d.tien30 ? ` · $${d.tien30.toFixed(0)}` : ''}`, d.coNguon ? '#5effc4' : '#8e9abd', x, z, rT, rT * .8, h, m);
         const fv = add(new THREE.CircleGeometry(rT * .62, 40), new THREE.MeshBasicMaterial({ map: texFav(d.site!) }), false); fv.rotation.x = -Math.PI / 2; fv.position.set(x, h + .15, z); fv.userData = { chu: m };
       }
       m.userData = { loai: 'dich', d }; vongLai(d, x, z, 16); chiMuc.push({ ten: d.ten, nhan: 'site', obj: m });
@@ -384,11 +403,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // toà SẢN PHẨM: hộp nhỏ, nóc là logo cửa bán (App Store, Microsoft Store, Gumroad, Etsy, KDP, Udemy…); sắp lên (đang duyệt / sẵn sàng) = khung mờ
     function toaSp(d: typeof mh.dich[number], x: number, z: number) {
       queueMicrotask(() => { const o = the.children.find((c: any) => c.userData?.d === d); if (o) chiMuc.push({ ten: d.ten, nhan: d.nenBan ?? 'sản phẩm', obj: o }); });
-      const so = (d.xem7 ?? 0) + (d.tai ?? 0) * 3 + (d.net ?? 0) * 5, w = 9 + Math.min(8, Math.log2(1 + so) * 1.4), h = 8 + Math.min(18, Math.log2(1 + so) * 2.4);
+      const so = (d.xem7 ?? 0) + (d.tai ?? 0) * 3 + (d.net ?? 0) * 5, w = 14 + Math.min(8, Math.log2(1 + so) * 1.4), h = 12 + Math.min(18, Math.log2(1 + so) * 2.4);
       const mai = texFav(d.hostBan ?? 'shop', '#6a3f8f'), than = M({ color: '#6a5a9f', roughness: .5, transparent: !!d.sapLen, opacity: d.sapLen ? .4 : 1 });
       const m = add(new THREE.BoxGeometry(w, h, w), [than, than, M({ map: mai, emissive: '#fff', emissiveMap: mai, emissiveIntensity: .4, transparent: !!d.sapLen, opacity: d.sapLen ? .6 : 1 }), than, than, than]); m.position.set(x, h / 2, z);
       if (d.sapLen) { const khung = add(new THREE.BoxGeometry(w + 1, h + 1, w + 1), new THREE.MeshBasicMaterial({ color: '#b48cff', wireframe: true, transparent: true, opacity: .5 }), false); khung.position.copy(m.position); khung.userData = { chu: m }; }
       m.userData = { loai: 'dich', d }; viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) }; vongLai(d, x, z, w * .9);
+      bangTen(x, z, w, h, d.cha ? (d.nenBan ?? d.ten) : d.ten, [d.sapLen ? '🏗 sắp lên' : '', d.xem7 != null ? `👁${gon(d.xem7)}` : '', d.tai ? `⬇${d.tai}` : '', d.tien30 ? `💵$${d.tien30.toFixed(0)}` : ''].filter(Boolean).join(' '), '#b48cff', m);
     }
     // toà APP: thân dáng điện thoại (khối mảnh, mặt trước là màn hình sáng) + tên dọc; các bản cửa hàng đứng quanh
     function toaApp(d: typeof mh.dich[number], x: number, z: number) {
@@ -396,7 +416,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const ban = banCua(d.khoa), so = ban.reduce((a, b) => a + (b.xem7 ?? 0) + (b.tai ?? 0) * 3, 0), h = 26 + Math.min(30, Math.log2(1 + so) * 3);
       const than = M({ color: '#1d2433', roughness: .35, metalness: .4, transparent: !!d.sapLen, opacity: d.sapLen ? .5 : 1 }), man = M({ color: '#3a6ff0', emissive: '#3a6ff0', emissiveIntensity: .55 });
       const m = add(new THREE.BoxGeometry(12, h, 6), [than, than, than, than, man, man]); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
-      chuDoc(d.ten, '#3a6ff0', x, z, 6.4, 6.4, h, m); vongLai(d, x, z, 11);
+      chuDoc(`${d.ten}${d.tien30 ? ` · $${d.tien30.toFixed(2)}` : ''}`, '#3a6ff0', x, z, 6.4, 6.4, h, m); vongLai(d, x, z, 11);
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
     }
     // TIỀN: đồng xu chồng cạnh đích có tiền 30 ngày; xe vàng chở về Kho bạc

@@ -9,6 +9,8 @@ D = os.path.dirname(os.path.abspath(__file__))
 _s = importlib.util.spec_from_file_location("kt", os.path.join(D, "kiem-thoai.py")); KT = importlib.util.module_from_spec(_s); _s.loader.exec_module(KT)
 CHUNG = {"en": ["You won't get tired of watching it. Who can resist this short drama? Watch now", "If you haven't watched it yet, you're really missing out.", "It gets better and better. Don't swipe away halfway."],
          "es": ["No te cansarás de verla. ¿Quién puede resistirse a esta miniserie? Mírala ahora", "Si todavía no la has visto, te estás perdiendo algo grande.", "Cada vez se pone mejor. No la dejes a la mitad."]}
+# chữ NÚT của QC gốc mà spy chép dính vào cuối nội dung (22/10/2026: "…Me largo. Watch more" / "…Me largo. Download" lên creative ES)
+NUT = re.compile(r"(?:\s*\b(?:watch more|watch now|download|learn more|install now|play now|shop now|sign up|ver más|descargar|más información))+\s*$", re.I)
 APP = re.compile(r"\b(net\s?short|drama\s?box|reel\s?short|h5short|shortmax|goodshort)\b|\b[A-Z0-9-]+\.(COM|NET|APP)\b|Low impression count|Continue Watching", re.I)
 
 def lam_sach(chu, ten):
@@ -19,7 +21,7 @@ def lam_sach(chu, ten):
     for doan in [c.strip() for c in re.split(r"\s*\|\s*", chu) if c.strip()]:
         doan = re.sub(r"^" + re.escape(ten) + r"\s*", "", doan).strip()
         cau = [c for c in re.split(r"(?<=[.!?¡¿])\s+", doan) if c and not APP.search(c)]
-        doan = " ".join(cau).strip()
+        doan = NUT.sub("", " ".join(cau)).strip()
         if len(doan) > 40 and doan.lower() != ten.lower(): ra.append(doan)
     return ra
 

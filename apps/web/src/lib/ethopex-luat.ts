@@ -9,7 +9,7 @@ export const ROI_TOI_THIEU = 20;        // % ROI từ đầu tháng — luật G
 export const ROI_TANG = 50;             // % ROI tháng tối thiểu để TĂNG BẬC (Support Dol 21/10/2026: "chỉ tăng budget những camp rois > 50%")
 export const NGHI_TANG_GIO = 3;         // giờ giữa hai lần tăng (scripts/ethopex/nhip_tang.py)
 export const SPENDING_TOI_THIEU = 50;   // % = chi hôm nay / ngân sách ngày
-export const TEST_TOI_DA = 2;           // camp / phim đang test (từ 21/10/2026)
+export const TEST_TOI_DA = 30;          // camp ĐANG CHẠY / phim đang test — anh 22/10/2026 bỏ trần 2: "camp cùng phim thì chủ động thêm góc khác ok, ko limit để còn tìm hướng sớm"
 export const THANG_TOI_DA = 30;         // camp ĐANG CHẠY / phim thắng (anh 22/10/2026: camp thua tắt thì nhường chỗ cho creative mới; trước 10)
 export const KHUNG_TANG = [21, 0, 8];   // giờ VN
 export const NGAN_SACH_CHUA_CAN_GIO = 3;
@@ -39,7 +39,7 @@ export const LUAT: Luat[] = [
   { ma: 'TC', ten: 'Ad bị Meta từ chối', icon: '⛔', muc: 'dung', gac: 'nguoi', khi: 'Ad DISAPPROVED', lam: 'Không xoá — Edit camp, thay creative SẠCH cùng phim đã được duyệt, Update cho Meta duyệt lại',
     vi: 'Giữ camp + lịch sử; Meta đôi khi duyệt nhầm, thay creative tuân thủ là qua.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'SC', ten: 'Số camp / phim', icon: '#', muc: 'bao', gac: 'may', khi: `Phim đang test: tối đa ${TEST_TOI_DA} camp · phim thắng (anh duyệt): tối đa ${THANG_TOI_DA}`,
-    lam: 'Đủ trần thì cổng kiem-so-camp.sh chặn camp mới', vi: 'Test rẻ: 1 phim 1 dạng creative, thắng mới scale. Áp cho camp mới từ 21/10/2026.', nguon: 'anh 21/10/2026' },
+    lam: 'Đủ trần thì cổng kiem-so-camp.sh chặn camp mới', vi: 'Phim âm/đang test được chủ động thêm góc khác (dạng video, đoạn cắt, chữ móc) để tìm hướng sớm; camp đã tắt nhường chỗ.', nguon: 'anh 21–22/10/2026' },
   { ma: '1AD', ten: 'Một ad / camp', icon: '1', muc: 'bao', gac: 'may', khi: 'Dựng camp', lam: 'Mỗi camp đúng 1 nhóm, 1 ad — cổng kiem-cau-hinh.py chặn camp có ad thứ 2', vi: 'Anh cấm thêm ad thứ 2 vào một camp Ethopex.', nguon: 'anh 21/10/2026' },
   { ma: 'TH', ten: 'Cổng thoại nhạy cảm', icon: '✱', muc: 'bao', gac: 'may', khi: 'Chữ / phụ đề trong video có mua bán dâm, quan hệ, đe doạ lột đồ, bạo lực ("dead", "kill"…)',
     lam: 'Không cắt + không Publish (kiem-thoai.py ở cat-canh.py và dung-camp.sh)', vi: 'Meta từ chối #65717/#65719 "Adult Sexual Exploitation".', nguon: '20–21/10/2026' },

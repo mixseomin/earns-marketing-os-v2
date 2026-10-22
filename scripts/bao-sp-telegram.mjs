@@ -4,7 +4,8 @@
 //                     Anh duyệt xong → bot thả ❤ vào tin NGAY (nút Duyệt đánh thức bot qua bao-sp-telegram.path), 1 phút sau mới xoá.
 //   tới ngày chưa duyệt → topic "🛍️ Sản phẩm mới": ngày đăng dự kiến (giờ VN) đã tới mà sách còn planned/draft/owner_review —
 //                       mỗi sách tối đa MỘT tin mỗi ngày, kèm link mở thẳng drawer duyệt trên MOS2.
-//   tới ngày cần đăng → topic "🛍️ Sản phẩm mới": đã duyệt + tới ngày + nền KDP/Gumroad (Publish là chữ ký của anh) → nhắc đăng.
+//   tới ngày cần đăng → topic "🛍️ Sản phẩm mới": đã duyệt + tới ngày + nền KDP/Gumroad → nhắc đăng. Gumroad máy tự đăng 9h (MacBook); chưa lên thì
+//                       tin có nút "🚀 Máy đăng Gumroad" mỗi sản phẩm (anh 22/10/2026) → cty apps/cty/worker/sp-nut.mjs giao MacBook đăng đúng sản phẩm đó.
 // Bất kể đăng/dựng bằng script nào hay sửa tay trên MOS2. Lần đầu mỗi kênh (chưa có tệp trạng thái) chỉ ghi nhận, không báo hàng cũ.
 // Chạy trên box3 bằng systemd timer bao-sp-telegram.timer (1 phút: anh duyệt xong là tin biến gần như ngay). Cấu hình bot: /root/.secrets/mine-tg.env
 // (TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX — vault MOS2 #476); Directus từ .env.production qua EnvironmentFile.
@@ -62,9 +63,11 @@ export const tinCanDang = (ten, ds, homNay) => {
     `📤 <b>${esc(ten)}</b>`,
     esc(dong(`đăng ${ngayVn(d)}${tre > 0 ? ` (trễ ${tre} ngày)` : ' (hôm nay)'}`, ds.map(nen).join(', '))),
     ...(nhap ? ['<i>Nháp KDP đã sẵn, chỉ còn bấm Publish</i>', ...(nhap.canhBao ? [`⚠️ ${esc(nhap.canhBao)}`] : []), `<a href="${esc(linkKdp(nhap.id))}">Mở nháp KDP (trang có nút Publish) →</a>`] : []),
-    ...(khac.length ? [`<i>${esc(khac.map(nen).join(', '))}: đã duyệt, cần bấm Publish trên sàn</i>`] : []),
+    ...(khac.length ? [`<i>${esc(khac.map(nen).join(', '))}: đã duyệt, máy tự đăng lúc 9h. Chưa lên thì bấm nút dưới, máy đăng ngay</i>`] : []),
   ].join('\n');
 };
+// Nút cho từng dòng Gumroad — callback sp:gum:<UUID sổ> do cty sp-nut.mjs xử (≤ 64 byte: 7 + 36)
+export const nutCanDang = (ds) => { const h = ds.filter((r) => r.platform === 'gumroad').map((r) => [{ text: '🚀 Máy đăng Gumroad', callback_data: `sp:gum:${r.id}` }]); return h.length ? { inline_keyboard: h } : undefined; };
 
 if (process.argv.includes('--tu-kiem')) {
   const a = await import('node:assert');
@@ -80,11 +83,13 @@ if (process.argv.includes('--tu-kiem')) {
   a.equal(choAnh({ status: 'owner_review', listing_config: { duyetLuc: '2026-10-05T11:00:00Z', xem: { ngay: '2026-10-06T17:44:59Z' } } }), true);    // dựng lại sau lần duyệt
   a.equal(choAnh({ status: 'draft', listing_config: {} }), true);
   a.ok(tinCanDang('S', [{ platform: 'gumroad', listing_config: { dangDuKien: '2026-10-10' } }], '2026-10-12').includes('đăng 10/10 (trễ 2 ngày) · Gumroad'));
+  a.equal(nutCanDang([{ id: 'a89b36bf-2ff0-40ec-909e-f1fa924ae372', platform: 'gumroad' }, { id: 'k', platform: 'kdp' }]).inline_keyboard[0][0].callback_data, 'sp:gum:a89b36bf-2ff0-40ec-909e-f1fa924ae372');
+  a.equal(nutCanDang([{ id: 'k', platform: 'kdp' }]), undefined);   // chỉ KDP → không nút
   const k = { platform: 'kdp', category: 'paperback', listing_config: { dangDuKien: '2026-10-10', nhapKdp: { id: 'AB12CD34EF5', canhBao: 'chỉ chọn được 1/3 danh mục' } } };
   a.ok(!canNhac({ platform: 'kdp', listing_config: {} }) && canNhac(k) && canNhac({ platform: 'gumroad' }));   // KDP chưa có nháp → không nhắc
   const tk = tinCanDang('S', [k], '2026-10-10');
   a.ok(tk.includes('Nháp KDP đã sẵn') && tk.includes('paperback/AB12CD34EF5/pricing') && tk.includes('1/3 danh mục') && !tk.includes('cần bấm Publish trên sàn'));
-  console.log('bao-sp-telegram: 11/11 ok'); process.exit(0);
+  console.log('bao-sp-telegram: 13/13 ok'); process.exit(0);
 }
 
 const { DIRECTUS_URL = 'https://as.on.tc', DIRECTUS_TOKEN, TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX } = process.env;
@@ -101,10 +106,10 @@ async function doc(st) {
 }
 // Link duyệt MOS2 (trang cần đăng nhập) không có gì để xem trước → tắt preview cho gọn; link sàn (Etsy…) giữ ảnh nhỏ.
 // Trả message_id (để xoá khi việc đã xong) hoặc null khi gửi hỏng.
-async function gui(text, topic) {
-  if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}`); return -1; }
+async function gui(text, topic, reply_markup) {
+  if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}${reply_markup ? ` [nút ${JSON.stringify(reply_markup)}]` : ''}`); return -1; }
   const g = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML',
+    body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML', reply_markup,
       link_preview_options: text.includes(MOS2) || text.includes('kdp.amazon.com') ? { is_disabled: true } : { prefer_small_media: true } }) });
   const j = await g.json();
   if (!j.ok) { console.error(`✗ gửi hỏng: ${j.description}`); process.exitCode = 1; return null; }
@@ -161,7 +166,7 @@ if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) 
 
 // Kênh NHẮC THEO NGÀY: tệp = { tên sách: { ngay, tin: [message_id], xong? } }. Mỗi sách một tin mỗi ngày (tin mới thay tin cũ);
 // sách ra khỏi danh sách (anh duyệt / đã đăng) → thả ❤ ngay, 1 phút sau xoá.
-async function nhacTheoNgay(tep, nhan, ds, viet) {
+async function nhacTheoNgay(tep, nhan, ds, viet, nut = () => undefined) {
   const TT = `${THU}/${tep}`, nhac = Object.fromEntries(Object.entries(existsSync(TT) ? docTep(TT) : {}).map(([k, v]) => [k, typeof v === 'string' ? { ngay: v, tin: [] } : v]));
   const nhom = gom(ds), con = new Set(nhom.map(([ten]) => ten));
   for (const ten of Object.keys(nhac)) {
@@ -172,7 +177,7 @@ async function nhacTheoNgay(tep, nhan, ds, viet) {
   let n = 0;
   for (const [ten, xs] of nhom) {
     if (nhac[ten]?.ngay === HOM_NAY || n >= 10) continue;
-    const m = await gui(viet(ten, xs), TG_TOPIC); if (m == null) continue;
+    const m = await gui(viet(ten, xs), TG_TOPIC, nut(xs)); if (m == null) continue;
     await xoa(nhac[ten]?.tin ?? []);
     nhac[ten] = { ngay: HOM_NAY, tin: [m] }; n++;
     console.log(`✓ ${nhan} · ${ten}`);
@@ -185,4 +190,4 @@ const toiNgay = (x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKi
 await nhacTheoNgay('da-nhac-tre.json', 'tới ngày chưa duyệt', (await doc('planned,draft,owner_review')).filter(choAnh).filter(toiNgay), (ten, xs) => tinTre(ten, xs, HOM_NAY));
 // Tới ngày, ĐÃ DUYỆT, nền máy không tự đăng được (KDP, Gumroad: nút Publish là của anh) → nhắc đăng. Etsy máy tự bật (may-chay dang) nên không nhắc.
 const daDuyet = [...(await doc('ready')), ...(await doc('owner_review')).filter((x) => !choAnh(x))];
-await nhacTheoNgay('da-nhac-dang.json', 'tới ngày cần đăng', daDuyet.filter((x) => ['kdp', 'gumroad'].includes(x.platform)).filter(canNhac).filter(toiNgay), (ten, xs) => tinCanDang(ten, xs, HOM_NAY));
+await nhacTheoNgay('da-nhac-dang.json', 'tới ngày cần đăng', daDuyet.filter((x) => ['kdp', 'gumroad'].includes(x.platform)).filter(canNhac).filter(toiNgay), (ten, xs) => tinCanDang(ten, xs, HOM_NAY), nutCanDang);

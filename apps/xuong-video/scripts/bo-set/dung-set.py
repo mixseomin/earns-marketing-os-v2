@@ -1110,6 +1110,14 @@ def vet_(n_, ten, ds):
         o.parent = bp; o.matrix_parent_inverse.identity()
         o.location = (lo.x + (hi.x - lo.x) * lx, lo.y - 1.2, lo.z + (hi.z - lo.z) * lz)   # nhô 1,2 cm trước mặt ngực: nổi ra ngoài áo người MPFB (vải nổi 4 mm + độ phồng áo)
         o.scale = ((hi.x - lo.x) * float(d.get('rong', 0.4)) / 2, (hi.y - lo.y) * 0.06, (hi.z - lo.z) * float(d.get('cao', 0.4)) / 2)
+        # ÉP VẾT LÊN LỚP ÁO ĐANG MẶC (Shrinkwrap 2 mm): ngực ma-nơ-canh không trùng áo người MPFB → vết thành ĐĨA phẳng lơ lửng trước áo (anh 22/10/2026
+        # thấy "khối màu cam" ở tập 135 #2 #13 #14). Đích = món đồ của người đó (không phải giày / tóc / chấm mắt / da 3D), không có thì thân MPFB.
+        goc_ = f"THAN NG {ten}"
+        do_ = [x for x in bpy.data.objects if x.type == 'MESH' and x.name.startswith(goc_ + '.') and not x.get('an_han')
+               and not any(k in x.name.lower() for k in ('shoe', 'boot', 'con_nguoi', '.da', 'hair', 'long0', 'short0', 'bob0', 'ponytail', 'braid', 'afro'))]
+        dich_ = do_[0] if do_ else bpy.data.objects.get(goc_)
+        if dich_:
+            sw = o.modifiers.new('ep_ao', 'SHRINKWRAP'); sw.target = dich_; sw.wrap_method = 'NEAREST_SURFACEPOINT'; sw.offset = 0.002
 
 def ho_tua(s_, dg, n_, ben):
     """Khoảng hở (cm, âm = lún) từ LÒNG BÀN TAY ÚP (cổ tay − 3 cm — người MPFB gập bàn tay úp ngang cổ tay, mesh/nguoi.py › tay_ap) tới mặt đỡ của BỘ

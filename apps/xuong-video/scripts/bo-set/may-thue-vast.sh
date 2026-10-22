@@ -92,7 +92,9 @@ print(st or "-", ip.strip() or "-", p or "-")')
       DC=$(bash "$0" cho "$MAY" || true); H=${DC% *}; P=${DC##* }
       RC=1; [ "${H#root@}" != "$H" ] && { RC=0; bash "$DIR/scripts/bo-set/may-thue.sh" chuan-bi "$H" "$P" || RC=$?; }
       [ $RC = 0 ] && break
-      [ $RC = 3 ] && { echo "lỗi cấu hình (khoá SSH / image) — dừng, không thuê thêm"; exit 1; }
+      # "Permission denied (publickey)" sau 60 s: khoá tài khoản đã vào được máy khác cùng ngày → thường là MÁY đó không nạp khoá (host lỗi), không phải cấu hình
+      # (23/10/2026 máy 95.217.191.164). Coi như máy hỏng, thuê máy khác; hai máy liền cùng lỗi mới là cấu hình → dừng.
+      [ $RC = 3 ] && { PD=$(( ${PD:-0} + 1 )); [ $PD -ge 2 ] && { echo "2 máy liền từ chối khoá SSH — lỗi cấu hình (khoá SSH / image), dừng"; exit 1; }; }
       echo "máy $MAY không dùng được ($DC) — xoá, thuê máy khác"; bash "$0" xoa "$MAY"; MAY=""; export XV_BO_MAY="${XV_BO_MAY:-} $MAYCHU"; mkdir -p ~/.cache; echo "$MAYCHU" >> ~/.cache/vast-may-hong.txt
       [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
     done

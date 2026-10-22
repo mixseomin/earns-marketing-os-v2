@@ -641,7 +641,7 @@ def _mocap():
         _s = _iu.spec_from_file_location('mocap', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mocap.py')); _MC = _iu.module_from_spec(_s); _s.loader.exec_module(_MC)
     return _MC
 
-def ap_dien(n, ds, t, giay=4.0):
+def ap_dien(n, ds, t, giay=4.0, quang=None):
     """Đặt tư thế theo mã diễn (vi_tri.dien) lúc t (0..1) — chồng lên dáng hiện tại (đứng / ngồi / đang bước). Trả tên các tư thế đang có hiệu lực.
     Mã 'mc_<ten>[@a-b]' = chuyển động thật từ kho mocap CMU (mocap.py › MOCAP), phát đúng tốc độ thật theo `giay` của shot."""
     dang = []
@@ -650,7 +650,7 @@ def ap_dien(n, ds, t, giay=4.0):
         if ten.startswith('mc_'):
             a, b = (0.0, 1.0)
             if mt: a_, _, b_ = mt.partition('-'); a, b = float(a_), (float(b_) if b_ else 1.0)
-            if _mocap().ap_mocap(n, ten[3:], t, a, b, giay): dang.append(ten)
+            if _mocap().ap_mocap(n, ten[3:], t, a, b, giay, quang, n['L']['chan'] + n['L']['cang'] + n['L']['dui']): dang.append(ten)   # quang: cm, cùng đơn vị L
             continue
         if ten not in TU_THE_NGUOI: continue
         if mt:

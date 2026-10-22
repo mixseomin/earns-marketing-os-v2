@@ -135,15 +135,40 @@ def moc_hong(ma):
         san = min(min(p['LeftFoot'][1], p['RightFoot'][1]) for p in ds); _MOC[ma] = (san, max(p['Hips'][1] for p in ds) - san)
     return _MOC[ma]
 
-def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0):
+_DI_DO = {}
+def do_di(ma):
+    """Đoạn ĐI: (tốc độ hông theo phương ngang, đơn vị cao-hông / giây; khung đầu, khung cuối của MỘT VÒNG BƯỚC liền mạch). Vòng = cặp khung cách
+    nhau ≥ 0,9 s có dáng giống nhất (tổng bình phương lệch hướng đoạn xương) — lặp k % số khung cả đoạn thì cuối đoạn nhảy về dáng đầu, giật một nhịp
+    mỗi 2,3 s (tập 135 #15 Vivian 'dật dẹo', 22/10/2026)."""
+    if ma in _DI_DO: return _DI_DO[ma]
+    _, khung, dt = doc_bvh(ma); n = len(khung); _, dung = moc_hong(ma)
+    h0, h1 = vi_tri_khop(ma, 0)['Hips'], vi_tri_khop(ma, n - 1)['Hips']
+    toc = math.hypot(h1[0] - h0[0], h1[2] - h0[2]) / ((n - 1) * dt) / (dung or 1)
+    nhip = max(1, int(round(0.025 / dt))); vec = {k: huong_doan(ma, k)[0] for k in range(0, n, nhip)}; ks = sorted(vec); tot = (1e9, 0, n - 1)
+    for i in ks:
+        for j in ks:
+            if (j - i) * dt < 0.9: continue
+            d = sum((vec[i][kk][c] - vec[j][kk][c]) ** 2 for kk in vec[i] if kk in vec[j] for c in range(3))
+            if d < tot[0]: tot = (d, i, j)
+    _DI_DO[ma] = (toc, tot[1], tot[2]); return _DI_DO[ma]
+
+def ap_mocap(n, ten, t, a=0.0, b=1.0, giay=4.0, quang=None, cao_hong=None):
     """Áp đoạn mocap `ten` lên ma-nơ-canh n lúc t (0..1 của shot), trong cửa sổ [a, b] — phát đúng tốc độ thật từ giây bắt đầu của đoạn;
-    vào / ra cửa sổ hoà dần 10% để không giật. Cần mathutils (Blender)."""
+    vào / ra cửa sổ hoà dần 10% để không giật. Cần mathutils (Blender).
+    ĐI (ten ∈ DI, có quang = quãng đã đi, cùng đơn vị cao_hong): pha bước theo QUÃNG chứ không theo đồng hồ — đoạn CMU đi 1,6 m/s mà kịch bản đi
+    1 m/s thì chân sải dài, người trôi chậm như vồ tới (#15). Lặp trong một vòng bước liền mạch (do_di). Đoạn đi tại chỗ (tốc độ ≈ 0) giữ đồng hồ."""
     from mathutils import Vector
     import bpy
     if ten not in MOCAP: return False
     ma, bd, vung, kt, dau, cuoi = (tuple(MOCAP[ten]) + (None, 'dung', 'dung'))[:6]; _, khung, dt = doc_bvh(ma)
     s = bd + (min(max(t, a), b) - a) * giay
     k = int((min(s, kt) if kt is not None else s) / dt) % len(khung)
+    if quang is not None and cao_hong and ten in DI:
+        toc, k0, k1 = do_di(ma)
+        if toc > 0.3:
+            s = bd + quang / cao_hong / toc; L = (k1 - k0) * dt
+            if s > k1 * dt: s = k0 * dt + (s - k0 * dt) % L
+            k = min(len(khung) - 1, int(s / dt))
     if t < a: w = 0.0 if dau == 'dung' else 1.0           # mở bằng dáng quỳ / ngồi: giữ khung đầu từ t = 0
     elif t > b: w = 0.0 if cuoi == 'dung' else 1.0        # kết bằng dáng quỳ / ngồi: giữ khung cuối, không bật về đứng
     elif b > a and dau == 'dung': w = min(1.0, (t - a) / max(1e-6, 0.1 * (b - a)))

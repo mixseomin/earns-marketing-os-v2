@@ -62,7 +62,7 @@ const LO_HIEN = 12;
 
 export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
-  const [muc, setMuc] = useShallowParam('sts', 'tong');
+  const [muc, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
   // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
   const [skn, setSkn] = useShallowParam('skn', '');   // nền đang lọc, CHỌN NHIỀU nối bằng ',' ('' = mọi nền)

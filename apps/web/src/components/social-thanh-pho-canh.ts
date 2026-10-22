@@ -67,6 +67,9 @@ const CSS = `
 .tp .dieu button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--vien); background: color-mix(in srgb, var(--nen2) 92%, transparent); color: var(--chu); font: 600 18px system-ui; cursor: pointer; }
 .tp .dieu .rong { grid-column: span 2; width: auto; }
 .tp .nho { color: var(--chu2); font-size: 10px; }
+.tp .tua { position: absolute; left: 50%; transform: translateX(-50%); bottom: 34px; z-index: 5; display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--nen2) 92%, transparent); border: 1px solid var(--vien); border-radius: 999px; padding: 4px 10px; }
+.tp .tua input { width: min(46vw, 320px); accent-color: #ffd27a; } .tp .tua button { border: 0; background: transparent; color: var(--chu); font-size: 15px; cursor: pointer; width: 28px; height: 28px; } .tp .tua-ngay { font: 600 11px system-ui; color: #ffd27a; min-width: 62px; text-align: center; }
+@media (max-width: 600px) { .tp .tua { top: 12px; bottom: auto; left: 62px; right: 12px; transform: none; } .tp .tua input { width: auto; flex: 1; min-width: 0; } }
 /* toàn màn giả cho iPhone (Safari iOS không cho phóng toàn màn một khối thường) — phủ kín khung nhìn, chừa tai thỏ */
 .tp.tp-full { position: fixed !important; inset: 0; z-index: 9999; width: 100vw !important; height: 100dvh !important; border-radius: 0 !important; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 @media (max-width: 600px) { .tp .ngan { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 55%; } .tp .ngan:not([hidden]) ~ .dieu { display: none; } .tp .ben { width: 156px; } }
@@ -87,6 +90,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       <button data-d="trai" aria-label="Xoay trái" title="Xoay trái">⟲</button><button data-d="phai" aria-label="Xoay phải" title="Xoay phải">⟳</button>
       <button data-d="vao" aria-label="Phóng to" title="Phóng to">＋</button><button data-d="ra" aria-label="Thu nhỏ" title="Thu nhỏ">－</button>
       <button data-d="goc" aria-label="Về toàn cảnh" title="Về toàn cảnh">⌂</button><button data-d="full" aria-label="Toàn màn hình" title="Toàn màn hình">⛶</button><button data-d="ngay" class="rong" aria-label="Ngày / đêm">🌙</button></div>
+    <div class="tua"><button data-tua="choi" aria-label="Tua 30 ngày" title="Tua lại 30 ngày">▶</button><input type="range" min="0" max="29" value="29" aria-label="Ngày" /><span class="tua-ngay">bây giờ</span><button data-tua="nay" aria-label="Về bây giờ" title="Về bây giờ">⟳</button></div>
     <div class="meo" hidden></div>`;
   const q = <T extends HTMLElement>(s: string) => host.querySelector(s) as T;
   const ben = q<HTMLElement>('.ben'), thuBtn = q<HTMLButtonElement>('.thu'), ngan = q<HTMLElement>('.ngan'), meo = q<HTMLElement>('.meo');
@@ -161,7 +165,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const maiTk = (tk: PhoTk) => (tk.loai !== 'mxh' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
   const CUA_SANG = new THREE.Color('#ffd27a'), CUA_TOI = new THREE.Color('#1c2440');
   const cuaGeo = new THREE.PlaneGeometry(3.2, 2.6), cuaMat = new THREE.MeshBasicMaterial();
-  const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [] };
+  const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [] };
   const texKhoi = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
     gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   function khoi(x: number, y: number, z: number, tk: PhoTk, chu: any) {
@@ -188,8 +192,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // ── bộ lọc: nguồn (nền / tìm kiếm / quảng cáo / giới thiệu) ẩn hiện tại chỗ; khu chọn → dựng lại chỉ các khu đó
-  const chonLv = new Set<string>(), chonSp = new Set<string>(), chonNen = new Set<Nen>(), bat = new Set(['cua', 'thung', 'cot', 'xe', 'xu']);
-  const khop = (tk: PhoTk) => !chonNen.size || chonNen.has(tk.nen);
+  const chonLv = new Set<string>(), chonSp = new Set<string>(), chonNen = new Set<Nen>(), bat = new Set(['cua', 'thung', 'cot', 'xe', 'xu', 'onl', 'dien']);
+  const khop = (tk: PhoTk | undefined) => !tk || !chonNen.size || chonNen.has(tk.nen);
   // ── KHU ĐÔ THỊ NỀN (anh 22/10/2026 "thêm khu đô thị xung quanh cho sinh động, dòng xe, dòng người"): nhà thấp, phố lưới, xe và người qua lại —
   //    chỉ để cảnh sống động, KHÔNG mang số nào và không bấm được (nằm ngoài nhóm 'the' nên tia chuột không chạm)
   let nen = new THREE.Group(); scene.add(nen);
@@ -319,7 +323,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const fv = add(new THREE.CircleGeometry(rT * .62, 40), new THREE.MeshBasicMaterial({ map: texFav(d.site!) }), false); fv.rotation.x = -Math.PI / 2; fv.position.set(x, h + .15, z); fv.userData = { chu: m };
       }
       m.userData = { loai: 'dich', d };
-      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
+      const dinh = m.position.y * 2;
+      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, dinh, z) };
+      ds.thap!.push(m);
+      // cảnh báo hạ tầng (tên miền sắp hết hạn): đèn đỏ + khói như toà hỏng
+      if (d.canhBao) { const dd = add(new THREE.SphereGeometry(2.4, 12, 12), new THREE.MeshBasicMaterial({ color: '#ff3b4e' }), false); dd.position.set(x, dinh + 3, z); dd.userData = { chu: m }; ds.hong!.push(dd); khoi(x, dinh + 3, z, undefined as unknown as PhoTk, m); }
+      // KHÁCH ĐANG XEM: mỗi người một hình sáng đi từ mép quảng trường vào toà, lặp liên tục (số người = khách online, tối đa 16)
+      for (let i = 0; i < Math.min(16, d.online ?? 0); i++) {
+        const g = (i / Math.max(1, Math.min(16, d.online ?? 0))) * Math.PI * 2 + i, a = new THREE.Vector3(x + Math.cos(g) * 19, 1.3, z + Math.sin(g) * 19), b = new THREE.Vector3(x + Math.cos(g) * 5, 1.3, z + Math.sin(g) * 5);
+        const ng = add(new THREE.CylinderGeometry(.7, .7, 2.6, 8), new THREE.MeshBasicMaterial({ color: '#7dffb2' }), false); ng.userData = { chu: m, a, b, t: i / 16, toc: .004 + (i % 5) * .0008 }; ng.position.copy(a); ds.onl!.push(ng);
+      }
     };
     // quảng trường site: tháp ở tâm, nguồn đứng vòng quanh (máy tìm kiếm, quảng cáo, giới thiệu, tài khoản social), phố nan hoa nối vào tâm
     const quangTruongSite = (d: typeof mh.dich[number], x: number, z: number) => {
@@ -356,7 +369,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const mai = texFav(d.hostBan ?? 'shop', '#6a3f8f'), than = M({ color: '#6a5a9f', roughness: .5, transparent: !!d.sapLen, opacity: d.sapLen ? .4 : 1 });
       const m = add(new THREE.BoxGeometry(w, h, w), [than, than, M({ map: mai, emissive: '#fff', emissiveMap: mai, emissiveIntensity: .4, transparent: !!d.sapLen, opacity: d.sapLen ? .6 : 1 }), than, than, than]); m.position.set(x, h / 2, z);
       if (d.sapLen) { const khung = add(new THREE.BoxGeometry(w + 1, h + 1, w + 1), new THREE.MeshBasicMaterial({ color: '#b48cff', wireframe: true, transparent: true, opacity: .5 }), false); khung.position.copy(m.position); khung.userData = { chu: m }; }
-      m.userData = { loai: 'dich', d }; viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
+      m.userData = { loai: 'dich', d }; viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) };
     }
     // toà APP: thân dáng điện thoại (khối mảnh, mặt trước là màn hình sáng) + tên dọc; các bản cửa hàng đứng quanh
     function toaApp(d: typeof mh.dich[number], x: number, z: number) {
@@ -386,7 +399,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const tk = mh.tk.find((t) => t.id === l.tu), a = viTri[`tk:${l.tu}`], b = viTri[l.den]; if (!tk || !a || !b || !l.so) continue;
       const duong = new THREE.CurvePath(); duong.add(new THREE.LineCurve3(a.cua, b.cua));
       const mau = mauTk(tk), soXe = Math.min(8, 1 + Math.round(Math.log2(l.so + 1) * 1.1));
-      for (let k = 0; k < soXe; k++) { const xe = add(new THREE.BoxGeometry(3.4, 1.8, 2), M({ color: ['#20232b', '#1b1b22', '#101010'].includes(mau) ? '#dfe4f2' : mau, emissive: mau, emissiveIntensity: .6 })); xe.userData = { duong, t: k / soXe, toc: .003 + Math.log10(l.so + 1) * .0012, tk, chu: a.m }; ds.xe!.push(xe); }
+      for (let k = 0; k < soXe; k++) { const xe = add(new THREE.BoxGeometry(3.4, 1.8, 2), M({ color: ['#20232b', '#1b1b22', '#101010'].includes(mau) ? '#dfe4f2' : mau, emissive: mau, emissiveIntensity: .6 })); xe.userData = { duong, t: k / soXe, toc: .003 + Math.log10(l.so + 1) * .0012, tk, chu: a.m, den: l.den, k, n: soXe }; ds.xe!.push(xe); }
     }
     // KHO BẠC: toà cột kiểu ngân hàng ở cuối đại lộ, biển ghi tổng tiền 30 ngày
     {
@@ -408,7 +421,25 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         for (let j = 0; j < soXe; j++) { const xe = add(new THREE.BoxGeometry(5, 2.6, 2.8), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .8, metalness: .3 })); xe.userData = { duong, t: j / soXe, toc: .0012 + Math.log10(1 + d.tien30!) * .0005, chu: than, tien: true }; ds.xu!.push(xe); }
       }
     }
-    const kn = khuNen(lech - 40, xKho + 60, zTrong, zNgoai);
+    // NHÀ MÁY ĐIỆN = máy chủ: khu công nghiệp đầu đại lộ; dây điện vàng nối tới đỉnh từng toà site nó chạy; máy sắp hết hạn bốc khói
+    const xMay = lech - 150;
+    mh.nhaMay.forEach((nm, i) => {
+      const x = xMay - Math.floor(i / 2) * 90, z = (i % 2 ? 1 : -1) * 70;
+      pho(x, 0, x, z, 8);
+      const nenM = add(new THREE.BoxGeometry(44, 10, 30), M({ color: '#3b3f4c', roughness: .7 })); nenM.position.set(x, 5, z); nenM.userData = { loai: 'may', nm };
+      for (const dx of [-10, 10]) { const thap = add(new THREE.CylinderGeometry(5, 8, 26, 20, 1, true), M({ color: '#9aa3b8', roughness: .6, side: THREE.DoubleSide })); thap.position.set(x + dx, 23, z); thap.userData = { chu: nenM };
+        if (nm.canhBao) khoi(x + dx, 36, z, undefined as unknown as PhoTk, nenM); }
+      const den = add(new THREE.SphereGeometry(1.6, 10, 10), new THREE.MeshBasicMaterial({ color: nm.canhBao ? '#ff3b4e' : '#ffd27a' }), false); den.position.set(x, 12, z - 15.5); den.userData = { chu: nenM };
+      const c = document.createElement('canvas'); c.width = 512; c.height = 120; const g = c.getContext('2d')!;
+      g.fillStyle = 'rgba(20,22,30,.9)'; g.beginPath(); g.roundRect(4, 4, 504, 112, 18); g.fill(); g.strokeStyle = nm.canhBao ? '#ff3b4e' : '#ffd27a'; g.lineWidth = 4; g.stroke();
+      g.fillStyle = '#ffd27a'; g.font = '800 34px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(`⚡ ${nm.ten}`.slice(0, 34), 256, 52, 490); g.fillStyle = '#fff'; g.font = '600 30px system-ui, sans-serif'; g.fillText(`${nm.sites.length} site`, 256, 96);
+      const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(52, 12, 1); bien.position.set(x, 46, z); bien.userData = { chu: nenM }; the.add(bien);
+      for (const s2 of nm.sites) { const p = viTri[`s:${s2}`]; if (!p?.dinh) continue;
+        const tu = new THREE.Vector3(x, 30, z), toi = p.dinh.clone(), giua = tu.clone().lerp(toi, .5).add(new THREE.Vector3(0, 60 + tu.distanceTo(toi) * .08, 0));
+        const day = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.QuadraticBezierCurve3(tu, giua, toi).getPoints(40)), new THREE.LineBasicMaterial({ color: '#ffd27a', transparent: true, opacity: .35 }));
+        day.userData = { chu: null }; the.add(day); ds.dien!.push(day); }
+    });
+    const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), xKho + 60, zTrong, zNgoai);
     gioiHan = { x0: kn.xa, x1: kn.xb, z: kn.zDat };
     const rong = kn.xb - kn.xa;
     if (doc) { CAM0.set(-rong * .62, rong * .7, 0); TAM0.set(0, 0, 0); scene.fog.near = rong * .9; scene.fog.far = rong * 2.2; ctl.maxDistance = rong * 1.6; }
@@ -420,7 +451,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // ── bảng điều khiển
-  const LOP: Record<string, [string, string]> = { cua: ['🪟', 'Bài đang chạy'], thung: ['📦', 'Bài sắp đăng'], cot: ['🔦', 'Lượt xem'], xe: ['🚗', 'Khách về site'], xu: ['🪙', 'Tiền về kho bạc'] };
+  const LOP: Record<string, [string, string]> = { cua: ['🪟', 'Bài đang chạy'], thung: ['📦', 'Bài sắp đăng'], cot: ['🔦', 'Lượt xem'], xe: ['🚗', 'Khách về site'], xu: ['🪙', 'Tiền về kho bạc'], onl: ['🟢', 'Khách đang xem'], dien: ['⚡', 'Máy chủ · dây điện'] };
   for (const [k, [ic, ten]] of Object.entries(LOP)) { const b = document.createElement('button'); b.className = 'lop'; b.title = ten; b.textContent = ic; b.setAttribute('aria-pressed', 'true'); b.setAttribute('aria-label', ten);
     b.onclick = () => { if (bat.has(k)) bat.delete(k); else bat.add(k); b.setAttribute('aria-pressed', String(bat.has(k))); apLop(); }; q('[data-o="lop"]').appendChild(b); }
   const chip = (o: string, set: Set<any>, id: string, mau: string, ic: string, ten: string) => { const b = document.createElement('button'); b.className = 'chip'; b.title = ten; b.setAttribute('aria-label', ten); b.style.background = mau; b.innerHTML = ic; b.setAttribute('aria-pressed', 'false');
@@ -434,10 +465,28 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (const k of ['cua', 'thung', 'cot', 'xe']) for (const m of ds[k]!) m.visible = bat.has(k) && khop(m.userData.tk);
     for (const m of [...ds.hong!, ...ds.khoi!]) m.visible = khop(m.userData.tk);
     for (const m of ds.xu!) m.visible = bat.has('xu');
+    for (const m of ds.onl!) m.visible = bat.has('onl') && tua == null;
+    for (const m of ds.dien!) m.visible = bat.has('dien');
+    apTua();
   }
   const datThu = (gon: boolean) => { ben.classList.toggle('gon', gon); thuBtn.textContent = gon ? '☰' : '‹'; thuBtn.setAttribute('aria-expanded', String(!gon)); thuBtn.setAttribute('aria-label', gon ? 'Mở bảng' : 'Thu nhỏ bảng'); try { localStorage.setItem('tp-ben-gon', gon ? '1' : '0'); } catch { /* chế độ riêng tư */ } };
   let gonDau = W() < 600; try { const v = localStorage.getItem('tp-ben-gon'); if (v != null) gonDau = v === '1'; } catch { /* chế độ riêng tư */ }
   datThu(gonDau); thuBtn.onclick = () => datThu(!ben.classList.contains('gon'));
+
+  // ── TUA LẠI 30 NGÀY: kéo thanh / bấm ▶ — xe vào từng site theo phiên của ngày đó (so với ngày đông nhất của site), toà sáng theo; ⟳ về bây giờ
+  let tua: string | null = null, choiTua = 0;
+  const ngay30 = Array.from({ length: 30 }, (_, i) => new Date(Date.now() + 7 * 3600e3 - (29 - i) * 864e5).toISOString().slice(0, 10));
+  const tuaIn = q<HTMLInputElement>('.tua input'), tuaNhan = q<HTMLElement>('.tua-ngay');
+  function apTua() {
+    const tiLe = (khoa: string) => { const d = dichCua(khoa); if (!d?.ngay || tua == null) return 1; const max = Math.max(1, ...Object.values(d.ngay)); return (d.ngay[tua] ?? 0) / max; };
+    for (const xe of ds.xe!) { const u = xe.userData; if (tua != null && u.den) xe.visible = bat.has('xe') && khop(u.tk) && u.k < Math.round(u.n * tiLe(u.den)); }
+    for (const m of ds.thap!) { const d = m.userData.d, mat = m.material; if (mat.emissiveIntensity == null || !d.coNguon) continue; mat.emissiveIntensity = tua == null ? .25 : .05 + .9 * tiLe(d.khoa); }
+    tuaNhan.textContent = tua == null ? 'bây giờ' : `${tua.slice(8)}/${tua.slice(5, 7)} · ${mh.dich.reduce((a, d) => a + (d.ngay?.[tua!] ?? 0), 0)} phiên`;
+  }
+  const datTua = (i: number | null) => { tua = i == null || i >= 29 ? null : ngay30[i]!; tuaIn.value = String(i ?? 29); apLop(); };
+  tuaIn.oninput = () => { clearInterval(choiTua); datTua(Number(tuaIn.value)); };
+  q<HTMLButtonElement>('[data-tua="nay"]').onclick = () => { clearInterval(choiTua); datTua(null); };
+  q<HTMLButtonElement>('[data-tua="choi"]').onclick = () => { clearInterval(choiTua); let i = 0; datTua(0); choiTua = window.setInterval(() => { i++; if (i >= 29) { clearInterval(choiTua); datTua(null); return; } datTua(i); }, 700); };
 
   // ── thông tin thực thể: hover (ô nổi) và chạm (ngăn bên) dùng chung
   const oNen = (k: Nen, c = 14) => `<span style="display:inline-grid;place-items:center;width:${c + 8}px;height:${c + 8}px;border-radius:50%;background:${NEN[k][0]};vertical-align:middle;flex:none">${svgLogo(k, c)}</span>`;
@@ -456,6 +505,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (u.loai === 'tk') { const t = u.tk as PhoTk;
       return { dau: `${oNen(t.nen)} ${esc(t.ten)}`, h: [['Nền', NEN[t.nen][1]], ['Đổ vào', tenDich(t.dich)], ['🪟 Bài đã đăng', t.chay], ['📦 Sắp đăng 7 ngày', t.sap], ['🔦 Lượt xem', so(t.xem)],
         [`🚗 Khách về đích (${t.phienKy})`, t.phien], ['Trạng thái', t.dung ? '⏸ dừng' : t.hong ? `🔴 ${esc(t.hong)}` : '🟢 chạy']] };
+    }
+    if (u.loai === 'may') { const nm = u.nm as typeof mh.nhaMay[number];
+      return { dau: `⚡ ${esc(nm.ten)}`, h: [['Site đang chạy', nm.sites.length], ...(nm.chiThang ? [['Chi tháng', esc(nm.chiThang)] as [string, string]] : []), ...(nm.het ? [['Hạn', `${nm.het.slice(8)}/${nm.het.slice(5, 7)}/${nm.het.slice(0, 4)}`] as [string, string]] : []),
+        ...(nm.canhBao ? [['⚠️', esc(nm.canhBao)] as [string, string]] : []), ...nm.sites.slice(0, 12).map((x) => [`↳ ${esc(x)}`, ''] as [string, string])] };
     }
     if (u.loai === 'kho') { const top = mh.dich.filter((d) => !d.cha && (d.tien30 ?? 0) > 0).sort((a, b) => b.tien30! - a.tien30!);
       return { dau: '🏦 Kho bạc · 30 ngày', h: [['Tổng tiền thật', `$${mh.tien.tong.toFixed(2)}`], ...mh.tien.theo.map((x) => [x.ten, `$${x.so.toFixed(2)}`] as [string, string]),
@@ -482,7 +535,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);
-      return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')],
+      const may_ = mh.nhaMay.find((x) => x.sites.includes(d.site!));
+      return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')], ...(d.online ? [['🟢 Đang xem', d.online] as [string, number]] : []), ...(d.canhBao ? [['⚠️', esc(d.canhBao)] as [string, string]] : []), ...(may_ ? [['⚡ Máy chủ', esc(may_.ten)] as [string, string]] : []),
         ...(d.laShop ? [['🪙 Đơn 30 ngày', so(d.don)] as [string, string]] : [['Phiên 30 ngày (mọi nguồn)', so(d.phien30)] as [string, string]]), ...tienH,
         ['Nguồn', d.coNguon ? `${ve.length} nguồn` : '⚪ chưa gắn nguồn traffic'],
         ...ve.slice(0, 10).map((l) => { const t = mh.tk.find((x) => x.id === l.tu); return [t ? `${oTk(t, 10)} ${esc(t.ten)}` : esc(l.tu), l.so] as [string, number]; })] };
@@ -550,6 +604,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   function vong() {
     raf = requestAnimationFrame(vong); dem++;
     if (bay) { bay.t = Math.min(1, bay.t + .04); const e = 1 - Math.pow(1 - bay.t, 3); ctl.target.lerpVectors(bay.tu, bay.den, e); cam.position.lerpVectors(bay.camTu, bay.camDen, e); if (bay.t >= 1) bay = null; }
+    for (const ng of ds.onl!) { if (!ng.visible) continue; const u = ng.userData; u.t = (u.t + u.toc) % 1; ng.position.lerpVectors(u.a, u.b, u.t); ng.position.y = 1.3 + Math.abs(Math.sin(dem / 5 + u.t * 20)) * .3; ng.material.opacity = 1; }
+    for (const d of ds.dien!) if (d.visible) d.material.opacity = .25 + Math.sin(dem / 18) * .12;
     for (const xe of ds.xu!) { if (!xe.visible || !xe.userData.duong) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.6; }
     for (const xe of ds.xe!) { if (!xe.visible) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.4; }
     if (amb.xe) { for (let i = 0; i < amb.xeD.length; i++) { const u = amb.xeD[i]!; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, huong2); u.duong.getTangentAt(u.t, huong); oA.position.copy(huong2); oA.rotation.set(0, Math.atan2(-huong.z, huong.x), 0); oA.scale.set(1, 1, 1); oA.updateMatrix(); amb.xe.setMatrixAt(i, oA.matrix); } amb.xe.instanceMatrix.needsUpdate = true; }

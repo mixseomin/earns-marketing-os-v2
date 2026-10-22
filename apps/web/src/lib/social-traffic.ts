@@ -23,7 +23,7 @@ export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: stri
   /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
   fav: Record<string, string | null>;
   /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
-  nguonSite: { site: string; phien30: number; tim: Record<string, number>; qc?: Record<string, number>; gt?: Record<string, number> }[];
+  nguonSite: { site: string; phien30: number; tim: Record<string, number>; qc?: Record<string, number>; gt?: Record<string, number>; online?: number; ngay?: Record<string, number> }[];
   /** hệ sinh thái cho thành phố: dự án (site chính, ngừng?), sổ site ↔ dự án, sản phẩm mọi cửa bán, app, tài khoản cửa bán */
   heSinhThai: VaoHeSinhThai }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
@@ -84,7 +84,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const rong: VaoHeSinhThai = { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };
   const d = getDb(); if (!d) return rong;
   const host = (u: string | null) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
-  const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop, ads, chi, phuPf] = await Promise.all([
+  const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop, ads, chi, phuPf, hat] = await Promise.all([
     (d.execute(sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`) as unknown as Promise<{ id: string; name: string; website: string | null; ngung: boolean }[]>).catch((e: Error) => { loi.push(`dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT site, project_id FROM du_an_site`) as unknown as Promise<{ site: string; project_id: string }[]>).catch((e: Error) => { loi.push(`sổ site dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
@@ -102,7 +102,15 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     (d.execute(sql`SELECT regexp_replace(site_domain, '^www\.', '') AS site, sum(earnings_usd)::float AS usd FROM adsense_daily WHERE date > current_date - 30 AND coalesce(site_domain, '') <> '' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
     (d.execute(sql`SELECT nguon_key AS nguon, sum(chi_usd)::float AS usd FROM phu_chi WHERE ngay > current_date - 30 GROUP BY 1`) as unknown as Promise<{ nguon: string; usd: number }[]>).catch(() => []),
     (d.execute(sql`SELECT DISTINCT slug, project_id FROM phu_platforms WHERE project_id IS NOT NULL`) as unknown as Promise<{ slug: string; project_id: string }[]>).catch(() => []),
+    // hạ tầng: máy chủ (hosting) + tên miền (hạn, máy gốc) trong sổ tài sản
+    (d.execute(sql`SELECT kind, label, project_id, expires_at::text AS het, meta->>'ip' AS ip, meta->>'origin' AS origin, cost_monthly::float AS chi, currency FROM infra_resources WHERE kind IN ('hosting', 'domain') AND coalesce(status, 'active') <> 'cancelled'`) as unknown as Promise<{ kind: string; label: string; project_id: string | null; het: string | null; ip: string | null; origin: string | null; chi: number; currency: string }[]>).catch(() => []),
   ]);
+  // máy đang chạy mos2 (box3) tự kê site nó phục vụ từ nginx — thêm vhost là tự hiện, không phải khai
+  let siteMayNay: string[] = [];
+  try { const { readdirSync, readFileSync: doc } = await import('node:fs'); const dir = '/etc/nginx/sites-enabled';
+    siteMayNay = [...new Set(readdirSync(dir).flatMap((f) => [...doc(`${dir}/${f}`, 'utf8').matchAll(/server_name\s+([^;]+);/g)].flatMap((m) => m[1]!.trim().split(/\s+/))).map((h) => h.replace(/^www\./, '')).filter((h) => /\./.test(h) && !h.endsWith('.on.tc')))];
+  } catch { /* không phải máy chủ (máy dev) */ }
+  const { hostname } = await import('node:os');
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
@@ -116,6 +124,8 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     app: app.map((x) => ({ ten: x.ten, duAn: x.project_id })),
     tkCua: [...tk.map((x) => ({ nen: x.platform_key, handle: x.handle, duAn: x.project_id, khoa: x.khoa })), ...phuPf.map((x) => ({ nen: x.slug, handle: x.slug, duAn: x.project_id, khoa: false }))],
     tienAds: ads.map((x) => ({ site: x.site, usd: Number(x.usd) || 0 })),
+    hat: hat.map((x) => ({ kind: x.kind, label: x.label, duAn: x.project_id, het: x.het ? x.het.slice(0, 10) : null, ip: x.ip ?? (x.origin?.match(/\d+\.\d+\.\d+\.\d+/)?.[0] ?? null), chi: Number(x.chi) || 0, tien: x.currency })),
+    mayNay: siteMayNay.length ? { ten: hostname(), sites: siteMayNay } : null,
     chi: chi.map((x) => ({ nguon: x.nguon, usd: Number(x.usd) || 0 })),
   };
 }

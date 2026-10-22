@@ -5,5 +5,5 @@
 import { TAB_TRANG } from './tab-trang';
 export type HomeTab = (typeof TAB_TRANG)['/']['tabs'][number]['key'];
 export const HOME_TABS: HomeTab[] = TAB_TRANG['/'].tabs.map((t) => t.key);
-export const HOME_TAB_MAC_DINH: HomeTab = 'camp';
+export const HOME_TAB_MAC_DINH: HomeTab = 'social';   // anh 22/10/2026: thành phố hệ sinh thái là màn mở đầu (tab Social mặc định mục 🏙 Thành phố)
 export const HOME_TABS_COOKIE = 'home-tabs';

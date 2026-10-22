@@ -59,6 +59,8 @@ export interface PhoTk {
 /** ĐÍCH: site ('s:<host>') hoặc sản phẩm ('p:<id>'). duAn = khoá khu (PhoDuAn.khoa). */
 export interface PhoDich {
   khoa: string; loai: 'site' | 'sp' | 'app'; ten: string; site: string | null; duAn: string;
+  /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
+  online?: number; ngay?: Record<string, number>; canhBao?: string | null;
   /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
   tien30?: number | null; loaiTien?: string;
   /** các phần tiền của đích (một site có thể vừa AdSense vừa đơn shop) */
@@ -76,7 +78,9 @@ export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: bo
 export interface PhoLuong { tu: string; den: string; so: number }
 /** KHO BẠC: tiền thật 30 ngày (USD) theo loại nguồn tiền */
 export interface PhoTien { tong: number; theo: { ten: string; so: number }[]; chi: { tong: number; theo: { ten: string; so: number }[] } }
-export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; fav: Record<string, string | null> }
+/** NHÀ MÁY = máy chủ chạy site: tên, nhà cung cấp, chi tháng, hạn, các site nó cấp điện, cảnh báo (sắp hết hạn) */
+export interface PhoNhaMay { khoa: string; ten: string; chiThang: string | null; het: string | null; sites: string[]; canhBao: string | null }
+export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; fav: Record<string, string | null> }
 /** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
 export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
   'du-lich': { ten: 'Du lịch', ic: '✈️', mau: '#2f8fbf' }, 'thuong-mai': { ten: 'Thương mại · Dropship', ic: '🛍', mau: '#c0507a' }, app: { ten: 'App', ic: '📱', mau: '#3a6ff0' },
@@ -105,6 +109,10 @@ export interface VaoHeSinhThai {
   tienAds?: { site: string; usd: number }[];
   /** tiền CHI quảng cáo 30 ngày theo nguồn (phu_chi: ExoClick…) — Kho bạc hiện thu và chi */
   chi?: { nguon: string; usd: number }[];
+  /** sổ hạ tầng (infra_resources): máy chủ (hosting: ip) và tên miền (domain: hạn, ip máy gốc) */
+  hat?: { kind: string; label: string; duAn: string | null; het: string | null; ip: string | null; chi: number; tien: string }[];
+  /** máy đang chạy mos2 + các site nó phục vụ (đọc nginx tại chỗ) */
+  mayNay?: { ten: string; sites: string[] } | null;
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
@@ -174,7 +182,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const nguonSite = live.nguonSite ?? [];
   const dichMap = new Map<string, PhoDich>();
   const siteMoi = (site: string, phien30: number | null): PhoDich => ({ khoa: `s:${site}`, loai: 'site', ten: site, site, duAn: '', phien30, laShop: laShop(site), don: null, coNguon: false });
-  for (const x of nguonSite) dichMap.set(`s:${x.site}`, siteMoi(x.site, x.phien30));
+  for (const x of nguonSite) dichMap.set(`s:${x.site}`, { ...siteMoi(x.site, x.phien30), online: x.online ?? 0, ngay: x.ngay ?? {} });
   for (const l of live.landing) { const k = `s:${l.site}`; if (nguonSite.some((x) => x.site === l.site)) continue; const d = dichMap.get(k) ?? siteMoi(l.site, l.coMa ? 0 : null); if (l.coMa) d.phien30 = (d.phien30 ?? 0) + l.phien30; dichMap.set(k, d); }
   for (const t of tk) if (t.dich && !dichMap.has(t.dich)) dichMap.set(t.dich, siteMoi(t.dich.slice(2), null));
   for (const x of [...(hst.tienAds ?? []), ...(hst.tienSite ?? [])]) if (x.usd > 0 && !dichMap.has(`s:${x.site}`)) dichMap.set(`s:${x.site}`, siteMoi(x.site, null));   // site có tiền vẫn có mặt dù chưa có phiên
@@ -286,5 +294,20 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const chiN = (hst.chi ?? []).filter((x) => x.usd > 0);
   const tien: PhoTien = { tong: [...theoTien.values()].reduce((a, x) => a + x, 0), theo: [...theoTien].map(([ten, so]) => ({ ten, so })).sort((a, b) => b.so - a.so),
     chi: { tong: chiN.reduce((a, x) => a + x.usd, 0), theo: chiN.map((x) => ({ ten: x.nguon, so: x.usd })).sort((a, b) => b.so - a.so) } };
-  return { tk, dich, duAn, luong, tien, fav: live.fav };
+  // ── HẠ TẦNG: nhà máy theo IP (sổ hosting + máy gốc của tên miền) + máy đang chạy mos2 (nginx); cảnh báo hạn: tên miền ≤ 30 ngày, máy ≤ 14 ngày
+  const homNay = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), conNgay = (het: string) => Math.round((Date.parse(het) - Date.parse(homNay)) / 864e5);
+  const dm = (n: string) => `${n.slice(8, 10)}/${n.slice(5, 7)}`;
+  for (const r of (hst.hat ?? []).filter((x) => x.kind === 'domain' && x.het)) { const d = dich.find((y) => y.site === r.label.replace(/^www\./, '')); if (d && conNgay(r.het!) <= 30) d.canhBao = `Tên miền hết hạn ${dm(r.het!)} (còn ${conNgay(r.het!)} ngày)`; }
+  const may = new Map<string, PhoNhaMay>();
+  const layMay = (khoa: string, ten: string) => { const m = may.get(khoa) ?? { khoa, ten, chiThang: null, het: null, sites: [], canhBao: null }; may.set(khoa, m); return m; };
+  const siteDich = new Set(dich.filter((d) => d.loai === 'site').map((d) => d.site!));
+  for (const r of (hst.hat ?? []).filter((x) => x.ip)) {
+    const m = layMay(r.ip!, r.kind === 'hosting' ? r.label : r.ip!);
+    if (r.kind === 'hosting') { if (m.ten === r.ip) m.ten = r.label; if (r.chi) m.chiThang = `${r.chi.toLocaleString('vi-VN')} ${r.tien}`; if (r.het) { m.het = r.het; if (conNgay(r.het) <= 14) m.canhBao = `Máy hết hạn ${dm(r.het)} (còn ${conNgay(r.het)} ngày)`; }
+      for (const d of dich) if (d.loai === 'site' && r.duAn && d.duAn === `d:${r.duAn}` && !m.sites.includes(d.site!)) m.sites.push(d.site!); }
+    else { const s = r.label.replace(/^www\./, ''); if (siteDich.has(s) && !m.sites.includes(s)) m.sites.push(s); }
+  }
+  if (hst.mayNay) { const m = layMay(`may:${hst.mayNay.ten}`, `${hst.mayNay.ten} · máy chạy mos2`); for (const s of hst.mayNay.sites) if (siteDich.has(s) && !m.sites.includes(s)) m.sites.push(s); }
+  const nhaMay = [...may.values()].filter((m) => m.sites.length || m.canhBao).sort((a, b) => b.sites.length - a.sites.length);
+  return { tk, dich, duAn, luong, tien, nhaMay, fav: live.fav };
 }

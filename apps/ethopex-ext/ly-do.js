@@ -88,16 +88,18 @@
 
   document.addEventListener('mouseover', (ev) => {
     if (o.contains(ev.target) || lon.contains(ev.target) || ghim) return;
-    const tr = ev.target.closest && ev.target.closest('tbody tr'); if (!tr) return anSau();
+    // CHỈ khi rê đúng vào Ô TÊN (anh 22/10/2026: "chỉ hover vào tên phim thôi, không phải chỗ nào cũng show") — ô số / ROI / ngân sách không hiện
+    const td = ev.target.closest && ev.target.closest('tbody td'); const tr = td && td.parentElement; if (!td || !tr) return anSau();
     clearTimeout(an);
-    const a = [...tr.querySelectorAll('a')].find((x) => /^\s*\d{5,6}:/.test(x.textContent || ''));
+    const a = td.querySelector('a') && /^\s*\d{5,6}:/.test(td.querySelector('a').textContent || '') ? td.querySelector('a') : null;
     if (a) {
-      if ([...tr.children].some((td) => /^\s*Paused\s*$/i.test(td.textContent || ''))) return veCamp(tr, a, ev);
+      if ([...tr.children].some((x) => /^\s*Paused\s*$/i.test(x.textContent || ''))) return veCamp(tr, a, ev);
       return anSau();
     }
-    // hàng PHIM (Report nhóm theo Content): ô chữ đầu tiên không phải số / tiền / %
-    const o1 = [...tr.children].map((td) => (td.textContent || '').trim()).find((t) => t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t));
-    if (o1) return vePhim(o1, ev);
+    if ([...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || ''))) return anSau();   // hàng camp nhưng không phải ô tên
+    // hàng PHIM (Report nhóm theo Content): ô đang rê phải là ô tên — ô chữ đầu tiên không phải số / tiền / %
+    const o1 = [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); });
+    if (o1 === td) return vePhim(td.textContent.trim(), ev);
     anSau();
   }, true);
   document.addEventListener('scroll', (ev) => { if (!o.contains(ev.target)) { o.style.display = 'none'; dang = null; } }, true);

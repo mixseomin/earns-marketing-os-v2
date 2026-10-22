@@ -48,7 +48,9 @@ def than_mac_dinh(gioi, tuoi):
     return 'thon' if gioi == 'nu' and t < 45 else 'gon' if gioi == 'nam' and t < 40 else 'vua'
 def _dat_than(m, h, gioi, tuoi, than=None):
     """Đặt giới / chủng / tuổi / dáng cho thân MPFB h — MỘT chỗ cho tl_mpfb (đo tỉ lệ) và nguoi_mpfb (thân hiển thị), khỏi lệch nhau."""
-    for kk, v in (('gender', 1.0 if gioi == 'nu' else 0.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
+    # gender MakeHuman: 0 = NỮ, 1 = NAM (MPFB createhuman.py: female = 0,5 − ảnh hưởng·0,5). Trước 22/10/2026 đặt ngược → nữ thân nam cơ bắp, nam
+    # thân nữ (anh: "người của Hạ như thằng đàn ông thể hình")
+    for kk, v in (('gender', 0.0 if gioi == 'nu' else 1.0 if gioi == 'nam' else 0.5), ('asian', 1.0), ('african', 0.0), ('caucasian', 0.0)):
         m['op'].set_value(kk, v, entity_reference=h)
     if tuoi: m['op'].set_value('age', 0.1875 + (tuoi - 11) / 14 * 0.3125 if tuoi < 25 else min(1.0, 0.5 + (tuoi - 25) / 65 * 0.5), entity_reference=h)
     for kk, v in THAN_HINH.get(than or than_mac_dinh(gioi, tuoi), THAN_HINH['vua']).items(): m['op'].set_value(kk, v, entity_reference=h)

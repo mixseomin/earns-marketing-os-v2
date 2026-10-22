@@ -22,7 +22,9 @@ export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: stri
   /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
   fav: Record<string, string | null>;
   /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
-  nguonSite: { site: string; phien30: number; tim: Record<string, number> }[] }
+  nguonSite: { site: string; phien30: number; tim: Record<string, number> }[];
+  /** site ↔ dự án theo projects.website (host) — thành phố gom các site đích thành cụm theo dự án */
+  duAnSite: { site: string; duAn: string }[] }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
  *  da = đã đăng (sổ xv_may_video.da_dang, có link) · du_kien = máy sẽ đăng (xv_lich_du_kien — dang-may tính bằng luật nhịp an toàn, mos2 không tính lại). */
 export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien' }
@@ -66,13 +68,22 @@ const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promi
 export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
-  const [goc, kenh, lo, lich, luoi, suc, nguonSite] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
+  const [goc, kenh, lo, lich, luoi, suc, nguonSite, duAnSite] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
     doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
-    doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; }))]);
+    doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; })),
+    doGio('site dự án', gio, () => docDuAnSite(loi))]);
   const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host)])];
   const fav = await doGio('favicon', gio, () => docFav(site));
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, duAnSite };
+}
+/** SITE ↔ DỰ ÁN (thành phố Social): host của projects.website — dự án nào nhận site nào. Lỗi DB → rỗng (site về cụm 'Chưa gán'). */
+async function docDuAnSite(loi: string[]): Promise<{ site: string; duAn: string }[]> {
+  const d = getDb(); if (!d) return [];
+  try {
+    const r = (await d.execute(sql`SELECT name, website FROM projects WHERE coalesce(website, '') <> ''`)) as unknown as { name: string; website: string }[];
+    return r.flatMap((x) => { try { return [{ site: new URL(x.website.startsWith('http') ? x.website : `https://${x.website}`).hostname.replace(/^www\./, ''), duAn: x.name }]; } catch { return []; } });
+  } catch (e) { loi.push(`site dự án: ${(e as Error).message}`); return []; }
 }
 /** FAVICON SITE ĐÍCH (thành phố Social): Google s2 cỡ 128 → data URI, nhớ 1 ngày mỗi site. Site không có favicon riêng thì s2 trả quả địa cầu
  *  16×16 → null (thành phố vẽ chữ cái đầu). Lỗi mạng / quá 3 giây → null, không chặn trang. */
@@ -181,7 +192,8 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
       d.execute(sql`SELECT m.ma AS may, m.ten AS may_ten, n->>'nen' AS nen, coalesce(n->>'ten', n->>'nen') AS nen_ten, coalesce(n->>'tk', '') AS tk,
           coalesce(n->>'gio', '') AS gio, coalesce(n->>'may', '') AS may_mac, n->'br'->>'acct' AS acct,
           (SELECT regexp_replace(split_part(split_part(v.dang->>'link', '//', 2), '/', 1), '^www\.', '') FROM xv_may_video v WHERE v.may_id = m.id AND coalesce(v.dang->>'link', '') <> ''
-            GROUP BY 1 ORDER BY count(*) DESC LIMIT 1) AS site
+            GROUP BY 1 ORDER BY count(*) DESC LIMIT 1) AS site,
+          (SELECT string_agg(DISTINCT regexp_replace(split_part(split_part(v.dang->>'link', '//', 2), '/', 1), '^www\.', ''), ' ') FROM xv_may_video v WHERE v.may_id = m.id AND coalesce(v.dang->>'link', '') <> '') AS sites
         FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay ORDER BY m.id, n->>'nen'`) as unknown as Promise<R[]>,
       d.execute(sql`SELECT m.ma AS may, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(coalesce(v.da_dang, '{}'::jsonb)) e
@@ -193,7 +205,7 @@ async function docSucKhoe(loi: string[]): Promise<StSucKhoe> {
     ]);
     const vao: VaoSuc = {
       bay: Date.now(),
-      noi: noi.map((x) => ({ may: String(x.may), mayTen: String(x.may_ten), nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac), acct: x.acct ?? null, site: x.site ?? null })),
+      noi: noi.map((x) => ({ may: String(x.may), mayTen: String(x.may_ten), nen: String(x.nen), nenTen: String(x.nen_ten), tk: String(x.tk), gio: String(x.gio), mayMac: String(x.may_mac), acct: x.acct ?? null, site: x.site ?? null, sites: x.sites ? x.sites.split(' ') : [] })),
       da: da.map((x) => ({ may: String(x.may), nen: String(x.nen), ngay: String(x.ngay), luc: x.luc ?? null, url: x.url ?? null })),
       hong: hong.map((x) => ({ may: String(x.may), nen: String(x.nen), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu) })),
       canhBao: cb.map((x) => ({ acct: String(x.acct), loai: String(x.loai), luc: new Date(String(x.luc)).toISOString(), chu: String(x.chu), nguon: String(x.nguon ?? '') })),

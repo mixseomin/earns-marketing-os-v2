@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { tinhThanhPho, nenCuaMay, mayTimCua } from './social-thanh-pho';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
-const dong = (may: string, mayTen: string, nen: string, nenTen: string, acct: string | null, site: string) => ({ may, mayTen, nen, nenTen, tk: '', gio: '', mayMac: '', acct, site, o: [], cuoiOk: null, khoDen: null });
+const dong = (may: string, mayTen: string, nen: string, nenTen: string, acct: string | null, site: string) => ({ may, mayTen, nen, nenTen, tk: '', gio: '', mayMac: '', acct, site, sites: may === 'fp' ? [site, 'pickjot.com'] : [site], o: [], cuoiOk: null, khoDen: null });
 const live = {
   kenh: [
     k(544, 'facebook', 'Hotel Scam Alerts (Page)', 'Social Traffic', { video: 9 }), k(540, 'twitter', 'hotelscamalerts', 'Social Traffic', { video: 9, click: 11 }),
@@ -36,7 +36,9 @@ const live = {
   nguonSite: [
     { site: 'steamsolo.com', phien30: 500, tim: { google: 100, bing: 20 } }, { site: 'ratesbyroom.com', phien30: 48, tim: { google: 3 } },
     { site: 'mo.com', phien30: 50, tim: {} },   // site có mã theo dõi, chưa gắn nguồn nào
+    { site: 'pickjot.com', phien30: 470, tim: { bing: 5 } },
   ],
+  duAnSite: [{ site: 'steamsolo.com', duAn: 'steamsolo.com' }, { site: 'ratesbyroom.com', duAn: 'Social Traffic' }],
 };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const m = tinhThanhPho(live as any);
@@ -74,4 +76,10 @@ assert.ok(m.luong.some((l) => l.tu === 'tim:google' && l.den === 'steamsolo.com'
 const mo = m.dich.find((d) => d.site === 'mo.com')!;
 assert.ok(mo && !mo.coNguon && mo.phien30 === 50, 'site chưa gắn nguồn vẫn dựng, đánh dấu chưa có nguồn');
 assert.ok(m.dich.find((d) => d.site === 'steamsolo.com')!.coNguon && m.dich.findIndex((d) => d.site === 'mo.com') > m.dich.findIndex((d) => d.site === 'steamsolo.com'), 'site có nguồn xếp trước');
-console.log('✓ social-thanh-pho: máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');
+const cs = (site: string) => m.dich.find((d) => d.site === site)!.cumSite;
+assert.equal(cs('ratesbyroom.com'), 'g:Hotel Scam Alerts', 'site là đích của cụm sản phẩm → cụm site mang tên sản phẩm (thắng projects.website)');
+assert.equal(cs('pickjot.com'), cs('frontporchpuzzles.gumroad.com'), 'site phụ của cùng máy đăng về cùng cụm');
+assert.equal(cs('steamsolo.com'), 'g:steamsolo.com', 'site của dự án (projects.website)');
+assert.equal(cs('mo.com'), 'chua', 'site không thuộc dự án nào → Chưa gán');
+assert.equal(m.cumSite[m.cumSite.length - 1]!.khoa, 'chua', 'cụm Chưa gán đứng cuối');
+console.log('✓ social-thanh-pho: cụm site theo dự án · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

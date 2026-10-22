@@ -39,10 +39,12 @@ export interface PhoTk {
 }
 export interface PhoCum { khoa: string; ten: string; site: string | null; mau: string; trong: boolean }
 /** coNguon = có khách từ social hoặc tìm kiếm (false: site chưa gắn nguồn traffic nào — toà xám) */
-export interface PhoDich { site: string; phien30: number | null; laShop: boolean; don: number | null; cum: string[]; coNguon: boolean }
+export interface PhoDich { site: string; phien30: number | null; laShop: boolean; don: number | null; cum: string[]; coNguon: boolean; cumSite: string }
+/** CỤM SITE (anh 22/10/2026 "các site sẽ có cụm riêng", chọn gom theo dự án): quảng trường bên phía ĐÍCH, toà quanh nó là site của dự án */
+export interface PhoCumSite { khoa: string; ten: string; mau: string; site: string | null }
 /** một dòng xe: toà nguồn → site, số khách (kỳ theo nguồn: social 7 ngày / Pinterest 30 ngày / tìm kiếm 30 ngày) */
 export interface PhoLuong { tu: string; den: string; so: number }
-export interface PhoMoHinh { tk: PhoTk[]; cum: PhoCum[]; dich: PhoDich[]; luong: PhoLuong[]; fav: Record<string, string | null> }
+export interface PhoMoHinh { tk: PhoTk[]; cum: PhoCum[]; dich: PhoDich[]; cumSite: PhoCumSite[]; luong: PhoLuong[]; fav: Record<string, string | null> }
 
 const MAU_CUM = ['#3b4f8f', '#2f6f8f', '#7a5a2f', '#2f7a5a', '#6a3f8f', '#8f3f5a', '#4f6f2f', '#2f5a7a'];
 const chuan = (h: string) => h.toLowerCase().replace(/\(page\)/g, '').replace(/[^a-z0-9]/g, '');
@@ -50,7 +52,7 @@ const hostCua = (u: string | null | undefined) => { if (!u) return null; try { r
 const nhieuNhat = (xs: (string | null)[]) => { const d = new Map<string, number>(); for (const x of xs) if (x) d.set(x, (d.get(x) ?? 0) + 1); return [...d].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null; };
 const laShop = (site: string) => /(^|\.)(gumroad\.com|etsy\.com|amazon\.com)$/.test(site);
 
-export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'landing' | 'ban' | 'fav' | 'nguonSite'>): PhoMoHinh {
+export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'landing' | 'ban' | 'fav' | 'nguonSite' | 'duAnSite'>): PhoMoHinh {
   const { kenh, luoi, suc } = live;
   const nhanDong = (d: { mayTen: string; nenTen: string }) => `${d.mayTen.split(' · ')[0]} · ${d.nenTen}`;   // trùng cách social-suc-khoe ghi tên kênh trong sự cố
   const suCoBad = suc.suCo.filter((x) => x.muc === 'bad');
@@ -103,9 +105,9 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   // toà đích: site trong bảng Landing (phiên 30 ngày khi site có mã theo dõi) + site tài khoản trỏ tới; cửa hàng (Gumroad / Etsy) mang số đơn 30 ngày
   const dichMap = new Map<string, PhoDich>();
   // mọi site có mã theo dõi (sổ phiên 30 ngày) — gồm site chưa gắn nguồn nào; bảng Landing chỉ bổ sung site chưa có trong sổ (Gumroad…)
-  for (const x of nguonSite) dichMap.set(x.site, { site: x.site, phien30: x.phien30, laShop: laShop(x.site), don: null, cum: [], coNguon: false });
-  for (const l of live.landing) { if (nguonSite.some((x) => x.site === l.site)) continue; const d = dichMap.get(l.site) ?? { site: l.site, phien30: l.coMa ? 0 : null, laShop: laShop(l.site), don: null, cum: [], coNguon: false }; if (l.coMa) d.phien30 = (d.phien30 ?? 0) + l.phien30; dichMap.set(l.site, d); }
-  for (const t of tk) if (t.dich && !dichMap.has(t.dich)) dichMap.set(t.dich, { site: t.dich, phien30: null, laShop: laShop(t.dich), don: null, cum: [], coNguon: false });
+  for (const x of nguonSite) dichMap.set(x.site, { site: x.site, phien30: x.phien30, laShop: laShop(x.site), don: null, cum: [], coNguon: false, cumSite: '' });
+  for (const l of live.landing) { if (nguonSite.some((x) => x.site === l.site)) continue; const d = dichMap.get(l.site) ?? { site: l.site, phien30: l.coMa ? 0 : null, laShop: laShop(l.site), don: null, cum: [], coNguon: false, cumSite: '' }; if (l.coMa) d.phien30 = (d.phien30 ?? 0) + l.phien30; dichMap.set(l.site, d); }
+  for (const t of tk) if (t.dich && !dichMap.has(t.dich)) dichMap.set(t.dich, { site: t.dich, phien30: null, laShop: laShop(t.dich), don: null, cum: [], coNguon: false, cumSite: '' });
   for (const d of dichMap.values()) {
     d.cum = cum.filter((c) => c.site === d.site).map((c) => c.khoa);
     d.coNguon = d.cum.length > 0 || luong.some((l) => l.den === d.site);
@@ -113,5 +115,16 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   }
   // giữ site có người trỏ tới (cụm) hoặc có khách — site trong bảng Landing mà không ai trỏ, không khách thì không dựng; site có nguồn xếp trước
   const dich = [...dichMap.values()].filter((d) => d.cum.length || (d.phien30 ?? 0) > 0).sort((a, b) => Number(b.coNguon) - Number(a.coNguon) || (b.phien30 ?? -1) - (a.phien30 ?? -1));
-  return { tk, cum, dich, luong, fav: live.fav };
+  // cụm site theo dự án: site là đích của một cụm sản phẩm → tên cụm đó · site khác của cùng máy đăng (pickjot cạnh gumroad của Front Porch) → cụm của máy ·
+  // projects.website → tên dự án · còn lại → 'Chưa gán'
+  const tenCum = (site: string) => cum.find((c) => c.site === site)?.ten ?? null;
+  const theoMay = (site: string) => { const d = suc.dong.find((x) => x.sites?.includes(site) && x.site && tenCum(x.site)); return d ? tenCum(d.site!) : null; };
+  const duAnSite = new Map((live.duAnSite ?? []).map((x) => [x.site, x.duAn]));
+  for (const d of dich) { const ten = tenCum(d.site) ?? theoMay(d.site) ?? duAnSite.get(d.site) ?? null; d.cumSite = ten ? `g:${ten}` : 'chua'; }
+  const khoaSite = [...new Set(dich.map((d) => d.cumSite))];
+  const cumSite: PhoCumSite[] = khoaSite.map((khoa, i) => {
+    const ds = dich.filter((d) => d.cumSite === khoa);
+    return { khoa, ten: khoa === 'chua' ? 'Chưa gán dự án' : khoa.slice(2), mau: khoa === 'chua' ? '#3a4058' : MAU_CUM[(i + 3) % MAU_CUM.length]!, site: ds[0]?.site ?? null };
+  }).sort((a, b) => Number(a.khoa === 'chua') - Number(b.khoa === 'chua') || dich.filter((d) => d.cumSite === b.khoa).reduce((x, d) => x + (d.phien30 ?? 0), 0) - dich.filter((d) => d.cumSite === a.khoa).reduce((x, d) => x + (d.phien30 ?? 0), 0));
+  return { tk, cum, dich, cumSite, luong, fav: live.fav };
 }

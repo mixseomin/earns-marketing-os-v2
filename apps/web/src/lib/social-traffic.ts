@@ -26,7 +26,7 @@ export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: stri
   /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
   fav: Record<string, string | null>;
   /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
-  nguonSite: { site: string; phien30: number; tim: Record<string, number>; qc?: Record<string, number>; gt?: Record<string, number>; online?: number; ngay?: Record<string, number> }[];
+  nguonSite: { site: string; phien30: number; tim: Record<string, number>; qc?: Record<string, number>; gt?: Record<string, number>; online?: number; khach30p?: number; ngay?: Record<string, number> }[];
   /** hệ sinh thái cho thành phố: dự án (site chính, ngừng?), sổ site ↔ dự án, sản phẩm mọi cửa bán, app, tài khoản cửa bán */
   heSinhThai: VaoHeSinhThai }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).

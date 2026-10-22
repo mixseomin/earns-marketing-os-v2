@@ -93,23 +93,26 @@ export async function docBamBaiDang(): Promise<Map<string, number>> {
 }
 
 /** Mọi site có mã theo dõi gửi phiên 30 ngày (không tính phiên nội bộ) + phiên từ từng máy tìm kiếm — site chưa có nguồn nào vẫn hiện trong thành phố. */
-export async function docNguonSite(): Promise<{ site: string; phien30: number; tim: Record<string, number>; qc: Record<string, number>; gt: Record<string, number>; online: number; ngay: Record<string, number> }[]> {
+export async function docNguonSite(): Promise<{ site: string; phien30: number; tim: Record<string, number>; qc: Record<string, number>; gt: Record<string, number>; online: number; khach30p: number; ngay: Record<string, number> }[]> {
   const sql = db(); if (!sql) return [];
   const rows = await sql<{ site: string; nguon: string | null; n: number }[]>`
     SELECT site, nguon, count(*)::int AS n FROM phien_khach WHERE bat_dau > now() - interval '30 days' AND NOT noi_bo AND site IS NOT NULL GROUP BY 1, 2`;
-  const theo = new Map<string, { site: string; phien30: number; tim: Record<string, number>; qc: Record<string, number>; gt: Record<string, number>; online: number; ngay: Record<string, number> }>();
+  const theo = new Map<string, { site: string; phien30: number; tim: Record<string, number>; qc: Record<string, number>; gt: Record<string, number>; online: number; khach30p: number; ngay: Record<string, number> }>();
   for (const r of rows) {
-    const x = theo.get(r.site) ?? { site: r.site, phien30: 0, tim: {}, qc: {}, gt: {}, online: 0, ngay: {} }; x.phien30 += r.n;
+    const x = theo.get(r.site) ?? { site: r.site, phien30: 0, tim: {}, qc: {}, gt: {}, online: 0, khach30p: 0, ngay: {} }; x.phien30 += r.n;
     const m = mayTimCua(r.nguon); if (m) x.tim[m] = (x.tim[m] ?? 0) + r.n;
     const n = m ? null : nguonNgoaiCua(r.nguon); if (n && n.khoa !== r.site) x[n.loai][n.khoa] = (x[n.loai][n.khoa] ?? 0) + r.n;
     theo.set(r.site, x);
   }
   // khách đang trên site (cùng mốc ONLINE_GIAY với badge Trực tiếp) + phiên từng ngày GMT+7 (thành phố tua lại 30 ngày)
-  const [onl, ngay] = await Promise.all([
+  // + khách 30 phút qua (cùng mốc cửa sổ '30p' của docPhienAff — cột 30M bảng SEO): thành phố mô phỏng người đi vào / ra site
+  const [onl, ngay, k30] = await Promise.all([
     sql<{ site: string; n: number }[]>`SELECT site, count(*)::int AS n FROM phien_khach WHERE cuoi > now() - make_interval(secs => ${ONLINE_GIAY}) AND NOT noi_bo AND site IS NOT NULL GROUP BY 1`,
     sql<{ site: string; d: string; n: number }[]>`SELECT site, to_char(bat_dau AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS d, count(*)::int AS n FROM phien_khach
       WHERE bat_dau > now() - interval '30 days' AND NOT noi_bo AND site IS NOT NULL GROUP BY 1, 2`,
+    sql<{ site: string; n: number }[]>`SELECT site, count(*)::int AS n FROM phien_khach WHERE cuoi > now() - interval '30 minutes' AND NOT noi_bo AND site IS NOT NULL GROUP BY 1`,
   ]);
+  for (const r of k30) { const x = theo.get(r.site); if (x) x.khach30p = r.n; }
   for (const r of onl) { const x = theo.get(r.site); if (x) x.online = r.n; }
   for (const r of ngay) { const x = theo.get(r.site); if (x) x.ngay[r.d] = r.n; }
   return [...theo.values()].sort((a, b) => b.phien30 - a.phien30);

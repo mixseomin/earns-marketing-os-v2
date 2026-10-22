@@ -67,6 +67,8 @@ export interface PhoDich {
   ngonNgu?: string | null; phim?: string | null;
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
   online?: number; ngay?: Record<string, number>; canhBao?: string | null;
+  /** khách có mặt trong 30 phút qua (cột 30M bảng SEO) — người đi vào / ra toà */
+  khach30p?: number;
   /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
   tien30?: number | null; loaiTien?: string;
   /** các phần tiền của đích (một site có thể vừa AdSense vừa đơn shop) */
@@ -237,7 +239,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const nguonSite = live.nguonSite ?? [];
   const dichMap = new Map<string, PhoDich>();
   const siteMoi = (site: string, phien30: number | null): PhoDich => ({ khoa: `s:${site}`, loai: 'site', ten: site, site, duAn: '', phien30, laShop: laShop(site), don: null, coNguon: false });
-  for (const x of nguonSite) dichMap.set(`s:${x.site}`, { ...siteMoi(x.site, x.phien30), online: x.online ?? 0, ngay: x.ngay ?? {} });
+  for (const x of nguonSite) dichMap.set(`s:${x.site}`, { ...siteMoi(x.site, x.phien30), online: x.online ?? 0, khach30p: x.khach30p ?? 0, ngay: x.ngay ?? {} });
   for (const l of live.landing) { const k = `s:${l.site}`; if (nguonSite.some((x) => x.site === l.site)) continue; const d = dichMap.get(k) ?? siteMoi(l.site, l.coMa ? 0 : null); if (l.coMa) d.phien30 = (d.phien30 ?? 0) + l.phien30; dichMap.set(k, d); }
   for (const t of tk) if (t.dich && !dichMap.has(t.dich)) dichMap.set(t.dich, siteMoi(t.dich.slice(2), null));
   for (const x of [...(hst.tienAds ?? []), ...(hst.tienSite ?? []), ...(hst.tienAff ?? []).filter((y) => y.site).map((y) => ({ site: y.site!, usd: y.usd }))]) if (x.usd > 0 && !dichMap.has(`s:${x.site}`)) dichMap.set(`s:${x.site}`, siteMoi(x.site, null));   // site có tiền vẫn có mặt dù chưa có phiên

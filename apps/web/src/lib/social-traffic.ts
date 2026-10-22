@@ -84,21 +84,38 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const rong: VaoHeSinhThai = { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };
   const d = getDb(); if (!d) return rong;
   const host = (u: string | null) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
-  const [da, ds, app, tk, sp] = await Promise.all([
+  const [da, ds, app, tk, sp, nguonApp, refs] = await Promise.all([
     (d.execute(sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`) as unknown as Promise<{ id: string; name: string; website: string | null; ngung: boolean }[]>).catch((e: Error) => { loi.push(`dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT site, project_id FROM du_an_site`) as unknown as Promise<{ site: string; project_id: string }[]>).catch((e: Error) => { loi.push(`sổ site dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
     (d.execute(sql`SELECT platform_key, handle, project_id FROM platform_accounts WHERE project_id IS NOT NULL AND coalesce(status, '') NOT IN ('closed', 'banned')
       AND platform_key IN ('etsy', 'kdp', 'gumroad', 'udemy', 'app-store', 'ms-store', 'mql5-market', 'rapidapi')`) as unknown as Promise<{ platform_key: string; handle: string; project_id: string }[]>).catch(() => []),
     getProductsView(30).catch((e: Error) => { loi.push(`sản phẩm: ${e.message}`); return null; }),
+    docNguonApp().catch((e: Error) => { loi.push(`nguồn app (Apple): ${e.message}`); return []; }),
+    (d.execute(sql`SELECT product_id, refs FROM product_daily WHERE refs IS NOT NULL AND date >= to_char(current_date - 30, 'YYYY-MM-DD')`) as unknown as Promise<{ product_id: string; refs: Record<string, number> | null }[]>).catch(() => []),
   ]);
+  // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
+  const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
+  const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
   return {
     duAn: da.map((x) => ({ id: x.id, ten: x.name, site: host(x.website), ngung: x.ngung })),
     duAnSite: ds.map((x) => ({ site: x.site, duAn: x.project_id })),
-    sanPham: (sp?.rows ?? []).map((p) => ({ id: p.id, ten: p.title, nen: p.platform, trangThai: p.status, url: p.url, store: p.store, xem7: p.views7d, tai: p.downloads, net: p.net })),
+    sanPham: (sp?.rows ?? []).map((p) => ({ id: p.id, ten: p.title, nen: p.platform, trangThai: p.status, url: p.url, store: p.store, sku: p.sku, xem7: p.views7d, tai: p.downloads, net: p.net })),
+    nguonSp: [...nguonApp, ...nguonGum],
     app: app.map((x) => ({ ten: x.ten, duAn: x.project_id })),
     tkCua: tk.map((x) => ({ nen: x.platform_key, handle: x.handle, duAn: x.project_id })),
   };
+}
+/** NGUỒN APP (Apple Analytics, scripts/app-store-so.mjs ghi Directus product_stats.raw_data.chiTiet): 30 ngày, mỗi app × nguồn → hiển thị / xem trang / tải lần đầu. */
+async function docNguonApp(): Promise<{ sp: string; nguon: string; hien: number; xem: number; tai: number }[]> {
+  const url = process.env.DIRECTUS_URL || 'https://as.on.tc', token = process.env.DIRECTUS_TOKEN; if (!token) return [];
+  const tu = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const r = await fetch(`${url}/items/product_stats?limit=-1&fields=product_id,raw_data&filter[platform][_eq]=app-store&filter[date][_gte]=${tu}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000), next: { revalidate: 600 } });
+  if (!r.ok) throw new Error(`Directus ${r.status}`);
+  const ra: { sp: string; nguon: string; hien: number; xem: number; tai: number }[] = [];
+  for (const x of ((await r.json()) as { data: { product_id: string | null; raw_data: { chiTiet?: { n?: number; su?: string; nguon?: string }[] } | null }[] }).data)
+    for (const c of x.raw_data?.chiTiet ?? []) if (x.product_id && c.nguon) ra.push({ sp: x.product_id, nguon: c.nguon, hien: c.su === 'Impression' ? c.n ?? 0 : 0, xem: c.su === 'Page view' ? c.n ?? 0 : 0, tai: c.su === 'First-time download' ? c.n ?? 0 : 0 });
+  return ra;
 }
 /** FAVICON SITE ĐÍCH (thành phố Social): Google s2 cỡ 128 → data URI, nhớ 1 ngày mỗi site. Site không có favicon riêng thì s2 trả quả địa cầu
  *  16×16 → null (thành phố vẽ chữ cái đầu). Lỗi mạng / quá 3 giây → null, không chặn trang. */

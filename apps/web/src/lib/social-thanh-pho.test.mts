@@ -41,7 +41,7 @@ const live = {
   heSinhThai: {
     duAn: [{ id: 'social', ten: 'Social Traffic', site: null, ngung: false }, { id: 'puzzle-books', ten: 'Front Porch Puzzles', site: 'frontporchpuzzles.gumroad.com', ngung: false },
       { id: 'steamsolo', ten: 'steamsolo.com', site: 'steamsolo.com', ngung: false }, { id: 'bra', ten: 'Bra', site: 'orabra.com', ngung: true },
-      { id: 'militarycalc', ten: 'MilitaryCalc', site: 'militarycalc.com', ngung: false }, { id: 'ios-app', ten: 'App iOS', site: 'wordfrost.com', ngung: false }, { id: 'MOS2 Platform', ten: 'MOS2 Platform', site: null, ngung: false }],
+      { id: 'militarycalc', ten: 'MilitaryCalc', site: 'militarycalc.com', ngung: false }, { id: 'ios-app', ten: 'App iOS', site: 'wordfrost.com', ngung: false }, { id: 'MOS2 Platform', ten: 'MOS2 Platform', site: null, ngung: false }, { id: 'clane', ten: 'Clane', site: 'clane.app', ngung: false }],
     duAnSite: [{ site: 'mo.com', duAn: 'bra' }],
     sanPham: [
       { id: 'a1', ten: 'MilitaryCalc', nen: 'app-store', trangThai: 'published', url: 'https://apps.apple.com/app/id1', store: 'htuan82', xem7: 40, tai: 5, net: null },
@@ -52,6 +52,7 @@ const live = {
       { id: 'u1', ten: 'Python 101', nen: 'udemy', trangThai: 'published', url: null, store: null, xem7: null, tai: null, net: 10 },
     ],
     app: [{ ten: 'Giỗ Chạp', duAn: 'ios-app' }],
+    nguonSp: [{ sp: 'a1', nguon: 'App Store search', hien: 400, xem: 14, tai: 7 }, { sp: 'a1', nguon: 'Web referrer', hien: 0, xem: 1, tai: 1 }, { sp: 'nope', nguon: 'App Store search', hien: 5, xem: 0, tai: 0 }],
     tkCua: [{ nen: 'etsy', handle: 'FrontPorchZ', duAn: 'puzzle-books' }],
   },
 };
@@ -101,9 +102,11 @@ const khu = (k: string) => m.duAn.find((x) => x.khoa === k)!;
 assert.ok(khu('d:bra').ngung && m.duAn[m.duAn.length - 1]!.ngung, 'dự án ngừng → cờ ngung, xếp cuối');
 assert.ok(khu('d:steamsolo').laDuAn && !khu('rieng:ratesbyroom.com').laDuAn, 'khu dự án khác khu site đứng riêng');
 // sản phẩm
-assert.equal(d('p:a1').duAn, 'd:militarycalc', 'app MilitaryCalc về dự án MilitaryCalc (tên dự án trong tên sản phẩm)');
-assert.equal(d('p:a2').duAn, 'd:ios-app', 'app theo app_ung_dung');
-assert.equal(d('p:a3').duAn, 'd:ios-app', 'bản Windows cùng đầu tên với app đã gán');
+assert.equal(d('p:a1').duAn, 'd:clane', 'mọi app về dự án gốc Clane (site clane.app)'); assert.equal(d('p:a1').thuongHieu, 'MilitaryCalc', 'dự án cũ của app thành thương hiệu');
+assert.equal(d('p:a2').duAn, 'd:clane'); assert.equal(d('p:a2').thuongHieu, 'App iOS', 'app_ung_dung vẫn ra thương hiệu');
+assert.equal(d('p:a3').duAn, 'd:clane', 'bản Windows cũng là app → Clane');
+assert.equal(t('ch:App Store search@p:a1').chiTiet!.hien, 400, 'nguồn trong cửa hàng đứng quanh app'); assert.equal(t('ch:App Store search@p:a1').ten, 'Tìm trên App Store');
+assert.ok(d('p:a1').coNguon && !m.tk.some((x) => x.dich === 'p:nope'), 'sản phẩm có nguồn; nguồn của sản phẩm không có mặt thì bỏ');
 assert.ok(d('p:a3').sapLen && d('p:a3').hostBan === 'apps.microsoft.com', 'đang duyệt = sắp lên, favicon cửa Microsoft Store');
 assert.equal(d('p:e1').duAn, 'd:puzzle-books', 'Etsy theo tài khoản cửa bán');
 assert.ok(!m.dich.some((x) => x.khoa === 'p:k1'), 'sản phẩm planned chưa có mặt');

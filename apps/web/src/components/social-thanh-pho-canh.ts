@@ -6,7 +6,7 @@
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
 import type { PhoMoHinh, PhoNen, PhoTk } from '@/lib/social-thanh-pho';
-type Nen = PhoNen | 'tim' | 'qc' | 'gt';
+type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
 
 const CDN = ['https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js', 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'];
 let dangNap: Promise<any> | null = null;
@@ -22,6 +22,7 @@ export function napThree(): Promise<any> {
 }
 
 const P: Record<Nen, string> = {
+  ch: '<path d="M6 8h12l-1 12H7L6 8z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="#fff" stroke-width="2"/>',
   qc: '<path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
   gt: '<path d="M10 14a4 4 0 0 1 0-5.6l2.8-2.8a4 4 0 0 1 5.6 5.6l-1.4 1.4M14 10a4 4 0 0 1 0 5.6l-2.8 2.8a4 4 0 0 1-5.6-5.6l1.4-1.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
   tim: '<circle cx="10.5" cy="10.5" r="6" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M15 15l5.5 5.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>',
@@ -34,7 +35,7 @@ const P: Record<Nen, string> = {
   th: '<path d="M16.6 11.2c-.1 0-.2-.1-.3-.1-.2-3-1.8-4.7-4.6-4.7-1.6 0-3 .7-3.9 2l1.5 1c.6-.9 1.6-1.1 2.4-1.1 1 0 1.7.3 2.2.9.3.4.6 1 .7 1.7-.8-.1-1.6-.2-2.5-.1-2.5.1-4.1 1.6-4 3.6.1 1 .6 1.9 1.4 2.5.7.5 1.6.7 2.6.6 1.3-.1 2.3-.6 3-1.5.5-.7.9-1.6 1-2.7.6.4 1.1.9 1.3 1.5.4 1 .4 2.7-1 4.1-1.2 1.2-2.7 1.8-5 1.8-2.5 0-4.4-.8-5.6-2.4C4.7 16.8 4.1 14.7 4 12c.1-2.7.7-4.8 1.9-6.3C7.1 4.1 9 3.3 11.5 3.3s4.5.8 5.8 2.4c.6.8 1.1 1.7 1.4 2.8l1.8-.5c-.4-1.4-1-2.6-1.8-3.6C17 2.4 14.6 1.4 11.5 1.4 8.4 1.4 6 2.4 4.4 4.4 3 6.2 2.2 8.7 2.2 12c0 3.3.8 5.8 2.2 7.6 1.6 2 4 3 7.1 3 2.8 0 4.7-.7 6.3-2.3 2.1-2.1 2-4.7 1.3-6.3-.5-1.2-1.4-2.1-2.5-2.8zm-4.3 4.6c-1.1.1-2.1-.4-2.2-1.4 0-.7.5-1.5 2.2-1.6h.6c.6 0 1.2.1 1.7.2-.2 2.3-1.3 2.7-2.3 2.8z"/>',
   qu: '<path d="M12 3a8.5 8.5 0 0 0 0 17c.9 0 1.8-.2 2.6-.4.6 1 1.4 1.9 3.1 1.9 1.8 0 2.6-1.6 2.6-2.6h-1.3c0 .6-.4 1-1 1-.8 0-1.4-.7-1.9-1.6A8.5 8.5 0 0 0 12 3zm2.2 13.9c-.5-.9-1.2-1.8-2.6-1.8-.9 0-1.6.4-2 .8l.6 1c.2-.1.4-.2.7-.2.6 0 1 .5 1.4 1.1A5.4 5.4 0 0 1 6.6 11.5C6.6 7.9 8.9 5.6 12 5.6s5.4 2.3 5.4 5.9c0 2.4-1.2 4.4-3.2 5.4z"/>',
 };
-const NEN: Record<Nen, [string, string]> = { tim: ['#3a4f7a', 'Tìm kiếm'], qc: ['#b8860b', 'Quảng cáo'], gt: ['#5a6a8f', 'Giới thiệu'], yt: ['#ff2a4d', 'YouTube'], tt: ['#1b1b22', 'TikTok'], fb: ['#2f7cf6', 'Facebook'], ig: ['#e1306c', 'Instagram'], x: ['#20232b', 'X'], pin: ['#e60023', 'Pinterest'], dm: ['#1f47c4', 'Dailymotion'], th: ['#101010', 'Threads'], qu: ['#b92b27', 'Quora'] };
+const NEN: Record<Nen, [string, string]> = { ch: ['#0a84ff', 'Trong cửa hàng'], tim: ['#3a4f7a', 'Tìm kiếm'], qc: ['#b8860b', 'Quảng cáo'], gt: ['#5a6a8f', 'Giới thiệu'], yt: ['#ff2a4d', 'YouTube'], tt: ['#1b1b22', 'TikTok'], fb: ['#2f7cf6', 'Facebook'], ig: ['#e1306c', 'Instagram'], x: ['#20232b', 'X'], pin: ['#e60023', 'Pinterest'], dm: ['#1f47c4', 'Dailymotion'], th: ['#101010', 'Threads'], qu: ['#b92b27', 'Quora'] };
 const svgLogo = (k: Nen, c?: number) => `<svg viewBox="0 0 24 24" fill="#fff"${c ? ` width="${c}" height="${c}"` : ''}>${P[k]}</svg>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const so = (n: number | null) => (n == null ? 'chưa đo' : n.toLocaleString('vi-VN'));
@@ -156,7 +157,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // ── toà tài khoản
   // máy tìm kiếm: màu hãng + favicon trên nóc; tài khoản mạng xã hội: màu + logo nền tảng
   const mauTk = (tk: PhoTk) => tk.mau ?? NEN[tk.nen][0];
-  const maiTk = (tk: PhoTk) => (tk.loai === 'tim' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
+  const maiTk = (tk: PhoTk) => (tk.loai !== 'mxh' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
   const CUA_SANG = new THREE.Color('#ffd27a'), CUA_TOI = new THREE.Color('#1c2440');
   const cuaGeo = new THREE.PlaneGeometry(3.2, 2.6), cuaMat = new THREE.MeshBasicMaterial();
   const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [] };
@@ -262,9 +263,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const nguonCua = (khoa: string) => mh.tk.filter((t) => t.dich === khoa);
     // ── kích thước: quảng trường site = tháp site ở tâm + vòng nguồn; khu dự án = toà DỰ ÁN ở tâm + vòng sản phẩm + vòng quảng trường site
     const rSite = (d: typeof mh.dich[number]) => 30 + Math.min(40, nguonCua(d.khoa).length * 3.2);
+    const coQt = (d: typeof mh.dich[number]) => d.loai === 'site' || nguonCua(d.khoa).length > 0;   // site, hoặc sản phẩm có nguồn (app, Gumroad) → quảng trường riêng
     type Khu = { k: typeof mh.duAn[number]; sites: typeof mh.dich; sps: typeof mh.dich; rSp: number; rVong: number; D: number; cx: number; cz: number; phia: number };
     const ks: Khu[] = khus.map((k) => {
-      const ds_ = mh.dich.filter((d) => d.duAn === k.khoa), sites = ds_.filter((d) => d.loai === 'site'), sps = ds_.filter((d) => d.loai === 'sp');
+      const ds_ = mh.dich.filter((d) => d.duAn === k.khoa), sites = ds_.filter(coQt), sps = ds_.filter((d) => !coQt(d));
       const rSp = sps.length ? 34 + Math.min(30, sps.length * 2.4) : 0, maxR = Math.max(0, ...sites.map(rSite));
       if (!k.laDuAn && sites.length === 1 && !sps.length) return { k, sites, sps, rSp: 0, rVong: 0, D: maxR, cx: 0, cz: 0, phia: 1 };
       const rVong = sites.length ? Math.max(rSp + maxR + 30, sites.reduce((a, d) => a + 2 * rSite(d) + 24, 0) / (2 * Math.PI)) : 0;
@@ -303,7 +305,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // quảng trường site: tháp ở tâm, nguồn đứng vòng quanh (máy tìm kiếm, quảng cáo, giới thiệu, tài khoản social), phố nan hoa nối vào tâm
     const quangTruongSite = (d: typeof mh.dich[number], x: number, z: number) => {
       const qt = add(new THREE.CylinderGeometry(20, 20, .7, 36), GACH, false); qt.position.set(x, .35, z);
-      thapSite(d, x, z); qt.userData = { chu: null };
+      if (d.loai === 'site') thapSite(d, x, z); else toaSp(d, x, z);
+      qt.userData = { chu: null };
       const ns = nguonCua(d.khoa).sort((a, b) => (a.loai === b.loai ? b.phien - a.phien : a.loai.localeCompare(b.loai))), r = rSite(d);
       ns.forEach((tk, i) => {
         const g = (i / Math.max(1, ns.length)) * Math.PI * 2 + .3, sx = x + Math.cos(g) * r, sz = z + Math.sin(g) * r;
@@ -326,13 +329,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       m.userData = { loai: 'khu', khoa: k.khoa }; return m;
     };
     // toà SẢN PHẨM: hộp nhỏ, nóc là logo cửa bán (App Store, Microsoft Store, Gumroad, Etsy, KDP, Udemy…); sắp lên (đang duyệt / sẵn sàng) = khung mờ
-    const toaSp = (d: typeof mh.dich[number], x: number, z: number) => {
+    function toaSp(d: typeof mh.dich[number], x: number, z: number) {
       const so = (d.xem7 ?? 0) + (d.tai ?? 0) * 3 + (d.net ?? 0) * 5, w = 9 + Math.min(8, Math.log2(1 + so) * 1.4), h = 8 + Math.min(18, Math.log2(1 + so) * 2.4);
       const mai = texFav(d.hostBan ?? 'shop', '#6a3f8f'), than = M({ color: '#6a5a9f', roughness: .5, transparent: !!d.sapLen, opacity: d.sapLen ? .4 : 1 });
       const m = add(new THREE.BoxGeometry(w, h, w), [than, than, M({ map: mai, emissive: '#fff', emissiveMap: mai, emissiveIntensity: .4, transparent: !!d.sapLen, opacity: d.sapLen ? .6 : 1 }), than, than, than]); m.position.set(x, h / 2, z);
       if (d.sapLen) { const khung = add(new THREE.BoxGeometry(w + 1, h + 1, w + 1), new THREE.MeshBasicMaterial({ color: '#b48cff', wireframe: true, transparent: true, opacity: .5 }), false); khung.position.copy(m.position); khung.userData = { chu: m }; }
       m.userData = { loai: 'dich', d }; viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
-    };
+    }
     for (const o of ks) {
       const { k, cx, cz } = o;
       pho(cx, 0, cx, cz, 12);
@@ -392,7 +395,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const u = chu.userData;
     const tenDich = (k: string | null) => { const d = k ? dichCua(k) : null; return d ? esc(d.ten) : '—'; };
     if (u.loai === 'tk' && u.tk.loai !== 'mxh') { const t = u.tk as PhoTk;
-      const nhan = t.loai === 'tim' ? 'Tìm kiếm tự nhiên' : t.loai === 'qc' ? 'Quảng cáo' : 'Trang giới thiệu';
+      const nhan = t.loai === 'tim' ? 'Tìm kiếm tự nhiên' : t.loai === 'qc' ? 'Quảng cáo' : t.loai === 'ch' ? 'Trong cửa hàng' : 'Trang giới thiệu';
+      if (t.chiTiet) return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Nguồn', nhan], ['Đổ vào', tenDich(t.dich)], ['👁 Hiển thị 30 ngày', t.chiTiet.hien], ['📄 Xem trang', t.chiTiet.xem], ['⬇ Tải lần đầu', t.chiTiet.tai]] };
       return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Nguồn', nhan], ['Đổ vào', tenDich(t.dich)], [`🚗 Khách (${t.phienKy})`, t.phien]] };
     }
     if (u.loai === 'tk') { const t = u.tk as PhoTk;
@@ -406,7 +410,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         ...sps.slice(0, 8).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 34))}`, d.sapLen ? 'sắp lên' : d.xem7 != null ? `${so(d.xem7)} xem` : '—'] as [string, string])] };
     }
     if (u.loai === 'dich') { const d = u.d as typeof mh.dich[number];
-      if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
+      if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ...(d.thuongHieu ? [['Thương hiệu', esc(d.thuongHieu)] as [string, string]] : []), ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);
       return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')],
@@ -457,14 +461,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // toàn màn: máy tính / Android dùng Fullscreen API; iPhone không có → phủ kín khung nhìn bằng CSS (khoá cuộn trang phía sau)
   const fullBtn = q<HTMLButtonElement>('[data-d="full"]');
   const datNutFull = (on: boolean) => { fullBtn.textContent = on ? '✕' : '⛶'; fullBtn.setAttribute('aria-label', on ? 'Thoát toàn màn hình' : 'Toàn màn hình'); fullBtn.title = fullBtn.getAttribute('aria-label')!; };
+  // điện thoại: toàn màn = phủ kín khung nhìn bằng CSS và NHỚ qua F5 (anh 22/10/2026 "F5 phải mở lại đúng màn hình city fullscreen") — Fullscreen API
+  // không tự bật lại được khi tải trang (cần cú chạm), còn lớp phủ thì được; URL ?sts=pho giữ đúng tab
+  const laDt = matchMedia('(pointer: coarse)').matches || W() < 700;
+  const phuKin = (on: boolean) => { host.classList.toggle('tp-full', on); document.documentElement.style.overflow = on ? 'hidden' : ''; datNutFull(on); try { localStorage.setItem('tp-full', on ? '1' : '0'); } catch { /* chế độ riêng tư */ } };
   const toanMan = () => {
     if (document.fullscreenElement) { void document.exitFullscreen(); return; }
-    if (host.classList.contains('tp-full')) { host.classList.remove('tp-full'); document.documentElement.style.overflow = ''; datNutFull(false); return; }
-    if (host.requestFullscreen && document.fullscreenEnabled) { void host.requestFullscreen(); return; }
-    host.classList.add('tp-full'); document.documentElement.style.overflow = 'hidden'; datNutFull(true);
+    if (host.classList.contains('tp-full')) { phuKin(false); return; }
+    if (host.requestFullscreen && document.fullscreenEnabled && !laDt) { void host.requestFullscreen(); return; }
+    phuKin(true);
   };
   const onFs = () => datNutFull(document.fullscreenElement === host);
   document.addEventListener('fullscreenchange', onFs);
+  try { if (laDt && localStorage.getItem('tp-full') === '1') phuKin(true); } catch { /* chế độ riêng tư */ }
   for (const b of host.querySelectorAll<HTMLButtonElement>('[data-d]')) b.onclick = () => NUT[b.dataset.d!]!();
 
   // ── vòng vẽ

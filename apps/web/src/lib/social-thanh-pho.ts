@@ -47,7 +47,9 @@ export const nenCuaMay = (nen: string) => { const g = nen.replace(/_(anh|link)$/
 /** toà = tài khoản mạng xã hội (loai 'mxh') hoặc máy tìm kiếm (loai 'tim', nen 'tim', host = tên miền máy tìm kiếm để lấy favicon, mau = màu hãng) */
 /** toà NGUỒN: tài khoản mạng xã hội (loai 'mxh') hoặc máy tìm kiếm cạnh một site (loai 'tim', id `tim:<máy>@<site>`, host = tên miền máy tìm kiếm, mau = màu hãng) */
 export interface PhoTk {
-  id: string; loai: 'mxh' | 'tim' | 'qc' | 'gt'; nen: PhoNen | 'tim' | 'qc' | 'gt'; host?: string; mau?: string; ten: string; duAn: string;
+  id: string; loai: 'mxh' | 'tim' | 'qc' | 'gt' | 'ch'; nen: PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
+  /** nguồn trong cửa hàng (loai 'ch', vào sản phẩm): hiển thị / xem trang / tải lần đầu 30 ngày */
+  chiTiet?: { hien: number; xem: number; tai: number }; host?: string; mau?: string; ten: string; duAn: string;
   chay: number; sap: number; xem: number | null;
   /** lượt khách về đích; kỳ đo khác nhau theo nguồn (sổ phiên 7 ngày · Pinterest 30 ngày · tìm kiếm 30 ngày) nên đi kèm nhãn kỳ */
   phien: number; phienKy: string;
@@ -60,6 +62,8 @@ export interface PhoDich {
   phien30: number | null; laShop: boolean; don: number | null; coNguon: boolean;
   /** sản phẩm: cửa bán (app-store, ms-store, gumroad, etsy, kdp, udemy…), host cửa bán để lấy favicon, trạng thái, số */
   nenBan?: string; hostBan?: string; trangThai?: string | null; sapLen?: boolean; url?: string | null; xem7?: number | null; tai?: number | null; net?: number | null;
+  /** dự án thương hiệu của sản phẩm khi khu của nó là dự án gốc khác (app MilitaryCalc nằm khu Clane, thương hiệu MilitaryCalc) */
+  thuongHieu?: string | null;
 }
 /** KHU: dự án (laDuAn) hoặc một site đứng riêng; ngung = dự án ngừng hoạt động (đặt ở rìa) */
 export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null }
@@ -72,7 +76,9 @@ export interface VaoHeSinhThai {
   duAn: { id: string; ten: string; site: string | null; ngung: boolean }[];
   /** sổ site ↔ dự án (du_an_site) — thắng projects.website */
   duAnSite: { site: string; duAn: string }[];
-  sanPham: { id: string; ten: string; nen: string; trangThai: string | null; url: string | null; store: string | null; xem7: number | null; tai: number | null; net: number | null }[];
+  sanPham: { id: string; ten: string; nen: string; trangThai: string | null; url: string | null; store: string | null; sku?: string | null; xem7: number | null; tai: number | null; net: number | null }[];
+  /** nguồn khách vào từng sản phẩm 30 ngày: app = số Apple (nguồn × hiển thị / xem trang / tải lần đầu); Gumroad = nơi khách tới (product_daily.refs) */
+  nguonSp?: { sp: string; nguon: string; hien: number; xem: number; tai: number }[];
   /** app_ung_dung: tên app → dự án */
   app: { ten: string; duAn: string }[];
   /** tài khoản cửa bán trong vault (etsy FrontPorchZ, kdp htuan82…) → dự án */
@@ -80,6 +86,9 @@ export interface VaoHeSinhThai {
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
+const NEN_APP = new Set(['app-store', 'ms-store', 'play-store']);
+/** tên nguồn cửa hàng → chữ người đọc + host lấy favicon */
+const NGUON_CH: Record<string, [string, string | null]> = { 'App Store search': ['Tìm trên App Store', 'apps.apple.com'], 'App Store browse': ['Duyệt App Store', 'apps.apple.com'], 'Web referrer': ['Từ web', null], 'App referrer': ['Từ app khác', null], 'Institutional purchase': ['Mua tổ chức', null], direct: ['Trực tiếp', null], Unavailable: ['Không rõ', null] };
 const TRANG_THAI_LEN = new Set(['published', 'active', 'live']);
 const TRANG_THAI_SAP = new Set(['in_review', 'ready', 'owner_review', 'pending']);
 
@@ -160,15 +169,29 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     for (const [h, so] of Object.entries(x.gt ?? {}).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 4))
       tk.push({ id: `gt:${h}@${x.site}`, loai: 'gt', nen: 'gt', host: h, mau: '#7a8bb3', ten: h, duAn: 'Giới thiệu', chay: 0, sap: 0, xem: null, phien: so, phienKy: '30 ngày', dich: `s:${x.site}`, hong: null, dung: false });
   }
-  const luong: PhoLuong[] = tk.filter((t) => t.dich && t.phien).map((t) => ({ tu: t.id, den: t.dich!, so: t.phien }));
+  const luong: PhoLuong[] = tk.filter((t) => t.dich && t.phien).map((t) => ({ tu: t.id, den: t.dich!, so: t.phien }));   // nguồn cửa hàng thêm bên dưới
 
   // ── ĐÍCH: sản phẩm (đã lên hoặc sắp lên; 'planned' / 'draft' / 'archived' chưa có mặt trong thành phố)
   const daGan = new Map<string, string>();
+  // dự án gốc app (anh 22/10/2026 "Clane.app là gốc dự án app"): dự án giữ site clane.app nhận mọi app; dự án cũ của app thành thương hiệu
+  const duAnApp = hst.duAnSite.find((x) => x.site === 'clane.app')?.duAn ?? hst.duAn.find((d) => d.site === 'clane.app')?.id ?? null;
   const sps = hst.sanPham.filter((p) => TRANG_THAI_LEN.has(p.trangThai ?? '') || TRANG_THAI_SAP.has(p.trangThai ?? ''));
   for (const p of [...sps].sort((a, b) => Number(TRANG_THAI_LEN.has(b.trangThai ?? '')) - Number(TRANG_THAI_LEN.has(a.trangThai ?? '')))) {
-    const d = duAnCuaSanPham(p, hst, daGan); if (d) daGan.set(chuan(p.ten), d);
-    dichMap.set(`p:${p.id}`, { khoa: `p:${p.id}`, loai: 'sp', ten: p.ten, site: null, duAn: d ? `d:${d}` : 'chua-sp', phien30: null, laShop: false, don: null, coNguon: false,
+    const d0 = duAnCuaSanPham(p, hst, daGan); if (d0) daGan.set(chuan(p.ten), d0);
+    const d = duAnApp && NEN_APP.has(p.nen) ? duAnApp : d0, thuongHieu = d0 && d0 !== d ? hst.duAn.find((x) => x.id === d0)?.ten ?? null : null;
+    dichMap.set(`p:${p.id}`, { khoa: `p:${p.id}`, loai: 'sp', ten: p.ten, site: null, duAn: d ? `d:${d}` : 'chua-sp', thuongHieu, phien30: null, laShop: false, don: null, coNguon: false,
       nenBan: p.nen, hostBan: HOST_BAN[p.nen] ?? hostCua(p.url) ?? undefined, trangThai: p.trangThai, sapLen: !TRANG_THAI_LEN.has(p.trangThai ?? ''), url: p.url, xem7: p.xem7, tai: p.tai, net: p.net });
+  }
+
+  // ── NGUỒN vào sản phẩm (cửa hàng): mỗi nguồn một toà quanh sản phẩm
+  const gomCh = new Map<string, { sp: string; nguon: string; hien: number; xem: number; tai: number }>();
+  for (const x of hst.nguonSp ?? []) { const k = `${x.sp}|${x.nguon}`, g = gomCh.get(k) ?? { sp: x.sp, nguon: x.nguon, hien: 0, xem: 0, tai: 0 }; g.hien += x.hien; g.xem += x.xem; g.tai += x.tai; gomCh.set(k, g); }
+  for (const g of gomCh.values()) {
+    if (!dichMap.has(`p:${g.sp}`)) continue;
+    const [ten, host] = NGUON_CH[g.nguon] ?? [g.nguon, /\./.test(g.nguon) ? g.nguon : null], so = g.hien || g.xem || g.tai; if (!so) continue;
+    const t: PhoTk = { id: `ch:${g.nguon}@p:${g.sp}`, loai: 'ch', nen: 'ch', mau: '#0a84ff', ten, duAn: 'Cửa hàng', chay: 0, sap: 0, xem: null, phien: so, phienKy: '30 ngày', dich: `p:${g.sp}`, hong: null, dung: false, chiTiet: { hien: g.hien, xem: g.xem, tai: g.tai } };
+    if (host) t.host = host;
+    tk.push(t); luong.push({ tu: t.id, den: t.dich!, so });
   }
 
   // ── đơn cửa hàng (Gumroad / Etsy) + có nguồn chưa
@@ -184,7 +207,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const tuTk = (khoa: string) => { const t = tho.find((x) => x.site && `s:${x.site}` === khoa); return t ? idTheoTen.get(t.duAn) ?? null : null; };
   for (const d of dich) if (d.loai === 'site') {
     const site = d.site!;
-    let da = siteDa.get(site) ?? null;
+    let da = siteDa.get(site) ?? [...siteDa].find(([s2]) => site.endsWith(`.${s2}`))?.[1] ?? null;   // *.clane.app → dự án của clane.app
     if (!da) { const dm = suc.dong.find((x) => x.sites?.includes(site) && x.site && x.site !== site); if (dm) da = siteDa.get(dm.site!) ?? tuTk(`s:${dm.site}`); }
     if (!da) da = tuTk(d.khoa);
     // dự án chung nhiều thương hiệu (Social Traffic: Hotel + BYL) không gom site: mỗi site đứng riêng như một dự án

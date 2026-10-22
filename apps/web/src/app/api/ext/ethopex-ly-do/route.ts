@@ -25,7 +25,8 @@ const chuan = (t: string) => t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
 // lõi tên camp: bỏ mã lô đầu ("2110ns ") + phần " EN - dạng …" → so hai chiều (camp cũ ghi tên tắt "The Rejected Luna")
 const loi = (t: string) => chuan(t.replace(/^\S+\s+/, '').split(/ (?:EN|ES) - /)[0] ?? '');
 type Du = Awaited<ReturnType<typeof docEthopex>>;
-function motPhim(d: Du, dat: Set<string>, phim: string) {
+type ChoNb = Record<string, { luc: string; loi: string }>;
+function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const k = chuan(phim);
   if (k.length < 6) return { so_camp: 0, creative: [] };
   const khop = (a: string) => a.length >= 8 && (a.includes(k) || k.includes(a));
@@ -37,7 +38,7 @@ function motPhim(d: Du, dat: Set<string>, phim: string) {
   const creative = [...nhom.entries()].map(([cr, ds]) => ({
     creative_id: cr > 0 ? cr : null, anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
     doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
-    camp: ds.map((c) => ({ id: c.id, trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
+    camp: ds.map((c) => ({ id: c.id, trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)),
   })).sort((a, b) => b.thang.thu - a.thang.thu);
   return { so_camp: cua.length, creative };
@@ -56,10 +57,13 @@ export async function GET(req: Request) {
   if (phim || phims) {
     const d = await camps();
     const dat = new Set(Object.keys((((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_cta_dat'`)) as unknown as { gia_tri: Record<string, unknown> }[])[0]?.gia_tri) ?? {}));
-    if (phim) return NextResponse.json({ ok: true, phim, ...motPhim(d, dat, phim) }, { headers: CORS });
+    // CAMP CHỜ (anh 22/10/2026 "show thêm cả camp đang chờ vào đây"): lần nhân bản gần nhất của camp thắng bị cổng chặn (CTA cũ, chưa soát 18+…) → lý do
+    const nb = ((await db.execute(sql`SELECT x FROM xv_khoa_ngoai, jsonb_array_elements(gia_tri) x WHERE ten = 'ethopex_nhat_ky' AND x->>'viec' = 'nhan_ban'`)) as unknown as { x: { goc?: number; id: number; ok: boolean; loi: string | null; luc: string } }[]).map((r) => r.x);
+    const choNb: ChoNb = {}; for (const n of nb) { const g = String(n.goc ?? n.id); if (n.ok) delete choNb[g]; else choNb[g] = { luc: n.luc, loi: n.loi ?? '' }; }
+    if (phim) return NextResponse.json({ ok: true, phim, ...motPhim(d, dat, phim, choNb) }, { headers: CORS });
     // NHIỀU PHIM MỘT LƯỢT (?phims=tên1\ntên2…): extension tải sẵn mọi phim đang hiện trên trang → rê vào là có ngay
     const ra: Record<string, ReturnType<typeof motPhim>> = {};
-    for (const t of phims!.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 100)) ra[t] = motPhim(d, dat, t);
+    for (const t of phims!.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 100)) ra[t] = motPhim(d, dat, t, choNb);
     return NextResponse.json({ ok: true, phim: ra }, { headers: CORS });
   }
   const id = Number(u.searchParams.get('id') || 0);

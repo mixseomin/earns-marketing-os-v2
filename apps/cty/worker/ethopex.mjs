@@ -302,7 +302,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // chặn 30 camp đang chạy / phim), giờ yên thì báo im lặng; bản lịch Today trong khung 21h–5h (giờ Mỹ đang mua), ngoài khung để Tomorrow.
   const daNb = [];
   for (const m of kq.nb || []) {
-    const lich = gioVn >= 21 || gioVn < 5 ? 'today' : 'tomorrow';
+    const lich = 'today';   // anh 22/10/2026: "camp dạng này đang lãi to thì hãy ưu tiên bật sớm" — bản nhân bản camp thắng chạy luôn, không để sang ngày mai
     let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--lich', lich, '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
     daNb.push({ m, r, lich });
   }

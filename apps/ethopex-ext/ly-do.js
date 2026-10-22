@@ -160,8 +160,10 @@
     const nhanCamp = (k) => k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>';
     const the = ds.slice(0, 12).map((c) => {
       const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:76px;height:135px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:76px;height:135px;background:#333;border-radius:4px;flex:none"></div>';
-      const camps = c.camp.slice(0, 4).map((k) => '<tr><td style="padding:1px 0;color:inherit;border:0">Camp #' + k.id + '</td><td colspan="3" style="padding:1px 0 1px 8px;border:0">' + nhanCamp(k) + '</td><td style="' + td_ + '">' + phanTram(k.roi) + '</td></tr>').join('') +
-        (c.camp.length > 4 ? '<tr><td colspan="5" style="padding:1px 0;opacity:.7;color:inherit;border:0">+' + (c.camp.length - 4) + ' camp</td></tr>' : '');
+      // camp CHỜ (anh 22/10/2026): camp mới lên chưa tiêu → "⏳ mới lên"; camp thắng mà lần nhân bản gần nhất bị chặn → dòng cam ghi lý do
+      const choNb = (k) => (k.cho_nb ? '<tr><td colspan="5" style="padding:0 0 3px 12px;border:0;font-size:11px;color:#ffb74d">⏳ Nhân bản đang chờ (' + esc(k.cho_nb.luc) + '): ' + esc(String(k.cho_nb.loi).split(' — ')[0].slice(0, 110)) + '</td></tr>' : '');
+      const camps = c.camp.slice(0, 6).map((k) => '<tr><td style="padding:1px 0;color:inherit;border:0">Camp #' + k.id + '</td><td colspan="3" style="padding:1px 0 1px 8px;border:0">' + nhanCamp(k) + (k.moi && k.trang_thai === 'ACTIVE' ? ' <span style="color:#9ecbff;font-size:11px">⏳ mới lên, chưa tiêu</span>' : '') + '</td><td style="' + td_ + '">' + phanTram(k.roi) + '</td></tr>' + choNb(k)).join('') +
+        (c.camp.length > 6 ? '<tr><td colspan="5" style="padding:1px 0;opacity:.7;color:inherit;border:0">+' + (c.camp.length - 6) + ' camp</td></tr>' : '');
       return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #3a3631">' + anh + '<div style="min-width:0">' +
         '<b>Creative' + (c.creative_id ? ' #' + c.creative_id : '') + '</b> · ' + esc(c.dang || '') + (c.doan ? ' · ' + esc(c.doan) : '') +
         ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt luật</span>' : '<span style="color:#ffb74d">CTA cũ</span>') +

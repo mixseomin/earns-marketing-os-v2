@@ -23,7 +23,8 @@
     'html.dark tr[data-etp="tat"]{background:#3a1f1d!important}html.dark tr[data-etp="tat"] td{color:#ffb4ab!important}' +
     // CỘT TIỀN KIỂU KẾ TOÁN (anh 22/10/2026): "$" sát trái ô, số căn phải, phân cách nghìn, 2 số lẻ, số âm trong ngoặc tô đỏ, chữ số đều bề ngang.
     // Chữ gốc của trang giữ nguyên (trong suốt, vẫn chọn/copy được) — lớp hiển thị vẽ bằng ::before/::after, không sửa DOM React.
-    'td[data-etp-so]{position:relative;color:transparent!important;padding-left:calc(var(--etp-pl,12px) + 16px)!important}td[data-etp-so] *{color:transparent!important}' +
+    // chọn bộ chọn đủ mạnh để thắng luật tô màu hàng tắt (tr[data-etp="tat"] td, html.dark …) — 23/10/2026 hàng Paused hiện chồng "$1.00" lên "1.00"
+    'html td[data-etp-so][data-etp-so][data-etp-so]{position:relative;color:transparent!important;padding-left:calc(var(--etp-pl,12px) + 16px)!important}html td[data-etp-so][data-etp-so][data-etp-so] *{color:transparent!important}' +
     'td[data-etp-so]::before{content:"$";position:absolute;left:var(--etp-pl,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);opacity:.55;font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums}' +
     'td[data-etp-so]::after{content:attr(data-etp-so);position:absolute;right:var(--etp-pr,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums;white-space:nowrap}' +
     'td[data-etp-am]::after,td[data-etp-am]::before{color:#d93025}html.dark td[data-etp-am]::after,html.dark td[data-etp-am]::before{color:#ff8a80}' +

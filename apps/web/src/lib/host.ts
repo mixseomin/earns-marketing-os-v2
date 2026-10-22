@@ -12,3 +12,9 @@ export const hostOf = (u: string): string => {
 /** Hostname → slug dùng làm key (a-z0-9 + gạch nối). Cùng quy tắc mà ext dùng để sinh platform key. */
 export const slugifyHost = (h: string): string =>
   h.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+/** Tên miền site từ một URL HOẶC tên miền trần ('ratesbyroom.com/x' cũng được) — bỏ 'www.'; rỗng / hỏng → null (khác hostOf: không trả lại chuỗi rác). */
+export const siteOf = (u: string | null | undefined): string | null => {
+  if (!u) return null;
+  try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, '') || null; } catch { return null; }
+};

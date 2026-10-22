@@ -5,6 +5,7 @@
 //   DỰ ÁN = một khu gom các đích của nó, có toà DỰ ÁN riêng; site không thuộc dự án nào tự đứng như một dự án; dự án ngừng → khu ở rìa thành phố.
 //   ĐÃ ĐĂNG = bài đã lên (StKenh.video) · SẮP ĐĂNG = lượt dự kiến 7 ngày của máy đăng · HỎNG = sự cố 'bad' / tài khoản khoá, dính cờ · DỪNG = đã cắt.
 import type { SocialLive } from './social-traffic';
+import { siteOf } from './host';
 
 /** MÁY TÌM KIẾM của thành phố Social (anh 22/10/2026: "thêm nguồn từ Bing, Google Search, Yandex… mỗi cái một thực thể"): nguồn phiên (referrer
  *  host hoặc utm "<nguồn> / organic") → máy tìm kiếm. Quảng cáo (/ cpc, / paid) không phải tìm kiếm tự nhiên → không tính. Dùng chung máy chủ
@@ -44,8 +45,8 @@ const NEN_KEY: Record<string, PhoNen> = { youtube: 'yt', facebook: 'fb', instagr
 /** nơi đăng của máy (xv_may.dang[].nen: youtube, x_anh, fb_link…) → khoá nền tảng của tài khoản (platform_accounts.platform_key) */
 export const nenCuaMay = (nen: string) => { const g = nen.replace(/_(anh|link)$/, ''); return ({ fb: 'facebook', ig: 'instagram', x: 'twitter' } as Record<string, string>)[g] ?? g; };
 
-/** toà = tài khoản mạng xã hội (loai 'mxh') hoặc máy tìm kiếm (loai 'tim', nen 'tim', host = tên miền máy tìm kiếm để lấy favicon, mau = màu hãng) */
-/** toà NGUỒN: tài khoản mạng xã hội (loai 'mxh') hoặc máy tìm kiếm cạnh một site (loai 'tim', id `tim:<máy>@<site>`, host = tên miền máy tìm kiếm, mau = màu hãng) */
+/** toà NGUỒN cạnh đích: tài khoản mạng xã hội ('mxh') · máy tìm kiếm ('tim', id `tim:<máy>@<site>`) · quảng cáo ('qc') · trang giới thiệu ('gt') · nguồn trong cửa hàng ('ch');
+ *  host = tên miền lấy favicon, mau = màu hãng */
 export interface PhoTk {
   id: string; loai: 'mxh' | 'tim' | 'qc' | 'gt' | 'ch'; nen: PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
   /** nguồn trong cửa hàng (loai 'ch', vào sản phẩm): hiển thị / xem trang / tải lần đầu 30 ngày */
@@ -73,8 +74,7 @@ export interface PhoDich {
   /** sản phẩm: cửa bán (app-store, ms-store, gumroad, etsy, kdp, udemy…), host cửa bán để lấy favicon, trạng thái, số */
   nenBan?: string; hostBan?: string; trangThai?: string | null; sapLen?: boolean; url?: string | null; xem7?: number | null; tai?: number | null; net?: number | null;
 }
-/** KHU: dự án (laDuAn) hoặc một site đứng riêng; ngung = dự án ngừng hoạt động (đặt ở rìa) */
-/** nhan = dòng đầu biển trên toà khu ('DỰ ÁN', 'DỰ ÁN · NGỪNG', 'TÀI KHOẢN BỊ KHOÁ') */
+/** KHU: dự án (laDuAn) hoặc một site đứng riêng; ngung = dự án ngừng hoạt động (đặt ở rìa); nhan = dòng đầu biển trên toà khu ('DỰ ÁN', 'DỰ ÁN · NGỪNG', 'TÀI KHOẢN BỊ KHOÁ') */
 export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string; linhVuc: string }
 /** một dòng xe: toà nguồn → đích, số khách (kỳ theo nguồn) */
 export interface PhoLuong { tu: string; den: string; so: number }
@@ -116,9 +116,9 @@ export interface VaoHeSinhThai {
   tienAff?: { site: string | null; mang: string; duAn?: string | null; usd: number }[];
   /** sổ hạ tầng (infra_resources): máy chủ (hosting: ip) và tên miền (domain: hạn, ip máy gốc) */
   hat?: { kind: string; label: string; duAn: string | null; het: string | null; ip: string | null; chi: number; tien: string }[];
-  /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   /** phòng ban công ty AI: trưởng phòng, dự án phụ trách, đang hoạt động, số việc nền 24 giờ, việc gần nhất */
   congTy?: PhoPhong[];
+  /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null }[];
 }
 /** cửa bán → host để lấy favicon */
@@ -132,7 +132,7 @@ const TRANG_THAI_SAP = new Set(['in_review', 'ready', 'owner_review', 'pending']
 /** sản phẩm → dự án: link trùng site dự án · app (tên app_ung_dung là đầu tên sản phẩm) · tài khoản cửa bán (nền + handle) · tên dự án nằm trong tên sản phẩm ·
  *  sản phẩm anh em cùng đầu tên (Giỗ Chạp (Windows) ↔ Giỗ Chạp: Văn Khấn). Không khớp gì → null. */
 export function duAnCuaSanPham(sp: VaoHeSinhThai['sanPham'][number], v: VaoHeSinhThai, daGan: Map<string, string>): string | null {
-  const host = hostCua(sp.url);
+  const host = siteOf(sp.url);
   if (host) { const d = v.duAnSite.find((x) => x.site === host)?.duAn ?? v.duAn.find((x) => x.site === host)?.id; if (d) return d; }
   const ten = chuan(sp.ten);
   const app = v.app.find((a) => chuan(a.ten).length >= 4 && ten.startsWith(chuan(a.ten))); if (app) return app.duAn;
@@ -145,9 +145,10 @@ export function duAnCuaSanPham(sp: VaoHeSinhThai['sanPham'][number], v: VaoHeSin
 
 const MAU_CUM = ['#3b4f8f', '#2f6f8f', '#7a5a2f', '#2f7a5a', '#6a3f8f', '#8f3f5a', '#4f6f2f', '#2f5a7a'];
 const chuan = (h: string) => h.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/\(page\)/g, '').replace(/[^a-z0-9]/g, '');
-const hostCua = (u: string | null | undefined) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
 const nhieuNhat = (xs: (string | null)[]) => { const d = new Map<string, number>(); for (const x of xs) if (x) d.set(x, (d.get(x) ?? 0) + 1); return [...d].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null; };
 const laShop = (site: string) => /(^|\.)(gumroad\.com|etsy\.com|amazon\.com)$/.test(site);
+/** dòng bán (Gumroad / Etsy) của một site cửa hàng: tên cửa hàng hoặc dự án trùng đầu tên miền — một luật cho cả số đơn lẫn tiền */
+const banCuaShop = (ban: SocialLive['ban'], site: string) => { const ten = chuan(site.split('.')[0]!); return ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === ten || chuan(x.duAn) === ten)); };
 
 export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'landing' | 'ban' | 'fav' | 'nguonSite' | 'heSinhThai'>): PhoMoHinh {
   const { kenh, luoi, suc } = live;
@@ -175,7 +176,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const siteDuAn = new Map<string, string | null>();
   for (const t of tho) if (!siteDuAn.has(t.duAn)) siteDuAn.set(t.duAn, nhieuNhat(tho.filter((x) => x.duAn === t.duAn).map((x) => x.site)));
   for (const t of tho) if (!t.site) t.site = tho.find((x) => x.site && chuan(x.k.ten) === chuan(t.k.ten))?.site ?? null;
-  for (const t of tho) if (!t.site) t.site = siteDuAn.get(t.duAn) ?? hostCua(t.k.landing);
+  for (const t of tho) if (!t.site) t.site = siteDuAn.get(t.duAn) ?? siteOf(t.k.landing);
 
   const tk: PhoTk[] = tho.map((t) => ({
     id: t.id, loai: 'mxh' as const, nen: NEN_KEY[t.k.nenKey!]!, ten: t.k.ten.replace(/\s*\(Page\)\s*$/i, ''), duAn: t.duAn,
@@ -224,7 +225,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     // cửa bán mà mọi tài khoản trong vault đều bị khoá (Udemy) → khu 'tài khoản bị khoá' ở rìa
     const d = cuaKhoa.has(p.nen) ? null : d0 ?? (duAnApp && NEN_APP.has(p.nen) ? duAnApp : null);
     dichMap.set(`p:${p.id}`, { khoa: `p:${p.id}`, loai: 'sp', ten: p.ten, site: null, duAn: cuaKhoa.has(p.nen) ? `khoa:${p.nen}` : d ? `d:${d}` : 'chua-sp', phien30: null, laShop: false, don: null, coNguon: false,
-      nenBan: p.nen, hostBan: HOST_BAN[p.nen] ?? hostCua(p.url) ?? undefined, trangThai: p.trangThai, sapLen: !TRANG_THAI_LEN.has(p.trangThai ?? ''), url: p.url, xem7: p.xem7, tai: p.tai, net: p.net });
+      nenBan: p.nen, hostBan: HOST_BAN[p.nen] ?? siteOf(p.url) ?? undefined, trangThai: p.trangThai, sapLen: !TRANG_THAI_LEN.has(p.trangThai ?? ''), url: p.url, xem7: p.xem7, tai: p.tai, net: p.net });
   }
 
   // ── NGUỒN vào sản phẩm (cửa hàng): mỗi nguồn một toà quanh sản phẩm
@@ -253,7 +254,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   // ── đơn cửa hàng (Gumroad / Etsy) + có nguồn chưa
   for (const d of dichMap.values()) {
     d.coNguon = luong.some((l) => l.den === d.khoa || (d.loai === 'app' && [...dichMap.values()].some((b) => b.cha === d.khoa && l.den === b.khoa)));
-    if (d.loai === 'site' && d.laShop) { const ten = chuan(d.site!.split('.')[0]!); const b = live.ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === ten || chuan(x.duAn) === ten)); if (b.length) d.don = b.reduce((a, x) => a + (x.ban30 ?? 0), 0); }
+    if (d.loai === 'site' && d.laShop) { const b = banCuaShop(live.ban, d.site!); if (b.length) d.don = b.reduce((a, x) => a + (x.ban30 ?? 0), 0); }
   }
   // ── TIỀN 30 ngày (USD): sản phẩm = thực nhận kho products (App Store, AdMob, Gumroad, Udemy, KDP…) · cửa hàng Gumroad / Etsy = bán 30 ngày · shop mặt tiền = đơn shop_don
   const LOAI_TIEN: Record<string, string> = { 'app-store': 'App', 'ms-store': 'App', 'play-store': 'App', gumroad: 'Bán sản phẩm số', etsy: 'Bán sản phẩm số', kdp: 'Sách', udemy: 'Khoá học', 'mql5-market': 'Bán sản phẩm số', rapidapi: 'API', chaturbate: 'Hoa hồng aff', stripcash: 'Hoa hồng aff', stripe: 'Thanh toán', astrolas: 'Đăng ký' };
@@ -262,7 +263,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     if (d.loai === 'site') {
       const usdAds = (hst.tienAds ?? []).filter((x) => x.site === d.site).reduce((a, x) => a + x.usd, 0);
       const usdAff = (hst.tienAff ?? []).filter((x) => x.site === d.site).reduce((a, x) => a + x.usd, 0);
-      const usdBan = d.laShop ? live.ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === chuan(d.site!.split('.')[0]!) || chuan(x.duAn) === chuan(d.site!.split('.')[0]!))).reduce((a, x) => a + (x.usd30 ?? 0), 0) : 0;
+      const usdBan = d.laShop ? banCuaShop(live.ban, d.site!).reduce((a, x) => a + (x.usd30 ?? 0), 0) : 0;
       const usdShop = (hst.tienSite ?? []).filter((x) => x.site === d.site).reduce((a, x) => a + x.usd, 0);
       d.tienPhan = [{ loai: 'Bán sản phẩm số', so: usdBan }, { loai: 'Đơn shop', so: usdShop }, { loai: 'AdSense', so: usdAds }, { loai: 'Hoa hồng aff', so: usdAff }].filter((x) => x.so > 0);
       d.tien30 = d.tienPhan.length ? d.tienPhan.reduce((a, x) => a + x.so, 0) : null; d.loaiTien = d.tienPhan.map((x) => x.loai).join(' + ');
@@ -311,7 +312,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const tien: PhoTien = { tong: [...theoTien.values()].reduce((a, x) => a + x, 0), theo: [...theoTien].map(([ten, so]) => ({ ten, so })).sort((a, b) => b.so - a.so),
     chi: { tong: chiN.reduce((a, x) => a + x.usd, 0), theo: chiN.map((x) => ({ ten: x.nguon, so: x.usd })).sort((a, b) => b.so - a.so) } };
   // ── HẠ TẦNG: nhà máy theo IP (sổ hosting + máy gốc của tên miền) + máy đang chạy mos2 (nginx); cảnh báo hạn: tên miền ≤ 30 ngày, máy ≤ 14 ngày
-  const homNay = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), conNgay = (het: string) => Math.round((Date.parse(het) - Date.parse(homNay)) / 864e5);
+  const homNay = luoi.hom, conNgay = (het: string) => Math.round((Date.parse(het) - Date.parse(homNay)) / 864e5);
   const dm = (n: string) => `${n.slice(8, 10)}/${n.slice(5, 7)}`;
   for (const r of (hst.hat ?? []).filter((x) => x.kind === 'domain' && x.het)) { const d = dich.find((y) => y.site === r.label.replace(/^www\./, '')); if (d && conNgay(r.het!) <= 30) d.canhBao = `Tên miền hết hạn ${dm(r.het!)} (còn ${conNgay(r.het!)} ngày)`; }
   const may = new Map<string, PhoNhaMay>();

@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua } from './social-thanh-pho';
+import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
 const dong = (may: string, mayTen: string, nen: string, nenTen: string, acct: string | null, site: string) => ({ may, mayTen, nen, nenTen, tk: '', gio: '', mayMac: '', acct, site, sites: may === 'fp' ? [site, 'pickjot.com'] : [site], o: [], cuoiOk: null, khoDen: null });
@@ -131,4 +132,12 @@ assert.equal(khu('d:steamsolo').linhVuc, 'khac', 'lĩnh vực lạ không có tr
 // tiền
 assert.equal(d('p:u1').tien30, 10); assert.equal(d('s:steamsolo.com').tien30, 12.5, 'đơn shop mặt tiền vào tiền của site');
 assert.ok(m.tien.tong >= 25.5 && m.tien.theo.some((x) => x.ten === 'Đơn shop'), 'kho bạc cộng theo loại nguồn tiền, app không cộng hai lần');
+// cửa hàng: số đơn và tiền đi cùng một luật khớp dòng bán (banCuaShop) — lệch một bên thì đơn có mà tiền không
+assert.equal(d('s:frontporchpuzzles.gumroad.com').tienPhan?.find((x) => x.loai === 'Bán sản phẩm số')?.so, 79, 'tiền cửa hàng từ đúng dòng bán đã cho số đơn');
+// hạn tên miền tính theo ngày của số liệu (luoi.hom), không theo đồng hồ máy — hàm thuần, chạy lại ngày nào cũng ra một kết quả
+const mH = tinhThanhPho({ ...live, luoi: { ...live.luoi, hom: '2020-01-01' }, heSinhThai: { ...live.heSinhThai, hat: [{ kind: 'domain', label: 'www.steamsolo.com', duAn: null, het: '2020-01-20', ip: null, chi: 0, tien: 'USD' }] } } as any);
+assert.match(mH.dich.find((x) => x.khoa === 's:steamsolo.com')?.canhBao ?? '', /còn 19 ngày/, 'cảnh báo hạn tên miền đếm từ luoi.hom');
+// siteOf: URL, tên miền trần, rỗng, rác
+assert.equal(siteOf('https://www.ratesbyroom.com/x?y=1'), 'ratesbyroom.com'); assert.equal(siteOf('clane.app/giochap'), 'clane.app');
+assert.equal(siteOf(null), null); assert.equal(siteOf(''), null); assert.equal(siteOf('http://'), null);
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

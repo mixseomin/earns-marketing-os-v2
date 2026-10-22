@@ -4,7 +4,8 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getDb } from '@mos2/db';
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
+import { siteOf } from './host';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
@@ -85,41 +86,43 @@ export async function getSocialLive(): Promise<SocialLive> {
 async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const rong: VaoHeSinhThai = { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };
   const d = getDb(); if (!d) return rong;
-  const host = (u: string | null) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
   const tu30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  // mỗi phần đọc lỗi → phần đó rỗng + ghi lỗi lên trang (không nuốt im: số thiếu mà không ai biết vì sao)
+  const doc = <T,>(ten: string, p: Promise<T>, rong: T) => p.catch((e: Error) => { loi.push(`${ten}: ${e.message}`); return rong; });
+  const q = <T,>(ten: string, cau: SQL) => doc(ten, d.execute(cau) as unknown as Promise<T[]>, [] as T[]);
   const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop, ads, chi, phuPf, hat, aff, etp] = await Promise.all([
-    (d.execute(sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`) as unknown as Promise<{ id: string; name: string; website: string | null; ngung: boolean }[]>).catch((e: Error) => { loi.push(`dự án: ${e.message}`); return []; }),
-    (d.execute(sql`SELECT site, project_id FROM du_an_site`) as unknown as Promise<{ site: string; project_id: string }[]>).catch((e: Error) => { loi.push(`sổ site dự án: ${e.message}`); return []; }),
-    (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
+    q<{ id: string; name: string; website: string | null; ngung: boolean }>('dự án', sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`),
+    q<{ site: string; project_id: string }>('sổ site dự án', sql`SELECT site, project_id FROM du_an_site`),
+    q<{ ten: string; project_id: string }>('app (app_ung_dung)', sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`),
     // mọi tài khoản cửa bán kể cả đã khoá: cửa bán mà mọi tài khoản đều bị khoá (Udemy) → sản phẩm ra khu 'tài khoản bị khoá' ở rìa; 'closed' = tự đóng, không tính
-    (d.execute(sql`SELECT platform_key, handle, project_id, coalesce(status, '') IN ('banned', 'suspended', 'locked') AS khoa FROM platform_accounts WHERE coalesce(status, '') <> 'closed'
-      AND platform_key IN ('etsy', 'kdp', 'gumroad', 'udemy', 'app-store', 'ms-store', 'mql5-market', 'rapidapi', 'chaturbate', 'stripcash', 'stripe')`) as unknown as Promise<{ platform_key: string; handle: string; project_id: string | null; khoa: boolean }[]>).catch(() => []),
-    getProductsView(30).catch((e: Error) => { loi.push(`sản phẩm: ${e.message}`); return null; }),
-    docNguonApp().catch((e: Error) => { loi.push(`nguồn app (Apple): ${e.message}`); return []; }),
-    (d.execute(sql`SELECT product_id, refs FROM product_daily WHERE refs IS NOT NULL AND date >= to_char(current_date - 30, 'YYYY-MM-DD')`) as unknown as Promise<{ product_id: string; refs: Record<string, number> | null }[]>).catch(() => []),
-    (d.execute(sql`SELECT khoa, linh_vuc FROM linh_vuc_gan`) as unknown as Promise<{ khoa: string; linh_vuc: string }[]>).catch((e: Error) => { loi.push(`sổ lĩnh vực: ${e.message}`); return []; }),
+    q<{ platform_key: string; handle: string; project_id: string | null; khoa: boolean }>('tài khoản cửa bán', sql`SELECT platform_key, handle, project_id, coalesce(status, '') IN ('banned', 'suspended', 'locked') AS khoa FROM platform_accounts WHERE coalesce(status, '') <> 'closed'
+      AND platform_key IN ('etsy', 'kdp', 'gumroad', 'udemy', 'app-store', 'ms-store', 'mql5-market', 'rapidapi', 'chaturbate', 'stripcash', 'stripe')`),
+    doc('sản phẩm', getProductsView(30), null),
+    doc('nguồn app (Apple)', docNguonApp(), []),
+    q<{ product_id: string; refs: Record<string, number> | null }>('nguồn Gumroad (product_daily)', sql`SELECT product_id, refs FROM product_daily WHERE refs IS NOT NULL AND date >= to_char(current_date - 30, 'YYYY-MM-DD')`),
+    q<{ khoa: string; linh_vuc: string }>('sổ lĩnh vực', sql`SELECT khoa, linh_vuc FROM linh_vuc_gan`),
     // đơn shop mặt tiền 30 ngày (trừ hoàn), theo tên miền chính của cửa hàng; cửa hàng demo, đơn huỷ / chưa trả / đơn thử không tính
-    (d.execute(sql`SELECT c.domain AS site, coalesce(sum(o.tong - coalesce(o.hoan, 0)), 0)::float AS usd FROM shop_don o JOIN shop_cua_hang c ON c.id = o.cua_hang_id
+    q<{ site: string; usd: number }>('đơn shop', sql`SELECT c.domain AS site, coalesce(sum(o.tong - coalesce(o.hoan, 0)), 0)::float AS usd FROM shop_don o JOIN shop_cua_hang c ON c.id = o.cua_hang_id
       WHERE NOT coalesce(c.demo, false) AND o.tao_luc > now() - interval '30 days'
         -- chỉ đơn thật đã trả: bỏ đơn huỷ / hoàn / lỗi / chưa trả và đơn thử (test-mos2@… ngày 01/10 làm Kho bạc báo nhầm $49,99 — anh hỏi 22/10/2026)
         AND coalesce(o.trang_thai_shop, '') NOT IN ('cancelled', 'refunded', 'failed', 'pending', 'trash', 'draft') AND coalesce(o.khach->>'email', '') NOT ILIKE 'test%'
-      GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
+      GROUP BY 1`),
     // AdSense theo site (dòng site_domain rỗng = tổng tài khoản, bỏ) · chi quảng cáo hệ PHỦ · nền aff hệ PHỦ → dự án (Chaturbate → Chat When Bored)
-    (d.execute(sql`SELECT regexp_replace(site_domain, '^www\.', '') AS site, sum(earnings_usd)::float AS usd FROM adsense_daily WHERE date > current_date - 30 AND coalesce(site_domain, '') <> '' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
-    (d.execute(sql`SELECT nguon_key AS nguon, project_id, sum(chi_usd)::float AS usd FROM phu_chi WHERE ngay > current_date - 30 GROUP BY 1, 2`) as unknown as Promise<{ nguon: string; project_id: string | null; usd: number }[]>).catch(() => []),
-    (d.execute(sql`SELECT DISTINCT slug, project_id FROM phu_platforms WHERE project_id IS NOT NULL`) as unknown as Promise<{ slug: string; project_id: string }[]>).catch(() => []),
+    q<{ site: string; usd: number }>('AdSense', sql`SELECT regexp_replace(site_domain, '^www\.', '') AS site, sum(earnings_usd)::float AS usd FROM adsense_daily WHERE date > current_date - 30 AND coalesce(site_domain, '') <> '' GROUP BY 1`),
+    q<{ nguon: string; project_id: string | null; usd: number }>('chi quảng cáo (phu_chi)', sql`SELECT nguon_key AS nguon, project_id, sum(chi_usd)::float AS usd FROM phu_chi WHERE ngay > current_date - 30 GROUP BY 1, 2`),
+    q<{ slug: string; project_id: string }>('nền aff PHỦ', sql`SELECT DISTINCT slug, project_id FROM phu_platforms WHERE project_id IS NOT NULL`),
     // hạ tầng: máy chủ (hosting) + tên miền (hạn, máy gốc) trong sổ tài sản
-    (d.execute(sql`SELECT kind, label, project_id, expires_at::text AS het, meta->>'ip' AS ip, meta->>'origin' AS origin, cost_monthly::float AS chi, currency FROM infra_resources WHERE kind IN ('hosting', 'domain') AND coalesce(status, 'active') <> 'cancelled'`) as unknown as Promise<{ kind: string; label: string; project_id: string | null; het: string | null; ip: string | null; origin: string | null; chi: number; currency: string }[]>).catch(() => []),
+    q<{ kind: string; label: string; project_id: string | null; het: string | null; ip: string | null; origin: string | null; chi: number; currency: string }>('sổ hạ tầng', sql`SELECT kind, label, project_id, expires_at::text AS het, meta->>'ip' AS ip, meta->>'origin' AS origin, cost_monthly::float AS chi, currency FROM infra_resources WHERE kind IN ('hosting', 'domain') AND coalesce(status, 'active') <> 'cancelled'`),
     // hoa hồng mạng aff (CJ, Awin — cùng nguồn lịch Doanh thu trang chủ, nhớ 10 phút) · Ethopex (thu / chi Meta Ads)
-    networkRows(tu30).catch((e: Error) => { loi.push(`hoa hồng aff: ${e.message}`); return null; }),
-    docEthopex().catch((e: Error) => { loi.push(`Ethopex: ${e.message}`); return null; }),
+    doc('hoa hồng aff', networkRows(tu30), null),
+    doc('Ethopex', docEthopex(), null),
   ]);
-  const [mayChu, congTy] = await Promise.all([docMayChu().catch((e: Error) => { loi.push(`máy chủ: ${e.message}`); return []; }), docCongTy().catch(() => [])]);
+  const [mayChu, congTy] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), [])]);
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
   return {
-    duAn: da.map((x) => ({ id: x.id, ten: x.name, site: host(x.website), ngung: x.ngung })),
+    duAn: da.map((x) => ({ id: x.id, ten: x.name, site: siteOf(x.website), ngung: x.ngung })),
     duAnSite: ds.map((x) => ({ site: x.site, duAn: x.project_id })),
     sanPham: (sp?.rows ?? []).map((p) => ({ id: p.id, ten: p.title, nen: p.platform, trangThai: p.status, url: p.url, store: p.store, sku: p.sku, xem7: p.views7d, tai: p.downloads, net: p.net })),
     nguonSp: [...nguonApp, ...nguonGum],

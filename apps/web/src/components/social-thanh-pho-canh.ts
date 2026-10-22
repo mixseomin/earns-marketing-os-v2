@@ -617,14 +617,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const ve = mh.luong.filter((l) => ds_.some((d) => d.khoa === l.den)), theo = (lo: string) => cong2(ve.filter((l) => mh.tk.find((t) => t.id === l.tu)?.loai === lo));
       return { dau: `${k.site ? oFav(k.site) : ''} DỰ ÁN · ${esc(k.ten)}`, h: [['Phường', `${LINH_VUC[k.linhVuc]!.ic} ${LINH_VUC[k.linhVuc]!.ten}`], ['💵 Tiền 30 ngày', `$${ds_.filter((d) => !d.cha).reduce((a, d) => a + (d.tien30 ?? 0), 0).toFixed(2)}`], ['Trạng thái', k.ngung ? '⏸ ngừng hoạt động' : '🟢 đang chạy'], ['🌐 Site', sites.length], ['🛍 Sản phẩm', `${sps.filter((d) => !d.sapLen).length} đang bán · ${sps.filter((d) => d.sapLen).length} sắp lên`],
         ['Phiên 30 ngày (mọi site)', so(sites.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ['🔍 Từ tìm kiếm', theo('tim')], ['📣 Từ quảng cáo', theo('qc')], ['🔗 Từ giới thiệu', theo('gt')], ['📱 Từ social', theo('mxh')],
-        ...sps.slice(0, 8).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 34))}`, d.sapLen ? 'sắp lên' : d.xem7 != null ? `${so(d.xem7)} xem` : '—'] as [string, string])] };
+        ...sps.slice(0, 8).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 34))}`, d.sapLen ? 'sắp lên' : d.xem7 != null ? `${so(d.xem7)} xem 7 ngày` : '—'] as [string, string])] };
     }
     if (u.loai === 'dich') { const d = u.d as typeof mh.dich[number];
       const tienH: [string, string][] = [...(d.tien30 != null ? [['💵 Thu 30 ngày', `$${d.tien30.toFixed(2)} · ${esc(d.tienPhan?.map((p) => p.loai).join(' + ') || d.loaiTien || '')}`] as [string, string]] : []),
         ...(d.chi30 != null ? [['💸 Chi 30 ngày', `$${d.chi30.toFixed(2)}`] as [string, string], [(d.tien30 ?? 0) >= d.chi30 ? '🟢 Lãi' : '🔴 Lỗ', `$${((d.tien30 ?? 0) - d.chi30).toFixed(2)}`] as [string, string]] : [])];
       if (d.loai === 'app') { const ban = mh.dich.filter((b) => b.cha === d.khoa);
         return { dau: `📱 ${esc(d.ten)}`, h: [['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Cửa hàng', ban.map((b) => esc(b.nenBan ?? '')).join(' · ')], ...tienH,
-          ...ban.map((b) => [`${b.hostBan ? oFav(b.hostBan, 14) : ''} ${esc(b.nenBan ?? '')}`, b.sapLen ? `sắp lên (${esc(b.trangThai ?? '')})` : `${so(b.xem7 ?? null)} xem · ${so(b.tai ?? null)} tải`] as [string, string])] };
+          ...ban.map((b) => [`${b.hostBan ? oFav(b.hostBan, 14) : ''} ${esc(b.nenBan ?? '')}`, b.sapLen ? `sắp lên (${esc(b.trangThai ?? '')})` : `${so(b.xem7 ?? null)} xem 7 ngày · ${so(b.tai ?? null)} tải 30 ngày`] as [string, string])] };
       }
       if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };

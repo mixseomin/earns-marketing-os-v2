@@ -418,13 +418,16 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // NGÂN SÁCH TỪ cho FLUX (~300 từ): mô tả vật qua thẻ / bộ đồ dài làm vượt (#3, #11 = 303–307 từ) → dựng lại gọn dần (bộ đồ 32 → 20 → 12 từ, hậu cảnh ≤ 6 → 4 món)
       // thay vì để FLUX cắt mất phần cuối (câu chất liệu, "No text").
       const soNguoiKhung = trongS.filter((v) => v.loai === 'nhan_vat').length;
-      const dungMon = (cap: number, gon = false) => trongS.map((v) => {
+      // ĐỒ CỐ ĐỊNH CỦA SET có đối tượng (bo_set_id — cửa thang, logo, bình lan, bàn…): bước 1 FLUX chỉ tả NGƯỜI + đồ cầm tay; đồ cố định đã nằm trong bản đồ
+      // độ sâu, vào danh sách HẬU CẢNH (một tên gọn mỗi món, có trần) — tả như món riêng làm #15 343 từ, #16 406 từ (trần 300), bước 1 bị chặn.
+      const monS = trongS.filter((v) => !v.bo_set_id);
+      const dungMon = (cap: number, gon = false) => monS.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongNhin(mGoc!, hg) : undefined;
         const hh = h && soNguoiKhung >= 2 && !nhinMay ? boCauMay(h) : h;   // ≥ 2 người: "không nhìn máy" nói một lần (khoi khong_nhin_may)
         return `${taNv(v, gon, cap)}${hh && !chen ? `, ${hh}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
-      const nenDu = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).sort((p, q) => q.pt - p.pt).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair"), lớn trước
+      const nenDu = [...new Set(thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten) && !v.bo_set_id) && x.pt >= PT_THAY).sort((p, q) => q.pt - p.pt).map((x) => goiVat(x.ten) ?? x.en ?? x.ten))];   // một lần mỗi loại (#20: ba lần "black leather armchair"), lớn trước
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
       // KHUÔN bước 1 FLUX (KHUON.flux): ảnh đích theo chất liệu + bối cảnh + khoảnh khắc mở (dáng — #20 "chống bàn" mà FLUX vẽ đứng thẳng) + người + hậu cảnh
       // bản NGẮN cho FLUX: số người + ngoài khung gọn (câu đầy đủ ~30 từ mỗi câu làm #3 vượt ngân sách)
@@ -439,7 +442,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       ]; };
       const soTu = (ds: Khoi[]) => ghep(ds).split(/\s+/).length;
       // hai nấc cuối: tả người / món bản NGẮN (mặt, tóc để bước 2 làm theo ảnh mẫu) rồi cắt câu phong cách — #11 có thẻ là chủ thể (thayRo) = 312 từ ở nấc cũ cuối
-      const kF = [dungKF(32, 6), dungKF(20, 5), dungKF(12, 4), dungKF(12, 3, true), dungKF(12, 3, true, true)].find((x) => soTu(x) <= TU_TOI_DA_FLUX - 10) ?? dungKF(8, 2, true, true);
+      const kF = [dungKF(32, 6), dungKF(20, 5), dungKF(12, 4), dungKF(12, 3, true), dungKF(12, 3, true, true), dungKF(8, 2, true, true), dungKF(8, 0, true, true)].find((x) => soTu(x) <= TU_TOI_DA_FLUX - 10) ?? dungKF(6, 0, true, true);
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trongS) {
         const ta = taNv(v, true);

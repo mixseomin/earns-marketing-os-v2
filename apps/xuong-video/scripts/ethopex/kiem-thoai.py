@@ -33,12 +33,14 @@ CAM += [r"\bf+u+c+k", r"\bshit", r"\bbitch", r"\bbastards?\b", r"\bass ?hole", r
 import importlib.util as _iu
 _c = _iu.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu.module_from_spec(_c); _c.loader.exec_module(CQ)
 CAM += [CQ.MAU_CTA.pattern]
+# BÌNH PHẨM THÂN THỂ / GỢI DỤC (anh 22/10/2026 "câu thoại nhạy cảm thì làm méo giống TV": El gran y poderoso genio "Tu esposa tiene un cuerpazo")
+CAM += [r"\bcuerpaz", r"\bqu[eé] cuerpo\b", r"\b(hot|nice|sexy) body\b", r"\bhorny\b", r"\bsexy\b"]
 MAU = re.compile("|".join(CAM), re.I)
 
 def soat(cau):
-    """→ từ khớp đầu tiên hoặc None"""
+    """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich)"""
     m = MAU.search(cau or "")
-    return m.group(0) if m else None
+    return m.group(0) if m else CQ.phu_kich_thich(cau)
 
 def may_doc():
     """doc-chu.swift biên dịch MỘT lần thành ~/.cache/ethopex/doc-chu (dịch lại khi tệp nguồn mới hơn). 20/10/2026: chạy `swift doc-chu.swift`
@@ -62,7 +64,9 @@ def tu_kiem():
             "Let's strip this fraud down and donate his gear to the church!", "Everyone knows he got locked up for doing sex work for old hags.",
             "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo", "You're dead to me!", "I'll kill you", "Lo voy a matar", "Zane quits but is drugged, triggering his heat.", "she slept with the man who rules the underworld", "As ruts near, they obsess over him.", "Ponle un dedo encima y estás muerto."]
     chan += ["WATCH FREE · TAP LEARN MORE", "MÍRALA GRATIS · TOCA MÁS INFORMACIÓN", "Tap to watch more episodes!", "Click the link below", "Watch now 👇"]
-    qua_cta = ["Minker taP the people closest to you.", "Ahora te toca a ti.", "No me presiones.", "Click.", "He tapped the glass."]
+    chan += ["00:43 Limited time offer", "11:30 Watch for free for a limited time", "FREE", "Gratis", "Download now", "Continue Watching"]
+    qua_cta = ["WATCH FREE · LEARN MORE", "MÍRALA GRATIS · MÁS INFORMACIÓN", "WHAT HAPPENS NEXT? | WATCH FREE · LEARN MORE", "You're free to go.", "Ella es libre y gratis no hay nada.", "Minker taP the people closest to you.", "Ahora te toca a ti.", "No me presiones.", "Click.", "He tapped the glass."]
+    chan += ["Tu esposa tiene un cuerpazo.", "bunch of horny bastards like you!"]
     chan += ["By the way, who in the flying fuck are you?", "Neil, get over here and teach this bitch a lesson!", "Beat up that fat pig!", "¡Eres una perra!", "Qué mierda"]
     qua = ["You've humiliated this whole town!", "Kneel before the Lord and beg forgiveness for your sins!", "The top pick in the mba Draft Combine",
            "His clothes are drenched in sin!", "stripped of his title", "No money, no help, no nothing.", "¿De verdad me acabas de golpear?",

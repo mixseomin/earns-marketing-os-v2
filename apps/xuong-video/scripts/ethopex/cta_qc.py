@@ -17,6 +17,19 @@ MAU_CTA = re.compile(r"\btap (?:to|here|now|below|learn|the (?:link|button)|for 
                      r"\btoca (?:m[aá]s|aqu[ií]|el bot[oó]n|para ver)|(?-i:\bTOCA\b)|\bhaz clic|\bpulsa (?:aqu[ií]|el|m[aá]s)|\bpresiona (?:aqu[ií]|el bot)|"
                      r"[▼▲►◄▶◀↓↑→←⬇⬆➡⬅👇👆👉👈⏬🔽]", re.I)
 
+# LỚP PHỦ CTA KÍCH THÍCH của QC app gốc (anh 22/10/2026: "bỏ hết các mũi tên, các CTA kích thích quá mức… traffic về AFS nên phải tuân thủ rule triệt để"):
+# đồng hồ đếm ngược, "limited time", nhãn FREE / GRATIS, download / install. Nút chuẩn của mình (CTA[*]["nut"]) được gỡ ra trước khi xét.
+MAU_PHU = re.compile(r"limited[- ]time|tiempo limitado|por tiempo limitado|oferta limitada|\bwatch (?:it )?for free\b|\bfree for (?:a )?limited|"
+                     r"\bdownload\b|\bdescarga|\binstall\b|\binstala|\bcontinue watching\b|\bsigue viendo\b|"
+                     r"(?-i:\bFREE\b)|(?-i:\bGRATIS\b)|^\s*(?:free|gratis)\s*!*\s*$|\b\d{2}:\d{2}\b(?=.{0,40}(?:free|gratis|limit))", re.I)
+NUT_CHUAN = [c["nut"] for c in CTA.values()] + [c["hoi"] for c in CTA.values()]
+
+def phu_kich_thich(chu):
+    t = chu or ""
+    for n in NUT_CHUAN: t = t.replace(n, " ")
+    m = MAU_PHU.search(t)
+    return m.group(0) if m else None
+
 def sai_luat(chu):
     m = MAU_CTA.search(chu or "")
     return m.group(0) if m else None

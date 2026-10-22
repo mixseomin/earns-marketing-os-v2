@@ -92,7 +92,7 @@ export function mayDo(html, loai = 'bai') {
   // CHUẨN SEO (anh 17/10/2026: "bài SEO phải có đủ hình ảnh, video, FAQ minh hoạ"): ảnh thật + video + FAQ là chặn cứng, khung ví dụ không thay được ảnh
   const anhThat = (h.match(/<img\b[^>]*\bsrc=|<picture\b/gi) || []).length, anh = anhThat + (h.match(/<svg\b/gi) || []).length;
   const video = (h.match(/<video\b|<iframe\b[^>]*src="[^"]*(youtube|youtu\.be|vimeo|tiktok)/gi) || []).length;
-  const coFaq = /##\s.*(question|faq|people ask)/i.test(chu);
+  const coFaq = /##\s.*(question|faq|people ask|câu hỏi|hỏi đáp|thắc mắc)/i.test(chu);   // bài / trang tiếng Việt: "Câu hỏi hay gặp" (giochap.com 23/10/2026)
   const khungVd = (h.match(/class="[^"]*\b(tin|msg|bubble|mock|phone|chat)\b/gi) || []).length;
   const soHinh = anh + video + khungVd, soChu = chu.split(/\s+/).filter(Boolean).length;
   return {
@@ -337,6 +337,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.ok(mayDo(tb().replace('<video src=d.mp4></video>', '<div class="sc-demo demo"></div>'), 'trang-ban').chan_cung.every((x) => !x.includes('demo')), 'demo tương tác thay được video');
     t.ok(mayDo(tb({ chu: 2000 }), 'trang-ban').chan_cung.some((x) => x.includes('quá 1.600')), 'trang bán quá dài → chặn');
     t.throws(() => nopBai({ url: 'https://x.test/', loai: 'quang-cao' }), /--loai/, 'loại lạ bị từ chối');
+    t.ok(mayDo('<main><h2>Câu hỏi hay gặp</h2></main>').co_faq, 'FAQ tiếng Việt được nhận');
     t.ok(mayDo(tb({ nut: 0 }).replace('</main>', '<form class="cho" action="/cho-tin" data-cho></form><form class="cho" data-cho></form></main>'), 'trang-ban').chan_cung.every((x) => !x.includes('nút mua')), 'chưa bán: 2 form Notify me thay 2 nút mua');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du.replace('Questions people ask', 'Book now'))), 'SUA_LAI', 'thiếu FAQ');
     t.equal(diemCuoi({ diem: 10 }, mayDo(du.replace('<img src=a.png alt=x>', ''))), 6, 'chặn cứng thì không 10/10');

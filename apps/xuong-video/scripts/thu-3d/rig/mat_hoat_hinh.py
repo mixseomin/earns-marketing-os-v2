@@ -12,7 +12,10 @@ from mathutils import Vector, Matrix
 
 ARKIT = ['eyeBlinkLeft', 'eyeBlinkRight', 'eyeWideLeft', 'eyeWideRight', 'eyeLookInLeft', 'eyeLookOutLeft', 'eyeLookInRight', 'eyeLookOutRight',
          'eyeLookUpLeft', 'eyeLookUpRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'jawOpen', 'mouthSmileLeft', 'mouthSmileRight',
-         'mouthFrownLeft', 'mouthFrownRight', 'browInnerUp', 'browDownLeft', 'browDownRight', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff']
+         'mouthFrownLeft', 'mouthFrownRight', 'browInnerUp', 'browDownLeft', 'browDownRight', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff',
+         'eyeSquintLeft', 'eyeSquintRight']
+# ngoài ARKit: 'khoc' (0…1 mắt ngấn nước + giọt hiện) và 'giot' (0…1 quãng giọt nước mắt đã chảy dọc má) — diễn khóc cần, ARKit không có
+NGOAI = ['khoc', 'giot']
 
 # biểu cảm mẫu = tổ hợp ARKit (dùng chung mọi nhân vật có giao diện này)
 BIEU_CAM = {
@@ -24,6 +27,11 @@ BIEU_CAM = {
     'gian': {'browDownLeft': 1, 'browDownRight': 1, 'mouthFrownLeft': 1, 'mouthFrownRight': 1, 'eyeBlinkLeft': 0.3, 'eyeBlinkRight': 0.3},
     'buon': {'browInnerUp': 1, 'mouthFrownLeft': 0.8, 'mouthFrownRight': 0.8, 'eyeLookDownLeft': 0.6, 'eyeLookDownRight': 0.6, 'eyeBlinkLeft': 0.35, 'eyeBlinkRight': 0.35},
     'liec_trai': {'eyeLookOutLeft': 1, 'eyeLookInRight': 1, 'mouthSmileLeft': 0.5},
+    # DIỄN CẢM XÚC (anh 22/10/2026 "diễn cảnh buồn, khóc, cười"): mày trong nhướn = buồn, mí dưới nheo = khóc / cười to
+    'khoc': {'browInnerUp': 1, 'mouthFrownLeft': 1, 'mouthFrownRight': 1, 'jawOpen': 0.35, 'eyeSquintLeft': 0.45, 'eyeSquintRight': 0.45,
+             'eyeLookDownLeft': 0.3, 'eyeLookDownRight': 0.3, 'khoc': 1, 'giot': 0.3},
+    'cuoi_lon': {'mouthSmileLeft': 1, 'mouthSmileRight': 1, 'jawOpen': 0.7, 'eyeSquintLeft': 1, 'eyeSquintRight': 1, 'cheekPuff': 0.5,
+                 'browOuterUpLeft': 0.4, 'browOuterUpRight': 0.4},
 }
 
 
@@ -179,7 +187,7 @@ def _vl_nhan_cau():
 
 def _mau_da(M, quanh, r):
     """Màu da quanh mắt = TRUNG VỊ từng kênh vòng 2–4 r (trung bình lẫn lòng trắng vẽ + má hồng → mí trắng bệch, bản đầu)."""
-    S = _mau_day(M, lambda c: r * 2.0 < (c - quanh).length < r * 4.0, 3)
+    S = _mau_day(M, lambda c: r * 3.0 < (c - quanh).length < r * 5.0, 3)   # 2–4 r còn lẫn lòng trắng vẽ quanh mắt → mí xám bạc
     if not S: return (0.6, 0.65, 0.6)
     tuyen = lambda c: c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4   # điểm ảnh sRGB → màu tuyến tính của vật liệu (đưa thẳng = mí trắng bệch)
     return tuple(tuyen(sorted(c[i] for _, c in S)[len(S) // 2]) for i in range(3))
@@ -227,7 +235,7 @@ def gan_mat(rig, M, m):
     print('MAT 2D', {k: ([round(x, 3) for x in v[0]], round(v[1], 3)) for k, v in m2.items()} if m2 else None)
     if m2: f['mat'] = m2   # mắt trên ảnh thắng mắt dò trên màu bề mặt (tâm 2D = điểm trên MẶT DA; nhãn cầu đặt lại theo tia bên dưới)
     print('XE MIENG canh', _xe_mieng(M, f, H))
-    for k in ARKIT: rig[k] = 0.0
+    for k in ARKIT + NGOAI: rig[k] = 0.0
     dau = _xuong_dau(rig)
     tam_dau = (f['mat']['L'][0] + f['mat']['R'][0]) / 2
     # ---- tâm nhãn cầu theo MẶT DA THẬT: bắn tia từ điểm mắt dò được ra ngoài theo hướng nhìn; lưới TRELLIS hay có khối mắt vẽ LỒI → đặt tâm
@@ -245,12 +253,12 @@ def gan_mat(rig, M, m):
     t = eb.new('nhin_mat'); t.head = dich_nhin; t.tail = dich_nhin + Vector((0, 0, 0.03 * H)); t.parent = eb['head'] if 'head' in eb else eb[dau]
     for s in 'LR':
         r = f['mat'][s][1]; n = huong[s]
-        for ten in (f'mat.{s}', f'mi.{s}'):
+        for ten in (f'mat.{s}', f'mi.{s}', f'mi_duoi.{s}'):
             b = eb.new(ten); b.head = tam_nc[s]; b.tail = b.head + n * r; b.align_roll(Vector((0, 0, 1))); b.parent = eb[dau]; b.use_deform = False
     bpy.ops.object.mode_set(mode='POSE')
     for s in 'LR':
         ct = rig.pose.bones[f'mat.{s}'].constraints.new('DAMPED_TRACK'); ct.target = rig; ct.subtarget = 'nhin_mat'
-        rig.pose.bones[f'mi.{s}'].rotation_mode = 'XYZ'
+        rig.pose.bones[f'mi.{s}'].rotation_mode = 'XYZ'; rig.pose.bones[f'mi_duoi.{s}'].rotation_mode = 'XYZ'
     bpy.ops.object.mode_set(mode='OBJECT')
     # đích nhìn: ARKit look In/Out/Up/Down (trung bình hai mắt) → dời tay cầm (xương dựng đứng: x cục bộ = x thế giới, y cục bộ = lên)
     pbt = rig.pose.bones['nhin_mat']
@@ -266,18 +274,27 @@ def gan_mat(rig, M, m):
         bpy.ops.object.shade_smooth(); e.data.materials.append(VL_NC)
         e.matrix_world = Matrix.Translation(bm.translation) @ bm.to_3x3().to_4x4() @ Matrix.Scale(r * 1.05, 4)
         _bam(e, rig, f'mat.{s}')
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1); l = bpy.context.object; l.name = f'Mí.{s}'
-        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='DESELECT'); bpy.ops.object.mode_set(mode='OBJECT')
-        for v in l.data.vertices: v.select = v.co.z < -0.02     # giữ nửa TRÊN (z cục bộ = lên)
-        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.delete(type='VERT'); bpy.ops.object.mode_set(mode='OBJECT')
-        sl = l.modifiers.new('day', 'SOLIDIFY'); sl.thickness = 0.06; bpy.ops.object.shade_smooth()
-        l.data.materials.append(_vl(f'Da mí {s}', _mau_da(M, c, r), 0.6))
-        bm2 = rig.matrix_world @ rig.data.bones[f'mi.{s}'].matrix_local
-        # khung mí: Y = hướng nhìn, Z = lên (cùng khung xương) — nửa cầu "trên" (z > 0) quay quanh X để mở / nhắm
-        l.matrix_world = Matrix.Translation(bm2.translation) @ bm2.to_3x3().to_4x4() @ Matrix.Scale(r * 1.12, 4)
-        _bam(l, rig, f'mi.{s}')
-        # mở: mép mí trên cao hơn trục nhìn 35°; nhắm: xuống −90° (phủ hết mặt trước); tròn mắt: lùi thêm 25°
-        _dk(rig.pose.bones[f'mi.{s}'], 'rotation_euler', 0, 'radians(35 - min(1, b) * 125 + w * 25)', rig, {'b': f'eyeBlink{ten_t}', 'w': f'eyeWide{ten_t}'})
+        mau_mi = _vl(f'Da mí {s}', _mau_da(M, c, r), 0.6)
+        for xg, tren in ((f'mi.{s}', True), (f'mi_duoi.{s}', False)):
+            bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1); l = bpy.context.object; l.name = f'Mí {"trên" if tren else "dưới"}.{s}'
+            bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='DESELECT'); bpy.ops.object.mode_set(mode='OBJECT')
+            for v in l.data.vertices: v.select = ((v.co.z < -0.02) if tren else (v.co.z > 0.02)) or v.co.y < -0.35   # mí trên nửa TRÊN, mí dưới nửa DƯỚI; bỏ phần sau (lòi thành vòng quanh mắt)
+            bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.delete(type='VERT'); bpy.ops.object.mode_set(mode='OBJECT')
+            sl = l.modifiers.new('day', 'SOLIDIFY'); sl.thickness = 0.06; bpy.ops.object.shade_smooth()
+            l.data.materials.append(mau_mi)
+            bm2 = rig.matrix_world @ rig.data.bones[xg].matrix_local
+            # khung mí: Y = hướng nhìn, Z = lên (cùng khung xương) — nửa cầu quay quanh X để mở / nhắm
+            l.matrix_world = Matrix.Translation(bm2.translation) @ bm2.to_3x3().to_4x4() @ Matrix.Scale(r * (1.12 if tren else 1.1), 4)
+            _bam(l, rig, xg)
+        pm, pd = rig.pose.bones[f'mi.{s}'], rig.pose.bones[f'mi_duoi.{s}']
+        # MÍ TRÊN: mở = mép cao hơn trục nhìn 35°; nhắm −90°; tròn mắt lùi 25°; nheo (cười / khóc) hạ 20°
+        _dk(pm, 'rotation_euler', 0, 'radians(35 - min(1, b + q * 0.25) * 125 + w * 25)', rig, {'b': f'eyeBlink{ten_t}', 'w': f'eyeWide{ten_t}', 'q': f'eyeSquint{ten_t}'})
+        # NGHIÊNG mí quanh trục nhìn — chỗ cảm xúc đọc ra rõ nhất ở thú không lông mày: buồn = đầu TRONG nhướn (mí xệ ra ngoài), giận = đầu trong cụp.
+        # Trục X cục bộ của xương = −x thế giới (Y nhìn −y, Z lên) → dấu theo bên.
+        sx = 1 if s == 'L' else -1
+        _dk(pm, 'rotation_euler', 1, f'radians({-sx} * (u * 24 - d * 22 - o * 10))', rig, {'u': 'browInnerUp', 'd': f'browDown{ten_t}', 'o': f'browOuterUp{ten_t}'})
+        # MÍ DƯỚI: mở = mép thấp hơn trục 40°; nheo đẩy lên tới −8° (má đội lên khi cười to / khóc), chớp nhích lên 10°
+        _dk(pd, 'rotation_euler', 0, 'radians(-40 + q * 32 + min(1, b) * 10)', rig, {'q': f'eyeSquint{ten_t}', 'b': f'eyeBlink{ten_t}'})
     # ---- khoang miệng tối ----
     km = f['khoe']; zm = f['z_mieng']; tr = f['mieng_truoc']
     # nằm HẲN trong mõm (mép trước lùi sau mặt da 0,02 H) — bản đầu lòi ra trước mõm thành "cái môi" hồng
@@ -306,8 +323,8 @@ def gan_mat(rig, M, m):
     for s, ten_t in (('L', 'Left'), ('R', 'Right')):
         k_ = km[s]; c, r = f['mat'][s]; sx = 1 if s == 'L' else -1
         vung = lambda p, tam, R: tron(1 - (p - tam).length / R) if (p - tam).length < R else 0
-        nan(f'mouthSmile{ten_t}', lambda p, k_=k_: (Vector((0, 0.012 * H, 0.016 * H)) * vung(p, k_, 0.06 * H)) if vung(p, k_, 0.06 * H) > 0 else None)
-        nan(f'mouthFrown{ten_t}', lambda p, k_=k_: (Vector((0, 0.004 * H, -0.016 * H)) * vung(p, k_, 0.06 * H)) if vung(p, k_, 0.06 * H) > 0 else None)
+        nan(f'mouthSmile{ten_t}', lambda p, k_=k_: (Vector((sx * 0.01 * H, 0.016 * H, 0.03 * H)) * vung(p, k_, 0.09 * H)) if vung(p, k_, 0.09 * H) > 0 else None)
+        nan(f'mouthFrown{ten_t}', lambda p, k_=k_: (Vector((0, 0.006 * H, -0.03 * H)) * vung(p, k_, 0.09 * H)) if vung(p, k_, 0.09 * H) > 0 else None)
         may = c + Vector((0, 0.2 * r, 1.25 * r))
         nan(f'browDown{ten_t}', lambda p, may=may, r=r, sx=sx: (Vector((0, -0.004 * H, -0.014 * H)) * vung(p, may + Vector((-sx * 0.5 * r, 0, 0)), 1.8 * r)) if vung(p, may, 2.0 * r) > 0 else None)
         nan(f'browOuterUp{ten_t}', lambda p, may=may, r=r, sx=sx: (Vector((0, 0, 0.016 * H)) * vung(p, may + Vector((sx * 0.6 * r, 0, 0)), 1.6 * r)) if vung(p, may, 2.2 * r) > 0 else None)
@@ -322,13 +339,54 @@ def gan_mat(rig, M, m):
         n = Vector((p.x, 0, 0)).normalized() if abs(p.x) > 1e-4 else Vector((0, -1, 0))
         return n * 0.014 * H * w
     nan('cheekPuff', ham_ma)
+    _nuoc_mat(rig, M, f, H, dau)
     # thanh trượt khớp vào giao diện: hiện trong bảng thuộc tính, giới hạn 0…1
-    for k in ARKIT:
+    for k in ARKIT + NGOAI:
         ui = rig.id_properties_ui(k); ui.update(min=0.0, max=1.0, soft_min=0.0, soft_max=1.0)
     return f
 
 
+def _nuoc_mat(rig, M, f, H, dau):
+    """NƯỚC MẮT: mỗi bên (1) lớp NGẤN NƯỚC trong suốt phủ nửa dưới nhãn cầu (mắt long lanh khi buồn), (2) đường má = đường cong dò trên MẶT DA
+    (bắn tia từ ngoài vào, bước xuống dưới mắt), (3) giọt nước bám đường đó (Follow Path) — rig['khoc'] hiện / ẩn, rig['giot'] = quãng đã chảy."""
+    kinh = bpy.data.materials.new('Nước mắt'); kinh.use_nodes = True; b = kinh.node_tree.nodes['Principled BSDF']
+    b.inputs['Base Color'].default_value = (0.9, 0.95, 1, 1); b.inputs['Roughness'].default_value = 0.02
+    b.inputs['Transmission Weight'].default_value = 1.0; b.inputs['IOR'].default_value = 1.33
+    for s in 'LR':
+        c, r = f['mat'][s]; sx = 1 if s == 'L' else -1
+        # (1) ngấn nước: chỏm cầu hơi lớn hơn nhãn cầu, chỉ nửa dưới — co về 0 khi không khóc
+        bm = rig.matrix_world @ rig.data.bones[f'mat.{s}'].matrix_local
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=1); g = bpy.context.object; g.name = f'Ngấn nước.{s}'
+        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='DESELECT'); bpy.ops.object.mode_set(mode='OBJECT')
+        for v in g.data.vertices: v.select = v.co.z > -0.15 or v.co.y < 0.2
+        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.delete(type='VERT'); bpy.ops.object.mode_set(mode='OBJECT'); bpy.ops.object.shade_smooth()
+        g.data.materials.append(kinh)
+        g.matrix_world = Matrix.Translation(bm.translation) @ bm.to_3x3().to_4x4() @ Matrix.Scale(r * 1.09, 4)
+        _bam(g, rig, f'mat.{s}')
+        for i in range(3): _dk(g, 'scale', i, f'{r * 1.09:.5f} * (0.001 + min(1, k))', rig, {'k': 'khoc'})
+        # (2) đường má: từ dưới mí dưới, mỗi bước hạ 0,012 H và dạt ra ngoài nhẹ, bám mặt da bằng tia bắn vào tâm đầu
+        tam_dau = Vector((0, c.y + 0.08 * H, c.z))
+        diem = []
+        for k in range(14):
+            p = c + Vector((sx * (0.2 * r + k * 0.003 * H), -0.25 * r, -1.0 * r - k * 0.012 * H))
+            n = (p - Vector((0, tam_dau.y, p.z))).normalized()
+            ok, hit, nor, _ = M.ray_cast(p + n * 0.1 * H, -n, distance=0.3 * H)
+            if ok: diem.append(hit + nor * 0.004 * H)
+        if len(diem) < 4: continue
+        cd = bpy.data.curves.new(f'Má.{s}', 'CURVE'); cd.dimensions = '3D'; sp = cd.splines.new('POLY'); sp.points.add(len(diem) - 1)
+        for i, p in enumerate(diem): sp.points[i].co = (*p, 1)
+        duong = bpy.data.objects.new(f'Đường má.{s}', cd); bpy.context.collection.objects.link(duong); duong.hide_render = True
+        _bam(duong, rig, dau)
+        # (3) giọt: cầu kéo dài theo chiều chảy, bám đường, quãng = rig['giot'], ẩn hẳn (co 0) khi khoc = 0
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1); gt = bpy.context.object; gt.name = f'Giọt.{s}'
+        bpy.ops.object.shade_smooth(); gt.data.materials.append(kinh)
+        ct = gt.constraints.new('FOLLOW_PATH'); ct.target = duong; ct.use_fixed_location = True; ct.forward_axis = 'FORWARD_Y'
+        _dk(ct, 'offset_factor', None, 'min(0.999, max(0, v))', rig, {'v': 'giot'})
+        q = 0.011 * H
+        for i, h in enumerate((0.75, 0.75, 1.3)): _dk(gt, 'scale', i, f'{q * h:.5f} * min(1, k) + 1e-5', rig, {'k': 'khoc'})
+
+
 def dat_bieu_cam(rig, ten):
-    for k in ARKIT: rig[k] = 0.0
+    for k in ARKIT + NGOAI: rig[k] = 0.0
     for k, v in BIEU_CAM[ten].items(): rig[k] = float(v)
     rig.update_tag(); bpy.context.view_layer.update()

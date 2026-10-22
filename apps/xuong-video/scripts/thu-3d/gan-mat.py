@@ -1,5 +1,5 @@
 # GẮN MẶT CHUẨN (thanh trượt ARKit) lên rig đã có từ gan-rig.py, rồi chụp tờ biểu cảm cận mặt. 0đ.
-#   Blender -b <rig.blend> -P gan-mat.py -- <thu-muc-ra>   → rig-mat.blend + bc.<biểu cảm>.png
+#   Blender -b <rig.blend> -P gan-mat.py -- <thu-muc-ra> [--chi=buon,khoc]   → rig-mat.blend + bc.<biểu cảm>.png
 import bpy, sys, os, json
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rig'))
 import mat_hoat_hinh as mh, thu_dang
@@ -16,7 +16,8 @@ cam = sc.camera; cam.data.lens = 50
 be_ngang = 2 * abs(f['mat']['L'][0].x) + 4 * f['mat']['L'][1]   # cự li theo BỀ NGANG ĐẦU (cố định theo H → máy chui vào mặt thú đầu to)
 cam.location = tam + Vector((0.32, -0.62, 0.08)).normalized() * be_ngang * 1.9
 cam.rotation_euler = (tam - cam.location).to_track_quat('-Z', 'Y').to_euler()
-for ten in mh.BIEU_CAM:
+CHI = next((x.split('=')[1].split(',') for x in sys.argv if x.startswith('--chi=')), list(mh.BIEU_CAM))
+for ten in CHI:
     mh.dat_bieu_cam(rig, ten)
     sc.render.filepath = os.path.join(RA, f'bc.{ten}.png'); bpy.ops.render.render(write_still=True)
 print('RA', RA)

@@ -396,7 +396,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const mai = add(new THREE.CylinderGeometry(0, 30, 10, 4, 1), M({ color: '#ffd166', emissive: '#c99a2e', emissiveIntensity: .35, metalness: .4 })); mai.rotation.y = Math.PI / 4; mai.scale.set(1, 1, .7); mai.position.set(xKho, 31, 0); mai.userData = { chu: than };
       const c = document.createElement('canvas'); c.width = 512; c.height = 160; const g = c.getContext('2d')!;
       g.fillStyle = 'rgba(40,30,8,.92)'; g.beginPath(); g.roundRect(4, 4, 504, 152, 22); g.fill(); g.strokeStyle = '#ffd166'; g.lineWidth = 5; g.stroke();
-      g.fillStyle = '#ffd166'; g.font = '800 40px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('🏦 KHO BẠC · 30 NGÀY', 256, 58); g.fillStyle = '#fff'; g.font = '800 60px system-ui, sans-serif'; g.fillText(`$${Math.round(mh.tien.tong).toLocaleString('en-US')}`, 256, 128);
+      g.fillStyle = '#ffd166'; g.font = '800 40px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('🏦 KHO BẠC · 30 NGÀY', 256, 58); g.fillStyle = '#fff'; g.font = '800 54px system-ui, sans-serif'; g.fillText(`+$${Math.round(mh.tien.tong).toLocaleString('en-US')}  −$${Math.round(mh.tien.chi.tong).toLocaleString('en-US')}`, 256, 126, 490);
       const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(70, 22, 1); bien.position.set(xKho, 54, 0); bien.userData = { chu: than }; the.add(bien);
       const cua = new THREE.Vector3(xKho - 30, 1.5, 0);
       for (const { d, khu } of coTien) {
@@ -459,7 +459,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     if (u.loai === 'kho') { const top = mh.dich.filter((d) => !d.cha && (d.tien30 ?? 0) > 0).sort((a, b) => b.tien30! - a.tien30!);
       return { dau: '🏦 Kho bạc · 30 ngày', h: [['Tổng tiền thật', `$${mh.tien.tong.toFixed(2)}`], ...mh.tien.theo.map((x) => [x.ten, `$${x.so.toFixed(2)}`] as [string, string]),
-        ...top.slice(0, 8).map((d) => [`↳ ${esc(d.ten.slice(0, 30))}`, `$${d.tien30!.toFixed(2)}`] as [string, string]), ['Chưa nối', 'hoa hồng aff · AdSense web']] };
+        ...top.slice(0, 8).map((d) => [`↳ ${esc(d.ten.slice(0, 30))}`, `$${d.tien30!.toFixed(2)}`] as [string, string]),
+        ['💸 Chi quảng cáo', `$${mh.tien.chi.tong.toFixed(2)}`], ...mh.tien.chi.theo.map((x) => [`↳ ${esc(x.ten)}`, `$${x.so.toFixed(2)}`] as [string, string]),
+        ['Còn lại', `$${(mh.tien.tong - mh.tien.chi.tong).toFixed(2)}`], ['Chưa nối', 'hoa hồng aff các site du lịch · chi Google/Meta Ads']] };
     }
     if (u.loai === 'lv') { const lv = LINH_VUC[u.lv]!, ks_ = mh.duAn.filter((k) => k.linhVuc === u.lv), ds_ = mh.dich.filter((d) => ks_.some((k) => k.khoa === d.duAn) && !d.cha);
       return { dau: `${lv.ic} Phường ${esc(lv.ten)}`, h: [['Khu', ks_.length], ['Site', ds_.filter((d) => d.loai === 'site').length], ['App · sản phẩm', ds_.filter((d) => d.loai !== 'site').length],

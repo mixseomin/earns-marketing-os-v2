@@ -61,6 +61,8 @@ export interface PhoDich {
   khoa: string; loai: 'site' | 'sp' | 'app'; ten: string; site: string | null; duAn: string;
   /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
   tien30?: number | null; loaiTien?: string;
+  /** các phần tiền của đích (một site có thể vừa AdSense vừa đơn shop) */
+  tienPhan?: { loai: string; so: number }[];
   /** sản phẩm là một bản trên cửa hàng của app nào (khoá 'a:<app>') — vẽ quanh app, không đứng riêng */
   cha?: string;
   phien30: number | null; laShop: boolean; don: number | null; coNguon: boolean;
@@ -73,7 +75,7 @@ export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: bo
 /** một dòng xe: toà nguồn → đích, số khách (kỳ theo nguồn) */
 export interface PhoLuong { tu: string; den: string; so: number }
 /** KHO BẠC: tiền thật 30 ngày (USD) theo loại nguồn tiền */
-export interface PhoTien { tong: number; theo: { ten: string; so: number }[] }
+export interface PhoTien { tong: number; theo: { ten: string; so: number }[]; chi: { tong: number; theo: { ten: string; so: number }[] } }
 export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; fav: Record<string, string | null> }
 /** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
 export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
@@ -99,6 +101,10 @@ export interface VaoHeSinhThai {
   linhVuc?: { khoa: string; linhVuc: string }[];
   /** tiền đơn shop của site (shop_don 30 ngày, USD) — cửa hàng mặt tiền như mellowstep.com */
   tienSite?: { site: string; usd: number }[];
+  /** AdSense theo site 30 ngày (adsense_daily) */
+  tienAds?: { site: string; usd: number }[];
+  /** tiền CHI quảng cáo 30 ngày theo nguồn (phu_chi: ExoClick…) — Kho bạc hiện thu và chi */
+  chi?: { nguon: string; usd: number }[];
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
@@ -171,6 +177,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   for (const x of nguonSite) dichMap.set(`s:${x.site}`, siteMoi(x.site, x.phien30));
   for (const l of live.landing) { const k = `s:${l.site}`; if (nguonSite.some((x) => x.site === l.site)) continue; const d = dichMap.get(k) ?? siteMoi(l.site, l.coMa ? 0 : null); if (l.coMa) d.phien30 = (d.phien30 ?? 0) + l.phien30; dichMap.set(k, d); }
   for (const t of tk) if (t.dich && !dichMap.has(t.dich)) dichMap.set(t.dich, siteMoi(t.dich.slice(2), null));
+  for (const x of [...(hst.tienAds ?? []), ...(hst.tienSite ?? [])]) if (x.usd > 0 && !dichMap.has(`s:${x.site}`)) dichMap.set(`s:${x.site}`, siteMoi(x.site, null));   // site có tiền vẫn có mặt dù chưa có phiên
 
   // ── NGUỒN: máy tìm kiếm cạnh từng site (mỗi site tối đa 6 máy, máy dưới 2 khách bỏ — toà lắt nhắt không giúp đọc)
   for (const x of nguonSite) for (const [k, so] of Object.entries(x.tim).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6)) {
@@ -234,16 +241,18 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   // ── TIỀN 30 ngày (USD): sản phẩm = thực nhận kho products (App Store, AdMob, Gumroad, Udemy, KDP…) · cửa hàng Gumroad / Etsy = bán 30 ngày · shop mặt tiền = đơn shop_don
   const LOAI_TIEN: Record<string, string> = { 'app-store': 'App', 'ms-store': 'App', 'play-store': 'App', gumroad: 'Bán sản phẩm số', etsy: 'Bán sản phẩm số', kdp: 'Sách', udemy: 'Khoá học', 'mql5-market': 'Bán sản phẩm số', rapidapi: 'API', chaturbate: 'Hoa hồng aff', stripcash: 'Hoa hồng aff', stripe: 'Thanh toán', astrolas: 'Đăng ký' };
   for (const d of dichMap.values()) {
-    if (d.loai === 'sp') { d.tien30 = d.net ?? null; d.loaiTien = LOAI_TIEN[d.nenBan ?? ''] ?? 'Khác'; }
+    if (d.loai === 'sp') { d.tien30 = d.net ?? null; d.loaiTien = LOAI_TIEN[d.nenBan ?? ''] ?? 'Khác'; if (d.net) d.tienPhan = [{ loai: d.loaiTien, so: d.net }]; }
     if (d.loai === 'site') {
+      const usdAds = (hst.tienAds ?? []).filter((x) => x.site === d.site).reduce((a, x) => a + x.usd, 0);
       const usdBan = d.laShop ? live.ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === chuan(d.site!.split('.')[0]!) || chuan(x.duAn) === chuan(d.site!.split('.')[0]!))).reduce((a, x) => a + (x.usd30 ?? 0), 0) : 0;
       const usdShop = (hst.tienSite ?? []).filter((x) => x.site === d.site).reduce((a, x) => a + x.usd, 0);
-      d.tien30 = usdBan || usdShop ? usdBan + usdShop : null; d.loaiTien = usdShop ? 'Đơn shop' : 'Bán sản phẩm số';
+      d.tienPhan = [{ loai: 'Bán sản phẩm số', so: usdBan }, { loai: 'Đơn shop', so: usdShop }, { loai: 'AdSense', so: usdAds }].filter((x) => x.so > 0);
+      d.tien30 = d.tienPhan.length ? d.tienPhan.reduce((a, x) => a + x.so, 0) : null; d.loaiTien = d.tienPhan.map((x) => x.loai).join(' + ');
     }
   }
   for (const d of dichMap.values()) if (d.loai === 'app') { const ban = [...dichMap.values()].filter((b) => b.cha === d.khoa); const co = ban.filter((b) => b.tien30 != null); d.tien30 = co.length ? co.reduce((a, b) => a + b.tien30!, 0) : null; d.loaiTien = 'App'; }
   // giữ site có khách hoặc có người trỏ tới
-  const dich = [...dichMap.values()].filter((d) => d.loai !== 'site' || d.coNguon || (d.phien30 ?? 0) > 0 || tk.some((t) => t.dich === d.khoa));
+  const dich = [...dichMap.values()].filter((d) => d.loai !== 'site' || d.coNguon || (d.tien30 ?? 0) > 0 || (d.phien30 ?? 0) > 0 || tk.some((t) => t.dich === d.khoa));
 
   // ── KHU (dự án): site → sổ du_an_site → projects.website → dự án của tài khoản trỏ tới nó → site phụ cùng máy đăng → đứng riêng
   const siteDa = new Map<string, string>([...hst.duAn.filter((d) => d.site).map((d) => [d.site!, d.id] as [string, string]), ...hst.duAnSite.map((x) => [x.site, x.duAn] as [string, string])]);
@@ -273,7 +282,9 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const thuLv = Object.keys(LINH_VUC);
   duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tongKhu(b.khoa) - tongKhu(a.khoa));
   const theoTien = new Map<string, number>();
-  for (const d of dich) if (d.tien30 && d.loai !== 'app') theoTien.set(d.loaiTien ?? 'Khác', (theoTien.get(d.loaiTien ?? 'Khác') ?? 0) + d.tien30);
-  const tien: PhoTien = { tong: [...theoTien.values()].reduce((a, x) => a + x, 0), theo: [...theoTien].map(([ten, so]) => ({ ten, so })).sort((a, b) => b.so - a.so) };
+  for (const d of dich) if (d.loai !== 'app') for (const p of d.tienPhan ?? []) theoTien.set(p.loai, (theoTien.get(p.loai) ?? 0) + p.so);
+  const chiN = (hst.chi ?? []).filter((x) => x.usd > 0);
+  const tien: PhoTien = { tong: [...theoTien.values()].reduce((a, x) => a + x, 0), theo: [...theoTien].map(([ten, so]) => ({ ten, so })).sort((a, b) => b.so - a.so),
+    chi: { tong: chiN.reduce((a, x) => a + x.usd, 0), theo: chiN.map((x) => ({ ten: x.nguon, so: x.usd })).sort((a, b) => b.so - a.so) } };
   return { tk, dich, duAn, luong, tien, fav: live.fav };
 }

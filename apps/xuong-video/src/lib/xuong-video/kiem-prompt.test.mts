@@ -1,7 +1,7 @@
 // Tự kiểm bộ chấm prompt: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-prompt.test.mts
 import assert from 'node:assert';
 import { chamPrompt, loiPrompt, noiChonPhongCach } from './kiem-prompt';
-import { khoi, KHONG_THEM_FLUX } from './prompt-khoi';
+import { hanhDongTrongMoTa, khoi, KHONG_THEM_FLUX } from './prompt-khoi';
 
 const VEST = 'Tailored white power suit (single-breasted blazer, wide-leg trousers)';
 const s = { nguoi: [{ ten: 'Lâm Hạ', trang_phuc: VEST }], vat: [] };
@@ -58,4 +58,8 @@ const SANH = 'Polished elevator lobby: black marble floor and back wall, two bru
 assert.deepEqual(noiChonPhongCach('glossy look, cool daylight from floor-to-ceiling windows, 35mm', SANH), ['window']);
 assert.deepEqual(noiChonPhongCach('glossy look, cool daylight from floor-to-ceiling windows', 'Open-plan office with floor-to-ceiling glass windows'), []);
 assert.deepEqual(noiChonPhongCach('glossy look, cool steel-blue key light with warm practical lamps', SANH), []);
+// HỒ SƠ NGƯỜI CHỈ CÓ NGOẠI HÌNH (#132 người phụ "holding up a phone to film" ở mọi shot) → bắt; ngoại hình + tư thế → qua
+assert.equal(hanhDongTrongMoTa('young female office worker in a light blue blouse, seated, turned toward the aisle, holding up a phone to film'), 'holding up a phone');
+assert.equal(hanhDongTrongMoTa('male office worker in a charcoal shirt, seated, smirking'), 'smirking');
+assert.equal(hanhDongTrongMoTa('female office worker in a cream blouse and grey pencil skirt, standing by the window'), null);
 console.log('kiem-prompt: ok');

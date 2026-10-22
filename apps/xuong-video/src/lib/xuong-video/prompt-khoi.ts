@@ -35,7 +35,7 @@ export const CHAT_LIEU: Record<ChatLieu, {
     // NỀN KHOÁ (anh 22/10/2026, phim #132 cảnh thang máy: "phần đằng sau lưng 2 người lúc sinh video hay ảnh hay bị thay đổi"): câu cũ "background stays
     // naturally alive (people breathing, slight shifts…) — never frozen" mời model cho nền chuyển động / vẽ lại; sống là việc của diễn viên, set đứng yên.
     song_video: (chen) => chen ? 'Only the described detail moves; everything else in frame stays still, with natural subtle life (a breath, a slight shift of light).' : 'Keep the actors alive with natural, motivated movement and readable body language — they never freeze. The set behind them is a fixed physical place: walls, doors, furniture, artwork, signs, logos and reflections keep exactly the same shape, position and content for the whole clip; nothing in the background morphs, slides or is redrawn (only natural light and focus may shift).',
-    khong_them: (vao) => `Nothing new appears (no extra people or objects${vao}, no visual effects); things cut off by the frame edge stay cut off.`,
+    khong_them: (vao) => `Nothing new appears (no extra people or objects${vao}, no visual effects); things cut off by the frame edge stay cut off. Background people only keep doing what they do in the first frame — nobody takes out a phone, films, photographs, points or walks in unless the action above says so.`,
     cam: /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top|desk lamp|squash and stretch|cartoon acting|puppet|fur, leaves|simply floats)\b/i,
   },
   hoat_hinh: {
@@ -84,6 +84,11 @@ export const KHUON: Record<DuongSinh, { ten: string; bat_buoc: MaKhoi[]; flux?: 
   sua_nhan_dang: { ten: 'bước 2', bat_buoc: ['nguoi', 'giu', 'cam_chu', 'so_nguoi', 'khong_them'] },
   video: { ten: 'video', bat_buoc: ['giu', 'dien', 'cam_chu', 'khong_them'] },
 };
+/** MÔ TẢ ĐỐI TƯỢNG CHỈ TẢ HÌNH DẠNG (anh 22/10/2026, phim #132: "cảnh sinh video lại tự sinh đoạn nhân viên xung quanh nhảy vào chụp ảnh quay phim? Kịch bản
+ *  có nói gì đâu"): người phụ của bộ set khai sẵn "holding up a phone to film", "smirking", "typing" → hành động của MỘT shot (#6) dính vào mọi shot dùng
+ *  set. Ngành: diễn xuất của quần chúng do trợ lý đạo diễn giao THEO TỪNG SHOT; hồ sơ người chỉ có ngoại hình + tư thế đứng / ngồi. Trả cụm hành động lọt vào. */
+const HANH_DONG_NGUOI = /\b(film(s|ing)?|to film|record(s|ing)?|photograph(s|ing)|taking (a )?(photo|picture|video)|holding up a phone|on (her|his|their) phone|smirk\w*|watch(es|ing)|glanc\w*|typ(es|ing)|whisper\w*|laugh\w*|point(s|ing)|star(es|ing)|shout\w*|talking|chatting|gossip\w*)\b/i;
+export const hanhDongTrongMoTa = (t: string): string | null => t.match(HANH_DONG_NGUOI)?.[0] ?? null;
 /** KHÔNG THÊM VẬT LẠ — ảnh sửa (một bước, bước 2, plate): chỉ vật có trong bố cục 3D + mô tả. */
 export const KHONG_THEM_ANH = 'Draw ONLY what Image 1 and this description contain: no extra objects, props, papers, cups, bottles, plants, screens, cables, signs, decorations, animals or people that are not there.';
 /** Bản NGẮN cho FLUX (ngân sách ~300 từ, FLUX không có prompt âm): nói theo hướng khẳng định. */

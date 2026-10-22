@@ -17,7 +17,7 @@ import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
-import { cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
+import { cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, hanhDongTrongMoTa, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
 import { chayAnhFal, modelFal } from './fal';
@@ -591,6 +591,11 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
     const o = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.ten));
     const cua = thieu.filter((x) => o.has(x.ten));
     if (cua.length) chan.push(`Vật xuất hiện nhiều shot mà chưa là đối tượng có ảnh mẫu (mỗi shot sẽ bị vẽ một kiểu): ${cua.map((x) => `${x.ten} (${x.so_shot} shot · ${x.ly_do === 'chua_co' ? 'chưa có đối tượng' : 'thiếu ảnh mẫu'})`).join(', ')} — tạo bằng scripts/doi-tuong-xuyen-suot.mts`);
+    // HỒ SƠ NGƯỜI CHỈ CÓ NGOẠI HÌNH (prompt-khoi.ts › hanhDongTrongMoTa): người phụ của set / đối tượng người đang thấy mà mô tả mang hành động → chặn
+    const nguoiThay = [...bc.vatSet.filter((v) => o.has(v.ten) && ('ao' in v || 'tu_the' in v)).map((v) => ({ ten: v.ten, mo: v.en ?? '' })),
+      ...bc.nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, mo: v.mo_ta }))];
+    const hd = nguoiThay.map((x) => ({ ...x, hd: hanhDongTrongMoTa(x.mo) })).filter((x) => x.hd);
+    if (hd.length) chan.push(`Mô tả người mang HÀNH ĐỘNG (sẽ lặp ở mọi shot dùng người đó — hành động thuộc thẻ shot, không thuộc hồ sơ): ${hd.map((x) => `${x.ten} "${x.hd}"`).join(', ')}`);
   }
   if (sid) {
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];

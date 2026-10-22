@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { goiEthopex } from '@mos2/db/ethopex';
+import { docEthopex } from '@/lib/ethopex-doc';
 
 // LÝ DO ĐÓNG CAMP cho extension trên trang Report của Ethopex (anh 22/10/2026: "làm extension trên page này để khi hover vào camp nào đóng thì show lý do").
 // Chỉ đọc. Khoá bằng mã riêng (studio xv_khoa_ngoai['ethopex_ext'].token, gửi qua ?k=) vì trang app.ethopex.dev không mang phiên mos2; CORS chỉ mở cho app.ethopex.dev.
 //   GET ?k=…           → { camp: { "<id>": { luc, luat, ai, chi, thu, roi } } } — lệnh tắt gần nhất (chưa bật lại) theo nhật ký luật + chi/thu tháng
 //   GET ?k=…&id=<id>   → camp không có trong nhật ký luật: đọc lịch sử Ethopex (ai tắt, qua đường nào)
+//   GET ?k=…&phim=<tên> → CREATIVE CỦA PHIM + CHỈ SỐ (anh 22/10/2026: "hover vào phim xem được creative tương ứng… và các chỉ số liên quan"):
+//                         camp nối theo tên phim chuẩn hoá (Report Ethopex nhóm theo tên content, không trả content_id) → gom theo creative:
+//                         ảnh · video · dạng · đạt luật CTA · camp dùng (trạng thái, ngân sách) · chi/thu/ROI tháng · hôm nay · hôm qua
 type Nk = { luc: string; viec: string; id: number; ok: boolean; luat: string; ai: string };
 const CORS = { 'access-control-allow-origin': 'https://app.ethopex.dev', 'access-control-allow-methods': 'GET', 'cache-control': 'no-store' };
 let dem: { luc: number; so: Record<string, { chi: number; thu: number }> } | null = null;
@@ -18,6 +22,29 @@ export async function GET(req: Request) {
   if (!db) return NextResponse.json({ ok: false, error: 'thiếu DB' }, { status: 500, headers: CORS });
   const r = (await db.execute(sql`SELECT gia_tri->>'token' AS t FROM xv_khoa_ngoai WHERE ten = 'ethopex_ext'`)) as unknown as { t: string | null }[];
   if (!r[0]?.t || u.searchParams.get('k') !== r[0].t) return NextResponse.json({ ok: false, error: 'sai mã' }, { status: 403, headers: CORS });
+  const phim = u.searchParams.get('phim');
+  if (phim) {
+    const chuan = (t: string) => t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\(doblado\)|（dubbed）|\(dubbed\)/g, '').replace(/[^a-z0-9]/g, '');
+    const k = chuan(phim);
+    if (k.length < 6) return NextResponse.json({ ok: true, creative: [] }, { headers: CORS });
+    const d = await docEthopex();
+    const dat = new Set(Object.keys((((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_cta_dat'`)) as unknown as { gia_tri: Record<string, unknown> }[])[0]?.gia_tri) ?? {}));
+    // lõi tên camp: bỏ mã lô đầu ("2110ns ") + phần " EN - dạng …" → so hai chiều (camp cũ ghi tên tắt "The Rejected Luna")
+    const loi = (t: string) => chuan(t.replace(/^\S+\s+/, '').split(/ (?:EN|ES) - /)[0] ?? '');
+    const khop = (a: string) => a.length >= 8 && (a.includes(k) || k.includes(a));
+    const cua = d.camps.filter((c) => khop(loi(c.ten)) || (!!c.phim && khop(chuan(c.phim))));
+    const nhom = new Map<number, typeof cua>();
+    for (const c of cua) { const key = c.creative_id ?? -c.id; nhom.set(key, [...(nhom.get(key) ?? []), c]); }
+    const cong = (ds: typeof cua, f: (c: (typeof cua)[number]) => { chi: number; thu: number }) => ds.reduce((a, c) => ({ chi: a.chi + f(c).chi, thu: a.thu + f(c).thu }), { chi: 0, thu: 0 });
+    const so = (x: { chi: number; thu: number }) => ({ chi: +x.chi.toFixed(2), thu: +x.thu.toFixed(2), roi: x.chi >= 0.1 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null });
+    const creative = [...nhom.entries()].map(([cr, ds]) => ({
+      creative_id: cr > 0 ? cr : null, anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
+      doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
+      camp: ds.map((c) => ({ id: c.id, trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
+      thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)),
+    })).sort((a, b) => b.thang.thu - a.thang.thu);
+    return NextResponse.json({ ok: true, phim, so_camp: cua.length, creative }, { headers: CORS });
+  }
   const id = Number(u.searchParams.get('id') || 0);
   if (id) {
     const h = await goiEthopex<{ data: { created_at: string; actor_name?: string; actor_type?: string; actor_type_label?: string; source_label?: string; changes?: { field: string; new: unknown }[] }[] }>(db, `/api/v1/campaigns/${id}/history`);

@@ -13,7 +13,7 @@ import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
-import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
+import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, doiTuongThieu, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
@@ -580,6 +580,16 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   const sid = boSetCuaShot(bc.canh, nvPhim);
   // KHUNG ĐO TRÊN 3D SỐNG (do-3d-song.ts): đủ để chấm, không có ảnh độ sâu / khung màu → chưa sinh keyframe được
   if (sid && bc.canh.khung_xam?.nguon === 'song') chan.push('Khung 3D mới đo trên 3D sống để chấm (chưa dựng Blender — chưa có ảnh độ sâu / khung màu cho keyframe): 🧊 Dựng khung xám trước khi sinh');
+  // ĐỐI TƯỢNG XUYÊN SUỐT (bo-set-3d.ts › doiTuongThieu): vật set thấy trong ≥ 2 shot của phim phải là đối tượng có ảnh mẫu — không thì mỗi shot model vẽ
+  // một kiểu (logo, số tầng, ghế, người phụ). Mặt nền (sàn / tường / trần) theo ảnh chuẩn bối cảnh (doc-db.ts › anhSet).
+  if (sid) {
+    const ds = ((await db.execute(sql`SELECT c.nhan_vat, c.khung_xam FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${tapQt.phim_id} AND c.khung_xam IS NOT NULL
+      AND coalesce(c.nhanh, '') IN ('', 'A', ${bc.canh.nhanh || 'A'})`)) as unknown as Row[]).filter((x) => boSetCuaShot({ nhan_vat: (x.nhan_vat as number[]) ?? [] }, nvPhim) === sid);
+    const thieu = doiTuongThieu(ds.map((x) => ({ khung_xam: x.khung_xam as KhungXam })), bc.vatSet as Parameters<typeof doiTuongThieu>[1], nvPhim.map((v) => ({ ten: v.ten, anh: v.anh_ref.length })));
+    const o = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.ten));
+    const cua = thieu.filter((x) => o.has(x.ten));
+    if (cua.length) chan.push(`Vật xuất hiện nhiều shot mà chưa là đối tượng có ảnh mẫu (mỗi shot sẽ bị vẽ một kiểu): ${cua.map((x) => `${x.ten} (${x.so_shot} shot · ${x.ly_do === 'chua_co' ? 'chưa có đối tượng' : 'thiếu ảnh mẫu'})`).join(', ')} — tạo bằng scripts/doi-tuong-xuyen-suot.mts`);
+  }
   if (sid) {
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
     const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);

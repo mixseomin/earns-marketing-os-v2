@@ -402,3 +402,15 @@ console.log('bo-set-3d.test: ok');
   assert.ok((khoiCua('Hạ', [ha]) as { dan?: Record<string, unknown> }).dan?.['sơ mi dính cà phê']);
   assert.equal(lookChuaChuan([{ id: 1, may_3d: may({}) as never }], [ha])[1]!.length, 1);   // xuất hiện mà chưa có trang phục → chặn
 }
+
+// ĐỐI TƯỢNG XUYÊN SUỐT (anh 22/10/2026): vật thấy ≥ 2 shot phải là đối tượng có ảnh mẫu; mặt nền bỏ qua; 1 shot thì chưa bắt
+{
+  const { doiTuongThieu } = await import('./bo-set-3d');
+  const vat = [{ ten: 'Logo', en: 'gold "LU GROUP" logo', hinh: 'hop', co: [1, 1, 1], tam: [0, 0, 0] }, { ten: 'Sàn', nen: true, hinh: 'hop', co: [1, 1, 1], tam: [0, 0, 0] },
+    { ten: 'Đồng nghiệp', ao: 'grey suit', hinh: 'hop', co: [1, 1, 1], tam: [0, 0, 0] }, { ten: 'Tranh', hinh: 'hop', co: [1, 1, 1], tam: [0, 0, 0] }, { ten: 'Ghế', anchor: 'Ghế da', hinh: 'hop', co: [1, 1, 1], tam: [0, 0, 0] }] as never[];
+  const sh = (...t: [string, number][]) => ({ khung_xam: { thay: t.map(([ten, pt]) => ({ ten, pt })) } as never });
+  const shots = [sh(['Logo', 3], ['Sàn', 40], ['Đồng nghiệp', 5], ['Tranh', 2], ['Ghế', 4]), sh(['Logo', 2], ['Sàn', 30], ['Đồng nghiệp', 4], ['Tranh', 0.3], ['Ghế', 2])];
+  const r = doiTuongThieu(shots, vat, [{ ten: 'Ghế da', anh: 1 }]);
+  assert.deepEqual(r.map((x) => [x.ten, x.ly_do, x.nguoi]), [['Logo', 'chua_co', false], ['Đồng nghiệp', 'chua_co', true]]);   // Tranh thấy 1 shot, Sàn là mặt nền, Ghế có đối tượng + ảnh
+  assert.deepEqual(doiTuongThieu(shots, vat, [{ ten: 'logo', anh: 0 }, { ten: 'Đồng nghiệp', anh: 2 }, { ten: 'Ghế da', anh: 0 }]).map((x) => [x.ten, x.ly_do]), [['Logo', 'thieu_anh'], ['Ghế', 'thieu_anh']]);
+}

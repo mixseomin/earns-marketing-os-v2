@@ -383,6 +383,27 @@ export const PT_THAY = 1;
 export const chuTheThay = (kx: { kiem?: { nhan_vat: string; bat_buoc?: boolean; trong_khung?: boolean }[] } | null | undefined, ten: string) => !!kx?.kiem?.some((k) => k.nhan_vat === ten && k.bat_buoc && k.trong_khung);
 /** Một mục khung_xam.thay có tính là THẤY trong khung không — MỘT luật cho nhãn khối, ảnh mẫu, câu ngoài khung, hướng nhân vật. */
 export const thayRo = (kx: Parameters<typeof chuTheThay>[0], t: { ten: string; pt: number }) => t.pt >= PT_THAY || chuTheThay(kx, t.ten);
+/** ĐỐI TƯỢNG XUYÊN SUỐT (anh 22/10/2026: "cái gì xuất hiện hơn 1 shot thì phải cho hết vào mục đối tượng được định nghĩa hình ảnh, đặc điểm, ảnh mẫu
+ *  đầy đủ" — logo "LU GROUP", bảng số tầng, tranh, ghế, người phụ… chỉ là khối trong set 3D thì mỗi shot model vẽ một kiểu). Vật của set THẤY (thayRo)
+ *  trong ≥ 2 shot của phim phải trỏ tới một đối tượng (vat.anchor, hoặc trùng tên) CÓ ảnh mẫu. Mặt nền (nen: sàn, tường, trần, mặt bàn) thuộc đối tượng
+ *  BỐI CẢNH của set — kiểm riêng: bối cảnh phải có ảnh mẫu. Trả vật thiếu, nhiều shot trước. Thuần — kiểm ở bo-set-3d.test. */
+export type ThieuDoiTuong = { ten: string; so_shot: number; ly_do: 'chua_co' | 'thieu_anh'; nguoi: boolean; vat?: VatSet };
+type VatSet = BoSet['du_lieu']['vat'][number];
+export function doiTuongThieu(shots: { khung_xam?: Pick<KhungXam, 'thay' | 'kiem'> | null }[], vat: VatSet[], doiTuong: { ten: string; anh: number }[]): ThieuDoiTuong[] {
+  const dem = new Map<string, number>();
+  for (const c of shots) for (const t of new Set((c.khung_xam?.thay ?? []).filter((t) => thayRo(c.khung_xam, t)).map((t) => t.ten))) dem.set(t, (dem.get(t) ?? 0) + 1);
+  const dt = (ten: string) => doiTuong.find((d) => d.ten.trim().toLowerCase() === ten.trim().toLowerCase());
+  const ra: ThieuDoiTuong[] = [];
+  for (const [ten, so] of dem) {
+    if (so < 2) continue;
+    const v = vat.find((x) => x.ten === ten);
+    if (v?.nen) continue;
+    const d = dt(v?.anchor ?? ten);
+    if (!d) { if (v) ra.push({ ten, so_shot: so, ly_do: 'chua_co', nguoi: 'ao' in v || 'tu_the' in v, vat: v }); continue; }   // không phải vật set, không đối tượng = khối lạ: bộ kiểm 3D lo
+    if (!d.anh) ra.push({ ten, so_shot: so, ly_do: 'thieu_anh', nguoi: !!v && ('ao' in v || 'tu_the' in v), vat: v });
+  }
+  return ra.sort((a, b) => b.so_shot - a.so_shot);
+}
 /** Vật chạm mép khung (hộp thấy 0..1) → "cut off by the bottom edge — only a 10% strip shows": model không được vẽ cả món. */
 export function catMep(h: number[]): string {
   const m: string[] = []; const e = 0.015;

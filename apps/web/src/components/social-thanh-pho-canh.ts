@@ -105,7 +105,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         <label><input type="checkbox" data-dk="daoPhong"> Đảo chiều phóng (lăn / chụm)</label>
         <label>Kéo chuột / 1 ngón <select data-dk="keo"><option value="xoay">xoay</option><option value="truot">trượt</option></select></label>
         <label>Tốc độ xoay <input type="range" min="0.4" max="2" step="0.1" data-dk="tocXoay"></label></div>
-      <b>Nguồn</b><div class="hang" data-o="loc-nen"></div>
+      <b>Traffic</b><div class="hang" data-o="loc-nen"></div>
       <b>Phường</b><div class="hang" data-o="loc-lv"></div>
       <b>Khu</b><div class="hang" data-o="loc-sp"></div></aside>
     <aside class="ngan" hidden></aside>
@@ -767,8 +767,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       raoQuanh([new THREE.Vector3(x0 - 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0 - cao), new THREE.Vector3(x0 - 10, 0, z0 - cao)], '#c98a2f', x0 + dai / 2, z0 - cao / 2, -1, 'Xưởng SX', [{ ic: '🏭', so: String(xs.length), nhan: 'chờ lên', ma: 'xuong' }], KHU_XUONG);
       cum.forEach((c, k) => { const bx = x0 + 10 + vt2[k]!.x, bz = z0 - 24 - vt2[k]!.z;
         const sanC = add(new THREE.BoxGeometry(c.rong, .5, c.sau), M({ color: '#3a2e1c', roughness: .9 }), false); sanC.position.set(bx + c.rong / 2, .45, bz - c.sau / 2); ds.san!.push(sanC);
-        const cv = document.createElement('canvas'); cv.width = 512; cv.height = 96; const gc = cv.getContext('2d')!; gc.fillStyle = 'rgba(40,28,8,.92)'; gc.beginPath(); gc.roundRect(4, 4, 504, 88, 16); gc.fill(); gc.fillStyle = '#ffd27a'; gc.font = '800 44px system-ui, sans-serif'; gc.textAlign = 'center'; gc.textBaseline = 'middle'; gc.fillText(`${c.g.slice(0, 18)} · ${c.ds2.length}`, 256, 50, 490);
-        const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false })); bien.scale.set(Math.max(24, c.rong * .9), 5, 1); bien.position.set(bx + c.rong / 2, 16, bz - 4); bien.userData = { chu: null }; the.add(bien);
+        // tên cụm IN XUỐNG NỀN dải đầu cụm (card góp ý #1431 "chữ phải viết ở dưới nền khu vực") — không biển nổi che hộp
+        const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128; const gc = cv.getContext('2d')!; gc.fillStyle = '#ffd27a'; gc.textAlign = 'center'; gc.textBaseline = 'middle';
+        let co = 84; gc.font = `800 ${co}px system-ui, sans-serif`; const chu = `${c.g} · ${c.ds2.length}`; while (gc.measureText(chu).width > 990 && co > 30) { co -= 4; gc.font = `800 ${co}px system-ui, sans-serif`; } gc.fillText(chu, 512, 66);
+        const nenChu = add(new THREE.PlaneGeometry(c.rong - 2, (c.rong - 2) / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false);
+        nenChu.rotation.x = -Math.PI / 2; nenChu.position.set(bx + c.rong / 2, .75, bz - 5); nenChu.userData = { chu: null };
         c.ds2.forEach((d, n) => toaSp(d, bx + 6 + O / 2 + (n % c.cot) * O, bz - 14 - Math.floor(n / c.cot) * O)); });
       // nhà xưởng: thân thấp + mái răng cưa
       const xx = x0 + dai / 2, zz = z0 - cao + 20, than = add(new THREE.BoxGeometry(70, 14, 24), M({ color: '#6b5636', roughness: .7 })); than.position.set(xx, 7, zz); than.userData = { loai: 'khu', khoa: KHU_XUONG };
@@ -848,8 +851,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const tenDich = (k: string | null) => { const d = k ? dichCua(k) : null; return d ? esc(d.ten) : '—'; };
     if (u.loai === 'tk' && u.tk.loai !== 'mxh') { const t = u.tk as PhoTk;
       const nhan = t.loai === 'tim' ? 'Tìm kiếm tự nhiên' : t.loai === 'qc' ? 'Quảng cáo' : t.loai === 'ch' ? 'Trong cửa hàng' : 'Trang giới thiệu';
-      if (t.chiTiet) return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Nguồn', nhan], ['Đổ vào', tenDich(t.dich)], ['👁 Hiển thị 30 ngày', t.chiTiet.hien], ['📄 Xem trang', t.chiTiet.xem], ['⬇ Tải lần đầu', t.chiTiet.tai]] };
-      return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Nguồn', nhan], ['Đổ vào', tenDich(t.dich)], [`🚗 Khách (${t.phienKy})`, t.phien]] };
+      if (t.chiTiet) return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Traffic', nhan], ['Đổ vào', tenDich(t.dich)], ['👁 Hiển thị 30 ngày', t.chiTiet.hien], ['📄 Xem trang', t.chiTiet.xem], ['⬇ Tải lần đầu', t.chiTiet.tai]] };
+      return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Traffic', nhan], ['Đổ vào', tenDich(t.dich)], [`🚗 Khách (${t.phienKy})`, t.phien]] };
     }
     if (u.loai === 'tk') { const t = u.tk as PhoTk;
       return { dau: `${oNen(t.nen)} ${esc(t.ten)}`, h: [['Nền', NEN[t.nen][1]], ['Đổ vào', tenDich(t.dich)], ['🪟 Bài đã đăng', t.chay], ['📦 Sắp đăng 7 ngày', t.sap], ['🔦 Lượt xem', so(t.xem)],
@@ -949,8 +952,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const may_ = mh.nhaMay.find((x) => x.sites.includes(d.site!));
       return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')], ...(d.online ? [['🟢 Đang xem', d.online] as [string, number]] : []), ...(d.canhBao ? [['⚠️', esc(d.canhBao)] as [string, string]] : []), ...(may_ ? [['⚡ Máy chủ', esc(may_.ten)] as [string, string]] : []),
         ...(d.laShop ? [['🪙 Đơn 30 ngày', so(d.don)] as [string, string]] : [['Phiên 30 ngày (mọi nguồn)', so(d.phien30)] as [string, string]]), ...tienH,
-        ['Nguồn', d.coNguon ? `${ve.length} nguồn` : '⚪ chưa gắn nguồn traffic']],
-        bang: ve.length ? { cot: ['Nguồn', '🚗 Khách', 'Kỳ'], dong: ve.slice(0, 10).map((l) => { const t = mh.tk.find((x) => x.id === l.tu); return [t ? `${oTk(t, 10)} ${esc(t.ten)}` : esc(l.tu), l.so, t?.phienKy ?? '']; }) } : undefined };
+        ['Traffic', d.coNguon ? `${ve.length} nguồn traffic` : '⚪ chưa gắn traffic']],
+        bang: ve.length ? { cot: ['Traffic', '🚗 Khách', 'Kỳ'], dong: ve.slice(0, 10).map((l) => { const t = mh.tk.find((x) => x.id === l.tu); return [t ? `${oTk(t, 10)} ${esc(t.ten)}` : esc(l.tu), l.so, t?.phienKy ?? '']; }) } : undefined };
     }
     return { dau: '', h: [] };
   }

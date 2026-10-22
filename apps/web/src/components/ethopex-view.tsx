@@ -12,7 +12,7 @@ import type { DuLieuEthopex } from '@/lib/ethopex-doc';
 
 type Dong = CampEtp & { luat: LuatCham[] };
 type Loc = 'all' | 'chay' | 'tat' | 'cham';
-type Xem = 'camp' | 'ngay' | 'phim' | 'cho' | 'luat';   // YDNI: chia tab con — không chồng khối dọc (anh 22/10/2026)
+type Xem = 'camp' | 'test' | 'ngay' | 'phim' | 'cho' | 'luat';   // YDNI: chia tab con — không chồng khối dọc (anh 22/10/2026)
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const pct = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`);
 const mauTien = (v: number) => (v > 0 ? 'var(--neon-lime, #9be15d)' : v < 0 ? 'var(--neon-red, #ff5c5c)' : 'var(--fg-3)');
@@ -119,6 +119,55 @@ function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
         );
       })}
     </Drawer>
+  );
+}
+
+/** TAB "LÊN TEST" (anh 22/10/2026: "cần report về số camp mới, số film mới tham gia test, đang chạy… thì ở đâu") — mỗi ngày (giờ VN, theo lúc tạo camp):
+ *  camp mới · phim MỚI (camp đầu tiên của phim rơi vào ngày đó) · phim test lại (đã có camp trước) · còn bật / đã tắt · chi/thu/ROI từ đầu tháng của lứa camp đó. */
+type NgayTest = { ngay: string; camp: CampEtp[]; phimMoi: string[]; phimLai: string[]; bat: number; tat: number; lai: number; chi: number; thu: number };
+function TabTest({ du }: { du: DuLieuEthopex }) {
+  const ngayVn = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600_000).toISOString().slice(0, 10);
+  const tenPhim = (c: CampEtp) => c.phim ?? c.ten.replace(/^(TEST )?\d{4}(ns)? /, '').split(/ (EN|ES) - /)[0]!;
+  const khoa = (c: CampEtp) => (c.content_id != null ? `c${c.content_id}` : `t${tenPhim(c)}`);
+  const { rows, tom } = useMemo(() => {
+    const dau = new Map<string, string>();   // phim → ngày camp đầu tiên
+    for (const c of [...du.camps].sort((a, b) => a.tao.localeCompare(b.tao))) if (!dau.has(khoa(c))) dau.set(khoa(c), ngayVn(c.tao));
+    const m = new Map<string, CampEtp[]>();
+    for (const c of du.camps) { const d = ngayVn(c.tao); m.set(d, [...(m.get(d) ?? []), c]); }
+    const rows: NgayTest[] = [...m.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 21).map(([ngay, cs]) => {
+      const phim = new Map<string, string>(); for (const c of cs) phim.set(khoa(c), tenPhim(c));
+      const moi = [...phim].filter(([k]) => dau.get(k) === ngay).map(([, t]) => t), lai = [...phim].filter(([k]) => dau.get(k) !== ngay).map(([, t]) => t);
+      return { ngay, camp: cs, phimMoi: moi, phimLai: lai, bat: cs.filter((c) => c.trang_thai === 'ACTIVE').length, tat: cs.filter((c) => c.trang_thai !== 'ACTIVE').length,
+        lai: cs.filter((c) => c.thang.chi >= 1 && c.thang.thu > c.thang.chi).length, chi: cs.reduce((a, c) => a + c.thang.chi, 0), thu: cs.reduce((a, c) => a + c.thang.thu, 0) };
+    });
+    const homNay = ngayVn(new Date().toISOString());
+    const bat = du.camps.filter((c) => c.trang_thai === 'ACTIVE');
+    return { rows, tom: { homNay: rows.find((r) => r.ngay === homNay), phimChay: new Set(bat.map(khoa)).size, campBat: bat.length, tongPhim: dau.size } };
+  }, [du]);
+  const ds = (xs: string[]) => (xs.length ? xs.join('\n') : undefined);
+  const cot: DataColumn<NgayTest>[] = [
+    { key: 'ngay', header: 'Ngày lên', align: 'left', cell: (r) => <span style={mono}>{r.ngay.slice(8, 10)}/{r.ngay.slice(5, 7)}</span>, sortValue: (r) => r.ngay },
+    { key: 'camp', header: 'Camp mới', cell: (r) => r.camp.length, sortValue: (r) => r.camp.length, total: (rs) => rs.reduce((a, r) => a + r.camp.length, 0) },
+    { key: 'pm', header: 'Phim mới', title: 'Phim lần đầu có camp — rê vào số để xem tên', cell: (r) => <span title={ds(r.phimMoi)} style={{ fontWeight: 600 }}>{r.phimMoi.length}</span>, sortValue: (r) => r.phimMoi.length, total: (rs) => rs.reduce((a, r) => a + r.phimMoi.length, 0) },
+    { key: 'pl', header: 'Phim test lại', title: 'Phim đã có camp trước, thêm góc / đoạn cắt mới', cell: (r) => <span title={ds(r.phimLai)}>{r.phimLai.length}</span>, sortValue: (r) => r.phimLai.length },
+    { key: 'bat', header: 'Còn bật', cell: (r) => <span style={{ color: r.bat ? 'var(--neon-lime, #9be15d)' : 'var(--fg-3)' }}>{r.bat}</span>, sortValue: (r) => r.bat, total: (rs) => rs.reduce((a, r) => a + r.bat, 0) },
+    { key: 'tat', header: 'Đã tắt', cell: (r) => <span style={{ color: r.tat ? 'var(--neon-red, #ff5c5c)' : 'var(--fg-3)' }}>{r.tat}</span>, sortValue: (r) => r.tat },
+    { key: 'lai', header: 'Camp lãi', title: 'Chi ≥ $1 và thu > chi (từ đầu tháng)', cell: (r) => `${r.lai}/${r.camp.length}`, sortValue: (r) => r.lai / r.camp.length },
+    { key: 'chi', header: 'Chi', cell: (r) => usd(r.chi), sortValue: (r) => r.chi },
+    { key: 'thu', header: 'Thu', cell: (r) => usd(r.thu), sortValue: (r) => r.thu },
+    { key: 'roi', header: 'ROI', cell: (r) => { const v = r.chi >= 0.1 ? ((r.thu - r.chi) / r.chi) * 100 : null; return <span style={{ color: mauTien(v ?? 0) }}>{pct(v)}</span>; }, sortValue: (r) => (r.chi >= 0.1 ? (r.thu - r.chi) / r.chi : -1e9) },
+  ];
+  return (
+    <div>
+      <StatsStrip minColWidth={120} cards={[
+        { key: 'cm', label: 'Camp mới hôm nay', value: tom.homNay?.camp.length ?? 0 },
+        { key: 'pm', label: 'Phim mới hôm nay', value: tom.homNay?.phimMoi.length ?? 0, title: ds(tom.homNay?.phimMoi ?? []) },
+        { key: 'pc', label: 'Phim đang chạy', value: tom.phimChay, sub: `${tom.tongPhim} phim đã test` },
+        { key: 'cb', label: 'Camp đang bật', value: tom.campBat, sub: `${du.camps.length} camp` },
+      ]} />
+      <div style={{ ...mono, fontSize: 11, color: 'var(--fg-3)', margin: '10px 0 6px' }}>Mỗi dòng = lứa camp tạo trong ngày (giờ VN) · chi/thu/ROI từ đầu tháng của lứa đó · rê vào số phim để xem tên</div>
+      <DataTable<NgayTest> rows={rows} columns={cot} getRowKey={(r) => r.ngay} persistKey="ethopex-test" minWidth={760} />
+    </div>
   );
 }
 
@@ -261,6 +310,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', margin: '12px 0 8px' }}>
         <Segmented<Xem> value={xem} onChange={setXem} hrefFor={(v) => `?tab=ethopex${v === 'camp' ? '' : `&etx=${v}`}`} options={[
           { value: 'camp', label: 'Camp', title: `${dong.length} camp` },
+          { value: 'test', label: 'Lên test', title: 'Mỗi ngày: camp mới · phim mới · phim test lại · còn bật / đã tắt · ROI lứa camp' },
           { value: 'ngay', label: 'Theo ngày', title: 'Mỗi ngày kiếm được bao nhiêu — biểu đồ lãi, lọc theo phim / camp / dạng / ngôn ngữ, tự làm mới mỗi phút' },
           { value: 'phim', label: 'Theo phim', title: `${phim.length} phim — đề xuất dạng creative (luật DC)` },
           { value: 'cho', label: 'Hàng chờ', title: `${du.hangCho.length} phim chờ test` },
@@ -276,6 +326,8 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
             groups={[{ key: 'thang', label: 'Từ đầu tháng' }, { key: 'xu', label: 'Xu hướng ROI' }]}
             searchText={(d) => `${d.id} ${d.ten} ${d.phim ?? ''} ${d.creative_id ?? ''}`} searchPlaceholder="Tìm camp, phim, creative…"
             onRowClick={(d) => modal.open('camp', d.id)} rowStyle={(d) => (d.trang_thai === 'ACTIVE' ? undefined : { opacity: 0.6 })} />
+        ) : xem === 'test' ? (
+          <TabTest du={du} />
         ) : xem === 'ngay' ? (
           <TabNgay du={du} />
         ) : xem === 'phim' ? (

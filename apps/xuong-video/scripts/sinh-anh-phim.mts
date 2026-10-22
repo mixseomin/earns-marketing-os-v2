@@ -36,7 +36,12 @@ const kt = docKinhThanh(p[0].kinh_thanh as never);
 // Bối cảnh CÓ BỘ SET 3D không sinh ảnh mẫu (anh 17/10/2026 "để khi đổi góc quay AI không bịa"): keyframe shot có khung 3D bỏ ảnh bối cảnh khỏi
 // tham chiếu (sinh-anh.ts › nvRef) — nguồn hình phòng là bộ set + tên tiếng Anh từng khối; ảnh AI tả lại phòng chỉ tốn tiền và đẻ bản phòng thứ hai.
 // Thẻ bối cảnh đó hiện ảnh 3D (anh-set-3d.tsx). Muốn ảnh AI thì bấm sinh tay trên thẻ.
-const anchorThieu = await q(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(anh_ref) = 0 AND mo_ta <> '' AND NOT (loai = 'boi_canh' AND bo_set_id IS NOT NULL) ORDER BY id`);
+const anchorThieuDu = await q(sql`SELECT id, ten, loai, mo_ta FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(anh_ref) = 0 AND mo_ta <> '' AND NOT (loai = 'boi_canh' AND bo_set_id IS NOT NULL) ORDER BY id`);
+// CÙNG MỘT KIỂU VẬT (4 ghế da, 2 cửa thang máy — đối tượng xuyên suốt, bo-set-3d.ts › doiTuongThieu): mô tả giống hệt → sinh MỘT ảnh rồi chép cho các bản
+// còn lại (không trả tiền N lần cho cùng một món, các bản lại giống nhau tuyệt đối).
+const kieuCua = (x: Row) => `${String(x.loai)}|${String(x.mo_ta).trim().toLowerCase()}`;
+const anchorThieu = anchorThieuDu.filter((x, i) => anchorThieuDu.findIndex((y) => kieuCua(y) === kieuCua(x)) === i);
+const banSao = anchorThieuDu.filter((x) => !anchorThieu.includes(x));
 const tap = await q(sql`SELECT id, so FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`);
 const tapId = Number(tap[0]?.id ?? 0);
 // --lam-lai: sinh lại keyframe cho MỌI shot (3D / dáng đổi sau lượt trước) — ảnh cũ vẫn nằm trong keyframe_uv (ứng viên, chọn lại được), ảnh mới thành ảnh chọn.
@@ -94,6 +99,11 @@ if (arg('anchor') && anchorThieu.length) {
   await doi(jobs, 'ảnh gốc');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
+  for (const b of banSao) {
+    const goc = anchorThieu.find((x) => kieuCua(x) === kieuCua(b))!;
+    const r = await q(sql`UPDATE xv_nhan_vat d SET anh_ref = g.anh_ref, updated_at = now() FROM xv_nhan_vat g WHERE d.id = ${Number(b.id)} AND g.id = ${Number(goc.id)} AND jsonb_array_length(g.anh_ref) > 0 RETURNING d.id`);
+    console.log(`  ${r.length ? '⧉' : '✗'} ${b.ten}: ${r.length ? `chép ảnh của ${goc.ten}` : `${goc.ten} chưa có ảnh`}`);
+  }
 }
 if (arg('bien-the') && btThieu.length) {
   const jobs: number[] = [];

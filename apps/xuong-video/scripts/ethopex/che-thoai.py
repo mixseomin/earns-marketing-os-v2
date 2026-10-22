@@ -15,9 +15,11 @@ FPS, LE = 4, 0.15
 def doc_khung(video, L):
     with tempfile.TemporaryDirectory() as t:
         subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf", f"fps={FPS},scale=540:-2", f"{t}/k%05d.png"], check=True)
-        anh = sorted(os.listdir(t))
-        r = subprocess.run([KT.may_doc()] + [f"{t}/{a}" for a in anh], capture_output=True, text=True, check=True, timeout=1800)
-        return [((i + 0.5) / FPS, json.loads(l)) for i, l in enumerate(r.stdout.splitlines())]
+        anh = sorted(os.listdir(t)); ra = []
+        for i in range(0, len(anh), 120):   # đọc theo mẻ 120 khung (22/10/2026: một lượt 512 khung chạy quá 30 phút khi 3 đoạn song song → sập cả lô)
+            r = subprocess.run([KT.may_doc()] + [f"{t}/{a}" for a in anh[i:i + 120]], capture_output=True, text=True, check=True, timeout=900)
+            ra += [json.loads(l) for l in r.stdout.splitlines()]
+        return [((i + 0.5) / FPS, d) for i, d in enumerate(ra)]
 
 def khoang_cam(ds):
     """→ [(a, b, [x, y, w, h])] gộp các khung liền nhau dính từ cấm; ô = hợp các ô chữ dính"""

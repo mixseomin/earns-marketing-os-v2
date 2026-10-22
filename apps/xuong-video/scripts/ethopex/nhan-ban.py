@@ -34,9 +34,13 @@ def dem_dang_chay(content_id):
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(os.path.dirname(os.path.abspath(__file__)), tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
-def cong(content_id, creative_id):
-    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) — áp cho cả nhân bản lẫn camp góc mới (anh 22/10/2026)"""
-    return _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id)
+def cong(content_id, creative_id, ten=""):
+    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026"""
+    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id)
+    if chan: return chan
+    c, w = _nap("bh", "bai-hoc.py").da_lo(content_id, ten)
+    if w: print(w, file=sys.stderr)
+    return c
 
 def payload(goc_id, lich, moi=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
@@ -79,7 +83,7 @@ def main(a):
     try:
         d, ten, cid, pl = payload(goc, lich, moi); kq["ten"] = ten
         if moi: kq["viec"] = "tao_camp"
-        chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"])
+        chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ValueError(chan)
         n = dem_dang_chay(cid)
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")

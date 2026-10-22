@@ -43,6 +43,9 @@ def lam(x, ra):
 if __name__ == "__main__":
     lo, ra = json.load(open(sys.argv[1])), sys.argv[2]; n = int(sys.argv[3]) if len(sys.argv) > 3 else 3
     os.makedirs(ra, exist_ok=True)
-    with ThreadPoolExecutor(n) as ex: kq = list(ex.map(lambda x: lam(x, ra), [x for x in lo if "loi" not in x]))
+    def an_toan(x):   # một đoạn lỗi không được kéo sập cả lô (22/10/2026)
+        try: return lam(x, ra)
+        except Exception as e: return {**x, "loi": str(e)[-300:]}
+    with ThreadPoolExecutor(n) as ex: kq = list(ex.map(an_toan, [x for x in lo if "loi" not in x]))
     json.dump(kq, open(os.path.join(ra, "lo.json"), "w"), ensure_ascii=False, indent=1)
     for k in kq: print(json.dumps({a: k.get(a) for a in ("content_id", "tu", "den", "giay", "file", "loi")}, ensure_ascii=False))

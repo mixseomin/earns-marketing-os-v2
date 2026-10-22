@@ -3,7 +3,8 @@
 Chỉ hai việc, đúng API giao diện Ethopex dùng (đọc từ mã app 21/10/2026):
   tang <camp_id> <ngân sách>   → POST /api/v1/campaigns/update {campaign:{campaign_id, source_payload:{daily_budget}}}
   giam <camp_id> <ngân sách>   → cùng API update, chỉ xuống thang (luật GB, nhip_tang.chan_giam)
-  tat  <camp_id>               → POST /api/v1/campaigns/control/batch/bulk [{entity_type:'campaign', entity_ids:[id], status:'paused'}]
+  bat  <camp_id>               → bật lại (cùng API control, status 'active') — chỉ khi anh lệnh
+  tat  <camp_id> [--ep]        → POST /api/v1/campaigns/control/batch/bulk [{entity_type:'campaign', entity_ids:[id], status:'paused'}]
 Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: ≥ 3 giờ giữa hai lần). Làm xong ĐỌC LẠI camp để xác nhận.
 In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
 import json, os, subprocess, sys, time, urllib.request, importlib.util
@@ -22,10 +23,22 @@ def doc(cid):
     c = api(f"/api/v1/campaigns/{cid}")["campaign"]
     return {"ns": c.get("budget_daily"), "tt": c.get("state")}
 
+ROI_GIU = 20
+def roi_tong(cid):
+    """ROI cộng dồn từ đầu tháng tới hôm nay (Report Ethopex), None khi chưa tiêu"""
+    import datetime as dt
+    hn = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date()
+    rows = api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 2000, "page": 1, "page_size": 2000,
+                                  "date_from": hn.replace(day=1).isoformat(), "date_to": (hn + dt.timedelta(days=1)).isoformat()}).get("rows", [])
+    x = next((r for r in rows if r.get("campaign_id") == cid), None)
+    c, t = (float(x.get("cost") or 0), float(x.get("revenue") or 0)) if x else (0, 0)
+    return (t - c) / c * 100 if c else None
+
 def main(a):
     # --luat "<mã luật · số liệu>" (BẮT BUỘC ghi khi tăng — anh 21/10/2026) · --ai "<ai duyệt: anh (chat) / anh (nút Telegram)>"
     luat = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--luat"), None); ai = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--ai"), None)
-    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
+    ep = "--ep" in a   # anh lệnh đích danh (vd phim 18+) — bỏ qua chặn camp lãi
+    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
     try:
         truoc = doc(cid); kq["truoc"] = truoc
@@ -49,12 +62,22 @@ def main(a):
             ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "tat":
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đã {truoc['tt']}")
+            # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
+            # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
+            r_ = roi_tong(cid)
+            if r_ is not None and r_ > ROI_GIU and not ep: raise ValueError(f"camp đang lãi ROI {r_:+.0f}% (> {ROI_GIU}%) — không tắt (luật giữ camp lãi)")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
             d0 = (r.get("data") or [{}])[0]
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")
             ok = lambda s: s["tt"] == "PAUSED"
+        elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
+            if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
+            r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "active"}])
+            d0 = (r.get("data") or [{}])[0]
+            if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối bật")
+            ok = lambda s: s["tt"] == "ACTIVE"
         else:
-            raise ValueError("việc không hợp lệ (tang / giam / tat)")
+            raise ValueError("việc không hợp lệ (tang / giam / tat / bat)")
         for _ in range(12):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại tới ~60s (21/10/2026: 7/15 camp sau 18s chưa thấy, 20s sau mới đổi)
             time.sleep(5); sau = doc(cid)
             if ok(sau): break

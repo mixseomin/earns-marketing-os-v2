@@ -6,6 +6,6 @@ Checklist mỗi lượt:
 
 - Đọc bảng làn ↔ máy `may_cao_lan` + lần chạy gần nhất từng làn (DB spy)
 - Đọc hạn khoá 2proxy (API đơn hàng, ≤ 1 lần/giờ) + khoá gắn làn nào
-- Đọc tải / RAM box3 + `spy-cao-daemon`
+- Đọc % CPU bận thật (box3 + VPS) / RAM box3 + `spy-cao-daemon`
 - Ghi `/var/lib/cty/tai-nguyen.json`; cảnh báo mới → Telegram 🧰 Tài nguyên (nhắc lại sau 6 giờ nếu còn)
 - KHÔNG gia hạn / mua / đổi làn — chỉ báo

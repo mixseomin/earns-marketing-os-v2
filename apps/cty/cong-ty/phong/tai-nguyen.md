@@ -15,9 +15,9 @@ trang_thai: chạy một việc · Kiểm tài nguyên máy cào spy + số dư 
 **Làm mỗi 30 phút (box3, nhịp máy `kiem-tai-nguyen` — `apps/cty/worker/tai-nguyen.mjs`, $0, không gọi mô hình)**:
 1. Đọc bảng làn ↔ máy (`may_cao_lan`, DB spy) và lần chạy gần nhất của từng làn: cào chính (Meta/Google), góc thường, góc ưu tiên, đối thủ, SpyPro.
 2. Đọc hạn từng khoá 2proxy (API đơn hàng, tối đa 1 lần/giờ) và khoá đang gắn làn nào (tên biến trong `/root/.secrets/spy.env`, bảng `KHOA_LAN`).
-3. Đọc tải box3, RAM trống, trình duyệt máy cào (`spy-cao-daemon`).
+3. Đọc % CPU bận thật box3 + VPS (trung bình giữa hai nhịp, /proc/stat — không dùng load average), RAM trống, trình duyệt máy cào (`spy-cao-daemon`).
 4. Ghi ảnh chụp `/var/lib/cty/tai-nguyen.json`; cảnh báo MỚI → Telegram chủ đề 🧰 Tài nguyên (cùng cảnh báo nhắc lại sau 6 giờ):
-   làn được giao mà đứng > 2 giờ (SpyPro > 3 giờ) · khoá còn < 3 ngày · khoá trả tiền mà không làn nào dùng · box3 tải > 3,5 hoặc RAM < 1,2 GB · daemon trình duyệt tắt khi có làn giao box3.
+   làn được giao mà đứng > 2 giờ (SpyPro > 3 giờ) · khoá còn < 3 ngày · khoá trả tiền mà không làn nào dùng · box3 / VPS CPU bận ≥ 85% suốt khoảng giữa hai nhịp (kèm 3 tiến trình nặng nhất) hoặc RAM < 1,2 GB · daemon trình duyệt tắt khi có làn giao box3.
 
 **Số dư cổng API** (anh 20/10/2026: "phòng quản lý các API này về hiện trạng như balance… báo cáo hàng ngày qua telegram") — cùng nhịp, `apps/cty/worker/tai-nguyen-api.mjs`, $0:
 1. Đọc số dư thẳng từ cổng: ShopAIKey (trần − đã dùng), Kie.ai (credit), RunPod ($). ckey.vn chỉ đọc được bằng khoá TÀI KHOẢN (`ckey.vn/api/profile`, khác khoá AI) — đặt biến `CKEY_TAI_KHOAN_KEY` trong `.env.production` thì máy đọc; chưa có thì báo cáo ghi "chưa đọc được". Anthropic / Google / fal không có API số dư → chỉ báo tiền đã tiêu.

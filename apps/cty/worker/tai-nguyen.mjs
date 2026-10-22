@@ -1,7 +1,7 @@
 // PHÒNG TÀI NGUYÊN — nhịp máy `kiem-tai-nguyen` (anh 19/10/2026: "cần có phòng tài nguyên hay ai quản lý cái này cho tao" — sau một đêm slot 2proxy
 // nằm không, khoá hết hạn, máy cào chết 2 ngày, box3 quá tải mà không gì tự báo). $0: không gọi mô hình. Chạy trên box3 (cty-nhip.timer).
 // Mỗi nhịp đọc: (1) bảng làn ↔ máy `may_cao_lan` + lần chạy gần nhất của từng làn (DB spy), (2) hạn từng khoá 2proxy (API đơn hàng, ≤ 1 lần/giờ)
-// + khoá gắn làn nào (tên biến trong /root/.secrets/spy.env), (3) tải box3. Ghi ảnh chụp <DATA>/tai-nguyen.json, cảnh báo mới → Telegram chủ đề 🧰 Tài nguyên.
+// + khoá gắn làn nào (tên biến trong /root/.secrets/spy.env), (3) CPU bận box3 / VPS. Ghi ảnh chụp <DATA>/tai-nguyen.json, cảnh báo mới → Telegram chủ đề 🧰 Tài nguyên.
 // CHỈ BÁO: không gia hạn, không mua, không đổi làn (anh cấm tự gia hạn 2proxy 19/10/2026). Cùng cảnh báo chỉ nhắc lại sau 6 giờ.
 //   node worker/tai-nguyen.mjs --in        in ảnh chụp + cảnh báo (không gửi)
 //   node worker/tai-nguyen.mjs --tu-kiem
@@ -12,12 +12,23 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const SPY_ENV = '/root/.secrets/spy.env';
 /** Làn → khoá 2proxy dùng (tên biến trong spy.env). Một chỗ khai; làn mới thêm vào đây. */
 export const KHOA_LAN = { TWOPROXY_KEY_XOAY: 'cao_chinh', TWOPROXY_KEYS_SONG_SONG: 'cao_chinh', TWOPROXY_KEY_DT: 'doi_thu', TWOPROXY_KEY_UU: 'goc_uu' };
-export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, tai: 3.5, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, vpsTai: 3.5 };
+export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5 };
+// QUÁ TẢI = % CPU BẬN THẬT trung bình giữa hai nhịp (~30 phút, /proc/stat; chờ đĩa/mạng tính là rỗi) — KHÔNG dùng load average 1 phút: nó đếm cả
+// tiến trình ngồi chờ mạng/đĩa và một phút nhói là kêu (22/10/2026: box3 "thỉnh thoảng quá tải" theo nhịp deploy spy; VPS CPU rỗi 97% mà tải 4).
+// Báo kèm 3 tiến trình nặng nhất lúc chụp → biết nghẽn ở đâu, không đoán.
+const TOP3 = `top -b -c -n 2 -d 2 -o %CPU -w 300 | awk '/^top -/{n++} n==2 && $1 ~ /^[0-9]+$/ && c++ < 3 {a=""; for(i=12;i<=NF&&i<=15;i++) a=a" "$i; print $9"%"substr(a,1,70)}'`;
+/** Thuần: hai dòng "cpu …" của /proc/stat → % CPU bận giữa hai lần đọc (rỗi = idle + iowait); không tính được → null */
+export function banCpu(truoc, nay) {
+  const so = (d) => String(d || '').trim().split(/\s+/).slice(1).map(Number), a = so(truoc), b = so(nay), cong = (x) => x.reduce((t, v) => t + (v || 0), 0);
+  if (a.length < 5 || b.length < 5) return null;
+  const tong = cong(b) - cong(a), roi = b[3] + b[4] - a[3] - a[4];
+  return tong > 0 ? Math.round(100 - (100 * roi) / tong) : null;
+}
 // MÁY CHẠY VPS (22/10/2026): máy cào chính chạy trên VPS vpschinhhang may-cao-vn — phòng canh nó qua ssh (daemon trình duyệt + tải), tên máy trùng
 // giá trị may_cao_lan.may để biết làn nào đang giao cho nó.
 export const VPS = { 'may-cao-vn': { ssh: 'root@116.118.28.214', daemon: 'spy-may-cao-daemon' } };
 
-/** Thuần: ảnh chụp → cảnh báo [{khoa, chu}]. lan: [{lan, may, cuoi (ISO|null)}] · khoa: [{ma, lan, het (giây epoch)}] · may: {tai, ramMB, daemon} */
+/** Thuần: ảnh chụp → cảnh báo [{khoa, chu}]. lan: [{lan, may, cuoi (ISO|null)}] · khoa: [{ma, lan, het (giây epoch)}] · may: {ban, phut, nang, ramMB, daemon} */
 export function xetCanhBao(s, bayGio = Date.now()) {
   const ra = [];
   for (const l of s.lan) {
@@ -32,7 +43,8 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     if (k.het && ngay < NGUONG.khoaConNgay) ra.push({ khoa: `het:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> (${k.lan ?? 'chưa gắn làn'}) ${ngay < 0 ? 'ĐÃ HẾT HẠN' : `còn ${ngay.toFixed(1)} ngày`} — anh quyết gia hạn hay bỏ (máy không tự gia hạn)` });
     if (!k.lan || !lanBat.has(k.lan)) ra.push({ khoa: `nam:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> đang trả tiền mà ${k.lan ? `làn ${k.lan} đang tắt` : 'không làn nào dùng'} — slot nằm không` });
   }
-  if (s.may.tai > NGUONG.tai) ra.push({ khoa: 'box3:tai', chu: `box3 quá tải: tải ${s.may.tai} / 4 nhân` });
+  const nang = (m) => (m.nang?.length ? ` — nặng nhất: ${m.nang.join(' · ')}` : '');
+  if (s.may.ban >= NGUONG.cpuBan) ra.push({ khoa: 'box3:tai', chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}` });
   if (s.may.ramMB < NGUONG.ramMB) ra.push({ khoa: 'box3:ram', chu: `box3 thiếu RAM: còn ${s.may.ramMB} MB` });
   if (s.may.daemon === false && s.lan.some((l) => l.may === 'box3')) ra.push({ khoa: 'box3:daemon', chu: 'box3: trình duyệt máy cào (spy-cao-daemon) không chạy trong khi có làn giao box3' });
   // TÀI SẢN SẮP HẾT HẠN (anh 22/10/2026 "cập nhật vps mới vào cty để còn kiểm soát thời hạn, chi phí"): mọi dòng mos2 infra_resources còn < 5 ngày
@@ -45,7 +57,7 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     const coLan = s.lan.some((l) => l.may === v.ten);
     if (!v.toi) { if (coLan) ra.push({ khoa: `vps:${v.ten}:toi`, chu: `VPS <b>${v.ten}</b> không ssh vào được — làn cào giao cho nó đang đứng` }); continue; }
     if (coLan && !v.daemon) ra.push({ khoa: `vps:${v.ten}:daemon`, chu: `VPS <b>${v.ten}</b>: trình duyệt máy cào không chạy trong khi có làn giao cho nó` });
-    if (v.tai > NGUONG.vpsTai) ra.push({ khoa: `vps:${v.ten}:tai`, chu: `VPS <b>${v.ten}</b> quá tải: tải ${v.tai} / 4 nhân` });
+    if (v.ban >= NGUONG.cpuBan) ra.push({ khoa: `vps:${v.ten}:tai`, chu: `VPS <b>${v.ten}</b> quá tải: CPU bận ${v.ban}% suốt ${v.phut} phút qua${nang(v)}` });
   }
   return ra;
 }
@@ -83,7 +95,17 @@ export async function chupTaiNguyen() {
   const khoa = [];
   for (const [bien, l] of Object.entries(KHOA_LAN)) for (const k of String(env[bien] ?? '').split(/\s+/).filter(Boolean)) khoa.push({ ma: k.slice(-4), bien, lan: l, het: het[k] ?? 0 });
   for (const k of Object.keys(het)) if (!khoa.some((x) => k.endsWith(x.ma))) khoa.push({ ma: k.slice(-4), bien: null, lan: null, het: het[k] });
-  const [tai] = fs.readFileSync('/proc/loadavg', 'utf8').split(' ').map(Number);
+  // CPU bận từng máy so với lần đọc /proc/stat của nhịp trước (tệp cpu); chưa có lần trước / quá 2 giờ → đo tại chỗ 2 giây
+  const tepCpu = `${DATA()}/tai-nguyen-cpu.json`; let cpu = {}; try { cpu = JSON.parse(fs.readFileSync(tepCpu, 'utf8')); } catch { /* lần đầu */ }
+  const doCpu = (ten, chay) => {
+    let [dong, top] = chay(`head -1 /proc/stat`).split('\n'), truoc = cpu[ten], luc = Date.now();
+    if (!truoc || luc - truoc.luc > 2 * 36e5) { truoc = { dong, luc }; execFileSync('sleep', ['2']); dong = chay('head -1 /proc/stat'); luc = Date.now(); }
+    cpu[ten] = { dong, luc };
+    const ban = banCpu(truoc.dong, dong), phut = Math.max(1, Math.round((luc - truoc.luc) / 6e4));
+    return { ban, phut, nang: ban >= NGUONG.cpuBan ? chay(TOP3).split('\n').filter(Boolean) : [] };
+  };
+  const sh = (c) => execFileSync('sh', ['-c', c], { encoding: 'utf8', timeout: 20000 }).trim();
+  const box3 = doCpu('box3', sh);
   const ramMB = Math.round(Number(fs.readFileSync('/proc/meminfo', 'utf8').match(/MemAvailable:\s+(\d+)/)[1]) / 1024);
   let daemon = false; try { daemon = execFileSync('systemctl', ['is-active', 'spy-cao-daemon'], { encoding: 'utf8' }).trim() === 'active'; } catch { /* không active */ }
   // sổ tài sản mos2 (infra_resources): dòng còn hạn trong 30 ngày tới — đọc hỏng thì bỏ phần này, phần còn lại vẫn chạy
@@ -96,11 +118,13 @@ export async function chupTaiNguyen() {
   // máy chạy VPS: daemon + tải qua ssh (ConnectTimeout 8 giây); không vào được = toi:false
   const vps = Object.entries(VPS).map(([ten, v]) => {
     try {
-      const [d, t] = execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', v.ssh, `systemctl is-active ${v.daemon}; cut -d' ' -f1 /proc/loadavg`], { encoding: 'utf8', timeout: 20000 }).trim().split('\n');
-      return { ten, toi: true, daemon: d === 'active', tai: Number(t) };
+      const ssh = (c) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', v.ssh, c], { encoding: 'utf8', timeout: 20000 }).trim();
+      const d = ssh(`systemctl is-active ${v.daemon} || true`);
+      return { ten, toi: true, daemon: d === 'active', ...doCpu(ten, ssh) };
     } catch { return { ten, toi: false }; }
   });
-  return { luc: new Date().toISOString(), lan, khoa, may: { tai, ramMB, daemon }, taiSan, vps };
+  fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepCpu, JSON.stringify(cpu));
+  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps };
 }
 
 /** Nhịp (worker/nhip.mjs): chụp → lưu → cảnh báo MỚI (hoặc quá 6 giờ chưa nhắc) → Telegram. */
@@ -133,7 +157,7 @@ export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
 if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
   if (process.argv.includes('--tu-kiem')) {
     const assert = (await import('node:assert')).default, bay = Date.parse('2026-10-19T00:00:00Z'), gio = (h) => new Date(bay - h * 36e5).toISOString();
-    const may = { tai: 1, ramMB: 4000, daemon: true };
+    const may = { ban: 30, phut: 30, nang: [], ramMB: 4000, daemon: true };
     const k = (x) => xetCanhBao(x, bay).map((c) => c.khoa);
     assert.deepStrictEqual(k({ lan: [{ lan: 'goc_thuong', may: 'box3', cuoi: gio(0.5) }], khoa: [], may }), [], 'làn chạy 30 phút trước: im');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'imac', cuoi: gio(32) }], khoa: [], may }), ['lan:cao_chinh'], 'máy cào chết 32 giờ (17–19/10)');
@@ -141,7 +165,14 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'tat', cuoi: null }], khoa: [{ ma: 'yY4C', lan: 'cao_chinh', het: bay / 1000 + 14 * 86400 }], may }), ['nam:yY4C'], 'khoá trả tiền mà làn tắt = slot nằm không');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'imac', cuoi: gio(0) }], khoa: [{ ma: '08wY', lan: 'cao_chinh', het: bay / 1000 + 3600 }], may }), ['het:08wY'], 'khoá còn 1 giờ');
     assert.deepStrictEqual(k({ lan: [{ lan: 'spypro', may: 'imac', cuoi: gio(2.5) }], khoa: [], may }), [], 'spypro trần 3 giờ');
-    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { tai: 5.7, ramMB: 900, daemon: true } }), ['box3:tai', 'box3:ram'], 'box3 tải 5,7 (19/10)');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ban: 92, phut: 30, nang: ['88% node nap.mjs'], ramMB: 900, daemon: true } }), ['box3:tai', 'box3:ram'], 'box3 bận 92% suốt 30 phút + thiếu RAM');
+    assert.ok(xetCanhBao({ lan: [], khoa: [], may: { ...may, ban: 92, nang: ['88% node nap.mjs'] } }, bay)[0].chu.includes('nặng nhất: 88% node nap.mjs'), 'báo kèm tiến trình nặng nhất');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, ban: 60 } }), [], 'bận 60% (deploy nhói một lúc): im');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, ban: null } }), [], 'không đo được CPU: không báo bừa');
+    const st = (u, n, s, i, w) => `cpu  ${u} ${n} ${s} ${i} ${w} 0 0 0 0 0`;
+    assert.strictEqual(banCpu(st(0, 0, 0, 0, 0), st(90, 0, 10, 0, 0)), 100, 'toàn bận');
+    assert.strictEqual(banCpu(st(0, 0, 0, 0, 0), st(10, 0, 0, 40, 50)), 10, 'chờ đĩa (iowait) tính là rỗi');
+    assert.strictEqual(banCpu('', st(1, 0, 0, 1, 0)), null, 'thiếu lần trước → null');
     const ts = (id, ngay, thang = 37500000) => ({ id, ten: 'VPS may-cao-vn', nha: 'vpschinhhang', het: new Date(bay + ngay * 864e5).toISOString(), thang, tien: 'VND' });
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, taiSan: [ts(17, 20)] }), [], 'tài sản còn 20 ngày: im');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, taiSan: [ts(17, 3)] }), ['taisan:17'], 'VPS còn 3 ngày: báo');
@@ -150,7 +181,7 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     const lanVps = [{ lan: 'cao_chinh', may: 'may-cao-vn', cuoi: gio(0) }];
     assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: false }] }), ['vps:may-cao-vn:toi'], 'VPS mất kết nối khi có làn');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: false }] }), [], 'VPS mất kết nối nhưng không có làn: im');
-    assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: false, tai: 4.2 }] }), ['vps:may-cao-vn:daemon', 'vps:may-cao-vn:tai'], 'VPS daemon tắt + quá tải');
+    assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: false, ban: 97, phut: 30, nang: [] }] }), ['vps:may-cao-vn:daemon', 'vps:may-cao-vn:tai'], 'VPS daemon tắt + quá tải');
     console.log('tai-nguyen tu-kiem ok');
   } else if (process.argv.includes('--in')) {
     const s = await chupTaiNguyen(); console.log(JSON.stringify(s, null, 1)); console.log(xetCanhBao(s));

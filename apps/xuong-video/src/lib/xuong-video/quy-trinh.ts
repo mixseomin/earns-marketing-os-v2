@@ -48,10 +48,11 @@ export function thieuPhanCanh(phanCanh: Pick<PhanCanh, 'ten'>[], c: Pick<Canh, '
  *  cảnh (luu-canh.ts tự gắn): trước đây chỉ gắn anchor Claude tự liệt kê, món nhắc trong prompt bị sót → chặn keyframe (Tango & Lint tập 1). */
 /** Anchor được NHẮC TÊN trong prompt ảnh mà chưa gắn. Chỉ quét prompt ảnh (thứ có trong khung): chữ hành động nhắc cả người vắng mặt
  *  ("nơi Mr. Wipe sẽ tới") → gắn nhầm, keyframe vẽ thêm nhân vật không có mặt (cổng 3D bắt ở Tango & Lint 7.2a/7.3/4.6, 14/10/2026). */
-export function mauNhacTen(c: Pick<Canh, 'nhan_vat' | 'prompt_anh'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[]): Pick<NhanVat, 'id' | 'ten' | 'loai'>[] {
+export function mauNhacTen(c: Pick<Canh, 'nhan_vat' | 'prompt_anh'>, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & { bo_set_id?: number | null })[]): Pick<NhanVat, 'id' | 'ten' | 'loai'>[] {
   const chu = ` ${c.prompt_anh} `.toLowerCase();
   return nhanVat.filter((v) => {
-    if (v.loai === 'boi_canh' || v.loai === 'phong_cach' || c.nhan_vat.includes(v.id) || v.ten.trim().length < 3) return false;
+    // đối tượng CỐ ĐỊNH của bộ set (bo_set_id: cửa thang máy, logo, bàn, người phụ — doi-tuong-xuyen-suot.mts) vào shot qua bộ set + khung 3D (doc-db.ts › thayThem), không gắn tay
+    if (v.loai === 'boi_canh' || v.loai === 'phong_cach' || v.bo_set_id || c.nhan_vat.includes(v.id) || v.ten.trim().length < 3) return false;
     const t = v.ten.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(`(^|[^\\p{L}])${t}([^\\p{L}]|$)`, 'u').test(chu);
   });

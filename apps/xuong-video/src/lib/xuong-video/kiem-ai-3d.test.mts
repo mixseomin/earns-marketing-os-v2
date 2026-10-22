@@ -52,6 +52,8 @@ const the = (mo: string, vi: object[]) => ({ hanh_dong: '', prompt_anh: '', dan_
 assert.equal(theSai(the('Hạ looks at {Điện thoai}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), nv, set).length, 1);
 assert.equal(theSai(the('Hạ looks at {Điện thoại}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), nv, set).length, 1);
 assert.deepEqual(theSai(the('{Hạ} looks at {Điện thoại} on the {Bàn}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }, { ten: 'Điện thoại', tam: [0, -10, 110], huong: 0, cam: 'Hạ' }]), nv, set), []);
+// ĐỒ CỐ ĐỊNH CỦA SET có đối tượng cùng tên (đối tượng xuyên suốt, #132 "Thang máy 1"): chỗ đứng do set đặt → không đòi vi_tri; vẫn bắt nếu set không bật nó
+assert.deepEqual(theSai(the('Hạ waits at the {Bàn}', [{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), [...nv, { id: 99, ten: 'Bàn', loai: 'dao_cu', mo_ta: 'desk' } as never], set), []);
 // BỐ CỤC GỌI TÊN người không có trong khung 3D (#12 qua vai Vivian mà 3D không có Vivian) → chặn; có trong khung → qua
 const bcn = (trong: boolean) => ({ hanh_dong: '', prompt_anh: '', dan_dung: { bo_cuc: 'Reverse close-up on Hạ over Vivian’s shoulder' }, khung_xam: { kiem: [{ nhan_vat: 'Hạ', trong_khung: true, cao_khung_pt: 60, bi_che_boi: [] }, { nhan_vat: 'Vivian', trong_khung: trong, cao_khung_pt: 40, bi_che_boi: [] }] } }) as never;
 const nvB = [{ ten: 'Hạ', loai: 'nhan_vat', mo_ta: '' }, { ten: 'Vivian', loai: 'nhan_vat', mo_ta: '' }] as never;

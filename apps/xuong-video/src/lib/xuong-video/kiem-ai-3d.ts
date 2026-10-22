@@ -148,8 +148,10 @@ export function theSai(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> |
   for (const t of [...new Set(theTrong(chu))]) {
     const k = t.toLowerCase(); const a = nhanVat.find((x) => x.ten.toLowerCase() === k); const v = vat.find((x) => x.ten.toLowerCase() === k);
     if (!a && !v) { out.push(`thẻ {${t}} không trỏ tới nhân vật / đạo cụ / đồ set nào — sửa đúng tên`); continue; }
-    if (a && a.loai !== 'nhan_vat' && a.loai !== 'boi_canh' && !c.may_3d?.vi_tri.some((x) => x.ten.toLowerCase() === k)) out.push(`thẻ {${t}} nhắc đạo cụ mà shot không đặt nó trong 3D (may_3d.vi_tri) — thêm chỗ đứng hoặc bỏ thẻ`);
-    if (!a && v && !hien.has(k)) out.push(`thẻ {${t}} nhắc đồ set mà shot không bật (đồ tuỳ chọn / bị thay) — khai may_3d.them`);
+    // ĐỒ CỐ ĐỊNH CỦA SET có đối tượng cùng tên (đối tượng xuyên suốt — bo-set-3d.ts › doiTuongThieu: cửa thang máy, logo, bàn): chỗ đứng do bộ set đặt, không
+    // đòi may_3d.vi_tri như đạo cụ cầm tay (#132 #15: "Thang máy 1" vừa là vật set vừa là đối tượng → từng bị chặn "không đặt trong 3D").
+    if (a && !v && a.loai !== 'nhan_vat' && a.loai !== 'boi_canh' && !c.may_3d?.vi_tri.some((x) => x.ten.toLowerCase() === k)) out.push(`thẻ {${t}} nhắc đạo cụ mà shot không đặt nó trong 3D (may_3d.vi_tri) — thêm chỗ đứng hoặc bỏ thẻ`);
+    if (v && !hien.has(k)) out.push(`thẻ {${t}} nhắc đồ set mà shot không bật (đồ tuỳ chọn / bị thay) — khai may_3d.them`);
   }
   return out;
 }

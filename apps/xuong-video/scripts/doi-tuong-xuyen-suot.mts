@@ -31,7 +31,7 @@ for (const st of sets) {
     console.log(`  ${x.ly_do === 'chua_co' ? '✗ chưa có' : '◐ thiếu ảnh'} · ${x.ten} · ${x.so_shot} shot · ${x.nguoi ? 'người' : 'vật'}${v?.anh ? ' · có ảnh dán set' : ''} · ${v?.en ?? ''}`);
     if (!arg('tao') || x.ly_do !== 'chua_co') continue;
     const moTa = [v?.en, v?.ao && `wearing ${v.ao}`].filter(Boolean).join(', ');
-    await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, ${x.nguoi ? 'nhan_vat' : 'dao_cu'}, ${x.ten}, ${moTa}, ${JSON.stringify(v?.anh ? [v.anh] : [])}::jsonb)`);
+    await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, bo_set_id) VALUES (${phimId}, ${x.nguoi ? 'nhan_vat' : 'dao_cu'}, ${x.ten}, ${moTa}, ${JSON.stringify(v?.anh ? [v.anh] : [])}::jsonb, ${Number(st.id)})`);   // bo_set_id = đồ cố định của set: cổng không đòi gắn tay / chỗ đứng riêng
     tao++;
   }
 }

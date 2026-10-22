@@ -86,7 +86,8 @@ const CSS = `
 @media (max-width: 600px) { .tp .mini { display: none; } }
 .tp .tua { position: absolute; left: 50%; transform: translateX(-50%); bottom: 34px; z-index: 5; display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--nen2) 92%, transparent); border: 1px solid var(--vien); border-radius: 999px; padding: 4px 10px; }
 .tp .tua input { width: min(46vw, 320px); accent-color: #ffd27a; } .tp .tua button { border: 0; background: transparent; color: var(--chu); font-size: 15px; cursor: pointer; width: 28px; height: 28px; } .tp .tua-ngay { font: 600 11px system-ui; color: #ffd27a; min-width: 62px; text-align: center; }
-@media (max-width: 600px) { .tp .tua { top: 12px; bottom: auto; left: 62px; right: 12px; transform: none; } .tp .tua input { width: auto; flex: 1; min-width: 0; } }
+/* điện thoại: thanh tua xuống đáy bên trái — trên đỉnh nó đè nút thu bảng (góp ý #1434); chừa cụm nút điều hướng + nút 💬 bên phải */
+@media (max-width: 600px) { .tp .tua { top: auto; bottom: calc(12px + env(safe-area-inset-bottom)); left: 12px; right: 160px; transform: none; } .tp .tua input { width: auto; flex: 1; min-width: 0; } .tp .ngan:not([hidden]) ~ .tua, .tp .ben:not(.gon) ~ .tua { display: none; } }
 /* toàn màn giả cho iPhone (Safari iOS không cho phóng toàn màn một khối thường) — phủ kín khung nhìn, chừa tai thỏ */
 .tp.tp-full { position: fixed !important; inset: 0; z-index: 9999; width: 100vw !important; height: 100dvh !important; border-radius: 0 !important; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 @media (max-width: 600px) { .tp .ngan { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 55%; } .tp .ngan:not([hidden]) ~ .dieu { display: none; } .tp .ben { width: 156px; } }
@@ -132,7 +133,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // ĐIỀU KHIỂN CHUẨN 3D (anh 23/10/2026 "muốn xoay phải bấm 2 lần touchpad rồi di 3 phím — chuẩn 3D control thế nào thì dùng"): như Sketchfab / Google Earth / three.js OrbitControls —
   // chuột / touchpad: kéo = XOAY · Shift / Ctrl / ⌘ + kéo hoặc chuột phải = TRƯỢT · lăn chuột hoặc chụm 2 ngón = PHÓNG · vuốt 2 ngón touchpad = TRƯỢT (như bản đồ) · xoay 2 ngón (Safari) = XOAY
   // màn cảm ứng giữ kiểu bản đồ: 1 ngón trượt, 2 ngón chụm phóng + xoay
-  ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE }; ctl.enableZoom = false;
+  // enableZoom PHẢI bật: cờ này cũng mở chụm 2 ngón trên màn cảm ứng (góp ý #1435 — tắt nó để tự xử lăn chuột làm iPhone mất phóng);
+  // lăn chuột / touchpad thì chặn ở khung chứa (bắt sớm, stopPropagation) trước khi tới bộ điều khiển — xem onWheel
+  ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
   // CÀI ĐẶT ĐIỀU KHIỂN (anh 23/10/2026 "chỗ config control như invert scroll — giống các app 3D"): đảo chiều vuốt, đảo chiều phóng, kéo = xoay / trượt, tốc độ xoay; nhớ theo máy
   type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number };
   const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1 };
@@ -1074,7 +1077,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // lăn: chụm touchpad (ctrlKey) hoặc chuột có nấc → phóng; vuốt 2 ngón touchpad (delta mịn, có ngang) → trượt theo mặt đất
   const vPhai = new THREE.Vector3(), vTruoc = new THREE.Vector3(); let henLuu = 0;
   const onWheel = (e: WheelEvent) => {
-    e.preventDefault(); danhThuc(); bay = null;
+    e.preventDefault(); e.stopPropagation(); danhThuc(); bay = null;
     const chuot = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40 && Number.isInteger(e.deltaY));
     if (e.ctrlKey || chuot) { const v = cam.position.clone().sub(ctl.target), k = Math.exp((dk.daoPhong ? -1 : 1) * e.deltaY * (e.ctrlKey ? .012 : .0016)); v.setLength(Math.max(ctl.minDistance, Math.min(ctl.maxDistance, v.length() * k))); cam.position.copy(ctl.target).add(v); }
     else { const kc = cam.position.distanceTo(ctl.target) * .0016; vPhai.setFromMatrixColumn(cam.matrix, 0).setY(0).normalize(); vTruoc.copy(ctl.target).sub(cam.position).setY(0).normalize();
@@ -1082,7 +1085,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const s2 = dk.daoTruot ? -1 : 1, d = vPhai.multiplyScalar(s2 * e.deltaX * kc).add(vTruoc.multiplyScalar(-s2 * e.deltaY * kc)); ctl.target.add(d); cam.position.add(d); }
     ctl.update(); clearTimeout(henLuu); henLuu = window.setTimeout(luuCam, 400);
   };
-  r.domElement.addEventListener('wheel', onWheel, { passive: false });
+  host.addEventListener('wheel', onWheel, { passive: false, capture: true });   // bắt ở pha capture của khung chứa → bộ điều khiển không nhận lăn (không phóng đôi)
   // Safari trên Mac: cử chỉ xoay 2 ngón (gesture*) → xoay quanh tâm nhìn
   let gocCu = 0;
   const onGStart = (e: any) => { e.preventDefault(); gocCu = e.rotation ?? 0; };
@@ -1124,7 +1127,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const don = () => {
     cancelAnimationFrame(raf); ro.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
-    r.domElement.removeEventListener('pointerup', onUp); r.domElement.removeEventListener('pointermove', danhThuc); r.domElement.removeEventListener('wheel', onWheel); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); r.domElement.removeEventListener('contextmenu', onMenu);
+    r.domElement.removeEventListener('pointerup', onUp); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); r.domElement.removeEventListener('contextmenu', onMenu);
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };

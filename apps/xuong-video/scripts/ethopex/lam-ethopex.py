@@ -24,15 +24,29 @@ def doc(cid):
     return {"ns": c.get("budget_daily"), "tt": c.get("state")}
 
 ROI_GIU = 20
-def roi_tong(cid):
-    """ROI cộng dồn từ đầu tháng tới hôm nay (Report Ethopex), None khi chưa tiêu"""
+def roi_ky(cid):
+    """ROI của camp theo ba mốc (Report Ethopex, số mới nhất): hôm nay · 2 ngày gần nhất · cộng dồn từ đầu tháng. Mốc chi < $0,3 → None."""
     import datetime as dt
-    hn = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date()
-    rows = api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 2000, "page": 1, "page_size": 2000,
-                                  "date_from": hn.replace(day=1).isoformat(), "date_to": (hn + dt.timedelta(days=1)).isoformat()}).get("rows", [])
-    x = next((r for r in rows if r.get("campaign_id") == cid), None)
-    c, t = (float(x.get("cost") or 0), float(x.get("revenue") or 0)) if x else (0, 0)
-    return (t - c) / c * 100 if c else None
+    hn = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date(); mai = (hn + dt.timedelta(days=1)).isoformat()
+    def mot(tu):
+        rows = api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 2000, "page": 1, "page_size": 2000,
+                                      "date_from": tu, "date_to": mai}).get("rows", [])
+        x = next((r for r in rows if r.get("campaign_id") == cid), None)
+        c, t = (float(x.get("cost") or 0), float(x.get("revenue") or 0)) if x else (0, 0)
+        return (t - c) / c * 100 if c >= 0.3 else None
+    return {"hom_nay": mot(hn.isoformat()), "hai_ngay": mot((hn - dt.timedelta(days=1)).isoformat()), "tong": mot(hn.replace(day=1).isoformat())}
+
+def dang_lai(cid):
+    """camp còn lãi thì không tắt (anh 22/10/2026: "camp nào lãi hơn 20% thì bật lại", rồi "camp hơn 2 ngày có lãi sao lại đóng?"):
+    hôm nay > 20% · hoặc 2 ngày gần nhất có lãi (> 0) · hoặc cộng dồn > 0 → trả câu lý do, không thì None"""
+    r = roi_ky(cid)
+    if r["hom_nay"] is not None and r["hom_nay"] > ROI_GIU: return f"hôm nay ROI {r['hom_nay']:+.0f}%"
+    if r["hai_ngay"] is not None and r["hai_ngay"] > 0: return f"2 ngày ROI {r['hai_ngay']:+.0f}%"
+    if r["tong"] is not None and r["tong"] > 0: return f"cộng dồn ROI {r['tong']:+.0f}%"
+    return None
+
+def roi_tong(cid):
+    return roi_ky(cid)["tong"]
 
 def main(a):
     # --luat "<mã luật · số liệu>" (BẮT BUỘC ghi khi tăng — anh 21/10/2026) · --ai "<ai duyệt: anh (chat) / anh (nút Telegram)>"
@@ -64,8 +78,8 @@ def main(a):
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            r_ = roi_tong(cid)
-            if r_ is not None and r_ > ROI_GIU and not ep: raise ValueError(f"camp đang lãi ROI {r_:+.0f}% (> {ROI_GIU}%) — không tắt (luật giữ camp lãi)")
+            lai = None if ep else dang_lai(cid)
+            if lai: raise ValueError(f"camp đang lãi ({lai}) — không tắt (luật giữ camp lãi)")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
             d0 = (r.get("data") or [{}])[0]
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")

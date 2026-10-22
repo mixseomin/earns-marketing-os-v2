@@ -491,7 +491,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const coLora = nguoiKhung.filter((v) => v.lora?.url);
       const loraVe = coLora.map((v) => ({ path: v.lora!.url, scale: 1 }));
       const tuKhoa = coLora.map((v) => v.lora!.trigger).join(', ');
-      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { ...(lop && lop.nguoi.length >= 2 ? { lop } : {}), ...(loraVe.length ? { loras: loraVe, motBuoc: coLora.length === nguoiKhung.length } : {}), sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: `${tuKhoa ? `${tuKhoa}. ` : ''}${ghep(kF)}`, prompt2: ghep(kS), ref2 }, soat, khoi: { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { ...(lop && lop.nguoi.length >= 2 ? { lop } : {}), ...(loraVe.length ? { loras: loraVe, motBuoc: coLora.length === nguoiKhung.length } : {}), sau, ...(DUNG_XUONG && bc.canh.khung_xam?.xuong ? { xuong: bc.canh.khung_xam.xuong } : {}), prompt1: `${tuKhoa ? `${tuKhoa}. ` : ''}${ghep(kF)}`, prompt2: ghep(kS), ref2 }, soat,
+        // CHẤM đúng đường SẼ ĐI: shot ≥ 2 người đi ghép từng người (plate Nano = prompt một bước + lượt mặt từng người), bước 1 FLUX / bước 2 không gửi —
+        // chấm chúng chặn oan (#16: "bước 1 dài 338 từ, không nói bộ đồ" trong khi plate Nano không có giới hạn 300 từ)
+        khoi: lop && lop.nguoi.length >= 2 ? { mot_buoc: k1 } : { mot_buoc: k1, flux: kF, sua_nhan_dang: kS } };
     }
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }

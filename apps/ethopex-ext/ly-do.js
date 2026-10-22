@@ -25,7 +25,8 @@
     }
   };
   let hen = 0;
-  new MutationObserver(() => { if (!hen) hen = requestAnimationFrame(() => { hen = 0; gan(); }); })
+  let henTai = 0;
+  new MutationObserver(() => { if (!hen) hen = requestAnimationFrame(() => { hen = 0; gan(); }); clearTimeout(henTai); henTai = setTimeout(() => taiSan(), 1500); })
     .observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   gan();
 
@@ -35,7 +36,20 @@
   const o = document.createElement('div');
   o.style.cssText = 'position:fixed;z-index:2147483647;max-width:560px;max-height:80vh;overflow:auto;padding:10px 12px;border-radius:8px;background:#1f1d1a;color:#f4efe6;font:13px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none;white-space:normal';
   document.documentElement.appendChild(o);
-  fetch(API + '&phim=__lam_nong__').catch(() => {});   // làm nóng dữ liệu phía mos2 ngay khi mở trang
+  // TẢI SẴN (anh 22/10/2026 "có cách nào tải nhanh hơn"): mở trang là lấy luôn lý do đóng + creative của MỌI phim đang hiện (một lượt gọi) → rê vào là hiện ngay
+  let dangTai = null;
+  const tenPhimTrenTrang = () => [...document.querySelectorAll('tbody tr')].filter((tr) => ![...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || '')))
+    .map((tr) => [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); }))
+    .filter(Boolean).map((td) => td.textContent.trim());
+  const taiSan = () => {
+    const can = [...new Set(tenPhimTrenTrang())].filter((t) => !phimNho[t] || Date.now() - phimNho[t].luc > 120000).slice(0, 100);
+    if (!can.length || dangTai) return;
+    dangTai = fetch(API + '&phims=' + encodeURIComponent(can.join('\n'))).then((r) => r.json()).then((r) => {
+      if (r.ok) for (const t of can) if (r.phim[t]) phimNho[t] = { luc: Date.now(), r: r.phim[t] };
+      for (const t of can) for (const c of ((phimNho[t] || {}).r || {}).creative?.slice(0, 4) || []) if (c.anh) new Image().src = c.anh;   // ảnh 4 creative đầu vào bộ nhớ trình duyệt
+    }).catch(() => {}).finally(() => { dangTai = null; });
+  };
+  lay(); setTimeout(taiSan, 800);
   // KHUNG XEM LỚN: rê vào ảnh creative → ảnh to; video chỉ bắt đầu tải lúc này, đủ dữ liệu mới chạy (anh 22/10/2026: "tải ảnh + chỉ số trước,
   // hover vào creative mới tải video; ảnh cần xem to"). Bấm ảnh = ghim khung, bấm ra ngoài = đóng.
   const lon = document.createElement('div');
@@ -61,7 +75,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const tien = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));
   const roi = (v) => (v == null ? '' : ' · <b style="color:' + (v >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (v > 0 ? '+' : '') + v + '%</b>');
-  const so = (x) => tien(x.chi) + ' → ' + tien(x.thu) + roi(x.roi);
+  const phanTram = (v) => (v == null ? '' : '<b style="color:' + (v >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (v > 0 ? '+' : '') + v + '%</b>');
   const hien = (html, ev) => {
     o.innerHTML = html; o.style.display = 'block';
     const x = Math.min(ev.clientX + 16, innerWidth - o.offsetWidth - 8), y = Math.max(8, Math.min(ev.clientY + 12, innerHeight - o.offsetHeight - 8));
@@ -92,20 +106,29 @@
   const vePhim = async (ten, ev) => {
     if (dang === 'p' + ten) return; dang = 'p' + ten;
     hien('<b>🎬 ' + esc(ten) + '</b><br>đang tải creative…', ev);
+    if (dangTai) await dangTai;   // đang tải sẵn cả trang → chờ nó, không gọi lẻ
     if (!phimNho[ten] || Date.now() - phimNho[ten].luc > 120000) {
       try { const r = await (await fetch(API + '&phim=' + encodeURIComponent(ten))).json(); phimNho[ten] = { luc: Date.now(), r }; } catch (e) { phimNho[ten] = { luc: Date.now(), r: { creative: [] } }; }
     }
     if (dang !== 'p' + ten) return;
     const r = phimNho[ten].r, ds = r.creative || [];
     if (!ds.length) return hien('<b>🎬 ' + esc(ten) + '</b><br>Chưa nối được creative nào của phim này.', ev);
+    // CHỈ SỐ THẲNG CỘT (anh 22/10/2026: "bố cục phần chỉ số thẳng cột với nhau cho đẹp và dễ theo dõi"): bảng nhãn | chi | → | thu | ROI, số căn phải,
+    // chữ số đều bề ngang; dòng camp dùng chung cột: #id | nhãn BẬT/TẮT | ROI tháng
+    const td_ = 'padding:1px 0 1px 8px;text-align:right;white-space:nowrap;color:inherit;border:0;background:none';
+    const dong = (nhan, x) => '<tr><td style="padding:1px 0;opacity:.75;color:inherit;border:0">' + nhan + '</td><td style="' + td_ + '">' + tien(x.chi) + '</td><td style="padding:1px 0 1px 6px;opacity:.5;color:inherit;border:0">→</td><td style="' + td_ + '">' + tien(x.thu) +
+      '</td><td style="' + td_ + ';min-width:52px">' + phanTram(x.roi) + '</td></tr>';
+    const nhanCamp = (k) => k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>';
     const the = ds.slice(0, 12).map((c) => {
       const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:76px;height:135px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:76px;height:135px;background:#333;border-radius:4px;flex:none"></div>';
-      const camps = c.camp.slice(0, 4).map((k) => '#' + k.id + ' ' + (k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>') + roi(k.roi)).join('<br>') + (c.camp.length > 4 ? '<br>+' + (c.camp.length - 4) + ' camp' : '');
-      return '<div style="display:flex;gap:8px;padding:6px 0;border-top:1px solid #3a3631">' + anh + '<div style="min-width:0">' +
+      const camps = c.camp.slice(0, 4).map((k) => '<tr><td style="padding:1px 0;color:inherit;border:0">#' + k.id + '</td><td colspan="3" style="padding:1px 0 1px 8px;border:0">' + nhanCamp(k) + '</td><td style="' + td_ + '">' + phanTram(k.roi) + '</td></tr>').join('') +
+        (c.camp.length > 4 ? '<tr><td colspan="5" style="padding:1px 0;opacity:.7;color:inherit;border:0">+' + (c.camp.length - 4) + ' camp</td></tr>' : '');
+      return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #3a3631">' + anh + '<div style="min-width:0">' +
         '<b>' + esc(c.dang || 'creative') + '</b>' + (c.doan ? ' · ' + esc(c.doan) : '') + (c.creative_id ? ' · #' + c.creative_id : '') +
         ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt luật</span>' : '<span style="color:#ffb74d">CTA cũ</span>') +
-        '<br>Tháng: ' + so(c.thang) + '<br>Hôm nay: ' + so(c.hom_nay) + '<br>Hôm qua: ' + so(c.hom_qua) +
-        '<div style="margin-top:4px;font-size:12px">' + camps + '</div>' +
+        '<table style="border-collapse:collapse;table-layout:fixed;width:300px;margin-top:3px;color:inherit;font:inherit;font-variant-numeric:tabular-nums;background:none">' +
+        '<colgroup><col style="width:66px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' + dong('Tháng', c.thang) + dong('Hôm nay', c.hom_nay) + dong('Hôm qua', c.hom_qua) +
+        '<tr><td colspan="5" style="height:5px;padding:0;border:0"></td></tr>' + camps + '</table>' +
         (c.video ? '<a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff;font-size:12px">mở video</a>' : '') + '</div></div>';
     }).join('');
     hien('<b>🎬 ' + esc(ten) + '</b> · ' + ds.length + ' creative · ' + r.so_camp + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + the, ev);

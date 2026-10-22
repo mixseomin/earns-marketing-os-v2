@@ -111,12 +111,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     networkRows(tu30).catch((e: Error) => { loi.push(`hoa hồng aff: ${e.message}`); return null; }),
     docEthopex().catch((e: Error) => { loi.push(`Ethopex: ${e.message}`); return null; }),
   ]);
-  // máy đang chạy mos2 (box3) tự kê site nó phục vụ từ nginx — thêm vhost là tự hiện, không phải khai
-  let siteMayNay: string[] = [];
-  try { const { readdirSync, readFileSync: doc } = await import('node:fs'); const dir = '/etc/nginx/sites-enabled';
-    siteMayNay = [...new Set(readdirSync(dir).flatMap((f) => [...doc(`${dir}/${f}`, 'utf8').matchAll(/server_name\s+([^;]+);/g)].flatMap((m) => m[1]!.trim().split(/\s+/))).map((h) => h.replace(/^www\./, '')).filter((h) => /\./.test(h) && !h.endsWith('.on.tc')))];
-  } catch { /* không phải máy chủ (máy dev) */ }
-  const { hostname } = await import('node:os');
+  const mayChu = await docMayChu().catch((e: Error) => { loi.push(`máy chủ: ${e.message}`); return []; });
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
@@ -131,13 +126,30 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     tkCua: [...tk.map((x) => ({ nen: x.platform_key, handle: x.handle, duAn: x.project_id, khoa: x.khoa })), ...phuPf.map((x) => ({ nen: x.slug, handle: x.slug, duAn: x.project_id, khoa: false }))],
     tienAds: ads.map((x) => ({ site: x.site, usd: Number(x.usd) || 0 })),
     hat: hat.map((x) => ({ kind: x.kind, label: x.label, duAn: x.project_id, het: x.het ? x.het.slice(0, 10) : null, ip: x.ip ?? (x.origin?.match(/\d+\.\d+\.\d+\.\d+/)?.[0] ?? null), chi: Number(x.chi) || 0, tien: x.currency })),
-    mayNay: siteMayNay.length ? { ten: hostname(), sites: siteMayNay } : null,
+    mayChu,
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
       ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
     tienAff: [...(aff?.rows ?? []).filter((r) => r.source === 'affiliate' && r.date >= tu30).map((r) => ({ site: r.site ? r.site.replace(/^www\./, '') : null, mang: r.group ?? r.channel, usd: r.amount })),
       ...(etp ? [{ site: null, mang: 'Ethopex', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.thu, 0) }] : [])],
   };
 }
+/** MÁY CHỦ (thành phố › nhà máy điện): mỗi máy tự kê site nó phục vụ (server_name trong nginx) + tải CPU / RAM / đĩa. Máy chạy mos2 đọc tại chỗ,
+ *  máy khác qua ssh (box3 có khoá). Nhớ 15 phút. Thêm máy = thêm một dòng ở đây; máy không ssh được (box2) chỉ hiện theo sổ hạ tầng. */
+const MAY_CHU: { ten: string; ip: string; ssh: string | null }[] = [
+  { ten: 'box3 · mos2', ip: '167.233.241.16', ssh: null }, { ten: 'box1 · as.on.tc', ip: '5.78.65.158', ssh: 'root@5.78.65.158' }, { ten: 'VPS may-cao-vn', ip: '116.118.28.214', ssh: 'root@116.118.28.214' },
+];
+const LENH_MAY = `cat /proc/loadavg | cut -d' ' -f1; nproc; free -m | awk '/Mem:/{print $7}'; df -P / | awk 'NR==2{print $5}'; grep -hs 'server_name' /etc/nginx/sites-enabled/* | sed 's/#.*//' | tr ';' '\n' | grep server_name | sed 's/server_name//'`;
+const docMayChu = unstable_cache(async () => {
+  const { execFile } = await import('node:child_process'), { promisify } = await import('node:util'), chay = promisify(execFile);
+  return Promise.all(MAY_CHU.map(async (m) => {
+    try {
+      const { stdout } = m.ssh ? await chay('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', m.ssh, LENH_MAY], { timeout: 12000 }) : await chay('bash', ['-c', LENH_MAY], { timeout: 8000 });
+      const [tai, nhan, ram, dia, ...ten] = stdout.split('\n');
+      const sites = [...new Set(ten.join(' ').split(/\s+/).map((h) => h.trim().replace(/^www\./, '')).filter((h) => /\.[a-z]{2,}$/.test(h) && !h.endsWith('.on.tc') && h !== '_'))];
+      return { ...m, tai: Number(tai) || 0, nhan: Number(nhan) || 1, ramMB: Number(ram) || 0, diaPct: parseInt(dia ?? '', 10) || 0, sites, loi: null as string | null };
+    } catch (e) { return { ...m, tai: null, nhan: null, ramMB: null, diaPct: null, sites: [] as string[], loi: (e as Error).message.slice(0, 80) }; }
+  }));
+}, ['tp-may-chu-v1'], { revalidate: 900 });
 /** NGUỒN APP (Apple Analytics, scripts/app-store-so.mjs ghi Directus product_stats.raw_data.chiTiet): 30 ngày, mỗi app × nguồn → hiển thị / xem trang / tải lần đầu. */
 async function docNguonApp(): Promise<{ sp: string; nguon: string; hien: number; xem: number; tai: number }[]> {
   const url = process.env.DIRECTUS_URL || 'https://as.on.tc', token = process.env.DIRECTUS_TOKEN; if (!token) return [];

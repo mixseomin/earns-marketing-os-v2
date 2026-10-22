@@ -81,7 +81,7 @@ export interface PhoLuong { tu: string; den: string; so: number }
 /** KHO BẠC: tiền thật 30 ngày (USD) theo loại nguồn tiền */
 export interface PhoTien { tong: number; theo: { ten: string; so: number }[]; chi: { tong: number; theo: { ten: string; so: number }[] } }
 /** NHÀ MÁY = máy chủ chạy site: tên, nhà cung cấp, chi tháng, hạn, các site nó cấp điện, cảnh báo (sắp hết hạn) */
-export interface PhoNhaMay { khoa: string; ten: string; chiThang: string | null; het: string | null; sites: string[]; canhBao: string | null }
+export interface PhoNhaMay { khoa: string; ten: string; chiThang: string | null; het: string | null; sites: string[]; canhBao: string | null; tai?: number | null; nhan?: number | null; ramMB?: number | null; diaPct?: number | null }
 export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; fav: Record<string, string | null> }
 /** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
 export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
@@ -115,8 +115,8 @@ export interface VaoHeSinhThai {
   tienAff?: { site: string | null; mang: string; duAn?: string | null; usd: number }[];
   /** sổ hạ tầng (infra_resources): máy chủ (hosting: ip) và tên miền (domain: hạn, ip máy gốc) */
   hat?: { kind: string; label: string; duAn: string | null; het: string | null; ip: string | null; chi: number; tien: string }[];
-  /** máy đang chạy mos2 + các site nó phục vụ (đọc nginx tại chỗ) */
-  mayNay?: { ten: string; sites: string[] } | null;
+  /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
+  mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null }[];
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
@@ -318,7 +318,15 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
       for (const d of dich) if (d.loai === 'site' && r.duAn && d.duAn === `d:${r.duAn}` && !m.sites.includes(d.site!)) m.sites.push(d.site!); }
     else { const s = r.label.replace(/^www\./, ''); if (siteDich.has(s) && !m.sites.includes(s)) m.sites.push(s); }
   }
-  if (hst.mayNay) { const m = layMay(`may:${hst.mayNay.ten}`, `${hst.mayNay.ten} · máy chạy mos2`); for (const s of hst.mayNay.sites) if (siteDich.has(s) && !m.sites.includes(s)) m.sites.push(s); }
+  // máy đo trực tiếp: tên chuẩn, tải, site theo nginx (một site chỉ thuộc một máy: máy đo được thắng sổ)
+  for (const mc of hst.mayChu ?? []) {
+    const m = layMay(mc.ip, mc.ten); m.ten = mc.ten; Object.assign(m, { tai: mc.tai, nhan: mc.nhan, ramMB: mc.ramMB, diaPct: mc.diaPct });
+    for (const s of mc.sites) if (siteDich.has(s)) { for (const k of may.values()) if (k !== m) k.sites = k.sites.filter((x) => x !== s); if (!m.sites.includes(s)) m.sites.push(s); }
+    const qt = mc.tai != null && mc.nhan ? mc.tai / mc.nhan : 0;
+    if (mc.loi) m.canhBao = m.canhBao ?? `Không đo được máy (${mc.loi})`;
+    else if (qt > .9) m.canhBao = m.canhBao ?? `Quá tải: ${mc.tai} / ${mc.nhan} nhân`;
+    else if ((mc.diaPct ?? 0) >= 90) m.canhBao = m.canhBao ?? `Đĩa đầy ${mc.diaPct}%`;
+  }
   const nhaMay = [...may.values()].filter((m) => m.sites.length || m.canhBao).sort((a, b) => b.sites.length - a.sites.length);
   return { tk, dich, duAn, luong, tien, nhaMay, fav: live.fav };
 }

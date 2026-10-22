@@ -448,10 +448,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const nenM = add(new THREE.BoxGeometry(44, 10, 30), M({ color: '#3b3f4c', roughness: .7 })); nenM.position.set(x, 5, z); nenM.userData = { loai: 'may', nm };
       for (const dx of [-10, 10]) { const thap = add(new THREE.CylinderGeometry(5, 8, 26, 20, 1, true), M({ color: '#9aa3b8', roughness: .6, side: THREE.DoubleSide })); thap.position.set(x + dx, 23, z); thap.userData = { chu: nenM };
         if (nm.canhBao) khoi(x + dx, 36, z, undefined as unknown as PhoTk, nenM); }
-      const den = add(new THREE.SphereGeometry(1.6, 10, 10), new THREE.MeshBasicMaterial({ color: nm.canhBao ? '#ff3b4e' : '#ffd27a' }), false); den.position.set(x, 12, z - 15.5); den.userData = { chu: nenM };
+      const den = add(new THREE.SphereGeometry(1.6, 10, 10), new THREE.MeshBasicMaterial({ color: nm.canhBao ? '#ff3b4e' : nm.tai != null && nm.nhan && nm.tai / nm.nhan > .7 ? '#ffb703' : '#3fd68a' }), false); den.position.set(x, 12, z - 15.5);   // đèn: xanh = khoẻ, vàng = tải > 70%, đỏ = cảnh báo den.userData = { chu: nenM };
       const c = document.createElement('canvas'); c.width = 512; c.height = 120; const g = c.getContext('2d')!;
       g.fillStyle = 'rgba(20,22,30,.9)'; g.beginPath(); g.roundRect(4, 4, 504, 112, 18); g.fill(); g.strokeStyle = nm.canhBao ? '#ff3b4e' : '#ffd27a'; g.lineWidth = 4; g.stroke();
-      g.fillStyle = '#ffd27a'; g.font = '800 34px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(`⚡ ${nm.ten}`.slice(0, 34), 256, 52, 490); g.fillStyle = '#fff'; g.font = '600 30px system-ui, sans-serif'; g.fillText(`${nm.sites.length} site`, 256, 96);
+      g.fillStyle = '#ffd27a'; g.font = '800 34px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(`⚡ ${nm.ten}`.slice(0, 34), 256, 52, 490); g.fillStyle = '#fff'; g.font = '600 30px system-ui, sans-serif'; g.fillText(`${nm.sites.length} site${nm.tai != null ? ` · tải ${nm.tai}/${nm.nhan}` : ''}`, 256, 96);
       const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(52, 12, 1); bien.position.set(x, 46, z); bien.userData = { chu: nenM }; the.add(bien);
       // CÁP NGẦM (anh 22/10/2026 "đổi thành đường chạy ngầm dưới lòng đất"): nét đứt sáng sát mặt đất theo phố — nhà máy → làn cáp cạnh đại lộ → tới site; tia điện chạy dọc cáp
       nm.sites.forEach((s2, j) => { const p = viTri[`s:${s2}`]; if (!p?.cua) return;
@@ -531,7 +531,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         [`🚗 Khách về đích (${t.phienKy})`, t.phien], ['Trạng thái', t.dung ? '⏸ dừng' : t.hong ? `🔴 ${esc(t.hong)}` : '🟢 chạy']] };
     }
     if (u.loai === 'may') { const nm = u.nm as typeof mh.nhaMay[number];
-      return { dau: `⚡ ${esc(nm.ten)}`, h: [['Site đang chạy', nm.sites.length], ...(nm.chiThang ? [['Chi tháng', esc(nm.chiThang)] as [string, string]] : []), ...(nm.het ? [['Hạn', `${nm.het.slice(8)}/${nm.het.slice(5, 7)}/${nm.het.slice(0, 4)}`] as [string, string]] : []),
+      return { dau: `⚡ ${esc(nm.ten)}`, h: [['Site đang chạy', nm.sites.length], ...(nm.tai != null ? [['⚙ Tải CPU', `${nm.tai} / ${nm.nhan} nhân`] as [string, string], ['🧠 RAM trống', `${nm.ramMB} MB`] as [string, string], ['💾 Đĩa', `${nm.diaPct}%`] as [string, string]] : []), ...(nm.chiThang ? [['Chi tháng', esc(nm.chiThang)] as [string, string]] : []), ...(nm.het ? [['Hạn', `${nm.het.slice(8)}/${nm.het.slice(5, 7)}/${nm.het.slice(0, 4)}`] as [string, string]] : []),
         ...(nm.canhBao ? [['⚠️', esc(nm.canhBao)] as [string, string]] : []), ...nm.sites.slice(0, 12).map((x) => [`↳ ${esc(x)}`, ''] as [string, string])] };
     }
     if (u.loai === 'kho') { const top = mh.dich.filter((d) => !d.cha && (d.tien30 ?? 0) > 0).sort((a, b) => b.tien30! - a.tien30!);

@@ -230,8 +230,10 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
 # VẬT LIỆU QUÉT TỪ ĐỒ THẬT (anh 19/10/2026, nhịp 2 "Blender tăng độ chân thật"): mỗi chất một bộ texture PBR CC0 Poly Haven 2k (màu · nhám · pháp
 # tuyến), tải bằng tai-tai-san.sh vào tai-san/vl/<mã>/. Thiếu tệp → rơi về vật liệu dựng tay như cũ. o_m = ô vân bao nhiêu cm.
 VL_QUET = {'go': ('wood_table_001', 30), 'da_cam_thach': ('marble_01', 120), 'tuong_son': ('painted_plaster_wall', 150), 'vai': ('fabric_pattern_07', 25),
-           'tham': ('dirty_carpet', 100), 'kim_loai': ('metal_plate', 60), 'be_tong': ('concrete_floor_02', 150), 'da_thuoc': ('brown_leather', 40),
+           'tham': ('dirty_carpet', 100), 'be_tong': ('concrete_floor_02', 150), 'da_thuoc': ('brown_leather', 40),
            'gach': ('floor_tiles_06', 120)}
+# kim_loai KHÔNG quét: Poly Haven chỉ có 'metal_plate' (tôn gân kim cương) — vân đó in lên cửa thang máy ở khung màu rồi keyframe chép theo (phim #132 #15,
+# 23/10/2026); thép xước dùng vật liệu dựng tay (Metallic 0,9 · Roughness 0,32) trơn, model đọc là brushed steel.
 # Món chưa khai `chat` → đoán theo mô tả tiếng Anh (en) của bộ set — một bảng, không phải sửa dữ liệu từng phim. Kính / cửa sổ / màn hình không đoán.
 CHAT_TU_EN = [(r'\bmarble\b', 'da_cam_thach'), (r'\bcarpet|\brug\b', 'tham'), (r'\bconcrete\b', 'be_tong'), (r'\bleather\b', 'da_thuoc'),
               (r'\btiles?\b', 'gach'), (r'\b(walnut|oak|wood(en)?|timber)\b', 'go'), (r'\b(steel|metal|aluminium|aluminum|chrome)\b', 'kim_loai'),

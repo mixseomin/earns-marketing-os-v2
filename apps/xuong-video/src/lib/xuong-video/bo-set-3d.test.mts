@@ -216,7 +216,8 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // BAN_DUNG 107: gender MakeHuman 0 = nữ, 1 = nam (đặt ngược từ đầu — nữ thân nam cơ bắp, nam thân nữ).
 // BAN_DUNG 108: người đi quay mặt theo hướng đi, đi trong cửa sổ mã mocap đi, vận tốc hình thang, chúi 3°; mocap đi phát theo QUÃNG + lặp một vòng bước liền.
 // BAN_DUNG 109: dáng đi theo chuẩn ngành (tham-khao/di-bo.md) — chọn đoạn CMU theo tốc độ, distance matching kẹp ±20 %, stride warping, quay 75°/s đo từ CMU 16_17…20; bỏ chúi / nhún tự đặt cho người thật.
-assert.deepEqual([BAN_DUNG, bam], [109, '060423757384'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// BAN_DUNG 110: kim_loai bỏ texture quét 'metal_plate' (tôn gân kim cương in lên cửa thang máy #132 #15) → thép trơn dựng tay
+assert.deepEqual([BAN_DUNG, bam], [110, '5f4896fbb453'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

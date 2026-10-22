@@ -319,6 +319,7 @@ export function tinBaoCao({ ten, ca, ngay, trongNgay, cho, hoc, goi, usd }) {
 /** Nhịp thật (box3): đọc hòm → Telegram + pixel. env: DIRECTUS_*, TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
 export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', ca, diemDanh, tep = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/bao-mat-tg.json` } = {}) {
   const fs = await import('node:fs'); const { vpBao } = await import('./vp.mjs');
+  _fs ??= fs;   // nút anh bấm (tp: tạo chủ đề, kc: sai phòng) xử TRƯỚC khi đọc hòm thư — trước đây _fs còn null ở đó nên hai nút này ném lỗi im lặng (22/10/2026)
   const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
   const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; });
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
@@ -343,7 +344,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
       try {
         await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [] } });
         if (y === 'ok') { const { topicPhong, ghimNhanSu } = await import('./tg-phong.mjs'); const path = await import('node:path'); const { GOC } = await import('./goc.mjs');
-          const tenPh = (_fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${ph}.md`), 'utf8').match(/^ten:\s*(.+)$/m)?.[1] ?? ph).replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, '').trim();
+          const tenPh = (fs.readFileSync(path.join(GOC, 'cong-ty', 'phong', `${ph}.md`), 'utf8').match(/^ten:\s*(.+)$/m)?.[1] ?? ph).replace(/^Phòng\s+/, '').replace(/\s*\(.*\)$/, '').trim();
           const tp = await topicPhong(ph, `📂 ${tenPh}`, tg, { duocTao: true }); await ghimNhanSu(ph, tg).catch(() => {});
           await tg('answerCallbackQuery', { callback_query_id: c.id, text: tp ? `Đã tạo chủ đề 📂 ${tenPh}` : 'Tạo chủ đề hỏng' });
           await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: c.message.message_id, allow_sending_without_reply: true }, parse_mode: 'HTML', text: `✅ ${esc(ai)} cho tạo chủ đề 📂 ${esc(tenPh)} — thư phòng này từ giờ vào đó.` });

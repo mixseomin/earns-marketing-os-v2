@@ -35,7 +35,7 @@ export const LUAT: Luat[] = [
     lam: 'Tăng vào ~21h · ~24h · 8h giờ VN; không thu lại sau khung', vi: 'Camp chạy chủ yếu Mỹ — hiệu suất tốt nhất 21h → 5h sáng giờ VN. Ngân sách $1–3 chưa cần canh giờ.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'GT', ten: 'Giảm / tắt khi ROI tụt', icon: '↓', muc: 'ha', gac: 'nguoi', khi: `ROI 3 ngày gần tụt ≥ 30 điểm so với 4 ngày trước, hoặc từ ≥ ${ROI_TOI_THIEU}% xuống < 0 (đã chi ≥ $3)`,
     lam: 'Anh xem giảm ngân sách hoặc tắt camp', vi: 'Phim đi xuống hoặc creative bão hoà → CPC/CPA tăng, ROI tụt. Ngoài ca này không cần đụng ngân sách.', nguon: 'Dol Dang 21/10/2026' },
-  { ma: 'OFF', ten: 'Tắt camp lỗ sâu', icon: '■', muc: 'dung', gac: 'nguoi', khi: 'Tiêu từ trước tới nay > $10 mà ROI < −50%', lam: 'Tắt camp', vi: 'Đã đủ tiền để biết camp không ăn — tạm thời theo ngưỡng này.', nguon: 'Dol Dang 21/10/2026' },
+  { ma: 'OFF', ten: 'Tắt camp lỗ sâu', icon: '■', muc: 'dung', gac: 'nguoi', khi: 'Camp đã chạy ≥ 7 ngày, tiêu từ trước tới nay > $10 mà ROI < −50%', lam: 'Tắt camp (anh duyệt)', vi: 'Đủ thời gian + đủ tiền mới biết camp không ăn; camp trẻ hơn 7 ngày mà lỗ thì giảm bậc, không tắt (anh 22/10/2026).', nguon: 'Dol Dang 21/10/2026 · anh 22/10/2026' },
   { ma: 'TC', ten: 'Ad bị Meta từ chối', icon: '⛔', muc: 'dung', gac: 'nguoi', khi: 'Ad DISAPPROVED', lam: 'Không xoá — Edit camp, thay creative SẠCH cùng phim đã được duyệt, Update cho Meta duyệt lại',
     vi: 'Giữ camp + lịch sử; Meta đôi khi duyệt nhầm, thay creative tuân thủ là qua.', nguon: 'Dol Dang 21/10/2026' },
   { ma: 'SC', ten: 'Số camp / phim', icon: '#', muc: 'bao', gac: 'may', khi: `Phim đang test: tối đa ${TEST_TOI_DA} camp · phim thắng (anh duyệt): tối đa ${THANG_TOI_DA}`,
@@ -49,7 +49,7 @@ export const LUAT: Luat[] = [
   { ma: '18', ten: 'Chặn phim 18+', icon: '⛔', muc: 'dung', gac: 'may', khi: 'Phim trong danh sách cấm · tên/chữ QC gợi dục · chưa soát hình poster + tờ khung',
     lam: 'Không lên camp (kiem-phim-18.py ở dung-camp + nhan-ban); cảnh hôn trong phim được phép thì làm mờ, thoại nhạy cảm che kiểu TV (che-thoai.py)',
     vi: 'SIMP NO MORE và phim cùng kiểu bị anh dừng toàn bộ.', nguon: 'anh 22/10/2026' },
-  { ma: 'GL', ten: 'Không tắt camp đang lãi / chưa tiêu đủ $10', icon: '✓', muc: 'bao', gac: 'may', khi: 'Chi tháng < $10 · hôm nay ROI > 20% · 2 ngày gần nhất có lãi · cộng dồn có lãi',
+  { ma: 'GL', ten: 'Không tắt camp đang lãi / chưa đủ 7 ngày / chưa tiêu đủ $10', icon: '✓', muc: 'bao', gac: 'may', khi: 'Camp < 7 ngày · chi tháng < $10 · hôm nay ROI > 20% · 2 ngày gần nhất có lãi · cộng dồn có lãi',
     lam: 'lam-ethopex tat từ chối (đọc số mới nhất lúc tắt) và chỉ chạy khi anh duyệt (nút Telegram / lệnh đích danh) — máy không tự tắt', vi: 'Doanh thu về trễ — số chụp cũ làm tắt nhầm camp lãi; chưa tiêu $10 thì chưa đủ dữ liệu để đóng.', nguon: 'anh 22/10/2026' },
   { ma: 'DC', ten: 'Dạng creative theo phim (đề xuất)', icon: '◇', muc: 'bao', gac: 'nguoi', khi: 'Chấm theo PHIM (gộp mọi camp cùng content): phim thắng / đang test / phim dài lỗ',
     lam: 'Phim chưa thắng: test bằng cảnh thật cắt đoạn sâu (0đ), không làm kể chuyện · Phim thắng: thêm kể chuyện (dùng lại hình bản thắng, thay lời/giọng) · Phim dài 2–3\' lỗ: bỏ dạng này · Mọi dạng đều lỗ sâu: dừng làm creative mới',
@@ -61,6 +61,7 @@ export const LUAT: Luat[] = [
 export const LUAT_THEO_MA = Object.fromEntries(LUAT.map((l) => [l.ma, l])) as Record<string, Luat>;
 
 export type SoLieu = { chi: number; thu: number };
+export const TUOI_TAT = 7;   // review tắt camp chỉ khi camp đủ 7 ngày (anh 22/10/2026)
 export type CampEtp = {
   id: number; ten: string; trang_thai: string; giao: string; ngan_sach: number; dong_bo: string | null; tao: string;
   content_id: number | null; creative_id: number | null; phim: string | null; ngon_ngu: string | null; studio_phim_id: number | null;
@@ -93,7 +94,9 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
       dk: [{ ten: 'Đã chi hôm nay', hien: `$${c.hom_nay.chi.toFixed(2)}`, nguong: '≥ $0,5', dat: c.hom_nay.chi >= 0.5 }, { ten: 'ROI hôm nay', hien: pct(rh), nguong: '> 50%', dat: rh != null && rh > 50 }] });
   }
   // all-time ≈ từ đầu tháng (dự án bắt đầu 19/10/2026) — đổi sang report all-time khi qua tháng
-  { const r = roi(c.thang); if (c.thang.chi > 10 && r != null && r < -50) out.push({ ma: 'OFF', trang_thai: 'cham', cau: `Tiêu $${c.thang.chi.toFixed(2)}, ROI ${pct(r)} → tắt`, dk: [{ ten: 'Đã tiêu', hien: `$${c.thang.chi.toFixed(2)}`, nguong: '> $10', dat: true }, { ten: 'ROI', hien: pct(r), nguong: '< −50%', dat: true }] }); }
+  { const r = roi(c.thang), tuoi = Math.floor((Date.now() - new Date(c.tao).getTime()) / 86_400_000);
+    if (c.thang.chi > 10 && r != null && r < -50) out.push({ ma: 'OFF', trang_thai: tuoi >= TUOI_TAT ? 'cham' : 'gan', cau: tuoi >= TUOI_TAT ? `${tuoi} ngày · tiêu $${c.thang.chi.toFixed(2)}, ROI ${pct(r)} → tắt (anh duyệt)` : `Lỗ sâu nhưng camp mới ${tuoi} ngày — chưa tới kỳ review tắt (≥ ${TUOI_TAT} ngày), giảm bậc`,
+      dk: [{ ten: 'Tuổi camp', hien: `${tuoi} ngày`, nguong: `≥ ${TUOI_TAT} ngày`, dat: tuoi >= TUOI_TAT }, { ten: 'Đã tiêu', hien: `$${c.thang.chi.toFixed(2)}`, nguong: '> $10', dat: true }, { ten: 'ROI', hien: pct(r), nguong: '< −50%', dat: true }] }); }
   if (c.thang.chi >= 30 && c.thang.thu > c.thang.chi) out.push({ ma: 'M30', trang_thai: 'cham', cau: `Đã tiêu $${c.thang.chi.toFixed(2)} mà vẫn lãi — hỏi Support scale bài viết cũ + bid ROAS`, dk: [] });
   if (ke == null) out.push({ ma: 'TR20', trang_thai: 'cham', cau: `Đã ở trần $${TRAN_CAMP}`, dk: [{ ten: 'Ngân sách', hien: `$${c.ngan_sach}`, nguong: `$${TRAN_CAMP}`, dat: true }] });
   if (c.ngan_sach > NGAN_SACH_CHUA_CAN_GIO || tbDat) out.push({ ma: 'KG', trang_thai: 'ap', cau: 'Khi tăng: chọn mốc ~21h · ~24h · 8h giờ VN', dk: [] });
@@ -109,7 +112,7 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
   if (c.gan.chi + c.truoc.chi > 0) {
     const du = c.gan.chi >= 1.5 && c.truoc.chi >= 1.5 && c.gan.chi + c.truoc.chi >= 3;
     const tut = rg != null && rt != null && ((rt >= ROI_TOI_THIEU && rg < 0) || rt - rg >= 30);
-    out.push({ ma: 'GT', trang_thai: du && tut ? 'cham' : 'ap', cau: du && tut ? `ROI tụt ${pct(rt)} → ${pct(rg)} — anh xem giảm / tắt` : `ROI 4 ngày trước ${pct(rt)} · 3 ngày gần ${pct(rg)}`,
+    out.push({ ma: 'GT', trang_thai: du && tut ? 'cham' : 'ap', cau: du && tut ? `ROI tụt ${pct(rt)} → ${pct(rg)} — anh xem giảm${Date.now() - new Date(c.tao).getTime() >= TUOI_TAT * 86_400_000 ? ' / tắt' : ' (camp < 7 ngày: không tắt)'}` : `ROI 4 ngày trước ${pct(rt)} · 3 ngày gần ${pct(rg)}`,
       dk: [{ ten: 'Đã chi đủ (≥ $1,5 mỗi kỳ, ≥ $3 tổng)', hien: `$${c.truoc.chi.toFixed(2)} / $${c.gan.chi.toFixed(2)}`, nguong: '≥ $3', dat: du },
            { ten: 'ROI tụt', hien: `${pct(rt)} → ${pct(rg)}`, nguong: `≥ 30 điểm hoặc ≥ ${ROI_TOI_THIEU}% → < 0`, dat: tut }] });
   }

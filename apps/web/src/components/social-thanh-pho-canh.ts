@@ -5,7 +5,7 @@
 // Cửa sổ sáng = bài đang chạy · thùng tím ở chân = bài sắp đăng · cột sáng xanh = lượt xem · xe trên phố = khách về site · đèn đỏ + khói = hỏng ·
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
-import { KHU_XUONG, LINH_VUC, TEN_BAN, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
+import { KHU_XUONG, LINH_VUC, TEN_BAN, TRANG_THAI_VN, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 import { wrapExternalUrl } from '@/lib/external-url';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
 
@@ -605,7 +605,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         z -= sz / 2 + 4; }
       // nhà xưởng: thân thấp + mái răng cưa
       const xx = x0 + dai / 2, zz = z0 - cao + 18, than = add(new THREE.BoxGeometry(70, 14, 24), M({ color: '#6b5636', roughness: .7 })); than.position.set(xx, 7, zz); than.userData = { loai: 'khu', khoa: KHU_XUONG };
-      for (let i = 0; i < 5; i++) { const r2 = add(new THREE.CylinderGeometry(7, 7, 24, 3), M({ color: '#c98a2f', emissive: '#7a4f12', emissiveIntensity: .25 })); r2.rotation.set(Math.PI / 2, 0, 0); r2.position.set(xx - 28 + i * 14, 17, zz); r2.userData = { chu: than }; }
+      for (let i = 0; i < 5; i++) { const r2 = add(new THREE.CylinderGeometry(7, 7, 24, 3), M({ color: '#c98a2f', emissive: '#7a4f12', emissiveIntensity: .25 })); r2.rotation.set(-Math.PI / 2, 0, 0); r2.position.set(xx - 28 + i * 14, 17, zz); r2.userData = { chu: than }; }
       const c = document.createElement('canvas'); c.width = 512; c.height = 140; const gc = c.getContext('2d')!; gc.fillStyle = 'rgba(40,28,8,.92)'; gc.beginPath(); gc.roundRect(4, 4, 504, 132, 20); gc.fill(); gc.strokeStyle = '#ffd27a'; gc.lineWidth = 5; gc.stroke();
       gc.fillStyle = '#ffd27a'; gc.font = '800 52px system-ui, "Apple Color Emoji", sans-serif'; gc.textAlign = 'center'; gc.fillText('🏭 XƯỞNG SX', 256, 62); gc.fillStyle = '#fff'; gc.font = '700 34px system-ui, sans-serif'; gc.fillText(`${xs.length} sản phẩm chờ lên`, 256, 112);
       const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(60, 16, 1); bien.position.set(xx, 38, zz); bien.userData = { chu: than }; the.add(bien);
@@ -702,11 +702,22 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${lv.ic} Phường ${esc(lv.ten)}`, h: [['Khu', ks_.length], ['Site', ds_.filter((d) => d.loai === 'site').length], ['App · sản phẩm', ds_.filter((d) => d.loai !== 'site').length],
         ['Phiên 30 ngày', so(ds_.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ['💵 Tiền 30 ngày', `$${ds_.reduce((a, d) => a + (d.tien30 ?? 0), 0).toFixed(2)}`]] };
     }
-    if (u.loai === 'khu') { const k = khuCua(u.khoa)!, ds_ = mh.dich.filter((d) => d.duAn === k.khoa), sites = ds_.filter((d) => d.loai === 'site'), sps = ds_.filter((d) => d.loai === 'sp');
+    // XƯỞNG SX: thẻ riêng — không có phường / nguồn; mỗi đích chưa lên một hàng kèm dự án gốc và trạng thái duyệt
+    if (u.loai === 'khu' && u.khoa === KHU_XUONG) { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha);
+      return { dau: '🏭 Xưởng SX', h: [['Chờ lên', `${xs.length} sản phẩm · app`], ['Dự án', [...new Set(xs.map((d) => d.duAnGocTen ?? '—'))].length]],
+        bang: { cot: ['Sản phẩm', 'Dự án', 'Trạng thái'], dong: xs.map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : d.loai === 'app' ? '📱' : '🛍'} ${esc(d.ten.slice(0, 28))}`, esc((d.duAnGocTen ?? '—').slice(0, 16)), esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? 'đang duyệt')]) } };
+    }
+    // khu dự án: chỉ hiện dòng có nghĩa với khu đó (khu không site thì không có dòng phiên / nguồn; khu có nền tảng thì có camp + chi + lãi)
+    if (u.loai === 'khu') { const k = khuCua(u.khoa)!, ds_ = mh.dich.filter((d) => d.duAn === k.khoa), sites = ds_.filter((d) => d.loai === 'site'), sps = ds_.filter((d) => d.loai === 'sp'), cs = ds_.filter((d) => d.loai === 'camp');
       const ve = mh.luong.filter((l) => ds_.some((d) => d.khoa === l.den)), theo = (lo: string) => cong2(ve.filter((l) => mh.tk.find((t) => t.id === l.tu)?.loai === lo));
-      return { dau: `${k.site ? oFav(k.site) : ''} DỰ ÁN · ${esc(k.ten)}`, h: [['Phường', `${LINH_VUC[k.linhVuc]!.ic} ${LINH_VUC[k.linhVuc]!.ten}`], ['💵 Tiền 30 ngày', `$${ds_.filter((d) => !d.cha).reduce((a, d) => a + (d.tien30 ?? 0), 0).toFixed(2)}`], ['Trạng thái', k.ngung ? '⏸ ngừng hoạt động' : '🟢 đang chạy'], ['🌐 Site', sites.length], ['🛍 Sản phẩm', `${sps.filter((d) => !d.sapLen).length} đang bán · ${sps.filter((d) => d.sapLen).length} sắp lên`],
-        ['Phiên 30 ngày (mọi site)', so(sites.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ['🔍 Từ tìm kiếm', theo('tim')], ['📣 Từ quảng cáo', theo('qc')], ['🔗 Từ giới thiệu', theo('gt')], ['📱 Từ social', theo('mxh')]],
-        bang: sps.length ? { cot: ['Sản phẩm', '👁 7 ngày', '💵 30 ngày'], dong: sps.slice(0, 10).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 30))}`, ...(d.sapLen ? ['🏗 sắp lên'] : [d.xem7 ?? '—', tienO(d.tien30)])]) } : undefined };
+      const thu = ds_.filter((d) => !d.cha).reduce((a, d) => a + (d.tien30 ?? 0), 0), chi = ds_.filter((d) => !d.cha).reduce((a, d) => a + (d.chi30 ?? 0), 0);
+      const h: [string, string | number][] = [['Phường', `${LINH_VUC[k.linhVuc]!.ic} ${LINH_VUC[k.linhVuc]!.ten}`], ['Trạng thái', k.ngung ? '⏸ ngừng hoạt động' : '🟢 đang chạy'], ['💵 Thu 30 ngày', tienO(thu)]];
+      if (chi) h.push(['💸 Chi 30 ngày', tienO(chi)], [thu >= chi ? '🟢 Lãi 30 ngày' : '🔴 Lỗ 30 ngày', tienO(thu - chi)]);
+      if (cs.length) h.push(['🎬 Camp', `${cs.length} toà · ${cs.filter((c) => c.trangThai === 'active').length} đang chạy`]);
+      if (sites.length) h.push(['🌐 Site', sites.length], ['Phiên 30 ngày (mọi site)', so(sites.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ...([['🔍 Từ tìm kiếm', 'tim'], ['📣 Từ quảng cáo', 'qc'], ['🔗 Từ giới thiệu', 'gt'], ['📱 Từ social', 'mxh']] as const).filter(([, lo]) => theo(lo)).map(([n, lo]) => [n, theo(lo)] as [string, number]));
+      if (sps.length) h.push(['🛍 Sản phẩm', `${sps.filter((d) => !d.sapLen).length} đang bán`]);
+      return { dau: `${k.site ? oFav(k.site) : ''} DỰ ÁN · ${esc(k.ten)}`, h,
+        bang: sps.length ? { cot: ['Sản phẩm', '👁 7 ngày', '💵 30 ngày'], dong: sps.slice(0, 10).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 30))}`, d.xem7 ?? '—', tienO(d.tien30)]) } : undefined };
     }
     if (u.loai === 'dich') { const d = u.d as typeof mh.dich[number];
       const tienH: [string, string][] = [...(d.tien30 != null ? [['💵 Thu 30 ngày', `$${d.tien30.toFixed(2)} · ${esc(d.tienPhan?.map((p) => p.loai).join(' + ') || d.loaiTien || '')}`] as [string, string]] : []),
@@ -715,14 +726,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (d.loai === 'app') { const ban = mh.dich.filter((b) => b.cha === d.khoa);
         return { dau: `📱 ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH],
           bang: { cot: ['Cửa hàng', '👁 7 ngày', '⬇ 30 ngày', '💵 30 ngày'], dong: ban.map((b) => [`${b.hostBan ? oFav(b.hostBan, 14) : ''} ${esc(TEN_BAN[b.nenBan ?? ''] ?? b.nenBan ?? '')}`,
-            ...(b.sapLen ? [`🏗 ${esc(b.trangThai ?? 'đang duyệt')}`] : [b.xem7 ?? '—', b.tai ?? '—', tienO(b.net)])]) } };
+            ...(b.sapLen ? [`🏗 ${esc(TRANG_THAI_VN[b.trangThai ?? ''] ?? b.trangThai ?? 'đang duyệt')}`] : [b.xem7 ?? '—', b.tai ?? '—', tienO(b.net)])]) } };
       }
       if (d.loai === 'nen') { const cs = mh.dich.filter((b) => b.cha === d.khoa);
         return { dau: `${oFav(d.hostBan ?? 'facebook.com')} ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH, ['Camp (toà quanh)', `${cs.length} · ${cs.filter((c) => c.trangThai === 'active').length} đang chạy`]],
           bang: { cot: ['Camp', '💵 Thu 30n', '💸 Chi 30n', 'Lãi'], dong: cs.slice(0, 12).map((c) => [esc((c.phim ?? c.ten).slice(0, 26)), tienO(c.tien30), tienO(c.chi30), `${(c.tien30 ?? 0) >= (c.chi30 ?? 0) ? '🟢' : '🔴'} ${tienO((c.tien30 ?? 0) - (c.chi30 ?? 0))}`]) } };
       }
       if (d.loai === 'camp') return { dau: `🎬 ${esc(d.phim ?? d.ten)}`, h: [['Camp', esc(d.ten)], ['Ngôn ngữ', esc((d.ngonNgu ?? '—').toUpperCase())], ['Trạng thái', d.trangThai === 'active' ? '🟢 đang chạy' : `⏸ ${esc(d.trangThai ?? '')}`], ...tienH] };
-      if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(TEN_BAN[d.nenBan ?? ''] ?? d.nenBan ?? '—')], ['Dự án', khuTen(d)], ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
+      if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(TEN_BAN[d.nenBan ?? ''] ?? d.nenBan ?? '—')], ['Dự án', khuTen(d)], ['Trạng thái', d.sapLen ? `🏗 ${esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? 'sắp lên')}` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);
       const may_ = mh.nhaMay.find((x) => x.sites.includes(d.site!));

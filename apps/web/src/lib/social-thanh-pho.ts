@@ -133,6 +133,8 @@ export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com',
 const NEN_APP = new Set(['app-store', 'ms-store', 'play-store']);
 /** cửa bán → tên người đọc (thẻ hover, biển tường) */
 export const TEN_BAN: Record<string, string> = { 'app-store': 'App Store', 'ms-store': 'Microsoft Store', 'play-store': 'Google Play', gumroad: 'Gumroad', etsy: 'Etsy', kdp: 'Amazon KDP', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI', 'wordpress.org': 'WordPress.org', stripe: 'Stripe', course: 'Khoá học', camp: 'Camp Meta' };
+/** trạng thái chưa lên của sản phẩm → chữ người đọc (thẻ Xưởng SX, bản cửa hàng) */
+export const TRANG_THAI_VN: Record<string, string> = { ready: 'sẵn sàng', in_review: 'đang duyệt', owner_review: 'chờ anh duyệt', pending: 'chờ xử lý' };
 /** khu XƯỞNG SX (anh 22/10/2026): mọi đích chưa lên — đứng cạnh Công ty AI, không chen vào khu dự án */
 export const KHU_XUONG = 'xuong';
 /** số camp Ethopex dựng thành toà quanh khu (nhiều tiền nhất); phần còn lại cộng vào toà Ethopex */

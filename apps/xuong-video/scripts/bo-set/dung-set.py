@@ -28,6 +28,15 @@ if MESH_THAT:
 KHO_MESH = {}
 # NGƯỜI (khoi_3d.hinh = 'nguoi', phim người thật — bước 5): ma-nơ-canh có khớp mesh/nguoi.py; NGUOI[tên] = các khớp để vòng diễn đặt bước chân.
 NGUOI = {}
+_DC = None
+def dc():
+    """Khuôn đạo cụ (mesh/dao-cu.py) — nạp một lần."""
+    global _DC
+    if _DC is None:
+        import importlib.util as _iu3
+        _s3 = _iu3.spec_from_file_location('dao_cu', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mesh', 'dao-cu.py'))
+        _DC = _iu3.module_from_spec(_s3); _s3.loader.exec_module(_DC)
+    return _DC
 _NG = None
 def ng():
     global _NG
@@ -157,6 +166,12 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         o = bpy.data.objects.new(ten, cv); bpy.context.collection.objects.link(o); cv.materials.append(m); return o
     x, y, z = p['tam']; w, d, c = p['co']
     a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
+    if p.get('dao_cu'):   # KHUÔN ĐẠO CỤ có hình thật (mesh/dao-cu.py — ly, điện thoại, hồ sơ, thẻ, thùng, bút), đúng co; mặt in từ ảnh mẫu (anh)
+        o = dc().dung(p['dao_cu'], ten, [w, d, c], anh_cache(p['anh']) if p.get('anh') else None)
+        if o:
+            o.location = (gx * CM, gy * CM, (z + c / 2) * CM)
+            o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))
+            return o
     if h == 'hop':
         bpy.ops.mesh.primitive_cube_add(size=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
     elif h in ('cau', 'trung'):
@@ -701,7 +716,7 @@ def nhan_vat(sh, ket=False):
             bpy.context.view_layer.update()
             if nv.get('nam'): nam_xuong(mt, X, Y, Z, hg, d, h)
             than.append(mt[0]); tat_ca.extend(mt); continue
-        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat'), 'nghieng': nv.get('nghieng') or mau_nv.get('nghieng') or 0}, f"NV {nv['ten']}", (X, Y), hg)   # nghieng: đồ nghiêng / lật theo shot (vi_tri)
+        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4), 'hat': mau_nv.get('hat'), 'dao_cu': mau_nv.get('dao_cu'), 'anh': mau_nv.get('anh'), 'nghieng': nv.get('nghieng') or mau_nv.get('nghieng') or 0}, f"NV {nv['ten']}", (X, Y), hg)   # nghieng: đồ nghiêng / lật theo shot (vi_tri)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
         if nv.get('tran') and ket is not True: tat_ca.extend(tran_(o, nv, w, h, mau_nv.get('dinh', 1.0)))

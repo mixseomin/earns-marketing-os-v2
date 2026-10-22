@@ -98,9 +98,12 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     docNguonApp().catch((e: Error) => { loi.push(`nguồn app (Apple): ${e.message}`); return []; }),
     (d.execute(sql`SELECT product_id, refs FROM product_daily WHERE refs IS NOT NULL AND date >= to_char(current_date - 30, 'YYYY-MM-DD')`) as unknown as Promise<{ product_id: string; refs: Record<string, number> | null }[]>).catch(() => []),
     (d.execute(sql`SELECT khoa, linh_vuc FROM linh_vuc_gan`) as unknown as Promise<{ khoa: string; linh_vuc: string }[]>).catch((e: Error) => { loi.push(`sổ lĩnh vực: ${e.message}`); return []; }),
-    // đơn shop mặt tiền 30 ngày (trừ hoàn), theo tên miền chính của cửa hàng; cửa hàng demo không tính
+    // đơn shop mặt tiền 30 ngày (trừ hoàn), theo tên miền chính của cửa hàng; cửa hàng demo, đơn huỷ / chưa trả / đơn thử không tính
     (d.execute(sql`SELECT c.domain AS site, coalesce(sum(o.tong - coalesce(o.hoan, 0)), 0)::float AS usd FROM shop_don o JOIN shop_cua_hang c ON c.id = o.cua_hang_id
-      WHERE NOT coalesce(c.demo, false) AND o.tao_luc > now() - interval '30 days' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
+      WHERE NOT coalesce(c.demo, false) AND o.tao_luc > now() - interval '30 days'
+        -- chỉ đơn thật đã trả: bỏ đơn huỷ / hoàn / lỗi / chưa trả và đơn thử (test-mos2@… ngày 01/10 làm Kho bạc báo nhầm $49,99 — anh hỏi 22/10/2026)
+        AND coalesce(o.trang_thai_shop, '') NOT IN ('cancelled', 'refunded', 'failed', 'pending', 'trash', 'draft') AND coalesce(o.khach->>'email', '') NOT ILIKE 'test%'
+      GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
     // AdSense theo site (dòng site_domain rỗng = tổng tài khoản, bỏ) · chi quảng cáo hệ PHỦ · nền aff hệ PHỦ → dự án (Chaturbate → Chat When Bored)
     (d.execute(sql`SELECT regexp_replace(site_domain, '^www\.', '') AS site, sum(earnings_usd)::float AS usd FROM adsense_daily WHERE date > current_date - 30 AND coalesce(site_domain, '') <> '' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
     (d.execute(sql`SELECT nguon_key AS nguon, project_id, sum(chi_usd)::float AS usd FROM phu_chi WHERE ngay > current_date - 30 GROUP BY 1, 2`) as unknown as Promise<{ nguon: string; project_id: string | null; usd: number }[]>).catch(() => []),

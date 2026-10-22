@@ -757,7 +757,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       // app chưa lên đứng như một hộp (logo cửa hàng của bản đầu), không bày quảng trường + bản cửa hàng
       const xs = xuongK.sites.concat(xuongK.sps), nhom = [...new Set(xs.map((d) => d.duAnGocTen ?? '—'))].sort((a, b) => xs.filter((d) => (d.duAnGocTen ?? '—') === b).length - xs.filter((d) => (d.duAnGocTen ?? '—') === a).length);
       for (const d of xs) if (d.loai === 'app' && !d.hostBan) d.hostBan = mh.dich.find((b2) => b2.cha === d.khoa)?.hostBan;
-      const O = 17, cum = nhom.map((g) => { const ds2 = xs.filter((d) => (d.duAnGocTen ?? '—') === g), cot = Math.min(4, Math.ceil(Math.sqrt(ds2.length))); return { g, ds2, cot, rong: cot * O + 12, sau: Math.ceil(ds2.length / cot) * O + 22 }; });
+      const O = 25, cum = nhom.map((g) => { const ds2 = xs.filter((d) => (d.duAnGocTen ?? '—') === g), cot = Math.min(4, Math.ceil(Math.sqrt(ds2.length))); return { g, ds2, cot, rong: cot * O + 12, sau: Math.ceil(ds2.length / cot) * O + 22 }; });
       const RONG_LO = Math.max(180, Math.min(320, cum.reduce((a, c) => a + c.rong + 14, 0))), dai = RONG_LO + 20;
       let cx2 = 0, cz2 = 0, hangSau = 0; const vt2 = cum.map((c) => { if (cx2 + c.rong > RONG_LO) { cx2 = 0; cz2 += hangSau + 14; hangSau = 0; } const v = { x: cx2, z: cz2 }; cx2 += c.rong + 14; hangSau = Math.max(hangSau, c.sau); return v; });
       const cao = cz2 + hangSau + 90, x0 = (coCty ? xCty : xKho + 150) - dai / 2, z0 = -40;

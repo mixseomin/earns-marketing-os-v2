@@ -19,15 +19,19 @@ export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; 
    *  "màn nào"; thiếu cái này thì card không nói được anh đang nhìn THỨ GÌ trên màn đó (#1108, 05/10/2026). Chỉ tin gốc có. */
   nguCanh?: string };
 
+/** HÒM góp ý dùng chung khuôn này: mos2 (nút 💬 mọi màn) và city (city.on.tc — anh 23/10/2026, xử bằng /tasks-city). Hòm = project_id của card = khoá site_status. */
+const HOM_GOP_Y = ['mos2', 'city'];
+const homCua = (x: unknown) => (typeof x === 'string' && HOM_GOP_Y.includes(x) ? x : 'mos2');
+
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 
 /** Gửi góp ý về MOS2 → một card pending trên plays `mos2`, follow hôm nay (nằm trong ô
  *  calendar), draft = nội dung + link trang + ảnh. Admin-only — cùng khẩu vị cờ htuan82
  *  bên adfond: hòm này là kênh của người chủ, không phải kênh nhân sự (họ có blocker 🚩). */
 export async function guiGopYMos2(input: {
-  loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string;
+  loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string;
 }): Promise<{ ok: boolean; id?: number; error?: string }> {
-  const me = await getCurrentUser();
+  const me = await getCurrentUser(), hom = homCua(input.hom);
   if (!me || me.role !== 'admin') return { ok: false, error: 'not found' };
   const db = getDb();
   if (!db) return { ok: false, error: 'no db' };
@@ -54,12 +58,12 @@ export async function guiGopYMos2(input: {
 
   const r = await db.execute(sql`
     INSERT INTO human_tasks (tenant_id, project_id, title, instructions, prep_payload, platform_key, status, publish_url)
-    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nTrang báo: ${trang}${nguCanh ? `\nNgữ cảnh: ${nguCanh}` : ''}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
+    VALUES ('self', ${hom}, ${title}, ${`${noiDung}\n\nTrang báo: ${trang}${nguCanh ? `\nNgữ cảnh: ${nguCanh}` : ''}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
     RETURNING id`);
   const id = Number((r as unknown as Array<{ id: number }>)[0]?.id);
   if (!Number.isFinite(id)) return { ok: false, error: 'insert hỏng' };
-  await setBacklinkSite(id, 'mos2', 'pending', '');
-  await setBacklinkSchedule(id, 'mos2', homNayVN());
+  await setBacklinkSite(id, hom, 'pending', '');
+  await setBacklinkSchedule(id, hom, homNayVN());
   return { ok: true, id };
 }
 
@@ -79,21 +83,21 @@ export type GopYCuaToi = {
 /** Góp ý CỦA TÔI: mọi card còn mở + card đã đóng trong 7 ngày (lọc HIỂN THỊ, không xoá — cùng
  *  lằn ranh adfond). Người gửi = tin gốc của luồng (`trao_doi[0].nguoi`), vì card không có cột
  *  người tạo. Xếp theo đúng cột màn hình in ra (cập nhật). */
-export async function dsGopYCuaToi(): Promise<GopYCuaToi[]> {
-  const me = await getCurrentUser();
+export async function dsGopYCuaToi(homVao?: string): Promise<GopYCuaToi[]> {
+  const me = await getCurrentUser(), hom = homCua(homVao);
   if (!me) return [];
   const db = getDb();
   if (!db) return [];
   const r = await db.execute(sql`
     SELECT id, created_at, updated_at,
-           COALESCE(prep_payload->'site_status'->>'mos2', status) AS tt,
+           COALESCE(prep_payload->'site_status'->>${hom}, status) AS tt,
            COALESCE(prep_payload->>'loai', CASE WHEN title LIKE 'Hỏi: %' THEN 'cau_hoi' ELSE 'loi' END) AS loai,
            COALESCE(prep_payload->>'source_url', '') AS trang,
            COALESCE(prep_payload->'trao_doi', '[]'::jsonb) AS td
     FROM human_tasks
-    WHERE project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback'
+    WHERE project_id = ${hom} AND prep_payload->>'source_platform' = 'feedback'
       AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
-      AND (COALESCE(prep_payload->'site_status'->>'mos2', status) IN ('pending','claimed','submitted','review','broken')
+      AND (COALESCE(prep_payload->'site_status'->>${hom}, status) IN ('pending','claimed','submitted','review','broken')
            OR updated_at >= now() - interval '7 days')
     ORDER BY updated_at DESC NULLS LAST, id DESC
     LIMIT 200`);
@@ -120,7 +124,7 @@ export async function docTraoDoiCard(taskId: number): Promise<TinTraoDoi[]> {
   if (!db) return [];
   const r = await db.execute(sql`
     SELECT prep_payload->'trao_doi' AS td FROM human_tasks
-    WHERE id = ${taskId} AND project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback' LIMIT 1`);
+    WHERE id = ${taskId} AND project_id IN ('mos2', 'city') AND prep_payload->>'source_platform' = 'feedback' LIMIT 1`);
   const td = (r as unknown as Array<{ td: unknown }>)[0]?.td;
   return Array.isArray(td) ? (td as TinTraoDoi[]) : [];
 }
@@ -156,20 +160,21 @@ export async function guiTraoDoiCard(input: {
     SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{trao_doi}',
           COALESCE(prep_payload->'trao_doi', '[]'::jsonb) || ${JSON.stringify(tin)}::jsonb, true),
         updated_at = now()
-    WHERE id = ${input.taskId} AND project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback'
-    RETURNING id`);
-  if (!(up as unknown as Array<{ id: number }>).length) return { ok: false, error: 'Không phải card góp ý mos2.' };
+    WHERE id = ${input.taskId} AND project_id IN ('mos2', 'city') AND prep_payload->>'source_platform' = 'feedback'
+    RETURNING id, project_id`);
+  const hom = (up as unknown as Array<{ id: number; project_id: string }>)[0]?.project_id;
+  if (!hom) return { ok: false, error: 'Không phải card góp ý mos2 / city.' };
 
   if (xuLy === 'rework') {
-    await setBacklinkSite(input.taskId, 'mos2', 'pending', '');
+    await setBacklinkSite(input.taskId, hom, 'pending', '');
     // Review/completed trước đó đã xoá follow date; về pending mà không đặt lại thì card
     // không còn ngày nào → tàng hình khỏi calendar (bài học card #616 bên adfond, 26/08).
-    await setBacklinkSchedule(input.taskId, 'mos2', homNayVN());
+    await setBacklinkSchedule(input.taskId, hom, homNayVN());
   }
   if (xuLy === 'duyet') {
     const r = await db.execute(sql`SELECT prep_payload->>'source_url' AS src FROM human_tasks WHERE id = ${input.taskId} LIMIT 1`);
     const src = String((r as unknown as Array<{ src: string | null }>)[0]?.src || '');
-    const r2 = await setBacklinkSite(input.taskId, 'mos2', 'completed', src);
+    const r2 = await setBacklinkSite(input.taskId, hom, 'completed', src);
     if (!r2.ok) return { ok: false, error: r2.error || 'không đóng được card' };
   }
   return { ok: true };

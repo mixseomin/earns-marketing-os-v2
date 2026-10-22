@@ -76,7 +76,7 @@ function docNguCanh(): string {
   ].filter(Boolean).join(' · ');
 }
 
-function FormGopY({ onGui }: { onGui: (id: number) => void }) {
+function FormGopY({ onGui, hom }: { onGui: (id: number) => void; hom: 'mos2' | 'city' }) {
   const [nhap, setNhap] = useState<Nhap>(TRANG_MOI);
   const [trang, setTrang] = useState('');
   const [busy, setBusy] = useState(false);
@@ -106,12 +106,12 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
     // history.replaceState) nên URL đổi mà form không remount — card #1108 lưu `?tab=taisan` trong khi anh đang ở shop Etsy.
     const hienTai = window.location.href;
     setTrang(hienTai);
-    const r = await guiGopYMos2({ loai: nhap.loai, noiDung: nhap.noiDung, trang: hienTai, anhUrls: nhap.anh, nguCanh: docNguCanh() });
+    const r = await guiGopYMos2({ loai: nhap.loai, noiDung: nhap.noiDung, trang: hienTai, anhUrls: nhap.anh, nguCanh: docNguCanh(), hom });
     setBusy(false);
     if (!r.ok || !r.id) { setKet(`⚠ ${r.error}`); return; }
     try { localStorage.removeItem(KHOA); } catch { /* thôi */ }
     setNhap(TRANG_MOI);
-    setKet(`✓ Đã lên bảng plays mos2 — card #${r.id}`);
+    setKet(`✓ Đã lên bảng plays ${hom} — card #${r.id}`);
     onGui(r.id);
   };
   const trong = !nhap.noiDung.trim();
@@ -209,7 +209,9 @@ function CuaToi({ ds, onSangTabGui, onMo }: { ds: GopYCuaToi[] | null; onSangTab
   );
 }
 
-export function GopYMos2() {
+/** hom = hòm nhận góp ý: 'mos2' (mặc định) · 'city' (city.on.tc — card về plays project city, xử bằng /tasks-city).
+ *  Trên city.on.tc nút đứng trái cụm nút điều hướng của thành phố, mở card bằng tab mos2 mới (city.on.tc không mở /plays). */
+export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
   const router = useRouter();
   const [mo, setMo] = useState(false);
   // Nơi khác mở hòm góp ý tại chỗ (vd nút "Góp ý về sản phẩm này" trong drawer Tài sản): window.dispatchEvent(new CustomEvent('gop-y:mo'))
@@ -218,7 +220,7 @@ export function GopYMos2() {
   const [ds, setDs] = useState<GopYCuaToi[] | null>(null);
   // Danh sách nạp Ở ĐÂY (không trong tab): con số trên nhãn "Của tôi" phải nói được "còn mấy việc"
   // ngay khi ngăn kéo mở ở tab Gửi.
-  const nap = () => { void dsGopYCuaToi().then(setDs); };
+  const nap = () => { void dsGopYCuaToi(hom).then(setDs); };
   useEffect(() => {
     if (!mo) return;
     try { const t = localStorage.getItem(KHOA_TAB); if (t === 'cua-toi') setTab('cua-toi'); } catch { /* thôi */ }
@@ -226,14 +228,14 @@ export function GopYMos2() {
   }, [mo]);
   const doiTab = (t: TabKey) => { setTab(t); try { localStorage.setItem(KHOA_TAB, t); } catch { /* thôi */ } };
   const conMo = ds?.filter((b) => !DA_DONG.has(nhomTT(b.trangThai))).length ?? 0;
-  const moCard = (id: number) => { setMo(false); router.push(`/plays?proj=mos2&task=${id}`); };
+  const moCard = (id: number) => { setMo(false); if (hom === 'city') window.open(`https://mos2.on.tc/plays?proj=city&task=${id}`, '_blank', 'noopener'); else router.push(`/plays?proj=mos2&task=${id}`); };
   return (
     <>
       <button type="button" aria-label="Góp ý / báo lỗi MOS2" title="Góp ý / báo lỗi về màn đang xem"
         onClick={() => setMo((v) => !v)}
         // right 60, KHÔNG 16: góc phải-dưới là chỗ nút ⚙ Tweaks (.twk-toggle-fab, z 2147483645) — đặt trùng thì ⚙ che kín 💬,
         // anh không thấy hòm góp ý đâu cả (05/10/2026). Đứng ngay bên trái ⚙.
-        style={{ position: 'fixed', right: 60, bottom: 16, zIndex: 60, width: 36, height: 36, borderRadius: 999,
+        style={{ position: 'fixed', right: hom === 'city' ? 112 : 60, bottom: 16, zIndex: hom === 'city' ? 10000 : 60, width: 36, height: 36, borderRadius: 999,
           border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: 15, lineHeight: '34px' }}>💬</button>
       {mo && (
@@ -245,7 +247,7 @@ export function GopYMos2() {
           </div>
           <Tabs<TabKey> items={TABS_HOM.map((t) => (t.key === 'cua-toi' && ds ? { ...t, badge: conMo || undefined } : t))} value={tab} onChange={doiTab} />
           {tab === 'gui'
-            ? <FormGopY onGui={() => nap()} />
+            ? <FormGopY hom={hom} onGui={() => nap()} />
             : <CuaToi ds={ds} onSangTabGui={() => doiTab('gui')} onMo={moCard} />}
         </Drawer>
       )}

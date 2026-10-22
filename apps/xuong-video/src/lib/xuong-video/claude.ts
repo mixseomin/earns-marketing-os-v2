@@ -353,13 +353,20 @@ const GOC_THEM: Record<string, string[]> = {
   san_pham: ['Product from a 45-degree side angle', 'Macro close-up of material texture and stitching details', 'Flat lay top-down shot', 'Back view of the product'],
   dao_cu: ['Prop from a different angle, side view', 'Macro close-up detail of the prop', 'Prop shown at true scale beside a plain ballpoint pen'],
 };
+/** ẢNH MẪU = ĐÚNG MÔ TẢ, KHÔNG HƠN (anh 22/10/2026 "không được thiếu thì cũng không được thừa"; phim #132: cửa kính tự in "总裁办公室 CEO OFFICE", cửa thang
+ *  máy tự gắn bảng số "28", logo mọc thêm biểu tượng, thành viên HĐQT vest nâu thành vest đen, bàn nhân viên thành bàn giám đốc chạm trổ). Danh sách trắng:
+ *  chỉ chi tiết mô tả nêu; chữ chỉ là chữ mô tả đặt trong ngoặc kép. */
+export const cauDungMoTa = (moTa: string): string => {
+  const chu = [...new Set([...moTa.matchAll(/["“]([^"”]{1,60})["”]/g)].map((m) => m[1]!.trim()).filter(Boolean))];
+  return `WHITELIST: the subject has EXACTLY the features, colours, materials and style the description names — nothing added, nothing upgraded or restyled. ${chu.length ? `The only lettering is ${chu.map((c) => `"${c}"`).join(', ')}, spelled exactly; no other text, numbers or symbols.` : 'No text, numbers, labels or symbols on it.'}`;
+};
 export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh, daCo = 0): string {
   if (daCo > 0) {
     const ds = GOC_THEM[nv.loai] ?? GOC_THEM.boi_canh!;
     const goc = ds[(daCo - 1) % ds.length]!;
     return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'consistent cinematic look'}. `
       + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.'
-      + (nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '');
+      + (nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '') + ' ' + cauDungMoTa(nv.mo_ta);
   }
   const k = docKinhThanh(kt);
   const loai = nv.loai === 'nhan_vat' ? 'Character design reference sheet on a plain light background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of head close-ups showing neutral, happy, sad and surprised expressions; identical design in every view'
@@ -369,7 +376,7 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
   // Đạo cụ / sản phẩm: câu CÔ LẬP đứng SAU phong cách phim — phong cách kiểu "luxury corporate drama" kéo cả văn phòng + người vào ảnh mẫu
   // (tổng tài 17/10/2026: điện thoại cầm trong tay một người đàn ông, thẻ nhân viên in ảnh + tên một cô gái khác) → keyframe nhận người lạ làm tham chiếu.
   const coLap = nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '';
-  return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap}`;
+  return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap} ${cauDungMoTa(nv.mo_ta)}`;
 }
 export const CO_LAP_VAT = 'ISOLATED object only, on a plain seamless light-grey studio background: no people, no hands, no faces, no room, no scenery, no other objects. Only if the object itself carries an ID photo or a printed name (badge, card), leave that area blank — never add grey patches, stickers or labels to any other object.';
 

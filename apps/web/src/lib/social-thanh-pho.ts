@@ -407,7 +407,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     tk: dau.map(([nen, g]) => ({ nen, ten: TEN_NEN_TK[nen] ?? nen.replace(/^./, (c) => c.toUpperCase()), tong: g.tong, theo: g.theo, canhBao: cbNen(nen) })),
     hoSo: vt?.hoSo ?? [], proxy: vt?.proxy ?? [], canhBao: vt?.canhBao ?? [],
     nganSach: [
-      ...(campChay.length ? [{ ten: `Ethopex · ${campChay.length} camp đang chạy`, ky: 'ngày' as const, so: campChay.reduce((a, c) => a + (c.nganSachNgay ?? 0), 0), tienTe: 'USD' }] : []),
+      ...(campChay.length ? [{ ten: `Ethopex · ngân sách đặt trên ${campChay.length} camp đang bật`, ky: 'ngày' as const, so: campChay.reduce((a, c) => a + (c.nganSachNgay ?? 0), 0), tienTe: 'USD' }] : []),
       ...(hst.chi ?? []).filter((x) => x.usd > 0).map((x) => ({ ten: `Chi QC · ${x.nguon}`, ky: '30 ngày qua' as const, so: x.usd, tienTe: 'USD' })),
       ...(vt?.soNganSach ?? []).map((x) => ({ ten: x.ten, ky: (x.chuKy ? 'tháng' : 'một lần') as 'tháng' | 'một lần', so: x.chuKy ? (x.so * 30) / x.chuKy : x.so, tienTe: x.tienTe })),
       ...(vt?.tkQcShop ?? []).filter((x) => x.hanMuc != null).map((x) => ({ ten: `TK QC shop · ${x.ten}`, ky: 'hạn mức' as const, so: x.hanMuc!, tienTe: x.tienTe })),

@@ -80,8 +80,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <TablePrefsProvider value={tablePrefs}>
           <RootProviders>
             {children}
-            {/* Hòm góp ý của chính MOS2 — admin mới thấy (kênh của người chủ; nhân sự có 🚩 blocker). */}
-            {u?.role === 'admin' && <GopYMos2 />}
+            {/* Hòm góp ý của chính MOS2 — admin mới thấy (kênh của người chủ; nhân sự có 🚩 blocker). city.on.tc trọn màn thành phố: không nút nổi. */}
+            {u?.role === 'admin' && host !== 'city.on.tc' && <GopYMos2 />}
           </RootProviders>
         </TablePrefsProvider>
       </body>

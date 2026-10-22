@@ -8,7 +8,8 @@ import { dungThanhPho, napThree } from './social-thanh-pho-canh';
 
 const LAM_MOI_MS = 60_000;
 
-export function SocialThanhPho({ live }: { live: SocialLive }) {
+/** toanTrang = trang riêng city.on.tc: chiếm trọn khung nhìn, không viền */
+export function SocialThanhPho({ live, toanTrang = false }: { live: SocialLive; toanTrang?: boolean }) {
   const mh0 = useMemo(() => tinhThanhPho(live), [live]);
   const ref = useRef<HTMLDivElement>(null);
   const [loi, setLoi] = useState('');
@@ -24,7 +25,7 @@ export function SocialThanhPho({ live }: { live: SocialLive }) {
   }, [mh0]);
   if (loi) return <div style={{ padding: 16, color: 'var(--bad)' }}>Không dựng được thành phố: {loi}</div>;
   return <div style={{ position: 'relative' }}>
-    <div ref={ref} aria-label="Thành phố 3D social traffic" style={{ height: 'calc(100dvh - 210px)', minHeight: 460, borderRadius: 12, border: '1px solid var(--border)' }} />
+    <div ref={ref} aria-label="Thành phố 3D social traffic" style={toanTrang ? { height: '100dvh' } : { height: 'calc(100dvh - 210px)', minHeight: 460, borderRadius: 12, border: '1px solid var(--border)' }} />
     <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 10, zIndex: 8, fontSize: 10, color: '#8e9abd', background: '#111830cc', border: '1px solid #252f4e', borderRadius: 999, padding: '3px 9px', pointerEvents: 'none' }}>
       số lúc {new Date(Date.parse(luc) + 7 * 3600e3).toISOString().slice(11, 16)} · tự làm mới mỗi phút</span>
   </div>;

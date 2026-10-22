@@ -69,9 +69,9 @@ console.log('kiem-ai-3d: ok');
   assert.equal(xuyenVat(di(), st).length, 1); assert.equal(xuyenVat(di(['Cửa mở']), st).length, 0);
   assert.equal(xuyenVat({ hanh_dong: '', prompt_anh: '', may_3d: may([{ ten: 'Hạ', tam: [200, 0, 0], huong: 0 }]) } as never, st).length, 1);
 }
-// MÓN ĐỔI TAY QUÁ NHỎ (#132 #15): thẻ có den trải 0,4% → chặn; 4% → qua; người di chuyển không tính
+// MÓN ĐỔI TAY QUÁ NHỎ (#132 #15): thẻ 8,6 cm có den, máy 24 mm cách 5,8 m → ~0,9% → chặn; máy 28 mm cách 1,7 m → ~4% → qua; người di chuyển không tính
 {
-  const sh = (w: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { thay: [{ ten: 'Hạ', pt: 20, hop: [0.3, 0.2, 0.5, 0.9], tien: false }, { ten: 'Thẻ', pt: 0.1, hop: [0.4, 0.4, 0.4 + w, 0.4 + w], tien: false }] },
-    may_3d: may([{ ten: 'Hạ', tam: [0, 0, 0], den: [50, 0, 0], huong: 0 }, { ten: 'Thẻ', tam: [0, 0, 120], den: [80, 0, 110], huong: 0 }]) }) as never;
-  assert.equal(monDoiTayNho(sh(0.004), nv).length, 1); assert.equal(monDoiTayNho(sh(0.04), nv).length, 0);
+  const the = [{ ten: 'Thẻ', loai: 'dao_cu', mo_ta: 'badge', khoi_3d: { hinh: 'hop', co: [5.5, 0.4, 8.6], mau: '#fff' } }] as never[];
+  const sh = (dat: number[], ong: number) => ({ hanh_dong: '', prompt_anh: '', may_3d: { ...may([{ ten: 'Hạ', tam: [0, 0, 0], den: [50, 0, 0], huong: 0 }, { ten: 'Thẻ', tam: [0, 0, 120], den: [80, 0, 110], huong: 0 }]), dat, nhin: [0, 0, 100], ong_kinh: ong } }) as never;
+  assert.equal(monDoiTayNho(sh([0, -577, 160], 24), the).length, 1); assert.equal(monDoiTayNho(sh([0, -170, 150], 28), the).length, 0);
 }

@@ -38,7 +38,7 @@ const re = (t: string) => new RegExp(`(^|[^\\p{L}])${t.replace(/[.*+?^${}()|[\]\
 const coTu = (tu: string[], chu: string) => tu.some((t) => re(t).test(chu));
 
 type ShotAi = Pick<Canh, 'hanh_dong' | 'prompt_anh'> & Partial<Pick<Canh, 'hanh_dong_vi' | 'dan_dung' | 'ky_thuat' | 'thoai' | 'khung_xam'>> & { may_3d?: May3d | null };
-type NvAi = Pick<NhanVat, 'ten' | 'loai' | 'mo_ta'> & { bien_the?: { ten: string; mo_ta: string }[] };
+type NvAi = Pick<NhanVat, 'ten' | 'loai' | 'mo_ta'> & { bien_the?: { ten: string; mo_ta: string }[]; khoi_3d?: NhanVat['khoi_3d'] };
 /** Chữ của shot mà model đọc / người viết dùng để tả khung — nơi một vật "được nhắc". */
 export const chuShot = (c: ShotAi) => [c.hanh_dong, c.hanh_dong_vi, c.prompt_anh, c.dan_dung?.bo_cuc, c.dan_dung?.mo, c.dan_dung?.ket, c.dan_dung?.dien].filter(Boolean).join(' \n ');
 /** Nhóm vật mà chữ của shot nhắc tới. */
@@ -175,16 +175,20 @@ export function xuyenVat(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null): string[
   }
   return out;
 }
-/** MÓN ĐỔI TAY / ĐỔI CHỖ TRONG SHOT quá nhỏ (phim #132 #15: giật thẻ 9 cm ở toàn cảnh cách 5,8 m → thẻ 0% khung; Veo kéo Hạ lại gần máy để vẽ cú giật →
- *  hai Hạ, thẻ vẫn trên cổ). Đạo cụ có `den` (đổi chỗ / sang tay) phải trải ≥ 2,5% khung ở MỌI cỡ cảnh — nhỏ hơn thì máy gần hơn hoặc tách shot. */
+/** MÓN ĐỔI TAY / ĐỔI CHỖ TRONG SHOT quá nhỏ (phim #132 #15: giật thẻ 9 cm ở toàn cảnh cách 5,8 m → thẻ ~1% khung; Veo kéo Hạ lại gần máy để vẽ cú giật →
+ *  hai Hạ, thẻ vẫn trên cổ). Đạo cụ có `den` (đổi chỗ / sang tay) phải trải ≥ 2,5% cạnh dài khung ở CẢ chỗ mở lẫn chỗ kết, tính bằng hình học
+ *  (cỡ lớn nhất của khối × tiêu cự ÷ khoảng cách tới máy ÷ cạnh dài cảm biến 36 mm) — bản đo khung bỏ qua đồ đeo trên người, hình học thì không. */
 export const PT_MON_DOI = 0.025;
 export function monDoiTayNho(c: ShotAi, nhanVat: NvAi[]): string[] {
-  const thay = c.khung_xam?.thay; if (!thay || !c.may_3d) return [];
+  const m = c.may_3d; if (!m?.dat) return [];
   const out: string[] = [];
-  for (const v of c.may_3d.vi_tri) {
-    if (!v.den || v.an || nhanVat.some((a) => a.ten === v.ten && a.loai === 'nhan_vat')) continue;
-    const t = thay.find((x) => x.ten === v.ten); const trai = t ? Math.max(t.hop[2]! - t.hop[0]!, t.hop[3]! - t.hop[1]!) : 0;
-    if (trai < PT_MON_DOI) out.push(`${v.ten} đổi chỗ / sang tay trong shot mà chỉ trải ${Math.round(trai * 1000) / 10}% khung — AI không giữ được món nhỏ thế khi nó di chuyển: máy gần hơn, ống dài hơn, hoặc tách cú đổi tay thành shot riêng`);
+  for (const v of m.vi_tri) {
+    if (!v.den || v.an) continue;
+    const a = nhanVat.find((x) => x.ten === v.ten); if (!a || a.loai === 'nhan_vat' || !a.khoi_3d?.co) continue;
+    const co = Math.max(a.khoi_3d.co[0] ?? 0, a.khoi_3d.co[2] ?? 0); if (!co) continue;
+    const kc = (p: number[]) => Math.hypot((p[0] ?? 0) - m.dat[0]!, (p[1] ?? 0) - m.dat[1]!, (p[2] ?? 0) - (m.dat[2] ?? 0)) || 1;
+    const trai = Math.min(...[v.tam, v.den].map((p) => (co * m.ong_kinh) / kc(p) / 36));
+    if (trai < PT_MON_DOI) out.push(`${v.ten} đổi chỗ / sang tay trong shot mà chỉ trải ~${Math.round(trai * 1000) / 10}% khung (cỡ ${co} cm, ống ${m.ong_kinh} mm, cách máy ${Math.round(Math.max(kc(v.tam), kc(v.den)))} cm) — AI không giữ được món nhỏ thế khi nó di chuyển: máy gần hơn, ống dài hơn, hoặc tách cú đổi tay thành shot riêng`);
   }
   return out;
 }

@@ -84,7 +84,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const rong: VaoHeSinhThai = { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };
   const d = getDb(); if (!d) return rong;
   const host = (u: string | null) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
-  const [da, ds, app, tk, sp, nguonApp, refs] = await Promise.all([
+  const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop] = await Promise.all([
     (d.execute(sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`) as unknown as Promise<{ id: string; name: string; website: string | null; ngung: boolean }[]>).catch((e: Error) => { loi.push(`dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT site, project_id FROM du_an_site`) as unknown as Promise<{ site: string; project_id: string }[]>).catch((e: Error) => { loi.push(`sổ site dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
@@ -94,6 +94,10 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     getProductsView(30).catch((e: Error) => { loi.push(`sản phẩm: ${e.message}`); return null; }),
     docNguonApp().catch((e: Error) => { loi.push(`nguồn app (Apple): ${e.message}`); return []; }),
     (d.execute(sql`SELECT product_id, refs FROM product_daily WHERE refs IS NOT NULL AND date >= to_char(current_date - 30, 'YYYY-MM-DD')`) as unknown as Promise<{ product_id: string; refs: Record<string, number> | null }[]>).catch(() => []),
+    (d.execute(sql`SELECT khoa, linh_vuc FROM linh_vuc_gan`) as unknown as Promise<{ khoa: string; linh_vuc: string }[]>).catch((e: Error) => { loi.push(`sổ lĩnh vực: ${e.message}`); return []; }),
+    // đơn shop mặt tiền 30 ngày (trừ hoàn), theo tên miền chính của cửa hàng; cửa hàng demo không tính
+    (d.execute(sql`SELECT c.domain AS site, coalesce(sum(o.tong - coalesce(o.hoan, 0)), 0)::float AS usd FROM shop_don o JOIN shop_cua_hang c ON c.id = o.cua_hang_id
+      WHERE NOT coalesce(c.demo, false) AND o.tao_luc > now() - interval '30 days' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
   ]);
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
@@ -103,6 +107,8 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     duAnSite: ds.map((x) => ({ site: x.site, duAn: x.project_id })),
     sanPham: (sp?.rows ?? []).map((p) => ({ id: p.id, ten: p.title, nen: p.platform, trangThai: p.status, url: p.url, store: p.store, sku: p.sku, xem7: p.views7d, tai: p.downloads, net: p.net })),
     nguonSp: [...nguonApp, ...nguonGum],
+    linhVuc: lv.map((x) => ({ khoa: x.khoa, linhVuc: x.linh_vuc })),
+    tienSite: donShop.map((x) => ({ site: x.site.replace(/^www\./, ''), usd: Number(x.usd) || 0 })),
     app: app.map((x) => ({ ten: x.ten, duAn: x.project_id })),
     tkCua: tk.map((x) => ({ nen: x.platform_key, handle: x.handle, duAn: x.project_id, khoa: x.khoa })),
   };

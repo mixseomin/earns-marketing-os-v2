@@ -58,17 +58,30 @@ export interface PhoTk {
 }
 /** ĐÍCH: site ('s:<host>') hoặc sản phẩm ('p:<id>'). duAn = khoá khu (PhoDuAn.khoa). */
 export interface PhoDich {
-  khoa: string; loai: 'site' | 'sp'; ten: string; site: string | null; duAn: string;
+  khoa: string; loai: 'site' | 'sp' | 'app'; ten: string; site: string | null; duAn: string;
+  /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
+  tien30?: number | null; loaiTien?: string;
+  /** sản phẩm là một bản trên cửa hàng của app nào (khoá 'a:<app>') — vẽ quanh app, không đứng riêng */
+  cha?: string;
   phien30: number | null; laShop: boolean; don: number | null; coNguon: boolean;
   /** sản phẩm: cửa bán (app-store, ms-store, gumroad, etsy, kdp, udemy…), host cửa bán để lấy favicon, trạng thái, số */
   nenBan?: string; hostBan?: string; trangThai?: string | null; sapLen?: boolean; url?: string | null; xem7?: number | null; tai?: number | null; net?: number | null;
 }
 /** KHU: dự án (laDuAn) hoặc một site đứng riêng; ngung = dự án ngừng hoạt động (đặt ở rìa) */
 /** nhan = dòng đầu biển trên toà khu ('DỰ ÁN', 'DỰ ÁN · NGỪNG', 'TÀI KHOẢN BỊ KHOÁ') */
-export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string }
+export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string; linhVuc: string }
 /** một dòng xe: toà nguồn → đích, số khách (kỳ theo nguồn) */
 export interface PhoLuong { tu: string; den: string; so: number }
-export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; fav: Record<string, string | null> }
+/** KHO BẠC: tiền thật 30 ngày (USD) theo loại nguồn tiền */
+export interface PhoTien { tong: number; theo: { ten: string; so: number }[] }
+export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; fav: Record<string, string | null> }
+/** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
+export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
+  'du-lich': { ten: 'Du lịch', ic: '✈️', mau: '#2f8fbf' }, 'thuong-mai': { ten: 'Thương mại · Dropship', ic: '🛍', mau: '#c0507a' }, app: { ten: 'App', ic: '📱', mau: '#3a6ff0' },
+  game: { ten: 'Game', ic: '🎮', mau: '#7a4fd0' }, 'tai-chinh': { ten: 'Tài chính · Công cụ', ic: '🏛', mau: '#2f9c6a' }, 'giao-duc': { ten: 'Giáo dục', ic: '🎓', mau: '#c9902f' },
+  'xuat-ban': { ten: 'Xuất bản', ic: '📚', mau: '#8f6a3f' }, trading: { ten: 'Trading', ic: '📈', mau: '#3f9fa0' }, ai: { ten: 'AI · SaaS', ic: '🤖', mau: '#6a7fd0' },
+  'quang-cao': { ten: 'Quảng cáo · Aff', ic: '📣', mau: '#d0703a' }, khac: { ten: 'Khác', ic: '▫️', mau: '#5a6070' },
+};
 
 /** đầu vào hệ sinh thái (social-traffic › docHeSinhThai) */
 export interface VaoHeSinhThai {
@@ -82,6 +95,10 @@ export interface VaoHeSinhThai {
   app: { ten: string; duAn: string }[];
   /** tài khoản cửa bán trong vault (etsy FrontPorchZ, kdp htuan82…) → dự án */
   tkCua: { nen: string; handle: string; duAn: string | null; khoa?: boolean }[];
+  /** sổ lĩnh vực (linh_vuc_gan): khoa 'p:<dự án>' | 's:<site>' → lĩnh vực (khoá LINH_VUC) */
+  linhVuc?: { khoa: string; linhVuc: string }[];
+  /** tiền đơn shop của site (shop_don 30 ngày, USD) — cửa hàng mặt tiền như mellowstep.com */
+  tienSite?: { site: string; usd: number }[];
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
@@ -196,13 +213,36 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     tk.push(t); luong.push({ tu: t.id, den: t.dich!, so });
   }
 
+  // ── APP = một thực thể trên mọi cửa hàng (anh 22/10/2026 "dự án app là app chứ không phải mỗi iOS"): gom bản App Store / Microsoft Store / Google Play
+  //    cùng đầu tên (Giỗ Chạp: Văn Khấn ↔ Giỗ Chạp (Windows)) thành một app; các bản đứng quanh app, nguồn của từng bản đứng quanh bản đó
+  const dauApp = (ten: string) => chuan(ten.split(/[:(\-–]/)[0]!.replace(/\b(ios|iphone|windows|android|mac)\b/gi, ''));
+  const nhomApp = new Map<string, PhoDich[]>();
+  for (const d of dichMap.values()) if (d.loai === 'sp' && NEN_APP.has(d.nenBan ?? '')) { const k = dauApp(d.ten) || d.khoa; nhomApp.set(k, [...(nhomApp.get(k) ?? []), d]); }
+  for (const [k, ban] of nhomApp) {
+    const chinh = [...ban].sort((a, b) => Number(!!a.sapLen) - Number(!!b.sapLen) || a.ten.length - b.ten.length)[0]!;
+    const duAn = ban.find((b) => b.duAn.startsWith('d:'))?.duAn ?? chinh.duAn;
+    for (const b of ban) { b.cha = `a:${k}`; b.duAn = duAn; }
+    dichMap.set(`a:${k}`, { khoa: `a:${k}`, loai: 'app', ten: chinh.ten.split(/[:(]/)[0]!.trim(), site: null, duAn, phien30: null, laShop: false, don: null, coNguon: false, sapLen: ban.every((b) => b.sapLen) });
+  }
+
   // ── đơn cửa hàng (Gumroad / Etsy) + có nguồn chưa
   for (const d of dichMap.values()) {
-    d.coNguon = luong.some((l) => l.den === d.khoa);
+    d.coNguon = luong.some((l) => l.den === d.khoa || (d.loai === 'app' && [...dichMap.values()].some((b) => b.cha === d.khoa && l.den === b.khoa)));
     if (d.loai === 'site' && d.laShop) { const ten = chuan(d.site!.split('.')[0]!); const b = live.ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === ten || chuan(x.duAn) === ten)); if (b.length) d.don = b.reduce((a, x) => a + (x.ban30 ?? 0), 0); }
   }
+  // ── TIỀN 30 ngày (USD): sản phẩm = thực nhận kho products (App Store, AdMob, Gumroad, Udemy, KDP…) · cửa hàng Gumroad / Etsy = bán 30 ngày · shop mặt tiền = đơn shop_don
+  const LOAI_TIEN: Record<string, string> = { 'app-store': 'App', 'ms-store': 'App', 'play-store': 'App', gumroad: 'Bán sản phẩm số', etsy: 'Bán sản phẩm số', kdp: 'Sách', udemy: 'Khoá học', 'mql5-market': 'Bán sản phẩm số', rapidapi: 'API' };
+  for (const d of dichMap.values()) {
+    if (d.loai === 'sp') { d.tien30 = d.net ?? null; d.loaiTien = LOAI_TIEN[d.nenBan ?? ''] ?? 'Khác'; }
+    if (d.loai === 'site') {
+      const usdBan = d.laShop ? live.ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === chuan(d.site!.split('.')[0]!) || chuan(x.duAn) === chuan(d.site!.split('.')[0]!))).reduce((a, x) => a + (x.usd30 ?? 0), 0) : 0;
+      const usdShop = (hst.tienSite ?? []).filter((x) => x.site === d.site).reduce((a, x) => a + x.usd, 0);
+      d.tien30 = usdBan || usdShop ? usdBan + usdShop : null; d.loaiTien = usdShop ? 'Đơn shop' : 'Bán sản phẩm số';
+    }
+  }
+  for (const d of dichMap.values()) if (d.loai === 'app') { const ban = [...dichMap.values()].filter((b) => b.cha === d.khoa); const co = ban.filter((b) => b.tien30 != null); d.tien30 = co.length ? co.reduce((a, b) => a + b.tien30!, 0) : null; d.loaiTien = 'App'; }
   // giữ site có khách hoặc có người trỏ tới
-  const dich = [...dichMap.values()].filter((d) => d.loai === 'sp' || d.coNguon || (d.phien30 ?? 0) > 0 || tk.some((t) => t.dich === d.khoa));
+  const dich = [...dichMap.values()].filter((d) => d.loai !== 'site' || d.coNguon || (d.phien30 ?? 0) > 0 || tk.some((t) => t.dich === d.khoa));
 
   // ── KHU (dự án): site → sổ du_an_site → projects.website → dự án của tài khoản trỏ tới nó → site phụ cùng máy đăng → đứng riêng
   const siteDa = new Map<string, string>([...hst.duAn.filter((d) => d.site).map((d) => [d.site!, d.id] as [string, string]), ...hst.duAnSite.map((x) => [x.site, x.duAn] as [string, string])]);
@@ -217,14 +257,22 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     d.duAn = da ? `d:${da}` : `rieng:${site}`;
   }
   const khoaDa = [...new Set(dich.map((d) => d.duAn))];
+  const lvMap = new Map((hst.linhVuc ?? []).map((x) => [x.khoa, x.linhVuc]));
+  const lvCua = (khoa: string, site: string | null) => { const lv = (khoa.startsWith('d:') ? lvMap.get(`p:${khoa.slice(2)}`) : khoa.startsWith('rieng:') ? lvMap.get(`s:${khoa.slice(6)}`) : null) ?? (site ? lvMap.get(`s:${site}`) : null); return lv && LINH_VUC[lv] ? lv : 'khac'; };
   const duAn: PhoDuAn[] = khoaDa.map((khoa, i) => {
     const ds = dich.filter((d) => d.duAn === khoa), p = khoa.startsWith('d:') ? hst.duAn.find((x) => x.id === khoa.slice(2)) : null;
     const siteChinh = ds.filter((d) => d.loai === 'site').sort((a, b) => (b.phien30 ?? -1) - (a.phien30 ?? -1))[0]?.site ?? null;
     const khoaTk = khoa.startsWith('khoa:'), tenCua = khoaTk ? khoa.slice(5).replace(/^./, (c) => c.toUpperCase()) : '';
     return { khoa, ten: khoa === 'chua-sp' ? 'Sản phẩm chưa gán dự án' : khoaTk ? tenCua : p ? p.ten : khoa.startsWith('rieng:') ? khoa.slice(6) : khoa, laDuAn: !!p || khoa === 'chua-sp' || khoaTk,
-      ngung: !!p?.ngung || khoaTk, mau: MAU_CUM[i % MAU_CUM.length]!, site: khoaTk ? HOST_BAN[khoa.slice(5)] ?? null : p?.site ?? siteChinh, nhan: khoaTk ? 'TÀI KHOẢN BỊ KHOÁ' : p?.ngung ? 'DỰ ÁN · NGỪNG' : 'DỰ ÁN' };
+      ngung: !!p?.ngung || khoaTk, mau: MAU_CUM[i % MAU_CUM.length]!, site: khoaTk ? HOST_BAN[khoa.slice(5)] ?? null : p?.site ?? siteChinh, nhan: khoaTk ? 'TÀI KHOẢN BỊ KHOÁ' : p?.ngung ? 'DỰ ÁN · NGỪNG' : 'DỰ ÁN',
+      linhVuc: lvCua(khoa, p?.site ?? siteChinh) };
   });
   const tongKhu = (k: string) => dich.filter((d) => d.duAn === k).reduce((a, d) => a + (d.phien30 ?? 0) + (d.xem7 ?? 0), 0);
-  duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || tongKhu(b.khoa) - tongKhu(a.khoa));
-  return { tk, dich, duAn, luong, fav: live.fav };
+  // phường liền nhau: xếp theo thứ tự lĩnh vực, trong phường theo lưu lượng
+  const thuLv = Object.keys(LINH_VUC);
+  duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tongKhu(b.khoa) - tongKhu(a.khoa));
+  const theoTien = new Map<string, number>();
+  for (const d of dich) if (d.tien30 && d.loai !== 'app') theoTien.set(d.loaiTien ?? 'Khác', (theoTien.get(d.loaiTien ?? 'Khác') ?? 0) + d.tien30);
+  const tien: PhoTien = { tong: [...theoTien.values()].reduce((a, x) => a + x, 0), theo: [...theoTien].map(([ten, so]) => ({ ten, so })).sort((a, b) => b.so - a.so) };
+  return { tk, dich, duAn, luong, tien, fav: live.fav };
 }

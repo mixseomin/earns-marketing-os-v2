@@ -55,6 +55,8 @@ const live = {
     ],
     app: [{ ten: 'Giỗ Chạp', duAn: 'ios-app' }],
     nguonSp: [{ sp: 'a1', nguon: 'App Store search', hien: 400, xem: 14, tai: 7 }, { sp: 'a1', nguon: 'Web referrer', hien: 0, xem: 1, tai: 1 }, { sp: 'nope', nguon: 'App Store search', hien: 5, xem: 0, tai: 0 }],
+    linhVuc: [{ khoa: 'p:bra', linhVuc: 'thuong-mai' }, { khoa: 's:ratesbyroom.com', linhVuc: 'du-lich' }, { khoa: 'p:steamsolo', linhVuc: 'sai-khoa' }],
+    tienSite: [{ site: 'steamsolo.com', usd: 12.5 }],
     tkCua: [{ nen: 'etsy', handle: 'FrontPorchZ', duAn: 'puzzle-books' }, { nen: 'etsy', handle: 'LeatherByJoan', duAn: 'mos2', khoa: true }, { nen: 'udemy', handle: 'Evergreen Programming', duAn: null, khoa: true }],
   },
 };
@@ -117,4 +119,15 @@ assert.ok(khu('khoa:udemy').ngung && khu('khoa:udemy').nhan === 'TÀI KHOẢN B�
 assert.notEqual(d('p:e1').duAn, 'khoa:etsy', 'còn một tài khoản Etsy sống thì không khoá');
 assert.equal(d('p:r1').duAn, 'chua-sp', 'không khớp gì → khu Sản phẩm chưa gán');
 assert.equal(khu('d:bra').nhan, 'DỰ ÁN · NGỪNG');
-console.log('✓ social-thanh-pho: sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');
+// app = một thực thể trên mọi cửa hàng
+const ga = m.dich.filter((x) => x.loai === 'app' && x.ten.startsWith('Giỗ Chạp'));
+assert.equal(ga.length, 1, 'Giỗ Chạp iOS + Windows = một app');
+assert.ok(d('p:a2').cha === ga[0]!.khoa && d('p:a3').cha === ga[0]!.khoa && ga[0]!.duAn === d('p:a2').duAn, 'các bản cửa hàng đứng quanh app, cùng khu');
+assert.ok(d('p:a1').cha && m.dich.find((x) => x.khoa === d('p:a1').cha)!.coNguon, 'app có nguồn khi một bản của nó có nguồn');
+// lĩnh vực = phường
+assert.equal(khu('d:bra').linhVuc, 'thuong-mai'); assert.equal(khu('rieng:ratesbyroom.com').linhVuc, 'du-lich', 'site đứng riêng theo s:<host>');
+assert.equal(khu('d:steamsolo').linhVuc, 'khac', 'lĩnh vực lạ không có trong LINH_VUC → khác');
+// tiền
+assert.equal(d('p:u1').tien30, 10); assert.equal(d('s:steamsolo.com').tien30, 12.5, 'đơn shop mặt tiền vào tiền của site');
+assert.ok(m.tien.tong >= 25.5 && m.tien.theo.some((x) => x.ten === 'Đơn shop'), 'kho bạc cộng theo loại nguồn tiền, app không cộng hai lần');
+console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

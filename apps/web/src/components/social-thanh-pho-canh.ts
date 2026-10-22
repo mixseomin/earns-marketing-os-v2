@@ -5,7 +5,7 @@
 // Cửa sổ sáng = bài đang chạy · thùng tím ở chân = bài sắp đăng · cột sáng xanh = lượt xem · xe trên phố = khách về site · đèn đỏ + khói = hỏng ·
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
-import type { PhoMoHinh, PhoNen, PhoTk } from '@/lib/social-thanh-pho';
+import { LINH_VUC, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
 
 const CDN = ['https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js', 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'];
@@ -80,6 +80,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     <aside class="ben"><button class="thu" aria-expanded="true" aria-label="Thu nhỏ bảng" title="Thu nhỏ / mở bảng">‹</button>
       <b>Lớp</b><div class="hang" data-o="lop"></div>
       <b>Nguồn</b><div class="hang" data-o="loc-nen"></div>
+      <b>Phường</b><div class="hang" data-o="loc-lv"></div>
       <b>Khu</b><div class="hang" data-o="loc-sp"></div></aside>
     <aside class="ngan" hidden></aside>
     <div class="dieu" role="group" aria-label="Điều hướng">
@@ -187,7 +188,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // ── bộ lọc: nguồn (nền / tìm kiếm / quảng cáo / giới thiệu) ẩn hiện tại chỗ; khu chọn → dựng lại chỉ các khu đó
-  const chonSp = new Set<string>(), chonNen = new Set<Nen>(), bat = new Set(['cua', 'thung', 'cot', 'xe', 'xu']);
+  const chonLv = new Set<string>(), chonSp = new Set<string>(), chonNen = new Set<Nen>(), bat = new Set(['cua', 'thung', 'cot', 'xe', 'xu']);
   const khop = (tk: PhoTk) => !chonNen.size || chonNen.has(tk.nen);
   // ── KHU ĐÔ THỊ NỀN (anh 22/10/2026 "thêm khu đô thị xung quanh cho sinh động, dòng xe, dòng người"): nhà thấp, phố lưới, xe và người qua lại —
   //    chỉ để cảnh sống động, KHÔNG mang số nào và không bấm được (nằm ngoài nhóm 'the' nên tia chuột không chạm)
@@ -259,14 +260,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   function dung() {
     scene.remove(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = [];
     const viTri: Record<string, any> = {};
-    const khus = mh.duAn.filter((k) => !chonSp.size || chonSp.has(k.khoa));
+    const khus = mh.duAn.filter((k) => (!chonSp.size || chonSp.has(k.khoa)) && (!chonLv.size || chonLv.has(k.linhVuc)));
     const nguonCua = (khoa: string) => mh.tk.filter((t) => t.dich === khoa);
     // ── kích thước: quảng trường site = tháp site ở tâm + vòng nguồn; khu dự án = toà DỰ ÁN ở tâm + vòng sản phẩm + vòng quảng trường site
-    const rSite = (d: typeof mh.dich[number]) => 30 + Math.min(40, nguonCua(d.khoa).length * 3.2);
-    const coQt = (d: typeof mh.dich[number]) => d.loai === 'site' || nguonCua(d.khoa).length > 0;   // site, hoặc sản phẩm có nguồn (app, Gumroad) → quảng trường riêng
+    const vongCua = (d: typeof mh.dich[number]) => (d.loai === 'app' ? banCua(d.khoa).flatMap((b) => [b, ...nguonCua(b.khoa)]) : nguonCua(d.khoa));
+    const rSite = (d: typeof mh.dich[number]) => 30 + Math.min(40, vongCua(d).length * 3.2);
+    const banCua = (app: string) => mh.dich.filter((b) => b.cha === app);
+    const coQt = (d: typeof mh.dich[number]) => d.loai !== 'sp' || nguonCua(d.khoa).length > 0;   // site, app, hoặc sản phẩm có nguồn (Gumroad) → quảng trường riêng
     type Khu = { k: typeof mh.duAn[number]; sites: typeof mh.dich; sps: typeof mh.dich; rSp: number; rVong: number; D: number; cx: number; cz: number; phia: number };
     const ks: Khu[] = khus.map((k) => {
-      const ds_ = mh.dich.filter((d) => d.duAn === k.khoa), sites = ds_.filter(coQt), sps = ds_.filter((d) => !coQt(d));
+      const ds_ = mh.dich.filter((d) => d.duAn === k.khoa && !d.cha), sites = ds_.filter(coQt), sps = ds_.filter((d) => !coQt(d));
       const rSp = sps.length ? 34 + Math.min(30, sps.length * 2.4) : 0, maxR = Math.max(0, ...sites.map(rSite));
       if (!k.laDuAn && sites.length === 1 && !sps.length) return { k, sites, sps, rSp: 0, rVong: 0, D: maxR, cx: 0, cz: 0, phia: 1 };
       const rVong = sites.length ? Math.max(rSp + maxR + 30, sites.reduce((a, d) => a + 2 * rSite(d) + 24, 0) / (2 * Math.PI)) : 0;
@@ -275,14 +278,30 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // ── BỐ CỤC: khu đang chạy xếp hai dãy hai phía đại lộ (dãy ngắn nhận khu kế); khu dự án ngừng ra dãy ngoài cùng, sau khu dân cư
     const xep = (os: Khu[], x0: number, z: (o: Khu) => number) => { const day: [number, number] = [x0, x0]; for (const o of os) { const h = day[0] <= day[1] ? 0 : 1; o.phia = h ? 1 : -1; o.cx = day[h] + o.D; o.cz = o.phia * z(o); day[h] += 2 * o.D + 40; } return Math.max(...day); };
     const chay = ks.filter((o) => !o.k.ngung), ngung = ks.filter((o) => o.k.ngung);
-    const xChay = xep(chay, 0, (o) => o.D + 30), lech = -xChay / 2;
+    // PHƯỜNG: mỗi lĩnh vực xếp liền một đoạn đại lộ, cách nhau một khoảng có cổng
+    const phuong: { lv: string; x0: number; x1: number; z: number }[] = [];
+    let xChay = 0;
+    for (const lv of [...new Set(chay.map((o) => o.k.linhVuc))]) { const os = chay.filter((o) => o.k.linhVuc === lv), x0 = xChay + 30, x1 = xep(os, x0 + 20, (o) => o.D + 30); phuong.push({ lv, x0, x1, z: Math.max(...os.map((o) => Math.abs(o.cz) + o.D)) + 20 }); xChay = x1 + 50; }
+    const lech = -xChay / 2;
     for (const o of chay) o.cx += lech;
+    for (const p of phuong) { p.x0 += lech; p.x1 += lech; }
     const zTrong = Math.max(200, ...chay.map((o) => Math.abs(o.cz) + o.D));
     const zN = zTrong + 260;   // = vành đai khu dân cư (khuNen)
     const xNgung = xep(ngung, 0, (o) => zN + 70 + o.D);
     for (const o of ngung) o.cx += lech + (xChay - xNgung) / 2;
     const zNgoai = Math.max(0, ...ngung.map((o) => Math.abs(o.cz) + o.D));
-    pho(lech - 40, 0, xChay + lech + 40, 0, 20);
+    const xKho = xChay + lech + 90;   // Kho bạc ở cuối đại lộ
+    pho(lech - 40, 0, xKho + 60, 0, 20);
+    // nền phường (màu lĩnh vực) + cổng chào trên đại lộ
+    for (const p of phuong) {
+      const lv = LINH_VUC[p.lv]!, nenP = add(new THREE.PlaneGeometry(p.x1 - p.x0 + 20, p.z * 2), new THREE.MeshBasicMaterial({ color: lv.mau, transparent: true, opacity: .07, depthWrite: false }), false);
+      nenP.rotation.x = -Math.PI / 2; nenP.position.set((p.x0 + p.x1) / 2, .12, 0);
+      for (const z of [-15, 15]) { const cot = add(new THREE.BoxGeometry(2.4, 22, 2.4), M({ color: lv.mau, emissive: lv.mau, emissiveIntensity: .35 })); cot.position.set(p.x0, 11, z); }
+      const xa = add(new THREE.BoxGeometry(2.4, 3, 33), M({ color: lv.mau, emissive: lv.mau, emissiveIntensity: .35 })); xa.position.set(p.x0, 22, 0);
+      const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d')!;
+      g.fillStyle = lv.mau; g.beginPath(); g.roundRect(4, 4, 504, 120, 20); g.fill(); g.fillStyle = '#fff'; g.font = '800 52px system-ui, "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(`${lv.ic} ${lv.ten.toUpperCase()}`, 256, 68, 490);
+      const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(60, 15, 1); bien.position.set(p.x0, 34, 0); bien.userData = { loai: 'lv', lv: p.lv }; the.add(bien);
+    }
 
     // tháp site (tâm quảng trường site): xanh sáng = có nguồn; xám = chưa gắn nguồn traffic nào; hộp hồng + xu = cửa hàng Gumroad / Etsy
     const thapSite = (d: typeof mh.dich[number], x: number, z: number) => {
@@ -305,14 +324,17 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // quảng trường site: tháp ở tâm, nguồn đứng vòng quanh (máy tìm kiếm, quảng cáo, giới thiệu, tài khoản social), phố nan hoa nối vào tâm
     const quangTruongSite = (d: typeof mh.dich[number], x: number, z: number) => {
       const qt = add(new THREE.CylinderGeometry(20, 20, .7, 36), GACH, false); qt.position.set(x, .35, z);
-      if (d.loai === 'site') thapSite(d, x, z); else toaSp(d, x, z);
+      if (d.loai === 'site') thapSite(d, x, z); else if (d.loai === 'app') toaApp(d, x, z); else toaSp(d, x, z);
       qt.userData = { chu: null };
-      const ns = nguonCua(d.khoa).sort((a, b) => (a.loai === b.loai ? b.phien - a.phien : a.loai.localeCompare(b.loai))), r = rSite(d);
-      ns.forEach((tk, i) => {
-        const g = (i / Math.max(1, ns.length)) * Math.PI * 2 + .3, sx = x + Math.cos(g) * r, sz = z + Math.sin(g) * r;
+      // vòng quanh: site / sản phẩm → các nguồn; app → các bản cửa hàng, mỗi bản kèm nguồn của nó đứng liền sau
+      const vong = d.loai === 'app' ? vongCua(d) : nguonCua(d.khoa).sort((a, b) => (a.loai === b.loai ? b.phien - a.phien : a.loai.localeCompare(b.loai))), r = rSite(d);
+      vong.forEach((v, i) => {
+        const g = (i / Math.max(1, vong.length)) * Math.PI * 2 + .3, sx = x + Math.cos(g) * r, sz = z + Math.sin(g) * r;
         pho(sx, sz, x + Math.cos(g) * 18, z + Math.sin(g) * 18, 6);
-        const t = toaNha(sx, sz, tk, maiTk(tk)); viTri[`tk:${tk.id}`] = { m: t.m, cua: t.cua };
+        if ('loai' in v && (v.loai === 'site' || v.loai === 'sp' || v.loai === 'app')) { toaSp(v as typeof mh.dich[number], sx, sz); return; }
+        const tk = v as PhoTk, t = toaNha(sx, sz, tk, maiTk(tk)); viTri[`tk:${tk.id}`] = { m: t.m, cua: t.cua };
       });
+      viTri[`khu-cua:${d.khoa}`] = new THREE.Vector3(x, 1.5, z);
     };
     // toà DỰ ÁN: khối bậc thang (khác hẳn tháp site) + biển "DỰ ÁN · tên" trên nóc; dự án ngừng = xám, biển ghi NGỪNG
     const toaDuAn = (k: typeof mh.duAn[number], x: number, z: number, luu: number) => {
@@ -336,11 +358,21 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (d.sapLen) { const khung = add(new THREE.BoxGeometry(w + 1, h + 1, w + 1), new THREE.MeshBasicMaterial({ color: '#b48cff', wireframe: true, transparent: true, opacity: .5 }), false); khung.position.copy(m.position); khung.userData = { chu: m }; }
       m.userData = { loai: 'dich', d }; viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
     }
+    // toà APP: thân dáng điện thoại (khối mảnh, mặt trước là màn hình sáng) + tên dọc; các bản cửa hàng đứng quanh
+    function toaApp(d: typeof mh.dich[number], x: number, z: number) {
+      const ban = banCua(d.khoa), so = ban.reduce((a, b) => a + (b.xem7 ?? 0) + (b.tai ?? 0) * 3, 0), h = 26 + Math.min(30, Math.log2(1 + so) * 3);
+      const than = M({ color: '#1d2433', roughness: .35, metalness: .4, transparent: !!d.sapLen, opacity: d.sapLen ? .5 : 1 }), man = M({ color: '#3a6ff0', emissive: '#3a6ff0', emissiveIntensity: .55 });
+      const m = add(new THREE.BoxGeometry(12, h, 6), [than, than, than, than, man, man]); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
+      chuDoc(d.ten, '#3a6ff0', x, z, 6.4, 6.4, h, m);
+      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
+    }
+    // TIỀN: đồng xu chồng cạnh đích có tiền 30 ngày; xe vàng chở về Kho bạc
+    const coTien: { d: typeof mh.dich[number]; khu: { cx: number; cz: number; phia: number } }[] = [];
     for (const o of ks) {
       const { k, cx, cz } = o;
       pho(cx, 0, cx, cz, 12);
       if (!k.laDuAn && o.sites.length === 1 && !o.sps.length) { quangTruongSite(o.sites[0]!, cx, cz); continue; }   // site đứng riêng: tự là một khu
-      const nen_ = add(new THREE.CylinderGeometry(o.D, o.D, .4, 48), M({ color: k.ngung ? '#14161f' : '#121a30', roughness: 1 }), false); nen_.position.set(cx, .2, cz);
+      const nen_ = add(new THREE.CylinderGeometry(o.D, o.D, .4, 48), M({ color: k.ngung ? '#14161f' : new THREE.Color('#121a30').lerp(new THREE.Color(LINH_VUC[k.linhVuc]!.mau), .22), roughness: 1 }), false); nen_.position.set(cx, .2, cz);
       const luu = o.sites.reduce((a, d) => a + (d.phien30 ?? 0), 0) + o.sps.reduce((a, d) => a + (d.xem7 ?? 0), 0);
       if (k.laDuAn) toaDuAn(k, cx, cz, luu);
       o.sps.forEach((d, i) => { const g = (i / Math.max(1, o.sps.length)) * Math.PI * 2, x = cx + Math.cos(g) * o.rSp, z = cz + Math.sin(g) * o.rSp; toaSp(d, x, z); });
@@ -348,6 +380,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       for (const d of o.sites) { const r = rSite(d), cung = ((2 * r + 24) / Math.max(tong, 2 * Math.PI * o.rVong)) * Math.PI * 2; goc += cung / 2;
         const x = cx + Math.cos(goc) * o.rVong, z = cz + Math.sin(goc) * o.rVong; pho(cx, cz, x, z, 8); quangTruongSite(d, x, z); goc += cung / 2; }
     }
+    for (const o of ks) for (const d of mh.dich.filter((y) => y.duAn === o.k.khoa && !y.cha && (y.tien30 ?? 0) > 0)) coTien.push({ d, khu: o });
     // xe: toà nguồn → tháp đích (theo nan hoa quảng trường); số xe theo lượt khách
     for (const l of mh.luong) {
       const tk = mh.tk.find((t) => t.id === l.tu), a = viTri[`tk:${l.tu}`], b = viTri[l.den]; if (!tk || !a || !b || !l.so) continue;
@@ -355,7 +388,27 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const mau = mauTk(tk), soXe = Math.min(8, 1 + Math.round(Math.log2(l.so + 1) * 1.1));
       for (let k = 0; k < soXe; k++) { const xe = add(new THREE.BoxGeometry(3.4, 1.8, 2), M({ color: ['#20232b', '#1b1b22', '#101010'].includes(mau) ? '#dfe4f2' : mau, emissive: mau, emissiveIntensity: .6 })); xe.userData = { duong, t: k / soXe, toc: .003 + Math.log10(l.so + 1) * .0012, tk, chu: a.m }; ds.xe!.push(xe); }
     }
-    const kn = khuNen(lech - 40, xChay + lech + 40, zTrong, zNgoai);
+    // KHO BẠC: toà cột kiểu ngân hàng ở cuối đại lộ, biển ghi tổng tiền 30 ngày
+    {
+      const nenK = add(new THREE.BoxGeometry(56, 4, 40), M({ color: '#d9c38a', roughness: .6 })); nenK.position.set(xKho, 2, 0);
+      const than = add(new THREE.BoxGeometry(48, 22, 32), M({ color: '#efe3c0', roughness: .5 })); than.position.set(xKho, 15, 0); than.userData = { loai: 'kho' };
+      for (let i = 0; i < 6; i++) { const cot = add(new THREE.CylinderGeometry(1.6, 1.8, 22, 12), M({ color: '#fff7dc' })); cot.position.set(xKho - 20 + i * 8, 15, -18); cot.userData = { chu: than }; }
+      const mai = add(new THREE.CylinderGeometry(0, 30, 10, 4, 1), M({ color: '#ffd166', emissive: '#c99a2e', emissiveIntensity: .35, metalness: .4 })); mai.rotation.y = Math.PI / 4; mai.scale.set(1, 1, .7); mai.position.set(xKho, 31, 0); mai.userData = { chu: than };
+      const c = document.createElement('canvas'); c.width = 512; c.height = 160; const g = c.getContext('2d')!;
+      g.fillStyle = 'rgba(40,30,8,.92)'; g.beginPath(); g.roundRect(4, 4, 504, 152, 22); g.fill(); g.strokeStyle = '#ffd166'; g.lineWidth = 5; g.stroke();
+      g.fillStyle = '#ffd166'; g.font = '800 40px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('🏦 KHO BẠC · 30 NGÀY', 256, 58); g.fillStyle = '#fff'; g.font = '800 60px system-ui, sans-serif'; g.fillText(`$${Math.round(mh.tien.tong).toLocaleString('en-US')}`, 256, 128);
+      const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(70, 22, 1); bien.position.set(xKho, 54, 0); bien.userData = { chu: than }; the.add(bien);
+      const cua = new THREE.Vector3(xKho - 30, 1.5, 0);
+      for (const { d, khu } of coTien) {
+        const p = viTri[d.khoa]; if (!p) continue;
+        for (let j = 0; j < Math.min(10, Math.ceil(Math.log2(1 + d.tien30!) * 1.3)); j++) { const xu = add(new THREE.CylinderGeometry(2.6, 2.6, 1, 18), M({ color: '#ffd166', emissive: '#ffd166', emissiveIntensity: .7, metalness: .5 }), false); xu.position.set(p.cua.x + 9, 1 + j * 1.1, p.cua.z + 9); xu.userData = { chu: null }; ds.xu!.push(xu); }
+        const lan = khu.phia * 8, pts = [p.cua, new THREE.Vector3(khu.cx, 1.5, khu.cz), new THREE.Vector3(khu.cx, 1.5, lan), new THREE.Vector3(cua.x, 1.5, lan), cua];
+        const duong = new THREE.CurvePath(); for (let i = 0; i < pts.length - 1; i++) duong.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
+        const soXe = Math.min(6, 1 + Math.round(Math.log2(1 + d.tien30!)));
+        for (let j = 0; j < soXe; j++) { const xe = add(new THREE.BoxGeometry(5, 2.6, 2.8), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .8, metalness: .3 })); xe.userData = { duong, t: j / soXe, toc: .0012 + Math.log10(1 + d.tien30!) * .0005, chu: than, tien: true }; ds.xu!.push(xe); }
+      }
+    }
+    const kn = khuNen(lech - 40, xKho + 60, zTrong, zNgoai);
     gioiHan = { x0: kn.xa, x1: kn.xb, z: kn.zDat };
     const rong = kn.xb - kn.xa;
     if (doc) { CAM0.set(-rong * .62, rong * .7, 0); TAM0.set(0, 0, 0); scene.fog.near = rong * .9; scene.fog.far = rong * 2.2; ctl.maxDistance = rong * 1.6; }
@@ -367,14 +420,15 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // ── bảng điều khiển
-  const LOP: Record<string, [string, string]> = { cua: ['🪟', 'Bài đang chạy'], thung: ['📦', 'Bài sắp đăng'], cot: ['🔦', 'Lượt xem'], xe: ['🚗', 'Khách về site'], xu: ['🪙', 'Đơn'] };
+  const LOP: Record<string, [string, string]> = { cua: ['🪟', 'Bài đang chạy'], thung: ['📦', 'Bài sắp đăng'], cot: ['🔦', 'Lượt xem'], xe: ['🚗', 'Khách về site'], xu: ['🪙', 'Tiền về kho bạc'] };
   for (const [k, [ic, ten]] of Object.entries(LOP)) { const b = document.createElement('button'); b.className = 'lop'; b.title = ten; b.textContent = ic; b.setAttribute('aria-pressed', 'true'); b.setAttribute('aria-label', ten);
     b.onclick = () => { if (bat.has(k)) bat.delete(k); else bat.add(k); b.setAttribute('aria-pressed', String(bat.has(k))); apLop(); }; q('[data-o="lop"]').appendChild(b); }
   const chip = (o: string, set: Set<any>, id: string, mau: string, ic: string, ten: string) => { const b = document.createElement('button'); b.className = 'chip'; b.title = ten; b.setAttribute('aria-label', ten); b.style.background = mau; b.innerHTML = ic; b.setAttribute('aria-pressed', 'false');
     b.onclick = () => { if (set.has(id)) set.delete(id); else set.add(id); b.setAttribute('aria-pressed', String(set.has(id))); apLop(); }; q(`[data-o="${o}"]`).appendChild(b); return b; };
   const chipKhu = () => { const o = q('[data-o="loc-sp"]'); o.innerHTML = ''; for (const c of mh.duAn) chip('loc-sp', chonSp, c.khoa, c.ngung ? '#4a4f60' : c.mau, c.site && mh.fav[c.site] ? `<img src="${mh.fav[c.site]}" alt="">` : esc(c.ten[0]!.toUpperCase()), `${c.laDuAn ? 'Dự án' : 'Site'} ${c.ten}${c.ngung ? ' (ngừng)' : ''}`).onclick = (e) => { const b = e.currentTarget as HTMLButtonElement; if (chonSp.has(c.khoa)) chonSp.delete(c.khoa); else chonSp.add(c.khoa); b.setAttribute('aria-pressed', String(chonSp.has(c.khoa))); dung(); }; };
   const chipNen = () => { q('[data-o="loc-nen"]').innerHTML = ''; for (const k of [...new Set(mh.tk.map((t) => t.nen))] as Nen[]) chip('loc-nen', chonNen, k, NEN[k][0], svgLogo(k), NEN[k][1]); };
-  chipKhu(); chipNen();
+  const chipLv = () => { q('[data-o="loc-lv"]').innerHTML = ''; for (const lv of Object.keys(LINH_VUC).filter((l) => mh.duAn.some((k) => k.linhVuc === l))) chip('loc-lv', chonLv, lv, LINH_VUC[lv]!.mau, LINH_VUC[lv]!.ic, LINH_VUC[lv]!.ten).onclick = (e) => { const b = e.currentTarget as HTMLButtonElement; if (chonLv.has(lv)) chonLv.delete(lv); else chonLv.add(lv); b.setAttribute('aria-pressed', String(chonLv.has(lv))); dung(); }; };
+  chipKhu(); chipNen(); chipLv();
   function apLop() {
     for (const m of ds.nha!) m.visible = khop(m.userData.tk);
     for (const k of ['cua', 'thung', 'cot', 'xe']) for (const m of ds[k]!) m.visible = bat.has(k) && khop(m.userData.tk);
@@ -403,18 +457,31 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${oNen(t.nen)} ${esc(t.ten)}`, h: [['Nền', NEN[t.nen][1]], ['Đổ vào', tenDich(t.dich)], ['🪟 Bài đã đăng', t.chay], ['📦 Sắp đăng 7 ngày', t.sap], ['🔦 Lượt xem', so(t.xem)],
         [`🚗 Khách về đích (${t.phienKy})`, t.phien], ['Trạng thái', t.dung ? '⏸ dừng' : t.hong ? `🔴 ${esc(t.hong)}` : '🟢 chạy']] };
     }
+    if (u.loai === 'kho') { const top = mh.dich.filter((d) => !d.cha && (d.tien30 ?? 0) > 0).sort((a, b) => b.tien30! - a.tien30!);
+      return { dau: '🏦 Kho bạc · 30 ngày', h: [['Tổng tiền thật', `$${mh.tien.tong.toFixed(2)}`], ...mh.tien.theo.map((x) => [x.ten, `$${x.so.toFixed(2)}`] as [string, string]),
+        ...top.slice(0, 8).map((d) => [`↳ ${esc(d.ten.slice(0, 30))}`, `$${d.tien30!.toFixed(2)}`] as [string, string]), ['Chưa nối', 'hoa hồng aff · AdSense web']] };
+    }
+    if (u.loai === 'lv') { const lv = LINH_VUC[u.lv]!, ks_ = mh.duAn.filter((k) => k.linhVuc === u.lv), ds_ = mh.dich.filter((d) => ks_.some((k) => k.khoa === d.duAn) && !d.cha);
+      return { dau: `${lv.ic} Phường ${esc(lv.ten)}`, h: [['Khu', ks_.length], ['Site', ds_.filter((d) => d.loai === 'site').length], ['App · sản phẩm', ds_.filter((d) => d.loai !== 'site').length],
+        ['Phiên 30 ngày', so(ds_.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ['💵 Tiền 30 ngày', `$${ds_.reduce((a, d) => a + (d.tien30 ?? 0), 0).toFixed(2)}`]] };
+    }
     if (u.loai === 'khu') { const k = khuCua(u.khoa)!, ds_ = mh.dich.filter((d) => d.duAn === k.khoa), sites = ds_.filter((d) => d.loai === 'site'), sps = ds_.filter((d) => d.loai === 'sp');
       const ve = mh.luong.filter((l) => ds_.some((d) => d.khoa === l.den)), theo = (lo: string) => cong2(ve.filter((l) => mh.tk.find((t) => t.id === l.tu)?.loai === lo));
-      return { dau: `${k.site ? oFav(k.site) : ''} DỰ ÁN · ${esc(k.ten)}`, h: [['Trạng thái', k.ngung ? '⏸ ngừng hoạt động' : '🟢 đang chạy'], ['🌐 Site', sites.length], ['🛍 Sản phẩm', `${sps.filter((d) => !d.sapLen).length} đang bán · ${sps.filter((d) => d.sapLen).length} sắp lên`],
+      return { dau: `${k.site ? oFav(k.site) : ''} DỰ ÁN · ${esc(k.ten)}`, h: [['Phường', `${LINH_VUC[k.linhVuc]!.ic} ${LINH_VUC[k.linhVuc]!.ten}`], ['💵 Tiền 30 ngày', `$${ds_.filter((d) => !d.cha).reduce((a, d) => a + (d.tien30 ?? 0), 0).toFixed(2)}`], ['Trạng thái', k.ngung ? '⏸ ngừng hoạt động' : '🟢 đang chạy'], ['🌐 Site', sites.length], ['🛍 Sản phẩm', `${sps.filter((d) => !d.sapLen).length} đang bán · ${sps.filter((d) => d.sapLen).length} sắp lên`],
         ['Phiên 30 ngày (mọi site)', so(sites.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ['🔍 Từ tìm kiếm', theo('tim')], ['📣 Từ quảng cáo', theo('qc')], ['🔗 Từ giới thiệu', theo('gt')], ['📱 Từ social', theo('mxh')],
         ...sps.slice(0, 8).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 34))}`, d.sapLen ? 'sắp lên' : d.xem7 != null ? `${so(d.xem7)} xem` : '—'] as [string, string])] };
     }
     if (u.loai === 'dich') { const d = u.d as typeof mh.dich[number];
+      const tienH: [string, string][] = d.tien30 != null ? [['💵 Tiền 30 ngày', `$${d.tien30.toFixed(2)} · ${esc(d.loaiTien ?? '')}`]] : [];
+      if (d.loai === 'app') { const ban = mh.dich.filter((b) => b.cha === d.khoa);
+        return { dau: `📱 ${esc(d.ten)}`, h: [['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Cửa hàng', ban.map((b) => esc(b.nenBan ?? '')).join(' · ')], ...tienH,
+          ...ban.map((b) => [`${b.hostBan ? oFav(b.hostBan, 14) : ''} ${esc(b.nenBan ?? '')}`, b.sapLen ? `sắp lên (${esc(b.trangThai ?? '')})` : `${so(b.xem7 ?? null)} xem · ${so(b.tai ?? null)} tải`] as [string, string])] };
+      }
       if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);
       return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')],
-        ...(d.laShop ? [['🪙 Đơn 30 ngày', so(d.don)] as [string, string]] : [['Phiên 30 ngày (mọi nguồn)', so(d.phien30)] as [string, string]]),
+        ...(d.laShop ? [['🪙 Đơn 30 ngày', so(d.don)] as [string, string]] : [['Phiên 30 ngày (mọi nguồn)', so(d.phien30)] as [string, string]]), ...tienH,
         ['Nguồn', d.coNguon ? `${ve.length} nguồn` : '⚪ chưa gắn nguồn traffic'],
         ...ve.slice(0, 10).map((l) => { const t = mh.tk.find((x) => x.id === l.tu); return [t ? `${oTk(t, 10)} ${esc(t.ten)}` : esc(l.tu), l.so] as [string, number]; })] };
     }
@@ -481,6 +548,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   function vong() {
     raf = requestAnimationFrame(vong); dem++;
     if (bay) { bay.t = Math.min(1, bay.t + .04); const e = 1 - Math.pow(1 - bay.t, 3); ctl.target.lerpVectors(bay.tu, bay.den, e); cam.position.lerpVectors(bay.camTu, bay.camDen, e); if (bay.t >= 1) bay = null; }
+    for (const xe of ds.xu!) { if (!xe.visible || !xe.userData.duong) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.6; }
     for (const xe of ds.xe!) { if (!xe.visible) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.4; }
     if (amb.xe) { for (let i = 0; i < amb.xeD.length; i++) { const u = amb.xeD[i]!; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, huong2); u.duong.getTangentAt(u.t, huong); oA.position.copy(huong2); oA.rotation.set(0, Math.atan2(-huong.z, huong.x), 0); oA.scale.set(1, 1, 1); oA.updateMatrix(); amb.xe.setMatrixAt(i, oA.matrix); } amb.xe.instanceMatrix.needsUpdate = true; }
     if (amb.nguoi) { for (let i = 0; i < amb.nguoiD.length; i++) { const u = amb.nguoiD[i]!; u.t = (u.t + u.toc) % 2; const p = u.t < 1 ? u.t : 2 - u.t; oA.position.lerpVectors(u.a, u.b, p); oA.position.y = 1.1 + Math.abs(Math.sin(dem / 6 + i)) * .25; oA.rotation.set(0, 0, 0); oA.scale.set(1, 1, 1); oA.updateMatrix(); amb.nguoi.setMatrixAt(i, oA.matrix); } amb.nguoi.instanceMatrix.needsUpdate = true; }

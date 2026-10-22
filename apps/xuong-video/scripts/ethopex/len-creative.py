@@ -73,6 +73,9 @@ EOF'""", timeout=3600)
     with ThreadPoolExecutor(4) as ex: list(ex.map(cong, lo))
     dat = [str(x["creative_id"]) for x in lo if not x.get("loi")]
     if dat: print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 kiem-cta.py --dat {' '.join(dat)} lô {ma} qua cổng'").stdout.strip())
+    # BẢN SỬA CHO NHÂN BẢN (anh 23/10/2026): creative cũ của camp_cu → creative mới vừa đạt → nhan-ban.py tự dùng khi nhân bản camp thắng CTA cũ
+    cap = [f"{x['camp']}:{x['creative_id']}" for x in lo if not x.get("loi") and x.get("camp") and x.get("creative_id")]
+    if cap: print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 ghi-cta-thay.py --camp {' '.join(cap)}'").stdout.strip())
     out = [{"camp_cu": x.get("camp"), "content_id": x["content_id"], "creative_id": x.get("creative_id"), "lang": x["lang"], "lo": x.get("lo", ma),
             "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi")} for x in lo]
     json.dump(out, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)

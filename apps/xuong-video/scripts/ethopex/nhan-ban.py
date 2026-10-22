@@ -42,6 +42,17 @@ def cong(content_id, creative_id, ten=""):
     if w: print(w, file=sys.stderr)
     return c
 
+# NHÂN BẢN CAMP THẮNG MANG CTA CŨ (anh 23/10/2026: "việc nhân bản một camp CTA sai rồi sửa lại thì vẫn gọi là nhân bản"): creative của camp gốc
+# chưa đạt luật CTA → dùng BẢN SỬA đúng luật của chính đoạn đó (studio xv_khoa_ngoai['ethopex_cta_thay'] {creative cũ: creative sửa}, ghi bởi
+# ghi-cta-thay.py — len-creative.py gọi khi dựng lại cho camp_cu). Chưa có bản sửa → xếp hàng dựng lại ['ethopex_cho_dung_lai'] thay vì chặn rồi bỏ.
+def ban_sua(creative_id):
+    v = q(f"select gia_tri->>'{int(creative_id)}' from xv_khoa_ngoai where ten='ethopex_cta_thay'")
+    return int(v) if v and v.isdigit() else None
+def xep_dung_lai(goc_id, creative_id, content_id, ten):
+    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_cho_dung_lai', '{}'::jsonb) on conflict (ten) do nothing")
+    v = json.dumps({"goc": goc_id, "content_id": content_id, "ten": ten, "luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")}, ensure_ascii=False).replace("'", "''")
+    q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(creative_id)}', '{v}'::jsonb) where ten='ethopex_cho_dung_lai' and not gia_tri ? '{int(creative_id)}'")
+
 def payload(goc_id, lich, moi=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
@@ -54,6 +65,12 @@ def payload(goc_id, lich, moi=None):
         goc_ten = re.sub(r"\s*\(nhan ban \d+ cua \d+\)$", "", c["name"])
         so = 1 + sum(1 for x in api("/api/v1/campaigns?page_size=500")["data"] if re.search(rf"\(nhan ban \d+ cua {goc_id}\)$", x.get("name", "")))
         ten = f"{goc_ten} (nhan ban {so} cua {goc_id})"
+        if _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):   # CTA cũ → thay bằng bản sửa của chính đoạn đó
+            sua = ban_sua(a.get("creative_id"))
+            if not sua:
+                xep_dung_lai(goc_id, a.get("creative_id"), a.get("content_id"), c["name"])
+                raise ValueError(f"creative #{a.get('creative_id')} CTA cũ, chưa có bản sửa — đã xếp hàng dựng lại (ethopex_cho_dung_lai)")
+            a = {**a, "creative_id": sua}; ten = f"{goc_ten} cta-sua (nhan ban {so} cua {goc_id})"
     # BỎ mọi mã định danh + mốc thời gian của camp GỐC (chạy khô 22/10/2026: source_payload Ad Set mang campaign_id FB + start_time của camp gốc
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}

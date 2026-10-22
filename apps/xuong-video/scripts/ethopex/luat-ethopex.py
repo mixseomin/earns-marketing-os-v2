@@ -203,10 +203,12 @@ except Exception as e:
 # LUẬT NB — NHÂN BẢN CAMP THẮNG (anh 22/10/2026: tự động, báo Telegram, mỗi phim tối đa 30 camp ĐANG CHẠY — camp thua tắt thì nhường chỗ cho creative mới).
 # Camp đang bật, ROI tháng ≥ 100%, đã tiêu ≥ $10, ROI 3 ngày ≥ 50% (còn đang thắng) → 1 bản $1; mỗi camp gốc tối đa 1 bản / 24 giờ, mỗi phim tối đa
 # 3 bản / ngày. Bản nhân bản do nhan-ban.py tạo (tên "(nhan ban N cua <gốc>)"), Phòng Ethopex tự chạy + báo 🧬.
-NB_ROI, NB_CHI, NB_ROI3, NB_PHIM_NGAY, TRAN_PHIM_CHAY = 100, 10, 50, 3, 30
+# NỚI (anh 23/10/2026: "còn nhiều camp thắng mà sao không tự clone… tất cả chỗ này lên full là có $1000"): ROI tháng ≥ 50%, tiêu ≥ $3, ROI 3 ngày ≥ 20%,
+# mỗi phim 6 bản/ngày, mỗi camp gốc 1 bản / 6 giờ (cũ 100% · $10 · 50% · 3/ngày · 24 giờ — Step Back +206% tiêu $6 không được nhân bản)
+NB_ROI, NB_CHI, NB_ROI3, NB_PHIM_NGAY, TRAN_PHIM_CHAY = 50, 3, 20, 6, 30
 nb = []
 try:
-    gio24 = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
+    gio24 = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=6)   # mỗi camp gốc 1 bản / 6 giờ (tên biến giữ nguyên)
     tao = lambda c: dt.datetime.fromisoformat(str(c.get("created_at")).replace("Z", "+00:00")) if c.get("created_at") else gio24 - dt.timedelta(days=1)
     goc_moi = {int(m.group(1)) for c in ds_camp if tao(c) > gio24 for m in [re.search(r"\(nhan ban \d+ cua (\d+)\)$", c.get("name", ""))] if m}
     dang_chay = {}

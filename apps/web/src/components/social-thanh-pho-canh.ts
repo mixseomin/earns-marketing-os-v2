@@ -123,6 +123,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   ctl.addEventListener('change', () => { ctl.target.x = Math.max(gioiHan.x0, Math.min(gioiHan.x1, ctl.target.x)); ctl.target.z = Math.max(-gioiHan.z, Math.min(gioiHan.z, ctl.target.z)); ctl.target.y = 0; });
   const hemi = new THREE.HemisphereLight('#8ea4ff', '#090c18', 0.5); scene.add(hemi);
   let gioiHan = { x0: -700, x1: 700, z: 400 }, daDatCam = false;
+  // GÓC NHÌN NHỚ QUA F5 (anh 22/10/2026): vị trí camera + tâm nhìn lưu ở trình duyệt mỗi lần dừng kéo / phóng / xoay và mỗi lần bay xong;
+  // mở lại thì về đúng chỗ đó. Nút ⌂ vẫn về góc toàn cảnh. Riêng từng máy (localStorage), hỏng / chế độ riêng tư thì mở góc toàn cảnh như cũ.
+  const KHOA_CAM = 'tp-cam';
+  const luuCam = () => { try { localStorage.setItem(KHOA_CAM, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* chế độ riêng tư */ } };
+  const camDaLuu: { p: number[]; t: number[] } | null = (() => { try { const v = JSON.parse(localStorage.getItem(KHOA_CAM) ?? 'null'); const so = v ? [...v.p, ...v.t] : []; return so.length === 6 && so.every(Number.isFinite) ? v : null; } catch { return null; } })();
+  ctl.addEventListener('end', luuCam);
   const trang = new THREE.DirectionalLight('#cfd8ff', 0.55); trang.position.set(-260, 420, 180); trang.castShadow = true; trang.shadow.mapSize.set(2048, 2048);
   Object.assign(trang.shadow.camera, { left: -700, right: 700, top: 450, bottom: -450 }); scene.add(trang);
   const dat = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1200), new THREE.MeshStandardMaterial({ color: '#0b1022', roughness: 1 })); dat.rotation.x = -Math.PI / 2; dat.receiveShadow = true; scene.add(dat);
@@ -619,7 +625,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     else { const vua = (rong / 2) / Math.tan(Math.atan(Math.tan(Math.PI / 9) * (W() / H())));   // lùi đủ xa để bề ngang thành phố vừa khung
       CAM0.set(0, vua * .62, vua * .72); TAM0.set(0, 0, 10); scene.fog.near = vua * 1.1; scene.fog.far = vua * 2.6; ctl.maxDistance = vua * 1.6; }
     cam.far = rong * 3; cam.updateProjectionMatrix();
-    if (!daDatCam) { cam.position.copy(CAM0); ctl.target.copy(TAM0); daDatCam = true; }
+    if (!daDatCam) { if (camDaLuu) { cam.position.fromArray(camDaLuu.p); ctl.target.fromArray(camDaLuu.t); } else { cam.position.copy(CAM0); ctl.target.copy(TAM0); } daDatCam = true; }
     apNgayDem(); apLop();
   }
 
@@ -840,7 +846,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const huong = new THREE.Vector3(), huong2 = new THREE.Vector3(), oA = new THREE.Object3D(); let dem = 0, raf = 0;
   function vong() {
     raf = requestAnimationFrame(vong); dem++;
-    if (bay) { bay.t = Math.min(1, bay.t + .04); const e = 1 - Math.pow(1 - bay.t, 3); ctl.target.lerpVectors(bay.tu, bay.den, e); cam.position.lerpVectors(bay.camTu, bay.camDen, e); if (bay.t >= 1) bay = null; }
+    if (bay) { bay.t = Math.min(1, bay.t + .04); const e = 1 - Math.pow(1 - bay.t, 3); ctl.target.lerpVectors(bay.tu, bay.den, e); cam.position.lerpVectors(bay.camTu, bay.camDen, e); if (bay.t >= 1) { bay = null; luuCam(); } }
     for (const ng of ds.onl!) { if (!ng.visible) continue; const u = ng.userData; u.t = (u.t + u.toc) % 1; ng.position.lerpVectors(u.a, u.b, u.t); ng.position.y = 1.3 + Math.abs(Math.sin(dem / 5 + u.t * 20)) * .3; ng.material.opacity = 1; }
     for (const lop of [ds.ngam!, ds.dien!, ds.xu!]) for (const n of lop) { if (!n.visible || !n.userData.nhip) continue; const u = n.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, n.position); n.position.y = .6; }
     for (const xe of ds.xu!) { if (!xe.visible || !xe.userData.duong || xe.userData.nhip) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.6; }

@@ -12,7 +12,10 @@ CTA = {
            "loi_giong": "¿Quieres saber qué pasa después? Mira la serie completa gratis. Más información."},
 }
 # chữ dụ nhấp + ký tự mũi tên/chỉ trỏ (dùng chung cho chữ trên video, chữ QC, chữ nút)
-MAU_CTA = re.compile(r"\btap\b|\bclick|\bclic\b|\btoca\b|\btócala|\bpulsa|\bpresiona|\bhaz clic|[▼▲►◄▶◀↓↑→←⬇⬆➡⬅👇👆👉👈⏬🔽]", re.I)
+# chỉ bắt khi đi cùng ngữ cảnh CTA hoặc viết HOA như chữ nút — thoại phim có "te toca" (tới lượt), OCR nhiễu ra "taP" (22/10/2026 chặn oan Number One 1760s)
+MAU_CTA = re.compile(r"\btap (?:to|here|now|below|learn|the (?:link|button)|for more|on (?:the|learn))\b|(?-i:\bTAP\b)|\bclick (?:here|now|below|the|to|on|learn)\b|(?-i:\bCLICK\b)|"
+                     r"\btoca (?:m[aá]s|aqu[ií]|el bot[oó]n|para ver)|(?-i:\bTOCA\b)|\bhaz clic|\bpulsa (?:aqu[ií]|el|m[aá]s)|\bpresiona (?:aqu[ií]|el bot)|"
+                     r"[▼▲►◄▶◀↓↑→←⬇⬆➡⬅👇👆👉👈⏬🔽]", re.I)
 
 def sai_luat(chu):
     m = MAU_CTA.search(chu or "")

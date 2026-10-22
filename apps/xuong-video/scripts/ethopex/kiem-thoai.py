@@ -62,10 +62,11 @@ def tu_kiem():
             "Let's strip this fraud down and donate his gear to the church!", "Everyone knows he got locked up for doing sex work for old hags.",
             "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo", "You're dead to me!", "I'll kill you", "Lo voy a matar", "Zane quits but is drugged, triggering his heat.", "she slept with the man who rules the underworld", "As ruts near, they obsess over him.", "Ponle un dedo encima y estás muerto."]
     chan += ["WATCH FREE · TAP LEARN MORE", "MÍRALA GRATIS · TOCA MÁS INFORMACIÓN", "Tap to watch more episodes!", "Click the link below", "Watch now 👇"]
+    qua_cta = ["Minker taP the people closest to you.", "Ahora te toca a ti.", "No me presiones.", "Click.", "He tapped the glass."]
     chan += ["By the way, who in the flying fuck are you?", "Neil, get over here and teach this bitch a lesson!", "Beat up that fat pig!", "¡Eres una perra!", "Qué mierda"]
     qua = ["You've humiliated this whole town!", "Kneel before the Lord and beg forgiveness for your sins!", "The top pick in the mba Draft Combine",
            "His clothes are drenched in sin!", "stripped of his title", "No money, no help, no nothing.", "¿De verdad me acabas de golpear?",
-           "sé que estás molesto.", "deadline is tomorrow", "Matarazzo", "skilled player", "the heat of the game", "stuck in a rut", "go to bed early", "Your stepbrother is a bully", "beautiful assessment", "a classic passage", "Watch Mr. Bastardo", "the beat goes on", "Hitchcock"]
+           "sé que estás molesto.", "deadline is tomorrow", "Matarazzo", "skilled player", "the heat of the game", "stuck in a rut", "go to bed early", "Your stepbrother is a bully", "beautiful assessment", "a classic passage", "Watch Mr. Bastardo", "the beat goes on", "Hitchcock"] + qua_cta
     for c in chan: assert soat(c), "phải chặn: " + c
     for c in qua: assert not soat(c), "không được chặn: %s (khớp %s)" % (c, soat(c))
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))

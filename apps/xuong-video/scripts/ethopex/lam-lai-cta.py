@@ -17,6 +17,8 @@ def to_khung(f):
 
 def lam(x, ra):
     cid = str(x["content_id"]); tm = os.path.join(N, cid); src = os.path.join(tm, "ghep-cuoi.mp4"); pst = os.path.join(tm, "poster-1080.png")
+    if not os.path.exists(src) and os.path.exists(os.path.join(tm, cid + ".mp4")): src = os.path.join(tm, cid + ".mp4")   # nguồn một tệp (Number One 94344)
+    if not os.path.exists(src) and any(f.startswith("tap") for f in os.listdir(tm)): src = CCL.ghep_mo(tm)[0]                 # còn tập lẻ → ghép lại
     if not os.path.exists(src): return {**x, "loi": f"không có nguồn {src}"}
     if not os.path.exists(pst): CCL.DL.poster(os.path.join(tm, "poster.jpg"), pst)
     k = CCL.cat1(cid, x["lang"], x["ten"], src, x.get("moc_tap") or [], pst, float(x["tu"]), float(x["den"]), ra)

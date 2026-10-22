@@ -167,11 +167,17 @@ export function catLop(canh: THREE.Scene, may: THREE.Camera): void {
     canh.userData.tamPhong = h.isEmpty() ? new THREE.Vector3() : h.getCenter(new THREE.Vector3());
   }
   const tam = canh.userData.tamPhong as THREE.Vector3;
+  // Xét TỪNG TẤM (phần của nhóm nhiều phần), và chỉ tấm MỎNG (≤ 12 cm): mặt nền nhiều phần như buồng thang máy (bo-set #132: 4 vách + trần + sàn, hộp bao
+  // 125 × 160 × 230) từng bị coi là MỘT tấm vách dày, trục mỏng = ngang → ẩn cả buồng khi máy đứng lệch → khung đo "trống 25%" qua cửa mở.
   for (const o of nen) {
-    const h = o.userData.hop as THREE.Box3; const s = h.getSize(new THREE.Vector3());
-    const ax = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
-    const p = may.position[ax];
-    o.visible = (h.min[ax] + h.max[ax]) / 2 >= tam[ax] ? p < h.min[ax] : p > h.max[ax];
+    const tam_ = o.children.length > 1 ? o.children : [o];
+    for (const t of tam_) {
+      const h = t === o ? (o.userData.hop as THREE.Box3) : new THREE.Box3().setFromObject(t); const s = h.getSize(new THREE.Vector3());
+      const ax = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
+      if (s[ax] > 12) { t.visible = true; continue; }
+      const p = may.position[ax];
+      t.visible = (h.min[ax] + h.max[ax]) / 2 >= tam[ax] ? p < h.min[ax] : p > h.max[ax];
+    }
   }
 }
 

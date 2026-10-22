@@ -10,7 +10,7 @@ import { xuNutSp, baoKetLenh } from './sp-nut.mjs';
 import { bangEthopex, xuNutBang } from './ethopex.mjs';
 
 const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) { console.error('thiếu TG_BOT_TOKEN / TG_CHAT'); process.exit(1); }
-const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(m === 'getUpdates' ? 45_000 : 15_000) })).json(); if (!j.ok && m !== 'getUpdates') console.error(`✗ telegram ${m}: ${j.description}`); return j; };
+const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(m === 'getUpdates' ? 45_000 : 15_000) })).json(); if (!j.ok && m !== 'getUpdates') console.error(`✗ telegram ${m}: ${j.description}`); return j; });
 const tim = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'tg-hop', 'nghe.tim');
 for (;;) {
   try { fs.mkdirSync(path.dirname(tim), { recursive: true }); fs.writeFileSync(tim, new Date().toISOString()); const n = await gomTin(tg, { cho: 30 }); if (n) console.log(`${new Date().toISOString()} ${n} tin`); if (await xuNutPhim(tg)) console.log('xử nút phim');

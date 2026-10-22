@@ -117,7 +117,7 @@ export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
   if (moi.length || api?.bao) {
     const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env;
     if (T && C) {
-      const tg = async (m, b) => (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json();
+      const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json());
       if (!st.topic) { const j = await tg('createForumTopic', { name: '🧰 Tài nguyên' }); if (j.ok) st.topic = j.result.message_thread_id; }
       if (moi.length) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: `<b>${ten} · Phòng Tài nguyên</b>\n${moi.map((c) => `• ${c.chu}`).join('\n')}` });
         if (j.ok) for (const c of moi) nhac[c.khoa] = bay; }

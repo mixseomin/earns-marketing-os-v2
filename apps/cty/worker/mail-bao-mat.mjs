@@ -320,7 +320,7 @@ export function tinBaoCao({ ten, ca, ngay, trongNgay, cho, hoc, goi, usd }) {
 export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', ca, diemDanh, tep = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/bao-mat-tg.json` } = {}) {
   const fs = await import('node:fs'); const { vpBao } = await import('./vp.mjs');
   const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
-  const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
+  const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; });
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   // nút anh bấm dưới tin (callback "km:<nhóm>:<miền>") → dạy sổ TRƯỚC khi đọc hòm, để nhịp này thẩm định lại theo điều vừa dạy
   // tin Telegram đọc qua bộ nhận chung (tg-phong.mjs): Bảo mật chỉ mở hộp phòng mình — đọc thẳng getUpdates ở đây từng nuốt tin của phòng khác
@@ -333,7 +333,7 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', c
     if (tr && !tr.from?.is_bot && goc) {
       const mid = Object.entries(st.tin ?? {}).find(([, t]) => t.id === goc)?.[0], nh = nhomTuChu(chuTra);
       const mail = mid ? (await docMailBaoMat())?.find((m) => m.id === mid) : null;
-      if (!mail || !nh) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: !mail ? `${ten}: tin này không phải tin báo thư em còn giữ — anh trả lời ngay dưới tin báo thư nhé.` : `${ten}: em chưa hiểu — anh trả lời "Thật", "Giả" hoặc "Nhà mình".` }); continue; }
+      if (!mail || !nh) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: !mail ? `${ten}: em chưa hiểu câu này. Câu hỏi có nút: anh trả lời "ok" / "không" hoặc thả 👍 là em làm luôn; tin báo thư: trả lời "Thật" / "Giả" / "Nhà mình".` : `${ten}: em chưa hiểu — anh trả lời "Thật", "Giả" hoặc "Nhà mình".` }); continue; }
       try { await dayMien(nh, mail.mien, tr.from?.username ?? tr.from?.first_name ?? ''); day++; if (nh !== 'gia' && !st.chuyen?.[mail.id]) ghiChuyen(st, mail.id, await giaoPhuTrach(tg, st.topic, mail, ten, goc)); }
       catch (e) { await tg('sendMessage', { message_thread_id: st.topic, reply_parameters: { message_id: tr.message_id }, text: `${ten}: ${e.message}` }); }
       continue;

@@ -89,10 +89,12 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const sid = boSetCuaShot(c, nv); const set = sid ? sets.get(sid) : undefined;
     if (!set || !c.may_3d || (o.ids && !o.ids.includes(c.id))) continue;
     const mDu = day.get(c.id) ?? c.may_3d;
-    if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, mDu, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang)) continue;
+    // khung ĐO SỐNG (cham-3d-song: nguon 'song', không có ảnh độ sâu / khung màu) trùng mã vẫn phải dựng Blender — 23/10/2026 Vast thuê máy xong "dựng 0"
+    // vì bản đo sống vừa ghi đúng mã mới, keyframe thì vẫn bị cổng chặn "chưa dựng Blender".
+    if (!o.tatCa && c.khung_xam?.nguon !== 'song' && c.khung_xam?.ma === maKhungXam(set, mDu, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang)) continue;
     // Vì sao dựng lại: phần đầu vào nào đổi so với lần dựng trước (lần dựng toàn tập không lý do = dấu hiệu dữ liệu bị ghi lại vô cớ).
     const cu0 = c.khung_xam?.ma_phan; const moi = maPhan(set, mDu, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang);
-    lyDo.push(`#${c.thu_tu}:${!c.khung_xam ? 'mới' : !cu0 ? 'chưa có mã phần' : Object.keys(moi).filter((k) => cu0[k] !== moi[k as keyof typeof moi]).join('+') || 'tất cả'}`);
+    lyDo.push(`#${c.thu_tu}:${!c.khung_xam ? 'mới' : c.khung_xam.nguon === 'song' ? 'mới đo sống' : !cu0 ? 'chưa có mã phần' : Object.keys(moi).filter((k) => cu0[k] !== moi[k as keyof typeof moi]).join('+') || 'tất cả'}`);
     // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
     const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
     const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr as { id: number; may_3d: May3d }, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;

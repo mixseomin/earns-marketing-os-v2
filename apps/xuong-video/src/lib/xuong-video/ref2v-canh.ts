@@ -16,7 +16,7 @@ const TOI_DA_THAM_CHIEU = 4;
  *  between 0 and 512" (job #3098, 19/10/2026; có thể đếm byte UTF-8 và / hoặc mở rộng @Element). Đo theo BYTE và chừa khoảng an toàn. */
 export const TOI_DA_PROMPT = 380;
 const doDai = (x: string) => Buffer.byteLength(x, 'utf8');
-const DUOI = 'Photorealistic, same faces and wardrobe, no on-screen text.';
+const DUOI = 'Photorealistic, same faces and wardrobe, no on-screen text, no extra objects or people.';   // không thêm vật lạ — mọi đường (prompt-khoi.ts › KHUON)
 /** Ghép các phần theo thứ tự ưu tiên vào tối đa `max` ký tự: phần vừa thì lấy cả, không vừa thì lấy các CÂU đầu còn vừa; phần đầu tiên dài quá
  *  một câu thì cắt ở ranh giới từ (luôn có nội dung). */
 export function gonPrompt(phan: string[], max: number): string {

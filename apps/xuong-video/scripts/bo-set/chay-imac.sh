@@ -24,7 +24,9 @@ if [ -n "${XV_MAY_THUE:-}" ]; then
   # MÁY THUÊ GPU (may-thue.sh lam — bật / chuẩn bị / tắt): đẩy đầu vào lên, chạy CÙNG render-khung.sh ở đó, kéo kết quả về.
   C=${XV_MAY_THUE_CONG:-22}; R=/root/xv/khung
   ssh -p $C "$XV_MAY_THUE" "rm -rf $R && mkdir -p $R" && rsync -aq -e "ssh -p $C" "$L/" "$XV_MAY_THUE:$R/"
-  ssh -p $C "$XV_MAY_THUE" "XV_THO=${XV_THO:-} bash /root/xv/scripts/bo-set/render-khung.sh $R /opt/blender/blender /root/xv/scripts/bo-set/dung-set.py"
+  # Workbench (khung xám / độ sâu) cần EGL: máy thuê Linux không có EGL của NVIDIA (EEVEE / Workbench "EGL_BAD_MATCH", Vast 22/10/2026) → vẽ bằng
+  # đồ hoạ phần mềm Mesa (llvmpipe, khung nhỏ nên nhanh); Cycles vẫn chạy GPU qua CUDA / OptiX, không dính biến này.
+  ssh -p $C "$XV_MAY_THUE" "LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless XV_THO=${XV_THO:-} bash /root/xv/scripts/bo-set/render-khung.sh $R /opt/blender/blender /root/xv/scripts/bo-set/dung-set.py"
   rsync -aq -e "ssh -p $C" "$XV_MAY_THUE:$R/" "$L/"
 else
   bash "$(dirname "$KB")/render-khung.sh" "$L" "$BLENDER" "$KB"

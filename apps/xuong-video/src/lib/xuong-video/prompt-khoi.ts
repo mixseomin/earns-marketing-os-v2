@@ -66,7 +66,7 @@ export const LOAI_VIDEO: Record<LoaiVideo, { sp_giu: string; sp_tam: (ten: strin
 };
 /** Mã khối — tên thành phần, dùng chung mọi đường sinh. */
 export type MaKhoi = 'anh_dich' | 'anh_so' | 'may' | 'boi_canh' | 'bo_tri' | 'khoanh_khac' | 'nguoi' | 'vat' | 'hau_canh' | 'huong' | 'khung' | 'ngoai_khung'
-  | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'so_nguoi' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'khong_khi' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'khac';
+  | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'so_nguoi' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'khong_khi' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'khong_them' | 'anh_set' | 'khac';
 export type Khoi = { ma: MaKhoi; chu: string };
 export const khoi = (ma: MaKhoi, chu: string | false | 0 | null | undefined): Khoi => ({ ma, chu: (chu || '').trim() });
 /** Ghép khối thành prompt (bỏ khối rỗng). */
@@ -74,12 +74,20 @@ export const ghep = (ds: Khoi[]) => ds.map((k) => k.chu).filter(Boolean).join(' 
 
 /** ĐƯỜNG SINH và khối BẮT BUỘC của nó (rỗng = bộ chấm báo thiếu). Khuôn quyết định đường đó phải nói gì; chữ của từng khối do thư viện dựng. */
 export type DuongSinh = 'mot_buoc' | 'flux' | 'sua_nhan_dang' | 'video';
+// khong_them BẮT BUỘC mọi đường (anh 22/10/2026: "mỗi yêu cầu đến AI cần bảo không được thêm mới đối tượng lạ ngoài quy định"): trước đây chỉ đường một bước,
+// bước 2 và video (khi có 3D) nói câu này; bước 1 FLUX, nền / người của lớp ghép, video shot không 3D thì không — bộ chấm giờ báo thiếu khối.
 export const KHUON: Record<DuongSinh, { ten: string; bat_buoc: MaKhoi[]; flux?: boolean }> = {
-  mot_buoc: { ten: 'một bước', bat_buoc: ['anh_dich', 'phong_cach', 'cam_chu', 'so_nguoi'] },
-  flux: { ten: 'bước 1', bat_buoc: ['anh_dich', 'boi_canh', 'chat_lieu', 'so_nguoi'], flux: true },
-  sua_nhan_dang: { ten: 'bước 2', bat_buoc: ['nguoi', 'giu', 'cam_chu', 'so_nguoi'] },
-  video: { ten: 'video', bat_buoc: ['giu', 'dien', 'cam_chu'] },
+  mot_buoc: { ten: 'một bước', bat_buoc: ['anh_dich', 'phong_cach', 'cam_chu', 'so_nguoi', 'khong_them'] },
+  flux: { ten: 'bước 1', bat_buoc: ['anh_dich', 'boi_canh', 'chat_lieu', 'so_nguoi', 'khong_them'], flux: true },
+  sua_nhan_dang: { ten: 'bước 2', bat_buoc: ['nguoi', 'giu', 'cam_chu', 'so_nguoi', 'khong_them'] },
+  video: { ten: 'video', bat_buoc: ['giu', 'dien', 'cam_chu', 'khong_them'] },
 };
+/** KHÔNG THÊM VẬT LẠ — ảnh sửa (một bước, bước 2, plate): chỉ vật có trong bố cục 3D + mô tả. */
+export const KHONG_THEM_ANH = 'Draw ONLY what Image 1 and this description contain: no extra objects, props, papers, cups, bottles, plants, screens, cables, signs, decorations, animals or people that are not there.';
+/** Bản NGẮN cho FLUX (ngân sách ~300 từ, FLUX không có prompt âm): nói theo hướng khẳng định. */
+export const KHONG_THEM_FLUX = 'Only the objects shaped by the layout and named here; nothing else added on any surface.';
+/** ẢNH CHUẨN BỐI CẢNH (doc-db.ts › anhSet): keyframe đã duyệt của shot khác cùng bộ set — chép BỀ NGOÀI phòng, không chép máy / bố trí. */
+export const cauAnhSet = (so: number, nhan: string) => `Image ${so} = an approved frame from another shot (${nhan}) on this SAME set: match the LOOK of the place to it exactly — the desk and furniture (same material, wood tone, colour and finish), what lies on each surface, walls, floor, glass, plants, light and colour grade. Do NOT copy its camera, framing, people, poses or object positions: those come only from Image 1. Do not bring in anything from Image ${so} that Image 1 does not show.`;
 /** Khối bắt buộc mà rỗng (có người trong khung mới bắt khối người). */
 export const thieuKhoi = (duong: DuongSinh, ds: Khoi[], coNguoi = true): MaKhoi[] =>
   KHUON[duong].bat_buoc.filter((m) => ((m !== 'nguoi' && m !== 'so_nguoi') || coNguoi) && !ds.some((k) => k.ma === m && k.chu));

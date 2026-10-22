@@ -59,7 +59,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // KHÔNG THÊM GÌ NGOÀI KHUNG ĐẦU (anh 15/10/2026: "bắt sinh ảnh, video phải tuân thủ tuyệt đối cái gì 3D đặt vào — chỉ được format, chuyển động"):
   // khung đầu dựng từ 3D đã có đủ thứ trong khung; clip chỉ được làm chúng chuyển động. Ai / món gì khung 3D kết mới thấy (đi vào khung) thì được vào.
   const vaoKhung = (bc.canh.khung_xam?.di ?? []).filter((d) => d.tu.some((x) => x < 0 || x > 1) && d.den.every((x) => x >= 0 && x <= 1)).map((d) => d.ten);
-  const khongThem = bc.canh.khung_xam ? CHAT_LIEU[chatLieuPhim(bc.kt)].khong_them(vaoKhung.length ? ` (only ${vaoKhung.map(goiTenEn([...bc.nhanVat, ...bc.nvPhim])).join(', ')} may enter, as the action says)` : '') : '';
+  const khongThem = CHAT_LIEU[chatLieuPhim(bc.kt)].khong_them(vaoKhung.length ? ` (only ${vaoKhung.map(goiTenEn([...bc.nhanVat, ...bc.nvPhim])).join(', ')} may enter, as the action says)` : '');   // mọi shot, kể cả không 3D (khối bắt buộc — prompt-khoi.ts › KHUON)
   // Thoại: KHÔNG lấy câu trong ngoặc kép của prompt_video (ngôn ngữ cũ, Veo in thành phụ đề) — ghép từ dòng thoại hiện tại của shot;
   // có file giọng riêng rồi thì clip câm (chỉ cử miệng). Nên sinh GIỌNG trước VIDEO.
   const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
@@ -100,7 +100,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || (bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
     khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
-    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${khongThem} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
+    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     // Ý đồ khán giả → KHÔNG KHÍ (khan-gia.ts › cauKhongKhi): chỉ không khí / ánh sáng / nhịp, không đổi nét mặt đã khai ở khối bieu_cam.

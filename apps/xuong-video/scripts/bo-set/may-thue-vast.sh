@@ -97,6 +97,9 @@ print(st or "-", ip.strip() or "-", p or "-")')
       [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
     done
     echo "máy: $H cổng $P"; mkdir -p ~/.cache; grep -qx "$MAYCHU" ~/.cache/vast-may-tot.txt 2>/dev/null || echo "$MAYCHU" >> ~/.cache/vast-may-tot.txt
+    if [ -n "${XV_KHUNG:-}" ]; then   # DỰNG KHUNG XÁM (ảnh độ sâu + khung màu cho keyframe) cho các shot XV_KHUNG=<id,…> — chay-imac.sh qua máy thuê
+      XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --chi="$XV_KHUNG"; echo "XONG KHUNG"; exit 0
+    fi
     if [ -n "${XV_DO_SHOT:-}" ]; then   # ĐO một shot (XV_DO_SHOT=<thư mục shot>): 1,5 giây đầu, in thời gian từng khung (dung-set.py › XV_DO_KHUNG), không nạp
       R=/root/xv/do; ssh -p $P $H "rm -rf $R && mkdir -p $R" && rsync -aq -e "ssh -p $P" "$XV_DO_SHOT/vao.json" $H:$R/
       ssh -p $P $H "cd /root/xv && env XV_MAY=cycles XV_NHAP=1 XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=1.5 XV_MAU=16 XV_RONG=360 XV_DO_KHUNG=1 timeout 900 /opt/blender/blender -b --factory-startup -P scripts/bo-set/dung-set.py -- $R/vao.json $R 2>&1" | grep -E "^DO |Traceback|Error" | head -60

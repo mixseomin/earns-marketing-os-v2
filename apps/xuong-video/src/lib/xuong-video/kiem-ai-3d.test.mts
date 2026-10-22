@@ -67,6 +67,8 @@ console.log('kiem-ai-3d: ok');
     { ten: 'Sàn', hinh: 'hop', mau: '#222', tam: [0, 100, -2], co: [400, 400, 2], nen: true }, { ten: 'Bàn', hinh: 'hop', mau: '#444', tam: [200, 0, 0], co: [100, 60, 75], en: 'desk' }] } } as never;
   const di = (them?: string[]) => ({ hanh_dong: '', prompt_anh: '', may_3d: { ...may([{ ten: 'Hạ', tam: [0, 0, 0], den: [0, 180, 0], huong: 0 }]), ...(them ? { them } : {}) } }) as never;
   assert.equal(xuyenVat(di(), st).length, 1); assert.equal(xuyenVat(di(['Cửa mở']), st).length, 0);
+  // thẻ {Cửa} khi shot bật 'Cửa mở' (thay_cho) = cùng cái cửa ở trạng thái khác → không báo 'đồ set không bật'
+  assert.deepEqual(theSai({ hanh_dong: '', prompt_anh: '', dan_dung: { mo: 'Hạ steps into the {Cửa}' }, may_3d: { ...may([{ ten: 'Hạ', tam: [0, 0, 0], huong: 0 }]), them: ['Cửa mở'] } } as never, nv, st), []);
   assert.equal(xuyenVat({ hanh_dong: '', prompt_anh: '', may_3d: may([{ ten: 'Hạ', tam: [200, 0, 0], huong: 0 }]) } as never, st).length, 1);
 }
 // MÓN ĐỔI TAY QUÁ NHỎ (#132 #15): thẻ 8,6 cm có den, máy 24 mm cách 5,8 m → ~0,9% → chặn; máy 28 mm cách 1,7 m → ~4% → qua; người di chuyển không tính

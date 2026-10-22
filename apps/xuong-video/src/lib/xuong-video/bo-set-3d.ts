@@ -3,7 +3,7 @@
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
 import type { BienThe, BoSet, Canh, KhoiSet, KhungXam, May3d, NhanVat, PhanCanh, VatThay } from './kieu';
-import { laKinh, vatHien } from './kieu';
+import { laKinh, tenCoMat, vatHien } from './kieu';
 import { duongMay, hopVat } from './duong-may';
 import { MOCAP_DANG } from './mocap-kho';
 
@@ -170,7 +170,7 @@ const nhac = (ten: string, chu: string) => { const t = ten.trim().toLowerCase();
  *  (anh 14/10/2026: công tắc đèn có ở #6 mà không có ở #5; "bản 3D phải có vị trí các thành phần, đạo cụ, nhân vật xong mới được sinh keyframe"). */
 export function thieuTrongSet(c: Pick<Canh, 'nhan_vat' | 'may_3d'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[], set: Pick<BoSet, 'du_lieu'>): string[] {
   const them = new Set(c.may_3d?.them ?? []);
-  const co = new Set([...vatHien(set.du_lieu.vat, them).flatMap((v) => [v.ten, v.anchor ?? '']), ...(c.may_3d?.vi_tri ?? []).map((v) => v.ten)].map((t) => t.trim().toLowerCase()).filter(Boolean));
+  const co = new Set([...tenCoMat(set.du_lieu.vat, them), ...(c.may_3d?.vi_tri ?? []).map((v) => v.ten.trim().toLowerCase())]);
   const chu = chuKhung(c);
   // Đồ tuỳ chọn của set (laptop) mà chữ tả khung có nhắc nhưng shot chưa khai them → keyframe sẽ tự vẽ nó ở chỗ tuỳ ý.
   const tuyChon = set.du_lieu.vat.filter((v) => v.tuy_chon && !them.has(v.ten) && tenGoi(v.ten, set).some((g) => nhac(g, chu))).map((v) => `${v.ten} (đồ tuỳ chọn — khai may_3d.them)`);

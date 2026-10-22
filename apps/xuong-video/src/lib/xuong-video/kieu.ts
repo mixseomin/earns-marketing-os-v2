@@ -397,6 +397,14 @@ export const vatHien = <V extends Pick<VatSet, 'ten' | 'tuy_chon' | 'thay_cho'>>
   const t = new Set(them ?? []); const bo = new Set(vat.filter((v) => v.tuy_chon && v.thay_cho && t.has(v.ten)).flatMap((v) => (Array.isArray(v.thay_cho) ? v.thay_cho : [v.thay_cho!])));
   return vat.filter((v) => (!v.tuy_chon || t.has(v.ten)) && !bo.has(v.ten));
 };
+/** TÊN ĐỒ SET "CÓ MẶT" trong một shot (chữ thường): đồ đang hiện + anchor của chúng + đồ bị món tuỳ chọn đang bật THAY (cửa đóng khi shot bật "cửa mở": vẫn là
+ *  cái cửa đó, ở trạng thái khác — thẻ {Thang máy 1} / đối tượng cùng tên không được coi là thiếu). Dùng cho cổng thiếu đồ (bo-set-3d.ts › thieuTrongSet) và
+ *  cổng thẻ (kiem-ai-3d.ts › theSai). */
+export const tenCoMat = (vat: Pick<VatSet, 'ten' | 'tuy_chon' | 'thay_cho' | 'anchor'>[], them: Iterable<string> | null | undefined): Set<string> => {
+  const t = new Set(them ?? []);
+  const thay = vat.filter((v) => v.tuy_chon && v.thay_cho && t.has(v.ten)).flatMap((v) => (Array.isArray(v.thay_cho) ? v.thay_cho : [v.thay_cho!]));
+  return new Set([...vatHien(vat, them).flatMap((v) => [v.ten, v.anchor ?? '']), ...thay].map((x) => x.trim().toLowerCase()).filter(Boolean));
+};
 export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string }; mat_bang_url: string | null; trang_thai: string };
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
 export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy do datMayTuDong tính (phía ° quanh chủ thể) — bộ giải trong Blender được phép xoay / nâng / lùi máy cho chủ thể thấy rõ */ tu_dong?: { phia?: number; /** mã đầu vào lúc tính (chỗ đứng + phía + khung + cỡ/góc/ống) — nạp lại mà khớp thì GIỮ máy bộ giải đã tìm */ vao?: string };

@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "Ethopex — lý do đóng camp",
+  "version": "1.0",
+  "description": "Rê chuột vào camp đã đóng trên trang Report của Ethopex để xem lý do: luật nào, ai duyệt, lúc nào, chi/thu (nguồn: nhật ký luật mos2).",
+  "content_scripts": [{ "matches": ["https://app.ethopex.dev/*"], "js": ["khoa.js", "ly-do.js"], "run_at": "document_idle" }],
+  "host_permissions": ["https://mos2.on.tc/*"]
+}

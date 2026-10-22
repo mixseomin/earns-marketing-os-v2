@@ -188,7 +188,7 @@ const DRY = process.argv.includes('--dry');
 const log = (...a) => console.log(new Date().toISOString().slice(0, 19), ...a);
 const U = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const H = { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}`, 'Content-Type': 'application/json' };
-const pr = await fetch(`${U}/items/products?limit=-1&fields=id,title,platform,sku,status,notes,url&filter[platform][_in]=${Object.keys(KIEM).join(',')}`, { headers: H });
+const pr = await fetch(`${U}/items/products?limit=-1&fields=id,title,platform,sku,status,notes,url,listing_config&filter[platform][_in]=${Object.keys(KIEM).join(',')}`, { headers: H });
 if (!pr.ok) throw new Error(`Directus products → ${pr.status} ${(await pr.text()).slice(0, 200)}`);
 const doi = [];
 let kiem = 0, chuaKiem = 0;
@@ -202,6 +202,11 @@ for (const p of sp) {
   if (tt.status === p.status && notes === (p.notes ?? null) && url === (p.url ?? null)) continue;
   const moiCanhBao = /CHƯA MỞ VÙNG BÁN/.test(tt.dong ?? '') && !/CHƯA MỞ VÙNG BÁN/.test(p.notes ?? '');
   if (tt.status !== p.status || moiCanhBao) doi.push({ nen: p.platform, ten: p.title, cu: p.status, moi: tt.status, dong: tt.dong, url });
+  // lên store → báo danh sách chờ của trang sản phẩm (listing_config.sp = slug clane.app/<sp>/) — scripts/bao-cho-tin.mjs, mỗi email một thư
+  if (!DRY && tt.status === 'published' && p.status !== 'published' && p.listing_config?.sp && url) {
+    try { const { baoChoTin } = await import('./bao-cho-tin.mjs'); const r = await baoChoTin(p.listing_config.sp, p.title.split(':')[0], url); log(`  danh sách chờ ${p.listing_config.sp}: gửi ${r.gui}/${r.cho}`); }
+    catch (e) { log(`  danh sách chờ ${p.listing_config.sp}: lỗi ${String(e.message).slice(0, 120)}`); }
+  }
   log(`${p.platform} · ${p.title}: ${CHU_SO[p.status] ?? p.status} → ${CHU_SO[tt.status] ?? tt.status}${tt.dong ? ` (${tt.dong})` : ''}`);
   if (DRY) continue;
   const r = await fetch(`${U}/items/products/${p.id}`, { method: 'PATCH', headers: H, body: JSON.stringify({ status: tt.status, notes, url }) });

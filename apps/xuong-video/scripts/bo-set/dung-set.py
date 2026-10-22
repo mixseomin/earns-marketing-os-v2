@@ -1958,7 +1958,23 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
             else: m_.blend_method = 'BLEND'
     do_sang_may(s, N // 2 + 1)
     # mắt bám đầu từng khung (dat_mat_moi_nguoi); khoá giao diện khi render để handler sửa vị trí an toàn
-    s.render.use_lock_interface = True; bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
+    s.render.use_lock_interface = True
+    if os.environ.get('XV_DO_KHUNG'):
+        # ĐO TỪNG KHUNG (22/10/2026: máy thuê A6000 2,5 s/khung 360px — GPU không phải chỗ nghẽn): in 'DO <khung> canh=<s> mat=<s> ve=<s>' —
+        # canh = đổi khung + tính cảnh (xương, IK, Shrinkwrap…), mat = handler đặt mắt, ve = render. Không bật thì không tốn gì.
+        import time as _t
+        _do = {}
+        def _do_mat(*a):
+            t0 = _t.perf_counter(); dat_mat_moi_nguoi(*a); _do['mat'] = _t.perf_counter() - t0
+        def _do_truoc(sc, *a): _do['f0'] = _t.perf_counter()
+        def _do_sau(sc, *a): _do['f1'] = _t.perf_counter()
+        def _do_ve0(sc, *a): _do['r0'] = _t.perf_counter()
+        def _do_ve1(sc, *a):
+            r1 = _t.perf_counter(); print('DO', sc.frame_current, 'canh=%.2f' % (_do.get('f1', r1) - _do.get('f0', r1) - _do.get('mat', 0)),
+                                           'mat=%.2f' % _do.get('mat', 0), 've=%.2f' % (r1 - _do.get('r0', r1)), flush=True)
+        bpy.app.handlers.frame_change_pre.insert(0, _do_truoc); bpy.app.handlers.frame_change_post.append(_do_mat)
+        bpy.app.handlers.frame_change_post.append(_do_sau); bpy.app.handlers.render_pre.append(_do_ve0); bpy.app.handlers.render_post.append(_do_ve1)
+    else: bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
     s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
     for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):
         f = 1 + round(t * (N - 1)); print('KHOA', i, f)

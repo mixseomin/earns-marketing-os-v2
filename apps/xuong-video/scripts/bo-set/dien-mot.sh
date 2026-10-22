@@ -6,7 +6,7 @@ BOX=root@167.233.241.16; APP=/opt/earns-marketing-os-v2/apps/xuong-video; DIR=$(
 XONG="$D/xong${XV_NHAP:+-nhap}"; DAU=$("$DIR/scripts/bo-set/dau-shot.sh" "$D")
 [ -f "$XONG" ] && [ "$(cat "$XONG")" = "$DAU" ] && { echo "GIU $TEN (không đổi)"; exit 0; }   # dấu trùng: clip đang có vẫn đúng
 rm -f "$D"/f*.png "$D/fps.txt"
-MOI="XV_MAY=${XV_MAY:-cycles} XV_NHAP=$XV_NHAP XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720}"
+MOI="XV_MAY=${XV_MAY:-cycles} XV_NHAP=$XV_NHAP XV_NHANH=1 XV_MESH_THAT=1 XV_DIEN=1 XV_GIAY=$GIAY XV_MAU=${XV_MAU:-24} XV_RONG=${XV_RONG:-720}${XV_DO_KHUNG:+ XV_DO_KHUNG=1}"
 if [ -n "$XV_MAY_THUE" ]; then
   # MÁY THUÊ GPU (may-thue.sh — chuan-bi trước): đẩy vao.json lên → Blender GPU bên đó → kéo khung về; hậu kỳ + nạp vẫn ở iMac như cũ.
   # Hạn XV_HAN_SHOT giây mỗi shot (mặc định 1200): Blender kẹt (EEVEE không có EGL, 22/10/2026) thì cắt, không để máy thuê đứng tính tiền.

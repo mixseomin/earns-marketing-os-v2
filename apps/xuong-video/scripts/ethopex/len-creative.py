@@ -76,6 +76,17 @@ EOF'""", timeout=3600)
     out = [{"camp_cu": x.get("camp"), "content_id": x["content_id"], "creative_id": x.get("creative_id"), "lang": x["lang"], "lo": x.get("lo", ma),
             "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi")} for x in lo]
     json.dump(out, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
+    # TỜ REVIEW CTA CỦA CẢ LÔ (anh 22/10/2026: "tao đang review thì mày phải chụp lại hết") — mỗi creative 2 ô: giữa video + thẻ cuối, 4 cột, 16 ô/tờ
+    o = []
+    for x in lo:
+        if x.get("loi"): continue
+        d = float(sh(f"ffprobe -v error -show_entries format=duration -of csv=p=0 '{x['file']}'").stdout.strip() or 0)
+        for k, arg in (("a", ["-ss", str(d * 0.5)]), ("b", ["-sseof", "-1.2"])):
+            f = f"{ra}/rv-{x['creative_id']}-{k}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y", *arg, "-i", x["file"], "-frames:v", "1", "-vf", "scale=300:534", f], check=True); o.append(f)
+    for k in range(0, len(o), 16):
+        t = o[k:k + 16]; fc = "".join(f"[{i}]" for i in range(len(t))) + f"xstack=inputs={len(t)}:layout=" + "|".join(f"{(i % 4) * 300}_{(i // 4) * 534}" for i in range(len(t))) + ":fill=black"
+        f = f"{ra}/review-cta-{k // 16 + 1}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y"] + sum([["-i", p] for p in t], []) + ["-filter_complex", fc, f], check=True)
+        print("TỜ REVIEW (iMac):", f)
     for o in out: print(o["ok"], o["creative_id"], o["camp_cu"], o["ten"][:70], o["loi"] or "")
 
 if __name__ == "__main__":

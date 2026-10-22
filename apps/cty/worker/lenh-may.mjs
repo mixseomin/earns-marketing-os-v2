@@ -21,7 +21,7 @@ export const LENH_MAY = {
   'sach:sx': { may: 'iMac', ten: 'Dựng sách (cuốn tới hạn)', qt: 'san-xuat' },
   'sach:kdp': { may: 'iMac', ten: 'Máy KDP: tạo nháp + bấm Publish (cuốn đã duyệt, tới ngày)', qt: 'dang-kdp' },
   'sach:etsy': { may: 'iMac', ten: 'Bật bán Etsy (cuốn đã duyệt, tới ngày, ≤ 3/ngày)', qt: 'bat-ban-etsy', phi: 'phí Etsy ~$0,20 mỗi cuốn bật bán' },
-  'sach:gumroad': { may: 'MacBook', ten: 'Đăng Gumroad (cuốn đã duyệt, tới ngày)', qt: 'dang-gumroad' },
+  'sach:gumroad': { may: 'MacBook', ten: 'Đăng Gumroad (cuốn đã duyệt, tới ngày)', qt: 'dang-gumroad', motSp: true },   // motSp: nhận tham = một sản phẩm (nút Telegram)
 };
 export const CHO_NHAN = 5 * 60_000;      // máy hỏi mỗi phút; quá 5 phút chưa nhận = máy đang ngủ / tắt → báo, cho gửi lại
 const CHAY_TOI_DA = 30 * 60_000;         // nhan-lenh.mjs dừng script sau 25 phút; quá 30 phút vẫn "đang" = máy chết giữa chừng
@@ -52,16 +52,18 @@ export function trangLenh(x, gio = Date.now()) {
 export function lenhGanNhat(dir = THU(), gio = Date.now()) {
   const kq = {}; for (const x of dsLenh(dir)) if (!kq[x.lenh]) kq[x.lenh] = { ...x, hien: trangLenh(x, gio) }; return kq;
 }
-/** Ghi một lệnh mới. Từ chối lệnh lạ và lệnh cùng loại đang chờ / đang chạy (bấm hai lần ≠ hai lượt đăng). */
-export function taoLenh(lenh, ai, dir = THU(), gio = Date.now()) {
+/** Ghi một lệnh mới. Từ chối lệnh lạ và lệnh cùng loại đang chờ / đang chạy (bấm hai lần ≠ hai lượt đăng).
+ *  them = { tham: UUID sổ products (lệnh có motSp ở nhan-lenh: chạy đúng một sản phẩm), bao: { tin, topic } (tin Telegram nhận kết quả, sp-nut.mjs) }. */
+export function taoLenh(lenh, ai, dir = THU(), gio = Date.now(), them = {}) {
   if (!LENH_MAY[lenh]) return { loi: `Lệnh lạ "${lenh}" — máy không nhận.` };
+  if (them.tham != null && !(LENH_MAY[lenh].motSp && /^[0-9a-f-]{36}$/.test(String(them.tham)))) return { loi: `Lệnh "${lenh}" không nhận tham "${them.tham}".` };
   const truoc = lenhGanNhat(dir, gio)[lenh];
   if (truoc && ['cho', 'dang'].includes(truoc.hien)) return { loi: `Đã có lệnh "${LENH_MAY[lenh].ten}" ${truoc.hien === 'cho' ? 'chờ máy nhận' : `đang chạy trên ${LENH_MAY[lenh].may}`} — đợi lệnh đó xong.` };
   fs.mkdirSync(dir, { recursive: true });
   for (const x of dsLenh(dir)) if (gio - Date.parse(x.luc) > GIU) try { fs.unlinkSync(path.join(dir, `${x.id}.json`)); } catch { /* đã dọn */ }
   const id = `${gio}-${lenh.replace(/[^\w]/g, '-')}`;
   const tam = path.join(dir, `.${id}.tam`);
-  fs.writeFileSync(tam, JSON.stringify({ id, lenh, luc: new Date(gio).toISOString(), ai, trang: 'cho' })); fs.renameSync(tam, path.join(dir, `${id}.json`));
+  fs.writeFileSync(tam, JSON.stringify({ id, lenh, luc: new Date(gio).toISOString(), ai, trang: 'cho', ...them })); fs.renameSync(tam, path.join(dir, `${id}.json`));
   return { id };
 }
 
@@ -77,9 +79,12 @@ if (process.argv.includes('--tu-kiem')) {
   const f = path.join(dir, `${l1.id}.json`); fs.writeFileSync(f, JSON.stringify({ ...JSON.parse(fs.readFileSync(f, 'utf8')), trang: 'dang', nhan_luc: new Date(t0).toISOString() }));
   a(trangLenh(JSON.parse(fs.readFileSync(f, 'utf8')), t0 + 31 * 60_000) === 'chet' && trangLenh({ trang: 'xong' }) === 'xong' && trangLenh({ trang: 'loi' }) === 'loi', 'chạy quá 30 phút → chết; xong / lỗi giữ nguyên');
   fs.writeFileSync(path.join(dir, 'hong.json'), '{hỏng'); a(dsLenh(dir).length === 3, 'tệp hỏng bỏ qua');
+  const U = 'a89b36bf-2ff0-40ec-909e-f1fa924ae372';
+  a(taoLenh('do-video', 'anh', dir, t0, { tham: U }).loi && taoLenh('sach:gumroad', 'anh', dir, t0, { tham: 'x; rm -rf /' }).loi, 'tham lạ / lệnh không nhận tham → từ chối');
+  const l9 = taoLenh('sach:gumroad', 'tg', dir, t0, { tham: U, bao: { tin: 5, topic: 2 } }); a(JSON.parse(fs.readFileSync(path.join(dir, `${l9.id}.json`), 'utf8')).tham === U, 'lệnh một sản phẩm ghi tham');
   taoLenh('do-video', 'anh', dir, t0 + 8 * 86_400_000); a(!fs.existsSync(f), 'lệnh quá 7 ngày được dọn');
   fs.rmSync(dir, { recursive: true });
   for (const l of Object.keys(LENH_MAY)) { const n = nguoiLenh(l); a(n && fs.existsSync(path.join(GOC, 'cong-ty', 'nhan-su', n.id, 'SOUL.md')), `${l}: không ra người phụ trách (thiếu qt, quy trình không có chủ trì, dây chuyền không khai lệnh, hay vai chưa ai giữ) → không ai lên văn phòng pixel`); }
   a(nguoiLenh('sach:sx')?.id === 'thao' && nguoiLenh('video:tiktok')?.id === 'phuc' && nguoiLenh('khong-co') === null, 'Dựng sách → Thảo (trưởng phòng), video → Phúc (kênh kéo khách)');
-  console.log(`✓ lenh-may: 11 ca đạt (lệnh lạ, chống bấm đôi, máy ngủ, chạy chết, tệp hỏng, dọn cũ, ${Object.keys(LENH_MAY).length} lệnh đều có người phụ trách)`);
+  console.log(`✓ lenh-may: 13 ca đạt (lệnh lạ, chống bấm đôi, máy ngủ, chạy chết, tệp hỏng, dọn cũ, ${Object.keys(LENH_MAY).length} lệnh đều có người phụ trách)`);
 }

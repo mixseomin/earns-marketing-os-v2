@@ -174,4 +174,12 @@ assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một l�
   assert.equal(mT.nganSach.find((x) => x.ten === 'VPS')!.so, 30, 'khoản định kỳ quy về tháng (15 / 15 ngày → 30)');
   assert.ok(!mT.nganSach.some((x) => x.ten.includes('TK mẫu')), 'tài khoản QC chưa có hạn mức thì không hiện');
   assert.ok(mT.chuaNoi.length > 0, 'nói rõ phần chưa nối'); }
+// RÌA: dự án pho_ria (Adfond) vẫn chạy nhưng xếp cùng dãy rìa với dự án ngừng; cảnh báo không có nền / nền không có kho → kho "Nền khác"
+{ const mR = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, duAn: live.heSinhThai.duAn.map((d: any) => (d.id === 'steamsolo' ? { ...d, ria: true } : d)),
+    taiNguyen: { tk: [{ nen: 'facebook', status: 'active', n: 3 }], canhBao: [{ nen: 'khac', loai: 'xac_minh', n: 2 }, { nen: 'huggingface', loai: 'xac_minh', n: 1 }], canhBaoDs: [{ id: 9, nen: 'huggingface', handle: null, loai: 'xac_minh', noiDung: 'x', url: 'https://huggingface.co', luc: '2026-10-22', acct: null }],
+      hoSo: [], proxy: [], soNganSach: [], tkQcShop: [] } } } as any);
+  const k = mR.duAn.find((x) => x.khoa === 'd:steamsolo')!, iR = mR.duAn.indexOf(k), dauNgung = mR.duAn.findIndex((x) => x.ngung || x.raRia);
+  assert.ok(k.raRia && !k.ngung && iR >= dauNgung, 'khu rìa: không ngừng, xếp vào dãy rìa');
+  const kh = mR.taiNguyen.tk.find((x) => x.nen === 'khac')!; assert.ok(kh && kh.canhBao === 3, 'cảnh báo lạc nền về kho Nền khác, không mất');
+  assert.equal(mR.taiNguyen.canhBaoDs[0]!.nen, 'khac', 'dòng cảnh báo trỏ đúng kho hiển thị'); }
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

@@ -91,7 +91,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const doc = <T,>(ten: string, p: Promise<T>, rong: T) => p.catch((e: Error) => { loi.push(`${ten}: ${e.message}`); return rong; });
   const q = <T,>(ten: string, cau: SQL) => doc(ten, d.execute(cau) as unknown as Promise<T[]>, [] as T[]);
   const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop, ads, chi, phuPf, hat, aff, etp] = await Promise.all([
-    q<{ id: string; name: string; website: string | null; ngung: boolean }>('dự án', sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`),
+    q<{ id: string; name: string; website: string | null; ngung: boolean; ria: boolean }>('dự án', sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung, coalesce(pho_ria, false) AS ria FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`),
     q<{ site: string; project_id: string }>('sổ site dự án', sql`SELECT site, project_id FROM du_an_site`),
     q<{ ten: string; project_id: string }>('app (app_ung_dung)', sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`),
     // mọi tài khoản cửa bán kể cả đã khoá: cửa bán mà mọi tài khoản đều bị khoá (Udemy) → sản phẩm ra khu 'tài khoản bị khoá' ở rìa; 'closed' = tự đóng, không tính
@@ -117,11 +117,12 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     doc('hoa hồng aff', networkRows(tu30), null),
     doc('Ethopex', docEthopex(), null),
   ]);
-  const [mayChu, congTy, tnTk, tnCb, tnHs, tnPx, tnNs, tnQc] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
+  const [mayChu, congTy, tnTk, tnCb, tnHs, tnDs, tnPx, tnNs, tnQc] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
     // tài nguyên (khu TÀI NGUYÊN): tài khoản × trạng thái, cảnh báo chưa xử, hồ sơ trình duyệt (br / máy ảo), proxy, sổ ngân sách, tài khoản QC shop
     q<{ nen: string; status: string; n: number }>('tài khoản theo nền', sql`SELECT platform_key AS nen, status, count(*)::int AS n FROM platform_accounts GROUP BY 1, 2`),
     q<{ nen: string | null; loai: string; n: number }>('cảnh báo nền tảng', sql`SELECT coalesce(platform, 'khac') AS nen, loai, count(*)::int AS n FROM platform_alerts WHERE xong_luc IS NULL GROUP BY 1, 2`),
     q<{ tool: string; n: number; gan7: number; cuoi: string | null }>('hồ sơ trình duyệt', sql`SELECT tool, count(*)::int AS n, (count(*) FILTER (WHERE last_opened_at > now() - interval '7 days'))::int AS gan7, max(last_opened_at)::text AS cuoi FROM browser_profiles WHERE archived_at IS NULL GROUP BY 1`),
+    q<{ id: number; nen: string; handle: string | null; loai: string; noi_dung: string | null; url: string | null; luc: string; acct: number | null }>('danh sách cảnh báo', sql`SELECT id, coalesce(platform, 'khac') AS nen, handle, loai, left(noi_dung, 160) AS noi_dung, url, luc::text AS luc, account_id AS acct FROM platform_alerts WHERE xong_luc IS NULL ORDER BY luc DESC LIMIT 80`),
     q<{ suc: string; n: number }>('proxy', sql`SELECT coalesce(health, 'chưa đo') AS suc, count(*)::int AS n FROM proxies WHERE archived_at IS NULL GROUP BY 1`),
     q<{ ten: string; so: number; tien_te: string; chu_ky: number | null }>('sổ ngân sách', sql`SELECT label AS ten, amount_cents / 100.0 AS so, currency AS tien_te, recurring_interval_days AS chu_ky FROM budget_entries WHERE kind IN ('expense', 'recurring')`),
     q<{ ten: string; trang_thai: string; han_muc: number | null; tien_te: string }>('tài khoản QC shop', sql`SELECT ten, trang_thai, han_muc::float AS han_muc, coalesce(tien_te, 'USD') AS tien_te FROM shop_qc_tk`)]);
@@ -129,7 +130,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
   return {
-    duAn: da.map((x) => ({ id: x.id, ten: x.name, site: siteOf(x.website), ngung: x.ngung })),
+    duAn: da.map((x) => ({ id: x.id, ten: x.name, site: siteOf(x.website), ngung: x.ngung, ria: x.ria })),
     duAnSite: ds.map((x) => ({ site: x.site, duAn: x.project_id })),
     sanPham: (sp?.rows ?? []).map((p) => ({ id: p.id, ten: p.title, nen: p.platform, trangThai: p.status, url: p.url, store: p.store, sku: p.sku, xem7: p.views7d, tai: p.downloads, net: p.net })),
     nguonSp: [...nguonApp, ...nguonGum],
@@ -144,7 +145,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     // camp Ethopex: thu / chi 30 ngày cộng từ báo cáo ngày × camp (cùng cửa sổ tu30 với tiền Ethopex ở Kho bạc)
     camps: etp ? etp.camps.map((c) => { const ng = etp.ngayCamp.filter((x) => x.camp === c.id && x.ngay >= tu30);
       return { id: c.id, ten: c.ten, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: c.trang_thai.toLowerCase(), thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach }; }) : [],
-    taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), hoSo: tnHs, proxy: tnPx,
+    taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), canhBaoDs: tnDs.map((x) => ({ id: x.id, nen: x.nen, handle: x.handle, loai: x.loai, noiDung: x.noi_dung, url: x.url, luc: x.luc, acct: x.acct })), hoSo: tnHs, proxy: tnPx,
       soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })) },
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
       ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
@@ -174,18 +175,21 @@ const docCongTy = unstable_cache(async () => {
 const MAY_CHU: { ten: string; ip: string; ssh: string | null }[] = [
   { ten: 'box3 · mos2', ip: '167.233.241.16', ssh: null }, { ten: 'box1 · as.on.tc', ip: '5.78.65.158', ssh: 'root@5.78.65.158' }, { ten: 'VPS may-cao-vn', ip: '116.118.28.214', ssh: 'root@116.118.28.214' },
 ];
-const LENH_MAY = `cat /proc/loadavg | cut -d' ' -f1; nproc; free -m | awk '/Mem:/{print $7}'; df -P / | awk 'NR==2{print $5}'; grep -hs 'server_name' /etc/nginx/sites-enabled/* | sed 's/#.*//' | tr ';' '\n' | grep server_name | sed 's/server_name//'`;
+// tầng ngầm (anh 23/10/2026): thêm số việc chạy theo giờ (systemd timer) + dịch vụ đang lỗi (systemctl --failed) — dòng HEN: / LOI: ở cuối
+const LENH_MAY = `cat /proc/loadavg | cut -d' ' -f1; nproc; free -m | awk '/Mem:/{print $7}'; df -P / | awk 'NR==2{print $5}'; grep -hs 'server_name' /etc/nginx/sites-enabled/* | sed 's/#.*//' | tr ';' '\n' | grep server_name | sed 's/server_name//'; echo "HEN:$(systemctl list-timers --all --no-legend 2>/dev/null | wc -l)"; echo "LOI:$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | paste -sd, -)"`;
 const docMayChu = unstable_cache(async () => {
   const { execFile } = await import('node:child_process'), { promisify } = await import('node:util'), chay = promisify(execFile);
   return Promise.all(MAY_CHU.map(async (m) => {
     try {
       const { stdout } = m.ssh ? await chay('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', m.ssh, LENH_MAY], { timeout: 12000 }) : await chay('bash', ['-c', LENH_MAY], { timeout: 8000 });
-      const [tai, nhan, ram, dia, ...ten] = stdout.split('\n');
+      const dong = stdout.split('\n'), hen = dong.find((l) => l.startsWith('HEN:')), loiDv = dong.find((l) => l.startsWith('LOI:'));
+      const [tai, nhan, ram, dia, ...ten] = dong.filter((l) => !/^(HEN|LOI):/.test(l));
       const sites = [...new Set(ten.join(' ').split(/\s+/).map((h) => h.trim().replace(/^www\./, '')).filter((h) => /\.[a-z]{2,}$/.test(h) && !h.endsWith('.on.tc') && h !== '_'))];
-      return { ...m, tai: Number(tai) || 0, nhan: Number(nhan) || 1, ramMB: Number(ram) || 0, diaPct: parseInt(dia ?? '', 10) || 0, sites, loi: null as string | null };
-    } catch (e) { return { ...m, tai: null, nhan: null, ramMB: null, diaPct: null, sites: [] as string[], loi: (e as Error).message.slice(0, 80) }; }
+      return { ...m, tai: Number(tai) || 0, nhan: Number(nhan) || 1, ramMB: Number(ram) || 0, diaPct: parseInt(dia ?? '', 10) || 0, sites, loi: null as string | null,
+        henGio: hen ? Number(hen.slice(4)) || 0 : null, loiDv: loiDv ? loiDv.slice(4).split(',').filter(Boolean) : [] };
+    } catch (e) { return { ...m, tai: null, nhan: null, ramMB: null, diaPct: null, sites: [] as string[], loi: (e as Error).message.slice(0, 80), henGio: null as number | null, loiDv: [] as string[] }; }
   }));
-}, ['tp-may-chu-v1'], { revalidate: 900 });
+}, ['tp-may-chu-v2'], { revalidate: 900 });
 /** NGUỒN APP (Apple Analytics, scripts/app-store-so.mjs ghi Directus product_stats.raw_data.chiTiet): 30 ngày, mỗi app × nguồn → hiển thị / xem trang / tải lần đầu. */
 async function docNguonApp(): Promise<{ sp: string; nguon: string; hien: number; xem: number; tai: number }[]> {
   const url = process.env.DIRECTUS_URL || 'https://as.on.tc', token = process.env.DIRECTUS_TOKEN; if (!token) return [];

@@ -3,7 +3,9 @@
 // Hàng chờ: <DATA>/vp-noi-dung/hang-cho/<id>.json → nhịp 'kiem-bai' (Ngọc, nhip.mjs) lấy từng bài: máy đo (không AI: gạch dài, từ máy,
 // số chữ, ví dụ, FAQ, phần "nếu đã lỡ", nút hành động) + Ngọc chấm theo cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md qua proxy công ty
 // (ghi tiền, trần chi) → tin vào chủ đề "📝 Nội dung" trên Telegram → kết quả lưu <DATA>/vp-noi-dung/da-kiem/<id>.json.
-//   node worker/kiem-bai.mjs --nop <url> [--tu "<người gửi>"] [--html <tệp nháp>]   nộp bài (bản nháp chưa lên trang: --html)
+//   node worker/kiem-bai.mjs --nop <url> [--tu "<người gửi>"] [--html <tệp nháp>] [--loai trang-ban]   nộp bài (bản nháp chưa lên trang: --html)
+//     --loai trang-ban: TRANG BÁN app / sản phẩm số — chấm theo chuan-trang-ban.md + thư viện mẫu thật thu-vien-trang-ban/ (anh 23/10/2026: chuẩn bài SEO
+//     1.200–1.800 chữ không áp cho trang bán; "có thư viện mẫu các trang bán hàng thành công sẽ hiệu quả hơn là mỗi lần thêm một chút")
 //   node worker/kiem-bai.mjs --tu-kiem                                                tự kiểm máy đo + khuôn tin
 import fs from 'node:fs';
 import path from 'node:path';
@@ -54,13 +56,15 @@ export function soLuot(url, ds = docJson(XONG())) {
 export function moKhoa(url) { fs.mkdirSync(XONG(), { recursive: true }); fs.writeFileSync(path.join(XONG(), `${Date.now()}-mo.json`), JSON.stringify({ url, ket: 'MO_KHOA', luc: new Date().toISOString() })); }
 
 /** Nộp một bài vào hàng chờ. html = nội dung bản nháp (chưa lên trang) — có thì phòng chấm cái này, không tải url (url vẫn bắt buộc: vòng sửa đếm lượt theo url). */
-export function nopBai({ url, tu = 'Không rõ', html = null, ban = null }) {
+export const LOAI = ['bai', 'trang-ban'];
+export function nopBai({ url, tu = 'Không rõ', html = null, ban = null, loai = 'bai' }) {
+  if (!LOAI.includes(loai)) throw new Error(`--loai phải là ${LOAI.join(' | ')}`);
   if (!url) throw new Error('cần --nop <url> (bản nháp thì thêm --html <tệp>, url là trang đích)');
   const n = soLuot(url);
   if (n >= TRAN_LUOT) throw new Error(`${url} đã ${n}/${TRAN_LUOT} lượt chấm chưa DUYỆT — dừng vòng, chờ anh quyết (anh mở lại: --mo-khoa <url>)`);
   fs.mkdirSync(CHO(), { recursive: true });
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, luc: new Date().toISOString() }));
+  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, loai, luc: new Date().toISOString() }));
   for (const x of docJson(TRA())) if (x.url === url) fs.rmSync(path.join(TRA(), `${x.id}.json`), { force: true });   // đã nộp lại = đã nhận việc sửa
   return id;
 }
@@ -80,7 +84,7 @@ export function chuBai(html) {
 }
 
 /** Máy đo (không AI) — số khách quan để mô hình không phải đoán, và chặn cứng không cần mô hình. */
-export function mayDo(html) {
+export function mayDo(html, loai = 'bai') {
   const chu = chuBai(html), thuong = chu.toLowerCase(), dong = chu.split('\n');
   const tuMay = TU_MAY.filter((w) => thuong.includes(w));
   const gachDai = (chu.match(/[—–]/g) || []).length, h = thanBai(html);   // hình đếm trong thân bài — icon logo / ô tìm kiếm ở đầu trang không phải hình của bài
@@ -99,17 +103,35 @@ export function mayDo(html) {
     co_faq: coFaq,
     co_neu_da_lo: /##\s.*(already|if you (clicked|paid)|what to do now)/i.test(chu),
     co_nut: /class="[^"]*\bcta\b|<a [^>]*class="[^"]*btn/i.test(String(html)),
-    chan_cung: [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
+    so_nut: (String(h).match(/<a [^>]*class="[^"]*\b(btn|cta)\b/gi) || []).length,
+    co_gia: /[$€£₫]\s?\d|\d\s?(USD|VND|EUR)\b/.test(chu),
+    co_demo: video > 0 || /class="[^"]*\bdemo\b/i.test(h),
+    loai,
+    chan_cung: loai === 'trang-ban' ? chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) : [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
       ...(!soHinh ? ['không có khối hình nào (ảnh / video / khung ví dụ) — tường chữ'] : soChu / soHinh > 300 ? [`${Math.round(soChu / soHinh)} chữ mỗi khối hình (tối đa ~300)`] : []),
       ...(!anhThat ? ['không có ảnh thật (<img>) — chuẩn SEO'] : []), ...(!video ? ['không có video nhúng — chuẩn SEO'] : []), ...(!coFaq ? ['không có mục FAQ — chuẩn SEO'] : [])],
     chu,
   };
 }
 
+/** Chặn cứng TRANG BÁN (chuan-trang-ban.md "Bắt buộc" — phần đo được bằng máy; phần còn lại người chấm so với thư viện mẫu). */
+function chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) {
+  const nut = (h.match(/<a [^>]*class="[^"]*\b(btn|cta)\b/gi) || []).length;
+  return [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
+    ...(!(video || /class="[^"]*\bdemo\b/i.test(h)) ? ['không có video / demo sản phẩm đang chạy (bắt buộc 1)'] : []),
+    ...(anhThat < 3 ? [`${anhThat} ảnh thật của sản phẩm (tối thiểu 3 — bắt buộc 4)`] : []),
+    ...(nut < 2 ? [`nút mua xuất hiện ${nut} lần (tối thiểu 2: đầu + cuối — bắt buộc 3)`] : []),
+    ...(!/[$€£₫]\s?\d|\d\s?(USD|VND|EUR)\b/.test(chu) ? ['không thấy giá (bắt buộc 6)'] : []),
+    ...(!coFaq ? ['không có FAQ (bắt buộc 7)'] : []),
+    ...(soChu < 400 ? [`${soChu} chữ — dưới 400, thiếu lý do mua`] : soChu > 1600 ? [`${soChu} chữ — quá 1.600, đang viết bài chứ không phải trang bán`] : [])];
+}
+
 /** Ngọc chấm qua proxy công ty. Trả { thieu[], thua[], giong[], diem, ket_luan, tom_tat } hoặc null khi mô hình hỏng. */
 async function cham(nguoi, model, phong, url, d) {
-  const chuan = fs.readFileSync(path.join(GOC, 'cong-ty', 'quy-dinh', 'noi-dung', 'chuan-duyet-bai.md'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
-  const system = `Bạn là Ngọc, trưởng phòng Nội dung. Bạn duyệt bài trước khi lên trang, theo đúng CHUẨN dưới đây, khắt khe như biên tập viên.
+  const ND = path.join(GOC, 'cong-ty', 'quy-dinh', 'noi-dung'), docMd = (f) => fs.readFileSync(path.join(ND, f), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  const tb = d.loai === 'trang-ban';
+  const chuan = tb ? `${docMd('chuan-trang-ban.md')}\n\n${docMd('thu-vien-trang-ban/README.md')}` : docMd('chuan-duyet-bai.md');
+  const system = `Bạn là Ngọc, trưởng phòng Nội dung. Bạn duyệt ${tb ? 'TRANG BÁN (app / sản phẩm số) — so với thư viện mẫu thật, nói rõ trang thua mẫu nào ở nước đi nào' : 'bài'} trước khi lên trang, theo đúng CHUẨN dưới đây, khắt khe như biên tập viên.
 Chỉ dựa vào chữ của bài và số máy đo; không bịa chi tiết bài không có. Viết nhận xét bằng tiếng Việt, ngắn, cụ thể (chỉ ra đoạn nào).
 Kết luận: DUYET khi bài đạt mọi phần chính của chuẩn và không có chặn cứng; SUA_LAI khi khung đúng nhưng thiếu / thừa / giọng còn lỗi;
 KHONG_DUYET khi bài sơ sài (không cảnh mở, không ví dụ cho các ý, không giữ được người đọc) hoặc sai hướng.
@@ -117,7 +139,7 @@ Trả DUY NHẤT một JSON: {"thieu":["…"],"thua":["…"],"giong":["…"],"di
 
 CHUẨN:
 ${chuan}`;
-  const may = { so_hinh: d.so_hinh, so_anh: d.so_anh, so_anh_that: d.so_anh_that, so_video: d.so_video, so_khung_vi_du: d.so_khung_vi_du, chu_moi_hinh: d.chu_moi_hinh, so_chu: d.so_chu, gach_dai: d.gach_dai, tu_may: d.tu_may, so_muc: d.so_muc, so_vi_du: d.so_vi_du, co_faq: d.co_faq, co_neu_da_lo: d.co_neu_da_lo, co_nut: d.co_nut };
+  const may = { loai: d.loai, so_hinh: d.so_hinh, so_anh: d.so_anh, so_anh_that: d.so_anh_that, so_video: d.so_video, co_demo: d.co_demo, so_khung_vi_du: d.so_khung_vi_du, chu_moi_hinh: d.chu_moi_hinh, so_chu: d.so_chu, gach_dai: d.gach_dai, tu_may: d.tu_may, so_muc: d.so_muc, so_vi_du: d.so_vi_du, co_faq: d.co_faq, co_neu_da_lo: d.co_neu_da_lo, co_nut: d.co_nut, so_nut: d.so_nut, co_gia: d.co_gia, chan_cung: d.chan_cung };
   const body = { model, max_tokens: 900, temperature: 0.2, system, messages: [{ role: 'user', content: `Bài: ${url || '(bản nháp)'}\nMáy đo: ${JSON.stringify(may)}\n\n${d.chu.slice(0, 24000)}` }] };
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': nguoi, 'x-cty-luot': `kiem-bai-${Date.now()}`, ...(phong ? { 'x-cty-phong': phong } : {}) }, body: JSON.stringify(body), signal: AbortSignal.timeout(90000) });
@@ -136,9 +158,9 @@ export const diemCuoi = (kq, d) => (d.chan_cung.length ? Math.min(kq.diem, 6) : 
 /** Tin Telegram theo khuôn anh đặt: "<người> gửi bài <url>. KQ: thiếu…, thừa… Kết luận: …". */
 export function tinKiem({ tu, url, kq, d, ket, ten = 'Ngọc' }) {
   const ds = (nhan, xs) => (xs.length ? `\n<b>${nhan}:</b>\n${xs.slice(0, 6).map((x) => `• ${esc(x)}`).join('\n')}` : '');
-  return `📝 <b>${esc(tenNguoi(tu))}</b> gửi bài ${url ? esc(url) : '(bản nháp)'}\n<b>KQ (${esc(tenNguoi(ten))} chấm ${kq.diem}/10):</b> ${esc(kq.tom_tat)}`
+  return `📝 <b>${esc(tenNguoi(tu))}</b> gửi ${d.loai === 'trang-ban' ? 'trang bán' : 'bài'} ${url ? esc(url) : '(bản nháp)'}\n<b>KQ (${esc(tenNguoi(ten))} chấm ${kq.diem}/10):</b> ${esc(kq.tom_tat)}`
     + ds('Thiếu', kq.thieu) + ds('Thừa', kq.thua) + ds('Giọng văn', kq.giong)
-    + `\n<b>Máy đo:</b> ${d.so_chu} chữ · ${d.so_hinh} khối hình (${d.so_anh_that} ảnh thật, ${d.so_video} video, ${d.so_khung_vi_du} khung ví dụ) · ${d.so_muc} mục · ${d.so_vi_du} ví dụ trích · FAQ ${d.co_faq ? 'có' : 'không'} · phần "nếu đã lỡ" ${d.co_neu_da_lo ? 'có' : 'không'} · nút ${d.co_nut ? 'có' : 'không'}${d.chan_cung.length ? ` · <b>chặn cứng:</b> ${esc(d.chan_cung.join('; '))}` : ''}`
+    + `\n<b>Máy đo:</b> ${d.so_chu} chữ · ${d.so_hinh} khối hình (${d.so_anh_that} ảnh thật, ${d.so_video} video, ${d.so_khung_vi_du} khung ví dụ) · ${d.so_muc} mục · ${d.so_vi_du} ví dụ trích · FAQ ${d.co_faq ? 'có' : 'không'}${d.loai === 'trang-ban' ? ` · demo ${d.co_demo ? 'có' : 'không'} · nút ×${d.so_nut} · giá ${d.co_gia ? 'có' : 'không'}` : ` · phần "nếu đã lỡ" ${d.co_neu_da_lo ? 'có' : 'không'} · nút ${d.co_nut ? 'có' : 'không'}`}${d.chan_cung.length ? ` · <b>chặn cứng:</b> ${esc(d.chan_cung.join('; '))}` : ''}`
     + `\n<b>Kết luận: ${KET[ket]}</b>\n<a href="${CTY}">↗ cty · Phòng Nội dung</a>`;
 }
 
@@ -265,7 +287,7 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     let html = b.html;
     if (!html) { const r = await fetch(`${b.url}${b.url.includes('?') ? '&' : '?'}kiem=${Date.now()}`, { signal: AbortSignal.timeout(30000), headers: { 'user-agent': 'cty-noi-dung/1' } }).catch(() => null); html = r?.ok ? await r.text() : null; }
     if (!html) { ra.push(`${b.url}: không tải được`); continue; }   // để nguyên trong hàng chờ, lượt sau thử lại
-    const d = mayDo(html), kq = await cham(nguoi, model, phong, b.url, d);
+    const d = mayDo(html, b.loai || 'bai'), kq = await cham(nguoi, model, phong, b.url, d);
     if (!kq) { ra.push(`${b.url}: mô hình hỏng`); continue; }
     kq.diem = diemCuoi(kq, d); const ket = ketCuoi(kq, d), { chu, ...may } = d;
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinKiem({ tu: b.tu, url: b.url, kq, d, ket, ten }), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
@@ -305,6 +327,16 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du)), 'DUYET');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du.replace('<img src=a.png alt=x>', ''))), 'SUA_LAI', 'khung ví dụ không thay được ảnh thật');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du.replace(/<iframe[\s\S]*?<\/iframe>/, '<iframe src="https://maps.google.com/x"></iframe>'))), 'SUA_LAI', 'iframe bản đồ không tính là video');
+    // trang bán: không đòi 1.200 chữ / "nếu đã lỡ"; đòi demo, ≥3 ảnh, nút ×2, giá, FAQ, 400–1.600 chữ
+    const loi = (n) => Array.from({ length: n }, () => 'word').join(' ');
+    const tb = (x = {}) => `<main><h1>Your script under the webcam</h1><video src=d.mp4></video>${'<img src=a.jpg>'.repeat(x.anh ?? 4)}<p>${loi(x.chu ?? 700)} US$7.99</p>${'<a class="btn" href="#">Get it</a>'.repeat(x.nut ?? 2)}<h2>Questions</h2></main>`;
+    t.deepEqual(mayDo(tb(), 'trang-ban').chan_cung, [], 'trang bán đủ chuẩn: không chặn cứng dù 700 chữ, không có phần "nếu đã lỡ"');
+    t.ok(mayDo(tb({ nut: 1 }), 'trang-ban').chan_cung.some((x) => x.includes('nút mua')), 'nút mua chỉ một lần → chặn');
+    t.ok(mayDo(tb({ anh: 1 }), 'trang-ban').chan_cung.some((x) => x.includes('ảnh thật')), 'ít ảnh → chặn');
+    t.ok(mayDo(tb().replace('<video src=d.mp4></video>', ''), 'trang-ban').chan_cung.some((x) => x.includes('demo')), 'không video / demo → chặn');
+    t.ok(mayDo(tb().replace('<video src=d.mp4></video>', '<div class="sc-demo demo"></div>'), 'trang-ban').chan_cung.every((x) => !x.includes('demo')), 'demo tương tác thay được video');
+    t.ok(mayDo(tb({ chu: 2000 }), 'trang-ban').chan_cung.some((x) => x.includes('quá 1.600')), 'trang bán quá dài → chặn');
+    t.throws(() => nopBai({ url: 'https://x.test/', loai: 'quang-cao' }), /--loai/, 'loại lạ bị từ chối');
     t.equal(ketCuoi({ ket_luan: 'DUYET' }, mayDo(du.replace('Questions people ask', 'Book now'))), 'SUA_LAI', 'thiếu FAQ');
     t.equal(diemCuoi({ diem: 10 }, mayDo(du.replace('<img src=a.png alt=x>', ''))), 6, 'chặn cứng thì không 10/10');
     const tin = tinKiem({ tu: 'A', url: 'https://x.com/a/', kq: { thieu: ['cảnh mở'], thua: [], giong: [], diem: 3, ket_luan: 'KHONG_DUYET', tom_tat: 'sơ sài' }, d, ket: 'KHONG_DUYET' });
@@ -346,7 +378,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
   if (lay('--nop') != null || lay('--html') != null) {
     const html = lay('--html') ? fs.readFileSync(lay('--html') === '-' ? 0 : lay('--html'), 'utf8') : null;   // '-' = đọc từ stdin (máy Mac đẩy bản nháp qua ssh)
     const url = lay('--nop') || '', tu = lay('--tu') || 'Không rõ', luot = soLuot(url);
-    console.log(`đã nộp ${nopBai({ url, tu, html, ban: lay('--ban') })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
+    console.log(`đã nộp ${nopBai({ url, tu, html, ban: lay('--ban'), loai: lay('--loai') || 'bai' })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
     if (luot) { const { bao } = await tgNoiDung().catch(() => ({})); await bao?.(`📤 <b>${esc(tenNguoi(tu))}</b> nộp lại ${esc(url)} · lượt ${luot + 1}/${TRAN_LUOT}\n${CTY_LINK}`); }
   }
 }

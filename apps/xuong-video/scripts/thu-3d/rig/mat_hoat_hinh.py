@@ -99,6 +99,65 @@ def tim_mat(M, m):
     return {'mat': mat, 'khoe': khoe, 'mieng_truoc': truoc, 'z_mieng': z_m}
 
 
+def tim_mat_2d(M, doan, H, ra=None):
+    """DÒ MẮT TRÊN ẢNH: render đầu bằng Workbench (màu bề mặt phẳng, không bóng) từ góc 3/4 mỗi bên, máy trực giao nhắm chỗ đoán; trên ảnh tìm
+    MẢNG TRẮNG có CHẤM TỐI bên trong (lòng trắng + con ngươi), rồi bắn tia ngược từ điểm ảnh về lưới → toạ độ 3D. Không phụ thuộc màu da
+    (dò trên màu bề mặt hỏng ở ankylo: da cam sáng át lòng trắng, nếp mí / nốt sần giống con ngươi). Trả {L/R: (tâm, r)} hoặc None."""
+    import numpy as np
+    sc = bpy.context.scene; cu = (sc.render.engine, sc.camera, sc.render.resolution_x, sc.render.resolution_y, sc.render.filepath)
+    an = [o for o in bpy.data.objects if o is not M and not o.hide_render]
+    for o in an: o.hide_render = True
+    sc.render.engine = 'BLENDER_WORKBENCH'; sc.display.shading.light = 'FLAT'; sc.display.shading.color_type = 'TEXTURE'
+    N = 320; sc.render.resolution_x = sc.render.resolution_y = N
+    cd = bpy.data.cameras.new('do_mat'); cd.type = 'ORTHO'; cd.ortho_scale = 0.42 * H
+    cam = bpy.data.objects.new('do_mat', cd); sc.collection.objects.link(cam); sc.camera = cam
+    kq = {}
+    for s, sx in (('L', 1), ('R', -1)):
+        nham = doan[s][0]
+        huong = Vector((sx * 0.85, -1, 0.12)).normalized()
+        cam.location = nham + huong * H; cam.rotation_euler = (-huong).to_track_quat('-Z', 'Y').to_euler()
+        tep = (ra or bpy.app.tempdir) + f'/do_mat_{s}.png'; sc.render.filepath = tep
+        bpy.ops.render.render(write_still=True)
+        im = bpy.data.images.load(tep); a4 = np.array(im.pixels[:], dtype=np.float32).reshape(N, N, 4); bpy.data.images.remove(im)
+        a = a4[:, :, :3]; co_vat = a4[:, :, 3] > 0.5   # nền trong suốt (alpha 0) không phải trắng / tối
+        v = a.max(axis=2); sat = (v - a.min(axis=2)) / np.maximum(v, 1e-4)
+        # lòng trắng = SÁNG + ÍT MÀU (ngưỡng tương đối với da hỏng ở da cam: kênh đỏ ~1 → ngưỡng > 1); nền trắng loại bằng điều kiện chạm mép
+        trang = (v > 0.6) & (sat < 0.08) & co_vat     # lòng trắng đo được sat ≈ 0; da sáng chỗ bắt đèn ~0,15 → 0,16 nối lòng trắng vào da
+        toi = (v < 0.3) & co_vat
+        # nhãn mảng trắng (loang 4 hướng, thuần numpy + Python — Blender không có scipy)
+        nhan = np.zeros((N, N), dtype=np.int32); so = 0; tot = None
+        for y0, x0 in zip(*np.nonzero(trang)):
+            if nhan[y0, x0]: continue
+            so += 1; nhan[y0, x0] = so; ngan = [(y0, x0)]; o_ = []
+            while ngan:
+                y, x = ngan.pop(); o_.append((y, x))
+                for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                    if 0 <= yy < N and 0 <= xx < N and trang[yy, xx] and not nhan[yy, xx]: nhan[yy, xx] = so; ngan.append((yy, xx))
+            if len(o_) < 25: continue
+            ys = np.array([q[0] for q in o_]); xs = np.array([q[1] for q in o_])
+            y1, y2, x1, x2 = ys.min(), ys.max(), xs.min(), xs.max()
+            loi = toi[y1:y2 + 1, x1:x2 + 1]
+            if loi.sum() < 3: continue          # lòng trắng phải ôm con ngươi tối
+            ty, tx = np.nonzero(loi)
+            cy, cx = y1 + ty.mean(), x1 + tx.mean()
+            diem = len(o_) + 4 * loi.sum() - 0.5 * abs(cx - N / 2) - 0.5 * abs(cy - N / 2)   # ưu tiên mảng lớn, gần chỗ đoán
+            if not tot or diem > tot[0]: tot = (diem, cx, cy, (len(o_) + loi.sum()) ** 0.5 / np.sqrt(np.pi))
+        if not tot: continue
+        _, cx, cy, rp = tot
+        don = cd.ortho_scale / N
+        mw = cam.matrix_world; phai = mw.to_3x3() @ Vector((1, 0, 0)); len_ = mw.to_3x3() @ Vector((0, 1, 0)); toi_tr = mw.to_3x3() @ Vector((0, 0, -1))
+        goc = cam.location + phai * (cx - N / 2) * don + len_ * ((N - 1 - cy) - N / 2) * don   # hàng ảnh 0 = ĐÁY (pixels Blender)
+        ok, hit, _, _ = M.ray_cast(M.matrix_world.inverted() @ goc, (M.matrix_world.inverted().to_3x3() @ toi_tr).normalized())
+        if ok: kq[s] = (M.matrix_world @ hit, rp * don)
+    sc.render.engine, sc.camera, sc.render.resolution_x, sc.render.resolution_y, sc.render.filepath = cu
+    bpy.data.objects.remove(cam, do_unlink=True)
+    for o in an: o.hide_render = False
+    if len(kq) < 2: return None
+    cL, cR = kq['L'][0], kq['R'][0]; r = min(max(min(kq['L'][1], kq['R'][1]), 0.04 * H), 0.07 * H)
+    x, y, z = (cL.x - cR.x) / 2, (cL.y + cR.y) / 2, (cL.z + cR.z) / 2
+    return {'L': (Vector((x, y, z)), r), 'R': (Vector((-x, y, z)), r)}
+
+
 # ---------- tiện ích ----------
 def _vl(ten, mau, nham=0.4):
     m = bpy.data.materials.new(ten); m.use_nodes = True; b = m.node_tree.nodes['Principled BSDF']
@@ -164,6 +223,9 @@ def _dk(owner, path, i, bieu_thuc, rig, bien):
 # ---------- dựng ----------
 def gan_mat(rig, M, m):
     H = m['H']; f = tim_mat(M, m)
+    m2 = tim_mat_2d(M, f['mat'], H)
+    print('MAT 2D', {k: ([round(x, 3) for x in v[0]], round(v[1], 3)) for k, v in m2.items()} if m2 else None)
+    if m2: f['mat'] = m2   # mắt trên ảnh thắng mắt dò trên màu bề mặt (tâm 2D = điểm trên MẶT DA; nhãn cầu đặt lại theo tia bên dưới)
     print('XE MIENG canh', _xe_mieng(M, f, H))
     for k in ARKIT: rig[k] = 0.0
     dau = _xuong_dau(rig)

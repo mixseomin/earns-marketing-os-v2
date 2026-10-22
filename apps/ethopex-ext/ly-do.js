@@ -9,7 +9,8 @@
 // (b) bản kèm extension (content script) chỉ ĐĂNG KÝ window.__etpKhoiDong — vỏ nạp gọi khi mã mos2 không chạy được sau 2 lần (dự phòng).
 { const __etpKhoaUrl = (() => { try { return new URL(document.currentScript.src).searchParams.get('k') || ''; } catch { return ''; } })();
   const __etpChay = () => {
-  if (window.__etpLyDo) return; window.__etpLyDo = true;   // vỏ nạp + userscript cũ cùng chạy thì chỉ một bản
+  if (window.__etpLyDo || document.getElementById('etp-mark')) return; window.__etpLyDo = true;   // một bản duy nhất trên trang: dấu #etp-mark nằm ở DOM chung mọi thế giới
+  { const mk = document.createElement('i'); mk.id = 'etp-mark'; mk.hidden = true; document.documentElement.appendChild(mk); }
   window.dispatchEvent(new CustomEvent('etp-chay'));
   const st = document.createElement('style');
   st.textContent = 'tr[data-etp="tat"]{opacity:.85!important;background:#fdecea!important;box-shadow:inset 5px 0 0 #d93025}' +

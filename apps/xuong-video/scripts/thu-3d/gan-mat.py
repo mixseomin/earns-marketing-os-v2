@@ -13,7 +13,8 @@ bpy.ops.wm.save_as_mainfile(filepath=os.path.join(RA, 'rig-mat.blend'))
 H = m['H']; sc = thu_dang.san_khau(H, thu_dang.rong_cua(m)); sc.cycles.samples = 24
 tam = (f['mat']['L'][0] + f['mat']['R'][0]) / 2 + Vector((0, -0.03 * H, -0.03 * H))
 cam = sc.camera; cam.data.lens = 50
-cam.location = tam + Vector((0.32, -0.62, 0.08)).normalized() * 0.42 * H * 1.2
+be_ngang = 2 * abs(f['mat']['L'][0].x) + 4 * f['mat']['L'][1]   # cự li theo BỀ NGANG ĐẦU (cố định theo H → máy chui vào mặt thú đầu to)
+cam.location = tam + Vector((0.32, -0.62, 0.08)).normalized() * be_ngang * 1.9
 cam.rotation_euler = (tam - cam.location).to_track_quat('-Z', 'Y').to_euler()
 for ten in mh.BIEU_CAM:
     mh.dat_bieu_cam(rig, ten)

@@ -90,6 +90,7 @@ def nga(pb, H, t):
 
 
 DONG_TAC = {'bon_chan': {'di': di, 'chay': chay, 'nhay': nhay, 'nga': nga}}
+DONG_TAC['hai_chan'] = DONG_TAC['bon_chan']   # tay cầm chân trước không có thì bỏ qua (_chan / nhay / nga đều kiểm) → hai chân sau thay nhau
 
 
 def dat(rig, loai, ten, H, t):

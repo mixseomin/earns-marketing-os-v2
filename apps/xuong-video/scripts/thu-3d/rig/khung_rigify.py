@@ -85,4 +85,4 @@ def metarig_do_vat(m):
     return R
 
 
-METARIG = {'bon_chan': metarig_bon_chan, 'do_vat': metarig_do_vat}
+METARIG = {'bon_chan': metarig_bon_chan, 'hai_chan': metarig_bon_chan, 'do_vat': metarig_do_vat}   # hai_chan: cùng khung, chỉ có chân sau

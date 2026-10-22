@@ -11,6 +11,12 @@ DANG = {'bon_chan': {
     # đuôi: xoay từng đốt FK (tail, tail.001…) — 'tail_master' của basic_tail chỉ chép xoay theo trục khai, ít tác dụng ngang
     'vay_duoi': [('tail', (0, 0, 10), None), ('tail.001', (0, 0, 12), None), ('tail.002', (0, 0, 14), None), ('tail.003', (0, 0, 16), None)],
     'buoc': [('front_foot_ik.L', (0, 0, 0), (0, -0.2, 0.1)), ('foot_ik.R', (0, 0, 0), (0, -0.16, 0.08))],
+}, 'hai_chan': {
+    'nghi': [],
+    'cui_co': [('neck', (30, 0, 0), None), ('head', (20, 0, 0), None)],
+    'quay_dau': [('neck', (0, 0, 30), None), ('head', (0, 0, 30), None)],
+    'vay_duoi': [('tail', (0, 0, 10), None), ('tail.001', (0, 0, 12), None), ('tail.002', (0, 0, 14), None), ('tail.003', (0, 0, 16), None)],
+    'buoc': [('foot_ik.L', (0, 0, 0), (0, -0.2, 0.1))],
 }, 'do_vat': {
     'nghi': [],
     'nghieng': [('vat', (25, 0, 0), None)],

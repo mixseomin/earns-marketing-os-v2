@@ -47,12 +47,40 @@ def tim_mat(M, m):
     H = m['H']; dg = Vector(m['dau_goc'])
     S = _mau_day(M, lambda c: c.z > dg.z - 0.05 * H and c.y < dg.y + 0.05 * H)
     sang = lambda c: 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]
+    # MẮT = cụm TƯƠNG PHẢN với da ở nửa trên đầu: lòng trắng (sáng hơn da, ít màu) hoặc con ngươi (tối hơn da nhiều). Bản đầu dò "màu nâu"
+    # (mống nâu trên da xám) — da đỏ / cam thì cả mặt đều "nâu". Không đủ điểm thì rơi về cách dò nâu.
+    # MẮT = CHỮ KÝ MẮT: chỗ TỐI dày đặc (con ngươi) có LÒNG TRẮNG sát bên. Lọc "nửa trên đầu" theo trung vị (bản trước) loại mất mắt thật khi
+    # diềm / sừng đẩy trung vị lên (trice, ankylo); trọng tâm mọi điểm tối thì bị vệt tối trên diềm / gờ kéo lệch. Miệng hở, khe da, vệt diềm
+    # không có lòng trắng đi kèm → tự loại. Không có điểm tối nào (bronto: màu bề mặt nhạt) → rơi về lòng trắng rồi mống nâu.
+    da = sorted(sang(c) for _, c in S)[len(S) // 2]
+    z_lo, z_hi = min(p.z for p, _ in S), max(p.z for p, _ in S); z_thap = z_lo + 0.35 * (z_hi - z_lo)
+    sac = lambda c: max(c) - min(c)
     mat = {}
     for s, ten in ((1, 'L'), (-1, 'R')):
-        nau = [p for p, c in S if c[0] - c[2] > 0.08 and p.x * s > 0]          # mống mắt nâu (da xám xanh: r ≈ b)
-        tam = sum(nau, Vector()) / len(nau)
-        kc = sorted((p - tam).length for p in nau); r = kc[int(len(kc) * 0.8)]
-        mat[ten] = (tam, max(r, 0.025 * H))
+        ben = [(p, c) for p, c in S if p.x * s > 0.01 * H]
+        toi = [p for p, c in ben if sang(c) < da - 0.3 and p.z > z_thap]   # mắt luôn TRÊN miệng (raptor: khe môi tối cạnh lưỡi sáng = giống mắt)
+        trang = [p for p, c in ben if sang(c) > da + 0.15 and sac(c) < 0.2]
+        ds = None
+        if len(toi) >= 15 and trang:
+            mau_ = toi[::max(1, len(toi) // 300)]; tr_ = trang[::max(1, len(trang) // 600)]
+            def diem(q):
+                """con ngươi thật nằm GIỮA lòng trắng: đếm lòng trắng quanh q theo 6 hướng trên mặt (nếp mí tối ngay trên mắt vẽ chỉ có trắng
+                một phía — trice / ankylo từng dò trúng nếp mí). Điểm = số hướng có trắng × mật độ tối."""
+                gan = [p - q for p in tr_ if 0.008 * H < (p - q).length < 0.06 * H]
+                if not gan: return 0
+                huong_co = {round(math.atan2(v.z, v.x if s > 0 else -v.x) / (math.pi / 3)) % 6 for v in gan}
+                return len(huong_co) ** 2 * sum(1 for p in toi if (p - q).length < 0.025 * H)
+            dinh = max(mau_, key=diem)
+            if diem(dinh) > 0:
+                con_nguoi = [p for p in toi if (p - dinh).length < 0.035 * H]
+                tam = sum(con_nguoi, Vector()) / len(con_nguoi)            # tâm = CON NGƯƠI (lòng trắng lẫn nốt sần sáng trên trán — ankylo)
+                kc = sorted((p - tam).length for p in toi + trang if (p - tam).length < 0.07 * H); r = kc[int(len(kc) * 0.8)]
+                mat[ten] = (tam, min(max(r, 0.04 * H), 0.06 * H)); continue
+        if not ds and len(trang) >= 30: ds = trang
+        if not ds: ds = [p for p, c in ben if c[0] - c[2] > 0.08]
+        tam = sum(ds, Vector()) / len(ds)
+        kc = sorted((p - tam).length for p in ds); r = kc[int(len(kc) * 0.8)]
+        mat[ten] = (tam, min(max(r, 0.04 * H), 0.06 * H))   # cỡ mắt kẹp 4–6 % thân
     # ĐỐI XỨNG: cụm nâu một bên hay lẫn má hồng / bóng đổ (bronto: R đo gấp đôi L) → tâm soi gương trung bình hai bên, bán kính lấy bên NHỎ
     cL, cR = mat['L'][0], mat['R'][0]; r = min(mat['L'][1], mat['R'][1])
     x, y, z = (cL.x - cR.x) / 2, (cL.y + cR.y) / 2, (cL.z + cR.z) / 2
@@ -63,7 +91,10 @@ def tim_mat(M, m):
         thap = [(p, c) for p, c in S if p.z < z_mat - 0.06 * H and p.x * s > 0.02 * H]
         p, _ = min(thap, key=lambda q: sang(q[1]))
         khoe[ten] = p
-    z_m = (khoe['L'].z + khoe['R'].z) / 2
+    # khoé đối xứng như mắt (raptor / trice đo lệch hai bên)
+    xk = (abs(khoe['L'].x) + abs(khoe['R'].x)) / 2; yk = (khoe['L'].y + khoe['R'].y) / 2; zk = (khoe['L'].z + khoe['R'].z) / 2
+    khoe = {'L': Vector((xk, yk, zk)), 'R': Vector((-xk, yk, zk))}
+    z_m = zk
     truoc = min((p for p, _ in S if abs(p.z - z_m) < 0.015 * H and abs(p.x) < 0.02 * H), key=lambda p: p.y)
     return {'mat': mat, 'khoe': khoe, 'mieng_truoc': truoc, 'z_mieng': z_m}
 
@@ -137,17 +168,23 @@ def gan_mat(rig, M, m):
     for k in ARKIT: rig[k] = 0.0
     dau = _xuong_dau(rig)
     tam_dau = (f['mat']['L'][0] + f['mat']['R'][0]) / 2
+    # ---- tâm nhãn cầu theo MẶT DA THẬT: bắn tia từ điểm mắt dò được ra ngoài theo hướng nhìn; lưới TRELLIS hay có khối mắt vẽ LỒI → đặt tâm
+    # ở điểm dò được thì nhãn cầu + mí chìm dưới da (ankylo / trice / stego: chớp, liếc không thấy gì). Tâm = mặt da − 0,55 r → nhô 0,45 r.
+    tam_nc, huong = {}, {}
+    for s in 'LR':
+        c, r = f['mat'][s]; n = (c - Vector((0, c.y + 0.05 * H, c.z - 0.02 * H))).normalized()
+        n = (n + Vector((0, -0.6, 0))).normalized(); huong[s] = n
+        ok, hit, _, _ = M.ray_cast(c - n * 0.5 * r, n, distance=0.3 * H)
+        tam_nc[s] = (hit if ok else c) - n * 0.55 * r
     # ---- xương mắt / mí / đích nhìn ----
     bpy.ops.object.select_all(action='DESELECT'); rig.select_set(True); bpy.context.view_layer.objects.active = rig
     bpy.ops.object.mode_set(mode='EDIT'); eb = rig.data.edit_bones
     dich_nhin = Vector((0, tam_dau.y - 0.6 * H, tam_dau.z))
     t = eb.new('nhin_mat'); t.head = dich_nhin; t.tail = dich_nhin + Vector((0, 0, 0.03 * H)); t.parent = eb['head'] if 'head' in eb else eb[dau]
-    huong = {}
     for s in 'LR':
-        c, r = f['mat'][s]; n = (c - Vector((0, c.y + 0.05 * H, c.z - 0.02 * H))).normalized()   # pháp tuyến ra ngoài ≈ hướng nhìn
-        n = (n + Vector((0, -0.6, 0))).normalized(); huong[s] = n
+        r = f['mat'][s][1]; n = huong[s]
         for ten in (f'mat.{s}', f'mi.{s}'):
-            b = eb.new(ten); b.head = c - n * 0.35 * r; b.tail = b.head + n * r; b.align_roll(Vector((0, 0, 1))); b.parent = eb[dau]; b.use_deform = False
+            b = eb.new(ten); b.head = tam_nc[s]; b.tail = b.head + n * r; b.align_roll(Vector((0, 0, 1))); b.parent = eb[dau]; b.use_deform = False
     bpy.ops.object.mode_set(mode='POSE')
     for s in 'LR':
         ct = rig.pose.bones[f'mat.{s}'].constraints.new('DAMPED_TRACK'); ct.target = rig; ct.subtarget = 'nhin_mat'

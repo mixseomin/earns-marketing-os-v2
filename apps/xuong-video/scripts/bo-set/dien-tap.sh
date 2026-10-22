@@ -32,6 +32,10 @@ PY
 # như vậy nặng máy của tao. Chạy 1 con 1". Chạy song song chỉ khi đặt XV_SONG rõ ràng (máy thuê).
 if [ -n "$XV_NHAP" ]; then export XV_MAY=eevee XV_RONG=${XV_RONG:-360} XV_MAU=${XV_MAU:-4}; fi
 export XV_MAY XV_NHAP XV_RONG XV_MAU
+if [ -n "$XV_CHI_DEM" ]; then   # chỉ đếm: shot nào sẽ phải dựng lại (dấu đổi), không render
+  while read -r TEN MA GIAY; do X="$RA/$TEN/xong${XV_NHAP:+-nhap}"; [ -f "$X" ] && [ "$(cat "$X")" = "$("$DIR/scripts/bo-set/dau-shot.sh" "$RA/$TEN")" ] || echo "SE DUNG $TEN"; done < "$RA/viec.txt"
+  exit 0
+fi
 NEN=""; [ -z "$XV_MAY_THUE" ] && command -v taskpolicy >/dev/null && NEN="taskpolicy -b"
 while read -r TEN MA GIAY; do echo "$RA/$TEN $MA $GIAY"; done < "$RA/viec.txt" | xargs -P "${XV_SONG:-1}" -L1 $NEN "$DIR/scripts/bo-set/dien-mot.sh"
 echo "HET tap $TAP"

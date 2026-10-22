@@ -67,6 +67,21 @@ for cid, a in sorted(thang.items()):
 
 def api(p):
     return json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=30))
+_NK = None
+def nhat_ky_tat(cid, luc_utc):
+    """dòng nhật ký luật (studio ethopex_nhat_ky) của lệnh tắt camp này gần mốc luc_utc nhất (±20 phút)"""
+    global _NK
+    if _NK is None:
+        _NK = json.loads(subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", "select gia_tri::text from xv_khoa_ngoai where ten='ethopex_nhat_ky'"], capture_output=True, text=True).stdout.strip() or "[]")
+    best = None
+    for x in _NK:
+        if x.get("viec") != "tat" or not x.get("ok") or int(x.get("id") or 0) != int(cid): continue
+        try: t = dt.datetime.strptime(x["luc"], "%H:%M %d/%m/%Y").replace(tzinfo=dt.timezone(dt.timedelta(hours=7)))
+        except Exception: continue
+        d = abs((t - luc_utc).total_seconds())
+        if d <= 1200 and (best is None or d < best[0]): best = (d, x)
+    return best[1] if best else None
+
 def ly_do_dong(c):
     """LÝ DO camp bị đóng (anh 21/10/2026: "lý do đóng là gì phải ghi rõ"). API Ethopex không có trường lý do → đọc lịch sử camp
     (/campaigns/<id>/history: ai đổi state → PAUSED, qua đường nào, kèm metadata) + đối chiếu luật của mình (OFF, ad bị từ chối).
@@ -78,7 +93,12 @@ def ly_do_dong(c):
     luc = (dt.datetime.fromisoformat(str(h["created_at"]).replace("Z", "+00:00")) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m")
     md = {k: v for k, v in (h.get("metadata") or {}).items() if not k.startswith("control_") and v not in (None, "", [], {})}
     ai = h.get("actor_type") or ""
-    if ai == "user": cau = f"tắt tay — {h.get('actor_name') or 'người dùng'} qua {h.get('source_label') or h.get('source') or '?'}" + (" (lệnh anh duyệt: chat / nút Telegram)" if h.get("source") == "api" else "")
+    if ai == "user":
+        cau = f"tắt tay — {h.get('actor_name') or 'người dùng'} qua {h.get('source_label') or h.get('source') or '?'}"
+        # tắt qua API = lệnh của mình → LUẬT + AI DUYỆT lấy từ nhật ký luật (anh 22/10/2026: "phải ghi rõ lý do tắt camp thuộc rule nào")
+        if h.get("source") == "api":
+            nk = nhat_ky_tat(c["id"], dt.datetime.fromisoformat(str(h["created_at"]).replace("Z", "+00:00")))
+            cau = (f"tắt qua API — luật: {nk['luat']} · duyệt: {nk.get('ai') or '?'}" if nk else cau + " (không thấy dòng nhật ký luật — tắt ngoài máy)")
     else: cau = f"{h.get('actor_type_label') or ai or 'hệ thống'} Ethopex tự tắt" + (f" ({h.get('actor_name')})" if h.get("actor_name") else "")
     if md: cau += " · " + ", ".join(f"{k}={str(v)[:40]}" for k, v in list(md.items())[:3])
     t = tron.get(c["id"]) or tron.get(str(c["id"]))

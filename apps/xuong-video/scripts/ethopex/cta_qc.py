@@ -22,11 +22,15 @@ MAU_CTA = re.compile(r"\btap (?:to|here|now|below|learn|the (?:link|button)|for 
 MAU_PHU = re.compile(r"limited[- ]time|tiempo limitado|por tiempo limitado|oferta limitada|\bwatch (?:it )?for free\b|\bfree for (?:a )?limited|"
                      r"\bdownload\b|\bdescarga|\binstall\b|\binstala|\bcontinue watching\b|\bsigue viendo\b|"
                      r"(?-i:\bFREE\b)|(?-i:\bGRATIS\b)|^\s*(?:free|gratis)\s*!*\s*$|\b\d{2}:\d{2}\b(?=.{0,40}(?:free|gratis|limit))", re.I)
-NUT_CHUAN = [c["nut"] for c in CTA.values()] + [c["hoi"] for c in CTA.values()]
+# nút chuẩn khi OCR đọc lại: dấu "·" ra "•" / "-" / "." / mất — gỡ bằng mẫu nới (22/10/2026 chặn oan cả lô cta3 vì "WATCH FREE • LEARN MORE")
+NUT_CHUAN = re.compile(r"WATCH\W{0,4}FREE\W{0,4}LEARN\W{0,4}MORE|M[IÍ]RALA\W{0,4}GRATIS\W{0,4}M[AÁ]S\W{0,4}INFORMACI[OÓ]N|WHAT HAPPENS NEXT\W?|\W?QU[EÉ] PASA DESPU[EÉ]S\W?", re.I)
+
+def _bo_dau(t):
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", t) if not unicodedata.combining(c))
 
 def phu_kich_thich(chu):
-    t = chu or ""
-    for n in NUT_CHUAN: t = t.replace(n, " ")
+    t = NUT_CHUAN.sub(" ", _bo_dau(chu or ""))   # OCR đọc nút đang nhún ra "WÂTCH" / "MORÉ" → bỏ dấu trước khi gỡ
     m = MAU_PHU.search(t)
     return m.group(0) if m else None
 

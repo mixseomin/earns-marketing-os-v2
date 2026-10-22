@@ -75,6 +75,10 @@ def main(a):
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
             ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "tat":
+            # CẤM TỰ TẮT CAMP (anh 22/10/2026: "Giờ cấm mày tự đóng camp. Phải xin phép") — chỉ chạy khi người duyệt là anh:
+            # "anh (nút Telegram)" (Phòng Ethopex truyền khi anh bấm nút) hoặc "anh (chat)" khi anh lệnh đích danh camp đó trong chat. Claude / máy → từ chối.
+            if not ((ai or "").strip().lower().startswith("anh") or "(nút telegram)" in (ai or "").lower()): raise ValueError("cấm tự tắt camp — phải có anh duyệt (nút Telegram / lệnh đích danh trong chat)")
+            if not (luat or "").strip() or luat.startswith("("): raise ValueError("tắt camp phải ghi rõ luật nào (--luat)")
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).

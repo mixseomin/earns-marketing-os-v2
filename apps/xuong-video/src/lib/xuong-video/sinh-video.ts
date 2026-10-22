@@ -13,7 +13,7 @@ import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema, khoaFal } from './fal';
 import './cong-plenxai';   // đăng ký cổng PlenX (token ở tệp trên box — chỉ máy chủ) vào chuỗi video
-import { donVideoCong, CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
+import { donVideoCong, CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, hieuDaiNhip, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo, cauVatLy } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
@@ -238,8 +238,11 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // bản xuất cắt trước đó. Chỉ khi ảnh cuối là keyframe KẾT của chính shot (không áp cho nối khung sang shot kế).
   const chuoiCuoi = !!(khungCuoi0 && bc.canh.keyframe_ket && khungCuoi0 === bc.canh.keyframe_ket && bc.canh.keyframe_url)
     ? await anhCuoiChuoi(canhId, [bc.canh.keyframe_url!, bc.canh.keyframe_giua ?? '', bc.canh.keyframe_ket!].filter(Boolean)) : null;
-  const khungCuoi = chuoiCuoi ?? khungCuoi0;
-  const prompt = chuoiCuoi ? `${promptVideoCanh(bc)} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : promptVideoCanh(bc);
+  // ảnh thứ 2 + prompt THEO MODEL: chỉ model hiểu dải nhịp (cong-ai.ts › hieuDaiNhip) nhận ảnh kết + dải; model khác nhận ảnh kết trơn, không câu dải
+  const promptTron = promptVideoCanh(bc);
+  const cuoiCho = (model: string) => (chuoiCuoi && hieuDaiNhip(model) ? chuoiCuoi : khungCuoi0);
+  const promptCho = (model: string) => (chuoiCuoi && hieuDaiNhip(model) ? `${promptTron} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : promptTron);
+  const khungCuoi = cuoiCho(bc.kt.mo_hinh_video); const prompt = promptCho(bc.kt.mo_hinh_video);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
   // Google Veo (Gemini API) không có công tắc tiếng: vẫn sinh, bản xuất tự bỏ.
   const tieng = dungTiengClip(bc.canh, bc.nhanVat);
@@ -254,13 +257,14 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
       // PlenX đầy ô → TRÀN sang bậc sau (Kie, cùng Veo 3.1) thay vì xếp hàng chờ (anh 21/10/2026: "ko thể để chậm lại đc"). Chỉ khi còn bậc sau.
       const tran = b.cong === 'plenxai' && iB < chuoi.length - 1 ? await oPlenx(db) : null;
       if (tran) { thuCong.push({ cong: b.cong, model: b.model, ok: false, loi: tran }); continue; }
-      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url!, anhCuoi: khungCuoi, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai }))
-        : await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
+      const pB = promptCho(b.model), cB = cuoiCho(b.model);
+      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { prompt: pB, anhDau: bc.canh.keyframe_url!, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai }))
+        : await guiVideoCong(b.cong, b.model, { prompt: pB, anhDau: bc.canh.keyframe_url, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
       if (g.ok) {
         thuCong.push({ cong: b.cong, model: b.model, ok: true });
         const nguon: NguonSinh = { cong: b.cong, model: b.model, ...giaVideoCong(b.cong, b.model), thu: thuCong };
         await db.execute(sql`UPDATE xv_job SET trang_thai = 'chay', task_id = ${g.taskId}, provider = ${b.cong}, model = ${b.model}, nguon = ${JSON.stringify(nguon)}::jsonb,
-          request = request || ${JSON.stringify({ giay: b.giay })}::jsonb, updated_at = now() WHERE id = ${job}`);
+          request = request || ${JSON.stringify({ giay: b.giay, prompt: pB, khungCuoi: cB })}::jsonb, updated_at = now() WHERE id = ${job}`);   // ảnh / prompt THẬT đã gửi bậc này
         await db.execute(sql`UPDATE xv_canh SET trang_thai = 'dang_sinh', loi = '', updated_at = now() WHERE id = ${canhId}`);
         if (thuCong.some((x) => x.het_tien)) void baoHetTien(db, thuCong, `video shot #${bc.canh.thu_tu} · job #${job}`).catch(() => {});
         return { ok: true, data: job };

@@ -372,6 +372,9 @@ async function docWavespeed(k: string, taskId: string, taoLuc: string): Promise<
 // Khoá model trên ô chọn: '<cổng>:<model>' = gọi đúng cổng đó (không dự phòng); 'google:<model>' = Google trực tiếp, bỏ qua chuỗi cổng;
 // model Google trần (vd gemini-nano-banana-2.1, veo-…) = TỰ CHỌN rẻ nhất theo chuỗi (chuoiAnh / chuoiVideo).
 export type MoHinhCong = { key: string; label: string; nhom: string; vnd: number; donVi: 'anh' | 'clip'; giay?: number };
+/** Model video HIỂU ẢNH THỨ 2 "kết + dải nhịp" (sinh-video.ts › anhCuoiChuoi) là chỉ dẫn, không vẽ dải vào phim — chỉ Veo (đo 19/10/2026 tập 122). Model khác
+ *  nhận ảnh KẾT trơn: Wan 3.0 (PlenX DURIAN, 23/10/2026 phim #132 #19) vẽ nguyên dải nhịp vào nửa sau clip. */
+export const hieuDaiNhip = (model: string): boolean => /veo/i.test(model);
 export const MO_HINH_CONG: MoHinhCong[] = [
   { key: 'ckey:wowztools/nano-banana-2', label: 'Nano Banana 2 (Gemini 3.1 Flash Image)', nhom: 'ckey.vn', vnd: 110.5, donVi: 'anh' },
   { key: 'ckey:wowztools/nano-banana-pro', label: 'Nano Banana Pro (Gemini 3 Pro Image)', nhom: 'ckey.vn', vnd: 110.5, donVi: 'anh' },

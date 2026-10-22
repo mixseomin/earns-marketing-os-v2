@@ -74,7 +74,9 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
     setLoiDich(r.loi); setBanDich(false); if (!r.loi) await onChanged();
   };
   const moTa = (c: Canh) => (xemVi ? moTaVi(c) || c.hanh_dong : c.hanh_dong);
-  const [hien, setHien] = useState<'ca' | 'kf' | '3d'>(() => { if (typeof window === 'undefined') return 'ca'; const v = new URLSearchParams(window.location.search).get('lh'); return v === 'kf' || v === '3d' ? v : 'ca'; });
+  // 'dien' = BẢN DIỄN 3D (anh 22/10/2026: "phần ảnh vừa sinh từ ren 3D thì thêm 1 option để xem riêng chúng trên Lưới") — khung giữa Blender render
+  // (khung_xam.giua, nap-dien.mts), rê chuột chạy clip diễn (khung_xam.dien).
+  const [hien, setHien] = useState<'ca' | 'kf' | '3d' | 'dien'>(() => { if (typeof window === 'undefined') return 'ca'; const v = new URLSearchParams(window.location.search).get('lh'); return v === 'kf' || v === '3d' || v === 'dien' ? v : 'ca'; });
   useEffect(() => { const u = new URL(window.location.href); if (hien === 'ca') u.searchParams.delete('lh'); else u.searchParams.set('lh', hien); window.history.replaceState(window.history.state, '', u.toString()); }, [hien]);
   const rongThe = (doc ? [96, 132, 180, 240, 320] : [150, 210, 280, 360, 480])[zoom - 1]!;
   const coAnh = nacNho(rongThe);   // ảnh thu nhỏ theo cỡ thẻ (màn retina ×2) — phóng to không bị nhoè
@@ -100,7 +102,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={mono}>{canh.length} shot · {gio(tong)} · {khoi.length} khối phân cảnh — bấm một thẻ để xem chi tiết shot</span>
         <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{nutZoom('🔍−', 'Thu nhỏ thẻ (giữ qua F5)', zoom <= 1, -1)}<span style={{ ...mono, minWidth: 22, textAlign: 'center' }} title="Độ phóng lưới (giữ qua F5)">{zoom}/5</span>{nutZoom('🔍+', 'Phóng to thẻ (giữ qua F5)', zoom >= 5, 1)}</span>
-        <span style={{ display: 'inline-flex', gap: 2 }}>{([['ca', 'Cả hai'], ['kf', 'Keyframe'], ['3d', '3D']] as const).map(([k, t]) => <button key={k} type="button" className={`xv-btn${hien === k ? ' chinh' : ''}`} style={{ padding: '0 8px' }} title={k === 'ca' ? 'Thẻ có cả keyframe lẫn khung 3D' : k === 'kf' ? 'Chỉ xem keyframe' : 'Chỉ xem khung 3D'} onClick={() => setHien(k)}>{t}</button>)}</span>
+        <span style={{ display: 'inline-flex', gap: 2 }}>{([['ca', 'Cả hai'], ['kf', 'Keyframe'], ['3d', '3D'], ['dien', 'Bản diễn']] as const).map(([k, t]) => <button key={k} type="button" className={`xv-btn${hien === k ? ' chinh' : ''}`} style={{ padding: '0 8px' }} title={k === 'ca' ? 'Thẻ có cả keyframe lẫn khung 3D' : k === 'kf' ? 'Chỉ xem keyframe' : k === '3d' ? 'Chỉ xem khung 3D' : 'Chỉ xem ảnh render bản diễn 3D (Blender) — rê chuột lên thẻ để chạy clip diễn'} onClick={() => setHien(k)}>{t}</button>)}</span>
         <button type="button" className={`xv-btn${xemVi ? ' chinh' : ''}`} style={{ padding: '0 8px' }} disabled={banDich} onClick={() => void batVi()}
           title={xemVi ? 'Đang hiện mô tả tiếng Việt — bấm để về ngôn ngữ gốc' : `Hiện mô tả shot bằng tiếng Việt${thieuVi ? ` — ${thieuVi} shot chưa có bản dịch sẽ được dịch bằng model rẻ nhất (Claude Haiku) và lưu lại` : ''}`}>{banDich ? '… đang dịch' : '🇻🇳'}</button>
         {loiDich && <span style={{ ...mono, color: 'var(--red)' }}>{loiDich}</span>}
@@ -139,7 +141,14 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                     style={{ color: '#f87171', cursor: 'pointer', flexShrink: 0 }}>⚠</span>}
                   <span style={{ color: coVid ? '#4ade80' : 'var(--fg-1)', flexShrink: 0 }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
                 </div>
-                {hien !== '3d' && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
+                {hien === 'dien' && (() => { const kx = c.khung_xam; const a = kx?.giua?.[1] ?? kx?.giua?.[0] ?? kx?.mau ?? null;
+                  return <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: '#111' }}>
+                    {kx?.dien
+                      ? <video src={kx.dien} poster={a ? anhNho(a, 320) : undefined} muted loop playsInline preload="none" onMouseEnter={(e) => { void e.currentTarget.play().catch(() => {}); }} onMouseLeave={(e) => e.currentTarget.pause()} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      : a ? <span style={{ position: 'absolute', inset: 0, background: `center / cover no-repeat url(${anhNho(a, 320)})` }} />
+                      : <span className="xv-mono" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--fg-4)', border: '1px dashed var(--line)' }}>chưa có bản diễn</span>}
+                  </div>; })()}
+                {(hien === 'ca' || hien === 'kf') && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
                   {/* Chưa sinh vẫn hiện KHUNG + shot sẽ thấy gì (anh 14/10/2026: "kể cả chưa sinh cũng phải show ra khung để còn biết"). */}
                   {!anh && <span style={{ position: 'absolute', inset: 0, padding: 7, display: 'flex', flexDirection: 'column', gap: 4, border: '1px dashed var(--line)', borderRadius: 4, fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-2)', overflow: 'hidden' }}>
                     <span className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>CHƯA SINH HÌNH</span>
@@ -177,7 +186,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 {/* KHUNG XÁM 3D (anh 14/10/2026: "shot thuộc khung hình nào trong file 3D thì kẹp ảnh đó dưới chân lưới"): render từ bộ set + máy ảo của
                     shot — đặt ngay dưới keyframe để so bố trí. Shot thuộc set mà chưa đặt máy / chưa dựng thì hiện khung trống ghi rõ thiếu gì. */}
                 {/* Ô 3D có ở MỌI thẻ, cùng cỡ, dính chân thẻ (thẻ là cột flex, dòng chuyển cảnh marginTop:auto) → khung 3D các thẻ thẳng một hàng. */}
-                {hien !== 'kf' && (boSetCuaShot(c, nhanVat) == null
+                {(hien === 'ca' || hien === '3d') && (boSetCuaShot(c, nhanVat) == null
                   ? <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--fg-4)', borderTop: '1px solid var(--line)', textAlign: 'center' }} title="Shot không gắn bối cảnh nào có bộ set 3D">🧊 ngoài bộ set 3D</div>
                   : c.may_3d && c.khung_xam?.mau_ket
                   // ĐẦU → KẾT (khung-dau-ket.tsx): khung dựng có khung kết thì hiện cặp ảnh — thấy shot đi từ đâu tới đâu; chưa có thì ô vẽ sống bên dưới

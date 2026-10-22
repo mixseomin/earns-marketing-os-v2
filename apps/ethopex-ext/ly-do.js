@@ -10,9 +10,29 @@
   const o = document.createElement('div');
   o.style.cssText = 'position:fixed;z-index:2147483647;max-width:560px;max-height:80vh;overflow:auto;padding:10px 12px;border-radius:8px;background:#1f1d1a;color:#f4efe6;font:13px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none;white-space:normal';
   document.documentElement.appendChild(o);
+  fetch(API + '&phim=__lam_nong__').catch(() => {});   // làm nóng dữ liệu phía mos2 ngay khi mở trang
+  // KHUNG XEM LỚN: rê vào ảnh creative → ảnh to; video chỉ bắt đầu tải lúc này, đủ dữ liệu mới chạy (anh 22/10/2026: "tải ảnh + chỉ số trước,
+  // hover vào creative mới tải video; ảnh cần xem to"). Bấm ảnh = ghim khung, bấm ra ngoài = đóng.
+  const lon = document.createElement('div');
+  lon.style.cssText = 'position:fixed;z-index:2147483647;width:360px;height:640px;border-radius:10px;overflow:hidden;background:#000;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none';
+  document.documentElement.appendChild(lon);
+  let ghim = false;
+  const dongLon = () => { if (ghim) return; lon.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); }); lon.innerHTML = ''; lon.style.display = 'none'; };
+  const moLon = (im) => {
+    const r = o.getBoundingClientRect(), x = r.left > 380 ? r.left - 372 : Math.min(r.right + 12, innerWidth - 368);
+    lon.style.left = x + 'px'; lon.style.top = Math.max(8, Math.min(r.top, innerHeight - 648)) + 'px';
+    lon.innerHTML = '<img src="' + im.src + '" style="width:100%;height:100%;object-fit:contain"><div data-tt style="position:absolute;left:0;right:0;bottom:0;padding:6px 8px;background:rgba(0,0,0,.6);color:#fff;font:12px system-ui">' + (im.dataset.video ? 'đang tải video…' : 'không có video') + '</div>';
+    lon.style.display = 'block';
+    if (!im.dataset.video) return;
+    const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+    v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .2s';
+    v.addEventListener('canplay', () => { v.style.opacity = '1'; v.play().catch(() => {}); const t = lon.querySelector('[data-tt]'); if (t) t.textContent = 'video · bấm ảnh để ghim'; });
+    v.src = im.dataset.video; lon.appendChild(v);
+  };
+  document.addEventListener('click', (ev) => { if (ghim && !lon.contains(ev.target) && !(ev.target.dataset && ev.target.dataset.video !== undefined)) { ghim = false; dongLon(); } }, true);
   let trongKhung = false, an = null;
   o.addEventListener('mouseenter', () => { trongKhung = true; clearTimeout(an); });
-  o.addEventListener('mouseleave', () => { trongKhung = false; o.style.display = 'none'; dang = null; });
+  o.addEventListener('mouseleave', () => { trongKhung = false; if (ghim) return; o.style.display = 'none'; dang = null; dongLon(); });
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const tien = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));
   const roi = (v) => (v == null ? '' : ' · <b style="color:' + (v >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (v > 0 ? '+' : '') + v + '%</b>');
@@ -21,11 +41,14 @@
     o.innerHTML = html; o.style.display = 'block';
     const x = Math.min(ev.clientX + 16, innerWidth - o.offsetWidth - 8), y = Math.max(8, Math.min(ev.clientY + 12, innerHeight - o.offsetHeight - 8));
     o.style.left = x + 'px'; o.style.top = y + 'px';
-    o.querySelectorAll('[data-video]').forEach((im) => im.addEventListener('mouseenter', () => {   // rê vào ảnh = phát video (tắt tiếng, lặp)
-      const v = document.createElement('video'); v.src = im.dataset.video; v.muted = true; v.autoplay = true; v.loop = true; v.playsInline = true; v.style.cssText = im.style.cssText; im.replaceWith(v);
-    }, { once: true }));
+    o.querySelectorAll('img[data-video]').forEach((im) => {
+      im.style.cursor = 'zoom-in';
+      im.addEventListener('mouseenter', () => { if (!ghim) moLon(im); });
+      im.addEventListener('mouseleave', () => dongLon());
+      im.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); ghim = !ghim; if (ghim && lon.style.display === 'none') moLon(im); if (!ghim) dongLon(); });
+    });
   };
-  const anSau = () => { clearTimeout(an); an = setTimeout(() => { if (!trongKhung) { o.style.display = 'none'; dang = null; } }, 250); };
+  const anSau = () => { clearTimeout(an); an = setTimeout(() => { if (!trongKhung && !ghim) { o.style.display = 'none'; dang = null; dongLon(); } }, 250); };
   let dang = null;
 
   const veCamp = async (tr, a, ev) => {
@@ -60,11 +83,11 @@
         '<div style="margin-top:4px;font-size:12px">' + camps + '</div>' +
         (c.video ? '<a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff;font-size:12px">mở video</a>' : '') + '</div></div>';
     }).join('');
-    hien('<b>🎬 ' + esc(ten) + '</b> · ' + ds.length + ' creative · ' + r.so_camp + ' camp <span style="opacity:.6">(rê vào ảnh để xem video)</span>' + the, ev);
+    hien('<b>🎬 ' + esc(ten) + '</b> · ' + ds.length + ' creative · ' + r.so_camp + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + the, ev);
   };
 
   document.addEventListener('mouseover', (ev) => {
-    if (o.contains(ev.target)) return;
+    if (o.contains(ev.target) || lon.contains(ev.target) || ghim) return;
     const tr = ev.target.closest && ev.target.closest('tbody tr'); if (!tr) return anSau();
     clearTimeout(an);
     const a = [...tr.querySelectorAll('a')].find((x) => /^\s*\d{5,6}:/.test(x.textContent || ''));

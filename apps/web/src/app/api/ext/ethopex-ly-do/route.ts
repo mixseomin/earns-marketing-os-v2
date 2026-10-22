@@ -14,6 +14,9 @@ import { docEthopex } from '@/lib/ethopex-doc';
 type Nk = { luc: string; viec: string; id: number; ok: boolean; luat: string; ai: string };
 const CORS = { 'access-control-allow-origin': 'https://app.ethopex.dev', 'access-control-allow-methods': 'GET', 'cache-control': 'no-store' };
 let dem: { luc: number; so: Record<string, { chi: number; thu: number }> } | null = null;
+// dữ liệu camp cho chế độ ?phim= giữ 3 phút (docEthopex đọc ~150 camp từ Ethopex, lượt đầu ~10s) — extension gọi làm nóng khi mở trang
+let du: { luc: number; d: Awaited<ReturnType<typeof docEthopex>> } | null = null;
+const camps = async () => { if (!du || Date.now() - du.luc > 180_000) du = { luc: Date.now(), d: await docEthopex() }; return du.d; };
 
 export async function OPTIONS() { return new NextResponse(null, { headers: CORS }); }
 
@@ -27,7 +30,8 @@ export async function GET(req: Request) {
     const chuan = (t: string) => t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\(doblado\)|（dubbed）|\(dubbed\)/g, '').replace(/[^a-z0-9]/g, '');
     const k = chuan(phim);
     if (k.length < 6) return NextResponse.json({ ok: true, creative: [] }, { headers: CORS });
-    const d = await docEthopex();
+    if (phim === '__lam_nong__') { await camps(); return NextResponse.json({ ok: true, creative: [] }, { headers: CORS }); }
+    const d = await camps();
     const dat = new Set(Object.keys((((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_cta_dat'`)) as unknown as { gia_tri: Record<string, unknown> }[])[0]?.gia_tri) ?? {}));
     // lõi tên camp: bỏ mã lô đầu ("2110ns ") + phần " EN - dạng …" → so hai chiều (camp cũ ghi tên tắt "The Rejected Luna")
     const loi = (t: string) => chuan(t.replace(/^\S+\s+/, '').split(/ (?:EN|ES) - /)[0] ?? '');

@@ -319,7 +319,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     const e = nhinMay ? '' : nhinCau(m, v, m.vi_tri.filter((x) => laNv(x.ten)), ket);
     return e ? `${h}, ${e}` : h;
   };
-  const chuPhim = chuTrongKhung((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.en ?? ''));
+  // chữ phim khai ở mô tả vật set trong khung VÀ ở mô tả đối tượng đang thấy (đối tượng xuyên suốt: logo, bảng số tầng — mô tả đối tượng là nguồn chuẩn)
+  const chuPhim = chuTrongKhung([...(bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.en ?? ''),
+    ...bc.nhanVat.filter((v) => v.loai !== 'nhan_vat' && v.loai !== 'boi_canh' && !ngoaiKhung(v)).map((v) => v.mo_ta)]);
   const mHuong = bc.mayDu ?? bc.canh.may_3d; const trongKhung = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => thayRo(bc.canh.khung_xam, t)).map((t) => t.ten));
   const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
     .map((v) => { const h = huongNhin(mHuong, v); return h ? `${v.ten}: ${h}` : ''; }).filter(Boolean) : [];

@@ -180,6 +180,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       p.position.set(x + Math.sin(g) * (w / 2 + .12), yTren - cao / 2 - .4, z + Math.cos(g) * (w / 2 + .12)); p.rotation.y = g; p.userData = { chu }; }
   }
   const gon = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : String(Math.round(n)));
+  // vân vạch đứt (dải đường ngầm): khúc sáng – khúc trống, lặp theo chiều dài
+  const texVach = () => { if (tex.vach) return tex.vach; const c = document.createElement('canvas'); c.width = 64; c.height = 8; const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, 40, 8);
+    const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return (tex.vach = t); };
   const khuCua = (k: string) => mh.duAn.find((c) => c.khoa === k);
   const dichCua = (k: string) => mh.dich.find((d) => d.khoa === k);
   const texNen = (k: Nen) => texIc(`n:${k}`, NEN[k][0], P[k]);
@@ -191,7 +194,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const maiTk = (tk: PhoTk) => (tk.loai !== 'mxh' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
   const CUA_SANG = new THREE.Color('#ffd27a'), CUA_TOI = new THREE.Color('#1c2440');
   const cuaGeo = new THREE.PlaneGeometry(3.2, 2.6), cuaMat = new THREE.MeshBasicMaterial();
-  const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [] };
+  const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [], ngam: [] };
   const texKhoi = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
     gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   function khoi(x: number, y: number, z: number, tk: PhoTk, chu: any) {
@@ -221,7 +224,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // ── bộ lọc: nguồn (nền / tìm kiếm / quảng cáo / giới thiệu) ẩn hiện tại chỗ; khu chọn → dựng lại chỉ các khu đó
-  const chonLv = new Set<string>(), chonSp = new Set<string>(), chonNen = new Set<Nen>(), bat = new Set(['cua', 'thung', 'cot', 'xe', 'xu', 'onl', 'dien']);
+  const chonLv = new Set<string>(), chonSp = new Set<string>(), chonNen = new Set<Nen>(), bat = new Set(['cua', 'thung', 'cot', 'xe', 'xu', 'onl', 'dien', 'ngam']);
   const khop = (tk: PhoTk | undefined) => !tk || !chonNen.size || chonNen.has(tk.nen);
   // ── KHU ĐÔ THỊ NỀN (anh 22/10/2026 "thêm khu đô thị xung quanh cho sinh động, dòng xe, dòng người"): nhà thấp, phố lưới, xe và người qua lại —
   //    chỉ để cảnh sống động, KHÔNG mang số nào và không bấm được (nằm ngoài nhóm 'the' nên tia chuột không chạm)
@@ -383,6 +386,15 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         pho(sx, sz, x + Math.cos(g) * 18, z + Math.sin(g) * 18, 6);
         if ('loai' in v && (v.loai === 'site' || v.loai === 'sp' || v.loai === 'app')) { toaSp(v as typeof mh.dich[number], sx, sz); return; }
         const tk = v as PhoTk, t = toaNha(sx, sz, tk, maiTk(tk)); viTri[`tk:${tk.id}`] = { m: t.m, cua: t.cua }; if (tk.loai === 'mxh') chiMuc.push({ ten: tk.ten, nhan: NEN[tk.nen][1], obj: t.m });
+        // ĐƯỜNG NGẦM tài khoản social → site nó trỏ về (anh 22/10/2026): luôn có, kể cả khi chưa có khách — nét đứt màu nền tảng sát đất + nhịp sáng chạy về site
+        if (tk.loai === 'mxh') {
+          const a = new THREE.Vector3(sx, .3, sz), b = new THREE.Vector3(x, .3, z), mauN = ['#20232b', '#1b1b22', '#101010'].includes(mauTk(tk)) ? '#dfe4f2' : mauTk(tk);
+          const dai = a.distanceTo(b), t2 = texVach().clone(); t2.needsUpdate = true; t2.repeat.set(dai / 4, 1);
+          const day = add(new THREE.PlaneGeometry(dai, 1.6), new THREE.MeshBasicMaterial({ color: mauN, map: t2, transparent: true, opacity: .95, depthWrite: false }), false);
+          day.rotation.set(-Math.PI / 2, 0, -Math.atan2(b.z - a.z, b.x - a.x)); day.position.set((a.x + b.x) / 2, .45, (a.z + b.z) / 2); day.userData = { chu: null, tk }; ds.ngam!.push(day);
+          const duong = new THREE.CurvePath(); duong.add(new THREE.LineCurve3(a, b));
+          const nhip = add(new THREE.SphereGeometry(1.3, 10, 10), new THREE.MeshBasicMaterial({ color: mauN }), false); nhip.userData = { chu: null, tk, duong, t: Math.random(), toc: .006, nhip: true }; ds.ngam!.push(nhip);
+        }
       });
       viTri[`khu-cua:${d.khoa}`] = new THREE.Vector3(x, 1.5, z);
     };
@@ -526,7 +538,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // ── bảng điều khiển
-  const LOP: Record<string, [string, string]> = { cua: ['🪟', 'Bài đang chạy'], thung: ['📦', 'Bài sắp đăng'], cot: ['🔦', 'Lượt xem'], xe: ['🚗', 'Khách về site'], xu: ['🪙', 'Tiền về kho bạc'], onl: ['🟢', 'Khách đang xem'], dien: ['⚡', 'Máy chủ · dây điện'] };
+  const LOP: Record<string, [string, string]> = { cua: ['🪟', 'Bài đang chạy'], thung: ['📦', 'Bài sắp đăng'], cot: ['🔦', 'Lượt xem'], xe: ['🚗', 'Khách về site'], xu: ['🪙', 'Tiền về kho bạc'], onl: ['🟢', 'Khách đang xem'], dien: ['⚡', 'Máy chủ · cáp ngầm'], ngam: ['🔗', 'Đường ngầm social → site'] };
   for (const [k, [ic, ten]] of Object.entries(LOP)) { const b = document.createElement('button'); b.className = 'lop'; b.title = ten; b.textContent = ic; b.setAttribute('aria-pressed', 'true'); b.setAttribute('aria-label', ten);
     b.onclick = () => { if (bat.has(k)) bat.delete(k); else bat.add(k); b.setAttribute('aria-pressed', String(bat.has(k))); apLop(); }; q('[data-o="lop"]').appendChild(b); }
   const chip = (o: string, set: Set<any>, id: string, mau: string, ic: string, ten: string) => { const b = document.createElement('button'); b.className = 'chip'; b.title = ten; b.setAttribute('aria-label', ten); b.style.background = mau; b.innerHTML = ic; b.setAttribute('aria-pressed', 'false');
@@ -542,6 +554,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (const m of ds.xu!) m.visible = bat.has('xu');
     for (const m of ds.onl!) m.visible = bat.has('onl') && tua == null;
     for (const m of ds.dien!) m.visible = bat.has('dien');
+    for (const m of ds.ngam!) m.visible = bat.has('ngam') && khop(m.userData.tk);
     apTua();
   }
   const datThu = (gon: boolean) => { ben.classList.toggle('gon', gon); thuBtn.textContent = gon ? '☰' : '‹'; thuBtn.setAttribute('aria-expanded', String(!gon)); thuBtn.setAttribute('aria-label', gon ? 'Mở bảng' : 'Thu nhỏ bảng'); try { localStorage.setItem('tp-ben-gon', gon ? '1' : '0'); } catch { /* chế độ riêng tư */ } };
@@ -719,6 +732,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     raf = requestAnimationFrame(vong); dem++;
     if (bay) { bay.t = Math.min(1, bay.t + .04); const e = 1 - Math.pow(1 - bay.t, 3); ctl.target.lerpVectors(bay.tu, bay.den, e); cam.position.lerpVectors(bay.camTu, bay.camDen, e); if (bay.t >= 1) bay = null; }
     for (const ng of ds.onl!) { if (!ng.visible) continue; const u = ng.userData; u.t = (u.t + u.toc) % 1; ng.position.lerpVectors(u.a, u.b, u.t); ng.position.y = 1.3 + Math.abs(Math.sin(dem / 5 + u.t * 20)) * .3; ng.material.opacity = 1; }
+    for (const n of ds.ngam!) { if (!n.visible || !n.userData.nhip) continue; const u = n.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, n.position); n.position.y = .6; }
     for (const d of ds.dien!) { if (!d.visible) continue; if (d.userData.tia) { const u = d.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, d.position); d.position.y = .6; } else d.material.opacity = .4 + Math.sin(dem / 18) * .15; }
     for (const xe of ds.xu!) { if (!xe.visible || !xe.userData.duong) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.6; }
     for (const xe of ds.xe!) { if (!xe.visible) continue; const u = xe.userData; u.t = (u.t + u.toc) % 1; u.duong.getPointAt(u.t, xe.position); u.duong.getTangentAt(u.t, huong); xe.rotation.y = Math.atan2(-huong.z, huong.x); xe.position.y = 2.4; }

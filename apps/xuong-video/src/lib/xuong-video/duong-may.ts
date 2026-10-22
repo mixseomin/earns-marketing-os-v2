@@ -3,7 +3,7 @@
 // lùi ra ×0,5 · lia 30° · quay vòng 60° · zoom gắt ×2,5…) — một nguồn số cho cả thư viện kỹ thuật lẫn bản diễn Blender. Toạ độ dữ liệu: cm,
 // x phải, y sâu vào bàn, z lên. Blender (dung-set.py › dien_shot) nội suy mở → kết theo `toc`, cộng rung tay khi `rung`.
 import { NGANH, CU_MAY_KHUNG_KET, type MayDi } from './dien-anh-nganh';
-import type { May3d, VatSet } from './kieu';
+import { vatHien, type May3d, type VatSet } from './kieu';
 
 export type DuongMay = { kieu: MayDi['kieu']; dat: number[]; nhin: number[]; ong_kinh: number; toc: MayDi['toc']; rung?: boolean; /** cú máy liền mạch cần khung màu chỗ kết (CU_MAY_KHUNG_KET) — dung-set.py dựng thêm khung kết */ ket?: boolean; /** vật che chủ thể lúc kết dù đã cẩu máy — phải đặt lại máy shot */ che?: string };
 
@@ -29,8 +29,10 @@ export function hopVat(vat: VatSet[], them: string[] = []): Hop[] {
     const rx = (Math.abs(w * Math.cos(a)) + Math.abs(d * Math.sin(a))) / 2, ry = (Math.abs(w * Math.sin(a)) + Math.abs(d * Math.cos(a))) / 2;
     out.push({ ten, min: [gx - rx, gy - ry, z], max: [gx + rx, gy + ry, z + h] });
   };
-  for (const vt of vat) {
-    if (vt.nen || (vt.tuy_chon && !them.includes(vt.ten))) continue;
+  // đồ ĐANG HIỆN theo kieu.ts › vatHien: món tuỳ chọn bật thì món nó THAY (thay_cho: cửa mở thay cửa đóng) biến mất — trước chỉ lọc tuỳ chọn, cửa đóng
+  // vẫn đứng đó nên đường máy / đường người (kiem-ai-3d.ts › xuyenVat) bị báo xuyên cửa dù shot đã bật cửa mở
+  for (const vt of vatHien(vat, them)) {
+    if (vt.nen) continue;
     if ('phan' in vt) for (const p of vt.phan) mot(vt.ten, p, vt.goc, vt.xoay ?? 0); else mot(vt.ten, vt);
   }
   return out;

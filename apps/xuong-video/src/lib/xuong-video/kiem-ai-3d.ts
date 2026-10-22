@@ -5,6 +5,7 @@
 //   ĐỦ   — vật được nhắc trong chữ của shot (hành động, bố cục, mở / kết, diễn xuất) phải có khối 3D tương ứng; shot cận phải THẤY nó trong khung.
 //   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo · hai người không chồng hình · dáng tựa phải có mặt đỡ.
 // MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và bộ chấm tại chỗ (scripts/du-lieu/tong-tai/kiem.mts). Thuần — tự kiểm: kiem-ai-3d.test.mts
+import { hopVat } from './duong-may';
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
 import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
 import { vatHien } from './kieu';
@@ -156,6 +157,37 @@ export function theSai(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> |
   return out;
 }
 
+/** NGƯỜI / VẬT ĐI XUYÊN ĐỒ RẮN (anh 22/10/2026, phim #132 #19 "bước vào thang máy đéo ngửi được"): bộ set chỉ có tấm cửa thép đóng, Hạ được cho đi từ sảnh
+ *  vào y=520 → khung 3D kết cho thấy người và thùng xuyên qua cửa, mô hình video phải bịa cảnh bước vào và làm thùng biến mất. Đường đi tam → den (và chỗ
+ *  đứng mở) không được cắt hộp bao của đồ set rắn (hopVat đã bỏ mặt nền, đồ tuỳ chọn không bật) ở tầm thân người (30–150 cm). Thuần — kiểm ở kiem-ai-3d.test. */
+export function xuyenVat(c: ShotAi, set: Pick<BoSet, 'du_lieu'> | null): string[] {
+  if (!set || !c.may_3d) return [];
+  const hop = hopVat(set.du_lieu.vat, c.may_3d.them ?? []).filter((h) => h.max[2] > 30 && h.min[2] < 150);
+  const out: string[] = [];
+  for (const v of c.may_3d.vi_tri) {
+    if (v.cam || v.an) continue;
+    const a = v.tam, b = v.den ?? v.tam;
+    for (let t = 0; t <= 1.0001; t += 0.05) {
+      const x = a[0]! + (b[0]! - a[0]!) * t, y = a[1]! + (b[1]! - a[1]!) * t;
+      const h = hop.find((k) => x > k.min[0] && x < k.max[0] && y > k.min[1] && y < k.max[1]);
+      if (h) { out.push(`${v.ten} ${v.den ? `đi từ [${a.slice(0, 2)}] tới [${b.slice(0, 2)}] xuyên qua` : `đứng trong`} đồ set "${h.ten}" — set thiếu trạng thái / khoảng trống thật (cửa mở, buồng thang, lối đi): thêm đồ tuỳ chọn thay_cho hoặc dời chỗ`); break; }
+    }
+  }
+  return out;
+}
+/** MÓN ĐỔI TAY / ĐỔI CHỖ TRONG SHOT quá nhỏ (phim #132 #15: giật thẻ 9 cm ở toàn cảnh cách 5,8 m → thẻ 0% khung; Veo kéo Hạ lại gần máy để vẽ cú giật →
+ *  hai Hạ, thẻ vẫn trên cổ). Đạo cụ có `den` (đổi chỗ / sang tay) phải trải ≥ 2,5% khung ở MỌI cỡ cảnh — nhỏ hơn thì máy gần hơn hoặc tách shot. */
+export const PT_MON_DOI = 0.025;
+export function monDoiTayNho(c: ShotAi, nhanVat: NvAi[]): string[] {
+  const thay = c.khung_xam?.thay; if (!thay || !c.may_3d) return [];
+  const out: string[] = [];
+  for (const v of c.may_3d.vi_tri) {
+    if (!v.den || v.an || nhanVat.some((a) => a.ten === v.ten && a.loai === 'nhan_vat')) continue;
+    const t = thay.find((x) => x.ten === v.ten); const trai = t ? Math.max(t.hop[2]! - t.hop[0]!, t.hop[3]! - t.hop[1]!) : 0;
+    if (trai < PT_MON_DOI) out.push(`${v.ten} đổi chỗ / sang tay trong shot mà chỉ trải ${Math.round(trai * 1000) / 10}% khung — AI không giữ được món nhỏ thế khi nó di chuyển: máy gần hơn, ống dài hơn, hoặc tách cú đổi tay thành shot riêng`);
+  }
+  return out;
+}
 /** CHỮ BỐ CỤC GỌI TÊN NHÂN VẬT mà khung 3D không có người đó: bố cục là thứ khung PHẢI cho thấy ("over Vivian's shoulder") — 3D không có Vivian thì
  *  AI tự bịa một Vivian (#12: áo be thay đầm đỏ đô). Hướng nhìn ở khoảnh khắc mở / diễn ("looks at Vivian") là đúng — chỉ xét bố cục. */
 export function boCucNguoiNgoai(c: ShotAi, nhanVat: NvAi[]): string[] {
@@ -185,5 +217,5 @@ export function vungTrong(c: ShotAi): string[] {
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
+  return [...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
 }

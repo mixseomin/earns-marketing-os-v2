@@ -1,6 +1,6 @@
 // Tự kiểm bộ kiểm 3D cho phim AI: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-ai-3d.test.mts
 import assert from 'node:assert';
-import { thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat, theSai, boCucNguoiNgoai } from './kiem-ai-3d';
+import { xuyenVat, monDoiTayNho, thieuVat3d, matNguoiNoi, vatDeoThieuNguoi, doNhanDangChuaAnh, vatDuocNhacAi, chongNguoi, tuaHong, vungTrong, datLat, theSai, boCucNguoiNgoai } from './kiem-ai-3d';
 
 const set = { du_lieu: { vat: [{ ten: 'Bàn', hinh: 'hop', mau: '#333', en: 'walnut desk' }, { ten: 'Máy photo', hinh: 'hop', mau: '#eee', en: 'large white office copier printer' },
   { ten: 'Tranh', hinh: 'hop', mau: '#888', en: 'large ink-wash painting of mountains' }] } } as never;
@@ -60,3 +60,18 @@ const nvB = [{ ten: 'Hạ', loai: 'nhan_vat', mo_ta: '' }, { ten: 'Vivian', loai
 assert.equal(boCucNguoiNgoai(bcn(false), nvB).length, 1); assert.equal(boCucNguoiNgoai(bcn(true), nvB).length, 0);
 assert.equal(boCucNguoiNgoai({ ...(bcn(false) as object), dan_dung: { bo_cuc: 'Low close-up on Hạ looking down at Vivian; MCU from Vivian’s side' } } as never, nvB).length, 0);   // hướng nhìn / chỗ máy
 console.log('kiem-ai-3d: ok');
+
+// ĐI XUYÊN ĐỒ RẮN (#132 #19): đi qua tấm cửa đóng → chặn; bật cửa mở (thay_cho) → qua; đứng trong bàn → chặn; mặt nền không tính
+{
+  const st = { du_lieu: { vat: [{ ten: 'Cửa', hinh: 'hop', mau: '#999', tam: [0, 100, 0], co: [100, 4, 220], en: 'steel door' }, { ten: 'Cửa mở', hinh: 'hop', mau: '#999', tam: [60, 100, 0], co: [6, 4, 220], tuy_chon: true, thay_cho: 'Cửa' },
+    { ten: 'Sàn', hinh: 'hop', mau: '#222', tam: [0, 100, -2], co: [400, 400, 2], nen: true }, { ten: 'Bàn', hinh: 'hop', mau: '#444', tam: [200, 0, 0], co: [100, 60, 75], en: 'desk' }] } } as never;
+  const di = (them?: string[]) => ({ hanh_dong: '', prompt_anh: '', may_3d: { ...may([{ ten: 'Hạ', tam: [0, 0, 0], den: [0, 180, 0], huong: 0 }]), ...(them ? { them } : {}) } }) as never;
+  assert.equal(xuyenVat(di(), st).length, 1); assert.equal(xuyenVat(di(['Cửa mở']), st).length, 0);
+  assert.equal(xuyenVat({ hanh_dong: '', prompt_anh: '', may_3d: may([{ ten: 'Hạ', tam: [200, 0, 0], huong: 0 }]) } as never, st).length, 1);
+}
+// MÓN ĐỔI TAY QUÁ NHỎ (#132 #15): thẻ có den trải 0,4% → chặn; 4% → qua; người di chuyển không tính
+{
+  const sh = (w: number) => ({ hanh_dong: '', prompt_anh: '', khung_xam: { thay: [{ ten: 'Hạ', pt: 20, hop: [0.3, 0.2, 0.5, 0.9], tien: false }, { ten: 'Thẻ', pt: 0.1, hop: [0.4, 0.4, 0.4 + w, 0.4 + w], tien: false }] },
+    may_3d: may([{ ten: 'Hạ', tam: [0, 0, 0], den: [50, 0, 0], huong: 0 }, { ten: 'Thẻ', tam: [0, 0, 120], den: [80, 0, 110], huong: 0 }]) }) as never;
+  assert.equal(monDoiTayNho(sh(0.004), nv).length, 1); assert.equal(monDoiTayNho(sh(0.04), nv).length, 0);
+}

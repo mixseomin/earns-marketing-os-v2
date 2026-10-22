@@ -32,7 +32,9 @@ export const CHAT_LIEU: Record<ChatLieu, {
     anh_sang: () => 'Scene lighting, identical in every shot of this scene: same light direction, exposure and colour grade as the rest of the scene.',
     dien_video: () => 'Naturalistic screen acting (real human timing, subtle and motivated, no cartoon exaggeration)',
     giu_video: 'Stay true to the first frame: same people, faces, wardrobe, set, framing, light and colours — real live-action footage.',
-    song_video: (chen) => chen ? 'Only the described detail moves; everything else in frame stays still, with natural subtle life (a breath, a slight shift of light).' : 'Keep the frame alive with natural, motivated movement: the actors perform the action with readable body language, and the background stays naturally alive (people breathing, slight shifts, light on surfaces) — never frozen.',
+    // NỀN KHOÁ (anh 22/10/2026, phim #132 cảnh thang máy: "phần đằng sau lưng 2 người lúc sinh video hay ảnh hay bị thay đổi"): câu cũ "background stays
+    // naturally alive (people breathing, slight shifts…) — never frozen" mời model cho nền chuyển động / vẽ lại; sống là việc của diễn viên, set đứng yên.
+    song_video: (chen) => chen ? 'Only the described detail moves; everything else in frame stays still, with natural subtle life (a breath, a slight shift of light).' : 'Keep the actors alive with natural, motivated movement and readable body language — they never freeze. The set behind them is a fixed physical place: walls, doors, furniture, artwork, signs, logos and reflections keep exactly the same shape, position and content for the whole clip; nothing in the background morphs, slides or is redrawn (only natural light and focus may shift).',
     khong_them: (vao) => `Nothing new appears (no extra people or objects${vao}, no visual effects); things cut off by the frame edge stay cut off.`,
     cam: /\b(miniature|stop-motion|stop motion|tiny characters?|plasticine|claymation|toy-?sized|above the desk|desk top|desk lamp|squash and stretch|cartoon acting|puppet|fur, leaves|simply floats)\b/i,
   },

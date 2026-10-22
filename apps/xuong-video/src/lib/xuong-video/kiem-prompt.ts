@@ -12,8 +12,14 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
+/** ĐỒ CỦA MỘT NƠI trong câu PHONG CÁCH PHIM (anh 22/10/2026, phim #132: phong cách "daylight from floor-to-ceiling windows" đi vào mọi shot, kể cả sảnh
+ *  thang máy đá đen không có cửa sổ → nền sau lưng người đổi giữa các shot). Phong cách chỉ nói chất ảnh / ống kính / tông; đồ đạc là của bối cảnh.
+ *  Trả các từ có trong phong cách mà mô tả bối cảnh của shot không có. Thuần — kiểm ở kiem-prompt.test. */
+const DO_NOI_CHON = /\b(windows?|skyline|desks?|monitors?|elevators?|lobby|corridors?|street|beach|forest|kitchen|bedroom|office|boardroom|staircase|curtains?)\b/gi;
+export const noiChonPhongCach = (phongCach: string, boiCanh: string): string[] =>
+  [...new Set((phongCach.match(DO_NOI_CHON) ?? []).map((x) => x.toLowerCase().replace(/s$/, '')))].filter((w) => !new RegExp(`\\b${w}`, 'i').test(boiCanh));
 const AN = /\b(hidden|covered|covering|concealed|out of sight|not visible|tucked under)\b/i;
 const TU_CHUNG = new Set(['small', 'thin', 'black', 'white', 'light', 'large', 'under', 'with', 'their', 'which', 'little', 'round', 'dark', 'long', 'short']);
 

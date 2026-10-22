@@ -1,6 +1,6 @@
 // Tự kiểm bộ chấm prompt: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-prompt.test.mts
 import assert from 'node:assert';
-import { chamPrompt, loiPrompt } from './kiem-prompt';
+import { chamPrompt, loiPrompt, noiChonPhongCach } from './kiem-prompt';
 import { khoi, KHONG_THEM_FLUX } from './prompt-khoi';
 
 const VEST = 'Tailored white power suit (single-breasted blazer, wide-leg trousers)';
@@ -53,4 +53,9 @@ assert.equal(chamPrompt([{ ten: 'video', chu: `Hạ looks down the table at Th�
 assert.equal(loiPrompt([{ ten: 'bước 1', duong: 'flux', khoi: [khoi('anh_dich', 'Film still.'), khoi('boi_canh', 'Setting: Boardroom.'), khoi('nguoi', `A woman wearing ${VEST}.`), khoi('chat_lieu', 'Real.'), khoi('khong_them', KHONG_THEM_FLUX)] }], s).length, 1);
 // THẺ CÒN SÓT trong prompt → chặn
 assert.equal(loiPrompt([{ ten: 'bước 1', chu: `Woman wearing ${VEST} holding the {Ly ca phe}.` }], s).length, 1);
+// PHONG CÁCH nhắc đồ của một nơi (#132 sảnh thang máy không có cửa sổ) → báo; bối cảnh có cửa sổ → qua; phong cách chỉ chất ảnh → qua
+const SANH = 'Polished elevator lobby: black marble floor and back wall, two brushed steel elevator doors';
+assert.deepEqual(noiChonPhongCach('glossy look, cool daylight from floor-to-ceiling windows, 35mm', SANH), ['window']);
+assert.deepEqual(noiChonPhongCach('glossy look, cool daylight from floor-to-ceiling windows', 'Open-plan office with floor-to-ceiling glass windows'), []);
+assert.deepEqual(noiChonPhongCach('glossy look, cool steel-blue key light with warm practical lamps', SANH), []);
 console.log('kiem-prompt: ok');

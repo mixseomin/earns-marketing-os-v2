@@ -16,7 +16,7 @@ import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
-import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
+import { boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
 import { cauAnhSet, CHAT_LIEU, chuNguoi, ghep, goiTenEn, khoi, KHONG_THEM_ANH, KHONG_THEM_FLUX, KHUON, soNguoiCau, tuTheEn, type DuongSinh, type Khoi } from './prompt-khoi';
 import { kiemBangTrangPhuc, docBangTrangPhuc } from './bang-trang-phuc';
 import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
@@ -504,6 +504,9 @@ export function chamKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCa
     const c = chamPrompt((Object.entries(k.khoi ?? {}) as [DuongSinh, Khoi[]][]).map(([d, ds]) => ({ ten: `${nhan}${KHUON[d].ten}`, duong: d, khoi: ds })), k.soat);
     diem = Math.min(diem, c.diem); loi.push(...c.loi);
   }
+  const bcMoTa = bc.nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => v.mo_ta).join(' ');
+  const nc = bcMoTa ? noiChonPhongCach(phongCachHinh(bc.kt.phong_cach), bcMoTa) : [];
+  if (nc.length) { diem -= 10; loi.push({ buoc: 'phong cách phim', ma: 'noi_chon', phat: 10, chu: `phong cách phim nhắc ${nc.join(', ')} mà bối cảnh shot không có — đồ đạc / nguồn sáng của một nơi để ở mô tả bối cảnh, không để ở phong cách (nền sẽ đổi giữa các shot)` }); }
   return { diem, loi };
 }
 

@@ -250,7 +250,7 @@ export const taThu = (n: NguonSinh | null | undefined): string =>
 // là dự phòng cuối (sinh-video.ts). Task cổng treo quá TREO_PHUT phút chưa chạy → bỏ, sinh lại qua Google.
 export const TREO_PHUT = 12;
 // Kie / WaveSpeed: giá đọc trang giá 16/10/2026 (sổ nguồn AI, migration 0265) — Kie ghi giá clip 8s 1080p, studio gọi 720p nên đây là mức trần.
-const GIA_VIDEO_VND: Record<string, number> = { 'plenxai:veo3-lite': 800, 'plenxai:veo3-fast': 1400, 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500, 'kie:veo3_lite': 4550, 'kie:veo3_fast': 8450, 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video': 17472 };
+const GIA_VIDEO_VND: Record<string, number> = { 'plenxai:veo3-lite': 800, 'plenxai:veo3-fast': 1400, 'plenxai:wan-3.0': 1800, 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500, 'kie:veo3_lite': 4550, 'kie:veo3_fast': 8450, 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video': 17472 };
 export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents?: number } => {
   const vnd = GIA_VIDEO_VND[`${cong}:${model}`];
   return vnd != null ? { vnd, cents: vndRaCent(vnd) } : {};
@@ -382,6 +382,7 @@ export const MO_HINH_CONG: MoHinhCong[] = [
   { key: 'shopaikey:grok-imagine-video-1.5', label: 'Grok Imagine Video 1.5 · 6s (khung 2:3)', nhom: 'ShopAIKey', vnd: 6500, donVi: 'clip', giay: 6 },
   { key: 'plenxai:veo3-lite', label: 'Veo 3.1 Lite · PlenX AI (clip 4–8s, 9:16)', nhom: 'PlenX AI', vnd: 800, donVi: 'clip', giay: 8 },
   { key: 'plenxai:veo3-fast', label: 'Veo 3.1 Fast · PlenX AI (clip 4–8s, 9:16)', nhom: 'PlenX AI', vnd: 1400, donVi: 'clip', giay: 8 },
+  { key: 'plenxai:wan-3.0', label: 'Wan 3.0 · PlenX AI DURIAN (clip 5 / 10s, khung đầu + cuối, gói Free được)', nhom: 'PlenX AI', vnd: 1800, donVi: 'clip', giay: 10 },
   { key: 'kie:veo3_lite', label: 'Veo 3.1 Lite · Kie.ai (clip 4–8s, 9:16)', nhom: 'Kie.ai', vnd: 4550, donVi: 'clip', giay: 8 },
   { key: 'kie:veo3_fast', label: 'Veo 3.1 Fast · Kie.ai (clip 4–8s, 9:16)', nhom: 'Kie.ai', vnd: 8450, donVi: 'clip', giay: 8 },
   { key: 'wavespeed:kwaivgi/kling-v3.0-std/image-to-video', label: 'Kling 3.0 Std · WaveSpeedAI (5 / 10s)', nhom: 'WaveSpeedAI', vnd: 17472, donVi: 'clip', giay: 8 },

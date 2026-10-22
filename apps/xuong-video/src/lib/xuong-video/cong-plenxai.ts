@@ -43,13 +43,32 @@ const goi = async (duong: string, init: RequestInit = {}): Promise<Response> => 
 };
 
 /** Giá credit / clip theo bảng của server (đọc 21/10/2026, server mặc định "Flow Veo3"): model → độ phân giải → credit. */
-export const CREDIT_PLENX: Record<string, Record<string, number>> = { 'veo3-lite': { '720': 6, '1080': 8 }, 'veo3-fast': { '720': 10, '1080': 14 } };
+export const CREDIT_PLENX: Record<string, Record<string, number>> = { 'veo3-lite': { '720': 6, '1080': 8 }, 'veo3-fast': { '720': 10, '1080': 14 }, 'wan-3.0': { '720': 18, '1080': 30 } };
+/** MODEL QUA STUDIO (anh 23/10/2026: gói Free bị khoá Veo — "Gói Free chỉ tạo video được trên server MANGO (Seedance 2.5), DURIAN (Wan 3.0)"). Trang gọi
+ *  chúng qua POST /api/v1/see-dance-studio/generate (JSON — buildPayload, họ "seedance") với server_id = id máy chủ của model (GET /models/<mã>/servers).
+ *  Giá per_gen theo độ phân giải (GET /developer/models, 23/10/2026). Thời lượng chỉ nhận đúng các mức của máy chủ. */
+const STUDIO_PLENX: Record<string, { server: string; giay: number[] }> = {
+  'wan-3.0': { server: 'b969afe2-2e61-4c67-ab4f-b1b6016baa78', giay: [5, 10, 15, 30] },   // DURIAN: khung đầu + cuối, 480/720/1080p
+};
 export const VND_MOI_CREDIT = 100;   // nạp VietQR lẻ; gói tháng Pro ≈ 74,5₫
 
 export type KqGui = { ok: true; taskId: string } | { ok: false; loi: string; status?: number };
 export type KqDoc = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean };
 
 export async function guiPlenx(model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
+  const st = STUDIO_PLENX[model];
+  if (st) {
+    try {
+      const giay = st.giay.find((g) => g >= o.giay) ?? st.giay[st.giay.length - 1]!;
+      const r = await goi('/see-dance-studio/generate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+        prompt: o.prompt, model, duration: giay, aspect_ratio: '9:16', resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p', generate_audio: true,
+        mode: 'i2v', input_image_url: o.anhDau, ...(o.anhCuoi ? { end_image_url: o.anhCuoi } : {}), server_id: st.server }) });
+      const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; detail?: unknown; message?: string };
+      const id = j.task_id || j.id;
+      if (!r.ok || !id) return { ok: false, status: r.status, loi: `PlenX ${r.status}: ${typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail ?? j.message ?? 'không nhận task')}`.slice(0, 300) };
+      return { ok: true, taskId: String(id) };
+    } catch (e) { return { ok: false, loi: `không gửi được PlenX (${e instanceof Error ? e.message.slice(0, 160) : 'lỗi mạng'})` }; }
+  }
   try {
     const f = new FormData();
     f.append('prompt', o.prompt); f.append('model', model); f.append('aspect_ratio', '9:16');

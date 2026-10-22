@@ -231,7 +231,7 @@ export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
   const moCard = (id: number) => { setMo(false); if (hom === 'city') window.open(`https://mos2.on.tc/plays?proj=city&task=${id}`, '_blank', 'noopener'); else router.push(`/plays?proj=mos2&task=${id}`); };
   return (
     <>
-      <button type="button" aria-label="Góp ý / báo lỗi MOS2" title="Góp ý / báo lỗi về màn đang xem"
+      <button type="button" aria-label={hom === 'city' ? 'Góp ý / báo lỗi thành phố' : 'Góp ý / báo lỗi MOS2'} title="Góp ý / báo lỗi về màn đang xem"
         onClick={() => setMo((v) => !v)}
         // right 60, KHÔNG 16: góc phải-dưới là chỗ nút ⚙ Tweaks (.twk-toggle-fab, z 2147483645) — đặt trùng thì ⚙ che kín 💬,
         // anh không thấy hòm góp ý đâu cả (05/10/2026). Đứng ngay bên trái ⚙.

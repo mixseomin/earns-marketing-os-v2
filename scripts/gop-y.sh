@@ -79,7 +79,7 @@ list)
   loc="AND COALESCE(prep_payload->'site_status'->>'$P', 'pending') NOT IN ('completed','verified','dropped','broken')"
   [ "${2:-}" = "all" ] && loc=""
   psql "$DATABASE_URL" -P pager=off <<SQL
-\echo '=== GÓP Ý MOS2 — còn phải xử (dùng: gop-y.sh show <id>) ==='
+\echo '=== GÓP Ý $P — còn phải xử (dùng: gop-y.sh show <id>) ==='
 SELECT id,
        COALESCE(prep_payload->'site_status'->>'$P', 'pending') AS trang_thai,
        left(title, 60) AS tieu_de,

@@ -71,6 +71,26 @@ async function goNut(tg, c, id) {
   fs.writeFileSync(tep, JSON.stringify(st));
   await tg('editMessageReplyMarkup', { message_id: mid, reply_markup: goHangNut(c.message.reply_markup, ids) });
 }
+// BỎ CẢ PHIM (anh 22/10/2026: "phim này bị vi phạm, bỏ cả phim thì không thông báo liên quan nữa"): anh trả lời dưới một tin của phòng câu có "bỏ phim" /
+// "bỏ cả phim" / "vi phạm" → mọi phim nhắc trong tin đó vào sổ <DATA>/ethopex-bo-phim.json; từ đó mọi luật (kể cả máy tự tăng) bỏ qua camp của phim đó.
+// Bảng số ghim vẫn tính tiền thật của phim (số liệu, không phải thông báo). "báo lại phim <tên>" để gỡ khỏi sổ.
+const TEP_BO = () => path.join(DATA(), 'ethopex-bo-phim.json');
+export const tenPhim = (chu) => (String(chu).match(/(?:^|[\s#:·])\d{4} (.+?) [A-Z]{2} - /) || [])[1]?.trim().toLowerCase() || null;
+export const docBoPhim = () => docJ(TEP_BO(), []);
+export const boPhimLoc = (kq, bo = docBoPhim()) => { const s = new Set(bo.map((x) => x.phim)); if (!s.size) return kq;
+  return Object.fromEntries(Object.entries(kq).map(([k, v]) => [k, Array.isArray(v) ? v.filter((m) => !s.has(tenPhim(m.chu)) && !s.has(tenPhim(m.ten))) : v])); };
+async function xuChuBoPhim(tg, x) {
+  const tr = x.message; if (tr && !tr.from?.is_bot && /bỏ\s*(cả\s*)?phim|vi phạm|báo lại phim/i.test(String(tr.text ?? ''))) x.xong(); if (!tr || tr.from?.is_bot) return null; const chu = String(tr.text ?? '');
+  const bo = /bỏ\s*(cả\s*)?phim|vi phạm/i.test(chu), lai = /báo lại phim/i.test(chu); if (!bo && !lai) return null;
+  const phim = [...new Set(String(tr.reply_to_message?.text ?? '').split('\n').map(tenPhim).filter(Boolean))];
+  if (lai) { const ten = chu.replace(/.*báo lại phim/i, '').trim().toLowerCase(); fs.writeFileSync(TEP_BO(), JSON.stringify(docBoPhim().filter((p) => p.phim !== ten), null, 1));
+    await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, text: `🔔 Báo lại phim "${ten}".` }); return 'lai'; }
+  if (!phim.length) { await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, text: 'Em chưa thấy phim nào — anh trả lời ngay dưới tin có tên camp của phim đó nhé.' }); return 'chua'; }
+  const cu = docBoPhim(), them = phim.filter((p) => !cu.some((c) => c.phim === p));
+  fs.writeFileSync(TEP_BO(), JSON.stringify([...cu, ...them.map((p) => ({ phim: p, luc: new Date().toISOString(), ai: tr.from?.first_name || '', ly_do: chu.slice(0, 200) }))], null, 1));
+  await tg('sendMessage', { message_thread_id: tr.message_thread_id, reply_parameters: { message_id: tr.message_id }, parse_mode: 'HTML', text: `🚫 Đã bỏ phim ${phim.map((p) => `<b>${esc(p.toUpperCase())}</b>`).join(', ')} — không báo / không tự tăng camp nào của phim này nữa. Gỡ: trả lời "báo lại phim &lt;tên&gt;".` });
+  return 'bo';
+}
 async function xuNut(tg, x) {
   const c = x.callback_query; x.xong(); if (!c || !/^et:/.test(c.data || '')) return null;
   const [, lenh, id, ns] = c.data.split(':'), ai = esc(c.from?.first_name || c.from?.username || 'Anh');
@@ -151,8 +171,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const { tg } = await tgNoiDung();
   const topic = await topicPhong('ethopex', '📂 Ethopex', tg, { duocTao: true });   // anh lập phòng 21/10/2026 = cho tạo chủ đề
   await gomTin(tg); let nut = 0;
-  for (const x of moHop('ethopex')) if (await xuNut(tg, x)) nut++;
-  const kq = JSON.parse((await chay(LUAT, ['--json'])).trim().split('\n').pop());
+  for (const x of moHop('ethopex')) if ((await xuChuBoPhim(tg, x)) || (await xuNut(tg, x))) nut++;
+  const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'])).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
   const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   const st = docJ(TEP(), {}); const da = st.ngay === homNay ? new Set(st.da) : new Set();
   // camp ĐÃ ĐÓNG báo một lần mỗi lần dừng (không theo ngày): nhớ tập đang dừng; camp chạy lại thì rời tập, dừng lần sau báo lại
@@ -227,6 +247,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
 }
 
 if (process.argv.includes('--tu-kiem')) {
+  { const { strict: a } = await import('node:assert');
+    a.equal(tenPhim('2010 SIMP NO MORE EN - canh that 0-86s · $1 → $2'), 'simp no more'); a.equal(tenPhim('#65735: 2110 Atras No te metas con ese vagabundo ES - canh that'), 'atras no te metas con ese vagabundo');
+    const kq = { tang: [{ id: 1, chu: '#65648: 2010 SIMP NO MORE EN - canh that · $1 → $2' }, { id: 2, chu: '#65735: 2110 Number One Nobody EN - canh' }], luc: 'x' };
+    const loc = boPhimLoc(kq, [{ phim: 'simp no more' }]); a.deepEqual(loc.tang.map((m) => m.id), [2], 'phim đã bỏ không còn trong luật'); a.equal(loc.luc, 'x'); }
   { const { strict: t } = await import('node:assert');
     const m = tinBaoNgay({ theo_ngay: [{ ngay: '2026-10-20', chi: 32.74, thu: 21.4, lai: -11.34, roi: -34.6 }, { ngay: '2026-10-21', chi: 298.72, thu: 473.7, lai: 174.98, roi: 58.6 }], tien_moi: [], thang: { chi: 331.46, thu: 495.1 } }, '2026-10-22');
     t.match(m, /Hôm qua 21\/10<\/b> \(theo ngày quảng cáo\): lãi <b>\+\$174\.98/); t.match(m, /20\/10 +\$33 +\$21 +−\$11\.34 +-35%/); t.ok(!/Tiền mới vào/.test(m), 'chưa đủ số chụp thì không in dòng tiền mới'); }

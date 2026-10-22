@@ -13,6 +13,8 @@ import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } 
 import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
 import { HOST_BAN, MAY_TIM, NEN_QC, type VaoHeSinhThai } from './social-thanh-pho';
 import { getProductsView } from './products/data';
+import { networkRows } from './revenue/networks';
+import { docEthopex } from './ethopex-doc';
 import { tinhSucKhoe, type StSucKhoe, type VaoSuc } from './social-suc-khoe';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
@@ -84,7 +86,8 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const rong: VaoHeSinhThai = { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };
   const d = getDb(); if (!d) return rong;
   const host = (u: string | null) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
-  const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop, ads, chi, phuPf, hat] = await Promise.all([
+  const tu30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const [da, ds, app, tk, sp, nguonApp, refs, lv, donShop, ads, chi, phuPf, hat, aff, etp] = await Promise.all([
     (d.execute(sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`) as unknown as Promise<{ id: string; name: string; website: string | null; ngung: boolean }[]>).catch((e: Error) => { loi.push(`dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT site, project_id FROM du_an_site`) as unknown as Promise<{ site: string; project_id: string }[]>).catch((e: Error) => { loi.push(`sổ site dự án: ${e.message}`); return []; }),
     (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
@@ -100,10 +103,13 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
       WHERE NOT coalesce(c.demo, false) AND o.tao_luc > now() - interval '30 days' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
     // AdSense theo site (dòng site_domain rỗng = tổng tài khoản, bỏ) · chi quảng cáo hệ PHỦ · nền aff hệ PHỦ → dự án (Chaturbate → Chat When Bored)
     (d.execute(sql`SELECT regexp_replace(site_domain, '^www\.', '') AS site, sum(earnings_usd)::float AS usd FROM adsense_daily WHERE date > current_date - 30 AND coalesce(site_domain, '') <> '' GROUP BY 1`) as unknown as Promise<{ site: string; usd: number }[]>).catch(() => []),
-    (d.execute(sql`SELECT nguon_key AS nguon, sum(chi_usd)::float AS usd FROM phu_chi WHERE ngay > current_date - 30 GROUP BY 1`) as unknown as Promise<{ nguon: string; usd: number }[]>).catch(() => []),
+    (d.execute(sql`SELECT nguon_key AS nguon, project_id, sum(chi_usd)::float AS usd FROM phu_chi WHERE ngay > current_date - 30 GROUP BY 1, 2`) as unknown as Promise<{ nguon: string; project_id: string | null; usd: number }[]>).catch(() => []),
     (d.execute(sql`SELECT DISTINCT slug, project_id FROM phu_platforms WHERE project_id IS NOT NULL`) as unknown as Promise<{ slug: string; project_id: string }[]>).catch(() => []),
     // hạ tầng: máy chủ (hosting) + tên miền (hạn, máy gốc) trong sổ tài sản
     (d.execute(sql`SELECT kind, label, project_id, expires_at::text AS het, meta->>'ip' AS ip, meta->>'origin' AS origin, cost_monthly::float AS chi, currency FROM infra_resources WHERE kind IN ('hosting', 'domain') AND coalesce(status, 'active') <> 'cancelled'`) as unknown as Promise<{ kind: string; label: string; project_id: string | null; het: string | null; ip: string | null; origin: string | null; chi: number; currency: string }[]>).catch(() => []),
+    // hoa hồng mạng aff (CJ, Awin — cùng nguồn lịch Doanh thu trang chủ, nhớ 10 phút) · Ethopex (thu / chi Meta Ads)
+    networkRows(tu30).catch((e: Error) => { loi.push(`hoa hồng aff: ${e.message}`); return null; }),
+    docEthopex().catch((e: Error) => { loi.push(`Ethopex: ${e.message}`); return null; }),
   ]);
   // máy đang chạy mos2 (box3) tự kê site nó phục vụ từ nginx — thêm vhost là tự hiện, không phải khai
   let siteMayNay: string[] = [];
@@ -126,7 +132,10 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     tienAds: ads.map((x) => ({ site: x.site, usd: Number(x.usd) || 0 })),
     hat: hat.map((x) => ({ kind: x.kind, label: x.label, duAn: x.project_id, het: x.het ? x.het.slice(0, 10) : null, ip: x.ip ?? (x.origin?.match(/\d+\.\d+\.\d+\.\d+/)?.[0] ?? null), chi: Number(x.chi) || 0, tien: x.currency })),
     mayNay: siteMayNay.length ? { ten: hostname(), sites: siteMayNay } : null,
-    chi: chi.map((x) => ({ nguon: x.nguon, usd: Number(x.usd) || 0 })),
+    chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
+      ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
+    tienAff: [...(aff?.rows ?? []).filter((r) => r.source === 'affiliate' && r.date >= tu30).map((r) => ({ site: r.site ? r.site.replace(/^www\./, '') : null, mang: r.group ?? r.channel, usd: r.amount })),
+      ...(etp ? [{ site: null, mang: 'Ethopex', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.thu, 0) }] : [])],
   };
 }
 /** NGUỒN APP (Apple Analytics, scripts/app-store-so.mjs ghi Directus product_stats.raw_data.chiTiet): 30 ngày, mỗi app × nguồn → hiển thị / xem trang / tải lần đầu. */

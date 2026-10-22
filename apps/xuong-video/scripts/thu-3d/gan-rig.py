@@ -14,6 +14,9 @@ M, V, lo, hi = luoi.nap_chuan(VAO)
 m = giai_phau.LOAI[LOAI](V, lo, hi)
 meta = khung_rigify.METARIG[LOAI](m)
 rig = khung_rigify.sinh_rig(meta); rig.name = 'Rig'
+# mốc giải phẫu theo rig (thư viện động tác / tờ thử đọc lại: H, chóp đuôi, mõm…)
+_js = lambda x: [_js(y) for y in x] if isinstance(x, (list, tuple)) else ({k: _js(v) for k, v in x.items()} if isinstance(x, dict) else (list(x) if hasattr(x, 'to_tuple') else x))
+import json; rig['giai_phau'] = json.dumps(_js(m)); rig['loai'] = LOAI
 thieu = gan_da.gan(M, rig, m['H'])
 print('DA dinh khong trong so:', thieu, '/', len(M.data.vertices), '| xuong DEF:', sum(1 for b in rig.data.bones if b.use_deform))
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(RA, 'rig.blend'))

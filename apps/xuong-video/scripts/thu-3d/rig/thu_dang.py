@@ -25,13 +25,10 @@ def _dung_trang():
     return sc
 
 
-def soat(rig, M, m, loai, ra):
-    H = m['H']; sc = _dung_trang()
-    pb = rig.pose.bones
-    ten_dk = sorted(b.name for b in pb if not b.name.startswith(('DEF-', 'ORG-', 'MCH-')))
-    thieu = sorted({c for ds in DANG[loai].values() for c, _, _ in ds if c not in pb})
-    if thieu: print('THIEU dieu khien', thieu, '| co:', ten_dk)
-    bpy.ops.mesh.primitive_plane_add(size=H * 20, location=(0, 0, 0)); s = bpy.context.object; s.name = 'Nen'
+def san_khau(H, rong, ben=False):
+    """Sàn xám + 3 đèn vùng + máy (ben = nhìn NGANG từ +x — thấy dáng đi / chạy; mặc định nghiêng 3/4). Dùng chung cho tờ dáng và tờ động tác."""
+    sc = _dung_trang()
+    bpy.ops.mesh.primitive_plane_add(size=H * 40, location=(0, 0, 0)); s = bpy.context.object; s.name = 'Nen'
     mt = bpy.data.materials.new('nen'); mt.use_nodes = True; mt.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.5, 0.5, 0.5, 1); s.data.materials.append(mt)
     for loc, e in (((H * 2, -H * 2, H * 2.5), 800), ((-H * 2.5, -H, H * 1.5), 300), ((0, H * 3, H * 2), 400)):
         bpy.ops.object.light_add(type='AREA', location=loc); l = bpy.context.object; l.data.energy = e * H * H; l.data.size = H * 1.5
@@ -39,12 +36,26 @@ def soat(rig, M, m, loai, ra):
     if not sc.world: sc.world = bpy.data.worlds.new('w')
     sc.world.use_nodes = True; sc.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.3
     bpy.ops.object.camera_add(); cam = bpy.context.object; sc.camera = cam; cam.data.lens = 40
-    rong = (max(abs(x) for x in (*[c for p in m['duoi'] for c in p[:2]], m['mui'].y)) * 2 if 'duoi' in m else 0) + H
     d = rong * 1.25
-    # máy nghiêng gần ngang: thấy cổ, đuôi, bốn chân
-    cam.location = Vector((d * 0.92, -d * 0.4, H * 0.75)); cam.rotation_euler = (Vector((0, 0, H * 0.45)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
+    # máy nghiêng gần ngang: thấy cổ, đuôi, bốn chân (ben: ngang hẳn từ +x)
+    cam.location = Vector((d * 1.05, 0, H * 0.6)) if ben else Vector((d * 0.92, -d * 0.4, H * 0.75))
+    cam.rotation_euler = (Vector((0, 0, H * 0.45)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
     sc.render.engine = 'CYCLES'; sc.cycles.samples = 24; sc.cycles.use_denoising = True; sc.render.resolution_x = sc.render.resolution_y = 512
     sc.view_settings.view_transform = 'AgX'
+    return sc
+
+
+def rong_cua(m):
+    """Bề dài nhân vật để lùi máy — m là mốc (Vector) hoặc mốc đọc lại từ JSON (list)."""
+    return (max(abs(x) for x in (*[c for p in m['duoi'] for c in list(p)[:2]], list(m['mui'])[1])) * 2 if 'duoi' in m else 0) + m['H']
+
+
+def soat(rig, M, m, loai, ra):
+    H = m['H']; sc = san_khau(H, rong_cua(m))
+    pb = rig.pose.bones
+    ten_dk = sorted(b.name for b in pb if not b.name.startswith(('DEF-', 'ORG-', 'MCH-')))
+    thieu = sorted({c for ds in DANG[loai].values() for c, _, _ in ds if c not in pb})
+    if thieu: print('THIEU dieu khien', thieu, '| co:', ten_dk)
     goc = {b.name: (b.location.copy(), b.rotation_mode) for b in pb}
     for i, (ten, ds) in enumerate(DANG[loai].items()):
         for b in pb:

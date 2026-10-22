@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
 
 D = os.path.dirname(os.path.abspath(__file__))
+import importlib.util as _iu2
+_c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ)
 A = os.path.join(D, "..", "..", "assets", "ethopex")
 DAI_MIN, DAI_MAX, CAT_NGAN = 120, 180, 170
 
@@ -56,8 +58,7 @@ def lam(phim, goc, ra_dir):
     try:
         pst = os.path.join(tm, "poster-1080.png"); poster(os.path.join(tm, "poster.jpg"), pst)
         es = loc == "es"
-        args = (["MÍRALA GRATIS · TOCA MÁS INFORMACIÓN", ra, os.path.join(A, "cta-es-aria.mp3"), "¿QUÉ PASA DESPUÉS?"] if es
-                else ["WATCH FREE · TAP LEARN MORE", ra, os.path.join(A, "cta-en-george.mp3")])
+        c = CQ.CTA["es" if es else "en"]; args = [c["nut"], ra, c["giong"], c["hoi"]]   # CTA chung (cta_qc.py)
         src, moc = ghep(tm, 1)
         tu, den, cam = chon_khung(src, moc)
         if tu is None: return {"content_id": int(cid), "loi": f"không có khung 2–3' sạch (giây dính từ cấm: {cam[:12]})"}

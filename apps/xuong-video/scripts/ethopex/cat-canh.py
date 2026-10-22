@@ -2,7 +2,7 @@
 """BẢN B "CẢNH PHIM THẬT" (cách A, anh duyệt 19/10/2026) — 0đ, không sinh AI: cắt một đoạn kịch tính từ chính video QC / tập phim của
 app gốc (spy.on.tc · qc_meta.video_hd, NetShort/ReelShort/DramaBox), giữ nguyên bố cục của họ (tên phim trên đầu, phụ đề thoại giữa,
 tóm tắt cốt truyện dưới đáy), thêm NÚT ĐỎ CTA nhún nhẹ từ giây 3 tới hết, kết bằng THẺ CUỐI = poster SẠCH (logo thật của phim, không vẽ
-thêm tên phim) + dòng vàng "WHAT HAPPENS NEXT?" + mũi tên chỉ xuống nút.
+thêm tên phim) + dòng vàng "WHAT HAPPENS NEXT?" (KHÔNG mũi tên / icon chỉ trỏ, KHÔNG chữ "Tap/Click" — luật CTA cta_qc.py, Support Ads 22/10/2026).
 - GIỌNG CTA (anh 20/10/2026: "đoạn CTA cuối cần thêm điểm chạm về voice, kích thích bấm và rõ ràng hơn"): câu đọc ElevenLabs v3
   (assets/ethopex/cta-<lang>-<giọng>.mp3, sinh MỘT lần dùng lại) nhanh 1.15×, vào trước cú cắt 1s (tiếng phim lặng dần dưới giọng),
   thẻ cuối kéo dài theo câu đọc.
@@ -16,22 +16,22 @@ from PIL import Image, ImageDraw
 D = os.path.dirname(os.path.abspath(__file__))
 def nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
-gb = nap("gb", "ghep-b.py"); gx = gb.gx
+gb = nap("gb", "ghep-b.py"); gx = gb.gx; CQ = nap("cta_qc", "cta_qc.py")
 W, H = gx.W, gx.H
 TOC_GIONG, VAO_TRUOC, Y_NUT = 1.15, 1.0, 1600
 
 def the_cuoi_anh(poster, hoi, ra):
-    """poster sạch + dòng hỏi vàng + 2 mũi tên chỉ xuống chỗ nút (nút chồng riêng để nhún)"""
+    """poster sạch + dòng hỏi vàng (nút chồng riêng để nhún). 22/10/2026 bỏ 2 mũi tên vàng chỉ xuống nút — Meta coi là icon dụ nhấp."""
     im = Image.open(poster).convert("RGBA").resize((W, H)); d = ImageDraw.Draw(im, "RGBA")
     for i in range(120): d.line([(0, 1430 + i), (W, 1430 + i)], fill=(0, 0, 0, int(150 * i / 120)))   # dải tối mờ dần, không che logo poster
     d.rectangle([0, 1550, W, H], fill=(0, 0, 0, 150))
     f = gx.ImageFont.truetype(gx.FA, 72); y = 1470
     for dong in gx.ngat_can(hoi, 22): gx.ve_dong(d, y, dong, f, True, 8, mau=gx.VANG); y += 84
-    for x in (W // 2 - 300, W // 2 + 300):   # mũi tên vàng chỉ xuống nút
-        d.polygon([(x - 30, y - 2), (x + 30, y - 2), (x, y + 48)], fill=gx.VANG + (255,), outline=(0, 0, 0, 255))
     im.convert("RGB").save(ra)
 
 def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NEXT?"):
+    for chu in (cta, hoi):
+        if CQ.sai_luat(chu): raise SystemExit(f"CTA CHAN: chữ '{chu}' dính '{CQ.sai_luat(chu)}' — luật CTA (cta_qc.py): không Tap/Click/Toca, không mũi tên")
     tmp = os.path.splitext(out)[0]; cta, hoi = [x.replace("\n", " ") for x in gb.chu_studio(cta, hoi)]
     gb.lop_nut(cta, cfg, tmp + "-nut.png"); the_cuoi_anh(poster, hoi, tmp + "-the-cuoi.png")
     L = den - tu

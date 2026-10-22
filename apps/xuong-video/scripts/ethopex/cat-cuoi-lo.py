@@ -8,7 +8,9 @@ so_ban > 1 (anh 22/10/2026: phim âm "thêm góc khác, ko limit để còn tìm
 import csv, json, os, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 import importlib.util
-D = os.path.dirname(os.path.abspath(__file__)); A = os.path.join(D, "..", "..", "assets", "ethopex")
+D = os.path.dirname(os.path.abspath(__file__))
+import importlib.util as _iu2
+_c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
 
@@ -64,8 +66,7 @@ def lam(p, goc, ra_dir, so_ban=1):
 def cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir):
     try:
         ra = os.path.join(ra_dir, f"c-{cid}-{int(tu)}.mp4")
-        args = (["MÍRALA GRATIS · TOCA MÁS INFORMACIÓN", ra, os.path.join(A, "cta-es-aria.mp3"), "¿QUÉ PASA DESPUÉS?"] if loc == "es"
-                else ["WATCH FREE · TAP LEARN MORE", ra, os.path.join(A, "cta-en-george.mp3")])
+        c = CQ.CTA["es" if loc == "es" else "en"]; args = [c["nut"], ra, c["giong"], c["hoi"]]   # CTA chung (cta_qc.py)
         r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True)
         if r.returncode != 0: return {"content_id": int(cid), "ten": ten, "loi": (r.stdout + r.stderr)[-300:]}
         g = DL.giay(ra)

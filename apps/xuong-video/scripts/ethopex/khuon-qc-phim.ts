@@ -10,9 +10,10 @@ export function rutChu(s: string, maxTu = 10): string {
 export function khuonQcPhim(ten: string, lang: 'en' | 'es', nguon: string, loi: string[]) {
   const nen = NEN[nguon] ?? 'our app';
   const chu = loi.map((l, i) => (i === 0 ? `${rutChu(l)}\n${lang === 'es' ? 'MINISERIE' : 'SHORT DRAMA'}: "${ten}"` : rutChu(l)));
+  // luật CTA (Support Ads 22/10/2026, bản Python: cta_qc.py): không "Tap/Toca/Click", không mũi tên — chỉ "Watch Free - Learn More"
   const theCuoi = lang === 'es'
-    ? { chu: `"${ten}"\nMÍRALA GRATIS · TOCA MÁS INFORMACIÓN`, loi: `Mira "${ten}" gratis. Toca Más información.` }
-    : { chu: `"${ten}"\nWATCH FREE · TAP LEARN MORE`, loi: `Watch "${ten}" free. Tap Learn More.` };
+    ? { chu: `"${ten}"\nMÍRALA GRATIS · MÁS INFORMACIÓN`, loi: `Mira "${ten}" gratis. Más información.` }
+    : { chu: `"${ten}"\nWATCH FREE · LEARN MORE`, loi: `Watch "${ten}" free. Learn More.` };
   return {
     chu,
     qcTen: lang === 'es' ? `${ten} — miniserie, gratis en ${nen}` : `${ten} — short drama, free on ${nen}`,

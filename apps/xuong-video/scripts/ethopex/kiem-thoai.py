@@ -28,6 +28,11 @@ CAM += [r"\bdrugg(ed|ing)\b", r"\b(his|her|in) heat\b", r"\bruts\b", r"\bslept w
 # — Meta cấm ngôn từ tục tĩu trong QC; bạo lực thể xác cùng lớp với nhóm trên)
 CAM += [r"\bf+u+c+k", r"\bshit", r"\bbitch", r"\bbastards?\b", r"\bass ?hole", r"\bmotherf", r"\bbeat(s|ing)? (\w+ ){0,2}up\b", r"\bstab(bed|bing|s)?\b",
         r"\bmierda", r"\bpendej", r"\bcabr[oó]n", r"\bperra\b", r"\bjoder\b", r"\bco[ñn]o\b", r"\bhijo de p"]
+# CTA DỤ NHẤP (Support Ads 22/10/2026: "tránh không dùng những từ CTA dụ nhấp như Click, Tap… hoặc các icon, mũi tên") — chữ nút cũ
+# "WATCH FREE · TAP LEARN MORE" / "TOCA MÁS INFORMACIÓN" in trên video bị chặn ở đây; nguồn mẫu: cta_qc.MAU_CTA
+import importlib.util as _iu
+_c = _iu.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu.module_from_spec(_c); _c.loader.exec_module(CQ)
+CAM += [CQ.MAU_CTA.pattern]
 MAU = re.compile("|".join(CAM), re.I)
 
 def soat(cau):
@@ -56,6 +61,7 @@ def tu_kiem():
             "is that you're a *** manwhore!", "How could you afford them if not with your dirty prostitute money?", "from those old women he sells himself to.",
             "Let's strip this fraud down and donate his gear to the church!", "Everyone knows he got locked up for doing sex work for old hags.",
             "Malik— you're just a cheap gigolo.", "¡Eres una puta!", "Quítale la ropa, desnúdalo", "You're dead to me!", "I'll kill you", "Lo voy a matar", "Zane quits but is drugged, triggering his heat.", "she slept with the man who rules the underworld", "As ruts near, they obsess over him.", "Ponle un dedo encima y estás muerto."]
+    chan += ["WATCH FREE · TAP LEARN MORE", "MÍRALA GRATIS · TOCA MÁS INFORMACIÓN", "Tap to watch more episodes!", "Click the link below", "Watch now 👇"]
     chan += ["By the way, who in the flying fuck are you?", "Neil, get over here and teach this bitch a lesson!", "Beat up that fat pig!", "¡Eres una perra!", "Qué mierda"]
     qua = ["You've humiliated this whole town!", "Kneel before the Lord and beg forgiveness for your sins!", "The top pick in the mba Draft Combine",
            "His clothes are drenched in sin!", "stripped of his title", "No money, no help, no nothing.", "¿De verdad me acabas de golpear?",

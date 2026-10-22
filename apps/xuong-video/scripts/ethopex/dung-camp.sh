@@ -4,7 +4,7 @@
 # Cách gọi (br đã `br use 557`, iMac):
 #   dung-camp.sh "<tên camp>" <creative_id> <en|es>
 # Lịch chạy: giữ Schedule › Type = Tomorrow (mặc định form; ETP_LICH đổi) — cổng cấu hình kiểm.
-# Năm cổng trước Publish: kiem-so-camp.sh (phim test ≤ 2 camp, phim thắng ≤ 30) + cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-thoai-creative.sh (không thoại/chữ
+# Bảy cổng trước Publish (thêm phim 18+ + CTA 22/10/2026): kiem-so-camp.sh (phim test ≤ 2 camp, phim thắng ≤ 30) + cấu hình (payload đúng khuôn) + kiem-studio.sh (creative đã ghi vào studio, đúng sản phẩm) + kiem-thoai-creative.sh (không thoại/chữ
 # mua bán dâm, quan hệ, đe doạ lột đồ — Meta 'Adult Sexual Exploitation') + kiem-ngon-ngu.py (cùng một tiếng).
 # Publish (chỉ khi anh cho trong lượt đó) là một lệnh RIÊNG để khớp rule allow:
 #   ~/bin/br post click '{"selector":"[data-pb=pub]","sensitive":"(?!x)x"}'
@@ -86,6 +86,8 @@ CID=$(echo "$K" | python3 -c 'import json,sys;d=json.loads(sys.stdin.read());d=j
 # CỔNG SỐ CAMP (kiem-so-camp.sh, anh 21/10/2026 "test 1 phim chỉ lên 1–2 camp", áp dụng cho camp MỚI từ 21/10 — camp đang chạy giữ nguyên):
 # phim chưa thắng tối đa 2 camp, phim thắng (xv_khoa_ngoai ethopex_phim_thang, anh duyệt) tối đa 30
 "$(dirname "$0")/kiem-so-camp.sh" "$CID" || { echo "PUB CHAN — vượt số camp cho phim, KHÔNG Publish"; exit 2; }
+# CỔNG PHIM 18+ + CỔNG CTA (anh 22/10/2026: SIMP NO MORE 18+; Support Ads cấm 'Tap/Click' + mũi tên) — chạy trên box3 với bản kịch bản của repo đã deploy
+P18=$(ssh root@167.233.241.16 "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video/scripts/ethopex && python3 kiem-phim-18.py $CID && python3 kiem-cta.py $CR" 2>&1) || { echo "$P18" | tail -2; echo "PUB CHAN — phim 18+ / CTA sai luật, KHÔNG Publish"; exit 2; }
 KT=$("$(dirname "$0")/kiem-thoai-creative.sh" "$CR" 2>&1) || { echo "$KT" | tail -3; echo "PUB CHAN — thoại/chữ nhạy cảm trong video, KHÔNG Publish"; exit 2; }
 echo "$KT" | tail -1
 CL=$(ssh root@167.233.241.16 ". /root/.secrets/spy.env; psql \"\$DATABASE_URL\" -tAc 'select locale from ethopex_content where id=$CID'")

@@ -10,7 +10,7 @@ Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
 In một dòng JSON {ok, goc, moi, ten, loi}."""
-import datetime as dt, json, os, re, subprocess, sys, time, urllib.request
+import datetime as dt, importlib.util, json, os, re, subprocess, sys, time, urllib.request
 
 TRAN_PHIM = 30
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
@@ -30,6 +30,13 @@ def dem_dang_chay(content_id):
         except Exception: continue
         if any(a.get("content_id") == content_id for g in d.get("ad_groups") or [] for a in g.get("ads") or []): n += 1
     return n
+
+def _nap(ten, tep):
+    s = importlib.util.spec_from_file_location(ten, os.path.join(os.path.dirname(os.path.abspath(__file__)), tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
+
+def cong(content_id, creative_id):
+    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) — áp cho cả nhân bản lẫn camp góc mới (anh 22/10/2026)"""
+    return _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id)
 
 def payload(goc_id, lich, moi=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
@@ -72,6 +79,8 @@ def main(a):
     try:
         d, ten, cid, pl = payload(goc, lich, moi); kq["ten"] = ten
         if moi: kq["viec"] = "tao_camp"
+        chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"])
+        if chan: raise ValueError(chan)
         n = dem_dang_chay(cid)
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
         kq["phim_dang_chay"] = n

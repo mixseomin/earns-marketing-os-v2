@@ -87,7 +87,7 @@ def phu_de(chu, ra, cfg=None):
 def the_cuoi(chu, nen, ra, cfg=None):
     """nền = khung cuối clip thẻ cuối (poster) làm mờ nhẹ; tên phim to vàng + nút đỏ CTA một dòng"""
     khoi = [x.strip() for x in (chu or "").split("\n") if x.strip()]
-    ten = khoi[0].strip('"') if khoi else ""; cta = khoi[1] if len(khoi) > 1 else "WATCH FREE · TAP LEARN MORE"
+    ten = khoi[0].strip('"') if khoi else ""; cta = khoi[1] if len(khoi) > 1 else "WATCH FREE · LEARN MORE"   # luật CTA cta_qc.py: không "Tap"
     im = Image.open(nen).convert("RGB").resize((W, H)); d = ImageDraw.Draw(im, "RGBA")
     d.rectangle([0, 1180, W, H], fill=(0, 0, 0, 150))
     ft, mt = font_poster(cfg, 88); y = 1220

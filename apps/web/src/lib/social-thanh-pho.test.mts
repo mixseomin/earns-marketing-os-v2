@@ -50,10 +50,12 @@ const live = {
       { id: 'e1', ten: 'Large Print Word Search', nen: 'etsy', trangThai: 'published', url: null, store: 'FrontPorchZ', xem7: 12, tai: null, net: 3 },
       { id: 'k1', ten: 'Kế hoạch', nen: 'kdp', trangThai: 'planned', url: null, store: 'htuan82', xem7: null, tai: null, net: null },
       { id: 'u1', ten: 'Python 101', nen: 'udemy', trangThai: 'published', url: null, store: null, xem7: null, tai: null, net: 10 },
+      { id: 'a4', ten: 'Sidecue: Teleprompter', nen: 'app-store', trangThai: 'in_review', url: null, store: 'htuan82', xem7: null, tai: null, net: null },
+      { id: 'r1', ten: 'Lạ', nen: 'rapidapi', trangThai: 'published', url: null, store: null, xem7: null, tai: null, net: null },
     ],
     app: [{ ten: 'Giỗ Chạp', duAn: 'ios-app' }],
     nguonSp: [{ sp: 'a1', nguon: 'App Store search', hien: 400, xem: 14, tai: 7 }, { sp: 'a1', nguon: 'Web referrer', hien: 0, xem: 1, tai: 1 }, { sp: 'nope', nguon: 'App Store search', hien: 5, xem: 0, tai: 0 }],
-    tkCua: [{ nen: 'etsy', handle: 'FrontPorchZ', duAn: 'puzzle-books' }],
+    tkCua: [{ nen: 'etsy', handle: 'FrontPorchZ', duAn: 'puzzle-books' }, { nen: 'etsy', handle: 'LeatherByJoan', duAn: 'mos2', khoa: true }, { nen: 'udemy', handle: 'Evergreen Programming', duAn: null, khoa: true }],
   },
 };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,13 +104,17 @@ const khu = (k: string) => m.duAn.find((x) => x.khoa === k)!;
 assert.ok(khu('d:bra').ngung && m.duAn[m.duAn.length - 1]!.ngung, 'dự án ngừng → cờ ngung, xếp cuối');
 assert.ok(khu('d:steamsolo').laDuAn && !khu('rieng:ratesbyroom.com').laDuAn, 'khu dự án khác khu site đứng riêng');
 // sản phẩm
-assert.equal(d('p:a1').duAn, 'd:clane', 'mọi app về dự án gốc Clane (site clane.app)'); assert.equal(d('p:a1').thuongHieu, 'MilitaryCalc', 'dự án cũ của app thành thương hiệu');
-assert.equal(d('p:a2').duAn, 'd:clane'); assert.equal(d('p:a2').thuongHieu, 'App iOS', 'app_ung_dung vẫn ra thương hiệu');
-assert.equal(d('p:a3').duAn, 'd:clane', 'bản Windows cũng là app → Clane');
+assert.equal(d('p:a1').duAn, 'd:militarycalc', 'app MilitaryCalc ở cùng dự án MilitaryCalc (anh 22/10/2026)'); assert.equal(d('p:a4').duAn, 'd:clane', 'app chưa thuộc dự án nào → dự án gốc Clane');
+assert.equal(d('p:a2').duAn, 'd:ios-app', 'app theo app_ung_dung');
+assert.equal(d('p:a3').duAn, 'd:ios-app', 'bản Windows cùng đầu tên với app đã gán');
 assert.equal(t('ch:App Store search@p:a1').chiTiet!.hien, 400, 'nguồn trong cửa hàng đứng quanh app'); assert.equal(t('ch:App Store search@p:a1').ten, 'Tìm trên App Store');
 assert.ok(d('p:a1').coNguon && !m.tk.some((x) => x.dich === 'p:nope'), 'sản phẩm có nguồn; nguồn của sản phẩm không có mặt thì bỏ');
 assert.ok(d('p:a3').sapLen && d('p:a3').hostBan === 'apps.microsoft.com', 'đang duyệt = sắp lên, favicon cửa Microsoft Store');
 assert.equal(d('p:e1').duAn, 'd:puzzle-books', 'Etsy theo tài khoản cửa bán');
 assert.ok(!m.dich.some((x) => x.khoa === 'p:k1'), 'sản phẩm planned chưa có mặt');
-assert.equal(d('p:u1').duAn, 'chua-sp', 'không khớp gì → khu Sản phẩm chưa gán');
+assert.equal(d('p:u1').duAn, 'khoa:udemy', 'mọi tài khoản Udemy bị khoá → khu tài khoản bị khoá');
+assert.ok(khu('khoa:udemy').ngung && khu('khoa:udemy').nhan === 'TÀI KHOẢN BỊ KHOÁ', 'khu khoá ra rìa, biển ghi rõ');
+assert.notEqual(d('p:e1').duAn, 'khoa:etsy', 'còn một tài khoản Etsy sống thì không khoá');
+assert.equal(d('p:r1').duAn, 'chua-sp', 'không khớp gì → khu Sản phẩm chưa gán');
+assert.equal(khu('d:bra').nhan, 'DỰ ÁN · NGỪNG');
 console.log('✓ social-thanh-pho: sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');

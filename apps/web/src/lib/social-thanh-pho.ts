@@ -62,11 +62,10 @@ export interface PhoDich {
   phien30: number | null; laShop: boolean; don: number | null; coNguon: boolean;
   /** sản phẩm: cửa bán (app-store, ms-store, gumroad, etsy, kdp, udemy…), host cửa bán để lấy favicon, trạng thái, số */
   nenBan?: string; hostBan?: string; trangThai?: string | null; sapLen?: boolean; url?: string | null; xem7?: number | null; tai?: number | null; net?: number | null;
-  /** dự án thương hiệu của sản phẩm khi khu của nó là dự án gốc khác (app MilitaryCalc nằm khu Clane, thương hiệu MilitaryCalc) */
-  thuongHieu?: string | null;
 }
 /** KHU: dự án (laDuAn) hoặc một site đứng riêng; ngung = dự án ngừng hoạt động (đặt ở rìa) */
-export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null }
+/** nhan = dòng đầu biển trên toà khu ('DỰ ÁN', 'DỰ ÁN · NGỪNG', 'TÀI KHOẢN BỊ KHOÁ') */
+export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string }
 /** một dòng xe: toà nguồn → đích, số khách (kỳ theo nguồn) */
 export interface PhoLuong { tu: string; den: string; so: number }
 export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; fav: Record<string, string | null> }
@@ -82,7 +81,7 @@ export interface VaoHeSinhThai {
   /** app_ung_dung: tên app → dự án */
   app: { ten: string; duAn: string }[];
   /** tài khoản cửa bán trong vault (etsy FrontPorchZ, kdp htuan82…) → dự án */
-  tkCua: { nen: string; handle: string; duAn: string }[];
+  tkCua: { nen: string; handle: string; duAn: string | null; khoa?: boolean }[];
 }
 /** cửa bán → host để lấy favicon */
 export const HOST_BAN: Record<string, string> = { 'app-store': 'apps.apple.com', 'ms-store': 'apps.microsoft.com', 'play-store': 'play.google.com', gumroad: 'gumroad.com', etsy: 'etsy.com', kdp: 'amazon.com', udemy: 'udemy.com', 'mql5-market': 'mql5.com', rapidapi: 'rapidapi.com', 'wordpress.org': 'wordpress.org', stripe: 'stripe.com', course: 'teachable.com' };
@@ -99,7 +98,7 @@ export function duAnCuaSanPham(sp: VaoHeSinhThai['sanPham'][number], v: VaoHeSin
   if (host) { const d = v.duAnSite.find((x) => x.site === host)?.duAn ?? v.duAn.find((x) => x.site === host)?.id; if (d) return d; }
   const ten = chuan(sp.ten);
   const app = v.app.find((a) => chuan(a.ten).length >= 4 && ten.startsWith(chuan(a.ten))); if (app) return app.duAn;
-  const tk = v.tkCua.find((t) => t.nen === sp.nen && sp.store && chuan(t.handle) === chuan(sp.store)); if (tk) return tk.duAn;
+  const tk = v.tkCua.find((t) => t.duAn && t.nen === sp.nen && sp.store && chuan(t.handle) === chuan(sp.store)); if (tk) return tk.duAn;
   const theoTen = v.duAn.filter((d) => chuan(d.ten).length >= 5 && ten.includes(chuan(d.ten))).sort((a, b) => b.ten.length - a.ten.length)[0]; if (theoTen) return theoTen.id;
   const dau = chuan(sp.ten.split(/[:(\-–]/)[0]!); if (dau.length >= 4) for (const [ten2, d] of daGan) if (ten2.startsWith(dau)) return d;
   return null;
@@ -174,12 +173,15 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   // ── ĐÍCH: sản phẩm (đã lên hoặc sắp lên; 'planned' / 'draft' / 'archived' chưa có mặt trong thành phố)
   const daGan = new Map<string, string>();
   // dự án gốc app (anh 22/10/2026 "Clane.app là gốc dự án app"): dự án giữ site clane.app nhận mọi app; dự án cũ của app thành thương hiệu
+  const cuaKhoa = new Set([...new Set(hst.tkCua.map((t) => t.nen))].filter((n) => hst.tkCua.filter((t) => t.nen === n).every((t) => t.khoa)));
   const duAnApp = hst.duAnSite.find((x) => x.site === 'clane.app')?.duAn ?? hst.duAn.find((d) => d.site === 'clane.app')?.id ?? null;
   const sps = hst.sanPham.filter((p) => TRANG_THAI_LEN.has(p.trangThai ?? '') || TRANG_THAI_SAP.has(p.trangThai ?? ''));
   for (const p of [...sps].sort((a, b) => Number(TRANG_THAI_LEN.has(b.trangThai ?? '')) - Number(TRANG_THAI_LEN.has(a.trangThai ?? '')))) {
     const d0 = duAnCuaSanPham(p, hst, daGan); if (d0) daGan.set(chuan(p.ten), d0);
-    const d = duAnApp && NEN_APP.has(p.nen) ? duAnApp : d0, thuongHieu = d0 && d0 !== d ? hst.duAn.find((x) => x.id === d0)?.ten ?? null : null;
-    dichMap.set(`p:${p.id}`, { khoa: `p:${p.id}`, loai: 'sp', ten: p.ten, site: null, duAn: d ? `d:${d}` : 'chua-sp', thuongHieu, phien30: null, laShop: false, don: null, coNguon: false,
+    // app có dự án thương hiệu (MilitaryCalc) ở cùng dự án đó (anh 22/10/2026); app chưa thuộc dự án nào về dự án gốc Clane
+    // cửa bán mà mọi tài khoản trong vault đều bị khoá (Udemy) → khu 'tài khoản bị khoá' ở rìa
+    const d = cuaKhoa.has(p.nen) ? null : d0 ?? (duAnApp && NEN_APP.has(p.nen) ? duAnApp : null);
+    dichMap.set(`p:${p.id}`, { khoa: `p:${p.id}`, loai: 'sp', ten: p.ten, site: null, duAn: cuaKhoa.has(p.nen) ? `khoa:${p.nen}` : d ? `d:${d}` : 'chua-sp', phien30: null, laShop: false, don: null, coNguon: false,
       nenBan: p.nen, hostBan: HOST_BAN[p.nen] ?? hostCua(p.url) ?? undefined, trangThai: p.trangThai, sapLen: !TRANG_THAI_LEN.has(p.trangThai ?? ''), url: p.url, xem7: p.xem7, tai: p.tai, net: p.net });
   }
 
@@ -218,7 +220,9 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const duAn: PhoDuAn[] = khoaDa.map((khoa, i) => {
     const ds = dich.filter((d) => d.duAn === khoa), p = khoa.startsWith('d:') ? hst.duAn.find((x) => x.id === khoa.slice(2)) : null;
     const siteChinh = ds.filter((d) => d.loai === 'site').sort((a, b) => (b.phien30 ?? -1) - (a.phien30 ?? -1))[0]?.site ?? null;
-    return { khoa, ten: khoa === 'chua-sp' ? 'Sản phẩm chưa gán dự án' : p ? p.ten : khoa.startsWith('rieng:') ? khoa.slice(6) : khoa, laDuAn: !!p || khoa === 'chua-sp', ngung: !!p?.ngung, mau: MAU_CUM[i % MAU_CUM.length]!, site: p?.site ?? siteChinh };
+    const khoaTk = khoa.startsWith('khoa:'), tenCua = khoaTk ? khoa.slice(5).replace(/^./, (c) => c.toUpperCase()) : '';
+    return { khoa, ten: khoa === 'chua-sp' ? 'Sản phẩm chưa gán dự án' : khoaTk ? tenCua : p ? p.ten : khoa.startsWith('rieng:') ? khoa.slice(6) : khoa, laDuAn: !!p || khoa === 'chua-sp' || khoaTk,
+      ngung: !!p?.ngung || khoaTk, mau: MAU_CUM[i % MAU_CUM.length]!, site: khoaTk ? HOST_BAN[khoa.slice(5)] ?? null : p?.site ?? siteChinh, nhan: khoaTk ? 'TÀI KHOẢN BỊ KHOÁ' : p?.ngung ? 'DỰ ÁN · NGỪNG' : 'DỰ ÁN' };
   });
   const tongKhu = (k: string) => dich.filter((d) => d.duAn === k).reduce((a, d) => a + (d.phien30 ?? 0) + (d.xem7 ?? 0), 0);
   duAn.sort((a, b) => Number(a.ngung) - Number(b.ngung) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || tongKhu(b.khoa) - tongKhu(a.khoa));

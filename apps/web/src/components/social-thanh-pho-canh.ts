@@ -322,7 +322,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const mai = texKhu(k.khoa), b3 = add(new THREE.BoxGeometry(s1 * .42, 12, s1 * .42), [M({ color: mau }), M({ color: mau }), M({ map: mai, emissive: '#fff', emissiveMap: mai, emissiveIntensity: .45 }), M({ color: mau }), M({ color: mau }), M({ color: mau })]); b3.position.set(x, 30, z); b3.userData = { chu: m };
       const c = document.createElement('canvas'); c.width = 512; c.height = 160; const g = c.getContext('2d')!;
       g.fillStyle = k.ngung ? 'rgba(60,64,80,.92)' : 'rgba(17,24,48,.92)'; g.beginPath(); g.roundRect(4, 4, 504, 152, 22); g.fill(); g.strokeStyle = k.ngung ? '#8e9abd' : '#ffd27a'; g.lineWidth = 5; g.stroke();
-      g.fillStyle = k.ngung ? '#c8cede' : '#ffd27a'; g.font = '800 40px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(k.ngung ? 'DỰ ÁN · NGỪNG' : 'DỰ ÁN', 256, 58);
+      g.fillStyle = k.ngung ? '#c8cede' : '#ffd27a'; g.font = '800 40px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(k.nhan, 256, 58);
       g.fillStyle = '#ffffff'; let co = 54; g.font = `800 ${co}px system-ui, sans-serif`; while (g.measureText(k.ten).width > 470 && co > 26) { co -= 3; g.font = `800 ${co}px system-ui, sans-serif`; } g.fillText(k.ten, 256, 122);
       const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); bien.scale.set(84, 26, 1); bien.position.set(x, 62, z); bien.userData = { chu: m }; the.add(bien);
       const cot = add(new THREE.CylinderGeometry(.5, .5, 8, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x, 42, z); cot.userData = { chu: m };
@@ -410,7 +410,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         ...sps.slice(0, 8).map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : '🛍'} ${esc(d.ten.slice(0, 34))}`, d.sapLen ? 'sắp lên' : d.xem7 != null ? `${so(d.xem7)} xem` : '—'] as [string, string])] };
     }
     if (u.loai === 'dich') { const d = u.d as typeof mh.dich[number];
-      if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ...(d.thuongHieu ? [['Thương hiệu', esc(d.thuongHieu)] as [string, string]] : []), ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
+      if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(d.nenBan ?? '—')], ['Dự án', esc(khuCua(d.duAn)?.ten ?? '—')], ['Trạng thái', d.sapLen ? `🏗 sắp lên (${esc(d.trangThai ?? '')})` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);
       return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')],

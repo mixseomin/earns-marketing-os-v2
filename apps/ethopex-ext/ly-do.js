@@ -17,10 +17,44 @@
     'tr[data-etp="bat"]{box-shadow:inset 5px 0 0 #1e8e3e}' +
     'td[data-etp-ten]::before{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:10px;font:700 11px/16px system-ui,sans-serif;vertical-align:middle;letter-spacing:.3px}' +
     'td[data-etp-ten="tat"]::before{content:"⏸ TẮT";background:#d93025;color:#fff}' +
-    'td[data-etp-ten="bat"]::before{content:"▶ BẬT";background:#1e8e3e;color:#fff}';
+    'td[data-etp-ten="bat"]::before{content:"▶ BẬT";background:#1e8e3e;color:#fff}' +
+    // theme tối của chính Ethopex (html.dark) — hàng tắt đổi sang đỏ trầm cho dễ đọc
+    'html.dark tr[data-etp="tat"]{background:#3a1f1d!important}html.dark tr[data-etp="tat"] td{color:#ffb4ab!important}' +
+    // CỘT TIỀN KIỂU KẾ TOÁN (anh 22/10/2026): "$" sát trái ô, số căn phải, phân cách nghìn, 2 số lẻ, số âm trong ngoặc tô đỏ, chữ số đều bề ngang.
+    // Chữ gốc của trang giữ nguyên (trong suốt, vẫn chọn/copy được) — lớp hiển thị vẽ bằng ::before/::after, không sửa DOM React.
+    'td[data-etp-so]{position:relative;color:transparent!important;padding-left:calc(var(--etp-pl,12px) + 16px)!important}td[data-etp-so] *{color:transparent!important}' +
+    'td[data-etp-so]::before{content:"$";position:absolute;left:var(--etp-pl,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);opacity:.55;font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums}' +
+    'td[data-etp-so]::after{content:attr(data-etp-so);position:absolute;right:var(--etp-pr,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums;white-space:nowrap}' +
+    'td[data-etp-am]::after,td[data-etp-am]::before{color:#d93025}html.dark td[data-etp-am]::after,html.dark td[data-etp-am]::before{color:#ff8a80}' +
+    '#etp-theme{position:fixed;left:12px;bottom:12px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
   document.documentElement.appendChild(st);
   const laTat = (tr) => tr.classList.contains('opacity-30') || [...tr.children].some((x) => /^\s*Paused\s*$/i.test(x.textContent || ''));
+  const TIEN = /^\s*([+\-−]?)\s*\$\s*([\d,]+(?:\.\d+)?)\s*$/;
+  const keToan = () => {
+    for (const td of document.querySelectorAll('tbody td, tfoot td')) {
+      const goc = td.dataset.etpGoc, chu = td.textContent || '';
+      if (goc === chu && td.dataset.etpSo) continue;   // chưa đổi gì
+      const m = chu.match(TIEN);
+      if (!m) { if (td.dataset.etpSo) { delete td.dataset.etpSo; delete td.dataset.etpAm; delete td.dataset.etpGoc; } continue; }
+      if (!td.dataset.etpSo) { const cs = getComputedStyle(td), con = td.firstElementChild ? getComputedStyle(td.firstElementChild) : cs;
+        td.style.setProperty('--etp-mau', con.color); td.style.setProperty('--etp-pl', cs.paddingLeft); td.style.setProperty('--etp-pr', cs.paddingRight); td.style.setProperty('--etp-dam', con.fontWeight); }
+      const v = Number(m[2].replace(/,/g, '')), am = m[1] === '-' || m[1] === '−';
+      const so = v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      td.dataset.etpGoc = chu; td.dataset.etpSo = am ? `(${so})` : so + '\u2008';   // số dương chừa chỗ bằng dấu ')' để chữ số thẳng hàng với số âm
+      if (am) td.dataset.etpAm = '1'; else delete td.dataset.etpAm;
+    }
+  };
+  // THEME TỐI (anh 22/10/2026): bật giao diện tối CÓ SẴN của Ethopex (next-themes: localStorage 'theme' + class 'dark' trên <html>) — nút 🌙/☀️ góc trái dưới
+  const datTheme = (toi) => { try { localStorage.setItem('theme', toi ? 'dark' : 'light'); } catch {}
+    document.documentElement.classList.toggle('dark', toi); document.documentElement.classList.toggle('light', !toi); document.documentElement.style.colorScheme = toi ? 'dark' : 'light';
+    for (const td of document.querySelectorAll('td[data-etp-so]')) { delete td.dataset.etpSo; delete td.dataset.etpGoc; td.style.removeProperty('--etp-mau'); }   // đọc lại màu chữ theo theme mới
+    const b = document.getElementById('etp-theme'); if (b) { b.textContent = toi ? '☀️' : '🌙'; b.title = toi ? 'Chuyển sang nền sáng' : 'Chuyển sang nền tối'; } };
+  const nutTheme = () => { if (document.getElementById('etp-theme') || !document.body) return;
+    const b = document.createElement('button'); b.id = 'etp-theme'; document.body.appendChild(b);
+    b.addEventListener('click', () => { datTheme(!document.documentElement.classList.contains('dark')); keToan(); });
+    datTheme(document.documentElement.classList.contains('dark')); };
   const gan = () => {
+    keToan(); nutTheme();
     for (const a of document.querySelectorAll('tbody td a')) {
       if (!/^\s*\d{5,6}:/.test(a.textContent || '')) continue;
       const td = a.closest('td'), tr = td && td.parentElement; if (!tr) continue;

@@ -11,7 +11,8 @@ import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
-import { MAY_TIM } from './social-thanh-pho';
+import { HOST_BAN, MAY_TIM, NEN_QC, type VaoHeSinhThai } from './social-thanh-pho';
+import { getProductsView } from './products/data';
 import { tinhSucKhoe, type StSucKhoe, type VaoSuc } from './social-suc-khoe';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
@@ -22,9 +23,9 @@ export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: stri
   /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
   fav: Record<string, string | null>;
   /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
-  nguonSite: { site: string; phien30: number; tim: Record<string, number> }[];
-  /** site ↔ dự án theo projects.website (host) — thành phố gom các site đích thành cụm theo dự án */
-  duAnSite: { site: string; duAn: string }[] }
+  nguonSite: { site: string; phien30: number; tim: Record<string, number>; qc?: Record<string, number>; gt?: Record<string, number> }[];
+  /** hệ sinh thái cho thành phố: dự án (site chính, ngừng?), sổ site ↔ dự án, sản phẩm mọi cửa bán, app, tài khoản cửa bán */
+  heSinhThai: VaoHeSinhThai }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
  *  da = đã đăng (sổ xv_may_video.da_dang, có link) · du_kien = máy sẽ đăng (xv_lich_du_kien — dang-may tính bằng luật nhịp an toàn, mos2 không tính lại). */
 export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien' }
@@ -68,22 +69,36 @@ const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promi
 export async function getSocialLive(): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
-  const [goc, kenh, lo, lich, luoi, suc, nguonSite, duAnSite] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
+  const [goc, kenh, lo, lich, luoi, suc, nguonSite, heSinhThai] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
     doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
     doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; })),
-    doGio('site dự án', gio, () => docDuAnSite(loi))]);
-  const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host)])];
+    doGio('hệ sinh thái', gio, () => docHeSinhThai(loi))]);
+  const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host), ...Object.values(HOST_BAN), ...Object.values(NEN_QC).map((q) => q.host), ...nguonSite.flatMap((x) => Object.keys(x.gt ?? {}))])];
   const fav = await doGio('favicon', gio, () => docFav(site));
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, duAnSite };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, heSinhThai };
 }
-/** SITE ↔ DỰ ÁN (thành phố Social): host của projects.website — dự án nào nhận site nào. Lỗi DB → rỗng (site về cụm 'Chưa gán'). */
-async function docDuAnSite(loi: string[]): Promise<{ site: string; duAn: string }[]> {
-  const d = getDb(); if (!d) return [];
-  try {
-    const r = (await d.execute(sql`SELECT name, website FROM projects WHERE coalesce(website, '') <> ''`)) as unknown as { name: string; website: string }[];
-    return r.flatMap((x) => { try { return [{ site: new URL(x.website.startsWith('http') ? x.website : `https://${x.website}`).hostname.replace(/^www\./, ''), duAn: x.name }]; } catch { return []; } });
-  } catch (e) { loi.push(`site dự án: ${(e as Error).message}`); return []; }
+/** HỆ SINH THÁI (thành phố): dự án (host của projects.website, ngung_luc), sổ du_an_site, sản phẩm mọi cửa bán (kho products Directus — cùng nguồn tab
+ *  Tài sản, số 30 ngày), app_ung_dung, tài khoản cửa bán trong vault. Phần nào lỗi thì phần đó rỗng, ghi lỗi, không chặn trang. */
+async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
+  const rong: VaoHeSinhThai = { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };
+  const d = getDb(); if (!d) return rong;
+  const host = (u: string | null) => { if (!u) return null; try { return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, ''); } catch { return null; } };
+  const [da, ds, app, tk, sp] = await Promise.all([
+    (d.execute(sql`SELECT id, name, website, ngung_luc IS NOT NULL AS ngung FROM projects WHERE archived_at IS NULL AND NOT coalesce(is_demo, false)`) as unknown as Promise<{ id: string; name: string; website: string | null; ngung: boolean }[]>).catch((e: Error) => { loi.push(`dự án: ${e.message}`); return []; }),
+    (d.execute(sql`SELECT site, project_id FROM du_an_site`) as unknown as Promise<{ site: string; project_id: string }[]>).catch((e: Error) => { loi.push(`sổ site dự án: ${e.message}`); return []; }),
+    (d.execute(sql`SELECT ten, project_id FROM app_ung_dung WHERE project_id IS NOT NULL`) as unknown as Promise<{ ten: string; project_id: string }[]>).catch(() => []),
+    (d.execute(sql`SELECT platform_key, handle, project_id FROM platform_accounts WHERE project_id IS NOT NULL AND coalesce(status, '') NOT IN ('closed', 'banned')
+      AND platform_key IN ('etsy', 'kdp', 'gumroad', 'udemy', 'app-store', 'ms-store', 'mql5-market', 'rapidapi')`) as unknown as Promise<{ platform_key: string; handle: string; project_id: string }[]>).catch(() => []),
+    getProductsView(30).catch((e: Error) => { loi.push(`sản phẩm: ${e.message}`); return null; }),
+  ]);
+  return {
+    duAn: da.map((x) => ({ id: x.id, ten: x.name, site: host(x.website), ngung: x.ngung })),
+    duAnSite: ds.map((x) => ({ site: x.site, duAn: x.project_id })),
+    sanPham: (sp?.rows ?? []).map((p) => ({ id: p.id, ten: p.title, nen: p.platform, trangThai: p.status, url: p.url, store: p.store, xem7: p.views7d, tai: p.downloads, net: p.net })),
+    app: app.map((x) => ({ ten: x.ten, duAn: x.project_id })),
+    tkCua: tk.map((x) => ({ nen: x.platform_key, handle: x.handle, duAn: x.project_id })),
+  };
 }
 /** FAVICON SITE ĐÍCH (thành phố Social): Google s2 cỡ 128 → data URI, nhớ 1 ngày mỗi site. Site không có favicon riêng thì s2 trả quả địa cầu
  *  16×16 → null (thành phố vẽ chữ cái đầu). Lỗi mạng / quá 3 giây → null, không chặn trang. */

@@ -6,7 +6,7 @@
 import 'server-only';
 import postgres from 'postgres';
 import { BUOC_AFF, type PhienAff, type SuKienAff, type CuaSoAff } from './social-traffic-demo';
-import { mayTimCua } from './social-thanh-pho';
+import { mayTimCua, nguonNgoaiCua } from './social-thanh-pho';
 
 declare global { var __adfond_pg: ReturnType<typeof postgres> | undefined }
 function db() {
@@ -93,14 +93,15 @@ export async function docBamBaiDang(): Promise<Map<string, number>> {
 }
 
 /** Mọi site có mã theo dõi gửi phiên 30 ngày (không tính phiên nội bộ) + phiên từ từng máy tìm kiếm — site chưa có nguồn nào vẫn hiện trong thành phố. */
-export async function docNguonSite(): Promise<{ site: string; phien30: number; tim: Record<string, number> }[]> {
+export async function docNguonSite(): Promise<{ site: string; phien30: number; tim: Record<string, number>; qc: Record<string, number>; gt: Record<string, number> }[]> {
   const sql = db(); if (!sql) return [];
   const rows = await sql<{ site: string; nguon: string | null; n: number }[]>`
     SELECT site, nguon, count(*)::int AS n FROM phien_khach WHERE bat_dau > now() - interval '30 days' AND NOT noi_bo AND site IS NOT NULL GROUP BY 1, 2`;
-  const theo = new Map<string, { site: string; phien30: number; tim: Record<string, number> }>();
+  const theo = new Map<string, { site: string; phien30: number; tim: Record<string, number>; qc: Record<string, number>; gt: Record<string, number> }>();
   for (const r of rows) {
-    const x = theo.get(r.site) ?? { site: r.site, phien30: 0, tim: {} }; x.phien30 += r.n;
+    const x = theo.get(r.site) ?? { site: r.site, phien30: 0, tim: {}, qc: {}, gt: {} }; x.phien30 += r.n;
     const m = mayTimCua(r.nguon); if (m) x.tim[m] = (x.tim[m] ?? 0) + r.n;
+    const n = m ? null : nguonNgoaiCua(r.nguon); if (n && n.khoa !== r.site) x[n.loai][n.khoa] = (x[n.loai][n.khoa] ?? 0) + r.n;
     theo.set(r.site, x);
   }
   return [...theo.values()].sort((a, b) => b.phien30 - a.phien30);

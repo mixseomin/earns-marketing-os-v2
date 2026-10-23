@@ -10,7 +10,7 @@ In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
 import json, os, subprocess, sys, time, urllib.request, importlib.util
 _s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = importlib.util.module_from_spec(_s); _s.loader.exec_module(NT)
 
-MUC = {2, 3, 5, 7, 10, 15, 20}
+MUC = {2, 3, 5, 7, 10, 15, 20, 30}   # $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026), anh duyệt nút
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 

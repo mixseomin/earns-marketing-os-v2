@@ -236,9 +236,25 @@ _tao = {c["id"]: dt.datetime.fromisoformat(str(c["created_at"]).replace("Z", "+0
 du_tuoi = lambda cid: cid in _tao and (dt.datetime.now(dt.timezone.utc) - _tao[cid]).days >= TUOI_TAT
 tat_l = [(cid, f"#{a['ten'][:70]} · {(dt.datetime.now(dt.timezone.utc) - _tao[cid]).days} ngày · tiêu ${a['chi']:.2f} từ trước tới nay · ROI {roi(a):+.0f}% → TẮT") for cid, a in tron.items() if a["chi"] > 10 and roi(a) is not None and roi(a) < -50 and du_tuoi(cid)]
 giam = [(cid, s + ("" if du_tuoi(cid) else " · camp chưa đủ 7 ngày → chỉ giảm, không tắt")) for cid, s in giam]
+# LUẬT T30 (Support 23/10/2026: "$20 mà 2, 3 ngày spending > 80% và ROI vẫn cao > 80% thì tăng lên"; anh: "thêm rule này để có điều kiện tăng camp lên $30"):
+# camp đang bật ở trần $20, trong 3 ngày ĐÃ KHÉP gần nhất (D−1..D−3) có ≥ 2 ngày tiêu > 80% ngân sách, ROI cộng các ngày đó > 80% → đề xuất $20 → $30, anh duyệt nút.
+T30_SP, T30_ROI, T30_NGAY = 80, 80, 2
+tang30 = []
+try:
+    ngay3 = [bc(d(k), d(k)) for k in (1, 2, 3)]
+    bat30 = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"} if ds_camp else set(thang)
+    for cid, a in thang.items():
+        if cid not in bat30 or round(a["budget"]) != 20: continue
+        du = [n[cid] for n in ngay3 if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
+        if len(du) < T30_NGAY: continue
+        g = {"chi": sum(x["chi"] for x in du), "thu": sum(x["thu"] for x in du)}; r = roi(g)
+        if r is not None and r > T30_ROI:
+            tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · ROI tháng {roi(a):+.0f}%"))
+except Exception as e:
+    tu_choi.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
 if JSON:
     m = lambda ds: [{"id": i, "chu": s} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "moc30": m(moc30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)
@@ -248,6 +264,7 @@ print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: "
 in_("CẦN TẮT (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — CHỜ ANH TẮT:", tat_l)
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
+in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (CHỜ ANH DUYỆT):", tang30, "(chưa có)")
 in_("CHẠM MỐC $30 MÀ VẪN LÃI — hỏi Support scale bài viết cũ + bid ROAS:", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI tháng ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("CẦN XEM GIẢM / TẮT (ROI tụt — phim down trend hoặc creative bão hoà, CPC/CPA tăng) — CHỜ ANH QUYẾT:", giam)

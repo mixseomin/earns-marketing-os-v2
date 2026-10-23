@@ -152,7 +152,7 @@ export async function modelFal(id: string): Promise<ModelFal | null> {
   return m;
 }
 
-type SchemaTruong = { type?: string; enum?: unknown[]; default?: unknown; anyOf?: Array<{ type?: string; enum?: unknown[] }>; items?: unknown };
+type SchemaTruong = { type?: string; enum?: unknown[]; default?: unknown; minimum?: number; maximum?: number; anyOf?: Array<{ type?: string; enum?: unknown[] }>; items?: unknown };
 const khoSchema = new Map<string, Record<string, SchemaTruong>>();
 const khoBatBuoc = new Map<string, string[]>();
 async function schemaVao(id: string): Promise<Record<string, SchemaTruong>> {
@@ -184,7 +184,7 @@ export function catCau(chu: string, toiDa?: number): string {
   return (i > toiDa * 0.5 ? cat.slice(0, i + 1) : cat.slice(0, cat.lastIndexOf(' '))).trim();
 }
 
-export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; /** clip diễn Blender cả shot (model 3D→video: H3 Max) */ videoNguon?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
+export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; /** clip diễn Blender cả shot (model 3D→video: H3 Max) */ videoNguon?: string | null; anhThamChieu?: string[]; giay?: number; /** số giây shot THỰC PHÁT (phat_s) — model sinh theo SỐ KHUNG (Wan 2.2: num_frames 17–161) chỉ sinh đủ chừng đó + 0,5 s dư, trả tiền theo giây */ giayPhat?: number | null; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
   // Độ dài prompt theo GIỚI HẠN CỦA CHÍNH MODEL (schema maxLength): Kling 2.1 Pro nhận ≤ 2500 ký tự → 422 (#23, 16/10/2026). Cắt ở ranh giới câu
@@ -261,6 +261,11 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
       const gan = so.sort((a, b) => Math.abs(a.n - v.giay!) - Math.abs(b.n - v.giay!))[0];
       if (gan) o.duration = gan.x;
     } else o.duration = f.type === 'string' ? String(v.giay) : v.giay;
+  } else if (co('num_frames') && (v.giayPhat || v.giay)) {
+    // MODEL THEO SỐ KHUNG (Wan 2.2 i2v, fal tính tiền theo giây ở 16 khung/giây): clip ReelShort 1–2 s không cần sinh 5 s mặc định (anh 23/10/2026 "dùng model cho ra 2s")
+    const f = p.num_frames!; const giayCan = v.giayPhat ? v.giayPhat + 0.5 : v.giay!;
+    o.num_frames = Math.max(f.minimum ?? 17, Math.min(f.maximum ?? 161, Math.round(giayCan * 16) + 1));
+    if (co('frames_per_second')) o.frames_per_second = 16;
   }
   if (co('resolution')) {
     const en = enumCua(p.resolution).map(String);

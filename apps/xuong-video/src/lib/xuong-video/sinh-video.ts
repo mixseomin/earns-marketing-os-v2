@@ -311,7 +311,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     const kx = bc.canh.khung_xam; const khungGiua = kx && bc.canh.keyframe_url === kx.mau ? (kx.giua?.length ? kx.giua : kx.mau_giua ? [kx.mau_giua] : []) : [];
     // clip diễn Blender: model 3D→video chỉ khi keyframe cùng nguồn render; model REFERENCE-to-video thì clip chỉ là khuôn chuyển động (keyframe AI vẫn dùng được)
     const videoNguon = kx && (bc.canh.keyframe_url === kx.mau || /reference-to-video|vace/.test(id)) ? kx.dien ?? null : null;
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
+    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, videoNguon, giay: bc.canh.thoi_luong_s || giay, giayPhat: bc.canh.phat_s, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }

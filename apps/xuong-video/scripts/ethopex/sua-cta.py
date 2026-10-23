@@ -14,6 +14,7 @@ có lãi (ROI tháng ≥ 50%, chi ≥ $3) mang creative CTA cũ chưa có bản 
 Phim bị đánh dấu cấm ở soát 18+ (ethopex_soat_18 ok=false) thì bỏ qua, báo lại.
 Chạy trên iMac (cổng chữ dùng Vision), gọi ở cuối mỗi đợt lên camp (dot-phim-moi.py): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb] [--khong-truoc]"""
 import fcntl, glob, importlib.util, json, os, subprocess, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import loi_ky_thuat as LK
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 N, Q = os.path.join(C, "nguon"), os.path.join(C, "nguon-qc")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
@@ -97,6 +98,9 @@ def goc_moi(ma, bao, nb):
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
         g = [x for x in g if not any(float(x["tu"]) < d and float(x["den"]) > t for t, d in da)][:3]
+        try: loi = " ".join(str(x.get("loi")) for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("loi"))
+        except Exception: loi = "không có lo.json"
+        if not g and LK.ky_thuat(loi) is True: bao.append(f"góc mới phim {cid}: lỗi kỹ thuật ({loi[:80]}) — giữ trong hàng, lượt sau cắt lại"); hang[cid]["giu"] = True; continue
         if g: dung += [{**x, "lo": "goc"} for x in g]; viec[cid] = m; bao.append(f"góc mới phim {cid} ({ten[:30]}): {len(g)} góc " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in g))
         else: bao.append(f"góc mới phim {cid} ({ten[:30]}): hết khung cuối tập sạch chưa dùng — phim đã khai thác hết phần tập miễn phí")
     if dung:
@@ -107,7 +111,8 @@ def goc_moi(ma, bao, nb):
         if nb and m.get("goc"):
             r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(m["goc"])} --that --lich today --luat "nhân bản camp thắng bằng GÓC MỚI (đoạn cũ đủ 3 camp)" --ai "máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp, nhân bản bằng góc mới)"'""", timeout=600)
             bao.append(f"góc mới phim {cid} → nhân bản #{m['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")
-    sql("update xv_khoa_ngoai set gia_tri = gia_tri - array[" + ",".join(f"'{c}'" for c in hang) + "] where ten='ethopex_can_goc_moi'")
+    xong = [c for c in hang if not hang[c].get("giu")]
+    if xong: sql("update xv_khoa_ngoai set gia_tri = gia_tri - array[" + ",".join(f"'{c}'" for c in xong) + "] where ten='ethopex_can_goc_moi'")
 
 def main():
     a = sys.argv[1:]; chi = set(a[a.index("--chi") + 1:]) if "--chi" in a else None; nb = "--khong-nb" not in a

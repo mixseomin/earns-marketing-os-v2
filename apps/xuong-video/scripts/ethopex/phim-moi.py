@@ -94,7 +94,25 @@ def poster(n=60):
         f = os.path.join(ra, f"to-{k // 30 + 1}.jpg"); to.save(f, quality=85); print("TỜ POSTER (iMac):", f)
     print("→ Claude xem: phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
 
+def don_mac():
+    """PHIM XONG LÀ XOÁ TRÊN iMAC (23/10/2026: ổ iMac đầy còn 183 MB → ffmpeg chết giữa lô; anh đã duyệt luật này cho box3): xoá tập tải về / tệp ghép
+    của mọi phim KHÔNG còn chờ (poster_ok · da_cat · cat_loi giữ lại) + đoạn cắt của các lô đã lên. Giữ poster, tap.json, bản chữ. Tải lại được từ site."""
+    import glob, shutil
+    tt = khoa(KTT); cho = {k for k, v in tt.items() if v["tt"] in ("poster_ok", "da_cat", "cat_loi")}; N = os.path.join(C, "nguon"); xoa = 0
+    for d in os.listdir(N):
+        p = os.path.join(N, d)
+        if os.path.isdir(p) and d not in cho:
+            for f in os.listdir(p):
+                if f.endswith(".mp4"): xoa += os.path.getsize(os.path.join(p, f)); os.remove(os.path.join(p, f))
+    dang = {v.get("ghi") for v in tt.values() if v["tt"] == "da_cat"}   # lô còn đoạn chờ lên
+    for f in glob.glob(os.path.join(C, "ra", "*", "c-*.mp4")):
+        if os.path.basename(os.path.dirname(f)) not in dang: xoa += os.path.getsize(f); os.remove(f)
+    trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9
+    print(f"dọn iMac: {xoa / 1e9:.1f} GB · ổ còn trống {trong:.0f} GB", flush=True)
+    return trong
+
 def cat(dat=CHI_TIEU):
+    if don_mac() < 15: return print("ổ iMac còn dưới 15 GB sau khi dọn — không cắt (cắt một phim cần ~1–2 GB tạm); báo anh")
     lich, _ = chon_ngay(); print(f"cắt cho ngày {NGAY_LEN} (lịch {lich})", flush=True)
     ds, tt, dem, ty_le, chua, san, hom_nay = so_lieu()
     can = max(0, dat - hom_nay); so = min(len(san), math.ceil(can / max(ty_le, 0.2)))
@@ -134,7 +152,7 @@ def len_(ten):
             if s is not None: cap[i] = ("soat_loai", s.get("ghi", "soát 18+"))
     ghi(cap); print("ghi trạng thái:", {k: v[0] for k, v in cap.items()})
     subprocess.run(["taskpolicy", "-b", "python3", os.path.join(D, "sua-cta.py")])
-    tinh()
+    don_mac(); tinh()
 
 if __name__ == "__main__":
     a = sys.argv[1:] or ["tinh"]; g = a[a.index("--ghi") + 1] if "--ghi" in a else ""

@@ -234,15 +234,17 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
  *  tới ảnh kết) thay vì chặn cả shot. Shot không có góc kết (máy đi khác / khung 3D cũ) → không áp dụng. */
 export async function soatGhepNen(db: Db, c: { id: number; keyframe_ket?: string | null; keyframe_giua?: string | null; khung_xam?: { dong?: { ket?: unknown; giua?: unknown; ket_goc?: unknown; giua_goc?: unknown } } | null }): Promise<{ chan: string | null; boGiua: boolean }> {
   const d = c.khung_xam?.dong;
-  const xet = async (u: string | null | undefined, can: boolean): Promise<string | null> => {
+  // MÁY ĐỨNG YÊN (4 góc = khung mở): nền chép thẳng, không qua hình học 3D → ảnh đầu lệch bố cục 3D không làm sai nền, không đòi khớp (#132 #20 chặn oan 54 %)
+  const yenHan = (g: unknown) => Array.isArray(g) && g.length === 4 && (g as number[][]).every((p, k) => Math.abs(p[0]! - [0, 1, 1, 0][k]!) < 0.01 && Math.abs(p[1]! - [0, 0, 1, 1][k]!) < 0.01);
+  const xet = async (u: string | null | undefined, can: boolean, yen = false): Promise<string | null> => {
     if (!can || !u) return null;
     const r = ((await db.execute(sql`SELECT coalesce((request->>'doi_set_pt')::numeric, 100) AS doi, coalesce((request->>'khop_3d_pt')::numeric, 0) AS khop FROM xv_job WHERE canh_id = ${c.id} AND request->>'dich' = 'ghep_nen' AND trang_thai = 'xong' AND output_url = ${u} ORDER BY id DESC LIMIT 1`)) as unknown as Row[])[0];
     if (!r) return 'chưa chép nền từ keyframe mở (nền phải trùng ảnh đầu; sinh lại ảnh kết)';
-    if (Number(r.khop) < SAN_KHOP_3D) return `keyframe MỞ lệch bố cục khung 3D (chỉ ${Number(r.khop)}% người thật nằm chỗ người 3D, cần ≥ ${SAN_KHOP_3D}%) — sinh lại keyframe mở cho khớp 3D rồi sinh ảnh kết`;
+    if (!yen && Number(r.khop) < SAN_KHOP_3D) return `keyframe MỞ lệch bố cục khung 3D (chỉ ${Number(r.khop)}% người thật nằm chỗ người 3D, cần ≥ ${SAN_KHOP_3D}%) — sinh lại keyframe mở cho khớp 3D rồi sinh ảnh kết`;
     if (Number(r.doi) > TRAN_DOI_SET) return `AI đổi ${Number(r.doi)}% sảnh ngoài chỗ người (> ${TRAN_DOI_SET}%) — không giữ ảnh đầu, sinh lại ảnh kết`;
     return null;
   };
-  const ket = await xet(c.keyframe_ket, !!(d?.ket && d.ket_goc));
-  const giua = await xet(c.keyframe_giua, !!(d?.giua && d.giua_goc));
+  const ket = await xet(c.keyframe_ket, !!(d?.ket && d.ket_goc), yenHan(d?.ket_goc));
+  const giua = await xet(c.keyframe_giua, !!(d?.giua && d.giua_goc), yenHan(d?.giua_goc));
   return { chan: ket && `ảnh KẾT ${ket}`, boGiua: !!giua };
 }

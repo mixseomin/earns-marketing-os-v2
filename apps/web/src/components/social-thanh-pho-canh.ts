@@ -171,7 +171,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const datLaiWidget = () => { for (const [el, k] of [[ben, 'tp-w-ben'], [ngan, 'tp-w-ngan']] as const) { try { localStorage.removeItem(k); } catch { /* chế độ riêng tư */ } for (const p_ of ['left', 'top', 'right', 'bottom', 'width', 'height', 'maxHeight'] as const) el.style[p_] = ''; } };
   const W = () => host.clientWidth, H = () => host.clientHeight;
 
-  const r = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(Math.min(1.5, devicePixelRatio)); r.setSize(W(), H()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+  // máy cảm ứng (điện thoại / máy tính bảng) nóng máy khi vẽ liên tục (góp ý 23/10/2026): giảm mật độ điểm ảnh + bản đồ bóng nhỏ hơn
+  const camUng = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const r = new THREE.WebGLRenderer({ antialias: true, powerPreference: camUng ? 'low-power' : 'default' }); r.setPixelRatio(Math.min(camUng ? 1.25 : 1.5, devicePixelRatio)); r.setSize(W(), H()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
   r.shadowMap.autoUpdate = false;   // bóng toà đứng yên: chỉ tính lại khi dựng / đổi ngày đêm (needsUpdate), không tính lại mỗi khung
   host.prepend(r.domElement);
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#060914'); // màn dọc (điện thoại): nhìn từ đầu phố để đại lộ chạy dọc màn, lùi xa cho vừa bề ngang hẹp; sương mù lùi theo
@@ -211,7 +213,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const luuCam = () => { try { localStorage.setItem(KHOA_CAM, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* chế độ riêng tư */ } };
   const camDaLuu: { p: number[]; t: number[] } | null = (() => { try { const v = JSON.parse(localStorage.getItem(KHOA_CAM) ?? 'null'); const so = v ? [...v.p, ...v.t] : []; return so.length === 6 && so.every(Number.isFinite) ? v : null; } catch { return null; } })();
   ctl.addEventListener('end', luuCam);
-  const trang = new THREE.DirectionalLight('#cfd8ff', 0.55); trang.position.set(-260, 420, 180); trang.castShadow = true; trang.shadow.mapSize.set(2048, 2048);
+  const trang = new THREE.DirectionalLight('#cfd8ff', 0.55); trang.position.set(-260, 420, 180); trang.castShadow = true; trang.shadow.mapSize.set(camUng ? 1024 : 2048, camUng ? 1024 : 2048);
   Object.assign(trang.shadow.camera, { left: -700, right: 700, top: 450, bottom: -450 }); scene.add(trang);
   const dat = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1200), new THREE.MeshStandardMaterial({ color: '#0b1022', roughness: 1 })); dat.rotation.x = -Math.PI / 2; dat.receiveShadow = true; scene.add(dat);
 
@@ -1366,8 +1368,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // cửa sổ không được chọn → ~5/giây; tab ẩn → trình duyệt tự dừng. Chuyển động tính theo thời gian thật (nhan = số khung 60 Hz đã trôi)
   // nên xe / nhịp sáng vẫn chạy đúng tốc độ khi vẽ thưa.
   const huong = new THREE.Vector3(), huong2 = new THREE.Vector3(), oA = new THREE.Object3D(); let dem = 0, raf = 0, tCuoi = performance.now(), nhanhDen = 0, mocNgay = 0, mocMini = 0;
-  const danhThuc = () => { nhanhDen = performance.now() + 1500; };
-  ctl.addEventListener('change', danhThuc); r.domElement.addEventListener('pointermove', danhThuc);
+  let tacCuoi = performance.now(), soKhung = 0;
+  const danhThuc = () => { const t = performance.now(); nhanhDen = t + 1500; tacCuoi = t; };
+  ctl.addEventListener('change', danhThuc); r.domElement.addEventListener('pointermove', danhThuc); r.domElement.addEventListener('pointerdown', danhThuc);
   // lăn: chụm touchpad (ctrlKey) hoặc chuột có nấc → phóng; vuốt 2 ngón touchpad (delta mịn, có ngang) → trượt theo mặt đất
   const vPhai = new THREE.Vector3(), vTruoc = new THREE.Vector3(); let henLuu = 0;
   // phóng quanh một điểm mặt đất: camera + tâm nhìn cùng co giãn quanh G (log tỉ lệ, kẹp trong min / max khoảng cách); trả về phần đã dùng
@@ -1451,7 +1454,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   try { if (!matchMedia('(pointer: coarse)').matches && !localStorage.getItem('tp-goi-y-dk')) { const gy = document.createElement('div'); gy.className = 'goi-y'; gy.textContent = dk.keo === 'xoay' ? 'Shift + lăn: phóng (lên = vào) · Lăn: trượt · Kéo: xoay · Chuột phải / Shift + kéo: trượt · Nhấp đúp: phóng ×2 · ↺ đặt lại màn' : 'Kéo: trượt · Chuột phải: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng'; host.appendChild(gy); setTimeout(() => gy.remove(), 9000); localStorage.setItem('tp-goi-y-dk', '1'); } } catch { /* chế độ riêng tư */ }
   function vong(now = performance.now()) {
     raf = requestAnimationFrame(vong);
-    const cach = bay || now < nhanhDen ? 0 : document.hasFocus() ? 48 : 190;
+    // NHỊP VẼ THEO MỨC TƯƠNG TÁC: đang thao tác / bay = mọi khung · vừa thao tác (< 12 s) = ~20 khung/s · ngồi nhìn lâu = ~4 khung/s
+    // (xe, người, cột sáng vẫn chạy nhưng thưa) · cửa sổ không tập trung = ~2 khung/s. Chạm / rê chuột là tỉnh lại ngay (danhThuc).
+    const cach = bay || phongCon || now < nhanhDen ? 0 : !document.hasFocus() ? 500 : now - tacCuoi < 12_000 ? (camUng ? 66 : 48) : 250;
     if (now - tCuoi < cach) return;
     const nhan = Math.min(6, (now - tCuoi) / 16.67); tCuoi = now; dem += nhan;
     if (phongCon && !bay) { const buoc = phongCon * (1 - Math.pow(.72, nhan)), daDung = phongQuanh(phongG, Math.abs(phongCon) < .004 ? phongCon : buoc);
@@ -1479,7 +1484,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // ~0,4 đơn vị → mặt sân / nền khu / chữ nền cách nhau 0,1–0,3 tranh nhau từng khung. Đẩy near theo khoảng cách (4%) cho độ phân giải sâu ~0,01 ở mọi mức phóng.
     const kcCam = cam.position.distanceTo(ctl.target), gan = Math.max(1, kcCam * .04), xa = Math.max(6000, kcCam * 3);
     if (Math.abs(cam.near - gan) > gan * .1 || cam.far !== xa) { cam.near = gan; cam.far = xa; cam.updateProjectionMatrix(); }
-    r.render(scene, cam);
+    r.render(scene, cam); soKhung++;
   }
   // móc cho bộ kiểm scripts/thanh-pho/kiem-dieu-khien: toạ độ màn của vật đầu tiên mang userData.loai · đếm biển đang hiện (chỉ đọc, không đổi cảnh)
   (host as any).__toaDoVat = (loai: string, hub?: string) => { let o: any = null; the.traverse((x: any) => { if (!o && x.visible && x.userData?.loai === loai && (!hub || x.userData.hub === hub)) o = x; }); if (!o) return null;
@@ -1488,6 +1493,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__hubNut = () => { let h: string | null = null; the.traverse((x: any) => { if (!h && x.userData?.loai === 'nut-bien') h = x.userData.hub; }); return h; };
   (host as any).__bangXh = (hub: string) => { const sp = bangXhCua.get(hub); if (!sp) return null; const v = new THREE.Vector3(); sp.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect();
     return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
+  (host as any).__soKhung = () => soKhung;
   (host as any).__cam = () => ({ p: cam.position.toArray(), t: ctl.target.toArray() });
   const ro = new ResizeObserver(() => { if (!W() || !H()) return; cam.aspect = W() / H(); cam.updateProjectionMatrix(); r.setSize(W(), H()); });
   ro.observe(host);
@@ -1496,7 +1502,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const don = () => {
     cancelAnimationFrame(raf); ro.disconnect(); for (const x of widgetRo) x.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
-    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('dblclick', onDup); r.domElement.removeEventListener('pointerdown', onKeoXuong); window.removeEventListener('pointermove', onKeoDi); window.removeEventListener('pointerup', onKeoLen); window.removeEventListener('pointercancel', onKeoLen); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
+    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); r.domElement.removeEventListener('pointerdown', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('dblclick', onDup); r.domElement.removeEventListener('pointerdown', onKeoXuong); window.removeEventListener('pointermove', onKeoDi); window.removeEventListener('pointerup', onKeoLen); window.removeEventListener('pointercancel', onKeoLen); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };

@@ -123,7 +123,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       <button data-d="trai" aria-label="Xoay trái" title="Xoay trái">⟲</button><button data-d="phai" aria-label="Xoay phải" title="Xoay phải">⟳</button>
       <button data-d="vao" aria-label="Phóng to" title="Phóng to">＋</button><button data-d="ra" aria-label="Thu nhỏ" title="Thu nhỏ">－</button>
       <button data-d="goc" aria-label="Về toàn cảnh" title="Về toàn cảnh">⌂</button><button data-d="full" aria-label="Toàn màn hình" title="Toàn màn hình">⛶</button><button data-d="ngay" class="rong" aria-label="Ngày / đêm">🌙</button><button data-d="datLai" class="rong" aria-label="Đặt lại màn" title="Đặt lại màn: về toàn cảnh, bảng / ngăn về chỗ cũ, đóng thẻ">↺</button></div>
-    <div class="tua"><button data-tua="choi" aria-label="Tua 30 ngày" title="Tua lại 30 ngày">▶</button><input type="range" min="0" max="29" value="29" aria-label="Ngày" /><span class="tua-ngay">bây giờ</span><button data-tua="nay" aria-label="Về bây giờ" title="Về bây giờ">⟳</button></div>
+    <!-- thanh tua 30 ngày: ẩn theo lời anh 23/10/2026 ("giờ chưa cần dùng") — bỏ hidden là hiện lại, mã tua vẫn nguyên -->
+    <div class="tua" hidden><button data-tua="choi" aria-label="Tua 30 ngày" title="Tua lại 30 ngày">▶</button><input type="range" min="0" max="29" value="29" aria-label="Ngày" /><span class="tua-ngay">bây giờ</span><button data-tua="nay" aria-label="Về bây giờ" title="Về bây giờ">⟳</button></div>
     <canvas class="mini" width="200" height="110" aria-label="Bản đồ nhỏ — bấm để bay tới"></canvas>
     <div class="meo" hidden></div>`;
   const q = <T extends HTMLElement>(s: string) => host.querySelector(s) as T;

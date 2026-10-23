@@ -171,7 +171,7 @@
   const phanTram = (v) => (v == null ? '' : '<b style="color:' + (v >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (v > 0 ? '+' : '') + v + '%</b>');
   const hien = (html, ev) => {
     o.innerHTML = html; o.style.display = 'block';
-    const x = Math.min(ev.clientX + 16, innerWidth - o.offsetWidth - 8), y = Math.max(8, Math.min(ev.clientY + 12, innerHeight - o.offsetHeight - 8));
+    const x = innerWidth < 600 ? 8 : Math.min(ev.clientX + 16, innerWidth - o.offsetWidth - 8), y = Math.max(8, Math.min(ev.clientY + 12, innerHeight - o.offsetHeight - 8));   // màn hẹp (iPhone): bám mép trái
     o.style.left = x + 'px'; o.style.top = y + 'px';
     o.querySelectorAll('img[data-video]').forEach((im) => {
       im.style.cursor = 'zoom-in';
@@ -287,5 +287,12 @@
     anSau();
   }, true);
   document.addEventListener('scroll', (ev) => { if (!o.contains(ev.target)) { o.style.display = 'none'; dang = null; } }, true);
+  // iPHONE (Safari + app Userscripts, anh 23/10/2026): không có rê chuột — chạm vào số / badge / tên phim thì Safari bắn mouseover → khung mở như rê;
+  // chạm ra ngoài khung (không trúng chỗ mở khung khác) thì đóng. Khung trên màn hẹp bám mép trái 8px, rộng tối đa màn hình.
+  document.addEventListener('touchstart', (ev) => {
+    if (o.contains(ev.target) || lon.contains(ev.target) || ghim) return;
+    if (ev.target.closest && ev.target.closest('.etp-so i, .etp-loai b, tbody td')) return;
+    clearTimeout(doi); o.style.display = 'none'; dang = null; dongLon();
+  }, { passive: true, capture: true });
 };
   if (globalThis.chrome?.runtime?.id && !window.__etpGoiThang) window.__etpKhoiDong = __etpChay; else __etpChay(); }

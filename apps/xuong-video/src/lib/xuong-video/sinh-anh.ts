@@ -1,5 +1,6 @@
 // Sinh ảnh gốc anchor + keyframe shot — lõi dùng chung cho server action (actions.ts, đã kiểm quyền) và script trên box.
 import 'server-only';
+import { doiTayDo, cauDoiTayKet, thieuCachThao } from './thao-do';
 import { sql } from 'drizzle-orm';
 import { dayViecAnh, giaAnhSv } from './hoan-tat';
 import { promptAnhMau, promptBienThe } from './claude';
@@ -186,6 +187,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number, o: { ep?: bool
   if (!bc) return { ok: false, loi: 'không thấy cảnh' };
   if (!bc.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe mở' };
   if (!(o.ep ? !!bc.canh.khung_xam?.mau_ket : canKeyframeKet(bc.canh.khung_xam))) return { ok: false, loi: 'shot không đổi khung trong clip (không ai di chuyển / quay, máy không đi cú liền mạch) — không cần keyframe kết, hoặc chưa dựng khung 3D' };
+  { const t = thieuCachThao(doiTayDo((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [], (x) => bc.nhanVat.some((v) => v.ten === x && v.loai === 'nhan_vat'))); if (t) return { ok: false, loi: `#${bc.canh.thu_tu}: ${t}` }; }
   if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
   const jobs: number[] = [];
   for (const giua of bc.canh.khung_xam?.mau_giua ? [false, true] : [false]) {
@@ -393,14 +395,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // thẻ trên ngực Hạ dù Vivian vừa giật mất (clip ra hai thẻ).
     const tach = (x?: string) => (x ?? '').split(/;\s*/).map((y) => y.trim()).filter(Boolean);
     const thao = giua ? [] : (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.flatMap((vt) => { if (vt.do_deo_den == null) return []; const con = new Set(tach(vt.do_deo_den).map((y) => y.toLowerCase())); const mat = tach(vt.do_deo).filter((y) => !con.has(y.toLowerCase())); return mat.length ? [`${vt.ten} no longer wears ${mat.join(' or ')} — it is gone from ${vt.ten}`] : []; }) ?? [];
-    // ĐỒ ĐỔI TAY trong shot (cam + den, đọc từ máy 3D): người đứng gần chỗ kết của món nhất là người cầm lúc kết — #132 #15 Vivian giật thẻ của Hạ, ảnh kết
-    // vẫn vẽ thẻ trên ngực Hạ vì chữ chỉ nói "giữ đồ đeo như ảnh đầu".
+    // ĐỒ ĐỔI TAY trong shot (thao-do.ts — một sổ với câu video + cổng): người gần chỗ kết của món là người cầm lúc kết; đồ ĐEO kèm trạng thái theo cách tháo
+    // (#132 #15: thẻ giật đứt khoá → dây hở hai đầu trong tay Vivian, cổ Hạ trống).
     const vtK = (bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [];
-    const traoTay = giua ? [] : vtK.flatMap((m) => {
-      if (!m.cam || !m.den?.length || m.an || bc.nhanVat.find((v) => v.ten === m.ten)?.loai === 'nhan_vat') return [];
-      const gan = vtK.filter((p) => !p.an && bc.nhanVat.find((v) => v.ten === p.ten)?.loai === 'nhan_vat').map((p) => { const c = p.den ?? p.tam; return { ten: p.ten, d: Math.hypot(c[0]! - m.den![0]!, c[1]! - m.den![1]!) }; }).sort((a, b) => a.d - b.d)[0];
-      return gan && gan.ten !== m.cam ? [`${goiVat(m.ten) ?? m.ten} is now in ${gan.ten}'s hand — taken from ${m.cam}, who no longer has it`] : [];
-    });
+    const traoTay = giua ? [] : cauDoiTayKet(doiTayDo(vtK, (t) => bc.nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat'))).map((c) => c.replace(/\{([^}]+)\}/g, (_m, t: string) => goiVat(t) ?? t));
     const dauCau = dauShot ? `Image ${dauShot} = the FIRST frame of this same shot, a moment earlier — use it for the look: the room, set dressing, light, colour grade, faces, hair and wardrobe. ${yen ? `The camera does NOT move in this shot: framing, angle and zoom are exactly Image ${dauShot}'s, and every wall, door, sign, floor, light, colour and texture is identical to Image ${dauShot}. Image 1 only tells where each person and held item ends up and their pose — its walls and materials are rough stand-ins, ignore them.` : `The CAMERA comes ONLY from Image 1: copy Image 1's zoom, framing, camera angle, subject sizes and positions exactly, even where they differ completely from Image ${dauShot} (the camera ${lia ? 'turns or moves with the action' : 'may have zoomed or moved during the shot'}).${lia ? ` It is the same physical place as Image ${dauShot}: every wall, door, sign, floor, light, colour and texture that both frames see is identical to Image ${dauShot}; Image 1's walls and materials are rough stand-ins.` : ''}`} Held items and stains as Image 1 shows. ${[...traoTay, ...thao].length ? `${[...traoTay, ...thao].join('. ')}. ` : ''}Every other worn accessory in Image ${dauShot} stays on exactly as it is.` : '';   // #2 ảnh kết mất dây thẻ
     // ẢNH CHUẨN BỐI CẢNH (doc-db.ts › anhSet): bàn / đồ đạc / chất liệu phòng giống keyframe đã duyệt của shot khác cùng bộ set. Khung kết đã có ảnh đầu
     // của chính shot làm chuẩn bề ngoài → không gửi thêm.

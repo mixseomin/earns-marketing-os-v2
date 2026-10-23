@@ -424,6 +424,8 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** ĐỒ TREO lủng lẳng dưới tay người cầm (cm dây, vd thẻ đeo đung đưa #11) + màu dây — dung-set.py › gan_tay */ treo?: number; treo_mau?: string;
     /** món đang ĐEO (đi kèm cam = người đeo): khớp rig nơi nó nằm — 'cotay_t' / 'cotay_p' (cổ tay trái / phải nhân vật), 'co', 'nguc'. Không khai = cầm
      *  trong lòng bàn tay (dung-set.py › tay_cam) — tập 122 #22: chuỗi hạt cổ tay trái bị nhét vào lòng bàn tay phải */ deo?: string;
+    /** CÁCH THÁO món đang đeo khi nó rời người đeo trong shot (mã thao-do.ts › CACH_THAO: giat_dut_khoa / nhac_qua_dau / mo_khoa / tuot). Không khai = mặc định
+     *  theo nơi đeo + động tác người lấy; không suy ra được thì cổng chặn — #132 #15 thẻ bị kéo xuyên qua đầu Hạ */ thao?: string;
     /** ĐỘNG TÁC DIỄN trong shot (thư viện dung-set.py › DONG_TAC): 'ten@a-b' (a, b = phần thời lượng 0..1), vd 'phong3@0.05-0.3', 'toc_ru@0.5'.
      *  Chớp mắt + chúi tới khi đi là tự động */ dien?: string[];
     /** món RỜI KHỎI bộ set sau shot này (bị lấy đi / mang ra ngoài) — không còn tự đặt lại ở các shot sau */ het?: boolean;

@@ -27,6 +27,7 @@ import { chamMayCanh } from './cham-may';
 import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { cauKhongKhi } from './khan-gia';
+import { doiTayDo, cauDoiTayVideo, thieuCachThao } from './thao-do';
 import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
 
@@ -44,6 +45,9 @@ const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false): string =>
 const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.map((x) => (x ?? '').trim().toLowerCase().replace(/[.\s]+$/, '')).filter((x) => x.split(/\s+/).length >= 3); return t.split(/(?<=[.!?])\s+/).filter((x) => !c.some((k) => x.toLowerCase().includes(k))).join(' '); };
 /** KHỐI prompt video (prompt-khoi.ts) — promptVideoCanh ghép, chamVideo chấm theo KHUON.video. */
 export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): Khoi[] {
+  // CƠ CHẾ ĐỔI TAY / THÁO ĐỒ ĐEO (thao-do.ts) nối vào lối diễn TRƯỚC khi thay thẻ — #132 #15 chỉ ghi "snatches the badge off her neck", Kling kéo thẳng dây xuyên đầu
+  { const ct = cauDoiTayVideo(doiTayDo((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [], (t) => bc.nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat')));
+    if (ct) bc = { ...bc, canh: { ...bc.canh, dan_dung: { ...(bc.canh.dan_dung ?? {}), dien: `${bc.canh.dan_dung?.dien ?? ''} ${ct}`.trim() } } }; }
   bc = canhDaThayThe(bc);   // thẻ {Tên} → mô tả en của đúng vật
   // Shot đã có file giọng riêng → clip KHÔNG được tự đọc thoại (Veo đọc giọng lơ lớ, chồng với TTS — #1219); miệng vẫn cử động để khớp miệng sau.
   const coGiong = dongThoai(bc.canh, bc.nhanVat).some((d) => d.url);
@@ -235,6 +239,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   { const cv = chamVideo(bc).loi.filter((l) => l.phat >= NGUONG_CHAN); if (cv.length) return loi(`Shot #${bc.canh.thu_tu} — bộ chấm prompt video: ${cv.map((l) => l.chu).join(' · ')}`); }
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
+  { const t = thieuCachThao(doiTayDo((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [], (x) => bc.nhanVat.some((v) => v.ten === x && v.loai === 'nhan_vat'))); if (t) return loi(`Shot #${bc.canh.thu_tu}: ${t}`); }
   const khungCuoi0 = await khungCuoiCanh(db, canhId);
   // NỀN ẢNH KẾT = NỀN ẢNH ĐẦU (ghep-vung.ts › thieuGhepNen): shot máy yên mà ảnh kết / giữa chưa chép nền từ keyframe mở thì không tiêu tiền video —
   // model đi tới ảnh kết, nền ảnh kết lệch là clip đổi phòng (#132 #16 #19, 23/10/2026)

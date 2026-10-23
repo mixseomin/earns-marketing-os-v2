@@ -17,7 +17,7 @@ def mot(dong, so_ban):
         if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return {"id": int(cid), "ten": ten, "loi": "không tải được tập miễn phí"}
         src, moc = CCL.ghep_mo(tm); tu0 = max(0.0, moc[-1] - CCL.QUET * so_ban)
         kd = os.path.join(K, cid); shutil.rmtree(kd, ignore_errors=True); os.makedirs(kd)
-        subprocess.run(["ffmpeg", "-v", "error", "-ss", str(tu0), "-i", src, "-vf", "fps=1,scale=540:-2", "-q:v", "4", os.path.join(kd, "k%05d.jpg")], check=True, timeout=1800)
+        subprocess.run(["ffmpeg", "-v", "error", "-threads", "2", "-ss", str(tu0), "-i", src, "-vf", "fps=1,scale=540:-2", "-q:v", "4", os.path.join(kd, "k%05d.jpg")], check=True, timeout=1800)
         n = len([f for f in os.listdir(kd) if f.endswith(".jpg")])
         json.dump({"id": int(cid), "src": src, "tu0": tu0, "n": n}, open(os.path.join(kd, "meta.json"), "w"))
         return {"id": int(cid), "ten": ten, "src": src, "tu0": tu0, "n": n}
@@ -25,6 +25,6 @@ def mot(dong, so_ban):
         return {"id": int(cid), "ten": ten, "loi": str(e)[-200:]}
 
 if __name__ == "__main__":
-    ds = [l for l in open(sys.argv[1]) if l.strip()]; so_ban = int(sys.argv[2]) if len(sys.argv) > 2 else 2; ss = int(sys.argv[3]) if len(sys.argv) > 3 else 3
+    ds = [l for l in open(sys.argv[1]) if l.strip()]; so_ban = int(sys.argv[2]) if len(sys.argv) > 2 else 2; ss = int(sys.argv[3]) if len(sys.argv) > 3 else 2
     with ThreadPoolExecutor(ss) as ex:
         for k in ex.map(lambda l: mot(l, so_ban), ds): print(json.dumps(k, ensure_ascii=False), flush=True)

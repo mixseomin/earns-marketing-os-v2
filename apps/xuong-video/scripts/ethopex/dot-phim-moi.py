@@ -61,7 +61,7 @@ def cat_box_ds(phim, ten, n=2):
         for p in phim: f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")
     sh(f"ssh {B} 'mkdir -p {rb}'"); subprocess.run(["scp", "-q", tsv, f"{B}:{rb}/lo.tsv"], check=True)
     T = "cd /opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex && nice -n 10"
-    r = sh(f"ssh {B} '{T} python3 nguon-box.py {rb}/lo.tsv {n} 3'", timeout=6 * 3600)
+    r = sh(f"ssh {B} '{T} python3 nguon-box.py {rb}/lo.tsv {n} 2'   # 2 phim một lúc, ffmpeg 2 luồng: 23/10 chạy 2 lượt × 3 phim đẩy load box3 lên 22/4 lõi", timeout=6 * 3600)
     nguon = [json.loads(l) for l in r.stdout.splitlines() if l.startswith("{")]
     for x in nguon: print("nguồn", x["id"], x.get("ten", "")[:40], x.get("loi") or f"{x['n']} khung", flush=True)
     co = [str(x["id"]) for x in nguon if not x.get("loi")]

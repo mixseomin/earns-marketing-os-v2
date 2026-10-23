@@ -1,0 +1,220 @@
+{
+ "ghi_chu": "Lô kể chuyện 23/10/2026 — anh duyệt ~$6–8 (\"vậy làm các camp kể chuyện mới đi\"): kể chuyện chỉ thắng ở Number One (+300% tháng, 11 phim khác lỗ) → chỉ làm cho 5 phim ĐANG LÃI chưa có bản kể chuyện. Khuôn = bản thắng Number One: kể ngôi thứ nhất, 6 cảnh chữ ngắn, hook ngay câu đầu, thẻ cuối poster. Chữ tránh từ cấm cổng thoại (dead/kill…), CTA thẻ cuối theo luật AFS (không Tap/mũi tên). Step Back (EN) và ¡Atrás! (ES) cùng một truyện Vince Astor. — BẢN C: cú lật diễn ra NGAY trong hình (không hứa), mỗi cảnh một ý ngắn, thẻ cuối hướng dẫn rõ viết thường (luật AFS: không Tap/mũi tên/FREE in hoa).",
+ "khuon": {
+  "ti_le": "9:16",
+  "do_phan_giai": "1080p",
+  "so_canh": 6,
+  "giong_mac_dinh": "Aria",
+  "the_cuoi": {
+   "en": "Watch the full series for free · Learn More",
+   "es": "Mira la serie completa gratis · Más información"
+  },
+  "giay_canh": 4
+ },
+ "phim": [
+  {
+   "content_id": 82923,
+   "ten": "Step Back! That Homeless Man Is Not to be Messed with",
+   "lang": "en",
+   "nguon": "reelshort",
+   "giong": "Brian",
+   "poster": "1/at5u2kppp1b8z6r8hm.webp",
+   "url": "https://www.reelshort.com/episodes/episode-1-step-back-that-homeless-man-is-not-to-be-messed-with-6aa24b86d6c23093cf06e859-827f68bis4",
+   "nhan_vat": "VINCE = rugged man late 30s, long messy brown hair, full beard, worn dark coat (narrator, poster hero holding a gold signet ring); HELEN = elegant blonde CEO in a white dress; PHILIP = smug young man in a navy suit; HELEN'S MOTHER = woman 50s, dark bob, navy dress, pearls; BANK PRESIDENT = silver-haired man in a grey three-piece suit",
+   "qc_goc": {
+    "ma": "4437894079688914",
+    "page": "61584430431668",
+    "ngay": 1
+   },
+   "boi_canh": {
+    "ten": "Homeless camp and Stark mansion",
+    "mo_ta": "Rainy city alley camp with barrel fires at night; sunlit Mediterranean-style mansion garden with fountain"
+   },
+   "canh": [
+    {
+     "loi": "I lived as a homeless man for three years. It was a secret test.",
+     "anh": "Night alley camp in the rain, barrel fire glowing. VINCE in his worn coat sits on a crate, beard wet, calm sharp eyes.",
+     "dong": "Rain falls, fire flickers on VINCE's face, slow push-in to his eyes."
+    },
+    {
+     "loi": "I passed. Now I'm America's Godfather, worth $20.9 billion.",
+     "anh": "Candlelit oak study. Old men in black suits bow as one places a gold signet ring in VINCE's rough palm.",
+     "dong": "The ring is set in his palm, VINCE closes his fist, camera rises behind the bowing men."
+    },
+    {
+     "loi": "Two years ago I saved a CEO. Today she proposed to me on the street.",
+     "anh": "Busy city sidewalk at dusk. HELEN in a white dress holds VINCE's dirty hands, passersby stare.",
+     "dong": "HELEN steps closer and takes his hands, crowd murmurs, handheld camera circles them."
+    },
+    {
+     "loi": "Her family laughed at my rags and pushed her toward a rich fiancé.",
+     "anh": "Mansion garden by a fountain. HELEN'S MOTHER sneers at VINCE while PHILIP in a navy suit smirks, arm around HELEN.",
+     "dong": "The mother points at VINCE's coat and laughs, PHILIP pulls HELEN away, slow pan."
+    },
+    {
+     "loi": "Then a bank president walked in and knelt at my feet.",
+     "anh": "Grand marble hall of the Stark mansion. The silver-haired BANK PRESIDENT kneels before VINCE in his worn coat; HELEN'S MOTHER and PHILIP stare in shock.",
+     "dong": "The banker drops to one knee, the family's jaws drop, camera rises over VINCE's shoulder."
+    },
+    {
+     "loi": "Now they know who they laughed at.",
+     "anh": "Same hall. VINCE puts on the gold signet ring; HELEN smiles at him while her family lowers their heads.",
+     "dong": "VINCE slides the ring on, HELEN steps beside him, slow push-in on the ring."
+    }
+   ]
+  },
+  {
+   "content_id": 92980,
+   "ten": "¡Atrás! No te metas con ese vagabundo",
+   "lang": "es",
+   "nguon": "reelshort",
+   "giong": "Aria",
+   "poster": "1/353cp3rxgfdm3y3vqe.webp",
+   "url": "https://www.reelshort.com/es/episodes/episode-1-atr%C3%A1s-no-te-metas-con-ese-vagabundo-6aaf9ceb06a03f4a5c09a274-bnhfhooqsr",
+   "nhan_vat": "VINCE = rugged man late 30s, long messy brown hair, full beard, worn dark coat (narrator, poster hero holding a gold signet ring); HELEN = elegant blonde CEO in a white dress; PHILIP = smug young man in a navy suit; HELEN'S MOTHER = woman 50s, dark bob, navy dress, pearls; BANK PRESIDENT = silver-haired man in a grey three-piece suit",
+   "qc_goc": {
+    "ma": "2618055638635042",
+    "page": "61593320572537",
+    "ngay": 1
+   },
+   "boi_canh": {
+    "ten": "Homeless camp and Stark mansion",
+    "mo_ta": "Rainy city alley camp with barrel fires at night; sunlit Mediterranean-style mansion garden with fountain"
+   },
+   "canh": [
+    {
+     "loi": "Viví tres años como vagabundo. Era una prueba secreta.",
+     "anh": "Night alley camp in the rain, barrel fire glowing. VINCE in his worn coat sits on a crate, beard wet, calm sharp eyes.",
+     "dong": "Rain falls, fire flickers on VINCE's face, slow push-in to his eyes."
+    },
+    {
+     "loi": "La pasé. Ahora soy el Padrino de América.",
+     "anh": "Candlelit oak study. Old men in black suits bow as one places a gold signet ring in VINCE's rough palm.",
+     "dong": "The ring is set in his palm, VINCE closes his fist, camera rises behind the bowing men."
+    },
+    {
+     "loi": "La CEO que salvé me pidió matrimonio en la calle.",
+     "anh": "Busy city sidewalk at dusk. HELEN in a white dress holds VINCE's dirty hands, passersby stare.",
+     "dong": "HELEN steps closer and takes his hands, crowd murmurs, handheld camera circles them."
+    },
+    {
+     "loi": "Su familia se rio de mis harapos.",
+     "anh": "Mansion garden by a fountain. HELEN'S MOTHER sneers at VINCE while PHILIP in a navy suit smirks, arm around HELEN.",
+     "dong": "The mother points at VINCE's coat and laughs, PHILIP pulls HELEN away, slow pan."
+    },
+    {
+     "loi": "Entonces el presidente de un banco se arrodilló ante mí.",
+     "anh": "Grand marble hall of the Stark mansion. The silver-haired BANK PRESIDENT kneels before VINCE in his worn coat; HELEN'S MOTHER and PHILIP stare in shock.",
+     "dong": "The banker drops to one knee, the family's jaws drop, camera rises over VINCE's shoulder."
+    },
+    {
+     "loi": "Ahora saben de quién se burlaron.",
+     "anh": "Same hall. VINCE puts on the gold signet ring; HELEN smiles at him while her family lowers their heads.",
+     "dong": "VINCE slides the ring on, HELEN steps beside him, slow push-in on the ring."
+    }
+   ]
+  },
+  {
+   "content_id": 156354,
+   "ten": "The Billionaire in the Doghouse",
+   "lang": "en",
+   "nguon": "dramabox",
+   "giong": "Brian",
+   "poster": "1/fa155a2rezkq9c4qzk.webp",
+   "url": "https://www.dramabox.com/video/42000029943_The-Billionaire-in-the-Doghouse/701758845_Episode-1",
+   "nhan_vat": "ETHAN = young man mid 20s, dark tousled hair, black bomber jacket over grey tee, clean face with no wounds (narrator, poster hero); CLAIRE = his assistant, platinum blonde, champagne satin robe; CLAIRE'S MOTHER = woman 60s, red curly hair, leopard-print blouse, heavy jewelry; CLAIRE'S FATHER = heavyset man 60s in a navy suit",
+   "qc_goc": {
+    "ma": "2568458023581671",
+    "page": "100094429839873",
+    "ngay": 1
+   },
+   "boi_canh": {
+    "ten": "Ethan's mansion",
+    "mo_ta": "Modern luxury mansion with grand staircase, chandelier, wrought-iron front door; stormy evening light"
+   },
+   "canh": [
+    {
+     "loi": "I own a $17 million mansion.",
+     "anh": "Exterior of a modern luxury mansion at stormy dusk, ETHAN in a black jacket stands at the iron gate looking up at it.",
+     "dong": "Lightning flashes, ETHAN looks up at the house, slow push-in from behind."
+    },
+    {
+     "loi": "My assistant's family moved in and locked me out.",
+     "anh": "Front doorway. CLAIRE in a satin robe blocks the door, her parents behind her smirking, ETHAN outside.",
+     "dong": "CLAIRE points to the side path, the door starts to close, push-in on ETHAN's calm face."
+    },
+    {
+     "loi": "They made me kneel at a dog bowl and livestreamed it.",
+     "anh": "Back porch. ETHAN kneels beside a metal dog bowl while CLAIRE'S MOTHER films him on a phone, laughing.",
+     "dong": "The mother raises the phone higher, ETHAN keeps his head down, slow orbit around him."
+    },
+    {
+     "loi": "Her mother pointed at me: you're the parasite here.",
+     "anh": "Grand living room with chandelier. CLAIRE'S MOTHER points straight at ETHAN, sneering; CLAIRE'S FATHER laughs in a leather chair.",
+     "dong": "The mother jabs her finger at ETHAN, the father laughs, push-in on ETHAN's calm face."
+    },
+    {
+     "loi": "Then I showed them the deed. My name was forged on it.",
+     "anh": "Same room. ETHAN holds up the house deed showing a forged signature; CLAIRE's smile fades.",
+     "dong": "ETHAN lifts the deed, CLAIRE freezes, fast push-in on her face."
+    },
+    {
+     "loi": "Today I walked back into my company and took my seat.",
+     "anh": "Glass boardroom high above the city. ETHAN in a sharp black suit sits down in the CEO chair; CLAIRE and her parents stand frozen by the door.",
+     "dong": "ETHAN sits and folds his hands, the family freezes, slow push-in on ETHAN."
+    }
+   ]
+  },
+  {
+   "content_id": 125094,
+   "ten": "Dear Brother, Your Regret Came Too Late",
+   "lang": "en",
+   "nguon": "reelshort",
+   "giong": "Aria",
+   "poster": "1/cvsr8k1emu28txxx85.webp",
+   "url": "https://www.reelshort.com/episodes/episode-1-dear-brother-your-regret-came-too-late-6ab8a43a2cdfd334da0580eb-qb86zsvdur",
+   "nhan_vat": "STEPHANIE = 16-year-old girl, long wavy light-brown hair, burgundy school blazer, white shirt, striped tie (narrator, poster heroine); ALEXANDER = her older brother, 18, dark tousled hair, basketball tank top; MORRIS = their father, 50s, salt-and-pepper hair, dark suit; ABIGAIL = their cousin, 16, glossy dark hair, cream cardigan, sweet fake smile",
+   "qc_goc": {
+    "ma": "1753446665707733",
+    "page": "61591435374955",
+    "ngay": 1
+   },
+   "boi_canh": {
+    "ten": "Family house",
+    "mo_ta": "Wealthy but cold family home: dark staircase, formal dining room, girl's small plain bedroom"
+   },
+   "canh": [
+    {
+     "loi": "My mom passed away the day I was born. My family blamed me.",
+     "anh": "Dim hallway with a framed portrait of a smiling woman. STEPHANIE in her school blazer stands alone looking at it.",
+     "dong": "Slow push-in from the portrait to STEPHANIE's teary eyes."
+    },
+    {
+     "loi": "My father ignored me for sixteen years.",
+     "anh": "Formal dining room. MORRIS reads a newspaper at the head of the table while STEPHANIE sits at the far end, plate untouched.",
+     "dong": "MORRIS turns a page without looking up, camera tracks along the long empty table."
+    },
+    {
+     "loi": "Only my brother Alexander was kind to me.",
+     "anh": "Backyard hoop at sunset, ALEXANDER in a basketball tank passes STEPHANIE the ball, both smiling.",
+     "dong": "ALEXANDER tosses the ball, STEPHANIE catches it and laughs, warm handheld camera."
+    },
+    {
+     "loi": "Then our cousin Abigail moved in, and he pushed me away.",
+     "anh": "Front hallway. ALEXANDER turns his back on STEPHANIE to hug ABIGAIL; STEPHANIE steps back, hurt, on the stairs.",
+     "dong": "ALEXANDER walks past STEPHANIE to ABIGAIL, STEPHANIE flinches back, push-in on her face."
+    },
+    {
+     "loi": "He shouted that he wished I had been the one we lost.",
+     "anh": "Kitchen at night. ALEXANDER shouts at STEPHANIE, ABIGAIL behind him pretending to cry.",
+     "dong": "ALEXANDER turns away, STEPHANIE stands frozen, slow pull-back leaving her alone in frame."
+    },
+    {
+     "loi": "Now I have a month to live. And he's about to find out.",
+     "anh": "Small plain bedroom, STEPHANIE sits on her bed holding a hospital report, rain on the window; ALEXANDER's photo face-down on the desk.",
+     "dong": "Rain streaks the glass, STEPHANIE folds the report, slow push-in on her quiet face."
+    }
+   ]
+  }
+ ]
+}

@@ -104,6 +104,17 @@ async function luoiPhac(nhom: Canh[], cot: number): Promise<{ tron: string; so: 
 const moTaKhung = (c: Canh) => `${CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'}: ${(c.prompt_anh || c.dan_dung?.dien || c.hanh_dong).trim()}${c.dan_dung?.huong ? ` Screen direction: ${c.dan_dung.huong}.` : ''}`;
 const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbles anywhere.';
 
+// --sua=<thu_tu> --chi-thi="<tiếng Anh>" : SỬA MỘT KHUNG đã có (keyframe đang dùng = ảnh 1) đúng chỗ chỉ thị, giữ nguyên phần còn lại — lỗi logic soát ra
+// sau tầng 3 (#353 #11 Thần bước ra cửa thang khác cửa Hạ chắn; #17 Hạ mất thùng đồ) không phải sinh lại cả khối. Ảnh mẫu người / đồ của shot đi kèm.
+if (gia('sua')) {
+  const c = ds.find((x) => x.thu_tu === Number(gia('sua'))); const ct = gia('chi-thi');
+  if (!c?.keyframe_url || !ct) { console.error('cần --sua=<thu_tu có keyframe> --chi-thi="…"'); process.exit(1); }
+  const refs = thamChieu([c], 6);
+  const p = [`Edit Image 1 (a film still): ${ct}`, 'Keep everything else in Image 1 exactly as it is — the same place, camera angle, framing, light, the same people, faces, outfits, poses and gaze directions — change only what this instruction asks.',
+    `Reference images: ${refs.map(([k], i) => `Image ${i + 2} = ${k}`).join('; ')}.`, 'Vertical 9:16 photorealistic live-action film still. No text, captions or borders.'].join(' ');
+  const url = await sinh({ nhan: `Keyframe (sửa theo chỉ thị) · cảnh #${c.thu_tu}`, prompt: p, refs: [c.keyframe_url, ...refs.map(([, u]) => u)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
+  await chonKeyframe(db, c.id, url, 'sửa theo chỉ thị'); console.log(`#${c.thu_tu} → ${url}`); process.exit(0);
+}
 // --danh-so (0đ): làm lại BẢN HIỂN THỊ có số cho phân cảnh đã có — tờ phác cả cảnh (vẽ lại từ sơ đồ) + các bảng khối trong mốc (dò khung rồi in số)
 if (process.argv.includes('--danh-so')) {
   if (!bm) { console.error('cần --so-do'); process.exit(1); }

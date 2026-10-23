@@ -30,6 +30,7 @@ import { dongThoai, dungTiengClip, giaGiongTheo } from '../src/lib/xuong-video/a
 import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
 import { doiModelVideo } from '../src/lib/xuong-video/qc-cam-xuc';
+import { chuoiVideo } from '../src/lib/xuong-video/cong-ai';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
 import { chonKeyframe } from '../src/lib/xuong-video/tu-sua-clip';
 import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
@@ -130,10 +131,14 @@ if (arg('duyet')) {
 if (arg('video')) {
   // Hàng đợi có trần: Veo chỉ nhận ~3 yêu cầu cùng lúc — gửi 19 một lượt thì 16 bị "rate limit" (10/10/2026). Tối đa --song-song=2 clip
   // đang chạy; clip xong mới gửi tiếp; bị hạn mức thì đợi 60s rồi gửi lại (lượt bị từ chối không tốn tiền).
-  const toiDa = Number((process.argv.find((a) => a.startsWith('--song-song=')) ?? '').split('=')[1] || 2);
+  // Trần song song THEO CỔNG (anh 24/10/2026: "sao không sinh song song?" — 17 clip qua Kie chạy 2 một lúc, vòng 50 phút không kịp): Google trực tiếp
+  // ~3 yêu cầu cùng lúc → 2; cổng trung gian (Kie / PlenX) tự xếp hàng phía họ → 8. --song-song đè khi cần.
+  const congDau = bcs[0] ? chuoiVideo(moHinhVideo ?? bcs[0].kt.mo_hinh_video, false)[0]?.cong : undefined;
+  const toiDa = Number((process.argv.find((a) => a.startsWith('--song-song=')) ?? '').split('=')[1] || (congDau && congDau !== 'google' ? 8 : 2));
+  const phutToiDa = Math.max(50, Math.ceil(bcs.length / toiDa) * 12);   // vòng chờ đủ cho số clip / trần song song (~8–10 phút mỗi lượt clip)
   const cho = [...bcs]; const chay = new Map<number, number>(); const jobs: number[] = []; let nghi = 0; let soLanCho = 0; let dungHan = false;
   const t0 = Date.now();
-  while ((cho.length || chay.size) && Date.now() - t0 < 50 * 60_000 && soLanCho <= 5 && !dungHan) {
+  while ((cho.length || chay.size) && Date.now() - t0 < phutToiDa * 60_000 && soLanCho <= 5 && !dungHan) {
     while (cho.length && chay.size < toiDa && Date.now() >= nghi) {
       const bc = cho.shift()!;
       // --thu: SINH THỬ ngoài quy trình (cùng hàm nút 🧪 Sinh thử) — bỏ cổng duyệt / kiểm khung / animatic; job ghi 🧪 THỬ.

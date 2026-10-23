@@ -10,6 +10,17 @@ ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
 ROI_TANG = 50
 roi_min = float(ARGS[0]) if ARGS else 20; sp_min = float(ARGS[1]) if len(ARGS) > 1 else 50; JSON = '--json' in sys.argv
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
+# API Ethopex chậm / quá giờ (23/10/2026 21:49 "The read operation timed out" thành tin báo động giả) → mọi lượt gọi tự thử lại 3 lần, nghỉ 5–10s.
+# Lỗi 4xx không thử lại. Còn lỗi sau 3 lần mới vào nhóm loi_may (báo nhanh, tự xoá) — KHÔNG bao giờ nhét vào nhóm bị Meta từ chối.
+import time, urllib.error
+_goc_mo = urllib.request.urlopen
+def _mo(*a, **k):
+    for i in range(3):
+        try: return _goc_mo(*a, **k)
+        except OSError as e:
+            if (isinstance(e, urllib.error.HTTPError) and e.code < 500) or i == 2: raise
+            time.sleep(5 * (i + 1))
+urllib.request.urlopen = _mo
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 def bc(tu, den):
     body = json.dumps({"columns": ["campaign_name", "daily_budget", "spending", "roi", "profit", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, "date_from": tu, "date_to": den}).encode()
@@ -179,7 +190,7 @@ if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua kh
         try: ly = NT.chan_giam(api, cid)
         except Exception: ly = None
         if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 else "")))
-tu_choi, dong_l = [], []
+tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
@@ -199,7 +210,7 @@ try:
         if "DISAPPROVED" in str(ad.get("error") or "") or ad.get("delivery_status") == "DISAPPROVED":
             tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối → Edit camp, thay creative sạch đã duyệt cùng phim (soat-camp-api.py gợi ý)"))
 except Exception as e:
-    tu_choi.append((0, f"không đọc được chi tiết camp: {str(e)[:80]}"))
+    loi_may.append((0, f"không đọc được chi tiết camp: {str(e)[:80]}"))
 # LUẬT NB — NHÂN BẢN CAMP THẮNG (anh 22/10/2026: tự động, báo Telegram, mỗi phim tối đa 30 camp ĐANG CHẠY — camp thua tắt thì nhường chỗ cho creative mới).
 # Camp đang bật, ROI tháng ≥ 100%, đã tiêu ≥ $10, ROI 3 ngày ≥ 50% (còn đang thắng) → 1 bản $1; mỗi camp gốc tối đa 1 bản / 24 giờ, mỗi phim tối đa
 # 3 bản / ngày. Bản nhân bản do nhan-ban.py tạo (tên "(nhan ban N cua <gốc>)"), Phòng Ethopex tự chạy + báo 🧬.
@@ -225,7 +236,7 @@ try:
         dang_chay[p] = dang_chay.get(p, 0) + 1; ban_phim[p] = ban_phim.get(p, 0) + 1
         nb.append((cid, f"#{a['ten'][:70]} · ROI tháng {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nhân bản 1 camp $1 (phim {p}: {dang_chay[p]}/{TRAN_PHIM_CHAY} camp chạy)"))
 except Exception as e:
-    tu_choi.append((0, f"luật NB lỗi: {str(e)[:80]}"))
+    loi_may.append((0, f"luật NB lỗi: {str(e)[:80]}"))
 # CHỈ CAMP ĐANG BẬT mới vào danh sách tăng / giảm (22/10/2026: bảng đề xuất tăng #65648 SIMP NO MORE đã tắt vì phim cấm — máy tự tăng vẫn từ chối camp PAUSED,
 # nhưng bảng không được đưa camp đã tắt cho anh duyệt). Không đọc được danh sách camp thì giữ nguyên (đường tăng thật vẫn tự kiểm trạng thái).
 _bat = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"}
@@ -251,13 +262,13 @@ try:
         if r is not None and r > T30_ROI:
             tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · ROI tháng {roi(a):+.0f}%"))
 except Exception as e:
-    tu_choi.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
+    loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
 if JSON:
     # BỘ TÀI KHOẢN của từng camp (anh 23/10/2026: tên trên Telegram ghi [1]/[2] = bộ TK) — theo ad_account_id ↔ studio ethopex_bo_tk
     _bo = {int(v["tk"]): k for k, v in json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_bo_tk'") or "{}").items()}
     _bo_c = {int(c["id"]): _bo.get(int(c.get("ad_account_id") or 0)) for c in ds_camp}
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)

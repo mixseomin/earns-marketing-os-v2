@@ -30,6 +30,7 @@ const NHOM = [
   ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% (Support 23/10)', (m) => [{ text: `✅ #${m.id} lên $30`, callback_data: `et:tang:${m.id}:30` }, { text: 'Giữ $20', callback_data: `et:bo:${m.id}` }]],
   ['moc30', '★ <b>CHẠM MỐC $30 MÀ VẪN LÃI</b> — hỏi Support cách scale bài viết cũ + bid ROAS', null],
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
+  ['loi_may', '⚙️ <b>LỖI MÁY</b> — đọc API Ethopex vẫn lỗi sau 3 lần thử; nhịp sau tự đọc lại, anh không cần làm gì (tin tự xoá)', null],
 ];
 
 const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/) || [, k])[1].toLowerCase()]));
@@ -363,7 +364,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
     const mid = j?.result?.message_id;
     if (mid && bang.length) { const so = docJ(TEP_DX(), {}); so[mid] = { kb: bang, khoa: Object.fromEntries(moi.slice(0, 15).map((m) => [String(m.id), khoa(k, m)])) }; fs.writeFileSync(TEP_DX(), JSON.stringify(so)); }
-    else if (mid && k === 'dong') tinNhanh(mid);   // camp đã bị đóng = thông báo nhanh
+    else if (mid && (k === 'dong' || k === 'loi_may')) tinNhanh(mid);   // camp đã bị đóng = thông báo nhanh
     for (const m of moi) { da.add(khoa(k, m)); for (const c of m.cung) da.add(`${c.k}:${m.id}${c.dich ? `:${c.dich}` : ''}`); } gui++;
   }
   // TIỀN THẬT MỖI NGÀY (anh 22/10/2026): mỗi nhịp chụp tổng cộng dồn (so-ngay.py --chup → tiền mới vào theo ngày); 9h mỗi sáng (hết giờ yên)

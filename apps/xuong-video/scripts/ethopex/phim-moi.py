@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""QUY TRÌNH PHIM MỚI CHUẨN — bộ tài khoản chỉ phim mới (bộ 2 ETP_441 + Argo Love Tyrell; anh 23/10/2026 "chuẩn hoá luôn quy trình cho về sau").
+Theo TRẠNG THÁI từng phim, không theo dải hạng: phim bị loại thì lượt sau tự lấy phim kế; danh sách mỏng thì tự bổ sung. Chỉ tiêu: 30 phim lên/ngày/bộ (2 góc = 60 camp).
+Trạng thái: studio xv_khoa_ngoai['ethopex_phim_moi_tt'] {id: {tt, luc, ghi, lan}} — danh sách = ['ethopex_200_phim'] (chon-phim-moi.py, xếp theo cầu app gốc)
+  (chưa có) → poster_ok | poster_loai          soát poster (Claude xem tờ poster: cởi trần ôm hôn, máu, súng, gợi dục → loại)
+  poster_ok → da_cat | cat_loi | cat_loai       cắt 2 góc (cat-cuoi-lo; cat_loi = lỗi kỹ thuật, cắt lại tối đa 2 lần; cat_loai = không còn khung sạch / thoại cấm)
+  da_cat    → da_len | soat_loai | cong_loai    soát 18+ tờ khung (Claude → kiem-phim-18 --soat) → len-creative (cổng chữ) → nhan-ban --bo 2 --lich today
+Hằng ngày trên iMac (mỗi bước in việc kế tiếp):
+  1. phim-moi.py tinh                 bảng đếm + dự trữ đủ mấy ngày + hôm nay đã lên bao nhiêu
+  2. phim-moi.py them [so]            dự trữ < 2 ngày → chon-phim-moi.py --them (nối thêm, giữ thứ tự cũ)
+  3. phim-moi.py poster [n=60]        tờ poster (30 phim/tờ, có mã) → Claude xem → poster-ok / poster-loai <id…>
+  4. phim-moi.py cat [dat=30]         số phim cắt = (chỉ tiêu − đã lên hôm nay) ÷ tỷ lệ đạt thực đo (mặc định 0,6) → tờ soát 18+
+  5. Claude xem tờ soát → ssh box3: kiem-phim-18.py --soat <id> ok|cam "<lý do>"   (máu / súng / gợi dục = cam)
+  6. phim-moi.py len <lô>             lên mọi đoạn của phim soát ok → ghi trạng thái → sửa CTA cho camp thắng (sua-cta.py)
+  Thiếu chỉ tiêu sau bước 6 → quay lại 4 (máy tự lấy phim kế, gồm phim cat_loi chưa quá 2 lần)."""
+import datetime as dt, importlib.util, json, math, os, subprocess, sys, urllib.request
+D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
+ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
+KTT, KDS, CHI_TIEU, NGAY_DU = "ethopex_phim_moi_tt", "ethopex_200_phim", 30, 2
+vn = lambda: dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7)
+
+def sql(cau, spy=False):
+    nen = ". /root/.secrets/spy.env" if spy else ENV
+    return subprocess.run(["ssh", B, f'{nen}; psql "$DATABASE_URL" -tA -F"\t" -f -'], input=cau, capture_output=True, text=True).stdout.strip()
+khoa = lambda ten, rong="{}": json.loads(sql(f"select coalesce(gia_tri, '{rong}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or rong)
+
+def ghi(cap):
+    """cap {id: (tt, ghi)} → gộp vào sổ trạng thái (một câu jsonb ||, không ghi đè phim khác)"""
+    if not cap: return
+    cu = khoa(KTT); luc = vn().strftime("%H:%M %d/%m/%Y")
+    moi = {str(i): {"tt": tt, "luc": luc, "ghi": (g or "")[:200], "lan": (cu.get(str(i), {}).get("lan", 0) + 1) if tt == "cat_loi" else cu.get(str(i), {}).get("lan", 0)} for i, (tt, g) in cap.items()}
+    v = json.dumps(moi, ensure_ascii=False).replace("'", "''")
+    sql(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('{KTT}', '{v}'::jsonb) on conflict (ten) do update set gia_tri = coalesce(xv_khoa_ngoai.gia_tri, '{{}}'::jsonb) || excluded.gia_tri")
+
+def dpm():
+    s = importlib.util.spec_from_file_location("dpm", os.path.join(D, "dot-phim-moi.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
+
+def so_lieu():
+    ds, tt = khoa(KDS, "[]"), khoa(KTT); hom = vn().strftime("%d/%m/%Y")
+    dem = {}; [dem.__setitem__(v["tt"], dem.get(v["tt"], 0) + 1) for v in tt.values()]
+    xong = sum(dem.get(k, 0) for k in ("da_len", "soat_loai", "cong_loai", "cat_loai"))
+    ty_le = dem.get("da_len", 0) / xong if xong >= 10 else 0.6
+    chua = [p for p in ds if str(p["id"]) not in tt]
+    san = [p for p in ds if tt.get(str(p["id"]), {}).get("tt") == "poster_ok" or (tt.get(str(p["id"]), {}).get("tt") == "cat_loi" and tt[str(p["id"])].get("lan", 0) < 2)]
+    hom_nay = sum(1 for v in tt.values() if v["tt"] == "da_len" and v["luc"].endswith(hom))
+    return ds, tt, dem, ty_le, chua, san, hom_nay
+
+def tinh():
+    ds, tt, dem, ty_le, chua, san, hom_nay = so_lieu()
+    con_ngay = (len(chua) * 0.7 + len(san)) * ty_le / CHI_TIEU   # poster loại ~30% (đo 23/10)
+    print(f"danh sách {len(ds)} phim · trạng thái: " + " · ".join(f"{k} {v}" for k, v in sorted(dem.items())))
+    print(f"tỷ lệ đạt (lên được / đã xử xong) {ty_le:.0%} · hôm nay đã lên {hom_nay}/{CHI_TIEU} phim · sẵn để cắt {len(san)} · chưa soát poster {len(chua)} · dự trữ ≈ {con_ngay:.1f} ngày")
+    if con_ngay < NGAY_DU: print(f"→ dự trữ mỏng: phim-moi.py them {len(ds) + 200}")
+    if hom_nay < CHI_TIEU: print("→ " + ("phim-moi.py poster" if len(san) * ty_le < CHI_TIEU - hom_nay else "phim-moi.py cat"))
+
+def them(so):
+    r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 chon-phim-moi.py {so} --them"], capture_output=True, text=True, timeout=3600)
+    print((r.stdout.strip().splitlines() or [r.stderr[-300:]])[0])
+    print(sql(f"select jsonb_array_length(gia_tri) from xv_khoa_ngoai where ten='{KDS}'"), "phim trong danh sách")
+
+def poster(n=60):
+    from PIL import Image, ImageDraw
+    ds, tt, *_ = so_lieu(); chon = [p for p in ds if str(p["id"]) not in tt][:n]
+    if not chon: return print("không còn phim chưa soát poster → phim-moi.py them")
+    ra = os.path.join(C, "ra", "poster-" + vn().strftime("%d%m%H%M")); os.makedirs(ra, exist_ok=True)
+    import html as H, re
+    from concurrent.futures import ThreadPoolExecutor
+    UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
+    def lay(p):   # cột anh của kho spy là đường dẫn tương đối → poster = og:image của trang phim (cùng cách tai-tap.py)
+        f = os.path.join(C, "nguon", str(p["id"]), "poster.jpg")
+        try:
+            if not os.path.exists(f):
+                h = urllib.request.urlopen(urllib.request.Request(p["url"], headers=UA), timeout=30).read().decode("utf-8", "ignore")
+                m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+property="og:image"', h)
+                b = urllib.request.urlopen(urllib.request.Request(H.unescape(m.group(1) or m.group(2)).split("@")[0], headers={**UA, "Referer": p["url"]}), timeout=30).read()
+                os.makedirs(os.path.dirname(f), exist_ok=True); open(f, "wb").write(b)
+            return p, Image.open(f).convert("RGB")
+        except Exception: return p, None
+    with ThreadPoolExecutor(8) as ex: o = list(ex.map(lay, chon))
+    W, H, K = 200, 300, 10
+    for k in range(0, len(o), 30):
+        t = o[k:k + 30]; to = Image.new("RGB", (W * K, (H + 34) * math.ceil(len(t) / K)), "black"); d = ImageDraw.Draw(to)
+        for i, (p, im) in enumerate(t):
+            x, y = (i % K) * W, (i // K) * (H + 34)
+            if im: im.thumbnail((W, H)); to.paste(im, (x, y))
+            d.text((x + 4, y + H + 2), f"{p['id']}", fill="yellow"); d.text((x + 4, y + H + 17), p["ten"][:30], fill="white")
+        f = os.path.join(ra, f"to-{k // 30 + 1}.jpg"); to.save(f, quality=85); print("TỜ POSTER (iMac):", f)
+    print("→ Claude xem: phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
+
+def cat(dat=CHI_TIEU):
+    ds, tt, dem, ty_le, chua, san, hom_nay = so_lieu()
+    can = max(0, dat - hom_nay); so = min(len(san), math.ceil(can / max(ty_le, 0.2)))
+    if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if can else "đủ chỉ tiêu hôm nay")
+    phim = san[:so]; ten = "pm-" + vn().strftime("%d%m%H%M"); print(f"cắt {so} phim (cần {can} phim lên, tỷ lệ đạt {ty_le:.0%}) → lô {ten}", flush=True)
+    ra = dpm().cat_ds(phim, ten, 2)
+    lo = json.load(open(os.path.join(ra, "lo.json"))); cap = {}
+    for p in phim:
+        x = [y for y in lo if str(y.get("content_id")) == str(p["id"])]
+        if any(y.get("file") and not y.get("loi") for y in x): cap[p["id"]] = ("da_cat", ten)
+        else:
+            loi = " ".join(str(y.get("loi")) for y in x)[:200] or "không tải được tập"
+            cap[p["id"]] = ("cat_loai" if ("khung cuối sạch" in loi or "THOAI CHAN" in loi) else "cat_loi", loi)
+    ghi(cap); print(f"→ Claude xem tờ soát ở {ra} (soat-<id>.jpg) → kiem-phim-18 --soat … → phim-moi.py len {ten}")
+
+def len_(ten):
+    tt = khoa(KTT); kq = dpm().len_ds(ten, ten.replace("-", ""), "today", "quy trình phim mới " + ten)
+    lo = json.load(open(os.path.join(C, "ra", ten, "lo.json"))); ids = {str(x["content_id"]) for x in lo if x.get("content_id")}
+    cap = {}
+    for i in ids:
+        if tt.get(i, {}).get("tt") != "da_cat": continue
+        r = [y for y in kq["kq"] if str(y["content_id"]) == i]
+        if any(y["ok"] for y in r): cap[i] = ("da_len", " ".join(f"#{y['moi']}" for y in r if y["ok"]))
+        elif r: cap[i] = ("cong_loai", r[0]["loi"])
+        elif i not in kq["soat_ok"]:
+            s = khoa("ethopex_soat_18").get(i)
+            if s is not None: cap[i] = ("soat_loai", s.get("ghi", "soát 18+"))
+    ghi(cap); print("ghi trạng thái:", {k: v[0] for k, v in cap.items()})
+    subprocess.run(["taskpolicy", "-b", "python3", os.path.join(D, "sua-cta.py")])
+    tinh()
+
+if __name__ == "__main__":
+    a = sys.argv[1:] or ["tinh"]; g = a[a.index("--ghi") + 1] if "--ghi" in a else ""
+    ids = [x for x in a[1:] if x.isdigit()]
+    if a[0] == "tinh": tinh()
+    elif a[0] == "them": them(int(ids[0]) if ids else len(khoa(KDS, "[]")) + 200)
+    elif a[0] == "poster": poster(int(ids[0]) if ids else 60)
+    elif a[0] == "poster-ok": ghi({i: ("poster_ok", g) for i in ids})
+    elif a[0] == "poster-loai": ghi({i: ("poster_loai", g or "poster") for i in ids})
+    elif a[0] == "cat": cat(int(ids[0]) if ids else CHI_TIEU)
+    elif a[0] == "len": len_(a[1])
+    else: print(__doc__)

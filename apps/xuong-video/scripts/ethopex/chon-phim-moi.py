@@ -4,7 +4,7 @@ Cách chọn (theo lô 19/10): phim mà CHÍNH APP GỐC đang chạy nhiều QC
 app gốc trả tiền chứng minh. Bỏ: phim đã có camp Ethopex / đã dựng studio, phim cấm (ethopex_phim_cam, sổ bỏ phim), tên gợi dục / 18+ (kiem-phim-18 lớp chữ).
 Chỉ EN + ES (anh 19/10/2026). Thiếu 200 thì bù bằng phim CÙNG THỂ LOẠI với phim đang thắng (tỷ phú ẩn thân, kẻ vô danh lật ngược, gia đình hối hận, mẹ đơn thân
 + tỷ phú, Alpha/Luna) trong kho Ethopex nguồn ReelShort/DramaBox/NetShort, mới nhất trước.
-Chạy trên box3:  python3 chon-phim-moi.py [so=200] [--json]  → bảng xếp hạng + ghi studio xv_khoa_ngoai['ethopex_200_phim']"""
+Chạy trên box3:  python3 chon-phim-moi.py [so=200] [--json] [--them: giữ danh sách cũ, nối thêm tới đủ so]  → bảng xếp hạng + ghi studio xv_khoa_ngoai['ethopex_200_phim']"""
 import json, os, re, subprocess, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 SO = next((int(a) for a in sys.argv[1:] if a.isdigit()), 200)
@@ -63,6 +63,9 @@ if can > 0:
         if len(bu) >= can * 3: break
     bu.sort(key=lambda x: -x["diem"]); bu = bu[:can]
 ds = (chinh + bu)[:SO]
+if "--them" in sys.argv:   # BỔ SUNG (phim-moi.py them, anh 23/10/2026 "cần cái thay thế dự phòng"): giữ nguyên danh sách + thứ tự cũ, chỉ nối phim mới vào cuối tới đủ SO
+    cu = json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_200_phim'") or "[]"); co = {str(x["id"]) for x in cu}
+    ds = cu + [x for x in ds if str(x["id"]) not in co][:max(0, SO - len(cu))]
 v = json.dumps([{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "vi_sao")} for x in ds], ensure_ascii=False).replace("'", "''")
 q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_200_phim', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
 if "--json" in sys.argv: print(json.dumps(ds, ensure_ascii=False)); sys.exit(0)

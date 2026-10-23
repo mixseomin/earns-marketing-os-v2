@@ -44,6 +44,9 @@ def doan_cua():
     for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex'->>'content_id', round((kinh_thanh->'ethopex'->>'tu')::numeric), round((kinh_thanh->'ethopex'->>'den')::numeric) from xv_phim where project='ethopex' and kinh_thanh->'ethopex' ? 'tu' and coalesce(kinh_thanh->'ethopex'->>'tu','') <> ''").splitlines():
         x = l.split("|")
         if len(x) == 4 and x[0].isdigit(): m[int(x[0])] = (x[1], x[2], x[3])
+    # bản sửa CTA cắt lại cùng cảnh từ tập sạch → mốc khác bản cũ: nối theo ethopex_cta_thay {cũ: mới} (cũ mang đoạn của mới)
+    t = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_thay'") or "{}")
+    for cu, moi in t.items(): m[int(cu)] = m.get(int(moi), ("cr", str(moi), ""))
     return m
 _DOAN = None
 def dem_doan(cr):

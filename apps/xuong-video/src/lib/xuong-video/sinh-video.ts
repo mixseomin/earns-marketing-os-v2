@@ -1,7 +1,7 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
 import { chanDanDat } from './dan-dat';
-import { CHAT_LIEU, ghep, goiTenEn, khoi, KHUON, LOAI_VIDEO, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
 import { chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
@@ -11,7 +11,7 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
-import { docFal, guiFal, dauVaoTheoSchema, khoaFal } from './fal';
+import { docFal, guiFal, dauVaoTheoSchema, khoaFal, tranPrompt } from './fal';
 import './cong-plenxai';   // đăng ký cổng PlenX (token ở tệp trên box — chỉ máy chủ) vào chuỗi video
 import { donVideoCong, CONG_VIDEO, chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, hieuDaiNhip, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
@@ -247,7 +247,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // ảnh thứ 2 + prompt THEO MODEL: chỉ model hiểu dải nhịp (cong-ai.ts › hieuDaiNhip) nhận ảnh kết + dải; model khác nhận ảnh kết trơn, không câu dải
   const promptTron = promptVideoCanh(bc);
   const cuoiCho = (model: string) => (chuoiCuoi && hieuDaiNhip(model) ? chuoiCuoi : khungCuoi0);
-  const promptCho = (model: string) => (chuoiCuoi && hieuDaiNhip(model) ? `${promptTron} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : promptTron);
+  // Trần ký tự theo model (fal.ts › tranPrompt): Kling 2.500 → bỏ dần khối phụ (prompt-khoi.ts › ghepTrongTran); vẫn quá thì gửi nguyên — fal trả lỗi rõ, không tốn tiền
+  const khoiV = khoiVideoCanh(bc);
+  const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiV, t) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
   const khungCuoi = cuoiCho(bc.kt.mo_hinh_video); const prompt = promptCho(bc.kt.mo_hinh_video);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
   // Google Veo (Gemini API) không có công tắc tiếng: vẫn sinh, bản xuất tự bỏ.

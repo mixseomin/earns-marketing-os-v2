@@ -7,6 +7,8 @@ import { tomGia, type GiaTom } from './gia-fal';
 const QUEUE = 'https://queue.fal.run';
 export const khoaFal = (): string | null => process.env.FAL_KEY || null;
 
+/** Trần ký tự prompt của model (theo trang API fal) — null = không giới hạn đáng kể. */
+export const tranPrompt = (model: string): number | null => (/kling-video\//.test(model) ? 2500 : null);
 type Vao = { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; tiLe: '9:16' | '16:9'; /** sinh kèm tiếng (mặc định có) */ tieng?: boolean };
 /** Ánh xạ đầu vào chung → trường riêng của từng model fal. */
 function dauVao(model: string, v: Vao): Record<string, unknown> {

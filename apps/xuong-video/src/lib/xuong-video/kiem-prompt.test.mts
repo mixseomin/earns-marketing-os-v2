@@ -65,3 +65,12 @@ assert.equal(hanhDongTrongMoTa('female office worker in a cream blouse and grey 
 // KHỐI KHÔNG THÊM liệt kê thứ cấm → chặn; danh sách trắng → qua
 assert.equal(loiPrompt([{ ten: 'bước 1', duong: 'flux', khoi: [...kh('Boardroom'), khoi('khong_them', 'No extra objects, props, cups, cables or people.')] }], s).length, 1);
 console.log('kiem-prompt: ok');
+// ghepTrongTran: bỏ khối phụ trước (khong_khi, phong_cach…), giữ khong_them + hành động; không vừa nổi thì null
+{
+  const { ghepTrongTran, khoi } = await import('./prompt-khoi');
+  const ds = [khoi('khoanh_khac', 'A'.repeat(50)), khoi('phong_cach', 'P'.repeat(40)), khoi('khong_khi', 'K'.repeat(40)), khoi('khong_them', 'W'.repeat(20))];
+  assert.equal(ghepTrongTran(ds, 500), ds.map((k) => k.chu).join(' '));
+  const g = ghepTrongTran(ds, 115)!; assert.ok(!g.includes('K') && g.includes('P') && g.includes('W'));
+  const g2 = ghepTrongTran(ds, 75)!; assert.ok(!g2.includes('K') && !g2.includes('P') && g2.includes('W') && g2.includes('A'));
+  assert.equal(ghepTrongTran(ds, 30), null);
+}

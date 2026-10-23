@@ -73,6 +73,18 @@ export type Khoi = { ma: MaKhoi; chu: string };
 export const khoi = (ma: MaKhoi, chu: string | false | 0 | null | undefined): Khoi => ({ ma, chu: (chu || '').trim() });
 /** Ghép khối thành prompt (bỏ khối rỗng). */
 export const ghep = (ds: Khoi[]) => ds.map((k) => k.chu).filter(Boolean).join(' ');
+/** GHÉP TRONG TRẦN KÝ TỰ của model (Kling 2.500 — 23/10/2026 #132 #15 fal 422 vì prompt khuôn Veo dài hơn): bỏ dần khối PHỤ theo thứ tự BO_TRUOC (khối đầu bỏ
+ *  trước) tới khi vừa. Khối hành động / chuyển động / diễn / giữ ảnh / khong_them (luật "không thừa" của anh) không bao giờ bỏ. Vẫn quá trần thì trả null —
+ *  người gọi báo lỗi, không cắt ngang câu. */
+export const BO_TRUOC: readonly MaKhoi[] = ['khong_khi', 'cong_cu', 'phong_cach', 'cam_xuc', 'chat_lieu', 'may', 'bieu_cam', 'trang_thai', 'thoai', 'khac'];
+export function ghepTrongTran(ds: Khoi[], tran: number): string | null {
+  let con = ds.filter((k) => k.chu);
+  for (const ma of [null, ...BO_TRUOC]) {
+    if (ma) con = con.filter((k) => k.ma !== ma);
+    const p = ghep(con); if (p.length <= tran) return p;
+  }
+  return null;
+}
 
 /** ĐƯỜNG SINH và khối BẮT BUỘC của nó (rỗng = bộ chấm báo thiếu). Khuôn quyết định đường đó phải nói gì; chữ của từng khối do thư viện dựng. */
 export type DuongSinh = 'mot_buoc' | 'flux' | 'sua_nhan_dang' | 'video';

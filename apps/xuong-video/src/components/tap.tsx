@@ -26,6 +26,7 @@ import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { NguoiXem } from './nguoi-xem-ui';
 import { MayDungStoryboard } from './may-dung-ui';
+import { PhanCanhVe } from './phan-canh-ve';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 
 export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void>; tab: TabPhim }) {
@@ -54,7 +55,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [moChon, setMoChon] = useState(false);
   const [moBang, setMoBang] = useState(false);
   // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
-  const [xem, setXem] = useNho<'timeline' | 'luoi' | 'ds'>('xv-xem-3c', 'timeline', ['timeline', 'luoi', 'ds']);
+  const [xem, setXem] = useNho<'timeline' | 'luoi' | 'ds' | 'phan_canh'>('xv-xem-3c', 'timeline', ['timeline', 'luoi', 'ds', 'phan_canh']);
   // Tiếng đang xem trên timeline + toàn màn hình: '' = bản gốc, 'vi' = bản lồng tiếng Việt đã lưu trong shot (ban-dich.ts › theoNgonNgu). Nhớ trên URL (?tln=vi).
   const [tiengXem, setTiengXem] = useNho<'' | 'vi'>('xv-tln', '', ['', 'vi'], 'tln');
   const [chonCanh, setChonCanh] = useState<number | null>(null);
@@ -217,6 +218,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           <button type="button" className={`xv-btn${xem === 'timeline' ? ' chinh' : ''}`} onClick={() => setXem('timeline')}>🎞 Timeline</button>
           <button type="button" className={`xv-btn${xem === 'luoi' ? ' chinh' : ''}`} onClick={() => setXem('luoi')} title="Lưới kịch bản: cả tập trên một màn — hình · mốc giờ · chữ màn · lời đọc, xếp theo phân cảnh">▤ Lưới</button>
           <button type="button" className={`xv-btn${xem === 'ds' ? ' chinh' : ''}`} onClick={() => setXem('ds')} title="Danh sách cảnh: mọi thẻ shot xếp dọc">☰ Cảnh</button>
+          <button type="button" className={`xv-btn${xem === 'phan_canh' ? ' chinh' : ''}`} onClick={() => setXem('phan_canh')} title="Phân cảnh từng cảnh, tổng quan → chi tiết: tờ phác bố trí · thumbnail cả cảnh · bảng khối · keyframe đọc như truyện tranh">🎬 Phân cảnh</button>
         </span>}
         <strong style={{ fontSize: 12 }}>{canh?.length ?? '…'} cảnh{canh?.length ? ` · ${giayPhatTong}s` : ''}</strong>
         {chonNhanh}
@@ -355,7 +357,9 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
               </>
             );
-          })() : xem === 'luoi' ? (
+          })() : xem === 'phan_canh' ? (
+            <PhanCanhVe tap={tap} canh={locNhanh(canh, nhanh)} onMo={(id) => setXemShot(id)} />
+          ) : xem === 'luoi' ? (
             <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} laQc={phim.loai === 'quang_cao'} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => setXemShot(id)} />
           ) : (
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>

@@ -39,6 +39,12 @@ const bm = gia('so-do') ? JSON.parse(readFileSync(gia('so-do')!, 'utf8')) as { s
 const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc giữa các tầng (URL) — chạy lại từng tầng không mất tầng trên
 const moc: { t1?: string; t2?: Record<number, string>; khoi?: string[] } = existsSync(TEP) ? JSON.parse(readFileSync(TEP, 'utf8')) : {};
 const luu = () => writeFileSync(TEP, JSON.stringify(moc, null, 1));
+/** Ghi tầng vừa xong vào xv_tap.phan_canh_ve (tab Storyboard › 🎬 Phân cảnh) — theo phân đoạn của shot đầu khoảng. */
+async function ghiTap(them: { phac?: string; t1?: string; khoi?: { tu: number; den: number; url: string }[] }) {
+  const pd = ds[0]?.phan_doan ?? ''; const cu = ((await q(sql`SELECT phan_canh_ve FROM xv_tap WHERE id = ${tap}`))[0]?.phan_canh_ve ?? []) as { phan_doan: string }[];
+  const moi = [...cu.filter((x) => x.phan_doan !== pd), { ...(cu.find((x) => x.phan_doan === pd) ?? {}), phan_doan: pd, ...them, luc: new Date().toISOString() }];
+  await db.execute(sql`UPDATE xv_tap SET phan_canh_ve = ${JSON.stringify(moi)}::jsonb WHERE id = ${tap}`);
+}
 const ten = (id: number) => nv.find((v) => v.id === id);
 
 /** Ảnh tham chiếu cho một nhóm shot: sảnh (ảnh toàn cảnh đã duyệt) · mỗi người MỘT ảnh mặt + biến thể trang phục đầu tiên gặp · đồ — trần `tran`. */
@@ -92,7 +98,7 @@ if (!chiCat && (tang === '1' || (tang === 'tat-ca' && !moc.t1)) && !gia('t1')) {
     const o = await Promise.all(ds.map((c) => { const m = bm.shot[c.thu_tu - 1]?.sd; return m ? sharp(Buffer.from(svgPhac(bm.so_do, m, bm.nguoi, bm.mau ?? {}, CW, CH))).png().toBuffer() : sharp({ create: { width: CW, height: CH, channels: 3, background: '#e9e9ec' } }).png().toBuffer(); }));
     phac = await len(await sharp({ create: { width: cot1 * CW + (cot1 + 1) * G, height: hang * CH + (hang + 1) * G, channels: 3, background: '#ffffff' } })
       .composite(o.map((x, j) => ({ input: x, left: G + (j % cot1) * (CW + G), top: G + Math.floor(j / cot1) * (CH + G) }))).jpeg({ quality: 90 }).toBuffer(), 'phac');
-    console.log(`tờ phác: ${phac}`);
+    console.log(`tờ phác: ${phac}`); await ghiTap({ phac });
   }
   if (process.argv.includes('--chi-phac')) process.exit(0);
   const prompt = [`A film storyboard THUMBNAIL sheet for one whole scene: EXACTLY ${ds.length} separate panels — never merge two frames into one panel, never split one — laid out as a regular grid of ${cot1} columns × ${hang} rows, read left to right, top to bottom${ds.length % cot1 ? `; the last row has only ${ds.length % cot1} panel(s), the rest of that row is plain white` : ''}. Every panel is a small vertical photorealistic live-action film still of equal size, separated by thin plain white gutters. ${KHONG_CHU}`,
@@ -101,7 +107,7 @@ if (!chiCat && (tang === '1' || (tang === 'tat-ca' && !moc.t1)) && !gia('t1')) {
     `Reference images: ${refs.map(([k], i) => `Image ${i + (phac ? 2 : 1)} = ${k}`).join('; ')}.`,
     ...ds.map((c, i) => `PANEL ${i + 1} (row ${Math.floor(i / cot1) + 1}, column ${(i % cot1) + 1}) — ${moTaKhung(c)}`)].join('\n');
   moc.t1 = await sinh({ nhan: `Phân cảnh tầng 1 (thumbnail) #${tu}–#${ds.at(-1)?.thu_tu}`, prompt, refs: [...(phac ? [phac] : []), ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
-  luu(); console.log(`tầng 1: ${moc.t1}`);
+  luu(); await ghiTap({ t1: moc.t1 }); console.log(`tầng 1: ${moc.t1}`);
 }
 if (chiCat) { if (!moc.t1 && !gia('bang')) { console.error('chưa có ảnh tầng 1 / --bang'); process.exit(1); }
   const b = await tai(gia('bang') || moc.t1); const d = await doKhung(b, ds.length);
@@ -130,7 +136,7 @@ if (tang === '2' || tang === 'tat-ca') {
       `Render photorealistic live-action detail. ${KHONG_CHU}`, `Reference images: ${refs.map(([k], i) => `Image ${i + 2} = ${k}`).join('; ')}.`,
       ...nhom.map((c, j) => `Panel ${j + 1} — ${moTaKhung(c)}`)].join('\n');
     const u2 = await sinh({ nhan: `Phân cảnh tầng 2 (khối) #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}`, prompt, refs: [urlLuoi, ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
-    moc.khoi.push(u2); console.log(`tầng 2 khối #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}: ${u2}`);
+    moc.khoi.push(u2); await ghiTap({ khoi: moc.khoi.map((url, j) => ({ tu: ds[j * khoi]!.thu_tu, den: ds[Math.min(ds.length, (j + 1) * khoi) - 1]!.thu_tu, url })) }); console.log(`tầng 2 khối #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}: ${u2}`);
     const b2 = await tai(u2); const d2 = await doKhung(b2, nhom.length);
     if (d2.khung.length !== nhom.length) { console.error(`  khối này dò được ${d2.khung.length} khung (${d2.mo_ta}), cần ${nhom.length} — dừng, sinh lại khối`); luu(); process.exit(1); }
     for (const [j, c] of nhom.entries()) moc.t2[c.thu_tu] = await len(await cat(b2, d2.khung[j]!), `t2-${c.id}`);

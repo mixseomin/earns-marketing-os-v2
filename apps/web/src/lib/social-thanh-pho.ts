@@ -455,7 +455,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const chuan01 = (v: number, max: number) => (max > 0 ? Math.log10(1 + v) / Math.log10(1 + max) : 0);
   const maxTien = Math.max(0, ...duAn.map(diemTien)), maxLuu = Math.max(0, ...duAn.filter((k) => k.khoa !== KHU_XUONG).map((k) => k.luu ?? 0));
   for (const k of duAn) k.quyMo = k.khoa === KHU_XUONG ? 0 : Math.max(chuan01(diemTien(k), maxTien), chuan01(k.luu ?? 0, maxLuu));
-  for (const k of duAn) { const m = dich.filter((d) => d.duAn === k.khoa && (d.loai === 'site' || d.loai === 'app' || d.loai === 'sp') && !d.cha).map((d) => d.sucSong ?? 0); const v = sucSongKhu(m); if (v != null) k.sucSong = v; }
+  for (const k of duAn.filter((x) => x.khoa !== KHU_XUONG)) { const m = dich.filter((d) => d.duAn === k.khoa && (d.loai === 'site' || d.loai === 'app' || d.loai === 'sp') && !d.cha).map((d) => d.sucSong ?? 0); const v = sucSongKhu(m); if (v != null) k.sucSong = v; }
   // phường liền nhau: xếp theo thứ tự lĩnh vực, trong phường theo lưu lượng
   const thuLv = Object.keys(LINH_VUC);
   duAn.sort((a, b) => Number(a.ngung || !!a.raRia) - Number(b.ngung || !!b.raRia) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tienKhu(b.khoa) - tienKhu(a.khoa) || tongKhu(b.khoa) - tongKhu(a.khoa));

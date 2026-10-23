@@ -223,6 +223,6 @@ console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh v�
   assert.equal(S(1, 5, 0, 2), 3, 'đang có khách online = sôi động'); }
 { const mh0 = m; const dd = mh0.dich.filter((d) => ['site', 'app', 'sp'].includes(d.loai));
   assert.ok(dd.every((d) => d.sucSong != null && d.soNguon != null), 'mọi site / app / sản phẩm đều có sức sống');
-  for (const k of mh0.duAn) { const m = dd.filter((d) => d.duAn === k.khoa && !d.cha).map((d) => d.sucSong!); if (m.length) assert.equal(k.sucSong, Math.max(...m), `khu ${k.khoa} = mức cao nhất của đích trong khu`); } }
-assert.equal(sucSongKhu([0, 0, 2]), 2, 'khu có một site sống = khu sống (không đóng băng cả khu vì vài sản phẩm đơ)'); assert.equal(sucSongKhu([0, 0]), 0, 'khu toàn đích đơ = khu đơ'); assert.equal(sucSongKhu([]), undefined, 'khu không có đích = không chấm');
+  for (const k of mh0.duAn.filter((x) => x.khoa !== 'xuong')) { const m = dd.filter((d) => d.duAn === k.khoa && !d.cha).map((d) => d.sucSong!); if (m.length) assert.equal(k.sucSong, Math.max(...m), `khu ${k.khoa} = mức cao nhất của đích trong khu`); } }
+assert.equal(sucSongKhu([0, 0, 2]), 2, 'khu có một site sống = khu sống (không đóng băng cả khu vì vài sản phẩm đơ)'); assert.equal(sucSongKhu([0, 0]), 0, 'khu toàn đích đơ = khu đơ'); assert.equal(sucSongKhu([]), undefined, 'khu không có đích = không chấm'); assert.equal(m.duAn.find((k) => k.khoa === 'xuong')?.sucSong, undefined, 'Xưởng SX không chấm sức sống (nơi làm, không phải đích traffic)');
 console.log('✓ sức sống: đơ · thoi thóp · sống · sôi động · khu theo đích cao nhất');

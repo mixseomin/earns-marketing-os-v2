@@ -127,10 +127,10 @@
     }
     const nl = String(ds.length + (d.bo ? 1 : 0)); if (td.dataset.etpNloai !== nl) td.dataset.etpNloai = nl;
     if (td.dataset.etpChay !== String(d.chay)) td.dataset.etpChay = String(d.chay);
-    let so = td.querySelector(':scope > .etp-so'); const ks = `${d.chay}|${d.lich}`;
+    let so = td.querySelector(':scope > .etp-so'); const cho = d.cho || 0, ks = `${d.chay}|${d.lich}|${cho}`;
     if ((so?.dataset.k ?? '') !== ks) {
       if (!so) { so = document.createElement('span'); so.className = 'etp-so'; td.appendChild(so); }
-      so.dataset.k = ks; so.innerHTML = `<i data-k="chay" title="${d.chay} camp đang chạy">${d.chay}</i><i data-k="lich" title="${d.lich} camp đã lên lịch">${d.lich}</i>`;
+      so.dataset.k = ks; so.innerHTML = `<i data-k="chay" title="${d.chay} camp đang chạy">${d.chay}</i><i data-k="lich" title="${d.lich} camp đã lên lịch${cho ? ` · ${cho} camp thắng đang chờ nhân bản` : ''}">${d.lich + cho}</i>`;   // số vàng = lịch + nhân bản đang chờ (anh 23/10/2026)
     } } };
   const taiSan = () => {
     veDem();
@@ -219,9 +219,9 @@
     }
     if (dang !== kk) return;
     // rê vào badge → chỉ creative của dạng đó; rê vào số xanh / vàng → chỉ camp đang chạy / đã lên lịch (creative không còn camp nào thì ẩn)
-    const hop = (k) => (kieu === 'chay' ? k.trang_thai === 'ACTIVE' && !k.lich : kieu === 'lich' ? !!k.lich : true);
+    const hop = (k) => (kieu === 'chay' ? k.trang_thai === 'ACTIVE' && !k.lich : kieu === 'lich' ? !!k.lich || !!k.cho_nb : true);
     const r = phimNho[ten].r, ds = (r.creative || []).filter((c) => !loai || c.loai === loai).map((c) => (kieu ? { ...c, camp: c.camp.filter(hop) } : c)).filter((c) => !kieu || c.camp.length);
-    if (!ds.length) return hien('<b>🎬 ' + esc(ten) + '</b><br>' + (kieu ? 'Không có camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '.' : 'Chưa nối được creative nào của phim này.'), ev);
+    if (!ds.length) return hien('<b>🎬 ' + esc(ten) + '</b><br>' + (kieu ? 'Không có camp ' + (kieu === 'chay' ? 'đang chạy' : 'lên lịch / nhân bản chờ') + '.' : 'Chưa nối được creative nào của phim này.'), ev);
     // HIỆU SUẤT TRỰC QUAN (anh 23/10/2026 duyệt 5 mục): 1 ô ROI tô màu theo mức lãi/lỗ (tiền chi → thu ở hover) · 2 cột ROI 7 ngày mỗi creative + cả phim ·
     // 3 creative xếp ROI tháng cao → thấp (server), lỗ cả tháng thì mờ · 4 camp thành chip một dòng · 5 đầu khung: ROI tháng chữ to + lãi/lỗ $ cả phim
     const nen = (v) => (v == null ? 'rgba(127,127,127,.28)' : v >= 0 ? 'rgba(30,142,62,' + (0.3 + Math.min(v, 150) / 150 * 0.65).toFixed(2) + ')' : 'rgba(217,48,37,' + (0.3 + Math.min(-v, 100) / 100 * 0.65).toFixed(2) + ')');
@@ -266,7 +266,7 @@
       '<div style="font-size:11px;opacity:.75">ROI tháng · ' + (lai >= 0 ? 'lãi +' : 'lỗ −') + '$' + Math.abs(lai).toFixed(2) + '</div></div>' +
       '<div style="flex:1;min-width:0">' + cot7(n7, 140, 34) + '<div style="font-size:10px;opacity:.6">ROI 7 ngày</div></div>' +
       '<div style="width:64px">' + o3('h.nay', hn) + '</div></div>';
-    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ô / cột: số tiền · rê ảnh: video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
+    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'lịch + nhân bản chờ') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ô / cột: số tiền · rê ảnh: video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
   };
 
   document.addEventListener('mouseover', (ev) => {

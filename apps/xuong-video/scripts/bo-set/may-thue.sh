@@ -85,7 +85,10 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
     done
     echo "máy: $H cổng $P"
     if [ -n "${XV_KHUNG:-}" ]; then   # CHỈ DỰNG KHUNG cho các shot XV_KHUNG=<id,…> (như may-thue-vast.sh) — không dựng lại cả tập, không bản diễn
-      XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --chi="$XV_KHUNG"; echo "XONG KHUNG"; exit 0
+      XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --chi="$XV_KHUNG"; echo "XONG KHUNG"
+      # kèm [chi] (thứ tự shot) → dựng luôn CLIP DIỄN Blender cho các shot đó trên cùng máy (tham chiếu chuyển động cho model video)
+      [ -n "$CHI" ] && { XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P XV_MAY=cycles bash "$DIR/scripts/bo-set/dien-tap.sh" "$TAP" --chi="$CHI"; echo "XONG DIEN"; }
+      exit 0
     fi
     XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --tat-ca
     [ -n "$CHI" ] && XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P XV_MAY=cycles bash "$DIR/scripts/bo-set/dien-tap.sh" "$TAP" --chi="$CHI"

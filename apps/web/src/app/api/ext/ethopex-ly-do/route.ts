@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { goiEthopex } from '@mos2/db/ethopex';
 import { docEthopex } from '@/lib/ethopex-doc';
+import { chamLuat, LUAT_THEO_MA } from '@/lib/ethopex-luat';
 
 // LÝ DO ĐÓNG CAMP cho extension trên trang Report của Ethopex (anh 22/10/2026: "làm extension trên page này để khi hover vào camp nào đóng thì show lý do").
 // Chỉ đọc. Khoá bằng mã riêng (studio xv_khoa_ngoai['ethopex_ext'].token, gửi qua ?k=) vì trang app.ethopex.dev không mang phiên mos2; CORS chỉ mở cho app.ethopex.dev.
@@ -49,8 +50,12 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
     doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
     // từng camp: thêm số hôm nay / hôm qua / 7 ngày + tên, ngày tạo, camp gốc nhân bản — khung chi tiết + biểu đồ khi rê vào chip camp (anh 24/10/2026)
     camp: ds.map((c) => ({ id: c.id, bo: c.bo ?? '1', trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang),
-      ten: c.ten, tao: c.tao, goc: Number((c.ten.match(/\(nhan ban \d+ cua (\d+)\)/) ?? [])[1]) || null, hom_nay: so(c.hom_nay), hom_qua: so(c.hom_qua), ngay7: ngay7([c]) })).sort((a, b) => b.thu - a.thu),
-    chay: ds.filter((c) => c.trang_thai === 'ACTIVE').length,   // số camp ĐANG CHẠY cùng creative này — > 3 = tự cạnh tranh (luật 1 đoạn ≤ 3 camp, 23/10/2026)
+      ten: c.ten, tao: c.tao, goc: Number((c.ten.match(/\(nhan ban \d+ cua (\d+)\)/) ?? [])[1]) || null, hom_nay: so(c.hom_nay), hom_qua: so(c.hom_qua), ngay7: ngay7([c]),
+      // LUẬT ĐANG CHẤM cho camp (cùng bộ chấm tab Ethopex mos2 — anh 24/10/2026 "show rule đó lên đây"): chỉ luật chạm / gần chạm
+      luat: c.trang_thai === 'ACTIVE' ? chamLuat(c, { soCampPhim: cua.filter((x) => x.trang_thai === 'ACTIVE').length, phimThang: d.phimThang.includes(Number(c.content_id)) })
+        .filter((l) => l.trang_thai !== 'ap').map((l) => ({ ma: l.ma, ten: LUAT_THEO_MA[l.ma]?.ten ?? l.ma, icon: LUAT_THEO_MA[l.ma]?.icon ?? '', trang_thai: l.trang_thai, cau: l.cau })) : [] })).sort((a, b) => b.thu - a.thu),
+    // số camp ĐANG CHẠY cùng ĐOẠN video (cùng phim + cùng mốc "tu-den s" trong tên, gộp bản CTA cũ và bản sửa) — > 3 = tự cạnh tranh (luật 1 đoạn ≤ 3 camp, 23/10/2026)
+    chay: (() => { const doan = (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1]; return doan ? cua.filter((x) => x.trang_thai === 'ACTIVE' && (x.ten.match(/(\d+-\d+s)/) ?? [])[1] === doan).length : ds.filter((x) => x.trang_thai === 'ACTIVE').length; })(),
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)), ngay7: ngay7(ds),
   })).sort((a, b) => (b.thang.roi ?? -1e9) - (a.thang.roi ?? -1e9) || b.thang.thu - a.thang.thu);   // ROI tháng cao nhất lên đầu, creative chưa tiêu xuống cuối (anh duyệt 23/10/2026)
   // ĐẾM THEO PHIM cho nhãn ở danh sách Report (anh 23/10/2026 "show số lượng camp đang active, scheduled ở danh sách")

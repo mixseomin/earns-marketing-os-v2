@@ -868,7 +868,16 @@ def gan_tay(sh, tat_ca, ket=False):
     bpy.context.view_layer.update()
     for ten, (c, ben) in tay_cam(sh).items():
         v = next(x for x in sh['nhan_vat'] if x['ten'] == ten)
-        if ket and v.get('den'): continue
+        if ket and v.get('den'):
+            # ĐỔI TAY lúc kết (thao-do.ts › doiTayDo, cùng luật): người đứng gần chỗ kết của món nhất (< 60 cm, khác người cầm cũ) là người cầm mới → món nằm
+            # trong bàn tay phải người đó (đồ treo thì lủng lẳng dưới nắm tay). Trước chỉ đặt món ở toạ độ den → #132 #16 thẻ lọt trong thùng, tay Vivian trống.
+            moi = None; gan = 60
+            for x in sh['nhan_vat']:
+                if x.get('an') or x['ten'] == c or (DL['nhan_vat_mau'].get(x['ten']) or {}).get('hinh') != 'nguoi' or x['ten'] not in NGUOI: continue
+                p_ = x.get('den') or x['tam']; d_ = math.hypot(p_[0] - v['den'][0], p_[1] - v['den'][1])
+                if d_ < gan: moi, gan = x['ten'], d_
+            if not moi: continue
+            c, ben = moi, 'p'
         n_ = NGUOI[c]; khop = n_.get(ben) if ben not in ('om', 'p', 't') else None
         objs = [o for o in tat_ca if o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")]
         if not objs: continue

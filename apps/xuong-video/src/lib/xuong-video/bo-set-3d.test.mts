@@ -223,7 +223,8 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // BAN_DUNG 114: máy dời chỗ (đẩy vào) ở kết / giữa → tia từ 4 góc trúng bộ set chiếu về máy mở (gần đúng theo mặt sảnh sau, #132 #19)
 // BAN_DUNG 115: đồ dẹt đeo cổ (thẻ) treo trước ngực + dây chữ V (trước gắn thẳng vào khớp cổ như vòng → thẻ lọt trong cổ, #132 #15)
 // BAN_DUNG 116: dong.ket_doi_cho / giua_doi_cho — máy dời chỗ ở kết / giữa (cổng khớp 3D chỉ áp cho ca này)
-assert.deepEqual([BAN_DUNG, bam], [116, '8bd5bbb88531'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// BAN_DUNG 117: món đổi tay lúc kết gắn vào bàn tay người nhận (người gần chỗ kết nhất < 60 cm) thay vì đặt ở toạ độ den (#132 #16 thẻ lọt trong thùng)
+assert.deepEqual([BAN_DUNG, bam], [117, 'ba9a697fb7b7'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

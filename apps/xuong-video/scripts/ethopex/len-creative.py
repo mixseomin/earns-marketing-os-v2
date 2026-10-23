@@ -69,7 +69,7 @@ EOF'""", timeout=3600)
     def cong(x):
         if x.get("loi"): return
         a = sh(f"{D}/kiem-studio.sh {x['creative_id']} {x['content_id']} < /dev/null", timeout=900).stdout.strip().splitlines()[-1:]
-        b = sh(f"{D}/kiem-thoai-creative.sh {x['creative_id']} < /dev/null", timeout=1800)
+        b = sh(f"{D}/kiem-thoai-creative.sh {x['creative_id']} '{x['file'] if not str(x.get('file','')).startswith('box3:') else ''}' < /dev/null", timeout=1800)
         if not (a and a[0].startswith("STUDIO OK")): x["loi"] = (a or ["studio ?"])[0]
         elif b.returncode != 0: x["loi"] = ((b.stdout.strip() or b.stderr.strip() or f"cổng chữ lỗi mã {b.returncode}").splitlines() or ["?"])[-1][:200]   # cổng chết không in gì (23/10/2026 lô moisom gãy cả lô vì [-1] của rỗng)
     with ThreadPoolExecutor(4) as ex: list(ex.map(cong, lo))

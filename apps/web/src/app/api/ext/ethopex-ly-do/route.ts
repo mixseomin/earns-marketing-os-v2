@@ -32,7 +32,7 @@ const loaiCua = (ten: string) => LOAI.find((l) => ten.toLowerCase().includes(l))
 const laLich = (c: { bat_dau?: string | null }) => !!c.bat_dau && Date.parse(c.bat_dau.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')) > Date.now();   // Scheduled: Ad Set chưa tới giờ chạy
 function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const k = chuan(phim);
-  if (k.length < 6) return { so_camp: 0, dem: { chay: 0, lich: 0, tat: 0, loai: {} as Record<string, number> }, creative: [] };
+  if (k.length < 6) return { so_camp: 0, dem: { bo: null as string | null, chay: 0, lich: 0, tat: 0, loai: {} as Record<string, number> }, creative: [] };
   const khop = (a: string) => a.length >= 8 && (a.includes(k) || k.includes(a));
   const cua = d.camps.filter((c) => khop(loi(c.ten)) || (!!c.phim && khop(chuan(c.phim))));
   const nhom = new Map<number, typeof cua>();
@@ -42,12 +42,13 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const creative = [...nhom.entries()].map(([cr, ds]) => ({
     creative_id: cr > 0 ? cr : null, loai: loaiCua(ds[0]!.ten), anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
     doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
-    camp: ds.map((c) => ({ id: c.id, trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
+    camp: ds.map((c) => ({ id: c.id, bo: c.bo ?? '1', trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)),
   })).sort((a, b) => b.thang.thu - a.thang.thu);
   // ĐẾM THEO PHIM cho nhãn ở danh sách Report (anh 23/10/2026 "show số lượng camp đang active, scheduled ở danh sách")
   const loai: Record<string, number> = {}; for (const c of cua) if (c.trang_thai === 'ACTIVE') loai[loaiCua(c.ten)] = (loai[loaiCua(c.ten)] ?? 0) + 1;
-  const dem = { chay: cua.filter((c) => c.trang_thai === 'ACTIVE' && !laLich(c)).length, lich: cua.filter((c) => c.trang_thai === 'ACTIVE' && laLich(c)).length, tat: cua.filter((c) => c.trang_thai !== 'ACTIVE').length, loai };
+  const boDem = new Map<string, number>(); for (const c of cua) boDem.set(c.bo ?? '1', (boDem.get(c.bo ?? '1') ?? 0) + 1);
+  const dem = { bo: [...boDem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null, chay: cua.filter((c) => c.trang_thai === 'ACTIVE' && !laLich(c)).length, lich: cua.filter((c) => c.trang_thai === 'ACTIVE' && laLich(c)).length, tat: cua.filter((c) => c.trang_thai !== 'ACTIVE').length, loai };
   return { so_camp: cua.length, dem, creative };
 }
 
@@ -60,6 +61,20 @@ export async function GET(req: Request) {
   if (!r[0]?.t || u.searchParams.get('k') !== r[0].t) return NextResponse.json({ ok: false, error: 'sai mã' }, { status: 403, headers: CORS });
   if (u.searchParams.get('bao')) console.log(`ethopex-nap BAO=${u.searchParams.get('bao')} ua=${(req.headers.get('user-agent') ?? '').slice(0, 90)}`);
   const phim = u.searchParams.get('phim'), phims = u.searchParams.get('phims');
+  // BỘ TÀI KHOẢN QC + PAGE (anh 23/10/2026 "các camp, phim phải ghi thêm thuộc bộ tk thứ mấy, hover vào ra thông tin bộ tk đó"):
+  // ?bo=1 → { bo_tk: {bộ: thông tin + số}, camp: {id: bộ} } — extension gắn nhãn B1/B2 ở ô tên camp / phim, rê vào hiện thông tin bộ
+  if (u.searchParams.get('bo')) {
+    const d = await camps();
+    const raw = (((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_bo_tk'`)) as unknown as { gia_tri: Record<string, { tk: number; ext: string; page: number; ten: string; chi_phim_moi?: boolean }> | null }[])[0]?.gia_tri) ?? {};
+    const bo_tk: Record<string, unknown> = {};
+    for (const [k, b] of Object.entries(raw)) {
+      const cs = d.camps.filter((c) => (c.bo ?? '1') === k), sum = (f: 'thang' | 'hom_nay') => cs.reduce((a, c) => ({ chi: a.chi + c[f].chi, thu: a.thu + c[f].thu }), { chi: 0, thu: 0 });
+      const t = sum('thang'), h = sum('hom_nay'), roiOf = (x: { chi: number; thu: number }) => (x.chi >= 0.1 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
+      bo_tk[k] = { ten: b.ten, tk_ext: b.ext, page: b.page, chi_phim_moi: !!b.chi_phim_moi, camp: cs.length, chay: cs.filter((c) => c.trang_thai === 'ACTIVE').length,
+        phim: new Set(cs.map((c) => c.content_id).filter(Boolean)).size, thang: { ...t, roi: roiOf(t) }, hom_nay: { ...h, roi: roiOf(h) } };
+    }
+    return NextResponse.json({ ok: true, bo_tk, camp: Object.fromEntries(d.camps.map((c) => [c.id, c.bo ?? '1'])) }, { headers: CORS });
+  }
   if (phim === '__lam_nong__') { await camps(); return NextResponse.json({ ok: true, creative: [] }, { headers: CORS }); }
   if (phim || phims) {
     const d = await camps();

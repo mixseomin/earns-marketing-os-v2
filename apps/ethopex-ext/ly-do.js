@@ -40,6 +40,10 @@
     '.etp-loai{position:absolute;top:50%;transform:translateY(-50%);left:6px;display:flex;gap:3px}' +
     '.etp-loai b{display:inline-block;width:22px;text-align:center;border-radius:4px;font:700 10px/16px system-ui,sans-serif;color:#fff;cursor:help}' +
     '.etp-loai b[data-loai="ke chuyen"]{background:#7b4fd6}.etp-loai b[data-loai="canh that"]{background:#1f7ae0}.etp-loai b[data-loai="canh cuoi"]{background:#0e9384}' +
+    // NHÃN BỘ TÀI KHOẢN (anh 23/10/2026 "các camp, phim phải ghi thêm thuộc bộ tk thứ mấy, hover vào ra thông tin bộ tk đó"): B1 xám đậm · B2 hổ phách
+    '.etp-loai b.etp-bo{width:22px;outline:1px solid rgba(255,255,255,.35)}.etp-bo[data-bo="1"]{background:#334155!important}.etp-bo[data-bo="2"]{background:#b45309!important}.etp-bo[data-bo="3"]{background:#0f766e!important}' +
+    '.etp-bo-camp{position:absolute;top:50%;transform:translateY(-50%);right:6px;display:inline-block;width:22px;text-align:center;border-radius:4px;font:700 10px/16px system-ui,sans-serif;color:#fff;cursor:help}' +
+    'td[data-etp-bo]{position:relative;padding-right:34px!important}' +
     '.etp-loai b[data-loai="phim dai"]{background:#c2410c}.etp-loai b[data-loai="lam moi"]{background:#6b7280}.etp-loai b[data-loai="khac"]{background:#9ca3af}' +
     'td[data-etp-nloai="1"]{padding-left:36px!important}td[data-etp-nloai="2"]{padding-left:61px!important}td[data-etp-nloai="3"]{padding-left:86px!important}td[data-etp-nloai="4"]{padding-left:111px!important}td[data-etp-nloai="5"]{padding-left:136px!important}' +
     '#etp-theme{position:fixed;right:16px;top:14px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
@@ -70,8 +74,19 @@
     const b = document.createElement('button'); b.id = 'etp-theme'; document.body.appendChild(b);
     b.addEventListener('click', () => { datTheme(!document.documentElement.classList.contains('dark')); keToan(); });
     datTheme(document.documentElement.classList.contains('dark')); };
+  let boData = null, boLuc = 0;
+  const layBo = async () => { if (!boData || Date.now() - boLuc > 120000) { boLuc = Date.now(); try { const r = await (await fetch(API + '&bo=1')).json(); if (r.ok) { boData = r; gan(); } } catch (e) {} } return boData; };
+  const ganBoCamp = () => { if (!boData) return;
+    for (const a of document.querySelectorAll('tbody td a')) {
+      const m = (a.textContent || '').match(/^\s*(\d{5,6}):/); if (!m) continue; const td = a.closest('td'); if (!td || td.closest('[data-etp-khung]')) continue;
+      const b = boData.camp[m[1]]; if (!b) continue;
+      let sp = td.querySelector(':scope > .etp-bo-camp');
+      if (!sp) { sp = document.createElement('span'); sp.className = 'etp-bo-camp etp-bo'; td.appendChild(sp); }
+      if (sp.dataset.bo !== b) { sp.dataset.bo = b; sp.textContent = 'B' + b; }
+      if (td.dataset.etpBo !== b) td.dataset.etpBo = b;
+    } };
   const gan = () => {
-    keToan(); nutTheme();
+    keToan(); nutTheme(); ganBoCamp(); if (!boData && Date.now() - boLuc > 15000) setTimeout(layBo, 0);   // chưa có số bộ (lần đầu chạy trước khi API sẵn / mạng lỗi) → thử lại, cách nhau ≥ 15 giây
     for (const a of document.querySelectorAll('tbody td a')) {
       if (!/^\s*\d{5,6}:/.test(a.textContent || '')) continue;
       const td = a.closest('td'), tr = td && td.parentElement; if (!tr) continue;
@@ -102,13 +117,13 @@
   const oTenPhim = () => [...document.querySelectorAll('tbody tr')].filter((tr) => !tr.closest('[data-etp-khung]') && ![...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || '')))
     .map((tr) => [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); })).filter(Boolean);
   const veDem = () => { for (const td of oTenPhim()) { const d = phimNho[tenTd(td)]?.r?.dem; if (!d) continue;
-    const ds = Object.keys(LOAI_TAT).filter((l) => (d.loai || {})[l] > 0), khoa = ds.join(',');
+    const ds = Object.keys(LOAI_TAT).filter((l) => (d.loai || {})[l] > 0), khoa = (d.bo || '') + '|' + ds.join(',');
     let w = td.querySelector(':scope > .etp-loai');
     if ((w?.dataset.k ?? '') !== khoa) {
       if (!w) { w = document.createElement('span'); w.className = 'etp-loai'; td.insertBefore(w, td.firstChild); }
-      w.dataset.k = khoa; w.innerHTML = ds.map((l) => `<b data-loai="${l}" title="${LOAI_TAT[l][1]} · ${d.loai[l]} camp đang chạy">${LOAI_TAT[l][0]}</b>`).join('');
+      w.dataset.k = khoa; w.innerHTML = (d.bo ? `<b class="etp-bo" data-bo="${d.bo}">B${d.bo}</b>` : '') + ds.map((l) => `<b data-loai="${l}" title="${LOAI_TAT[l][1]} · ${d.loai[l]} camp đang chạy">${LOAI_TAT[l][0]}</b>`).join('');
     }
-    if (td.dataset.etpNloai !== String(ds.length)) td.dataset.etpNloai = String(ds.length);
+    const nl = String(ds.length + (d.bo ? 1 : 0)); if (td.dataset.etpNloai !== nl) td.dataset.etpNloai = nl;
     if (td.dataset.etpChay !== String(d.chay)) td.dataset.etpChay = String(d.chay);
     let so = td.querySelector(':scope > .etp-so'); const ks = `${d.chay}|${d.lich}`;
     if ((so?.dataset.k ?? '') !== ks) {
@@ -179,6 +194,17 @@
     hien('<b>⏸ Camp #' + id + ' đã đóng</b><br>' + (h ? 'Không có trong nhật ký luật — đóng ngoài máy: <b>' + esc(h.ai) + '</b>' + (h.qua ? ' qua ' + esc(h.qua) : '') + ' · ' + esc(new Date(h.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })) : 'Chưa đọc được lý do (Ethopex chưa ghi lịch sử).'), ev);
   };
 
+  const veBo = async (bo, ev) => {
+    if (dang === 'b' + bo) return; dang = 'b' + bo;
+    const d = await layBo(), b = d?.bo_tk?.[bo]; if (dang !== 'b' + bo) return;
+    if (!b) return hien('<b>Bộ tài khoản ' + esc(bo) + '</b><br>Chưa đọc được thông tin bộ.', ev);
+    const td_ = 'padding:1px 0 1px 8px;text-align:right;white-space:nowrap;color:inherit;border:0';
+    const dong = (nhan, x) => '<tr><td style="padding:1px 0;opacity:.75;color:inherit;border:0">' + nhan + '</td><td style="' + td_ + '">' + tien(x.chi) + '</td><td style="padding:1px 0 1px 6px;opacity:.5;color:inherit;border:0">→</td><td style="' + td_ + '">' + tien(x.thu) + '</td><td style="' + td_ + '">' + phanTram(x.roi) + '</td></tr>';
+    hien('<b>Bộ tài khoản ' + esc(bo) + '</b> · ' + esc(b.ten) + (b.chi_phim_moi ? ' <span style="color:#ffd54f">· chỉ phim mới</span>' : '') +
+      '<div style="margin-top:4px;font-size:12px;opacity:.8">Tài khoản QC ' + esc(b.tk_ext) + ' · Page #' + esc(b.page) + '</div>' +
+      '<div style="margin-top:6px">' + b.chay + ' camp đang chạy / ' + b.camp + ' camp · ' + b.phim + ' phim</div>' +
+      '<table style="border-collapse:collapse;margin-top:6px;color:inherit;font:inherit;font-variant-numeric:tabular-nums">' + dong('Tháng', b.thang) + dong('Hôm nay', b.hom_nay) + '</table>', ev);
+  };
   const vePhim = async (ten, ev, loai = null, kieu = null) => {
     const kk = 'p' + ten + '|' + (loai || '') + '|' + (kieu || ''); if (dang === kk) return; dang = kk;
     hien('<b>🎬 ' + esc(ten) + '</b><br>đang tải creative…', ev);
@@ -225,6 +251,7 @@
     // CHỈ khi rê đúng vào Ô TÊN (anh 22/10/2026: "chỉ hover vào tên phim thôi, không phải chỗ nào cũng show") — ô số / ROI / ngân sách không hiện
     const td = ev.target.closest && ev.target.closest('tbody td'); const tr = td && td.parentElement; if (!td || !tr) return anSau();
     clearTimeout(an);
+    const nb = ev.target.closest('.etp-bo'); if (nb) return veBo(nb.dataset.bo, ev);   // rê vào nhãn B1/B2 → thông tin bộ tài khoản
     const a = td.querySelector('a') && /^\s*\d{5,6}:/.test(td.querySelector('a').textContent || '') ? td.querySelector('a') : null;
     if (a) {
       if (tr.dataset.etp === 'tat' || laTat(tr)) return veCamp(tr, a, ev);
@@ -233,7 +260,7 @@
     if ([...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || ''))) return anSau();   // hàng camp nhưng không phải ô tên
     // hàng PHIM (Report nhóm theo Content): ô đang rê phải là ô tên — ô chữ đầu tiên không phải số / tiền / %
     const o1 = [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); });
-    if (o1 === td) { const b = ev.target.closest && ev.target.closest('.etp-loai b'), n = ev.target.closest && ev.target.closest('.etp-so i'); return vePhim(tenTd(td), ev, b ? b.dataset.loai : null, n ? n.dataset.k : null); }
+    if (o1 === td) { const b = ev.target.closest && ev.target.closest('.etp-loai b:not(.etp-bo)'), n = ev.target.closest && ev.target.closest('.etp-so i'); return vePhim(tenTd(td), ev, b ? b.dataset.loai : null, n ? n.dataset.k : null); }
     anSau();
   }, true);
   document.addEventListener('scroll', (ev) => { if (!o.contains(ev.target)) { o.style.display = 'none'; dang = null; } }, true);

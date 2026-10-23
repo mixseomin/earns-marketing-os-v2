@@ -48,11 +48,20 @@ export async function tachShotDb(db: Db, id: number, phan: string[], nguoi: stri
   const moi = await chenSau(db, tapId, g, ds.length - 1, ds.slice(1).map((h) => ({ canh: String(g.canh ?? ''), hanh_dong: h, ky_thuat: { ...kt, luat: [] } })), nguoi, moTa);
   await chupTruoc(db, { bang: 'xv_canh', id, cot: ['hanh_dong'], moTa, nguoi });
   await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${ds[0]!}, updated_at = now() WHERE id = ${id}`);
-  // Khuôn: shot gánh [b0, b1, …] → gốc giữ b0, shot mới thứ k nhận b(k) (thiếu bước thì giữ bước cuối).
+  // Khuôn: shot gánh [b0, b1, …] → gốc giữ b0, shot mới thứ k nhận b(k). Thiếu bước: nhận BƯỚC KẾ TIẾP CÒN TRỐNG của khuôn (chưa shot nào gánh) nếu có,
+  // không thì giữ bước cuối — 23/10/2026 #132 tách #15 (giật thẻ) ra cận chèn: shot mới chép lại "Kẻ ác gây sự" (bước chỉ một shot, vai sai) trong khi
+  // bước kế "Chi tiết nỗi nhục" (cận tấm thẻ bị giật) đang trống.
   const khuon = (await docKhuon(db, tapId)).map((a) => {
     const bs = buocCua(a.shots[String(id)]); if (!bs.length) return a;
     const shots = { ...a.shots, [String(id)]: bs[0]! };
-    moi.forEach((nid, k) => { shots[String(nid)] = bs[Math.min(k + 1, bs.length - 1)]!; });
+    const daGanh = new Set(Object.entries(a.shots).filter(([sid]) => sid !== String(id)).flatMap(([, b]) => buocCua(b)));
+    let tiep = Math.max(...bs) + 1;
+    moi.forEach((nid, k) => {
+      if (k + 1 < bs.length) { shots[String(nid)] = bs[k + 1]!; return; }
+      const so = khuonTheoKey(a.khuon)?.buoc.length ?? 0;
+      while (tiep < so && daGanh.has(tiep)) tiep++;
+      shots[String(nid)] = tiep < so ? tiep++ : bs[bs.length - 1]!;
+    });
     return { ...a, shots };
   });
   await ghiKhuon(db, tapId, khuon);

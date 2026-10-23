@@ -31,6 +31,18 @@ type ChoNb = Record<string, { luc: string; loi: string }>;
 const LOAI = ['ke chuyen', 'canh that', 'canh cuoi', 'phim dai', 'lam moi'] as const;
 const loaiCua = (ten: string) => LOAI.find((l) => ten.toLowerCase().includes(l)) ?? 'khac';
 const laLich = (c: { bat_dau?: string | null }) => !!c.bat_dau && Date.parse(c.bat_dau.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')) > Date.now();   // Scheduled: Ad Set chưa tới giờ chạy
+// ĐOẠN VIDEO của creative (studio kinh_thanh.ethopex: content + tu + den, làm tròn giây) — hai creative cùng mốc = cùng đoạn (bản CTA cũ ↔ bản sửa).
+// Tên camp KHÔNG dùng được: camp nhân bản / bản lô khác mang tên khác mà vẫn dùng cùng creative (24/10/2026: #54182 có 9 camp, đếm theo tên ra 7).
+let doanNho: { luc: number; m: Map<number, string> } | null = null;
+async function napDoan(): Promise<Map<number, string>> {
+  if (doanNho && Date.now() - doanNho.luc < 300_000) return doanNho.m;
+  const db = getDb(); const m = new Map<number, string>();
+  if (db) for (const r of (await db.execute(sql`SELECT (kinh_thanh->'ethopex'->>'creative_id')::int AS cr, kinh_thanh->'ethopex'->>'content_id' AS ct, round((kinh_thanh->'ethopex'->>'tu')::numeric) AS tu, round((kinh_thanh->'ethopex'->>'den')::numeric) AS den
+      FROM xv_phim WHERE project = 'ethopex' AND kinh_thanh->'ethopex' ? 'creative_id' AND coalesce(kinh_thanh->'ethopex'->>'tu', '') <> ''`)) as unknown as { cr: number; ct: string; tu: string; den: string }[]) m.set(Number(r.cr), `${r.ct}:${r.tu}-${r.den}`);
+  doanNho = { luc: Date.now(), m }; return m;
+}
+let DOAN = new Map<number, string>();
+const doanCua = (cr: number | null | undefined) => (cr ? DOAN.get(cr) ?? `cr:${cr}` : null);
 function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const k = chuan(phim);
   if (k.length < 6) return { so_camp: 0, dem: { bo: null as string | null, chay: 0, lich: 0, tat: 0, loai: {} as Record<string, number>, cho: 0 }, creative: [], ngay7: [] as { ngay: string; chi: number; thu: number; roi: number | null }[] };
@@ -55,11 +67,11 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
       luat: c.trang_thai === 'ACTIVE' ? chamLuat(c, { soCampPhim: cua.filter((x) => x.trang_thai === 'ACTIVE').length, phimThang: d.phimThang.includes(Number(c.content_id)) })
         .filter((l) => l.trang_thai !== 'ap').map((l) => ({ ma: l.ma, ten: LUAT_THEO_MA[l.ma]?.ten ?? l.ma, icon: LUAT_THEO_MA[l.ma]?.icon ?? '', trang_thai: l.trang_thai, cau: l.cau })) : [] })).sort((a, b) => b.thu - a.thu),
     // số camp ĐANG CHẠY cùng ĐOẠN video (cùng phim + cùng mốc "tu-den s" trong tên, gộp bản CTA cũ và bản sửa) — > 3 = tự cạnh tranh (luật 1 đoạn ≤ 3 camp, 23/10/2026)
-    chay: (() => { const doan = (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1]; return doan ? cua.filter((x) => x.trang_thai === 'ACTIVE' && (x.ten.match(/(\d+-\d+s)/) ?? [])[1] === doan).length : ds.filter((x) => x.trang_thai === 'ACTIVE').length; })(),
+    chay: cua.filter((x) => x.trang_thai === 'ACTIVE' && doanCua(x.creative_id) === doanCua(cr > 0 ? cr : null)).length || ds.filter((x) => x.trang_thai === 'ACTIVE').length,
     chay_day: ds.filter((x) => x.trang_thai === 'ACTIVE').length,   // camp chạy của CHÍNH creative này
     // creative khác cùng đoạn (bản CTA cũ ↔ bản sửa) và số camp chạy của từng cái — nhãn "7 camp · 1 ở đây · 6 ở #54182" (anh 24/10/2026)
-    cung_doan: (() => { const doan = (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1]; if (!doan) return [];
-      const m = new Map<number, number>(); for (const x of cua) if (x.trang_thai === 'ACTIVE' && x.creative_id && x.creative_id !== cr && (x.ten.match(/(\d+-\d+s)/) ?? [])[1] === doan) m.set(x.creative_id, (m.get(x.creative_id) ?? 0) + 1);
+    cung_doan: (() => { if (cr <= 0) return []; const m = new Map<number, number>();
+      for (const x of cua) if (x.trang_thai === 'ACTIVE' && x.creative_id && x.creative_id !== cr && doanCua(x.creative_id) === doanCua(cr)) m.set(x.creative_id, (m.get(x.creative_id) ?? 0) + 1);
       return [...m].map(([id, n]) => ({ id, n })); })(),
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)), ngay7: ngay7(ds),
   })).sort((a, b) => (b.thang.roi ?? -1e9) - (a.thang.roi ?? -1e9) || b.thang.thu - a.thang.thu);   // ROI tháng cao nhất lên đầu, creative chưa tiêu xuống cuối (anh duyệt 23/10/2026)
@@ -80,6 +92,7 @@ export async function GET(req: Request) {
   if (!r[0]?.t || u.searchParams.get('k') !== r[0].t) return NextResponse.json({ ok: false, error: 'sai mã' }, { status: 403, headers: CORS });
   if (u.searchParams.get('bao')) console.log(`ethopex-nap BAO=${u.searchParams.get('bao')} ua=${(req.headers.get('user-agent') ?? '').slice(0, 90)}`);
   const phim = u.searchParams.get('phim'), phims = u.searchParams.get('phims');
+  try { DOAN = await napDoan(); } catch { /* thiếu sổ đoạn → đếm theo creative */ }
   // BỘ TÀI KHOẢN QC + PAGE (anh 23/10/2026 "các camp, phim phải ghi thêm thuộc bộ tk thứ mấy, hover vào ra thông tin bộ tk đó"):
   // ?bo=1 → { bo_tk: {bộ: thông tin + số}, camp: {id: bộ} } — extension gắn nhãn B1/B2 ở ô tên camp / phim, rê vào hiện thông tin bộ
   if (u.searchParams.get('bo')) {

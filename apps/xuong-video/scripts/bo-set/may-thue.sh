@@ -4,6 +4,7 @@
 #   may-thue.sh chuan-bi <user@host> [cổng]   cài Blender 5.0.1 Linux + đẩy dung-set.py / mesh / tài sản + in GPU — chạy lại an toàn
 #   may-thue.sh do <user@host> [cổng] [thư mục shot]   đo giây / khung Cycles 720p của một shot (mặc định #9 tập 19) → ước giờ cả tập
 #   may-thue.sh tat <user@host> [cổng]       tắt máy thuê từ bên trong (RunPod: runpodctl stop pod) — hết việc là tắt, không để tính tiền
+#   XV_KHUNG=<id,…> may-thue.sh lam <tap>  chỉ dựng khung 3D các shot đó rồi xoá máy
 #   may-thue.sh lam <tap> [chi]              CẢ MẠCH: tạo máy RẺ NHẤT THEO VIỆC (XV_CHI_XEM=1 tao = xem ứng viên) → chuẩn bị → khung đẹp → bản diễn → XOÁ máy (trap, cả khi lỗi)
 #   may-thue.sh xem|bat|cho|dung|xoa <pod>   đọc / bật lại / đợi SSH / tắt / xoá pod qua API (khoá RUNPOD_API_KEY trên box3)  ·  tao = tạo pod mới
 # Diễn cả tập trên máy thuê: XV_MAY_THUE=<user@host> [XV_MAY_THUE_CONG=<cổng>] scripts/bo-set/dien-tap.sh <tập>
@@ -83,6 +84,9 @@ for v, cl, i, gia in sorted(ds): print(f"{cl}|{i}|{gia}|{v:.3f}")' "${XV_GIA_TOI
       [ $lan = 3 ] && { echo "3 máy liền hỏng — dừng"; exit 1; }
     done
     echo "máy: $H cổng $P"
+    if [ -n "${XV_KHUNG:-}" ]; then   # CHỈ DỰNG KHUNG cho các shot XV_KHUNG=<id,…> (như may-thue-vast.sh) — không dựng lại cả tập, không bản diễn
+      XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --chi="$XV_KHUNG"; echo "XONG KHUNG"; exit 0
+    fi
     XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P bash "$DIR/scripts/bo-set/chay-imac.sh" "$TAP" --tat-ca
     [ -n "$CHI" ] && XV_MAY_THUE=$H XV_MAY_THUE_CONG=$P XV_MAY=cycles bash "$DIR/scripts/bo-set/dien-tap.sh" "$TAP" --chi="$CHI"
     echo "XONG MẠCH" ;;

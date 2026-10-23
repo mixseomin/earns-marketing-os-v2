@@ -187,8 +187,14 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   for (const u of Object.values(d!.mo)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) { const k = lay[i]!; if (k >= 0 && m[k]! > 127) vung[i] = 1; } }
   for (const u of Object.values(b)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) { vung[i] = 1; ket3d[i] = 1; } }
   noVung(vung, W, H, Math.round(VUNG_DONG * Math.max(W, H)));
+  // MẢNG ĐỔI DÍNH VÙNG NGƯỜI thuộc về người (người AI vẽ to / lệch hơn ma-nơ-canh — chặt theo vùng thì sót vệt váy #15, Thần mờ nửa người #16): loang theo
+  // chỗ đổi từ mọi điểm đổi nằm trong vùng. Mảng đổi KHÔNG dính vùng nào = AI đổi sảnh → giữ ảnh đầu, đếm vào doiSet.
+  const nhan = new Uint8Array(W * H); const hang: number[] = [];
+  for (let i = 0; i < W * H; i++) if (M[i] && (vung[i] || ket3d[i])) { nhan[i] = 1; hang.push(i); }
+  while (hang.length) { const i = hang.pop()!; const x = i % W;
+    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < W * H && M[j] && !nhan[j]) { nhan[j] = 1; hang.push(j); } }
   let doiSet = 0, nSet = 0;
-  for (let i = 0; i < W * H; i++) { if (lay[i]! >= 0 && !vung[i]) { nSet++; if (M[i]) doiSet++; } M[i] = (M[i] && vung[i]) || ket3d[i] ? 1 : 0; }
+  for (let i = 0; i < W * H; i++) { if (lay[i]! >= 0 && !vung[i]) { nSet++; if (M[i] && !nhan[i]) doiSet++; } M[i] = nhan[i] || ket3d[i] ? 1 : 0; }
   const r = Math.max(2, Math.round(NO_VUNG_DONG * Math.max(W, H)));
   noVung(M, W, H, r);
   for (let i = 0; i < W * H; i++) if (lay[i]! < 0) M[i] = 1;

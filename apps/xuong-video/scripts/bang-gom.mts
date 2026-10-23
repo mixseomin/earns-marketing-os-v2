@@ -120,8 +120,12 @@ if (gia('sua')) {
   const goc = lucSua === 'ket' ? c?.keyframe_ket : lucSua === 'giua' ? c?.keyframe_giua : c?.keyframe_url;
   if (!c || !goc || !ct) { console.error('cần --sua=<thu_tu có khung> --chi-thi="…" [--luc=dau|giua|ket]'); process.exit(1); }
   const refs = thamChieu([c], 6);
-  const p = [`Edit Image 1 (a film still): ${ct}`, 'Keep everything else in Image 1 exactly as it is — the same place, camera angle, framing, light, the same people, faces, outfits, poses and gaze directions — change only what this instruction asks.',
+  // khung sửa phải mang TRẠNG THÁI ĐỒ + HƯỚNG của đúng thời điểm khung (sổ đồ vật, sơ đồ cảnh) — #353 #16 sửa hướng nhìn mà không kèm sổ: Vivian tự đeo dây thẻ lên cổ
+  const vatSua = lucSua === 'ket' ? c.ky_thuat?.vat_so_ket : c.ky_thuat?.vat_so; const huongSua = lucSua === 'ket' ? c.dan_dung?.huong_ket : c.dan_dung?.huong;
+  const cauSo = [vatSua?.length ? `OBJECT STATE (must match exactly): ${vatSua.map((v) => `${v.ten} — ${v.cach}`).join('; ')}.` : '', huongSua ? `Screen direction: ${huongSua}.` : ''].filter(Boolean).join(' ');
+  const p = [`Edit Image 1 (a film still): ${ct}`, cauSo, 'Keep the framing and camera angle of Image 1 and everything else exactly as it is — the same place, light, the same people, faces and outfits — change only what this instruction and the object state require.',
     `Reference images: ${refs.map(([k], i) => `Image ${i + 2} = ${k}`).join('; ')}.`, 'Vertical 9:16 photorealistic live-action film still. No text, captions or borders.'].join(' ');
+  { const l = loiTrangThaiVat(`#${c.thu_tu} ${lucSua}`, p, vatSua); if (l.length) { console.error(`bộ chấm chặn: ${l.map((x) => x.chu).join(' · ')}`); process.exit(1); } }
   const url = await sinh({ nhan: `Keyframe (sửa theo chỉ thị) · cảnh #${c.thu_tu} ${lucSua}`, prompt: p, refs: [goc, ...refs.map(([, u]) => u)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
   if (lucSua === 'dau') await chonKeyframe(db, c.id, url, 'sửa theo chỉ thị');
   else await db.execute(lucSua === 'ket' ? sql`UPDATE xv_canh SET keyframe_ket = ${url}, updated_at = now() WHERE id = ${c.id}` : sql`UPDATE xv_canh SET keyframe_giua = ${url}, updated_at = now() WHERE id = ${c.id}`);

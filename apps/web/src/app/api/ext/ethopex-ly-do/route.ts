@@ -26,10 +26,13 @@ const chuan = (t: string) => t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
 const loi = (t: string) => chuan(t.replace(/^\S+\s+/, '').split(/ (?:EN|ES) - /)[0] ?? '');
 type Du = Awaited<ReturnType<typeof docEthopex>>;
 type ChoNb = Record<string, { luc: string; loi: string }>;
+// DẠNG CREATIVE theo tên camp (badge ở danh sách Report — anh 23/10/2026): kể chuyện · cảnh thật · cảnh cuối · phim dài · làm mới
+const LOAI = ['ke chuyen', 'canh that', 'canh cuoi', 'phim dai', 'lam moi'] as const;
+const loaiCua = (ten: string) => LOAI.find((l) => ten.toLowerCase().includes(l)) ?? 'khac';
 const laLich = (c: { bat_dau?: string | null }) => !!c.bat_dau && Date.parse(c.bat_dau.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')) > Date.now();   // Scheduled: Ad Set chưa tới giờ chạy
 function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const k = chuan(phim);
-  if (k.length < 6) return { so_camp: 0, dem: { chay: 0, lich: 0, tat: 0 }, creative: [] };
+  if (k.length < 6) return { so_camp: 0, dem: { chay: 0, lich: 0, tat: 0, loai: {} as Record<string, number> }, creative: [] };
   const khop = (a: string) => a.length >= 8 && (a.includes(k) || k.includes(a));
   const cua = d.camps.filter((c) => khop(loi(c.ten)) || (!!c.phim && khop(chuan(c.phim))));
   const nhom = new Map<number, typeof cua>();
@@ -37,13 +40,14 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const cong = (ds: typeof cua, f: (c: (typeof cua)[number]) => { chi: number; thu: number }) => ds.reduce((a, c) => ({ chi: a.chi + f(c).chi, thu: a.thu + f(c).thu }), { chi: 0, thu: 0 });
   const so = (x: { chi: number; thu: number }) => ({ chi: +x.chi.toFixed(2), thu: +x.thu.toFixed(2), roi: x.chi >= 0.1 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null });
   const creative = [...nhom.entries()].map(([cr, ds]) => ({
-    creative_id: cr > 0 ? cr : null, anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
+    creative_id: cr > 0 ? cr : null, loai: loaiCua(ds[0]!.ten), anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
     doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
     camp: ds.map((c) => ({ id: c.id, trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)),
   })).sort((a, b) => b.thang.thu - a.thang.thu);
   // ĐẾM THEO PHIM cho nhãn ở danh sách Report (anh 23/10/2026 "show số lượng camp đang active, scheduled ở danh sách")
-  const dem = { chay: cua.filter((c) => c.trang_thai === 'ACTIVE' && !laLich(c)).length, lich: cua.filter((c) => c.trang_thai === 'ACTIVE' && laLich(c)).length, tat: cua.filter((c) => c.trang_thai !== 'ACTIVE').length };
+  const loai: Record<string, number> = {}; for (const c of cua) if (c.trang_thai === 'ACTIVE') loai[loaiCua(c.ten)] = (loai[loaiCua(c.ten)] ?? 0) + 1;
+  const dem = { chay: cua.filter((c) => c.trang_thai === 'ACTIVE' && !laLich(c)).length, lich: cua.filter((c) => c.trang_thai === 'ACTIVE' && laLich(c)).length, tat: cua.filter((c) => c.trang_thai !== 'ACTIVE').length, loai };
   return { so_camp: cua.length, dem, creative };
 }
 

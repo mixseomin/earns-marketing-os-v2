@@ -204,6 +204,19 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
     if (co('resolution')) { const en = enumCua(p.resolution).map(String); const chon = en.find((x) => /768|720/.test(x)) ?? en[0]; if (chon) o.resolution = chon; }
     return o;
   }
+  // CLIP DIỄN BLENDER LÀM KHUÔN CHUYỂN ĐỘNG (reference-to-video: video_urls + image_urls — Seedance 2.0; anh 23/10/2026 "tìm xem họ đang làm thế nào": ngành
+  // đưa video dựng thô 3D làm tham chiếu chuyển động thay vì tả động tác bằng chữ — flick.art/blog/blender-ai-filmmaking). Ảnh đầu đã duyệt = ngoại hình +
+  // sảnh; clip = chỉ chuyển động / chỗ đứng / nhịp / máy, KHÔNG lấy vẻ ma-nơ-canh xám.
+  if (co('video_urls') && co('image_urls') && v.videoNguon && v.anhDau) {
+    o.image_urls = [v.anhDau]; o.video_urls = [v.videoNguon];
+    o.prompt = catCau(`@Image1 is the first frame of this shot: keep exactly these people, faces, hair, wardrobe, the set, lighting, colours and framing. @Video1 is a rough 3D blockout of this same shot: copy ONLY its movement — where each person moves, their poses, gestures, timing and the camera move — never its grey mannequin look, colours or materials. ${v.prompt}`, toiDa);
+    const en = enumCua(p.duration).map(String).filter((x) => /^\d+$/.test(x)).map(Number);
+    if (en.length) o.duration = String(en.reduce((a, b) => (Math.abs(b - (v.giay ?? 5)) < Math.abs(a - (v.giay ?? 5)) ? b : a)));
+    if (v.tiLe && co('aspect_ratio')) o.aspect_ratio = enumCua(p.aspect_ratio).map(String).includes(v.tiLe) ? v.tiLe : 'auto';
+    if (co('resolution')) o.resolution = '720p';
+    if (co('generate_audio')) o.generate_audio = v.tieng ?? false;
+    return o;
+  }
   // KHUNG GHIM THEO SỐ KHUNG (FLUX 3 keyframes: [{image_url, frame_index}] trên video 24 khung/giây, ≤ 10 khung): rải đều từ khung 0 tới khung cuối.
   if (co('keyframes') && khung.length >= 2) {
     const en = enumCua(p.duration).map(Number).filter((x) => !Number.isNaN(x));

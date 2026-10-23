@@ -34,7 +34,7 @@
     // hai số là PHẦN TỬ THẬT (rê vào số xanh = danh sách camp đang chạy, số vàng = camp đã lên lịch — anh 23/10/2026)
     '.etp-so{position:absolute;top:50%;transform:translateY(-50%);right:8px;display:flex;gap:6px}' +
     '.etp-so i{font:700 12px/16px system-ui,sans-serif;font-style:normal;font-variant-numeric:tabular-nums;min-width:12px;text-align:right;cursor:help}' +
-    '.etp-so i[data-k="chay"]{color:#1e8e3e}.etp-so i[data-k="lich"]{color:#c98a00}html.dark .etp-so i[data-k="chay"]{color:#7bd88f}html.dark .etp-so i[data-k="lich"]{color:#ffd54f}' +
+    '.etp-so i[data-k="chay"]{color:#1e8e3e}.etp-so i[data-k="lich"]{color:#c98a00}html.dark .etp-so i[data-k="chay"]{color:#7bd88f}html.dark .etp-so i[data-k="lich"]{color:#ffd54f}.etp-so i[data-0]{color:#9e9e9e!important;opacity:.4;font-weight:400}' +   // số 0 mờ, nhạt (anh 23/10/2026)
     // BADGE DẠNG CREATIVE bên trái tên phim (anh 23/10/2026): KC kể chuyện · CT cảnh thật · CC cảnh cuối · PD phim dài · LM làm mới — chỉ dạng có camp đang chạy.
     // Đặt tuyệt đối trong ô (chừa lề trái theo số badge) để không xô bố cục React; rê vào badge = khung chỉ creative của dạng đó
     '.etp-loai{position:absolute;top:50%;transform:translateY(-50%);left:6px;display:flex;gap:3px}' +
@@ -130,7 +130,7 @@
     let so = td.querySelector(':scope > .etp-so'); const cho = d.cho || 0, ks = `${d.chay}|${d.lich}|${cho}`;
     if ((so?.dataset.k ?? '') !== ks) {
       if (!so) { so = document.createElement('span'); so.className = 'etp-so'; td.appendChild(so); }
-      so.dataset.k = ks; so.innerHTML = `<i data-k="chay" title="${d.chay} camp đang chạy">${d.chay}</i><i data-k="lich" title="${d.lich} camp đã lên lịch${cho ? ` · ${cho} camp thắng đang chờ nhân bản` : ''}">${d.lich + cho}</i>`;   // số vàng = lịch + nhân bản đang chờ (anh 23/10/2026)
+      so.dataset.k = ks; so.innerHTML = `<i data-k="chay"${d.chay ? '' : ' data-0'} title="${d.chay} camp đang chạy">${d.chay}</i><i data-k="lich"${d.lich + cho ? '' : ' data-0'} title="${d.lich} camp đã lên lịch${cho ? ` · ${cho} camp thắng đang chờ nhân bản` : ''}">${d.lich + cho}</i>`;   // số vàng = lịch + nhân bản đang chờ (anh 23/10/2026)
     } } };
   const taiSan = () => {
     veDem();

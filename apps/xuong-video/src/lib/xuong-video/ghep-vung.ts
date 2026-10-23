@@ -207,7 +207,10 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   noVung(vat, W, H, Math.round(VUNG_DONG * Math.max(W, H)));
   for (let i = 0; i < W * H; i++) if (vat[i]) M[i] = 1;
   // AI ĐỔI SẢNH: chênh màu (làm mịn) ngoài vùng trên phần ảnh đầu thấy được
-  const rgb = async (x: Buffer) => sharp(x, { raw: { width: W, height: H, channels: 3 } }).blur(1.5).raw().toBuffer();
+  // ZOOM / ĐẨY VÀO: ảnh đầu chuyển góc bị PHÓNG (mờ hơn ảnh AI) → làm mịn cả hai theo hệ số phóng, không thì chỗ mờ khác chỗ nét bị đếm thành "AI đổi sảnh"
+  // (#132 #20 zoom chậm 1,33× chặn oan 36,9 % dù ảnh ghép đúng)
+  const phong = Math.max(1, 1 / Math.max(0.05, Math.min(Math.hypot(goc[1]![0]! - goc[0]![0]!, goc[1]![1]! - goc[0]![1]!), Math.hypot(goc[3]![0]! - goc[0]![0]!, goc[3]![1]! - goc[0]![1]!))));
+  const rgb = async (x: Buffer) => sharp(x, { raw: { width: W, height: H, channels: 3 } }).blur(1.5 * phong * phong).raw().toBuffer();
   const Bb = Buffer.alloc(W * H * 3); for (let i = 0; i < W * H; i++) for (let c = 0; c < 3; c++) Bb[i * 3 + c] = B.d[i * 4 + c]!;
   const [a1, b1] = await Promise.all([rgb(Aw), rgb(Bb)]);
   let doiSet = 0, nSet = 0;

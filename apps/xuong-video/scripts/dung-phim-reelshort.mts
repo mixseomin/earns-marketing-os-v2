@@ -28,12 +28,13 @@ if (du.so_do) {
 // SỔ ĐỒ VẬT (anh 24/10/2026: "cảnh trước cầm dây thẻ, cảnh sau lại cầm cái thẻ… ôm hộp lúc có lúc không"): mỗi mảnh nhận câu trạng thái đồ từ sổ (người
 // giữ trong khung ⇒ đồ phải vẽ, kể cả khi mảnh không nhắc), món đó vào danh sách ảnh mẫu của mảnh; đổi trạng thái thiếu sự kiện / sự kiện ngoài khung ⇒ chặn.
 const nguoiKhung = (s: Manh) => (s.sd ? s.sd.khung ?? Object.keys(s.sd.o) : s.nv).filter((n) => (du.nguoi ?? []).includes(n));
-const vatDoc = new Map<number, string[]>();
+const vatDoc = new Map<number, string[]>(); const vatSo = new Map<number, { ten: string; cach: string }[]>();
 if (du.so_vat) {
   const loi = loiSoVat(du.so_vat, (n) => (du.shot[n - 1] ? nguoiKhung(du.shot[n - 1]!) : null)); if (loi.length) { console.error(`sổ đồ vật lỗi:\n  ${loi.join('\n  ')}`); process.exit(1); }
   for (const [i, s] of du.shot.entries()) {
     const ng = nguoiKhung(s); const khai = s.nv.filter((x) => x in du.so_vat!);
-    for (const [t] of vatTrongKhung(du.so_vat, i + 1, ng, khai)) if (!s.nv.includes(t)) s.nv.push(t);
+    const thay = vatTrongKhung(du.so_vat, i + 1, ng, khai); vatSo.set(i + 1, thay.map(([t, m]) => ({ ten: t, cach: m.cach })));
+    for (const [t] of thay) if (!s.nv.includes(t)) s.nv.push(t);
     const cau = cauVat(du.so_vat, i + 1, ng, (t) => du.ten_en?.[t] ?? t, khai);
     if (cau) { s.anh = `${s.anh} ${cau}`.trim(); s.vid = `${s.vid} ${cau}`.trim(); }
     vatDoc.set(i + 1, dongVat(du.so_vat, i + 1));
@@ -53,7 +54,7 @@ if (gia('cap-nhat')) {
   const idNv = (x: string) => nvPhim.find((r) => r.ten === x)?.id; const idBt = (x: string) => btPhim.find((r) => r.ten === x)?.id;
   for (const [i, s] of du.shot.entries()) {
     const nv = s.nv.map(idNv).filter((x) => x != null).map(Number); const bt = (s.bt ?? []).map(idBt).filter((x) => x != null).map(Number);
-    const kt = { co_canh: s.co, ...(s.am?.length ? { am_thanh: s.am } : {}), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []) } : {}), ...(vatDoc.get(i + 1)?.length ? { vat: vatDoc.get(i + 1) } : {}) };
+    const kt = { co_canh: s.co, ...(s.am?.length ? { am_thanh: s.am } : {}), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []) } : {}), ...(vatDoc.get(i + 1)?.length ? { vat: vatDoc.get(i + 1), vat_so: vatSo.get(i + 1) ?? [] } : {}) };
     await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${s.hd}, prompt_anh = ${s.anh}, dan_dung = coalesce(dan_dung, '{}'::jsonb) || ${JSON.stringify(danDung(s))}::jsonb,
       ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(kt)}::jsonb, nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, updated_at = now()
       WHERE tap_id = ${tapId} AND thu_tu = ${i + 1}`);
@@ -88,7 +89,7 @@ const kq = await db.transaction(async (tx) => {
     const nv = s.nv.map((x) => doiNv.get(x)!); const bt = (s.bt ?? []).map((x) => doiBt.get(x)).filter((x): x is number => x != null);
     // vid = khối DIỄN của mảnh (một việc): dan_dung.dien — khuôn video bắt buộc khối diễn (prompt-khoi.ts › KHUON.video); prompt_video để trống cho khỏi lặp
     await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, dan_dung, thoai, keyframe_url, trang_thai)
-      VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co, ...(s.vao != null ? { vao_s: s.vao } : {}), ...(s.am?.length ? { am_thanh: s.am } : {}), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []) } : {}), ...(vatDoc.get(i + 1)?.length ? { vat: vatDoc.get(i + 1) } : {}) })}::jsonb,
+      VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co, ...(s.vao != null ? { vao_s: s.vao } : {}), ...(s.am?.length ? { am_thanh: s.am } : {}), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []) } : {}), ...(vatDoc.get(i + 1)?.length ? { vat: vatDoc.get(i + 1), vat_so: vatSo.get(i + 1) ?? [] } : {}) })}::jsonb,
         ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, '', ${JSON.stringify(danDung(s))}::jsonb, ${JSON.stringify(s.thoai ?? [])}::jsonb, ${s.kf ?? null}, ${s.kf ? 'co_keyframe' : 'nhap'})`);
   }
   return { phimId, tapId, soManh: du.shot.length, giay: tongGiay, ten };

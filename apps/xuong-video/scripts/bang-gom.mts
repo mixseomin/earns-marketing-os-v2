@@ -23,6 +23,7 @@ import { chonKeyframe } from '../src/lib/xuong-video/tu-sua-clip';
 import { uploadToR2 } from '../src/lib/r2';
 import type { Canh, NhanVat } from '../src/lib/xuong-video/kieu';
 import { svgPhac, type ManhSoDo, type MangPhong, type SoDo } from '../src/lib/xuong-video/so-do-canh';
+import { loiTrangThaiVat } from '../src/lib/xuong-video/kiem-prompt';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')); if (!tap) { console.error('cần --tap=<id>'); process.exit(1); }
@@ -102,6 +103,9 @@ async function luoiPhac(nhom: Canh[], cot: number): Promise<{ tron: string; so: 
   return { tron: await len(tron, `phac-${nhom[0]!.thu_tu}`), so: await len(await danhSo(tron, vt, nhom.map((c) => c.thu_tu)), `phac-so-${nhom[0]!.thu_tu}`) };
 }
 const moTaKhung = (c: Canh) => `${CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'}: ${(c.prompt_anh || c.dan_dung?.dien || c.hanh_dong).trim()}${c.dan_dung?.huong ? ` Screen direction: ${c.dan_dung.huong}.` : ''}`;
+// CỔNG CHẤM trước mọi lượt sinh bảng (đường phân cảnh không đi qua sinh-anh nên trước đây không ai chấm — anh 24/10/2026 "đoạn này đã chấm chưa?"):
+// mỗi khung phải nói đủ trạng thái đồ sổ đồ vật đòi (kiem-prompt.ts › loiTrangThaiVat). Lỗi → dừng, không tiêu tiền lên prompt thiếu.
+function chanCham(nhom: Canh[]) { const loi = nhom.flatMap((c) => loiTrangThaiVat(`#${c.thu_tu}`, moTaKhung(c), c.ky_thuat?.vat_so)); if (loi.length) { console.error(`bộ chấm chặn:\n  ${loi.map((l) => l.chu).join('\n  ')}`); process.exit(1); } }
 const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbles anywhere.';
 
 // --sua=<thu_tu> --chi-thi="<tiếng Anh>" : SỬA MỘT KHUNG đã có (keyframe đang dùng = ảnh 1) đúng chỗ chỉ thị, giữ nguyên phần còn lại — lỗi logic soát ra
@@ -188,7 +192,7 @@ if (tang === 'khoi') {
   if (!bm) { console.error('cần --so-do=<bảng mảnh JSON có so_do>'); process.exit(1); }
   moc.t2 = {}; moc.khoi = []; moc.khoiSo = []; let truoc: string | null = null;
   for (let a = 0; a < ds.length; a += khoi) {
-    const nhom = ds.slice(a, a + khoi); const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2);
+    const nhom = ds.slice(a, a + khoi); const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2); chanCham(nhom);
     const phacKhoi = (await luoiPhac(nhom, cot2)).tron;
     const refs = thamChieu(nhom, truoc ? 6 : 7); const lech = truoc ? 3 : 2;
     const mauChu = Object.entries(bm.mau ?? {}).map(([n, c]) => `${c === '#f4f4f4' ? 'white' : c === '#141414' ? 'black' : 'dark red'} figure = ${n}`).join(', ');

@@ -27,7 +27,8 @@ export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, strin
    *  (#322 #4: mắt chỉ liếc ở giây cuối). Không khai = bỏ ≤ 0,5 s đầu như cũ. */ vao_s?: number;
   /** KỲ VỌNG từ sơ đồ cảnh (so-do-canh.ts › kyVong): người → phía màn (−1 trái / 0 giữa / +1 phải) + phía nhìn — cổng scripts/soat-huong.mts so với soi mặt */
   huong_so?: Record<string, { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 }>;
-  /** TRẠNG THÁI ĐỒ VẬT ở shot này (so-vat.ts › dongVat, tiếng Việt cho người đọc storyboard; ⚡ = đổi ngay tại shot này) */ vat?: string[] };
+  /** TRẠNG THÁI ĐỒ VẬT ở shot này (so-vat.ts › dongVat, tiếng Việt cho người đọc storyboard; ⚡ = đổi ngay tại shot này) */ vat?: string[];
+  /** món PHẢI THẤY + cách giữ (tiếng Anh) — bộ chấm prompt đòi câu gửi model nói đủ (kiem-prompt.ts › loiTrangThaiVat) */ vat_so?: { ten: string; cach: string }[] };
 
 /** VẬT LÝ THẬT trong clip (19/10/2026 #1 tổng tài: câu diễn "coffee arcs" → cà phê vọt lên trời): chất lỏng / đồ vật theo trọng lực. Thể loại được
  *  phép phá vật lý (anh: "các dạng viễn tưởng… sẽ có ngoại lệ về vật lý") — viễn tưởng (phép thuật, phản trọng lực), hoạt hình (cường điệu), kinh dị

@@ -12,7 +12,7 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30, thieu_vat: 30 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 /** ĐỒ CỦA MỘT NƠI trong câu PHONG CÁCH PHIM (anh 22/10/2026, phim #132: phong cách "daylight from floor-to-ceiling windows" đi vào mọi shot, kể cả sảnh
  *  thang máy đá đen không có cửa sổ → nền sau lưng người đổi giữa các shot). Phong cách chỉ nói chất ảnh / ống kính / tông; đồ đạc là của bối cảnh.
@@ -35,6 +35,14 @@ export type SoatPrompt = {
   /** chuyển động trên màn đo từ khung 3D (khung_xam.di: dx > 0 = sang phải màn) — chữ "walks screen-left" ngược số này là lỗi */ di?: { ten: string; dx: number }[];
 };
 export type LoiPrompt = { buoc: string; ma: MaLoiPrompt; phat: number; chu: string };
+/** TRẠNG THÁI ĐỒ VẬT trong prompt (anh 24/10/2026, #353: bộ chấm cho 100 điểm chính những prompt sinh ra cảnh "ôm hộp lúc có lúc không", "cầm dây rồi cầm
+ *  thẻ"): sổ đồ (so-vat.ts, ky_thuat.vat_so) khai món nào phải thấy + giữ thế nào → câu gửi model phải nói ra từng món kèm cách giữ (≥ 2 từ khoá riêng của
+ *  câu cách giữ). Thiếu = model tự quyết ai cầm / cầm kiểu gì → mức CHẶN. Thuần — kiểm ở kiem-prompt.test. */
+export function loiTrangThaiVat(buoc: string, chu: string, vat: { ten: string; cach: string }[] | undefined): LoiPrompt[] {
+  const thuong = chu.toLowerCase(); const tu = (x: string) => [...new Set(x.toLowerCase().match(/[a-z]{5,}/g) ?? [])].filter((w) => !['their', 'which', 'whole', 'never', 'while', 'below', 'above', 'against'].includes(w));
+  return (vat ?? []).filter((v) => { const k = tu(v.cach); return k.length >= 2 && k.filter((w) => thuong.includes(w)).length < Math.min(3, k.length); })
+    .map((v) => ({ buoc, ma: 'thieu_vat' as const, phat: PHAT.thieu_vat, chu: `${buoc}: thiếu trạng thái đồ "${v.ten}" (${v.cach.slice(0, 70)}…) mà sổ đồ vật đòi — model tự quyết ai cầm, cầm thế nào` }));
+}
 
 const doan = (chu: string, re: RegExp) => { const m = chu.match(new RegExp(`[^.;|]{0,40}${re.source}[^.;|]{0,30}`, 'gi')) ?? []; return m.slice(0, 2).map((x) => `"…${x.trim()}…"`).join(', '); };
 const VIET = /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/;

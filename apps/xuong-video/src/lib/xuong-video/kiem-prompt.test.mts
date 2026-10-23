@@ -82,3 +82,12 @@ console.log('kiem-prompt: ok');
   const g = ghepTrongTran(ds, 120, [[D, 'the woman in the dress']])!;
   assert.ok(g.startsWith(D) && g.split(D).length === 2 && g.includes('the woman in the dress grabs') && g.includes('PPP'));
 }
+{ // SỔ ĐỒ VẬT (#353): prompt không nói thùng đang được ôm → lỗi chặn; nói đủ → không lỗi
+  const { loiTrangThaiVat, NGUONG_CHAN } = await import('./kiem-prompt');
+  const vat = [{ ten: 'Thùng', cach: "hugged against Hạ's chest with both arms, she never puts it down" }];
+  const l = loiTrangThaiVat('keyframe', 'Close-up of Hạ, stunned, eyes on Vivian.', vat);
+  assert.ok(l.length === 1 && l[0]!.phat >= NGUONG_CHAN, JSON.stringify(l));
+  assert.deepStrictEqual(loiTrangThaiVat('keyframe', "Close-up of Hạ. OBJECT STATE: the box — hugged against Hạ's chest with both arms.", vat), []);
+  assert.deepStrictEqual(loiTrangThaiVat('keyframe', 'anything', undefined), []);
+  console.log('kiem-prompt.test: ok (sổ đồ vật)');
+}

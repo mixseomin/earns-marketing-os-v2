@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -213,3 +213,12 @@ assert.equal(appA4.giaiDoan, 'tham-dinh', 'app có bản đang duyệt → Phòn
   assert.ok(k9.duAn === 'xuong' && k9.giaiDoan === 'sx' && k9.vungSx === 'sach', 'sẵn sàng chưa nộp → nhà máy, khu Sách');
   assert.ok(k8.giaiDoan === 'tham-dinh', 'chờ anh duyệt → Phòng thẩm định'); }
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');
+
+// SỨC SỐNG: mọi nguồn ngang nhau — đơ / thoi thóp / sống / sôi động
+{ const S = (soNguon: number, phien7: number, tien30 = 0, online = 0) => tinhSucSong({ soNguon, phien7, tien30, online }).sucSong;
+  assert.equal(S(0, 0), 0, 'chưa gắn nguồn, không khách = đơ');
+  assert.equal(S(3, 0), 1, 'gắn nguồn mà 7 ngày không khách = thoi thóp');
+  assert.equal(S(1, 5), 2, 'có khách 7 ngày = sống');
+  assert.equal(S(0, 0, 12), 2, 'có tiền 30 ngày = sống dù chưa đo được nguồn');
+  assert.equal(S(1, 5, 0, 2), 3, 'đang có khách online = sôi động'); }
+console.log('✓ sức sống: đơ · thoi thóp · sống · sôi động');

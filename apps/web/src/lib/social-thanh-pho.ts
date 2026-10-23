@@ -77,6 +77,11 @@ export interface PhoDich {
   thuHom?: number; chiHom?: number; ngayHom?: string | null;
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
   online?: number; ngay?: Record<string, number>; canhBao?: string | null;
+  /** SỨC SỐNG (anh 23/10/2026: "sản phẩm chưa có nguồn traffic là dạng đơ, có gắn nguồn mới có sức sống" + "mọi nguồn đều có vai trò, không thiên vị"):
+   *  mọi loại nguồn ngang nhau (mạng xã hội, máy tìm kiếm, quảng cáo, giới thiệu, kênh, cửa hàng). 0 đơ = chưa gắn nguồn nào và không khách / tiền ·
+   *  1 thoi thóp = đã gắn nguồn mà 7 ngày không khách · 2 sống = có khách 7 ngày hoặc có tiền 30 ngày · 3 sôi động = đang có khách online.
+   *  soNguon = số nguồn đang gắn (mọi loại) · phien7 = khách 7 ngày (site: phiên; sản phẩm: lượt xem cửa hàng) */
+  sucSong?: 0 | 1 | 2 | 3; soNguon?: number; phien7?: number;
   /** khách có mặt trong 30 phút qua (cột 30M bảng SEO) — người đi vào / ra toà */
   khach30p?: number;
   /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
@@ -194,6 +199,13 @@ export const KHU_XUONG = 'xuong';
  *  campaign PAUSED → 'tat' · bắt đầu ở tương lai → 'cho' · ad set / ad đang dừng (giao ADSET_PAUSED / AD_PAUSED): chưa tiêu đồng nào → 'cho' (vừa dựng, chờ public),
  *  CÓ TIÊU trong ngày báo cáo mới nhất → 'chay' (trạng thái giao của Ethopex đồng bộ chậm hàng giờ: 23/10 bộ 2 có 10 camp ghi ADSET_PAUSED mà đang tiêu
  *  — luật cũ ném cả 10 vào kho tắt, anh hỏi "nhiều camp lên số liệu nhưng không thấy cập nhật"), chỉ tiêu ngày trước → 'tat' (đã chạy rồi bị dừng) · còn lại → 'chay'. */
+/** ngày YYYY-MM-DD lùi 7 ngày (mốc cửa sổ 7 ngày của sức sống) */
+const lui7 = (ngay: string) => new Date(Date.parse(`${ngay}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
+/** sức sống một đích từ nguồn + khách + tiền — xem PhoDich.sucSong */
+export function tinhSucSong(x: { soNguon: number; phien7: number; tien30: number; online: number }): { sucSong: 0 | 1 | 2 | 3; soNguon: number; phien7: number } {
+  const sucSong = x.online > 0 ? 3 : x.phien7 > 0 || x.tien30 > 0 ? 2 : x.soNguon > 0 ? 1 : 0;
+  return { sucSong, soNguon: x.soNguon, phien7: x.phien7 };
+}
 export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean; tieuHom?: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
   if (c.trangThai.toUpperCase() !== 'ACTIVE') return 'tat';
   if (c.batDau && Date.parse(c.batDau) > bay) return 'cho';
@@ -347,6 +359,14 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     }
   }
   for (const d of dichMap.values()) if (d.loai === 'app') { const ban = [...dichMap.values()].filter((b) => b.cha === d.khoa); const co = ban.filter((b) => b.tien30 != null); d.tien30 = co.length ? co.reduce((a, b) => a + b.tien30!, 0) : null; d.loaiTien = 'App'; }
+  // ── SỨC SỐNG (tinhSucSong): nguồn = mọi tài khoản trỏ tới đích (mạng xã hội, máy tìm, quảng cáo, giới thiệu, kênh) + luồng khách; app gộp các bản cửa hàng
+  const ngayMoi = [...dichMap.values()].reduce((m, d) => Object.keys(d.ngay ?? {}).reduce((a, k) => (k > a ? k : a), m), '');
+  for (const d of dichMap.values()) {
+    const con = d.loai === 'app' ? [...dichMap.values()].filter((b) => b.cha === d.khoa) : [], khoa = [d.khoa, ...con.map((b) => b.khoa)];
+    const nguon = new Set([...tk.filter((t) => t.dich && khoa.includes(t.dich)).map((t) => t.id), ...luong.filter((l) => khoa.includes(l.den)).map((l) => l.tu)]);
+    const phien7 = d.loai === 'site' ? Object.entries(d.ngay ?? {}).filter(([k]) => ngayMoi && k > lui7(ngayMoi)).reduce((a, [, v]) => a + v, 0) : [d, ...con].reduce((a, b) => a + (b.xem7 ?? 0), 0);
+    Object.assign(d, tinhSucSong({ soNguon: nguon.size, phien7, tien30: d.tien30 ?? 0, online: d.online ?? 0 }));
+  }
   // giữ site có khách hoặc có người trỏ tới
   const dich = [...dichMap.values()].filter((d) => d.loai !== 'site' || d.coNguon || (d.tien30 ?? 0) > 0 || (d.phien30 ?? 0) > 0 || tk.some((t) => t.dich === d.khoa));
 

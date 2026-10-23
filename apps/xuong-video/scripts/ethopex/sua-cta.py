@@ -78,17 +78,51 @@ def ung_vien():
     try: return json.loads(r.stdout.strip().splitlines()[-1])
     except Exception: print("không đọc được camp chuẩn bị trước:", r.stderr[-200:]); return {}
 
+def goc_moi(ma, bao, nb):
+    """GÓC MỚI cho phim mà mọi creative đã đủ 3 camp (nhan-ban.py xếp ['ethopex_can_goc_moi'] {content: {goc, ten}}, anh duyệt 23/10/2026):
+    cắt tới 6 khung cuối tập từ tập sạch, bỏ khung chồng lên đoạn đã có creative → tối đa 3 góc → len-creative → nhân bản lại camp gốc
+    (nhan-ban tự chọn creative mới vì còn < 3 camp). Làm xong (được hay không) gỡ khỏi hàng, báo lý do."""
+    hang = khoa("ethopex_can_goc_moi")
+    if not hang: return
+    dung, viec = [], {}
+    for cid, m in hang.items():
+        r = sql(f"select ten, url from ethopex_content where id = {int(cid)}", spy=True).split("\t")
+        ten = (r[0] if r and r[0] else "").replace("（DUBBED）", "").replace("(Doblado)", "").strip(); url = r[1] if len(r) > 1 else ""
+        lang = "es" if " ES - " in m.get("ten", "") else "en"
+        tm = nguon_sach(cid, url)
+        if not tm: bao.append(f"góc mới phim {cid}: chưa tải được tập sạch"); continue
+        da = [tuple(map(float, l.split("\t"))) for l in sql(f"select kinh_thanh->'ethopex'->>'tu', kinh_thanh->'ethopex'->>'den' from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(cid)} and kinh_thanh->'ethopex' ? 'tu'").splitlines() if l.count("\t") == 1 and "" not in l.split("\t")]
+        rg = os.path.join(C, "ra", ma, f"gocmoi-{cid}"); tsv = rg + ".tsv"; open(tsv, "w").write(f"{cid}\t{lang}\tgoc\t{ten}\t{url}\n")
+        subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "6"], capture_output=True, text=True, timeout=4 * 3600)
+        try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
+        except Exception: g = []
+        g = [x for x in g if not any(float(x["tu"]) < d and float(x["den"]) > t for t, d in da)][:3]
+        if g: dung += [{**x, "lo": "goc"} for x in g]; viec[cid] = m; bao.append(f"góc mới phim {cid} ({ten[:30]}): {len(g)} góc " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in g))
+        else: bao.append(f"góc mới phim {cid} ({ten[:30]}): hết khung cuối tập sạch chưa dùng — phim đã khai thác hết phần tập miễn phí")
+    if dung:
+        lf = os.path.join(C, "ra", ma, "len-goc-moi.json"); json.dump(dung, open(lf, "w"), ensure_ascii=False, indent=1)
+        r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, ma + "g", "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+        print(r.stdout[-800:], r.stderr[-300:])
+    for cid, m in viec.items():
+        if nb and m.get("goc"):
+            r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(m["goc"])} --that --lich today --luat "nhân bản camp thắng bằng GÓC MỚI (đoạn cũ đủ 3 camp)" --ai "máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp, nhân bản bằng góc mới)"'""", timeout=600)
+            bao.append(f"góc mới phim {cid} → nhân bản #{m['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")
+    sql("update xv_khoa_ngoai set gia_tri = gia_tri - array[" + ",".join(f"'{c}'" for c in hang) + "] where ten='ethopex_can_goc_moi'")
+
 def main():
     a = sys.argv[1:]; chi = set(a[a.index("--chi") + 1:]) if "--chi" in a else None; nb = "--khong-nb" not in a
     lk = open(os.path.join(C, "sua-cta.lock"), "w")
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("sua-cta đang chạy ở lượt khác — thoát")
+    ma = time.strftime("sua%d%m%H%M"); os.makedirs(os.path.join(C, "ra", ma), exist_ok=True); bao0 = []
+    if not chi: goc_moi(ma, bao0, nb)
+    if bao0: print("\n".join(bao0), flush=True)
     hang = {k: v for k, v in khoa("ethopex_cho_dung_lai").items() if not chi or k in chi}
     if not chi and "--khong-truoc" not in a:
         for k, v in ung_vien().items(): hang.setdefault(k, v)
     if not hang: return print("hàng sửa CTA trống")
     soat, thay, dat = khoa("ethopex_soat_18"), khoa("ethopex_cta_thay"), khoa("ethopex_cta_dat")
-    ma = time.strftime("sua%d%m%H%M"); ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True)
+    ra = os.path.join(C, "ra", ma)
     KN, LL = nap("kn", "khop-nguon.py"), nap("ll", "lam-lai-cta.py")
     cu = {}; dung = {"canh that": [], "canh cuoi": []}; bao = []
     for old, m in hang.items():

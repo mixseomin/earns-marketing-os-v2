@@ -21,15 +21,32 @@ def api(duong, body=None):
     return json.load(urllib.request.urlopen(r, timeout=60))
 js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{") else (v or {})
 
+DEM_CR = {}
 def dem_dang_chay(content_id):
-    """số camp ĐANG CHẠY (ACTIVE) của phim + số bản nhân bản tạo trong 24 giờ cho từng camp gốc"""
-    n, ban = 0, {}
+    """số camp ĐANG CHẠY (ACTIVE) của phim; kèm DEM_CR {creative: số camp đang chạy dùng creative đó} của phim này (luật 1 đoạn ≤ 3 camp)"""
+    n = 0; DEM_CR.clear()
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
         if c.get("state") != "ACTIVE" and c.get("sync_status") == "done": continue
         try: d = api(f"/api/v1/campaigns/{c['id']}")
         except Exception: continue
-        if any(a.get("content_id") == content_id for g in d.get("ad_groups") or [] for a in g.get("ads") or []): n += 1
+        ads = [a for g in d.get("ad_groups") or [] for a in g.get("ads") or [] if a.get("content_id") == content_id]
+        if ads: n += 1
+        for a in ads: DEM_CR[a.get("creative_id")] = DEM_CR.get(a.get("creative_id"), 0) + 1
     return n
+
+# MỘT ĐOẠN VIDEO TỐI ĐA 3 CAMP ĐANG CHẠY (anh duyệt 23/10/2026 sau Step Back: 12 camp cùng đoạn 692–757s tự đấu giá với nhau, ROI +199% → −11% trong một ngày).
+# Nhân bản mà creative đã đủ 3 camp → tự đổi sang creative khác CÙNG PHIM (đạt CTA, chưa bị Meta từ chối, còn < 3 camp, mới nhất trước);
+# phim chưa có creative nào như vậy → xếp hàng cắt GÓC MỚI ['ethopex_can_goc_moi'] (sua-cta.py trên iMac cắt + đẩy, rồi nhân bản lại) và dừng.
+TRAN_DOAN = 3
+def creative_khac(content_id, bo_qua):
+    dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
+    tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
+    ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
+    return next((c for c in ds if c not in bo_qua and str(c) in dat and str(c) not in tc and DEM_CR.get(c, 0) < TRAN_DOAN), None)
+def xep_goc_moi(goc_id, content_id, ten):
+    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_can_goc_moi', '{}'::jsonb) on conflict (ten) do nothing")
+    v = json.dumps({"goc": goc_id, "ten": ten, "luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")}, ensure_ascii=False).replace("'", "''")
+    q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(content_id)}', '{v}'::jsonb) where ten='ethopex_can_goc_moi' and not gia_tri ? '{int(content_id)}'")
 
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(os.path.dirname(os.path.abspath(__file__)), tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
@@ -128,6 +145,15 @@ def main(a):
         if chan: raise ValueError(chan)
         n = dem_dang_chay(cid)
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
+        ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
+        if DEM_CR.get(cr, 0) >= TRAN_DOAN:
+            khac = creative_khac(cid, {cr})
+            if not khac:
+                xep_goc_moi(goc, cid, ten)
+                raise ValueError(f"đoạn creative #{cr} đã {DEM_CR[cr]} camp chạy (trần {TRAN_DOAN}/đoạn), phim chưa có góc khác — đã xếp hàng cắt góc mới (ethopex_can_goc_moi)")
+            chan = cong(cid, khac, ten)
+            if chan: raise ValueError(chan)
+            ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
         kq["phim_dang_chay"] = n
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return

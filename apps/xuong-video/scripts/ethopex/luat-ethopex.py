@@ -98,7 +98,10 @@ for cid, a in sorted(thang.items()):
     _yq = hqua.get(cid); _ryq = roi(_yq) if _yq and _yq["chi"] >= 0.3 else None; _rh = roi(h) if h.get("chi", 0) >= 0.3 else None
     tb_ngay = TANG_CHOT and _rh is not None and _rh >= 50 and h["chi"] >= 0.3 * a["budget"] and (_ryq is None or _ryq >= 0)
     if tb_ngay and not (r >= ROI_TANG and sp > sp_min and them_dk): dong += f" · ROI hôm nay (chốt chi) {_rh:+.0f}%, chi {h['chi'] / a['budget'] * 100:.0f}% ngân sách"
-    if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay) and ke(a["budget"]): dat.append((cid, dong))
+    # KHÔNG TĂNG KHI HÔM NAY ĐANG LỖ (anh duyệt 23/10/2026 sau Step Back: #66055 −31% hôm nay vẫn được tăng $10 → $15 nhờ ROI tháng): ROI hôm nay
+    # (số đã chốt chi, chi ≥ $0,3) < 0 → không vào danh sách tăng, kể cả máy tự tăng; ROI tháng chỉ còn là điều kiện cần.
+    lo_nay = _rh is not None and _rh < 0
+    if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay) and ke(a["budget"]) and not lo_nay: dat.append((cid, dong))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
     # LD SIẾT (khi anh duyệt trên Telegram — DATA/ethopex-luat-duyet.json "ld_siet"): camp vừa lỗ hôm qua / lỗ cả tháng thì không tăng vì vài chục cent
     # lãi đầu phiên (22/10/2026: #65115 lên $2 nhờ lãi $0,36 buổi sáng trong khi hôm qua −86%, tháng −62%)

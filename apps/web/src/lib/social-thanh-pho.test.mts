@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -226,3 +226,19 @@ console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh v�
   for (const k of mh0.duAn.filter((x) => x.khoa !== 'xuong')) { const m = dd.filter((d) => d.duAn === k.khoa && !d.cha).map((d) => d.sucSong!); if (m.length) assert.equal(k.sucSong, Math.max(...m), `khu ${k.khoa} = mức cao nhất của đích trong khu`); } }
 assert.equal(sucSongKhu([0, 0, 2]), 2, 'khu có một site sống = khu sống (không đóng băng cả khu vì vài sản phẩm đơ)'); assert.equal(sucSongKhu([0, 0]), 0, 'khu toàn đích đơ = khu đơ'); assert.equal(sucSongKhu([]), undefined, 'khu không có đích = không chấm'); assert.equal(m.duAn.find((k) => k.khoa === 'xuong')?.sucSong, undefined, 'Xưởng SX không chấm sức sống (nơi làm, không phải đích traffic)');
 console.log('✓ sức sống: đơ · thoi thóp · sống · sôi động · khu theo đích cao nhất');
+
+// TÀI NGUYÊN: bồn (số dư / mức tiêu) + hạn (tên miền, máy chủ)
+{ const L = (...du: (number | null)[]) => du.map((v, i) => ({ ngay: `2026-10-${String(20 + i).padStart(2, '0')}`, du: v }));
+  const p = tinhBinh(255, L(510, 500, 323, 255)); assert.ok(p.muc === 'do' && Math.abs(p.tieuNgay! - 85) < .01 && p.conNgay! < 3.1, 'PlenX 510→255 trong 3 ngày = 85/ngày, còn 3 ngày = đỏ');
+  assert.equal(tinhBinh(5630, L(7425, 7145, 7145, 6110, 5630)).muc, 'vang', 'Kie còn ~12 ngày = vàng');
+  assert.equal(tinhBinh(61, L(61, 61, 61)).muc, 'xanh', 'không tiêu = xanh, không cạn');
+  assert.equal(tinhBinh(61, L(61, 61, 61)).conNgay, null, 'không tiêu thì không có ngày cạn');
+  assert.equal(tinhBinh(150, L(100, 50, 150)).muc, 'vang', 'vừa tiêu vừa nạp: chỉ phần giảm là tiêu (50 / 2 ngày = 25/ngày, còn 6 ngày) — nạp không bù trừ mức tiêu');
+  assert.equal(tinhBinh(null, L(1, 2)).muc, 'chua-do', 'chưa đọc được số dư = chỗ mù');
+  assert.equal(mucHan('2026-10-28', '2026-10-24').muc, 'do', 'còn 4 ngày = đỏ'); assert.equal(mucHan('2026-11-21', '2026-10-24').muc, 'vang', 'còn 28 ngày = vàng');
+  assert.equal(mucHan('2027-09-01', '2026-10-24').muc, 'xanh', 'còn hơn 30 ngày = xanh'); assert.equal(mucHan(null, '2026-10-24').muc, 'chua-do', 'chưa có ngày hết hạn = chỗ mù');
+  assert.equal(tenMienGoc('ai.chatwhenbored.com'), 'chatwhenbored.com', 'tên miền phụ quy về gốc'); }
+{ const tn = m.taiNguyen; assert.ok(Array.isArray(tn.binh) && Array.isArray(tn.han), 'mô hình có bồn + hạn');
+  assert.ok(tn.han.every((h) => !/gumroad\.com$/.test(h.ten)), 'cửa hàng trên nền người khác không vào danh sách hạn tên miền');
+  assert.equal(new Set(tn.han.map((h) => h.ten)).size, tn.han.length, 'mỗi tên miền một dòng'); }
+console.log('✓ tài nguyên: bồn (mức tiêu, còn ngày) · hạn tên miền / máy chủ · chỗ mù');

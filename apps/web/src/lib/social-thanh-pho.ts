@@ -126,7 +126,13 @@ export interface PhoTaiNguyen {
   /** cảnh báo chưa xử, từng dòng (nền chưa có kho riêng → kho 'khac'): thẻ kho tài khoản liệt kê + nút mở chỗ cần xử / đánh dấu đã xử */
   canhBaoDs: { id: number; nen: string; handle: string | null; loai: string; noiDung: string | null; url: string | null; luc: string; acct: number | null }[];
   chuaNoi: string[];
+  /** BỒN — tài nguyên trả trước (nguồn AI, máy thuê): số dư, mức tiêu bình quân / ngày, còn bao nhiêu ngày, mức (tinhBinh) */
+  binh: { key: string; ten: string; don: string; du: number | null; tieuNgay: number | null; conNgay: number | null; muc: MucTn; loi: string | null; luc: string | null }[];
+  /** HẠN — tên miền / máy chủ: ngày hết hạn, còn bao nhiêu ngày, mức (mucHan); dich = khoá toà site của tên miền */
+  han: { loai: 'domain' | 'hosting'; ten: string; het: string | null; conNgay: number | null; muc: MucTn; dich: string | null }[];
 }
+/** mức cảnh báo tài nguyên: đỏ = phải xử ngay · vàng = sắp · xanh = ổn · chua-do = chưa có số (chỗ mù) */
+export type MucTn = 'do' | 'vang' | 'xanh' | 'chua-do';
 export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; taiNguyen: PhoTaiNguyen; fav: Record<string, string | null> }
 /** trạng thái tài khoản (platform_accounts.status) → nhóm người đọc */
 export type TtTk = 'song' | 'nuoi' | 'han' | 'khoa' | 'dong';
@@ -177,7 +183,8 @@ export interface VaoHeSinhThai {
     thuHom?: number; chiHom?: number; ngayHom?: string | null }[];
   /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
   taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; canhBaoDs?: PhoTaiNguyen['canhBaoDs']; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
-    proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[] };
+    proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[];
+    soDu?: { key: string; ten: string; don: string; du: number | null; loi: string | null; luc: string | null; lich: { ngay: string; du: number | null }[] }[] };
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null; henGio?: number | null; loiDv?: string[] }[];
 }
@@ -212,6 +219,25 @@ export function tinhSucSong(x: { soNguon: number; khach7: number; tien30: number
 export const laDichSong = (d: { loai: string }) => d.loai === 'site' || d.loai === 'app' || d.loai === 'sp';
 /** sức sống khu = mức cao nhất trong các đích của khu (một site sống là khu sống); khu không có đích chấm được → null */
 export const sucSongKhu = (m: number[]): 0 | 1 | 2 | 3 | undefined => (m.length ? (Math.max(...m) as 0 | 1 | 2 | 3) : undefined);
+/** BỒN: mức tiêu / ngày = tổng các lần số dư GIẢM trong ≤ 7 ngày gần nhất chia số ngày (nạp thêm không tính là tiêu); còn ngày = số dư / mức tiêu.
+ *  Không tiêu → còn ngày null (không cạn), mức xanh · chưa đọc được số dư → chua-do · còn ≤ 3 ngày đỏ (phải nạp ngay) · ≤ 14 ngày vàng. */
+export function tinhBinh(du: number | null, lich: { ngay: string; du: number | null }[]): { tieuNgay: number | null; conNgay: number | null; muc: MucTn } {
+  if (du == null) return { tieuNgay: null, conNgay: null, muc: 'chua-do' };
+  const ds = lich.filter((x) => x.du != null).sort((a, b) => a.ngay.localeCompare(b.ngay)).slice(-8);
+  if (ds.length < 2) return { tieuNgay: null, conNgay: null, muc: 'xanh' };
+  let giam = 0; for (let i = 1; i < ds.length; i++) giam += Math.max(0, ds[i - 1]!.du! - ds[i]!.du!);
+  const soNgay = Math.max(1, (Date.parse(ds[ds.length - 1]!.ngay) - Date.parse(ds[0]!.ngay)) / 864e5), tieuNgay = giam / soNgay;
+  if (tieuNgay <= 0) return { tieuNgay: 0, conNgay: null, muc: 'xanh' };
+  const conNgay = du / tieuNgay; return { tieuNgay, conNgay, muc: conNgay <= 3 ? 'do' : conNgay <= 14 ? 'vang' : 'xanh' };
+}
+/** tên miền gốc để tra hạn (a.b.example.com → example.com); site trên nền người khác (gumroad.com…) không phải tên miền của mình */
+export const tenMienGoc = (host: string) => host.replace(/^www\./, '').split('.').slice(-2).join('.');
+export const TEN_MIEN_NGOAI = new Set(['gumroad.com', 'etsy.com', 'udemy.com', 'github.io', 'vercel.app', 'pages.dev', 'blogspot.com', 'wordpress.com']);
+/** HẠN: còn ≤ 7 ngày đỏ · ≤ 30 ngày vàng · chưa có ngày hết hạn → chua-do */
+export function mucHan(het: string | null, homNay: string): { conNgay: number | null; muc: MucTn } {
+  if (!het) return { conNgay: null, muc: 'chua-do' };
+  const conNgay = Math.round((Date.parse(het) - Date.parse(homNay)) / 864e5); return { conNgay, muc: conNgay <= 7 ? 'do' : conNgay <= 30 ? 'vang' : 'xanh' };
+}
 export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean; tieuHom?: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
   if (c.trangThai.toUpperCase() !== 'ACTIVE') return 'tat';
   if (c.batDau && Date.parse(c.batDau) > bay) return 'cho';
@@ -513,6 +539,12 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
       ...(vt?.tkQcShop ?? []).filter((x) => x.hanMuc != null).map((x) => ({ ten: `TK QC shop · ${x.ten}`, ky: 'hạn mức' as const, so: x.hanMuc!, tienTe: x.tienTe })),
     ],
     chuaNoi: ['Ngân sách / số dư Google Ads (DB adfond — mos2 chưa có quyền đọc)'],
+    binh: (vt?.soDu ?? []).map((x) => ({ key: x.key, ten: x.ten, don: x.don, du: x.du, loi: x.loi, luc: x.luc, ...tinhBinh(x.du, x.lich) })),
+    // hạn: tên miền của MỌI site trên thành phố (site chưa có dòng trong sổ hạ tầng = chỗ mù) + máy chủ trong sổ
+    han: [...[...new Map(dich.filter((d) => d.loai === 'site' && d.site && !d.laShop && !TEN_MIEN_NGOAI.has(tenMienGoc(d.site))).map((d) => [tenMienGoc(d.site!), d] as const)).entries()].map(([ten, d]) => {
+        const r = (hst.hat ?? []).find((x) => x.kind === 'domain' && tenMienGoc(x.label) === ten);
+        return { loai: 'domain' as const, ten, het: r?.het ?? null, ...mucHan(r?.het ?? null, homNay), dich: d.khoa }; }),
+      ...(hst.hat ?? []).filter((x) => x.kind === 'hosting').map((x) => ({ loai: 'hosting' as const, ten: x.label, het: x.het, ...mucHan(x.het, homNay), dich: null }))],
   };
   return { tk, dich, duAn, luong, tien, nhaMay, congTy, taiNguyen, fav: live.fav };
 }

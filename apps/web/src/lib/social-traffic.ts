@@ -118,6 +118,12 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     doc('hoa hồng aff', networkRows(tu30), null),
     doc('Ethopex', docEthopex(), null),
   ]);
+  // SỐ DƯ NGUỒN TRẢ TRƯỚC (nguồn AI, máy thuê): ảnh chụp Phòng Tài nguyên (apps/cty/worker/tai-nguyen-api.mjs, 30 phút/lần, giữ lịch từng ngày) + tên ở sổ nguồn AI studio (xv_nguon)
+  const DON_DU: Record<string, string> = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit' };
+  const anhTn = await doc('số dư nguồn', (async () => JSON.parse(readFileSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tai-nguyen-api.json`, 'utf8')) as { du?: Record<string, number | null>; lich?: { ngay: string; du: Record<string, number | null> }[]; loi?: Record<string, string>; luc?: string })(), {});
+  const tenNguon = new Map((await q<{ key: string; ten: string }>('sổ nguồn AI', sql`SELECT key, ten FROM xv_nguon`)).map((x) => [x.key, x.ten]));
+  const soDuTn = Object.keys({ ...(anhTn.du ?? {}), ...(anhTn.loi ?? {}) }).map((key) => ({ key, ten: tenNguon.get(key) ?? key, don: DON_DU[key] ?? '', du: anhTn.du?.[key] ?? null, loi: anhTn.loi?.[key] ?? null, luc: anhTn.luc ?? null,
+    lich: (anhTn.lich ?? []).map((x) => ({ ngay: x.ngay, du: x.du?.[key] ?? null })) }));
   const [mayChu, congTy, tnTk, tnCb, tnHs, tnDs, tnPx, tnNs, tnQc] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
     // tài nguyên (khu TÀI NGUYÊN): tài khoản × trạng thái, cảnh báo chưa xử, hồ sơ trình duyệt (br / máy ảo), proxy, sổ ngân sách, tài khoản QC shop
     q<{ nen: string; status: string; n: number }>('tài khoản theo nền', sql`SELECT platform_key AS nen, status, count(*)::int AS n FROM platform_accounts GROUP BY 1, 2`),
@@ -156,7 +162,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
         phimId: c.content_id, dang: dangCamp(c), viPham: co('TC', 'cham'), cho: loai === 'cho', nhanBanDuoc: co('NB', 'cham'), sapTat: loai === 'chay' && co('OFF', 'cham', 'gan'),
         thuHom: hn.reduce((a, x) => a + x.thu, 0), chiHom: hn.reduce((a, x) => a + x.chi, 0), ngayHom: ngayHomEtp }; }) : [],
     taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), canhBaoDs: tnDs.map((x) => ({ id: x.id, nen: x.nen, handle: x.handle, loai: x.loai, noiDung: x.noi_dung, url: x.url, luc: x.luc, acct: x.acct })), hoSo: tnHs, proxy: tnPx,
-      soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })) },
+      soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })), soDu: soDuTn },
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
       ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
     tienAff: [...(aff?.rows ?? []).filter((r) => r.source === 'affiliate' && r.date >= tu30).map((r) => ({ site: r.site ? r.site.replace(/^www\./, '') : null, mang: r.group ?? r.channel, usd: r.amount })),

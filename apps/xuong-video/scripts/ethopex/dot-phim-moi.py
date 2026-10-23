@@ -124,8 +124,9 @@ def sua_cta():
 
 if __name__ == "__main__":
     v = sys.argv[1:]
-    if v[0] == "cat": cat_box(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)   # cắt trên box3 (23/10/2026); "cat-mac" = cắt trên iMac như cũ
-    elif v[0] == "cat-mac": cat(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)
+    # cắt trên iMac (mã hoá phần cứng, 21s/đoạn). Thử box3 23/10/2026: 4 lõi chung spy + studio, gần 1 giờ không ra phim nào → anh cho dừng; "cat-box" giữ để dùng khi có máy rảnh
+    if v[0] == "cat": cat(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)
+    elif v[0] == "cat-box": cat_box(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)
     elif v[0] == "to-soat": to_soat(v[1])
     elif v[0] == "cat-lai": cat_box_ds([dict(zip(("id", "locale", "nguon", "ten", "url"), l.rstrip("\n").split("\t"))) for l in open(v[1]) if l.strip()], v[2])
     elif v[0] == "tep": len_tu_tep(v[1], v[2]); sua_cta()

@@ -405,7 +405,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const maiTk = (tk: PhoTk) => (tk.loai !== 'mxh' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
   const CUA_SANG = new THREE.Color('#ffd27a'), CUA_TOI = new THREE.Color('#1c2440');
   const cuaGeo = new THREE.PlaneGeometry(3.2, 2.6), cuaMat = new THREE.MeshBasicMaterial();
-  const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [], ngam: [], san: [], ham: [] };
+  const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [], ngam: [], san: [], ham: [], cho: [] };
   const texKhoi = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
     gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   function khoi(x: number, y: number, z: number, tk: PhoTk, chu: any, n = 22) {
@@ -764,7 +764,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const cg = document.createElement('canvas'); cg.width = 720; cg.height = 120; const gg = cg.getContext('2d')!; const rT = roiCua(tong.t, tong.c), mT = tong.t >= tong.c ? '#3fd68a' : '#ff4d5e';
       gg.fillStyle = '#0c1326f0'; gg.fillRect(0, 0, 720, 120); gg.strokeStyle = '#4fd1ff'; gg.lineWidth = 8; gg.strokeRect(4, 4, 712, 112); gg.textBaseline = 'middle';
       gg.textAlign = 'left'; gg.fillStyle = '#fff'; gg.font = '800 34px system-ui, sans-serif'; gg.fillText(`🎬 ${ds_.length} phim · ${ngayNgan(hub.ngayHom)}`, 22, 42);
-      gg.fillStyle = '#8e9abd'; gg.font = '600 22px system-ui, sans-serif'; gg.fillText('rê chuột vào để xem bảng xếp hạng', 22, 88);
+      const nCho = bo.cum.reduce((n, o) => n + o.cho.length, 0); gg.font = '700 24px system-ui, sans-serif'; gg.fillStyle = nCho ? '#4fd1ff' : '#8e9abd'; gg.fillText(`${nCho ? `⏳ ${nCho} camp chờ public · ` : ''}rê chuột xem bảng`, 22, 88);
       gg.textAlign = 'right'; gg.fillStyle = mT; gg.font = '900 40px system-ui, sans-serif'; gg.fillText(roiChu(rT), 700, 42); gg.font = '700 24px system-ui, sans-serif'; gg.fillText(`lãi ${usd(tong.t - tong.c)}`, 700, 88);
       const texGon = new THREE.CanvasTexture(cg); texGon.anisotropy = 4; const HbGon = Wb * 120 / 720;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texGon })); sp.scale.set(Wb, HbGon, 1); sp.position.set(x, day + HbGon / 2, z);
@@ -814,7 +814,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         : d.dangCr === 'cảnh thật' || d.dangCr === 'cảnh cuối' ? new THREE.BoxGeometry(s, h, s) : new THREE.CylinderGeometry(s * .55, s * .55, h, 6);
       const m = add(geo, vl); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
       if (d.dangCr === 'cảnh cuối') { const mai = add(new THREE.ConeGeometry(s * .72, s * .55, 4), vl); mai.rotation.y = Math.PI / 4; mai.position.set(x, h + s * .27, z); mai.userData = { chu: m }; }
-      if (cho) { const kh = add(new THREE.BoxGeometry(s + 1, h + 1, s + 1), new THREE.MeshBasicMaterial({ color: MAU_CAMP.cho, wireframe: true, transparent: true, opacity: .55 }), false); kh.position.copy(m.position); kh.userData = { chu: m }; }
+      // CHỜ PUBLIC nổi bật (anh 23/10/2026 "chờ là quan trọng"): khung sáng nhấp nháy + cột sáng xanh dựng đứng trên nóc, phóng xa vẫn thấy (nhịp ở vòng vẽ, ds.cho)
+      if (cho) { const kh = add(new THREE.BoxGeometry(s + 1, h + 1, s + 1), new THREE.MeshBasicMaterial({ color: MAU_CAMP.cho, wireframe: true, transparent: true, opacity: .55 }), false); kh.position.copy(m.position); kh.userData = { chu: m };
+        const cot = add(new THREE.CylinderGeometry(.9, .9, 40, 8, 1, true), new THREE.MeshBasicMaterial({ color: MAU_CAMP.cho, transparent: true, opacity: .45, depthWrite: false }), false); cot.position.set(x, h + 20, z); cot.userData = { chu: m };
+        ds.cho!.push(kh, cot); }
       if (d.nhanBanDuoc) { const kc = add(new THREE.OctahedronGeometry(s * .32 + 1), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .9, metalness: .5 }), false); kc.position.set(x, h + s * .6 + 3, z); kc.userData = { chu: m }; }
       if (d.sapTat) khoi(x, h + 1, z, undefined as unknown as PhoTk, m, 10);
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) }; chiMuc.push({ ten: d.ten, nhan: 'camp', obj: m });
@@ -1470,6 +1473,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       sp.position.set(u.goc.x + Math.sin(u.lech + p * 3) * (2 + p * 9) + p * 10, u.goc.y + p * 55, u.goc.z + Math.cos(u.lech + p * 3) * (2 + p * 6));
       sp.scale.setScalar(5 + p * 22); sp.material.opacity = Math.min(1, p * 12) * (1 - p) * .95; }
     for (const c of ds.cot!) c.material.opacity = .32 + Math.sin(dem / 25) * .1;
+    for (const c of ds.cho!) c.material.opacity = .35 + Math.abs(Math.sin(dem / 18)) * .5;
     ctl.update();
     // MẶT PHẲNG GẦN THEO KHOẢNG CÁCH (góp ý 23/10/2026 "để ở mức này nền cứ bị nháy"): near cố định 1 với camera lùi ~2.500 thì bộ đệm sâu chỉ phân biệt được
     // ~0,4 đơn vị → mặt sân / nền khu / chữ nền cách nhau 0,1–0,3 tranh nhau từng khung. Đẩy near theo khoảng cách (4%) cho độ phân giải sâu ~0,01 ở mọi mức phóng.

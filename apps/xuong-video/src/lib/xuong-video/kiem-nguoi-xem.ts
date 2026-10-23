@@ -11,8 +11,12 @@ import { docKinhThanh, locNhanh, lamTronClip, giayPhat, type ThuNguoiXem } from 
 import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 
 /** Phim QC → người xem chấm theo QC (claude.ts › heNguoiXem): đối tượng = người xem, ý đồ = sản phẩm + đối tượng + điểm nổi bật + ưu đãi. */
-function yDoQc(loai: string, kt: ReturnType<typeof docKinhThanh>): { qc: { doi_tuong: string } | null; yDo: string } {
-  if (loai !== 'quang_cao') return { qc: null, yDo: '' };
+// QC ETHOPEX (phim ngắn → traffic về trang AFS) chấm theo CHẾ ĐỘ TRUYỆN, không theo QC (anh 23/10/2026 duyệt "bộ chấm bỏ tiêu chí CTA với Ethopex"):
+// luật AFS cấm "Tap/Click", mũi tên, tên nền tảng ở thẻ cuối — bộ chấm QC trừ điểm đúng mấy thứ đó nên 9 lượt kể chuyện 23/10 trượt 4–6/10 dù truyện đã rõ.
+// Chế độ truyện chỉ chấm người xem có nhận đúng câu chuyện, cú lật và kết không. Nhận diện: kinh_thanh.ethopex (tao-lo.mts ghi).
+const laEthopex = (raw: unknown) => !!raw && typeof raw === 'object' && 'ethopex' in (raw as Record<string, unknown>);
+function yDoQc(loai: string, kt: ReturnType<typeof docKinhThanh>, raw?: unknown): { qc: { doi_tuong: string } | null; yDo: string } {
+  if (loai !== 'quang_cao' || laEthopex(raw)) return { qc: null, yDo: '' };
   const q = kt.qc;
   return { qc: { doi_tuong: q.doi_tuong }, yDo: [`Sản phẩm: ${q.ten}`, q.doi_tuong && `Đối tượng: ${q.doi_tuong}`, q.diem_noi_bat && `Điểm nổi bật: ${q.diem_noi_bat}`, q.uu_dai && `Ưu đãi: ${q.uu_dai}`].filter(Boolean).join('\n') };
 }
@@ -33,7 +37,7 @@ export async function kiemNguoiXemTap(db: Db, tapId: number, cham: typeof thuNgu
   const giayTap = Math.round(canh.filter((c) => !intro.has(c.phan_doan)).reduce((a, c) => a + giayPhat(c), 0));
   const tc = kt.series?.tham_chieu;
   const doDai = `tập đang dài ${giayTap} giây (không tính intro / thẻ kết)${tc?.do_dai_s ? `, chuẩn series ${tc.do_dai_s} giây theo ${tc.tac_pham}` : ''}.`;
-  const { qc, yDo } = yDoQc(bc.loai, kt);
+  const { qc, yDo } = yDoQc(bc.loai, kt, bc.kt);
   const kq = await cham({ ban, nhanVat: nvTa, logline: qc ? yDo : logline, brief: bc.tap.brief, kt, doDai, qc });
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens, kq.model.startsWith('gemini') ? 'google' : undefined);
@@ -62,7 +66,7 @@ export async function dauVaoNguoiXemCanh(db: Db, tapId: number, phanDoan: string
   const ban = `${truoc ? `PHẦN TRƯỚC CẢNH NÀY (bạn đã xem, tóm tắt theo lời bạn kể lần trước): ${truoc}\n\n` : ''}CẢNH ĐANG XEM:\n${banNguoiXem(canh)}`;
   const ids = new Set(canh.flatMap((c) => c.nhan_vat));
   const nvTa = bc.nhanVat.filter((v) => ids.has(v.id) && v.loai !== 'phong_cach').map((v) => `- ${v.ten}: ${v.mo_ta.slice(0, 160)}`).join('\n');
-  const q = yDoQc(bc.loai, kt);
+  const q = yDoQc(bc.loai, kt, bc.kt);
   if (q.qc) return { ok: true as const, bc, canh, kt, ban, nvTa, yDo: q.yDo, qc: q.qc, doDai: `đoạn dài ${Math.round(canh.reduce((a, c) => a + giayPhat(c), 0))} giây.`,
     brief: `Chỉ đánh giá RIÊNG đoạn “${phanDoan}” của QC: người xem có nhận được đúng ý của đoạn này (vấn đề / sản phẩm / lợi ích / ưu đãi mà nó gánh) không.` };
   const yDo = pc ? `Cảnh “${pc.ten}” (${pc.beat}). Mục tiêu: ${pc.muc_tieu}. Xung đột: ${pc.xung_dot}. Ẩn ý: ${pc.an_y}.${pc.gag?.length ? ` Gag: ${pc.gag.map((g) => `${g.ten} — gài: ${g.gai}; bùng: ${g.bung}`).join(' | ')}.` : ''}` : `Cảnh “${phanDoan}”.`;

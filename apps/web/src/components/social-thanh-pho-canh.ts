@@ -488,6 +488,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // bố cục cụm phim của mỗi toà nền tảng — dựng lại mỗi lần dung(), thẻ hover đọc lại
   type CumP = { cum: string; ten: string; goc: PhoDich[]; nb: Map<string, PhoDich[]>; lich: PhoDich[]; kho: PhoDich | null; cot: number; O: number; w: number; h: number; x: number; z: number; tien: number };
   const boCumP = new Map<string, { nua: number; cum: CumP[]; hub: { x: number; z: number } }>();
+  // BẬT / TẮT BẢNG HIỆU PHIM (anh 23/10/2026 "khu nhiều bảng hiệu như Ethopex bị rối — thêm nút trong trại bấm để mở / tắt; đang tắt thì hover vào hiện bảng đó,
+  // hover ra lại ẩn"): nút là một cột bấm được cạnh bảng xếp hạng; trạng thái nhớ theo máy; đang tắt thì rê lên sân / camp / bảng của phim nào hiện biển phim đó
+  const bienPhim = new Map<string, any[]>();   // khoá 'hub|cum' → [biển, cột]
+  let tatBien: Record<string, boolean> = (() => { try { return JSON.parse(localStorage.getItem('tp-tat-bien') ?? '{}'); } catch { return {}; } })();
+  let bienDangLo: string | null = null;
+  const datBien = (khoa: string, hien: boolean) => { for (const o of bienPhim.get(khoa) ?? []) o.visible = hien; };
+  const apTatBien = (hub: string) => { for (const k of bienPhim.keys()) if (k.startsWith(`${hub}|`)) datBien(k, !tatBien[hub]); bienDangLo = null; };
   // SỐ MỖI PHIM (anh 23/10/2026 "làm sao nhìn được ROI · profit · cost · revenue của từng phim, từng camp trên city"): cộng mọi camp của cụm (kể cả kho camp tắt);
   // hôm nay = ngày báo cáo mới nhất của Ethopex (cùng số với bảng Content), ROI = (thu − chi) / chi như bảng đó
   type SoPhim = { tH: number; cH: number; t30: number; c30: number };
@@ -498,7 +505,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const usd = (n: number) => `$${Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2)}`;
   const ngayNgan = (s: string | null | undefined) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : 'hôm nay');
   function dung() {
-    boCumP.clear();
+    boCumP.clear(); bienPhim.clear(); bienDangLo = null;
     scene.remove(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
     const viTri: Record<string, any> = {};
     chiMuc.length = 0;
@@ -715,6 +722,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const Wb = Math.max(58, Math.min(96, o.w * .8)), Hb = Wb * 300 / 640, day = 16;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'cum-phim', cum: o.cum, hub: hub.khoa }; the.add(sp);
       const cot = add(new THREE.CylinderGeometry(.8, .8, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x, day / 2, z); cot.userData = { chu: null };
+      const kb = `${hub.khoa}|${o.cum}`; bienPhim.set(kb, [sp, cot]); if (tatBien[hub.khoa]) datBien(kb, false);
     }
     // BẢNG XẾP HẠNG PHIM cạnh toà nền tảng: như bảng Content của Ethopex — phim có tiêu tiền ngày báo cáo mới nhất, xếp theo ROI, dòng TỔNG cuối
     function bangXepHang(hub: typeof mh.dich[number], bo: { cum: CumP[] }, x: number, z: number) {
@@ -733,6 +741,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; const Wb = 120, Hb = Wb * cao / 720, day = 14;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'dich', d: hub }; the.add(sp);
       for (const dx of [-Wb * .3, Wb * .3]) { const cot = add(new THREE.CylinderGeometry(1, 1, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x + dx, day / 2, z); cot.userData = { chu: null }; }
+      // nút bật / tắt bảng hiệu: trụ tròn có đèn, đứng trước bảng xếp hạng; bấm = đổi, chữ trên trụ ghi trạng thái
+      const nx = x, nz = z + 16, bat = !tatBien[hub.khoa];
+      const tru = add(new THREE.CylinderGeometry(5, 6, 6, 20), M({ color: bat ? '#1f8a5a' : '#3a4260', emissive: bat ? '#3fd68a' : '#000000', emissiveIntensity: .5, roughness: .4 })); tru.position.set(nx, 3, nz);
+      tru.userData = { loai: 'nut-bien', hub: hub.khoa };
+      const cv2 = document.createElement('canvas'); cv2.width = 512; cv2.height = 128; const g2 = cv2.getContext('2d')!; g2.fillStyle = bat ? '#14301f' : '#1c2238'; g2.fillRect(0, 0, 512, 128); g2.strokeStyle = bat ? '#3fd68a' : '#8e9abd'; g2.lineWidth = 8; g2.strokeRect(4, 4, 504, 120);
+      g2.fillStyle = '#fff'; g2.font = '800 46px system-ui, sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(`🪧 Bảng hiệu: ${bat ? 'BẬT' : 'TẮT'}`, 256, 66);
+      const nhan = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv2) })); nhan.scale.set(28, 7, 1); nhan.position.set(nx, 12, nz); nhan.userData = { loai: 'nut-bien', hub: hub.khoa }; the.add(nhan);
     }
     // toà CAMP (góp ý #1439): hình theo dạng creative (kể chuyện = trụ tròn · cảnh thật = khối vuông · cảnh cuối = khối mái chóp · phim dài = khối dẹt dài ·
     // khác = trụ lục giác), màu theo trạng thái (xanh lãi · đỏ lỗ · tím vi phạm · xanh nhạt trong suốt = lên lịch), cao theo thu + chi 30 ngày;
@@ -1087,6 +1102,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         : { cot: ['Camp', '💵 Thu 30n', '💸 Chi 30n'], dong: ds2.sort((a, b) => (b.chi30 ?? 0) - (a.chi30 ?? 0)).slice(0, 14).map((d) => [ten(d), tienO(d.tien30), tienO(d.chi30)]) };
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
     }
+    if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', tatBien[u.hub] ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', tatBien[u.hub] ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
     if (u.loai === 'cum-phim') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
       if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.lich, ...(o.kho ? [o.kho] : [])];
         const v = soCum(o), mauV = v.tH >= v.cH ? '#3fd68a' : '#ff4d5e', ng = ngayNgan(hub?.ngayHom);
@@ -1181,7 +1197,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   meo.addEventListener('pointerleave', () => { trongMeo = false; henAnMeo(); });
   const onMove = (e: PointerEvent) => {
     datChuot(e); const o = chuDuoiChuot(); chuotCuoi = { x: e.clientX, y: e.clientY };
-    if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : ''; }
+    if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
+      // bảng hiệu đang tắt: rê lên sân / biển / camp của phim → lộ biển phim đó, rời ra thì ẩn lại
+      const u = o?.userData, hubK = u?.hub ?? u?.d?.cha, cum = u?.cum ?? u?.d?.cumPhim, kb = hubK && cum && tatBien[hubK] ? `${hubK}|${cum}` : null;
+      if (kb !== bienDangLo) { if (bienDangLo) datBien(bienDangLo, false); if (kb) datBien(kb, true); bienDangLo = kb; } }
     if (e.pointerType !== 'mouse') { anMeo(); return; }
     if (o && o === meoCua) { clearTimeout(henAn); henAn = 0; return; }
     if (!o) boHenHien();
@@ -1254,6 +1273,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   window.addEventListener('keydown', onPhim);
   function cham(e: PointerEvent) {
     datChuot(e); const chu = chuDuoiChuot(); anMeo();
+    if (chu?.userData?.loai === 'nut-bien') { const h = chu.userData.hub; tatBien = { ...tatBien, [h]: !tatBien[h] }; try { localStorage.setItem('tp-tat-bien', JSON.stringify(tatBien)); } catch { /* chế độ riêng tư */ } dung(); return; }
     if (chu) moNgan(chu); else if (!ngan.hidden) dongNgan();
   }
   r.domElement.addEventListener('pointermove', onMove); r.domElement.addEventListener('pointerleave', onLeave); r.domElement.addEventListener('pointerdown', onDown);
@@ -1330,7 +1350,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const d = ((e.rotation ?? 0) - gocCu) * Math.PI / 180; gocCu = e.rotation ?? 0; cam.position.sub(ctl.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), -d).add(ctl.target); danhThuc(); ctl.update(); };
   r.domElement.addEventListener('gesturestart', onGStart); r.domElement.addEventListener('gesturechange', onGChange);
   // CHỤM 2 NGÓN (màn cảm ứng): điểm mặt đất G dưới giữa hai ngón đứng yên dưới tay — phóng theo tỉ lệ khoảng cách ngón quanh G, xoay theo góc hai ngón quanh trục đứng
-  // qua G, rồi trượt cho G theo điểm giữa mới. Mọi phép đều dời cả camera lẫn tâm nhìn (giữ góc nghiêng), nên không còn chỗ "nhảy" về tâm nhìn cũ.
+  // qua G; hai ngón cùng cuộn dọc thì nâng / hạ camera (đổi góc nghiêng). Phóng / xoay dời cả camera lẫn tâm nhìn, nên không còn chỗ "nhảy" về tâm nhìn cũ.
   let cham2: { x: number; y: number; d: number; a: number } | null = null;
   const oG = new THREE.Vector3(), oG2 = new THREE.Vector3(), matDat = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), vTam = new THREE.Vector2(), TRUC_Y = new THREE.Vector3(0, 1, 0);
   const datDuoi = (x: number, y: number, ra: any) => { const b = r.domElement.getBoundingClientRect(); vTam.set(((x - b.left) / b.width) * 2 - 1, -((y - b.top) / b.height) * 2 + 1);
@@ -1346,7 +1366,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     cam.position.sub(oG).multiplyScalar(k).add(oG); ctl.target.sub(oG).multiplyScalar(k).add(oG);
     let da = m.a - cham2.a; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
     cam.position.sub(oG).applyAxisAngle(TRUC_Y, da).add(oG); ctl.target.sub(oG).applyAxisAngle(TRUC_Y, da).add(oG);
-    cam.lookAt(ctl.target); datDuoi(m.x, m.y, oG2); oG.sub(oG2).setY(0); cam.position.add(oG); ctl.target.add(oG);
+    // HAI NGÓN CÙNG CUỘN LÊN / XUỐNG = NÂNG / HẠ CAMERA (anh 23/10/2026, như Google Maps): điểm giữa hai ngón đi dọc → đổi góc nghiêng quanh tâm nhìn
+    // (lên = hạ camera nhìn ngang hơn, xuống = nâng camera nhìn thẳng xuống); hai ngón không còn trượt cảnh — trượt là việc của 1 ngón
+    const dy = m.y - cham2.y; if (dy) { const off = cam.position.clone().sub(ctl.target), sp = new THREE.Spherical().setFromVector3(off);
+      sp.phi = Math.max(.05, Math.min(ctl.maxPolarAngle, sp.phi - dy * .006)); off.setFromSpherical(sp); cam.position.copy(ctl.target).add(off); }
     cham2 = m; danhThuc(); ctl.update();
   };
   for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.addEventListener(ev, onCham2 as any, { passive: false });
@@ -1399,6 +1422,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (Math.abs(cam.near - gan) > gan * .1 || cam.far !== xa) { cam.near = gan; cam.far = xa; cam.updateProjectionMatrix(); }
     r.render(scene, cam);
   }
+  // móc cho bộ kiểm scripts/thanh-pho/kiem-dieu-khien: toạ độ màn của vật đầu tiên mang userData.loai · đếm biển đang hiện (chỉ đọc, không đổi cảnh)
+  (host as any).__toaDoVat = (loai: string) => { let o: any = null; the.traverse((x: any) => { if (!o && x.visible && x.userData?.loai === loai) o = x; }); if (!o) return null;
+    const v = new THREE.Vector3(); o.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height }; };
+  (host as any).__demBien = () => { let n = 0; the.traverse((x: any) => { if (x.visible && x.isSprite && x.userData?.loai === 'cum-phim') n++; }); return n; };
+  (host as any).__cam = () => ({ p: cam.position.toArray(), t: ctl.target.toArray() });
   const ro = new ResizeObserver(() => { if (!W() || !H()) return; cam.aspect = W() / H(); cam.updateProjectionMatrix(); r.setSize(W(), H()); });
   ro.observe(host);
   dung(); vong();

@@ -1,14 +1,18 @@
-// BẢNG GOM KEYFRAME (anh 23/10/2026: "sinh 1 keyframe gom đủ các keyframe cần làm vào chung để có kịch bản khớp toàn phần, sau đó mới zoom chi tiết
-// từng key ra cho mỗi shot"). Vẽ từng khung riêng thì mỗi khung một sảnh / một trạng thái đồ (#353 #15 Hạ còn đeo thẻ đã bị giật, #16 đổi cổ váy);
-// vẽ 4–6 khung trong MỘT ảnh thì model tự giữ chung sảnh, ánh sáng, trang phục, trạng thái vật. Ba bước:
-//   1. BẢNG: một ảnh lưới (cột × hàng khung dọc 9:16, viền trắng, không chữ) — mỗi khung = prompt_anh + câu hướng sơ đồ (dan_dung.huong) của shot
-//   2. CẮT: chia đều lưới → ảnh khung (R2)
-//   3. PHÓNG: lượt SỬA ảnh (không vẽ mới) — khung cắt làm ảnh 1 + ảnh mặt nhân vật, giữ nguyên bố cục / tư thế / hướng nhìn / đồ, chỉ làm nét + khoá mặt
-//      → chọn làm keyframe của shot. Sau đó: scripts/soat-huong.mts (cổng hướng) + scripts/truyen-tranh.mts (đọc như truyện tranh).
-//   … tsx scripts/bang-gom.mts --tap=356 --tu=1 --den=6 [--cot=3] [--bang=<url ảnh bảng đã có — bỏ bước 1>] [--chi-bang]
-// TỐN TIỀN: 1 ảnh bảng + 1 ảnh mỗi khung (cổng ảnh của phim / --mo-hinh) — chạy kèm DUYET_SINH_1_LAN=1 sau khi anh duyệt.
+// PHÂN CẢNH BA TẦNG — TỔNG QUAN TRƯỚC, CHI TIẾT SAU (anh 23–24/10/2026: "sinh 1 lần cho full rồi mới zoom chi tiết từng key… phải drilldown từ tổng
+// quan trước rồi mới vào chi tiết, đọc như truyện tranh để hiểu"). Nghề gọi là phân cảnh (storyboard): tờ THUMBNAIL cả cảnh chốt bố cục + mạch kể, rồi
+// mới vẽ sạch từng khung. Vẽ từng khung riêng thì mỗi khung một sảnh / một trạng thái đồ (#353 #15 Hạ còn đeo thẻ đã bị giật, #16 đổi cổ váy) — những gì
+// quyết trong CÙNG một lần sinh thì không lệch nhau. Mỗi tầng dưới là lượt SỬA theo khung tầng trên (không vẽ mới): chỉ thêm chi tiết, không quyết lại bố cục.
+//   Tầng 1 — THUMBNAIL CẢ CẢNH: một ảnh lưới (≤ ~20 khung nhỏ, viền trắng, không chữ): ai ở đâu, nhìn đâu, cầm gì, trạng thái đồ.
+//   Tầng 2 — BẢNG KHỐI: cắt từng khối --khoi khung từ tầng 1, ghép lại thành lưới 2 cột, cho AI vẽ lại cùng lưới ở chi tiết cao + ảnh mẫu mặt / trang phục.
+//   Tầng 3 — KHUNG CHI TIẾT: mỗi khung tầng 2 → lượt sửa lên 9:16 đầy đủ, khoá mặt → keyframe của shot.
+// Khung tách bằng DÒ VIỀN TRẮNG (model không vẽ lưới đều — #356: hai cột, khung cao khác nhau); số khung dò được ≠ số shot → dừng, không đoán.
+// Sau tầng 3: scripts/soat-huong.mts (cổng hướng) + scripts/truyen-tranh.mts (đọc như truyện tranh).
+//   … tsx scripts/bang-gom.mts --tap=356 [--tu=1 --den=17] --tang=1|2|3|tat-ca [--t1=<url tầng 1>] [--khoi=6] [--cot=4]
+//   --chi-cat (0đ): chỉ dò + cắt tầng 1 / ảnh --bang ra /tmp để soát
+// TỐN TIỀN: tầng 1 = 1 ảnh · tầng 2 = 1 ảnh / khối · tầng 3 = 1 ảnh / khung (cổng ảnh --mo-hinh) — chạy kèm DUYET_SINH_1_LAN=1 sau khi anh duyệt.
 import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { kemBienThe, mapCanh, mapNhanVat, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
@@ -18,72 +22,110 @@ import { uploadToR2 } from '../src/lib/r2';
 import type { Canh, NhanVat } from '../src/lib/xuong-video/kieu';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
-const tap = Number(gia('tap')); const tu = Number(gia('tu') || 1); const den = Number(gia('den') || 6); const cot = Number(gia('cot') || 2);   // cổng ảnh trả 9:16 bất kể tỉ lệ xin (PlenX, 23/10/2026) → lưới 2 cột hợp khổ dọc
-const moHinh = gia('mo-hinh') || 'plenxai:nano-banana-2';
-if (!tap) { console.error('cần --tap=<id>'); process.exit(1); }
+const tap = Number(gia('tap')); if (!tap) { console.error('cần --tap=<id>'); process.exit(1); }
+const tang = gia('tang') || 'tat-ca'; const khoi = Number(gia('khoi') || 6); const moHinh = gia('mo-hinh') || 'plenxai:nano-banana-2';
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
+const tu = Number(gia('tu') || 1); const den = Number(gia('den') || 999);
 const ds: Canh[] = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} AND thu_tu BETWEEN ${tu} AND ${den} ORDER BY thu_tu`)).map(mapCanh);
+const cot1 = Number(gia('cot') || (ds.length > 12 ? 4 : ds.length > 6 ? 3 : 2));
 const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`))[0]!.phim_id);
 const nv: NhanVat[] = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)).map(mapNhanVat));
-const hang = Math.ceil(ds.length / cot);
 const CO: Record<string, string> = { ws: 'Wide shot', ms: 'Medium two-shot', mcu: 'Medium close-up', cu: 'Close-up', insert: 'Insert close-up', ecu: 'Extreme close-up' };
-
-// ảnh tham chiếu: sảnh (ảnh toàn cảnh đã duyệt) · mỗi người MỘT ảnh mặt + biến thể trang phục đầu tiên gặp · đồ — trần 8 (PlenX)
+const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc giữa các tầng (URL) — chạy lại từng tầng không mất tầng trên
+const moc: { t1?: string; t2?: Record<number, string>; khoi?: string[] } = existsSync(TEP) ? JSON.parse(readFileSync(TEP, 'utf8')) : {};
+const luu = () => writeFileSync(TEP, JSON.stringify(moc, null, 1));
 const ten = (id: number) => nv.find((v) => v.id === id);
-const dung = new Map<string, string>();
-const boiCanh = nv.find((v) => v.loai === 'boi_canh' && v.anh_ref[0]); if (boiCanh) dung.set(`the lobby (${boiCanh.ten}) — wide establishing frame of this exact place`, boiCanh.anh_ref[0]!);
-for (const c of ds) for (const id of c.nhan_vat) {
-  const v = ten(id); if (!v || v.loai !== 'nhan_vat') continue;
-  const mat = v.anh_mat?.url?.[0] ?? v.anh_ref[0]; if (mat && ![...dung.values()].includes(mat)) dung.set(`${v.ten}'s face`, mat);
-  const bt = (v.bien_the ?? []).find((b) => c.bien_the.includes(b.id) && b.anh_url); if (bt?.anh_url && ![...dung.values()].includes(bt.anh_url)) dung.set(`${v.ten}'s outfit (${bt.mo_ta || bt.ten})`, bt.anh_url);
-}
-for (const c of ds) for (const id of c.nhan_vat) { const v = ten(id); if (v && v.loai !== 'nhan_vat' && v.loai !== 'boi_canh' && v.anh_ref[0] && ![...dung.values()].includes(v.anh_ref[0])) dung.set(`${v.ten} (${v.mo_ta.slice(0, 60)})`, v.anh_ref[0]); }
-const refs = [...dung.entries()].slice(0, 8);
 
-async function doiJob(job: number): Promise<string> {
+/** Ảnh tham chiếu cho một nhóm shot: sảnh (ảnh toàn cảnh đã duyệt) · mỗi người MỘT ảnh mặt + biến thể trang phục đầu tiên gặp · đồ — trần `tran`. */
+function thamChieu(nhom: Canh[], tran: number): [string, string][] {
+  const dung = new Map<string, string>(); const co = (u: string) => [...dung.values()].includes(u);
+  const boiCanh = nv.find((v) => v.loai === 'boi_canh' && v.anh_ref[0]); if (boiCanh) dung.set(`the location (${boiCanh.ten}) — wide establishing frame of this exact place`, boiCanh.anh_ref[0]!);
+  for (const c of nhom) for (const id of c.nhan_vat) {
+    const v = ten(id); if (!v || v.loai !== 'nhan_vat') continue;
+    const mat = v.anh_mat?.url?.[0] ?? v.anh_ref[0]; if (mat && !co(mat)) dung.set(`${v.ten}'s face`, mat);
+    const bt = (v.bien_the ?? []).find((b) => c.bien_the.includes(b.id) && b.anh_url); if (bt?.anh_url && !co(bt.anh_url)) dung.set(`${v.ten}'s outfit (${bt.mo_ta || bt.ten})`, bt.anh_url);
+  }
+  for (const c of nhom) for (const id of c.nhan_vat) { const v = ten(id); if (v && v.loai !== 'nhan_vat' && v.loai !== 'boi_canh' && v.anh_ref[0] && !co(v.anh_ref[0])) dung.set(`${v.ten} (${v.mo_ta.slice(0, 60)})`, v.anh_ref[0]); }
+  return [...dung.entries()].slice(0, tran);
+}
+async function sinh(o: { nhan: string; prompt: string; refs: string[]; tiLe: '9:16'; thuMuc: string; canhId?: number; kichCo?: '1K' | '2K' }): Promise<string> {
+  const job = await taoJob(db, { ...(o.canhId ? { canh_id: o.canhId } : { phim_id: phimId }), nhan: o.nhan, loai: 'anh', provider: 'google', model: moHinh, request: { prompt: o.prompt, thamChieuUrl: o.refs } });
+  await dayViecAnh({ job, model: moHinh, prompt: o.prompt, thamChieuUrl: o.refs, tiLe: o.tiLe, kichCo: o.kichCo, thuMuc: o.thuMuc });
   for (let i = 0; i < 120; i++) { const r = (await q(sql`SELECT trang_thai, output_url, loi FROM xv_job WHERE id = ${job}`))[0]!; if (r.trang_thai === 'xong' && r.output_url) return String(r.output_url); if (r.trang_thai === 'loi') throw new Error(String(r.loi)); await new Promise((ok) => setTimeout(ok, 5000)); }
   throw new Error(`job ${job} quá 10 phút`);
 }
-
-let bang = gia('bang');
-if (!bang) {
-  const khung = ds.map((c, i) => `PANEL ${i + 1} (row ${Math.floor(i / cot) + 1}, column ${(i % cot) + 1}) — ${CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'}: ${(c.prompt_anh || c.dan_dung?.dien || c.hanh_dong).trim()} ${c.dan_dung?.huong ? `Screen direction: ${c.dan_dung.huong}.` : ''}`.trim());
-  const prompt = [`A film storyboard sheet: ${ds.length} consecutive frames of ONE continuous scene, laid out as a grid of ${cot} columns × ${hang} rows, read left to right, top to bottom. Every panel is a vertical 9:16 photorealistic live-action film still of equal size, separated by thin plain white gutters. Absolutely no text, numbers, captions, labels or speech bubbles anywhere.`,
-    'CONTINUITY across all panels: the same lobby, the same light, the same faces and outfits; every object keeps its state from one panel to the next (what is taken stays taken).',
-    `Reference images: ${refs.map(([k], i) => `Image ${i + 1} = ${k}`).join('; ')}.`, ...khung].join('\n');
-  const job = await taoJob(db, { phim_id: phimId, nhan: `Bảng gom keyframe #${tu}–#${den}`, loai: 'anh', provider: 'google', model: moHinh, request: { prompt, thamChieuUrl: refs.map(([, u]) => u) } });
-  await dayViecAnh({ job, model: moHinh, prompt, thamChieuUrl: refs.map(([, u]) => u), tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
-  bang = await doiJob(job); console.log(`bảng: ${bang}`);
+/** Dò khung theo viền trắng: cột = đoạn không trắng theo chiều ngang, trong mỗi cột khung = đoạn không trắng theo chiều dọc; đọc hàng k = khung thứ k mỗi cột. */
+async function doKhung(buf: Buffer) {
+  const { data: px, info } = await sharp(buf).greyscale().raw().toBuffer({ resolveWithObject: true }); const W = info.width, H = info.height;
+  const sang = (x0: number, x1: number, y0: number, y1: number, doc: boolean) => { const out: number[] = []; const n = doc ? x1 - x0 : y1 - y0;
+    for (let i = 0; i < n; i++) { let t = 0, c = 0; if (doc) for (let y = y0; y < y1; y += 2) { t += px[y * W + x0 + i]!; c++; } else for (let x = x0; x < x1; x += 2) { t += px[(y0 + i) * W + x]!; c++; } out.push(t / c); } return out; };
+  const doan = (m: number[], toiThieu: number) => { const cat: [number, number][] = []; let a = -1;
+    m.forEach((v, i) => { const trang = v > 232; if (!trang && a < 0) a = i; if ((trang || i === m.length - 1) && a >= 0) { const b = trang ? i : i + 1; if (b - a >= toiThieu) cat.push([a, b]); a = -1; } }); return cat; };
+  const theoCot = doan(sang(0, W, 0, H, true), W * 0.08).map(([x0, x1]) => doan(sang(x0, x1, 0, H, false), H * 0.06).map(([y0, y1]) => ({ x0, x1, y0, y1 })));
+  const khung = Array.from({ length: Math.max(0, ...theoCot.map((c) => c.length)) }, (_, k) => theoCot.map((c) => c[k]).filter((x): x is NonNullable<typeof x> => !!x)).flat();
+  return { khung, mo_ta: theoCot.map((c) => c.length).join(' + ') };
 }
-if (process.argv.includes('--chi-bang')) process.exit(0);
+const cat = (buf: Buffer, k: { x0: number; x1: number; y0: number; y1: number }, m = 3) => sharp(buf).extract({ left: k.x0 + m, top: k.y0 + m, width: k.x1 - k.x0 - 2 * m, height: k.y1 - k.y0 - 2 * m }).jpeg({ quality: 93 }).toBuffer();
+const len = async (buf: Buffer, ten: string) => { const u = await uploadToR2(`xuong-video/bang/${tap}/${ten}-${randomUUID()}.jpg`, buf, 'image/jpeg'); if (!u) throw new Error('R2 chưa bật'); return u; };
+const tai = async (u: string) => Buffer.from(await (await fetch(u)).arrayBuffer());
+const moTaKhung = (c: Canh) => `${CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'}: ${(c.prompt_anh || c.dan_dung?.dien || c.hanh_dong).trim()}${c.dan_dung?.huong ? ` Screen direction: ${c.dan_dung.huong}.` : ''}`;
+const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbles anywhere.';
 
-// CẮT: model không vẽ lưới đều (#356 bảng 1: hai cột, mỗi cột ba khung cao khác nhau) → DÒ VIỀN TRẮNG: cột = dải dọc gần trắng suốt chiều cao,
-// trong mỗi cột khung = các đoạn giữa dải ngang gần trắng. Thứ tự đọc: khung thứ k của cột trái rồi khung thứ k của cột phải (hàng k).
-const goc = Buffer.from(await (await fetch(bang)).arrayBuffer());
-const { data: px, info } = await sharp(goc).greyscale().raw().toBuffer({ resolveWithObject: true }); const W = info.width, H = info.height;
-const sang = (x0: number, x1: number, y0: number, y1: number, doc: boolean) => { const out: number[] = []; const n = doc ? x1 - x0 : y1 - y0;
-  for (let i = 0; i < n; i++) { let t = 0, c = 0; if (doc) for (let y = y0; y < y1; y += 2) { t += px[y * W + x0 + i]!; c++; } else for (let x = x0; x < x1; x += 2) { t += px[(y0 + i) * W + x]!; c++; } out.push(t / c); } return out; };
-const doan = (m: number[], tong: number) => { const cat: [number, number][] = []; let a = -1;   // các đoạn KHÔNG trắng dài ≥ 15% chiều
-  m.forEach((v, i) => { const trang = v > 232; if (!trang && a < 0) a = i; if ((trang || i === m.length - 1) && a >= 0) { const b = trang ? i : i + 1; if (b - a >= tong * 0.15) cat.push([a, b]); a = -1; } }); return cat; };
-const cotX = doan(sang(0, W, 0, H, true), W);
-const theoCot = cotX.map(([x0, x1]) => doan(sang(x0, x1, 0, H, false), H).map(([y0, y1]) => ({ x0, x1, y0, y1 })));
-const khungCat = Array.from({ length: Math.max(...theoCot.map((c) => c.length)) }, (_, k) => theoCot.map((c) => c[k]).filter((x): x is NonNullable<typeof x> => !!x)).flat();
-console.log(`dò được ${khungCat.length} khung (${theoCot.map((c) => c.length).join(' + ')}) — cần ${ds.length}`);
-if (khungCat.length !== ds.length) { console.error('số khung không khớp số shot — xem ảnh bảng rồi chạy lại với --bang (hoặc sinh lại bảng)'); process.exit(1); }
-// --chi-cat (0đ): chỉ cắt thử, ghi ra /tmp/bang-<tap>-<n>.jpg để soát việc dò khung — không phóng
-if (process.argv.includes('--chi-cat')) { for (const [i, k] of khungCat.entries()) await sharp(goc).extract({ left: k.x0 + 3, top: k.y0 + 3, width: k.x1 - k.x0 - 6, height: k.y1 - k.y0 - 6 }).toFile(`/tmp/bang-${tap}-${i + 1}.jpg`); console.log(khungCat.map((k, i) => `${i + 1}: ${k.x0},${k.y0} ${k.x1 - k.x0}×${k.y1 - k.y0}`).join(' · ')); process.exit(0); }
-for (const [i, c] of ds.entries()) {
-  const k = khungCat[i]!; const m = 3;
-  const cat = await sharp(goc).extract({ left: k.x0 + m, top: k.y0 + m, width: k.x1 - k.x0 - 2 * m, height: k.y1 - k.y0 - 2 * m }).jpeg({ quality: 92 }).toBuffer();
-  const urlCat = await uploadToR2(`xuong-video/bang/${tap}/${c.id}-cat-${randomUUID()}.jpg`, cat, 'image/jpeg'); if (!urlCat) throw new Error('R2 chưa bật');
-  // PHÓNG = SỬA (không vẽ mới): khung cắt là ảnh 1, ảnh mặt người trong shot sau đó
+// ── TẦNG 1: thumbnail cả cảnh ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+if (gia('t1')) moc.t1 = gia('t1');
+if ((tang === '1' || tang === 'tat-ca') && !gia('t1')) {
+  const hang = Math.ceil(ds.length / cot1); const refs = thamChieu(ds, 8);
+  const prompt = [`A film storyboard THUMBNAIL sheet for one whole scene: ${ds.length} consecutive frames laid out as a grid of ${cot1} columns × ${hang} rows, read left to right, top to bottom${ds.length % cot1 ? `; the last row has only ${ds.length % cot1} panel(s), the rest of that row is plain white` : ''}. Every panel is a small vertical photorealistic live-action film still of equal size, separated by thin plain white gutters. ${KHONG_CHU}`,
+    'This sheet decides the STAGING of the whole scene: the same place, light, faces and outfits in every panel; who stands where, where each person looks, what each holds; every object keeps its state from panel to panel (what is taken stays taken, what is gone stays gone).',
+    `Reference images: ${refs.map(([k], i) => `Image ${i + 1} = ${k}`).join('; ')}.`,
+    ...ds.map((c, i) => `PANEL ${i + 1} (row ${Math.floor(i / cot1) + 1}, column ${(i % cot1) + 1}) — ${moTaKhung(c)}`)].join('\n');
+  moc.t1 = await sinh({ nhan: `Phân cảnh tầng 1 (thumbnail) #${tu}–#${ds.at(-1)?.thu_tu}`, prompt, refs: refs.map(([, u]) => u), tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
+  luu(); console.log(`tầng 1: ${moc.t1}`);
+}
+if (process.argv.includes('--chi-cat') && moc.t1) {
+  const b = await tai(gia('bang') || moc.t1); const d = await doKhung(b);
+  for (const [i, k] of d.khung.entries()) await sharp(b).extract({ left: k.x0 + 3, top: k.y0 + 3, width: k.x1 - k.x0 - 6, height: k.y1 - k.y0 - 6 }).toFile(`/tmp/bang-${tap}-${i + 1}.jpg`);
+  console.log(`dò được ${d.khung.length} khung (${d.mo_ta}) — cần ${ds.length}`); process.exit(0);
+}
+if (tang === '1') process.exit(0);
+
+// ── TẦNG 2: bảng khối (vẽ lại khối khung tầng 1 ở chi tiết cao) ─────────────────────────────────────────────────────────────────────────────────
+if (tang === '2' || tang === 'tat-ca') {
+  if (!moc.t1) { console.error('chưa có tầng 1 (--t1=<url>)'); process.exit(1); }
+  const b1 = await tai(moc.t1); const d1 = await doKhung(b1);
+  console.log(`tầng 1: dò được ${d1.khung.length} khung (${d1.mo_ta}) — cần ${ds.length}`);
+  if (d1.khung.length !== ds.length) { console.error('số khung tầng 1 không khớp số shot — sinh lại tầng 1, không đoán'); process.exit(1); }
+  moc.t2 = {}; moc.khoi = [];
+  for (let a = 0; a < ds.length; a += khoi) {
+    const nhom = ds.slice(a, a + khoi); const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2);
+    // ghép lại khối khung tầng 1 thành lưới cot2 cột, ô 9:16, viền trắng 12px
+    const CW = 360, CH = 640, G = 12;
+    const o = await Promise.all(nhom.map(async (_, j) => sharp(await cat(b1, d1.khung[a + j]!)).resize(CW, CH, { fit: 'cover' }).toBuffer()));
+    const luoi = await sharp({ create: { width: cot2 * CW + (cot2 + 1) * G, height: hang2 * CH + (hang2 + 1) * G, channels: 3, background: '#ffffff' } })
+      .composite(o.map((x, j) => ({ input: x, left: G + (j % cot2) * (CW + G), top: G + Math.floor(j / cot2) * (CH + G) }))).jpeg({ quality: 92 }).toBuffer();
+    const urlLuoi = await len(luoi, `t2-vao-${nhom[0]!.thu_tu}`);
+    const refs = thamChieu(nhom, 7);
+    const prompt = [`Image 1 is a rough storyboard sheet of ${nhom.length} consecutive frames (${cot2} columns × ${hang2} rows, white gutters). Re-render it as the SAME storyboard sheet at much higher detail: the same grid, the same white gutters, the same panel order; inside every panel keep exactly the composition, camera angle, framing, people, positions on screen, poses, gaze directions, hands, objects and their states — do not move, add or remove anything.`,
+      `Render photorealistic live-action detail. ${KHONG_CHU}`, `Reference images: ${refs.map(([k], i) => `Image ${i + 2} = ${k}`).join('; ')}.`,
+      ...nhom.map((c, j) => `Panel ${j + 1} — ${moTaKhung(c)}`)].join('\n');
+    const u2 = await sinh({ nhan: `Phân cảnh tầng 2 (khối) #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}`, prompt, refs: [urlLuoi, ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
+    moc.khoi.push(u2); console.log(`tầng 2 khối #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}: ${u2}`);
+    const b2 = await tai(u2); const d2 = await doKhung(b2);
+    if (d2.khung.length !== nhom.length) { console.error(`  khối này dò được ${d2.khung.length} khung (${d2.mo_ta}), cần ${nhom.length} — dừng, sinh lại khối`); luu(); process.exit(1); }
+    for (const [j, c] of nhom.entries()) moc.t2[c.thu_tu] = await len(await cat(b2, d2.khung[j]!), `t2-${c.id}`);
+    luu();
+  }
+}
+if (tang === '2') process.exit(0);
+
+// ── TẦNG 3: khung chi tiết → keyframe ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+for (const c of ds) {
+  const urlCat = moc.t2?.[c.thu_tu]; if (!urlCat) { console.error(`#${c.thu_tu}: chưa có khung tầng 2`); continue; }
   const matShot = c.nhan_vat.map(ten).filter((v): v is NhanVat => !!v && v.loai === 'nhan_vat').map((v) => [v.ten, v.anh_mat?.url?.[0] ?? v.anh_ref[0]] as const).filter(([, u]) => !!u);
-  const p2 = [`Image 1 is one frame cut from a storyboard sheet. Re-render it as a full-resolution vertical 9:16 photorealistic live-action film still (if the panel is wider than 9:16, extend the scene naturally above and below — never crop anyone) with EXACTLY the same composition, camera angle, framing, people, poses, positions on screen, gaze directions, hands, objects and their states, and lighting — do not move, add or remove anything, do not change where anyone looks.`,
+  const p3 = [`Image 1 is one frame cut from a storyboard sheet. Re-render it as a full-resolution vertical 9:16 photorealistic live-action film still (if the panel is wider than 9:16, extend the scene naturally above and below — never crop anyone) with EXACTLY the same composition, camera angle, framing, people, poses, positions on screen, gaze directions, hands, objects and their states, and lighting — do not move, add or remove anything, do not change where anyone looks.`,
     'Only add detail and sharpness and render real skin, fabric and hair texture.', matShot.length ? `Faces must match these reference photos: ${matShot.map(([t], j) => `Image ${j + 2} = ${t}`).join('; ')}.` : '', 'No text, captions or borders.'].filter(Boolean).join(' ');
-  const job = await taoJob(db, { canh_id: c.id, nhan: `Keyframe (phóng từ bảng gom) · cảnh #${c.thu_tu}`, loai: 'anh', provider: 'google', model: moHinh, request: { prompt: p2, thamChieuUrl: [urlCat, ...matShot.map(([, u]) => u!)], bang } });
-  await dayViecAnh({ job, model: moHinh, prompt: p2, thamChieuUrl: [urlCat, ...matShot.map(([, u]) => u!)], tiLe: '9:16', thuMuc: `keyframe/${c.id}` });
-  const url = await doiJob(job); await chonKeyframe(db, c.id, url, 'bảng gom');
-  console.log(`#${c.thu_tu} cắt ${urlCat} → keyframe ${url}`);
+  const url = await sinh({ nhan: `Keyframe (phân cảnh tầng 3) · cảnh #${c.thu_tu}`, prompt: p3, refs: [urlCat, ...matShot.map(([, u]) => u!)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
+  await chonKeyframe(db, c.id, url, 'phân cảnh ba tầng'); console.log(`#${c.thu_tu} → ${url}`);
 }
 process.exit(0);

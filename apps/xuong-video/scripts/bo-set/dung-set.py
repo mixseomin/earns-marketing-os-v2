@@ -2192,12 +2192,12 @@ for sh in ([] if CHI_MB else shots):
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
         g_ = goc_ve_mo() if co_mau and sh['ma'] in dong_ else None
-        if g_: dong_[sh['ma']].update(ket={k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dk').items()}, ket_goc=g_)
+        if g_: dong_[sh['ma']].update(ket={k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dk').items()}, ket_goc=g_, ket_doi_cho=(cam.matrix_world.translation - may0[0].translation).length > 1e-4)
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
         if MESH_THAT and dong:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
             may_tai(0.5); ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
             g2_ = goc_ve_mo() if g_ else None
-            if g2_: dong_[sh['ma']].update(giua={k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dg').items()}, giua_goc=g2_)
+            if g2_: dong_[sh['ma']].update(giua={k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dg').items()}, giua_goc=g2_, giua_doi_cho=(cam.matrix_world.translation - may0[0].translation).length > 1e-4)
             for o in ng_het: bpy.data.objects.remove(o, do_unlink=True)
         may_tai(0.0)
     else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]

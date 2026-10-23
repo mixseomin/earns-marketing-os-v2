@@ -232,10 +232,12 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
 }
 /** SOÁT GHÉP NỀN cho video (sinh-video.ts): ảnh KẾT của shot có góc kết phải qua ghép nền đạt — không thì chặn; ảnh GIỮA không đạt thì BỎ (video chỉ đi
  *  tới ảnh kết) thay vì chặn cả shot. Shot không có góc kết (máy đi khác / khung 3D cũ) → không áp dụng. */
-export async function soatGhepNen(db: Db, c: { id: number; keyframe_ket?: string | null; keyframe_giua?: string | null; khung_xam?: { dong?: { ket?: unknown; giua?: unknown; ket_goc?: unknown; giua_goc?: unknown } } | null }): Promise<{ chan: string | null; boGiua: boolean }> {
+export async function soatGhepNen(db: Db, c: { id: number; keyframe_ket?: string | null; keyframe_giua?: string | null; khung_xam?: { dong?: { ket?: unknown; giua?: unknown; ket_goc?: unknown; giua_goc?: unknown; ket_doi_cho?: boolean; giua_doi_cho?: boolean } } | null }): Promise<{ chan: string | null; boGiua: boolean }> {
   const d = c.khung_xam?.dong;
-  // MÁY ĐỨNG YÊN (4 góc = khung mở): nền chép thẳng, không qua hình học 3D → ảnh đầu lệch bố cục 3D không làm sai nền, không đòi khớp (#132 #20 chặn oan 54 %)
+  // MÁY KHÔNG DỜI CHỖ (đứng yên / lia / zoom tại chỗ): đồng phẳng chỉ dùng hình học MÁY, đúng tuyệt đối dù ảnh đầu lệch bố cục 3D → không đòi khớp (#132 #20
+  // chặn oan 54 %). Chỉ máy dời chỗ (đẩy máy) mới chiếu theo mặt sảnh 3D → cần ảnh đầu khớp. Khung cũ chưa có cờ: đứng yên hẳn mới coi là không dời.
   const yenHan = (g: unknown) => Array.isArray(g) && g.length === 4 && (g as number[][]).every((p, k) => Math.abs(p[0]! - [0, 1, 1, 0][k]!) < 0.01 && Math.abs(p[1]! - [0, 0, 1, 1][k]!) < 0.01);
+  const khongDoi = (co: boolean | undefined, g: unknown) => (co === undefined ? yenHan(g) : !co);
   const xet = async (u: string | null | undefined, can: boolean, yen = false): Promise<string | null> => {
     if (!can || !u) return null;
     const r = ((await db.execute(sql`SELECT coalesce((request->>'doi_set_pt')::numeric, 100) AS doi, coalesce((request->>'khop_3d_pt')::numeric, 0) AS khop FROM xv_job WHERE canh_id = ${c.id} AND request->>'dich' = 'ghep_nen' AND trang_thai = 'xong' AND output_url = ${u} ORDER BY id DESC LIMIT 1`)) as unknown as Row[])[0];
@@ -244,7 +246,7 @@ export async function soatGhepNen(db: Db, c: { id: number; keyframe_ket?: string
     if (Number(r.doi) > TRAN_DOI_SET) return `AI đổi ${Number(r.doi)}% sảnh ngoài chỗ người (> ${TRAN_DOI_SET}%) — không giữ ảnh đầu, sinh lại ảnh kết`;
     return null;
   };
-  const ket = await xet(c.keyframe_ket, !!(d?.ket && d.ket_goc), yenHan(d?.ket_goc));
-  const giua = await xet(c.keyframe_giua, !!(d?.giua && d.giua_goc), yenHan(d?.giua_goc));
+  const ket = await xet(c.keyframe_ket, !!(d?.ket && d.ket_goc), khongDoi(d?.ket_doi_cho, d?.ket_goc));
+  const giua = await xet(c.keyframe_giua, !!(d?.giua && d.giua_goc), khongDoi(d?.giua_doi_cho, d?.giua_goc));
   return { chan: ket && `ảnh KẾT ${ket}`, boGiua: !!giua };
 }

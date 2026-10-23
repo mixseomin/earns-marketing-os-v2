@@ -35,7 +35,10 @@ cat > ~/Library/LaunchAgents/$NHAN.plist <<PL
 PL
 plutil -lint ~/Library/LaunchAgents/$NHAN.plist >/dev/null
 launchctl bootout gui/\$(id -u)/$NHAN 2>/dev/null || true
-launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/$NHAN.plist
+# bootout chạy BẤT ĐỒNG BỘ: nạp lại ngay sau đó hay đụng "Bootstrap failed: 5: Input/output error" → bộ điều phối tắt hẳn, mọi việc nền iMac đứng
+# (24/10/2026: đứng 10 phút). Thử lại tới 10 lần, cách 2 giây; vẫn hỏng thì báo to và thoát lỗi.
+for i in 1 2 3 4 5 6 7 8 9 10; do launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/$NHAN.plist 2>/dev/null && break; sleep 2; done
+launchctl print gui/\$(id -u)/$NHAN >/dev/null 2>&1 || { echo "✗ KHÔNG NẠP LẠI ĐƯỢC $NHAN — việc nền máy này đang đứng: launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/$NHAN.plist" >&2; exit 1; }
 sleep 3
 launchctl print gui/\$(id -u)/$NHAN | grep -E '^\s*(state|pid) ='
 tail -3 ~/.cache/dieu-phoi.log

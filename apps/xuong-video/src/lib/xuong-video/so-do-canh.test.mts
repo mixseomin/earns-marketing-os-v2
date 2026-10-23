@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/so-do-canh.test.mts
 import assert from 'node:assert';
-import { svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
+import { loiCanMat, svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
 
 // Sảnh: thang máy ở bắc (y=7), máy toàn cảnh ở nam (y=0) nhìn bắc → đông = phải màn. Hạ trước thang (giữa trái), Vivian đứng phía đông Hạ, lối vào phía đông.
 const s: SoDo = { moc: { thang: [0, 7], loi_vao: [5, 3], ha: [-1.4, 5.8], vi: [1.2, 5.6] },
@@ -37,4 +37,9 @@ console.log('so-do-canh.test: ok');
   const v = svgPhac(sp, { may: 'toan', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'vi' } }, ['Hạ'], { 'Hạ': '#fff' });
   assert.ok(v.includes('#b9bec6') && v.includes('#e8212b'), 'có cửa + mũi tên');
   assert.ok(!svgPhac({ ...sp, may: { ...sp.may, lung: { dat: [0, 5], nhin: [0, 0] } } }, { may: 'lung', o: {} }, [], {}).includes('#b9bec6'), 'cửa sau lưng máy không vẽ'); }
+// cận mặt quay lưng: máy đặt sau lưng người đang nhìn ra xa → lỗi; máy phía trước → không
+{ const sl = { ...s, may: { ...s.may, sau_ha: { dat: [0, 4.0] as [number, number], nhin: [0, 5.8] as [number, number] }, truoc: { dat: [0, 6.6] as [number, number], nhin: [0, 5.8] as [number, number] } } };
+  assert.strictEqual(loiCanMat(sl, [{ thu_tu: 2, co: 'cu', may: 'sau_ha', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }]).length, 1);
+  assert.deepStrictEqual(loiCanMat(sl, [{ thu_tu: 2, co: 'cu', may: 'truoc', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }]), []);
+  assert.ok(svgPhac(sl, { may: 'sau_ha', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }, ['Hạ'], { 'Hạ': '#fff' }).includes('#1b1b1b'), 'quay lưng vẽ tóc'); }
 console.log('so-do-canh.test: ok (tờ phác)');

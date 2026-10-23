@@ -442,10 +442,10 @@
       "bt": [
         "Đầm đỏ đô công sở"
       ],
-      "hd": "Cận chèn: thẻ nằm trong nắm tay Vivian, hai đầu dây đứt lủng lẳng",
+      "hd": "Cận chèn: Vivian cầm dây thẻ đứt, tấm thẻ lủng lẳng bên dưới",
       "anh": "",
-      "vid": "The two loose lanyard ends sway below Vivian's fist. Static camera.",
-      "mo": "the snapped lanyard ends swing below Vivian's fist",
+      "vid": "The white card sways below Vivian's hand, which grips the two snapped ends of the lanyard. Static camera.",
+      "mo": "the badge dangles from the snapped lanyard in Vivian's hand",
       "ket": "the fist begins to rise up out of frame",
       "noi": "dong_tac",
       "sd": {
@@ -470,10 +470,10 @@
       "bt": [
         "Đầm đỏ đô công sở"
       ],
-      "hd": "Vivian giơ thẻ ngang mặt cười đắc ý với Hạ; chuông thang máy vang, cô liếc về phía cửa thang",
-      "anh": "Medium close-up of Vivian holding the white staff badge up beside her face, triumphant smile, eyes {Vivian→Lâm Hạ} on Hạ just off frame.",
-      "vid": "Vivian holds the badge up, smiling at Hạ; at the chime her eyes flick {Vivian→thang} toward the elevator door. Static camera.",
-      "mo": "Vivian raises the badge beside her face, smiling at Hạ",
+      "hd": "Vivian giơ dây thẻ lên ngang mặt, tấm thẻ lủng lẳng, cười đắc ý với Hạ; chuông thang máy vang, cô liếc về phía cửa thang",
+      "anh": "Medium close-up of Vivian holding the snapped lanyard up beside her face, the white staff badge dangling, triumphant smile, eyes {Vivian→Lâm Hạ} on Hạ just off frame.",
+      "vid": "Vivian dangles the badge by its lanyard beside her face, smiling at Hạ; at the chime her eyes flick {Vivian→thang} toward the elevator door. Static camera.",
+      "mo": "Vivian raises the dangling badge beside her face, smiling at Hạ",
       "ket": "an elevator chime sounds; Vivian's eyes flick {Vivian→thang} toward the elevator door",
       "noi": "tieng",
       "sd": {
@@ -742,5 +742,34 @@
     "Lâm Hạ": "#f4f4f4",
     "Vivian": "#7a1424",
     "Lục Thần": "#141414"
+  },
+  "ten_en": {
+    "Thùng đồ cá nhân": "the cardboard box of Hạ's belongings (a small potted plant and a mug inside)",
+    "Thẻ nhân viên": "the white staff ID badge on its dark blue lanyard"
+  },
+  "so_vat": {
+    "Thùng đồ cá nhân": [
+      {
+        "tu": 1,
+        "ai": "Lâm Hạ",
+        "cach": "hugged against Hạ's chest with both arms, the whole scene long — she never puts it down",
+        "vi": "Hạ ôm trước ngực bằng hai tay (suốt cảnh, không đặt xuống)"
+      }
+    ],
+    "Thẻ nhân viên": [
+      {
+        "tu": 1,
+        "ai": "Lâm Hạ",
+        "cach": "hanging on its dark blue lanyard around Hạ's neck, resting on her chest above the box",
+        "vi": "đeo trên cổ Hạ, nằm trên ngực"
+      },
+      {
+        "tu": 7,
+        "ai": "Vivian",
+        "cach": "held by its SNAPPED dark blue lanyard in Vivian's right hand, the white card dangling below her fingers (she holds the lanyard, never the card itself)",
+        "vi": "Vivian cầm bằng dây đứt, thẻ lủng lẳng dưới tay",
+        "su_kien": "Vivian giật mạnh, dây thẻ đứt khỏi cổ Hạ"
+      }
+    ]
   }
 }

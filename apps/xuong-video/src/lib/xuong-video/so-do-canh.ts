@@ -100,7 +100,18 @@ export function svgPhac(s: SoDo & { phong?: MangPhong[] }, m: ManhSoDo, nguoi: s
     const r = Math.abs(chanN[1] - dau[1]) * 0.075; const ngangThan = r * 2.3; const c = mau[n] ?? '#888';
     out.push(`<rect x="${(vai[0] - ngangThan).toFixed(1)}" y="${vai[1].toFixed(1)}" width="${(ngangThan * 2).toFixed(1)}" height="${(chanN[1] - vai[1]).toFixed(1)}" rx="${(r * 0.8).toFixed(1)}" fill="${c}" stroke="#111" stroke-width="3"/>`);
     out.push(`<circle cx="${dau[0].toFixed(1)}" cy="${dau[1].toFixed(1)}" r="${r.toFixed(1)}" fill="${c}" stroke="#111" stroke-width="3"/>`);
+    // DẤU MẶT (#353 #2: chỉ một hình tròn → model vẽ Hạ quay lưng ở cận mặt): quay về phía máy = hai mắt lệch theo hướng nhìn; quay lưng = mái tóc phủ kín đầu
+    { const dich0 = m.nhin?.[n]; const lung = dich0 ? raXa(s, m, n, dich0) : false; const h0 = dich0 ? huongMan(s, m, n, dich0) : 0;
+      if (lung) out.push(`<circle cx="${dau[0].toFixed(1)}" cy="${dau[1].toFixed(1)}" r="${(r * 0.92).toFixed(1)}" fill="#1b1b1b"/>`);
+      else { const dx = h0 * r * 0.35, mr = Math.max(2, r * 0.13); for (const sx of [-1, 1]) out.push(`<circle cx="${(dau[0] + dx + sx * r * 0.33).toFixed(1)}" cy="${(dau[1] - r * 0.1).toFixed(1)}" r="${mr.toFixed(1)}" fill="#111"/>`); } }
     const dich = m.nhin?.[n]; if (dich) { const h = huongMan(s, m, n, dich); const L = Math.max(30, r * 2.4) * (h || 0); if (h) out.push(`<line x1="${dau[0]}" y1="${dau[1]}" x2="${dau[0] + L}" y2="${dau[1]}" stroke="#e8212b" stroke-width="${Math.max(4, r / 5)}"/><polygon points="${dau[0] + L},${dau[1] - r / 2.5} ${dau[0] + L + Math.sign(L) * r / 1.6},${dau[1]} ${dau[0] + L},${dau[1] + r / 2.5}" fill="#e8212b"/>`); }
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${out.join('')}</svg>`;
+}
+
+/** CẬN MẶT QUAY LƯNG (#353 #2 — cận Hạ nghe tiếng giày mà hình chỉ thấy gáy): cỡ cận (cu / mcu / ecu) mà người đang nhìn RA XA máy → không đọc được mặt.
+ *  Sửa ở sơ đồ: đặt máy cận về phía người đó đang nhìn tới. Trả lỗi theo mảnh. */
+export function loiCanMat(s: SoDo, ds: (ManhSoDo & { thu_tu: number; co?: string })[]): string[] {
+  return ds.flatMap((m) => (/^(cu|mcu|ecu)$/.test(m.co ?? '') ? Object.entries(m.nhin ?? {}).filter(([a, b]) => (!m.khung || m.khung.includes(a)) && raXa(s, m, a, b))
+    .map(([a]) => `#${m.thu_tu}: cận "${m.may}" mà ${a} quay lưng về máy (đang nhìn ra xa) — đặt máy về phía ${a} đang nhìn tới` ) : []));
 }

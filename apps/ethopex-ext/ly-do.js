@@ -28,6 +28,9 @@
     'td[data-etp-so]::before{content:"$";position:absolute;left:var(--etp-pl,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);opacity:.55;font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums}' +
     'td[data-etp-so]::after{content:attr(data-etp-so);position:absolute;right:var(--etp-pr,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums;white-space:nowrap}' +
     'td[data-etp-am]::after,td[data-etp-am]::before{color:#d93025}html.dark td[data-etp-am]::after,html.dark td[data-etp-am]::before{color:#ff8a80}' +
+    // NHÃN ĐẾM CAMP Ở Ô TÊN PHIM (anh 23/10/2026): ▶ đang chạy · ⏳ đã lên lịch (Scheduled) · ⏸ tắt — vẽ bằng ::before, không sửa DOM React
+    'td[data-etp-dem]::before{content:attr(data-etp-dem);display:inline-block;margin-right:8px;padding:1px 7px;border-radius:10px;background:rgba(30,142,62,.14);color:#1e7a37;font:600 11px/16px system-ui,sans-serif;font-variant-numeric:tabular-nums;vertical-align:middle;white-space:pre}' +
+    'html.dark td[data-etp-dem]::before{background:rgba(123,216,143,.16);color:#7bd88f}' +
     '#etp-theme{position:fixed;right:16px;top:14px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
   document.documentElement.appendChild(st);
   const laTat = (tr) => tr.classList.contains('opacity-30') || [...tr.children].some((x) => /^\s*Paused\s*$/i.test(x.textContent || ''));
@@ -82,11 +85,18 @@
   const tenPhimTrenTrang = () => [...document.querySelectorAll('tbody tr')].filter((tr) => ![...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || '')))
     .map((tr) => [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); }))
     .filter(Boolean).map((td) => td.textContent.trim());
+  const oTenPhim = () => [...document.querySelectorAll('tbody tr')].filter((tr) => ![...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || '')))
+    .map((tr) => [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); })).filter(Boolean);
+  const veDem = () => { for (const td of oTenPhim()) { const d = phimNho[td.textContent.trim()]?.r?.dem; if (!d) continue;
+    const chu = `▶ ${d.chay}` + (d.lich ? `  ⏳ ${d.lich}` : '') + (d.tat ? `  ⏸ ${d.tat}` : ''); if (td.dataset.etpDem !== chu) td.dataset.etpDem = chu;
+    td.title = `${d.chay} camp đang chạy · ${d.lich} camp đã lên lịch (Scheduled) · ${d.tat} camp tắt`; } };
   const taiSan = () => {
+    veDem();
     const can = [...new Set(tenPhimTrenTrang())].filter((t) => !phimNho[t] || Date.now() - phimNho[t].luc > 120000).slice(0, 100);
     if (!can.length || dangTai) return;
     dangTai = fetch(API + '&phims=' + encodeURIComponent(can.join('\n'))).then((r) => r.json()).then((r) => {
       if (r.ok) for (const t of can) if (r.phim[t]) phimNho[t] = { luc: Date.now(), r: r.phim[t] };
+      veDem();
       for (const t of can) for (const c of ((phimNho[t] || {}).r || {}).creative?.slice(0, 4) || []) if (c.anh) new Image().src = c.anh;   // ảnh 4 creative đầu vào bộ nhớ trình duyệt
     }).catch(() => {}).finally(() => { dangTai = null; });
   };
@@ -159,7 +169,7 @@
     const td_ = 'padding:1px 0 1px 8px;text-align:right;white-space:nowrap;color:inherit;border:0;background:none';
     const dong = (nhan, x) => '<tr><td style="padding:1px 0;opacity:.75;color:inherit;border:0">' + nhan + '</td><td style="' + td_ + '">' + tien(x.chi) + '</td><td style="padding:1px 0 1px 6px;opacity:.5;color:inherit;border:0">→</td><td style="' + td_ + '">' + tien(x.thu) +
       '</td><td style="' + td_ + ';min-width:52px">' + phanTram(x.roi) + '</td></tr>';
-    const nhanCamp = (k) => k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>';
+    const nhanCamp = (k) => k.lich ? '<span style="background:#b26a00;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏳ LỊCH ' + esc(new Date(String(k.lich).replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })) + '</span>' : k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>';
     const the = ds.slice(0, 12).map((c) => {
       const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:76px;height:135px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:76px;height:135px;background:#333;border-radius:4px;flex:none"></div>';
       // camp CHỜ (anh 22/10/2026): camp mới lên chưa tiêu → "⏳ mới lên"; camp thắng mà lần nhân bản gần nhất bị chặn → dòng cam ghi lý do

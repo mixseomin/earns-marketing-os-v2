@@ -183,13 +183,16 @@
     return '<svg width="' + W + '" height="' + H + '" style="display:block;margin-top:6px"><line x1="0" x2="' + W + '" y1="' + (H - dd) + '" y2="' + (H - dd) + '" stroke="#33405e"/>' + cot + '</svg>' +
       '<div style="font-size:10px;opacity:.7">▮ xám = chi · ▮ xanh = thu · số trên cột = ROI ngày (ngày Ethopex 07:00–07:00 VN)</div>';
   };
-  const hienTip = (el) => {
+  const hienTip = async (el) => {
     const k = campNho[el.dataset.etpCamp]; if (!k) return;
+    // camp đã tắt: lý do tắt (lúc · luật · ai duyệt) cùng nguồn với khung "lý do đóng" ở danh sách camp (anh 24/10/2026 hỏi #66903 "tại sao lại đóng")
+    let lyDo = '';
+    if (k.trang_thai !== 'ACTIVE' && !k.lich) { try { const b = await lay(), x = b && b[k.id]; lyDo = x ? '<div style="margin-top:4px;color:#ffb4ab">⏸ Tắt ' + esc(x.luc) + ' · luật: ' + esc(String(x.luat).slice(0, 160)) + ' · duyệt: ' + esc(x.ai) + '</div>' : '<div style="margin-top:4px;opacity:.7">⏸ Chưa thấy lệnh tắt trong nhật ký luật (Ethopex tự dừng hoặc tắt ngoài máy)</div>'; } catch (e) { /* bỏ qua */ } }
     const d = (x) => (x ? '$' + x.chi.toFixed(2) + ' → $' + x.thu.toFixed(2) + ' ' + (x.roi == null ? '' : phanTram(x.roi)) : '—');
     tip.innerHTML = '<b>Camp #' + k.id + '</b> · ' + (k.lich ? 'lên lịch' : k.trang_thai === 'ACTIVE' ? '▶ đang chạy $' + k.ngan_sach + '/ngày' : '⏸ tắt') + ' · bộ ' + esc(k.bo) +
       '<div style="opacity:.75;margin-top:2px">' + esc(String(k.ten || '').slice(0, 90)) + '</div>' +
       '<div style="opacity:.75">' + (k.goc ? 'nhân bản từ camp #' + k.goc + ' · ' : '') + (k.tao ? 'tạo ' + new Date(k.tao).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
-      (k.chung > 1 && k.trang_thai === 'ACTIVE' ? '<div style="margin-top:4px;color:#ffd08a">⚔ Dùng y nguyên creative đang chạy ở ' + k.chung + ' camp — tự cạnh tranh cùng tệp người xem' + (k.chung > 3 ? ' (vượt trần 3 camp/đoạn)' : '') + '</div>' : '') +
+      lyDo + (k.chung > 1 && k.trang_thai === 'ACTIVE' ? '<div style="margin-top:4px;color:#ffd08a">⚔ Dùng y nguyên creative đang chạy ở ' + k.chung + ' camp — tự cạnh tranh cùng tệp người xem' + (k.chung > 3 ? ' (vượt trần 3 camp/đoạn)' : '') + '</div>' : '') +
       '<table style="border-collapse:collapse;margin-top:6px;color:inherit;font:inherit">' + [['Tháng', k], ['Hôm qua', k.hom_qua], ['Hôm nay', k.hom_nay]].map(([n, x]) => '<tr><td style="padding:1px 10px 1px 0;opacity:.75;border:0;color:inherit">' + n + '</td><td style="padding:1px 0;border:0;color:inherit">' + d(x) + '</td></tr>').join('') + '</table>' +
       bieuDo(k.ngay7);
     tip.style.display = 'block';

@@ -21,6 +21,9 @@
     'td[data-etp-ten="bat"]::before{content:"▶ BẬT";background:#1e8e3e;color:#fff}' +
     // theme tối của chính Ethopex (html.dark) — hàng tắt đổi sang đỏ trầm cho dễ đọc
     'html.dark tr[data-etp="tat"]{background:#3a1f1d!important}html.dark tr[data-etp="tat"] td{color:#ffb4ab!important}' +
+    // TỐI TRỌN TRANG REPORT (anh 24/10/2026 "theme tối vẫn chưa ổn"): Ethopex chỉ có bản tối cho màu nền chung — ~20 biến riêng của Report (thanh breakdown,
+    // badge, ô ngày, header bảng, dòng ALL / TOTALS, hàng tạm dừng / chọn / rê) chỉ có giá trị sáng → nền kem, chữ không đọc được. Bổ sung bản tối cho đúng các biến đó.
+    'html.dark{--table-header:#1d1d22;--table-header-foreground:#c9cad2;--table-row:#131317;--report-row-hover:#1f1f26;--report-row-paused-profit:#17241a;--report-row-paused-loss:#2a1a18;--report-row-paused-border:#4a4a52;--report-row-selected-profit:#1e3320;--report-row-selected-loss:#3a211d;--report-profit:#5fd36a;--report-profit-foreground:#4ade80;--report-loss:#ff7b7b;--report-loss-foreground:#f87171;--report-sidebar-selected:#25252c;--report-sidebar-hover:#1e1e24;--report-sidebar-section:#2a2620;--report-badge:#2e2b23;--report-chrome:#18181c;--report-menu-btn:#2e2b23;--report-active:#3b3420;--report-accent-link:#7aa7ff;--report-accent-link-hover:#a9c4ff}html.dark .bg-report-chrome,html.dark .bg-report-badge,html.dark .bg-table-header{color:#e4e4ea}' +
     // CỘT TIỀN KIỂU KẾ TOÁN (anh 22/10/2026): "$" sát trái ô, số căn phải, phân cách nghìn, 2 số lẻ, số âm trong ngoặc tô đỏ, chữ số đều bề ngang.
     // Chữ gốc của trang giữ nguyên (trong suốt, vẫn chọn/copy được) — lớp hiển thị vẽ bằng ::before/::after, không sửa DOM React.
     // chọn bộ chọn đủ mạnh để thắng luật tô màu hàng tắt (tr[data-etp="tat"] td, html.dark …) — 23/10/2026 hàng Paused hiện chồng "$1.00" lên "1.00"

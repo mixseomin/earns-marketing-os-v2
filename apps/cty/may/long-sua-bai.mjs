@@ -13,6 +13,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+// CHỈ iMAC (luật anh 23/10/2026) — Claude không giao diện bằng gói thuê bao chỉ chạy trên iMac; cùng dòng ở mọi script gọi Claude (script đến qua ssh cat, không import chung được)
+if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Long sửa bài chỉ chạy trên iMac (máy này: ${os.hostname()})`); process.exit(3); }
+
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'long';
 const REPO = path.join(os.homedir(), 'Me/Earns/hotel-arb'), SITES = path.join(REPO, 'scripts/sites'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 45;
 const HOST = /^https:\/\/(www\.)?ratesbyroom\.com(\/[^?#]*)/, DIST = 'dist-ratesbyroom';

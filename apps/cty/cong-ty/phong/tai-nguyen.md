@@ -26,3 +26,7 @@ trang_thai: chạy một việc · Kiểm tài nguyên máy cào spy + số dư 
 4. Tự kiểm: `node apps/cty/worker/tai-nguyen-api.mjs --tu-kiem`; xem tại chỗ (không gửi): `--in`.
 
 **Cấm**: nạp tiền / mua credit bất kỳ cổng nào; gia hạn / mua / bật auto gia hạn khoá 2proxy (anh cấm 19/10/2026 — chỉ báo, anh quyết); đổi làn ↔ máy khi trưởng phòng Kỹ thuật chưa duyệt; tự bật làn đang tắt.
+
+## Thợ máy — Mạnh (anh duyệt 24/10/2026)
+
+Cảnh báo **máy móc** (làn cào đứng, box3 / VPS quá tải, thiếu RAM, trình duyệt tắt) không chỉ báo: Nguyên xếp vào hàng `apps/cty/worker/tho-may-viec.mjs`, Mạnh (Claude Code không giao diện **trên iMac**, `apps/cty/may/tho-may.mjs`) nhận trong ≤ 5 phút, báo "đã nhận" ngay dưới tin cảnh báo, đo · tìm gốc · sửa trong repo spy-on-tc · kiểm · deploy, rồi trả lời dưới đúng tin đó (✅ đã sửa / ⚠️ không sửa được / 🙋 cần anh quyết). Trần **6 lượt / ngày**, **30 phút / lượt**. Khoá 2proxy, tài sản hết hạn là chuyện tiền — không vào hàng thợ máy.

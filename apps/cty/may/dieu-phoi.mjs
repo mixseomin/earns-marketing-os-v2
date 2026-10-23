@@ -29,7 +29,10 @@ export const NHAN_DIEU_PHOI = 'tc.on.cty.dieu-phoi';
 
 // ── phần THUẦN (tự kiểm được) ────────────────────────────────────────────────────────────────────────────────────────────
 /** Lỗi của sổ (mảng rỗng = hợp lệ). tu-kiem cty và bộ điều phối cùng dùng: sổ hỏng thì máy giữ bản cũ, không chạy bậy. */
-export function kiemSo(so) {
+// CLAUDE KHÔNG GIAO DIỆN CHỈ iMAC (luật anh 23/10/2026 — gói thuê bao không qua API): việc nền gọi Claude Code (lệnh có bin/claude / claude -p, hoặc chạy
+// script cty có Claude — claudeTep do scripts/tu-kiem.mjs dò trong apps/cty/may) mà xếp cho máy khác = lỗi sổ → bộ điều phối giữ sổ cũ, tu-kiem đỏ.
+export const GOI_CLAUDE = /bin\/claude\b|\bclaude\s+(-p|--print)\b/;
+export function kiemSo(so, { claudeTep = [] } = {}) {
   const loi = [], thay = new Set();
   if (!Array.isArray(so?.viec)) return ['thiếu mảng "viec"'];
   for (const v of so.viec) {
@@ -45,6 +48,8 @@ export function kiemSo(so) {
     else if ('moi_giay' in h && !(Number.isInteger(h.moi_giay) && h.moi_giay >= 10)) loi.push(`${k}: hen.moi_giay phải là số nguyên ≥ 10`);
     else if (('luon' in h && h.luon !== true) || ('tay' in h && h.tay !== true)) loi.push(`${k}: hen.luon / hen.tay chỉ nhận true`);
     for (const f of ['thu_muc', 'nhat_ky', 'nhat_ky_loi']) if (v[f] != null && !path.isAbsolute(String(v[f]))) loi.push(`${k}: ${f} phải là đường dẫn tuyệt đối`);
+    const lenh = (v.chay || []).join(' ');
+    if (!k.startsWith('iMac:') && (GOI_CLAUDE.test(lenh) || claudeTep.some((t) => lenh.includes(t)))) loi.push(`${k}: gọi Claude không giao diện — chỉ được chạy trên iMac (luật 23/10/2026)`);
     if (v.moi_truong != null && (typeof v.moi_truong !== 'object' || Object.values(v.moi_truong).some((x) => typeof x !== 'string'))) loi.push(`${k}: moi_truong phải là { TÊN: "chữ" }`);
   }
   return loi;
@@ -223,6 +228,9 @@ async function tuKiem() {
   const a = (await import('node:assert')).default;
   const v = (x) => ({ nhan: 'iMac:com.x', ten: 'X - y', chay: ['/bin/bash', '-c', 'true'], hen: { moi_giay: 60 }, ...x });
   a.deepEqual(kiemSo({ viec: [v({})] }), []);
+  a.ok(kiemSo({ viec: [v({ nhan: 'MacBook:x.claude', chay: ['/bin/sh', '-c', '/opt/homebrew/bin/claude -p hi'] })] }).some((l) => /chỉ được chạy trên iMac/.test(l)), 'Claude trên MacBook: lỗi');
+  a.ok(kiemSo({ viec: [v({ nhan: 'MacBook:x.long', chay: ['/bin/sh', '-c', 'ssh box cat /opt/x/may/tho-may.mjs | node -'] })] }, { claudeTep: ['tho-may.mjs'] }).length, 'script cty có Claude trên MacBook: lỗi');
+  a.deepEqual(kiemSo({ viec: [v({ nhan: 'iMac:x.long', chay: ['/bin/sh', '-c', 'ssh box cat /opt/x/may/tho-may.mjs | node -'] })] }, { claudeTep: ['tho-may.mjs'] }), [], 'trên iMac: qua');
   a.equal(kiemSo({ viec: [v({}), v({})] }).length, 1, 'trùng nhãn');
   a.equal(kiemSo({ viec: [v({ hen: { luc: ['24:00'] } })] }).length, 1, 'giờ sai');
   a.equal(kiemSo({ viec: [v({ hen: { moi_giay: 60, luon: true } })] }).length, 1, 'hai kiểu hẹn');

@@ -777,6 +777,24 @@
    "hen": {
     "luon": true
    }
+  },
+  {
+   "nhan": "iMac:tc.on.cty.tho-may",
+   "ten": "Tài nguyên - Mạnh thợ máy sửa máy cào",
+   "chay": [
+    "/bin/sh",
+    "-c",
+    "ssh -o BatchMode=yes -o ConnectTimeout=15 root@167.233.241.16 cat /opt/earns-marketing-os-v2/apps/cty/may/tho-may.mjs | /opt/homebrew/bin/node --input-type=module -"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/spy-on-tc",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/tho-may.log",
+   "hen": {
+    "moi_giay": 300
+   },
+   "uu_tien_thap": true
   }
  ]
 }

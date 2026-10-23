@@ -10,6 +10,9 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
+// CHỈ iMAC (luật anh 23/10/2026) — Claude không giao diện bằng gói thuê bao chỉ chạy trên iMac; cùng dòng ở mọi script gọi Claude (script đến qua ssh cat, không import chung được)
+if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`Văn thư chỉ chạy trên iMac (máy này: ${os.hostname()})`); process.exit(3); }
+
 const BOX = 'root@167.233.241.16', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'van', PHONG = 'social-traffic';
 const REPO = path.join(os.homedir(), 'puzzle-books'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 20;
 const QUYEN = [`Read(/${REPO}/**)`, 'Glob', 'Grep', 'WebFetch', 'WebSearch'];   // chỉ đọc

@@ -77,7 +77,9 @@ for (const q of dsQuyTrinh().filter((x) => x.nguon === 'phong')) {
 // phải có trong sổ (trừ chính bộ điều phối) — khai mà sổ không có = cty hứa một việc không chạy.
 const { kiemSo, NHAN_DIEU_PHOI } = await import('../may/dieu-phoi.mjs');
 const so = JSON.parse(fs.readFileSync(path.join(R, 'viec-nen.json'), 'utf8'));
-for (const l of kiemSo(so)) loi.push(`viec-nen.json: ${l}`);
+// script cty gọi Claude không giao diện (có CLAUDE = '/opt/homebrew/bin/claude') → việc nền chạy nó phải xếp iMac (luật 23/10/2026)
+const claudeTep = fs.readdirSync(path.join(R, '..', 'may')).filter((f) => f.endsWith('.mjs') && /\/opt\/homebrew\/bin\/claude'/.test(fs.readFileSync(path.join(R, '..', 'may', f), 'utf8')));
+for (const l of kiemSo(so, { claudeTep })) loi.push(`viec-nen.json: ${l}`);
 const trongSo = new Set((so.viec ?? []).map((v) => v.nhan));
 for (const k of trongSo) if (!nenCua[k]) loi.push(`viec-nen.json: ${k} chưa thuộc quy trình nào — thêm vào "lich" của quy trình phòng (người chịu trách nhiệm + chi phí)`);
 for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && !trongSo.has(l) && !l.endsWith(`:${NHAN_DIEU_PHOI}`)) loi.push(`${qt}: lich ${l} không có trong cong-ty/viec-nen.json`);

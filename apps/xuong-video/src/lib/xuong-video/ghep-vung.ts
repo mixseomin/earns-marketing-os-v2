@@ -175,12 +175,7 @@ export async function anhMoChuyen(db: Db, canhId: number, giua: boolean): Promis
   const lay = layTuGoc(goc, W, H); if (!lay) return null;
   const mau = giua ? kx?.mau_giua : kx?.mau_ket;
   const lap = mau ? await rgba(await taiAnh(mau), W, H) : undefined;
-  // NGƯỜI Ở ẢNH ĐẦU xoá khỏi ảnh đưa Nano, lấp bằng khung 3D cùng góc (người ở chỗ KẾT): Nano đặt người theo 3D thay vì giữ chỗ cũ — #132 #19 máy đẩy vào
-  // xa, người gần máy thị sai lớn, ảnh chuyển góc còn người to ở chỗ cũ → Nano vẽ lại cả sảnh (82 %).
-  if (lap) {
-    const p = await nguoiTheoChu(db, canhId, bc.canh.thu_tu, bc.canh.keyframe_url, W, H);
-    if (p) { noVung(p, W, H, Math.round(NO_VUNG_DONG * Math.max(W, H))); for (let i = 0; i < W * H; i++) { const k = lay[i]!; if (k >= 0 && p[k]) lay[i] = -1; } }
-  }
+  // (23/10/2026 thử xoá người ảnh đầu, lấp 3D: #16 ảnh kết AI đổi sảnh 2,5 % → 27,5 %, #19 82 % → 45 % vẫn hỏng — bỏ; ảnh đầu giữ nguyên người)
   return uploadToR2(`xuong-video/keyframe/${canhId}-${giua ? 'giua' : 'ket'}-mo-chuyen-${Date.now()}.jpg`, await sharp(chuyenAnh(A, lay, W, H, lap), { raw: { width: W, height: H, channels: 3 } }).jpeg({ quality: 92 }).toBuffer(), 'image/jpeg');
 }
 /** Mặt nạ 1 kênh → làm mờ (sharp trả 3 kênh cho ảnh 1 kênh qua blur — ảnh ghép #15 ra y ảnh đầu → lấy kênh 0). */

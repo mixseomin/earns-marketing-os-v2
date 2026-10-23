@@ -116,13 +116,16 @@ const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbl
 // --sua=<thu_tu> --chi-thi="<tiếng Anh>" : SỬA MỘT KHUNG đã có (keyframe đang dùng = ảnh 1) đúng chỗ chỉ thị, giữ nguyên phần còn lại — lỗi logic soát ra
 // sau tầng 3 (#353 #11 Thần bước ra cửa thang khác cửa Hạ chắn; #17 Hạ mất thùng đồ) không phải sinh lại cả khối. Ảnh mẫu người / đồ của shot đi kèm.
 if (gia('sua')) {
-  const c = ds.find((x) => x.thu_tu === Number(gia('sua'))); const ct = gia('chi-thi');
-  if (!c?.keyframe_url || !ct) { console.error('cần --sua=<thu_tu có keyframe> --chi-thi="…"'); process.exit(1); }
+  const c = ds.find((x) => x.thu_tu === Number(gia('sua'))); const ct = gia('chi-thi'); const lucSua = (gia('luc') || 'dau') as 'dau' | 'giua' | 'ket';   // --luc=ket sửa khung CUỐI
+  const goc = lucSua === 'ket' ? c?.keyframe_ket : lucSua === 'giua' ? c?.keyframe_giua : c?.keyframe_url;
+  if (!c || !goc || !ct) { console.error('cần --sua=<thu_tu có khung> --chi-thi="…" [--luc=dau|giua|ket]'); process.exit(1); }
   const refs = thamChieu([c], 6);
   const p = [`Edit Image 1 (a film still): ${ct}`, 'Keep everything else in Image 1 exactly as it is — the same place, camera angle, framing, light, the same people, faces, outfits, poses and gaze directions — change only what this instruction asks.',
     `Reference images: ${refs.map(([k], i) => `Image ${i + 2} = ${k}`).join('; ')}.`, 'Vertical 9:16 photorealistic live-action film still. No text, captions or borders.'].join(' ');
-  const url = await sinh({ nhan: `Keyframe (sửa theo chỉ thị) · cảnh #${c.thu_tu}`, prompt: p, refs: [c.keyframe_url, ...refs.map(([, u]) => u)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
-  await chonKeyframe(db, c.id, url, 'sửa theo chỉ thị'); console.log(`#${c.thu_tu} → ${url}`); process.exit(0);
+  const url = await sinh({ nhan: `Keyframe (sửa theo chỉ thị) · cảnh #${c.thu_tu} ${lucSua}`, prompt: p, refs: [goc, ...refs.map(([, u]) => u)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
+  if (lucSua === 'dau') await chonKeyframe(db, c.id, url, 'sửa theo chỉ thị');
+  else await db.execute(lucSua === 'ket' ? sql`UPDATE xv_canh SET keyframe_ket = ${url}, updated_at = now() WHERE id = ${c.id}` : sql`UPDATE xv_canh SET keyframe_giua = ${url}, updated_at = now() WHERE id = ${c.id}`);
+  console.log(`#${c.thu_tu} ${lucSua} → ${url}`); process.exit(0);
 }
 // --danh-so (0đ): làm lại BẢN HIỂN THỊ có số cho phân cảnh đã có — tờ phác cả cảnh (vẽ lại từ sơ đồ) + các bảng khối trong mốc (dò khung rồi in số)
 if (process.argv.includes('--danh-so')) {

@@ -10,6 +10,7 @@ Ra <ra>/len.json: [{camp_cu, content_id, creative_id, lang, ten, tu, den, ok, lo
 Dùng: len-creative.py <lo.json (lam-lai-cta: content_id, lang, ten, tu, den, file[, camp, lo])> <mã lô (vd cta3)> <dạng (vd "canh cuoi")>"""
 import csv, json, os, subprocess, sys, time, unicodedata, re
 from concurrent.futures import ThreadPoolExecutor
+import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-10"
@@ -66,8 +67,17 @@ EOF'""", timeout=3600)
     subprocess.run(["scp", "-q", sf, f"{B}:/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/"], check=True)
     print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/ghi-studio-canh-that.mts scripts/ethopex/{os.path.basename(sf)}'", timeout=900).stdout[-200:])
     # 5. cổng
+    import loi_ky_thuat as LK   # lỗi kỹ thuật (tải hỏng, quá giờ…) → thử lại tại chỗ; bị loại vì nội dung → bỏ (23/10/2026)
     def cong(x):
         if x.get("loi"): return
+        x.pop("loi", None); cong1(x)
+        for _ in range(LK.THU_LAI):
+            if LK.ky_thuat(x.get("loi")) is not True: break
+            print("thử lại cổng", x["creative_id"], str(x["loi"])[:80], flush=True); time.sleep(LK.NGHI); x.pop("loi", None); cong1(x)
+    def cong1(x):   # cổng treo / đổ (TimeoutExpired…) thành lỗi kỹ thuật của đoạn, không kéo sập cả lô
+        try: cong2(x)
+        except Exception as e: x["loi"] = f"{type(e).__name__}: {str(e)[:150]}"
+    def cong2(x):
         a = sh(f"{D}/kiem-studio.sh {x['creative_id']} {x['content_id']} < /dev/null", timeout=900).stdout.strip().splitlines()[-1:]
         b = sh(f"{D}/kiem-thoai-creative.sh {x['creative_id']} '{x['file'] if not str(x.get('file','')).startswith('box3:') else ''}' < /dev/null", timeout=1800)
         if not (a and a[0].startswith("STUDIO OK")): x["loi"] = (a or ["studio ?"])[0]

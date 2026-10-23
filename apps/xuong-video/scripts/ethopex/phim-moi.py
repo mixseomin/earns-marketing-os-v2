@@ -14,7 +14,8 @@ Hằng ngày trên iMac (mỗi bước in việc kế tiếp):
   6. phim-moi.py len <lô>             lên mọi đoạn của phim soát ok → ghi trạng thái → sửa CTA cho camp thắng (sua-cta.py)
   Thiếu chỉ tiêu sau bước 6 → quay lại 4 (máy tự lấy phim kế, gồm phim cat_loi chưa quá 2 lần)."""
 import datetime as dt, importlib.util, json, math, os, subprocess, sys, urllib.request
-D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
+D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import loi_ky_thuat as LK
+D = D; B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 KTT, KDS, CHI_TIEU, NGAY_DU = "ethopex_phim_moi_tt", "ethopex_200_phim", 30, 2
 vn = lambda: dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7)
@@ -99,7 +100,7 @@ def cat(dat=CHI_TIEU):
         if any(y.get("file") and not y.get("loi") for y in x): cap[p["id"]] = ("da_cat", ten)
         else:
             loi = " ".join(str(y.get("loi")) for y in x)[:200] or "không tải được tập"
-            cap[p["id"]] = ("cat_loai" if ("khung cuối sạch" in loi or "THOAI CHAN" in loi) else "cat_loi", loi)
+            cap[p["id"]] = ("cat_loi" if LK.ky_thuat(loi) is not False else "cat_loai", loi)   # kỹ thuật → lượt sau tự cắt lại (tối đa 2 lần)
     ghi(cap); print(f"→ Claude xem tờ soát ở {ra} (soat-<id>.jpg) → kiem-phim-18 --soat … → phim-moi.py len {ten}")
 
 def len_(ten):
@@ -110,7 +111,8 @@ def len_(ten):
         if tt.get(i, {}).get("tt") != "da_cat": continue
         r = [y for y in kq["kq"] if str(y["content_id"]) == i]
         if any(y["ok"] for y in r): cap[i] = ("da_len", " ".join(f"#{y['moi']}" for y in r if y["ok"]))
-        elif r: cap[i] = ("cong_loai", r[0]["loi"])
+        elif r and all(LK.ky_thuat(y["loi"]) is False for y in r): cap[i] = ("cong_loai", r[0]["loi"])
+        elif r: cap[i] = ("da_cat", "lên lỗi kỹ thuật (đã thử lại tại chỗ) — phim-moi.py len chạy lại: " + str(r[0]["loi"])[:120])   # giữ da_cat → lượt len sau tự lên lại
         elif i not in kq["soat_ok"]:
             s = khoa("ethopex_soat_18").get(i)
             if s is not None: cap[i] = ("soat_loai", s.get("ghi", "soát 18+"))

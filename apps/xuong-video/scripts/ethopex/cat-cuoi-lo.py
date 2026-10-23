@@ -13,6 +13,7 @@ import importlib.util as _iu2
 _c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
+sys.path.insert(0, D); import loi_ky_thuat as LK
 
 def ghep_mo(tm):
     """ghép các tập còn mở (tập ≤ 20s là bản cụt của tập khoá — DramaBox trả 15s)"""
@@ -61,7 +62,7 @@ def lam(p, goc, ra_dir, so_ban=1):
         pst = os.path.join(tm, "poster-1080.png"); DL.poster(os.path.join(tm, "poster.jpg"), pst)
         src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban)
         if not khung: return [{"content_id": int(cid), "ten": ten, "loi": f"không có khung cuối sạch (giây cấm {cam[:12]})"}]
-        return [cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir) for tu, den in khung]
+        return [LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir) for tu, den in khung]   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
     except Exception as e:
         return [{"content_id": int(cid), "ten": ten, "loi": str(e)[-300:]}]
 

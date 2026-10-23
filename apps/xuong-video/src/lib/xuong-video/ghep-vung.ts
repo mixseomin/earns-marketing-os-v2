@@ -147,6 +147,7 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
 export const NO_VUNG_DONG = 0.015;   // nở vùng đổi theo bề lớn khung — mép mềm
 export const NGUONG_DOI = 0.1;   // chênh màu (0..1, tổng 3 kênh) coi là AI đã đổi sảnh chỗ đó (chỉ để đo — không quyết vùng ghép)
 export const VUNG_DONG = 0.04;   // nở vùng ĐỒ (đạo cụ 3D) theo bề lớn khung — đồ AI vẽ lệch / to hơn khối 3D
+export const SAN_KHOP_3D = 60;   // % người thật trên ảnh đầu nằm trong vùng người 3D lúc mở — dưới = ảnh đầu lệch bố cục 3D
 export const TRAN_DOI_SET = 20;   // % sảnh NGOÀI vùng món động mà Nano đã đổi — vượt = Nano không giữ ảnh đầu (trong vùng người sẽ lệch với sảnh chép), cổng video chặn
 const gocCua = (d: NonNullable<NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>['canh']['khung_xam']>['dong'], giua: boolean) => (giua ? d?.giua_goc : d?.ket_goc);
 /** Mỗi điểm khung kết / giữa → chỉ số điểm ảnh trên khung mở (-1 = ngoài ảnh mở). */
@@ -191,6 +192,13 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   const M = new Uint8Array(W * H);
   const [pMo, pAi] = await Promise.all([nguoiTheoChu(db, canhId, bc.canh.thu_tu, bc.canh.keyframe_url, W, H), nguoiTheoChu(db, canhId, bc.canh.thu_tu, url, W, H)]);
   if (!pMo || !pAi) return null;   // không tách được người → không ghép bừa (cổng video chặn vì thiếu job ghép)
+  // ẢNH ĐẦU KHỚP 3D? (#132 #19: keyframe mở vẽ người to gấp đôi khung 3D → chuyển góc theo hình học 3D ra sai chỗ): người thật trên ảnh đầu so người 3D lúc
+  // mở (nở 4 %) — phần người thật nằm trong vùng người 3D. Thấp = ảnh đầu lệch bố cục, ghép không dùng được → cổng đòi sinh lại keyframe mở.
+  const ng3 = new Uint8Array(W * H);
+  for (const [k, u] of Object.entries(d.mo)) if (k.startsWith('ngd:')) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) ng3[i] = 1; }
+  noVung(ng3, W, H, Math.round(0.04 * Math.max(W, H)));
+  let nTrong = 0, nNg = 0; for (let i = 0; i < W * H; i++) if (pMo[i]) { nNg++; if (ng3[i]) nTrong++; }
+  const khopPt = nNg ? Math.round((nTrong / nNg) * 1000) / 10 : 0;
   for (let i = 0; i < W * H; i++) { const k = lay[i]!; if (pAi[i] || (k >= 0 && pMo[k])) M[i] = 1; }
   const vat = new Uint8Array(W * H);
   for (const [k, u] of Object.entries(d.mo)) if (k.startsWith('vat:')) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) { const q = lay[i]!; if (q >= 0 && m[q]! > 127) vat[i] = 1; } }
@@ -215,19 +223,25 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   }
   const doiSetPt = Math.round((nSet ? doiSet / nSet : 0) * 1000) / 10;
   const lechPt = Math.round((nNen ? (lech / nNen) * 100 : 0) * 10) / 10; const vungPt = Math.round((nVung / (W * H)) * 1000) / 10;
-  const job = await taoJob(db, { nhan: `Ghép nền ${giua ? 'GIỮA' : 'KẾT'} từ keyframe mở · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'ghep', provider: 'noi_bo', model: 'ghep-nen', request: { dich: 'ghep_nen', giua, tu: url, mo: bc.canh.keyframe_url, nen_lech_pt: lechPt, vung_pt: vungPt, doi_set_pt: doiSetPt } });
+  const job = await taoJob(db, { nhan: `Ghép nền ${giua ? 'GIỮA' : 'KẾT'} từ keyframe mở · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'ghep', provider: 'noi_bo', model: 'ghep-nen', request: { dich: 'ghep_nen', giua, tu: url, mo: bc.canh.keyframe_url, nen_lech_pt: lechPt, vung_pt: vungPt, doi_set_pt: doiSetPt, khop_3d_pt: khopPt } });
   const out = await uploadToR2(`xuong-video/keyframe/${canhId}-${giua ? 'giua' : 'ket'}-nen-${Date.now()}.jpg`, await sharp(ra, { raw: { width: W, height: H, channels: 3 } }).jpeg({ quality: 92 }).toBuffer(), 'image/jpeg');
   if (!out) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return null; }
   await xongJob(db, job, { output_url: out });
   return { url: out, lech: lechPt, vung: vungPt, doiSet: doiSetPt };
 }
-/** Ảnh kết / giữa đang dùng của shot máy yên đã qua ghép nền chưa (cổng video). null = shot không áp dụng (máy đi / khung 3D cũ chưa có mặt nạ món động). */
-export async function thieuGhepNen(db: Db, c: { id: number; keyframe_ket?: string | null; keyframe_giua?: string | null; khung_xam?: { dong?: { ket?: unknown; giua?: unknown } } | null }): Promise<string | null> {
-  const d = c.khung_xam?.dong; const can = [d?.ket && c.keyframe_ket ? c.keyframe_ket : null, d?.giua && c.keyframe_giua ? c.keyframe_giua : null].filter((x): x is string => !!x);
-  if (!can.length) return null;
-  const co = (await db.execute(sql`SELECT output_url, coalesce((request->>'doi_set_pt')::numeric, 100) AS doi FROM xv_job WHERE canh_id = ${c.id} AND request->>'dich' = 'ghep_nen' AND trang_thai = 'xong' AND output_url = ANY(${`{${can.join(',')}}`}::text[])`)) as unknown as Row[];
-  const thieu = can.filter((u) => !co.some((r) => r.output_url === u));
-  const lo = co.filter((r) => Number(r.doi) > TRAN_DOI_SET);
-  if (!thieu.length && lo.length) return `ảnh ${lo.map((r) => (r.output_url === c.keyframe_ket ? 'KẾT' : 'GIỮA')).join(' + ')}: AI đổi ${lo.map((r) => `${Number(r.doi)}%`).join(' / ')} sảnh ngoài chỗ người đi (> ${TRAN_DOI_SET}%) — không giữ ảnh đầu, sinh lại ảnh kết`;
-  return thieu.length ? `ảnh ${thieu.map((u) => (u === c.keyframe_ket ? 'KẾT' : 'GIỮA')).join(' + ')} chưa chép nền từ keyframe mở (máy yên — nền phải trùng ảnh đầu; sinh lại ảnh kết)` : null;
+/** SOÁT GHÉP NỀN cho video (sinh-video.ts): ảnh KẾT của shot có góc kết phải qua ghép nền đạt — không thì chặn; ảnh GIỮA không đạt thì BỎ (video chỉ đi
+ *  tới ảnh kết) thay vì chặn cả shot. Shot không có góc kết (máy đi khác / khung 3D cũ) → không áp dụng. */
+export async function soatGhepNen(db: Db, c: { id: number; keyframe_ket?: string | null; keyframe_giua?: string | null; khung_xam?: { dong?: { ket?: unknown; giua?: unknown; ket_goc?: unknown; giua_goc?: unknown } } | null }): Promise<{ chan: string | null; boGiua: boolean }> {
+  const d = c.khung_xam?.dong;
+  const xet = async (u: string | null | undefined, can: boolean): Promise<string | null> => {
+    if (!can || !u) return null;
+    const r = ((await db.execute(sql`SELECT coalesce((request->>'doi_set_pt')::numeric, 100) AS doi, coalesce((request->>'khop_3d_pt')::numeric, 0) AS khop FROM xv_job WHERE canh_id = ${c.id} AND request->>'dich' = 'ghep_nen' AND trang_thai = 'xong' AND output_url = ${u} ORDER BY id DESC LIMIT 1`)) as unknown as Row[])[0];
+    if (!r) return 'chưa chép nền từ keyframe mở (nền phải trùng ảnh đầu; sinh lại ảnh kết)';
+    if (Number(r.khop) < SAN_KHOP_3D) return `keyframe MỞ lệch bố cục khung 3D (chỉ ${Number(r.khop)}% người thật nằm chỗ người 3D, cần ≥ ${SAN_KHOP_3D}%) — sinh lại keyframe mở cho khớp 3D rồi sinh ảnh kết`;
+    if (Number(r.doi) > TRAN_DOI_SET) return `AI đổi ${Number(r.doi)}% sảnh ngoài chỗ người (> ${TRAN_DOI_SET}%) — không giữ ảnh đầu, sinh lại ảnh kết`;
+    return null;
+  };
+  const ket = await xet(c.keyframe_ket, !!(d?.ket && d.ket_goc));
+  const giua = await xet(c.keyframe_giua, !!(d?.giua && d.giua_goc));
+  return { chan: ket && `ảnh KẾT ${ket}`, boGiua: !!giua };
 }

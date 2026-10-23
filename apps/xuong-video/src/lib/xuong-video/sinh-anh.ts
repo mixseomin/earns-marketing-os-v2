@@ -189,7 +189,10 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number, o: { ep?: bool
   if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
   const jobs: number[] = [];
   for (const giua of bc.canh.khung_xam?.mau_giua ? [false, true] : [false]) {
-    const { prompt, urlRef } = chuanBiKeyframe(bc, true, giua);
+    // ẢNH ĐẦU CHUYỂN GÓC (khung 3D có góc kết / giữa trên khung mở): Nano sửa từ ảnh đầu, không vẽ lại sảnh — 0đ
+    const { anhMoChuyen } = await import('./ghep-vung');
+    const moChuyen = await anhMoChuyen(db, canhId, giua).catch((e: unknown) => { console.error(`[ảnh đầu chuyển góc] shot ${canhId}`, e); return null; });
+    const { prompt, urlRef } = chuanBiKeyframe(bc, true, giua, moChuyen);
     const job = await taoJob(db, { nhan: `Keyframe ${giua ? 'GIỮA' : 'KẾT'} · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef, dich: giua ? 'keyframe_giua' : 'keyframe_ket' } });
     await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}-${giua ? 'giua' : 'ket'}` });
     jobs.push(job);
@@ -203,7 +206,7 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number, o: { ep?: bool
 export type LoraVe = { path: string; scale: number };
 export type LopGhep = { nen: { sau: string; prompt: string }; nguoi: { ten: string; sau: string; xa: number; prompt1: string; prompt2: string; /** vẽ lại TẠI CHỖ trên plate (inpainting) — không câu nền xanh */ prompt_tai_cho: string; /** câu trang phục của shot (en) — lượt sửa đồ tại chỗ */ ao?: string; ref: string[]; loras?: LoraVe[] }[] };
 export type HaiBuoc = { lop?: LopGhep; /** người trong khung đều có LoRA → bước 1 FLUX LoRA độ sâu vẽ đúng mặt, BỎ bước 2 sửa mặt */ loras?: LoraVe[]; motBuoc?: boolean; sau: string; /** khung xương OpenPose của người trong khung (dung-set.py › ve_xuong) — có thì bước 1 điều khiển bằng độ sâu + dáng */ xuong?: string; prompt1: string; prompt2: string; ref2: string[] };
-export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false, /** keyframe GIỮA: ảnh 3D giữa clip (mau_giua), trạng thái theo khung kết */ giua = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
+export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false, /** keyframe GIỮA: ảnh 3D giữa clip (mau_giua), trạng thái theo khung kết */ giua = false, /** ảnh đầu đã chuyển sang góc kết / giữa (ghep-vung.ts › anhMoChuyen) — ảnh để sửa */ moChuyen: string | null = null): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc; soat?: SoatPrompt; khoi?: Partial<Record<DuongSinh, Khoi[]>> } {
   bc = canhDaThayThe(bc);   // THẺ {Tên} → mô tả en của đúng vật (prompt-khoi.ts › goiThe) — mọi chữ thẻ shot đi vào model qua đây
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
@@ -411,6 +414,15 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('cam_chu', camChu(chuPhim)),
       khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'anh')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'anh')),
     ];
+    // ẢNH ĐẦU ĐÃ CHUYỂN SANG GÓC NÀY (ghep-vung.ts › anhMoChuyen — chuẩn ngành "chuyển ảnh rồi vẽ vá"): ảnh kết / giữa SỬA TỪ ảnh đầu đã duyệt thay vì vẽ lại
+    // từ khung 3D — 23/10/2026 #132 #16 #19: Nano nhận khung 3D làm ảnh gốc, vẽ lại cả sảnh khác ảnh đầu (lệch 13–29 %) → ghép nền lộ vệt, người bóng đôi.
+    // Ảnh đó thành Image 1, mọi ảnh khác lùi một số (đánh lại số trong mọi khối).
+    if (moChuyen) {
+      ref.unshift(moChuyen); vaiS.unshift({ url: moChuyen, nhan: '🎬 ảnh ĐẦU chuyển sang góc này — ảnh để sửa' });
+      for (const k of k1) k.chu = k.chu.replace(/\bImage (\d+)/g, (_m, n: string) => `Image ${Number(n) + 1}`);
+      const ad = k1.find((k) => k.ma === 'anh_dich');
+      if (ad) ad.chu = `EDIT Image 1. Image 1 is the approved START frame of this very shot, already turned to this moment's camera; any area the start frame never saw is filled with rough 3D previs — repaint those areas so they continue the same set seamlessly. Change ONLY the people and the items they hold or wear: move each person to where Image 2 (3D previs of this moment) shows them, in that pose and facing that way; where a person stood before, show the set behind them. Every wall, door, sign, floor, ceiling, light, colour and texture stays exactly as in Image 1, and the framing stays exactly Image 1's.`;
+    }
     const pS = ghep(k1);
     // SOÁT CHỮ (kiem-prompt.ts) cho MỌI đường: người trong khung + bộ đồ sổ trang phục, đồ chủ thể đang thấy, chất liệu phim
     const chuThe3d = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).map((k) => k.nhan_vat));

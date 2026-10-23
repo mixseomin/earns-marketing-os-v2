@@ -42,9 +42,10 @@ const kq = await db.transaction(async (tx) => {
   const tapId = Number((await t(sql`INSERT INTO xv_tap (phim_id, so, ten, trang_thai, thoi_luong_s) VALUES (${phimId}, 1, ${du.phan_doan}, 'nhap', ${Math.round(tongGiay)}) RETURNING id`))[0]!.id);
   for (const [i, s] of du.shot.entries()) {
     const nv = s.nv.map((x) => doiNv.get(x)!); const bt = (s.bt ?? []).map((x) => doiBt.get(x)).filter((x): x is number => x != null);
-    await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, thoai, trang_thai)
+    // vid = khối DIỄN của mảnh (một việc): dan_dung.dien — khuôn video bắt buộc khối diễn (prompt-khoi.ts › KHUON.video); prompt_video để trống cho khỏi lặp
+    await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, dan_dung, thoai, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co })}::jsonb,
-        ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, ${s.vid}, ${JSON.stringify(s.thoai ?? [])}::jsonb, 'nhap')`);
+        ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, '', ${JSON.stringify({ dien: s.vid })}::jsonb, ${JSON.stringify(s.thoai ?? [])}::jsonb, 'nhap')`);
   }
   return { phimId, tapId, soManh: du.shot.length, giay: tongGiay, ten };
 });

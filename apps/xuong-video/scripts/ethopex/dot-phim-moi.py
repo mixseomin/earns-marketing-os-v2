@@ -76,12 +76,21 @@ def cat_box(a, b, n=2):
     json.dump(lo, open(os.path.join(ra, "lo.json"), "w"), ensure_ascii=False, indent=1)
     print("CẮT XONG (box3):", sum(1 for x in lo if x.get("file") and not x.get("loi")), "đoạn · tờ soát ở", ra)
 
+def don_box(lo):
+    """PHIM XONG LÀ XOÁ TRÊN BOX3 (anh 23/10/2026: đĩa box3 ~23 GB trống, 30 phim/ngày ≈ 10–12 GB): mọi phim trong lô đã lên (kể cả phim bị loại)
+    → xoá tập tải về, tệp ghép, khung trích, đoạn cắt. Giữ poster / tap.json / bản chữ (nhỏ). Creative đã lên nằm ở kho + /var/lib/ethopex/creative."""
+    ids = sorted({int(x["content_id"]) for x in lo if x.get("content_id")}); cat_ = [x["file"][5:] for x in lo if str(x.get("file", "")).startswith("box3:")]
+    if not ids and not cat_: return
+    lenh = "; ".join([f"rm -f /root/.cache/ethopex/nguon/{i}/tap*.mp4 /root/.cache/ethopex/nguon/{i}/ghep-cuoi.mp4; rm -rf /root/.cache/ethopex/khung/{i}" for i in ids] +
+                     [f"rm -f '{f}' '{f[:-4]}-soat.jpg'" for f in cat_])
+    sh(f'ssh {B} "{lenh}"'); print("dọn box3:", len(ids), "phim ·", sh(f"ssh {B} 'df -h / | tail -1'").stdout.split()[3:4], "trống", flush=True)
+
 def len_(a, b, lich="today"):
     ra = os.path.expanduser(f"~/.cache/ethopex/ra/moi-{a}-{b}"); lo = json.load(open(os.path.join(ra, "lo.json")))
     ok = sh(f"""ssh {B} '{ENV}; psql "$DATABASE_URL" -tAc "select gia_tri::text from xv_khoa_ngoai where ten=\\$\\$ethopex_soat_18\\$\\$"'""").stdout.strip()
     ok = {k for k, v in (json.loads(ok) if ok else {}).items() if v.get("ok")}
     di = [dict(x, lo="2310m") for x in lo if x.get("file") and not x.get("loi") and str(x["content_id"]) in ok]
-    if not di: return print("chưa có phim nào soát ok")
+    if not di: print("chưa có phim nào soát ok"); return don_box(lo)
     lf = os.path.join(ra, "lo-len.json"); json.dump(di, open(lf, "w"), ensure_ascii=False, indent=1)
     r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, f"moi{a}", "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-1500:], flush=True)
@@ -90,6 +99,7 @@ def len_(a, b, lich="today"):
         ten = x["ten"].replace("'", "")
         r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{ten}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — 200 phim mới hạng {a}–{b}" --ai "anh (chat 23/10/2026: lên tiếp luôn trong hôm nay các phim mới)"'""", timeout=600)
         print(x["content_id"], (r.stdout.strip().splitlines() or ["?"])[-1][:200], flush=True)
+    don_box(lo)
 
 def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
     """lên thẳng từ một tệp lô đã lọc (đoạn đã soát 18+ ok) — dùng khi không chờ cả đợt cắt xong (anh 23/10/2026 "sao không thấy phim nào bộ 2")"""

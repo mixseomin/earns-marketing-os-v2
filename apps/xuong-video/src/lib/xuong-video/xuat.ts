@@ -198,6 +198,8 @@ export function keHoachXuat(o: {
   sfxDir?: string;
   /** cho xuất khi phim quảng cáo có lời dẫn mà chưa có nhạc nền (bản nháp để nghe thử) — mặc định chặn. */
   choThieuNhac?: boolean;
+  /** PHỤ ĐỀ CHÁY CỨNG mọi câu thoại nhân vật, đúng lúc giọng đọc (kinh_thanh.phu_de — phim dọc kiểu ReelShort, tham-khao/reelshort.md). */
+  phuDe?: boolean;
   /** nhịp stop-motion (kinh_thanh.nhip_stop_motion): mỗi hình giữ hai nhịp — fps=12 trước khi ra -r chuẩn */
   nhipStopMotion?: boolean;
   /** tông màu chung cả phim (kinh_thanh.look) — look.ts › lookShot, áp sau cân sáng */
@@ -238,7 +240,7 @@ export function keHoachXuat(o: {
   const khoiChu = (ten: string, dong: string[], fs: number, goc: (n: number) => string, them: string, chiBo: string) =>
     dong.map((d, i) => `drawtext=fontfile='${font}':textfile='${duongFf(tepChu(`${ten}_${i}`, d))}':expansion=none:fontsize=${fs}:fontcolor=white:${them}:x=(w-text_w)/2:y=${goc(dong.length)}+${Math.round(i * fs * 1.25)}${chiBo}`).join(',');
   // Vị trí chữ màn theo mục 0 (qc.vi_tri_chu): trên = 1/6 màn (mặc định), giữa, dưới ≈ 62% (kiểu QC UGC, chữ ngay dưới mặt/sản phẩm).
-  const viTri = o.qc?.vi_tri_chu ?? 'tren';
+  const viTri = o.qc?.vi_tri_chu ?? (o.phuDe ? 'duoi' : 'tren');
   const gocMan = (n: number) => (viTri === 'giua' ? `(h-${Math.round(n * fsMan * 1.25)})/2` : viTri === 'duoi' ? `h*0.62-${Math.round(n * fsMan * 1.25 / 2)}` : 'h*0.15');
   const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : gocMan(n)), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
   // Logo góc trên phải (qc.logo_url) đè lên MỌI shot + end card: cao 6% màn, cách mép 3%.
@@ -280,6 +282,13 @@ export function keHoachXuat(o: {
   // Lịch giọng (mốc, tốc độ, điểm cắt) — CÙNG một hàm với timeline xem thử (lichGiong), trên đúng các shot có hình sẽ dựng.
   const coHinh = (c: Canh) => { const v = c.video_cuoi_url || c.video_url; return (!!v && nl.has(v)) || (!!c.keyframe_url && nl.has(c.keyframe_url)); };
   const lichG = lichGiong(ds.filter(coHinh), o.nhanVat, (u) => nl.get(u)?.dai ?? null);
+  // Phụ đề: mỗi câu thoại (không lời dẫn) hiện đúng khoảng giọng đọc; câu dài tách theo dấu câu, chia giờ theo số ký tự — mỗi mảnh ≤ 2 dòng.
+  if (o.phuDe) for (const g of lichG) {
+    if (g.loiDan || !g.loi?.trim()) continue;
+    const doan = g.loi.trim().split(/(?<=[.!?…])\s+/).filter(Boolean); const tong = doan.reduce((a, x) => a + x.length, 0) || 1;
+    let tu = g.tu; const dai = g.dai ?? Math.max(1.5, tong / 14);
+    doan.forEach((x, i) => { const d = (dai * x.length) / tong; cauMan.push({ tu, den: tu + d + (i === doan.length - 1 ? 0.15 : 0), dong: ngatDong(x, 26) }); tu += d; });   // mảnh nối tiếp không chồng nhau
+  }
   // Giữ hình kết GIU_KET giây sau câu cuối (am-thanh.ts) — kịch bản tự kết (không có end card tự động) thì kéo dài shot cuối, hình cuối đứng
   // (clip hết thì giữ khung cuối), chữ màn + logo + nhạc kéo theo vì mọi thứ phía dưới tính từ giây phát.
   if (!o.chiThuTu?.length && ds.length) {

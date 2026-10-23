@@ -112,7 +112,7 @@ const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong
 
 /** Lỗi máy soi của các shot sẽ vào bản xuất (nhánh hook `nhanh`, mặc định A). Rỗng = được xuất. */
 export const loiSoiXuat = (canh: Canh[], nhanh?: string | null): string[] => locNhanh(canh, nhanh || 'A').flatMap((c) => loiSoiClip(c).map((x) => `#${c.thu_tu}: ${x}`));
-export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion?: boolean; look?: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean; boQuaSoi?: boolean }): Promise<KqXuat> {
+export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion?: boolean; look?: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean; boQuaSoi?: boolean; phuDe?: boolean }): Promise<KqXuat> {
   // CỔNG SOI CLIP ở LÕI xuất — mọi đường (nút ⬇ Xuất, tự làm phim, xuất creative, lồng tiếng) đều qua đây. 17/10/2026: script tự làm phim gọi thẳng
   // chayXuat, vòng qua cổng ở xuat-tap.ts → ra MP4 #127 còn 8 shot lỗi. boQuaSoi chỉ cho bản xem thử một shot (sinh-shot.mts).
   if (!o.boQuaSoi) { const soi = loiSoiXuat(o.chiThuTu?.length ? o.canh.filter((c) => o.chiThuTu!.includes(c.thu_tu)) : o.canh, o.nhanh);

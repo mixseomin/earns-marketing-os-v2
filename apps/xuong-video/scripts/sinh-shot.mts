@@ -188,7 +188,7 @@ if (arg('xuat')) {
   const phim = (await q(sql`SELECT p.loai, p.kinh_thanh FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${tapId}`))[0]!;
   const nhanVat = (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id} ORDER BY id`)).map(mapNhanVat);
   const canhTap = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)).map(mapCanh);
-  const r = await chayXuat({ loai: String(phim.loai) as never, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: canhTap, nhanVat, tap, qc: kt.qc, nhanh: null, chiThuTu: bcs.map((b) => b.canh.thu_tu), boQuaSoi: true });
+  const r = await chayXuat({ loai: String(phim.loai) as never, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: canhTap, nhanVat, tap, qc: kt.qc, nhanh: null, chiThuTu: bcs.map((b) => b.canh.thu_tu), boQuaSoi: true, phuDe: kt.phu_de });
   console.log(r.ok ? `  ✓ MP4 ${r.giay}s → ${r.url}${r.canhThieu.length ? ` · thiếu ${r.canhThieu.join(', ')}` : ''}` : `  ✗ ${r.loi}`);
 }
 process.exit(0);

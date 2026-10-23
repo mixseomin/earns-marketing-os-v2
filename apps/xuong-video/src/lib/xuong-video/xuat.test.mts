@@ -329,3 +329,14 @@ console.log('xuat.test: ok (cân màu)');
   assert.ok(mk(7.5).includes('trim=6.98:7.98,'), mk(7.5));
 }
 console.log('xuat.test: ok (điểm vào clip)');
+{ // PHỤ ĐỀ: thoại có giọng → câu chữ đúng khoảng giọng, tách theo dấu câu, ở mép dưới; tắt phuDe thì không có
+  const c = [shot({ thu_tu: 1, phat_s: 4, video_url: 'https://x/v.mp4', thoai: [{ nhan_vat: 'Lan', dien_xuat: '', loi: 'Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.', url: 'https://x/g.mp3' }] })];
+  const mk = (phuDe: boolean) => keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, phuDe,
+    nguyenLieu: [nl('https://x/v.mp4', 8, false), nl('https://x/g.mp3', 3)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' }).tep.find((x) => x.duong.endsWith('/chu.ass'))?.noiDung ?? '';
+  const a = mk(true);
+  assert.ok(a.includes('Chị nói đúng.') && a.includes('không đi cửa này.'), a);
+  const moc = [...a.matchAll(/Dialogue: \d+,([\d:.]+),([\d:.]+),.*(?:Chị nói|Lần sau)/g)].map((m) => [m[1], m[2]]);
+  assert.ok(moc.length === 2 && moc[0]![1] === moc[1]![0], `hai mảnh nối tiếp không chồng: ${JSON.stringify(moc)}`);
+  assert.ok(!mk(false).includes('Chị nói đúng.'));
+}
+console.log('xuat.test: ok (phụ đề)');

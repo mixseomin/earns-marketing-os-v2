@@ -145,7 +145,7 @@ export function promptCamXuc(c: Pick<Canh, 'cam_xuc' | 'thoai' | 'loi_thoai' | '
 export const NHANH_TOI_DA = 1.35;
 /** Một câu giọng trên trục thời gian của tập: tu = giây bắt đầu (tuyệt đối), nhanh = hệ số đọc nhanh, cat = cắt sau bao nhiêu giây
  *  ĐÃ tăng tốc (thoại nhân vật vừa shot; lời dẫn null = đọc trọn, vắt sang shot sau), dai = giây phát sau tăng tốc (null = chưa biết). */
-export type MucGiong = { url: string; tu: number; nhanh: number; cat: number | null; dai: number | null; loiDan: boolean };
+export type MucGiong = { url: string; tu: number; nhanh: number; cat: number | null; dai: number | null; loiDan: boolean; /** chữ của câu — phụ đề cháy cứng (xuat.ts › phuDe) */ loi?: string };
 /** Giữ hình kết sau câu thoại cuối (anh 12/10/2026: "đọc tên website xong thì hết luôn — để dài chút cho họ còn nhớ"): tên miền/logo/nhạc
  *  còn trên màn ít nhất GIU_KET giây. MỘT luật cho bản xuất (kéo dài shot cuối) và timeline xem trước (kéo dài tổng giờ). */
 export const GIU_KET = 2.5;
@@ -180,7 +180,7 @@ export function lichGiong(ds: Canh[], nhanVat: NhanVat[], dai: (url: string) => 
       const conLai = Math.max(0.2, phat - tDong);
       const loiDan = !d.nhan_vat.trim();
       const nhanh = loiDan ? nhanhDan : daiFile && daiGiong > conLai + 0.05 ? Math.min(NHANH_TOI_DA, daiGiong / conLai) : 1;
-      if (d.url) out.push({ url: d.url, tu: t + tDong, nhanh, cat: loiDan ? null : conLai + 0.3, dai: daiFile ? daiFile / nhanh : null, loiDan });
+      if (d.url) out.push({ url: d.url, tu: t + tDong, nhanh, cat: loiDan ? null : conLai + 0.3, dai: daiFile ? daiFile / nhanh : null, loiDan, loi: d.loi });
       tDong += daiGiong / nhanh + 0.15;
     }
     t += phat;

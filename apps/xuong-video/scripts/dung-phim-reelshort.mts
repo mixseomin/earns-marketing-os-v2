@@ -21,7 +21,7 @@ const kq = await db.transaction(async (tx) => {
   const goc = (await t(sql`SELECT * FROM xv_phim WHERE id = ${tuPhim}`))[0]; if (!goc) throw new Error('không thấy phim nguồn');
   const ten = gia('ten') || `${String(goc.ten)} (ReelShort, không 3D)`;
   const phimId = Number((await t(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai)
-    SELECT project, ${ten}, loai, mo_ta, coalesce(kinh_thanh, '{}'::jsonb) || '{"khong_3d": true}'::jsonb, trang_thai FROM xv_phim WHERE id = ${tuPhim} RETURNING id`))[0]!.id);
+    SELECT project, ${ten}, loai, mo_ta, coalesce(kinh_thanh, '{}'::jsonb) || '{"khong_3d": true, "phu_de": true}'::jsonb, trang_thai FROM xv_phim WHERE id = ${tuPhim} RETURNING id`))[0]!.id);
   // Nhân vật + đạo cụ (không phải đồ cố định của bộ set 3D) + biến thể; bối cảnh của các mảnh: ảnh chuẩn từ keyframe đã duyệt
   const canNv = new Set(du.shot.flatMap((s) => s.nv));
   const doiNv = new Map<string, number>(); const doiBt = new Map<string, number>();

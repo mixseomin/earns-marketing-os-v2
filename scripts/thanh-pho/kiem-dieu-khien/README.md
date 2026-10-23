@@ -7,3 +7,4 @@ Dựng tệp thử: `node scripts/thanh-pho/dung-artifact.mjs <tệp>.html`, r�
 - hover-cham: lướt qua vật không bật thẻ; dừng 450 ms mới hiện; đưa chuột vào thẻ thì thẻ ở lại
 - bang-hieu-nut: nút 🪧 trong khu Ethopex tắt / bật mọi bảng hiệu; đang tắt rê lên sân phim lộ đúng biển đó
 - nghieng-2-ngon: điện thoại hai ngón cùng cuộn lên = hạ camera, xuống = nâng camera
+- widget: bảng + ngăn — đầu cố định khi cuộn, nút × đóng, kéo đầu dời, đổi cỡ đủ 4 cạnh + 4 góc, nhớ F5, ↺ đặt lại (17 mục)

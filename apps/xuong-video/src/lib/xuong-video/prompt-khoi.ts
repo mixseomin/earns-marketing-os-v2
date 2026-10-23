@@ -111,7 +111,7 @@ export const KHONG_THEM_ANH = 'WHITELIST: the image contains ONLY what Image 1 s
 /** Bản NGẮN cho FLUX (ngân sách ~300 từ, FLUX không có prompt âm): nói theo hướng khẳng định. */
 export const KHONG_THEM_FLUX = 'Only what the layout shapes and this text names; nothing else.';
 /** ẢNH CHUẨN BỐI CẢNH (doc-db.ts › anhSet): keyframe đã duyệt của shot khác cùng bộ set — chép BỀ NGOÀI phòng, không chép máy / bố trí. */
-export const cauAnhSet = (so: number, nhan: string) => `Image ${so} = an approved frame from another shot (${nhan}) on this SAME set: match the LOOK of the place to it exactly — the desk and furniture (same material, wood tone, colour and finish), what lies on each surface, walls, floor, glass, plants, light and colour grade. Do NOT copy its camera, framing, people, poses or object positions: those come only from Image 1. Do not bring in anything from Image ${so} that Image 1 does not show.`;
+export const cauAnhSet = (so: number, nhan: string) => `Image ${so} = an approved frame from another shot (${nhan}) on this SAME set: match the LOOK of the place to it exactly — every surface and fixed piece of the set (same material, texture, colour and finish), what lies on each surface, walls, floor, light and colour grade. Do NOT copy its camera, framing, people, poses or object positions: those come only from Image 1. Do not bring in anything from Image ${so} that Image 1 does not show.`;
 /** Khối bắt buộc mà rỗng (có người trong khung mới bắt khối người). */
 export const thieuKhoi = (duong: DuongSinh, ds: Khoi[], coNguoi = true): MaKhoi[] =>
   KHUON[duong].bat_buoc.filter((m) => ((m !== 'nguoi' && m !== 'so_nguoi') || coNguoi) && !ds.some((k) => k.ma === m && k.chu));

@@ -168,7 +168,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // lăn chuột / touchpad thì chặn ở khung chứa (bắt sớm, stopPropagation) trước khi tới bộ điều khiển — xem onWheel
   // 2 ngón trên màn cảm ứng KHÔNG giao cho bộ điều khiển (góp ý 23/10/2026 "zoom không focus vào điểm giữa 2 ngón, thỉnh thoảng bị lệch"): bản r128 phóng về tâm nhìn,
   // còn iPhone bắn thêm gesturechange khiến xoay hai lần → tự xử ở onCham2 (phóng + xoay + trượt quanh điểm mặt đất dưới giữa hai ngón, như bản đồ)
-  ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: -1 as any };
+  // TRƯỢT + PHÓNG + CHỤM đều tự xử, neo vào điểm mặt đất dưới tay (keoDat / onCham2 / onWheel); bộ điều khiển chỉ còn XOAY
+  // (anh 23/10/2026 "không zoom, pan đúng chỗ cần": trượt của r128 đi theo tỉ lệ khoảng cách tâm nhìn → điểm dưới ngón trôi khỏi ngón khi nhìn nghiêng)
+  ctl.touches = { ONE: -1 as any, TWO: -1 as any }; ctl.enablePan = false; ctl.enableZoom = false;
   // CÀI ĐẶT ĐIỀU KHIỂN (anh 23/10/2026 "chỗ config control như invert scroll — giống các app 3D"): đảo chiều vuốt, đảo chiều phóng, kéo = xoay / trượt, tốc độ xoay; nhớ theo máy
   type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number; lan: 'tu' | 'phong' };
   const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1, lan: 'tu' };
@@ -176,7 +178,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const apDk = () => { ctl.mouseButtons = dk.keo === 'xoay' ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN } : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }; ctl.rotateSpeed = .6 * dk.tocXoay; };
   apDk();
   ctl.maxPolarAngle = Math.PI * 0.47; ctl.minDistance = 60; ctl.maxDistance = doc ? 3200 : 1600; ctl.zoomSpeed = 1.6; ctl.target.copy(TAM0);
-  ctl.addEventListener('change', () => { ctl.target.x = Math.max(gioiHan.x0, Math.min(gioiHan.x1, ctl.target.x)); ctl.target.z = Math.max(-gioiHan.z, Math.min(gioiHan.z, ctl.target.z)); ctl.target.y = 0; });
+  // KẸP TÂM NHÌN trong thành phố (+ lề 25%) bằng cách DỜI CẢ camera theo cùng một đoạn — trước đây chỉ kéo tâm nhìn về, camera đứng nguyên → hướng nhìn
+  // quay ngoắt tới 34° mỗi lần phóng / chụm / trượt chạm mép (anh 23/10/2026 "không điều khiển nổi, không zoom / pan đúng chỗ"; đo ở thu-lech)
+  ctl.addEventListener('change', () => { const lx = (gioiHan.x1 - gioiHan.x0) * .25, lz = gioiHan.z * .5;
+    const tx = Math.max(gioiHan.x0 - lx, Math.min(gioiHan.x1 + lx, ctl.target.x)), tz = Math.max(-gioiHan.z - lz, Math.min(gioiHan.z + lz, ctl.target.z));
+    const dx = tx - ctl.target.x, dy = -ctl.target.y, dz = tz - ctl.target.z; if (dx || dy || dz) { ctl.target.set(tx, 0, tz); cam.position.x += dx; cam.position.y += dy; cam.position.z += dz; } });
   const hemi = new THREE.HemisphereLight('#8ea4ff', '#090c18', 0.5); scene.add(hemi);
   let gioiHan = { x0: -700, x1: 700, z: 400 }, daDatCam = false;
   const banKinhKhu: Record<string, number> = {};   // bán kính rào mỗi khu — bay tới khu lùi đủ xa để thấy trọn khu, cổng, poster
@@ -1323,7 +1329,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const doc2 = (e: TouchEvent) => { const [a, b] = [e.touches[0]!, e.touches[1]!]; return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), a: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) }; };
   const onCham2 = (e: TouchEvent) => {
     if (e.touches.length !== 2) { if (cham2) { cham2 = null; luuCam(); } return; }
-    e.preventDefault(); const m = doc2(e); if (e.type === 'touchstart' || !cham2) { cham2 = m; bay = null; return; }
+    e.preventDefault(); keoDat = null; const m = doc2(e); if (e.type === 'touchstart' || !cham2) { cham2 = m; bay = null; return; }
     datDuoi(cham2.x, cham2.y, oG);
     const kc = cam.position.distanceTo(ctl.target), k = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * (cham2.d / Math.max(1, m.d)))) / kc;
     cam.position.sub(oG).multiplyScalar(k).add(oG); ctl.target.sub(oG).multiplyScalar(k).add(oG);
@@ -1333,6 +1339,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     cham2 = m; danhThuc(); ctl.update();
   };
   for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.addEventListener(ev, onCham2 as any, { passive: false });
+  // KÉO TRƯỢT NEO ĐẤT (như Google Maps): điểm đất dưới ngón / con trỏ lúc bấm luôn nằm dưới ngón / con trỏ khi kéo.
+  // Điện thoại: 1 ngón. Máy tính: chuột phải, Shift / Ctrl / ⌘ + kéo trái, hoặc kéo trái khi Điều khiển › Kéo chuột = trượt.
+  let keoDat: { id: number; G: any } | null = null; const soCham = new Set<number>();
+  const onKeoXuong = (e: PointerEvent) => {
+    if (e.pointerType === 'touch') { soCham.add(e.pointerId); if (soCham.size !== 1) { keoDat = null; return; } }
+    else { const truot = e.button === 2 || (e.button === 0 && (e.shiftKey || e.ctrlKey || e.metaKey || dk.keo === 'truot')); if (!truot) return; }
+    keoDat = { id: e.pointerId, G: datDuoi(e.clientX, e.clientY, new THREE.Vector3()) }; bay = null; phongCon = 0;
+  };
+  const onKeoDi = (e: PointerEvent) => { if (!keoDat || e.pointerId !== keoDat.id || soCham.size > 1) return;
+    datDuoi(e.clientX, e.clientY, oG2); const d = keoDat.G.clone().sub(oG2).setY(0); if (d.lengthSq() > 1e8) return;   // tia sát chân trời: bỏ nhịp đó
+    cam.position.add(d); ctl.target.add(d); danhThuc(); ctl.update(); };
+  const onKeoLen = (e: PointerEvent) => { soCham.delete(e.pointerId); if (keoDat && e.pointerId === keoDat.id) { keoDat = null; luuCam(); } };
+  r.domElement.addEventListener('pointerdown', onKeoXuong); window.addEventListener('pointermove', onKeoDi); window.addEventListener('pointerup', onKeoLen); window.addEventListener('pointercancel', onKeoLen);
   for (const el of host.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-dk]')) { const k = el.dataset.dk as keyof CaiDk;
     if (el instanceof HTMLInputElement && el.type === 'checkbox') el.checked = !!dk[k]; else el.value = String(dk[k]);
     el.onchange = () => { dk = { ...dk, [k]: el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el instanceof HTMLInputElement ? Number(el.value) : el.value } as CaiDk; apDk(); try { localStorage.setItem('tp-dk', JSON.stringify(dk)); } catch { /* chế độ riêng tư */ } }; }
@@ -1376,7 +1395,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const don = () => {
     cancelAnimationFrame(raf); ro.disconnect(); for (const x of widgetRo) x.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
-    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('dblclick', onDup); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
+    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('dblclick', onDup); r.domElement.removeEventListener('pointerdown', onKeoXuong); window.removeEventListener('pointermove', onKeoDi); window.removeEventListener('pointerup', onKeoLen); window.removeEventListener('pointercancel', onKeoLen); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };

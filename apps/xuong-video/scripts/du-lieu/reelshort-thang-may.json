@@ -3,7 +3,7 @@
   "anh_boi_canh": {
     "Sảnh thang máy": "https://img.on.tc/xuong-video/keyframe/1200/tai-cho-mat-1792693830448.jpg"
   },
-  "ghi": "Cảnh Thang máy phim #132 viết lại theo ngữ pháp ReelShort (tham-khao/reelshort.md): mỗi mảnh MỘT việc 1–2 s, hành động tiếp xúc kể bằng chuỗi cắt (trước chạm → cận chi tiết → phản ứng), thoại mới dài hơn. Không 3D.",
+  "ghi": "Cảnh Thang máy phim #132 viết lại theo ngữ pháp ReelShort (tham-khao/reelshort.md): mỗi mảnh MỘT việc 1–2 s, hành động tiếp xúc kể bằng chuỗi cắt (trước chạm → cận chi tiết → phản ứng), thoại mới dài hơn. Không 3D. vao = điểm vào clip (giây) chọn sau khi xem clip — bản dựng lấy đoạn phát từ đó.",
   "shot": [
     {
       "co": "ws",
@@ -19,7 +19,8 @@
       ],
       "hd": "Toàn sảnh: Hạ ôm thùng đồ đứng chờ trước cửa thang máy thép",
       "anh": "Wide shot of the black marble elevator lobby: Hạ, in a white blouse with a coffee stain, stands alone hugging a cardboard box of her belongings in front of the closed brushed-steel elevator door, staff ID badge on a dark blue lanyard around her neck.",
-      "vid": "Hạ stands still, waiting, shifting the box slightly in her arms. Static camera."
+      "vid": "Hạ stands still, waiting, shifting the box slightly in her arms. Static camera.",
+      "vao": 0.5
     },
     {
       "co": "cu",
@@ -33,7 +34,8 @@
       ],
       "hd": "Cận mặt Hạ: bình thản, mắt nhìn lên bảng số tầng",
       "anh": "Close-up of Hạ's calm face, eyes lifted toward the elevator floor indicator above frame, black marble wall behind.",
-      "vid": "Hạ blinks once, calm, eyes on the indicator above. Slow push-in."
+      "vid": "Hạ blinks once, calm, eyes on the indicator above. Slow push-in.",
+      "vao": 0.3
     },
     {
       "co": "ms",
@@ -47,7 +49,8 @@
       ],
       "hd": "Vivian bước vào khung từ bên phải, nhếch môi",
       "anh": "Medium shot: Vivian in a fitted burgundy office dress walks into the black marble lobby from the right, a smug half smile.",
-      "vid": "Vivian walks two steps toward camera-left with a smug half smile. Camera tracks slightly with her."
+      "vid": "Vivian walks two steps toward camera-left with a smug half smile. Camera tracks slightly with her.",
+      "vao": 0
     },
     {
       "co": "cu",
@@ -61,11 +64,12 @@
       ],
       "hd": "Cận Hạ liếc sang phải, nhận ra Vivian",
       "anh": "Close-up of Hạ turning her eyes to the right, wary.",
-      "vid": "Hạ's eyes slide to the right; her jaw tightens slightly. Static camera."
+      "vid": "Hạ's eyes slide to the right; her jaw tightens slightly. Static camera.",
+      "vao": 3.0
     },
     {
       "co": "insert",
-      "giay": 1.5,
+      "giay": 1,
       "nv": [
         "Lâm Hạ",
         "Vivian",
@@ -77,7 +81,8 @@
       ],
       "hd": "Cận chèn: bàn tay Vivian túm lấy thẻ nhân viên trên ngực Hạ",
       "anh": "Extreme close-up insert, tight on the white plastic staff ID badge hanging on its dark blue lanyard against Hạ's white blouse, just above the cardboard box: Vivian's hand with red nails and a burgundy sleeve reaches in from the right and her fingers are wrapped firmly around the badge card itself. Only the badge, the lanyard and Vivian's hand are in focus; no face in frame; nobody else's hand.",
-      "vid": "Vivian's fingers tighten their grip on the badge card and give it a short sharp tug toward the right, pulling the lanyard taut. Only her hand moves; Hạ's hands stay on the box out of frame. Static camera."
+      "vid": "Vivian's fingers tighten their grip on the badge card and give it a short sharp tug toward the right, pulling the lanyard taut. Only her hand moves; Hạ's hands stay on the box out of frame. Static camera.",
+      "vao": 0
     },
     {
       "co": "cu",
@@ -90,7 +95,8 @@
       ],
       "hd": "Cận Hạ giật mình, đầu hơi chúi về trước",
       "anh": "Close-up of Hạ, startled, her head jolted slightly forward.",
-      "vid": "Hạ's head jolts forward a little and her eyes widen for a beat. Static camera."
+      "vid": "Hạ's head jolts forward a little and her eyes widen for a beat. Static camera.",
+      "vao": 1.4
     },
     {
       "co": "insert",
@@ -104,7 +110,8 @@
       ],
       "hd": "Cận chèn: thẻ nằm trong nắm tay Vivian, dây đeo hở hai đầu lủng lẳng",
       "anh": "Insert close-up: Vivian's fist holds the white staff ID badge, its dark blue lanyard snapped open, two loose ends dangling, black marble background.",
-      "vid": "The two loose lanyard ends sway gently below Vivian's fist. Static camera."
+      "vid": "The two loose lanyard ends sway gently below Vivian's fist. Static camera.",
+      "vao": 0.5
     },
     {
       "co": "mcu",
@@ -118,7 +125,8 @@
       ],
       "hd": "Vivian cười đắc ý, giơ thẻ lên ngang mặt",
       "anh": "Medium close-up of Vivian smiling triumphantly, holding the white staff ID badge up beside her face.",
-      "vid": "Vivian's smile widens; she tilts the badge slightly. Static camera."
+      "vid": "Vivian's smile widens; she tilts the badge slightly. Static camera.",
+      "vao": 0.5
     },
     {
       "co": "ms",
@@ -133,7 +141,8 @@
       ],
       "hd": "Cửa thang máy 2 mở, Lục Thần bước ra",
       "anh": "Medium shot: the second steel elevator door stands open, Lục Thần in a black three-piece suit steps out into the black marble lobby, cold expression.",
-      "vid": "Lục Thần takes one step out of the elevator toward camera, not looking at anyone. Low angle, static camera."
+      "vid": "Lục Thần takes one step out of the elevator toward camera, not looking at anyone. Low angle, static camera.",
+      "vao": 0
     },
     {
       "co": "cu",
@@ -153,7 +162,8 @@
           "loi": "Người ngoài thì đừng đứng chắn thang máy.",
           "dien_xuat": "không dừng bước, không nhìn Hạ"
         }
-      ]
+      ],
+      "vao": 0.3
     },
     {
       "co": "cu",
@@ -166,11 +176,12 @@
       ],
       "hd": "Cận Hạ nén lại, mím môi",
       "anh": "Close-up of Hạ pressing her lips together, holding back, eyes lowered.",
-      "vid": "Hạ presses her lips together and lowers her eyes. Static camera."
+      "vid": "Hạ presses her lips together and lowers her eyes. Static camera.",
+      "vao": 0
     },
     {
       "co": "mcu",
-      "giay": 6,
+      "giay": 4.5,
       "nv": [
         "Vivian",
         "Thẻ nhân viên"
@@ -187,7 +198,8 @@
           "loi": "Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa.",
           "dien_xuat": "khinh miệt, chậm rãi"
         }
-      ]
+      ],
+      "vao": 0
     },
     {
       "co": "cu",
@@ -207,7 +219,8 @@
           "loi": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.",
           "dien_xuat": "bình thản, có ý"
         }
-      ]
+      ],
+      "vao": 1.0
     },
     {
       "co": "cu",
@@ -220,7 +233,8 @@
       ],
       "hd": "Cận Vivian, nụ cười khựng lại",
       "anh": "Close-up of Vivian's face only, burgundy dress collar at the bottom of frame, black marble elevator lobby softly blurred behind: she still wears a smug red-lipped smile, eyes on someone just off camera-left. No badge, no hands in frame.",
-      "vid": "Vivian's smug smile stiffens and slowly drains away; the corners of her mouth drop, her eyes narrow with sudden doubt. Static camera."
+      "vid": "Vivian's smug smile stiffens and slowly drains away; the corners of her mouth drop, her eyes narrow with sudden doubt. Static camera.",
+      "vao": 1.5
     },
     {
       "co": "ms",
@@ -235,7 +249,8 @@
       ],
       "hd": "Hạ đứng trong thang máy ôm thùng, cửa thép khép dần",
       "anh": "Medium shot from the lobby: Hạ stands inside the elevator car hugging the cardboard box, facing out, the brushed-steel doors open.",
-      "vid": "The steel elevator doors slide closed in front of Hạ, who stays still facing out. Static camera."
+      "vid": "The steel elevator doors slide closed in front of Hạ, who stays still facing out. Static camera.",
+      "vao": 0.3
     }
   ]
 }

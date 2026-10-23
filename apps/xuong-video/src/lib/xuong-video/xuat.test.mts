@@ -323,7 +323,7 @@ console.log('xuat.test: mẫu ok');
 }
 console.log('xuat.test: ok (cân màu)');
 { // ĐIỂM VÀO CLIP (ky_thuat.vao_s): lấy đoạn phát từ giây khai; khai quá cuối clip thì kẹp để đoạn phát vẫn nằm trong clip
-  const mk = (vao: number) => keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [shot({ thu_tu: 1, phat_s: 1, video_url: 'https://x/v.mp4', ky_thuat: { vao_s: vao } })], nhanVat: nv, tap: {},
+  const mk = (vao: number) => keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [shot({ thu_tu: 1, phat_s: 1, video_url: 'https://x/v.mp4', ky_thuat: { vao_s: vao } })], nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} },
     nguyenLieu: [nl('https://x/v.mp4', 8, false)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' }).tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
   assert.ok(mk(3).includes('trim=3:4,'), mk(3));
   assert.ok(mk(7.5).includes('trim=6.98:7.98,'), mk(7.5));

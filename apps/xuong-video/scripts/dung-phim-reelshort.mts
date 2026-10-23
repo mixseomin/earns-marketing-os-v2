@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip } from '../src/lib/xuong-video/kieu';
 
-type Manh = { co: string; giay: number; nv: string[]; bt?: string[]; hd: string; anh: string; vid: string; thoai?: { nhan_vat: string; loi: string; dien_xuat?: string }[] };
+type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; nv: string[]; bt?: string[]; hd: string; anh: string; vid: string; thoai?: { nhan_vat: string; loi: string; dien_xuat?: string }[] };
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
 const tuPhim = Number(gia('tu-phim')); const tep = gia('manh');
 if (!tuPhim || !tep) { console.error('cần --tu-phim=<id> --manh=<tệp.json>'); process.exit(1); }
@@ -44,7 +44,7 @@ const kq = await db.transaction(async (tx) => {
     const nv = s.nv.map((x) => doiNv.get(x)!); const bt = (s.bt ?? []).map((x) => doiBt.get(x)).filter((x): x is number => x != null);
     // vid = khối DIỄN của mảnh (một việc): dan_dung.dien — khuôn video bắt buộc khối diễn (prompt-khoi.ts › KHUON.video); prompt_video để trống cho khỏi lặp
     await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, dan_dung, thoai, trang_thai)
-      VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co })}::jsonb,
+      VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co, ...(s.vao != null ? { vao_s: s.vao } : {}) })}::jsonb,
         ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, '', ${JSON.stringify({ dien: s.vid })}::jsonb, ${JSON.stringify(s.thoai ?? [])}::jsonb, 'nhap')`);
   }
   return { phimId, tapId, soManh: du.shot.length, giay: tongGiay, ten };

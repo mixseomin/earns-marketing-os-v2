@@ -2,15 +2,15 @@
 // 🎬 PHÂN CẢNH — tab Storyboard (anh 24/10/2026: "phải drilldown từ tổng quan trước rồi mới vào chi tiết… đọc như truyện tranh để hiểu", "phải show nó
 // ra trong studio của phim luôn"). Mỗi cảnh một khối, đọc từ trên xuống: 1 tờ phác bố trí (máy vẽ từ sơ đồ — ai đứng đâu, nhìn đâu, nền nào) →
 // 2 thumbnail cả cảnh (AI) → 3 bảng khối → 4 khung chi tiết = keyframe từng shot kèm hành động · thoại · cớ cắt (đọc không cũng nắm được mạch).
-// Dữ liệu: xv_tap.phan_canh_ve (scripts/bang-gom.mts ghi) + xv_canh. Ảnh bấm = mở cỡ thật.
+// Dữ liệu: xv_tap.phan_canh_ve (scripts/bang-gom.mts ghi) + xv_canh. Ảnh bấm = ngăn xem to (ngan-chung › moNgan). Link: ?tab=storyboard&sbx=phan_canh.
 import type { Canh, Tap } from '@/lib/xuong-video/kieu';
 import { TEN_NOI } from '@/lib/xuong-video/noi-nhip';
 import { mono } from './ui';
+import { moNgan } from './ngan-chung';
 
 const Anh = ({ url, cao, tieuDe }: { url: string; cao: number; tieuDe: string }) => (
-  <a href={url} target="_blank" rel="noreferrer" title={`${tieuDe} — mở cỡ thật`} style={{ flex: '0 0 auto' }}>
-    <img src={url} alt={tieuDe} style={{ height: cao, width: 'auto', borderRadius: 4, border: '1px solid var(--line)', display: 'block' }} />
-  </a>
+  <img src={url} alt={tieuDe} title={`${tieuDe} — bấm để xem to`} onClick={() => moNgan({ loai: 'xem', url, ten: tieuDe })}
+    style={{ height: cao, width: 'auto', flex: '0 0 auto', borderRadius: 4, border: '1px solid var(--line)', display: 'block', cursor: 'zoom-in' }} />
 );
 const Tang = ({ so, ten, mo, children }: { so: number; ten: string; mo: string; children: React.ReactNode }) => (
   <div style={{ display: 'grid', gap: 4 }}>

@@ -55,7 +55,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [moChon, setMoChon] = useState(false);
   const [moBang, setMoBang] = useState(false);
   // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
-  const [xem, setXem] = useNho<'timeline' | 'luoi' | 'ds' | 'phan_canh'>('xv-xem-3c', 'timeline', ['timeline', 'luoi', 'ds', 'phan_canh']);
+  const [xem, setXem] = useNho<'timeline' | 'luoi' | 'ds' | 'phan_canh'>('xv-xem-3c', 'timeline', ['timeline', 'luoi', 'ds', 'phan_canh'], 'sbx');   // ?sbx= — link mở đúng kiểu xem (#1255)
   // Tiếng đang xem trên timeline + toàn màn hình: '' = bản gốc, 'vi' = bản lồng tiếng Việt đã lưu trong shot (ban-dich.ts › theoNgonNgu). Nhớ trên URL (?tln=vi).
   const [tiengXem, setTiengXem] = useNho<'' | 'vi'>('xv-tln', '', ['', 'vi'], 'tln');
   const [chonCanh, setChonCanh] = useState<number | null>(null);

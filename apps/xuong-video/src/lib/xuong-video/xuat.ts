@@ -321,7 +321,8 @@ export function keHoachXuat(o: {
     // Clip sinh từ keyframe khởi động chậm ~0,3–0,5s (đo: chuyển động 0,5–1 rồi mới lên 2,5–4,6) → cắt vào đó cảnh nào cũng như khựng.
     // Bỏ tối đa 0,5s đầu khi clip còn dư so với giây phát — cảnh mở ra giữa chuyển động như QC thật.
     const daiClip = laVideo ? nl.get(nguon)?.dai ?? null : null;
-    const boDau = laVideo && daiClip ? Math.max(0, Math.min(0.5, daiClip - phat - 0.02)) : 0;
+    const vao = c.ky_thuat?.vao_s;   // điểm vào clip khai tay (dien-anh.ts › KyThuatShot.vao_s) — kẹp để đoạn phát vẫn nằm trong clip
+    const boDau = laVideo && daiClip ? (vao != null && vao >= 0 ? Math.max(0, Math.min(vao, daiClip - phat - 0.02)) : Math.max(0, Math.min(0.5, daiClip - phat - 0.02))) : 0;
     // Đổi tốc (ky_thuat.toc_do, toc-do.ts): lấy đủ giây nguồn cho kế hoạch tốc rồi dựng lại thời gian bằng setpts từng đoạn.
     const toc = laVideo ? keHoachToc(c.ky_thuat?.toc_do, phat, dai, daiClip != null ? daiClip - boDau : 8) : null;
     const canNguon = toc ? toc.canVao : dai;

@@ -51,7 +51,11 @@ def to_soat(ra):
 def cat_box(a, b, n=2):
     """CẮT TRÊN BOX3 (anh 23/10/2026 "setup box3"): box3 tải tập + ghép + trích khung (nguon-box.py) → iMac đọc chữ bằng Vision (doc-khung.py)
     → box3 chọn khung + dựng đoạn (cat-cuoi-lo.py, nice) + tờ soát → iMac kéo tờ soát + lo.json về (đường tệp đánh dấu "box3:")."""
-    ten = f"moi-{a}-{b}"; ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True); phim = ds(a, b)
+    cat_box_ds(ds(a, b), f"moi-{a}-{b}", n)
+
+def cat_box_ds(phim, ten, n=2):
+    """như cat_box nhưng nhận danh sách phim {id, locale, nguon, ten, url} — dùng cho cắt lại phim lỗi (dot-phim-moi.py cat-lai <lo.tsv> <tên>)"""
+    ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
     rb = f"/root/.cache/ethopex/ra/{ten}"; tsv = os.path.join(ra, "lo.tsv")
     with open(tsv, "w") as f:
         for p in phim: f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")
@@ -123,5 +127,6 @@ if __name__ == "__main__":
     if v[0] == "cat": cat_box(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)   # cắt trên box3 (23/10/2026); "cat-mac" = cắt trên iMac như cũ
     elif v[0] == "cat-mac": cat(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)
     elif v[0] == "to-soat": to_soat(v[1])
+    elif v[0] == "cat-lai": cat_box_ds([dict(zip(("id", "locale", "nguon", "ten", "url"), l.rstrip("\n").split("\t"))) for l in open(v[1]) if l.strip()], v[2])
     elif v[0] == "tep": len_tu_tep(v[1], v[2]); sua_cta()
     else: len_(int(v[1]), int(v[2]), v[3] if len(v) > 3 else "today"); sua_cta()

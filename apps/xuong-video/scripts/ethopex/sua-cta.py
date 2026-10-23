@@ -125,10 +125,11 @@ def main():
             thay[old] = moi; bao.append(f"{old}: spy không khớp tập sạch → dùng creative CTA đạt #{moi} cùng phim"); continue
         # chưa có: cắt góc mới từ tập sạch
         tsv = os.path.join(ra, f"goc-{cid}.tsv"); open(tsv, "w").write(f"{cid}\t{lang}\tsua\t{ten}\t{url}\n"); rg = os.path.join(ra, f"goc-{cid}")
-        subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "1"], capture_output=True, text=True, timeout=3 * 3600)
+        # 3 góc một lần: góc nào trượt cổng chữ (thoại nhạy cảm — Phantom Returns 23/10/2026) vẫn còn góc khác; len-creative ghi bản sửa theo góc đạt
+        subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "3"], capture_output=True, text=True, timeout=3 * 3600)
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
-        if g: dung["canh cuoi"].append({**g[0], "camp": m.get("goc"), "lo": "sua"}); bao.append(f"{old}: cắt góc mới {g[0].get('tu')}–{g[0].get('den')}s từ tập sạch")
+        if g: dung["canh cuoi"] += [{**x, "camp": m.get("goc"), "lo": "sua"} for x in g]; bao.append(f"{old}: cắt {len(g)} góc mới từ tập sạch: " + ", ".join(f"{x.get('tu'):.0f}–{x.get('den'):.0f}s" for x in g))
         else: bao.append(f"{old}: chưa dựng được bản sửa (khớp đoạn / góc mới đều lỗi)")
     for dang, ds in dung.items():
         if not ds: continue

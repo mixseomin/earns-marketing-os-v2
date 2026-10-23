@@ -43,6 +43,9 @@ def tap_url(goc, html, n):
 def main(goc, ra, so=3):
     os.makedirs(ra, exist_ok=True)
     html1 = lay(goc).decode("utf-8", "ignore"); kq = []
+    if "reelshort.com" in goc and "/movie/" in goc:   # link trang phim (vd 80386 /es/movie/…) → đổi sang link tập 1 trên chính trang đó (23/10/2026: tải 0 tập)
+        m = re.search(r'href="(/(?:[a-z]{2}/)?episodes/episode-1-[^"]+)"', html1)
+        if m: goc = "https://www.reelshort.com" + H.unescape(m.group(1)); html1 = lay(goc).decode("utf-8", "ignore")
     og = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+property="og:image"', html1)
     if og:
         try:

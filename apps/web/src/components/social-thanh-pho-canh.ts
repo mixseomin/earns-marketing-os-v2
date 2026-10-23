@@ -90,7 +90,7 @@ const CSS = `
 .tp .dieu .rong { grid-column: span 2; width: auto; }
 .tp .nho { color: var(--chu2); font-size: 10px; }
 .tp .dk { display: grid; gap: 5px; font: 11px system-ui; color: var(--chu2); } .tp .dk label { display: flex; align-items: center; gap: 6px; justify-content: space-between; } .tp .dk input[type=range] { width: 80px; accent-color: #6ea8ff; } .tp .dk select { background: var(--nen); color: var(--chu); border: 1px solid var(--vien); border-radius: 6px; font: 11px system-ui; }
-.tp .tn-canh { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 7; display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: calc(100% - 420px); }
+.tp .tn-canh { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: calc(100% - 420px); }
 .tp .tn-canh > button { background: #2a1218ee; border: 1px solid #ff4d5e; color: #ffe1e4; border-radius: 999px; padding: 5px 12px; font: 600 12px system-ui; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tp .tn-canh > button.vang { background: #2a2310ee; border-color: #ffd166; color: #fff3cf; } .tp .tn-canh .ds { background: var(--nen2); border: 1px solid var(--vien); border-radius: 10px; padding: 4px; max-height: 260px; overflow: auto; }
 .tp .tn-canh .ds button { display: flex; gap: 8px; width: 100%; background: none; border: 0; color: var(--chu); padding: 5px 8px; font: 12px system-ui; cursor: pointer; text-align: left; } .tp .tn-canh .ds button:hover { background: var(--nen); } .tp .tn-canh .ds .nho { margin-left: auto; color: var(--mo, #8e9abd); white-space: nowrap; }

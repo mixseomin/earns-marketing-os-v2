@@ -56,6 +56,11 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
         .filter((l) => l.trang_thai !== 'ap').map((l) => ({ ma: l.ma, ten: LUAT_THEO_MA[l.ma]?.ten ?? l.ma, icon: LUAT_THEO_MA[l.ma]?.icon ?? '', trang_thai: l.trang_thai, cau: l.cau })) : [] })).sort((a, b) => b.thu - a.thu),
     // số camp ĐANG CHẠY cùng ĐOẠN video (cùng phim + cùng mốc "tu-den s" trong tên, gộp bản CTA cũ và bản sửa) — > 3 = tự cạnh tranh (luật 1 đoạn ≤ 3 camp, 23/10/2026)
     chay: (() => { const doan = (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1]; return doan ? cua.filter((x) => x.trang_thai === 'ACTIVE' && (x.ten.match(/(\d+-\d+s)/) ?? [])[1] === doan).length : ds.filter((x) => x.trang_thai === 'ACTIVE').length; })(),
+    chay_day: ds.filter((x) => x.trang_thai === 'ACTIVE').length,   // camp chạy của CHÍNH creative này
+    // creative khác cùng đoạn (bản CTA cũ ↔ bản sửa) và số camp chạy của từng cái — nhãn "7 camp · 1 ở đây · 6 ở #54182" (anh 24/10/2026)
+    cung_doan: (() => { const doan = (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1]; if (!doan) return [];
+      const m = new Map<number, number>(); for (const x of cua) if (x.trang_thai === 'ACTIVE' && x.creative_id && x.creative_id !== cr && (x.ten.match(/(\d+-\d+s)/) ?? [])[1] === doan) m.set(x.creative_id, (m.get(x.creative_id) ?? 0) + 1);
+      return [...m].map(([id, n]) => ({ id, n })); })(),
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)), ngay7: ngay7(ds),
   })).sort((a, b) => (b.thang.roi ?? -1e9) - (a.thang.roi ?? -1e9) || b.thang.thu - a.thang.thu);   // ROI tháng cao nhất lên đầu, creative chưa tiêu xuống cuối (anh duyệt 23/10/2026)
   // ĐẾM THEO PHIM cho nhãn ở danh sách Report (anh 23/10/2026 "show số lượng camp đang active, scheduled ở danh sách")

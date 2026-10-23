@@ -184,7 +184,10 @@
   let dang = null;
   // ĐANG MỞ KHUNG mà rê sang chỗ khác (anh 23/10/2026: kéo chuột từ số xanh sang khung để cuộn thì đi ngang số vàng → nhảy sang danh sách lịch):
   // khung đang hiện thì chỉ đổi khi chuột DỪNG ở chỗ mới 350ms; vào khung trước hạn thì huỷ, khung giữ nguyên
-  const lam = (f) => { clearTimeout(doi); if (o.style.display === 'block' && dang) doi = setTimeout(f, 350); else f(); };
+  // MỞ KHUNG CŨNG PHẢI DỪNG CHUỘT (anh 24/10/2026: "hover lướt qua đã hiện" → đợi đúng ý định): khung đang đóng thì chỉ mở khi chuột dừng 450ms
+  // trên chỗ đó; rê lướt qua (sang ô khác / ra ngoài trước hạn) thì không mở. Màn cảm ứng (iPhone, không có rê) chạm là mở ngay.
+  const CHAM = matchMedia('(hover: none)').matches;
+  const lam = (f) => { clearTimeout(doi); if (o.style.display === 'block' && dang) doi = setTimeout(f, 350); else if (CHAM) f(); else doi = setTimeout(f, 450); };
 
   const veCamp = async (tr, a, ev) => {
     const id = (a.textContent.match(/(\d{5,6}):/) || [])[1]; if (dang === 'c' + id) return; dang = 'c' + id;

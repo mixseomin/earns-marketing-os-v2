@@ -45,6 +45,7 @@ const so = (n: number | null) => (n == null ? 'chưa đo' : n.toLocaleString('vi
 const CSS = `
 .tp { position: relative; overflow: hidden; background: #060914; color: #e8ecf8; font: 12px system-ui, sans-serif; --nen: #060914; --nen2: #111830; --vien: #252f4e; --chu: #e8ecf8; --chu2: #8e9abd; --l3: #6ea8ff; color-scheme: dark; }
 .tp canvas { display: block; touch-action: none; }
+.tp { -webkit-user-select: none; user-select: none; } .tp input, .tp select, .tp .ngan { -webkit-user-select: text; user-select: text; }   /* nhấp đúp không bôi xanh chữ trên cảnh */
 .tp [hidden] { display: none !important; }
 .tp button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .tp .ben { position: absolute; left: 12px; top: 12px; width: 184px; background: color-mix(in srgb, var(--nen2) 92%, transparent); border: 1px solid var(--vien); border-radius: 12px; padding: 10px; display: grid; gap: 8px; z-index: 5; max-height: calc(100% - 24px); overflow: auto; }
@@ -111,7 +112,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       <b>Điều khiển</b><div class="dk">
         <label><input type="checkbox" data-dk="daoTruot"> Đảo chiều vuốt 2 ngón</label>
         <label><input type="checkbox" data-dk="daoPhong"> Đảo chiều phóng (lăn / chụm)</label>
-        <label>Lăn bánh xe <select data-dk="lan"><option value="tu">tự nhận chuột / touchpad</option><option value="phong">luôn là phóng</option></select></label>
+        <label>Lăn chuột <select data-dk="lan"><option value="truot">trượt · Shift + lăn = phóng</option><option value="phong">phóng</option></select></label>
         <label>Kéo chuột / 1 ngón <select data-dk="keo"><option value="xoay">xoay</option><option value="truot">trượt</option></select></label>
         <label>Tốc độ xoay <input type="range" min="0.4" max="2" step="0.1" data-dk="tocXoay"></label></div>
       <b>Traffic</b><div class="hang" data-o="loc-nen"></div>
@@ -172,9 +173,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // (anh 23/10/2026 "không zoom, pan đúng chỗ cần": trượt của r128 đi theo tỉ lệ khoảng cách tâm nhìn → điểm dưới ngón trôi khỏi ngón khi nhìn nghiêng)
   ctl.touches = { ONE: -1 as any, TWO: -1 as any }; ctl.enablePan = false; ctl.enableZoom = false;
   // CÀI ĐẶT ĐIỀU KHIỂN (anh 23/10/2026 "chỗ config control như invert scroll — giống các app 3D"): đảo chiều vuốt, đảo chiều phóng, kéo = xoay / trượt, tốc độ xoay; nhớ theo máy
-  type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number; lan: 'tu' | 'phong' };
-  const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1, lan: 'tu' };
-  let dk: CaiDk = (() => { try { return { ...DK0, ...JSON.parse(localStorage.getItem('tp-dk') ?? '{}') }; } catch { return { ...DK0 }; } })();
+  type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number; lan: 'truot' | 'phong' };
+  const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1, lan: 'truot' };
+  let dk: CaiDk = (() => { try { const v = { ...DK0, ...JSON.parse(localStorage.getItem('tp-dk') ?? '{}') }; if (v.lan !== 'phong') v.lan = 'truot'; return v; } catch { return { ...DK0 }; } })();
   const apDk = () => { ctl.mouseButtons = dk.keo === 'xoay' ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN } : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }; ctl.rotateSpeed = .6 * dk.tocXoay; };
   apDk();
   ctl.maxPolarAngle = Math.PI * 0.47; ctl.minDistance = 60; ctl.maxDistance = doc ? 3200 : 1600; ctl.zoomSpeed = 1.6; ctl.target.copy(TAM0);
@@ -1184,7 +1185,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // chạm / bấm = nhả trong 450ms, kéo dưới 10px (bộ điều hướng chặn "click" sinh từ cú chạm)
   let xuong: { x: number; y: number; t: number } | null = null;
   const onDown = (e: PointerEvent) => { xuong = { x: e.clientX, y: e.clientY, t: performance.now() }; };
-  const onUp = (e: PointerEvent) => { if (!xuong) return; const keo = Math.hypot(e.clientX - xuong.x, e.clientY - xuong.y), lau = performance.now() - xuong.t; xuong = null; if (keo < 10 && lau < 450) cham(e); };
+  const onUp = (e: PointerEvent) => { if (!xuong) return; const keo = Math.hypot(e.clientX - xuong.x, e.clientY - xuong.y), lau = performance.now() - xuong.t; xuong = null; if (keo < 10 && lau < 450) { if (henCham) { clearTimeout(henCham); henCham = 0; return; } henCham = window.setTimeout(() => { henCham = 0; cham(e); }, 260); } };
+  // NHẤP ĐÚP KHÔNG THÀNH CHỌN (anh 23/10/2026 "bấm double là thành select"): nhấp đơn chờ 260 ms — có nhấp thứ hai thì huỷ chọn, chỉ phóng (onDup)
+  let henCham = 0;
   const onMenu = (e: Event) => e.preventDefault();
   // nút mở nhanh trong ngăn: site / sản phẩm mở thẳng (qua href.li, không lộ nguồn), chi tiết mở đúng tab mos2
   const MOS2 = 'https://mos2.on.tc';
@@ -1293,12 +1296,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const onWheel = (e: WheelEvent) => {
     if ((e.target as Element | null)?.closest?.('.meo, .ben, .ngan')) return;   // lăn trên bảng / ngăn / thẻ = cuộn nội dung, không phóng cảnh
     e.preventDefault(); e.stopPropagation(); danhThuc(); bay = null;
-    // chuột thường hay touchpad: lib/loai-lan.ts (anh 23/10/2026 "tao dùng chuột thường" — chuột macOS gửi delta nhỏ 4, 8…, luật cũ "≥ 40 px" biến lăn chuột thành trượt)
-    const phongLan = phanLoaiLan(e, nhoLan, dk.lan === 'phong') === 'phong';
+    // LUẬT LĂN (anh chốt 23/10/2026 "để zoom thì giữ phím Shift và scroll chuột — scroll lên là zoom in"):
+    //   Shift + lăn = PHÓNG (lên = vào) · chụm touchpad (ctrlKey) = PHÓNG · lăn thường = TRƯỢT · Điều khiển › Lăn chuột = phóng thì lăn thường cũng phóng.
+    // Trình duyệt trên Mac đổi lăn dọc thành ngang khi giữ Shift → lấy deltaY, rỗng thì deltaX.
+    const d = e.deltaY || (e.shiftKey ? e.deltaX : 0), phongLan = e.ctrlKey || e.shiftKey || dk.lan === 'phong';
+    // cỡ bước: nấc bánh xe = một bước ×1,25 đều nhau, dồn vào phongCon rồi trôi ~0,2 giây quanh điểm dưới con trỏ; touchpad theo đúng độ vuốt / chụm (lib/loai-lan.ts nhận thiết bị)
+    phanLoaiLan({ ...e, deltaMode: e.deltaMode, deltaX: e.shiftKey ? 0 : e.deltaX, deltaY: d, ctrlKey: e.ctrlKey, timeStamp: e.timeStamp, wheelDeltaY: (e as any).wheelDeltaY || (e.shiftKey ? (e as any).wheelDeltaX : 0) }, nhoLan);
     if (nhoLan.thietBi && nhoLan.thietBi !== tbDaLuu) { tbDaLuu = nhoLan.thietBi; try { localStorage.setItem('tp-lan', tbDaLuu); } catch { /* chế độ riêng tư */ } }
-    // PHÓNG MƯỢT (anh 23/10/2026 "zoom trên PC vẫn khó dùng quá"): mỗi nấc bánh xe = một bước ×1,25 đều nhau (trình duyệt báo 4 px hay 100 px như nhau),
-    // không nhảy tức thì mà dồn vào phongCon rồi trôi dần ~0,2 giây quanh điểm dưới con trỏ (như Google Maps); chụm touchpad đi thẳng theo độ chụm
-    const buoc = e.ctrlKey ? e.deltaY * .012 : nhoLan.thietBi === 'pad' ? e.deltaY * .0022 : Math.sign(e.deltaY) * .22;
+    const buoc = e.ctrlKey ? d * .012 : nhoLan.thietBi === 'pad' ? d * .0022 : Math.sign(d) * .22;
     // PHÓNG VỀ CHỖ CON TRỎ (anh 23/10/2026 "trên pc làm sao zoom"): như Google Maps / Blender "Zoom to Mouse Position" — điểm mặt đất dưới con trỏ đứng yên,
     // camera và tâm nhìn cùng co giãn quanh điểm đó (cùng cách chụm 2 ngón trên điện thoại ở onCham2)
     if (phongLan) { datDuoi(e.clientX, e.clientY, phongG); const b2 = (dk.daoPhong ? -1 : 1) * buoc;
@@ -1310,7 +1315,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   };
   host.addEventListener('wheel', onWheel, { passive: false, capture: true });
   // NHẤP ĐÚP = phóng ×2 vào đúng chỗ nhấp (Shift + nhấp đúp = lùi ×2), như Google Maps
-  const onDup = (e: MouseEvent) => { e.preventDefault(); datDuoi(e.clientX, e.clientY, phongG); bay = null; phongCon = Math.max(-3, Math.min(3, phongCon + (e.shiftKey ? .69 : -.69))); danhThuc(); };
+  const onDup = (e: MouseEvent) => { e.preventDefault(); clearTimeout(henCham); henCham = 0; window.getSelection?.()?.removeAllRanges(); datDuoi(e.clientX, e.clientY, phongG); bay = null; phongCon = Math.max(-3, Math.min(3, phongCon + (e.shiftKey ? .69 : -.69))); danhThuc(); };
   r.domElement.addEventListener('dblclick', onDup);   // bắt ở pha capture của khung chứa → bộ điều khiển không nhận lăn (không phóng đôi)
   // Safari trên Mac: cử chỉ xoay 2 ngón (gesture*) → xoay quanh tâm nhìn
   let gocCu = 0;
@@ -1356,7 +1361,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (el instanceof HTMLInputElement && el.type === 'checkbox') el.checked = !!dk[k]; else el.value = String(dk[k]);
     el.onchange = () => { dk = { ...dk, [k]: el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el instanceof HTMLInputElement ? Number(el.value) : el.value } as CaiDk; apDk(); try { localStorage.setItem('tp-dk', JSON.stringify(dk)); } catch { /* chế độ riêng tư */ } }; }
   // gợi ý điều khiển: hiện lần đầu trên máy có chuột / touchpad, tự tắt sau 9 giây
-  try { if (!matchMedia('(pointer: coarse)').matches && !localStorage.getItem('tp-goi-y-dk')) { const gy = document.createElement('div'); gy.className = 'goi-y'; gy.textContent = dk.keo === 'xoay' ? 'Kéo: xoay · Lăn / chụm: phóng vào chỗ con trỏ · Nhấp đúp: phóng ×2 · Shift + kéo hoặc chuột phải: trượt · ↺ đặt lại màn' : 'Kéo: trượt · Chuột phải: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng'; host.appendChild(gy); setTimeout(() => gy.remove(), 9000); localStorage.setItem('tp-goi-y-dk', '1'); } } catch { /* chế độ riêng tư */ }
+  try { if (!matchMedia('(pointer: coarse)').matches && !localStorage.getItem('tp-goi-y-dk')) { const gy = document.createElement('div'); gy.className = 'goi-y'; gy.textContent = dk.keo === 'xoay' ? 'Shift + lăn: phóng (lên = vào) · Lăn: trượt · Kéo: xoay · Chuột phải / Shift + kéo: trượt · Nhấp đúp: phóng ×2 · ↺ đặt lại màn' : 'Kéo: trượt · Chuột phải: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng'; host.appendChild(gy); setTimeout(() => gy.remove(), 9000); localStorage.setItem('tp-goi-y-dk', '1'); } } catch { /* chế độ riêng tư */ }
   function vong(now = performance.now()) {
     raf = requestAnimationFrame(vong);
     const cach = bay || now < nhanhDen ? 0 : document.hasFocus() ? 48 : 190;

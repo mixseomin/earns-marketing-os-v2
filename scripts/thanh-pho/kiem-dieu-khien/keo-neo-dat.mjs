@@ -9,7 +9,7 @@ const datDuoi = (v, W, H, X, Y) => { const [px, py, pz] = v.p, [tx, ty, tz] = v.
 const huong = (v) => { const d = [0, 1, 2].map((i) => v.p[i] - v.t[i]), n = Math.hypot(...d); return d.map((x) => (x / n).toFixed(3)).join(','); };
 { const W = 1400, H = 850, p = await b.newPage({ viewport: { width: W, height: H } }); p.on('pageerror', (e) => console.log('LOI', e.message)); await p.goto('file://' + tep); await p.waitForTimeout(3500);
   const camv = () => p.evaluate(() => JSON.parse(localStorage.getItem('tp-cam')));
-  await p.mouse.move(700, 425); for (let i = 0; i < 4; i++) await p.mouse.wheel(0, -100); await p.waitForTimeout(1500);
+  await p.mouse.move(700, 425); for (let i = 0; i < 4; i++) (await p.keyboard.down('Shift'), await p.mouse.wheel(0, -100), await p.keyboard.up('Shift')); await p.waitForTimeout(1500);
   for (const [ten, nut, phim] of [['chuột phải', 'right', null], ['Shift + kéo trái', 'left', 'Shift']]) { const v0 = await camv(); const G0 = datDuoi(v0, W, H, 500, 300);
     if (phim) await p.keyboard.down(phim); await p.mouse.move(500, 300); await p.mouse.down({ button: nut }); await p.mouse.move(900, 600, { steps: 15 }); await p.mouse.up({ button: nut }); if (phim) await p.keyboard.up(phim);
     await p.waitForTimeout(800); const v1 = await camv(); console.log(`PC ${ten}: đất lúc bấm`, G0, '→ dưới con trỏ lúc thả', datDuoi(v1, W, H, 900, 600), '· hướng nhìn giữ:', huong(v0) === huong(v1)); }

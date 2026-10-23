@@ -3,7 +3,7 @@ const tep = process.argv[2], W = 1400, H = 850, MX = 1000, MY = 300;
 const b = await chromium.launch({ args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] });
 const p = await b.newPage({ viewport: { width: W, height: H } }); p.on('pageerror', (e) => console.log('LOI', e.message));
 await p.goto('file://' + tep); await p.waitForTimeout(3500); await p.mouse.move(MX, MY);
-const lan = async (dy, n) => { for (let i = 0; i < n; i++) { await p.mouse.wheel(0, dy); await p.waitForTimeout(40); } await p.waitForTimeout(800); };
+const lan = async (dy, n) => { for (let i = 0; i < n; i++) { (await p.keyboard.down('Shift'), await p.mouse.wheel(0, dy), await p.keyboard.up('Shift')); await p.waitForTimeout(40); } await p.waitForTimeout(800); };
 const camv = () => p.evaluate(() => JSON.parse(localStorage.getItem('tp-cam') ?? 'null'));
 const duoi = (v) => { const [px, py, pz] = v.p, [tx, ty, tz] = v.t; let f = [tx - px, ty - py, tz - pz]; const n = Math.hypot(...f); f = f.map((x) => x / n);
   let rr = [-f[2], 0, f[0]]; const rn = Math.hypot(...rr); rr = rr.map((x) => x / rn); const u = [rr[1] * f[2] - rr[2] * f[1], rr[2] * f[0] - rr[0] * f[2], rr[0] * f[1] - rr[1] * f[0]];

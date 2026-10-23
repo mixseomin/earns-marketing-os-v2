@@ -459,7 +459,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const vongCua = (d: typeof mh.dich[number]): (PhoTk | PhoDich)[] => (d.loai === 'app' ? banCua(d.khoa).flatMap((b) => [b, ...nguonCua(b.khoa)]) : d.loai === 'nen' ? [] : nguonCua(d.khoa));
     const rSite = (d: typeof mh.dich[number]) => (d.loai === 'nen' ? cumPhimCua(d).nua : 30 + Math.min(40, vongCua(d).length * 3.2));
     // CỤM PHIM ETHOPEX (góp ý city #1439): mỗi phim một sân — camp gốc lưới giữa sân, bản nhân bản (nhỏ) vòng quanh gốc, cột bên phải = camp lên lịch
-    // + MỘT toà kho camp đã tắt; tên phim in dưới nền mép trước. Sân xếp kệ quanh toà nền tảng (toà ở giữa danh sách, chừa ô 56×56).
+    // + MỘT toà kho camp đã tắt; tên phim in dưới nền mép trước. Sân xếp kệ quanh toà nền tảng (ô giữa danh sách chừa cho toà dự án + tháp nền tảng).
+    const O_HUB = 140, LECH_THAP = 52;   // ô giữa khối cụm phim: toà dự án ở tâm ô, tháp nền tảng lệch về góc
+    const motNen = (sites: typeof mh.dich, sps: typeof mh.dich) => sites.length === 1 && sites[0]!.loai === 'nen' && !sps.length;
     function cumPhimCua(hub: typeof mh.dich[number]) {
       const co = boCumP.get(hub.khoa); if (co) return co;
       const g = new Map<string, CumP>();
@@ -469,10 +471,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         g.set(k, o); }
       const ds2 = [...g.values()].sort((a, b) => b.tien - a.tien);
       for (const o of ds2) for (const [k, ds3] of [...o.nb]) if (!o.goc.some((c) => c.khoa === k)) { o.goc.push(...ds3); o.nb.delete(k); }   // gốc cũng là bản nhân bản → đứng lưới
+      const tienC = (c: PhoDich) => (c.tien30 ?? 0) + (c.chi30 ?? 0);
+      for (const o of ds2) o.goc.sort((a, b) => tienC(b) - tienC(a));   // camp nhiều tiền đứng đầu sân
       for (const o of ds2) { o.cot = Math.max(1, Math.min(5, Math.ceil(Math.sqrt(o.goc.length)))); o.O = o.nb.size ? 36 : 26; const hang = Math.ceil(o.goc.length / o.cot);
-        const ben = o.lich.length || o.kho ? 24 : 0; o.w = Math.max(60, o.cot * o.O + ben + 12); o.h = Math.max(hang * o.O, o.lich.length * 13 + (o.kho ? 26 : 0)) + 30; }
+        const ben = o.lich.length || o.kho ? 24 : 0; o.w = Math.max(84, o.cot * o.O + ben + 12); o.h = Math.max(hang * o.O, o.lich.length * 13 + (o.kho ? 26 : 0)) + 30; }
       // xếp kệ: chiều rộng kệ ≈ cạnh hình vuông cùng diện tích; ô toà nền tảng chen giữa danh sách
-      const oHub = { w: 56, h: 56, x: 0, z: 0 } as { w: number; h: number; x: number; z: number }, hop = [...ds2] as { w: number; h: number; x: number; z: number }[];
+      const oHub = { w: O_HUB, h: O_HUB, x: 0, z: 0 } as { w: number; h: number; x: number; z: number }, hop = [...ds2] as { w: number; h: number; x: number; z: number }[];
       hop.splice(Math.floor(hop.length / 2), 0, oHub);
       const S = Math.sqrt(hop.reduce((a, o) => a + (o.w + 10) * (o.h + 10), 0)) * 1.05;
       let x = 0, z = 0, hangCao = 0, rongMax = 0;
@@ -493,6 +497,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const ds_ = mh.dich.filter((d) => d.duAn === k.khoa && !d.cha), sites = ds_.filter(coQt), sps = ds_.filter((d) => !coQt(d)), n = soCanh(k.khoa);
       const rSp = sps.length ? ngoaiTiep(34 + 22 * (k.quyMo ?? 0) + Math.min(30, sps.length * 2.4), n) : 0, maxR = Math.max(0, ...sites.map(rNgoai));
       if (!k.laDuAn && sites.length === 1 && !sps.length) return { k, sites, sps, rSp: 0, rVong: 0, D: maxR + 4, n: 4, cx: 0, cz: 0, phia: 1 };
+      if (motNen(sites, sps)) return { k, sites, sps, rSp: 0, rVong: 0, D: ngoaiTiep((rSite(sites[0]!) + 12) * Math.SQRT2, n), n, cx: 0, cz: 0, phia: 1 };   // khối cụm phim (vuông) nằm trọn trong rào
       const chuVi = sites.reduce((a, d) => a + 2 * rNgoai(d) + 10, 0), rVong = sites.length ? Math.max(ngoaiTiep(Math.max(rSp, 30 + 22 * (k.quyMo ?? 0)) + maxR + 26, n), chuVi / (2 * n * Math.sin(Math.PI / n))) : 0;
       return { k, sites, sps, rSp, rVong, D: ngoaiTiep(Math.max(rSp + 18, rVong + maxR + 6, 50 + 100 * (k.quyMo ?? 0)), n), n, cx: 0, cz: 0, phia: 1 };
     });
@@ -568,7 +573,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // quảng trường site: tháp ở tâm, nguồn đứng vòng quanh (máy tìm kiếm, quảng cáo, giới thiệu, tài khoản social), phố nan hoa nối vào tâm
     const quangTruongSite = (d: typeof mh.dich[number], x0: number, z0: number) => {
       // nền tảng (Ethopex): toà dời về ô của nó trong khối cụm phim, các sân phim dựng quanh
-      const bo = d.loai === 'nen' ? cumPhimCua(d) : null, x = x0 + (bo?.hub.x ?? 0), z = z0 + (bo?.hub.z ?? 0);
+      const bo = d.loai === 'nen' ? cumPhimCua(d) : null, x = x0 + (bo ? bo.hub.x + LECH_THAP : 0), z = z0 + (bo ? bo.hub.z + LECH_THAP : 0);
       if (bo) for (const o of bo.cum) sanPhim(o, x0 + o.x, z0 + o.z, d);
       const qt = add(new THREE.BoxGeometry(40, .7, 40), GACH, false); qt.position.set(x, .35, z);
       if (d.loai === 'site') thapSite(d, x, z); else if (d.loai === 'app') toaApp(d, x, z); else if (d.loai === 'nen') toaNen(d, x, z); else toaSp(d, x, z);
@@ -687,7 +692,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const nen_ = add(new THREE.CylinderGeometry(o.D, o.D, .4, o.n, 1, false, Math.PI / 2 - Math.PI / o.n), M({ color: k.ngung ? '#14161f' : new THREE.Color('#121a30').lerp(new THREE.Color(LINH_VUC[k.linhVuc]!.mau), .22), roughness: 1 }), false); nen_.position.set(cx, .2, cz); ds.san!.push(nen_);
       ganXe(raoQuanh(dinhDa(o.n, cx, cz, o.D), mauRao, cx, cz, o.phia, k.ten, posters, k.khoa));
       const luu = o.sites.reduce((a, d) => a + (d.phien30 ?? 0), 0) + o.sps.reduce((a, d) => a + (d.xem7 ?? 0), 0);
-      if (k.laDuAn) toaDuAn(k, cx, cz, luu);
+      const boN = motNen(o.sites, o.sps) ? cumPhimCua(o.sites[0]!).hub : null;   // khu một nền tảng: toà dự án vào ô giữa khối cụm phim
+      if (k.laDuAn) toaDuAn(k, cx + (boN?.x ?? 0), cz + (boN?.z ?? 0), luu);
+      if (boN) { quangTruongSite(o.sites[0]!, cx, cz); continue; }
       o.sps.forEach((d, i) => { const p = diemDa((i + .5) / Math.max(1, o.sps.length), o.n, cx, cz, o.rSp); toaSp(d, p.x, p.z); });
       // quảng trường site rải trên chu vi đa giác ngoài, mỗi cái chiếm phần chu vi theo cỡ của nó
       const chuVi = o.n * 2 * o.rVong * Math.sin(Math.PI / o.n), tong = Math.max(chuVi, o.sites.reduce((a, d) => a + 2 * rNgoai(d) + 10, 0)); let t = .02;
@@ -996,7 +1003,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (u.loai === 'cum-phim') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
       if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.lich, ...(o.kho ? [o.kho] : [])];
         return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.lich.length} lịch · ${o.kho?.soTat ?? 0} tắt`]],
-          bang: { cot: ['Camp', 'Dạng', '💵 Thu', 'Lãi'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'lich' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc(c.ten.replace(/\s*\(nhan ban \d+ cua \d+\)$/, ' (nb)').slice(-30))}`,
+          bang: { cot: ['Camp', 'Dạng', '💵 Thu', 'Lãi'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'lich' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc((c.ten.split(' - ').slice(1).join(' - ') || c.ten).replace(/\s*\(nhan ban \d+ cua \d+\)$/, '').slice(0, 30))}`,
             esc(c.dangCr ?? '—'), tienO(c.tien30), `${(c.tien30 ?? 0) >= (c.chi30 ?? 0) ? '🟢' : '🔴'} ${tienO((c.tien30 ?? 0) - (c.chi30 ?? 0))}`]) } }; } }
     if (u.loai === 'xuong-vung' || u.loai === 'tham-dinh') { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha && (u.loai === 'tham-dinh' ? d.giaiDoan === 'tham-dinh' : d.giaiDoan !== 'tham-dinh' && d.vungSx === u.vung));
       return { dau: u.loai === 'tham-dinh' ? '🔍 Phòng thẩm định' : `🏭 Xưởng SX · ${VUNG_SX[u.vung]!.ic} ${VUNG_SX[u.vung]!.ten}`, h: [[u.loai === 'tham-dinh' ? 'Đã nộp, chờ duyệt' : 'Đang làm / sẵn sàng', xs.length]],

@@ -4,7 +4,7 @@
 // để cổng đo trên keyframe (soi-mat.py: tâm mặt + hướng nhìn) so. Mặt bằng nhìn từ trên: x sang đông (m), y sang bắc (m); máy = chỗ đặt + điểm nhìn.
 // Trục 180° (Film Art ch.6): hai shot liền nhau có cặp người nhìn nhau thì hai máy cùng một phía đường nối hai người. Thuần — tự kiểm: so-do-canh.test.mts
 export type Diem = [number, number];
-export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem; nhin: Diem }>; /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string> };
+export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem; nhin: Diem; /** tiêu cự tương đương mm (mặc định 35): cận mặt 60–85, toàn 24–28 */ ong?: number }>; /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string> };
 /** Một mảnh theo sơ đồ: máy nào · ai / cái gì ở đâu (tên mốc hoặc toạ độ) · ai nhìn ai / cái gì · ai đi vào khung từ mốc nào. */
 export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
 export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 };
@@ -12,11 +12,11 @@ export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 };
 const tru = (a: Diem, b: Diem): Diem => [a[0] - b[0], a[1] - b[1]];
 const cham = (a: Diem, b: Diem) => a[0] * b[0] + a[1] * b[1];
 const diem = (s: SoDo, m: ManhSoDo, x: string | Diem): Diem | null => (Array.isArray(x) ? x : m.o[x] != null ? diem(s, m, m.o[x]!) : s.moc[x] ?? null);
-const truc = (s: SoDo, ten: string) => { const c = s.may[ten]; if (!c) throw new Error(`sơ đồ không có máy "${ten}"`); const f = tru(c.nhin, c.dat); const l = Math.hypot(...f) || 1; const fw: Diem = [f[0] / l, f[1] / l]; return { dat: c.dat, fw, phai: [fw[1], -fw[0]] as Diem }; };
+const truc = (s: SoDo, ten: string) => { const c = s.may[ten]; if (!c) throw new Error(`sơ đồ không có máy "${ten}"`); const f = tru(c.nhin, c.dat); const l = Math.hypot(...f) || 1; const fw: Diem = [f[0] / l, f[1] / l]; return { dat: c.dat, fw, phai: [fw[1], -fw[0]] as Diem, k: (0.36 * 35) / (c.ong ?? 35) }; };
 /** Vị trí ngang trên màn (−1 trái … +1 phải): chiếu lên trục phải của máy chia độ sâu. Khung DỌC 9:16, ống ~35 mm → nửa góc ngang ≈ 20° (tan 0,36). */
 export function viTriMan(s: SoDo, m: ManhSoDo, x: string | Diem): number | null {
   const p = diem(s, m, x); if (!p) return null; const t = truc(s, m.may); const v = tru(p, t.dat); const sau = cham(v, t.fw); if (sau <= 0.05) return null;
-  return Math.max(-1.5, Math.min(1.5, cham(v, t.phai) / sau / 0.36));
+  return Math.max(-1.5, Math.min(1.5, cham(v, t.phai) / sau / t.k));
 }
 /** Hướng trên màn khi A nhìn / đi về B: −1 sang trái màn, +1 sang phải, 0 = gần như thẳng về phía máy. */
 export function huongMan(s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem): -1 | 0 | 1 {
@@ -83,7 +83,7 @@ const MAU_MANG: Record<MangPhong['loai'], string> = { tuong: '#3c3c44', cua: '#b
 export function svgPhac(s: SoDo & { phong?: MangPhong[] }, m: ManhSoDo, nguoi: string[], mau: Record<string, string>, W = 360, H = 640): string {
   const t = truc(s, m.may); const CAO = 1.5;
   const chieu = (p: Diem, z: number): [number, number] | null => { const v = tru(p, t.dat); const sau = cham(v, t.fw); if (sau < 0.3) return null;
-    return [W / 2 + (cham(v, t.phai) / sau / 0.36) * (W / 2), H / 2 - ((z - CAO) / sau / 0.64) * (H / 2)]; };
+    return [W / 2 + (cham(v, t.phai) / sau / t.k) * (W / 2), H / 2 - ((z - CAO) / sau / ((t.k * 16) / 9)) * (H / 2)]; };
   const out: string[] = [`<rect width="${W}" height="${H}" fill="#e9e9ec"/>`];
   const chan = chieu(diem(s, m, m.o[nguoi.find((n) => m.o[n] != null) ?? ''] ?? '') ?? (s.may[m.may]!.nhin as Diem), 0); const ngang = chan ? Math.min(H, Math.max(H * 0.35, chan[1])) : H * 0.6;
   out.push(`<rect y="${ngang}" width="${W}" height="${H - ngang}" fill="#a7a7ae"/>`);   // sàn

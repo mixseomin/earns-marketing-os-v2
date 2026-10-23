@@ -13,3 +13,12 @@ export function dongPhang(cap: { x: number; y: number; u: number; v: number }[])
 }
 /** Áp ma trận lên một điểm. */
 export const apDongPhang = (H: number[], x: number, y: number) => { const z = H[6]! * x + H[7]! * y + 1; return [(H[0]! * x + H[1]! * y + H[2]!) / z, (H[3]! * x + H[4]! * y + H[5]!) / z] as const; };
+/** Nở vùng 1 ra r điểm ảnh (lọc max tách hai chiều, hộp vuông). */
+export function noVung(M: Uint8Array, W: number, H: number, r: number): void {
+  if (r <= 0) return;
+  const t = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) { let last = -1e9; for (let x = 0; x < W; x++) if (M[y * W + x]) last = x; else if (x - last <= r) t[y * W + x] = 1;
+    last = 1e9; for (let x = W - 1; x >= 0; x--) { if (M[y * W + x]) { last = x; t[y * W + x] = 1; } else if (last - x <= r) t[y * W + x] = 1; } }
+  for (let x = 0; x < W; x++) { let last = -1e9; for (let y = 0; y < H; y++) if (t[y * W + x]) last = y; else if (y - last <= r) M[y * W + x] = 1;
+    last = 1e9; for (let y = H - 1; y >= 0; y--) { if (t[y * W + x]) { last = y; M[y * W + x] = 1; } else if (last - y <= r) M[y * W + x] = 1; } }
+}

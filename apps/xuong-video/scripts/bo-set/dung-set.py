@@ -445,17 +445,26 @@ def lay_net(cam, sh, goc=None):
     d.aperture_fstop = float(os.environ['XV_FSTOP']) if os.environ.get('XV_FSTOP') else min(64.0, max(KHAU_CO_CANH.get(sh.get('co_canh') or '', 11.0), N))
     print(f"NET {sh.get('ma')} {sh.get('co_canh')} f/{d.aperture_fstop:.1f} nét {d.focus_distance:.2f} m ống {f:.0f} mm")
 
-def ve_mat_na(s, sh, cam, goc_ra):
+def ve_mat_na(s, sh, cam, goc_ra, dong=None):
     """MẶT NẠ 3D cho GHÉP ĐÈ đồ nhận dạng và SỬA VÙNG (anh 17/10/2026, học từ topview.ai: ghép đồ thật vào keyframe thay vì để model vẽ; sửa một vùng thay vì
     sinh lại cả khung). Render Workbench màu phẳng: vật đích trắng, mọi thứ khác đen (vật đứng trước tự che phần sau). Mỗi mặt nạ '<goc_ra>-mn-<i>.png'.
       · 'nd:<vật>' — tấm ảnh chuẩn '<vật>·anh' + 4 góc trên khung (x, y 0..1 gốc trên-trái) kèm toạ độ ảnh (u, v) — ghép đúng phối cảnh
-      · 'ng:<tên>' — THÂN người (bỏ đầu, cổ, mũi, tóc) — sửa áo không đụng mặt · 'ngd:<tên>' — cả người (ghép đè tránh)"""
+      · 'ng:<tên>' — THÂN người (bỏ đầu, cổ, mũi, tóc) — sửa áo không đụng mặt · 'ngd:<tên>' — cả người (ghép đè tránh)
+    dong = 'dm' | 'dk' | 'dg' (mở / kết / giữa): CHỈ MÓN ĐỘNG của shot — 'ngd:<tên>' từng người + 'vat:<tên>' từng đạo cụ khai trong shot — tệp '<goc_ra>-<dong>-<i>.png'.
+    Ảnh kết / giữa máy đứng yên chép NỀN từ keyframe mở, AI chỉ vẽ trong hợp các mặt nạ này (ghep-vung.ts › ghepNenKet; anh 23/10/2026: "sửa chắp vá
+    kiểu này không scale được" — ảnh kết vẽ lại cả sảnh, nền đổi theo màu khung 3D)."""
     from bpy_extras.object_utils import world_to_camera_view
     tg = []
-    for v in DL['vat']:   # tấm ảnh chuẩn có HAI mặt ('·anh', '·anh sau') — mặt quay vào phòng tuỳ vật (màn chiếu tường sau: '·anh sau'); lấy cả hai
+    if dong:
+        for nv in sh.get('nhan_vat', []):
+            if nv.get('an'): continue
+            t = nv['ten']; nguoi_ = (DL['nhan_vat_mau'].get(t) or {}).get('hinh') == 'nguoi'
+            objs = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render and (o.name.startswith(f"NG {t}.") if nguoi_ else (o.name == f"NV {t}" or o.name.startswith(f"NV {t}·")))]
+            if objs: tg.append((f"{'ngd' if nguoi_ else 'vat'}:{t}", objs))
+    for v in ([] if dong else DL['vat']):   # tấm ảnh chuẩn có HAI mặt ('·anh', '·anh sau') — mặt quay vào phòng tuỳ vật (màn chiếu tường sau: '·anh sau'); lấy cả hai
         ps = [o for o in (bpy.data.objects.get(f"{v['ten']}·anh"), bpy.data.objects.get(f"{v['ten']}·anh sau")) if v.get('anh') and o and not o.hide_render]
         if ps: tg.append((f"nd:{v['ten']}", ps))
-    for nv in sh.get('nhan_vat', []):
+    for nv in ([] if dong else sh.get('nhan_vat', [])):
         if nv.get('an') or (DL['nhan_vat_mau'].get(nv['ten']) or {}).get('hinh') != 'nguoi': continue
         ca = [o for o in bpy.data.objects if o.type == 'MESH' and not o.hide_render and o.name.startswith(f"NG {nv['ten']}.")]
         than = [o for o in ca if not any(k in o.name for k in ('.dau_k', '.mui', '.co_k', 'toc'))]
@@ -471,8 +480,8 @@ def ve_mat_na(s, sh, cam, goc_ra):
     for i, (ma, objs) in enumerate(tg):
         for o in mesh: o.color = (0, 0, 0, 1)
         for o in objs: o.color = (1, 1, 1, 1)
-        s.render.filepath = f"{goc_ra}-mn-{i}.png"; bpy.ops.render.render(write_still=True)
-        rec = {'tep': f'mn-{i}'}
+        s.render.filepath = f"{goc_ra}-{dong or 'mn'}-{i}.png"; bpy.ops.render.render(write_still=True)
+        rec = {'tep': f"{dong or 'mn'}-{i}"}
         if ma.startswith('nd:'):   # 4 góc của tấm QUAY VỀ PHÍA MÁY (pháp tuyến hướng máy)
             o = next((x for x in objs if (x.matrix_world.to_3x3() @ Vector((0, 0, 1))).dot(cam.location - x.matrix_world.translation) > 0), objs[0]); uv = o.data.uv_layers.active.data if o.data.uv_layers.active else None; goc = {}
             for lp in o.data.loops:
@@ -2048,7 +2057,7 @@ def cat_dau(cam, sh, nhin=None):
             if (h_ - cam.location).length < min(0.6, 0.8 * d_dich) and (h_ - cam.location).angle(nh_, 0) < math.radians(25) ]
     if cat: cam.data.clip_start = min(max(cat) + 0.14, d_dich - 0.05)
 
-kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}; LECH_NHIN = {}
+kiem = {}; giai = {}; thay = {}; di = {}; mat_na = {}; xuyen = {}; lop = {}; ket_dong = {}; LECH_NHIN = {}; dong_ = {}
 # Clip diễn (XV_DIEN): chạy SAU khi mọi hàm ngắm / cắt đã định nghĩa (ngam_lai, cat_dau — 22/10/2026 gọi trước định nghĩa → NameError)
 if os.environ.get('XV_DIEN'):   # đường riêng: diễn + render cả shot (shot đầu tiên trong tệp đầu vào)
     # 24 khung/giây cho phim người thật (MESH_THAT — anh 21/10/2026 "khung hình khi quay cứ rung rung": máy lia / đẩy ở 12 khung/giây giật từng nấc);
@@ -2096,6 +2105,7 @@ for sh in ([] if CHI_MB else shots):
         if _lop: lop[sh['ma']] = _lop
         mn = ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}")   # mặt nạ ghép đè / sửa vùng
         if mn: mat_na[sh['ma']] = mn
+        dong_[sh['ma']] = {'mo': {k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dm').items()}}   # món động ở khung MỞ
     else:
         s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
         s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
@@ -2126,6 +2136,10 @@ for sh in ([] if CHI_MB else shots):
         d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin']) + Vector(LECH_NHIN.get(sh['ma'], (0, 0, 0)))   # máy đã ngắm lại ở khung mở → khung kết lệch theo
         dat_may(cam, list(d0.lerp(d1, t)), list(n0.lerp(n1, t))); cam.data.lens = sh['may']['ong_kinh'] + (chay_['ong_kinh'] - sh['may']['ong_kinh']) * t
         cat_dau(cam, sh, list(n0.lerp(n1, t)))
+    may0 = (cam.matrix_world.copy(), cam.data.lens)
+    def may_yen():   # máy ở khung kết / giữa trùng khung mở (không đường máy, không ngắm lại) → ảnh kết / giữa chép được nền từ keyframe mở
+        bpy.context.view_layer.update()
+        return abs(cam.data.lens - may0[1]) < 1e-3 and all(abs(a_ - b_) < 1e-4 for r0, r1 in zip(may0[0], cam.matrix_world) for a_, b_ in zip(r0, r1))
     if co_mau or dong:
         nk, nk_het = nhan_vat(sh, ket=True)
         may_tai(1.0)
@@ -2135,9 +2149,12 @@ for sh in ([] if CHI_MB else shots):
         den_ = chieu(nk)
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
+        yen_ = co_mau and sh['ma'] in dong_ and may_yen()
+        if yen_: dong_[sh['ma']]['ket'] = {k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dk').items()}
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
         if MESH_THAT and dong:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
             may_tai(0.5); ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
+            if yen_ and may_yen(): dong_[sh['ma']]['giua'] = {k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dg').items()}
             for o in ng_het: bpy.data.objects.remove(o, do_unlink=True)
         may_tai(0.0)
     else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]
@@ -2199,5 +2216,6 @@ json.dump(xuyen, open(f'{RA}/xuyen.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(lop, open(f'{RA}/lop.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(ket_dong, open(f'{RA}/ket_dong.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(mat_na, open(f'{RA}/mat_na.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(dong_, open(f'{RA}/dong.json', 'w'), ensure_ascii=False, indent=1)   # mặt nạ món động mở / kết / giữa (máy yên mới có kết / giữa)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

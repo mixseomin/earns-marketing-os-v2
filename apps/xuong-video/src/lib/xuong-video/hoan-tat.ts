@@ -188,12 +188,15 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     // 🩹 sửa mặt (soi-mat.ts › suaMatCanh): soi lại ảnh sửa → đạt thì thành keyframe, chưa thì thử lại từ ảnh gốc (tối đa 3 lần)
     const { xongSuaMat } = await import('./soi-mat');
     await xongSuaMat(db, canh, kq.url, gia, { lan: j.lan as string | null, goc: j.goc as string | null, thu: j.thu as string | null, job: kq.job, hop: (j.hop as number[] | null) ?? null, ten: (j.ten as string[] | null) ?? null });
-  } else if (canh != null && j.dich === 'keyframe_giua') {
-    // keyframe GIỮA (sinh-anh.ts › sinhKeyframeKetCanh): ô giữa của dải nhịp ảnh thứ 2 gửi model video
-    await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
-  } else if (canh != null && j.dich === 'keyframe_ket') {
-    // keyframe KẾT (sinh-anh.ts › sinhKeyframeKetCanh): khung cuối của shot — video nhận làm ảnh cuối
-    await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
+  } else if (canh != null && (j.dich === 'keyframe_giua' || j.dich === 'keyframe_ket')) {
+    // keyframe GIỮA / KẾT (sinh-anh.ts › sinhKeyframeKetCanh): ảnh cuối (và ô giữa dải nhịp) gửi model video. Máy YÊN trong shot → nền chép từ keyframe mở,
+    // ảnh Nano chỉ góp vùng món động (ghep-vung.ts › ghepNenKet); ảnh Nano trơn vẫn nằm ở output_url của job. Ghép hỏng thì giữ ảnh trơn — cổng video chặn.
+    const giua = j.dich === 'keyframe_giua';
+    const { ghepNenKet } = await import('./ghep-vung');
+    const g = await ghepNenKet(db, canh, kq.url, giua).catch((e: unknown) => { console.error(`[ghép nền] shot ${canh}`, e); return null; });
+    const u = g?.url ?? kq.url;
+    if (giua) await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
+    else await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
   } else if (canh != null) {
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([kq.url])}::jsonb),
       keyframe_url = coalesce(keyframe_url, ${kq.url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,

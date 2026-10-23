@@ -138,6 +138,24 @@ export function doiModelVideo(model: string, nguoiTrongShot: Pick<NhanVat, 'ten'
   return { model: MODEL_CO_TRE_EM, ly_do: `shot có trẻ em (${tre.map((v) => v.ten).join(', ')}) — Veo từ chối ảnh có trẻ em, tự sang Kling` };
 }
 
+/** CẢNH KHÓ → Kling (anh 23/10/2026: "nếu dùng kling ở cảnh khó thì sao" → chốt luật máy, không chọn tay từng shot): Veo Lite vẽ thân người đi / chạm nhau
+ *  vật vờ (#132 #15 giật thẻ, bước vào thang). Đọc từ MÁY 3D của shot, không dò chữ: (a) ≥ 2 người cùng di chuyển trong shot (có 'den'), hoặc (b) món ĐANG
+ *  CẦM đổi chỗ (cam + den: trao / giật / đặt xuống). Chỉ đổi khi model đang là Veo (đường rẻ mặc định) — model anh chọn tay khác thì giữ. */
+export const MODEL_CANH_KHO = 'fal:fal-ai/kling-video/v3/pro/image-to-video';
+export function canhKho(viTri: { ten: string; den?: number[]; cam?: string; an?: boolean }[], laNguoi: (ten: string) => boolean): string | null {
+  const vt = viTri.filter((x) => !x.an);
+  const diChuyen = vt.filter((x) => laNguoi(x.ten) && x.den?.length);
+  const doiTay = vt.filter((x) => !laNguoi(x.ten) && x.cam && x.den?.length);
+  if (diChuyen.length >= 2) return `${diChuyen.length} người cùng di chuyển (${diChuyen.map((x) => x.ten).join(', ')})`;
+  if (doiTay.length) return `món đang cầm đổi chỗ (${doiTay.map((x) => x.ten).join(', ')})`;
+  return null;
+}
+export function doiModelCanhKho(model: string, viTri: Parameters<typeof canhKho>[0] | undefined, laNguoi: (ten: string) => boolean): { model: string; ly_do: string } | null {
+  if (!/(^|:)veo/i.test(model) || !viTri) return null;
+  const k = canhKho(viTri, laNguoi);
+  return k ? { model: MODEL_CANH_KHO, ly_do: `cảnh khó: ${k} — Veo vẽ thân người vật vờ, tự sang Kling` } : null;
+}
+
 /** Cận cảnh + động tác lớn của thân người → model vẽ méo chân / tay / thân (#12: cận đầu gối khi đang nhảy → chân phình biến dạng). */
 const CO_CAN = new Set(['ecu', 'cu', 'insert', 'mcu']);
 export const DONG_LON = /\b(danc(e|es|ing)|jump(s|ing)?|spin(s|ning)?|twirl(s|ing)?|run(s|ning)?|kick(s|ing)?|leap(s|ing)?|swing(s|ing)?|squat(s|ting)? (down|deep)|lunge(s|ing)?)\b/i;

@@ -18,7 +18,7 @@ import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo, cauVatLy } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { noiKhungTuClipTruoc } from './noi-khung-clip';
-import { promptBieuCam, doiModelVideo } from './qc-cam-xuc';
+import { promptBieuCam, doiModelVideo, doiModelCanhKho } from './qc-cam-xuc';
 import { tronModelCanh } from './sinh-anh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
@@ -222,6 +222,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // Model theo NỘI DUNG (qc-cam-xuc.ts): có trẻ em → Veo từ chối → đổi sang Kling TRƯỚC khi gửi (Jett #61 shot 1/2/11 hỏng 3 lượt).
   const doiM = doiModelVideo(bc.kt.mo_hinh_video, bc.nhanVat.filter((v) => v.loai === 'nhan_vat'));
   if (doiM) bc.kt.mo_hinh_video = doiM.model as typeof bc.kt.mo_hinh_video;
+  // CẢNH KHÓ (qc-cam-xuc.ts › canhKho): ≥ 2 người cùng đi / món cầm đổi chỗ → Kling — lượt chỉ đích danh model (moHinh) thì giữ model đó
+  const kho = moHinh ? null : doiModelCanhKho(bc.kt.mo_hinh_video, (bc.mayDu ?? bc.canh.may_3d)?.vi_tri, (t) => bc.nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat'));
+  if (kho) { bc.kt.mo_hinh_video = kho.model as typeof bc.kt.mo_hinh_video; console.log(`[video] shot #${bc.canh.thu_tu}: ${kho.ly_do}`); }
   // Lượt THỬ ngoài quy trình (thu) được dùng model cấm QC khi anh chỉ đích danh (16/10/2026: "grok trước sinh ổn mà, thử lại xem" — Veo chặn ảnh có
   // trẻ em, Jett #61 shot 1/2/11); clip thử vẫn qua máy soi chữ lạ (soi-clip.ts) như mọi clip. Sản xuất (không thu) giữ chặn.
   if (!thu && !hopQc(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao')) return loi(`${bc.kt.mo_hinh_video} không dùng cho video quảng cáo (Pika thiếu cảm xúc, Grok tự in phụ đề giả) — chọn Veo qua Google / Kling`);
@@ -233,6 +236,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
   const khungCuoi0 = await khungCuoiCanh(db, canhId);
+  // NỀN ẢNH KẾT = NỀN ẢNH ĐẦU (ghep-vung.ts › thieuGhepNen): shot máy yên mà ảnh kết / giữa chưa chép nền từ keyframe mở thì không tiêu tiền video —
+  // model đi tới ảnh kết, nền ảnh kết lệch là clip đổi phòng (#132 #16 #19, 23/10/2026)
+  if (khungCuoi0 && khungCuoi0 === bc.canh.keyframe_ket) { const { thieuGhepNen } = await import('./ghep-vung'); const gn = await thieuGhepNen(db, bc.canh); if (gn) return loi(`Shot #${bc.canh.thu_tu}: ${gn}`); }
   // ẢNH THỨ 2 = ẢNH KẾT THẬT + DẢI NHỊP (anh 19/10/2026, thử #1 tập 122): model video luôn "đi tới" ảnh thứ 2 — ảnh kết thật đầy khung kèm dải 3 nhịp
   // (đầu → giữa → kết) ở mép trên dẫn hành động + ghim kết cục; ~0,5 giây cuối clip hoà tan ra dải nhịp → máy dò lúc dải hiện (catCuoiClip) và
   // bản xuất cắt trước đó. Chỉ khi ảnh cuối là keyframe KẾT của chính shot (không áp cho nối khung sang shot kế).

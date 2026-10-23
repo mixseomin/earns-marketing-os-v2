@@ -8,3 +8,13 @@ for (const g of goc) { const [u, v] = apDongPhang(H, g.x, g.y); assert.ok(Math.a
 // 4 điểm thẳng hàng → suy biến
 assert.equal(dongPhang([{ x: 0, y: 0, u: 0, v: 0 }, { x: 1, y: 1, u: 1, v: 0 }, { x: 2, y: 2, u: 1, v: 1 }, { x: 3, y: 3, u: 0, v: 1 }]), null);
 console.log('dong-phang: ok');
+// noVung: một điểm giữa nở r = 2 thành hộp 5×5; mép ảnh không tràn; r = 0 không đổi
+{
+  const { noVung } = await import('./dong-phang');
+  const W = 9, H = 7; const M = new Uint8Array(W * H); M[3 * W + 4] = 1;
+  noVung(M, W, H, 2);
+  assert.equal(M.reduce((a, b) => a + b, 0), 25);
+  assert.equal(M[1 * W + 2], 1); assert.equal(M[0 * W + 4], 0); assert.equal(M[3 * W + 7], 0);
+  const N = new Uint8Array(W * H); N[0] = 1; noVung(N, W, H, 1); assert.equal(N.reduce((a, b) => a + b, 0), 4);
+  const Z = new Uint8Array(W * H); Z[5] = 1; noVung(Z, W, H, 0); assert.equal(Z.reduce((a, b) => a + b, 0), 1);
+}

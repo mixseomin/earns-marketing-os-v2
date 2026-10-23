@@ -78,3 +78,16 @@ assert.strictEqual(cauNuocMat([{ nv: 'Vivian', dau: 'dac_y', cuoi: 'soc' }]), ''
 assert.strictEqual(cauNuocMat([{ nv: 'Lâm Hạ', dau: 'buon', cuoi: 'khoc_tham' }]), '');
 assert.strictEqual(cauNuocMat(null), '');
 console.log('qc-cam-xuc nước mắt ok');
+// CẢNH KHÓ → Kling: #132 #15 (thẻ đang cầm đổi chỗ) khó; #16 (một người đi) / #19 không; hai người cùng đi khó; model không phải Veo giữ nguyên
+{
+  const { canhKho, doiModelCanhKho, MODEL_CANH_KHO } = await import('./qc-cam-xuc');
+  const nguoi = (t: string) => ['Lâm Hạ', 'Vivian', 'Lục Thần'].includes(t);
+  const s15 = [{ ten: 'Lâm Hạ', tam: [0] }, { ten: 'Vivian', den: [1, 2, 0] }, { ten: 'Thẻ nhân viên', cam: 'Lâm Hạ', den: [1, 2, 3] }];
+  assert.ok(canhKho(s15, nguoi)?.includes('Thẻ nhân viên'));
+  assert.equal(canhKho([{ ten: 'Lục Thần', den: [1, 1, 0] }, { ten: 'Chuỗi hạt ngọc', cam: 'Lục Thần' }, { ten: 'Vivian' }], nguoi), null);
+  assert.ok(canhKho([{ ten: 'Lâm Hạ', den: [1, 1, 0] }, { ten: 'Vivian', den: [2, 2, 0] }], nguoi)?.startsWith('2 người'));
+  assert.equal(canhKho([{ ten: 'Lâm Hạ', den: [1, 1, 0] }, { ten: 'Vivian', den: [2, 2, 0], an: true }], nguoi), null);
+  assert.equal(doiModelCanhKho('kie:veo3_lite', s15, nguoi)?.model, MODEL_CANH_KHO);
+  assert.equal(doiModelCanhKho('veo-3.1-lite-generate-preview', s15, nguoi)?.model, MODEL_CANH_KHO);
+  assert.equal(doiModelCanhKho('plenxai:wan-3.0', s15, nguoi), null);
+}

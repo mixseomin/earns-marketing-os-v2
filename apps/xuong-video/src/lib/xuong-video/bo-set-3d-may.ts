@@ -135,6 +135,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const lopJ = await gop<{ ten: string; tep: string; xa: number }[]>('lop.json');
     const ketDong = await gop<boolean>('ket_dong.json');
     const matNa = await gop<Record<string, { tep: string; goc?: { p: number[]; uv: number[] | null }[] }>>('mat_na.json');
+    const dongJ = await gop<{ mo: Record<string, string>; ket?: Record<string, string>; giua?: Record<string, string> }>('dong.json');
     const giai = await gop<{ dat: number[] }>('giai.json');
     // Ghi máy đã giải vào máy KHAI của shot (không ghi đồ để lại — chúng là trạng thái tính ra, không phải khai).
     for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; c.goc = { ...c.goc, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.goc)}::jsonb WHERE id = ${c.id}`); } }
@@ -158,9 +159,14 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       // MẶT NẠ 3D (dung-set.py › ve_mat_na): ghép đè đồ nhận dạng + sửa vùng — đẩy kho kèm 4 góc của tấm ảnh chuẩn
       const mn: NonNullable<KhungXam['mat_na']> = {};
       for (const [k, v] of Object.entries(matNa[String(c.id)] ?? {})) { const u = await len(v.tep, 'png'); if (u) mn[k] = { url: u, ...(v.goc ? { goc: v.goc } : {}) }; }
-      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet, ket_dong: ketDong[String(c.id)] ?? true } : {}), ...(sau ? { sau } : {}), ...(xuong ? { xuong } : {}), ...(xuyen[String(c.id)]?.length ? { xuyen: xuyen[String(c.id)] } : {}), ...(lop ? { lop } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), ...(Object.keys(mn).length ? { mat_na: mn } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
+      // MÓN ĐỘNG mở / kết / giữa (ghep-vung.ts › ghepNenKet): đẩy kho từng mặt nạ
+      const dJ = dongJ[String(c.id)]; let dong: KhungXam['dong'] | undefined;
+      if (dJ) { const lenBo = async (b?: Record<string, string>) => b && Object.fromEntries((await Promise.all(Object.entries(b).map(async ([k, t]) => [k, await len(t, 'png')] as const))).filter((x): x is readonly [string, string] => !!x[1]));
+        const [mo, ket, giua] = await Promise.all([lenBo(dJ.mo), lenBo(dJ.ket), lenBo(dJ.giua)]);
+        if (mo) dong = { mo, ...(ket ? { ket } : {}), ...(giua ? { giua } : {}) }; }
+      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv, c.bieu_cam, c.ky_thuat?.chuyen_dong, c.ky_thuat?.anh_sang), xam, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet, ket_dong: ketDong[String(c.id)] ?? true } : {}), ...(sau ? { sau } : {}), ...(xuong ? { xuong } : {}), ...(xuyen[String(c.id)]?.length ? { xuyen: xuyen[String(c.id)] } : {}), ...(lop ? { lop } : {}), ...(mauGiua ? { mau_giua: mauGiua } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), ...(Object.keys(mn).length ? { mat_na: mn } : {}), ...(dong ? { dong } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
-      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau ?? '', c.khung_xam.xuong ?? '', c.khung_xam.lop?.nen ?? '', ...(c.khung_xam.lop?.nguoi ?? []).map((x) => x.sau), c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '', c.khung_xam.mau_giua ?? '', ...(c.khung_xam.giua ?? []), c.khung_xam.dien ?? '', ...Object.values(c.khung_xam.mat_na ?? {}).map((x) => x.url));
+      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau ?? '', c.khung_xam.xuong ?? '', c.khung_xam.lop?.nen ?? '', ...(c.khung_xam.lop?.nguoi ?? []).map((x) => x.sau), c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '', c.khung_xam.mau_giua ?? '', ...(c.khung_xam.giua ?? []), c.khung_xam.dien ?? '', ...Object.values(c.khung_xam.mat_na ?? {}).map((x) => x.url), ...[c.khung_xam.dong?.mo, c.khung_xam.dong?.ket, c.khung_xam.dong?.giua].flatMap((b) => Object.values(b ?? {})));
       dung++;
     });
     const mbCu = set.mat_bang_url;

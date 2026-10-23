@@ -41,9 +41,11 @@
     '.etp-loai b{display:inline-block;width:22px;text-align:center;border-radius:4px;font:700 10px/16px system-ui,sans-serif;color:#fff;cursor:help}' +
     '.etp-loai b[data-loai="ke chuyen"]{background:#7b4fd6}.etp-loai b[data-loai="canh that"]{background:#1f7ae0}.etp-loai b[data-loai="canh cuoi"]{background:#0e9384}' +
     // NHÃN BỘ TÀI KHOẢN (anh 23/10/2026 "các camp, phim phải ghi thêm thuộc bộ tk thứ mấy, hover vào ra thông tin bộ tk đó"): B1 xám đậm · B2 hổ phách
-    '.etp-loai b.etp-bo{width:22px;outline:1px solid rgba(255,255,255,.35)}.etp-bo[data-bo="1"]{background:#334155!important}.etp-bo[data-bo="2"]{background:#b45309!important}.etp-bo[data-bo="3"]{background:#0f766e!important}' +
-    '.etp-bo-camp{position:absolute;top:50%;transform:translateY(-50%);right:6px;display:inline-block;width:22px;text-align:center;border-radius:4px;font:700 10px/16px system-ui,sans-serif;color:#fff;cursor:help}' +
-    'td[data-etp-bo]{position:relative;padding-right:34px!important}' +
+    // khối LỤC GIÁC chỉ có số bộ (anh 23/10/2026 "viết tắt thôi, dùng 1 badge khối lục giác bên trong có số là hiểu")
+    '.etp-bo{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border-radius:0!important}' +
+    '.etp-loai b.etp-bo{width:19px}.etp-bo[data-bo="1"]{background:#334155!important}.etp-bo[data-bo="2"]{background:#b45309!important}.etp-bo[data-bo="3"]{background:#0f766e!important}' +
+    '.etp-bo-camp{position:absolute;top:50%;transform:translateY(-50%);right:6px;display:inline-block;width:19px;text-align:center;border-radius:4px;font:700 10px/16px system-ui,sans-serif;color:#fff;cursor:help}' +
+    'td[data-etp-bo]{position:relative;padding-right:32px!important}' +
     '.etp-loai b[data-loai="phim dai"]{background:#c2410c}.etp-loai b[data-loai="lam moi"]{background:#6b7280}.etp-loai b[data-loai="khac"]{background:#9ca3af}' +
     'td[data-etp-nloai="1"]{padding-left:36px!important}td[data-etp-nloai="2"]{padding-left:61px!important}td[data-etp-nloai="3"]{padding-left:86px!important}td[data-etp-nloai="4"]{padding-left:111px!important}td[data-etp-nloai="5"]{padding-left:136px!important}' +
     '#etp-theme{position:fixed;right:16px;top:14px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
@@ -82,7 +84,7 @@
       const b = boData.camp[m[1]]; if (!b) continue;
       let sp = td.querySelector(':scope > .etp-bo-camp');
       if (!sp) { sp = document.createElement('span'); sp.className = 'etp-bo-camp etp-bo'; td.appendChild(sp); }
-      if (sp.dataset.bo !== b) { sp.dataset.bo = b; sp.textContent = 'B' + b; }
+      if (sp.dataset.bo !== b) { sp.dataset.bo = b; sp.textContent = b; }
       if (td.dataset.etpBo !== b) td.dataset.etpBo = b;
     } };
   const gan = () => {
@@ -121,7 +123,7 @@
     let w = td.querySelector(':scope > .etp-loai');
     if ((w?.dataset.k ?? '') !== khoa) {
       if (!w) { w = document.createElement('span'); w.className = 'etp-loai'; td.insertBefore(w, td.firstChild); }
-      w.dataset.k = khoa; w.innerHTML = (d.bo ? `<b class="etp-bo" data-bo="${d.bo}">B${d.bo}</b>` : '') + ds.map((l) => `<b data-loai="${l}" title="${LOAI_TAT[l][1]} · ${d.loai[l]} camp đang chạy">${LOAI_TAT[l][0]}</b>`).join('');
+      w.dataset.k = khoa; w.innerHTML = (d.bo ? `<b class="etp-bo" data-bo="${d.bo}">${d.bo}</b>` : '') + ds.map((l) => `<b data-loai="${l}" title="${LOAI_TAT[l][1]} · ${d.loai[l]} camp đang chạy">${LOAI_TAT[l][0]}</b>`).join('');
     }
     const nl = String(ds.length + (d.bo ? 1 : 0)); if (td.dataset.etpNloai !== nl) td.dataset.etpNloai = nl;
     if (td.dataset.etpChay !== String(d.chay)) td.dataset.etpChay = String(d.chay);

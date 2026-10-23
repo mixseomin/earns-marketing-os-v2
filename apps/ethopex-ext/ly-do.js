@@ -162,8 +162,8 @@
     v.src = im.dataset.video; lon.appendChild(v);
   };
   document.addEventListener('click', (ev) => { if (ghim && !lon.contains(ev.target) && !(ev.target.dataset && ev.target.dataset.video !== undefined)) { ghim = false; dongLon(); } }, true);
-  let trongKhung = false, an = null;
-  o.addEventListener('mouseenter', () => { trongKhung = true; clearTimeout(an); });
+  let trongKhung = false, an = null, doi = null;
+  o.addEventListener('mouseenter', () => { trongKhung = true; clearTimeout(an); clearTimeout(doi); });
   o.addEventListener('mouseleave', () => { trongKhung = false; if (ghim) return; o.style.display = 'none'; dang = null; dongLon(); });
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const tien = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));
@@ -180,8 +180,11 @@
       im.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); ghim = !ghim; if (ghim && lon.style.display === 'none') moLon(im); if (!ghim) dongLon(); });
     });
   };
-  const anSau = () => { clearTimeout(an); an = setTimeout(() => { if (!trongKhung && !ghim) { o.style.display = 'none'; dang = null; dongLon(); } }, 250); };
+  const anSau = () => { clearTimeout(an); clearTimeout(doi); an = setTimeout(() => { if (!trongKhung && !ghim) { o.style.display = 'none'; dang = null; dongLon(); } }, 250); };
   let dang = null;
+  // ĐANG MỞ KHUNG mà rê sang chỗ khác (anh 23/10/2026: kéo chuột từ số xanh sang khung để cuộn thì đi ngang số vàng → nhảy sang danh sách lịch):
+  // khung đang hiện thì chỉ đổi khi chuột DỪNG ở chỗ mới 350ms; vào khung trước hạn thì huỷ, khung giữ nguyên
+  const lam = (f) => { clearTimeout(doi); if (o.style.display === 'block' && dang) doi = setTimeout(f, 350); else f(); };
 
   const veCamp = async (tr, a, ev) => {
     const id = (a.textContent.match(/(\d{5,6}):/) || [])[1]; if (dang === 'c' + id) return; dang = 'c' + id;
@@ -253,16 +256,16 @@
     // CHỈ khi rê đúng vào Ô TÊN (anh 22/10/2026: "chỉ hover vào tên phim thôi, không phải chỗ nào cũng show") — ô số / ROI / ngân sách không hiện
     const td = ev.target.closest && ev.target.closest('tbody td'); const tr = td && td.parentElement; if (!td || !tr) return anSau();
     clearTimeout(an);
-    const nb = ev.target.closest('.etp-bo'); if (nb) return veBo(nb.dataset.bo, ev);   // rê vào nhãn B1/B2 → thông tin bộ tài khoản
+    const nb = ev.target.closest('.etp-bo'); if (nb) return lam(() => veBo(nb.dataset.bo, ev));   // rê vào nhãn B1/B2 → thông tin bộ tài khoản
     const a = td.querySelector('a') && /^\s*\d{5,6}:/.test(td.querySelector('a').textContent || '') ? td.querySelector('a') : null;
     if (a) {
-      if (tr.dataset.etp === 'tat' || laTat(tr)) return veCamp(tr, a, ev);
+      if (tr.dataset.etp === 'tat' || laTat(tr)) return lam(() => veCamp(tr, a, ev));
       return anSau();
     }
     if ([...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || ''))) return anSau();   // hàng camp nhưng không phải ô tên
     // hàng PHIM (Report nhóm theo Content): ô đang rê phải là ô tên — ô chữ đầu tiên không phải số / tiền / %
     const o1 = [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); });
-    if (o1 === td) { const b = ev.target.closest && ev.target.closest('.etp-loai b:not(.etp-bo)'), n = ev.target.closest && ev.target.closest('.etp-so i'); return vePhim(tenTd(td), ev, b ? b.dataset.loai : null, n ? n.dataset.k : null); }
+    if (o1 === td) { const b = ev.target.closest && ev.target.closest('.etp-loai b:not(.etp-bo)'), n = ev.target.closest && ev.target.closest('.etp-so i'); return lam(() => vePhim(tenTd(td), ev, b ? b.dataset.loai : null, n ? n.dataset.k : null)); }
     anSau();
   }, true);
   document.addEventListener('scroll', (ev) => { if (!o.contains(ev.target)) { o.style.display = 'none'; dang = null; } }, true);

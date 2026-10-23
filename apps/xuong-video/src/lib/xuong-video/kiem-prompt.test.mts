@@ -74,3 +74,11 @@ console.log('kiem-prompt: ok');
   const g2 = ghepTrongTran(ds, 75)!; assert.ok(!g2.includes('K') && !g2.includes('P') && g2.includes('W') && g2.includes('A'));
   assert.equal(ghepTrongTran(ds, 30), null);
 }
+// ghepTrongTran gọi gọn: lần đầu đủ, sau đó gọn — trước khi bỏ khối
+{
+  const { ghepTrongTran, khoi } = await import('./prompt-khoi');
+  const D = 'the woman in the fitted burgundy dress';
+  const ds = [khoi('dien', `${D} walks. ${D} grabs. ${D} holds.`), khoi('phong_cach', 'P'.repeat(10))];
+  const g = ghepTrongTran(ds, 120, [[D, 'the woman in the dress']])!;
+  assert.ok(g.startsWith(D) && g.split(D).length === 2 && g.includes('the woman in the dress grabs') && g.includes('PPP'));
+}

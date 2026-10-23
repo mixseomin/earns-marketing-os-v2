@@ -77,11 +77,13 @@ export const ghep = (ds: Khoi[]) => ds.map((k) => k.chu).filter(Boolean).join(' 
  *  trước) tới khi vừa. Khối hành động / chuyển động / diễn / giữ ảnh / khong_them (luật "không thừa" của anh) không bao giờ bỏ. Vẫn quá trần thì trả null —
  *  người gọi báo lỗi, không cắt ngang câu. */
 export const BO_TRUOC: readonly MaKhoi[] = ['khong_khi', 'cong_cu', 'phong_cach', 'cam_xuc', 'chat_lieu', 'may', 'bieu_cam', 'trang_thai', 'thoai', 'khac'];
-export function ghepTrongTran(ds: Khoi[], tran: number): string | null {
+export function ghepTrongTran(ds: Khoi[], tran: number, /** [đầy đủ, gọi gọn]: quá trần thì TRƯỚC KHI bỏ khối, mọi lần nhắc sau lần đầu đổi sang gọi gọn */ goiGon: readonly (readonly [string, string])[] = []): string | null {
+  const rut = (p: string) => goiGon.reduce((o, [day, gon]) => { const i = o.indexOf(day); return i < 0 || day === gon ? o : o.slice(0, i + day.length) + o.slice(i + day.length).split(day).join(gon); }, p);
   let con = ds.filter((k) => k.chu);
   for (const ma of [null, ...BO_TRUOC]) {
     if (ma) con = con.filter((k) => k.ma !== ma);
     const p = ghep(con); if (p.length <= tran) return p;
+    const r = rut(p); if (r.length <= tran) return r;
   }
   return null;
 }

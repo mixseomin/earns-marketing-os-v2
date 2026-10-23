@@ -43,6 +43,20 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false): string => [dd?.mo?.trim() && dd?.ket?.trim() ? `The action runs completely from: ${dd.mo.trim()} — to: ${dd.ket.trim()}` : '', dd?.dien?.trim() ? `${CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
 /** Bỏ câu đã nói ở khối khác (mở / kết của thẻ shot nằm cả trong prompt_video lẫn câu "from… to…" — bộ chấm báo lặp ở 9 shot tập 122). */
 const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.map((x) => (x ?? '').trim().toLowerCase().replace(/[.\s]+$/, '')).filter((x) => x.split(/\s+/).length >= 3); return t.split(/(?<=[.!?])\s+/).filter((x) => !c.some((k) => x.toLowerCase().includes(k))).join(' '); };
+/** DÁNG NHÌN THẤY của từng nhân vật trong prompt video (không gọi tên — model không biết tên): đầy đủ "the woman in the fitted burgundy … dress" + GỌI GỌN
+ *  "the woman in the dress" (giới + danh từ cuối của bộ đồ, thêm chữ tới khi không trùng người khác) — lần nhắc sau dùng gọn khi model có trần ký tự. */
+export function dangNhinVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { ten: string; day: string; gon: string }[] {
+  const ds = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((x) => bc.nhanVat.some((n) => n.ten === x.ten && n.loai === 'nhan_vat')).map((v) => {   // mayDu: bộ đồ kế thừa từ shot trước (shot chỉ khai chỗ đổi) — đọc may_3d trơn thì mất đồ, ra 'the woman' trơn
+    const nv = bc.nhanVat.find((n) => n.ten === v.ten)!; const ao = (bienTheTheoSo(v, nv)[0]?.mo_ta ?? '').split(/[,;]| with | tucked /)[0]!.trim().toLowerCase();
+    const gioi = /\bwoman\b/i.test(nv.mo_ta ?? '') ? 'woman' : /\bman\b/i.test(nv.mo_ta ?? '') ? 'man' : 'person';
+    return { ten: v.ten, gioi, tu: ao ? ao.split(/\s+/) : [], day: ao ? `the ${gioi} in the ${ao}` : `the ${gioi}` };
+  });
+  return ds.map((x) => {
+    let gon = x.day;
+    for (let k = 1; k < x.tu.length; k++) { const g = `the ${x.gioi} in the ${x.tu.slice(-k).join(' ')}`; if (!ds.some((y) => y !== x && (y.day === g || y.day.endsWith(` ${x.tu.slice(-k).join(' ')}`) && y.gioi === x.gioi))) { gon = g; break; } }
+    return { ten: x.ten, day: x.day, gon };
+  });
+}
 /** KHỐI prompt video (prompt-khoi.ts) — promptVideoCanh ghép, chamVideo chấm theo KHUON.video. */
 export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): Khoi[] {
   // CƠ CHẾ ĐỔI TAY / THÁO ĐỒ ĐEO (thao-do.ts) nối vào lối diễn TRƯỚC khi thay thẻ — #132 #15 chỉ ghi "snatches the badge off her neck", Kling kéo thẳng dây xuyên đầu
@@ -84,12 +98,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
   // KHÔNG GỌI TÊN trong prompt video (19/10/2026 #1): model video không biết tên ai — hai phụ nữ tóc đen chỉ gọi "Vivian" / "Hạ" thì Veo đảo vai, và
   // tên trong prompt bị in lên hình ("Vivian" ở góc khung). Mọi tên nhân vật (đầy đủ + tên gọi tắt) thay bằng DÁNG NHÌN THẤY: giới + bộ đồ của shot.
-  const moTaNhin = new Map<string, string>();
-  for (const v of ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((x) => bc.nhanVat.some((n) => n.ten === x.ten && n.loai === 'nhan_vat'))) {   // mayDu: bộ đồ kế thừa từ shot trước (shot chỉ khai chỗ đổi) — đọc may_3d trơn thì mất đồ, ra 'the woman' trơn
-    const nv = bc.nhanVat.find((n) => n.ten === v.ten)!; const ao = (bienTheTheoSo(v, nv)[0]?.mo_ta ?? '').split(/[,;]| with | tucked /)[0]!.trim().toLowerCase();
-    const gioi = /\bwoman\b/i.test(nv.mo_ta ?? '') ? 'woman' : /\bman\b/i.test(nv.mo_ta ?? '') ? 'man' : 'person';
-    moTaNhin.set(v.ten, ao ? `the ${gioi} in the ${ao}` : `the ${gioi}`);
-  }
+  const moTaNhin = new Map(dangNhinVideo(bc).map((x) => [x.ten, x.day] as const));
   const thayTen = (t: string): string => {
     let o = t;
     for (const [ten, mt] of [...moTaNhin].sort((x, y) => y[0].length - x[0].length)) {
@@ -254,7 +263,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const cuoiCho = (model: string) => (chuoiCuoi && hieuDaiNhip(model) ? chuoiCuoi : khungCuoi0);
   // Trần ký tự theo model (fal.ts › tranPrompt): Kling 2.500 → bỏ dần khối phụ (prompt-khoi.ts › ghepTrongTran); vẫn quá thì gửi nguyên — fal trả lỗi rõ, không tốn tiền
   const khoiV = khoiVideoCanh(bc);
-  const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiV, t) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
+  const promptCho = (model: string) => { const t = tranPrompt(model.replace(/^fal:/, '')); const goc = t ? ghepTrongTran(khoiV, t, dangNhinVideo(bc).map((x) => [x.day, x.gon] as const)) ?? promptTron : promptTron; return chuoiCuoi && hieuDaiNhip(model) ? `${goc} ${cauChuoiCuoi(bc.canh.keyframe_giua ? 3 : 2)}` : goc; };
   const khungCuoi = cuoiCho(bc.kt.mo_hinh_video); const prompt = promptCho(bc.kt.mo_hinh_video);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
   // Google Veo (Gemini API) không có công tắc tiếng: vẫn sinh, bản xuất tự bỏ.

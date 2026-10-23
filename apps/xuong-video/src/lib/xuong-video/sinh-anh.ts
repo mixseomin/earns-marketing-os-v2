@@ -243,7 +243,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // ket = keyframe KẾT: ảnh số 1 là khung màu ở chỗ kết (khung_xam.mau_ket).
   const kxMau = coKx ? (ket && giua ? bc.canh.khung_xam!.mau_giua ?? null : ket ? bc.canh.khung_xam!.mau_ket ?? null : bc.canh.khung_xam!.mau ?? null) : null;
   const kx = coKx ? kxMau ?? bc.canh.khung_xam!.xam : null;
-  const tc = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`), kx ? 1 : 0, TOI_DA_REF[bc.kt.mo_hinh_anh.split(':')[0] as CongKey] ?? 10);
+  // số ảnh tối đa CỔNG ẢNH nhận (PlenX 8, ckey 3): ảnh mẫu + mọi ảnh nối khung / bố trí phía dưới đều trong trần này — quá trần cổng từ chối cả shot
+  const toiDaRef = TOI_DA_REF[bc.kt.mo_hinh_anh.split(':')[0] as CongKey] ?? 10;
+  const tc = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`), kx ? 1 : 0, toiDaRef);
   const urlRef = [...(kx ? [kx] : []), ...tc.urlRef]; const banDoRef = tc.banDoRef;
   const vai = [...(kx ? [{ url: kx, nhan: kxMau ? '🎨 khung màu 3D (bố trí + ánh sáng)' : '🧊 khung xám 3D (bố trí)' }] : []), ...tc.vai];
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
@@ -263,33 +265,33 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).
   // Keyframe KẾT: khung MỞ đã duyệt của chính shot làm tham chiếu nhân vật / ánh sáng / chất liệu — ảnh mới là cùng shot ở khoảnh khắc cuối.
-  const moUrl = ket && bc.canh.keyframe_url && urlRef.length < 10 ? bc.canh.keyframe_url : null;
+  const moUrl = ket && bc.canh.keyframe_url && urlRef.length < toiDaRef ? bc.canh.keyframe_url : null;
   if (moUrl) { urlRef.push(moUrl); vai.push({ url: moUrl, nhan: '▶ khung mở của chính shot' }); }
   const moChu = moUrl ? `Image ${urlRef.length} = the START frame of this very shot: same characters, look, materials, lighting and set — this new image is the same shot at its LAST moment, everyone moved to where Image 1 shows them.` : '';
   const tr = bc.truoc;
-  const noi = !ket && tr?.keyframe_url && noiKhungShot(false, tr) && urlRef.length < 10 ? tr.keyframe_url : null;
+  const noi = !ket && tr?.keyframe_url && noiKhungShot(false, tr) && urlRef.length < toiDaRef ? tr.keyframe_url : null;
   if (noi) { urlRef.push(noi); vai.push({ url: noi, nhan: `⛓ khung shot #${tr!.thu_tu} (liền máy)` }); }
   const noiChu = noi ? `Image ${urlRef.length} = the frame just before this one (the same continuous moment): keep the same place, camera side, lighting, and every character's and object's position and state; show only the next instant of the action described.` : '';
   // CÙNG CẢNH: keyframe shot mở cảnh làm tham chiếu BỐ TRÍ (không phải khung hình) — mọi shot trong cảnh đứng trên cùng một bộ set như stop-motion thật.
   const ms = bc.master;
   // Có khung xám thì bố trí cảnh đã nằm trong 3D — keyframe mở cảnh (có thể dựng trên 3D cũ) chỉ kéo lệch hậu cảnh, không gửi.
-  const msUrl = !kx && ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < 10 ? ms.keyframe_url : null;
+  const msUrl = !kx && ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < toiDaRef ? ms.keyframe_url : null;
   if (msUrl) { urlRef.push(msUrl); vai.push({ url: msUrl, nhan: `🗺 bố trí cảnh (shot mở cảnh #${ms!.thu_tu})` }); }
   const soMs = urlRef.length;
   // CẮT TRONG CẢNH: khung shot liền trước mang TRẠNG THÁI qua cú cắt (ai cầm gì, bẹp hay tròn, đứng đâu) — chuyển cảnh là chỗ hay hỏng nhất.
   // Có khung xám: chỗ đứng + trạng thái mở đã nằm trong 3D + thẻ shot; keyframe shot trước (có thể dựng trên 3D cũ) chỉ kéo lệch hậu cảnh (thử #23).
-  const trUrl = !kx && !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < 9 ? tr.keyframe_url : null;
+  const trUrl = !kx && !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < toiDaRef - 1 ? tr.keyframe_url : null;
   if (trUrl) { urlRef.push(trUrl); vai.push({ url: trUrl, nhan: `✂ trạng thái shot trước #${tr!.thu_tu}` }); }
   const trChu = trUrl ? `Image ${urlRef.length} = the shot just before this cut, same scene: carry over every character's and object's STATE and place in the set (what they hold, their shape, where they stand) unless the action above changes it; stay on the same side of the action. Do NOT copy its framing.` : '';
   // BẢNG TỈ LỆ (character lineup, luật ti_le_nhan_vat — anh 15/10/2026: "chưa thấy bảng vẽ tỷ lệ giữa các đối tượng"): mỗi nhân vật một tấm mẫu
   // riêng chụp ở cỡ khác nhau, câu SCALE chỉ là chữ → gửi kèm ảnh cả dàn đứng cạnh nhau đúng cm khi khung có ≥ 2 nhân vật / đạo cụ.
   const soMon = nvRef.filter((v) => v.loai !== 'boi_canh').length;
-  const btlUrl = !ket && kx && bc.kt.bang_ti_le && soMon >= 2 && urlRef.length < 10 ? bc.kt.bang_ti_le : null;
+  const btlUrl = !ket && kx && bc.kt.bang_ti_le && soMon >= 2 && urlRef.length < toiDaRef ? bc.kt.bang_ti_le : null;
   if (btlUrl) { urlRef.push(btlUrl); vai.push({ url: btlUrl, nhan: '📏 bảng tỉ lệ dàn nhân vật' }); }
   const btlChu = btlUrl ? `Image ${urlRef.length} = SIZE CHART of the cast (straight front view, ruler lines every 1 cm, true height written under each): it is NOT a scene and NOT a pose — use it only for every character's and prop's true size relative to the others; the shapes there are stand-ins, each look comes from its reference images.` : '';
   // KHUNG CHUẨN MÀU của cảnh (hero frame / color script, luật khung_chuan_mau): shot có 3D thì bố trí lấy từ Image 1, nhưng TÔNG MÀU / phơi sáng / màu
   // đèn lấy từ keyframe mở cảnh đã có — mỗi keyframe một tông (#32 có màn hình xanh sau lưng trong khi 3D là tường tối) là lỗi khán giả thấy ngay.
-  const mauUrl = kx && !ket && ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < 10 ? ms.keyframe_url : null;
+  const mauUrl = kx && !ket && ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < toiDaRef ? ms.keyframe_url : null;
   if (mauUrl) { urlRef.push(mauUrl); vai.push({ url: mauUrl, nhan: `🎨 khung chuẩn màu (shot mở cảnh #${ms!.thu_tu})` }); }
   const mauChu = mauUrl ? `Image ${urlRef.length} = the COLOUR & LIGHT reference of this scene (its opening frame): match its colour grade, white balance, exposure, contrast and the colour of the light exactly. Do NOT copy its layout, camera angle, framing or background — those come from Image 1 only.` : '';
   const msChu = msUrl ? `Image ${soMs} = the opening shot of this same scene, on the same physical set: keep the SET LAYOUT identical — where every object stands relative to the others (and what is in front of / behind what), and which side of those objects each character is on, consistent with the action. Do NOT copy its framing: the camera position, angle and shot size come from the composition described above, but the camera stays on the same side of the action as in that shot.` : '';

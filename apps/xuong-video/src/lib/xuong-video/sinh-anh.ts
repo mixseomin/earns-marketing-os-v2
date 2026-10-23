@@ -74,7 +74,7 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
 export const shotNhieuMau = (prompt: string): boolean => /\b(two|three|both|several|multiple|each)\b.{0,40}\b(pairs?|colou?rs?)\b|\b(black|dark blue|navy|gray|grey|brown|medium blue)\b|colou?rs/i.test(prompt);
 /** toiDa = số ảnh tối đa cổng ảnh nhận (cong-ai.ts › TOI_DA_REF, tính cả ảnh đứng trước). Vượt thì xếp lại GỌN: mỗi người chỉ ảnh sát mặt + biến thể
  *  trang phục (bỏ ảnh toàn thân thừa) — thay vì cổng từ chối cả shot (#322 #5 23/10/2026: 9 ảnh > PlenX 8) hoặc cắt đuôi mất đạo cụ. */
-export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined, nhieuMau = true, truoc = 0, toiDa = 10, gon = false): { urlRef: string[]; banDoRef: string; vai: { url: string; nhan: string }[] } {
+export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined, nhieuMau = true, truoc = 0, toiDa = 10, gon: 0 | 1 | 2 = 0): { urlRef: string[]; banDoRef: string; vai: { url: string; nhan: string }[] } {
   const vai: { url: string; nhan: string }[] = [];
   const thuTu = [...nv.filter((v) => v.loai === 'san_pham'), ...nv.filter((v) => v.loai === 'nhan_vat'), ...nv.filter((v) => v.loai !== 'san_pham' && v.loai !== 'nhan_vat')];
   const urlRef: string[] = []; const dong: string[] = [];
@@ -84,7 +84,7 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
     // Người (phim người thật): ảnh SÁT MẶT đứng đầu — mô hình bám mặt theo số điểm ảnh của mặt, bảng nhân vật cả người thì mặt chỉ vài chục px.
     const mat = v.loai === 'nhan_vat' ? (v.anh_mat?.url ?? []).slice(0, 1) : [];
     const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1))
-      : gon ? [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, 1)].slice(0, 2) : [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
+      : gon ? [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, 1)].slice(0, gon === 2 ? 1 : 2) : [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
     const con = Math.max(0, 10 - truoc - urlRef.length);
     const lay = anh.slice(0, con);
     if (!lay.length) continue;
@@ -96,7 +96,8 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
       ? `${so} = THE PRODUCT: draw exactly this item — same cut, pockets, seams, hardware and fabric texture; never a generic version. ${lay.length > 1 ? `Image ${tu} shows its MAIN color — use exactly that color unless the shot names another color of the same item; the other product images show other colors of the same item.` : 'Use exactly its color.'} Where text and these images disagree, the images win. Do not write its name.`
       : v.loai === 'nhan_vat' ? `${so} = the person ${v.ten} (same face, hair, age, body).${mat.length && lay[0] === mat[0] ? ` Image ${tu} is a CLOSE-UP of ${v.ten}'s face: the face in the new image must be this exact person — same bone structure, eyes, nose, mouth, hairline and skin; only the expression may change.` : ''}` : `${so} = ${v.loai === 'boi_canh' ? 'the location' : 'the prop'} ${v.ten}.`);
   }
-  if (!gon && truoc + urlRef.length > toiDa) return xepThamChieu(nv, btCanh, nhieuMau, truoc, toiDa, true);
+  // nấc 1: mỗi người mặt + trang phục; nấc 2 (khung đông người, #353 #11 ba người + bối cảnh + đồ = 9 > 8): mỗi người chỉ một ảnh
+  if (gon < 2 && truoc + urlRef.length > toiDa) return xepThamChieu(nv, btCanh, nhieuMau, truoc, toiDa, (gon + 1) as 1 | 2);
   return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '', vai };
 }
 

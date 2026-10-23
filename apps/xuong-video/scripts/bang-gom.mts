@@ -8,6 +8,7 @@
 // Khung tách bằng DÒ VIỀN TRẮNG (model không vẽ lưới đều — #356: hai cột, khung cao khác nhau); số khung dò được ≠ số shot → dừng, không đoán.
 // Sau tầng 3: scripts/soat-huong.mts (cổng hướng) + scripts/truyen-tranh.mts (đọc như truyện tranh).
 //   … tsx scripts/bang-gom.mts --tap=356 [--tu=1 --den=17] --tang=1|2|3|tat-ca [--t1=<url tầng 1>] [--khoi=6] [--cot=4]
+//   --so-do=scripts/du-lieu/<bảng mảnh>.json : tầng 1 kèm tờ phác bố trí vẽ từ sơ đồ cảnh · --chi-phac (0đ): chỉ vẽ tờ phác
 //   --chi-cat (0đ): chỉ dò + cắt tầng 1 / ảnh --bang ra /tmp để soát
 // TỐN TIỀN: tầng 1 = 1 ảnh · tầng 2 = 1 ảnh / khối · tầng 3 = 1 ảnh / khung (cổng ảnh --mo-hinh) — chạy kèm DUYET_SINH_1_LAN=1 sau khi anh duyệt.
 import sharp from 'sharp';
@@ -20,6 +21,7 @@ import { dayViecAnh } from '../src/lib/xuong-video/hoan-tat';
 import { chonKeyframe } from '../src/lib/xuong-video/tu-sua-clip';
 import { uploadToR2 } from '../src/lib/r2';
 import type { Canh, NhanVat } from '../src/lib/xuong-video/kieu';
+import { svgPhac, type ManhSoDo, type MangPhong, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')); if (!tap) { console.error('cần --tap=<id>'); process.exit(1); }
@@ -32,6 +34,8 @@ const cot1 = Number(gia('cot') || (ds.length > 12 ? 4 : ds.length > 6 ? 3 : 2));
 const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`))[0]!.phim_id);
 const nv: NhanVat[] = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)).map(mapNhanVat));
 const CO: Record<string, string> = { ws: 'Wide shot', ms: 'Medium two-shot', mcu: 'Medium close-up', cu: 'Close-up', insert: 'Insert close-up', ecu: 'Extreme close-up' };
+// --so-do=<bảng mảnh JSON có so_do> → tầng 1 kèm TỜ PHÁC BỐ TRÍ (so-do-canh.ts › svgPhac) làm ảnh 1: lưới cố định + chỗ người / nền / hướng nhìn đúng sơ đồ
+const bm = gia('so-do') ? JSON.parse(readFileSync(gia('so-do')!, 'utf8')) as { so_do: SoDo & { phong?: MangPhong[] }; nguoi: string[]; mau?: Record<string, string>; shot: { sd?: ManhSoDo }[] } : null;
 const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc giữa các tầng (URL) — chạy lại từng tầng không mất tầng trên
 const moc: { t1?: string; t2?: Record<number, string>; khoi?: string[] } = existsSync(TEP) ? JSON.parse(readFileSync(TEP, 'utf8')) : {};
 const luu = () => writeFileSync(TEP, JSON.stringify(moc, null, 1));
@@ -81,12 +85,22 @@ const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbl
 if (gia('t1')) moc.t1 = gia('t1');
 const chiCat = process.argv.includes('--chi-cat');
 if (!chiCat && (tang === '1' || (tang === 'tat-ca' && !moc.t1)) && !gia('t1')) {
-  const hang = Math.ceil(ds.length / cot1); const refs = thamChieu(ds, 8);
+  const hang = Math.ceil(ds.length / cot1); const refs = thamChieu(ds, bm ? 7 : 8);
+  let phac: string | null = null;
+  if (bm) {   // tờ phác: cùng lưới với bảng cần ra (ô 9:16, viền trắng) — ô khung chèn không có người vẫn có nền đúng góc
+    const CW = 360, CH = 640, G = 14;
+    const o = await Promise.all(ds.map((c) => { const m = bm.shot[c.thu_tu - 1]?.sd; return m ? sharp(Buffer.from(svgPhac(bm.so_do, m, bm.nguoi, bm.mau ?? {}, CW, CH))).png().toBuffer() : sharp({ create: { width: CW, height: CH, channels: 3, background: '#e9e9ec' } }).png().toBuffer(); }));
+    phac = await len(await sharp({ create: { width: cot1 * CW + (cot1 + 1) * G, height: hang * CH + (hang + 1) * G, channels: 3, background: '#ffffff' } })
+      .composite(o.map((x, j) => ({ input: x, left: G + (j % cot1) * (CW + G), top: G + Math.floor(j / cot1) * (CH + G) }))).jpeg({ quality: 90 }).toBuffer(), 'phac');
+    console.log(`tờ phác: ${phac}`);
+  }
+  if (process.argv.includes('--chi-phac')) process.exit(0);
   const prompt = [`A film storyboard THUMBNAIL sheet for one whole scene: EXACTLY ${ds.length} separate panels — never merge two frames into one panel, never split one — laid out as a regular grid of ${cot1} columns × ${hang} rows, read left to right, top to bottom${ds.length % cot1 ? `; the last row has only ${ds.length % cot1} panel(s), the rest of that row is plain white` : ''}. Every panel is a small vertical photorealistic live-action film still of equal size, separated by thin plain white gutters. ${KHONG_CHU}`,
     'This sheet decides the STAGING of the whole scene: EVERY panel happens in the location of Image 1 (never a blank or plain wall background — close-ups still show that place softly behind), the same light, faces and outfits in every panel; who stands where, where each person looks, what each holds; every object keeps its state from panel to panel (what is taken stays taken, what is gone stays gone).',
-    `Reference images: ${refs.map(([k], i) => `Image ${i + 1} = ${k}`).join('; ')}.`,
+    ...(phac ? [`Image 1 is the BLOCKING SKETCH of this exact sheet: the same grid and panel order. In every panel copy its camera framing and staging exactly — where the back wall, the elevator doors (light grey) and the gold painting (yellow) are, where each person stands and how big they are (${Object.entries(bm!.mau ?? {}).map(([n, c]) => `${c === '#f4f4f4' ? 'white' : c === '#141414' ? 'black' : 'dark red'} figure = ${n}`).join(', ')}), and the red arrow = the direction that person looks. Turn the sketch into photorealistic film stills; never draw the sketch shapes, colours or arrows themselves.`] : []),
+    `Reference images: ${refs.map(([k], i) => `Image ${i + (phac ? 2 : 1)} = ${k}`).join('; ')}.`,
     ...ds.map((c, i) => `PANEL ${i + 1} (row ${Math.floor(i / cot1) + 1}, column ${(i % cot1) + 1}) — ${moTaKhung(c)}`)].join('\n');
-  moc.t1 = await sinh({ nhan: `Phân cảnh tầng 1 (thumbnail) #${tu}–#${ds.at(-1)?.thu_tu}`, prompt, refs: refs.map(([, u]) => u), tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
+  moc.t1 = await sinh({ nhan: `Phân cảnh tầng 1 (thumbnail) #${tu}–#${ds.at(-1)?.thu_tu}`, prompt, refs: [...(phac ? [phac] : []), ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
   luu(); console.log(`tầng 1: ${moc.t1}`);
 }
 if (chiCat) { if (!moc.t1 && !gia('bang')) { console.error('chưa có ảnh tầng 1 / --bang'); process.exit(1); }

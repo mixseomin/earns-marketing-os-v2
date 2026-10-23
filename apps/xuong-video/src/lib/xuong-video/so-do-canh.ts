@@ -72,3 +72,35 @@ export function loiDoHuong(kv: Record<string, KyVong>, ket: { ten: string; o?: {
   }
   return out;
 }
+
+// ── TỜ PHÁC BỐ TRÍ (anh 24/10/2026: "hướng các nhân vật so với bối cảnh và các nhân vật còn lại đang không đồng nhất"): chữ "bên trái màn / nhìn sang phải"
+// không đủ — model không tự dựng lại góc máy, mỗi khung tự đặt người + nền. Máy vẽ từ sơ đồ một khung PHÁC (nét thô như phác chì của người vẽ phân cảnh):
+// tường + cửa + mảng nhận diện chiếu đúng góc máy, mỗi người một bóng màu đúng chỗ / đúng cỡ theo độ sâu, mũi tên = hướng nhìn. Chỉ dẫn tầng THUMBNAIL
+// (scripts/bang-gom.mts tầng 1), không phải ảnh để model chép điểm ảnh (bài học khung 3D xám).
+export type MangPhong = { loai: 'tuong' | 'cua' | 'tranh' | 'cot'; tu: Diem; den: Diem; z0?: number; z1: number; mau?: string };
+const MAU_MANG: Record<MangPhong['loai'], string> = { tuong: '#3c3c44', cua: '#b9bec6', tranh: '#d9b44a', cot: '#55555f' };
+/** SVG khung phác W×H của một mảnh. mau = màu bóng từng người; cao máy 1,5 m, khung dọc nửa góc ngang tan 0,36 / dọc tan 0,64. */
+export function svgPhac(s: SoDo & { phong?: MangPhong[] }, m: ManhSoDo, nguoi: string[], mau: Record<string, string>, W = 360, H = 640): string {
+  const t = truc(s, m.may); const CAO = 1.5;
+  const chieu = (p: Diem, z: number): [number, number] | null => { const v = tru(p, t.dat); const sau = cham(v, t.fw); if (sau < 0.3) return null;
+    return [W / 2 + (cham(v, t.phai) / sau / 0.36) * (W / 2), H / 2 - ((z - CAO) / sau / 0.64) * (H / 2)]; };
+  const out: string[] = [`<rect width="${W}" height="${H}" fill="#e9e9ec"/>`];
+  const chan = chieu(diem(s, m, m.o[nguoi.find((n) => m.o[n] != null) ?? ''] ?? '') ?? (s.may[m.may]!.nhin as Diem), 0); const ngang = chan ? Math.min(H, Math.max(H * 0.35, chan[1])) : H * 0.6;
+  out.push(`<rect y="${ngang}" width="${W}" height="${H - ngang}" fill="#a7a7ae"/>`);   // sàn
+  for (const mg of s.phong ?? []) {   // mảng phòng: lấy mẫu dọc cạnh, chỉ vẽ phần trước máy
+    const n = 24; const tren: string[] = []; const duoi: string[] = [];
+    for (let i = 0; i <= n; i++) { const p: Diem = [mg.tu[0] + ((mg.den[0] - mg.tu[0]) * i) / n, mg.tu[1] + ((mg.den[1] - mg.tu[1]) * i) / n]; const a = chieu(p, mg.z1), b = chieu(p, mg.z0 ?? 0); if (a && b) { tren.push(`${a[0].toFixed(1)},${a[1].toFixed(1)}`); duoi.unshift(`${b[0].toFixed(1)},${b[1].toFixed(1)}`); } }
+    if (tren.length >= 2) out.push(`<polygon points="${[...tren, ...duoi].join(' ')}" fill="${mg.mau ?? MAU_MANG[mg.loai]}" stroke="#222" stroke-width="2"/>`);
+  }
+  // người: xa vẽ trước, gần vẽ sau
+  const ds = nguoi.filter((n) => m.o[n] != null && (!m.khung || m.khung.includes(n))).map((n) => ({ n, p: diem(s, m, m.vao?.[n] ? m.o[n]! : n)! })).filter((x) => x.p)
+    .map((x) => ({ ...x, sau: cham(tru(x.p, t.dat), t.fw) })).filter((x) => x.sau > 0.3).sort((a, b) => b.sau - a.sau);
+  for (const { n, p } of ds) {
+    const dau = chieu(p, 1.62), chanN = chieu(p, 0), vai = chieu(p, 1.38); if (!dau || !chanN || !vai) continue;
+    const r = Math.abs(chanN[1] - dau[1]) * 0.075; const ngangThan = r * 2.3; const c = mau[n] ?? '#888';
+    out.push(`<rect x="${(vai[0] - ngangThan).toFixed(1)}" y="${vai[1].toFixed(1)}" width="${(ngangThan * 2).toFixed(1)}" height="${(chanN[1] - vai[1]).toFixed(1)}" rx="${(r * 0.8).toFixed(1)}" fill="${c}" stroke="#111" stroke-width="3"/>`);
+    out.push(`<circle cx="${dau[0].toFixed(1)}" cy="${dau[1].toFixed(1)}" r="${r.toFixed(1)}" fill="${c}" stroke="#111" stroke-width="3"/>`);
+    const dich = m.nhin?.[n]; if (dich) { const h = huongMan(s, m, n, dich); const L = Math.max(30, r * 2.4) * (h || 0); if (h) out.push(`<line x1="${dau[0]}" y1="${dau[1]}" x2="${dau[0] + L}" y2="${dau[1]}" stroke="#e8212b" stroke-width="${Math.max(4, r / 5)}"/><polygon points="${dau[0] + L},${dau[1] - r / 2.5} ${dau[0] + L + Math.sign(L) * r / 1.6},${dau[1]} ${dau[0] + L},${dau[1] + r / 2.5}" fill="#e8212b"/>`); }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${out.join('')}</svg>`;
+}

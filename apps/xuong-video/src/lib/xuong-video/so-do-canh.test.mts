@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/so-do-canh.test.mts
 import assert from 'node:assert';
-import { thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
+import { svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
 
 // Sảnh: thang máy ở bắc (y=7), máy toàn cảnh ở nam (y=0) nhìn bắc → đông = phải màn. Hạ trước thang (giữa trái), Vivian đứng phía đông Hạ, lối vào phía đông.
 const s: SoDo = { moc: { thang: [0, 7], loi_vao: [5, 3], ha: [-1.4, 5.8], vi: [1.2, 5.6] },
@@ -32,3 +32,9 @@ assert.strictEqual(thayHuong(s, cv, 'her eyes flick {Vivian→Hạ}'), 'her eyes
 const ngoai = { ...ch, khung: ['Hạ'] };
 assert.deepStrictEqual(Object.keys(kyVong(s, ngoai, ['Hạ', 'Vivian'])), ['Hạ']); assert.ok(!cauHuong(s, ngoai, ['Hạ', 'Vivian']).includes('Vivian at'));
 console.log('so-do-canh.test: ok');
+// tờ phác: cửa nằm giữa khung toàn cảnh, người gần to hơn người xa, có mũi tên khi khai hướng nhìn; máy quay lưng lại cửa thì không vẽ cửa
+{ const sp = { ...s, phong: [{ loai: 'cua' as const, tu: [-0.6, 7] as [number, number], den: [0.6, 7] as [number, number], z1: 2.3 }] };
+  const v = svgPhac(sp, { may: 'toan', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'vi' } }, ['Hạ'], { 'Hạ': '#fff' });
+  assert.ok(v.includes('#b9bec6') && v.includes('#e8212b'), 'có cửa + mũi tên');
+  assert.ok(!svgPhac({ ...sp, may: { ...sp.may, lung: { dat: [0, 5], nhin: [0, 0] } } }, { may: 'lung', o: {} }, [], {}).includes('#b9bec6'), 'cửa sau lưng máy không vẽ'); }
+console.log('so-do-canh.test: ok (tờ phác)');

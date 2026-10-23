@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SocialLive } from '@/lib/social-traffic';
 import { tinhThanhPho, type PhoMoHinh } from '@/lib/social-thanh-pho';
-import { dungThanhPho, napThree } from './social-thanh-pho-canh';
+import { dungThanhPho, napThree, type XuongEtp } from './social-thanh-pho-canh';
 
 const LAM_MOI_MS = 60_000;
 
@@ -16,15 +16,18 @@ export function SocialThanhPho({ live, mh, luc: luc0, toanTrang = false, lamMoiN
   const [loi, setLoi] = useState('');
   const [luc, setLuc] = useState(luc0 ?? live?.luc ?? '');
   useEffect(() => {
-    let canh: { don: () => void; capNhat: (mh: PhoMoHinh) => void } | null = null, song = true;
+    let canh: { don: () => void; capNhat: (mh: PhoMoHinh) => void; capNhatXuong: (x: XuongEtp) => void } | null = null, song = true;
     napThree().then((T) => { if (song && ref.current) canh = dungThanhPho(ref.current, mh0, T); }).catch((e: Error) => song && setLoi(e.message));
     const lamMoi = () => {
       if (document.visibilityState !== 'visible' || !canh) return;
       fetch('/api/social/thanh-pho', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((x: { luc: string; mh: PhoMoHinh } | null) => { if (song && x && canh) { canh.capNhat(x.mh); setLuc(x.luc); } }).catch(() => { /* mạng chập chờn: giữ số cũ, lượt sau gọi lại */ });
     };
     const id = setInterval(lamMoi, LAM_MOI_MS);
+    // XƯỞNG PHIM MỚI ETHOPEX: số sản xuất 5 giây/lần (anh 23/10/2026 "nhìn được realtime trên city") — đường nhẹ, không dựng lại cả cảnh
+    const xuong = () => { if (document.visibilityState !== 'visible' || !canh) return; fetch('/api/social/thanh-pho/xuong', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((x: XuongEtp | null) => { if (song && x && canh) canh.capNhatXuong(x); }).catch(() => {}); };
+    const idX = setInterval(xuong, 5_000); setTimeout(xuong, 1500);
     if (lamMoiNgay) { const cho = setInterval(() => { if (canh) { clearInterval(cho); lamMoi(); } }, 300); setTimeout(() => clearInterval(cho), 20_000); }
-    return () => { song = false; clearInterval(id); canh?.don(); };
+    return () => { song = false; clearInterval(id); clearInterval(idX); canh?.don(); };
   }, [mh0, lamMoiNgay]);
   if (loi) return <div style={{ padding: 16, color: 'var(--bad)' }}>Không dựng được thành phố: {loi}</div>;
   return <div style={{ position: 'relative' }}>

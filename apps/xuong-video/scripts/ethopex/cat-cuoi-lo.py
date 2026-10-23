@@ -83,6 +83,9 @@ if __name__ == "__main__":
     so_ban = int(sys.argv[5]) if len(sys.argv) > 5 else 1
     os.makedirs(ra_dir, exist_ok=True)
     phim = [r for r in csv.reader(open(tsv), delimiter="\t") if len(r) >= 5]
-    with ThreadPoolExecutor(n) as ex: kq = [k for ds in ex.map(lambda p: lam(p, goc, ra_dir, so_ban), phim) for k in ds]
+    import xuong as XG; dem = [0]
+    def lam_bao(p):
+        k = lam(p, goc, ra_dir, so_ban); dem[0] += 1; XG.bao("cat", os.path.basename(ra_dir.rstrip("/")), p[3], dem[0], len(phim)); return k
+    with ThreadPoolExecutor(n) as ex: kq = [k for ds in ex.map(lam_bao, phim) for k in ds]
     json.dump(kq, open(os.path.join(ra_dir, "lo.json"), "w"), ensure_ascii=False, indent=1)
     for k in kq: print(json.dumps({x: k[x] for x in k if x != "moc_tap"}, ensure_ascii=False)[:240])

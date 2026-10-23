@@ -10,7 +10,7 @@ Ra <ra>/len.json: [{camp_cu, content_id, creative_id, lang, ten, tu, den, ok, lo
 Dùng: len-creative.py <lo.json (lam-lai-cta: content_id, lang, ten, tu, den, file[, camp, lo])> <mã lô (vd cta3)> <dạng (vd "canh cuoi")>"""
 import csv, json, os, subprocess, sys, time, unicodedata, re
 from concurrent.futures import ThreadPoolExecutor
-import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-10"
@@ -31,10 +31,12 @@ def main(lo_f, ma, dang):
         else: subprocess.run(["rsync", "-a", x["file"], f"{B}:/var/lib/ethopex/creative/{ma}/{x['ten_tep']}"], check=True)
     r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; done'""", timeout=3600)
     anh = {l.split("|")[0]: l.split("|") for l in r.stdout.splitlines() if l.count("|") == 4}
+    XG.bao("day", ma, "đẩy video lên kho xong · viết chữ QC", 0, len(lo), ep=True)
     # 2. chữ QC
     ids = ",".join(sorted({str(x["content_id"]) for x in lo}))
     tsv = f"{ra}/chu.tsv"; sh(f"""ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -v ids={ids} -tA -F"\t" -f -' < {D}/qc-spy-phim.sql > {tsv}""")
     cr_f = f"{ra}/creative.json"; sh(f"python3 {D}/chu-qc.py {ra}/lo.json {tsv} {ma} {GOC} {cr_f} - '{dang}'")
+    XG.bao("day", ma, "tạo creative trên Ethopex", 0, len(lo), ep=True)
     # 3. bulk-jobs
     subprocess.run(["scp", "-q", cr_f, f"{B}:/root/etp-kc/creative-{ma}.json"], check=True)
     r = sh(f"""ssh {B} '{ENV}; python3 - <<EOF
@@ -49,6 +51,7 @@ for i in range(80):
 print(json.dumps([(x.get("creative") or {{}}).get("id") for x in k["data"]]))
 EOF'""", timeout=3600)
     crs = json.loads(r.stdout.strip().splitlines()[-1])
+    XG.bao("day", ma, "ghi studio", 0, len(lo), ep=True)
     # 4. studio
     import importlib.util as iu
     s_ = iu.spec_from_file_location("cq", os.path.join(D, "cta_qc.py")); CQ = iu.module_from_spec(s_); s_.loader.exec_module(CQ)
@@ -82,7 +85,9 @@ EOF'""", timeout=3600)
         b = sh(f"{D}/kiem-thoai-creative.sh {x['creative_id']} '{x['file'] if not str(x.get('file','')).startswith('box3:') else ''}' < /dev/null", timeout=1800)
         if not (a and a[0].startswith("STUDIO OK")): x["loi"] = (a or ["studio ?"])[0]
         elif b.returncode != 0: x["loi"] = ((b.stdout.strip() or b.stderr.strip() or f"cổng chữ lỗi mã {b.returncode}").splitlines() or ["?"])[-1][:200]   # cổng chết không in gì (23/10/2026 lô moisom gãy cả lô vì [-1] của rỗng)
-    with ThreadPoolExecutor(4) as ex: list(ex.map(cong, lo))
+    dem = [0]
+    def cong_bao(x): cong(x); dem[0] += 1; XG.bao("day", ma, f"cổng chữ · {x.get('ten', '')[:40]}", dem[0], len(lo))
+    with ThreadPoolExecutor(4) as ex: list(ex.map(cong_bao, lo))
     dat = [str(x["creative_id"]) for x in lo if not x.get("loi")]
     if dat: print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 kiem-cta.py --dat {' '.join(dat)} lô {ma} qua cổng'").stdout.strip())
     # BẢN SỬA CHO NHÂN BẢN (anh 23/10/2026): creative cũ của camp_cu → creative mới vừa đạt → nhan-ban.py tự dùng khi nhân bản camp thắng CTA cũ

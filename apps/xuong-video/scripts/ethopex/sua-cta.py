@@ -120,6 +120,7 @@ def main():
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("sua-cta đang chạy ở lượt khác — thoát")
     ma = time.strftime("sua%d%m%H%M"); os.makedirs(os.path.join(C, "ra", ma), exist_ok=True); bao0 = []
+    import xuong as XG; XG.bao("sua", ma, "sửa CTA / góc mới cho camp thắng", ep=True)
     if not chi: goc_moi(ma, bao0, nb)
     if bao0: print("\n".join(bao0), flush=True)
     hang = {k: v for k, v in khoa("ethopex_cho_dung_lai").items() if not chi or k in chi}
@@ -190,6 +191,6 @@ def main():
         if nb and v["goc"]:
             r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(v["goc"])} --that --lich today --luat "nhân bản camp thắng · bản sửa CTA #{thay[old]} thay creative #{old}" --ai "máy (anh 23/10/2026: phải luôn sửa lại CTA)"'""", timeout=600)
             bao.append(f"{old} → #{thay[old]} · nhân bản #{v['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")
-    print("\n".join(bao))
+    print("\n".join(bao)); XG.bao("nghi", ma, "xong sửa CTA", ep=True)
 
 if __name__ == "__main__": main()

@@ -6,6 +6,7 @@ Danh sách = studio xv_khoa_ngoai['ethopex_200_phim'] (chon-phim-moi.py), theo h
   (Claude xem tờ soát trong phiên → kiem-phim-18.py --soat <id> ok|cam trên box3)
   dot-phim-moi.py len <từ hạng> <tới hạng> [lich=today]   → len-creative.py (chỉ phim đã soát ok) → nhan-ban.py --bo 2 --creative … (khuôn EN/ES)"""
 import json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG   # nhịp xưởng cho city.on.tc
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; N = os.path.expanduser("~/.cache/ethopex/nguon")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (cấu hình Ad Set, pixel, nước); nhan-ban --bo 2 đổi tài khoản + Page
@@ -28,19 +29,27 @@ def cat(a, b, n=2):
 def cat_ds(phim, ten, n=2):
     """cắt một danh sách phim {id, locale, nguon, ten, url} vào ~/.cache/ethopex/ra/<ten>/ (phim-moi.py gọi theo trạng thái, không theo dải hạng)"""
     ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
-    for p in phim:
+    from concurrent.futures import ThreadPoolExecutor
+    dem = [0]
+    def tai(p):   # tải 4 phim cùng lúc (mạng, không tốn CPU) — từng phim một thì 30 phim mất hàng giờ
         tm = os.path.join(N, str(p["id"]))
         if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
             os.makedirs(tm, exist_ok=True); r = sh(f"python3 {D}/tai-tap.py '{p['url']}' {tm} 8", timeout=900)
             print("tải", p["id"], p["ten"][:40], (r.stdout.strip().splitlines() or [r.stderr.strip()[-120:]])[-1][:120], flush=True)
+        dem[0] += 1; XG.bao("tai", ten, p["ten"], dem[0], len(phim))
+    XG.bao("tai", ten, None, 0, len(phim), ep=True)
+    with ThreadPoolExecutor(4) as ex: list(ex.map(tai, phim))
     tsv = os.path.join(ra, "lo.tsv")
     with open(tsv, "w") as f:
         for p in phim:
             tm = os.path.join(N, str(p["id"]))
             if any(x.startswith("tap") and x.endswith(".mp4") for x in os.listdir(tm)): f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")
+    XG.bao("cat", ten, None, 0, sum(1 for _ in open(tsv)), ep=True)
     r = subprocess.run([*uu_tien(), "python3", f"{D}/cat-cuoi-lo.py", N, tsv, ra, str(n), "2"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-3000:], flush=True)
     to_soat(ra)
+    lo = json.load(open(os.path.join(ra, "lo.json")))
+    XG.bao("soat", ten, None, len({x["content_id"] for x in lo if x.get("file") and not x.get("loi")}), len(phim), ep=True)   # chờ Claude soát 18+
     return ra
 
 def to_soat(ra):
@@ -114,17 +123,18 @@ def len_ds(ten, ma, lich="today", nhan="phim mới"):
     kq = []
     if not di: print("chưa có phim nào soát ok"); don_box(lo); return {"soat_ok": ok, "kq": kq}
     lf = os.path.join(ra, "lo-len.json"); json.dump(di, open(lf, "w"), ensure_ascii=False, indent=1)
+    XG.bao("day", ma, None, 0, len(di), ep=True)
     r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-1500:], r.stderr[-500:], flush=True)
     for x in json.load(open(os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json"))):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); kq.append({"content_id": x["content_id"], "ok": False, "loi": "cổng: " + str(x.get("loi"))[:150]}); continue
-        t = x["ten"].replace("'", "").replace('"', "")
+        t = x["ten"].replace("'", "").replace('"', ""); XG.bao("len", ma, t[:60], len(kq), len(di))
         r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{t}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — {nhan}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn; chuẩn hoá quy trình phim mới)"'""", timeout=600)
         dong = (r.stdout.strip().splitlines() or ["{}"])[-1]; print(x["content_id"], dong[:200], flush=True)
         try: j = json.loads(dong)
         except Exception: j = {"ok": False, "loi": dong[:150]}
         kq.append({"content_id": x["content_id"], "ok": bool(j.get("ok")), "moi": j.get("moi"), "loi": j.get("loi")})
-    don_box(lo)
+    don_box(lo); XG.bao("nghi", ma, None, sum(1 for y in kq if y["ok"]), len(kq), ep=True)
     return {"soat_ok": ok, "kq": kq}
 
 def len_tu_tep(lf, ma, a=1, b=30, lich="today"):

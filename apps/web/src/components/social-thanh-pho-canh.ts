@@ -112,7 +112,43 @@ const CSS = `
 `;
 
 /** Dựng thành phố vào host; trả { don: dọn sạch, capNhat: thay số mới và dựng lại tại chỗ — giữ góc nhìn, bộ lọc, ngăn đang mở } */
-export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { don: () => void; capNhat: (mh: PhoMoHinh) => void } {
+// XƯỞNG PHIM MỚI ETHOPEX (anh 23/10/2026: "quá trình sản xuất phải nhìn được realtime trên city"): băng chuyền 6 trạm, trạm đang chạy sáng + thanh tiến độ,
+// nhịp gần nhất (bước · lô · phim · x/y · bao lâu) + sức máy iMac. Số từ /api/social/thanh-pho/xuong (5 giây/lần).
+export type XuongEtp = { luc: string; nhip: { buoc: string; lo?: string | null; phim?: string | null; xong?: number | null; tong?: number | null; loi?: string | null; bat_dau?: string | null; luc: string; may?: { tai: number | null; nhan: number; trong_gb: number; che_do: string; ten: string } } | null;
+  tram: Record<'kho' | 'poster' | 'soat' | 'len' | 'loai' | 'da_len', { so: number; nhan: string; loai?: number; ds?: { id: string; ten: string; ghi: string; luc: string }[] }>; chi_tieu: { ngay: string; da: number; can: number }; tong: number };
+const BUOC_TRAM: Record<string, number> = { tai: 2, cat: 2, soat: 3, day: 4, len: 5, sua: 5 };
+const TEN_BUOC: Record<string, string> = { tai: 'tải tập phim', cat: 'chọn khung + dựng đoạn', soat: 'chờ soát 18+', day: 'đẩy creative + cổng chữ', len: 'tạo camp', sua: 'sửa CTA / góc mới', nghi: 'nghỉ' };
+function veXuong(cv: HTMLCanvasElement, x: XuongEtp | null) {
+  const g = cv.getContext('2d')!, W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(12,16,28,.92)'; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 28); g.fill(); g.strokeStyle = '#3a6ff0'; g.lineWidth = 4; g.stroke();
+  g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = '800 46px system-ui, "Apple Color Emoji", sans-serif'; g.textAlign = 'left'; g.fillText('🏭 XƯỞNG PHIM MỚI · ETHOPEX', 36, 56);
+  if (!x) { g.font = '500 34px system-ui'; g.fillStyle = '#9aa3b8'; g.fillText('đang đọc số xưởng…', 36, 140); return; }
+  const ct = x.chi_tieu, du = ct.da >= ct.can; g.textAlign = 'right'; g.font = '800 44px system-ui'; g.fillStyle = du ? '#3fd68a' : '#ffd166'; g.fillText(`hôm nay ${ct.da}/${ct.can} phim`, W - 36, 56);
+  const n = x.nhip, sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1, cu = n ? (Date.now() - Date.parse(n.luc)) / 1000 : 1e9;
+  const t = x.tram, tr: [string, string, string][] = [['📚', 'Kho phim', `${t.kho.so} chờ`], ['🖼', 'Soát poster', `${t.poster.so} đạt`], ['✂️', 'Cắt đoạn', ''], ['🔞', 'Soát 18+', `${t.soat.so} chờ`], ['🔤', 'Cổng chữ', `${t.len.so} chờ lên`], ['🚀', 'Lên camp', `${t.da_len.so} đã lên`]];
+  const bw = 236, gap = 24, x0 = (W - (bw * 6 + gap * 5)) / 2, y0 = 110, bh = 210;
+  g.strokeStyle = '#2c3a5a'; g.lineWidth = 10; g.beginPath(); g.moveTo(x0, y0 + bh / 2); g.lineTo(x0 + bw * 6 + gap * 5, y0 + bh / 2); g.stroke();   // băng chuyền
+  tr.forEach(([ic, ten, so], i) => {
+    const bx = x0 + i * (bw + gap), on = i === sang, loi = on && !!n?.loi;
+    g.fillStyle = loi ? '#4a1a22' : on ? '#1d3a66' : '#1a2132'; g.beginPath(); g.roundRect(bx, y0, bw, bh, 18); g.fill();
+    g.strokeStyle = loi ? '#ff4d5e' : on ? '#59a8ff' : '#33405e'; g.lineWidth = on ? 6 : 3; g.stroke();
+    g.textAlign = 'center'; g.font = '48px "Apple Color Emoji", system-ui'; g.fillText(ic, bx + bw / 2, y0 + 48);
+    g.fillStyle = '#fff'; g.font = '700 30px system-ui'; g.fillText(ten, bx + bw / 2, y0 + 104);
+    g.fillStyle = on ? '#9ecbff' : '#c7cede'; g.font = '600 28px system-ui';
+    if (on && n?.tong) { g.fillText(`${n.xong ?? 0}/${n.tong}`, bx + bw / 2, y0 + 146); const p = Math.min(1, (n.xong ?? 0) / n.tong); g.fillStyle = '#22304d'; g.fillRect(bx + 20, y0 + 172, bw - 40, 14); g.fillStyle = '#3fd68a'; g.fillRect(bx + 20, y0 + 172, (bw - 40) * p, 14); }
+    else g.fillText(i === 2 ? (on ? '▶ đang chạy' : '—') : so, bx + bw / 2, y0 + 150);
+  });
+  g.textAlign = 'left'; g.font = '600 30px system-ui'; g.fillStyle = n?.loi ? '#ff8a80' : '#e6ebf5';
+  const lau = n?.bat_dau ? Math.round((Date.now() - Date.parse(n.bat_dau)) / 60000) : null;
+  g.fillText(n ? `▶ ${TEN_BUOC[n.buoc] ?? n.buoc}${n.lo ? ` · lô ${n.lo}` : ''}${n.phim ? ` · ${n.phim}` : ''}${lau != null && n.buoc !== 'nghi' ? ` · ${lau} phút` : ''}${n.loi ? ` · ⚠ ${n.loi}` : ''}`.slice(0, 95) : '▶ chưa có nhịp', 36, 372);
+  const m = n?.may; g.fillStyle = '#9aa3b8'; g.font = '500 28px system-ui';
+  g.fillText(m ? `💻 ${m.ten} · tải ${m.tai ?? '?'}/${m.nhan} lõi · ổ trống ${m.trong_gb} GB · ${m.che_do}` : '', 36, 420);
+  g.fillText(`loại ${t.loai.so} phim · poster loại ${t.poster.loai ?? 0} · danh sách ${x.tong} phim`, 36, 464);
+  g.textAlign = 'right'; g.fillStyle = cu > 900 && n?.buoc !== 'nghi' ? '#ff8a80' : '#6f7891'; g.fillText(cu < 90 ? `nhịp ${Math.round(cu)} giây trước` : `nhịp ${Math.round(cu / 60)} phút trước${cu > 900 && n?.buoc !== 'nghi' ? ' · có thể đã dừng' : ''}`, W - 36, 464);
+}
+
+export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { don: () => void; capNhat: (mh: PhoMoHinh) => void; capNhatXuong: (x: XuongEtp) => void } {
+  let xuongData: XuongEtp | null = null, xuongVe: ((x: XuongEtp | null) => void) | null = null;
   let mh = mh0;
   host.classList.add('tp'); host.innerHTML = `<style>${CSS}</style>
     <aside class="ben wg"><div class="wg-dau" title="Kéo để dời · kéo cạnh / góc để đổi cỡ"><span class="wg-ten">Bảng</span><button class="wg-x" aria-label="Đóng bảng" title="Đóng bảng">×</button></div><div class="wg-than">
@@ -1046,6 +1082,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       chiMuc.push({ ten: 'Xưởng SX', nhan: 'khu', obj: thanDau ?? than0 }); khuPos[KHU_XUONG] = { cx: x0 + dai / 2, cz: z0 - cao / 2, phia: -1 }; banKinhKhu[KHU_XUONG] = Math.max(dai, cao) / 2; zXuong = cao - z0;
     }
     dungGop();
+    { const kp = khuPos['d:ethopex~2'] ?? khuPos['d:ethopex'];   // xưởng phim mới nổi trên khu bộ 2 (bộ chỉ phim mới)
+      if (kp) {
+        const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 500; const tx = new THREE.CanvasTexture(cv); tx.anisotropy = 4;
+        const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthWrite: false })); bien.scale.set(150, 47, 1); bien.position.set(kp.cx, 100, kp.cz);
+        bien.userData = { loai: 'xuong-etp' }; the.add(bien); chiMuc.push({ ten: 'Xưởng phim mới Ethopex', nhan: 'xưởng', obj: bien });
+        xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; }; xuongVe(xuongData);
+      } else xuongVe = null; }
     const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), Math.max(coCty ? xCty + 110 : xKho + 60, xTnPhai), Math.max(zTrong, coCty ? 260 : 0, zXuong + 20), zNgoai);
     gioiHan = { x0: kn.xa, x1: kn.xb, z: kn.zDat };
     const rong = kn.xb - kn.xa;
@@ -1130,6 +1173,17 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (u.loai === 'tram') { const nm = u.nm as typeof mh.nhaMay[number], loi = nm.loiDv ?? [];
       return { dau: `🕳 Trạm ngầm · ${esc(nm.ten)}`, h: [['⏱ Việc chạy theo giờ', nm.henGio ?? 'chưa đo'], ['🔴 Dịch vụ đang lỗi', loi.length], ['⚡ Site cấp điện', nm.sites.length]],
         bang: loi.length ? { cot: ['Dịch vụ lỗi', 'Máy'], dong: loi.map((x) => [esc(x), esc(nm.ten.split(' · ')[0]!)]) } : undefined };
+    }
+    if (u.loai === 'xuong-etp') { const x = xuongData, n = x?.nhip;
+      if (!x) return { dau: '🏭 Xưởng phim mới', h: [['', 'đang đọc số…']] };
+      const ds = (k: 'poster' | 'soat' | 'len' | 'loai' | 'da_len') => (x.tram[k].ds ?? []).map((p) => [esc(p.ten.slice(0, 60)), esc((p.ghi || '').slice(0, 50))] as [string, string]);
+      return { dau: `🏭 Xưởng phim mới · hôm nay ${x.chi_tieu.da}/${x.chi_tieu.can} phim`, h: [
+        ['▶ Đang làm', n ? esc(`${TEN_BUOC[n.buoc] ?? n.buoc}${n.lo ? ' · lô ' + n.lo : ''}${n.phim ? ' · ' + n.phim : ''}${n.tong ? ` · ${n.xong ?? 0}/${n.tong}` : ''}`) : '—'],
+        ...(n?.loi ? [['⚠ Lỗi', esc(n.loi)] as [string, string]] : []),
+        ...(n?.may ? [['💻 Máy', esc(`${n.may.ten} · tải ${n.may.tai}/${n.may.nhan} · ổ trống ${n.may.trong_gb} GB · ${n.may.che_do}`)] as [string, string]] : []),
+        ...Object.values(x.tram).map((t) => [esc(t.nhan), t.so] as [string, number]),
+        ...(ds('soat').length ? [['— chờ soát 18+ —', ''] as [string, string], ...ds('soat')] : []), ...(ds('len').length ? [['— chờ lên camp —', ''] as [string, string], ...ds('len')] : []),
+        ['— đã lên gần nhất —', ''], ...ds('da_len').slice(-12), ['— loại gần nhất —', ''], ...ds('loai').slice(-8)] };
     }
     if (u.loai === 'may') { const nm = u.nm as typeof mh.nhaMay[number];
       return { dau: `⚡ ${esc(nm.ten)}`, h: [['Site đang chạy', nm.sites.length], ...(nm.tai != null ? [['⚙ Tải CPU', `${nm.tai} / ${nm.nhan} nhân`] as [string, string], ['🧠 RAM trống', `${nm.ramMB} MB`] as [string, string], ['💾 Đĩa', `${nm.diaPct}%`] as [string, string]] : []), ...(nm.chiThang ? [['Chi tháng', esc(nm.chiThang)] as [string, string]] : []), ...(nm.het ? [['Hạn', `${nm.het.slice(8)}/${nm.het.slice(5, 7)}/${nm.het.slice(0, 4)}`] as [string, string]] : []),
@@ -1553,5 +1607,5 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };
-  return { don, capNhat };
+  return { don, capNhat, capNhatXuong: (x: XuongEtp) => { xuongData = x; xuongVe?.(x); } };
 }

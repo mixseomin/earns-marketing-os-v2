@@ -97,14 +97,16 @@ export const tenPhim = (chu) => (String(chu).match(/(?:^|[\s#:·])\d{4}\w* (.+?)
 // TÊN CAMP GỌN (anh 23/10/2026: "[1] = Bộ TK 1, [CT] = cảnh thật"): "#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727)"
 // → "#65727 [1] [CT] <b>Runaway Single Mom</b> EN / 120-196s / CTA sửa / NB←65727" — bỏ mã lô ngày; phần chi tiết luật sau " · " giữ nguyên. Trả HTML.
 const LOAI_TG = { 'ke chuyen': 'KC', 'canh that': 'CT', 'canh cuoi': 'CC', 'phim dai': 'PD', 'lam moi': 'LM' };
+// nhãn bộ TK = số khoanh tròn (anh 23/10/2026 chỉ đích danh bảng Number Emojis, thay "[1]") — ngoại lệ của luật cấm số khoanh tròn, CHỈ cho nhãn bộ TK Ethopex trên Telegram
+const soBo = (bo) => { const n = Number(bo); return n >= 1 && n <= 20 ? String.fromCodePoint(0x2460 + n - 1) : `[${bo}]`; };
 export function tenGon(ten, bo) {
   const t = String(ten).trim(), m = t.match(/^(\d{4}\w*) (.+?) ([A-Z]{2}) - (.*)$/);
-  if (!m) return (bo ? `<code>[${esc(bo)}]</code> ` : '') + esc(t);
+  if (!m) return (bo ? `${esc(soBo(bo))} ` : '') + esc(t);
   const loai = Object.keys(LOAI_TG).find((k) => m[4].startsWith(k));
   const phu = (loai ? m[4].slice(loai.length) : m[4]).trim()
     .replace(/\(nhan ban \d+ cua (\d+)\)/, 'NB←$1').replace(/\(nhan ban.*$/, 'NB').replace(/\bcta-sua\b/, 'CTA\u00a0sửa')
     .split(/ +/).filter(Boolean);
-  return [bo ? `<code>[${esc(bo)}]</code>` : '', `<code>[${loai ? LOAI_TG[loai] : '?'}]</code>`, `<b>${esc(m[2])}</b> ${m[3]}`].filter(Boolean).join(' ') + phu.map((x) => ` / ${esc(x)}`).join('');
+  return [bo ? esc(soBo(bo)) : '', `<code>[${loai ? LOAI_TG[loai] : '?'}]</code>`, `<b>${esc(m[2])}</b> ${m[3]}`].filter(Boolean).join(' ') + phu.map((x) => ` / ${esc(x)}`).join('');
 }
 /** một dòng luật (m.chu = "#id: tên · chi tiết…") → HTML gọn; coId=false thì bỏ "#id" (dòng ↳ dưới tin đã ghi #id) */
 export function dongGon(m, coId = true) {
@@ -370,9 +372,9 @@ if (process.argv.includes('--tu-kiem')) {
   { const { strict: a } = await import('node:assert');
     a.equal(tenPhim('2010 SIMP NO MORE EN - canh that 0-86s · $1 → $2'), 'simp no more'); a.equal(tenPhim('#65735: 2110 Atras No te metas con ese vagabundo ES - canh that'), 'atras no te metas con ese vagabundo');
     const kq = { tang: [{ id: 1, chu: '#65648: 2010 SIMP NO MORE EN - canh that · $1 → $2' }, { id: 2, chu: '#65735: 2110 Number One Nobody EN - canh' }], luc: 'x' };
-    a.equal(dongGon({ chu: '#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727) · $15 → $20', bo: '1' }), '#65727 <code>[1]</code> <code>[CT]</code> <b>Runaway Single Mom</b> EN / 120-196s / CTA\u00a0sửa / NB←65727 · $15 → $20');
+    a.equal(dongGon({ chu: '#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727) · $15 → $20', bo: '1' }), '#65727 \u2460 <code>[CT]</code> <b>Runaway Single Mom</b> EN / 120-196s / CTA\u00a0sửa / NB←65727 · $15 → $20');
     a.equal(dongGon({ chu: '#65725: 2110 Number One Nobody EN - ke chuyen (nhan ban 2 cua 651 · x' }, false), '<code>[KC]</code> <b>Number One Nobody</b> EN / NB · x');
-    a.equal(tenPhim('• #65727 [1] [CT] Runaway Single Mom EN / 120-196s · $15 → $20'), 'runaway single mom'); a.equal(tenPhim('#67075: 2110ns The Mafia Nanny EN - lam moi'), 'the mafia nanny');
+    a.equal(tenPhim('• #65727 \u2460 [CT] Runaway Single Mom EN / 120-196s · $15 → $20'), 'runaway single mom'); a.equal(tenPhim('#67075: 2110ns The Mafia Nanny EN - lam moi'), 'the mafia nanny');
     const loc = boPhimLoc(kq, [{ phim: 'simp no more' }]); a.deepEqual(loc.tang.map((m) => m.id), [2], 'phim đã bỏ không còn trong luật'); a.equal(loc.luc, 'x'); }
   { const { strict: t } = await import('node:assert');
     const m = tinBaoNgay({ theo_ngay: [{ ngay: '2026-10-20', chi: 32.74, thu: 21.4, lai: -11.34, roi: -34.6 }, { ngay: '2026-10-21', chi: 298.72, thu: 473.7, lai: 174.98, roi: 58.6 }], tien_moi: [], thang: { chi: 331.46, thu: 495.1 } }, '2026-10-22');

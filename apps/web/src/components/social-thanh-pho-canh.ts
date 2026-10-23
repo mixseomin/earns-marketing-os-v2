@@ -509,6 +509,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // BẬT / TẮT BẢNG HIỆU PHIM (anh 23/10/2026 "khu nhiều bảng hiệu như Ethopex bị rối — thêm nút trong trại bấm để mở / tắt; đang tắt thì hover vào hiện bảng đó,
   // hover ra lại ẩn"): nút là một cột bấm được cạnh bảng xếp hạng; trạng thái nhớ theo máy; đang tắt thì rê lên sân / camp / bảng của phim nào hiện biển phim đó
   const bienPhim = new Map<string, any[]>();   // khoá 'hub|cum' → [biển, cột]
+  const bangXhCua = new Map<string, any>(); let bangXhMo: any = null;   // bảng xếp hạng phim mỗi khu (gọn / mở theo hover)
+  const datBangXh = (sp: any, mo: boolean) => { const u = sp.userData.bangXh, h = mo ? u.HbDu : u.HbGon; sp.material.map = mo ? u.texDu : u.texGon; sp.material.needsUpdate = true; sp.scale.y = h; sp.position.y = u.day + h / 2; };
   let tatBien: Record<string, boolean> = (() => { try { return JSON.parse(localStorage.getItem('tp-tat-bien') ?? '{}'); } catch { return {}; } })();
   let bienDangLo: string | null = null;
   const datBien = (khoa: string, hien: boolean) => { for (const o of bienPhim.get(khoa) ?? []) o.visible = hien; };
@@ -523,7 +525,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const usd = (n: number) => `$${Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2)}`;
   const ngayNgan = (s: string | null | undefined) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : 'hôm nay');
   function dung() {
-    boCumP.clear(); bienPhim.clear(); bienDangLo = null;
+    boCumP.clear(); bienPhim.clear(); bienDangLo = null; bangXhCua.clear(); bangXhMo = null;
     scene.remove(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
     const viTri: Record<string, any> = {};
     chiMuc.length = 0;
@@ -757,7 +759,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       hien.forEach((v, i) => dong(114 + i * 34, v.o.ten, v.so.tH, v.so.cH));
       g.fillStyle = '#2a3352'; g.fillRect(16, 96 + hien.length * 34, 688, 2); dong(114 + hien.length * 34, ds_.length > hien.length ? `TỔNG ${ds_.length} phim` : 'TỔNG', tong.t, tong.c, true);
       const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; const Wb = 120, Hb = Wb * cao / 720, day = 14;
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'dich', d: hub }; the.add(sp);
+      // GỌN MẶC ĐỊNH (anh 23/10/2026 "bảng này chỉ hover vào mới hiện ra"): bình thường chỉ là biển một dòng (tên + ROI / lãi tổng);
+      // rê chuột lên biển hoặc toà nền tảng thì mở đủ bảng, rời ra thì gọn lại (datBangXh trong onMove)
+      const cg = document.createElement('canvas'); cg.width = 720; cg.height = 120; const gg = cg.getContext('2d')!; const rT = roiCua(tong.t, tong.c), mT = tong.t >= tong.c ? '#3fd68a' : '#ff4d5e';
+      gg.fillStyle = '#0c1326f0'; gg.fillRect(0, 0, 720, 120); gg.strokeStyle = '#4fd1ff'; gg.lineWidth = 8; gg.strokeRect(4, 4, 712, 112); gg.textBaseline = 'middle';
+      gg.textAlign = 'left'; gg.fillStyle = '#fff'; gg.font = '800 34px system-ui, sans-serif'; gg.fillText(`🎬 ${ds_.length} phim · ${ngayNgan(hub.ngayHom)}`, 22, 42);
+      gg.fillStyle = '#8e9abd'; gg.font = '600 22px system-ui, sans-serif'; gg.fillText('rê chuột vào để xem bảng xếp hạng', 22, 88);
+      gg.textAlign = 'right'; gg.fillStyle = mT; gg.font = '900 40px system-ui, sans-serif'; gg.fillText(roiChu(rT), 700, 42); gg.font = '700 24px system-ui, sans-serif'; gg.fillText(`lãi ${usd(tong.t - tong.c)}`, 700, 88);
+      const texGon = new THREE.CanvasTexture(cg); texGon.anisotropy = 4; const HbGon = Wb * 120 / 720;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texGon })); sp.scale.set(Wb, HbGon, 1); sp.position.set(x, day + HbGon / 2, z);
+      sp.userData = { loai: 'dich', d: hub, bangXh: { texDu: tex, texGon, HbDu: Hb, HbGon, day } }; the.add(sp); bangXhCua.set(hub.khoa, sp);
       for (const dx of [-Wb * .3, Wb * .3]) { const cot = add(new THREE.CylinderGeometry(1, 1, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x + dx, day / 2, z); cot.userData = { chu: null }; }
       // TRẠM ĐIỆN BẢNG HIỆU (anh 23/10/2026 "phải thiết kế như một công trình liên quan, không phải cái nút"): nhà trạm bên trái bảng xếp hạng (bên phải là toà nền tảng), cầu dao lớn ở mặt trước,
       // đèn tín hiệu trên mái, biển tên gắn tường; dây điện chạy trên mặt đất tới chân từng bảng hiệu phim. Bật: đèn + dây sáng xanh, cần gạt hướng lên;
@@ -1231,7 +1242,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const henHienMeo = (o: any) => { if (choHien === o && Math.hypot(chuotCuoi.x - moc.x, chuotCuoi.y - moc.y) < 4) return; clearTimeout(henHien); choHien = o; moc = { ...chuotCuoi };
     henHien = window.setTimeout(() => { henHien = 0; choHien = null; if (dangSang === o && !trongMeo) hienMeo(o); }, 450); };
   const boHenHien = () => { clearTimeout(henHien); henHien = 0; choHien = null; };
-  const hienMeo = (o: any) => { const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
+  const hienMeo = (o: any) => { if (o.userData?.bangXh) return; const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
     meo.style.left = `${Math.max(8, Math.min(chuotCuoi.x - b.left + 16, W() - meo.offsetWidth - 8))}px`; meo.style.top = `${Math.max(8, Math.min(chuotCuoi.y - b.top + 16, H() - meo.offsetHeight - 8))}px`; };
   const anMeo = () => { clearTimeout(henAn); henAn = 0; boHenHien(); meo.hidden = true; meoCua = null; };
   const henAnMeo = () => { if (henAn) return; henAn = window.setTimeout(() => { henAn = 0; if (trongMeo) return; meo.hidden = true; meoCua = null; if (dangSang) henHienMeo(dangSang); }, 350); };
@@ -1242,13 +1253,15 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
       // bảng hiệu đang tắt: rê lên sân / biển / camp của phim → lộ biển phim đó, rời ra thì ẩn lại
       const u = o?.userData, hubK = u?.hub ?? u?.d?.cha, cum = u?.cum ?? u?.d?.cumPhim, kb = hubK && cum && tatBien[hubK] ? `${hubK}|${cum}` : null;
-      if (kb !== bienDangLo) { if (bienDangLo) datBien(bienDangLo, false); if (kb) datBien(kb, true); bienDangLo = kb; } }
+      if (kb !== bienDangLo) { if (bienDangLo) datBien(bienDangLo, false); if (kb) datBien(kb, true); bienDangLo = kb; }
+      const bx = u?.bangXh ? o : u?.loai === 'dich' && u.d?.loai === 'nen' ? bangXhCua.get(u.d.khoa) : null;
+      if (bx !== bangXhMo) { if (bangXhMo) datBangXh(bangXhMo, false); if (bx) datBangXh(bx, true); bangXhMo = bx; } }
     if (e.pointerType !== 'mouse') { anMeo(); return; }
     if (o && o === meoCua) { clearTimeout(henAn); henAn = 0; return; }
     if (!o) boHenHien();
     if (o && !meoCua) henHienMeo(o); else if (meoCua) henAnMeo();
   };
-  const onLeave = () => { if (!trongMeo) henAnMeo(); };
+  const onLeave = () => { if (!trongMeo) henAnMeo(); if (bangXhMo) { datBangXh(bangXhMo, false); bangXhMo = null; } };
   // chạm / bấm = nhả trong 450ms, kéo dưới 10px (bộ điều hướng chặn "click" sinh từ cú chạm)
   let xuong: { x: number; y: number; t: number } | null = null;
   const onDown = (e: PointerEvent) => { xuong = { x: e.clientX, y: e.clientY, t: performance.now() }; };
@@ -1469,6 +1482,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const v = new THREE.Vector3(); o.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect(); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height }; };
   (host as any).__demBien = (hub?: string) => { let n = 0; the.traverse((x: any) => { if (x.visible && x.isSprite && x.userData?.loai === 'cum-phim' && (!hub || x.userData.hub === hub)) n++; }); return n; };
   (host as any).__hubNut = () => { let h: string | null = null; the.traverse((x: any) => { if (!h && x.userData?.loai === 'nut-bien') h = x.userData.hub; }); return h; };
+  (host as any).__bangXh = (hub: string) => { const sp = bangXhCua.get(hub); if (!sp) return null; const v = new THREE.Vector3(); sp.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect();
+    return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
   (host as any).__cam = () => ({ p: cam.position.toArray(), t: ctl.target.toArray() });
   const ro = new ResizeObserver(() => { if (!W() || !H()) return; cam.aspect = W() / H(); cam.updateProjectionMatrix(); r.setSize(W(), H()); });
   ro.observe(host);

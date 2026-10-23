@@ -8,3 +8,4 @@ Dựng tệp thử: `node scripts/thanh-pho/dung-artifact.mjs <tệp>.html`, r�
 - bang-hieu-nut: nút 🪧 trong khu Ethopex tắt / bật mọi bảng hiệu; đang tắt rê lên sân phim lộ đúng biển đó
 - nghieng-2-ngon: điện thoại hai ngón cùng cuộn lên = hạ camera, xuống = nâng camera
 - widget: bảng + ngăn — đầu cố định khi cuộn, nút × đóng, kéo đầu dời, đổi cỡ đủ 4 cạnh + 4 góc, nhớ F5, ↺ đặt lại (17 mục)
+- bang-xep-hang: bảng xếp hạng phim gọn một dòng, rê lên biển hoặc toà nền tảng mới mở đủ, rời ra gọn lại

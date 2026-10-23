@@ -18,6 +18,11 @@ D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import lo
 D = D; B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 KTT, KDS, CHI_TIEU, NGAY_DU = "ethopex_phim_moi_tt", "ethopex_200_phim", 30, 2
+# LÀM TRƯỚC CHO NGÀY MAI (anh 23/10/2026: "nếu slot hôm nay đủ rồi thì tận dụng sinh sẵn video và đặt vào lịch luôn"): chỉ tiêu hôm nay đủ → cắt/lên cho ngày
+# mai, camp lịch tomorrow (Ethopex chạy từ 07:00 VN). Ngày đích tự tính: đủ hôm nay thì mai, đủ mai thì ngày kia… — máy không bao giờ ngồi không.
+NGAY_LEN = None
+def ngay_dich():
+    return NGAY_LEN or vn().strftime("%d/%m/%Y")
 vn = lambda: dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) + dt.timedelta(hours=7)
 
 def sql(cau, spy=False):
@@ -29,7 +34,7 @@ def ghi(cap):
     """cap {id: (tt, ghi)} → gộp vào sổ trạng thái (một câu jsonb ||, không ghi đè phim khác)"""
     if not cap: return
     cu = khoa(KTT); luc = vn().strftime("%H:%M %d/%m/%Y")
-    moi = {str(i): {"tt": tt, "luc": luc, "ghi": (g or "")[:200], "lan": (cu.get(str(i), {}).get("lan", 0) + 1) if tt == "cat_loi" else cu.get(str(i), {}).get("lan", 0)} for i, (tt, g) in cap.items()}
+    moi = {str(i): {"tt": tt, "luc": luc, "ghi": (g or "")[:200], **({"ngay": ngay_dich()} if tt == "da_len" else {}), "lan": (cu.get(str(i), {}).get("lan", 0) + 1) if tt == "cat_loi" else cu.get(str(i), {}).get("lan", 0)} for i, (tt, g) in cap.items()}
     v = json.dumps(moi, ensure_ascii=False).replace("'", "''")
     sql(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('{KTT}', '{v}'::jsonb) on conflict (ten) do update set gia_tri = coalesce(xv_khoa_ngoai.gia_tri, '{{}}'::jsonb) || excluded.gia_tri")
 
@@ -43,14 +48,15 @@ def so_lieu():
     ty_le = dem.get("da_len", 0) / xong if xong >= 10 else 0.6
     chua = [p for p in ds if str(p["id"]) not in tt]
     san = [p for p in ds if tt.get(str(p["id"]), {}).get("tt") == "poster_ok" or (tt.get(str(p["id"]), {}).get("tt") == "cat_loi" and tt[str(p["id"])].get("lan", 0) < 2)]
-    hom_nay = sum(1 for v in tt.values() if v["tt"] == "da_len" and v["luc"].endswith(hom))
+    hom_nay = sum(1 for v in tt.values() if v["tt"] == "da_len" and v.get("ngay", v["luc"][-10:]) == ngay_dich())   # đã lên cho NGÀY ĐÍCH (hôm nay, hoặc mai khi hôm nay đủ)
     return ds, tt, dem, ty_le, chua, san, hom_nay
 
 def tinh():
+    lich, _ = chon_ngay()
     ds, tt, dem, ty_le, chua, san, hom_nay = so_lieu()
     con_ngay = (len(chua) * 0.7 + len(san)) * ty_le / CHI_TIEU   # poster loại ~30% (đo 23/10)
     print(f"danh sách {len(ds)} phim · trạng thái: " + " · ".join(f"{k} {v}" for k, v in sorted(dem.items())))
-    print(f"tỷ lệ đạt (lên được / đã xử xong) {ty_le:.0%} · hôm nay đã lên {hom_nay}/{CHI_TIEU} phim · sẵn để cắt {len(san)} · chưa soát poster {len(chua)} · dự trữ ≈ {con_ngay:.1f} ngày")
+    print(f"tỷ lệ đạt (lên được / đã xử xong) {ty_le:.0%} · ngày {NGAY_LEN} ({lich}) đã lên {hom_nay}/{CHI_TIEU} phim · sẵn để cắt {len(san)} · chưa soát poster {len(chua)} · dự trữ ≈ {con_ngay:.1f} ngày")
     if con_ngay < NGAY_DU: print(f"→ dự trữ mỏng: phim-moi.py them {len(ds) + 200}")
     if hom_nay < CHI_TIEU: print("→ " + ("phim-moi.py poster" if len(san) * ty_le < CHI_TIEU - hom_nay else "phim-moi.py cat"))
 
@@ -89,6 +95,7 @@ def poster(n=60):
     print("→ Claude xem: phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
 
 def cat(dat=CHI_TIEU):
+    lich, _ = chon_ngay(); print(f"cắt cho ngày {NGAY_LEN} (lịch {lich})", flush=True)
     ds, tt, dem, ty_le, chua, san, hom_nay = so_lieu()
     can = max(0, dat - hom_nay); so = min(len(san), math.ceil(can / max(ty_le, 0.2)))
     if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if can else "đủ chỉ tiêu hôm nay")
@@ -103,8 +110,17 @@ def cat(dat=CHI_TIEU):
             cap[p["id"]] = ("cat_loi" if LK.ky_thuat(loi) is not False else "cat_loai", loi)   # kỹ thuật → lượt sau tự cắt lại (tối đa 2 lần)
     ghi(cap); print(f"→ Claude xem tờ soát ở {ra} (soat-<id>.jpg) → kiem-phim-18 --soat … → phim-moi.py len {ten}")
 
+def chon_ngay():
+    """ngày đích = ngày gần nhất chưa đủ chỉ tiêu (hôm nay → mai). Ethopex chỉ nhận lịch today / tomorrow."""
+    global NGAY_LEN
+    tt = khoa(KTT); hom = vn().strftime("%d/%m/%Y"); mai = (vn() + dt.timedelta(days=1)).strftime("%d/%m/%Y")
+    dem = lambda d: sum(1 for v in tt.values() if v["tt"] == "da_len" and v.get("ngay", v["luc"][-10:]) == d)
+    NGAY_LEN = hom if dem(hom) < CHI_TIEU else mai
+    return ("today" if NGAY_LEN == hom else "tomorrow"), dem(NGAY_LEN)
+
 def len_(ten):
-    tt = khoa(KTT); kq = dpm().len_ds(ten, ten.replace("-", ""), "today", "quy trình phim mới " + ten)
+    lich, da = chon_ngay(); print(f"lên cho ngày {NGAY_LEN} (lịch {lich}, đã có {da}/{CHI_TIEU} phim)", flush=True)
+    tt = khoa(KTT); kq = dpm().len_ds(ten, ten.replace("-", ""), lich, "quy trình phim mới " + ten)
     lo = json.load(open(os.path.join(C, "ra", ten, "lo.json"))); ids = {str(x["content_id"]) for x in lo if x.get("content_id")}
     cap = {}
     for i in ids:

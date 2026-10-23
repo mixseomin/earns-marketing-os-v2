@@ -11,6 +11,13 @@ ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (cấu hình Ad Set, pixel, nước); nhan-ban --bo 2 đổi tài khoản + Page
 sh = lambda c, **k: subprocess.run(c, shell=True, capture_output=True, text=True, **k)
 
+def uu_tien():
+    """ĐÊM 22h–8h giờ VN (anh không ngồi máy): nice — dùng đủ 8 lõi M4; NGÀY: taskpolicy -b (chế độ nền, máy anh đang dùng không giật).
+    Đo 23/10/2026: chế độ nền 11 phút/phim, CPU ~1 lõi; chạy thường 1 đoạn 21 giây."""
+    import datetime as dt
+    h = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).hour
+    return ["nice", "-n", "10"] if (h >= 22 or h < 8) else ["taskpolicy", "-b"]
+
 def ds(a, b):
     r = sh(f"""ssh {B} '{ENV}; psql "$DATABASE_URL" -tAc "select gia_tri::text from xv_khoa_ngoai where ten=\\$\\$ethopex_200_phim\\$\\$"'""")
     return json.loads(r.stdout.strip() or "[]")[a - 1:b]
@@ -31,7 +38,7 @@ def cat_ds(phim, ten, n=2):
         for p in phim:
             tm = os.path.join(N, str(p["id"]))
             if any(x.startswith("tap") for x in os.listdir(tm)): f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")
-    r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, ra, str(n), "2"], capture_output=True, text=True, timeout=6 * 3600)
+    r = subprocess.run([*uu_tien(), "python3", f"{D}/cat-cuoi-lo.py", N, tsv, ra, str(n), "2"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-3000:], flush=True)
     to_soat(ra)
     return ra
@@ -107,7 +114,7 @@ def len_ds(ten, ma, lich="today", nhan="phim mới"):
     kq = []
     if not di: print("chưa có phim nào soát ok"); don_box(lo); return {"soat_ok": ok, "kq": kq}
     lf = os.path.join(ra, "lo-len.json"); json.dump(di, open(lf, "w"), ensure_ascii=False, indent=1)
-    r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+    r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-1500:], r.stderr[-500:], flush=True)
     for x in json.load(open(os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json"))):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); kq.append({"content_id": x["content_id"], "ok": False, "loi": "cổng: " + str(x.get("loi"))[:150]}); continue
@@ -124,7 +131,7 @@ def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
     """lên thẳng từ một tệp lô đã lọc (đoạn đã soát 18+ ok) — dùng khi không chờ cả đợt cắt xong (anh 23/10/2026 "sao không thấy phim nào bộ 2")"""
     lj = os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json")
     if not os.path.exists(lj):   # đã có len.json (lô lên creative xong, gãy ở bước camp) → không đẩy lại creative
-        r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+        r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
         print(r.stdout[-1500:], r.stderr[-800:], flush=True)
     for x in json.load(open(lj)):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); continue
@@ -134,7 +141,7 @@ def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
 
 def sua_cta():
     """cuối mỗi đợt lên camp: dựng sẵn bản sửa CTA cho camp thắng sắp nhân bản (sua-cta.py; anh 23/10/2026 "camp mới chuẩn bị lên thì phải chủ động mà sửa CTA lỗi")"""
-    r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/sua-cta.py"], capture_output=True, text=True, timeout=8 * 3600)
+    r = subprocess.run([*uu_tien(), "python3", f"{D}/sua-cta.py"], capture_output=True, text=True, timeout=8 * 3600)
     print("sửa CTA:", r.stdout[-1500:], flush=True)
 
 if __name__ == "__main__":

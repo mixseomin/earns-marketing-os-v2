@@ -4,7 +4,7 @@
 // 2 thumbnail cả cảnh (AI) → 3 bảng khối → 4 khung chi tiết = keyframe từng shot kèm hành động · thoại · cớ cắt (đọc không cũng nắm được mạch).
 // Dữ liệu: xv_tap.phan_canh_ve (scripts/bang-gom.mts ghi) + xv_canh. Ảnh bấm = ngăn xem to (ngan-chung › moNgan). Link: ?tab=storyboard&sbx=phan_canh.
 import type { Canh, Tap } from '@/lib/xuong-video/kieu';
-import { TEN_NOI } from '@/lib/xuong-video/noi-nhip';
+import { khungDoc } from '@/lib/xuong-video/khung-doc';
 import { mono } from './ui';
 import { moNgan } from './ngan-chung';
 
@@ -37,13 +37,19 @@ export function PhanCanhVe({ tap, canh, onMo }: { tap: Tap; canh: Canh[]; onMo: 
               {ve.t1 && <Tang so={soT('t1')} ten="Thumbnail cả cảnh" mo="AI vẽ cả cảnh một ảnh theo tờ phác"><Anh url={ve.t1} cao={300} tieuDe="Thumbnail cả cảnh" /></Tang>}
               {!!ve.khoi?.length && <Tang so={soT('khoi')} ten="Bảng khối" mo="AI vẽ từng khối theo tờ phác · số #N = số shot">{ve.khoi.map((k) => <Anh key={k.url} url={k.url} cao={300} tieuDe={`Bảng khối shot #${k.tu}–#${k.den}`} />)}</Tang>}
             </div>}
-            <Tang so={soT('kf')} ten="Khung chi tiết — đọc như truyện tranh" mo="keyframe từng shot · hành động · thoại · cớ cắt sang khung sau; bấm chữ để mở shot">
+            <Tang so={soT('kf')} ten="Khung chi tiết — đọc như truyện tranh" mo="mỗi shot: khung đầu → giữa → cuối · trạng thái đồ (⚡ = vừa đổi) · thoại · cớ cắt; bấm chữ để mở shot">
+              {/* mỗi shot một cụm: khung đầu → giữa → cuối liền nhau (khung-doc.ts — cùng hàm với bảng truyện tranh) */}
               {ds.map((c) => (
-                <div key={c.id} style={{ width: 148, flex: '0 0 auto', display: 'grid', gap: 3, alignContent: 'start' }}>
-                  {c.keyframe_url ? <Anh url={c.keyframe_url} cao={260} tieuDe={`#${c.thu_tu}`} /> : <div style={{ height: 260, border: '1px dashed var(--line)', borderRadius: 4, display: 'grid', placeItems: 'center', ...mono }}>chưa có keyframe</div>}
-                  <button type="button" onClick={() => onMo(c.id)} style={{ all: 'unset', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, lineHeight: 1.35 }}>#{c.thu_tu} · {c.hanh_dong}</button>
-                  {c.thoai.filter((t) => t.loi.trim()).map((t, i) => <div key={i} style={{ fontSize: 11, color: 'var(--amber, #b8860b)', lineHeight: 1.35 }}>{t.nhan_vat}: “{t.loi}”</div>)}
-                  {c.dan_dung?.noi && <div style={mono}>↳ cắt {TEN_NOI[c.dan_dung.noi]}</div>}
+                <div key={c.id} style={{ display: 'flex', gap: 4, flex: '0 0 auto', padding: 4, border: '1px solid var(--line)', borderRadius: 6 }}>
+                  {khungDoc(c).map((k) => (
+                    <div key={k.luc} style={{ width: 140, display: 'grid', gap: 3, alignContent: 'start' }}>
+                      {k.url ? <Anh url={k.url} cao={248} tieuDe={k.nhan} /> : <div style={{ height: 248, border: '1px dashed var(--line)', borderRadius: 4, display: 'grid', placeItems: 'center', ...mono }}>chưa có khung</div>}
+                      <button type="button" onClick={() => onMo(c.id)} style={{ all: 'unset', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, lineHeight: 1.35 }}>{k.nhan} · {k.vi}</button>
+                      {k.vat.map((v, i) => <div key={i} style={{ fontSize: 10.5, lineHeight: 1.3, color: v.startsWith('⚡') ? 'var(--red, #d9534f)' : 'var(--green, #3a8f3a)' }}>{v}</div>)}
+                      {k.thoai.map((t, i) => <div key={i} style={{ fontSize: 11, color: 'var(--amber, #b8860b)', lineHeight: 1.35 }}>{t}</div>)}
+                      {k.noi && <div style={mono}>{k.noi}</div>}
+                    </div>
+                  ))}
                 </div>
               ))}
             </Tang>

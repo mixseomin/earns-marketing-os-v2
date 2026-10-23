@@ -7,24 +7,26 @@ export type MocVat = { /** từ mảnh (thu_tu) */ tu: number; /** ai đang gi�
   /** SỰ KIỆN làm đổi trạng thái — bắt buộc với mọi mốc sau mốc đầu, phải diễn ra trên hình ở mảnh `tu` */ su_kien?: string };
 export type SoVat = Record<string, MocVat[]>;
 
-/** Trạng thái mỗi món ở mảnh thu_tu (mốc gần nhất có tu ≤ thu_tu). */
-export function trangThai(so: SoVat, thuTu: number): Record<string, MocVat> {
+/** Thời điểm trong mảnh: ĐẦU (khung mở) hay CUỐI (khung kết). Sự kiện của mốc `tu` diễn ra TRONG mảnh đó: khung đầu còn trạng thái cũ, khung cuối đã mới. */
+export type LucKhung = 'dau' | 'ket';
+/** Trạng thái mỗi món ở mảnh thu_tu (mốc gần nhất có tu ≤ thu_tu; khung ĐẦU bỏ mốc có sự kiện ngay tại mảnh này — sự kiện chưa xảy ra). */
+export function trangThai(so: SoVat, thuTu: number, luc: LucKhung = 'ket'): Record<string, MocVat> {
   const r: Record<string, MocVat> = {};
-  for (const [ten, ds] of Object.entries(so)) { const m = [...ds].sort((a, b) => a.tu - b.tu).filter((x) => x.tu <= thuTu).at(-1); if (m) r[ten] = m; }
+  for (const [ten, ds] of Object.entries(so)) { const m = [...ds].sort((a, b) => a.tu - b.tu).filter((x) => x.tu < thuTu || (x.tu === thuTu && (luc === 'ket' || !x.su_kien))).at(-1); if (m) r[ten] = m; }
   return r;
 }
 /** Món nào phải VẼ trong khung: người giữ nó đang trong khung, hoặc mảnh khai món đó (cận chèn). */
-export function vatTrongKhung(so: SoVat, thuTu: number, nguoiTrongKhung: string[], khaiTrongKhung: string[] = []): [string, MocVat][] {
-  return Object.entries(trangThai(so, thuTu)).filter(([ten, m]) => (m.ai ? nguoiTrongKhung.includes(m.ai) : false) || khaiTrongKhung.includes(ten));   // khai = món mảnh nhắc tên (cận chèn tay cầm thẻ: người giữ ngoài khung mà thẻ vẫn trong khung)
+export function vatTrongKhung(so: SoVat, thuTu: number, nguoiTrongKhung: string[], khaiTrongKhung: string[] = [], luc: LucKhung = 'ket'): [string, MocVat][] {
+  return Object.entries(trangThai(so, thuTu, luc)).filter(([ten, m]) => (m.ai ? nguoiTrongKhung.includes(m.ai) : false) || khaiTrongKhung.includes(ten));   // khai = món mảnh nhắc tên (cận chèn tay cầm thẻ: người giữ ngoài khung mà thẻ vẫn trong khung)
 }
 /** Câu trạng thái đồ cho prompt (tiếng Anh). tenEn = tên đưa model của món. */
-export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = []): string {
-  const ds = vatTrongKhung(so, thuTu, nguoiTrongKhung, khaiTrongKhung);
+export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = [], luc: LucKhung = 'ket'): string {
+  const ds = vatTrongKhung(so, thuTu, nguoiTrongKhung, khaiTrongKhung, luc);
   return ds.length ? `OBJECT STATE in this frame (must match exactly, wherever that person's arms and hands are in frame): ${ds.map(([t, m]) => `${tenEn(t)} — ${m.cach}`).join('; ')}.` : '';
 }
 /** Dòng đọc cho storyboard (tiếng Việt): mọi món có trạng thái ở mảnh này, đánh dấu ⚡ nếu đổi ngay tại mảnh này. */
-export function dongVat(so: SoVat, thuTu: number): string[] {
-  return Object.entries(trangThai(so, thuTu)).map(([t, m]) => `${m.tu === thuTu && m.su_kien ? '⚡ ' : ''}${t}: ${m.vi}`);
+export function dongVat(so: SoVat, thuTu: number, luc: LucKhung = 'ket'): string[] {
+  return Object.entries(trangThai(so, thuTu, luc)).map(([t, m]) => `${m.tu === thuTu && m.su_kien ? `⚡ ${m.su_kien} → ` : ''}${t}: ${m.vi}`);
 }
 /** Lỗi sổ: mốc sau mốc đầu thiếu sự kiện · hai mốc cùng mảnh · sự kiện rơi vào mảnh không có người liên quan trong khung. */
 export function loiSoVat(so: SoVat, nguoiCua: (thuTu: number) => string[] | null): string[] {

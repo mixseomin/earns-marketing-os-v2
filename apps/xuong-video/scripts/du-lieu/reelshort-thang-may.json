@@ -199,7 +199,11 @@
           "Lâm Hạ": "thang"
         }
       },
-      "vao": 0.5
+      "vao": 0.5,
+      "khung_ve": [
+        "dau"
+      ],
+      "mo_vi": "Hạ ôm thùng, đứng chắn ngay trước cửa thang bên trái, chờ"
     },
     {
       "co": "cu",
@@ -213,9 +217,9 @@
         "Sơ mi trắng dính cà phê"
       ],
       "hd": "Cận Hạ: nghe tiếng giày cao gót, liếc về phía lối vào",
-      "anh": "Close-up of Hạ, calm, her eyes turned {Lâm Hạ→loi_vao} toward the sound of approaching heels, the elevator door blurred behind her.",
+      "anh": "Close-up of Hạ, calm, her eyes lifted toward the floor indicator above the elevator door, the door softly blurred behind her.",
       "vid": "Hạ hears heels approaching and keeps her eyes {Lâm Hạ→loi_vao}, wary. Static camera.",
-      "mo": "Hạ's eyes come down from the floor indicator",
+      "mo": "Hạ's eyes are lifted to the floor indicator above the elevator door",
       "ket": "Hạ's eyes settle {Lâm Hạ→loi_vao} on the approaching footsteps",
       "noi": "nhin",
       "sd": {
@@ -224,10 +228,21 @@
           "Lâm Hạ": "ha"
         },
         "nhin": {
-          "Lâm Hạ": "loi_vao"
+          "Lâm Hạ": "thang"
         }
       },
-      "vao": 0.3
+      "vao": 0.3,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận Hạ: mắt nhìn lên bảng số tầng",
+      "ket_vi": "Nghe tiếng giày cao gót, Hạ liếc về phía lối vào (bên phải)",
+      "sd_ket": {
+        "nhin": {
+          "Lâm Hạ": "loi_vao"
+        }
+      }
     },
     {
       "co": "ws",
@@ -261,7 +276,19 @@
           "Vivian": "Lâm Hạ"
         }
       },
-      "vao": 0
+      "vao": 0,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Vivian xuất hiện ở lối vào bên phải, bước về phía Hạ",
+      "ket_vi": "Vivian dừng sát bên phải Hạ, nhìn thẳng vào Hạ",
+      "sd_ket": {
+        "o": {
+          "Vivian": "vi"
+        },
+        "vao": {}
+      }
     },
     {
       "co": "cu",
@@ -292,7 +319,11 @@
           "Vivian": "Lâm Hạ"
         }
       },
-      "vao": 0.5
+      "vao": 0.5,
+      "khung_ve": [
+        "dau"
+      ],
+      "mo_vi": "Cận Vivian: nhìn Hạ, cười khẩy"
     },
     {
       "co": "ms",
@@ -328,7 +359,13 @@
           "Lâm Hạ": "Vivian"
         }
       },
-      "vao": 0.5
+      "vao": 0.5,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Hai người cùng khung: Vivian bước sát, tay bắt đầu vươn về phía thẻ trên ngực Hạ; Hạ cảnh giác nhìn Vivian",
+      "ket_vi": "Ngón tay Vivian chạm vào tấm thẻ"
     },
     {
       "co": "insert",
@@ -343,7 +380,7 @@
         "Sơ mi trắng dính cà phê"
       ],
       "hd": "Cận chèn: ngón tay Vivian nắm chặt tấm thẻ",
-      "anh": "",
+      "anh": "Insert close-up on Hạ's chest above the cardboard box: Vivian's hand, burgundy sleeve and red nails, closes around the white staff badge that still hangs on its dark blue lanyard around Hạ's neck.",
       "vid": "Vivian's fingers tighten their grip on the badge card. Only the hand moves. Static camera.",
       "mo": "Vivian's red-nailed fingers close around the badge card",
       "ket": "Vivian yanks the badge sharply away from Hạ",
@@ -356,11 +393,16 @@
         },
         "khung": []
       },
-      "kf": "https://img.on.tc/xuong-video/keyframe/1747-55ab111b-8706-4532-94cd-611b30821f5e.jpg",
       "vao": 0,
       "am": [
         "vut"
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận chèn: ngón tay Vivian nắm chặt tấm thẻ (thẻ còn đeo trên cổ Hạ)",
+      "ket_vi": "Vivian giật mạnh, dây thẻ căng ra"
     },
     {
       "co": "ms",
@@ -399,7 +441,16 @@
       "vao": 0.3,
       "am": [
         "dap"
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "giua",
+        "ket"
+      ],
+      "mo_vi": "Qua vai Hạ: Vivian nắm thẻ, kéo mạnh về phía mình",
+      "giua_vi": "Dây thẻ căng rồi đứt; Hạ bị kéo chúi về trước, hai tay vẫn ôm thùng",
+      "ket_vi": "Vivian cầm dây đứt, thẻ lủng lẳng; Hạ đứng lại, vẫn ôm thùng",
+      "giua": "the lanyard pulls taut and snaps; Hạ is jerked half a step forward, still hugging the box with both arms"
     },
     {
       "co": "cu",
@@ -430,7 +481,13 @@
           "Lâm Hạ": "Vivian"
         }
       },
-      "vao": 0.5
+      "vao": 0.5,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận Hạ: sững sờ nhìn Vivian, vẫn ôm thùng",
+      "ket_vi": "Hạ nhìn xuống tay Vivian đang cầm thẻ"
     },
     {
       "co": "insert",
@@ -443,7 +500,7 @@
         "Đầm đỏ đô công sở"
       ],
       "hd": "Cận chèn: Vivian cầm dây thẻ đứt, tấm thẻ lủng lẳng bên dưới",
-      "anh": "",
+      "anh": "Insert close-up: Vivian's hand grips the two snapped ends of the dark blue lanyard, the white staff badge dangling below, black marble and steel elevator door behind.",
       "vid": "The white card sways below Vivian's hand, which grips the two snapped ends of the lanyard. Static camera.",
       "mo": "the badge dangles from the snapped lanyard in Vivian's hand",
       "ket": "the fist begins to rise up out of frame",
@@ -456,8 +513,13 @@
         },
         "khung": []
       },
-      "kf": "https://img.on.tc/xuong-video/keyframe/1749-43097620-291f-49a1-a70f-310c40c51b14.jpg",
-      "vao": 0.5
+      "vao": 0.5,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận chèn: tấm thẻ lủng lẳng dưới dây đứt trong tay Vivian",
+      "ket_vi": "Tay Vivian bắt đầu giơ lên"
     },
     {
       "co": "mcu",
@@ -492,7 +554,18 @@
       "vao": 0.5,
       "am": [
         "ding@-0.6"
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Vivian giơ dây thẻ ngang mặt, thẻ lủng lẳng, cười đắc ý nhìn Hạ",
+      "ket_vi": "Chuông thang máy vang — Vivian liếc về phía cửa thang",
+      "sd_ket": {
+        "nhin": {
+          "Vivian": "thang"
+        }
+      }
     },
     {
       "co": "ws",
@@ -527,7 +600,13 @@
           "Lục Thần": "loi_vao"
         }
       },
-      "vao": 0
+      "vao": 0,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Toàn cảnh: cửa thang mở, Lục Thần bước ra",
+      "ket_vi": "Lục Thần dừng ngay trước Hạ — cô đang chắn cửa"
     },
     {
       "co": "cu",
@@ -540,7 +619,7 @@
         "Com-lê đen ba mảnh"
       ],
       "hd": "Cận Lục Thần lạnh lùng, không nhìn Hạ",
-      "anh": "",
+      "anh": "Close-up of Lục Thần in his black three-piece suit standing in the open elevator doorway, cold eyes straight ahead past camera, not looking at anyone.",
       "vid": "Lục Thần speaks without turning his head, face still and cold. Static camera.",
       "mo": "Lục Thần stands in the elevator doorway, eyes straight ahead",
       "ket": "he finishes the line without once looking at Hạ",
@@ -556,7 +635,6 @@
           "Lục Thần"
         ]
       },
-      "kf": "https://img.on.tc/xuong-video/keyframe/1752-cc50ea4f-36bc-483e-bc6f-965216342d28.jpg",
       "vao": 0.3,
       "thoai": [
         {
@@ -564,7 +642,11 @@
           "loi": "Người ngoài thì đừng đứng chắn thang máy.",
           "dien_xuat": "không dừng bước, không nhìn Hạ"
         }
-      ]
+      ],
+      "khung_ve": [
+        "dau"
+      ],
+      "mo_vi": "Cận Lục Thần: lạnh lùng nói, không nhìn Hạ"
     },
     {
       "co": "cu",
@@ -577,7 +659,7 @@
         "Sơ mi trắng dính cà phê"
       ],
       "hd": "Cận Hạ nén lại, mím môi, cụp mắt",
-      "anh": "",
+      "anh": "Close-up of Hạ pressing her lips together, holding back, still hugging the cardboard box at the bottom of frame, black marble lobby behind.",
       "vid": "Hạ presses her lips together and lowers her eyes. Static camera.",
       "mo": "Hạ has just heard his words and presses her lips together",
       "ket": "Hạ lowers her eyes and stays silent",
@@ -592,8 +674,13 @@
           "Lâm Hạ"
         ]
       },
-      "kf": "https://img.on.tc/xuong-video/keyframe/1753-b595aedb-e24c-4758-b5ac-d84f71da484f.jpg",
-      "vao": 0
+      "vao": 0,
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận Hạ: mím môi, nén lại, vẫn ôm thùng",
+      "ket_vi": "Hạ cụp mắt, im lặng"
     },
     {
       "co": "mcu",
@@ -635,7 +722,13 @@
           "loi": "Thẻ của công ty. Loại như cô, đừng mơ bước vào toà nhà này lần nữa.",
           "dien_xuat": "khinh miệt, chậm rãi"
         }
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Vivian cầm dây lắc tấm thẻ trước mặt Hạ, nói khinh miệt",
+      "ket_vi": "Vivian nghiêng đầu, chờ Hạ gục"
     },
     {
       "co": "cu",
@@ -673,7 +766,18 @@
           "loi": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.",
           "dien_xuat": "bình thản, có ý"
         }
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận Hạ: ngẩng lên nhìn Vivian, khẽ nhếch môi, nói",
+      "ket_vi": "Nói xong, Hạ quay về phía thang máy",
+      "sd_ket": {
+        "nhin": {
+          "Lâm Hạ": "thang"
+        }
+      }
     },
     {
       "co": "cu",
@@ -707,7 +811,13 @@
       "vao": 0.5,
       "am": [
         "dap"
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Cận Vivian: nụ cười khựng lại khi Hạ quay đi",
+      "ket_vi": "Vivian nhìn theo Hạ về phía thang máy, mặt cứng lại"
     },
     {
       "co": "ms",
@@ -721,7 +831,7 @@
         "Sơ mi trắng dính cà phê"
       ],
       "hd": "Hạ đứng trong thang máy ôm thùng, cửa thép khép dần",
-      "anh": "",
+      "anh": "Medium shot from the lobby: Hạ stands inside the open elevator car hugging the cardboard box, facing out, calm, the brushed-steel doors open on both sides.",
       "vid": "The steel elevator doors slide closed in front of Hạ, who stays still facing out. Static camera.",
       "mo": "Hạ stands inside the elevator facing out, hugging the box",
       "ket": "the steel doors slide shut in front of her calm face",
@@ -731,11 +841,16 @@
           "Lâm Hạ": "thang"
         }
       },
-      "kf": "https://img.on.tc/xuong-video/keyframe/1757-075ebbe4-4ccb-458a-8d39-0f59fa47c2f2.jpg",
       "vao": 1.0,
       "am": [
         "cuon_len"
-      ]
+      ],
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Hạ đứng trong thang máy ôm thùng, quay mặt ra",
+      "ket_vi": "Cửa thép khép lại trước mặt Hạ"
     }
   ],
   "mau": {

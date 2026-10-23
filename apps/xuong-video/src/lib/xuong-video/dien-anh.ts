@@ -28,7 +28,10 @@ export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, strin
   /** KỲ VỌNG từ sơ đồ cảnh (so-do-canh.ts › kyVong): người → phía màn (−1 trái / 0 giữa / +1 phải) + phía nhìn — cổng scripts/soat-huong.mts so với soi mặt */
   huong_so?: Record<string, { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 }>;
   /** TRẠNG THÁI ĐỒ VẬT ở shot này (so-vat.ts › dongVat, tiếng Việt cho người đọc storyboard; ⚡ = đổi ngay tại shot này) */ vat?: string[];
-  /** món PHẢI THẤY + cách giữ (tiếng Anh) — bộ chấm prompt đòi câu gửi model nói đủ (kiem-prompt.ts › loiTrangThaiVat) */ vat_so?: { ten: string; cach: string }[] };
+  /** món PHẢI THẤY + cách giữ (tiếng Anh) — bộ chấm prompt đòi câu gửi model nói đủ (kiem-prompt.ts › loiTrangThaiVat) */ vat_so?: { ten: string; cach: string }[];
+  /** KHUNG VẼ của shot (storyboard đầu / giữa / cuối — anh 24/10/2026): shot có thay đổi vẽ đầu + cuối; khung cuối = ảnh cuối của video */ khung_ve?: ('dau' | 'giua' | 'ket')[];
+  /** trạng thái đồ ở khung CUỐI (sự kiện trong shot đã xảy ra) — dòng đọc + món phải thấy */ vat_ket?: string[]; vat_so_ket?: { ten: string; cach: string }[];
+  /** kỳ vọng hướng ở khung CUỐI (cổng soat-huong) */ huong_so_ket?: Record<string, { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 }> };
 
 /** VẬT LÝ THẬT trong clip (19/10/2026 #1 tổng tài: câu diễn "coffee arcs" → cà phê vọt lên trời): chất lỏng / đồ vật theo trọng lực. Thể loại được
  *  phép phá vật lý (anh: "các dạng viễn tưởng… sẽ có ngoại lệ về vật lý") — viễn tưởng (phép thuật, phản trọng lực), hoạt hình (cường điệu), kinh dị

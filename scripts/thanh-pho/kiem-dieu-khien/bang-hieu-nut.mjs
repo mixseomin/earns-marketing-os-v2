@@ -14,6 +14,12 @@ await p.mouse.click(nut.x, nut.y); await p.waitForTimeout(800); await p.mouse.mo
 const n1 = await D(); console.log('bấm nút → biển hiện', n1, n1 === 0 ? '✓ tắt hết' : 'SAI'); if (S) await p.screenshot({ path: S + '/nb-tat.png' });
 const san = await p.evaluate((hub) => document.querySelector(".tp").__toaDoVat("cum-phim", hub), hub); await p.mouse.move(san.x, san.y); await p.waitForTimeout(300); const n2a = await D(); console.log('rê lên sân phim 300 ms → biển hiện', n2a, n2a === 0 ? '✓ chưa lộ (đang chờ, góp ý "bảng quá nhanh")' : 'SAI — lộ ngay'); await p.waitForTimeout(1000);
 const n2 = await D(); console.log('rê lên sân phim → biển hiện', n2, n2 === 1 ? '✓ lộ đúng 1' : 'SAI'); if (S) await p.screenshot({ path: S + '/nb-hover.png' });
-await p.mouse.move(5, 845); await p.waitForTimeout(300); const n3 = await D(); console.log('rời ra → biển hiện', n3, n3 === 0 ? '✓ ẩn lại' : 'SAI');
+await p.mouse.move(5, 845); await p.waitForTimeout(300); const n3 = await D();
+// rê vào CAMP của phim khi bảng hiệu tắt: chỉ thẻ camp, KHÔNG lộ biển phim (anh 24/10/2026 "hover camp thì không được hiện cái bên dưới")
+const camps = await p.evaluate((h) => document.querySelector('.tp').__toaDoDich('camp', h), hub); let trung = null;
+for (const c of camps) { await p.mouse.move(c.x, c.y); await p.waitForTimeout(60); const ds = await p.evaluate(() => document.querySelector('.tp').__dangSang()); if (ds?.dLoai === 'camp') { trung = c; break; } }
+if (!trung) console.log('rê vào camp: SAI — không tìm được camp trong màn để thử');
+else { await p.waitForTimeout(1300); const nc = await D(), the = await p.evaluate(() => document.querySelector('.meo').hidden ? '' : document.querySelector('.meo .dau')?.textContent ?? '');
+  console.log('rê vào camp → biển hiện', nc, nc === 0 ? '✓ không lộ biển phim' : 'SAI — lộ biển phim', '· thẻ camp:', the ? '✓ ' + the.slice(0, 40) : 'SAI — không có thẻ'); await p.mouse.move(5, 845); await p.waitForTimeout(500); } console.log('rời ra → biển hiện', n3, n3 === 0 ? '✓ ẩn lại' : 'SAI');
 const nut2 = await H('__toaDoVat', 'nut-bien'); await p.mouse.click(nut2.x, nut2.y); await p.waitForTimeout(800); const n4 = await D(); console.log('bấm lần nữa → biển hiện', n4, n4 === n0 ? '✓ bật lại hết' : 'SAI');
 await b.close();

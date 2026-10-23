@@ -1560,12 +1560,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // trên cùng một vật HOVER_CHO ms thẻ mới hiện — lướt ngang qua vật (kể cả sân / khu to) không bật thẻ
   // 450 ms anh vẫn thấy như hiện ngay (góp ý #1449) → 900 ms, chuột vẫn phải đứng yên
   const HOVER_CHO = 900;
+  // MỖI LẦN RÊ CHỈ HIỆN MỘT THỨ, CỦA ĐÚNG VẬT ĐANG RÊ (anh 24/10/2026: "hover camp thì không được hiện cái bên dưới, đéo liên quan"):
+  // · sân / biển phim khi bảng hiệu đang tắt → lộ biển phim đó (không kèm thẻ) · chính bảng xếp hạng → mở rộng bảng (không kèm thẻ)
+  // · mọi vật khác (camp, toà nền tảng, toà, xe…) → chỉ thẻ của nó; không còn lộ biển phim khi rê camp, không mở bảng xếp hạng khi rê toà nền tảng
+  const beMatHover = (o: any): { loai: 'bien'; kb: string } | { loai: 'bang' } | { loai: 'the' } | { loai: 'khong' } => { const u = o?.userData; if (!u) return { loai: 'khong' };
+    if (u.bangXh) return { loai: 'bang' };
+    if (u.loai === 'cum-phim' && u.hub && u.cum && tatBien[u.hub]) return { loai: 'bien', kb: `${u.hub}|${u.cum}` };
+    return { loai: 'the' }; };
   let henLo = 0, muonLo: { kb: string | null; bx: any } = { kb: null, bx: null };
   let meoCua: any = null, henAn = 0, henHien = 0, choHien: any = null, trongMeo = false, chuotCuoi = { x: 0, y: 0 }, moc = { x: 0, y: 0 };
   const henHienMeo = (o: any) => { if (choHien === o && Math.hypot(chuotCuoi.x - moc.x, chuotCuoi.y - moc.y) < 4) return; clearTimeout(henHien); choHien = o; moc = { ...chuotCuoi };
     henHien = window.setTimeout(() => { henHien = 0; choHien = null; if (dangSang === o && !trongMeo) hienMeo(o); }, HOVER_CHO); };
   const boHenHien = () => { clearTimeout(henHien); henHien = 0; choHien = null; };
-  const hienMeo = (o: any) => { if (o.userData?.bangXh) return; const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
+  const hienMeo = (o: any) => { if (beMatHover(o).loai !== 'the') return; const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
     meo.style.left = `${Math.max(8, Math.min(chuotCuoi.x - b.left + 16, W() - meo.offsetWidth - 8))}px`; meo.style.top = `${Math.max(8, Math.min(chuotCuoi.y - b.top + 16, H() - meo.offsetHeight - 8))}px`; };
   const anMeo = () => { clearTimeout(henAn); henAn = 0; boHenHien(); meo.hidden = true; meoCua = null; };
   const henAnMeo = () => { if (henAn) return; henAn = window.setTimeout(() => { henAn = 0; if (trongMeo) return; meo.hidden = true; meoCua = null; if (dangSang) henHienMeo(dangSang); }, 350); };
@@ -1574,9 +1581,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const onMove = (e: PointerEvent) => {
     datChuot(e); const o = chuDuoiChuot(); chuotCuoi = { x: e.clientX, y: e.clientY };
     if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
-      // bảng hiệu đang tắt: rê lên sân / biển / camp của phim → lộ biển phim đó, rời ra thì ẩn lại
-      const u = o?.userData, hubK = u?.hub ?? u?.d?.cha, cum = u?.cum ?? u?.d?.cumPhim, kb = hubK && cum && tatBien[hubK] ? `${hubK}|${cum}` : null;
-      const bx = u?.bangXh ? o : u?.loai === 'dich' && u.d?.loai === 'nen' ? bangXhCua.get(u.d.khoa) : null;
+      const bm = beMatHover(o), kb = bm.loai === 'bien' ? bm.kb : null, bx = bm.loai === 'bang' ? o : null;
       // biển phim lộ ra / bảng xếp hạng mở rộng cũng CHỜ như thẻ hover (anh 24/10/2026 "cái bảng này quá nhanh"): rời ra thì tắt ngay, vào thì đứng HOVER_CHO ms mới bật
       if (bienDangLo && kb !== bienDangLo) { datBien(bienDangLo, false); bienDangLo = null; }
       if (bangXhMo && bx !== bangXhMo) { datBangXh(bangXhMo, false); bangXhMo = null; }
@@ -1861,6 +1866,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__bangXh = (hub: string) => { const sp = bangXhCua.get(hub); if (!sp) return null; const v = new THREE.Vector3(); sp.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect();
     return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
   (host as any).__soKhung = () => soKhung;
+  // bộ kiểm: toạ độ màn của một đích theo loại (camp / nen…) thuộc hub
+  (host as any).__toaDoDich = (loaiD: string, hub: string) => { const b = r.domElement.getBoundingClientRect(), v = new THREE.Vector3();
+    return the.children.filter((x: any) => x.visible && x.userData?.loai === 'dich' && x.userData.d.loai === loaiD && (x.userData.d.cha === hub || x.userData.d.khoa === hub) && !x.userData.bangXh).slice(0, 40)
+      .map((o: any) => { o.getWorldPosition(v); v.y += 3; v.project(cam); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height }; }).filter((q: any) => q.x > 220 && q.x < b.width - 120 && q.y > 60 && q.y < b.height - 60); };
+  (host as any).__dangSang = () => (dangSang ? { loai: dangSang.userData?.loai ?? null, dLoai: dangSang.userData?.d?.loai ?? null } : null);
   (host as any).__anhXuong = (t?: number) => { if (!xuongDong) return null; veXuong(xuongDong.cv, xuongData, t ?? performance.now()); xuongDong.tx.needsUpdate = true; return xuongDong.cv.toDataURL('image/png'); };   // bộ kiểm: chụp bảng xưởng ở thời điểm t
   (host as any).__xeXuong = () => [...xeO].map(([id, m]) => ({ id, x: Math.round(m.position.x), z: Math.round(m.position.z), chay: !!m.userData.dangChay, cho: m.userData.chuCho ?? '', tram: phimO.get(id)?.s ?? -1, hien: m.visible && m.parent === the && m.layers.test(cam.layers) }));   // bộ kiểm: xe phim trong nhà máy
   (host as any).__dungLai = () => capNhat(mh);   // bộ kiểm: dựng lại cả cảnh như lượt làm mới mỗi phút

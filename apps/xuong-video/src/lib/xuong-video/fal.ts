@@ -204,6 +204,19 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
     if (co('resolution')) { const en = enumCua(p.resolution).map(String); const chon = en.find((x) => /768|720/.test(x)) ?? en[0]; if (chon) o.resolution = chon; }
     return o;
   }
+  // WAN VACE (độ sâu / khung xương từ video nguồn): clip diễn Blender lái hình học + chuyển động TỪNG KHUNG, keyframe đã duyệt làm khung đầu (ngoại hình, sảnh)
+  // — đường "render pass control" của ngành (flick.art › Wan 2.2 VACE "accepts depth and pose control video directly for frame-exact restyling").
+  // Seedance reference-to-video từ chối ảnh người thật (fal 422 "likenesses of real people", #132 #15a 23/10/2026).
+  if (co('video_url') && co('first_frame_url') && co('preprocess') && v.videoNguon && v.anhDau) {
+    o.video_url = v.videoNguon; o.first_frame_url = v.anhDau; o.preprocess = true;
+    if (co('ref_image_urls')) o.ref_image_urls = [v.anhDau];
+    if (co('match_input_num_frames')) o.match_input_num_frames = false;
+    if (co('num_frames')) o.num_frames = Math.max(81, Math.min(241, Math.round((v.giay ?? 5) * 16) + 1));
+    if (co('frames_per_second')) o.frames_per_second = 16;
+    if (co('resolution')) o.resolution = '720p';
+    if (v.tiLe && co('aspect_ratio')) o.aspect_ratio = enumCua(p.aspect_ratio).map(String).includes(v.tiLe) ? v.tiLe : 'auto';
+    return o;
+  }
   // CLIP DIỄN BLENDER LÀM KHUÔN CHUYỂN ĐỘNG (reference-to-video: video_urls + image_urls — Seedance 2.0; anh 23/10/2026 "tìm xem họ đang làm thế nào": ngành
   // đưa video dựng thô 3D làm tham chiếu chuyển động thay vì tả động tác bằng chữ — flick.art/blog/blender-ai-filmmaking). Ảnh đầu đã duyệt = ngoại hình +
   // sảnh; clip = chỉ chuyển động / chỗ đứng / nhịp / máy, KHÔNG lấy vẻ ma-nơ-canh xám.

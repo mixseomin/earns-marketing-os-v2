@@ -29,7 +29,7 @@ def ghep_mo(tm):
             o = f[:-4] + "-chuan.mp4"
             if not os.path.exists(o):
                 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f, "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1",
-                                "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
+                                *(["-c:v", "h264_videotoolbox", "-b:v", "8M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "16", "-preset", "veryfast"]), "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
             return o
         vao = [chuan(f) for f in vao]
     # tệp ghép mới hơn mọi tập → dùng lại (box3 23/10/2026: chữ đã đọc sẵn <ghep-cuoi>.chu.json gắn với tệp này; ghép lại = đổi giờ tệp = bỏ bản đọc)

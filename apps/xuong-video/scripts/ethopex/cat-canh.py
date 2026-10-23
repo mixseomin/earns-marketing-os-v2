@@ -18,6 +18,8 @@ def nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 gb = nap("gb", "ghep-b.py"); gx = gb.gx; CQ = nap("cta_qc", "cta_qc.py")
 W, H = gx.W, gx.H
+# MÃ HOÁ (23/10/2026): Mac dùng bộ mã hoá phần cứng (đo 85s: libx264 23,4s → videotoolbox 11,4s, SSIM 0,9935); box3 không có → libx264 như cũ
+MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "6M", "-maxrate", "9M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "18"]
 TOC_GIONG, VAO_TRUOC, Y_NUT = 1.15, 1.0, 1600
 
 def the_cuoi_anh(poster, hoi, ra):
@@ -48,7 +50,7 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
            f"[c][tc]concat=n=2:v=1:a=0[cv];"
            f"[1:v]format=rgba,fade=in:st=3:d=0.4:alpha=1[nut];[cv][nut]overlay=0:'{Y_NUT}+8*sin(2*PI*1.6*t)':shortest=1[v];" + am)
     gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{T}",
-          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
+          *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
     print(out, round(gx.dur(out), 1))
 
 if __name__ == "__main__":

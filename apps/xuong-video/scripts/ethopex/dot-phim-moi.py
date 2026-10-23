@@ -30,14 +30,14 @@ def cat_ds(phim, ten, n=2):
     ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); os.makedirs(ra, exist_ok=True)
     for p in phim:
         tm = os.path.join(N, str(p["id"]))
-        if not (os.path.isdir(tm) and any(f.startswith("tap") for f in os.listdir(tm))):
+        if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
             os.makedirs(tm, exist_ok=True); r = sh(f"python3 {D}/tai-tap.py '{p['url']}' {tm} 8", timeout=900)
             print("tải", p["id"], p["ten"][:40], (r.stdout.strip().splitlines() or [r.stderr.strip()[-120:]])[-1][:120], flush=True)
     tsv = os.path.join(ra, "lo.tsv")
     with open(tsv, "w") as f:
         for p in phim:
             tm = os.path.join(N, str(p["id"]))
-            if any(x.startswith("tap") for x in os.listdir(tm)): f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")
+            if any(x.startswith("tap") and x.endswith(".mp4") for x in os.listdir(tm)): f.write(f"{p['id']}\t{p['locale']}\t{p['nguon']}\t{p['ten']}\t{p['url']}\n")
     r = subprocess.run([*uu_tien(), "python3", f"{D}/cat-cuoi-lo.py", N, tsv, ra, str(n), "2"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-3000:], flush=True)
     to_soat(ra)

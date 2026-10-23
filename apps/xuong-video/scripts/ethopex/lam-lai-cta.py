@@ -22,7 +22,7 @@ def lam(x, ra):
     if x.get("nguon_qc"): src = os.path.join(os.path.expanduser("~/.cache/ethopex/nguon-qc"), f"{x['nguon_qc']}.mp4")   # cảnh thật lô 19–21/10: cắt từ video QC spy
     elif x.get("dai"): src = CCL.DL.ghep(tm, 1)[0]                                                                       # phim dài 2110ns: mốc tính từ đầu tập 1 (tệp ghép chuẩn hoá của dung-lo-dai)
     if not x.get("nguon_qc") and not os.path.exists(src) and os.path.exists(os.path.join(tm, cid + ".mp4")): src = os.path.join(tm, cid + ".mp4")   # nguồn một tệp (Number One 94344)
-    if not x.get("nguon_qc") and not os.path.exists(src) and any(f.startswith("tap") for f in os.listdir(tm)): src = CCL.ghep_mo(tm)[0]                 # còn tập lẻ → ghép lại
+    if not x.get("nguon_qc") and not os.path.exists(src) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): src = CCL.ghep_mo(tm)[0]                 # còn tập lẻ → ghép lại
     if not os.path.exists(src): return {**x, "loi": f"không có nguồn {src}"}
     if not os.path.exists(pst): CCL.DL.poster(os.path.join(tm, "poster.jpg"), pst)
     tu, den = float(x["tu"]), float(x["den"])

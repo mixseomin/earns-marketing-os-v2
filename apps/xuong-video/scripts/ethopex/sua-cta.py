@@ -44,10 +44,10 @@ def nguon_spy(qc):
 
 def nguon_sach(cid, url):
     tm = os.path.join(N, str(cid))
-    co = os.path.isdir(tm) and any(x.startswith("tap") or x == "ghep-cuoi.mp4" or x == f"{cid}.mp4" for x in os.listdir(tm))
+    co = os.path.isdir(tm) and any((x.startswith("tap") and x.endswith(".mp4")) or x == "ghep-cuoi.mp4" or x == f"{cid}.mp4" for x in os.listdir(tm))
     if not co and url:
         os.makedirs(tm, exist_ok=True); sh(f"python3 {D}/tai-tap.py '{url}' {tm} 8", timeout=1800)
-    return tm if os.path.isdir(tm) and any(x.startswith("tap") or x.endswith(".mp4") for x in os.listdir(tm)) else None
+    return tm if os.path.isdir(tm) and any(x.endswith(".mp4") for x in os.listdir(tm)) else None
 
 UNG_VIEN = r'''
 import json, os, subprocess, urllib.request, datetime as dt

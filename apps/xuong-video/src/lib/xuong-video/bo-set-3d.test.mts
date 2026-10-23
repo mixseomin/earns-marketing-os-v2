@@ -220,7 +220,8 @@ const bam = [new URL('../../../scripts/bo-set/dung-set.py', import.meta.url), ..
 // BAN_DUNG 111: ảnh quét vật liệu chỉ góp ĐỘ SÁNG (vân), màu theo màu khai của vật (tường đá đen ra be ở khung màu → keyframe kết đổi sảnh, #132)
 // BAN_DUNG 112 (23/10/2026): mặt nạ MÓN ĐỘNG mở / kết / giữa (ve_mat_na dong) + máy yên → ảnh kết chép nền từ keyframe mở (ghep-vung.ts › ghepNenKet)
 // BAN_DUNG 113: máy chỉ XOAY tại chỗ (lia theo người) ở kết / giữa → 4 góc khung kết đặt trên khung mở (goc_ve_mo) — ảnh mở chuyển đồng phẳng sang góc kết
-assert.deepEqual([BAN_DUNG, bam], [113, 'cb083bb3ed34'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+// BAN_DUNG 114: máy dời chỗ (đẩy vào) ở kết / giữa → tia từ 4 góc trúng bộ set chiếu về máy mở (gần đúng theo mặt sảnh sau, #132 #19)
+assert.deepEqual([BAN_DUNG, bam], [114, '36abe49c288d'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));

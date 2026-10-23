@@ -2138,16 +2138,23 @@ for sh in ([] if CHI_MB else shots):
         cat_dau(cam, sh, list(n0.lerp(n1, t)))
     may0 = (cam.matrix_world.copy(), cam.data.lens, [Vector(v) for v in cam.data.view_frame(scene=s)])
     def goc_ve_mo():
-        """MÁY CHỈ XOAY TẠI CHỖ (đứng yên, hoặc lia / ngửa theo người — ngam_lai) ở khung kết / giữa: chỗ đặt + ống kính trùng khung mở → điểm ảnh khung mở chuyển
-        ĐÚNG sang khung này bằng một phép đồng phẳng (xoay quanh tâm máy, không cần độ sâu). Trả 4 góc khung NÀY (trên-trái, trên-phải, dưới-phải, dưới-trái)
-        đặt trên khung MỞ (x, y 0..1 gốc trên-trái, có thể ra ngoài 0..1), None khi máy dời chỗ / đổi ống (dolly, zoom — phải có độ sâu)."""
+        """4 góc khung kết / giữa (trên-trái, trên-phải, dưới-phải, dưới-trái) đặt trên khung MỞ (x, y 0..1 gốc trên-trái, có thể ra ngoài 0..1) — ảnh kết chép
+        nền từ keyframe mở qua phép đồng phẳng (ghep-vung.ts › ghepNenKet). Máy XOAY / ZOOM tại chỗ (đứng yên, lia theo người — ngam_lai): đúng tuyệt đối,
+        không cần độ sâu. Máy DỜI CHỖ (đẩy vào, dolly — #132 #19): bắn tia từ máy qua 4 góc vào bộ set, điểm trúng chiếu về máy mở — gần đúng theo mặt sảnh
+        phía sau (thị sai vật gần máy không đúng hẳn, vùng đó thường ra khỏi khung khi đẩy vào). None khi tia trượt / góc nằm sau lưng máy mở."""
         bpy.context.view_layer.update()
-        if abs(cam.data.lens - may0[1]) > 1e-3 or (cam.matrix_world.translation - may0[0].translation).length > 1e-4: return None
         vf0 = may0[2]; xs = [v.x for v in vf0]; ys = [v.y for v in vf0]; fz = vf0[0].z; inv0 = may0[0].inverted(); out = []
+        o = cam.matrix_world.translation.copy(); doi = (o - may0[0].translation).length > 1e-4
+        dg = bpy.context.evaluated_depsgraph_get()
         vf = [Vector(v) for v in cam.data.view_frame(scene=s)]   # thứ tự Blender: trên-phải, dưới-phải, dưới-trái, trên-trái
         for v in (vf[3], vf[0], vf[1], vf[2]):
-            q = inv0 @ (cam.matrix_world @ v)
-            if q.z > -1e-6: return None   # góc khung này nằm sau lưng máy mở (xoay > 90°)
+            w = cam.matrix_world @ v
+            if doi:
+                hit, loc, *_ = s.ray_cast(dg, o, (w - o).normalized())
+                if not hit: return None
+                w = loc
+            q = inv0 @ w
+            if q.z > -1e-6: return None
             k = fz / q.z; out.append([round((q.x * k - min(xs)) / (max(xs) - min(xs)), 5), round(1 - (q.y * k - min(ys)) / (max(ys) - min(ys)), 5)])
         return out
     if co_mau or dong:

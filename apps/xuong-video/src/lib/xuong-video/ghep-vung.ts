@@ -135,7 +135,7 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   const bc = await boiCanhCanh(db, canhId);
   const d = bc?.canh.khung_xam?.dong; const b = giua ? d?.giua : d?.ket; const goc = giua ? d?.giua_goc : d?.ket_goc;
   if (!bc?.canh.keyframe_url || !d || !b || goc?.length !== 4) return null;
-  // ĐỒNG PHẲNG khung NÀY (x, y 0..1) → khung MỞ (u, v): máy xoay tại chỗ nên mọi điểm sảnh chuyển đúng (đứng yên = đồng nhất)
+  // ĐỒNG PHẲNG khung NÀY (x, y 0..1) → khung MỞ (u, v): máy xoay tại chỗ → đúng mọi điểm (đứng yên = đồng nhất); máy đẩy vào → gần đúng theo mặt sảnh sau
   const Hm = dongPhang([[0, 0], [1, 0], [1, 1], [0, 1]].map(([x, y], k) => ({ x: x!, y: y!, u: goc[k]![0]!, v: goc[k]![1]! })));
   if (!Hm) return null;
   const A = await rgba(await taiAnh(bc.canh.keyframe_url)); const W = A.w, H = A.h;

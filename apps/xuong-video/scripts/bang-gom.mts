@@ -67,6 +67,11 @@ async function sinh(o: { nhan: string; prompt: string; refs: string[]; tiLe: '9:
   for (let i = 0; i < 120; i++) { const r = (await q(sql`SELECT trang_thai, output_url, loi FROM xv_job WHERE id = ${job}`))[0]!; if (r.trang_thai === 'xong' && r.output_url) return String(r.output_url); if (r.trang_thai === 'loi') throw new Error(String(r.loi)); await new Promise((ok) => setTimeout(ok, 5000)); }
   throw new Error(`job ${job} quá 10 phút`);
 }
+/** CHẠY SONG SONG có trần (anh 24/10/2026: "tại sao không sinh song song? lần nào cũng phải nhắc"): việc AI độc lập không bao giờ chạy lần lượt. */
+async function songSong<T>(ds: T[], tran: number, fn: (x: T, i: number) => Promise<void>): Promise<void> {
+  let k = 0; await Promise.all(Array.from({ length: Math.min(tran, ds.length) }, async () => { while (k < ds.length) { const i = k++; await fn(ds[i]!, i); } }));
+}
+const SONG_SONG = Number(gia('song-song') || 8);
 /** Dò khung theo viền trắng: cột = đoạn không trắng theo chiều ngang, trong mỗi cột khung = đoạn không trắng theo chiều dọc; đọc hàng k = khung thứ k mỗi cột. */
 async function doKhung(buf: Buffer, can?: number) {
   const { data: px, info } = await sharp(buf).greyscale().raw().toBuffer({ resolveWithObject: true }); const W = info.width, H = info.height;
@@ -218,38 +223,45 @@ if (tang === 'khoi') {
   // 1. TỔNG THỂ cả cảnh
   const tong = await luoiPhacKhung(tatCaKhung, Math.min(6, Math.ceil(Math.sqrt(tatCaKhung.length * 1.6))), 'tong'); console.log(`tổng thể: ${tong.so} (${tatCaKhung.length} khung)`);
   await ghiTap({ phac: tong.so }); if (process.argv.includes('--chi-phac')) process.exit(0);
-  // 2. KHỐI
-  moc.t2 = {}; moc.khoi = []; moc.khoiSo = []; let truoc: string | null = null; const khoiKhung: { tu: number; den: number }[] = [];
-  for (let a = 0; a < tatCaKhung.length; a += khoi) {
-    const nhom = tatCaKhung.slice(a, a + khoi); const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2);
+  // 2. KHỐI — khối ĐẦU sinh trước, các khối sau SONG SONG cùng lấy bảng khối đầu làm tham chiếu (mặt, sảnh, đồ); thứ tự logic giữ bằng tờ phác + câu trạng
+  // thái đồ của từng khối. Khối đã có trong mốc (chạy lại sau khi dừng) → dùng lại, không trả tiền lần hai.
+  const cacKhoi: Khung[][] = []; for (let a = 0; a < tatCaKhung.length; a += khoi) cacKhoi.push(tatCaKhung.slice(a, a + khoi));
+  const t2 = (moc.t2 ??= {}) as Record<string, string>; moc.khoi ??= []; moc.khoiSo ??= [];
+  const xongKhoi = (j: number) => !!moc.khoi![j] && cacKhoi[j]!.every((k) => t2[k.key]);
+  const mauChu = Object.entries(bm.mau ?? {}).map(([n, c]) => `${c === '#f4f4f4' ? 'white' : c === '#141414' ? 'black' : 'dark red'} figure = ${n}`).join(', ');
+  const sinhKhoi = async (nhom: Khung[], j: number, truoc: string | null) => {
+    const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2);
     const phacKhoi = (await luoiPhacKhung(nhom, cot2, `khoi-${nhom[0]!.key}`)).tron;
     const shotKhoi = [...new Map(nhom.map((k) => [k.c.id, k.c])).values()];
     const refs = thamChieu(shotKhoi, truoc ? 6 : 7); const lech = truoc ? 3 : 2;
-    const mauChu = Object.entries(bm.mau ?? {}).map(([n, c]) => `${c === '#f4f4f4' ? 'white' : c === '#141414' ? 'black' : 'dark red'} figure = ${n}`).join(', ');
     const prompt = [`A film storyboard sheet of EXACTLY ${nhom.length} separate panels (${cot2} columns × ${hang2} rows, read left to right, top to bottom), every panel a vertical 9:16 photorealistic live-action film still of equal size, separated by thin plain white gutters. Consecutive panels can be the FIRST, MIDDLE and LAST moments of the same shot: keep that shot's camera and framing identical between them and change only what the action changes. ${KHONG_CHU}`,
       `Image 1 is the BLOCKING SKETCH of this exact sheet: the same grid and panel order. In every panel copy its camera framing and staging exactly — where the back wall, the elevator doors (light grey) and the gold painting (yellow) are, where each person stands and how big they are (${mauChu}; two dark dots = the face turned toward us, a dark head = seen from behind), and the red arrow = the direction that person looks. Turn the sketch into photorealistic film stills; never draw the sketch shapes, colours or arrows themselves.`,
-      ...(truoc ? ['Image 2 is the PREVIOUS sheet of this same scene, just before these panels: keep exactly the same place, light, faces, hair, outfits and the state of every object as it ends there.'] : []),
+      ...(truoc ? ['Image 2 is an EARLIER sheet of this same scene: keep exactly the same place, light, faces, hair and outfits. Object states follow the panel descriptions below (they may have changed since that sheet).'] : []),
       `Reference images: ${refs.map(([k], i) => `Image ${i + lech} = ${k}`).join('; ')}.`,
       'Every panel happens in that same place (never a blank or plain wall background — close-ups still show it softly behind).',
-      ...nhom.map((k, j) => `PANEL ${j + 1} — ${k.moTa}`)].join('\n');
+      ...nhom.map((k, i) => `PANEL ${i + 1} — ${k.moTa}`)].join('\n');
     let u2 = ''; let d2: Awaited<ReturnType<typeof doKhung>> | null = null;
     for (let lan = 1; lan <= 2 && !d2; lan++) {   // cổng quá giờ / model vẽ sai số khung → thử lại một lần (lượt lỗi cổng không tính tiền)
       try { u2 = await sinh({ nhan: `Phân cảnh khối ${nhom[0]!.nhan} → ${nhom.at(-1)!.nhan}`, prompt, refs: [phacKhoi, ...(truoc ? [truoc] : []), ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
         const d = await doKhung(await tai(u2), nhom.length); console.log(`khối ${nhom[0]!.nhan} → ${nhom.at(-1)!.nhan}: ${u2} — dò ${d.khung.length} khung (${d.mo_ta})`); if (d.khung.length === nhom.length) d2 = d; }
-      catch (e) { console.error(`  lần ${lan}: ${e instanceof Error ? e.message : e}`); }
+      catch (e) { console.error(`  khối ${nhom[0]!.nhan} lần ${lan}: ${e instanceof Error ? e.message : e}`); }
     }
-    if (!d2) { console.error('  khối này hỏng 2 lần — dừng'); luu(); process.exit(1); }
+    if (!d2) { console.error(`  khối ${nhom[0]!.nhan} hỏng 2 lần — bỏ, chạy lại sau`); return; }
     const b2 = await tai(u2);
-    for (const [j, k] of nhom.entries()) moc.t2[k.key as unknown as number] = await len(await cat(b2, d2.khung[j]!), `t2-${k.c.id}-${k.luc}`);
-    moc.khoi.push(u2); truoc = u2; moc.khoiSo.push(await len(await danhSo(b2, d2.khung, nhom.map((k) => k.nhan)), `khoi-so-${nhom[0]!.key}`)); khoiKhung.push({ tu: nhom[0]!.c.thu_tu, den: nhom.at(-1)!.c.thu_tu }); luu();
-    await ghiTap({ khoi: moc.khoiSo.map((url, j) => ({ ...khoiKhung[j]!, url })) });
-  }
+    for (const [i, k] of nhom.entries()) t2[k.key] = await len(await cat(b2, d2.khung[i]!), `t2-${k.c.id}-${k.luc}`);
+    moc.khoi![j] = u2; moc.khoiSo![j] = await len(await danhSo(b2, d2.khung, nhom.map((k) => k.nhan)), `khoi-so-${nhom[0]!.key}`); luu();
+  };
+  if (!xongKhoi(0)) await sinhKhoi(cacKhoi[0]!, 0, null);
+  const dau = moc.khoi[0] ?? null;
+  await songSong(cacKhoi.map((_, j) => j).filter((j) => j > 0 && !xongKhoi(j)), SONG_SONG, (j) => sinhKhoi(cacKhoi[j]!, j, dau));
+  await ghiTap({ khoi: cacKhoi.map((n, j) => ({ tu: n[0]!.c.thu_tu, den: n.at(-1)!.c.thu_tu, url: moc.khoiSo![j] ?? '' })).filter((x) => x.url) });
+  if (cacKhoi.some((_, j) => !xongKhoi(j))) { console.error('còn khối chưa xong — chạy lại lệnh (khối đã có được dùng lại)'); process.exit(1); }
   if (process.argv.includes('--chi-khoi')) process.exit(0);
 }
 
 // ── 3. CHI TIẾT: phóng từng khung của bảng khối → keyframe (đầu) / keyframe_giua (giữa) / keyframe_ket (cuối) ─────────────────────────────────────────
-for (const k of tatCaKhung) {
-  const c = k.c; const urlCat = (moc.t2 as Record<string, string> | undefined)?.[k.key] ?? (k.luc === 'dau' ? moc.t2?.[c.thu_tu] : undefined); if (!urlCat) { console.error(`${k.nhan}: chưa có khung từ bảng khối`); continue; }
+await songSong(tatCaKhung, SONG_SONG, async (k) => {
+  const c = k.c; const urlCat = (moc.t2 as Record<string, string> | undefined)?.[k.key] ?? (k.luc === 'dau' ? moc.t2?.[c.thu_tu] : undefined); if (!urlCat) { console.error(`${k.nhan}: chưa có khung từ bảng khối`); return; }
   const matShot = c.nhan_vat.map(ten).filter((v): v is NhanVat => !!v && v.loai === 'nhan_vat').map((v) => [v.ten, v.anh_mat?.url?.[0] ?? v.anh_ref[0]] as const).filter(([, u]) => !!u);
   const p3 = [`Image 1 is one frame cut from a storyboard sheet. Re-render it as a full-resolution vertical 9:16 photorealistic live-action film still (if the panel is wider than 9:16, extend the scene naturally above and below — never crop anyone) with EXACTLY the same composition, camera angle, framing, people, poses, positions on screen, gaze directions, hands, objects and their states, and lighting — do not move, add or remove anything, do not change where anyone looks.`,
     'Only add detail and sharpness and render real skin, fabric and hair texture.', matShot.length ? `Faces must match these reference photos: ${matShot.map(([t], j) => `Image ${j + 2} = ${t}`).join('; ')}.` : '', 'No text, captions or borders.'].filter(Boolean).join(' ');
@@ -257,13 +269,13 @@ for (const k of tatCaKhung) {
     else await db.execute(k.luc === 'ket' ? sql`UPDATE xv_canh SET keyframe_ket = ${url}, updated_at = now() WHERE id = ${c.id}` : sql`UPDATE xv_canh SET keyframe_giua = ${url}, updated_at = now() WHERE id = ${c.id}`); };
   // đã phóng từ ĐÚNG ảnh cắt này rồi (chạy lại sau lỗi cổng) → dùng lại, không trả tiền lần hai
   const da = (await q(sql`SELECT output_url FROM xv_job WHERE canh_id = ${c.id} AND trang_thai = 'xong' AND output_url IS NOT NULL AND request->'thamChieuUrl'->>0 = ${urlCat} ORDER BY id DESC LIMIT 1`))[0];
-  if (da) { await ghi(String(da.output_url)); console.log(`${k.nhan} → ${da.output_url} (đã có)`); continue; }
+  if (da) { await ghi(String(da.output_url)); console.log(`${k.nhan} → ${da.output_url} (đã có)`); return; }
   let url = '';
   for (let lan = 1; lan <= 3 && !url; lan++) {
     try { url = await sinh({ nhan: `Keyframe ${k.nhan} (phân cảnh)`, prompt: p3, refs: [urlCat, ...matShot.map(([, u]) => u!)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id }); }
     catch (e) { console.error(`${k.nhan} lần ${lan}: ${e instanceof Error ? e.message : e}`); if (lan < 3) await new Promise((ok) => setTimeout(ok, 20_000)); }
   }
-  if (!url) { console.error(`${k.nhan}: bỏ qua sau 3 lần lỗi`); continue; }
+  if (!url) { console.error(`${k.nhan}: bỏ qua sau 3 lần lỗi`); return; }
   await ghi(url); console.log(`${k.nhan} → ${url}`);
-}
+});
 process.exit(0);

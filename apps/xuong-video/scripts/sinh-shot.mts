@@ -133,7 +133,8 @@ if (arg('video')) {
   // đang chạy; clip xong mới gửi tiếp; bị hạn mức thì đợi 60s rồi gửi lại (lượt bị từ chối không tốn tiền).
   // Trần song song THEO CỔNG (anh 24/10/2026: "sao không sinh song song?" — 17 clip qua Kie chạy 2 một lúc, vòng 50 phút không kịp): Google trực tiếp
   // ~3 yêu cầu cùng lúc → 2; cổng trung gian (Kie / PlenX) tự xếp hàng phía họ → 8. --song-song đè khi cần.
-  const congDau = bcs[0] ? chuoiVideo(moHinhVideo ?? bcs[0].kt.mo_hinh_video, false)[0]?.cong : undefined;
+  // model khoá cổng 'kie:veo3_lite' / 'fal:…' → cổng là tiền tố; model trần 'veo-…' → cổng đầu chuỗi (cong-ai.ts › chuoiVideo)
+  const mVid = String(moHinhVideo ?? bcs[0]?.kt.mo_hinh_video ?? ''); const congDau = /^[a-z]+:/.test(mVid) ? mVid.split(':')[0] : chuoiVideo(mVid, false)[0]?.cong ?? 'google';
   const toiDa = Number((process.argv.find((a) => a.startsWith('--song-song=')) ?? '').split('=')[1] || (congDau && congDau !== 'google' ? 8 : 2));
   const phutToiDa = Math.max(50, Math.ceil(bcs.length / toiDa) * 12);   // vòng chờ đủ cho số clip / trần song song (~8–10 phút mỗi lượt clip)
   const cho = [...bcs]; const chay = new Map<number, number>(); const jobs: number[] = []; let nghi = 0; let soLanCho = 0; let dungHan = false;

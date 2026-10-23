@@ -145,14 +145,29 @@ assert.match(mH.dich.find((x) => x.khoa === 's:steamsolo.com')?.canhBao ?? '', /
 // siteOf: URL, tên miền trần, rỗng, rác
 assert.equal(siteOf('https://www.ratesbyroom.com/x?y=1'), 'ratesbyroom.com'); assert.equal(siteOf('clane.app/giochap'), 'clane.app');
 assert.equal(siteOf(null), null); assert.equal(siteOf(''), null); assert.equal(siteOf('http://'), null);
-// ETHOPEX: toà nền tảng giữ tiền Kho bạc (một lần), camp quanh nó mang thu / chi 30 ngày, camp không tiền không chạy thì bỏ, tối đa 18
-const camps = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, ten: `Phim ${i + 1} EN`, phim: `Phim ${i + 1}`, ngonNgu: 'en', trangThai: i < 20 ? 'active' : 'paused', thu30: i, chi30: i / 2 }));
+// ETHOPEX (góp ý #1439): toà nền tảng giữ tiền Kho bạc (một lần); camp theo CỤM PHIM — đang chạy mỗi camp một toà, tắt gộp một toà kho / phim,
+// bản nhân bản trỏ camp gốc, lên lịch / vi phạm có loại riêng
+const camps = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, ten: `Phim ${i % 5} EN - canh that`, phim: `Phim ${i % 5}`, phimId: 100 + (i % 5), ngonNgu: 'en', trangThai: i < 20 ? 'active' : 'paused', thu30: i, chi30: i / 2 }));
+camps.push({ id: 30, ten: 'Phim 0 EN - canh that (nhan ban 2 cua 1)', phim: 'Phim 0', phimId: 100, ngonNgu: 'en', trangThai: 'active', thu30: 1, chi30: 1 } as any,
+  { id: 31, ten: 'Phim 0 EN - canh that (nhan ban 1 cua 21)', phim: 'Phim 0', phimId: 100, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0 } as any,
+  { id: 32, ten: 'Phim 1 EN - ke chuyen', phim: 'Phim 1', phimId: 101, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0, lich: true, dang: 'kể chuyện' } as any,
+  { id: 33, ten: 'Phim 2 EN', phim: 'Phim 2', phimId: 102, ngonNgu: 'en', trangThai: 'paused', thu30: 0, chi30: 2, viPham: true } as any,
+  { id: 34, ten: 'Phim 3 EN', phim: 'Phim 3', phimId: 103, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 12, sapTat: true, nhanBanDuoc: true } as any);
 const mE = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, duAn: [...live.heSinhThai.duAn, { id: 'ethopex', ten: 'Ethopex', site: 'app.ethopex.dev', ngung: false }],
   camps: [...camps, { id: 99, ten: 'Tắt', phim: null, ngonNgu: null, trangThai: 'paused', thu30: 0, chi30: 0 }],
   tienAff: [...((live.heSinhThai as any).tienAff ?? []), { site: null, mang: 'Ethopex', duAn: 'ethopex', usd: 500 }], chi: [...((live.heSinhThai as any).chi ?? []), { nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: 300 }] } } as any);
 const hub = mE.dich.find((x) => x.khoa === 'n:ethopex')!, cs = mE.dich.filter((x) => x.loai === 'camp');
 assert.ok(hub && hub.tien30 === 500 && hub.chi30 === 300 && hub.duAn === 'd:ethopex', 'tiền / chi Ethopex vào toà nền tảng');
-assert.ok(cs.length === 18 && cs.every((c) => c.cha === 'n:ethopex') && cs[0]!.tien30 === 24 && !cs.some((c) => c.khoa === 'c:99'), 'camp nhiều tiền nhất, tối đa 18, camp tắt không tiền bỏ');
+const kho = cs.filter((c) => c.campLoai === 'tat'), cId = (id: number) => cs.find((c) => c.khoa === `c:${id}`);
+assert.equal(cs.filter((c) => c.campLoai !== 'tat').length, 20 + 5, 'mọi camp đang chạy + camp vi phạm đều có toà (không còn trần 18)');
+assert.ok(cs.every((c) => c.cha === 'n:ethopex' && c.cumPhim), 'mọi camp thuộc nền tảng và có cụm phim');
+assert.deepEqual(kho.map((c) => `${c.cumPhim}=${c.soTat}`).sort(), ['f:100=1', 'f:101=1', 'f:102=1', 'f:103=1', 'f:104=1', 'f:tắt=1'], 'camp đã tắt gộp MỘT toà kho mỗi phim (camp không phim gom theo tên)');
+assert.equal(kho.find((c) => c.cumPhim === 'f:100')!.tien30, 20, 'toà kho cộng thu của camp tắt trong phim');
+assert.equal(cId(30)!.campGoc, 'c:1', 'bản nhân bản trỏ camp gốc đang hiện');
+assert.equal(cId(31)!.campGoc, null, 'gốc đã tắt (vào kho) thì bản nhân bản đứng riêng');
+assert.ok(cId(32)!.campLoai === 'lich' && cId(32)!.dangCr === 'kể chuyện', 'camp lên lịch + dạng creative');
+assert.ok(cId(33)!.campLoai === 'vi-pham' && !cs.some((c) => c.campLoai === 'tat' && c.cumPhim === 'f:102' && c.soTat === 2), 'camp vi phạm hiện riêng dù đã dừng, không vào kho');
+assert.ok(cId(34)!.sapTat && cId(34)!.nhanBanDuoc && cId(34)!.campLoai === 'chay', 'cờ bốc khói + nhân bản đi theo camp');
 assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một lần, không cộng thêm camp');
 // QUY MÔ = max(tiền + ROI, lưu lượng): khu có tiền nhất = 1, khu đông khách nhất = 1, khu không tiền không khách = 0, xưởng = 0
 { const qm = (k: string) => mE.duAn.find((x) => x.khoa === k)?.quyMo;

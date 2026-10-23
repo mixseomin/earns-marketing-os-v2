@@ -68,6 +68,11 @@ export interface PhoDich {
   giaiDoan?: 'sx' | 'tham-dinh'; vungSx?: string;
   /** camp: ngôn ngữ, trạng thái chạy, phim */
   ngonNgu?: string | null; phim?: string | null;
+  /** CAMP ETHOPEX theo cụm phim (góp ý city #1439): cumPhim = khoá cụm ('f:<content_id>' hoặc tên phim) · campLoai: 'chay' đang chạy · 'lich' đã lên lịch
+   *  (camp mới, đứng hàng cạnh cụm) · 'vi-pham' ad bị Meta từ chối (màu riêng) · 'tat' = KHO camp đã tắt của phim (một toà, soTat camp) ·
+   *  campGoc = khoá camp gốc khi đây là bản nhân bản (toà nhỏ đứng quanh gốc) · dangCr = dạng creative (hình toà khác nhau) ·
+   *  nhanBanDuoc = đủ luật NB (dấu riêng) · sapTat = lỗ sâu chạm luật OFF (bốc khói) */
+  cumPhim?: string; campLoai?: 'chay' | 'lich' | 'vi-pham' | 'tat'; campGoc?: string | null; dangCr?: string | null; nhanBanDuoc?: boolean; sapTat?: boolean; soTat?: number;
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
   online?: number; ngay?: Record<string, number>; canhBao?: string | null;
   /** khách có mặt trong 30 phút qua (cột 30M bảng SEO) — người đi vào / ra toà */
@@ -156,7 +161,9 @@ export interface VaoHeSinhThai {
   /** phòng ban công ty AI: trưởng phòng, dự án phụ trách, đang hoạt động, số việc nền 24 giờ, việc gần nhất */
   congTy?: PhoPhong[];
   /** CAMP ETHOPEX (ethopex-doc): thu / chi 30 ngày mỗi camp (cùng cửa sổ với tiền Ethopex của Kho bạc) */
-  camps?: { id: number; ten: string; phim: string | null; ngonNgu: string | null; trangThai: string; thu30: number; chi30: number; nganSachNgay?: number }[];
+  camps?: { id: number; ten: string; phim: string | null; ngonNgu: string | null; trangThai: string; thu30: number; chi30: number; nganSachNgay?: number;
+    /** content_id phim · dạng creative · ad bị từ chối · đã lên lịch (giờ bắt đầu ở tương lai) · đủ luật nhân bản NB · lỗ sâu chạm luật OFF (ethopex-luat, bộ đọc chấm) */
+    phimId?: number | null; dang?: string | null; viPham?: boolean; lich?: boolean; nhanBanDuoc?: boolean; sapTat?: boolean }[];
   /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
   taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; canhBaoDs?: PhoTaiNguyen['canhBaoDs']; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
     proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[] };
@@ -178,8 +185,8 @@ const vungCua = (d: { loai: string; nenBan?: string }) => (d.loai === 'app' || N
 const CHO_DUYET = new Set(['in_review', 'owner_review', 'pending', 'submitted']);
 /** khu XƯỞNG SX (anh 22/10/2026): mọi đích chưa lên — đứng cạnh Công ty AI, không chen vào khu dự án */
 export const KHU_XUONG = 'xuong';
-/** số camp Ethopex dựng thành toà quanh khu (nhiều tiền nhất); phần còn lại cộng vào toà Ethopex */
-const CAMP_TOI_DA = 18;
+/** bản nhân bản camp Ethopex: nhan-ban.py đặt tên "<tên gốc> (nhan ban N cua <id gốc>)" */
+export const goCampGoc = (ten: string): number | null => { const m = ten.match(/\(nhan ban \d+ cua (\d+)\)\s*$/); return m ? Number(m[1]) : null; };
 /** tên nguồn cửa hàng → chữ người đọc + host lấy favicon */
 const NGUON_CH: Record<string, [string, string | null]> = { 'App Store search': ['Tìm trên App Store', 'apps.apple.com'], 'App Store browse': ['Duyệt App Store', 'apps.apple.com'], 'Web referrer': ['Từ web', null], 'App referrer': ['Từ app khác', null], 'Institutional purchase': ['Mua tổ chức', null], direct: ['Trực tiếp', null], Unavailable: ['Không rõ', null] };
 const TRANG_THAI_LEN = new Set(['published', 'active', 'live']);
@@ -341,14 +348,23 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     if (da && hst.duAn.find((x) => x.id === da)?.site == null && !hst.duAnSite.some((x) => x.duAn === da) && dich.filter((y) => y.loai === 'site' && tuTk(y.khoa) === da).length > 1) da = null;
     d.duAn = da ? `d:${da}` : `rieng:${site}`;
   }
-  // ── ETHOPEX (anh 22/10/2026 "dự án chính với dòng tiền đang có"): toà nền tảng ở tâm khu, mỗi camp một toà quanh (thu / chi 30 ngày, vòng lãi lỗ);
-  //    tiền Kho bạc vẫn tính một lần ở toà nền tảng (camp không mang tienPhan) — tổng camp lệch tổng nền tảng khi có camp ngoài top
+  // ── ETHOPEX (anh 22/10/2026 "dự án chính với dòng tiền đang có"): toà nền tảng ở tâm khu; quanh nó là CỤM PHIM (góp ý city #1439) — mỗi phim một cụm:
+  //    camp đang chạy / vi phạm mỗi camp một toà, bản nhân bản bám camp gốc, camp lên lịch đứng hàng cạnh, mọi camp đã tắt của phim gộp MỘT toà kho.
+  //    Tiền Kho bạc vẫn tính một lần ở toà nền tảng (camp không mang tienPhan).
   if (hst.camps?.length && hst.duAn.some((p) => p.id === 'ethopex')) {
     const hub: PhoDich = { khoa: 'n:ethopex', loai: 'nen', ten: 'Ethopex', site: null, duAn: 'd:ethopex', phien30: null, laShop: false, don: null, coNguon: false, nenBan: 'camp', hostBan: 'facebook.com' };
     dich.push(hub);
-    const top = [...hst.camps].filter((c) => c.thu30 || c.chi30 || c.trangThai === 'active').sort((a, b) => b.chi30 + b.thu30 - (a.chi30 + a.thu30)).slice(0, CAMP_TOI_DA);
-    for (const c of top) dich.push({ khoa: `c:${c.id}`, loai: 'camp', ten: c.ten, site: null, duAn: 'd:ethopex', cha: hub.khoa, phien30: null, laShop: false, don: null, coNguon: false,
-      nenBan: 'camp', hostBan: 'facebook.com', trangThai: c.trangThai, tien30: c.thu30, chi30: c.chi30, ngonNgu: c.ngonNgu, phim: c.phim });
+    const tenPhim = (c: NonNullable<VaoHeSinhThai['camps']>[number]) => c.phim ?? c.ten.replace(/\s*\(nhan ban \d+ cua \d+\)\s*$/, '').replace(/^(TEST )?\d{4}(ns)? /, '').split(/ (EN|ES) - /)[0]!;
+    const cumCua = (c: NonNullable<VaoHeSinhThai['camps']>[number]) => (c.phimId ? `f:${c.phimId}` : `f:${tenPhim(c).toLowerCase()}`);
+    const chung = { site: null, duAn: 'd:ethopex', cha: hub.khoa, phien30: null, laShop: false, don: null, coNguon: false, nenBan: 'camp', hostBan: 'facebook.com' } as const;
+    const hien = hst.camps.filter((c) => c.trangThai === 'active' || c.viPham), hienId = new Set(hien.map((c) => c.id));
+    for (const c of hien) { const g = goCampGoc(c.ten);
+      dich.push({ ...chung, khoa: `c:${c.id}`, loai: 'camp', ten: c.ten, trangThai: c.trangThai, tien30: c.thu30, chi30: c.chi30, ngonNgu: c.ngonNgu, phim: tenPhim(c), cumPhim: cumCua(c),
+        campLoai: c.viPham ? 'vi-pham' : c.lich ? 'lich' : 'chay', campGoc: g != null && hienId.has(g) ? `c:${g}` : null, dangCr: c.dang ?? null, nhanBanDuoc: !!c.nhanBanDuoc && !c.viPham, sapTat: !!c.sapTat && !c.viPham }); }
+    const tat = new Map<string, NonNullable<VaoHeSinhThai['camps']>>();
+    for (const c of hst.camps) if (!hienId.has(c.id)) tat.set(cumCua(c), [...(tat.get(cumCua(c)) ?? []), c]);
+    for (const [cum, ds_] of tat) dich.push({ ...chung, khoa: `ct:${cum}`, loai: 'camp', ten: `${ds_.length} camp đã tắt`, trangThai: 'paused', tien30: ds_.reduce((a, c) => a + c.thu30, 0), chi30: ds_.reduce((a, c) => a + c.chi30, 0),
+      ngonNgu: null, phim: tenPhim(ds_[0]!), cumPhim: cum, campLoai: 'tat', campGoc: null, dangCr: null, soTat: ds_.length });
   }
   // tiền / chi theo DỰ ÁN (Ethopex, chi quảng cáo PHỦ): gắn vào đích chính của khu (đích nhiều tiền nhất, không có thì site đông nhất) — chưa có đích thì dựng một đích đại diện
   const dichChinh = (khoa: string) => dich.filter((d) => d.duAn === khoa && !d.cha).sort((a, b) => (b.tien30 ?? 0) - (a.tien30 ?? 0) || (b.phien30 ?? 0) - (a.phien30 ?? 0))[0];

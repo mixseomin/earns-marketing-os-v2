@@ -160,6 +160,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   let the = new THREE.Group(); scene.add(the);
   const M = (o: any) => new THREE.MeshStandardMaterial(o);
   const NHUA = M({ color: '#1a2036', roughness: .95 }), GACH = M({ color: '#2a3352', roughness: .9 });
+  const MAU_CAMP = { lai: '#3fd68a', lo: '#ff4d5e', viPham: '#b44dff', lich: '#4fd1ff' };
   const add = (g: any, m: any, bong = true) => { const x = new THREE.Mesh(g, m); x.castShadow = bong; x.receiveShadow = true; the.add(x); return x; };
   // GỘP VẬT (anh 23/10/2026 "city đang khiến máy tính nóng"): mỗi vật riêng là một lệnh vẽ mỗi khung — cảnh từng có ~5.900 vật.
   // Mảnh phẳng một màu (vạch đường, cửa sổ phòng ban) gom vào MỘT khối vẽ chung dựng cuối lượt (dungGop); bảng chữ nhiều mặt gộp thành một vật.
@@ -349,9 +350,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [], ngam: [], san: [], ham: [] };
   const texKhoi = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
     gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
-  function khoi(x: number, y: number, z: number, tk: PhoTk, chu: any) {
-    for (let k = 0; k < 22; k++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texKhoi, color: k % 3 ? '#5b5f6e' : '#8a8f9e', transparent: true, depthWrite: false, opacity: 0 }));
-      sp.userData = { tk, chu, goc: new THREE.Vector3(x, y, z), pha: k / 22, toc: .0035 + Math.random() * .002, lech: Math.random() * 6.28 }; the.add(sp); ds.khoi!.push(sp); }
+  function khoi(x: number, y: number, z: number, tk: PhoTk, chu: any, n = 22) {
+    for (let k = 0; k < n; k++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texKhoi, color: k % 3 ? '#5b5f6e' : '#8a8f9e', transparent: true, depthWrite: false, opacity: 0 }));
+      sp.userData = { tk, chu, goc: new THREE.Vector3(x, y, z), pha: k / n, toc: .0035 + Math.random() * .002, lech: Math.random() * 6.28 }; the.add(sp); ds.khoi!.push(sp); }
   }
   function toaNha(x: number, z: number, tk: PhoTk, mai: any) {
     const w = Math.min(28, 15 + 1.8 * Math.log2(1 + (tk.xem ?? 0) / 40 + tk.phien));   // to theo lượt xem + khách đẩy về đích; tối thiểu 15 để bảng tên trên tường đọc được
@@ -444,15 +445,44 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     r.shadowMap.needsUpdate = true;
   }
 
+  // bố cục cụm phim của mỗi toà nền tảng — dựng lại mỗi lần dung(), thẻ hover đọc lại
+  type CumP = { cum: string; ten: string; goc: PhoDich[]; nb: Map<string, PhoDich[]>; lich: PhoDich[]; kho: PhoDich | null; cot: number; O: number; w: number; h: number; x: number; z: number; tien: number };
+  const boCumP = new Map<string, { nua: number; cum: CumP[]; hub: { x: number; z: number } }>();
   function dung() {
+    boCumP.clear();
     scene.remove(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
     const viTri: Record<string, any> = {};
     chiMuc.length = 0;
     const khus = mh.duAn.filter((k) => (!chonSp.size || chonSp.has(k.khoa)) && (!chonLv.size || chonLv.has(k.linhVuc)));
     const nguonCua = (khoa: string) => mh.tk.filter((t) => t.dich === khoa);
     // ── kích thước: quảng trường site = tháp site ở tâm + vòng nguồn; khu dự án = toà DỰ ÁN ở tâm + vòng sản phẩm + vòng quảng trường site
-    const vongCua = (d: typeof mh.dich[number]): (PhoTk | PhoDich)[] => (d.loai === 'app' || d.loai === 'nen' ? banCua(d.khoa).flatMap((b) => [b, ...nguonCua(b.khoa)]) : nguonCua(d.khoa));
-    const rSite = (d: typeof mh.dich[number]) => 30 + Math.min(40, vongCua(d).length * 3.2);
+    const vongCua = (d: typeof mh.dich[number]): (PhoTk | PhoDich)[] => (d.loai === 'app' ? banCua(d.khoa).flatMap((b) => [b, ...nguonCua(b.khoa)]) : d.loai === 'nen' ? [] : nguonCua(d.khoa));
+    const rSite = (d: typeof mh.dich[number]) => (d.loai === 'nen' ? cumPhimCua(d).nua : 30 + Math.min(40, vongCua(d).length * 3.2));
+    // CỤM PHIM ETHOPEX (góp ý city #1439): mỗi phim một sân — camp gốc lưới giữa sân, bản nhân bản (nhỏ) vòng quanh gốc, cột bên phải = camp lên lịch
+    // + MỘT toà kho camp đã tắt; tên phim in dưới nền mép trước. Sân xếp kệ quanh toà nền tảng (toà ở giữa danh sách, chừa ô 56×56).
+    function cumPhimCua(hub: typeof mh.dich[number]) {
+      const co = boCumP.get(hub.khoa); if (co) return co;
+      const g = new Map<string, CumP>();
+      for (const c of banCua(hub.khoa)) { const k = c.cumPhim ?? c.khoa; const o = g.get(k) ?? { cum: k, ten: c.phim ?? c.ten, goc: [], nb: new Map(), lich: [], kho: null, cot: 1, O: 24, w: 0, h: 0, x: 0, z: 0, tien: 0 } as CumP;
+        o.tien += (c.tien30 ?? 0) + (c.chi30 ?? 0);
+        if (c.campLoai === 'tat') o.kho = c; else if (c.campLoai === 'lich') o.lich.push(c); else if (c.campGoc) o.nb.set(c.campGoc, [...(o.nb.get(c.campGoc) ?? []), c]); else o.goc.push(c);
+        g.set(k, o); }
+      const ds2 = [...g.values()].sort((a, b) => b.tien - a.tien);
+      for (const o of ds2) for (const [k, ds3] of [...o.nb]) if (!o.goc.some((c) => c.khoa === k)) { o.goc.push(...ds3); o.nb.delete(k); }   // gốc cũng là bản nhân bản → đứng lưới
+      for (const o of ds2) { o.cot = Math.max(1, Math.min(5, Math.ceil(Math.sqrt(o.goc.length)))); o.O = o.nb.size ? 36 : 26; const hang = Math.ceil(o.goc.length / o.cot);
+        const ben = o.lich.length || o.kho ? 24 : 0; o.w = Math.max(60, o.cot * o.O + ben + 12); o.h = Math.max(hang * o.O, o.lich.length * 13 + (o.kho ? 26 : 0)) + 30; }
+      // xếp kệ: chiều rộng kệ ≈ cạnh hình vuông cùng diện tích; ô toà nền tảng chen giữa danh sách
+      const oHub = { w: 56, h: 56, x: 0, z: 0 } as { w: number; h: number; x: number; z: number }, hop = [...ds2] as { w: number; h: number; x: number; z: number }[];
+      hop.splice(Math.floor(hop.length / 2), 0, oHub);
+      const S = Math.sqrt(hop.reduce((a, o) => a + (o.w + 10) * (o.h + 10), 0)) * 1.05;
+      let x = 0, z = 0, hangCao = 0, rongMax = 0;
+      for (const o of hop) { if (x > 0 && x + o.w > S) { x = 0; z += hangCao + 10; hangCao = 0; } o.x = x + o.w / 2; o.z = z + o.h / 2; x += o.w + 10; hangCao = Math.max(hangCao, o.h); rongMax = Math.max(rongMax, x - 10); }
+      // toạ độ sân tính từ TÂM KHỐI (toà nền tảng đứng ở ô của nó, lệch tâm một chút — quảng trường đặt toà ở tâm, nên dời toà theo)
+      const cx0 = rongMax / 2, cz0 = (z + hangCao) / 2;
+      for (const o of hop) { o.x -= cx0; o.z -= cz0; }
+      const nua = Math.max(40, ...hop.map((o) => Math.max(Math.abs(o.x) + o.w / 2, Math.abs(o.z) + o.h / 2))) + 8;
+      const kq = { nua, cum: ds2, hub: { x: oHub.x, z: oHub.z } }; boCumP.set(hub.khoa, kq); return kq;
+    }
     // quảng trường vuông: toà vòng quanh đứng trên chu vi hình vuông (cạnh cách tâm rSite) → góc xa tâm hơn; rNgoai = tầm chiếm chỗ để xếp khu
     const rNgoai = (d: typeof mh.dich[number]) => ngoaiTiep(rSite(d), 4) + 14;
     const banCua = (app: string) => mh.dich.filter((b) => b.cha === app);
@@ -505,6 +535,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const lai = (d.tien30 ?? 0) - (d.chi30 ?? 0), v = add(new THREE.TorusGeometry(r, .9, 8, 40), new THREE.MeshBasicMaterial({ color: lai >= 0 ? '#3fd68a' : '#ff4d5e', transparent: true, opacity: .85 }), false);
       v.rotation.x = Math.PI / 2; v.position.set(x, .9, z); v.userData = { chu: null }; ds.xu!.push(v);
     };
+    // chữ in dưới nền (tên khu nhà máy Xưởng SX, tên cụm phim Ethopex) — không che toà như biển nổi
+    const chuNen = (chu: string, x: number, z: number, rong: number, mau: string) => { const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128; const gc = cv.getContext('2d')!; gc.fillStyle = mau; gc.textAlign = 'center'; gc.textBaseline = 'middle';
+      let co = 84; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; while (gc.measureText(chu).width > 990 && co > 30) { co -= 4; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; } gc.fillText(chu, 512, 66);
+      const pl = add(new THREE.PlaneGeometry(rong, rong / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false); pl.rotation.x = -Math.PI / 2; pl.position.set(x, .8, z); pl.userData = { chu: null }; };
     const thapSite = (d: typeof mh.dich[number], x: number, z: number) => {
       let m: any;
       if (d.laShop) {
@@ -532,7 +566,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         khachDs.push({ a: new THREE.Vector3(x + Math.cos(g) * r0, 0, z + Math.sin(g) * r0), b: new THREE.Vector3(x + Math.cos(g) * 7, 0, z + Math.sin(g) * 7), t: (i * .37) % 2, toc: .0035 + (i % 5) * .0006, onl: i < onl }); }
     };
     // quảng trường site: tháp ở tâm, nguồn đứng vòng quanh (máy tìm kiếm, quảng cáo, giới thiệu, tài khoản social), phố nan hoa nối vào tâm
-    const quangTruongSite = (d: typeof mh.dich[number], x: number, z: number) => {
+    const quangTruongSite = (d: typeof mh.dich[number], x0: number, z0: number) => {
+      // nền tảng (Ethopex): toà dời về ô của nó trong khối cụm phim, các sân phim dựng quanh
+      const bo = d.loai === 'nen' ? cumPhimCua(d) : null, x = x0 + (bo?.hub.x ?? 0), z = z0 + (bo?.hub.z ?? 0);
+      if (bo) for (const o of bo.cum) sanPhim(o, x0 + o.x, z0 + o.z, d);
       const qt = add(new THREE.BoxGeometry(40, .7, 40), GACH, false); qt.position.set(x, .35, z);
       if (d.loai === 'site') thapSite(d, x, z); else if (d.loai === 'app') toaApp(d, x, z); else if (d.loai === 'nen') toaNen(d, x, z); else toaSp(d, x, z);
       qt.userData = { chu: null };
@@ -592,13 +629,40 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       chuDoc(d.ten, '#6ea8ff', x, z, 12, 9, h, m); vongLai(d, x, z, 17);
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) }; chiMuc.push({ ten: d.ten, nhan: 'nền tảng', obj: m });
     }
-    // toà CAMP: khối màn hình (mặt trước sáng xanh = lãi, đỏ = lỗ), cao theo thu + chi 30 ngày; camp không chạy mờ
-    function toaCamp(d: typeof mh.dich[number], x: number, z: number) {
-      const thu = d.tien30 ?? 0, chi = d.chi30 ?? 0, lai = thu - chi, h = 10 + Math.min(22, Math.log2(1 + thu + chi) * 3), chay = d.trangThai === 'active';
-      const than = M({ color: '#1d2433', roughness: .4, transparent: !chay, opacity: chay ? 1 : .45 }), man = M({ color: lai >= 0 ? '#1f8f5c' : '#8f1f2c', emissive: lai >= 0 ? '#3fd68a' : '#ff4d5e', emissiveIntensity: chay ? .5 : .15 });
-      const m = add(new THREE.BoxGeometry(15, h, 15), [than, than, than, than, man, man]); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
-      bangTen(x, z, 15, h, d.phim ?? d.ten, '', lai >= 0 ? '#3fd68a' : '#ff4d5e', m);
-      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) }; chiMuc.push({ ten: d.phim ?? d.ten, nhan: 'camp', obj: m });
+    // SÂN PHIM: nền + tên phim in dưới nền mép trước; camp gốc lưới, bản nhân bản vòng quanh gốc, cột phải = lên lịch rồi kho camp tắt
+    function sanPhim(o: CumP, cx: number, cz: number, hub: typeof mh.dich[number]) {
+      const san = add(new THREE.BoxGeometry(o.w, .5, o.h), M({ color: '#15213a', roughness: .9 }), false); san.position.set(cx, .45, cz); san.userData = { loai: 'cum-phim', cum: o.cum, hub: hub.khoa }; ds.san!.push(san);
+      const nb = [...o.nb.values()].reduce((a, x) => a + x.length, 0), chay = o.goc.length + nb;
+      chuNen(`🎬 ${o.ten} · ${chay} chạy${o.lich.length ? ` · ${o.lich.length} lịch` : ''}${o.kho ? ` · ${o.kho.soTat} tắt` : ''}`, cx, cz + o.h / 2 - 11, o.w - 4, '#9fc0ff');
+      const gx = cx - o.w / 2 + 6 + o.O / 2, gz = cz - o.h / 2 + o.O / 2 + 2;
+      o.goc.forEach((c, n) => { const px = gx + (n % o.cot) * o.O, pz = gz + Math.floor(n / o.cot) * o.O; toaCamp(c, px, pz, 'goc');
+        (o.nb.get(c.khoa) ?? []).forEach((b2, i, a) => { const g2 = (i / a.length) * Math.PI * 2 + Math.PI / 4; toaCamp(b2, px + Math.cos(g2) * 12, pz + Math.sin(g2) * 12, 'nb'); }); });
+      const bx = cx + o.w / 2 - 13; let bz = cz - o.h / 2 + 9;
+      for (const c of o.lich) { toaCamp(c, bx, bz, 'lich'); bz += 13; }
+      if (o.kho) toaKho(o.kho, bx, bz + 9);
+      chiMuc.push({ ten: `${o.ten} (cụm phim)`, nhan: 'phim Ethopex', obj: san });
+    }
+    // toà CAMP (góp ý #1439): hình theo dạng creative (kể chuyện = trụ tròn · cảnh thật = khối vuông · cảnh cuối = khối mái chóp · phim dài = khối dẹt dài ·
+    // khác = trụ lục giác), màu theo trạng thái (xanh lãi · đỏ lỗ · tím vi phạm · xanh nhạt trong suốt = lên lịch), cao theo thu + chi 30 ngày;
+    // bản nhân bản bằng nửa; đủ luật nhân bản = viên kim cương vàng trên nóc; lỗ sâu chạm luật tắt = bốc khói
+    function toaCamp(d: typeof mh.dich[number], x: number, z: number, vai: 'goc' | 'nb' | 'lich' = 'goc') {
+      const thu = d.tien30 ?? 0, chi = d.chi30 ?? 0, s = vai === 'nb' ? 6 : vai === 'lich' ? 9 : 12, k = s / 12, h0 = k * (8 + Math.min(20, Math.log2(1 + thu + chi) * 3));
+      const mau = d.campLoai === 'vi-pham' ? MAU_CAMP.viPham : vai === 'lich' ? MAU_CAMP.lich : thu >= chi ? MAU_CAMP.lai : MAU_CAMP.lo, lich = vai === 'lich';
+      const vl = M({ color: new THREE.Color(mau).multiplyScalar(.45), emissive: mau, emissiveIntensity: lich ? .25 : .38, roughness: .4, transparent: lich, opacity: lich ? .5 : 1 });
+      const dai = d.dangCr === 'phim dài', h = dai ? h0 * .6 : h0;
+      const geo = d.dangCr === 'kể chuyện' ? new THREE.CylinderGeometry(s * .5, s * .5, h, 14) : dai ? new THREE.BoxGeometry(s * 1.5, h, s * .7)
+        : d.dangCr === 'cảnh thật' || d.dangCr === 'cảnh cuối' ? new THREE.BoxGeometry(s, h, s) : new THREE.CylinderGeometry(s * .55, s * .55, h, 6);
+      const m = add(geo, vl); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
+      if (d.dangCr === 'cảnh cuối') { const mai = add(new THREE.ConeGeometry(s * .72, s * .55, 4), vl); mai.rotation.y = Math.PI / 4; mai.position.set(x, h + s * .27, z); mai.userData = { chu: m }; }
+      if (lich) { const kh = add(new THREE.BoxGeometry(s + 1, h + 1, s + 1), new THREE.MeshBasicMaterial({ color: MAU_CAMP.lich, wireframe: true, transparent: true, opacity: .55 }), false); kh.position.copy(m.position); kh.userData = { chu: m }; }
+      if (d.nhanBanDuoc) { const kc = add(new THREE.OctahedronGeometry(s * .32 + 1), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .9, metalness: .5 }), false); kc.position.set(x, h + s * .6 + 3, z); kc.userData = { chu: m }; }
+      if (d.sapTat) khoi(x, h + 1, z, undefined as unknown as PhoTk, m, 10);
+      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) }; chiMuc.push({ ten: d.ten, nhan: 'camp', obj: m });
+    }
+    // KHO CAMP ĐÃ TẮT: mọi camp tắt của một phim gộp một toà xám thấp, biển ghi số camp
+    function toaKho(d: typeof mh.dich[number], x: number, z: number) {
+      const m = add(new THREE.BoxGeometry(18, 7, 14), M({ color: '#3a3f50', roughness: .8 })); m.position.set(x, 3.5, z); m.userData = { loai: 'dich', d };
+      bangTen(x, z, 18, 7, `⏸ ${d.soTat} tắt`, '', '#8e9abd', m);
     }
     // TIỀN: đồng xu chồng cạnh đích có tiền 30 ngày; xe vàng chở về Kho bạc
     const coTien: { d: typeof mh.dich[number]; khu: { cx: number; cz: number; phia: number } }[] = [];
@@ -769,9 +833,6 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const nenX = add(new THREE.BoxGeometry(dai + 20, .4, cao), M({ color: '#2a2216', roughness: 1 }), false); nenX.position.set(x0 + dai / 2, .2, z0 - cao / 2); ds.san!.push(nenX);
       raoQuanh([new THREE.Vector3(x0 - 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0), new THREE.Vector3(x0 + dai + 10, 0, z0 - cao), new THREE.Vector3(x0 - 10, 0, z0 - cao)], '#c98a2f', x0 + dai / 2, z0 - cao / 2, -1, 'Xưởng SX',
         [{ ic: '🏭', so: String(sx.length), nhan: 'đang sản xuất', ma: 'xuong' }, { ic: '🔍', so: String(td.length), nhan: 'chờ thẩm định', ma: 'xuong' }], KHU_XUONG);
-      const chuNen = (chu: string, x: number, z: number, rong: number, mau: string) => { const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128; const gc = cv.getContext('2d')!; gc.fillStyle = mau; gc.textAlign = 'center'; gc.textBaseline = 'middle';
-        let co = 84; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; while (gc.measureText(chu).width > 990 && co > 30) { co -= 4; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; } gc.fillText(chu, 512, 66);
-        const pl = add(new THREE.PlaneGeometry(rong, rong / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false); pl.rotation.x = -Math.PI / 2; pl.position.set(x, .8, z); pl.userData = { chu: null }; };
       // khu nhà máy: sân + nhà xưởng mái răng cưa ở đáy sân, sản phẩm lưới phía trước, tên khu in dưới nền
       let xv = x0 + 6; let thanDau: any = null;
       for (const c of vung) { const zA = z0 - 14, cx3 = xv + c.rong / 2;
@@ -932,6 +993,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         : { cot: ['Camp', '💵 Thu 30n', '💸 Chi 30n'], dong: ds2.sort((a, b) => (b.chi30 ?? 0) - (a.chi30 ?? 0)).slice(0, 14).map((d) => [ten(d), tienO(d.tien30), tienO(d.chi30)]) };
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
     }
+    if (u.loai === 'cum-phim') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
+      if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.lich, ...(o.kho ? [o.kho] : [])];
+        return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.lich.length} lịch · ${o.kho?.soTat ?? 0} tắt`]],
+          bang: { cot: ['Camp', 'Dạng', '💵 Thu', 'Lãi'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'lich' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc(c.ten.replace(/\s*\(nhan ban \d+ cua \d+\)$/, ' (nb)').slice(-30))}`,
+            esc(c.dangCr ?? '—'), tienO(c.tien30), `${(c.tien30 ?? 0) >= (c.chi30 ?? 0) ? '🟢' : '🔴'} ${tienO((c.tien30 ?? 0) - (c.chi30 ?? 0))}`]) } }; } }
     if (u.loai === 'xuong-vung' || u.loai === 'tham-dinh') { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha && (u.loai === 'tham-dinh' ? d.giaiDoan === 'tham-dinh' : d.giaiDoan !== 'tham-dinh' && d.vungSx === u.vung));
       return { dau: u.loai === 'tham-dinh' ? '🔍 Phòng thẩm định' : `🏭 Xưởng SX · ${VUNG_SX[u.vung]!.ic} ${VUNG_SX[u.vung]!.ten}`, h: [[u.loai === 'tham-dinh' ? 'Đã nộp, chờ duyệt' : 'Đang làm / sẵn sàng', xs.length]],
         bang: { cot: ['Sản phẩm', 'Dự án', 'Trạng thái'], dong: xs.map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : d.loai === 'app' ? '📱' : '🛍'} ${esc(d.ten.slice(0, 28))}`, esc((d.duAnGocTen ?? '—').slice(0, 16)), esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? (d.giaiDoan === 'tham-dinh' ? 'đang duyệt' : 'đang làm'))]) } };
@@ -962,11 +1028,18 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
           bang: { cot: ['Cửa hàng', '👁 7 ngày', '⬇ 30 ngày', '💵 30 ngày'], dong: ban.map((b) => [`${b.hostBan ? oFav(b.hostBan, 14) : ''} ${esc(TEN_BAN[b.nenBan ?? ''] ?? b.nenBan ?? '')}`,
             ...(b.sapLen ? [`🏗 ${esc(TRANG_THAI_VN[b.trangThai ?? ''] ?? b.trangThai ?? 'đang duyệt')}`] : [b.xem7 ?? '—', b.tai ?? '—', tienO(b.net)])]) } };
       }
-      if (d.loai === 'nen') { const cs = mh.dich.filter((b) => b.cha === d.khoa);
-        return { dau: `${oFav(d.hostBan ?? 'facebook.com')} ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH, ['Camp (toà quanh)', `${cs.length} · ${cs.filter((c) => c.trangThai === 'active').length} đang chạy`]],
-          bang: { cot: ['Camp', '💵 Thu 30n', '💸 Chi 30n', 'Lãi'], dong: cs.slice(0, 12).map((c) => [esc((c.phim ?? c.ten).slice(0, 26)), tienO(c.tien30), tienO(c.chi30), `${(c.tien30 ?? 0) >= (c.chi30 ?? 0) ? '🟢' : '🔴'} ${tienO((c.tien30 ?? 0) - (c.chi30 ?? 0))}`]) } };
+      if (d.loai === 'nen') { const cs = mh.dich.filter((b) => b.cha === d.khoa), song = cs.filter((c) => c.campLoai !== 'tat'), phim = boCumP.get(d.khoa)?.cum ?? [];
+        return { dau: `${oFav(d.hostBan ?? 'facebook.com')} ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH, ['Cụm phim', String(phim.length)],
+          ['Camp', `${song.filter((c) => c.campLoai === 'chay').length} chạy · ${song.filter((c) => c.campLoai === 'lich').length} lịch · ${song.filter((c) => c.campLoai === 'vi-pham').length} vi phạm · ${cs.reduce((a, c) => a + (c.soTat ?? 0), 0)} tắt`]],
+          bang: { cot: ['Phim', 'Camp', '💵 Thu 30n', 'Lãi'], dong: phim.slice(0, 12).map((o) => { const all = [...o.goc, ...[...o.nb.values()].flat(), ...o.lich, ...(o.kho ? [o.kho] : [])], t = all.reduce((a, c) => a + (c.tien30 ?? 0), 0), c2 = all.reduce((a, c) => a + (c.chi30 ?? 0), 0);
+            return [esc(o.ten.slice(0, 26)), String(all.length - (o.kho ? 1 : 0) + (o.kho?.soTat ?? 0)), tienO(t), `${t >= c2 ? '🟢' : '🔴'} ${tienO(t - c2)}`]; }) } };
       }
-      if (d.loai === 'camp') return { dau: `🎬 ${esc(d.phim ?? d.ten)}`, h: [['Camp', esc(d.ten)], ['Ngôn ngữ', esc((d.ngonNgu ?? '—').toUpperCase())], ['Trạng thái', d.trangThai === 'active' ? '🟢 đang chạy' : `⏸ ${esc(d.trangThai ?? '')}`], ...tienH] };
+      if (d.loai === 'camp' && d.campLoai === 'tat') return { dau: `⏸ Kho camp đã tắt · ${esc(d.phim ?? '')}`, h: [['Số camp tắt', String(d.soTat ?? 0)], ...tienH] };
+      if (d.loai === 'camp') return { dau: `🎬 ${esc(d.phim ?? d.ten)}`, h: [['Camp', esc(d.ten)], ['Dạng creative', esc(d.dangCr ?? '—')], ['Ngôn ngữ', esc((d.ngonNgu ?? '—').toUpperCase())],
+        ['Trạng thái', { chay: '🟢 đang chạy', lich: '⏳ đã lên lịch (camp mới)', 'vi-pham': '⛔ ad bị Meta từ chối', tat: '⏸ đã tắt' }[d.campLoai ?? 'chay'] ?? esc(d.trangThai ?? '')],
+        ...(d.campGoc ? [['Nhân bản của', esc(mh.dich.find((x) => x.khoa === d.campGoc)?.ten ?? d.campGoc)] as [string, string]] : []),
+        ...(d.nhanBanDuoc ? [['⧉ Nhân bản', 'đủ luật NB — máy tự nhân bản ở nhịp kế'] as [string, string]] : []),
+        ...(d.sapTat ? [['💨 Lỗ sâu', 'chạm luật tắt (ROI < −50%, tiêu > $10) — chờ anh duyệt'] as [string, string]] : []), ...tienH] };
       if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(TEN_BAN[d.nenBan ?? ''] ?? d.nenBan ?? '—')], ['Dự án', khuTen(d)], ['Trạng thái', d.sapLen ? `🏗 ${esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? 'sắp lên')}` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);
@@ -990,11 +1063,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (const h of ray.intersectObjects(the.children.filter((o: any) => o.visible), false)) { const o = h.object.userData.chu ?? (h.object.userData.loai ? h.object : null); if (o && o.visible !== false) return o; }
     return null;
   }
-  let dangSang: any = null;
+  let dangSang: any = null, vatChon: any = null;
   const sangLen = (o: any, on: boolean) => { for (const m of [].concat(o.material) as any[]) if (m.emissiveIntensity != null) { m.userData.goc ??= m.emissiveIntensity; m.emissiveIntensity = on ? m.userData.goc + .55 : m.userData.goc; } };
   const onMove = (e: PointerEvent) => {
     const b = datChuot(e), o = chuDuoiChuot();
-    if (o !== dangSang) { if (dangSang) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
+    if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
       if (o && e.pointerType === 'mouse') { meo.innerHTML = veO(thongTin(o)); meo.hidden = false; } else meo.hidden = true; }
     if (!meo.hidden) { meo.style.left = `${Math.min(e.clientX - b.left + 16, W() - meo.offsetWidth - 8)}px`; meo.style.top = `${Math.min(e.clientY - b.top + 16, H() - meo.offsetHeight - 8)}px`; }
   };
@@ -1030,7 +1103,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     moNgan(o); };
   /** mở ngăn chi tiết (bấm toà / chọn trong ô tìm) — một chỗ dựng; nút "Đã xử" ghi platform_alerts.xong_luc qua /api/social/canh-bao rồi nạp số mới */
   function moNgan(o: any) {
-    ngan.innerHTML = `<button class="dong" aria-label="Đóng">×</button>${veO(thongTin(o))}${nutMo(o)}`; ngan.hidden = false; (ngan.querySelector('.dong') as HTMLButtonElement).onclick = () => { ngan.hidden = true; };
+    ngan.innerHTML = `<button class="dong" aria-label="Đóng">×</button>${veO(thongTin(o))}${nutMo(o)}`; ngan.hidden = false; (ngan.querySelector('.dong') as HTMLButtonElement).onclick = dongNgan;
+    chonVat(o);
     for (const b of ngan.querySelectorAll<HTMLButtonElement>('[data-xu]')) b.onclick = async () => {
       if (!confirm('Đánh dấu cảnh báo này ĐÃ XỬ? (không xoá — chỉ ghi giờ xử)')) return;
       b.disabled = true; b.textContent = '…';
@@ -1053,10 +1127,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     mg.strokeStyle = '#ffd27a'; mg.lineWidth = 1.5; const t = ctl.target, d = cam.position.distanceTo(t) * .5; mg.strokeRect(sx(t.x - d), sz(t.z - d * .55), (d * 2 / rx) * W2, (d * 1.1 / rz) * H2);
   };
   mini.onclick = (e) => { const b = mini.getBoundingClientRect(), x = gioiHan.x0 + ((e.clientX - b.left) / b.width) * (gioiHan.x1 - gioiHan.x0), z = -gioiHan.z + ((e.clientY - b.top) / b.height) * 2 * gioiHan.z, p = new THREE.Vector3(x, 0, z); bayToi(p.clone().add(cam.position.clone().sub(ctl.target)), p); };
+  // CHỌN (góp ý #1438): bấm vật = viền vàng quanh nó + mở ngăn, camera đứng yên (chỉ ô tìm mới bay tới, vì vật có thể ở ngoài màn);
+  // bấm chỗ trống / Esc = đóng ngăn + bỏ viền. Một viền dùng lại, nằm ngoài nhóm `the` nên không bị dựng lại hay bắt tia.
+  const hopChon = new THREE.Box3(), vienChon = new THREE.Box3Helper(hopChon, 0xffd27a); vienChon.visible = false; scene.add(vienChon);
+  function chonVat(o: any) { if (vatChon && vatChon !== o && vatChon !== dangSang) sangLen(vatChon, false); vatChon = o; sangLen(o, true); hopChon.setFromObject(o).expandByScalar(1.5); vienChon.visible = true; danhThuc(); }
+  function dongNgan() { ngan.hidden = true; vienChon.visible = false; if (vatChon && vatChon !== dangSang) sangLen(vatChon, false); vatChon = null; danhThuc(); }
+  const onPhim = (e: KeyboardEvent) => { if (e.key === 'Escape' && !ngan.hidden) dongNgan(); };
+  window.addEventListener('keydown', onPhim);
   function cham(e: PointerEvent) {
-    datChuot(e); const chu = chuDuoiChuot(); if (!chu) return;
-    meo.hidden = true; moNgan(chu);
-    const dich = chu.position.clone().setY(0); bayToi(dich.clone().add(cam.position.clone().sub(ctl.target).setLength(kcNhin(chu))), dich);
+    datChuot(e); const chu = chuDuoiChuot(); meo.hidden = true;
+    if (chu) moNgan(chu); else if (!ngan.hidden) dongNgan();
   }
   r.domElement.addEventListener('pointermove', onMove); r.domElement.addEventListener('pointerleave', onLeave); r.domElement.addEventListener('pointerdown', onDown);
   r.domElement.addEventListener('pointerup', onUp); r.domElement.addEventListener('contextmenu', onMenu);
@@ -1145,7 +1225,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const don = () => {
     cancelAnimationFrame(raf); ro.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
-    r.domElement.removeEventListener('pointerup', onUp); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); r.domElement.removeEventListener('contextmenu', onMenu);
+    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); r.domElement.removeEventListener('contextmenu', onMenu);
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };

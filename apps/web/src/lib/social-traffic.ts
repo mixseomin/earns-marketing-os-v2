@@ -16,6 +16,7 @@ import { HOST_BAN, MAY_TIM, NEN_QC, type VaoHeSinhThai } from './social-thanh-ph
 import { getProductsView } from './products/data';
 import { networkRows } from './revenue/networks';
 import { docEthopex } from './ethopex-doc';
+import { chamLuat, dangCamp } from './ethopex-luat';
 import { tinhSucKhoe, type StSucKhoe, type VaoSuc } from './social-suc-khoe';
 
 const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
@@ -143,8 +144,12 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     mayChu,
     congTy,
     // camp Ethopex: thu / chi 30 ngày cộng từ báo cáo ngày × camp (cùng cửa sổ tu30 với tiền Ethopex ở Kho bạc)
+    // + chấm luật Ethopex (cùng chamLuat của tab Ethopex) cho cụm phim city #1439: NB = dấu nhân bản, OFF chạm / gần = bốc khói, TC = vi phạm
     camps: etp ? etp.camps.map((c) => { const ng = etp.ngayCamp.filter((x) => x.camp === c.id && x.ngay >= tu30);
-      return { id: c.id, ten: c.ten, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: c.trang_thai.toLowerCase(), thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach }; }) : [],
+      const lu = chamLuat(c, { soCampPhim: etp.camps.filter((y) => y.content_id && y.content_id === c.content_id && y.trang_thai === 'ACTIVE').length, phimThang: !!c.content_id && etp.phimThang.includes(c.content_id) });
+      const co = (ma: string, ...tt: string[]) => lu.some((x) => x.ma === ma && tt.includes(x.trang_thai));
+      return { id: c.id, ten: c.ten, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: c.trang_thai.toLowerCase(), thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach,
+        phimId: c.content_id, dang: dangCamp(c), viPham: co('TC', 'cham'), lich: !!c.bat_dau && Date.parse(c.bat_dau) > Date.now(), nhanBanDuoc: co('NB', 'cham'), sapTat: c.trang_thai === 'ACTIVE' && co('OFF', 'cham', 'gan') }; }) : [],
     taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), canhBaoDs: tnDs.map((x) => ({ id: x.id, nen: x.nen, handle: x.handle, loai: x.loai, noiDung: x.noi_dung, url: x.url, luc: x.luc, acct: x.acct })), hoSo: tnHs, proxy: tnPx,
       soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })) },
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),

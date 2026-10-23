@@ -1,4 +1,4 @@
-# Số App Store (lượt hiển thị/xem trang/tải) + doanh thu AdMob → Directus product_stats → tab Tài sản.
+# Số App Store (lượt hiển thị/xem trang/tải) + doanh thu AdMob + số Microsoft Store → Directus product_stats → tab Tài sản.
 # Xem scripts/app-store-so.mjs và scripts/admob-doanh-thu.mjs (cùng timer, anh duyệt app-store-so 06/10, AdMob 20/10/2026).
 [Unit]
 Description=App Store analytics -> product_stats
@@ -10,3 +10,5 @@ WorkingDirectory=/opt/earns-marketing-os-v2
 EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
 ExecStart=/usr/bin/node scripts/app-store-so.mjs --days 35
 ExecStart=/usr/bin/node scripts/admob-doanh-thu.mjs --days 35
+# Microsoft Store (app Windows: Giỗ Chạp, Sidecue) — khoá /root/.secrets/msstore.env, tenant Entra vault #567 (anh 23/10/2026). '-' = lỗi không làm hỏng cả service
+ExecStart=-/usr/bin/node scripts/ms-store-so.mjs --days 35

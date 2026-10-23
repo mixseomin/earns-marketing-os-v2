@@ -858,6 +858,10 @@ def vat_can(sh, ten, cam_boi=None):
             out.append(o)
     return out
 
+def Matrix_rot_z(a):
+    from mathutils import Matrix
+    return Matrix.Rotation(a, 3, 'Z')
+
 def gan_tay(sh, tat_ca, ket=False):
     """RIG — đồ đang cầm nằm ĐÚNG trong bàn tay người cầm (anh 17/10/2026: ly, thẻ lơ lửng cạnh tay → AI vẽ sai tay cầm): dời món sao cho tâm món
     trùng điểm nắm (ôm thùng: giữa hai tay). Khung kết của món cầm + đặt xuống (cam + den) thì không gắn."""
@@ -868,6 +872,27 @@ def gan_tay(sh, tat_ca, ket=False):
         n_ = NGUOI[c]; khop = n_.get(ben) if ben not in ('om', 'p', 't') else None
         objs = [o for o in tat_ca if o.name == f"NV {ten}" or o.name.startswith(f"NV {ten}·")]
         if not objs: continue
+        if khop is not None and ben in ('co', 'nguc'):
+            o0 = objs[0]; dm = [(max(cc[i] for cc in o0.bound_box) - min(cc[i] for cc in o0.bound_box)) * o0.scale[i] for i in range(3)]
+            if min(dm) < 0.3 * max(dm):
+                # ĐỒ DẸT ĐEO CỔ (thẻ nhân viên…) TREO TRƯỚC NGỰC bằng dây chữ V từ hai bên cổ (23/10/2026 #132 #15: gắn thẳng vào khớp cổ như vòng tay → thẻ lọt
+                # trong cổ, khung 3D không có thẻ lẫn dây → cận chèn giật thẻ không có gì để giật). Mặt thẻ quay về phía trước người, mép trên thấp hơn cổ `treo` cm.
+                goc_ = n_['goc']; yaw = goc_.matrix_world.to_euler().z; truoc_ = Matrix_rot_z(yaw) @ Vector((0, -1, 0)); ben_ = Matrix_rot_z(yaw) @ Vector((1, 0, 0))
+                for o in objs: o.rotation_euler = (0, 0, yaw)
+                bpy.context.view_layer.update()
+                co_ = khop.matrix_world.translation; treo_ = float(v.get('treo') or 16) * CM
+                bb = [o.matrix_world @ Vector(cc) for o in objs for cc in o.bound_box]
+                tam_ = Vector([(min(p[i] for p in bb) + max(p[i] for p in bb)) / 2 for i in range(3)]); cao_ = max(p[2] for p in bb) - min(p[2] for p in bb)
+                dich_ = co_ + truoc_ * (11 * CM) - Vector((0, 0, treo_ + cao_ / 2))
+                for o in objs: o.location += dich_ - tam_
+                bpy.context.view_layer.update()
+                dinh_ = dich_ + Vector((0, 0, cao_ / 2))
+                cv = bpy.data.curves.new(f"day {ten}", 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = 0.35 * CM
+                sp = cv.splines.new('POLY'); sp.points.add(2)
+                for i, q in enumerate((co_ + ben_ * (6 * CM) + truoc_ * (4 * CM), dinh_, co_ - ben_ * (6 * CM) + truoc_ * (4 * CM))): sp.points[i].co = (*q, 1)
+                cv.materials.append(mau(v.get('treo_mau', '#1f2a5a')))
+                d_ = bpy.data.objects.new(f"NV {ten}·day", cv); bpy.context.collection.objects.link(d_); tat_ca.append(d_)
+                continue
         if khop is not None:   # ĐEO: trục vòng theo trục xương (cẳng tay). Người thật MPFB mặc áo dài tay: vòng nằm chỗ thật (lùi 2 cm về khuỷu) thì
             # chui trong cổ tay áo, khung kết #9 #25 mất chuỗi hạt — đúng câu kịch bản "tay áo xô lên lộ chuỗi hạt": vòng ngay mép cổ tay áo
             # (nhích 1,2 cm về phía bàn tay) và nở 45 % ra ngoài lớp vải (ống tay vest dày như #9).

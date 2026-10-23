@@ -25,17 +25,19 @@ export function PhanCanhVe({ tap, canh, onMo }: { tap: Tap; canh: Canh[]; onMo: 
     <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
       {cacCanh.map((pd) => {
         const ve = (tap.phan_canh_ve ?? []).find((x) => x.phan_doan === pd); const ds = canh.filter((c) => c.phan_doan === pd);
+        // số tầng theo những tầng THỰC có (tổng quan → chi tiết), không đánh số cứng
+        const tang = [ve?.phac && 'phac', ve?.t1 && 't1', ve?.khoi?.length && 'khoi', 'kf'].filter(Boolean) as string[]; const soT = (k: string) => tang.indexOf(k) + 1;
         return (
           <div key={pd} className="xv-panel" style={{ display: 'grid', gap: 10, padding: 10 }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>Cảnh: {pd || '(chưa đặt tên)'} <span style={{ ...mono, fontWeight: 400 }}>{ds.length} shot{ve ? ` · phân cảnh lúc ${new Date(ve.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}</span></div>
             {!ve && <div style={mono}>Cảnh này chưa có phân cảnh vẽ (tờ phác / thumbnail / bảng khối) — chạy scripts/bang-gom.mts với bảng mảnh có sơ đồ cảnh. Bên dưới là keyframe hiện có.</div>}
             {/* tầng 1–3 cạnh nhau một hàng (tổng quan → chi tiết đọc trái sang phải), khung chi tiết ngay dưới — cả cảnh trong một màn */}
             {ve && <div style={{ display: 'flex', gap: 18, overflowX: 'auto', alignItems: 'flex-start' }}>
-              {ve.phac && <Tang so={1} ten="Tổng quan — tờ phác bố trí" mo="máy vẽ từ sơ đồ: nền · ai đứng đâu · mũi tên = hướng nhìn"><Anh url={ve.phac} cao={300} tieuDe="Tờ phác bố trí" /></Tang>}
-              {ve.t1 && <Tang so={2} ten="Thumbnail cả cảnh" mo="AI vẽ cả cảnh một ảnh theo tờ phác"><Anh url={ve.t1} cao={300} tieuDe="Thumbnail cả cảnh" /></Tang>}
-              {!!ve.khoi?.length && <Tang so={3} ten="Bảng khối" mo="vẽ lại chi tiết từng khối, giữ bố cục">{ve.khoi.map((k) => <Anh key={k.url} url={k.url} cao={300} tieuDe={`Khối #${k.tu}–#${k.den}`} />)}</Tang>}
+              {ve.phac && <Tang so={soT('phac')} ten="Tổng quan — tờ phác bố trí" mo="máy vẽ từ sơ đồ: nền · ai đứng đâu · mũi tên = hướng nhìn · #N = số shot"><Anh url={ve.phac} cao={300} tieuDe="Tờ phác bố trí" /></Tang>}
+              {ve.t1 && <Tang so={soT('t1')} ten="Thumbnail cả cảnh" mo="AI vẽ cả cảnh một ảnh theo tờ phác"><Anh url={ve.t1} cao={300} tieuDe="Thumbnail cả cảnh" /></Tang>}
+              {!!ve.khoi?.length && <Tang so={soT('khoi')} ten="Bảng khối" mo="AI vẽ từng khối theo tờ phác · số #N = số shot">{ve.khoi.map((k) => <Anh key={k.url} url={k.url} cao={300} tieuDe={`Bảng khối shot #${k.tu}–#${k.den}`} />)}</Tang>}
             </div>}
-            <Tang so={ve ? 4 : 1} ten="Khung chi tiết — đọc như truyện tranh" mo="keyframe từng shot · hành động · thoại · cớ cắt sang khung sau; bấm chữ để mở shot">
+            <Tang so={soT('kf')} ten="Khung chi tiết — đọc như truyện tranh" mo="keyframe từng shot · hành động · thoại · cớ cắt sang khung sau; bấm chữ để mở shot">
               {ds.map((c) => (
                 <div key={c.id} style={{ width: 148, flex: '0 0 auto', display: 'grid', gap: 3, alignContent: 'start' }}>
                   {c.keyframe_url ? <Anh url={c.keyframe_url} cao={260} tieuDe={`#${c.thu_tu}`} /> : <div style={{ height: 260, border: '1px dashed var(--line)', borderRadius: 4, display: 'grid', placeItems: 'center', ...mono }}>chưa có keyframe</div>}

@@ -51,6 +51,19 @@ async function tachNguoi(db: Db, canhId: number, thuTu: number, kfUrl: string, m
   return out;
 }
 
+/** NGƯỜI THẬT trên ảnh theo CHỮ (SAM 3 "person", $0,005 / lần): mặt nạ hợp mọi người W×H (1 = người). Không cần điểm chấm từ 3D — người AI vẽ lệch / to hơn
+ *  ma-nơ-canh vẫn bắt trọn (ảnh kết #132 #15 sót vệt váy, #16 Thần mờ nửa người khi đoán theo 3D / chênh màu). */
+export const MO_HINH_TACH_CHU = 'fal-ai/sam-3/image';
+async function nguoiTheoChu(db: Db, canhId: number, thuTu: number, url: string, W: number, H: number): Promise<Uint8Array | null> {
+  const job = await taoJob(db, { nhan: `Tách người (SAM 3) · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_TACH_CHU}`, request: { dich: 'tach_nguoi', image: url, prompt: 'person' } });
+  const kq = await chayAnhFal(MO_HINH_TACH_CHU, { image_url: url, prompt: 'person', apply_mask: false, return_multiple_masks: true, max_masks: 8, output_format: 'png' }, { masks: true });
+  if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return null; }
+  await xongJob(db, job, { chi_phi_cents: 0.5 });
+  const a = new Uint8Array(W * H);
+  for (const b of kq.ds ?? []) { const m = await sharp(b).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) a[i] = 1; }
+  return a;
+}
+
 /** GHÉP ĐÈ mọi đồ nhận dạng có ảnh chuẩn trong khung (0đ + tách người ~$0,002 / người). */
 export async function ghepNhanDang(db: Db, canhId: number, chon = false): Promise<Kq<{ url: string; vat: string[] }>> {
   const bc = await boiCanhCanh(db, canhId); if (!bc?.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe' };
@@ -128,12 +141,12 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
  *  #132 #16 #19 tường đá đen ra be, khung tranh lạ → video đi sang phòng khác). Chuẩn ngành "chuyển ảnh rồi vẽ vá":
  *    1. anhMoChuyen: keyframe mở ĐÃ DUYỆT chuyển sang góc máy kết / giữa (dung-set.py › goc_ve_mo: máy xoay / zoom tại chỗ → đồng phẳng đúng; máy đẩy vào →
  *       gần đúng theo mặt sảnh sau); chỗ ảnh mở chưa thấy lấp bằng khung màu 3D cùng góc. Nano nhận ảnh này làm ảnh để SỬA (sinh-anh.ts › chuanBiKeyframe).
- *    2. ghepNenKet: ảnh ra = ảnh mở chuyển góc ở mọi chỗ; chỉ chỗ Nano THẬT SỰ đổi (chênh màu — ma-nơ-canh 3D mảnh hơn người thật) NẰM TRONG vùng món động
- *       đi qua (3D mở + kết, nở rộng) + người lúc kết theo 3D + chỗ ảnh mở chưa thấy mới lấy ảnh Nano. Sảnh ngoài vùng đó không thể đổi.
- *  Ghi job 'ghep_nen' (0đ) — cổng video (sinh-video.ts) đòi ảnh kết có job này. Trả null khi shot không áp dụng (khung 3D chưa có góc kết / máy quá xa). */
+ *    2. ghepNenKet: ảnh ra = ảnh mở chuyển góc ở mọi chỗ; chỉ NGƯỜI THẬT (SAM 3 'person' trên ảnh đầu + ảnh AI) + đồ (3D, nở) + chỗ ảnh mở chưa thấy mới lấy
+ *       ảnh AI. Sảnh ngoài vùng đó không thể đổi.
+ *  Ghi job 'ghep_nen' (0đ + tách người 2 × $0,005) — cổng video (sinh-video.ts) đòi ảnh kết có job này. Trả null khi shot không áp dụng (khung 3D chưa có góc kết / máy quá xa). */
 export const NO_VUNG_DONG = 0.015;   // nở vùng đổi theo bề lớn khung — mép mềm
-export const NGUONG_DOI = 0.1;   // chênh màu (0..1, tổng 3 kênh) coi là Nano đã đổi chỗ đó
-export const VUNG_DONG = 0.06;   // nở vùng món động (3D) theo bề lớn khung — người AI vẽ lệch ma-nơ-canh tới vài phần trăm khung
+export const NGUONG_DOI = 0.1;   // chênh màu (0..1, tổng 3 kênh) coi là AI đã đổi sảnh chỗ đó (chỉ để đo — không quyết vùng ghép)
+export const VUNG_DONG = 0.04;   // nở vùng ĐỒ (đạo cụ 3D) theo bề lớn khung — đồ AI vẽ lệch / to hơn khối 3D
 export const TRAN_DOI_SET = 20;   // % sảnh NGOÀI vùng món động mà Nano đã đổi — vượt = Nano không giữ ảnh đầu (trong vùng người sẽ lệch với sảnh chép), cổng video chặn
 const gocCua = (d: NonNullable<NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>['canh']['khung_xam']>['dong'], giua: boolean) => (giua ? d?.giua_goc : d?.ket_goc);
 /** Mỗi điểm khung kết / giữa → chỉ số điểm ảnh trên khung mở (-1 = ngoài ảnh mở). */
@@ -173,28 +186,23 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   const lay = layTuGoc(goc, W, H); if (!lay) return null;
   const B = await rgba(await taiAnh(url), W, H);
   const Aw = chuyenAnh(A, lay, W, H, B);   // chỗ chưa thấy = ảnh Nano (không chênh)
-  // CHỖ NANO ĐỔI: chênh màu sau khi làm mịn (bỏ hạt / nén), mở hình (co 2 rồi nở) bỏ đốm lẻ
+  // VÙNG LẤY ẢNH AI = NGƯỜI THẬT trên ảnh đầu (chuyển góc — chỗ người rời đi) + trên ảnh AI (chỗ người tới) theo SAM 3 "person", cộng ĐỒ (đạo cụ) theo 3D lúc mở /
+  // kết nở thêm. Mọi chỗ khác = ảnh đầu: AI có đổi sảnh (ruột thang máy ra gỗ #19) cũng không lọt — chỉ đo để cổng chặn khi đổi nhiều (trong vùng người sẽ lệch).
+  const M = new Uint8Array(W * H);
+  const [pMo, pAi] = await Promise.all([nguoiTheoChu(db, canhId, bc.canh.thu_tu, bc.canh.keyframe_url, W, H), nguoiTheoChu(db, canhId, bc.canh.thu_tu, url, W, H)]);
+  if (!pMo || !pAi) return null;   // không tách được người → không ghép bừa (cổng video chặn vì thiếu job ghép)
+  for (let i = 0; i < W * H; i++) { const k = lay[i]!; if (pAi[i] || (k >= 0 && pMo[k])) M[i] = 1; }
+  const vat = new Uint8Array(W * H);
+  for (const [k, u] of Object.entries(d.mo)) if (k.startsWith('vat:')) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) { const q = lay[i]!; if (q >= 0 && m[q]! > 127) vat[i] = 1; } }
+  for (const [k, u] of Object.entries(b)) if (k.startsWith('vat:')) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) vat[i] = 1; }
+  noVung(vat, W, H, Math.round(VUNG_DONG * Math.max(W, H)));
+  for (let i = 0; i < W * H; i++) if (vat[i]) M[i] = 1;
+  // AI ĐỔI SẢNH: chênh màu (làm mịn) ngoài vùng trên phần ảnh đầu thấy được
   const rgb = async (x: Buffer) => sharp(x, { raw: { width: W, height: H, channels: 3 } }).blur(1.5).raw().toBuffer();
   const Bb = Buffer.alloc(W * H * 3); for (let i = 0; i < W * H; i++) for (let c = 0; c < 3; c++) Bb[i * 3 + c] = B.d[i * 4 + c]!;
   const [a1, b1] = await Promise.all([rgb(Aw), rgb(Bb)]);
-  const M = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) if ((Math.abs(a1[i * 3]! - b1[i * 3]!) + Math.abs(a1[i * 3 + 1]! - b1[i * 3 + 1]!) + Math.abs(a1[i * 3 + 2]! - b1[i * 3 + 2]!)) / 765 > NGUONG_DOI) M[i] = 1;
-  const nghich = (x: Uint8Array) => { for (let i = 0; i < x.length; i++) x[i] = x[i] ? 0 : 1; };
-  nghich(M); noVung(M, W, H, 2); nghich(M); noVung(M, W, H, 2);   // mở hình: bỏ đốm lẻ
-  // VÙNG ĐƯỢC ĐỔI = quanh chỗ món động đi qua (3D lúc mở chuyển góc + lúc kết, nở rộng — người AI vẽ lệch ma-nơ-canh). Ngoài vùng này sảnh KHÔNG được đổi:
-  // Nano có đổi (ruột thang máy ra gỗ, #19) cũng lấy lại ảnh đầu.
-  const vung = new Uint8Array(W * H); const ket3d = new Uint8Array(W * H);
-  for (const u of Object.values(d!.mo)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) { const k = lay[i]!; if (k >= 0 && m[k]! > 127) vung[i] = 1; } }
-  for (const u of Object.values(b)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) { vung[i] = 1; ket3d[i] = 1; } }
-  noVung(vung, W, H, Math.round(VUNG_DONG * Math.max(W, H)));
-  // MẢNG ĐỔI DÍNH VÙNG NGƯỜI thuộc về người (người AI vẽ to / lệch hơn ma-nơ-canh — chặt theo vùng thì sót vệt váy #15, Thần mờ nửa người #16): loang theo
-  // chỗ đổi từ mọi điểm đổi nằm trong vùng. Mảng đổi KHÔNG dính vùng nào = AI đổi sảnh → giữ ảnh đầu, đếm vào doiSet.
-  const nhan = new Uint8Array(W * H); const hang: number[] = [];
-  for (let i = 0; i < W * H; i++) if (M[i] && (vung[i] || ket3d[i])) { nhan[i] = 1; hang.push(i); }
-  while (hang.length) { const i = hang.pop()!; const x = i % W;
-    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < W * H && M[j] && !nhan[j]) { nhan[j] = 1; hang.push(j); } }
   let doiSet = 0, nSet = 0;
-  for (let i = 0; i < W * H; i++) { if (lay[i]! >= 0 && !vung[i]) { nSet++; if (M[i] && !nhan[i]) doiSet++; } M[i] = nhan[i] || ket3d[i] ? 1 : 0; }
+  for (let i = 0; i < W * H; i++) if (lay[i]! >= 0 && !M[i]) { nSet++; if ((Math.abs(a1[i * 3]! - b1[i * 3]!) + Math.abs(a1[i * 3 + 1]! - b1[i * 3 + 1]!) + Math.abs(a1[i * 3 + 2]! - b1[i * 3 + 2]!)) / 765 > NGUONG_DOI) doiSet++; }
   const r = Math.max(2, Math.round(NO_VUNG_DONG * Math.max(W, H)));
   noVung(M, W, H, r);
   for (let i = 0; i < W * H; i++) if (lay[i]! < 0) M[i] = 1;

@@ -288,7 +288,7 @@ export async function sinhAnhFal(id0: string, v: { prompt: string; thamChieu: st
 
 /** Gửi một việc ẢNH lên fal với đầu vào dựng sẵn rồi chờ tới xong (≤ 3 phút) — dùng chung cho sinhAnhFal và bước độ sâu của keyframe hai bước
  *  (control_image_url không nằm trong khuôn chung của dauVaoTheoSchema). */
-export async function chayAnhFal(id: string, input: Record<string, unknown>): Promise<{ ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string }> {
+export async function chayAnhFal(id: string, input: Record<string, unknown>, o: { /** SAM 3: tải MỌI mặt nạ (j.masks) vào `ds` */ masks?: boolean } = {}): Promise<{ ok: true; model: string; mimeType: string; data: Buffer; ds?: Buffer[] } | { ok: false; loi: string }> {
   const g = await guiFal(id, input);
   if (!g.ok) return g;
   const t = JSON.parse(g.taskId) as { s: string; r: string };
@@ -305,8 +305,13 @@ export async function chayAnhFal(id: string, input: Record<string, unknown>): Pr
     const st = (await rs.json().catch(() => ({}))) as { status?: string };
     if (st.status !== 'COMPLETED') continue;
     const rr = await lay(t.r); if (!rr) return { ok: false, loi: 'fal xong nhưng không tải được kết quả (lỗi mạng)' };
-    const j = (await rr.json().catch(() => ({}))) as { images?: Array<{ url?: string; content_type?: string }>; image?: { url?: string }; detail?: unknown };
+    const j = (await rr.json().catch(() => ({}))) as { images?: Array<{ url?: string; content_type?: string }>; image?: { url?: string }; masks?: Array<{ url?: string }>; detail?: unknown };
     if (!rr.ok) return { ok: false, loi: docLoiFal(j as Record<string, unknown>, rr.status) };
+    if (o.masks) {   // không có mặt nạ nào = không thấy vật đó (hợp lệ, không phải lỗi)
+      const ds: Buffer[] = [];
+      for (const m of j.masks ?? []) { const b = m.url ? await lay(m.url) : null; if (b) ds.push(Buffer.from(await b.arrayBuffer())); }
+      return { ok: true, model: `fal:${id}`, mimeType: 'image/png', data: ds[0] ?? Buffer.alloc(0), ds };
+    }
     const url = j.images?.[0]?.url ?? j.image?.url;
     if (!url) return { ok: false, loi: 'fal xong nhưng không có ảnh' };
     const b = await lay(url); if (!b) return { ok: false, loi: 'fal xong nhưng không tải được ảnh (lỗi mạng)' };

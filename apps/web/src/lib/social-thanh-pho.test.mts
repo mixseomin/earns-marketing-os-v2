@@ -240,5 +240,6 @@ console.log('✓ sức sống: đơ · thoi thóp · sống · sôi động · k
   assert.equal(tenMienGoc('ai.chatwhenbored.com'), 'chatwhenbored.com', 'tên miền phụ quy về gốc'); }
 { const tn = m.taiNguyen; assert.ok(Array.isArray(tn.binh) && Array.isArray(tn.han), 'mô hình có bồn + hạn');
   assert.ok(tn.han.every((h) => !/gumroad\.com$/.test(h.ten)), 'cửa hàng trên nền người khác không vào danh sách hạn tên miền');
-  assert.equal(new Set(tn.han.map((h) => h.ten)).size, tn.han.length, 'mỗi tên miền một dòng'); }
+  assert.equal(new Set(tn.han.map((h) => h.ten)).size, tn.han.length, 'mỗi tên miền một dòng');
+  assert.ok(tn.han.filter((h) => h.loai === 'hosting').every((h) => !h.may || m.nhaMay.some((x) => x.khoa === h.may)), 'máy chủ trỏ đúng toà máy (theo IP)'); }
 console.log('✓ tài nguyên: bồn (mức tiêu, còn ngày) · hạn tên miền / máy chủ · chỗ mù');

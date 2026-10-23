@@ -129,7 +129,7 @@ export interface PhoTaiNguyen {
   /** BỒN — tài nguyên trả trước (nguồn AI, máy thuê): số dư, mức tiêu bình quân / ngày, còn bao nhiêu ngày, mức (tinhBinh) */
   binh: { key: string; ten: string; don: string; du: number | null; tieuNgay: number | null; conNgay: number | null; muc: MucTn; loi: string | null; luc: string | null }[];
   /** HẠN — tên miền / máy chủ: ngày hết hạn, còn bao nhiêu ngày, mức (mucHan); dich = khoá toà site của tên miền */
-  han: { loai: 'domain' | 'hosting'; ten: string; het: string | null; conNgay: number | null; muc: MucTn; dich: string | null }[];
+  han: { loai: 'domain' | 'hosting'; ten: string; het: string | null; conNgay: number | null; muc: MucTn; dich: string | null; may: string | null }[];
 }
 /** mức cảnh báo tài nguyên: đỏ = phải xử ngay · vàng = sắp · xanh = ổn · chua-do = chưa có số (chỗ mù) */
 export type MucTn = 'do' | 'vang' | 'xanh' | 'chua-do';
@@ -543,8 +543,10 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     // hạn: tên miền của MỌI site trên thành phố (site chưa có dòng trong sổ hạ tầng = chỗ mù) + máy chủ trong sổ
     han: [...[...new Map(dich.filter((d) => d.loai === 'site' && d.site && !d.laShop && !TEN_MIEN_NGOAI.has(tenMienGoc(d.site))).map((d) => [tenMienGoc(d.site!), d] as const)).entries()].map(([ten, d]) => {
         const r = (hst.hat ?? []).find((x) => x.kind === 'domain' && tenMienGoc(x.label) === ten);
-        return { loai: 'domain' as const, ten, het: r?.het ?? null, ...mucHan(r?.het ?? null, homNay), dich: d.khoa }; }),
-      ...(hst.hat ?? []).filter((x) => x.kind === 'hosting').map((x) => ({ loai: 'hosting' as const, ten: x.label, het: x.het, ...mucHan(x.het, homNay), dich: null }))],
+        return { loai: 'domain' as const, ten, het: r?.het ?? null, ...mucHan(r?.het ?? null, homNay), dich: d.khoa, may: null }; }),
+      // máy chủ: GOM THEO IP (nhiều dòng "hosting" của sổ là chỗ chạy app trên cùng một máy) — tên = tên toà máy trên thành phố, hạn = hạn sớm nhất trong các dòng
+      ...[...(hst.hat ?? []).filter((x) => x.kind === 'hosting').reduce((g, x) => g.set(x.ip ?? x.label, [...(g.get(x.ip ?? x.label) ?? []), x]), new Map<string, NonNullable<VaoHeSinhThai['hat']>>())].map(([khoa, rs]) => { const het = rs.map((x) => x.het).filter(Boolean).sort()[0] ?? null;
+        return { loai: 'hosting' as const, ten: nhaMay.find((m) => m.khoa === khoa)?.ten ?? rs[0]!.label, het, ...mucHan(het, homNay), dich: null, may: nhaMay.some((m) => m.khoa === khoa) ? khoa : null }; })],
   };
   return { tk, dich, duAn, luong, tien, nhaMay, congTy, taiNguyen, fav: live.fav };
 }

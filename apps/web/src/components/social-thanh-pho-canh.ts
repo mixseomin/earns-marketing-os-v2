@@ -284,6 +284,38 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // CỠ NGƯỜI / XE (anh 24/10/2026 "người, xe bé quá, nhìn như con kiến"): một chỗ phóng cho mọi người đi bộ (khách thật + người nền) và mọi xe (luồng khách, xe ra vào khu, xe nền)
   const CO_NGUOI = 2.2, CO_XE = 2.2, Y_XE = .9 * CO_XE + .4;
   let ongDs: { cv: any; t: number; toc: number; mau: any }[] = [], ongXung: any = null;
+  // chuyến trong nhà máy phim: xe giữa các trạm (mang biển tên phim đang chở) + xe tới toà camp vừa lên + người bê thùng ở trạm đang chạy
+  let xuongPhim: { tram: any[] } | null = null, chuyenDs: { o: any; a: any; b: any; t: number; toc: number; di?: boolean }[] = [], khoaChuyen = ''; const viTriCamp = new Map<string, any>();
+  const TRAM_XP: [string, string, string][] = [['📚', 'Kho phim', '#3a4a6e'], ['🖼', 'Soát poster', '#3d5a7a'], ['✂️', 'Cắt đoạn', '#5a4a7a'], ['🔞', 'Soát 18+', '#7a3d4a'], ['🔤', 'Cổng chữ', '#3d6a5a'], ['🚀', 'Lên camp', '#7a5a2a']];
+  const bienXe = (chu: string, mau: string) => { const cv = document.createElement('canvas'); cv.width = 640; cv.height = 96; const g = cv.getContext('2d')!; g.font = '700 44px system-ui, "Apple Color Emoji", sans-serif';
+    let t = chu; while (g.measureText(t).width > 600 && t.length > 8) t = t.slice(0, -2); if (t !== chu) t = t.trimEnd() + '…';
+    const w = Math.min(632, g.measureText(t).width + 36); g.fillStyle = 'rgba(10,14,24,.9)'; g.beginPath(); g.roundRect((640 - w) / 2, 6, w, 84, 18); g.fill(); g.strokeStyle = mau; g.lineWidth = 4; g.stroke();
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 320, 50);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false })); sp.scale.set(36, 5.4, 1); sp.userData = { chu: null }; return sp; };
+  function dungChuyen() {
+    const x = xuongData, xp = xuongPhim; if (!x || !xp) return;
+    const t = x.tram, n = x.nhip, sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1;
+    const khoa = JSON.stringify([sang, n?.lo, [t.kho.so, t.poster.so, t.soat.so, t.len.so], (t.poster.ds ?? []).slice(0, 3).map((p) => p.id), (t.len.ds ?? []).slice(0, 3).map((p) => p.id), (t.da_len.ds ?? []).slice(-8).map((p) => p.ghi), viTriCamp.size]);
+    if (khoa === khoaChuyen) return; khoaChuyen = khoa;   // số không đổi → giữ xe đang chạy (không nhảy về đầu mỗi 5 giây)
+    for (const c of chuyenDs) the.remove(c.o); chuyenDs = [];
+    const xe = (a: any, b: any, chu: string, mau: string, tt: Record<string, string>, t0: number) => {
+      const m = add(new THREE.BoxGeometry(4.2 * CO_XE, 2.2 * CO_XE, 2.4 * CO_XE), M({ color: mau, emissive: mau, emissiveIntensity: .35 }), false);
+      const thung = new THREE.Mesh(new THREE.BoxGeometry(2.2 * CO_XE, 1.6 * CO_XE, 2 * CO_XE), M({ color: '#d9b77a', roughness: .8 })); thung.position.set(-.8 * CO_XE, 1.9 * CO_XE, 0); m.add(thung);
+      const bn = bienXe(chu, mau); bn.position.set(0, 9, 0); m.add(bn); m.userData = { loai: 'chuyen', tt };
+      chuyenDs.push({ o: m, a: a.clone().setY(0), b: b.clone().setY(0), t: t0, toc: .0022 * 120 / Math.max(120, a.distanceTo(b)) }); };
+    // hàng rời trạm i sang trạm i + 1: tên phim lấy từ danh sách của trạm (poster đạt, chờ lên camp…); trạm không có danh sách thì ghi số
+    const ra: [string, string, { ten: string; ghi: string }[], number][] = [['📚 phim mới', '#6ea8ff', [], t.kho.so], ['🖼 poster đạt', '#59a8ff', t.poster.ds ?? [], t.poster.so], ['✂️ đoạn đã cắt', '#b48cff', [], sang === 2 ? 1 : 0], ['🔞 soát đạt', '#ff8fa3', t.soat.ds ?? [], t.soat.so], ['🎞 creative', '#3fd68a', t.len.ds ?? [], t.len.so]];
+    ra.forEach(([hang, mau, ds, so], i) => { if (!(so > 0 || sang === i + 1)) return; const k = Math.min(3, Math.max(1, ds.length || 1));
+      for (let j = 0; j < k; j++) { const p = ds[j]; xe(xp.tram[i], xp.tram[i + 1], `${hang} · ${p ? p.ten : `${so} phim`}`, mau, { 'Chở': hang, 'Phim': p ? esc(p.ten) : `${so} phim chờ`, ...(p?.ghi ? { 'Ghi': esc(p.ghi) } : {}), 'Từ': `${TRAM_XP[i]![0]} ${TRAM_XP[i]![1]}`, 'Đến': `${TRAM_XP[i + 1]![0]} ${TRAM_XP[i + 1]![1]}` }, j / k); } });
+    // trạm Lên camp → đúng toà camp vừa dựng (#id trong danh sách đã lên)
+    let nc = 0; for (const p of (t.da_len.ds ?? []).slice(-8).reverse()) for (const id of p.ghi.match(/#\d+/g) ?? []) { const pos = viTriCamp.get(`c:${id.slice(1)}`); if (!pos || nc >= 10) continue;
+      xe(xp.tram[5], pos, `🚀 camp ${id} · ${p.ten}`, '#ffd166', { 'Chở': '🚀 camp mới lên', 'Camp': id, 'Phim': esc(p.ten), 'Lúc': esc(p.luc), 'Từ': '🚀 Lên camp', 'Đến': `toà camp ${id}` }, (nc++ * .37) % 1); }
+    // người bê thùng đi lại giữa cửa trạm đang chạy và trạm kế
+    if (sang >= 0) for (let k = 0; k < 3; k++) { const a = xp.tram[sang], b = xp.tram[Math.min(5, sang + 1)] ?? a, m = add(new THREE.CylinderGeometry(.55 * CO_NGUOI, .55 * CO_NGUOI, 2.2 * CO_NGUOI, 7), M({ color: '#ffd27a' }), false);
+      const th = new THREE.Mesh(new THREE.BoxGeometry(1.3 * CO_NGUOI, 1 * CO_NGUOI, 1 * CO_NGUOI), M({ color: '#d9b77a' })); th.position.set(0, 1.5 * CO_NGUOI, .8 * CO_NGUOI); m.add(th);
+      m.userData = { loai: 'chuyen', tt: { 'Người': 'bê thùng', 'Việc': esc(TEN_BUOC[n!.buoc] ?? n!.buoc), ...(n?.lo ? { 'Lô': esc(n.lo) } : {}), 'Trạm': `${TRAM_XP[sang]![0]} ${TRAM_XP[sang]![1]}` } };
+      chuyenDs.push({ o: m, a: a.clone().add(new THREE.Vector3(-8 + k * 8, 0, 0)), b: (b === a ? a.clone().add(new THREE.Vector3(14, 0, 0)) : b.clone()).add(new THREE.Vector3(-8 + k * 8, 0, 0)), t: k / 3, toc: .004, di: true }); }
+  }
   const MAU_CAMP = { lai: '#3fd68a', lo: '#ff4d5e', viPham: '#b44dff', cho: '#4fd1ff' };
   // SỨC SỐNG (mô hình tinhSucSong — mọi nguồn traffic ngang nhau): đơ = đóng băng xám xanh, tắt đèn, không xe · thoi thóp = mờ · sôi động = vòng sáng trên nóc
   const SUC_SONG = [{ ic: '❄', ten: 'đơ — chưa gắn nguồn traffic nào' }, { ic: '💤', ten: 'thoi thóp — có nguồn mà 7 ngày không khách' }, { ic: '🌱', ten: 'sống — có khách 7 ngày' }, { ic: '🔥', ten: 'sôi động — đang có khách' }] as const;
@@ -1164,13 +1196,25 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       chiMuc.push({ ten: 'Xưởng SX', nhan: 'khu', obj: thanDau ?? than0 }); khuPos[KHU_XUONG] = { cx: x0 + dai / 2, cz: z0 - cao / 2, phia: -1 }; banKinhKhu[KHU_XUONG] = Math.max(dai, cao) / 2; zXuong = cao - z0;
     }
     dungGop();
-    { const kp = khuPos['d:ethopex~2'] ?? khuPos['d:ethopex'];   // xưởng phim mới nổi trên khu bộ 2 (bộ chỉ phim mới)
+    // NHÀ MÁY PHIM MỚI trên mặt đất cạnh khu bộ 2 (anh 24/10/2026: "phải là dòng người đi trong nhà máy — đi từ đâu đến khu của phim nào, camp nào, creative nào, chở cái gì"):
+    // 6 trạm thật nối bằng đường xưởng, bảng số nổi trên nhà máy; xe / người chạy giữa trạm và tới đúng toà camp (dungChuyen, dựng lại khi số xưởng đổi)
+    { const kh = khuPos['d:ethopex~2'] ? 'd:ethopex~2' : 'd:ethopex', kp = khuPos[kh], R = banKinhKhu[kh] ?? 200;
+      viTriCamp.clear(); for (const o of the.children) if (o.userData?.loai === 'dich' && o.userData.d.loai === 'camp') viTriCamp.set(o.userData.d.khoa, o.position.clone());
       if (kp) {
+        const BUOC = 52, zF = kp.cz + kp.phia * (R + 64), x0F = kp.cx - BUOC * 2.5, cuaZ = zF - kp.phia * 18;
+        const duongX = add(new THREE.PlaneGeometry(BUOC * 5 + 50, 12), M({ color: '#2a2f3f', roughness: 1 }), false); duongX.rotation.x = -Math.PI / 2; duongX.position.set(kp.cx, .35, cuaZ); duongX.userData = { chu: null };
+        const tram = TRAM_XP.map(([ic, ten, mau], i) => { const x = x0F + i * BUOC;
+          const m = add(new THREE.BoxGeometry(30, 16, 22), M({ color: mau, roughness: .6 })); m.position.set(x, 8, zF); m.userData = { loai: 'xuong-etp' };
+          const mai = add(new THREE.BoxGeometry(32, 2, 24), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .25 })); mai.position.set(x, 17, zF); mai.userData = { chu: m };
+          const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const g = cv.getContext('2d')!; g.fillStyle = 'rgba(12,16,28,.9)'; g.beginPath(); g.roundRect(4, 4, 504, 120, 22); g.fill(); g.strokeStyle = '#59a8ff'; g.lineWidth = 4; g.stroke();
+          g.fillStyle = '#fff'; g.font = '800 58px system-ui, "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(`${ic} ${ten}`, 256, 66);
+          const b = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false })); b.scale.set(30, 7.5, 1); b.position.set(x, 26, zF); b.userData = { loai: 'xuong-etp' }; the.add(b);
+          return new THREE.Vector3(x, 0, cuaZ); });
         const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 500; const tx = new THREE.CanvasTexture(cv); tx.anisotropy = 4;
-        const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthWrite: false })); bien.scale.set(150, 47, 1); bien.position.set(kp.cx, 100, kp.cz);
+        const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthWrite: false })); bien.scale.set(150, 47, 1); bien.position.set(kp.cx, 88, zF - kp.phia * 34);   // nổi cao, lùi về phía khu — không che dãy trạm
         bien.userData = { loai: 'xuong-etp' }; the.add(bien); chiMuc.push({ ten: 'Xưởng phim mới Ethopex', nhan: 'xưởng', obj: bien });
-        xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; }; xuongVe(xuongData); xuongDong = { cv, tx, bien };
-      } else { xuongVe = null; xuongDong = null; } }
+        xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; dungChuyen(); }; xuongDong = { cv, tx, bien }; xuongPhim = { tram }; khoaChuyen = ''; xuongVe(xuongData);
+      } else { xuongVe = null; xuongDong = null; xuongPhim = null; } }
     const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), Math.max(coCty ? xCty + 110 : xKho + 60, xTnPhai), Math.max(zTrong, coCty ? 260 : 0, zXuong + 20), zNgoai);
     gioiHan = { x0: kn.xa, x1: kn.xb, z: kn.zDat };
     const rong = kn.xb - kn.xa;
@@ -1258,6 +1302,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     // thẻ XƯỞNG PHIM MỚI (góp ý #1445 "trình bày lại, nhìn kinh quá, toàn chữ"): thanh chỉ tiêu hôm nay · 6 ô trạm (số to, trạm đang chạy sáng + tiến độ) ·
     // dòng đang làm · danh sách phim gập được, mỗi phim một dòng (lô chung ghi ở đầu mục, không lặp từng dòng)
+    if (u.loai === 'chuyen') return { dau: u.tt['Người'] ? '🧑‍🏭 Người trong nhà máy phim' : `🚚 ${u.tt['Chở']}`, h: Object.entries(u.tt as Record<string, string>).filter(([k]) => k !== 'Chở' && k !== 'Người') };
     if (u.loai === 'xuong-etp') { const x = xuongData, n = x?.nhip;
       if (!x) return { dau: '🏭 Xưởng phim mới', h: [['', 'đang đọc số…']] };
       const sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1, t = x.tram, ct = x.chi_tieu;
@@ -1674,6 +1719,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       sp.scale.setScalar(5 + p * 22); sp.material.opacity = Math.min(1, p * 12) * (1 - p) * .95; }
     for (const c of ds.cot!) c.material.opacity = .32 + Math.sin(dem / 25) * .1;
     for (const c of ds.cho!) c.material.opacity = .35 + Math.abs(Math.sin(dem / 18)) * .5;
+    for (const c of chuyenDs) { c.t = (c.t + c.toc * nhan) % (c.di ? 2 : 1); const p = c.di ? (c.t < 1 ? c.t : 2 - c.t) : c.t; c.o.position.lerpVectors(c.a, c.b, p);
+      c.o.position.y = c.di ? 1.1 * CO_NGUOI + Math.abs(Math.sin(dem / 5 + c.t * 9)) * .3 * CO_NGUOI : Y_XE; c.o.rotation.y = Math.atan2(-(c.b.z - c.a.z), c.b.x - c.a.x) + (c.di ? 0 : 0); }
     if (ongXung) { for (let i = 0; i < ongDs.length; i++) { const o = ongDs[i]!; o.t = (o.t + o.toc * nhan) % 1; o.cv.getPoint(o.t, oA.position); oA.rotation.set(0, 0, 0); oA.scale.set(1, 1, 1); oA.updateMatrix(); ongXung.setMatrixAt(i, oA.matrix); } ongXung.instanceMatrix.needsUpdate = true; }
     ctl.update();
     // MẶT PHẲNG GẦN THEO KHOẢNG CÁCH (góp ý 23/10/2026 "để ở mức này nền cứ bị nháy"): near cố định 1 với camera lùi ~2.500 thì bộ đệm sâu chỉ phân biệt được

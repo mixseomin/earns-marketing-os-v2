@@ -1186,7 +1186,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const onWheel = (e: WheelEvent) => {
     e.preventDefault(); e.stopPropagation(); danhThuc(); bay = null;
     const chuot = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40 && Number.isInteger(e.deltaY));
-    if (e.ctrlKey || chuot) { const v = cam.position.clone().sub(ctl.target), k = Math.exp((dk.daoPhong ? -1 : 1) * e.deltaY * (e.ctrlKey ? .012 : .0016)); v.setLength(Math.max(ctl.minDistance, Math.min(ctl.maxDistance, v.length() * k))); cam.position.copy(ctl.target).add(v); }
+    // PHÓNG VỀ CHỖ CON TRỎ (anh 23/10/2026 "trên pc làm sao zoom"): như Google Maps / Blender "Zoom to Mouse Position" — điểm mặt đất dưới con trỏ đứng yên,
+    // camera và tâm nhìn cùng co giãn quanh điểm đó (cùng cách chụm 2 ngón trên điện thoại ở onCham2)
+    if (e.ctrlKey || chuot) { const kc = cam.position.distanceTo(ctl.target), k = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * Math.exp((dk.daoPhong ? -1 : 1) * e.deltaY * (e.ctrlKey ? .012 : .0016)))) / kc;
+      datDuoi(e.clientX, e.clientY, oG); cam.position.sub(oG).multiplyScalar(k).add(oG); ctl.target.sub(oG).multiplyScalar(k).add(oG); }
     else { const kc = cam.position.distanceTo(ctl.target) * .0016; vPhai.setFromMatrixColumn(cam.matrix, 0).setY(0).normalize(); vTruoc.copy(ctl.target).sub(cam.position).setY(0).normalize();
       // mặc định: cảnh đi theo ngón tay như kéo bản đồ (vuốt lên = phố trôi lên = nhìn xa hơn theo trục phố); 'đảo chiều' lật cả hai trục
       const s2 = dk.daoTruot ? -1 : 1, d = vPhai.multiplyScalar(s2 * e.deltaX * kc).add(vTruoc.multiplyScalar(-s2 * e.deltaY * kc)); ctl.target.add(d); cam.position.add(d); }

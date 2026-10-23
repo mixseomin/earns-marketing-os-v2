@@ -2136,10 +2136,20 @@ for sh in ([] if CHI_MB else shots):
         d0, n0 = Vector(sh['may']['dat']), Vector(sh['may']['nhin']); d1, n1 = Vector(chay_['dat']) + (d0 - Vector(dat_khai)), Vector(chay_['nhin']) + Vector(LECH_NHIN.get(sh['ma'], (0, 0, 0)))   # máy đã ngắm lại ở khung mở → khung kết lệch theo
         dat_may(cam, list(d0.lerp(d1, t)), list(n0.lerp(n1, t))); cam.data.lens = sh['may']['ong_kinh'] + (chay_['ong_kinh'] - sh['may']['ong_kinh']) * t
         cat_dau(cam, sh, list(n0.lerp(n1, t)))
-    may0 = (cam.matrix_world.copy(), cam.data.lens)
-    def may_yen():   # máy ở khung kết / giữa trùng khung mở (không đường máy, không ngắm lại) → ảnh kết / giữa chép được nền từ keyframe mở
+    may0 = (cam.matrix_world.copy(), cam.data.lens, [Vector(v) for v in cam.data.view_frame(scene=s)])
+    def goc_ve_mo():
+        """MÁY CHỈ XOAY TẠI CHỖ (đứng yên, hoặc lia / ngửa theo người — ngam_lai) ở khung kết / giữa: chỗ đặt + ống kính trùng khung mở → điểm ảnh khung mở chuyển
+        ĐÚNG sang khung này bằng một phép đồng phẳng (xoay quanh tâm máy, không cần độ sâu). Trả 4 góc khung NÀY (trên-trái, trên-phải, dưới-phải, dưới-trái)
+        đặt trên khung MỞ (x, y 0..1 gốc trên-trái, có thể ra ngoài 0..1), None khi máy dời chỗ / đổi ống (dolly, zoom — phải có độ sâu)."""
         bpy.context.view_layer.update()
-        return abs(cam.data.lens - may0[1]) < 1e-3 and all(abs(a_ - b_) < 1e-4 for r0, r1 in zip(may0[0], cam.matrix_world) for a_, b_ in zip(r0, r1))
+        if abs(cam.data.lens - may0[1]) > 1e-3 or (cam.matrix_world.translation - may0[0].translation).length > 1e-4: return None
+        vf0 = may0[2]; xs = [v.x for v in vf0]; ys = [v.y for v in vf0]; fz = vf0[0].z; inv0 = may0[0].inverted(); out = []
+        vf = [Vector(v) for v in cam.data.view_frame(scene=s)]   # thứ tự Blender: trên-phải, dưới-phải, dưới-trái, trên-trái
+        for v in (vf[3], vf[0], vf[1], vf[2]):
+            q = inv0 @ (cam.matrix_world @ v)
+            if q.z > -1e-6: return None   # góc khung này nằm sau lưng máy mở (xoay > 90°)
+            k = fz / q.z; out.append([round((q.x * k - min(xs)) / (max(xs) - min(xs)), 5), round(1 - (q.y * k - min(ys)) / (max(ys) - min(ys)), 5)])
+        return out
     if co_mau or dong:
         nk, nk_het = nhan_vat(sh, ket=True)
         may_tai(1.0)
@@ -2149,12 +2159,13 @@ for sh in ([] if CHI_MB else shots):
         den_ = chieu(nk)
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
-        yen_ = co_mau and sh['ma'] in dong_ and may_yen()
-        if yen_: dong_[sh['ma']]['ket'] = {k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dk').items()}
+        g_ = goc_ve_mo() if co_mau and sh['ma'] in dong_ else None
+        if g_: dong_[sh['ma']].update(ket={k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dk').items()}, ket_goc=g_)
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
         if MESH_THAT and dong:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
             may_tai(0.5); ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
-            if yen_ and may_yen(): dong_[sh['ma']]['giua'] = {k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dg').items()}
+            g2_ = goc_ve_mo() if g_ else None
+            if g2_: dong_[sh['ma']].update(giua={k_: v_['tep'] for k_, v_ in ve_mat_na(s, sh, cam, f"{RA}/{sh['ma']}", 'dg').items()}, giua_goc=g2_)
             for o in ng_het: bpy.data.objects.remove(o, do_unlink=True)
         may_tai(0.0)
     else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]
@@ -2216,6 +2227,6 @@ json.dump(xuyen, open(f'{RA}/xuyen.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(lop, open(f'{RA}/lop.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(ket_dong, open(f'{RA}/ket_dong.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(mat_na, open(f'{RA}/mat_na.json', 'w'), ensure_ascii=False, indent=1)
-json.dump(dong_, open(f'{RA}/dong.json', 'w'), ensure_ascii=False, indent=1)   # mặt nạ món động mở / kết / giữa (máy yên mới có kết / giữa)
+json.dump(dong_, open(f'{RA}/dong.json', 'w'), ensure_ascii=False, indent=1)   # mặt nạ món động mở / kết / giữa + 4 góc kết / giữa trên khung mở (máy chỉ xoay tại chỗ mới có)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

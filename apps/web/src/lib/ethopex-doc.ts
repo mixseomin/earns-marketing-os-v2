@@ -8,7 +8,7 @@ import { getDb } from '@mos2/db';
 import { goiEthopex } from '@mos2/db/ethopex';
 import type { CampEtp, SoLieu } from './ethopex-luat';
 
-type CtCamp = { campaign: { id: number; name: string; state: string; budget_daily: number; last_synced_at: string | null; created_at: string; error?: string };
+type CtCamp = { campaign: { id: number; name: string; state: string; budget_daily: number; last_synced_at: string | null; created_at: string; error?: string; ad_account_id?: number };
   ad_groups?: { source_payload?: unknown; ads?: { content_id?: number; creative_id?: number; delivery_status?: string; error?: string; final_url?: string; external_ad_id?: string; name?: string;
     media_info?: { video_id?: string; thumbnail_url?: string } | string }[] }[] };
 type DongBc = { campaign_id: number; cost: number; revenue: number };
@@ -52,6 +52,9 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
     FROM xv_phim p WHERE p.project = 'ethopex' AND p.kinh_thanh->'ethopex' ? 'creative_id'`)) as unknown as
     { id: number; ten: string; cr: number; nn: string | null; link: string | null; poster: string | null; loai: string | null; video: string | null; anh: string | null }[];
   const theoCr = new Map(sx.map((r) => [r.cr, r]));
+  // BỘ TÀI KHOẢN QC + PAGE (anh 23/10/2026: mỗi phim một bộ; city.on.tc chia khu theo bộ) — studio xv_khoa_ngoai['ethopex_bo_tk'] {bộ: {tk, ten}}
+  const boRow = (await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_bo_tk'`)) as unknown as { gia_tri: Record<string, { tk: number; ten: string }> | null }[];
+  const boCuaTk = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), { bo: k, ten: b.ten }]));
   const thangRow = (await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_thang'`)) as unknown as { gia_tri: { content?: number[] } }[];
   // hàng chờ test (anh 21/10/2026: phim spy chưa duyệt vào lô hôm nay "vẫn phải lưu để sang ngày hôm sau") — studio xv_khoa_ngoai['ethopex_hang_cho']
   const choRow = (await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_hang_cho'`)) as unknown as { gia_tri: { phim?: PhimCho[] } }[];
@@ -61,7 +64,8 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
     const ten = c.name.replace(/^\d+:\s*/, '');
     // giờ bắt đầu của Ad Set (camp lên lịch ngày mai: start_time ở tương lai) — extension đếm camp Scheduled theo phim (anh 23/10/2026)
     const spg = d.ad_groups?.[0]?.source_payload, spj = (typeof spg === 'string' ? (() => { try { return JSON.parse(spg); } catch { return {}; } })() : spg ?? {}) as { start_time?: string };
-    return { id: c.id, ten, trang_thai: c.state, giao: a.delivery_status ?? '', ngan_sach: +c.budget_daily || 0, dong_bo: c.last_synced_at, tao: c.created_at, bat_dau: spj.start_time ?? null,
+    const bo = boCuaTk.get(Number(c.ad_account_id ?? 0));
+    return { id: c.id, ten, bo: bo?.bo ?? null, bo_ten: bo?.ten ?? null, trang_thai: c.state, giao: a.delivery_status ?? '', ngan_sach: +c.budget_daily || 0, dong_bo: c.last_synced_at, tao: c.created_at, bat_dau: spj.start_time ?? null,
       content_id: a.content_id ?? null, creative_id: a.creative_id ?? null, phim: p?.ten.split(' · ')[1] ?? null,
       ngon_ngu: p?.nn ?? (/\bES\b/.test(ten) ? 'es' : /\bEN\b/.test(ten) ? 'en' : null), studio_phim_id: p?.id ?? null,
       link_phim: p?.link ?? null, video: p?.video ?? null, anh: p?.anh ?? p?.poster ?? null, dang_creative: p?.loai === 'qc_canh_that' ? 'cảnh thật' : p?.loai === 'qc_ke_chuyen' ? 'kể chuyện' : p?.loai ?? null,

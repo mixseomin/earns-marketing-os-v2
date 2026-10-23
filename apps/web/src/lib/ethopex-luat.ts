@@ -64,7 +64,7 @@ export const LUAT_THEO_MA = Object.fromEntries(LUAT.map((l) => [l.ma, l])) as Re
 export type SoLieu = { chi: number; thu: number };
 export const TUOI_TAT = 7;   // review tắt camp chỉ khi camp đủ 7 ngày (anh 22/10/2026)
 export type CampEtp = {
-  id: number; ten: string; trang_thai: string; giao: string; ngan_sach: number; dong_bo: string | null; tao: string; bat_dau?: string | null;
+  id: number; ten: string; bo?: string | null; bo_ten?: string | null; trang_thai: string; giao: string; ngan_sach: number; dong_bo: string | null; tao: string; bat_dau?: string | null;
   content_id: number | null; creative_id: number | null; phim: string | null; ngon_ngu: string | null; studio_phim_id: number | null;
   link_phim: string | null; video: string | null; anh: string | null; dang_creative: string | null; trang_dich: string | null; fb_ad: string | null; fb_video: string | null;
   loi: string | null; thang: SoLieu; hom_nay: SoLieu; hom_qua: SoLieu; gan: SoLieu; truoc: SoLieu;

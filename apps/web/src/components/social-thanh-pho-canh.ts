@@ -741,13 +741,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; const Wb = 120, Hb = Wb * cao / 720, day = 14;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'dich', d: hub }; the.add(sp);
       for (const dx of [-Wb * .3, Wb * .3]) { const cot = add(new THREE.CylinderGeometry(1, 1, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x + dx, day / 2, z); cot.userData = { chu: null }; }
-      // nút bật / tắt bảng hiệu: trụ tròn có đèn, đứng trước bảng xếp hạng; bấm = đổi, chữ trên trụ ghi trạng thái
-      const nx = x, nz = z + 16, bat = !tatBien[hub.khoa];
-      const tru = add(new THREE.CylinderGeometry(5, 6, 6, 20), M({ color: bat ? '#1f8a5a' : '#3a4260', emissive: bat ? '#3fd68a' : '#000000', emissiveIntensity: .5, roughness: .4 })); tru.position.set(nx, 3, nz);
+      // nút bật / tắt bảng hiệu: trụ tròn có đèn đứng CẠNH bảng xếp hạng (trước nằm khuất dưới bảng — anh 23/10/2026 "nút bật tắt bảng hiệu đâu");
+      // nhãn nút giữ cỡ cố định trên màn và luôn nổi trên cùng (không bị toà che), nên phóng xa vẫn thấy và bấm được
+      const nx = x + Wb / 2 + 22, nz = z, bat = !tatBien[hub.khoa];
+      const tru = add(new THREE.CylinderGeometry(8, 9, 8, 24), M({ color: bat ? '#1f8a5a' : '#3a4260', emissive: bat ? '#3fd68a' : '#000000', emissiveIntensity: .5, roughness: .4 })); tru.position.set(nx, 4, nz);
       tru.userData = { loai: 'nut-bien', hub: hub.khoa };
       const cv2 = document.createElement('canvas'); cv2.width = 512; cv2.height = 128; const g2 = cv2.getContext('2d')!; g2.fillStyle = bat ? '#14301f' : '#1c2238'; g2.fillRect(0, 0, 512, 128); g2.strokeStyle = bat ? '#3fd68a' : '#8e9abd'; g2.lineWidth = 8; g2.strokeRect(4, 4, 504, 120);
       g2.fillStyle = '#fff'; g2.font = '800 46px system-ui, sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(`🪧 Bảng hiệu: ${bat ? 'BẬT' : 'TẮT'}`, 256, 66);
-      const nhan = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv2) })); nhan.scale.set(28, 7, 1); nhan.position.set(nx, 12, nz); nhan.userData = { loai: 'nut-bien', hub: hub.khoa }; the.add(nhan);
+      const nhan = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv2), sizeAttenuation: false, depthTest: false })); nhan.renderOrder = 10; nhan.scale.set(.12, .03, 1); nhan.position.set(nx, 16, nz); nhan.userData = { loai: 'nut-bien', hub: hub.khoa }; the.add(nhan);
     }
     // toà CAMP (góp ý #1439): hình theo dạng creative (kể chuyện = trụ tròn · cảnh thật = khối vuông · cảnh cuối = khối mái chóp · phim dài = khối dẹt dài ·
     // khác = trụ lục giác), màu theo trạng thái (xanh lãi · đỏ lỗ · tím vi phạm · xanh nhạt trong suốt = lên lịch), cao theo thu + chi 30 ngày;

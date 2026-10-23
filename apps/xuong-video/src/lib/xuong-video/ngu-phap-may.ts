@@ -16,7 +16,7 @@ export const NGU_PHAP_MAY: Record<NhipKich, { ten: string; may: string[]; goc?: 
   soc: { ten: 'cú sốc', may: ['zoom_gat', 'speed_ramp', 'dolly_zoom', 'cung'], vi_sao: 'cú đánh mặt bằng hình: zoom gắt / chậm hẳn khoảnh khắc đỉnh / hậu cảnh giãn ra / máy đi cung quanh người đang chết lặng (anh 18/10/2026 giữ cung cho #23 tổng tài)' },
   he_lo: { ten: 'hé lộ thân phận', may: ['dolly_zoom', 'vong', 'day_vao', 'nghieng_len', 'doi_net'], vi_sao: 'thế giới của nhân vật đảo chiều — dolly zoom / vòng quanh khoảnh khắc lộ diện; cận chi tiết thì lia dọc hoặc đổi nét (reveal shot)' },
   nhuc: { ten: 'bị sỉ nhục', may: ['cam_tay', 'day_vao'], goc: ['cao'], vi_sao: 'máy rung nhẹ + nhìn xuống: người xem đứng giữa đám đông, nóng mặt thay nhân vật' },
-  quyen_luc: { ten: 'quyền lực bước vào', may: ['dan_truoc', 'day_vao', 'theo', 'truot_ngang', 'vuot_tien_canh'], goc: ['thap'], vi_sao: 'góc thấp, máy dẫn trước / đẩy theo bước chân / trượt qua vai người ngồi lộ nhân vật ở cửa (anh 18/10/2026 giữ cho #17 tổng tài) — nhân vật chiếm không gian' },
+  quyen_luc: { ten: 'quyền lực bước vào', may: ['dan_truoc', 'day_vao', 'zoom_cham', 'theo', 'truot_ngang', 'vuot_tien_canh'], goc: ['thap'], vi_sao: 'góc thấp, máy dẫn trước / đẩy theo bước chân (đẩy máy hoặc zoom chậm tại chỗ — zoom giữ ghép nền ảnh kết đúng tuyệt đối, 23/10/2026 #132 #20) / trượt qua vai người ngồi lộ nhân vật ở cửa (anh 18/10/2026 giữ cho #17 tổng tài) — nhân vật chiếm không gian' },
   doi_dau: { ten: 'đối đầu', may: ['vong', 'day_vao'], vi_sao: 'máy vòng quanh hai người khi thế lực đảo — căng thẳng không đứng yên' },
   phan_quyet: { ten: 'phán quyết / nhận ra', may: ['day_vao', 'zoom_cham'], vi_sao: 'đẩy chậm vào mặt khi câu then chốt rơi xuống — cảm xúc dâng' },
 };

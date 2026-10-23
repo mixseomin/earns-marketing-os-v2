@@ -331,7 +331,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     imKhach = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial(), khachDs.length);
     khachDs.forEach((k, i) => imKhach.setColorAt(i, new THREE.Color(k.onl ? '#7dffb2' : '#cfe0ff'))); imKhach.instanceColor.needsUpdate = true; imKhach.userData = { chu: null }; the.add(imKhach); ds.onl!.push(imKhach);
   }
-  const rao: { cot: any[]; thanh: any[]; mau: any[]; mauT: any[] } = { cot: [], thanh: [], mau: [], mauT: [] };
+  const rao: { cot: any[]; thanh: any[]; mau: any[]; mauT: any[]; vien: number[]; mauV: number[] } = { cot: [], thanh: [], mau: [], mauT: [], vien: [], mauV: [] };
   /** điểm tia từ tâm (cx, cz) theo hướng (dx, dz) cắt chu vi đa giác — chỗ đặt cổng (mép rào thật, không phải góc ngoại tiếp) + hướng cạnh tại đó */
   const giaoCanh = (dinh: any[], cx: number, cz: number, dx: number, dz: number) => {
     for (let k = 0; k < dinh.length; k++) { const a = dinh[k], b = dinh[(k + 1) % dinh.length], ex = b.x - a.x, ez = b.z - a.z, den = dx * ez - dz * ex; if (Math.abs(den) < 1e-9) continue;
@@ -362,7 +362,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       for (let i = 0; i < n; i++) { const p = a.clone().lerp(b, i / n), q2 = a.clone().lerp(b, (i + 1) / n), giua = p.clone().lerp(q2, .5);
         if (cong && giua.distanceTo(cong) < RONG_CONG + 3) continue;
         o.position.set(p.x, RAO_CAO / 2, p.z); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrix(); rao.cot.push(o.matrix.clone()); rao.mau.push(c);
-        for (const y of [RAO_CAO * .28, RAO_CAO * .58, RAO_CAO * .88]) { o.position.set(giua.x, y, giua.z); o.rotation.set(0, -Math.atan2(q2.z - p.z, q2.x - p.x), 0); o.scale.set(p.distanceTo(q2), 1, 1); o.updateMatrix(); rao.thanh.push(o.matrix.clone()); rao.mauT.push(c); } } }
+        for (const y of [RAO_CAO * .28, RAO_CAO * .58, RAO_CAO * .88]) { o.position.set(giua.x, y, giua.z); o.rotation.set(0, -Math.atan2(q2.z - p.z, q2.x - p.x), 0); o.scale.set(p.distanceTo(q2), 1, 1); o.updateMatrix(); rao.thanh.push(o.matrix.clone()); rao.mauT.push(c); }
+        rao.vien.push(p.x, RAO_CAO * .88, p.z, q2.x, RAO_CAO * .88, q2.z); rao.mauV.push(c.r, c.g, c.b, c.r, c.g, c.b); } }
     if (!g || !cong) return null;
     // cổng: hai trụ cao 1,7 lần rào, xà ngang, biển tên khu quay ra ngoài
     const ra = cong.clone().sub(new THREE.Vector3(cx, 0, cz)).setY(0).normalize(), cot2 = new THREE.Color(mau).lerp(new THREE.Color('#ffffff'), .35), H = RAO_CAO * 1.7;
@@ -388,17 +389,17 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // CHỈ VẼ PHẦN TRONG KHUNG NHÌN (23/10/2026): three r128 không tự loại InstancedMesh ngoài màn (frustumCulled=false vì không biết vùng của các bản sao)
   // → rào 14.600 cột, sân, toà nền, cửa sổ luôn vẽ cả thành phố (~280 nghìn tam giác dù phóng vào một góc). Cắt mỗi khối thành ô đất O_CAT, mỗi ô một quả cầu bao;
   // mỗi khung ô nào ngoài khung nhìn thì chuyển sang lớp 1 (camera chỉ vẽ lớp 0). Dùng lớp chứ không dùng .visible để không đụng bộ lọc / bật tắt lớp đang giữ .visible.
-  const O_CAT = 800, oCat: { im: any; cau: any }[] = [];
+  const O_CAT = 800, oCat: { im: any; cau: any; rI: number }[] = [];   // rI = bề dày lớn nhất của một bản sao trong ô (cạnh mỏng nhất, không phải bán kính: thanh rào dài 9 mà dày 0,8 thì xa trông như sợi chỉ)
   function chiaO(im: any, cha: any) {
-    const m4 = new THREE.Matrix4(), p = new THREE.Vector3(), nhom = new Map<string, number[]>(); im.geometry.computeBoundingSphere(); const r0 = im.geometry.boundingSphere.radius;
+    const m4 = new THREE.Matrix4(), p = new THREE.Vector3(), tl = new THREE.Vector3(), q = new THREE.Quaternion(), nhom = new Map<string, number[]>(); im.geometry.computeBoundingSphere(); im.geometry.computeBoundingBox(); const r0 = im.geometry.boundingSphere.radius, kt = im.geometry.boundingBox.getSize(new THREE.Vector3());
     for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m4); p.setFromMatrixPosition(m4); const k = `${Math.floor(p.x / O_CAT)}|${Math.floor(p.z / O_CAT)}`; (nhom.get(k) ?? nhom.set(k, []).get(k)!).push(i); }
     const mot = nhom.size === 1;
     for (const ds2 of nhom.values()) {
-      const c = mot ? im : new THREE.InstancedMesh(im.geometry, im.material, ds2.length), hop = new THREE.Box3(), mau = new THREE.Color();
-      ds2.forEach((i, j) => { im.getMatrixAt(i, m4); p.setFromMatrixPosition(m4); const rr = r0 * m4.getMaxScaleOnAxis(); hop.expandByPoint(p.clone().addScalar(rr)); hop.expandByPoint(p.clone().addScalar(-rr));
+      const c = mot ? im : new THREE.InstancedMesh(im.geometry, im.material, ds2.length), hop = new THREE.Box3(), mau = new THREE.Color(); let rI = 0;
+      ds2.forEach((i, j) => { im.getMatrixAt(i, m4); p.setFromMatrixPosition(m4); const rr = r0 * m4.getMaxScaleOnAxis(); m4.decompose(p, q, tl); const day = Math.min(...[kt.x * tl.x, kt.y * tl.y, kt.z * tl.z].filter((v) => v > 1e-3)); rI = Math.max(rI, day); p.setFromMatrixPosition(m4); hop.expandByPoint(p.clone().addScalar(rr)); hop.expandByPoint(p.clone().addScalar(-rr));
         if (!mot) { c.setMatrixAt(j, m4); if (im.instanceColor) { im.getColorAt(i, mau); c.setColorAt(j, mau); } } });
       if (!mot) { if (c.instanceColor) c.instanceColor.needsUpdate = true; c.castShadow = im.castShadow; c.receiveShadow = im.receiveShadow; c.userData = im.userData; }
-      cha.add(c); oCat.push({ im: c, cau: hop.getBoundingSphere(new THREE.Sphere()) }); }
+      cha.add(c); oCat.push({ im: c, cau: hop.getBoundingSphere(new THREE.Sphere()), rI }); }
   }
   function dungGop() {
     if (phang.m.length) { const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), phang.m.length);
@@ -409,7 +410,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (const [ds2, mau2, geo] of [[rao.cot, rao.mau, new THREE.BoxGeometry(1.8, RAO_CAO, 1.8)], [rao.thanh, rao.mauT, new THREE.BoxGeometry(1, 1, .8)]] as const) {
       if (!ds2.length) continue; const im = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: .5, emissive: '#30384f', emissiveIntensity: .5 }), ds2.length);
       ds2.forEach((m, i) => { im.setMatrixAt(i, m); im.setColorAt(i, mau2[i]); }); im.instanceColor.needsUpdate = true; im.userData = { chu: null }; chiaO(im, the); }
-    rao.cot = []; rao.thanh = []; rao.mau = []; rao.mauT = [];
+    // viền rào 1 nét: lùi xa thì cột / thanh rào mảnh dưới 1 điểm ảnh bị bỏ (catVe) — nét này giữ đường biên khu, cả thành phố chỉ một lệnh vẽ
+    if (rao.vien.length) { const gv = new THREE.BufferGeometry(); gv.setAttribute('position', new THREE.Float32BufferAttribute(rao.vien, 3)); gv.setAttribute('color', new THREE.Float32BufferAttribute(rao.mauV, 3));
+      const lv = new THREE.LineSegments(gv, new THREE.LineBasicMaterial({ vertexColors: true })); lv.userData = { chu: null, luonVe: true }; the.add(lv); }
+    rao.cot = []; rao.thanh = []; rao.mau = []; rao.mauT = []; rao.vien = []; rao.mauV = [];
   }
   const khuCua = (k: string) => mh.duAn.find((c) => c.khoa === k);
   const dichCua = (k: string) => mh.dich.find((d) => d.khoa === k);
@@ -1467,6 +1471,27 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     el.onchange = () => { dk = { ...dk, [k]: el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el instanceof HTMLInputElement ? Number(el.value) : el.value } as CaiDk; apDk(); try { localStorage.setItem('tp-dk', JSON.stringify(dk)); } catch { /* chế độ riêng tư */ } }; }
   // gợi ý điều khiển: hiện lần đầu trên máy có chuột / touchpad, tự tắt sau 9 giây
   try { if (!matchMedia('(pointer: coarse)').matches && !localStorage.getItem('tp-goi-y-dk')) { const gy = document.createElement('div'); gy.className = 'goi-y'; gy.textContent = dk.keo === 'xoay' ? 'Shift + lăn: phóng (lên = vào) · Lăn: trượt · Kéo: xoay · Chuột phải / Shift + kéo: trượt · Nhấp đúp: phóng ×2 · ↺ đặt lại màn' : 'Kéo: trượt · Chuột phải: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng'; host.appendChild(gy); setTimeout(() => gy.remove(), 9000); localStorage.setItem('tp-goi-y-dk', '1'); } } catch { /* chế độ riêng tư */ }
+  // BỎ CHI TIẾT QUÁ NHỎ KHI NHÌN XA (23/10/2026): vật nào hiện trên màn nhỏ hơn ~2 điểm ảnh thì không vẽ (cửa sổ, cột rào, người, xe, chữ nền khi lùi xa) —
+  // mắt không thấy mà máy vẫn phải vẽ. Cùng cơ chế lớp 1 với cắt ô; phóng vào lại là tự hiện. Lớp 1 cũng không bắt chuột: vật < 2 điểm ảnh vốn không trỏ trúng được.
+  const NHO_PX = 1, DAY_PX = .6;   // vật lẻ: bán kính trên màn (điểm ảnh CSS) dưới 1 thì bỏ · khối hàng loạt: bề dày trên màn dưới 0,6 thì bỏ
+  let vatNho: any[] = [], khoaNho = '';
+  const cauO = new THREE.Sphere(), viTri = new THREE.Vector3();
+  function catVe() {
+    for (let i = oCat.length - 1; i >= 0; i--) if (oCat[i]!.im.parent?.parent !== scene) oCat.splice(i, 1);
+    const khoa = the.uuid + nen.uuid + the.children.length + nen.children.length;
+    if (khoa !== khoaNho) { khoaNho = khoa; const trongO = new Set(oCat.map((x) => x.im)); vatNho = [];
+      for (const g of [the, nen]) g.traverse((o: any) => { if ((o.isMesh || o.isSprite) && !trongO.has(o) && !o.userData?.luonVe) vatNho.push(o); }); }
+    const du = khongCat || r.shadowMap.needsUpdate;   // khung tính lại bóng / bộ kiểm so ảnh: vẽ đủ
+    if (du) { for (const x of oCat) x.im.layers.set(0); for (const o of vatNho) o.layers.set(0); return; }
+    cam.updateMatrixWorld(); khungNhin.setFromProjectionMatrix(m4Nhin.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const k = H() / (2 * Math.tan(cam.fov * Math.PI / 360)), cp = cam.position;
+    for (const x of oCat) { const kc = Math.max(1, x.cau.center.distanceTo(cp) - x.cau.radius); x.im.layers.set(khungNhin.intersectsSphere(x.cau) && x.rI * k / kc >= DAY_PX ? 0 : 1); }
+    for (const o of vatNho) { let rr: number;
+      if (o.isSprite) { viTri.setFromMatrixPosition(o.matrixWorld); rr = Math.max(o.scale.x, o.scale.y) / 2; }
+      else if (o.isInstancedMesh) { viTri.copy(cp).setY(0); rr = (o.geometry.boundingSphere ?? (o.geometry.computeBoundingSphere(), o.geometry.boundingSphere)).radius * 1.5; }   // xe / người / khách chạy khắp nơi: lấy khoảng cách gần nhất có thể = độ cao camera
+      else { const g = o.geometry; if (!g.boundingSphere) g.computeBoundingSphere(); cauO.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); viTri.copy(cauO.center); rr = cauO.radius; }
+      o.layers.set(rr * k / Math.max(1, viTri.distanceTo(cp) - rr) >= NHO_PX ? 0 : 1); }
+  }
   function vong(now = performance.now()) {
     raf = requestAnimationFrame(vong);
     // NHỊP VẼ THEO MỨC TƯƠNG TÁC: đang thao tác / bay = mọi khung · vừa thao tác (< 12 s) = ~20 khung/s · ngồi nhìn lâu = ~4 khung/s
@@ -1499,9 +1524,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // ~0,4 đơn vị → mặt sân / nền khu / chữ nền cách nhau 0,1–0,3 tranh nhau từng khung. Đẩy near theo khoảng cách (4%) cho độ phân giải sâu ~0,01 ở mọi mức phóng.
     const kcCam = cam.position.distanceTo(ctl.target), gan = Math.max(1, kcCam * .04), xa = Math.max(6000, kcCam * 3);
     if (Math.abs(cam.near - gan) > gan * .1 || cam.far !== xa) { cam.near = gan; cam.far = xa; cam.updateProjectionMatrix(); }
-    if (oCat.length && !khongCat) { if (oCat[0]!.im.parent?.parent !== scene || oCat[oCat.length - 1]!.im.parent?.parent !== scene) for (let i = oCat.length - 1; i >= 0; i--) if (oCat[i]!.im.parent?.parent !== scene) oCat.splice(i, 1);
-      if (r.shadowMap.needsUpdate) for (const x of oCat) x.im.layers.set(0);   // khung tính lại bóng: vẽ đủ mọi ô để bóng của ô ngoài màn không mất khi trượt tới
-      else { cam.updateMatrixWorld(); khungNhin.setFromProjectionMatrix(m4Nhin.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse)); for (const x of oCat) x.im.layers.set(khungNhin.intersectsSphere(x.cau) ? 0 : 1); } }
+    catVe();
     r.render(scene, cam); soKhung++;
   }
   // móc cho bộ kiểm scripts/thanh-pho/kiem-dieu-khien: toạ độ màn của vật đầu tiên mang userData.loai · đếm biển đang hiện (chỉ đọc, không đổi cảnh)
@@ -1512,7 +1535,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__bangXh = (hub: string) => { const sp = bangXhCua.get(hub); if (!sp) return null; const v = new THREE.Vector3(); sp.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect();
     return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
   (host as any).__soKhung = () => soKhung;
-  (host as any).__khongCat = (b: boolean) => { khongCat = b; if (b) for (const x of oCat) x.im.layers.set(0); };   // bộ kiểm so ảnh có / không cắt ô
+  (host as any).__khongCat = (b: boolean) => { khongCat = b; };   // bộ kiểm so ảnh có / không cắt ô
   (host as any).__thongKe = () => { const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     let vat = 0, ngoai = 0, imSai = 0; const m4 = new THREE.Matrix4(), v = new THREE.Vector3();
     scene.traverseVisible((o: any) => { if (!(o.isMesh || o.isLine || o.isSprite || o.isPoints)) return; vat++; const thay = !o.frustumCulled || (o.isSprite ? fr.intersectsSprite(o) : fr.intersectsObject(o)); if (!thay) ngoai++;

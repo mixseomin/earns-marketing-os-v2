@@ -5,7 +5,7 @@ Dựng tệp thử: `node scripts/thanh-pho/dung-artifact.mjs <tệp>.html`, r�
 - chum-2-ngon, lan-chuot: điểm đất dưới giữa 2 ngón / dưới con trỏ đứng yên khi phóng
 - shift-lan-nhap-dup: Shift + lăn = phóng (lên = vào), lăn thường = trượt; nhấp đúp phóng, không chọn vật; nhấp đơn vẫn chọn
 - khung-hinh: điện thoại ngồi nhìn > 12 s còn ~4 khung/s (đỡ nóng máy); chạm là tỉnh lại đủ khung
-- cat-o: phóng vào một khu thì tam giác giảm mạnh (chỉ vẽ ô đất trong khung nhìn); ghi 2 ảnh có cắt / vẽ đủ để so
+- cat-o: toàn cảnh và phóng vào khu đều phải bớt tam giác so với vẽ đủ (bỏ ô ngoài màn + chi tiết < 1 điểm ảnh); ghi ảnh có cắt / vẽ đủ để so
 - hover-cham: lướt qua vật không bật thẻ; dừng 450 ms mới hiện; đưa chuột vào thẻ thì thẻ ở lại
 - bang-hieu-nut: nút 🪧 trong khu Ethopex tắt / bật mọi bảng hiệu; đang tắt rê lên sân phim lộ đúng biển đó
 - nghieng-2-ngon: điện thoại hai ngón cùng cuộn lên = hạ camera, xuống = nâng camera

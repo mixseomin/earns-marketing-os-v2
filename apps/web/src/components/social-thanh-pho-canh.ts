@@ -59,10 +59,16 @@ const CSS = `
 .tp .chip svg { width: 60%; height: 60%; } .tp .chip img { width: 100%; height: 100%; object-fit: cover; background: #fff; } .tp .chip[aria-pressed="true"] { opacity: 1; border-color: #fff; }
 .tp .seg button:focus-visible, .tp .lop:focus-visible, .tp .chip:focus-visible, .tp .dieu button:focus-visible, .tp .thu:focus-visible { outline: 2px solid var(--l3); outline-offset: 2px; }
 .tp .thu { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--chu2); font: 700 16px system-ui; cursor: pointer; }
-.tp .ben.gon { width: auto; padding: 0; } .tp .ben.gon > :not(.thu) { display: none; } .tp .ben.gon .thu { position: static; width: 38px; height: 38px; font-size: 18px; }
+/* BẢNG + NGĂN = WIDGET (góp ý city #1441): kéo thanh đầu để dời, kéo góc dưới phải để đổi cỡ, nhớ theo máy; nút ↺ Đặt lại màn trả về chỗ cũ */
+.tp .ben, .tp .ngan { resize: both; min-width: 156px; min-height: 90px; max-width: calc(100% - 24px); }
+.tp .keo-w { cursor: move; user-select: none; touch-action: none; margin: -10px -10px 0; padding: 6px 34px 4px 10px; font: 700 10px system-ui; color: var(--chu2); letter-spacing: .06em; border-bottom: 1px solid var(--vien); }
+.tp .keo-w:hover { color: var(--chu); }
+.tp .ngan .keo-w { margin: -10px -10px 8px; }
+.tp .dk label { flex-wrap: wrap; } .tp .dk select { max-width: 100%; min-width: 0; }
+.tp .ben.gon { width: auto !important; height: auto !important; resize: none; min-height: 0; min-width: 0; padding: 0; } .tp .ben.gon > :not(.thu) { display: none; } .tp .ben.gon .thu { position: static; width: 38px; height: 38px; font-size: 18px; }
 .tp .ngan { position: absolute; right: 12px; top: 12px; width: 320px; z-index: 6; background: color-mix(in srgb, var(--nen2) 95%, transparent); border: 1px solid var(--vien); border-radius: 12px; padding: 10px; max-height: calc(100% - 140px); overflow: auto; }
 .tp .ngan .dong { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: var(--chu2); font-size: 16px; cursor: pointer; }
-.tp .meo { position: absolute; z-index: 7; pointer-events: none; min-width: 200px; max-width: 340px; background: color-mix(in srgb, var(--nen2) 96%, transparent); border: 1px solid var(--vien); border-radius: 10px; padding: 8px 10px; box-shadow: 0 8px 24px #0008; }
+.tp .meo { position: absolute; z-index: 7; min-width: 200px; max-width: 340px; max-height: calc(100% - 24px); overflow: auto; background: color-mix(in srgb, var(--nen2) 96%, transparent); border: 1px solid var(--vien); border-radius: 10px; padding: 8px 10px; box-shadow: 0 8px 24px #0008; }
 .tp .dau { display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 6px; padding-right: 14px; }
 .tp .h { display: flex; justify-content: space-between; padding: 3px 0; color: var(--chu2); gap: 12px; } .tp .h span { flex: none; } .tp .h b { color: var(--chu); font: 700 12px system-ui, sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
 .tp .bang { display: grid; column-gap: 10px; row-gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--vien); align-items: center; }
@@ -99,7 +105,7 @@ const CSS = `
 export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { don: () => void; capNhat: (mh: PhoMoHinh) => void } {
   let mh = mh0;
   host.classList.add('tp'); host.innerHTML = `<style>${CSS}</style>
-    <aside class="ben"><button class="thu" aria-expanded="true" aria-label="Thu nhỏ bảng" title="Thu nhỏ / mở bảng">‹</button>
+    <aside class="ben"><div class="keo-w" title="Kéo để dời bảng · kéo góc dưới phải để đổi cỡ">⠿ BẢNG</div><button class="thu" aria-expanded="true" aria-label="Thu nhỏ bảng" title="Thu nhỏ / mở bảng">‹</button>
       <b>Tìm</b><div class="tim"><input type="search" placeholder="site, app, kênh, dự án…" aria-label="Tìm trong thành phố" /><div class="tim-ds" hidden></div></div>
       <b>Lớp</b><div class="hang" data-o="lop"></div>
       <b>Điều khiển</b><div class="dk">
@@ -115,12 +121,35 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     <div class="dieu" role="group" aria-label="Điều hướng">
       <button data-d="trai" aria-label="Xoay trái" title="Xoay trái">⟲</button><button data-d="phai" aria-label="Xoay phải" title="Xoay phải">⟳</button>
       <button data-d="vao" aria-label="Phóng to" title="Phóng to">＋</button><button data-d="ra" aria-label="Thu nhỏ" title="Thu nhỏ">－</button>
-      <button data-d="goc" aria-label="Về toàn cảnh" title="Về toàn cảnh">⌂</button><button data-d="full" aria-label="Toàn màn hình" title="Toàn màn hình">⛶</button><button data-d="ngay" class="rong" aria-label="Ngày / đêm">🌙</button></div>
+      <button data-d="goc" aria-label="Về toàn cảnh" title="Về toàn cảnh">⌂</button><button data-d="full" aria-label="Toàn màn hình" title="Toàn màn hình">⛶</button><button data-d="ngay" class="rong" aria-label="Ngày / đêm">🌙</button><button data-d="datLai" class="rong" aria-label="Đặt lại màn" title="Đặt lại màn: về toàn cảnh, bảng / ngăn về chỗ cũ, đóng thẻ">↺</button></div>
     <div class="tua"><button data-tua="choi" aria-label="Tua 30 ngày" title="Tua lại 30 ngày">▶</button><input type="range" min="0" max="29" value="29" aria-label="Ngày" /><span class="tua-ngay">bây giờ</span><button data-tua="nay" aria-label="Về bây giờ" title="Về bây giờ">⟳</button></div>
     <canvas class="mini" width="200" height="110" aria-label="Bản đồ nhỏ — bấm để bay tới"></canvas>
     <div class="meo" hidden></div>`;
   const q = <T extends HTMLElement>(s: string) => host.querySelector(s) as T;
   const ben = q<HTMLElement>('.ben'), thuBtn = q<HTMLButtonElement>('.thu'), ngan = q<HTMLElement>('.ngan'), meo = q<HTMLElement>('.meo');
+  // WIDGET (góp ý city #1441 "cho resize, move… như các widget linh hoạt"): kéo thanh ⠿ để dời (kẹp trong khung), góc dưới phải đổi cỡ (CSS resize);
+  // chỗ + cỡ nhớ theo máy (localStorage), ↺ Đặt lại màn xoá. Gắn một lần mỗi phần tử — ngăn vẽ lại nội dung nhiều lần nên bắt sự kiện ở chính phần tử.
+  const widgetRo: ResizeObserver[] = [];
+  function widget(el: HTMLElement, khoa: string) {
+    if (el.dataset.w) return; el.dataset.w = '1';
+    const ap = (v: { x?: number; y?: number; w?: number; h?: number }) => { if (v.x != null && v.y != null) Object.assign(el.style, { left: `${v.x}px`, top: `${v.y}px`, right: 'auto', bottom: 'auto' });
+      if (v.w) el.style.width = `${v.w}px`; if (v.h) { el.style.height = `${v.h}px`; el.style.maxHeight = 'none'; } };
+    const doc_ = () => { try { return JSON.parse(localStorage.getItem(khoa) ?? '{}'); } catch { return {}; } };
+    const ghi = (v: object) => { try { localStorage.setItem(khoa, JSON.stringify({ ...doc_(), ...v })); } catch { /* chế độ riêng tư */ } };
+    ap(doc_());
+    let keo: { dx: number; dy: number; id: number } | null = null;
+    el.addEventListener('pointerdown', (e) => { if (!(e.target as Element).closest('.keo-w')) return; const b = el.getBoundingClientRect(); keo = { dx: e.clientX - b.left, dy: e.clientY - b.top, id: e.pointerId }; el.setPointerCapture(e.pointerId); e.preventDefault(); });
+    el.addEventListener('pointermove', (e) => { if (!keo || e.pointerId !== keo.id) return; const h = host.getBoundingClientRect();
+      ap({ x: Math.max(0, Math.min(h.width - 60, e.clientX - h.left - keo.dx)), y: Math.max(0, Math.min(h.height - 30, e.clientY - h.top - keo.dy)) }); });
+    const tha = (e: PointerEvent) => { if (!keo || e.pointerId !== keo.id) return; keo = null; ghi({ x: el.offsetLeft, y: el.offsetTop }); };
+    el.addEventListener('pointerup', tha); el.addEventListener('pointercancel', tha);
+    let cuCo = '', hen = 0;
+    const ro = new ResizeObserver(() => { if (el.hidden || el.classList.contains('gon')) return; const co = `${el.offsetWidth}x${el.offsetHeight}`; if (!cuCo) { cuCo = co; return; } if (co === cuCo) return; cuCo = co;
+      clearTimeout(hen); hen = window.setTimeout(() => ghi({ w: el.offsetWidth, h: el.offsetHeight }), 300); });
+    ro.observe(el); widgetRo.push(ro);
+  }
+  const datLaiWidget = () => { for (const [el, k] of [[ben, 'tp-w-ben'], [ngan, 'tp-w-ngan']] as const) { try { localStorage.removeItem(k); } catch { /* chế độ riêng tư */ } for (const p_ of ['left', 'top', 'right', 'bottom', 'width', 'height', 'maxHeight'] as const) el.style[p_] = ''; } };
+  widget(ben, 'tp-w-ben');
   const W = () => host.clientWidth, H = () => host.clientHeight;
 
   const r = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(Math.min(1.5, devicePixelRatio)); r.setSize(W(), H()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1129,13 +1158,23 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
   let dangSang: any = null, vatChon: any = null;
   const sangLen = (o: any, on: boolean) => { for (const m of [].concat(o.material) as any[]) if (m.emissiveIntensity != null) { m.userData.goc ??= m.emissiveIntensity; m.emissiveIntensity = on ? m.userData.goc + .55 : m.userData.goc; } };
+  // THẺ HOVER BẤM ĐƯỢC (góp ý city #1440 "nhìn thấy mà không bấm vào được, di vào là mất"): thẻ đứng yên tại chỗ hiện (không bám con trỏ nữa);
+  // rời vật thì còn 350 ms để đưa chuột vào thẻ — vào thẻ thì thẻ ở lại, cuộn / bấm nút trong thẻ được; ra khỏi thẻ thì tắt hoặc chuyển sang vật đang trỏ
+  let meoCua: any = null, henAn = 0, trongMeo = false, chuotCuoi = { x: 0, y: 0 };
+  const hienMeo = (o: any) => { const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
+    meo.style.left = `${Math.max(8, Math.min(chuotCuoi.x - b.left + 16, W() - meo.offsetWidth - 8))}px`; meo.style.top = `${Math.max(8, Math.min(chuotCuoi.y - b.top + 16, H() - meo.offsetHeight - 8))}px`; };
+  const anMeo = () => { clearTimeout(henAn); henAn = 0; meo.hidden = true; meoCua = null; };
+  const henAnMeo = () => { if (henAn) return; henAn = window.setTimeout(() => { henAn = 0; if (trongMeo) return; meo.hidden = true; meoCua = null; if (dangSang) hienMeo(dangSang); }, 350); };
+  meo.addEventListener('pointerenter', () => { trongMeo = true; clearTimeout(henAn); henAn = 0; });
+  meo.addEventListener('pointerleave', () => { trongMeo = false; henAnMeo(); });
   const onMove = (e: PointerEvent) => {
-    const b = datChuot(e), o = chuDuoiChuot();
-    if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
-      if (o && e.pointerType === 'mouse') { meo.innerHTML = veO(thongTin(o)); meo.hidden = false; } else meo.hidden = true; }
-    if (!meo.hidden) { meo.style.left = `${Math.min(e.clientX - b.left + 16, W() - meo.offsetWidth - 8)}px`; meo.style.top = `${Math.min(e.clientY - b.top + 16, H() - meo.offsetHeight - 8)}px`; }
+    datChuot(e); const o = chuDuoiChuot(); chuotCuoi = { x: e.clientX, y: e.clientY };
+    if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : ''; }
+    if (e.pointerType !== 'mouse') { anMeo(); return; }
+    if (o && o === meoCua) { clearTimeout(henAn); henAn = 0; return; }
+    if (o && !meoCua) hienMeo(o); else if (meoCua) henAnMeo();
   };
-  const onLeave = () => { meo.hidden = true; };
+  const onLeave = () => { if (!trongMeo) henAnMeo(); };
   // chạm / bấm = nhả trong 450ms, kéo dưới 10px (bộ điều hướng chặn "click" sinh từ cú chạm)
   let xuong: { x: number; y: number; t: number } | null = null;
   const onDown = (e: PointerEvent) => { xuong = { x: e.clientX, y: e.clientY, t: performance.now() }; };
@@ -1167,7 +1206,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     moNgan(o); };
   /** mở ngăn chi tiết (bấm toà / chọn trong ô tìm) — một chỗ dựng; nút "Đã xử" ghi platform_alerts.xong_luc qua /api/social/canh-bao rồi nạp số mới */
   function moNgan(o: any) {
-    ngan.innerHTML = `<button class="dong" aria-label="Đóng">×</button>${veO(thongTin(o))}${nutMo(o)}`; ngan.hidden = false; (ngan.querySelector('.dong') as HTMLButtonElement).onclick = dongNgan;
+    ngan.innerHTML = `<div class="keo-w" title="Kéo để dời ngăn · kéo góc dưới phải để đổi cỡ">⠿ CHI TIẾT</div><button class="dong" aria-label="Đóng">×</button>${veO(thongTin(o))}${nutMo(o)}`; widget(ngan, 'tp-w-ngan'); ngan.hidden = false; (ngan.querySelector('.dong') as HTMLButtonElement).onclick = dongNgan;
     chonVat(o);
     for (const b of ngan.querySelectorAll<HTMLButtonElement>('[data-xu]')) b.onclick = async () => {
       if (!confirm('Đánh dấu cảnh báo này ĐÃ XỬ? (không xoá — chỉ ghi giờ xử)')) return;
@@ -1199,18 +1238,18 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const onPhim = (e: KeyboardEvent) => { if (e.key === 'Escape' && !ngan.hidden) dongNgan(); };
   window.addEventListener('keydown', onPhim);
   function cham(e: PointerEvent) {
-    datChuot(e); const chu = chuDuoiChuot(); meo.hidden = true;
+    datChuot(e); const chu = chuDuoiChuot(); anMeo();
     if (chu) moNgan(chu); else if (!ngan.hidden) dongNgan();
   }
   r.domElement.addEventListener('pointermove', onMove); r.domElement.addEventListener('pointerleave', onLeave); r.domElement.addEventListener('pointerdown', onDown);
   r.domElement.addEventListener('pointerup', onUp); r.domElement.addEventListener('contextmenu', onMenu);
 
   // ── nút điều hướng một tay
-  function bayToi(camDen: any, den = ctl.target.clone()) { bay = { t: 0, tu: ctl.target.clone(), den, camTu: cam.position.clone(), camDen }; }
+  function bayToi(camDen: any, den = ctl.target.clone()) { phongCon = 0; bay = { t: 0, tu: ctl.target.clone(), den, camTu: cam.position.clone(), camDen }; }
   const xoay = (goc: number) => bayToi(ctl.target.clone().add(cam.position.clone().sub(ctl.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), goc)));
   const phong = (k: number) => { const v = cam.position.clone().sub(ctl.target); v.setLength(Math.max(ctl.minDistance, Math.min(ctl.maxDistance, v.length() * k))); bayToi(ctl.target.clone().add(v)); };
   const NUT: Record<string, () => void> = { trai: () => xoay(Math.PI / 6), phai: () => xoay(-Math.PI / 6), vao: () => phong(.7), ra: () => phong(1.4), goc: () => bayToi(CAM0.clone(), TAM0.clone()),
-    full: () => toanMan(), ngay: () => { cheDo = cheDo === 'tu' ? 'ngay' : cheDo === 'ngay' ? 'dem' : 'tu'; apNgayDem(); } };
+    full: () => toanMan(), datLai: () => { datLaiWidget(); dongNgan(); anMeo(); phongCon = 0; bayToi(CAM0.clone(), TAM0.clone()); }, ngay: () => { cheDo = cheDo === 'tu' ? 'ngay' : cheDo === 'ngay' ? 'dem' : 'tu'; apNgayDem(); } };
   // toàn màn: máy tính / Android dùng Fullscreen API; iPhone không có → phủ kín khung nhìn bằng CSS (khoá cuộn trang phía sau)
   const fullBtn = q<HTMLButtonElement>('[data-d="full"]');
   const datNutFull = (on: boolean) => { fullBtn.textContent = on ? '✕' : '⛶'; fullBtn.setAttribute('aria-label', on ? 'Thoát toàn màn hình' : 'Toàn màn hình'); fullBtn.title = fullBtn.getAttribute('aria-label')!; };
@@ -1238,26 +1277,35 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   ctl.addEventListener('change', danhThuc); r.domElement.addEventListener('pointermove', danhThuc);
   // lăn: chụm touchpad (ctrlKey) hoặc chuột có nấc → phóng; vuốt 2 ngón touchpad (delta mịn, có ngang) → trượt theo mặt đất
   const vPhai = new THREE.Vector3(), vTruoc = new THREE.Vector3(); let henLuu = 0;
+  // phóng quanh một điểm mặt đất: camera + tâm nhìn cùng co giãn quanh G (log tỉ lệ, kẹp trong min / max khoảng cách); trả về phần đã dùng
+  const phongG = new THREE.Vector3(); let phongCon = 0;
+  const phongQuanh = (G: any, logK: number) => { const kc = cam.position.distanceTo(ctl.target), kc2 = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * Math.exp(logK))), k = kc2 / kc;
+    cam.position.sub(G).multiplyScalar(k).add(G); ctl.target.sub(G).multiplyScalar(k).add(G); return Math.log(k); };
   // thiết bị lăn nhận ra chắc chắn gần nhất, nhớ qua F5 — ca mơ hồ (chuột macOS delta nhỏ, vuốt touchpad thẳng đứng) đi theo nó
   let tbDaLuu: 'chuot' | 'pad' | null = (() => { try { const v = localStorage.getItem('tp-lan'); return v === 'chuot' || v === 'pad' ? v : null; } catch { return null; } })();
   const nhoLan = nhoLanMoi(tbDaLuu);
   const onWheel = (e: WheelEvent) => {
+    if ((e.target as Element | null)?.closest?.('.meo, .ben, .ngan')) return;   // lăn trên bảng / ngăn / thẻ = cuộn nội dung, không phóng cảnh
     e.preventDefault(); e.stopPropagation(); danhThuc(); bay = null;
     // chuột thường hay touchpad: lib/loai-lan.ts (anh 23/10/2026 "tao dùng chuột thường" — chuột macOS gửi delta nhỏ 4, 8…, luật cũ "≥ 40 px" biến lăn chuột thành trượt)
     const phongLan = phanLoaiLan(e, nhoLan, dk.lan === 'phong') === 'phong';
     if (nhoLan.thietBi && nhoLan.thietBi !== tbDaLuu) { tbDaLuu = nhoLan.thietBi; try { localStorage.setItem('tp-lan', tbDaLuu); } catch { /* chế độ riêng tư */ } }
-    // mỗi nấc bánh xe phóng một bước đều (~×1,17) dù trình duyệt báo 4 px hay 100 px; chụm touchpad theo đúng độ chụm
-    const buoc = e.ctrlKey ? e.deltaY * .012 : Math.sign(e.deltaY) * Math.max(Math.abs(e.deltaY), nhoLan.thietBi === 'pad' ? 0 : 100) * .0016;
+    // PHÓNG MƯỢT (anh 23/10/2026 "zoom trên PC vẫn khó dùng quá"): mỗi nấc bánh xe = một bước ×1,25 đều nhau (trình duyệt báo 4 px hay 100 px như nhau),
+    // không nhảy tức thì mà dồn vào phongCon rồi trôi dần ~0,2 giây quanh điểm dưới con trỏ (như Google Maps); chụm touchpad đi thẳng theo độ chụm
+    const buoc = e.ctrlKey ? e.deltaY * .012 : nhoLan.thietBi === 'pad' ? e.deltaY * .0022 : Math.sign(e.deltaY) * .22;
     // PHÓNG VỀ CHỖ CON TRỎ (anh 23/10/2026 "trên pc làm sao zoom"): như Google Maps / Blender "Zoom to Mouse Position" — điểm mặt đất dưới con trỏ đứng yên,
     // camera và tâm nhìn cùng co giãn quanh điểm đó (cùng cách chụm 2 ngón trên điện thoại ở onCham2)
-    if (phongLan) { const kc = cam.position.distanceTo(ctl.target), k = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * Math.exp((dk.daoPhong ? -1 : 1) * buoc))) / kc;
-      datDuoi(e.clientX, e.clientY, oG); cam.position.sub(oG).multiplyScalar(k).add(oG); ctl.target.sub(oG).multiplyScalar(k).add(oG); }
+    if (phongLan) { datDuoi(e.clientX, e.clientY, phongG); const b2 = (dk.daoPhong ? -1 : 1) * buoc;
+      if (e.ctrlKey) phongQuanh(phongG, b2); else phongCon = Math.max(-3, Math.min(3, phongCon + b2)); }
     else { const kc = cam.position.distanceTo(ctl.target) * .0016; vPhai.setFromMatrixColumn(cam.matrix, 0).setY(0).normalize(); vTruoc.copy(ctl.target).sub(cam.position).setY(0).normalize();
       // mặc định: cảnh đi theo ngón tay như kéo bản đồ (vuốt lên = phố trôi lên = nhìn xa hơn theo trục phố); 'đảo chiều' lật cả hai trục
       const s2 = dk.daoTruot ? -1 : 1, d = vPhai.multiplyScalar(s2 * e.deltaX * kc).add(vTruoc.multiplyScalar(-s2 * e.deltaY * kc)); ctl.target.add(d); cam.position.add(d); }
     ctl.update(); clearTimeout(henLuu); henLuu = window.setTimeout(luuCam, 400);
   };
-  host.addEventListener('wheel', onWheel, { passive: false, capture: true });   // bắt ở pha capture của khung chứa → bộ điều khiển không nhận lăn (không phóng đôi)
+  host.addEventListener('wheel', onWheel, { passive: false, capture: true });
+  // NHẤP ĐÚP = phóng ×2 vào đúng chỗ nhấp (Shift + nhấp đúp = lùi ×2), như Google Maps
+  const onDup = (e: MouseEvent) => { e.preventDefault(); datDuoi(e.clientX, e.clientY, phongG); bay = null; phongCon = Math.max(-3, Math.min(3, phongCon + (e.shiftKey ? .69 : -.69))); danhThuc(); };
+  r.domElement.addEventListener('dblclick', onDup);   // bắt ở pha capture của khung chứa → bộ điều khiển không nhận lăn (không phóng đôi)
   // Safari trên Mac: cử chỉ xoay 2 ngón (gesture*) → xoay quanh tâm nhìn
   let gocCu = 0;
   const onGStart = (e: any) => { e.preventDefault(); gocCu = e.rotation ?? 0; };
@@ -1289,12 +1337,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (el instanceof HTMLInputElement && el.type === 'checkbox') el.checked = !!dk[k]; else el.value = String(dk[k]);
     el.onchange = () => { dk = { ...dk, [k]: el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el instanceof HTMLInputElement ? Number(el.value) : el.value } as CaiDk; apDk(); try { localStorage.setItem('tp-dk', JSON.stringify(dk)); } catch { /* chế độ riêng tư */ } }; }
   // gợi ý điều khiển: hiện lần đầu trên máy có chuột / touchpad, tự tắt sau 9 giây
-  try { if (!matchMedia('(pointer: coarse)').matches && !localStorage.getItem('tp-goi-y-dk')) { const gy = document.createElement('div'); gy.className = 'goi-y'; gy.textContent = dk.keo === 'xoay' ? 'Kéo: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng · Shift + kéo hoặc chuột phải: trượt · đổi ở bảng › Điều khiển' : 'Kéo: trượt · Chuột phải: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng'; host.appendChild(gy); setTimeout(() => gy.remove(), 9000); localStorage.setItem('tp-goi-y-dk', '1'); } } catch { /* chế độ riêng tư */ }
+  try { if (!matchMedia('(pointer: coarse)').matches && !localStorage.getItem('tp-goi-y-dk')) { const gy = document.createElement('div'); gy.className = 'goi-y'; gy.textContent = dk.keo === 'xoay' ? 'Kéo: xoay · Lăn / chụm: phóng vào chỗ con trỏ · Nhấp đúp: phóng ×2 · Shift + kéo hoặc chuột phải: trượt · ↺ đặt lại màn' : 'Kéo: trượt · Chuột phải: xoay · Vuốt 2 ngón: trượt · Chụm / lăn: phóng'; host.appendChild(gy); setTimeout(() => gy.remove(), 9000); localStorage.setItem('tp-goi-y-dk', '1'); } } catch { /* chế độ riêng tư */ }
   function vong(now = performance.now()) {
     raf = requestAnimationFrame(vong);
     const cach = bay || now < nhanhDen ? 0 : document.hasFocus() ? 48 : 190;
     if (now - tCuoi < cach) return;
     const nhan = Math.min(6, (now - tCuoi) / 16.67); tCuoi = now; dem += nhan;
+    if (phongCon && !bay) { const buoc = phongCon * (1 - Math.pow(.72, nhan)), daDung = phongQuanh(phongG, Math.abs(phongCon) < .004 ? phongCon : buoc);
+      phongCon = Math.abs(daDung) < 1e-6 || Math.abs(phongCon) < .004 ? 0 : phongCon - daDung; danhThuc(); if (!phongCon) luuCam(); }
     if (bay) { bay.t = Math.min(1, bay.t + .04 * nhan); const e = 1 - Math.pow(1 - bay.t, 3); ctl.target.lerpVectors(bay.tu, bay.den, e); cam.position.lerpVectors(bay.camTu, bay.camDen, e); if (bay.t >= 1) { bay = null; luuCam(); } }
     if (imKhach?.visible) { for (let i = 0; i < khachDs.length; i++) { const k = khachDs[i]!; k.t = (k.t + k.toc * nhan) % 2;
         // online: đi vào (0→1) rồi đứng quanh cửa, nhún nhẹ · 30 phút: vào (0→1) rồi ra (1→2)
@@ -1324,9 +1374,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   dung(); vong();
   const capNhat = (moi: PhoMoHinh) => { mh = moi; dung(); };
   const don = () => {
-    cancelAnimationFrame(raf); ro.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
+    cancelAnimationFrame(raf); ro.disconnect(); for (const x of widgetRo) x.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
-    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
+    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('dblclick', onDup); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };

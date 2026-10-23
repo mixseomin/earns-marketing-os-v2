@@ -135,7 +135,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // màn cảm ứng giữ kiểu bản đồ: 1 ngón trượt, 2 ngón chụm phóng + xoay
   // enableZoom PHẢI bật: cờ này cũng mở chụm 2 ngón trên màn cảm ứng (góp ý #1435 — tắt nó để tự xử lăn chuột làm iPhone mất phóng);
   // lăn chuột / touchpad thì chặn ở khung chứa (bắt sớm, stopPropagation) trước khi tới bộ điều khiển — xem onWheel
-  ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  // 2 ngón trên màn cảm ứng KHÔNG giao cho bộ điều khiển (góp ý 23/10/2026 "zoom không focus vào điểm giữa 2 ngón, thỉnh thoảng bị lệch"): bản r128 phóng về tâm nhìn,
+  // còn iPhone bắn thêm gesturechange khiến xoay hai lần → tự xử ở onCham2 (phóng + xoay + trượt quanh điểm mặt đất dưới giữa hai ngón, như bản đồ)
+  ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: -1 as any };
   // CÀI ĐẶT ĐIỀU KHIỂN (anh 23/10/2026 "chỗ config control như invert scroll — giống các app 3D"): đảo chiều vuốt, đảo chiều phóng, kéo = xoay / trượt, tốc độ xoay; nhớ theo máy
   type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number };
   const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1 };
@@ -543,7 +545,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // chữ in dưới nền (tên khu nhà máy Xưởng SX, tên cụm phim Ethopex) — không che toà như biển nổi
     const chuNen = (chu: string, x: number, z: number, rong: number, mau: string) => { const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128; const gc = cv.getContext('2d')!; gc.fillStyle = mau; gc.textAlign = 'center'; gc.textBaseline = 'middle';
       let co = 84; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; while (gc.measureText(chu).width > 990 && co > 30) { co -= 4; gc.font = `800 ${co}px system-ui, "Apple Color Emoji", sans-serif`; } gc.fillText(chu, 512, 66);
-      const pl = add(new THREE.PlaneGeometry(rong, rong / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false); pl.rotation.x = -Math.PI / 2; pl.position.set(x, .8, z); pl.userData = { chu: null }; };
+      const pl = add(new THREE.PlaneGeometry(rong, rong / 8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }), false); pl.rotation.x = -Math.PI / 2; pl.position.set(x, 1.1, z); pl.userData = { chu: null }; };   // cách mặt sân (.7) đủ xa để không nháy khi nhìn từ xa
     const thapSite = (d: typeof mh.dich[number], x: number, z: number) => {
       let m: any;
       if (d.laShop) {
@@ -1194,8 +1196,30 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // Safari trên Mac: cử chỉ xoay 2 ngón (gesture*) → xoay quanh tâm nhìn
   let gocCu = 0;
   const onGStart = (e: any) => { e.preventDefault(); gocCu = e.rotation ?? 0; };
-  const onGChange = (e: any) => { e.preventDefault(); const d = ((e.rotation ?? 0) - gocCu) * Math.PI / 180; gocCu = e.rotation ?? 0; cam.position.sub(ctl.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), -d).add(ctl.target); danhThuc(); ctl.update(); };
+  const onGChange = (e: any) => { e.preventDefault(); if (cham2) return;   // iPhone: chụm cũng bắn gesture* — xoay đã tính ở onCham2
+    const d = ((e.rotation ?? 0) - gocCu) * Math.PI / 180; gocCu = e.rotation ?? 0; cam.position.sub(ctl.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), -d).add(ctl.target); danhThuc(); ctl.update(); };
   r.domElement.addEventListener('gesturestart', onGStart); r.domElement.addEventListener('gesturechange', onGChange);
+  // CHỤM 2 NGÓN (màn cảm ứng): điểm mặt đất G dưới giữa hai ngón đứng yên dưới tay — phóng theo tỉ lệ khoảng cách ngón quanh G, xoay theo góc hai ngón quanh trục đứng
+  // qua G, rồi trượt cho G theo điểm giữa mới. Mọi phép đều dời cả camera lẫn tâm nhìn (giữ góc nghiêng), nên không còn chỗ "nhảy" về tâm nhìn cũ.
+  let cham2: { x: number; y: number; d: number; a: number } | null = null;
+  const oG = new THREE.Vector3(), oG2 = new THREE.Vector3(), matDat = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), vTam = new THREE.Vector2(), TRUC_Y = new THREE.Vector3(0, 1, 0);
+  const datDuoi = (x: number, y: number, ra: any) => { const b = r.domElement.getBoundingClientRect(); vTam.set(((x - b.left) / b.width) * 2 - 1, -((y - b.top) / b.height) * 2 + 1);
+    cam.updateMatrixWorld(); ray.setFromCamera(vTam, cam); const kc = cam.position.distanceTo(ctl.target);
+    // tia gần chân trời (không cắt đất / cắt quá xa) → lấy tâm nhìn, tránh cú trượt khổng lồ
+    if (!ray.ray.intersectPlane(matDat, ra) || ra.distanceTo(cam.position) > kc * 4) ra.copy(ctl.target); return ra; };
+  const doc2 = (e: TouchEvent) => { const [a, b] = [e.touches[0]!, e.touches[1]!]; return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), a: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) }; };
+  const onCham2 = (e: TouchEvent) => {
+    if (e.touches.length !== 2) { if (cham2) { cham2 = null; luuCam(); } return; }
+    e.preventDefault(); const m = doc2(e); if (e.type === 'touchstart' || !cham2) { cham2 = m; bay = null; return; }
+    datDuoi(cham2.x, cham2.y, oG);
+    const kc = cam.position.distanceTo(ctl.target), k = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * (cham2.d / Math.max(1, m.d)))) / kc;
+    cam.position.sub(oG).multiplyScalar(k).add(oG); ctl.target.sub(oG).multiplyScalar(k).add(oG);
+    let da = m.a - cham2.a; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+    cam.position.sub(oG).applyAxisAngle(TRUC_Y, da).add(oG); ctl.target.sub(oG).applyAxisAngle(TRUC_Y, da).add(oG);
+    cam.lookAt(ctl.target); datDuoi(m.x, m.y, oG2); oG.sub(oG2).setY(0); cam.position.add(oG); ctl.target.add(oG);
+    cham2 = m; danhThuc(); ctl.update();
+  };
+  for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.addEventListener(ev, onCham2 as any, { passive: false });
   for (const el of host.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-dk]')) { const k = el.dataset.dk as keyof CaiDk;
     if (el instanceof HTMLInputElement && el.type === 'checkbox') el.checked = !!dk[k]; else el.value = String(dk[k]);
     el.onchange = () => { dk = { ...dk, [k]: el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el instanceof HTMLInputElement ? Number(el.value) : el.value } as CaiDk; apDk(); try { localStorage.setItem('tp-dk', JSON.stringify(dk)); } catch { /* chế độ riêng tư */ } }; }
@@ -1223,7 +1247,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       sp.position.set(u.goc.x + Math.sin(u.lech + p * 3) * (2 + p * 9) + p * 10, u.goc.y + p * 55, u.goc.z + Math.cos(u.lech + p * 3) * (2 + p * 6));
       sp.scale.setScalar(5 + p * 22); sp.material.opacity = Math.min(1, p * 12) * (1 - p) * .95; }
     for (const c of ds.cot!) c.material.opacity = .32 + Math.sin(dem / 25) * .1;
-    ctl.update(); r.render(scene, cam);
+    ctl.update();
+    // MẶT PHẲNG GẦN THEO KHOẢNG CÁCH (góp ý 23/10/2026 "để ở mức này nền cứ bị nháy"): near cố định 1 với camera lùi ~2.500 thì bộ đệm sâu chỉ phân biệt được
+    // ~0,4 đơn vị → mặt sân / nền khu / chữ nền cách nhau 0,1–0,3 tranh nhau từng khung. Đẩy near theo khoảng cách (4%) cho độ phân giải sâu ~0,01 ở mọi mức phóng.
+    const kcCam = cam.position.distanceTo(ctl.target), gan = Math.max(1, kcCam * .04), xa = Math.max(6000, kcCam * 3);
+    if (Math.abs(cam.near - gan) > gan * .1 || cam.far !== xa) { cam.near = gan; cam.far = xa; cam.updateProjectionMatrix(); }
+    r.render(scene, cam);
   }
   const ro = new ResizeObserver(() => { if (!W() || !H()) return; cam.aspect = W() / H(); cam.updateProjectionMatrix(); r.setSize(W(), H()); });
   ro.observe(host);
@@ -1232,7 +1261,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const don = () => {
     cancelAnimationFrame(raf); ro.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
-    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); r.domElement.removeEventListener('contextmenu', onMenu);
+    r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);
     scene.traverse((o: any) => { o.geometry?.dispose?.(); for (const m of [].concat(o.material ?? []) as any[]) m.dispose?.(); });
     for (const t of Object.values(tex)) t.dispose?.(); r.dispose(); host.innerHTML = ''; host.classList.remove('tp');
   };

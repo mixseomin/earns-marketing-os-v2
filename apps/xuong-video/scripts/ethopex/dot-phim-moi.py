@@ -71,8 +71,13 @@ def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
         r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{ten}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — 200 phim mới hạng {a}–{b}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn)"'""", timeout=600)
         print(x["content_id"], (r.stdout.strip().splitlines() or ["?"])[-1][:200], flush=True)
 
+def sua_cta():
+    """cuối mỗi đợt lên camp: dựng sẵn bản sửa CTA cho camp thắng sắp nhân bản (sua-cta.py; anh 23/10/2026 "camp mới chuẩn bị lên thì phải chủ động mà sửa CTA lỗi")"""
+    r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/sua-cta.py"], capture_output=True, text=True, timeout=8 * 3600)
+    print("sửa CTA:", r.stdout[-1500:], flush=True)
+
 if __name__ == "__main__":
     v = sys.argv[1:]
     if v[0] == "cat": cat(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)
-    elif v[0] == "tep": len_tu_tep(v[1], v[2])
-    else: len_(int(v[1]), int(v[2]), v[3] if len(v) > 3 else "today")
+    elif v[0] == "tep": len_tu_tep(v[1], v[2]); sua_cta()
+    else: len_(int(v[1]), int(v[2]), v[3] if len(v) > 3 else "today"); sua_cta()

@@ -8,8 +8,11 @@ Mỗi mục (creative cũ → camp gốc), cùng một đường cho mọi phim:
      không khớp (spy dựng từ tập trả phí) → creative CTA đạt sẵn có của cùng phim; chưa có thì cắt góc mới từ tập sạch (cat-cuoi-lo)
   4. len-creative.py (đẩy + cổng studio + cổng chữ + đánh dấu CTA đạt + ghi bản sửa ethopex_cta_thay, gỡ khỏi hàng)
   5. nhân bản ngay camp gốc (nhan-ban.py --lich today) — lần sau máy tự nhân bản cũng dùng bản sửa
+CHUẨN BỊ TRƯỚC (anh 23/10/2026: "camp mới chuẩn bị lên thì phải chủ động mà sửa CTA lỗi. Camp đang lãi cấm sửa gì"): ngoài hàng bị chặn, mọi camp ĐANG CHẠY
+có lãi (ROI tháng ≥ 50%, chi ≥ $3) mang creative CTA cũ chưa có bản sửa cũng được dựng sẵn bản sửa → tới lượt nhân bản là có ngay. Chỉ dựng creative mới
++ tạo camp nhân bản; KHÔNG sửa / tắt / đổi creative của camp đang chạy. Mục chuẩn bị trước không nhân bản ở đây (để luật NB quyết như thường).
 Phim bị đánh dấu cấm ở soát 18+ (ethopex_soat_18 ok=false) thì bỏ qua, báo lại.
-Chạy trên iMac (cổng chữ dùng Vision): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb]"""
+Chạy trên iMac (cổng chữ dùng Vision), gọi ở cuối mỗi đợt lên camp (dot-phim-moi.py): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb] [--khong-truoc]"""
 import fcntl, glob, importlib.util, json, os, subprocess, sys, time
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 N, Q = os.path.join(C, "nguon"), os.path.join(C, "nguon-qc")
@@ -45,12 +48,44 @@ def nguon_sach(cid, url):
         os.makedirs(tm, exist_ok=True); sh(f"python3 {D}/tai-tap.py '{url}' {tm} 8", timeout=1800)
     return tm if os.path.isdir(tm) and any(x.startswith("tap") or x.endswith(".mp4") for x in os.listdir(tm)) else None
 
+UNG_VIEN = r'''
+import json, os, subprocess, urllib.request, datetime as dt
+from concurrent.futures import ThreadPoolExecutor
+q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
+T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
+H = {"authorization": "Bearer " + T, "user-agent": "mos2-sua-cta", "content-type": "application/json"}
+api = lambda p, b=None: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, data=b, method="POST" if b else "GET", headers=H), timeout=90))
+dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
+thay = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_thay'") or "{}")
+nay = dt.datetime.now(dt.timezone.utc).date()
+rows = api("/api/v1/report", json.dumps({"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, "date_from": nay.strftime("%Y-%m-01"), "date_to": nay.isoformat()}).encode()).get("rows", [])
+so = {}
+for x in rows: a = so.setdefault(x["campaign_id"], [0.0, 0.0]); a[0] += float(x.get("cost") or 0); a[1] += float(x.get("revenue") or 0)
+hay = [c for c in api("/api/v1/campaigns?page_size=500")["data"] if c.get("state") == "ACTIVE" and so.get(c["id"], [0, 0])[0] >= 3 and (so[c["id"]][1] - so[c["id"]][0]) / so[c["id"]][0] >= 0.5]
+def ct(c):
+    try: a = api(f"/api/v1/campaigns/{c['id']}")["ad_groups"][0]["ads"][0]; return c, a.get("creative_id"), a.get("content_id")
+    except Exception: return c, None, None
+ra = {}
+with ThreadPoolExecutor(12) as ex:
+    for c, cr, cid in ex.map(ct, hay):
+        if not cr or str(cr) in dat or str(cr) in thay: continue
+        r = (so[c["id"]][1] - so[c["id"]][0]) / so[c["id"]][0]
+        if str(cr) not in ra or r > ra[str(cr)]["roi"]: ra[str(cr)] = {"goc": c["id"], "ten": c["name"].split(": ", 1)[-1], "content_id": cid, "roi": r, "truoc": True}
+print(json.dumps(ra, ensure_ascii=False))
+'''
+def ung_vien():
+    r = subprocess.run(["ssh", B, f"{ENV}; python3 -"], input=UNG_VIEN, capture_output=True, text=True, timeout=600)
+    try: return json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception: print("không đọc được camp chuẩn bị trước:", r.stderr[-200:]); return {}
+
 def main():
     a = sys.argv[1:]; chi = set(a[a.index("--chi") + 1:]) if "--chi" in a else None; nb = "--khong-nb" not in a
     lk = open(os.path.join(C, "sua-cta.lock"), "w")
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("sua-cta đang chạy ở lượt khác — thoát")
     hang = {k: v for k, v in khoa("ethopex_cho_dung_lai").items() if not chi or k in chi}
+    if not chi and "--khong-truoc" not in a:
+        for k, v in ung_vien().items(): hang.setdefault(k, v)
     if not hang: return print("hàng sửa CTA trống")
     soat, thay, dat = khoa("ethopex_soat_18"), khoa("ethopex_cta_thay"), khoa("ethopex_cta_dat")
     ma = time.strftime("sua%d%m%H%M"); ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True)
@@ -66,7 +101,7 @@ def main():
         r = sql(f"select ten, url from ethopex_content where id = {cid}", spy=True).split("\t")
         ten = (r[0] if r and r[0] else m.get("ten", "")).replace("（DUBBED）", "").replace("(Doblado)", "").strip(); url = r[1] if len(r) > 1 else ""
         lang = "es" if " ES - " in m.get("ten", "") else "en"
-        cu[old] = {"goc": m.get("goc"), "cid": cid}
+        cu[old] = {"goc": m.get("goc"), "cid": cid, "truoc": bool(m.get("truoc"))}
         tm = nguon_sach(cid, url)
         if not tm: bao.append(f"{old}: chưa tải được tập sạch phim {cid}"); continue
         tu, den, qc = st.get("tu"), st.get("den"), st.get("nguon_qc")
@@ -104,6 +139,7 @@ def main():
     thay = khoa("ethopex_cta_thay")
     for old, v in cu.items():
         if old not in thay: continue
+        if v["truoc"]: bao.append(f"{old} → #{thay[old]} · chuẩn bị sẵn cho camp #{v['goc']} (luật NB tự nhân bản khi tới lượt)"); continue
         if nb and v["goc"]:
             r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(v["goc"])} --that --lich today --luat "nhân bản camp thắng · bản sửa CTA #{thay[old]} thay creative #{old}" --ai "máy (anh 23/10/2026: phải luôn sửa lại CTA)"'""", timeout=600)
             bao.append(f"{old} → #{thay[old]} · nhân bản #{v['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")

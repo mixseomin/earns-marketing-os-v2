@@ -128,12 +128,13 @@ export async function suaVung(db: Db, canhId: number, ten: string, moTa?: string
  *  #132 #16 #19 tường đá đen ra be, khung tranh lạ → video đi sang phòng khác). Chuẩn ngành "chuyển ảnh rồi vẽ vá":
  *    1. anhMoChuyen: keyframe mở ĐÃ DUYỆT chuyển sang góc máy kết / giữa (dung-set.py › goc_ve_mo: máy xoay / zoom tại chỗ → đồng phẳng đúng; máy đẩy vào →
  *       gần đúng theo mặt sảnh sau); chỗ ảnh mở chưa thấy lấp bằng khung màu 3D cùng góc. Nano nhận ảnh này làm ảnh để SỬA (sinh-anh.ts › chuanBiKeyframe).
- *    2. ghepNenKet: ảnh ra = ảnh mở chuyển góc ở mọi chỗ, chỉ chỗ Nano THẬT SỰ đổi (người dời đi / tới, đồ cầm — đo bằng chênh màu, không đoán theo ma-nơ-canh
- *       3D vốn mảnh hơn người thật) + vùng người lúc kết theo 3D + chỗ ảnh mở chưa thấy mới lấy ảnh Nano. Tường, cửa, biển không thể đổi.
+ *    2. ghepNenKet: ảnh ra = ảnh mở chuyển góc ở mọi chỗ; chỉ chỗ Nano THẬT SỰ đổi (chênh màu — ma-nơ-canh 3D mảnh hơn người thật) NẰM TRONG vùng món động
+ *       đi qua (3D mở + kết, nở rộng) + người lúc kết theo 3D + chỗ ảnh mở chưa thấy mới lấy ảnh Nano. Sảnh ngoài vùng đó không thể đổi.
  *  Ghi job 'ghep_nen' (0đ) — cổng video (sinh-video.ts) đòi ảnh kết có job này. Trả null khi shot không áp dụng (khung 3D chưa có góc kết / máy quá xa). */
 export const NO_VUNG_DONG = 0.015;   // nở vùng đổi theo bề lớn khung — mép mềm
 export const NGUONG_DOI = 0.1;   // chênh màu (0..1, tổng 3 kênh) coi là Nano đã đổi chỗ đó
-export const TRAN_VUNG_AI = 70;   // % khung lấy ảnh Nano — vượt = Nano không giữ ảnh đầu (vẽ lại sảnh), cổng video chặn
+export const VUNG_DONG = 0.06;   // nở vùng món động (3D) theo bề lớn khung — người AI vẽ lệch ma-nơ-canh tới vài phần trăm khung
+export const TRAN_DOI_SET = 20;   // % sảnh NGOÀI vùng món động mà Nano đã đổi — vượt = Nano không giữ ảnh đầu (trong vùng người sẽ lệch với sảnh chép), cổng video chặn
 const gocCua = (d: NonNullable<NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>['canh']['khung_xam']>['dong'], giua: boolean) => (giua ? d?.giua_goc : d?.ket_goc);
 /** Mỗi điểm khung kết / giữa → chỉ số điểm ảnh trên khung mở (-1 = ngoài ảnh mở). */
 function layTuGoc(goc: number[][], W: number, H: number): Int32Array | null {
@@ -164,10 +165,10 @@ export async function anhMoChuyen(db: Db, canhId: number, giua: boolean): Promis
 }
 /** Mặt nạ 1 kênh → làm mờ (sharp trả 3 kênh cho ảnh 1 kênh qua blur — ảnh ghép #15 ra y ảnh đầu → lấy kênh 0). */
 const mo1 = async (b: Buffer, W: number, H: number, sigma: number) => sharp(b, { raw: { width: W, height: H, channels: 1 } }).blur(sigma).extractChannel(0).raw().toBuffer();
-export async function ghepNenKet(db: Db, canhId: number, url: string, giua: boolean): Promise<{ url: string; lech: number; vung: number } | null> {
+export async function ghepNenKet(db: Db, canhId: number, url: string, giua: boolean): Promise<{ url: string; lech: number; vung: number; doiSet: number } | null> {
   const bc = await boiCanhCanh(db, canhId);
   const d = bc?.canh.khung_xam?.dong; const b = giua ? d?.giua : d?.ket; const goc = gocCua(d, giua);
-  if (!bc?.canh.keyframe_url || !b || goc?.length !== 4) return null;
+  if (!bc?.canh.keyframe_url || !d || !b || goc?.length !== 4) return null;
   const A = await rgba(await taiAnh(bc.canh.keyframe_url)); const W = A.w, H = A.h;
   const lay = layTuGoc(goc, W, H); if (!lay) return null;
   const B = await rgba(await taiAnh(url), W, H);
@@ -179,9 +180,15 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   const M = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) if ((Math.abs(a1[i * 3]! - b1[i * 3]!) + Math.abs(a1[i * 3 + 1]! - b1[i * 3 + 1]!) + Math.abs(a1[i * 3 + 2]! - b1[i * 3 + 2]!)) / 765 > NGUONG_DOI) M[i] = 1;
   const nghich = (x: Uint8Array) => { for (let i = 0; i < x.length; i++) x[i] = x[i] ? 0 : 1; };
-  nghich(M); noVung(M, W, H, 2); nghich(M); noVung(M, W, H, 2);   // mở hình
-  // Người lúc kết theo 3D: chắc chắn lấy ảnh Nano (áo / tóc trùng màu nền thì chênh màu không bắt hết)
-  for (const u of Object.values(b)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) M[i] = 1; }
+  nghich(M); noVung(M, W, H, 2); nghich(M); noVung(M, W, H, 2);   // mở hình: bỏ đốm lẻ
+  // VÙNG ĐƯỢC ĐỔI = quanh chỗ món động đi qua (3D lúc mở chuyển góc + lúc kết, nở rộng — người AI vẽ lệch ma-nơ-canh). Ngoài vùng này sảnh KHÔNG được đổi:
+  // Nano có đổi (ruột thang máy ra gỗ, #19) cũng lấy lại ảnh đầu.
+  const vung = new Uint8Array(W * H); const ket3d = new Uint8Array(W * H);
+  for (const u of Object.values(d!.mo)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) { const k = lay[i]!; if (k >= 0 && m[k]! > 127) vung[i] = 1; } }
+  for (const u of Object.values(b)) { const m = await sharp(await taiAnh(u)).resize(W, H, { fit: 'fill' }).greyscale().raw().toBuffer(); for (let i = 0; i < W * H; i++) if (m[i]! > 127) { vung[i] = 1; ket3d[i] = 1; } }
+  noVung(vung, W, H, Math.round(VUNG_DONG * Math.max(W, H)));
+  let doiSet = 0, nSet = 0;
+  for (let i = 0; i < W * H; i++) { if (lay[i]! >= 0 && !vung[i]) { nSet++; if (M[i]) doiSet++; } M[i] = (M[i] && vung[i]) || ket3d[i] ? 1 : 0; }
   const r = Math.max(2, Math.round(NO_VUNG_DONG * Math.max(W, H)));
   noVung(M, W, H, r);
   for (let i = 0; i < W * H; i++) if (lay[i]! < 0) M[i] = 1;
@@ -192,20 +199,21 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
     for (let c = 0; c < 3; c++) ra[i * 3 + c] = Math.round(Aw[i * 3 + c]! * (1 - a) + B.d[i * 4 + c]! * a);
     if (!M[i]) { lech += (Math.abs(Aw[i * 3]! - B.d[i * 4]!) + Math.abs(Aw[i * 3 + 1]! - B.d[i * 4 + 1]!) + Math.abs(Aw[i * 3 + 2]! - B.d[i * 4 + 2]!)) / 765; nNen++; }
   }
+  const doiSetPt = Math.round((nSet ? doiSet / nSet : 0) * 1000) / 10;
   const lechPt = Math.round((nNen ? (lech / nNen) * 100 : 0) * 10) / 10; const vungPt = Math.round((nVung / (W * H)) * 1000) / 10;
-  const job = await taoJob(db, { nhan: `Ghép nền ${giua ? 'GIỮA' : 'KẾT'} từ keyframe mở · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'ghep', provider: 'noi_bo', model: 'ghep-nen', request: { dich: 'ghep_nen', giua, tu: url, mo: bc.canh.keyframe_url, nen_lech_pt: lechPt, vung_pt: vungPt } });
+  const job = await taoJob(db, { nhan: `Ghép nền ${giua ? 'GIỮA' : 'KẾT'} từ keyframe mở · cảnh #${bc.canh.thu_tu}`, canh_id: canhId, loai: 'ghep', provider: 'noi_bo', model: 'ghep-nen', request: { dich: 'ghep_nen', giua, tu: url, mo: bc.canh.keyframe_url, nen_lech_pt: lechPt, vung_pt: vungPt, doi_set_pt: doiSetPt } });
   const out = await uploadToR2(`xuong-video/keyframe/${canhId}-${giua ? 'giua' : 'ket'}-nen-${Date.now()}.jpg`, await sharp(ra, { raw: { width: W, height: H, channels: 3 } }).jpeg({ quality: 92 }).toBuffer(), 'image/jpeg');
   if (!out) { await xongJob(db, job, { loi: 'không đẩy được ảnh lên kho' }); return null; }
   await xongJob(db, job, { output_url: out });
-  return { url: out, lech: lechPt, vung: vungPt };
+  return { url: out, lech: lechPt, vung: vungPt, doiSet: doiSetPt };
 }
 /** Ảnh kết / giữa đang dùng của shot máy yên đã qua ghép nền chưa (cổng video). null = shot không áp dụng (máy đi / khung 3D cũ chưa có mặt nạ món động). */
 export async function thieuGhepNen(db: Db, c: { id: number; keyframe_ket?: string | null; keyframe_giua?: string | null; khung_xam?: { dong?: { ket?: unknown; giua?: unknown } } | null }): Promise<string | null> {
   const d = c.khung_xam?.dong; const can = [d?.ket && c.keyframe_ket ? c.keyframe_ket : null, d?.giua && c.keyframe_giua ? c.keyframe_giua : null].filter((x): x is string => !!x);
   if (!can.length) return null;
-  const co = (await db.execute(sql`SELECT output_url, (request->>'vung_pt')::numeric AS vung FROM xv_job WHERE canh_id = ${c.id} AND request->>'dich' = 'ghep_nen' AND trang_thai = 'xong' AND output_url = ANY(${`{${can.join(',')}}`}::text[])`)) as unknown as Row[];
+  const co = (await db.execute(sql`SELECT output_url, coalesce((request->>'doi_set_pt')::numeric, 100) AS doi FROM xv_job WHERE canh_id = ${c.id} AND request->>'dich' = 'ghep_nen' AND trang_thai = 'xong' AND output_url = ANY(${`{${can.join(',')}}`}::text[])`)) as unknown as Row[];
   const thieu = can.filter((u) => !co.some((r) => r.output_url === u));
-  const lo = co.filter((r) => Number(r.vung) > TRAN_VUNG_AI);
-  if (!thieu.length && lo.length) return `ảnh ${lo.map((r) => (r.output_url === c.keyframe_ket ? 'KẾT' : 'GIỮA')).join(' + ')} lấy ảnh AI ${lo.map((r) => `${Number(r.vung)}%`).join(' / ')} khung (> ${TRAN_VUNG_AI}%) — AI không giữ ảnh đầu, sinh lại ảnh kết`;
+  const lo = co.filter((r) => Number(r.doi) > TRAN_DOI_SET);
+  if (!thieu.length && lo.length) return `ảnh ${lo.map((r) => (r.output_url === c.keyframe_ket ? 'KẾT' : 'GIỮA')).join(' + ')}: AI đổi ${lo.map((r) => `${Number(r.doi)}%`).join(' / ')} sảnh ngoài chỗ người đi (> ${TRAN_DOI_SET}%) — không giữ ảnh đầu, sinh lại ảnh kết`;
   return thieu.length ? `ảnh ${thieu.map((u) => (u === c.keyframe_ket ? 'KẾT' : 'GIỮA')).join(' + ')} chưa chép nền từ keyframe mở (máy yên — nền phải trùng ảnh đầu; sinh lại ảnh kết)` : null;
 }

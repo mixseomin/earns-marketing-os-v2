@@ -6,6 +6,7 @@
 import type { Canh, PhanCanh, Series } from './kieu';
 import type { Beat } from './dien-anh';
 import { giayPhat } from './kieu';
+import { loiNoiNhip } from './noi-nhip';
 
 export type NhipKb = 'hook' | 'van_de' | 'leo_thang' | 'lat_nguoc' | 'ket';
 /** Tên beat (Anh/Việt, tự do) → nhịp chuẩn. Thứ tự dò quan trọng: "climax twist" là lật ngược, "cliffhanger" là kết/móc. */
@@ -26,6 +27,9 @@ export const CAM_XUC_MANH = /tát|quỳ|khóc|nức nở|sốc|lật mặt|vạc
 export function chamPhimDoc(o: VaoKb): MucKb[] {
   const { tap, canh, kt } = o; const m: MucKb[] = [];
   const tong = canh.reduce((a, c) => a + giayPhat(c), 0);
+  // CẮT CÓ CỚ (noi-nhip.ts): trong cùng phân cảnh, mỗi điểm cắt có đuôi gieo + đầu nhận (nhìn / tiếng / động tác / tiếp nhận) — không thì cảnh rời rạc
+  { const loi = [...new Set(canh.map((c) => c.phan_doan))].flatMap((pd) => loiNoiNhip(canh.filter((c) => c.phan_doan === pd)));
+    if (canh.length >= 2) m.push({ key: 'noi_cat', ten: 'Cắt có cớ (nhìn · tiếng · động tác · tiếp nhận)', dat: !loi.length, ghi: loi.length ? `${loi.length} điểm cắt rời: ${loi.slice(0, 4).join(' · ')}${loi.length > 4 ? ' …' : ''}` : 'mọi điểm cắt có đuôi gieo, đầu nhận', cung: false }); }
   if (canh.length) m.push({ key: 'do_dai_doc', ten: 'Độ dài tập 60–120s', dat: tong >= 55 && tong <= 135, ghi: `tập dài ${Math.round(tong)}s${tong < 55 ? ' — quá ngắn, chưa kịp dồn nén' : tong > 135 ? ' — quá dài, người xem lướt đi trước cliffhanger' : ''}`, cung: false });
   // nút = đầu mỗi phân cảnh mang nhịp vấn đề / leo thang / lật ngược / kết
   const batDau = new Map<string, number>(); let t = 0;
@@ -90,7 +94,7 @@ export function chamDauTu(o: VaoKb): MucKb[] {
 export type MucKb = { key: string; ten: string; dat: boolean; ghi: string; cung: boolean };
 export type VaoKb = {
   tap: { so?: number; beats: Pick<Beat, 'ten'>[]; phan_canh: Pick<PhanCanh, 'ten' | 'beat'>[] };
-  canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong' | 'thu_tu' | 'may_3d' | 'bieu_cam'>>)[];
+  canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong' | 'thu_tu' | 'may_3d' | 'bieu_cam' | 'dan_dung' | 'ky_thuat'>>)[];
   kt: { logline?: string; series?: Series | null; khong_loi?: boolean; /** thể loại — 'phim_doc' (phim ngắn dọc) bật bộ chấm nhịp micro-drama */ the_loai?: string };
 };
 /** Logline của tập: series → logline tập trong kinh thánh series; phim lẻ → logline phim. */

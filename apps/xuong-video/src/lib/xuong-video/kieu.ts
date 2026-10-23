@@ -591,7 +591,8 @@ export function banHien(xuat: BanXuat[]): { chinh: BanXuat | null; ds: BanXuat[]
 export type DanDung = {
   /** bố cục 3 lớp: tiền / trung / hậu cảnh, ai bên trái, ai bên phải */ bo_cuc?: string;
   /** trạng thái MỞ shot: vị trí, đồ đang cầm, biến dạng — phải khớp trạng thái kết của shot trước */ mo?: string;
-  /** trạng thái KẾT shot */ ket?: string;
+  /** trạng thái KẾT shot — đuôi shot gieo CỚ cho cắt sang shot sau (ánh mắt / tiếng / động tác) */ ket?: string;
+  /** CỚ CẮT sang shot sau (noi-nhip.ts): nhin · tieng · dong_tac · phan_ung */ noi?: 'nhin' | 'tieng' | 'dong_tac' | 'phan_ung';
   /** hướng nhìn + hướng di chuyển trên màn (giữ trục 180°) */ huong?: string;
   /** khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì */ muc_dich?: string;
   /** motif / cái gài hoặc trả có trong khung */ motif?: string;

@@ -12,6 +12,9 @@ assert.ok(l.some((x) => x.key === 'mua' && x.lap && x.dai === 2), 'mưa lặp su
 assert.ok(l.some((x) => x.key === 'cuon_len' && Math.abs(x.tu + x.dai - 5) < 1e-9), 'tiếng dâng kết đúng điểm cắt');
 assert.ok(!l.some((x) => x.key === 'pho'), 'key không có tệp → không vào lịch');
 assert.deepStrictEqual(l.map((x) => x.tu), [...l.map((x) => x.tu)].sort((a, b) => a - b));
+// 'key@-0.6': tiếng chuông vang 0,6s TRƯỚC cuối shot (dẫn sang shot sau); 'key@0.3' từ đầu shot
+{ const j = lichSfx([{ am: ['ding@-0.6'], tu: 10, phat: 1.5 }, { am: ['dap@0.3'], tu: 20, phat: 2 }]);
+  assert.ok(j.some((x) => x.key === 'ding' && Math.abs(x.tu - 10.9) < 1e-9), JSON.stringify(j)); assert.ok(j.some((x) => x.key === 'dap' && Math.abs(x.tu - 20.3) < 1e-9)); }
 // mọi tiếng trong bảng phải có tệp thật (scripts/dung-sfx.mjs)
 for (const k of Object.keys(SFX)) assert.ok(existsSync(new URL(`../../../public/sfx/${k}.mp3`, import.meta.url)), `thiếu public/sfx/${k}.mp3`);
 // Lời thoại trên hết (12/10/2026 phim #9 mất giọng): tiếng ngắn ≥ 9 dB dưới giọng, nền lặp ≥ 14 dB; vút ra đúng -28 LUFS.

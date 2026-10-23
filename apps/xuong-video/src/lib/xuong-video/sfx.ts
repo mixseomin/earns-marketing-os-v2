@@ -48,10 +48,12 @@ export type MucSfx = { key: string; tu: number; bo: number; dai: number; lap: bo
 /** Lịch tiếng hiệu ứng cả tập: mỗi shot { am: key âm thanh, tu: giây bắt đầu trong phim, phat: giây phát }. */
 export function lichSfx(ds: { am?: string[]; tu: number; phat: number }[]): MucSfx[] {
   const out: MucSfx[] = [];
-  for (const s of ds) for (const key of s.am ?? []) {
+  for (const s of ds) for (const ma of s.am ?? []) {
+    // 'key@giây' = mốc riêng: âm = tính từ CUỐI shot (tiếng của shot sau vang TRƯỚC điểm cắt — J-cut, noi-nhip.ts 'tieng'), dương = từ đầu shot
+    const [key, mocChu] = ma.split('@') as [string, string | undefined]; const moc = mocChu != null && mocChu !== '' ? Number(mocChu) : NaN;
     const x = SFX[key]; if (!x) continue;
-    if (x.neo === 'ca') { out.push({ key, tu: s.tu, bo: 0, dai: s.phat, lap: true, db: dbSfx(x) }); continue; }
-    const tu = x.neo === 'cuoi' ? s.tu + s.phat - x.dai : s.tu + x.lech;
+    if (x.neo === 'ca' && Number.isNaN(moc)) { out.push({ key, tu: s.tu, bo: 0, dai: s.phat, lap: true, db: dbSfx(x) }); continue; }
+    const tu = !Number.isNaN(moc) ? (moc < 0 ? s.tu + s.phat + moc : s.tu + moc) : x.neo === 'cuoi' ? s.tu + s.phat - x.dai : s.tu + x.lech;
     const bo = Math.max(0, -tu);   // tiếng vút ở shot đầu không có chỗ "trước điểm cắt" → cắt phần đầu
     out.push({ key, tu: Math.round(Math.max(0, tu) * 1000) / 1000, bo: Math.round(bo * 1000) / 1000, dai: Math.round((x.dai - bo) * 1000) / 1000, lap: false, db: dbSfx(x) });
   }

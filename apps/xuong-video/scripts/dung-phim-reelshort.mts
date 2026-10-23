@@ -8,13 +8,17 @@ import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import type { Row } from '../src/lib/xuong-video/doc-db';
-import { lamTronClip } from '../src/lib/xuong-video/kieu';
+import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
+import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
 
-type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; nv: string[]; bt?: string[]; hd: string; anh: string; vid: string; thoai?: { nhan_vat: string; loi: string; dien_xuat?: string }[] };
+type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi']; nv: string[]; bt?: string[]; hd: string; anh: string; vid: string; thoai?: { nhan_vat: string; loi: string; dien_xuat?: string }[] };
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
 const tuPhim = Number(gia('tu-phim')); const tep = gia('manh');
 if (!tuPhim || !tep) { console.error('cần --tu-phim=<id> --manh=<tệp.json>'); process.exit(1); }
 const du = JSON.parse(readFileSync(tep, 'utf8')) as { phan_doan: string; anh_boi_canh: Record<string, string>; shot: Manh[] };
+// CẮT CÓ CỚ: bảng mảnh thiếu đuôi gieo / đầu nhận / cớ cắt thì không dựng (cảnh rời rạc — anh 23/10/2026)
+const danDung = (s: Manh): DanDung => ({ dien: s.vid, ...(s.mo ? { mo: s.mo } : {}), ...(s.ket ? { ket: s.ket } : {}), ...(s.noi ? { noi: s.noi } : {}) });
+{ const loi = loiNoiNhip(du.shot.map((s, i) => ({ thu_tu: i + 1, dan_dung: danDung(s), ky_thuat: { am_thanh: s.am } }))); if (loi.length) { console.error(`bảng mảnh chưa nối cắt:\n  ${loi.join('\n  ')}`); process.exit(1); } }
 const db = getDb()!;
 const kq = await db.transaction(async (tx) => {
   const t = async (s: ReturnType<typeof sql>) => (await tx.execute(s)) as unknown as Row[];
@@ -45,7 +49,7 @@ const kq = await db.transaction(async (tx) => {
     // vid = khối DIỄN của mảnh (một việc): dan_dung.dien — khuôn video bắt buộc khối diễn (prompt-khoi.ts › KHUON.video); prompt_video để trống cho khỏi lặp
     await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, dan_dung, thoai, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co, ...(s.vao != null ? { vao_s: s.vao } : {}), ...(s.am?.length ? { am_thanh: s.am } : {}) })}::jsonb,
-        ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, '', ${JSON.stringify({ dien: s.vid })}::jsonb, ${JSON.stringify(s.thoai ?? [])}::jsonb, 'nhap')`);
+        ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, '', ${JSON.stringify(danDung(s))}::jsonb, ${JSON.stringify(s.thoai ?? [])}::jsonb, 'nhap')`);
   }
   return { phimId, tapId, soManh: du.shot.length, giay: tongGiay, ten };
 });

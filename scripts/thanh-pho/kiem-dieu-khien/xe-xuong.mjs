@@ -15,6 +15,9 @@ await p.keyboard.down('Shift'); for (let i = 0; i < 3; i++) { await p.mouse.move
 const x0 = await T('__xeXuong'); await p.waitForTimeout(1500); const x1 = await T('__xeXuong');
 const dich = (a, b) => a.filter((v) => { const w = b.find((q) => q.id === v.id); return w && (w.x !== v.x || w.z !== v.z); }).length;
 console.log('lần đầu:', x0.length, 'xe ·', x0.filter((v) => v.hien).length, 'đang đỗ hiện · xe nhúc nhích sau 1,5 s:', dich(x0, x1), dich(x0, x1) === 0 ? '✓ đỗ yên' : '— SAI, xe chạy vòng');
+// cảnh dựng lại (lượt làm mới mỗi phút) không được làm xe biến mất tới lượt số kế (lỗi 24/10/2026: chú thích // nuốt lệnh dựng xe)
+await T('__dungLai'); await p.waitForTimeout(500); const xr = await T('__xeXuong');
+console.log('ngay sau dựng lại cảnh:', xr.filter((v) => v.hien).length, 'xe hiện', xr.filter((v) => v.hien).length === x0.filter((v) => v.hien).length ? '✓ không mất xe' : '— SAI, xe biến mất');
 // lượt số sau: phim đầu tiên của "chờ lên camp" xong → lên camp (#id của camp có trên city)
 const B = JSON.parse(JSON.stringify(A)), f = B.tram.len.ds.shift(); B.tram.len.so--; const camp = (A.tram.da_len.ds.find((d) => /#\d+/.test(d.ghi)) ?? {}).ghi?.match(/#\d+/)?.[0] ?? '#0';
 B.tram.da_len.ds.push({ id: f.id, ten: f.ten, ghi: camp, luc: 'vừa xong' }); B.tram.da_len.so++;

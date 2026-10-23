@@ -183,7 +183,16 @@ for (const c of ds) {
   const matShot = c.nhan_vat.map(ten).filter((v): v is NhanVat => !!v && v.loai === 'nhan_vat').map((v) => [v.ten, v.anh_mat?.url?.[0] ?? v.anh_ref[0]] as const).filter(([, u]) => !!u);
   const p3 = [`Image 1 is one frame cut from a storyboard sheet. Re-render it as a full-resolution vertical 9:16 photorealistic live-action film still (if the panel is wider than 9:16, extend the scene naturally above and below — never crop anyone) with EXACTLY the same composition, camera angle, framing, people, poses, positions on screen, gaze directions, hands, objects and their states, and lighting — do not move, add or remove anything, do not change where anyone looks.`,
     'Only add detail and sharpness and render real skin, fabric and hair texture.', matShot.length ? `Faces must match these reference photos: ${matShot.map(([t], j) => `Image ${j + 2} = ${t}`).join('; ')}.` : '', 'No text, captions or borders.'].filter(Boolean).join(' ');
-  const url = await sinh({ nhan: `Keyframe (phân cảnh tầng 3) · cảnh #${c.thu_tu}`, prompt: p3, refs: [urlCat, ...matShot.map(([, u]) => u!)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
+  // đã phóng từ ĐÚNG ảnh cắt này rồi (chạy lại sau lỗi cổng) → dùng lại, không trả tiền lần hai
+  const da = (await q(sql`SELECT output_url FROM xv_job WHERE canh_id = ${c.id} AND trang_thai = 'xong' AND output_url IS NOT NULL AND request->'thamChieuUrl'->>0 = ${urlCat} ORDER BY id DESC LIMIT 1`))[0];
+  if (da) { await chonKeyframe(db, c.id, String(da.output_url), 'phân cảnh ba tầng'); console.log(`#${c.thu_tu} → ${da.output_url} (đã có)`); continue; }
+  // cổng ảnh hay quá giờ (PlenX 24/10/2026: #2 timeout làm dừng cả vòng 16 khung) → thử lại tối đa 3 lần; lượt lỗi cổng không tính tiền
+  let url = '';
+  for (let lan = 1; lan <= 3 && !url; lan++) {
+    try { url = await sinh({ nhan: `Keyframe (phân cảnh tầng 3) · cảnh #${c.thu_tu}`, prompt: p3, refs: [urlCat, ...matShot.map(([, u]) => u!)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id }); }
+    catch (e) { console.error(`#${c.thu_tu} lần ${lan}: ${e instanceof Error ? e.message : e}`); if (lan < 3) await new Promise((ok) => setTimeout(ok, 20_000)); }
+  }
+  if (!url) { console.error(`#${c.thu_tu}: bỏ qua sau 3 lần lỗi`); continue; }
   await chonKeyframe(db, c.id, url, 'phân cảnh ba tầng'); console.log(`#${c.thu_tu} → ${url}`);
 }
 process.exit(0);

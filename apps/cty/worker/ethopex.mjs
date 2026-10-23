@@ -93,7 +93,25 @@ export function deXuatHet(so, khoaNay) {
 // "bỏ cả phim" / "vi phạm" → mọi phim nhắc trong tin đó vào sổ <DATA>/ethopex-bo-phim.json; từ đó mọi luật (kể cả máy tự tăng) bỏ qua camp của phim đó.
 // Bảng số ghim vẫn tính tiền thật của phim (số liệu, không phải thông báo). "báo lại phim <tên>" để gỡ khỏi sổ.
 const TEP_BO = () => path.join(DATA(), 'ethopex-bo-phim.json');
-export const tenPhim = (chu) => (String(chu).match(/(?:^|[\s#:·])\d{4} (.+?) [A-Z]{2} - /) || [])[1]?.trim().toLowerCase() || null;
+export const tenPhim = (chu) => (String(chu).match(/(?:^|[\s#:·])\d{4}\w* (.+?) [A-Z]{2} - /) || String(chu).match(/\[[A-Z?]{1,2}\] (.+?) [A-Z]{2}(?: \/| ·|$)/m) || [])[1]?.trim().toLowerCase() || null;
+// TÊN CAMP GỌN (anh 23/10/2026: "[1] = Bộ TK 1, [CT] = cảnh thật"): "#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727)"
+// → "#65727 [1] [CT] <b>Runaway Single Mom</b> EN / 120-196s / CTA sửa / NB←65727" — bỏ mã lô ngày; phần chi tiết luật sau " · " giữ nguyên. Trả HTML.
+const LOAI_TG = { 'ke chuyen': 'KC', 'canh that': 'CT', 'canh cuoi': 'CC', 'phim dai': 'PD', 'lam moi': 'LM' };
+export function tenGon(ten, bo) {
+  const t = String(ten).trim(), m = t.match(/^(\d{4}\w*) (.+?) ([A-Z]{2}) - (.*)$/);
+  if (!m) return (bo ? `<code>[${esc(bo)}]</code> ` : '') + esc(t);
+  const loai = Object.keys(LOAI_TG).find((k) => m[4].startsWith(k));
+  const phu = (loai ? m[4].slice(loai.length) : m[4]).trim()
+    .replace(/\(nhan ban \d+ cua (\d+)\)/, 'NB←$1').replace(/\(nhan ban.*$/, 'NB').replace(/\bcta-sua\b/, 'CTA\u00a0sửa')
+    .split(/ +/).filter(Boolean);
+  return [bo ? `<code>[${esc(bo)}]</code>` : '', `<code>[${loai ? LOAI_TG[loai] : '?'}]</code>`, `<b>${esc(m[2])}</b> ${m[3]}`].filter(Boolean).join(' ') + phu.map((x) => ` / ${esc(x)}`).join('');
+}
+/** một dòng luật (m.chu = "#id: tên · chi tiết…") → HTML gọn; coId=false thì bỏ "#id" (dòng ↳ dưới tin đã ghi #id) */
+export function dongGon(m, coId = true) {
+  const s = String(m.chu), id = (s.match(/^#?(\d{5,6}):\s*/) || [])[1], than = id ? s.replace(/^#?\d{5,6}:\s*/, '') : s.replace(/^#/, '');
+  const i = than.indexOf(' · '), ten = i < 0 ? than : than.slice(0, i), chiTiet = i < 0 ? '' : than.slice(i);
+  return (id && coId ? `#${id} ` : '') + tenGon(ten, m.bo) + esc(chiTiet);
+}
 export const docBoPhim = () => docJ(TEP_BO(), []);
 export const boPhimLoc = (kq, bo = docBoPhim()) => { const s = new Set(bo.map((x) => x.phim)); if (!s.size) return kq;
   return Object.fromEntries(Object.entries(kq).map(([k, v]) => [k, Array.isArray(v) ? v.filter((m) => !s.has(tenPhim(m.chu)) && !s.has(tenPhim(m.ten))) : v])); };
@@ -172,7 +190,7 @@ async function xuNut(tg, x) {
   const [, lenh, id, ns] = c.data.split(':'), ai = esc(c.from?.first_name || c.from?.username || 'Anh');
   // tên camp lấy từ dòng của nó trong tin báo — kết quả đọc ra được ngay là camp nào
   const dongTin = String(c.message?.text || '').split('\n'), dongCamp = (dongTin.find((d) => d.includes(`#${id}`)) || '').replace(/^•\s*/, '');
-  const tenCamp = esc(dongCamp.replace(/^#?\d+:\s*/, '').split(' · ')[0].slice(0, 70));
+  const tenCamp = esc(dongCamp.replace(/^#?\d+:?\s*/, '').split(' · ')[0].slice(0, 90));
   const tra = async (tin) => { const j = await tg('sendMessage', { message_thread_id: c.message.message_thread_id, text: tin, parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_parameters: { message_id: c.message.message_id, allow_sending_without_reply: true } }); (await import('./tg-phong.mjs')).tinNhanh(j?.result?.message_id); return j; };
   if (lenh === 'bo') {
     await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã bỏ qua' });
@@ -281,7 +299,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       daGiam.push({ m, d, r });
     }
     if (daGiam.length) {
-      const dong = daGiam.map(({ m, d, r }) => (r.ok ? `⬇️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa giảm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 170))}`).join('\n');
+      const dong = daGiam.map(({ m, d, r }) => (r.ok ? `⬇️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa giảm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ GIẢM BẬC</b> (luật GB, anh duyệt) — số trọn ngày hôm qua; không tắt camp nào; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
       gui++;
     }
@@ -294,7 +312,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       daTu.push({ k, m, d, r });
     }
     if (daTu.length) {
-      const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `⬆️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 160))}`).join('\n');
+      const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `⬆️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${dongGon(m, false)}`).join('\n');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
@@ -308,7 +326,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     daNb.push({ m, r, lich });
   }
   if (daNb.length) {
-    const dong = daNb.map(({ m, r, lich }) => (r.ok ? `🧬 #${m.id} → <b>#${r.moi}</b> $1 · lịch ${lich === 'today' ? 'hôm nay' : 'ngày mai'}` : `⚠️ #${m.id} chưa nhân bản được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(String(m.chu).replace(/^#?\d+:\s*/, '').slice(0, 170))}`).join('\n');
+    const dong = daNb.map(({ m, r, lich }) => (r.ok ? `🧬 #${m.id} → <b>#${r.moi}</b> $1 · lịch ${lich === 'today' ? 'hôm nay' : 'ngày mai'}` : `⚠️ #${m.id} chưa nhân bản được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI tháng ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
@@ -324,7 +342,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     // GIỜ YÊN 3h–9h VN (anh 22/10/2026: "tầm 3h đến 9h sáng ta ngủ nên sẽ ko thể duyệt được. Ko đề xuất vào giờ đó"): nhóm cần anh bấm nút thì
     // KHÔNG gửi và KHÔNG đánh dấu đã báo → 9h camp nào vẫn chạm luật thì đề xuất khi đó; nhóm chỉ báo thì gửi im lặng.
     if (yen && nutCho) continue;
-    const dong = moi.slice(0, 15).map((m) => `• ${esc(m.chu)}${m.cung.map((c) => `\n   ↳ cũng: ${esc(TEN[c.k])}${c.dich ? ` → $${c.dich}` : ''}`).join('')}`).join('\n');
+    const dong = moi.slice(0, 15).map((m) => `• ${dongGon(m)}${m.cung.map((c) => `\n   ↳ cũng: ${esc(TEN[c.k])}${c.dich ? ` → $${c.dich}` : ''}`).join('')}`).join('\n');
     const bang = moi.slice(0, 15).map((m) => m.nut).filter((h) => h.length);
     const j = await tg('sendMessage', { message_thread_id: topic, disable_notification: yen, text: `${tieu}\n${dong}${moi.length > 15 ? `\n… và ${moi.length - 15} camp nữa (xem tab Ethopex mos2)` : ''}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML',
       link_preview_options: { is_disabled: true }, ...(bang.length ? { reply_markup: { inline_keyboard: bang } } : {}) });
@@ -352,6 +370,9 @@ if (process.argv.includes('--tu-kiem')) {
   { const { strict: a } = await import('node:assert');
     a.equal(tenPhim('2010 SIMP NO MORE EN - canh that 0-86s · $1 → $2'), 'simp no more'); a.equal(tenPhim('#65735: 2110 Atras No te metas con ese vagabundo ES - canh that'), 'atras no te metas con ese vagabundo');
     const kq = { tang: [{ id: 1, chu: '#65648: 2010 SIMP NO MORE EN - canh that · $1 → $2' }, { id: 2, chu: '#65735: 2110 Number One Nobody EN - canh' }], luc: 'x' };
+    a.equal(dongGon({ chu: '#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727) · $15 → $20', bo: '1' }), '#65727 <code>[1]</code> <code>[CT]</code> <b>Runaway Single Mom</b> EN / 120-196s / CTA\u00a0sửa / NB←65727 · $15 → $20');
+    a.equal(dongGon({ chu: '#65725: 2110 Number One Nobody EN - ke chuyen (nhan ban 2 cua 651 · x' }, false), '<code>[KC]</code> <b>Number One Nobody</b> EN / NB · x');
+    a.equal(tenPhim('• #65727 [1] [CT] Runaway Single Mom EN / 120-196s · $15 → $20'), 'runaway single mom'); a.equal(tenPhim('#67075: 2110ns The Mafia Nanny EN - lam moi'), 'the mafia nanny');
     const loc = boPhimLoc(kq, [{ phim: 'simp no more' }]); a.deepEqual(loc.tang.map((m) => m.id), [2], 'phim đã bỏ không còn trong luật'); a.equal(loc.luc, 'x'); }
   { const { strict: t } = await import('node:assert');
     const m = tinBaoNgay({ theo_ngay: [{ ngay: '2026-10-20', chi: 32.74, thu: 21.4, lai: -11.34, roi: -34.6 }, { ngay: '2026-10-21', chi: 298.72, thu: 473.7, lai: 174.98, roi: 58.6 }], tien_moi: [], thang: { chi: 331.46, thu: 495.1 } }, '2026-10-22');

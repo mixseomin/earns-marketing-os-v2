@@ -8,7 +8,7 @@ if (!(await p.evaluate(() => document.querySelector('.ben').classList.contains('
 const hub = await p.evaluate(() => document.querySelector('.tp').__hubNut()); const bx = () => p.evaluate((h) => document.querySelector('.tp').__bangXh(h), hub);
 let v = await bx(); await p.mouse.move(v.x, v.y); await p.keyboard.down('Shift'); for (let i = 0; i < 10; i++) { await p.mouse.wheel(0, -100); await p.waitForTimeout(50); } await p.keyboard.up('Shift'); await p.waitForTimeout(1500);
 await p.mouse.move(5, 300); await p.waitForTimeout(300); v = await bx(); console.log('mặc định:', v.mo ? 'MỞ — SAI' : 'gọn ✓'); if (S) await p.screenshot({ path: S + '/bxh-gon.png' });
-await p.mouse.move(v.x, v.y); await p.waitForTimeout(800); const v2 = await bx(); const the = await p.evaluate(() => !document.querySelector('.meo').hidden);
+await p.mouse.move(v.x, v.y); await p.waitForTimeout(300); console.log('rê lên biển 300 ms:', (await bx()).mo ? 'MỞ NGAY — SAI' : 'chưa mở ✓ (đang chờ)'); await p.waitForTimeout(1000); const v2 = await bx(); const the = await p.evaluate(() => !document.querySelector('.meo').hidden);
 console.log('rê lên biển:', v2.mo ? 'mở đủ ✓' : 'VẪN GỌN — SAI', '· thẻ hover chồng:', the ? 'CÓ — SAI' : 'không ✓'); if (S) await p.screenshot({ path: S + '/bxh-mo.png' });
 await p.mouse.move(5, 300); await p.waitForTimeout(300); console.log('rời ra:', (await bx()).mo ? 'VẪN MỞ — SAI' : 'gọn lại ✓');
 await b.close();

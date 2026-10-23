@@ -313,6 +313,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   /** "HH:MM DD/MM/YYYY" (giờ VN, cách xưởng ghi) → "1 giờ 20 phút" tính tới bây giờ; không đọc được thì trả lại nguyên chữ */
   const thoiGianCho = (luc: string) => { const m = /^(\d{1,2}):(\d{2}) (\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(luc ?? ''); if (!m) return luc ?? '';
     const ph = Math.max(0, Math.round((Date.now() - Date.UTC(+m[5]!, +m[4]! - 1, +m[3]!, +m[1]! - 7, +m[2]!)) / 60000)); return ph < 60 ? `${ph} phút` : ph < 1440 ? `${Math.floor(ph / 60)} giờ ${ph % 60} phút` : `${Math.floor(ph / 1440)} ngày ${Math.floor((ph % 1440) / 60)} giờ`; };
+  /** một mục danh sách phim của xưởng (gập được, lô chung ghi ở đầu mục, choLau = ghi đã chờ bao lâu) — thẻ cả xưởng lẫn thẻ từng trạm dùng chung */
+  const dsXuong = (x: XuongEtp, ic: string, ten: string, k: 'poster' | 'soat' | 'len' | 'da_len' | 'loai', mo: boolean, cuoi = 0, choLau = false) => { let ds = x.tram[k].ds ?? []; if (cuoi) ds = ds.slice(-cuoi); if (!ds.length) return '';
+    const ghi = new Set(ds.map((p) => p.ghi)), chung = ghi.size === 1 ? [...ghi][0] : '';
+    return `<details class="xg-ds"${mo ? ' open' : ''}><summary>${ic} ${ten} <b>${ds.length}</b>${chung ? `<span class="xg-tag">${esc(chung)}</span>` : ''}</summary>${ds.map((p) => `<div title="${esc(p.ten)}"><span>${esc(p.ten)}</span>${chung ? '' : `<span class="xg-tag">${esc(p.ghi)}</span>`}${choLau ? `<span class="xg-tag">⏳ ${thoiGianCho(p.luc)}</span>` : ''}</div>`).join('')}</details>`; };
   const XE_DO = 4;   // mỗi cửa trạm đỗ tối đa 4 xe, còn lại ghi số trên biển đếm
   let phimO = new Map<string, { s: number; ten: string; ghi: string; luc: string }>(), xeO = new Map<string, any>(), theCuaXe: any = null, bienDem: any[] = [];
   const TRAM_DS: [number, 'poster' | 'soat' | 'len' | 'da_len', string][] = [[1, 'poster', 'poster đạt, chờ cắt'], [3, 'soat', 'đã cắt, chờ soát luật FB'], [4, 'len', 'soát đạt, chờ lên camp'], [5, 'da_len', 'đã lên camp']];
@@ -368,7 +372,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const khoa = JSON.stringify(dem); if (khoa === khoaBienDem && bienDem.length) return; khoaBienDem = khoa;   // chữ không đổi thì giữ biển cũ (khỏi đẻ ảnh mới mỗi 5 giây)
     for (const b of bienDem) { the.remove(b); b.material.map?.dispose(); b.material.dispose(); } bienDem = [];
     // biển đếm trên mái trạm, dưới biển tên — không đè dãy xe chờ (góp ý #1447)
-    for (const [st, chu] of dem) { const b = bienXe(chu, MAU_TRAM[st]!); b.position.set(xp.tram[st].x, 27, xp.zF); b.scale.set(30, 4.5, 1); the.add(b); bienDem.push(b); }
+    for (const [st, chu] of dem) { const b = bienXe(chu, MAU_TRAM[st]!); b.position.set(xp.tram[st].x, 27, xp.zF); b.scale.set(30, 4.5, 1); b.userData = { loai: 'tram-xp', st }; the.add(b); bienDem.push(b); }
   }
 
   const MAU_CAMP = { lai: '#3fd68a', lo: '#ff4d5e', viPham: '#b44dff', cho: '#4fd1ff' };
@@ -1296,15 +1300,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const BUOC = 40, zF = kp.cz + kp.phia * (R + 44), x0F = kp.cx - BUOC * 2.5, cuaZ = zF - kp.phia * 26;   // đường xưởng chạy cách dãy trạm một quãng — xe không bị toà trạm che
         const duongX = add(new THREE.PlaneGeometry(BUOC * 5 + 50, 12), M({ color: '#2a2f3f', roughness: 1 }), false); duongX.rotation.x = -Math.PI / 2; duongX.position.set(kp.cx, .35, cuaZ); duongX.userData = { chu: null };
         const tram = TRAM_XP.map(([ic, ten, mau], i) => { const x = x0F + i * BUOC;
-          const m = add(new THREE.BoxGeometry(26, 11, 18), M({ color: mau, roughness: .6 })); m.position.set(x, 5.5, zF); m.userData = { loai: 'xuong-etp' };
+          const m = add(new THREE.BoxGeometry(26, 11, 18), M({ color: mau, roughness: .6 })); m.position.set(x, 5.5, zF); m.userData = { loai: 'tram-xp', st: i };
           const mai = add(new THREE.BoxGeometry(28, 2, 20), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .25 })); mai.position.set(x, 12, zF); mai.userData = { chu: m };
           const loi = add(new THREE.PlaneGeometry(10, 26 - 9), M({ color: '#2b3142', roughness: 1 }), false); loi.rotation.x = -Math.PI / 2; loi.position.set(x, .4, zF - kp.phia * (9 + (26 - 9) / 2)); loi.userData = { chu: null };   // lối từ cửa trạm ra đường xưởng
-          const b = bienXe(`${ic} ${ten}`, '#59a8ff'); b.scale.set(30, 4.5, 1); b.position.set(x, 34, zF); b.userData = { loai: 'xuong-etp' }; the.add(b);
-          if (i === 3) chiMuc.push({ ten: 'Nhà máy phim mới (6 trạm)', nhan: 'xưởng', obj: m });
+          const b = bienXe(`${ic} ${ten}`, '#59a8ff'); b.scale.set(30, 4.5, 1); b.position.set(x, 34, zF); b.userData = { loai: 'tram-xp', st: i }; the.add(b);
           return new THREE.Vector3(x, 0, cuaZ); });
         const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 500; const tx = new THREE.CanvasTexture(cv); tx.anisotropy = 4;
         const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthWrite: false })); bien.scale.set(150, 47, 1); bien.position.set(x0F + BUOC * 5 + 110, 34, zF);   // đứng bên phải dãy trạm — không che trạm, cổng sau và đường xe
         bien.userData = { loai: 'xuong-etp' }; the.add(bien); chiMuc.push({ ten: 'Xưởng phim mới Ethopex', nhan: 'xưởng', obj: bien });
+        // mốc tìm "Nhà máy phim": khối ẩn dưới đất giữa dãy trạm, mở thẻ cả xưởng (không trúng chuột vì nằm dưới mặt đất)
+        const moc = add(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshBasicMaterial({ visible: false }), false); moc.position.set(kp.cx, -6, zF); moc.userData = { loai: 'xuong-etp' }; chiMuc.push({ ten: 'Nhà máy phim mới (6 trạm)', nhan: 'xưởng', obj: moc });
         xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; dungChuyen(); }; xuongDong = { cv, tx, bien }; xuongPhim = { tram, cong: congSauKhu.get(kh) ?? null, cuaZ, zF, phia: kp.phia }; khoaBienDem = '';
         // đường cố định: đường xưởng → cổng sau → trục giữa khu
         { const g0 = xuongPhim.cong; if (g0) veDuongXe([new THREE.Vector3(g0.x, 0, cuaZ), g0, new THREE.Vector3(g0.x, 0, kp.cz)], []); }
@@ -1397,15 +1402,23 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     // thẻ XƯỞNG PHIM MỚI (góp ý #1445 "trình bày lại, nhìn kinh quá, toàn chữ"): thanh chỉ tiêu hôm nay · 6 ô trạm (số to, trạm đang chạy sáng + tiến độ) ·
     // dòng đang làm · danh sách phim gập được, mỗi phim một dòng (lô chung ghi ở đầu mục, không lặp từng dòng)
+    // thẻ TỪNG TRẠM (góp ý #1448 "bấm / hover khu nào thì chỉ hiện nội dung của khu đó"): chỉ phim đang ở trạm này + đã chờ bao lâu, ô lọc
+    if (u.loai === 'tram-xp') { const x = xuongData, [ic, ten] = TRAM_XP[u.st]!; if (!x) return { dau: `${ic} ${ten}`, h: [['', 'đang đọc số…']] };
+      const n = x.nhip, sang = tramDangChay(n), d = TRAM_DS.find((q2) => q2[0] === u.st), h: [string, string | number][] = [];
+      if (sang === u.st && n) h.push(['▶ Đang làm', esc(`${TEN_BUOC[n.buoc] ?? n.buoc}${n.lo ? ` · lô ${n.lo}` : ''}${n.tong ? ` · ${n.xong ?? 0}/${n.tong}` : ''}`)]);
+      if (u.st === 0) h.push(['📚 Chờ soát poster', x.tram.kho.so]);
+      if (u.st === 2 && sang !== 2) h.push(['Trạng thái', 'đang nghỉ — phim poster đạt chờ ở trạm Soát poster']);
+      if (d) h.push([d[2], x.tram[d[1]].so]);
+      if (u.st === 3) h.push(['🗑 Loại (18+, bạo lực, máu, cổng chữ…)', x.tram.loai.so]);
+      const ds = (d ? dsXuong(x, ic, d[2], d[1], true, d[1] === 'da_len' ? 16 : 0, d[1] !== 'da_len') : '') + (u.st === 3 ? dsXuong(x, '🗑', 'Loại gần nhất', 'loai', false, 10) : '');
+      return { dau: `${ic} ${ten}`, h, them: ds ? `<div class="xg"><input class="xg-loc" type="search" placeholder="lọc tên phim / lô…" aria-label="Lọc phim ở trạm" />${ds}</div>` : undefined }; }
     if (u.loai === 'chuyen') return { dau: u.tt['Người'] ? '🧑‍🏭 Người trong nhà máy phim' : `🚚 ${u.tt['Chở']}`, h: Object.entries(u.tt as Record<string, string>).filter(([k]) => k !== 'Chở' && k !== 'Người') };
     if (u.loai === 'xuong-etp') { const x = xuongData, n = x?.nhip;
       if (!x) return { dau: '🏭 Xưởng phim mới', h: [['', 'đang đọc số…']] };
       const sang = tramDangChay(n), t = x.tram, ct = x.chi_tieu;
       const tram: [string, string, number | null, string][] = [['📚', 'Kho phim', t.kho.so, 'chờ'], ['🖼', 'Soát poster', t.poster.so, 'đạt'], ['✂️', 'Cắt đoạn', null, ''], ['🚫', 'Soát luật FB', t.soat.so, 'chờ'], ['🔤', 'Cổng chữ', t.len.so, 'chờ lên'], ['🚀', 'Lên camp', t.da_len.so, 'đã lên']];
       const lau = n?.bat_dau ? Math.round((Date.now() - Date.parse(n.bat_dau)) / 60000) : null;
-      const muc = (ic: string, ten: string, k: 'soat' | 'len' | 'da_len' | 'loai', mo: boolean, cuoi = 0) => { let ds = t[k].ds ?? []; if (cuoi) ds = ds.slice(-cuoi); if (!ds.length) return '';
-        const ghi = new Set(ds.map((p) => p.ghi)), chung = ghi.size === 1 ? [...ghi][0] : '';
-        return `<details class="xg-ds"${mo ? ' open' : ''}><summary>${ic} ${ten} <b>${ds.length}</b>${chung ? `<span class="xg-tag">${esc(chung)}</span>` : ''}</summary>${ds.map((p) => `<div title="${esc(p.ten)}"><span>${esc(p.ten)}</span>${chung ? '' : `<span class="xg-tag">${esc(p.ghi)}</span>`}</div>`).join('')}</details>`; };
+      const muc = (ic: string, ten: string, k: 'soat' | 'len' | 'da_len' | 'loai', mo: boolean, cuoi = 0) => dsXuong(x, ic, ten, k, mo, cuoi);
       return { dau: '🏭 Xưởng phim mới · Ethopex', h: [], them: `<div class="xg">
         <div class="xg-chi"><span>Hôm nay</span><b style="color:${ct.da >= ct.can ? '#3fd68a' : '#ffd166'}">${ct.da}/${ct.can} phim</b><i><em style="width:${Math.min(100, Math.round(ct.da / Math.max(1, ct.can) * 100))}%"></em></i></div>
         <div class="xg-tram">${tram.map(([ic, ten, so, nh], i) => `<div class="${i === sang ? (n?.loi ? 'loi' : 'on') : ''}"><span>${ic}</span><b>${i === sang && n?.tong ? `${n.xong ?? 0}/${n.tong}` : so ?? (i === sang ? '▶' : '—')}</b><small>${ten}${so != null && i !== sang ? ` · ${nh}` : ''}</small>${i === sang && n?.tong ? `<i><em style="width:${Math.round(Math.min(1, (n.xong ?? 0) / n.tong) * 100)}%"></em></i>` : ''}</div>`).join('')}</div>
@@ -1544,10 +1557,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // THẺ HOVER BẤM ĐƯỢC (góp ý city #1440 "nhìn thấy mà không bấm vào được, di vào là mất"): thẻ đứng yên tại chỗ hiện (không bám con trỏ nữa);
   // rời vật thì còn 350 ms để đưa chuột vào thẻ — vào thẻ thì thẻ ở lại, cuộn / bấm nút trong thẻ được; ra khỏi thẻ thì tắt hoặc chuyển sang vật đang trỏ
   // HIỆN CHẬM (anh 23/10/2026 "không hiện ngay, phải delay vì có thể chỉ là hover nhầm / hover qua, chưa có chủ ý"): chuột phải DỪNG (nhích dưới 4 px)
-  // trên cùng một vật 450 ms thẻ mới hiện — lướt ngang qua vật (kể cả sân / khu to) không bật thẻ
+  // trên cùng một vật HOVER_CHO ms thẻ mới hiện — lướt ngang qua vật (kể cả sân / khu to) không bật thẻ
+  // 450 ms anh vẫn thấy như hiện ngay (góp ý #1449) → 900 ms, chuột vẫn phải đứng yên
+  const HOVER_CHO = 900;
+  let henLo = 0, muonLo: { kb: string | null; bx: any } = { kb: null, bx: null };
   let meoCua: any = null, henAn = 0, henHien = 0, choHien: any = null, trongMeo = false, chuotCuoi = { x: 0, y: 0 }, moc = { x: 0, y: 0 };
   const henHienMeo = (o: any) => { if (choHien === o && Math.hypot(chuotCuoi.x - moc.x, chuotCuoi.y - moc.y) < 4) return; clearTimeout(henHien); choHien = o; moc = { ...chuotCuoi };
-    henHien = window.setTimeout(() => { henHien = 0; choHien = null; if (dangSang === o && !trongMeo) hienMeo(o); }, 450); };
+    henHien = window.setTimeout(() => { henHien = 0; choHien = null; if (dangSang === o && !trongMeo) hienMeo(o); }, HOVER_CHO); };
   const boHenHien = () => { clearTimeout(henHien); henHien = 0; choHien = null; };
   const hienMeo = (o: any) => { if (o.userData?.bangXh) return; const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
     meo.style.left = `${Math.max(8, Math.min(chuotCuoi.x - b.left + 16, W() - meo.offsetWidth - 8))}px`; meo.style.top = `${Math.max(8, Math.min(chuotCuoi.y - b.top + 16, H() - meo.offsetHeight - 8))}px`; };
@@ -1560,15 +1576,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : '';
       // bảng hiệu đang tắt: rê lên sân / biển / camp của phim → lộ biển phim đó, rời ra thì ẩn lại
       const u = o?.userData, hubK = u?.hub ?? u?.d?.cha, cum = u?.cum ?? u?.d?.cumPhim, kb = hubK && cum && tatBien[hubK] ? `${hubK}|${cum}` : null;
-      if (kb !== bienDangLo) { if (bienDangLo) datBien(bienDangLo, false); if (kb) datBien(kb, true); bienDangLo = kb; }
       const bx = u?.bangXh ? o : u?.loai === 'dich' && u.d?.loai === 'nen' ? bangXhCua.get(u.d.khoa) : null;
-      if (bx !== bangXhMo) { if (bangXhMo) datBangXh(bangXhMo, false); if (bx) datBangXh(bx, true); bangXhMo = bx; } }
+      // biển phim lộ ra / bảng xếp hạng mở rộng cũng CHỜ như thẻ hover (anh 24/10/2026 "cái bảng này quá nhanh"): rời ra thì tắt ngay, vào thì đứng HOVER_CHO ms mới bật
+      if (bienDangLo && kb !== bienDangLo) { datBien(bienDangLo, false); bienDangLo = null; }
+      if (bangXhMo && bx !== bangXhMo) { datBangXh(bangXhMo, false); bangXhMo = null; }
+      muonLo = { kb, bx }; clearTimeout(henLo);
+      if ((kb && kb !== bienDangLo) || (bx && bx !== bangXhMo)) henLo = window.setTimeout(() => { if (muonLo.kb === kb && kb && kb !== bienDangLo) { datBien(kb, true); bienDangLo = kb; }
+        if (muonLo.bx === bx && bx && bx !== bangXhMo) { datBangXh(bx, true); bangXhMo = bx; } danhThuc(); }, HOVER_CHO); }
     if (e.pointerType !== 'mouse') { anMeo(); return; }
     if (o && o === meoCua) { clearTimeout(henAn); henAn = 0; return; }
     if (!o) boHenHien();
     if (o && !meoCua) henHienMeo(o); else if (meoCua) henAnMeo();
   };
-  const onLeave = () => { if (!trongMeo) henAnMeo(); if (bangXhMo) { datBangXh(bangXhMo, false); bangXhMo = null; } };
+  const onLeave = () => { if (!trongMeo) henAnMeo(); clearTimeout(henLo); muonLo = { kb: null, bx: null }; if (bangXhMo) { datBangXh(bangXhMo, false); bangXhMo = null; } };
   // chạm / bấm = nhả trong 450ms, kéo dưới 10px (bộ điều hướng chặn "click" sinh từ cú chạm)
   let xuong: { x: number; y: number; t: number } | null = null;
   const onDown = (e: PointerEvent) => { xuong = { x: e.clientX, y: e.clientY, t: performance.now() }; };

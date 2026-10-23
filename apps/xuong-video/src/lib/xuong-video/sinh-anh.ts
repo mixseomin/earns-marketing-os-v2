@@ -24,6 +24,7 @@ import { boiCanhCanh, canhDaThayThe, mapBienThe, mapNhanVat, mapTap, mapCanh, ke
 import { chayAnhFal, modelFal } from './fal';
 import { sinhAnh, taiAnhBase64 } from './google';
 import { uploadToR2 } from '../r2';
+import { TOI_DA_REF, type CongKey } from './cong-ai';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
@@ -71,7 +72,9 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
 /** nhieuMau: shot cần thấy nhiều màu của sản phẩm (vd hai móc treo hai màu) → đưa tới 3 ảnh; còn lại CHỈ ảnh màu chính, kẻo model trộn màu
  *  (09/10/2026: đưa 3 ảnh xanh nhạt/đen/xanh vừa → shot 1 ra quần xanh đậm, rồi xanh nhạt bạc). */
 export const shotNhieuMau = (prompt: string): boolean => /\b(two|three|both|several|multiple|each)\b.{0,40}\b(pairs?|colou?rs?)\b|\b(black|dark blue|navy|gray|grey|brown|medium blue)\b|colou?rs/i.test(prompt);
-export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined, nhieuMau = true, truoc = 0): { urlRef: string[]; banDoRef: string; vai: { url: string; nhan: string }[] } {
+/** toiDa = số ảnh tối đa cổng ảnh nhận (cong-ai.ts › TOI_DA_REF, tính cả ảnh đứng trước). Vượt thì xếp lại GỌN: mỗi người chỉ ảnh sát mặt + biến thể
+ *  trang phục (bỏ ảnh toàn thân thừa) — thay vì cổng từ chối cả shot (#322 #5 23/10/2026: 9 ảnh > PlenX 8) hoặc cắt đuôi mất đạo cụ. */
+export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined, nhieuMau = true, truoc = 0, toiDa = 10, gon = false): { urlRef: string[]; banDoRef: string; vai: { url: string; nhan: string }[] } {
   const vai: { url: string; nhan: string }[] = [];
   const thuTu = [...nv.filter((v) => v.loai === 'san_pham'), ...nv.filter((v) => v.loai === 'nhan_vat'), ...nv.filter((v) => v.loai !== 'san_pham' && v.loai !== 'nhan_vat')];
   const urlRef: string[] = []; const dong: string[] = [];
@@ -80,7 +83,8 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
     // Sản phẩm: shot chọn biến thể màu có ảnh thật (vd 'Medium Blue') → ảnh đó là màu chính; không thì ảnh đầu của anchor.
     // Người (phim người thật): ảnh SÁT MẶT đứng đầu — mô hình bám mặt theo số điểm ảnh của mặt, bảng nhân vật cả người thì mặt chỉ vài chục px.
     const mat = v.loai === 'nhan_vat' ? (v.anh_mat?.url ?? []).slice(0, 1) : [];
-    const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1)) : [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
+    const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1))
+      : gon ? [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, 1)].slice(0, 2) : [...mat, ...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
     const con = Math.max(0, 10 - truoc - urlRef.length);
     const lay = anh.slice(0, con);
     if (!lay.length) continue;
@@ -92,6 +96,7 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
       ? `${so} = THE PRODUCT: draw exactly this item — same cut, pockets, seams, hardware and fabric texture; never a generic version. ${lay.length > 1 ? `Image ${tu} shows its MAIN color — use exactly that color unless the shot names another color of the same item; the other product images show other colors of the same item.` : 'Use exactly its color.'} Where text and these images disagree, the images win. Do not write its name.`
       : v.loai === 'nhan_vat' ? `${so} = the person ${v.ten} (same face, hair, age, body).${mat.length && lay[0] === mat[0] ? ` Image ${tu} is a CLOSE-UP of ${v.ten}'s face: the face in the new image must be this exact person — same bone structure, eyes, nose, mouth, hairline and skin; only the expression may change.` : ''}` : `${so} = ${v.loai === 'boi_canh' ? 'the location' : 'the prop'} ${v.ten}.`);
   }
+  if (!gon && truoc + urlRef.length > toiDa) return xepThamChieu(nv, btCanh, nhieuMau, truoc, toiDa, true);
   return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '', vai };
 }
 
@@ -238,7 +243,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // ket = keyframe KẾT: ảnh số 1 là khung màu ở chỗ kết (khung_xam.mau_ket).
   const kxMau = coKx ? (ket && giua ? bc.canh.khung_xam!.mau_giua ?? null : ket ? bc.canh.khung_xam!.mau_ket ?? null : bc.canh.khung_xam!.mau ?? null) : null;
   const kx = coKx ? kxMau ?? bc.canh.khung_xam!.xam : null;
-  const tc = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`), kx ? 1 : 0);
+  const tc = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`), kx ? 1 : 0, TOI_DA_REF[bc.kt.mo_hinh_anh.split(':')[0] as CongKey] ?? 10);
   const urlRef = [...(kx ? [kx] : []), ...tc.urlRef]; const banDoRef = tc.banDoRef;
   const vai = [...(kx ? [{ url: kx, nhan: kxMau ? '🎨 khung màu 3D (bố trí + ánh sáng)' : '🧊 khung xám 3D (bố trí)' }] : []), ...tc.vai];
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');

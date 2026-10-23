@@ -51,7 +51,20 @@ def may_doc():
         subprocess.run(["swiftc", "-O", src, "-o", tmp], check=True, capture_output=True, timeout=600); os.replace(tmp, bin_)
     return bin_
 
+def bo_doc_san(video):
+    """chữ đã đọc sẵn của một nguồn: {giây nguyên: chữ} ở <nguồn bỏ đuôi>.chu.json (doc-khung.py ghi — box3 cắt, iMac đọc bằng Vision, 23/10/2026)"""
+    f = os.path.splitext(video)[0] + ".chu.json"
+    try: return json.load(open(f)) if os.path.exists(f) and os.path.getmtime(f) >= os.path.getmtime(video) - 5 else None
+    except Exception: return None
+
 def doc(video, tu, den):
+    san = bo_doc_san(video)
+    if san is not None:
+        ks = [str(round(tu + i)) for i in range(max(1, int(-(-(den - tu) // 1))))]
+        thieu = [k for k in ks if k not in san]
+        if not thieu: return [(tu + i, san[k]) for i, k in enumerate(ks)]
+        if sys.platform != "darwin": raise RuntimeError(f"chưa đọc chữ giây {thieu[:5]}… của {video} (máy này không có Vision — đọc khung trên iMac: doc-khung.py)")
+    elif sys.platform != "darwin": raise RuntimeError(f"chưa đọc chữ {video} (máy này không có Vision — đọc khung trên iMac: doc-khung.py)")
     with tempfile.TemporaryDirectory() as t:
         subprocess.run(["ffmpeg", "-v", "error", "-ss", str(tu), "-t", str(den - tu), "-i", video, "-vf", "fps=1,scale=540:-2", f"{t}/k%04d.png"], check=True)
         anh = sorted(os.listdir(t))

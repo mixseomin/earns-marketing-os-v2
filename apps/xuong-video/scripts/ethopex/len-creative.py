@@ -25,7 +25,9 @@ def main(lo_f, ma, dang):
     ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump(lo, open(f"{ra}/lo.json", "w"), ensure_ascii=False, indent=1)
     # 1. kho
     sh(f"ssh {B} 'mkdir -p /var/lib/ethopex/creative/{ma}'")
-    for x in lo: subprocess.run(["rsync", "-a", x["file"], f"{B}:/var/lib/ethopex/creative/{ma}/{x['ten_tep']}"], check=True)
+    for x in lo:   # đoạn cắt trên box3 ("box3:/đường") chép tại chỗ — không đẩy video qua mạng nhà (23/10/2026)
+        if x["file"].startswith("box3:"): subprocess.run(["ssh", B, f"cp '{x['file'][5:]}' /var/lib/ethopex/creative/{ma}/{x['ten_tep']}"], check=True)
+        else: subprocess.run(["rsync", "-a", x["file"], f"{B}:/var/lib/ethopex/creative/{ma}/{x['ten_tep']}"], check=True)
     r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; done'""", timeout=3600)
     anh = {l.split("|")[0]: l.split("|") for l in r.stdout.splitlines() if l.count("|") == 4}
     # 2. chữ QC
@@ -83,9 +85,11 @@ EOF'""", timeout=3600)
     o = []
     for x in lo:
         if x.get("loi"): continue
-        d = float(sh(f"ffprobe -v error -show_entries format=duration -of csv=p=0 '{x['file']}'").stdout.strip() or 0)
+        vf = (anh.get(x["ten_tep"][:-4]) or [None, None, None])[2] if x["file"].startswith("box3:") else x["file"]   # đoạn trên box3 → đọc bản trên kho (https)
+        if not vf: continue
+        d = float(sh(f"ffprobe -v error -show_entries format=duration -of csv=p=0 '{vf}'").stdout.strip() or 0)
         for k, arg in (("a", ["-ss", str(d * 0.5)]), ("b", ["-sseof", "-1.2"])):
-            f = f"{ra}/rv-{x['creative_id']}-{k}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y", *arg, "-i", x["file"], "-frames:v", "1", "-vf", "scale=300:534", f], check=True); o.append(f)
+            f = f"{ra}/rv-{x['creative_id']}-{k}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y", *arg, "-i", vf, "-frames:v", "1", "-vf", "scale=300:534", f], check=True); o.append(f)
     for k in range(0, len(o), 16):
         t = o[k:k + 16]; fc = "".join(f"[{i}]" for i in range(len(t))) + f"xstack=inputs={len(t)}:layout=" + "|".join(f"{(i % 4) * 300}_{(i // 4) * 534}" for i in range(len(t))) + ":fill=black"
         f = f"{ra}/review-cta-{k // 16 + 1}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y"] + sum([["-i", p] for p in t], []) + ["-filter_complex", fc, f], check=True)

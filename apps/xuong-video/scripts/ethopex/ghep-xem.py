@@ -9,7 +9,7 @@ import json, os, re, subprocess, sys, textwrap, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1920
-FA = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+FA = next((f for f in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf") if os.path.exists(f)), "/System/Library/Fonts/Supplemental/Arial Bold.ttf")   # box3 (23/10/2026): Liberation Sans Bold cùng số đo chữ với Arial
 TOC_DO = 1.15                        # giọng nhanh hơn (anh: "giọng hơi chậm")
 VANG, TRANG, DO = (255, 214, 10), (255, 255, 255), (220, 20, 50)
 GIU_LIEN = ["Learn More", "LEARN MORE", "Más información", "MÁS INFORMACIÓN", "SHORT DRAMA", "MINISERIE"]

@@ -682,18 +682,18 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     // BẢNG XẾP HẠNG PHIM cạnh toà nền tảng: như bảng Content của Ethopex — phim có tiêu tiền ngày báo cáo mới nhất, xếp theo ROI, dòng TỔNG cuối
     function bangXepHang(hub: typeof mh.dich[number], bo: { cum: CumP[] }, x: number, z: number) {
-      const ds_ = bo.cum.map((o) => ({ o, so: soCum(o) })).filter((v) => v.so.cH > 0 || v.so.tH > 0).sort((a, b) => (roiCua(b.so.tH, b.so.cH) ?? 9) - (roiCua(a.so.tH, a.so.cH) ?? 9)).slice(0, 18);
-      const tong = ds_.reduce((a, v) => ({ t: a.t + v.so.tH, c: a.c + v.so.cH }), { t: 0, c: 0 }), cao = 96 + (ds_.length + 1) * 34 + 16;
+      const ds_ = bo.cum.map((o) => ({ o, so: soCum(o) })).filter((v) => v.so.cH > 0 || v.so.tH > 0).sort((a, b) => (roiCua(b.so.tH, b.so.cH) ?? 9) - (roiCua(a.so.tH, a.so.cH) ?? 9));
+      const tong = ds_.reduce((a, v) => ({ t: a.t + v.so.tH, c: a.c + v.so.cH }), { t: 0, c: 0 }), hien = ds_.slice(0, 18), cao = 96 + (hien.length + 1) * 34 + 16;   // TỔNG cộng mọi phim, bảng hiện 18 dòng đầu
       const cv = document.createElement('canvas'); cv.width = 720; cv.height = cao; const g = cv.getContext('2d')!;
       g.fillStyle = '#0c1326f0'; g.fillRect(0, 0, 720, cao); g.strokeStyle = '#4fd1ff'; g.lineWidth = 8; g.strokeRect(4, 4, 712, cao - 8);
       g.textBaseline = 'middle'; g.fillStyle = '#ffffff'; g.font = '800 34px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(`🎬 Phim · ${ngayNgan(hub.ngayHom)}`, 20, 38);
       const COT = [['ROI', 430], ['Lãi', 530], ['Chi', 620], ['Thu', 704]] as const;
       g.font = '700 20px system-ui, sans-serif'; g.fillStyle = '#8e9abd'; g.fillText('PHIM', 20, 80); g.textAlign = 'right'; for (const [t, cx] of COT) g.fillText(t.toUpperCase(), cx, 80);
       const dong = (y: number, ten: string, t: number, c: number, dam = false) => { const r = roiCua(t, c), mau = t >= c ? '#3fd68a' : '#ff4d5e';
-        g.textAlign = 'left'; g.fillStyle = '#e6ecff'; g.font = `${dam ? 800 : 600} 22px system-ui, sans-serif`; let tt = ten; while (g.measureText(tt).width > 340 && tt.length > 4) tt = tt.slice(0, -2); g.fillText(tt === ten ? ten : `${tt}…`, 20, y);
+        g.textAlign = 'left'; g.fillStyle = '#e6ecff'; g.font = `${dam ? 800 : 600} 22px system-ui, sans-serif`; let tt = ten; while (g.measureText(tt).width > 310 && tt.length > 4) tt = tt.slice(0, -2); g.fillText(tt === ten ? ten : `${tt}…`, 20, y);
         g.textAlign = 'right'; g.fillStyle = mau; g.fillText(roiChu(r), 430, y); g.fillText(usd(t - c), 530, y); g.fillStyle = '#d6def5'; g.fillText(usd(c), 620, y); g.fillText(usd(t), 704, y); };
-      ds_.forEach((v, i) => dong(114 + i * 34, v.o.ten, v.so.tH, v.so.cH));
-      g.fillStyle = '#2a3352'; g.fillRect(16, 96 + ds_.length * 34, 688, 2); dong(114 + ds_.length * 34, 'TỔNG', tong.t, tong.c, true);
+      hien.forEach((v, i) => dong(114 + i * 34, v.o.ten, v.so.tH, v.so.cH));
+      g.fillStyle = '#2a3352'; g.fillRect(16, 96 + hien.length * 34, 688, 2); dong(114 + hien.length * 34, ds_.length > hien.length ? `TỔNG ${ds_.length} phim` : 'TỔNG', tong.t, tong.c, true);
       const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; const Wb = 120, Hb = Wb * cao / 720, day = 14;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'dich', d: hub }; the.add(sp);
       for (const dx of [-Wb * .3, Wb * .3]) { const cot = add(new THREE.CylinderGeometry(1, 1, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x + dx, day / 2, z); cot.userData = { chu: null }; }

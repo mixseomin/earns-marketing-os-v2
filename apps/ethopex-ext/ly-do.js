@@ -90,7 +90,7 @@
   let bang = null, luc = 0; const le = {}, phimNho = {};
   const lay = async () => { if (!bang || Date.now() - luc > 120000) { try { const r = await (await fetch(API)).json(); if (r.ok) { bang = r.camp; luc = Date.now(); } } catch (e) {} } return bang || {}; };
   const o = document.createElement('div');
-  o.style.cssText = 'position:fixed;z-index:2147483647;max-width:560px;max-height:80vh;overflow:auto;padding:10px 12px;border-radius:8px;background:#1f1d1a;color:#f4efe6;font:13px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none;white-space:normal';
+  o.style.cssText = 'position:fixed;z-index:2147483647;width:448px;max-width:92vw;max-height:min(560px,70vh);box-sizing:border-box;overflow:auto;overscroll-behavior:contain;padding:10px 12px;border-radius:8px;background:#1f1d1a;color:#f4efe6;font:13px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none;white-space:normal';
   o.dataset.etpKhung = '1'; document.documentElement.appendChild(o);
   // TẢI SẴN (anh 22/10/2026 "có cách nào tải nhanh hơn"): mở trang là lấy luôn lý do đóng + creative của MỌI phim đang hiện (một lượt gọi) → rê vào là hiện ngay
   let dangTai = null;

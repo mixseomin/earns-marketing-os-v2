@@ -1167,11 +1167,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const sangLen = (o: any, on: boolean) => { for (const m of [].concat(o.material) as any[]) if (m.emissiveIntensity != null) { m.userData.goc ??= m.emissiveIntensity; m.emissiveIntensity = on ? m.userData.goc + .55 : m.userData.goc; } };
   // THẺ HOVER BẤM ĐƯỢC (góp ý city #1440 "nhìn thấy mà không bấm vào được, di vào là mất"): thẻ đứng yên tại chỗ hiện (không bám con trỏ nữa);
   // rời vật thì còn 350 ms để đưa chuột vào thẻ — vào thẻ thì thẻ ở lại, cuộn / bấm nút trong thẻ được; ra khỏi thẻ thì tắt hoặc chuyển sang vật đang trỏ
-  let meoCua: any = null, henAn = 0, trongMeo = false, chuotCuoi = { x: 0, y: 0 };
+  // HIỆN CHẬM (anh 23/10/2026 "không hiện ngay, phải delay vì có thể chỉ là hover nhầm / hover qua, chưa có chủ ý"): chuột phải DỪNG (nhích dưới 4 px)
+  // trên cùng một vật 450 ms thẻ mới hiện — lướt ngang qua vật (kể cả sân / khu to) không bật thẻ
+  let meoCua: any = null, henAn = 0, henHien = 0, choHien: any = null, trongMeo = false, chuotCuoi = { x: 0, y: 0 }, moc = { x: 0, y: 0 };
+  const henHienMeo = (o: any) => { if (choHien === o && Math.hypot(chuotCuoi.x - moc.x, chuotCuoi.y - moc.y) < 4) return; clearTimeout(henHien); choHien = o; moc = { ...chuotCuoi };
+    henHien = window.setTimeout(() => { henHien = 0; choHien = null; if (dangSang === o && !trongMeo) hienMeo(o); }, 450); };
+  const boHenHien = () => { clearTimeout(henHien); henHien = 0; choHien = null; };
   const hienMeo = (o: any) => { const b = r.domElement.getBoundingClientRect(); meo.innerHTML = veO(thongTin(o)); meo.hidden = false; meo.scrollTop = 0; meoCua = o;
     meo.style.left = `${Math.max(8, Math.min(chuotCuoi.x - b.left + 16, W() - meo.offsetWidth - 8))}px`; meo.style.top = `${Math.max(8, Math.min(chuotCuoi.y - b.top + 16, H() - meo.offsetHeight - 8))}px`; };
-  const anMeo = () => { clearTimeout(henAn); henAn = 0; meo.hidden = true; meoCua = null; };
-  const henAnMeo = () => { if (henAn) return; henAn = window.setTimeout(() => { henAn = 0; if (trongMeo) return; meo.hidden = true; meoCua = null; if (dangSang) hienMeo(dangSang); }, 350); };
+  const anMeo = () => { clearTimeout(henAn); henAn = 0; boHenHien(); meo.hidden = true; meoCua = null; };
+  const henAnMeo = () => { if (henAn) return; henAn = window.setTimeout(() => { henAn = 0; if (trongMeo) return; meo.hidden = true; meoCua = null; if (dangSang) henHienMeo(dangSang); }, 350); };
   meo.addEventListener('pointerenter', () => { trongMeo = true; clearTimeout(henAn); henAn = 0; });
   meo.addEventListener('pointerleave', () => { trongMeo = false; henAnMeo(); });
   const onMove = (e: PointerEvent) => {
@@ -1179,7 +1184,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (o !== dangSang) { if (dangSang && dangSang !== vatChon) sangLen(dangSang, false); if (o) sangLen(o, true); dangSang = o; r.domElement.style.cursor = o ? 'pointer' : ''; }
     if (e.pointerType !== 'mouse') { anMeo(); return; }
     if (o && o === meoCua) { clearTimeout(henAn); henAn = 0; return; }
-    if (o && !meoCua) hienMeo(o); else if (meoCua) henAnMeo();
+    if (!o) boHenHien();
+    if (o && !meoCua) henHienMeo(o); else if (meoCua) henAnMeo();
   };
   const onLeave = () => { if (!trongMeo) henAnMeo(); };
   // chạm / bấm = nhả trong 450ms, kéo dưới 10px (bộ điều hướng chặn "click" sinh từ cú chạm)

@@ -5,6 +5,7 @@
 //   ĐỦ   — vật được nhắc trong chữ của shot (hành động, bố cục, mở / kết, diễn xuất) phải có khối 3D tương ứng; shot cận phải THẤY nó trong khung.
 //   NGƯỜI — người đang nói (chủ thể trong khung) phải thấy mặt · vật đeo / cầm là chủ thể cú cận thì khung phải có cả người đeo · hai người không chồng hình · dáng tựa phải có mặt đỡ.
 // MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và bộ chấm tại chỗ (scripts/du-lieu/tong-tai/kiem.mts). Thuần — tự kiểm: kiem-ai-3d.test.mts
+import { canTachNhip } from './tach-nhip';
 import { hopVat } from './duong-may';
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
 import { chuThe, huongVoiMay, nguoiNoiTrongKhung } from './bo-set-3d';
@@ -221,5 +222,5 @@ export function vungTrong(c: ShotAi): string[] {
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
+  return [...canTachNhip({ co_canh: c.ky_thuat?.co_canh, vi_tri: c.may_3d?.vi_tri ?? [] }, (t) => nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat')).map((x) => `cần tách shot: ${x}`), ...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
 }

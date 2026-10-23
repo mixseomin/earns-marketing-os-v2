@@ -17,3 +17,13 @@ assert.equal(canTachNhip({ co_canh: 'ms', vi_tri: [ha, { ten: 'Vivian', tam: [60
 // hai món đổi tay một shot → tách
 assert.ok(canTachNhip({ co_canh: 'cu', vi_tri: [ha, { ten: 'Vivian', tam: [-45, 372, 0] }, coc, { ...coc, ten: 'Bút' }] }, nguoi).some((x) => x.startsWith('2 lần')));
 console.log('tach-nhip: ok');
+// #13: insert chuyển chủ thể → tách; #27: buông bút + đi lại (ms) → tách; đặt đồ đứng yên → qua
+{
+  const { canTachNhip } = await import('./tach-nhip');
+  const nguoi = (t: string) => ['Lâm Hạ', 'Lục Thần'].includes(t);
+  assert.ok(canTachNhip({ co_canh: 'insert', vi_tri: [{ ten: 'Lục Thần', tam: [230, 760, 0] }], chuyen_toi: 'Lâm Hạ' }, nguoi)[0]!.includes('cận chèn'));
+  const but = { ten: 'Bút ký', cam: 'Lục Thần', tam: [8, 728, 110], den: [10, 690, 76] };
+  assert.equal(canTachNhip({ co_canh: 'ms', vi_tri: [{ ten: 'Lục Thần', tam: [0, 740, 0], den: [-40, 698, 0] }, but] }, nguoi).length, 1);
+  assert.deepEqual(canTachNhip({ co_canh: 'ms', vi_tri: [{ ten: 'Lục Thần', tam: [0, 740, 0] }, but] }, nguoi), []);
+  assert.deepEqual(canTachNhip({ co_canh: 'ms', vi_tri: [{ ten: 'Lục Thần', tam: [0, 740, 0] }], chuyen_toi: 'Lâm Hạ' }, nguoi), []);
+}

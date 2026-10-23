@@ -16,7 +16,7 @@ const shots = (await db.execute(sql`SELECT t.so AS tap, c.thu_tu, c.hanh_dong, c
 let n = 0, coMay = 0;
 for (const s of shots) {
   const vt = ((s.may_3d as { vi_tri?: ViTriDo[] } | null)?.vi_tri ?? []); if (vt.length) coMay++;
-  const ly = canTachNhip({ co_canh: s.co ? String(s.co) : undefined, vi_tri: vt }, (t) => nguoi.has(t));
+  const ly = canTachNhip({ co_canh: s.co ? String(s.co) : undefined, vi_tri: vt, chuyen_toi: (s.may_3d as { chuyen_toi?: string } | null)?.chuyen_toi }, (t) => nguoi.has(t));
   if (!ly.length) continue; n++;
   console.log(`tập ${s.tap} #${s.thu_tu} [${s.co ?? '?'}] ${String(s.hanh_dong).slice(0, 90)}`);
   for (const l of ly) console.log(`   → ${l}`);

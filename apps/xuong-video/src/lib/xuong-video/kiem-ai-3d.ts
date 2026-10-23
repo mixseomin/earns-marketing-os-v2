@@ -222,5 +222,5 @@ export function vungTrong(c: ShotAi): string[] {
 
 /** Mọi luật của bộ kiểm AI cho một shot (rỗng = qua). Phần "thấy trong khung" chỉ chạy khi đã có khung 3D (khung_xam.thay). */
 export function loiAi3d(c: ShotAi, nhanVat: NvAi[], set: Pick<BoSet, 'du_lieu'> | null): string[] {
-  return [...canTachNhip({ co_canh: c.ky_thuat?.co_canh, vi_tri: c.may_3d?.vi_tri ?? [] }, (t) => nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat')).map((x) => `cần tách shot: ${x}`), ...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
+  return [...canTachNhip({ co_canh: c.ky_thuat?.co_canh, vi_tri: c.may_3d?.vi_tri ?? [], chuyen_toi: (c.may_3d as { chuyen_toi?: string } | null | undefined)?.chuyen_toi }, (t) => nhanVat.some((v) => v.ten === t && v.loai === 'nhan_vat')).map((x) => `cần tách shot: ${x}`), ...thieuVat3d(c, nhanVat, set), ...xuyenVat(c, set), ...monDoiTayNho(c, nhanVat), ...matNguoiNoi(c), ...vatDeoThieuNguoi(c), ...doNhanDangChuaAnh(c, set), ...chongNguoi(c, nhanVat), ...tuaHong(c), ...vungTrong(c), ...datLat(c), ...theSai(c, nhanVat, set), ...boCucNguoiNgoai(c, nhanVat)];
 }

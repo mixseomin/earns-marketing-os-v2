@@ -56,15 +56,20 @@ async function sinh(o: { nhan: string; prompt: string; refs: string[]; tiLe: '9:
   throw new Error(`job ${job} quá 10 phút`);
 }
 /** Dò khung theo viền trắng: cột = đoạn không trắng theo chiều ngang, trong mỗi cột khung = đoạn không trắng theo chiều dọc; đọc hàng k = khung thứ k mỗi cột. */
-async function doKhung(buf: Buffer) {
+async function doKhung(buf: Buffer, can?: number) {
   const { data: px, info } = await sharp(buf).greyscale().raw().toBuffer({ resolveWithObject: true }); const W = info.width, H = info.height;
   const sang = (x0: number, x1: number, y0: number, y1: number, doc: boolean) => { const out: number[] = []; const n = doc ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) { let t = 0, c = 0; if (doc) for (let y = y0; y < y1; y += 2) { t += px[y * W + x0 + i]!; c++; } else for (let x = x0; x < x1; x += 2) { t += px[(y0 + i) * W + x]!; c++; } out.push(t / c); } return out; };
   const doan = (m: number[], toiThieu: number) => { const cat: [number, number][] = []; let a = -1;
     m.forEach((v, i) => { const trang = v > 232; if (!trang && a < 0) a = i; if ((trang || i === m.length - 1) && a >= 0) { const b = trang ? i : i + 1; if (b - a >= toiThieu) cat.push([a, b]); a = -1; } }); return cat; };
+  // hai cách đọc lưới: CỘT trước (#356 bảng 1: hai cột, khung cao khác nhau) và HÀNG trước (#356 tầng 1: hàng 2-3-2-4-4-1 khung) — lấy cách nào ra đúng số khung
   const theoCot = doan(sang(0, W, 0, H, true), W * 0.08).map(([x0, x1]) => doan(sang(x0, x1, 0, H, false), H * 0.06).map(([y0, y1]) => ({ x0, x1, y0, y1 })));
-  const khung = Array.from({ length: Math.max(0, ...theoCot.map((c) => c.length)) }, (_, k) => theoCot.map((c) => c[k]).filter((x): x is NonNullable<typeof x> => !!x)).flat();
-  return { khung, mo_ta: theoCot.map((c) => c.length).join(' + ') };
+  const cotTruoc = Array.from({ length: Math.max(0, ...theoCot.map((c) => c.length)) }, (_, k) => theoCot.map((c) => c[k]).filter((x): x is NonNullable<typeof x> => !!x)).flat();
+  const theoHang = doan(sang(0, W, 0, H, false), H * 0.06).map(([y0, y1]) => doan(sang(0, W, y0, y1, true), W * 0.08).map(([x0, x1]) => ({ x0, x1, y0, y1 })));
+  const hangTruoc = theoHang.flat();
+  const chon = can != null && hangTruoc.length === can && cotTruoc.length !== can ? 'hang' : can != null && cotTruoc.length === can ? 'cot' : hangTruoc.length >= cotTruoc.length ? 'hang' : 'cot';
+  const khung = chon === 'hang' ? hangTruoc : cotTruoc;
+  return { khung, mo_ta: chon === 'hang' ? `hàng ${theoHang.map((h) => h.length).join('-')}` : `cột ${theoCot.map((c) => c.length).join(' + ')}` };
 }
 const cat = (buf: Buffer, k: { x0: number; x1: number; y0: number; y1: number }, m = 3) => sharp(buf).extract({ left: k.x0 + m, top: k.y0 + m, width: k.x1 - k.x0 - 2 * m, height: k.y1 - k.y0 - 2 * m }).jpeg({ quality: 93 }).toBuffer();
 const len = async (buf: Buffer, ten: string) => { const u = await uploadToR2(`xuong-video/bang/${tap}/${ten}-${randomUUID()}.jpg`, buf, 'image/jpeg'); if (!u) throw new Error('R2 chưa bật'); return u; };
@@ -74,17 +79,18 @@ const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbl
 
 // ── TẦNG 1: thumbnail cả cảnh ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if (gia('t1')) moc.t1 = gia('t1');
-if ((tang === '1' || tang === 'tat-ca') && !gia('t1')) {
+const chiCat = process.argv.includes('--chi-cat');
+if (!chiCat && (tang === '1' || (tang === 'tat-ca' && !moc.t1)) && !gia('t1')) {
   const hang = Math.ceil(ds.length / cot1); const refs = thamChieu(ds, 8);
-  const prompt = [`A film storyboard THUMBNAIL sheet for one whole scene: ${ds.length} consecutive frames laid out as a grid of ${cot1} columns × ${hang} rows, read left to right, top to bottom${ds.length % cot1 ? `; the last row has only ${ds.length % cot1} panel(s), the rest of that row is plain white` : ''}. Every panel is a small vertical photorealistic live-action film still of equal size, separated by thin plain white gutters. ${KHONG_CHU}`,
-    'This sheet decides the STAGING of the whole scene: the same place, light, faces and outfits in every panel; who stands where, where each person looks, what each holds; every object keeps its state from panel to panel (what is taken stays taken, what is gone stays gone).',
+  const prompt = [`A film storyboard THUMBNAIL sheet for one whole scene: EXACTLY ${ds.length} separate panels — never merge two frames into one panel, never split one — laid out as a regular grid of ${cot1} columns × ${hang} rows, read left to right, top to bottom${ds.length % cot1 ? `; the last row has only ${ds.length % cot1} panel(s), the rest of that row is plain white` : ''}. Every panel is a small vertical photorealistic live-action film still of equal size, separated by thin plain white gutters. ${KHONG_CHU}`,
+    'This sheet decides the STAGING of the whole scene: EVERY panel happens in the location of Image 1 (never a blank or plain wall background — close-ups still show that place softly behind), the same light, faces and outfits in every panel; who stands where, where each person looks, what each holds; every object keeps its state from panel to panel (what is taken stays taken, what is gone stays gone).',
     `Reference images: ${refs.map(([k], i) => `Image ${i + 1} = ${k}`).join('; ')}.`,
     ...ds.map((c, i) => `PANEL ${i + 1} (row ${Math.floor(i / cot1) + 1}, column ${(i % cot1) + 1}) — ${moTaKhung(c)}`)].join('\n');
   moc.t1 = await sinh({ nhan: `Phân cảnh tầng 1 (thumbnail) #${tu}–#${ds.at(-1)?.thu_tu}`, prompt, refs: refs.map(([, u]) => u), tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
   luu(); console.log(`tầng 1: ${moc.t1}`);
 }
-if (process.argv.includes('--chi-cat') && moc.t1) {
-  const b = await tai(gia('bang') || moc.t1); const d = await doKhung(b);
+if (chiCat) { if (!moc.t1 && !gia('bang')) { console.error('chưa có ảnh tầng 1 / --bang'); process.exit(1); }
+  const b = await tai(gia('bang') || moc.t1); const d = await doKhung(b, ds.length);
   for (const [i, k] of d.khung.entries()) await sharp(b).extract({ left: k.x0 + 3, top: k.y0 + 3, width: k.x1 - k.x0 - 6, height: k.y1 - k.y0 - 6 }).toFile(`/tmp/bang-${tap}-${i + 1}.jpg`);
   console.log(`dò được ${d.khung.length} khung (${d.mo_ta}) — cần ${ds.length}`); process.exit(0);
 }
@@ -93,7 +99,7 @@ if (tang === '1') process.exit(0);
 // ── TẦNG 2: bảng khối (vẽ lại khối khung tầng 1 ở chi tiết cao) ─────────────────────────────────────────────────────────────────────────────────
 if (tang === '2' || tang === 'tat-ca') {
   if (!moc.t1) { console.error('chưa có tầng 1 (--t1=<url>)'); process.exit(1); }
-  const b1 = await tai(moc.t1); const d1 = await doKhung(b1);
+  const b1 = await tai(moc.t1); const d1 = await doKhung(b1, ds.length);
   console.log(`tầng 1: dò được ${d1.khung.length} khung (${d1.mo_ta}) — cần ${ds.length}`);
   if (d1.khung.length !== ds.length) { console.error('số khung tầng 1 không khớp số shot — sinh lại tầng 1, không đoán'); process.exit(1); }
   moc.t2 = {}; moc.khoi = [];
@@ -111,7 +117,7 @@ if (tang === '2' || tang === 'tat-ca') {
       ...nhom.map((c, j) => `Panel ${j + 1} — ${moTaKhung(c)}`)].join('\n');
     const u2 = await sinh({ nhan: `Phân cảnh tầng 2 (khối) #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}`, prompt, refs: [urlLuoi, ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
     moc.khoi.push(u2); console.log(`tầng 2 khối #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}: ${u2}`);
-    const b2 = await tai(u2); const d2 = await doKhung(b2);
+    const b2 = await tai(u2); const d2 = await doKhung(b2, nhom.length);
     if (d2.khung.length !== nhom.length) { console.error(`  khối này dò được ${d2.khung.length} khung (${d2.mo_ta}), cần ${nhom.length} — dừng, sinh lại khối`); luu(); process.exit(1); }
     for (const [j, c] of nhom.entries()) moc.t2[c.thu_tu] = await len(await cat(b2, d2.khung[j]!), `t2-${c.id}`);
     luu();

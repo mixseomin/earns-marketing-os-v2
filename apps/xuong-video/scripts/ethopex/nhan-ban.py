@@ -38,11 +38,25 @@ def dem_dang_chay(content_id):
 # Nhân bản mà creative đã đủ 3 camp → tự đổi sang creative khác CÙNG PHIM (đạt CTA, chưa bị Meta từ chối, còn < 3 camp, mới nhất trước);
 # phim chưa có creative nào như vậy → xếp hàng cắt GÓC MỚI ['ethopex_can_goc_moi'] (sua-cta.py trên iMac cắt + đẩy, rồi nhân bản lại) và dừng.
 TRAN_DOAN = 3
+def doan_cua():
+    """creative → đoạn (content, tu, den) từ studio — hai creative cùng mốc là CÙNG ĐOẠN (bản CTA cũ + bản sửa CTA của Step Back #52951 / #53594, 24/10/2026)"""
+    m = {}
+    for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex'->>'content_id', round((kinh_thanh->'ethopex'->>'tu')::numeric), round((kinh_thanh->'ethopex'->>'den')::numeric) from xv_phim where project='ethopex' and kinh_thanh->'ethopex' ? 'tu' and coalesce(kinh_thanh->'ethopex'->>'tu','') <> ''").splitlines():
+        x = l.split("|")
+        if len(x) == 4 and x[0].isdigit(): m[int(x[0])] = (x[1], x[2], x[3])
+    return m
+_DOAN = None
+def dem_doan(cr):
+    """số camp đang chạy dùng cùng ĐOẠN với creative cr (gộp mọi creative cùng phim + cùng mốc); creative không rõ đoạn → đếm theo creative"""
+    global _DOAN
+    if _DOAN is None: _DOAN = doan_cua()
+    d = _DOAN.get(cr)
+    return sum(n for c, n in DEM_CR.items() if (_DOAN.get(c) == d if d else c == cr))
 def creative_khac(content_id, bo_qua):
     dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
     ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
-    return next((c for c in ds if c not in bo_qua and str(c) in dat and str(c) not in tc and DEM_CR.get(c, 0) < TRAN_DOAN), None)
+    return next((c for c in ds if c not in bo_qua and str(c) in dat and str(c) not in tc and dem_doan(c) < TRAN_DOAN), None)
 def xep_goc_moi(goc_id, content_id, ten):
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_can_goc_moi', '{}'::jsonb) on conflict (ten) do nothing")
     v = json.dumps({"goc": goc_id, "ten": ten, "luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")}, ensure_ascii=False).replace("'", "''")
@@ -146,11 +160,11 @@ def main(a):
         n = dem_dang_chay(cid)
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
-        if DEM_CR.get(cr, 0) >= TRAN_DOAN:
+        if dem_doan(cr) >= TRAN_DOAN:
             khac = creative_khac(cid, {cr})
             if not khac:
                 xep_goc_moi(goc, cid, ten)
-                raise ValueError(f"đoạn creative #{cr} đã {DEM_CR[cr]} camp chạy (trần {TRAN_DOAN}/đoạn), phim chưa có góc khác — đã xếp hàng cắt góc mới (ethopex_can_goc_moi)")
+                raise ValueError(f"đoạn creative #{cr} đã {dem_doan(cr)} camp chạy (trần {TRAN_DOAN}/đoạn), phim chưa có góc khác — đã xếp hàng cắt góc mới (ethopex_can_goc_moi)")
             chan = cong(cid, khac, ten)
             if chan: raise ValueError(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}

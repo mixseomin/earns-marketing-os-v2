@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -150,7 +150,7 @@ assert.equal(siteOf(null), null); assert.equal(siteOf(''), null); assert.equal(s
 const camps = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, ten: `Phim ${i % 5} EN - canh that`, phim: `Phim ${i % 5}`, phimId: 100 + (i % 5), ngonNgu: 'en', trangThai: i < 20 ? 'active' : 'paused', thu30: i, chi30: i / 2, thuHom: i % 3, chiHom: 1, ngayHom: '2026-10-23' }));
 camps.push({ id: 30, ten: 'Phim 0 EN - canh that (nhan ban 2 cua 1)', phim: 'Phim 0', phimId: 100, ngonNgu: 'en', trangThai: 'active', thu30: 1, chi30: 1 } as any,
   { id: 31, ten: 'Phim 0 EN - canh that (nhan ban 1 cua 21)', phim: 'Phim 0', phimId: 100, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0 } as any,
-  { id: 32, ten: 'Phim 1 EN - ke chuyen', phim: 'Phim 1', phimId: 101, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0, lich: true, dang: 'kể chuyện' } as any,
+  { id: 32, ten: 'Phim 1 EN - ke chuyen', phim: 'Phim 1', phimId: 101, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0, cho: true, dang: 'kể chuyện' } as any,
   { id: 33, ten: 'Phim 2 EN', phim: 'Phim 2', phimId: 102, ngonNgu: 'en', trangThai: 'paused', thu30: 0, chi30: 2, viPham: true } as any,
   { id: 34, ten: 'Phim 3 EN', phim: 'Phim 3', phimId: 103, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 12, sapTat: true, nhanBanDuoc: true } as any);
 const mE = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, duAn: [...live.heSinhThai.duAn, { id: 'ethopex', ten: 'Ethopex', site: 'app.ethopex.dev', ngung: false }],
@@ -163,11 +163,17 @@ assert.equal(cs.filter((c) => c.campLoai !== 'tat').length, 20 + 5, 'mọi camp 
 assert.ok(cs.every((c) => c.cha === 'n:ethopex' && c.cumPhim), 'mọi camp thuộc nền tảng và có cụm phim');
 assert.deepEqual(kho.map((c) => `${c.cumPhim}=${c.soTat}`).sort(), ['f:100=1', 'f:101=1', 'f:102=1', 'f:103=1', 'f:104=1', 'f:tắt=1'], 'camp đã tắt gộp MỘT toà kho mỗi phim (camp không phim gom theo tên)');
 assert.equal(kho.find((c) => c.cumPhim === 'f:100')!.tien30, 20, 'toà kho cộng thu của camp tắt trong phim');
+{ const L = (trangThai: string, giao: string, daTieu: boolean, batDau: string | null = null) => loaiCampEtp({ trangThai, giao, batDau, daTieu }, Date.parse('2026-10-23T10:00:00Z'));
+  assert.equal(L('ACTIVE', 'ACTIVE', true), 'chay', 'đang giao = chạy');
+  assert.equal(L('ACTIVE', 'ADSET_PAUSED', false), 'cho', 'dừng ad set, chưa tiêu đồng nào = CHỜ PUBLIC');
+  assert.equal(L('ACTIVE', 'ADSET_PAUSED', true), 'tat', 'dừng ad set mà đã tiêu = tắt (không vẽ như đang chạy)');
+  assert.equal(L('ACTIVE', 'ACTIVE', false, '2026-10-24T00:00:00Z'), 'cho', 'bắt đầu ngày mai = chờ');
+  assert.equal(L('PAUSED', 'CAMPAIGN_PAUSED', false), 'tat', 'campaign dừng = tắt'); }
 assert.ok(cId(2)!.thuHom === 1 && cId(2)!.chiHom === 1, 'camp mang thu / chi ngày báo cáo mới nhất (bảng hiệu phim)');
 assert.ok(kho.find((c) => c.cumPhim === 'f:100')!.chiHom === 1 && hub.ngayHom === '2026-10-23' && hub.chiHom === 25, 'kho + toà nền tảng cộng số hôm nay, nhớ ngày báo cáo');
 assert.equal(cId(30)!.campGoc, 'c:1', 'bản nhân bản trỏ camp gốc đang hiện');
 assert.equal(cId(31)!.campGoc, null, 'gốc đã tắt (vào kho) thì bản nhân bản đứng riêng');
-assert.ok(cId(32)!.campLoai === 'lich' && cId(32)!.dangCr === 'kể chuyện', 'camp lên lịch + dạng creative');
+assert.ok(cId(32)!.campLoai === 'cho' && cId(32)!.dangCr === 'kể chuyện', 'camp chờ public + dạng creative');
 assert.ok(cId(33)!.campLoai === 'vi-pham' && !cs.some((c) => c.campLoai === 'tat' && c.cumPhim === 'f:102' && c.soTat === 2), 'camp vi phạm hiện riêng dù đã dừng, không vào kho');
 assert.ok(cId(34)!.sapTat && cId(34)!.nhanBanDuoc && cId(34)!.campLoai === 'chay', 'cờ bốc khói + nhân bản đi theo camp');
 assert.equal(mE.tien.tong - m.tien.tong, 500, 'Kho bạc cộng Ethopex một lần, không cộng thêm camp');

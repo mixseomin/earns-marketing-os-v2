@@ -68,11 +68,11 @@ export interface PhoDich {
   giaiDoan?: 'sx' | 'tham-dinh'; vungSx?: string;
   /** camp: ngôn ngữ, trạng thái chạy, phim */
   ngonNgu?: string | null; phim?: string | null;
-  /** CAMP ETHOPEX theo cụm phim (góp ý city #1439): cumPhim = khoá cụm ('f:<content_id>' hoặc tên phim) · campLoai: 'chay' đang chạy · 'lich' đã lên lịch
-   *  (camp mới, đứng hàng cạnh cụm) · 'vi-pham' ad bị Meta từ chối (màu riêng) · 'tat' = KHO camp đã tắt của phim (một toà, soTat camp) ·
+  /** CAMP ETHOPEX theo cụm phim (góp ý city #1439): cumPhim = khoá cụm ('f:<content_id>' hoặc tên phim) · campLoai: 'chay' đang chạy · 'cho' CHỜ PUBLIC
+   *  (đã dựng, chưa tiêu đồng nào — loaiCampEtp; đứng cột cạnh sân) · 'vi-pham' ad bị Meta từ chối (màu riêng) · 'tat' = KHO camp đã tắt của phim (một toà, soTat camp) ·
    *  campGoc = khoá camp gốc khi đây là bản nhân bản (toà nhỏ đứng quanh gốc) · dangCr = dạng creative (hình toà khác nhau) ·
    *  nhanBanDuoc = đủ luật NB (dấu riêng) · sapTat = lỗ sâu chạm luật OFF (bốc khói) */
-  cumPhim?: string; campLoai?: 'chay' | 'lich' | 'vi-pham' | 'tat'; campGoc?: string | null; dangCr?: string | null; nhanBanDuoc?: boolean; sapTat?: boolean; soTat?: number;
+  cumPhim?: string; campLoai?: 'chay' | 'cho' | 'vi-pham' | 'tat'; campGoc?: string | null; dangCr?: string | null; nhanBanDuoc?: boolean; sapTat?: boolean; soTat?: number;
   /** thu / chi NGÀY BÁO CÁO MỚI NHẤT của Ethopex (ngayHom, YYYY-MM-DD) — bảng hiệu phim + bảng xếp hạng phim đọc cùng số với bảng Content của Ethopex */
   thuHom?: number; chiHom?: number; ngayHom?: string | null;
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
@@ -164,8 +164,8 @@ export interface VaoHeSinhThai {
   congTy?: PhoPhong[];
   /** CAMP ETHOPEX (ethopex-doc): thu / chi 30 ngày mỗi camp (cùng cửa sổ với tiền Ethopex của Kho bạc) */
   camps?: { id: number; ten: string; bo?: string | null; boTen?: string | null; phim: string | null; ngonNgu: string | null; trangThai: string; thu30: number; chi30: number; nganSachNgay?: number;
-    /** content_id phim · dạng creative · ad bị từ chối · đã lên lịch (giờ bắt đầu ở tương lai) · đủ luật nhân bản NB · lỗ sâu chạm luật OFF (ethopex-luat, bộ đọc chấm) */
-    phimId?: number | null; dang?: string | null; viPham?: boolean; lich?: boolean; nhanBanDuoc?: boolean; sapTat?: boolean;
+    /** content_id phim · dạng creative · ad bị từ chối · chờ public (loaiCampEtp) · đủ luật nhân bản NB · lỗ sâu chạm luật OFF (ethopex-luat, bộ đọc chấm) */
+    phimId?: number | null; dang?: string | null; viPham?: boolean; cho?: boolean; nhanBanDuoc?: boolean; sapTat?: boolean;
     /** thu / chi của ngày báo cáo mới nhất (ngayHom) */
     thuHom?: number; chiHom?: number; ngayHom?: string | null }[];
   /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
@@ -190,6 +190,15 @@ const CHO_DUYET = new Set(['in_review', 'owner_review', 'pending', 'submitted'])
 /** khu XƯỞNG SX (anh 22/10/2026): mọi đích chưa lên — đứng cạnh Công ty AI, không chen vào khu dự án */
 export const KHU_XUONG = 'xuong';
 /** bản nhân bản camp Ethopex: nhan-ban.py đặt tên "<tên gốc> (nhan ban N cua <id gốc>)" */
+/** TRẠNG THÁI CAMP ETHOPEX trên city (anh 23/10/2026 "tắt là không chạy nữa, còn CHỜ là quan trọng"):
+ *  campaign PAUSED → 'tat' · bắt đầu ở tương lai → 'cho' · ad set / ad đang dừng (giao ADSET_PAUSED / AD_PAUSED): chưa tiêu đồng nào → 'cho' (vừa dựng, chờ public),
+ *  đã từng tiêu → 'tat' (đã chạy rồi bị dừng — trước đây vẫn bị vẽ như đang chạy) · còn lại → 'chay'. Đo 23/10: 15 camp chờ, 24 camp dừng ad set vẫn ghi ACTIVE. */
+export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
+  if (c.trangThai.toUpperCase() !== 'ACTIVE') return 'tat';
+  if (c.batDau && Date.parse(c.batDau) > bay) return 'cho';
+  if (/^(ADSET|AD)_PAUSED$/.test(c.giao ?? '')) return c.daTieu ? 'tat' : 'cho';
+  return 'chay';
+}
 export const goCampGoc = (ten: string): number | null => { const m = ten.match(/\(nhan ban \d+ cua (\d+)\)\s*$/); return m ? Number(m[1]) : null; };
 /** tên nguồn cửa hàng → chữ người đọc + host lấy favicon */
 const NGUON_CH: Record<string, [string, string | null]> = { 'App Store search': ['Tìm trên App Store', 'apps.apple.com'], 'App Store browse': ['Duyệt App Store', 'apps.apple.com'], 'Web referrer': ['Từ web', null], 'App referrer': ['Từ app khác', null], 'Institutional purchase': ['Mua tổ chức', null], direct: ['Trực tiếp', null], Unavailable: ['Không rõ', null] };
@@ -353,7 +362,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     d.duAn = da ? `d:${da}` : `rieng:${site}`;
   }
   // ── ETHOPEX (anh 22/10/2026 "dự án chính với dòng tiền đang có"): toà nền tảng ở tâm khu; quanh nó là CỤM PHIM (góp ý city #1439) — mỗi phim một cụm:
-  //    camp đang chạy / vi phạm mỗi camp một toà, bản nhân bản bám camp gốc, camp lên lịch đứng hàng cạnh, mọi camp đã tắt của phim gộp MỘT toà kho.
+  //    camp đang chạy / vi phạm mỗi camp một toà, bản nhân bản bám camp gốc, camp chờ public đứng cột cạnh, mọi camp đã tắt của phim gộp MỘT toà kho.
   //    Tiền Kho bạc vẫn tính một lần ở toà nền tảng (camp không mang tienPhan).
   // KHU THEO BỘ TÀI KHOẢN QC + PAGE (anh 23/10/2026 "trên city.on.tc chia thêm khu theo bộ tk/page của các phim"): mỗi bộ một khu riêng, toà nền tảng
   // mang tên bộ ở tâm, cụm phim của bộ đó quanh nó. Bộ 1 (ETP_440 · Andrew) giữ khoá cũ d:ethopex (tiền Kho bạc gắn vào đây); bộ khác = d:ethopex~<bộ>.
@@ -375,7 +384,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
       const hien = cs.filter((c) => c.trangThai === 'active' || c.viPham), hienId = new Set(hien.map((c) => c.id));
       for (const c of hien) { const g = goCampGoc(c.ten);
         dich.push({ ...chung, khoa: `c:${c.id}`, loai: 'camp', ten: c.ten, trangThai: c.trangThai, tien30: c.thu30, chi30: c.chi30, ngonNgu: c.ngonNgu, phim: tenPhim(c), cumPhim: cumCua(c),
-          campLoai: c.viPham ? 'vi-pham' : c.lich ? 'lich' : 'chay', campGoc: g != null && hienId.has(g) ? `c:${g}` : null, dangCr: c.dang ?? null, nhanBanDuoc: !!c.nhanBanDuoc && !c.viPham, sapTat: !!c.sapTat && !c.viPham,
+          campLoai: c.viPham ? 'vi-pham' : c.cho ? 'cho' : 'chay', campGoc: g != null && hienId.has(g) ? `c:${g}` : null, dangCr: c.dang ?? null, nhanBanDuoc: !!c.nhanBanDuoc && !c.viPham, sapTat: !!c.sapTat && !c.viPham,
           thuHom: c.thuHom ?? 0, chiHom: c.chiHom ?? 0 }); }
       const tat = new Map<string, CampVao[]>();
       for (const c of cs) if (!hienId.has(c.id)) tat.set(cumCua(c), [...(tat.get(cumCua(c)) ?? []), c]);

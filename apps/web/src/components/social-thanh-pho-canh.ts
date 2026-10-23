@@ -218,7 +218,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   let the = new THREE.Group(); scene.add(the);
   const M = (o: any) => new THREE.MeshStandardMaterial(o);
   const NHUA = M({ color: '#1a2036', roughness: .95 }), GACH = M({ color: '#2a3352', roughness: .9 });
-  const MAU_CAMP = { lai: '#3fd68a', lo: '#ff4d5e', viPham: '#b44dff', lich: '#4fd1ff' };
+  const MAU_CAMP = { lai: '#3fd68a', lo: '#ff4d5e', viPham: '#b44dff', cho: '#4fd1ff' };
   const add = (g: any, m: any, bong = true) => { const x = new THREE.Mesh(g, m); x.castShadow = bong; x.receiveShadow = true; the.add(x); return x; };
   // GỘP VẬT (anh 23/10/2026 "city đang khiến máy tính nóng"): mỗi vật riêng là một lệnh vẽ mỗi khung — cảnh từng có ~5.900 vật.
   // Mảnh phẳng một màu (vạch đường, cửa sổ phòng ban) gom vào MỘT khối vẽ chung dựng cuối lượt (dungGop); bảng chữ nhiều mặt gộp thành một vật.
@@ -504,7 +504,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   }
 
   // bố cục cụm phim của mỗi toà nền tảng — dựng lại mỗi lần dung(), thẻ hover đọc lại
-  type CumP = { cum: string; ten: string; goc: PhoDich[]; nb: Map<string, PhoDich[]>; lich: PhoDich[]; kho: PhoDich | null; cot: number; O: number; w: number; h: number; x: number; z: number; tien: number };
+  type CumP = { cum: string; ten: string; goc: PhoDich[]; nb: Map<string, PhoDich[]>; cho: PhoDich[]; kho: PhoDich | null; cot: number; O: number; w: number; h: number; x: number; z: number; tien: number };
   const boCumP = new Map<string, { nua: number; cum: CumP[]; hub: { x: number; z: number } }>();
   // BẬT / TẮT BẢNG HIỆU PHIM (anh 23/10/2026 "khu nhiều bảng hiệu như Ethopex bị rối — thêm nút trong trại bấm để mở / tắt; đang tắt thì hover vào hiện bảng đó,
   // hover ra lại ẩn"): nút là một cột bấm được cạnh bảng xếp hạng; trạng thái nhớ theo máy; đang tắt thì rê lên sân / camp / bảng của phim nào hiện biển phim đó
@@ -518,7 +518,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // SỐ MỖI PHIM (anh 23/10/2026 "làm sao nhìn được ROI · profit · cost · revenue của từng phim, từng camp trên city"): cộng mọi camp của cụm (kể cả kho camp tắt);
   // hôm nay = ngày báo cáo mới nhất của Ethopex (cùng số với bảng Content), ROI = (thu − chi) / chi như bảng đó
   type SoPhim = { tH: number; cH: number; t30: number; c30: number };
-  const campCum = (o: CumP) => [...o.goc, ...[...o.nb.values()].flat(), ...o.lich, ...(o.kho ? [o.kho] : [])];
+  const campCum = (o: CumP) => [...o.goc, ...[...o.nb.values()].flat(), ...o.cho, ...(o.kho ? [o.kho] : [])];
   const soCum = (o: CumP): SoPhim => campCum(o).reduce((a, c) => ({ tH: a.tH + (c.thuHom ?? 0), cH: a.cH + (c.chiHom ?? 0), t30: a.t30 + (c.tien30 ?? 0), c30: a.c30 + (c.chi30 ?? 0) }), { tH: 0, cH: 0, t30: 0, c30: 0 });
   const roiCua = (thu: number, chi: number) => (chi > 0 ? (thu - chi) / chi : null);
   const roiChu = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
@@ -534,23 +534,23 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // ── kích thước: quảng trường site = tháp site ở tâm + vòng nguồn; khu dự án = toà DỰ ÁN ở tâm + vòng sản phẩm + vòng quảng trường site
     const vongCua = (d: typeof mh.dich[number]): (PhoTk | PhoDich)[] => (d.loai === 'app' ? banCua(d.khoa).flatMap((b) => [b, ...nguonCua(b.khoa)]) : d.loai === 'nen' ? [] : nguonCua(d.khoa));
     const rSite = (d: typeof mh.dich[number]) => (d.loai === 'nen' ? cumPhimCua(d).nua : 30 + Math.min(40, vongCua(d).length * 3.2));
-    // CỤM PHIM ETHOPEX (góp ý city #1439): mỗi phim một sân — camp gốc lưới giữa sân, bản nhân bản (nhỏ) vòng quanh gốc, cột bên phải = camp lên lịch
+    // CỤM PHIM ETHOPEX (góp ý city #1439): mỗi phim một sân — camp gốc lưới giữa sân, bản nhân bản (nhỏ) vòng quanh gốc, cột bên phải = camp chờ public
     // + MỘT toà kho camp đã tắt; tên phim in dưới nền mép trước. Sân xếp kệ quanh toà nền tảng (ô giữa danh sách chừa cho toà dự án + tháp nền tảng).
     const O_HUB = 140, LECH_THAP = 52;   // ô giữa khối cụm phim: toà dự án ở tâm ô, tháp nền tảng lệch về góc
     const motNen = (sites: typeof mh.dich, sps: typeof mh.dich) => sites.length === 1 && sites[0]!.loai === 'nen' && !sps.length;
     function cumPhimCua(hub: typeof mh.dich[number]) {
       const co = boCumP.get(hub.khoa); if (co) return co;
       const g = new Map<string, CumP>();
-      for (const c of banCua(hub.khoa)) { const k = c.cumPhim ?? c.khoa; const o = g.get(k) ?? { cum: k, ten: c.phim ?? c.ten, goc: [], nb: new Map(), lich: [], kho: null, cot: 1, O: 24, w: 0, h: 0, x: 0, z: 0, tien: 0 } as CumP;
+      for (const c of banCua(hub.khoa)) { const k = c.cumPhim ?? c.khoa; const o = g.get(k) ?? { cum: k, ten: c.phim ?? c.ten, goc: [], nb: new Map(), cho: [], kho: null, cot: 1, O: 24, w: 0, h: 0, x: 0, z: 0, tien: 0 } as CumP;
         o.tien += (c.tien30 ?? 0) + (c.chi30 ?? 0);
-        if (c.campLoai === 'tat') o.kho = c; else if (c.campLoai === 'lich') o.lich.push(c); else if (c.campGoc) o.nb.set(c.campGoc, [...(o.nb.get(c.campGoc) ?? []), c]); else o.goc.push(c);
+        if (c.campLoai === 'tat') o.kho = c; else if (c.campLoai === 'cho') o.cho.push(c); else if (c.campGoc) o.nb.set(c.campGoc, [...(o.nb.get(c.campGoc) ?? []), c]); else o.goc.push(c);
         g.set(k, o); }
       const ds2 = [...g.values()].sort((a, b) => b.tien - a.tien);
       for (const o of ds2) for (const [k, ds3] of [...o.nb]) if (!o.goc.some((c) => c.khoa === k)) { o.goc.push(...ds3); o.nb.delete(k); }   // gốc cũng là bản nhân bản → đứng lưới
       const tienC = (c: PhoDich) => (c.tien30 ?? 0) + (c.chi30 ?? 0);
       for (const o of ds2) o.goc.sort((a, b) => tienC(b) - tienC(a));   // camp nhiều tiền đứng đầu sân
       for (const o of ds2) { o.cot = Math.max(1, Math.min(5, Math.ceil(Math.sqrt(o.goc.length)))); o.O = o.nb.size ? 36 : 26; const hang = Math.ceil(o.goc.length / o.cot);
-        const ben = o.lich.length || o.kho ? 24 : 0; o.w = Math.max(84, o.cot * o.O + ben + 12); o.h = Math.max(hang * o.O, o.lich.length * 13 + (o.kho ? 26 : 0)) + 30; }
+        const ben = o.cho.length || o.kho ? 24 : 0; o.w = Math.max(84, o.cot * o.O + ben + 12); o.h = Math.max(hang * o.O, o.cho.length * 13 + (o.kho ? 26 : 0)) + 30; }
       // xếp kệ: chiều rộng kệ ≈ cạnh hình vuông cùng diện tích; ô toà nền tảng chen giữa danh sách
       const oHub = { w: O_HUB, h: O_HUB, x: 0, z: 0 } as { w: number; h: number; x: number; z: number }, hop = [...ds2] as { w: number; h: number; x: number; z: number }[];
       hop.splice(Math.floor(hop.length / 2), 0, oHub);
@@ -710,16 +710,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       chuDoc(d.ten, '#6ea8ff', x, z, 12, 9, h, m); vongLai(d, x, z, 17);
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) }; chiMuc.push({ ten: d.ten, nhan: 'nền tảng', obj: m });
     }
-    // SÂN PHIM: nền + tên phim in dưới nền mép trước; camp gốc lưới, bản nhân bản vòng quanh gốc, cột phải = lên lịch rồi kho camp tắt
+    // SÂN PHIM: nền + tên phim in dưới nền mép trước; camp gốc lưới, bản nhân bản vòng quanh gốc, cột phải = camp chờ public rồi kho camp tắt
     function sanPhim(o: CumP, cx: number, cz: number, hub: typeof mh.dich[number]) {
       const san = add(new THREE.BoxGeometry(o.w, .5, o.h), M({ color: '#15213a', roughness: .9 }), false); san.position.set(cx, .45, cz); san.userData = { loai: 'cum-phim', cum: o.cum, hub: hub.khoa }; ds.san!.push(san);
       const nb = [...o.nb.values()].reduce((a, x) => a + x.length, 0), chay = o.goc.length + nb;
-      bangHieuPhim(o, `${chay} chạy${o.lich.length ? ` · ${o.lich.length} lịch` : ''}${o.kho ? ` · ${o.kho.soTat} tắt` : ''}`, cx, cz + o.h / 2, hub);
+      bangHieuPhim(o, `${chay} chạy${o.cho.length ? ` · ${o.cho.length} chờ public` : ''}${o.kho ? ` · ${o.kho.soTat} tắt` : ''}`, cx, cz + o.h / 2, hub);
       const gx = cx - o.w / 2 + 6 + o.O / 2, gz = cz - o.h / 2 + o.O / 2 + 2;
       o.goc.forEach((c, n) => { const px = gx + (n % o.cot) * o.O, pz = gz + Math.floor(n / o.cot) * o.O; toaCamp(c, px, pz, 'goc');
         (o.nb.get(c.khoa) ?? []).forEach((b2, i, a) => { const g2 = (i / a.length) * Math.PI * 2 + Math.PI / 4; toaCamp(b2, px + Math.cos(g2) * 12, pz + Math.sin(g2) * 12, 'nb'); }); });
       const bx = cx + o.w / 2 - 13; let bz = cz - o.h / 2 + 9;
-      for (const c of o.lich) { toaCamp(c, bx, bz, 'lich'); bz += 13; }
+      for (const c of o.cho) { toaCamp(c, bx, bz, 'cho'); bz += 13; }
       if (o.kho) toaKho(o.kho, bx, bz + 9);
       chiMuc.push({ ten: `${o.ten} (cụm phim)`, nhan: 'phim Ethopex', obj: san });
     }
@@ -803,18 +803,18 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const ld = new THREE.LineSegments(gd, new THREE.LineBasicMaterial({ color: bat ? '#3fd68a' : '#3a4260', transparent: true, opacity: bat ? .7 : .45 })); ld.userData = { chu: null }; the.add(ld); }
     }
     // toà CAMP (góp ý #1439): hình theo dạng creative (kể chuyện = trụ tròn · cảnh thật = khối vuông · cảnh cuối = khối mái chóp · phim dài = khối dẹt dài ·
-    // khác = trụ lục giác), màu theo trạng thái (xanh lãi · đỏ lỗ · tím vi phạm · xanh nhạt trong suốt = lên lịch), cao theo thu + chi 30 ngày;
+    // khác = trụ lục giác), màu theo trạng thái (xanh lãi · đỏ lỗ · tím vi phạm · xanh nhạt khung sáng = chờ public), cao theo thu + chi 30 ngày;
     // bản nhân bản bằng nửa; đủ luật nhân bản = viên kim cương vàng trên nóc; lỗ sâu chạm luật tắt = bốc khói
-    function toaCamp(d: typeof mh.dich[number], x: number, z: number, vai: 'goc' | 'nb' | 'lich' = 'goc') {
-      const thu = d.tien30 ?? 0, chi = d.chi30 ?? 0, s = vai === 'nb' ? 6 : vai === 'lich' ? 9 : 12, k = s / 12, h0 = k * (8 + Math.min(20, Math.log2(1 + thu + chi) * 3));
-      const mau = d.campLoai === 'vi-pham' ? MAU_CAMP.viPham : vai === 'lich' ? MAU_CAMP.lich : thu >= chi ? MAU_CAMP.lai : MAU_CAMP.lo, lich = vai === 'lich';
-      const vl = M({ color: new THREE.Color(mau).multiplyScalar(.45), emissive: mau, emissiveIntensity: lich ? .25 : .38, roughness: .4, transparent: lich, opacity: lich ? .5 : 1 });
+    function toaCamp(d: typeof mh.dich[number], x: number, z: number, vai: 'goc' | 'nb' | 'cho' = 'goc') {
+      const thu = d.tien30 ?? 0, chi = d.chi30 ?? 0, s = vai === 'nb' ? 6 : vai === 'cho' ? 9 : 12, k = s / 12, h0 = k * (8 + Math.min(20, Math.log2(1 + thu + chi) * 3));
+      const mau = d.campLoai === 'vi-pham' ? MAU_CAMP.viPham : vai === 'cho' ? MAU_CAMP.cho : thu >= chi ? MAU_CAMP.lai : MAU_CAMP.lo, cho = vai === 'cho';
+      const vl = M({ color: new THREE.Color(mau).multiplyScalar(.45), emissive: mau, emissiveIntensity: cho ? .25 : .38, roughness: .4, transparent: cho, opacity: cho ? .5 : 1 });
       const dai = d.dangCr === 'phim dài', h = dai ? h0 * .6 : h0;
       const geo = d.dangCr === 'kể chuyện' ? new THREE.CylinderGeometry(s * .5, s * .5, h, 14) : dai ? new THREE.BoxGeometry(s * 1.5, h, s * .7)
         : d.dangCr === 'cảnh thật' || d.dangCr === 'cảnh cuối' ? new THREE.BoxGeometry(s, h, s) : new THREE.CylinderGeometry(s * .55, s * .55, h, 6);
       const m = add(geo, vl); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
       if (d.dangCr === 'cảnh cuối') { const mai = add(new THREE.ConeGeometry(s * .72, s * .55, 4), vl); mai.rotation.y = Math.PI / 4; mai.position.set(x, h + s * .27, z); mai.userData = { chu: m }; }
-      if (lich) { const kh = add(new THREE.BoxGeometry(s + 1, h + 1, s + 1), new THREE.MeshBasicMaterial({ color: MAU_CAMP.lich, wireframe: true, transparent: true, opacity: .55 }), false); kh.position.copy(m.position); kh.userData = { chu: m }; }
+      if (cho) { const kh = add(new THREE.BoxGeometry(s + 1, h + 1, s + 1), new THREE.MeshBasicMaterial({ color: MAU_CAMP.cho, wireframe: true, transparent: true, opacity: .55 }), false); kh.position.copy(m.position); kh.userData = { chu: m }; }
       if (d.nhanBanDuoc) { const kc = add(new THREE.OctahedronGeometry(s * .32 + 1), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .9, metalness: .5 }), false); kc.position.set(x, h + s * .6 + 3, z); kc.userData = { chu: m }; }
       if (d.sapTat) khoi(x, h + 1, z, undefined as unknown as PhoTk, m, 10);
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) }; chiMuc.push({ ten: d.ten, nhan: 'camp', obj: m });
@@ -1157,12 +1157,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', tatBien[u.hub] ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', tatBien[u.hub] ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
     if (u.loai === 'cum-phim') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
-      if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.lich, ...(o.kho ? [o.kho] : [])];
+      if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.cho, ...(o.kho ? [o.kho] : [])];
         const v = soCum(o), mauV = v.tH >= v.cH ? '#3fd68a' : '#ff4d5e', ng = ngayNgan(hub?.ngayHom);
-        return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.lich.length} lịch · ${o.kho?.soTat ?? 0} tắt`],
+        return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.cho.length} chờ public · ${o.kho?.soTat ?? 0} tắt`],
           [`📅 ${ng}`, `ROI <b style="color:${mauV}">${roiChu(roiCua(v.tH, v.cH))}</b> · lãi ${usd(v.tH - v.cH)} · chi ${usd(v.cH)} · thu ${usd(v.tH)}`],
           ['30 ngày', `ROI ${roiChu(roiCua(v.t30, v.c30))} · lãi ${usd(v.t30 - v.c30)} · chi ${usd(v.c30)} · thu ${usd(v.t30)}`]],
-          bang: { cot: ['Camp', `ROI ${ng}`, 'Lãi', 'Chi', 'Thu'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'lich' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc((c.ten.split(' - ').slice(1).join(' - ') || c.ten).replace(/\s*\(nhan ban \d+ cua \d+\)$/, '').slice(0, 30))}`,
+          bang: { cot: ['Camp', `ROI ${ng}`, 'Lãi', 'Chi', 'Thu'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'cho' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc((c.ten.split(' - ').slice(1).join(' - ') || c.ten).replace(/\s*\(nhan ban \d+ cua \d+\)$/, '').slice(0, 30))}`,
             ...((t, c2) => { const mau = t >= c2 ? '#3fd68a' : '#ff4d5e'; return [`<span style="color:${mau}">${roiChu(roiCua(t, c2))}</span>`, `<span style="color:${mau}">${usd(t - c2)}</span>`, usd(c2), usd(t)]; })(c.thuHom ?? 0, c.chiHom ?? 0)]) } }; } }
     if (u.loai === 'xuong-vung' || u.loai === 'tham-dinh') { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha && (u.loai === 'tham-dinh' ? d.giaiDoan === 'tham-dinh' : d.giaiDoan !== 'tham-dinh' && d.vungSx === u.vung));
       return { dau: u.loai === 'tham-dinh' ? '🔍 Phòng thẩm định' : `🏭 Xưởng SX · ${VUNG_SX[u.vung]!.ic} ${VUNG_SX[u.vung]!.ten}`, h: [[u.loai === 'tham-dinh' ? 'Đã nộp, chờ duyệt' : 'Đang làm / sẵn sàng', xs.length]],
@@ -1198,14 +1198,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       }
       if (d.loai === 'nen') { const cs = mh.dich.filter((b) => b.cha === d.khoa), song = cs.filter((c) => c.campLoai !== 'tat'), phim = boCumP.get(d.khoa)?.cum ?? [];
         return { dau: `${oFav(d.hostBan ?? 'facebook.com')} ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH, ['Cụm phim', String(phim.length)],
-          ['Camp', `${song.filter((c) => c.campLoai === 'chay').length} chạy · ${song.filter((c) => c.campLoai === 'lich').length} lịch · ${song.filter((c) => c.campLoai === 'vi-pham').length} vi phạm · ${cs.reduce((a, c) => a + (c.soTat ?? 0), 0)} tắt`]],
+          ['Camp', `${song.filter((c) => c.campLoai === 'chay').length} chạy · ${song.filter((c) => c.campLoai === 'cho').length} chờ public · ${song.filter((c) => c.campLoai === 'vi-pham').length} vi phạm · ${cs.reduce((a, c) => a + (c.soTat ?? 0), 0)} tắt`]],
           // bảng như Content của Ethopex: phim tiêu tiền ngày báo cáo mới nhất, xếp theo ROI
           bang: { cot: [`Phim · ${ngayNgan(d.ngayHom)}`, 'ROI', 'Lãi', 'Chi', 'Thu'], dong: phim.map((o) => ({ o, so: soCum(o) })).filter((v) => v.so.cH || v.so.tH).sort((a, b) => (roiCua(b.so.tH, b.so.cH) ?? 9) - (roiCua(a.so.tH, a.so.cH) ?? 9)).slice(0, 16)
             .map(({ o, so: v }) => { const mau = v.tH >= v.cH ? '#3fd68a' : '#ff4d5e'; return [esc(o.ten.slice(0, 28)), `<span style="color:${mau}">${roiChu(roiCua(v.tH, v.cH))}</span>`, `<span style="color:${mau}">${usd(v.tH - v.cH)}</span>`, usd(v.cH), usd(v.tH)]; }) } };
       }
       if (d.loai === 'camp' && d.campLoai === 'tat') return { dau: `⏸ Kho camp đã tắt · ${esc(d.phim ?? '')}`, h: [['Số camp tắt', String(d.soTat ?? 0)], ...homH, ...tienH] };
       if (d.loai === 'camp') return { dau: `🎬 ${esc(d.phim ?? d.ten)}`, h: [['Camp', esc(d.ten)], ['Dạng creative', esc(d.dangCr ?? '—')], ['Ngôn ngữ', esc((d.ngonNgu ?? '—').toUpperCase())],
-        ['Trạng thái', { chay: '🟢 đang chạy', lich: '⏳ đã lên lịch (camp mới)', 'vi-pham': '⛔ ad bị Meta từ chối', tat: '⏸ đã tắt' }[d.campLoai ?? 'chay'] ?? esc(d.trangThai ?? '')],
+        ['Trạng thái', { chay: '🟢 đang chạy', cho: '⏳ chờ public — đã dựng, chưa chạy đồng nào', 'vi-pham': '⛔ ad bị Meta từ chối', tat: '⏸ đã tắt' }[d.campLoai ?? 'chay'] ?? esc(d.trangThai ?? '')],
         ...(d.campGoc ? [['Nhân bản của', esc(mh.dich.find((x) => x.khoa === d.campGoc)?.ten ?? d.campGoc)] as [string, string]] : []),
         ...(d.nhanBanDuoc ? [['⧉ Nhân bản', 'đủ luật NB — máy tự nhân bản ở nhịp kế'] as [string, string]] : []),
         ...(d.sapTat ? [['💨 Lỗ sâu', 'chạm luật tắt (ROI < −50%, tiêu > $10) — chờ anh duyệt'] as [string, string]] : []), ...homH, ...tienH] };

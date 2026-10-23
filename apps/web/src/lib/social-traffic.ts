@@ -12,7 +12,7 @@ import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
-import { HOST_BAN, MAY_TIM, NEN_QC, type VaoHeSinhThai } from './social-thanh-pho';
+import { HOST_BAN, MAY_TIM, NEN_QC, loaiCampEtp, type VaoHeSinhThai } from './social-thanh-pho';
 import { getProductsView } from './products/data';
 import { networkRows } from './revenue/networks';
 import { docEthopex } from './ethopex-doc';
@@ -147,11 +147,13 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     // camp Ethopex: thu / chi 30 ngày cộng từ báo cáo ngày × camp (cùng cửa sổ tu30 với tiền Ethopex ở Kho bạc)
     // + chấm luật Ethopex (cùng chamLuat của tab Ethopex) cho cụm phim city #1439: NB = dấu nhân bản, OFF chạm / gần = bốc khói, TC = vi phạm
     // + thu / chi NGÀY BÁO CÁO MỚI NHẤT (bảng hiệu phim city, cùng số với bảng Content của Ethopex)
+    // + loại camp (loaiCampEtp): chờ public = đã dựng chưa tiêu đồng nào; dừng ad set mà đã tiêu = tắt
     camps: etp ? etp.camps.map((c) => { const ng = etp.ngayCamp.filter((x) => x.camp === c.id && x.ngay >= tu30), hn = ng.filter((x) => x.ngay === ngayHomEtp);
+      const loai = loaiCampEtp({ trangThai: c.trang_thai, giao: c.giao, batDau: c.bat_dau, daTieu: etp.ngayCamp.some((x) => x.camp === c.id && x.chi > 0) });
       const lu = chamLuat(c, { soCampPhim: etp.camps.filter((y) => y.content_id && y.content_id === c.content_id && y.trang_thai === 'ACTIVE').length, phimThang: !!c.content_id && etp.phimThang.includes(c.content_id) });
       const co = (ma: string, ...tt: string[]) => lu.some((x) => x.ma === ma && tt.includes(x.trang_thai));
-      return { id: c.id, ten: c.ten, bo: c.bo ?? null, boTen: c.bo_ten ?? null, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: c.trang_thai.toLowerCase(), thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach,
-        phimId: c.content_id, dang: dangCamp(c), viPham: co('TC', 'cham'), lich: !!c.bat_dau && Date.parse(c.bat_dau) > Date.now(), nhanBanDuoc: co('NB', 'cham'), sapTat: c.trang_thai === 'ACTIVE' && co('OFF', 'cham', 'gan'),
+      return { id: c.id, ten: c.ten, bo: c.bo ?? null, boTen: c.bo_ten ?? null, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: loai === 'tat' ? 'paused' : 'active', thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach,
+        phimId: c.content_id, dang: dangCamp(c), viPham: co('TC', 'cham'), cho: loai === 'cho', nhanBanDuoc: co('NB', 'cham'), sapTat: loai === 'chay' && co('OFF', 'cham', 'gan'),
         thuHom: hn.reduce((a, x) => a + x.thu, 0), chiHom: hn.reduce((a, x) => a + x.chi, 0), ngayHom: ngayHomEtp }; }) : [],
     taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), canhBaoDs: tnDs.map((x) => ({ id: x.id, nen: x.nen, handle: x.handle, loai: x.loai, noiDung: x.noi_dung, url: x.url, luc: x.luc, acct: x.acct })), hoSo: tnHs, proxy: tnPx,
       soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })) },

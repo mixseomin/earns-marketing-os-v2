@@ -37,10 +37,10 @@
       ],
       "hd": "Cận mặt Hạ: bình thản, mắt nhìn lên bảng số tầng",
       "anh": "Close-up of Hạ's calm face, eyes lifted toward the elevator floor indicator above frame, black marble wall behind.",
-      "vid": "Hạ watches the floor indicator, calm; she hears heels approaching and her eyes slide to her right. Static camera.",
+      "vid": "Hạ watches the floor indicator, calm; she hears heels approaching and her eyes slide toward screen right (her left). Static camera.",
       "vao": 0.3,
       "mo": "Hạ's eyes are already lifted to the floor indicator",
-      "ket": "the click of high heels approaches from her right; Hạ's eyes slide to screen right toward the sound",
+      "ket": "the click of high heels approaches from screen right; Hạ's eyes slide to screen right toward the sound",
       "noi": "nhin"
     },
     {
@@ -153,7 +153,7 @@
       "hd": "Vivian cười đắc ý, giơ thẻ lên ngang mặt",
       "anh": "Medium close-up of Vivian smiling triumphantly, holding the white staff ID badge up beside her face.",
       "vid": "Vivian holds the badge up beside her face with a triumphant smile; at the chime her eyes flick to her left toward the elevator, the smile staying on her lips. Static camera.",
-      "vao": 0.5,
+      "vao": 3.0,
       "mo": "Vivian raises the badge up beside her face, smiling triumphantly",
       "ket": "an elevator chime sounds; Vivian's smile holds but her eyes flick to screen left toward the second elevator",
       "noi": "tieng",
@@ -251,7 +251,7 @@
     },
     {
       "co": "cu",
-      "giay": 4.5,
+      "giay": 5.5,
       "nv": [
         "Lâm Hạ"
       ],
@@ -268,7 +268,7 @@
           "dien_xuat": "bình thản, có ý"
         }
       ],
-      "vao": 1.0,
+      "vao": 1.5,
       "mo": "Hạ slowly lifts her eyes to Vivian",
       "ket": "after speaking, Hạ turns away toward screen left, toward the open elevator",
       "noi": "dong_tac"

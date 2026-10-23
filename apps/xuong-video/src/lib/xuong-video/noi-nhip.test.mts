@@ -13,6 +13,9 @@ assert.ok(loiNoiNhip([{ ...tot[0]!, ky_thuat: { am_thanh: ['ding'] } }, tot[1]!]
 // cắt theo ánh mắt mà đuôi không có cái nhìn → báo; đầu shot sau trống → báo
 const l = loiNoiNhip([{ thu_tu: 2, dan_dung: { mo: 'x', ket: 'she smiles', noi: 'nhin' } }, { thu_tu: 3, dan_dung: {} }]);
 assert.ok(l.some((x) => x.includes('không có cái nhìn')) && l.some((x) => x.includes('đầu #3 trống')), l.join(' | '));
+// hướng theo người ("to her right") → báo; "screen right" → không
+assert.ok(loiNoiNhip([{ thu_tu: 2, dan_dung: { mo: 'x', ket: 'her eyes slide to her right toward the sound', noi: 'nhin' } }, { thu_tu: 3, dan_dung: { mo: 'y' } }]).some((x) => x.includes('hướng theo người')));
+assert.deepStrictEqual(loiNoiNhip([{ thu_tu: 2, dan_dung: { mo: 'x', ket: 'her eyes slide to screen right toward the sound', noi: 'nhin' } }, { thu_tu: 3, dan_dung: { mo: 'y' } }]), []);
 // shot cuối không cần cớ
 assert.deepStrictEqual(loiNoiNhip([tot[1]!]), []);
 console.log('noi-nhip.test: ok');

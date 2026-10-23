@@ -53,7 +53,24 @@ def xep_dung_lai(goc_id, creative_id, content_id, ten):
     v = json.dumps({"goc": goc_id, "content_id": content_id, "ten": ten, "luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")}, ensure_ascii=False).replace("'", "''")
     q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(creative_id)}', '{v}'::jsonb) where ten='ethopex_cho_dung_lai' and not gia_tri ? '{int(creative_id)}'")
 
-def payload(goc_id, lich, moi=None):
+# BỘ TÀI KHOẢN QC + FANPAGE (anh 23/10/2026: "1 bộ tk fb ads - fanpage mới: chỉ dành cho các phim mới, ko liên quan đến phim bộ tk khác; nhịp đăng,
+# giới hạn camp, ngân sách vẫn như tk đầu tiên"). Sổ studio xv_khoa_ngoai['ethopex_bo_tk'] {bộ: {tk, ext, page, ten}}; mỗi PHIM thuộc đúng MỘT bộ —
+# sổ ['ethopex_phim_tk'] {content_id: bộ}, ghi khi tạo camp; phim đã ở bộ này thì không lên bộ kia (cổng chan_bo).
+def bo_tk(bo):
+    v = q(f"select gia_tri->'{bo}' from xv_khoa_ngoai where ten='ethopex_bo_tk'")
+    if not v: raise ValueError(f"không có bộ tài khoản '{bo}' trong ethopex_bo_tk")
+    return json.loads(v)
+def bo_cua_camp(c):
+    v = q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_bo_tk'")
+    return next((k for k, b in (json.loads(v) if v else {}).items() if int(b["tk"]) == int(c.get("ad_account_id") or 0)), None)
+def chan_bo(content_id, bo):
+    v = q(f"select gia_tri->>'{int(content_id)}' from xv_khoa_ngoai where ten='ethopex_phim_tk'")
+    return f"phim {content_id} thuộc bộ tài khoản {v} — không lên bộ {bo} (mỗi phim một bộ, anh 23/10/2026)" if v and v != str(bo) else None
+def ghi_bo(content_id, bo):
+    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_phim_tk', '{}'::jsonb) on conflict (ten) do nothing")
+    q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(content_id)}', '{bo}') where ten='ethopex_phim_tk' and not gia_tri ? '{int(content_id)}'")
+
+def payload(goc_id, lich, moi=None, bo=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
@@ -75,12 +92,16 @@ def payload(goc_id, lich, moi=None):
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}
     sp_c = {k: v for k, v in js(c.get("source_payload")).items() if k not in BO}; sp_c.update(name=ten, daily_budget=1, status="PAUSED")
+    tk, ext, page = c.get("ad_account_id"), c.get("external_account_id"), a.get("facebook_page_id")
+    bo = bo or bo_cua_camp(c) or "1"
+    if bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
+        b = bo_tk(bo); tk, ext, page = int(b["tk"]), str(b["ext"]), int(b["page"])
     sp_g = {k: v for k, v in js(g.get("source_payload")).items() if k not in BO}; sp_g.update(name=f"{ten} · adset")
     return d, ten, a.get("content_id"), {
-        "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": c.get("ad_account_id"), "facebook_page_id": a.get("facebook_page_id"),
-        "external_account_id": c.get("external_account_id"),
+        "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo),
+        "external_account_id": ext,
         "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
-            "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": a.get("facebook_page_id"), "domain": a.get("domain") or "",
+            "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": a.get("domain") or "",
                      "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
 
 def ghi_nhat_ky(kq, luat, ai):
@@ -95,10 +116,13 @@ def main(a):
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)
     lich, luat, ai = lay("--lich", "tomorrow"), lay("--luat"), lay("--ai")
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
+    bo = lay("--bo")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
-        d, ten, cid, pl = payload(goc, lich, moi); kq["ten"] = ten
+        d, ten, cid, pl = payload(goc, lich, moi, bo); kq["ten"] = ten; bo = pl.pop("bo")
+        ly = chan_bo(cid, bo)
+        if ly: raise ValueError(ly)
         if moi: kq["viec"] = "tao_camp"
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ValueError(chan)
@@ -115,7 +139,8 @@ def main(a):
         for _ in range(12):
             time.sleep(5); c = api(f"/api/v1/campaigns/{moi}")["campaign"]
             if c.get("sync_status") in ("done", "synced") or c.get("error"): break
-        kq.update(ok=not c.get("error"), moi=moi, dong_bo=c.get("sync_status"), loi=c.get("error") or None)
+        kq.update(ok=not c.get("error"), moi=moi, dong_bo=c.get("sync_status"), loi=c.get("error") or None, bo=bo)
+        if kq["ok"]: ghi_bo(cid, bo)
     except Exception as e:
         kq["loi"] = str(e)[:240]
     if that: ghi_nhat_ky(kq, luat, ai)

@@ -148,9 +148,6 @@ function veXuong(cv: HTMLCanvasElement, x: XuongEtp | null, bay = performance.no
   g.font = '34px "Apple Color Emoji", system-ui'; g.textAlign = 'center';
   for (let i = 0; i < 5; i++) { if (!(coHang[i]! > 0 || sang === i + 1)) continue; const ax = x0 + i * (bw + gap) + bw / 2, p = ((bay / 2600) + i * .37) % 1;
     g.save(); g.translate(ax + (bw + gap) * p, yB - 4 + Math.sin(bay / 90 + i) * 1.5); g.scale(-1, 1); g.fillText('🚚', 0, 0); g.restore(); }
-  if (sang >= 0) { const bx = x0 + sang * (bw + gap); g.font = '30px "Apple Color Emoji", system-ui';
-    for (let k = 0; k < 2; k++) { const p = (Math.sin(bay / 700 + k * Math.PI) + 1) / 2, px = bx + 34 + (bw - 68) * p, py = y0 + bh - 26 - Math.abs(Math.sin(bay / 160 + k)) * 5;
-      g.fillText('🧑‍🏭', px, py); g.fillText('📦', px + (Math.cos(bay / 700 + k * Math.PI) > 0 ? 18 : -18), py - 14); } }
   tr.forEach(([ic, ten, so], i) => {
     const bx = x0 + i * (bw + gap), on = i === sang, loi = on && !!n?.loi; if (on) g.globalAlpha = .82 + .18 * Math.sin(bay / 300);
     g.fillStyle = loi ? '#4a1a22' : on ? '#1d3a66' : '#1a2132'; g.beginPath(); g.roundRect(bx, y0, bw, bh, 18); g.fill();
@@ -159,8 +156,12 @@ function veXuong(cv: HTMLCanvasElement, x: XuongEtp | null, bay = performance.no
     g.fillStyle = '#fff'; g.font = '700 30px system-ui'; g.fillText(ten, bx + bw / 2, y0 + 104);
     g.fillStyle = on ? '#9ecbff' : '#c7cede'; g.font = '600 28px system-ui';
     if (on && n?.tong) { g.fillText(`${n.xong ?? 0}/${n.tong}`, bx + bw / 2, y0 + 146); const p = Math.min(1, (n.xong ?? 0) / n.tong); g.fillStyle = '#22304d'; g.fillRect(bx + 20, y0 + 172, bw - 40, 14); g.fillStyle = '#3fd68a'; g.fillRect(bx + 20, y0 + 172, (bw - 40) * p, 14); }
-    else g.fillText(i === 2 ? (on ? '▶ đang chạy' : '—') : so, bx + bw / 2, y0 + 150);
+    else g.fillText(i === 2 ? (on ? '▶ đang chạy' : '—') : so, bx + bw / 2, y0 + (on ? 140 : 150));
   });
+  // người bê thùng: vẽ SAU ô trạm (trên cùng), ở dải đáy ô dưới dòng số — không bị nền ô che, không đè chữ
+  if (sang >= 0 && !(n?.tong)) { const bx = x0 + sang * (bw + gap); g.font = '26px "Apple Color Emoji", system-ui'; g.textAlign = 'center'; g.globalAlpha = 1;
+    for (let k = 0; k < 2; k++) { const p = (Math.sin(bay / 700 + k * Math.PI) + 1) / 2, px = bx + 30 + (bw - 60) * p, py = y0 + bh - 18 - Math.abs(Math.sin(bay / 160 + k)) * 4;
+      g.fillText('🧑‍🏭', px, py); g.font = '20px "Apple Color Emoji", system-ui'; g.fillText('📦', px + (Math.cos(bay / 700 + k * Math.PI) > 0 ? 18 : -18), py - 12); g.font = '26px "Apple Color Emoji", system-ui'; } }
   g.textAlign = 'left'; g.font = '600 30px system-ui'; g.fillStyle = n?.loi ? '#ff8a80' : '#e6ebf5'; g.textBaseline = 'middle';
   const lau = n?.bat_dau ? Math.round((Date.now() - Date.parse(n.bat_dau)) / 60000) : null;
   g.fillText(n ? `▶ ${TEN_BUOC[n.buoc] ?? n.buoc}${n.lo ? ` · lô ${n.lo}` : ''}${n.phim ? ` · ${n.phim}` : ''}${lau != null && n.buoc !== 'nghi' ? ` · ${lau} phút` : ''}${n.loi ? ` · ⚠ ${n.loi}` : ''}`.slice(0, 95) : '▶ chưa có nhịp', 36, 372);
@@ -1662,6 +1663,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__bangXh = (hub: string) => { const sp = bangXhCua.get(hub); if (!sp) return null; const v = new THREE.Vector3(); sp.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect();
     return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
   (host as any).__soKhung = () => soKhung;
+  (host as any).__anhXuong = (t?: number) => { if (!xuongDong) return null; veXuong(xuongDong.cv, xuongData, t ?? performance.now()); xuongDong.tx.needsUpdate = true; return xuongDong.cv.toDataURL('image/png'); };   // bộ kiểm: chụp bảng xưởng ở thời điểm t
   (host as any).__xuong = (x: XuongEtp) => { xuongData = x; xuongVe?.(x); };   // bộ kiểm: nạp số xưởng như /api/social/thanh-pho/xuong
   (host as any).__sucSong = () => ({ phu: [...demDongBang], dich: mh.dich.filter((d) => ['site', 'app', 'sp'].includes(d.loai)).map((d) => d.sucSong ?? null).reduce((a: any, v) => { a[String(v)] = (a[String(v)] ?? 0) + 1; return a; }, {}) });
   (host as any).__khongCat = (b: boolean) => { khongCat = b; };   // bộ kiểm so ảnh có / không cắt ô

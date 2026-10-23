@@ -82,7 +82,10 @@
       "hd": "Cận chèn: bàn tay Vivian túm lấy thẻ nhân viên trên ngực Hạ",
       "anh": "Extreme close-up insert, tight on the white plastic staff ID badge hanging on its dark blue lanyard against Hạ's white blouse, just above the cardboard box: Vivian's hand with red nails and a burgundy sleeve reaches in from the right and her fingers are wrapped firmly around the badge card itself. Only the badge, the lanyard and Vivian's hand are in focus; no face in frame; nobody else's hand.",
       "vid": "Vivian's fingers tighten their grip on the badge card and give it a short sharp tug toward the right, pulling the lanyard taut. Only her hand moves; Hạ's hands stay on the box out of frame. Static camera.",
-      "vao": 0
+      "vao": 0,
+      "am": [
+        "vut"
+      ]
     },
     {
       "co": "cu",
@@ -96,7 +99,10 @@
       "hd": "Cận Hạ giật mình, đầu hơi chúi về trước",
       "anh": "Close-up of Hạ, startled, her head jolted slightly forward.",
       "vid": "Hạ's head jolts forward a little and her eyes widen for a beat. Static camera.",
-      "vao": 1.4
+      "vao": 1.4,
+      "am": [
+        "dap"
+      ]
     },
     {
       "co": "insert",
@@ -142,7 +148,10 @@
       "hd": "Cửa thang máy 2 mở, Lục Thần bước ra",
       "anh": "Medium shot: the second steel elevator door stands open, Lục Thần in a black three-piece suit steps out into the black marble lobby, cold expression.",
       "vid": "Lục Thần takes one step out of the elevator toward camera, not looking at anyone. Low angle, static camera.",
-      "vao": 0
+      "vao": 0,
+      "am": [
+        "ding"
+      ]
     },
     {
       "co": "cu",
@@ -199,7 +208,10 @@
           "dien_xuat": "khinh miệt, chậm rãi"
         }
       ],
-      "vao": 0
+      "vao": 0,
+      "am": [
+        "tim_dap"
+      ]
     },
     {
       "co": "cu",
@@ -234,7 +246,10 @@
       "hd": "Cận Vivian, nụ cười khựng lại",
       "anh": "Close-up of Vivian's face only, burgundy dress collar at the bottom of frame, black marble elevator lobby softly blurred behind: she still wears a smug red-lipped smile, eyes on someone just off camera-left. No badge, no hands in frame.",
       "vid": "Vivian's smug smile stiffens and slowly drains away; the corners of her mouth drop, her eyes narrow with sudden doubt. Static camera.",
-      "vao": 1.5
+      "vao": 2.0,
+      "am": [
+        "dap"
+      ]
     },
     {
       "co": "ms",
@@ -250,7 +265,10 @@
       "hd": "Hạ đứng trong thang máy ôm thùng, cửa thép khép dần",
       "anh": "Medium shot from the lobby: Hạ stands inside the elevator car hugging the cardboard box, facing out, the brushed-steel doors open.",
       "vid": "The steel elevator doors slide closed in front of Hạ, who stays still facing out. Static camera.",
-      "vao": 0.3
+      "vao": 1.0,
+      "am": [
+        "cuon_len"
+      ]
     }
   ]
 }

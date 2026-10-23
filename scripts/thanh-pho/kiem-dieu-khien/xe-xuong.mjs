@@ -18,6 +18,12 @@ console.log('lần đầu:', x0.length, 'xe ·', x0.filter((v) => v.hien).length
 // cảnh dựng lại (lượt làm mới mỗi phút) không được làm xe biến mất tới lượt số kế (lỗi 24/10/2026: chú thích // nuốt lệnh dựng xe)
 await T('__dungLai'); await p.waitForTimeout(500); const xr = await T('__xeXuong');
 console.log('ngay sau dựng lại cảnh:', xr.filter((v) => v.hien).length, 'xe hiện', xr.filter((v) => v.hien).length === x0.filter((v) => v.hien).length ? '✓ không mất xe' : '— SAI, xe biến mất');
+// biển "sắp khởi hành": chỉ khi bước đưa phim RỜI trạm đang chạy (tạo camp → xe chờ lên camp; cổng chữ thì chưa)
+for (const [buoc, mong] of [['len', true], ['day', false]]) { const Y = JSON.parse(JSON.stringify(A)); Y.nhip = { ...(Y.nhip ?? {}), buoc, luc: new Date().toISOString(), tong: 4, xong: 1 };
+  await T('__xuong', Y); await p.waitForTimeout(400); const xs = (await T('__xeXuong')).filter((v) => v.hien), l4 = xs.filter((v) => v.tram === 4), l1 = xs.filter((v) => v.tram === 1);
+  const ok = l4.length > 0 && l4.every((v) => v.cho.includes('sắp khởi hành') === mong) && l1.every((v) => !v.cho.includes('sắp khởi hành'));
+  console.log(`bước ${buoc} đang chạy: xe chờ lên camp ${mong ? 'ghi' : 'không ghi'} "sắp khởi hành"`, ok ? '✓' : '— SAI', l4.map((v) => v.cho).slice(0, 2)); }
+await T('__xuong', A); await p.waitForTimeout(400);
 // lượt số sau: phim đầu tiên của "chờ lên camp" xong → lên camp (#id của camp có trên city)
 const B = JSON.parse(JSON.stringify(A)), f = B.tram.len.ds.shift(); B.tram.len.so--; const camp = (A.tram.da_len.ds.find((d) => /#\d+/.test(d.ghi)) ?? {}).ghi?.match(/#\d+/)?.[0] ?? '#0';
 B.tram.da_len.ds.push({ id: f.id, ten: f.ten, ghi: camp, luc: 'vừa xong' }); B.tram.da_len.so++;

@@ -5,7 +5,7 @@
 // Cửa sổ sáng = bài đang chạy · thùng tím ở chân = bài sắp đăng · cột sáng xanh = lượt xem · xe trên phố = khách về site · đèn đỏ + khói = hỏng ·
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
-import { KHU_XUONG, LINH_VUC, TEN_BAN, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
+import { KHU_XUONG, LINH_VUC, TEN_BAN, laDichSong, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { nhoLanMoi, phanLoaiLan } from '@/lib/loai-lan';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
@@ -101,14 +101,14 @@ const CSS = `
 .tp .song .muc { display: flex; gap: 4px; flex-wrap: wrap; } .tp .song .tong { font: 12px system-ui; margin-bottom: 5px; } .tp .song .muc button { flex: 1 1 40%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--nen); border: 1px solid var(--vien); border-radius: 8px; color: var(--chu); padding: 4px 4px; font: 11px system-ui; letter-spacing: -.1px; cursor: pointer; text-align: left; }
 .tp .song .muc button[aria-pressed="true"] { border-color: #5effc4; } .tp .song .muc b { font-size: 14px; margin-left: 2px; }
 .tp .song .ds { margin-top: 6px; max-height: 220px; overflow: auto; border: 1px solid var(--vien); border-radius: 8px; } .tp .song .ds button { display: block; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--vien); color: var(--chu); padding: 5px 8px; font: 12px system-ui; cursor: pointer; text-align: left; }
-.tp .song .ds button:hover { background: var(--nen2); } .tp .song .ds .nho { display: block; font-size: 11px; color: var(--mo, #8e9abd); } .tp .song .ray { margin-top: 6px; font: 11px system-ui; color: var(--mo, #8e9abd); cursor: pointer; }
+.tp .song .ds button:hover { background: var(--nen2); } .tp .song .ds .nho { display: block; font-size: 11px; color: var(--mo, #8e9abd); } .tp .song .ray { margin-top: 6px; font: 11px system-ui; color: var(--mo, #8e9abd); cursor: pointer; background: none; border: 0; padding: 0; text-align: left; } .tp .song .loc { width: 100%; box-sizing: border-box; margin-top: 6px; background: var(--nen); border: 1px solid var(--vien); border-radius: 8px; color: var(--chu); padding: 4px 6px; font: 11px system-ui; }
 .tp .mini { position: absolute; left: 12px; bottom: 12px; z-index: 5; width: 200px; height: 110px; border: 1px solid var(--vien); border-radius: 10px; background: rgba(8,12,26,.85); cursor: crosshair; }
 .tp .xg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; font: 12px system-ui; } .tp .xg > * { min-width: 0; }   /* tên phim dài (một dòng, cắt …) không được kéo rộng lưới */
 .tp .xg-chi { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; } .tp .xg-chi b { justify-self: end; font-size: 14px; } .tp .xg-chi i, .tp .xg-tram i { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: #22304d; overflow: hidden; } .tp .xg-chi em, .tp .xg-tram em { display: block; height: 100%; background: #3fd68a; }
 .tp .xg-tram { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } .tp .xg-tram > div { display: grid; justify-items: center; gap: 2px; padding: 6px 4px; border: 1px solid var(--vien); border-radius: 10px; background: var(--nen); text-align: center; }
 .tp .xg-tram > div.on { border-color: #59a8ff; background: #16294a; } .tp .xg-tram > div.loi { border-color: #ff4d5e; background: #3a1620; } .tp .xg-tram span { font-size: 18px; } .tp .xg-tram b { font-size: 16px; } .tp .xg-tram small { font-size: 10.5px; color: var(--mo, #8e9abd); line-height: 1.2; } .tp .xg-tram i { width: 100%; height: 4px; }
 .tp .xg-dang { padding: 6px 8px; border-radius: 8px; background: #16294a; } .tp .xg-dang.loi { background: #3a1620; color: #ff8a80; } .tp .xg-may { color: var(--mo, #8e9abd); font-size: 11px; }
-.tp .xg-ds summary { cursor: pointer; padding: 4px 0; display: flex; gap: 6px; align-items: center; } .tp .xg-ds summary b { font-size: 12px; } .tp .xg-ds > div { display: flex; gap: 6px; align-items: center; padding: 3px 0 3px 18px; border-top: 1px solid var(--vien); }
+.tp .xg-ds summary { cursor: pointer; padding: 4px 0; display: flex; gap: 6px; align-items: center; position: sticky; top: 0; background: var(--nen2); z-index: 1; } .tp .xg-loc { width: 100%; box-sizing: border-box; background: var(--nen); border: 1px solid var(--vien); border-radius: 8px; color: var(--chu); padding: 5px 8px; font: 12px system-ui; } .tp .xg-ds summary b { font-size: 12px; } .tp .xg-ds > div { display: flex; gap: 6px; align-items: center; padding: 3px 0 3px 18px; border-top: 1px solid var(--vien); }
 .tp .xg-ds > div > span:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .tp .xg-tag { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 6px; background: #22304d; color: #9ecbff; white-space: nowrap; }
 .tp .ngan .nut-mo { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; } .tp .ngan .nut-mo a { flex: 1; text-align: center; text-decoration: none; color: #fff; background: #23305a; border: 1px solid #4a5a8f; border-radius: 8px; padding: 6px 8px; font: 600 11px system-ui; white-space: nowrap; }
 @media (max-width: 600px) { .tp .mini { display: none; } }
@@ -129,6 +129,10 @@ const CSS = `
 export type XuongEtp = { luc: string; nhip: { buoc: string; lo?: string | null; phim?: string | null; xong?: number | null; tong?: number | null; loi?: string | null; bat_dau?: string | null; luc: string; may?: { tai: number | null; nhan: number; trong_gb: number; che_do: string; ten: string } } | null;
   tram: Record<'kho' | 'poster' | 'soat' | 'len' | 'loai' | 'da_len', { so: number; nhan: string; loai?: number; ds?: { id: string; ten: string; ghi: string; luc: string }[] }>; chi_tieu: { ngay: string; da: number; can: number }; tong: number };
 const BUOC_TRAM: Record<string, number> = { tai: 2, cat: 2, soat: 3, day: 4, len: 5, sua: 5 };
+/** trạm đang chạy theo nhịp xưởng (-1 = nghỉ / chưa có nhịp) — một chỗ cho bảng nổi, thẻ, nhà máy 3D */
+const tramDangChay = (n: XuongEtp['nhip'] | undefined): number => (n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1);
+/** phim chờ ở trạm nào thì rời trạm khi BƯỚC nào chạy: chờ cắt (1) ← cắt (2) · chờ soát luật FB (3) ← chính bước soát (3) · chờ lên camp (4) ← tạo camp (5) */
+const BUOC_DI: Record<number, number> = { 1: 2, 3: 3, 4: 5 };
 const TEN_BUOC: Record<string, string> = { tai: 'tải tập phim', cat: 'chọn khung + dựng đoạn', soat: 'soát luật FB (18+, bạo lực, máu…)', day: 'đẩy creative + cổng chữ', len: 'tạo camp', sua: 'sửa CTA / góc mới', nghi: 'nghỉ' };
 function veXuong(cv: HTMLCanvasElement, x: XuongEtp | null, bay = performance.now()) {
   const g = cv.getContext('2d')!, W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
@@ -136,7 +140,7 @@ function veXuong(cv: HTMLCanvasElement, x: XuongEtp | null, bay = performance.no
   g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = '800 46px system-ui, "Apple Color Emoji", sans-serif'; g.textAlign = 'left'; g.fillText('🏭 XƯỞNG PHIM MỚI · ETHOPEX', 36, 56);
   if (!x) { g.font = '500 34px system-ui'; g.fillStyle = '#9aa3b8'; g.fillText('đang đọc số xưởng…', 36, 140); return; }
   const ct = x.chi_tieu, du = ct.da >= ct.can; g.textAlign = 'right'; g.font = '800 44px system-ui'; g.fillStyle = du ? '#3fd68a' : '#ffd166'; g.fillText(`hôm nay ${ct.da}/${ct.can} phim`, W - 36, 56);
-  const n = x.nhip, sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1, cu = n ? (Date.now() - Date.parse(n.luc)) / 1000 : 1e9;
+  const n = x.nhip, sang = tramDangChay(n), cu = n ? (Date.now() - Date.parse(n.luc)) / 1000 : 1e9;
   const t = x.tram, tr: [string, string, string][] = [['📚', 'Kho phim', `${t.kho.so} chờ`], ['🖼', 'Soát poster', `${t.poster.so} đạt`], ['✂️', 'Cắt đoạn', ''], ['🚫', 'Soát luật FB', `${t.soat.so} chờ`], ['🔤', 'Cổng chữ', `${t.len.so} chờ lên`], ['🚀', 'Lên camp', `${t.da_len.so} đã lên`]];
   const bw = 236, gap = 24, x0 = (W - (bw * 6 + gap * 5)) / 2, y0 = 110, bh = 210;
   // BĂNG CHUYỀN CHẠY (góp ý #1446 "show flow như đang triển khai: xe chở, nhân viên đi lại bê vác"): dải băng dưới các trạm, vạch băng trôi;
@@ -286,7 +290,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   let ongDs: { cv: any; t: number; toc: number; mau: any }[] = [], ongXung: any = null;
   // chuyến trong nhà máy phim: xe giữa các trạm (mang biển tên phim đang chở) + xe tới toà camp vừa lên + người bê thùng ở trạm đang chạy
   const khuXuongPhim = () => (mh.duAn.some((x) => x.khoa === 'd:ethopex~2') ? 'd:ethopex~2' : 'd:ethopex'), congSauKhu = new Map<string, any>(); let duongChuyen: any[] = [];
-  let xuongPhim: { tram: any[]; cong: any | null; cuaZ: number; zF: number; phia: number } | null = null, chuyenDs: { o: any; a: any; b: any; t: number; toc: number; di?: boolean; duong?: any; mot?: () => void; nguoi?: boolean }[] = [], khoaChuyen = ''; const viTriCamp = new Map<string, any>();
+  let xuongPhim: { tram: any[]; cong: any | null; cuaZ: number; zF: number; phia: number } | null = null, chuyenDs: { o: any; a: any; b: any; t: number; toc: number; di?: boolean; duong?: any; mot?: () => void; nguoi?: boolean }[] = [], khoaBienDem = ''; const viTriCamp = new Map<string, any>();
   const TRAM_XP: [string, string, string][] = [['📚', 'Kho phim', '#3a4a6e'], ['🖼', 'Soát poster', '#3d5a7a'], ['✂️', 'Cắt đoạn', '#5a4a7a'], ['🚫', 'Soát luật FB', '#7a3d4a'], ['🔤', 'Cổng chữ', '#3d6a5a'], ['🚀', 'Lên camp', '#7a5a2a']];
   const bienXe = (chu: string, mau: string) => { const cv = document.createElement('canvas'); cv.width = 640; cv.height = 96; const g = cv.getContext('2d')!; g.font = '700 44px system-ui, "Apple Color Emoji", sans-serif';
     let t = chu; while (g.measureText(t).width > 600 && t.length > 8) t = t.slice(0, -2); if (t !== chu) t = t.trimEnd() + '…';
@@ -315,8 +319,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const MAU_TRAM = ['#6ea8ff', '#59a8ff', '#b48cff', '#ff8fa3', '#3fd68a', '#ffd166'];
   function dungChuyen() {
     const x = xuongData, xp = xuongPhim; if (!x || !xp) return;
-    const t = x.tram, n = x.nhip, sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1, dauTien = theCuaXe !== the;
-    if (dauTien) { theCuaXe = the; xeO = new Map(); chuyenDs = []; duongChuyen = []; bienDem = []; khoaChuyen = ''; }   // dựng lại cảnh: xe cũ đi theo cảnh cũ, đỗ lại từ đầu
+    const t = x.tram, n = x.nhip, sang = tramDangChay(n), dauTien = theCuaXe !== the;
+    if (dauTien) { theCuaXe = the; xeO = new Map(); chuyenDs = []; duongChuyen = []; bienDem = []; khoaBienDem = ''; }   // dựng lại cảnh: xe cũ đi theo cảnh cũ, đỗ lại từ đầu
     // bãi đỗ TRƯỚC cửa trạm (phía ngoài, camera nhìn thấy); khởi hành thì vòng hông trạm ra đường xưởng, tới trạm sau vòng hông vào bãi
     const cua = (st: number) => new THREE.Vector3(xp.tram[st].x, 0, xp.zF + xp.phia * 19), duongO = (st: number) => new THREE.Vector3(xp.tram[st].x, 0, xp.cuaZ);
     const hong = (st: number) => [new THREE.Vector3(xp.tram[st].x + 17, 0, xp.zF + xp.phia * 19), new THREE.Vector3(xp.tram[st].x + 17, 0, xp.cuaZ)];
@@ -353,15 +357,15 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   function xepDo() { const xp = xuongPhim, x = xuongData; if (!xp || !x) return;
 
     const theoTram = new Map<number, string[]>(); for (const [id, v] of phimO) if (xeO.has(id) && !xeO.get(id).userData.dangChay) (theoTram.get(v.s) ?? theoTram.set(v.s, []).get(v.s)!).push(id);
-    // xe đang chờ: biển nhỏ trên mỗi xe ghi ĐÃ CHỜ bao lâu (góp ý #1447), hoặc "sắp khởi hành x/y" khi bước kế của trạm đang chạy
+    // xe đang chờ: biển nhỏ trên mỗi xe ghi ĐÃ CHỜ bao lâu (góp ý #1447), hoặc "sắp khởi hành x/y" khi bước đưa phim rời trạm đang chạy (BUOC_DI)
     // biển chờ so le cao thấp (k lẻ cao hơn) — xe kề nhau không chồng biển
-    const n = x.nhip, sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1;
+    const n = x.nhip, sang = tramDangChay(n);
     for (const [st, ids] of theoTram) ids.forEach((id, k) => { const m = xeO.get(id); m.visible = k < XE_DO; const nn = Math.min(XE_DO, ids.length);
       m.position.set(xp.tram[st].x + (k - (nn - 1) / 2) * 9.5, Y_XE, xp.zF + xp.phia * 19); m.rotation.y = Math.PI / 2 * xp.phia;
-      if (!m.visible) return; const v = phimO.get(id)!, chu = sang === st + 1 ? `▶ sắp khởi hành${n?.tong ? ` ${n.xong ?? 0}/${n.tong}` : ''}` : `⏳ chờ ${thoiGianCho(v.luc)}`;
-      if (m.userData.chuCho !== chu || m.userData.bienCho?.position.y !== (k % 2 ? 9.5 : 6.5)) { if (m.userData.bienCho) m.remove(m.userData.bienCho); const bc = bienXe(chu, sang === st + 1 ? '#3fd68a' : '#8e9abd'); bc.scale.set(15, 2.25, 1); bc.position.set(0, k % 2 ? 9.5 : 6.5, 0); m.add(bc); m.userData.bienCho = bc; m.userData.chuCho = chu; } });
+      if (!m.visible) return; const v = phimO.get(id)!, chu = sang === BUOC_DI[st] ? `▶ sắp khởi hành${n?.tong ? ` ${n.xong ?? 0}/${n.tong}` : ''}` : `⏳ chờ ${thoiGianCho(v.luc)}`;
+      if (m.userData.chuCho !== chu || m.userData.bienCho?.position.y !== (k % 2 ? 9.5 : 6.5)) { if (m.userData.bienCho) m.remove(m.userData.bienCho); const bc = bienXe(chu, sang === BUOC_DI[st] ? '#3fd68a' : '#8e9abd'); bc.scale.set(15, 2.25, 1); bc.position.set(0, k % 2 ? 9.5 : 6.5, 0); m.add(bc); m.userData.bienCho = bc; m.userData.chuCho = chu; } });
     const dem: [number, string][] = [[0, `📚 ${x.tram.kho.so} phim chờ soát poster`], ...TRAM_DS.filter(([st]) => st < 5).map(([st, k, nh]) => [st, `${x.tram[k].so} phim · ${nh}`] as [number, string])];
-    const khoa = JSON.stringify(dem); if (khoa === khoaChuyen && bienDem.length) return; khoaChuyen = khoa;   // chữ không đổi thì giữ biển cũ (khỏi đẻ ảnh mới mỗi 5 giây)
+    const khoa = JSON.stringify(dem); if (khoa === khoaBienDem && bienDem.length) return; khoaBienDem = khoa;   // chữ không đổi thì giữ biển cũ (khỏi đẻ ảnh mới mỗi 5 giây)
     for (const b of bienDem) { the.remove(b); b.material.map?.dispose(); b.material.dispose(); } bienDem = [];
     // biển đếm trên mái trạm, dưới biển tên — không đè dãy xe chờ (góp ý #1447)
     for (const [st, chu] of dem) { const b = bienXe(chu, MAU_TRAM[st]!); b.position.set(xp.tram[st].x, 27, xp.zF); b.scale.set(30, 4.5, 1); the.add(b); bienDem.push(b); }
@@ -372,7 +376,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const SUC_SONG = [{ ic: '❄', ten: 'đơ — chưa gắn nguồn traffic nào' }, { ic: '💤', ten: 'thoi thóp — có nguồn mà 7 ngày không khách' }, { ic: '🌱', ten: 'sống — có khách 7 ngày' }, { ic: '🔥', ten: 'sôi động — đang có khách' }] as const;
   const BANG = '#3a4660', BANG_RAO = '#6f7f9c', BANG_NEN = '#151b28';
   const dongBang = (k: { ngung: boolean; sucSong?: number }) => !k.ngung && k.sucSong === 0;
-  const dongSucSong = (d: { sucSong?: number; soNguon?: number; phien7?: number }): [string, string] => { const v = SUC_SONG[d.sucSong ?? 0]!; return ['Sức sống', `${v.ic} ${v.ten} · ${d.soNguon ?? 0} nguồn · ${(d.phien7 ?? 0).toLocaleString('en-US')} khách 7 ngày`]; };
+  const dongSucSong = (d: { sucSong?: number; soNguon?: number; khach7?: number }): [string, string] => { const v = SUC_SONG[d.sucSong ?? 0]!; return ['Sức sống', `${v.ic} ${v.ten} · ${d.soNguon ?? 0} nguồn · ${(d.khach7 ?? 0).toLocaleString('en-US')} khách 7 ngày`]; };
   const add = (g: any, m: any, bong = true) => { const x = new THREE.Mesh(g, m); x.castShadow = bong; x.receiveShadow = true; the.add(x); return x; };
   // GỘP VẬT (anh 23/10/2026 "city đang khiến máy tính nóng"): mỗi vật riêng là một lệnh vẽ mỗi khung — cảnh từng có ~5.900 vật.
   // Mảnh phẳng một màu (vạch đường, cửa sổ phòng ban) gom vào MỘT khối vẽ chung dựng cuối lượt (dungGop); bảng chữ nhiều mặt gộp thành một vật.
@@ -708,26 +712,30 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (m.emissive) { m.emissiveIntensity = (m.emissiveIntensity ?? 0) * (muc === 0 ? 0 : .4); }
       if (m.transparent && m.wireframe) m.opacity = (m.opacity ?? 1) * (muc === 0 ? 0 : .4); return m; };
     for (const o of [...the.children]) { const chu = o.userData?.loai === 'dich' ? o : o.userData?.chu, d = chu?.userData?.loai === 'dich' ? chu.userData.d : null;
-      if (!d || !['site', 'app', 'sp'].includes(d.loai)) continue; const muc = mucCua(d); if (muc >= 2) continue;
+      if (!d || !laDichSong(d)) continue; const muc = mucCua(d); if (muc >= 2) continue;
       o.material = Array.isArray(o.material) ? o.material.map((m: any) => lam(m, muc)) : lam(o.material, muc); demDongBang[muc]!++; }
     for (const o of ds.thap!.concat([...the.children].filter((x: any) => x.userData?.loai === 'dich' && x.userData.d.loai !== 'site' && ['app', 'sp'].includes(x.userData.d.loai)))) {
       const d = o.userData.d; if (mucCua(d) !== 3 || d.cha) continue; const hop = new THREE.Box3().setFromObject(o), r0 = Math.max(hop.max.x - hop.min.x, hop.max.z - hop.min.z) * .7 + 3;
       const v = add(new THREE.TorusGeometry(r0, .7, 6, 40), new THREE.MeshBasicMaterial({ color: '#5effc4', transparent: true, opacity: .4, depthWrite: false }), false); v.rotation.x = Math.PI / 2; v.position.set((hop.min.x + hop.max.x) / 2, hop.max.y + 2, (hop.min.z + hop.max.z) / 2); v.userData = { chu: o }; ds.cot!.push(v); }
   }
   /** bảng SỨC SỐNG: đếm 4 mức (mọi nguồn traffic ngang nhau) + bấm một mức → danh sách, bấm một dòng → bay tới · kênh mạng xã hội chưa gắn đích (vốn dự phòng — gắn là việc anh quyết) */
-  let mucMo: number | null = 0;
+  let mucMo: number | null = null, locSong = '', moRanh = false;   // panel phụ trên cảnh 3D: danh sách gập mặc định (YDNI luật lõi 5)
   function veSong() {
     const o = q('[data-o="song"]'); if (!o) return;
-    const ds = mh.dich.filter((d) => ['site', 'app', 'sp'].includes(d.loai) && !d.cha), dem = [0, 1, 2, 3].map((m) => ds.filter((d) => (d.sucSong ?? 0) === m).length);
+    const ds = mh.dich.filter((d) => laDichSong(d) && !d.cha), dem = [0, 1, 2, 3].map((m) => ds.filter((d) => (d.sucSong ?? 0) === m).length);
     const ranh = mh.tk.filter((t) => t.loai === 'mxh' && !t.dich);
     const tenKhu = (d: typeof ds[number]) => esc(khuCua(d.duAn)?.ten ?? '');
-    const dong = mucMo == null ? [] : ds.filter((d) => (d.sucSong ?? 0) === mucMo).sort((a, b) => (b.phien7 ?? 0) - (a.phien7 ?? 0) || (b.soNguon ?? 0) - (a.soNguon ?? 0) || tenKhu(a).localeCompare(tenKhu(b)));
+    const khop = (d: typeof ds[number]) => !locSong || `${d.ten} ${tenKhu(d)}`.toLowerCase().includes(locSong.toLowerCase());
+    const dong = mucMo == null ? [] : ds.filter((d) => (d.sucSong ?? 0) === mucMo && khop(d)).sort((a, b) => (b.khach7 ?? 0) - (a.khach7 ?? 0) || (b.soNguon ?? 0) - (a.soNguon ?? 0) || tenKhu(a).localeCompare(tenKhu(b)));
     // chip chỉ ghi tên mức, số đếm ở hover (luật nhãn không mang số); tổng là một dòng chữ riêng
     o.innerHTML = `<div class="tong">${[3, 2, 1, 0].map((m) => `${SUC_SONG[m]!.ic} ${dem[m]}`).join(' · ')} <span class="nho">/ ${ds.length}</span></div><div class="muc">${[3, 2, 1, 0].map((m) => `<button data-m="${m}" aria-pressed="${mucMo === m}" title="${dem[m]} — ${SUC_SONG[m]!.ten}">${SUC_SONG[m]!.ic} ${SUC_SONG[m]!.ten.split(' — ')[0]}</button>`).join('')}</div>`
-      + (dong.length ? `<div class="ds">${dong.map((d, i) => `<button data-i="${i}"><span>${esc(d.ten)}</span><span class="nho">${tenKhu(d)}${d.soNguon ? ` · ${d.soNguon} nguồn` : ''}${d.phien7 ? ` · ${d.phien7} khách` : ''}</span></button>`).join('')}</div>` : '')
-      + (ranh.length ? `<div class="ray" title="${esc(ranh.map((t) => `${NEN[t.nen][1]} ${t.ten}`).join(' · '))}">📡 ${ranh.length} kênh mạng xã hội chưa gắn sản phẩm nào</div>` : '');
+      + (mucMo != null ? `<input class="loc" type="search" placeholder="lọc tên / khu…" value="${esc(locSong)}" aria-label="Lọc danh sách sức sống" /><div class="ds">${dong.map((d, i) => `<button data-i="${i}"><span>${esc(d.ten)}</span><span class="nho">${tenKhu(d)}${d.soNguon ? ` · ${d.soNguon} nguồn` : ''}${d.khach7 ? ` · ${d.khach7} khách` : ''}</span></button>`).join('') || '<span class="nho" style="padding:6px 8px;display:block">không có dòng khớp</span>'}</div>` : '')
+      + (ranh.length ? `<button class="ray" aria-expanded="${moRanh}">📡 ${ranh.length} kênh mạng xã hội chưa gắn sản phẩm nào ${moRanh ? '▾' : '▸'}</button>${moRanh ? `<div class="ds">${ranh.map((t, i) => `<button data-r="${i}"><span>${NEN[t.nen][1]} ${esc(t.ten)}</span><span class="nho">bấm để bay tới toà kênh</span></button>`).join('')}</div>` : ''}` : '');
     for (const b of o.querySelectorAll<HTMLButtonElement>('.muc button')) b.onclick = () => { const m = Number(b.dataset.m); mucMo = mucMo === m ? null : m; veSong(); };
-    for (const b of o.querySelectorAll<HTMLButtonElement>('.ds button')) b.onclick = () => { const d = dong[Number(b.dataset.i)]; const vat = d && the.children.find((c: any) => c.userData?.loai === 'dich' && c.userData.d.khoa === d.khoa); if (vat) bayToiObj(vat); };
+    const loc = o.querySelector<HTMLInputElement>('.loc'); if (loc) loc.oninput = () => { locSong = loc.value; const pos = loc.selectionStart; veSong(); const l2 = o.querySelector<HTMLInputElement>('.loc'); l2?.focus(); l2?.setSelectionRange(pos, pos); };
+    const ray = o.querySelector<HTMLButtonElement>('.ray'); if (ray) ray.onclick = () => { moRanh = !moRanh; veSong(); };
+    for (const b of o.querySelectorAll<HTMLButtonElement>('.ds button[data-r]')) b.onclick = () => { const t = ranh[Number(b.dataset.r)], vat = chiMuc.find((c) => c.ten === t?.ten)?.obj; if (vat) bayToiObj(vat); };
+    for (const b of o.querySelectorAll<HTMLButtonElement>('.ds button[data-i]')) b.onclick = () => { const d = dong[Number(b.dataset.i)]; const vat = d && the.children.find((c: any) => c.userData?.loai === 'dich' && c.userData.d.khoa === d.khoa); if (vat) bayToiObj(vat); };
   }
   function dung() {
     boCumP.clear(); bienPhim.clear(); bienDangLo = null; bangXhCua.clear(); bangXhMo = null;
@@ -1291,15 +1299,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
           const m = add(new THREE.BoxGeometry(26, 11, 18), M({ color: mau, roughness: .6 })); m.position.set(x, 5.5, zF); m.userData = { loai: 'xuong-etp' };
           const mai = add(new THREE.BoxGeometry(28, 2, 20), M({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: .25 })); mai.position.set(x, 12, zF); mai.userData = { chu: m };
           const loi = add(new THREE.PlaneGeometry(10, 26 - 9), M({ color: '#2b3142', roughness: 1 }), false); loi.rotation.x = -Math.PI / 2; loi.position.set(x, .4, zF - kp.phia * (9 + (26 - 9) / 2)); loi.userData = { chu: null };   // lối từ cửa trạm ra đường xưởng
-          const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const g = cv.getContext('2d')!; g.fillStyle = 'rgba(12,16,28,.9)'; g.beginPath(); g.roundRect(4, 4, 504, 120, 22); g.fill(); g.strokeStyle = '#59a8ff'; g.lineWidth = 4; g.stroke();
-          g.fillStyle = '#fff'; g.font = '800 58px system-ui, "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(`${ic} ${ten}`, 256, 66);
-          const b = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false })); b.scale.set(26, 6.5, 1); b.position.set(x, 34, zF); b.userData = { loai: 'xuong-etp' }; the.add(b);
+          const b = bienXe(`${ic} ${ten}`, '#59a8ff'); b.scale.set(30, 4.5, 1); b.position.set(x, 34, zF); b.userData = { loai: 'xuong-etp' }; the.add(b);
           if (i === 3) chiMuc.push({ ten: 'Nhà máy phim mới (6 trạm)', nhan: 'xưởng', obj: m });
           return new THREE.Vector3(x, 0, cuaZ); });
         const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 500; const tx = new THREE.CanvasTexture(cv); tx.anisotropy = 4;
         const bien = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthWrite: false })); bien.scale.set(150, 47, 1); bien.position.set(x0F + BUOC * 5 + 110, 34, zF);   // đứng bên phải dãy trạm — không che trạm, cổng sau và đường xe
         bien.userData = { loai: 'xuong-etp' }; the.add(bien); chiMuc.push({ ten: 'Xưởng phim mới Ethopex', nhan: 'xưởng', obj: bien });
-        xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; dungChuyen(); }; xuongDong = { cv, tx, bien }; xuongPhim = { tram, cong: congSauKhu.get(kh) ?? null, cuaZ, zF, phia: kp.phia }; khoaChuyen = '';
+        xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; dungChuyen(); }; xuongDong = { cv, tx, bien }; xuongPhim = { tram, cong: congSauKhu.get(kh) ?? null, cuaZ, zF, phia: kp.phia }; khoaBienDem = '';
         // đường cố định: đường xưởng → cổng sau → trục giữa khu
         { const g0 = xuongPhim.cong; if (g0) veDuongXe([new THREE.Vector3(g0.x, 0, cuaZ), g0, new THREE.Vector3(g0.x, 0, kp.cz)], []); }
         xuongVe(xuongData);
@@ -1394,7 +1400,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (u.loai === 'chuyen') return { dau: u.tt['Người'] ? '🧑‍🏭 Người trong nhà máy phim' : `🚚 ${u.tt['Chở']}`, h: Object.entries(u.tt as Record<string, string>).filter(([k]) => k !== 'Chở' && k !== 'Người') };
     if (u.loai === 'xuong-etp') { const x = xuongData, n = x?.nhip;
       if (!x) return { dau: '🏭 Xưởng phim mới', h: [['', 'đang đọc số…']] };
-      const sang = n && n.buoc !== 'nghi' ? BUOC_TRAM[n.buoc] ?? -1 : -1, t = x.tram, ct = x.chi_tieu;
+      const sang = tramDangChay(n), t = x.tram, ct = x.chi_tieu;
       const tram: [string, string, number | null, string][] = [['📚', 'Kho phim', t.kho.so, 'chờ'], ['🖼', 'Soát poster', t.poster.so, 'đạt'], ['✂️', 'Cắt đoạn', null, ''], ['🚫', 'Soát luật FB', t.soat.so, 'chờ'], ['🔤', 'Cổng chữ', t.len.so, 'chờ lên'], ['🚀', 'Lên camp', t.da_len.so, 'đã lên']];
       const lau = n?.bat_dau ? Math.round((Date.now() - Date.parse(n.bat_dau)) / 60000) : null;
       const muc = (ic: string, ten: string, k: 'soat' | 'len' | 'da_len' | 'loai', mo: boolean, cuoi = 0) => { let ds = t[k].ds ?? []; if (cuoi) ds = ds.slice(-cuoi); if (!ds.length) return '';
@@ -1405,6 +1411,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         <div class="xg-tram">${tram.map(([ic, ten, so, nh], i) => `<div class="${i === sang ? (n?.loi ? 'loi' : 'on') : ''}"><span>${ic}</span><b>${i === sang && n?.tong ? `${n.xong ?? 0}/${n.tong}` : so ?? (i === sang ? '▶' : '—')}</b><small>${ten}${so != null && i !== sang ? ` · ${nh}` : ''}</small>${i === sang && n?.tong ? `<i><em style="width:${Math.round(Math.min(1, (n.xong ?? 0) / n.tong) * 100)}%"></em></i>` : ''}</div>`).join('')}</div>
         <div class="xg-dang${n?.loi ? ' loi' : ''}">${n ? `▶ ${esc(TEN_BUOC[n.buoc] ?? n.buoc)}${n.lo ? ` · lô ${esc(n.lo)}` : ''}${lau != null && n.buoc !== 'nghi' ? ` · ${lau} phút` : ''}${n.loi ? `<br>⚠ ${esc(n.loi)}` : ''}` : '▶ chưa có nhịp'}</div>
         ${n?.may ? `<div class="xg-may">💻 ${esc(n.may.ten)} · tải ${n.may.tai ?? '?'}/${n.may.nhan} lõi · ổ trống ${n.may.trong_gb} GB · ${esc(n.may.che_do)}</div>` : ''}
+        <input class="xg-loc" type="search" placeholder="lọc tên phim / lô…" aria-label="Lọc phim trong xưởng" />
         ${muc('🚫', 'Chờ soát luật FB (18+, bạo lực, máu…)', 'soat', true)}${muc('⏳', 'Chờ lên camp', 'len', true)}${muc('🚀', 'Đã lên gần nhất', 'da_len', false, 12)}${muc('🗑', 'Loại gần nhất', 'loai', false, 8)}</div>` };
     }
     if (u.loai === 'may') { const nm = u.nm as typeof mh.nhaMay[number];
@@ -1594,6 +1601,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const bayToiObj = (o: any) => { const p = o.position.clone().setY(0); bayToi(p.clone().add(cam.position.clone().sub(ctl.target).setLength(kcNhin(o))), p);
     moNgan(o); };
   /** mở ngăn chi tiết (bấm toà / chọn trong ô tìm) — một chỗ dựng; nút "Đã xử" ghi platform_alerts.xong_luc qua /api/social/canh-bao rồi nạp số mới */
+  // ô lọc trong thẻ xưởng (và mọi .xg-loc sau này): một bộ nghe chung trên ngăn, không gắn handler nội tuyến vào HTML
+  ngan.addEventListener('input', (e) => { const t = e.target as HTMLInputElement; if (!t.classList?.contains('xg-loc')) return; const q2 = t.value.toLowerCase();
+    t.closest('.xg')?.querySelectorAll<HTMLElement>('.xg-ds > div').forEach((r) => { r.hidden = !!q2 && !(r.textContent ?? '').toLowerCase().includes(q2); }); });
   function moNgan(o: any) {
     const tt = thongTin(o); (ngan.querySelector('.wg-ten') as HTMLElement).innerHTML = tt.dau; (ngan.querySelector('.wg-than') as HTMLElement).innerHTML = `${veO(tt, false)}${nutMo(o)}`; ngan.hidden = false;
     chonVat(o);
@@ -1642,12 +1652,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // ⌂ (plan sức sống 24/10/2026): đi LẦN LƯỢT qua các nơi đang SÔI ĐỘNG (có khách ngay lúc này, đông nhất trước) — mỗi lần bấm bay tới một nơi + mở thẻ;
   // hết vòng thì về toàn cảnh. (Cụm "đang sống" rải khắp thành phố nên bay về hộp bao của nó gần như trùng toàn cảnh.) Tự dời camera thì vòng bắt đầu lại.
   let buocSoi = -1; r.domElement.addEventListener('pointerdown', () => { buocSoi = -1; }); host.addEventListener('wheel', () => { buocSoi = -1; }, { passive: true });
-  function veCumSong() {
-    const soi = the.children.filter((o: any) => o.userData?.loai === 'dich' && ['site', 'app', 'sp'].includes(o.userData.d.loai) && o.userData.d.sucSong === 3).sort((a: any, b: any) => (b.userData.d.online ?? 0) - (a.userData.d.online ?? 0));
+  function diQuaNoiSoi() {
+    const soi = the.children.filter((o: any) => o.userData?.loai === 'dich' && laDichSong(o.userData.d) && o.userData.d.sucSong === 3).sort((a: any, b: any) => (b.userData.d.online ?? 0) - (a.userData.d.online ?? 0));
     buocSoi++; if (buocSoi >= soi.length) { buocSoi = -1; dongNgan(); bayToi(CAM0.clone(), TAM0.clone()); return; }
     bayToiObj(soi[buocSoi]);
   }
-  const NUT: Record<string, () => void> = { trai: () => xoay(Math.PI / 6), phai: () => xoay(-Math.PI / 6), vao: () => phong(.7), ra: () => phong(1.4), goc: veCumSong,
+  const NUT: Record<string, () => void> = { trai: () => xoay(Math.PI / 6), phai: () => xoay(-Math.PI / 6), vao: () => phong(.7), ra: () => phong(1.4), goc: diQuaNoiSoi,
     full: () => toanMan(), datLai: () => { datLaiWidget(); dongNgan(); anMeo(); phongCon = 0; bayToi(CAM0.clone(), TAM0.clone()); }, ngay: () => { cheDo = cheDo === 'tu' ? 'ngay' : cheDo === 'ngay' ? 'dem' : 'tu'; apNgayDem(); } };
   // toàn màn: máy tính / Android dùng Fullscreen API; iPhone không có → phủ kín khung nhìn bằng CSS (khoá cuộn trang phía sau)
   const fullBtn = q<HTMLButtonElement>('[data-d="full"]');
@@ -1832,10 +1842,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
   (host as any).__soKhung = () => soKhung;
   (host as any).__anhXuong = (t?: number) => { if (!xuongDong) return null; veXuong(xuongDong.cv, xuongData, t ?? performance.now()); xuongDong.tx.needsUpdate = true; return xuongDong.cv.toDataURL('image/png'); };   // bộ kiểm: chụp bảng xưởng ở thời điểm t
-  (host as any).__xeXuong = () => [...xeO].map(([id, m]) => ({ id, x: Math.round(m.position.x), z: Math.round(m.position.z), chay: !!m.userData.dangChay, hien: m.visible && m.parent === the && m.layers.test(cam.layers) }));   // bộ kiểm: xe phim trong nhà máy
+  (host as any).__xeXuong = () => [...xeO].map(([id, m]) => ({ id, x: Math.round(m.position.x), z: Math.round(m.position.z), chay: !!m.userData.dangChay, cho: m.userData.chuCho ?? '', tram: phimO.get(id)?.s ?? -1, hien: m.visible && m.parent === the && m.layers.test(cam.layers) }));   // bộ kiểm: xe phim trong nhà máy
   (host as any).__dungLai = () => capNhat(mh);   // bộ kiểm: dựng lại cả cảnh như lượt làm mới mỗi phút
   (host as any).__xuong = (x: XuongEtp) => { xuongData = x; xuongVe?.(x); };   // bộ kiểm: nạp số xưởng như /api/social/thanh-pho/xuong
-  (host as any).__sucSong = () => ({ phu: [...demDongBang], dich: mh.dich.filter((d) => ['site', 'app', 'sp'].includes(d.loai)).map((d) => d.sucSong ?? null).reduce((a: any, v) => { a[String(v)] = (a[String(v)] ?? 0) + 1; return a; }, {}) });
+  (host as any).__sucSong = () => ({ phu: [...demDongBang], dich: mh.dich.filter((d) => laDichSong(d)).map((d) => d.sucSong ?? null).reduce((a: any, v) => { a[String(v)] = (a[String(v)] ?? 0) + 1; return a; }, {}) });
   (host as any).__khongCat = (b: boolean) => { khongCat = b; };   // bộ kiểm so ảnh có / không cắt ô
   (host as any).__thongKe = () => { const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     let vat = 0, ngoai = 0, imSai = 0; const m4 = new THREE.Matrix4(), v = new THREE.Vector3();

@@ -80,8 +80,8 @@ export interface PhoDich {
   /** SỨC SỐNG (anh 23/10/2026: "sản phẩm chưa có nguồn traffic là dạng đơ, có gắn nguồn mới có sức sống" + "mọi nguồn đều có vai trò, không thiên vị"):
    *  mọi loại nguồn ngang nhau (mạng xã hội, máy tìm kiếm, quảng cáo, giới thiệu, kênh, cửa hàng). 0 đơ = chưa gắn nguồn nào và không khách / tiền ·
    *  1 thoi thóp = đã gắn nguồn mà 7 ngày không khách · 2 sống = có khách 7 ngày hoặc có tiền 30 ngày · 3 sôi động = đang có khách online.
-   *  soNguon = số nguồn đang gắn (mọi loại) · phien7 = khách 7 ngày (site: phiên; sản phẩm: lượt xem cửa hàng) */
-  sucSong?: 0 | 1 | 2 | 3; soNguon?: number; phien7?: number;
+   *  soNguon = số nguồn đang gắn (mọi loại) · khach7 = khách 7 ngày (site: phiên; sản phẩm: lượt xem cửa hàng) */
+  sucSong?: 0 | 1 | 2 | 3; soNguon?: number; khach7?: number;
   /** khách có mặt trong 30 phút qua (cột 30M bảng SEO) — người đi vào / ra toà */
   khach30p?: number;
   /** tiền thật 30 ngày (USD) + loại nguồn tiền (Bán hàng, App…); null = chưa có nguồn đo */
@@ -204,10 +204,12 @@ export const KHU_XUONG = 'xuong';
 /** ngày YYYY-MM-DD lùi 7 ngày (mốc cửa sổ 7 ngày của sức sống) */
 const lui7 = (ngay: string) => new Date(Date.parse(`${ngay}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
 /** sức sống một đích từ nguồn + khách + tiền — xem PhoDich.sucSong */
-export function tinhSucSong(x: { soNguon: number; phien7: number; tien30: number; online: number }): { sucSong: 0 | 1 | 2 | 3; soNguon: number; phien7: number } {
-  const sucSong = x.online > 0 ? 3 : x.phien7 > 0 || x.tien30 > 0 ? 2 : x.soNguon > 0 ? 1 : 0;
-  return { sucSong, soNguon: x.soNguon, phien7: x.phien7 };
+export function tinhSucSong(x: { soNguon: number; khach7: number; tien30: number; online: number }): { sucSong: 0 | 1 | 2 | 3; soNguon: number; khach7: number } {
+  const sucSong = x.online > 0 ? 3 : x.khach7 > 0 || x.tien30 > 0 ? 2 : x.soNguon > 0 ? 1 : 0;
+  return { sucSong, soNguon: x.soNguon, khach7: x.khach7 };
 }
+/** đích được chấm sức sống: site / app / sản phẩm (camp, nền tảng, xưởng không chấm) — một chỗ cho mô hình lẫn cảnh */
+export const laDichSong = (d: { loai: string }) => d.loai === 'site' || d.loai === 'app' || d.loai === 'sp';
 /** sức sống khu = mức cao nhất trong các đích của khu (một site sống là khu sống); khu không có đích chấm được → null */
 export const sucSongKhu = (m: number[]): 0 | 1 | 2 | 3 | undefined => (m.length ? (Math.max(...m) as 0 | 1 | 2 | 3) : undefined);
 export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean; tieuHom?: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
@@ -370,8 +372,8 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     const nguon = new Set([...tk.filter((t) => t.dich && khoa.includes(t.dich)).map((t) => t.id), ...luong.filter((l) => khoa.includes(l.den)).map((l) => l.tu)]);
     // site có sổ phiên theo ngày → cộng 7 ngày; không có (cửa hàng Gumroad, app) → khách các luồng nguồn đổ về (tài khoản báo theo kỳ 7 ngày) + lượt xem cửa hàng
     const quaLuong = luong.filter((l) => khoa.includes(l.den)).reduce((a, l) => a + (l.so ?? 0), 0), coSo = Object.keys(d.ngay ?? {}).length > 0;
-    const phien7 = coSo ? Object.entries(d.ngay ?? {}).filter(([k]) => ngayMoi && k > lui7(ngayMoi)).reduce((a, [, v]) => a + v, 0) : quaLuong + [d, ...con].reduce((a, b) => a + (b.xem7 ?? 0), 0);
-    Object.assign(d, tinhSucSong({ soNguon: nguon.size, phien7, tien30: d.tien30 ?? 0, online: d.online ?? 0 }));
+    const khach7 = coSo ? Object.entries(d.ngay ?? {}).filter(([k]) => ngayMoi && k > lui7(ngayMoi)).reduce((a, [, v]) => a + v, 0) : quaLuong + [d, ...con].reduce((a, b) => a + (b.xem7 ?? 0), 0);
+    Object.assign(d, tinhSucSong({ soNguon: nguon.size, khach7, tien30: d.tien30 ?? 0, online: d.online ?? 0 }));
   }
   // giữ site có khách hoặc có người trỏ tới
   const dich = [...dichMap.values()].filter((d) => d.loai !== 'site' || d.coNguon || (d.tien30 ?? 0) > 0 || (d.phien30 ?? 0) > 0 || tk.some((t) => t.dich === d.khoa));
@@ -455,7 +457,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const chuan01 = (v: number, max: number) => (max > 0 ? Math.log10(1 + v) / Math.log10(1 + max) : 0);
   const maxTien = Math.max(0, ...duAn.map(diemTien)), maxLuu = Math.max(0, ...duAn.filter((k) => k.khoa !== KHU_XUONG).map((k) => k.luu ?? 0));
   for (const k of duAn) k.quyMo = k.khoa === KHU_XUONG ? 0 : Math.max(chuan01(diemTien(k), maxTien), chuan01(k.luu ?? 0, maxLuu));
-  for (const k of duAn.filter((x) => x.khoa !== KHU_XUONG)) { const m = dich.filter((d) => d.duAn === k.khoa && (d.loai === 'site' || d.loai === 'app' || d.loai === 'sp') && !d.cha).map((d) => d.sucSong ?? 0); const v = sucSongKhu(m); if (v != null) k.sucSong = v; }
+  for (const k of duAn.filter((x) => x.khoa !== KHU_XUONG)) { const m = dich.filter((d) => d.duAn === k.khoa && laDichSong(d) && !d.cha).map((d) => d.sucSong ?? 0); const v = sucSongKhu(m); if (v != null) k.sucSong = v; }
   // phường liền nhau: xếp theo thứ tự lĩnh vực, trong phường theo lưu lượng
   const thuLv = Object.keys(LINH_VUC);
   duAn.sort((a, b) => Number(a.ngung || !!a.raRia) - Number(b.ngung || !!b.raRia) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tienKhu(b.khoa) - tienKhu(a.khoa) || tongKhu(b.khoa) - tongKhu(a.khoa));

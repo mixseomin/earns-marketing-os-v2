@@ -1,0 +1,21 @@
+// bảng Sức sống + thẻ xưởng: danh sách gập mặc định, ô lọc chạy, kênh rảnh bấm được (bay tới), đầu mục thẻ xưởng dính · node loc-song.mjs <tệp thử>.html <số xưởng>.json
+import { chromium } from '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
+import { readFileSync } from 'node:fs';
+const X = JSON.parse(readFileSync(process.argv[3], 'utf8'));
+const b = await chromium.launch({ args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 800 } }); p.on('pageerror', (e) => console.log('LOI', e.message));
+await p.goto('file://' + process.argv[2]); await p.waitForTimeout(3000); await p.evaluate((x) => document.querySelector('.tp').__xuong(x), X);
+const q = (f) => p.evaluate(f);
+console.log('1 mặc định gập:', await q(() => !document.querySelector('.song .ds') ? '✓ không có danh sách mở' : '— SAI'));
+await p.click('.song .muc button[data-m="0"]'); await p.waitForTimeout(200);
+const n0 = await q(() => document.querySelectorAll('.song .ds button[data-i]').length); await p.fill('.song .loc', 'Astrolas'); await p.waitForTimeout(200);
+const n1 = await q(() => document.querySelectorAll('.song .ds button[data-i]').length);
+console.log('11 lọc danh sách đơ:', n0, '→', n1, 'dòng khi lọc "Astrolas"', n1 > 0 && n1 < n0 ? '✓' : '— SAI', '· ô lọc còn giữ chữ:', await q(() => document.querySelector('.song .loc').value));
+await p.click('.song .ray'); await p.waitForTimeout(200); const nr = await q(() => document.querySelectorAll('.song .ds button[data-r]').length);
+const c0 = await q(() => document.querySelector('.tp').__cam().t.map(Math.round).join()); await p.click('.song .ds button[data-r] >> nth=0'); await p.waitForTimeout(2500); const c1 = await q(() => document.querySelector('.tp').__cam().t.map(Math.round).join());
+console.log('2 kênh rảnh bấm được:', nr, 'dòng · bấm dòng đầu bay tới:', c0 !== c1 ? '✓' : '— SAI không bay');
+await p.evaluate(() => { const i = document.querySelector('.tim input'); i.value = 'Xưởng phim mới'; i.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(300); await p.evaluate(() => document.querySelector('.tim-ds button')?.click()); await p.waitForTimeout(2500);
+const m0 = await q(() => [...document.querySelectorAll('.ngan .xg-ds > div')].filter((r) => !r.hidden).length); await p.fill('.ngan .xg-loc', 'dragon'); await p.waitForTimeout(200);
+const m1 = await q(() => [...document.querySelectorAll('.ngan .xg-ds > div')].filter((r) => !r.hidden).length);
+console.log('11 lọc thẻ xưởng:', m0, '→', m1, 'dòng khi lọc "dragon"', m1 > 0 && m1 < m0 ? '✓' : '— SAI', '· đầu mục dính:', await q(() => getComputedStyle(document.querySelector('.ngan .xg-ds summary')).position));
+await b.close();

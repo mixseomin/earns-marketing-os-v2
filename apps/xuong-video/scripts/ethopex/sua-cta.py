@@ -101,24 +101,26 @@ def main():
         r = sql(f"select ten, url from ethopex_content where id = {cid}", spy=True).split("\t")
         ten = (r[0] if r and r[0] else m.get("ten", "")).replace("（DUBBED）", "").replace("(Doblado)", "").strip(); url = r[1] if len(r) > 1 else ""
         lang = "es" if " ES - " in m.get("ten", "") else "en"
-        cu[old] = {"goc": m.get("goc"), "cid": cid, "truoc": bool(m.get("truoc"))}
+        cu[old] = {"goc": m.get("goc"), "cid": cid, "truoc": bool(m.get("truoc")), "tu_choi": bool(m.get("tu_choi"))}
         tm = nguon_sach(cid, url)
         if not tm: bao.append(f"{old}: chưa tải được tập sạch phim {cid}"); continue
         tu, den, qc = st.get("tu"), st.get("den"), st.get("nguon_qc")
         k = None
-        if tu is not None and qc:
+        tc = khoa("ethopex_tu_choi")
+        if m.get("tu_choi"): bao.append(f"{old}: Meta từ chối ({str(m.get('ly_do'))[:60]}) → không dựng lại đoạn cũ, lấy creative khác / góc mới")
+        elif tu is not None and qc:
             spy = nguon_spy(qc)
             if spy:
                 try: k = KN.main(spy, tm, float(tu), float(den))
                 except Exception as e: k = {"khop": False, "loi": str(e)[-120:]}
-        elif tu is not None: k = {"khop": True, "tu": float(tu), "den": float(den)}   # đoạn cũ đã cắt từ tập sạch: dựng lại đúng mốc
+        elif tu is not None and not m.get("tu_choi"): k = {"khop": True, "tu": float(tu), "den": float(den)}   # đoạn cũ đã cắt từ tập sạch: dựng lại đúng mốc
         if k and k.get("khop"):
             x = LL.lam({"content_id": cid, "lang": lang, "ten": ten, "tu": k["tu"], "den": k["den"], "camp": m.get("goc"), "lo": "sua"}, ra)
             if "loi" not in x: dung["canh that"].append(x); bao.append(f"{old}: dựng lại đúng đoạn {k['tu']:.0f}–{k['den']:.0f}s trên tập sạch"); continue
             bao.append(f"{old}: dựng lại đoạn khớp lỗi ({str(x['loi'])[:80]}) → góc khác")
         # không khớp: creative CTA đạt sẵn có của cùng phim (chưa là bản sửa của creative khác thì ưu tiên)
         co = [int(r) for r in sql(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {cid}").split() if r.isdigit()]
-        san = [c for c in sorted(co, reverse=True) if str(c) in dat]
+        san = [c for c in sorted(co, reverse=True) if str(c) in dat and str(c) not in tc and str(c) != old]
         if san:
             moi = next((c for c in san if c not in thay.values()), san[0])
             print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 ghi-cta-thay.py {old}:{moi}'").stdout.strip()[-200:])
@@ -129,6 +131,8 @@ def main():
         subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "3"], capture_output=True, text=True, timeout=3 * 3600)
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
+        if m.get("tu_choi") and tu is not None:   # bỏ góc chồng lên đoạn bị Meta từ chối
+            g = [x for x in g if not (float(x.get("tu", 0)) < float(den) and float(x.get("den", 0)) > float(tu))]
         if g: dung["canh cuoi"] += [{**x, "camp": m.get("goc"), "lo": "sua"} for x in g]; bao.append(f"{old}: cắt {len(g)} góc mới từ tập sạch: " + ", ".join(f"{x.get('tu'):.0f}–{x.get('den'):.0f}s" for x in g))
         else: bao.append(f"{old}: chưa dựng được bản sửa (khớp đoạn / góc mới đều lỗi)")
     for dang, ds in dung.items():
@@ -139,7 +143,10 @@ def main():
         print(r.stdout[-800:], r.stderr[-400:])
     thay = khoa("ethopex_cta_thay")
     for old, v in cu.items():
-        if old not in thay: continue
+        if old not in thay and not v["tu_choi"]: continue
+        if v["tu_choi"]:   # ad bị từ chối: thay ngay trong camp, không nhân bản
+            r = sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 thay-tu-choi.py --camp {int(v['goc'])}'", timeout=600)
+            bao.append(f"{old} (Meta từ chối) → thay trong camp #{v['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}"); continue
         if v["truoc"]: bao.append(f"{old} → #{thay[old]} · chuẩn bị sẵn cho camp #{v['goc']} (luật NB tự nhân bản khi tới lượt)"); continue
         if nb and v["goc"]:
             r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(v["goc"])} --that --lich today --luat "nhân bản camp thắng · bản sửa CTA #{thay[old]} thay creative #{old}" --ai "máy (anh 23/10/2026: phải luôn sửa lại CTA)"'""", timeout=600)

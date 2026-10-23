@@ -21,6 +21,7 @@
     'td[data-etp-ten="bat"]::before{content:"▶ BẬT";background:#1e8e3e;color:#fff}' +
     // theme tối của chính Ethopex (html.dark) — hàng tắt đổi sang đỏ trầm cho dễ đọc
     'html.dark tr[data-etp="tat"]{background:#3a1f1d!important}html.dark tr[data-etp="tat"] td{color:#ffb4ab!important}' +
+    'tr[data-etp-xem] td{background:rgba(37,99,235,.14)!important}tr[data-etp-xem] td:first-child{box-shadow:inset 4px 0 #2563eb}html.dark tr[data-etp-xem] td{background:rgba(89,168,255,.20)!important}html.dark tr[data-etp-xem] td:first-child{box-shadow:inset 4px 0 #59a8ff}' +
     // TỐI TRỌN TRANG REPORT (anh 24/10/2026 "theme tối vẫn chưa ổn"): Ethopex chỉ có bản tối cho màu nền chung — ~20 biến riêng của Report (thanh breakdown,
     // badge, ô ngày, header bảng, dòng ALL / TOTALS, hàng tạm dừng / chọn / rê) chỉ có giá trị sáng → nền kem, chữ không đọc được. Bổ sung bản tối cho đúng các biến đó.
     'html.dark{--table-header:#1d1d22;--table-header-foreground:#c9cad2;--table-row:#131317;--report-row-hover:#1f1f26;--report-row-paused-profit:#17241a;--report-row-paused-loss:#2a1a18;--report-row-paused-border:#4a4a52;--report-row-selected-profit:#1e3320;--report-row-selected-loss:#3a211d;--report-profit:#5fd36a;--report-profit-foreground:#4ade80;--report-loss:#ff7b7b;--report-loss-foreground:#f87171;--report-sidebar-selected:#25252c;--report-sidebar-hover:#1e1e24;--report-sidebar-section:#2a2620;--report-badge:#2e2b23;--report-chrome:#18181c;--report-menu-btn:#2e2b23;--report-active:#3b3420;--report-accent-link:#7aa7ff;--report-accent-link-hover:#a9c4ff}html.dark .bg-report-chrome,html.dark .bg-report-badge,html.dark .bg-table-header{color:#e4e4ea}' +
@@ -203,7 +204,13 @@
   const tien = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));
   const roi = (v) => (v == null ? '' : ' · <b style="color:' + (v >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (v > 0 ? '+' : '') + v + '%</b>');
   const phanTram = (v) => (v == null ? '' : '<b style="color:' + (v >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (v > 0 ? '+' : '') + v + '%</b>');
+  // DÒNG ĐANG XEM SÁNG LÊN (anh 24/10/2026: "đang xem widget cái nào thì highlight dòng đó"): hàng của chỗ vừa mở khung được tô nền xanh + vạch trái;
+  // khung đóng (mọi đường đóng) thì bỏ tô — theo dõi chính thuộc tính style của khung, không phải nhớ từng chỗ gọi đóng.
+  let dongXem = null;
+  const toDong = (tr) => { if (dongXem === tr) return; if (dongXem) dongXem.removeAttribute('data-etp-xem'); dongXem = tr || null; if (dongXem) dongXem.setAttribute('data-etp-xem', '1'); };
+  new MutationObserver(() => { if (o.style.display === 'none') toDong(null); }).observe(o, { attributes: true, attributeFilter: ['style'] });
   const hien = (html, ev) => {
+    const tr = ev?.target?.closest?.('tr'); if (tr && !o.contains(tr)) toDong(tr);
     o.innerHTML = html; o.style.display = 'block';
     const x = innerWidth < 600 ? 8 : Math.min(ev.clientX + 16, innerWidth - o.offsetWidth - 8), y = Math.max(8, Math.min(ev.clientY + 12, innerHeight - o.offsetHeight - 8));   // màn hẹp (iPhone): bám mép trái
     o.style.left = x + 'px'; o.style.top = y + 'px';

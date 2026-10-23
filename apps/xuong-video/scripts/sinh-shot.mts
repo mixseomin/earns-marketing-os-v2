@@ -3,6 +3,7 @@
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
 //   --mo-hinh=<key>              : model ảnh cho --keyframe (so A/B, vd gemini-nano-banana-2.1); mặc định theo kinh thánh.
 //   --video --thu                : sinh THỬ video ngoài quy trình (như nút 🧪 Sinh thử), ảnh cuối = keyframe kết nếu có
+//   --ghep-nen                   : (0đ) ghép lại nền ảnh kết / giữa từ ảnh Nano mới nhất (ghep-vung.ts › ghepNenKet)
 //   --keyframe-ket [--ep]        : sinh keyframe KẾT + GIỮA (khung 3D kết / giữa) → keyframe_ket / keyframe_giua — dải nhịp ảnh thứ 2 của video; --ep = cả shot không gắn cờ đổi khung
 //   --keyframe                   : sinh lại 1 keyframe cho mỗi shot, đợi xong, CHỌN ảnh mới làm keyframe đang dùng (ảnh cũ vẫn trong dải ứng viên,
 //                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
@@ -71,7 +72,7 @@ if (arg('xem')) {
   }
 process.exit(0);
 }
-if (!arg('keyframe') && !arg('keyframe-ket') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
+if (!arg('keyframe') && !arg('keyframe-ket') && !arg('ghep-nen') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
@@ -89,6 +90,21 @@ if (arg('keyframe')) {
     console.log(`  #${r.thu_tu} ${r.trang_thai} ${String(r.nhan).replace(/ · cảnh #\d+.*$/, '')} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}${chon ? ' · ĐÃ CHỌN làm keyframe' : ''}`);
   }
   for (const bc of bcs) { const c = await q(sql`SELECT keyframe_url FROM xv_canh WHERE id = ${bc.canh.id}`); console.log(`  #${bc.canh.thu_tu} keyframe đang chọn: ${c[0]?.keyframe_url ?? '(chưa có)'} (cần --duyet trước --video)`); }
+}
+// --ghep-nen (0đ + tách người ~$0,002 / người): GHÉP LẠI nền ảnh KẾT / GIỮA từ ảnh Nano mới nhất đã sinh (ghep-vung.ts › ghepNenKet) — sửa bước ghép không
+// phải trả tiền sinh lại ảnh.
+if (arg('ghep-nen')) {
+  const { ghepNenKet } = await import('../src/lib/xuong-video/ghep-vung');
+  for (const bc of bcs) for (const giua of [false, true]) {
+    const j = (await db.execute(sql`SELECT output_url FROM xv_job WHERE canh_id = ${bc.canh.id} AND request->>'dich' = ${giua ? 'keyframe_giua' : 'keyframe_ket'} AND trang_thai = 'xong' AND output_url IS NOT NULL ORDER BY id DESC LIMIT 1`)) as unknown as { output_url: string }[];
+    if (!j[0]) continue;
+    const g = await ghepNenKet(db, bc.canh.id, j[0].output_url, giua);
+    if (!g) { console.log(`  · #${bc.canh.thu_tu} ${giua ? 'GIỮA' : 'KẾT'}: không áp dụng (khung 3D chưa có góc kết)`); continue; }
+    if (giua) await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${g.url}, updated_at = now() WHERE id = ${bc.canh.id}`);
+    else await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${g.url}, updated_at = now() WHERE id = ${bc.canh.id}`);
+    console.log(`  #${bc.canh.thu_tu} ${giua ? 'GIỮA' : 'KẾT'} ghép nền ${g.url} · vùng AI ${g.vung}% · nền Nano lệch ${g.lech}%`);
+  }
+  process.exit(0);
 }
 // --keyframe-ket: sinh KEYFRAME KẾT (khung cuối, từ khung màu chỗ kết của bản 3D) → xv_canh.keyframe_ket; video nhận làm ảnh cuối.
 if (arg('keyframe-ket')) {

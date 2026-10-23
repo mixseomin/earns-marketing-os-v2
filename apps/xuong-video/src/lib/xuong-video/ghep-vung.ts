@@ -63,7 +63,7 @@ export async function ghepNhanDang(db: Db, canhId: number, chon = false): Promis
   const nguoiKf = await tachNguoi(db, canhId, bc.canh.thu_tu, bc.canh.keyframe_url, bc.canh.khung_xam?.mat_na ?? {}, W, H);
   if (nguoiKf.size) {
     const hop = Buffer.alloc(W * H); for (const a of nguoiKf.values()) for (let i = 0; i < W * H; i++) if (a[i]) hop[i] = 255;
-    const no = await sharp(hop, { raw: { width: W, height: H, channels: 1 } }).blur(Math.max(2, Math.round(W * 0.015))).threshold(8).raw().toBuffer();
+    const no = await sharp(hop, { raw: { width: W, height: H, channels: 1 } }).blur(Math.max(2, Math.round(W * 0.015))).threshold(8).extractChannel(0).raw().toBuffer();
     for (let i = 0; i < W * H; i++) if (no[i]! > 127) tru[i] = 1;
   }
   const boQua: string[] = [];
@@ -159,7 +159,7 @@ export async function ghepNenKet(db: Db, canhId: number, url: string, giua: bool
   noVung(M, W, H, r);
   for (let i = 0; i < W * H; i++) if (lay[i]! < 0) M[i] = 1;   // sảnh mới lộ: không có ảnh mở để chép (không nở thêm vào phần chép được)
   // Mép mềm: làm mờ mặt nạ → hệ số trộn 0..1
-  const al = await sharp(Buffer.from(M.map((x) => x * 255)), { raw: { width: W, height: H, channels: 1 } }).blur(Math.max(1, r / 2)).raw().toBuffer();
+  const al = await sharp(Buffer.from(M.map((x) => x * 255)), { raw: { width: W, height: H, channels: 1 } }).blur(Math.max(1, r / 2)).extractChannel(0).raw().toBuffer();   // sharp trả 3 kênh cho ảnh 1 kênh qua blur → đọc al[i] lệch chỗ (ảnh ghép #15 ra y ảnh đầu)
   const ra = Buffer.alloc(W * H * 3); let lech = 0, nNen = 0, nVung = 0;
   for (let i = 0; i < W * H; i++) {
     const k = lay[i]!; const a = k < 0 ? 1 : al[i]! / 255; if (M[i]) nVung++;

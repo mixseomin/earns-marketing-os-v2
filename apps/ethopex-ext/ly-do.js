@@ -31,8 +31,10 @@
     // SỐ CAMP Ở Ô TÊN PHIM (anh 23/10/2026: "để số sang phải, không icon, chỉ 2 số: active xanh, scheduled vàng, không hiện đã đóng"):
     // ::before = đang chạy (xanh), ::after = đã lên lịch (vàng), sát mép phải ô — vẽ bằng giả phần tử, không sửa DOM React
     'td[data-etp-chay]{position:relative;padding-right:50px!important}' +
-    'td[data-etp-chay]::before,td[data-etp-chay]::after{position:absolute;top:50%;transform:translateY(-50%);width:16px;text-align:right;font:700 12px/16px system-ui,sans-serif;font-variant-numeric:tabular-nums}' +
-    'td[data-etp-chay]::before{content:attr(data-etp-chay);right:26px;color:#1e8e3e}td[data-etp-chay]::after{content:attr(data-etp-lich);right:8px;color:#c98a00}' +
+    // hai số là PHẦN TỬ THẬT (rê vào số xanh = danh sách camp đang chạy, số vàng = camp đã lên lịch — anh 23/10/2026)
+    '.etp-so{position:absolute;top:50%;transform:translateY(-50%);right:8px;display:flex;gap:6px}' +
+    '.etp-so i{font:700 12px/16px system-ui,sans-serif;font-style:normal;font-variant-numeric:tabular-nums;min-width:12px;text-align:right;cursor:help}' +
+    '.etp-so i[data-k="chay"]{color:#1e8e3e}.etp-so i[data-k="lich"]{color:#c98a00}html.dark .etp-so i[data-k="chay"]{color:#7bd88f}html.dark .etp-so i[data-k="lich"]{color:#ffd54f}' +
     // BADGE DẠNG CREATIVE bên trái tên phim (anh 23/10/2026): KC kể chuyện · CT cảnh thật · CC cảnh cuối · PD phim dài · LM làm mới — chỉ dạng có camp đang chạy.
     // Đặt tuyệt đối trong ô (chừa lề trái theo số badge) để không xô bố cục React; rê vào badge = khung chỉ creative của dạng đó
     '.etp-loai{position:absolute;top:50%;transform:translateY(-50%);left:6px;display:flex;gap:3px}' +
@@ -40,7 +42,6 @@
     '.etp-loai b[data-loai="ke chuyen"]{background:#7b4fd6}.etp-loai b[data-loai="canh that"]{background:#1f7ae0}.etp-loai b[data-loai="canh cuoi"]{background:#0e9384}' +
     '.etp-loai b[data-loai="phim dai"]{background:#c2410c}.etp-loai b[data-loai="lam moi"]{background:#6b7280}.etp-loai b[data-loai="khac"]{background:#9ca3af}' +
     'td[data-etp-nloai="1"]{padding-left:36px!important}td[data-etp-nloai="2"]{padding-left:61px!important}td[data-etp-nloai="3"]{padding-left:86px!important}td[data-etp-nloai="4"]{padding-left:111px!important}td[data-etp-nloai="5"]{padding-left:136px!important}' +
-    'html.dark td[data-etp-chay]::before{color:#7bd88f}html.dark td[data-etp-chay]::after{color:#ffd54f}' +
     '#etp-theme{position:fixed;right:16px;top:14px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
   document.documentElement.appendChild(st);
   const laTat = (tr) => tr.classList.contains('opacity-30') || [...tr.children].some((x) => /^\s*Paused\s*$/i.test(x.textContent || ''));
@@ -94,7 +95,7 @@
   // TẢI SẴN (anh 22/10/2026 "có cách nào tải nhanh hơn"): mở trang là lấy luôn lý do đóng + creative của MỌI phim đang hiện (một lượt gọi) → rê vào là hiện ngay
   let dangTai = null;
   const LOAI_TAT = { 'ke chuyen': ['KC', 'Kể chuyện'], 'canh that': ['CT', 'Cảnh thật'], 'canh cuoi': ['CC', 'Cảnh cuối'], 'phim dai': ['PD', 'Phim dài'], 'lam moi': ['LM', 'Làm mới'], khac: ['?', 'Khác'] };
-  const tenTd = (td) => [...td.childNodes].filter((n) => !(n.classList && n.classList.contains('etp-loai'))).map((n) => n.textContent).join('').trim();
+  const tenTd = (td) => [...td.childNodes].filter((n) => !(n.classList && (n.classList.contains('etp-loai') || n.classList.contains('etp-so')))).map((n) => n.textContent).join('').trim();
   const tenPhimTrenTrang = () => [...document.querySelectorAll('tbody tr')].filter((tr) => !tr.closest('[data-etp-khung]') && ![...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || '')))
     .map((tr) => [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); }))
     .filter(Boolean).map(tenTd);
@@ -109,7 +110,11 @@
     }
     if (td.dataset.etpNloai !== String(ds.length)) td.dataset.etpNloai = String(ds.length);
     if (td.dataset.etpChay !== String(d.chay)) td.dataset.etpChay = String(d.chay);
-    if (td.dataset.etpLich !== String(d.lich)) td.dataset.etpLich = String(d.lich); } };
+    let so = td.querySelector(':scope > .etp-so'); const ks = `${d.chay}|${d.lich}`;
+    if ((so?.dataset.k ?? '') !== ks) {
+      if (!so) { so = document.createElement('span'); so.className = 'etp-so'; td.appendChild(so); }
+      so.dataset.k = ks; so.innerHTML = `<i data-k="chay" title="${d.chay} camp đang chạy">${d.chay}</i><i data-k="lich" title="${d.lich} camp đã lên lịch">${d.lich}</i>`;
+    } } };
   const taiSan = () => {
     veDem();
     const can = [...new Set(tenPhimTrenTrang())].filter((t) => !phimNho[t] || Date.now() - phimNho[t].luc > 120000).slice(0, 100);
@@ -174,16 +179,18 @@
     hien('<b>⏸ Camp #' + id + ' đã đóng</b><br>' + (h ? 'Không có trong nhật ký luật — đóng ngoài máy: <b>' + esc(h.ai) + '</b>' + (h.qua ? ' qua ' + esc(h.qua) : '') + ' · ' + esc(new Date(h.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })) : 'Chưa đọc được lý do (Ethopex chưa ghi lịch sử).'), ev);
   };
 
-  const vePhim = async (ten, ev, loai = null) => {
-    const kk = 'p' + ten + '|' + (loai || ''); if (dang === kk) return; dang = kk;
+  const vePhim = async (ten, ev, loai = null, kieu = null) => {
+    const kk = 'p' + ten + '|' + (loai || '') + '|' + (kieu || ''); if (dang === kk) return; dang = kk;
     hien('<b>🎬 ' + esc(ten) + '</b><br>đang tải creative…', ev);
     if (dangTai) await dangTai;   // đang tải sẵn cả trang → chờ nó, không gọi lẻ
     if (!phimNho[ten] || Date.now() - phimNho[ten].luc > 120000) {
       try { const r = await (await fetch(API + '&phim=' + encodeURIComponent(ten))).json(); phimNho[ten] = { luc: Date.now(), r }; } catch (e) { phimNho[ten] = { luc: Date.now(), r: { creative: [] } }; }
     }
     if (dang !== kk) return;
-    const r = phimNho[ten].r, ds = (r.creative || []).filter((c) => !loai || c.loai === loai);   // rê vào badge → chỉ creative của dạng đó
-    if (!ds.length) return hien('<b>🎬 ' + esc(ten) + '</b><br>Chưa nối được creative nào của phim này.', ev);
+    // rê vào badge → chỉ creative của dạng đó; rê vào số xanh / vàng → chỉ camp đang chạy / đã lên lịch (creative không còn camp nào thì ẩn)
+    const hop = (k) => (kieu === 'chay' ? k.trang_thai === 'ACTIVE' && !k.lich : kieu === 'lich' ? !!k.lich : true);
+    const r = phimNho[ten].r, ds = (r.creative || []).filter((c) => !loai || c.loai === loai).map((c) => (kieu ? { ...c, camp: c.camp.filter(hop) } : c)).filter((c) => !kieu || c.camp.length);
+    if (!ds.length) return hien('<b>🎬 ' + esc(ten) + '</b><br>' + (kieu ? 'Không có camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '.' : 'Chưa nối được creative nào của phim này.'), ev);
     // CHỈ SỐ THẲNG CỘT (anh 22/10/2026: "bố cục phần chỉ số thẳng cột với nhau cho đẹp và dễ theo dõi"): bảng nhãn | chi | → | thu | ROI, số căn phải,
     // chữ số đều bề ngang; dòng camp dùng chung cột: #id | nhãn BẬT/TẮT | ROI tháng
     const td_ = 'padding:1px 0 1px 8px;text-align:right;white-space:nowrap;color:inherit;border:0;background:none';
@@ -210,7 +217,7 @@
       '<colgroup><col style="width:92px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' +
       '<tr><td colspan="5" style="padding:0 0 1px;border:0;font-size:11px;opacity:.6;color:inherit">CẢ PHIM (cộng mọi creative)</td></tr>' +
       dong('<b>Tháng</b>', tong('thang')).replace('opacity:.75', 'opacity:1') + dong('<b>Hôm nay</b>', tong('hom_nay')).replace('opacity:.75', 'opacity:1') + '</table>';
-    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
+    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
   };
 
   document.addEventListener('mouseover', (ev) => {
@@ -226,7 +233,7 @@
     if ([...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || ''))) return anSau();   // hàng camp nhưng không phải ô tên
     // hàng PHIM (Report nhóm theo Content): ô đang rê phải là ô tên — ô chữ đầu tiên không phải số / tiền / %
     const o1 = [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); });
-    if (o1 === td) { const b = ev.target.closest && ev.target.closest('.etp-loai b'); return vePhim(tenTd(td), ev, b ? b.dataset.loai : null); }
+    if (o1 === td) { const b = ev.target.closest && ev.target.closest('.etp-loai b'), n = ev.target.closest && ev.target.closest('.etp-so i'); return vePhim(tenTd(td), ev, b ? b.dataset.loai : null, n ? n.dataset.k : null); }
     anSau();
   }, true);
   document.addEventListener('scroll', (ev) => { if (!o.contains(ev.target)) { o.style.display = 'none'; dang = null; } }, true);

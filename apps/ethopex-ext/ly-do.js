@@ -164,6 +164,37 @@
   document.addEventListener('click', (ev) => { if (ghim && !lon.contains(ev.target) && !(ev.target.dataset && ev.target.dataset.video !== undefined)) { ghim = false; dongLon(); } }, true);
   let trongKhung = false, an = null, doi = null;
   o.addEventListener('mouseenter', () => { trongKhung = true; clearTimeout(an); clearTimeout(doi); });
+  // KHUNG CHI TIẾT CAMP (rê vào chip camp trong khung phim): số tháng / hôm qua / hôm nay + biểu đồ 7 ngày (cột chi xám, cột thu xanh, ROI trên đầu)
+  const campNho = {}; const tip = document.createElement('div'); let henTip = null;
+  tip.style.cssText = 'position:fixed;z-index:2147483647;width:340px;max-width:92vw;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#141821;color:#eef2f8;font:12px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.45);border:1px solid #33405e;display:none;font-variant-numeric:tabular-nums';
+  tip.dataset.etpKhung = '1'; document.documentElement.appendChild(tip);
+  const bieuDo = (n7) => {
+    if (!n7 || !n7.length) return '';
+    const W = 312, H = 110, dd = 18, w = (W - 8) / n7.length, max = Math.max(0.5, ...n7.map((x) => Math.max(x.chi, x.thu)));
+    const cot = n7.map((x, i) => { const x0 = 4 + i * w, hc = (x.chi / max) * (H - dd - 16), ht = (x.thu / max) * (H - dd - 16), r = x.roi;
+      return '<rect x="' + (x0 + 3).toFixed(1) + '" y="' + (H - dd - hc).toFixed(1) + '" width="' + (w / 2 - 4).toFixed(1) + '" height="' + hc.toFixed(1) + '" fill="#6b7590"><title>chi $' + x.chi.toFixed(2) + '</title></rect>' +
+        '<rect x="' + (x0 + w / 2).toFixed(1) + '" y="' + (H - dd - ht).toFixed(1) + '" width="' + (w / 2 - 4).toFixed(1) + '" height="' + ht.toFixed(1) + '" fill="#3ccf6a"><title>thu $' + x.thu.toFixed(2) + '</title></rect>' +
+        (r == null ? '' : '<text x="' + (x0 + w / 2).toFixed(1) + '" y="' + Math.max(10, H - dd - Math.max(hc, ht) - 3).toFixed(1) + '" text-anchor="middle" font-size="9" fill="' + (r >= 0 ? '#7bd88f' : '#ff8a80') + '">' + (r > 0 ? '+' : '') + r + '%</text>') +
+        '<text x="' + (x0 + w / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="9" fill="#8a93a8">' + x.ngay.slice(8, 10) + '/' + x.ngay.slice(5, 7) + '</text>'; }).join('');
+    return '<svg width="' + W + '" height="' + H + '" style="display:block;margin-top:6px"><line x1="0" x2="' + W + '" y1="' + (H - dd) + '" y2="' + (H - dd) + '" stroke="#33405e"/>' + cot + '</svg>' +
+      '<div style="font-size:10px;opacity:.7">▮ xám = chi · ▮ xanh = thu · số trên cột = ROI ngày (ngày Ethopex 07:00–07:00 VN)</div>';
+  };
+  const hienTip = (el) => {
+    const k = campNho[el.dataset.etpCamp]; if (!k) return;
+    const d = (x) => (x ? '$' + x.chi.toFixed(2) + ' → $' + x.thu.toFixed(2) + ' ' + (x.roi == null ? '' : phanTram(x.roi)) : '—');
+    tip.innerHTML = '<b>Camp #' + k.id + '</b> · ' + (k.lich ? 'lên lịch' : k.trang_thai === 'ACTIVE' ? '▶ đang chạy $' + k.ngan_sach + '/ngày' : '⏸ tắt') + ' · bộ ' + esc(k.bo) +
+      '<div style="opacity:.75;margin-top:2px">' + esc(String(k.ten || '').slice(0, 90)) + '</div>' +
+      '<div style="opacity:.75">' + (k.goc ? 'nhân bản từ camp #' + k.goc + ' · ' : '') + (k.tao ? 'tạo ' + new Date(k.tao).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
+      (k.chung > 1 && k.trang_thai === 'ACTIVE' ? '<div style="margin-top:4px;color:#ffd08a">⚔ Dùng y nguyên creative đang chạy ở ' + k.chung + ' camp — tự cạnh tranh cùng tệp người xem' + (k.chung > 3 ? ' (vượt trần 3 camp/đoạn)' : '') + '</div>' : '') +
+      '<table style="border-collapse:collapse;margin-top:6px;color:inherit;font:inherit">' + [['Tháng', k], ['Hôm qua', k.hom_qua], ['Hôm nay', k.hom_nay]].map(([n, x]) => '<tr><td style="padding:1px 10px 1px 0;opacity:.75;border:0;color:inherit">' + n + '</td><td style="padding:1px 0;border:0;color:inherit">' + d(x) + '</td></tr>').join('') + '</table>' +
+      bieuDo(k.ngay7);
+    tip.style.display = 'block';
+    const r = el.getBoundingClientRect(), ro = o.getBoundingClientRect();
+    let x = ro.left - tip.offsetWidth - 8; if (x < 8) x = Math.min(innerWidth - tip.offsetWidth - 8, ro.right + 8);
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, Math.min(r.top - 20, innerHeight - tip.offsetHeight - 8)) + 'px';
+  };
+  o.addEventListener('mouseover', (ev) => { const el = ev.target.closest && ev.target.closest('[data-etp-camp]'); clearTimeout(henTip); if (!el) { tip.style.display = 'none'; return; } henTip = setTimeout(() => hienTip(el), CHAM ? 0 : 250); });
+  o.addEventListener('mouseleave', () => { clearTimeout(henTip); tip.style.display = 'none'; });
   o.addEventListener('mouseleave', () => { trongKhung = false; if (ghim) return; o.style.display = 'none'; dang = null; dongLon(); });
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const tien = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));
@@ -243,11 +274,15 @@
       }).join('');
       return '<svg width="' + rong + '" height="' + cao + '" style="flex:none;display:block;cursor:help"><line x1="0" x2="' + rong + '" y1="' + giua + '" y2="' + giua + '" stroke="rgba(160,160,160,.35)"/>' + cot + '</svg>';
     };
-    const chipCamp = (k) => {
+    // CHIP CAMP THẲNG CỘT (anh 24/10/2026): lưới 2 cột, mỗi chip = [#id + trạng thái | ROI căn phải], chữ số đều bề ngang.
+    // ⚔ = camp dùng lại y nguyên creative đang chạy ở camp khác (cùng đoạn → tự đấu giá với nhau); rê vào chip: chi tiết + biểu đồ 7 ngày của camp.
+    const chipCamp = (k, chung) => {
+      campNho[k.id] = { ...k, chung };
       const [nen_, chu] = k.lich ? ['#b26a00', '⏳ ' + esc(new Date(String(k.lich).replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }))]
-        : k.trang_thai === 'ACTIVE' ? ['#1e8e3e', '▶ $' + k.ngan_sach + (k.moi ? ' · mới' : '')] : ['#d93025', '⏸'];
-      return '<span title="' + esc('Camp #' + k.id + (k.moi && k.trang_thai === 'ACTIVE' ? ' · mới lên, chưa tiêu' : '') + ' · ROI tháng ' + chuRoi(k.roi)) + '" style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 0 0;padding:0 6px 0 0;border-radius:9px;background:rgba(127,127,127,.18);font-size:11px;white-space:nowrap">' +
-        '<b style="background:' + nen_ + ';color:#fff;border-radius:9px;padding:0 6px">#' + k.id + ' ' + chu + '</b>' + (k.roi == null ? '' : phanTram(k.roi)) + '</span>';
+        : k.trang_thai === 'ACTIVE' ? ['#1e8e3e', '▶ $' + k.ngan_sach] : ['#d93025', '⏸'];
+      return '<span data-etp-camp="' + k.id + '" style="display:grid;grid-template-columns:1fr 48px;align-items:center;border-radius:9px;background:rgba(127,127,127,.18);font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums;cursor:help">' +
+        '<b style="background:' + nen_ + ';color:#fff;border-radius:9px;padding:0 6px;overflow:hidden;text-overflow:ellipsis">#' + k.id + ' ' + chu + (chung > 1 && k.trang_thai === 'ACTIVE' ? ' ⚔' : '') + (k.moi && k.trang_thai === 'ACTIVE' ? ' ·mới' : '') + '</b>' +
+        '<span style="text-align:right;padding-right:6px">' + (k.roi == null ? '—' : phanTram(k.roi)) + '</span></span>';
     };
     const choNb = (k) => (k.cho_nb ? '<div style="font-size:11px;color:#ffb74d">⏳ #' + k.id + ' nhân bản đang chờ (' + esc(k.cho_nb.luc) + '): ' + esc(String(k.cho_nb.loi).split(' — ')[0].slice(0, 110)) + '</div>' : '');
     const the = ds.slice(0, 12).map((c) => {
@@ -255,9 +290,10 @@
       const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:54px;height:96px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:54px;height:96px;background:#333;border-radius:4px;flex:none"></div>';
       return '<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid #3a3631' + (lo ? ';opacity:.55' : '') + '">' + anh + '<div style="min-width:0;flex:1">' +
         '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b>#' + (c.creative_id || '?') + '</b> <b style="color:#ffd54f">' + esc(LOAI_TAT[c.loai]?.[0] || '?') + '</b>' + (c.doan ? ' ' + esc(c.doan) : '') +
-        ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt</span>' : '<span style="color:#ffb74d">CTA cũ</span>') + (c.video ? ' · <a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff">video</a>' : '') + '</div>' +
+        ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt</span>' : '<span style="color:#ffb74d">CTA cũ</span>') +
+        ((c.chay || 0) > 1 ? ' <span title="' + esc('Đoạn video này đang chạy ở ' + c.chay + ' camp cùng lúc — cùng tệp người xem, các camp tự đấu giá với nhau (giá hiển thị đội lên, video bão hoà nhanh). Luật 23/10/2026: mỗi đoạn tối đa 3 camp; nhân bản mới tự dùng góc khác của phim.') + '" style="background:' + (c.chay > 3 ? '#7a3e00;color:#ffd08a' : 'rgba(127,127,127,.3);color:inherit') + ';border-radius:8px;padding:0 6px;cursor:help">⚔ ' + c.chay + ' camp cùng đoạn</span>' : '') + (c.video ? ' · <a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff">video</a>' : '') + '</div>' +
         '<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div style="display:flex;gap:4px;flex:1;min-width:0">' + o3('tháng', c.thang) + o3('h.qua', c.hom_qua) + o3('h.nay', c.hom_nay) + '</div>' + cot7(c.ngay7) + '</div>' +
-        '<div style="margin-top:3px">' + c.camp.slice(0, 8).map(chipCamp).join('') + (c.camp.length > 8 ? '<span style="font-size:11px;opacity:.7">+' + (c.camp.length - 8) + ' camp</span>' : '') + '</div>' +
+        '<div style="margin-top:4px;display:grid;grid-template-columns:1fr 1fr;gap:3px 6px">' + c.camp.slice(0, 10).map((k) => chipCamp(k, c.chay || 0)).join('') + '</div>' + (c.camp.length > 10 ? '<div style="font-size:11px;opacity:.7;margin-top:2px">+' + (c.camp.length - 10) + ' camp</div>' : '') +
         c.camp.slice(0, 8).map(choNb).join('') + '</div></div>';
     }).join('');
     // ĐẦU KHUNG = CẢ PHIM (cộng mọi creative đang hiện) — ROI tháng chữ to + lãi/lỗ $ · hôm nay · cột 7 ngày cả phim

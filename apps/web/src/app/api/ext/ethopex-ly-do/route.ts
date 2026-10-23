@@ -47,7 +47,10 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const creative = [...nhom.entries()].map(([cr, ds]) => ({
     creative_id: cr > 0 ? cr : null, loai: loaiCua(ds[0]!.ten), anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
     doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
-    camp: ds.map((c) => ({ id: c.id, bo: c.bo ?? '1', trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
+    // từng camp: thêm số hôm nay / hôm qua / 7 ngày + tên, ngày tạo, camp gốc nhân bản — khung chi tiết + biểu đồ khi rê vào chip camp (anh 24/10/2026)
+    camp: ds.map((c) => ({ id: c.id, bo: c.bo ?? '1', trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang),
+      ten: c.ten, tao: c.tao, goc: Number((c.ten.match(/\(nhan ban \d+ cua (\d+)\)/) ?? [])[1]) || null, hom_nay: so(c.hom_nay), hom_qua: so(c.hom_qua), ngay7: ngay7([c]) })).sort((a, b) => b.thu - a.thu),
+    chay: ds.filter((c) => c.trang_thai === 'ACTIVE').length,   // số camp ĐANG CHẠY cùng creative này — > 3 = tự cạnh tranh (luật 1 đoạn ≤ 3 camp, 23/10/2026)
     thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)), ngay7: ngay7(ds),
   })).sort((a, b) => (b.thang.roi ?? -1e9) - (a.thang.roi ?? -1e9) || b.thang.thu - a.thang.thu);   // ROI tháng cao nhất lên đầu, creative chưa tiêu xuống cuối (anh duyệt 23/10/2026)
   // ĐẾM THEO PHIM cho nhãn ở danh sách Report (anh 23/10/2026 "show số lượng camp đang active, scheduled ở danh sách")

@@ -7,6 +7,7 @@
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
 import { KHU_XUONG, LINH_VUC, TEN_BAN, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 import { wrapExternalUrl } from '@/lib/external-url';
+import { nhoLanMoi, phanLoaiLan } from '@/lib/loai-lan';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
 
 const CDN = ['https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js', 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'];
@@ -104,6 +105,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       <b>Điều khiển</b><div class="dk">
         <label><input type="checkbox" data-dk="daoTruot"> Đảo chiều vuốt 2 ngón</label>
         <label><input type="checkbox" data-dk="daoPhong"> Đảo chiều phóng (lăn / chụm)</label>
+        <label>Lăn bánh xe <select data-dk="lan"><option value="tu">tự nhận chuột / touchpad</option><option value="phong">luôn là phóng</option></select></label>
         <label>Kéo chuột / 1 ngón <select data-dk="keo"><option value="xoay">xoay</option><option value="truot">trượt</option></select></label>
         <label>Tốc độ xoay <input type="range" min="0.4" max="2" step="0.1" data-dk="tocXoay"></label></div>
       <b>Traffic</b><div class="hang" data-o="loc-nen"></div>
@@ -139,8 +141,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // còn iPhone bắn thêm gesturechange khiến xoay hai lần → tự xử ở onCham2 (phóng + xoay + trượt quanh điểm mặt đất dưới giữa hai ngón, như bản đồ)
   ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: -1 as any };
   // CÀI ĐẶT ĐIỀU KHIỂN (anh 23/10/2026 "chỗ config control như invert scroll — giống các app 3D"): đảo chiều vuốt, đảo chiều phóng, kéo = xoay / trượt, tốc độ xoay; nhớ theo máy
-  type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number };
-  const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1 };
+  type CaiDk = { daoTruot: boolean; daoPhong: boolean; keo: 'xoay' | 'truot'; tocXoay: number; lan: 'tu' | 'phong' };
+  const DK0: CaiDk = { daoTruot: false, daoPhong: false, keo: 'xoay', tocXoay: 1, lan: 'tu' };
   let dk: CaiDk = (() => { try { return { ...DK0, ...JSON.parse(localStorage.getItem('tp-dk') ?? '{}') }; } catch { return { ...DK0 }; } })();
   const apDk = () => { ctl.mouseButtons = dk.keo === 'xoay' ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN } : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }; ctl.rotateSpeed = .6 * dk.tocXoay; };
   apDk();
@@ -1183,12 +1185,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   ctl.addEventListener('change', danhThuc); r.domElement.addEventListener('pointermove', danhThuc);
   // lăn: chụm touchpad (ctrlKey) hoặc chuột có nấc → phóng; vuốt 2 ngón touchpad (delta mịn, có ngang) → trượt theo mặt đất
   const vPhai = new THREE.Vector3(), vTruoc = new THREE.Vector3(); let henLuu = 0;
+  // thiết bị lăn nhận ra chắc chắn gần nhất, nhớ qua F5 — ca mơ hồ (chuột macOS delta nhỏ, vuốt touchpad thẳng đứng) đi theo nó
+  let tbDaLuu: 'chuot' | 'pad' | null = (() => { try { const v = localStorage.getItem('tp-lan'); return v === 'chuot' || v === 'pad' ? v : null; } catch { return null; } })();
+  const nhoLan = nhoLanMoi(tbDaLuu);
   const onWheel = (e: WheelEvent) => {
     e.preventDefault(); e.stopPropagation(); danhThuc(); bay = null;
-    const chuot = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40 && Number.isInteger(e.deltaY));
+    // chuột thường hay touchpad: lib/loai-lan.ts (anh 23/10/2026 "tao dùng chuột thường" — chuột macOS gửi delta nhỏ 4, 8…, luật cũ "≥ 40 px" biến lăn chuột thành trượt)
+    const phongLan = phanLoaiLan(e, nhoLan, dk.lan === 'phong') === 'phong';
+    if (nhoLan.thietBi && nhoLan.thietBi !== tbDaLuu) { tbDaLuu = nhoLan.thietBi; try { localStorage.setItem('tp-lan', tbDaLuu); } catch { /* chế độ riêng tư */ } }
+    // mỗi nấc bánh xe phóng một bước đều (~×1,17) dù trình duyệt báo 4 px hay 100 px; chụm touchpad theo đúng độ chụm
+    const buoc = e.ctrlKey ? e.deltaY * .012 : Math.sign(e.deltaY) * Math.max(Math.abs(e.deltaY), nhoLan.thietBi === 'pad' ? 0 : 100) * .0016;
     // PHÓNG VỀ CHỖ CON TRỎ (anh 23/10/2026 "trên pc làm sao zoom"): như Google Maps / Blender "Zoom to Mouse Position" — điểm mặt đất dưới con trỏ đứng yên,
     // camera và tâm nhìn cùng co giãn quanh điểm đó (cùng cách chụm 2 ngón trên điện thoại ở onCham2)
-    if (e.ctrlKey || chuot) { const kc = cam.position.distanceTo(ctl.target), k = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * Math.exp((dk.daoPhong ? -1 : 1) * e.deltaY * (e.ctrlKey ? .012 : .0016)))) / kc;
+    if (phongLan) { const kc = cam.position.distanceTo(ctl.target), k = Math.max(ctl.minDistance, Math.min(ctl.maxDistance, kc * Math.exp((dk.daoPhong ? -1 : 1) * buoc))) / kc;
       datDuoi(e.clientX, e.clientY, oG); cam.position.sub(oG).multiplyScalar(k).add(oG); ctl.target.sub(oG).multiplyScalar(k).add(oG); }
     else { const kc = cam.position.distanceTo(ctl.target) * .0016; vPhai.setFromMatrixColumn(cam.matrix, 0).setY(0).normalize(); vTruoc.copy(ctl.target).sub(cam.position).setY(0).normalize();
       // mặc định: cảnh đi theo ngón tay như kéo bản đồ (vuốt lên = phố trôi lên = nhìn xa hơn theo trục phố); 'đảo chiều' lật cả hai trục

@@ -39,6 +39,9 @@ async function napDoan(): Promise<Map<number, string>> {
   const db = getDb(); const m = new Map<number, string>();
   if (db) for (const r of (await db.execute(sql`SELECT (kinh_thanh->'ethopex'->>'creative_id')::int AS cr, kinh_thanh->'ethopex'->>'content_id' AS ct, round((kinh_thanh->'ethopex'->>'tu')::numeric) AS tu, round((kinh_thanh->'ethopex'->>'den')::numeric) AS den
       FROM xv_phim WHERE project = 'ethopex' AND kinh_thanh->'ethopex' ? 'creative_id' AND coalesce(kinh_thanh->'ethopex'->>'tu', '') <> ''`)) as unknown as { cr: number; ct: string; tu: string; den: string }[]) m.set(Number(r.cr), `${r.ct}:${r.tu}-${r.den}`);
+  // bản sửa CTA cắt lại cùng CẢNH từ tập sạch → mốc giây khác bản cũ (video QC spy): nối theo sổ ethopex_cta_thay {cũ: mới} — cũ mang đoạn của mới
+  if (db) { const t = ((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_cta_thay'`)) as unknown as { gia_tri: Record<string, number> | null }[])[0]?.gia_tri ?? {};
+    for (const [cu, moi] of Object.entries(t)) m.set(Number(cu), m.get(Number(moi)) ?? `cr:${moi}`); }
   doanNho = { luc: Date.now(), m }; return m;
 }
 let DOAN = new Map<number, string>();

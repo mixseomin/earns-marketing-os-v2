@@ -9,6 +9,7 @@
 // Sau tầng 3: scripts/soat-huong.mts (cổng hướng) + scripts/truyen-tranh.mts (đọc như truyện tranh).
 //   … tsx scripts/bang-gom.mts --tap=356 [--tu=1 --den=17] --tang=1|2|3|tat-ca [--t1=<url tầng 1>] [--khoi=6] [--cot=4]
 //   --so-do=scripts/du-lieu/<bảng mảnh>.json : tầng 1 kèm tờ phác bố trí vẽ từ sơ đồ cảnh · --chi-phac (0đ): chỉ vẽ tờ phác
+//   --tang=khoi --so-do=… : AI vẽ từng khối --khoi khung theo tờ phác của khối + bảng khối trước, rồi phóng (tầng 3) · --chi-khoi: dừng sau khối
 //   --chi-cat (0đ): chỉ dò + cắt tầng 1 / ảnh --bang ra /tmp để soát
 // TỐN TIỀN: tầng 1 = 1 ảnh · tầng 2 = 1 ảnh / khối · tầng 3 = 1 ảnh / khung (cổng ảnh --mo-hinh) — chạy kèm DUYET_SINH_1_LAN=1 sau khi anh duyệt.
 import sharp from 'sharp';
@@ -144,6 +145,37 @@ if (tang === '2' || tang === 'tat-ca') {
   }
 }
 if (tang === '2') process.exit(0);
+
+// ── TẦNG KHỐI theo tờ phác (--tang=khoi, anh 24/10/2026): 17 khung một ảnh làm model quá tải ở 768×1376 (#356: Vivian đổi tóc, mất tranh, Hạ đeo lại
+// thẻ đã bị giật) → tổng quan cả cảnh là TỜ PHÁC máy vẽ (0đ, đúng sơ đồ); AI vẽ từng khối ≤ 6 khung: ảnh 1 = tờ phác của khối (lưới 2 cột, khung
+// đúng vị trí / hướng), ảnh 2 = bảng khối TRƯỚC (nối mặt, sảnh, trạng thái đồ) — rồi tầng 3 phóng từng khung như thường.
+if (tang === 'khoi') {
+  if (!bm) { console.error('cần --so-do=<bảng mảnh JSON có so_do>'); process.exit(1); }
+  moc.t2 = {}; moc.khoi = []; let truoc: string | null = null;
+  for (let a = 0; a < ds.length; a += khoi) {
+    const nhom = ds.slice(a, a + khoi); const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2);
+    const CW = 360, CH = 640, G = 14;
+    const o = await Promise.all(nhom.map((c) => { const m = bm.shot[c.thu_tu - 1]?.sd; return m ? sharp(Buffer.from(svgPhac(bm.so_do, m, bm.nguoi, bm.mau ?? {}, CW, CH))).png().toBuffer() : sharp({ create: { width: CW, height: CH, channels: 3, background: '#e9e9ec' } }).png().toBuffer(); }));
+    const phacKhoi = await len(await sharp({ create: { width: cot2 * CW + (cot2 + 1) * G, height: hang2 * CH + (hang2 + 1) * G, channels: 3, background: '#ffffff' } })
+      .composite(o.map((x, j) => ({ input: x, left: G + (j % cot2) * (CW + G), top: G + Math.floor(j / cot2) * (CH + G) }))).jpeg({ quality: 90 }).toBuffer(), `phac-khoi-${nhom[0]!.thu_tu}`);
+    const refs = thamChieu(nhom, truoc ? 6 : 7); const lech = truoc ? 3 : 2;
+    const mauChu = Object.entries(bm.mau ?? {}).map(([n, c]) => `${c === '#f4f4f4' ? 'white' : c === '#141414' ? 'black' : 'dark red'} figure = ${n}`).join(', ');
+    const prompt = [`A film storyboard sheet of EXACTLY ${nhom.length} separate panels (${cot2} columns × ${hang2} rows, read left to right, top to bottom), every panel a vertical 9:16 photorealistic live-action film still of equal size, separated by thin plain white gutters. ${KHONG_CHU}`,
+      `Image 1 is the BLOCKING SKETCH of this exact sheet: the same grid and panel order. In every panel copy its camera framing and staging exactly — where the back wall, the elevator doors (light grey) and the gold painting (yellow) are, where each person stands and how big they are (${mauChu}), and the red arrow = the direction that person looks. Turn the sketch into photorealistic film stills; never draw the sketch shapes, colours or arrows themselves.`,
+      ...(truoc ? ['Image 2 is the PREVIOUS sheet of this same scene, just before these panels: keep exactly the same place, light, faces, hair, outfits and the state of every object as it ends there (what was taken stays taken).'] : []),
+      `Reference images: ${refs.map(([k], i) => `Image ${i + lech} = ${k}`).join('; ')}.`,
+      'Every panel happens in that same place (never a blank or plain wall background — close-ups still show it softly behind).',
+      ...nhom.map((c, j) => `PANEL ${j + 1} — ${moTaKhung(c)}`)].join('\n');
+    const u2 = await sinh({ nhan: `Phân cảnh khối #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu} (theo tờ phác)`, prompt, refs: [phacKhoi, ...(truoc ? [truoc] : []), ...refs.map(([, u]) => u)], tiLe: '9:16', kichCo: '2K', thuMuc: `bang/${tap}` });
+    const b2 = await tai(u2); const d2 = await doKhung(b2, nhom.length);
+    console.log(`khối #${nhom[0]!.thu_tu}–#${nhom.at(-1)!.thu_tu}: ${u2} — dò ${d2.khung.length} khung (${d2.mo_ta})`);
+    if (d2.khung.length !== nhom.length) { console.error('  số khung không khớp — dừng, sinh lại khối này'); luu(); process.exit(1); }
+    for (const [j, c] of nhom.entries()) moc.t2[c.thu_tu] = await len(await cat(b2, d2.khung[j]!), `t2-${c.id}`);
+    moc.khoi.push(u2); truoc = u2; luu();
+    await ghiTap({ khoi: moc.khoi.map((url, j) => ({ tu: ds[j * khoi]!.thu_tu, den: ds[Math.min(ds.length, (j + 1) * khoi) - 1]!.thu_tu, url })) });
+  }
+  if (process.argv.includes('--chi-khoi')) process.exit(0);
+}
 
 // ── TẦNG 3: khung chi tiết → keyframe ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 for (const c of ds) {

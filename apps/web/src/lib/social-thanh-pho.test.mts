@@ -147,7 +147,7 @@ assert.equal(siteOf('https://www.ratesbyroom.com/x?y=1'), 'ratesbyroom.com'); as
 assert.equal(siteOf(null), null); assert.equal(siteOf(''), null); assert.equal(siteOf('http://'), null);
 // ETHOPEX (góp ý #1439): toà nền tảng giữ tiền Kho bạc (một lần); camp theo CỤM PHIM — đang chạy mỗi camp một toà, tắt gộp một toà kho / phim,
 // bản nhân bản trỏ camp gốc, lên lịch / vi phạm có loại riêng
-const camps = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, ten: `Phim ${i % 5} EN - canh that`, phim: `Phim ${i % 5}`, phimId: 100 + (i % 5), ngonNgu: 'en', trangThai: i < 20 ? 'active' : 'paused', thu30: i, chi30: i / 2 }));
+const camps = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, ten: `Phim ${i % 5} EN - canh that`, phim: `Phim ${i % 5}`, phimId: 100 + (i % 5), ngonNgu: 'en', trangThai: i < 20 ? 'active' : 'paused', thu30: i, chi30: i / 2, thuHom: i % 3, chiHom: 1, ngayHom: '2026-10-23' }));
 camps.push({ id: 30, ten: 'Phim 0 EN - canh that (nhan ban 2 cua 1)', phim: 'Phim 0', phimId: 100, ngonNgu: 'en', trangThai: 'active', thu30: 1, chi30: 1 } as any,
   { id: 31, ten: 'Phim 0 EN - canh that (nhan ban 1 cua 21)', phim: 'Phim 0', phimId: 100, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0 } as any,
   { id: 32, ten: 'Phim 1 EN - ke chuyen', phim: 'Phim 1', phimId: 101, ngonNgu: 'en', trangThai: 'active', thu30: 0, chi30: 0, lich: true, dang: 'kể chuyện' } as any,
@@ -163,6 +163,8 @@ assert.equal(cs.filter((c) => c.campLoai !== 'tat').length, 20 + 5, 'mọi camp 
 assert.ok(cs.every((c) => c.cha === 'n:ethopex' && c.cumPhim), 'mọi camp thuộc nền tảng và có cụm phim');
 assert.deepEqual(kho.map((c) => `${c.cumPhim}=${c.soTat}`).sort(), ['f:100=1', 'f:101=1', 'f:102=1', 'f:103=1', 'f:104=1', 'f:tắt=1'], 'camp đã tắt gộp MỘT toà kho mỗi phim (camp không phim gom theo tên)');
 assert.equal(kho.find((c) => c.cumPhim === 'f:100')!.tien30, 20, 'toà kho cộng thu của camp tắt trong phim');
+assert.ok(cId(2)!.thuHom === 1 && cId(2)!.chiHom === 1, 'camp mang thu / chi ngày báo cáo mới nhất (bảng hiệu phim)');
+assert.ok(kho.find((c) => c.cumPhim === 'f:100')!.chiHom === 1 && hub.ngayHom === '2026-10-23' && hub.chiHom === 25, 'kho + toà nền tảng cộng số hôm nay, nhớ ngày báo cáo');
 assert.equal(cId(30)!.campGoc, 'c:1', 'bản nhân bản trỏ camp gốc đang hiện');
 assert.equal(cId(31)!.campGoc, null, 'gốc đã tắt (vào kho) thì bản nhân bản đứng riêng');
 assert.ok(cId(32)!.campLoai === 'lich' && cId(32)!.dangCr === 'kể chuyện', 'camp lên lịch + dạng creative');

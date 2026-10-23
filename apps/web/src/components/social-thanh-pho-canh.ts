@@ -452,6 +452,15 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // bố cục cụm phim của mỗi toà nền tảng — dựng lại mỗi lần dung(), thẻ hover đọc lại
   type CumP = { cum: string; ten: string; goc: PhoDich[]; nb: Map<string, PhoDich[]>; lich: PhoDich[]; kho: PhoDich | null; cot: number; O: number; w: number; h: number; x: number; z: number; tien: number };
   const boCumP = new Map<string, { nua: number; cum: CumP[]; hub: { x: number; z: number } }>();
+  // SỐ MỖI PHIM (anh 23/10/2026 "làm sao nhìn được ROI · profit · cost · revenue của từng phim, từng camp trên city"): cộng mọi camp của cụm (kể cả kho camp tắt);
+  // hôm nay = ngày báo cáo mới nhất của Ethopex (cùng số với bảng Content), ROI = (thu − chi) / chi như bảng đó
+  type SoPhim = { tH: number; cH: number; t30: number; c30: number };
+  const campCum = (o: CumP) => [...o.goc, ...[...o.nb.values()].flat(), ...o.lich, ...(o.kho ? [o.kho] : [])];
+  const soCum = (o: CumP): SoPhim => campCum(o).reduce((a, c) => ({ tH: a.tH + (c.thuHom ?? 0), cH: a.cH + (c.chiHom ?? 0), t30: a.t30 + (c.tien30 ?? 0), c30: a.c30 + (c.chi30 ?? 0) }), { tH: 0, cH: 0, t30: 0, c30: 0 });
+  const roiCua = (thu: number, chi: number) => (chi > 0 ? (thu - chi) / chi : null);
+  const roiChu = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
+  const usd = (n: number) => `$${Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2)}`;
+  const ngayNgan = (s: string | null | undefined) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : 'hôm nay');
   function dung() {
     boCumP.clear();
     scene.remove(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
@@ -578,7 +587,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const quangTruongSite = (d: typeof mh.dich[number], x0: number, z0: number) => {
       // nền tảng (Ethopex): toà dời về ô của nó trong khối cụm phim, các sân phim dựng quanh
       const bo = d.loai === 'nen' ? cumPhimCua(d) : null, x = x0 + (bo ? bo.hub.x + LECH_THAP : 0), z = z0 + (bo ? bo.hub.z + LECH_THAP : 0);
-      if (bo) for (const o of bo.cum) sanPhim(o, x0 + o.x, z0 + o.z, d);
+      if (bo) { for (const o of bo.cum) sanPhim(o, x0 + o.x, z0 + o.z, d); bangXepHang(d, bo, x0 + bo.hub.x - LECH_THAP, z0 + bo.hub.z + LECH_THAP); }
       const qt = add(new THREE.BoxGeometry(40, .7, 40), GACH, false); qt.position.set(x, .35, z);
       if (d.loai === 'site') thapSite(d, x, z); else if (d.loai === 'app') toaApp(d, x, z); else if (d.loai === 'nen') toaNen(d, x, z); else toaSp(d, x, z);
       qt.userData = { chu: null };
@@ -642,7 +651,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     function sanPhim(o: CumP, cx: number, cz: number, hub: typeof mh.dich[number]) {
       const san = add(new THREE.BoxGeometry(o.w, .5, o.h), M({ color: '#15213a', roughness: .9 }), false); san.position.set(cx, .45, cz); san.userData = { loai: 'cum-phim', cum: o.cum, hub: hub.khoa }; ds.san!.push(san);
       const nb = [...o.nb.values()].reduce((a, x) => a + x.length, 0), chay = o.goc.length + nb;
-      chuNen(`🎬 ${o.ten} · ${chay} chạy${o.lich.length ? ` · ${o.lich.length} lịch` : ''}${o.kho ? ` · ${o.kho.soTat} tắt` : ''}`, cx, cz + o.h / 2 - 11, o.w - 4, '#9fc0ff');
+      bangHieuPhim(o, `${chay} chạy${o.lich.length ? ` · ${o.lich.length} lịch` : ''}${o.kho ? ` · ${o.kho.soTat} tắt` : ''}`, cx, cz + o.h / 2, hub);
       const gx = cx - o.w / 2 + 6 + o.O / 2, gz = cz - o.h / 2 + o.O / 2 + 2;
       o.goc.forEach((c, n) => { const px = gx + (n % o.cot) * o.O, pz = gz + Math.floor(n / o.cot) * o.O; toaCamp(c, px, pz, 'goc');
         (o.nb.get(c.khoa) ?? []).forEach((b2, i, a) => { const g2 = (i / a.length) * Math.PI * 2 + Math.PI / 4; toaCamp(b2, px + Math.cos(g2) * 12, pz + Math.sin(g2) * 12, 'nb'); }); });
@@ -650,6 +659,44 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       for (const c of o.lich) { toaCamp(c, bx, bz, 'lich'); bz += 13; }
       if (o.kho) toaKho(o.kho, bx, bz + 9);
       chiMuc.push({ ten: `${o.ten} (cụm phim)`, nhan: 'phim Ethopex', obj: san });
+    }
+    // BẢNG HIỆU PHIM (anh 23/10/2026 "chữ tên phim viết dưới nền bé và khó đọc — làm cái bảng hiệu"): biển đứng trên cột ở mép trước sân phim, luôn quay mặt
+    // về camera (sprite) nên đọc được ở mọi góc xoay; ghi tên phim + ROI / lãi / chi / thu ngày báo cáo mới nhất + ROI / lãi 30 ngày; viền xanh lãi · đỏ lỗ.
+    // Rê chuột lên biển = thẻ bảng camp của phim (cùng thẻ với sân).
+    function bangHieuPhim(o: CumP, phu: string, x: number, z: number, hub: typeof mh.dich[number]) {
+      const so = soCum(o), r = roiCua(so.tH, so.cH), r30 = roiCua(so.t30, so.c30), mau = so.cH <= 0 && so.tH <= 0 ? '#6b7592' : so.tH >= so.cH ? '#3fd68a' : '#ff4d5e';
+      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 300; const g = cv.getContext('2d')!;
+      g.fillStyle = '#0c1326ee'; g.strokeStyle = mau; g.lineWidth = 10; g.beginPath(); (g as any).roundRect ? (g as any).roundRect(6, 6, 628, 288, 22) : g.rect(6, 6, 628, 288); g.fill(); g.stroke();
+      const vua = (chu: string, co: number, max: number, nang = 800) => { let c = co; g.font = `${nang} ${c}px system-ui, sans-serif`; while (g.measureText(chu).width > max && c > 18) { c -= 2; g.font = `${nang} ${c}px system-ui, sans-serif`; } };
+      g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#ffffff'; vua(o.ten, 46, 596); g.fillText(o.ten, 22, 52);
+      g.fillStyle = '#8e9abd'; g.font = '700 22px system-ui, sans-serif'; g.fillText(ngayNgan(hub.ngayHom).toUpperCase(), 22, 108);
+      g.fillStyle = mau; g.font = '900 64px system-ui, sans-serif'; g.fillText(roiChu(r), 22, 150);
+      g.textAlign = 'right'; g.fillStyle = mau; vua(`lãi ${usd(so.tH - so.cH)}`, 46, 330); g.fillText(`lãi ${usd(so.tH - so.cH)}`, 616, 116);
+      g.fillStyle = '#d6def5'; vua(`chi ${usd(so.cH)} · thu ${usd(so.tH)}`, 32, 360, 700); g.fillText(`chi ${usd(so.cH)} · thu ${usd(so.tH)}`, 616, 166);
+      g.textAlign = 'left'; g.fillStyle = '#b8c3e0'; vua(`30 ngày: ROI ${roiChu(r30)} · lãi ${usd(so.t30 - so.c30)} · chi ${usd(so.c30)}`, 28, 596, 700); g.fillText(`30 ngày: ROI ${roiChu(r30)} · lãi ${usd(so.t30 - so.c30)} · chi ${usd(so.c30)}`, 22, 222);
+      g.fillStyle = '#7f8db5'; vua(`🎬 ${phu}`, 26, 596, 700); g.fillText(`🎬 ${phu}`, 22, 264);
+      const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+      const Wb = Math.max(58, Math.min(96, o.w * .8)), Hb = Wb * 300 / 640, day = 16;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'cum-phim', cum: o.cum, hub: hub.khoa }; the.add(sp);
+      const cot = add(new THREE.CylinderGeometry(.8, .8, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x, day / 2, z); cot.userData = { chu: null };
+    }
+    // BẢNG XẾP HẠNG PHIM cạnh toà nền tảng: như bảng Content của Ethopex — phim có tiêu tiền ngày báo cáo mới nhất, xếp theo ROI, dòng TỔNG cuối
+    function bangXepHang(hub: typeof mh.dich[number], bo: { cum: CumP[] }, x: number, z: number) {
+      const ds_ = bo.cum.map((o) => ({ o, so: soCum(o) })).filter((v) => v.so.cH > 0 || v.so.tH > 0).sort((a, b) => (roiCua(b.so.tH, b.so.cH) ?? 9) - (roiCua(a.so.tH, a.so.cH) ?? 9)).slice(0, 18);
+      const tong = ds_.reduce((a, v) => ({ t: a.t + v.so.tH, c: a.c + v.so.cH }), { t: 0, c: 0 }), cao = 96 + (ds_.length + 1) * 34 + 16;
+      const cv = document.createElement('canvas'); cv.width = 720; cv.height = cao; const g = cv.getContext('2d')!;
+      g.fillStyle = '#0c1326f0'; g.fillRect(0, 0, 720, cao); g.strokeStyle = '#4fd1ff'; g.lineWidth = 8; g.strokeRect(4, 4, 712, cao - 8);
+      g.textBaseline = 'middle'; g.fillStyle = '#ffffff'; g.font = '800 34px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(`🎬 Phim · ${ngayNgan(hub.ngayHom)}`, 20, 38);
+      const COT = [['ROI', 430], ['Lãi', 530], ['Chi', 620], ['Thu', 704]] as const;
+      g.font = '700 20px system-ui, sans-serif'; g.fillStyle = '#8e9abd'; g.fillText('PHIM', 20, 80); g.textAlign = 'right'; for (const [t, cx] of COT) g.fillText(t.toUpperCase(), cx, 80);
+      const dong = (y: number, ten: string, t: number, c: number, dam = false) => { const r = roiCua(t, c), mau = t >= c ? '#3fd68a' : '#ff4d5e';
+        g.textAlign = 'left'; g.fillStyle = '#e6ecff'; g.font = `${dam ? 800 : 600} 22px system-ui, sans-serif`; let tt = ten; while (g.measureText(tt).width > 340 && tt.length > 4) tt = tt.slice(0, -2); g.fillText(tt === ten ? ten : `${tt}…`, 20, y);
+        g.textAlign = 'right'; g.fillStyle = mau; g.fillText(roiChu(r), 430, y); g.fillText(usd(t - c), 530, y); g.fillStyle = '#d6def5'; g.fillText(usd(c), 620, y); g.fillText(usd(t), 704, y); };
+      ds_.forEach((v, i) => dong(114 + i * 34, v.o.ten, v.so.tH, v.so.cH));
+      g.fillStyle = '#2a3352'; g.fillRect(16, 96 + ds_.length * 34, 688, 2); dong(114 + ds_.length * 34, 'TỔNG', tong.t, tong.c, true);
+      const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; const Wb = 120, Hb = Wb * cao / 720, day = 14;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'dich', d: hub }; the.add(sp);
+      for (const dx of [-Wb * .3, Wb * .3]) { const cot = add(new THREE.CylinderGeometry(1, 1, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x + dx, day / 2, z); cot.userData = { chu: null }; }
     }
     // toà CAMP (góp ý #1439): hình theo dạng creative (kể chuyện = trụ tròn · cảnh thật = khối vuông · cảnh cuối = khối mái chóp · phim dài = khối dẹt dài ·
     // khác = trụ lục giác), màu theo trạng thái (xanh lãi · đỏ lỗ · tím vi phạm · xanh nhạt trong suốt = lên lịch), cao theo thu + chi 30 ngày;
@@ -1006,9 +1053,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     if (u.loai === 'cum-phim') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
       if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.lich, ...(o.kho ? [o.kho] : [])];
-        return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.lich.length} lịch · ${o.kho?.soTat ?? 0} tắt`]],
-          bang: { cot: ['Camp', 'Dạng', '💵 Thu', 'Lãi'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'lich' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc((c.ten.split(' - ').slice(1).join(' - ') || c.ten).replace(/\s*\(nhan ban \d+ cua \d+\)$/, '').slice(0, 30))}`,
-            esc(c.dangCr ?? '—'), tienO(c.tien30), `${(c.tien30 ?? 0) >= (c.chi30 ?? 0) ? '🟢' : '🔴'} ${tienO((c.tien30 ?? 0) - (c.chi30 ?? 0))}`]) } }; } }
+        const v = soCum(o), mauV = v.tH >= v.cH ? '#3fd68a' : '#ff4d5e', ng = ngayNgan(hub?.ngayHom);
+        return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.lich.length} lịch · ${o.kho?.soTat ?? 0} tắt`],
+          [`📅 ${ng}`, `ROI <b style="color:${mauV}">${roiChu(roiCua(v.tH, v.cH))}</b> · lãi ${usd(v.tH - v.cH)} · chi ${usd(v.cH)} · thu ${usd(v.tH)}`],
+          ['30 ngày', `ROI ${roiChu(roiCua(v.t30, v.c30))} · lãi ${usd(v.t30 - v.c30)} · chi ${usd(v.c30)} · thu ${usd(v.t30)}`]],
+          bang: { cot: ['Camp', `ROI ${ng}`, 'Lãi', 'Chi', 'Thu'], dong: ds3.slice(0, 14).map((c) => [`${c.campLoai === 'tat' ? '⏸' : c.campLoai === 'lich' ? '⏳' : c.campLoai === 'vi-pham' ? '⛔' : c.campGoc ? '↳' : '🎬'}${c.sapTat ? '💨' : ''}${c.nhanBanDuoc ? '⧉' : ''} ${esc((c.ten.split(' - ').slice(1).join(' - ') || c.ten).replace(/\s*\(nhan ban \d+ cua \d+\)$/, '').slice(0, 30))}`,
+            ...((t, c2) => { const mau = t >= c2 ? '#3fd68a' : '#ff4d5e'; return [`<span style="color:${mau}">${roiChu(roiCua(t, c2))}</span>`, `<span style="color:${mau}">${usd(t - c2)}</span>`, usd(c2), usd(t)]; })(c.thuHom ?? 0, c.chiHom ?? 0)]) } }; } }
     if (u.loai === 'xuong-vung' || u.loai === 'tham-dinh') { const xs = mh.dich.filter((d) => d.duAn === KHU_XUONG && !d.cha && (u.loai === 'tham-dinh' ? d.giaiDoan === 'tham-dinh' : d.giaiDoan !== 'tham-dinh' && d.vungSx === u.vung));
       return { dau: u.loai === 'tham-dinh' ? '🔍 Phòng thẩm định' : `🏭 Xưởng SX · ${VUNG_SX[u.vung]!.ic} ${VUNG_SX[u.vung]!.ten}`, h: [[u.loai === 'tham-dinh' ? 'Đã nộp, chờ duyệt' : 'Đang làm / sẵn sàng', xs.length]],
         bang: { cot: ['Sản phẩm', 'Dự án', 'Trạng thái'], dong: xs.map((d) => [`${d.hostBan ? oFav(d.hostBan, 14) : d.loai === 'app' ? '📱' : '🛍'} ${esc(d.ten.slice(0, 28))}`, esc((d.duAnGocTen ?? '—').slice(0, 16)), esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? (d.giaiDoan === 'tham-dinh' ? 'đang duyệt' : 'đang làm'))]) } };
@@ -1033,6 +1083,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     if (u.loai === 'dich') { const d = u.d as typeof mh.dich[number];
       const tienH: [string, string][] = [...(d.tien30 != null ? [['💵 Thu 30 ngày', `$${d.tien30.toFixed(2)} · ${esc(d.tienPhan?.map((p) => p.loai).join(' + ') || d.loaiTien || '')}`] as [string, string]] : []),
         ...(d.chi30 != null ? [['💸 Chi 30 ngày', `$${d.chi30.toFixed(2)}`] as [string, string], [(d.tien30 ?? 0) >= d.chi30 ? '🟢 Lãi' : '🔴 Lỗ', `$${((d.tien30 ?? 0) - d.chi30).toFixed(2)}`] as [string, string]] : [])];
+      const homH: [string, string][] = d.thuHom != null || d.chiHom != null ? [[`📅 ${ngayNgan(mh.dich.find((x) => x.khoa === d.cha)?.ngayHom ?? d.ngayHom)}`,
+        `ROI <b style="color:${(d.thuHom ?? 0) >= (d.chiHom ?? 0) ? '#3fd68a' : '#ff4d5e'}">${roiChu(roiCua(d.thuHom ?? 0, d.chiHom ?? 0))}</b> · lãi ${usd((d.thuHom ?? 0) - (d.chiHom ?? 0))} · chi ${usd(d.chiHom ?? 0)} · thu ${usd(d.thuHom ?? 0)}`]] : [];
       const khuTen = (x: typeof d) => esc(x.duAn === KHU_XUONG ? `Xưởng SX · ${x.duAnGocTen ?? ''}` : khuCua(x.duAn)?.ten ?? '—');
       if (d.loai === 'app') { const ban = mh.dich.filter((b) => b.cha === d.khoa);
         return { dau: `📱 ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH],
@@ -1042,15 +1094,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (d.loai === 'nen') { const cs = mh.dich.filter((b) => b.cha === d.khoa), song = cs.filter((c) => c.campLoai !== 'tat'), phim = boCumP.get(d.khoa)?.cum ?? [];
         return { dau: `${oFav(d.hostBan ?? 'facebook.com')} ${esc(d.ten)}`, h: [['Dự án', khuTen(d)], ...tienH, ['Cụm phim', String(phim.length)],
           ['Camp', `${song.filter((c) => c.campLoai === 'chay').length} chạy · ${song.filter((c) => c.campLoai === 'lich').length} lịch · ${song.filter((c) => c.campLoai === 'vi-pham').length} vi phạm · ${cs.reduce((a, c) => a + (c.soTat ?? 0), 0)} tắt`]],
-          bang: { cot: ['Phim', 'Camp', '💵 Thu 30n', 'Lãi'], dong: phim.slice(0, 12).map((o) => { const all = [...o.goc, ...[...o.nb.values()].flat(), ...o.lich, ...(o.kho ? [o.kho] : [])], t = all.reduce((a, c) => a + (c.tien30 ?? 0), 0), c2 = all.reduce((a, c) => a + (c.chi30 ?? 0), 0);
-            return [esc(o.ten.slice(0, 26)), String(all.length - (o.kho ? 1 : 0) + (o.kho?.soTat ?? 0)), tienO(t), `${t >= c2 ? '🟢' : '🔴'} ${tienO(t - c2)}`]; }) } };
+          // bảng như Content của Ethopex: phim tiêu tiền ngày báo cáo mới nhất, xếp theo ROI
+          bang: { cot: [`Phim · ${ngayNgan(d.ngayHom)}`, 'ROI', 'Lãi', 'Chi', 'Thu'], dong: phim.map((o) => ({ o, so: soCum(o) })).filter((v) => v.so.cH || v.so.tH).sort((a, b) => (roiCua(b.so.tH, b.so.cH) ?? 9) - (roiCua(a.so.tH, a.so.cH) ?? 9)).slice(0, 16)
+            .map(({ o, so: v }) => { const mau = v.tH >= v.cH ? '#3fd68a' : '#ff4d5e'; return [esc(o.ten.slice(0, 28)), `<span style="color:${mau}">${roiChu(roiCua(v.tH, v.cH))}</span>`, `<span style="color:${mau}">${usd(v.tH - v.cH)}</span>`, usd(v.cH), usd(v.tH)]; }) } };
       }
-      if (d.loai === 'camp' && d.campLoai === 'tat') return { dau: `⏸ Kho camp đã tắt · ${esc(d.phim ?? '')}`, h: [['Số camp tắt', String(d.soTat ?? 0)], ...tienH] };
+      if (d.loai === 'camp' && d.campLoai === 'tat') return { dau: `⏸ Kho camp đã tắt · ${esc(d.phim ?? '')}`, h: [['Số camp tắt', String(d.soTat ?? 0)], ...homH, ...tienH] };
       if (d.loai === 'camp') return { dau: `🎬 ${esc(d.phim ?? d.ten)}`, h: [['Camp', esc(d.ten)], ['Dạng creative', esc(d.dangCr ?? '—')], ['Ngôn ngữ', esc((d.ngonNgu ?? '—').toUpperCase())],
         ['Trạng thái', { chay: '🟢 đang chạy', lich: '⏳ đã lên lịch (camp mới)', 'vi-pham': '⛔ ad bị Meta từ chối', tat: '⏸ đã tắt' }[d.campLoai ?? 'chay'] ?? esc(d.trangThai ?? '')],
         ...(d.campGoc ? [['Nhân bản của', esc(mh.dich.find((x) => x.khoa === d.campGoc)?.ten ?? d.campGoc)] as [string, string]] : []),
         ...(d.nhanBanDuoc ? [['⧉ Nhân bản', 'đủ luật NB — máy tự nhân bản ở nhịp kế'] as [string, string]] : []),
-        ...(d.sapTat ? [['💨 Lỗ sâu', 'chạm luật tắt (ROI < −50%, tiêu > $10) — chờ anh duyệt'] as [string, string]] : []), ...tienH] };
+        ...(d.sapTat ? [['💨 Lỗ sâu', 'chạm luật tắt (ROI < −50%, tiêu > $10) — chờ anh duyệt'] as [string, string]] : []), ...homH, ...tienH] };
       if (d.loai === 'sp') return { dau: `${d.hostBan ? oFav(d.hostBan) : '🛍'} ${esc(d.ten)}`, h: [['Cửa bán', esc(TEN_BAN[d.nenBan ?? ''] ?? d.nenBan ?? '—')], ['Dự án', khuTen(d)], ['Trạng thái', d.sapLen ? `🏗 ${esc(TRANG_THAI_VN[d.trangThai ?? ''] ?? d.trangThai ?? 'sắp lên')}` : '🟢 đang bán'],
         ['👁 Lượt xem trang 7 ngày', so(d.xem7 ?? null)], ['⬇ Lượt tải 30 ngày', so(d.tai ?? null)], ['💵 Thực nhận 30 ngày', d.net == null ? 'chưa đo' : `$${d.net.toFixed(2)}`]] };
       const ve = mh.luong.filter((l) => l.den === d.khoa).sort((a, b) => b.so - a.so);

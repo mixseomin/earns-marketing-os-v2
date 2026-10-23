@@ -28,9 +28,12 @@
     'td[data-etp-so]::before{content:"$";position:absolute;left:var(--etp-pl,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);opacity:.55;font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums}' +
     'td[data-etp-so]::after{content:attr(data-etp-so);position:absolute;right:var(--etp-pr,12px);top:50%;transform:translateY(-50%);color:var(--etp-mau);font-weight:var(--etp-dam,inherit);font-variant-numeric:tabular-nums;white-space:nowrap}' +
     'td[data-etp-am]::after,td[data-etp-am]::before{color:#d93025}html.dark td[data-etp-am]::after,html.dark td[data-etp-am]::before{color:#ff8a80}' +
-    // NHÃN ĐẾM CAMP Ở Ô TÊN PHIM (anh 23/10/2026): ▶ đang chạy · ⏳ đã lên lịch (Scheduled) · ⏸ tắt — vẽ bằng ::before, không sửa DOM React
-    'td[data-etp-dem]::before{content:attr(data-etp-dem);display:inline-block;margin-right:8px;padding:1px 7px;border-radius:10px;background:rgba(30,142,62,.14);color:#1e7a37;font:600 11px/16px system-ui,sans-serif;font-variant-numeric:tabular-nums;vertical-align:middle;white-space:pre}' +
-    'html.dark td[data-etp-dem]::before{background:rgba(123,216,143,.16);color:#7bd88f}' +
+    // SỐ CAMP Ở Ô TÊN PHIM (anh 23/10/2026: "để số sang phải, không icon, chỉ 2 số: active xanh, scheduled vàng, không hiện đã đóng"):
+    // ::before = đang chạy (xanh), ::after = đã lên lịch (vàng), sát mép phải ô — vẽ bằng giả phần tử, không sửa DOM React
+    'td[data-etp-chay]{position:relative;padding-right:76px!important}' +
+    'td[data-etp-chay]::before,td[data-etp-chay]::after{position:absolute;top:50%;transform:translateY(-50%);width:28px;text-align:right;font:700 12px/16px system-ui,sans-serif;font-variant-numeric:tabular-nums}' +
+    'td[data-etp-chay]::before{content:attr(data-etp-chay);right:42px;color:#1e8e3e}td[data-etp-chay]::after{content:attr(data-etp-lich);right:10px;color:#c98a00}' +
+    'html.dark td[data-etp-chay]::before{color:#7bd88f}html.dark td[data-etp-chay]::after{color:#ffd54f}' +
     '#etp-theme{position:fixed;right:16px;top:14px;z-index:2147483646;width:30px;height:30px;border-radius:15px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.15);cursor:pointer;font:15px/28px system-ui;text-align:center;padding:0}';
   document.documentElement.appendChild(st);
   const laTat = (tr) => tr.classList.contains('opacity-30') || [...tr.children].some((x) => /^\s*Paused\s*$/i.test(x.textContent || ''));
@@ -88,8 +91,8 @@
   const oTenPhim = () => [...document.querySelectorAll('tbody tr')].filter((tr) => ![...tr.querySelectorAll('a')].some((x) => /^\s*\d{5,6}:/.test(x.textContent || '')))
     .map((tr) => [...tr.children].find((x) => { const t = (x.textContent || '').trim(); return t.length > 3 && !/^[-+$\d.,%\s]+$/.test(t); })).filter(Boolean);
   const veDem = () => { for (const td of oTenPhim()) { const d = phimNho[td.textContent.trim()]?.r?.dem; if (!d) continue;
-    const chu = `▶ ${d.chay}` + (d.lich ? `  ⏳ ${d.lich}` : '') + (d.tat ? `  ⏸ ${d.tat}` : ''); if (td.dataset.etpDem !== chu) td.dataset.etpDem = chu;
-    td.title = `${d.chay} camp đang chạy · ${d.lich} camp đã lên lịch (Scheduled) · ${d.tat} camp tắt`; } };
+    if (td.dataset.etpChay !== String(d.chay)) td.dataset.etpChay = String(d.chay);
+    if (td.dataset.etpLich !== String(d.lich)) td.dataset.etpLich = String(d.lich); } };
   const taiSan = () => {
     veDem();
     const can = [...new Set(tenPhimTrenTrang())].filter((t) => !phimNho[t] || Date.now() - phimNho[t].luc > 120000).slice(0, 100);

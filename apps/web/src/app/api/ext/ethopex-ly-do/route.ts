@@ -32,24 +32,29 @@ const loaiCua = (ten: string) => LOAI.find((l) => ten.toLowerCase().includes(l))
 const laLich = (c: { bat_dau?: string | null }) => !!c.bat_dau && Date.parse(c.bat_dau.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')) > Date.now();   // Scheduled: Ad Set chưa tới giờ chạy
 function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const k = chuan(phim);
-  if (k.length < 6) return { so_camp: 0, dem: { bo: null as string | null, chay: 0, lich: 0, tat: 0, loai: {} as Record<string, number> }, creative: [] };
+  if (k.length < 6) return { so_camp: 0, dem: { bo: null as string | null, chay: 0, lich: 0, tat: 0, loai: {} as Record<string, number> }, creative: [], ngay7: [] as { ngay: string; chi: number; thu: number; roi: number | null }[] };
   const khop = (a: string) => a.length >= 8 && (a.includes(k) || k.includes(a));
   const cua = d.camps.filter((c) => khop(loi(c.ten)) || (!!c.phim && khop(chuan(c.phim))));
   const nhom = new Map<number, typeof cua>();
   for (const c of cua) { const key = c.creative_id ?? -c.id; nhom.set(key, [...(nhom.get(key) ?? []), c]); }
   const cong = (ds: typeof cua, f: (c: (typeof cua)[number]) => { chi: number; thu: number }) => ds.reduce((a, c) => ({ chi: a.chi + f(c).chi, thu: a.thu + f(c).thu }), { chi: 0, thu: 0 });
   const so = (x: { chi: number; thu: number }) => ({ chi: +x.chi.toFixed(2), thu: +x.thu.toFixed(2), roi: x.chi >= 0.1 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null });
+  // ROI 7 NGÀY (anh 23/10/2026 duyệt biểu đồ cột nhỏ mỗi creative + cả phim) — từ ngayCamp (Report ngày × camp, ngày Ethopex) docEthopex đã kéo sẵn
+  const NGAY = Array.from({ length: 7 }, (_, i) => new Date(Date.now() + (d.ngayUtc ? 0 : 7) * 3600_000 - (6 - i) * 86_400_000).toISOString().slice(0, 10));
+  const theoNgay = new Map<string, { chi: number; thu: number }>();
+  for (const x of d.ngayCamp) { const key = x.camp + '|' + x.ngay; const a = theoNgay.get(key) ?? { chi: 0, thu: 0 }; a.chi += x.chi; a.thu += x.thu; theoNgay.set(key, a); }
+  const ngay7 = (ds: { id: number }[]) => NGAY.map((n) => ({ ngay: n, ...so(ds.reduce((a, c) => { const x = theoNgay.get(c.id + '|' + n); return x ? { chi: a.chi + x.chi, thu: a.thu + x.thu } : a; }, { chi: 0, thu: 0 })) }));
   const creative = [...nhom.entries()].map(([cr, ds]) => ({
     creative_id: cr > 0 ? cr : null, loai: loaiCua(ds[0]!.ten), anh: ds.find((c) => c.anh)?.anh ?? null, video: ds.find((c) => c.video)?.video ?? null, dang: ds[0]!.dang_creative,
     doan: (ds[0]!.ten.match(/(\d+-\d+s)/) ?? [])[1] ?? null, cta_dat: cr > 0 && dat.has(String(cr)),
     camp: ds.map((c) => ({ id: c.id, bo: c.bo ?? '1', trang_thai: c.trang_thai, ngan_sach: c.ngan_sach, moi: c.thang.chi === 0, lich: laLich(c) ? c.bat_dau : null, cho_nb: choNb[String(c.id)] ?? null, ...so(c.thang) })).sort((a, b) => b.thu - a.thu),
-    thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)),
-  })).sort((a, b) => b.thang.thu - a.thang.thu);
+    thang: so(cong(ds, (c) => c.thang)), hom_nay: so(cong(ds, (c) => c.hom_nay)), hom_qua: so(cong(ds, (c) => c.hom_qua)), ngay7: ngay7(ds),
+  })).sort((a, b) => (b.thang.roi ?? -1e9) - (a.thang.roi ?? -1e9) || b.thang.thu - a.thang.thu);   // ROI tháng cao nhất lên đầu, creative chưa tiêu xuống cuối (anh duyệt 23/10/2026)
   // ĐẾM THEO PHIM cho nhãn ở danh sách Report (anh 23/10/2026 "show số lượng camp đang active, scheduled ở danh sách")
   const loai: Record<string, number> = {}; for (const c of cua) if (c.trang_thai === 'ACTIVE') loai[loaiCua(c.ten)] = (loai[loaiCua(c.ten)] ?? 0) + 1;
   const boDem = new Map<string, number>(); for (const c of cua) boDem.set(c.bo ?? '1', (boDem.get(c.bo ?? '1') ?? 0) + 1);
   const dem = { bo: [...boDem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null, chay: cua.filter((c) => c.trang_thai === 'ACTIVE' && !laLich(c)).length, lich: cua.filter((c) => c.trang_thai === 'ACTIVE' && laLich(c)).length, tat: cua.filter((c) => c.trang_thai !== 'ACTIVE').length, loai };
-  return { so_camp: cua.length, dem, creative };
+  return { so_camp: cua.length, dem, creative, ngay7: ngay7(cua) };
 }
 
 export async function OPTIONS() { return new NextResponse(null, { headers: CORS }); }

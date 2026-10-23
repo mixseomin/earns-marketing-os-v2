@@ -69,7 +69,7 @@ EOF'""", timeout=3600)
         a = sh(f"{D}/kiem-studio.sh {x['creative_id']} {x['content_id']} < /dev/null", timeout=900).stdout.strip().splitlines()[-1:]
         b = sh(f"{D}/kiem-thoai-creative.sh {x['creative_id']} < /dev/null", timeout=1800)
         if not (a and a[0].startswith("STUDIO OK")): x["loi"] = (a or ["studio ?"])[0]
-        elif b.returncode != 0: x["loi"] = b.stdout.strip().splitlines()[-1][:200]
+        elif b.returncode != 0: x["loi"] = ((b.stdout.strip() or b.stderr.strip() or f"cổng chữ lỗi mã {b.returncode}").splitlines() or ["?"])[-1][:200]   # cổng chết không in gì (23/10/2026 lô moisom gãy cả lô vì [-1] của rỗng)
     with ThreadPoolExecutor(4) as ex: list(ex.map(cong, lo))
     dat = [str(x["creative_id"]) for x in lo if not x.get("loi")]
     if dat: print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 kiem-cta.py --dat {' '.join(dat)} lô {ma} qua cổng'").stdout.strip())

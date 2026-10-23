@@ -222,33 +222,51 @@
     const hop = (k) => (kieu === 'chay' ? k.trang_thai === 'ACTIVE' && !k.lich : kieu === 'lich' ? !!k.lich : true);
     const r = phimNho[ten].r, ds = (r.creative || []).filter((c) => !loai || c.loai === loai).map((c) => (kieu ? { ...c, camp: c.camp.filter(hop) } : c)).filter((c) => !kieu || c.camp.length);
     if (!ds.length) return hien('<b>🎬 ' + esc(ten) + '</b><br>' + (kieu ? 'Không có camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '.' : 'Chưa nối được creative nào của phim này.'), ev);
-    // CHỈ SỐ THẲNG CỘT (anh 22/10/2026: "bố cục phần chỉ số thẳng cột với nhau cho đẹp và dễ theo dõi"): bảng nhãn | chi | → | thu | ROI, số căn phải,
-    // chữ số đều bề ngang; dòng camp dùng chung cột: #id | nhãn BẬT/TẮT | ROI tháng
-    const td_ = 'padding:1px 0 1px 8px;text-align:right;white-space:nowrap;color:inherit;border:0;background:none';
-    const dong = (nhan, x) => '<tr><td style="padding:1px 0;opacity:.75;color:inherit;border:0">' + nhan + '</td><td style="' + td_ + '">' + tien(x.chi) + '</td><td style="padding:1px 0 1px 6px;opacity:.5;color:inherit;border:0">→</td><td style="' + td_ + '">' + tien(x.thu) +
-      '</td><td style="' + td_ + ';min-width:52px">' + phanTram(x.roi) + '</td></tr>';
-    const nhanCamp = (k) => k.lich ? '<span style="background:#b26a00;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏳ LỊCH ' + esc(new Date(String(k.lich).replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })) + '</span>' : k.trang_thai === 'ACTIVE' ? '<span style="background:#1e8e3e;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">▶ BẬT $' + k.ngan_sach + '</span>' : '<span style="background:#d93025;color:#fff;border-radius:8px;padding:0 6px;font-weight:700">⏸ TẮT</span>';
+    // HIỆU SUẤT TRỰC QUAN (anh 23/10/2026 duyệt 5 mục): 1 ô ROI tô màu theo mức lãi/lỗ (tiền chi → thu ở hover) · 2 cột ROI 7 ngày mỗi creative + cả phim ·
+    // 3 creative xếp ROI tháng cao → thấp (server), lỗ cả tháng thì mờ · 4 camp thành chip một dòng · 5 đầu khung: ROI tháng chữ to + lãi/lỗ $ cả phim
+    const nen = (v) => (v == null ? 'rgba(127,127,127,.28)' : v >= 0 ? 'rgba(30,142,62,' + (0.3 + Math.min(v, 150) / 150 * 0.65).toFixed(2) + ')' : 'rgba(217,48,37,' + (0.3 + Math.min(-v, 100) / 100 * 0.65).toFixed(2) + ')');
+    const chuRoi = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + v + '%');
+    const goiY = (nhan, x) => esc(nhan + ': chi ' + tien(x.chi) + ' → thu ' + tien(x.thu) + ' · lãi ' + (x.thu - x.chi >= 0 ? '+' : '−') + '$' + Math.abs(x.thu - x.chi).toFixed(2));
+    const o3 = (nhan, x) => '<div title="' + goiY(nhan, x) + '" style="flex:1;min-width:0;text-align:center;border-radius:5px;padding:2px 0 1px;background:' + nen(x.roi) + ';color:#fff;cursor:help">' +
+      '<div style="font-weight:700;font-size:13px;font-variant-numeric:tabular-nums">' + chuRoi(x.roi) + '</div><div style="font-size:10px;opacity:.85">' + nhan + '</div></div>';
+    const cot7 = (ds7, rong = 84, cao = 30) => {
+      if (!ds7 || !ds7.length) return '';
+      const w = rong / ds7.length, giua = cao / 2, tran = Math.max(50, ...ds7.map((x) => Math.min(Math.abs(x.roi ?? 0), 200)));
+      const cot = ds7.map((x, i) => {
+        const t = esc(x.ngay.slice(8, 10) + '/' + x.ngay.slice(5, 7) + ': ' + (x.chi < 0.01 ? 'chưa tiêu' : 'ROI ' + chuRoi(x.roi) + ' · chi ' + tien(x.chi) + ' → thu ' + tien(x.thu)));
+        if (x.roi == null) return '<rect x="' + (i * w + 1.5).toFixed(1) + '" y="' + (giua - 1) + '" width="' + (w - 3).toFixed(1) + '" height="2" fill="rgba(160,160,160,.45)"><title>' + t + '</title></rect>';
+        const h = Math.max(2, (Math.min(Math.abs(x.roi), 200) / tran) * (giua - 1));
+        return '<rect x="' + (i * w + 1.5).toFixed(1) + '" y="' + (x.roi >= 0 ? giua - h : giua).toFixed(1) + '" width="' + (w - 3).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1" fill="' + (x.roi >= 0 ? '#3ccf6a' : '#ff6b5e') + '"><title>' + t + '</title></rect>';
+      }).join('');
+      return '<svg width="' + rong + '" height="' + cao + '" style="flex:none;display:block;cursor:help"><line x1="0" x2="' + rong + '" y1="' + giua + '" y2="' + giua + '" stroke="rgba(160,160,160,.35)"/>' + cot + '</svg>';
+    };
+    const chipCamp = (k) => {
+      const [nen_, chu] = k.lich ? ['#b26a00', '⏳ ' + esc(new Date(String(k.lich).replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }))]
+        : k.trang_thai === 'ACTIVE' ? ['#1e8e3e', '▶ $' + k.ngan_sach + (k.moi ? ' · mới' : '')] : ['#d93025', '⏸'];
+      return '<span title="' + esc('Camp #' + k.id + (k.moi && k.trang_thai === 'ACTIVE' ? ' · mới lên, chưa tiêu' : '') + ' · ROI tháng ' + chuRoi(k.roi)) + '" style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 0 0;padding:0 6px 0 0;border-radius:9px;background:rgba(127,127,127,.18);font-size:11px;white-space:nowrap">' +
+        '<b style="background:' + nen_ + ';color:#fff;border-radius:9px;padding:0 6px">#' + k.id + ' ' + chu + '</b>' + (k.roi == null ? '' : phanTram(k.roi)) + '</span>';
+    };
+    const choNb = (k) => (k.cho_nb ? '<div style="font-size:11px;color:#ffb74d">⏳ #' + k.id + ' nhân bản đang chờ (' + esc(k.cho_nb.luc) + '): ' + esc(String(k.cho_nb.loi).split(' — ')[0].slice(0, 110)) + '</div>' : '');
     const the = ds.slice(0, 12).map((c) => {
-      const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:76px;height:135px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:76px;height:135px;background:#333;border-radius:4px;flex:none"></div>';
-      // camp CHỜ (anh 22/10/2026): camp mới lên chưa tiêu → "⏳ mới lên"; camp thắng mà lần nhân bản gần nhất bị chặn → dòng cam ghi lý do
-      const choNb = (k) => (k.cho_nb ? '<tr><td colspan="5" style="padding:0 0 3px 12px;border:0;font-size:11px;color:#ffb74d">⏳ Nhân bản đang chờ (' + esc(k.cho_nb.luc) + '): ' + esc(String(k.cho_nb.loi).split(' — ')[0].slice(0, 110)) + '</td></tr>' : '');
-      const camps = c.camp.slice(0, 6).map((k) => '<tr><td style="padding:1px 0;color:inherit;border:0">Camp #' + k.id + '</td><td colspan="3" style="padding:1px 0 1px 8px;border:0">' + nhanCamp(k) + (k.moi && k.trang_thai === 'ACTIVE' ? ' <span style="color:#9ecbff;font-size:11px">⏳ mới lên, chưa tiêu</span>' : '') + '</td><td style="' + td_ + '">' + phanTram(k.roi) + '</td></tr>' + choNb(k)).join('') +
-        (c.camp.length > 6 ? '<tr><td colspan="5" style="padding:1px 0;opacity:.7;color:inherit;border:0">+' + (c.camp.length - 6) + ' camp</td></tr>' : '');
-      return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #3a3631">' + anh + '<div style="min-width:0">' +
-        '<b>Creative' + (c.creative_id ? ' #' + c.creative_id : '') + '</b> · ' + esc(c.dang || LOAI_TAT[c.loai]?.[1] || '') + (c.doan ? ' · ' + esc(c.doan) : '') +
-        ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt luật</span>' : '<span style="color:#ffb74d">CTA cũ</span>') +
-        '<table style="border-collapse:collapse;table-layout:fixed;width:326px;margin-top:3px;color:inherit;font:inherit;font-variant-numeric:tabular-nums;background:none">' +
-        '<colgroup><col style="width:92px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' + dong('Tháng', c.thang) + dong('Hôm nay', c.hom_nay) + dong('Hôm qua', c.hom_qua) +
-        '<tr><td colspan="5" style="padding:5px 0 1px;border:0;font-size:11px;opacity:.6;color:inherit">' + (c.camp.length > 1 ? c.camp.length + ' camp dùng creative này (chỉ số trên = tổng) · ROI tháng' : 'Camp dùng creative này · ROI tháng') + '</td></tr>' + camps + '</table>' +
-        (c.video ? '<a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff;font-size:12px">mở video</a>' : '') + '</div></div>';
+      const lo = c.thang.roi != null && c.thang.roi < 0 && c.thang.chi >= 1;
+      const anh = c.anh ? '<img data-video="' + esc(c.video || '') + '" src="' + esc(c.anh) + '" style="width:54px;height:96px;object-fit:cover;border-radius:4px;background:#000;flex:none">' : '<div style="width:54px;height:96px;background:#333;border-radius:4px;flex:none"></div>';
+      return '<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid #3a3631' + (lo ? ';opacity:.55' : '') + '">' + anh + '<div style="min-width:0;flex:1">' +
+        '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b>#' + (c.creative_id || '?') + '</b> <b style="color:#ffd54f">' + esc(LOAI_TAT[c.loai]?.[0] || '?') + '</b>' + (c.doan ? ' ' + esc(c.doan) : '') +
+        ' · ' + (c.cta_dat ? '<span style="color:#7bd88f">CTA đạt</span>' : '<span style="color:#ffb74d">CTA cũ</span>') + (c.video ? ' · <a href="' + esc(c.video) + '" target="_blank" style="color:#9ecbff">video</a>' : '') + '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div style="display:flex;gap:4px;flex:1;min-width:0">' + o3('tháng', c.thang) + o3('h.qua', c.hom_qua) + o3('h.nay', c.hom_nay) + '</div>' + cot7(c.ngay7) + '</div>' +
+        '<div style="margin-top:3px">' + c.camp.slice(0, 8).map(chipCamp).join('') + (c.camp.length > 8 ? '<span style="font-size:11px;opacity:.7">+' + (c.camp.length - 8) + ' camp</span>' : '') + '</div>' +
+        c.camp.slice(0, 8).map(choNb).join('') + '</div></div>';
     }).join('');
-    // TỔNG PHIM = cộng mọi creative (anh 22/10/2026 hỏi "có 4 camp à?") — dòng Hôm nay khớp hàng phim trên Report khi Report đang xem hôm nay
+    // ĐẦU KHUNG = CẢ PHIM (cộng mọi creative đang hiện) — ROI tháng chữ to + lãi/lỗ $ · hôm nay · cột 7 ngày cả phim
     const tong = (f) => { const x = ds.reduce((a, c) => ({ chi: a.chi + c[f].chi, thu: a.thu + c[f].thu }), { chi: 0, thu: 0 }); return { chi: x.chi, thu: x.thu, roi: x.chi >= 0.1 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null }; };
-    const dauKhung = '<table style="border-collapse:collapse;table-layout:fixed;width:326px;margin:6px 0 2px 86px;color:inherit;font:inherit;font-variant-numeric:tabular-nums;background:none">' +
-      '<colgroup><col style="width:92px"><col style="width:72px"><col style="width:20px"><col style="width:80px"><col style="width:62px"></colgroup>' +
-      '<tr><td colspan="5" style="padding:0 0 1px;border:0;font-size:11px;opacity:.6;color:inherit">CẢ PHIM (cộng mọi creative)</td></tr>' +
-      dong('<b>Tháng</b>', tong('thang')).replace('opacity:.75', 'opacity:1') + dong('<b>Hôm nay</b>', tong('hom_nay')).replace('opacity:.75', 'opacity:1') + '</table>';
-    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ảnh: xem to + video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
+    const tg_ = tong('thang'), hn = tong('hom_nay'), lai = tg_.thu - tg_.chi;
+    const n7 = loai || kieu ? (ds[0]?.ngay7 || []).map((x, i) => { const s = ds.reduce((a, c) => ({ chi: a.chi + (c.ngay7?.[i]?.chi || 0), thu: a.thu + (c.ngay7?.[i]?.thu || 0) }), { chi: 0, thu: 0 }); return { ngay: x.ngay, ...s, roi: s.chi >= 0.1 ? Math.round(((s.thu - s.chi) / s.chi) * 100) : null }; }) : r.ngay7;
+    const dauKhung = '<div style="display:flex;align-items:center;gap:12px;margin:6px 0 4px">' +
+      '<div title="' + goiY('Tháng', tg_) + '" style="cursor:help"><div style="font-size:26px;font-weight:800;line-height:1.05;color:' + (tg_.roi == null ? 'inherit' : tg_.roi >= 0 ? '#7bd88f' : '#ff8a80') + ';font-variant-numeric:tabular-nums">' + chuRoi(tg_.roi) + '</div>' +
+      '<div style="font-size:11px;opacity:.75">ROI tháng · ' + (lai >= 0 ? 'lãi +' : 'lỗ −') + '$' + Math.abs(lai).toFixed(2) + '</div></div>' +
+      '<div style="flex:1;min-width:0">' + cot7(n7, 140, 34) + '<div style="font-size:10px;opacity:.6">ROI 7 ngày</div></div>' +
+      '<div style="width:64px">' + o3('h.nay', hn) + '</div></div>';
+    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'đã lên lịch') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ô / cột: số tiền · rê ảnh: video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
   };
 
   document.addEventListener('mouseover', (ev) => {

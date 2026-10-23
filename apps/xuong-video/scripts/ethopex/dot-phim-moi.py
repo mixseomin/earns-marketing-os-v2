@@ -59,7 +59,20 @@ def len_(a, b, lich="today"):
         r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{ten}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — 200 phim mới hạng {a}–{b}" --ai "anh (chat 23/10/2026: lên tiếp luôn trong hôm nay các phim mới)"'""", timeout=600)
         print(x["content_id"], (r.stdout.strip().splitlines() or ["?"])[-1][:200], flush=True)
 
+def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
+    """lên thẳng từ một tệp lô đã lọc (đoạn đã soát 18+ ok) — dùng khi không chờ cả đợt cắt xong (anh 23/10/2026 "sao không thấy phim nào bộ 2")"""
+    lj = os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json")
+    if not os.path.exists(lj):   # đã có len.json (lô lên creative xong, gãy ở bước camp) → không đẩy lại creative
+        r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+        print(r.stdout[-1500:], r.stderr[-800:], flush=True)
+    for x in json.load(open(lj)):
+        if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); continue
+        ten = x["ten"].replace("'", "").replace('"', "")
+        r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{ten}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — 200 phim mới hạng {a}–{b}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn)"'""", timeout=600)
+        print(x["content_id"], (r.stdout.strip().splitlines() or ["?"])[-1][:200], flush=True)
+
 if __name__ == "__main__":
     v = sys.argv[1:]
     if v[0] == "cat": cat(int(v[1]), int(v[2]), int(v[3]) if len(v) > 3 else 2)
+    elif v[0] == "tep": len_tu_tep(v[1], v[2])
     else: len_(int(v[1]), int(v[2]), v[3] if len(v) > 3 else "today")

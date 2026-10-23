@@ -76,7 +76,8 @@ if (!arg('keyframe') && !arg('keyframe-ket') && !arg('ghep-nen') && !arg('duyet'
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
-  for (const bc of bcs) { const r = await sinhKeyframeCanh(db, bc.canh.id, 1, moHinhAnh); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
+  // --thu: THỬ ngoài quy trình (cảnh mẫu một cảnh — bỏ cổng cấp tập / thẻ shot, giữ cổng prompt + ngôn ngữ + thành phần), như --video --thu
+  for (const bc of bcs) { const r = await sinhKeyframeCanh(db, bc.canh.id, 1, moHinhAnh, undefined, !!arg('thu')); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
   for (let i = 0; i < 120; i++) {
     const r = await q(sql`SELECT count(*) FILTER (WHERE trang_thai = 'cho') AS cho FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[])`);
     if (Number(r[0]?.cho) === 0) break; await doi(5000);

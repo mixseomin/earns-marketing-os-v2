@@ -601,7 +601,7 @@ export async function tronModelCanh(db: Db, c: Pick<Canh, 'id' | 'tap_id' | 'pha
 /** MỌI lý do chặn sinh keyframe của một shot — quy trình cấp tập (brief, khung truyện, phân cảnh, phong cách, người xem hiểu, kịch bản series)
  *  + cấp shot (phân cảnh, mẫu, cỡ cảnh) + prompt + ngôn ngữ + thành phần. MỘT chỗ cho nút sinh và script kiểm (kiem-cong-shot.mts): trước đây
  *  script tự lắp lại danh sách cổng, lệch dần với nút. */
-export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>; chan: string[] } | null> {
+export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài quy trình (như video 🧪 Sinh thử): bỏ cổng cấp tập / thẻ shot, giữ cổng prompt + ngôn ngữ + thành phần — cảnh mẫu một cảnh (#322 ReelShort) */ thu = false): Promise<{ bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>; chan: string[] } | null> {
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return null;
   const tapQt = mapTap(((await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[])[0]!);
@@ -610,7 +610,7 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   const chan: string[] = [];
   const pq = phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt);
   const qt = [...chanTienKy(tapQt, pq, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim, { camXucQc: pq.camXucQc, ds: locNhanh(tatCa, bc.canh.nhanh || 'A'), theLoai: pq.the_loai })];
-  if (qt.length) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
+  if (qt.length && !thu) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
   // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
   const sid = boSetCuaShot(bc.canh, nvPhim);
   // KHUNG ĐO TRÊN 3D SỐNG (do-3d-song.ts): đủ để chấm, không có ảnh độ sâu / khung màu → chưa sinh keyframe được
@@ -659,9 +659,9 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
 /** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. Mọi cổng ở lyChanKeyframe. */
 /** congAnh (vd 'plenxai:nano-banana-2'): GIỮ đường nhiều bước (độ sâu / ghép từng người / sửa mặt) nhưng các bước Nano đi đúng cổng này — khác
  *  moHinh (chọn model khác = đường một bước). Anh 21/10/2026: thử keyframe qua PlenX mà vị trí người vẫn khoá theo 3D. */
-export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string, congAnh?: string): Promise<KqSinh<number[]>> {
+export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string, congAnh?: string, thu = false): Promise<KqSinh<number[]>> {
   const loi = (x: string): KqSinh<number[]> => ({ ok: false, loi: x });
-  const g = await lyChanKeyframe(db, canhId);
+  const g = await lyChanKeyframe(db, canhId, thu);
   if (!g) return loi('không thấy cảnh');
   if (g.chan.length) return loi(g.chan.join(' · '));
   const { bc } = g;

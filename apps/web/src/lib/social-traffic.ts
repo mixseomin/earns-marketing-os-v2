@@ -147,9 +147,9 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     // camp Ethopex: thu / chi 30 ngày cộng từ báo cáo ngày × camp (cùng cửa sổ tu30 với tiền Ethopex ở Kho bạc)
     // + chấm luật Ethopex (cùng chamLuat của tab Ethopex) cho cụm phim city #1439: NB = dấu nhân bản, OFF chạm / gần = bốc khói, TC = vi phạm
     // + thu / chi NGÀY BÁO CÁO MỚI NHẤT (bảng hiệu phim city, cùng số với bảng Content của Ethopex)
-    // + loại camp (loaiCampEtp): chờ public = đã dựng chưa tiêu đồng nào; dừng ad set mà đã tiêu = tắt
+    // + loại camp (loaiCampEtp): chờ public = đã dựng chưa tiêu đồng nào; dừng ad set mà hôm nay vẫn tiêu = chạy (Ethopex đồng bộ trạng thái chậm); chỉ tiêu ngày trước = tắt
     camps: etp ? etp.camps.map((c) => { const ng = etp.ngayCamp.filter((x) => x.camp === c.id && x.ngay >= tu30), hn = ng.filter((x) => x.ngay === ngayHomEtp);
-      const loai = loaiCampEtp({ trangThai: c.trang_thai, giao: c.giao, batDau: c.bat_dau, daTieu: etp.ngayCamp.some((x) => x.camp === c.id && x.chi > 0) });
+      const loai = loaiCampEtp({ trangThai: c.trang_thai, giao: c.giao, batDau: c.bat_dau, daTieu: etp.ngayCamp.some((x) => x.camp === c.id && x.chi > 0), tieuHom: hn.some((x) => x.chi > 0) });
       const lu = chamLuat(c, { soCampPhim: etp.camps.filter((y) => y.content_id && y.content_id === c.content_id && y.trang_thai === 'ACTIVE').length, phimThang: !!c.content_id && etp.phimThang.includes(c.content_id) });
       const co = (ma: string, ...tt: string[]) => lu.some((x) => x.ma === ma && tt.includes(x.trang_thai));
       return { id: c.id, ten: c.ten, bo: c.bo ?? null, boTen: c.bo_ten ?? null, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: loai === 'tat' ? 'paused' : 'active', thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach,

@@ -163,10 +163,11 @@ assert.equal(cs.filter((c) => c.campLoai !== 'tat').length, 20 + 5, 'mọi camp 
 assert.ok(cs.every((c) => c.cha === 'n:ethopex' && c.cumPhim), 'mọi camp thuộc nền tảng và có cụm phim');
 assert.deepEqual(kho.map((c) => `${c.cumPhim}=${c.soTat}`).sort(), ['f:100=1', 'f:101=1', 'f:102=1', 'f:103=1', 'f:104=1', 'f:tắt=1'], 'camp đã tắt gộp MỘT toà kho mỗi phim (camp không phim gom theo tên)');
 assert.equal(kho.find((c) => c.cumPhim === 'f:100')!.tien30, 20, 'toà kho cộng thu của camp tắt trong phim');
-{ const L = (trangThai: string, giao: string, daTieu: boolean, batDau: string | null = null) => loaiCampEtp({ trangThai, giao, batDau, daTieu }, Date.parse('2026-10-23T10:00:00Z'));
+{ const L = (trangThai: string, giao: string, daTieu: boolean, batDau: string | null = null, tieuHom = false) => loaiCampEtp({ trangThai, giao, batDau, daTieu, tieuHom }, Date.parse('2026-10-23T10:00:00Z'));
   assert.equal(L('ACTIVE', 'ACTIVE', true), 'chay', 'đang giao = chạy');
   assert.equal(L('ACTIVE', 'ADSET_PAUSED', false), 'cho', 'dừng ad set, chưa tiêu đồng nào = CHỜ PUBLIC');
-  assert.equal(L('ACTIVE', 'ADSET_PAUSED', true), 'tat', 'dừng ad set mà đã tiêu = tắt (không vẽ như đang chạy)');
+  assert.equal(L('ACTIVE', 'ADSET_PAUSED', true), 'tat', 'dừng ad set, chỉ tiêu ngày trước = tắt (không vẽ như đang chạy)');
+  assert.equal(L('ACTIVE', 'ADSET_PAUSED', true, null, true), 'chay', 'ghi dừng ad set mà hôm nay vẫn tiêu = CHẠY (Ethopex đồng bộ trạng thái chậm — bộ 2 ngày 23/10)');
   assert.equal(L('ACTIVE', 'ACTIVE', false, '2026-10-24T00:00:00Z'), 'cho', 'bắt đầu ngày mai = chờ');
   assert.equal(L('PAUSED', 'CAMPAIGN_PAUSED', false), 'tat', 'campaign dừng = tắt'); }
 assert.ok(cId(2)!.thuHom === 1 && cId(2)!.chiHom === 1, 'camp mang thu / chi ngày báo cáo mới nhất (bảng hiệu phim)');

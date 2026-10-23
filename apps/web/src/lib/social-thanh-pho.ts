@@ -192,11 +192,12 @@ export const KHU_XUONG = 'xuong';
 /** bản nhân bản camp Ethopex: nhan-ban.py đặt tên "<tên gốc> (nhan ban N cua <id gốc>)" */
 /** TRẠNG THÁI CAMP ETHOPEX trên city (anh 23/10/2026 "tắt là không chạy nữa, còn CHỜ là quan trọng"):
  *  campaign PAUSED → 'tat' · bắt đầu ở tương lai → 'cho' · ad set / ad đang dừng (giao ADSET_PAUSED / AD_PAUSED): chưa tiêu đồng nào → 'cho' (vừa dựng, chờ public),
- *  đã từng tiêu → 'tat' (đã chạy rồi bị dừng — trước đây vẫn bị vẽ như đang chạy) · còn lại → 'chay'. Đo 23/10: 15 camp chờ, 24 camp dừng ad set vẫn ghi ACTIVE. */
-export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
+ *  CÓ TIÊU trong ngày báo cáo mới nhất → 'chay' (trạng thái giao của Ethopex đồng bộ chậm hàng giờ: 23/10 bộ 2 có 10 camp ghi ADSET_PAUSED mà đang tiêu
+ *  — luật cũ ném cả 10 vào kho tắt, anh hỏi "nhiều camp lên số liệu nhưng không thấy cập nhật"), chỉ tiêu ngày trước → 'tat' (đã chạy rồi bị dừng) · còn lại → 'chay'. */
+export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean; tieuHom?: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
   if (c.trangThai.toUpperCase() !== 'ACTIVE') return 'tat';
   if (c.batDau && Date.parse(c.batDau) > bay) return 'cho';
-  if (/^(ADSET|AD)_PAUSED$/.test(c.giao ?? '')) return c.daTieu ? 'tat' : 'cho';
+  if (/^(ADSET|AD)_PAUSED$/.test(c.giao ?? '')) return c.tieuHom ? 'chay' : c.daTieu ? 'tat' : 'cho';
   return 'chay';
 }
 export const goCampGoc = (ten: string): number | null => { const m = ten.match(/\(nhan ban \d+ cua (\d+)\)\s*$/); return m ? Number(m[1]) : null; };

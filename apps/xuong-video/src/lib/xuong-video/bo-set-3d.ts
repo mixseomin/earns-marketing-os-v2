@@ -116,7 +116,10 @@ export function rangBuocTruc(truoc: { id: number; may_3d: May3d }, sau: May3d, l
 export const chuThe = (m: Pick<May3d, 'khung' | 'vi_tri'>): string[] => m.khung?.length ? m.khung : m.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
 
 /** Nhân vật trong khung xám có lỗi hình học thật (ngoài khung / bị che mà kịch bản không cố ý) — lưới gắn ⚠, cổng chặn. */
-export const loiHinhHoc = (c: Pick<Canh, 'may_3d' | 'khung_xam'>) => { const ct = c.may_3d ? chuThe(c.may_3d) : []; return (c.khung_xam?.kiem ?? []).filter((k) => (k.bat_buoc ?? ct.includes(k.nhan_vat)) && (!k.trong_khung || k.bi_che_boi.length > 0)); };
+/** Vật che KHÔNG tính là che: đồ do chính chủ thể cầm, hoặc do người đang cầm / đeo chủ thể cầm (Hạ ôm thùng che ngực Hạ và thẻ Hạ đeo — #132 #16 cận giật thẻ;
+ *  cùng luật thayRo bên dưới). */
+const cheThat = (c: Pick<Canh, 'may_3d'>, chu: string, o: string) => { const vt = (t: string) => c.may_3d?.vi_tri.find((v) => v.ten === t); const cam = vt(o)?.cam; return !cam || (cam !== chu && cam !== vt(chu)?.cam); };
+export const loiHinhHoc = (c: Pick<Canh, 'may_3d' | 'khung_xam'>) => { const ct = c.may_3d ? chuThe(c.may_3d) : []; return (c.khung_xam?.kiem ?? []).filter((k) => (k.bat_buoc ?? ct.includes(k.nhan_vat)) && (!k.trong_khung || k.bi_che_boi.some((o) => cheThat(c, k.nhan_vat, o)))); };
 
 /** CHỦ THỂ QUÁ TO: ở cỡ cảnh không phải cận (two / ms / ws…), một chủ thể chiếm > 70% chiều cao khung = máy dí sát (7.3 tập 19: gáy Tango lấp khung,
  *  đế cắm chỉ ló một mảng) — keyframe sẽ không có bố trí để bám. Cận / đặc tả được phép to. */
@@ -259,7 +262,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   else {
     // XUYÊN NHAU (dung-set.py › do_lun): đạo cụ lún vào người / đạo cụ khác / đồ set > 1 cm — keyframe AI vẽ đúng cái sai đó (#11 thẻ chìm vào thùng)
     for (const x of kx.xuyen ?? []) out.push(`${x} — dời món / đổi dáng cho hết xuyên`);
-    for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
+    for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.filter((o) => cheThat(c, k.nhan_vat, o)).join(', ')} che`);
     out.push(...chuTheQuaTo(c, set, (t) => nhanVat.some((x) => x.ten === t && x.khoi_3d?.hinh === 'nguoi')));
     out.push(...chuTheQuaNho(c));
     out.push(...coCanhLech(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t), (t) => nhanVat.some((x) => x.ten === t && x.khoi_3d?.hinh === 'nguoi')));

@@ -100,6 +100,8 @@ export interface PhoDich {
 export interface PhoDuAn { khoa: string; ten: string; laDuAn: boolean; ngung: boolean; mau: string; site: string | null; nhan: string; linhVuc: string;
   /** đặt ở dãy rìa (cùng dãy dự án ngừng) dù vẫn đang chạy */
   raRia?: boolean;
+  /** sức sống của khu = mức cao nhất trong các site / app / sản phẩm của khu (không có thứ nào như vậy — khu nền tảng, xưởng — thì không chấm) */
+  sucSong?: 0 | 1 | 2 | 3;
   /** tiền 30 ngày của khu (đích không phải bản con), lưu lượng (phiên 30 ngày + lượt xem sản phẩm 7 ngày) và QUY MÔ 0..1 để vẽ to nhỏ
    *  (anh 22/10/2026 "dự án có doanh thu hoặc ROI lớn phải trông to hơn" + "những con có traffic nhiều cũng được to lên"):
    *  quy mô = max(điểm tiền, điểm lưu lượng), mỗi điểm chia theo log so với khu cao nhất; điểm tiền = thu × (1 + ROI kẹp 0..3 / 3),
@@ -206,6 +208,8 @@ export function tinhSucSong(x: { soNguon: number; phien7: number; tien30: number
   const sucSong = x.online > 0 ? 3 : x.phien7 > 0 || x.tien30 > 0 ? 2 : x.soNguon > 0 ? 1 : 0;
   return { sucSong, soNguon: x.soNguon, phien7: x.phien7 };
 }
+/** sức sống khu = mức cao nhất trong các đích của khu (một site sống là khu sống); khu không có đích chấm được → null */
+export const sucSongKhu = (m: number[]): 0 | 1 | 2 | 3 | undefined => (m.length ? (Math.max(...m) as 0 | 1 | 2 | 3) : undefined);
 export function loaiCampEtp(c: { trangThai: string; giao?: string | null; batDau?: string | null; daTieu: boolean; tieuHom?: boolean }, bay = Date.now()): 'chay' | 'cho' | 'tat' {
   if (c.trangThai.toUpperCase() !== 'ACTIVE') return 'tat';
   if (c.batDau && Date.parse(c.batDau) > bay) return 'cho';
@@ -364,7 +368,9 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   for (const d of dichMap.values()) {
     const con = d.loai === 'app' ? [...dichMap.values()].filter((b) => b.cha === d.khoa) : [], khoa = [d.khoa, ...con.map((b) => b.khoa)];
     const nguon = new Set([...tk.filter((t) => t.dich && khoa.includes(t.dich)).map((t) => t.id), ...luong.filter((l) => khoa.includes(l.den)).map((l) => l.tu)]);
-    const phien7 = d.loai === 'site' ? Object.entries(d.ngay ?? {}).filter(([k]) => ngayMoi && k > lui7(ngayMoi)).reduce((a, [, v]) => a + v, 0) : [d, ...con].reduce((a, b) => a + (b.xem7 ?? 0), 0);
+    // site có sổ phiên theo ngày → cộng 7 ngày; không có (cửa hàng Gumroad, app) → khách các luồng nguồn đổ về (tài khoản báo theo kỳ 7 ngày) + lượt xem cửa hàng
+    const quaLuong = luong.filter((l) => khoa.includes(l.den)).reduce((a, l) => a + (l.so ?? 0), 0), coSo = Object.keys(d.ngay ?? {}).length > 0;
+    const phien7 = coSo ? Object.entries(d.ngay ?? {}).filter(([k]) => ngayMoi && k > lui7(ngayMoi)).reduce((a, [, v]) => a + v, 0) : quaLuong + [d, ...con].reduce((a, b) => a + (b.xem7 ?? 0), 0);
     Object.assign(d, tinhSucSong({ soNguon: nguon.size, phien7, tien30: d.tien30 ?? 0, online: d.online ?? 0 }));
   }
   // giữ site có khách hoặc có người trỏ tới
@@ -449,6 +455,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const chuan01 = (v: number, max: number) => (max > 0 ? Math.log10(1 + v) / Math.log10(1 + max) : 0);
   const maxTien = Math.max(0, ...duAn.map(diemTien)), maxLuu = Math.max(0, ...duAn.filter((k) => k.khoa !== KHU_XUONG).map((k) => k.luu ?? 0));
   for (const k of duAn) k.quyMo = k.khoa === KHU_XUONG ? 0 : Math.max(chuan01(diemTien(k), maxTien), chuan01(k.luu ?? 0, maxLuu));
+  for (const k of duAn) { const m = dich.filter((d) => d.duAn === k.khoa && (d.loai === 'site' || d.loai === 'app' || d.loai === 'sp') && !d.cha).map((d) => d.sucSong ?? 0); const v = sucSongKhu(m); if (v != null) k.sucSong = v; }
   // phường liền nhau: xếp theo thứ tự lĩnh vực, trong phường theo lưu lượng
   const thuLv = Object.keys(LINH_VUC);
   duAn.sort((a, b) => Number(a.ngung || !!a.raRia) - Number(b.ngung || !!b.raRia) || Number(a.khoa === 'chua-sp') - Number(b.khoa === 'chua-sp') || thuLv.indexOf(a.linhVuc) - thuLv.indexOf(b.linhVuc) || tienKhu(b.khoa) - tienKhu(a.khoa) || tongKhu(b.khoa) - tongKhu(a.khoa));

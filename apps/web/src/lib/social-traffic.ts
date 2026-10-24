@@ -560,7 +560,8 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
     kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));
-    try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(Number(k.id)); }   // id kênh đường dự án là chuỗi (SQL), khoá máy đăng là số catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
+    // id kênh đường dự án là chuỗi (SQL), khoá máy đăng là số → tra bằng Number(id)
+    try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(Number(k.id)); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
     // trang đích = các đích link mà kênh trỏ tới (kenh_sp.dich) — chưa có máy đo click từng trang → null
     const theoDich = new Map<string, StTrang>();
     for (const sp of kenhSp.filter((x) => x.project && duAn.includes(x.project))) for (const o of Object.values(sp.o)) {

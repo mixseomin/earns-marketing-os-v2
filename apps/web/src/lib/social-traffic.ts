@@ -472,18 +472,18 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
 
 async function docDangMay(d: NonNullable<ReturnType<typeof getDb>>, homMs: number): Promise<Map<number, DangNenTho[]>> {
   // MÁY ĐĂNG TRÊN CITY (anh 25/10/2026 "các việc chờ đăng, lúc đăng, hỏng, sửa đã thể hiện realtime trên city chưa"): mỗi tài khoản × nền của máy đang bật —
-  // nhật ký mới nhất 24 giờ (dang-may / dang-short ghi 'bat-dau' lúc bắt đầu, 'dang' lúc xong / hỏng), bài lên hôm nay (sổ da_dang), lịch dự kiến hôm nay
+  // nhật ký mới nhất TỪ 00:00 HÔM NAY giờ VN (dang-may / dang-short ghi 'bat-dau' lúc bắt đầu, 'dang' lúc xong / hỏng — lượt hỏng hôm qua không còn tô đỏ hôm nay), bài lên hôm nay (sổ da_dang), lịch dự kiến hôm nay
   // (xv_lich_du_kien — máy tự tính bằng nhịp an toàn, mos2 không tính lại), việc của Mạnh ở hàng thợ máy (/var/lib/cty/tho-may.json, khoá dang:lo|máy|nền).
   // city tự làm mới mỗi phút → trễ tối đa ~1 phút. Mô hình quyết trạng thái (social-thanh-pho.ts › trangThaiNen).
   const homVN = new Date(homMs + 7 * 3600e3).toISOString().slice(0, 10);
   const [nenMay, lichRow] = await Promise.all([
     d.execute(sql`SELECT n->'br'->>'acct' AS acct, n->>'nen' AS nen, m.ma, m.ten,
         (SELECT json_build_object('buoc', k.buoc, 'ok', k.ok, 'luc', k.luc, 'chu', left(k.noi_dung, 200)) FROM xv_may_nhat_ky k
-           WHERE k.may_id = m.id AND k.nen = n->>'nen' AND k.luc > now() - interval '24 hours' ORDER BY k.luc DESC, k.id DESC LIMIT 1) AS nk,
+           WHERE k.may_id = m.id AND k.nen = n->>'nen' AND k.luc >= ${homVN}::date - interval '7 hours' ORDER BY k.luc DESC, k.id DESC LIMIT 1) AS nk,
         (SELECT json_build_object('url', v.da_dang->(n->>'nen')->>'url', 'luc', v.da_dang->(n->>'nen')->>'luc') FROM xv_may_video v
            WHERE v.may_id = m.id AND v.da_dang->(n->>'nen')->>'ngay' = ${homVN} ORDER BY v.da_dang->(n->>'nen')->>'luc' DESC NULLS LAST LIMIT 1) AS da
-      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay AND n->'br'->>'acct' IS NOT NULL`).catch(() => []) as unknown as Promise<{ acct: string; nen: string; ma: string; ten: string; nk: DangNenTho['nk']; da: DangNenTho['daHom'] }[]>,
-    d.execute(sql`SELECT ds FROM xv_lich_du_kien WHERE id = 1`).catch(() => []) as unknown as Promise<{ ds: { acct?: string; nen: string; ngay: string; gio: string; title?: string }[] }[]>,
+      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n WHERE m.chay AND n->'br'->>'acct' IS NOT NULL`) as unknown as Promise<{ acct: string; nen: string; ma: string; ten: string; nk: DangNenTho['nk']; da: DangNenTho['daHom'] }[]>,
+    d.execute(sql`SELECT ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ ds: { acct?: string; nen: string; ngay: string; gio: string; title?: string }[] }[]>,
   ]);
   const lichHom = new Map<string, { gio: string; title: string }>();
   for (const e of lichRow[0]?.ds ?? []) if (e.ngay === homVN && e.acct && !lichHom.has(`${e.acct}|${e.nen}`)) lichHom.set(`${e.acct}|${e.nen}`, { gio: e.gio, title: e.title ?? '' });
@@ -511,8 +511,9 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
     const duAnStore = (store: string) => duAnAll.find((p) => chuan(p.id) === chuan(store) || chuan(p.name) === chuan(store))?.id ?? null;
     const tenDuAn: Record<string, string> = Object.fromEntries(duAnAll.map((p) => [p.id, p.name]));
     const duAn = [...new Set([...cua.map((c) => c.project_id), ...storeAll.map((s) => duAnStore(s.store)).filter((x): x is string => !!x)])];
-    if (!duAn.length) { const hm = Date.parse(new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)), kv = await docKenhVault(d, new Set(), hm), dm = await docDangMay(d, hm);
-      for (const k of kv) k.dangMay = dm.get(k.id); return { kenh: kv, trang: [], ban: [] }; }
+    if (!duAn.length) { const hm = Date.parse(new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)), kv = await docKenhVault(d, new Set(), hm);
+      try { const dm = await docDangMay(d, hm); for (const k of kv) k.dangMay = dm.get(k.id); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }
+      return { kenh: kv, trang: [], ban: [] }; }
     // drizzle trải mảng JS thành ($1, $2…) chứ không thành text[] → `= ANY(${mang})` gãy ("op ANY/ALL (array) requires array"); dùng IN (…)
     const trong = (xs: string[]) => sql.join(xs.map((x) => sql`${x}`), sql`, `);
     const [tk, so, video, kenhSp, dau, gum] = await Promise.all([
@@ -559,7 +560,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
     kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));
-    { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(k.id); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
+    try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(k.id); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
     // trang đích = các đích link mà kênh trỏ tới (kenh_sp.dich) — chưa có máy đo click từng trang → null
     const theoDich = new Map<string, StTrang>();
     for (const sp of kenhSp.filter((x) => x.project && duAn.includes(x.project))) for (const o of Object.values(sp.o)) {

@@ -12,6 +12,7 @@ Hằng ngày trên iMac (mỗi bước in việc kế tiếp):
   4. phim-moi.py cat [dat=30]         số phim cắt = (chỉ tiêu − đã lên hôm nay) ÷ tỷ lệ đạt thực đo (mặc định 0,6) → tờ soát 18+
   5. Claude xem tờ soát → ssh box3: kiem-phim-18.py --soat <id> ok|cam "<lý do>"   (máu / súng / gợi dục = cam)
   6. phim-moi.py len <lô>             lên mọi đoạn của phim soát ok → ghi trạng thái → sửa CTA cho camp thắng (sua-cta.py)
+  (phim-moi.py gop <lô>: gộp lại kết quả lô từ hàng đợi khi thợ làm thêm sau lúc cat kết thúc — xếp lại việc kẹt, cắt lại…)
   Thiếu chỉ tiêu sau bước 6 → quay lại 4 (máy tự lấy phim kế, gồm phim cat_loi chưa quá 2 lần)."""
 import datetime as dt, importlib.util, json, math, os, subprocess, sys, urllib.request
 D = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, D); import loi_ky_thuat as LK
@@ -125,12 +126,31 @@ def cat_hang(phim, ten, so_tho=2):
     sql(f"insert into etp.viec (loai, lo, content_id, du_lieu) select 'cat', '{ten}', content_id, du_lieu from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, du_lieu jsonb) on conflict do nothing")
     print(f"đã xếp {len(phim)} việc cắt vào hàng đợi etp.viec (lô {ten}) — thợ iMac {so_tho} luồng; máy khác góp sức: python3 apps/etp/tho.py --lo {ten}", flush=True)
     subprocess.run(["python3", os.path.join(D, "..", "..", "..", "etp", "tho.py"), "--lo", ten, "--so-tho", str(so_tho)])
+    return gop(ten)[0]
+
+def gop(ten):
+    """GỘP KẾT QUẢ LÔ từ hàng đợi etp.viec → <ra>/lo.json + tờ soát + ghi trạng thái từng phim (da_cat / cat_loi / cat_loai). Chạy lại được bất cứ lúc
+    (25/10/2026: thợ xếp lại việc kẹt rồi làm xong SAU khi lô đã gộp → 11 phim không có trong lo.json; `phim-moi.py gop <lô>` gộp lại). Chỉ ghi trạng thái
+    phim có thay đổi — chạy lại không làm tăng số lần cat_loi."""
+    ra = os.path.join(C, "ra", ten); os.makedirs(ra, exist_ok=True)
     kq = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select jsonb_array_elements(coalesce(ket_qua, '[]'::jsonb)) x from etp.viec where lo = '{ten}') t") or "[]")
     for v in json.loads(sql(f"select coalesce(json_agg(json_build_object('content_id', content_id, 'loi', loi)), '[]') from etp.viec where lo = '{ten}' and (ket_qua is null or ket_qua = '[]'::jsonb)") or "[]"):
         kq.append({"content_id": v["content_id"], "loi": v["loi"] or "chưa làm xong"})
     json.dump(kq, open(os.path.join(ra, "lo.json"), "w"), ensure_ascii=False, indent=1)
     dpm().to_soat(ra)
-    return ra
+    cu = khoa(KTT); cap = {}
+    for i in sorted({int(x["content_id"]) for x in kq if x.get("content_id")}):
+        x = [y for y in kq if str(y.get("content_id")) == str(i)]
+        if any(y.get("file") and not y.get("loi") for y in x): tt_, g_ = "da_cat", ten
+        else:
+            g_ = " ".join(str(y.get("loi")) for y in x)[:200] or "không tải được tập"
+            tt_ = "cat_loi" if LK.ky_thuat(g_) is not False else "cat_loai"   # kỹ thuật → lượt sau tự cắt lại (tối đa 2 lần)
+        if cu.get(str(i), {}).get("tt") == tt_ and (cu.get(str(i), {}).get("ghi") or "")[:200] == g_[:200]: continue
+        cap[i] = (tt_, g_)
+    ghi(cap)
+    n_ok = sum(1 for x in kq if x.get("file") and not x.get("loi")); p_ok = len({x["content_id"] for x in kq if x.get("file") and not x.get("loi")})
+    print(f"gộp lô {ten}: {p_ok} phim có đoạn ({n_ok} đoạn), {len(cap)} phim đổi trạng thái → Claude xem tờ soát ở {ra} (soat-<id>.jpg) → kiem-phim-18 --soat … → phim-moi.py len {ten}", flush=True)
+    return ra, kq
 
 def cat(dat=CHI_TIEU, san=0):
     """san > 0: CẮT SẴN san phim cho ngày kế tiếp không theo chỉ tiêu (Ethopex chỉ nhận lịch hôm nay / ngày mai — lô ngày kia cắt trước, lên sau 07:00)"""
@@ -140,15 +160,7 @@ def cat(dat=CHI_TIEU, san=0):
     can = max(0, dat - hom_nay); so = min(len(san_), math.ceil(can / max(ty_le, 0.2))) if not san else min(len(san_), san)
     if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if (can or san) else "đủ chỉ tiêu ngày đích — muốn cắt sẵn cho ngày kia: phim-moi.py cat --san 45")
     phim = san_[:so]; ten = "pm-" + vn().strftime("%d%m%H%M"); print(f"cắt {so} phim (cần {can} phim lên, tỷ lệ đạt {ty_le:.0%}) → lô {ten}", flush=True)
-    ra = cat_hang(phim, ten)
-    lo = json.load(open(os.path.join(ra, "lo.json"))); cap = {}
-    for p in phim:
-        x = [y for y in lo if str(y.get("content_id")) == str(p["id"])]
-        if any(y.get("file") and not y.get("loi") for y in x): cap[p["id"]] = ("da_cat", ten)
-        else:
-            loi = " ".join(str(y.get("loi")) for y in x)[:200] or "không tải được tập"
-            cap[p["id"]] = ("cat_loi" if LK.ky_thuat(loi) is not False else "cat_loai", loi)   # kỹ thuật → lượt sau tự cắt lại (tối đa 2 lần)
-    ghi(cap); print(f"→ Claude xem tờ soát ở {ra} (soat-<id>.jpg) → kiem-phim-18 --soat … → phim-moi.py len {ten}")
+    ra = cat_hang(phim, ten)   # gop() bên trong đã ghi trạng thái từng phim + in việc kế
 
 def chon_ngay():
     """ngày đích = ngày gần nhất chưa đủ chỉ tiêu (hôm nay → mai). Ethopex chỉ nhận lịch today / tomorrow."""
@@ -185,5 +197,6 @@ if __name__ == "__main__":
     elif a[0] == "poster-ok": ghi({i: ("poster_ok", g) for i in ids})
     elif a[0] == "poster-loai": ghi({i: ("poster_loai", g or "poster") for i in ids})
     elif a[0] == "cat": cat(san=int(a[a.index("--san") + 1])) if "--san" in a else cat(int(ids[0]) if ids else CHI_TIEU)
+    elif a[0] == "gop": gop(a[1])
     elif a[0] == "len": len_(a[1])
     else: print(__doc__)

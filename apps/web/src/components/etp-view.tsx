@@ -215,26 +215,23 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
       </div>);
     // BẤM CAMP NÀO CŨNG MỞ (anh 25/10/2026 "sao không cho mở nốt xem từng camp hiệu suất thế nào"): ngăn chi tiết 7 ngày + bản nhân bản (nếu có)
     const d7 = ngay7.map((d) => ({ d, x: d === du.nay ? c.nay : so.get(c.camp_id)?.get(d) }));
-    const max = Math.max(1, ...d7.map(({ x }) => Math.abs(x ? x.thu - x.chi : 0)));
     const t7 = d7.reduce((a, { x }) => ({ chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }), { chi: 0, thu: 0 });
+    // NGĂN 7 NGÀY = BẢNG SỐ GỌN (anh 25/10/2026 chê ngăn khung to + cột không số): cột = ngày, dòng = chi / thu / lãi / ROI, cột cuối tổng 7 ngày.
+    // Không lặp thứ đã có trên dòng (tuổi, ngân sách); chỉ thêm nhân từ camp nào + lý do nhân bản lỗi.
+    const td = { padding: '2px 8px', textAlign: 'right' as const, fontVariantNumeric: 'tabular-nums' as const, whiteSpace: 'nowrap' as const };
+    const cotNgay = [...d7, { d: '7n', x: t7 }];
     const chiTiet = (
-      <div style={{ margin: '2px 0 6px', marginLeft: 12 + 12 + 8 + cap * 14, padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px', fontSize: 11, maxWidth: 760 }}>
-        <div style={{ display: 'flex', gap: 3, alignItems: 'flex-start', height: 78 }} title="lãi / lỗ từng ngày (7 ngày, ngày Ethopex)">
-          {d7.map(({ d, x }) => { const l = x ? x.thu - x.chi : 0; const h = Math.round((Math.abs(l) / max) * 28); const r = roi(x);
-            return <div key={d} title={`${d.slice(8, 10)}/${d.slice(5, 7)} · chi $${(x?.chi ?? 0).toFixed(2)} · thu $${(x?.thu ?? 0).toFixed(2)} · lãi ${l >= 0 ? '+' : '−'}$${Math.abs(l).toFixed(2)}${r == null ? '' : ` · ROI ${r}%`}`}
-              style={{ width: 22, height: 78, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ height: 30, display: 'flex', alignItems: 'flex-end' }}>{l > 0 ? <div style={{ width: 14, height: h, background: '#22c55e', borderRadius: 2 }} /> : null}</div>
-              <div style={{ width: 18, height: 1, background: 'var(--line)' }} />
-              <div style={{ height: 30 }}>{l < 0 ? <div style={{ width: 14, height: h, background: '#ef4444', borderRadius: 2 }} /> : null}</div>
-              <div style={{ fontSize: 9, color: d === du.nay ? 'var(--fg-1, inherit)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{d === du.nay ? 'nay' : d.slice(8, 10)}</div>
-            </div>; })}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, auto)', gap: '2px 14px', alignContent: 'center', color: 'var(--fg-2)' }}>
-          <span>7 ngày</span><span>chi <b style={{ color: 'var(--fg-1, inherit)' }}>${t7.chi.toFixed(2)}</b></span><span>thu <b style={{ color: 'var(--fg-1, inherit)' }}>${t7.thu.toFixed(2)}</b></span><span>ROI <Roi s={t7} /> · <Lai s={t7} /></span>
-          <span>tuổi</span><span>{tuoi(c) ?? '?'} ngày</span><span>ngân sách ${c.ngan_sach}</span><span>giao {c.giao ?? '—'}</span>
-          {c.goc ? <><span>nhân từ</span><span>camp #{c.goc}</span><span /><span /></> : null}
-          {l ? <><span style={{ color: '#f87171' }}>nhân bản lỗi</span><span style={{ gridColumn: 'span 3', color: '#f87171' }}>{l.lan} lần / 24h · {l.loi ?? ''}</span></> : null}
-        </div>
+      <div style={{ margin: '0 0 6px', marginLeft: 12 + 12 + 8 + 14 + (cap - 1) * 14, fontSize: 11, color: 'var(--fg-2)' }}>
+        <table style={{ borderCollapse: 'collapse', background: 'var(--bg-1, rgba(255,255,255,.03))', borderRadius: 6 }}>
+          <thead><tr><th style={{ ...td, textAlign: 'left' }} />{cotNgay.map(({ d }) => <th key={d} style={{ ...td, fontWeight: 500, color: d === du.nay ? 'var(--fg-1, inherit)' : 'var(--fg-3)', borderLeft: d === '7n' ? '1px solid var(--line)' : undefined }}>{d === '7n' ? '7 ngày' : d === du.nay ? 'nay' : `${d.slice(8, 10)}/${d.slice(5, 7)}`}</th>)}</tr></thead>
+          <tbody>
+            {([['chi', (x?: SoTien) => (x && x.chi ? `$${x.chi.toFixed(2)}` : '·')], ['thu', (x?: SoTien) => (x && x.thu ? `$${x.thu.toFixed(2)}` : '·')]] as const).map(([ten, f]) => (
+              <tr key={ten}><td style={{ ...td, textAlign: 'left' }}>{ten}</td>{cotNgay.map(({ d, x }) => <td key={d} style={{ ...td, borderLeft: d === '7n' ? '1px solid var(--line)' : undefined }}>{f(x)}</td>)}</tr>))}
+            <tr><td style={{ ...td, textAlign: 'left' }}>lãi</td>{cotNgay.map(({ d, x }) => <td key={d} style={{ ...td, borderLeft: d === '7n' ? '1px solid var(--line)' : undefined }}>{x && (x.chi || x.thu) ? <Lai s={x} /> : '·'}</td>)}</tr>
+            <tr><td style={{ ...td, textAlign: 'left' }}>ROI</td>{cotNgay.map(({ d, x }) => <td key={d} style={{ ...td, borderLeft: d === '7n' ? '1px solid var(--line)' : undefined }}>{x && x.chi >= 0.3 ? <Roi s={x} /> : '·'}</td>)}</tr>
+          </tbody>
+        </table>
+        {c.goc || l ? <div style={{ marginTop: 3 }}>{c.goc ? `nhân bản từ camp #${c.goc}` : ''}{c.goc && l ? ' · ' : ''}{l ? <span style={{ color: '#f87171' }}>nhân bản lỗi {l.lan} lần / 24h: {l.loi ?? ''}</span> : null}</div> : null}
       </div>);
     return <details><summary style={{ cursor: 'pointer' }}>{hang}</summary>{chiTiet}{sapXep(ds).map((x) => <Dong key={x.camp_id} c={x} cap={cap + 1} />)}</details>;
   };

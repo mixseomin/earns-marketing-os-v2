@@ -188,7 +188,8 @@ _sau = {}
 def _sau_giam_ok(cid):
     g = NT.lan_giam(api, cid)
     if not g: return True
-    tu = ((g[0] + dt.timedelta(hours=7)).date() + dt.timedelta(days=1)).isoformat()
+    # số TỪ NGÀY GIẢM (kể cả ngày giảm), không đợi sang hôm sau — anh 24/10/2026: hồi lại thì lên lại không mất nhịp (khoá 6 giờ ở nhip_tang)
+    tu = (g[0] if (TANG_CHOT or HIEN_CHOT) else g[0] + dt.timedelta(hours=7)).date().isoformat()
     if tu > d(0): return False
     if tu not in _sau: _sau[tu] = bc(tu, d(0))
     a = _sau[tu].get(cid) or _sau[tu].get(str(cid))
@@ -197,7 +198,7 @@ dat = [(cid, chu) for cid, chu in dat if _sau_giam_ok(cid)]
 dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
 # GIẢM BẬC (luật GB): chỉ phiên sáng (6–13h VN), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
 # → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
-# Camp vừa tăng mà ngày trọn kế tiếp âm → giảm luôn, không xét ROI 3 ngày; đang $20 thì về thẳng $10 (anh 24/10/2026).
+# Camp vừa tăng mà ngày trọn kế tiếp âm → giảm luôn, không xét ROI 3 ngày (anh 24/10/2026), từng bậc một: $20 → $15 → $10.
 ha = []
 if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua khép 07:00 VN + ~2 giờ cho đợt chi cuối → 9h mới đủ số trọn
     for cid, a in thang.items():
@@ -206,20 +207,19 @@ if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua kh
         ry = roi(y); g3 = gan.get(cid); r3 = roi(g3) if g3 else ry
         if ry is None or ry >= 0: continue
         # GIẢM SAU KHI TĂNG (anh 24/10/2026: "camp sau khi tăng thì hôm sau bị âm thì áp dụng rule giảm theo bậc… lên $20 nhưng hôm nay âm thì phải giảm
-        # xuống $10"): lần tăng gần nhất rơi vào 48 giờ trước đầu hôm nay (tức ngày trọn hôm qua là ngày sau tăng) → bỏ điều kiện ROI 3 ngày; $20 → $10.
+        # xuống $10" → "tạo thêm 1 bậc về $15 trước rồi mới về $10"): lần tăng gần nhất rơi vào 48 giờ trước đầu hôm nay → bỏ điều kiện ROI 3 ngày; xuống từng bậc.
         try: _lt = max(NT.lan_tang(api, cid) or [None], key=lambda t: t or dt.datetime.min.replace(tzinfo=dt.timezone.utc))
         except Exception: _lt = None
         _dau = dt.datetime.combine(nay, dt.time(), tzinfo=dt.timezone.utc) - (dt.timedelta(hours=7) if not (TANG_CHOT or HIEN_CHOT) else dt.timedelta(0))
         sau_tang = _lt is not None and _dau - dt.timedelta(hours=48) <= _lt < _dau - dt.timedelta(hours=12)
         if not sau_tang and r3 is not None and r3 >= 20: continue
         buoc = 2 if ry < -50 and y["chi"] >= ns else 1; dich = NT.xuong(ns, buoc)
-        if sau_tang and ns >= 20: dich = 10
         try: ly = NT.chan_giam(api, cid)
         except Exception: ly = None
         if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 and not sau_tang else "") + (f" · ngày đầu sau lần tăng lúc {(_lt + dt.timedelta(hours=7)):%H:%M %d/%m} đã âm" if sau_tang else "")))
 # GIẢM SỚM CAMP LỚN ROI MỎNG (Support Dol 24/10/2026, anh chuyển + "phải áp dụng sớm nhất nếu có thể để giảm chi phí"): camp ngân sách ≥ $15 tiêu đều
 # (hôm qua + hôm nay đã chốt chi ≥ 1 ngày ngân sách) mà ROI gộp 1–2 ngày đó < 30% → giảm ngay trong nhịp, không chờ phiên sáng. Vừa tăng (48 giờ) mà
-# ROI gộp âm và đang $20 → về thẳng $10; còn lại xuống một bậc. Đổi ngân sách < 6 giờ vẫn bị chan_giam chặn. Mốc an toàn giữ ROI > 50% (luật tăng).
+# hôm nay âm mà đang $20 → giảm dù ROI gộp ≥ 30%; luôn xuống MỘT bậc ($20 → $15 → $10, anh 24/10/2026). Đổi ngân sách < 6 giờ vẫn bị chan_giam chặn. Mốc an toàn giữ ROI > 50% (luật tăng).
 ROI_GIAM_SOM = 30
 _da_ha = {cid for cid, _ in ha}
 for cid, a in thang.items():
@@ -233,11 +233,11 @@ for cid, a in thang.items():
     try: _lt = max(NT.lan_tang(api, cid) or [None], key=lambda t: t or dt.datetime.min.replace(tzinfo=dt.timezone.utc))
     except Exception: _lt = None
     vua_tang = _lt is not None and (dt.datetime.now(dt.timezone.utc) - _lt).total_seconds() < 48 * 3600
-    am = vua_tang and ns >= 20 and ((rh is not None and rh < 0) or r2 < 0)   # anh: "lên $20 nhưng hôm nay âm thì phải giảm xuống $10"
-    dich = 10 if am else NT.xuong(ns, 1)
+    am = vua_tang and ns >= 20 and ((rh is not None and rh < 0) or r2 < 0)   # anh: $20 vừa tăng mà hôm nay âm → giảm, TỪNG BẬC: $15 trước rồi mới $10
+    dich = NT.xuong(ns, 1)
     try: ly = NT.chan_giam(api, cid)
     except Exception: ly = None
-    if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}%" + (f" · hôm nay {rh:+.0f}%" if rh is not None else "") + f" (chi ${g2['chi']:.2f})" + (" · vừa tăng lên $20 mà hôm nay âm: về $10" if am else f" < {ROI_GIAM_SOM}%") + " · giảm sớm (Support)"))
+    if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}%" + (f" · hôm nay {rh:+.0f}%" if rh is not None else "") + f" (chi ${g2['chi']:.2f})" + (" · vừa tăng lên $20 mà hôm nay âm" if am else f" < {ROI_GIAM_SOM}%") + " · giảm sớm (Support)"))
 tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).

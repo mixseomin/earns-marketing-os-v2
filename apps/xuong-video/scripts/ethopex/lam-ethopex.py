@@ -65,6 +65,30 @@ def dang_lai(cid):
 def roi_tong(cid):
     return roi_ky(cid)["tong"]
 
+def chan_sau_giam(cid):
+    """CỔNG TĂNG LẠI SAU GIẢM (anh 24/10/2026: "camp bị giảm thì không được tự tăng lại bởi một rule khác tương đương — đã giảm rồi thì muốn tăng lại phải
+    đúng quy trình, đủ rule"). Mọi đường tăng (máy tự tăng, nút Telegram, T30, lãi đầu phiên) đều qua đây. Camp có lần giảm mới hơn lần tăng gần nhất →
+    chỉ được tăng khi: đã qua khoá sau giảm (nhip_tang) · ROI TỪ NGÀY GIẢM (ngày Ethopex = UTC) ≥ ROI_TANG_LAI% với chi ≥ $1 · hôm nay không âm.
+    → câu lý do chặn, None nếu được. --ep (anh lệnh đích danh) bỏ qua."""
+    import datetime as dt
+    g, t = NT.lan_giam(lambda p: api(p), cid), NT.lan_tang(lambda p: api(p), cid)
+    if not g or (t and t[0] > g[0]): return None
+    tu, nay = g[0].date().isoformat(), dt.datetime.now(dt.timezone.utc).date().isoformat()
+    def so(d1, d2):
+        b = {"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, "date_from": d1, "date_to": d2}
+        x = {"chi": 0.0, "thu": 0.0}
+        for r in api("/api/v1/report", b).get("rows", []):
+            if int(r.get("campaign_id") or 0) == cid: x["chi"] += float(r.get("cost") or 0); x["thu"] += float(r.get("revenue") or 0)
+        return x
+    s, h = so(tu, nay), so(nay, nay)
+    r = (s["thu"] - s["chi"]) / s["chi"] * 100 if s["chi"] >= 1 else None
+    vn = (g[0] + dt.timedelta(hours=7)).strftime("%H:%M %d/%m")
+    if r is None: return f"đã giảm lúc {vn}, chưa đủ số từ ngày giảm (chi < $1) — chưa được tăng lại"
+    if r < ROI_TANG_LAI: return f"đã giảm lúc {vn}: ROI từ ngày giảm {r:+.0f}% < {ROI_TANG_LAI}% — chưa được tăng lại"
+    if h["chi"] >= 0.3 and h["thu"] < h["chi"]: return f"đã giảm lúc {vn}: hôm nay đang âm — chưa được tăng lại"
+    return None
+ROI_TANG_LAI = 50
+
 def main(a):
     # --luat "<mã luật · số liệu>" (BẮT BUỘC ghi khi tăng — anh 21/10/2026) · --ai "<ai duyệt: anh (chat) / anh (nút Telegram)>"
     luat = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--luat"), None); ai = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--ai"), None)
@@ -79,6 +103,8 @@ def main(a):
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
             ly = NT.chan_tang(lambda p: api(p), cid)   # nhịp tăng: ≥ 3 giờ giữa hai lần (nút cũ bấm muộn cũng bị chặn)
+            if ly: raise ValueError(ly)
+            ly = None if ep else chan_sau_giam(cid)   # đã giảm → tăng lại phải đủ quy trình, mọi đường tăng chung một cổng
             if ly: raise ValueError(ly)
             ly = CONG.kiem("tang", cid, ns, float(truoc["ns"] or 0))
             if ly: raise ValueError(ly)

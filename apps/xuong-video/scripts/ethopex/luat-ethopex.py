@@ -318,6 +318,7 @@ try:
         if cid not in bat30 or round(a["budget"]) != 20: continue
         du = [n[cid] for n in ngay3 if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
         if len(du) < T30_NGAY: continue
+        if not _sau_giam_ok(cid): continue   # đã giảm → T30 cũng phải qua cổng tăng lại (anh 24/10/2026)
         g = {"chi": sum(x["chi"] for x in du), "thu": sum(x["thu"] for x in du)}; r = roi(g)
         if r is not None and r > T30_ROI:
             tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · {rd(cid)} {roi(a):+.0f}%"))

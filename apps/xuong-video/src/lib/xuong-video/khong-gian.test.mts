@@ -6,7 +6,7 @@ import { coKhongGian, dang, diChuyen, doCam, loiMach2d, nguoiKhung, nguoiNgoai, 
 
 const du = JSON.parse(readFileSync(new URL('../../../scripts/du-lieu/reelshort-thang-may.json', import.meta.url), 'utf8'));
 const kg: KhongGian = { so_do: du.so_do, nguoi: du.nguoi, so_vat: du.so_vat, so_dang: du.so_dang, ten_en: du.ten_en };
-const tao = (shot: typeof du.shot): ShotKg[] => keThuaNhin(kg.so_do, shot).map((m: any, i: number) => ({ id: 100 + i + 1, thu_tu: i + 1, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket ?? undefined, co_canh: m.co }, dan_dung: { noi: m.noi } }));
+const tao = (shot: typeof du.shot): ShotKg[] => keThuaNhin(kg.so_do, shot).map((m: any, i: number) => ({ id: 100 + i + 1, thu_tu: i + 1, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket ?? undefined, co_canh: m.co }, dan_dung: { noi: m.noi }, thoai: m.thoai ?? null }));
 const ds = tao(du.shot); const S = (n: number) => ds[n - 1]!;
 
 assert.ok(coKhongGian(kg, S(1)) && !coKhongGian(null, S(1)) && !coKhongGian(kg as KhongGian | null, { ky_thuat: {} }));
@@ -120,3 +120,17 @@ console.log('khong-gian.test: ok (dáng đo được)');
   assert.ok((loiMach2d(kg, d13)[113] ?? []).some((x) => x.includes('nửa lưng cả shot')), JSON.stringify(loiMach2d(kg, d13)[113]));
   assert.ok(!(loiMach2d(kg, ds)[113] ?? []).length); assert.ok(!(loiMach2d(kg, ds)[102] ?? []).length, '#2 nửa lưng đầu nhưng cuối lộ mặt → không lỗi'); }
 console.log('khong-gian.test: ok (cận mất mặt)');
+// LUẬT NỐI MỚI (anh 24/10/2026): người nghe nhìn người nói · cận chèn đổi phía · chạm mà đứng xa · câu khoảng cách
+{ const { cauHuong } = await import('./so-do-canh');
+  assert.deepStrictEqual(loiMach2d(kg, ds), {}, 'dữ liệu thật sạch');
+  const nghe = ds.map((c) => (c.thu_tu === 13 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, may: 'can_ha', nhin: { 'Lâm Hạ': 'Vivian' } } } } : c));
+  assert.ok((loiMach2d(kg, nghe)[113] ?? []).some((x) => x.startsWith('phản ứng không NHÌN người vừa nói')), 'Hạ nhìn Vivian sau câu Thần nói');
+  const ne = nghe.map((c) => (c.thu_tu === 13 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, ne_nhin: ['Lâm Hạ'] } } } : c));
+  assert.ok(!(loiMach2d(kg, ne)[113] ?? []).some((x) => x.startsWith('phản ứng')), 'cố ý né → không lỗi');
+  const doiPhia = ds.map((c) => (c.thu_tu === 9 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, may: 'can_vi' } } } : c));
+  assert.ok((loiMach2d(kg, doiPhia)[109] ?? []).some((x) => x.startsWith('cận chèn đổi phía')), JSON.stringify(loiMach2d(kg, doiPhia)[109]));
+  const xa = { ...kg, so_do: { ...kg.so_do, moc: { ...kg.so_do.moc, vi: [1.0, 5.9] as [number, number] } } };
+  assert.ok((loiMach2d(xa, ds)[105] ?? []).some((x) => x.startsWith('đứt mạch khoảng cách')), 'Vivian chạm thẻ mà đứng 1,5 m');
+  assert.ok(cauHuong(kg.so_do, S(5).ky_thuat!.sd!, kg.nguoi).includes("within arm's reach"));
+  assert.ok(!cauHuong(xa.so_do, S(5).ky_thuat!.sd!, kg.nguoi).includes("within arm's reach")); }
+console.log('khong-gian.test: ok (luật nối mới)');

@@ -6,7 +6,7 @@
 export type Diem = [number, number];
 export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem; nhin: Diem; /** tiêu cự tương đương mm (mặc định 35): cận mặt 60–85, toàn 24–28 */ ong?: number }>; /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string> };
 /** Một mảnh theo sơ đồ: máy nào · ai / cái gì ở đâu (tên mốc hoặc toạ độ) · ai nhìn ai / cái gì · ai đi vào khung từ mốc nào. */
-export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
+export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** người CỐ Ý không nhìn người vừa nói (khong-gian.ts › luật người nghe nhìn người nói) */ ne_nhin?: string[]; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
 export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true; /** quay lưng HẲN (sâu > 0,7) — không thể thấy mặt; nửa lưng thì có thể lộ má / nghiêng */ han?: true };
 
 const tru = (a: Diem, b: Diem): Diem => [a[0] - b[0], a[1] - b[1]];
@@ -41,6 +41,10 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
     return `${n} at the very ${x == null ? (h < 0 ? 'screen-right' : 'screen-left') : x < 0 ? 'screen-left' : 'screen-right'} edge, only just stepping into frame`; }
     const x = viTriMan(s, m, n); return x == null ? '' : `${n} at ${BEN(x)}`; }).filter(Boolean);
   if (dung.length) out.push(`Placement on screen: ${dung.join(', ')}`);
+  // KHOẢNG CÁCH giữa hai người cùng khung (sơ đồ): sát (≤ 1,2 m) / xa (≥ 3 m) — không nói thì model tự đặt (#353 #7: Vivian đứng cách cả sải tay khi đang giật thẻ)
+  { const tk = nguoi.filter((n) => thay(n) && !m.vao?.[n]);
+    for (let i = 0; i < tk.length; i++) for (let j = i + 1; j < tk.length; j++) { const pa = diem(s, m, tk[i]!), pb = diem(s, m, tk[j]!); if (!pa || !pb) continue; const kc = Math.hypot(pa[0] - pb[0], pa[1] - pb[1]);
+      if (kc <= 1.2) out.push(`${tk[i]} and ${tk[j]} stand close together, within arm's reach of each other`); else if (kc >= 3) out.push(`${tk[i]} and ${tk[j]} stand far apart (about ${Math.round(kc)} m)`); } }
   // người CÓ chỗ trong cảnh nhưng NGOÀI khung: nói thẳng là không thấy — không nói thì model tự thêm vào khi câu diễn nhắc tên (phim #353 #16: "mắt nhìn
   // theo Hạ" → model vẽ Hạ đứng cạnh Vivian dù #15 Hạ đã quay đi)
   // cận chèn (khung rỗng): tay / đồ của người vẫn trong khung — không ghi OFF SCREEN (câu ảnh của cận chèn tự nói phần nào thấy)

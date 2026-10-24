@@ -35,7 +35,7 @@ if (du.so_do) {
     ...du.shot.flatMap((m, i) => (m.sd ? [...(['mo', 'vid', 'anh'] as const).flatMap((k) => loiChuSoDo(sd, m.sd!, m[k] ?? '')), ...(['ket', 'giua'] as const).flatMap((k) => loiChuSoDo(sd, sdKet(m)!, m[k] ?? ''))].map((x) => `#${i + 1}: ${x}`) : []))];
   // CÙNG cổng mạch tập studio đọc (khong-gian.ts › loiMach2d): trục qua cú cắt, nhìn → thấy, tổng thể, sổ dáng / đồ vật, cận mất mặt
   { const kgThu = { so_do: sd, nguoi: ng, ...(du.so_vat ? { so_vat: du.so_vat } : {}), ...(du.so_dang ? { so_dang: du.so_dang } : {}) };
-    const m2 = loiMach2d(kgThu, du.shot.map((m, i) => ({ id: i + 1, thu_tu: i + 1, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket, co_canh: m.co }, dan_dung: { noi: m.noi } })));
+    const m2 = loiMach2d(kgThu, du.shot.map((m, i) => ({ id: i + 1, thu_tu: i + 1, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket, co_canh: m.co }, dan_dung: { noi: m.noi }, thoai: (m as { thoai?: { nhan_vat: string }[] }).thoai ?? null })));
     for (const v of Object.values(m2)) tr.push(...v); }
   if (tr.length) { console.error(`sơ đồ lỗi (trục 180° / cận mặt quay lưng / chữ trái sơ đồ):\n  ${tr.join('\n  ')}`); process.exit(1); }
 }

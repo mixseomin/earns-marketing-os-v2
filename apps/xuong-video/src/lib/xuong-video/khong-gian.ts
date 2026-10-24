@@ -12,7 +12,7 @@ export type KhongGian = { so_do: SoDo; /** tên nhân vật NGƯỜI (khác mố
 /** xv_tap.khong_gian: mỗi CẢNH (phan_doan) một sơ đồ riêng. */
 export type KhongGianTap = Record<string, KhongGian>;
 export const kgCua = (t: KhongGianTap | null | undefined, c: { phan_doan?: string }): KhongGian | null => t?.[c.phan_doan ?? ''] ?? null;
-export type ShotKg = { id: number; thu_tu: number; phan_doan?: string; ky_thuat?: { sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo>; co_canh?: string } | null; dan_dung?: { noi?: string } | null };
+export type ShotKg = { id: number; thu_tu: number; phan_doan?: string; ky_thuat?: { sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo>; co_canh?: string } | null; dan_dung?: { noi?: string } | null; /** lời thoại của shot (ai nói) — luật người nghe nhìn người nói */ thoai?: { nhan_vat: string }[] | null };
 type Shot = Pick<ShotKg, 'ky_thuat'>;
 
 /** Sơ đồ của shot ở khung ĐẦU / CUỐI (cuối = sd đè sd_ket). */
@@ -65,6 +65,8 @@ export function doCam(kg: KhongGian | null | undefined, thuTu: number, ten: stri
   if (!kg?.so_vat) return []; return Object.entries(trangThai(kg.so_vat, thuTu, luc)).filter(([, m]) => m.ai === ten).map(([mon, m]) => ({ mon, vi: m.vi, doi: m.tu === thuTu && !!m.su_kien }));
 }
 const CO_TONG = new Set(['ews', 'ws', 'est']);
+/** tầm với để chạm người khác (m) · câu dáng có chạm */
+export const TAM_VOI = 1.0; export const LECH_CHEN = 45; const CHAM = /\b(touch\w*|on the [\w ]*? on \w+'s|grip\w*|grab\w*|yank\w*|hand on|fingertips|clench\w* around)\b/i;
 /** Bậc cỡ cảnh (luật 30° / 2 bậc) — dùng chung 3D (bo-set-3d) và 2D. */
 export const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, ots: 3, mcu: 3, cu: 4, insert: 4, ecu: 5 };
 export const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
@@ -95,6 +97,28 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
       const thayDuoc = (x: string) => thay.includes(x) || chenDo(x) || Object.values(d.vao ?? {}).includes(x) || (!kg.nguoi.includes(x) && s.moc[x] != null && Math.abs(viTriMan(s, d, x) ?? 9) <= 1);
       if (dich.length && !dich.some(([, x]) => thayDuoc(x))) them(c.id, `đứt chuỗi NHÌN → THẤY: cuối #${a.thu_tu} ${dich.map(([n, x]) => `${n} nhìn ${x}`).join(', ')} — #${c.thu_tu} cắt theo ánh mắt mà không cho thấy thứ được nhìn`);
     }
+  }
+  for (let i = 0; i < ds.length; i++) {
+    const c = ds[i]!; const a = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null; const d = sdLuc(c, 'dau')!;
+    // NGƯỜI NGHE NHÌN NGƯỜI NÓI (anh 24/10/2026, #12→#13: "Thần hiện ra bên trái mà Hạ quay mặt sang phải thì nhìn cái gì? Phải đớp lại đoạn Thần nói"):
+    // shot trước có người nói, shot này không thấy người nói → người trong khung thấy mặt phải nhìn người nói (cố ý né: sd.ne_nhin)
+    if (a) { const noi = [...new Set((a.thoai ?? []).map((x) => x.nhan_vat).filter((n) => kg.nguoi.includes(n)))]; const trong = nguoiKhung(kg, c, 'dau') ?? [];
+      if (noi.length && !noi.some((n) => trong.includes(n))) for (const y of trong) {
+        if (noi.includes(y) || d.ne_nhin?.includes(y) || thayMat(kg, c, y) === false) continue; const dn = dichNhin(c, y, 'dau');
+        if (!dn || !noi.includes(dn)) them(c.id, `phản ứng không NHÌN người vừa nói: #${c.thu_tu} ${y} nhìn ${dn ?? '(không khai)'} — cuối #${a.thu_tu} ${noi.join(', ')} vừa nói; người nghe phải nhìn người nói (cố ý né thì khai sd.ne_nhin)`); } }
+    // CẬN CHÈN ĐỔI PHÍA (#8→#9: nắm tay vào từ phải, cận chèn quay máy khác lại chìa từ trái): cận chèn đồ trên tay người X phải quay CÙNG HƯỚNG máy
+    // với shot trước (lệch ≤ LECH_CHEN°) — phía bàn tay trong ảnh AI đi theo góc máy, không đoán được từ chỗ đứng
+    if (a && c.ky_thuat?.co_canh === 'insert' && kg.nguoi.some((n) => d.o[n] != null && doCam(kg, c.thu_tu, n, 'dau').length)) {
+      const ma = s.may[sdLuc(a, 'ket')!.may], mc = s.may[d.may];
+      if (ma && mc) { const h = (m: { dat: [number, number]; nhin: [number, number] }) => Math.atan2(m.nhin[1] - m.dat[1], m.nhin[0] - m.dat[0]) * 180 / Math.PI; const l = gocLech(h(ma), h(mc));
+        if (l > LECH_CHEN) them(c.id, `cận chèn đổi phía: #${c.thu_tu} quay máy "${d.may}" lệch ${Math.round(l)}° so máy "${sdLuc(a, 'ket')!.may}" của #${a.thu_tu} — đồ trên tay sẽ vào khung từ phía khác; dùng máy cùng hướng #${a.thu_tu}`); }
+    }
+    // CHẠM MÀ ĐỨNG XA (#5–#7: Vivian vươn tay tới thẻ trên ngực Hạ mà sơ đồ đặt cách 1,5 m → clip #7 Vivian đứng cách cả sải tay): dáng của A nhắc chạm B
+    // (tay trên / nắm / giật / chạm) thì A–B trong sơ đồ phải ≤ TAM_VOI m
+    for (const luc of ['dau', 'ket'] as const) { const m = sdLuc(c, luc)!;
+      for (const A of nguoiKhung(kg, c, luc) ?? []) { const dg = dang(kg, c.thu_tu, A, luc)?.en ?? ''; if (!CHAM.test(dg)) continue;
+        for (const B of kg.nguoi.filter((n) => n !== A && m.o[n] != null && dg.includes(n.split(' ').pop()!))) { const pa = diemO(kg, m, A), pb = diemO(kg, m, B); if (!pa || !pb) continue; const kc = Math.hypot(pa[0] - pb[0], pa[1] - pb[1]);
+          if (kc > TAM_VOI) them(c.id, `đứt mạch khoảng cách: #${c.thu_tu} ${luc === 'dau' ? 'đầu' : 'cuối'} ${A} chạm ${B} (sổ dáng) mà sơ đồ đặt cách ${kc.toFixed(1)} m — dời chỗ đứng trong sơ đồ về ≤ ${TAM_VOI} m`); } } }
   }
   // TỔNG THỂ: cảnh có ≥ 2 người mà không shot toàn nào cho thấy họ cùng khung — khán giả không biết ai đứng đâu
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {

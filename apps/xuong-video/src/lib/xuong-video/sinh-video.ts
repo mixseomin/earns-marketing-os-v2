@@ -90,6 +90,8 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     trongKhung.length ? `On-camera dialogue (${tenNgonNguEn(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',
     dong.some(laVO) ? `Off-screen voice-over (${tenNgonNguEn(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
   ].filter(Boolean).join(' ');
+  // IM LẶNG: shot có người mà không có lời — nói thẳng là không ai mở miệng (phim #353 #13: Hạ chỉ nghe câu Thần nói mà clip cho Hạ mấp máy như đang cãi)
+  const imLang = !dong.length && bc.canh.ky_thuat?.co_canh !== 'insert' && bc.nhanVat.some((v) => v.loai === 'nhan_vat') ? 'Nobody speaks in this shot: every person in frame keeps their mouth closed — no talking, no lip movement.' : '';
   // Khung đầu là ảnh render 3D: KHÔNG câu phong cách chung (nó có "bokeh", "monitor glow" → Veo thêm đèn mờ sau nền, #23) — giữ đúng ảnh đầu.
   // Cấm chữ / nhãn tên (Veo in "Mr. Wipe", "Lint" lên hình vì prompt gọi tên) và mặt hoạt hình vẽ thêm (Lint mọc mắt nhắm miệng méo).
   const rendau = !!bc.canh.khung_xam?.mau && bc.canh.keyframe_url === bc.canh.khung_xam.mau;
@@ -114,12 +116,12 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || ((bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket) || bc.canh.dan_dung?.dien?.trim() ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
     khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
-    khoi('thoai', thoaiVeo), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
+    khoi('thoai', thoaiVeo || imLang), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     // Ý đồ khán giả → KHÔNG KHÍ (khan-gia.ts › cauKhongKhi): chỉ không khí / ánh sáng / nhịp, không đổi nét mặt đã khai ở khối bieu_cam.
     khoi('khong_khi', cauKhongKhi(bc.khanGia ?? [])),
-    khoi('thoai', coGiong ? (trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} speak their lines with natural lip movement; the dialogue audio is replaced by a separate voice recording in the edit.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.') : ''   /* 19/10/2026: "audio must contain NO spoken words" + mấp máy môi nói → Veo báo 'unable to generate audio' (4 shot tập 122, hỏng lặp lại); bản xuất đã bỏ tiếng clip khi có giọng riêng */),
+    khoi('thoai', coGiong ? (trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} speak their lines with natural lip movement; the dialogue audio is replaced by a separate voice recording in the edit.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.') : imLang   /* 19/10/2026: "audio must contain NO spoken words" + mấp máy môi nói → Veo báo 'unable to generate audio' (4 shot tập 122, hỏng lặp lại); bản xuất đã bỏ tiếng clip khi có giọng riêng */),
   ];
   return ds.map((k) => ({ ...k, chu: thayTen(k.chu) }));
 }

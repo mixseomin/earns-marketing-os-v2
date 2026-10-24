@@ -19,8 +19,8 @@
         6.0
       ],
       "vi": [
-        1.0,
-        5.9
+        0.3,
+        5.95
       ],
       "loi_vao": [
         6,
@@ -64,8 +64,8 @@
           4.0
         ],
         "nhin": [
-          1.0,
-          5.9
+          0.3,
+          5.95
         ],
         "ong": 70
       },
@@ -86,8 +86,8 @@
           5.2
         ],
         "nhin": [
-          1.0,
-          5.9
+          0.3,
+          5.95
         ],
         "ong": 40
       },
@@ -673,9 +673,9 @@
       ],
       "hd": "Cận Hạ: nhìn Lục Thần, nghe câu anh ta nói, mím môi nén lại, rồi cụp mắt",
       "anh": "Close-up of Hạ from her front-left: her eyes {Lâm Hạ→Lục Thần} on Lục Thần just off frame, taking in his cold words, lips pressed together, still hugging the cardboard box at the bottom of frame; black marble lobby behind.",
-      "vid": "Hạ keeps her eyes {Lâm Hạ→Lục Thần} on Lục Thần as his words land, presses her lips together, then lowers her eyes and stays silent. Static camera.",
+      "vid": "Hạ keeps her head turned {Lâm Hạ→Lục Thần} toward Lục Thần as his words land, silent, lips pressed together, then lowers her eyes without turning her head away. Static camera.",
       "mo": "Hạ looks {Lâm Hạ→Lục Thần} at Lục Thần as his words land, lips pressed together",
-      "ket": "Hạ lowers her eyes and stays silent",
+      "ket": "Hạ, head still turned {Lâm Hạ→Lục Thần}, lowers her eyes and stays silent",
       "noi": "phan_ung",
       "sd": {
         "may": "can_ha_trai",
@@ -822,7 +822,7 @@
           "Vivian"
         ],
         "nhin": {
-          "Vivian": "thang"
+          "Vivian": "Lâm Hạ"
         }
       },
       "vao": 0.5,

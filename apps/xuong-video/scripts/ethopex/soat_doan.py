@@ -108,8 +108,8 @@ def loc(lo, ma, dang, da_soat=False):
     s = khoa("ethopex_soat_doan"); duyet = meta_duyet({x["content_id"] for x in lo}); di, giu, ghi = [], {}, {}
     for x in lo:
         k = khoa_doan(x); v = s.get(k)
-        if da_soat: ghi[k] = {"ok": True, "luc": vn(), "ghi": f"soát tờ khung theo lô {ma}"}; di.append(x)
-        elif v and v.get("ok") is False: print(f"SOÁT ĐOẠN: {k} đã bị cấm ({v.get('ghi', '')[:80]}) — bỏ", flush=True)
+        if v and v.get("ok") is False: print(f"SOÁT ĐOẠN: {k} đã bị cấm ({v.get('ghi', '')[:80]}) — bỏ", flush=True)   # cấm thắng cả --da-soat (25/10/2026)
+        elif da_soat: ghi[k] = {"ok": True, "luc": vn(), "ghi": f"soát tờ khung theo lô {ma}"}; di.append(x)
         elif (v and v.get("ok")) or k in duyet: di.append(x)
         else: giu[k] = {"x": x, "ma": ma, "dang": dang, "to": to_khung(x["file"], k), "luc": vn()}
     for k in list(giu):   # máy soát ngay: ok → đẩy luôn lượt này, cam → bỏ, xem → giữ chờ người

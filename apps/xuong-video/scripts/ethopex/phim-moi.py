@@ -37,6 +37,10 @@ def ghi(cap):
     moi = {str(i): {"tt": tt, "luc": luc, "ghi": (g or "")[:200], **({"ngay": ngay_dich()} if tt == "da_len" else {}), "lan": (cu.get(str(i), {}).get("lan", 0) + 1) if tt == "cat_loi" else cu.get(str(i), {}).get("lan", 0)} for i, (tt, g) in cap.items()}
     v = json.dumps(moi, ensure_ascii=False).replace("'", "''")
     sql(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('{KTT}', '{v}'::jsonb) on conflict (ten) do update set gia_tri = coalesce(xv_khoa_ngoai.gia_tri, '{{}}'::jsonb) || excluded.gia_tri")
+    # kho etp (bước 5): cùng trạng thái vào etp.phim_moi — trang etp.on.tc / thợ đọc từ đây
+    j = json.dumps([{"content_id": int(i), **v} for i, v in moi.items()], ensure_ascii=False).replace("$J$", "")
+    sql(f"insert into etp.phim_moi (content_id, tt, ghi, lan, ngay) select content_id, tt, ghi, lan, ngay from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, tt text, ghi text, lan int, ngay text) "
+        f"on conflict (content_id) do update set tt = excluded.tt, ghi = excluded.ghi, lan = excluded.lan, ngay = coalesce(excluded.ngay, etp.phim_moi.ngay), cap_nhat = now()")
 
 def dpm():
     s = importlib.util.spec_from_file_location("dpm", os.path.join(D, "dot-phim-moi.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
@@ -106,11 +110,27 @@ def don_mac():
             for f in os.listdir(p):
                 if f.endswith(".mp4"): xoa += os.path.getsize(os.path.join(p, f)); os.remove(os.path.join(p, f))
     dang = {v.get("ghi") for v in tt.values() if v["tt"] == "da_cat"}   # lô còn đoạn chờ lên
-    for f in glob.glob(os.path.join(C, "ra", "*", "c-*.mp4")):
-        if os.path.basename(os.path.dirname(f)) not in dang: xoa += os.path.getsize(f); os.remove(f)
+    for f in glob.glob(os.path.join(C, "ra", "*", "c-*.mp4")) + glob.glob(os.path.join(C, "ra", "*", "p-*", "c-*.mp4")):   # lô cũ + lô qua hàng đợi (p-<phim>/)
+        lo_ = os.path.basename(os.path.dirname(f)); lo_ = os.path.basename(os.path.dirname(os.path.dirname(f))) if lo_.startswith("p-") else lo_
+        if lo_ not in dang: xoa += os.path.getsize(f); os.remove(f)
     trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9
     print(f"dọn iMac: {xoa / 1e9:.1f} GB · ổ còn trống {trong:.0f} GB", flush=True)
     return trong
+
+def cat_hang(phim, ten, so_tho=2):
+    """CẮT QUA HÀNG ĐỢI etp.viec (bước 5, 24/10/2026): mỗi phim một việc → thợ apps/etp/tho.py trên iMac (so_tho luồng) — máy khác muốn góp sức chỉ cần
+    chạy `tho.py --lo <lô>` cùng lúc. Hết việc thì gộp kết quả thành <ra>/lo.json + tờ soát như đường cũ (dot-phim-moi.cat_ds)."""
+    ra = os.path.join(C, "ra", ten); os.makedirs(ra, exist_ok=True)
+    j = json.dumps([{"content_id": int(p["id"]), "du_lieu": {"locale": p.get("locale"), "nguon": p.get("nguon"), "ten": p.get("ten"), "url": p.get("url"), "so_ban": 2}} for p in phim], ensure_ascii=False).replace("$J$", "")
+    sql(f"insert into etp.viec (loai, lo, content_id, du_lieu) select 'cat', '{ten}', content_id, du_lieu from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, du_lieu jsonb) on conflict do nothing")
+    print(f"đã xếp {len(phim)} việc cắt vào hàng đợi etp.viec (lô {ten}) — thợ iMac {so_tho} luồng; máy khác góp sức: python3 apps/etp/tho.py --lo {ten}", flush=True)
+    subprocess.run(["python3", os.path.join(D, "..", "..", "..", "etp", "tho.py"), "--lo", ten, "--so-tho", str(so_tho)])
+    kq = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select jsonb_array_elements(coalesce(ket_qua, '[]'::jsonb)) x from etp.viec where lo = '{ten}') t") or "[]")
+    for v in json.loads(sql(f"select coalesce(json_agg(json_build_object('content_id', content_id, 'loi', loi)), '[]') from etp.viec where lo = '{ten}' and (ket_qua is null or ket_qua = '[]'::jsonb)") or "[]"):
+        kq.append({"content_id": v["content_id"], "loi": v["loi"] or "chưa làm xong"})
+    json.dump(kq, open(os.path.join(ra, "lo.json"), "w"), ensure_ascii=False, indent=1)
+    dpm().to_soat(ra)
+    return ra
 
 def cat(dat=CHI_TIEU):
     if don_mac() < 15: return print("ổ iMac còn dưới 15 GB sau khi dọn — không cắt (cắt một phim cần ~1–2 GB tạm); báo anh")
@@ -119,7 +139,7 @@ def cat(dat=CHI_TIEU):
     can = max(0, dat - hom_nay); so = min(len(san), math.ceil(can / max(ty_le, 0.2)))
     if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if can else "đủ chỉ tiêu hôm nay")
     phim = san[:so]; ten = "pm-" + vn().strftime("%d%m%H%M"); print(f"cắt {so} phim (cần {can} phim lên, tỷ lệ đạt {ty_le:.0%}) → lô {ten}", flush=True)
-    ra = dpm().cat_ds(phim, ten, 2)
+    ra = cat_hang(phim, ten)
     lo = json.load(open(os.path.join(ra, "lo.json"))); cap = {}
     for p in phim:
         x = [y for y in lo if str(y.get("content_id")) == str(p["id"])]

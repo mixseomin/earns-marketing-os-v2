@@ -58,7 +58,10 @@ def to_khung(f, k):
 
 # MÁY SOÁT BẰNG CLAUDE (anh duyệt 24/10/2026: "Cho gọi Claude API", ~$0,005/đoạn): tờ khung 30 ô → ok / cam / xem. Chỉ "ok" chắc chắn mới cho qua;
 # "xem" (không chắc) giữ lại cho Claude trong phiên / anh. Khoá ANTHROPIC_API_KEY chỉ có trên box3 → iMac gửi tờ khung sang box3 gọi.
-MO_HINH = "claude-haiku-5-5"
+# Chuỗi rẻ trước (anh 24/10/2026: "API phải chạy qua fallback từ các nguồn rẻ trước") — cùng thứ tự claude.ts › duongChu của studio:
+# ckey (người bán trên chợ, ~30–125₫/lượt) → ShopAIKey (~315₫) → Anthropic trực tiếp (~2.500₫). Đường nào lỗi / trả sai khuôn → đường sau.
+MO_HINH = "claude-sonnet-5-5"
+CKEY = ["duc121026ab/claude-sonnet-5-5", "thanhnhan9023/claude-sonnet-5.5"]   # = CKEY_CLAUDE['claude-sonnet-5-5'] trong claude.ts
 HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama, to be used as a Facebook/Instagram video ad. "
        "Decide if Meta would reject it under Adult Nudity / Adult Sexual Exploitation / Violent or Graphic Content / Dangerous content. "
        "BAN (cam) if ANY frame shows: nudity or exposed intimate parts; sexual acts or strongly sexualised posing; non-consensual or forced sexual touching, "
@@ -68,16 +71,26 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "If unsure, answer 'xem'. Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\"}")
 
 def ai_box(jpg):
-    """chạy TRÊN BOX3: gọi Claude xem một tờ khung → {ket, ly}"""
+    """chạy TRÊN BOX3: gọi Claude xem một tờ khung qua chuỗi rẻ → {ket, ly, duong}"""
     import base64, urllib.request
     b64 = base64.b64encode(open(jpg, "rb").read()).decode()
-    body = {"model": MO_HINH, "max_tokens": 200, "messages": [{"role": "user", "content": [
-        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}, {"type": "text", "text": HOI}]}]}
-    r = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(), method="POST",
-                               headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01", "content-type": "application/json"})
-    t = json.load(urllib.request.urlopen(r, timeout=120))["content"][0]["text"]
-    j = json.loads(t[t.index("{"): t.rindex("}") + 1])
-    return {"ket": j.get("ket") if j.get("ket") in ("ok", "cam", "xem") else "xem", "ly": str(j.get("ly", ""))[:200]}
+    nd = [{"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}, {"type": "text", "text": HOI}]}]
+    e = os.environ; duong = []
+    if e.get("CKEY_API_KEY"): duong += [("ckey", "https://api.xah.io/v1/messages", e["CKEY_API_KEY"], m) for m in CKEY]
+    if e.get("SHOPAIKEY_API_KEY"): duong.append(("shopaikey", "https://api.shopaikey.com/v1/messages", e["SHOPAIKEY_API_KEY"], MO_HINH))
+    if e.get("ANTHROPIC_API_KEY"): duong.append(("anthropic", "https://api.anthropic.com/v1/messages", e["ANTHROPIC_API_KEY"], MO_HINH))
+    loi = []
+    for ten, url, k, m in duong:
+        try:
+            h = {"x-api-key": k, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+            if ten != "anthropic": h["authorization"] = "Bearer " + k
+            r = urllib.request.Request(url, data=json.dumps({"model": m, "max_tokens": 300, "messages": nd}).encode(), method="POST", headers=h)
+            t = "".join(b.get("text", "") for b in json.load(urllib.request.urlopen(r, timeout=120)).get("content", []) if b.get("type") == "text")
+            j = json.loads(t[t.index("{"): t.rindex("}") + 1])
+            if j.get("ket") not in ("ok", "cam", "xem"): raise ValueError(f"khuôn sai: {t[:80]}")
+            return {"ket": j["ket"], "ly": str(j.get("ly", ""))[:200], "duong": f"{ten}:{m}"}
+        except Exception as x: loi.append(f"{ten} {m}: {type(x).__name__} {str(x)[:80]}")
+    return {"ket": "xem", "ly": "mọi đường Claude lỗi — " + " | ".join(loi)[:300], "duong": None}
 
 def ai(to):
     """từ iMac: gửi tờ khung sang box3, gọi ai_box → {ket, ly}; lỗi thì 'xem' (giữ lại)"""
@@ -99,7 +112,7 @@ def loc(lo, ma, dang, da_soat=False):
         elif (v and v.get("ok")) or k in duyet: di.append(x)
         else: giu[k] = {"x": x, "ma": ma, "dang": dang, "to": to_khung(x["file"], k), "luc": vn()}
     for k in list(giu):   # máy soát ngay: ok → đẩy luôn lượt này, cam → bỏ, xem → giữ chờ người
-        kq = ai(giu[k]["to"]); print(f"SOÁT ĐOẠN (Claude): {k} → {kq['ket']} · {kq['ly']}", flush=True)
+        kq = ai(giu[k]["to"]); print(f"SOÁT ĐOẠN (Claude {kq.get('duong')}): {k} → {kq['ket']} · {kq['ly']}", flush=True)
         if kq["ket"] == "xem": giu[k]["may"] = kq["ly"]; continue
         ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude: {kq['ly']}"}
         if kq["ket"] == "ok": di.append(giu[k]["x"])

@@ -1029,7 +1029,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const fv = add(new THREE.CircleGeometry(7, 40), new THREE.MeshBasicMaterial({ map: texFav(d.hostBan ?? 'facebook.com', '#0866ff') }), false); fv.rotation.x = -Math.PI / 2; fv.position.set(x, h + .15, z); fv.userData = { chu: m };
       chuDoc(d.ten, '#6ea8ff', x, z, 12, 9, h, m); vongLai(d, x, z, 17);
       if (d.ngay30?.length) { const cv = document.createElement('canvas'); cv.width = 900; cv.height = 500; veBieuDoLai(cv, d.ngay30, d.ten);
-        const bd = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false })); bd.scale.set(90, 50, 1); bd.position.set(x, h + 40, z); bd.userData = { chu: m, gan: GAN_KHU }; the.add(bd); }
+        const bd = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false, depthTest: false })); bd.renderOrder = 5;   // vẽ đè ống / dây của khu
+        // cỡ theo cỡ cụm phim của bộ; "tới gần" tính theo bán kính KHU (ganKhu) — khu Ethopex rộng, bay tới khu camera dừng xa hơn khu thường
+        const nua = cumPhimCua(d).nua, rb = Math.max(90, nua * .8); bd.scale.set(rb, rb * 5 / 9, 1); bd.position.set(x, h + 20 + rb * .3, z); bd.userData = { chu: m, gan: GAN_KHU, ganKhu: d.duAn }; the.add(bd); }
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) }; chiMuc.push({ ten: d.ten, nhan: 'nền tảng', obj: m });
     }
     // SÂN PHIM: nền + tên phim in dưới nền mép trước; camp gốc lưới, bản nhân bản vòng quanh gốc, cột phải = camp chờ public rồi kho camp tắt
@@ -1914,7 +1916,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const khoa = the.uuid + nen.uuid + the.children.length + nen.children.length;
     if (khoa !== khoaNho) { khoaNho = khoa; const trongO = new Set(oCat.map((x) => x.im)); vatNho = []; vatGan = [];
       for (const g of [the, nen]) g.traverse((o: any) => { if (!(o.isMesh || o.isSprite) || trongO.has(o)) return; if (o.userData?.gan) vatGan.push(o); else if (!o.userData?.luonVe) vatNho.push(o); }); }
-    for (const o of vatGan) { viTri.setFromMatrixPosition(o.matrixWorld); o.layers.set(khongCat || viTri.distanceTo(cam.position) < o.userData.gan ? 0 : 1); }
+    // ganKhu = khoá khu: ngưỡng theo cỡ khu (bay tới khu camera dừng ở ~2,6 × bán kính) — đứng xem cả khu là đủ gần
+    for (const o of vatGan) { const u = o.userData, R = u.ganKhu ? Math.max(u.gan, (banKinhKhu[u.ganKhu] ?? 0) * 3.2) : u.gan; viTri.setFromMatrixPosition(o.matrixWorld); o.layers.set(khongCat || viTri.distanceTo(cam.position) < R ? 0 : 1); }
     const du = khongCat || r.shadowMap.needsUpdate;   // khung tính lại bóng / bộ kiểm so ảnh: vẽ đủ
     if (du) { for (const x of oCat) x.im.layers.set(0); for (const o of vatNho) o.layers.set(0); return; }
     cam.updateMatrixWorld(); khungNhin.setFromProjectionMatrix(m4Nhin.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
@@ -1981,6 +1984,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__bangXh = (hub: string) => { const sp = bangXhCua.get(hub); if (!sp) return null; const v = new THREE.Vector3(); sp.getWorldPosition(v); v.project(cam); const b = r.domElement.getBoundingClientRect();
     return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height, mo: sp.material.map === sp.userData.bangXh.texDu }; };
   (host as any).__soKhung = () => soKhung;
+  (host as any).__soGan = (chiTiet?: boolean) => { const ds_ = vatGan.filter((o) => o.layers.mask & 1); return chiTiet ? ds_.map((o) => ({ p: o.getWorldPosition(new THREE.Vector3()).toArray().map(Math.round), s: [o.scale.x, o.scale.y].map(Math.round), kc: Math.round(o.getWorldPosition(new THREE.Vector3()).distanceTo(cam.position)), vis: (() => { let x = o, v = true; while (x) { v = v && x.visible; x = x.parent; } return v; })(), man: o.getWorldPosition(new THREE.Vector3()).project(cam).toArray().map((t: number) => +t.toFixed(2)) })) : ds_.length; };   // số vật "tới gần" (userData.gan) đang được vẽ
   (host as any).__vongHan = () => (mh.taiNguyen?.han ?? []).filter((h) => h.muc === 'do' || h.muc === 'vang').reduce((n, h) => { const o = vatHan(h); return n + (o ? the.children.filter((c: any) => c.userData?.chu === o && c.geometry?.type === 'TorusGeometry').length : 0); }, 0);   // bộ kiểm: số vòng hạn đã gắn
   // bộ kiểm: toạ độ màn của một đích theo loại (camp / nen…) thuộc hub
   (host as any).__toaDoDich = (loaiD: string, hub: string) => { const b = r.domElement.getBoundingClientRect(), v = new THREE.Vector3();

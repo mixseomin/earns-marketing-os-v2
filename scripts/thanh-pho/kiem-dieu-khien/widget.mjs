@@ -27,5 +27,5 @@ kt('ngăn có đầu + tên + ×', await p.evaluate(() => { const n = document.q
 const n0 = await rect('.ngan'); await keo('.ngan .wg-k[data-h=sw]', -60, 50); const n1 = await rect('.ngan'); kt(`ngăn đổi cỡ góc sw ${n0} → ${n1}`, n1[2] > n0[2] && n1[3] > n0[3]);
 if (S) await p.screenshot({ path: S + '/widget.png' });
 await p.click('.ngan .wg-x'); kt('× đóng ngăn', await p.evaluate(() => document.querySelector('.ngan').hidden));
-await p.click('[data-d="datLai"]'); await p.waitForTimeout(400); kt(`↺ đặt lại bảng về chỗ cũ ${await rect('.ben')}`, (await rect('.ben'))[0] === 12);
+await p.click('.dieu-mo'); await p.click('[data-d="datLai"]'); await p.waitForTimeout(400); kt(`↺ đặt lại bảng về chỗ cũ ${await rect('.ben')}`, (await rect('.ben'))[0] === 12);
 console.log(`${ok}/${tong} đạt`); await b.close();

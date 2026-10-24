@@ -184,7 +184,8 @@ function veXuong(cv: HTMLCanvasElement, x: XuongEtp | null, bay = performance.no
 /** BIỂU ĐỒ LÃI 30 NGÀY trên toà nền tảng Ethopex (anh 24/10/2026 "dự án ethopex thì show chart lợi nhuận là đẹp khi đến gần"): cột lãi mỗi ngày (thu − chi, xanh lãi / đỏ lỗ)
  *  + đường lãi cộng dồn; đầu bảng: lãi 30 ngày, ROI, lãi ngày gần nhất. Chỉ hiện khi tới gần (userData.gan). */
 function veBieuDoLai(cv: HTMLCanvasElement, ngay: { ngay: string; thu: number; chi: number }[], ten: string) {
-  const g = cv.getContext('2d')!, W = cv.width, H = cv.height, lai = ngay.map((x) => x.thu - x.chi), thu = ngay.reduce((a, x) => a + x.thu, 0), chi = ngay.reduce((a, x) => a + x.chi, 0), tong = thu - chi;
+  const g = cv.getContext('2d'); if (!g) return; const W = 900, H = 500; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);   // vẽ theo khung logic 900 × 500, canvas thật nhỏ hơn
+  const lai = ngay.map((x) => x.thu - x.chi), thu = ngay.reduce((a, x) => a + x.thu, 0), chi = ngay.reduce((a, x) => a + x.chi, 0), tong = thu - chi;
   const tien = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(1) + 'k' : Math.round(Math.abs(v))}`;
   g.fillStyle = 'rgba(10,14,26,.94)'; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 26); g.fill(); g.strokeStyle = tong >= 0 ? '#3fd68a' : '#ff4d5e'; g.lineWidth = 5; g.stroke();
   g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = '800 34px system-ui, sans-serif'; let t = `📈 ${ten}`; while (g.measureText(t).width > W - 60 && t.length > 6) t = t.slice(0, -2); g.fillText(t, 28, 46);
@@ -657,7 +658,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const amb: { xe: any; nguoi: any; xeD: { duong: any; t: number; toc: number }[]; nguoiD: { a: any; b: any; t: number; toc: number }[]; cuaSo: any[]; than: any } = { xe: null, nguoi: null, xeD: [], nguoiD: [], cuaSo: [], than: null };
   let rand = 1; const ngau = () => { rand = (rand * 16807) % 2147483647; return rand / 2147483647; };   // ngẫu nhiên cố định: cùng số liệu → cùng thành phố
   function khuNen(x0: number, x1: number, zTrong: number, zNgoai = 0) {
-    scene.remove(nen); nen = new THREE.Group(); scene.add(nen); rand = 7; amb.xeD = []; amb.nguoiD = []; amb.cuaSo = [];
+    scene.remove(nen); donNhom(nen); nen = new THREE.Group(); scene.add(nen); rand = 7; amb.xeD = []; amb.nguoiD = []; amb.cuaSo = [];
     const phoN = (xa: number, za: number, xb: number, zb: number, rong: number) => { const dai = Math.hypot(xb - xa, zb - za), m = new THREE.Mesh(new THREE.PlaneGeometry(dai, rong), NHUA); m.rotation.set(-Math.PI / 2, 0, -Math.atan2(zb - za, xb - xa)); m.position.set((xa + xb) / 2, .25, (za + zb) / 2); m.receiveShadow = true; nen.add(m); };
     const zN = zTrong + 260, xa = x0 - 260, xb = x1 + 260;
     // đường vành đai bao cả thành phố + phố lưới trong khu nền
@@ -814,9 +815,17 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     (o.querySelector('.mo-dai') as HTMLButtonElement).onclick = () => { moCanhTn = false; veCanhTn(); if (daiTn) bayToiObj(daiTn); };
     for (const b of o.querySelectorAll<HTMLButtonElement>('.ds button[data-i]')) b.onclick = () => { const v = ds2[Number(b.dataset.i)]?.vat(); moCanhTn = false; veCanhTn(); if (v) bayToiObj(v); };
   }
+  // GIẢI PHÓNG CẢNH CŨ khi dựng lại (mỗi phút làm mới / mỗi lần lọc): trước đây chỉ gỡ nhóm khỏi cảnh, hình khối + vật liệu + texture + canvas của bảng hiệu
+  // vẫn nằm trong bộ nhớ GPU / trình duyệt → iPhone cạn hạn mức canvas, texture mới tải lên thành rác (sọc dọc — góp ý 24/10/2026 "lỗi" ở biểu đồ Ethopex) và máy nóng.
+  // Texture dùng chung giữa các lần dựng (favicon tex, khói texKhoi) chỉ để nguyên.
+  function donNhom(g: any) {
+    const chung = new Set<any>([...Object.values(tex), texKhoi]);
+    g.traverse((o: any) => { o.geometry?.dispose?.();
+      for (const m of [].concat(o.material ?? []) as any[]) { const t = m.map; if (t && !chung.has(t)) { t.dispose(); if (t.image instanceof HTMLCanvasElement) { t.image.width = 0; t.image.height = 0; } } m.dispose?.(); } });
+  }
   function dung() {
     tamTn.set(1e9, 0, 0); boCumP.clear(); bienPhim.clear(); bienDangLo = null; bangXhCua.clear(); bangXhMo = null;
-    scene.remove(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
+    scene.remove(the); donNhom(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
     const viTri: Record<string, any> = {};
     chiMuc.length = 0;
     const khus = mh.duAn.filter((k) => (!chonSp.size || chonSp.has(k.khoa)) && (!chonLv.size || chonLv.has(k.linhVuc)));
@@ -1028,10 +1037,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const m = add(new THREE.CylinderGeometry(9, 12, h, 8), M({ color: '#0b3a8f', emissive: '#0866ff', emissiveIntensity: .35, roughness: .2, metalness: .6 })); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
       const fv = add(new THREE.CircleGeometry(7, 40), new THREE.MeshBasicMaterial({ map: texFav(d.hostBan ?? 'facebook.com', '#0866ff') }), false); fv.rotation.x = -Math.PI / 2; fv.position.set(x, h + .15, z); fv.userData = { chu: m };
       chuDoc(d.ten, '#6ea8ff', x, z, 12, 9, h, m); vongLai(d, x, z, 17);
-      if (d.ngay30?.length) { const cv = document.createElement('canvas'); cv.width = 900; cv.height = 500; veBieuDoLai(cv, d.ngay30, d.ten);
+      if (d.ngay30?.length) { const cv = document.createElement('canvas'); cv.width = 640; cv.height = 360; veBieuDoLai(cv, d.ngay30, d.ten);
         const bd = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false, depthTest: false })); bd.renderOrder = 5;   // vẽ đè ống / dây của khu
-        // cỡ theo cỡ cụm phim của bộ; "tới gần" tính theo bán kính KHU (ganKhu) — khu Ethopex rộng, bay tới khu camera dừng xa hơn khu thường
-        const nua = cumPhimCua(d).nua, rb = Math.max(90, nua * .8); bd.scale.set(rb, rb * 5 / 9, 1); bd.position.set(x, h + 20 + rb * .3, z); bd.userData = { chu: m, gan: GAN_KHU, ganKhu: d.duAn }; the.add(bd); }
+        // cỡ vừa một bảng hiệu (anh 24/10/2026 "to quá"); "tới gần" tính theo bán kính KHU (ganKhu) — khu Ethopex rộng, bay tới khu camera dừng xa hơn khu thường
+        const rb = 64; bd.scale.set(rb, rb * 9 / 16, 1); bd.position.set(x, h + 30, z); bd.userData = { chu: m, gan: GAN_KHU, ganKhu: d.duAn }; the.add(bd); }
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) }; chiMuc.push({ ten: d.ten, nhan: 'nền tảng', obj: m });
     }
     // SÂN PHIM: nền + tên phim in dưới nền mép trước; camp gốc lưới, bản nhân bản vòng quanh gốc, cột phải = camp chờ public rồi kho camp tắt
@@ -1995,7 +2004,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__dangSang = () => (dangSang ? { loai: dangSang.userData?.loai ?? null, dLoai: dangSang.userData?.d?.loai ?? null } : null);
   (host as any).__anhXuong = (t?: number) => { if (!xuongDong) return null; veXuong(xuongDong.cv, xuongData, t ?? performance.now()); xuongDong.tx.needsUpdate = true; return xuongDong.cv.toDataURL('image/png'); };   // bộ kiểm: chụp bảng xưởng ở thời điểm t
   (host as any).__xeXuong = () => [...xeO].map(([id, m]) => ({ id, x: Math.round(m.position.x), z: Math.round(m.position.z), chay: !!m.userData.dangChay, cho: m.userData.chuCho ?? '', tram: phimO.get(id)?.s ?? -1, hien: m.visible && m.parent === the && m.layers.test(cam.layers) }));   // bộ kiểm: xe phim trong nhà máy
-  (host as any).__dungLai = () => capNhat(mh);   // bộ kiểm: dựng lại cả cảnh như lượt làm mới mỗi phút
+  (host as any).__dungLai = () => capNhat(mh);
+  (host as any).__boNho = () => ({ ...r.info.memory, canvas: (() => { let n = 0; the.traverse((o: any) => { if (o.material?.map?.image instanceof HTMLCanvasElement) n++; }); return n; })() });   // bộ kiểm bo-nho: texture / hình khối GPU sau mỗi lần dựng lại   // bộ kiểm: dựng lại cả cảnh như lượt làm mới mỗi phút
   (host as any).__xuong = (x: XuongEtp) => { xuongData = x; xuongVe?.(x); };   // bộ kiểm: nạp số xưởng như /api/social/thanh-pho/xuong
   (host as any).__sucSong = () => ({ phu: [...demDongBang], dich: mh.dich.filter((d) => laDichSong(d)).map((d) => d.sucSong ?? null).reduce((a: any, v) => { a[String(v)] = (a[String(v)] ?? 0) + 1; return a; }, {}) });
   (host as any).__khongCat = (b: boolean) => { khongCat = b; };   // bộ kiểm so ảnh có / không cắt ô

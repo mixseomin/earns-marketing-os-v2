@@ -5,7 +5,7 @@
 // dáng gì · đi bao xa · lỗi mạch tập. Bộ chấm: có may_3d → nhánh 3D như cũ; không → hỏi đây; không có cả hai → "chưa chấm", KHÔNG cho điểm.
 // Thuần — tự kiểm: khong-gian.test.mts
 import { doSau, huongMan, loiCanMat, loiTruc, NUA_LUNG, viTriMan, type ManhSoDo, type SoDo } from './so-do-canh';
-import { loiSoVat, trangThai, type LucKhung, type SoVat } from './so-vat';
+import { daMat, loiSoVat, trangThai, type LucKhung, type SoVat } from './so-vat';
 
 /** xv_tap.khong_gian — ghi bởi scripts/dung-phim-reelshort.mts từ bảng mảnh. */
 export type KhongGian = { so_do: SoDo; /** tên nhân vật NGƯỜI (khác mốc / đồ) */ nguoi: string[]; so_vat?: SoVat; so_dang?: SoVat; ten_en?: Record<string, string> };
@@ -66,8 +66,7 @@ export function doCam(kg: KhongGian | null | undefined, thuTu: number, ten: stri
 }
 /** Đồ người đó TỪNG giữ / đeo mà giờ đã sang tay khác (sổ đồ vật) — phải VẮNG khỏi người họ (so-vat › cauVat câu vắng mặt, cùng luật). */
 export function doDaMat(kg: KhongGian | null | undefined, thuTu: number, ten: string, luc: LucKhung = 'dau'): string[] {
-  if (!kg?.so_vat) return []; const nay = trangThai(kg.so_vat, thuTu, luc);
-  return Object.entries(kg.so_vat).filter(([mon, ms]) => nay[mon]?.ai !== ten && ms.some((m) => m.ai === ten && (m.tu < thuTu || (m.tu === thuTu && (luc === 'ket' || !m.su_kien))))).map(([mon]) => mon);
+  return kg?.so_vat ? daMat(kg.so_vat, thuTu, ten, luc) : [];
 }
 const CO_TONG = new Set(['ews', 'ws', 'est']);
 /** tầm với để chạm người khác (m) · câu dáng có chạm */

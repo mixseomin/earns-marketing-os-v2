@@ -12,7 +12,7 @@ import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
 import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { loiMach2d } from '../src/lib/xuong-video/khong-gian';
-import { cauVat, dongVat, loiSoVat, NHAN_DANG, NHAN_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
+import { cauVat, dongVat, loiSoVat, NHAN_DANG, NHAN_DO_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
 type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
   /** chỗ trong SƠ ĐỒ CẢNH (so-do-canh.ts): máy · ai ở đâu · ai nhìn gì · ai vào từ đâu — hướng trên màn tính từ đây, không viết tay */ sd?: ManhSoDo; /** dùng lại keyframe đã duyệt (URL) */ kf?: string;
@@ -46,7 +46,7 @@ const vatDoc = new Map<number, string[]>(); const vatSo = new Map<number, { ten:
 // SỔ DÁNG (anh 24/10/2026, #2→#5: "mặt cúi xuống mà cảnh ngay sau lại đang ngẩng lên · Vi đang nhấc tay thì cảnh sau hạ tay · tay đang hạ thì cảnh sau
 // lại nâng"): cổng liền mạch dáng cũ (bo-set-3d › noiHookup / lienMachTap) chỉ đọc may_3d nên phim KHÔNG 3D bị bỏ qua im lặng. Dáng người (đầu ngẩng /
 // cúi, tay hạ / nâng) ghi như đồ vật: mốc + sự kiện trên hình → khung đầu shot sau = khung cuối shot trước (match on action), đổi dáng phải có cớ.
-const soSo: [SoVat, string, string][] = [...(du.so_vat ? [[du.so_vat, 'sổ đồ vật', NHAN_VAT] as [SoVat, string, string]] : []), ...(du.so_dang ? [[du.so_dang, 'sổ dáng', NHAN_DANG] as [SoVat, string, string]] : [])];
+const soSo: [SoVat, string, string][] = [...(du.so_vat ? [[du.so_vat, 'sổ đồ vật', NHAN_DO_VAT] as [SoVat, string, string]] : []), ...(du.so_dang ? [[du.so_dang, 'sổ dáng', NHAN_DANG] as [SoVat, string, string]] : [])];
 for (const [so, tenSo, nhan] of soSo) {
   const loi = loiSoVat(so, (n) => (du.shot[n - 1] ? nguoiKhung(du.shot[n - 1]!) : null)); if (loi.length) { console.error(`${tenSo} lỗi:\n  ${loi.join('\n  ')}`); process.exit(1); }
   const laVat = so === du.so_vat;

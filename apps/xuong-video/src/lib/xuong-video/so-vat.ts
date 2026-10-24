@@ -20,16 +20,20 @@ export function vatTrongKhung(so: SoVat, thuTu: number, nguoiTrongKhung: string[
   return Object.entries(trangThai(so, thuTu, luc)).filter(([ten, m]) => (m.ai ? nguoiTrongKhung.includes(m.ai) : false) || khaiTrongKhung.includes(ten));   // khai = món mảnh nhắc tên (cận chèn tay cầm thẻ: người giữ ngoài khung mà thẻ vẫn trong khung)
 }
 /** Câu trạng thái đồ cho prompt (tiếng Anh). tenEn = tên đưa model của món. */
+/** Món người `ai` TỪNG giữ / đeo (tính tới đúng thời điểm khung) mà giờ đã sang tay khác — MỘT nguồn cho câu vắng mặt (cauVat) và câu hỏi kiểm khung
+ *  (khong-gian.ts › doDaMat → cau-hoi-khung.ts). */
+export function daMat(so: SoVat, thuTu: number, ai: string, luc: LucKhung = 'ket'): string[] {
+  const nay = trangThai(so, thuTu, luc);
+  return Object.entries(so).filter(([t, ms]) => nay[t]?.ai !== ai && ms.some((m) => m.ai === ai && (m.tu < thuTu || (m.tu === thuTu && (luc === 'ket' || !m.su_kien))))).map(([t]) => t);
+}
 /** nhan: đầu câu theo LOẠI sổ — đồ vật (mặc định) hay DÁNG người (SO_DANG: cùng cơ chế mốc + sự kiện, xem dung-phim-reelshort › so_dang). */
-export const NHAN_VAT = "OBJECT STATE in this frame (must match exactly, wherever that person's arms and hands are in frame)";
+export const NHAN_DO_VAT = "OBJECT STATE in this frame (must match exactly, wherever that person's arms and hands are in frame)";
 export const NHAN_DANG = 'BODY POSE in this frame (must match exactly — it continues unbroken from the previous shot; head tilt and arm positions as stated)';
-export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = [], luc: LucKhung = 'ket', nhan = NHAN_VAT): string {
+export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = [], luc: LucKhung = 'ket', nhan = NHAN_DO_VAT): string {
   const ds = vatTrongKhung(so, thuTu, nguoiTrongKhung, khaiTrongKhung, luc);
   // VẮNG MẶT: món người trong khung TỪNG giữ / đeo mà giờ đã sang tay khác — nói thẳng là không còn trên người họ (phim #353 #13: thẻ bị giật ở #7
   // mà Hạ vẫn đeo lại dây thẻ vì ảnh mẫu nhân vật có thẻ; sổ chỉ nói "Vivian giữ" thì model không biết Hạ phải trống cổ)
-  const nay = trangThai(so, thuTu, luc);
-  const vang = nhan === NHAN_VAT ? Object.entries(so).flatMap(([t, ms]) => [...new Set(ms.filter((m) => (m.tu < thuTu || (m.tu === thuTu && (luc === 'ket' || !m.su_kien))) && m.ai && m.ai !== nay[t]?.ai).map((m) => m.ai!))]
-    .filter((a) => nguoiTrongKhung.includes(a)).map((a) => `${a} no longer has ${tenEn(t)} — it is NOT on ${a} anywhere`)) : [];
+  const vang = nhan === NHAN_DO_VAT ? nguoiTrongKhung.flatMap((a) => daMat(so, thuTu, a, luc).map((t) => `${a} no longer has ${tenEn(t)} — it is NOT on ${a} anywhere`)) : [];
   const ve = [...ds.map(([t, m]) => `${tenEn(t)} — ${m.cach}`), ...vang];
   return ve.length ? `${nhan}: ${ve.join('; ')}.` : '';
 }

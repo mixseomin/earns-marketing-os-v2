@@ -58,9 +58,9 @@ if (process.argv.includes('--hoi')) {
     const dap = await hoiKhung(db, phimId, f, hoi).catch(() => null); if (!dap) continue;
     // CHẶN chỉ loại câu đã đo được độ đúng trên ca thật (vắng mặt đồ, khoảnh khắc kết, có / không có người — #353 #13 dây thẻ, #8 nắm tay trống);
     // dáng / đồ / thấy mặt: CẢNH BÁO để soát tờ ghép bằng mắt (đo 24/10/2026: báo nhầm nhiều ở khung qua vai, tay bị che)
-    const loi = loiTuDapAn(hoi, dap); const chan = (m: string) => /^\[(vang:|co:|ngoai:|ket\])/.test(m);
-    hoiLoi.set(ma(c.id, l), loi.filter((x) => chan(x.mo_ta)).map((x) => `hỏi: ${x.mo_ta}`));
-    hoiCanh.set(ma(c.id, l), loi.filter((x) => !chan(x.mo_ta)).map((x) => x.mo_ta)); } };
+    const chan = (m: string) => /^(vang|co|ngoai):|^ket$/.test(m);   // theo MÃ câu hỏi
+    hoiLoi.set(ma(c.id, l), loiTuDapAn(hoi.filter((x) => chan(x.ma)), dap).map((x) => `hỏi: ${x.mo_ta}`));
+    hoiCanh.set(ma(c.id, l), loiTuDapAn(hoi.filter((x) => !chan(x.ma)), dap).map((x) => x.mo_ta)); } };
   await Promise.all(Array.from({ length: 6 }, chay));
 }
 const NHAY_CUI = 15; const NGUONG_LA = 0.2;   // dưới mức này mặt không phải nhân vật đó (cùng người ~0,4–0,7)

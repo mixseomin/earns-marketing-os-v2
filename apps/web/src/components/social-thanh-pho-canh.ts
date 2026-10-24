@@ -731,7 +731,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   let tatBien: Record<string, boolean> = (() => { try { return JSON.parse(localStorage.getItem('tp-tat-bien') ?? '{}'); } catch { return {}; } })();
   let bienDangLo: string | null = null;
   const datBien = (khoa: string, hien: boolean) => { for (const o of bienPhim.get(khoa) ?? []) o.visible = hien; };
-  const apTatBien = (hub: string) => { for (const k of bienPhim.keys()) if (k.startsWith(`${hub}|`)) datBien(k, !tatBien[hub]); bienDangLo = null; };
+  // ẨN TẠM bảng phim của một bộ khi đứng xem căn cứ của bộ đó (anh 24/10/2026 "ít chữ khi không cần hiện"): bảng phim đứng ngay trước camera che bệ căn cứ;
+  // rê lên sân vẫn lộ đúng một bảng như khi tắt bảng hiệu, rời căn cứ thì hiện lại. Không đụng lựa chọn bật / tắt của người xem (tatBien).
+  const anBienTam = new Set<string>(), tatCua = (hub: string) => !!tatBien[hub] || anBienTam.has(hub);
+  const apTatBien = (hub: string) => { for (const k of bienPhim.keys()) if (k.startsWith(`${hub}|`)) datBien(k, !tatCua(hub)); bienDangLo = null; };
   // SỐ MỖI PHIM (anh 23/10/2026 "làm sao nhìn được ROI · profit · cost · revenue của từng phim, từng camp trên city"): cộng mọi camp của cụm (kể cả kho camp tắt);
   // hôm nay = ngày báo cáo mới nhất của Ethopex (cùng số với bảng Content), ROI = (thu − chi) / chi như bảng đó
   type SoPhim = { tH: number; cH: number; t30: number; c30: number };
@@ -801,7 +804,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   /** DẢI CẢNH BÁO TÀI NGUYÊN mép trên màn: việc gấp nhất (đỏ trước) + số việc còn lại; bấm → danh sách, bấm một dòng → bay tới bồn / toà */
   let moCanhTn = false, oGanTn = false; const tamTn = new THREE.Vector3(1e9, 0, 0);
   /** căn cứ (canCu trong dung): nắp hầm hiện khi ở xa, hầm + người hiện khi camera trong R; thang máy + người chạy khi ruột đang hiện */
-  type MatCat = { tam: any; R: number; vo: any[]; trong: any[]; thang: { m: any; y0: number; y1: number; t: number }[]; nguoi: { m: any; x0: number; bien: number; t: number; toc: number }[]; gan: boolean | null; nhin: { cam: any; tam: any }; chinh?: any };
+  type MatCat = { tam: any; R: number; vo: any[]; trong: any[]; thang: { m: any; y0: number; y1: number; t: number }[]; nguoi: { m: any; x0: number; bien: number; t: number; toc: number }[]; gan: boolean | null; nhin: { cam: any; tam: any }; chinh?: any; ten?: string; hub?: string; anBien?: boolean };
   const matCat: MatCat[] = [];
   function veCanhTn() {
     const o = q<HTMLElement>('.tn-canh'); if (!o) return; const tn = mh.taiNguyen;
@@ -827,7 +830,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       for (const m of [].concat(o.material ?? []) as any[]) { const t = m.map; if (t && !chung.has(t)) { t.dispose(); if (t.image instanceof HTMLCanvasElement) { t.image.width = 0; t.image.height = 0; } } m.dispose?.(); } });
   }
   function dung() {
-    tamTn.set(1e9, 0, 0); matCat.length = 0; boCumP.clear(); bienPhim.clear(); bienDangLo = null; bangXhCua.clear(); bangXhMo = null;
+    tamTn.set(1e9, 0, 0); matCat.length = 0; anBienTam.clear(); boCumP.clear(); bienPhim.clear(); bienDangLo = null; bangXhCua.clear(); bangXhMo = null;
     scene.remove(the); donNhom(the); the = new THREE.Group(); scene.add(the); for (const k of Object.keys(ds)) ds[k] = []; khachDs = [];
     const viTri: Record<string, any> = {};
     chiMuc.length = 0;
@@ -838,7 +841,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const rSite = (d: typeof mh.dich[number]) => (d.loai === 'nen' ? cumPhimCua(d).nua : 30 + Math.min(40, vongCua(d).length * 3.2));
     // CỤM PHIM ETHOPEX (góp ý city #1439): mỗi phim một sân — camp gốc lưới giữa sân, bản nhân bản (nhỏ) vòng quanh gốc, cột bên phải = camp chờ public
     // + MỘT toà kho camp đã tắt; tên phim in dưới nền mép trước. Sân xếp kệ quanh toà nền tảng (ô giữa danh sách chừa cho toà dự án + tháp nền tảng).
-    const O_HUB = 140, LECH_THAP = 52;   // ô giữa khối cụm phim: toà dự án ở tâm ô, tháp nền tảng lệch về góc
+    const O_HUB = 200, LECH_THAP = 48;   // ô giữa khối cụm phim: toà dự án ở tâm ô, CĂN CỨ nền tảng (đảo bán kính ~47) lệch về góc
     const motNen = (sites: typeof mh.dich, sps: typeof mh.dich) => sites.length === 1 && sites[0]!.loai === 'nen' && !sps.length;
     function cumPhimCua(hub: typeof mh.dich[number]) {
       const co = boCumP.get(hub.khoa); if (co) return co;
@@ -1035,16 +1038,25 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z) };
     }
     // toà NỀN TẢNG (Ethopex): tháp kính xanh Meta ở tâm khu, cao theo tiền; tên + thu / chi dọc thân; các camp đứng quanh
+    // CĂN CỨ ETHOPEX mỗi bộ tài khoản (anh 24/10/2026 "Ethopex mỗi bộ tk được không"): cùng hàm canCu với Công ty AI — mỗi công trình = một PHIM (8 phim nhiều tiền nhất),
+    // cánh theo ngôn ngữ (mỗi cánh ≤ 4 phim), hình theo dạng creative, đèn vàng = hôm nay lãi · đỏ = lỗ · tối = chưa tiêu, người trước cửa = camp đang chạy;
+    // HẦM = phim có camp chờ public (máy = số camp chờ), buồng đỏ = phim có camp vi phạm. Biểu đồ lãi 30 ngày nổi trên tháp khi tới gần.
     function toaNen(d: typeof mh.dich[number], x: number, z: number) {
-      const tien = (d.tien30 ?? 0) + (d.chi30 ?? 0), h = 40 + Math.min(50, Math.log2(1 + tien) * 5);
-      const m = add(new THREE.CylinderGeometry(9, 12, h, 8), M({ color: '#0b3a8f', emissive: '#0866ff', emissiveIntensity: .35, roughness: .2, metalness: .6 })); m.position.set(x, h / 2, z); m.userData = { loai: 'dich', d };
-      const fv = add(new THREE.CircleGeometry(7, 40), new THREE.MeshBasicMaterial({ map: texFav(d.hostBan ?? 'facebook.com', '#0866ff') }), false); fv.rotation.x = -Math.PI / 2; fv.position.set(x, h + .15, z); fv.userData = { chu: m };
-      chuDoc(d.ten, '#6ea8ff', x, z, 12, 9, h, m); vongLai(d, x, z, 17);
+      const bo = cumPhimCua(d), chay = (o: CumP) => o.goc.length + [...o.nb.values()].flat().length;
+      const KIEU: Record<string, string> = { 'kể chuyện': 'vom', 'phim dài': 'xuong', 'cảnh thật': 'bon', 'cảnh cuối': 'anten' };
+      const top = bo.cum.filter((o) => chay(o) > 0).slice(0, 8), demNN = new Map<string, number>();
+      const noi: PhongMc[] = top.map((o) => { const c0 = o.goc[0], nn = (c0?.ngonNgu ?? 'khac').toLowerCase(), thu = demNN.get(nn) ?? 0; demNN.set(nn, thu + 1);
+        const v = soCum(o), lai = v.tH - v.cH;
+        return { kieu: KIEU[c0?.dangCr ?? ''] ?? 'buong', nhom: (nn === 'en' ? 0 : nn === 'es' ? 10 : 20) + Math.floor(thu / 4), muc: v.cH || v.tH ? (lai >= 0 ? 1 : 2) : 0,
+          nguoi: Math.min(3, chay(o)), may: 0, cao: 1.1 + Math.min(.9, Math.log10(1 + o.tien) / 3.5), ud: { loai: 'phim-cc', cum: o.cum, hub: d.khoa } }; });
+      const ngam: PhongMc[] = bo.cum.filter((o) => o.cho.length || o.goc.some((c) => c.campLoai === 'vi-pham')).slice(0, 8)
+        .map((o) => ({ kieu: 'buong', nhom: 0, muc: o.goc.some((c) => c.campLoai === 'vi-pham') ? 2 : 1, nguoi: 0, may: Math.min(6, Math.max(1, o.cho.length)), cao: 1, ud: { loai: 'phim-cc', cum: o.cum, hub: d.khoa } }));
+      const { vo: m, H: h } = canCu(x, z, noi, ngam, { loai: 'dich', d }, d.ten, 95); matCat[matCat.length - 1]!.hub = d.khoa;   // khu Ethopex dày bảng phim: camera cao nhìn qua
       if (d.ngay30?.length) { const cv = document.createElement('canvas'); cv.width = 640; cv.height = 360; veBieuDoLai(cv, d.ngay30, d.ten);
         const bd = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthWrite: false, depthTest: false })); bd.renderOrder = 5;   // vẽ đè ống / dây của khu
-        // cỡ vừa một bảng hiệu (anh 24/10/2026 "to quá"); "tới gần" tính theo bán kính KHU (ganKhu) — khu Ethopex rộng, bay tới khu camera dừng xa hơn khu thường
+        // cỡ vừa một bảng hiệu (anh 24/10/2026 "to quá"); "tới gần" tính theo bán kính KHU (ganKhu)
         const rb = 64; bd.scale.set(rb, rb * 9 / 16, 1); bd.position.set(x, h + 30, z); bd.userData = { chu: m, gan: GAN_KHU, ganKhu: d.duAn }; the.add(bd); }
-      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z), dinh: new THREE.Vector3(x, h, z) }; chiMuc.push({ ten: d.ten, nhan: 'nền tảng', obj: m });
+      viTri[d.khoa] = { cua: new THREE.Vector3(x, 1.5, z + 12), dinh: new THREE.Vector3(x, h, z) };
     }
     // SÂN PHIM: nền + tên phim in dưới nền mép trước; camp gốc lưới, bản nhân bản vòng quanh gốc, cột phải = camp chờ public rồi kho camp tắt
     function sanPhim(o: CumP, cx: number, cz: number, hub: typeof mh.dich[number]) {
@@ -1078,7 +1090,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const Wb = Math.max(58, Math.min(96, o.w * .8)), Hb = Wb * 300 / 640, day = 16;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); sp.scale.set(Wb, Hb, 1); sp.position.set(x, day + Hb / 2, z); sp.userData = { loai: 'cum-phim', cum: o.cum, hub: hub.khoa }; the.add(sp);
       const cot = add(new THREE.CylinderGeometry(.8, .8, day, 6), M({ color: '#9aa3b8' }), false); cot.position.set(x, day / 2, z); cot.userData = { chu: null };
-      const kb = `${hub.khoa}|${o.cum}`; bienPhim.set(kb, [sp, cot]); if (tatBien[hub.khoa]) datBien(kb, false);
+      const kb = `${hub.khoa}|${o.cum}`; bienPhim.set(kb, [sp, cot]); if (tatCua(hub.khoa)) datBien(kb, false);
     }
     // BẢNG XẾP HẠNG PHIM cạnh toà nền tảng: như bảng Content của Ethopex — phim có tiêu tiền ngày báo cáo mới nhất, xếp theo ROI, dòng TỔNG cuối
     function bangXepHang(hub: typeof mh.dich[number], bo: { cum: CumP[] }, x: number, z: number) {
@@ -1275,20 +1287,20 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // CĂN CỨ (anh 24/10/2026, ảnh mẫu căn cứ đảo nổi + chìm; "phải có các hình dáng đa dạng giống hình mẫu", "ít chữ khi không cần hiện"):
     // sàn đảo tròn, tháp trụ thon ở giữa (trục thang chạy xuyên xuống hầm), mỗi phòng một CÔNG TRÌNH khác hình theo loại việc — vòm kính, tháp ăng-ten + chảo,
     // nhà vòm cung, cụm bồn, xưởng mái răng cưa, buồng tròn — ống dẫn nối về tháp. Đang làm = đèn sáng, nghỉ = tối. KHÔNG chữ: tên + số ở thẻ rê / chạm.
-    // HẦM nhìn qua MIỆNG HỐ trước mặt đảo (stencil: miệng ghi stencil ở chỗ nhìn thấy, vách hố đè chiều sâu, đồ dưới hầm chỉ vẽ trong miệng) — buồng tròn kính
-    // quanh trục thang, máy trong buồng = việc nền. Ở xa nắp hầm đậy kín; tới gần mở nắp, hiện người đi lại + cabin thang chạy.
+    // TẦNG DƯỚI = khối cắt dọc giữa đất và đảo (đảo đứng trên bệ): buồng tròn kính quanh trục thang, máy trong buồng = việc nền. Ở xa tấm mặt trước đóng kín;
+    // tới gần tấm ẩn, hiện buồng + người đi lại + cabin thang chạy.
     type PhongMc = { kieu: string; nhom: number; muc: 0 | 1 | 2; nguoi: number; may: number; cao: number; ud: any };
-    function canCu(x: number, z: number, noi: PhongMc[], ngam: PhongMc[], udVo: any, nhan: string) {
+    function canCu(x: number, z: number, noi: PhongMc[], ngam: PhongMc[], udVo: any, nhan: string, camCao = 34) {
       // CÁNH theo nhóm việc: hành lang mái che từ tháp, công trình cùng nhóm sát hai bên (bận nhất gần tháp, cao nhất), cầu treo nối cặp đối diện.
-      // MẶT CẮT NGANG (anh 24/10/2026 chọn hướng A): hầm là LÁT CẮT ĐỨNG ngay dưới mép trước của đảo — như phần dưới nước của ảnh mẫu: buồng tròn cắt đôi xếp tầng
-      // hai bên trục thang, thấy giường / máy / bồn bên trong. Miệng cắt là mặt phẳng đứng ghi stencil (bỏ qua chiều sâu nên đất phía trước không che), vách nước
-      // đè chiều sâu trong miệng, đồ trong hầm chỉ vẽ trong miệng. Viền mực đen (gộp một lệnh vẽ) + vân thép gỉ cho mọi khối; lấp khoảng trống bằng đồ vặt.
-      const HT = 70, Y0 = 2.6, BUOC = 12.5, GOC = [-0.25, Math.PI + .25, Math.PI * 1.3, Math.PI * 1.7, Math.PI * .5 + 1.15, Math.PI * .5 - 1.15];
+      // MẶT CẮT NGANG (anh 24/10/2026 chọn hướng A): đảo đứng trên BỆ, phần "dưới nước" của ảnh mẫu là khối cắt dọc giữa đất và đảo — buồng tròn cắt đôi xếp tầng
+      // hai bên trục thang, thấy giường / máy / bồn bên trong. Viền mực đen (gộp một lệnh vẽ) + vân thép gỉ cho mọi khối; lấp khoảng trống bằng đồ vặt.
+      const MOI_TANG = 4, HC = 8, tangN = Math.max(1, Math.ceil(ngam.length / MOI_TANG)), S = tangN * (HC + 3) + 3, E = ngam.length ? S + 1 : 0;   // E = độ cao bệ: đảo đứng trên khối cắt
+      const HT = 70, Y0 = E + 2.6, BUOC = 12.5, GOC = [-0.25, Math.PI + .25, Math.PI * 1.3, Math.PI * 1.7, Math.PI * .5 + 1.15, Math.PI * .5 - 1.15];
       const nhomDs = [...new Set(noi.map((p) => p.nhom))].sort((a, b) => a - b), gocNhom = nhomDs.map((_, i) => GOC[i % GOC.length]!);
       const daiMax = Math.max(1, ...nhomDs.map((g) => Math.ceil(noi.filter((p) => p.nhom === g).length / 2))), Rd = 12 + daiMax * BUOC + 10;
-      const MOI_TANG = 4, HC = 8, tangN = Math.max(1, Math.ceil(ngam.length / MOI_TANG)), S = tangN * (HC + 3) + 3, BX = 14, WH = Math.max(4 * BX + 12, 70), DH = 16, zF = z + Rd + .5, zC = zF - DH / 2;
-      const o: MatCat = { tam: new THREE.Vector3(x, 10, z + Rd * .5), R: 900, vo: [], trong: [], thang: [], nguoi: [], gan: null,
-        nhin: { cam: new THREE.Vector3(x, 34, zF + 150), tam: new THREE.Vector3(x, 2, z + 8) } };
+      const BX = 14, WH = Math.max(4 * BX + 12, 70), DH = 16, zF = z + Rd + .5, zC = zF - DH / 2;
+      const o: MatCat = { tam: new THREE.Vector3(x, E + 10, z + Rd * .5), R: 900, vo: [], trong: [], thang: [], nguoi: [], gan: null,
+        nhin: { cam: new THREE.Vector3(x, E + camCao, zF + 150), tam: new THREE.Vector3(x, E * .55, z + 8) } };
       // vân thép gỉ: một canvas dùng chung (tấm, đường nối, đinh tán, vệt gỉ) — nhân với màu từng khối
       let hat = 7; const rnd = () => ((hat = (hat * 16807) % 2147483647) / 2147483647);
       if (!tex.__gi) { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
@@ -1301,16 +1313,18 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const vl = (mau: string, sang = 0, ngamM = false, kinh = false) => { const k = `${mau}${sang}${ngamM}${kinh}`; let m = mm.get(k); if (m) return m;
         m = kinh ? new THREE.MeshStandardMaterial({ color: mau, transparent: true, opacity: .28, roughness: .05, metalness: .2, depthWrite: false, side: THREE.DoubleSide })
           : M({ color: mau, map: sang ? null : tex.__gi, emissive: sang ? mau : '#000000', emissiveIntensity: sang, roughness: .75, metalness: .2 });
-        if (ngamM) Object.assign(m, { transparent: true, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp });
         mm.set(k, m); return m; };
       const vien: any[] = [], vienNgam: any[] = [];   // khối cần viền mực (ngoài / trong hầm)
       const dat = (g: any, m: any, px: number, py: number, pz: number, ud: any, luon: boolean, ngamM = false, coVien = true) => { const v = new THREE.Mesh(g, m); v.position.set(px, py, pz); v.castShadow = luon && !ngamM; v.receiveShadow = !ngamM;
-        if (ngamM) v.renderOrder = 32; v.userData = ud; the.add(v); if (!luon) { v.visible = false; o.trong.push(v); } if (coVien && (ngamM ? m.depthWrite !== false : !m.transparent)) (ngamM ? vienNgam : vien).push(v); return v; };
+        v.userData = ud; the.add(v); if (!luon) { v.visible = false; o.trong.push(v); } if (coVien && (ngamM ? m.depthWrite !== false : !m.transparent)) (ngamM ? vienNgam : vien).push(v); return v; };
       const G = { tru: (r: number, h: number, s = 16) => new THREE.CylinderGeometry(r, r, h, s), non: (r1: number, r2: number, h: number) => new THREE.CylinderGeometry(r1, r2, h, 16), cau: (r: number) => new THREE.SphereGeometry(r, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), hop: (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d) };
       const GI = ['#c4723a', '#4f8a8b', '#d9c49a', '#7d8aa0', '#b5651d', '#8a9a5b'];
       // đảo + tháp giữa
       const thap = dat(G.non(3.6, 7, HT), vl('#b9a58a'), x, Y0 + HT / 2, z, udVo, true);
-      dat(new THREE.CylinderGeometry(Rd, Rd + 2.5, Y0, 48), vl('#6f6a62'), x, Y0 / 2, z, { chu: thap }, true);
+      dat(new THREE.CylinderGeometry(Rd, Rd + 2.5, 2.6, 48), vl('#6f6a62'), x, E + 1.3, z, { chu: thap }, true);
+      // CHÂN BỆ: trụ thép quanh mép đảo + giằng chéo (như chân giàn của ảnh mẫu)
+      if (E) for (let k = 0; k < 8; k++) { const a2 = (k / 8) * Math.PI * 2 + Math.PI / 8, px = x + Math.cos(a2) * Rd * .82, pz = z + Math.sin(a2) * Rd * .82;
+        dat(G.tru(2.2, E, 10), vl('#7d8aa0'), px, E / 2, pz, { chu: thap }, true); dat(G.tru(3.2, 1.6, 10), vl('#5b5f6e'), px, .8, pz, { chu: thap }, true); }
       dat(G.tru(10, 6), vl('#7d8aa0'), x, Y0 + 3, z, { chu: thap }, true);
       for (const [k, r0] of [[.3, 6.6], [.55, 5.8], [.8, 5]] as const) dat(G.tru(r0, 3.2), vl(k === .55 ? '#c4723a' : '#7d8aa0'), x, Y0 + HT * k, z, { chu: thap }, true);
       dat(G.cau(5.5), vl('#9fc0ff', 0, false, true), x, Y0 + HT, z, { chu: thap }, true);
@@ -1370,38 +1384,38 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         else if (loai === 2) { dat(G.hop(4, 3.4, 4), vl('#d9c49a'), px, Y0 + 1.7, pz, { chu: thap }, true); dat(new THREE.CylinderGeometry(0, 3.2, 1.8, 4), vl('#c4723a'), px, Y0 + 4.3, pz, { chu: thap }, true).rotation.y = Math.PI / 4; }
         else if (loai === 3) { dat(G.tru(.3, 2, 5), vl('#6b4f2a'), px, Y0 + 1, pz, { chu: thap }, true, false, false); dat(new THREE.ConeGeometry(1.8, 4, 7), vl('#4e8a3a'), px, Y0 + 3.6, pz, { chu: thap }, true); }
         else dat(G.cau(2.6), vl('#bfe3ff', 0, false, true), px, Y0, pz, { chu: thap }, true); }
-      // HẦM — LÁT CẮT ĐỨNG dưới mép trước đảo
+      // TẦNG DƯỚI — KHỐI CẮT DỌC dưới mép trước đảo, nằm TRÊN mặt đất (đảo đứng trên bệ): nền nước xanh phía sau, buồng tròn cắt đôi xếp tầng hai bên trục thang.
+      // Không khoét đất / stencil nữa (miệng cắt bỏ qua chiều sâu từng vẽ đè lên bảng phim, nhà đứng trước — khu Ethopex 24/10/2026); che khuất đúng ở mọi góc nhìn.
+      // Ở xa: tấm mặt trước đóng kín; tới gần: tấm ẩn, lộ buồng + người + cabin.
       if (ngam.length) {
-        const mieng = new THREE.Mesh(new THREE.PlaneGeometry(WH, S), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthFunc: THREE.AlwaysDepth, transparent: true, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp }));
-        mieng.position.set(x, -S / 2, zF); mieng.renderOrder = 30; mieng.userData = { chu: thap }; mieng.visible = false; the.add(mieng); o.trong.push(mieng);
-        const vach = new THREE.Mesh(new THREE.BoxGeometry(WH, S, DH * 2), new THREE.MeshBasicMaterial({ color: '#174a73', side: THREE.BackSide, transparent: true, depthFunc: THREE.AlwaysDepth, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp }));
-        vach.position.set(x, -S / 2, zF - DH); vach.renderOrder = 31; vach.userData = { chu: thap }; vach.visible = false; the.add(vach); o.trong.push(vach);
-        const khung = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(WH, S)), new THREE.LineBasicMaterial({ color: '#d9c49a', depthTest: false, transparent: true }));
-        khung.position.set(x, -S / 2, zF + .05); khung.renderOrder = 34; khung.userData = { chu: thap, luonVe: true }; khung.visible = false; the.add(khung); o.trong.push(khung);
-        // trục thang xuyên giữa + cabin chạy từ đáy hầm lên đỉnh tháp (đi qua cả lát cắt)
-        dat(G.hop(3, S, 3), vl('#9aa3b8', 0, true), x, -S / 2, zC, { chu: thap }, false, true);
-        const cabin = dat(G.hop(2.6, 2.6, 2.6), vl('#ffd166', .8, true), x, -S + 2, zC + 1.6, { chu: thap }, false, true, false); o.thang.push({ m: cabin, y0: -S + 2, y1: -2, t: .5 });
-        ngam.forEach((p, i) => { const tg = Math.floor(i / MOI_TANG), j = i % MOI_TANG, ben = j % 2 ? 1 : -1, xa = Math.floor(j / 2), px = x + ben * (BX * (xa + .5) + 4), y0 = -(tg + 1) * (HC + 3), ud = p.ud;
-          const day = dat(G.tru(6, .7), vl('#3a4258', 0, true), px, y0, zC, ud, false, true);
-          dat(G.tru(6, .7), vl('#3a4258', 0, true), px, y0 + HC, zC, { chu: day }, false, true);
-          const vo2 = dat(new THREE.CylinderGeometry(6, 6, HC, 22, 1, true, Math.PI / 2, Math.PI), vl(GI[i % GI.length]!, 0, true), px, y0 + HC / 2, zC, { chu: day }, false, true); vo2.material.side = THREE.DoubleSide;
-          dat(G.hop(Math.abs(px - x) - 7.5, 2.6, 2.6), vl('#7d8aa0', 0, true), (px + x + ben * 1.5) / 2 - ben * 2.2, y0 + 2.2, zC, { chu: day }, false, true);   // ống nối buồng ↔ trục thang
+        const nuoc = new THREE.Mesh(new THREE.BoxGeometry(WH, S, DH * 2), new THREE.MeshBasicMaterial({ color: '#174a73', side: THREE.BackSide }));
+        nuoc.position.set(x, E - S / 2 - .5, zF - DH); nuoc.userData = { chu: thap }; the.add(nuoc);
+        const mat = dat(G.hop(WH, S, .6), vl('#2a4a6e'), x, E - S / 2 - .5, zF, { chu: thap }, true, false, true); o.vo.push(mat);
+        dat(G.hop(WH + 2, 1.2, DH * 2 + 2), vl('#5b5f6e'), x, .6, zF - DH, { chu: thap }, true);
+        const khung = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(WH, S, DH * 2)), new THREE.LineBasicMaterial({ color: '#d9c49a' }));
+        khung.position.set(x, E - S / 2 - .5, zF - DH); khung.userData = { chu: thap, luonVe: true }; the.add(khung);
+        dat(G.hop(3, S, 3), vl('#9aa3b8'), x, E - S / 2, zC, { chu: thap }, true);
+        const cabin = dat(G.hop(2.6, 2.6, 2.6), vl('#ffd166', .8), x, E - S + 2, zC + 1.6, { chu: thap }, false, true, false); o.thang.push({ m: cabin, y0: E - S + 2, y1: E - 2, t: .5 });
+        ngam.forEach((p, i) => { const tg = Math.floor(i / MOI_TANG), j = i % MOI_TANG, ben = j % 2 ? 1 : -1, xa = Math.floor(j / 2), px = x + ben * (BX * (xa + .5) + 4), y0 = E - (tg + 1) * (HC + 3), ud = p.ud;
+          const day = dat(G.tru(6, .7), vl('#3a4258'), px, y0, zC, ud, false, true);
+          dat(G.tru(6, .7), vl('#3a4258'), px, y0 + HC, zC, { chu: day }, false, true);
+          const vo2 = dat(new THREE.CylinderGeometry(6, 6, HC, 22, 1, true, Math.PI / 2, Math.PI), vl(GI[i % GI.length]!), px, y0 + HC / 2, zC, { chu: day }, false, true); vo2.material.side = THREE.DoubleSide;
+          dat(G.hop(Math.abs(px - x) - 7.5, 2.6, 2.6), vl('#7d8aa0'), (px + x + ben * 1.5) / 2 - ben * 2.2, y0 + 2.2, zC, { chu: day }, false, true);
           const vat = (k: number) => { const kx = px - 3.4 + (k % 3) * 3.4, kz = zC - 2 + Math.floor(k / 3) * 3;
-            if (k % 3 === 0) dat(G.hop(2.6, 1.2, 1.6), vl('#c9b48a', 0, true), kx, y0 + 1, kz, { chu: day }, false, true);   // giường
-            else if (k % 3 === 1) dat(G.tru(1, 3.4, 10), vl(p.muc === 2 ? '#ff4d5e' : '#3fd68a', .7, true), kx, y0 + 2.1, kz, { chu: day }, false, true);   // bồn sáng
-            else dat(G.hop(2, 3, 1.6), vl('#5b6a8a', .2, true), kx, y0 + 1.9, kz, { chu: day }, false, true); };   // máy
+            if (k % 3 === 0) dat(G.hop(2.6, 1.2, 1.6), vl('#c9b48a'), kx, y0 + 1, kz, { chu: day }, false, true);
+            else if (k % 3 === 1) dat(G.tru(1, 3.4, 10), vl(p.muc === 2 ? '#ff4d5e' : '#3fd68a', .7), kx, y0 + 2.1, kz, { chu: day }, false, true);
+            else dat(G.hop(2, 3, 1.6), vl('#5b6a8a', .2), kx, y0 + 1.9, kz, { chu: day }, false, true); };
           for (let k = 0; k < Math.max(2, p.may); k++) vat(k);
-          dat(G.hop(9, .5, .5), vl('#ffd98a', .9, true), px, y0 + HC - .8, zC - 4.6, { chu: day }, false, true, false); });
+          dat(G.hop(9, .5, .5), vl('#ffd98a', .9), px, y0 + HC - .8, zC - 4.6, { chu: day }, false, true, false); });
       }
-      // VIỀN MỰC: gộp cạnh (góc gãy > 35°) của mọi khối thành MỘT LineSegments (ngoài) + một cho hầm (stencil)
+      // VIỀN MỰC: gộp cạnh (góc gãy > 35°) của mọi khối thành MỘT LineSegments (ngoài) + một cho tầng dưới (chỉ hiện khi tới gần)
       const gopVien = (ds_: any[], ngamM: boolean) => { if (!ds_.length) return; const pts: number[] = [], v = new THREE.Vector3();
         for (const m of ds_) { m.updateMatrix(); const e = new THREE.EdgesGeometry(m.geometry, 35), a3 = e.attributes.position; for (let i = 0; i < a3.count; i++) { v.fromBufferAttribute(a3, i).applyMatrix4(m.matrix); pts.push(v.x, v.y, v.z); } e.dispose(); }
         const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-        const mt = new THREE.LineBasicMaterial({ color: '#1a1410', transparent: ngamM }); if (ngamM) Object.assign(mt, { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp });
-        const l = new THREE.LineSegments(g, mt); l.userData = { chu: thap, luonVe: true }; if (ngamM) { l.renderOrder = 33; l.visible = false; o.trong.push(l); } the.add(l); };
+        const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: '#1a1410' })); l.userData = { chu: thap, luonVe: true }; if (ngamM) { l.visible = false; o.trong.push(l); } the.add(l); };
       gopVien(vien, false); gopVien(vienNgam, true);
       o.thang.push({ m: dat(G.hop(2.6, 2.6, 2.6), vl('#ffd166', .7), x, 4, z + 7.6, { chu: thap }, false, false, false), y0: 4, y1: HT - 4, t: 0 });
-      chiMuc.push({ ten: nhan, nhan: 'căn cứ', obj: thap }); o.chinh = thap;
+      chiMuc.push({ ten: nhan, nhan: 'căn cứ', obj: thap }); o.chinh = thap; o.ten = nhan;
       matCat.push(o); return { vo: thap, H: HT + Y0 };
     }
     // CÔNG TY AI = một căn cứ: mỗi phòng ban một công trình (kiểu theo việc của phòng), hầm = việc nền chạy theo giờ trong 24 giờ (số máy theo số việc);
@@ -1723,7 +1737,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
     }
     if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', tatBien[u.hub] ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', tatBien[u.hub] ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
-    if (u.loai === 'cum-phim') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
+    if (u.loai === 'cum-phim' || u.loai === 'phim-cc') { const hub = mh.dich.find((x) => x.khoa === u.hub), o = hub ? boCumP.get(hub.khoa)?.cum.find((c) => c.cum === u.cum) : null;
       if (o) { const ds3 = [...o.goc.flatMap((c) => [c, ...(o.nb.get(c.khoa) ?? [])]), ...o.cho, ...(o.kho ? [o.kho] : [])];
         const v = soCum(o), mauV = v.tH >= v.cH ? '#3fd68a' : '#ff4d5e', ng = ngayNgan(hub?.ngayHom);
         return { dau: `🎬 ${esc(o.ten)}`, h: [['Camp', `${o.goc.length + [...o.nb.values()].flat().length} chạy · ${o.cho.length} chờ public · ${o.kho?.soTat ?? 0} tắt`],
@@ -1812,7 +1826,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // · mọi vật khác (camp, toà nền tảng, toà, xe…) → chỉ thẻ của nó; không còn lộ biển phim khi rê camp, không mở bảng xếp hạng khi rê toà nền tảng
   const beMatHover = (o: any): { loai: 'bien'; kb: string } | { loai: 'bang' } | { loai: 'the' } | { loai: 'khong' } => { const u = o?.userData; if (!u) return { loai: 'khong' };
     if (u.bangXh) return { loai: 'bang' };
-    if (u.loai === 'cum-phim' && u.hub && u.cum && tatBien[u.hub]) return { loai: 'bien', kb: `${u.hub}|${u.cum}` };
+    if (u.loai === 'cum-phim' && u.hub && u.cum && tatCua(u.hub)) return { loai: 'bien', kb: `${u.hub}|${u.cum}` };
     return { loai: 'the' }; };
   let henLo = 0, muonLo: { kb: string | null; bx: any } = { kb: null, bx: null };
   let meoCua: any = null, henAn = 0, henHien = 0, choHien: any = null, trongMeo = false, chuotCuoi = { x: 0, y: 0 }, moc = { x: 0, y: 0 };
@@ -2091,7 +2105,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     for (const o of matCat) { const gan = khongCatMc ?? cam.position.distanceTo(o.tam) < o.R;
       if (gan !== o.gan) { o.gan = gan; for (const m of o.vo) m.visible = !gan; for (const m of o.trong) m.visible = gan; r.shadowMap.needsUpdate = true; }
       if (gan) { for (const t of o.thang) { t.t = (t.t + .006 * nhan) % 2; const e = t.t < 1 ? t.t : 2 - t.t; t.m.position.y = t.y0 + (t.y1 - t.y0) * (e * e * (3 - 2 * e)); }
-        for (const n of o.nguoi) { n.t += n.toc * nhan; n.m.position.x = n.x0 + Math.sin(n.t) * n.bien; } } }
+        for (const n of o.nguoi) { n.t += n.toc * nhan; n.m.position.x = n.x0 + Math.sin(n.t) * n.bien; } }
+      if (o.hub) { const an = !khongCat && cam.position.distanceTo(o.tam) < 450; if (an !== !!o.anBien) { o.anBien = an; if (an) anBienTam.add(o.hub); else anBienTam.delete(o.hub); apTatBien(o.hub); } } }
     if (now - mocNgay > 30_000) { mocNgay = now; apNgayDem(); }
     if (now - mocMini > 250) { mocMini = now; veMini();
       const gan = khongCat || cam.position.distanceTo(tamTn) < GAN_KHU; if (gan !== oGanTn) { oGanTn = gan; veCanhTn(); } }
@@ -2143,7 +2158,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__xuong = (x: XuongEtp) => { xuongData = x; xuongVe?.(x); };   // bộ kiểm: nạp số xưởng như /api/social/thanh-pho/xuong
   (host as any).__sucSong = () => ({ phu: [...demDongBang], dich: mh.dich.filter((d) => laDichSong(d)).map((d) => d.sucSong ?? null).reduce((a: any, v) => { a[String(v)] = (a[String(v)] ?? 0) + 1; return a; }, {}) });
   (host as any).__khongCat = (b: boolean) => { khongCat = b; };
-  (host as any).__matCat = (b: boolean | null) => { khongCatMc = b; danhThuc(); return matCat.map((o) => ({ gan: o.gan, trong: o.trong.length, tam: o.tam.toArray().map(Math.round), R: Math.round(o.R) })); };   // bộ kiểm so ảnh có / không cắt ô
+  (host as any).__matCat = (b: boolean | null) => { khongCatMc = b; danhThuc(); return matCat.map((o) => ({ ten: o.ten, gan: o.gan, trong: o.trong.length, tam: o.tam.toArray().map(Math.round), R: Math.round(o.R) })); };   // bộ kiểm so ảnh có / không cắt ô
   (host as any).__thongKe = () => { const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     let vat = 0, ngoai = 0, imSai = 0; const m4 = new THREE.Matrix4(), v = new THREE.Vector3();
     scene.traverseVisible((o: any) => { if (!(o.isMesh || o.isLine || o.isSprite || o.isPoints)) return; vat++; const thay = !o.frustumCulled || (o.isSprite ? fr.intersectsSprite(o) : fr.intersectsObject(o)); if (!thay) ngoai++;

@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 DB = os.environ["DATABASE_URL"]
 SPY = subprocess.run(["bash", "-c", ". /root/.secrets/spy.env; echo $DATABASE_URL"], capture_output=True, text=True).stdout.strip()
 def q(s, db=DB):
-    r = subprocess.run(["psql", db, "-tA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
+    r = subprocess.run(["psql", db, "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-400:])
     return r.stdout.strip()
 khoa = lambda ten, rong="{}": json.loads(q(f"select coalesce(gia_tri, '{rong}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or rong)

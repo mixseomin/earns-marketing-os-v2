@@ -6,9 +6,11 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   roi_sup      cả hệ thống: chi hôm nay ≥ $ROI_SUP_CHI mà ROI < ROI_SUP% (sau ≥ 6 giờ UTC để có số)
   bo_ngung     một bộ tài khoản: có camp đang bật, hôm qua chi ≥ $20, hôm nay 0 sau 4 giờ UTC → có thể tài khoản / Page bị khoá
   tu_choi_loat ≥ TU_CHOI_LOAT ad bị Meta từ chối cùng lúc (khả năng Page / tên miền bị gắn cờ)
-  dong_bo_tre  lượt đồng bộ gần nhất lỗi"""
+  dong_bo_tre  lượt đồng bộ gần nhất lỗi
+  roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)"""
 import datetime as dt, json, os, subprocess
 CHI_VUOT, ROI_SUP_CHI, ROI_SUP, TU_CHOI_LOAT = 1.6, 100, -35, 5
+ROAS_GAN, ROAS_DAT = 70, 100   # bid ROAS: báo sắp đủ từ $70 chi, đủ từ $100 (Support 24/10/2026)
 def q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
@@ -34,6 +36,16 @@ def main():
             if int(chay) > 0 and float(cq) >= 20 and float(cn) == 0: bao("bo_ngung", "do", f"bo_ngung:{bo}:{nay}", f"Bộ tài khoản {bo}: {chay} camp đang bật, hôm qua chi ${float(cq):.0f} mà hôm nay $0 sau {now.hour}h UTC — kiểm tài khoản QC / Page có bị khoá không"); n += 1
     tc = int(q("select count(*) from etp.camp where trang_thai = 'ACTIVE' and (giao = 'DISAPPROVED' or loi ilike '%disapprov%')") or 0)
     if tc >= TU_CHOI_LOAT: bao("tu_choi_loat", "do", f"tu_choi_loat:{nay}:{tc // TU_CHOI_LOAT}", f"{tc} ad đang bị Meta từ chối cùng lúc — khả năng Page / tên miền bị gắn cờ; máy đang tự thay creative từng camp"); n += 1
+    # BID ROAS (anh 24/10/2026: "camp nào gần đạt có cảnh báo; còn đạt thì cho vào một danh sách riêng"): ROI 30 ngày ≥ 50% và mọi ngày TRỌN có chi ≥ $1
+    # trong 3 ngày gần nhất ROI ≥ 50% (≥ 2 ngày như vậy) — gần đạt = chi ≥ $ROAS_GAN, đạt = chi ≥ $ROAS_DAT. Báo MỘT lần mỗi camp mỗi mức.
+    for l in q(f"""with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= '{nay}'::date - 29 group by 1 having sum(chi) >= {ROAS_GAN} and sum(thu) >= 1.5 * sum(chi)),
+                     d as (select camp_id, bool_and(thu >= 1.5 * chi) od, count(*) so from etp.so_ngay where ngay between '{nay}'::date - 3 and '{nay}'::date - 1 and chi >= 1 group by 1)
+                   select c.camp_id, c.ten, c.ngan_sach, round(t.chi, 2), round(100 * (t.thu - t.chi) / t.chi) from t join d using (camp_id) join etp.camp c using (camp_id)
+                   where d.od and d.so >= 2 and c.trang_thai = 'ACTIVE'""").splitlines():
+        i, ten, ns, chi, roi = l.split("|"); dat = float(chi) >= ROAS_DAT
+        bao("roas_dat" if dat else "roas_gan", "vang", f"roas_{'dat' if dat else 'gan'}:{i}",
+            (f"★ Camp #{i} ĐỦ TIÊU CHÍ BID ROAS — chi ${float(chi):.0f}, ROI {roi}%, ổn định 2–3 ngày ≥ 50% — {ten[:70]} (etp.on.tc › Camp › ★ Đủ bid ROAS)" if dat else
+             f"Camp #{i} SẮP ĐỦ bid ROAS — chi ${float(chi):.0f}/${ROAS_DAT}, ROI {roi}%, ổn định ≥ 50% · ${float(ns):g}/ngày ≈ {max(1, round((ROAS_DAT - float(chi)) / max(float(ns) * 0.7, 1)))} ngày nữa — {ten[:70]}")); n += 1
     l = q("select lan, coalesce(loi, '') from etp.dong_bo where xong is not null order by lan desc limit 1")
     if l and l.split("|", 1)[1]: bao("dong_bo_tre", "vang", f"dong_bo:{nay}:{now.hour}", f"Lượt đồng bộ kho etp #{l.split('|')[0]} lỗi: {l.split('|', 1)[1][:200]}"); n += 1
     print(json.dumps({"canh_bao_moi_thu": n}))

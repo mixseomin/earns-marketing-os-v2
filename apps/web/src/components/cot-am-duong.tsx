@@ -34,7 +34,6 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
         {duKien && duKien.i < n ? <g pointerEvents="none">
           <rect x={cx(duKien.i) - bc / 2} y={Math.min(y(duKien.v), y0)} width={bc} height={Math.max(1, Math.abs(y(duKien.v) - y0))} rx={2} fill="none" stroke={duKien.v >= 0 ? 'var(--neon-lime, #9be15d)' : 'var(--neon-red, #ff5c5c)'} strokeWidth={1.5} strokeDasharray="4 3" />
           <line x1={cx(duKien.i)} x2={cx(duKien.i)} y1={y(duKien.den)} y2={y(duKien.tu)} stroke="var(--fg-2)" strokeWidth={1} />
-          <text x={cx(duKien.i)} y={Math.min(y(duKien.v), y(duKien.den)) - 5} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--neon-lime, #9be15d)">dự kiến {dinhDang(duKien.v)}</text>
         </g> : null}
         {conDuong && <polyline fill="none" stroke="var(--fg-2)" strokeWidth={1.5} points={luy.map((v, j) => `${cx(j)},${y(v)}`).join(' ')} />}
         {duongPhu?.length ? (() => { const mx = Math.max(1, ...duongPhu.flatMap((s) => s.gt)), yp = (v: number) => PT + cao - (v / mx) * cao;
@@ -45,6 +44,9 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
             {duongPhu.map((s, k) => <g key={s.ten} transform={`translate(${PL + k * 120}, 8)`}><rect width={9} height={9} y={1} rx={2} fill={s.mau} /><text x={14} y={9} fontSize={10} fill="var(--fg-2)">{s.ten}</text></g>)}
           </g>; })() : null}
         {i != null && <line x1={cx(i)} x2={cx(i)} y1={PT} y2={PT + cao} stroke="var(--fg-3)" strokeDasharray="2 2" />}
+        {duKien && duKien.i < n ? (() => { const t = `dự kiến ${dinhDang(duKien.v)}`, w = t.length * 6.6 + 10, xr = Math.min(W - PR - 2, cx(duKien.i) + bc / 2), yt = Math.max(PT + 14, Math.min(y(duKien.v), y(duKien.den)) - 6);
+          return <g pointerEvents="none"><rect x={xr - w} y={yt - 12} width={w} height={16} rx={3} fill="var(--bg-0, #0b0c10)" opacity={0.9} />
+            <text x={xr - 5} y={yt} textAnchor="end" fontSize={11} fontWeight={700} fill="var(--neon-lime, #9be15d)">{t}</text></g>; })() : null}
       </svg>
       {i != null && (
         <div style={{ position: 'absolute', top: 4, left: Math.min(W - 230, Math.max(0, cx(i) + 8)), width: 220, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 8px', fontSize: 11, fontFamily: 'var(--font-mono)', pointerEvents: 'none' }}>

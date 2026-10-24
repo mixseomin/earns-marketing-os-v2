@@ -512,7 +512,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
     const tenDuAn: Record<string, string> = Object.fromEntries(duAnAll.map((p) => [p.id, p.name]));
     const duAn = [...new Set([...cua.map((c) => c.project_id), ...storeAll.map((s) => duAnStore(s.store)).filter((x): x is string => !!x)])];
     if (!duAn.length) { const hm = Date.parse(new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)), kv = await docKenhVault(d, new Set(), hm);
-      try { const dm = await docDangMay(d, hm); for (const k of kv) k.dangMay = dm.get(k.id); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }
+      try { const dm = await docDangMay(d, hm); for (const k of kv) k.dangMay = dm.get(Number(k.id)); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }
       return { kenh: kv, trang: [], ban: [] }; }
     // drizzle trải mảng JS thành ($1, $2…) chứ không thành text[] → `= ANY(${mang})` gãy ("op ANY/ALL (array) requires array"); dùng IN (…)
     const trong = (xs: string[]) => sql.join(xs.map((x) => sql`${x}`), sql`, `);
@@ -560,7 +560,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
     kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));
-    try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(k.id); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
+    try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(Number(k.id)); }   // id kênh đường dự án là chuỗi (SQL), khoá máy đăng là số catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
     // trang đích = các đích link mà kênh trỏ tới (kenh_sp.dich) — chưa có máy đo click từng trang → null
     const theoDich = new Map<string, StTrang>();
     for (const sp of kenhSp.filter((x) => x.project && duAn.includes(x.project))) for (const o of Object.values(sp.o)) {

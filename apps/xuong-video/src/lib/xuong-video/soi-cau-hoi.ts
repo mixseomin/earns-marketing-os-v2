@@ -12,7 +12,7 @@ export async function hoiKhung(db: Db, phimId: number | null, anh: string, cau: 
   const b = /^https?:/.test(anh) ? Buffer.from(await (await fetch(anh)).arrayBuffer()) : await readFile(anh);
   const schema = { type: 'OBJECT', properties: { dap: { type: 'ARRAY', items: { type: 'OBJECT', properties: { ma: { type: 'STRING' }, co: { type: 'BOOLEAN' } }, required: ['ma', 'co'] } } }, required: ['dap'] };
   const text = ['This is ONE frame of an AI-generated film shot. Answer every yes/no question strictly from what is VISIBLE in this frame (co=true = yes, co=false = no).',
-    'If something cannot be judged from the frame (too small, out of frame, blurred), answer co=true — never guess a defect.', 'Questions (Vietnamese):',
+    'Answer co=false ONLY when the frame CLEARLY shows the opposite. If the thing asked about is hidden (behind a person, shoulder, box, out of frame), too small, blurred or ambiguous, answer co=true — never guess a defect.', 'Questions (Vietnamese):',
     ...cau.map((c) => `[${c.ma}] ${c.hoi}`)].join('\n');
   const r = await goiGeminiJson<{ dap?: { ma: string; co: boolean }[] }>([{ text }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], schema, 'MEDIA_RESOLUTION_MEDIUM');
   if (!r) return null;

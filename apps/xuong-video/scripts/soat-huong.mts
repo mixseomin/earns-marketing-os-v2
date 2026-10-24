@@ -45,14 +45,22 @@ for (const c of ds) {
 }
 const do_ = await soiAnh(db, tap, anh);
 // --hoi: HỎI trạng thái dáng / đồ / ai có mặt trên khung mở + đóng của đoạn clip đã dùng (soi-cau-hoi.ts, Gemini ~0,3¢ / khung — chỉ khi được duyệt tiền)
-const hoiLoi = new Map<number, string[]>();
+const hoiLoi = new Map<number, string[]>(); const hoiCanh = new Map<number, string[]>();
 if (process.argv.includes('--hoi')) {
   const phimId = Number((((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`)) as unknown as Row[])[0]?.phim_id) ?? 0) || null;
   const nvs = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId}`)) as unknown as Row[]).map(mapNhanVat);
   const viec = ds.flatMap((c) => (['clip_dau', 'clip_ket'] as Luc[]).map((l) => ({ c, l, f: `${thuMuc}/${c.id}-${l}.jpg` }))).filter((x) => kgCua(kgt, x.c) && existsSync(x.f));
   let i = 0; const chay = async () => { while (i < viec.length) { const { c, l, f } = viec[i++]!;
-    const hoi = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: laDau(l) ? 'dau' : 'ket' }).filter((x) => /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/.test(x.ma));
-    const dap = await hoiKhung(db, phimId, f, hoi).catch(() => null); if (dap) hoiLoi.set(ma(c.id, l), loiTuDapAn(hoi, dap).map((x) => `hỏi: ${x.mo_ta}`)); } };
+    // khung TOÀN: người nhỏ — không hỏi dáng / đồ / mặt (Gemini trả "không" bừa); chỉ hỏi có / không có người, vắng mặt đồ, khoảnh khắc
+    const toan = ['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '');
+    const hoi = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: laDau(l) ? 'dau' : 'ket' })
+      .filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma));
+    const dap = await hoiKhung(db, phimId, f, hoi).catch(() => null); if (!dap) continue;
+    // CHẶN chỉ loại câu đã đo được độ đúng trên ca thật (vắng mặt đồ, khoảnh khắc kết, có / không có người — #353 #13 dây thẻ, #8 nắm tay trống);
+    // dáng / đồ / thấy mặt: CẢNH BÁO để soát tờ ghép bằng mắt (đo 24/10/2026: báo nhầm nhiều ở khung qua vai, tay bị che)
+    const loi = loiTuDapAn(hoi, dap); const chan = (m: string) => /^\[(vang:|co:|ngoai:|ket\])/.test(m);
+    hoiLoi.set(ma(c.id, l), loi.filter((x) => chan(x.mo_ta)).map((x) => `hỏi: ${x.mo_ta}`));
+    hoiCanh.set(ma(c.id, l), loi.filter((x) => !chan(x.mo_ta)).map((x) => x.mo_ta)); } };
   await Promise.all(Array.from({ length: 6 }, chay));
 }
 const NHAY_CUI = 15; const NGUONG_LA = 0.2;   // dưới mức này mặt không phải nhân vật đó (cùng người ~0,4–0,7)
@@ -80,7 +88,8 @@ for (const c of ds) {
   const loi: string[] = []; const dong: string[] = [];
   for (const l of LUC) { const k = ketQua(c, l); if (!k) continue; dong.push(`${NHAN[l]} ${k.loi.length ? '✗' : '✓'} ${k.so || '(không đo được mặt)'}`); loi.push(...k.loi.map((x) => `${NHAN[l]}: ${x}`)); }
   if (!dong.length) continue; if (loi.length) truot++;
-  console.log(`#${c.thu_tu} ${loi.length ? '✗' : '✓'}\n    ${dong.join('\n    ')}${loi.length ? `\n    → ${loi.join('; ')}` : ''}`);
+  const canh = LUC.flatMap((l) => (hoiCanh.get(ma(c.id, l)) ?? []).map((x) => `${NHAN[l]}: ${x}`));
+  console.log(`#${c.thu_tu} ${loi.length ? '✗' : '✓'}\n    ${dong.join('\n    ')}${loi.length ? `\n    → ${loi.join('; ')}` : ''}${canh.length ? `\n    ⚠ hỏi (soát tờ ghép bằng mắt): ${canh.join('; ')}` : ''}`);
   await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || jsonb_build_object('soat_noi', ${JSON.stringify({ luc: new Date().toISOString(), video_url: c.video_url ?? null, keyframe_ket: c.keyframe_ket ?? null, loi })}::jsonb) WHERE id = ${c.id}`);
 }
 // ĐƯỜNG CẮT: clip đóng của shot trước ↔ clip mở của shot sau (cùng cảnh) — chỗ khán giả thật sự thấy

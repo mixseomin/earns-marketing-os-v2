@@ -91,6 +91,11 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     dong.some(laVO) ? `Off-screen voice-over (${tenNgonNguEn(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
   ].filter(Boolean).join(' ');
   // IM LẶNG: shot có người mà không có lời — nói thẳng là không ai mở miệng (phim #353 #13: Hạ chỉ nghe câu Thần nói mà clip cho Hạ mấp máy như đang cãi)
+  // CẮT GIỮA ĐỘNG TÁC (luat-dung.ts › cat_giua_dong_tac — ngành quay phủ CHỒNG qua điểm cắt rồi cắt lúc đang chuyển động): shot nối sang shot sau bằng
+  // động tác thì động tác còn đang diễn ở giây cuối; shot nhận động tác từ shot trước thì mở ra giữa chuyển động — không đứng yên chờ / khựng ở hai đầu
+  const noiSau = bc.canh.dan_dung?.noi === 'dong_tac', noiTruoc = bc.truoc?.dan_dung?.noi === 'dong_tac' && bc.truoc.phan_doan === bc.canh.phan_doan;
+  const catDongTac = [noiTruoc ? 'The shot opens already in motion, continuing the movement from the previous shot — no still pause at the start.' : '',
+    noiSau ? 'The action is still in motion at the very end of the shot — it carries on past the last frame; do not settle, freeze or hold a pose at the end.' : ''].filter(Boolean).join(' ');
   const imLang = !dong.length && bc.canh.ky_thuat?.co_canh !== 'insert' && bc.nhanVat.some((v) => v.loai === 'nhan_vat') ? 'Nobody speaks in this shot: every person in frame keeps their mouth closed — no talking, no lip movement.' : '';
   // Khung đầu là ảnh render 3D: KHÔNG câu phong cách chung (nó có "bokeh", "monitor glow" → Veo thêm đèn mờ sau nền, #23) — giữ đúng ảnh đầu.
   // Cấm chữ / nhãn tên (Veo in "Mr. Wipe", "Lint" lên hình vì prompt gọi tên) và mặt hoạt hình vẽ thêm (Lint mọc mắt nhắm miệng méo).
@@ -116,7 +121,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || ((bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket) || bc.canh.dan_dung?.dien?.trim() ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
     khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('vat', spTrongTam),
-    khoi('thoai', thoaiVeo || imLang), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
+    khoi('thoai', thoaiVeo || imLang), khoi('noi_cat', catDongTac), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : ''), khoi('may', promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
     // Ý đồ khán giả → KHÔNG KHÍ (khan-gia.ts › cauKhongKhi): chỉ không khí / ánh sáng / nhịp, không đổi nét mặt đã khai ở khối bieu_cam.

@@ -45,7 +45,8 @@
           0.3,
           7
         ],
-        "ong": 26
+        "ong": 26,
+        "cao": 1.6
       },
       "can_ha": {
         "dat": [
@@ -56,7 +57,8 @@
           -0.4,
           6.1
         ],
-        "ong": 70
+        "ong": 70,
+        "cao": 1.62
       },
       "can_vi": {
         "dat": [
@@ -67,7 +69,8 @@
           0.3,
           5.95
         ],
-        "ong": 70
+        "ong": 70,
+        "cao": 1.5
       },
       "hai_nguoi": {
         "dat": [
@@ -78,7 +81,8 @@
           -0.4,
           6.1
         ],
-        "ong": 40
+        "ong": 40,
+        "cao": 1.55
       },
       "qua_vai_ha": {
         "dat": [
@@ -89,7 +93,8 @@
           0.3,
           5.95
         ],
-        "ong": 40
+        "ong": 40,
+        "cao": 1.5
       },
       "can_than": {
         "dat": [
@@ -100,7 +105,8 @@
           -1.2,
           6.5
         ],
-        "ong": 70
+        "ong": 70,
+        "cao": 1.38
       },
       "thang_may": {
         "dat": [
@@ -111,7 +117,8 @@
           0,
           7
         ],
-        "ong": 40
+        "ong": 40,
+        "cao": 1.5
       },
       "can_ha_trai": {
         "dat": [
@@ -122,7 +129,8 @@
           -0.5,
           6.0
         ],
-        "ong": 70
+        "ong": 70,
+        "cao": 1.6
       }
     },
     "ten": {
@@ -179,7 +187,19 @@
         ],
         "z1": 2.4
       }
-    ]
+    ],
+    "mat_cao": {
+      "Lâm Hạ": 1.52,
+      "Vivian": 1.6,
+      "Lục Thần": 1.74
+    },
+    "den": {
+      "tu": [
+        -4.0,
+        3.5
+      ],
+      "ten": "warm overhead lobby light, strongest from the painting side"
+    }
   },
   "ghi": "Cảnh Thang máy phim #132 theo ngữ pháp ReelShort (tham-khao/reelshort.md) + SƠ ĐỒ CẢNH 2D (so-do-canh.ts): một thang máy, Hạ đứng chắn cửa, Vivian vào từ lối vào phía phải toàn cảnh, Lục Thần bước ra từ chính thang đó. Mọi hướng trên màn tính từ sơ đồ ({A→B}), mỗi cắt có cớ (noi-nhip.ts), hành động tiếp xúc có mảnh hai người cùng khung. kf = keyframe dùng lại.",
   "shot": [
@@ -214,7 +234,14 @@
       "khung_ve": [
         "dau"
       ],
-      "mo_vi": "Hạ ôm thùng, đứng chắn ngay trước cửa thang bên trái, chờ"
+      "mo_vi": "Hạ ôm thùng, đứng chắn ngay trước cửa thang bên trái, chờ",
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "buon",
+          "cuoi": "nhan_nhin"
+        }
+      ]
     },
     {
       "co": "cu",
@@ -253,7 +280,14 @@
         "nhin": {
           "Lâm Hạ": "loi_vao"
         }
-      }
+      },
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "nhan_nhin",
+          "cuoi": "lo_lang"
+        }
+      ]
     },
     {
       "co": "ws",
@@ -299,7 +333,19 @@
           "Vivian": "vi"
         },
         "vao": {}
-      }
+      },
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "dac_y",
+          "cuoi": "khinh_bi"
+        },
+        {
+          "nv": "Lâm Hạ",
+          "dau": "lo_lang",
+          "cuoi": "lo_lang"
+        }
+      ]
     },
     {
       "co": "mcu",
@@ -335,7 +381,14 @@
       "khung_ve": [
         "dau"
       ],
-      "mo_vi": "Qua vai Hạ: Vivian đứng sát, nhìn thẳng Hạ, hai tay buông"
+      "mo_vi": "Qua vai Hạ: Vivian đứng sát, nhìn thẳng Hạ, hai tay buông",
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "khinh_bi",
+          "cuoi": "dac_y"
+        }
+      ]
     },
     {
       "co": "ms",
@@ -377,7 +430,19 @@
         "ket"
       ],
       "mo_vi": "Hai người cùng khung: Vivian bước sát, tay bắt đầu vươn về phía thẻ trên ngực Hạ; Hạ cảnh giác nhìn Vivian",
-      "ket_vi": "Ngón tay Vivian chạm vào tấm thẻ"
+      "ket_vi": "Ngón tay Vivian chạm vào tấm thẻ",
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "dac_y",
+          "cuoi": "dac_y"
+        },
+        {
+          "nv": "Lâm Hạ",
+          "dau": "lo_lang",
+          "cuoi": "lo_lang"
+        }
+      ]
     },
     {
       "co": "insert",
@@ -462,7 +527,19 @@
       "mo_vi": "Qua vai Hạ: Vivian nắm thẻ, kéo mạnh về phía mình",
       "giua_vi": "Dây thẻ căng rồi đứt; Hạ bị kéo chúi về trước, hai tay vẫn ôm thùng",
       "ket_vi": "Vivian cầm dây đứt, thẻ lủng lẳng; Hạ đứng lại, vẫn ôm thùng",
-      "giua": "the lanyard pulls taut and snaps; Hạ is jerked half a step forward, still hugging the box with both arms"
+      "giua": "the lanyard pulls taut and snaps; Hạ is jerked half a step forward, still hugging the box with both arms",
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "gian",
+          "cuoi": "dac_y"
+        },
+        {
+          "nv": "Lâm Hạ",
+          "dau": "soc",
+          "cuoi": "soc"
+        }
+      ]
     },
     {
       "co": "cu",
@@ -499,7 +576,14 @@
         "ket"
       ],
       "mo_vi": "Cận Hạ: sững sờ nhìn Vivian, vẫn ôm thùng",
-      "ket_vi": "Hạ nhìn xuống tay Vivian đang cầm thẻ"
+      "ket_vi": "Hạ nhìn xuống tay Vivian đang cầm thẻ",
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "soc",
+          "cuoi": "nhuc_nha"
+        }
+      ]
     },
     {
       "co": "insert",
@@ -577,7 +661,14 @@
         "nhin": {
           "Vivian": "thang"
         }
-      }
+      },
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "dac_y",
+          "cuoi": "bat_ngo"
+        }
+      ]
     },
     {
       "co": "ws",
@@ -619,7 +710,24 @@
         "ket"
       ],
       "mo_vi": "Toàn cảnh: cửa thang mở, Lục Thần bước ra",
-      "ket_vi": "Lục Thần dừng ngay trước Hạ — cô đang chắn cửa"
+      "ket_vi": "Lục Thần dừng ngay trước Hạ — cô đang chắn cửa",
+      "bc": [
+        {
+          "nv": "Lục Thần",
+          "dau": "lanh_lung",
+          "cuoi": "lanh_lung"
+        },
+        {
+          "nv": "Lâm Hạ",
+          "dau": "nhuc_nha",
+          "cuoi": "nhan_nhin"
+        },
+        {
+          "nv": "Vivian",
+          "dau": "bat_ngo",
+          "cuoi": "tu_tin"
+        }
+      ]
     },
     {
       "co": "cu",
@@ -659,7 +767,14 @@
       "khung_ve": [
         "dau"
       ],
-      "mo_vi": "Cận Lục Thần: lạnh lùng nói, không nhìn Hạ"
+      "mo_vi": "Cận Lục Thần: lạnh lùng nói, không nhìn Hạ",
+      "bc": [
+        {
+          "nv": "Lục Thần",
+          "dau": "lanh_lung",
+          "cuoi": "lanh_lung"
+        }
+      ]
     },
     {
       "co": "cu",
@@ -697,7 +812,14 @@
         "ket"
       ],
       "mo_vi": "Cận Hạ: nhìn sang trái về phía Lục Thần, nghe câu anh ta nói, mím môi",
-      "ket_vi": "Hạ cụp mắt, im lặng"
+      "ket_vi": "Hạ cụp mắt, im lặng",
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "nhan_nhin",
+          "cuoi": "buon"
+        }
+      ]
     },
     {
       "co": "mcu",
@@ -745,7 +867,14 @@
         "ket"
       ],
       "mo_vi": "Vivian cầm dây lắc tấm thẻ trước mặt Hạ, nói khinh miệt",
-      "ket_vi": "Vivian nghiêng đầu, chờ Hạ gục"
+      "ket_vi": "Vivian nghiêng đầu, chờ Hạ gục",
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "khinh_bi",
+          "cuoi": "dac_y"
+        }
+      ]
     },
     {
       "co": "cu",
@@ -794,7 +923,15 @@
         "nhin": {
           "Lâm Hạ": "thang"
         }
-      }
+      },
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "buon",
+          "cuoi": "nhech_moi",
+          "lat": true
+        }
+      ]
     },
     {
       "co": "cu",
@@ -833,7 +970,15 @@
         "dau"
       ],
       "mo_vi": "Cận Vivian: nhìn theo Hạ về phía thang máy (bên trái), nụ cười khựng lại rồi tắt dần",
-      "ket_vi": "Vivian nhìn theo Hạ về phía thang máy, mặt cứng lại"
+      "ket_vi": "Vivian nhìn theo Hạ về phía thang máy, mặt cứng lại",
+      "bc": [
+        {
+          "nv": "Vivian",
+          "dau": "dac_y",
+          "cuoi": "soc",
+          "lat": true
+        }
+      ]
     },
     {
       "co": "ms",
@@ -866,7 +1011,14 @@
         "ket"
       ],
       "mo_vi": "Hạ đứng trong thang máy ôm thùng, quay mặt ra",
-      "ket_vi": "Cửa thép khép lại trước mặt Hạ"
+      "ket_vi": "Cửa thép khép lại trước mặt Hạ",
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "binh_thuong",
+          "cuoi": "quyet_tam"
+        }
+      ]
     }
   ],
   "mau": {
@@ -879,7 +1031,8 @@
     "Thẻ nhân viên": "the white staff ID badge on its dark blue lanyard",
     "Dáng Hạ": "Hạ's pose",
     "Dáng Vivian": "Vivian's pose",
-    "Dáng Thần": "Lục Thần's pose"
+    "Dáng Thần": "Lục Thần's pose",
+    "Vết cà phê": "the coffee stain on her blouse"
   },
   "so_vat": {
     "Thùng đồ cá nhân": [
@@ -903,6 +1056,14 @@
         "cach": "held by its SNAPPED dark blue lanyard in Vivian's right hand, the white card dangling below her fingers (she holds the lanyard, never the card itself)",
         "vi": "Vivian cầm bằng dây đứt, thẻ lủng lẳng dưới tay",
         "su_kien": "Vivian giật mạnh, dây thẻ đứt khỏi cổ Hạ"
+      }
+    ],
+    "Vết cà phê": [
+      {
+        "tu": 1,
+        "ai": "Lâm Hạ",
+        "cach": "a large brown coffee stain on the left side of Hạ's white blouse, over her heart — the same size and place in every shot",
+        "vi": "vết cà phê lớn ở ngực trái áo sơ mi trắng, cùng chỗ mọi shot"
       }
     ]
   },

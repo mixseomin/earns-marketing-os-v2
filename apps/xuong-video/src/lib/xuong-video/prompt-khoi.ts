@@ -68,7 +68,7 @@ export const LOAI_VIDEO: Record<LoaiVideo, { sp_giu: string; sp_tam: (ten: strin
 };
 /** Mã khối — tên thành phần, dùng chung mọi đường sinh. */
 export type MaKhoi = 'anh_dich' | 'anh_so' | 'may' | 'boi_canh' | 'bo_tri' | 'khoanh_khac' | 'nguoi' | 'vat' | 'hau_canh' | 'huong' | 'khung' | 'ngoai_khung'
-  | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'so_nguoi' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'khong_khi' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'khong_them' | 'anh_set' | 'khac';
+  | 'trang_thai' | 'ti_le' | 'nhan_dang' | 'so_nguoi' | 'anh_sang' | 'phong_cach' | 'chat_lieu' | 'cong_cu' | 'cam_chu' | 'cam_xuc' | 'bieu_cam' | 'khong_khi' | 'giu' | 'dien' | 'chuyen_dong' | 'thoai' | 'noi_cat' | 'khong_them' | 'anh_set' | 'khac';
 export type Khoi = { ma: MaKhoi; chu: string };
 export const khoi = (ma: MaKhoi, chu: string | false | 0 | null | undefined): Khoi => ({ ma, chu: (chu || '').trim() });
 /** Ghép khối thành prompt (bỏ khối rỗng). */

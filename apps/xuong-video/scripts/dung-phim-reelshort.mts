@@ -14,7 +14,7 @@ import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong
 import { loiMach2d } from '../src/lib/xuong-video/khong-gian';
 import { cauVat, dongVat, loiSoVat, NHAN_DANG, NHAN_DO_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
-type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
+type Manh = { /** KẾ HOẠCH DIỄN (nét mặt đầu → cuối từng người, qc-cam-xuc.ts › BIEU_CAM) — xv_canh.bieu_cam */ bc?: { nv: string; dau: string; cuoi: string; lat?: boolean }[]; co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
   /** chỗ trong SƠ ĐỒ CẢNH (so-do-canh.ts): máy · ai ở đâu · ai nhìn gì · ai vào từ đâu — hướng trên màn tính từ đây, không viết tay */ sd?: ManhSoDo; /** dùng lại keyframe đã duyệt (URL) */ kf?: string;
   /** STORYBOARD đầu / giữa / cuối: khung vẽ (mặc định đầu + cuối nếu có ket) · câu khung giữa (EN) · câu tả tiếng Việt từng khung · sơ đồ ở khung cuối (đè sd) */ khung_ve?: ('dau' | 'giua' | 'ket')[]; giua?: string; mo_vi?: string; giua_vi?: string; ket_vi?: string; sd_ket?: Partial<ManhSoDo>; nv: string[]; bt?: string[]; hd: string; anh: string; vid: string; thoai?: { nhan_vat: string; loi: string; dien_xuat?: string }[] };
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
@@ -85,7 +85,7 @@ if (gia('cap-nhat')) {
     const nv = s.nv.map(idNv).filter((x) => x != null).map(Number); const bt = (s.bt ?? []).map(idBt).filter((x) => x != null).map(Number);
     const kt = { co_canh: s.co, ...(s.am?.length ? { am_thanh: s.am } : {}), ...ktThem(s, i) };
     await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${s.hd}, prompt_anh = ${s.anh}, dan_dung = coalesce(dan_dung, '{}'::jsonb) || ${JSON.stringify(danDung(s))}::jsonb,
-      ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(kt)}::jsonb, nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, updated_at = now()
+      ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(kt)}::jsonb, bieu_cam = coalesce(${s.bc ? JSON.stringify(s.bc) : null}::jsonb, bieu_cam), nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, updated_at = now()
       WHERE tap_id = ${tapId} AND thu_tu = ${i + 1}`);
   }
   await ghiKhongGian(tapId); console.log(`cập nhật ${du.shot.length} mảnh của tập ${tapId}`); process.exit(0);

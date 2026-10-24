@@ -74,3 +74,10 @@ console.log('so-do-canh.test: ok (kế thừa ánh nhìn + người đang vào �
     { sd: { may: 'toan', o: { 'Hạ': 'ha', Vivian: 'vi' } } }, { sd: { may: 'toan', o: { 'Hạ': 'trong' } } }]);
   assert.strictEqual(ds[2]!.sd!.nhin!['Hạ'], 'Vivian', 'qua cận chèn vẫn giữ'); assert.strictEqual(ds[3]!.sd!.nhin!['Hạ'], undefined, 'đổi chỗ → hết'); }
 console.log('so-do-canh.test: ok (kế thừa qua cận chèn, hết khi đổi chỗ)');
+// ÁNH NHÌN DỌC · GÓC MÁY THEO ĐỘ CAO · ĐÈN CHÍNH (luật chung, mọi phim có sơ đồ)
+{ const k = { ...s, mat_cao: { 'Hạ': 1.52, Vivian: 1.6 }, den: { tu: [-4, 3] as [number, number] }, may: { ...s.may, thap: { dat: [0, 4.6] as [number, number], nhin: [0, 5.8] as [number, number], cao: 1.2 } } };
+  const c = cauHuong(k, { may: 'thap', o: { 'Hạ': [0, 5.8], Vivian: [0.6, 5.9] }, nhin: { 'Hạ': 'Vivian' } }, ['Hạ', 'Vivian']);
+  assert.ok(c.includes('Hạ tilts the eyes slightly UP'), c); assert.ok(c.includes('Low angle'), c); assert.ok(/Key light comes from screen left/.test(c), c);
+  const caoMay = cauHuong({ ...k, may: { ...k.may, thap: { ...k.may.thap, cao: 1.9 } } }, { may: 'thap', o: { 'Hạ': [0, 5.8] } }, ['Hạ']); assert.ok(caoMay.includes('High angle'), caoMay);
+  assert.ok(!cauHuong(s, { may: 'toan', o: { 'Hạ': 'ha' } }, ['Hạ']).includes('angle'), 'không khai độ cao → không câu góc'); }
+console.log('so-do-canh.test: ok (ánh nhìn dọc + góc máy + đèn)');

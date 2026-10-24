@@ -4,7 +4,11 @@
 // để cổng đo trên keyframe (soi-mat.py: tâm mặt + hướng nhìn) so. Mặt bằng nhìn từ trên: x sang đông (m), y sang bắc (m); máy = chỗ đặt + điểm nhìn.
 // Trục 180° (Film Art ch.6): hai shot liền nhau có cặp người nhìn nhau thì hai máy cùng một phía đường nối hai người. Thuần — tự kiểm: so-do-canh.test.mts
 export type Diem = [number, number];
-export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem; nhin: Diem; /** tiêu cự tương đương mm (mặc định 35): cận mặt 60–85, toàn 24–28 */ ong?: number }>; /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string> };
+export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem; nhin: Diem; /** tiêu cự tương đương mm (mặc định 35): cận mặt 60–85, toàn 24–28 */ ong?: number;
+    /** ĐỘ CAO MÁY (m, mặc định ngang mắt chủ thể): cao hơn mắt ≥ 0,25 = máy cao nhìn xuống (thu nhỏ nhân vật), thấp hơn ≥ 0,25 = máy thấp nhìn lên (trao quyền lực) */ cao?: number }>;
+  /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string>;
+  /** CHIỀU CAO MẮT từng nhân vật (m, tính cả giày) — ánh nhìn theo chiều dọc: người thấp ngước lên nhìn người cao (eyeline match dọc) */ mat_cao?: Record<string, number>;
+  /** ĐÈN CHÍNH của cảnh (key light): đứng ở đâu trên mặt bằng — mọi góc máy giữ cùng một phía sáng (lighting continuity) */ den?: { tu: Diem; ten?: string } };
 /** Một mảnh theo sơ đồ: máy nào · ai / cái gì ở đâu (tên mốc hoặc toạ độ) · ai nhìn ai / cái gì · ai đi vào khung từ mốc nào. */
 export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** người CỐ Ý không nhìn người vừa nói (khong-gian.ts › luật người nghe nhìn người nói) */ ne_nhin?: string[]; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
 export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true; /** quay lưng HẲN (sâu > 0,7) — không thể thấy mặt; nửa lưng thì có thể lộ má / nghiêng */ han?: true };
@@ -58,6 +62,18 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
     else out.push(`${a} looks ${PHIA(huongMan(s, m, a, b))} at ${ten(b)}, eyes on ${la ? 'it' : 'them'}, not at the camera${la && sau < -NUA_LUNG ? `; ${ten(b)} is off screen on the camera side` : ''}`);
   }
   for (const [a, tu] of Object.entries(m.vao ?? {})) { const x = viTriMan(s, m, tu); const h = huongMan(s, m, tu, a); out.push(`${a} enters from ${x == null ? (h < 0 ? 'screen right' : 'screen left') : x < 0 ? 'screen left' : 'screen right'}, moving ${PHIA(h).replace(' past the lens', '')}`); }
+  // ÁNH NHÌN DỌC (eyeline theo chiều cao): A nhìn người B cao / thấp hơn rõ → ngước lên / nhìn xuống
+  for (const [a, b] of Object.entries(m.nhin ?? {})) { const ha = s.mat_cao?.[a], hb = s.mat_cao?.[b]; if (ha == null || hb == null || !thay(a)) continue;
+    if (hb - ha >= 0.08) out.push(`${a} tilts the eyes slightly UP to meet ${b}'s eyes (${b} is taller)`); else if (ha - hb >= 0.08) out.push(`${a} looks slightly DOWN at ${b} (${b} is shorter)`); }
+  // GÓC MÁY THEO ĐỘ CAO (power angle): máy so với mắt chủ thể chính (người đầu tiên trong khung)
+  { const may = s.may[m.may]; const chinh = nguoi.find((n) => thay(n) && !m.vao?.[n]); const hm = chinh ? s.mat_cao?.[chinh] : undefined;
+    if (may?.cao != null && chinh && hm != null) { const d = may.cao - hm;
+      out.push(d >= 0.25 ? `High angle: the camera is above ${chinh}'s eyes and looks down on ${chinh}` : d <= -0.25 ? `Low angle: the camera is below ${chinh}'s eyes and looks up at ${chinh}` : 'Eye-level camera'); } }
+  // ĐÈN CHÍNH (lighting continuity): phía sáng trên màn tính từ chỗ đèn so với chủ thể — mọi góc máy cùng cảnh giữ đúng một phía
+  if (s.den) { const tam = (() => { const ps = nguoi.filter(thay).map((n) => diem(s, m, n)).filter((p): p is Diem => !!p); return ps.length ? [ps.reduce((x, p) => x + p[0], 0) / ps.length, ps.reduce((y, p) => y + p[1], 0) / ps.length] as Diem : s.may[m.may]?.nhin ?? null; })();
+    if (tam) { const t2 = truc(s, m.may); const v = tru(s.den.tu, tam); const l = Math.hypot(...v) || 1; const ngang = cham(v, t2.phai) / l, sau = cham(v, t2.fw) / l;
+      const phia = Math.abs(ngang) < 0.25 ? (sau > 0 ? 'from behind the subjects (backlight, rim on hair and shoulders)' : 'from the camera side, frontal') : `from screen ${ngang < 0 ? 'left' : 'right'}${sau > 0.4 ? ' and slightly behind (rim light)' : ''}`;
+      out.push(`Key light${s.den.ten ? ` (${s.den.ten})` : ''} comes ${phia} — faces are lit on that side; keep this light direction`); } }
   return out.join('; ');
 }
 /** Thay ký hiệu {A→B} trong câu đầu / đuôi bằng phía màn tính từ sơ đồ ('toward screen left'…) — hướng trong chữ không viết tay. */

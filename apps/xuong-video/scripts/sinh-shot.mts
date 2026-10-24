@@ -12,6 +12,7 @@
 //   --video                      : sinh video nháp (Veo/fal theo kinh thánh) qua hàng đợi tối đa --song-song=2 clip, tự đợi hạn mức, in link + tiền.
 //   --giong-dan=<model>|<voice>  : (kèm --giong) đổi giọng LỜI DẪN của cả phim, vd fal-ai/elevenlabs/tts/eleven-v3|Jessica
 //   --giong                      : sinh giọng cho dòng thoại CHƯA có giọng của các shot (--giong-lai: cả dòng đã có), đợi file, in link.
+//   --animatic                   : (0đ) MP4 animatic từ khung storyboard (đầu → giữa → cuối) + giọng / SFX / nhạc / phụ đề — duyệt nhịp TRƯỚC khi sinh video
 //   --xuat                       : (0đ) dựng MP4 CHỈ các shot này (chữ màn kiểu phim, logo, giọng, nhạc) để xem thử — không ghi vào danh sách bản xuất của tập.
 //   THỨ TỰ: --keyframe → (anh xem) → --duyet → --giong → --video. Giọng TRƯỚC video: có file giọng thì Veo sinh clip câm (chỉ cử miệng),
 //   không có thì Veo tự đọc thoại — đọc lơ lớ và dễ in phụ đề giả (thử 09/10/2026 tốn $0,40 cho 2 clip hỏng).
@@ -34,6 +35,7 @@ import { chuoiVideo } from '../src/lib/xuong-video/cong-ai';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
 import { chonKeyframe } from '../src/lib/xuong-video/tu-sua-clip';
 import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
+import { clipAnimatic } from '../src/lib/xuong-video/animatic-mp4';
 import { mapNhanVat, mapTap } from '../src/lib/xuong-video/doc-db';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
@@ -73,7 +75,7 @@ if (arg('xem')) {
   }
 process.exit(0);
 }
-if (!arg('keyframe') && !arg('keyframe-ket') && !arg('ghep-nen') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
+if (!arg('keyframe') && !arg('keyframe-ket') && !arg('ghep-nen') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !arg('animatic') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
@@ -195,6 +197,18 @@ if (arg('giong')) {
   // Giọng xong là KHỚP GIÂY PHÁT theo giọng luôn (hau-ky.ts) — trước đây làm tay, quên là giọng đè nhau / bị tăng tốc.
   const kg = await khopGiongTap(db, tapId, 'script sinh-shot');
   console.log(kg.ok ? `  ⏱ khớp giây theo giọng: ${kg.data.doi} shot đổi · tổng ${kg.data.tong}s` : `  ✗ khớp giọng: ${kg.loi}`);
+}
+// --animatic (0đ): dựng MP4 từ khung storyboard (đầu → giữa → cuối) qua chính bộ dựng phim — duyệt nhịp + đáp lời + tiếng trước khi sinh video
+if (arg('animatic')) {
+  const tap = mapTap(((await q(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as Row[])[0]!);
+  const phim = (await q(sql`SELECT p.loai FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${tapId}`))[0]!;
+  const nhanVat = (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id} ORDER BY id`)).map(mapNhanVat);
+  const chon = new Set(bcs.map((b) => b.canh.id)); const thuMuc = `/tmp/animatic-${tapId}`;
+  const canhTap = await Promise.all((await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)).map(mapCanh).map(async (c) => {
+    if (!chon.has(c.id)) return c; const u = await clipAnimatic(c, thuMuc).catch((e: unknown) => { console.log(`  ! #${c.thu_tu}: ${e instanceof Error ? e.message : e}`); return null; });
+    return u ? { ...c, video_url: u, video_cuoi_url: null, ky_thuat: { ...(c.ky_thuat ?? {}), vao_s: 0, toc_do: undefined } } : c; }));
+  const r = await chayXuat({ loai: String(phim.loai) as never, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: canhTap as never, nhanVat, tap, qc: kt.qc, nhanh: null, chiThuTu: bcs.map((b) => b.canh.thu_tu), boQuaSoi: true, phuDe: kt.phu_de });
+  console.log(r.ok ? `  ✓ ANIMATIC ${r.giay}s → ${r.url}${r.canhThieu.length ? ` · thiếu ${r.canhThieu.join(', ')}` : ''}` : `  ✗ ${r.loi}`);
 }
 if (arg('xuat')) {
   const tap = mapTap(((await q(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as Row[])[0]!);

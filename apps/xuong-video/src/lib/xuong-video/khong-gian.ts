@@ -128,7 +128,7 @@ export function canhBao2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
           const ca = BAC_CO[a.ky_thuat?.co_canh ?? ''], cb = BAC_CO[co];
           if (lech < 30 && ca != null && cb != null && Math.abs(ca - cb) < 2) them(c.id, `luật 30°: gần như cùng góc máy với #${a.thu_tu} (chỉ xoay ${Math.round(lech)}°) và cỡ cảnh gần nhau (${a.ky_thuat?.co_canh} → ${co}) — cắt sẽ giật như nhảy hình — xoay máy ít nhất 30° quanh ${sb}, hoặc đổi cỡ cảnh hai bậc`); } } }
     // khoảng nhìn: nhìn sang phía nào thì trước mặt phải còn chỗ
-    if (!['pov', 'insert'].includes(co)) for (const n of nguoiKhung(kg, c, 'dau') ?? []) { const h = nhinCan(kg, c, n); const x = viTri(kg, c, n); if (h == null || x == null || d.vao?.[n]) continue;
+    if (!['pov', 'insert'].includes(co)) for (const n of nguoiKhung(kg, c, 'dau') ?? []) { const h = nhinCan(kg, c, n); const x = viTri(kg, c, n); if (h == null || x == null || d.vao?.[n] || thayMat(kg, c, n) !== true) continue;   // khoảng nhìn chỉ có nghĩa khi thấy mặt
       if (h > 0 && x > 0.25) them(c.id, `khoảng nhìn: ${n} nhìn sang phải mà đứng lệch phải màn — trước mặt không còn chỗ — dời máy cho ${n} về phần ba bên trái khung`);
       if (h < 0 && x < -0.25) them(c.id, `khoảng nhìn: ${n} nhìn sang trái mà đứng lệch trái màn — trước mặt không còn chỗ — dời máy cho ${n} về phần ba bên phải khung`); }
     // ống kính hợp cỡ cảnh: cận mặt góc rộng làm méo mặt, toàn cảnh tele làm dẹt không gian

@@ -54,15 +54,15 @@ console.log('khong-gian.test: ok');
   const vuot = diemMurchTap(canh.map((c) => (c.thu_tu === 5 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, may: 'sau' } } } : c)) as never, NV, [], { kg: { [du.phan_doan]: kg2 } });
   assert.ok(vuot[105]!.phan.hai_chieu < 1, JSON.stringify(vuot[105]!.ly_do)); }
 console.log('khong-gian.test: ok (Murch)');
-// CẢNH BÁO 2D: dữ liệu thật sạch; phá thử luật 30° (#13 cận Hạ dùng lại đúng máy #12 với chủ thể Hạ), ống kính (cận bằng máy toàn 26 mm), khoảng nhìn
+// CẢNH BÁO 2D (khoảng nhìn chỉ xét người THẤY MẶT): dữ liệu thật sạch; phá thử luật 30° (#13 cận Hạ dùng lại đúng máy #12 với chủ thể Hạ), ống kính (cận bằng máy toàn 26 mm), khoảng nhìn
 { const { canhBao2d } = await import('./khong-gian');
   assert.deepStrictEqual(canhBao2d(kg, ds), {});
   const d30 = ds.map((c) => (c.thu_tu === 3 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, may: 'can_ha', khung: ['Lâm Hạ'] }, sd_ket: undefined, co_canh: 'mcu' } } : c));
   assert.ok((canhBao2d(kg, d30)[103] ?? []).some((x) => x.startsWith('luật 30°')), JSON.stringify(canhBao2d(kg, d30)[103]));
   const dOng = ds.map((c) => (c.thu_tu === 2 ? { ...c, ky_thuat: { ...c.ky_thuat, co_canh: 'cu', sd: { ...c.ky_thuat!.sd!, may: 'toan' } } } : c));
   assert.ok((canhBao2d(kg, dOng)[102] ?? []).some((x) => x.startsWith('ống kính')));
-  const kgN = { ...kg, so_do: { ...kg.so_do, moc: { ...kg.so_do.moc, vi_le: [2.6, 5.9] as [number, number] } } };
-  const dN = ds.map((c) => (c.thu_tu === 4 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, o: { ...c.ky_thuat!.sd!.o, Vivian: 'vi_le' }, nhin: { Vivian: 'loi_vao' } } } } : c));
+  const kgN = { ...kg, so_do: { ...kg.so_do, moc: { ...kg.so_do.moc, vi_le: [2.6, 5.9] as [number, number], cua_so: [2.4, 4.6] as [number, number] } } };
+  const dN = ds.map((c) => (c.thu_tu === 4 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, o: { ...c.ky_thuat!.sd!.o, Vivian: 'vi_le' }, nhin: { Vivian: 'cua_so' } } } } : c));
   assert.ok((canhBao2d(kgN, dN)[104] ?? []).some((x) => x.startsWith('khoảng nhìn')), JSON.stringify(canhBao2d(kgN, dN)[104])); }
 console.log('khong-gian.test: ok (cảnh báo)');
 // CÂU HỎI KIỂM KHUNG 2D: #4 hỏi có Hạ + Vivian, Vivian thấy mặt nhìn TRÁI, Hạ quay lưng (vai tiền cảnh); #16 hỏi KHÔNG thấy Hạ; #2 cuối hỏi dáng không cúi
@@ -115,8 +115,8 @@ console.log('khong-gian.test: ok (sổ liền mạch)');
   assert.strictEqual(loiDoDang('Vivian', { phai: 'giua' }, { tay: { phai: 'thap' } }).length, 1, 'cần vươn tới mà buông thõng');
   assert.deepStrictEqual(loiDoDang('Vivian', { phai: 'thap' }, { tay: { phai: null } }), [], 'không thấy cổ tay → không phán'); }
 console.log('khong-gian.test: ok (dáng đo được)');
-// CẬN MẤT MẶT: #13 cận Hạ mà khai Hạ nhìn Thần (sau lưng, cửa thang) → nửa lưng cả shot → lỗi; khai nhìn Vivian (thật) → không
-{ const d13 = ds.map((c) => (c.thu_tu === 13 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, nhin: { 'Lâm Hạ': 'Lục Thần' } } } } : c));
+// CẬN MẤT MẶT: #13 cận Hạ bằng máy phía phải mà nhìn Thần → nửa lưng cả shot → lỗi; dữ liệu thật (máy trái) → không
+{ const d13 = ds.map((c) => (c.thu_tu === 13 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, may: 'can_ha', nhin: { 'Lâm Hạ': 'Lục Thần' } } } } : c));   // máy cũ phía phải: nhìn Thần = nửa lưng; máy can_ha_trai (thật) thì thấy mặt
   assert.ok((loiMach2d(kg, d13)[113] ?? []).some((x) => x.includes('nửa lưng cả shot')), JSON.stringify(loiMach2d(kg, d13)[113]));
   assert.ok(!(loiMach2d(kg, ds)[113] ?? []).length); assert.ok(!(loiMach2d(kg, ds)[102] ?? []).length, '#2 nửa lưng đầu nhưng cuối lộ mặt → không lỗi'); }
 console.log('khong-gian.test: ok (cận mất mặt)');

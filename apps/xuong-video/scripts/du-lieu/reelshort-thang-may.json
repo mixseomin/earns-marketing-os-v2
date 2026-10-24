@@ -31,8 +31,8 @@
         5.1
       ],
       "than_ra": [
-        -0.3,
-        6.6
+        -1.2,
+        6.5
       ]
     },
     "may": {
@@ -97,8 +97,8 @@
           4.8
         ],
         "nhin": [
-          -0.3,
-          6.6
+          -1.2,
+          6.5
         ],
         "ong": 70
       },
@@ -112,6 +112,17 @@
           7
         ],
         "ong": 40
+      },
+      "can_ha_trai": {
+        "dat": [
+          -2.0,
+          4.6
+        ],
+        "nhin": [
+          -0.5,
+          6.0
+        ],
+        "ong": 70
       }
     },
     "ten": {
@@ -420,9 +431,9 @@
         "Sơ mi trắng dính cà phê"
       ],
       "hd": "Hai người cùng khung (qua vai Hạ): Vivian giật mạnh, dây thẻ đứt, Hạ chúi về trước",
-      "anh": "Medium two-shot over Hạ's shoulder: Hạ's dark hair and white blouse shoulder in the foreground at frame edge; facing camera, Vivian pulls her fist back hard with the white badge in it, the dark blue lanyard snapped, as Hạ is jerked half a step forward.",
-      "vid": "Vivian yanks her fist back; the lanyard snaps and Hạ is jerked forward. Static camera.",
-      "mo": "Vivian yanks the badge back hard",
+      "anh": "Medium two-shot over Hạ's shoulder: Hạ's dark hair and white blouse shoulder in the foreground at frame edge; facing camera and standing close, at arm's length right in front of Hạ, Vivian grips the white badge on Hạ's chest and starts to yank it back toward herself, the dark blue lanyard pulled taut.",
+      "vid": "Vivian, right in front of Hạ, yanks the badge back hard toward herself; the lanyard pulls taut and snaps; Hạ is jerked half a step forward, still hugging the box; Vivian's fist ends pulled back against her own chest, the snapped lanyard ends swinging from it. Static camera.",
+      "mo": "Vivian, standing close in front of Hạ, grips the badge on Hạ's chest and starts to yank it back",
       "ket": "the snapped lanyard ends swing in Vivian's fist",
       "noi": "phan_ung",
       "sd": {
@@ -465,9 +476,9 @@
       ],
       "hd": "Cận Hạ: sững sờ, nhìn Vivian",
       "anh": "Close-up of Hạ, stunned, mouth slightly open, her eyes {Lâm Hạ→Vivian} on Vivian just off frame; no lanyard on her neck anymore.",
-      "vid": "Hạ stares {Lâm Hạ→Vivian} at Vivian in shock. Static camera.",
+      "vid": "Hạ stares {Lâm Hạ→Vivian} at Vivian in shock; then Vivian's fist, clenching the snapped lanyard with the white badge dangling below it, rises into the frame from screen right and Hạ's eyes drop to it. Static camera.",
       "mo": "Hạ has just been jerked forward",
-      "ket": "Hạ's eyes drop to Vivian's fist",
+      "ket": "Vivian's fist, clenching the snapped lanyard with the badge dangling, has risen into frame at screen right; Hạ's eyes drop to it",
       "noi": "nhin",
       "sd": {
         "may": "can_ha",
@@ -501,13 +512,13 @@
         "Đầm đỏ đô công sở"
       ],
       "hd": "Cận chèn: Vivian cầm dây thẻ đứt, tấm thẻ lủng lẳng bên dưới",
-      "anh": "Insert close-up: Vivian's hand grips the two snapped ends of the dark blue lanyard, the white staff badge dangling below, black marble and steel elevator door behind.",
-      "vid": "The white card sways below Vivian's hand, which grips the two snapped ends of the lanyard. Static camera.",
+      "anh": "Insert close-up from Hạ's side: Vivian's fist reaches in from screen right gripping the two snapped ends of the dark blue lanyard, the white staff badge dangling below, black marble and steel elevator door behind.",
+      "vid": "Vivian's fist, reaching in from screen right, grips the two snapped ends of the lanyard; the white card sways below it. Static camera.",
       "mo": "the badge dangles from the snapped lanyard in Vivian's hand",
       "ket": "the fist begins to rise up out of frame",
       "noi": "dong_tac",
       "sd": {
-        "may": "can_vi",
+        "may": "can_ha",
         "o": {
           "Lâm Hạ": "ha",
           "Vivian": "vi"
@@ -660,14 +671,14 @@
       "bt": [
         "Sơ mi trắng dính cà phê"
       ],
-      "hd": "Cận Hạ nén lại, mím môi, cụp mắt",
-      "anh": "Close-up of Hạ pressing her lips together, holding back, still hugging the cardboard box at the bottom of frame, black marble lobby behind.",
-      "vid": "Hạ presses her lips together and lowers her eyes. Static camera.",
-      "mo": "Hạ has just heard his words and presses her lips together",
+      "hd": "Cận Hạ: nhìn Lục Thần, nghe câu anh ta nói, mím môi nén lại, rồi cụp mắt",
+      "anh": "Close-up of Hạ from her front-left: her eyes {Lâm Hạ→Lục Thần} on Lục Thần just off frame, taking in his cold words, lips pressed together, still hugging the cardboard box at the bottom of frame; black marble lobby behind.",
+      "vid": "Hạ keeps her eyes {Lâm Hạ→Lục Thần} on Lục Thần as his words land, presses her lips together, then lowers her eyes and stays silent. Static camera.",
+      "mo": "Hạ looks {Lâm Hạ→Lục Thần} at Lục Thần as his words land, lips pressed together",
       "ket": "Hạ lowers her eyes and stays silent",
       "noi": "phan_ung",
       "sd": {
-        "may": "can_ha",
+        "may": "can_ha_trai",
         "o": {
           "Lâm Hạ": "ha",
           "Vivian": "vi",
@@ -677,7 +688,7 @@
           "Lâm Hạ"
         ],
         "nhin": {
-          "Lâm Hạ": "Vivian"
+          "Lâm Hạ": "Lục Thần"
         }
       },
       "vao": 0,
@@ -685,7 +696,7 @@
         "dau",
         "ket"
       ],
-      "mo_vi": "Cận Hạ: mím môi, nén lại, vẫn ôm thùng",
+      "mo_vi": "Cận Hạ: nhìn sang trái về phía Lục Thần, nghe câu anh ta nói, mím môi",
       "ket_vi": "Hạ cụp mắt, im lặng"
     },
     {

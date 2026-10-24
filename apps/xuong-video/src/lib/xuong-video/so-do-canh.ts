@@ -43,7 +43,8 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
   if (dung.length) out.push(`Placement on screen: ${dung.join(', ')}`);
   // người CÓ chỗ trong cảnh nhưng NGOÀI khung: nói thẳng là không thấy — không nói thì model tự thêm vào khi câu diễn nhắc tên (phim #353 #16: "mắt nhìn
   // theo Hạ" → model vẽ Hạ đứng cạnh Vivian dù #15 Hạ đã quay đi)
-  const ngoai = nguoi.filter((n) => m.o[n] != null && m.khung && !m.khung.includes(n));
+  // cận chèn (khung rỗng): tay / đồ của người vẫn trong khung — không ghi OFF SCREEN (câu ảnh của cận chèn tự nói phần nào thấy)
+  const ngoai = m.khung?.length ? nguoi.filter((n) => m.o[n] != null && !m.khung!.includes(n)) : [];
   if (ngoai.length) out.push(`${ngoai.join(' and ')} ${ngoai.length > 1 ? 'are' : 'is'} OFF SCREEN — not visible anywhere in this frame`);
   const ten = (b: string) => (nguoi.includes(b) ? b : tenEn(b) === b ? s.ten?.[b] ?? b : tenEn(b));
   for (const [a, b] of Object.entries(m.nhin ?? {})) {

@@ -3,13 +3,15 @@
 // giao diện, CHỈ chạy trên iMac — luật anh 23/10/2026, gói thuê bao không qua API) mỗi 5 phút `--lay` một việc, `--nhan` báo đã nhận, sửa, `--bao` trả
 // lời NGAY DƯỚI tin cảnh báo. Trần: TRAN_NGAY lượt / ngày giờ VN (dùng bình thường của một cá nhân — luật Anthropic, đã đọc 23/10/2026), việc đang làm
 // quá TREO_PHUT coi như treo. Chỉ việc máy móc (làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt) — khoá 2proxy / tài sản hết hạn là chuyện tiền, anh quyết.
+// MÁY ĐĂNG (anh 25/10/2026 "cho Mạnh quản lý luôn"): Phòng Nội dung (cham-dang.mjs › soiMayDang) xếp kênh LỠ LƯỢT THẬT thành việc `dang:lo|<máy>|<nền>`;
+// tài khoản bị nền tảng chặn (canh|) và kho cạn (kho| — phải làm bài, có thể tốn tiền) vẫn để anh quyết, không vào hàng.
 //   node worker/tho-may-viec.mjs --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> (chữ ở stdin) | --xem | --tu-kiem
 import fs from 'node:fs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const TEP = () => `${DATA()}/tho-may.json`;
 export const TRAN_NGAY = 6, TREO_PHUT = 45;
-export const LOAI_SUA = /^(lan|box3|vps):/;   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs)
+export const LOAI_SUA = /^(lan|box3|vps|dang):/;   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs)
 const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0, 10);
 
 /** Thuần — thêm việc cho các cảnh báo mới; bỏ khoá không thuộc thợ máy, bỏ khoá đang chờ / đang làm (không xếp đôi). */
@@ -49,8 +51,9 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
   const a = process.argv.slice(2), id = Number(a[1]);
   if (a[0] === '--tu-kiem') {
     const assert = (await import('node:assert')).default, t0 = Date.parse('2026-10-24T03:00:00Z');
-    let { st, them } = themViec({}, [{ khoa: 'lan:doi_thu', chu: 'đứng' }, { khoa: 'het:08wY', chu: 'khoá hết hạn' }, { khoa: 'taisan:17', chu: 'VPS' }, { khoa: 'vps:may-cao-vn:tai', chu: 'tải' }], { luc: t0, msg: 9 });
-    assert.strictEqual(them, 2, 'chỉ nhận việc máy móc (lan / vps), bỏ khoá 2proxy + tài sản');
+    let { st, them } = themViec({}, [{ khoa: 'lan:doi_thu', chu: 'đứng' }, { khoa: 'het:08wY', chu: 'khoá hết hạn' }, { khoa: 'taisan:17', chu: 'VPS' }, { khoa: 'vps:may-cao-vn:tai', chu: 'tải' }, { khoa: 'canh|r|dailymotion', chu: 'bị chặn' }], { luc: t0, msg: 9 });
+    assert.strictEqual(them, 2, 'chỉ nhận việc máy móc (lan / vps), bỏ khoá 2proxy + tài sản + cảnh báo tài khoản');
+    assert.strictEqual(themViec({}, [{ khoa: 'dang:lo|m|instagram', chu: 'lỡ' }]).them, 1, 'nhận lỡ lượt máy đăng');
     assert.strictEqual(themViec(st, [{ khoa: 'lan:doi_thu', chu: 'lại' }], { luc: t0 }).them, 0, 'khoá đang chờ: không xếp đôi');
     let r = layViec(st, t0); assert.strictEqual(r.viec.khoa, 'lan:doi_thu', 'lấy việc cũ nhất'); st = r.st;
     assert.strictEqual(layViec(st, t0 + 6e4).viec, null, 'đang có việc: không lấy thêm');

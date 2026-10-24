@@ -136,9 +136,12 @@ export async function nhipChamDang() {
     // báo Telegram chỉ khi có bài SỬA LẠI (xuất lại cả loạt đều DUYỆT thì mỗi phút một tin "toàn DUYỆT" chỉ là tiếng ồn — đo 18/10/2026); số vẫn vào nhật ký nhịp
     const vd = await soiMayDang(sql);
     if (kq.sua || vd.length) {
-      const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao } = await tgNoiDung();
+      const { tgNoiDung } = await import('./kiem-bai.mjs'); const { bao, st } = await tgNoiDung();
       if (kq.sua) await bao(tinChamDang(kq));
-      if (vd.length) await bao(`📣 <b>Ngọc [Nội dung]</b> · máy đăng có ${vd.length} vấn đề mới:\n${vd.map((x) => `• ${esc(x.chu)}`).join('\n')}`);
+      if (vd.length) { const lo = vd.filter((x) => x.khoa.startsWith('lo|'));
+        const j = await bao(`📣 <b>Ngọc [Nội dung]</b> · máy đăng có ${vd.length} vấn đề mới:\n${vd.map((x) => `• ${esc(x.chu)}`).join('\n')}${lo.length ? `\n<i>🔧 Mạnh (thợ máy) nhận ${lo.length} việc lỡ lượt — trả lời ngay dưới tin này.</i>` : ''}`);
+        // MẠNH QUẢN LÝ MÁY ĐĂNG (anh 25/10/2026): lỡ lượt thật → hàng thợ máy (iMac); hỏng hàng không ảnh hưởng phần báo
+        if (lo.length) try { (await import('./tho-may-viec.mjs')).themTuCanhBao(lo.map((x) => ({ khoa: `dang:${x.khoa}`, chu: x.chu })), { topic: st.topic, msg: j?.result?.message_id ?? null }); } catch (e) { console.error('✗ hàng thợ máy:', e.message); } }
     }
     return [kq.cham ? `chấm ${kq.cham} bài đăng (${kq.duyet} duyệt, ${kq.sua} sửa lại)` : 'không có bài đăng mới', vd.length ? `${vd.length} vấn đề máy đăng mới` : ''].filter(Boolean).join(' · ');
   } finally { await sql.end({ timeout: 2 }).catch(() => {}); }

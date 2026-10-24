@@ -76,7 +76,7 @@ export const VIEC_NHIP = {
   ],
   'sua-may': [
     { ma: 'sua-may', ten: 'Spy - tự sửa máy cào (Claude trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
-      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 5 phút: hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp cảnh báo máy móc: làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt) có việc → báo nhận dưới tin cảnh báo, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) quyền hẹp trong repo spy-on-tc + ssh box3 / VPS máy cào: đo, tìm gốc, sửa, kiểm, commit, deploy — tối đa 30 phút, rồi trả lời dưới tin cảnh báo (đã sửa / không sửa được / cần anh). Trần 6 lượt / ngày giờ VN. Không nhận khoá 2proxy / tài sản (chuyện tiền).' },
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 5 phút: hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp cảnh báo máy móc: làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt; Phòng Nội dung xếp kênh máy đăng lỡ lượt thật — từ 25/10/2026) có việc → báo nhận dưới tin cảnh báo, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) quyền hẹp trong repo spy-on-tc + ssh box3 / VPS máy cào: đo, tìm gốc, sửa, kiểm, commit, deploy — tối đa 30 phút, rồi trả lời dưới tin cảnh báo (đã sửa / không sửa được / cần anh). Trần 6 lượt / ngày giờ VN. Không nhận khoá 2proxy / tài sản (chuyện tiền).' },
   ],
   'sua-bai': [
     { ma: 'sua-bai', ten: 'Sửa bài Phòng Nội dung trả về', lich: () => 'mỗi 5 phút · iMac', khop: null,

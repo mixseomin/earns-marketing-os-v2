@@ -79,8 +79,10 @@ export function vanDeMay(ds, homQua) {
   for (const x of ds) { const k = `${x.ma}|${hoNen(x.nen)}`; if (x.cuoi && (!cuoiHo.get(k) || x.cuoi > cuoiHo.get(k))) cuoiHo.set(k, x.cuoi); }
   for (const x of ds) {
     const cuoi = cuoiHo.get(`${x.ma}|${hoNen(x.nen)}`) ?? null;
-    if (x.canh) ra.push({ khoa: `canh|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: máy DỪNG đăng vì tài khoản có cảnh báo chưa xử — ${x.canh}` });
-    else if (!cuoi || cuoi < homQua) ra.push({ khoa: `lo|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: lỡ lượt — bài cuối ${x.cuoi ?? 'chưa có bài nào'}${cuoi && cuoi !== x.cuoi ? ` (cả họ nền: ${cuoi})` : ''}` });
+    // chỉ khi thật sự lỡ (cả họ hôm qua không có bài) mới xét lý do: có cảnh báo tài khoản → dừng đúng luật; vẫn đăng đều thì cảnh báo cũ không phải chuyện của máy đăng
+    if (cuoi && cuoi >= homQua) { /* có bài hôm qua: không lỡ */ }
+    else if (x.canh) ra.push({ khoa: `canh|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: máy DỪNG đăng vì tài khoản có cảnh báo chưa xử — ${x.canh}` });
+    else ra.push({ khoa: `lo|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: lỡ lượt — bài cuối ${x.cuoi ?? 'chưa có bài nào'}${cuoi && cuoi !== x.cuoi ? ` (cả họ nền: ${cuoi})` : ''}` });
     const ngay = Math.floor(x.con / Math.max(1, x.tran));
     if (ngay < KHO_TOI_THIEU) ra.push({ khoa: `kho|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: kho còn ${x.con} bài DUYỆT chưa đăng (~${ngay} ngày, ngưỡng ${KHO_TOI_THIEU})` });
   }
@@ -160,6 +162,7 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   // cảnh báo tài khoản chưa xử: máy dừng đúng luật → báo lý do dừng, không báo lỡ lượt (dailymotion hotelscamalerts 403 từ 18/10)
   const c = vanDeMay([{ ma: 'r', ten: 'R', nen: 'dailymotion', tran: 1, cuoi: null, con: 9, canh: 'API trả 403' }], '2026-10-17');
   t.deepEqual(c.map((x) => x.khoa), ['canh|r|dailymotion'], 'có cảnh báo = báo dừng, không báo lỡ'); t.ok(c[0].chu.includes('403'));
+  t.deepEqual(vanDeMay([{ ma: 'r', ten: 'R', nen: 'youtube', tran: 1, cuoi: '2026-10-17', con: 9, canh: 'cảnh báo cũ' }], '2026-10-17'), [], 'có cảnh báo nhưng vẫn đăng đều = im (youtube ratesbyroom 24/10)');
   t.equal(hoNen('fb_link'), 'fb'); t.equal(hoNen('facebook'), 'fb'); t.equal(hoNen('x_anh'), 'x'); t.equal(hoNen('x'), 'x'); t.equal(hoNen('youtube'), 'youtube');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }

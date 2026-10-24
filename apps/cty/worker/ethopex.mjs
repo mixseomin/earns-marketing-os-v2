@@ -273,6 +273,12 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   await gomTin(tg); let nut = 0;
   for (const x of moHop('ethopex')) if ((await xuChuBoPhim(tg, x)) || (await xuNut(tg, x))) nut++;
   const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'])).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
+  // BÁO LÊN etp.on.tc (anh 24/10/2026 "báo trên etp nữa"): ghi đè etp.bao bằng đúng các nhóm luật của nhịp này — trang etp tab Luật đọc
+  try {
+    const rows = NHOM.flatMap(([k]) => (kq[k] || []).filter((m) => Number(m.id) > 0).map((m) => ({ nhom: k, camp_id: Number(m.id), chu: String(m.chu || '') })));
+    const j = JSON.stringify(rows).replace(/\$B\$/g, '');
+    await chayPsql(`begin; delete from etp.bao; insert into etp.bao (nhom, camp_id, chu) select nhom, camp_id, chu from jsonb_to_recordset($B$${j}$B$::jsonb) as x(nhom text, camp_id int, chu text) on conflict do nothing; commit;`);
+  } catch (e) { console.error('etp.bao:', e.message); }
   const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   const st = docJ(TEP(), {}); const da = st.ngay === homNay ? new Set(st.da) : new Set();
   // camp ĐÃ ĐÓNG báo một lần mỗi lần dừng (không theo ngày): nhớ tập đang dừng; camp chạy lại thì rời tập, dừng lần sau báo lại

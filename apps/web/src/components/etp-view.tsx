@@ -105,6 +105,53 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
   );
 }
 
+// MÁY LUẬT ĐANG BÁO (anh 24/10/2026 "báo trên etp nữa"): cùng các nhóm gửi Telegram (etp.bao, ghi mỗi nhịp) + bid ROAS đủ / sắp đủ.
+// Nhóm = biểu tượng + tên ngắn, luật đầy đủ ở hover (YDNI: dấu hiệu thay chữ).
+const NHOM_BAO: [string, string, string, string][] = [
+  ['tu_choi', '⛔', 'Meta từ chối', 'Ad bị Meta từ chối — máy tự thay creative sạch cùng phim rồi bật lại'],
+  ['tat', '⏹', 'Cần tắt', '≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50% — chờ anh duyệt'],
+  ['ha', '↘', 'Giảm bậc', 'Sáng: hôm qua ROI < 0% và 3 ngày < 20% · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30%, $20 vừa tăng mà hôm nay âm · luôn từng bậc $20 → $15 → $10; hồi lại (ROI từ ngày giảm ≥ 50%) thì sau 6 giờ được tăng lại'],
+  ['tang', '↑', 'Tăng bậc', 'ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, spending > 50%, hôm nay không âm — máy tự tăng tới $20'],
+  ['dau_phien', '⇑', 'Lãi đầu phiên', 'ROI hôm nay > 50% → $2 / $3'],
+  ['tang30', '⇈', 'Lên $30', 'Camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% — chờ anh duyệt'],
+  ['giam', '↓', 'ROI tụt', 'Phim down trend / creative bão hoà — xem giảm hoặc tắt'],
+  ['dong', '⏸', 'Đã đóng', 'Ethopex dừng camp (chạm rule hoặc tắt tay)'],
+  ['loi_may', '⚙️', 'Lỗi máy', 'Đọc API Ethopex lỗi sau 3 lần thử — nhịp sau tự đọc lại'],
+];
+function BaoLuat({ du }: { du: DuLieuEtp }) {
+  const the = { border: '1px solid var(--line)', borderRadius: 10, padding: 12, background: 'var(--bg-1, transparent)' } as const;
+  const theo = new Map<string, DuLieuEtp['bao']>(); for (const b of du.bao) { const a = theo.get(b.nhom) ?? []; a.push(b); theo.set(b.nhom, a); }
+  const pct = (x: { chi: number; thu: number }) => (x.chi > 0 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : 0);
+  const luc = du.bao[0]?.luc;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12, marginBottom: 16 }}>
+      <div style={the}>
+        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title={luc ? `nhịp luật lúc ${vn(luc)}` : ''}>Máy luật đang báo</h3>
+        {NHOM_BAO.filter(([k]) => theo.has(k)).map(([k, ic, ten, luat]) => (
+          <details key={k} style={{ borderTop: '1px solid var(--line)', padding: '6px 0' }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13 }} title={luat}><span style={{ display: 'inline-block', width: 22 }}>{ic}</span>{ten} <b>{theo.get(k)!.length}</b></summary>
+            {theo.get(k)!.map((b) => <div key={b.camp_id} style={{ fontSize: 11, padding: '3px 0 3px 22px', color: 'var(--fg-2)' }}>{b.chu.replace(/^#\d+:\s*/, `#${b.camp_id} `)}</div>)}
+          </details>))}
+        {!du.bao.length ? <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>—</div> : null}
+      </div>
+      <div style={the}>
+        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Support 24/10/2026: chi ≥ ~$100 mà ROI > 50% ổn định 2–3 ngày → áp dụng bid ROAS. Thanh = đã chi / $100; ô = ROI từng ngày trọn">★ Bid ROAS</h3>
+        {du.roas.map((r) => {
+          const du100 = r.chi >= 100;
+          return (
+            <div key={r.camp_id} style={{ display: 'grid', gridTemplateColumns: '1fr 90px auto', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ten ?? ''}>{du100 ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 40)}</span>
+              <span title={`đã chi $${r.chi.toFixed(2)} / $100 · ROI ${pct(r)}% · $${r.ngan_sach}/ngày`} style={{ height: 8, borderRadius: 4, background: 'var(--line)', position: 'relative', overflow: 'hidden' }}>
+                <span style={{ position: 'absolute', inset: 0, width: `${Math.min(100, r.chi)}%`, background: du100 ? '#22c55e' : '#9ca3af' }} /></span>
+              <span style={{ display: 'flex', gap: 3 }}>{r.ngay.map((x) => <span key={x.d} title={`${x.d.slice(8, 10)}/${x.d.slice(5, 7)} · chi $${x.chi.toFixed(2)}`} style={{ fontSize: 10, padding: '0 4px', borderRadius: 4, background: 'rgba(34,197,94,.15)', color: '#4ade80', fontVariantNumeric: 'tabular-nums' }}>{pct(x)}%</span>)}</span>
+            </div>);
+        })}
+        {!du.roas.length ? <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>—</div> : null}
+      </div>
+    </div>
+  );
+}
+
 export function EtpView({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('tong');
@@ -231,6 +278,8 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
         <DataTable rows={du.phims} columns={cotPh} groups={NHOM} getRowKey={(p) => String(p.content_id)} persistKey="etp-phim" minWidth={1200} pageSize={100}
           searchText={(p) => `${p.content_id} ${p.ten ?? ''} ${tl(p.the_loai)}`} searchPlaceholder="Tìm phim, thể loại…" />
       ) : (
+        <>
+        <BaoLuat du={du} />
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(320px, 2fr)', gap: 16 }}>
           <div>
             <h3 style={{ fontSize: 14 }}>Rào chắn (etp.cau_hinh)</h3>
@@ -248,6 +297,7 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
               searchText={(r) => `${r.camp_id ?? ''} ${r.viec} ${r.luat ?? ''}`} searchPlaceholder="Tìm camp, việc, luật…" />
           </div>
         </div>
+        </>
       )}
       {xem ? (
         <div style={{ position: 'fixed', zIndex: 50, pointerEvents: 'none', left: Math.min(xem.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 290), top: Math.max(8, Math.min(xem.y - 240, (typeof window !== 'undefined' ? window.innerHeight : 800) - 500)), width: 270, height: 480, borderRadius: 8, overflow: 'hidden', background: '#000', boxShadow: '0 8px 30px rgba(0,0,0,.5)' }}>

@@ -34,11 +34,13 @@ def ghep_mo(tm):
             return o
         vao = [chuan(f) for f in vao]
     # tệp ghép mới hơn mọi tập → dùng lại (box3 23/10/2026: chữ đã đọc sẵn <ghep-cuoi>.chu.json gắn với tệp này; ghép lại = đổi giờ tệp = bỏ bản đọc)
-    if not (os.path.exists(ra) and os.path.getmtime(ra) >= max(os.path.getmtime(f) for f in vao)):
-        open(ds, "w").write("".join(f"file '{f}'\n" for f in vao))
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", ds, "-c", "copy", ra], check=True, timeout=900)
     moc, t = [], 0.0
     for x in taps: t += DL.giay(os.path.join(tm, x)); moc.append(round(t, 1))
+    # dùng lại chỉ khi mới hơn mọi tập VÀ dài đúng tổng các tập (24/10/2026: tập tải lại / bớt tập mà vẫn dùng tệp ghép cũ → "tệp ghép ≠ tổng các tập")
+    cu_dung = os.path.exists(ra) and os.path.getmtime(ra) >= max(os.path.getmtime(f) for f in vao) and abs(DL.giay(ra) - t) <= 3
+    if not cu_dung:
+        open(ds, "w").write("".join(f"file '{f}'\n" for f in vao))
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", ds, "-c", "copy", ra], check=True, timeout=900)
     if abs(DL.giay(ra) - t) > 3: raise ValueError(f"tệp ghép {DL.giay(ra):.1f}s ≠ tổng các tập {t:.1f}s")
     return ra, moc
 

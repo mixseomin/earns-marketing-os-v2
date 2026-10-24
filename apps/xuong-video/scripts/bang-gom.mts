@@ -212,7 +212,7 @@ if (tang === '2') process.exit(0);
 // Trạng thái đồ theo thời điểm khung (so-vat.ts › LucKhung: sự kiện của shot đã xảy ra ở khung cuối); bộ chấm chặn khung thiếu trạng thái đồ.
 type Luc = 'dau' | 'giua' | 'ket';
 const TEN_LUC: Record<Luc, string> = { dau: 'đầu', giua: 'giữa', ket: 'cuối' };
-type Khung = { c: Canh; luc: Luc; key: string; nhan: string; moTa: string; vatSo?: { ten: string; cach: string }[]; sd?: ManhSoDo };
+type Khung = { c: Canh; luc: Luc; key: string; nhan: string; moTa: string; vatSo?: { ten: string; cach: string }[]; sd?: ManhSoDo; /** ô NGỮ CẢNH (shot liền trước / sau khi chạy một đoạn): vẽ cùng bảng để nối cắt, không phóng, không ghi */ nguCanh?: string };
 const sdCua = (c: Canh, luc: Luc): ManhSoDo | undefined => { const m = bm?.shot[c.thu_tu - 1] as ({ sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo> } | undefined); if (!m?.sd) return undefined;
   return luc === 'ket' ? { ...m.sd, ...(m.sd_ket ?? {}), o: { ...m.sd.o, ...(m.sd_ket?.o ?? {}) } } : m.sd; };
 const khungCua = (c: Canh): Khung[] => { const kv = (c.ky_thuat?.khung_ve ?? ['dau']) as Luc[]; const co = CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'; const dd = c.dan_dung ?? {};
@@ -239,14 +239,24 @@ if (tang === 'khoi') {
   // 2. KHỐI — khối ĐẦU sinh trước, các khối sau SONG SONG cùng lấy bảng khối đầu làm tham chiếu (mặt, sảnh, đồ); thứ tự logic giữ bằng tờ phác + câu trạng
   // thái đồ của từng khối. Khối đã có trong mốc (chạy lại sau khi dừng) → dùng lại, không trả tiền lần hai.
   const cacKhoi: Khung[][] = []; for (let a = 0; a < tatCaKhung.length; a += khoi) cacKhoi.push(tatCaKhung.slice(a, a + khoi));
+  // CHẠY MỘT ĐOẠN: khối đầu kèm KHUNG CUỐI shot liền trước, khối cuối kèm KHUNG ĐẦU shot liền sau (ảnh thật của chúng làm tham chiếu) — khung mới khớp dáng /
+  // chỗ đứng / đồ với hai bên đường cắt; bảng ít ô (#10: 2 khung) model hay vẽ thừa ô, có ngữ cảnh thì đủ ô
+  if (motDoan && cacKhoi.length) {
+    const lien = async (so: number) => (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} AND thu_tu = ${so} AND phan_doan = ${ds[0]!.phan_doan}`)).map(mapCanh)[0];
+    const tr = await lien(tu - 1), sa = await lien(den + 1);
+    const nc = (k: Khung | undefined, url: string | null | undefined): Khung[] => (k && url ? [{ ...k, nhan: `${k.nhan} (ngữ cảnh)`, nguCanh: url, moTa: `CONTEXT PANEL — this is the neighbouring shot that is ALREADY FILMED: copy its reference image exactly (same pose, hands, gaze, objects). ${k.moTa}` }] : []);
+    if (tr) cacKhoi[0] = [...nc(khungCua(tr).at(-1), khungCua(tr).at(-1)?.luc === 'ket' ? tr.keyframe_ket : tr.keyframe_url), ...cacKhoi[0]!];
+    if (sa) cacKhoi[cacKhoi.length - 1] = [...cacKhoi.at(-1)!, ...nc(khungCua(sa)[0], sa.keyframe_url)];
+  }
   const t2 = (moc.t2 ??= {}) as Record<string, string>; moc.khoi ??= []; moc.khoiSo ??= [];
-  const xongKhoi = (j: number) => !!moc.khoi![j] && cacKhoi[j]!.every((k) => t2[k.key]);
+  const xongKhoi = (j: number) => !!moc.khoi![j] && cacKhoi[j]!.every((k) => k.nguCanh || t2[k.key]);
   const mauChu = Object.entries(bm.mau ?? {}).map(([n, c]) => `${c === '#f4f4f4' ? 'white' : c === '#141414' ? 'black' : 'dark red'} figure = ${n}`).join(', ');
   const sinhKhoi = async (nhom: Khung[], j: number, truoc: string | null) => {
     const cot2 = nhom.length > 1 ? 2 : 1; const hang2 = Math.ceil(nhom.length / cot2);
     const phacKhoi = (await luoiPhacKhung(nhom, cot2, `khoi-${nhom[0]!.key}`)).tron;
     const shotKhoi = [...new Map(nhom.map((k) => [k.c.id, k.c])).values()];
-    const refs = thamChieu(shotKhoi, truoc ? 6 : 7); const lech = truoc ? 3 : 2;
+    const ncAnh = nhom.flatMap((k, i) => (k.nguCanh ? [[`the real frame of PANEL ${i + 1} (context — copy it)`, k.nguCanh] as [string, string]] : []));
+    const refs = [...ncAnh, ...thamChieu(shotKhoi.filter((c) => nhom.some((k) => !k.nguCanh && k.c.id === c.id)), (truoc ? 6 : 7) - ncAnh.length)]; const lech = truoc ? 3 : 2;
     const prompt = [`A film storyboard sheet of EXACTLY ${nhom.length} separate panels (${cot2} columns × ${hang2} rows, read left to right, top to bottom), every panel a vertical 9:16 photorealistic live-action film still of equal size, separated by thin plain white gutters. Consecutive panels can be the FIRST, MIDDLE and LAST moments of the same shot: keep that shot's camera and framing identical between them and change only what the action changes. ${KHONG_CHU}`,
       `Image 1 is the BLOCKING SKETCH of this exact sheet: the same grid and panel order. In every panel copy its camera framing and staging exactly — where the back wall, the elevator doors (light grey) and the gold painting (yellow) are, where each person stands and how big they are (${mauChu}; two dark dots = the face turned toward us, a dark head = seen from behind), and the red arrow = the direction that person looks. Turn the sketch into photorealistic film stills; never draw the sketch shapes, colours or arrows themselves.`,
       ...(truoc ? ['Image 2 is an EARLIER sheet of this same scene: keep exactly the same place, light, faces, hair and outfits. Object states follow the panel descriptions below (they may have changed since that sheet).'] : []),
@@ -261,7 +271,7 @@ if (tang === 'khoi') {
     }
     if (!d2) { console.error(`  khối ${nhom[0]!.nhan} hỏng 2 lần — bỏ, chạy lại sau`); return; }
     const b2 = await tai(u2);
-    for (const [i, k] of nhom.entries()) t2[k.key] = await len(await cat(b2, d2.khung[i]!), `t2-${k.c.id}-${k.luc}`);
+    for (const [i, k] of nhom.entries()) if (!k.nguCanh) t2[k.key] = await len(await cat(b2, d2.khung[i]!), `t2-${k.c.id}-${k.luc}`);
     moc.khoi![j] = u2; moc.khoiSo![j] = await len(await danhSo(b2, d2.khung, nhom.map((k) => k.nhan)), `khoi-so-${nhom[0]!.key}`); luu();
   };
   if (!xongKhoi(0)) await sinhKhoi(cacKhoi[0]!, 0, khoiTruoc);

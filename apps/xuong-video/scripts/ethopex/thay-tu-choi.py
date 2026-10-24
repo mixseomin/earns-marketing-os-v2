@@ -7,6 +7,7 @@ Mỗi ad bị từ chối (delivery_status DISAPPROVED / error có DISAPPROVED):
   2. creative thay = creative CÙNG PHIM đã đạt CTA (ethopex_cta_dat), chưa từng bị từ chối, khác đoạn, ưu tiên mới nhất
   3. không có → xếp hàng dựng góc mới (ethopex_cho_dung_lai, tu_choi=true: sua-cta.py trên iMac cắt góc KHÁC đoạn bị từ chối, rồi chạy lại lệnh này)
   4. Update → đọc lại camp: creative đã đổi = xong; ghi nhật ký luật (ethopex_nhat_ky); in một dòng JSON mỗi camp
+  5. camp bị Ethopex dừng vì từ chối → bật lại ngay sau khi thay (anh 24/10/2026 "bật sau khi thay đi"), qua lam-ethopex.py bat + rào chắn etp
 Chạy trên box3: thay-tu-choi.py [--camp <id> …]   (không --camp = quét mọi camp đang chạy). Phòng Ethopex (cty ethopex.mjs) gọi khi luật báo tu_choi."""
 import datetime as dt, json, os, subprocess, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -71,7 +72,17 @@ def mot(camp, tu_choi, dat):
     if kq["ok"]:
         q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{cu}' where ten='ethopex_cho_dung_lai'")
         gop("ethopex_thay_cho_duyet", {str(camp): moi})
+        if not lan and d["campaign"].get("state") == "PAUSED": kq["bat"] = bat_lai(camp)
     return kq
+
+def bat_lai(camp):
+    """BẬT LẠI SAU KHI THAY (anh 24/10/2026: "bật sau khi thay đi"): camp bị Ethopex dừng vì Meta từ chối, đã thay creative sạch → bật lại qua lam-ethopex
+    (rào chắn etp cong.py: dừng khẩn / trần ngày / trần bộ vẫn chặn). Chỉ camp dừng VÌ từ chối — camp anh / luật tắt không đi qua đây."""
+    r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lam-ethopex.py"), "bat", str(camp),
+                        "--luat", "Meta từ chối ad → đã thay creative sạch cùng phim → bật lại", "--ai", "anh (chat 24/10/2026: bật sau khi thay)"], capture_output=True, text=True, timeout=180)
+    try: j = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
+    except Exception: j = {"ok": False, "loi": (r.stderr or r.stdout)[-150:]}
+    return {"ok": bool(j.get("ok")), "loi": j.get("loi")}
 
 def cung_creative(camps, tu_choi):
     """mọi camp chưa lưu trữ khác đang mang creative đã bị từ chối (kho etp) — thay luôn, không đợi Meta từ chối từng camp"""

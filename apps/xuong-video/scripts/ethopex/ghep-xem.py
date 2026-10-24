@@ -5,7 +5,7 @@ SHORT DRAMA, tên phim, con số, chữ IN HOA; thẻ cuối = tên phim to màu
 FONT POSTER (anh 19/10/2026): tên phim + chữ nút CTA dùng font & màu giống chữ tên phim trên poster (kinh_thanh.ethopex.font
 {file, wght?, mau, cta_file?, cta_wght?} — font OFL ở apps/xuong-video/assets/fonts/poster/); phụ đề thường giữ chữ dễ đọc.
 Dùng: python3 ghep-xem.py <ds.json> <thư mục ra>   (ds.json = mảng {tap, tt, phat, v, g, chu, nhac, font} — lấy từ xv_canh/xv_tap/xv_phim)"""
-import json, os, re, subprocess, sys, textwrap, urllib.request
+import json, os, re, subprocess, sys, textwrap, time, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1920
@@ -26,7 +26,35 @@ def font_poster(cfg, co, cta=False):
         except Exception: pass
     return f, tuple(cfg.get("mau", VANG))
 
-def sh(*a): subprocess.run(a, check=True)
+class Treo(RuntimeError): pass
+TREO_GIAY = 180   # CPU của cả nhóm tiến trình không nhích quá 0,5s trong chừng này giây = treo
+def _cpu_nhom(pgid):
+    """tổng CPU (giây) của nhóm tiến trình — đọc ps, không cần psutil"""
+    r = subprocess.run(["ps", "-eo", "pgid=,cputime="], capture_output=True, text=True).stdout; tong = 0.0
+    for l in r.splitlines():
+        x = l.split()
+        if len(x) == 2 and x[0] == str(pgid):
+            t = x[1].replace("-", ":").split(":"); tong += sum(float(v) * 60 ** i for i, v in enumerate(reversed(t)))
+    return tong
+def sh(*a, han=None):
+    """chạy lệnh (ffmpeg…) có NGƯỜI GÁC TREO (anh 25/10/2026 "treo thì phải có một con phụ trách mà fix nó"): phim 166083 ffmpeg 9 kẹt sch_wait
+    ở 0% CPU 8 giờ, 3 lần, thợ đứng theo. Gác: CPU cả nhóm tiến trình không nhích > TREO_GIAY giây (hoặc quá `han` giây) → giết cả nhóm,
+    ném Treo để nơi gọi đổi cách dựng (cat-canh: hai lượt). ffmpeg luôn thêm -nostdin."""
+    a = list(a)
+    if a and a[0] == "ffmpeg" and "-nostdin" not in a: a.insert(1, "-nostdin")
+    p = subprocess.Popen(a, start_new_session=True); t0 = moc = time.time(); cpu0 = -1.0
+    while True:
+        try: r = p.wait(timeout=5)
+        except subprocess.TimeoutExpired: r = None
+        if r is not None:
+            if r: raise subprocess.CalledProcessError(r, a)
+            return
+        cpu = _cpu_nhom(p.pid)
+        if cpu > cpu0 + 0.5: cpu0, moc = cpu, time.time()
+        if time.time() - moc > TREO_GIAY or (han and time.time() - t0 > han):
+            try: os.killpg(p.pid, 9)
+            except Exception: pass
+            p.wait(); raise Treo(f"{a[0]} treo {int(time.time() - moc)}s không nhích CPU (tổng {int(time.time() - t0)}s) — đã giết")
 def dur(f): return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]))
 def tai(u, f):
     """tải có hạn chờ + thử lại (19/10/2026: urlretrieve không hạn chờ treo cả lượt ghép 10 phút ở 0% CPU)"""

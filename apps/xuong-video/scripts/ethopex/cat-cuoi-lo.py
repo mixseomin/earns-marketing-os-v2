@@ -22,7 +22,10 @@ def ghep_mo(tm):
     ds = os.path.join(tm, "ds-cuoi.txt"); ra = os.path.join(tm, "ghep-cuoi.mp4")
     # ghép giữ mã chỉ khi mọi tập cùng thông số — 22/10/2026 DramaBox 156881 tập 6 là 720x1282 → concat cụt còn 215/392s, đoạn ra 3,6s.
     # Lệch thì chuẩn hoá TỪNG tập về 720x1280/30fps (bộ concat không qua được chỗ đổi luồng h264) rồi mới ghép.
-    tso = {subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,codec_name", "-of", "csv=p=0", os.path.join(tm, t)],
+    # SO ĐỦ THÔNG SỐ LUỒNG (25/10/2026, NetShort 166083: tập 6–7 mang cờ màu tv/bt709, tập 1–5 không → SPS khác → bộ giải mã PHÁT LẠI mọi khung
+    # kể từ chỗ tua khi qua mối nối 562,5s: đoạn 477–562 ra video 173s / tiếng 89s, đồ thị ffmpeg kẹt sch_wait 0% CPU 3 lần). Chỉ so rộng/cao/codec là không đủ.
+    tso = {subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,codec_name,profile,level,pix_fmt,width,height,r_frame_rate,time_base,sample_aspect_ratio,"
+                           "color_range,color_space,color_transfer,color_primaries,field_order,sample_rate,channels,channel_layout", "-of", "csv=p=0", os.path.join(tm, t)],
                           capture_output=True, text=True).stdout.strip() for t in taps}
     vao = [os.path.join(tm, t) for t in taps]
     if len(tso) > 1:

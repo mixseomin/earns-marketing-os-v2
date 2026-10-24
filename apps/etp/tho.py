@@ -18,6 +18,10 @@ def sql(cau):
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
     return r.stdout.strip()
 
+def quet_chet():
+    """việc 'dang' của máy này quá 4 giờ (hơn hạn 3 giờ của một việc cắt) = tiến trình đã chết → trả về hàng chờ, không nằm kẹt mãi"""
+    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and bat_dau < now() - interval '4 hours' returning id")
+    if r: print(f"[{MAY}] xếp lại việc kẹt: {r.replace(chr(10), ' ')}", flush=True)
 def nhan(lo):
     dk = f"and lo = '{lo}'" if lo else ""
     j = sql(f"""update etp.viec set trang_thai = 'dang', may = '{MAY}', bat_dau = now(), lan_thu = lan_thu + 1
@@ -41,7 +45,13 @@ def cat(v):
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
     h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien
     uu = ["nice", "-n", "10"] if (h >= 22 or h < 8) else (["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"])
-    subprocess.run([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], capture_output=True, text=True, timeout=3 * 3600)
+    # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
+    pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    try: pr.wait(timeout=3 * 3600)
+    except subprocess.TimeoutExpired:
+        try: os.killpg(pr.pid, 9)
+        except Exception: pass
+        pr.wait(); raise
     lo_json = os.path.join(ra, "lo.json")
     kq = json.load(open(lo_json)) if os.path.exists(lo_json) else []
     for x in kq: x.pop("moc_tap", None)
@@ -55,19 +65,27 @@ def cat(v):
     ok = [x for x in kq if x.get("file") and not x.get("loi")]
     return kq, (None if ok else (" ".join(str(x.get("loi")) for x in kq)[:300] or "không ra đoạn nào"))
 
+DANG = [0]   # số luồng trong tiến trình này đang làm việc
 def tho(lo):
     n = 0
     while True:
         try: v = nhan(lo)
         except Exception as e: print("không nhận được việc:", e, flush=True); time.sleep(10); continue
-        if not v: return n
+        if not v:
+            # HÀNG TRỐNG nhưng luồng khác còn đang làm → chờ chứ không thoát (25/10/2026: 12 việc lỗi được xếp lại hàng mà chỉ còn 1 luồng,
+            # luồng kia đã thoát từ lúc hàng trống → 10 phim nằm chờ sau một việc treo). Mọi luồng đều rỗi mới thoát.
+            if DANG[0] > 0: time.sleep(30); continue
+            return n
+        DANG[0] += 1
         t0 = time.time()
         try: kq, loi = cat(v) if v["loai"] == "cat" else ([], f"loại việc lạ {v['loai']}")
         except Exception as e: kq, loi = [], f"{type(e).__name__}: {str(e)[:200]}"
-        r = xong(v, kq, loi); n += 1
+        r = xong(v, kq, loi); n += 1; DANG[0] -= 1
         print(f"[{MAY}] #{v['id']} {v['loai']} phim {v['content_id']}: {r} · {sum(1 for x in kq if x.get('file') and not x.get('loi'))} đoạn · {time.time() - t0:.0f}s{(' · ' + str(loi)[:100]) if loi else ''}", flush=True)
 
 if __name__ == "__main__":
     a = sys.argv[1:]; so = int(a[a.index("--so-tho") + 1]) if "--so-tho" in a else 2; lo = a[a.index("--lo") + 1] if "--lo" in a else None
+    try: quet_chet()
+    except Exception as e: print("quét việc kẹt lỗi:", e, flush=True)
     with ThreadPoolExecutor(so) as ex: tong = sum(ex.map(lambda _: tho(lo), range(so)))
     print(f"[{MAY}] hết việc — đã làm {tong} việc", flush=True)

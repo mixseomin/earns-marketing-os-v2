@@ -36,6 +36,18 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
         if CQ.sai_luat(chu): raise SystemExit(f"CTA CHAN: chữ '{chu}' dính '{CQ.sai_luat(chu)}' — luật CTA (cta_qc.py): không Tap/Click/Toca, không mũi tên")
     tmp = os.path.splitext(out)[0]; cta, hoi = [x.replace("\n", " ") for x in gb.chu_studio(cta, hoi)]
     gb.lop_nut(cta, cfg, tmp + "-nut.png"); the_cuoi_anh(poster, hoi, tmp + "-the-cuoi.png")
+    try: _dung1(nguon, tu, den, tmp, cta, out, giong)
+    except gx.Treo as e:
+        # TREO (25/10/2026, phim 166083 đoạn 477: ffmpeg 9 kẹt sch_wait 0% CPU, 3 lần): người gác giết rồi dựng lại HAI LƯỢT —
+        # lượt 1 cắt đoạn + phóng 1080x1920 ra tệp riêng, lượt 2 ghép nút + thẻ cuối + giọng trên tệp ngắn đó (đồ thị khác, không trim trên nguồn dài)
+        print(f"TREO: {e} → dựng hai lượt", file=sys.stderr, flush=True)
+        L = den - tu; doan = tmp + "-doan.mp4"
+        gx.sh("ffmpeg", "-v", "error", "-y", "-ss", f"{tu}", "-t", f"{L}", "-i", nguon, "-vf", f"scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1",
+              *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", doan, han=1800)
+        _dung1(doan, 0.0, gx.dur(doan), tmp, cta, out, giong)
+        os.remove(doan)
+
+def _dung1(nguon, tu, den, tmp, cta, out, giong):
     L = den - tu
     V = gx.dur(giong) / TOC_GIONG if giong else 0
     TC = max(2.5, V - VAO_TRUOC + 0.5); T = L + TC
@@ -50,8 +62,11 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
            f"[c][tc]concat=n=2:v=1:a=0[cv];"
            f"[1:v]format=rgba,fade=in:st=3:d=0.4:alpha=1[nut];[cv][nut]overlay=0:'{Y_NUT}+8*sin(2*PI*1.6*t)':shortest=1[v];" + am)
     gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{T}",
-          *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
-    print(out, round(gx.dur(out), 1))
+          *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
+    # KIỂM ĐỘ DÀI (25/10/2026, phim 166083: nguồn lỗi mốc khung → video 173s trên 89s tiếng mà vẫn ra tệp): lệch > 1,5s với độ dài tính = tệp hỏng, không cho lên
+    d = gx.dur(out)
+    if abs(d - T) > 1.5: raise RuntimeError(f"đoạn ra {d:.1f}s khác độ dài tính {T:.1f}s — nguồn lỗi mốc khung, bỏ đoạn")
+    print(out, round(d, 1))
 
 if __name__ == "__main__":
     a = sys.argv[1:]

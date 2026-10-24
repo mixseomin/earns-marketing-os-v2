@@ -1,0 +1,21 @@
+# etp.on.tc — quản lý camp / creative / ROI (mos2 /etp, anh 24/10/2026). MỌI request phải có phiên mos2 (SSO auth_request → mos2 /api/auth/verify). Cài: cp apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc && nginx -t && systemctl reload nginx
+# Chỉ mở: / (→ /etp), /etp, /_next (mã + RSC), icon; còn lại về /.
+server { listen 80; server_name etp.on.tc; return 301 https://$host$request_uri; }
+server {
+  listen 443 ssl; http2 on;
+  server_name etp.on.tc;
+  include snippets/cloudflare-allow.conf;
+  ssl_certificate /etc/letsencrypt/live/on.tc/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/on.tc/privkey.pem;
+  client_max_body_size 12m;   # ảnh góp ý (server action uploadImage) đi qua trang
+  add_header X-Robots-Tag "noindex, nofollow" always;
+  auth_request /_mos2auth;
+  error_page 401 = @login;
+  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
+  location @login { return 302 https://mos2.on.tc/login?next=https://etp.on.tc/; }
+  location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+  location = / { proxy_pass http://127.0.0.1:3821/etp$is_args$args; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 120s; }
+  location ~ ^/(etp(/[A-Za-z0-9._-]+)?|icon\.svg|manifest\.webmanifest)$ { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 120s; }
+  location /_next/ { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; }
+  location / { return 302 /; }
+}

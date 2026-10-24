@@ -65,6 +65,40 @@ def _lm():
             print(f'không đo hướng nhìn: {e}', file=sys.stderr); _LM = False
     return _LM
 
+_PO = None
+def _pose():
+    """Mô hình TƯ THẾ (MediaPipe pose landmarker, 0đ) — đo tay giơ / buông cho cổng nối cắt (soat-huong.mts)."""
+    global _PO
+    if _PO is None:
+        try:
+            import mediapipe as mp
+            from mediapipe.tasks import python as mpt
+            from mediapipe.tasks.python import vision as mv
+            _PO = (mp, mv.PoseLandmarker.create_from_options(mv.PoseLandmarkerOptions(base_options=mpt.BaseOptions(model_asset_path=f'{MO}/pose_landmarker_lite.task'), num_poses=4)))
+        except Exception as e:
+            print(f'không đo tư thế: {e}', file=sys.stderr); _PO = False
+    return _PO
+
+def tu_the(im):
+    """Các người + tay: [{x, y (mũi, phần khung), tay: {phai, trai}}] — tay theo GIẢI PHẪU (tay phải của người đó): 'cao' cổ tay trên vai ·
+    'giua' giữa vai và hông · 'thap' ngang / dưới hông (buông) · None không thấy cổ tay hoặc không đủ mốc để xếp."""
+    po = _pose()
+    if not po: return []
+    mp, lm = po
+    r = lm.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(im[:, :, ::-1])))
+    out = []
+    for L in r.pose_landmarks or []:
+        thay = lambda i: L[i] if (L[i].visibility or 0) > 0.5 and 0 <= L[i].y <= 1 else None
+        def tay(vai, co, hong):
+            v, c, h = thay(vai), thay(co), thay(hong)
+            if not v or not c: return None
+            if c.y < v.y - 0.01: return 'cao'
+            if not h: return None
+            return 'thap' if c.y >= h.y - 0.15 * (h.y - v.y) else 'giua'
+        mui = L[0]
+        out.append({'x': round(mui.x, 3), 'y': round(mui.y, 3), 'tay': {'phai': tay(12, 16, 24), 'trai': tay(11, 15, 23)}})
+    return out
+
 def nhin_mat(im):
     """Các mặt + hướng nhìn: [{x, y (tâm mặt, phần khung), g (độ ngang, + = phải màn), dau (quay đầu), mat (lệch con ngươi −0,5..0,5), doc (ngẩng)}]."""
     import math
@@ -197,6 +231,7 @@ for a in vao.get('anh', []):
         if t in gan or i in dung: continue
         gan[t] = (g, mat[i][1], mat[i][2], mat[i][3]); dung.add(i)
     nm = nhin_mat(im) if gan else []
+    tt = tu_the(im) if gan and a.get('tu_the') else []   # chỉ khi được hỏi (cổng nối cắt) — đường soi thường không tốn thêm
     ket = []
     for t in ten:
         if t not in gan: ket.append({'ten': t, 'giong': None, 'dat': True}); continue
@@ -205,6 +240,8 @@ for a in vao.get('anh', []):
         o = {'x': round((float(hop[0]) + float(hop[2]) / 2) / W, 3), 'y': round((float(hop[1]) + float(hop[3]) / 2) / H, 3)}
         hn = min(nm, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # mặt MediaPipe trùng mặt YuNet đã gán
         hn = hn if hn and abs(hn['x'] - o['x']) < 0.08 and abs(hn['y'] - o['y']) < 0.08 else None
-        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'o': o, **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
+        pt = min(tt, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # tư thế có mũi gần tâm mặt đã gán
+        pt = pt if pt and abs(pt['x'] - o['x']) < 0.12 and abs(pt['y'] - o['y']) < 0.12 else None
+        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'tin': g >= NGUONG, 'o': o, **({'tay': pt['tay']} if pt else {}), **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
     ra['anh'].append({'id': a['id'], 'mat': len(mat), 'ket': ket})
 print(json.dumps(ra, ensure_ascii=False))

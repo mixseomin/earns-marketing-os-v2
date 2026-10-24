@@ -12,4 +12,6 @@ for f in face_detection_yunet/face_detection_yunet_2023mar.onnx face_recognition
 done
 # HƯỚNG NHÌN (19/10/2026): MediaPipe Face Landmarker — 478 điểm mặt gồm 10 điểm con ngươi + ma trận hướng đầu, CPU, Apache-2.0
 [ -s $D/models/face_landmarker.task ] || curl -fsSL -o $D/models/face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
+# tư thế (tay giơ / buông) cho cổng nối cắt — scripts/soat-huong.mts
+[ -s $D/models/pose_landmarker_lite.task ] || curl -fsSL -o $D/models/pose_landmarker_lite.task https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
 ls -la $D/models; $D/bin/python -c "import cv2; print('opencv', cv2.__version__)"

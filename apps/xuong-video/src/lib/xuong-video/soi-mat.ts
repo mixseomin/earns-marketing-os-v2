@@ -83,7 +83,7 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
  *  bỏ qua cổng, không chặn — có ghi lý do ra log. */
 /** Soi HƯỚNG trên ảnh bất kỳ — khung cuối, khung cắt từ clip (scripts/soat-huong.mts) — cùng bộ đo + ảnh mẫu soiMatTap, không ghi DB.
  *  ten = người phải có trong ảnh (để gán mặt); url là URL hoặc đường dẫn tệp trên máy chủ. */
-export async function soiAnh(db: Db, tapId: number, anh: { id: number; url: string; ten: string[] }[]): Promise<Map<number, SoiMat['ket']>> {
+export async function soiAnh(db: Db, tapId: number, anh: { id: number; url: string; ten: string[]; /** đo thêm tư thế tay (soi-mat.py › tu_the) */ tu_the?: boolean }[]): Promise<Map<number, SoiMat['ket']>> {
   const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[]; if (!t[0] || !anh.length) return new Map();
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));

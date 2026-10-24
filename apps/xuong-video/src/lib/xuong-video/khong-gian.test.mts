@@ -99,3 +99,16 @@ console.log('khong-gian.test: ok (timeline)');
   const v3 = so.nhanVat['Vivian']!.find((d) => d.thu_tu === 3)!; assert.ok(v3.trang.includes('buông'), v3.trang); assert.ok(so.nhanVat['Lâm Hạ']!.find((d) => d.thu_tu === 16)!.an, '#16 Hạ khuất');
   assert.ok(diCmShot({ [du.phan_doan]: kg }, S(3)) > 500); assert.strictEqual(diCmShot(null, S(3)), 0); }
 console.log('khong-gian.test: ok (sổ liền mạch)');
+// KỲ VỌNG DÁNG đo được (câu sổ dáng thật) + so số đo
+{ const { kyVongDang, loiDoDang } = await import('./khong-gian');
+  assert.deepStrictEqual(kyVongDang(dang(kg, 2, 'Lâm Hạ', 'ket')!.en), { dau: 0 });
+  assert.deepStrictEqual(kyVongDang(dang(kg, 13, 'Lâm Hạ', 'ket')!.en), { dau: -1 });
+  assert.deepStrictEqual(kyVongDang(dang(kg, 15, 'Lâm Hạ', 'ket')!.en), { dau: 1 });
+  assert.deepStrictEqual(kyVongDang(dang(kg, 4, 'Vivian')!.en), { phai: 'thap', trai: 'thap' });
+  assert.deepStrictEqual(kyVongDang(dang(kg, 5, 'Vivian', 'ket')!.en), { phai: 'giua', trai: 'thap' });
+  assert.deepStrictEqual(kyVongDang(dang(kg, 10, 'Vivian', 'ket')!.en), { phai: 'cao', trai: 'thap' });
+  // #2 cuối Hạ cúi -25° mà sổ cần ngang → lỗi; #5 đầu tay phải Vivian đã giơ mà sổ cần buông → lỗi; khớp → không lỗi
+  assert.strictEqual(loiDoDang('Lâm Hạ', { dau: 0 }, { nhin: { doc: -25 } }).length, 1); assert.deepStrictEqual(loiDoDang('Lâm Hạ', { dau: 0 }, { nhin: { doc: -4 } }), []);
+  assert.strictEqual(loiDoDang('Vivian', { phai: 'thap', trai: 'thap' }, { tay: { phai: 'giua', trai: 'thap' } }).length, 1);
+  assert.deepStrictEqual(loiDoDang('Vivian', { phai: 'thap' }, { tay: { phai: null } }), [], 'không thấy cổ tay → không phán'); }
+console.log('khong-gian.test: ok (dáng đo được)');

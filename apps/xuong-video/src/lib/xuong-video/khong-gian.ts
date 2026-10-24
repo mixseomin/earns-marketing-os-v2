@@ -143,3 +143,30 @@ export function canhBaoTap2d(t: KhongGianTap | null | undefined, ds: ShotKg[]): 
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) Object.assign(out, canhBao2d(t[pd], ds.filter((c) => (c.phan_doan ?? '') === pd)));
   return out;
 }
+/** KỲ VỌNG DÁNG đo được bằng máy, đọc từ câu sổ dáng (tiếng Anh): đầu (−1 cúi · 0 ngang · +1 ngẩng) + từng tay theo giải phẫu (cao · giua · thap). */
+export type KyVongDang = { dau?: -1 | 0 | 1; phai?: 'cao' | 'giua' | 'thap'; trai?: 'cao' | 'giua' | 'thap' };
+export function kyVongDang(en: string): KyVongDang {
+  const r: KyVongDang = {}; const l = en.toLowerCase();
+  if (/\b(bowed|eyes (lowered|dropped|down)|looking down)\b/.test(l.replace(/not looking down/g, ''))) r.dau = -1;
+  else if (/(tilted up|chin raised|eyes (lifted|raised))/.test(l)) r.dau = 1;
+  else if (/(chin level|head level|not looking down)/.test(l)) r.dau = 0;
+  const lop = (v: string): KyVongDang['phai'] => (/(raised beside|raised high|above (her|his) head|held up high)/.test(v) ? 'cao' : /(down at (her|his) sides?|relaxed down|hanging down|lowered to (the )?waist|\barms? down\b)/.test(v) ? 'thap' : /(extended|stretched|on the badge|chest|pulled back|reaching)/.test(v) ? 'giua' : undefined);
+  for (const ve of l.split(/[;]/)) {
+    if (/both arms/.test(ve)) { const c = lop(ve); if (c) { r.phai = c; r.trai = c; } continue; }
+    if (/right (arm|hand|fist)/.test(ve)) { const c = lop(ve); if (c) r.phai = c; }
+    if (/left (arm|hand|fist)/.test(ve)) { const c = lop(ve); if (c) r.trai = c; }
+  }
+  return r;
+}
+/** So dáng đo được (soi-mat.py: nhin.doc = độ ngẩng, tay) với kỳ vọng — chỉ báo chỗ trái ngược rõ (cúi ↔ ngẩng, buông ↔ giơ). NGUONG_CUI: độ. */
+export const NGUONG_CUI = 12;
+export function loiDoDang(ten: string, kv: KyVongDang, k: { nhin?: { doc: number }; tay?: { phai?: string | null; trai?: string | null } }): string[] {
+  const out: string[] = []; const d = k.nhin?.doc;
+  if (d != null && kv.dau === -1 && d > -NGUONG_CUI / 2) out.push(`${ten} không cúi (đo ${d}°), sổ dáng cần cúi`);
+  if (d != null && kv.dau === 0 && d < -NGUONG_CUI) out.push(`${ten} đang cúi (đo ${d}°), sổ dáng cần cằm ngang`);
+  if (d != null && kv.dau === 1 && d < 0) out.push(`${ten} không ngẩng (đo ${d}°), sổ dáng cần ngẩng`);
+  const TEN = { cao: 'giơ cao', giua: 'ngang ngực', thap: 'buông' } as const;
+  for (const b of ['phai', 'trai'] as const) { const can = kv[b], co = k.tay?.[b]; if (!can || !co || can === co) continue;
+    if ((can === 'thap' && co !== 'thap') || (can === 'cao' && co === 'thap') || (can === 'giua' && co === 'thap')) out.push(`${ten} tay ${b === 'phai' ? 'phải' : 'trái'} ${TEN[co as keyof typeof TEN]}, sổ dáng cần ${TEN[can]}`); }
+  return out;
+}

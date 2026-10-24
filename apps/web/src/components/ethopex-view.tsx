@@ -2,7 +2,7 @@
 // TAB ETHOPEX (trang chủ) — quản lý camp FB phim ngắn trên Ethopex + LUẬT đang áp cho từng camp, khuôn cột "Luật" của adfond /report2:
 // ô biểu tượng (luật nặng nhất đang chạm, tô theo mức dung > ha > bao > len) + chip mã luật (rê = câu luật với số thật của camp + vì sao);
 // bấm hàng → ngăn chi tiết: từng luật, điều kiện ✓/○ (hiện tại vs ngưỡng), "Chạm thì: …". Sổ luật: lib/ethopex-luat.ts. Dữ liệu: lib/ethopex-doc.ts.
-import { useMemo, useState, useEffect } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { DataTable, Drawer, FilterChips, LinkChip, MultiSelect, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { CotAmDuong } from '@/components/cot-am-duong';
@@ -12,7 +12,7 @@ import type { DuLieuEthopex } from '@/lib/ethopex-doc';
 
 type Dong = CampEtp & { luat: LuatCham[] };
 type Loc = 'all' | 'chay' | 'tat' | 'cham';
-type Xem = 'camp' | 'test' | 'ngay' | 'phim' | 'cho' | 'luat';   // YDNI: chia tab con — không chồng khối dọc (anh 22/10/2026)
+type Xem = 'camp' | 'test' | 'ngay' | 'tl' | 'phim' | 'cho' | 'luat';   // YDNI: chia tab con — không chồng khối dọc (anh 22/10/2026)
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const pct = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`);
 const mauTien = (v: number) => (v > 0 ? 'var(--neon-lime, #9be15d)' : v < 0 ? 'var(--neon-red, #ff5c5c)' : 'var(--fg-3)');
@@ -229,6 +229,36 @@ function TabNgay({ du }: { du: DuLieuEthopex }) {
   );
 }
 
+// THỂ LOẠI × THỨ TRONG TUẦN (anh 24/10/2026): bảng nhiệt — hàng thể loại (chi nhiều trước), cột T2–CN + cả tuần; ô = ROI, màu = lệch so với ROI
+// cả tuần của chính thể loại (xanh = thứ đó tốt hơn bình thường, đỏ = kém hơn); ô chưa đủ mẫu (chi < chi_du hoặc < 2 ngày) mờ + gạch chân chấm.
+function TabTheLoai({ du }: { du: DuLieuEthopex }) {
+  const t = du.theLoaiThu;
+  if (!t) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Chưa có số — chạy scripts/ethopex/the-loai.py trên box3.</div>;
+  const THU = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const hang = Object.keys(t.bang).filter((k) => k !== '*').sort((a, b) => (t.bang[b]!['*']?.chi ?? 0) - (t.bang[a]!['*']?.chi ?? 0));
+  const mau = (o?: { lech: number | null; du: boolean }) => { if (!o || o.lech == null) return 'transparent'; const a = Math.min(1, Math.abs(o.lech) / 80) * (o.du ? 0.55 : 0.2); return o.lech >= 0 ? `rgba(46,204,113,${a})` : `rgba(231,76,60,${a})`; };
+  const o = (x?: { roi: number | null; chi: number; thu: number; ngay: number; phim: number; du: boolean; lech: number | null }, tong = false) => (
+    <td title={x ? `chi ${usd(x.chi)} → thu ${usd(x.thu)} · ${x.ngay} ngày · ${x.phim} phim${x.lech != null ? ` · lệch ${x.lech > 0 ? '+' : ''}${x.lech} điểm so với cả tuần` : ''}${x.du ? '' : ' · CHƯA ĐỦ MẪU'}` : 'chưa có số'}
+      style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', background: tong ? 'transparent' : mau(x), opacity: x && !x.du ? 0.55 : 1, borderBottom: '1px solid var(--line)', fontWeight: tong ? 700 : 400, textDecoration: x && !x.du ? 'underline dotted' : 'none' }}>
+      {x?.roi == null ? '—' : `${x.roi > 0 ? '+' : ''}${x.roi}%`}{tong && x ? <span style={{ fontWeight: 400, color: 'var(--fg-2)', marginLeft: 6 }}>{usd(x.chi)}</span> : null}
+    </td>);
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '4px 0 10px' }}>
+        {t.tu} → {t.den} · {t.so_ngay} ngày Ethopex (07:00–07:00 VN, bỏ hôm nay chưa khép){t.so_ngay < 28 ? ` · cần ≥ 28 ngày (4 tuần) mới kết luận — hiện là số đang tích luỹ` : ''} · ô mờ = chưa đủ mẫu (chi &lt; {usd(t.chi_du)} hoặc &lt; 2 ngày) · màu = lệch so với ROI cả tuần của chính thể loại
+      </div>
+      <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: 760, width: '100%' }}>
+        <thead><tr><th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>Thể loại</th>{THU.map((th) => <th key={th} style={{ textAlign: 'right', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>{th}</th>)}<th style={{ textAlign: 'right', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>Cả tuần</th></tr></thead>
+        <tbody>
+          {['*', ...hang].map((k) => (
+            <tr key={k}><td style={{ padding: '6px 8px', borderBottom: '1px solid var(--line)', fontWeight: k === '*' ? 700 : 400, whiteSpace: 'nowrap' }}>{k === '*' ? 'Tất cả' : t.the_loai[k] ?? k} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{t.bang[k]!['*']?.phim ?? 0} phim</span></td>
+              {THU.map((th) => <Fragment key={th}>{o(t.bang[k]![th])}</Fragment>)}{o(t.bang[k]!['*'], true)}</tr>))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const modal = useModalParam('em');
   const [loc, setLoc] = useState<Loc>('all');
@@ -312,6 +342,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
           { value: 'camp', label: 'Camp', title: `${dong.length} camp` },
           { value: 'test', label: 'Lên test', title: 'Mỗi ngày: camp mới · phim mới · phim test lại · còn bật / đã tắt · ROI lứa camp' },
           { value: 'ngay', label: 'Theo ngày', title: 'Mỗi ngày kiếm được bao nhiêu — biểu đồ lãi, lọc theo phim / camp / dạng / ngôn ngữ, tự làm mới mỗi phút' },
+          { value: 'tl', label: 'Thể loại × thứ', title: 'ROI từng thể loại phim theo thứ trong tuần — cỡ mẫu từng ô, ô chưa đủ mẫu để mờ' },
           { value: 'phim', label: 'Theo phim', title: `${phim.length} phim — đề xuất dạng creative (luật DC)` },
           { value: 'cho', label: 'Hàng chờ', title: `${du.hangCho.length} phim chờ test` },
           { value: 'luat', label: 'Sổ luật', title: `${LUAT.length} luật · kb #261 mục 8–8i` },
@@ -330,6 +361,8 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
           <TabTest du={du} />
         ) : xem === 'ngay' ? (
           <TabNgay du={du} />
+        ) : xem === 'tl' ? (
+          <TabTheLoai du={du} />
         ) : xem === 'phim' ? (
           <DataTable<PhimDeXuat> rows={phim} columns={cotPhim} getRowKey={(p) => String(p.content_id)} persistKey="ethopex-phim" minWidth={980}
             searchText={(p) => `${p.phim} ${p.content_id}`} searchPlaceholder="Tìm phim…" />

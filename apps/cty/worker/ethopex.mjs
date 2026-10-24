@@ -13,6 +13,7 @@ const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py')
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
 const THAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py');
+const THE_LOAI = path.join(REPO, 'apps/xuong-video/scripts/ethopex/the-loai.py');
 const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
 const TEP = () => path.join(DATA(), 'ethopex-da-bao.json');
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -375,6 +376,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     try {
       const sn = JSON.parse((await chay(SO_NGAY, ['--json'], 120)).trim().split('\n').pop());
       await tg('sendMessage', { message_thread_id: topic, text: tinBaoNgay(sn, homNay), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      // THỂ LOẠI × THỨ (anh 24/10/2026): mỗi sáng tính lại bảng (tab Ethopex › Thể loại × thứ); thứ Hai gửi thêm tin tóm tắt tuần
+      try { const tl = (await chay(THE_LOAI, new Date(Date.now() + 7 * 3600_000).getUTCDay() === 1 ? ['--tg'] : [], 240)).trim();
+        if (tl.startsWith('📅')) await tg('sendMessage', { message_thread_id: topic, text: tl, parse_mode: 'HTML', link_preview_options: { is_disabled: true } }); } catch (e) { console.error('the-loai:', e.message); }
       fs.writeFileSync(tepBc, JSON.stringify({ ngay: homNay })); gui++;
     } catch (e) { console.error('báo cáo ngày:', e.message); }
   }

@@ -15,7 +15,10 @@ type DongBc = { campaign_id: number; cost: number; revenue: number };
 export type PhimCho = { id: number; nguon: string; locale: string; ten: string; url: string; so_page: number; so_qc: number; trang_thai: 'cho' | 'can_xem' | 'trung' | 'de_xuat'; ghi: string };
 export type NgayEtp = { ngay: string; chi: number; thu: number };
 /** theoNgay: Report group_by date (theo ngày quảng cáo — vài ngày gần còn tăng) · tienMoi: tiền thật vào/ra mỗi ngày VN từ điểm chụp cộng dồn (so-ngay.py) */
-export type DuLieuEthopex = { ngayUtc?: boolean; luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; theoNgay: NgayEtp[]; tienMoi: (NgayEtp & { du: boolean })[]; ngayCamp: (NgayEtp & { camp: number })[]; loi: string | null };
+/** thể loại × thứ trong tuần (scripts/ethopex/the-loai.py → studio ethopex_the_loai_thu) */
+export type OTlThu = { chi: number; thu: number; roi: number | null; ngay: number; phim: number; du: boolean; lech: number | null };
+export type TheLoaiThu = { luc: string; tu: string | null; den: string | null; so_ngay: number; the_loai: Record<string, string>; bang: Record<string, Record<string, OTlThu>>; chi_du: number } | null;
+export type DuLieuEthopex = { theLoaiThu?: TheLoaiThu; ngayUtc?: boolean; luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; theoNgay: NgayEtp[]; tienMoi: (NgayEtp & { du: boolean })[]; ngayCamp: (NgayEtp & { camp: number })[]; loi: string | null };
 
 let nho: { luc: number; data: DuLieuEthopex } | null = null;
 
@@ -83,7 +86,8 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
   for (const p of luy) { const d = ngay(new Date(Date.parse(p.luc) + 7 * 3600_000)); const o = cuoi.get(d); if (o) o.cuoi = p; else cuoi.set(d, { dau: p, cuoi: p }); }
   const tienMoi: (NgayEtp & { du: boolean })[] = []; let truocDiem: { chi: number; thu: number } | null = null;
   for (const [d, x] of [...cuoi.entries()].sort((a, b) => a[0].localeCompare(b[0]))) { const a = truocDiem ?? x.dau; tienMoi.push({ ngay: d, chi: x.cuoi.chi - a.chi, thu: x.cuoi.thu - a.thu, du: truocDiem != null && d < nay }); truocDiem = x.cuoi; }
-  const data = { ngayUtc, luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], theoNgay, tienMoi, ngayCamp, loi: null };
+  const theLoaiThu = (((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_the_loai_thu'`)) as unknown as { gia_tri: TheLoaiThu }[])[0]?.gia_tri) ?? null;
+  const data = { theLoaiThu, ngayUtc, luc: new Date().toISOString(), camps, phimThang: thangRow[0]?.gia_tri?.content ?? [], hangCho: choRow[0]?.gia_tri?.phim ?? [], theoNgay, tienMoi, ngayCamp, loi: null };
   nho = { luc: Date.now(), data };
   return data;
 }

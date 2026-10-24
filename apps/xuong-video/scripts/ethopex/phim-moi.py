@@ -67,6 +67,7 @@ def them(so):
 
 def poster(n=60):
     from PIL import Image, ImageDraw
+    s_ = importlib.util.spec_from_file_location("tlm", os.path.join(D, "the-loai.py")); TLM = importlib.util.module_from_spec(s_); s_.loader.exec_module(TLM)
     ds, tt, *_ = so_lieu(); chon = [p for p in ds if str(p["id"]) not in tt][:n]
     if not chon: return print("không còn phim chưa soát poster → phim-moi.py them")
     ra = os.path.join(C, "ra", "poster-" + vn().strftime("%d%m%H%M")); os.makedirs(ra, exist_ok=True)
@@ -90,9 +91,9 @@ def poster(n=60):
         for i, (p, im) in enumerate(t):
             x, y = (i % K) * W, (i // K) * (H + 34)
             if im: im.thumbnail((W, H)); to.paste(im, (x, y))
-            d.text((x + 4, y + H + 2), f"{p['id']}", fill="yellow"); d.text((x + 4, y + H + 17), p["ten"][:30], fill="white")
+            d.text((x + 4, y + H + 2), f"{p['id']} · {TLM.doan(p['ten'])}", fill="yellow"); d.text((x + 4, y + H + 17), p["ten"][:30], fill="white")   # thể loại máy đoán — Claude sửa: the-loai.py --gan
         f = os.path.join(ra, f"to-{k // 30 + 1}.jpg"); to.save(f, quality=85); print("TỜ POSTER (iMac):", f)
-    print("→ Claude xem: phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
+    print("→ Claude xem (kèm thể loại máy đoán dưới mã, sai thì ssh box3: the-loai.py --gan <id>=<thể loại>): phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
 
 def don_mac():
     """PHIM XONG LÀ XOÁ TRÊN iMAC (23/10/2026: ổ iMac đầy còn 183 MB → ffmpeg chết giữa lô; anh đã duyệt luật này cho box3): xoá tập tải về / tệp ghép

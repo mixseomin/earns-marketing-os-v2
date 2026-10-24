@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -243,3 +243,13 @@ console.log('✓ sức sống: đơ · thoi thóp · sống · sôi động · k
   assert.equal(new Set(tn.han.map((h) => h.ten)).size, tn.han.length, 'mỗi tên miền một dòng');
   assert.ok(tn.han.filter((h) => h.loai === 'hosting').every((h) => !h.may || m.nhaMay.some((x) => x.khoa === h.may)), 'máy chủ trỏ đúng toà máy (theo IP)'); }
 console.log('✓ tài nguyên: bồn (mức tiêu, còn ngày) · hạn tên miền / máy chủ · chỗ mù');
+
+// BIỂU ĐỒ LÃI khu Ethopex (24/10/2026): cộng thu / chi theo ngày qua các camp, ngày tăng dần, camp không có chuỗi ngày bỏ qua
+{
+  const g = gopNgay([{ ngay: [{ ngay: '2026-10-02', thu: 5, chi: 3 }, { ngay: '2026-10-01', thu: 1, chi: 2 }] }, { ngay: [{ ngay: '2026-10-02', thu: 4, chi: 1 }] }, {}]);
+  assert.deepStrictEqual(g, [{ ngay: '2026-10-01', thu: 1, chi: 2 }, { ngay: '2026-10-02', thu: 9, chi: 4 }]);
+  assert.deepStrictEqual(gopNgay([]), []);
+  const mN = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, duAn: [...live.heSinhThai.duAn, { id: 'ethopex', ten: 'Ethopex', site: 'app.ethopex.dev', ngung: false }], camps: [{ id: 1, ten: 'A', phim: null, ngonNgu: 'en', trangThai: 'active', thu30: 6, chi30: 4, ngay: [{ ngay: '2026-10-01', thu: 6, chi: 4 }] }] } } as any);
+  assert.deepStrictEqual(mN.dich.find((d) => d.khoa === 'n:ethopex')?.ngay30, [{ ngay: '2026-10-01', thu: 6, chi: 4 }], 'toà nền tảng mang chuỗi lãi theo ngày của bộ');
+}
+console.log('gopNgay ✓');

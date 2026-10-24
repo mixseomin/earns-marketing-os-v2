@@ -75,6 +75,8 @@ export interface PhoDich {
   cumPhim?: string; campLoai?: 'chay' | 'cho' | 'vi-pham' | 'tat'; campGoc?: string | null; dangCr?: string | null; nhanBanDuoc?: boolean; sapTat?: boolean; soTat?: number;
   /** thu / chi NGÀY BÁO CÁO MỚI NHẤT của Ethopex (ngayHom, YYYY-MM-DD) — bảng hiệu phim + bảng xếp hạng phim đọc cùng số với bảng Content của Ethopex */
   thuHom?: number; chiHom?: number; ngayHom?: string | null;
+  /** toà nền tảng Ethopex: thu / chi từng ngày 30 ngày của bộ (gopNgay) — biểu đồ lãi hiện khi tới gần */
+  ngay30?: NgayTien[];
   /** khách đang trên site (mốc ONLINE_GIAY của sổ phiên) · phiên từng ngày 30 ngày (tua lại) · cảnh báo hạ tầng (tên miền sắp hết hạn) */
   online?: number; ngay?: Record<string, number>; canhBao?: string | null;
   /** SỨC SỐNG (anh 23/10/2026: "sản phẩm chưa có nguồn traffic là dạng đơ, có gắn nguồn mới có sức sống" + "mọi nguồn đều có vai trò, không thiên vị"):
@@ -133,6 +135,13 @@ export interface PhoTaiNguyen {
 }
 /** mức cảnh báo tài nguyên: đỏ = phải xử ngay · vàng = sắp · xanh = ổn · chua-do = chưa có số (chỗ mù) */
 export type MucTn = 'do' | 'vang' | 'xanh' | 'chua-do';
+export interface NgayTien { ngay: string; thu: number; chi: number }
+/** cộng thu / chi theo ngày qua nhiều camp, xếp ngày tăng dần (biểu đồ lãi khu Ethopex) */
+export function gopNgay(ds: { ngay?: NgayTien[] }[]): NgayTien[] {
+  const m = new Map<string, NgayTien>();
+  for (const c of ds) for (const x of c.ngay ?? []) { const o = m.get(x.ngay) ?? { ngay: x.ngay, thu: 0, chi: 0 }; o.thu += x.thu; o.chi += x.chi; m.set(x.ngay, o); }
+  return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
+}
 export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; taiNguyen: PhoTaiNguyen; fav: Record<string, string | null> }
 /** trạng thái tài khoản (platform_accounts.status) → nhóm người đọc */
 export type TtTk = 'song' | 'nuoi' | 'han' | 'khoa' | 'dong';
@@ -180,7 +189,9 @@ export interface VaoHeSinhThai {
     /** content_id phim · dạng creative · ad bị từ chối · chờ public (loaiCampEtp) · đủ luật nhân bản NB · lỗ sâu chạm luật OFF (ethopex-luat, bộ đọc chấm) */
     phimId?: number | null; dang?: string | null; viPham?: boolean; cho?: boolean; nhanBanDuoc?: boolean; sapTat?: boolean;
     /** thu / chi của ngày báo cáo mới nhất (ngayHom) */
-    thuHom?: number; chiHom?: number; ngayHom?: string | null }[];
+    thuHom?: number; chiHom?: number; ngayHom?: string | null;
+    /** thu / chi từng ngày trong 30 ngày của camp */
+    ngay?: NgayTien[] }[];
   /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
   taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; canhBaoDs?: PhoTaiNguyen['canhBaoDs']; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
     proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[];
@@ -431,7 +442,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     for (const [bo, cs] of [...theoBo].sort((x, y) => x[0].localeCompare(y[0]))) {
       const duAn = bo === '1' ? 'd:ethopex' : `d:ethopex~${bo}`, boTen = cs.find((c) => c.boTen)?.boTen ?? `bộ ${bo}`;
       const hub: PhoDich = { khoa: bo === '1' ? 'n:ethopex' : `n:ethopex~${bo}`, loai: 'nen', ten: `Ethopex · ${boTen}`, site: null, duAn, phien30: null, laShop: false, don: null, coNguon: false, nenBan: 'camp', hostBan: 'facebook.com',
-        thuHom: hom('thuHom', cs), chiHom: hom('chiHom', cs), ngayHom: cs.find((c) => c.ngayHom)?.ngayHom ?? null,
+        thuHom: hom('thuHom', cs), chiHom: hom('chiHom', cs), ngayHom: cs.find((c) => c.ngayHom)?.ngayHom ?? null, ngay30: gopNgay(cs),
         // bộ 1 nhận tiền Kho bạc của dự án ở dưới (ganKhu); bộ khác tự cộng thu / chi 30 ngày của camp để khu có quy mô + vòng lãi lỗ
         ...(bo === '1' ? {} : { tien30: cs.reduce((a, c) => a + c.thu30, 0), chi30: cs.reduce((a, c) => a + c.chi30, 0), tienPhan: [{ loai: `Ethopex · ${boTen}`, so: cs.reduce((a, c) => a + c.thu30, 0) }] }) };
       dich.push(hub);

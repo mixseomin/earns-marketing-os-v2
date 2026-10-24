@@ -160,7 +160,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
       const co = (ma: string, ...tt: string[]) => lu.some((x) => x.ma === ma && tt.includes(x.trang_thai));
       return { id: c.id, ten: c.ten, bo: c.bo ?? null, boTen: c.bo_ten ?? null, phim: c.phim, ngonNgu: c.ngon_ngu, trangThai: loai === 'tat' ? 'paused' : 'active', thu30: ng.reduce((a, x) => a + x.thu, 0), chi30: ng.reduce((a, x) => a + x.chi, 0), nganSachNgay: c.ngan_sach,
         phimId: c.content_id, dang: dangCamp(c), viPham: co('TC', 'cham'), cho: loai === 'cho', nhanBanDuoc: co('NB', 'cham'), sapTat: loai === 'chay' && co('OFF', 'cham', 'gan'),
-        thuHom: hn.reduce((a, x) => a + x.thu, 0), chiHom: hn.reduce((a, x) => a + x.chi, 0), ngayHom: ngayHomEtp }; }) : [],
+        thuHom: hn.reduce((a, x) => a + x.thu, 0), chiHom: hn.reduce((a, x) => a + x.chi, 0), ngayHom: ngayHomEtp, ngay: ng.map((x) => ({ ngay: x.ngay, thu: x.thu, chi: x.chi })) }; }) : [],
     taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), canhBaoDs: tnDs.map((x) => ({ id: x.id, nen: x.nen, handle: x.handle, loai: x.loai, noiDung: x.noi_dung, url: x.url, luc: x.luc, acct: x.acct })), hoSo: tnHs, proxy: tnPx,
       soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })), soDu: soDuTn },
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),

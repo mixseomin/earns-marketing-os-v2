@@ -20,9 +20,12 @@ export function vatTrongKhung(so: SoVat, thuTu: number, nguoiTrongKhung: string[
   return Object.entries(trangThai(so, thuTu, luc)).filter(([ten, m]) => (m.ai ? nguoiTrongKhung.includes(m.ai) : false) || khaiTrongKhung.includes(ten));   // khai = món mảnh nhắc tên (cận chèn tay cầm thẻ: người giữ ngoài khung mà thẻ vẫn trong khung)
 }
 /** Câu trạng thái đồ cho prompt (tiếng Anh). tenEn = tên đưa model của món. */
-export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = [], luc: LucKhung = 'ket'): string {
+/** nhan: đầu câu theo LOẠI sổ — đồ vật (mặc định) hay DÁNG người (SO_DANG: cùng cơ chế mốc + sự kiện, xem dung-phim-reelshort › so_dang). */
+export const NHAN_VAT = "OBJECT STATE in this frame (must match exactly, wherever that person's arms and hands are in frame)";
+export const NHAN_DANG = 'BODY POSE in this frame (must match exactly — it continues unbroken from the previous shot; head tilt and arm positions as stated)';
+export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = [], luc: LucKhung = 'ket', nhan = NHAN_VAT): string {
   const ds = vatTrongKhung(so, thuTu, nguoiTrongKhung, khaiTrongKhung, luc);
-  return ds.length ? `OBJECT STATE in this frame (must match exactly, wherever that person's arms and hands are in frame): ${ds.map(([t, m]) => `${tenEn(t)} — ${m.cach}`).join('; ')}.` : '';
+  return ds.length ? `${nhan}: ${ds.map(([t, m]) => `${tenEn(t)} — ${m.cach}`).join('; ')}.` : '';
 }
 /** Dòng đọc cho storyboard (tiếng Việt): mọi món có trạng thái ở mảnh này, đánh dấu ⚡ nếu đổi ngay tại mảnh này. */
 export function dongVat(so: SoVat, thuTu: number, luc: LucKhung = 'ket'): string[] {

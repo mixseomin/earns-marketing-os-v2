@@ -291,7 +291,7 @@
       }
     },
     {
-      "co": "cu",
+      "co": "mcu",
       "giay": 1.5,
       "nv": [
         "Vivian",
@@ -300,20 +300,21 @@
       "bt": [
         "Đầm đỏ đô công sở"
       ],
-      "hd": "Cận Vivian: nhìn thẳng Hạ, cười khẩy",
-      "anh": "Close-up of Vivian, smug half smile, her eyes looking {Vivian→Lâm Hạ} directly at Hạ who is just off frame; black marble lobby behind.",
+      "hd": "Qua vai Hạ: Vivian nhìn thẳng Hạ, cười khẩy",
+      "anh": "Over-the-shoulder medium close-up from behind Hạ's shoulder (her dark hair and white blouse soft in the foreground edge): Vivian faces Hạ at close range with a smug half smile.",
       "vid": "Vivian looks {Vivian→Lâm Hạ} at Hạ, her smile sharpening. Static camera.",
       "mo": "Vivian's eyes are on Hạ",
       "ket": "Vivian takes a half step {Vivian→Lâm Hạ} toward Hạ",
       "noi": "dong_tac",
       "sd": {
-        "may": "can_vi",
+        "may": "qua_vai_ha",
         "o": {
           "Lâm Hạ": "ha",
           "Vivian": "vi"
         },
         "khung": [
-          "Vivian"
+          "Vivian",
+          "Lâm Hạ"
         ],
         "nhin": {
           "Vivian": "Lâm Hạ"
@@ -323,7 +324,7 @@
       "khung_ve": [
         "dau"
       ],
-      "mo_vi": "Cận Vivian: nhìn Hạ, cười khẩy"
+      "mo_vi": "Qua vai Hạ: Vivian đứng sát, nhìn thẳng Hạ, hai tay buông"
     },
     {
       "co": "ms",
@@ -859,7 +860,10 @@
   },
   "ten_en": {
     "Thùng đồ cá nhân": "the cardboard box of Hạ's belongings (a small potted plant and a mug inside)",
-    "Thẻ nhân viên": "the white staff ID badge on its dark blue lanyard"
+    "Thẻ nhân viên": "the white staff ID badge on its dark blue lanyard",
+    "Dáng Hạ": "Hạ's pose",
+    "Dáng Vivian": "Vivian's pose",
+    "Dáng Thần": "Lục Thần's pose"
   },
   "so_vat": {
     "Thùng đồ cá nhân": [
@@ -883,6 +887,109 @@
         "cach": "held by its SNAPPED dark blue lanyard in Vivian's right hand, the white card dangling below her fingers (she holds the lanyard, never the card itself)",
         "vi": "Vivian cầm bằng dây đứt, thẻ lủng lẳng dưới tay",
         "su_kien": "Vivian giật mạnh, dây thẻ đứt khỏi cổ Hạ"
+      }
+    ]
+  },
+  "so_dang": {
+    "Dáng Hạ": [
+      {
+        "tu": 0,
+        "ai": "Lâm Hạ",
+        "cach": "head level, chin level, eyes on the closed elevator door",
+        "vi": "đầu thẳng, cằm ngang, nhìn cửa thang"
+      },
+      {
+        "tu": 1,
+        "ai": "Lâm Hạ",
+        "cach": "head tilted up, chin raised, eyes lifted to the floor indicator above the elevator door",
+        "vi": "ngẩng lên, mắt nhìn bảng số tầng",
+        "su_kien": "Hạ ngước mắt lên bảng số tầng"
+      },
+      {
+        "tu": 2,
+        "ai": "Lâm Hạ",
+        "cach": "head turned toward the lobby entrance, chin level, eyes level and alert, NOT looking down",
+        "vi": "quay đầu về phía lối vào, cằm ngang, mắt ngang cảnh giác (không cúi)",
+        "su_kien": "nghe giày cao gót, Hạ quay đầu về phía lối vào"
+      },
+      {
+        "tu": 8,
+        "ai": "Lâm Hạ",
+        "cach": "head slightly bowed, eyes dropped to Vivian's fist",
+        "vi": "hơi cúi, mắt nhìn xuống nắm tay Vivian",
+        "su_kien": "Hạ cụp mắt nhìn nắm tay Vivian"
+      },
+      {
+        "tu": 11,
+        "ai": "Lâm Hạ",
+        "cach": "chin level, eyes raised to the man stepping out of the elevator",
+        "vi": "cằm ngang, ngước nhìn người bước ra thang",
+        "su_kien": "cửa thang mở, Hạ ngẩng lên nhìn Lục Thần"
+      },
+      {
+        "tu": 13,
+        "ai": "Lâm Hạ",
+        "cach": "head bowed, eyes lowered, lips pressed together",
+        "vi": "cúi đầu, cụp mắt, mím môi",
+        "su_kien": "nghe lời anh ta, Hạ cụp mắt xuống"
+      },
+      {
+        "tu": 15,
+        "ai": "Lâm Hạ",
+        "cach": "chin raised, eyes level and steady, a faint smile at the corner of her mouth",
+        "vi": "ngẩng cằm, mắt ngang vững, khoé môi nhếch nhẹ",
+        "su_kien": "Hạ chậm rãi ngẩng lên nhìn Vivian"
+      }
+    ],
+    "Dáng Vivian": [
+      {
+        "tu": 0,
+        "ai": "Vivian",
+        "cach": "both arms relaxed down at her sides, hands empty",
+        "vi": "hai tay buông xuôi, tay không"
+      },
+      {
+        "tu": 5,
+        "ai": "Vivian",
+        "cach": "right arm extended toward Hạ, right hand on the badge on Hạ's chest; left arm down at her side",
+        "vi": "tay phải vươn tới, bàn tay đặt lên thẻ trên ngực Hạ; tay trái buông",
+        "su_kien": "Vivian vươn tay phải tới thẻ trên ngực Hạ"
+      },
+      {
+        "tu": 7,
+        "ai": "Vivian",
+        "cach": "right fist pulled back to her own chest, elbow bent, gripping the snapped lanyard; left arm down",
+        "vi": "nắm tay phải kéo về sát ngực mình, khuỷu gập, nắm dây thẻ đứt; tay trái buông",
+        "su_kien": "Vivian giật mạnh về phía mình"
+      },
+      {
+        "tu": 10,
+        "ai": "Vivian",
+        "cach": "right hand raised beside her face holding the snapped lanyard up, badge dangling; left arm down",
+        "vi": "tay phải giơ dây thẻ ngang mặt, thẻ lủng lẳng; tay trái buông",
+        "su_kien": "Vivian giơ dây thẻ lên ngang mặt"
+      },
+      {
+        "tu": 14,
+        "ai": "Vivian",
+        "cach": "right arm stretched forward at shoulder height, swinging the dangling badge toward Hạ; left arm down",
+        "vi": "tay phải đưa ra trước ngang vai, lắc tấm thẻ về phía Hạ; tay trái buông",
+        "su_kien": "Vivian lắc tấm thẻ trước mặt Hạ"
+      },
+      {
+        "tu": 16,
+        "ai": "Vivian",
+        "cach": "right hand lowered to waist height, badge hanging still; left arm down",
+        "vi": "tay phải hạ xuống ngang hông, thẻ rủ yên; tay trái buông",
+        "su_kien": "nụ cười khựng lại, Vivian hạ tay cầm thẻ"
+      }
+    ],
+    "Dáng Thần": [
+      {
+        "tu": 0,
+        "ai": "Lục Thần",
+        "cach": "standing straight, both arms down at his sides, hands empty, chin level",
+        "vi": "đứng thẳng, hai tay buông, cằm ngang"
       }
     ]
   }

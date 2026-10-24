@@ -11,7 +11,7 @@ import type { Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
 import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
-import { cauVat, dongVat, loiSoVat, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
+import { cauVat, dongVat, loiSoVat, NHAN_DANG, NHAN_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
 type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
   /** chỗ trong SƠ ĐỒ CẢNH (so-do-canh.ts): máy · ai ở đâu · ai nhìn gì · ai vào từ đâu — hướng trên màn tính từ đây, không viết tay */ sd?: ManhSoDo; /** dùng lại keyframe đã duyệt (URL) */ kf?: string;
@@ -19,7 +19,7 @@ type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thu
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
 const tuPhim = Number(gia('tu-phim')); const tep = gia('manh');
 if (!tuPhim || !tep) { console.error('cần --tu-phim=<id> --manh=<tệp.json>'); process.exit(1); }
-const du = JSON.parse(readFileSync(tep, 'utf8')) as { phan_doan: string; anh_boi_canh: Record<string, string>; shot: Manh[]; /** sơ đồ cảnh + tên nhân vật người (để tính trục) */ so_do?: SoDo; nguoi?: string[]; /** SỔ LIÊN TỤC ĐỒ VẬT (so-vat.ts) + tên tiếng Anh của món */ so_vat?: SoVat; ten_en?: Record<string, string> };
+const du = JSON.parse(readFileSync(tep, 'utf8')) as { phan_doan: string; anh_boi_canh: Record<string, string>; shot: Manh[]; /** sơ đồ cảnh + tên nhân vật người (để tính trục) */ so_do?: SoDo; nguoi?: string[]; /** SỔ LIÊN TỤC ĐỒ VẬT (so-vat.ts) + tên tiếng Anh của món */ so_vat?: SoVat; /** SỔ DÁNG người (cùng khuôn sổ đồ vật, ai = chính người đó) */ so_dang?: SoVat; ten_en?: Record<string, string> };
 /** sơ đồ ở khung CUỐI của mảnh = sd đè bằng sd_ket (người nhìn / đứng khác lúc kết) */
 const sdKet = (m: Manh): ManhSoDo | undefined => (m.sd ? { ...m.sd, ...(m.sd_ket ?? {}), o: { ...m.sd.o, ...(m.sd_ket?.o ?? {}) } } : undefined);
 const khungVe = (m: Manh): ('dau' | 'giua' | 'ket')[] => m.khung_ve ?? (m.ket ? ['dau', 'ket'] : ['dau']);
@@ -38,19 +38,24 @@ if (du.so_do) {
 // giữ trong khung ⇒ đồ phải vẽ, kể cả khi mảnh không nhắc), món đó vào danh sách ảnh mẫu của mảnh; đổi trạng thái thiếu sự kiện / sự kiện ngoài khung ⇒ chặn.
 const nguoiKhung = (s: Manh) => (s.sd ? s.sd.khung ?? Object.keys(s.sd.o) : s.nv).filter((n) => (du.nguoi ?? []).includes(n));
 const vatDoc = new Map<number, string[]>(); const vatSo = new Map<number, { ten: string; cach: string }[]>(); const vatDocKet = new Map<number, string[]>(); const vatSoKet = new Map<number, { ten: string; cach: string }[]>();
-if (du.so_vat) {
-  const loi = loiSoVat(du.so_vat, (n) => (du.shot[n - 1] ? nguoiKhung(du.shot[n - 1]!) : null)); if (loi.length) { console.error(`sổ đồ vật lỗi:\n  ${loi.join('\n  ')}`); process.exit(1); }
+// SỔ DÁNG (anh 24/10/2026, #2→#5: "mặt cúi xuống mà cảnh ngay sau lại đang ngẩng lên · Vi đang nhấc tay thì cảnh sau hạ tay · tay đang hạ thì cảnh sau
+// lại nâng"): cổng liền mạch dáng cũ (bo-set-3d › noiHookup / lienMachTap) chỉ đọc may_3d nên phim KHÔNG 3D bị bỏ qua im lặng. Dáng người (đầu ngẩng /
+// cúi, tay hạ / nâng) ghi như đồ vật: mốc + sự kiện trên hình → khung đầu shot sau = khung cuối shot trước (match on action), đổi dáng phải có cớ.
+const soSo: [SoVat, string, string][] = [...(du.so_vat ? [[du.so_vat, 'sổ đồ vật', NHAN_VAT] as [SoVat, string, string]] : []), ...(du.so_dang ? [[du.so_dang, 'sổ dáng', NHAN_DANG] as [SoVat, string, string]] : [])];
+for (const [so, tenSo, nhan] of soSo) {
+  const loi = loiSoVat(so, (n) => (du.shot[n - 1] ? nguoiKhung(du.shot[n - 1]!) : null)); if (loi.length) { console.error(`${tenSo} lỗi:\n  ${loi.join('\n  ')}`); process.exit(1); }
+  const laVat = so === du.so_vat;
   for (const [i, s] of du.shot.entries()) {
-    const ng = nguoiKhung(s); const khai = s.nv.filter((x) => x in du.so_vat!); const en = (t: string) => du.ten_en?.[t] ?? t;
+    const ng = nguoiKhung(s); const khai = laVat ? s.nv.filter((x) => x in so) : []; const en = (t: string) => du.ten_en?.[t] ?? t;
     // khung ĐẦU: sự kiện của mảnh chưa xảy ra · khung CUỐI: đã xảy ra (so-vat.ts › LucKhung)
-    const thayDau = vatTrongKhung(du.so_vat, i + 1, ng, khai, 'dau'); const thayKet = vatTrongKhung(du.so_vat, i + 1, ng, khai, 'ket');
-    vatSo.set(i + 1, thayDau.map(([t, m]) => ({ ten: t, cach: m.cach }))); vatSoKet.set(i + 1, thayKet.map(([t, m]) => ({ ten: t, cach: m.cach })));
-    for (const [t] of [...thayDau, ...thayKet]) if (!s.nv.includes(t)) s.nv.push(t);
-    const cauDau = cauVat(du.so_vat, i + 1, ng, en, khai, 'dau'); const cauKet = cauVat(du.so_vat, i + 1, ng, en, khai, 'ket');
+    const thayDau = vatTrongKhung(so, i + 1, ng, khai, 'dau'); const thayKet = vatTrongKhung(so, i + 1, ng, khai, 'ket');
+    vatSo.set(i + 1, [...(vatSo.get(i + 1) ?? []), ...thayDau.map(([t, m]) => ({ ten: t, cach: m.cach }))]); vatSoKet.set(i + 1, [...(vatSoKet.get(i + 1) ?? []), ...thayKet.map(([t, m]) => ({ ten: t, cach: m.cach }))]);
+    if (laVat) for (const [t] of [...thayDau, ...thayKet]) if (!s.nv.includes(t)) s.nv.push(t);   // món đồ vào ảnh mẫu; dáng không có ảnh mẫu
+    const cauDau = cauVat(so, i + 1, ng, en, khai, 'dau', nhan); const cauKet = cauVat(so, i + 1, ng, en, khai, 'ket', nhan);
     if (cauDau) s.anh = `${s.anh} ${cauDau}`.trim();
     s.vid = `${s.vid} ${cauDau}${cauKet && cauKet !== cauDau ? ` By the END of the shot: ${cauKet}` : ''}`.trim();
     if (cauKet && s.ket) s.ket = `${s.ket}. ${cauKet}`;
-    vatDoc.set(i + 1, dongVat(du.so_vat, i + 1, 'dau')); vatDocKet.set(i + 1, dongVat(du.so_vat, i + 1, 'ket'));
+    vatDoc.set(i + 1, [...(vatDoc.get(i + 1) ?? []), ...dongVat(so, i + 1, 'dau')]); vatDocKet.set(i + 1, [...(vatDocKet.get(i + 1) ?? []), ...dongVat(so, i + 1, 'ket')]);
   }
 }
 // CẮT CÓ CỚ: bảng mảnh thiếu đuôi gieo / đầu nhận / cớ cắt thì không dựng (cảnh rời rạc — anh 23/10/2026)

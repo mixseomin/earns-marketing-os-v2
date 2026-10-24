@@ -30,7 +30,7 @@ assert.deepStrictEqual(loiDoHuong({ Vivian: { ben: 1, nhin: -1 } }, [{ ten: 'Viv
 assert.strictEqual(thayHuong(s, cv, 'her eyes flick {Vivian→Hạ}'), 'her eyes flick toward screen left');
 // người ngoài khung: vẫn dùng để tính hướng nhìn, không nằm trong kỳ vọng / câu chỗ đứng
 const ngoai = { ...ch, khung: ['Hạ'] };
-assert.deepStrictEqual(Object.keys(kyVong(s, ngoai, ['Hạ', 'Vivian'])), ['Hạ']); assert.ok(!cauHuong(s, ngoai, ['Hạ', 'Vivian']).includes('Vivian at'));
+assert.deepStrictEqual(Object.keys(kyVong(s, ngoai, ['Hạ', 'Vivian'])), ['Hạ']); assert.ok(!cauHuong(s, ngoai, ['Hạ', 'Vivian']).includes('Vivian at')); assert.ok(cauHuong(s, ngoai, ['Hạ', 'Vivian']).includes('Vivian is OFF SCREEN'));
 console.log('so-do-canh.test: ok');
 // tờ phác: cửa nằm giữa khung toàn cảnh, người gần to hơn người xa, có mũi tên khi khai hướng nhìn; máy quay lưng lại cửa thì không vẽ cửa
 { const sp = { ...s, phong: [{ loai: 'cua' as const, tu: [-0.6, 7] as [number, number], den: [0.6, 7] as [number, number], z1: 2.3 }] };
@@ -41,6 +41,7 @@ console.log('so-do-canh.test: ok');
 { const sl = { ...s, may: { ...s.may, sau_ha: { dat: [0, 4.0] as [number, number], nhin: [0, 5.8] as [number, number] }, truoc: { dat: [0, 6.6] as [number, number], nhin: [0, 5.8] as [number, number] } } };
   assert.strictEqual(loiCanMat(sl, [{ thu_tu: 2, co: 'cu', may: 'sau_ha', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }]).length, 1);
   assert.deepStrictEqual(loiCanMat(sl, [{ thu_tu: 2, co: 'cu', may: 'truoc', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }]), []);
+  assert.deepStrictEqual(loiCanMat(sl, [{ thu_tu: 4, co: 'mcu', may: 'sau_ha', o: { 'Hạ': [0, 5.8], Vivian: [0, 6.6] }, khung: ['Hạ', 'Vivian'], nhin: { 'Hạ': 'Vivian' } }]), [], 'qua vai: vai Hạ tiền cảnh không phải lỗi');
   assert.ok(svgPhac(sl, { may: 'sau_ha', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }, ['Hạ'], { 'Hạ': '#fff' }).includes('#1b1b1b'), 'quay lưng vẽ tóc'); }
 console.log('so-do-canh.test: ok (tờ phác)');
 // nửa lưng (phim #353 #2): máy trước-phải, Hạ nhìn cửa thang trong sâu ~48° → câu 3/4 lưng + cửa ở phía trước; chữ tay "door … behind her" bị chặn

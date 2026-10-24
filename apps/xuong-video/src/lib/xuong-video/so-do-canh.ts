@@ -41,6 +41,10 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
     return `${n} at the very ${x == null ? (h < 0 ? 'screen-right' : 'screen-left') : x < 0 ? 'screen-left' : 'screen-right'} edge, only just stepping into frame`; }
     const x = viTriMan(s, m, n); return x == null ? '' : `${n} at ${BEN(x)}`; }).filter(Boolean);
   if (dung.length) out.push(`Placement on screen: ${dung.join(', ')}`);
+  // người CÓ chỗ trong cảnh nhưng NGOÀI khung: nói thẳng là không thấy — không nói thì model tự thêm vào khi câu diễn nhắc tên (phim #353 #16: "mắt nhìn
+  // theo Hạ" → model vẽ Hạ đứng cạnh Vivian dù #15 Hạ đã quay đi)
+  const ngoai = nguoi.filter((n) => m.o[n] != null && m.khung && !m.khung.includes(n));
+  if (ngoai.length) out.push(`${ngoai.join(' and ')} ${ngoai.length > 1 ? 'are' : 'is'} OFF SCREEN — not visible anywhere in this frame`);
   const ten = (b: string) => (nguoi.includes(b) ? b : tenEn(b) === b ? s.ten?.[b] ?? b : tenEn(b));
   for (const [a, b] of Object.entries(m.nhin ?? {})) {
     const sau = doSau(s, m, a, b) ?? 0; const la = !nguoi.includes(b); // nhìn vào MỐC / đồ: nói luôn mốc nằm trước hay sau người (model hay đặt ngược)
@@ -125,7 +129,7 @@ export function svgPhac(s: SoDo & { phong?: MangPhong[] }, m: ManhSoDo, nguoi: s
 /** CẬN MẶT QUAY LƯNG (#353 #2 — cận Hạ nghe tiếng giày mà hình chỉ thấy gáy): cỡ cận (cu / mcu / ecu) mà người đang nhìn RA XA máy → không đọc được mặt.
  *  Sửa ở sơ đồ: đặt máy cận về phía người đó đang nhìn tới. Trả lỗi theo mảnh. */
 export function loiCanMat(s: SoDo, ds: (ManhSoDo & { thu_tu: number; co?: string })[]): string[] {
-  return ds.flatMap((m) => (/^(cu|mcu|ecu)$/.test(m.co ?? '') ? Object.entries(m.nhin ?? {}).filter(([a, b]) => (!m.khung || m.khung.includes(a)) && raXa(s, m, a, b))
+  return ds.flatMap((m) => (/^(cu|mcu|ecu)$/.test(m.co ?? '') ? Object.entries(m.nhin ?? {}).filter(([a, b]) => (!m.khung || m.khung.includes(a)) && raXa(s, m, a, b) && !(m.o[b] != null && (!m.khung || m.khung.includes(b))))   // quay lưng nhìn người KHÁC trong khung = vai tiền cảnh của khung qua vai, đúng ý
     .map(([a]) => `#${m.thu_tu}: cận "${m.may}" mà ${a} quay lưng về máy (đang nhìn ra xa) — đặt máy về phía ${a} đang nhìn tới` ) : []));
 }
 /** CHỮ TRÁI SƠ ĐỒ: câu viết tay (ảnh / diễn / đầu / đuôi) đặt mốc A đang nhìn vào "behind her/him" trong khi sơ đồ nói mốc ở phía trước (sâu > NUA_LUNG),

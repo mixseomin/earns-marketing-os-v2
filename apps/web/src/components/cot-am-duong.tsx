@@ -33,9 +33,9 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
         {duongPhu?.length ? (() => { const mx = Math.max(1, ...duongPhu.flatMap((s) => s.gt)), yp = (v: number) => PT + cao - (v / mx) * cao;
           return <g pointerEvents="none">
             {[mx, Math.round(mx / 2), 0].map((v) => <text key={v} x={W - PR + 6} y={yp(v) + 3} fontSize={10} fill="var(--fg-3)">{v}</text>)}
-            {duongPhu.map((s) => <g key={s.ten}><polyline fill="none" stroke={s.mau} strokeWidth={1.6} points={s.gt.map((v, j) => `${cx(j)},${yp(v)}`).join(' ')} />
-              {s.gt.map((v, j) => <circle key={j} cx={cx(j)} cy={yp(v)} r={i === j ? 4 : 2.6} fill={s.mau} />)}</g>)}
-            {duongPhu.map((s, k) => <g key={s.ten} transform={`translate(${PL + k * 120}, 8)`}><rect width={10} height={3} y={4} fill={s.mau} /><text x={14} y={9} fontSize={10} fill="var(--fg-2)">{s.ten}</text></g>)}
+            {duongPhu.map((s, k) => { const w = Math.max(3, Math.min(8, (buoc - bc) / 2 / duongPhu.length - 1));   // cột mảnh cạnh cột lãi (anh 24/10/2026: "line khó nhìn")
+              return <g key={s.ten}>{s.gt.map((v, j) => v > 0 ? <rect key={j} x={cx(j) + bc / 2 + 3 + k * (w + 1.5)} y={yp(v)} width={w} height={PT + cao - yp(v)} rx={1} fill={s.mau} opacity={i == null || i === j ? 0.95 : 0.55} /> : null)}</g>; })}
+            {duongPhu.map((s, k) => <g key={s.ten} transform={`translate(${PL + k * 120}, 8)`}><rect width={9} height={9} y={1} rx={2} fill={s.mau} /><text x={14} y={9} fontSize={10} fill="var(--fg-2)">{s.ten}</text></g>)}
           </g>; })() : null}
         {i != null && <line x1={cx(i)} x2={cx(i)} y1={PT} y2={PT + cao} stroke="var(--fg-3)" strokeDasharray="2 2" />}
       </svg>

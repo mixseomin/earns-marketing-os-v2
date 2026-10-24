@@ -41,7 +41,7 @@ for (const c of ds) {
     anh.push({ id: ma(c.id, l), url, ten: Object.keys(kv).filter((n) => !kv[n]!.lung), tu_the: true }); }
 }
 const do_ = await soiAnh(db, tap, anh);
-const NHAY_CUI = 15;
+const NHAY_CUI = 15; const NGUONG_LA = 0.2;   // dưới mức này mặt không phải nhân vật đó (cùng người ~0,4–0,7)
 const NHAN: Record<Luc, string> = { dau: 'khung đầu', ket: 'khung cuối', clip_dau: 'clip mở', clip_ket: 'clip đóng' };
 const ketQua = (c: (typeof ds)[number], l: Luc) => {
   const kv = kyVong(c, l); const r0 = do_.get(ma(c.id, l)); if (!Object.keys(kv).length || !r0) return null; const k0 = r0.ket;
@@ -53,6 +53,9 @@ const ketQua = (c: (typeof ds)[number], l: Luc) => {
   if (r0.mat > tong) loi.push(`thấy ${r0.mat} mặt mà sơ đồ chỉ có ${tong} người trong khung — có người chen vào (người ngoài khung / người lạ)`);
   // nửa lưng có thể lộ má / nghiêng (YuNet vẫn bắt) — chỉ người quay lưng HẲN mà lộ mặt mới là lỗi
   else if (r0.mat > tong - Object.values(kv).filter((v) => v.han).length) loi.push(`${Object.entries(kv).filter(([, v]) => v.han).map(([n]) => n).join(' / ')} lẽ ra quay lưng hẳn mà lộ mặt (thấy ${r0.mat} mặt)`);
+  // NGƯỜI LẠ chiếm chỗ: mặt duy nhất được gán cho người sơ đồ cần thấy mà giống quá thấp (#2 bản mới: người đàn ông từ thang bước ra, mặt Hạ quay đi —
+  // số mặt vẫn bằng 1 nên đếm mặt không bắt được)
+  for (const x of k0) if (kv[x.ten] && !kv[x.ten]!.lung && x.giong != null && x.giong < NGUONG_LA && !x.nho) loi.push(`mặt ở chỗ ${x.ten} không phải ${x.ten} (giống ${x.giong}) — người lạ / sai người trong khung`);
   for (const x of k) {
     const d = kg ? dang(kg, c.thu_tu, x.ten, laDau(l) ? 'dau' : 'ket') : null; if (d) loi.push(...loiDoDang(x.ten, kyVongDang(d.en), x)); }
   return { loi, so: k0.map((x) => `${x.ten}${x.tin ? '' : '(?)'} x=${x.o?.x?.toFixed(2) ?? '?'} nhìn=${x.nhin?.g ?? '?'}° ngẩng=${x.nhin?.doc ?? '?'}°${x.tay ? ` tay P/T=${x.tay.phai ?? '?'}/${x.tay.trai ?? '?'}` : ''}`).join(' · ') };

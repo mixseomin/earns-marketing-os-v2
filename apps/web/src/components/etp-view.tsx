@@ -219,13 +219,14 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
     const t7 = d7.reduce((a, { x }) => ({ chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }), { chi: 0, thu: 0 });
     const chiTiet = (
       <div style={{ margin: '2px 0 6px', marginLeft: 12 + 12 + 8 + cap * 14, padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px', fontSize: 11, maxWidth: 760 }}>
-        <div style={{ display: 'flex', gap: 3, alignItems: 'center', height: 64 }} title="lãi / lỗ từng ngày (7 ngày, ngày Ethopex)">
+        <div style={{ display: 'flex', gap: 3, alignItems: 'flex-start', height: 78 }} title="lãi / lỗ từng ngày (7 ngày, ngày Ethopex)">
           {d7.map(({ d, x }) => { const l = x ? x.thu - x.chi : 0; const h = Math.round((Math.abs(l) / max) * 28); const r = roi(x);
             return <div key={d} title={`${d.slice(8, 10)}/${d.slice(5, 7)} · chi $${(x?.chi ?? 0).toFixed(2)} · thu $${(x?.thu ?? 0).toFixed(2)} · lãi ${l >= 0 ? '+' : '−'}$${Math.abs(l).toFixed(2)}${r == null ? '' : ` · ROI ${r}%`}`}
-              style={{ width: 22, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              style={{ width: 22, height: 78, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ height: 30, display: 'flex', alignItems: 'flex-end' }}>{l > 0 ? <div style={{ width: 14, height: h, background: '#22c55e', borderRadius: 2 }} /> : null}</div>
               <div style={{ width: 18, height: 1, background: 'var(--line)' }} />
               <div style={{ height: 30 }}>{l < 0 ? <div style={{ width: 14, height: h, background: '#ef4444', borderRadius: 2 }} /> : null}</div>
+              <div style={{ fontSize: 9, color: d === du.nay ? 'var(--fg-1, inherit)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{d === du.nay ? 'nay' : d.slice(8, 10)}</div>
             </div>; })}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, auto)', gap: '2px 14px', alignContent: 'center', color: 'var(--fg-2)' }}>

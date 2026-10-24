@@ -21,8 +21,8 @@ for (const [ten, vp] of [['may', { width: 1400, height: 850 }], ['dt', { width: 
     await p.evaluate(() => { document.querySelector('.ngan .wg-x')?.click(); document.querySelector('.ben .wg-x')?.click(); }); await p.mouse.move(2, 2); await p.waitForTimeout(800);
     const ds = await mc(), mo = ds.filter((o) => o.gan).length; console.log(`[${ten}] căn cứ Ethopex ${bo}:`, coDong && mo >= 1 ? `✓ có trong ô tìm, mở khi tới (${ds.length} căn cứ trong thành phố)` : '— SAI ' + JSON.stringify({ coDong, mo }));
     if (raAnh) await p.screenshot({ path: `${raAnh}/mc-${ten}-${bo}.png` });
-    if (ten === 'may' && bo === 'ETP_440') { let v = null; for (let y = 150; y < 600 && !v; y += 16) for (let x = 450; x < 950 && !v; x += 16) { await p.mouse.move(x, y); await p.waitForTimeout(15); const d = await p.evaluate(() => document.querySelector('.tp').__dangSang()); if (d?.loai === 'phim-cc') v = 1; }
-      if (v) await p.waitForTimeout(1300); console.log('rê vào công trình phim:', v ? '✓ ' + (await p.evaluate(() => document.querySelector('.meo').innerText.split('\n')[0])) : '— SAI, không trúng'); await p.mouse.move(2, 2); } }
+    if (ten === 'may' && bo === 'ETP_440') { let v = null; for (let y = 150; y < 600 && !v; y += 16) for (let x = 450; x < 950 && !v; x += 16) { await p.mouse.move(x, y); await p.waitForTimeout(15); const d = await p.evaluate(() => document.querySelector('.tp').__dangSang()); if ((d?.loai === 'phim-cc' || d?.loai === 'tram-etp')) v = 1; }
+      if (v) await p.waitForTimeout(1300); console.log('rê vào công trình Ethopex:', v ? '✓ ' + (await p.evaluate(() => document.querySelector('.meo').innerText.split('\n')[0])) : '— SAI, không trúng'); await p.mouse.move(2, 2); } }
   await p.close();
 }
 await b.close();

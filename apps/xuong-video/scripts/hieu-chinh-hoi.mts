@@ -1,16 +1,19 @@
 // HIỆU CHỈNH BƯỚC HỎI KHUNG (soi-cau-hoi.ts): chạy câu hỏi kiểm khung trên BỘ MẪU đã dán nhãn (scripts/du-lieu/hieu-chinh-hoi-<phim>.json) → tỉ lệ
 // BÁO NHẦM (khung đúng mà trả "không") và BỎ SÓT (khung sai mà trả "có") theo từng MÃ câu (co / vang / ngoai / ket / mo / dang / vat / mat / lung).
 // Kết quả quyết câu nào được CHẶN (báo nhầm thấp) và câu nào chỉ cảnh báo (soat-huong.mts › laChan). Tốn ~0,3¢ / khung — chạy khi anh duyệt.
-//   … tsx scripts/hieu-chinh-hoi.mts <tap_id> scripts/du-lieu/hieu-chinh-hoi-353.json [--clip-dat=1,2,3,…]
+//   … tsx scripts/hieu-chinh-hoi.mts <tap_id> scripts/du-lieu/hieu-chinh-hoi-353.json [--clip-dat=1,2,3,…] [--lan=2]
+// Kết quả 25/10/2026 (45 khung, 1 lượt, MEDIUM): co 3% · mat 4% · ngoai 0% · vang 0% · vat 3% báo nhầm → chặn; ket 10% · mo 8% · dang 12% · lung 31% · chen 33% → cảnh báo;
+// bỏ sót 3/6 ca lỗi (không ổn định giữa hai lần chạy) → chuyển sang hỏi 2 lượt độ phân giải cao (hoiKhung2).
 import { existsSync, readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { hoiKhung } from '../src/lib/xuong-video/soi-cau-hoi';
+import { hoiKhung2, laChan } from '../src/lib/xuong-video/soi-cau-hoi';
 import { cauHoiKhung, loiTuDapAn, type CauHoi } from '../src/lib/xuong-video/cau-hoi-khung';
 import { mapCanh, mapNhanVat, type Row } from '../src/lib/xuong-video/doc-db';
 import { kgCua, type KhongGianTap } from '../src/lib/xuong-video/khong-gian';
 
 const tap = Number(process.argv[2]); const tep = process.argv[3]; if (!tap || !tep) { console.error('cần <tap_id> <bộ mẫu.json>'); process.exit(1); }
+const lan = Number(process.argv.find((a) => a.startsWith('--lan='))?.slice(6) ?? 2);   // số lượt hỏi mỗi khung (soi-cau-hoi › hoiKhung2)
 const clipDat = (process.argv.find((a) => a.startsWith('--clip-dat='))?.slice(11) ?? '').split(',').map(Number).filter(Boolean);
 const db = getDb()!;
 const kgt = (((await db.execute(sql`SELECT khong_gian FROM xv_tap WHERE id = ${tap}`)) as unknown as Row[])[0]?.khong_gian ?? null) as KhongGianTap | null;
@@ -27,12 +30,12 @@ const nhom = (ma: string) => ma.split(':')[0]!;
 let i = 0; const chay = async () => { while (i < mau.length) { const m = mau[i++]!; const c = ds.find((x) => x.id === m.canh); if (!c) continue;
   const toan = ['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '');
   const hoi: CauHoi[] = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: m.luc }).filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma));
-  const dap = await hoiKhung(db, phimId, m.url, hoi).catch(() => null); if (!dap) { console.log(`  ! ${m.ghi ?? m.url}: không hỏi được`); continue; }
-  const loi = new Set(loiTuDapAn(hoi, dap).map((x) => /^\[([^\]]+)\]/.exec(x.mo_ta)?.[1] ?? ''));
+  const r = await hoiKhung2(db, phimId, m.url, hoi, lan).catch(() => null); if (!r) { console.log(`  ! ${m.ghi ?? m.url}: không hỏi được`); continue; }
+  const loi = new Set(loiTuDapAn(hoi, r.dap).map((x) => /^\[([^\]]+)\]/.exec(x.mo_ta)?.[1] ?? ''));
   const mong = new Set(m.sai ?? []);
   for (const q of hoi) { const d = dem(nhom(q.ma)); d.hoi++; const baoLoi = loi.has(q.ma), phaiLoi = mong.has(q.ma);
     if (baoLoi && !phaiLoi) { d.nham++; console.log(`  báo nhầm [${q.ma}] ${m.ghi ?? ''}: ${q.hoi}`); } else if (!baoLoi && phaiLoi) { d.sot++; console.log(`  BỎ SÓT [${q.ma}] ${m.ghi ?? ''}`); } else d.dung++; } } };
 await Promise.all(Array.from({ length: 6 }, chay));
 console.log(`\n${mau.length} khung · theo mã câu:`);
-for (const [ma, d] of [...bang].sort()) console.log(`  ${ma.padEnd(6)} hỏi ${String(d.hoi).padStart(3)} · đúng ${String(d.dung).padStart(3)} · báo nhầm ${d.nham} (${Math.round((d.nham / Math.max(1, d.hoi)) * 100)}%) · bỏ sót ${d.sot}${d.nham / Math.max(1, d.hoi) <= 0.05 ? '  → đủ tin để CHẶN' : '  → chỉ cảnh báo'}`);
+for (const [ma, d] of [...bang].sort()) console.log(`  ${ma.padEnd(6)} hỏi ${String(d.hoi).padStart(3)} · đúng ${String(d.dung).padStart(3)} · báo nhầm ${d.nham} (${Math.round((d.nham / Math.max(1, d.hoi)) * 100)}%) · bỏ sót ${d.sot}${d.nham / Math.max(1, d.hoi) <= 0.05 ? '  → đủ tin để CHẶN' : '  → chỉ cảnh báo'}${laChan(`${ma}:x`) ? ' (đang CHẶN)' : ''}`);
 process.exit(0);

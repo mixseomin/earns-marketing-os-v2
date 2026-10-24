@@ -16,7 +16,7 @@ import { dang, kgCua, kyVongDang, loiDoDang, loiDoThem, type KhongGianTap, type 
 import { mapCanh, mapNhanVat, type Row } from '../src/lib/xuong-video/doc-db';
 import type { SoiMat } from '../src/lib/xuong-video/kieu';
 import { DUOI_CLIP_BO } from '../src/lib/xuong-video/xuat';
-import { hoiKhung } from '../src/lib/xuong-video/soi-cau-hoi';
+import { hoiKhung2, laChan } from '../src/lib/xuong-video/soi-cau-hoi';
 import { cauHoiKhung, loiTuDapAn } from '../src/lib/xuong-video/cau-hoi-khung';
 import { chamMayShots } from '../src/lib/xuong-video/cham-may';
 import { giaVideoSv } from '../src/lib/xuong-video/doc-db';
@@ -87,9 +87,11 @@ if (co('hoi')) {
   const viec = ds.flatMap((c) => (['clip_dau', 'clip_giua', 'clip_ket'] as Luc[]).map((l) => ({ c, l, f: `${thuMuc}/${c.id}-${l}.jpg` }))).filter((x) => kgCua(kgt, x.c) && existsSync(x.f));
   let i = 0; const chay = async () => { while (i < viec.length) { const { c, l, f } = viec[i++]!; const toan = ['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '');
     const hoi = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: lucSo(l) }).filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma)).filter((x) => l !== 'clip_giua' || !/^(mo|ket)$/.test(x.ma));
-    const dap = await hoiKhung(db, phimId, f, hoi).catch(() => null); if (!dap) continue;
-    const laChan = (m: string) => /^(vang|co|ngoai):|^ket$/.test(m);
-    hoiKq.set(`${c.id}:${l}`, { chan: loiTuDapAn(hoi.filter((x) => laChan(x.ma)), dap).map((x) => x.mo_ta), canh: loiTuDapAn(hoi.filter((x) => !laChan(x.ma)), dap).map((x) => x.mo_ta) }); } };
+    const r = await hoiKhung2(db, phimId, f, hoi).catch(() => null); if (!r) continue;
+    // CHẶN: mã câu đã hiệu chỉnh (soi-cau-hoi › MA_CHAN) và cả hai lượt hỏi đều "không"; CẢNH BÁO: mã khác, hoặc chỉ một lượt "không"
+    const chanKq = loiTuDapAn(hoi.filter((x) => laChan(x.ma)), r.dap).map((x) => x.mo_ta);
+    const canhKq = [...loiTuDapAn(hoi.filter((x) => !laChan(x.ma)), r.dap).map((x) => x.mo_ta), ...hoi.filter((x) => r.motLan.has(x.ma)).map((x) => `(1/2 lượt) [${x.ma}] ${x.hoi}`)];
+    hoiKq.set(`${c.id}:${l}`, { chan: chanKq, canh: canhKq }); } };
   await Promise.all(Array.from({ length: 6 }, chay));
 }
 // ── 3. CẢM XÚC đo bằng máy (cham-may.ts, HSEmotion) so KẾ HOẠCH DIỄN — mức canh (hiệu chỉnh trên phim QC, chưa trên phim truyện) ─────────────────────

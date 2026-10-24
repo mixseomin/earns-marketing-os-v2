@@ -191,17 +191,26 @@ dat = [(cid, chu) for cid, chu in dat if _sau_giam_ok(cid)]
 dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
 # GIẢM BẬC (luật GB): chỉ phiên sáng (6–13h VN), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
 # → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
+# Camp vừa tăng mà ngày trọn kế tiếp âm → giảm luôn, không xét ROI 3 ngày; đang $20 thì về thẳng $10 (anh 24/10/2026).
 ha = []
 if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua khép 07:00 VN + ~2 giờ cho đợt chi cuối → 9h mới đủ số trọn
     for cid, a in thang.items():
         ns = a["budget"]; y = hqua.get(cid)
         if ns <= 1 or not y or y["chi"] < 0.5 * ns: continue
         ry = roi(y); g3 = gan.get(cid); r3 = roi(g3) if g3 else ry
-        if ry is None or ry >= 0 or (r3 is not None and r3 >= 20): continue
+        if ry is None or ry >= 0: continue
+        # GIẢM SAU KHI TĂNG (anh 24/10/2026: "camp sau khi tăng thì hôm sau bị âm thì áp dụng rule giảm theo bậc… lên $20 nhưng hôm nay âm thì phải giảm
+        # xuống $10"): lần tăng gần nhất rơi vào 48 giờ trước đầu hôm nay (tức ngày trọn hôm qua là ngày sau tăng) → bỏ điều kiện ROI 3 ngày; $20 → $10.
+        try: _lt = max(NT.lan_tang(api, cid) or [None], key=lambda t: t or dt.datetime.min.replace(tzinfo=dt.timezone.utc))
+        except Exception: _lt = None
+        _dau = dt.datetime.combine(nay, dt.time(), tzinfo=dt.timezone.utc) - (dt.timedelta(hours=7) if not (TANG_CHOT or HIEN_CHOT) else dt.timedelta(0))
+        sau_tang = _lt is not None and _dau - dt.timedelta(hours=48) <= _lt < _dau - dt.timedelta(hours=12)
+        if not sau_tang and r3 is not None and r3 >= 20: continue
         buoc = 2 if ry < -50 and y["chi"] >= ns else 1; dich = NT.xuong(ns, buoc)
+        if sau_tang and ns >= 20: dich = 10
         try: ly = NT.chan_giam(api, cid)
         except Exception: ly = None
-        if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 else "")))
+        if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 and not sau_tang else "") + (f" · ngày đầu sau lần tăng lúc {(_lt + dt.timedelta(hours=7)):%H:%M %d/%m} đã âm" if sau_tang else "")))
 tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).

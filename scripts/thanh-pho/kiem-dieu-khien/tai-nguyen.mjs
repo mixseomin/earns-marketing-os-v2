@@ -2,6 +2,7 @@
 import { chromium } from '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs';
 const b = await chromium.launch({ args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] });
 const p = await b.newPage({ viewport: { width: 1400, height: 850 } }); p.on('pageerror', (e) => console.log('LOI', e.message));
+const raAnh = process.argv[3];
 await p.goto('file://' + process.argv[2]); await p.waitForTimeout(3000); await p.evaluate(() => { document.querySelector('.goi-y')?.remove(); document.querySelector('.ben .wg-x')?.click(); });
 console.log('dải:', await p.evaluate(() => { const o = document.querySelector('.tn-canh'); return o.hidden ? 'ẩn' : o.innerText; }));
 await p.click('.tn-canh > button'); await p.waitForTimeout(200); console.log('danh sách:', await p.evaluate(() => [...document.querySelectorAll('.tn-canh .ds button')].map((x) => x.innerText.replace(/\n/g, ' ')).join(' | ')));
@@ -17,5 +18,10 @@ await p.mouse.move(5, 845); await p.click('.tn-canh > button'); await p.waitForT
 const iMay = await p.evaluate(() => [...document.querySelectorAll('.tn-canh .ds button[data-i]')].findIndex((x) => /máy/.test(x.textContent)));
 if (iMay >= 0) { await p.click(`.tn-canh .ds button[data-i="${iMay}"]`); await p.waitForTimeout(2600); console.log('vòng hạn máy chủ:', await p.evaluate(() => document.querySelector('.tp').__vongHan()) > 0 ? '✓ có vòng quanh toà máy' : '— SAI, không có vòng'); }
 else console.log('vòng hạn máy chủ: bỏ qua (không có máy sắp hết hạn trong số hiện tại)');
+// ĐÀI THEO DÕI: nút "Theo dõi tất cả" trên dải → bay tới đài + mở bảng đầy đủ (bồn, máy chủ, tên miền), ô lọc chạy
+await p.mouse.move(5, 845); await p.waitForTimeout(300); await p.click('.tn-canh .mo-dai'); await p.waitForTimeout(2600);
+const dai = await p.evaluate(() => { const n = document.querySelector('.ngan'); return n.hidden ? null : { ten: n.querySelector('.wg-ten').textContent, muc: [...n.querySelectorAll('.xg-ds summary')].map((x) => x.textContent.trim().slice(0, 30)), dong: n.querySelectorAll('.xg-ds > div').length }; });
+console.log('đài theo dõi:', dai && /Theo dõi tài nguyên/.test(dai.ten) && dai.muc.length >= 2 ? `✓ ${dai.dong} dòng · ${dai.muc.join(' | ')}` : '— SAI ' + JSON.stringify(dai));
+if (dai) { await p.fill('.ngan .xg-loc', 'wenoted'); await p.waitForTimeout(200); const con = await p.evaluate(() => [...document.querySelectorAll('.ngan .xg-ds > div')].filter((r) => !r.hidden && r.closest('details').open && r.offsetParent).length); console.log('lọc đài "wenoted":', con === 1 ? '✓ còn 1 dòng, nhìn thấy (mục tự mở)' : `— SAI thấy ${con} dòng`); if (raAnh) await p.screenshot({ path: raAnh + '/dai-tn.png' }); }
 console.log('thẻ bồn có đủ mức + còn ngày:', /Mức/.test(await p.evaluate(() => document.querySelector('.meo').innerText)) ? '✓' : '— SAI');
 await b.close();

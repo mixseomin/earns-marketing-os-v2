@@ -12,7 +12,10 @@ await p.click('.ngan .wg-x').catch(() => {}); await p.click('.ben .wg-x'); await
 const hub = await H('__hubNut'); const D = () => H('__demBien', hub); const n0 = await D(); const nut = await H('__toaDoVat', 'nut-bien'); console.log('biển đang hiện', n0, '· nút ở', nut && [Math.round(nut.x), Math.round(nut.y)]);
 await p.mouse.click(nut.x, nut.y); await p.waitForTimeout(800); await p.mouse.move(5, 845); await p.waitForTimeout(400);
 const n1 = await D(); console.log('bấm nút → biển hiện', n1, n1 === 0 ? '✓ tắt hết' : 'SAI'); if (S) await p.screenshot({ path: S + '/nb-tat.png' });
-const san = await p.evaluate((hub) => document.querySelector(".tp").__toaDoVat("cum-phim", hub), hub); await p.mouse.move(san.x, san.y); await p.waitForTimeout(300); const n2a = await D(); console.log('rê lên sân phim 300 ms → biển hiện', n2a, n2a === 0 ? '✓ chưa lộ (đang chờ, góp ý "bảng quá nhanh")' : 'SAI — lộ ngay'); await p.waitForTimeout(1000);
+// sân phim không bị toà khu đè: thử lần lượt các sân tới khi con trỏ đứng đúng trên sân
+const sans = await p.evaluate((hub) => document.querySelector('.tp').__toaDoVatDs('cum-phim', hub), hub); let san = null;
+for (const c of sans) { await p.mouse.move(c.x, c.y); await p.waitForTimeout(40); if ((await p.evaluate(() => document.querySelector('.tp').__dangSang()))?.loai === 'cum-phim') { san = c; break; } }
+if (!san) console.log('rê lên sân phim: SAI — không tìm được sân trong màn để thử'); await p.mouse.move(5, 845); await p.waitForTimeout(400); if (san) await p.mouse.move(san.x, san.y); await p.waitForTimeout(300); const n2a = await D(); console.log('rê lên sân phim 300 ms → biển hiện', n2a, n2a === 0 ? '✓ chưa lộ (đang chờ, góp ý "bảng quá nhanh")' : 'SAI — lộ ngay'); await p.waitForTimeout(1000);
 const n2 = await D(); console.log('rê lên sân phim → biển hiện', n2, n2 === 1 ? '✓ lộ đúng 1' : 'SAI'); if (S) await p.screenshot({ path: S + '/nb-hover.png' });
 await p.mouse.move(5, 845); await p.waitForTimeout(300); const n3 = await D();
 // rê vào CAMP của phim khi bảng hiệu tắt: chỉ thẻ camp, KHÔNG lộ biển phim (anh 24/10/2026 "hover camp thì không được hiện cái bên dưới")

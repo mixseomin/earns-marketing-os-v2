@@ -78,6 +78,11 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
   for (let i = 0; i < ds.length; i++) {
     const c = ds[i]!; const a = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null;
     for (const l of loiCanMat(s, [{ ...sdLuc(c, 'dau')!, thu_tu: c.thu_tu, co: c.ky_thuat?.co_canh }])) them(c.id, `máy không thấy mặt: ${l}`);
+    // CẬN mà người trong khung NỬA LƯNG suốt shot (đầu lẫn cuối) — cận cảm xúc mất mặt; vai tiền cảnh khung qua vai (nhìn người khác trong khung) thì đúng ý
+    if (/^(cu|mcu|ecu)$/.test(c.ky_thuat?.co_canh ?? '')) for (const n of nguoiKhung(kg, c, 'dau') ?? []) {
+      const dich = dichNhin(c, n, 'dau'); if (dich && (nguoiKhung(kg, c, 'dau') ?? []).includes(dich)) continue;
+      if (thayMat(kg, c, n, 'dau') === false && thayMat(kg, c, n, 'ket') === false) them(c.id, `máy không thấy mặt: #${c.thu_tu} cận "${sdLuc(c)!.may}" mà ${n} quay lưng / nửa lưng cả shot (nhìn ${dich}) — đổi đích nhìn hoặc đặt máy về phía ${n} đang nhìn`);
+    }
     if (!a) continue;
     // TRỤC 180° qua đường cắt: khung CUỐI shot trước ↔ khung ĐẦU shot này
     for (const l of loiTruc(s, [{ ...sdLuc(a, 'ket')!, thu_tu: a.thu_tu }, { ...sdLuc(c, 'dau')!, thu_tu: c.thu_tu }], kg.nguoi)) them(c.id, `qua trục liền nhau: ${l}`);
@@ -167,6 +172,7 @@ export function loiDoDang(ten: string, kv: KyVongDang, k: { nhin?: { doc: number
   if (d != null && kv.dau === 1 && d > 0) out.push(`${ten} không ngẩng (đo ${d}°), sổ dáng cần ngẩng`);
   const TEN = { cao: 'giơ cao', giua: 'ngang ngực', thap: 'buông' } as const;
   for (const b of ['phai', 'trai'] as const) { const can = kv[b], co = k.tay?.[b]; if (!can || !co || can === co) continue;
-    if ((can === 'thap' && co !== 'thap') || (can === 'cao' && co === 'thap') || (can === 'giua' && co === 'thap')) out.push(`${ten} tay ${b === 'phai' ? 'phải' : 'trái'} ${TEN[co as keyof typeof TEN]}, sổ dáng cần ${TEN[can]}`); }
+    // chỉ chỗ TRÁI NGƯỢC RÕ: buông ↔ giơ cao, vươn tới ↔ buông thõng (tay đan trước bụng 'giua' khi sổ ghi buông là AI vẽ tự nhiên, không phải lỗi nối)
+    if ((can === 'thap' && co === 'cao') || (can === 'cao' && co === 'thap') || (can === 'giua' && co === 'thap')) out.push(`${ten} tay ${b === 'phai' ? 'phải' : 'trái'} ${TEN[co as keyof typeof TEN]}, sổ dáng cần ${TEN[can]}`); }
   return out;
 }

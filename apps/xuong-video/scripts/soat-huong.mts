@@ -40,13 +40,17 @@ for (const c of ds) {
     anh.push({ id: ma(c.id, l), url, ten: Object.keys(kv).filter((n) => !kv[n]!.lung), tu_the: true }); }
 }
 const do_ = await soiAnh(db, tap, anh);
+const NHAY_CUI = 15;
 const NHAN: Record<Luc, string> = { dau: 'khung đầu', ket: 'khung cuối', clip_dau: 'clip mở', clip_ket: 'clip đóng' };
 const ketQua = (c: (typeof ds)[number], l: Luc) => {
   const kv = kyVong(c, l); const r0 = do_.get(ma(c.id, l)); if (!Object.keys(kv).length || !r0) return null; const k0 = r0.ket;
   const k: SoiMat['ket'] = k0.filter((x) => x.tin);   // chỉ mặt giống ảnh mẫu đạt ngưỡng
   const loi = loiDoHuong(Object.fromEntries(Object.entries(kv).filter(([, v]) => !v.lung)), k);
   const kg = kgCua(kgt, c);
-  if (r0.mat > soMat(c, l)) loi.push(`thấy ${r0.mat} mặt mà sơ đồ chỉ cho thấy ${soMat(c, l)} — có người chen vào khung (người ngoài khung / người lạ)`);
+  // số mặt: hơn số người TRONG KHUNG (kể người quay lưng) = có người chen vào; hơn số người thấy mặt = người lẽ ra quay lưng / nửa lưng lại lộ mặt
+  const lung = Object.entries(kv).filter(([, v]) => v.lung).map(([n]) => n); const tong = c.ky_thuat?.co_canh === 'insert' ? 0 : Object.keys(kv).length;
+  if (r0.mat > tong) loi.push(`thấy ${r0.mat} mặt mà sơ đồ chỉ có ${tong} người trong khung — có người chen vào (người ngoài khung / người lạ)`);
+  else if (r0.mat > soMat(c, l)) loi.push(`${lung.join(' / ')} lẽ ra quay lưng / nửa lưng mà lộ mặt (thấy ${r0.mat} mặt, sơ đồ cho thấy ${soMat(c, l)})`);
   for (const x of k) {
     const d = kg ? dang(kg, c.thu_tu, x.ten, laDau(l) ? 'dau' : 'ket') : null; if (d) loi.push(...loiDoDang(x.ten, kyVongDang(d.en), x)); }
   return { loi, so: k0.map((x) => `${x.ten}${x.tin ? '' : '(?)'} x=${x.o?.x?.toFixed(2) ?? '?'} nhìn=${x.nhin?.g ?? '?'}° ngẩng=${x.nhin?.doc ?? '?'}°${x.tay ? ` tay P/T=${x.tay.phai ?? '?'}/${x.tay.trai ?? '?'}` : ''}`).join(' · ') };
@@ -62,6 +66,9 @@ for (const c of ds) {
 // ĐƯỜNG CẮT: clip đóng của shot trước ↔ clip mở của shot sau (cùng cảnh) — chỗ khán giả thật sự thấy
 console.log('\nĐƯỜNG CẮT (clip đã dùng):');
 for (let i = 1; i < ds.length; i++) { const a = ds[i - 1]!, b = ds[i]!; if (a.phan_doan !== b.phan_doan) continue; const ka = ketQua(a, 'clip_ket'), kb = ketQua(b, 'clip_dau'); if (!ka && !kb) continue;
-  const l = [...(ka?.loi ?? []).map((x) => `cuối #${a.thu_tu}: ${x}`), ...(kb?.loi ?? []).map((x) => `đầu #${b.thu_tu}: ${x}`)]; console.log(`  #${a.thu_tu}→#${b.thu_tu} ${l.length ? `✗ ${l.join('; ')}` : '✓'}`); }
+  const l = [...(ka?.loi ?? []).map((x) => `cuối #${a.thu_tu}: ${x}`), ...(kb?.loi ?? []).map((x) => `đầu #${b.thu_tu}: ${x}`)];
+  // ĐẦU NHẢY qua cú cắt: cùng người, độ cúi cuối shot trước ↔ đầu shot sau lệch > NHAY_CUI° (cúi rồi ngẩng — anh 24/10/2026)
+  const da = do_.get(ma(a.id, 'clip_ket'))?.ket ?? [], db_ = do_.get(ma(b.id, 'clip_dau'))?.ket ?? [];
+  for (const x of da.filter((q) => q.tin && q.nhin)) { const y = db_.find((q) => q.ten === x.ten && q.tin && q.nhin); if (y && Math.abs(x.nhin!.doc - y.nhin!.doc) > NHAY_CUI) l.push(`${x.ten} đầu nhảy qua cú cắt: cuối #${a.thu_tu} ${x.nhin!.doc}° → đầu #${b.thu_tu} ${y.nhin!.doc}° (+ = cúi)`); } console.log(`  #${a.thu_tu}→#${b.thu_tu} ${l.length ? `✗ ${l.join('; ')}` : '✓'}`); }
 console.log(`\n${truot} shot trượt cổng hướng / dáng`);
 process.exit(0);

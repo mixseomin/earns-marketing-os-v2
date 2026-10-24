@@ -677,7 +677,7 @@
           "Lâm Hạ"
         ],
         "nhin": {
-          "Lâm Hạ": "Lục Thần"
+          "Lâm Hạ": "Vivian"
         }
       },
       "vao": 0,
@@ -916,6 +916,20 @@
         "cach": "chin level, eyes level and alert, NOT looking down",
         "vi": "cằm ngang, mắt ngang cảnh giác (không cúi)",
         "su_kien": "nghe giày cao gót, Hạ quay đầu về phía lối vào"
+      },
+      {
+        "tu": 5,
+        "ai": "Lâm Hạ",
+        "cach": "head bowed slightly, eyes down on Vivian's hand at her chest",
+        "vi": "hơi cúi, mắt nhìn xuống tay Vivian trên ngực",
+        "su_kien": "Hạ cúi nhìn tay Vivian chạm vào thẻ"
+      },
+      {
+        "tu": 7,
+        "ai": "Lâm Hạ",
+        "cach": "chin level, eyes wide, jerked half a step forward",
+        "vi": "bị giật chúi về trước, ngẩng lên, mắt mở to",
+        "su_kien": "dây thẻ đứt, Hạ chúi về trước rồi ngẩng lên sững sờ"
       },
       {
         "tu": 8,

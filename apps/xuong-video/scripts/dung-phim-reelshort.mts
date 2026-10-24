@@ -11,6 +11,7 @@ import type { Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
 import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
+import { loiMach2d } from '../src/lib/xuong-video/khong-gian';
 import { cauVat, dongVat, loiSoVat, NHAN_DANG, NHAN_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
 type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
@@ -32,6 +33,10 @@ if (du.so_do) {
   const tr = [...loiTruc(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1 }] : [])), ng), ...loiCanMat(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1, co: m.co }] : []))),
     // chữ tay trái sơ đồ (mốc đang nhìn bị viết "behind her"…): đầu / ảnh / diễn theo sd, đuôi / giữa theo sd_ket
     ...du.shot.flatMap((m, i) => (m.sd ? [...(['mo', 'vid', 'anh'] as const).flatMap((k) => loiChuSoDo(sd, m.sd!, m[k] ?? '')), ...(['ket', 'giua'] as const).flatMap((k) => loiChuSoDo(sd, sdKet(m)!, m[k] ?? ''))].map((x) => `#${i + 1}: ${x}`) : []))];
+  // CÙNG cổng mạch tập studio đọc (khong-gian.ts › loiMach2d): trục qua cú cắt, nhìn → thấy, tổng thể, sổ dáng / đồ vật, cận mất mặt
+  { const kgThu = { so_do: sd, nguoi: ng, ...(du.so_vat ? { so_vat: du.so_vat } : {}), ...(du.so_dang ? { so_dang: du.so_dang } : {}) };
+    const m2 = loiMach2d(kgThu, du.shot.map((m, i) => ({ id: i + 1, thu_tu: i + 1, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket, co_canh: m.co }, dan_dung: { noi: m.noi } })));
+    for (const v of Object.values(m2)) tr.push(...v); }
   if (tr.length) { console.error(`sơ đồ lỗi (trục 180° / cận mặt quay lưng / chữ trái sơ đồ):\n  ${tr.join('\n  ')}`); process.exit(1); }
 }
 // SỔ ĐỒ VẬT (anh 24/10/2026: "cảnh trước cầm dây thẻ, cảnh sau lại cầm cái thẻ… ôm hộp lúc có lúc không"): mỗi mảnh nhận câu trạng thái đồ từ sổ (người

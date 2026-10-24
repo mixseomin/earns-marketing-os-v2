@@ -110,6 +110,13 @@ console.log('khong-gian.test: ok (sổ liền mạch)');
   // #2 cuối Hạ cúi -25° mà sổ cần ngang → lỗi; #5 đầu tay phải Vivian đã giơ mà sổ cần buông → lỗi; khớp → không lỗi
   assert.strictEqual(loiDoDang('Lâm Hạ', { dau: 0 }, { nhin: { doc: 13.4 } }).length, 1, 'cuối #2 clip cũ: cúi +13,4°'); assert.deepStrictEqual(loiDoDang('Lâm Hạ', { dau: 0 }, { nhin: { doc: 4 } }), []);
   assert.deepStrictEqual(loiDoDang('Lâm Hạ', { dau: -1 }, { nhin: { doc: 23.2 } }), [], '#13 cụp mắt +23°'); assert.strictEqual(loiDoDang('Lâm Hạ', { dau: 1 }, { nhin: { doc: 10 } }).length, 1);
-  assert.strictEqual(loiDoDang('Vivian', { phai: 'thap', trai: 'thap' }, { tay: { phai: 'giua', trai: 'thap' } }).length, 1);
+  assert.strictEqual(loiDoDang('Vivian', { phai: 'thap', trai: 'thap' }, { tay: { phai: 'cao', trai: 'thap' } }).length, 1, '#5 cũ: tay đã giơ lên vai Hạ khi sổ cần buông');
+  assert.deepStrictEqual(loiDoDang('Vivian', { phai: 'thap', trai: 'thap' }, { tay: { phai: 'giua', trai: 'giua' } }), [], 'tay đan trước bụng: không phải lỗi nối');
+  assert.strictEqual(loiDoDang('Vivian', { phai: 'giua' }, { tay: { phai: 'thap' } }).length, 1, 'cần vươn tới mà buông thõng');
   assert.deepStrictEqual(loiDoDang('Vivian', { phai: 'thap' }, { tay: { phai: null } }), [], 'không thấy cổ tay → không phán'); }
 console.log('khong-gian.test: ok (dáng đo được)');
+// CẬN MẤT MẶT: #13 cận Hạ mà khai Hạ nhìn Thần (sau lưng, cửa thang) → nửa lưng cả shot → lỗi; khai nhìn Vivian (thật) → không
+{ const d13 = ds.map((c) => (c.thu_tu === 13 ? { ...c, ky_thuat: { ...c.ky_thuat, sd: { ...c.ky_thuat!.sd!, nhin: { 'Lâm Hạ': 'Lục Thần' } } } } : c));
+  assert.ok((loiMach2d(kg, d13)[113] ?? []).some((x) => x.includes('nửa lưng cả shot')), JSON.stringify(loiMach2d(kg, d13)[113]));
+  assert.ok(!(loiMach2d(kg, ds)[113] ?? []).length); assert.ok(!(loiMach2d(kg, ds)[102] ?? []).length, '#2 nửa lưng đầu nhưng cuối lộ mặt → không lỗi'); }
+console.log('khong-gian.test: ok (cận mất mặt)');

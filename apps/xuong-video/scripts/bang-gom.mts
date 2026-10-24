@@ -32,6 +32,9 @@ const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const tu = Number(gia('tu') || 1); const den = Number(gia('den') || 999);
 const ds: Canh[] = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} AND thu_tu BETWEEN ${tu} AND ${den} ORDER BY thu_tu`)).map(mapCanh);
+// MỘT ĐOẠN của cảnh (--tu / --den không phủ trọn cảnh): sinh lại vài shot — --khoi-truoc=<bảng khối đầu của cả cảnh> làm chuẩn mặt / sảnh / đồ cho khối đầu
+const motDoan = !!ds[0] && ((await q(sql`SELECT count(*)::int AS n FROM xv_canh WHERE tap_id = ${tap} AND phan_doan = ${ds[0].phan_doan}`))[0]!.n as number) > ds.length;
+const khoiTruoc = gia('khoi-truoc') ?? null; if (motDoan && !khoiTruoc && gia('tang') === 'khoi') { console.error('chạy một đoạn cần --khoi-truoc=<bảng khối đầu của cả cảnh> để giữ mặt / sảnh'); process.exit(1); }
 const cot1 = Number(gia('cot') || (ds.length > 12 ? 4 : ds.length > 6 ? 3 : 2));
 const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`))[0]!.phim_id);
 const nv: NhanVat[] = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)).map(mapNhanVat));
@@ -42,9 +45,12 @@ const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc g
 const moc: { t1?: string; t2?: Record<number, string>; khoi?: string[]; khoiSo?: string[] } = existsSync(TEP) ? JSON.parse(readFileSync(TEP, 'utf8')) : {};
 const luu = () => writeFileSync(TEP, JSON.stringify(moc, null, 1));
 /** Ghi tầng vừa xong vào xv_tap.phan_canh_ve (tab Storyboard › 🎬 Phân cảnh) — theo phân đoạn của shot đầu khoảng. */
-async function ghiTap(them: { phac?: string; t1?: string; khoi?: { tu: number; den: number; url: string }[] }) {
-  const pd = ds[0]?.phan_doan ?? ''; const cu = ((await q(sql`SELECT phan_canh_ve FROM xv_tap WHERE id = ${tap}`))[0]?.phan_canh_ve ?? []) as { phan_doan: string }[];
-  const moi = [...cu.filter((x) => x.phan_doan !== pd), { ...(cu.find((x) => x.phan_doan === pd) ?? {}), phan_doan: pd, ...them, luc: new Date().toISOString() }];
+async function ghiTap(them0: { phac?: string; t1?: string; khoi?: { tu: number; den: number; url: string }[] }) {
+  const pd = ds[0]?.phan_doan ?? ''; const cu = ((await q(sql`SELECT phan_canh_ve FROM xv_tap WHERE id = ${tap}`))[0]?.phan_canh_ve ?? []) as { phan_doan: string; khoi?: { tu: number; den: number; url: string }[] }[];
+  // chạy MỘT ĐOẠN (sinh lại vài shot): giữ tổng quan / thumbnail cả cảnh, chỉ thay các khối nằm trong đoạn — tab Phân cảnh vẫn đọc trọn cảnh
+  const cuPd = cu.find((x) => x.phan_doan === pd); const them = { ...them0 };
+  if (motDoan) { delete them.phac; delete them.t1; if (them.khoi) them.khoi = [...(cuPd?.khoi ?? []).filter((k) => k.den < tu || k.tu > den), ...them.khoi].sort((a, b) => a.tu - b.tu); }
+  const moi = [...cu.filter((x) => x.phan_doan !== pd), { ...(cuPd ?? {}), phan_doan: pd, ...them, luc: new Date().toISOString() }];
   await db.execute(sql`UPDATE xv_tap SET phan_canh_ve = ${JSON.stringify(moi)}::jsonb WHERE id = ${tap}`);
 }
 const ten = (id: number) => nv.find((v) => v.id === id);
@@ -258,7 +264,7 @@ if (tang === 'khoi') {
     for (const [i, k] of nhom.entries()) t2[k.key] = await len(await cat(b2, d2.khung[i]!), `t2-${k.c.id}-${k.luc}`);
     moc.khoi![j] = u2; moc.khoiSo![j] = await len(await danhSo(b2, d2.khung, nhom.map((k) => k.nhan)), `khoi-so-${nhom[0]!.key}`); luu();
   };
-  if (!xongKhoi(0)) await sinhKhoi(cacKhoi[0]!, 0, null);
+  if (!xongKhoi(0)) await sinhKhoi(cacKhoi[0]!, 0, khoiTruoc);
   const dau = moc.khoi[0] ?? null;
   await songSong(cacKhoi.map((_, j) => j).filter((j) => j > 0 && !xongKhoi(j)), SONG_SONG, (j) => sinhKhoi(cacKhoi[j]!, j, dau));
   await ghiTap({ khoi: cacKhoi.map((n, j) => ({ tu: n[0]!.c.thu_tu, den: n.at(-1)!.c.thu_tu, url: moc.khoiSo![j] ?? '' })).filter((x) => x.url) });

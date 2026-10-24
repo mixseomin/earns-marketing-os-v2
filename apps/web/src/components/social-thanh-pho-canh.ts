@@ -1546,9 +1546,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: .5, metalness: .2, emissive: '#ffffff', emissiveIntensity: .08 }), fp.length), o3 = new THREE.Object3D(), c3 = new THREE.Color();
         fp.forEach((p, i) => { const h = p.tat ? 1.2 : 2 + Math.log10(1 + (p.nguoi ?? 0)) * 6; o3.position.set(x0F + 4 + (i % COTF) * OF, .5 + h / 2, z0F + 4 + Math.floor(i / COTF) * OF); o3.scale.set(4.4, h, 4.4); o3.updateMatrix(); im.setMatrixAt(i, o3.matrix);
           c3.set(p.tat ? '#3a3f50' : (CUM_PAGE[p.cum] ?? CUM_PAGE['chua-xep']!).mau); if (p.kenh) c3.lerp(new THREE.Color('#ffffff'), .35); im.setColorAt(i, c3); });
-        im.instanceColor.needsUpdate = true; im.castShadow = true; im.frustumCulled = false; im.userData = { loai: 'fanpage', luonVe: true };   // khung bao mặc định của InstancedMesh ở gốc → tắt cắt khung; luonVe: không áp ngưỡng điểm ảnh vật lẻ nenF.userData = { chu: im }; the.add(im);
-        const bn = bienXe(`📄 Kho Fanpage · ${fp.filter((p) => !p.tat).length} đang chạy`, '#4fd1ff'); bn.scale.set(36, 5.4, 1); bn.position.set(x0F + COTF * OF / 2, 30, z0F - 4); bn.userData = { chu: im, gan: GAN_NHAN }; the.add(bn);
-        chiMuc.push({ ten: 'Kho Fanpage', nhan: 'tài nguyên', obj: im }); xTnPhai += COTF * OF + 50; }
+        im.instanceColor.needsUpdate = true; im.castShadow = true; im.frustumCulled = false; im.userData = { chu: nenF, luonVe: true }; nenF.userData = { loai: 'fanpage' }; the.add(im);
+        // ↑ frustumCulled tắt: khung bao mặc định của InstancedMesh ở gốc · luonVe: không áp ngưỡng điểm ảnh vật lẻ · nền lô là vật chính (ô tìm bay tới vị trí của nó; khối gộp đặt ở gốc toạ độ)
+        const bn = bienXe(`📄 Kho Fanpage · ${fp.filter((p) => !p.tat).length} đang chạy`, '#4fd1ff'); bn.scale.set(36, 5.4, 1); bn.position.set(x0F + COTF * OF / 2, 30, z0F - 4); bn.userData = { chu: nenF, gan: GAN_NHAN }; the.add(bn);
+        chiMuc.push({ ten: 'Kho Fanpage', nhan: 'tài nguyên', obj: nenF }); xTnPhai += COTF * OF + 50; }
       // ĐÀI THEO DÕI TÀI NGUYÊN (anh 24/10/2026 "cần chỗ tập trung để theo dõi"): một toà màn hình ở đầu dãy bồn — màn tóm tắt số đỏ / vàng / chưa đo + 3 việc gấp nhất;
       // bấm / rê → bảng đầy đủ mọi bồn, mọi tên miền, mọi máy chủ, chỗ mù (xếp gần hết lên đầu, ô lọc). Dải cảnh báo có nút mở thẳng.
       { const x = xTn + rongL / 2 + 44, z = zA - 26, H = 30;
@@ -2261,6 +2262,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   (host as any).__toaDoDich = (loaiD: string, hub: string) => { const b = r.domElement.getBoundingClientRect(), v = new THREE.Vector3();
     return the.children.filter((x: any) => x.visible && x.userData?.loai === 'dich' && x.userData.d.loai === loaiD && (x.userData.d.cha === hub || x.userData.d.khoa === hub) && !x.userData.bangXh).slice(0, 40)
       .map((o: any) => { o.getWorldPosition(v); v.y += 3; v.project(cam); return { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height }; }).filter((q: any) => q.x > 220 && q.x < b.width - 120 && q.y > 60 && q.y < b.height - 60); };
+  (host as any).__fanpage = () => { let im: any = null; the.traverse((x: any) => { if (!im && x.isInstancedMesh && x.userData?.chu?.userData?.loai === 'fanpage') im = x; }); if (!im) return null;   // bộ kiểm: khối Kho Fanpage
+    const m = new THREE.Matrix4(), v = new THREE.Vector3(); im.getMatrixAt(0, m); v.setFromMatrixPosition(m); return { so: im.count, hien: im.visible, lop: im.layers.mask, cha: im.parent === the, khoi0: v.toArray().map(Math.round), nen: im.userData.chu.position.toArray().map(Math.round) }; };
   (host as any).__toaDoVatDs = (loai: string, hub?: string) => { const b = r.domElement.getBoundingClientRect(), v = new THREE.Vector3(), ra: { x: number; y: number }[] = [];   // bộ kiểm: mọi vật cùng loại (toạ độ màn, trong khung)
     the.traverse((o: any) => { if (ra.length < 60 && o.visible && !o.isSprite && o.userData?.loai === loai && (!hub || o.userData.hub === hub)) { o.getWorldPosition(v); v.project(cam); const q2 = { x: b.left + (v.x + 1) / 2 * b.width, y: b.top + (1 - v.y) / 2 * b.height }; if (q2.x > 220 && q2.x < b.width - 120 && q2.y > 60 && q2.y < b.height - 60) ra.push(q2); } }); return ra; };
   (host as any).__dangSang = () => (dangSang ? { loai: dangSang.userData?.loai ?? null, dLoai: dangSang.userData?.d?.loai ?? null } : null);

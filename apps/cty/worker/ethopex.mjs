@@ -341,9 +341,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   if (tc.length) {
     let ra = []; try { ra = (await chay(THAY, ['--camp', ...tc.map((m) => String(m.id))], 600)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l)); } catch (e) { ra = tc.map((m) => ({ camp: m.id, ok: false, loi: e.message })); }
     const xong = new Set(ra.filter((r) => r.ok).map((r) => r.camp));
-    const dong = ra.map((r) => (r.ok ? `🔁 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b> · đã Update, chờ Meta duyệt lại` : r.viec === 'cho_dung' ? `⏳ #${r.camp} creative #${r.creative_cu}: ${esc(r.loi)}` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || 'không rõ')}`) +
+    const dong = ra.map((r) => (r.ok ? `🔁 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b> · đã Update` + (r.bat ? (r.bat.ok ? ' · ▶ đã bật lại' : ` · ⚠️ chưa bật lại được: ${esc(r.bat.loi || '?')}`) : '') + ' · chờ Meta duyệt lại' : r.viec === 'cho_dung' ? `⏳ #${r.camp} creative #${r.creative_cu}: ${esc(r.loi)}` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || 'không rõ')}`) +
       (r.ly_do ? `\n   ↳ lý do Meta: ${esc(String(r.ly_do).slice(0, 160))}` : '')).join('\n');
-    if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ THAY CREATIVE BỊ META TỪ CHỐI</b> (anh 23/10/2026) — không tắt camp\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
+    if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ THAY CREATIVE BỊ META TỪ CHỐI</b> — thay creative sạch + bật lại camp\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
     kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
     for (const id of xong) lamRoi.add(id);
   }

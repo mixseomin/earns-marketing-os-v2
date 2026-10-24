@@ -96,5 +96,11 @@ def main(a):
                 r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(goc)} --that --lich today --luat 'nhân bản camp thắng bằng GÓC MỚI (đã soát đoạn)' --ai 'máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp)'"], capture_output=True, text=True, timeout=600)
                 print(f"nhân bản #{goc}:", (r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200])
         bo("ethopex_cho_soat", list(san)); print(f"đã đẩy {len(san)} đoạn đã soát")
+        # camp đang bị Meta từ chối chờ góc mới (sua-cta xếp ethopex_cho_dung_lai tu_choi=true) → thay creative + bật lại ngay (anh 24/10/2026:
+        # "báo xong thì phải có con phụ trách fix luôn creative … update + bật lại camp đó")
+        cho = [v.get("goc") for v in khoa("ethopex_cho_dung_lai").values() if v.get("tu_choi") and v.get("goc")]
+        if cho:
+            r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 thay-tu-choi.py --camp {' '.join(str(int(c)) for c in cho)}"], capture_output=True, text=True, timeout=900)
+            print(r.stdout[-1500:], r.stderr[-300:])
 
 if __name__ == "__main__": main(sys.argv[1:])

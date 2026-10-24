@@ -941,8 +941,8 @@
       {
         "tu": 11,
         "ai": "Lâm Hạ",
-        "cach": "chin level, eyes raised",
-        "vi": "cằm ngang, ngước mắt lên",
+        "cach": "chin level, looking at the man stepping out of the elevator",
+        "vi": "cằm ngang, nhìn người bước ra thang",
         "su_kien": "cửa thang mở, Hạ ngẩng lên nhìn Lục Thần"
       },
       {
@@ -1007,8 +1007,8 @@
       {
         "tu": 0,
         "ai": "Lục Thần",
-        "cach": "standing straight, both arms down at his sides, hands empty, chin level",
-        "vi": "đứng thẳng, hai tay buông, cằm ngang"
+        "cach": "standing straight, both arms down at his sides, hands empty, chin slightly down, cold eyes",
+        "vi": "đứng thẳng, hai tay buông, cằm hơi hạ, mắt lạnh"
       }
     ]
   }

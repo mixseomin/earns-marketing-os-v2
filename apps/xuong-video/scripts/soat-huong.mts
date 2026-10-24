@@ -70,5 +70,12 @@ for (let i = 1; i < ds.length; i++) { const a = ds[i - 1]!, b = ds[i]!; if (a.ph
   // ĐẦU NHẢY qua cú cắt: cùng người, độ cúi cuối shot trước ↔ đầu shot sau lệch > NHAY_CUI° (cúi rồi ngẩng — anh 24/10/2026)
   const da = do_.get(ma(a.id, 'clip_ket'))?.ket ?? [], db_ = do_.get(ma(b.id, 'clip_dau'))?.ket ?? [];
   for (const x of da.filter((q) => q.tin && q.nhin)) { const y = db_.find((q) => q.ten === x.ten && q.tin && q.nhin); if (y && Math.abs(x.nhin!.doc - y.nhin!.doc) > NHAY_CUI) l.push(`${x.ten} đầu nhảy qua cú cắt: cuối #${a.thu_tu} ${x.nhin!.doc}° → đầu #${b.thu_tu} ${y.nhin!.doc}° (+ = cúi)`); } console.log(`  #${a.thu_tu}→#${b.thu_tu} ${l.length ? `✗ ${l.join('; ')}` : '✓'}`); }
+// TỜ GHÉP ĐƯỜNG CẮT (cuối shot trước | đầu shot sau, theo thứ tự) — chỗ máy không phán được (tay người quay lưng, khung toàn mặt nhỏ, hai người na ná) soát bằng mắt
+{ const cap: string[] = []; let k = 0;
+  for (let i = 1; i < ds.length; i++) { const a = ds[i - 1]!, b = ds[i]!; const fa = `${thuMuc}/${a.id}-clip_ket.jpg`, fb = `${thuMuc}/${b.id}-clip_dau.jpg`; if (a.phan_doan !== b.phan_doan) continue;
+    const ra = `${thuMuc}/cap_${String(++k).padStart(2, '0')}.jpg`;
+    try { execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', fa, '-i', fb, '-filter_complex', '[0]scale=270:480,pad=280:480:0:0:red[a];[1]scale=270:480[b];[a][b]hstack,pad=560:500:0:0:black', ra]); cap.push(`${k}: #${a.thu_tu}→#${b.thu_tu}`); } catch { k--; } }
+  if (k) { try { execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-framerate', '1', '-i', `${thuMuc}/cap_%02d.jpg`, '-vf', `tile=4x${Math.ceil(k / 4)}`, '-frames:v', '1', `${thuMuc}/to-ghep.jpg`]);
+    console.log(`\nTờ ghép đường cắt: ${thuMuc}/to-ghep.jpg (box3) — ô theo thứ tự trái → phải, trên → dưới: ${cap.join(' · ')}`); } catch (e) { console.error('không ghép được tờ đường cắt', e); } } }
 console.log(`\n${truot} shot trượt cổng hướng / dáng`);
 process.exit(0);

@@ -114,6 +114,7 @@ else
   if [ "$WEB_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f "apps/web/.next/BUILD_ID" ]; then
     # Guard: unquoted camelCase SQL aliases (Postgres lowercases → row read returns null). Cheap, fail-fast.
     node scripts/check-sql-aliases.mjs || { echo "✗ SQL alias guard failed — abort deploy"; exit 1; }
+    node scripts/check-chu-ui.mjs || { echo "✗ chữ giao diện còn mã nội bộ (luật anh 25/10/2026) — abort deploy"; exit 1; }
     # Guard: behavioral-canon single-source (account slug must canon, selector_overrides one write-path).
     # Stops the 3 P0 drift classes from recurring in a brand-new chat. See lib/canon + decision 2026-06-25.
     node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }

@@ -409,7 +409,7 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
         <BaoLuat du={du} />
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(320px, 2fr)', gap: 16 }}>
           <div>
-            <h3 style={{ fontSize: 14 }}>Rào chắn (etp.cau_hinh)</h3>
+            <h3 style={{ fontSize: 14 }}>Rào chắn ngân sách</h3>
             {du.cauHinh.map((c) => <div key={c.khoa} style={{ fontSize: 12, padding: '6px 0', borderTop: '1px solid var(--line)' }}><b>{c.khoa}</b> = <code>{JSON.stringify(c.gia_tri)}</code><div style={{ color: 'var(--fg-2)' }}>{c.ghi}</div></div>)}
             <h3 style={{ fontSize: 14, marginTop: 16 }}>Cảnh báo</h3>
             {du.canhBao.length ? du.canhBao.map((c, i) => <div key={i} style={{ fontSize: 12, padding: '5px 0', borderTop: '1px solid var(--line)' }}>{c.muc === 'do' ? '🔴' : '🟡'} {vn(c.luc)} — {c.noi_dung}</div>) : <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Chưa có cảnh báo.</div>}

@@ -231,11 +231,21 @@ function TabNgay({ du }: { du: DuLieuEthopex }) {
 
 // THỂ LOẠI × THỨ TRONG TUẦN (anh 24/10/2026): bảng nhiệt — hàng thể loại (chi nhiều trước), cột T2–CN + cả tuần; ô = ROI, màu = lệch so với ROI
 // cả tuần của chính thể loại (xanh = thứ đó tốt hơn bình thường, đỏ = kém hơn); ô chưa đủ mẫu (chi < chi_du hoặc < 2 ngày) mờ + gạch chân chấm.
+// cùng bảng nhiệt cho 4 góc nhìn (anh 24/10/2026 "làm luôn"): thứ trong tuần · giờ VN · vòng đời (ngày tuổi camp) · dạng creative
+type GocTl = 'thu' | 'gio' | 'vong' | 'dang';
+const GOC_TL: Record<GocTl, { nhan: string; cot: string[]; ghi: string }> = {
+  thu: { nhan: 'Thứ trong tuần', cot: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'], ghi: 'ngày Ethopex 07:00–07:00 VN · cần ≥ 4 tuần mới kết luận' },
+  gio: { nhan: 'Giờ VN', cot: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), ghi: 'doanh thu Ethopex ghi theo đợt (không đều từng giờ) → đọc xu hướng khung giờ, đừng đọc từng giờ lẻ' },
+  vong: { nhan: 'Vòng đời camp', cot: ['N0', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7+'], ghi: 'N0 = ngày camp lên, N1 = ngày thứ hai… — creative bão hoà khi ROI đi xuống theo ngày tuổi · mẫu = số camp' },
+  dang: { nhan: 'Dạng creative', cot: ['Kể chuyện', 'Cảnh thật', 'Cảnh cuối', 'Phim dài', 'Làm mới', 'Khác'], ghi: 'dạng theo tên camp · mẫu = số phim' },
+};
 function TabTheLoai({ du }: { du: DuLieuEthopex }) {
   const t = du.theLoaiThu;
+  const [goc, setGoc] = useState<GocTl>('thu');
   if (!t) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Chưa có số — chạy scripts/ethopex/the-loai.py trên box3.</div>;
-  const THU = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-  const hang = Object.keys(t.bang).filter((k) => k !== '*').sort((a, b) => (t.bang[b]!['*']?.chi ?? 0) - (t.bang[a]!['*']?.chi ?? 0));
+  const bangGoc = (goc === 'thu' ? t.bang : goc === 'gio' ? t.gio : goc === 'vong' ? t.vong_doi : t.dang) ?? {};
+  const THU = GOC_TL[goc].cot;
+  const hang = Object.keys(bangGoc).filter((k) => k !== '*').sort((a, b) => (bangGoc[b]!['*']?.chi ?? 0) - (bangGoc[a]!['*']?.chi ?? 0));
   const mau = (o?: { lech: number | null; du: boolean }) => { if (!o || o.lech == null) return 'transparent'; const a = Math.min(1, Math.abs(o.lech) / 80) * (o.du ? 0.55 : 0.2); return o.lech >= 0 ? `rgba(46,204,113,${a})` : `rgba(231,76,60,${a})`; };
   const o = (x?: { roi: number | null; chi: number; thu: number; ngay: number; phim: number; du: boolean; lech: number | null }, tong = false) => (
     <td title={x ? `chi ${usd(x.chi)} → thu ${usd(x.thu)} · ${x.ngay} ngày · ${x.phim} phim${x.lech != null ? ` · lệch ${x.lech > 0 ? '+' : ''}${x.lech} điểm so với cả tuần` : ''}${x.du ? '' : ' · CHƯA ĐỦ MẪU'}` : 'chưa có số'}
@@ -244,15 +254,16 @@ function TabTheLoai({ du }: { du: DuLieuEthopex }) {
     </td>);
   return (
     <div style={{ overflowX: 'auto' }}>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '4px 0 10px' }}>
-        {t.tu} → {t.den} · {t.so_ngay} ngày Ethopex (07:00–07:00 VN, bỏ hôm nay chưa khép){t.so_ngay < 28 ? ` · cần ≥ 28 ngày (4 tuần) mới kết luận — hiện là số đang tích luỹ` : ''} · ô mờ = chưa đủ mẫu (chi &lt; {usd(t.chi_du)} hoặc &lt; 2 ngày) · màu = lệch so với ROI cả tuần của chính thể loại
+      <Segmented<GocTl> value={goc} onChange={setGoc} options={(Object.keys(GOC_TL) as GocTl[]).map((k) => ({ value: k, label: GOC_TL[k].nhan }))} />
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '8px 0 10px' }}>
+        {t.tu} → {t.den} · {t.so_ngay} ngày (bỏ hôm nay chưa khép) · {GOC_TL[goc].ghi} · ô mờ = chưa đủ mẫu (chi &lt; {usd(t.chi_du)}) · màu = lệch so với ROI chung của chính thể loại
       </div>
-      <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: 760, width: '100%' }}>
-        <thead><tr><th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>Thể loại</th>{THU.map((th) => <th key={th} style={{ textAlign: 'right', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>{th}</th>)}<th style={{ textAlign: 'right', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>Cả tuần</th></tr></thead>
+      <table style={{ borderCollapse: 'collapse', fontSize: goc === 'gio' ? 11 : 13, minWidth: goc === 'gio' ? 1400 : 760, width: '100%' }}>
+        <thead><tr><th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>Thể loại</th>{THU.map((th) => <th key={th} style={{ textAlign: 'right', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>{goc === 'gio' ? `${th}h` : th}</th>)}<th style={{ textAlign: 'right', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>Chung</th></tr></thead>
         <tbody>
-          {['*', ...hang].map((k) => (
-            <tr key={k}><td style={{ padding: '6px 8px', borderBottom: '1px solid var(--line)', fontWeight: k === '*' ? 700 : 400, whiteSpace: 'nowrap' }}>{k === '*' ? 'Tất cả' : t.the_loai[k] ?? k} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{t.bang[k]!['*']?.phim ?? 0} phim</span></td>
-              {THU.map((th) => <Fragment key={th}>{o(t.bang[k]![th])}</Fragment>)}{o(t.bang[k]!['*'], true)}</tr>))}
+          {['*', ...hang].filter((k) => bangGoc[k]).map((k) => (
+            <tr key={k}><td style={{ padding: '6px 8px', borderBottom: '1px solid var(--line)', fontWeight: k === '*' ? 700 : 400, whiteSpace: 'nowrap' }}>{k === '*' ? 'Tất cả' : t.the_loai[k] ?? k} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{t.bang[k]?.['*']?.phim ?? 0} phim</span></td>
+              {THU.map((th) => <Fragment key={th}>{o(bangGoc[k]?.[th])}</Fragment>)}{o(bangGoc[k]?.['*'], true)}</tr>))}
         </tbody>
       </table>
     </div>

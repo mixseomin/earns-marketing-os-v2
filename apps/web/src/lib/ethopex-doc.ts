@@ -17,7 +17,7 @@ export type NgayEtp = { ngay: string; chi: number; thu: number };
 /** theoNgay: Report group_by date (theo ngày quảng cáo — vài ngày gần còn tăng) · tienMoi: tiền thật vào/ra mỗi ngày VN từ điểm chụp cộng dồn (so-ngay.py) */
 /** thể loại × thứ trong tuần (scripts/ethopex/the-loai.py → studio ethopex_the_loai_thu) */
 export type OTlThu = { chi: number; thu: number; roi: number | null; ngay: number; phim: number; du: boolean; lech: number | null };
-export type TheLoaiThu = { luc: string; tu: string | null; den: string | null; so_ngay: number; the_loai: Record<string, string>; bang: Record<string, Record<string, OTlThu>>; chi_du: number } | null;
+export type TheLoaiThu = { luc: string; tu: string | null; den: string | null; so_ngay: number; the_loai: Record<string, string>; bang: Record<string, Record<string, OTlThu>>; chi_du: number; gio?: Record<string, Record<string, OTlThu>>; vong_doi?: Record<string, Record<string, OTlThu>>; dang?: Record<string, Record<string, OTlThu>> } | null;
 export type DuLieuEthopex = { theLoaiThu?: TheLoaiThu; ngayUtc?: boolean; luc: string; camps: CampEtp[]; phimThang: number[]; hangCho: PhimCho[]; theoNgay: NgayEtp[]; tienMoi: (NgayEtp & { du: boolean })[]; ngayCamp: (NgayEtp & { camp: number })[]; loi: string | null };
 
 let nho: { luc: number; data: DuLieuEthopex } | null = null;

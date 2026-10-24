@@ -7,7 +7,7 @@ Luật: mọi đoạn đi qua len-creative.py phải có MỘT trong ba:
   (b) lô đã soát tờ khung từng đoạn trước khi lên (dot-phim-moi / phim-moi gọi len-creative --da-soat) → ghi luôn (a)
   (c) đúng đoạn đó đang có creative Meta đã duyệt và đang giao (dựng lại CTA cùng đoạn)
 Không có → GIỮ LẠI, không đẩy: tờ khung 30 ô ~/.cache/ethopex/cho-soat/<content>-<tu>-<den>.jpg (iMac) + hàng studio ['ethopex_cho_soat'].
-Soát (Claude xem trong phiên, không gọi API trả tiền) — CẤM khi có: khoả thân / gợi dục, ĐỤNG CHẠM / CƯỠNG ÉP TÌNH DỤC (kéo áo, đè, "Stop!", nạn nhân
+Máy soát ngay bằng Claude API (anh duyệt 24/10/2026): ok → đẩy, cam → bỏ, không chắc → giữ cho Claude trong phiên / anh. Tiêu chí CẤM: khoả thân / gợi dục, ĐỤNG CHẠM / CƯỠNG ÉP TÌNH DỤC (kéo áo, đè, "Stop!", nạn nhân
 khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự hại. Một khung dính là cấm cả đoạn.
   python3 soat_doan.py ds                          → đoạn đang chờ soát + đường tờ khung
   python3 soat_doan.py ok|cam <khoá> … [--ghi "…"]  → ghi kết quả (cam: đoạn này không bao giờ được cắt lại — goc_moi / sua-cta tránh)
@@ -56,6 +56,39 @@ def to_khung(f, k):
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f, "-vf", f"fps=30/{d},scale=200:-2,tile=6x5", "-frames:v", "1", o], check=False)
     return o if os.path.exists(o) else None
 
+# MÁY SOÁT BẰNG CLAUDE (anh duyệt 24/10/2026: "Cho gọi Claude API", ~$0,005/đoạn): tờ khung 30 ô → ok / cam / xem. Chỉ "ok" chắc chắn mới cho qua;
+# "xem" (không chắc) giữ lại cho Claude trong phiên / anh. Khoá ANTHROPIC_API_KEY chỉ có trên box3 → iMac gửi tờ khung sang box3 gọi.
+MO_HINH = "claude-haiku-5-5"
+HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama, to be used as a Facebook/Instagram video ad. "
+       "Decide if Meta would reject it under Adult Nudity / Adult Sexual Exploitation / Violent or Graphic Content / Dangerous content. "
+       "BAN (cam) if ANY frame shows: nudity or exposed intimate parts; sexual acts or strongly sexualised posing; non-consensual or forced sexual touching, "
+       "a man grabbing / pinning / tearing clothes of a woman, a victim crying or disheveled right after a struggle, any suggested sexual threat; "
+       "blood, gore, injuries; a weapon pointed at a person or used; self-harm; drug use. "
+       "Ordinary drama (arguments, slaps without blood, kneeling, crying from sadness, kissing fully clothed, business suits, parties) is OK. "
+       "If unsure, answer 'xem'. Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\"}")
+
+def ai_box(jpg):
+    """chạy TRÊN BOX3: gọi Claude xem một tờ khung → {ket, ly}"""
+    import base64, urllib.request
+    b64 = base64.b64encode(open(jpg, "rb").read()).decode()
+    body = {"model": MO_HINH, "max_tokens": 200, "messages": [{"role": "user", "content": [
+        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}, {"type": "text", "text": HOI}]}]}
+    r = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(), method="POST",
+                               headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01", "content-type": "application/json"})
+    t = json.load(urllib.request.urlopen(r, timeout=120))["content"][0]["text"]
+    j = json.loads(t[t.index("{"): t.rindex("}") + 1])
+    return {"ket": j.get("ket") if j.get("ket") in ("ok", "cam", "xem") else "xem", "ly": str(j.get("ly", ""))[:200]}
+
+def ai(to):
+    """từ iMac: gửi tờ khung sang box3, gọi ai_box → {ket, ly}; lỗi thì 'xem' (giữ lại)"""
+    if not to or not os.path.exists(to): return {"ket": "xem", "ly": "không có tờ khung"}
+    try:
+        dich = f"/root/etp-soat/{os.path.basename(to)}"
+        subprocess.run(["ssh", B, "mkdir -p /root/etp-soat"], check=True, timeout=60); subprocess.run(["scp", "-q", to, f"{B}:{dich}"], check=True, timeout=300)
+        r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 soat_doan.py ai-box {dich}"], capture_output=True, text=True, timeout=300)
+        return json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception as e: return {"ket": "xem", "ly": f"máy soát lỗi: {type(e).__name__}: {str(e)[:100]}"}
+
 def loc(lo, ma, dang, da_soat=False):
     """cổng cho len-creative: → (đoạn được đẩy, số đoạn giữ lại chờ soát). Đoạn soát cấm thì bỏ hẳn (x['loi'])."""
     s = khoa("ethopex_soat_doan"); duyet = meta_duyet({x["content_id"] for x in lo}); di, giu, ghi = [], {}, {}
@@ -65,6 +98,12 @@ def loc(lo, ma, dang, da_soat=False):
         elif v and v.get("ok") is False: print(f"SOÁT ĐOẠN: {k} đã bị cấm ({v.get('ghi', '')[:80]}) — bỏ", flush=True)
         elif (v and v.get("ok")) or k in duyet: di.append(x)
         else: giu[k] = {"x": x, "ma": ma, "dang": dang, "to": to_khung(x["file"], k), "luc": vn()}
+    for k in list(giu):   # máy soát ngay: ok → đẩy luôn lượt này, cam → bỏ, xem → giữ chờ người
+        kq = ai(giu[k]["to"]); print(f"SOÁT ĐOẠN (Claude): {k} → {kq['ket']} · {kq['ly']}", flush=True)
+        if kq["ket"] == "xem": giu[k]["may"] = kq["ly"]; continue
+        ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude: {kq['ly']}"}
+        if kq["ket"] == "ok": di.append(giu[k]["x"])
+        del giu[k]
     if ghi: gop("ethopex_soat_doan", ghi)
     if giu:
         gop("ethopex_cho_soat", giu)
@@ -73,6 +112,7 @@ def loc(lo, ma, dang, da_soat=False):
 
 def main(a):
     lenh = a[0] if a else "ds"
+    if lenh == "ai-box": print(json.dumps(ai_box(a[1]), ensure_ascii=False)); return
     if lenh == "ds":
         h = khoa("ethopex_cho_soat")
         for k, v in h.items(): print(k, "·", v["x"].get("ten", "")[:50], "·", v["dang"], "· lô", v["ma"], "· tờ khung (iMac):", v.get("to"))

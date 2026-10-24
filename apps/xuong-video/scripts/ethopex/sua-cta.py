@@ -119,7 +119,12 @@ def goc_moi(ma, bao, nb):
     if xong: sql("update xv_khoa_ngoai set gia_tri = gia_tri - array[" + ",".join(f"'{c}'" for c in xong) + "] where ten='ethopex_can_goc_moi'")
 
 def main():
-    a = sys.argv[1:]; chi = set(a[a.index("--chi") + 1:]) if "--chi" in a else None; nb = "--khong-nb" not in a
+    a = sys.argv[1:]
+    if "--tu-choi" in a:   # tiến trình ethopex-sua-tu-choi (launchd iMac, 10 phút, anh duyệt 24/10/2026): chỉ ad bị Meta từ chối đang chờ góc mới; rỗng thì thoát ngay
+        tc = [k for k, v in khoa("ethopex_cho_dung_lai").items() if v.get("tu_choi")]
+        if not tc: return
+        a = ["--khong-truoc", "--chi", *tc]
+    chi = set(a[a.index("--chi") + 1:]) if "--chi" in a else None; nb = "--khong-nb" not in a
     lk = open(os.path.join(C, "sua-cta.lock"), "w")
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("sua-cta đang chạy ở lượt khác — thoát")

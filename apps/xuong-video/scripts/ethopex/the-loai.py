@@ -64,9 +64,43 @@ def main():
     for tl, ds in bang.items():   # lệch so với ROI cả tuần của chính thể loại
         rt = ds.get("*", {}).get("roi")
         for th, x in ds.items(): x["lech"] = (x["roi"] - rt) if (x["roi"] is not None and rt is not None and th != "*") else None
+    # ── 3 BẢNG THÊM (anh 24/10/2026 "làm luôn"): GIỜ × thể loại · VÒNG ĐỜI (ROI theo ngày tuổi camp) × thể loại · DẠNG creative × thể loại
+    def rp(cols, gb):
+        bb = json.dumps({"columns": cols, "group_by": gb, "filters": {}, "metric_conditions": [], "limit": 50000, "page": 1, "page_size": 50000, "date_from": "2026-10-20", "date_to": (nay - dt.timedelta(days=1)).isoformat()}).encode()
+        return json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=bb, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=240))["rows"]
+    def gop(dst, tl, cot, c, r, mau_ngay, mau_phim):
+        for k in ((tl, cot), (tl, "*"), ("*", cot), ("*", "*")):
+            e = dst.setdefault(k, [0.0, 0.0, set(), set()]); e[0] += c; e[1] += r; e[2].add(mau_ngay); e[3].add(mau_phim)
+    def thanh_bang(src, so_mau=2):
+        out = {}
+        for (tl, cot), e in src.items(): out.setdefault(tl, {})[cot] = {"chi": round(e[0], 2), "thu": round(e[1], 2), "roi": roi(e), "ngay": len(e[2]), "phim": len(e[3]), "du": e[0] >= CHI_DU and len(e[3]) >= so_mau}
+        for tl, ds in out.items():
+            rt = ds.get("*", {}).get("roi")
+            for cot, x in ds.items(): x["lech"] = (x["roi"] - rt) if (x["roi"] is not None and rt is not None and cot != "*") else None
+        return out
+    g = {}
+    for x in rp(["content_name", "hour", "cost", "revenue"], ["content_name", "hour"]):   # giờ báo cáo = giờ UTC → đổi giờ VN
+        c, r = float(x.get("cost") or 0), float(x.get("revenue") or 0)
+        if c == 0 and r == 0: continue
+        i = str(x.get("content_group_id")); tl = so.get(i, {}).get("tl") or doan(x.get("content_group_name")); h = f"{(int(x['hour']) + 7) % 24:02d}"
+        gop(g, tl, h, c, r, h, i)
+    camps = {c["id"]: c for c in json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/campaigns?page_size=1000", headers={"authorization": "Bearer " + T, "user-agent": "mos2-the-loai"}), timeout=120))["data"]}
+    vd, dg = {}, {}
+    DANG = [("ke chuyen", "Kể chuyện"), ("canh that", "Cảnh thật"), ("canh cuoi", "Cảnh cuối"), ("phim dai", "Phim dài"), ("lam moi", "Làm mới")]
+    for x in rp(["campaign_name", "content_name", "date", "cost", "revenue"], ["campaign_name", "content_name", "date"]):
+        c, r = float(x.get("cost") or 0), float(x.get("revenue") or 0)
+        if c == 0 and r == 0: continue
+        i = str(x.get("content_group_id")); tl = so.get(i, {}).get("tl") or doan(x.get("content_group_name")); cid = x.get("campaign_id")
+        tao = (camps.get(cid) or {}).get("created_at")
+        if tao:
+            tuoi = (dt.date.fromisoformat(str(x["report_date"])[:10]) - dt.date.fromisoformat(tao[:10])).days
+            gop(vd, tl, ("N" + str(tuoi)) if tuoi < 7 else "N7+", c, r, str(cid), str(cid))   # mẫu = số camp
+        ten = (x.get("campaign_name") or "").lower(); dang = next((v for k, v in DANG if k in ten), "Khác")
+        gop(dg, tl, dang, c, r, str(cid), i)
+    them = {"gio": thanh_bang(g), "vong_doi": thanh_bang(vd, 3), "dang": thanh_bang(dg)}
     ngay = sorted({d for e in o.values() for d in e[2]})
     kq = {"luc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "tu": ngay[0] if ngay else None, "den": ngay[-1] if ngay else None, "so_ngay": len(ngay),
-          "the_loai": TL, "bang": bang, "chi_du": CHI_DU, "phim": {i: v["tl"] for i, v in so.items()}}
+          "the_loai": TL, "bang": bang, "chi_du": CHI_DU, "phim": {i: v["tl"] for i, v in so.items()}, **them}
     v = json.dumps(so, ensure_ascii=False).replace("'", "''")
     q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_the_loai', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
     v = json.dumps(kq, ensure_ascii=False).replace("'", "''")
@@ -89,5 +123,11 @@ def main():
         o_ = lambda x: (f"{x['roi']:+d}%" + ("" if x["du"] else "·") if x and x["roi"] is not None else "—")
         print(f"{ten[:28]:28s}" + "".join(f"{o_(ds.get(th)):>9s}" for th in THU) + f"{o_(ds.get('*')):>8s} ${ds['*']['chi']:.0f}")
     print("(· = chưa đủ mẫu: chi < $%d hoặc < 2 ngày)" % CHI_DU)
+    o_ = lambda x: (f"{x['roi']:+d}%" + ("" if x["du"] else "·") if x and x["roi"] is not None else "—")
+    for ten_b, cots in (("vong_doi", ["N0", "N1", "N2", "N3", "N4", "N5", "N6", "N7+"]), ("dang", ["Kể chuyện", "Cảnh thật", "Cảnh cuối", "Phim dài", "Làm mới"])):
+        print(f"\n{ten_b.upper()}"); print(f"{'':28s}" + "".join(f"{c[:9]:>10s}" for c in cots))
+        for t in ["*"] + hang:
+            ds = kq[ten_b].get(t, {}); print(f"{('TẤT CẢ' if t == '*' else TL[t])[:28]:28s}" + "".join(f"{o_(ds.get(c)):>10s}" for c in cots))
+    gi = kq["gio"].get("*", {}); print("\nGIỜ VN (tất cả):", " ".join(f"{h}h {o_(gi.get(h))}" for h in sorted(k for k in gi if k != "*")))
 
 if __name__ == "__main__": main()

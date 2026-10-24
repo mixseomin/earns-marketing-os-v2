@@ -30,7 +30,7 @@ const NHOM = [
   ['ha', '↘ <b>GIẢM BẬC</b> — sáng: hôm qua ROI < 0% và 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày, $20 về $10) · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30% (Support); sau giảm khoá tăng 24 giờ', (m) => (m.dich ? [{ text: `↘ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
   ['giam', '↓ <b>ROI TỤT</b> — phim down trend / creative bão hoà, xem giảm hoặc tắt', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% (Support 23/10)', (m) => [{ text: `✅ #${m.id} lên $30`, callback_data: `et:tang:${m.id}:30` }, { text: 'Giữ $20', callback_data: `et:bo:${m.id}` }]],
-  ['moc30', '★ <b>CHẠM MỐC $30 MÀ VẪN LÃI</b> — hỏi Support cách scale bài viết cũ + bid ROAS', null],
+  ['moc30', '★ <b>ĐỦ TIÊU CHÍ BID ROAS</b> — chi ≥ $100, ROI ≥ 50% ổn định 2–3 ngày trọn (Support 24/10/2026)', null],
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
   ['loi_may', '⚙️ <b>LỖI MÁY</b> — đọc API Ethopex vẫn lỗi sau 3 lần thử; nhịp sau tự đọc lại, anh không cần làm gì (tin tự xoá)', null],
 ];

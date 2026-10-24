@@ -93,6 +93,7 @@ dat, theo, giam, dau_phien, moc30 = [], [], [], [], []
 KHUNG_DEM = 0 <= vn.hour < 5 and not TANG_CHOT   # ngày UTC (tang_chot) thì 0–5h VN số hôm nay đã có thật, không cần mượn hôm qua
 LD_SIET = bool(DUYET.get("ld_siet"))
 hqua = bc(d(1), d(1))
+ROAS_CHI = 100; _ngay3 = {1: hqua, 2: bc(d(2), d(2)), 3: bc(d(3), d(3))}   # ngày trọn D−1..D−3 cho tiêu chí bid ROAS
 for cid, a in sorted(thang.items()):
     h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); r = roi(a)
     if KHUNG_DEM:
@@ -120,7 +121,12 @@ for cid, a in sorted(thang.items()):
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100
         dich = 3 if rh >= 100 else 2
         if rh > 50 and dich > a["budget"]: dau_phien.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g} → ${dich} · ROI hôm nay {rh:+.0f}% · lãi hôm nay ${h.get('thu', 0) - h['chi']:+.2f}"))
-    if a["chi"] >= 30 and a["thu"] > a["chi"]: moc30.append((cid, f"#{a['ten'][:70]} · đã tiêu ${a['chi']:.2f} trong 30 ngày, vẫn lãi ${a['thu'] - a['chi']:+.2f} → hỏi Support cách scale bài viết cũ + bid ROAS"))
+    # ĐỦ TIÊU CHÍ BID ROAS (Support Dol 24/10/2026, anh chuyển: "camp tiêu cost ~ > $100 mà ROI > 50% ổn định 2–3 ngày có thể áp dụng ROAS; mốc $30 chưa
+    # phải đủ tiêu chí"): chi 30 ngày ≥ $100 · mọi ngày TRỌN có chi ≥ $1 trong 3 ngày gần nhất ROI ≥ 50%, tối thiểu 2 ngày như vậy · ROI 30 ngày ≥ 50%
+    _ng = [(n, (_ngay3[n].get(cid) or {"chi": 0.0, "thu": 0.0})) for n in (1, 2, 3)]
+    _co = [(n, x) for n, x in _ng if x["chi"] >= 1]
+    if a["chi"] >= ROAS_CHI and r is not None and r >= 50 and len(_co) >= 2 and all(roi(x) >= 50 for n, x in _co):
+        moc30.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g}/ngày · chi ${a['chi']:.2f}, lãi ${a['thu'] - a['chi']:+.2f}, {rd(cid)} {r:+.0f}% · " + " · ".join(f"{d(n)[8:10]}/{d(n)[5:7]} {roi(x):+.0f}%" for n, x in _co) + " → đủ tiêu chí bid ROAS"))
     g2, t2 = gan.get(cid), truoc.get(cid)
     if g2 and t2 and g2["chi"] >= 1.5 and t2["chi"] >= 1.5 and (g2["chi"] + t2["chi"]) >= 3:
         rg, rt = roi(g2), roi(t2)
@@ -222,15 +228,16 @@ for cid, a in thang.items():
     y, h = hqua.get(cid, {"chi": 0.0, "thu": 0.0}), hom.get(cid, {"chi": 0.0, "thu": 0.0})
     g2 = {"chi": y["chi"] + h.get("chi", 0.0), "thu": y["thu"] + h.get("thu", 0.0)}
     if g2["chi"] < ns: continue
-    r2 = roi(g2)
-    if r2 is None or r2 >= ROI_GIAM_SOM: continue
+    r2 = roi(g2); rh = roi(h) if h.get("chi", 0) >= 0.3 else None
+    if r2 is None or (r2 >= ROI_GIAM_SOM and not (ns >= 20 and rh is not None and rh < 0)): continue
     try: _lt = max(NT.lan_tang(api, cid) or [None], key=lambda t: t or dt.datetime.min.replace(tzinfo=dt.timezone.utc))
     except Exception: _lt = None
     vua_tang = _lt is not None and (dt.datetime.now(dt.timezone.utc) - _lt).total_seconds() < 48 * 3600
-    dich = 10 if (vua_tang and r2 < 0 and ns >= 20) else NT.xuong(ns, 1)
+    am = vua_tang and ns >= 20 and ((rh is not None and rh < 0) or r2 < 0)   # anh: "lên $20 nhưng hôm nay âm thì phải giảm xuống $10"
+    dich = 10 if am else NT.xuong(ns, 1)
     try: ly = NT.chan_giam(api, cid)
     except Exception: ly = None
-    if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}% < {ROI_GIAM_SOM}% (chi ${g2['chi']:.2f})" + (" · vừa tăng mà âm: về $10" if dich == 10 and ns >= 20 and vua_tang and r2 < 0 else "") + " · giảm sớm (Support)"))
+    if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}%" + (f" · hôm nay {rh:+.0f}%" if rh is not None else "") + f" (chi ${g2['chi']:.2f})" + (" · vừa tăng lên $20 mà hôm nay âm: về $10" if am else f" < {ROI_GIAM_SOM}%") + " · giảm sớm (Support)"))
 tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).
@@ -332,7 +339,7 @@ in_("CẦN TẮT (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < �
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (CHỜ ANH DUYỆT):", tang30, "(chưa có)")
-in_("CHẠM MỐC $30 MÀ VẪN LÃI — hỏi Support scale bài viết cũ + bid ROAS:", moc30, "(chưa có)")
+in_("ĐỦ TIÊU CHÍ BID ROAS (chi ≥ $100, ROI ≥ 50% ổn định 2–3 ngày trọn):", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("CẦN XEM GIẢM / TẮT (ROI tụt — phim down trend hoặc creative bão hoà, CPC/CPA tăng) — CHỜ ANH QUYẾT:", giam)
 in_("GẦN ĐẠT (theo dõi tiếp):", theo)

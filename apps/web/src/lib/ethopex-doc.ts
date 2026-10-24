@@ -46,7 +46,8 @@ export async function docEthopex(lamMoi = false): Promise<DuLieuEthopex> {
     const lo = await Promise.all(ids.slice(i, i + 12).map((id) => goiEthopex<CtCamp>(db, `/api/v1/campaigns/${id}`)));
     for (const x of lo) if (x.ok) ct.push(x.data);
   }
-  const [thang, hom, homQua, gan, truoc] = await Promise.all([baoCao(`${nay.slice(0, 8)}01`, nay), baoCao(nay, nay), baoCao(lui(1), lui(1)), baoCao(lui(2), nay), baoCao(lui(6), lui(3))]);
+  // 'thang' = 30 NGÀY TRƯỢT (anh 24/10/2026: tháng lịch về 1 ngày mỗi mùng 1; camp < 30 ngày thì là số từ lúc lên)
+  const [thang, hom, homQua, gan, truoc] = await Promise.all([baoCao(lui(29), nay), baoCao(nay, nay), baoCao(lui(1), lui(1)), baoCao(lui(2), nay), baoCao(lui(6), lui(3))]);
   // studio: phim + link phim trên site gốc (kinh_thanh.qc.link) + poster + video xuất mới nhất + ảnh khung đầu (cảnh #1)
   const sx = (await db.execute(sql`SELECT p.id, p.ten, (p.kinh_thanh->'ethopex'->>'creative_id')::int AS cr, p.kinh_thanh->>'ngon_ngu' AS nn,
       p.kinh_thanh->'qc'->>'link' AS link, p.poster_url AS poster, p.kinh_thanh->>'the_loai' AS loai,

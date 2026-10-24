@@ -72,7 +72,7 @@ function NganCamp({ c, onClose }: { c: Dong; onClose: () => void }) {
         { key: 'ns', label: 'Ngân sách', value: `$${c.ngan_sach}` },
         { key: 'chi', label: 'Chi tháng', value: usd(c.thang.chi) },
         { key: 'lai', label: 'Lãi tháng', value: usd(c.thang.thu - c.thang.chi), color: mauTien(c.thang.thu - c.thang.chi) },
-        { key: 'roi', label: 'ROI tháng', value: pct(r), color: mauTien(r ?? 0) },
+        { key: 'roi', label: 'ROI 30 ngày', value: pct(r), color: mauTien(r ?? 0) },
       ]} />
       <div style={{ display: 'grid', gridTemplateColumns: c.video ? '200px 1fr' : '1fr', gap: 14, margin: '12px 0 14px' }}>
         {c.video ? <video src={c.video} poster={c.anh ?? undefined} controls preload="none" playsInline style={{ width: 200, aspectRatio: '9 / 16', background: '#000', borderRadius: 6 }} /> : null}
@@ -340,7 +340,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
         { key: 'chay', label: 'Camp đang bật', value: dong.filter((d) => d.trang_thai === 'ACTIVE').length, sub: `${dong.length} camp` },
         { key: 'chi', label: 'Chi tháng', value: usd(tong.chi) },
         { key: 'lai', label: 'Lãi tháng', value: usd(tong.thu - tong.chi), color: mauTien(tong.thu - tong.chi) },
-        { key: 'roi', label: 'ROI tháng', value: pct(roi(tong)), color: mauTien(roi(tong) ?? 0) },
+        { key: 'roi', label: 'ROI 30 ngày', value: pct(roi(tong)), color: mauTien(roi(tong) ?? 0) },
         { key: 'tb', label: 'Đủ đk tăng', value: dem('TB'), color: dem('TB') ? MUC_MAU.len : undefined, title: 'Luật TB — chờ anh duyệt' },
         { key: 'gb', label: 'Đủ đk giảm bậc', value: dem('GB'), color: dem('GB') ? MUC_MAU.ha : undefined, title: 'Luật GB — số trọn ngày hôm qua, nút ↘ phiên sáng' },
         { key: 'gt', label: 'Cần xem giảm/tắt', value: dem('GT'), color: dem('GT') ? MUC_MAU.ha : undefined },

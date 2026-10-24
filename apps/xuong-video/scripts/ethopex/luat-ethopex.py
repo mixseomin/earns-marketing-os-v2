@@ -66,7 +66,16 @@ if '--tong' in sys.argv:   # bảng số rút gọn (cty ethopex.mjs bangEthopex
         except Exception: _H = None
     print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", **({"chot_toi": f"{(_H + 1 + 7) % 24:02d}:00", "ngay_tu": "07:00"} if HIEN_CHOT and _H is not None else {}), "hom": {**tong(h), "budget": round(sum(x["budget"] for x in co), 2)}, "qua": tong(bc(d(1), d(1))), "thang": tong(bc(nay.replace(day=1).isoformat(), d(0))), "tron": tong(bc("2026-01-01", d(0))),
                       "top": co[:3], "day": [x for x in co[::-1] if x["lai"] < 0][:2], "noi_dung": nd}, ensure_ascii=False)); sys.exit(0)
-hom = bc(d(0), d(0)); thang = bc(nay.replace(day=1).isoformat(), d(0))
+# KHUNG DÀI = 30 NGÀY TRƯỢT, không phải tháng lịch (anh 24/10/2026: "camp mới chạy lại tính là tháng thì không hợp lý"): tháng lịch về 1 ngày dữ liệu mỗi
+# mùng 1 → luật tăng / nhân bản chấm trên một ngày. Tên biến giữ 'thang' (nhiều chỗ dùng) nhưng nghĩa = 30 ngày gần nhất; camp trẻ hơn 30 ngày thì
+# đó là ROI TỪ LÚC LÊN — chữ báo ghi đúng số ngày có dữ liệu (ROI 6 ngày), không gọi là "tháng".
+hom = bc(d(0), d(0)); thang = bc(d(29), d(0))
+try: _tao_kho = {int(l.split("|")[0]): dt.date.fromisoformat(l.split("|")[1][:10]) for l in q("select camp_id, (tao at time zone 'UTC')::date from etp.camp where tao is not null").splitlines() if "|" in l}
+except Exception: _tao_kho = {}
+def rd(cid):
+    """nhãn khung dài của camp: 'ROI 6 ngày' (camp < 30 ngày: từ lúc lên) / 'ROI 30 ngày'"""
+    t = _tao_kho.get(int(cid)); n = min(30, (nay - t).days + 1) if t else 30
+    return f"ROI {max(n, 1)} ngày"
 # chot_giam duyệt: luật giảm / tắt / so xu hướng chỉ dùng NGÀY ĐÃ KHÉP (bỏ hôm nay đang chạy, chi chưa ghi đủ): 3 ngày gần = D−3..D−1, 4 ngày trước = D−7..D−4, cộng dồn tới D−1
 gan, truoc, tron = (bc(d(3), d(1)), bc(d(7), d(4)), bc("2026-01-01", d(1))) if CHOT_GIAM else (bc(d(2), d(0)), bc(d(6), d(3)), bc("2026-01-01", d(0)))
 if TANG_CHOT:   # luật tăng đọc số hôm nay ĐÃ CHỐT CHI (giữ ngân sách từ Report ngày)
@@ -91,7 +100,7 @@ for cid, a in sorted(thang.items()):
         nhan, them_dk = "spending hôm qua", (ry is not None and ry >= 0)
     else:
         sp = h["chi"] / a["budget"] * 100 if a["budget"] else 0; ry = None; nhan, them_dk = "spending hôm nay", True
-    dong = f"#{a['ten'][:70]} · ${a['budget']:g}" + (f" → ${ke(a['budget']):g}" if ke(a['budget']) else " (trần $20)") + f" · {nhan} {sp:.0f}%" + (f" · ROI hôm qua {ry:+.0f}%" if ry is not None else "") + f" · ROI tháng {r:+.0f}% · lãi ${a['thu'] - a['chi']:+.2f}" if r is not None else ""
+    dong = f"#{a['ten'][:70]} · ${a['budget']:g}" + (f" → ${ke(a['budget']):g}" if ke(a['budget']) else " (trần $20)") + f" · {nhan} {sp:.0f}%" + (f" · ROI hôm qua {ry:+.0f}%" if ry is not None else "") + f" · {rd(cid)} {r:+.0f}% · lãi ${a['thu'] - a['chi']:+.2f}" if r is not None else ""
     if not dong: continue
     # TĂNG TRONG NGÀY (tang_chot duyệt, anh 22/10/2026 "nếu không tăng sẽ lỡ nhịp tối ưu và trend"): ROI hôm nay đã chốt chi ≥ 50%, đã chi ≥ 30% ngân sách,
     # ROI hôm qua ≥ 0% (camp chưa có hôm qua thì bỏ qua điều kiện này) → một bậc; nhịp ≥ 3 giờ giữa hai lần tăng vẫn do nhip_tang chặn
@@ -111,7 +120,7 @@ for cid, a in sorted(thang.items()):
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100
         dich = 3 if rh >= 100 else 2
         if rh > 50 and dich > a["budget"]: dau_phien.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g} → ${dich} · ROI hôm nay {rh:+.0f}% · lãi hôm nay ${h.get('thu', 0) - h['chi']:+.2f}"))
-    if a["chi"] >= 30 and a["thu"] > a["chi"]: moc30.append((cid, f"#{a['ten'][:70]} · đã tiêu ${a['chi']:.2f} tháng này, vẫn lãi ${a['thu'] - a['chi']:+.2f} → hỏi Support cách scale bài viết cũ + bid ROAS"))
+    if a["chi"] >= 30 and a["thu"] > a["chi"]: moc30.append((cid, f"#{a['ten'][:70]} · đã tiêu ${a['chi']:.2f} trong 30 ngày, vẫn lãi ${a['thu'] - a['chi']:+.2f} → hỏi Support cách scale bài viết cũ + bid ROAS"))
     g2, t2 = gan.get(cid), truoc.get(cid)
     if g2 and t2 and g2["chi"] >= 1.5 and t2["chi"] >= 1.5 and (g2["chi"] + t2["chi"]) >= 3:
         rg, rt = roi(g2), roi(t2)
@@ -249,7 +258,7 @@ try:
         if cid not in bat or not p or r is None or r < NB_ROI or a["chi"] < NB_CHI or g3 is None or g3 < NB_ROI3 or cid in goc_moi: continue
         if dang_chay.get(p, 0) >= TRAN_PHIM_CHAY or ban_phim.get(p, 0) >= NB_PHIM_NGAY: continue
         dang_chay[p] = dang_chay.get(p, 0) + 1; ban_phim[p] = ban_phim.get(p, 0) + 1
-        nb.append((cid, f"#{a['ten'][:70]} · ROI tháng {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nhân bản 1 camp $1 (phim {p}: {dang_chay[p]}/{TRAN_PHIM_CHAY} camp chạy)"))
+        nb.append((cid, f"#{a['ten'][:70]} · {rd(cid)} {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nhân bản 1 camp $1 (phim {p}: {dang_chay[p]}/{TRAN_PHIM_CHAY} camp chạy)"))
 except Exception as e:
     loi_may.append((0, f"luật NB lỗi: {str(e)[:80]}"))
 # CHỈ CAMP ĐANG BẬT mới vào danh sách tăng / giảm (22/10/2026: bảng đề xuất tăng #65648 SIMP NO MORE đã tắt vì phim cấm — máy tự tăng vẫn từ chối camp PAUSED,
@@ -275,7 +284,7 @@ try:
         if len(du) < T30_NGAY: continue
         g = {"chi": sum(x["chi"] for x in du), "thu": sum(x["thu"] for x in du)}; r = roi(g)
         if r is not None and r > T30_ROI:
-            tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · ROI tháng {roi(a):+.0f}%"))
+            tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · {rd(cid)} {roi(a):+.0f}%"))
 except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
 if JSON:
@@ -295,6 +304,6 @@ in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (CHỜ ANH DUYỆT):", tang30, "(chưa có)")
 in_("CHẠM MỐC $30 MÀ VẪN LÃI — hỏi Support scale bài viết cũ + bid ROAS:", moc30, "(chưa có)")
-in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI tháng ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
+in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("CẦN XEM GIẢM / TẮT (ROI tụt — phim down trend hoặc creative bão hoà, CPC/CPA tăng) — CHỜ ANH QUYẾT:", giam)
 in_("GẦN ĐẠT (theo dõi tiếp):", theo)

@@ -65,11 +65,11 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: r.viec } : { ly_do: r.ly_do }));
   } else if (a[0] === '--nhan') {
     const v = doc().hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
-    await traLoi(v, `<b>🔧 Thợ máy</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, ''))} — đang tìm gốc (tối đa 30 phút).`); console.log('ok');
+    await traLoi(v, `<b>🔧 Spy tự sửa máy cào</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, ''))} — đang tìm gốc (tối đa 30 phút).`); console.log('ok');
   } else if (a[0] === '--bao') {
     const ket = KET[a[2]] ? a[2] : 'khong_sua', chu = fs.readFileSync(0, 'utf8').trim(), st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
     v.tt = ket === 'da_sua' ? 'xong' : 'ket'; v.ket = ket; v.xong = new Date().toISOString(); v.ket_qua = chu.slice(0, 2000); ghi(st);
-    const j = await traLoi(v, `<b>🔧 Thợ máy · ${KET[ket]}</b>\n${esc(chu)}`); console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
+    const j = await traLoi(v, `<b>🔧 Spy tự sửa máy cào · ${KET[ket]}</b>\n${esc(chu)}`); console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
   } else if (a[0] === '--xem') console.log(JSON.stringify(doc(), null, 1));
   else { console.error('dùng: --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> | --xem | --tu-kiem'); process.exit(2); }
 }

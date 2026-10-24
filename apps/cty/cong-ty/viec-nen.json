@@ -779,8 +779,8 @@
    }
   },
   {
-   "nhan": "iMac:tc.on.cty.tho-may",
-   "ten": "Tài nguyên - Mạnh thợ máy sửa máy cào",
+   "nhan": "iMac:tc.on.spy.tu-sua-may-cao",
+   "ten": "Spy - tự sửa máy cào (Claude)",
    "chay": [
     "/bin/sh",
     "-c",
@@ -790,7 +790,7 @@
    "moi_truong": {
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
    },
-   "nhat_ky": "/Users/htuan/.cache/tho-may.log",
+   "nhat_ky": "/Users/htuan/.cache/spy-tu-sua-may-cao.log",
    "hen": {
     "moi_giay": 300
    },

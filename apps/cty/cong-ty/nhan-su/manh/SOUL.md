@@ -2,7 +2,7 @@
 ten: Mạnh
 gioi_tinh: nam
 thu_tu: 36
-chuc_danh: Thợ máy (máy cào spy)
+chuc_danh: Spy - tự sửa máy cào
 phong: tai-nguyen
 bao_cao_cho: nguyen
 kind: ai

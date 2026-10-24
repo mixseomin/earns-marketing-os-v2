@@ -1,5 +1,5 @@
 // THỢ MÁY — Mạnh (anh 23–24/10/2026: "làm sao để mày biết mà fix rồi mày báo cho tao" → "có dựng thợ máy tự sửa ở iMac"). Bộ điều phối iMac gọi mỗi 5 phút
-// (viec-nen.json iMac:tc.on.cty.tho-may; tệp đọc từ box3 mỗi lượt). Lấy MỘT việc ở hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp từ cảnh báo máy cào),
+// (viec-nen.json iMac:tc.on.spy.tu-sua-may-cao, tên "Spy - tự sửa máy cào (Claude)" — có chữ Spy để biết đây là việc spy chạy trên iMac; tệp đọc từ box3 mỗi lượt). Lấy MỘT việc ở hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp từ cảnh báo máy cào),
 // báo đã nhận dưới tin cảnh báo, chạy Claude Code KHÔNG GIAO DIỆN trong repo spy-on-tc để tìm gốc + sửa + kiểm, rồi trả lời dưới tin đó.
 // LUẬT (anh 23/10/2026): Claude không giao diện bằng gói thuê bao (không API) CHỈ chạy trên iMac — chặn ngay dưới đây; trần 6 lượt / ngày + 30 phút / lượt
 // nằm ở hàng việc trên box3 (dùng bình thường của một cá nhân, điều khoản Anthropic đọc 23/10/2026). Phải chạy trong phiên đăng nhập (bộ điều phối):

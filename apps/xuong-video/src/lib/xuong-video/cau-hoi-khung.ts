@@ -60,7 +60,8 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
       const a = nhanVat.find((v) => v.ten === ten); const co = `co:${ten}`; nguoi.push(ten);
       out.push({ ma: co, loai: 'thieu', hoi: chen ? `Có tay / đồ trên tay của ${ten} trong khung?` : `Có ${ten} trong khung${a?.mo_ta ? ` (${ngan(a.mo_ta, 70)})` : ''}?` });
       const d = dang(kg, thu, ten, luc); if (d && !chen) out.push({ ma: `dang:${ten}`, phu_thuoc: co, loai: 'trang_thai', hoi: `Dáng ${ten}: ${d.vi}?` });
-      for (const v of doCam(kg, thu, ten, luc)) out.push({ ma: `vat:${v.mon}`, phu_thuoc: co, loai: 'trang_thai', hoi: `${v.mon}: ${v.vi}?` });
+      // đồ CẦM / mang rõ (thẻ, hộp) → mã vat (đã hiệu chỉnh, chặn); vết / nếp / trang phục trên người → mã mac (chi tiết nhỏ, Gemini báo nhầm ở khung tối / nghiêng — chỉ cảnh báo)
+      for (const v of doCam(kg, thu, ten, luc)) out.push({ ma: `${/vết|nếp|tóc|áo|váy|trang phục|stain|wrinkle|hair/i.test(`${v.mon} ${v.vi}`) ? 'mac' : 'vat'}:${v.mon}`, phu_thuoc: co, loai: 'trang_thai', hoi: `${v.mon}: ${v.vi}?` });
       for (const mon of doDaMat(kg, thu, ten, luc)) out.push({ ma: `vang:${mon}`, phu_thuoc: co, loai: 'thua', hoi: `KHÔNG thấy ${mon} trên người ${ten} (đã sang tay người khác)?` });
       if (chen) { out.push({ ma: `chen:${ten}`, phu_thuoc: co, loai: 'thua', hoi: `Cận chèn: KHÔNG thấy mặt ${ten} (chỉ tay / đồ)?` }); continue; }
       const tm = thayMat(kg, canh, ten, luc);

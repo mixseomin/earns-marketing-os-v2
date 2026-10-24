@@ -195,10 +195,10 @@
     },
     "den": {
       "tu": [
-        -4.0,
-        3.5
+        4.0,
+        3.0
       ],
-      "ten": "warm overhead lobby light, strongest from the painting side"
+      "ten": "warm overhead lobby light, strongest from the lobby-opening side (screen right in the main angles)"
     }
   },
   "ghi": "Cảnh Thang máy phim #132 theo ngữ pháp ReelShort (tham-khao/reelshort.md) + SƠ ĐỒ CẢNH 2D (so-do-canh.ts): một thang máy, Hạ đứng chắn cửa, Vivian vào từ lối vào phía phải toàn cảnh, Lục Thần bước ra từ chính thang đó. Mọi hướng trên màn tính từ sơ đồ ({A→B}), mỗi cắt có cớ (noi-nhip.ts), hành động tiếp xúc có mảnh hai người cùng khung. kf = keyframe dùng lại.",

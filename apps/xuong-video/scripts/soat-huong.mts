@@ -2,10 +2,10 @@
 // Mỗi shot: đo khung đầu / cuối (keyframe) + khung MỞ · GIỮA · ĐÓNG của ĐOẠN CLIP ĐÃ DÙNG bằng máy (0đ, soi-mat.py: mặt, hướng nhìn, độ cúi, tay, nét mặt,
 // phía sáng) so với sơ đồ cảnh + sổ dáng + sổ đồ vật (khong-gian.ts); --hoi thêm câu hỏi Gemini trên khung (soi-cau-hoi.ts, ~0,3¢/khung); nối máy đo cảm xúc
 // (cham-may.ts) với kế hoạch diễn. TRƯỢT ở khung clip → --chon: quét điểm vào trong vùng dùng được, lấy đoạn qua được mọi cổng chặn (ưu tiên cắt giữa động
-// tác), ghi ky_thuat.vao_s; không đoạn nào đạt → in danh sách SHOT CẦN SINH LẠI kèm giá (--sinh-lai [--tran=<cents>] tự sinh lại rồi đo lại, cần DUYET_SINH_1_LAN).
+// tác) → ĐỀ XUẤT kèm tờ ứng viên, --ghi-vao mới ghi ky_thuat.vao_s (điểm vào mới phải qua mắt người); không đoạn nào đạt → in danh sách SHOT CẦN SINH LẠI kèm giá (--sinh-lai [--tran=<cents>] tự sinh lại rồi đo lại, cần DUYET_SINH_1_LAN).
 // Lỗi 'chan' = đã đo độ đúng trên ca thật; 'canh' = luật mới đo, chờ hiệu chỉnh (scripts/hieu-chinh-do.mts) — in ⚠ để soát tờ ghép, không chặn.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
-//     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/soat-huong.mts <tap_id> [--khong-clip] [--hoi] [--chon] [--sinh-lai --tran=200]
+//     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/soat-huong.mts <tap_id> [--khong-clip] [--hoi] [--chon [--ghi-vao]] [--sinh-lai --tran=200]
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
@@ -86,7 +86,7 @@ const hoiKq = new Map<string, { chan: string[]; canh: string[] }>();
 if (co('hoi')) {
   const viec = ds.flatMap((c) => (['clip_dau', 'clip_giua', 'clip_ket'] as Luc[]).map((l) => ({ c, l, f: `${thuMuc}/${c.id}-${l}.jpg` }))).filter((x) => kgCua(kgt, x.c) && existsSync(x.f));
   let i = 0; const chay = async () => { while (i < viec.length) { const { c, l, f } = viec[i++]!; const toan = ['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '');
-    const hoi = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: lucSo(l) }).filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma)).filter((x) => l !== 'clip_giua' || !/^(mo|ket)$/.test(x.ma));
+    const hoi = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: lucSo(l) }).filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|mac|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma)).filter((x) => l !== 'clip_giua' || !/^(mo|ket)$/.test(x.ma));
     const r = await hoiKhung2(db, phimId, f, hoi).catch(() => null); if (!r) continue;
     // CHẶN: mã câu đã hiệu chỉnh (soi-cau-hoi › MA_CHAN) và cả hai lượt hỏi đều "không"; CẢNH BÁO: mã khác, hoặc chỉ một lượt "không"
     const chanKq = loiTuDapAn(hoi.filter((x) => laChan(x.ma)), r.dap).map((x) => x.mo_ta);
@@ -106,7 +106,7 @@ const tongHop = (c: Shot, b: BoDo | undefined, hoi: (l: Luc) => { chan: string[]
   return { dong, loi };
 };
 const clipTruot = (c: Shot, b: BoDo | undefined, hoi: (l: Luc) => { chan: string[]; canh: string[] } | undefined) => (['clip_dau', 'clip_giua', 'clip_ket'] as Luc[]).some((l) => chan(danhGia(c, l, b?.get(l), hoi(l))?.loi ?? []).length > 0);
-let truot = 0; const canSinhLai: { c: Shot; ly: string }[] = []; const doiVao = new Map<number, number>();
+let truot = 0; const canSinhLai: { c: Shot; ly: string }[] = []; const doiVao = new Map<number, number>(); const deXuat = new Map<number, number>();
 for (const c of ds) {
   const hoi = (l: Luc) => hoiKq.get(`${c.id}:${l}`);
   let b = bo.get(String(c.id)); let { dong, loi } = tongHop(c, b, hoi);
@@ -118,10 +118,15 @@ for (const c of ds) {
     const diem = (v: number) => { const bv = doUv.get(`${c.id}-uv${v}`); const ls = (['clip_dau', 'clip_giua', 'clip_ket'] as Luc[]).flatMap((l) => danhGia(c, l, bv?.get(l))?.loi ?? []); return { v, bv, ch: chan(ls).length, ca: canh(ls).length }; };
     const xep = uv.map(diem).sort((p, q) => p.ch - q.ch || p.ca - q.ca || Math.abs(p.v - vaoCua(c)) - Math.abs(q.v - vaoCua(c)));
     const tot = xep[0];
-    if (tot && tot.ch === 0) { doiVao.set(c.id, tot.v); b = new Map([...(b ?? new Map()), ...(tot.bv ?? new Map())]) as BoDo; ({ dong, loi } = tongHop(c, b, () => undefined));
-      dong.push(`→ chọn lại điểm vào ${vaoCua(c)}s → ${tot.v}s (đoạn qua mọi cổng chặn, ${tot.ca} cảnh báo)`);
-      await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || jsonb_build_object('vao_s', ${tot.v}::numeric), updated_at = now() WHERE id = ${c.id}`);
-      for (const l of ['clip_dau', 'clip_giua', 'clip_ket'] as const) { const f = `${thuMuc}/${c.id}-uv${tot.v}-${l}.jpg`; if (existsSync(f)) execFileSync('cp', [f, `${thuMuc}/${c.id}-${l}.jpg`]); } }
+    // CHỈ ĐỀ XUẤT (25/10/2026: lần đầu tự ghi đè điểm vào của bản anh đã duyệt — #2 về đúng đoạn có người lạ máy không nhận ra). Máy đo không thấy hết
+    // (người lạ quay mặt, đồ sai…) nên điểm vào MỚI phải qua mắt người: in đề xuất + tờ ghép ứng viên; --ghi-vao mới ghi, và ghi xong đoạn đó phải soát lại
+    if (tot && tot.ch === 0 && tot.v !== vaoCua(c)) { deXuat.set(c.id, tot.v);
+      const f = `${thuMuc}/${c.id}-uv${tot.v}-clip_dau.jpg`, g = `${thuMuc}/${c.id}-uv${tot.v}-clip_ket.jpg`; if (existsSync(f) && existsSync(g)) { try { execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', f, '-i', g, '-filter_complex', '[0]scale=270:480[a];[1]scale=270:480[b];[a][b]hstack', `${thuMuc}/de-xuat-${c.thu_tu}.jpg`]); } catch { /* không có tờ thì thôi */ } }
+      dong.push(`→ ĐỀ XUẤT điểm vào ${vaoCua(c)}s → ${tot.v}s (đoạn qua mọi cổng chặn, ${tot.ca} cảnh báo) — xem ${thuMuc}/de-xuat-${c.thu_tu}.jpg (mở | đóng) rồi chạy --ghi-vao`);
+      if (co('ghi-vao')) { doiVao.set(c.id, tot.v); b = new Map([...(b ?? new Map()), ...(tot.bv ?? new Map())]) as BoDo; ({ dong, loi } = tongHop(c, b, () => undefined)); dong.push(`→ đã ghi điểm vào ${tot.v}s (--ghi-vao)`);
+        await db.execute(sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || jsonb_build_object('vao_s', ${tot.v}::numeric), updated_at = now() WHERE id = ${c.id}`);
+        for (const l of ['clip_dau', 'clip_giua', 'clip_ket'] as const) { const f2 = `${thuMuc}/${c.id}-uv${tot.v}-${l}.jpg`; if (existsSync(f2)) execFileSync('cp', [f2, `${thuMuc}/${c.id}-${l}.jpg`]); } } }
+    else if (tot && tot.ch === 0) { /* điểm vào hiện tại đã là tốt nhất */ }
     else canSinhLai.push({ c, ly: `không đoạn nào trong clip qua cổng (tốt nhất ${tot?.v}s còn ${tot?.ch} lỗi chặn)` });
   }
   if (!dong.length) continue;
@@ -157,5 +162,5 @@ if (canSinhLai.length) {
     console.log('  → chạy lại soat-huong.mts --chon để đo clip mới');
   }
 }
-console.log(`\n${truot} shot trượt cổng chặn${doiVao.size ? ` · ${doiVao.size} shot đã chọn lại điểm vào` : ''}${canSinhLai.length ? ` · ${canSinhLai.length} shot cần sinh lại` : ''}`);
+console.log(`\n${truot} shot trượt cổng chặn${deXuat.size ? ` · ${deXuat.size} shot có đề xuất điểm vào mới (${[...deXuat].map(([id, v]) => `#${ds.find((c) => c.id === id)?.thu_tu}→${v}s`).join(', ')}; xem tờ de-xuat-*.jpg rồi --ghi-vao)` : ''}${doiVao.size ? ` · ${doiVao.size} shot đã ghi điểm vào` : ''}${canSinhLai.length ? ` · ${canSinhLai.length} shot cần sinh lại` : ''}`);
 process.exit(0);

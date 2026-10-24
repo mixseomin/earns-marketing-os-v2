@@ -29,7 +29,7 @@ const bang = new Map<string, Dem>(); const dem = (ma: string) => bang.get(ma) ??
 const nhom = (ma: string) => ma.split(':')[0]!;
 let i = 0; const chay = async () => { while (i < mau.length) { const m = mau[i++]!; const c = ds.find((x) => x.id === m.canh); if (!c) continue;
   const toan = ['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '');
-  const hoi: CauHoi[] = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: m.luc }).filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma));
+  const hoi: CauHoi[] = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: m.luc }).filter((x) => (toan ? /^(co|vang|ngoai):|^(mo|ket)$/ : /^(co|dang|vat|mac|vang|ngoai|chen|lung|mat):|^(mo|ket)$/).test(x.ma));
   const r = await hoiKhung2(db, phimId, m.url, hoi, lan).catch(() => null); if (!r) { console.log(`  ! ${m.ghi ?? m.url}: không hỏi được`); continue; }
   const loi = new Set(loiTuDapAn(hoi, r.dap).map((x) => /^\[([^\]]+)\]/.exec(x.mo_ta)?.[1] ?? ''));
   const mong = new Set(m.sai ?? []);

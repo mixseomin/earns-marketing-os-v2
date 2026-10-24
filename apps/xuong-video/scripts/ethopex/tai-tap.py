@@ -2,12 +2,14 @@
 """TẢI TẬP PHIM TỪ SITE GỐC (anh 21/10/2026: đợt NetShort + DramaBox — creative cắt đoạn 20–30s + 2–3' trong phim; nguồn = tập miễn phí trên site,
 không phụ thuộc QC spy). Chỉ đọc trang công khai + tải mp4 tập miễn phí (NetShort mở ~tập 1–8, DramaBox tập đầu, ReelShort tập trước paid_start — chỉ 720p) + poster (og:image).
 Dùng: tai-tap.py <link phim> <thư mục ra> [số tập=3]  → <ra>/tap01.mp4 …, <ra>/poster.jpg, <ra>/tap.json ([{tap, giay, url}])"""
-import html as H, json, os, re, subprocess, sys, urllib.request
+import urllib.parse, html as H, json, os, re, subprocess, sys, urllib.request
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 def lay(url, ref=None):
     h = {"User-Agent": UA, "Accept": "text/html,image/avif,image/webp,image/*,*/*;q=0.8"}
     if ref: h["Referer"] = ref
+    # link phim ES có dấu (domé, niña…) — mã hoá phần ngoài ASCII, giữ nguyên ký tự đã mã hoá (anh 24/10/2026: 12 phim lô 26/10 hỏng vì 'ascii' codec)
+    url = urllib.parse.quote(url, safe=":/?#[]@!$&'()*+,;=%~")
     return urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=40).read()
 def sach(u): return u.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\/", "/").rstrip("\\")
 

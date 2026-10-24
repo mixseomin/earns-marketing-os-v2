@@ -25,7 +25,13 @@ export const NHAN_VAT = "OBJECT STATE in this frame (must match exactly, whereve
 export const NHAN_DANG = 'BODY POSE in this frame (must match exactly — it continues unbroken from the previous shot; head tilt and arm positions as stated)';
 export function cauVat(so: SoVat, thuTu: number, nguoiTrongKhung: string[], tenEn: (t: string) => string = (t) => t, khaiTrongKhung: string[] = [], luc: LucKhung = 'ket', nhan = NHAN_VAT): string {
   const ds = vatTrongKhung(so, thuTu, nguoiTrongKhung, khaiTrongKhung, luc);
-  return ds.length ? `${nhan}: ${ds.map(([t, m]) => `${tenEn(t)} — ${m.cach}`).join('; ')}.` : '';
+  // VẮNG MẶT: món người trong khung TỪNG giữ / đeo mà giờ đã sang tay khác — nói thẳng là không còn trên người họ (phim #353 #13: thẻ bị giật ở #7
+  // mà Hạ vẫn đeo lại dây thẻ vì ảnh mẫu nhân vật có thẻ; sổ chỉ nói "Vivian giữ" thì model không biết Hạ phải trống cổ)
+  const nay = trangThai(so, thuTu, luc);
+  const vang = nhan === NHAN_VAT ? Object.entries(so).flatMap(([t, ms]) => [...new Set(ms.filter((m) => (m.tu < thuTu || (m.tu === thuTu && (luc === 'ket' || !m.su_kien))) && m.ai && m.ai !== nay[t]?.ai).map((m) => m.ai!))]
+    .filter((a) => nguoiTrongKhung.includes(a)).map((a) => `${a} no longer has ${tenEn(t)} — it is NOT on ${a} anywhere`)) : [];
+  const ve = [...ds.map(([t, m]) => `${tenEn(t)} — ${m.cach}`), ...vang];
+  return ve.length ? `${nhan}: ${ve.join('; ')}.` : '';
 }
 /** Dòng đọc cho storyboard (tiếng Việt): mọi món có trạng thái ở mảnh này, đánh dấu ⚡ nếu đổi ngay tại mảnh này. */
 export function dongVat(so: SoVat, thuTu: number, luc: LucKhung = 'ket'): string[] {

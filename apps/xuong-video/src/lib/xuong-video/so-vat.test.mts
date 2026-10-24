@@ -19,3 +19,11 @@ assert.ok(loiSoVat({ 'Thùng': [{ tu: 1, ai: 'Hạ', cach: 'a', vi: 'a' }, { tu:
 assert.ok(loiSoVat(so, (n) => (n === 7 ? ['Lục Thần'] : ['Hạ']))[0]!.includes('phải diễn ra trên hình'));
 assert.deepStrictEqual(loiSoVat(so, () => ['Hạ', 'Vivian']), []);
 console.log('so-vat.test: ok');
+// VẮNG MẶT: món đã sang tay người khác → câu "không còn trên người" cho người giữ cũ còn trong khung
+{ const so = { 'Thẻ': [{ tu: 1, ai: 'Hạ', cach: 'badge on lanyard around her neck', vi: 'đeo cổ' }, { tu: 7, ai: 'Vivian', cach: 'snapped lanyard in her fist', vi: 'nắm tay', su_kien: 'giật' }] };
+  const c13 = cauVat(so, 13, ['Hạ'], (t) => t === 'Thẻ' ? 'the staff badge' : t);
+  assert.ok(c13.includes('Hạ no longer has the staff badge'), c13);
+  assert.ok(!cauVat(so, 3, ['Hạ'], (t) => t).includes('no longer'), 'chưa giật thì không có câu vắng');
+  assert.ok(!cauVat(so, 7, ['Hạ', 'Vivian'], (t) => t, [], 'dau').includes('no longer'), 'khung đầu #7: sự kiện chưa xảy ra — cả Hạ lẫn Vivian không có câu vắng');
+  assert.ok(cauVat(so, 7, ['Hạ', 'Vivian'], (t) => t, [], 'ket').includes('Hạ no longer has'), 'khung cuối #7: đã giật'); }
+console.log('so-vat.test: ok (vắng mặt)');

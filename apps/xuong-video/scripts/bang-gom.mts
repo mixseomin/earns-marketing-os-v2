@@ -78,6 +78,7 @@ async function songSong<T>(ds: T[], tran: number, fn: (x: T, i: number) => Promi
   let k = 0; await Promise.all(Array.from({ length: Math.min(tran, ds.length) }, async () => { while (k < ds.length) { const i = k++; await fn(ds[i]!, i); } }));
 }
 const SONG_SONG = Number(gia('song-song') || 8);
+const NGUONG_BO_CUC = 45;   // lệch bố cục tối đa cho --sua (đo: sửa đúng 5–38, đổi khung 51–69)
 /** Dò khung theo viền trắng: cột = đoạn không trắng theo chiều ngang, trong mỗi cột khung = đoạn không trắng theo chiều dọc; đọc hàng k = khung thứ k mỗi cột. */
 async function doKhung(buf: Buffer, can?: number) {
   const { data: px, info } = await sharp(buf).greyscale().raw().toBuffer({ resolveWithObject: true }); const W = info.width, H = info.height;
@@ -134,6 +135,11 @@ if (gia('sua')) {
     `Reference images: ${refs.map(([k], i) => `Image ${i + 2} = ${k}`).join('; ')}.`, 'Vertical 9:16 photorealistic live-action film still. No text, captions or borders.'].join(' ');
   { const l = loiTrangThaiVat(`#${c.thu_tu} ${lucSua}`, p, vatSua); if (l.length) { console.error(`bộ chấm chặn: ${l.map((x) => x.chu).join(' · ')}`); process.exit(1); } }
   const url = await sinh({ nhan: `Keyframe (sửa theo chỉ thị) · cảnh #${c.thu_tu} ${lucSua}`, prompt: p, refs: [goc, ...refs.map(([, u]) => u)], tiLe: '9:16', thuMuc: `keyframe/${c.id}`, canhId: c.id });
+  // CHỐT BỐ CỤC: model sửa ảnh hay tự đổi cỡ cảnh (cận → toàn) dù dặn giữ khung — #353 ba lần (#5 cuối, #8 đầu, #13). Lệch bố cục (ảnh 36×64 xám,
+  // trung bình) đo trên ca thật: sửa đúng 5–38, đổi khung 51–69 → vượt NGUONG_BO_CUC thì KHÔNG ghi vào phim (in link để xem); cố ý đổi khung: --cho-doi-khung
+  { const lechBoCuc = async (a: Buffer, b: Buffer) => { const g = (x: Buffer) => sharp(x).resize(36, 64, { fit: 'fill' }).grayscale().blur(1).raw().toBuffer(); const [x, y] = await Promise.all([g(a), g(b)]); let s = 0; for (let i = 0; i < x.length; i++) s += Math.abs(x[i]! - y[i]!); return s / x.length; };
+    const l = await lechBoCuc(await tai(goc), await tai(url)); console.log(`lệch bố cục so khung gốc: ${l.toFixed(1)} (ngưỡng ${NGUONG_BO_CUC})`);
+    if (l > NGUONG_BO_CUC && !process.argv.includes('--cho-doi-khung')) { console.error(`#${c.thu_tu} ${lucSua}: ĐỔI BỐ CỤC (${l.toFixed(1)} > ${NGUONG_BO_CUC}) — không ghi vào phim; ảnh: ${url}\n  → dựng lại theo drill-down (--tang=khoi một đoạn, có ô ngữ cảnh) thay vì sửa lẻ`); process.exit(2); } }
   if (lucSua === 'dau') await chonKeyframe(db, c.id, url, 'sửa theo chỉ thị');
   else await db.execute(lucSua === 'ket' ? sql`UPDATE xv_canh SET keyframe_ket = ${url}, updated_at = now() WHERE id = ${c.id}` : sql`UPDATE xv_canh SET keyframe_giua = ${url}, updated_at = now() WHERE id = ${c.id}`);
   console.log(`#${c.thu_tu} ${lucSua} → ${url}`); process.exit(0);

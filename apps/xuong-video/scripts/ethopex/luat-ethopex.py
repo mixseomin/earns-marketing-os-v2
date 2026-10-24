@@ -202,6 +202,13 @@ try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
         ds_camp.append(c)
         if c.get("state") == "ARCHIVED": continue
+        # sync_status 'error' KHÔNG phải "đang đồng bộ": Ethopex dừng camp kèm lỗi (Meta từ chối, lỗi đẩy FB). Trước 24/10/2026 nhánh dưới coi mọi
+        # trạng thái khác done là camp mới đang đồng bộ → #68876 (PAUSED · error · DISAPPROVED lúc 07:40) bị bỏ qua im lặng, không Telegram, không tự thay.
+        if c.get("state") == "PAUSED" and c.get("sync_status") == "error":
+            if "DISAPPROVED" in str(c.get("error") or "").upper() or str(c["id"]) in tc_kho:
+                tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối (camp đã bị dừng) → máy thay creative sạch cùng phim rồi bật lại"))
+            else: dong_l.append((c["id"], f"#{c['id']}: {c['name'][:60]} · Ethopex dừng vì lỗi: {str(c.get('error') or '?')[:120]}"))
+            continue
         if c.get("state") == "PAUSED" and str(c["id"]) in tc_kho:
             tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối (camp đã bị dừng) → máy thay creative sạch cùng phim")); continue
         if c.get("state") == "PAUSED":   # camp đã bị đóng (rule Ethopex / tay) — anh 21/10/2026: "các camp chạm rule đóng cũng gửi lên telegram"

@@ -22,9 +22,9 @@ def bao(loai, muc, khoa, chu):
 
 # BÃO HOÀ PHIM (anh 25/10/2026): nhiều camp cùng phim giành cùng tệp người xem → ROI cả phim tụt theo ngày (Number One 30 camp 148→106→76%,
 # Dear Brother 16 camp 59→22→−8%; phim ít camp giữ ROI). Ngày trọn = ngày Ethopex (UTC) D−1, D−2, D−3.
-#   chan_nb (B — luật NB đọc): ROI phim hôm qua < 50% hoặc < 70% ROI hôm kia (chi hôm qua ≥ $10) → không nhân bản thêm camp phim này
+#   chan_nb (B — luật NB đọc): ROI phim hôm qua < 50%, hoặc tụt hơn 20% so với hôm kia (dù vẫn > 100%), hoặc đang bão hoà (D) → không nhân bản thêm
 #   bao_hoa (D — Telegram / etp / extension): > 10 camp đang chạy và ROI phim giảm 2 ngày liền (mỗi ngày chi ≥ $5)
-BH_CAMP, NB_ROI_PHIM, NB_GIU = 10, 50, 0.7
+BH_CAMP, NB_ROI_PHIM, NB_GIU = 10, 50, 0.8   # 0.7 → 0.8 (anh 25/10/2026: Number One 148% → 106% vẫn > 100% nhưng giảm sâu thì cũng phải dừng nhân bản)
 def bao_hoa_phim(nay):
     d = [(nay - dt.timedelta(days=k)).isoformat() for k in (1, 2, 3)]
     rows = q(f"""with c as (select content_id, count(*) filter (where trang_thai = 'ACTIVE') so from etp.camp where content_id is not null group by 1),
@@ -40,11 +40,12 @@ def bao_hoa_phim(nay):
         chan = None
         if x1 and x1["chi"] >= 10 and r1 is not None:
             if r1 < NB_ROI_PHIM: chan = f"ROI phim hôm qua {r1:+.0f}% < {NB_ROI_PHIM}%"
-            elif r2 is not None and r2 > 0 and r1 < NB_GIU * r2: chan = f"ROI phim tụt {r2:+.0f}% → {r1:+.0f}% (dưới {int(NB_GIU * 100)}% hôm kia)"
+            elif r2 is not None and r2 > 0 and r1 < NB_GIU * r2: chan = f"ROI phim tụt {r2:+.0f}% → {r1:+.0f}% (giảm {round((1 - r1 / r2) * 100)}%, ngưỡng {round((1 - NB_GIU) * 100)}%)"
         bh = None
         if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1:
             bh = f"{so} camp đang chạy · ROI phim {r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}% (3 ngày) — camp tự giành cùng tệp người xem"
             bao("phim_bao_hoa", "vang", f"phim_bao_hoa:{cid}:{nay}", f"⚠ PHIM BÃO HOÀ: {ten[:50]} (#{cid}) — {bh}. Máy đã dừng nhân bản phim này; đoạn quá tải đang được dọn sang góc mới."); n += 1
+            chan = chan or f"bão hoà: ROI phim giảm 2 ngày liền ({r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}%)"
         roi = [{"d": k, "chi": v["chi"], "thu": v["thu"], "roi": None if r(v) is None else round(r(v))} for k, v in sorted(ng.items())]
         out.append({"content_id": int(cid), "ten": ten, "so_camp": so, "roi": roi, "chan_nb": chan, "bao_hoa": bh})
     j = json.dumps(out, ensure_ascii=False).replace("$J$", "")

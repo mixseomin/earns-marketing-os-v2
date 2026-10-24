@@ -36,7 +36,8 @@ for (const c of ds) {
   const nguon: Record<Luc, () => string | null> = { dau: () => c.keyframe_url ?? null, ket: () => c.keyframe_ket ?? null,
     clip_dau: () => (coClip && c.video_url && cat(c.video_url, vao + 0.04, `${thuMuc}/${c.id}-clip_dau.jpg`) ? `${thuMuc}/${c.id}-clip_dau.jpg` : null),
     clip_ket: () => (coClip && c.video_url && cat(c.video_url, vao + phat - 0.08, `${thuMuc}/${c.id}-clip_ket.jpg`) ? `${thuMuc}/${c.id}-clip_ket.jpg` : null) };
-  for (const l of LUC) { const kv = kyVong(c, l); if (!Object.keys(kv).length) continue; const url = nguon[l](); if (!url) continue;
+  // khung clip luôn cắt (tờ ghép cần đủ mọi đường cắt, kể cả cận chèn không có người để đo); chỉ ảnh có người kỳ vọng mới đưa đi soi
+  for (const l of LUC) { const kv = kyVong(c, l); const url = l.startsWith('clip') || Object.keys(kv).length ? nguon[l]() : null; if (!url || !Object.keys(kv).length) continue;
     anh.push({ id: ma(c.id, l), url, ten: Object.keys(kv).filter((n) => !kv[n]!.lung), tu_the: true }); }
 }
 const do_ = await soiAnh(db, tap, anh);

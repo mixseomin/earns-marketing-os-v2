@@ -64,9 +64,10 @@ def _dung1(nguon, tu, den, tmp, cta, out, giong):
     gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{T}",
           *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
     # KIỂM ĐỘ DÀI (25/10/2026, phim 166083: nguồn lỗi mốc khung → video 173s trên 89s tiếng mà vẫn ra tệp): lệch > 1,5s với độ dài tính = tệp hỏng, không cho lên
-    d = gx.dur(out)
-    if abs(d - T) > 1.5: raise RuntimeError(f"đoạn ra {d:.1f}s khác độ dài tính {T:.1f}s — nguồn lỗi mốc khung, bỏ đoạn")
-    print(out, round(d, 1))
+    # so TỪNG LUỒNG (25/10/2026, phim 165802 đoạn 800: hình 3,6s / tiếng 89s mà độ dài tệp = 89s nên lọt): hình và tiếng đều phải sát T
+    dv, da = gx.dur_luong(out)
+    if abs(dv - T) > 1.5 or abs(da - T) > 1.5: raise RuntimeError(f"đoạn ra hình {dv:.1f}s / tiếng {da:.1f}s khác độ dài tính {T:.1f}s — nguồn lỗi mối nối / mốc khung, bỏ đoạn")
+    print(out, round(dv, 1))
 
 if __name__ == "__main__":
     a = sys.argv[1:]

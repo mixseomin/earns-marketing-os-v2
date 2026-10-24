@@ -56,6 +56,11 @@ def sh(*a, han=None):
             except Exception: pass
             p.wait(); raise Treo(f"{a[0]} treo {int(time.time() - moc)}s không nhích CPU (tổng {int(time.time() - t0)}s) — đã giết")
 def dur(f): return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]))
+def dur_luong(f):
+    """(độ dài luồng hình, độ dài luồng tiếng) giây — độ dài tệp lấy theo luồng dài nhất nên hình cụt không lộ (25/10/2026)"""
+    r = subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,duration", "-of", "csv=p=0", f], text=True)
+    d = {l.split(",")[0]: float(l.split(",")[1]) for l in r.splitlines() if "," in l and l.split(",")[1] not in ("", "N/A")}
+    return d.get("video", 0.0), d.get("audio", 0.0)
 def tai(u, f):
     """tải có hạn chờ + thử lại (19/10/2026: urlretrieve không hạn chờ treo cả lượt ghép 10 phút ở 0% CPU)"""
     hong = os.path.exists(f) and subprocess.run(["ffprobe", "-v", "error", f], capture_output=True).returncode != 0   # tệp dở của lượt bị ngắt

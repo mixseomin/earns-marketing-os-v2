@@ -126,7 +126,7 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
       </div>
       {tab === 'tong' ? (
         <div>
-          <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi · +${r.camp_moi} camp mới · +${r.cr_moi} creative mới · ${r.tat} camp tắt` }))} dinhDang={usd} height={240} nhanCot={(i) => { const r = ngayGanNhat[i]; return r ? `+${r.camp_moi} camp · +${r.cr_moi} cr · ${r.tat} tắt` : null; }} />
+          <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi` }))} dinhDang={usd} height={260} duongPhu={[{ ten: 'camp mới lên', mau: '#3b82f6', gt: ngayGanNhat.map((r) => r.camp_moi) }, { ten: 'creative mới', mau: '#a855f7', gt: ngayGanNhat.map((r) => r.cr_moi) }, { ten: 'camp tắt', mau: '#f87171', gt: ngayGanNhat.map((r) => r.tat) }]} />
           <DataTable rows={[...ngayGanNhat].reverse()} getRowKey={(r) => r.ngay} persistKey="etp-ngay" minWidth={820} columns={[
             { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}${r.ngay === du.nay ? ' · đang chạy' : ''}`, sortValue: (r) => r.ngay },
             { key: 'chi', header: 'Chi', cell: (r) => usd(r.chi), sortValue: (r) => r.chi, total: (rs) => usd(rs.reduce((a, r) => a + r.chi, 0)) },

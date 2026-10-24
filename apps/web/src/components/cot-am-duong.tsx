@@ -3,10 +3,11 @@
 // Rê chuột: hộp số của đúng ngày. Màu: dương = tiền lãi, âm = lỗ (đúng bảng nghĩa YDNI: màu là tín hiệu tiền +/−).
 import { useEffect, useRef, useState } from 'react';
 
-export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiChu, nhanCot }: {
+export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiChu, duongPhu }: {
   data: { x: string; v: number; phu?: string; mo?: boolean }[];   // mo = số chưa chốt (vẽ nhạt)
   dinhDang: (v: number) => string; conDuong?: boolean; height?: number; ghiChu?: (i: number) => string | null;
-  nhanCot?: (i: number) => string | null;   // dòng nhỏ dưới nhãn ngày (etp.on.tc: số camp mới / creative mới / camp tắt)
+  /** đường SỐ LƯỢNG vẽ chồng lên cột lãi, trục phải riêng (etp.on.tc: camp mới / creative mới / camp tắt theo ngày) */
+  duongPhu?: { ten: string; mau: string; gt: number[] }[];
 }) {
   const hop = useRef<HTMLDivElement>(null); const [W, datW] = useState(800); const [i, datI] = useState<number | null>(null);
   useEffect(() => { const el = hop.current; if (!el) return; const ro = new ResizeObserver(([e]) => datW(Math.max(300, Math.round(e!.contentRect.width)))); ro.observe(el); return () => ro.disconnect(); }, []);
@@ -14,7 +15,7 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
   const luy = data.reduce<number[]>((a, d) => [...a, (a.at(-1) ?? 0) + d.v], []);
   const vals = [...data.map((d) => d.v), ...(conDuong ? luy : []), 0];
   const max = Math.max(...vals), min = Math.min(...vals), span = max - min || 1;
-  const PL = 56, PR = 12, PT = 10, PB = nhanCot ? 36 : 22, cao = height - PT - PB, rong = W - PL - PR, buoc = rong / n;
+  const PL = 56, PR = duongPhu?.length ? 40 : 12, PT = duongPhu?.length ? 26 : 10, PB = 22, cao = height - PT - PB, rong = W - PL - PR, buoc = rong / n;
   const y = (v: number) => PT + ((max - v) / span) * cao, y0 = y(0), bc = Math.min(36, buoc * 0.6), cx = (j: number) => PL + buoc * j + buoc / 2;
   const nhan = [max, (max + min) / 2, min, 0].filter((v, k, a) => a.findIndex((u) => Math.abs(u - v) < span * 0.08) === k);
   return (
@@ -26,10 +27,16 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
           return <g key={d.x} onMouseEnter={() => datI(j)}>
             <rect x={PL + buoc * j} y={PT} width={buoc} height={cao} fill="transparent" />
             <rect x={cx(j) - bc / 2} y={top} width={bc} height={h} rx={2} fill={d.v >= 0 ? 'var(--neon-lime, #9be15d)' : 'var(--neon-red, #ff5c5c)'} opacity={d.mo ? 0.45 : 0.9} />
-            {(n <= 14 || j % Math.ceil(n / 14) === 0) && <text x={cx(j)} y={height - (nhanCot ? 20 : 6)} textAnchor="middle" fontSize={10} fill="var(--fg-3)">{d.x}</text>}
-            {nhanCot && (n <= 14 || j % Math.ceil(n / 14) === 0) && nhanCot(j) ? <text x={cx(j)} y={height - 6} textAnchor="middle" fontSize={9} fill="var(--fg-2)">{nhanCot(j)}</text> : null}
+            {(n <= 14 || j % Math.ceil(n / 14) === 0) && <text x={cx(j)} y={height - 6} textAnchor="middle" fontSize={10} fill="var(--fg-3)">{d.x}</text>}
           </g>; })}
         {conDuong && <polyline fill="none" stroke="var(--fg-2)" strokeWidth={1.5} points={luy.map((v, j) => `${cx(j)},${y(v)}`).join(' ')} />}
+        {duongPhu?.length ? (() => { const mx = Math.max(1, ...duongPhu.flatMap((s) => s.gt)), yp = (v: number) => PT + cao - (v / mx) * cao;
+          return <g pointerEvents="none">
+            {[mx, Math.round(mx / 2), 0].map((v) => <text key={v} x={W - PR + 6} y={yp(v) + 3} fontSize={10} fill="var(--fg-3)">{v}</text>)}
+            {duongPhu.map((s) => <g key={s.ten}><polyline fill="none" stroke={s.mau} strokeWidth={1.6} points={s.gt.map((v, j) => `${cx(j)},${yp(v)}`).join(' ')} />
+              {s.gt.map((v, j) => <circle key={j} cx={cx(j)} cy={yp(v)} r={i === j ? 4 : 2.6} fill={s.mau} />)}</g>)}
+            {duongPhu.map((s, k) => <g key={s.ten} transform={`translate(${PL + k * 120}, 8)`}><rect width={10} height={3} y={4} fill={s.mau} /><text x={14} y={9} fontSize={10} fill="var(--fg-2)">{s.ten}</text></g>)}
+          </g>; })() : null}
         {i != null && <line x1={cx(i)} x2={cx(i)} y1={PT} y2={PT + cao} stroke="var(--fg-3)" strokeDasharray="2 2" />}
       </svg>
       {i != null && (
@@ -39,6 +46,7 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
           {conDuong && <div style={{ color: 'var(--fg-2)' }}>cộng dồn {dinhDang(luy[i]!)}</div>}
           {data[i]!.phu ? <div style={{ color: 'var(--fg-3)' }}>{data[i]!.phu}</div> : null}
           {ghiChu?.(i) ? <div style={{ color: 'var(--fg-3)' }}>{ghiChu(i)}</div> : null}
+          {duongPhu?.map((s) => <div key={s.ten} style={{ color: s.mau }}>{s.ten}: {s.gt[i] ?? 0}</div>)}
         </div>
       )}
     </div>

@@ -134,5 +134,7 @@ def main():
     l_ = "; ".join(loi)[:1000].replace("$L$", "")
     q(f"update etp.dong_bo set xong = now(), so_camp = {kq['so_camp']}, so_chi_tiet = {kq['so_chi_tiet']}, so_dong_ngay = {kq['so_dong_ngay']}, loi = {('$L$' + l_ + '$L$') if loi else 'null'} where lan = {lan}")
     print(json.dumps({**kq, "loi": loi}, ensure_ascii=False))
+    r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "canh-bao.py")], capture_output=True, text=True, timeout=120)   # bước 3: cảnh báo bất thường
+    print((r.stdout or r.stderr).strip()[-300:])
 
 if __name__ == "__main__": main()

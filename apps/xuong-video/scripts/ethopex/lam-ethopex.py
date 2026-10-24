@@ -10,6 +10,9 @@ In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
 import json, os, subprocess, sys, time, urllib.request, importlib.util
 _s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = importlib.util.module_from_spec(_s); _s.loader.exec_module(NT)
 
+# RÀO CHẮN etp (etp.on.tc bước 3, 24/10/2026): dừng khẩn / trần camp / trần ngày / trần bộ — apps/etp/cong.py
+import importlib.util as _iuc
+_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 MUC = {2, 3, 5, 7, 10, 15, 20, 30}   # $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026), anh duyệt nút
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -77,6 +80,8 @@ def main(a):
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
             ly = NT.chan_tang(lambda p: api(p), cid)   # nhịp tăng: ≥ 3 giờ giữa hai lần (nút cũ bấm muộn cũng bị chặn)
             if ly: raise ValueError(ly)
+            ly = CONG.kiem("tang", cid, ns, float(truoc["ns"] or 0))
+            if ly: raise ValueError(ly)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": cid, "source_payload": {"daily_budget": ns}}})
             ok = lambda s: float(s["ns"] or 0) == ns
         elif viec == "giam":   # luật GB giảm bậc — chỉ xuống trên thang, tối thiểu $1, cách lần đổi trước ≥ 6 giờ (nhip_tang.py)
@@ -104,6 +109,8 @@ def main(a):
             ok = lambda s: s["tt"] == "PAUSED"
         elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
             if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
+            ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)
+            if ly: raise ValueError(ly)
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "active"}])
             d0 = (r.get("data") or [{}])[0]
             if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối bật")

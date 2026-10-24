@@ -17,6 +17,7 @@ const THE_LOAI = path.join(REPO, 'apps/xuong-video/scripts/ethopex/the-loai.py')
 const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
 const TEP = () => path.join(DATA(), 'ethopex-da-bao.json');
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+const chayPsql = (cau) => new Promise((ok, hong) => execFile('psql', [process.env.DATABASE_URL, '-qtA', '-c', cau], { timeout: 30_000, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
 const chay = (tep, args, giay = 240) => new Promise((ok, hong) => execFile('python3', [tep, ...args], { timeout: giay * 1000, maxBuffer: 8 << 20, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
 const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return mac; } };
 
@@ -322,6 +323,18 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   }
+  // CẢNH BÁO KHO ETP (etp.on.tc bước 3, 24/10/2026): gửi dòng etp.canh_bao chưa gửi (canh-bao.py ghi sau mỗi lượt đồng bộ) + báo khi đồng bộ đứng > 30 phút
+  try {
+    const dsCb = (await chayPsql(`select coalesce(json_agg(x order by x.id), '[]') from (select id, muc, noi_dung from etp.canh_bao where da_gui is null order by id limit 20) x`)).trim();
+    const cb = JSON.parse(dsCb || '[]');
+    const tre = (await chayPsql(`select case when max(xong) < now() - interval '30 minutes' then extract(epoch from now() - max(xong))::int / 60 else 0 end from etp.dong_bo`)).trim();
+    if (Number(tre) > 0) cb.push({ id: 0, muc: 'do', noi_dung: `Kho etp không đồng bộ ${tre} phút — kiểm systemd etp-dong-bo trên box3` });
+    if (cb.length) {
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen && !cb.some((x) => x.muc === 'do'), text: `🚨 <b>CẢNH BÁO KHO ETP</b>\n${cb.map((x) => `${x.muc === 'do' ? '🔴' : '🟡'} ${esc(x.noi_dung)}`).join('\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+      const ids = cb.map((x) => x.id).filter(Boolean); if (ids.length) await chayPsql(`update etp.canh_bao set da_gui = now() where id in (${ids.join(',')})`);
+      gui++;
+    }
+  } catch (e) { console.error('canh-bao etp:', e.message); }
   // AD BỊ META TỪ CHỐI → MÁY TỰ THAY CREATIVE NGAY (anh 23/10/2026: "vào xem nguyên nhân fix rồi tự replace creative ngay"): thay-tu-choi.py đọc lý do,
   // thay bằng creative sạch cùng phim đạt CTA (chưa bị từ chối) qua Update camp; chưa có thì xếp hàng dựng góc mới (sua-cta.py iMac). Không tắt / xoá camp.
   const tc = (kq.tu_choi || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id));

@@ -12,6 +12,9 @@ Chạy trên box3 (khoá ở studio):
 In một dòng JSON {ok, goc, moi, ten, loi}."""
 import datetime as dt, importlib.util, json, os, re, subprocess, sys, time, urllib.request
 
+# RÀO CHẮN etp (etp.on.tc bước 3, 24/10/2026): dừng khẩn / trần camp / trần ngày / trần bộ — apps/etp/cong.py
+import importlib.util as _iuc
+_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 TRAN_PHIM = 30
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -172,6 +175,8 @@ def main(a):
             if chan: raise ValueError(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
         kq["phim_dang_chay"] = n
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, 1, 0, str(bo) if bo else None)
+        if ly: raise ValueError(ly)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)

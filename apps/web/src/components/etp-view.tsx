@@ -167,10 +167,13 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
 // phim → camp gốc → bản nhân bản (theo goc). Dấu hiệu thay chữ: chấm trạng thái · 🧬 số bản nhân · ⚠ nhân bản lỗi 24h (hover lý do) · ↘ ROI giảm 2 ngày ·
 // ⚔ đoạn > 3 camp · ô ROI 3 ngày trọn + hôm nay. Phim có cảnh báo (bão hoà / dừng nhân bản / camp lỗi) xếp đầu; mỗi phim gập, bấm mới bung.
 const LUOI_CAY = '1fr 38px 38px 38px 38px 76px';
-const LUOI_TRONG = '12px 164px 44px 190px 1fr';
+const LUOI_TRONG = '12px 164px 36px 44px 190px 1fr';   // + cột TUỔI camp (anh 25/10/2026: thêm tuổi từng camp và xếp theo nó)
 // mũi tên mở / gập: ▸ khi gập, xoay thành ▾ khi mở (anh 25/10/2026 "camp nào có child thì phải có mũi tên") — dòng không có con để chỗ trống cùng bề rộng
 const CSS_CAY = '.etp-cay summary{list-style:none}.etp-cay summary::-webkit-details-marker{display:none}.etp-cay .mui{display:inline-block;width:12px;color:var(--fg-2);transition:transform .15s}.etp-cay details[open]>summary .mui{transform:rotate(90deg)}.etp-cay .dong:hover{background:var(--hover,rgba(255,255,255,.07))!important}.etp-cay summary.dong-phim:hover{background:var(--hover,rgba(255,255,255,.05))}';   // rê chuột tô sáng dòng (anh 25/10/2026)   // trong ô camp: chấm · mã camp (thụt theo cấp) · ngân sách · ô creative · dấu hiệu — cột cố định mọi cấp   // camp · ROI 3 ngày trọn · ROI hôm nay · lãi 4 ngày — CỘT CỐ ĐỊNH, mọi dòng thẳng hàng với tiêu đề
 function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
+  const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');
+  const tuoi = (c: CampEtpKho) => (c.tao ? Math.max(0, Math.floor((Date.parse(du.nay) - Date.parse(c.tao.slice(0, 10))) / 86_400_000)) : null);
+  const ngay7 = Array.from({ length: 7 }, (_, k) => new Date(Date.parse(du.nay) - (6 - k) * 86_400_000).toISOString().slice(0, 10));
   const ngay = [3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
   const so = useMemo(() => { const m = new Map<number, Map<string, SoTien>>(); for (const r of du.soNgay) { let x = m.get(r.c); if (!x) m.set(r.c, (x = new Map())); x.set(r.d, { chi: r.chi, thu: r.thu }); } return m; }, [du.soNgay]);
   const loiNb = useMemo(() => new Map(du.nbLoi.map((x) => [x.camp_id, x])), [du.nbLoi]);
@@ -180,6 +183,8 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
   const con = useMemo(() => { const ids = new Set(camps.map((c) => c.camp_id)); const m = new Map<number, CampEtpKho[]>(); const goc: CampEtpKho[] = [];
     for (const c of camps) { if (c.goc && ids.has(c.goc)) { const a = m.get(c.goc) ?? []; a.push(c); m.set(c.goc, a); } else goc.push(c); } return { m, goc }; }, [camps]);
   const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc]);
+  const laiDai = (c: CampEtpKho) => ngay.reduce((a, d) => { const x = so.get(c.camp_id)?.get(d); return a + (x ? x.thu - x.chi : 0); }, c.nay.thu - c.nay.chi);
+  const sapXep = (ds: CampEtpKho[]) => [...ds].sort((a, b) => (xep === 'tuoi' ? (tuoi(b) ?? -1) - (tuoi(a) ?? -1) : laiDai(b) - laiDai(a)));
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
   const giam = (c: CampEtpKho) => { const r = ngay.map((d) => roi(so.get(c.camp_id)?.get(d))); return r[0] != null && r[1] != null && r[2] != null && r[0] > r[1] && r[1] > r[2]; };
   // data-cot: phép đo `do-man thang` (mọi ô cùng tên cột phải cùng mép) — anh 25/10/2026 không muốn nhắc lại chuyện lệch cột
@@ -192,7 +197,8 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
       <div className="dong" style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined }}>
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_TRONG, columnGap: 8, alignItems: 'center', minWidth: 0 }}>
-          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui" title={ds.length ? `${ds.length} bản nhân bản — bấm để mở` : undefined}>{ds.length ? '▸' : ''}</span> {cap > 1 ? <span style={{ color: 'var(--fg-3)' }}>↳ </span> : null}camp <b>#{c.camp_id}</b></span>
+          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">▸</span> {cap > 1 ? <span style={{ color: 'var(--fg-3)' }}>↳ </span> : null}camp <b>#{c.camp_id}</b></span>
+          <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tuoi(c) == null ? '' : `${tuoi(c)}n`}</span>
           <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} title="ngân sách / ngày">${c.ngan_sach}</span>
           <span data-cot="creative" title={`creative #${c.creative_id ?? '?'} · ${c.dang ?? ''} · đoạn ${c.doan?.split(':')[1] ?? '?'}s`} style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
@@ -201,13 +207,35 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
           {n ? <span title={`${n} bản nhân bản (cả các tầng)`}>🧬{n}</span> : null}
           {l ? <span title={`nhân bản lỗi ${l.lan} lần / 24 giờ — lần cuối ${vn(l.luc)}: ${l.loi ?? ''}`} style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}
           {giam(c) ? <span title="ROI giảm 2 ngày liền" style={{ color: '#f87171' }}>↘</span> : null}
-          {c.cung_doan > 3 ? <span title={`đoạn ${c.doan} đang chạy ở ${c.cung_doan} camp (trần 3)`} style={{ color: '#f59e0b' }}>⚔{c.cung_doan}</span> : null}
+          {c.cung_doan > 3 ? <span title={`đoạn ${c.doan} đang chạy ở ${c.cung_doan} camp — trần 3 camp / đoạn`} style={{ color: '#f59e0b', border: '1px solid #f59e0b66', borderRadius: 4, padding: '0 4px', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{c.cung_doan}/3</span> : null}
           </span>
         </span>
         {ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(so.get(c.camp_id)?.get(d))} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" />
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><Lai s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} /></span>
       </div>);
-    return ds.length ? <details><summary style={{ cursor: 'pointer' }}>{hang}</summary>{ds.map((x) => <Dong key={x.camp_id} c={x} cap={cap + 1} />)}</details> : hang;
+    // BẤM CAMP NÀO CŨNG MỞ (anh 25/10/2026 "sao không cho mở nốt xem từng camp hiệu suất thế nào"): ngăn chi tiết 7 ngày + bản nhân bản (nếu có)
+    const d7 = ngay7.map((d) => ({ d, x: d === du.nay ? c.nay : so.get(c.camp_id)?.get(d) }));
+    const max = Math.max(1, ...d7.map(({ x }) => Math.abs(x ? x.thu - x.chi : 0)));
+    const t7 = d7.reduce((a, { x }) => ({ chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }), { chi: 0, thu: 0 });
+    const chiTiet = (
+      <div style={{ margin: '2px 0 6px', marginLeft: 12 + 12 + 8 + cap * 14, padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px', fontSize: 11, maxWidth: 760 }}>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', height: 64 }} title="lãi / lỗ từng ngày (7 ngày, ngày Ethopex)">
+          {d7.map(({ d, x }) => { const l = x ? x.thu - x.chi : 0; const h = Math.round((Math.abs(l) / max) * 28); const r = roi(x);
+            return <div key={d} title={`${d.slice(8, 10)}/${d.slice(5, 7)} · chi $${(x?.chi ?? 0).toFixed(2)} · thu $${(x?.thu ?? 0).toFixed(2)} · lãi ${l >= 0 ? '+' : '−'}$${Math.abs(l).toFixed(2)}${r == null ? '' : ` · ROI ${r}%`}`}
+              style={{ width: 22, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ height: 30, display: 'flex', alignItems: 'flex-end' }}>{l > 0 ? <div style={{ width: 14, height: h, background: '#22c55e', borderRadius: 2 }} /> : null}</div>
+              <div style={{ width: 18, height: 1, background: 'var(--line)' }} />
+              <div style={{ height: 30 }}>{l < 0 ? <div style={{ width: 14, height: h, background: '#ef4444', borderRadius: 2 }} /> : null}</div>
+            </div>; })}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, auto)', gap: '2px 14px', alignContent: 'center', color: 'var(--fg-2)' }}>
+          <span>7 ngày</span><span>chi <b style={{ color: 'var(--fg-1, inherit)' }}>${t7.chi.toFixed(2)}</b></span><span>thu <b style={{ color: 'var(--fg-1, inherit)' }}>${t7.thu.toFixed(2)}</b></span><span>ROI <Roi s={t7} /> · <Lai s={t7} /></span>
+          <span>tuổi</span><span>{tuoi(c) ?? '?'} ngày</span><span>ngân sách ${c.ngan_sach}</span><span>giao {c.giao ?? '—'}</span>
+          {c.goc ? <><span>nhân từ</span><span>camp #{c.goc}</span><span /><span /></> : null}
+          {l ? <><span style={{ color: '#f87171' }}>nhân bản lỗi</span><span style={{ gridColumn: 'span 3', color: '#f87171' }}>{l.lan} lần / 24h · {l.loi ?? ''}</span></> : null}
+        </div>
+      </div>);
+    return <details><summary style={{ cursor: 'pointer' }}>{hang}</summary>{chiTiet}{sapXep(ds).map((x) => <Dong key={x.camp_id} c={x} cap={cap + 1} />)}</details>;
   };
   const phim = [...theoPhim.entries()].map(([k, ds]) => { const all: CampEtpKho[] = []; const gom = (c: CampEtpKho) => { all.push(c); (con.m.get(c.camp_id) ?? []).forEach(gom); }; ds.forEach(gom);
     const b = bh.get(Number(k)); const loi = all.filter((c) => loiNb.has(c.camp_id)).length; const sut = all.filter(giam).length;
@@ -217,8 +245,11 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
     <div className="etp-cay" style={{ padding: '0 4px' }}>
       <style>{CSS_CAY}</style>
       <div style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', flexWrap: 'wrap', gap: 12, padding: '6px 0' }}>
-        <span>Mỗi dòng = một <b>camp</b> · ô viền <b>cr #</b> = creative camp đang chạy (ảnh + đoạn giây) · thụt vào = bản nhân bản của camp trên</span>
-        <span>🧬 số bản nhân</span><span style={{ color: '#f87171' }}>⚠ nhân bản lỗi 24h</span><span style={{ color: '#f87171' }}>↘ ROI giảm 2 ngày</span><span style={{ color: '#f59e0b' }}>⚔ đoạn &gt; 3 camp</span>
+        <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }} title="xếp camp trong mỗi phim">
+          {([['lai', 'xếp: lãi'], ['tuoi', 'xếp: tuổi']] as const).map(([k, t]) => <button key={k} onClick={() => setXep(k)} style={{ border: 'none', padding: '1px 8px', fontSize: 11, cursor: 'pointer', color: 'inherit', background: xep === k ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent' }}>{t}</button>)}
+        </span>
+        <span>Mỗi dòng = một <b>camp</b> · <b>Nn</b> = tuổi camp (ngày) · ô viền <b>cr #</b> = creative camp đang chạy (ảnh + đoạn giây) · thụt vào = bản nhân bản của camp trên</span>
+        <span>🧬 số bản nhân</span><span style={{ color: '#f87171' }}>⚠ nhân bản lỗi 24h</span><span style={{ color: '#f87171' }}>↘ ROI giảm 2 ngày</span><span style={{ color: '#f59e0b' }}><span style={{ border: '1px solid #f59e0b66', borderRadius: 4, padding: '0 4px' }}>8/3</span> camp cùng đoạn / trần</span><span>▸ bấm camp để xem 7 ngày</span>
         <span><span style={{ display: 'inline-block', width: 3, height: 10, background: '#ef4444', marginRight: 4 }} />dòng nhân bản lỗi</span><span><span style={{ display: 'inline-block', width: 3, height: 10, background: '#f59e0b', marginRight: 4 }} />dòng ROI giảm</span>
       </div>
       <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
@@ -241,7 +272,7 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
             <O cot="roi-nay" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />
             <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><Lai s={p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0), thu: a.thu + c.nay.thu + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) }), { chi: 0, thu: 0 })} /></span>
           </summary>
-          {p.ds.map((c) => <Dong key={c.camp_id} c={c} cap={1} />)}
+          {sapXep(p.ds).map((c) => <Dong key={c.camp_id} c={c} cap={1} />)}
         </details>))}
     </div>
   );

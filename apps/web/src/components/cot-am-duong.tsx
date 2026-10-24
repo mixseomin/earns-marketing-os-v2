@@ -3,17 +3,19 @@
 // Rê chuột: hộp số của đúng ngày. Màu: dương = tiền lãi, âm = lỗ (đúng bảng nghĩa YDNI: màu là tín hiệu tiền +/−).
 import { useEffect, useRef, useState } from 'react';
 
-export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiChu, duongPhu }: {
+export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiChu, duongPhu, duKien }: {
   data: { x: string; v: number; phu?: string; mo?: boolean }[];   // mo = số chưa chốt (vẽ nhạt)
   dinhDang: (v: number) => string; conDuong?: boolean; height?: number; ghiChu?: (i: number) => string | null;
   /** đường SỐ LƯỢNG vẽ chồng lên cột lãi, trục phải riêng (etp.on.tc: camp mới / creative mới / camp tắt theo ngày) */
   duongPhu?: { ten: string; mau: string; gt: number[] }[];
+  /** cột DỰ KIẾN cho ngày đang chạy (etp.on.tc): khung viền đứt tới v, khoảng tu–den + cách tính ở ô rê chuột */
+  duKien?: { i: number; v: number; tu: number; den: number; cach: string };
 }) {
   const hop = useRef<HTMLDivElement>(null); const [W, datW] = useState(800); const [i, datI] = useState<number | null>(null);
   useEffect(() => { const el = hop.current; if (!el) return; const ro = new ResizeObserver(([e]) => datW(Math.max(300, Math.round(e!.contentRect.width)))); ro.observe(el); return () => ro.disconnect(); }, []);
   const n = data.length; if (!n) return <div ref={hop} style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có số</div>;
   const luy = data.reduce<number[]>((a, d) => [...a, (a.at(-1) ?? 0) + d.v], []);
-  const vals = [...data.map((d) => d.v), ...(conDuong ? luy : []), 0];
+  const vals = [...data.map((d) => d.v), ...(conDuong ? luy : []), 0, ...(duKien ? [duKien.v, duKien.den] : [])];
   const max = Math.max(...vals), min = Math.min(...vals), span = max - min || 1;
   const PL = 56, PR = duongPhu?.length ? 40 : 12, PT = duongPhu?.length ? 26 : 10, PB = 22, cao = height - PT - PB, rong = W - PL - PR, buoc = rong / n;
   const y = (v: number) => PT + ((max - v) / span) * cao, y0 = y(0), bc = Math.min(36, buoc * 0.6), cx = (j: number) => PL + buoc * j + buoc / 2;
@@ -29,6 +31,11 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
             <rect x={cx(j) - bc / 2} y={top} width={bc} height={h} rx={2} fill={d.v >= 0 ? 'var(--neon-lime, #9be15d)' : 'var(--neon-red, #ff5c5c)'} opacity={d.mo ? 0.45 : 0.9} />
             {(n <= 14 || j % Math.ceil(n / 14) === 0) && <text x={cx(j)} y={height - 6} textAnchor="middle" fontSize={10} fill="var(--fg-3)">{d.x}</text>}
           </g>; })}
+        {duKien && duKien.i < n ? <g pointerEvents="none">
+          <rect x={cx(duKien.i) - bc / 2} y={Math.min(y(duKien.v), y0)} width={bc} height={Math.max(1, Math.abs(y(duKien.v) - y0))} rx={2} fill="none" stroke={duKien.v >= 0 ? 'var(--neon-lime, #9be15d)' : 'var(--neon-red, #ff5c5c)'} strokeWidth={1.5} strokeDasharray="4 3" />
+          <line x1={cx(duKien.i)} x2={cx(duKien.i)} y1={y(duKien.den)} y2={y(duKien.tu)} stroke="var(--fg-2)" strokeWidth={1} />
+          <text x={cx(duKien.i)} y={Math.min(y(duKien.v), y(duKien.den)) - 5} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--neon-lime, #9be15d)">dự kiến {dinhDang(duKien.v)}</text>
+        </g> : null}
         {conDuong && <polyline fill="none" stroke="var(--fg-2)" strokeWidth={1.5} points={luy.map((v, j) => `${cx(j)},${y(v)}`).join(' ')} />}
         {duongPhu?.length ? (() => { const mx = Math.max(1, ...duongPhu.flatMap((s) => s.gt)), yp = (v: number) => PT + cao - (v / mx) * cao;
           return <g pointerEvents="none">
@@ -47,6 +54,7 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
           {data[i]!.phu ? <div style={{ color: 'var(--fg-3)' }}>{data[i]!.phu}</div> : null}
           {ghiChu?.(i) ? <div style={{ color: 'var(--fg-3)' }}>{ghiChu(i)}</div> : null}
           {duongPhu?.map((s) => <div key={s.ten} style={{ color: s.mau }}>{s.ten}: {s.gt[i] ?? 0}</div>)}
+          {duKien && duKien.i === i ? <div style={{ color: 'var(--neon-lime, #9be15d)' }}>dự kiến cả ngày {dinhDang(duKien.v)} ({dinhDang(duKien.tu)} – {dinhDang(duKien.den)})<div style={{ color: 'var(--fg-3)' }}>{duKien.cach}</div></div> : null}
         </div>
       )}
     </div>

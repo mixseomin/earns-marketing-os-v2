@@ -11,6 +11,8 @@ export interface StGoc {
   suc: number | null; nguoi: number; qc: number | null; batNgo: boolean; dangLen: boolean;
   tt: StTrangThaiGoc; video: number; click: number; hh: number;
 }
+export interface DangNenTho { nen: string; may: string; nk: { buoc: string; ok: boolean; luc: string; chu: string } | null; daHom: { url: string | null; luc: string | null } | null;
+  lichHom: { gio: string; title: string } | null; sua: 'cho' | 'dang' | null }
 export interface StKenh {
   id: number; ten: string; nenTang: string; nhom: string; ngonNgu: string; proxy: string;
   nenKey?: string;     // khoá nền tảng THẬT (platforms.key: youtube, twitter…) — favicon đọc khoá này, không đoán từ tên hiển thị ('X' ≠ khoá)
@@ -20,6 +22,9 @@ export interface StKenh {
   xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)
   dangCuoi?: string | null;  // LIVE: ngày đăng video mới nhất trên nền này (YYYY-MM-DD); null = chưa có máy đo
   landing?: string | null;   // LIVE: link đích được nhiều sản phẩm của kênh trỏ tới nhất (kenh_sp.dich)
+  /** LIVE: máy đăng trên từng nền của tài khoản (city hiện chờ / đang đăng / hỏng / đang sửa — anh 25/10/2026): dòng nhật ký mới nhất 24 giờ,
+   *  bài đã lên hôm nay, mục lịch dự kiến hôm nay (máy tự tính bằng nhịp an toàn), việc của Mạnh (thợ máy) nếu có */
+  dangMay?: DangNenTho[];
   duAn?: string;             // LIVE: tên dự án của tài khoản (projects.name) — thành phố Social gom cụm theo đây khi tài khoản chưa gắn máy đăng
 }
 export interface StLo {

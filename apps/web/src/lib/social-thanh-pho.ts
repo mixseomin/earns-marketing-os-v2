@@ -56,7 +56,29 @@ export interface PhoTk {
   phien: number; phienKy: string;
   /** khoá đích nó đổ khách vào ('s:<site>'); null = chưa biết đổ về đâu */
   dich: string | null; hong: string | null; dung: boolean;
+  /** MÁY ĐĂNG từng nền của tài khoản (trangThaiNen) + trạng thái nặng nhất của cả toà (ttDang) — city vẽ dấu trên nóc, thẻ hover liệt kê */
+  dang?: DangNen[]; ttDang?: TtDang | null;
 }
+/** trạng thái máy đăng một nền hôm nay: sua = Mạnh (thợ máy) đang sửa / chờ sửa · dang = đang đăng · hong = lượt đăng hỏng · cho = có lịch hôm nay, chưa lên · xong = đã lên */
+export type TtDang = 'sua' | 'dang' | 'hong' | 'cho' | 'xong';
+export interface DangNen { nen: string; tt: TtDang; chu: string; luc: string | null; url?: string | null }
+export const UU_TIEN_DANG: TtDang[] = ['sua', 'dang', 'hong', 'cho', 'xong'];
+const gioVN = (iso: string | null | undefined) => (iso ? new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) : '');
+/** Quyết trạng thái một nền từ số thô (social-traffic › docDangMay). 'bat-dau' cũ hơn DANG_PHUT phút mà chưa có dòng kết quả = lượt đã chết giữa chừng → hỏng. */
+export const DANG_PHUT = 20;
+export function trangThaiNen(x: { nen: string; nk: { buoc: string; ok: boolean; luc: string; chu: string } | null; daHom: { url: string | null; luc: string | null } | null;
+  lichHom: { gio: string; title: string } | null; sua: 'cho' | 'dang' | null }, bay = Date.now()): DangNen | null {
+  const nk = x.nk;
+  if (x.sua) return { nen: x.nen, tt: 'sua', chu: x.sua === 'dang' ? 'Mạnh (thợ máy) đang sửa' : 'chờ Mạnh (thợ máy) sửa', luc: nk?.luc ?? null };
+  if (nk?.buoc === 'bat-dau') return bay - Date.parse(nk.luc) < DANG_PHUT * 6e4 ? { nen: x.nen, tt: 'dang', chu: `đang đăng (từ ${gioVN(nk.luc)})`, luc: nk.luc }
+    : { nen: x.nen, tt: 'hong', chu: `lượt đăng ${gioVN(nk.luc)} dừng giữa chừng, không có kết quả`, luc: nk.luc };
+  if (x.daHom) return { nen: x.nen, tt: 'xong', chu: `đã đăng hôm nay${x.daHom.luc ? ` ${gioVN(x.daHom.luc)}` : ''}`, luc: x.daHom.luc, url: x.daHom.url };
+  if (nk?.buoc === 'dang' && !nk.ok) return { nen: x.nen, tt: 'hong', chu: `hỏng ${gioVN(nk.luc)}: ${nk.chu.replace(/^Đăng hỏng:\s*/, '')}`, luc: nk.luc };
+  if (x.lichHom) return { nen: x.nen, tt: 'cho', chu: `chờ đăng ${x.lichHom.gio}${x.lichHom.title ? ` · ${x.lichHom.title.slice(0, 60)}` : ''}`, luc: null };
+  return null;
+}
+/** trạng thái nặng nhất trong các nền của một toà */
+export const ttNangNhat = (ds: DangNen[]): TtDang | null => UU_TIEN_DANG.find((t) => ds.some((d) => d.tt === t)) ?? null;
 /** ĐÍCH: site ('s:<host>') hoặc sản phẩm ('p:<id>'). duAn = khoá khu (PhoDuAn.khoa). */
 export interface PhoDich {
   /** 'nen' = nền tảng chạy chiến dịch (Ethopex) — tâm của khu, các camp ('camp') đứng quanh như bản cửa hàng quanh app */
@@ -314,6 +336,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     id: t.id, loai: 'mxh' as const, nen: NEN_KEY[t.k.nenKey!]!, ten: t.k.ten.replace(/\s*\(Page\)\s*$/i, ''), duAn: t.duAn,
     chay: t.k.video, sap: t.sap, xem: t.k.daDo === false ? null : t.k.xem, phien: t.k.click, phienKy: t.k.nenKey === 'pinterest' ? '30 ngày' : '7 ngày',
     dich: t.site, hong: t.hong, dung: t.k.tt === 'dung',
+    ...(() => { const ds = (t.k.dangMay ?? []).map((x) => trangThaiNen(x)).filter((x): x is DangNen => !!x); return ds.length ? { dang: ds, ttDang: ttNangNhat(ds) } : {}; })(),
   }));
 
   const hst: VaoHeSinhThai = live.heSinhThai ?? { duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] };

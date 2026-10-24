@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -253,3 +253,20 @@ console.log('✓ tài nguyên: bồn (mức tiêu, còn ngày) · hạn tên mi�
   assert.deepStrictEqual(mN.dich.find((d) => d.khoa === 'n:ethopex')?.ngay30, [{ ngay: '2026-10-01', thu: 6, chi: 4 }], 'toà nền tảng mang chuỗi lãi theo ngày của bộ');
 }
 console.log('gopNgay ✓');
+
+// MÁY ĐĂNG TRÊN CITY (25/10/2026): trạng thái một nền — sửa > đang đăng > hỏng > chờ > đã đăng; 'bat-dau' quá 20 phút không kết quả = hỏng
+{
+  const bay = Date.parse('2026-10-25T13:30:00Z'), goc = { nen: 'instagram', nk: null, daHom: null, lichHom: null, sua: null } as const;
+  assert.strictEqual(trangThaiNen(goc, bay), null, 'không lịch, không nhật ký = không vẽ gì');
+  assert.strictEqual(trangThaiNen({ ...goc, lichHom: { gio: '20:05', title: 'Only ONE' } }, bay)?.tt, 'cho');
+  assert.strictEqual(trangThaiNen({ ...goc, lichHom: { gio: '20:05', title: '' }, nk: { buoc: 'bat-dau', ok: true, luc: '2026-10-25T13:20:00Z', chu: '' } }, bay)?.tt, 'dang', 'bắt đầu 10 phút trước = đang đăng');
+  assert.strictEqual(trangThaiNen({ ...goc, nk: { buoc: 'bat-dau', ok: true, luc: '2026-10-25T12:50:00Z', chu: '' } }, bay)?.tt, 'hong', 'bắt đầu 40 phút trước không kết quả = chết giữa chừng');
+  const h = trangThaiNen({ ...goc, lichHom: { gio: '20:05', title: '' }, nk: { buoc: 'dang', ok: false, luc: '2026-10-25T13:06:00Z', chu: 'Đăng hỏng: Instagram: bước Crop' } }, bay);
+  assert.ok(h?.tt === 'hong' && h.chu.includes('bước Crop') && !h.chu.includes('Đăng hỏng'), 'hỏng mang lý do, bỏ tiền tố');
+  assert.strictEqual(trangThaiNen({ ...goc, nk: { buoc: 'dang', ok: false, luc: '2026-10-25T13:06:00Z', chu: 'x' }, daHom: { url: 'u', luc: '2026-10-25T13:20:00Z' } }, bay)?.tt, 'xong', 'hỏng rồi đăng bù được = đã đăng');
+  assert.strictEqual(trangThaiNen({ ...goc, sua: 'dang', nk: { buoc: 'dang', ok: false, luc: '2026-10-25T13:06:00Z', chu: 'x' } }, bay)?.tt, 'sua', 'Mạnh đang sửa thắng mọi trạng thái');
+  assert.strictEqual(trangThaiNen({ ...goc, nk: { buoc: 'dang', ok: true, luc: '2026-10-25T13:06:00Z', chu: 'Chưa tới hạn đăng' } }, bay), null, 'dòng ok (chưa tới hạn) không phải hỏng');
+  assert.strictEqual(ttNangNhat([{ nen: 'x', tt: 'xong', chu: '', luc: null }, { nen: 'x_link', tt: 'hong', chu: '', luc: null }, { nen: 'x_anh', tt: 'cho', chu: '', luc: null }]), 'hong', 'toà lấy trạng thái nặng nhất');
+  assert.strictEqual(ttNangNhat([]), null);
+}
+console.log('máy đăng trên city ✓');

@@ -128,12 +128,12 @@ export function loiCanMat(s: SoDo, ds: (ManhSoDo & { thu_tu: number; co?: string
 /** CHỮ TRÁI SƠ ĐỒ: câu viết tay (ảnh / diễn / đầu / đuôi) đặt mốc A đang nhìn vào "behind her/him" trong khi sơ đồ nói mốc ở phía trước (sâu > NUA_LUNG),
  *  hoặc "in front of" khi mốc ở phía máy. Câu hướng máy đúng mà chữ tay ngược thì model nghe chữ tay (phim #353 #2: "the door softly blurred behind her"). */
 export function loiChuSoDo(s: SoDo, m: ManhSoDo, chu: string): string[] {
-  const out: string[] = []; const cau = chu.split(/(?<=[.;!?])\s+/);
+  const out: string[] = []; const cau = chu.split(/[.;:,!?]\s*/); // từng VẾ câu: "from behind her right shoulder, … the door" là chỗ máy, không phải chỗ cửa
   for (const [a, b] of Object.entries(m.nhin ?? {})) {
     if (!s.moc[b] || m.o[b] != null) continue; const sau = doSau(s, m, a, b); if (sau == null) continue;
     const ten = (s.ten?.[b] ?? b).replace(/^the\s+/i, '').toLowerCase(); const loi = ten.split(/\s+/).pop()!; // "elevator door" → khớp "door"
     for (const c of cau) { const l = c.toLowerCase(); if (!l.includes(loi)) continue;
-      if (sau > NUA_LUNG && /\bbehind (her|him|them)\b|\bat (her|his|their) back\b/.test(l)) out.push(`"${c.trim()}" — ${a} đang nhìn ${ten} ở PHÍA TRƯỚC (trong sâu khung), chữ lại đặt nó sau lưng`);
+      if (sau > NUA_LUNG && /\bbehind (her|him|them)\b(?! (right |left )?(shoulder|head|back|ear))|\bat (her|his|their) back\b/.test(l)) out.push(`"${c.trim()}" — ${a} đang nhìn ${ten} ở PHÍA TRƯỚC (trong sâu khung), chữ lại đặt nó sau lưng`);
       if (sau < -NUA_LUNG && /\bin front of (her|him|them)\b/.test(l)) out.push(`"${c.trim()}" — ${ten} ở phía MÁY (sau lưng ống kính), chữ lại đặt trước mặt ${a}`); }
   }
   return out;

@@ -50,6 +50,7 @@ console.log('so-do-canh.test: ok (tờ phác)');
   assert.ok(c.includes('three-quarters away') && c.includes('never behind Hạ'), c);
   assert.strictEqual(loiChuSoDo(n, mm, 'Close-up of Hạ, the door softly blurred behind her.').length, 1);
   assert.deepStrictEqual(loiChuSoDo(n, mm, 'Close-up of Hạ, eyes on the floor indicator above the door in front of her.'), []);
+  assert.deepStrictEqual(loiChuSoDo(n, mm, 'Close-up of Hạ from behind her right shoulder, three-quarter back view: her eyes on the indicator above the elevator door in front of her, the steel door filling the background beyond her.'), [], 'chỗ máy sau vai không phải lỗi');
   // máy phía trước cửa nhìn ngược ra: cửa ở phía máy → "in front of her" bị chặn
   const nguoc = { ...n, may: { ...n.may, truoc: { dat: [-0.4, 6.9] as [number, number], nhin: [-0.5, 4] as [number, number] } } };
   assert.strictEqual(loiChuSoDo(nguoc, { ...mm, may: 'truoc' }, 'the elevator door right in front of her').length, 1); }

@@ -166,10 +166,12 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
 // CÂY CAMP (anh 25/10/2026 "trình bày dạng tree để xem chi tiết camp nào đang nhân bản, bị nhân bản lỗi, hiệu suất giảm"):
 // phim → camp gốc → bản nhân bản (theo goc). Dấu hiệu thay chữ: chấm trạng thái · 🧬 số bản nhân · ⚠ nhân bản lỗi 24h (hover lý do) · ↘ ROI giảm 2 ngày ·
 // ⚔ đoạn > 3 camp · ô ROI 3 ngày trọn + hôm nay. Phim có cảnh báo (bão hoà / dừng nhân bản / camp lỗi) xếp đầu; mỗi phim gập, bấm mới bung.
+const LUOI_CAY = '1fr 38px 38px 38px 38px 76px';   // camp · ROI 3 ngày trọn · ROI hôm nay · lãi 4 ngày — CỘT CỐ ĐỊNH, mọi dòng thẳng hàng với tiêu đề
 function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
   const ngay = [3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
   const so = useMemo(() => { const m = new Map<number, Map<string, SoTien>>(); for (const r of du.soNgay) { let x = m.get(r.c); if (!x) m.set(r.c, (x = new Map())); x.set(r.d, { chi: r.chi, thu: r.thu }); } return m; }, [du.soNgay]);
   const loiNb = useMemo(() => new Map(du.nbLoi.map((x) => [x.camp_id, x])), [du.nbLoi]);
+  const anhCr = useMemo(() => new Map(du.creatives.map((x) => [x.creative_id, x])), [du.creatives]);
   const bh = useMemo(() => new Map(du.baoHoa.map((x) => [x.content_id, x])), [du.baoHoa]);
   const roi = (x?: SoTien) => (x && x.chi >= 0.3 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
   const con = useMemo(() => { const ids = new Set(camps.map((c) => c.camp_id)); const m = new Map<number, CampEtpKho[]>(); const goc: CampEtpKho[] = [];
@@ -177,22 +179,26 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
   const theoPhim = useMemo(() => { const g = new Map<string, CampEtpKho[]>(); for (const c of con.goc) { const k = String(c.content_id ?? 0); g.set(k, [...(g.get(k) ?? []), c]); } return g; }, [con.goc]);
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
   const giam = (c: CampEtpKho) => { const r = ngay.map((d) => roi(so.get(c.camp_id)?.get(d))); return r[0] != null && r[1] != null && r[2] != null && r[0] > r[1] && r[1] > r[2]; };
-  const O = ({ v, t }: { v: number | null; t: string }) => <span title={t} style={{ fontSize: 10, minWidth: 34, textAlign: 'center', padding: '0 3px', borderRadius: 4, fontVariantNumeric: 'tabular-nums',
+  const O = ({ v, t }: { v: number | null; t: string }) => <span title={t} style={{ fontSize: 10, width: 38, textAlign: 'center', padding: '1px 0', borderRadius: 4, fontVariantNumeric: 'tabular-nums',
     background: v == null ? 'transparent' : v >= 50 ? 'rgba(34,197,94,.15)' : v >= 0 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)', color: v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171' }}>{v == null ? '·' : `${v}%`}</span>;
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {
-    const ds = con.m.get(c.camp_id) ?? []; const l = loiNb.get(c.camp_id); const n = dem(c);
+    const ds = con.m.get(c.camp_id) ?? []; const l = loiNb.get(c.camp_id); const n = dem(c); const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
+    const mau = l ? '#ef4444' : giam(c) ? '#f59e0b' : null;   // dòng cảnh báo: vạch mép trái + nền nhạt — đỏ nhân bản lỗi, cam ROI giảm 2 ngày
     const hang = (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', padding: '3px 0', paddingLeft: cap * 18, fontSize: 12, borderTop: '1px solid var(--line)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0', paddingLeft: cap * 18, fontSize: 12, borderTop: '1px solid var(--line)',
+        boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined }}>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
-          <TT c={c} /><b>#{c.camp_id}</b><span style={{ color: 'var(--fg-2)' }}>${c.ngan_sach}</span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-2)' }} title={c.ten}>{c.dang ?? ''} {c.doan?.split(':')[1] ?? ''}</span>
+          <TT c={c} /><span title={c.ten}>camp <b>#{c.camp_id}</b></span><span style={{ color: 'var(--fg-2)' }} title="ngân sách / ngày">${c.ngan_sach}</span>
+          <span title={`creative #${c.creative_id ?? '?'} · ${c.dang ?? ''} · đoạn ${c.doan?.split(':')[1] ?? '?'}s`} style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>
+            {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
+            cr #{c.creative_id ?? '?'} · {c.doan?.split(':')[1] ?? ''}s</span>
           {n ? <span title={`${n} bản nhân bản (cả các tầng)`}>🧬{n}</span> : null}
           {l ? <span title={`nhân bản lỗi ${l.lan} lần / 24 giờ — lần cuối ${vn(l.luc)}: ${l.loi ?? ''}`} style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}
           {giam(c) ? <span title="ROI giảm 2 ngày liền" style={{ color: '#f87171' }}>↘</span> : null}
           {c.cung_doan > 3 ? <span title={`đoạn ${c.doan} đang chạy ở ${c.cung_doan} camp (trần 3)`} style={{ color: '#f59e0b' }}>⚔{c.cung_doan}</span> : null}
         </span>
-        <span style={{ display: 'flex', gap: 3 }}>{ngay.map((d) => <O key={d} v={roi(so.get(c.camp_id)?.get(d))} t={`${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}<O v={roi(c.nay)} t="hôm nay" /></span>
-        <Lai s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} />
+        {ngay.map((d) => <O key={d} v={roi(so.get(c.camp_id)?.get(d))} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}<O v={roi(c.nay)} t="ROI hôm nay" />
+        <span style={{ textAlign: 'right' }}><Lai s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} /></span>
       </div>);
     return ds.length ? <details><summary style={{ listStyle: 'none', cursor: 'pointer' }}>{hang}</summary>{ds.map((x) => <Dong key={x.camp_id} c={x} cap={cap + 1} />)}</details> : hang;
   };
@@ -202,16 +208,30 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
     .sort((a, b) => b.canh - a.canh || b.chi - a.chi);
   return (
     <div style={{ padding: '0 4px' }}>
-      <div style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', justifyContent: 'flex-end', gap: 3, padding: '4px 0' }} title="ROI 3 ngày trọn + hôm nay · lãi 4 ngày">{ngay.map((d) => <span key={d} style={{ minWidth: 34, textAlign: 'center' }}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span style={{ minWidth: 34, textAlign: 'center' }}>nay</span><span style={{ minWidth: 60 }} /></div>
+      <div style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', flexWrap: 'wrap', gap: 12, padding: '6px 0' }}>
+        <span>Mỗi dòng = một <b>camp</b> · ô viền <b>cr #</b> = creative camp đang chạy (ảnh + đoạn giây) · thụt vào = bản nhân bản của camp trên</span>
+        <span>🧬 số bản nhân</span><span style={{ color: '#f87171' }}>⚠ nhân bản lỗi 24h</span><span style={{ color: '#f87171' }}>↘ ROI giảm 2 ngày</span><span style={{ color: '#f59e0b' }}>⚔ đoạn &gt; 3 camp</span>
+        <span><span style={{ display: 'inline-block', width: 3, height: 10, background: '#ef4444', marginRight: 4 }} />dòng nhân bản lỗi</span><span><span style={{ display: 'inline-block', width: 3, height: 10, background: '#f59e0b', marginRight: 4 }} />dòng ROI giảm</span>
+      </div>
+      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+        <span>Phim → camp gốc → bản nhân bản</span>
+        {ngay.map((d) => <span key={d} style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span style={{ textAlign: 'center' }} title="ROI hôm nay">nay</span>
+        <span style={{ textAlign: 'right' }} title="lãi 3 ngày trọn + hôm nay">lãi 4 ngày</span>
+      </div>
       {phim.map((p) => (
         <details key={p.k} style={{ borderTop: '1px solid var(--line)' }}>
-          <summary style={{ cursor: 'pointer', padding: '6px 0', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <summary style={{ cursor: 'pointer', padding: '6px 0', fontSize: 13, display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center' }}>
+            <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
             <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.all[0]?.phim ?? `#${p.k}`}</b>
             <span title="camp" style={{ color: 'var(--fg-2)' }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
             {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b' }}>⚠ bão hoà</span> : null}
             {p.b?.chan_nb ? <span title={`dừng nhân bản: ${p.b.chan_nb}`} style={{ color: '#f59e0b' }}>⏸🧬</span> : null}
             {p.loi ? <span title={`${p.loi} camp nhân bản lỗi trong 24 giờ`} style={{ color: '#f87171' }}>⚠{p.loi}</span> : null}
             {p.sut ? <span title={`${p.sut} camp ROI giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}
+            </span>
+            {ngay.map((d) => <O key={d} v={roi(p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }))} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}
+            <O v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />
+            <span style={{ textAlign: 'right' }}><Lai s={p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0), thu: a.thu + c.nay.thu + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) }), { chi: 0, thu: 0 })} /></span>
           </summary>
           {p.ds.map((c) => <Dong key={c.camp_id} c={c} cap={1} />)}
         </details>))}

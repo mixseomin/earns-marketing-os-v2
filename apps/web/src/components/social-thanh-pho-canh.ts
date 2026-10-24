@@ -1279,92 +1279,128 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // quanh trục thang, máy trong buồng = việc nền. Ở xa nắp hầm đậy kín; tới gần mở nắp, hiện người đi lại + cabin thang chạy.
     type PhongMc = { kieu: string; nhom: number; muc: 0 | 1 | 2; nguoi: number; may: number; cao: number; ud: any };
     function canCu(x: number, z: number, noi: PhongMc[], ngam: PhongMc[], udVo: any, nhan: string) {
-      // CÁNH theo nhóm việc (anh 24/10/2026 "các phòng khối phải gắn với nhau logic giống mẫu"): mỗi nhóm một cánh toả từ tháp — hành lang mái che nối thẳng vào tháp,
-      // công trình cùng nhóm đứng sát hai bên hành lang (bận nhất gần tháp, cao nhất), cầu treo nối cặp đối diện; mặt trước (+z) để trống cho cầu xuống hầm.
-      const HT = 70, Y0 = 2.6, MIENG = 2.4, BUOC = 12.5, GOC = [-0.2, Math.PI + .2, Math.PI * 1.3, Math.PI * 1.7, Math.PI * .5 + 1.2, Math.PI * .5 - 1.2];
-      const nhomDs = [...new Set(noi.map((p) => p.nhom))].sort((a, b) => a - b);
-      const daiMax = Math.max(1, ...nhomDs.map((g) => Math.ceil(noi.filter((p) => p.nhom === g).length / 2))), Rd = 14 + daiMax * BUOC + 8;
-      const cG = Math.min(5, Math.max(1, ngam.length)), rG = Math.ceil(ngam.length / cG), wG = 15, S = 10, WH = cG * wG + 6, DH = rG * wG + 6, zH = z + 22;   // hầm sát chân tháp, mặt trước để trống cho hầm
-      const o: MatCat = { tam: new THREE.Vector3(x, 20, z + (ngam.length ? Rd / 2 : 0)), R: 900, vo: [], trong: [], thang: [], nguoi: [], gan: null,
-        nhin: { cam: new THREE.Vector3(x, 115, zH + DH + 105), tam: new THREE.Vector3(x, 6, zH - 4) } };
+      // CÁNH theo nhóm việc: hành lang mái che từ tháp, công trình cùng nhóm sát hai bên (bận nhất gần tháp, cao nhất), cầu treo nối cặp đối diện.
+      // MẶT CẮT NGANG (anh 24/10/2026 chọn hướng A): hầm là LÁT CẮT ĐỨNG ngay dưới mép trước của đảo — như phần dưới nước của ảnh mẫu: buồng tròn cắt đôi xếp tầng
+      // hai bên trục thang, thấy giường / máy / bồn bên trong. Miệng cắt là mặt phẳng đứng ghi stencil (bỏ qua chiều sâu nên đất phía trước không che), vách nước
+      // đè chiều sâu trong miệng, đồ trong hầm chỉ vẽ trong miệng. Viền mực đen (gộp một lệnh vẽ) + vân thép gỉ cho mọi khối; lấp khoảng trống bằng đồ vặt.
+      const HT = 70, Y0 = 2.6, BUOC = 12.5, GOC = [-0.25, Math.PI + .25, Math.PI * 1.3, Math.PI * 1.7, Math.PI * .5 + 1.15, Math.PI * .5 - 1.15];
+      const nhomDs = [...new Set(noi.map((p) => p.nhom))].sort((a, b) => a - b), gocNhom = nhomDs.map((_, i) => GOC[i % GOC.length]!);
+      const daiMax = Math.max(1, ...nhomDs.map((g) => Math.ceil(noi.filter((p) => p.nhom === g).length / 2))), Rd = 12 + daiMax * BUOC + 10;
+      const MOI_TANG = 4, HC = 8, tangN = Math.max(1, Math.ceil(ngam.length / MOI_TANG)), S = tangN * (HC + 3) + 3, BX = 14, WH = Math.max(4 * BX + 12, 70), DH = 16, zF = z + Rd + .5, zC = zF - DH / 2;
+      const o: MatCat = { tam: new THREE.Vector3(x, 10, z + Rd * .5), R: 900, vo: [], trong: [], thang: [], nguoi: [], gan: null,
+        nhin: { cam: new THREE.Vector3(x, 34, zF + 150), tam: new THREE.Vector3(x, 2, z + 8) } };
+      // vân thép gỉ: một canvas dùng chung (tấm, đường nối, đinh tán, vệt gỉ) — nhân với màu từng khối
+      let hat = 7; const rnd = () => ((hat = (hat * 16807) % 2147483647) / 2147483647);
+      if (!tex.__gi) { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+        if (g) { g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 256);
+          for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(${120 + rnd() * 40},${60 + rnd() * 30},30,${.08 + rnd() * .12})`; const w = 4 + rnd() * 20; g.fillRect(rnd() * 256, rnd() * 256, w, 20 + rnd() * 90); }
+          g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 2; for (let k = 0; k <= 256; k += 64) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k, 256); g.moveTo(0, k); g.lineTo(256, k); g.stroke(); }
+          g.fillStyle = 'rgba(0,0,0,.35)'; for (let i = 0; i < 256; i += 64) for (let j = 0; j < 256; j += 16) { g.beginPath(); g.arc(i + 4, j + 4, 1.6, 0, 7); g.fill(); g.beginPath(); g.arc(j + 4, i + 4, 1.6, 0, 7); g.fill(); } }
+        const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; tex.__gi = t; }
       const mm = new Map<string, any>();
       const vl = (mau: string, sang = 0, ngamM = false, kinh = false) => { const k = `${mau}${sang}${ngamM}${kinh}`; let m = mm.get(k); if (m) return m;
-        m = kinh ? new THREE.MeshStandardMaterial({ color: mau, transparent: true, opacity: .3, roughness: .05, metalness: .2, depthWrite: false, side: THREE.DoubleSide })
-          : M({ color: mau, emissive: sang ? mau : '#000000', emissiveIntensity: sang, roughness: .6, metalness: .25 });
+        m = kinh ? new THREE.MeshStandardMaterial({ color: mau, transparent: true, opacity: .28, roughness: .05, metalness: .2, depthWrite: false, side: THREE.DoubleSide })
+          : M({ color: mau, map: sang ? null : tex.__gi, emissive: sang ? mau : '#000000', emissiveIntensity: sang, roughness: .75, metalness: .2 });
         if (ngamM) Object.assign(m, { transparent: true, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp });
         mm.set(k, m); return m; };
-      const dat = (g: any, m: any, px: number, py: number, pz: number, ud: any, luon: boolean, ngamM = false) => { const v = new THREE.Mesh(g, m); v.position.set(px, py, pz); v.castShadow = luon && !ngamM; v.receiveShadow = !ngamM;
-        if (ngamM) v.renderOrder = 32; v.userData = ud; the.add(v); if (!luon) { v.visible = false; o.trong.push(v); } return v; };
+      const vien: any[] = [], vienNgam: any[] = [];   // khối cần viền mực (ngoài / trong hầm)
+      const dat = (g: any, m: any, px: number, py: number, pz: number, ud: any, luon: boolean, ngamM = false, coVien = true) => { const v = new THREE.Mesh(g, m); v.position.set(px, py, pz); v.castShadow = luon && !ngamM; v.receiveShadow = !ngamM;
+        if (ngamM) v.renderOrder = 32; v.userData = ud; the.add(v); if (!luon) { v.visible = false; o.trong.push(v); } if (coVien && (ngamM ? m.depthWrite !== false : !m.transparent)) (ngamM ? vienNgam : vien).push(v); return v; };
       const G = { tru: (r: number, h: number, s = 16) => new THREE.CylinderGeometry(r, r, h, s), non: (r1: number, r2: number, h: number) => new THREE.CylinderGeometry(r1, r2, h, 16), cau: (r: number) => new THREE.SphereGeometry(r, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), hop: (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d) };
       const GI = ['#c4723a', '#4f8a8b', '#d9c49a', '#7d8aa0', '#b5651d', '#8a9a5b'];
-      // quảng trường tháp + tháp giữa
+      // đảo + tháp giữa
       const thap = dat(G.non(3.6, 7, HT), vl('#b9a58a'), x, Y0 + HT / 2, z, udVo, true);
-      dat(G.tru(14, Y0, 28), vl('#8d8f96'), x, Y0 / 2, z, { chu: thap }, true);
+      dat(new THREE.CylinderGeometry(Rd, Rd + 2.5, Y0, 48), vl('#6f6a62'), x, Y0 / 2, z, { chu: thap }, true);
       dat(G.tru(10, 6), vl('#7d8aa0'), x, Y0 + 3, z, { chu: thap }, true);
       for (const [k, r0] of [[.3, 6.6], [.55, 5.8], [.8, 5]] as const) dat(G.tru(r0, 3.2), vl(k === .55 ? '#c4723a' : '#7d8aa0'), x, Y0 + HT * k, z, { chu: thap }, true);
       dat(G.cau(5.5), vl('#9fc0ff', 0, false, true), x, Y0 + HT, z, { chu: thap }, true);
       dat(G.tru(.4, 14, 6), vl('#cfd6e4'), x, Y0 + HT + 9, z, { chu: thap }, true);
-      dat(G.hop(2.2, HT, 2.2), vl('#ffd166', .25), x, Y0 + HT / 2, z + 7.6, { chu: thap }, true);
-      // một công trình — toạ độ cục bộ (dọc cánh u, ngang cánh v) quay theo góc cánh, nên khối vuông / nhà vòm thẳng hàng với hành lang
+      dat(G.hop(2.2, HT, 2.2), vl('#ffd166', .25), x, Y0 + HT / 2, z + 7.6, { chu: thap }, true, false, false);
+      // phụ kiện trên nóc: chòi, bồn nước, ăng-ten, lan can — mỗi công trình ghép thêm 1–2 cái cho dày như mẫu
+      const phuKien = (px: number, py: number, pz: number, chu: any, i: number) => { const r2 = (i * 7919) % 4;
+        if (r2 === 0) dat(G.hop(3.4, 2.6, 3), vl('#d9c49a'), px + 1.5, py + 1.3, pz - 1, { chu }, true);
+        else if (r2 === 1) { dat(G.tru(1.4, 3, 10), vl('#7d8aa0'), px - 1.6, py + 1.5, pz + 1, { chu }, true); dat(G.cau(1.4), vl('#7d8aa0'), px - 1.6, py + 3, pz + 1, { chu }, true); }
+        else if (r2 === 2) dat(G.tru(.18, 6, 5), vl('#cfd6e4'), px + 2, py + 3, pz, { chu }, true, false, false);
+        else dat(new THREE.TorusGeometry(3.4, .18, 4, 20), vl('#5b5f6e'), px, py + 1, pz, { chu }, true, false, false).rotation.x = Math.PI / 2; };
       const cong = (p: PhongMc, i: number, cx: number, cz: number, goc: number, phia: number) => {
         const cu = Math.cos(goc), su = Math.sin(goc), L = (du: number, dv: number): [number, number] => [cx + du * cu - dv * su * phia, cz + du * su + dv * cu * phia];
-        const mau = GI[i % GI.length]!, den = p.muc ? vl(p.muc === 2 ? '#ff4d5e' : '#ffd98a', .9) : vl('#1a2030'), ud = p.ud, k = p.cao;
+        const mau = GI[i % GI.length]!, den = p.muc ? vl(p.muc === 2 ? '#ff4d5e' : '#ffd98a', .9) : vl('#1a2030', 0), ud = p.ud, k = p.cao;
         const quay = (m: any) => { m.rotation.y = -goc; return m; };
-        let chu: any;
+        let chu: any, dinh = Y0 + 10;
         switch (p.kieu) {
-          case 'vom': { chu = dat(G.tru(6, 3 * k), vl(mau), cx, Y0 + 1.5 * k, cz, ud, true); dat(G.cau(6), vl('#bfe3ff', 0, false, true), cx, Y0 + 3 * k, cz, { chu }, true); dat(G.tru(4.8, .4), den, cx, Y0 + 3 * k + .2, cz, { chu }, true); break; }
+          case 'vom': { chu = dat(G.tru(6, 3 * k), vl(mau), cx, Y0 + 1.5 * k, cz, ud, true); dat(G.cau(6), vl('#bfe3ff', 0, false, true), cx, Y0 + 3 * k, cz, { chu }, true); dat(G.tru(4.8, .4), den, cx, Y0 + 3 * k + .2, cz, { chu }, true, false, false);
+            const [hx, hz] = L(-4, -5); dat(G.hop(5, 4, 4), vl('#7d8aa0'), hx, Y0 + 2, hz, { chu }, true); dinh = -1; break; }
           case 'anten': { const h = 20 * k; chu = dat(G.non(2.4, 4.4, h), vl(mau), cx, Y0 + h / 2, cz, ud, true); dat(G.tru(4, 2.6), vl('#7d8aa0'), cx, Y0 + h, cz, { chu }, true);
-            dat(G.tru(4.6, 1), den, cx, Y0 + h * .7, cz, { chu }, true); dat(G.tru(.25, 9, 6), vl('#cfd6e4'), cx, Y0 + h + 5, cz, { chu }, true);
-            const dia = dat(new THREE.SphereGeometry(3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3), vl('#e8ecf4'), cx, Y0 + h + 2.4, cz, { chu }, true); dia.rotation.set(0, -goc, -.9); break; }
+            dat(G.tru(4.6, 1), den, cx, Y0 + h * .7, cz, { chu }, true, false, false); dat(G.tru(.25, 9, 6), vl('#cfd6e4'), cx, Y0 + h + 5, cz, { chu }, true, false, false);
+            const dia = dat(new THREE.SphereGeometry(3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3), vl('#e8ecf4'), cx, Y0 + h + 2.4, cz, { chu }, true); dia.rotation.set(0, -goc, -.9);
+            const [bx, bz] = L(3, 3); dat(G.hop(5, 6, 5), vl('#d9c49a'), bx, Y0 + 3, bz, { chu }, true); dinh = -1; break; }
           case 'vong': { chu = quay(dat(new THREE.BoxGeometry(11, 2, 10), vl('#5b5f6e'), cx, Y0 + 1, cz, ud, true));
-            const v = dat(new THREE.CylinderGeometry(5, 5, 11, 18, 1, false, Math.PI / 2, Math.PI), vl(mau), cx, Y0 + 2, cz, { chu }, true); v.rotation.set(Math.PI / 2, 0, 0); v.rotation.order = 'YXZ'; v.rotation.y = -goc + Math.PI / 2;
-            const [dx, dz] = L(0, 5.6); const c2 = dat(new THREE.CircleGeometry(5, 18, 0, Math.PI), den, dx, Y0 + 2, dz, { chu }, true); c2.rotation.y = -goc + (phia > 0 ? 0 : Math.PI); break; }
-          case 'bon': { chu = dat(G.tru(3.4, 12 * k), vl(mau), ...([L(-2.6, -1.5)[0], Y0 + 6 * k, L(-2.6, -1.5)[1]] as [number, number, number]), ud, true);
-            const [ax, az] = L(-2.6, -1.5), [bx, bz] = L(2.8, 1.2); dat(G.cau(3.4), vl(mau), ax, Y0 + 12 * k, az, { chu }, true);
-            dat(G.tru(2.8, 8 * k), vl('#d9c49a'), bx, Y0 + 4 * k, bz, { chu }, true); dat(G.cau(2.8), vl('#d9c49a'), bx, Y0 + 8 * k, bz, { chu }, true); dat(G.tru(3.5, .8), den, ax, Y0 + 9 * k, az, { chu }, true);
-            const ong = dat(G.tru(.6, 5, 8), vl('#9aa3b8'), (ax + bx) / 2, Y0 + 5 * k, (az + bz) / 2, { chu }, true); ong.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(bx - ax, 0, bz - az).normalize()); break; }
+            const v = dat(new THREE.CylinderGeometry(5, 5, 11, 18, 1, false, Math.PI / 2, Math.PI), vl(mau), cx, Y0 + 2, cz, { chu }, true); v.rotation.order = 'YXZ'; v.rotation.set(Math.PI / 2, -goc + Math.PI / 2, 0);
+            const [dx, dz] = L(0, 5.6); const c2 = dat(new THREE.CircleGeometry(5, 18, 0, Math.PI), den, dx, Y0 + 2, dz, { chu }, true, false, false); c2.rotation.y = -goc + (phia > 0 ? 0 : Math.PI);
+            dinh = Y0 + 7; break; }
+          case 'bon': { const [ax, az] = L(-2.6, -1.5), [bx, bz] = L(2.8, 1.2);
+            chu = dat(G.tru(3.4, 12 * k), vl(mau), ax, Y0 + 6 * k, az, ud, true); dat(G.cau(3.4), vl(mau), ax, Y0 + 12 * k, az, { chu }, true);
+            dat(G.tru(2.8, 8 * k), vl('#d9c49a'), bx, Y0 + 4 * k, bz, { chu }, true); dat(G.cau(2.8), vl('#d9c49a'), bx, Y0 + 8 * k, bz, { chu }, true); dat(G.tru(3.5, .8), den, ax, Y0 + 9 * k, az, { chu }, true, false, false);
+            const ong = dat(G.tru(.6, 5, 8), vl('#9aa3b8'), (ax + bx) / 2, Y0 + 5 * k, (az + bz) / 2, { chu }, true); ong.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(bx - ax, 0, bz - az).normalize()); dinh = -1; break; }
           case 'xuong': { const h = 7 * k; chu = quay(dat(G.hop(11, h, 10), vl(mau), cx, Y0 + h / 2, cz, ud, true));
             for (let r2 = 0; r2 < 3; r2++) { const [rx, rz] = L(-3.6 + r2 * 3.6, 0); quay(dat(new THREE.CylinderGeometry(0, 2.4, 2.8, 3), vl('#7d8aa0'), rx, Y0 + h + 1.4, rz, { chu }, true)); }
             const [ox, oz] = L(4, -3); dat(G.tru(.9, 6, 8), vl('#5b5f6e'), ox, Y0 + h + 3, oz, { chu }, true);
-            const [wx, wz] = L(0, 5.1); quay(dat(G.hop(9, 1.4, .3), den, wx, Y0 + h * .55, wz, { chu }, true)); break; }
-          default: { chu = dat(G.tru(5.2, 8 * k), vl(mau), cx, Y0 + 4 * k, cz, ud, true); dat(G.cau(5.2), vl('#7d8aa0'), cx, Y0 + 8 * k, cz, { chu }, true); dat(G.tru(5.3, 1, 18), den, cx, Y0 + 5 * k, cz, { chu }, true); }
+            const [wx, wz] = L(0, 5.1); quay(dat(G.hop(9, 1.4, .3), den, wx, Y0 + h * .55, wz, { chu }, true, false, false)); dinh = -1; break; }
+          default: { chu = dat(G.tru(5.2, 8 * k), vl(mau), cx, Y0 + 4 * k, cz, ud, true); dat(G.cau(5.2), vl('#7d8aa0'), cx, Y0 + 8 * k, cz, { chu }, true); dat(G.tru(5.3, 1, 18), den, cx, Y0 + 5 * k, cz, { chu }, true, false, false); dinh = Y0 + 8 * k + 4.5; }
         }
-        for (let q2 = 0; q2 < p.nguoi; q2++) { const [nx, nz] = L(-3 + q2 * 3, -7.4); const ng = dat(G.hop(1, 2.4, 1), vl(['#ffd166', '#6ea8ff', '#ff9f1c', '#3fd68a'][q2 % 4]!, .3), nx, Y0 + 1.2, nz, { chu }, false);
-          o.nguoi.push({ m: ng, x0: nx, bien: 2.5, t: Math.random() * 6.3, toc: .02 + Math.random() * .02 }); }
+        if (dinh > 0) phuKien(cx, dinh, cz, chu, i);
+        for (let q2 = 0; q2 < p.nguoi; q2++) { const [nx, nz] = L(-3 + q2 * 3, -7.4); const ng = dat(G.hop(1, 2.4, 1), vl(['#ffd166', '#6ea8ff', '#ff9f1c', '#3fd68a'][q2 % 4]!, .3), nx, Y0 + 1.2, nz, { chu }, false, false, false);
+          o.nguoi.push({ m: ng, x0: nx, bien: 2.5, t: rnd() * 6.3, toc: .02 + rnd() * .02 }); }
         return chu; };
       nhomDs.forEach((g, gi) => {
-        const ds_ = noi.filter((p) => p.nhom === g), goc = GOC[gi % GOC.length]!, cu = Math.cos(goc), su = Math.sin(goc), dai = Math.ceil(ds_.length / 2) * BUOC + 4, r0 = 12;
-        // nền cánh + hành lang mái che (đèn dọc mái sáng nếu cánh có phòng đang làm)
-        const nen = dat(G.hop(dai + 4, Y0, 26), vl('#8d8f96'), x + cu * (r0 + dai / 2), Y0 / 2, z + su * (r0 + dai / 2), { chu: thap }, true); nen.rotation.y = -goc;
-        const hl = dat(G.hop(dai + 2, 4.2, 3.6), vl('#9aa3b8'), x + cu * (r0 + dai / 2), Y0 + 2.1, z + su * (r0 + dai / 2), { chu: thap }, true); hl.rotation.y = -goc;
-        const mai = dat(G.hop(dai + 2, .5, 1), ds_.some((p) => p.muc) ? vl('#ffd98a', .8) : vl('#3a4258'), x + cu * (r0 + dai / 2), Y0 + 4.5, z + su * (r0 + dai / 2), { chu: thap }, true); mai.rotation.y = -goc;
-        let truoc: any = null;
+        const ds_ = noi.filter((p) => p.nhom === g), goc = gocNhom[gi]!, cu = Math.cos(goc), su = Math.sin(goc), dai = Math.ceil(ds_.length / 2) * BUOC + 4, r0 = 12, cX = x + cu * (r0 + dai / 2), cZ = z + su * (r0 + dai / 2);
+        dat(G.hop(dai + 2, 4.2, 3.6), vl('#9aa3b8'), cX, Y0 + 2.1, cZ, { chu: thap }, true).rotation.y = -goc;
+        dat(G.hop(dai + 2, .5, 1), ds_.some((p) => p.muc) ? vl('#ffd98a', .8) : vl('#3a4258'), cX, Y0 + 4.5, cZ, { chu: thap }, true, false, false).rotation.y = -goc;
         ds_.forEach((p, k) => { const t = Math.floor(k / 2), phia = k % 2 ? -1 : 1, du = r0 + 2 + BUOC * (t + .5), cx = x + cu * du - su * 8.2 * phia, cz = z + su * du + cu * 8.2 * phia;
           const chu = cong(p, noi.indexOf(p), cx, cz, goc, phia);
-          // cửa nối công trình ↔ hành lang
-          const cn = dat(G.hop(3, 3.2, 4.6), vl('#7d8aa0'), x + cu * du - su * 4 * phia, Y0 + 1.6, z + su * du + cu * 4 * phia, { chu }, true); cn.rotation.y = -goc;
-          // cầu treo nối cặp đối diện (bắc qua mái hành lang)
-          if (phia === -1 && truoc) { const cau = dat(G.hop(2.4, 1.6, 16.4), vl('#c4723a'), x + cu * du, Y0 + 9, z + su * du, { chu }, true); cau.rotation.y = -goc; }
-          truoc = chu; });
+          dat(G.hop(3, 3.2, 4.6), vl('#7d8aa0'), x + cu * du - su * 4 * phia, Y0 + 1.6, z + su * du + cu * 4 * phia, { chu }, true).rotation.y = -goc;
+          if (phia === -1) dat(G.hop(2.4, 1.6, 16.4), vl('#c4723a'), x + cu * du, Y0 + 9, z + su * du, { chu }, true).rotation.y = -goc; });
       });
+      // ĐỒ VẶT lấp khoảng trống trên đảo (container, bồn nhỏ, chòi, cây) — tránh các cánh; không mang số liệu
+      for (let i = 0; i < 70; i++) { const a2 = rnd() * Math.PI * 2, rr = 16 + rnd() * (Rd - 20), px = x + Math.cos(a2) * rr, pz = z + Math.sin(a2) * rr;
+        if (gocNhom.some((g) => { const d = Math.abs(((a2 - g + Math.PI * 3) % (Math.PI * 2)) - Math.PI); return d < Math.atan2(15, rr) + .06; })) continue;
+        const loai = Math.floor(rnd() * 5), mau = GI[Math.floor(rnd() * GI.length)]!;
+        if (loai === 0) dat(G.hop(5, 2.6, 2.4), vl(mau), px, Y0 + 1.3, pz, { chu: thap }, true).rotation.y = rnd() * 3;
+        else if (loai === 1) { dat(G.tru(1.8, 5, 10), vl(mau), px, Y0 + 2.5, pz, { chu: thap }, true); dat(G.cau(1.8), vl(mau), px, Y0 + 5, pz, { chu: thap }, true); }
+        else if (loai === 2) { dat(G.hop(4, 3.4, 4), vl('#d9c49a'), px, Y0 + 1.7, pz, { chu: thap }, true); dat(new THREE.CylinderGeometry(0, 3.2, 1.8, 4), vl('#c4723a'), px, Y0 + 4.3, pz, { chu: thap }, true).rotation.y = Math.PI / 4; }
+        else if (loai === 3) { dat(G.tru(.3, 2, 5), vl('#6b4f2a'), px, Y0 + 1, pz, { chu: thap }, true, false, false); dat(new THREE.ConeGeometry(1.8, 4, 7), vl('#4e8a3a'), px, Y0 + 3.6, pz, { chu: thap }, true); }
+        else dat(G.cau(2.6), vl('#bfe3ff', 0, false, true), px, Y0, pz, { chu: thap }, true); }
+      // HẦM — LÁT CẮT ĐỨNG dưới mép trước đảo
       if (ngam.length) {
-        const zc = zH + DH / 2;
-        const mieng = new THREE.Mesh(new THREE.PlaneGeometry(WH, DH), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, transparent: true, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp }));
-        mieng.rotation.x = -Math.PI / 2; mieng.position.set(x, MIENG + .4, zc); mieng.renderOrder = 30; mieng.userData = { chu: thap }; mieng.visible = false; the.add(mieng); o.trong.push(mieng);
-        const vach = new THREE.Mesh(new THREE.BoxGeometry(WH, S + 4, DH), new THREE.MeshStandardMaterial({ color: '#173a5e', side: THREE.BackSide, roughness: 1, transparent: true, depthFunc: THREE.AlwaysDepth, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp }));
-        vach.position.set(x, -(S + 4) / 2 + MIENG, zc); vach.renderOrder = 31; vach.userData = { chu: thap }; vach.visible = false; the.add(vach); o.trong.push(vach);
-        dat(G.hop(WH + 2, Y0, DH + 2), vl('#8d8f96'), x, Y0 / 2, zc, { chu: thap }, true);
-        const nap = dat(G.hop(WH, .6, DH), vl('#46506a'), x, Y0 + .2, zc, { chu: thap }, true); o.vo.push(nap);
-        dat(G.hop(5, Y0, zH - z - 12), vl('#8d8f96'), x, Y0 / 2, (z + 12 + zH) / 2, { chu: thap }, true);   // cầu tháp ↔ hầm
-        dat(G.hop(2.2, S + 2, 2.2), vl('#ffd166', .25, true), x, -S / 2, zH + 2, { chu: thap }, false, true);
-        ngam.forEach((p, i) => { const c = i % cG, rr = Math.floor(i / cG), px = x - WH / 2 + 3 + wG * (c + .5), pz = zH + 3 + wG * (rr + .5), y0 = -S + MIENG, ud = p.ud;
-          const day = dat(G.tru(6, .6), vl('#3a4258', 0, true), px, y0 + .3, pz, ud, false, true);
-          const vo2 = dat(new THREE.CylinderGeometry(6, 6, S - 2, 20, 1, true, Math.PI, Math.PI), vl(GI[i % GI.length]!, 0, true), px, y0 + (S - 2) / 2, pz, { chu: day }, false, true); vo2.material.side = THREE.DoubleSide;
-          dat(new THREE.CylinderGeometry(6, 6, S - 2, 20, 1, true, 0, Math.PI), vl('#bfe3ff', 0, true, true), px, y0 + (S - 2) / 2, pz, { chu: day }, false, true);
-          if (c > 0) dat(G.hop(wG - 12, 2.4, 2.4), vl('#7d8aa0', 0, true), px - wG / 2, y0 + 2, pz, { chu: day }, false, true);   // ống nối buồng cạnh nhau
-          for (let k = 0; k < p.may; k++) { const gk = (k / Math.max(1, p.may)) * Math.PI * 2; dat(G.hop(2, 3.2, 2), vl(p.muc === 2 ? '#ff4d5e' : '#3fd68a', .7, true), px + Math.cos(gk) * 3, y0 + 2.2, pz + Math.sin(gk) * 3, { chu: day }, false, true); } });
+        const mieng = new THREE.Mesh(new THREE.PlaneGeometry(WH, S), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthFunc: THREE.AlwaysDepth, transparent: true, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp }));
+        mieng.position.set(x, -S / 2, zF); mieng.renderOrder = 30; mieng.userData = { chu: thap }; mieng.visible = false; the.add(mieng); o.trong.push(mieng);
+        const vach = new THREE.Mesh(new THREE.BoxGeometry(WH, S, DH * 2), new THREE.MeshBasicMaterial({ color: '#174a73', side: THREE.BackSide, transparent: true, depthFunc: THREE.AlwaysDepth, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp }));
+        vach.position.set(x, -S / 2, zF - DH); vach.renderOrder = 31; vach.userData = { chu: thap }; vach.visible = false; the.add(vach); o.trong.push(vach);
+        const khung = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(WH, S)), new THREE.LineBasicMaterial({ color: '#d9c49a', depthTest: false, transparent: true }));
+        khung.position.set(x, -S / 2, zF + .05); khung.renderOrder = 34; khung.userData = { chu: thap, luonVe: true }; khung.visible = false; the.add(khung); o.trong.push(khung);
+        // trục thang xuyên giữa + cabin chạy từ đáy hầm lên đỉnh tháp (đi qua cả lát cắt)
+        dat(G.hop(3, S, 3), vl('#9aa3b8', 0, true), x, -S / 2, zC, { chu: thap }, false, true);
+        const cabin = dat(G.hop(2.6, 2.6, 2.6), vl('#ffd166', .8, true), x, -S + 2, zC + 1.6, { chu: thap }, false, true, false); o.thang.push({ m: cabin, y0: -S + 2, y1: -2, t: .5 });
+        ngam.forEach((p, i) => { const tg = Math.floor(i / MOI_TANG), j = i % MOI_TANG, ben = j % 2 ? 1 : -1, xa = Math.floor(j / 2), px = x + ben * (BX * (xa + .5) + 4), y0 = -(tg + 1) * (HC + 3), ud = p.ud;
+          const day = dat(G.tru(6, .7), vl('#3a4258', 0, true), px, y0, zC, ud, false, true);
+          dat(G.tru(6, .7), vl('#3a4258', 0, true), px, y0 + HC, zC, { chu: day }, false, true);
+          const vo2 = dat(new THREE.CylinderGeometry(6, 6, HC, 22, 1, true, Math.PI / 2, Math.PI), vl(GI[i % GI.length]!, 0, true), px, y0 + HC / 2, zC, { chu: day }, false, true); vo2.material.side = THREE.DoubleSide;
+          dat(G.hop(Math.abs(px - x) - 7.5, 2.6, 2.6), vl('#7d8aa0', 0, true), (px + x + ben * 1.5) / 2 - ben * 2.2, y0 + 2.2, zC, { chu: day }, false, true);   // ống nối buồng ↔ trục thang
+          const vat = (k: number) => { const kx = px - 3.4 + (k % 3) * 3.4, kz = zC - 2 + Math.floor(k / 3) * 3;
+            if (k % 3 === 0) dat(G.hop(2.6, 1.2, 1.6), vl('#c9b48a', 0, true), kx, y0 + 1, kz, { chu: day }, false, true);   // giường
+            else if (k % 3 === 1) dat(G.tru(1, 3.4, 10), vl(p.muc === 2 ? '#ff4d5e' : '#3fd68a', .7, true), kx, y0 + 2.1, kz, { chu: day }, false, true);   // bồn sáng
+            else dat(G.hop(2, 3, 1.6), vl('#5b6a8a', .2, true), kx, y0 + 1.9, kz, { chu: day }, false, true); };   // máy
+          for (let k = 0; k < Math.max(2, p.may); k++) vat(k);
+          dat(G.hop(9, .5, .5), vl('#ffd98a', .9, true), px, y0 + HC - .8, zC - 4.6, { chu: day }, false, true, false); });
       }
-      o.thang.push({ m: dat(G.hop(2.6, 2.6, 2.6), vl('#ffd166', .7), x, 4, z + 7.6, { chu: thap }, false), y0: 4, y1: HT - 4, t: 0 });
+      // VIỀN MỰC: gộp cạnh (góc gãy > 35°) của mọi khối thành MỘT LineSegments (ngoài) + một cho hầm (stencil)
+      const gopVien = (ds_: any[], ngamM: boolean) => { if (!ds_.length) return; const pts: number[] = [], v = new THREE.Vector3();
+        for (const m of ds_) { m.updateMatrix(); const e = new THREE.EdgesGeometry(m.geometry, 35), a3 = e.attributes.position; for (let i = 0; i < a3.count; i++) { v.fromBufferAttribute(a3, i).applyMatrix4(m.matrix); pts.push(v.x, v.y, v.z); } e.dispose(); }
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        const mt = new THREE.LineBasicMaterial({ color: '#1a1410', transparent: ngamM }); if (ngamM) Object.assign(mt, { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp });
+        const l = new THREE.LineSegments(g, mt); l.userData = { chu: thap, luonVe: true }; if (ngamM) { l.renderOrder = 33; l.visible = false; o.trong.push(l); } the.add(l); };
+      gopVien(vien, false); gopVien(vienNgam, true);
+      o.thang.push({ m: dat(G.hop(2.6, 2.6, 2.6), vl('#ffd166', .7), x, 4, z + 7.6, { chu: thap }, false, false, false), y0: 4, y1: HT - 4, t: 0 });
       chiMuc.push({ ten: nhan, nhan: 'căn cứ', obj: thap }); o.chinh = thap;
       matCat.push(o); return { vo: thap, H: HT + Y0 };
     }
@@ -1377,7 +1413,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const xep = [...mh.congTy].sort((a, b) => Number(b.hoatDong) - Number(a.hoatDong) || b.viec24 - a.viec24);
       // nhóm = cánh: 0 điều hành · 1 kỹ thuật · 2 thị trường · 3 dự án; cao = bận (việc nền 24 giờ) → công trình cao hơn
       const nhom = (t: string) => (/giám đốc|pháp chế|bảo mật|an toàn|tài nguyên/i.test(t) ? 0 : /kỹ thuật|bảo trì|dựng sản phẩm|thử|thuê ngoài/i.test(t) ? 1 : /marketing|nội dung|social|nghiên cứu|kinh doanh/i.test(t) ? 2 : 3);
-      const noi: PhongMc[] = xep.map((p) => ({ kieu: kieu(p.ten), nhom: nhom(p.ten), muc: p.hoatDong ? 1 : 0, nguoi: p.hoatDong ? 1 + Math.min(2, Math.floor(p.viec24 / 10)) : 0, may: 0, cao: 1 + Math.min(.8, Math.log10(1 + p.viec24) / 4), ud: { loai: 'phong', p } }));
+      const noi: PhongMc[] = xep.map((p) => ({ kieu: kieu(p.ten), nhom: nhom(p.ten), muc: p.hoatDong ? 1 : 0, nguoi: p.hoatDong ? 1 + Math.min(2, Math.floor(p.viec24 / 10)) : 0, may: 0, cao: 1.25 + Math.min(.9, Math.log10(1 + p.viec24) / 3.5), ud: { loai: 'phong', p } }));
       const ngam: PhongMc[] = xep.filter((p) => p.viec24 > 0).map((p) => ({ kieu: 'buong', nhom: 0, muc: 1, nguoi: 0, may: Math.min(6, Math.ceil(p.viec24 / 4)), cao: 1, ud: { loai: 'phong', p } }));
       const { vo: ts, H } = canCu(xCty, zc, noi, ngam, { loai: 'cty' }, 'Công ty AI');
       pho(xCty, 0, xCty, zc, 12);

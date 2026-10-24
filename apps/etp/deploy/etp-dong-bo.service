@@ -1,0 +1,13 @@
+# Đồng bộ kho etp.on.tc (apps/etp/dong-bo.py) — anh cho phép 24/10/2026, 10 phút/lần. Cài trên box3 từ bản git:
+#   cp apps/etp/deploy/etp-dong-bo.{service,timer} /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now etp-dong-bo.timer
+[Unit]
+Description=ETP dong bo kho camp (etp.on.tc)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/etp
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+ExecStart=/usr/bin/python3 /opt/earns-marketing-os-v2/apps/etp/dong-bo.py
+Nice=10
+TimeoutStartSec=900

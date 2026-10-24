@@ -1,0 +1,10 @@
+[Unit]
+Description=ETP dong bo kho camp moi 10 phut (etp.on.tc)
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

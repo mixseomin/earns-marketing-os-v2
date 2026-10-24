@@ -33,24 +33,6 @@ function Hex({ bo, info }: { bo: string | null; info?: { ten: string; tk: string
     <polygon points="9,1 17,5.5 17,14.5 9,19 1,14.5 1,5.5" fill={MAU_BO[bo] ?? '#64748b'} /><text x="9" y="13.5" textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">{bo}</text></svg>;
 }
 
-// BIỂU ĐỒ ĐẾM THEO NGÀY (anh 24/10/2026 "thêm số camp, creative lên, tắt theo ngày trên chart"): mỗi ngày 3 cột — camp mới lên · creative mới · camp tắt
-function ChartDem({ ds }: { ds: { ngay: string; camp_moi: number; cr_moi: number; tat: number; camp: number }[] }) {
-  const max = Math.max(1, ...ds.flatMap((r) => [r.camp_moi, r.cr_moi, r.tat])), H = 120, W = Math.max(320, ds.length * 64);
-  const LOAI: [keyof (typeof ds)[number], string, string][] = [['camp_moi', '#3b82f6', 'camp mới lên'], ['cr_moi', '#a855f7', 'creative mới'], ['tat', '#f87171', 'camp tắt']];
-  return (
-    <div style={{ margin: '4px 0 12px' }}>
-      <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--fg-2)', marginBottom: 4 }}>{LOAI.map(([, m, t]) => <span key={t}><span style={{ display: 'inline-block', width: 9, height: 9, background: m, borderRadius: 2, marginRight: 4 }} />{t}</span>)}<span>· số trên cột = số lượng</span></div>
-      <div style={{ overflowX: 'auto' }}><svg width="100%" viewBox={`0 0 ${W} ${H + 18}`} preserveAspectRatio="none" style={{ minWidth: W, height: H + 18 }}>
-        {ds.map((r, i) => { const x0 = i * (W / ds.length) + (W / ds.length - 42) / 2; return (
-          <g key={r.ngay}>{LOAI.map(([k, m, t], j) => { const v = Number(r[k]) || 0, h = (v / max) * (H - 14); return (
-            <g key={String(k)}><rect x={x0 + j * 14} y={H - h} width={12} height={h} rx={2} fill={m}><title>{`${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}: ${v} ${t}`}</title></rect>
-              {v ? <text x={x0 + j * 14 + 6} y={H - h - 3} textAnchor="middle" fontSize="9" fill="var(--fg-2)">{v}</text> : null}</g>); })}
-            <text x={x0 + 21} y={H + 13} textAnchor="middle" fontSize="10" fill="var(--fg-2)">{r.ngay.slice(8, 10)}/{r.ngay.slice(5, 7)}</text></g>); })}
-      </svg></div>
-    </div>
-  );
-}
-
 export function EtpView({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('tong');
@@ -144,8 +126,7 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
       </div>
       {tab === 'tong' ? (
         <div>
-          <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi · +${r.camp_moi} camp mới · +${r.cr_moi} creative mới · ${r.tat} camp tắt` }))} dinhDang={usd} />
-          <ChartDem ds={ngayGanNhat} />
+          <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi · +${r.camp_moi} camp mới · +${r.cr_moi} creative mới · ${r.tat} camp tắt` }))} dinhDang={usd} height={240} nhanCot={(i) => { const r = ngayGanNhat[i]; return r ? `+${r.camp_moi} camp · +${r.cr_moi} cr · ${r.tat} tắt` : null; }} />
           <DataTable rows={[...ngayGanNhat].reverse()} getRowKey={(r) => r.ngay} persistKey="etp-ngay" minWidth={820} columns={[
             { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}${r.ngay === du.nay ? ' · đang chạy' : ''}`, sortValue: (r) => r.ngay },
             { key: 'chi', header: 'Chi', cell: (r) => usd(r.chi), sortValue: (r) => r.chi, total: (rs) => usd(rs.reduce((a, r) => a + r.chi, 0)) },

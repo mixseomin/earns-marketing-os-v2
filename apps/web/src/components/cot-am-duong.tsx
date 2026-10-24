@@ -3,9 +3,10 @@
 // Rê chuột: hộp số của đúng ngày. Màu: dương = tiền lãi, âm = lỗ (đúng bảng nghĩa YDNI: màu là tín hiệu tiền +/−).
 import { useEffect, useRef, useState } from 'react';
 
-export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiChu }: {
+export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiChu, nhanCot }: {
   data: { x: string; v: number; phu?: string; mo?: boolean }[];   // mo = số chưa chốt (vẽ nhạt)
   dinhDang: (v: number) => string; conDuong?: boolean; height?: number; ghiChu?: (i: number) => string | null;
+  nhanCot?: (i: number) => string | null;   // dòng nhỏ dưới nhãn ngày (etp.on.tc: số camp mới / creative mới / camp tắt)
 }) {
   const hop = useRef<HTMLDivElement>(null); const [W, datW] = useState(800); const [i, datI] = useState<number | null>(null);
   useEffect(() => { const el = hop.current; if (!el) return; const ro = new ResizeObserver(([e]) => datW(Math.max(300, Math.round(e!.contentRect.width)))); ro.observe(el); return () => ro.disconnect(); }, []);
@@ -13,7 +14,7 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
   const luy = data.reduce<number[]>((a, d) => [...a, (a.at(-1) ?? 0) + d.v], []);
   const vals = [...data.map((d) => d.v), ...(conDuong ? luy : []), 0];
   const max = Math.max(...vals), min = Math.min(...vals), span = max - min || 1;
-  const PL = 56, PR = 12, PT = 10, PB = 22, cao = height - PT - PB, rong = W - PL - PR, buoc = rong / n;
+  const PL = 56, PR = 12, PT = 10, PB = nhanCot ? 36 : 22, cao = height - PT - PB, rong = W - PL - PR, buoc = rong / n;
   const y = (v: number) => PT + ((max - v) / span) * cao, y0 = y(0), bc = Math.min(36, buoc * 0.6), cx = (j: number) => PL + buoc * j + buoc / 2;
   const nhan = [max, (max + min) / 2, min, 0].filter((v, k, a) => a.findIndex((u) => Math.abs(u - v) < span * 0.08) === k);
   return (
@@ -25,7 +26,8 @@ export function CotAmDuong({ data, dinhDang, conDuong = true, height = 220, ghiC
           return <g key={d.x} onMouseEnter={() => datI(j)}>
             <rect x={PL + buoc * j} y={PT} width={buoc} height={cao} fill="transparent" />
             <rect x={cx(j) - bc / 2} y={top} width={bc} height={h} rx={2} fill={d.v >= 0 ? 'var(--neon-lime, #9be15d)' : 'var(--neon-red, #ff5c5c)'} opacity={d.mo ? 0.45 : 0.9} />
-            {(n <= 14 || j % Math.ceil(n / 14) === 0) && <text x={cx(j)} y={height - 6} textAnchor="middle" fontSize={10} fill="var(--fg-3)">{d.x}</text>}
+            {(n <= 14 || j % Math.ceil(n / 14) === 0) && <text x={cx(j)} y={height - (nhanCot ? 20 : 6)} textAnchor="middle" fontSize={10} fill="var(--fg-3)">{d.x}</text>}
+            {nhanCot && (n <= 14 || j % Math.ceil(n / 14) === 0) && nhanCot(j) ? <text x={cx(j)} y={height - 6} textAnchor="middle" fontSize={9} fill="var(--fg-2)">{nhanCot(j)}</text> : null}
           </g>; })}
         {conDuong && <polyline fill="none" stroke="var(--fg-2)" strokeWidth={1.5} points={luy.map((v, j) => `${cx(j)},${y(v)}`).join(' ')} />}
         {i != null && <line x1={cx(i)} x2={cx(i)} y1={PT} y2={PT + cao} stroke="var(--fg-3)" strokeDasharray="2 2" />}

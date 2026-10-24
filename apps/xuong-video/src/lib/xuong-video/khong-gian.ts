@@ -199,9 +199,13 @@ export function loiDoDang(ten: string, kv: KyVongDang, k: { nhin?: { doc: number
   if (d != null && kv.dau === 0 && d > NGUONG_CUI) out.push(`${ten} đang cúi (đo ${d}°), sổ dáng cần cằm ngang`);
   if (d != null && kv.dau === 1 && d > 0) out.push(`${ten} không ngẩng (đo ${d}°), sổ dáng cần ngẩng`);
   const TEN = { cao: 'giơ cao', giua: 'ngang ngực', thap: 'buông' } as const;
-  for (const b of ['phai', 'trai'] as const) { const can = kv[b], co = k.tay?.[b]; if (!can || !co || can === co) continue;
-    // chỉ chỗ TRÁI NGƯỢC RÕ: buông ↔ giơ cao, vươn tới ↔ buông thõng (tay đan trước bụng 'giua' khi sổ ghi buông là AI vẽ tự nhiên, không phải lỗi nối)
-    if ((can === 'thap' && co === 'cao') || (can === 'cao' && co === 'thap') || (can === 'giua' && co === 'thap')) out.push(`${ten} tay ${b === 'phai' ? 'phải' : 'trái'} ${TEN[co as keyof typeof TEN]}, sổ dáng cần ${TEN[can]}`); }
+  // TAY: so CẶP trạng thái hai tay, không bám bên — máy đo tư thế lẫn trái / phải (đo #353 #10: Vivian giơ thẻ bằng tay phải, máy ghi trái) và model đổi tay
+  // thì người xem cũng không thấy khác; chỉ báo khi SỐ tay giơ cao / buông lệch rõ với sổ (buông ↔ giơ cao, vươn tới ↔ buông thõng)
+  const canDs = [kv.phai, kv.trai].filter(Boolean) as string[]; const coDs = [k.tay?.phai, k.tay?.trai].filter(Boolean) as string[];
+  if (canDs.length && coDs.length) { const dem = (ds: string[], x: string) => ds.filter((v) => v === x).length;
+    if (dem(coDs, 'cao') > dem(canDs, 'cao') && canDs.every((v) => v !== 'giua') && coDs.length >= canDs.length) out.push(`${ten} có tay giơ cao, sổ dáng cần ${canDs.map((v) => TEN[v as keyof typeof TEN]).join(' + ')}`);
+    else if (dem(canDs, 'cao') > dem(coDs, 'cao') && dem(coDs, 'thap') >= coDs.length && coDs.length >= canDs.length) out.push(`${ten} buông cả hai tay, sổ dáng cần một tay giơ cao`);
+    else if (canDs.includes('giua') && coDs.length >= canDs.length && coDs.every((v) => v === 'thap')) out.push(`${ten} buông thõng hai tay, sổ dáng cần vươn tới`); }
   return out;
 }
 // ── ĐO ĐẦU RA cho các luật trước đây CHỈ LÀ CHỮ (anh 25/10/2026: "đa phần đều kiểu update vào prompt chứ không có giải pháp kỹ thuật") ────────────────

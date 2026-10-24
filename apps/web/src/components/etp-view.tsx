@@ -29,6 +29,8 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('tong');
   const [loc, setLoc] = useState<'all' | 'chay' | 'tat' | 'cung'>('chay');
+  const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
+  useEffect(() => { const mq = window.matchMedia('(max-width: 720px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
   useEffect(() => { const x = new URLSearchParams(location.search).get('t') as Tab | null; if (x) setTab(x); }, []);
   useEffect(() => { const u = new URL(location.href); u.searchParams.set('t', tab); history.replaceState(history.state, '', u); }, [tab]);
@@ -63,23 +65,34 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
   const ngayGanNhat = du.ngay.slice(-31);
 
   return (
-    <div style={{ padding: '16px 20px', maxWidth: 1600, margin: '0 auto' }}>
+    // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
+    // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
+    <div style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px', maxWidth: 1600, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0, fontSize: 20 }}>ETP · quản lý camp</h1>
-        <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>kho đồng bộ {vn(du.dongBo?.xong ?? null)}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút</span>
+        <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
+        <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
       </div>
-      <div style={{ margin: '12px 0' }}>
-        <StatsStrip cards={[
+      <div style={{ margin: hep ? '8px 0' : '12px 0' }}>
+        {hep ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > 3).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
+            {([['H.nay', nay], ['H.qua', qua], ['Tháng', thang]] as [string, SoTien][]).map(([ten, s]) => (
+              <div key={ten} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>{ten} · <Roi s={s} /></div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}><Lai s={s} /></div>
+              </div>))}
+          </div>
+        ) : <StatsStrip cards={[
           { key: 'nay', label: 'Lãi hôm nay', value: <Lai s={nay} />, sub: <span>ROI <Roi s={nay} /> · chi {usd(nay.chi)}</span> },
           { key: 'qua', label: 'Lãi hôm qua', value: <Lai s={qua} />, sub: <span>ROI <Roi s={qua} /> · chi {usd(qua.chi)}</span> },
           { key: 'thang', label: 'Lãi tháng', value: <Lai s={thang} />, sub: <span>ROI <Roi s={thang} /> · chi {usd(thang.chi)}</span> },
           { key: 'camp', label: 'Camp chạy', value: chay.length, sub: `ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày` },
           { key: 'cung', label: 'Đoạn vượt 3 camp', value: new Set(du.camps.filter((c) => c.cung_doan > 3).map((c) => c.doan)).size, color: '#ffb74d' },
           { key: 'cb', label: 'Cảnh báo 24h', value: du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length, color: du.canhBao.some((c) => c.muc === 'do' && Date.now() - Date.parse(c.luc) < 86_400_000) ? '#f87171' : undefined },
-        ]} />
+        ]} />}
       </div>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0' }}>
+      <div style={{ display: 'flex', gap: hep ? 6 : 12, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0' }}>
         <Segmented<Tab> value={tab} onChange={setTab} options={[
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
@@ -125,6 +138,7 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

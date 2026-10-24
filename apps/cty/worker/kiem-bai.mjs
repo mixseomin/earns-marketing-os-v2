@@ -103,7 +103,7 @@ export function mayDo(html, loai = 'bai') {
     so_muc: dong.filter((l) => l.startsWith('## ')).length,
     so_vi_du: (String(html).match(/<blockquote/gi) || []).length,
     co_faq: coFaq,
-    co_neu_da_lo: /##\s.*(already|if you (clicked|paid)|what to do now)/i.test(chu),
+    co_neu_da_lo: /##\s.*(already|if you (clicked|paid)|what to do now|nếu (đã )?lỡ|lỡ (rồi|quên|mất)|nếu đã)/i.test(chu),   // bài tiếng Việt: "Nếu đã lỡ" (giochap.com/van-khan 24/10/2026)
     co_nut: /class="[^"]*\bcta\b|<a [^>]*class="[^"]*btn/i.test(String(html)),
     so_nut: (String(h).match(/<a [^>]*class="[^"]*\b(btn|cta)\b|<form [^>]*data-cho/gi) || []).length,
     co_gia: /[$€£₫]\s?\d|\d\s?(₫|đ\b|USD|VND|EUR\b)/.test(chu),
@@ -340,6 +340,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.ok(mayDo(tb({ chu: 2000 }), 'trang-ban').chan_cung.some((x) => x.includes('quá 1.600')), 'trang bán quá dài → chặn');
     t.throws(() => nopBai({ url: 'https://x.test/', loai: 'quang-cao' }), /--loai/, 'loại lạ bị từ chối');
     t.ok(mayDo('<main><h2>Câu hỏi hay gặp</h2></main>').co_faq, 'FAQ tiếng Việt được nhận');
+    t.ok(mayDo('<main><h2>Nếu đã lỡ</h2></main>').co_neu_da_lo && !mayDo('<main><h2>Sắm lễ</h2></main>').co_neu_da_lo, 'phần "nếu đã lỡ" tiếng Việt được nhận');
     t.ok(mayDo('<main><p>Miễn phí, 0 ₫</p></main>', 'trang-ban').co_gia, 'giá kiểu Việt (0 ₫) được nhận');
     t.ok(chuBai('<main><img src=a.jpg alt="Màn lịch tháng"><p>x</p></main>').includes('[ẢNH: Màn lịch tháng]'), 'người chấm thấy ảnh qua alt');
     t.ok(mayDo(tb({ nut: 0 }).replace('</main>', '<form class="cho" action="/cho-tin" data-cho></form><form class="cho" data-cho></form></main>'), 'trang-ban').chan_cung.every((x) => !x.includes('nút mua')), 'chưa bán: 2 form Notify me thay 2 nút mua');

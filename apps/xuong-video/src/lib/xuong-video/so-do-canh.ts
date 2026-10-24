@@ -23,8 +23,13 @@ export function huongMan(s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Die
   const pa = diem(s, m, a), pb = diem(s, m, b); if (!pa || !pb) return 0; const t = truc(s, m.may); const d = tru(pb, pa); const l = Math.hypot(...d) || 1;
   const x = cham(d, t.phai) / l; return Math.abs(x) < 0.2 ? 0 : x > 0 ? 1 : -1;
 }
-/** Nhìn RA XA máy (quay lưng / nửa lưng về máy): thành phần sâu > 0,7 — không thấy mặt, không kỳ vọng hướng mắt. */
-const raXa = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem) => { const pa = diem(s, m, a), pb = diem(s, m, b); if (!pa || !pb) return false; const d = tru(pb, pa); return cham(d, truc(s, m.may).fw) / (Math.hypot(...d) || 1) > 0.7; };
+/** Độ SÂU của ánh nhìn A→B so với máy: +1 = nhìn thẳng vào sâu khung (quay lưng về máy), −1 = nhìn về phía máy, 0 = nghiêng ngang. */
+const doSau = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem): number | null => { const pa = diem(s, m, a), pb = diem(s, m, b); if (!pa || !pb) return null; const d = tru(pb, pa); return cham(d, truc(s, m.may).fw) / (Math.hypot(...d) || 1); };
+/** Nhìn RA XA máy (quay lưng về máy): sâu > 0,7 — không thấy mặt, không kỳ vọng hướng mắt. */
+const raXa = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem) => (doSau(s, m, a, b) ?? 0) > 0.7;
+/** NỬA LƯNG (sâu 0,3–0,7 ≈ 45–72° khỏi trục máy): vẫn có phía trái / phải nhưng mặt quay vào trong khung. Tả như "looks toward screen right" thì model vẽ
+ *  mặt nghiêng hẳn và đẩy vật được nhìn ra SAU LƯNG (phim #353 shot #2, 24/10/2026: #1 Hạ quay lưng nhìn thang, #2 nghiêng phải với thang sau lưng). */
+const NUA_LUNG = 0.3;
 const BEN = (x: number) => (x < -0.33 ? 'screen left' : x > 0.33 ? 'screen right' : 'center frame');
 const PHIA = (h: -1 | 0 | 1) => (h < 0 ? 'toward screen left' : h > 0 ? 'toward screen right' : 'straight ahead past the lens');
 /** Câu hướng tiếng Anh cho prompt (dan_dung.huong): chỗ đứng trên màn, ánh mắt, phía đi vào. tenEn = tên đưa model cho mốc / đồ (tiếng Anh). */
@@ -34,7 +39,12 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
   const dung = nguoi.filter((n) => thay(n) && !m.vao?.[n]).map((n) => { const x = viTriMan(s, m, n); return x == null ? '' : `${n} at ${BEN(x)}`; }).filter(Boolean);
   if (dung.length) out.push(`Placement on screen: ${dung.join(', ')}`);
   const ten = (b: string) => (nguoi.includes(b) ? b : tenEn(b) === b ? s.ten?.[b] ?? b : tenEn(b));
-  for (const [a, b] of Object.entries(m.nhin ?? {})) out.push(raXa(s, m, a, b) ? `${a} faces away from the camera toward ${ten(b)}, back half turned to us` : `${a} looks ${PHIA(huongMan(s, m, a, b))} at ${ten(b)}, eyes on ${nguoi.includes(b) ? 'them' : 'it'}, not at the camera`);
+  for (const [a, b] of Object.entries(m.nhin ?? {})) {
+    const sau = doSau(s, m, a, b) ?? 0; const la = !nguoi.includes(b); // nhìn vào MỐC / đồ: nói luôn mốc nằm trước hay sau người (model hay đặt ngược)
+    if (sau > 0.7) out.push(`${a} faces away from the camera toward ${ten(b)}, back half turned to us${la ? `; ${ten(b)} is in front of ${a}, deeper in the frame, never behind ${a}` : ''}`);
+    else if (sau > NUA_LUNG) out.push(`${a} is turned three-quarters away from the camera, looking ${PHIA(huongMan(s, m, a, b))} and deeper into the frame at ${ten(b)}; we see the back of ${a}'s head, ear and cheek line, not the full face${la ? `; ${ten(b)} is in front of ${a}, never behind ${a}` : ''}`);
+    else out.push(`${a} looks ${PHIA(huongMan(s, m, a, b))} at ${ten(b)}, eyes on ${la ? 'it' : 'them'}, not at the camera${la && sau < -NUA_LUNG ? `; ${ten(b)} is off screen on the camera side` : ''}`);
+  }
   for (const [a, tu] of Object.entries(m.vao ?? {})) { const x = viTriMan(s, m, tu); const h = huongMan(s, m, tu, a); out.push(`${a} enters from ${x == null ? (h < 0 ? 'screen right' : 'screen left') : x < 0 ? 'screen left' : 'screen right'}, moving ${PHIA(h).replace(' past the lens', '')}`); }
   return out.join('; ');
 }
@@ -114,4 +124,17 @@ export function svgPhac(s: SoDo & { phong?: MangPhong[] }, m: ManhSoDo, nguoi: s
 export function loiCanMat(s: SoDo, ds: (ManhSoDo & { thu_tu: number; co?: string })[]): string[] {
   return ds.flatMap((m) => (/^(cu|mcu|ecu)$/.test(m.co ?? '') ? Object.entries(m.nhin ?? {}).filter(([a, b]) => (!m.khung || m.khung.includes(a)) && raXa(s, m, a, b))
     .map(([a]) => `#${m.thu_tu}: cận "${m.may}" mà ${a} quay lưng về máy (đang nhìn ra xa) — đặt máy về phía ${a} đang nhìn tới` ) : []));
+}
+/** CHỮ TRÁI SƠ ĐỒ: câu viết tay (ảnh / diễn / đầu / đuôi) đặt mốc A đang nhìn vào "behind her/him" trong khi sơ đồ nói mốc ở phía trước (sâu > NUA_LUNG),
+ *  hoặc "in front of" khi mốc ở phía máy. Câu hướng máy đúng mà chữ tay ngược thì model nghe chữ tay (phim #353 #2: "the door softly blurred behind her"). */
+export function loiChuSoDo(s: SoDo, m: ManhSoDo, chu: string): string[] {
+  const out: string[] = []; const cau = chu.split(/(?<=[.;!?])\s+/);
+  for (const [a, b] of Object.entries(m.nhin ?? {})) {
+    if (!s.moc[b] || m.o[b] != null) continue; const sau = doSau(s, m, a, b); if (sau == null) continue;
+    const ten = (s.ten?.[b] ?? b).replace(/^the\s+/i, '').toLowerCase(); const loi = ten.split(/\s+/).pop()!; // "elevator door" → khớp "door"
+    for (const c of cau) { const l = c.toLowerCase(); if (!l.includes(loi)) continue;
+      if (sau > NUA_LUNG && /\bbehind (her|him|them)\b|\bat (her|his|their) back\b/.test(l)) out.push(`"${c.trim()}" — ${a} đang nhìn ${ten} ở PHÍA TRƯỚC (trong sâu khung), chữ lại đặt nó sau lưng`);
+      if (sau < -NUA_LUNG && /\bin front of (her|him|them)\b/.test(l)) out.push(`"${c.trim()}" — ${ten} ở phía MÁY (sau lưng ống kính), chữ lại đặt trước mặt ${a}`); }
+  }
+  return out;
 }

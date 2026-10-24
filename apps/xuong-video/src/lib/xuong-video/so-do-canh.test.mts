@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/so-do-canh.test.mts
 import assert from 'node:assert';
-import { loiCanMat, svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
+import { loiChuSoDo, loiCanMat, svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
 
 // Sảnh: thang máy ở bắc (y=7), máy toàn cảnh ở nam (y=0) nhìn bắc → đông = phải màn. Hạ trước thang (giữa trái), Vivian đứng phía đông Hạ, lối vào phía đông.
 const s: SoDo = { moc: { thang: [0, 7], loi_vao: [5, 3], ha: [-1.4, 5.8], vi: [1.2, 5.6] },
@@ -43,3 +43,14 @@ console.log('so-do-canh.test: ok');
   assert.deepStrictEqual(loiCanMat(sl, [{ thu_tu: 2, co: 'cu', may: 'truoc', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }]), []);
   assert.ok(svgPhac(sl, { may: 'sau_ha', o: { 'Hạ': [0, 5.8] }, nhin: { 'Hạ': 'thang' } }, ['Hạ'], { 'Hạ': '#fff' }).includes('#1b1b1b'), 'quay lưng vẽ tóc'); }
 console.log('so-do-canh.test: ok (tờ phác)');
+// nửa lưng (phim #353 #2): máy trước-phải, Hạ nhìn cửa thang trong sâu ~48° → câu 3/4 lưng + cửa ở phía trước; chữ tay "door … behind her" bị chặn
+{ const n = { ...s, ten: { thang: 'the elevator door' }, may: { ...s.may, can: { dat: [1.0, 4.2] as [number, number], nhin: [-0.4, 6.1] as [number, number], ong: 70 } } };
+  const mm = { may: 'can', o: { 'Hạ': [-0.5, 6.0] as [number, number] }, nhin: { 'Hạ': 'thang' } }; n.moc = { ...n.moc, thang: [-0.3, 7.0] };
+  const c = cauHuong(n, mm, ['Hạ'], (t) => t);
+  assert.ok(c.includes('three-quarters away') && c.includes('never behind Hạ'), c);
+  assert.strictEqual(loiChuSoDo(n, mm, 'Close-up of Hạ, the door softly blurred behind her.').length, 1);
+  assert.deepStrictEqual(loiChuSoDo(n, mm, 'Close-up of Hạ, eyes on the floor indicator above the door in front of her.'), []);
+  // máy phía trước cửa nhìn ngược ra: cửa ở phía máy → "in front of her" bị chặn
+  const nguoc = { ...n, may: { ...n.may, truoc: { dat: [-0.4, 6.9] as [number, number], nhin: [-0.5, 4] as [number, number] } } };
+  assert.strictEqual(loiChuSoDo(nguoc, { ...mm, may: 'truoc' }, 'the elevator door right in front of her').length, 1); }
+console.log('so-do-canh.test: ok (nửa lưng + chữ trái sơ đồ)');

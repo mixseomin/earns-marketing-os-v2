@@ -217,10 +217,10 @@
         "Sơ mi trắng dính cà phê"
       ],
       "hd": "Cận Hạ: nghe tiếng giày cao gót, liếc về phía lối vào",
-      "anh": "Close-up of Hạ, calm, her eyes lifted toward the floor indicator above the elevator door, the door softly blurred behind her.",
-      "vid": "Hạ hears heels approaching and keeps her eyes {Lâm Hạ→loi_vao}, wary. Static camera.",
+      "anh": "Close-up of Hạ from behind her right shoulder, three-quarter back view: her eyes lifted to the floor indicator above the elevator door in front of her, the steel door filling the background beyond her.",
+      "vid": "Hạ watches the floor indicator, then hears heels approaching and turns her head {Lâm Hạ→loi_vao} toward the lobby entrance, wary, her face now visible. Static camera.",
       "mo": "Hạ's eyes are lifted to the floor indicator above the elevator door",
-      "ket": "Hạ's eyes settle {Lâm Hạ→loi_vao} on the approaching footsteps",
+      "ket": "Hạ has turned her head {Lâm Hạ→loi_vao} toward the approaching footsteps, her face now visible",
       "noi": "nhin",
       "sd": {
         "may": "can_ha",
@@ -236,8 +236,8 @@
         "dau",
         "ket"
       ],
-      "mo_vi": "Cận Hạ: mắt nhìn lên bảng số tầng",
-      "ket_vi": "Nghe tiếng giày cao gót, Hạ liếc về phía lối vào (bên phải)",
+      "mo_vi": "Cận sau vai phải Hạ: chị quay 3/4 lưng, mắt nhìn bảng số tầng trên cửa thang phía trước",
+      "ket_vi": "Nghe tiếng giày cao gót, Hạ quay đầu sang phải (về phía lối vào), lộ mặt",
       "sd_ket": {
         "nhin": {
           "Lâm Hạ": "loi_vao"

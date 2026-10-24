@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
-import { cauHuong, kyVong, loiCanMat, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
+import { cauHuong, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { cauVat, dongVat, loiSoVat, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
 type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
@@ -27,7 +27,10 @@ const khungVe = (m: Manh): ('dau' | 'giua' | 'ket')[] => m.khung_ve ?? (m.ket ? 
 if (du.so_do) {
   const sd = du.so_do; const ng = du.nguoi ?? [];
   for (const m of du.shot) if (m.sd) { for (const k of ['mo', 'vid', 'anh'] as const) if (m[k]) m[k] = thayHuong(sd, m.sd, m[k]!); const sk = sdKet(m)!; for (const k of ['ket', 'giua'] as const) if (m[k]) m[k] = thayHuong(sd, sk, m[k]!); }
-  const tr = [...loiTruc(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1 }] : [])), ng), ...loiCanMat(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1, co: m.co }] : [])))]; if (tr.length) { console.error(`sơ đồ lỗi (trục 180° / cận mặt quay lưng):\n  ${tr.join('\n  ')}`); process.exit(1); }
+  const tr = [...loiTruc(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1 }] : [])), ng), ...loiCanMat(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1, co: m.co }] : []))),
+    // chữ tay trái sơ đồ (mốc đang nhìn bị viết "behind her"…): đầu / ảnh / diễn theo sd, đuôi / giữa theo sd_ket
+    ...du.shot.flatMap((m, i) => (m.sd ? [...(['mo', 'vid', 'anh'] as const).flatMap((k) => loiChuSoDo(sd, m.sd!, m[k] ?? '')), ...(['ket', 'giua'] as const).flatMap((k) => loiChuSoDo(sd, sdKet(m)!, m[k] ?? ''))].map((x) => `#${i + 1}: ${x}`) : []))];
+  if (tr.length) { console.error(`sơ đồ lỗi (trục 180° / cận mặt quay lưng / chữ trái sơ đồ):\n  ${tr.join('\n  ')}`); process.exit(1); }
 }
 // SỔ ĐỒ VẬT (anh 24/10/2026: "cảnh trước cầm dây thẻ, cảnh sau lại cầm cái thẻ… ôm hộp lúc có lúc không"): mỗi mảnh nhận câu trạng thái đồ từ sổ (người
 // giữ trong khung ⇒ đồ phải vẽ, kể cả khi mảnh không nhắc), món đó vào danh sách ảnh mẫu của mảnh; đổi trạng thái thiếu sự kiện / sự kiện ngoài khung ⇒ chặn.

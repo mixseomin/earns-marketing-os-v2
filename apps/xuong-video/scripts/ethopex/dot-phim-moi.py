@@ -124,7 +124,7 @@ def len_ds(ten, ma, lich="today", nhan="phim mới"):
     if not di: print("chưa có phim nào soát ok"); don_box(lo); return {"soat_ok": ok, "kq": kq}
     lf = os.path.join(ra, "lo-len.json"); json.dump(di, open(lf, "w"), ensure_ascii=False, indent=1)
     XG.bao("day", ma, None, 0, len(di), ep=True)
-    r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+    r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi", "--da-soat"], capture_output=True, text=True, timeout=6 * 3600)
     print(r.stdout[-1500:], r.stderr[-500:], flush=True)
     for x in json.load(open(os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json"))):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); kq.append({"content_id": x["content_id"], "ok": False, "loi": "cổng: " + str(x.get("loi"))[:150]}); continue
@@ -141,7 +141,7 @@ def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
     """lên thẳng từ một tệp lô đã lọc (đoạn đã soát 18+ ok) — dùng khi không chờ cả đợt cắt xong (anh 23/10/2026 "sao không thấy phim nào bộ 2")"""
     lj = os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json")
     if not os.path.exists(lj):   # đã có len.json (lô lên creative xong, gãy ở bước camp) → không đẩy lại creative
-        r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+        r = subprocess.run([*uu_tien(), "python3", f"{D}/len-creative.py", lf, ma, "canh cuoi", "--da-soat"], capture_output=True, text=True, timeout=6 * 3600)
         print(r.stdout[-1500:], r.stderr[-800:], flush=True)
     for x in json.load(open(lj)):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); continue

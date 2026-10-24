@@ -14,7 +14,7 @@ có lãi (ROI tháng ≥ 50%, chi ≥ $3) mang creative CTA cũ chưa có bản 
 Phim bị đánh dấu cấm ở soát 18+ (ethopex_soat_18 ok=false) thì bỏ qua, báo lại.
 Chạy trên iMac (cổng chữ dùng Vision), gọi ở cuối mỗi đợt lên camp (dot-phim-moi.py): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb] [--khong-truoc]"""
 import fcntl, glob, importlib.util, json, os, subprocess, sys, time
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import loi_ky_thuat as LK
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import loi_ky_thuat as LK; import soat_doan as SD
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 N, Q = os.path.join(C, "nguon"), os.path.join(C, "nguon-qc")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
@@ -97,17 +97,21 @@ def goc_moi(ma, bao, nb):
         subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "6"], capture_output=True, text=True, timeout=4 * 3600)
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
+        da += SD.cam_cua(cid)   # tránh cả đoạn soát cấm + đoạn Meta đã từ chối
         g = [x for x in g if not any(float(x["tu"]) < d and float(x["den"]) > t for t, d in da)][:3]
         try: loi = " ".join(str(x.get("loi")) for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("loi"))
         except Exception: loi = "không có lo.json"
         if not g and LK.ky_thuat(loi) is True: bao.append(f"góc mới phim {cid}: lỗi kỹ thuật ({loi[:80]}) — giữ trong hàng, lượt sau cắt lại"); hang[cid]["giu"] = True; continue
-        if g: dung += [{**x, "lo": "goc"} for x in g]; viec[cid] = m; bao.append(f"góc mới phim {cid} ({ten[:30]}): {len(g)} góc " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in g))
+        if g: dung += [{**x, "lo": "goc", "goc": m.get("goc")} for x in g]; viec[cid] = m; bao.append(f"góc mới phim {cid} ({ten[:30]}): {len(g)} góc " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in g))
         else: bao.append(f"góc mới phim {cid} ({ten[:30]}): hết khung cuối tập sạch chưa dùng — phim đã khai thác hết phần tập miễn phí")
     if dung:
         lf = os.path.join(C, "ra", ma, "len-goc-moi.json"); json.dump(dung, open(lf, "w"), ensure_ascii=False, indent=1)
         r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, ma + "g", "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
         print(r.stdout[-800:], r.stderr[-300:])
+    try: day = {str(x["content_id"]) for x in json.load(open(os.path.join(C, "ra", ma + "g", "len.json"))) if x.get("ok")}
+    except Exception: day = set()
     for cid, m in viec.items():
+        if nb and m.get("goc") and cid not in day: bao.append(f"góc mới phim {cid}: góc chờ soát đoạn — soat_doan.py len sẽ nhân bản #{m['goc']} sau khi soát"); continue
         if nb and m.get("goc"):
             r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(m["goc"])} --that --lich today --luat "nhân bản camp thắng bằng GÓC MỚI (đoạn cũ đủ 3 camp)" --ai "máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp, nhân bản bằng góc mới)"'""", timeout=600)
             bao.append(f"góc mới phim {cid} → nhân bản #{m['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")
@@ -171,8 +175,8 @@ def main():
         subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "3"], capture_output=True, text=True, timeout=3 * 3600)
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
-        if m.get("tu_choi") and tu is not None:   # bỏ góc chồng lên đoạn bị Meta từ chối
-            g = [x for x in g if not (float(x.get("tu", 0)) < float(den) and float(x.get("den", 0)) > float(tu))]
+        cam = SD.cam_cua(cid) + ([(float(tu), float(den))] if m.get("tu_choi") and tu is not None else [])   # bỏ góc chồng lên đoạn soát cấm / Meta từ chối
+        g = [x for x in g if not any(float(x.get("tu", 0)) < d and float(x.get("den", 0)) > t for t, d in cam)]
         if g: dung["canh cuoi"] += [{**x, "camp": m.get("goc"), "lo": "sua"} for x in g]; bao.append(f"{old}: cắt {len(g)} góc mới từ tập sạch: " + ", ".join(f"{x.get('tu'):.0f}–{x.get('den'):.0f}s" for x in g))
         else: bao.append(f"{old}: chưa dựng được bản sửa (khớp đoạn / góc mới đều lỗi)")
     for dang, ds in dung.items():

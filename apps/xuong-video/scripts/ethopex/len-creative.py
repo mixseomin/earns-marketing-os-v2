@@ -7,7 +7,8 @@
   5. cổng studio + cổng chữ trên video (kiem-studio.sh, kiem-thoai-creative.sh) — creative nào trượt thì bỏ
   6. đánh dấu đạt CTA (kiem-cta.py --dat)
 Ra <ra>/len.json: [{camp_cu, content_id, creative_id, lang, ten, tu, den, ok, loi}] để lên camp (nhan-ban.py --creative).
-Dùng: len-creative.py <lo.json (lam-lai-cta: content_id, lang, ten, tu, den, file[, camp, lo])> <mã lô (vd cta3)> <dạng (vd "canh cuoi")>"""
+Dùng: len-creative.py <lo.json (lam-lai-cta: content_id, lang, ten, tu, den, file[, camp, lo])> <mã lô (vd cta3)> <dạng (vd "canh cuoi")> [--da-soat]
+  --da-soat: lô đã soát tờ khung TỪNG ĐOẠN trước khi gọi (đợt phim mới). Không có cờ: đoạn chưa soát bị giữ lại (soat_doan.py)."""
 import csv, json, os, subprocess, sys, time, unicodedata, re
 from concurrent.futures import ThreadPoolExecutor
 import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG
@@ -22,6 +23,12 @@ def ascii_(s):
 
 def main(lo_f, ma, dang):
     lo = [x for x in json.load(open(lo_f)) if not x.get("loi") and x.get("file")]
+    # CỔNG SOÁT THEO ĐOẠN (anh 24/10/2026, Meta từ chối góc mới Step Back vì cảnh cưỡng ép): đoạn chưa soát thì GIỮ LẠI, không đẩy — soat_doan.py
+    import soat_doan as SD
+    lo, giu = SD.loc(lo, ma, dang, da_soat="--da-soat" in sys.argv)
+    if not lo:
+        ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump([], open(f"{ra}/len.json", "w"))
+        return print(f"không đoạn nào được đẩy — {giu} đoạn chờ soát (python3 {D}/soat_doan.py ds)")
     for x in lo: x["ten_tep"] = f"{ma}-{x.get('lo', 'x')}-{os.path.basename(x['file'])}"
     ra = os.path.join(C, "ra", ma); os.makedirs(ra, exist_ok=True); json.dump(lo, open(f"{ra}/lo.json", "w"), ensure_ascii=False, indent=1)
     # 1. kho

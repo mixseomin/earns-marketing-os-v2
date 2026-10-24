@@ -25,21 +25,32 @@ def gop(ten, moi):
 
 def bi_tu_choi(a): return a.get("delivery_status") == "DISAPPROVED" or "DISAPPROVED" in str(a.get("error") or "").upper()
 
+DEM = {}
+def so_camp_doan():
+    """khoá đoạn (content:tu-den) → số camp chưa lưu trữ đang mang creative đoạn đó (kho etp) — chọn đoạn ít camp nhất (trần 3 / đoạn)"""
+    if not DEM: DEM.update({k: int(n) for k, n in (l.split("|") for l in q("select c.doan, count(*) from etp.camp k join etp.creative c on c.creative_id = k.creative_id where coalesce(k.trang_thai, '') <> 'ARCHIVED' group by 1").splitlines() if "|" in l)})
+    return DEM   # một lượt chạy đếm tiếp tại chỗ (kho đồng bộ 10 phút mới thấy camp vừa thay)
+
 def ung_vien(cid, cu, tu_choi, dat):
     """creative cùng phim (content), đạt CTA, chưa bị từ chối, khác creative cũ — mới nhất trước (studio xv_phim kinh_thanh.ethopex)"""
     r = q(f"select (kinh_thanh->'ethopex'->>'creative_id'), coalesce(kinh_thanh->'ethopex'->>'tu',''), coalesce(kinh_thanh->'ethopex'->>'den','') from xv_phim "
           f"where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(cid)} order by 1 desc")
     ds = [l.split("|") for l in r.splitlines() if l]
     doan_cu = next(((t, d) for c, t, d in ds if c == str(cu)), None)
-    return [int(c) for c, t, d in ds if c.isdigit() and c != str(cu) and c in dat and c not in tu_choi and (t, d) != doan_cu]
+    ra = [int(c) for c, t, d in ds if c.isdigit() and c != str(cu) and c in dat and c not in tu_choi and (t, d) != doan_cu]
+    dem, doan = so_camp_doan(), dict(l.split("|") for l in q(f"select creative_id, doan from etp.creative where content_id = {int(cid)}").splitlines() if "|" in l)
+    return sorted(ra, key=lambda c: (dem.get(doan.get(str(c)), 0), -c))   # đoạn ít camp trước, rồi mới nhất
 
 def mot(camp, tu_choi, dat):
     kq = {"camp": camp, "ok": False}
     d = api(f"/api/v1/campaigns/{camp}"); a = d["ad_groups"][0]["ads"][0]
-    if not bi_tu_choi(a): return {**kq, "ok": True, "viec": "khong_tu_choi"}
-    cu, cid, ly = a.get("creative_id"), a.get("content_id"), str(a.get("error") or a.get("delivery_status"))[:300]
+    cu, cid = a.get("creative_id"), a.get("content_id")
+    lan = str(cu) in tu_choi and not bi_tu_choi(a)   # creative đã bị từ chối ở camp khác → thay luôn ở camp này trước khi Meta từ chối tiếp
+    if not bi_tu_choi(a) and not lan: return {**kq, "ok": True, "viec": "khong_tu_choi"}
+    if not lan and khoa("ethopex_thay_cho_duyet").get(str(camp)) == cu: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # vừa thay, Meta chưa duyệt lại
+    ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})"
     kq.update(creative_cu=cu, content=cid, ly_do=ly)
-    gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly, "luc": vn()}}); tu_choi[str(cu)] = 1
+    if not lan: gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly, "luc": vn()}}); tu_choi[str(cu)] = {"ly_do": ly}
     ds = ung_vien(cid, cu, tu_choi, dat)
     if not ds:
         gop("ethopex_cho_dung_lai", {str(cu): {"goc": camp, "luc": vn(), "ten": d["campaign"]["name"].split(": ", 1)[-1], "content_id": cid, "tu_choi": True, "ly_do": ly}})
@@ -47,14 +58,27 @@ def mot(camp, tu_choi, dat):
     moi = ds[0]
     api("/api/v1/campaigns/update", {"ads": [{"ad_id": a["id"], "creative_id": moi}]})
     sau = api(f"/api/v1/campaigns/{camp}")["ad_groups"][0]["ads"][0].get("creative_id")
+    if sau == moi:
+        dm = dict(l.split("|") for l in q(f"select creative_id, doan from etp.creative where creative_id in ({int(moi)}, {int(cu)})").splitlines() if "|" in l)
+        if dm.get(str(moi)): DEM[dm[str(moi)]] = DEM.get(dm[str(moi)], 0) + 1
+        if dm.get(str(cu)): DEM[dm[str(cu)]] = max(DEM.get(dm[str(cu)], 1) - 1, 0)
     kq.update(creative_moi=moi, viec="thay", ok=(sau == moi), loi=None if sau == moi else f"đã gửi Update nhưng đọc lại vẫn creative #{sau}")
     dong = {"luc": vn(), "viec": "thay_creative", "id": camp, "truoc": cu, "sau": sau, "ok": kq["ok"], "loi": kq["loi"],
             "luat": f"Meta từ chối ad (lý do: {ly[:150]}) → thay creative sạch cùng phim #{moi}", "ai": "máy (anh 23/10/2026: bị từ chối thì tự thay creative ngay)"}
     v = json.dumps(dong, ensure_ascii=False).replace("'", "''")
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_nhat_ky', '[]'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 1000, 0)) t) where ten = 'ethopex_nhat_ky'")
-    if kq["ok"]: q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{cu}' where ten='ethopex_cho_dung_lai'")
+    if kq["ok"]:
+        q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{cu}' where ten='ethopex_cho_dung_lai'")
+        gop("ethopex_thay_cho_duyet", {str(camp): moi})
     return kq
+
+def cung_creative(camps, tu_choi):
+    """mọi camp chưa lưu trữ khác đang mang creative đã bị từ chối (kho etp) — thay luôn, không đợi Meta từ chối từng camp"""
+    bad = [k for k in tu_choi if k.isdigit()]
+    if not bad: return []
+    r = q(f"select camp_id from etp.camp where creative_id in ({','.join(bad)}) and coalesce(trang_thai, '') <> 'ARCHIVED'")
+    return [int(x) for x in r.split() if int(x) not in camps]
 
 if __name__ == "__main__":
     a = sys.argv[1:]
@@ -63,6 +87,7 @@ if __name__ == "__main__":
     def an_toan(c):
         try: return mot(c, tu_choi, dat)
         except Exception as e: return {"camp": c, "ok": False, "loi": f"{type(e).__name__}: {str(e)[:150]}"}
-    with ThreadPoolExecutor(8) as ex:
-        for k in ex.map(an_toan, camps):
-            if k.get("viec") != "khong_tu_choi": print(json.dumps(k, ensure_ascii=False), flush=True)
+    for lo in (camps, None):   # lượt 2: camp khác cùng creative vừa bị từ chối
+        ds = camps if lo is not None else cung_creative(set(camps), khoa("ethopex_tu_choi"))
+        for k in map(an_toan, ds):   # tuần tự: hai camp cùng phim không giành cùng một creative thay, số camp / đoạn đọc đúng
+            if k.get("viec") not in ("khong_tu_choi", "cho_meta_duyet"): print(json.dumps(k, ensure_ascii=False), flush=True)

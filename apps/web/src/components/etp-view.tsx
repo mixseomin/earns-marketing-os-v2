@@ -243,12 +243,14 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('tong');
   const [loc, setLoc] = useState<'all' | 'chay' | 'tat' | 'cung' | 'roas'>('chay');
-  const [xemCay, setXemCay] = useState(false);   // tab Camp: bảng ↔ cây phim → camp gốc → bản nhân (anh 25/10/2026)
+  const [xemCay, setXemCay] = useState(true);   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
   const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
   useEffect(() => { const mq = window.matchMedia('(max-width: 720px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
-  useEffect(() => { const x = new URLSearchParams(location.search).get('t') as Tab | null; if (x) setTab(x); }, []);
-  useEffect(() => { const u = new URL(location.href); u.searchParams.set('t', tab); history.replaceState(history.state, '', u); }, [tab]);
+  useEffect(() => { const q = new URLSearchParams(location.search); const x = q.get('t') as Tab | null; if (x) setTab(x);
+    const v = q.get('v') ?? (() => { try { return localStorage.getItem('etp-camp-xem'); } catch { return null; } })(); if (v === 'bang' || v === 'cay') setXemCay(v === 'cay'); }, []);
+  useEffect(() => { const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCay ? 'cay' : 'bang'); else u.searchParams.delete('v'); history.replaceState(history.state, '', u);
+    try { localStorage.setItem('etp-camp-xem', xemCay ? 'cay' : 'bang'); } catch { /* trình duyệt chặn */ } }, [tab, xemCay]);
   const [kh, setKh] = useState<Kh>('7');
   const [xem, setXem] = useState<{ anh: string; video: string | null; x: number; y: number } | null>(null);   // ảnh to + video khi rê vào ảnh creative
   useEffect(() => { try { const v = localStorage.getItem('etp-kh') as Kh | null; if (v && v in KH_TEN) setKh(v); } catch { /* bỏ qua */ } }, []);
@@ -339,7 +341,12 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
         {tab !== 'luat' && tab !== 'tn' ? <Segmented<Kh> value={kh} onChange={setKh} options={(Object.keys(KH_TEN) as Kh[]).map((k) => ({ value: k, label: KH_TEN[k] }))} /> : null}
-        {tab === 'camp' ? <button onClick={() => setXemCay((v) => !v)} title={xemCay ? 'Xem dạng bảng' : 'Xem dạng cây: phim → camp gốc → bản nhân bản, kèm nhân bản lỗi, ROI giảm, đoạn quá tải'} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '2px 8px', background: xemCay ? 'var(--bg-2, rgba(255,255,255,.08))' : 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 14 }}>{xemCay ? '☰' : '🌳'}</button> : null}
+        {tab === 'camp' ? (
+          <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            {([[true, '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], [false, '☰ Bảng', 'bảng đủ cột, lọc / xếp']] as const).map(([v, nhan, t]) => (
+              <button key={nhan} onClick={() => setXemCay(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
+                background: xemCay === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCay === v ? 600 : 400 }}>{nhan}</button>))}
+          </span>) : null}
         {tab === 'camp' ? <FilterChips value={loc} onChange={setLoc} counts={{ all: du.camps.length, chay: chay.length, tat: du.camps.length - chay.length, cung: du.camps.filter((c) => c.cung_doan > 3).length, roas: roasDat.size }}
           options={[{ value: 'chay', label: 'Đang chạy' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cung', label: 'Đoạn > 3 camp' }, { value: 'roas', label: '★ Đủ bid ROAS' }, { value: 'all', label: 'Tất cả' }]} /> : null}
       </div>

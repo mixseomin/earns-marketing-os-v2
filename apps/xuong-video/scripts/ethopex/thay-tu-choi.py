@@ -82,6 +82,7 @@ def bat_lai(camp):
                         "--luat", "Meta từ chối ad → đã thay creative sạch cùng phim → bật lại", "--ai", "anh (chat 24/10/2026: bật sau khi thay)"], capture_output=True, text=True, timeout=180)
     try: j = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
     except Exception: j = {"ok": False, "loi": (r.stderr or r.stdout)[-150:]}
+    if j.get("loi") == "camp đã ACTIVE": return {"ok": True, "loi": None, "ghi": "Ethopex tự bật lại sau Update"}   # 24/10/2026 #68876: Update xong Ethopex tự chuyển ACTIVE
     return {"ok": bool(j.get("ok")), "loi": j.get("loi")}
 
 def cung_creative(camps, tu_choi):

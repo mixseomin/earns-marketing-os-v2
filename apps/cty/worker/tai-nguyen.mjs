@@ -90,7 +90,12 @@ export async function chupTaiNguyen() {
   const song = docJson('/opt/spy/tep/luot-song.json'), tt = docJson('/opt/spy/tep/trang-thai-cao.json');
   const dangChay = [song?.luc ? new Date(song.luc * 1000).toISOString() : null, tt?.dang_chay && Date.now() - Date.parse(tt.bat_dau) < 12 * 36e5 ? new Date().toISOString() : null].filter(Boolean).sort().pop();
   if (dangChay && (!cuoi.cao_chinh || dangChay > new Date(cuoi.cao_chinh).toISOString())) cuoi.cao_chinh = dangChay;
-  const lan = psqlSpy(env, 'select lan, may from may_cao_lan order by lan').map(([l, m]) => ({ lan: l, may: m, cuoi: cuoi[l] ? new Date(cuoi[l]).toISOString() : null }));
+  // nhịp sống làn ghi lúc nhận khoá (spy scripts/goc-chay.sh nhip_lan, 24/10/2026) — mới hơn dấu dữ liệu thì lấy; trước đo làn đối thủ bằng quet_trang (lúc làn rảnh
+  // không ghi) → báo oan "doi_thu đứng", thợ máy chạy Claude trên iMac vô ích
+  const lan = psqlSpy(env, 'select lan, may, chay_luc from may_cao_lan order by lan').map(([l, m, nhip]) => {
+    const ds = [cuoi[l], nhip].filter(Boolean).map((t) => new Date(t).toISOString()).sort();
+    return { lan: l, may: m, cuoi: ds.pop() || null };
+  });
   const het = await hanKhoa(env, `${DATA()}/tai-nguyen-khoa.json`);
   const khoa = [];
   for (const [bien, l] of Object.entries(KHOA_LAN)) for (const k of String(env[bien] ?? '').split(/\s+/).filter(Boolean)) khoa.push({ ma: k.slice(-4), bien, lan: l, het: het[k] ?? 0 });

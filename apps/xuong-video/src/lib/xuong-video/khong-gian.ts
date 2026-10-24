@@ -235,7 +235,9 @@ export function loiDoThem(kg: KhongGian, c: Shot & { thu_tu: number }, luc: LucK
     // MIỆNG KHÉP khi không thoại (luat im_lang_khep_mieng)
     if (!coThoai && k.nhin?.net && k.nhin.net.ha > NGUONG_DO.ha_mieng) out.push({ chu: `${k.ten} há miệng (${k.nhin.net.ha}) ở shot không có thoại — như đang nói`, muc: 'canh' });
     // ÁNH NHÌN DỌC (luat anh_mat_doc_goc_may): ngước lên = doc âm
-    const kd = kyVongDoc(kg, c, k.ten, luc); const d = k.nhin?.doc;
+    // sổ dáng ghi cúi / cụp mắt ở khung này → ánh nhìn dọc theo sổ dáng, không đòi ngước (#13 cuối: Hạ nghe Thần rồi cụp mắt)
+    const dg = dang(kg, c.thu_tu, k.ten, luc); const kdDang = dg ? kyVongDang(dg.en).dau : undefined;
+    const kd = kdDang === -1 || kdDang === 1 ? null : kyVongDoc(kg, c, k.ten, luc); const d = k.nhin?.doc;   // 'cằm ngang' trong sổ vẫn cho mắt ngước theo người cao hơn
     // kỳ vọng ngước lên (kd = −1) mà đo cúi rõ (d > ngưỡng), hoặc kỳ vọng nhìn xuống (kd = 1) mà đo ngẩng rõ (d < −ngưỡng)
     if (kd != null && d != null && ((kd === -1 && d > NGUONG_DO.doc_nguoc) || (kd === 1 && d < -NGUONG_DO.doc_nguoc))) out.push({ chu: `${k.ten} ${kd < 0 ? 'lẽ ra ngước lên' : 'lẽ ra nhìn xuống'} (người kia ${kd < 0 ? 'cao' : 'thấp'} hơn) mà đo ${d > 0 ? 'cúi' : 'ngẩng'} ${Math.abs(d)}°`, muc: 'canh' });
     // PHÍA SÁNG (luat lien_tuc_anh_sang)

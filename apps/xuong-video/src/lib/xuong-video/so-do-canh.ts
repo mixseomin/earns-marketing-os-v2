@@ -11,7 +11,7 @@ export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem;
   /** ĐÈN CHÍNH của cảnh (key light): đứng ở đâu trên mặt bằng — mọi góc máy giữ cùng một phía sáng (lighting continuity) */ den?: { tu: Diem; ten?: string } };
 /** Một mảnh theo sơ đồ: máy nào · ai / cái gì ở đâu (tên mốc hoặc toạ độ) · ai nhìn ai / cái gì · ai đi vào khung từ mốc nào. */
 export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** người CỐ Ý không nhìn người vừa nói (khong-gian.ts › luật người nghe nhìn người nói) */ ne_nhin?: string[]; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
-export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true; /** quay lưng HẲN (sâu > 0,7) — không thể thấy mặt; nửa lưng thì có thể lộ má / nghiêng */ han?: true };
+export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true; /** quay lưng HẲN (sâu > 0,7) — không thể thấy mặt; nửa lưng thì có thể lộ má / nghiêng */ han?: true; /** KHUNG QUA VAI: người này quay lưng ở TIỀN CẢNH (gần máy hơn người được nhìn, người kia trong khung) — má / tai lộ ra là bình thường, cổng đếm mặt không tính */ ots?: true };
 
 const tru = (a: Diem, b: Diem): Diem => [a[0] - b[0], a[1] - b[1]];
 const cham = (a: Diem, b: Diem) => a[0] * b[0] + a[1] * b[1];
@@ -90,7 +90,10 @@ export const thayHuong = (s: SoDo, m: ManhSoDo, chu: string): string => chu.repl
 export function kyVong(s: SoDo, m: ManhSoDo, nguoi: string[]): Record<string, KyVong> {
   const r: Record<string, KyVong> = {};
   for (const n of nguoi) { if (m.o[n] == null || (m.khung && !m.khung.includes(n))) continue; const x = m.vao?.[n] ? viTriMan(s, m, m.vao[n]!) : viTriMan(s, m, n); if (x == null) continue;
-    r[n] = { ben: x < -0.33 ? -1 : x > 0.33 ? 1 : 0, ...(m.nhin?.[n] && !raXa(s, m, n, m.nhin[n]!) ? { nhin: huongMan(s, m, n, m.nhin[n]!) } : {}), ...(m.nhin?.[n] && (doSau(s, m, n, m.nhin[n]!) ?? 0) > NUA_LUNG ? { lung: true as const, ...(raXa(s, m, n, m.nhin[n]!) ? { han: true as const } : {}) } : {}) }; }
+    const b = m.nhin?.[n]; const lung = !!b && (doSau(s, m, n, b) ?? 0) > NUA_LUNG;
+    // qua vai: n quay lưng, người được nhìn b cũng trong khung và XA máy hơn n
+    const ots = lung && !!b && nguoi.includes(b) && m.o[b] != null && (!m.khung || m.khung.includes(b)) && (() => { const c = s.may[m.may]!.dat; const pn = diem(s, m, n)!, pb = diem(s, m, b)!; return Math.hypot(pn[0] - c[0], pn[1] - c[1]) < Math.hypot(pb[0] - c[0], pb[1] - c[1]); })();
+    r[n] = { ben: x < -0.33 ? -1 : x > 0.33 ? 1 : 0, ...(b && !raXa(s, m, n, b) ? { nhin: huongMan(s, m, n, b) } : {}), ...(lung ? { lung: true as const, ...(raXa(s, m, n, b!) ? { han: true as const } : {}), ...(ots ? { ots: true as const } : {}) } : {}) }; }
   return r;
 }
 /** Trục 180°: mảnh liền nhau cùng có hai người A, B (đứng trong sơ đồ) → hai máy phải cùng phía đường A–B. Trả lỗi theo cặp. */

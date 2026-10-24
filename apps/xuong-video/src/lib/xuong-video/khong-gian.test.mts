@@ -143,8 +143,9 @@ console.log('khong-gian.test: ok (câu hỏi vắng mặt)');
 { const { kyVongDoc, kyVongSang, kyVongKhoangCach, loiDoThem } = await import('./khong-gian');
   assert.strictEqual(kyVongDoc(kg, S(13), 'Lâm Hạ'), -1, '#13 Hạ nhìn Thần cao hơn → ngước'); assert.strictEqual(kyVongDoc(kg, S(4), 'Vivian'), 1, 'Vivian nhìn Hạ thấp hơn → xuống'); assert.strictEqual(kyVongDoc(kg, S(1), 'Lâm Hạ'), null, 'nhìn cửa: không kỳ vọng dọc');
   assert.strictEqual(kyVongSang(kg, S(12)), 1, '#12 đèn bên phải màn (đo thật 25/10: mặt sáng từ phải ở mọi máy chính)'); assert.strictEqual(kyVongSang({ ...kg, so_do: { ...kg.so_do, den: undefined } }, S(12)), null, 'không khai đèn → không phán'); assert.strictEqual(kyVongKhoangCach(kg, S(5), 'Lâm Hạ', 'Vivian'), 'sat');
-  const ha = (doc: number, ha = 0) => ({ ten: 'Lâm Hạ', tin: true, o: { x: 0.5, y: 0.4 }, hop: [0.4, 0.3, 0.2, 0.3], sang: -0.1, nhin: { doc, net: { ha, cuoi: 0, nhiu: 0, mim: 0 } } });
+  const ha = (doc: number, ha = 0) => ({ ten: 'Lâm Hạ', tin: true, o: { x: 0.5, y: 0.4 }, hop: [0.4, 0.3, 0.2, 0.3], sang: 0.1, nhin: { doc, net: { ha, cuoi: 0, nhiu: 0, mim: 0 } } });
   const l13 = loiDoThem(kg, S(13), 'dau', [ha(20)], false); assert.ok(l13.some((x) => x.chu.includes('lẽ ra ngước lên')), JSON.stringify(l13));
+  assert.ok(!loiDoThem(kg, S(13), 'ket', [ha(20)], false).some((x) => x.chu.includes('lẽ ra ngước')), 'cuối #13 sổ dáng ghi cụp mắt → không đòi ngước');
   assert.deepStrictEqual(loiDoThem(kg, S(13), 'dau', [{ ...ha(-6), sang: 0.1 }], false), [], 'ngước đúng, miệng khép, sáng đúng phía');
   assert.ok(loiDoThem(kg, S(13), 'dau', [ha(-6, 0.4)], false).some((x) => x.chu.includes('há miệng')), 'không thoại mà há miệng');
   assert.deepStrictEqual(loiDoThem(kg, S(13), 'dau', [ha(-6, 0.4)], true), [], 'có thoại thì miệng mở được');
@@ -153,4 +154,6 @@ console.log('khong-gian.test: ok (câu hỏi vắng mặt)');
   const gan = [{ ten: 'Lâm Hạ', tin: true, o: { x: 0.3, y: 0.4 }, hop: [0.2, 0.3, 0.2, 0.3] }, { ten: 'Vivian', tin: true, o: { x: 0.7, y: 0.4 }, hop: [0.6, 0.3, 0.2, 0.3] }];
   assert.deepStrictEqual(loiDoThem(kg, S(5), 'dau', gan, false), [], 'cách 2 bề rộng mặt = sát, đúng sơ đồ');
   const xa = gan.map((g) => ({ ...g, hop: [g.hop[0]!, 0.3, 0.05, 0.08] })); assert.ok(loiDoThem(kg, S(5), 'dau', xa, false).some((x) => x.chu.includes('sơ đồ nói đứng sát')), 'cách 8 bề rộng mặt mà sơ đồ nói sát'); }
+// KHUNG QUA VAI: người quay lưng ở TIỀN CẢNH (gần máy hơn người được nhìn) → kỳ vọng ots, không coi má lộ ra là lỗi
+{ const { kyVong } = await import('./so-do-canh'); const k4 = kyVong(kg.so_do, S(4).ky_thuat!.sd!, kg.nguoi); assert.ok(k4['Lâm Hạ']?.ots, JSON.stringify(k4)); assert.ok(!kyVong(kg.so_do, S(1).ky_thuat!.sd!, kg.nguoi)['Lâm Hạ']?.ots, '#1 toàn cảnh một người: không phải qua vai'); }
 console.log('khong-gian.test: ok (đo đầu ra luật chữ)');

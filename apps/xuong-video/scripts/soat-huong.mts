@@ -68,7 +68,9 @@ function danhGia(c: Shot, l: Luc, r0: Do | undefined, hoi?: { chan: string[]; ca
   const loi: Loi[] = loiDoHuong(Object.fromEntries(Object.entries(kv).filter(([, v]) => !v.lung)), k).map((chu) => ({ chu, muc: 'chan' as const }));
   const kg = kgCua(kgt, c); const tong = c.ky_thuat?.co_canh === 'insert' ? 0 : Object.keys(kv).length;
   if (r0.mat > tong) loi.push({ chu: `thấy ${r0.mat} mặt mà sơ đồ chỉ có ${tong} người trong khung — có người chen vào`, muc: 'chan' });
-  else if (r0.mat > tong - Object.values(kv).filter((v) => v.han).length) loi.push({ chu: `${Object.entries(kv).filter(([, v]) => v.han).map(([n]) => n).join(' / ')} lẽ ra quay lưng hẳn mà lộ mặt (thấy ${r0.mat} mặt)`, muc: 'chan' });
+  // quay lưng hẳn mà lộ mặt — trừ khung qua vai (ots: má / tai người tiền cảnh lộ ra là bình thường)
+  // khung TOÀN: mặt nhỏ, nửa má người quay lưng vẫn bị dò là 'mặt' và người xem cũng không thấy rõ (#353 #1: đề xuất 4,4 s lại là khung nghiêng rõ hơn) → cảnh báo
+  else if (r0.mat > tong - Object.values(kv).filter((v) => v.han && !v.ots).length) loi.push({ chu: `${Object.entries(kv).filter(([, v]) => v.han && !v.ots).map(([n]) => n).join(' / ')} lẽ ra quay lưng hẳn mà lộ mặt (thấy ${r0.mat} mặt)`, muc: ['ws', 'ews'].includes(c.ky_thuat?.co_canh ?? '') ? 'canh' : 'chan' });
   for (const x of k0) if (kv[x.ten] && !kv[x.ten]!.lung && x.giong != null && x.giong < NGUONG_LA && !x.nho) loi.push({ chu: `mặt ở chỗ ${x.ten} không phải ${x.ten} (giống ${x.giong}) — người lạ / sai người`, muc: 'chan' });
   for (const x of k) { const d = kg ? dang(kg, c.thu_tu, x.ten, lucSo(l)) : null; if (d) loi.push(...loiDoDang(x.ten, kyVongDang(d.en), x).map((chu) => ({ chu, muc: 'chan' as const }))); }
   if (kg) loi.push(...loiDoThem(kg, c, lucSo(l), k, coThoai(c)));   // miệng · ánh nhìn dọc · phía sáng · khoảng cách (mức canh tới khi hiệu chỉnh)

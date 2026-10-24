@@ -11,6 +11,7 @@ Máy soát ngay bằng Claude API (anh duyệt 24/10/2026): ok → đẩy, cam �
 khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự hại. Một khung dính là cấm cả đoạn.
   python3 soat_doan.py ds                          → đoạn đang chờ soát + đường tờ khung
   python3 soat_doan.py ok|cam <khoá> … [--ghi "…"]  → ghi kết quả (cam: đoạn này không bao giờ được cắt lại — goc_moi / sua-cta tránh)
+  python3 soat_doan.py lo <thư mục lô>             → soát cả lô bằng máy (Claude, chuỗi rẻ): in đoạn cấm / cần người xem kèm tờ 30 khung
   python3 soat_doan.py len                         → đẩy các đoạn đã ok (len-creative) + nhân bản camp góc mới đang chờ (nhan-ban --lich today)
 Chạy trên iMac."""
 import datetime as dt, json, os, subprocess, sys, time
@@ -126,6 +127,19 @@ def loc(lo, ma, dang, da_soat=False):
 def main(a):
     lenh = a[0] if a else "ds"
     if lenh == "ai-box": print(json.dumps(ai_box(a[1]), ensure_ascii=False)); return
+    if lenh == "lo":   # soát cả lô bằng máy (anh duyệt Claude API 24/10/2026): mọi đoạn trong <lô>/lo.json → tờ 30 khung → ok / cam / xem, ghi ethopex_soat_doan
+        from concurrent.futures import ThreadPoolExecutor
+        lo_dir = a[1]; lo = [x for x in json.load(open(os.path.join(lo_dir, "lo.json"))) if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]
+        s = khoa("ethopex_soat_doan"); viec = [x for x in lo if not s.get(khoa_doan(x))]
+        def mot(x):
+            k = khoa_doan(x); kq = ai(to_khung(x["file"], k)); return k, kq, x
+        kq_all = list(ThreadPoolExecutor(4).map(mot, viec)); ghi = {}; tong = {"ok": 0, "cam": 0, "xem": 0}
+        for k, kq, x in kq_all:
+            tong[kq["ket"]] += 1
+            if kq["ket"] != "xem": ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude ({kq.get('duong')}): {kq['ly']}"}
+            if kq["ket"] != "ok": print(f"{kq['ket'].upper()} {k} · {x.get('ten', '')[:40]} · {kq['ly'][:160]} · tờ (iMac): {os.path.join(CHO, k.replace(':', '-') + '.jpg')}", flush=True)
+        if ghi: gop("ethopex_soat_doan", ghi)
+        print(f"soát lô {lo_dir}: {len(viec)} đoạn soát mới ({len(lo) - len(viec)} đã có) → ok {tong['ok']} · cấm {tong['cam']} · cần người xem {tong['xem']}"); return
     if lenh == "ds":
         h = khoa("ethopex_cho_soat")
         for k, v in h.items(): print(k, "·", v["x"].get("ten", "")[:50], "·", v["dang"], "· lô", v["ma"], "· tờ khung (iMac):", v.get("to"))

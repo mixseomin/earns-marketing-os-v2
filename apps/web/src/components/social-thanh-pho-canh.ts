@@ -292,7 +292,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const NHUA = M({ color: '#1a2036', roughness: .95 }), GACH = M({ color: '#2a3352', roughness: .9 });
   // CỠ NGƯỜI / XE (anh 24/10/2026 "người, xe bé quá, nhìn như con kiến"): một chỗ phóng cho mọi người đi bộ (khách thật + người nền) và mọi xe (luồng khách, xe ra vào khu, xe nền)
   const CO_NGUOI = 2.2, CO_XE = 2.2, Y_XE = .9 * CO_XE + .4;
-  let ongDs: { cv: any; t: number; toc: number; mau: any }[] = [], ongXung: any = null; const viTriBinh = new Map<string, any>(); let daiTn: any = null;
+  let ongDs: { cv: any; t: number; toc: number; mau: any }[] = [], ongXung: any = null, matBangXuong: number[] | null = null; const viTriBinh = new Map<string, any>(); let daiTn: any = null;
   // chuyến trong nhà máy phim: xe giữa các trạm (mang biển tên phim đang chở) + xe tới toà camp vừa lên + người bê thùng ở trạm đang chạy
   const khuXuongPhim = () => (mh.duAn.some((x) => x.khoa === 'd:ethopex~2') ? 'd:ethopex~2' : 'd:ethopex'), congSauKhu = new Map<string, any>(); let duongChuyen: any[] = [];
   let xuongPhim: { tram: any[]; cong: any | null; cuaZ: number; zF: number; phia: number } | null = null, chuyenDs: { o: any; a: any; b: any; t: number; toc: number; di?: boolean; duong?: any; mot?: () => void; nguoi?: boolean }[] = [], khoaBienDem = ''; const viTriCamp = new Map<string, any>();
@@ -1381,10 +1381,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const moc = add(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshBasicMaterial({ visible: false }), false); moc.position.set(kp.cx, -6, zF); moc.userData = { loai: 'xuong-etp' }; chiMuc.push({ ten: 'Nhà máy phim mới (6 trạm)', nhan: 'xưởng', obj: moc });
         xuongVe = (x) => { veXuong(cv, x); tx.needsUpdate = true; dungChuyen(); }; xuongDong = { cv, tx, bien }; xuongPhim = { tram, cong: congSauKhu.get(kh) ?? null, cuaZ, zF, phia: kp.phia }; khoaBienDem = '';
         // đường cố định: đường xưởng → cổng sau → trục giữa khu
+        matBangXuong = [x0F - 40, x0F + BUOC * 5 + 200, Math.min(zF, cuaZ) - 40, Math.max(zF, cuaZ) + 40];
         { const g0 = xuongPhim.cong; if (g0) veDuongXe([new THREE.Vector3(g0.x, 0, cuaZ), g0, new THREE.Vector3(g0.x, 0, kp.cz)], []); }
         xuongVe(xuongData);
       } else { xuongVe = null; xuongDong = null; xuongPhim = null; } }
     const kn = khuNen(Math.min(lech - 40, xMay - Math.ceil(mh.nhaMay.length / 2) * 90 - 30), Math.max(coCty ? xCty + 110 : xKho + 60, xTnPhai), Math.max(zTrong, coCty ? 260 : 0, zXuong + 20), zNgoai);
+    // mặt bằng nhà máy phim nằm ngoài rào khu, đè lên dải toà nền (khu dân cư vừa dựng ở khuNen) → dọn toà nền trong mặt bằng (thu bản sao về cỡ 0) — không để toà nền mọc chen giữa các trạm
+    if (matBangXuong) { const [xa, xb, za, zb] = matBangXuong as [number, number, number, number], m4 = new THREE.Matrix4(), p4 = new THREE.Vector3(), rong = new THREE.Matrix4().makeScale(0, 0, 0);
+      for (const im of nen.children as any[]) { if (!im.isInstancedMesh) continue; let doi = false;
+        for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m4); p4.setFromMatrixPosition(m4); if (p4.x > xa && p4.x < xb && p4.z > za && p4.z < zb) { im.setMatrixAt(i, rong); doi = true; } }
+        if (doi) im.instanceMatrix.needsUpdate = true; } matBangXuong = null; }
     gioiHan = { x0: kn.xa, x1: kn.xb, z: kn.zDat };
     const rong = kn.xb - kn.xa;
     if (doc) { CAM0.set(-rong * .62, rong * .7, 0); TAM0.set(0, 0, 0); scene.fog.near = rong * .9; scene.fog.far = rong * 2.2; ctl.maxDistance = rong * 1.6; }

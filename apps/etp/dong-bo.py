@@ -73,6 +73,9 @@ def main():
         for x in bc(["campaign_name", "date", "cost", "revenue"], ["campaign_name", "date"], tu, nay.isoformat()):
             k = (x["campaign_id"], str(x["report_date"])[:10]); e = g.setdefault(k, [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
         kq["so_dong_ngay"] = ghi("so_ngay", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in g.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
+        # ngân sách + trạng thái của camp cho NGÀY HÔM NAY (giá trị lượt cuối ngày thắng) — lịch sử cho chạy thử luật (bước 3c)
+        q(f"insert into etp.so_ngay (camp_id, ngay, ngan_sach, trang_thai) select camp_id, '{nay.isoformat()}', ngan_sach, trang_thai from etp.camp where trang_thai <> 'ARCHIVED' "
+          f"on conflict (camp_id, ngay) do update set ngan_sach = excluded.ngan_sach, trang_thai = excluded.trang_thai")
     except Exception as e: loi.append(f"so_ngay: {e}")
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay
     try:

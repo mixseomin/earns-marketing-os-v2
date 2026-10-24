@@ -179,7 +179,7 @@ const loiThuong = (loi: string | null) => {
   if (/18\+|PHIM18|soát/.test(t)) return 'phim chưa qua soát 18+';
   if (/CTA/.test(t)) return 'creative chưa đạt luật CTA';
   if (/rào|trần ngày|trần bộ|dừng khẩn/.test(t)) return 'chạm trần ngân sách';
-  return t.split(' — ')[0].replace(/#\d+|\(.*?\)|[a-z_]+_[a-z_]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return (t.split(' — ')[0] ?? '').replace(/#\d+|\(.*?\)|[a-z_]+_[a-z_]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 };
 function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
   const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');

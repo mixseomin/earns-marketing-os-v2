@@ -83,7 +83,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const { sets, diemM, tbM } = useDiemMurch(canh, nhanVat, tap, laQc);
   const batDau = useMemo(() => { let a = 0; return canh.map((c) => { const s = a; a += dur(c); return s; }); }, [canh, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
   // Trạng thái + điểm từng đối tượng theo shot (trang-thai-doi-tuong.ts) — làn 'Đối tượng' cuối timeline.
-  const doiTuong = useMemo(() => trangThaiDoiTuong(canh, nhanVat, tap.phan_canh, sets), [canh, nhanVat, tap.phan_canh, sets]);
+  const doiTuong = useMemo(() => trangThaiDoiTuong(canh, nhanVat, tap.phan_canh, sets, tap.khong_gian), [canh, nhanVat, tap.phan_canh, sets, tap.khong_gian]);
   // Nhân vật của cả tập theo thứ tự xuất hiện (người nói + nhân vật có mặt mà không nói) → mỗi người MỘT nhóm làn: cảm xúc + thoại (#1244).
   const nguoiNoiTap = useMemo(() => {
     const ds: string[] = [];

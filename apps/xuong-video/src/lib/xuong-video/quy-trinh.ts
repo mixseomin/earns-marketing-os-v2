@@ -3,6 +3,7 @@
 // bước nào gác cổng đó mà chưa đạt thì máy chủ từ chối (sinhKeyframeCanh, batDauVideoCanh) và thanh 🎬 Quy trình trên studio chỉ đúng
 // chỗ thiếu + cách làm. Thêm một chuẩn mới = thêm MỘT mục ở đây, không vá từng nút. Khác kiem-qc.ts: bên đó chấm NỘI DUNG quảng cáo
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
+import { diCmShot } from './khong-gian';
 import { batCamXuc } from './qc-cam-xuc';
 import { lintPrompt } from './tu-sua-clip-do';
 import { chanKhung } from './khung';
@@ -25,7 +26,7 @@ import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, loiCauTraiBieuCam, soa
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
 export type MucQt = { key: string; nhom: NhomQt; ten: string; ok: boolean; thieu: string[]; cong: Cong | null; lam: string };
-export type TapQt = { ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat' | 'intro' | 'gag'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
+export type TapQt = { /** sơ đồ 2D theo cảnh (khong-gian.ts) — quãng đi khi không 3D */ khong_gian?: import('./khong-gian').KhongGianTap; ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat' | 'intro' | 'gag'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
 export type PhimQt = { phong_cach?: string; /** thể loại (phim_doc bật bộ chấm phim ngắn dọc) */ the_loai?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean; /** Murch QC (qc-cam-xuc.ts) */ camXucQc?: boolean };
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'> & Partial<Pick<KinhThanh, 'cam_xuc_qc' | 'the_loai'>>): PhimQt =>
@@ -111,7 +112,7 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   // Ngữ pháp máy theo nhịp kịch (ngu-phap-may.ts, phim ngắn dọc): sốc / sỉ nhục / quyền lực / hé lộ / phán quyết / móc cuối tập phải có chuyển động
   // hợp nhịp — sửa 0đ bằng cùng nút 🎥.
   out.push(...kiemNguPhapMay(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat, bieu_cam: c.bieu_cam, dan_dung: c.dan_dung, hanh_dong: c.hanh_dong,
-    di_cm: diCm(c.may_3d?.vi_tri), cuoi: i === canh.length - 1 && !!phim.series?.dong_co?.trim() })), phim.the_loai));
+    di_cm: c.may_3d ? diCm(c.may_3d.vi_tri) : diCmShot(tap.khong_gian, c as never), cuoi: i === canh.length - 1 && !!phim.series?.dong_co?.trim() })), phim.the_loai));
   // Nhịp đọc (nhip-hinh.ts › giayDoc): shot phim truyện phát quá ngắn → người xem chưa hiểu đã cắt.
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
   out.push(...kiemTheShot(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, dan_dung: c.dan_dung })), phim));

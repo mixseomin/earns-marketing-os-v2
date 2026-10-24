@@ -19,11 +19,11 @@ for (const tapId of process.argv.slice(2).map(Number)) {
   const nv = ((await db.execute(sql`SELECT v.* FROM xv_nhan_vat v JOIN xv_tap t ON t.phim_id = v.phim_id WHERE t.id = ${tapId} ORDER BY v.id`)) as unknown as Row[]).map(mapNhanVat);
   console.log(`\n== tập ${tapId} · ${canh.length} shot · kiểm tiếng: ${kiemTieng(locNhanh(canh, 'A'), nv).join(' | ') || 'sạch'}`);
   // Cảnh báo liên tục (không chặn): luật 30°, eye trace, khoảng nhìn, chiều cao máy, bộ ống kính — in riêng để sửa 3D khi rảnh tay.
-  const canhBao = canhBaoMachTap(locNhanh(canh, 'A'), (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten === t));
   // Điểm Murch (diem-murch.ts): so shot trong tập — in M=<điểm> cạnh mỗi shot + trung bình từng cảnh ở cuối.
-  const tapR = ((await db.execute(sql`SELECT t.phan_canh, t.phim_id, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
+  const tapR = ((await db.execute(sql`SELECT t.phan_canh, t.khong_gian, t.phim_id, p.loai FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
   const sets = ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE phim_id = ${Number(tapR?.phim_id)} OR phim_id IS NULL`)) as unknown as Row[]).map(mapBoSet);
-  const diemM = diemMurchTap(locNhanh(canh, 'A'), nv, sets, { phanCanh: (tapR?.phan_canh as never) ?? [], laQc: tapR?.loai === 'quang_cao' }); const tbM = diemMurchCanh(locNhanh(canh, 'A'), diemM);
+  const canhBao = canhBaoMachTap(locNhanh(canh, 'A'), (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten === t), undefined, (tapR?.khong_gian as never) ?? null);
+  const diemM = diemMurchTap(locNhanh(canh, 'A'), nv, sets, { phanCanh: (tapR?.phan_canh as never) ?? [], laQc: tapR?.loai === 'quang_cao', kg: (tapR?.khong_gian as never) ?? null }); const tbM = diemMurchCanh(locNhanh(canh, 'A'), diemM);
   for (const c of canh) {
     const g = await lyChanKeyframe(db, c.id);
     if (!g) { console.log(`#${c.thu_tu} không đọc được bối cảnh`); continue; }

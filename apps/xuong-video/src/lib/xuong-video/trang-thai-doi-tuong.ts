@@ -13,6 +13,8 @@ import { bangDoiTuong } from './phu-thuoc';
 import { MOCAP_VI } from './mocap-kho';
 import { soLienMach, chuDang, type DongSo } from './so-lien-mach';
 import { boSetCuaShot, huongVoiMay } from './bo-set-3d';
+import { coKhongGian, dang, dichNhin, doCam, kgCua, loiMachTap2d, nguoiKhung, nhinCan, thayMat, viTri, type KhongGianTap, type ShotKg } from './khong-gian';
+import { trangThai } from './so-vat';
 import { DANG } from './cau-hoi-khung';
 import { LA_NHAN_DANG } from './kiem-ai-3d';
 import { bieuCam, camThuc, loiMachBieuCam } from './qc-cam-xuc';
@@ -65,9 +67,10 @@ export function moTaViTri(v: ViTri, m: May3d, vat: VatSet[], laNguoi: boolean, n
   return [cho(p), ng ? `cách ${ng.ten} ${met(ng.d)}` : '', h ? (h.lech <= 35 ? 'nhìn về máy' : h.lech <= 80 ? 'nghiêng ¾ về máy' : h.lech <= 120 ? 'quay ngang' : 'quay lưng về máy') : '', di].filter(Boolean).join(' · ');
 }
 
-export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[] = []): DongDoiTuong[] {
+export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[] = [], /** sơ đồ 2D theo cảnh (phim không 3D — khong-gian.ts) */ kgt?: KhongGianTap | null): DongDoiTuong[] {
   const bang = bangDoiTuong(canh, nhanVat);
-  const so = soLienMach(canh, phanCanh, nhanVat);
+  const loi2d = loiMachTap2d(kgt, canh as unknown as ShotKg[]);
+  const so = soLienMach(canh, phanCanh, nhanVat, kgt);
   const machBc = loiMachBieuCam(canh, nhanVat);
   const tenNguoi = new Set(nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   const vatCua = (c: Canh) => { const sid = c.may_3d ? boSetCuaShot(c, nhanVat) : null; const s = sets.find((x) => x.id === sid); return s ? vatHien(s.du_lieu.vat, c.may_3d?.them) : []; };
@@ -87,7 +90,21 @@ export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: P
         if (b.khac) mau.tru.push({ chu: `biến thể "${b.bt ?? 'gốc'}" khác đa số shot`, diem: TRU_DIEM.khac_bien_the });
         // SỔ LIỀN MẠCH: trang phục · vị trí · dáng (người) / vị trí · trạng thái (đồ)
         const d = dongSo.get(c.id); const vt = c.may_3d?.vi_tri.find((x) => x.ten === nv.ten);
-        if (d) {
+        // KHÔNG 3D: vị trí · dáng · đồ · lỗi mạch theo sơ đồ cảnh + sổ dáng + sổ đồ vật (cùng nguồn cổng keyframe đọc)
+        const k2 = kgCua(kgt, c); const co2 = !c.may_3d && coKhongGian(k2, c) ? k2 : null; let chu2 = '';
+        if (co2) {
+          if (laNguoi && c.ky_thuat?.sd?.o[nv.ten] != null) {
+            const trong = (nguoiKhung(co2, c, 'dau') ?? []).includes(nv.ten); const x = viTri(co2, c, nv.ten); const h = nhinCan(co2, c, nv.ten); const dn = dichNhin(c, nv.ten); const tm = thayMat(co2, c, nv.ten);
+            them('vi_tri', trong ? [x == null ? '' : x < -0.33 ? 'trái màn' : x > 0.33 ? 'phải màn' : 'giữa màn', dn ? `nhìn ${co2.so_do.ten?.[dn] ?? dn}${h ? ` (sang ${h < 0 ? 'trái' : 'phải'})` : ''}` : '', tm === false ? 'quay lưng / nửa lưng' : ''].filter(Boolean).join(' · ') : 'ngoài khung');
+            const dd = dang(co2, c.thu_tu, nv.ten, 'dau'), dk = dang(co2, c.thu_tu, nv.ten, 'ket');
+            chu2 = [dd?.vi, dk && dk.vi !== dd?.vi ? `→ ${dk.vi}` : '', ...doCam(co2, c.thu_tu, nv.ten, 'ket').map((v) => `${v.doi ? '⚡ ' : ''}${v.mon}: ${v.vi}`)].filter(Boolean).join(' · ');
+            them('dang', chu2 || 'chưa khai dáng');
+          }
+          const mv = !laNguoi && co2.so_vat?.[nv.ten] ? { dau: trangThai(co2.so_vat, c.thu_tu, 'dau')[nv.ten], ket: trangThai(co2.so_vat, c.thu_tu, 'ket')[nv.ten] } : null;
+          if (mv?.dau || mv?.ket) { chu2 = [mv.dau?.vi, mv.ket && mv.ket !== mv.dau ? `→ ⚡ ${mv.ket.vi}` : ''].filter(Boolean).join(' '); them('trang', chu2); }
+          for (const x of loi2d[c.id] ?? []) if (nhacTen(x, nv.ten)) them(/dáng/.test(x) ? 'dang' : /đồ vật/.test(x) ? 'trang' : 'vi_tri').tru.push({ chu: `liền mạch: ${x}`, diem: TRU_DIEM.lien_mach });
+        }
+        if (d && !co2) {
           if (laNguoi) them('ngoai', d.ngoai.map((g) => `${g.ten}: ${g.mo || 'không'}${g.ket && g.ket !== g.mo ? ` → ${g.ket}` : ''}`).join(' · ') || 'chưa khai');
           if (vt && c.may_3d) them('vi_tri', moTaViTri(vt, c.may_3d, vatCua(c), laNguoi, tenNguoi));
           if (laNguoi) them('dang', [d.an ? 'khuất' : chuDang(d), ...d.dien.map(chuDien), d.cam ? `cầm ${d.cam}` : ''].filter(Boolean).join(' · '));
@@ -118,12 +135,14 @@ export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: P
           }
           if (hop && !k.tru.length && !kk!.dat && !kk!.duyet_tay) k.chu = 'lỗi không nhắc tên này';
         }
+        // ĐO NỐI CẮT trên hình thật (soat-huong.mts): chỉ khi số đo còn đúng clip / khung cuối đang dùng
+        const sn = c.ky_thuat?.soat_noi; if (laNguoi && sn && sn.video_url === (c.video_url ?? null) && sn.keyframe_ket === (c.keyframe_ket ?? null)) for (const x of sn.loi) if (nhacTen(x, nv.ten)) them('kiem', 'đo hướng').tru.push({ chu: `đo hướng: ${x}`, diem: TRU_DIEM.kiem_khung });
         if (nv.loai === 'san_pham' && b.gan) { const l = loiSoiClip(c); if (l.length || c.soi_clip) them('soi', l.length ? `${l.length} lỗi` : 'đạt').tru.push(...l.map((x) => ({ chu: `soi clip: ${x}`, diem: TRU_DIEM.soi_clip }))); }
         const nhanh = [...nh.values()];
         const loi = nhanh.flatMap((x) => x.tru.map((t) => t.chu));
         const dd = Math.max(0, 10 - nhanh.reduce((a, x) => a + x.tru.reduce((s, t) => s + t.diem, 0), 0));
         // Chữ trạng thái: người / đạo cụ có sổ liền mạch → dáng · trạng thái · đồ cầm; không thì biến thể đang dùng.
-        const chu = d ? [d.an ? 'khuất' : chuDang(d), d.trang_den || d.trang, d.cam ? `cầm ${d.cam}` : ''].filter(Boolean).join(' · ') : b.gan ? (b.bt ?? 'có mặt') : 'nhắc tên, chưa gắn';
+        const chu = d && !co2 ? [d.an ? 'khuất' : chuDang(d), d.trang_den || d.trang, d.cam ? `cầm ${d.cam}` : ''].filter(Boolean).join(' · ') : chu2 || (b.gan ? (b.bt ?? 'có mặt') : 'nhắc tên, chưa gắn');
         return { canhId: c.id, co: b.gan, muc: mucDiem(dd), chu, loi, diem: dd, nhanh };
       });
       const coDiem = oTt.filter((x) => x.diem != null);

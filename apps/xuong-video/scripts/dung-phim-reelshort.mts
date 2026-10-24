@@ -63,9 +63,12 @@ const danDung = (s: Manh): DanDung => ({ dien: s.vid, ...(s.mo ? { mo: s.mo } : 
   ...(s.giua ? { giua: s.giua } : {}), ...(s.mo_vi ? { mo_vi: s.mo_vi } : {}), ...(s.giua_vi ? { giua_vi: s.giua_vi } : {}), ...(s.ket_vi ? { ket_vi: s.ket_vi } : {}),
   ...(du.so_do && s.sd ? { huong: cauHuong(du.so_do, s.sd, du.nguoi ?? []), huong_ket: cauHuong(du.so_do, sdKet(s)!, du.nguoi ?? []) } : {}) });
 { const loi = loiNoiNhip(du.shot.map((s, i) => ({ thu_tu: i + 1, dan_dung: danDung(s), ky_thuat: { am_thanh: s.am } }))); if (loi.length) { console.error(`bảng mảnh chưa nối cắt:\n  ${loi.join('\n  ')}`); process.exit(1); } }
-const ktThem = (s: Manh, i: number) => ({ khung_ve: khungVe(s), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []), huong_so_ket: kyVong(du.so_do, sdKet(s)!, du.nguoi ?? []) } : {}),
+const ktThem = (s: Manh, i: number) => ({ khung_ve: khungVe(s), ...(s.sd ? { sd: s.sd, sd_ket: s.sd_ket ?? null } : {}), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []), huong_so_ket: kyVong(du.so_do, sdKet(s)!, du.nguoi ?? []) } : {}),
   ...(vatDoc.get(i + 1)?.length ? { vat: vatDoc.get(i + 1), vat_so: vatSo.get(i + 1) ?? [], vat_ket: vatDocKet.get(i + 1), vat_so_ket: vatSoKet.get(i + 1) ?? [] } : {}) });
 const db = getDb()!;
+// NGUỒN KHÔNG GIAN của cảnh cho mọi bộ chấm (khong-gian.ts): xv_tap.khong_gian[phan_doan]
+const kgCanh = du.so_do ? { so_do: du.so_do, nguoi: du.nguoi ?? [], ...(du.so_vat ? { so_vat: du.so_vat } : {}), ...(du.so_dang ? { so_dang: du.so_dang } : {}), ...(du.ten_en ? { ten_en: du.ten_en } : {}) } : null;
+const ghiKhongGian = async (tapId: number) => { if (kgCanh) await db.execute(sql`UPDATE xv_tap SET khong_gian = coalesce(khong_gian, '{}'::jsonb) || jsonb_build_object(${du.phan_doan}::text, ${JSON.stringify(kgCanh)}::jsonb) WHERE id = ${tapId}`); };
 // --cap-nhat=<tap_id>: cập nhật TẬP ĐÃ CÓ theo bảng mảnh (khớp thu_tu) — câu ảnh / diễn / hướng / sổ đồ / nhân vật của mảnh; giữ keyframe, clip, giây phát,
 // điểm vào đã chọn. Đổi luật (sổ đồ, sơ đồ) không phải dựng phim mới.
 if (gia('cap-nhat')) {
@@ -80,7 +83,7 @@ if (gia('cap-nhat')) {
       ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(kt)}::jsonb, nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, updated_at = now()
       WHERE tap_id = ${tapId} AND thu_tu = ${i + 1}`);
   }
-  console.log(`cập nhật ${du.shot.length} mảnh của tập ${tapId}`); process.exit(0);
+  await ghiKhongGian(tapId); console.log(`cập nhật ${du.shot.length} mảnh của tập ${tapId}`); process.exit(0);
 }
 const kq = await db.transaction(async (tx) => {
   const t = async (s: ReturnType<typeof sql>) => (await tx.execute(s)) as unknown as Row[];
@@ -105,7 +108,7 @@ const kq = await db.transaction(async (tx) => {
   }
   const thieu = [...canNv].filter((x) => !doiNv.has(x)); if (thieu.length) throw new Error(`phim nguồn không có: ${thieu.join(', ')}`);
   const tongGiay = du.shot.reduce((a, s) => a + s.giay, 0);
-  const tapId = Number((await t(sql`INSERT INTO xv_tap (phim_id, so, ten, trang_thai, thoi_luong_s) VALUES (${phimId}, 1, ${du.phan_doan}, 'nhap', ${Math.round(tongGiay)}) RETURNING id`))[0]!.id);
+  const tapId = Number((await t(sql`INSERT INTO xv_tap (phim_id, so, ten, trang_thai, thoi_luong_s, khong_gian) VALUES (${phimId}, 1, ${du.phan_doan}, 'nhap', ${Math.round(tongGiay)}, ${JSON.stringify(kgCanh ? { [du.phan_doan]: kgCanh } : {})}::jsonb) RETURNING id`))[0]!.id);
   for (const [i, s] of du.shot.entries()) {
     const nv = s.nv.map((x) => doiNv.get(x)!); const bt = (s.bt ?? []).map((x) => doiBt.get(x)).filter((x): x is number => x != null);
     // vid = khối DIỄN của mảnh (một việc): dan_dung.dien — khuôn video bắt buộc khối diễn (prompt-khoi.ts › KHUON.video); prompt_video để trống cho khỏi lặp

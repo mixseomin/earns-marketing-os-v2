@@ -9,6 +9,7 @@ import { giayPhat } from './kieu';
 import { camXucDo, loiMachBieuCam } from './qc-cam-xuc';
 import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY } from './bo-set-3d';
 import { giayDoc } from './nhip-hinh';
+import { coKhongGian, kgCua, nguoiKhung, thayMat, viTri, type KhongGianTap } from './khong-gian';
 
 export type TieuChi = 'cam_xuc' | 'truyen' | 'nhip' | 'eye_trace' | 'hai_chieu' | 'ba_chieu';
 export const TRONG_SO: Record<TieuChi, number> = { cam_xuc: 51, truyen: 23, nhip: 10, eye_trace: 7, hai_chieu: 5, ba_chieu: 4 };
@@ -22,12 +23,15 @@ const kep = (x: number) => Math.max(0, Math.min(1, x));
 const tamThay = (c: Shot, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2 } : null; };
 
 /** Điểm Murch của mọi shot trong một nhánh (đã xếp theo thứ tự phát). gag: cú bùng của từng cảnh (phan_canh[].gag) để thưởng shot phản ứng sau bùng. */
-export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], p: { khong_loi?: boolean; laQc?: boolean; phanCanh?: Pick<PhanCanh, 'ten' | 'gag' | 'ngay' | 'lien_truoc'>[] } = {}): Record<number, DiemMurch> {
+export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], p: { khong_loi?: boolean; laQc?: boolean; phanCanh?: Pick<PhanCanh, 'ten' | 'gag' | 'ngay' | 'lien_truoc'>[]; /** sơ đồ 2D theo cảnh (xv_tap.khong_gian) — phim không 3D */ kg?: KhongGianTap | null } = {}): Record<number, DiemMurch> {
   const out: Record<number, DiemMurch> = {};
   const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);
   const tenNv = new Set(nhanVat.filter((x) => x.loai === 'nhan_vat').map((x) => x.id));
   // Lỗi mạch (một lần cho cả nhánh) — phân loại theo nội dung câu cổng (bo-set-3d.ts): mỗi câu đã mang tên luật ở đầu.
-  const mach = loiMachTap(ds as Parameters<typeof loiMachTap>[0], nhanVat, sets, p.phanCanh);
+  const mach = loiMachTap(ds as Parameters<typeof loiMachTap>[0], nhanVat, sets, p.phanCanh, p.kg);
+  // KHÔNG 3D: chấm theo sơ đồ cảnh (khong-gian.ts); không có cả hai → 'chưa chấm', không cho điểm mặc định (trước đây: coi như thấy mặt, trục 100%, eye trace 80%)
+  const kgc = (c: Shot) => { const k = kgCua(p.kg, c); return !c.may_3d && coKhongGian(k, c) ? k : null; };
+  const CHUA = 'chưa chấm: shot không có 3D lẫn sơ đồ cảnh';
   const machBieuCam = p.laQc ? loiMachBieuCam(ds, nhanVat) : {};
   const loai = (s: string): TieuChi | 'truyen_chuoi' => /NHÌN|THẤY|LÀM|chuỗi chú ý/.test(s) ? 'truyen_chuoi' : /TỔNG THỂ|NẰM|ĐỨNG|thiếu động tác/.test(s) ? 'truyen' : /đứt mạch|quay ngoắt|đã chia|trạng thái|đang cầm|đảo \(|trục chuyển động/.test(s) ? 'ba_chieu' : /hướng máy chủ|qua trục liền nhau|đối mặt|cùng hướng/.test(s) ? 'hai_chieu' : 'ba_chieu';
   const giayChuan = giayDoc(p);
@@ -40,8 +44,9 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     const lm = mach[c.id] ?? [];
     // ── CẢM XÚC (51): thấy mặt · vai kể mang cảm xúc · cung cảm xúc đổi bậc · giữ phản ứng · có diễn xuất ghi ──
     let cx = 0; const thieuCx: string[] = [];
-    const matOk = coNv && c.may_3d ? !matQuayDi(c, laNv).length : true;
-    cx += coNv ? (matOk ? 0.3 : 0) : 0.15; if (coNv && !matOk) thieuCx.push('máy không thấy mặt');
+    const k2 = kgc(c); const coKg = !!c.may_3d || !!k2;
+    const matOk = !coNv ? true : c.may_3d ? !matQuayDi(c, laNv).length : k2 ? (nguoiKhung(k2, c) ?? []).some((n) => thayMat(k2, c, n) !== false) : null;
+    cx += coNv ? (matOk ? 0.3 : 0) : 0.15; if (coNv && matOk === false) thieuCx.push('máy không thấy mặt'); if (coNv && matOk === null) thieuCx.push(`${CHUA} (thấy mặt)`);
     cx += ['phan_ung', 'tam_trang', 'chu_quan'].includes(vai) ? 0.25 : ['hanh_dong', 'chi_tiet', 'nguoi_thu_ba'].includes(vai) ? 0.15 : 0.08;
     if (!['phan_ung', 'tam_trang', 'chu_quan'].includes(vai)) thieuCx.push('không phải shot cảm xúc (phản ứng / tâm trạng / POV)');
     const doiBac = a ? Math.abs((c.cam_xuc ?? 0) - (a.cam_xuc ?? 0)) >= 1 : (c.cam_xuc ?? 0) !== 0;
@@ -60,9 +65,9 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     if (c.hanh_dong?.trim()) tr += 0.2; else thieuTr.push('chưa có hành động chính');
     if (dd.muc_dich?.trim()) tr += 0.2; else thieuTr.push('chưa ghi mục đích');
     if (dd.motif?.trim() || (kt.luat ?? []).some((l) => ['tu_ke_du', 'motif', 'chenh_thong_tin', 'gia_tri_doi'].includes(l))) tr += 0.2; else thieuTr.push('không gài / trả / motif');
-    const loiChuoi = lm.filter((s) => loai(s) === 'truyen_chuoi'); tr += loiChuoi.length ? 0 : 0.2; if (loiChuoi.length) thieuTr.push('đứt chuỗi nhìn → thấy → làm');
+    const loiChuoi = lm.filter((s) => loai(s) === 'truyen_chuoi'); tr += !coKg || loiChuoi.length ? 0 : 0.2; if (loiChuoi.length) thieuTr.push('đứt chuỗi nhìn → thấy → làm'); else if (!coKg) thieuTr.push(`${CHUA} (chuỗi nhìn → thấy)`);
     const laBung = !!bungCua.get(c.phan_doan)?.has(viTriTrongCanh.get(c.id)!); tr += laBung ? (dd.nhan?.trim() ? 0.2 : 0) : 0.2; if (laBung && !dd.nhan?.trim()) thieuTr.push('shot bùng gag chưa ghi điểm nhấn');
-    const loiTt = lm.filter((s) => loai(s) === 'truyen'); if (loiTt.length) { tr -= 0.2; thieuTr.push('cảnh thiếu shot tổng thể'); }
+    const loiTt = lm.filter((s) => loai(s) === 'truyen'); if (loiTt.length) { tr -= 0.2; thieuTr.push(loiTt.some((x) => /TỔNG THỂ/.test(x)) ? 'cảnh thiếu shot tổng thể' : 'đứt mạch truyện'); }
     const truyen = kep(tr); if (thieuTr.length) ly.truyen = thieuTr.join(' · ');
     // ── NHỊP (10): giây phát vừa đọc · khác shot trước về cỡ / chuyển động · phản ứng không cắt vội ──
     let nh = 0; const thieuNh: string[] = [];
@@ -73,7 +78,12 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     nh += vai === 'phan_ung' && phat < 1.5 ? 0 : 0.2;
     const nhip = kep(nh); if (thieuNh.length) ly.nhip = thieuNh.join(' · ');
     // ── EYE TRACE (7): tâm chủ thể shot trước ↔ shot này (từ hộp bao 3D); góc riêng / thiếu số → 0,8 ──
-    let et = 0.8;
+    let et = 0.8; const kA = a ? kgc(a) : null;
+    if (a && k2 && kA && !VAI_GOC_RIENG.has(vai) && !VAI_GOC_RIENG.has(a.ky_thuat?.vai ?? '')) {
+      // 2D: chủ thể = người đầu tiên trong khung (cuối shot trước ↔ đầu shot này), chỗ trên màn −1…1 → phần khung ngang
+      const sa = (nguoiKhung(kA, a, 'ket') ?? [])[0], sb = (nguoiKhung(k2, c, 'dau') ?? [])[0]; const xa = sa ? viTri(kA, a, sa, 'ket') : null, xb = sb ? viTri(k2, c, sb, 'dau') : null;
+      if (xa != null && xb != null) { const d = Math.abs(Math.max(-1, Math.min(1, xa)) - Math.max(-1, Math.min(1, xb))) / 2; et = kep(1 - d / 0.6); if (d > 0.35) ly.eye_trace = `mắt phải dời ${Math.round(d * 100)}% khung từ ${sa} sang ${sb}`; }
+    } else if (a && !coKg && !VAI_GOC_RIENG.has(vai)) { et = 0; ly.eye_trace = CHUA; }
     if (a && c.may_3d && a.may_3d && !VAI_GOC_RIENG.has(vai) && !VAI_GOC_RIENG.has(a.ky_thuat?.vai ?? '')) {
       const sa = chuThe(a.may_3d)[0], sb = chuThe(c.may_3d)[0]; const ta = sa ? tamThay(a, sa) : null, tb = sb ? tamThay(c, sb) : null;
       if (ta && tb) { const d = Math.hypot(ta.x - tb.x, ta.y - tb.y); et = kep(1 - d / 0.6); if (d > 0.35) ly.eye_trace = `mắt phải dời ${Math.round(d * 100)}% khung từ ${sa} sang ${sb}`; }
@@ -85,13 +95,14 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
       const tr0 = set ? shotSoTruc(ds.filter((x) => boSetCuaShot(x, nhanVat) === sid) as Parameters<typeof shotSoTruc>[0], ds.filter((x) => boSetCuaShot(x, nhanVat) === sid).findIndex((x) => x.id === c.id)) : null;
       if (tr0?.may_3d && vuotTruc(tr0.may_3d, c.may_3d, laNv)) { hc -= 0.5; thieuHc.push('máy sang phía bên kia trục'); }
     } else if (c.may_3d?.qua_truc) hc = 0.8;
+    else if (!coKg) { hc = 0; thieuHc.push(`${CHUA} (trục)`); }
     const loiHc = lm.filter((s) => loai(s) === 'hai_chieu'); if (loiHc.length) { hc -= 0.3; thieuHc.push('lệch hướng máy chủ / đối mặt'); }
     const haiChieu = kep(hc); if (thieuHc.length) ly.hai_chieu = thieuHc.join(' · ');
     // ── KHÔNG GIAN 3 CHIỀU (4): liền mạch chỗ đứng / trạng thái / hướng đi · hình học khung ──
     let bc = 1; const thieuBc: string[] = [];
     const loiBc = lm.filter((s) => loai(s) === 'ba_chieu'); if (loiBc.length) { bc -= 0.5; thieuBc.push('đứt mạch chỗ đứng / trạng thái / hướng đi'); }
     if (c.may_3d && loiHinhHoc(c).length) { bc -= 0.3; thieuBc.push('chủ thể ngoài khung / bị che'); }
-    if (!c.may_3d) { bc = 0.6; thieuBc.push('chưa có 3D'); }
+    if (!coKg) { bc = 0; thieuBc.push(CHUA); }
     const baChieu = kep(bc); if (thieuBc.length) ly.ba_chieu = thieuBc.join(' · ');
     const phan: Record<TieuChi, number> = { cam_xuc: camXuc, truyen, nhip, eye_trace: et, hai_chieu: haiChieu, ba_chieu: baChieu };
     const tong = Math.round((Object.keys(TRONG_SO) as TieuChi[]).reduce((s, k) => s + TRONG_SO[k] * phan[k], 0));

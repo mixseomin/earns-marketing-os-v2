@@ -41,7 +41,7 @@ const vuaSinh = (c: { keyframe_luc?: string | null; video_luc?: string | null })
   return m && Date.now() - new Date(m).getTime() < VUA_SINH_PHUT * 60000 ? m : null;
 };
 
-export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged, laQc }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void>; laQc?: boolean }) {
+export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged, laQc }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh' | 'khong_gian'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void>; laQc?: boolean }) {
   // 🔍 Kiểm khung (khung.ts): máy nhìn keyframe từng khối cảnh + cú chuyển từ cảnh trước — chưa kiểm / lệch thì video + animatic bị chặn.
   const [banKhung, setBanKhung] = useState(false); const [loiKhung, setLoiKhung] = useState('');
   const canKiem = khoiCanKiem(canh); const giaKhung = giaKiemKhung(moHinhChu, canKiem.map((k) => k.length));
@@ -86,9 +86,9 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   // Mạch 3D (bo-set-3d.ts › loiMachTap): CÙNG hàm cổng keyframe dùng — đứt mạch chỗ đứng / thiếu chuỗi chú ý gắn ⚠ ở ô 3D, tooltip ghi lý do.
   // Điểm Murch từng shot (diem-murch.ts › useDiemMurch, chung với Timeline): so shot trong tập, chip ô keyframe + ô 3D, thẻ nổi sáu tiêu chí.
   const { sets, diemM, tbM } = useDiemMurch(canh, nhanVat, tap, laQc);
-  const lienMach = loiMachTap(canh, nhanVat, sets, tap.phan_canh);
+  const lienMach = loiMachTap(canh, nhanVat, sets, tap.phan_canh, tap.khong_gian);
   // Cảnh báo (luật 30°, eye trace, khoảng nhìn, chiều cao máy, ống kính — Murch xếp cuối): ⚠ vàng, không chặn tiền.
-  const canhBao = canhBaoMachTap(canh, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t), tap.phan_canh);
+  const canhBao = canhBaoMachTap(canh, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t), tap.phan_canh, tap.khong_gian);
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
   let t = 0;

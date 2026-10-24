@@ -6,6 +6,7 @@ import type { BienThe, BoSet, Canh, KhoiSet, KhungXam, May3d, NhanVat, PhanCanh,
 import { laKinh, tenCoMat, vatHien } from './kieu';
 import { duongMay, hopVat } from './duong-may';
 import { MOCAP_DANG } from './mocap-kho';
+import { BAC_CO, canhBaoTap2d, gocLech, loiMachTap2d, type KhongGianTap, type ShotKg } from './khong-gian';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
  *  Hà Nội trên cao) hoặc shot đi XUYÊN hai thế giới (bay qua ô cửa sổ vào bàn: một bối cảnh có set, một không) — khung đầu nằm ngoài set. */
@@ -452,7 +453,6 @@ export function mayDayDu<T extends { id: number; may_3d?: May3d | null; canh?: s
 // vài shot ở giữa (Lint vắng ở 7.2 thì 7.2a vẫn phải đứng chỗ 7.1 kết). Lệch quá ngưỡng = đứt mạch, trừ shot khai `nhay` (thời gian trôi /
 // dịch chuyển ngoài khung, ghi lý do) hoặc món khai `nhay` riêng; món đang được CẦM (`cam`) đi theo người cầm. Hướng mặt cũng thế: đổi hơn 60° qua cú cắt mà không khai = nhân vật quay ngoắt giữa hai khung.
 const NGUONG_CM = (co?: number[]) => Math.max(0.8, 0.45 * Math.max(...(co ?? [2])));
-const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
 
 /** Lỗi liền mạch theo từng shot (id → câu). ds = các shot CÙNG bộ set theo thứ tự phát; shot không có may_3d bỏ qua. */
 /** Cảnh của một shot trong phân cảnh tập: shot ghi 'Cảnh 4 · Cục bụi biết sợ', phân cảnh ghi 'Cục bụi biết sợ'. */
@@ -664,7 +664,6 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
 
 // ── NHẤT QUÁN · LIÊN TỤC (15/10/2026, luat-dung.ts › luật của thợ). Hai mức theo Murch: CHẶN (loiMachTap) và CẢNH BÁO (canhBaoMachTap).
 type ShotMach = { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string; co_canh?: string; goc?: string } | null; khung_xam?: Canh['khung_xam'] | null; prompt_video?: string; hanh_dong?: string; dan_dung?: { bo_cuc?: string } | null };
-const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, ots: 3, mcu: 3, cu: 4, insert: 4, ecu: 5 };
 /** Véc-tơ ngang (phải màn) và sâu (vào màn) của máy trên mặt bàn. */
 const trucMay = (m: Pick<May3d, 'dat' | 'nhin'>) => { const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy) || 1; return { f: [fx / l, fy / l], r: [fy / l, -fx / l] }; };
 const tamThay = (c: ShotMach, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2, t } : null; };
@@ -791,8 +790,9 @@ export function thieuKhaiNguoi<T extends { id: number; thu_tu?: number; may_3d?:
   return out;
 }
 
-export function canhBaoMachTap<T extends ShotMach & { canh?: string }>(ds: T[], laNhanVat: (ten: string) => boolean, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+export function canhBaoMachTap<T extends ShotMach & { canh?: string }>(ds: T[], laNhanVat: (ten: string) => boolean, phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[], /** sơ đồ 2D theo cảnh — shot không 3D cảnh báo theo đây */ kgt?: KhongGianTap | null): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const them = (id: number, s: string) => (out[id] ??= []).push(s);
+  for (const [k, v] of Object.entries(canhBaoTap2d(kgt, ds.filter((c) => !c.may_3d) as unknown as ShotKg[]))) for (const x of v) them(Number(k), x);
   for (const c of ds) for (const x of thieuDongTac(c)) them(c.id, x);
   for (const [id, xs] of Object.entries(thieuKhaiNguoi(ds, phanCanh))) for (const x of xs) them(Number(id), x);
   for (const k of khoiCanh(ds)) {
@@ -1009,8 +1009,9 @@ export function lookChuaChuan<T extends { id: number; thu_tu?: number; may_3d?: 
   return out;
 }
 
-export function loiMachTap<T extends ShotMach & { nhan_vat: number[]; canh?: string }>(ds: T[], nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'> & { bien_the?: BienThe[] })[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[]): Record<number, string[]> {
+export function loiMachTap<T extends ShotMach & { nhan_vat: number[]; canh?: string }>(ds: T[], nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'> & { bien_the?: BienThe[] })[], sets: Pick<BoSet, 'id' | 'du_lieu'>[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[], /** sơ đồ 2D theo cảnh (xv_tap.khong_gian) — shot KHÔNG thuộc bộ set 3D chấm theo đây thay vì bị bỏ qua */ kgt?: KhongGianTap | null): Record<number, string[]> {
   const out: Record<number, string[]> = {};
+  for (const [k, v] of Object.entries(loiMachTap2d(kgt, ds.filter((c) => !boSetCuaShot(c, nhanVat)) as unknown as ShotKg[]))) (out[Number(k)] ??= []).push(...v);
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
     const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);

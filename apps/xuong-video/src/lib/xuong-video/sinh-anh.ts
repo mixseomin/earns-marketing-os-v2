@@ -1,5 +1,6 @@
 // Sinh ảnh gốc anchor + keyframe shot — lõi dùng chung cho server action (actions.ts, đã kiểm quyền) và script trên box.
 import 'server-only';
+import { kgCua, loiMachTap2d, nguoiNgoai, type ShotKg } from './khong-gian';
 import { doiTayDo, cauDoiTayKet, thieuCachThao } from './thao-do';
 import { sql } from 'drizzle-orm';
 import { dayViecAnh, giaAnhSv } from './hoan-tat';
@@ -442,7 +443,9 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     const chuThe3d = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).map((k) => k.nhan_vat));
     const soat: SoatPrompt = { co_canh: bc.canh.ky_thuat?.co_canh, ten_rieng: bc.nhanVat.map((v) => v.ten), chat_lieu: cl,
       nguoi: trongS.filter((v) => v.loai === 'nhan_vat').map((v) => ({ ten: v.ten, trang_phuc: aoCua(v).map((x) => (chen ? boMat(x) : x)).join('; ') || undefined })),
-      vat: trongS.filter((v) => v.loai !== 'nhan_vat' && chuThe3d.has(v.ten)).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta })) };
+      vat: trongS.filter((v) => v.loai !== 'nhan_vat' && chuThe3d.has(v.ten)).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta })),
+      // KHÔNG 3D: người ngoài khung của đúng khung này theo sơ đồ cảnh (khong-gian.ts) — chữ cho họ làm chủ ngữ là model vẽ thêm người
+      ...(!bc.canh.khung_xam?.kiem && bc.khongGian && bc.canh.ky_thuat?.sd ? { ngoai: nguoiNgoai(bc.khongGian, bc.canh, ket ? 'ket' : 'dau') } : {}) };
     // HAI BƯỚC (anh 15–16/10/2026, #35: chỉ model điều khiển bằng ĐỘ SÂU giữ đúng góc máy 3D; nhân dạng phải nhờ một lượt sửa có ảnh mẫu):
     // bước 1 = FLUX depth từ bản đồ độ sâu 3D + chữ (không nhận ảnh mẫu) → ảnh thật đúng hình học; bước 2 = sửa nhân dạng trên chính ảnh đó.
     const sau = bc.canh.khung_xam?.sau;
@@ -640,6 +643,8 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
     const hd = nguoiThay.map((x) => ({ ...x, hd: hanhDongTrongMoTa(x.mo) })).filter((x) => x.hd);
     if (hd.length) chan.push(`Mô tả người mang HÀNH ĐỘNG (sẽ lặp ở mọi shot dùng người đó — hành động thuộc thẻ shot, không thuộc hồ sơ): ${hd.map((x) => `${x.ten} "${x.hd}"`).join(', ')}`);
   }
+  // KHÔNG 3D mà có SƠ ĐỒ CẢNH (khong-gian.ts): cùng các cổng mạch tập — trục qua cú cắt, nhìn → thấy, tổng thể, sổ dáng / đồ vật — thay vì bỏ qua
+  if (!sid && kgCua(tapQt.khong_gian, bc.canh)) { const l = loiMachTap2d(tapQt.khong_gian, locNhanh(tatCa, bc.canh.nhanh || 'A') as unknown as ShotKg[])[bc.canh.id] ?? []; if (l.length) chan.push(`Sơ đồ cảnh: ${l.join('; ')}`); }
   if (sid) {
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
     const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);
@@ -697,7 +702,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
       // không trả tiền bước 2 cho ảnh hỏng. Tập 122 #11: 4 lượt bước 1 vẽ ma-nơ-canh thành bình / tượng, bước 2 tự đặt người bừa chỗ khác.
       // chỉ người ĐỦ LỚN (≥ 30% chiều cao khung 3D) mới bắt buộc thấy mặt — người nhỏ ở khung rộng mặt vài chục px, bộ dò không chắc bắt được
       const lon = new Set((bc.canh.khung_xam?.kiem ?? []).filter((k) => k.trong_khung && k.cao_khung_pt >= 30).map((k) => k.nhan_vat));
-      const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu }).filter((q) => q.ma.startsWith('mat:') && lon.has(q.ma.slice(4))).length;
+      const canMat = cauHoiKhung({ canh: bc.canh, nhanVat: bc.nhanVat, may: bc.mayDu, kg: bc.khongGian }).filter((q) => q.ma.startsWith('mat:') && lon.has(q.ma.slice(4))).length;
       if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
       // LoRA lo MẶT; trang phục / vết bẩn / đạo cụ vẫn phải qua lượt sửa theo ảnh mẫu (18/10/2026: bỏ lượt này thì #12–#15 mất áo dính cà phê, đổi màu váy)

@@ -31,6 +31,8 @@ export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, strin
   /** món PHẢI THẤY + cách giữ (tiếng Anh) — bộ chấm prompt đòi câu gửi model nói đủ (kiem-prompt.ts › loiTrangThaiVat) */ vat_so?: { ten: string; cach: string }[];
   /** KHUNG VẼ của shot (storyboard đầu / giữa / cuối — anh 24/10/2026): shot có thay đổi vẽ đầu + cuối; khung cuối = ảnh cuối của video */ khung_ve?: ('dau' | 'giua' | 'ket')[];
   /** trạng thái đồ ở khung CUỐI (sự kiện trong shot đã xảy ra) — dòng đọc + món phải thấy */ vat_ket?: string[]; vat_so_ket?: { ten: string; cach: string }[];
+  /** SƠ ĐỒ của shot (phim không 3D): máy · ai ở đâu · nhìn gì · vào từ đâu — khung đầu; sd_ket đè lên ở khung cuối (khong-gian.ts) */ sd?: import('./so-do-canh').ManhSoDo; sd_ket?: Partial<import('./so-do-canh').ManhSoDo>;
+  /** ĐO HƯỚNG trên hình thật (scripts/soat-huong.mts): khung cuối + hai đầu đoạn clip đã dùng so sơ đồ — lỗi theo đúng URL đã đo */ soat_noi?: { luc: string; video_url: string | null; keyframe_ket: string | null; loi: string[] };
   /** kỳ vọng hướng ở khung CUỐI (cổng soat-huong) */ huong_so_ket?: Record<string, { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 }> };
 
 /** VẬT LÝ THẬT trong clip (19/10/2026 #1 tổng tài: câu diễn "coffee arcs" → cà phê vọt lên trời): chất lỏng / đồ vật theo trọng lực. Thể loại được

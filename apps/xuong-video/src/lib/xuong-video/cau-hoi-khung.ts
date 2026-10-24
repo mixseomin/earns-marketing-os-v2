@@ -8,6 +8,8 @@ import type { LoaiLoiKhung } from './khung';
 import { bienTheTheoSo, huongVoiMay, PT_THAY } from './bo-set-3d';
 import { LA_NHAN_DANG } from './kiem-ai-3d';
 import { dauBoiCanh } from './prompt-khoi';
+import { coKhongGian, dang, dichNhin, doCam, nguoiKhung, nguoiNgoai, nhinCan, thayMat, viTri, type KhongGian } from './khong-gian';
+import type { LucKhung } from './so-vat';
 
 export type CauHoi = { ma: string; hoi: string; loai: LoaiLoiKhung; phu_thuoc?: string };
 /** DÁNG ở khung mở (mã động tác dung-set.py › DONG_TAC) → câu hỏi nhìn được. Chỉ dáng rõ trên hình; mocap 'mc_*' (đi, chạy) không hỏi. */
@@ -17,7 +19,7 @@ export const DANG: Record<string, string> = { chong_ban: 'chống hai tay lên m
   lui_so: 'lùi lại, hai tay đưa lên che', om_nguoi: 'hai tay tự ôm lấy mình', tay_che_mieng: 'hai tay che miệng', tay_tran_cui: 'cúi người, một tay áp trán' };
 const ngan = (t: string, n = 90) => { const x = t.trim().replace(/\s+/g, ' '); return x.length > n ? `${x.slice(0, n).replace(/[\s,;]+\S*$/, '')}…` : x; };
 
-export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'dan_dung' | 'may_3d'>; nhanVat: NhanVat[]; may?: May3d | null }): CauHoi[] {
+export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'dan_dung' | 'may_3d'> & Partial<Pick<Canh, 'thu_tu'>>; nhanVat: NhanVat[]; may?: May3d | null; /** sơ đồ cảnh 2D (phim không 3D — doc-db › boiCanhCanh.khongGian) */ kg?: KhongGian | null; /** khung được kiểm: đầu (keyframe_url) / cuối (keyframe_ket) */ luc?: LucKhung }): CauHoi[] {
   const { canh, nhanVat } = x; const m = x.may ?? canh.may_3d; const kx = canh.khung_xam;
   const out: CauHoi[] = []; const chen = canh.ky_thuat?.co_canh === 'insert';
   // CẬN TAY: cận chèn mà chủ thể là món đang cầm / đeo ở tay → mặt người ngoài khung. Cận vết trên áo (#2) thì khung 3D vẫn có đầu — không hỏi "không thấy mặt".
@@ -42,6 +44,29 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
       out.push({ ma: co, loai: 'thieu', hoi: `Có ${k.nhan_vat}${a?.mo_ta ? ` (${ngan(a.mo_ta, 70)})` : ''} rõ trong khung?` });
       if (vt?.cam) out.push({ ma: `cam:${k.nhan_vat}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${k.nhan_vat} nằm trên ${vt.deo ? `${vt.deo.startsWith('cotay_t') ? 'cổ tay trái' : vt.deo.startsWith('cotay_p') ? 'cổ tay phải' : vt.deo} của` : 'tay / người'} ${vt.cam}?` });
     }
+  }
+  // KHÔNG 3D mà có SƠ ĐỒ CẢNH (khong-gian.ts): cùng các câu ai có mặt · dáng · thấy mặt / quay lưng · nhìn phía nào · đứng bên nào · ai KHÔNG được thấy ·
+  // đồ trên người — trước đây phim không 3D chỉ được hỏi bối cảnh + khoảnh khắc mở (anh 24/10/2026: "phần chấm điểm chỉ áp dụng cho phim 3D")
+  const kg = x.kg; const luc = x.luc ?? 'dau';
+  if (!kx?.kiem?.length && coKhongGian(kg, canh)) {
+    const thu = canh.thu_tu ?? 0; const BEN = (v: number) => (v < -0.33 ? 'bên TRÁI' : v > 0.33 ? 'bên PHẢI' : 'GIỮA');
+    // cận chèn khai khung rỗng (không mặt người): hỏi người đang giữ / đeo món đồ của shot — tay / đồ của họ phải có, mặt thì không
+    const sd = canh.ky_thuat?.sd; const trong = nguoiKhung(kg, canh, luc) ?? [];
+    const hoiNguoi = chen && !trong.length ? kg.nguoi.filter((n) => sd?.o[n] != null && doCam(kg, thu, n, luc).length) : trong;
+    for (const ten of hoiNguoi) {
+      const a = nhanVat.find((v) => v.ten === ten); const co = `co:${ten}`; nguoi.push(ten);
+      out.push({ ma: co, loai: 'thieu', hoi: chen ? `Có tay / đồ trên tay của ${ten} trong khung?` : `Có ${ten} trong khung${a?.mo_ta ? ` (${ngan(a.mo_ta, 70)})` : ''}?` });
+      const d = dang(kg, thu, ten, luc); if (d && !chen) out.push({ ma: `dang:${ten}`, phu_thuoc: co, loai: 'trang_thai', hoi: `Dáng ${ten}: ${d.vi}?` });
+      for (const v of doCam(kg, thu, ten, luc)) out.push({ ma: `vat:${v.mon}`, phu_thuoc: co, loai: 'trang_thai', hoi: `${v.mon}: ${v.vi}?` });
+      if (chen) { out.push({ ma: `chen:${ten}`, phu_thuoc: co, loai: 'thua', hoi: `Cận chèn: KHÔNG thấy mặt ${ten} (chỉ tay / đồ)?` }); continue; }
+      const tm = thayMat(kg, canh, ten, luc);
+      if (tm === true) out.push({ ma: `mat:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} quay mặt về phía máy, thấy mặt?` });
+      else if (tm === false) out.push({ ma: `lung:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} quay lưng / quay 3/4 lưng về máy (thấy gáy, không thấy trọn mặt)?` });
+      const h = nhinCan(kg, canh, ten, luc); const dn = dichNhin(canh, ten, luc);
+      if (h && dn) out.push({ ma: `nhin:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} nhìn sang ${h < 0 ? 'TRÁI' : 'PHẢI'} màn (về ${kg.so_do.ten?.[dn] ?? dn}), không nhìn ống kính?` });
+      const vt = viTri(kg, canh, ten, luc); if (vt != null) out.push({ ma: `ben:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} ở ${vt > 1 || vt < -1 ? `sát mép ${vt < 0 ? 'trái' : 'phải'} (vừa bước vào)` : BEN(vt)} khung?` });
+    }
+    if (!chen) for (const ten of nguoiNgoai(kg, canh, luc)) out.push({ ma: `ngoai:${ten}`, loai: 'thua', hoi: `KHÔNG thấy ${ten} ở bất kỳ đâu trong khung?` });
   }
   if (nguoi.length && !chen) out.push({ ma: 'so_nguoi', loai: 'thua', hoi: `Đúng ${nguoi.length} nhân vật chính (${nguoi.join(', ')}) — không nhân đôi, không người lạ chen tiền cảnh?` });
   for (const t of (kx?.thay ?? []).filter((t) => t.pt >= PT_THAY && LA_NHAN_DANG.test(t.en ?? ''))) out.push({ ma: `nd:${t.ten}`, loai: 'nhan_dang', hoi: `${ngan(t.en ?? t.ten, 90)} — đúng nội dung ảnh chuẩn trên khung 3D (chữ, hình)?` });

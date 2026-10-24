@@ -88,7 +88,7 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
       if (Math.abs(d.dx) < 0.08) continue;
       const tat = d.ten.trim().split(/\s+/).pop() ?? d.ten; const doi = d.dx > 0 ? 'left' : 'right';
       const ten_ = tat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');   // ranh giới theo chữ Unicode — \\b của JS không hiểu 'Hạ'
-      const m = chu.match(new RegExp(`(?<!\\p{L})${ten_}(?!\\p{L})[^.;|]{0,40}?\\b(walks|moves|runs|strides|steps|heads|crosses|goes|rushes|drifts)\\b[^.;|]{0,30}?screen-${doi}`, 'iu'));
+      const m = chu.match(new RegExp(`(?<!\\p{L})${ten_}(?!\\p{L})[^.;|]{0,40}?\\b(walks|moves|runs|strides|steps|heads|crosses|goes|rushes|drifts)\\b[^.;|]{0,30}?screen[- ]${doi}`, 'iu'));   // 'screen-left' lẫn 'screen left' (câu hướng sơ đồ viết không gạch)
       if (m) them(b.ten, 'nguoc_huong', `chữ nói "${m[0].trim()}" mà khung 3D đo ${d.ten} đi sang ${d.dx > 0 ? 'PHẢI' : 'TRÁI'} màn — sửa câu hướng (dan_dung.huong) cho khớp 3D`);
     }
     // NGƯỜI NGOÀI KHUNG làm chủ ngữ hành động ("Thần slams the table" khi 3D không thấy Thần): model vẽ họ vào. Hướng nhìn "looks at Thần" là đúng — bỏ qua

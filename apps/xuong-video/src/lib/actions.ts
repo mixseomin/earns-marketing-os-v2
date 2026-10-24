@@ -1779,7 +1779,7 @@ export async function soLienMachAction(q: { tapId: number } | { phimId: number; 
   for (const r of taps) {
     const t = mapTap(r);
     const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${t.id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
-    const so = soLienMach(ds, t.phan_canh, nv);
+    const so = soLienMach(ds, t.phan_canh, nv, t.khong_gian);
     if ('ten' in q && !so.nhanVat[q.ten]?.length) continue;   // drawer nhân vật: chỉ tập có nhân vật này
     out.push({ tap: { id: t.id, so: t.so, ten: t.ten }, so });
   }

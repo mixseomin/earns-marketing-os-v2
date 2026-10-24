@@ -2,6 +2,7 @@
 //   khopGiongTap       giây phát mỗi shot ≥ đủ đọc hết giọng (khop-giong.ts), chữ màn co giãn mốc theo, lớp phủ dời theo shot
 //   nhipHanhDongTap    ⚡ impact / tiếng vút / âm doạ theo kiểu chuyển cảnh ở mọi điểm cắt (nhip-hanh-dong.ts)
 // (khớp nhịp nhạc ở khop-nhip.ts). Mỗi thứ sửa đều chụp trước (↶ Hoàn tác).
+import { diCmShot, type KhongGianTap } from './khong-gian';
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
@@ -107,10 +108,11 @@ export async function daDangMayTapDb(db: Db, tapId: number, nguoi: string): Prom
   // Quảng cáo: shot gắn sản phẩm mặc trên người ở cỡ có người thì không chọn đẩy vào (san-pham-shot.ts — đẩy vào cắt mất sản phẩm, #54 shot 9).
   const phim = ((await db.execute(sql`SELECT p.id, p.loai, p.kinh_thanh->>'the_loai' AS the_loai, coalesce(p.kinh_thanh->'series'->>'dong_co', '') AS dong_co FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0];
   const sp = phim?.loai === 'quang_cao' ? ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim.id} AND loai = 'san_pham'`)) as unknown as Row[]).map(mapNhanVat) : [];
+  const kgt = (((await db.execute(sql`SELECT khong_gian FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]?.khong_gian ?? null) as KhongGianTap | null;   // quãng đi 2D khi không 3D
   for (const nh of ['A', ...cacNhanh(canh).filter((x) => x !== 'A')]) {
     const ds = locNhanh(canh, nh).map((c) => { const kt = doi.get(c.id) ?? c.ky_thuat; return { ...c, ky_thuat: kt, tranh_day: tranhDayVao(kt?.co_canh, sp.filter((v) => c.nhan_vat.includes(v.id))) }; });
     // Ngữ pháp máy theo nhịp kịch TRƯỚC (phim ngắn dọc — ngu-phap-may.ts), rồi luật nhịp hình đa dạng phần còn lại trên kết quả đó.
-    for (const x of apNguPhapMay(ds.map((c, i) => ({ ...c, di_cm: diCm(c.may_3d?.vi_tri), cuoi: i === ds.length - 1 && !!String(phim?.dong_co ?? '').trim() })), String(phim?.the_loai ?? ''))) doi.set(x.id, x.ky_thuat);
+    for (const x of apNguPhapMay(ds.map((c, i) => ({ ...c, di_cm: c.may_3d ? diCm(c.may_3d.vi_tri) : diCmShot(kgt, c), cuoi: i === ds.length - 1 && !!String(phim?.dong_co ?? '').trim() })), String(phim?.the_loai ?? ''))) doi.set(x.id, x.ky_thuat);
     const ds2 = ds.map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat }));
     for (const x of daDangMay(ds2)) doi.set(x.id, x.ky_thuat);
   }

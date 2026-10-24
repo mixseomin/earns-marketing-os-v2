@@ -33,7 +33,7 @@ export async function dauVaoKiemKhung(db: Db, tapId: number, tatCa = false) {
     for (const c of k) {
       const j = ds.indexOf(c);
       // CÂU HỎI KIỂM kiểu DSG (cau-hoi-khung.ts) từ dữ liệu HIỆN TẠI (sổ người, 3D, ảnh chuẩn) — người chấm trả lời từng câu, câu "không" = lỗi
-      const bcS = await boiCanhCanh(db, c.id); const hoi = bcS ? cauHoiKhung({ canh: canhDaThayThe(bcS).canh, nhanVat: bcS.nhanVat, may: bcS.mayDu }) : [];
+      const bcS = await boiCanhCanh(db, c.id); const hoi = bcS ? cauHoiKhung({ canh: canhDaThayThe(bcS).canh, nhanVat: bcS.nhanVat, may: bcS.mayDu, kg: bcS.khongGian }) : [];
       shot.push({ c, so: c.thu_tu, url: (await nho(c.keyframe_url)) ?? c.keyframe_url!, xam: c.khung_xam?.xam ? await nho(c.khung_xam.xam) : null, the: [theShot(c, ten, j > 0 ? ds[j - 1]! : null), inCauHoi(hoi)].filter(Boolean).join('\n'), hoi });
     }
     const canh = [k[0]!.phan_doan, pc?.noi && `nơi: ${pc.noi}`, pc?.luc && `lúc: ${pc.luc}`, pc?.anh_sang && `ánh sáng: ${kyThuat(pc.anh_sang, 'anh_sang')?.ten ?? pc.anh_sang}`, pc?.mau_mo_ta && `màu: ${pc.mau_mo_ta}`].filter(Boolean).join(' · ');

@@ -24,12 +24,12 @@ export function huongMan(s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Die
   const x = cham(d, t.phai) / l; return Math.abs(x) < 0.2 ? 0 : x > 0 ? 1 : -1;
 }
 /** Độ SÂU của ánh nhìn A→B so với máy: +1 = nhìn thẳng vào sâu khung (quay lưng về máy), −1 = nhìn về phía máy, 0 = nghiêng ngang. */
-const doSau = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem): number | null => { const pa = diem(s, m, a), pb = diem(s, m, b); if (!pa || !pb) return null; const d = tru(pb, pa); return cham(d, truc(s, m.may).fw) / (Math.hypot(...d) || 1); };
+export const doSau = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem): number | null => { const pa = diem(s, m, a), pb = diem(s, m, b); if (!pa || !pb) return null; const d = tru(pb, pa); return cham(d, truc(s, m.may).fw) / (Math.hypot(...d) || 1); };
 /** Nhìn RA XA máy (quay lưng về máy): sâu > 0,7 — không thấy mặt, không kỳ vọng hướng mắt. */
 const raXa = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem) => (doSau(s, m, a, b) ?? 0) > 0.7;
 /** NỬA LƯNG (sâu 0,3–0,7 ≈ 45–72° khỏi trục máy): vẫn có phía trái / phải nhưng mặt quay vào trong khung. Tả như "looks toward screen right" thì model vẽ
  *  mặt nghiêng hẳn và đẩy vật được nhìn ra SAU LƯNG (phim #353 shot #2, 24/10/2026: #1 Hạ quay lưng nhìn thang, #2 nghiêng phải với thang sau lưng). */
-const NUA_LUNG = 0.3;
+export const NUA_LUNG = 0.3;
 const BEN = (x: number) => (x < -0.33 ? 'screen left' : x > 0.33 ? 'screen right' : 'center frame');
 const PHIA = (h: -1 | 0 | 1) => (h < 0 ? 'toward screen left' : h > 0 ? 'toward screen right' : 'straight ahead past the lens');
 /** Câu hướng tiếng Anh cho prompt (dan_dung.huong): chỗ đứng trên màn, ánh mắt, phía đi vào. tenEn = tên đưa model cho mốc / đồ (tiếng Anh). */

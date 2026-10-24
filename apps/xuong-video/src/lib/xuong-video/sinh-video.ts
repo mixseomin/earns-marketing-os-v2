@@ -7,6 +7,7 @@ import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
 import { tinhCatCuoi } from './cat-cuoi';
 import 'server-only';
+import { diChuyen, ngoaiCaShot } from './khong-gian';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
@@ -127,9 +128,10 @@ export const promptVideoCanh = (bc: NonNullable<Awaited<ReturnType<typeof boiCan
 export function chamVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { diem: number; loi: LoiPrompt[] } {
   const lv = loiTrangThaiVat('video', promptVideoCanh(bc), bc.canh.ky_thuat?.vat_so);   // sổ đồ vật (kiem-prompt.ts)
   const c = chamPrompt([{ ten: KHUON.video.ten, duong: 'video', khoi: khoiVideoCanh(bc) }], { co_canh: bc.canh.ky_thuat?.co_canh, chat_lieu: chatLieuPhim(bc.kt), ten_rieng: bc.nhanVat.map((v) => v.ten), nguoi: [], vat: [],
-    di: (bc.canh.khung_xam?.di ?? []).map((d) => ({ ten: d.ten, dx: d.den[0]! - d.tu[0]! })),
+    // chiều đi trên màn: 3D (khung_xam.di), không thì sơ đồ cảnh (người đi vào khung — khong-gian.ts › diChuyen)
+    di: bc.canh.khung_xam?.di?.length ? bc.canh.khung_xam.di.map((d) => ({ ten: d.ten, dx: d.den[0]! - d.tu[0]! })) : bc.khongGian && bc.canh.ky_thuat?.sd ? diChuyen(bc.khongGian, bc.canh).map((d) => ({ ten: d.ten, dx: d.dx })) : [],
     // ngoài khung CẢ shot: nhân vật của shot mà 3D không thấy lúc mở và không đi vào (khung_xam.kiem / di)
-    ngoai: bc.canh.khung_xam?.kiem ? bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && !bc.canh.khung_xam!.kiem!.some((k) => k.nhan_vat === v.ten && k.trong_khung) && !(bc.canh.khung_xam!.di ?? []).some((d) => d.ten === v.ten && d.den.every((x) => x >= 0 && x <= 1))).map((v) => v.ten) : [] });
+    ngoai: !bc.canh.khung_xam?.kiem && bc.khongGian && bc.canh.ky_thuat?.sd ? ngoaiCaShot(bc.khongGian, bc.canh) : bc.canh.khung_xam?.kiem ? bc.nhanVat.filter((v) => v.loai === 'nhan_vat' && !bc.canh.khung_xam!.kiem!.some((k) => k.nhan_vat === v.ten && k.trong_khung) && !(bc.canh.khung_xam!.di ?? []).some((d) => d.ten === v.ten && d.den.every((x) => x >= 0 && x <= 1))).map((v) => v.ten) : [] });
   return { diem: Math.max(0, c.diem - lv.reduce((a, l) => a + l.phat, 0)), loi: [...c.loi, ...lv] };
 }
 

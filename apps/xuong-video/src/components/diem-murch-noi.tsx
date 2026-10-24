@@ -9,10 +9,10 @@ import type { BoSet, Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
 import { KY_MAY, type KqMay } from '@/lib/xuong-video/qc-cam-xuc';
 
 /** MỘT chỗ tính điểm Murch cho mọi nơi hiện chip (Lưới, Timeline) — cùng bộ set 3D, cùng cờ QC → cùng số ở mọi màn. */
-export function useDiemMurch(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'id' | 'phan_canh'>, laQc?: boolean) {
+export function useDiemMurch(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'id' | 'phan_canh' | 'khong_gian'>, laQc?: boolean) {
   const [sets, setSets] = useState<Pick<BoSet, 'id' | 'du_lieu'>[]>([]);
   useEffect(() => { void boSetCuaTap(tap.id).then((r) => { if (r.ok) setSets(r.data); }); }, [tap.id]);
-  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [], laQc });
+  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [], laQc, kg: tap.khong_gian });
   return { sets, diemM, tbM: diemMurchCanh(canh, diemM) };
 }
 

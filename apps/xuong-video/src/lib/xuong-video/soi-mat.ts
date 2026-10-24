@@ -16,7 +16,11 @@ import { uploadToR2 } from '../r2';
 import { GIA_SUA_MAT_VND, SUA_MAT_TOI_DA, canTheoCap, giuCanCap, canSuaMat, keHoachSuaMat, nhanSuaMat, chuLoiMat, nguoiSoiMat, GIU_VUNG_DAU } from './khung';
 import { canNhin, dichNhin } from './bo-set-3d';
 /** Gắn phía cần nhìn (3D) vào kết quả đo hướng nhìn của từng mặt — cổng khung.ts › loiNhin so hai thứ. */
-const ganNhin = (ket: SoiMat['ket'], c: Pick<Canh, 'may_3d'>, nv: Pick<NhanVat, 'ten'>[]): SoiMat['ket'] => ket.map((k) => { if (!k.nhin || !c.may_3d) return k; const can = canNhin(c.may_3d, k.ten, (t) => nv.some((v) => v.ten === t)); return can ? { ...k, nhin: { ...k.nhin, can } } : k; });
+// KHÔNG 3D: phía cần nhìn lấy từ sơ đồ cảnh — ky_thuat.huong_so (dung-phim-reelshort ghi từ so-do-canh › kyVong); 0 = nhìn thẳng máy, không gắn
+const ganNhin = (ket: SoiMat['ket'], c: Pick<Canh, 'may_3d' | 'ky_thuat'>, nv: Pick<NhanVat, 'ten'>[]): SoiMat['ket'] => ket.map((k) => {
+  if (!k.nhin) return k;
+  const can = c.may_3d ? canNhin(c.may_3d, k.ten, (t) => nv.some((v) => v.ten === t)) : c.ky_thuat?.huong_so?.[k.ten]?.nhin || undefined;
+  return can ? { ...k, nhin: { ...k.nhin, can } } : k; });
 import { VND_MOI_USD } from './cong-ai';
 import { kemBienThe, mapCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 
@@ -77,6 +81,15 @@ export async function soiMatTap(db: Db, tapId: number, o: { tatCa?: boolean; /**
 /** Người nhận một khung máy báo lệch mặt (máy báo nhầm: góc nghiêng gắt, ánh sáng lạ) — 0đ. Keyframe đổi thì soi lại từ đầu. */
 /** ĐẾM MẶT NGƯỜI trong một ảnh (YuNet, 0đ) — cổng sau bước 1 keyframe hai bước (sinh-anh.ts). null = không đếm được (chưa cài / lỗi): bên gọi
  *  bỏ qua cổng, không chặn — có ghi lý do ra log. */
+/** Soi HƯỚNG trên ảnh bất kỳ — khung cuối, khung cắt từ clip (scripts/soat-huong.mts) — cùng bộ đo + ảnh mẫu soiMatTap, không ghi DB.
+ *  ten = người phải có trong ảnh (để gán mặt); url là URL hoặc đường dẫn tệp trên máy chủ. */
+export async function soiAnh(db: Db, tapId: number, anh: { id: number; url: string; ten: string[] }[]): Promise<Map<number, SoiMat['ket']>> {
+  const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[]; if (!t[0] || !anh.length) return new Map();
+  const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  const mau = Object.fromEntries(nv.map((v) => [v.ten, [...v.anh_ref, ...(v.bien_the ?? []).map((b) => b.anh_url)].filter((u): u is string => !!u)] as const).filter(([, u]) => u.length > 0));
+  const ra = await chay({ mau, anh });
+  return new Map(ra.anh.map((a) => [a.id, a.ket ?? []]));
+}
 export async function demMat(url: string): Promise<number | null> {
   try { return (await chay<{ mat: number }>({ op: 'dem', url, nguong: 0.7 })).mat; }
   catch (e) { console.warn(`demMat: ${e instanceof Error ? e.message : String(e)}`); return null; }
@@ -136,7 +149,8 @@ export async function suaMatCanh(db: Db, canhId: number, lan = 1, goc?: string, 
   // MỘT mặt / lượt (khung.ts › keHoachSuaMat): mặt lệch ảnh mẫu nặng nhất trước, rồi tới mặt nhìn sai — lượt sau xử tiếp. Người được nhìn (để câu
   // hướng nhìn gọi tên) lấy từ 3D của shot.
   const nguoi3d = (c.may_3d?.vi_tri ?? []).filter((v) => !v.cam && !v.an);
-  const kh = keHoachSuaMat(sm, nv, (ten) => { const v = nguoi3d.find((x) => x.ten === ten); return v ? dichNhin(v, nguoi3d)?.ten : undefined; });
+  // người được nhìn: 3D, không thì sơ đồ cảnh (ky_thuat.sd.nhin — khong-gian.ts)
+  const kh = keHoachSuaMat(sm, nv, (ten) => { const v = nguoi3d.find((x) => x.ten === ten); return v ? dichNhin(v, nguoi3d)?.ten : c.ky_thuat?.sd?.nhin?.[ten]; });
   if ('loi' in kh) return { ok: false, loi: kh.loi };
   const x = { k: { ten: kh.ten, o: kh.o }, mat: kh.mau };
   const anh = goc ?? c.keyframe_url;

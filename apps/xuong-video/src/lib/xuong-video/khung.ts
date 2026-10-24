@@ -56,7 +56,9 @@ export const nhinSai = (k: MatDo): boolean => {
 };
 /** NGƯỜI ĐỂ GÁN MẶT trong một shot: người 3D thấy TRONG KHUNG (khung_xam.kiem › trong_khung) nếu shot có khung 3D, không thì mọi nhân vật của shot.
  *  Tập 122 #2: 3D chỉ có Hạ trong khung, bộ so mặt gán mặt Hạ cho Vivian (giống 49%) vì Vivian cũng gắn shot → báo Vivian nhìn sai, 🩹 sửa nhầm người. */
-export const nguoiSoiMat = (c: Partial<Pick<Canh, 'khung_xam'>>, ten: string[]): string[] => {
+export const nguoiSoiMat = (c: Partial<Pick<Canh, 'khung_xam' | 'ky_thuat'>>, ten: string[]): string[] => {
+  // KHÔNG 3D: người trong khung theo sơ đồ cảnh (sd.khung — khong-gian.ts); không khai khung = mọi người có chỗ trong sơ đồ
+  const sd = c.ky_thuat?.sd; if (!c.khung_xam?.kiem?.length && sd) { const trong = new Set(sd.khung ?? Object.keys(sd.o)); return ten.filter((t) => trong.has(t)); }
   const k = c.khung_xam?.kiem; if (!k?.length) return ten;
   const trong = new Set(k.filter((x) => x.trong_khung).map((x) => x.nhan_vat));
   return ten.filter((t) => trong.has(t));
@@ -71,11 +73,11 @@ export const loiNhin = (m: SoiMat): string[] => m.ket.filter(nhinSai).map((k) =>
  *  người đối đáp ở hai shot liền nhau phải nhìn NGƯỢC phía màn nhau (A nhìn phải → B nhìn trái). Luật: A, B liền nhau cùng phân cảnh, mỗi shot đúng
  *  MỘT mặt đo được hướng, hai người khác nhau, có liên hệ (3D shot này có khai người kia) — mặt chưa có phía cần nhìn lấy NGƯỢC phía mặt bên kia, nếu
  *  mặt bên kia đáng tin (nhìn rõ sang một phía ≥ NGUONG_NHIN và không sai so với 3D của chính nó). Trả các shot có kết quả đổi (id → ket mới). Thuần. */
-export function canTheoCap(ds: (Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'keyframe_url'> & Partial<Pick<Canh, 'soi_mat' | 'may_3d'>>)[]): Map<number, SoiMat['ket']> {
+export function canTheoCap(ds: (Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'keyframe_url'> & Partial<Pick<Canh, 'soi_mat' | 'may_3d' | 'ky_thuat'>>)[]): Map<number, SoiMat['ket']> {
   const out = new Map<number, SoiMat['ket']>();
   const xep = [...ds].sort((a, b) => a.thu_tu - b.thu_tu);
   const motMat = (c: (typeof xep)[number]) => { const m = c.soi_mat; if (!m || m.url !== c.keyframe_url) return undefined; const co = m.ket.filter((k) => k.nhin); return co.length === 1 ? co[0] : undefined; };
-  const khai = (c: (typeof xep)[number], ten: string) => !!c.may_3d?.vi_tri.some((v) => v.ten === ten);
+  const khai = (c: (typeof xep)[number], ten: string) => !!c.may_3d?.vi_tri.some((v) => v.ten === ten) || c.ky_thuat?.sd?.o?.[ten] != null;   // 3D hoặc sơ đồ cảnh
   const gan = (c: (typeof xep)[number], ten: string, can: 1 | -1, tu: number) => {
     const ket = (out.get(c.id) ?? c.soi_mat!.ket).map((k) => (k.ten === ten && k.nhin && !k.nhin.can ? { ...k, nhin: { ...k.nhin, can, tu } } : k));
     out.set(c.id, ket);

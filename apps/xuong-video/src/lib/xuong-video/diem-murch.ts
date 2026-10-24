@@ -41,7 +41,8 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
     const c = ds[i]!; const a = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null;
     const kt = c.ky_thuat ?? {}; const vai = kt.vai ?? ''; const dd = c.dan_dung ?? {}; const phat = giayPhat(c);
     const coNv = c.nhan_vat.some((id) => tenNv.has(id)); const ly: Partial<Record<TieuChi, string>> = {};
-    const lm = mach[c.id] ?? [];
+    // + lỗi ĐO TRÊN HÌNH THẬT ở hai đầu đường cắt (soat-huong.mts → ky_thuat.soat_noi) khi số đo còn đúng clip đang dùng — xếp theo cùng từ khoá
+    const sn = c.ky_thuat?.soat_noi; const lm = [...(mach[c.id] ?? []), ...(sn && sn.video_url === (c.video_url ?? null) ? sn.loi.map((x) => `đứt mạch (đo hình): ${x}`) : [])];
     // ── CẢM XÚC (51): thấy mặt · vai kể mang cảm xúc · cung cảm xúc đổi bậc · giữ phản ứng · có diễn xuất ghi ──
     let cx = 0; const thieuCx: string[] = [];
     const k2 = kgc(c); const coKg = !!c.may_3d || !!k2;

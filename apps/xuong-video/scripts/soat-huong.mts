@@ -9,7 +9,7 @@
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/soat-huong.mts <tap_id> [--khong-clip]
 import { execFileSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { soiAnh } from '../src/lib/xuong-video/soi-mat';
@@ -17,6 +17,9 @@ import { loiDoHuong, type KyVong } from '../src/lib/xuong-video/so-do-canh';
 import { dang, kgCua, kyVongDang, loiDoDang, type KhongGianTap } from '../src/lib/xuong-video/khong-gian';
 import { mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import type { SoiMat } from '../src/lib/xuong-video/kieu';
+import { hoiKhung } from '../src/lib/xuong-video/soi-cau-hoi';
+import { cauHoiKhung, loiTuDapAn } from '../src/lib/xuong-video/cau-hoi-khung';
+import { mapNhanVat } from '../src/lib/xuong-video/doc-db';
 
 const tap = Number(process.argv[2]); if (!tap) { console.error('cần <tap_id>'); process.exit(1); }
 const coClip = !process.argv.includes('--khong-clip');
@@ -41,6 +44,17 @@ for (const c of ds) {
     anh.push({ id: ma(c.id, l), url, ten: Object.keys(kv).filter((n) => !kv[n]!.lung), tu_the: true }); }
 }
 const do_ = await soiAnh(db, tap, anh);
+// --hoi: HỎI trạng thái dáng / đồ / ai có mặt trên khung mở + đóng của đoạn clip đã dùng (soi-cau-hoi.ts, Gemini ~0,3¢ / khung — chỉ khi được duyệt tiền)
+const hoiLoi = new Map<number, string[]>();
+if (process.argv.includes('--hoi')) {
+  const phimId = Number((((await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`)) as unknown as Row[])[0]?.phim_id) ?? 0) || null;
+  const nvs = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId}`)) as unknown as Row[]).map(mapNhanVat);
+  const viec = ds.flatMap((c) => (['clip_dau', 'clip_ket'] as Luc[]).map((l) => ({ c, l, f: `${thuMuc}/${c.id}-${l}.jpg` }))).filter((x) => kgCua(kgt, x.c) && existsSync(x.f));
+  let i = 0; const chay = async () => { while (i < viec.length) { const { c, l, f } = viec[i++]!;
+    const hoi = cauHoiKhung({ canh: { ...c, khung_xam: null, may_3d: null } as never, nhanVat: nvs, kg: kgCua(kgt, c), luc: laDau(l) ? 'dau' : 'ket' }).filter((x) => /^(co|dang|vat|vang|ngoai|chen|lung|mat):|^(mo|ket)$/.test(x.ma));
+    const dap = await hoiKhung(db, phimId, f, hoi).catch(() => null); if (dap) hoiLoi.set(ma(c.id, l), loiTuDapAn(hoi, dap).map((x) => `hỏi: ${x.mo_ta}`)); } };
+  await Promise.all(Array.from({ length: 6 }, chay));
+}
 const NHAY_CUI = 15; const NGUONG_LA = 0.2;   // dưới mức này mặt không phải nhân vật đó (cùng người ~0,4–0,7)
 const NHAN: Record<Luc, string> = { dau: 'khung đầu', ket: 'khung cuối', clip_dau: 'clip mở', clip_ket: 'clip đóng' };
 const ketQua = (c: (typeof ds)[number], l: Luc) => {
@@ -56,6 +70,7 @@ const ketQua = (c: (typeof ds)[number], l: Luc) => {
   // NGƯỜI LẠ chiếm chỗ: mặt duy nhất được gán cho người sơ đồ cần thấy mà giống quá thấp (#2 bản mới: người đàn ông từ thang bước ra, mặt Hạ quay đi —
   // số mặt vẫn bằng 1 nên đếm mặt không bắt được)
   for (const x of k0) if (kv[x.ten] && !kv[x.ten]!.lung && x.giong != null && x.giong < NGUONG_LA && !x.nho) loi.push(`mặt ở chỗ ${x.ten} không phải ${x.ten} (giống ${x.giong}) — người lạ / sai người trong khung`);
+  loi.push(...(hoiLoi.get(ma(c.id, l)) ?? []));
   for (const x of k) {
     const d = kg ? dang(kg, c.thu_tu, x.ten, laDau(l) ? 'dau' : 'ket') : null; if (d) loi.push(...loiDoDang(x.ten, kyVongDang(d.en), x)); }
   return { loi, so: k0.map((x) => `${x.ten}${x.tin ? '' : '(?)'} x=${x.o?.x?.toFixed(2) ?? '?'} nhìn=${x.nhin?.g ?? '?'}° ngẩng=${x.nhin?.doc ?? '?'}°${x.tay ? ` tay P/T=${x.tay.phai ?? '?'}/${x.tay.trai ?? '?'}` : ''}`).join(' · ') };

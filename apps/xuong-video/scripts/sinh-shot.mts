@@ -168,6 +168,13 @@ if (arg('video')) {
     console.log(`\n⚠ CLIP CHƯA SOÁT #${coClip.join(', #')} — xem tờ khung bên dưới, đối chiếu kế hoạch (hành động · vật lý · nối shot sau · người · mặt), ghi bằng soat-cam-xuc.mts --ghi TRƯỚC khi báo anh:`);
     try { console.log(execFileSync(process.execPath, [...process.execArgv, 'scripts/soat-cam-xuc.mts', String(tapId), '--in', `--shot=${coClip.join(',')}`], { encoding: 'utf8', maxBuffer: 32 << 20, timeout: 600_000 })); }
     catch (e) { console.log(`  ! không in được tờ soát: ${e instanceof Error ? e.message : String(e)}`); }
+    // CỔNG NỐI CẮT tự chạy (luat-dung.ts › do_tren_hinh_that — anh 24/10/2026: "áp dụng cho mọi phim mà không phải nhắc"): tập có sơ đồ cảnh thì đo
+    // hai đầu mọi đường cắt trên clip đã dùng (0đ) + hỏi trạng thái dáng / đồ (--hoi, ~0,3¢ / khung) khi lượt này đã được duyệt tiền
+    const coSoDo = (await q(sql`SELECT khong_gian <> '{}'::jsonb AS co FROM xv_tap WHERE id = ${tapId}`))[0]?.co;
+    if (coSoDo) { console.log('\n── CỔNG NỐI CẮT (soat-huong.mts) ──');
+      try { const ra = execFileSync(process.execPath, [...process.execArgv, 'scripts/soat-huong.mts', String(tapId), ...(process.env.DUYET_SINH_1_LAN ? ['--hoi'] : [])], { encoding: 'utf8', maxBuffer: 32 << 20, timeout: 1_200_000 });
+        console.log(ra.slice(ra.indexOf('ĐƯỜNG CẮT'))); }
+      catch (e) { console.log(`  ! cổng nối cắt lỗi: ${e instanceof Error ? e.message : String(e)}`); } }
   }
 }
 if (arg('giong')) {

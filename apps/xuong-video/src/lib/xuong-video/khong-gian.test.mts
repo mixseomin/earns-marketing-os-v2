@@ -134,3 +134,8 @@ console.log('khong-gian.test: ok (cận mất mặt)');
   assert.ok(cauHuong(kg.so_do, S(5).ky_thuat!.sd!, kg.nguoi).includes("within arm's reach"));
   assert.ok(!cauHuong(xa.so_do, S(5).ky_thuat!.sd!, kg.nguoi).includes("within arm's reach")); }
 console.log('khong-gian.test: ok (luật nối mới)');
+// CÂU HỎI VẮNG MẶT: #13 hỏi không thấy thẻ trên người Hạ; #3 (chưa giật) không hỏi
+{ const { cauHoiKhung } = await import('./cau-hoi-khung'); const NV = du.nguoi.map((t: string, i: number) => ({ id: i + 1, ten: t, loai: 'nhan_vat', mo_ta: '' }));
+  const h = (n: number) => cauHoiKhung({ canh: { ...S(n), khung_xam: null, may_3d: null, dan_dung: {} } as never, nhanVat: NV as never, kg }).map((q) => q.ma);
+  assert.ok(h(13).includes('vang:Thẻ nhân viên'), h(13).join(',')); assert.ok(!h(3).some((x) => x.startsWith('vang:'))); }
+console.log('khong-gian.test: ok (câu hỏi vắng mặt)');

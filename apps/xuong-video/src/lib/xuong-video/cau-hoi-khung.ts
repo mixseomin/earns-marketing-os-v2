@@ -8,7 +8,7 @@ import type { LoaiLoiKhung } from './khung';
 import { bienTheTheoSo, huongVoiMay, PT_THAY } from './bo-set-3d';
 import { LA_NHAN_DANG } from './kiem-ai-3d';
 import { dauBoiCanh } from './prompt-khoi';
-import { coKhongGian, dang, dichNhin, doCam, nguoiKhung, nguoiNgoai, nhinCan, thayMat, viTri, type KhongGian } from './khong-gian';
+import { coKhongGian, dang, dichNhin, doCam, doDaMat, nguoiKhung, nguoiNgoai, nhinCan, thayMat, viTri, type KhongGian } from './khong-gian';
 import type { LucKhung } from './so-vat';
 
 export type CauHoi = { ma: string; hoi: string; loai: LoaiLoiKhung; phu_thuoc?: string };
@@ -26,7 +26,10 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
   const canTay = chen && (kx?.kiem ?? []).some((k) => k.bat_buoc && k.trong_khung && m?.vi_tri.some((v) => v.ten === k.nhan_vat && v.cam && (!v.deo || v.deo.startsWith('cotay'))));
   const bc = nhanVat.find((v) => v.loai === 'boi_canh');
   if (bc?.mo_ta.trim()) out.push({ ma: 'boi_canh', loai: 'bo_tri', hoi: `Bối cảnh đúng: "${dauBoiCanh(bc.mo_ta)}"?` });
-  if (canh.dan_dung?.mo?.trim()) out.push({ ma: 'mo', loai: 'trang_thai', hoi: `Đúng khoảnh khắc MỞ shot: "${ngan(canh.dan_dung.mo, 120)}"?` });
+  // khung đầu hỏi khoảnh khắc MỞ, khung cuối hỏi khoảnh khắc KẾT (câu kết mang cả đồ ngoài khung đưa vào — #353 #8 nắm tay cầm dây thẻ đứt)
+  const lucHoi = x.luc ?? 'dau';
+  if (lucHoi === 'dau' && canh.dan_dung?.mo?.trim()) out.push({ ma: 'mo', loai: 'trang_thai', hoi: `Đúng khoảnh khắc MỞ shot: "${ngan(canh.dan_dung.mo, 120)}"?` });
+  if (lucHoi === 'ket' && canh.dan_dung?.ket?.trim()) out.push({ ma: 'ket', loai: 'trang_thai', hoi: `Đúng khoảnh khắc KẾT shot: "${ngan(canh.dan_dung.ket.replace(/\s*(BODY POSE|OBJECT STATE) in this frame.*$/s, ''), 160)}"?` });
   const chuThe = (kx?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung);
   const nguoi: string[] = [];
   for (const k of chuThe) {
@@ -58,6 +61,7 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
       out.push({ ma: co, loai: 'thieu', hoi: chen ? `Có tay / đồ trên tay của ${ten} trong khung?` : `Có ${ten} trong khung${a?.mo_ta ? ` (${ngan(a.mo_ta, 70)})` : ''}?` });
       const d = dang(kg, thu, ten, luc); if (d && !chen) out.push({ ma: `dang:${ten}`, phu_thuoc: co, loai: 'trang_thai', hoi: `Dáng ${ten}: ${d.vi}?` });
       for (const v of doCam(kg, thu, ten, luc)) out.push({ ma: `vat:${v.mon}`, phu_thuoc: co, loai: 'trang_thai', hoi: `${v.mon}: ${v.vi}?` });
+      for (const mon of doDaMat(kg, thu, ten, luc)) out.push({ ma: `vang:${mon}`, phu_thuoc: co, loai: 'thua', hoi: `KHÔNG thấy ${mon} trên người ${ten} (đã sang tay người khác)?` });
       if (chen) { out.push({ ma: `chen:${ten}`, phu_thuoc: co, loai: 'thua', hoi: `Cận chèn: KHÔNG thấy mặt ${ten} (chỉ tay / đồ)?` }); continue; }
       const tm = thayMat(kg, canh, ten, luc);
       if (tm === true) out.push({ ma: `mat:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} quay mặt về phía máy, thấy mặt?` });

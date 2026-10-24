@@ -123,7 +123,8 @@ const KHONG_CHU = 'Absolutely no text, numbers, captions, labels or speech bubbl
 // sau tầng 3 (#353 #11 Thần bước ra cửa thang khác cửa Hạ chắn; #17 Hạ mất thùng đồ) không phải sinh lại cả khối. Ảnh mẫu người / đồ của shot đi kèm.
 if (gia('sua')) {
   const c = ds.find((x) => x.thu_tu === Number(gia('sua'))); const ct = gia('chi-thi'); const lucSua = (gia('luc') || 'dau') as 'dau' | 'giua' | 'ket';   // --luc=ket sửa khung CUỐI
-  const goc = lucSua === 'ket' ? c?.keyframe_ket : lucSua === 'giua' ? c?.keyframe_giua : c?.keyframe_url;
+  // --goc=dau|giua|ket: sửa TỪ khung khác của chính shot đó (khung cuối vẽ hỏng ra người khác → dựng lại từ khung đầu)
+  const lucGoc = (gia('goc') || lucSua) as 'dau' | 'giua' | 'ket'; const goc = lucGoc === 'ket' ? c?.keyframe_ket : lucGoc === 'giua' ? c?.keyframe_giua : c?.keyframe_url;
   if (!c || !goc || !ct) { console.error('cần --sua=<thu_tu có khung> --chi-thi="…" [--luc=dau|giua|ket]'); process.exit(1); }
   const refs = thamChieu([c], 6);
   // khung sửa phải mang TRẠNG THÁI ĐỒ + HƯỚNG của đúng thời điểm khung (sổ đồ vật, sơ đồ cảnh) — #353 #16 sửa hướng nhìn mà không kèm sổ: Vivian tự đeo dây thẻ lên cổ

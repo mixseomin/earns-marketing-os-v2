@@ -7,7 +7,7 @@ export type Diem = [number, number];
 export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem; nhin: Diem; /** tiêu cự tương đương mm (mặc định 35): cận mặt 60–85, toàn 24–28 */ ong?: number }>; /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string> };
 /** Một mảnh theo sơ đồ: máy nào · ai / cái gì ở đâu (tên mốc hoặc toạ độ) · ai nhìn ai / cái gì · ai đi vào khung từ mốc nào. */
 export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
-export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true };
+export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true; /** quay lưng HẲN (sâu > 0,7) — không thể thấy mặt; nửa lưng thì có thể lộ má / nghiêng */ han?: true };
 
 const tru = (a: Diem, b: Diem): Diem => [a[0] - b[0], a[1] - b[1]];
 const cham = (a: Diem, b: Diem) => a[0] * b[0] + a[1] * b[1];
@@ -61,7 +61,7 @@ export const thayHuong = (s: SoDo, m: ManhSoDo, chu: string): string => chu.repl
 export function kyVong(s: SoDo, m: ManhSoDo, nguoi: string[]): Record<string, KyVong> {
   const r: Record<string, KyVong> = {};
   for (const n of nguoi) { if (m.o[n] == null || (m.khung && !m.khung.includes(n))) continue; const x = m.vao?.[n] ? viTriMan(s, m, m.vao[n]!) : viTriMan(s, m, n); if (x == null) continue;
-    r[n] = { ben: x < -0.33 ? -1 : x > 0.33 ? 1 : 0, ...(m.nhin?.[n] && !raXa(s, m, n, m.nhin[n]!) ? { nhin: huongMan(s, m, n, m.nhin[n]!) } : {}), ...(m.nhin?.[n] && (doSau(s, m, n, m.nhin[n]!) ?? 0) > NUA_LUNG ? { lung: true as const } : {}) }; }
+    r[n] = { ben: x < -0.33 ? -1 : x > 0.33 ? 1 : 0, ...(m.nhin?.[n] && !raXa(s, m, n, m.nhin[n]!) ? { nhin: huongMan(s, m, n, m.nhin[n]!) } : {}), ...(m.nhin?.[n] && (doSau(s, m, n, m.nhin[n]!) ?? 0) > NUA_LUNG ? { lung: true as const, ...(raXa(s, m, n, m.nhin[n]!) ? { han: true as const } : {}) } : {}) }; }
   return r;
 }
 /** Trục 180°: mảnh liền nhau cùng có hai người A, B (đứng trong sơ đồ) → hai máy phải cùng phía đường A–B. Trả lỗi theo cặp. */

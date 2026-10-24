@@ -49,9 +49,10 @@ const ketQua = (c: (typeof ds)[number], l: Luc) => {
   const loi = loiDoHuong(Object.fromEntries(Object.entries(kv).filter(([, v]) => !v.lung)), k);
   const kg = kgCua(kgt, c);
   // số mặt: hơn số người TRONG KHUNG (kể người quay lưng) = có người chen vào; hơn số người thấy mặt = người lẽ ra quay lưng / nửa lưng lại lộ mặt
-  const lung = Object.entries(kv).filter(([, v]) => v.lung).map(([n]) => n); const tong = c.ky_thuat?.co_canh === 'insert' ? 0 : Object.keys(kv).length;
+  const tong = c.ky_thuat?.co_canh === 'insert' ? 0 : Object.keys(kv).length;
   if (r0.mat > tong) loi.push(`thấy ${r0.mat} mặt mà sơ đồ chỉ có ${tong} người trong khung — có người chen vào (người ngoài khung / người lạ)`);
-  else if (r0.mat > soMat(c, l)) loi.push(`${lung.join(' / ')} lẽ ra quay lưng / nửa lưng mà lộ mặt (thấy ${r0.mat} mặt, sơ đồ cho thấy ${soMat(c, l)})`);
+  // nửa lưng có thể lộ má / nghiêng (YuNet vẫn bắt) — chỉ người quay lưng HẲN mà lộ mặt mới là lỗi
+  else if (r0.mat > tong - Object.values(kv).filter((v) => v.han).length) loi.push(`${Object.entries(kv).filter(([, v]) => v.han).map(([n]) => n).join(' / ')} lẽ ra quay lưng hẳn mà lộ mặt (thấy ${r0.mat} mặt)`);
   for (const x of k) {
     const d = kg ? dang(kg, c.thu_tu, x.ten, laDau(l) ? 'dau' : 'ket') : null; if (d) loi.push(...loiDoDang(x.ten, kyVongDang(d.en), x)); }
   return { loi, so: k0.map((x) => `${x.ten}${x.tin ? '' : '(?)'} x=${x.o?.x?.toFixed(2) ?? '?'} nhìn=${x.nhin?.g ?? '?'}° ngẩng=${x.nhin?.doc ?? '?'}°${x.tay ? ` tay P/T=${x.tay.phai ?? '?'}/${x.tay.trai ?? '?'}` : ''}`).join(' · ') };

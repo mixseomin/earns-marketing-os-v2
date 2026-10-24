@@ -9,6 +9,7 @@ import numpy as np, cv2
 
 MO = os.environ.get('XV_SOI_MAT_MO', '/opt/xv-soi-mat/models')
 NGUONG = 0.363
+SAT_NUT = 0.06   # chênh giống tối thiểu giữa tên được gán và tên kế tiếp để tin danh tính
 NHO = 64   # mặt thấp dưới 64 px: SFace (đầu vào 112 px) chấm không tin được, người xem cũng khó nhận — ghi 'nho', không chặn (Jett #11)
 cv2.setLogLevel(2) if hasattr(cv2, 'setLogLevel') else None
 det = cv2.FaceDetectorYN.create(f'{MO}/face_detection_yunet_2023mar.onnx', '', (320, 320), 0.8, 0.3, 5000)
@@ -100,7 +101,7 @@ def tu_the(im):
     return out
 
 def nhin_mat(im):
-    """Các mặt + hướng nhìn: [{x, y (tâm mặt, phần khung), g (độ ngang, + = phải màn), dau (quay đầu), mat (lệch con ngươi −0,5..0,5), doc (ngẩng)}]."""
+    """Các mặt + hướng nhìn: [{x, y (tâm mặt, phần khung), g (độ ngang, + = phải màn), dau (quay đầu), mat (lệch con ngươi −0,5..0,5), doc (độ CÚI: + = cúi xuống, − = ngẩng lên — đo trên clip #353: Hạ cúi mặt +13°, cụp mắt +23°)}]."""
     import math
     L = _lm()
     if not L: return []
@@ -229,19 +230,22 @@ for a in vao.get('anh', []):
     gan, dung = {}, set()
     for g, i, t in cap:
         if t in gan or i in dung: continue
-        gan[t] = (g, mat[i][1], mat[i][2], mat[i][3]); dung.add(i)
+        gan[t] = (g, mat[i][1], mat[i][2], mat[i][3], i); dung.add(i)
     nm = nhin_mat(im) if gan else []
     tt = tu_the(im) if gan and a.get('tu_the') else []   # chỉ khi được hỏi (cổng nối cắt) — đường soi thường không tốn thêm
     ket = []
     for t in ten:
         if t not in gan: ket.append({'ten': t, 'giong': None, 'dat': True}); continue
-        g, h, hop, ng = gan[t]; nho = h < NHO
+        g, h, hop, ng, i = gan[t]; nho = h < NHO
+        # SÁT NÚT: mặt này giống người khác trong danh sách gần bằng (hai nữ chính AI vẽ na ná nhau) → không tin danh tính (cổng nối cắt bỏ qua)
+        khac = [max(cos(mat[i][0], r) for r in mau[t2]) for t2 in ten if t2 != t]
+        sat = bool(khac) and g - max(khac) < SAT_NUT
         # tâm mặt theo phần khung (0..1) — để lệnh sửa mặt chỉ đúng mặt nào khi khung có nhiều người
         o = {'x': round((float(hop[0]) + float(hop[2]) / 2) / W, 3), 'y': round((float(hop[1]) + float(hop[3]) / 2) / H, 3)}
         hn = min(nm, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # mặt MediaPipe trùng mặt YuNet đã gán
         hn = hn if hn and abs(hn['x'] - o['x']) < 0.08 and abs(hn['y'] - o['y']) < 0.08 else None
         pt = min(tt, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # tư thế có mũi gần tâm mặt đã gán
         pt = pt if pt and abs(pt['x'] - o['x']) < 0.12 and abs(pt['y'] - o['y']) < 0.12 else None
-        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'tin': g >= NGUONG, 'o': o, **({'tay': pt['tay']} if pt else {}), **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
+        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'tin': g >= NGUONG and not sat, 'o': o, **({'tay': pt['tay']} if pt else {}), **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
     ra['anh'].append({'id': a['id'], 'mat': len(mat), 'ket': ket})
 print(json.dumps(ra, ensure_ascii=False))

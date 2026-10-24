@@ -158,13 +158,13 @@ export function kyVongDang(en: string): KyVongDang {
   }
   return r;
 }
-/** So dáng đo được (soi-mat.py: nhin.doc = độ ngẩng, tay) với kỳ vọng — chỉ báo chỗ trái ngược rõ (cúi ↔ ngẩng, buông ↔ giơ). NGUONG_CUI: độ. */
+/** So dáng đo được (soi-mat.py: nhin.doc = độ CÚI, + = cúi xuống; tay) với kỳ vọng — chỉ báo chỗ trái ngược rõ (cúi ↔ ngẩng, buông ↔ giơ). NGUONG_CUI: độ. */
 export const NGUONG_CUI = 12;
 export function loiDoDang(ten: string, kv: KyVongDang, k: { nhin?: { doc: number }; tay?: { phai?: string | null; trai?: string | null } }): string[] {
-  const out: string[] = []; const d = k.nhin?.doc;
-  if (d != null && kv.dau === -1 && d > -NGUONG_CUI / 2) out.push(`${ten} không cúi (đo ${d}°), sổ dáng cần cúi`);
-  if (d != null && kv.dau === 0 && d < -NGUONG_CUI) out.push(`${ten} đang cúi (đo ${d}°), sổ dáng cần cằm ngang`);
-  if (d != null && kv.dau === 1 && d < 0) out.push(`${ten} không ngẩng (đo ${d}°), sổ dáng cần ngẩng`);
+  const out: string[] = []; const d = k.nhin?.doc;   // d > 0 = cúi
+  if (d != null && kv.dau === -1 && d < NGUONG_CUI / 2) out.push(`${ten} không cúi (đo ${d}°), sổ dáng cần cúi`);
+  if (d != null && kv.dau === 0 && d > NGUONG_CUI) out.push(`${ten} đang cúi (đo ${d}°), sổ dáng cần cằm ngang`);
+  if (d != null && kv.dau === 1 && d > 0) out.push(`${ten} không ngẩng (đo ${d}°), sổ dáng cần ngẩng`);
   const TEN = { cao: 'giơ cao', giua: 'ngang ngực', thap: 'buông' } as const;
   for (const b of ['phai', 'trai'] as const) { const can = kv[b], co = k.tay?.[b]; if (!can || !co || can === co) continue;
     if ((can === 'thap' && co !== 'thap') || (can === 'cao' && co === 'thap') || (can === 'giua' && co === 'thap')) out.push(`${ten} tay ${b === 'phai' ? 'phải' : 'trái'} ${TEN[co as keyof typeof TEN]}, sổ dáng cần ${TEN[can]}`); }

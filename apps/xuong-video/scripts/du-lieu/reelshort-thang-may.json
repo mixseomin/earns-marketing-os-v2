@@ -598,7 +598,8 @@
           "Lục Thần": "than_ra"
         },
         "nhin": {
-          "Lục Thần": "loi_vao"
+          "Lục Thần": "loi_vao",
+          "Lâm Hạ": "Lục Thần"
         }
       },
       "vao": 0,
@@ -669,11 +670,15 @@
         "may": "can_ha",
         "o": {
           "Lâm Hạ": "ha",
-          "Vivian": "vi"
+          "Vivian": "vi",
+          "Lục Thần": "than_ra"
         },
         "khung": [
           "Lâm Hạ"
-        ]
+        ],
+        "nhin": {
+          "Lâm Hạ": "Lục Thần"
+        }
       },
       "vao": 0,
       "khung_ve": [

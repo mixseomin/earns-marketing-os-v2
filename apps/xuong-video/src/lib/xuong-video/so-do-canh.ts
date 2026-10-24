@@ -147,18 +147,22 @@ export function loiChuSoDo(s: SoDo, m: ManhSoDo, chu: string): string[] {
 }
 /** KẾ THỪA ÁNH NHÌN qua đường cắt (phim #353 #2→#3, 24/10/2026: cuối #2 Hạ đã quay sang lối vào, đầu #3 lại quay lưng nhìn vách thang vì #3 không khai Hạ
  *  nhìn gì). Mảnh sau có người A trong khung mà không khai nhin[A] → lấy đích nhìn ở khung CUỐI mảnh trước; đích là mốc mà trong mảnh này có người đi vào
- *  từ mốc đó → A nhìn người đang vào. Đích là người không có chỗ trong mảnh này thì để trống (không tính được hướng). Trả bản sao, không sửa đầu vào. */
+ *  từ mốc đó → A nhìn người đang vào. Giữ qua cả shot người đó vắng khung (cận chèn), hết khi người đó đổi chỗ đứng. Đích là người không có chỗ trong mảnh này thì để trống (không tính được hướng). Trả bản sao, không sửa đầu vào. */
 export function keThuaNhin<T extends { sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo> }>(s: SoDo, ds: T[]): T[] {
   const out = ds.map((m) => (m.sd ? { ...m, sd: { ...m.sd, nhin: { ...(m.sd.nhin ?? {}) } } } : m));
-  for (let i = 1; i < out.length; i++) {
-    const tr = out[i - 1]!, cu = out[i]!; if (!tr.sd || !cu.sd) continue;
-    const nhinCuoi = { ...(tr.sd.nhin ?? {}), ...(tr.sd_ket?.nhin ?? {}) };
-    for (const [a, b] of Object.entries(nhinCuoi)) {
-      if (cu.sd.o[a] == null || (cu.sd.khung && !cu.sd.khung.includes(a)) || cu.sd.nhin![a]) continue;
+  // ánh nhìn GẦN NHẤT của từng người, giữ qua shot họ không trong khung (cận chèn #6 không có mặt → #7 vẫn biết Hạ đang nhìn Vivian)
+  // Chỉ giữ khi người đó còn ĐỨNG CHỖ CŨ — đổi chỗ (Hạ vào trong thang ở #17) là ánh nhìn cũ hết nghĩa.
+  const cuoi = new Map<string, { b: string; o: string }>(); const cho = (m: ManhSoDo, a: string) => JSON.stringify(m.o[a] ?? null);
+  for (const cu of out) {
+    if (!cu.sd) continue;
+    for (const [a, { b, o }] of cuoi) {
+      if (cu.sd.o[a] == null || (cu.sd.khung && !cu.sd.khung.includes(a)) || cu.sd.nhin![a] || cho(cu.sd, a) !== o) continue;
       const vao = Object.entries(cu.sd.vao ?? {}).find(([, tu]) => tu === b)?.[0];
       const dich = vao ?? (cu.sd.o[b] != null || s.moc[b] ? b : null);
       if (dich && dich !== a) cu.sd.nhin![a] = dich;
     }
+    const ket = { ...cu.sd, ...(cu.sd_ket ?? {}), o: { ...cu.sd.o, ...(cu.sd_ket?.o ?? {}) } } as ManhSoDo;
+    for (const [a, b] of Object.entries({ ...(cu.sd.nhin ?? {}), ...(cu.sd_ket?.nhin ?? {}) })) cuoi.set(a, { b, o: cho(ket, a) });
   }
   return out;
 }

@@ -68,3 +68,9 @@ console.log('so-do-canh.test: ok (nửa lưng + chữ trái sơ đồ)');
   assert.strictEqual(vang[1]!.sd!.nhin!['Hạ'], undefined, 'đích người không có trong mảnh → bỏ');
   assert.ok(cauHuong(k, ds[1]!.sd!, ['Hạ', 'Vivian']).includes('Vivian at the very screen-right edge'), cauHuong(k, ds[1]!.sd!, ['Hạ', 'Vivian'])); }
 console.log('so-do-canh.test: ok (kế thừa ánh nhìn + người đang vào ở mép)');
+// giữ qua cận chèn, hết khi đổi chỗ
+{ const k = { ...s, moc: { ...s.moc, loi_vao: [6, 3] as [number, number], trong: [0, 7.5] as [number, number] } };
+  const ds = keThuaNhin(k, [{ sd: { may: 'toan', o: { 'Hạ': 'ha', Vivian: 'vi' }, nhin: { 'Hạ': 'Vivian' } } }, { sd: { may: 'toan', o: { 'Hạ': 'ha', Vivian: 'vi' }, khung: [] } },
+    { sd: { may: 'toan', o: { 'Hạ': 'ha', Vivian: 'vi' } } }, { sd: { may: 'toan', o: { 'Hạ': 'trong' } } }]);
+  assert.strictEqual(ds[2]!.sd!.nhin!['Hạ'], 'Vivian', 'qua cận chèn vẫn giữ'); assert.strictEqual(ds[3]!.sd!.nhin!['Hạ'], undefined, 'đổi chỗ → hết'); }
+console.log('so-do-canh.test: ok (kế thừa qua cận chèn, hết khi đổi chỗ)');

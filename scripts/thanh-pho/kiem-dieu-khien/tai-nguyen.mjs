@@ -33,4 +33,6 @@ const dai = await p.evaluate(() => { const n = document.querySelector('.ngan'); 
 console.log('đài theo dõi:', dai && /Theo dõi tài nguyên/.test(dai.ten) && dai.muc.length >= 2 ? `✓ ${dai.dong} dòng · ${dai.muc.join(' | ')}` : '— SAI ' + JSON.stringify(dai));
 if (dai) { await p.fill('.ngan .xg-loc', 'wenoted'); await p.waitForTimeout(200); const con = await p.evaluate(() => [...document.querySelectorAll('.ngan .xg-ds > div')].filter((r) => !r.hidden && r.closest('details').open && r.offsetParent).length); console.log('lọc đài "wenoted":', con === 1 ? '✓ còn 1 dòng, nhìn thấy (mục tự mở)' : `— SAI thấy ${con} dòng`); if (raAnh) await p.screenshot({ path: raAnh + '/dai-tn.png' }); }
 console.log('thẻ bồn có đủ mức + còn ngày:', /Mức/.test(theBon) && /Còn/.test(theBon) ? '✓' : '— SAI');
+// KHO FANPAGE (25/10/2026): khối gộp có trong cảnh, đủ số Page, ô tìm bay tới lô
+{ const k = await p.evaluate(() => document.querySelector('.tp').__fanpage()); console.log('kho fanpage:', k && k.so > 0 && k.cha ? `✓ ${k.so} khối trong cảnh` : '— SAI ' + JSON.stringify(k)); }
 await b.close();

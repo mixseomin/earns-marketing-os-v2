@@ -120,6 +120,16 @@ def main():
         ghi("creative", rows, ["creative_id"], {"creative_id": "int", "content_id": "int", "dang": "text", "tu": "numeric", "den": "numeric", "doan": "text", "lang": "text", "lo": "text",
             "video": "text", "anh": "text", "cta_dat": "boolean", "thay_cho": "int", "tu_choi": "text"})
     except Exception as e: loi.append(f"phim/creative: {e}")
+    # ── tài nguyên: tài khoản QC · Page · pixel · tên miền (tab Tài nguyên)
+    try:
+        rows = []
+        for loai, duong in (("tk_qc", "/api/v1/ad-accounts?page_size=200"), ("page", "/api/v1/facebook-pages?page_size=200"), ("pixel", "/api/v1/my-asset-groups/pixels"), ("ten_mien", "/api/v1/my-asset-groups/domains")):
+            d = api(duong); ds = d.get("data", d) if isinstance(d, dict) else d
+            for x in ds or []:
+                rows.append({"loai": loai, "id": x.get("id"), "external_id": str(x.get("external_id") or ""), "ten": x.get("display_name") or x.get("name"), "trang_thai": x.get("status"),
+                             "them": {k: x.get(k) for k in ("account_controls_status", "ads_restricted", "picture_url", "link", "available", "facebook_bm_id", "is_published", "used_by_asset_group", "cache_status") if x.get(k) is not None}})
+        ghi("tai_nguyen", rows, ["loai", "id"], {"loai": "text", "id": "bigint", "external_id": "text", "ten": "text", "trang_thai": "text", "them": "jsonb"})
+    except Exception as e: loi.append(f"tai_nguyen: {e}")
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []

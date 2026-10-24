@@ -101,7 +101,7 @@ def main():
         for l in q("""select (p.kinh_thanh->'ethopex'->>'creative_id'), coalesce(p.kinh_thanh->'ethopex'->>'content_id',''), coalesce(p.kinh_thanh->'ethopex'->>'tu',''), coalesce(p.kinh_thanh->'ethopex'->>'den',''),
                 coalesce(p.kinh_thanh->'ethopex'->>'lo',''), coalesce(p.kinh_thanh->>'ngon_ngu',''), coalesce(p.kinh_thanh->>'the_loai',''),
                 coalesce((select x->>'url' from xv_tap t, jsonb_array_elements(coalesce(t.xuat,'[]'::jsonb)) x where t.phim_id = p.id and coalesce(x->>'url','') <> '' order by x->>'luc' desc limit 1), ''),
-                coalesce(p.poster_url, '')
+                coalesce((select c.keyframe_url from xv_tap t join xv_canh c on c.tap_id = t.id where t.phim_id = p.id and coalesce(c.keyframe_url, '') <> '' order by t.so, c.thu_tu limit 1), p.poster_url, '')
               from xv_phim p where p.project = 'ethopex' and p.kinh_thanh->'ethopex' ? 'creative_id'""").splitlines():
             f = l.split("|")
             if len(f) < 9 or not f[0].isdigit(): continue

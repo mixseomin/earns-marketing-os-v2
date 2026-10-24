@@ -211,6 +211,26 @@ if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua kh
         try: ly = NT.chan_giam(api, cid)
         except Exception: ly = None
         if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua {ry:+.0f}% (chi ${y['chi']:.2f}) · ROI 3 ngày {r3:+.0f}%" + (" · lỗ nặng: xuống 2 bậc" if buoc == 2 and not sau_tang else "") + (f" · ngày đầu sau lần tăng lúc {(_lt + dt.timedelta(hours=7)):%H:%M %d/%m} đã âm" if sau_tang else "")))
+# GIẢM SỚM CAMP LỚN ROI MỎNG (Support Dol 24/10/2026, anh chuyển + "phải áp dụng sớm nhất nếu có thể để giảm chi phí"): camp ngân sách ≥ $15 tiêu đều
+# (hôm qua + hôm nay đã chốt chi ≥ 1 ngày ngân sách) mà ROI gộp 1–2 ngày đó < 30% → giảm ngay trong nhịp, không chờ phiên sáng. Vừa tăng (48 giờ) mà
+# ROI gộp âm và đang $20 → về thẳng $10; còn lại xuống một bậc. Đổi ngân sách < 6 giờ vẫn bị chan_giam chặn. Mốc an toàn giữ ROI > 50% (luật tăng).
+ROI_GIAM_SOM = 30
+_da_ha = {cid for cid, _ in ha}
+for cid, a in thang.items():
+    ns = a["budget"]
+    if ns < 15 or cid in _da_ha: continue
+    y, h = hqua.get(cid, {"chi": 0.0, "thu": 0.0}), hom.get(cid, {"chi": 0.0, "thu": 0.0})
+    g2 = {"chi": y["chi"] + h.get("chi", 0.0), "thu": y["thu"] + h.get("thu", 0.0)}
+    if g2["chi"] < ns: continue
+    r2 = roi(g2)
+    if r2 is None or r2 >= ROI_GIAM_SOM: continue
+    try: _lt = max(NT.lan_tang(api, cid) or [None], key=lambda t: t or dt.datetime.min.replace(tzinfo=dt.timezone.utc))
+    except Exception: _lt = None
+    vua_tang = _lt is not None and (dt.datetime.now(dt.timezone.utc) - _lt).total_seconds() < 48 * 3600
+    dich = 10 if (vua_tang and r2 < 0 and ns >= 20) else NT.xuong(ns, 1)
+    try: ly = NT.chan_giam(api, cid)
+    except Exception: ly = None
+    if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}% < {ROI_GIAM_SOM}% (chi ${g2['chi']:.2f})" + (" · vừa tăng mà âm: về $10" if dich == 10 and ns >= 20 and vua_tang and r2 < 0 else "") + " · giảm sớm (Support)"))
 tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).

@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/so-do-canh.test.mts
 import assert from 'node:assert';
-import { loiChuSoDo, loiCanMat, svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
+import { keThuaNhin, loiChuSoDo, loiCanMat, svgPhac, thayHuong, viTriMan, huongMan, cauHuong, kyVong, loiTruc, loiDoHuong, type SoDo } from './so-do-canh';
 
 // Sảnh: thang máy ở bắc (y=7), máy toàn cảnh ở nam (y=0) nhìn bắc → đông = phải màn. Hạ trước thang (giữa trái), Vivian đứng phía đông Hạ, lối vào phía đông.
 const s: SoDo = { moc: { thang: [0, 7], loi_vao: [5, 3], ha: [-1.4, 5.8], vi: [1.2, 5.6] },
@@ -55,3 +55,15 @@ console.log('so-do-canh.test: ok (tờ phác)');
   const nguoc = { ...n, may: { ...n.may, truoc: { dat: [-0.4, 6.9] as [number, number], nhin: [-0.5, 4] as [number, number] } } };
   assert.strictEqual(loiChuSoDo(nguoc, { ...mm, may: 'truoc' }, 'the elevator door right in front of her').length, 1); }
 console.log('so-do-canh.test: ok (nửa lưng + chữ trái sơ đồ)');
+// kế thừa ánh nhìn: cuối #2 Hạ nhìn lối vào → #3 (Vivian vào từ lối vào, Hạ không khai) Hạ nhìn Vivian; đã khai thì giữ; đích người vắng thì bỏ
+{ const k = { ...s, moc: { ...s.moc, loi_vao: [6, 3] as [number, number] } };
+  const ds = keThuaNhin(k, [
+    { sd: { may: 'toan', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'thang' } }, sd_ket: { nhin: { 'Hạ': 'loi_vao' } } },
+    { sd: { may: 'toan', o: { 'Hạ': 'ha', Vivian: 'vi' }, vao: { Vivian: 'loi_vao' }, nhin: { Vivian: 'Hạ' } } },
+    { sd: { may: 'toan', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'thang' } } },
+    { sd: { may: 'toan', o: { 'Hạ': 'ha' } } }]);
+  assert.strictEqual(ds[1]!.sd!.nhin!['Hạ'], 'Vivian'); assert.strictEqual(ds[2]!.sd!.nhin!['Hạ'], 'thang'); assert.strictEqual(ds[3]!.sd!.nhin!['Hạ'], 'thang');
+  const vang = keThuaNhin(k, [{ sd: { may: 'toan', o: { 'Hạ': 'ha', Vivian: 'vi' }, nhin: { 'Hạ': 'Vivian' } } }, { sd: { may: 'toan', o: { 'Hạ': 'ha' } } }]);
+  assert.strictEqual(vang[1]!.sd!.nhin!['Hạ'], undefined, 'đích người không có trong mảnh → bỏ');
+  assert.ok(cauHuong(k, ds[1]!.sd!, ['Hạ', 'Vivian']).includes('Vivian at the very screen-right edge'), cauHuong(k, ds[1]!.sd!, ['Hạ', 'Vivian'])); }
+console.log('so-do-canh.test: ok (kế thừa ánh nhìn + người đang vào ở mép)');

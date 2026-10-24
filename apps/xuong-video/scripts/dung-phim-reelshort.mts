@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
-import { cauHuong, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
+import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { cauVat, dongVat, loiSoVat, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
 type Manh = { co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
@@ -26,6 +26,8 @@ const khungVe = (m: Manh): ('dau' | 'giua' | 'ket')[] => m.khung_ve ?? (m.ket ? 
 // SƠ ĐỒ CẢNH: thay {A→B} trong đầu / đuôi / câu diễn bằng phía màn tính được; chặn vượt trục 180°
 if (du.so_do) {
   const sd = du.so_do; const ng = du.nguoi ?? [];
+  // ánh nhìn không khai ở mảnh sau = ánh nhìn cuối mảnh trước (người đang vào từ mốc đó thì nhìn người ấy) — so-do-canh.ts › keThuaNhin
+  { const truoc = du.shot.map((m) => JSON.stringify(m.sd?.nhin ?? {})); du.shot = keThuaNhin(sd, du.shot); du.shot.forEach((m, i) => { if (JSON.stringify(m.sd?.nhin ?? {}) !== truoc[i]) console.log(`#${i + 1} kế thừa ánh nhìn: ${JSON.stringify(m.sd!.nhin)}`); }); }
   for (const m of du.shot) if (m.sd) { for (const k of ['mo', 'vid', 'anh'] as const) if (m[k]) m[k] = thayHuong(sd, m.sd, m[k]!); const sk = sdKet(m)!; for (const k of ['ket', 'giua'] as const) if (m[k]) m[k] = thayHuong(sd, sk, m[k]!); }
   const tr = [...loiTruc(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1 }] : [])), ng), ...loiCanMat(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1, co: m.co }] : []))),
     // chữ tay trái sơ đồ (mốc đang nhìn bị viết "behind her"…): đầu / ảnh / diễn theo sd, đuôi / giữa theo sd_ket

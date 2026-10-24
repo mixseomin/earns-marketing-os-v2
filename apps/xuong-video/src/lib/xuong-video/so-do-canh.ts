@@ -36,7 +36,10 @@ const PHIA = (h: -1 | 0 | 1) => (h < 0 ? 'toward screen left' : h > 0 ? 'toward 
 export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: string) => string = (t) => t): string {
   const out: string[] = [];
   const thay = (n: string) => m.o[n] != null && (!m.khung || m.khung.includes(n));
-  const dung = nguoi.filter((n) => thay(n) && !m.vao?.[n]).map((n) => { const x = viTriMan(s, m, n); return x == null ? '' : `${n} at ${BEN(x)}`; }).filter(Boolean);
+  const dung = nguoi.filter((n) => thay(n)).map((n) => { if (m.vao?.[n]) { const x = viTriMan(s, m, m.vao[n]!); const h = huongMan(s, m, m.vao[n]!, n);
+    // người ĐANG VÀO: đứng sát mép phía mốc vào, mới bước vào — không ghi thì model đặt giữa khung (phim #353 #3: Vivian đứng giữa sảnh ngay khung đầu)
+    return `${n} at the very ${x == null ? (h < 0 ? 'screen-right' : 'screen-left') : x < 0 ? 'screen-left' : 'screen-right'} edge, only just stepping into frame`; }
+    const x = viTriMan(s, m, n); return x == null ? '' : `${n} at ${BEN(x)}`; }).filter(Boolean);
   if (dung.length) out.push(`Placement on screen: ${dung.join(', ')}`);
   const ten = (b: string) => (nguoi.includes(b) ? b : tenEn(b) === b ? s.ten?.[b] ?? b : tenEn(b));
   for (const [a, b] of Object.entries(m.nhin ?? {})) {
@@ -135,6 +138,23 @@ export function loiChuSoDo(s: SoDo, m: ManhSoDo, chu: string): string[] {
     for (const c of cau) { const l = c.toLowerCase(); if (!l.includes(loi)) continue;
       if (sau > NUA_LUNG && /\bbehind (her|him|them)\b(?! (right |left )?(shoulder|head|back|ear))|\bat (her|his|their) back\b/.test(l)) out.push(`"${c.trim()}" — ${a} đang nhìn ${ten} ở PHÍA TRƯỚC (trong sâu khung), chữ lại đặt nó sau lưng`);
       if (sau < -NUA_LUNG && /\bin front of (her|him|them)\b/.test(l)) out.push(`"${c.trim()}" — ${ten} ở phía MÁY (sau lưng ống kính), chữ lại đặt trước mặt ${a}`); }
+  }
+  return out;
+}
+/** KẾ THỪA ÁNH NHÌN qua đường cắt (phim #353 #2→#3, 24/10/2026: cuối #2 Hạ đã quay sang lối vào, đầu #3 lại quay lưng nhìn vách thang vì #3 không khai Hạ
+ *  nhìn gì). Mảnh sau có người A trong khung mà không khai nhin[A] → lấy đích nhìn ở khung CUỐI mảnh trước; đích là mốc mà trong mảnh này có người đi vào
+ *  từ mốc đó → A nhìn người đang vào. Đích là người không có chỗ trong mảnh này thì để trống (không tính được hướng). Trả bản sao, không sửa đầu vào. */
+export function keThuaNhin<T extends { sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo> }>(s: SoDo, ds: T[]): T[] {
+  const out = ds.map((m) => (m.sd ? { ...m, sd: { ...m.sd, nhin: { ...(m.sd.nhin ?? {}) } } } : m));
+  for (let i = 1; i < out.length; i++) {
+    const tr = out[i - 1]!, cu = out[i]!; if (!tr.sd || !cu.sd) continue;
+    const nhinCuoi = { ...(tr.sd.nhin ?? {}), ...(tr.sd_ket?.nhin ?? {}) };
+    for (const [a, b] of Object.entries(nhinCuoi)) {
+      if (cu.sd.o[a] == null || (cu.sd.khung && !cu.sd.khung.includes(a)) || cu.sd.nhin![a]) continue;
+      const vao = Object.entries(cu.sd.vao ?? {}).find(([, tu]) => tu === b)?.[0];
+      const dich = vao ?? (cu.sd.o[b] != null || s.moc[b] ? b : null);
+      if (dich && dich !== a) cu.sd.nhin![a] = dich;
+    }
   }
   return out;
 }

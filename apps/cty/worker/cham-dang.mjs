@@ -81,6 +81,7 @@ export function vanDeMay(ds, homQua) {
     const cuoi = cuoiHo.get(`${x.ma}|${hoNen(x.nen)}`) ?? null;
     // chỉ khi thật sự lỡ (cả họ hôm qua không có bài) mới xét lý do: có cảnh báo tài khoản → dừng đúng luật; vẫn đăng đều thì cảnh báo cũ không phải chuyện của máy đăng
     if (cuoi && cuoi >= homQua) { /* có bài hôm qua: không lỡ */ }
+    else if (x.toi === 0 && x.som) { /* còn bài nhưng CHƯA TỚI HẠN ĐĂNG (bài theo ngày, sớm nhất x.som): máy đứng đúng lịch, không phải lỡ — Giỗ Chạp 24/10 */ }
     else if (x.canh) ra.push({ khoa: `canh|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: máy DỪNG đăng vì tài khoản có cảnh báo chưa xử — ${x.canh}` });
     else ra.push({ khoa: `lo|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: lỡ lượt — bài cuối ${x.cuoi ?? 'chưa có bài nào'}${cuoi && cuoi !== x.cuoi ? ` (cả họ nền: ${cuoi})` : ''}` });
     const ngay = Math.floor(x.con / Math.max(1, x.tran));
@@ -88,16 +89,23 @@ export function vanDeMay(ds, homQua) {
   }
   return ra;
 }
-async function docMayDang(sql) {
+const homNayVN = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+export async function docMayDang(sql) {
   return sql`select m.ma, m.ten, n->>'nen' as nen, coalesce((n->>'tran')::int, 1) as tran,
       (select left(a.noi_dung, 160) from platform_alerts a where a.account_id = nullif(n->'br'->>'acct', '')::int and a.xong_luc is null
          and a.luc > now() - interval '7 days' order by a.luc desc limit 1) as canh,
-      (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi,
-      (select count(*)::int from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false)
+      (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi, k.con, k.toi, k.som
+    from xv_may m cross join lateral jsonb_array_elements(m.dang) n
+    -- kho của nền: bài DUYỆT đúng bản xuất, chưa đăng lên nền này · toi = trong HẠN ĐĂNG hôm nay (dang.dang_tu / dang_den — bài khấn theo ngày âm
+    -- chỉ đăng quanh ngày đó, nhip-an-toan.mjs › trongHan) · som = ngày sớm nhất một bài chưa tới hạn được đăng
+    cross join lateral (select count(*)::int as con,
+         count(*) filter (where coalesce(v.dang->>'dang_tu', '') <= ${homNayVN()} and coalesce(nullif(v.dang->>'dang_den', ''), '9999') >= ${homNayVN()})::int as toi,
+         min(v.dang->>'dang_tu') filter (where v.dang->>'dang_tu' > ${homNayVN()}) as som
+       from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false)
          and ((n->>'nen') = any(${[...NEN_LINK]})) = (coalesce(v.dang->>'loai', '') = 'link') and (v.video_url is not null or (n->>'nen') = any(${[...NEN_LINK]}))
          and v.cham->>'ket' = 'DUYET' and v.cham->>'xuat' = v.xuat_luc::text and not v.da_dang ? (n->>'nen')
-         and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) as con
-    from xv_may m cross join lateral jsonb_array_elements(m.dang) n where m.chay`;
+         and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) k
+    where m.chay`;
 }
 /** Soi máy đăng, trả các vấn đề MỚI (chưa báo) và ghi sổ trạng thái <DATA>/may-dang-van-de.json. */
 export async function soiMayDang(sql) {
@@ -163,6 +171,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const c = vanDeMay([{ ma: 'r', ten: 'R', nen: 'dailymotion', tran: 1, cuoi: null, con: 9, canh: 'API trả 403' }], '2026-10-17');
   t.deepEqual(c.map((x) => x.khoa), ['canh|r|dailymotion'], 'có cảnh báo = báo dừng, không báo lỡ'); t.ok(c[0].chu.includes('403'));
   t.deepEqual(vanDeMay([{ ma: 'r', ten: 'R', nen: 'youtube', tran: 1, cuoi: '2026-10-17', con: 9, canh: 'cảnh báo cũ' }], '2026-10-17'), [], 'có cảnh báo nhưng vẫn đăng đều = im (youtube ratesbyroom 24/10)');
+  t.deepEqual(vanDeMay([{ ma: 'g', ten: 'G', nen: 'facebook', tran: 1, cuoi: null, con: 31, toi: 0, som: '2026-11-06' }], '2026-10-17'), [], 'bài theo ngày chưa tới hạn = im (Giỗ Chạp 24/10)');
+  t.equal(vanDeMay([{ ma: 'g', ten: 'G', nen: 'facebook', tran: 1, cuoi: null, con: 31, toi: 2, som: '2026-11-06' }], '2026-10-17')[0]?.khoa, 'lo|g|facebook', 'có bài trong hạn mà không đăng = lỡ thật');
   t.equal(hoNen('fb_link'), 'fb'); t.equal(hoNen('facebook'), 'fb'); t.equal(hoNen('x_anh'), 'x'); t.equal(hoNen('x'), 'x'); t.equal(hoNen('youtube'), 'youtube');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }

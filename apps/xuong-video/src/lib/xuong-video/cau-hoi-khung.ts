@@ -70,7 +70,7 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
       if (h && dn) out.push({ ma: `nhin:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} nhìn sang ${h < 0 ? 'TRÁI' : 'PHẢI'} màn (về ${kg.so_do.ten?.[dn] ?? dn}), không nhìn ống kính?` });
       const vt = viTri(kg, canh, ten, luc); if (vt != null) out.push({ ma: `ben:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} ở ${vt > 1 || vt < -1 ? `sát mép ${vt < 0 ? 'trái' : 'phải'} (vừa bước vào)` : BEN(vt)} khung?` });
     }
-    if (!chen) for (const ten of nguoiNgoai(kg, canh, luc)) out.push({ ma: `ngoai:${ten}`, loai: 'thua', hoi: `KHÔNG thấy ${ten} ở bất kỳ đâu trong khung?` });
+    if (!chen) for (const ten of nguoiNgoai(kg, canh, luc)) out.push({ ma: `ngoai:${ten}`, loai: 'thua', hoi: `KHÔNG thấy mặt / thân người ${ten} trong khung (chỉ tay hoặc đồ ${ten} đưa vào mép khung thì vẫn tính là không thấy)?` });
   }
   if (nguoi.length && !chen) out.push({ ma: 'so_nguoi', loai: 'thua', hoi: `Đúng ${nguoi.length} nhân vật chính (${nguoi.join(', ')}) — không nhân đôi, không người lạ chen tiền cảnh?` });
   for (const t of (kx?.thay ?? []).filter((t) => t.pt >= PT_THAY && LA_NHAN_DANG.test(t.en ?? ''))) out.push({ ma: `nd:${t.ten}`, loai: 'nhan_dang', hoi: `${ngan(t.en ?? t.ten, 90)} — đúng nội dung ảnh chuẩn trên khung 3D (chữ, hình)?` });

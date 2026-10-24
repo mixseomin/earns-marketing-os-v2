@@ -389,6 +389,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const chuCon = (n: number | null) => (n == null ? 'không cạn' : n < 1 ? 'dưới 1 ngày' : `còn ~${n < 10 ? n.toFixed(1).replace('.', ',') : Math.round(n)} ngày`);
   const BANG = '#3a4660', BANG_RAO = '#6f7f9c', BANG_NEN = '#151b28';
   const dongBang = (k: { ngung: boolean; sucSong?: number }) => !k.ngung && k.sucSong === 0;
+  // hạn tên miền của site (mô hình taiNguyen.han, khớp theo toà): luôn có trong thẻ site, kể cả khi còn xa — màu theo mức
+  const dongHanTenMien = (d: { khoa: string }): [string, string][] => { const h = mh.taiNguyen?.han.find((x) => x.loai === 'domain' && x.dich === d.khoa); if (!h) return [];
+    return [['⏳ Tên miền', h.het ? `<span style="color:${MAU_TN[h.muc]}">●</span> ${esc(h.ten)} hết hạn ${h.het.slice(8, 10)}/${h.het.slice(5, 7)}/${h.het.slice(0, 4)} · còn ${h.conNgay} ngày` : `<span style="color:${MAU_TN['chua-do']}">●</span> ${esc(h.ten)} · chưa có ngày hết hạn`]]; };
   const dongSucSong = (d: { sucSong?: number; soNguon?: number; khach7?: number }): [string, string] => { const v = SUC_SONG[d.sucSong ?? 0]!; return ['Sức sống', `${v.ic} ${v.ten} · ${d.soNguon ?? 0} nguồn · ${(d.khach7 ?? 0).toLocaleString('en-US')} khách 7 ngày`]; };
   const add = (g: any, m: any, bong = true) => { const x = new THREE.Mesh(g, m); x.castShadow = bong; x.receiveShadow = true; the.add(x); return x; };
   // GỘP VẬT (anh 23/10/2026 "city đang khiến máy tính nóng"): mỗi vật riêng là một lệnh vẽ mỗi khung — cảnh từng có ~5.900 vật.
@@ -755,7 +758,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   function apHanTn() {
     for (const h of mh.taiNguyen?.han ?? []) { const o = vatHan(h); if (!o || h.muc === 'xanh') continue; const hop = new THREE.Box3().setFromObject(o), r0 = Math.max(hop.max.x - hop.min.x, hop.max.z - hop.min.z) / 2 + 4, mau = MAU_TN[h.muc]!;
       const cx = (hop.min.x + hop.max.x) / 2, cz = (hop.min.z + hop.max.z) / 2;
-      const v = add(new THREE.TorusGeometry(r0, h.muc === 'chua-do' ? .35 : 1, 8, 40), new THREE.MeshBasicMaterial({ color: mau, transparent: true, opacity: h.muc === 'chua-do' ? .5 : .85, depthWrite: false }), false); v.rotation.x = Math.PI / 2; v.position.set(cx, 1.2, cz); v.userData = { chu: o }; if (h.muc === 'do') ds.cot!.push(v);
+      const v = add(new THREE.TorusGeometry(r0 + 2, h.muc === 'chua-do' ? .4 : 2, 10, 48), new THREE.MeshBasicMaterial({ color: mau, transparent: true, opacity: h.muc === 'chua-do' ? .5 : .9, depthWrite: false }), false); v.rotation.x = Math.PI / 2; v.position.set(cx, 2.2, cz); v.userData = { chu: o }; if (h.muc === 'do') ds.cot!.push(v);
       if (h.muc !== 'chua-do') { const bn = bienXe(`⏳ ${h.loai === 'domain' ? h.ten : 'máy'} hết hạn ${h.het!.slice(8, 10)}/${h.het!.slice(5, 7)} · còn ${h.conNgay} ngày`, mau); bn.scale.set(34, 5.1, 1); bn.position.set(cx, hop.max.y + 12, cz); bn.userData = { chu: o }; the.add(bn); } }
   }
   /** DẢI CẢNH BÁO TÀI NGUYÊN mép trên màn: việc gấp nhất (đỏ trước) + số việc còn lại; bấm → danh sách, bấm một dòng → bay tới bồn / toà */
@@ -1584,7 +1587,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       const may_ = mh.nhaMay.find((x) => x.sites.includes(d.site!));
       return { dau: `${oFav(d.site!)} ${esc(d.site!)}`, h: [['Khu', esc(khuCua(d.duAn)?.ten ?? '—')], ...(d.online ? [['🟢 Đang xem', d.online] as [string, number]] : []), ...(d.canhBao ? [['⚠️', esc(d.canhBao)] as [string, string]] : []), ...(may_ ? [['⚡ Máy chủ', esc(may_.ten)] as [string, string]] : []),
         ...(d.laShop ? [['🪙 Đơn 30 ngày', so(d.don)] as [string, string]] : [['Phiên 30 ngày (mọi nguồn)', so(d.phien30)] as [string, string]]), ...tienH,
-        dongSucSong(d)],
+        dongSucSong(d), ...dongHanTenMien(d)],
         bang: ve.length ? { cot: ['Traffic', '🚗 Khách', 'Kỳ'], dong: ve.slice(0, 10).map((l) => { const t = mh.tk.find((x) => x.id === l.tu); return [t ? `${oTk(t, 10)} ${esc(t.ten)}` : esc(l.tu), l.so, t?.phienKy ?? '']; }) } : undefined };
     }
     return { dau: '', h: [] };

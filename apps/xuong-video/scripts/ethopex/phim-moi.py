@@ -132,13 +132,14 @@ def cat_hang(phim, ten, so_tho=2):
     dpm().to_soat(ra)
     return ra
 
-def cat(dat=CHI_TIEU):
+def cat(dat=CHI_TIEU, san=0):
+    """san > 0: CẮT SẴN san phim cho ngày kế tiếp không theo chỉ tiêu (Ethopex chỉ nhận lịch hôm nay / ngày mai — lô ngày kia cắt trước, lên sau 07:00)"""
     if don_mac() < 15: return print("ổ iMac còn dưới 15 GB sau khi dọn — không cắt (cắt một phim cần ~1–2 GB tạm); báo anh")
     lich, _ = chon_ngay(); print(f"cắt cho ngày {NGAY_LEN} (lịch {lich})", flush=True)
-    ds, tt, dem, ty_le, chua, san, hom_nay = so_lieu()
-    can = max(0, dat - hom_nay); so = min(len(san), math.ceil(can / max(ty_le, 0.2)))
-    if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if can else "đủ chỉ tiêu hôm nay")
-    phim = san[:so]; ten = "pm-" + vn().strftime("%d%m%H%M"); print(f"cắt {so} phim (cần {can} phim lên, tỷ lệ đạt {ty_le:.0%}) → lô {ten}", flush=True)
+    ds, tt, dem, ty_le, chua, san_, hom_nay = so_lieu()
+    can = max(0, dat - hom_nay); so = min(len(san_), math.ceil(can / max(ty_le, 0.2))) if not san else min(len(san_), san)
+    if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if (can or san) else "đủ chỉ tiêu ngày đích — muốn cắt sẵn cho ngày kia: phim-moi.py cat --san 45")
+    phim = san_[:so]; ten = "pm-" + vn().strftime("%d%m%H%M"); print(f"cắt {so} phim (cần {can} phim lên, tỷ lệ đạt {ty_le:.0%}) → lô {ten}", flush=True)
     ra = cat_hang(phim, ten)
     lo = json.load(open(os.path.join(ra, "lo.json"))); cap = {}
     for p in phim:
@@ -183,6 +184,6 @@ if __name__ == "__main__":
     elif a[0] == "poster": poster(int(ids[0]) if ids else 60)
     elif a[0] == "poster-ok": ghi({i: ("poster_ok", g) for i in ids})
     elif a[0] == "poster-loai": ghi({i: ("poster_loai", g or "poster") for i in ids})
-    elif a[0] == "cat": cat(int(ids[0]) if ids else CHI_TIEU)
+    elif a[0] == "cat": cat(san=int(a[a.index("--san") + 1])) if "--san" in a else cat(int(ids[0]) if ids else CHI_TIEU)
     elif a[0] == "len": len_(a[1])
     else: print(__doc__)

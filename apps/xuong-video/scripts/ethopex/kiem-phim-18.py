@@ -6,6 +6,8 @@ Bộ phân loại ảnh của Mac không nhận ra hở hang (poster SIMP ra "pe
   (2) TỪ KHOÁ — tên phim + chữ QC của app gốc (spy, qc-spy-phim.sql) dính từ khoá gợi dục / dàn gái → chặn
   (3) ĐÃ SOÁT HÌNH — xv_khoa_ngoai['ethopex_soat_18'] {"<content_id>": {ok, luc, ghi}}: Claude xem poster + tờ khung đoạn cắt TRƯỚC camp đầu tiên của phim
       (xem trong phiên, không gọi API trả tiền). Chưa có bản ghi = chặn; ok=false = chặn và đưa vào danh sách cấm.
+      Soát KHÔNG chỉ tìm khoả thân: cảnh ĐỤNG CHẠM / CƯỠNG ÉP TÌNH DỤC (kéo áo, đè người, "Stop!", nạn nhân khóc sau giằng co) cũng là cấm —
+      Meta từ chối #54964 Step Back 24/10/2026 vì "sexual violence" dù không lộ da. Bản ghi này duyệt PHIM; mỗi ĐOẠN mới còn qua cổng soat_doan.py.
 Gọi ở: dung-camp.sh (cổng trước Publish) · nhan-ban.py (nhân bản + camp góc mới, kể cả luật NB tự chạy).
 Chạy trên box3 (studio DB + DB spy ở /root/.secrets/spy.env):
   python3 kiem-phim-18.py <content_id>                     → in "PHIM18 OK…" (mã 0) / "PHIM18 CHAN: …" (mã 2)

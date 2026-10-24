@@ -24,6 +24,7 @@ import { uploadToR2 } from '../src/lib/r2';
 import type { Canh, NhanVat } from '../src/lib/xuong-video/kieu';
 import { svgPhac, type ManhSoDo, type MangPhong, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { loiTrangThaiVat } from '../src/lib/xuong-video/kiem-prompt';
+import { catDo } from '../src/lib/xuong-video/cat-do';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')); if (!tap) { console.error('cần --tap=<id>'); process.exit(1); }
@@ -40,7 +41,7 @@ const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`
 const nv: NhanVat[] = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)).map(mapNhanVat));
 const CO: Record<string, string> = { ws: 'Wide shot', ms: 'Medium two-shot', mcu: 'Medium close-up', cu: 'Close-up', insert: 'Insert close-up', ecu: 'Extreme close-up' };
 // --so-do=<bảng mảnh JSON có so_do> → tầng 1 kèm TỜ PHÁC BỐ TRÍ (so-do-canh.ts › svgPhac) làm ảnh 1: lưới cố định + chỗ người / nền / hướng nhìn đúng sơ đồ
-const bm = gia('so-do') ? JSON.parse(readFileSync(gia('so-do')!, 'utf8')) as { so_do: SoDo & { phong?: MangPhong[] }; nguoi: string[]; mau?: Record<string, string>; shot: { sd?: ManhSoDo }[] } : null;
+const bm = gia('so-do') ? JSON.parse(readFileSync(gia('so-do')!, 'utf8')) as { so_do: SoDo & { phong?: MangPhong[] }; nguoi: string[]; mau?: Record<string, string>; shot: { sd?: ManhSoDo }[]; ten_en?: Record<string, string> } : null;
 const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc giữa các tầng (URL) — chạy lại từng tầng không mất tầng trên
 const moc: { t1?: string; t2?: Record<number, string>; khoi?: string[]; khoiSo?: string[] } = existsSync(TEP) ? JSON.parse(readFileSync(TEP, 'utf8')) : {};
 const luu = () => writeFileSync(TEP, JSON.stringify(moc, null, 1));
@@ -175,7 +176,7 @@ if (!chiCat && (tang === '1' || (tang === 'tat-ca' && !moc.t1)) && !gia('t1')) {
   luu(); await ghiTap({ t1: moc.t1 }); console.log(`tầng 1: ${moc.t1}`);
 }
 if (chiCat) { if (!moc.t1 && !gia('bang')) { console.error('chưa có ảnh tầng 1 / --bang'); process.exit(1); }
-  const b = await tai(gia('bang') || moc.t1); const d = await doKhung(b, ds.length);
+  const b = await tai((gia('bang') || moc.t1)!); const d = await doKhung(b, ds.length);
   for (const [i, k] of d.khung.entries()) await sharp(b).extract({ left: k.x0 + 3, top: k.y0 + 3, width: k.x1 - k.x0 - 6, height: k.y1 - k.y0 - 6 }).toFile(`/tmp/bang-${tap}-${i + 1}.jpg`);
   console.log(`dò được ${d.khung.length} khung (${d.mo_ta}) — cần ${ds.length}`); process.exit(0);
 }
@@ -263,7 +264,14 @@ if (tang === 'khoi') {
     const phacKhoi = (await luoiPhacKhung(nhom, cot2, `khoi-${nhom[0]!.key}`)).tron;
     const shotKhoi = [...new Map(nhom.map((k) => [k.c.id, k.c])).values()];
     const ncAnh = nhom.flatMap((k, i) => (k.nguCanh ? [[`the real frame of PANEL ${i + 1} (context — copy it)`, k.nguCanh] as [string, string]] : []));
-    const refs = [...ncAnh, ...thamChieu(shotKhoi.filter((c) => nhom.some((k) => !k.nguCanh && k.c.id === c.id)), (truoc ? 6 : 7) - ncAnh.length)]; const lech = truoc ? 3 : 2;
+    // ÉP ĐỒ BẰNG ẢNH (cat-do.ts): món đồ có trạng thái trong khối, cắt từ khung thật của ô ngữ cảnh liền trước (đúng trạng thái lúc đó) làm ảnh mẫu — chữ
+    // "snapped lanyard in her fist" không ép được model, ảnh thì ép được. Chỉ khi món đó cũng có trạng thái ở ô ngữ cảnh (cùng mốc sổ, chưa đổi)
+    const ncTruoc = nhom.find((k) => k.nguCanh); const doAnh: [string, string][] = [];
+    if (ncTruoc && !process.argv.includes('--khong-cat-do')) for (const v of (nhom.find((k) => !k.nguCanh)?.vatSo ?? []).slice(0, 2)) {
+      if (!ncTruoc.vatSo?.some((x) => x.ten === v.ten && x.cach === v.cach)) continue;   // trạng thái đã đổi so với ô ngữ cảnh → ảnh cũ sai, không dùng
+      const en = bm.ten_en?.[v.ten] ?? v.ten; const r = await catDo(db, phimId, ncTruoc.nguCanh!, en, v.cach).catch(() => null);
+      if (r) { doAnh.push([`${en} exactly as it looks right now in this scene (cut from the previous shot) — copy its state, colour and how it is held`, r.url]); console.log(`  ảnh đồ ${v.ten} từ ${ncTruoc.nhan}: ${r.url}`); } }
+    const refs = [...ncAnh, ...doAnh, ...thamChieu(shotKhoi.filter((c) => nhom.some((k) => !k.nguCanh && k.c.id === c.id)), (truoc ? 6 : 7) - ncAnh.length - doAnh.length)]; const lech = truoc ? 3 : 2;
     const prompt = [`A film storyboard sheet of EXACTLY ${nhom.length} separate panels (${cot2} columns × ${hang2} rows, read left to right, top to bottom), every panel a vertical 9:16 photorealistic live-action film still of equal size, separated by thin plain white gutters. Consecutive panels can be the FIRST, MIDDLE and LAST moments of the same shot: keep that shot's camera and framing identical between them and change only what the action changes. ${KHONG_CHU}`,
       `Image 1 is the BLOCKING SKETCH of this exact sheet: the same grid and panel order. In every panel copy its camera framing and staging exactly — where the back wall, the elevator doors (light grey) and the gold painting (yellow) are, where each person stands and how big they are (${mauChu}; two dark dots = the face turned toward us, a dark head = seen from behind), and the red arrow = the direction that person looks. Turn the sketch into photorealistic film stills; never draw the sketch shapes, colours or arrows themselves.`,
       ...(truoc ? ['Image 2 is an EARLIER sheet of this same scene: keep exactly the same place, light, faces, hair and outfits. Object states follow the panel descriptions below (they may have changed since that sheet).'] : []),

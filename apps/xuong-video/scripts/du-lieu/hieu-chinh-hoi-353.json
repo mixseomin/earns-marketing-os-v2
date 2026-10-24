@@ -1,0 +1,17 @@
+{
+  "ghi": "BỘ MẪU hiệu chỉnh bước hỏi khung (soi-cau-hoi.ts) — phim #353 tập 356, 25/10/2026. 'dung' = khung đã soát mắt là ĐÚNG mọi câu; 'sai' = mã câu phải trả 'không'. Khung clip lấy từ đoạn đã dùng trên box3 /tmp/soat-noi-356 (sau soat-huong); khung lỗi là keyframe / khung cũ còn trên kho.",
+  "mau": [
+    { "canh": 1830, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1830-65c5e917-c31f-4a38-853c-5f9a4a736599.png", "sai": ["vang:Thẻ nhân viên"], "ghi": "#13 cũ: Hạ vẫn đeo dây thẻ đã bị giật" },
+    { "canh": 1830, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1830-5ce5ae53-0e72-4a38-abe2-16fe53d4c786.png", "dung": true, "ghi": "#13 mới" },
+    { "canh": 1825, "luc": "ket", "url": "https://img.on.tc/xuong-video/keyframe/1825-7fdb3678-36ca-4623-99c8-378560df8d0f.png", "sai": ["ket"], "ghi": "#8 cũ: nắm tay trống, không có dây thẻ" },
+    { "canh": 1825, "luc": "ket", "url": "https://img.on.tc/xuong-video/keyframe/1825-bbbc96ed-591a-43ce-a2a5-de4d7713594b.png", "dung": true, "ghi": "#8 mới: nắm tay cầm dây thẻ" },
+    { "canh": 1833, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1833-350378dc-e8a2-44c0-8a43-bc3a7b0b1d5d.png", "dung": true, "ghi": "#16 mới chỉ Vivian" },
+    { "canh": 1824, "luc": "ket", "url": "https://img.on.tc/xuong-video/keyframe/1824-ab089718-138c-42de-b79c-c40b3afcbf73.png", "sai": ["vat:Thẻ nhân viên"], "ghi": "#7 cũ: Vivian đeo thẻ lên cổ thay vì nắm dây đứt" },
+    { "canh": 1824, "luc": "ket", "url": "https://img.on.tc/xuong-video/keyframe/1824-860e0581-c051-4efb-b6f9-3b20536e5d8d.png", "dung": true, "ghi": "#7 mới" },
+    { "canh": 1822, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1822-eb720b4f-f4fd-4fd2-b4f8-51edd384ce25.png", "sai": ["dang:Vivian"], "ghi": "#5 cũ: tay Vivian đã giơ lên vai Hạ ở khung đầu" },
+    { "canh": 1822, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1822-9d5fc7f0-16bb-41ab-8c30-a854c1de0a0a.png", "dung": true, "ghi": "#5 mới: tay buông" },
+    { "canh": 1820, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1820-18deb3e4-a618-4e03-a661-f7872c40507f.png", "sai": ["co:Vivian"], "ghi": "#3 cũ: thiếu Vivian ở khung đầu" },
+    { "canh": 1820, "luc": "dau", "url": "https://img.on.tc/xuong-video/keyframe/1820-375da02a-4adb-48e0-84ca-b17db6449bde.png", "dung": true, "ghi": "#3 mới" }
+  ],
+  "them_clip": "mọi khung clip_dau / clip_ket hiện có trong /tmp/soat-noi-<tap>/ của các shot đã soát mắt đạt (--clip-dat=<thu_tu,...>) được thêm làm mẫu 'dung'"
+}

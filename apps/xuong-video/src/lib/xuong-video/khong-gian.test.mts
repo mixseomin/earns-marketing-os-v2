@@ -139,3 +139,17 @@ console.log('khong-gian.test: ok (luật nối mới)');
   const h = (n: number) => cauHoiKhung({ canh: { ...S(n), khung_xam: null, may_3d: null, dan_dung: {} } as never, nhanVat: NV as never, kg }).map((q) => q.ma);
   assert.ok(h(13).includes('vang:Thẻ nhân viên'), h(13).join(',')); assert.ok(!h(3).some((x) => x.startsWith('vang:'))); }
 console.log('khong-gian.test: ok (câu hỏi vắng mặt)');
+// ĐO ĐẦU RA cho luật từng chỉ là chữ: kỳ vọng từ sơ đồ + số đo giả lập → lỗi đúng ca, không báo bừa
+{ const { kyVongDoc, kyVongSang, kyVongKhoangCach, loiDoThem } = await import('./khong-gian');
+  assert.strictEqual(kyVongDoc(kg, S(13), 'Lâm Hạ'), -1, '#13 Hạ nhìn Thần cao hơn → ngước'); assert.strictEqual(kyVongDoc(kg, S(4), 'Vivian'), 1, 'Vivian nhìn Hạ thấp hơn → xuống'); assert.strictEqual(kyVongDoc(kg, S(1), 'Lâm Hạ'), null, 'nhìn cửa: không kỳ vọng dọc');
+  assert.strictEqual(kyVongSang(kg, S(12)), -1, '#12 đèn bên trái màn'); assert.strictEqual(kyVongKhoangCach(kg, S(5), 'Lâm Hạ', 'Vivian'), 'sat');
+  const ha = (doc: number, ha = 0) => ({ ten: 'Lâm Hạ', tin: true, o: { x: 0.5, y: 0.4 }, hop: [0.4, 0.3, 0.2, 0.3], sang: -0.1, nhin: { doc, net: { ha, cuoi: 0, nhiu: 0, mim: 0 } } });
+  const l13 = loiDoThem(kg, S(13), 'dau', [ha(20)], false); assert.ok(l13.some((x) => x.chu.includes('lẽ ra ngước lên')), JSON.stringify(l13));
+  assert.deepStrictEqual(loiDoThem(kg, S(13), 'dau', [ha(-6)], false), [], 'ngước đúng, miệng khép, sáng phải ở #13 (đèn phía máy → không phán)');
+  assert.ok(loiDoThem(kg, S(13), 'dau', [ha(-6, 0.4)], false).some((x) => x.chu.includes('há miệng')), 'không thoại mà há miệng');
+  assert.deepStrictEqual(loiDoThem(kg, S(13), 'dau', [ha(-6, 0.4)], true), [], 'có thoại thì miệng mở được');
+  const sangSai = { ...ha(-6), sang: 0.2 }; assert.ok(loiDoThem(kg, S(12), 'dau', [{ ...sangSai, ten: 'Lục Thần' }], true).some((x) => x.chu.includes('sáng từ PHẢI')), '#12 đèn trái mà mặt sáng phải');
+  const gan = [{ ten: 'Lâm Hạ', tin: true, o: { x: 0.3, y: 0.4 }, hop: [0.2, 0.3, 0.2, 0.3] }, { ten: 'Vivian', tin: true, o: { x: 0.7, y: 0.4 }, hop: [0.6, 0.3, 0.2, 0.3] }];
+  assert.deepStrictEqual(loiDoThem(kg, S(5), 'dau', gan, false), [], 'cách 2 bề rộng mặt = sát, đúng sơ đồ');
+  const xa = gan.map((g) => ({ ...g, hop: [g.hop[0]!, 0.3, 0.05, 0.08] })); assert.ok(loiDoThem(kg, S(5), 'dau', xa, false).some((x) => x.chu.includes('sơ đồ nói đứng sát')), 'cách 8 bề rộng mặt mà sơ đồ nói sát'); }
+console.log('khong-gian.test: ok (đo đầu ra luật chữ)');

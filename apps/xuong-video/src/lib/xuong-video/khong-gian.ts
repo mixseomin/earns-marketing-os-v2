@@ -4,7 +4,7 @@
 // shot), SỔ DÁNG + SỔ ĐỒ VẬT (so-vat.ts) — module này trả cùng những câu hỏi 3D trả: ai trong khung · ai thấy mặt · nhìn phía nào · đứng đâu trên màn ·
 // dáng gì · đi bao xa · lỗi mạch tập. Bộ chấm: có may_3d → nhánh 3D như cũ; không → hỏi đây; không có cả hai → "chưa chấm", KHÔNG cho điểm.
 // Thuần — tự kiểm: khong-gian.test.mts
-import { doSau, huongMan, loiCanMat, loiTruc, NUA_LUNG, viTriMan, type ManhSoDo, type SoDo } from './so-do-canh';
+import { doSau, huongMan, khoangCach, loiCanMat, loiTruc, NUA_LUNG, phiaSang, viTriMan, type ManhSoDo, type SoDo } from './so-do-canh';
 import { daMat, loiSoVat, trangThai, type LucKhung, type SoVat } from './so-vat';
 
 /** xv_tap.khong_gian — ghi bởi scripts/dung-phim-reelshort.mts từ bảng mảnh. */
@@ -202,5 +202,51 @@ export function loiDoDang(ten: string, kv: KyVongDang, k: { nhin?: { doc: number
   for (const b of ['phai', 'trai'] as const) { const can = kv[b], co = k.tay?.[b]; if (!can || !co || can === co) continue;
     // chỉ chỗ TRÁI NGƯỢC RÕ: buông ↔ giơ cao, vươn tới ↔ buông thõng (tay đan trước bụng 'giua' khi sổ ghi buông là AI vẽ tự nhiên, không phải lỗi nối)
     if ((can === 'thap' && co === 'cao') || (can === 'cao' && co === 'thap') || (can === 'giua' && co === 'thap')) out.push(`${ten} tay ${b === 'phai' ? 'phải' : 'trái'} ${TEN[co as keyof typeof TEN]}, sổ dáng cần ${TEN[can]}`); }
+  return out;
+}
+// ── ĐO ĐẦU RA cho các luật trước đây CHỈ LÀ CHỮ (anh 25/10/2026: "đa phần đều kiểu update vào prompt chứ không có giải pháp kỹ thuật") ────────────────
+// Mỗi luật: KỲ VỌNG từ sơ đồ / sổ → SO với số đo trên khung thật (soi-mat.py: net.ha, nhin.doc, sang, hop). Ngưỡng ban đầu ghi cạnh; mức 'canh' cho tới khi
+// hiệu chỉnh trên bộ mẫu thật (scripts/hieu-chinh-do.mts), 'chan' khi đã đo được tỉ lệ báo nhầm.
+export type MucDo = 'chan' | 'canh';
+export type DoMat = { ten: string; tin?: boolean; o?: { x: number; y: number }; hop?: number[]; sang?: number; nhin?: { doc: number; net?: { ha: number; cuoi: number; nhiu: number; mim: number } } };
+/** Kỳ vọng ÁNH NHÌN DỌC của A (−1 ngước lên · 1 nhìn xuống · 0 ngang · null không khai) — từ chiều cao mắt (sơ đồ mat_cao) của A và người A nhìn. */
+export function kyVongDoc(kg: KhongGian, c: Shot, ten: string, luc: LucKhung = 'dau'): -1 | 0 | 1 | null {
+  const b = dichNhin(c, ten, luc); const ha = kg.so_do.mat_cao?.[ten], hb = b ? kg.so_do.mat_cao?.[b] : undefined; if (ha == null || hb == null) return null;
+  return hb - ha >= 0.08 ? -1 : ha - hb >= 0.08 ? 1 : 0;
+}
+/** Kỳ vọng PHÍA SÁNG trên mặt (−1 trái màn · 1 phải màn · 0 trước / sau · null không khai đèn). */
+export function kyVongSang(kg: KhongGian, c: Shot, luc: LucKhung = 'dau'): -1 | 0 | 1 | null {
+  const m = sdLuc(c, luc); if (!m) return null; const p = phiaSang(kg.so_do, m, kg.nguoi); if (!p) return null; return Math.abs(p.ngang) < 0.25 ? 0 : p.ngang < 0 ? -1 : 1;
+}
+/** Kỳ vọng KHOẢNG CÁCH A–B ('sat' ≤ 1,2 m · 'xa' ≥ 3 m · null giữa chừng / không khai). */
+export function kyVongKhoangCach(kg: KhongGian, c: Shot, a: string, b: string, luc: LucKhung = 'dau'): 'sat' | 'xa' | null {
+  const m = sdLuc(c, luc); if (!m) return null; const kc = khoangCach(kg.so_do, m, a, b); return kc == null ? null : kc <= 1.2 ? 'sat' : kc >= 3 ? 'xa' : null;
+}
+export const NGUONG_DO = {
+  /** jawOpen trên mức này ở shot KHÔNG thoại = miệng mở như đang nói (đo cần hiệu chỉnh: nói ~0,3–0,6, khép < 0,1) */ ha_mieng: 0.22,
+  /** độ cúi (°) ngược chiều kỳ vọng quá mức này mới báo (ngước lên = doc âm) */ doc_nguoc: 8,
+  /** |sang| dưới mức này coi như sáng đều — không phán phía */ sang_min: 0.06,
+  /** tỉ số khoảng cách hai tâm mặt / bề rộng mặt trung bình: sát ≤ 3,5 · xa ≥ 7 (chỉ khi hai mặt cùng cỡ ±40%, cùng độ sâu) */ sat_max: 3.5, xa_min: 7,
+} as const;
+/** So số đo một khung với kỳ vọng — trả lỗi kèm mức. coThoai = shot có lời của người trong khung (miệng được mở). */
+export function loiDoThem(kg: KhongGian, c: Shot & { thu_tu: number }, luc: LucKhung, ket: DoMat[], coThoai: boolean): { chu: string; muc: MucDo }[] {
+  const out: { chu: string; muc: MucDo }[] = []; const tin = ket.filter((k) => k.tin !== false);
+  for (const k of tin) {
+    // MIỆNG KHÉP khi không thoại (luat im_lang_khep_mieng)
+    if (!coThoai && k.nhin?.net && k.nhin.net.ha > NGUONG_DO.ha_mieng) out.push({ chu: `${k.ten} há miệng (${k.nhin.net.ha}) ở shot không có thoại — như đang nói`, muc: 'canh' });
+    // ÁNH NHÌN DỌC (luat anh_mat_doc_goc_may): ngước lên = doc âm
+    const kd = kyVongDoc(kg, c, k.ten, luc); const d = k.nhin?.doc;
+    // kỳ vọng ngước lên (kd = −1) mà đo cúi rõ (d > ngưỡng), hoặc kỳ vọng nhìn xuống (kd = 1) mà đo ngẩng rõ (d < −ngưỡng)
+    if (kd != null && d != null && ((kd === -1 && d > NGUONG_DO.doc_nguoc) || (kd === 1 && d < -NGUONG_DO.doc_nguoc))) out.push({ chu: `${k.ten} ${kd < 0 ? 'lẽ ra ngước lên' : 'lẽ ra nhìn xuống'} (người kia ${kd < 0 ? 'cao' : 'thấp'} hơn) mà đo ${d > 0 ? 'cúi' : 'ngẩng'} ${Math.abs(d)}°`, muc: 'canh' });
+    // PHÍA SÁNG (luat lien_tuc_anh_sang)
+    const ks = kyVongSang(kg, c, luc);
+    if (ks != null && ks !== 0 && k.sang != null && Math.abs(k.sang) >= NGUONG_DO.sang_min && Math.sign(k.sang) !== ks) out.push({ chu: `${k.ten} sáng từ ${k.sang > 0 ? 'PHẢI' : 'TRÁI'} màn (${k.sang}), đèn chính trong sơ đồ ở ${ks < 0 ? 'TRÁI' : 'PHẢI'}`, muc: 'canh' });
+  }
+  // KHOẢNG CÁCH hai người cùng khung (luat cham_tam_voi): tỉ số khoảng tâm / bề rộng mặt
+  for (let i = 0; i < tin.length; i++) for (let j = i + 1; j < tin.length; j++) { const a = tin[i]!, b = tin[j]!; if (!a.o || !b.o || !a.hop || !b.hop) continue;
+    const wa = a.hop[2]!, wb = b.hop[2]!; if (!wa || !wb || Math.max(wa, wb) / Math.min(wa, wb) > 1.4) continue;   // khác cỡ mặt = khác độ sâu, tỉ số vô nghĩa
+    const ti = Math.abs(a.o.x - b.o.x) / ((wa + wb) / 2); const kv = kyVongKhoangCach(kg, c, a.ten, b.ten, luc);
+    if (kv === 'sat' && ti > NGUONG_DO.xa_min) out.push({ chu: `${a.ten} và ${b.ten} cách nhau ${ti.toFixed(1)} bề rộng mặt — sơ đồ nói đứng sát`, muc: 'canh' });
+    if (kv === 'xa' && ti < NGUONG_DO.sat_max) out.push({ chu: `${a.ten} và ${b.ten} chỉ cách ${ti.toFixed(1)} bề rộng mặt — sơ đồ nói đứng xa`, muc: 'canh' }); }
   return out;
 }

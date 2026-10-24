@@ -36,6 +36,15 @@ const raXa = (s: SoDo, m: ManhSoDo, a: string | Diem, b: string | Diem) => (doSa
 export const NUA_LUNG = 0.3;
 const BEN = (x: number) => (x < -0.33 ? 'screen left' : x > 0.33 ? 'screen right' : 'center frame');
 const PHIA = (h: -1 | 0 | 1) => (h < 0 ? 'toward screen left' : h > 0 ? 'toward screen right' : 'straight ahead past the lens');
+/** PHÍA ĐÈN CHÍNH so với máy: ngang −1..1 (+ = từ phải màn), sâu (+ = sau chủ thể) — MỘT nguồn cho câu prompt (cauHuong) và máy đo phía sáng mặt (khong-gian.ts). */
+export function phiaSang(s: SoDo, m: ManhSoDo, nguoi: string[]): { ngang: number; sau: number } | null {
+  if (!s.den) return null; const thay = (n: string) => m.o[n] != null && (!m.khung || m.khung.includes(n));
+  const ps = nguoi.filter(thay).map((n) => diem(s, m, n)).filter((p): p is Diem => !!p);
+  const tam: Diem | null = ps.length ? [ps.reduce((x, p) => x + p[0], 0) / ps.length, ps.reduce((y, p) => y + p[1], 0) / ps.length] : s.may[m.may]?.nhin ?? null; if (!tam) return null;
+  const t2 = truc(s, m.may); const v = tru(s.den.tu, tam); const l = Math.hypot(...v) || 1; return { ngang: cham(v, t2.phai) / l, sau: cham(v, t2.fw) / l };
+}
+/** KHOẢNG CÁCH giữa hai người trong sơ đồ (m). */
+export const khoangCach = (s: SoDo, m: ManhSoDo, a: string, b: string): number | null => { const pa = diem(s, m, a), pb = diem(s, m, b); return pa && pb ? Math.hypot(pa[0] - pb[0], pa[1] - pb[1]) : null; };
 /** Câu hướng tiếng Anh cho prompt (dan_dung.huong): chỗ đứng trên màn, ánh mắt, phía đi vào. tenEn = tên đưa model cho mốc / đồ (tiếng Anh). */
 export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: string) => string = (t) => t): string {
   const out: string[] = [];
@@ -70,9 +79,8 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
     if (may?.cao != null && chinh && hm != null) { const d = may.cao - hm;
       out.push(d >= 0.25 ? `High angle: the camera is above ${chinh}'s eyes and looks down on ${chinh}` : d <= -0.25 ? `Low angle: the camera is below ${chinh}'s eyes and looks up at ${chinh}` : 'Eye-level camera'); } }
   // ĐÈN CHÍNH (lighting continuity): phía sáng trên màn tính từ chỗ đèn so với chủ thể — mọi góc máy cùng cảnh giữ đúng một phía
-  if (s.den) { const tam = (() => { const ps = nguoi.filter(thay).map((n) => diem(s, m, n)).filter((p): p is Diem => !!p); return ps.length ? [ps.reduce((x, p) => x + p[0], 0) / ps.length, ps.reduce((y, p) => y + p[1], 0) / ps.length] as Diem : s.may[m.may]?.nhin ?? null; })();
-    if (tam) { const t2 = truc(s, m.may); const v = tru(s.den.tu, tam); const l = Math.hypot(...v) || 1; const ngang = cham(v, t2.phai) / l, sau = cham(v, t2.fw) / l;
-      const phia = Math.abs(ngang) < 0.25 ? (sau > 0 ? 'from behind the subjects (backlight, rim on hair and shoulders)' : 'from the camera side, frontal') : `from screen ${ngang < 0 ? 'left' : 'right'}${sau > 0.4 ? ' and slightly behind (rim light)' : ''}`;
+  if (s.den) { const ps = phiaSang(s, m, nguoi);
+    if (ps) { const phia = Math.abs(ps.ngang) < 0.25 ? (ps.sau > 0 ? 'from behind the subjects (backlight, rim on hair and shoulders)' : 'from the camera side, frontal') : `from screen ${ps.ngang < 0 ? 'left' : 'right'}${ps.sau > 0.4 ? ' and slightly behind (rim light)' : ''}`;
       out.push(`Key light${s.den.ten ? ` (${s.den.ten})` : ''} comes ${phia} — faces are lit on that side; keep this light direction`); } }
   return out.join('; ');
 }

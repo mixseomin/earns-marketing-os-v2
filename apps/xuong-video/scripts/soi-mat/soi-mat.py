@@ -61,7 +61,7 @@ def _lm():
             import mediapipe as mp
             from mediapipe.tasks import python as mpt
             from mediapipe.tasks.python import vision as mv
-            _LM = (mp, mv.FaceLandmarker.create_from_options(mv.FaceLandmarkerOptions(base_options=mpt.BaseOptions(model_asset_path=f'{MO}/face_landmarker.task'), output_facial_transformation_matrixes=True, num_faces=6)))
+            _LM = (mp, mv.FaceLandmarker.create_from_options(mv.FaceLandmarkerOptions(base_options=mpt.BaseOptions(model_asset_path=f'{MO}/face_landmarker.task'), output_facial_transformation_matrixes=True, output_face_blendshapes=True, num_faces=6)))
         except Exception as e:
             print(f'không đo hướng nhìn: {e}', file=sys.stderr); _LM = False
     return _LM
@@ -108,14 +108,20 @@ def nhin_mat(im):
     mp, lm = L
     r = lm.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(im, cv2.COLOR_BGR2RGB)))
     out = []
-    for f, M in zip(r.face_landmarks, r.facial_transformation_matrixes):
+    bss = r.face_blendshapes or [None] * len(r.face_landmarks)
+    for f, M, bs in zip(r.face_landmarks, r.facial_transformation_matrixes, bss):
+        # NÉT MẶT đo được (MediaPipe blendshapes 0..1): ha = há miệng (jawOpen) · cuoi = mouthSmile · nhiu = browDown · mim = mouthPress — cho luật
+        # "không thoại thì miệng khép" và đối chiếu kế hoạch diễn (luat-dung › im_lang_khep_mieng, ke_hoach_dien)
+        b = {c.category_name: c.score for c in bs} if bs else {}
+        tb2 = lambda a, c: round((b.get(a, 0) + b.get(c, 0)) / 2, 2)
+        net = {'ha': round(b.get('jawOpen', 0), 2), 'cuoi': tb2('mouthSmileLeft', 'mouthSmileRight'), 'nhiu': tb2('browDownLeft', 'browDownRight'), 'mim': tb2('mouthPressLeft', 'mouthPressRight')} if b else None
         R = np.array(M)[:3, :3]; yaw = math.degrees(math.atan2(R[0, 2], R[2, 2])); doc_ = math.degrees(math.asin(-max(-1.0, min(1.0, R[1, 2]))))
         ti = lambda i, a, b: (f[i].x - f[a].x) / ((f[b].x - f[a].x) or 1e-6)
         ix = (ti(468, 33, 133) + ti(473, 362, 263)) / 2 - 0.5   # con ngươi: mắt phải người (33 ngoài → 133 trong) + mắt trái (362 trong → 263 ngoài)
         # mắt xoay θ: con ngươi lệch 12·sinθ mm trên mắt rộng ~30 mm → θ = asin(2,5 · lệch). Trước 19/10/2026 lấy 60 × lệch: ảnh sửa #2 con ngươi
         # lệch 0,17 (liếc rõ sang bên, ~25°) chỉ ra +10° → máy chấm "nhìn ống kính" một ảnh đã nhìn đúng phía.
         mat_ = math.degrees(math.asin(max(-1.0, min(1.0, 2.5 * ix))))
-        out.append({'x': round(sum(p.x for p in f) / len(f), 3), 'y': round(sum(p.y for p in f) / len(f), 3), 'g': round(yaw + mat_, 1), 'dau': round(yaw, 1), 'mat': round(ix, 2), 'doc': round(doc_, 1)})
+        out.append({'x': round(sum(p.x for p in f) / len(f), 3), 'y': round(sum(p.y for p in f) / len(f), 3), 'g': round(yaw + mat_, 1), 'dau': round(yaw, 1), 'mat': round(ix, 2), 'doc': round(doc_, 1), **({'net': net} if net else {})})
     return out
 
 def cos(a, b): return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
@@ -244,8 +250,14 @@ for a in vao.get('anh', []):
         o = {'x': round((float(hop[0]) + float(hop[2]) / 2) / W, 3), 'y': round((float(hop[1]) + float(hop[3]) / 2) / H, 3)}
         hn = min(nm, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # mặt MediaPipe trùng mặt YuNet đã gán
         hn = hn if hn and abs(hn['x'] - o['x']) < 0.08 and abs(hn['y'] - o['y']) < 0.08 else None
+        # PHÍA SÁNG trên mặt (luat-dung › lien_tuc_anh_sang): độ sáng trung bình nửa phải trừ nửa trái hộp mặt, chuẩn hoá −1..1 (+ = sáng từ phải màn)
+        x0, y0, fw, fh = [int(float(q)) for q in hop]; x0, y0 = max(0, x0), max(0, y0); vg = cv2.cvtColor(im[y0:y0 + fh, x0:x0 + fw], cv2.COLOR_BGR2GRAY) if fw > 8 and fh > 8 else None
+        sang = None
+        if vg is not None and vg.size:
+            tr, ph = float(vg[:, : vg.shape[1] // 2].mean()), float(vg[:, vg.shape[1] // 2:].mean()); sang = round((ph - tr) / ((ph + tr) or 1), 3)
+        hopn = [round(x0 / W, 3), round(y0 / H, 3), round(fw / W, 3), round(fh / H, 3)]
         pt = min(tt, key=lambda q: (q['x'] - o['x']) ** 2 + (q['y'] - o['y']) ** 2, default=None)   # tư thế có mũi gần tâm mặt đã gán
         pt = pt if pt and abs(pt['x'] - o['x']) < 0.12 and abs(pt['y'] - o['y']) < 0.12 else None
-        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'tin': g >= NGUONG and not sat, 'o': o, **({'tay': pt['tay']} if pt else {}), **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
+        ket.append({'ten': t, 'giong': round(g, 3), 'dat': nho or ng or g >= NGUONG, 'tin': g >= NGUONG and not sat, 'o': o, 'hop': hopn, **({'sang': sang} if sang is not None else {}), **({'tay': pt['tay']} if pt else {}), **({'nho': True} if nho else {}), **({'nghieng': True} if ng else {}), **({'nhin': {k: hn[k] for k in ('g', 'dau', 'mat', 'doc')}} if hn else {})})
     ra['anh'].append({'id': a['id'], 'mat': len(mat), 'ket': ket})
 print(json.dumps(ra, ensure_ascii=False))

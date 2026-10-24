@@ -320,7 +320,10 @@
       '<div style="font-size:11px;opacity:.75">ROI 30 ngày · ' + (lai >= 0 ? 'lãi +' : 'lỗ −') + '$' + Math.abs(lai).toFixed(2) + '</div></div>' +
       '<div style="flex:1;min-width:0">' + cot7(n7, 140, 34) + '<div style="font-size:10px;opacity:.6">ROI 7 ngày</div></div>' +
       '<div style="width:64px">' + o3('h.nay', hn) + '</div></div>';
-    hien('<b>🎬 ' + esc(ten) + '</b>' + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'lịch + nhân bản chờ') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ô / cột: số tiền · rê ảnh: video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
+    // CẢNH BÁO PHIM BÃO HOÀ (anh 25/10/2026): nhiều camp cùng phim giành cùng tệp người xem → ROI phim tụt; máy dừng nhân bản phim này, dọn đoạn quá tải
+    const bh = r.bh ? '<div title="' + esc((r.bh.bao_hoa || '') + (r.bh.chan_nb ? ' · Dừng nhân bản: ' + r.bh.chan_nb : '')) + '" style="margin:4px 0;padding:4px 8px;border-radius:6px;background:rgba(255,183,77,.15);color:#ffb74d;font-size:12px;cursor:help">⚠ ' +
+      (r.bh.bao_hoa ? 'Phim bão hoà — ' + esc(r.bh.bao_hoa.split(' — ')[0]) : 'Dừng nhân bản — ' + esc(r.bh.chan_nb)) + '</div>' : '';
+    hien('<b>🎬 ' + esc(ten) + '</b>' + bh + (loai ? ' · <b style="color:#ffd54f">chỉ ' + esc(LOAI_TAT[loai]?.[1] || loai) + '</b>' : '') + (kieu ? ' · <b style="color:' + (kieu === 'chay' ? '#7bd88f' : '#ffd54f') + '">chỉ camp ' + (kieu === 'chay' ? 'đang chạy' : 'lịch + nhân bản chờ') + '</b>' : '') + ' · ' + ds.length + ' creative · ' + (loai || kieu ? ds.reduce((a, c) => a + c.camp.length, 0) : r.so_camp) + ' camp <span style="opacity:.6">(rê vào ô / cột: số tiền · rê ảnh: video · bấm ảnh: ghim)</span>' + dauKhung + the, ev);
   };
 
   document.addEventListener('mouseover', (ev) => {

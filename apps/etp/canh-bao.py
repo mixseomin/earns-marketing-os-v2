@@ -7,6 +7,7 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   bo_ngung     một bộ tài khoản: có camp đang bật, hôm qua chi ≥ $20, hôm nay 0 sau 4 giờ UTC → có thể tài khoản / Page bị khoá
   tu_choi_loat ≥ TU_CHOI_LOAT ad bị Meta từ chối cùng lúc (khả năng Page / tên miền bị gắn cờ)
   dong_bo_tre  lượt đồng bộ gần nhất lỗi
+  phim_bao_hoa  > 10 camp và ROI phim giảm 2 ngày liền (bảng etp.phim_bao_hoa: chan_nb cho luật NB, bao_hoa cho Telegram / etp / extension)
   roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)"""
 import datetime as dt, json, os, subprocess
 CHI_VUOT, ROI_SUP_CHI, ROI_SUP, TU_CHOI_LOAT = 1.6, 100, -35, 5
@@ -18,6 +19,38 @@ def q(s):
 def bao(loai, muc, khoa, chu):
     j = json.dumps([{"loai": loai, "muc": muc, "khoa": khoa, "noi_dung": chu}], ensure_ascii=False)
     q(f"insert into etp.canh_bao (loai, muc, khoa, noi_dung) select loai, muc, khoa, noi_dung from jsonb_to_recordset($J${j}$J$::jsonb) as x(loai text, muc text, khoa text, noi_dung text) on conflict (khoa) do nothing")
+
+# BÃO HOÀ PHIM (anh 25/10/2026): nhiều camp cùng phim giành cùng tệp người xem → ROI cả phim tụt theo ngày (Number One 30 camp 148→106→76%,
+# Dear Brother 16 camp 59→22→−8%; phim ít camp giữ ROI). Ngày trọn = ngày Ethopex (UTC) D−1, D−2, D−3.
+#   chan_nb (B — luật NB đọc): ROI phim hôm qua < 50% hoặc < 70% ROI hôm kia (chi hôm qua ≥ $10) → không nhân bản thêm camp phim này
+#   bao_hoa (D — Telegram / etp / extension): > 10 camp đang chạy và ROI phim giảm 2 ngày liền (mỗi ngày chi ≥ $5)
+BH_CAMP, NB_ROI_PHIM, NB_GIU = 10, 50, 0.7
+def bao_hoa_phim(nay):
+    d = [(nay - dt.timedelta(days=k)).isoformat() for k in (1, 2, 3)]
+    rows = q(f"""with c as (select content_id, count(*) filter (where trang_thai = 'ACTIVE') so from etp.camp where content_id is not null group by 1),
+                 s as (select k.content_id, s.ngay, sum(s.chi) chi, sum(s.thu) thu from etp.so_ngay s join etp.camp k using (camp_id)
+                       where s.ngay in ('{d[0]}', '{d[1]}', '{d[2]}') group by 1, 2)
+             select c.content_id, coalesce(p.ten, ''), c.so, coalesce(json_agg(json_build_object('d', s.ngay, 'chi', round(s.chi, 2), 'thu', round(s.thu, 2)) order by s.ngay) filter (where s.ngay is not null), '[]')
+             from c left join s using (content_id) left join etp.phim p using (content_id) where c.so > 0 group by 1, 2, 3""").splitlines()
+    out, n = [], 0
+    for l in rows:
+        cid, ten, so, js = l.split("|", 3); so = int(so); ng = {x["d"]: x for x in json.loads(js)}
+        r = lambda x: (x["thu"] - x["chi"]) / x["chi"] * 100 if x and x["chi"] > 0 else None
+        x1, x2, x3 = ng.get(d[0]), ng.get(d[1]), ng.get(d[2]); r1, r2, r3 = r(x1), r(x2), r(x3)
+        chan = None
+        if x1 and x1["chi"] >= 10 and r1 is not None:
+            if r1 < NB_ROI_PHIM: chan = f"ROI phim hôm qua {r1:+.0f}% < {NB_ROI_PHIM}%"
+            elif r2 is not None and r2 > 0 and r1 < NB_GIU * r2: chan = f"ROI phim tụt {r2:+.0f}% → {r1:+.0f}% (dưới {int(NB_GIU * 100)}% hôm kia)"
+        bh = None
+        if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1:
+            bh = f"{so} camp đang chạy · ROI phim {r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}% (3 ngày) — camp tự giành cùng tệp người xem"
+            bao("phim_bao_hoa", "vang", f"phim_bao_hoa:{cid}:{nay}", f"⚠ PHIM BÃO HOÀ: {ten[:50]} (#{cid}) — {bh}. Máy đã dừng nhân bản phim này; đoạn quá tải đang được dọn sang góc mới."); n += 1
+        roi = [{"d": k, "chi": v["chi"], "thu": v["thu"], "roi": None if r(v) is None else round(r(v))} for k, v in sorted(ng.items())]
+        out.append({"content_id": int(cid), "ten": ten, "so_camp": so, "roi": roi, "chan_nb": chan, "bao_hoa": bh})
+    j = json.dumps(out, ensure_ascii=False).replace("$J$", "")
+    q(f"""begin; delete from etp.phim_bao_hoa; insert into etp.phim_bao_hoa (content_id, ten, so_camp, roi, chan_nb, bao_hoa)
+          select content_id, ten, so_camp, roi, chan_nb, bao_hoa from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, ten text, so_camp int, roi jsonb, chan_nb text, bao_hoa text); commit;""")
+    return n
 
 def main():
     now = dt.datetime.now(dt.timezone.utc); nay = now.date().isoformat(); qua = (now.date() - dt.timedelta(days=1)).isoformat(); n = 0
@@ -46,6 +79,7 @@ def main():
         bao("roas_dat" if dat else "roas_gan", "vang", f"roas_{'dat' if dat else 'gan'}:{i}",
             (f"★ Camp #{i} ĐỦ TIÊU CHÍ BID ROAS — chi ${float(chi):.0f}, ROI {roi}%, ổn định 2–3 ngày ≥ 50% — {ten[:70]} (etp.on.tc › Camp › ★ Đủ bid ROAS)" if dat else
              f"Camp #{i} SẮP ĐỦ bid ROAS — chi ${float(chi):.0f}/${ROAS_DAT}, ROI {roi}%, ổn định ≥ 50% · ${float(ns):g}/ngày ≈ {max(1, round((ROAS_DAT - float(chi)) / max(float(ns) * 0.7, 1)))} ngày nữa — {ten[:70]}")); n += 1
+    n += bao_hoa_phim(now.date())
     l = q("select lan, coalesce(loi, '') from etp.dong_bo where xong is not null order by lan desc limit 1")
     if l and l.split("|", 1)[1]: bao("dong_bo_tre", "vang", f"dong_bo:{nay}:{now.hour}", f"Lượt đồng bộ kho etp #{l.split('|')[0]} lỗi: {l.split('|', 1)[1][:200]}"); n += 1
     print(json.dumps({"canh_bao_moi_thu": n}))

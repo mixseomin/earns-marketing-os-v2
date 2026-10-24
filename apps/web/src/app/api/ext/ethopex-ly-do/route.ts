@@ -45,6 +45,8 @@ async function napDoan(): Promise<Map<number, string>> {
   doanNho = { luc: Date.now(), m }; return m;
 }
 let DOAN = new Map<number, string>();
+// PHIM BÃO HOÀ (anh 25/10/2026 "cảnh báo trên cả ext app.ethopex"): etp.phim_bao_hoa do canh-bao.py tính mỗi lượt đồng bộ — một nguồn với Telegram / etp / luật NB
+let BH = new Map<number, { bao_hoa: string | null; chan_nb: string | null }>();
 const doanCua = (cr: number | null | undefined) => (cr ? DOAN.get(cr) ?? `cr:${cr}` : null);
 function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const k = chuan(phim);
@@ -83,7 +85,8 @@ function motPhim(d: Du, dat: Set<string>, phim: string, choNb: ChoNb = {}) {
   const boDem = new Map<string, number>(); for (const c of cua) boDem.set(c.bo ?? '1', (boDem.get(c.bo ?? '1') ?? 0) + 1);
   const dem = { bo: [...boDem].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null, chay: cua.filter((c) => c.trang_thai === 'ACTIVE' && !laLich(c)).length, lich: cua.filter((c) => c.trang_thai === 'ACTIVE' && laLich(c)).length, tat: cua.filter((c) => c.trang_thai !== 'ACTIVE').length, loai,
     cho: cua.filter((c) => !!choNb[String(c.id)]).length };   // camp thắng có lần nhân bản đang chờ (anh 23/10/2026: phải hiện ở số vàng)
-  return { so_camp: cua.length, dem, creative, ngay7: ngay7(cua) };
+  const bh = [...new Set(cua.map((c) => Number(c.content_id)).filter(Boolean))].map((id) => BH.get(id)).find((x) => x && (x.bao_hoa || x.chan_nb)) ?? null;
+  return { so_camp: cua.length, dem, creative, ngay7: ngay7(cua), bh };
 }
 
 export async function OPTIONS() { return new NextResponse(null, { headers: CORS }); }
@@ -96,6 +99,7 @@ export async function GET(req: Request) {
   if (u.searchParams.get('bao')) console.log(`ethopex-nap BAO=${u.searchParams.get('bao')} ua=${(req.headers.get('user-agent') ?? '').slice(0, 90)}`);
   const phim = u.searchParams.get('phim'), phims = u.searchParams.get('phims');
   try { DOAN = await napDoan(); } catch { /* thiếu sổ đoạn → đếm theo creative */ }
+  try { BH = new Map(((await db.execute(sql`SELECT content_id, bao_hoa, chan_nb FROM etp.phim_bao_hoa WHERE bao_hoa IS NOT NULL OR chan_nb IS NOT NULL`)) as unknown as { content_id: number; bao_hoa: string | null; chan_nb: string | null }[]).map((r) => [Number(r.content_id), { bao_hoa: r.bao_hoa, chan_nb: r.chan_nb }])); } catch { BH = new Map(); }
   // BỘ TÀI KHOẢN QC + PAGE (anh 23/10/2026 "các camp, phim phải ghi thêm thuộc bộ tk thứ mấy, hover vào ra thông tin bộ tk đó"):
   // ?bo=1 → { bo_tk: {bộ: thông tin + số}, camp: {id: bộ} } — extension gắn nhãn B1/B2 ở ô tên camp / phim, rê vào hiện thông tin bộ
   if (u.searchParams.get('bo')) {

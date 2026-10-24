@@ -5,7 +5,7 @@
 // Cửa sổ sáng = bài đang chạy · thùng tím ở chân = bài sắp đăng · cột sáng xanh = lượt xem · xe trên phố = khách về site · đèn đỏ + khói = hỏng ·
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
-import { KHU_XUONG, LINH_VUC, TEN_BAN, laDichSong, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
+import { CUM_PAGE, KHU_XUONG, LINH_VUC, TEN_BAN, laDichSong, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { nhoLanMoi, phanLoaiLan } from '@/lib/loai-lan';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
@@ -1539,6 +1539,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         const bn = bienXe(`🛢 ${b.ten} · ${b.du == null ? 'chưa đọc được số dư' : `${soGon(b.du)}${b.don === '$' ? ' $' : ` ${b.don}`} · ${chuCon(b.conNgay)}`}`, mau); bn.scale.set(40, 6, 1); bn.position.set(x, HB + 10, z); bn.userData = { chu: vo, gan: GAN_NHAN }; the.add(bn);
         if (b.muc === 'do') khoi(x, HB + 4, z, undefined as unknown as PhoTk, vo, 12); });
       if (tn.binh?.length) xTnPhai += 50;
+      // KHO FANPAGE (anh 25/10/2026 "các page này là tài sản, show lên city"): mỗi Page một khối trong lưới cạnh dãy bồn — cao theo người theo dõi (log), màu theo cụm
+      // người xem (tiendo social S06), đang là kênh máy đăng = đèn sáng, đã tắt = thấp xám mờ. Một InstancedMesh (một lệnh vẽ). Không chữ: thẻ rê = bảng theo cụm.
+      if (tn.fanpage?.length) { const fp = tn.fanpage, COTF = 12, OF = 6, x0F = xTn + rongL / 2 + 80, z0F = zA - 40, hangF = Math.ceil(fp.length / COTF);
+        const nenF = add(new THREE.BoxGeometry(COTF * OF + 8, .5, hangF * OF + 8), M({ color: '#1a2238', roughness: .9 }), false); nenF.position.set(x0F + COTF * OF / 2, .25, z0F + hangF * OF / 2);
+        const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: .5, metalness: .2, emissive: '#ffffff', emissiveIntensity: .08 }), fp.length), o3 = new THREE.Object3D(), c3 = new THREE.Color();
+        fp.forEach((p, i) => { const h = p.tat ? 1.2 : 2 + Math.log10(1 + (p.nguoi ?? 0)) * 6; o3.position.set(x0F + 4 + (i % COTF) * OF, .5 + h / 2, z0F + 4 + Math.floor(i / COTF) * OF); o3.scale.set(4.4, h, 4.4); o3.updateMatrix(); im.setMatrixAt(i, o3.matrix);
+          c3.set(p.tat ? '#3a3f50' : (CUM_PAGE[p.cum] ?? CUM_PAGE['chua-xep']!).mau); if (p.kenh) c3.lerp(new THREE.Color('#ffffff'), .35); im.setColorAt(i, c3); });
+        im.instanceColor.needsUpdate = true; im.castShadow = true; im.frustumCulled = false; im.userData = { loai: 'fanpage', luonVe: true };   // khung bao mặc định của InstancedMesh ở gốc → tắt cắt khung; luonVe: không áp ngưỡng điểm ảnh vật lẻ nenF.userData = { chu: im }; the.add(im);
+        const bn = bienXe(`📄 Kho Fanpage · ${fp.filter((p) => !p.tat).length} đang chạy`, '#4fd1ff'); bn.scale.set(36, 5.4, 1); bn.position.set(x0F + COTF * OF / 2, 30, z0F - 4); bn.userData = { chu: im, gan: GAN_NHAN }; the.add(bn);
+        chiMuc.push({ ten: 'Kho Fanpage', nhan: 'tài nguyên', obj: im }); xTnPhai += COTF * OF + 50; }
       // ĐÀI THEO DÕI TÀI NGUYÊN (anh 24/10/2026 "cần chỗ tập trung để theo dõi"): một toà màn hình ở đầu dãy bồn — màn tóm tắt số đỏ / vàng / chưa đo + 3 việc gấp nhất;
       // bấm / rê → bảng đầy đủ mọi bồn, mọi tên miền, mọi máy chủ, chỗ mù (xếp gần hết lên đầu, ô lọc). Dải cảnh báo có nút mở thẳng.
       { const x = xTn + rongL / 2 + 44, z = zA - 26, H = 30;
@@ -1818,6 +1828,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
     }
     if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', tatBien[u.hub] ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', tatBien[u.hub] ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
+    if (u.loai === 'fanpage') { const fp = mh.taiNguyen?.fanpage ?? [], song = fp.filter((p) => !p.tat), nhom = new Map<string, typeof fp>();
+      for (const p of song) nhom.set(p.cum, [...(nhom.get(p.cum) ?? []), p]);
+      return { dau: `📄 Kho Fanpage · ${song.length} đang chạy · ${fp.length - song.length} đã tắt`, h: [['Người theo dõi (đang chạy)', so(song.reduce((a, p) => a + (p.nguoi ?? 0), 0))], ['Đang là kênh máy đăng', song.filter((p) => p.kenh).length]],
+        bang: { cot: ['Cụm', 'Page', 'Theo dõi', 'Lớn nhất'], dong: [...nhom].sort((a, b) => b[1].reduce((x, p) => x + (p.nguoi ?? 0), 0) - a[1].reduce((x, p) => x + (p.nguoi ?? 0), 0))
+          .map(([c, ds]) => [esc(CUM_PAGE[c]?.ten ?? c), ds.length, so(ds.reduce((a, p) => a + (p.nguoi ?? 0), 0)), esc(ds.slice(0, 2).map((p) => p.ten).join(', '))]) } }; }
     if (u.loai === 'tram-etp') { const d = mh.dich.find((x) => x.khoa === u.hub); if (!d) return { dau: '—', h: [] }; const cs = mh.dich.filter((c) => c.cha === d.khoa), xt = xuongData?.tram;
       const T: Record<string, [string, [string, string | number][]]> = {
         kho: ['🎬 Nhà quay · kho phim', [['Phim của bộ', boCumP.get(d.khoa)?.cum.length ?? 0], ['Phim đang có camp chạy', boCumP.get(d.khoa)?.cum.filter((o) => o.goc.length).length ?? 0]]],

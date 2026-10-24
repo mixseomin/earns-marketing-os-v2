@@ -270,3 +270,17 @@ console.log('gopNgay ✓');
   assert.strictEqual(ttNangNhat([]), null);
 }
 console.log('máy đăng trên city ✓');
+
+// FANPAGE = tài sản (25/10/2026): đang chạy trước, nhiều người theo dõi trước, bỏ đuôi "(Page)", Page đã tắt (closed / da_tat) xuống cuối, kênh = có dự án
+{
+  const tnGoc = { tk: [], canhBao: [], hoSo: [], proxy: [], soNganSach: [], tkQcShop: [] };
+  const m = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, taiNguyen: { ...tnGoc, fanpage: [
+    { ten: 'Lime (Page)', status: 'closed', st: { da_tat: true, cum: 'chua-xep' }, project_id: null },
+    { ten: 'Classic Car (Page)', status: 'active', st: { followers: 13039, cum: 'hoai-co' }, project_id: null },
+    { ten: 'Animals Guru (Page)', status: 'active', st: { followers: 18399, cum: 'thu-cung' }, project_id: null },
+    { ten: 'Hotel Scam Alerts (Page)', status: 'active', st: { followers: 1, cum: 'du-lich' }, project_id: 'adfond' }] } } } as any);
+  const f = m.taiNguyen.fanpage!;
+  assert.deepStrictEqual(f.map((x) => x.ten), ['Animals Guru', 'Classic Car', 'Hotel Scam Alerts', 'Lime'], 'đang chạy theo người theo dõi, đã tắt cuối, bỏ (Page)');
+  assert.ok(f[3]!.tat && !f[0]!.tat && f[2]!.kenh && !f[1]!.kenh && f[3]!.nguoi === null);
+}
+console.log('fanpage ✓');

@@ -124,7 +124,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
   const tenNguon = new Map((await q<{ key: string; ten: string }>('sổ nguồn AI', sql`SELECT key, ten FROM xv_nguon`)).map((x) => [x.key, x.ten]));
   const soDuTn = Object.keys({ ...(anhTn.du ?? {}), ...(anhTn.loi ?? {}) }).map((key) => ({ key, ten: tenNguon.get(key) ?? key, don: DON_DU[key] ?? '', du: anhTn.du?.[key] ?? null, loi: anhTn.loi?.[key] ?? null, luc: anhTn.luc ?? null,
     lich: (anhTn.lich ?? []).map((x) => ({ ngay: x.ngay, du: x.du?.[key] ?? null })) }));
-  const [mayChu, congTy, tnTk, tnCb, tnHs, tnDs, tnPx, tnNs, tnQc] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
+  const [mayChu, congTy, tnTk, tnCb, tnHs, tnDs, tnPx, tnNs, tnQc, tnPage] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
     // tài nguyên (khu TÀI NGUYÊN): tài khoản × trạng thái, cảnh báo chưa xử, hồ sơ trình duyệt (br / máy ảo), proxy, sổ ngân sách, tài khoản QC shop
     q<{ nen: string; status: string; n: number }>('tài khoản theo nền', sql`SELECT platform_key AS nen, status, count(*)::int AS n FROM platform_accounts GROUP BY 1, 2`),
     q<{ nen: string | null; loai: string; n: number }>('cảnh báo nền tảng', sql`SELECT coalesce(platform, 'khac') AS nen, loai, count(*)::int AS n FROM platform_alerts WHERE xong_luc IS NULL GROUP BY 1, 2`),
@@ -132,7 +132,9 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     q<{ id: number; nen: string; handle: string | null; loai: string; noi_dung: string | null; url: string | null; luc: string; acct: number | null }>('danh sách cảnh báo', sql`SELECT id, coalesce(platform, 'khac') AS nen, handle, loai, left(noi_dung, 160) AS noi_dung, url, luc::text AS luc, account_id AS acct FROM platform_alerts WHERE xong_luc IS NULL ORDER BY luc DESC LIMIT 80`),
     q<{ suc: string; n: number }>('proxy', sql`SELECT coalesce(health, 'chưa đo') AS suc, count(*)::int AS n FROM proxies WHERE archived_at IS NULL GROUP BY 1`),
     q<{ ten: string; so: number; tien_te: string; chu_ky: number | null }>('sổ ngân sách', sql`SELECT label AS ten, amount_cents / 100.0 AS so, currency AS tien_te, recurring_interval_days AS chu_ky FROM budget_entries WHERE kind IN ('expense', 'recurring')`),
-    q<{ ten: string; trang_thai: string; han_muc: number | null; tien_te: string }>('tài khoản QC shop', sql`SELECT ten, trang_thai, han_muc::float AS han_muc, coalesce(tien_te, 'USD') AS tien_te FROM shop_qc_tk`)]);
+    q<{ ten: string; trang_thai: string; han_muc: number | null; tien_te: string }>('tài khoản QC shop', sql`SELECT ten, trang_thai, han_muc::float AS han_muc, coalesce(tien_te, 'USD') AS tien_te FROM shop_qc_tk`),
+    // FANPAGE = tài sản (anh 25/10/2026): Page Facebook trong vault (account_kind page, scripts/fb/kiem-ke-page.py) — người theo dõi, cụm S06, đã tắt, đang là kênh (có dự án)
+    q<{ ten: string; status: string; st: Record<string, unknown>; project_id: string | null }>('fanpage', sql`SELECT handle AS ten, status, account_stats AS st, project_id FROM platform_accounts WHERE account_kind = 'page' AND account_stats ? 'kiem_ke'`)]);
   // Gumroad: product_daily.product_id = mã Gumroad = products.sku → nguồn theo nơi khách tới (refs)
   const theoSku = new Map((sp?.rows ?? []).filter((p) => p.sku).map((p) => [p.sku!, p.id]));
   const nguonGum = refs.flatMap((r) => { const id = theoSku.get(r.product_id); return id && r.refs ? Object.entries(r.refs).map(([nguon, n]) => ({ sp: id, nguon, hien: 0, xem: Number(n) || 0, tai: 0 })) : []; });
@@ -162,7 +164,7 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
         phimId: c.content_id, dang: dangCamp(c), viPham: co('TC', 'cham'), cho: loai === 'cho', nhanBanDuoc: co('NB', 'cham'), sapTat: loai === 'chay' && co('OFF', 'cham', 'gan'),
         thuHom: hn.reduce((a, x) => a + x.thu, 0), chiHom: hn.reduce((a, x) => a + x.chi, 0), ngayHom: ngayHomEtp, ngay: ng.map((x) => ({ ngay: x.ngay, thu: x.thu, chi: x.chi })) }; }) : [],
     taiNguyen: { tk: tnTk, canhBao: tnCb.map((x) => ({ nen: x.nen ?? 'khac', loai: x.loai, n: x.n })), canhBaoDs: tnDs.map((x) => ({ id: x.id, nen: x.nen, handle: x.handle, loai: x.loai, noiDung: x.noi_dung, url: x.url, luc: x.luc, acct: x.acct })), hoSo: tnHs, proxy: tnPx,
-      soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })), soDu: soDuTn },
+      fanpage: tnPage, soNganSach: tnNs.map((x) => ({ ten: x.ten, kieu: x.chu_ky ? 'định kỳ' : 'một lần', so: Number(x.so) || 0, tienTe: x.tien_te, chuKy: x.chu_ky })), tkQcShop: tnQc.map((x) => ({ ten: x.ten, trangThai: x.trang_thai, hanMuc: x.han_muc, tienTe: x.tien_te })), soDu: soDuTn },
     chi: [...chi.map((x) => ({ nguon: x.nguon, duAn: x.project_id, usd: Number(x.usd) || 0 })),
       ...(etp ? [{ nguon: 'Meta Ads (Ethopex)', duAn: 'ethopex', usd: etp.theoNgay.filter((x) => x.ngay >= tu30).reduce((a, x) => a + x.chi, 0) }] : [])],
     tienAff: [...(aff?.rows ?? []).filter((r) => r.source === 'affiliate' && r.date >= tu30).map((r) => ({ site: r.site ? r.site.replace(/^www\./, '') : null, mang: r.group ?? r.channel, usd: r.amount })),

@@ -150,6 +150,8 @@ export interface PhoTaiNguyen {
   /** cảnh báo chưa xử, từng dòng (nền chưa có kho riêng → kho 'khac'): thẻ kho tài khoản liệt kê + nút mở chỗ cần xử / đánh dấu đã xử */
   canhBaoDs: { id: number; nen: string; handle: string | null; loai: string; noiDung: string | null; url: string | null; luc: string; acct: number | null }[];
   chuaNoi: string[];
+  /** FANPAGE = tài sản (anh 25/10/2026): Page Facebook htuan82 quản — người theo dõi, cụm người xem (tiendo social S06), đã tắt, đang là kênh của máy đăng */
+  fanpage?: { ten: string; nguoi: number | null; cum: string; tat: boolean; kenh: boolean }[];
   /** BỒN — tài nguyên trả trước (nguồn AI, máy thuê): số dư, mức tiêu bình quân / ngày, còn bao nhiêu ngày, mức (tinhBinh) */
   binh: { key: string; ten: string; don: string; du: number | null; tieuNgay: number | null; conNgay: number | null; muc: MucTn; loi: string | null; luc: string | null }[];
   /** HẠN — tên miền / máy chủ: ngày hết hạn, còn bao nhiêu ngày, mức (mucHan); dich = khoá toà site của tên miền */
@@ -166,6 +168,11 @@ export function gopNgay(ds: { ngay?: NgayTien[] }[]): NgayTien[] {
 }
 export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; taiNguyen: PhoTaiNguyen; fav: Record<string, string | null> }
 /** trạng thái tài khoản (platform_accounts.status) → nhóm người đọc */
+/** cụm người xem của fanpage (tiendo social S06) — tên hiển thị + màu khối trên city */
+export const CUM_PAGE: Record<string, { ten: string; mau: string }> = { 'du-lich': { ten: 'Du lịch', mau: '#4fd1ff' }, 'hoai-co': { ten: 'Hoài cổ · người lớn tuổi', mau: '#ffb703' },
+  'quan-doi': { ten: 'Quân đội', mau: '#8a9a5b' }, game: { ten: 'Game', mau: '#b44dff' }, 'cong-cu': { ten: 'Công cụ · review', mau: '#3fd68a' }, 'tai-chinh': { ten: 'Tài chính', mau: '#ffd166' },
+  'tu-vi': { ten: 'Tử vi', mau: '#ff7eb6' }, viet: { ten: 'Việt', mau: '#ff4d5e' }, 'thu-cung': { ten: 'Thú cưng (dự phòng)', mau: '#f08a24' }, 'khong-quang-ba': { ten: 'Không quảng bá (tên người thật)', mau: '#6b7385' },
+  'chua-xep': { ten: 'Chưa xếp cụm', mau: '#9aa3b8' } };
 export type TtTk = 'song' | 'nuoi' | 'han' | 'khoa' | 'dong';
 export const TT_TK: Record<TtTk, { ten: string; mau: string }> = { song: { ten: 'đang dùng', mau: '#3fd68a' }, nuoi: { ten: 'đang nuôi / tạo', mau: '#ffd166' }, han: { ten: 'bị hạn chế', mau: '#ff9f1c' }, khoa: { ten: 'bị khoá / chặn', mau: '#ff4d5e' }, dong: { ten: 'đã đóng', mau: '#5a6070' } };
 export const nhomTt = (st: string): TtTk => (st === 'active' ? 'song' : ['warming', 'creating', 'pending', 'todo'].includes(st) ? 'nuoi' : st === 'limited' ? 'han' : ['banned', 'blocked', 'suspended', 'locked'].includes(st) ? 'khoa' : 'dong');
@@ -217,7 +224,8 @@ export interface VaoHeSinhThai {
   /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
   taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; canhBaoDs?: PhoTaiNguyen['canhBaoDs']; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
     proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[];
-    soDu?: { key: string; ten: string; don: string; du: number | null; loi: string | null; luc: string | null; lich: { ngay: string; du: number | null }[] }[] };
+    soDu?: { key: string; ten: string; don: string; du: number | null; loi: string | null; luc: string | null; lich: { ngay: string; du: number | null }[] }[];
+    fanpage?: { ten: string; status: string; st: Record<string, unknown>; project_id: string | null }[] };
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null; henGio?: number | null; loiDv?: string[] }[];
 }
@@ -574,6 +582,8 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     ],
     chuaNoi: ['Ngân sách / số dư Google Ads (DB adfond — mos2 chưa có quyền đọc)'],
     binh: (vt?.soDu ?? []).map((x) => ({ key: x.key, ten: x.ten, don: x.don, du: x.du, loi: x.loi, luc: x.luc, ...tinhBinh(x.du, x.lich) })),
+    fanpage: (vt?.fanpage ?? []).map((x) => ({ ten: x.ten.replace(/\s*\(Page\)\s*$/i, ''), nguoi: typeof x.st.followers === 'number' ? x.st.followers : null, cum: String(x.st.cum ?? 'chua-xep'),
+      tat: x.st.da_tat === true || x.status === 'closed', kenh: !!x.project_id })).sort((a, b) => Number(a.tat) - Number(b.tat) || (b.nguoi ?? 0) - (a.nguoi ?? 0)),
     // hạn: tên miền của MỌI site trên thành phố (site chưa có dòng trong sổ hạ tầng = chỗ mù) + máy chủ trong sổ
     han: [...[...new Map(dich.filter((d) => d.loai === 'site' && d.site && !d.laShop && !TEN_MIEN_NGOAI.has(tenMienGoc(d.site))).map((d) => [tenMienGoc(d.site!), d] as const)).entries()].map(([ten, d]) => {
         const r = (hst.hat ?? []).find((x) => x.kind === 'domain' && tenMienGoc(x.label) === ten);

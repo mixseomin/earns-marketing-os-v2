@@ -895,35 +895,35 @@
       {
         "tu": 0,
         "ai": "Lâm Hạ",
-        "cach": "head level, chin level, eyes on the closed elevator door",
-        "vi": "đầu thẳng, cằm ngang, nhìn cửa thang"
+        "cach": "head level, chin level",
+        "vi": "đầu thẳng, cằm ngang"
       },
       {
         "tu": 1,
         "ai": "Lâm Hạ",
-        "cach": "head tilted up, chin raised, eyes lifted to the floor indicator above the elevator door",
-        "vi": "ngẩng lên, mắt nhìn bảng số tầng",
+        "cach": "head tilted up, chin raised, eyes lifted high",
+        "vi": "ngẩng lên, mắt nhìn cao",
         "su_kien": "Hạ ngước mắt lên bảng số tầng"
       },
       {
         "tu": 2,
         "ai": "Lâm Hạ",
-        "cach": "head turned toward the lobby entrance, chin level, eyes level and alert, NOT looking down",
-        "vi": "quay đầu về phía lối vào, cằm ngang, mắt ngang cảnh giác (không cúi)",
+        "cach": "chin level, eyes level and alert, NOT looking down",
+        "vi": "cằm ngang, mắt ngang cảnh giác (không cúi)",
         "su_kien": "nghe giày cao gót, Hạ quay đầu về phía lối vào"
       },
       {
         "tu": 8,
         "ai": "Lâm Hạ",
-        "cach": "head slightly bowed, eyes dropped to Vivian's fist",
-        "vi": "hơi cúi, mắt nhìn xuống nắm tay Vivian",
+        "cach": "head slightly bowed, eyes dropped low",
+        "vi": "hơi cúi, mắt nhìn xuống thấp",
         "su_kien": "Hạ cụp mắt nhìn nắm tay Vivian"
       },
       {
         "tu": 11,
         "ai": "Lâm Hạ",
-        "cach": "chin level, eyes raised to the man stepping out of the elevator",
-        "vi": "cằm ngang, ngước nhìn người bước ra thang",
+        "cach": "chin level, eyes raised",
+        "vi": "cằm ngang, ngước mắt lên",
         "su_kien": "cửa thang mở, Hạ ngẩng lên nhìn Lục Thần"
       },
       {

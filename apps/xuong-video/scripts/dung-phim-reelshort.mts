@@ -12,7 +12,8 @@ import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
 import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { loiMach2d } from '../src/lib/xuong-video/khong-gian';
-import { cauVat, dongVat, loiSoVat, NHAN_DANG, NHAN_DO_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
+import { catDo } from '../src/lib/xuong-video/cat-do';
+import { cauVat, daMat, dongVat, loiSoVat, NHAN_DANG, NHAN_DO_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
 type Manh = { /** KẾ HOẠCH DIỄN (nét mặt đầu → cuối từng người, qc-cam-xuc.ts › BIEU_CAM) — xv_canh.bieu_cam */ bc?: { nv: string; dau: string; cuoi: string; lat?: boolean }[]; co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
   /** chỗ trong SƠ ĐỒ CẢNH (so-do-canh.ts): máy · ai ở đâu · ai nhìn gì · ai vào từ đâu — hướng trên màn tính từ đây, không viết tay */ sd?: ManhSoDo; /** dùng lại keyframe đã duyệt (URL) */ kf?: string;
@@ -79,7 +80,18 @@ const ghiKhongGian = async (tapId: number) => { if (kgCanh) await db.execute(sql
 if (gia('cap-nhat')) {
   const tapId = Number(gia('cap-nhat')); const q = async (x: ReturnType<typeof sql>) => (await db.execute(x)) as unknown as Row[];
   const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`))[0]!.phim_id);
-  const nvPhim = await q(sql`SELECT id, ten FROM xv_nhan_vat WHERE phim_id = ${phimId}`); const btPhim = await q(sql`SELECT b.id, b.ten FROM xv_bien_the b JOIN xv_nhan_vat n ON n.id = b.nhan_vat_id WHERE n.phim_id = ${phimId}`);
+  const nvPhim = await q(sql`SELECT id, ten FROM xv_nhan_vat WHERE phim_id = ${phimId}`); const btPhim = await q(sql`SELECT b.id, b.ten, b.mo_ta, b.anh_url, n.ten AS nv FROM xv_bien_the b JOIN xv_nhan_vat n ON n.id = b.nhan_vat_id WHERE n.phim_id = ${phimId}`);
+  // BIẾN THỂ CÒN ĐỒ ĐÃ MẤT (#353: ảnh / mô tả trang phục 'Sơ mi trắng dính cà phê' có dây thẻ → mọi khung sau cú giật model vẽ lại thẻ dù sổ ghi đã mất):
+  // người trong khung có món đã sang tay (so-vat › daMat) mà biến thể gán cho shot còn tả món đó → chặn, phải gán biến thể không có món
+  // Kiểm trên ẢNH biến thể (cat-do.ts tìm món trong ảnh, ~0,2¢ / cặp, nhớ theo cặp) — mô tả chữ của biến thể 156 không nhắc thẻ, chỉ ẢNH có thẻ
+  if (du.so_vat) { const loiBt: string[] = []; const daXet = new Map<string, boolean>();
+    for (const [i, s] of du.shot.entries()) for (const ten of nguoiKhung(s)) for (const mon of daMat(du.so_vat, i + 1, ten, 'dau')) {
+      const en = du.ten_en?.[mon] ?? mon; const tu = en.toLowerCase().replace(/^the\s+/, '').split(/\s+/).filter((w) => w.length > 3);
+      for (const b of btPhim.filter((r) => r.nv === ten && (s.bt ?? []).includes(String(r.ten)))) { const mt = String(b.mo_ta ?? '').toLowerCase(); const khoa = `${b.id}|${mon}`;
+        if (!daXet.has(khoa)) { const chu = tu.some((w) => mt.includes(w)) && !/\bno (staff )?(lanyard|badge)|\bwithout\b|\bbare\b/.test(mt);
+          const anh = b.anh_url ? !!(await catDo(db, phimId, String(b.anh_url), en, `on ${ten}`).catch(() => null)) : false; daXet.set(khoa, chu || anh); }
+        if (daXet.get(khoa)) loiBt.push(`#${i + 1} ${ten}: biến thể "${b.ten}" (ảnh / mô tả) còn ${mon} mà ${mon} đã sang tay người khác — gán biến thể không có ${mon}`); } }
+    if (loiBt.length) { console.error(`biến thể trang phục lệch sổ đồ vật:\n  ${loiBt.join('\n  ')}`); process.exit(1); } }
   const idNv = (x: string) => nvPhim.find((r) => r.ten === x)?.id; const idBt = (x: string) => btPhim.find((r) => r.ten === x)?.id;
   for (const [i, s] of du.shot.entries()) {
     const nv = s.nv.map(idNv).filter((x) => x != null).map(Number); const bt = (s.bt ?? []).map(idBt).filter((x) => x != null).map(Number);

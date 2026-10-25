@@ -307,7 +307,7 @@ function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => 
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r?.phim ?? '—'} <span style={{ color: 'var(--fg-3)' }}>#{id}</span></span>
             <span style={{ color: MAU[h.trang_thai], display: 'inline-flex', alignItems: 'center', gap: 5 }}><Den mau={MAU[h.trang_thai] ?? '#888'} t={CHU[h.trang_thai] ?? ''} song={h.trang_thai === 'dang'} />{CHU[h.trang_thai]}</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)' }}>{doDai(giayTu(h.bat_dau, h.xong))}</span>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: h.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>{h.trang_thai === 'dang' ? '▶ ' : ''}{h.trang_thai === 'loi' ? (h.loi ?? 'lỗi') : cuoi?.b ?? h.buoc ?? ''}</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: h.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>{h.trang_thai === 'dang' ? `▶ ${cuoi?.b ?? h.buoc ?? ''}` : h.trang_thai === 'loi' ? (h.loi ?? 'lỗi') : ''}</span>
             <span>{h.trang_thai === 'xong' && c ? <><b style={{ color: c.ket === 'cam' ? '#f87171' : c.ket === 'xem' ? '#f59e0b' : '#4ade80' }}>{c.ket === 'cam' ? 'Cấm' : c.ket === 'xem' ? 'Cần xem' : 'Sạch'}</b> · Meta {c.meta ?? '–'} · AFS {c.afs ?? '–'}</> : ''}</span>
           </div>); })}
       {noi.v && mo ? (

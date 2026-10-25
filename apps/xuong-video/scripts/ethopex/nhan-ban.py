@@ -195,6 +195,8 @@ def main(a):
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ValueError(chan)
         n = dem_dang_chay(cid)
+        if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
+            raise ValueError(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
         if not moi:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường nhân bản (luật NB, góc mới, soát đoạn) — phim đang tụt thì không nhân thêm camp
             try: bh = q(f"select chan_nb from etp.phim_bao_hoa where content_id = {int(cid)} and chan_nb is not null")

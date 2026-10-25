@@ -11,6 +11,10 @@ import soat_doan as SD
 KHUON = {"en": 65110, "es": 65734}   # = dot-phim-moi.KHUON (camp mẫu cùng tiếng; nhan-ban --bo 2 đổi tài khoản + Page)
 
 def main(a):
+    import fcntl   # một lượt một lúc (25/10/2026: lượt tay + lượt nền chạy cùng lúc tạo trùng camp)
+    lk = open(os.path.join(C, "len-sau-cham.lock"), "w")
+    try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError: return print("len-sau-cham đang chạy ở lượt khác — thoát")
     ma = a[0]; lich = a[a.index("--lich") + 1] if "--lich" in a else "today"; thu = "--thu" in a
     ds = [x for x in json.load(open(os.path.join(C, "ra", ma, "len.json"))) if x.get("ok") and x.get("creative_id")]
     ids = ",".join(str(int(x["creative_id"])) for x in ds) or "0"

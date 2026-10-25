@@ -92,6 +92,9 @@ interface DataTableProps<T> {
   onViewChange?: (v: DataView) => void;
   defaultView?: DataView;                 // uncontrolled default view (default 'table' — thêm `card` KHÔNG tự lật sang thẻ)
   hideHeader?: boolean;                    // bỏ <thead> — cho ranked-list vốn không có hàng tiêu đề
+  /** Hàng NHÃN NHÓM trên hàng tiêu đề: mỗi dải cột liền nhau cùng `group` gộp một ô ghi `DataGroup.label`. Dùng khi nhiều nhóm có cột trùng tên
+   *  (Hôm nay / Hôm qua / 7 ngày đều ROI · Lãi · Chi) — tên kỳ nằm một lần trên nhóm, không nhét vào từng cột. */
+  groupHeader?: boolean;
   /**
    * Cắt trang NGAY TRONG bảng, sau khi đã lọc và sắp xếp. Bắt buộc phải ở đây chứ không phải chỗ
    * gọi: bảng còn có ô tìm + LỌC THEO CỘT của riêng nó, nên nếu bên ngoài cắt trang trước rồi mới
@@ -153,7 +156,7 @@ const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
+  rows, columns, getRowKey, groups, groupHeader, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false,
@@ -405,7 +408,7 @@ export function DataTable<T>({
   useEffect(() => {
     if (!theoTrang || effView !== 'table') return;
     const doNgay = () => {
-      const th = doRef.current ? Array.from(doRef.current.querySelectorAll('th')) : [];
+      const th = doRef.current ? Array.from(doRef.current.querySelectorAll('tr:last-child > th')) : [];   // hàng tiêu đề cột (hàng nhãn nhóm nếu có nằm trên, ô gộp — không đo)
       const w = th.map((x) => x.getBoundingClientRect().width), bang = bangRef.current?.getBoundingClientRect().width ?? 0, cao = doRef.current?.getBoundingClientRect().height ?? 0;
       setCotDo((o) => (o.bang === bang && o.cao === cao && o.w.length === w.length && o.w.every((v, i) => Math.abs(v - w[i]!) < 0.5) ? o : { w, bang, cao }));
       // thanh tab / thanh dính của TRANG (cùng khung cuộn, nằm trên bảng) đang dính mép trên → tiêu đề bảng dính ngay dưới nó, không chui xuống dưới
@@ -428,6 +431,21 @@ export function DataTable<T>({
     return () => { ro.disconnect(); window.removeEventListener('resize', doNgay); };
   }, [theoTrang, effView, visible.length, rong, pageRows.length]);
   // hàng tiêu đề: dao=true là bản bấm được (sort / lọc / kéo giãn); dao=false là bản ĐO bề rộng nằm ẩn trong thân bảng (cùng nội dung, không tay cầm)
+  // hàng nhãn nhóm (groupHeader): dải cột liền nhau cùng group → một ô colSpan; cột không nhóm → ô trống
+  const hangNhom = () => {
+    if (!groupHeader) return null;
+    const dai: { g?: string; n: number; i: number }[] = [];
+    visible.forEach((c, i) => { const d = dai[dai.length - 1]; if (d && d.g === c.group) d.n++; else dai.push({ g: c.group, n: 1, i }); });
+    return (
+      <tr>
+        {dai.map((d) => { const g = d.g ? groupMeta.get(d.g) : undefined; return (
+          <th key={`${d.g ?? '-'}:${d.i}`} colSpan={d.n} style={{ ...baseHead, textAlign: 'center', color: g?.color ?? 'var(--fg-2)', fontWeight: 700, backgroundColor: 'var(--bg-2)',
+            backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined, borderLeft: d.i ? '1px solid var(--line)' : undefined,
+            borderBottom: g ? `2px solid ${g.color ?? 'var(--line)'}` : undefined, ...(stickyFirst && d.i === 0 ? { position: 'sticky', left: 0, zIndex: 4 } : {}) }}>{g?.label ?? ''}</th>
+        ); })}
+      </tr>
+    );
+  };
   const hangDau = (dao: boolean) => (
 <tr aria-hidden={dao ? undefined : true}>
               {visible.map((c, ci) => {
@@ -594,15 +612,15 @@ export function DataTable<T>({
         <div ref={dauRef} className="dt-dau" onScroll={dongCuon('dau')}
              style={{ position: 'sticky', top: dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
           <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%', minWidth: cotDo.bang ? undefined : minWidth }}>
-            <thead>{hangDau(true)}</thead>
+            <thead>{hangNhom()}{hangDau(true)}</thead>
           </table>
         </div>
       )}
       <div ref={thanRef} className={`dt-scroll${theoTrang ? '' : ' dt-hop'}`} onScroll={theoTrang ? dongCuon('than') : undefined} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
         <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
           {!hideHeader && (theoTrang
-            ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangDau(false)}</thead>
-            : <thead>{hangDau(true)}</thead>)}
+            ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangNhom()}{hangDau(false)}</thead>
+            : <thead>{hangNhom()}{hangDau(true)}</thead>)}
           <tbody>
             {gomNhom(pageRows, cotGom).flatMap((nh) => {
               const gap = dongNhom.includes(nh.v);

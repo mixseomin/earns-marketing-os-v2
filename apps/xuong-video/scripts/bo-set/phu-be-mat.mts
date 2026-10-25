@@ -5,7 +5,7 @@
 //      lúc nào đồ đổi tay) giữ nguyên; chỉ bề mặt (da, tóc, vải, ánh sáng) là của AI. Muốn đổi gì thì ghi trong --them (không ghi thì không đổi).
 // Vào: /tmp/phu-<ten>/<may>.mp4 (clip 3D 16 khung/giây). Ra: R2 xuong-video/thu/… + in link từng máy. Tốn: ảnh ckey ~110₫ / máy + VACE $0,04/giây ở 480p.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server \
-//     ../../node_modules/.bin/tsx scripts/bo-set/phu-be-mat.mts --ten=giat-the --phim=353 --may=toan,can-tay,qua-vai,can-mat-ha [--do-phan-giai=480p] [--them="…"]
+//     ../../node_modules/.bin/tsx scripts/bo-set/phu-be-mat.mts --ten=giat-the --phim=353 --may=toan,can-tay,qua-vai,can-mat-ha --nguoi="Lâm Hạ,Vivian" [--do-phan-giai=480p] [--them="…"]
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -24,7 +24,9 @@ const db = getDb()!; const thu = `/tmp/phu-${ten}`;
 const VACE = 'fal-ai/wan-vace-14b/depth';
 // ảnh mẫu người: ảnh mẫu đầu của mỗi nhân vật người trong phim (ngoại hình gốc — trạng thái đồ do clip 3D quyết)
 const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
-const mau = nv.filter((v) => v.anh_ref[0]).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta, anh: v.anh_ref[0]! }));
+// --nguoi="A,B": chỉ người CÓ trong lần diễn này (cổng ảnh nhận tối đa 3 ảnh: khung 3D + 2 người) — mặc định mọi người của phim
+const chiNguoi = (gia('nguoi') || '').split(',').map((x) => x.trim()).filter(Boolean);
+const mau = nv.filter((v) => v.anh_ref[0] && (!chiNguoi.length || chiNguoi.includes(v.ten))).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta, anh: v.anh_ref[0]! }));
 const giuLogic = 'Keep EXACTLY the camera angle, framing, every person\'s position, pose, gaze, hand positions, what each hand holds and every object\'s position and state — only the surfaces change.';
 const len = async (f: string, k: string): Promise<string> => { const u = await uploadToR2(`xuong-video/thu/${ten}-${k}-${randomUUID()}${f.slice(f.lastIndexOf('.'))}`, readFileSync(f), f.endsWith('.mp4') ? 'video/mp4' : f.endsWith('.png') ? 'image/png' : 'image/jpeg'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 

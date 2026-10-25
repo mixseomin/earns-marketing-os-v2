@@ -9,9 +9,13 @@ import { EtpView } from '@/components/etp-view';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ETP · camp', robots: { index: false, follow: false } };
 
-export default async function EtpPage() {
+// ?t=<tab>&v=<kiểu xem> đọc NGAY trên máy chủ → lần vẽ đầu đã đúng tab (anh 25/10/2026: F5 ở ?t=camp&v=bang bị về Tổng quan —
+// trước đây tab mặc định 'tong' rồi trình duyệt mới đọc URL, lượt ghi URL chạy với giá trị mặc định đè mất lựa chọn)
+export default async function EtpPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await getCurrentUser();
   if (!me) redirect('/login?next=/etp');
   if (me.role !== 'admin') redirect('/');
-  return <EtpView du={await docEtp()} />;
+  const q = await searchParams;
+  const mot = (k: string) => (typeof q[k] === 'string' ? (q[k] as string) : undefined);
+  return <EtpView du={await docEtp()} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l') }} />;
 }

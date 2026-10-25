@@ -402,19 +402,24 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
   );
 }
 
-export function EtpView({ du }: { du: DuLieuEtp }) {
+const TABS: Tab[] = ['tong', 'camp', 'creative', 'phim', 'tn', 'luat'];
+const LOC_CAMP = ['all', 'chay', 'tat', 'cung', 'roas'] as const;
+export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; v?: string; l?: string } }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('tong');
-  const [loc, setLoc] = useState<'all' | 'chay' | 'tat' | 'cung' | 'roas'>('chay');
-  const [xemSoat, setXemSoat] = useState(false);   // tab Creative: Hiệu quả | Soát (?v=soat)
-  const [xemCay, setXemCay] = useState(true);   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
+  // tab + kiểu xem lấy từ URL ngay lần vẽ đầu (máy chủ truyền vào) — F5 giữ nguyên chỗ đang xem
+  const [tab, setTab] = useState<Tab>(TABS.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
+  const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : 'chay');   // ?l= lọc camp
+  const [xemSoat, setXemSoat] = useState(dauVao?.v === 'soat');   // tab Creative: Hiệu quả | Soát (?v=soat)
+  const [xemCay, setXemCay] = useState(dauVao?.v !== 'bang');   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
   const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
   useEffect(() => { const mq = window.matchMedia('(max-width: 720px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
-  useEffect(() => { const q = new URLSearchParams(location.search); const x = q.get('t') as Tab | null; if (x) setTab(x);
-    const v = q.get('v') ?? (() => { try { return localStorage.getItem('etp-camp-xem'); } catch { return null; } })(); if (v === 'bang' || v === 'cay') setXemCay(v === 'cay'); if (q.get('v') === 'soat') setXemSoat(true); }, []);
-  useEffect(() => { const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCay ? 'cay' : 'bang'); else if (tab === 'creative' && xemSoat) u.searchParams.set('v', 'soat'); else u.searchParams.delete('v'); history.replaceState(history.state, '', u);
-    try { localStorage.setItem('etp-camp-xem', xemCay ? 'cay' : 'bang'); } catch { /* trình duyệt chặn */ } }, [tab, xemCay, xemSoat]);
+  // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
+  const [daDoc, setDaDoc] = useState(false);
+  useEffect(() => { if (dauVao?.v !== 'bang' && dauVao?.v !== 'cay') { try { const v = localStorage.getItem('etp-camp-xem'); if (v === 'bang' || v === 'cay') setXemCay(v === 'cay'); } catch { /* trình duyệt chặn */ } } setDaDoc(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!daDoc) return; const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCay ? 'cay' : 'bang'); else if (tab === 'creative' && xemSoat) u.searchParams.set('v', 'soat'); else u.searchParams.delete('v');
+    if (tab === 'camp' && loc !== 'chay') u.searchParams.set('l', loc); else u.searchParams.delete('l'); history.replaceState(history.state, '', u);
+    try { localStorage.setItem('etp-camp-xem', xemCay ? 'cay' : 'bang'); } catch { /* trình duyệt chặn */ } }, [tab, xemCay, xemSoat, loc, daDoc]);
   const [kh, setKh] = useState<Kh>('7');
   const [xem, setXem] = useState<{ anh: string; video: string | null; x: number; y: number } | null>(null);   // ảnh to + video khi rê vào ảnh creative
   useEffect(() => { try { const v = localStorage.getItem('etp-kh') as Kh | null; if (v && v in KH_TEN) setKh(v); } catch { /* bỏ qua */ } }, []);

@@ -9,7 +9,8 @@
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server \
 //     ../../node_modules/.bin/tsx scripts/bo-set/khoa-3d-dien-ai.mts --ten=giat-the --phim=353 --may=toan,qua-vai,can-mat-ha,can-tay \
 //     --nguoi="Lâm Hạ,Vivian" --shot=1822 --giay=5 --dien="…hành động giữa hai khung…" --dau="<trạng thái đồ khung đầu>" --cuoi="<… khung cuối>" \
-//     [--chi-anh] [--lai=toan-cuoi,can-mat-ha-cuoi] [--clip=can-tay]   (--lai: chỉ làm lại các ảnh đó, ảnh khác lấy từ <thu>/anh.json của lượt trước)
+//     [--chi-anh] [--lai=toan-cuoi,can-mat-ha-cuoi] [--clip=can-tay] [--ta="can-tay:extreme close-up insert of …;qua-vai:…"]
+// CỠ CẢNH TỪNG MÁY (--ta): khung 3D cận sát chỉ có ngực + dây thẻ thì AI hay "sửa" thành cảnh toàn theo ảnh mẫu (26/10/2026 cận tay) — câu cỡ cảnh khoá lại.   (--lai: chỉ làm lại các ảnh đó, ảnh khác lấy từ <thu>/anh.json của lượt trước)
 // TRẠNG THÁI ĐỒ (--dau / --cuoi, tiếng Anh): ảnh mẫu người thật mang theo trạng thái đồ của khung nó (khung đầu: thẻ trên cổ Hạ) → khung cuối chép luôn,
 // thành hai cái thẻ (25/10/2026). Câu trạng thái đi vào MỌI ảnh của khung đó và đè lên ảnh mẫu.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -27,6 +28,7 @@ const ten = gia('ten'), phim = Number(gia('phim')), dsMay = (gia('may') || '').s
 if (!ten || !phim || !dsMay.length || !dien) { console.error('cần --ten --phim --may --dien'); process.exit(1); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1'); process.exit(2); }
 const chiAnh = process.argv.includes('--chi-anh'); const lai = (gia('lai') || '').split(',').filter(Boolean);
+const taMay: Record<string, string> = Object.fromEntries((gia('ta') || '').split(';').map((x) => x.split(':')).filter((x) => x.length >= 2).map(([m, ...r]) => [m!.trim(), r.join(':').trim()]));
 const trangThai = { dau: gia('dau') || '', cuoi: gia('cuoi') || '' };
 const db = getDb()!; const thu = `/tmp/khoa-${ten}`;
 const VIDU = 'fal-ai/vidu/q2/image-to-video/turbo';
@@ -43,7 +45,8 @@ const nguoiCo = mau.map((x) => `${x.mo_ta.slice(0, 200)}`).join(' ');
 
 async function anhThat(f: string, k: string, mauAnh: string[], loiMau: string): Promise<string | null> {
   if (cu[k] && !lai.includes(k)) return cu[k]!;
-  const tt = trangThai[k.endsWith('-cuoi') ? 'cuoi' : 'dau'];
+  const tt = trangThai[k.endsWith('-cuoi') ? 'cuoi' : 'dau']; const ta = taMay[k.replace(/-(dau|cuoi)$/, '')];
+  if (ta) loiMau = `FRAMING (must match image 1, never widen): ${ta}. ${loiMau}`;
   loiMau += ` The reference images are ONLY for faces, hair, clothes, lighting and the room — every object's position and who holds or wears what follow image 1${tt ? ` and this state: ${tt}` : ''}.`;
   const u3 = await len(f, `${k}-3d`);
   const p = `Image 1 is a rough grey 3D blockout frame of a live-action vertical drama shot in a luxury corporate elevator lobby (dark marble walls, brushed steel elevator doors, warm ceiling light). Turn it into a photorealistic film still. ${giuLogic} ${loiMau} ${nguoiCo} No text, no captions.`;

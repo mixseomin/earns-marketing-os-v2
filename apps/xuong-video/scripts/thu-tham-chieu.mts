@@ -56,7 +56,7 @@ async function K(): Promise<string | null> {
 }
 async function V(): Promise<string | null> {
   const anh = [...nguoi.flatMap((n) => n.anh.slice(0, 2)), boiCanh].slice(0, 7);
-  const g = await guiFal('fal-ai/vidu/q2/reference-to-video', { prompt: `${goi}. ${pr}`.slice(0, 3000), reference_image_urls: anh, duration: String(Math.min(8, Math.ceil(tongGiay) + 1)), resolution: '720p', aspect_ratio: '9:16' });
+  const g = await guiFal('fal-ai/vidu/q2/reference-to-video', { prompt: `${goi}. ${pr}`.slice(0, 3000), reference_image_urls: anh, duration: Math.min(8, Math.ceil(tongGiay) + 1), resolution: '720p', aspect_ratio: '9:16' });   // Vidu nhận SỐ (422 với chuỗi)
   if (!g.ok) { console.log(`  V: fal từ chối — ${g.loi}`); return null; }
   return cho('V', () => docFal(g.taskId));
 }

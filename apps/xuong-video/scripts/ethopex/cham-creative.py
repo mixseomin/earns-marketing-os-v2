@@ -7,8 +7,8 @@ Mỗi creative quét BỐN LỚP, mỗi lớp ghi vào etp.cham.lop khi chạy �
   anh      tờ 30 khung (soat_doan.to_khung)
   noi_dung Claude (chuỗi rẻ ckey → ShopAIKey → Anthropic, gọi trên box3) xem tờ khung + chữ + lời → tóm tắt + điểm 0–10 từng tiêu chí
 Tiêu chí: MỘT nguồn etp.tieu_chi (migration 0322) — nhóm meta + afs. Điểm nhóm = điểm thấp nhất (một tiêu chí hỏng là hỏng).
-Luật máy đọc chữ / lời thắng điểm Claude: dính từ cấm → ngôn từ ≤ 3; dính CTA dụ nhấp → CTA ≤ 2.
-Kết luận: cấm khi Meta ≤ 4 · cần người xem khi Meta ≤ 6 hoặc AFS ≤ 6 · còn lại sạch. Ghi luôn vào sổ soát đoạn (ethopex_soat_doan) để cổng lên creative dùng chung.
+Luật máy đọc chữ / lời kéo điểm xuống (không tự kết cấm): dính từ cấm → ngôn từ ≤ 6 (cần người xem); dính CTA dụ nhấp → CTA ≤ 4.
+Kết luận: cấm khi Meta ≤ 5 · cần người xem khi Meta ≤ 7 hoặc AFS ≤ 7 · còn lại sạch. Ghi luôn vào sổ soát đoạn (ethopex_soat_doan) để cổng lên creative dùng chung.
 Tiến độ từng creative ghi ngay vào xv_khoa_ngoai['ethopex_quet'] → etp.on.tc/?t=creative&v=soat hiện thời gian thực.
 Chạy (iMac):  cham-creative.py chay [--lai] [--creative <id>…] [--luong 4]   → chấm creative đang chạy chưa có bản chấm (--lai: chấm lại hết)
 Box3 (máy gọi):  cham-creative.py box <tờ khung.jpg> <câu hỏi.txt>   → in JSON"""
@@ -21,7 +21,7 @@ B, ENV, C = SD.B, SD.ENV, SD.C
 KHO = os.path.join(C, "cham")   # video tải về + tờ khung (iMac, xoá được — chấm lại thì tải lại)
 GIONG_PY = os.path.expanduser("~/.cache/ethopex/venv-giong/bin/python")   # venv Python 3.12 có mlx-whisper (python hệ thống 3.15 chưa có bánh mlx)
 MO_HINH_GIONG = "mlx-community/whisper-large-v3-turbo"
-CAM_META, XEM = 4, 6
+CAM_META, XEM = 5, 7   # chấm thử 25/10/2026: Meta từ chối #55305 ở mức 5/10 → cấm ≤ 5, cần xem 6–7
 
 def tieu_chi():
     r = SD.sql("select nhom, ma, ten, mo_ta from etp.tieu_chi order by nhom, thu_tu")
@@ -50,17 +50,23 @@ def lop_chu(f, KT, CQ):
 KHOA_GIONG = threading.Lock()   # một lượt whisper một lúc (GPU M4) — các lớp khác vẫn song song
 def lop_giong(f, KT):
     with KHOA_GIONG:
-        r = subprocess.run([GIONG_PY, "-c", "import json,sys,mlx_whisper; r=mlx_whisper.transcribe(sys.argv[1], path_or_hf_repo=sys.argv[2]); "
+        r = subprocess.run([GIONG_PY, "-c", "import json,sys,mlx_whisper; r=mlx_whisper.transcribe(sys.argv[1], path_or_hf_repo=sys.argv[2], condition_on_previous_text=False, compression_ratio_threshold=2.0, no_speech_threshold=0.5); "
                             "print(json.dumps({'text': r.get('text',''), 'lang': r.get('language')}, ensure_ascii=False))", f, MO_HINH_GIONG],
                            capture_output=True, text=True, timeout=900)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-200:])
     j = json.loads(r.stdout.strip().splitlines()[-1]); t = (j.get("text") or "").strip()
+    # whisper hay lặp ảo trên nhạc / im lặng ("Let's go" ×15) → gộp câu lặp liền nhau, giữ một lần
+    import re; cau = [c.strip() for c in re.split(r"(?<=[.!?¿¡])\s+", t) if c.strip()]; gon = []
+    for c in cau:
+        if not gon or c.lower() != gon[-1].lower(): gon.append(c)
+    t = " ".join(gon)
     h = KT.soat(t)
     return {"noi_dung": t[:4000], "ngon_ngu": j.get("lang"), "loi": [f"«{h}»"] if h else []}
 
 def cau_hoi(tc, chu, giong):
     ds = "\n".join(f'- "{x["nhom"]}.{x["ma"]}": {x["mo_ta"]}' for x in tc)
     return ("You review a Facebook/Instagram video ad for a short drama. The image is a contact sheet of 30 frames in order. "
+            "The voice transcript comes from speech recognition and may contain repeated phrases by mistake — ignore repetition. "
             f"On-screen text read by OCR: {chu.get('noi_dung', '')[:2500] or '(none)'}\nSpoken voice transcript: {(giong or {}).get('noi_dung', '')[:2500] or '(none)'}\n"
             "Score EACH criterion from 0 to 10 where 10 = fully compliant / no risk, 7 = minor doubt, 4 or less = Meta or Google would very likely reject:\n"
             f"{ds}\nReply ONLY JSON: {{\"noi_dung\": \"<2 sentences in Vietnamese: what happens in the video>\", "
@@ -115,8 +121,8 @@ def mot(cr, doan, url, tc, KT, CQ):
         except Exception as e: loi.append(f"nội dung: {str(e)[:160]}")
     # luật máy đọc chữ / lời thắng điểm Claude
     tu_cam = (lop.get("chu", {}).get("loi") or []) + (lop.get("giong", {}).get("loi") or [])
-    if tu_cam: diem["meta.ngon_tu"] = min(diem.get("meta.ngon_tu", 10), 3); ly["meta.ngon_tu"] = "máy đọc thấy từ cấm: " + "; ".join(tu_cam)[:280]
-    if lop.get("chu", {}).get("cta"): diem["afs.cta"] = min(diem.get("afs.cta", 10), 2); ly["afs.cta"] = "chữ dụ nhấp: " + "; ".join(lop["chu"]["cta"])[:280]
+    if tu_cam: diem["meta.ngon_tu"] = min(diem.get("meta.ngon_tu", 10), 6); ly["meta.ngon_tu"] = "máy đọc thấy từ cấm: " + "; ".join(tu_cam)[:280]
+    if lop.get("chu", {}).get("cta"): diem["afs.cta"] = min(diem.get("afs.cta", 10), 4); ly["afs.cta"] = "chữ dụ nhấp: " + "; ".join(lop["chu"]["cta"])[:280]
     meta = min([v for k, v in diem.items() if k.startswith("meta.")], default=None); afs = min([v for k, v in diem.items() if k.startswith("afs.")], default=None)
     ket = "xem" if meta is None or afs is None else "cam" if meta <= CAM_META else "xem" if meta <= XEM or afs <= XEM else "ok"
     v = json.dumps({"creative_id": int(cr), "doan": doan, "may": MAY, "lop": lop, "diem": diem, "ly_do": ly, "khung": khung, "meta": meta, "afs": afs, "ket": ket, "loi": "; ".join(loi) or None}, ensure_ascii=False).replace("$J$", "")

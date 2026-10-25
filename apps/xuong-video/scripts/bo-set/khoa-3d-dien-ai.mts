@@ -67,7 +67,7 @@ const anh: Record<string, { dau: string | null; cuoi: string | null }> = { [chua
 const loiChuan = 'The people, faces, hair, outfits, props and the room look exactly like reference images 2 and 3 (the same scene seen from another camera).';
 // CÙNG MÁY = CÙNG NỀN: máy đã có sẵn một đầu là ảnh người thật (vd khung cuối #4 = khung đầu shot sau, dùng lại) thì đầu kia lấy CHÍNH ảnh đó làm mẫu.
 // Lấy ảnh máy chuẩn làm mẫu thì AI chép nền của máy chuẩn (26/10/2026 #4: nền bảng chỉ dẫn thành cửa thang máy dù câu chữ đã khoá nền → Vidu lia máy giữa clip).
-const loiCungMay = 'Image 2 is THIS SAME locked-off camera at another moment of the same shot: keep the exact same framing, zoom and camera position (walls, doors, floor and ceiling edges at the same place in the frame), its background exactly (same wall, sign, bench, elevator positions behind each person), and the same people, faces, outfits and lighting.';
+const loiCungMay = 'Image 2 is THIS SAME locked-off camera at another moment of the same shot: keep the exact same framing, zoom and camera position (walls, doors, floor and ceiling edges at the same place in the frame), its background exactly (same wall, sign, bench, elevator positions behind each person), and the same people, faces, outfits and lighting. But WHERE each person stands, how far they are from the camera, their pose and where their hands and the props are follow image 1, NOT image 2 — people move between the two moments.';
 await Promise.all(con.map(async (m) => {
   const coSan = (k: string) => (cu[`${m}-${k}`] && !lai.includes(`${m}-${k}`) ? cu[`${m}-${k}`]! : null);
   const sD = coSan('dau'), sC = coSan('cuoi');

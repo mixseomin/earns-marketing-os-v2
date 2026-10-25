@@ -393,23 +393,6 @@
    "tat": true
   },
   {
-   "nhan": "MacBook:com.adfond.goc-kiem",
-   "ten": "Adfond - kiểm QC gốc đối thủ",
-   "chay": [
-    "/bin/sh",
-    "/Users/htuan/Me/Earns/adfond/scripts/meta-ads/goc-kiem.sh"
-   ],
-   "moi_truong": {
-    "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-   },
-   "nhat_ky": "/tmp/adfond-goc-kiem.log",
-   "hen": {
-    "luc": [
-     "09:15"
-    ]
-   }
-  },
-  {
    "nhan": "MacBook:com.astrolas.chatqueue",
    "ten": "Astrolas - hàng đợi chat",
    "chay": [
@@ -558,7 +541,7 @@
    }
   },
   {
-   "nhan": "MacBook:com.earns.pinterest-doc-so",
+   "nhan": "iMac:com.earns.pinterest-doc-so",
    "ten": "Pinterest - đọc số ghim",
    "chay": [
     "/bin/bash",
@@ -575,10 +558,11 @@
     "luc": [
      "09:20"
     ]
-   }
+   },
+   "ghi_chu": "Chuyển từ MacBook 25/10/2026 (anh: lượt máy không phụ thuộc MacBook)."
   },
   {
-   "nhan": "MacBook:com.earns.pinterest-nap-ghim",
+   "nhan": "iMac:com.earns.pinterest-nap-ghim",
    "ten": "Pinterest - nạp ghim hẹn",
    "chay": [
     "/bin/bash",
@@ -595,16 +579,17 @@
     "luc": [
      "09:45"
     ]
-   }
+   },
+   "ghi_chu": "Chuyển từ MacBook 25/10/2026 (anh: lượt máy không phụ thuộc MacBook)."
   },
   {
-   "nhan": "MacBook:com.earns.puzzle-gumroad",
+   "nhan": "iMac:com.earns.puzzle-gumroad",
    "ten": "Puzzle - đăng Gumroad",
    "chay": [
     "/opt/homebrew/bin/node",
     "scripts/dang-gumroad.mjs"
    ],
-   "thu_muc": "/Users/htuan/Me/Earns/puzzle-books",
+   "thu_muc": "/Users/htuan/puzzle-books",
    "moi_truong": {
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
    },
@@ -613,7 +598,8 @@
     "luc": [
      "09:00"
     ]
-   }
+   },
+   "ghi_chu": "Chuyển từ MacBook 25/10/2026 (anh: lượt máy không phụ thuộc MacBook) — profile militarycalc trên iMac giữ phiên Gumroad."
   },
   {
    "nhan": "MacBook:com.earns.puzzle-nhan-lenh",

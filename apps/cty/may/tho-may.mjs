@@ -15,8 +15,8 @@ if (!os.hostname().startsWith('Tuans-iMac')) { console.error(`thợ máy chỉ c
 const BOX = 'root@167.233.241.16', VPS = 'root@116.118.28.214', APP = '/opt/earns-marketing-os-v2/apps/cty', DATA = '/var/lib/cty', NGUOI = 'manh';
 const REPO = path.join(os.homedir(), 'Me/GitHub/spy-on-tc'), CLAUDE = '/opt/homebrew/bin/claude', TRAN_PHUT = 30;
 // MÁY ĐĂNG (anh 25/10/2026 "cho Mạnh quản lý luôn"): việc `dang:lo|<máy>|<nền>` do Phòng Nội dung xếp — chạy trong bản puzzle-books của iMac (bản chạy lượt 20:00),
-// sửa xong chép cùng bản sửa sang repo git trên MacBook; đăng bù đúng MỘT bài qua đường thường (nhịp an toàn vẫn quyết).
-const DANG = path.join(os.homedir(), 'puzzle-books'), MB = 'htuan@100.67.220.128';
+// bản đó là repo GIT từ 25/10/2026 (anh: lượt máy không phụ thuộc MacBook) — sửa + commit ngay tại đây; đăng bù đúng MỘT bài qua đường thường (nhịp an toàn vẫn quyết).
+const DANG = path.join(os.homedir(), 'puzzle-books');
 // QUYỀN HẸP: đọc / sửa CHỈ trong repo spy-on-tc; lệnh: ssh tới box3 + VPS máy cào, git trong repo, deploy của repo, bài tự kiểm. Không web, không hỏi, không lan việc.
 const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${REPO}/**)`, `Write(/${REPO}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(ssh ${VPS}:*)`,
   `Bash(ssh -o BatchMode=yes ${VPS}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(./deploy.sh)',
@@ -35,7 +35,7 @@ const r0 = JSON.parse(thu ? box(`cd ${APP} && CTY_DATA_DIR=${DATA} node -e "cons
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
 const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laDang = v.khoa.startsWith('dang:');
 const [, mayMa = '', nenMa = ''] = laDang ? v.khoa.slice(5).split('|') : [];
-const git = (...a) => (laDang ? '' : execFileSync('git', ['-C', REPO, ...a], { encoding: 'utf8' }).trim());   // máy đăng: bản iMac không có git — commit nằm ở repo MacBook, Mạnh tự ghi trong báo cáo
+const git = (...a) => execFileSync('git', ['-C', laDang ? DANG : REPO, ...a], { encoding: 'utf8' }).trim();   // máy đăng: repo git puzzle-books trên iMac (25/10/2026)
 
 const giao = `Bạn là Mạnh, thợ máy của Phòng Tài nguyên (công ty AI của anh Tuấn). Máy cào spy.on.tc vừa báo lỗi, bạn phải tìm GỐC, sửa, kiểm, rồi báo lại — anh không ngồi máy.
 
@@ -60,8 +60,8 @@ git revert / reset / checkout tệp · sửa tệp ngoài repo spy-on-tc · đ�
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã kiểm thế nào (số đo). Viết gọn, xưng "con", gọi "anh".`;
 
-const QUYEN_DANG = ['Read', 'Glob', 'Grep', `Edit(/${DANG}/**)`, `Write(/${DANG}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(ssh ${MB}:*)`,
-  `Bash(ssh -o BatchMode=yes ${MB}:*)`, `Bash(scp:*)`, 'Bash(node scripts/:*)', 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(diff:*)', 'Bash(md5:*)',
+const QUYEN_DANG = ['Read', 'Glob', 'Grep', `Edit(/${DANG}/**)`, `Write(/${DANG}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)',
+  'Bash(node scripts/:*)', 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(diff:*)', 'Bash(md5:*)',
   `Bash(${os.homedir()}/bin/br status:*)`, `Bash(${os.homedir()}/bin/profile-locks:*)`];
 const giaoDang = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả MÁY ĐĂNG (đăng video / ảnh / link lên kênh social). Phòng Nội dung vừa báo một kênh LỠ LƯỢT:
 hôm qua (giờ VN) cả họ nền đó không có bài nào. Bạn phải tìm GỐC, sửa, đăng bù nếu được, kiểm, rồi báo lại — anh không ngồi máy.
@@ -75,25 +75,25 @@ HẠ TẦNG:
   · xv_may_nhat_ky (luc, nen, buoc, ok, noi_dung — mỗi lượt đăng ghi một dòng, đọc đây TRƯỚC) · platform_alerts (cảnh báo tài khoản, xong_luc null = chưa xử).
 - iMac (máy này): ${DANG} — bản chạy lượt hằng ngày \`node scripts/dang-may.mjs --het\` lúc 20:00 + bù 21:00 (bộ điều phối cty) cho mọi máy có dang[].may = iMac.
   Xem trước lượt (không đăng): node scripts/dang-may.mjs --het --xem · tự kiểm: node scripts/dang-may.mjs --tu-kiem
-- MacBook ${MB} (ssh, đầu lệnh: export PATH=/opt/homebrew/bin:$PATH; cd ~/Me/Earns/puzzle-books): repo GIT của cùng bộ script. Front Porch (máy front-porch-only-one) đăng bằng
-  scripts/dang-short.mjs <nền> qua launchd com.earns.puzzle-short-yt lúc 20:05, nhật ký ~/.cache/puzzle-short-yt.log.
+- ${DANG} là repo GIT (nguồn chính của bộ script đăng). Front Porch (máy front-porch-only-one) đăng Page / kênh riêng bằng scripts/dang-short.mjs <nền> ngay trên iMac:
+  tiktok lúc 20:00 (nhật ký ~/.cache/puzzle-may.log), youtube + facebook lúc 20:05 (~/.cache/puzzle-short-yt.log). Page cũ 'facebook:<acct>' của máy đó đi dang-may như máy khác.
+  Instagram Front Porch còn ở MacBook (chờ anh đăng nhập IG trên iMac): lỡ lượt instagram = KHONG_SUA, ghi lý do, không ssh MacBook.
 - Trình duyệt: script gọi ~/bin/br (khoá xác minh theo profile + tên miền ở ~/.br-xac-minh.d trên từng máy). ~/bin đồng bộ hai máy qua ~/claude-sync/sync.sh (cờ kẹt ~/claude-sync/CONFLICT.flag).
 
 CÁCH LÀM:
 1. Đọc xv_may_nhat_ky của máy + nền 3 ngày qua, chạy --xem, đọc nhật ký launchd nếu là Front Porch. Phân loại: (a) lỗi máy / mã (script hỏng, giao diện nền tảng đổi, br lệch bản,
    đồng bộ kẹt) → sửa; (b) dừng đúng luật (nhịp an toàn: trần ngày, cách ≥ 3 giờ, xoay nền, chưa tới hạn đăng, cảnh báo tài khoản) → KHÔNG phải lỗi, báo lại là đúng luật;
    (c) tài khoản bị nền tảng chặn / đòi xác minh / hết bài phải làm thêm → CAN_ANH.
-2. Sửa GỐC trong ${DANG}/scripts (bản iMac), rồi chép CÙNG bản sửa sang MacBook: hai tệp giống nhau trước khi sửa (md5) thì scp tệp; khác nhau thì áp đúng đoạn sửa bằng python qua ssh.
-   Sau đó trên MacBook: node --check + --tu-kiem + git add đúng tệp + git commit (tiếng Việt, ghi gốc + cách sửa). node --check + --tu-kiem ở iMac nữa.
+2. Sửa GỐC trong ${DANG}/scripts, rồi node --check + --tu-kiem, git add đúng tệp + git commit trong ${DANG} (tiếng Việt, ghi gốc + cách sửa).
 3. ĐĂNG BÙ đúng MỘT bài cho nền lỡ, bằng đường thường để nhịp an toàn tự quyết: iMac \`node scripts/dang-may.mjs ${nenMa || '<nền>'} --may ${mayMa || '<máy>'}\`;
-   Front Porch: ssh MacBook \`node scripts/dang-short.mjs <nền>\`. Nhịp an toàn nói không thì THÔI, ghi lý do. Đăng xong đọc lại nhật ký / link bài để chắc bài lên đúng kênh.
+   Front Porch (Page / kênh riêng): \`node scripts/dang-short.mjs <nền>\` ngay trên iMac. Nhịp an toàn nói không thì THÔI, ghi lý do. Đăng xong đọc lại nhật ký / link bài để chắc bài lên đúng kênh.
 
 CẤM: dùng --slug hay mọi cách lách nhịp an toàn, sửa trần / khoảng cách / luật dừng trong nhip-an-toan.mjs để "đăng cho đủ" (luật anh: đăng nhiều nhưng không spam) · đụng trang đăng nhập,
 gõ mật khẩu, bấm xác minh, gỡ khoá xác minh (br xac-minh-xong) — gặp là CAN_ANH · lập tài khoản · mua / nạp / bật quảng cáo · xoá dữ liệu · git revert / reset / checkout ·
-sửa tệp ngoài puzzle-books (iMac + repo MacBook) · in khoá / mật khẩu / token.
+sửa tệp ngoài ${DANG} · in khoá / mật khẩu / token.
 
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
-lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit MacBook) · đã đăng bù chưa (link bài) / vì sao không. Viết gọn, xưng "con", gọi "anh".`;
+lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã đăng bù chưa (link bài) / vì sao không. Viết gọn, xưng "con", gọi "anh".`;
 const loiGiao = laDang ? giaoDang : giao, quyen = laDang ? QUYEN_DANG : QUYEN, noiChay = laDang ? DANG : REPO;
 if (thu) { console.log(loiGiao); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }

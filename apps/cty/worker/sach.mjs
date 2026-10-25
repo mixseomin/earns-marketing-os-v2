@@ -60,7 +60,7 @@ export function viecKe(d, hom) {
           : { ai: 'truong-phong', muc: 2, chu: `soạn nháp KDP${dd} — sách ngoài dây chuyền, máy không tự làm`, qua, qt: 'dang-kdp' };
         return { ai: 'may', chu: d.sku ? `máy bấm Publish nháp KDP${dd} (iMac, 2 giờ/lần)` : `máy tạo nháp + bấm Publish KDP${dd} (iMac, 2 giờ/lần)`, qua, tre: qua >= 1, qt: 'dang-kdp' };
       }
-      return { ai: 'may', chu: d.nen === 'etsy' ? 'bật bán Etsy 08:30 (≤3 cuốn/ngày)' : d.nen === 'gumroad' ? 'đăng Gumroad 09:00 (MacBook)' : `chờ đăng ${d.nen}`, qua, tre: qua >= 2, qt: { etsy: 'bat-ban-etsy', gumroad: 'dang-gumroad' }[d.nen] ?? null };
+      return { ai: 'may', chu: d.nen === 'etsy' ? 'bật bán Etsy 08:30 (≤3 cuốn/ngày)' : d.nen === 'gumroad' ? 'đăng Gumroad 09:00 (iMac)' : `chờ đăng ${d.nen}`, qua, tre: qua >= 2, qt: { etsy: 'bat-ban-etsy', gumroad: 'dang-gumroad' }[d.nen] ?? null };
     case 'owner_review':
       if (!dangDungLai) return { ai: 'giam-doc', muc: 3, chu: 'duyệt bản xem trong MOS2', qua: toi ? qua : null, qt: 'duyet-ban-xem' };
       return { ...dangDung(), chu: `dựng lại ${d.tram.dat}/${d.tram.tong} · kế: ${d.tram.ke ?? '?'} (${d.duyet ? 'đã duyệt — ảnh đổi thì duyệt lại' : 'giữ chờ duyệt'})` };

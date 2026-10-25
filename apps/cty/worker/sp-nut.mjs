@@ -1,11 +1,11 @@
 // NÚT "🚀 Máy đăng <nền>" dưới tin "📤 tới ngày cần đăng" (anh 22/10/2026: "trên tele cho phép mày bấm tự Publish lên cho sp cụ thể").
-// scripts/bao-sp-telegram.mjs gửi nút sp:<nền>:<UUID sổ products>. Bấm = ghi lệnh máy (lenh-may.mjs taoLenh, tham = UUID) → MacBook (nhan-lenh.mjs,
+// scripts/bao-sp-telegram.mjs gửi nút sp:<nền>:<UUID sổ products>. Bấm = ghi lệnh máy (lenh-may.mjs taoLenh, tham = UUID) → máy theo LENH_MAY (nhan-lenh.mjs,
 // mỗi 60 giây) chạy đúng một sản phẩm → baoKetLenh báo kết quả ngay dưới tin (xong / lỗi / máy chưa nhận sau 5 phút), lỗi thì kèm nút thử lại.
 // Gọi từ tg-nghe.mjs mỗi vòng. Mỗi lần bấm = một lượt; bấm khi lượt trước còn chờ / đang chạy thì taoLenh từ chối.
 import fs from 'node:fs';
 import path from 'node:path';
 import { moHop } from './tg-phong.mjs';
-import { taoLenh, dsLenh, trangLenh } from './lenh-may.mjs';
+import { taoLenh, dsLenh, trangLenh, LENH_MAY } from './lenh-may.mjs';
 
 export const NEN_LENH = { gum: { lenh: 'sach:gumroad', ten: 'Gumroad' } };
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -20,7 +20,7 @@ export async function xuNutSp(tg, dir = THU()) {
     const [, nen, id] = String(c.data).split(':'), N = NEN_LENH[nen], m = c.message, bao = { tin: m?.message_id ?? null, topic: m?.message_thread_id ?? null };
     const ten = esc((m?.text ?? '').split('\n')[0].replace(/^\S+\s*/, '') || id), ai = esc(c.from?.first_name || 'Anh');
     const r = N ? taoLenh(N.lenh, `tg:${c.from?.id ?? '?'}`, dir, Date.now(), { tham: id, bao }) : { loi: `nút lạ "${esc(c.data)}"` };
-    await tra(tg, bao, r.loi ? `⚠️ Chưa giao được: ${esc(r.loi)}` : `▶ ${ai} giao máy đăng ${N.ten}: <b>${ten}</b>. MacBook nhận trong ~1 phút, xong báo ngay dưới tin này.`);
+    await tra(tg, bao, r.loi ? `⚠️ Chưa giao được: ${esc(r.loi)}` : `▶ ${ai} giao máy đăng ${N.ten}: <b>${ten}</b>. ${LENH_MAY[N.lenh]?.may ?? 'Máy'} nhận trong ~1 phút, xong báo ngay dưới tin này.`);
     n++;
   }
   return n;
@@ -33,7 +33,7 @@ export async function baoKetLenh(tg, dir = THU(), gio = Date.now()) {
     if (!x.bao || x.da_bao) continue;
     const h = trangLenh(x, gio); if (!['xong', 'loi', 'ngu', 'chet'].includes(h)) continue;
     const nen = Object.keys(NEN_LENH).find((k) => NEN_LENH[k].lenh === x.lenh), lai = nen && x.tham ? { reply_markup: nutDang(nen, x.tham) } : {};
-    const text = { xong: `✅ Máy chạy xong: ${esc(x.ket ?? '')}`, loi: `✗ Máy đăng lỗi: ${esc(x.ket ?? '')}`, ngu: '⚠️ MacBook chưa nhận lệnh sau 5 phút (máy đang ngủ / tắt?). Máy mở lại thì bấm nút dưới.', chet: '⚠️ Máy nhận lệnh nhưng quá 30 phút không báo về (máy tắt giữa chừng?).' }[h];
+    const text = { xong: `✅ Máy chạy xong: ${esc(x.ket ?? '')}`, loi: `✗ Máy đăng lỗi: ${esc(x.ket ?? '')}`, ngu: `⚠️ ${LENH_MAY[x.lenh]?.may ?? 'Máy'} chưa nhận lệnh sau 5 phút (máy đang ngủ / tắt?). Máy mở lại thì bấm nút dưới.`, chet: '⚠️ Máy nhận lệnh nhưng quá 30 phút không báo về (máy tắt giữa chừng?).' }[h];
     await tra(tg, x.bao, text.slice(0, 3500), h === 'xong' ? {} : lai);
     const f = path.join(dir, `${x.id}.json`), tam = path.join(dir, `.${x.id}.tam`);
     fs.writeFileSync(tam, JSON.stringify({ ...x, ...(h === 'ngu' ? { trang: 'loi', ket: 'máy chưa nhận sau 5 phút — bỏ lệnh' } : {}), da_bao: new Date(gio).toISOString() })); fs.renameSync(tam, f);

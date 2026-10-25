@@ -174,13 +174,18 @@ function taiSo(dongBo) {
 
 function chayVong(may) {
   fs.mkdirSync(F.goi, { recursive: true }); fs.mkdirSync(path.dirname(F.log), { recursive: true });
-  if (!fs.existsSync(F.so)) taiSo(true);
+  // đọc sổ ĐỒNG BỘ lúc khởi động (không chỉ khi chưa có bản sao): việc đã chuyển sang máy khác thì bản sao cũ không được chạy bù nó
+  taiSo(true);
   const tt = docJson(F.tt, {}), dangChay = new Map();   // nhan → true khi chính lượt này mở (có sự kiện exit)
-  let lanTai = Date.now(), lanThu = 0;
+  let lanTai = Date.now(), lanThu = 0, lanNhip = Date.now();
   ghiLog(`● bộ điều phối ${may} chạy (pid ${process.pid})`);
   const nhip = () => {
     const bay = Date.now();
-    if (bay - lanTai > 5 * 60_000) { lanTai = bay; taiSo(false); }
+    // THỨC DẬY sau khi ngủ (nhịp 5 giây bị hở > 60 giây): đọc sổ ĐỒNG BỘ trước khi xét chạy bù — bản sao cũ còn những việc đã chuyển sang máy khác
+    // (25/10/2026: chuyển việc MacBook → iMac; MacBook thức dậy chạy bù theo sổ cũ = chạy đôi). box3 không trả thì giữ bản cũ như trước.
+    const thuc = bay - lanNhip > 60_000; lanNhip = bay;
+    if (thuc) { lanTai = bay; ghiLog("☀ thức dậy — đọc lại sổ trước khi chạy bù"); taiSo(true); }
+    else if (bay - lanTai > 5 * 60_000) { lanTai = bay; taiSo(false); }
     const ds = (docJson(F.so, { viec: [] }).viec ?? []).filter((v) => v.nhan.startsWith(`${may}:`) && !v.tat);
     const thu = bay - lanThu > 30_000; if (thu) lanThu = bay;
     let doi = false;

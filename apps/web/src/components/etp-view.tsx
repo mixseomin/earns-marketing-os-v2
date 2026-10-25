@@ -66,11 +66,12 @@ function BacCamp({ c, bao }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua'>;
     </span>
   );
 }
-// kỳ (hôm nay / hôm qua / khoảng chọn) nằm ở nhãn NHÓM phía trên — tiêu đề cột chỉ ghi ROI · Lãi · Chi (anh 25/10/2026: lặp "ROI h.nay … ROI hôm nay" khó đọc)
+// kỳ (hôm nay / hôm qua / khoảng chọn) nằm ở nhãn NHÓM phía trên — tiêu đề cột chỉ ghi ROI · Lãi · Chi · Thu (anh 25/10/2026: lặp "ROI h.nay … ROI hôm nay" khó đọc)
 const soCot = <T,>(key: string, f: (r: T) => SoTien): DataColumn<T>[] => [
   { key: `${key}_roi`, header: 'ROI', group: key, cell: (r) => <Roi s={f(r)} />, sortValue: (r) => roiOf(f(r)) ?? -1e9 },
   { key: `${key}_lai`, header: 'Lãi', group: key, cell: (r) => <LaiCot s={f(r)} />, sortValue: (r) => f(r).thu - f(r).chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + f(r).thu - f(r).chi, 0)} /> },
   { key: `${key}_chi`, header: 'Chi', group: key, cell: (r) => <Tien v={f(r).chi} />, sortValue: (r) => f(r).chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + f(r).chi, 0)} /> },
+  { key: `${key}_thu`, header: 'Thu', group: key, cell: (r) => <Tien v={f(r).thu} />, sortValue: (r) => f(r).thu, total: (rs) => <KeToan v={rs.reduce((a, r) => a + f(r).thu, 0)} /> },
 ];
 type Kh = 'nay' | '7' | '14' | '30' | 'thang' | 'all';
 const KH_TEN: Record<Kh, string> = { nay: 'Hôm nay', '7': '7 ngày', '14': '14 ngày', '30': '30 ngày', thang: 'Tháng này', all: 'Tất cả' };

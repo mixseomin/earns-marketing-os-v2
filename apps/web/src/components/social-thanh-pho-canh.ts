@@ -1198,11 +1198,21 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const hinhCay = new Map<string, any>();
     const cayCua = (loai: string) => { let g = hinhCay.get(loai); if (g) return g;
       const phan: [any, string][] = [], dat3 = (geo: any, x: number, y: number, z: number, mau: string, sx = 1, sy = 1, sz = 1) => { geo.scale(sx, sy, sz); geo.translate(x, y, z); phan.push([geo, mau]); };
-      for (let r = 0; r < 2; r++) for (let i = 0; i < (loai === 'bi' ? 3 : 4); i++) { const n = loai === 'bi' ? 3 : 4, px = -.75 + (i + .5) * 1.5 / n, pz = r ? .16 : -.16;
+      // HOA + BÍ dựng lại (góp ý #1454 "cụm hoa ruộng nhìn như…"): khối 20 mặt thô phóng to thành cục đa giác — giờ hoa có 5 cánh + nhuỵ + lá, bí có múi + cuống + lá
+      if (loai === 'hoa') { const MAU_HOA = ['#ff7eb6', '#ffd166', '#f4f1ff', '#b28dff', '#ff9f68'];
+        for (let r = 0; r < 3; r++) for (let i = 0; i < 6; i++) { const px = -.75 + (i + .5) * 1.5 / 6 + (r % 2 ? .06 : -.06), pz = (r - 1) * .17, cao = .62 + ((i * 7 + r * 3) % 5) * .05, mau = MAU_HOA[(i + r * 2) % MAU_HOA.length]!;
+          dat3(new THREE.CylinderGeometry(.012, .016, cao, 4, 1, true), px, cao / 2, pz, '#3f8a3a');
+          dat3(new THREE.SphereGeometry(.06, 6, 3), px + .05, cao * .4, pz, '#4f9a3a', 1.4, .25, .6);
+          for (let k = 0; k < 5; k++) { const g = (k / 5) * Math.PI * 2; dat3(new THREE.SphereGeometry(.05, 6, 4), px + Math.cos(g) * .055, cao + .01, pz + Math.sin(g) * .055, mau, 1.1, .3, .7); }
+          dat3(new THREE.SphereGeometry(.03, 6, 4), px, cao + .03, pz, '#c98a1a'); } }
+      else if (loai === 'bi') {
+        for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) { const px = -.75 + (i + .5) * 1.5 / 3 + (r ? .1 : -.1), pz = r ? .17 : -.17;
+          for (let k = 0; k < 6; k++) { const g = (k / 6) * Math.PI * 2; dat3(new THREE.SphereGeometry(.1, 8, 6), px + Math.cos(g) * .07, .13, pz + Math.sin(g) * .07, k % 2 ? '#f08a24' : '#e07a18', .8, 1, .8); }   // múi bí
+          dat3(new THREE.CylinderGeometry(.015, .025, .08, 5), px, .27, pz, '#6a4a2a');
+          for (const [dx, dz] of [[.2, .08], [-.18, -.1]] as const) dat3(new THREE.CircleGeometry(.13, 7).rotateX(-Math.PI / 2), px + dx, .03, pz + dz, '#4f9a3a'); } }
+      else for (let r = 0; r < 2; r++) for (let i = 0; i < 4; i++) { const n = 4, px = -.75 + (i + .5) * 1.5 / n, pz = r ? .16 : -.16;
         if (loai === 'lua') { dat3(new THREE.ConeGeometry(.16, 1, 4), px, .5, pz, '#b5c94a'); dat3(new THREE.ConeGeometry(.08, .3, 3), px + .05, 1.05, pz, '#e3c75a'); }
         else if (loai === 'ngo') { dat3(new THREE.CylinderGeometry(.04, .05, 1, 4, 1, true), px, .5, pz, '#3f9a3a'); dat3(new THREE.BoxGeometry(.4, .03, .12), px, .55, pz, '#5bbf4a'); dat3(new THREE.OctahedronGeometry(.08), px + .06, .7, pz, '#f2d04a', 1, 1.6, 1); }
-        else if (loai === 'hoa') { dat3(new THREE.CylinderGeometry(.025, .025, .8, 3, 1, true), px, .4, pz, '#3f8a3a'); dat3(new THREE.IcosahedronGeometry(.14, 0), px, .85, pz, i % 2 ? '#ffd166' : '#ff7eb6'); }
-        else if (loai === 'bi') { dat3(new THREE.IcosahedronGeometry(.21, 0), px, .14, pz, '#f08a24', 1, .7, 1); dat3(new THREE.CircleGeometry(.22, 5).rotateX(-Math.PI / 2), px + .12, .05, pz + .1, '#4f9a3a'); }
         else dat3(new THREE.IcosahedronGeometry(.19, 0), px, .3, pz, '#4caf50', 1, 1.3, 1); }
       const pos: number[] = [], nor: number[] = [], col: number[] = [], c = new THREE.Color();
       for (const [geo, mau] of phan) { const g2 = geo.index ? geo.toNonIndexed() : geo; c.set(mau); const a3 = g2.attributes.position, q = g2.attributes.normal;

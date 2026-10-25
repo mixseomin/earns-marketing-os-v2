@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: 06:00 hằng ngày khi bật
-skills: [kdp-paperback, kdp-hardcover, etsy, gumroad-publish, puzzle-books, marketplace-compliance]
+skills: [kdp-paperback, kdp-hardcover, etsy, gumroad-publish, puzzle-books, marketplace-compliance, product-marketing, pricing, launch, image, social]
 data: [san-pham:etsy:FrontPorchZ, san-pham:kdp, san-pham:gumroad:frontporchpuzzles, lich-104-cuon, phong_bi:sach]
 pay: 
 tran_usd_thang: 0

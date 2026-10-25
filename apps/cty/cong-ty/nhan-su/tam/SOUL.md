@@ -12,7 +12,7 @@ muc_quyet: 1
 approval: STRICT
 heartbeat: khi bấm nút
 lich: chỉ khi bấm "Chạy một lượt"
-skills: []
+skills: [ab-testing, experiment-designer]
 data: []
 pay:
 tran_usd_thang: 1

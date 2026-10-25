@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: sua-bai   # việc trên MÁY MAC (NHIP_MAY): bộ điều phối iMac gọi apps/cty/may/long-sua-bai.mjs mỗi 5 phút; bật/tắt ở chấm xanh cột Tự làm
 lich: mỗi 5 phút · iMac
-skills: [copywriting, humanizer, human-voice]
+skills: [copywriting, humanizer, human-voice, copy-editing, seo-audit, ai-seo]
 data: [vp-noi-dung:tra-ve, hotel-arb:sites]
 pay: 
 tran_usd_thang: 0

@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: STRICT
 heartbeat: off
 lich: theo hạn (lịch hằng năm trong phòng Astrolas)
-skills: [followup, inbox]
+skills: [followup, inbox, aso, onboarding, paywalls, signup, churn-prevention, emails]
 data: [followup:astrolas, giay-to:astrolas-llc]
 pay: 
 tran_usd_thang: 0

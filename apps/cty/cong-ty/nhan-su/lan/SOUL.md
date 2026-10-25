@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: mỗi giờ khi bật
-skills: [google-ads, gsc-monitoring, ga4, google-ads-cam-appeal]
+skills: [google-ads, gsc-monitoring, ga4, google-ads-cam-appeal, ads, ad-creative, conversion-tracking, attribution, paid-ads, campaign-analytics]
 data: [ga4_daily:adfond, kenh_so_ngay:adfond, tien-do:adfond, phong_bi:adfond, camp:*]
 pay: 
 tran_usd_thang: 40

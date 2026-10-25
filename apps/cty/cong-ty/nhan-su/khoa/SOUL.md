@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: T2 và T4
-skills: [mos2-plays, outreach, link-gate, reddit]
+skills: [mos2-plays, outreach, link-gate, reddit, link-building, public-relations, prospecting, cold-email, directory-submissions, influencer-marketing, co-marketing]
 data: [plays:*, backlinks:*, outreach_prospects:*, habitats:*]
 pay: 
 tran_usd_thang: 0

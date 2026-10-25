@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: 08:00 hằng ngày · thứ hai bản tuần · quý QBR
-skills: [tiendo, play, followup]
+skills: [tiendo, play, followup, internal-comms, financial-analyst]
 data: [tien-do:*, tasks:submitted, issues:lo-cho-ky, staff_state:*, ai_usage:*]
 pay: 
 tran_usd_thang: 25

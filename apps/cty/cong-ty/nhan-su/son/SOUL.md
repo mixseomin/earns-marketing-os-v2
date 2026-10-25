@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: STRICT
 heartbeat: off
 lich: T2 hằng tuần (khi bật)
-skills: [affiliate, gumroad, etsy-coupon]
+skills: [affiliate, gumroad, etsy-coupon, referrals, co-marketing, partnerships-architect, deal-desk, channel-economics, contract-and-proposal-writer]
 data: [doanh_thu_theo_nguon:*, ma_nguon:*, hoa_hong:*]
 pay: 
 tran_usd_thang: 0

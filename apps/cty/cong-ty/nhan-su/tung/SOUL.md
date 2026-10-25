@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: theo issue + ca gấp
-skills: [deploy-git, box-monitor, nginx, mos2]
+skills: [deploy-git, box-monitor, nginx, mos2, test-driven-development, systematic-debugging, verification-before-completion, writing-plans]
 data: [box-monitor:*, journalctl:*, gha:*, tien-do:mos2]
 pay: 
 tran_usd_thang: 0

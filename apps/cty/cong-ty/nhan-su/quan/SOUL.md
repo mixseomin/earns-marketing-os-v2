@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: theo issue (wake-on-mention)
-skills: [astrolas, git, tiendo]
+skills: [astrolas, git, tiendo, test-driven-development, systematic-debugging, verification-before-completion, writing-plans, free-tools, programmatic-seo, site-architecture, schema]
 data: [tien-do:astrolas, tasks:astrolas, gop-y:astrolas, review-queue:astrolas]
 pay: 
 tran_usd_thang: 0

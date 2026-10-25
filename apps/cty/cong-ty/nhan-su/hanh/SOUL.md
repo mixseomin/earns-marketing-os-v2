@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: STRICT
 heartbeat: off
 lich: theo đặt hàng
-skills: [vendor-brief, fiverr, upwork]
+skills: [vendor-brief, fiverr, upwork, vendor-management, procurement-optimizer]
 data: [vendors:*, phong_bi:thue-ngoai, tasks:vendor]
 pay: 
 tran_usd_thang: 0

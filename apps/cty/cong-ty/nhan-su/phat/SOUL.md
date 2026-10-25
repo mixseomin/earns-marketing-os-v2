@@ -13,7 +13,7 @@ approval: AUTO
 heartbeat: kiem-ethopex   # nhịp máy trên box3 (worker/nhip.mjs, cty-nhip.timer): luật camp Ethopex → Telegram 📂 Ethopex, anh duyệt bằng nút — anh lập phòng 21/10/2026
 kiem_moi: 30
 lich: mỗi 30 phút
-skills: [ethopex]
+skills: [ethopex, ads, ad-creative, ab-testing, attribution, analytics]
 data: [api:ethopex, db:mos2_prod, log:phat]
 pay: 
 tran_usd_thang: 0

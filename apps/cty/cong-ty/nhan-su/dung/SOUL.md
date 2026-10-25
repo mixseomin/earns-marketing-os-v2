@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: off
 lich: theo issue
-skills: [gsc-monitoring, seo, git]
+skills: [gsc-monitoring, seo, git, test-driven-development, systematic-debugging, verification-before-completion, writing-plans, free-tools, programmatic-seo, site-architecture, schema]
 data: [tien-do:militarycalc, tien-do:govcalcs, tien-do:visagps, tien-do:mint-almanac, gsc:*]
 pay: 
 tran_usd_thang: 0

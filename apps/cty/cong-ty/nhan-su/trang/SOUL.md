@@ -12,7 +12,7 @@ muc_quyet: 1
 approval: STRICT
 heartbeat: off
 lich: theo phát sinh
-skills: [marketplace-compliance, google-ads-cam-appeal, inbox]
+skills: [marketplace-compliance, google-ads-cam-appeal, inbox, gdpr-dsgvo-expert, compliance-readiness]
 data: [reviews:*, inbox:khieu-nai, vu-viec:*]
 pay: 
 tran_usd_thang: 15

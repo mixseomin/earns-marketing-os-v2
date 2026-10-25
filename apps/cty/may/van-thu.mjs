@@ -31,9 +31,12 @@ const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet';
 const x = JSON.parse(pt(`--cho ${PHONG} --json`))[0];
 if (!x) { log('không có thư chờ'); process.exit(0); }
 const phong = box(`sed -n '1,/^---$/!p' ${APP}/cong-ty/phong/${PHONG}.md | head -40`);
+// KỸ NĂNG (anh 26/10/2026: "cài cho Vân"): kỹ năng thư viện ngoài trong hồ sơ Vân (social, image, video, community-marketing, social-media-manager…) từ thư
+// viện công ty trên box (worker/ky-nang.mjs) — Vân lập việc / trả lời theo nghề thật, không theo cảm tính. Box im thì làm tiếp không có kỹ năng.
+let kyNang = ''; try { kyNang = box(`cd ${APP} && node worker/ky-nang.mjs --nguoi ${NGUOI} --tran 12000`).trim(); } catch (e) { log(`không lấy được kỹ năng: ${e.message.slice(0, 120)}`); }
 
 const truoc = x.truoc;
-const giao = x.loai === 'tra-loi' ? `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc). Anh (Giám đốc) vừa nhắn trong chủ đề phòng${truoc ? ', trả lời dưới báo cáo của bạn về một thư' : ''}.
+const giao0 = x.loai === 'tra-loi' ? `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc). Anh (Giám đốc) vừa nhắn trong chủ đề phòng${truoc ? ', trả lời dưới báo cáo của bạn về một thư' : ''}.
 Việc của bạn: đọc tin anh, trả lời câu anh hỏi và CẬP NHẬT kế hoạch theo điều anh nói (đọc lại mã / tài liệu nếu cần).
 BẠN CHỈ ĐỌC: không sửa tệp, không chạy lệnh, không gọi API nền tảng, không tiêu tiền. Việc cần sửa mã / cấu hình thì ghi rõ bước để người có quyền làm.
 Không có ai trả lời giữa chừng: đừng hỏi lại, tự quyết theo điều anh nói. Không đụng ~/.claude hay thứ gì ngoài repo này.
@@ -71,6 +74,7 @@ Nội dung (không chào hỏi), BÁO ANH theo 4 ý:
 3. Cần anh cung cấp gì (vd khoá ứng dụng trong trang nhà phát triển) — chỉ ghi khi máy thật sự không tự lấy được, kèm vì sao.
 4. Rủi ro chính sách nền tảng cần tránh.
 Dòng CUỐI: "KET: OK" khi đã lập xong, hoặc "KET: DUNG <lý do>".`;
+const giao = `${giao0}${kyNang ? `\n\nKỸ NĂNG NGHỀ (thư viện ngoài — áp khi lập việc / trả lời; luật ở trên thắng khi trái nhau):\n${kyNang}` : ''}`;
 if (thu) { console.log(`thư: ${x.id} · ${x.tieuDe} · model ${model}\nquyền: ${QUYEN.join(' ')}\n\n${giao}`); process.exit(0); }
 
 pt(`--nhan ${PHONG} ${q(x.id)} --ai ${NGUOI}`); log(`nhận ${x.id} · ${x.tieuDe} · model ${model}`);

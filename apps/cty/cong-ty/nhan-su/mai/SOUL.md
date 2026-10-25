@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: STRICT
 heartbeat: off
 lich: off (dựng xong, chưa chạy)
-skills: [medium, reddit, kdp-book-market, udemy]
+skills: [medium, reddit, kdp-book-market, udemy, customer-research, competitor-profiling, competitors, market-research, competitive-teardown, product-research]
 data: [nguon:medium, nguon:instructables, nguon:reddit, kiem:udemy, kiem:kdp, kiem:etsy]
 pay: 
 tran_usd_thang: 0

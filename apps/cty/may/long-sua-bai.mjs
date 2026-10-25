@@ -92,6 +92,9 @@ if (!m) { if (!thu) kb(`--dung ${q(x.url)} --nguoi ${NGUOI} --ly-do ${q('Xưởn
 const tepDung = path.join(SITES, DIST, m[2].replace(/^\/+|\/+$/g, ''), 'index.html');
 
 const chuan = box(`sed '/^<!--/,/-->$/d' ${APP}/cong-ty/quy-dinh/noi-dung/chuan-duyet-bai.md`);
+// KỸ NĂNG (anh 26/10/2026: "cài cho Long"): đúng các kỹ năng Ngọc dùng chấm loại bài này + kỹ năng trong hồ sơ Long — sửa bằng cùng một thước với người
+// chấm thì ít bị trả về lần nữa. Lấy từ thư viện công ty trên box (worker/ky-nang.mjs); box im thì làm tiếp không có kỹ năng, không dừng việc.
+let kyNang = ''; try { kyNang = box(`cd ${APP} && node worker/ky-nang.mjs --nguoi ${NGUOI} --loai ${q(x.loai || 'bai-dich-mxh')} --tran 15000`).trim(); } catch (e) { log(`không lấy được kỹ năng: ${e.message.slice(0, 120)}`); }
 const ds2 = (xs) => (xs.length ? xs.map((s) => `- ${s}`).join('\n') : '- (không)');
 const giao = `Bạn là Long, Trưởng Xưởng Aff của công ty (cty.on.tc). Phòng Nội dung (Ngọc) trả bài về cho bạn sửa.
 
@@ -116,7 +119,10 @@ trong repo / media); không có thì KHÔNG nhúng bừa, dừng. Khung tin nh�
 KẾT THÚC: câu trả lời cuối có đúng một dòng "KET: OK <đã sửa gì>" khi đã dựng + commit xong, hoặc "KET: DUNG <lý do>".
 
 THƯỚC CHẤM:
-${chuan}`;
+${chuan}${kyNang ? `
+
+KỸ NĂNG NGHỀ (thư viện ngoài; Phòng Nội dung chấm bằng đúng các kỹ năng này — chuẩn ở trên thắng khi trái nhau):
+${kyNang}` : ''}`;
 if (thu) { console.log(`bài: ${x.url} · model ${model} · bản dựng ${tepDung}\nquyền: ${QUYEN.join(' ')}\n\n${giao}`); process.exit(0); }
 
 kb(`--nhan ${q(x.url)} --nguoi ${NGUOI}`); log(`nhận ${x.url} · model ${model}`);

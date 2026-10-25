@@ -12,7 +12,7 @@ muc_quyet: 2
 approval: SMART
 heartbeat: xu-thu, bao-social   # xu-thu: MÁY MAC (NHIP_MAY), iMac gọi apps/cty/may/van-thu.mjs mỗi 5 phút · bao-social: box3, báo cáo ngày 21:30 (worker/bao-social.mjs); bật/tắt ở chấm xanh cột Tự làm
 lich: mỗi 5 phút · iMac
-skills: [pinterest, social-traffic]
+skills: [pinterest, social-traffic, social, image, video, community-marketing, social-media-manager, x-twitter-growth, youtube-full]
 data: [kenh_so_ngay:pinterest]
 pay: 
 tran_usd_thang: 0

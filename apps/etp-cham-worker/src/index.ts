@@ -142,7 +142,7 @@ async function chamMot(env: Env, v: Viec, tc: TieuChi[], mau: Mau | null) {
   } finally { await env.R2.delete(key); }
 }
 
-async function chay(env: Env, so = 2) {
+async function chay(env: Env, so = 3) {
   const h = { authorization: `Bearer ${env.MOS2_EXT_KEY}`, 'content-type': 'application/json' };
   const r = await fetch(`${MOS2}?so=${so}`, { headers: h });
   if (!r.ok) throw new Error(`mos2 ${r.status}`);

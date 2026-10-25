@@ -48,16 +48,12 @@ def mot(camp, tu_choi, dat):
     d = api(f"/api/v1/campaigns/{camp}"); a = d["ad_groups"][0]["ads"][0]
     cu, cid = a.get("creative_id"), a.get("content_id")
     lan = str(cu) in tu_choi and not bi_tu_choi(a)   # creative đã bị từ chối ở camp khác → thay luôn ở camp này trước khi Meta từ chối tiếp
-    if lan and (tu_choi.get(str(cu)) or {}).get("soat") and q(f"select tao < now() - interval '48 hours' from etp.camp where camp_id = {int(camp)}") != "f":
-        lan = False   # đoạn soát cấm chỉ thay ở camp mới < 48 giờ — camp cũ Meta đã duyệt, có thể đang lãi (camp đang lãi cấm sửa)
     if not bi_tu_choi(a) and not lan: return {**kq, "ok": True, "viec": "khong_tu_choi"}
     if not lan and khoa("ethopex_thay_cho_duyet").get(str(camp)) == cu: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # vừa thay, Meta chưa duyệt lại
-    ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else (f"creative #{cu} thuộc đoạn soát cấm ({str(tu_choi[str(cu)].get('ly_do', ''))[:120]})" if (tu_choi.get(str(cu)) or {}).get("soat") else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})")
+    ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})"
     kq.update(creative_cu=cu, content=cid, ly_do=ly)
     if not lan:
         gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly, "luc": vn()}}); tu_choi[str(cu)] = {"ly_do": ly}
-        dn = q(f"select doan from etp.creative where creative_id = {int(cu)}")   # Meta là phán quyết cuối: đoạn bị từ chối ghi CẤM vào sổ soát đoạn (máy từng chấm sạch, 25/10/2026)
-        if dn: gop("ethopex_soat_doan", {dn: {"ok": False, "luc": vn(), "ghi": f"Meta từ chối: {ly[:200]}"}})
     ds = ung_vien(cid, cu, tu_choi, dat)
     if not ds:
         gop("ethopex_cho_dung_lai", {str(cu): {"goc": camp, "luc": vn(), "ten": d["campaign"]["name"].split(": ", 1)[-1], "content_id": cid, "tu_choi": True, "ly_do": ly}})
@@ -158,16 +154,10 @@ if __name__ == "__main__":
     if "--don-doan" in a: don_doan(that="--thu" not in a); sys.exit(0)
     camps = [int(x) for x in a[a.index("--camp") + 1:] if x.isdigit()] if "--camp" in a else [c["id"] for c in api("/api/v1/campaigns?page_size=500")["data"] if c.get("state") == "ACTIVE"]
     tu_choi, dat = khoa("ethopex_tu_choi"), khoa("ethopex_cta_dat")
-    # đoạn soát CẤM (máy / người, ethopex_soat_doan ok=false) mà creative đã lên camp → thay trước khi Meta từ chối (anh 25/10/2026, ca 165796 1078s);
-    # chỉ thêm vào bộ nhớ lượt này (không ghi sổ từ chối của Meta) — ung_vien cũng không chọn lại creative đoạn cấm
-    sd = khoa("ethopex_soat_doan"); cam = {k for k, v in sd.items() if v.get("ok") is False}
-    for l in q("select creative_id, doan from etp.creative where doan is not null").splitlines():
-        c, _, dn = l.partition("|")
-        if dn in cam and c not in tu_choi: tu_choi[c] = {"ly_do": f"đoạn soát cấm: {str(sd[dn].get('ghi', ''))[:120]}", "soat": True}
     def an_toan(c):
         try: return mot(c, tu_choi, dat)
         except Exception as e: return {"camp": c, "ok": False, "loi": f"{type(e).__name__}: {str(e)[:150]}"}
     for lo in (camps, None):   # lượt 2: camp khác cùng creative vừa bị từ chối
-        ds = camps if lo is not None else cung_creative(set(camps), {**tu_choi, **khoa("ethopex_tu_choi")})
+        ds = camps if lo is not None else cung_creative(set(camps), khoa("ethopex_tu_choi"))
         for k in map(an_toan, ds):   # tuần tự: hai camp cùng phim không giành cùng một creative thay, số camp / đoạn đọc đúng
             if k.get("viec") not in ("khong_tu_choi", "cho_meta_duyet"): print(json.dumps(k, ensure_ascii=False), flush=True)

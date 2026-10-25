@@ -190,12 +190,7 @@ def main(a):
         list(ThreadPoolExecutor(luong).map(mot, viec))
         td["dang"] = False; td["cap_nhat"] = vn(); gop("ethopex_quet", {may: td})
         print(f"rà soát xong ({may}): ok {td['ok']} · cấm {td['cam']} · cần người xem {td['xem']}", flush=True)
-        cam = [str(c) for c in cam]
-        if cam:   # camp mới < 48 giờ mang đoạn cấm → thay creative sạch; camp cũ (Meta đã duyệt, có thể đang lãi) chỉ báo, không sửa
-            camps = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where creative_id in ({','.join(cam)}) and trang_thai <> 'ARCHIVED'")
-            if camps:
-                r = subprocess.run(["python3", f"{D}/thay-tu-choi.py", "--camp", *camps.split()] if TREN_BOX else ["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 thay-tu-choi.py --camp {camps}"], capture_output=True, text=True, timeout=1800)
-                print(r.stdout[-3000:], r.stderr[-300:], flush=True)
+        # CHỈ CHẤM, KHÔNG ĐỤNG CAMP (anh 25/10/2026: "giờ chỉ làm hệ chấm điểm, chưa áp dụng vào camp hay rule nào hết")
         return
     if lenh == "ds":
         h = khoa("ethopex_cho_soat")

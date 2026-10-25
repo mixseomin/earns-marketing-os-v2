@@ -5,7 +5,8 @@ Mỗi creative quét BỐN LỚP, mỗi lớp ghi vào etp.cham.lop khi chạy �
   chu      chữ trên hình — mỗi giây một khung → Vision macOS (doc-chu.swift, 0đ) → luật thoại cấm (kiem-thoai) + luật CTA (cta_qc)
   giong    lời nói — mlx-whisper large-v3-turbo chạy trên iMac M4 (0đ) → cùng luật thoại cấm
   anh      tờ 30 khung (soat_doan.to_khung)
-  noi_dung Claude (chuỗi rẻ ckey → ShopAIKey → Anthropic, gọi trên box3) xem tờ khung + chữ + lời → tóm tắt + điểm 0–10 từng tiêu chí
+  noi_dung Claude (chuỗi rẻ ckey → ShopAIKey → Anthropic, gọi trên box3) xem tờ khung + chữ + lời → tóm tắt + điểm 0–10 từng tiêu chí;
+           chấm HAI lượt độc lập, lấy điểm thấp hơn, lệch ≥ 4 điểm → cần người xem
 Tiêu chí: MỘT nguồn etp.tieu_chi (migration 0322) — nhóm meta + afs. Điểm nhóm = điểm thấp nhất (một tiêu chí hỏng là hỏng).
 Luật máy đọc chữ / lời kéo điểm xuống (không tự kết cấm): dính từ cấm → ngôn từ ≤ 6 (cần người xem); dính CTA dụ nhấp → CTA ≤ 4.
 Kết luận: cấm khi Meta ≤ 5 · cần người xem khi Meta ≤ 7 hoặc AFS ≤ 7 · còn lại sạch. Ghi luôn vào sổ soát đoạn (ethopex_soat_doan) để cổng lên creative dùng chung.
@@ -110,14 +111,26 @@ def mot(cr, doan, url, tc, KT, CQ):
     diem, ly, khung = {}, {}, {}
     if to:
         try:
-            j = claude(to, cau_hoi(tc, lop.get("chu", {}), lop.get("giong")), tc)
-            diem = {k: int(round(float(v))) for k, v in (j.get("diem") or {}).items()}; ly = {k: str(v)[:300] for k, v in (j.get("ly_do") or {}).items() if diem.get(k, 10) < 10}
+            # HAI LƯỢT ĐỘC LẬP, lấy điểm thấp hơn (chấm thử 25/10/2026: cùng đầu vào #55305 lần 5 điểm, lần 10 — máy dao động);
+            # hai lượt lệch ≥ 4 điểm ở tiêu chí nào thì tiêu chí đó ≤ 7 (cần người xem) kèm ghi chú lệch
+            hoi = cau_hoi(tc, lop.get("chu", {}), lop.get("giong"))
+            from concurrent.futures import ThreadPoolExecutor as _TP
+            with _TP(2) as ex: ls = [x.result() for x in [ex.submit(claude, to, hoi, tc) for _ in range(2)]]
+            j = min(ls, key=lambda x: sum((x.get("diem") or {}).values()))
+            d2 = [{k: int(round(float(v))) for k, v in (x.get("diem") or {}).items()} for x in ls]
+            for k in set(d2[0]) | set(d2[1]):
+                a_, b_ = d2[0].get(k, 10), d2[1].get(k, 10); lo_ = 0 if a_ <= b_ else 1
+                diem[k] = min(a_, b_)
+                if diem[k] < 10: ly[k] = str((ls[lo_].get("ly_do") or {}).get(k, ""))[:300]
+                if abs(a_ - b_) >= 4: diem[k] = min(diem[k], 7); ly[k] = (f"hai lượt chấm lệch {a_} / {b_} — cần người xem. " + ly.get(k, ""))[:300]
+                kh = sorted({int(n) for x in ls for n in ((x.get("khung") or {}).get(k) or []) if str(n).isdigit() and 1 <= int(n) <= 30})
+                if kh and diem[k] < 10: khung[k] = kh
             lop["noi_dung"] = {"luc": SD.vn(), "tom_tat": str(j.get("noi_dung", ""))[:600], "duong": j.get("duong")}
             if j.get("anh_url"): lop["anh"]["url"] = j["anh_url"]
             # khung bị bắt → giây trong video (30 khung chia đều độ dài) để trang tua video tới đúng chỗ
             dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], capture_output=True, text=True).stdout.strip() or 0)
             lop["anh"]["giay"] = round(dur, 2)
-            khung = {k: sorted({int(n) for n in v if str(n).isdigit() and 1 <= int(n) <= 30}) for k, v in (j.get("khung") or {}).items() if isinstance(v, list) and diem.get(k, 10) < 10}
+
         except Exception as e: loi.append(f"nội dung: {str(e)[:160]}")
     # luật máy đọc chữ / lời thắng điểm Claude
     tu_cam = (lop.get("chu", {}).get("loi") or []) + (lop.get("giong", {}).get("loi") or [])
@@ -130,8 +143,7 @@ def mot(cr, doan, url, tc, KT, CQ):
                select creative_id, doan, may, lop, diem, ly_do, khung, meta, afs, ket, loi from jsonb_populate_record(null::etp.cham, $J${v}$J$::jsonb)
                on conflict (creative_id) do update set doan = excluded.doan, luc = now(), may = excluded.may, lop = excluded.lop, diem = excluded.diem,
                  ly_do = excluded.ly_do, khung = excluded.khung, meta = excluded.meta, afs = excluded.afs, ket = excluded.ket, loi = excluded.loi""")
-    if doan and ket in ("ok", "cam"):   # cổng lên creative / thay-tu-choi đọc chung một sổ soát đoạn
-        SD.gop("ethopex_soat_doan", {doan: {"ok": ket == "ok", "luc": SD.vn(), "ghi": f"máy chấm 4 lớp: Meta {meta}/10 · AFS {afs}/10" + (f" — {'; '.join(f'{k}: {x}' for k, x in ly.items())}"[:300] if ly else "")}})
+    # CHỈ CHẤM (anh 25/10/2026): không ghi vào sổ soát đoạn / cổng lên creative / camp — áp dụng khi anh cho
     return ket, meta, afs
 
 MAY = socket.gethostname().split(".")[0]

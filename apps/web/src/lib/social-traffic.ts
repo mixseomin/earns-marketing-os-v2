@@ -32,7 +32,10 @@ export interface SocialLive { /** bảng nội dung Page cũ (city) */ keHoach?:
   heSinhThai: VaoHeSinhThai }
 /** LƯỚI LỊCH (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): một ô = một bài trên một kênh vào một giờ (GMT+7).
  *  da = đã đăng (sổ xv_may_video.da_dang, có link) · du_kien = máy sẽ đăng (xv_lich_du_kien — dang-may tính bằng luật nhịp an toàn, mos2 không tính lại). */
-export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien' }
+export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: string; nen: string; title: string; url: string | null; loai: 'da' | 'du_kien';
+  /** BẢNG NỘI DUNG (anh 25/10/2026 "show bảng đó vào đây · data thật"): ảnh thật của bài (khung video / ảnh tĩnh / ảnh nền studio), kênh (xv_may.dang[].tk),
+   *  kiểu nội dung (dang.nhom), có link hay không (sổ đăng ghi từ 25/10; bài cũ = null, lượt dự kiến = null — máy quyết lúc đăng) */
+  anh?: string | null; tk?: string | null; nhom?: string | null; link?: boolean | null }
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
@@ -389,11 +392,18 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
   const d = getDb(); if (!d) return rong;
   try {
     const [da, dk] = await Promise.all([
-      d.execute(sql`SELECT m.ma, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, coalesce(v.dang->>'title', v.chu_de) AS title
+      d.execute(sql`SELECT m.ma, m.ten AS may_ten, e.key AS nen, e.value->>'ngay' AS ngay, e.value->>'luc' AS luc, e.value->>'url' AS url, coalesce(v.dang->>'title', v.chu_de) AS title,
+          coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, e.value->>'link' AS link, v.dang->>'nhom' AS nhom
         FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id CROSS JOIN LATERAL jsonb_each(v.da_dang) e
         WHERE e.value->>'ngay' >= to_char((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 42, 'YYYY-MM-DD')`) as unknown as Promise<Record<string, string | null>[]>,   // 6 tuần: đủ cho lịch tháng / tuần (anh 22/10/2026)
-      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; format?: string; nhom?: string | null }[] }[]>,
+      d.execute(sql`SELECT luc::text AS luc, ds FROM xv_lich_du_kien WHERE id = 1`) as unknown as Promise<{ luc: string; ds: { ngay: string; gio: string; may: string; mayTen?: string; nen: string; title: string; slug?: string | null; format?: string; nhom?: string | null }[] }[]>,
     ]);
+    // kênh của từng nơi đăng (máy × nền → tên tài khoản) + ảnh thật của video trong lượt dự kiến (theo slug)
+    const [noiTk, anhSlug] = await Promise.all([
+      d.execute(sql`SELECT m.ma, n->>'nen' AS nen, coalesce(n->>'tk', n->'br'->>'ten', n->>'ten') AS tk FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n`) as unknown as Promise<{ ma: string; nen: string; tk: string | null }[]>,
+      d.execute(sql`SELECT m.ma, v.slug, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false)`) as unknown as Promise<{ ma: string; slug: string; anh: string | null }[]>,
+    ]);
+    const tkCua = new Map(noiTk.map((x) => [`${x.ma}|${x.nen}`, x.tk])), anhCua = new Map(anhSlug.map((x) => [`${x.ma}|${x.slug}`, x.anh]));
     // kho + đã đăng theo máy × nền × kiểu nội dung (dang.nhom); cùng điều kiện "DUYỆT đúng bản" như máy đăng (may.ts › dsVideoDang) và nền ảnh cần ảnh tĩnh
     const kr = (await d.execute(sql`SELECT m.ma, m.ten, n->>'nen' AS nen, coalesce(v.dang->>'nhom', '—') AS nhom,
         count(*) FILTER (WHERE v.da_dang ? (n->>'nen'))::int AS da,
@@ -413,10 +423,11 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     }
     // giờ VN của lượt đăng thật: luc (ISO, UTC) + 7 giờ; sổ cũ không có luc thì không có giờ → xếp vào '—'
     const gioVn = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) : '—');
-    const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url ?? null, loai: 'da' as const }));
+    const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url ?? null, loai: 'da' as const,
+      anh: x.anh ?? null, tk: tkCua.get(`${x.ma}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: x.link == null ? null : x.link === 'true' }));
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
-    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien' });
+    for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null });
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }
 }

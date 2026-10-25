@@ -330,10 +330,10 @@ console.log('link kênh ✓');
   const v = { trang: [{ acct: '580', ten: 'Retro Cars Club', nen: 'facebook:580' }, { acct: '589', ten: 'Classical Motorcycle', nen: 'facebook:589' }],
     bai: [{ nen: 'facebook:580', ngay: '2026-10-25', title: 'Only ONE says CHROME #shorts', url: 'u', link: null }] };
   const k = keHoachNoiDung(v, '2026-10-25');
-  assert.deepStrictEqual(k.tuan.map((d) => d.ngay), ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25'], 'CN 25/10 → tuần 19–25');
+  assert.deepStrictEqual([k.tuan.length, k.tuan[0]!.ngay, k.tuan[2]!.ngay, k.tuan[2]!.thu, k.tuan[8]!.ngay], [9, '2026-10-23', '2026-10-25', 'CN', '2026-10-31'], '2 ngày qua · hôm nay CN · 6 ngày tới');
   const o = (t: string, n: string) => k.o.find((x) => x.trang === t && x.ngay === n)!;
   assert.ok(o('580', '2026-10-25').tt === 'da' && o('580', '2026-10-25').link === true && o('580', '2026-10-25').chu === 'Only ONE says CHROME', 'bài cũ không ghi link = có link');
-  assert.strictEqual(o('580', '2026-10-24').tt, 'trong'); assert.strictEqual(o('589', '2026-10-25').tt, 'ke', 'hôm nay chưa đăng = còn kế hoạch');
+  assert.strictEqual(o('580', '2026-10-24').tt, 'trong'); assert.strictEqual(o('580', '2026-10-26').loai, LICH_TUAN[0]!.loai, 'T2 26/10 = ô đầu nhịp tuần'); assert.strictEqual(o('589', '2026-10-25').tt, 'ke', 'hôm nay chưa đăng = còn kế hoạch');
   assert.strictEqual(o('589', '2026-10-25').loai, LICH_TUAN[(6 + 2) % 7]!.loai, 'Page thứ 2 lệch pha 2 ngày');
   const k2 = keHoachNoiDung({ ...v, bai: [] }, '2026-10-20');
   assert.ok(k2.o.filter((x) => x.trang === '580' && x.ngay > '2026-10-20').every((x) => x.tt === 'ke'), 'ngày tới đều là kế hoạch');

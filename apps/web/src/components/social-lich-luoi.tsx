@@ -139,3 +139,67 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
     </div>
   );
 }
+
+/** BẢNG NỘI DUNG (anh 25/10/2026: "show bảng đó vào đây · data thật"): hàng = kênh (máy × nơi đăng), cột = 2 ngày qua · hôm nay · 6 ngày tới, mỗi ô = bài THẬT —
+ *  đã đăng (ảnh khung video / ảnh tĩnh / ảnh nền studio, chữ đăng, có link hay không, bấm mở bài) hoặc lượt máy SẼ đăng (lịch dự kiến dang-may, cùng luật nhịp an toàn).
+ *  Dải trên cùng đếm kiểu nội dung + format trong cửa sổ — nhìn là thấy đa dạng hay đơn điệu. Không vẽ ô trống. */
+const FMT_NEN = (nen: string) => { const g = nen.split(':')[0] ?? nen; return g.endsWith('_link') ? 'Bài link' : g.endsWith('_anh') ? 'Album ảnh' : g === 'youtube' ? 'Shorts' : g === 'tiktok' ? 'TikTok' : g === 'instagram' ? 'Reel IG' : g === 'dailymotion' ? 'Video DM' : g === 'x' ? 'Video X' : 'Reel FB'; };
+const MAU_FMT: Record<string, string> = { 'Reel FB': '#1877f2', Shorts: '#e11d48', TikTok: '#111827', 'Reel IG': '#c026d3', 'Album ảnh': '#0f9f94', 'Bài link': '#d97706', 'Video DM': '#0066dc', 'Video X': '#334155' };
+export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
+  const ngay = Array.from({ length: 9 }, (_, i) => cong(luoi.hom, i - 2)), dau = ngay[0]!, cuoi = ngay[8]!;
+  const o = luoi.o.filter((x) => x.ngay >= dau && x.ngay <= cuoi);
+  const hang = [...new Map(o.map((x) => [`${x.may}|${x.nen}`, { k: `${x.may}|${x.nen}`, may: x.mayTen.split(' · ')[0] ?? x.mayTen, nen: x.nen, tk: x.tk ?? nhanNen(x.nen) }])).values()].sort((a, b) => a.may.localeCompare(b.may) || a.nen.localeCompare(b.nen));
+  const dem = (f: (x: StLuoiO) => string) => [...o.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
+  const dFmt = dem((x) => FMT_NEN(x.nen)), dKieu = dem((x) => x.nhom ?? 'chưa phân kiểu'), nLink = o.filter((x) => x.link === true).length, nThuong = o.filter((x) => x.link === false).length;
+  const ngayVn = (n: string) => `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`;
+  const dai = (ds: [string, number][], mau: (k: string, i: number) => string) => (
+    <div style={{ display: 'flex', gap: 3, height: 30, borderRadius: 8, overflow: 'hidden' }}>
+      {ds.map(([k, n], i) => <span key={k} title={`${k}: ${n}/${o.length}`} style={{ flex: n, background: mau(k, i), color: '#fff', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '0 8px', minWidth: 0 }}>
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k}</span><span style={{ fontVariantNumeric: 'tabular-nums', opacity: .85 }}>{n}</span></span>)}
+    </div>);
+  if (!o.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 0' }}>Chưa có bài nào trong 9 ngày quanh hôm nay.</div>;
+  return (
+    <div style={{ display: 'grid', gap: 14, margin: '4px 0 14px' }}>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'center' }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)' }}>Format · {o.length} bài</span>{dai(dFmt, (k) => MAU_FMT[k] ?? '#64748b')}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'center' }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)' }}>Kiểu nội dung</span>{dai(dKieu, (_, i) => MAU[i % MAU.length]!)}</div>
+        <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{luoi.hom.slice(8)}/{luoi.hom.slice(5, 7)} ± · có link {nLink} · bài thường {nThuong} · {o.length - nLink - nThuong} bài chưa ghi (bài cũ / máy quyết lúc đăng)</div>
+      </div>
+      <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `200px repeat(9, minmax(132px, 1fr))`, gap: 6, minWidth: 1420 }}>
+          <div />
+          {ngay.map((n) => <div key={n} style={{ fontSize: 12, fontWeight: 700, padding: '0 4px', color: n === luoi.hom ? 'var(--accent, #d97706)' : 'var(--fg-2)' }}>{ngayVn(n)}{n === luoi.hom ? ' · hôm nay' : ''}</div>)}
+          {hang.map((h) => <BangHang key={h.k} h={h} ngay={ngay} o={o} hom={luoi.hom} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+function BangHang({ h, ngay, o, hom }: { h: { k: string; may: string; nen: string; tk: string }; ngay: string[]; o: StLuoiO[]; hom: string }) {
+  return <>
+    <div style={{ display: 'grid', alignContent: 'center', gap: 2, paddingRight: 6, minWidth: 0 }}>
+      <b style={{ fontSize: 13, lineHeight: 1.25, overflowWrap: 'anywhere' }}>{h.tk}</b>
+      <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{h.may} · {nhanNen(h.nen)}</span>
+    </div>
+    {ngay.map((n) => {
+      const ds = o.filter((x) => `${x.may}|${x.nen}` === h.k && x.ngay === n);
+      if (!ds.length) return <div key={n} />;
+      return <div key={n} style={{ display: 'grid', gap: 4 }}>{ds.map((x, i) => <OBai key={i} x={x} hom={hom} />)}</div>;
+    })}
+  </>;
+}
+function OBai({ x, hom }: { x: StLuoiO; hom: string }) {
+  const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
+  const the = (
+    <div style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderTop: `3px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
+      {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} />
+        : <div style={{ aspectRatio: '4 / 3', display: 'grid', placeItems: 'center', fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2, #f1f5f9)' }}>chưa có ảnh</div>}
+      <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: mau }}>{f}{x.gio !== '—' ? ` · ${x.gio}` : ''}</span>
+        {x.nhom ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.nhom}</span> : null}
+        <span style={{ fontSize: 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{da ? '✅ đã đăng' : '🗓 máy sẽ đăng'}{x.link === true ? ' · 🔗 có link' : x.link === false ? ' · không link' : ''}</span>
+      </div>
+    </div>);
+  return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} title="mở bài">{the}</a> : the;
+}

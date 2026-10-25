@@ -182,7 +182,7 @@ export function gopNgay(ds: { ngay?: NgayTien[] }[]): NgayTien[] {
   for (const c of ds) for (const x of c.ngay ?? []) { const o = m.get(x.ngay) ?? { ngay: x.ngay, thu: 0, chi: 0 }; o.thu += x.thu; o.chi += x.chi; m.set(x.ngay, o); }
   return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
 }
-/** BẢNG NỘI DUNG Page cũ (anh 25/10/2026: "cần thấy trực quan bảng nội dung này trên city"): lưới 7 ngày (T2→CN tuần này, giờ VN) × từng Page máy đăng.
+/** BẢNG NỘI DUNG Page cũ (anh 25/10/2026: "cần thấy trực quan bảng nội dung này trên city"): lưới 9 ngày (2 ngày qua · hôm nay · 6 ngày tới, giờ VN) × từng Page máy đăng.
  *  Ngày đã qua / hôm nay có bài = BÀI THẬT (loại suy từ nền: Reel câu đố · album · bài link, kèm có link hay không); ngày tới = KẾ HOẠCH ĐỀ XUẤT (chờ anh duyệt) —
  *  nhịp tuần LICH_TUAN, mỗi Page lệch pha 2 ngày để cùng ngày ba Page ra ba loại khác nhau. */
 export const LOAI_ND: Record<string, { mau: string; ic: string }> = { 'Ký ức': { mau: '#ffb703', ic: '📷' }, 'Đố vui': { mau: '#7c5cff', ic: '🧩' }, 'Chọn một': { mau: '#2ec4b6', ic: '⚖️' },
@@ -192,16 +192,18 @@ export const LICH_TUAN: { loai: string; format: string }[] = [{ loai: 'Ký ức'
 export interface PhoKeHoach { hom: string; tuan: { ngay: string; thu: string }[]; trang: { id: string; ten: string; anh: string | null }[];
   o: { trang: string; ngay: string; tt: 'da' | 'ke' | 'trong'; loai: string; format: string; chu?: string; url?: string | null; link?: boolean }[]; }
 export interface VaoKeHoach { trang: { acct: string; ten: string; nen: string }[]; bai: { nen: string; ngay: string; title: string; url: string | null; link: boolean | null }[] }
-const THU = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];   // theo getUTCDay
+// cửa sổ 9 ngày: 2 ngày qua · hôm nay · 6 ngày tới (CN mà lấy tuần T2→CN thì gần hết là ngày đã qua, không thấy kế hoạch)
 export function keHoachNoiDung(v: VaoKeHoach, hom: string, anhCua: (id: string) => string | null = () => null): PhoKeHoach {
-  const h = new Date(`${hom}T00:00:00Z`), lui = (h.getUTCDay() + 6) % 7;
-  const tuan = THU.map((thu, i) => ({ thu, ngay: new Date(h.getTime() + (i - lui) * 864e5).toISOString().slice(0, 10) }));
+  const h = new Date(`${hom}T00:00:00Z`);
+  const tuan = Array.from({ length: 9 }, (_, i) => { const d = new Date(h.getTime() + (i - 2) * 864e5); return { thu: THU[d.getUTCDay()]!, ngay: d.toISOString().slice(0, 10) }; });
   const o: PhoKeHoach['o'] = [];
-  v.trang.forEach((t, ti) => tuan.forEach((d, di) => {
+  v.trang.forEach((t, ti) => tuan.forEach((d) => {
     const bai = v.bai.filter((b) => b.nen === t.nen && b.ngay === d.ngay);
     if (bai.length) for (const b of bai) { const g = b.nen.split(':')[0]; o.push({ trang: t.acct, ngay: d.ngay, tt: 'da', loai: b.link === false ? 'Đố vui' : 'Quảng bá', format: g === 'fb_anh' ? 'Album' : g === 'fb_link' ? 'Bài link' : 'Reel câu đố', chu: b.title.replace(/\s*#shorts\s*/i, ''), url: b.url, link: b.link !== false }); }
     else if (d.ngay < hom) o.push({ trang: t.acct, ngay: d.ngay, tt: 'trong', loai: '—', format: 'không có bài' });
-    else { const k = LICH_TUAN[(di + ti * 2) % 7]!; o.push({ trang: t.acct, ngay: d.ngay, tt: 'ke', loai: k.loai, format: k.format }); }
+    // nhịp theo thứ (T2 = ô 0), Page sau lệch 2 ngày
+    else { const k = LICH_TUAN[(new Date(`${d.ngay}T00:00:00Z`).getUTCDay() + 6 + ti * 2) % 7]!; o.push({ trang: t.acct, ngay: d.ngay, tt: 'ke', loai: k.loai, format: k.format }); }
   }));
   return { hom, tuan, trang: v.trang.map((t) => ({ id: t.acct, ten: t.ten, anh: anhCua(t.acct) })), o };
 }

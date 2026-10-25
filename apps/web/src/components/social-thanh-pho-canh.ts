@@ -1285,14 +1285,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     }
     // ỐNG DẪN SÁNG (plan sức sống 24/10/2026): mỗi nguồn đang gắn vào đích (mọi loại — mạng xã hội, máy tìm, quảng cáo, giới thiệu, kênh) là một ống cong
     // BẢNG NỘI DUNG Page cũ (anh 25/10/2026: "cần thấy trực quan bảng nội dung này trên city"): tấm bảng (Sprite — luôn quay về người xem) treo trên cụm toà Page,
-    // lưới 7 ngày × Page: ô đặc = bài thật đã đăng, ô mờ viền đứt = kế hoạch đề xuất (chờ anh duyệt), ô xám = ngày không có bài. Chỉ hiện khi tới gần (GAN_KHU).
+    // lưới 9 ngày (2 qua · hôm nay · 6 tới) × Page: ô đặc = bài thật đã đăng, ô mờ viền đứt = kế hoạch đề xuất (chờ anh duyệt), ô xám = ngày không có bài. Chỉ hiện khi tới gần (GAN_KHU).
     if (mh.keHoach) { const kh = mh.keHoach, vt = kh.trang.map((t) => viTri[`tk:${t.id}`]?.m).filter(Boolean);
       if (vt.length) { const hop = new THREE.Box3(); for (const m of vt) hop.expandByObject(m);
-        const W = 1800, C0 = 330, CW = (W - C0) / 7, HD = 150, RH = 160, H = HD + 60 + kh.trang.length * RH + 20;
+        const W = 2200, C0 = 330, CW = (W - C0) / kh.tuan.length, HD = 150, RH = 160, H = HD + 60 + kh.trang.length * RH + 20;
         const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d')!, tx = new THREE.CanvasTexture(cv);
         const ve = () => { g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(14,18,32,.94)'; g.beginPath(); g.roundRect(0, 0, W, H, 28); g.fill();
           const dm = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
-          g.fillStyle = '#fff'; g.font = '800 46px system-ui, "Apple Color Emoji", sans-serif'; g.textBaseline = 'middle'; g.fillText(`🗓 Bảng nội dung Page · ${dm(kh.tuan[0]!.ngay)}–${dm(kh.tuan[6]!.ngay)}`, 30, 52);
+          g.fillStyle = '#fff'; g.font = '800 46px system-ui, "Apple Color Emoji", sans-serif'; g.textBaseline = 'middle'; g.fillText(`🗓 Bảng nội dung Page · ${dm(kh.tuan[0]!.ngay)}–${dm(kh.tuan.at(-1)!.ngay)}`, 30, 52);
           g.font = '500 28px system-ui, "Apple Color Emoji", sans-serif'; g.fillStyle = '#aab3cc'; g.fillText('ô đặc = bài đã đăng · ô mờ viền đứt = kế hoạch đề xuất (chờ anh duyệt) · ô xám = không có bài', 30, 108);
           kh.tuan.forEach((d, i) => { const x = C0 + i * CW; g.fillStyle = d.ngay === kh.hom ? '#ffd166' : '#dfe4f2'; g.font = '800 32px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(`${d.thu} ${dm(d.ngay)}`, x + CW / 2, HD + 28); g.textAlign = 'left'; });
           kh.trang.forEach((t, r) => { const y = HD + 60 + r * RH;
@@ -1306,9 +1306,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
               g.fillText(`${LOAI_ND[o.loai]?.ic ?? '·'} ${o.loai}`, x + 14, y + 44); g.font = '500 23px system-ui, sans-serif'; g.fillText(o.format, x + 14, y + 84);
               g.font = '600 22px system-ui, "Apple Color Emoji", sans-serif'; g.fillText(o.tt === 'da' ? (o.link ? `✅ đã đăng · có link${os.length > 1 ? ` · ${os.length} bài` : ''}` : '✅ đã đăng · không link') : o.tt === 'ke' ? '🗓 kế hoạch' : '', x + 14, y + 122); }); });
           tx.needsUpdate = true; };
-        ve(); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false })), rong = Math.max(90, (hop.max.x - hop.min.x) * 1.1);
+        // depthTest tắt + renderOrder cao: bảng vẽ đè, toà đứng trước không che chữ
+        ve(); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false, depthTest: false })), rong = Math.max(110, (hop.max.x - hop.min.x) * 1.3);
         sp.scale.set(rong, rong * H / W, 1); sp.position.set((hop.min.x + hop.max.x) / 2, hop.max.y + 18 + rong * H / W / 2, (hop.min.z + hop.max.z) / 2);
-        sp.userData = { loai: 'ke-hoach', gan: GAN_KHU }; sp.userData.chu = sp; the.add(sp); chiMuc.push({ ten: 'Bảng nội dung Page', nhan: 'kế hoạch', obj: sp }); } }
+        sp.renderOrder = 20; sp.userData = { loai: 'ke-hoach', gan: GAN_KHU }; sp.userData.chu = sp; the.add(sp); chiMuc.push({ ten: 'Bảng nội dung Page', nhan: 'kế hoạch', obj: sp }); } }
     // từ nóc toà nguồn tới đỉnh toà đích; có khách = ống sáng + chấm sáng chạy dọc ống (nhanh theo số khách), đã gắn mà chưa ra khách = ống mờ, không chấm.
     // Cả thành phố một khối nét (LineSegments) + một khối chấm (InstancedMesh) — không thêm vật lẻ.
     { const nv: number[] = [], mv: number[] = [], hop = new THREE.Box3(), c3 = new THREE.Color(); ongDs = [];

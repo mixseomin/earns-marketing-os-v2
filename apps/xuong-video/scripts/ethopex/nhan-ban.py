@@ -27,15 +27,23 @@ js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{")
 
 DEM_CR = {}
 def dem_dang_chay(content_id):
-    """số camp ĐANG CHẠY (ACTIVE) của phim; kèm DEM_CR {creative: số camp đang chạy dùng creative đó} của phim này (luật 1 đoạn ≤ 3 camp)"""
+    """số camp ĐANG CHẠY (ACTIVE hoặc chưa đồng bộ xong) của phim; kèm DEM_CR {creative: số camp đó dùng creative} (luật 1 đoạn ≤ 3 camp).
+    Đọc KHO etp (dong-bo.py 10 phút/lần) + camp vừa tạo trong 15 phút qua (nhật ký luật) — trước 25/10/2026 đọc chi tiết từng camp qua API
+    (~500 lượt gọi, 3–4 phút mỗi lần tạo camp)."""
     n = 0; DEM_CR.clear()
-    for c in api("/api/v1/campaigns?page_size=500")["data"]:
-        if c.get("state") != "ACTIVE" and c.get("sync_status") == "done": continue
-        try: d = api(f"/api/v1/campaigns/{c['id']}")
-        except Exception: continue
-        ads = [a for g in d.get("ad_groups") or [] for a in g.get("ads") or [] if a.get("content_id") == content_id]
-        if ads: n += 1
-        for a in ads: DEM_CR[a.get("creative_id")] = DEM_CR.get(a.get("creative_id"), 0) + 1
+    rows = q(f"""select camp_id, coalesce(creative_id, 0) from etp.camp where content_id = {int(content_id)}
+                 and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced'))""").splitlines()
+    for l in rows:
+        _, cr = l.split("|"); n += 1; DEM_CR[int(cr)] = DEM_CR.get(int(cr), 0) + 1
+    # camp vừa tạo chưa vào kho (đồng bộ 10 phút): lấy từ sổ nhật ký studio
+    try:
+        moi = json.loads(q("""select coalesce(jsonb_agg(x), '[]'::jsonb)::text from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky'
+                              and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '15 minutes'""") or "[]")
+        da = {int(l.split("|")[0]) for l in rows}
+        for x in moi:
+            if int(x.get("content") or x.get("content_id") or 0) == int(content_id) and int(x.get("moi") or x.get("id") or 0) not in da:
+                n += 1; c = int(x.get("creative") or x.get("creative_id") or 0); DEM_CR[c] = DEM_CR.get(c, 0) + 1
+    except Exception: pass
     return n
 
 # MỘT ĐOẠN VIDEO TỐI ĐA 3 CAMP ĐANG CHẠY (anh duyệt 23/10/2026 sau Step Back: 12 camp cùng đoạn 692–757s tự đấu giá với nhau, ROI +199% → −11% trong một ngày).
@@ -166,7 +174,7 @@ def payload(goc_id, lich, moi=None, bo=None):
 
 def ghi_nhat_ky(kq, luat, ai):
     dong = {"luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y"), "viec": kq.get("viec") or "nhan_ban", "id": kq.get("moi") or kq.get("goc"), "goc": kq.get("goc"),
-            "truoc": None, "sau": 1 if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?"}
+            "truoc": None, "sau": 1 if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?", "content": kq.get("content"), "creative": kq.get("creative")}
     v = json.dumps(dong, ensure_ascii=False).replace("'", "''")
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_nhat_ky', '[]'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 1000, 0)) t) where ten = 'ethopex_nhat_ky'")
@@ -209,6 +217,7 @@ def main(a):
             chan = cong(cid, khac, ten)
             if chan: raise ValueError(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
+        kq["content"], kq["creative"] = cid, ad0["creative_id"]   # nhật ký mang phim + creative → dem_dang_chay đếm được camp vừa tạo chưa vào kho
         ly = cham_sach(ad0["creative_id"])   # cổng chấm: creative cuối cùng phải SẠCH
         if ly: raise ValueError(ly)
         kq["phim_dang_chay"] = n

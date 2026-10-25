@@ -244,7 +244,7 @@ function OBai({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) 
         </span>
         <span style={{ fontSize: 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
         {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', gap: 10, color: 'var(--fg-2)' }}>
-          {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}<span title="lượt vào site từ bài (6 tuần)">🖱 {x.bam == null ? '—' : x.bam}</span></span> : null}
+          {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}<span title="lượt vào site từ bài (6 tuần)">↪ {x.bam == null ? '—' : x.bam}</span></span> : null}
       </div>
     </div>);
   return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{the}</a> : the;

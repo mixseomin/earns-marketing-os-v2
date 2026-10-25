@@ -106,7 +106,7 @@ def box(jpg, hf, net=()):
     try:
         j, duong = SD.goi_claude(list(net) or jpg, open(hf).read(), 1500, kiem)
         # tờ khung lên kho img.on.tc → trang etp hiện đúng khung bị bắt khi rê chuột (anh 25/10/2026: "hover phải xem được đoạn nội dung đó để còn xác nhận sai")
-        u = subprocess.run(["kho", "phat", jpg, "ethopex", "cham", os.path.basename(jpg)], capture_output=True, text=True, timeout=120).stdout.strip().splitlines()
+        u = subprocess.run(["kho", "phat", jpg, "ethopex", "thanh-pham", "cham-" + os.path.basename(jpg)], capture_output=True, text=True, timeout=120).stdout.strip().splitlines()
         print(json.dumps({**j, "duong": duong, "anh_url": u[-1] if u and u[-1].startswith("http") else None}, ensure_ascii=False))
     except Exception as e: print(json.dumps({"loi": str(e)[:300]}, ensure_ascii=False))
 

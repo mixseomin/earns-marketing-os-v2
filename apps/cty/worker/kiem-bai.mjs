@@ -81,10 +81,12 @@ export function yTuChu(chu) {
  *  · bài đích mạng xã hội (site affiliate có người phụ trách, nơi traffic đến từ video) · còn lại bài SEO. */
 export function doanLoai(html, url = '') {
   const h = thanBai(html), chu = chuBai(html), tieuDe = (String(html).match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || String(html).match(/<title>([\s\S]*?)<\/title>/i) || [, ''])[1].replace(/<[^>]+>/g, '');
-  const nutMua = (h.match(/<a [^>]*class="[^"]*\b(btn|cta)\b|apps\.apple\.com|play\.google\.com|gumroad\.com|<form [^>]*data-cho/gi) || []).length;
-  if (/[$€£₫]\s?\d|\d\s?(₫|USD|VND)/.test(chu) && nutMua >= 2 && chu.split(/\s+/).length < 1800) return 'trang-ban';
-  if (/<(input|select)\b/i.test(h) && !/type="(email|search)"/i.test(h.match(/<input\b[^>]*>/i)?.[0] ?? '')) return 'cong-cu';
+  // trang bán = có nút MUA thật (chữ mua / tải / dùng thử, link store / Gumroad, form chờ bán) + giá; nút "đọc tiếp / so giá" của bài affiliate không tính
+  // (26/10/2026: hotel-scam-check có €342 làm ví dụ + 2 nút dẫn tiếp → bị đoán nhầm là trang bán)
+  const nutMua = (h.match(/apps\.apple\.com|play\.google\.com|microsoft\.com\/store|gumroad\.com|<form [^>]*data-cho|<a [^>]*>\s*(buy|get it|download|add to cart|start (free )?trial|mua|tải)\b/gi) || []).length;
   if (/\bvs\.?\b|\bbest\b|\btop \d+|\breview|alternatives?\b|compared|so sánh/i.test(tieuDe)) return 'so-sanh';
+  if (/[$€£₫]\s?\d|\d\s?(₫|USD|VND)/.test(chu) && nutMua >= 1 && chu.split(/\s+/).length < 1800) return 'trang-ban';
+  if (/<(input|select)\b/i.test(h) && !/type="(email|search)"/i.test(h.match(/<input\b[^>]*>/i)?.[0] ?? '')) return 'cong-cu';
   if (phuTrach(url)) return 'bai-dich-mxh';
   return 'bai-seo';
 }
@@ -392,7 +394,9 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.ok(!thuocCham('email').includes('# Phần 1'), 'email không bị chấm theo khung bài dài'); t.ok(thuocCham('trang-ban').includes('Kỹ năng: cro'));
     t.deepEqual(yTuChu('https://x.com/a so sánh, bán hàng'), { loai: 'so-sanh', mucDich: 'chuyen-doi' }); t.deepEqual(yTuChu('https://x.com/a'), { loai: null, mucDich: null });
     t.deepEqual(yTuChu('loại: email mục đích: thu-email https://x.com'), { loai: 'email', mucDich: 'thu-email' }); t.equal(yTuChu('bài seo nhé https://x.com').loai, 'bai-seo');
-    t.equal(doanLoai(tb(), 'https://app.test/'), 'trang-ban'); t.equal(doanLoai('<main><h1>Best hotel sites vs Booking</h1><p>x</p></main>'), 'so-sanh');
+    t.equal(doanLoai(tb(), 'https://app.test/'), 'trang-ban', 'giá + nút "Get it"');
+    t.equal(doanLoai('<main><h1>Prompter</h1><p>US$7.99</p><a class="btn" href="https://apps.apple.com/app/x">App Store</a></main>'), 'trang-ban');
+    t.equal(doanLoai('<main><h1>Hotel scam check</h1><p>€342 to a new IBAN</p><a class="btn" href="/compare">Compare prices</a><a class="cta" href="/x">See rates</a></main>', 'https://ratesbyroom.com/hotel-scam-check/'), 'bai-dich-mxh', 'bài cảnh báo có số tiền + nút dẫn tiếp không phải trang bán'); t.equal(doanLoai('<main><h1>Best hotel sites vs Booking</h1><p>x</p></main>'), 'so-sanh');
     t.equal(doanLoai('<main><h1>BAH calculator</h1><input name=zip></main>'), 'cong-cu'); t.equal(doanLoai('<main><h1>Hotel scam</h1></main>', 'https://ratesbyroom.com/x/'), 'bai-dich-mxh'); t.equal(doanLoai('<main><h1>How to</h1></main>', 'https://a.test/'), 'bai-seo');
     t.deepEqual(mayDo('<main><p>Hi there, short email.</p></main>', 'email').chan_cung, [], 'email không bị đòi ảnh / video / FAQ'); t.ok(mayDo('<main><h1>Tool</h1></main>', 'cong-cu').chan_cung[0].includes('ô nhập'));
     t.ok(tinKiem({ tu: 'A', url: 'https://x.com/', kq: { thieu: [], thua: [], giong: [], diem: 8, ket_luan: 'DUYET', tom_tat: 'ổn', muc_dich: 'đủ ý định tìm kiếm' }, d: { ...mayDo(du, 'bai-seo'), muc_dich: 'seo', doan: true }, ket: 'DUYET' }).match(/Loại:<\/b> Bài SEO.*Mục đích:<\/b> Kéo khách tìm kiếm <i>\(máy đoán[\s\S]*Kỹ năng áp:<\/b> seo-audit[\s\S]*Theo mục đích:<\/b> đủ ý định/), 'tin báo ghi loại, mục đích, kỹ năng');

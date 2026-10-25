@@ -12,7 +12,7 @@ import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { DangNenTho, StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
-import { HOST_BAN, MAY_TIM, NEN_QC, loaiCampEtp, linkKenh, type VaoHeSinhThai } from './social-thanh-pho';
+import { HOST_BAN, MAY_TIM, NEN_QC, gopBinhTraTien, loaiCampEtp, linkKenh, type VaoHeSinhThai } from './social-thanh-pho';
 import { getProductsView } from './products/data';
 import { networkRows } from './revenue/networks';
 import { docEthopex } from './ethopex-doc';
@@ -121,11 +121,11 @@ async function docHeSinhThai(loi: string[]): Promise<VaoHeSinhThai> {
     doc('Ethopex', docEthopex(), null),
   ]);
   // SỐ DƯ NGUỒN TRẢ TRƯỚC (nguồn AI, máy thuê): ảnh chụp Phòng Tài nguyên (apps/cty/worker/tai-nguyen-api.mjs, 30 phút/lần, giữ lịch từng ngày) + tên ở sổ nguồn AI studio (xv_nguon)
-  const DON_DU: Record<string, string> = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit' };
-  const anhTn = await doc('số dư nguồn', (async () => JSON.parse(readFileSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tai-nguyen-api.json`, 'utf8')) as { du?: Record<string, number | null>; lich?: { ngay: string; du: Record<string, number | null> }[]; loi?: Record<string, string>; luc?: string })(), {});
-  const tenNguon = new Map((await q<{ key: string; ten: string }>('sổ nguồn AI', sql`SELECT key, ten FROM xv_nguon`)).map((x) => [x.key, x.ten]));
-  const soDuTn = Object.keys({ ...(anhTn.du ?? {}), ...(anhTn.loi ?? {}) }).map((key) => ({ key, ten: tenNguon.get(key) ?? key, don: DON_DU[key] ?? '', du: anhTn.du?.[key] ?? null, loi: anhTn.loi?.[key] ?? null, luc: anhTn.luc ?? null,
-    lich: (anhTn.lich ?? []).map((x) => ({ ngay: x.ngay, du: x.du?.[key] ?? null })) }));
+  const anhTn = await doc('số dư nguồn', (async () => JSON.parse(readFileSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tai-nguyen-api.json`, 'utf8')) as Parameters<typeof gopBinhTraTien>[0])(), {});
+  // mọi nền mình trả tiền (góp ý city #1451): sổ nền trả tiền × tài khoản vault chưa đóng × sổ nguồn AI — bồn chưa đọc được số dư vẫn hiện, ghi rõ vì sao
+  const [vaultNen, nguonAi] = await Promise.all([q<{ nen: string }>('nền trong vault', sql`SELECT DISTINCT platform_key AS nen FROM platform_accounts WHERE coalesce(status, '') <> 'closed'`),
+    q<{ key: string; ten: string; trang_thai: string; nap_tien: string; khoa_env: string }>('sổ nguồn AI', sql`SELECT key, ten, trang_thai, nap_tien, khoa_env FROM xv_nguon`)]);
+  const soDuTn = gopBinhTraTien(anhTn, vaultNen.map((x) => x.nen), nguonAi.map((x) => ({ key: x.key, ten: x.ten, trangThai: x.trang_thai, nap: x.nap_tien, khoaEnv: x.khoa_env })));
   const [mayChu, congTy, tnTk, tnCb, tnHs, tnDs, tnPx, tnNs, tnQc, tnPage] = await Promise.all([doc('máy chủ', docMayChu(), []), doc('công ty AI', docCongTy(), []),
     // tài nguyên (khu TÀI NGUYÊN): tài khoản × trạng thái, cảnh báo chưa xử, hồ sơ trình duyệt (br / máy ảo), proxy, sổ ngân sách, tài khoản QC shop
     q<{ nen: string; status: string; n: number }>('tài khoản theo nền', sql`SELECT platform_key AS nen, status, count(*)::int AS n FROM platform_accounts GROUP BY 1, 2`),
@@ -227,7 +227,7 @@ async function ganLinkKenh(d: NonNullable<ReturnType<typeof getDb>>, kenh: StKen
   const r = (await d.execute(sql`SELECT a.id, a.platform_key, a.handle, coalesce(a.account_stats->>'page_id', br.graph_id) AS page_id, br.kenh_id
     FROM platform_accounts a LEFT JOIN LATERAL (SELECT max(n->'br'->>'graph_id') AS graph_id, max(n->'br'->>'kenh_id') AS kenh_id FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n
       WHERE n->'br'->>'acct' = a.id::text) br ON true WHERE a.id IN (${sql.join(ids.map((x) => sql`${x}`), sql`, `)})`)) as unknown as { id: number; platform_key: string; handle: string; page_id: string | null; kenh_id: string | null }[];
-  const m = new Map(r.map((x) => [x.id, linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id })]));
+  const m = new Map(r.map((x) => [Number(x.id), linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id })]));
   for (const k of kenh) { const l = m.get(Number(k.id)); if (l) { k.url = l.url; k.anh = l.anh; } }
 }
 /** AVATAR PAGE (city: nóc toà Page = ảnh đại diện Page): ảnh công khai graph.facebook.com/<mã>/picture → data URI, nhớ 1 ngày; lỗi → null (nóc vẽ logo FB). */
@@ -482,7 +482,7 @@ async function docKenhVault(d: NonNullable<ReturnType<typeof getDb>>, daCo: Set<
   ]);
   const bamTk = new Map<number, number>();
   if (bam) for (const c of cap) { const n = bam.get(`${c.nen}|${c.site}`); if (n) bamTk.set(Number(c.acct), (bamTk.get(Number(c.acct)) ?? 0) + n); }
-  return r.filter((x) => !daCo.has(x.id)).map((x): StKenh => ({
+  return r.filter((x) => !daCo.has(Number(x.id))).map((x): StKenh => ({
     id: x.id, ten: x.handle, nenTang: NEN_TEN[x.platform_key] ?? x.platform_key, nenKey: x.platform_key, nhom: x.may ?? x.du_an, ngonNgu: 'EN', proxy: x.proxy_id ? `proxy #${x.proxy_id}` : 'chưa gắn proxy',
     duAn: x.du_an, tt: TT_TK(x.status), ngay: Math.max(0, Math.round((homMs - Date.parse(x.tao)) / 864e5)), video: x.da_dang ?? 0, trungViXem: 0, xem: 0, click: bamTk.get(x.id) ?? 0, hh: 0, daDo: false, demBai: x.may != null,
     demBam: x.may != null && bam != null,
@@ -540,7 +540,8 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
     // đúng tài khoản đó. Trước 25/10 lấy tài khoản cùng nền ĐẦU TIÊN của dự án → Page cũ gắn vào dự án Front Porch nhận nhầm số của Page Front Porch.
     const khai = await (d.execute(sql`SELECT n->>'nen' AS nen, (n->'br'->>'acct')::int AS acct FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n
       WHERE n->'br'->>'acct' ~ '^[0-9]+$'`) as unknown as Promise<{ nen: string; acct: number }[]>);
-    const acctKhai = new Set(khai.map((x) => x.acct)), acctNen = (pk: string) => new Set(khai.filter((x) => x.nen === pk).map((x) => x.acct));
+    // id SQL về dạng chuỗi (bigint) → mọi phép so khớp đi qua Number()
+    const acctKhai = new Set(khai.map((x) => Number(x.acct))), acctNen = (pk: string) => new Set(khai.filter((x) => x.nen === pk).map((x) => Number(x.acct)));
     const [tk, so, video, kenhSp, dau, gum] = await Promise.all([
       d.execute(sql`SELECT id, platform_key, handle, status, project_id, proxy_id, created_at::date::text AS tao FROM platform_accounts
         WHERE project_id IN (${trong(duAn)}) AND platform_key IN (${trong(MXH)}) ORDER BY project_id, platform_key`) as unknown as Promise<{ id: number; platform_key: string; handle: string; status: string | null; project_id: string; proxy_id: number | null; tao: string }[]>,
@@ -561,7 +562,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
       for (const [key, nen] of Object.entries(NEN)) {
         const n = tv.nen.find((x) => x.kenh === key);
         const coSo = key === 'pinterest' ? !!pin : !!n && n.soVideo > 0;
-        const nk = acctNen(nen.pk), t = tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id) && nk.has(x.id)) ?? tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id) && !acctKhai.has(x.id));
+        const nk = acctNen(nen.pk), t = tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id) && nk.has(Number(x.id))) ?? tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id) && !acctKhai.has(Number(x.id)));
         if (!coSo && !t) continue;
         if (t) daDung.add(t.id);
         const ngayDau = dau.find((x) => x.du_an === da && x.kenh === key)?.dau ?? t?.tao ?? hom;
@@ -580,11 +581,11 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         });
       }
       // kênh MXH khác của dự án (twitter, threads…) có trong vault nhưng chưa có máy đo
-      for (const t of tk.filter((x) => x.project_id === da && !daDung.has(x.id) && !acctKhai.has(x.id)))   // tài khoản máy đăng khai → docKenhVault (đếm bài theo sổ máy)
+      for (const t of tk.filter((x) => x.project_id === da && !daDung.has(x.id) && !acctKhai.has(Number(x.id))))   // tài khoản máy đăng khai → docKenhVault (đếm bài theo sổ máy)
         kenh.push({ id: t.id, ten: t.handle, nenTang: NEN_TEN[t.platform_key] ?? t.platform_key, nenKey: t.platform_key, nhom: tenDuAn[da] ?? da, duAn: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
-    kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));
+    kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => Number(k.id))), homMs));
     // id kênh đường dự án là chuỗi (SQL), khoá máy đăng là số → tra bằng Number(id)
     try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(Number(k.id)); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
     try { await ganLinkKenh(d, kenh); } catch (e) { loi.push(`link kênh: ${(e as Error).message.slice(0, 120)}`); }

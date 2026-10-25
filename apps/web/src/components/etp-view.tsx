@@ -18,7 +18,7 @@ const Roi = ({ s }: { s: SoTien }) => { const r = roiOf(s);
   return <span style={{ color: r == null || r === 0 ? MO : r > 0 ? 'var(--neon-lime, #4ade80)' : `rgba(248,113,113,${(0.45 + 0.55 * am).toFixed(2)})`, fontWeight: r != null && r <= -90 ? 800 : r != null && r <= -50 ? 600 : 400, fontVariantNumeric: 'tabular-nums' }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</span>; };
 // CỘT TIỀN KIỂU KẾ TOÁN (anh 26/10/2026, luật YDNI): "$" dính mép trái ô, số dính mép phải, có dấu phẩy nghìn, số âm trong ngoặc (1.10) — cột thẳng hàng dấu thập phân; 0 thì mờ
 const KeToan = ({ v, mau }: { v: number; mau?: string }) => { const khong = Math.abs(v) < 0.005, so = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%', color: khong ? MO : mau, fontVariantNumeric: 'tabular-nums' }}><span style={{ opacity: 0.6 }}>$</span><span>{v < 0 && !khong ? `(${so})` : so}</span></span>; };
+  return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%', paddingLeft: 12, boxSizing: 'border-box', color: khong ? MO : mau, fontVariantNumeric: 'tabular-nums' }}><span style={{ opacity: 0.6 }}>$</span><span>{v < 0 && !khong ? `(${so})` : so}</span></span>; };
 const Tien = ({ v }: { v: number }) => <KeToan v={v} />;
 const mauLai = (v: number) => (v > 0 ? 'var(--neon-lime, #4ade80)' : 'var(--neon-red, #f87171)');
 const LaiCot = ({ s }: { s: SoTien }) => <KeToan v={s.thu - s.chi} mau={mauLai(s.thu - s.chi)} />;   // trong CỘT bảng / lưới

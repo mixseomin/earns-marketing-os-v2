@@ -60,18 +60,19 @@ function ganCamp(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'ta
   const gan = ganLuat(c, r, du, rq, da), huong = new Set([...[...da].map((k) => BAO_HUONG[k]), ...gan.map((g) => (g[0] === '⇡' ? 'tang' : g[0] === '⇣' ? 'giam' : 'tat'))]);
   return { gan, tang: huong.has('tang'), giam: huong.has('giam'), tat: huong.has('tat') };
 }
-function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua'>, r: number | null, du: boolean, rq: number | null, da: Set<string>): [string, string, string][] {
+function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua' | 'nay'>, r: number | null, du: boolean, rq: number | null, da: Set<string>): [string, string, string][] {
   const ra: [string, string, string][] = [];
-  const hqChan = rq != null && rq < 0 && c.qua.chi >= 0.5 * c.ngan_sach;   // luật B1: hôm qua âm chỉ chặn khi chi hôm qua ≥ 50% ngân sách
+  const hqChan = rq != null && rq < 0 && c.qua.chi >= 0.5 * c.ngan_sach;
+  // "gần" chỉ khi HÔM NAY còn đường chạm ngưỡng (anh 26/10/2026: "ko còn chi thêm nữa thì làm sao mà đạt đc tăng"): đã tiêu hết ngân sách → chi đứng yên, ROI chỉ nhích nhờ thu về trễ;
+  // vướng hôm qua → số hôm qua đã chốt. Hai ca đó không gắn dấu gần — mai máy xét lại với hôm nay làm "hôm qua".
+  const het = c.nay.chi >= c.ngan_sach;   // luật B1: hôm qua âm chỉ chặn khi chi hôm qua ≥ 50% ngân sách
   if (r != null && !['tang', 'dau_phien', 'tang30'].some((k) => da.has(k))) {
     if (r >= 50 && !du) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}% đã đạt, chờ chi đủ 30% ngân sách`]);
-    else if (r >= 50 && hqChan) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}% đạt, nhưng hôm qua ${rq}% với chi $${c.qua.chi.toFixed(2)} ≥ 50% ngân sách`]);
-    else if (r >= 30 && r < 50 && !hqChan) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}%, còn thiếu ${50 - r} điểm để chạm +50%`]);
+    else if (r >= 30 && r < 50 && !hqChan && !het) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}%, còn thiếu ${50 - r} điểm để chạm +50%`]);
   }
   if (r != null && c.ngan_sach > 1 && !da.has('ha')) {
     if (r <= -5 && !du) ra.push(['⇣', '#fb923c', `gần giảm bậc: ROI hôm nay ${r}% ở vùng giảm, chờ chi đủ 30% ngân sách`]);
-    else if (r <= -5 && rq != null && rq >= 50) ra.push(['⇣', '#fb923c', `gần giảm bậc: ROI hôm nay ${r}%, đang được giữ nhờ hôm qua ${rq}% ≥ +50%`]);
-    else if (du && r > -5 && r <= 5) ra.push(['⇣', '#fb923c', `gần giảm bậc: ROI hôm nay ${r}%, sát ngưỡng −5%`]);
+    else if (du && !het && r > -5 && r <= 5) ra.push(['⇣', '#fb923c', `gần giảm bậc: ROI hôm nay ${r}%, sát ngưỡng −5%`]);
   }
   const rt = roiOf(c.thang), tuoi = c.tao ? (Date.now() - Date.parse(c.tao)) / 86_400_000 : 0;
   if (rt != null && !da.has('tat') && rt < -40) {

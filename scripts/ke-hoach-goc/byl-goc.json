@@ -1,0 +1,713 @@
+[
+ {
+  "slug": "goc-19199-portugal-long-stay",
+  "chu_de": "Portugal",
+  "de": {
+   "iso": "pt",
+   "nuoc": "Portugal",
+   "san_bay": [
+    {
+     "iata": "LIS",
+     "ten": "Lisbon Humberto Delgado Airport",
+     "tp": "Lisbon"
+    },
+    {
+     "iata": "OPO",
+     "ten": "Francisco de Sá Carneiro Airport",
+     "tp": "Porto"
+    },
+    {
+     "iata": "FAO",
+     "ten": "Faro - Gago Coutinho International Airport",
+     "tp": "Faro"
+    }
+   ],
+   "link": "https://esimfares.com/pt/",
+   "truy": "Lisbon street tram"
+  },
+  "dang": {
+   "title": "Staying in Portugal for a month? Don't grab the first eSIM you see",
+   "description": "Long stays are where travel eSIMs get pricey. A plan sized for a week won't fit a month in Lisbon, so compare plan lengths for Portugal before you pick one. Main arrival airports: Lisbon (LIS), Porto (OPO), Faro (FAO). 1) Install a Portugal eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Portugal: https://esimfares.com/pt/",
+   "link": "https://esimfares.com/pt/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 181,
+    "id": 19199,
+    "loai": "ai_phan_doi",
+    "ten": "Gói eSIM du lịch đắt, nhất là khi ở lâu"
+   }
+  }
+ },
+ {
+  "slug": "goc-19232-mexico-locked-phone",
+  "chu_de": "Mexico",
+  "de": {
+   "iso": "mx",
+   "nuoc": "Mexico",
+   "san_bay": [
+    {
+     "iata": "MEX",
+     "ten": "Mexico City Benito Juárez International Airport",
+     "tp": "Mexico City"
+    },
+    {
+     "iata": "CUN",
+     "ten": "Cancún International Airport",
+     "tp": "Cancún"
+    },
+    {
+     "iata": "PVR",
+     "ten": "Puerto Vallarta International Airport",
+     "tp": "Puerto Vallarta"
+    }
+   ],
+   "link": "https://esimfares.com/mx/",
+   "truy": "Mexico City airport"
+  },
+  "dang": {
+   "title": "Landing in Mexico? Check your phone isn't carrier-locked first",
+   "description": "A carrier-locked phone won't take a foreign eSIM, and you usually find out at the arrivals hall. Check Settings for \"No SIM restrictions\" or ask your carrier to unlock it before the trip. Main arrival airports: Mexico City (MEX), Cancún (CUN), Puerto Vallarta (PVR). 1) Install a Mexico eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Mexico: https://esimfares.com/mx/",
+   "link": "https://esimfares.com/mx/",
+   "nhom": "Mỹ Latinh",
+   "goc": {
+    "sp": 181,
+    "id": 19232,
+    "loai": "ai_noi_dau",
+    "ten": "Điện thoại bị khóa mạng"
+   }
+  }
+ },
+ {
+  "slug": "goc-19191-italy-roaming-bill",
+  "chu_de": "Italy",
+  "de": {
+   "iso": "it",
+   "nuoc": "Italy",
+   "san_bay": [
+    {
+     "iata": "FCO",
+     "ten": "Rome–Fiumicino Leonardo da Vinci International Airport",
+     "tp": "Rome"
+    },
+    {
+     "iata": "MXP",
+     "ten": "Milan Malpensa International Airport",
+     "tp": "Ferno (VA)"
+    },
+    {
+     "iata": "VCE",
+     "ten": "Venice Marco Polo Airport",
+     "tp": "Venezia (VE)"
+    }
+   ],
+   "link": "https://esimfares.com/it/",
+   "truy": "Rome Colosseum evening"
+  },
+  "dang": {
+   "title": "Landing in Italy? Your home SIM can start roaming before you're off the plane",
+   "description": "Roaming kicks in the second your phone grabs an Italian network, often while you're still taxiing at the gate. A few minutes of setup at home keeps that bill at zero. Main arrival airports: Rome (FCO), Ferno (MXP), Venezia (VCE). 1) Install an Italy eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Italy: https://esimfares.com/it/",
+   "link": "https://esimfares.com/it/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 181,
+    "id": 19191,
+    "loai": "ai_noi_dau",
+    "ten": "Phí chuyển vùng quốc tế (roaming) đắt đỏ"
+   }
+  }
+ },
+ {
+  "slug": "goc-19203-germany-moving-abroad",
+  "chu_de": "Germany",
+  "de": {
+   "iso": "de",
+   "nuoc": "Germany",
+   "san_bay": [
+    {
+     "iata": "FRA",
+     "ten": "Frankfurt Main Airport",
+     "tp": "Frankfurt am Main"
+    },
+    {
+     "iata": "MUC",
+     "ten": "Munich Airport",
+     "tp": "Munich"
+    },
+    {
+     "iata": "BER",
+     "ten": "Berlin Brandenburg Airport",
+     "tp": "Berlin"
+    }
+   ],
+   "link": "https://esimfares.com/de/",
+   "truy": "Berlin apartment moving boxes"
+  },
+  "dang": {
+   "title": "Moving to Germany? Here's how to have data the minute you land",
+   "description": "When you're moving abroad, the first day is all maps, bank apps and landlord messages. Don't wait until you've got a local contract. A Germany eSIM covers the gap. Main arrival airports: Frankfurt am Main (FRA), Munich (MUC), Berlin (BER). 1) Install a Germany eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Germany: https://esimfares.com/de/",
+   "link": "https://esimfares.com/de/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 181,
+    "id": 19203,
+    "loai": "ai_chan_dung",
+    "ten": "Người sống xa xứ (Expat) và chuyển ra nước ngoài"
+   }
+  }
+ },
+ {
+  "slug": "goc-19188-uk-first-trip",
+  "chu_de": "United Kingdom",
+  "de": {
+   "iso": "gb",
+   "nuoc": "United Kingdom",
+   "san_bay": [
+    {
+     "iata": "LHR",
+     "ten": "London Heathrow Airport",
+     "tp": "London"
+    },
+    {
+     "iata": "LGW",
+     "ten": "London Gatwick Airport",
+     "tp": "London"
+    },
+    {
+     "iata": "MAN",
+     "ten": "Manchester Airport",
+     "tp": "Manchester, Greater Manchester"
+    }
+   ],
+   "link": "https://esimfares.com/gb/",
+   "truy": "London Heathrow airport"
+  },
+  "dang": {
+   "title": "First trip abroad? Landing in the UK, sort your phone before you fly",
+   "description": "Most first-timers find out about roaming from a text after they land. Easier to set it up at home, on your own Wi-Fi, in about two minutes. Main arrival airports: London (LHR), London (LGW), Manchester (MAN). 1) Install an United Kingdom eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for United Kingdom: https://esimfares.com/gb/",
+   "link": "https://esimfares.com/gb/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 181,
+    "id": 19188,
+    "loai": "ai_tinh_huong",
+    "ten": "Du lịch quốc tế nói chung"
+   }
+  }
+ },
+ {
+  "slug": "goc-19839-australia-flight-budget",
+  "chu_de": "Australia",
+  "de": {
+   "iso": "au",
+   "nuoc": "Australia",
+   "san_bay": [
+    {
+     "iata": "SYD",
+     "ten": "Sydney Kingsford Smith International Airport",
+     "tp": "Sydney (Mascot)"
+    },
+    {
+     "iata": "MEL",
+     "ten": "Melbourne Airport",
+     "tp": "Melbourne"
+    },
+    {
+     "iata": "BNE",
+     "ten": "Brisbane International Airport",
+     "tp": "Brisbane"
+    }
+   ],
+   "link": "https://esimfares.com/au/",
+   "truy": "Sydney Opera House harbour"
+  },
+  "dang": {
+   "title": "Spent a lot on flights to Australia? Don't add a roaming bill on top",
+   "description": "Long-haul tickets eat most of the budget. Your phone plan shouldn't take the rest. Roaming at home rates adds up fast on a two-week trip down under. Main arrival airports: Sydney (SYD), Melbourne (MEL), Brisbane (BNE). 1) Install an Australia eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Australia: https://esimfares.com/au/",
+   "link": "https://esimfares.com/au/",
+   "nhom": "Châu Đại Dương",
+   "goc": {
+    "sp": 180,
+    "id": 19839,
+    "loai": "ai_phan_doi",
+    "ten": "Lo ngại vé máy bay quá đắt"
+   }
+  }
+ },
+ {
+  "slug": "goc-19857-greece-islands",
+  "chu_de": "Greece",
+  "de": {
+   "iso": "gr",
+   "nuoc": "Greece",
+   "san_bay": [
+    {
+     "iata": "ATH",
+     "ten": "Athens Eleftherios Venizelos International Airport",
+     "tp": "Spata-Artemida"
+    },
+    {
+     "iata": "JTR",
+     "ten": "Santorini International Airport",
+     "tp": "Santorini Island"
+    },
+    {
+     "iata": "HER",
+     "ten": "Heraklion International Nikos Kazantzakis Airport",
+     "tp": "Heraklion"
+    }
+   ],
+   "link": "https://esimfares.com/gr/",
+   "truy": "Santorini sea view"
+  },
+  "dang": {
+   "title": "Landing in Greece for the islands? Get data sorted before Santorini",
+   "description": "Ferry times, beach directions, the taverna someone recommended. Island days run on your phone, and Wi-Fi at the port is hit or miss. Main arrival airports: Spata-Artemida (ATH), Santorini Island (JTR), Heraklion (HER). 1) Install a Greece eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Greece: https://esimfares.com/gr/",
+   "link": "https://esimfares.com/gr/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 180,
+    "id": 19857,
+    "loai": "ai_mong_muon",
+    "ten": "Nghỉ dưỡng biển và đảo"
+   }
+  }
+ },
+ {
+  "slug": "goc-19838-spain-cheap-flight",
+  "chu_de": "Spain",
+  "de": {
+   "iso": "es",
+   "nuoc": "Spain",
+   "san_bay": [
+    {
+     "iata": "MAD",
+     "ten": "Adolfo Suárez Madrid–Barajas Airport",
+     "tp": "Madrid"
+    },
+    {
+     "iata": "BCN",
+     "ten": "Josep Tarradellas Barcelona-El Prat Airport",
+     "tp": "Barcelona"
+    },
+    {
+     "iata": "AGP",
+     "ten": "Málaga-Costa del Sol Airport",
+     "tp": "Málaga"
+    }
+   ],
+   "link": "https://esimfares.com/es/",
+   "truy": "Barcelona beach aerial"
+  },
+  "dang": {
+   "title": "Found a cheap flight to Spain? Don't lose the savings to roaming",
+   "description": "You hunted for that fare for weeks. One careless day of roaming can quietly wipe out what you saved, so set up data before you leave. Main arrival airports: Madrid (MAD), Barcelona (BCN), Málaga (AGP). 1) Install a Spain eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Spain: https://esimfares.com/es/",
+   "link": "https://esimfares.com/es/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 180,
+    "id": 19838,
+    "loai": "ai_mong_muon",
+    "ten": "Tiết kiệm tiền vé máy bay"
+   }
+  }
+ },
+ {
+  "slug": "goc-19193-south-korea-student",
+  "chu_de": "South Korea",
+  "de": {
+   "iso": "kr",
+   "nuoc": "South Korea",
+   "san_bay": [
+    {
+     "iata": "ICN",
+     "ten": "Incheon International Airport",
+     "tp": "Seoul"
+    },
+    {
+     "iata": "GMP",
+     "ten": "Seoul Gimpo International Airport",
+     "tp": "Seoul"
+    },
+    {
+     "iata": "PUS",
+     "ten": "Gimhae International Airport",
+     "tp": "Busan"
+    }
+   ],
+   "link": "https://esimfares.com/kr/",
+   "truy": "Seoul university campus"
+  },
+  "dang": {
+   "title": "Starting a semester in South Korea? Set up your phone before ICN",
+   "description": "New students need maps, KakaoTalk and the dorm address the moment they land. Don't rely on airport Wi-Fi for that first ride into Seoul. Main arrival airports: Seoul (ICN), Seoul (GMP), Busan (PUS). 1) Install a South Korea eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for South Korea: https://esimfares.com/kr/",
+   "link": "https://esimfares.com/kr/",
+   "nhom": "Châu Á",
+   "goc": {
+    "sp": 181,
+    "id": 19193,
+    "loai": "ai_chan_dung",
+    "ten": "Du học sinh và người sống xa nhà"
+   }
+  }
+ },
+ {
+  "slug": "goc-19189-france-europe-trip",
+  "chu_de": "France",
+  "de": {
+   "iso": "fr",
+   "nuoc": "France",
+   "san_bay": [
+    {
+     "iata": "CDG",
+     "ten": "Charles de Gaulle International Airport",
+     "tp": "Paris (Roissy-en-France, Val-d'Oise)"
+    },
+    {
+     "iata": "ORY",
+     "ten": "Paris-Orly Airport",
+     "tp": "Paris (Orly, Val-de-Marne)"
+    },
+    {
+     "iata": "NCE",
+     "ten": "Nice-Côte d'Azur Airport",
+     "tp": "Nice, Alpes-Maritimes"
+    }
+   ],
+   "link": "https://esimfares.com/fr/",
+   "truy": "Paris street cafe"
+  },
+  "dang": {
+   "title": "Landing in France on a Europe trip? Do this before the wheels touch down",
+   "description": "Paris is often the first stop on a multi-country trip. Pick an eSIM that covers France and wherever you're heading next, then install it at home. Main arrival airports: Paris (CDG), Paris (ORY), Nice (NCE). 1) Install a France eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for France: https://esimfares.com/fr/",
+   "link": "https://esimfares.com/fr/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 181,
+    "id": 19189,
+    "loai": "ai_tinh_huong",
+    "ten": "Du lịch Châu Âu"
+   }
+  }
+ },
+ {
+  "slug": "goc-19194-japan-heavy-data",
+  "chu_de": "Japan",
+  "de": {
+   "iso": "jp",
+   "nuoc": "Japan",
+   "san_bay": [
+    {
+     "iata": "NRT",
+     "ten": "Narita International Airport",
+     "tp": "Narita"
+    },
+    {
+     "iata": "HND",
+     "ten": "Tokyo Haneda International Airport",
+     "tp": "Tokyo"
+    },
+    {
+     "iata": "KIX",
+     "ten": "Kansai International Airport",
+     "tp": "Osaka"
+    }
+   ],
+   "link": "https://esimfares.com/jp/",
+   "truy": "Tokyo Shibuya crossing night"
+  },
+  "dang": {
+   "title": "Landing in Japan with Maps, Translate and video calls all running?",
+   "description": "Japan is a heavy data trip. Train apps, live translation, photo uploads. Pick a plan with enough data for how you actually use your phone. Main arrival airports: Narita (NRT), Tokyo (HND), Osaka (KIX). 1) Install a Japan eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Japan: https://esimfares.com/jp/",
+   "link": "https://esimfares.com/jp/",
+   "nhom": "Châu Á",
+   "goc": {
+    "sp": 181,
+    "id": 19194,
+    "loai": "ai_chan_dung",
+    "ten": "Người dùng dữ liệu mạng lớn khi du lịch"
+   }
+  }
+ },
+ {
+  "slug": "goc-19195-turkey-esim-support",
+  "chu_de": "Turkey",
+  "de": {
+   "iso": "tr",
+   "nuoc": "Turkey",
+   "san_bay": [
+    {
+     "iata": "IST",
+     "ten": "İstanbul Airport",
+     "tp": "Istanbul"
+    },
+    {
+     "iata": "SAW",
+     "ten": "Istanbul Sabiha Gökçen International Airport",
+     "tp": "Pendik, Istanbul"
+    },
+    {
+     "iata": "AYT",
+     "ten": "Antalya International Airport",
+     "tp": "Antalya"
+    }
+   ],
+   "link": "https://esimfares.com/tr/",
+   "truy": "Istanbul Galata tower"
+  },
+  "dang": {
+   "title": "Landing in Turkey? Check your phone actually supports eSIM",
+   "description": "Not every phone takes an eSIM, and some locked models refuse a foreign one. Look for \"Add eSIM\" under your cellular settings before you book a plan. Main arrival airports: Istanbul (IST), Pendik (SAW), Antalya (AYT). 1) Install a Turkey eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Turkey: https://esimfares.com/tr/",
+   "link": "https://esimfares.com/tr/",
+   "nhom": "Trung Đông / Phi",
+   "goc": {
+    "sp": 181,
+    "id": 19195,
+    "loai": "ai_phan_doi",
+    "ten": "Điện thoại bị khoá nhà mạng không hỗ trợ eSIM"
+   }
+  }
+ },
+ {
+  "slug": "goc-19841-dubai-points-layover",
+  "chu_de": "United Arab Emirates",
+  "de": {
+   "iso": "ae",
+   "nuoc": "United Arab Emirates",
+   "san_bay": [
+    {
+     "iata": "DXB",
+     "ten": "Dubai International Airport",
+     "tp": "Dubai"
+    },
+    {
+     "iata": "AUH",
+     "ten": "Zayed International Airport",
+     "tp": "Abu Dhabi"
+    }
+   ],
+   "link": "https://esimfares.com/ae/",
+   "truy": "Dubai airport terminal"
+  },
+  "dang": {
+   "title": "Flying to Dubai on points? Don't let the layover cost you in roaming",
+   "description": "Award tickets often come with long connections. Your phone wakes up on the layover and starts roaming, even if you never leave the airport. Main arrival airports: Dubai (DXB), Abu Dhabi (AUH). 1) Install an United Arab Emirates eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for United Arab Emirates: https://esimfares.com/ae/",
+   "link": "https://esimfares.com/ae/",
+   "nhom": "Trung Đông / Phi",
+   "goc": {
+    "sp": 180,
+    "id": 19841,
+    "loai": "ai_mong_muon",
+    "ten": "Muốn dùng điểm thưởng, dặm để đổi vé"
+   }
+  }
+ },
+ {
+  "slug": "goc-19222-philippines-family-calls",
+  "chu_de": "Philippines",
+  "de": {
+   "iso": "ph",
+   "nuoc": "Philippines",
+   "san_bay": [
+    {
+     "iata": "MNL",
+     "ten": "Ninoy Aquino International Airport",
+     "tp": "Manila (Pasay)"
+    },
+    {
+     "iata": "CEB",
+     "ten": "Mactan Cebu International Airport",
+     "tp": "Cebu City/Lapu-Lapu City"
+    }
+   ],
+   "link": "https://esimfares.com/ph/",
+   "truy": "Manila city skyline"
+  },
+  "dang": {
+   "title": "Landing in the Philippines? Keep video calls home working from day one",
+   "description": "Family wants to know you landed. Hotel Wi-Fi drops, airport Wi-Fi asks for a phone number. Your own data line makes the first call easy. Main arrival airports: Manila (MNL), Cebu City/Lapu-Lapu City (CEB). 1) Install a Philippines eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Philippines: https://esimfares.com/ph/",
+   "link": "https://esimfares.com/ph/",
+   "nhom": "Châu Á",
+   "goc": {
+    "sp": 181,
+    "id": 19222,
+    "loai": "ai_noi_dau",
+    "ten": "Khó khăn khi liên lạc với gia đình từ nước ngoài"
+   }
+  }
+ },
+ {
+  "slug": "goc-19190-thailand-asia-loop",
+  "chu_de": "Thailand",
+  "de": {
+   "iso": "th",
+   "nuoc": "Thailand",
+   "san_bay": [
+    {
+     "iata": "BKK",
+     "ten": "Suvarnabhumi Airport",
+     "tp": "Bangkok"
+    },
+    {
+     "iata": "DMK",
+     "ten": "Don Mueang International Airport",
+     "tp": "Bangkok"
+    },
+    {
+     "iata": "HKT",
+     "ten": "Phuket International Airport",
+     "tp": "Phuket"
+    }
+   ],
+   "link": "https://esimfares.com/th/",
+   "truy": "Bangkok temple"
+  },
+  "dang": {
+   "title": "Landing in Thailand on a Southeast Asia loop? Start with this",
+   "description": "Bangkok is the usual first stop before Vietnam, Cambodia or Bali. Get connected for Thailand first, then check regional plans for the rest of the route. Main arrival airports: Bangkok (BKK), Bangkok (DMK), Phuket (HKT). 1) Install a Thailand eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Thailand: https://esimfares.com/th/",
+   "link": "https://esimfares.com/th/",
+   "nhom": "Châu Á",
+   "goc": {
+    "sp": 181,
+    "id": 19190,
+    "loai": "ai_tinh_huong",
+    "ten": "Du lịch Châu Á và Đông Nam Á"
+   }
+  }
+ },
+ {
+  "slug": "goc-19196-singapore-keep-number",
+  "chu_de": "Singapore",
+  "de": {
+   "iso": "sg",
+   "nuoc": "Singapore",
+   "san_bay": [
+    {
+     "iata": "SIN",
+     "ten": "Singapore Changi Airport",
+     "tp": "Singapore"
+    }
+   ],
+   "link": "https://esimfares.com/sg/",
+   "truy": "Singapore Marina Bay"
+  },
+  "dang": {
+   "title": "Landing in Singapore? Keep your home number for bank codes",
+   "description": "Banks still text one-time codes to your home number. With an eSIM you can keep that line on for texts while all your data goes through the travel plan. Main arrival airports: Singapore (SIN). 1) Install a Singapore eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Singapore: https://esimfares.com/sg/",
+   "link": "https://esimfares.com/sg/",
+   "nhom": "Châu Á",
+   "goc": {
+    "sp": 181,
+    "id": 19196,
+    "loai": "ai_chan_dung",
+    "ten": "Người cần giữ số chính để nhận OTP"
+   }
+  }
+ },
+ {
+  "slug": "goc-19198-iceland-surprise-bill",
+  "chu_de": "Iceland",
+  "de": {
+   "iso": "is",
+   "nuoc": "Iceland",
+   "san_bay": [
+    {
+     "iata": "KEF",
+     "ten": "Keflavik International Airport",
+     "tp": "Reykjavík"
+    }
+   ],
+   "link": "https://esimfares.com/is/",
+   "truy": "Iceland road waterfall"
+  },
+  "dang": {
+   "title": "Worried about a surprise phone bill after Iceland? Rule it out before you fly",
+   "description": "That end-of-trip bill usually comes from data roaming you forgot was on. Turn it off on your home line and let a local eSIM handle the Ring Road. Main arrival airports: Reykjavík (KEF). 1) Install an Iceland eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Iceland: https://esimfares.com/is/",
+   "link": "https://esimfares.com/is/",
+   "nhom": "Châu Âu",
+   "goc": {
+    "sp": 181,
+    "id": 19198,
+    "loai": "ai_phan_doi",
+    "ten": "Eo sê-ri-ca hay nhiễu bị gọi nhầm vì cước roaming"
+   }
+  }
+ },
+ {
+  "slug": "goc-19843-vietnam-long-trip",
+  "chu_de": "Vietnam",
+  "de": {
+   "iso": "vn",
+   "nuoc": "Vietnam",
+   "san_bay": [
+    {
+     "iata": "SGN",
+     "ten": "Tan Son Nhat International Airport",
+     "tp": "Ho Chi Minh City"
+    },
+    {
+     "iata": "HAN",
+     "ten": "Noi Bai International Airport",
+     "tp": "Hanoi (Soc Son)"
+    },
+    {
+     "iata": "DAD",
+     "ten": "Da Nang International Airport",
+     "tp": "Da Nang"
+    }
+   ],
+   "link": "https://esimfares.com/vn/",
+   "truy": "Ha Long Bay boat"
+  },
+  "dang": {
+   "title": "Landing in Vietnam for a long trip, north to south?",
+   "description": "Weeks on the road means buses, sleeper trains and a new town every few days. Pick a plan length that matches the whole route, not just the first week. Main arrival airports: Ho Chi Minh City (SGN), Hanoi (HAN), Da Nang (DAD). 1) Install a Vietnam eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for Vietnam: https://esimfares.com/vn/",
+   "link": "https://esimfares.com/vn/",
+   "nhom": "Châu Á",
+   "goc": {
+    "sp": 180,
+    "id": 19843,
+    "loai": "ai_mong_muon",
+    "ten": "Du lịch khám phá nhiều nơi, chuyến đi dài ngày"
+   }
+  }
+ },
+ {
+  "slug": "goc-19865-new-zealand-flight-costs",
+  "chu_de": "New Zealand",
+  "de": {
+   "iso": "nz",
+   "nuoc": "New Zealand",
+   "san_bay": [
+    {
+     "iata": "AKL",
+     "ten": "Auckland International Airport",
+     "tp": "Auckland"
+    },
+    {
+     "iata": "CHC",
+     "ten": "Christchurch International Airport",
+     "tp": "Christchurch"
+    },
+    {
+     "iata": "ZQN",
+     "ten": "Queenstown Airport",
+     "tp": "Queenstown"
+    }
+   ],
+   "link": "https://esimfares.com/nz/",
+   "truy": "Queenstown lake mountains"
+  },
+  "dang": {
+   "title": "Flights to New Zealand already stretched the budget?",
+   "description": "After that airfare, the last thing you need is a roaming charge on top. Setting up data before you fly is the cheap part of the trip. Main arrival airports: Auckland (AKL), Christchurch (CHC), Queenstown (ZQN). 1) Install a New Zealand eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for New Zealand: https://esimfares.com/nz/",
+   "link": "https://esimfares.com/nz/",
+   "nhom": "Châu Đại Dương",
+   "goc": {
+    "sp": 180,
+    "id": 19865,
+    "loai": "ai_noi_dau",
+    "ten": "Lo chi phí vé máy bay quá cao"
+   }
+  }
+ }
+]

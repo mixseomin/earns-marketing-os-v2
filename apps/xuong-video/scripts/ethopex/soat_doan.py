@@ -76,12 +76,12 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "Ordinary drama (arguments, slaps without blood, kneeling, crying from sadness, kissing fully clothed, business suits, parties) is OK. "
        "If unsure, answer 'xem'. Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\"}")
 
-def goi_claude(jpg, hoi, max_tokens=300, kiem=None):
+def goi_claude(jpg, hoi, max_tokens=300, kiem=None):   # jpg: một đường dẫn hoặc danh sách (nhiều tờ khung)
     """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, đường đã dùng) qua chuỗi rẻ ckey → ShopAIKey → Anthropic.
     kiem(j) ném lỗi khi JSON sai khuôn → thử đường sau. Mọi đường lỗi → RuntimeError (người gọi quyết định giữ lại)."""
     import base64, urllib.request
-    b64 = base64.b64encode(open(jpg, "rb").read()).decode()
-    nd = [{"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}, {"type": "text", "text": hoi}]}]
+    anh = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64.b64encode(open(f, "rb").read()).decode()}} for f in ([jpg] if isinstance(jpg, str) else jpg)]
+    nd = [{"role": "user", "content": [*anh, {"type": "text", "text": hoi}]}]
     e = os.environ; duong = []
     if e.get("CKEY_API_KEY"): duong += [("ckey", "https://api.xah.io/v1/messages", e["CKEY_API_KEY"], m) for m in CKEY]
     if e.get("SHOPAIKEY_API_KEY"): duong.append(("shopaikey", "https://api.shopaikey.com/v1/messages", e["SHOPAIKEY_API_KEY"], MO_HINH))

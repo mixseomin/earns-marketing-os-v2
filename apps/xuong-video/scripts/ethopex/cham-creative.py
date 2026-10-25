@@ -64,9 +64,21 @@ def lop_giong(f, KT):
     h = KT.soat(t)
     return {"noi_dung": t[:4000], "ngon_ngu": j.get("lang"), "loi": [f"«{h}»"] if h else []}
 
+def to_net(f, cr):
+    """BA TỜ KHUNG NÉT cho máy chấm (chấm thử 25/10/2026: tờ 6×5 khung 200px không thấy váy ren xuyên sáng #55305): cùng 30 mốc với tờ trên trang,
+    chia 3 tờ 5×2, mỗi khung rộng 384px → khung 1–10, 11–20, 21–30"""
+    d = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], capture_output=True, text=True).stdout.strip() or 90)
+    ra = []
+    for i in range(3):
+        o = os.path.join(KHO, f"{cr}-net{i + 1}.jpg")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{i * d / 3:.3f}", "-t", f"{d / 3:.3f}", "-i", f, "-vf", f"fps=30/{d:.3f},scale=384:-2,tile=5x2", "-frames:v", "1", "-q:v", "3", o], check=True, timeout=300)
+        ra.append(o)
+    return ra
+
 def cau_hoi(tc, chu, giong):
     ds = "\n".join(f'- "{x["nhom"]}.{x["ma"]}": {x["mo_ta"]}' for x in tc)
-    return ("You review a Facebook/Instagram video ad for a short drama. The image is a contact sheet of 30 frames in order. "
+    return ("You review a Facebook/Instagram video ad for a short drama. The 3 images are contact sheets of 30 frames in order "
+            "(sheet 1 = frames 1–10, sheet 2 = 11–20, sheet 3 = 21–30; each sheet 5 across × 2 down, left to right, top to bottom). Look closely at clothing, skin and body contact. "
             "The voice transcript comes from speech recognition and may contain repeated phrases by mistake — ignore repetition. "
             f"On-screen text read by OCR: {chu.get('noi_dung', '')[:2500] or '(none)'}\nSpoken voice transcript: {(giong or {}).get('noi_dung', '')[:2500] or '(none)'}\n"
             "Score EACH criterion from 0 to 10 where 10 = fully compliant / no risk, 7 = minor doubt, 4 or less = Meta or Google would very likely reject:\n"
@@ -74,25 +86,25 @@ def cau_hoi(tc, chu, giong):
             "\"diem\": {\"<group.code>\": <0-10>, ...every criterion...}, \"ly_do\": {\"<group.code>\": \"<short reason in Vietnamese naming the frame / words, only for scores below 10>\"}, "
             "\"khung\": {\"<group.code>\": [<frame numbers 1-30 (left to right, top to bottom) that show the problem, only for scores below 10>]}}")
 
-def claude(to, hoi, tc):
-    """tờ khung + câu hỏi → box3 chạy goi_claude → {noi_dung, diem, ly_do, duong}"""
+def claude(to, net, hoi, tc):
+    """tờ khung (trang) + 3 tờ nét (máy chấm) + câu hỏi → box3 chạy goi_claude → {noi_dung, diem, ly_do, khung, duong, anh_url}"""
     ma = os.path.basename(to)[:-4]; hf = to[:-4] + ".hoi.txt"; open(hf, "w").write(hoi)
     subprocess.run(["ssh", B, "mkdir -p /root/etp-cham"], check=True, timeout=60)
-    subprocess.run(["scp", "-q", to, hf, f"{B}:/root/etp-cham/"], check=True, timeout=300)
-    r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 cham-creative.py box /root/etp-cham/{ma}.jpg /root/etp-cham/{ma}.hoi.txt"],
+    subprocess.run(["scp", "-q", to, hf, *net, f"{B}:/root/etp-cham/"], check=True, timeout=300)
+    r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 cham-creative.py box /root/etp-cham/{ma}.jpg /root/etp-cham/{ma}.hoi.txt " + " ".join(f"/root/etp-cham/{os.path.basename(x)}" for x in net)],
                        capture_output=True, text=True, timeout=400)
     j = json.loads(r.stdout.strip().splitlines()[-1])
     if j.get("loi"): raise RuntimeError(j["loi"])
     return j
 
-def box(jpg, hf):
+def box(jpg, hf, net=()):
     tc = tieu_chi(); can = {f"{x['nhom']}.{x['ma']}" for x in tc}
     def kiem(j):
         d = j.get("diem") or {}
         thieu = can - set(d)
         if thieu or not all(isinstance(d[k], (int, float)) and 0 <= d[k] <= 10 for k in can): raise ValueError(f"thiếu / sai điểm: {sorted(thieu)[:4]}")
     try:
-        j, duong = SD.goi_claude(jpg, open(hf).read(), 1500, kiem)
+        j, duong = SD.goi_claude(list(net) or jpg, open(hf).read(), 1500, kiem)
         # tờ khung lên kho img.on.tc → trang etp hiện đúng khung bị bắt khi rê chuột (anh 25/10/2026: "hover phải xem được đoạn nội dung đó để còn xác nhận sai")
         u = subprocess.run(["kho", "phat", jpg, "ethopex", "cham", os.path.basename(jpg)], capture_output=True, text=True, timeout=120).stdout.strip().splitlines()
         print(json.dumps({**j, "duong": duong, "anh_url": u[-1] if u and u[-1].startswith("http") else None}, ensure_ascii=False))
@@ -115,7 +127,8 @@ def mot(cr, doan, url, tc, KT, CQ):
             # hai lượt lệch ≥ 4 điểm ở tiêu chí nào thì tiêu chí đó ≤ 7 (cần người xem) kèm ghi chú lệch
             hoi = cau_hoi(tc, lop.get("chu", {}), lop.get("giong"))
             from concurrent.futures import ThreadPoolExecutor as _TP
-            with _TP(2) as ex: ls = [x.result() for x in [ex.submit(claude, to, hoi, tc) for _ in range(2)]]
+            net = to_net(f, cr)
+            with _TP(2) as ex: ls = [x.result() for x in [ex.submit(claude, to, net, hoi, tc) for _ in range(2)]]
             j = min(ls, key=lambda x: sum((x.get("diem") or {}).values()))
             d2 = [{k: int(round(float(v))) for k, v in (x.get("diem") or {}).items()} for x in ls]
             for k in set(d2[0]) | set(d2[1]):
@@ -174,6 +187,6 @@ def chay(a):
 
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if a[:1] == ["box"]: box(a[1], a[2])
+    if a[:1] == ["box"]: box(a[1], a[2], a[3:])
     elif a[:1] == ["chay"]: chay(a[1:])
     else: print(__doc__)

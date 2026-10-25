@@ -414,7 +414,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const [soXem, bamTrang, soFb] = await Promise.all([
       d.execute(sql`SELECT k.chi_tiet FROM kenh_so_ngay k JOIN (SELECT kenh, max(ngay) AS ngay FROM kenh_so_ngay GROUP BY 1) m USING (kenh, ngay)`) as unknown as Promise<{ chi_tiet: { videos?: { url?: string; xem?: number }[] } | unknown[] }[]>,
       docBamTheoTrang().catch((e: Error) => { loi.push(`click theo bài: ${e.message.slice(0, 100)}`); return new Map<string, number>(); }),
-      docSoBaiFb().catch((e: Error) => { loi.push(`số bài Facebook: ${e.message.slice(0, 100)}`); return new Map<string, { xem: number | null; bam: number | null }>(); }),
+      docSoBaiFb().catch((e: Error) => { loi.push(`số bài Facebook: ${e.message.slice(0, 100)}`); return new Map<string, { xem: number | null; bam: number | null; url: string }>(); }),
     ]);
     const maBai = khoaBai;
     const xemCua = new Map<string, number>(); for (const r of soXem) for (const v of (Array.isArray(r.chi_tiet) ? [] : r.chi_tiet?.videos ?? [])) if (v.url && typeof v.xem === 'number') xemCua.set(maBai(v.url), v.xem);
@@ -449,11 +449,13 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null });
     // BÀI HẸN GIỜ theo kế hoạch Page (bai_hen — kế hoạch Page hoài cổ 25/10/2026): Facebook tự đăng đúng giờ; trước giờ = sẽ đăng, qua giờ = đã đăng.
     // nền theo format (Reel → facebook:<acct>, ảnh / album → fb_anh:<acct>, bài link → fb_link:<acct>) để nhãn format + nhóm kênh khớp bài máy trên cùng Page
-    const hen = (await d.execute(sql`SELECT id, acct, ten, ke_hoach, hen_luc::text AS luc, nhom, format, chu, anh, video, link, url FROM bai_hen WHERE graph_id IS NOT NULL`).catch(() => [])) as unknown as { acct: number; ten: string; ke_hoach: string; luc: string; nhom: string | null; format: string | null; chu: string; anh: string[] | null; video: string | null; link: string | null; url: string | null }[];
+    const hen = (await d.execute(sql`SELECT id, acct, ten, ke_hoach, hen_luc::text AS luc, nhom, format, chu, anh, video, link, url, post_id FROM bai_hen WHERE graph_id IS NOT NULL`).catch(() => [])) as unknown as { acct: number; ten: string; ke_hoach: string; luc: string; nhom: string | null; format: string | null; chu: string; anh: string[] | null; video: string | null; link: string | null; url: string | null; post_id: string | null }[];
     for (const x of hen) {
       const vn = new Date(Date.parse(x.luc) + 7 * 3600e3).toISOString(), qua = Date.parse(x.luc) <= Date.now(), nen = `${x.video ? 'facebook' : x.link ? 'fb_link' : 'fb_anh'}:${x.acct}`;
-      o.push({ ngay: vn.slice(0, 10), gio: vn.slice(11, 16), may: x.ke_hoach, mayTen: 'Page hoài cổ · kế hoạch tuần', nen, title: x.chu.split('\n')[0] ?? '', url: qua ? x.url : null, loai: qua ? 'da' : 'du_kien',
-        anh: x.anh?.[0] || null, tk: x.ten, nhom: x.nhom, link: x.link != null, xem: qua && x.url ? xemCua.get(maBai(x.url)) ?? null : null, bam: null });
+      // đã đăng: link thật lấy từ số đo theo mã bài (link lúc hẹn của bài ảnh là photo.php tạm); Reel giữ /reel/<id>/
+      const so = x.post_id ? soFb.get(x.post_id) : undefined, url = qua ? so?.url ?? x.url : null;
+      o.push({ ngay: vn.slice(0, 10), gio: vn.slice(11, 16), may: x.ke_hoach, mayTen: 'Page hoài cổ · kế hoạch tuần', nen, title: x.chu.split('\n')[0] ?? '', url, loai: qua ? 'da' : 'du_kien',
+        anh: x.anh?.[0] || null, tk: x.ten, nhom: x.nhom, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null, bam: null });
     }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }

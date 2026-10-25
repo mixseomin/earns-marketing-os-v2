@@ -46,7 +46,7 @@ for (const b of ds) {
   try {
     const t = await token(b.page_id, b.ten), anhR2: string[] = [];
     for (const a of b.anh) anhR2.push((await uploadToR2(`page-hoai-co/${a}`, readFileSync(`${thuMuc}/${a}`), 'image/jpeg')) ?? '');
-    let graphId: string, url: string | null = null;
+    let graphId: string, url: string | null = null, postId: string | null = null;
     if (b.video) {
       const s = await goi(`${G}/${b.page_id}/video_reels`, { method: 'POST', body: new URLSearchParams({ upload_phase: 'start', access_token: t }) }), vid = String(s.video_id);
       await goi(`https://rupload.facebook.com/video-upload/v23.0/${vid}`, { method: 'POST', headers: { Authorization: `OAuth ${t}`, file_url: b.video } });
@@ -54,18 +54,18 @@ for (const b of ds) {
       graphId = vid; url = `https://www.facebook.com/reel/${vid}/`;
     } else if (b.anh.length === 1) {
       const r = await goi(`${G}/${b.page_id}/photos`, { method: 'POST', body: form({ message: b.chu, published: 'false', scheduled_publish_time: String(ts), access_token: t }, `${thuMuc}/${b.anh[0]}`) });
-      graphId = String(r.post_id ?? r.id);
+      graphId = String(r.id); postId = String(r.post_id ?? `${b.page_id}_${r.id}`);
     } else {
       const ids: string[] = [];
       for (const a of b.anh) ids.push(String((await goi(`${G}/${b.page_id}/photos`, { method: 'POST', body: form({ published: 'false', temporary: 'true', access_token: t }, `${thuMuc}/${a}`) })).id));
       const f = new URLSearchParams({ message: b.chu, published: 'false', scheduled_publish_time: String(ts), access_token: t });
       ids.forEach((id, i) => f.append(`attached_media[${i}]`, JSON.stringify({ media_fbid: id })));
-      graphId = String((await goi(`${G}/${b.page_id}/feed`, { method: 'POST', body: f })).id);
+      graphId = postId = String((await goi(`${G}/${b.page_id}/feed`, { method: 'POST', body: f })).id);
     }
     if (!url) try { url = String((await goi(`${G}/${graphId}?fields=permalink_url&access_token=${t}`)).permalink_url ?? '') || null; } catch { url = null; }
-    await d.execute(sql`INSERT INTO bai_hen (id, ke_hoach, acct, page_id, ten, hen_luc, nhom, format, chu, anh, video, link, cham, graph_id, url)
-      VALUES (${b.id}, 'page-hoai-co', ${b.acct}, ${b.page_id}, ${b.ten}, to_timestamp(${ts}), ${b.loai}, ${b.format}, ${b.chu}, ${sql.raw(`ARRAY[${anhR2.map((x) => `'${x.replace(/'/g, "''")}'`).join(',')}]::text[]`)}, ${b.video}, ${b.link}, ${JSON.stringify(cham)}::jsonb, ${graphId}, ${url})
-      ON CONFLICT (id) DO UPDATE SET graph_id = excluded.graph_id, url = excluded.url, anh = excluded.anh, cham = excluded.cham, loi = NULL`);
+    await d.execute(sql`INSERT INTO bai_hen (id, ke_hoach, acct, page_id, ten, hen_luc, nhom, format, chu, anh, video, link, cham, graph_id, url, post_id)
+      VALUES (${b.id}, 'page-hoai-co', ${b.acct}, ${b.page_id}, ${b.ten}, to_timestamp(${ts}), ${b.loai}, ${b.format}, ${b.chu}, ${sql.raw(`ARRAY[${anhR2.map((x) => `'${x.replace(/'/g, "''")}'`).join(',')}]::text[]`)}, ${b.video}, ${b.link}, ${JSON.stringify(cham)}::jsonb, ${graphId}, ${url}, ${postId})
+      ON CONFLICT (id) DO UPDATE SET graph_id = excluded.graph_id, url = excluded.url, post_id = excluded.post_id, anh = excluded.anh, cham = excluded.cham, loi = NULL`);
     console.log(`  → hẹn ${graphId} ${url ?? ''}`);
   } catch (e) {
     const m = (e as Error).message; console.error(`  ✗ ${m}`);

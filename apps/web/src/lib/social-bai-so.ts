@@ -11,17 +11,17 @@ let dangChay: Promise<number> | null = null;
 /** khoá bài để khớp sổ đăng ↔ số đo: mã reel/video, còn lại link không đuôi '/' */
 export const khoaBai = (u: string | null | undefined) => (u ? (u.match(/(?:reel|shorts|video|videos)\/([\w-]+)/)?.[1] ?? u.replace(/\/+$/, '')) : '');
 
-type Bai = { permalink_url?: string; created_time?: string; insights?: { data?: { name: string; values?: { value?: number }[] }[] } };
-async function docTrang(pageId: string, token: string, tu: number): Promise<{ url: string; xem: number | null; bam: number | null; luc: string | null }[]> {
-  const ra: { url: string; xem: number | null; bam: number | null; luc: string | null }[] = [];
-  let u: string | null = `${G}/${pageId}/posts?${new URLSearchParams({ fields: 'permalink_url,created_time,insights.metric(post_media_view,post_clicks)', since: String(tu), limit: '100', access_token: token })}`;
+type Bai = { id?: string; permalink_url?: string; created_time?: string; insights?: { data?: { name: string; values?: { value?: number }[] }[] } };
+async function docTrang(pageId: string, token: string, tu: number): Promise<{ id: string | null; url: string; xem: number | null; bam: number | null; luc: string | null }[]> {
+  const ra: { id: string | null; url: string; xem: number | null; bam: number | null; luc: string | null }[] = [];
+  let u: string | null = `${G}/${pageId}/posts?${new URLSearchParams({ fields: 'id,permalink_url,created_time,insights.metric(post_media_view,post_clicks)', since: String(tu), limit: '100', access_token: token })}`;
   for (let trang = 0; u && trang < 5; trang++) {
     const r = await fetch(u, { signal: AbortSignal.timeout(20_000) }), j = (await r.json()) as { data?: Bai[]; paging?: { next?: string }; error?: { message: string } };
     if (j.error) throw new Error(j.error.message);
     for (const b of j.data ?? []) {
       if (!b.permalink_url) continue;
       const so = (m: string) => { const v = b.insights?.data?.find((x) => x.name === m)?.values?.[0]?.value; return typeof v === 'number' ? v : null; };
-      ra.push({ url: b.permalink_url, xem: so('post_media_view'), bam: so('post_clicks'), luc: b.created_time ?? null });
+      ra.push({ id: b.id ?? null, url: b.permalink_url, xem: so('post_media_view'), bam: so('post_clicks'), luc: b.created_time ?? null });
     }
     u = j.paging?.next ?? null;
   }
@@ -38,8 +38,8 @@ export async function lamMoiSoBaiFb(): Promise<number> {
       try {
         const bs = await docTrang(id, t.token!, tu);
         for (const b of bs) {
-          await d.execute(sql`INSERT INTO bai_so (url, nen, page_id, xem, bam, dang_luc, cap_nhat) VALUES (${b.url}, 'facebook', ${id}, ${b.xem}, ${b.bam}, ${b.luc}, now())
-            ON CONFLICT (url) DO UPDATE SET xem = excluded.xem, bam = excluded.bam, cap_nhat = now()`);
+          await d.execute(sql`INSERT INTO bai_so (url, nen, page_id, post_id, xem, bam, dang_luc, cap_nhat) VALUES (${b.url}, 'facebook', ${id}, ${b.id}, ${b.xem}, ${b.bam}, ${b.luc}, now())
+            ON CONFLICT (url) DO UPDATE SET xem = excluded.xem, bam = excluded.bam, post_id = excluded.post_id, cap_nhat = now()`);
           n++;
         }
       } catch { loi++; }
@@ -48,11 +48,12 @@ export async function lamMoiSoBaiFb(): Promise<number> {
   if (loi) console.warn(`[bai_so] ${loi}/${ds.length} Page đọc lỗi`);
   return n;
 }
-/** số đo bài Facebook theo khoaBai; số cũ quá 3 giờ (hoặc chưa có) thì khởi làm mới chạy kèm — lần mở sau thấy số mới */
-export async function docSoBaiFb(): Promise<Map<string, { xem: number | null; bam: number | null }>> {
+export type SoBai = { xem: number | null; bam: number | null; url: string };
+/** số đo bài Facebook, khoá theo khoaBai(link) VÀ theo mã bài <page_id>_<id> (bài hẹn giờ chỉ biết mã); số cũ quá 3 giờ (hoặc chưa có) thì khởi làm mới chạy kèm */
+export async function docSoBaiFb(): Promise<Map<string, SoBai>> {
   const d = getDb(); if (!d) return new Map();
-  const rows = (await d.execute(sql`SELECT url, xem, bam, extract(epoch FROM cap_nhat) * 1000 AS luc FROM bai_so WHERE nen = 'facebook'`)) as unknown as { url: string; xem: number | null; bam: number | null; luc: number }[];
+  const rows = (await d.execute(sql`SELECT url, post_id, xem, bam, extract(epoch FROM cap_nhat) * 1000 AS luc FROM bai_so WHERE nen = 'facebook'`)) as unknown as { url: string; post_id: string | null; xem: number | null; bam: number | null; luc: number }[];
   const moi = rows.reduce((m, r) => Math.max(m, Number(r.luc)), 0);
   if (Date.now() - moi > CU_MS && !dangChay) dangChay = lamMoiSoBaiFb().catch(() => 0).finally(() => { dangChay = null; });
-  return new Map(rows.map((r) => [khoaBai(r.url), { xem: r.xem, bam: r.bam }]));
+  return new Map(rows.flatMap((r) => { const v = { xem: r.xem, bam: r.bam, url: r.url }; return r.post_id ? [[khoaBai(r.url), v], [r.post_id, v]] as const : [[khoaBai(r.url), v]] as const; }));
 }

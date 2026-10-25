@@ -173,6 +173,7 @@ export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luon
 export const CUM_PAGE: Record<string, { ten: string; mau: string }> = { 'du-lich': { ten: 'Du lịch', mau: '#4fd1ff' }, 'hoai-co': { ten: 'Hoài cổ · người lớn tuổi', mau: '#ffb703' },
   'quan-doi': { ten: 'Quân đội', mau: '#8a9a5b' }, game: { ten: 'Game', mau: '#b44dff' }, 'cong-cu': { ten: 'Công cụ · review', mau: '#3fd68a' }, 'tai-chinh': { ten: 'Tài chính', mau: '#ffd166' },
   'tu-vi': { ten: 'Tử vi', mau: '#ff7eb6' }, viet: { ten: 'Việt', mau: '#ff4d5e' }, 'thu-cung': { ten: 'Thú cưng (dự phòng)', mau: '#f08a24' }, 'khong-quang-ba': { ten: 'Không quảng bá (tên người thật)', mau: '#6b7385' },
+  'tin-tuc': { ten: 'Tin tức / viral (dự phòng)', mau: '#c9b458' }, 'the-thao': { ten: 'Thể thao (dự phòng)', mau: '#4fc3f7' }, 'mua-sam': { ten: 'Nhà cửa / mua sắm (dự phòng)', mau: '#b388ff' }, 'suc-khoe': { ten: 'Sức khoẻ (dự phòng)', mau: '#66d9a3' },
   'chua-xep': { ten: 'Chưa xếp cụm', mau: '#9aa3b8' } };
 export type TtTk = 'song' | 'nuoi' | 'han' | 'khoa' | 'dong';
 export const TT_TK: Record<TtTk, { ten: string; mau: string }> = { song: { ten: 'đang dùng', mau: '#3fd68a' }, nuoi: { ten: 'đang nuôi / tạo', mau: '#ffd166' }, han: { ten: 'bị hạn chế', mau: '#ff9f1c' }, khoa: { ten: 'bị khoá / chặn', mau: '#ff4d5e' }, dong: { ten: 'đã đóng', mau: '#5a6070' } };

@@ -8,11 +8,15 @@ import json, os, subprocess, urllib.parse, urllib.request
 GOC = os.path.dirname(os.path.abspath(__file__))
 # cụm người xem (tiendo social S06) theo tên Page
 CUM = {'du-lich': ['Abandoned Lives', 'Geological Wonders', 'Cities.gg', 'FlyBaboo', 'This Killed My Wallet', 'Hotel Scam Alerts', 'Before You Land'],
-       'hoai-co': ['Retro Cars Club', 'Classical Motorcycle', 'Classic Car', 'Classic Car Collection', 'Classical Car', 'Cooking Inspiration', 'Creative Collection', 'Hobby Hub: Inspiring Ideas from Hobby Lobby', 'Front Porch Puzzles'],
+       'hoai-co': ['Retro Cars Club', 'Classical Motorcycle', 'Classic Car', 'Classic Car Collection', 'Classical Car', 'Cooking Inspiration', 'Creative Collection', 'Hobby Hub: Inspiring Ideas from Hobby Lobby', 'Front Porch Puzzles', 'Classic Car Club', 'Motor'],
        'quan-doi': ['Military Markdown', 'Bigger Life', 'MilitaryCalc'], 'game': ['World of Tanks So Easy', 'Megapolis Neighbors Village', 'Gardens of Time', 'Games for Girls Space', 'PlayDor'],
-       'cong-cu': ['Trust Reviews', 'Daily Kaspersky Key', 'Discounting Domain', 'Earns.io', 'ValueImpression', 'Pocpoc.io'], 'tai-chinh': ['CryptoNull'], 'tu-vi': ['Eyes On Stars'], 'viet': ['Lời hay ý đẹp'],
+       'cong-cu': ['Trust Reviews', 'Daily Kaspersky Key', 'Discounting Domain', 'Earns.io', 'ValueImpression', 'Pocpoc.io', 'RingPi'], 'tai-chinh': ['CryptoNull'], 'tu-vi': ['Eyes On Stars'], 'viet': ['Lời hay ý đẹp'],
        'thu-cung': ['Animals Guru', 'Funny Cats', 'Cats of the World', 'Adorable Dogs', 'Meow meow', 'Lovely Cats', 'Animals Care', 'Dog Rescure', 'Funny Dogs', 'Paws for Life', 'Fish Lovers', 'Snake Cares', 'Kitty Paw Rock', 'Kitty Paw Rocks', 'Reptile Lover On The World', 'Beautiful Snakes', 'Fisher Guru'],
-       'khong-quang-ba': ['Jude Law', 'Maggie Gyllenhaal Fansite', 'Free Julian Assange']}
+       # dự phòng chưa có sản phẩm (S06 bước 13, anh quyết) — xếp 25/10/2026 cho 21 Page còn 'chua-xep'
+       'tin-tuc': ['Radar News', 'I Viral', 'BimBim Viral', 'Taiwan New', 'UFO'], 'the-thao': ['AdviceSport', 'ManUtd - Red Devils Fan'],
+       'mua-sam': ['Brides Life Gear', "Sisters'shop", 'ShoesBuzz', 'KuteCraft.com', 'Hobbier Store', 'Hommie Ideas', 'Three Tea Trees'],
+       'suc-khoe': ['SafeHealth', 'Safe Healthy Food', 'The Humand Mind'],
+       'khong-quang-ba': ['Jude Law', 'Maggie Gyllenhaal Fansite', 'Free Julian Assange', 'BhawaniGarg']}
 CUM_CUA = {t.lower(): c for c, ds in CUM.items() for t in ds}
 def graph(u):
     return json.load(urllib.request.urlopen(u, timeout=30))

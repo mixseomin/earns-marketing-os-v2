@@ -7,7 +7,8 @@ Chặn: camp gốc phải đang bật; phim đã có ≥ TRAN_PHIM camp ĐANG CH
 Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc>            → in payload (chạy khô, không tạo gì)
   python3 nhan-ban.py <camp_gốc> --that [--lich today|tomorrow] [--luat "…"] [--ai "…"]   → tạo, đọc lại, ghi nhật ký (ethopex_nhat_ky)
-    Clone luôn dùng creative KHÁC creative gốc + chưa có camp chạy; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH (anh 25/10/2026).
+    Clone luôn dùng creative KHÁC creative gốc + chưa có camp chạy; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH; chỉ clone camp gốc
+    đã chạm trần ngân sách (etp.cau_hinh.tran_camp, $30) (anh 25/10/2026).
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
 In một dòng JSON {ok, goc, moi, ten, loi}."""
@@ -198,6 +199,10 @@ def main(a):
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ValueError(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
+        if not moi:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
+            tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)
+            ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
+            if ns < tran: raise ValueError(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa chạm trần ${tran:g} — chưa clone (tăng ngân sách camp gốc trước)")
         if not moi:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường nhân bản (luật NB, góc mới, soát đoạn) — phim đang tụt thì không nhân thêm camp
             try: bh = q(f"select chan_nb from etp.phim_bao_hoa where content_id = {int(cid)} and chan_nb is not null")
             except Exception: bh = ""

@@ -29,13 +29,13 @@ const decodeSort = (raw: string, valid: Set<string>): SortSpec[] =>
   raw.split(',').map((p) => { const i = p.lastIndexOf('.'); return { key: p.slice(0, i), dir: p.slice(i + 1) as SortDir }; })
      .filter((x) => (x.dir === 'asc' || x.dir === 'desc') && valid.has(x.key));
 
-export function useTableSort<T>(rows: T[], columns: SortableCol<T>[], persistKey?: string) {
+export function useTableSort<T>(rows: T[], columns: SortableCol<T>[], persistKey?: string, defaultSort?: SortSpec[]) {
   const storeKey = persistKey ? `${persistKey}::sort` : undefined;
   const urlKey = persistKey ? `${persistKey}.sort` : undefined;   // sort sống qua F5 + share qua link
   // Thứ tự lưu nằm trong cookie `tbl.<key>` mà app/layout đọc SẴN trên server → server và client
   // render cùng một thứ tự ngay từ đầu, không còn cảnh bảng vẽ xong rồi mới nhảy sang thứ tự đã lưu.
   const pref = useTablePref(persistKey);
-  const [sort, setSort] = useState<SortSpec[]>(() => pref.s ?? []);
+  const [sort, setSort] = useState<SortSpec[]>(() => pref.s ?? defaultSort ?? []);   // chưa lưu thứ tự nào → thứ tự mặc định của bảng
   // Còn lại: link người khác gửi (có `.sort` trên URL), và di trú localStorage của máy cũ.
   useEffect(() => {
     const fromUrl = urlKey ? readShallowParam(urlKey) : null;

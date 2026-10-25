@@ -95,6 +95,7 @@ interface DataTableProps<T> {
   /** Hàng NHÃN NHÓM trên hàng tiêu đề: mỗi dải cột liền nhau cùng `group` gộp một ô ghi `DataGroup.label`. Dùng khi nhiều nhóm có cột trùng tên
    *  (Hôm nay / Hôm qua / 7 ngày đều ROI · Lãi · Chi) — tên kỳ nằm một lần trên nhóm, không nhét vào từng cột. */
   groupHeader?: boolean;
+  defaultSort?: SortSpec[];             // thứ tự khi người xem chưa bấm sắp xếp lần nào (vd [{ key: 'tao', dir: 'desc' }] = mới nhất trên đầu)
   /**
    * Cắt trang NGAY TRONG bảng, sau khi đã lọc và sắp xếp. Bắt buộc phải ở đây chứ không phải chỗ
    * gọi: bảng còn có ô tìm + LỌC THEO CỘT của riêng nó, nên nếu bên ngoài cắt trang trước rồi mới
@@ -156,7 +157,7 @@ const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, groupHeader, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
+  rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false,
@@ -362,7 +363,7 @@ export function DataTable<T>({
     };
   };
 
-  const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey);
+  const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey, defaultSort);
   // Cắt trang sau cùng: lọc → sắp xếp → cắt. Đổi bộ lọc thì về trang 1, không thì đứng ở trang 5 của
   // tập cũ rồi thấy rỗng.
   const paged = usePaged(sortedRows, pageSize ?? Math.max(sortedRows.length, 1));
@@ -377,9 +378,11 @@ export function DataTable<T>({
       ? { position: 'sticky', left: 0, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--bg-1)',
           boxShadow: '1px 0 0 var(--line)', maxWidth: STICKY_MAX, overflow: 'hidden', textOverflow: 'ellipsis' }
       : {});
+  // bảng bề rộng cố định (table-layout:fixed — đã kéo cột / fixedLayout): ô nào cũng cắt phần tràn, không thì chữ dài đè sang cột bên cạnh (anh 26/10/2026)
+  const coDinh = !!fixedLayout || Object.keys(rong).length > 0;
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseCell, textAlign: c.align ?? 'right', width: rong[c.key] ?? c.width, ...(rong[c.key] ? { maxWidth: rong[c.key], overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
+    return { ...baseCell, textAlign: c.align ?? 'right', width: rong[c.key] ?? c.width, ...(rong[c.key] ? { maxWidth: rong[c.key] } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
   };
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;

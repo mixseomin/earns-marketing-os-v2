@@ -1055,7 +1055,7 @@
         "tu": 7,
         "ai": "Vivian",
         "cach": "held by its SNAPPED dark blue lanyard in Vivian's right hand, the white card dangling below her fingers (she holds the lanyard, never the card itself)",
-        "vi": "Vivian cầm bằng dây đứt, thẻ lủng lẳng dưới tay",
+        "vi": "Vivian cầm dây đứt bằng TAY PHẢI, thẻ lủng lẳng dưới tay (không cầm vào thẻ)",
         "su_kien": "Vivian giật mạnh, dây thẻ đứt khỏi cổ Hạ"
       }
     ],
@@ -1182,6 +1182,21 @@
         "ai": "Lục Thần",
         "cach": "standing straight, both arms down at his sides, hands empty, chin slightly down, cold eyes",
         "vi": "đứng thẳng, hai tay buông, cằm hơi hạ, mắt lạnh"
+      }
+    ],
+    "Chỗ đứng Hạ": [
+      {
+        "tu": 1,
+        "ai": "Lâm Hạ",
+        "cach": "standing OUTSIDE the elevator, on the lobby floor in front of the closed elevator doors",
+        "vi": "đứng NGOÀI thang, trên sàn sảnh trước cửa thang"
+      },
+      {
+        "tu": 17,
+        "ai": "Lâm Hạ",
+        "cach": "standing INSIDE the elevator cabin, steel walls around her, facing out toward the doors",
+        "vi": "đứng TRONG cabin thang máy, vách thép quanh người, quay mặt ra cửa",
+        "su_kien": "Hạ đã bước vào thang (giữa #16 và #17), cửa thang khép trước mặt"
       }
     ]
   }

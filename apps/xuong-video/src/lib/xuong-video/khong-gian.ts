@@ -5,14 +5,14 @@
 // dáng gì · đi bao xa · lỗi mạch tập. Bộ chấm: có may_3d → nhánh 3D như cũ; không → hỏi đây; không có cả hai → "chưa chấm", KHÔNG cho điểm.
 // Thuần — tự kiểm: khong-gian.test.mts
 import { doSau, huongMan, khoangCach, loiCanMat, loiTruc, NUA_LUNG, phiaSang, viTriMan, type ManhSoDo, type SoDo } from './so-do-canh';
-import { daMat, loiSoVat, trangThai, type LucKhung, type SoVat } from './so-vat';
+import { daMat, loiSoVat, trangThai, type LucKhung, type SoVat, benTay, diChuyenKhongGhi } from './so-vat';
 
 /** xv_tap.khong_gian — ghi bởi scripts/dung-phim-reelshort.mts từ bảng mảnh. */
 export type KhongGian = { so_do: SoDo; /** tên nhân vật NGƯỜI (khác mốc / đồ) */ nguoi: string[]; so_vat?: SoVat; so_dang?: SoVat; ten_en?: Record<string, string> };
 /** xv_tap.khong_gian: mỗi CẢNH (phan_doan) một sơ đồ riêng. */
 export type KhongGianTap = Record<string, KhongGian>;
 export const kgCua = (t: KhongGianTap | null | undefined, c: { phan_doan?: string }): KhongGian | null => t?.[c.phan_doan ?? ''] ?? null;
-export type ShotKg = { id: number; thu_tu: number; phan_doan?: string; ky_thuat?: { sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo>; co_canh?: string } | null; dan_dung?: { noi?: string } | null; /** lời thoại của shot (ai nói) — luật người nghe nhìn người nói */ thoai?: { nhan_vat: string }[] | null };
+export type ShotKg = { id: number; thu_tu: number; phan_doan?: string; ky_thuat?: { sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo>; co_canh?: string } | null; dan_dung?: { noi?: string; mo?: string; ket?: string } | null; /** lời thoại của shot (ai nói) — luật người nghe nhìn người nói */ thoai?: { nhan_vat: string }[] | null };
 type Shot = Pick<ShotKg, 'ky_thuat'>;
 
 /** Sơ đồ của shot ở khung ĐẦU / CUỐI (cuối = sd đè sd_ket). */
@@ -57,12 +57,18 @@ export function diChuyen(kg: KhongGian, c: Shot): { ten: string; dx: number; met
 export const diCmShot = (t: KhongGianTap | null | undefined, c: Shot & { phan_doan?: string }): number => { const k = kgCua(t, c); return k && c.ky_thuat?.sd ? Math.round(Math.max(0, ...diChuyen(k, c).map((d) => d.met)) * 100) : 0; };
 /** Dáng của người ở khung đầu / cuối (sổ dáng: mốc có ai = người đó) — chữ đọc tiếng Việt + câu tiếng Anh. */
 export function dang(kg: KhongGian | null | undefined, thuTu: number, ten: string, luc: LucKhung = 'dau'): { vi: string; en: string; doi: boolean } | null {
-  if (!kg?.so_dang) return null; const m = Object.values(trangThai(kg.so_dang, thuTu, luc)).find((x) => x.ai === ten);
-  return m ? { vi: m.vi, en: m.cach, doi: m.tu === thuTu && !!m.su_kien } : null;
+  const ds = dangTung(kg, thuTu, ten, luc); if (!ds.length) return null;
+  return { vi: ds.map((x) => x.vi).join(' · '), en: ds.map((x) => x.en).join('; '), doi: ds.some((x) => x.doi) };
+}
+/** CHỖ ĐỨNG là một dòng sổ riêng (tên bắt đầu "Chỗ đứng", vd "Chỗ đứng Hạ": ngoài sảnh → TRONG cabin thang) cạnh dòng dáng — người có thể nhiều dòng sổ dáng.
+ *  Phim #353 #17: Hạ phải đứng trong thang mà khung vẽ đứng ngoài — không dòng sổ nào nói, nên prompt lẫn cổng không biết. */
+export const laChoDung = (mon: string) => /^chỗ đứng/i.test(mon);
+export function dangTung(kg: KhongGian | null | undefined, thuTu: number, ten: string, luc: LucKhung = 'dau'): { mon: string; vi: string; en: string; doi: boolean }[] {
+  if (!kg?.so_dang) return []; return Object.entries(trangThai(kg.so_dang, thuTu, luc)).filter(([, m]) => m.ai === ten).map(([mon, m]) => ({ mon, vi: m.vi, en: m.cach, doi: m.tu === thuTu && !!m.su_kien }));
 }
 /** Đồ người đó đang giữ / đeo ở khung đầu / cuối (sổ đồ vật). */
-export function doCam(kg: KhongGian | null | undefined, thuTu: number, ten: string, luc: LucKhung = 'dau'): { mon: string; vi: string; doi: boolean }[] {
-  if (!kg?.so_vat) return []; return Object.entries(trangThai(kg.so_vat, thuTu, luc)).filter(([, m]) => m.ai === ten).map(([mon, m]) => ({ mon, vi: m.vi, doi: m.tu === thuTu && !!m.su_kien }));
+export function doCam(kg: KhongGian | null | undefined, thuTu: number, ten: string, luc: LucKhung = 'dau'): { mon: string; vi: string; doi: boolean; tay: 'phai' | 'trai' | null }[] {
+  if (!kg?.so_vat) return []; return Object.entries(trangThai(kg.so_vat, thuTu, luc)).filter(([, m]) => m.ai === ten).map(([mon, m]) => ({ mon, vi: m.vi, doi: m.tu === thuTu && !!m.su_kien, tay: benTay(m.cach) }));
 }
 /** Đồ người đó TỪNG giữ / đeo mà giờ đã sang tay khác (sổ đồ vật) — phải VẮNG khỏi người họ (so-vat › cauVat câu vắng mặt, cùng luật). */
 export function doDaMat(kg: KhongGian | null | undefined, thuTu: number, ten: string, luc: LucKhung = 'dau'): string[] {
@@ -128,6 +134,10 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {
     const cua = ds.filter((c) => (c.phan_doan ?? '') === pd); const nguoi = new Set(cua.flatMap((c) => nguoiKhung(kg, c, 'dau') ?? []));
     if (nguoi.size >= 2 && !cua.some((c) => CO_TONG.has(c.ky_thuat?.co_canh ?? '') && (nguoiKhung(kg, c, 'dau') ?? []).length >= 2)) them(cua[0]!.id, `cảnh "${pd}" thiếu shot TỔNG THỂ: ${[...nguoi].join(', ')} chưa lần nào cùng khung toàn`);
+  }
+  // ĐỔI CHỖ ĐỨNG không ghi sổ (vào / ra thang, phòng, xe): shot có người đi vào / ra mà sổ không có mốc mới của người đó ở shot đó
+  for (const l of diChuyenKhongGhi(ds.map((c) => ({ thu_tu: c.thu_tu, chu: `${c.dan_dung?.mo ?? ''} ${c.dan_dung?.ket ?? ''}`, nguoi: [...new Set([...(nguoiKhung(kg, c, 'dau') ?? []), ...(nguoiKhung(kg, c, 'ket') ?? [])])] })), { ...(kg.so_dang ?? {}), ...(kg.so_vat ?? {}) })) {
+    const n = Number(/#(\d+)/.exec(l)?.[1]); const c = theoSo.get(n); if (c) them(c.id, `đứt mạch chỗ đứng: ${l}`);
   }
   // SỔ DÁNG / SỔ ĐỒ VẬT: đổi trạng thái thiếu sự kiện / sự kiện ngoài khung — gắn vào shot có mốc đó
   for (const [so, ten] of [[kg.so_dang, 'dáng'], [kg.so_vat, 'đồ vật']] as const) if (so) for (const l of loiSoVat(so, (n) => (theoSo.has(n) ? nguoiKhung(kg, theoSo.get(n)!, 'ket') : null))) {

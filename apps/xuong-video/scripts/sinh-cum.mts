@@ -104,4 +104,10 @@ for (const [i, c] of cacCum.entries()) {
   console.log(`${nhan}: ${url}\n  cắt đo ${cat.map((x) => x.toFixed(2)).join(' · ') || '—'} (${tc[i] ? 'cú máy liền — phát nối tiếp' : v.theoDo ? 'đủ' : 'thiếu/thừa — theo lịch prompt'}) · vào ${v.vao.join(' · ')}${v.ngan.length ? ` · ⚠ đoạn ngắn hơn giây phát: #${v.ngan.join(', #')}` : ''}`);
   ff(['-loglevel', 'error', '-y', '-i', f, '-vf', 'fps=3,scale=160:-1,tile=8x3', '-frames:v', '1', `${tmp}/to-${c[0]!.thu_tu}-${c.at(-1)!.thu_tu}.jpg`]);
 }
+// CỔNG NỐI CẮT trên clip cụm vừa ghi (cùng cổng sinh-shot --video): đồ vắng mặt · tay cầm · chỗ đứng · hướng · dáng · mặt thừa — trước 25/10/2026 sinh-cum
+// KHÔNG chạy cổng này nên cụm #5–#9 phim #353 để Hạ còn dây thẻ sau cú giật mà không máy nào hỏi. --hoi (Gemini) chỉ khi lượt sinh đã được duyệt.
+console.log('\n── CỔNG NỐI CẮT (soat-huong.mts) ──');
+try { const ra = execFileSync(process.execPath, [...process.execArgv, 'scripts/soat-huong.mts', String(tap), ...(process.env.DUYET_SINH_1_LAN ? ['--hoi'] : [])], { encoding: 'utf8', maxBuffer: 32 << 20, timeout: 1_200_000 });
+  console.log(ra.includes('ĐƯỜNG CẮT') ? ra.slice(ra.indexOf('ĐƯỜNG CẮT')) : ra.slice(-3000)); }
+catch (e) { console.log(`cổng nối cắt lỗi: ${String((e as { stdout?: string }).stdout ?? e).slice(-2000)}`); }
 process.exit(0);

@@ -9,7 +9,7 @@ import type { CauHoi } from './cau-hoi-khung';
 
 /** MÃ CÂU ĐƯỢC CHẶN (báo nhầm ≤ 5% trên bộ mẫu 45 khung phim #353, hieu-chinh-hoi.mts 25/10/2026: co 3% · mat 4% · ngoai 0% · vang 0% · vat 3%);
  *  ket 10% · mo 8% · dang 12% · lung 31% · chen 33% → chỉ cảnh báo. MỘT nguồn cho soat-huong.mts và hieu-chinh-hoi.mts. */
-export const MA_CHAN = /^(vang|co|ngoai|vat|mat):/;
+export const MA_CHAN = /^(vang|co|ngoai|vat|mat|tay|cho):/;   // tay: tay cầm đồ theo sổ (25/10/2026)
 export const laChan = (ma: string) => MA_CHAN.test(ma);
 /** Hỏi `lan` lượt (mặc định 2, độ phân giải cao): BỎ SÓT không ổn định (cùng khung lỗi lần bắt lần không — #13 dây thẻ, #3 thiếu Vivian) → mỗi câu lấy
  *  "không" khi ≥ 1 lượt trả không với câu CHẶN cần độ nhạy? Không — chặn cần ít báo nhầm: câu chặn = cả hai lượt "không"; cảnh báo = một lượt "không".

@@ -8,7 +8,7 @@ import type { LoaiLoiKhung } from './khung';
 import { bienTheTheoSo, huongVoiMay, PT_THAY } from './bo-set-3d';
 import { LA_NHAN_DANG } from './kiem-ai-3d';
 import { dauBoiCanh } from './prompt-khoi';
-import { coKhongGian, dang, dichNhin, doCam, doDaMat, nguoiKhung, nguoiNgoai, nhinCan, thayMat, viTri, type KhongGian } from './khong-gian';
+import { coKhongGian, dangTung, laChoDung, dichNhin, doCam, doDaMat, nguoiKhung, nguoiNgoai, nhinCan, thayMat, viTri, type KhongGian } from './khong-gian';
 import type { LucKhung } from './so-vat';
 
 export type CauHoi = { ma: string; hoi: string; loai: LoaiLoiKhung; phu_thuoc?: string };
@@ -59,10 +59,14 @@ export function cauHoiKhung(x: { canh: Pick<Canh, 'khung_xam' | 'ky_thuat' | 'da
     for (const ten of hoiNguoi) {
       const a = nhanVat.find((v) => v.ten === ten); const co = `co:${ten}`; nguoi.push(ten);
       out.push({ ma: co, loai: 'thieu', hoi: chen ? `Có tay / đồ trên tay của ${ten} trong khung?` : `Có ${ten} trong khung${a?.mo_ta ? ` (${ngan(a.mo_ta, 70)})` : ''}?` });
-      const d = dang(kg, thu, ten, luc); if (d && !chen) out.push({ ma: `dang:${ten}`, phu_thuoc: co, loai: 'trang_thai', hoi: `Dáng ${ten}: ${d.vi}?` });
+      // dáng (cảnh báo) và CHỖ ĐỨNG (chặn — trong / ngoài thang, phòng, xe sai là đứt truyện) mỗi dòng sổ một câu
+      if (!chen) for (const d of dangTung(kg, thu, ten, luc)) out.push(laChoDung(d.mon) ? { ma: `cho:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `Chỗ đứng ${ten}: ${d.vi}?` } : { ma: `dang:${ten}`, phu_thuoc: co, loai: 'trang_thai', hoi: `Dáng ${ten}: ${d.vi}?` });
       // đồ CẦM / mang rõ (thẻ, hộp) → mã vat (đã hiệu chỉnh, chặn); vết / nếp / trang phục trên người → mã mac (chi tiết nhỏ, Gemini báo nhầm ở khung tối / nghiêng — chỉ cảnh báo)
       for (const v of doCam(kg, thu, ten, luc)) out.push({ ma: `${/vết|nếp|tóc|áo|váy|trang phục|stain|wrinkle|hair/i.test(`${v.mon} ${v.vi}`) ? 'mac' : 'vat'}:${v.mon}`, phu_thuoc: co, loai: 'trang_thai', hoi: `${v.mon}: ${v.vi}?` });
-      for (const mon of doDaMat(kg, thu, ten, luc)) out.push({ ma: `vang:${mon}`, phu_thuoc: co, loai: 'thua', hoi: `KHÔNG thấy ${mon} trên người ${ten} (đã sang tay người khác)?` });
+      // TAY NÀO cầm (sổ ghi "right / left hand"): hỏi riêng, chặn — tay của CHÍNH người đó (phim #353 #9 → #10: Vivian tay phải → tay trái qua cú cắt)
+      for (const v of doCam(kg, thu, ten, luc)) if (v.tay) out.push({ ma: `tay:${v.mon}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} cầm ${v.mon} bằng tay ${v.tay === 'phai' ? 'PHẢI' : 'TRÁI'} của chính ${ten} (tay ${v.tay === 'phai' ? 'phải' : 'trái'} giải phẫu của người đó, không tính theo phía màn hình)?` });
+      // vắng mặt: gọi cả tên đưa model (vd "staff ID badge on its lanyard") — thẻ đi rồi mà dây còn trên cổ cũng là SAI (phim #353 #8)
+      for (const mon of doDaMat(kg, thu, ten, luc)) out.push({ ma: `vang:${mon}`, phu_thuoc: co, loai: 'thua', hoi: `KHÔNG thấy ${mon}${kg.ten_en?.[mon] ? ` (${kg.ten_en[mon]})` : ''} — kể cả dây đeo / phần còn lại của nó — trên người ${ten} (đã sang tay người khác)?` });
       if (chen) { out.push({ ma: `chen:${ten}`, phu_thuoc: co, loai: 'thua', hoi: `Cận chèn: KHÔNG thấy mặt ${ten} (chỉ tay / đồ)?` }); continue; }
       const tm = thayMat(kg, canh, ten, luc);
       if (tm === true) out.push({ ma: `mat:${ten}`, phu_thuoc: co, loai: 'vi_tri', hoi: `${ten} quay mặt về phía máy, thấy mặt?` });

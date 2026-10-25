@@ -240,9 +240,9 @@ for cid, a in thang.items():
     if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}%" + (f" · hôm nay {rh:+.0f}%" if rh is not None else "") + f" (chi ${g2['chi']:.2f})" + (" · vừa tăng lên $20 mà hôm nay âm" if am else f" < {ROI_GIAM_SOM}%") + " · giảm sớm (Support)"))
 # GIẢM TRONG NGÀY — ĐỐI XỨNG VỚI TĂNG TRONG NGÀY (anh 25/10/2026: "các camp âm phải có cơ chế giảm bậc giống với camp dương"): trước đây camp dương
 # được tăng từng bậc ngay trong ngày, còn camp âm chỉ giảm mỗi sáng (GB, số trọn hôm qua) hoặc GIẢM SỚM (chỉ camp ≥ $15) → camp $10 / $7 / $5 âm
-# cả ngày vẫn tiêu đủ. Gương của tăng trong ngày: ROI hôm nay (đã chốt chi) < 0% · đã chi ≥ 30% ngân sách · ROI hôm qua < 50% (camp vừa lãi đậm
+# cả ngày vẫn tiêu đủ. Gương của tăng trong ngày: ROI hôm nay (đã chốt chi) ≤ −5% · đã chi ≥ 30% ngân sách · ROI hôm qua < 50% (camp vừa lãi đậm
 # không bị cắt vì doanh thu hôm nay về trễ) → xuống MỘT bậc, mọi mức ngân sách > $1; hai lần đổi ngân sách cách ≥ 6 giờ (nhip_tang.chan_giam).
-ROI_HQ_GIU = 50
+ROI_HQ_GIU, ROI_NAY_GIAM = 50, -5   # hôm nay phải âm rõ (≤ −5%): −0% / −2% giữa ngày thường chỉ là doanh thu về trễ
 _da_ha = {cid for cid, _ in ha}
 if TANG_CHOT:   # cần số hôm nay đã chốt chi (giống tăng trong ngày)
     for cid, a in thang.items():
@@ -251,7 +251,7 @@ if TANG_CHOT:   # cần số hôm nay đã chốt chi (giống tăng trong ngày
         h = hom.get(cid, {"chi": 0.0, "thu": 0.0})
         if h.get("chi", 0) < max(0.3 * ns, 0.3): continue
         rh = roi(h)
-        if rh is None or rh >= 0: continue
+        if rh is None or rh > ROI_NAY_GIAM: continue
         _yq = hqua.get(cid); _ryq = roi(_yq) if _yq and _yq["chi"] >= 0.3 else None
         if _ryq is not None and _ryq >= ROI_HQ_GIU: continue
         dich = NT.xuong(ns, 1)

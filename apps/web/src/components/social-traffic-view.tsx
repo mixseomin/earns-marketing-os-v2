@@ -60,6 +60,14 @@ const GAC_LIVE = 'LIVE chưa nối ghi thật: tạo lô sẽ gửi việc sang 
 /** Mỗi cột hàng đợi chỉ hiện chừng này video mới nhất — Máy Dựng sinh liên tục, xem đủ trong studio. */
 const LO_HIEN = 12;
 
+/** Tab 🏙 Thành phố: lấy mô hình dựng sẵn từ /api/social/thanh-pho khi mở tab (số thô hệ sinh thái không còn nằm trong trang — 25/10/2026). */
+function ThanhPhoTai() {
+  const [ban, setBan] = useState<{ luc: string; mh: Parameters<typeof SocialThanhPho>[0]['mh'] } | null>(null), [loi, setLoi] = useState('');
+  useEffect(() => { let song = true; fetch('/api/social/thanh-pho', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))).then((x) => song && setBan(x)).catch((e: Error) => song && setLoi(e.message)); return () => { song = false; }; }, []);
+  if (loi) return <div style={{ padding: 16, color: 'var(--bad)' }}>Không tải được thành phố: {loi}</div>;
+  if (!ban) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang dựng thành phố…</div>;
+  return <SocialThanhPho mh={ban.mh} luc={ban.luc} />;
+}
 export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const [muc, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
@@ -238,7 +246,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       <Tabs<Muc> items={MUC.map((m) => ({ ...m, ...(m.key === 'trang' && online != null ? { badge: <span title={`${online} người đang trên site aff (90 giây qua)`} style={{ color: online ? 'var(--ok)' : undefined }}>{online ? `● ${online}` : 0}</span> } : {}), title: m.key === 'goc' ? `${d.goc.length} góc` : m.key === 'sx' ? `${d.lo.length} video chờ` : m.key === 'kenh' ? `${d.kenh.length} kênh` : m.key === 'lich' ? `${live.lich.length} nơi đăng` : m.key === 'trang' ? `${d.trang.length} trang` : undefined }))}
         value={muc as Muc} onChange={setMuc} dinh={false} />
 
-      {muc === 'pho' && (laLive ? <SocialThanhPho live={live} /> : <span style={nho}>Thành phố dựng từ số thật — bật LIVE để xem.</span>)}
+      {muc === 'pho' && (laLive ? <ThanhPhoTai /> : <span style={nho}>Thành phố dựng từ số thật — bật LIVE để xem.</span>)}
       {muc === 'tong' && laLive && <SucKhoeDang suc={live.suc} />}
       {muc === 'tong' && <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))' }}>
         <Panel title="🔻 Phễu" subtitle={laLive ? 'video cộng dồn + Pinterest 30 ngày · tỉ lệ so với bước trên' : '30 ngày · tỉ lệ so với bước trên'}>

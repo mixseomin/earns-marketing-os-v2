@@ -39,7 +39,8 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
-export interface StLuoi { hom: string; tinhLuc: string | null; o: StLuoiO[]; kho: StKho[] }
+export interface StLuoi { hom: string; tinhLuc: string | null; o: StLuoiO[]; kho: StKho[];
+  /** kênh của từng nơi đăng (máy|nền → tên tài khoản, link mở kênh thật — linkKenh, khoá nền tảng cho icon) */ kenh?: Record<string, { tk: string | null; url: string | null; nenKey: string | null }> }
 /** LỊCH ĐĂNG (anh 18/10/2026: "cần show lịch đăng trên tab social"): mỗi dòng = một nơi đăng của một máy studio (xv_may.dang[]) — giờ, máy Mac chạy,
  *  trần/ngày, hôm nay đã đăng chưa, lần gần nhất, video kế. Đọc thẳng cấu hình máy + sổ đăng (xv_may_video.da_dang) nên máy / nền mới tự hiện. */
 export interface StLich {
@@ -400,9 +401,12 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     ]);
     // kênh của từng nơi đăng (máy × nền → tên tài khoản) + ảnh thật của video trong lượt dự kiến (theo slug)
     const [noiTk, anhSlug] = await Promise.all([
-      d.execute(sql`SELECT m.ma, n->>'nen' AS nen, coalesce(n->>'tk', n->'br'->>'ten', n->>'ten') AS tk FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n`) as unknown as Promise<{ ma: string; nen: string; tk: string | null }[]>,
+      d.execute(sql`SELECT m.ma, n->>'nen' AS nen, coalesce(n->>'tk', n->'br'->>'ten', n->>'ten') AS tk, a.platform_key, a.handle,
+          coalesce(a.account_stats->>'page_id', n->'br'->>'graph_id') AS page_id, n->'br'->>'kenh_id' AS kenh_id
+        FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n LEFT JOIN platform_accounts a ON a.id::text = n->'br'->>'acct'`) as unknown as Promise<{ ma: string; nen: string; tk: string | null; platform_key: string | null; handle: string | null; page_id: string | null; kenh_id: string | null }[]>,
       d.execute(sql`SELECT m.ma, v.slug, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false)`) as unknown as Promise<{ ma: string; slug: string; anh: string | null }[]>,
     ]);
+    const kenh: NonNullable<StLuoi['kenh']> = Object.fromEntries(noiTk.map((x) => [`${x.ma}|${x.nen}`, { tk: x.tk, nenKey: x.platform_key, url: x.platform_key && x.handle ? linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id }).url : null }]));
     const tkCua = new Map(noiTk.map((x) => [`${x.ma}|${x.nen}`, x.tk])), anhCua = new Map(anhSlug.map((x) => [`${x.ma}|${x.slug}`, x.anh]));
     // kho + đã đăng theo máy × nền × kiểu nội dung (dang.nhom); cùng điều kiện "DUYỆT đúng bản" như máy đăng (may.ts › dsVideoDang) và nền ảnh cần ảnh tĩnh
     const kr = (await d.execute(sql`SELECT m.ma, m.ten, n->>'nen' AS nen, coalesce(v.dang->>'nhom', '—') AS nhom,
@@ -428,7 +432,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
     for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null });
-    return { hom, tinhLuc: dk[0]?.luc ?? null, o, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
+    return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }
 }
 async function docLich(loi: string[]): Promise<StLich[]> {

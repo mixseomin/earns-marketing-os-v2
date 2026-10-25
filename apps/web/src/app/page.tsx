@@ -133,7 +133,10 @@ async function EthopexTab() {
 
 // Social Traffic — góc thật đọc từ spy.on.tc (nhớ 5 phút) cho chế độ LIVE; DEMO nằm sẵn trong view.
 async function SocialTab() {
-  return <SocialTrafficView live={await getSocialLive()} />;
+  // tab Social gửi số thô xuống trình duyệt; phần HỆ SINH THÁI (~820 KB, chỉ city dùng) bỏ lại — tab 🏙 Thành phố tự lấy mô hình dựng sẵn qua /api/social/thanh-pho
+  // (anh 25/10/2026: trang Social › Lịch đăng 1,9 MB, "tối ưu cho load nhanh hơn")
+  const { heSinhThai: _bo, ...nhe } = await getSocialLive();
+  return <SocialTrafficView live={{ ...nhe, heSinhThai: undefined as never }} />;
 }
 
 // Live Orders của strategy-lab — cùng blotter với /p/strategy-lab/orders, bộ lọc giữ ở cookie slf2 như bên đó.

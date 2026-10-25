@@ -9,7 +9,7 @@
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server \
 //     ../../node_modules/.bin/tsx scripts/bo-set/khoa-3d-dien-ai.mts --ten=giat-the --phim=353 --may=toan,qua-vai,can-mat-ha,can-tay \
 //     --nguoi="Lâm Hạ,Vivian" --shot=1822 --giay=5 --dien="…hành động giữa hai khung…" --dau="<trạng thái đồ khung đầu>" --cuoi="<… khung cuối>" \
-//     [--chi-anh] [--lai=toan-cuoi,can-mat-ha-cuoi]   (--lai: chỉ làm lại các ảnh đó, ảnh khác lấy từ <thu>/anh.json của lượt trước)
+//     [--chi-anh] [--lai=toan-cuoi,can-mat-ha-cuoi] [--clip=can-tay]   (--lai: chỉ làm lại các ảnh đó, ảnh khác lấy từ <thu>/anh.json của lượt trước)
 // TRẠNG THÁI ĐỒ (--dau / --cuoi, tiếng Anh): ảnh mẫu người thật mang theo trạng thái đồ của khung nó (khung đầu: thẻ trên cổ Hạ) → khung cuối chép luôn,
 // thành hai cái thẻ (25/10/2026). Câu trạng thái đi vào MỌI ảnh của khung đó và đè lên ảnh mẫu.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -20,6 +20,7 @@ import { mapNhanVat, kemBienThe, type Row } from '../../src/lib/xuong-video/doc-
 import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai';
 import { guiFal, docFal } from '../../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../../src/lib/r2';
+import { GIU_LOGIC_3D } from '../../src/lib/xuong-video/giu-logic-3d';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const ten = gia('ten'), phim = Number(gia('phim')), dsMay = (gia('may') || '').split(',').filter(Boolean), dien = gia('dien') || '', giay = Number(gia('giay') || 5);
@@ -37,7 +38,7 @@ const btShot: number[] = shotMau ? ((((await db.execute(sql`SELECT bien_the FROM
 const mau = nv.filter((v) => !chiNguoi.length || chiNguoi.includes(v.ten)).map((v) => { const bt = (v.bien_the ?? []).find((b) => btShot.includes(b.id) && b.anh_url);
   return { ten: v.ten, mo_ta: bt?.mo_ta ? `${v.ten} wearing ${bt.mo_ta}` : v.mo_ta, anh: bt?.anh_url ?? v.anh_ref[0] ?? '' }; }).filter((x) => x.anh);
 const len = async (f: string, k: string): Promise<string> => { const u = await uploadToR2(`xuong-video/thu/${ten}-${k}-${randomUUID()}${f.slice(f.lastIndexOf('.'))}`, readFileSync(f), f.endsWith('.png') ? 'image/png' : 'image/jpeg'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
-const giuLogic = 'Keep EXACTLY the camera angle, framing, every person\'s position, body pose, head direction, hand positions, what each hand holds and every object\'s position and state from image 1 — only the surfaces become real.';
+const giuLogic = GIU_LOGIC_3D;
 const nguoiCo = mau.map((x) => `${x.mo_ta.slice(0, 200)}`).join(' ');
 
 async function anhThat(f: string, k: string, mauAnh: string[], loiMau: string): Promise<string | null> {
@@ -70,7 +71,8 @@ if (chiAnh) { console.log(JSON.stringify(anh)); process.exit(0); }
 
 // 2. Vidu đầu + cuối: mô hình tự diễn đoạn giữa
 const ketQua: Record<string, string> = {};
-await Promise.all(dsMay.map(async (m) => {
+const chiClip = (gia('clip') || '').split(',').filter(Boolean);   // chỉ sinh lại clip các máy này (máy khác giữ clip cũ)
+await Promise.all(dsMay.filter((m) => !chiClip.length || chiClip.includes(m)).map(async (m) => {
   const a = anh[m]; if (!a?.dau || !a.cuoi) return;
   const g = await guiFal(VIDU, { prompt: `Photorealistic live-action vertical short drama. Locked-off static camera, no camera movement, no cuts. ${dien} At the end: ${trangThai.cuoi} Natural, realistic human acting and body weight; the start and end frames are exact.`.slice(0, 3000),
     image_url: a.dau, end_image_url: a.cuoi, duration: giay, resolution: '720p', movement_amplitude: 'auto' });

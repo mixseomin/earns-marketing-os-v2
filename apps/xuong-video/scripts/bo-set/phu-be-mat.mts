@@ -15,6 +15,7 @@ import { mapNhanVat, kemBienThe, type Row } from '../../src/lib/xuong-video/doc-
 import { sinhAnhMotCong } from '../../src/lib/xuong-video/cong-ai';
 import { guiFal, docFal } from '../../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../../src/lib/r2';
+import { GIU_LOGIC_3D } from '../../src/lib/xuong-video/giu-logic-3d';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const ten = gia('ten'), phim = Number(gia('phim')), dsMay = (gia('may') || '').split(',').filter(Boolean), dpg = gia('do-phan-giai') || '480p', them = gia('them') || '';
@@ -33,7 +34,7 @@ const btShot: number[] = shotMau ? ((((await db.execute(sql`SELECT bien_the FROM
 const mau = nv.filter((v) => (!chiNguoi.length || chiNguoi.includes(v.ten))).map((v) => { const bt = (v.bien_the ?? []).find((b) => btShot.includes(b.id) && b.anh_url);
   return { ten: v.ten, mo_ta: bt?.mo_ta ? `${v.ten} wearing ${bt.mo_ta}` : v.mo_ta, anh: bt?.anh_url ?? v.anh_ref[0] ?? '' }; }).filter((x) => x.anh);
 console.log('ảnh mẫu:', mau.map((x) => `${x.ten} ← ${x.anh.split('/').pop()}`).join(' · '));
-const giuLogic = 'Keep EXACTLY the camera angle, framing, every person\'s position, pose, gaze, hand positions, what each hand holds and every object\'s position and state — only the surfaces change.';
+const giuLogic = GIU_LOGIC_3D;
 const len = async (f: string, k: string): Promise<string> => { const u = await uploadToR2(`xuong-video/thu/${ten}-${k}-${randomUUID()}${f.slice(f.lastIndexOf('.'))}`, readFileSync(f), f.endsWith('.mp4') ? 'video/mp4' : f.endsWith('.png') ? 'image/png' : 'image/jpeg'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 
 const ketQua: Record<string, string> = {};

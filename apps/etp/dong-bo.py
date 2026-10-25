@@ -42,6 +42,11 @@ def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}
     nay = dt.datetime.now(dt.timezone.utc).date()
+    # ── LỊCH GIỜ (anh 25/10/2026): bật / tắt camp theo thể loại × khung giờ VN — chạy ĐẦU lượt cho đúng giờ (lượt đồng bộ dài vài phút); lỗi không chặn đồng bộ
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lich-gio.py")], capture_output=True, text=True, timeout=300)
+        print((r.stdout or "").strip()[-300:]); r.stderr.strip() and loi.append(f"lich_gio: {r.stderr.strip()[-200:]}")
+    except Exception as e: loi.append(f"lich_gio: {e}")
     # ── camp
     try:
         ds = api("/api/v1/campaigns?page_size=2000")["data"]; kq["so_camp"] = len(ds)

@@ -124,7 +124,11 @@ def main(a):
             # "anh (nút Telegram)" (Phòng Ethopex truyền khi anh bấm nút) hoặc "anh (chat)" khi anh lệnh đích danh camp đó trong chat. Claude / máy → từ chối.
             if not ((ai or "").strip().lower().startswith("anh") or "(nút telegram)" in (ai or "").lower()): raise ValueError("cấm tự tắt camp — phải có anh duyệt (nút Telegram / lệnh đích danh trong chat)")
             if not (luat or "").strip() or luat.startswith("("): raise ValueError("tắt camp phải ghi rõ luật nào (--luat)")
-            if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đã {truoc['tt']}")
+            if truoc["tt"] != "ACTIVE":
+                # camp đang tạm dừng vì LỊCH GIỜ (apps/etp/lich-gio.py): tắt = bỏ khỏi sổ lịch → máy không bật lại nữa (camp đã PAUSED sẵn)
+                if q(f"delete from etp.lich_tat where camp_id = {cid} returning camp_id"):
+                    kq.update(ok=True, sau=truoc, loi=None, lich="bỏ khỏi lịch giờ — không tự bật lại"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
+                raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
             lai = None if ep else dang_lai(cid)

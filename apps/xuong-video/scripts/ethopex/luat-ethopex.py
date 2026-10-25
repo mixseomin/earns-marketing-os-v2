@@ -264,6 +264,7 @@ phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đ
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).
 # Kho etp (đồng bộ 10 phút, giao = delivery_status của ad) cho biết camp nào đang DISAPPROVED mà không phải gọi chi tiết từng camp tắt.
 tc_kho = set(q("select camp_id from etp.camp where giao = 'DISAPPROVED' and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
+lich_tat = set(q("select camp_id from etp.lich_tat").split())   # camp tạm dừng vì LỊCH GIỜ (apps/etp/lich-gio.py) — không phải bị đóng, không báo
 try:
     for c in api("/api/v1/campaigns?page_size=500")["data"]:
         ds_camp.append(c)
@@ -277,6 +278,7 @@ try:
             continue
         if c.get("state") == "PAUSED" and str(c["id"]) in tc_kho:
             tu_choi.append((c["id"], f"#{c['id']}: {c['name'][:60]} · ad bị Meta từ chối (camp đã bị dừng) → máy thay creative sạch cùng phim")); continue
+        if c.get("state") == "PAUSED" and str(c["id"]) in lich_tat: continue   # tạm dừng theo lịch giờ, máy tự bật lại khi tới khung BẬT
         if c.get("state") == "PAUSED":   # camp đã bị đóng (rule Ethopex / tay) — anh 21/10/2026: "các camp chạm rule đóng cũng gửi lên telegram"
             # camp MỚI đang đồng bộ lên FB (sync_status checking_video / checking_ads…) Ethopex để PAUSED tạm — không phải bị đóng (21/10/2026 báo nhầm #66054/#66055)
             if (c.get("sync_status") or "done") not in ("done", "synced"): continue

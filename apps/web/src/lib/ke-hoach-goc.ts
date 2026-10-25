@@ -25,16 +25,20 @@ const hoCua = (nen: string) => { const g = nen.split(':')[0] ?? nen; return /^(f
 const cong = (n: string, d: number) => new Date(Date.parse(`${n}T00:00:00Z`) + d * 864e5).toISOString().slice(0, 10);
 export const thuHai = (n: string) => cong(n, -((new Date(`${n}T00:00:00Z`).getUTCDay() + 6) % 7));
 
-async function docGoc(sp: number[]): Promise<GocBai[]> {
+/** kết nối kho spy (DB spy trên box3) — đóng sau khi dùng */
+export async function moSpy() {
   let url = process.env.SPY_DATABASE_URL;
   if (!url) url = readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
   if (!url) throw new Error('không thấy kết nối kho spy');
-  const pg = (await import('postgres')).default(url, { max: 1, prepare: false, connect_timeout: 5 });
+  return (await import('postgres')).default(url, { max: 1, prepare: false, connect_timeout: 5 });
+}
+async function docGoc(sp: number[], tat: number[] = []): Promise<GocBai[]> {
+  const pg = await moSpy();
   try {
     const rows = await pg<{ id: number; sp_id: number; loai: string; ten: string; n: number; r: number }[]>`
       select id, sp_id, loai, ten, n, r from (select id, sp_id, loai, ten, coalesce(so_nhac, 0) n,
         row_number() over (partition by regexp_replace(loai, '^ai_', '') order by coalesce(so_nhac, 0) desc, id) r
-        from goc where sp_id = any(${sp}) and loai like 'ai\\_%' and ten is not null and ten <> 'Nhóm tạm thời' and coalesce(mo_ta, '') <> 'placeholder') x
+        from goc where sp_id = any(${sp}) and not (id = any(${tat})) and loai like 'ai\\_%' and ten is not null and ten <> 'Nhóm tạm thời' and coalesce(mo_ta, '') <> 'placeholder') x
       where r <= 4 order by r, n desc`;
     // xen loại: hạng 1 của mọi loại, rồi hạng 2… — trong mỗi hạng loại mạnh hơn trước
     return rows.map((x) => ({ sp: Number(x.sp_id), id: Number(x.id), loai: x.loai, ten: x.ten }));
@@ -51,7 +55,8 @@ export async function sinhTuan(tuan: string): Promise<number> {
   const so = Math.round(Date.parse(`${tuan}T00:00:00Z`) / (7 * 864e5));   // số thứ tự tuần → dịch góc mỗi tuần
   let them = 0;
   for (const m of may) {
-    const goc = await docGoc(m.goc_sp); if (!goc.length) continue;
+    const tat = ((await d.execute(sql`SELECT goc_id FROM goc_tat WHERE may = ${m.ma}`)) as unknown as { goc_id: number }[]).map((x) => Number(x.goc_id));
+    const goc = await docGoc(m.goc_sp, tat); if (!goc.length) continue;
     const ho = [...new Set(m.nen.map(hoCua))].filter((h) => XOAY[h]).sort(), coLink = new Set(m.nen.filter((n) => /_link$/.test(n)).map(hoCua));
     for (const [hi, h] of ho.entries()) for (let i = 0; i < 7; i++) {
       let f = XOAY[h]![(i + hi) % 7]!; if (f.ten === 'Bài link' && !coLink.has(h)) f = XOAY[h]![0]!;

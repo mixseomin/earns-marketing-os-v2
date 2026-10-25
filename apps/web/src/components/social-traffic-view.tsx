@@ -14,6 +14,7 @@ import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive, StLich } from '@/lib/social-traffic';
 import { BangNoiDung, BangSoBai, LichLuoi, LichThangTuan } from './social-lich-luoi';
+import { GocTaiSan } from './social-goc-tai-san';
 import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 import { SocialThanhPho } from './social-thanh-pho';
@@ -72,6 +73,8 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const [muc, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
+  // Góc: mặc định xem theo tài sản (anh 25/10/2026: quản lý danh sách góc của từng social asset); kho góc spy toàn bộ là chế độ thứ hai
+  const [gocXem, setGocXem] = useState<string>('taisan');
   // Bảng Kênh: lọc nền tảng / góc (nhóm) + gộp theo một trong hai (card #1414). URL: ?skn nền · ?skg góc · ?skb gộp.
   const [skn, setSkn] = useShallowParam('skn', '');   // nền đang lọc, CHỌN NHIỀU nối bằng ',' ('' = mọi nền)
   // (eaf4df89 không lên máy chủ: run của nó bị huỷ vì lượt đẩy sau, run kế chỉ so event.before nên bỏ build web — 18/10/2026)
@@ -273,7 +276,9 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
         </Panel>
       </div>}
 
-      {muc === 'goc' && <>
+      {muc === 'goc' && <div style={{ display: 'flex', margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'taisan', label: '🗂 Theo tài sản', title: 'góc của từng tài sản social: nhóm góc spy, đã đăng, kế hoạch tuần, bật / tắt góc' }, { value: 'kho', label: '🎯 Kho góc spy' }]} value={gocXem} onChange={setGocXem} /></div>}
+      {muc === 'goc' && gocXem === 'taisan' && <GocTaiSan />}
+      {muc === 'goc' && gocXem === 'kho' && <>
         <Segmented<string> options={[{ value: 'all', label: 'Tất cả' }, { value: 'chua', label: '○ Chưa làm' }, { value: 'dang', label: '🧪 Đang thử' }, { value: 'thang', label: '💰 Ra tiền' }, { value: 'chet', label: '⏹ Dừng' }, { value: 'bn', label: '✨ Bất ngờ' }, { value: 'len', label: '📈 Đang lên' }]}
           value={locGoc} onChange={setLocGoc} hrefFor={(v) => `?tab=social&sts=goc&stg=${v}`} />
         {gocLoc.length ? <DataTable rows={gocLoc} columns={cotGoc} getRowKey={(g) => String(g.id)} persistKey="st_goc" searchText={(g) => `${g.ten} ${g.nhom} ${g.loai}`} searchPlaceholder="Tìm góc / nhóm…" minWidth={820} />

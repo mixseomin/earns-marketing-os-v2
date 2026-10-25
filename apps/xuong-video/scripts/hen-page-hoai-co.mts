@@ -8,9 +8,9 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../src/lib/r2';
 // @ts-expect-error mô-đun JS của cty
-import { doBaiDang } from '../../cty/worker/cham-dang.mjs';
+import { doBaiDang, kiemGoc } from '../../cty/worker/cham-dang.mjs';
 
-type Bai = { id: string; acct: number; page_id: string; ten: string; ngay: string; gio: string; loai: string; format: string; anh: string[]; video: string | null; link: string | null; slug?: string; chu: string; nguon_anh: string[] };
+type Bai = { id: string; acct: number; page_id: string; ten: string; ngay: string; gio: string; loai: string; format: string; anh: string[]; video: string | null; link: string | null; slug?: string; chu: string; nguon_anh: string[]; goc?: { sp: number; id: number; loai: string; ten: string }; goc_sp?: number[] };
 const [tepKh, thuMuc] = process.argv.slice(2).filter((x) => !x.startsWith('--')), THU = process.argv.includes('--thu');
 const G = 'https://graph.facebook.com/v23.0', SO = process.env.FB_PAGES_FILE || '/root/.secrets/fb-pages.json';
 const ds = JSON.parse(readFileSync(tepKh!, 'utf8')) as Bai[], so = JSON.parse(readFileSync(SO, 'utf8')) as Record<string, { ten: string; token: string }>;
@@ -38,8 +38,10 @@ for (const b of ds) {
   const ts = Math.floor(Date.parse(`${b.ngay}T${b.gio}:00+07:00`) / 1000), dong = b.chu.split('\n')[0]!;
   // ảnh nguồn để chấm: ảnh thật tải về (Pexels / Wikimedia), bài cắt từ video thì ảnh nền Pexels của video đó
   const nguon = b.nguon_anh.length ? b.nguon_anh : [b.slug ? nenCua.get(b.slug) ?? null : null];
-  const cham = doBaiDang({ nen_url: nguon[0], nen_them: nguon.slice(1), video_url: b.video, anh: b.anh, xuat_luc: new Date().toISOString(),
-    dang: { title: dong, description: b.chu, link: b.link, loai: b.link ? 'link' : 'thuong' } }, b.ten);
+  // góc (nguồn idea, luật 25/10/2026): bài kế hoạch mới phải mang góc spy hợp lệ thuộc nhóm của cụm Page (b.goc_sp)
+  const [gocLoi] = await kiemGoc([{ goc: b.goc, goc_sp: b.goc_sp }]);
+  const cham = doBaiDang({ nen_url: nguon[0], nen_them: nguon.slice(1), video_url: b.video, anh: b.anh, xuat_luc: new Date().toISOString(), can_goc: true, goc_loi: gocLoi,
+    dang: { title: dong, description: b.chu, link: b.link, loai: b.link ? 'link' : 'thuong', goc: b.goc } }, b.ten);
   console.log(`${cham.ket === 'DUYET' ? '✓' : '✗'} ${b.id} ${b.ten} ${b.ngay} ${b.gio} · ${b.format} · điểm ${cham.diem}${cham.chan_cung.length ? ` · chặn: ${cham.chan_cung.join('; ')}` : ''}${cham.canh_bao.length ? ` · nhắc: ${cham.canh_bao.join('; ')}` : ''}`);
   if (THU || cham.ket !== 'DUYET') continue;
   if (ts * 1000 < Date.now() + 15 * 60_000) { console.log(`  bỏ: giờ hẹn đã qua / quá sát`); continue; }
@@ -63,8 +65,8 @@ for (const b of ds) {
       graphId = postId = String((await goi(`${G}/${b.page_id}/feed`, { method: 'POST', body: f })).id);
     }
     if (!url) try { url = String((await goi(`${G}/${graphId}?fields=permalink_url&access_token=${t}`)).permalink_url ?? '') || null; } catch { url = null; }
-    await d.execute(sql`INSERT INTO bai_hen (id, ke_hoach, acct, page_id, ten, hen_luc, nhom, format, chu, anh, video, link, cham, graph_id, url, post_id)
-      VALUES (${b.id}, 'page-hoai-co', ${b.acct}, ${b.page_id}, ${b.ten}, to_timestamp(${ts}), ${b.loai}, ${b.format}, ${b.chu}, ${sql.raw(`ARRAY[${anhR2.map((x) => `'${x.replace(/'/g, "''")}'`).join(',')}]::text[]`)}, ${b.video}, ${b.link}, ${JSON.stringify(cham)}::jsonb, ${graphId}, ${url}, ${postId})
+    await d.execute(sql`INSERT INTO bai_hen (id, ke_hoach, acct, page_id, ten, hen_luc, nhom, format, chu, anh, video, link, cham, graph_id, url, post_id, goc)
+      VALUES (${b.id}, 'page-hoai-co', ${b.acct}, ${b.page_id}, ${b.ten}, to_timestamp(${ts}), ${b.loai}, ${b.format}, ${b.chu}, ${sql.raw(`ARRAY[${anhR2.map((x) => `'${x.replace(/'/g, "''")}'`).join(',')}]::text[]`)}, ${b.video}, ${b.link}, ${JSON.stringify(cham)}::jsonb, ${graphId}, ${url}, ${postId}, ${b.goc ? JSON.stringify(b.goc) : null}::jsonb)
       ON CONFLICT (id) DO UPDATE SET graph_id = excluded.graph_id, url = excluded.url, post_id = excluded.post_id, anh = excluded.anh, cham = excluded.cham, loi = NULL`);
     console.log(`  → hẹn ${graphId} ${url ?? ''}`);
   } catch (e) {

@@ -1,6 +1,7 @@
 'use client';
 // LƯỚI LỊCH ĐĂNG (anh 18/10/2026: "phần lịch phải show thêm kiểu lịch thật"): cột = ngày (3 ngày qua → 6 ngày tới), hàng = giờ (GMT+7),
 // mỗi ô = các bài trên các kênh. ✓ đặc = đã đăng (bấm mở bài) · viền nét đứt = máy SẼ đăng (dang-may tính bằng luật nhịp an toàn — xv_lich_du_kien).
+import { loaiGoc, linkGoc, type GocBai } from '@/lib/goc-spy';
 import { useState } from 'react';
 import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -158,7 +159,7 @@ type KenhBang = { k: string; khoa: string; tk: string; url: string | null; may: 
 // trái = nền tảng → kênh (gom theo TÀI KHOẢN: một Page có Reel + album + bài link là một mục), phải = bài của kênh đang chọn, chia theo ngày
 export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   // DỊCH NGÀY (anh 25/10/2026 "cho phép dịch chuyển ngày để xem các bài trước đó"): mỗi bước 7 ngày, trong khoảng sổ có (6 tuần qua → 6 tuần tới)
-  const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null);
+  const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null), [locGoc, setLocGoc] = useState<string | null>(null);
   // HAI CÁCH XEM (anh 25/10/2026: "phần bài vẫn phải show kiểu lịch… nếu cột thì phải là dạng timeline, nhưng chỉ là 1 option"):
   // lịch = lưới T2→CN hai tuần, dòng thời gian = một tuần, mỗi ngày một cột, bài đặt theo giờ đăng
   const [xem, setXem] = useState<'lich' | 'gio'>('lich'), [chiTiet, setChiTiet] = useState(false);
@@ -176,7 +177,8 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   const ngayVn = (n: string) => `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`;
   const nut = { border: '1px solid var(--border)', background: 'var(--bg-1)', color: 'inherit', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' } as const;
   if (!kenh.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 0' }}>Chưa có bài nào trong sổ đăng.</div>;
-  const baiKy = c ? trong(c) : [], bai = loc ? baiKy.filter((x) => FMT_NEN(x.nen) === loc) : baiKy, coXem = c ? c.bai.some((x) => x.xem != null) : false;
+  const nhanGoc = (x: StLuoiO) => (x.goc ? loaiGoc(x.goc.loai)[0] : 'chưa có góc');
+  const baiKy = c ? trong(c) : [], bai = baiKy.filter((x) => (!loc || FMT_NEN(x.nen) === loc) && (!locGoc || nhanGoc(x) === locGoc)), coXem = c ? c.bai.some((x) => x.xem != null) : false;
   const dem = (f: (x: StLuoiO) => string) => [...baiKy.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, 250px) minmax(0, 1fr)', gap: 14, margin: '4px 0 14px', alignItems: 'start' }}>
@@ -190,7 +192,7 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
               <span style={{ flex: 1, textAlign: 'left' }}>{TEN_NEN[khoa] ?? khoa}</span>
             </button>
             {!dong[khoa] && ds.sort((a, b) => a.tk.localeCompare(b.tk)).map((x) => { const n = trong(x).length, sel = c?.k === x.k, coSo = x.bai.some((b) => b.xem != null);
-              return <button key={x.k} type="button" onClick={() => { setChon(x.k); setLoc(null); }} aria-current={sel ? 'true' : undefined} title={`${x.may} · ${n} bài trong khoảng ngày đang xem${coSo ? ' · có lượt xem' : ''}`}
+              return <button key={x.k} type="button" onClick={() => { setChon(x.k); setLoc(null); setLocGoc(null); }} aria-current={sel ? 'true' : undefined} title={`${x.may} · ${n} bài trong khoảng ngày đang xem${coSo ? ' · có lượt xem' : ''}`}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px 6px 36px', border: 0, borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'inherit', opacity: n ? 1 : .5,
                   background: sel ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'transparent', fontWeight: sel ? 700 : 400 }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.tk}</span>
@@ -224,6 +226,13 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
             {IC_FMT[k] ?? '•'} {k} {n}{loc === k ? ' ✕' : ''}</button>)}
           {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} title={`${n} bài`} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12, color: 'var(--fg-2)' }}>{k}</span>)}
         </div> : null}
+        {/* GÓC: dải lọc theo loại góc (màu như spy), bấm để lọc — đếm cả bài chưa có góc để thấy độ phủ */}
+        {baiKy.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Góc</span>
+          {dem(nhanGoc).map(([k, n]) => { const mau = k === 'chưa có góc' ? '#64748b' : (baiKy.find((x) => nhanGoc(x) === k)?.goc ? loaiGoc(baiKy.find((x) => nhanGoc(x) === k)!.goc!.loai)[1] : '#64748b'), on = !locGoc || locGoc === k;
+            return <button key={k} type="button" aria-pressed={locGoc === k} onClick={() => setLocGoc((l) => (l === k ? null : k))} title={`${n} bài · bấm để ${locGoc === k ? 'bỏ lọc' : 'chỉ xem loại góc này'}`}
+              style={{ border: `1px solid ${mau}`, background: 'transparent', color: on ? mau : 'var(--fg-3)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderStyle: k === 'chưa có góc' ? 'dashed' : 'solid' }}>{k}{locGoc === k ? ' ✕' : ''}</button>; })}
+        </div> : null}
         {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài trong khoảng ngày này — bấm ◀ ▶ để xem tuần khác.</div>
           : xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} gon={!chiTiet} />
           : <DongThoiGian ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />}
@@ -242,12 +251,12 @@ export function BangSoBai({ luoi }: { luoi: StLuoi }) {
   const [soNgay, setSoNgay] = useState(7);
   const dau = cong(luoi.hom, -(soNgay - 1));
   const bai = luoi.o.filter((x) => x.loai === 'da' && x.ngay >= dau && x.ngay <= luoi.hom);
-  const hang = new Map<string, { ten: string; o: Map<string, Map<string, number>>; tong: number }>();
+  const hang = new Map<string, { ten: string; o: Map<string, Map<string, number>>; tong: number; goc: number }>();
   for (const x of bai) {
     const cu = x.nen.includes(':') || x.may === 'page-hoai-co', k = cu ? 'page-cu' : x.may;
     const ten = cu ? 'Page cũ (kế hoạch Page)' : (luoi.kenh?.[`${x.may}|facebook`]?.tk ?? x.mayTen.split(' · ')[0] ?? x.may).replace(/^Page /, '');
-    const h = hang.get(k) ?? { ten, o: new Map(), tong: 0 }, nen = khoaNen(x.nen), f = NGAN_FMT[FMT_NEN(x.nen)] ?? FMT_NEN(x.nen);
-    const o = h.o.get(nen) ?? new Map<string, number>(); o.set(f, (o.get(f) ?? 0) + 1); h.o.set(nen, o); h.tong++; hang.set(k, h);
+    const h = hang.get(k) ?? { ten, o: new Map(), tong: 0, goc: 0 }, nen = khoaNen(x.nen), f = NGAN_FMT[FMT_NEN(x.nen)] ?? FMT_NEN(x.nen);
+    const o = h.o.get(nen) ?? new Map<string, number>(); o.set(f, (o.get(f) ?? 0) + 1); h.o.set(nen, o); h.tong++; if (x.goc) h.goc++; hang.set(k, h);
   }
   const ds = [...hang.values()].sort((a, b) => b.tong - a.tong), cot = HO_NEN.filter(([k]) => ds.some((h) => h.o.has(k)));
   const o = (m?: Map<string, number>) => (m ? [...m].sort((a, b) => b[1] - a[1]).map(([f, n]) => `${n} ${f}`).join(' + ') : '—');
@@ -265,12 +274,14 @@ export function BangSoBai({ luoi }: { luoi: StLuoi }) {
           <thead><tr>
             <th style={{ ...td, textAlign: 'left', color: 'var(--fg-2)' }}>Thương hiệu</th>
             {cot.map(([k, t]) => <th key={k} style={{ ...td, textAlign: 'left', color: 'var(--fg-2)', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><SiteFavicon platformKey={k} size={16} title={t} />{t}</span></th>)}
+            <th style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }} title="số bài làm từ một góc spy / tổng bài">Có góc</th>
             <th style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>Tổng</th>
           </tr></thead>
           <tbody>
             {ds.map((h) => <tr key={h.ten}>
               <td style={{ ...td, fontWeight: 600 }}>{h.ten}</td>
               {cot.map(([k]) => <td key={k} style={{ ...td, color: h.o.has(k) ? undefined : 'var(--fg-3)' }}>{o(h.o.get(k))}</td>)}
+              <td style={{ ...td, textAlign: 'right', color: h.goc ? undefined : 'var(--fg-3)' }}>{h.goc}/{h.tong}</td>
               <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{h.tong}</td>
             </tr>)}
           </tbody>
@@ -311,10 +322,21 @@ function DongThoiGian({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; 
       </div>)}
     </div>);
 }
+/** CHIP GÓC (nguồn idea, anh 25/10/2026: "show rõ ràng các góc cụ thể"): màu + nhãn loại như spy.on.tc, tên góc; bấm mở nhóm góc trên spy.
+ *  Bài chưa có góc = chip xám "chưa có góc" (bài cũ trước luật — không gắn ngược). */
+function ChipGoc({ g, gon }: { g?: GocBai | null; gon?: boolean }) {
+  if (!g) return <span title="bài làm trước luật góc (26/10/2026) — không gắn ngược" style={{ fontSize: 10, color: 'var(--fg-3)', border: '1px dashed var(--border)', borderRadius: 999, padding: '0 6px', whiteSpace: 'nowrap', justifySelf: 'start' }}>chưa có góc</span>;
+  const [nhan, mau] = loaiGoc(g.loai);
+  return <span role="link" tabIndex={0} title={`Góc ${nhan}: ${g.ten} · mở nhóm góc trên spy`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(wrapExternalUrl(linkGoc(g)), '_blank', 'noopener'); }}
+    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); window.open(wrapExternalUrl(linkGoc(g)), '_blank', 'noopener'); } }}
+    style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, fontSize: 11, cursor: 'pointer', color: mau, lineHeight: 1.3 }}>
+    <i style={{ width: 7, height: 7, borderRadius: '50%', background: mau, flex: 'none' }} /><b style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{nhan}</b>
+    {gon ? null : <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.ten}</span>}</span>;
+}
 /** thẻ CAO CỐ ĐỊNH 56px cho dòng thời gian (đặt tuyệt đối theo giờ, nên chiều cao phải biết trước): ảnh vuông trái · màu format ở viền · giờ + chấm trạng thái · 1 dòng chữ */
 function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) {
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
-  const tt = `${x.title}\n${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && so && x.bam != null ? ` · ↪ ${x.bam}` : ''}${da && x.thich != null ? ` · ♥ ${x.thich}` : ''}${da && x.binhLuan != null ? ` · 💬 ${x.binhLuan}` : ''}`;
+  const tt = `${x.title}\n${x.goc ? `góc ${loaiGoc(x.goc.loai)[0]}: ${x.goc.ten}\n` : 'chưa có góc\n'}${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && so && x.bam != null ? ` · ↪ ${x.bam}` : ''}${da && x.thich != null ? ` · ♥ ${x.thich}` : ''}${da && x.binhLuan != null ? ` · 💬 ${x.binhLuan}` : ''}`;
   const the = (
     <div title={tt} style={{ height: 56, display: 'flex', gap: 5, border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 7, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da ? 1 : .45 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: 44, height: '100%', objectFit: 'cover', objectPosition: 'top', flex: 'none', background: '#111' }} /> : null}
@@ -335,7 +357,7 @@ function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam'
 function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean | 'bam'; gon?: boolean; dong?: boolean }) {
   if (dong) return <OBaiDong x={x} hom={hom} so={so} />;
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
-  const tt = `${gon ? `${x.title}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
+  const tt = `${gon ? `${x.title}\n` : ''}${x.goc ? `góc ${loaiGoc(x.goc.loai)[0]}: ${x.goc.ten}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
   const the = (
     <div title={tt} style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da ? 1 : .45 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: gon ? '16 / 9' : '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
@@ -349,6 +371,7 @@ function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean 
           </span>
         </span>
         <span style={{ fontSize: gon ? 11 : 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: gon ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <ChipGoc g={x.goc} gon={gon} />
         {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', flexWrap: 'wrap', gap: '2px 10px', color: 'var(--fg-2)' }}>
           {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}{x.thich != null ? <span title="lượt thích">♥ {x.thich}</span> : null}{x.binhLuan != null ? <span title="bình luận">💬 {x.binhLuan}</span> : null}<span title="lượt vào site từ bài (6 tuần)">↪ {x.bam == null ? '—' : x.bam}</span></span> : null}
       </div>

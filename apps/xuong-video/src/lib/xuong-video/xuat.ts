@@ -7,6 +7,7 @@
 //   - chuẩn -14 LUFS, H.264 30fps, 1080×1920 (9:16) hoặc 1920×1080.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import { lookShot } from './look';
+import { locKhungLai } from './diem-nhin';   // khung dựng lại theo điểm nhìn qua cú cắt (eye trace, scripts/diem-nhin.mts)
 import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
@@ -348,7 +349,7 @@ export function keHoachXuat(o: {
     const gian = laVideo && !toc && !dungClip && dem > 0.01 && conLai > 0.3 ? Math.min(GIAN_TOI_DA, (conLai + dem) / conLai) : 1;
     const demCon = laVideo ? Math.max(0, dem - conLai * (gian - 1)) : 0;
     const cham = gian > 1.25 || !!toc?.doan.some((d) => d.toc < 0.8);
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${cham ? noiSuy : ''}${khung}${mauCanh.get(c.id) ? `,eq=brightness=${so(mauCanh.get(c.id)!)}` : ''}${lookShot(o.look, c.ky_thuat?.mau) ? `,${lookShot(o.look, c.ky_thuat?.mau)}` : ''}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${cham ? noiSuy : ''}${locKhungLai(c.ky_thuat?.khung_lai)}${khung}${mauCanh.get(c.id) ? `,eq=brightness=${so(mauCanh.get(c.id)!)}` : ''}${lookShot(o.look, c.ky_thuat?.mau) ? `,${lookShot(o.look, c.ky_thuat?.mau)}` : ''}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanHien(c.chu_man, phat, gopKieu(o.qc?.kieu_chu, c.kieu_chu).tu)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }

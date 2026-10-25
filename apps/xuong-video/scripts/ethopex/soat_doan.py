@@ -39,9 +39,10 @@ def khoa_doan(x): return f"{int(x['content_id'])}:{int(round(float(x['tu'])))}-{
 def cam_cua(cid):
     """khoảng (tu, den) của phim không được cắt lại: đoạn soát cấm + đoạn Meta đã từ chối (etp.creative.tu_choi)"""
     s = khoa("ethopex_soat_doan"); ra = []
-    for k, v in s.items():
-        c, td = k.split(":"); t, d = td.split("-")
-        if c == str(cid) and v.get("ok") is False: ra.append((float(t), float(d)))
+    import re
+    for k, v in s.items():   # khoá đoạn "phim:từ-đến"; khoá "cr:<creative>" (creative không rõ mốc, lượt quét 25/10) không mang khoảng giây → bỏ qua
+        m = re.fullmatch(r"(\d+):(\d+)-(\d+)", k)
+        if m and m.group(1) == str(cid) and v.get("ok") is False: ra.append((float(m.group(2)), float(m.group(3))))
     for l in sql(f"select tu, den from etp.creative where content_id = {int(cid)} and tu_choi is not null and tu is not null").splitlines():
         t, d = l.split("|"); ra.append((float(t), float(d)))
     return ra

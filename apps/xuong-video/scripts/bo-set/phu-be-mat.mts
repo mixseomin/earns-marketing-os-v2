@@ -5,7 +5,7 @@
 //      lúc nào đồ đổi tay) giữ nguyên; chỉ bề mặt (da, tóc, vải, ánh sáng) là của AI. Muốn đổi gì thì ghi trong --them (không ghi thì không đổi).
 // Vào: /tmp/phu-<ten>/<may>.mp4 (clip 3D 16 khung/giây). Ra: R2 xuong-video/thu/… + in link từng máy. Tốn: ảnh ckey ~110₫ / máy + VACE $0,04/giây ở 480p.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server \
-//     ../../node_modules/.bin/tsx scripts/bo-set/phu-be-mat.mts --ten=giat-the --phim=353 --may=toan,can-tay,qua-vai,can-mat-ha --nguoi="Lâm Hạ,Vivian" [--do-phan-giai=480p] [--them="…"]
+//     ../../node_modules/.bin/tsx scripts/bo-set/phu-be-mat.mts --ten=giat-the --phim=353 --may=toan,can-tay,qua-vai,can-mat-ha --nguoi="Lâm Hạ,Vivian" --shot=1822 [--do-phan-giai=480p] [--them="…"]
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -26,7 +26,13 @@ const VACE = 'fal-ai/wan-vace-14b/depth';
 const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
 // --nguoi="A,B": chỉ người CÓ trong lần diễn này (cổng ảnh nhận tối đa 3 ảnh: khung 3D + 2 người) — mặc định mọi người của phim
 const chiNguoi = (gia('nguoi') || '').split(',').map((x) => x.trim()).filter(Boolean);
-const mau = nv.filter((v) => v.anh_ref[0] && (!chiNguoi.length || chiNguoi.includes(v.ten))).map((v) => ({ ten: v.ten, mo_ta: v.mo_ta, anh: v.anh_ref[0]! }));
+// TRANG PHỤC CỦA CẢNH (--shot=<id xv_canh>): ảnh biến thể người đó đang mặc ở shot thật của cảnh (Hạ sơ mi trắng dính cà phê, Vivian váy đỏ đô) — trước
+// 25/10/2026 lấy ảnh mẫu gốc (bộ vest) → khung đầu + VACE mặc vest navy cho cả hai. Không có biến thể ở shot đó mới dùng ảnh mẫu gốc.
+const shotMau = Number(gia('shot') || 0);
+const btShot: number[] = shotMau ? ((((await db.execute(sql`SELECT bien_the FROM xv_canh WHERE id = ${shotMau}`)) as unknown as Row[])[0]?.bien_the ?? []) as number[]) : [];
+const mau = nv.filter((v) => (!chiNguoi.length || chiNguoi.includes(v.ten))).map((v) => { const bt = (v.bien_the ?? []).find((b) => btShot.includes(b.id) && b.anh_url);
+  return { ten: v.ten, mo_ta: bt?.mo_ta ? `${v.ten} wearing ${bt.mo_ta}` : v.mo_ta, anh: bt?.anh_url ?? v.anh_ref[0] ?? '' }; }).filter((x) => x.anh);
+console.log('ảnh mẫu:', mau.map((x) => `${x.ten} ← ${x.anh.split('/').pop()}`).join(' · '));
 const giuLogic = 'Keep EXACTLY the camera angle, framing, every person\'s position, pose, gaze, hand positions, what each hand holds and every object\'s position and state — only the surfaces change.';
 const len = async (f: string, k: string): Promise<string> => { const u = await uploadToR2(`xuong-video/thu/${ten}-${k}-${randomUUID()}${f.slice(f.lastIndexOf('.'))}`, readFileSync(f), f.endsWith('.mp4') ? 'video/mp4' : f.endsWith('.png') ? 'image/png' : 'image/jpeg'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 

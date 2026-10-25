@@ -280,34 +280,42 @@ function TheXem({ t, noi }: { t: The; noi: Noi }) {
 const giayTu = (a: string | null, b?: string | null) => (a ? Math.max(0, Math.round(((b ? Date.parse(b) : Date.now()) - Date.parse(a)) / 1000)) : null);
 const doDai = (g: number | null) => (g == null ? '—' : g < 60 ? `${g}s` : `${Math.floor(g / 60)}p${String(g % 60).padStart(2, '0')}`);
 function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
+  // GỌN (anh 25/10/2026: "danh sách cf log cứ để dài mãi thế à"): chỉ dòng ĐANG CHẤM + 3 dòng vừa xong; đang chờ chỉ là con số;
+  // mỗi dòng một hàng = bước đang chạy — nhật ký đủ các bước ở thẻ nổi khi rê chuột (khuôn chung, trễ mở)
   const crs = useMemo(() => new Map(du.creatives.map((r) => [r.creative_id, r])), [du.creatives]);
-  const TT: Record<string, number> = { dang: 0, cho: 1, loi: 2, xong: 3 };
-  const ds = Object.entries(du.chamHang ?? {}).map(([id, h]) => ({ id: Number(id), h })).sort((a, b) => (TT[a.h.trang_thai] ?? 9) - (TT[b.h.trang_thai] ?? 9) || b.h.luc.localeCompare(a.h.luc));
-  if (!ds.length) return null;
-  const dang = ds.filter((x) => x.h.trang_thai === 'dang').length, cho = ds.filter((x) => x.h.trang_thai === 'cho').length;
+  const noi = useNoi<{ id: number }>();
+  const tat = Object.entries(du.chamHang ?? {}).map(([id, h]) => ({ id: Number(id), h }));
+  if (!tat.length) return null;
+  const dang = tat.filter((x) => x.h.trang_thai === 'dang');
+  const cho = tat.filter((x) => x.h.trang_thai === 'cho').length;
+  const vua = tat.filter((x) => x.h.trang_thai === 'xong' || x.h.trang_thai === 'loi').sort((a, b) => (b.h.xong ?? b.h.luc).localeCompare(a.h.xong ?? a.h.luc));
+  const hien = [...dang, ...vua.slice(0, 3)];
   const MAU: Record<string, string> = { dang: '#9ecbff', cho: '#f59e0b', xong: '#4ade80', loi: '#f87171' };
   const CHU: Record<string, string> = { dang: 'đang chấm', cho: 'đang chờ', xong: 'xong', loi: 'lỗi' };
+  const mo = noi.v ? tat.find((x) => x.id === noi.v!.id) : undefined;
   return (
-    <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', margin: '4px 0 12px' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
-        {dang + cho ? <Den mau="#9ecbff" t="đang chấm" song /> : <Den mau="#4ade80" t="không còn việc" />} Chấm trực tiếp trên Cloudflare
-        <span style={{ fontWeight: 400, color: 'var(--fg-2)' }}>· {dang} đang chấm · {cho} đang chờ · xong 30 phút qua {ds.filter((x) => x.h.trang_thai === 'xong').length}{dang + cho ? ' · tự làm mới 5 giây' : ''}</span>
+    <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 10px', margin: '4px 0 12px', fontSize: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', marginBottom: hien.length ? 4 : 0 }}>
+        {dang.length + cho ? <Den mau="#9ecbff" t="đang chấm" song /> : <Den mau="#4ade80" t="không còn việc" />} Chấm trên Cloudflare
+        <span style={{ fontWeight: 400, color: 'var(--fg-2)' }}>· {dang.length} đang chấm · {cho} đang chờ · {vua.filter((x) => x.h.trang_thai === 'xong').length} xong 30 phút qua{vua.some((x) => x.h.trang_thai === 'loi') ? ` · ${vua.filter((x) => x.h.trang_thai === 'loi').length} lỗi` : ''}</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1.3fr) 90px 70px minmax(300px, 3fr) 120px', gap: '0 12px', fontSize: 12, alignItems: 'center' }}>
-        {['Creative', 'Trạng thái', 'Đã chạy', 'Các bước', 'Kết quả'].map((t) => <div key={t} style={{ color: 'var(--fg-3)', fontSize: 11, padding: '2px 0', borderBottom: '1px solid var(--line)' }}>{t}</div>)}
-        {ds.map(({ id, h }) => { const r = crs.get(id), c = du.cham[id], dau = h.nhat_ky[0]?.luc ?? h.luc;
-          return [
-            <div key={`${id}a`} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--line)' }}>{anh(id)}<span>{r?.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{id} · {h.nguon === 'nut' ? 'anh bấm' : 'creative mới'}</span></span></div>,
-            <div key={`${id}b`} style={{ color: MAU[h.trang_thai], borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', gap: 5 }}><Den mau={MAU[h.trang_thai] ?? '#888'} t={CHU[h.trang_thai] ?? h.trang_thai} song={h.trang_thai === 'dang'} />{CHU[h.trang_thai] ?? h.trang_thai}</div>,
-            <div key={`${id}c`} style={{ fontVariantNumeric: 'tabular-nums', borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }} title={`bắt đầu ${vn(h.bat_dau)}`}>{doDai(giayTu(h.bat_dau ?? (h.trang_thai === 'cho' ? h.luc : null), h.xong))}</div>,
-            <div key={`${id}d`} style={{ borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', flexWrap: 'wrap', gap: '2px 10px', alignItems: 'center', padding: '4px 0' }}>
-              {h.nhat_ky.map((k, i) => { const cuoi = i === h.nhat_ky.length - 1;
-                return <span key={i} title={vn(k.luc)} style={{ color: cuoi && h.trang_thai === 'dang' ? '#9ecbff' : cuoi && h.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)', fontWeight: cuoi ? 600 : 400 }}>
-                  {cuoi && h.trang_thai === 'dang' ? '▶' : '✓'} {k.b} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>+{doDai(giayTu(dau, k.luc))}</span></span>; })}
-            </div>,
-            <div key={`${id}e`} style={{ borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>{h.trang_thai === 'xong' && c ? <span><b style={{ color: c.ket === 'cam' ? '#f87171' : c.ket === 'xem' ? '#f59e0b' : '#4ade80' }}>{c.ket === 'cam' ? 'Cấm' : c.ket === 'xem' ? 'Cần xem' : 'Sạch'}</b> · Meta {c.meta ?? '–'} · AFS {c.afs ?? '–'}</span> : h.trang_thai === 'loi' ? <span style={{ color: '#f87171' }} title={h.loi ?? ''}>{(h.loi ?? 'lỗi').slice(0, 40)}</span> : '—'}</div>,
-          ]; })}
-      </div>
+      {hien.map(({ id, h }) => { const r = crs.get(id), c = du.cham[id], cuoi = h.nhat_ky[h.nhat_ky.length - 1];
+        return (
+          <div key={id} onMouseEnter={(e) => noi.mo({ id }, e)} onMouseLeave={noi.dongTre}
+            style={{ display: 'grid', gridTemplateColumns: '28px minmax(160px, 1.2fr) 92px 56px minmax(200px, 3fr) 150px', gap: 10, alignItems: 'center', padding: '2px 0', borderTop: '1px solid var(--line)', cursor: 'zoom-in' }}>
+            <span style={{ transform: 'scale(.6)', transformOrigin: 'left center', display: 'inline-flex' }}>{anh(id)}</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r?.phim ?? '—'} <span style={{ color: 'var(--fg-3)' }}>#{id}</span></span>
+            <span style={{ color: MAU[h.trang_thai], display: 'inline-flex', alignItems: 'center', gap: 5 }}><Den mau={MAU[h.trang_thai] ?? '#888'} t={CHU[h.trang_thai] ?? ''} song={h.trang_thai === 'dang'} />{CHU[h.trang_thai]}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)' }}>{doDai(giayTu(h.bat_dau, h.xong))}</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: h.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>{h.trang_thai === 'dang' ? '▶ ' : ''}{h.trang_thai === 'loi' ? (h.loi ?? 'lỗi') : cuoi?.b ?? h.buoc ?? ''}</span>
+            <span>{h.trang_thai === 'xong' && c ? <><b style={{ color: c.ket === 'cam' ? '#f87171' : c.ket === 'xem' ? '#f59e0b' : '#4ade80' }}>{c.ket === 'cam' ? 'Cấm' : c.ket === 'xem' ? 'Cần xem' : 'Sạch'}</b> · Meta {c.meta ?? '–'} · AFS {c.afs ?? '–'}</> : ''}</span>
+          </div>); })}
+      {noi.v && mo ? (
+        <KhungNoi x={noi.v.x} y={noi.v.y} rong={420} cao={320} noi={noi} style={{ padding: 10, width: 420 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, paddingRight: 26 }}>{crs.get(mo.id)?.phim ?? '—'} #{mo.id} · {CHU[mo.h.trang_thai]}</div>
+          {mo.h.nhat_ky.map((k, i) => <div key={i} style={{ fontSize: 12, color: 'var(--fg-2)', display: 'flex', gap: 8 }}>
+            <span style={{ color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', width: 46 }}>+{doDai(giayTu(mo.h.nhat_ky[0]?.luc ?? null, k.luc))}</span>{k.b}</div>)}
+        </KhungNoi>) : null}
     </div>
   );
 }

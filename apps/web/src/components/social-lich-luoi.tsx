@@ -268,7 +268,7 @@ function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam'
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
   const tt = `${x.title}\n${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && so && x.bam != null ? ` · ↪ ${x.bam}` : ''}`;
   const the = (
-    <div title={tt} style={{ height: 56, display: 'flex', gap: 5, border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 7, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
+    <div title={tt} style={{ height: 56, display: 'flex', gap: 5, border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 7, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da ? 1 : .45 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: 44, height: '100%', objectFit: 'cover', objectPosition: 'top', flex: 'none', background: '#111' }} /> : null}
       <div style={{ minWidth: 0, flex: 1, padding: '4px 4px 4px 0', display: 'grid', alignContent: 'space-between' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', fontSize: 11 }}>
@@ -289,7 +289,7 @@ function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean 
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
   const tt = `${gon ? `${x.title}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
   const the = (
-    <div title={tt} style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
+    <div title={tt} style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da ? 1 : .45 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: gon ? '16 / 9' : '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
       <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 3 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>

@@ -13,7 +13,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive, StLich } from '@/lib/social-traffic';
-import { BangNoiDung, LichLuoi, LichThangTuan } from './social-lich-luoi';
+import { BangNoiDung, BangSoBai, LichLuoi, LichThangTuan } from './social-lich-luoi';
 import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 import { SocialThanhPho } from './social-thanh-pho';
@@ -340,9 +340,9 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
       {muc === 'lich' && (!laLive
         ? <span style={nho}>Lịch đăng là dữ liệu thật của máy studio — bật LIVE để xem.</span>
         : live.lich.length
-          ? <><div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'noidung', label: '🧩 Bảng nội dung', title: 'kênh × ngày, ảnh thật từng bài: kiểu bài, format, có link' }, { value: 'gio', label: '🕐 Lưới giờ', title: '10 ngày quanh hôm nay, hàng = giờ' }, { value: 'tuan', label: '📅 Tuần' }, { value: 'thang', label: '🗓 Tháng' }, { value: 'noi', label: '📋 Nơi đăng', title: 'Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng), thêm nền hoặc máy mới là tự hiện. Giờ GMT+7. Lượt chạy: máy đăng chung iMac 02:00 · 08:00 · 20:00 + chạy bù 21:00, mỗi lượt hỏi nhịp an toàn (trần theo tuổi kênh, cách ≥ 3 giờ); Front Porch có lượt riêng.' }]} value={kieuLich} onChange={setKieuLich} /></div>
+          ? <><div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'noidung', label: '🧩 Bảng nội dung', title: 'kênh × ngày, ảnh thật từng bài: kiểu bài, format, có link' }, { value: 'sobai', label: '📊 Số bài', title: 'số bài đã đăng theo thương hiệu × nền tảng × format, chọn khung 7 / 14 / 30 / 42 ngày' }, { value: 'gio', label: '🕐 Lưới giờ', title: '10 ngày quanh hôm nay, hàng = giờ' }, { value: 'tuan', label: '📅 Tuần' }, { value: 'thang', label: '🗓 Tháng' }, { value: 'noi', label: '📋 Nơi đăng', title: 'Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng), thêm nền hoặc máy mới là tự hiện. Giờ GMT+7. Lượt chạy: máy đăng chung iMac 02:00 · 08:00 · 20:00 + chạy bù 21:00, mỗi lượt hỏi nhịp an toàn (trần theo tuổi kênh, cách ≥ 3 giờ); Front Porch có lượt riêng.' }]} value={kieuLich} onChange={setKieuLich} /></div>
             {/* YDNI một màn: mỗi chế độ xem một bề mặt — bảng nơi đăng là chế độ riêng, không chồng dưới (25/10/2026) */}
-            {kieuLich === 'noidung' ? <BangNoiDung luoi={live.luoi} /> : kieuLich === 'gio' ? <LichLuoi luoi={live.luoi} /> : kieuLich === 'noi'
+            {kieuLich === 'noidung' ? <BangNoiDung luoi={live.luoi} /> : kieuLich === 'sobai' ? <BangSoBai luoi={live.luoi} /> : kieuLich === 'gio' ? <LichLuoi luoi={live.luoi} /> : kieuLich === 'noi'
               ? <DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
               : <LichThangTuan key={kieuLich} luoi={live.luoi} kieu={kieuLich === 'tuan' ? 'tuan' : 'thang'} />}</>
           : trong('Chưa có lịch đăng', 'Lịch hiện khi một máy studio (studio.on.tc › Máy) có nơi đăng.'))}

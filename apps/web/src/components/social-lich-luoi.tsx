@@ -233,6 +233,51 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
 }
 const tenNgay = (n: string, hom: string) => (n === hom ? 'Hôm nay' : `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`);
 const theoGio = (a: StLuoiO, b: StLuoiO) => a.gio.localeCompare(b.gio);
+/** SỐ BÀI ĐÃ ĐĂNG theo thương hiệu × nền tảng (anh 25/10/2026: "cần thêm cái bảng này trên mos2 tab social, chọn khung thời gian thì hiển thị data theo khung đó"):
+ *  hàng = máy (thương hiệu, tên theo kênh Facebook của máy) + một hàng Page cũ (nơi đăng facebook:<acct> và bài hẹn giờ kế hoạch Page), cột = nền tảng,
+ *  ô = số bài theo format ("7 Reel + 7 album"). Khung: N ngày tính tới hôm nay, sổ giữ 6 tuần nên tối đa 42 ngày. */
+const HO_NEN: [string, string][] = [['facebook', 'Facebook'], ['twitter', 'X'], ['youtube', 'YouTube'], ['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['dailymotion', 'Dailymotion'], ['pinterest', 'Pinterest']];
+const NGAN_FMT: Record<string, string> = { 'Reel FB': 'Reel', 'Album ảnh': 'ảnh', 'Bài link': 'link', 'Video X': 'video', Shorts: 'Shorts', TikTok: 'video', 'Reel IG': 'Reel', 'Video DM': 'video' };
+export function BangSoBai({ luoi }: { luoi: StLuoi }) {
+  const [soNgay, setSoNgay] = useState(7);
+  const dau = cong(luoi.hom, -(soNgay - 1));
+  const bai = luoi.o.filter((x) => x.loai === 'da' && x.ngay >= dau && x.ngay <= luoi.hom);
+  const hang = new Map<string, { ten: string; o: Map<string, Map<string, number>>; tong: number }>();
+  for (const x of bai) {
+    const cu = x.nen.includes(':') || x.may === 'page-hoai-co', k = cu ? 'page-cu' : x.may;
+    const ten = cu ? 'Page cũ (kế hoạch Page)' : (luoi.kenh?.[`${x.may}|facebook`]?.tk ?? x.mayTen.split(' · ')[0] ?? x.may).replace(/^Page /, '');
+    const h = hang.get(k) ?? { ten, o: new Map(), tong: 0 }, nen = khoaNen(x.nen), f = NGAN_FMT[FMT_NEN(x.nen)] ?? FMT_NEN(x.nen);
+    const o = h.o.get(nen) ?? new Map<string, number>(); o.set(f, (o.get(f) ?? 0) + 1); h.o.set(nen, o); h.tong++; hang.set(k, h);
+  }
+  const ds = [...hang.values()].sort((a, b) => b.tong - a.tong), cot = HO_NEN.filter(([k]) => ds.some((h) => h.o.has(k)));
+  const o = (m?: Map<string, number>) => (m ? [...m].sort((a, b) => b[1] - a[1]).map(([f, n]) => `${n} ${f}`).join(' + ') : '—');
+  const td = { padding: '8px 10px', borderBottom: '1px solid var(--border)', verticalAlign: 'top' as const, fontVariantNumeric: 'tabular-nums' as const };
+  return (
+    <div style={{ display: 'grid', gap: 10, margin: '4px 0 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12 }}>
+        {[7, 14, 30, 42].map((n) => <button key={n} type="button" aria-pressed={soNgay === n} onClick={() => setSoNgay(n)}
+          style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', color: 'inherit', background: soNgay === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg-1)', fontWeight: soNgay === n ? 700 : 400 }}>{n} ngày</button>)}
+        <span style={{ color: 'var(--fg-3)' }}>{dau.slice(8)}/{dau.slice(5, 7)} – {luoi.hom.slice(8)}/{luoi.hom.slice(5, 7)} · {bai.length} bài đã đăng</span>
+      </div>
+      {!ds.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài đã đăng trong khung này.</div> :
+      <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead><tr>
+            <th style={{ ...td, textAlign: 'left', color: 'var(--fg-2)' }}>Thương hiệu</th>
+            {cot.map(([k, t]) => <th key={k} style={{ ...td, textAlign: 'left', color: 'var(--fg-2)', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><SiteFavicon platformKey={k} size={16} title={t} />{t}</span></th>)}
+            <th style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>Tổng</th>
+          </tr></thead>
+          <tbody>
+            {ds.map((h) => <tr key={h.ten}>
+              <td style={{ ...td, fontWeight: 600 }}>{h.ten}</td>
+              {cot.map(([k]) => <td key={k} style={{ ...td, color: h.o.has(k) ? undefined : 'var(--fg-3)' }}>{o(h.o.get(k))}</td>)}
+              <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{h.tong}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>}
+    </div>);
+}
 /** LỊCH: lưới T2→CN, mỗi ô một ngày, thẻ bài gọn xếp theo giờ trong ô; ngày không bài để trống nhỏ (lưới lịch giữ nhịp tuần, không chèn chữ "không có bài") */
 function LichBai({ ngay, bai, hom, so, gon }: { ngay: string[]; bai: StLuoiO[]; hom: string; so: boolean | 'bam'; gon: boolean }) {
   return (

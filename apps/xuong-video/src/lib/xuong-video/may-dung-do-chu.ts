@@ -11,7 +11,7 @@ export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string
 export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, LO = 0.6, T_KET = T_LO + LO + 1.2, DAI = T_KET + 2.7;
 const W = 1080, H = 1920, DO = '#E5484D';
 /** Cỡ chữ ASS (\\fs) tính theo chiều cao dòng, cỡ CSS của bản cũ tính theo em → nhân hệ số này để chữ ra cùng cỡ (đo 16/10/2026 trên khung so). */
-import { alpha, bo, chu, mauAss, ms, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, mauAss, ms, nayVao, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 export { mauAss };
 
 const EM = 1.25;
@@ -33,23 +33,22 @@ export function luoi(de: DeMotDung) {
 
 export function assMotDung(de: DeMotDung): string {
   const M = de.mau, L = luoi(de), d: DongAss[] = [];
-  const nay = (tu: number, tuX: number, den = 0.5) => `\\fscx${tuX}\\fscy${tuX}\\t(${ms(tu)},${ms(tu + den)},0.5,\\fscx100\\fscy100)`;
   // nền chưa có ảnh: vết sáng giữa trên (dải radial lo ở ffmpeg) — có ảnh thì phủ một lớp màu bìa mỏng ở ffmpeg, ở đây không vẽ gì
   // khối tiêu đề
-  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,140)\\fnAtkinson Hyperlegible\\b1${fs(52)}\\1c${mauAss(M.truoc)}\\1a&H14&${nay(0, 135)}}Only ONE is spelled`]);
-  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,250)${fs(118)}\\fsp2\\1c${mauAss(M.nhan)}\\4c&H000000&\\4a&H90&\\shad7${nay(0, 135)}}${chu(de.dich)}`]);
-  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,350)\\fnAtkinson Hyperlegible\\b1${fs(44)}\\1c${mauAss(M.truoc)}${nay(0, 135)}}Find it in 7 seconds`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,140)\\fnAtkinson Hyperlegible\\b1${fs(52)}\\1c${mauAss(M.truoc)}\\1a&H14&${nayVao(135)}}Only ONE is spelled`]);
+  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,250)${fs(118)}\\fsp2\\1c${mauAss(M.nhan)}\\4c&H000000&\\4a&H90&\\shad7${nayVao(135)}}${chu(de.dich)}`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,350)\\fnAtkinson Hyperlegible\\b1${fs(44)}\\1c${mauAss(M.truoc)}${nayVao(135)}}Find it in 7 seconds`]);
   // thanh thời gian: rãnh trắng mờ + vạch màu nhấn co dần từ phải sang trái trong 7 giây đếm
   d.push([2, 0, T_LO, 'Ve', `{\\an7\\pos(60,400)\\1c&HFFFFFF&\\1a${alpha(0.18)}\\p1}${bo(960, 22, 11)}`]);
   d.push([3, 0, T_LO, 'Ve', `{\\an7\\pos(60,400)\\1c${mauAss(M.nhan)}\\clip(60,400,1020,422)\\t(${ms(T_DEM)},${ms(T_LO)},\\clip(60,400,60,422))\\p1}${bo(960, 22, 11)}`]);
   // bảng trắng + bóng, "đập" vào 0,88 → 1
-  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,1008)\\1c&H000000&\\1a${alpha(0.22)}${nay(0, 88)}\\p1}${bo(980, 1080, 28)}`]);
-  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,990)\\1c&HFFFFFF&${nay(0, 88)}\\p1}${bo(980, 1080, 28)}`]);
+  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,1008)\\1c&H000000&\\1a${alpha(0.22)}${nayVao(88)}\\p1}${bo(980, 1080, 28)}`]);
+  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,990)\\1c&HFFFFFF&${nayVao(88)}\\p1}${bo(980, 1080, 28)}`]);
   // 36 ô: ô sai mờ còn 25% lúc lộ; ô đúng có khung màu nhấn viền đỏ, chữ phóng 1,25
   for (const [i, c] of L.o.entries()) {
     const dung = i === de.cho;
     const x0 = Math.round(540 + (c.x - 540) * 0.88), y0 = Math.round(990 + (c.y - 990) * 0.88);
-    d.push([6, 0, T_KET, 'Den', `{\\an5\\move(${x0},${y0},${Math.round(c.x)},${Math.round(c.y)},0,500)${fs(L.co)}\\fsp1\\1c&H1B1B1B&${nay(0, 88)}${dung ? `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\fscx125\\fscy125)` : `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\1a${alpha(0.25)})`}}${chu(c.w)}`]);
+    d.push([6, 0, T_KET, 'Den', `{\\an5\\move(${x0},${y0},${Math.round(c.x)},${Math.round(c.y)},0,500)${fs(L.co)}\\fsp1\\1c&H1B1B1B&${nayVao(88)}${dung ? `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\fscx125\\fscy125)` : `\\t(${ms(T_LO)},${ms(T_LO + 0.3)},\\1a${alpha(0.25)})`}}${chu(c.w)}`]);
     if (dung) {
       const w = Math.round(L.cw - 12), h = Math.round(L.ch - 8);
       d.push([4, T_LO, T_KET, 'Ve', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})\\1c${mauAss(DO)}\\fscx80\\fscy80\\t(0,300,0.5,\\fscx125\\fscy125)\\p1}${bo(w, h, 14)}`]);
@@ -59,7 +58,7 @@ export function assMotDung(de: DeMotDung): string {
   // đồng hồ đếm 7 → 1 (3 giây cuối nền đỏ chữ trắng), mỗi số nảy 1,12 ở 0,2s cuối giây của nó
   for (let s = DEM; s >= 1; s--) {
     const tu = s === DEM ? 0 : T_LO - s, den = T_LO - s + 1, gap = s <= 3;
-    const nayGiay = `\\t(${ms(den - tu - 0.2)},${ms(den - tu)},\\fscx112\\fscy112)`;
+    const nayGiay = nhipDem(den - tu);
     d.push([7, tu, den, 'Ve', `{\\an5\\pos(540,1710)\\1c${gap ? mauAss(DO) : mauAss(M.truoc)}\\4c&H000000&\\4a&H40&\\shad0${nayGiay}\\p1}${bo(220, 220, 110)}`]);
     d.push([8, tu, den, 'Den', `{\\an5\\pos(540,1712)${fs(120)}\\1c${gap ? '&HFFFFFF&' : '&H111111&'}${nayGiay}}${s}`]);
   }

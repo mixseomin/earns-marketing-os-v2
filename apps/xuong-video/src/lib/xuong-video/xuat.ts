@@ -192,6 +192,19 @@ export function canMauCanh<T extends { id: number; phan_doan: string }>(ds: T[],
   return out;
 }
 
+/** NHỊP PHỤ ĐỀ (26/10/2026, chuẩn đo từ dựng ngắn chuyên nghiệp — tham-khao/video-skills.md: nateherkai/herk-edit-kit 27 Reels top,
+ *  Tejashmakwana/motionmaxxing sync.mjs; mốc tối thiểu theo chuẩn phụ đề Netflix 5/6 giây):
+ *  chữ hiện SỚM hơn giọng PHU_DE_SOM giây (mắt bắt chữ trước tai — hiện đúng lúc giọng thì người xem thấy chữ đuổi theo lời), và mỗi mảnh đứng
+ *  ít nhất PHU_DE_TOI_THIEU giây (mảnh "Ừ." chia theo số ký tự chỉ được ~0,2 s = chớp), kéo vào khoảng trống phía sau nhưng không đè mảnh kế.
+ *  pd đã xếp theo thời gian. Thuần — tự kiểm ở xuat.test.mts. */
+export const PHU_DE_SOM = 0.08, PHU_DE_TOI_THIEU = 0.83;
+export function nhipPhuDe<T extends { tu: number; den: number }>(pd: T[]): T[] {
+  const ra = pd.map((m) => ({ ...m }));
+  ra.forEach((m, i) => { m.tu = Math.max(i ? ra[i - 1]!.tu + 0.01 : 0, m.tu - PHU_DE_SOM); });
+  ra.forEach((m, i) => { const ke = ra[i + 1]?.tu ?? Infinity; m.den = Math.min(ke, Math.max(m.den, m.tu + PHU_DE_TOI_THIEU)); });
+  return ra;
+}
+
 export function keHoachXuat(o: {
   loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null;
   nhanh?: string | null; nguyenLieu: NguyenLieu[]; font: string; thuMuc: string; ra: string;
@@ -286,11 +299,15 @@ export function keHoachXuat(o: {
   const coHinh = (c: Canh) => { const v = c.video_cuoi_url || c.video_url; return (!!v && nl.has(v)) || (!!c.keyframe_url && nl.has(c.keyframe_url)); };
   const lichG = lichGiong(ds.filter(coHinh), o.nhanVat, (u) => nl.get(u)?.dai ?? null);
   // Phụ đề: mỗi câu thoại (không lời dẫn) hiện đúng khoảng giọng đọc; câu dài tách theo dấu câu, chia giờ theo số ký tự — mỗi mảnh ≤ 2 dòng.
-  if (o.phuDe) for (const g of lichG) {
-    if (g.loiDan || !g.loi?.trim()) continue;
-    const doan = g.loi.trim().split(/(?<=[.!?…])\s+/).filter(Boolean); const tong = doan.reduce((a, x) => a + x.length, 0) || 1;
-    let tu = g.tu; const dai = g.dai ?? Math.max(1.5, tong / 14);
-    doan.forEach((x, i) => { const d = (dai * x.length) / tong; cauMan.push({ tu, den: tu + d + (i === doan.length - 1 ? 0.15 : 0), dong: ngatDong(x, 26) }); tu += d; });   // mảnh nối tiếp không chồng nhau
+  if (o.phuDe) {
+    const pd: { tu: number; den: number; dong: string[] }[] = [];
+    for (const g of lichG) {
+      if (g.loiDan || !g.loi?.trim()) continue;
+      const doan = g.loi.trim().split(/(?<=[.!?…])\s+/).filter(Boolean); const tong = doan.reduce((a, x) => a + x.length, 0) || 1;
+      let tu = g.tu; const dai = g.dai ?? Math.max(1.5, tong / 14);
+      doan.forEach((x, i) => { const d = (dai * x.length) / tong; pd.push({ tu, den: tu + d + (i === doan.length - 1 ? 0.15 : 0), dong: ngatDong(x, 26) }); tu += d; });   // mảnh nối tiếp không chồng nhau
+    }
+    cauMan.push(...nhipPhuDe(pd));
   }
   // Giữ hình kết GIU_KET giây sau câu cuối (am-thanh.ts) — kịch bản tự kết (không có end card tự động) thì kéo dài shot cuối, hình cuối đứng
   // (clip hết thì giữ khung cuối), chữ màn + logo + nhạc kéo theo vì mọi thứ phía dưới tính từ giây phát.

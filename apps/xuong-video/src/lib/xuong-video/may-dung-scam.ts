@@ -37,7 +37,7 @@ export function anhScam(de: DeScam): { t: number; cat: [number, number, number, 
 }
 const W = 1080, H = 1920, DO = '#E5484D', XANH = '#2EBD85', NHAN = '#FCA311', SAU = '#14213D', TRANG = '#F4F6F8';
 const MAU_KENH: Record<KenhScam, string> = { WhatsApp: '#1FA855', Email: '#3B6FE0', SMS: '#5B6472' };
-import { alpha, bo, chu, giayDoc, mauAss, ms, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, ms, nayVao, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 export { mauAss, ngat };
 
 const EM = 1.25;
@@ -64,45 +64,44 @@ export function boCuc(de: DeScam) {
 export function assScam(de: DeScam): string {
   const { T_KET, DAI } = nhipScam(de);
   const d: DongAss[] = [], L = boCuc(de), lua = de.ket === 'scam', mauKet = lua ? DO : XANH, kenh = MAU_KENH[de.kenh];
-  const nay = (tuX: number) => `\\fscx${tuX}\\fscy${tuX}\\t(0,500,0.5,\\fscx100\\fscy100)`;
   // lớp phủ đen 38% cả khung trên ẢNH THẬT (lenhScam, nen_url Pexels — luật anh 18/10/2026: ảnh minh hoạ thật, nhìn rõ): đủ cho chữ trắng đọc được, ảnh vẫn hiện
   d.push([0, 0, T_KET, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.38)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
   // tiêu đề: SCAM (đỏ) or REAL? (xanh)
-  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,150)${fs(104)}\\4c&H000000&\\4a&H80&\\shad6${nay(130)}\\1c${mauAss(DO)}}SCAM{\\1c&HFFFFFF&\\fs${Math.round(70 * EM)}} or {\\1c${mauAss(XANH)}\\fs${Math.round(104 * EM)}}REAL?`]);
-  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,262)\\b1${fs(44)}\\1c&HFFFFFF&${nay(130)}}Spot the red flags in 7 seconds`]);
+  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,150)${fs(104)}\\4c&H000000&\\4a&H80&\\shad6${nayVao(130)}\\1c${mauAss(DO)}}SCAM{\\1c&HFFFFFF&\\fs${Math.round(70 * EM)}} or {\\1c${mauAss(XANH)}\\fs${Math.round(104 * EM)}}REAL?`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,262)\\b1${fs(44)}\\1c&HFFFFFF&${nayVao(130)}}Spot the red flags in 7 seconds`]);
   // thanh thời gian
   d.push([2, 0, T_LO, 'Ve', `{\\an7\\pos(60,312)\\1c&HFFFFFF&\\1a${alpha(0.18)}\\p1}${bo(960, 20, 10)}`]);
   d.push([3, 0, T_LO, 'Ve', `{\\an7\\pos(60,312)\\1c${mauAss(NHAN)}\\clip(60,312,1020,332)\\t(${ms(T_DEM)},${ms(T_LO)},\\clip(60,312,60,332))\\p1}${bo(960, 20, 10)}`]);
   // khung điện thoại (thẻ trắng) + dải đầu theo màu kênh
   const cao = L.cao, tamY = 380 + cao / 2;
-  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY + 14)})\\1c&H000000&\\1a${alpha(0.3)}${nay(90)}\\p1}${bo(940, cao, 34)}`]);
-  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY)})\\1c${mauAss(TRANG)}${nay(90)}\\p1}${bo(940, cao, 34)}`]);
-  d.push([3, 0, T_KET, 'Ve', `{\\an7\\pos(70,380)\\1c${mauAss(kenh)}\\clip(70,380,1010,520)${nay(90)}\\p1}${bo(940, 200, 34)}`]);
+  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY + 14)})\\1c&H000000&\\1a${alpha(0.3)}${nayVao(90)}\\p1}${bo(940, cao, 34)}`]);
+  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY)})\\1c${mauAss(TRANG)}${nayVao(90)}\\p1}${bo(940, cao, 34)}`]);
+  d.push([3, 0, T_KET, 'Ve', `{\\an7\\pos(70,380)\\1c${mauAss(kenh)}\\clip(70,380,1010,520)${nayVao(90)}\\p1}${bo(940, 200, 34)}`]);
   // đầu tin: kênh + người gửi (+ tiêu đề email)
-  d.push([4, 0, T_KET, 'Ve', `{\\an5\\pos(150,450)\\1c&HFFFFFF&\\1a${alpha(0.25)}${nay(90)}\\p1}${bo(84, 84, 42)}`]);
-  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(150,452)${fs(38)}\\1c&HFFFFFF&${nay(90)}}${chu(de.gui.trim()[0] ?? '?').toUpperCase()}`]);
-  d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(212,428)\\b1${fs(30)}\\1c&HFFFFFF&\\1a&H30&${nay(90)}}${chu(de.kenh)}`]);
-  d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(212,472)\\b1${fs(38)}\\1c&HFFFFFF&${nay(90)}}${chu(de.gui)}`]);
-  for (const [i, s] of L.tieuDe.entries()) d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(140,${L.yTieuDe[i]})\\b1${fs(38)}\\1c&H222222&${nay(90)}}${chu(s)}`]);
+  d.push([4, 0, T_KET, 'Ve', `{\\an5\\pos(150,450)\\1c&HFFFFFF&\\1a${alpha(0.25)}${nayVao(90)}\\p1}${bo(84, 84, 42)}`]);
+  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(150,452)${fs(38)}\\1c&HFFFFFF&${nayVao(90)}}${chu(de.gui.trim()[0] ?? '?').toUpperCase()}`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(212,428)\\b1${fs(30)}\\1c&HFFFFFF&\\1a&H30&${nayVao(90)}}${chu(de.kenh)}`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(212,472)\\b1${fs(38)}\\1c&HFFFFFF&${nayVao(90)}}${chu(de.gui)}`]);
+  for (const [i, s] of L.tieuDe.entries()) d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(140,${L.yTieuDe[i]})\\b1${fs(38)}\\1c&H222222&${nayVao(90)}}${chu(s)}`]);
   // các đoạn tin (chữ đen trên thẻ trắng); dòng có dấu hiệu: lúc lộ khung đỏ viền + số
   for (const p of L.doan) {
-    for (const [i, s] of p.dong.entries()) d.push([6, 0, T_KET, 'Chu', `{\\an4\\pos(${L.x},${p.y[i]})\\b0${fs(44)}\\1c&H1B1B1B&${nay(90)}}${chu(s)}`]);
+    for (const [i, s] of p.dong.entries()) d.push([6, 0, T_KET, 'Chu', `{\\an4\\pos(${L.x},${p.y[i]})\\b0${fs(44)}\\1c&H1B1B1B&${nayVao(90)}}${chu(s)}`]);
     if (lua && p.co) {
       const h = p.duoi - p.tren, tam = (p.tren + p.duoi) / 2;
-      d.push([4, T_LO, T_KET, 'Ve', `{\\an5\\pos(560,${Math.round(tam)})\\1c${mauAss(DO)}\\1a${alpha(0.14)}\\3c${mauAss(DO)}\\bord6\\fscx96\\fscy96\\t(0,250,\\fscx100\\fscy100)\\p1}${bo(880, h, 16)}`]);
-      d.push([7, T_LO, T_KET, 'Ve', `{\\an5\\pos(98,${Math.round(tam)})\\1c${mauAss(DO)}\\fscx60\\fscy60\\t(0,250,\\fscx100\\fscy100)\\p1}${bo(64, 64, 32)}`]);
+      d.push([4, T_LO, T_KET, 'Ve', `{\\an5\\pos(560,${Math.round(tam)})\\1c${mauAss(DO)}\\1a${alpha(0.14)}\\3c${mauAss(DO)}\\bord6${nayVao(96, 0, 0.25)}\\p1}${bo(880, h, 16)}`]);
+      d.push([7, T_LO, T_KET, 'Ve', `{\\an5\\pos(98,${Math.round(tam)})\\1c${mauAss(DO)}${nayVao(60, 0, 0.25)}\\p1}${bo(64, 64, 32)}`]);
       d.push([8, T_LO, T_KET, 'Den', `{\\an5\\pos(98,${Math.round(tam) + 2})${fs(34)}\\1c&HFFFFFF&}${p.co}`]);
     }
   }
   // đồng hồ 7 → 1 (3 giây cuối đỏ)
   for (let s = DEM; s >= 1; s--) {
-    const tu = s === DEM ? 0 : T_LO - s, den = T_LO - s + 1, gap = s <= 3, nayGiay = `\\t(${ms(den - tu - 0.2)},${ms(den - tu)},\\fscx112\\fscy112)`;
+    const tu = s === DEM ? 0 : T_LO - s, den = T_LO - s + 1, gap = s <= 3, nayGiay = nhipDem(den - tu);
     d.push([7, tu, den, 'Ve', `{\\an5\\pos(540,1730)\\1c${gap ? mauAss(DO) : mauAss(NHAN)}${nayGiay}\\p1}${bo(200, 200, 100)}`]);
     d.push([8, tu, den, 'Den', `{\\an5\\pos(540,1732)${fs(110)}\\1c${gap ? '&HFFFFFF&' : '&H111111&'}${nayGiay}}${s}`]);
   }
   // lộ: dấu SCAM / REAL nghiêng + lý do bên dưới thẻ
-  d.push([9, T_LO, T_KET, 'Ve', `{\\an5\\pos(800,${Math.round(380 + 60)})\\frz-12\\1c${mauAss(mauKet)}\\fscx40\\fscy40\\t(0,220,0.6,\\fscx100\\fscy100)\\p1}${bo(360, 120, 18)}`]);
-  d.push([10, T_LO, T_KET, 'Den', `{\\an5\\pos(800,${Math.round(380 + 62)})\\frz-12${fs(78)}\\1c&HFFFFFF&\\fscx40\\fscy40\\t(0,220,0.6,\\fscx100\\fscy100)}${lua ? 'SCAM' : 'REAL'}`]);
+  d.push([9, T_LO, T_KET, 'Ve', `{\\an5\\pos(800,${Math.round(380 + 60)})\\frz-12\\1c${mauAss(mauKet)}${nayVao(40, 0, 0.22)}\\p1}${bo(360, 120, 18)}`]);
+  d.push([10, T_LO, T_KET, 'Den', `{\\an5\\pos(800,${Math.round(380 + 62)})\\frz-12${fs(78)}\\1c&HFFFFFF&${nayVao(40, 0, 0.22)}}${lua ? 'SCAM' : 'REAL'}`]);
   for (const [i, s] of de.ly_do.slice(0, 3).entries()) {
     d.push([9, T_LO + 0.15 * i, T_KET, 'Chu', `{\\an4\\pos(90,${L.lyDo[i]})\\b1${fs(coLyDo(s))}\\1c&HFFFFFF&\\fad(150,0)}{\\1c${mauAss(mauKet)}}${lua ? `${i + 1}` : '•'}{\\1c&HFFFFFF&}  ${chu(s)}`]);
   }

@@ -43,6 +43,15 @@ export function rapAss(W: number, H: number, d: DongAss[], o: { chuDam?: boolean
 /** Đường dẫn tệp trong bộ lọc ffmpeg (ass=…, fontsdir=…): thoát \ : ' */
 export const thoatLoc = (p: string) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
 
+/** CHUYỂN ĐỘNG CHUNG của mọi mẫu (26/10/2026, gom từ 4 mẫu tự chép + chuẩn ease đo từ phim motion của người làm — tham-khao/video-skills.md:
+ *  whaleyxbt/claude-motion, lemo-opuscar): VÀO = nhanh rồi chậm dần (ease-out, \t accel < 1), RA = chậm rồi nhanh (ease-in, accel > 1) và chỉ
+ *  dài bằng nửa cú vào. Trước đây nửa số cú vào chạy tuyến tính (nhìn "máy"), nửa có ease — mỗi mẫu một kiểu. */
+export const EASE_VAO = 0.5, EASE_RA = 2;
+/** Nảy vào: từ cỡ tuX % về 100 % trong den giây, bắt đầu ở tu giây (mốc trong dòng). */
+export const nayVao = (tuX: number, tu = 0, den = 0.5) => `\\fscx${tuX}\\fscy${tuX}\\t(${ms(tu)},${ms(tu + den)},${EASE_VAO},\\fscx100\\fscy100)`;
+/** Nhịp đập của ô đồng hồ đếm: phồng 112 % trong 0,2 s cuối của mỗi giây (dòng dài `dai` giây). */
+export const nhipDem = (dai: number) => `\\t(${ms(dai - 0.2)},${ms(dai)},${EASE_RA},\\fscx112\\fscy112)`;
+
 /** LUẬT ĐỌC (anh 17/10/2026: "sau khi hiện nội dung đợi thêm 1-2s để họ còn đọc được"): một khối chữ hiện xong phải đứng ít nhất
  *  số từ ÷ TU_MOI_GIAY giây (tốc độ đọc chữ trên màn) + DEM_DOC giây đệm, tối thiểu 2 giây — rồi khối kế mới được hiện / màn mới được chuyển.
  *  Mọi mẫu máy tính nhịp theo đề bằng hàm này, không đặt mốc giây cứng. */

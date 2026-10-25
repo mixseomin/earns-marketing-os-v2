@@ -14,7 +14,7 @@ export interface DeThi {
   mang: string;                                  // mảng kiến thức (vd "Medications") — chữ nhỏ trên thẻ
 }
 
-import { alpha, bo, chu, giayDoc, mauAss, ms, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, ms, nayVao, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 
 export const FPS = 30, T_DEM = 0.3, DEM = 10, T_LO = T_DEM + DEM;
 export const TEN_KY: Record<KyThi, string> = { PTCB: 'PTCB', NREMT: 'NREMT EMT', TEAS: 'ATI TEAS 7' };
@@ -47,43 +47,42 @@ export function boCucThi(de: DeThi) {
 export function assThi(de: DeThi): string {
   const { T_KET, DAI } = nhipThi(de);
   const d: DongAss[] = [], L = boCucThi(de);
-  const nay = (tuX: number) => `\\fscx${tuX}\\fscy${tuX}\\t(0,500,0.5,\\fscx100\\fscy100)`;
   // lớp phủ đen 40% trên ẢNH THẬT (luật ảnh minh hoạ thật, nhìn rõ)
   d.push([0, 0, T_KET, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.4)}\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,150)${fs(76)}\\4c&H000000&\\4a&H80&\\shad6${nay(125)}\\1c${mauAss(NHAN)}}${chu(TEN_KY[de.ky])}{\\1c&HFFFFFF&} QUESTION`]);
-  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,250)\\b1${fs(44)}\\1c&HFFFFFF&${nay(125)}}Can you answer it in 10 seconds?`]);
+  d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(540,150)${fs(76)}\\4c&H000000&\\4a&H80&\\shad6${nayVao(125)}\\1c${mauAss(NHAN)}}${chu(TEN_KY[de.ky])}{\\1c&HFFFFFF&} QUESTION`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an5\\pos(540,250)\\b1${fs(44)}\\1c&HFFFFFF&${nayVao(125)}}Can you answer it in 10 seconds?`]);
   // thanh thời gian
   d.push([2, 0, T_LO, 'Ve', `{\\an7\\pos(60,300)\\1c&HFFFFFF&\\1a${alpha(0.18)}\\p1}${bo(960, 20, 10)}`]);
   d.push([3, 0, T_LO, 'Ve', `{\\an7\\pos(60,300)\\1c${mauAss(NHAN)}\\clip(60,300,1020,320)\\t(${ms(T_DEM)},${ms(T_LO)},\\clip(60,300,60,320))\\p1}${bo(960, 20, 10)}`]);
   // thẻ trắng
   const cao = L.cuoi - 360 + 20, tamY = 360 + cao / 2;
-  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY + 14)})\\1c&H000000&\\1a${alpha(0.3)}${nay(92)}\\p1}${bo(960, cao, 34)}`]);
-  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY)})\\1c${mauAss(TRANG)}${nay(92)}\\p1}${bo(960, cao, 34)}`]);
-  d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(110,405)\\b1${fs(30)}\\1c${mauAss(MO)}${nay(92)}}${chu(de.mang.toUpperCase())}`]);
-  for (const [i, s] of L.hoi.entries()) d.push([6, 0, T_KET, 'Chu', `{\\an4\\pos(110,${L.yHoi[i]})\\b1${fs(42)}\\1c&H1B1B1B&${nay(92)}}${chu(s)}`]);
+  d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY + 14)})\\1c&H000000&\\1a${alpha(0.3)}${nayVao(92)}\\p1}${bo(960, cao, 34)}`]);
+  d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY)})\\1c${mauAss(TRANG)}${nayVao(92)}\\p1}${bo(960, cao, 34)}`]);
+  d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(110,405)\\b1${fs(30)}\\1c${mauAss(MO)}${nayVao(92)}}${chu(de.mang.toUpperCase())}`]);
+  for (const [i, s] of L.hoi.entries()) d.push([6, 0, T_KET, 'Chu', `{\\an4\\pos(110,${L.yHoi[i]})\\b1${fs(42)}\\1c&H1B1B1B&${nayVao(92)}}${chu(s)}`]);
   for (const o of L.o) {
     const dung = o.c === de.dung, h = o.duoi - o.tren;
     // ô lựa chọn (viền xám) → lúc lộ: ô đúng xanh, ô sai mờ
-    d.push([3, 0, T_LO, 'Ve', `{\\an5\\pos(540,${Math.round(o.tam)})\\1c&HFFFFFF&\\3c${mauAss('#D5DAE0')}\\bord3${nay(92)}\\p1}${bo(880, h, 18)}`]);
+    d.push([3, 0, T_LO, 'Ve', `{\\an5\\pos(540,${Math.round(o.tam)})\\1c&HFFFFFF&\\3c${mauAss('#D5DAE0')}\\bord3${nayVao(92)}\\p1}${bo(880, h, 18)}`]);
     d.push([3, T_LO, T_KET, 'Ve', dung
-      ? `{\\an5\\pos(540,${Math.round(o.tam)})\\1c${mauAss(XANH)}\\1a${alpha(0.18)}\\3c${mauAss(XANH)}\\bord6\\fscx97\\fscy97\\t(0,250,\\fscx100\\fscy100)\\p1}${bo(880, h, 18)}`
+      ? `{\\an5\\pos(540,${Math.round(o.tam)})\\1c${mauAss(XANH)}\\1a${alpha(0.18)}\\3c${mauAss(XANH)}\\bord6${nayVao(97, 0, 0.25)}\\p1}${bo(880, h, 18)}`
       : `{\\an5\\pos(540,${Math.round(o.tam)})\\1c&HFFFFFF&\\1a${alpha(0.55)}\\3c${mauAss('#D5DAE0')}\\bord3\\p1}${bo(880, h, 18)}`]);
-    d.push([4, 0, T_KET, 'Ve', `{\\an5\\pos(160,${Math.round(o.tam)})\\1c${mauAss(SAU)}${nay(92)}\\p1}${bo(64, 64, 32)}`]);
-    d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(160,${Math.round(o.tam) + 2})${fs(32)}\\1c&HFFFFFF&${nay(92)}}${o.c}`]);
+    d.push([4, 0, T_KET, 'Ve', `{\\an5\\pos(160,${Math.round(o.tam)})\\1c${mauAss(SAU)}${nayVao(92)}\\p1}${bo(64, 64, 32)}`]);
+    d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(160,${Math.round(o.tam) + 2})${fs(32)}\\1c&HFFFFFF&${nayVao(92)}}${o.c}`]);
     const y1 = o.tam - ((o.ds.length - 1) * 52) / 2;
     for (const [i, s] of o.ds.entries()) {
-      d.push([6, 0, T_LO, 'Chu', `{\\an4\\pos(215,${Math.round(y1 + i * 52)})\\b0${fs(38)}\\1c&H222222&${nay(92)}}${chu(s)}`]);
+      d.push([6, 0, T_LO, 'Chu', `{\\an4\\pos(215,${Math.round(y1 + i * 52)})\\b0${fs(38)}\\1c&H222222&${nayVao(92)}}${chu(s)}`]);
       d.push([6, T_LO, T_KET, 'Chu', `{\\an4\\pos(215,${Math.round(y1 + i * 52)})\\b${dung ? 1 : 0}${fs(38)}\\1c${dung ? '&H1B1B1B&' : mauAss(MO)}}${chu(s)}`]);
     }
     if (dung) {
-      d.push([7, T_LO, T_KET, 'Ve', `{\\an5\\pos(930,${Math.round(o.tam)})\\1c${mauAss(XANH)}\\fscx40\\fscy40\\t(0,220,0.6,\\fscx100\\fscy100)\\p1}${bo(76, 76, 38)}`]);
+      d.push([7, T_LO, T_KET, 'Ve', `{\\an5\\pos(930,${Math.round(o.tam)})\\1c${mauAss(XANH)}${nayVao(40, 0, 0.22)}\\p1}${bo(76, 76, 38)}`]);
       // dấu tích VẼ bằng hình (font chữ có thể thiếu ký tự ✓ → ô trống)
-      d.push([8, T_LO, T_KET, 'Ve', `{\\an5\\pos(930,${Math.round(o.tam)})\\1c&HFFFFFF&\\fscx40\\fscy40\\t(0,220,0.6,\\fscx100\\fscy100)\\p1}m 0 22 l 10 12 l 18 20 l 36 2 l 46 12 l 18 40`]);
+      d.push([8, T_LO, T_KET, 'Ve', `{\\an5\\pos(930,${Math.round(o.tam)})\\1c&HFFFFFF&${nayVao(40, 0, 0.22)}\\p1}m 0 22 l 10 12 l 18 20 l 36 2 l 46 12 l 18 40`]);
     }
   }
   // đồng hồ 10 → 1 (3 giây cuối đỏ) — ở đáy, dưới thẻ
   for (let s = DEM; s >= 1; s--) {
-    const tu = s === DEM ? 0 : T_LO - s, den = T_LO - s + 1, gap = s <= 3, nayGiay = `\\t(${ms(den - tu - 0.2)},${ms(den - tu)},\\fscx112\\fscy112)`;
+    const tu = s === DEM ? 0 : T_LO - s, den = T_LO - s + 1, gap = s <= 3, nayGiay = nhipDem(den - tu);
     d.push([7, tu, den, 'Ve', `{\\an5\\pos(540,1745)\\1c${gap ? mauAss('#E5484D') : mauAss(NHAN)}${nayGiay}\\p1}${bo(180, 180, 90)}`]);
     d.push([8, tu, den, 'Den', `{\\an5\\pos(540,1747)${fs(96)}\\1c${gap ? '&HFFFFFF&' : '&H111111&'}${nayGiay}}${s}`]);
   }

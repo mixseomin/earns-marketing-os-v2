@@ -1,6 +1,6 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
-import { keHoachXuat, canMauCanh, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac, tiengLa, hinhDung } from './xuat';
+import { keHoachXuat, canMauCanh, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac, tiengLa, hinhDung, nhipPhuDe, PHU_DE_SOM, PHU_DE_TOI_THIEU } from './xuat';
 import { lichGiong, phatTiengClip } from './am-thanh';
 import type { Canh, NhanVat } from './kieu';
 
@@ -339,5 +339,13 @@ console.log('xuat.test: ok (điểm vào clip)');
   const moc = [...a.matchAll(/Dialogue: \d+,([\d:.]+),([\d:.]+),.*(?:Chị nói|Lần sau)/g)].map((m) => [m[1], m[2]]);
   assert.ok(moc.length === 2 && moc[0]![1] === moc[1]![0], `hai mảnh nối tiếp không chồng: ${JSON.stringify(moc)}`);
   assert.ok(!mk(false).includes('Chị nói đúng.'));
+}
+{ // NHỊP PHỤ ĐỀ: hiện sớm hơn giọng, mảnh ngắn kéo đủ tối thiểu nhưng không đè mảnh kế, mảnh liền nhau vẫn nối tiếp
+  const r = nhipPhuDe([{ tu: 1, den: 1.2 }, { tu: 3, den: 4 }, { tu: 4, den: 4.3 }, { tu: 4.3, den: 6 }]);
+  assert.ok(Math.abs(r[0]!.tu - (1 - PHU_DE_SOM)) < 1e-9, 'hiện sớm');
+  assert.ok(Math.abs(r[0]!.den - r[0]!.tu - PHU_DE_TOI_THIEU) < 1e-9, `mảnh "Ừ." kéo đủ ${PHU_DE_TOI_THIEU}s`);
+  assert.ok(r[2]!.den === r[3]!.tu, 'mảnh ngắn chạm mảnh kế thì dừng ở đó, không chồng');
+  assert.ok(r.every((m, i) => !i || m.tu >= r[i - 1]!.den - 1e-9), 'không mảnh nào chồng mảnh trước');
+  assert.ok(nhipPhuDe([{ tu: 0.02, den: 1 }])[0]!.tu === 0, 'không âm');
 }
 console.log('xuat.test: ok (phụ đề)');

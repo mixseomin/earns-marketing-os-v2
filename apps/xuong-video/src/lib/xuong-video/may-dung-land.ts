@@ -5,7 +5,7 @@
 // Nhịp TÍNH THEO ĐỀ (nhipLand — luật đọc may-dung-ass.ts › giayDoc): tên nước → thẻ cửa ngõ + dải cảnh báo roaming → ba bước tick lần lượt → màn kết.
 // Khối nào hiện xong cũng đứng đủ thời gian đọc + 1,5s đệm rồi khối kế mới vào.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-land.test.mts
-import { alpha, bo, chu, giayDoc, giayLuot, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, giayLuot, mauAss, nayVao, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 
 export interface DeLand {
   iso: string;                                        // mã nước 2 chữ thường (trang esimfares.com/<iso>/)
@@ -65,11 +65,11 @@ export function anhLand(de: DeLand): { t: number; cat: [number, number, number, 
 
 export function assLand(de: DeLand): string {
   const { T_CUA, T_CANH, T_BUOC, buocTu, T_KET, DAI } = nhipLand(de);
-  const d: DongAss[] = [], nay = (tu: number) => `\\fscx${tu}\\fscy${tu}\\t(0,450,0.5,\\fscx100\\fscy100)`, sb = de.san_bay.slice(0, 3);
+  const d: DongAss[] = [], sb = de.san_bay.slice(0, 3);
   // Bố cục dọc 1080×1920 phủ cả khung (17/10/2026: bản đầu dồn hết vào 60% trên, nửa dưới trống). Nền = ảnh thật của nước (lenhLand), làm tối.
   // ── 0 → T_CUA: tên nước ở giữa màn
-  d.push([5, 0, T_CUA, 'Chu', `{\\an5\\pos(540,700)\\b1${fs(56)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3${nay(120)}}LANDING IN`]);
-  d.push([6, 0, T_CUA, 'Den', `{\\an5\\pos(540,880)${fs(Math.round(coTen(de.nuoc) * 1.2))}\\1c&HFFFFFF&\\3c&H000000&\\bord4\\shad8\\4a&H60&\\q0${nay(135)}}${chu(de.nuoc.toUpperCase())}`]);
+  d.push([5, 0, T_CUA, 'Chu', `{\\an5\\pos(540,700)\\b1${fs(56)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3${nayVao(120, 0, 0.45)}}LANDING IN`]);
+  d.push([6, 0, T_CUA, 'Den', `{\\an5\\pos(540,880)${fs(Math.round(coTen(de.nuoc) * 1.2))}\\1c&HFFFFFF&\\3c&H000000&\\bord4\\shad8\\4a&H60&\\q0${nayVao(135, 0, 0.45)}}${chu(de.nuoc.toUpperCase())}`]);
   d.push([5, 0.5, T_CUA, 'Chu', `{\\an5\\pos(540,1080)\\b1${fs(54)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\fad(250,200)}${ngat(CHU_MO, 16).join('\\N')}`]);
   const mb = 'm 0 18 l 120 10 b 140 9 150 14 150 18 b 150 22 140 27 120 26 l 0 18 m 70 15 l 40 -20 l 58 -20 l 98 14 m 70 21 l 40 56 l 58 56 l 98 22 m 6 17 l -6 0 l 6 0 l 22 15';
   d.push([4, 0, T_CUA, 'Ve', `{\\an7\\1c${mauAss(NHAN)}\\fscx160\\fscy160\\move(-260,1260,1100,1340,0,${Math.round(T_CUA * 1000)})\\frz-4\\p1}${mb}`]);
@@ -81,15 +81,15 @@ export function assLand(de: DeLand): string {
   d.push([3, T_CUA, T_KET, 'Chu', `{\\an4\\pos(100,${yThe + 66})\\b1${fs(36)}\\1c&H6B6B6B&\\fad(200,0)}MAIN ARRIVAL AIRPORTS`]);
   for (const [i, a] of sb.entries()) {
     const y = yThe + 165 + i * HANG, tu = T_CUA + 0.25 + i * 0.4;
-    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(200,${y})\\1c${mauAss(SAU)}\\fscx70\\fscy70\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(210, 116, 20)}`]);
-    d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(200,${y + 2})${fs(62)}\\1c${mauAss(NHAN)}\\fscx70\\fscy70\\t(0,200,\\fscx100\\fscy100)}${chu(a.iata)}`]);
+    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(200,${y})\\1c${mauAss(SAU)}${nayVao(70, 0, 0.2)}\\p1}${bo(210, 116, 20)}`]);
+    d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(200,${y + 2})${fs(62)}\\1c${mauAss(NHAN)}${nayVao(70, 0, 0.2)}}${chu(a.iata)}`]);
     d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(335,${y - 26})\\b1${fs(46)}\\1c&H1B1B1B&\\fad(150,0)}${chu(tenGon(a.ten))}`]);
     d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(335,${y + 30})\\b0${fs(38)}\\1c&H5A5A5A&\\fad(150,0)}${chu(tpGon(a.tp))}`]);
   }
   const yDuoi = yThe + caoThe;   // đáy thẻ
   // dải cảnh báo roaming (đỏ) giữa phần còn lại của màn
   const yCanh = Math.round((yDuoi + 1800) / 2);
-  d.push([4, T_CANH, T_BUOC, 'Ve', `{\\an5\\pos(540,${yCanh})\\1c${mauAss(DO)}\\fscx92\\fscy92\\t(0,220,\\fscx100\\fscy100)\\p1}${bo(980, 230, 30)}`]);
+  d.push([4, T_CANH, T_BUOC, 'Ve', `{\\an5\\pos(540,${yCanh})\\1c${mauAss(DO)}${nayVao(92, 0, 0.22)}\\p1}${bo(980, 230, 30)}`]);
   d.push([5, T_CANH, T_BUOC, 'Chu', `{\\an5\\pos(540,${yCanh})\\b1${fs(52)}\\1c&HFFFFFF&\\q2}${ngat(CHU_CANH, 24).join('\\N')}`]);
   // ba bước: chia đều phần dưới thẻ
   const yB = yDuoi + 90, buoc = (1790 - yB - 60) / 3;   // chiều cao một hàng bước
@@ -97,7 +97,7 @@ export function assLand(de: DeLand): string {
   for (const [i, s] of BUOC(de.nuoc).entries()) {
     const y = Math.round(yB + 60 + buoc * (i + 0.5)), tu = buocTu[i]!;
     d.push([3, tu, T_KET, 'Ve', `{\\an5\\pos(540,${y})\\1c${mauAss(SAU)}\\1a${alpha(0.72)}\\fad(150,0)\\p1}${bo(980, Math.min(160, buoc - 20), 26)}`]);
-    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(130,${y})\\1c${mauAss(XANH)}\\fscx50\\fscy50\\t(0,200,\\fscx100\\fscy100)\\p1}${bo(96, 96, 48)}`]);
+    d.push([4, tu, T_KET, 'Ve', `{\\an5\\pos(130,${y})\\1c${mauAss(XANH)}${nayVao(50, 0, 0.2)}\\p1}${bo(96, 96, 48)}`]);
     d.push([5, tu, T_KET, 'Den', `{\\an5\\pos(130,${y + 2})${fs(46)}\\1c${mauAss(SAU)}}${i + 1}`]);
     d.push([5, tu, T_KET, 'Chu', `{\\an4\\pos(205,${y})\\b1${fs(42)}\\1c&HFFFFFF&\\q2\\fad(200,0)}${ngat(s, 36).map(chu).join('\\N')}`]);   // tên nước dài (United Arab Emirates) → tự xuống dòng, không tràn mép
   }

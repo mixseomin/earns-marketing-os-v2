@@ -8,10 +8,10 @@
 // hôm nay; Claude nhặt bằng /tasks-mos2, trả lời vào luồng rồi nộp Review. Layout chỉ dựng cho admin.
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Drawer, Tabs, type TabItem } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { dsGopYCuaToi, guiGopYMos2, type GopYCuaToi } from '@/lib/actions/gop-y-mos2';
+import { TraoDoiCard } from '@/components/trao-doi-card';
 
 const KHOA = 'mos2.gop-y.nhap';
 const KHOA_TAB = 'mos2.gop-y.tab';
@@ -191,7 +191,7 @@ function CuaToi({ ds, onSangTabGui, onMo }: { ds: GopYCuaToi[] | null; onSangTab
           const tt = TT[nhomTT(b.trangThai)] ?? TT.pending!;
           const mo = DA_DONG.has(nhomTT(b.trangThai));
           return (
-            <div key={b.id} onClick={() => onMo(b.id)} title="Mở card trên plays — luồng trao đổi + duyệt/làm lại ở đó"
+            <div key={b.id} onClick={() => onMo(b.id)} title="Mở luồng trao đổi ngay tại đây — đọc, Rework, Duyệt xong"
               style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', cursor: 'pointer', background: 'var(--bg-2)', opacity: mo ? .7 : 1 }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                 <span style={{ border: `1px solid ${tt.mau}`, color: tt.mau, borderRadius: 4, padding: '0 5px' }}>{tt.nhan}</span>
@@ -216,14 +216,15 @@ function CuaToi({ ds, onSangTabGui, onMo }: { ds: GopYCuaToi[] | null; onSangTab
 }
 
 /** hom = hòm nhận góp ý: 'mos2' (mặc định) · 'city' (city.on.tc — card về plays project city, xử bằng /tasks-city).
- *  Trên city.on.tc nút đứng trái cụm nút điều hướng của thành phố, mở card bằng tab mos2 mới (city.on.tc không mở /plays). */
+ *  Trên city.on.tc nút đứng trái cụm nút điều hướng của thành phố. Xem lại một góp ý = mở LUỒNG ngay trong ngăn (đọc · Rework · Duyệt xong) —
+ *  anh 25/10/2026: trước đây bấm là mở tab plays mới, phải rời trang đang xem. */
 export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
-  const router = useRouter();
   const [mo, setMo] = useState(false);
   // Nơi khác mở hòm góp ý tại chỗ (vd nút "Góp ý về sản phẩm này" trong drawer Tài sản): window.dispatchEvent(new CustomEvent('gop-y:mo'))
   useEffect(() => { const h = () => setMo(true); window.addEventListener('gop-y:mo', h); return () => window.removeEventListener('gop-y:mo', h); }, []);
   const [tab, setTab] = useState<TabKey>('gui');
   const [ds, setDs] = useState<GopYCuaToi[] | null>(null);
+  const [xem, setXem] = useState<number | null>(null);   // card đang mở luồng trong ngăn
   // Danh sách nạp Ở ĐÂY (không trong tab): con số trên nhãn "Của tôi" phải nói được "còn mấy việc"
   // ngay khi ngăn kéo mở ở tab Gửi.
   const nap = () => { void dsGopYCuaToi(hom).then(setDs); };
@@ -232,9 +233,10 @@ export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
     try { const t = localStorage.getItem(KHOA_TAB); if (t === 'cua-toi') setTab('cua-toi'); } catch { /* thôi */ }
     nap();
   }, [mo]);
-  const doiTab = (t: TabKey) => { setTab(t); try { localStorage.setItem(KHOA_TAB, t); } catch { /* thôi */ } };
+  const doiTab = (t: TabKey) => { setTab(t); setXem(null); try { localStorage.setItem(KHOA_TAB, t); } catch { /* thôi */ } };
   const conMo = ds?.filter((b) => !DA_DONG.has(nhomTT(b.trangThai))).length ?? 0;
-  const moCard = (id: number) => { setMo(false); if (hom === 'city') window.open(`https://mos2.on.tc/plays?proj=city&task=${id}`, '_blank', 'noopener'); else router.push(`/plays?proj=mos2&task=${id}`); };
+  const moCard = (id: number) => setXem(id);
+  const linkPlays = (id: number) => (hom === 'city' ? `https://mos2.on.tc/plays?proj=city&task=${id}` : `/plays?proj=mos2&task=${id}`);
   return (
     <>
       <button type="button" aria-label={hom === 'city' ? 'Góp ý / báo lỗi thành phố' : 'Góp ý / báo lỗi MOS2'} title="Góp ý / báo lỗi về màn đang xem"
@@ -254,6 +256,16 @@ export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
           <Tabs<TabKey> items={TABS_HOM.map((t) => (t.key === 'cua-toi' && ds ? { ...t, badge: conMo || undefined } : t))} value={tab} onChange={doiTab} />
           {tab === 'gui'
             ? <FormGopY hom={hom} onGui={() => nap()} />
+            : xem != null ? (() => { const b = ds?.find((x) => x.id === xem); return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button type="button" onClick={() => setXem(null)} style={nutPhu}>← Danh sách</button>
+                  <b style={{ fontSize: 12, fontFamily: 'var(--font-mono)' }}>#{xem}</b>
+                  {b && <span style={{ fontSize: 10.5, color: (TT[nhomTT(b.trangThai)] ?? TT.pending!).mau }}>{(TT[nhomTT(b.trangThai)] ?? TT.pending!).nhan}</span>}
+                  <a href={linkPlays(xem)} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-3)' }}>↗ plays</a>
+                </div>
+                <TraoDoiCard taskId={xem} onChange={nap} />
+              </div>); })()
             : <CuaToi ds={ds} onSangTabGui={() => doiTab('gui')} onMo={moCard} />}
         </Drawer>
       )}

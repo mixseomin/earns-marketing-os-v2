@@ -12,7 +12,7 @@
  * mắt cũng không — vì thiếu một trường thì màn hình vẫn "trông ổn".
  *
  * Nên máy canh: mỗi khoá của `TinTraoDoi` phải xuất hiện dưới dạng `t.<khoá>` trong phần render
- * luồng ở backlinks-page.tsx. Thêm trường mới mà quên hiện → đỏ ngay ở CI, không đợi ba ngày.
+ * luồng ở trao-doi-card.tsx (trước 25/10/2026 nằm trong backlinks-page.tsx). Thêm trường mới mà quên hiện → đỏ ngay ở CI, không đợi ba ngày.
  *
  * TẦM VỚI CỦA PHÉP KIỂM NÀY — nói trước để đừng tin quá tay. Nó đọc CHUỖI trong mã nguồn, tức
  * một BẢN ĐẠI DIỆN của "có hiện hay không", không phải chính màn hình. Nó bắt được ca đã xảy ra
@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs';
 
 const NGUON = 'apps/web/src/lib/actions/gop-y-mos2.ts';
-const MAN = 'apps/web/src/components/backlinks-page.tsx';
+const MAN = 'apps/web/src/components/trao-doi-card.tsx';   // TraoDoiCard tách khỏi backlinks-page 25/10/2026
 
 const nguon = readFileSync(NGUON, 'utf8');
 const man = readFileSync(MAN, 'utf8');

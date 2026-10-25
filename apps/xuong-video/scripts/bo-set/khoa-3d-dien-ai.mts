@@ -65,8 +65,15 @@ const cCuoi = await anhThat(`${thu}/${chuan}-cuoi.png`, `${chuan}-cuoi`, [cDau],
 if (!cCuoi) process.exit(3);
 const anh: Record<string, { dau: string | null; cuoi: string | null }> = { [chuan]: { dau: cDau, cuoi: cCuoi } };
 const loiChuan = 'The people, faces, hair, outfits, props and the room look exactly like reference images 2 and 3 (the same scene seen from another camera).';
+// CÙNG MÁY = CÙNG NỀN: máy đã có sẵn một đầu là ảnh người thật (vd khung cuối #4 = khung đầu shot sau, dùng lại) thì đầu kia lấy CHÍNH ảnh đó làm mẫu.
+// Lấy ảnh máy chuẩn làm mẫu thì AI chép nền của máy chuẩn (26/10/2026 #4: nền bảng chỉ dẫn thành cửa thang máy dù câu chữ đã khoá nền → Vidu lia máy giữa clip).
+const loiCungMay = 'Image 2 is THIS SAME camera at another moment of the same shot: keep its background exactly (same wall, sign, bench, elevator positions behind each person), and the same people, faces, outfits and lighting.';
 await Promise.all(con.map(async (m) => {
-  const [d, c] = await Promise.all([anhThat(`${thu}/${m}-dau.png`, `${m}-dau`, [cDau], loiChuan.replace(' and 3', '')), anhThat(`${thu}/${m}-cuoi.png`, `${m}-cuoi`, [cDau, cCuoi], loiChuan)]);
+  const coSan = (k: string) => (cu[`${m}-${k}`] && !lai.includes(`${m}-${k}`) ? cu[`${m}-${k}`]! : null);
+  const sD = coSan('dau'), sC = coSan('cuoi');
+  const [d, c] = await Promise.all([
+    sD ?? anhThat(`${thu}/${m}-dau.png`, `${m}-dau`, sC ? [sC, cDau] : [cDau], sC ? loiCungMay : loiChuan.replace(' and 3', '')),
+    sC ?? anhThat(`${thu}/${m}-cuoi.png`, `${m}-cuoi`, sD ? [sD, cCuoi] : [cDau, cCuoi], sD ? loiCungMay : loiChuan)]);
   anh[m] = { dau: d, cuoi: c };
 }));
 writeFileSync(`${thu}/anh.json`, JSON.stringify(anh));

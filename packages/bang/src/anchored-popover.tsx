@@ -79,6 +79,14 @@ export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'l
     window.addEventListener('resize', h);
     return () => { window.removeEventListener('scroll', h, true); window.removeEventListener('resize', h); };
   }, [open, align, gap, anchorRef]);
+  // KẸP TRONG MÀN (etp 26/10/2026: popup lọc cột ở cột cuối bị mép phải cắt mất ô giá trị): vẽ xong mới biết bề rộng panel →
+  // tràn mép phải thì dời sang trái, tràn mép trái thì dời về 8px. Chỉ set khi lệch thật nên không lặp vô hạn.
+  useLayoutEffect(() => {
+    const el = panelRef.current; if (!pos || !el) return;
+    const r = el.getBoundingClientRect(), M = 8, W = window.innerWidth;
+    const left = r.right > W - M ? Math.max(M, W - M - r.width) : r.left < M ? M : null;
+    if (left != null && Math.abs(left - r.left) > 0.5) setPos({ top: pos.top, left });
+  }, [pos]);
 
   if (!open || !mounted || !pos) return null;
   return createPortal(

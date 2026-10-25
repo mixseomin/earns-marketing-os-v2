@@ -120,17 +120,21 @@ def goc_moi(ma, bao, nb):
 
 def main():
     a = sys.argv[1:]
-    if "--tu-choi" in a:   # tiến trình ethopex-sua-tu-choi (launchd iMac, 10 phút, anh duyệt 24/10/2026): chỉ ad bị Meta từ chối đang chờ góc mới; rỗng thì thoát ngay
+    goc_lan_nay = False
+    if "--tu-choi" in a:   # tiến trình ethopex-sua-tu-choi (launchd iMac, 10 phút, anh duyệt 24/10/2026): ad bị Meta từ chối đang chờ góc mới; rỗng thì thoát ngay
         tc = [k for k, v in khoa("ethopex_cho_dung_lai").items() if v.get("tu_choi")]
-        if not tc: return
-        a = ["--khong-truoc", "--chi", *tc]
+        # TẠM (anh 25/10/2026: "làm tạm trên iMac lúc này cho đến khi CF xong lô chính"): cắt luôn GÓC MỚI cho phim trong hàng ethopex_can_goc_moi
+        # (clone phải khác creative → phim hết creative khác cần góc mới) thay vì chờ cuối mỗi lô lên phim
+        goc_lan_nay = bool(khoa("ethopex_can_goc_moi"))
+        if not tc and not goc_lan_nay: return
+        a = ["--khong-truoc", "--chi", *(tc or ["0"])]
     chi = set(a[a.index("--chi") + 1:]) if "--chi" in a else None; nb = "--khong-nb" not in a
     lk = open(os.path.join(C, "sua-cta.lock"), "w")
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("sua-cta đang chạy ở lượt khác — thoát")
     ma = time.strftime("sua%d%m%H%M"); os.makedirs(os.path.join(C, "ra", ma), exist_ok=True); bao0 = []
     import xuong as XG; XG.bao("sua", ma, "sửa CTA / góc mới cho camp thắng", ep=True)
-    if not chi: goc_moi(ma, bao0, nb)
+    if not chi or goc_lan_nay: goc_moi(ma, bao0, nb)
     if bao0: print("\n".join(bao0), flush=True)
     hang = {k: v for k, v in khoa("ethopex_cho_dung_lai").items() if not chi or k in chi}
     if not chi and "--khong-truoc" not in a:

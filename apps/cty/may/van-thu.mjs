@@ -33,7 +33,7 @@ if (!x) { log('không có thư chờ'); process.exit(0); }
 const phong = box(`sed -n '1,/^---$/!p' ${APP}/cong-ty/phong/${PHONG}.md | head -40`);
 // KỸ NĂNG (anh 26/10/2026: "cài cho Vân"): kỹ năng thư viện ngoài trong hồ sơ Vân (social, image, video, community-marketing, social-media-manager…) từ thư
 // viện công ty trên box (worker/ky-nang.mjs) — Vân lập việc / trả lời theo nghề thật, không theo cảm tính. Box im thì làm tiếp không có kỹ năng.
-let kyNang = ''; try { kyNang = box(`cd ${APP} && node worker/ky-nang.mjs --nguoi ${NGUOI} --tran 12000`).trim(); } catch (e) { log(`không lấy được kỹ năng: ${e.message.slice(0, 120)}`); }
+let kyNang = ''; try { kyNang = box(`cd ${APP} && node worker/ky-nang.mjs --nguoi ${NGUOI} --toi-da 3 --tran 8000`).trim(); } catch (e) { log(`không lấy được kỹ năng: ${e.message.slice(0, 120)}`); }
 
 const truoc = x.truoc;
 const giao0 = x.loai === 'tra-loi' ? `Bạn là Vân, Trưởng phòng Social Traffic của công ty (cty.on.tc). Anh (Giám đốc) vừa nhắn trong chủ đề phòng${truoc ? ', trả lời dưới báo cáo của bạn về một thư' : ''}.

@@ -2,7 +2,7 @@
 // bên ngoài" → "gắn đi, rồi cài cho Long và Vân"). Kỹ năng chép nguyên SKILL.md từ ba thư viện MIT, mỗi nguồn một thư mục trong cong-ty/ky-nang/
 // (README + LICENSE từng nguồn). Một chỗ tra tên → tệp cho mọi người dùng: Ngọc chấm theo loại bài (kiem-bai.mjs), Long sửa bài theo đúng kỹ năng Ngọc
 // chấm, Vân xử việc phòng theo kỹ năng trong hồ sơ (máy iMac gọi CLI này qua ssh). Tên trùng giữa hai nguồn thì nguồn đứng trước trong NGUON thắng.
-//   node worker/ky-nang.mjs --nguoi <id> [--loai <loại bài>] [--tran <ký tự mỗi kỹ năng>]   in chữ kỹ năng (hồ sơ người đó ∪ kỹ năng của loại bài)
+//   node worker/ky-nang.mjs --nguoi <id> [--loai <loại bài>] [--toi-da <số kỹ năng>] [--tran <ký tự mỗi kỹ năng>]   in chữ kỹ năng (hồ sơ người đó ∪ kỹ năng của loại bài)
 //   node worker/ky-nang.mjs --tu-kiem
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,5 +31,6 @@ if (a[1]?.endsWith('ky-nang.mjs') && a.includes('--tu-kiem')) {
   console.log('ky-nang: tự kiểm đạt'); process.exit(0);
 }
 if (a[1]?.endsWith('ky-nang.mjs') && (lay('--nguoi') || lay('--loai'))) {
-  console.log(chuKyNang([...kyNangLoai(lay('--loai')), ...kyNangNguoi(lay('--nguoi') ?? '')], Number(lay('--tran')) || 20000));
+  // --toi-da N: chỉ N kỹ năng đầu (loại bài trước, rồi hồ sơ) — lời giao việc gọn, mỗi lượt Claude rẻ hơn (anh 26/10/2026: "fix cho gọn")
+  console.log(chuKyNang([...new Set([...kyNangLoai(lay('--loai')), ...kyNangNguoi(lay('--nguoi') ?? '')])].slice(0, Number(lay('--toi-da')) || 99), Number(lay('--tran')) || 20000));
 }

@@ -76,22 +76,29 @@ function soat(mau: Mau | null, chu: string, loi_noi: string) {
   return { thoai, cta };
 }
 
+// BÁO BƯỚC về mos2 (bảng chấm trực tiếp trên etp.on.tc — anh 25/10/2026 "thiếu bảng live chi tiết") — lỗi báo không làm hỏng lượt chấm
+const bao = (env: Env, cr: number, buoc: string) => fetch(MOS2, { method: 'POST', headers: { authorization: `Bearer ${env.MOS2_EXT_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ creative_id: cr, buoc }) }).catch(() => null);
+
 async function chamMot(env: Env, v: Viec, tc: TieuChi[], mau: Mau | null) {
   const cr = v.creative_id, key = `tam/${cr}.mp4`, loi: string[] = [];
+  await bao(env, cr, 'tải video vào kho tạm Cloudflare');
   const lop: Record<string, unknown> = {};
   // video tạm vào R2 MỘT lần (mỗi lượt Media binding cần luồng mới — cắt từ R2, không kéo lại từ box3)
   const r = await fetch(v.video); const dai = Number(r.headers.get('content-length') ?? 0);
   if (!r.ok || !r.body || !dai) throw new Error(`không tải được video (${r.status})`);
   const { readable, writable } = new FixedLengthStream(dai); r.body.pipeTo(writable); await env.R2.put(key, readable);
+  await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · cắt ${SO_KHUNG} khung`);
   try {
     // ảnh: 20 khung chia đều, khung cuối sát thẻ kết
     const moc = Array.from({ length: SO_KHUNG }, (_, i) => Math.min(v.dur - 1.2, ((i + 0.5) * v.dur) / SO_KHUNG));
-    const anh = (await theoNhom(moc, 5, async (t) => { try { return await cat(env, key, { mode: 'frame', time: `${t.toFixed(1)}s`, format: 'jpg' }, { width: 384 }); } catch { return null; } }))
+    let daCat = 0;
+    const anh = (await theoNhom(moc, 5, async (t) => { try { const a = await cat(env, key, { mode: 'frame', time: `${t.toFixed(1)}s`, format: 'jpg' }, { width: 384 }); if (++daCat % 5 === 0) await bao(env, cr, `cắt khung ${daCat}/${SO_KHUNG}`); return a; } catch { return null; } }))
       .filter((x): x is Uint8Array => !!x);
     if (anh.length < SO_KHUNG / 2) throw new Error(`chỉ cắt được ${anh.length}/${SO_KHUNG} khung`);
     await Promise.all(anh.map((a, i) => env.R2.put(`khung/${cr}/${i + 1}.jpg`, a, { httpMetadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000' } })));
     const goc = 'https://etp-cham.eimagini-info.workers.dev';
     lop.anh = { luc: vn(), so_khung: anh.length, giay: v.dur, khung_url: anh.map((_, i) => `${goc}/khung/${cr}/${i + 1}.jpg?v=${Date.now()}`) };
+    await bao(env, cr, `đã cắt ${anh.length} khung · tách tiếng + chép giọng (Whisper)`);
     // giọng: từng đoạn ≤ 60s → Whisper; gộp câu lặp liền nhau (Whisper hay lặp ảo trên nhạc)
     let giong = '';
     try {
@@ -107,6 +114,7 @@ async function chamMot(env: Env, v: Viec, tc: TieuChi[], mau: Mau | null) {
       lop.giong = { luc: vn(), noi_dung: giong.slice(0, 4000), ngon_ngu: chu[0]?.lang ?? null, loi: [] };
     } catch (e) { loi.push(`giọng: ${String(e).slice(0, 120)}`); }
     // nội dung + chữ: Claude hai lượt độc lập, lấy điểm thấp
+    await bao(env, cr, lop.giong ? `đã chép giọng ${giong.split(/\s+/).filter(Boolean).length} từ · Claude chấm 2 lượt` : 'giọng lỗi · Claude chấm 2 lượt');
     const can = tc.map((x) => `${x.nhom}.${x.ma}`), hoi = cauHoi(tc, giong);
     const ls = await Promise.all([claude(env, anh, hoi, can), claude(env, anh, hoi, can)]);
     const diem: Record<string, number> = {}, ly: Record<string, string> = {}, khung: Record<string, number[]> = {};
@@ -118,6 +126,7 @@ async function chamMot(env: Env, v: Viec, tc: TieuChi[], mau: Mau | null) {
       const kh = [...new Set(ls.flatMap((x) => (x.khung?.[k] ?? []).map(Number)).filter((n) => n >= 1 && n <= anh.length))].sort((x, y) => x - y);
       if (kh.length && diem[k]! < 10) khung[k] = kh;
     }
+    await bao(env, cr, `Claude xong (${ls.map((x) => x.duong).join(' + ')}) · soát luật từ cấm / CTA`);
     const chu = [...new Set(ls.map((x) => (x.chu ?? '').trim()).filter(Boolean))].join(' / ');
     const s = soat(mau, chu, giong);
     lop.chu = { luc: vn(), noi_dung: chu.slice(0, 4000), loi: s.thoai, cta: s.cta };

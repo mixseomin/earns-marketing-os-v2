@@ -268,6 +268,42 @@ function TheXem({ t, noi }: { t: The; noi: Noi }) {
     </KhungNoi>
   );
 }
+// BẢNG CHẤM TRỰC TIẾP (anh 25/10/2026: "thiếu bảng live chi tiết à?"): creative đang chấm / đang chờ / vừa xong 30 phút — từng bước Worker báo về
+// (tải video → cắt khung → tách tiếng + Whisper → Claude 2 lượt → kết quả), giờ từng bước, thời gian chạy. Trang tự làm mới 5 giây khi còn việc.
+const giayTu = (a: string | null, b?: string | null) => (a ? Math.max(0, Math.round(((b ? Date.parse(b) : Date.now()) - Date.parse(a)) / 1000)) : null);
+const doDai = (g: number | null) => (g == null ? '—' : g < 60 ? `${g}s` : `${Math.floor(g / 60)}p${String(g % 60).padStart(2, '0')}`);
+function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
+  const crs = useMemo(() => new Map(du.creatives.map((r) => [r.creative_id, r])), [du.creatives]);
+  const TT: Record<string, number> = { dang: 0, cho: 1, loi: 2, xong: 3 };
+  const ds = Object.entries(du.chamHang ?? {}).map(([id, h]) => ({ id: Number(id), h })).sort((a, b) => (TT[a.h.trang_thai] ?? 9) - (TT[b.h.trang_thai] ?? 9) || b.h.luc.localeCompare(a.h.luc));
+  if (!ds.length) return null;
+  const dang = ds.filter((x) => x.h.trang_thai === 'dang').length, cho = ds.filter((x) => x.h.trang_thai === 'cho').length;
+  const MAU: Record<string, string> = { dang: '#9ecbff', cho: '#f59e0b', xong: '#4ade80', loi: '#f87171' };
+  const CHU: Record<string, string> = { dang: 'đang chấm', cho: 'đang chờ', xong: 'xong', loi: 'lỗi' };
+  return (
+    <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', margin: '4px 0 12px' }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
+        {dang + cho ? <Den mau="#9ecbff" t="đang chấm" song /> : <Den mau="#4ade80" t="không còn việc" />} Chấm trực tiếp trên Cloudflare
+        <span style={{ fontWeight: 400, color: 'var(--fg-2)' }}>· {dang} đang chấm · {cho} đang chờ · xong 30 phút qua {ds.filter((x) => x.h.trang_thai === 'xong').length}{dang + cho ? ' · tự làm mới 5 giây' : ''}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1.3fr) 90px 70px minmax(300px, 3fr) 120px', gap: '0 12px', fontSize: 12, alignItems: 'center' }}>
+        {['Creative', 'Trạng thái', 'Đã chạy', 'Các bước', 'Kết quả'].map((t) => <div key={t} style={{ color: 'var(--fg-3)', fontSize: 11, padding: '2px 0', borderBottom: '1px solid var(--line)' }}>{t}</div>)}
+        {ds.map(({ id, h }) => { const r = crs.get(id), c = du.cham[id], dau = h.nhat_ky[0]?.luc ?? h.luc;
+          return [
+            <div key={`${id}a`} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--line)' }}>{anh(id)}<span>{r?.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{id} · {h.nguon === 'nut' ? 'anh bấm' : 'creative mới'}</span></span></div>,
+            <div key={`${id}b`} style={{ color: MAU[h.trang_thai], borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', gap: 5 }}><Den mau={MAU[h.trang_thai] ?? '#888'} t={CHU[h.trang_thai] ?? h.trang_thai} song={h.trang_thai === 'dang'} />{CHU[h.trang_thai] ?? h.trang_thai}</div>,
+            <div key={`${id}c`} style={{ fontVariantNumeric: 'tabular-nums', borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }} title={`bắt đầu ${vn(h.bat_dau)}`}>{doDai(giayTu(h.bat_dau ?? (h.trang_thai === 'cho' ? h.luc : null), h.xong))}</div>,
+            <div key={`${id}d`} style={{ borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', flexWrap: 'wrap', gap: '2px 10px', alignItems: 'center', padding: '4px 0' }}>
+              {h.nhat_ky.map((k, i) => { const cuoi = i === h.nhat_ky.length - 1;
+                return <span key={i} title={vn(k.luc)} style={{ color: cuoi && h.trang_thai === 'dang' ? '#9ecbff' : cuoi && h.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)', fontWeight: cuoi ? 600 : 400 }}>
+                  {cuoi && h.trang_thai === 'dang' ? '▶' : '✓'} {k.b} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>+{doDai(giayTu(dau, k.luc))}</span></span>; })}
+            </div>,
+            <div key={`${id}e`} style={{ borderBottom: '1px solid var(--line)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>{h.trang_thai === 'xong' && c ? <span><b style={{ color: c.ket === 'cam' ? '#f87171' : c.ket === 'xem' ? '#f59e0b' : '#4ade80' }}>{c.ket === 'cam' ? 'Cấm' : c.ket === 'xem' ? 'Cần xem' : 'Sạch'}</b> · Meta {c.meta ?? '–'} · AFS {c.afs ?? '–'}</span> : h.trang_thai === 'loi' ? <span style={{ color: '#f87171' }} title={h.loi ?? ''}>{(h.loi ?? 'lỗi').slice(0, 40)}</span> : '—'}</div>,
+          ]; })}
+      </div>
+    </div>
+  );
+}
 type LocSoat = 'loi' | 'xem' | 'meta' | 'chua' | 'all';
 // tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
@@ -327,8 +363,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
               <span style={{ fontVariantNumeric: 'tabular-nums' }}>{q.xong}/{q.tong} · <span style={{ color: DAU_MAU.ok }}>{q.ok} sạch</span> · <span style={{ color: DAU_MAU.loi }}>{q.cam} cấm</span> · <span style={{ color: DAU_MAU.vua }}>{q.xem} cần xem</span></span>
             </div>))}
         </div>) : null}
-      {choCham ? (() => { const hs = Object.values(du.chamHang ?? {}); const dang = hs.filter((h) => h.trang_thai === 'dang').length, cho = hs.filter((h) => h.trang_thai === 'cho').length;
-        return <div style={{ fontSize: 13, margin: '4px 0 10px', color: 'var(--fg-2)' }}><Den mau="#9ecbff" t="đang chấm" song /> Cloudflare đang chấm <b style={{ color: 'var(--fg-1)' }}>{dang}</b> creative · <b style={{ color: 'var(--fg-1)' }}>{cho}</b> đang chờ · tự làm mới 5 giây</div>; })() : null}
+      <ChamTrucTiep du={du} anh={anh} />
       <PhotBo du={du} />
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
         <span><b style={{ fontSize: 18 }}>{ds.length - dem.chua}/{ds.length}</b> đã chấm</span>

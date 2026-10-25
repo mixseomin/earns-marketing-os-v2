@@ -12,7 +12,7 @@ import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { guiPlenx, docPlenx } from '../src/lib/xuong-video/cong-plenxai';
 import { giaVideoCong } from '../src/lib/xuong-video/cong-ai';
-import { chiaCum, anhNeoCuoi, promptCum, thamChieuCum, vaoTuCatThat, BO_DUOI, VAO_DAU, DUNG_DUOC } from '../src/lib/xuong-video/cum-shot';
+import { chiaCum, anhNeoCuoi, promptCum, thamChieuCum, vaoTuCatThat, vaoLienMach, BO_DUOI, VAO_DAU, DUNG_DUOC } from '../src/lib/xuong-video/cum-shot';
 import { uploadToR2 } from '../src/lib/r2';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { giayPhat } from '../src/lib/xuong-video/kieu';
@@ -90,14 +90,16 @@ await Promise.all(Array.from({ length: Math.min(TRAN, cacCum.length) }, async (_
 }));
 for (const [i, c] of cacCum.entries()) {
   const f = kq[i]; const nhan = `#${c[0]!.thu_tu}–#${c.at(-1)!.thu_tu}`; if (!f) { console.log(`${nhan}: KHÔNG có clip — giữ clip cũ`); continue; }
-  const d = dai(f); const cat = catThat(f, c.length, d); const v = vaoTuCatThat(c, cat, d);
+  const d = dai(f);
+  // tham chiếu (Vidu) = cú máy liền → phát nối tiếp (vaoLienMach); Veo nhiều góc = cắt cứng → điểm vào theo cú cắt đo được
+  const cat = tc[i] ? [] : catThat(f, c.length, d); const v = tc[i] ? { vao: vaoLienMach(c), theoDo: false, ngan: [] as number[] } : vaoTuCatThat(c, cat, d);
   const url = await uploadToR2(`xuong-video/video/cum-${tap}-${c[0]!.thu_tu}-${c.at(-1)!.thu_tu}-${randomUUID()}.mp4`, readFileSync(f), 'video/mp4');
   for (const [j, s] of c.entries()) {
     const cum = { tu: c[0]!.thu_tu, den: c.at(-1)!.thu_tu, url, cat, theo_do: v.theoDo, luc: new Date().toISOString() };
     await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, video_cuoi_url = NULL, cat_cuoi_s = NULL, chi_phi_cents = chi_phi_cents + ${j ? 0 : giaCum.cents ?? 0},
       ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || jsonb_build_object('vao_s', ${v.vao[j]!}::float, 'cum', ${JSON.stringify(cum)}::jsonb), updated_at = now() WHERE id = ${s.id}`);
   }
-  console.log(`${nhan}: ${url}\n  cắt đo ${cat.map((x) => x.toFixed(2)).join(' · ') || '—'} (${v.theoDo ? 'đủ' : `thiếu/thừa — theo lịch prompt`}) · vào ${v.vao.join(' · ')}${v.ngan.length ? ` · ⚠ đoạn ngắn hơn giây phát: #${v.ngan.join(', #')}` : ''}`);
+  console.log(`${nhan}: ${url}\n  cắt đo ${cat.map((x) => x.toFixed(2)).join(' · ') || '—'} (${tc[i] ? 'cú máy liền — phát nối tiếp' : v.theoDo ? 'đủ' : 'thiếu/thừa — theo lịch prompt'}) · vào ${v.vao.join(' · ')}${v.ngan.length ? ` · ⚠ đoạn ngắn hơn giây phát: #${v.ngan.join(', #')}` : ''}`);
   ff(['-loglevel', 'error', '-y', '-i', f, '-vf', 'fps=3,scale=160:-1,tile=8x3', '-frames:v', '1', `${tmp}/to-${c[0]!.thu_tu}-${c.at(-1)!.thu_tu}.jpg`]);
 }
 process.exit(0);

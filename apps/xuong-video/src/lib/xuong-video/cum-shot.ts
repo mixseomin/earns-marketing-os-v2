@@ -69,6 +69,10 @@ function promptCumTho(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them: 
     `${shot.join('. ')}.`, 'Keep every object state continuous across the cuts (what was taken stays taken, stains stay, nothing reappears). Only the people of this scene appear. No on-screen text, no subtitles.', them].filter(Boolean).join(' ');
 }
 
+/** CÚ MÁY LIỀN (Vidu Q2 tham chiếu, phim #353 25/10/2026: cả 6 cụm ra MỘT cú máy đẩy / lia, không cắt cứng dù prompt ghi "hard cut"): các shot phát NỐI
+ *  TIẾP trong clip — điểm vào shot i = VAO_DAU + tổng giây phát các shot trước → bản dựng ghép lại đúng thành đoạn quay liền, không nhảy hình giữa shot. */
+export const vaoLienMach = (cum: readonly ShotCum[]): number[] => { let t = VAO_DAU; return cum.map((c) => { const v = +t.toFixed(2); t += giayPhat(c); return v; }); };
+
 /** Điểm vào (vao_s) từng shot từ điểm cắt ĐO trên clip (ffmpeg scene). Đủ n−1 cú cắt thì dùng điểm đo (+0,05 s qua cú cắt); thiếu / thừa thì theo
  *  lịch prompt và báo. ngan = shot có đoạn đo được ngắn hơn giây phát (dựng sẽ lấn sang góc kế) — phải soát. */
 export function vaoTuCatThat(cum: readonly ShotCum[], cat: readonly number[], daiClip = GIAY_CLIP): { vao: number[]; theoDo: boolean; ngan: number[] } {

@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
-import { chiaCum, lichCum, vaoTuCatThat, thamChieuCum, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, DUNG_DUOC, VAO_DAU } from './cum-shot';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
 const phat = [1.5, 1.5, 2, 1.5, 1.5, 1, 2, 1, 1.5, 1.5, 2, 3, 1.5, 4.7, 5, 1.5, 3];
@@ -46,4 +46,6 @@ const t1 = thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [
 assert.deepStrictEqual(t1.anh, ['ha-khong-the', 'vi-mau', 'ha-mau', 'vi-phu', 'kf-ws']);
 assert.ok(t1.goi.startsWith('Reference image 1 is Lâm Hạ; Reference image 2 is Vivian') && t1.goi.endsWith('the location (lighting, set, colours)'));
 assert.deepStrictEqual(thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi])], 3).anh, ['ha-khong-the', 'vi-mau', 'kf-ws']);
+// cú máy liền: shot nối tiếp nhau (#5–#9: 1,5 · 1 · 2 · 1 · 1,5 giây)
+assert.deepStrictEqual(vaoLienMach(ds.slice(4, 9)), [0.2, 1.7, 2.7, 4.7, 5.7]);
 console.log('✓ cum-shot');

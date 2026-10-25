@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """LÊN CAMP SAU KHI CHẤM (anh 25/10/2026: "cái nào đủ điều kiện lên camp thì lên luôn. Mở lại quy định lên camp mới").
-Creative của một lô đã đẩy lên Ethopex (ra/<mã lô>/len.json) mà CHƯA có camp → qua cổng chấm (view etp.cham_cong: Meta ≤ 4 / CTA ≤ 4 thì chặn) thì tạo camp bộ 2 (nhan-ban.py --creative, khuôn EN/ES
+Creative của một lô đã đẩy lên Ethopex (ra/<mã lô>/len.json) mà CHƯA có camp → qua cổng chấm (view etp.cham_cong: Meta ≤ 4 / CTA ≤ 4 thì chặn) thì tạo camp ở bộ của phim (sổ ethopex_phim_tk; phim mới → bộ 2) (nhan-ban.py --creative, khuôn EN/ES
 như dot-phim-moi); chưa chấm thì bỏ qua (nhan-ban tự xếp hàng chấm) — chạy lại lệnh này sau khi chấm xong để lên nốt. Cấm / cần xem: không lên.
 Cổng thật nằm ở nhan-ban.py (cổng chấm + rào chắn etp + bão hoà + phim 18+ + CTA) — lệnh này chỉ chọn việc và gọi.
 Chạy (iMac):  python3 len-sau-cham.py <mã lô, vd pm24101433> [--lich today|tomorrow] [--thu]"""
@@ -19,6 +19,7 @@ def main(a):
     ds = [x for x in json.load(open(os.path.join(C, "ra", ma, "len.json"))) if x.get("ok") and x.get("creative_id")]
     ids = ",".join(str(int(x["creative_id"])) for x in ds) or "0"
     co_camp = set(SD.sql(f"select distinct creative_id from etp.camp where creative_id in ({ids}) and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
+    bo_phim = json.loads(SD.sql("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_tk'") or "{}")   # mỗi phim một bộ — phim đã có bộ thì lên đúng bộ đó, phim mới → bộ 2
     cham = dict(l.split("|", 1) for l in SD.sql(f"select creative_id, case when duoc_len then 'ok' else 'chan' end from etp.cham_cong where creative_id in ({ids})").splitlines() if "|" in l)   # cổng một nguồn: view etp.cham_cong
     dem = {"len": 0, "loi": 0, "co_camp": 0, "chua_cham": 0, "khong_sach": 0}
     for x in ds:
@@ -30,7 +31,7 @@ def main(a):
         lang = (x.get("lang") or "en").lower()
         if thu: print(f"[thử] sẽ lên #{cr} ({lang}) {x['ten'][:60]}"); dem["len"] += 1; continue
         ten = x["ten"].replace("'", "").replace('"', "")
-        r = subprocess.run(["ssh", SD.B, f"""{SD.ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON['en'])} --bo 2 --creative {cr} --content {int(x['content_id'])} --ten "{ten}" --that --lich {lich} --luat "lên camp sau khi máy chấm Sạch — lô {ma}" --ai "anh (chat 25/10/2026: cái nào đủ điều kiện lên camp thì lên luôn)\""""],
+        r = subprocess.run(["ssh", SD.B, f"""{SD.ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON['en'])} --bo {bo_phim.get(str(int(x['content_id'])), '2')} --creative {cr} --content {int(x['content_id'])} --ten "{ten}" --that --lich {lich} --luat "lên camp sau khi máy chấm Sạch — lô {ma}" --ai "anh (chat 25/10/2026: cái nào đủ điều kiện lên camp thì lên luôn)\""""],
                            capture_output=True, text=True, timeout=600)
         kq = (r.stdout.strip().splitlines() or [r.stderr.strip()[-200:]])[-1]
         try: j = json.loads(kq); ok = j.get("ok")

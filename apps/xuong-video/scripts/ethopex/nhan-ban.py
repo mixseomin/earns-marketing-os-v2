@@ -163,7 +163,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None):
             if not sua:
                 xep_dung_lai(goc_id, a.get("creative_id"), a.get("content_id"), c["name"])
                 raise ValueError(f"creative #{a.get('creative_id')} CTA cũ, chưa có bản sửa — đã xếp hàng dựng lại (ethopex_cho_dung_lai)")
-            a = {**a, "creative_id": sua}; ten = f"{goc_ten} cta-sua (nhan ban {so} cua {goc_id})"
+            a = {**a, "creative_id": sua}; ten = f"{goc_ten} cta-sua " + (f"(thang ${thang:g} cua {goc_id})" if thang else f"(nhan ban {so} cua {goc_id})")   # giữ nhãn thang — luật nhận bản thang theo tên
     # BỎ mọi mã định danh + mốc thời gian của camp GỐC (chạy khô 22/10/2026: source_payload Ad Set mang campaign_id FB + start_time của camp gốc
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}

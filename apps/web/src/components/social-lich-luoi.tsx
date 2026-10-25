@@ -159,7 +159,11 @@ type KenhBang = { k: string; khoa: string; tk: string; url: string | null; may: 
 export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   // DỊCH NGÀY (anh 25/10/2026 "cho phép dịch chuyển ngày để xem các bài trước đó"): mỗi bước 7 ngày, trong khoảng sổ có (6 tuần qua → 6 tuần tới)
   const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null);
-  const ngay = Array.from({ length: 9 }, (_, i) => cong(luoi.hom, i - 2 + lech)), dau = ngay[0]!, cuoi = ngay[8]!;
+  // HAI CÁCH XEM (anh 25/10/2026: "phần bài vẫn phải show kiểu lịch… nếu cột thì phải là dạng timeline, nhưng chỉ là 1 option"):
+  // lịch = lưới T2→CN hai tuần, dòng thời gian = một tuần, mỗi ngày một cột, bài đặt theo giờ đăng
+  const [xem, setXem] = useState<'lich' | 'gio'>('lich');
+  const thu2 = cong(cong(luoi.hom, lech), -((new Date(`${cong(luoi.hom, lech)}T00:00:00Z`).getUTCDay() + 6) % 7));
+  const ngay = Array.from({ length: xem === 'lich' ? 14 : 7 }, (_, i) => cong(thu2, i)), dau = ngay[0]!, cuoi = ngay[ngay.length - 1]!;
   const kenh = [...luoi.o.reduce((m, x) => {
     const kn = luoi.kenh?.[`${x.may}|${x.nen}`], khoa = khoaNen(x.nen, kn?.nenKey), tk = x.tk ?? kn?.tk ?? nhanNen(x.nen), k = `${khoa}|${tk}`;
     const g = m.get(k) ?? { k, khoa, tk, url: kn?.url ?? null, may: x.mayTen.split(' · ')[0] ?? x.mayTen, nen: [], bai: [] };
@@ -199,6 +203,10 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
           <span title={`${c.may} · ${c.nen.map(nhanNen).join(' · ')}`} style={{ minWidth: 0 }}>
             {c.url ? <a href={wrapExternalUrl(c.url)} target="_blank" rel="noreferrer" style={{ fontSize: 16, fontWeight: 700, color: 'inherit' }}>{c.tk} ↗</a> : <b style={{ fontSize: 16 }}>{c.tk}</b>}</span>
           <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+            <span role="group" aria-label="cách xem" style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {([['lich', '📅 Lịch'], ['gio', '⏱ Dòng thời gian']] as const).map(([k, t]) => <button key={k} type="button" aria-pressed={xem === k} onClick={() => setXem(k)}
+                style={{ border: 0, padding: '4px 10px', fontSize: 12, cursor: 'pointer', background: xem === k ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg)', color: 'inherit', fontWeight: xem === k ? 700 : 400 }}>{t}</button>)}
+            </span>
             <button type="button" style={nut} disabled={lech <= -42} onClick={() => setLech((l) => Math.max(-42, l - 7))} aria-label="lùi 7 ngày">◀</button>
             <button type="button" style={{ ...nut, fontWeight: lech === 0 ? 700 : 400, minWidth: 150, fontVariantNumeric: 'tabular-nums' }} onClick={() => setLech(0)} title="về hôm nay">{ngayVn(dau)} – {ngayVn(cuoi)}</button>
             <button type="button" style={nut} disabled={lech >= 35} onClick={() => setLech((l) => Math.min(35, l + 7))} aria-label="tới 7 ngày">▶</button>
@@ -214,35 +222,85 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
           {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} title={`${n} bài`} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12, color: 'var(--fg-2)' }}>{k}</span>)}
         </div> : null}
         {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài trong khoảng ngày này — bấm ◀ ▶ để xem tuần khác.</div>
-          : ngay.filter((n) => bai.some((x) => x.ngay === n)).map((n) => (
-            <div key={n} style={{ display: 'grid', gap: 6 }}>
-              <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)', padding: '4px 0', fontSize: 13, fontWeight: 700, color: n === luoi.hom ? 'var(--accent, #d97706)' : 'var(--fg-2)', borderBottom: '1px solid var(--border)' }}>
-                {ngayVn(n)}{n === luoi.hom ? ' · hôm nay' : ''}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 8 }}>
-                {bai.filter((x) => x.ngay === n).sort((a, b) => a.gio.localeCompare(b.gio)).map((x, i) => <OBai key={i} x={x} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />)}
-              </div>
-            </div>))}
+          : xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />
+          : <DongThoiGian ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />}
       </section> : null}
     </div>
   );
 }
-// YDNI: trạng thái = dấu hiệu (chấm xanh đã đăng · vòng cam máy sẽ đăng · 🔗 có link), chữ vào hover; thẻ gọn: ảnh · một dòng nhãn · 2 dòng chữ · số
-function OBai({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) {
+const tenNgay = (n: string, hom: string) => (n === hom ? 'Hôm nay' : `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`);
+const theoGio = (a: StLuoiO, b: StLuoiO) => a.gio.localeCompare(b.gio);
+/** LỊCH: lưới T2→CN, mỗi ô một ngày, thẻ bài gọn xếp theo giờ trong ô; ngày không bài để trống nhỏ (lưới lịch giữ nhịp tuần, không chèn chữ "không có bài") */
+function LichBai({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; hom: string; so: boolean | 'bam' }) {
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+      {ngay.slice(0, 7).map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)', padding: '6px 8px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)', borderBottom: '1px solid var(--border)' }}>{THU[new Date(`${n}T00:00:00Z`).getUTCDay()]}</div>)}
+      {ngay.map((n, i) => { const ds = bai.filter((x) => x.ngay === n).sort(theoGio);
+        return <div key={n} title={`${ds.length} bài`} style={{ padding: 5, minHeight: 90, display: 'grid', alignContent: 'start', gap: 5, borderTop: i >= 7 ? '1px solid var(--border)' : undefined, borderLeft: i % 7 ? '1px solid var(--border)' : undefined,
+          background: n === hom ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined }}>
+          <span style={{ fontSize: 12, fontWeight: n === hom ? 700 : 500, color: n === hom ? 'var(--accent, #d97706)' : n < hom ? 'var(--fg-3)' : 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{n === hom ? 'Hôm nay' : `${n.slice(8)}/${n.slice(5, 7)}`}</span>
+          {ds.map((x, j) => <OBai key={j} x={x} hom={hom} so={so} gon />)}
+        </div>; })}
+    </div>);
+}
+/** DÒNG THỜI GIAN: một tuần, mỗi ngày một cột, trục giờ dọc — thẻ đặt đúng giờ đăng (khoảng giờ co theo bài thật trong tuần), thẻ sát nhau thì đẩy xuống */
+function DongThoiGian({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; hom: string; so: boolean | 'bam' }) {
+  const gioSo = (x: StLuoiO) => (/^\d{1,2}:\d{2}/.test(x.gio) ? Number(x.gio.slice(0, x.gio.indexOf(':'))) + Number(x.gio.slice(x.gio.indexOf(':') + 1, x.gio.indexOf(':') + 3)) / 60 : null);
+  const cac = bai.map(gioSo).filter((g): g is number => g != null), tu = cac.length ? Math.max(0, Math.floor(Math.min(...cac)) - 1) : 0, den = cac.length ? Math.min(24, Math.ceil(Math.max(...cac)) + 2) : 24;
+  const PX = 64, THE = 56, cao = (den - tu) * PX;
+  const cot = ngay.map((n) => { let day = 0; return bai.filter((x) => x.ngay === n).sort(theoGio).map((x) => { const top = Math.max(day, ((gioSo(x) ?? tu) - tu) * PX); day = top + THE + 4; return { x, top }; }); });
+  const cuoi = Math.max(cao, ...cot.flat().map((c) => c.top + THE));
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, display: 'grid', gridTemplateColumns: '44px repeat(7, minmax(0, 1fr))' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', borderBottom: '1px solid var(--border)' }} />
+      {ngay.map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', padding: '6px 8px', fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', color: n === hom ? 'var(--accent, #d97706)' : 'var(--fg-2)' }}>{tenNgay(n, hom)}</div>)}
+      <div style={{ position: 'relative', height: cuoi }}>
+        {Array.from({ length: den - tu }, (_, h) => <span key={h} style={{ position: 'absolute', top: h * PX - 7, right: 6, fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{h ? `${tu + h}h` : ''}</span>)}
+      </div>
+      {cot.map((ds, i) => <div key={ngay[i]} style={{ position: 'relative', height: cuoi, borderLeft: '1px solid var(--border)', background: ngay[i] === hom ? 'var(--accent-soft, rgba(37,99,235,.06))' : undefined,
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0 ${PX - 1}px, var(--border) ${PX - 1}px ${PX}px)` }}>
+        {ds.map(({ x, top }, j) => <div key={j} style={{ position: 'absolute', top, left: 4, right: 4 }}><OBai x={x} hom={hom} so={so} dong /></div>)}
+      </div>)}
+    </div>);
+}
+/** thẻ CAO CỐ ĐỊNH 56px cho dòng thời gian (đặt tuyệt đối theo giờ, nên chiều cao phải biết trước): ảnh vuông trái · màu format ở viền · giờ + chấm trạng thái · 1 dòng chữ */
+function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) {
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
-  const tt = `${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
+  const tt = `${x.title}\n${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && so && x.bam != null ? ` · ↪ ${x.bam}` : ''}`;
+  const the = (
+    <div title={tt} style={{ height: 56, display: 'flex', gap: 5, border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 7, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
+      {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: 44, height: '100%', objectFit: 'cover', objectPosition: 'top', flex: 'none', background: '#111' }} /> : null}
+      <div style={{ minWidth: 0, flex: 1, padding: '4px 4px 4px 0', display: 'grid', alignContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', fontSize: 11 }}>
+          <span aria-label={f} style={{ background: mau, color: '#fff', borderRadius: 999, padding: '0 5px', fontWeight: 700 }}>{IC_FMT[f] ?? '•'}</span>
+          <b style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{x.gio !== '—' ? x.gio : ''}</b>
+          {x.link === true ? <span aria-label="có link">🔗</span> : null}
+          <span aria-label={da ? 'đã đăng' : 'máy sẽ đăng'} style={{ marginLeft: 'auto', width: 8, height: 8, flex: 'none', borderRadius: '50%', background: da ? 'var(--ok, #16a34a)' : 'transparent', border: `2px solid ${da ? 'var(--ok, #16a34a)' : 'var(--warn, #d97706)'}` }} />
+        </span>
+        <span style={{ fontSize: 11, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        {so && da ? <span style={{ fontSize: 10, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{so === true ? `👁 ${x.xem ?? '—'} ` : ''}↪ {x.bam ?? '—'}</span> : null}
+      </div>
+    </div>);
+  return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{the}</a> : the;
+}
+// YDNI: trạng thái = dấu hiệu (chấm xanh đã đăng · vòng cam máy sẽ đăng · 🔗 có link), chữ vào hover; thẻ gọn: ảnh · một dòng nhãn · 2 dòng chữ · số
+function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean | 'bam'; gon?: boolean; dong?: boolean }) {
+  if (dong) return <OBaiDong x={x} hom={hom} so={so} />;
+  const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
+  const tt = `${gon ? `${x.title}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
   const the = (
     <div title={tt} style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
-      {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
+      {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: gon ? '16 / 9' : '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
       <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 3 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-          <span style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{f}</span>
+          <span title={f} style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden' }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{gon ? null : f}</span>
           {x.gio !== '—' ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{x.gio}</span> : null}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             {x.link === true ? <span aria-label="có link" style={{ fontSize: 11 }}>🔗</span> : null}
             <span aria-label={da ? 'đã đăng' : 'máy sẽ đăng'} style={{ width: 9, height: 9, borderRadius: '50%', background: da ? 'var(--ok, #16a34a)' : 'transparent', border: `2px solid ${da ? 'var(--ok, #16a34a)' : 'var(--warn, #d97706)'}` }} />
           </span>
         </span>
-        <span style={{ fontSize: 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        <span style={{ fontSize: gon ? 11 : 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: gon ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
         {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', gap: 10, color: 'var(--fg-2)' }}>
           {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}<span title="lượt vào site từ bài (6 tuần)">↪ {x.bam == null ? '—' : x.bam}</span></span> : null}
       </div>

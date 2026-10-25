@@ -13,6 +13,7 @@ import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { DangNenTho, StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docSoBaiFb, khoaBai } from './social-bai-so';
 import type { GocBai } from './goc-spy';
+import { damBaoKeHoach, docKeHoachGoc } from './ke-hoach-goc';
 import { docBamBaiDang, docBamTheoTrang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
 import { HOST_BAN, MAY_TIM, NEN_QC, gopBinhTraTien, loaiCampEtp, linkKenh, type VaoHeSinhThai, type VaoKeHoach } from './social-thanh-pho';
 import { getProductsView } from './products/data';
@@ -41,7 +42,9 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
   /** số liệu bài đã đăng: lượt xem cộng dồn (kenh_so_ngay mới nhất, khớp link bài) · click về site 6 tuần (phiên theo nền × trang đích — docBamTheoTrang); null = chưa đo */
   xem?: number | null; bam?: number | null; thich?: number | null; binhLuan?: number | null;
   /** GÓC spy bài được làm từ (dang.goc / bai_hen.goc, luật 25/10/2026); null = bài chưa có góc */
-  goc?: GocBai | null }
+  goc?: GocBai | null;
+  /** ô KẾ HOẠCH GÓC hằng tuần (ke_hoach_goc): format định làm + format chưa có đường đăng */
+  format?: string | null; canDung?: boolean }
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
@@ -80,13 +83,14 @@ const SONG_SONG = 4;   // 27 lượt cùng lúc làm spy nghẽn (đo 16/10/2026
 
 /** Đo từng phần (anh 18/10/2026: "tab social chậm quá") — mỗi lần dựng in MỘT dòng nhật ký `social: góc 120ms · kênh 640ms …` để biết phần nào nặng. */
 const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promise<T> => { const t = Date.now(); try { return await f(); } finally { ghi.push(`${ten} ${Date.now() - t}ms`); } };
-export async function getSocialLive(): Promise<SocialLive> {
+/** hst=false: bỏ HỆ SINH THÁI (chỉ thành phố dùng, đo 25/10/2026 chiếm 20–22 giây trong 21–24 giây tải tab Social — trang Social bỏ nó đi mà vẫn chờ nó) */
+export async function getSocialLive({ hst = true }: { hst?: boolean } = {}): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
   const [goc, kenh, lo, lich, luoi, suc, nguonSite, heSinhThai] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
     doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
     doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; })),
-    doGio('hệ sinh thái', gio, () => docHeSinhThai(loi))]);
+    hst ? doGio('hệ sinh thái', gio, () => docHeSinhThai(loi)) : Promise.resolve({ duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] } as VaoHeSinhThai)]);
   const keHoach = await doGio('bảng nội dung', gio, () => docKeHoach(loi));
   const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host), ...Object.values(HOST_BAN), ...Object.values(NEN_QC).map((q) => q.host), ...nguonSite.flatMap((x) => Object.keys(x.gt ?? {}))])];
   const fav = await doGio('favicon', gio, () => docFav(site));
@@ -464,6 +468,16 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
         anh: x.anh?.[0] || null, tk: tenPage.get(String(x.acct)) ?? x.ten, nhom: x.nhom, goc: x.goc, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null, bam: null,
         thich: qua ? (so ?? (url ? soFb.get(maBai(url)) : undefined))?.thich ?? null : null, binhLuan: qua ? (so ?? (url ? soFb.get(maBai(url)) : undefined))?.binhLuan ?? null : null });
     }
+    // KẾ HOẠCH GÓC HẰNG TUẦN (anh 25/10/2026: "kế hoạch phải tự sinh và tự cập nhật hàng tuần vào đây"): tuần này + tuần sau tự sinh khi chưa có;
+    // ô kế hoạch thay lượt dự kiến của máy cùng kênh (máy × họ nền) cùng ngày — lịch cho thấy bài ĐỊNH LÀM từ góc nào, format gì
+    try {
+      await damBaoKeHoach(hom);
+      const kh = await docKeHoachGoc(hom, cuoiLuoi), hoCua = (nen: string) => { const g = nen.split(':')[0] ?? nen; return /^(facebook|fb_)/.test(g) ? 'facebook' : /^x(_|$)/.test(g) ? 'x' : g; };
+      const coKh = new Set(kh.map((x) => `${x.may}|${x.ho}|${x.ngay}`)), tenMay = new Map([...da.map((x) => [String(x.ma), String(x.may_ten)] as const), ...ds.map((x) => [x.may, x.mayTen ?? x.may] as const)]);
+      for (let i = o.length - 1; i >= 0; i--) { const x = o[i]!; if (x.loai === 'du_kien' && !x.nen.includes(':') && coKh.has(`${x.may}|${hoCua(x.nen)}|${x.ngay}`)) o.splice(i, 1); }
+      for (const x of kh) if (x.ngay >= hom) o.push({ ngay: x.ngay, gio: '—', may: x.may, mayTen: tenMay.get(x.may) ?? x.may, nen: x.nen, title: x.goc.ten, url: null, loai: 'du_kien', anh: null,
+        tk: tkCua.get(`${x.may}|${x.nen}`) ?? tkCua.get(`${x.may}|${x.ho}`) ?? null, nhom: null, link: x.format === 'Bài link', goc: x.goc, format: x.format, canDung: x.can_dung });
+    } catch (e) { loi.push(`kế hoạch góc: ${(e as Error).message.slice(0, 120)}`); }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }
 }

@@ -356,14 +356,15 @@ function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam'
 // YDNI: trạng thái = dấu hiệu (chấm xanh đã đăng · vòng cam máy sẽ đăng · 🔗 có link), chữ vào hover; thẻ gọn: ảnh · một dòng nhãn · 2 dòng chữ · số
 function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean | 'bam'; gon?: boolean; dong?: boolean }) {
   if (dong) return <OBaiDong x={x} hom={hom} so={so} />;
-  const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
-  const tt = `${gon ? `${x.title}\n` : ''}${x.goc ? `góc ${loaiGoc(x.goc.loai)[0]}: ${x.goc.ten}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
+  const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da', nhanF = x.format ?? f;
+  const tt = `${x.format ? `kế hoạch góc · ${x.format}${x.canDung ? ' (chưa có đường đăng)' : ''}\n` : ''}${gon ? `${x.title}\n` : ''}${x.goc ? `góc ${loaiGoc(x.goc.loai)[0]}: ${x.goc.ten}\n` : ''}${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
   const the = (
     <div title={tt} style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da ? 1 : .45 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: gon ? '16 / 9' : '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
       <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 3 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-          <span title={f} style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden' }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{gon ? null : f}</span>
+          <span title={f} style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden' }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{gon && !x.format ? null : nhanF}</span>
+          {x.canDung ? <span title="format chưa có đường đăng — chuẩn bị P4" style={{ fontSize: 10, color: 'var(--warn, #d97706)', border: '1px solid currentColor', borderRadius: 4, padding: '0 4px' }}>cần dựng</span> : null}
           {x.gio !== '—' ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{x.gio}</span> : null}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             {x.link === true ? <span aria-label="có link" style={{ fontSize: 11 }}>🔗</span> : null}

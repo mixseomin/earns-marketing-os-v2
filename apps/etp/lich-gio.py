@@ -33,6 +33,19 @@ def dieu_khien(ids, trang_thai):
         except Exception as e: print(f"lỗi gọi {trang_thai}: {e}", file=sys.stderr)
     return xong
 
+CHU_KY = 10   # phút giữa hai lượt (etp-dong-bo.timer) — để đoán lượt KẾ sẽ làm gì mà báo trước
+
+def bao_tg(chu):
+    """Báo chủ đề 📂 Ethopex (anh 26/10/2026: "lúc chuẩn bị tắt/bật hàng loạt phải báo qua tele") — khoá bot đọc server-side ở /root/.secrets/mine-tg.env,
+    mã chủ đề ở /var/lib/cty/tg-ethopex.json (cùng chủ đề máy luật cty dùng). Lỗi gửi chỉ in ra stderr, không chặn việc tắt / bật."""
+    try:
+        env = dict(l.strip().split("=", 1) for l in open("/root/.secrets/mine-tg.env") if "=" in l and not l.lstrip().startswith("#"))
+        topic = json.load(open("/var/lib/cty/tg-ethopex.json")).get("topic")
+        body = {"chat_id": env["TG_CHAT"].strip('"'), "text": chu, "parse_mode": "HTML", "link_preview_options": {"is_disabled": True}, **({"message_thread_id": topic} if topic else {})}
+        urllib.request.urlopen(urllib.request.Request(f"https://api.telegram.org/bot{env['TG_BOT_TOKEN'].strip(chr(34))}/sendMessage", data=json.dumps(body).encode(),
+                                                      headers={"content-type": "application/json"}), timeout=20)
+    except Exception as e: print(f"báo Telegram lỗi: {e}", file=sys.stderr)
+
 _KHUNG = {}
 def khung(t):
     """khung giờ VN của thời điểm t — MỘT nguồn: hàm SQL etp.khung_vn (sổ etp.khung_gio, migration 0333), cùng hàm trang etp.on.tc dùng"""
@@ -59,25 +72,48 @@ def main():
     # camp trong sổ mà đang chạy lại (vd máy thay creative bị Meta từ chối xong bật lại) → tạm dừng lại luôn, không để chạy suốt khung TẮT
     can_tat = [c for c, t in chay if bat_lich and (not on(t, k_nay) or not on(t, k_toi))]
     can_bat = [c for c, t in dang_tat.items() if (not bat_lich or (on(t, k_nay) and on(t, k_toi))) and not dung_khan]
+    # BÁO TRƯỚC: lượt này không đổi gì nhưng lượt KẾ (sau CHU_KY phút) sẽ tạm dừng / bật lại hàng loạt → báo một lần cho mỗi lần chuyển khung
+    vn2 = vn + dt.timedelta(minutes=CHU_KY); k2_nay, k2_toi = khung(vn2), khung(vn2 + dt.timedelta(minutes=TRUOC_PHUT))
+    tat2 = [c for c, t in chay if c not in can_tat and bat_lich and (not on(t, k2_nay) or not on(t, k2_toi))]
+    bat2 = [c for c, t in dang_tat.items() if c not in can_bat and bat_lich and on(t, k2_nay) and on(t, k2_toi) and not dung_khan]
     print(f"giờ VN {vn:%H:%M} · khung {k_nay}{' → ' + k_toi if k_toi != k_nay else ''} · lịch {'BẬT' if bat_lich else 'TẮT'} · sẽ tạm dừng {len(can_tat)} · sẽ bật lại {len(can_bat)} · đang tạm dừng {len(dang_tat)}")
     if THU:
         from collections import Counter
         if can_tat: print("  sẽ tạm dừng theo thể loại:", dict(Counter(dict(chay)[c] for c in can_tat)))
+        print(f"  lượt kế ({vn2:%H:%M}): sẽ tạm dừng {len(tat2)} · sẽ bật lại {len(bat2)}" + (" → lượt này BÁO TRƯỚC lên Telegram" if (tat2 or bat2) and not (can_tat or can_bat) else ""))
         bo_qua = Counter(t for c, t in chay if c not in can_tat)
         print("  vẫn chạy theo thể loại:", dict(bo_qua))
         return
     tl_cua = dict(chay)
+    if (tat2 or bat2) and not (can_tat or can_bat):
+        khoa = f"{vn2:%Y-%m-%d} {k2_toi}"
+        if q("select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'lich_bao_truoc'") != khoa:
+            q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('lich_bao_truoc', to_jsonb('{khoa}'::text), 'lần chuyển khung đã báo trước trên Telegram', 'lich-gio.py') "
+              f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+            moc = (vn + dt.timedelta(minutes=CHU_KY)).strftime("%H:%M")
+            bao_tg(f"⏰ <b>LỊCH GIỜ — SẮP {'TẠM DỪNG' if tat2 else 'BẬT LẠI'} HÀNG LOẠT</b> khoảng {moc}\n"
+                   + (f"⏸ sẽ tạm dừng <b>{len(tat2)}</b> camp (khung {k2_toi} TẮT): {tom_tl([tl_cua.get(c, '_khac') for c in tat2])}\n" if tat2 else "")
+                   + (f"▶️ sẽ bật lại <b>{len(bat2)}</b> camp đang tạm dừng vì lịch (khung {k2_nay} BẬT)\n" if bat2 else "")
+                   + "<i>Muốn hoãn: tắt công tắc Lịch giờ ở etp.on.tc › Camp › Lịch giờ trước giờ đó.</i>")
     if can_tat:
         ok = dieu_khien(can_tat, "paused")
+        if len(ok) < len(can_tat): bao_tg(f"⚠️ <b>LỊCH GIỜ</b>: Ethopex không nhận lệnh tạm dừng {len(can_tat) - len(ok)}/{len(can_tat)} camp — lượt sau thử lại")
         if ok:
             j = json.dumps([{"camp_id": c, "the_loai": tl_cua.get(c), "khung": k_toi if on(tl_cua.get(c, "_khac"), k_nay) else k_nay} for c in ok])
             q(f"insert into etp.lich_tat (camp_id, the_loai, khung) select camp_id, the_loai, khung from jsonb_to_recordset($J${j}$J$::jsonb) as x(camp_id int, the_loai text, khung text) on conflict do nothing")
+            bao_tg(f"⏸ <b>LỊCH GIỜ — ĐÃ TẠM DỪNG {len(ok)}/{len(can_tat)} camp</b> (khung {k_toi if k_toi != k_nay else k_nay} TẮT) · {tom_tl([tl_cua.get(c, '_khac') for c in ok])}\n<i>Máy tự bật lại khi tới khung BẬT; chỉ camp do lịch tạm dừng.</i>")
             ghi("lich_tat", ok, f"lịch giờ: khung {k_toi if k_toi != k_nay else k_nay} TẮT cho thể loại " + ", ".join(sorted({tl_cua.get(c, '_khac') for c in ok})))
     if can_bat:
         ok = dieu_khien(can_bat, "active")
+        if len(ok) < len(can_bat): bao_tg(f"⚠️ <b>LỊCH GIỜ</b>: Ethopex không nhận lệnh bật lại {len(can_bat) - len(ok)}/{len(can_bat)} camp — lượt sau thử lại")
         if ok:
             q(f"delete from etp.lich_tat where camp_id in ({','.join(map(str, ok))})")
+            bao_tg(f"▶️ <b>LỊCH GIỜ — ĐÃ BẬT LẠI {len(ok)}/{len(can_bat)} camp</b> (khung {k_nay} BẬT)" + ("" if bat_lich else " — công tắc lịch giờ tắt, bật lại hết"))
             ghi("lich_bat", ok, f"lịch giờ: khung {k_nay} BẬT" + ("" if bat_lich else " (công tắc lịch giờ tắt — bật lại hết)"))
+
+def tom_tl(ds):
+    from collections import Counter
+    return ", ".join(f"{t} {n}" for t, n in Counter(ds).most_common(6)) + (" …" if len(set(ds)) > 6 else "")
 
 def ghi(viec, ids, luat):
     j = json.dumps([{"viec": viec, "sau": str(len(ids)), "luat": (luat + " · camp " + ", ".join(f"#{c}" for c in ids[:40]) + (" …" if len(ids) > 40 else ""))[:1000]}], ensure_ascii=False)

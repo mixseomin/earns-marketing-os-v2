@@ -450,12 +450,14 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     // BÀI HẸN GIỜ theo kế hoạch Page (bai_hen — kế hoạch Page hoài cổ 25/10/2026): Facebook tự đăng đúng giờ; trước giờ = sẽ đăng, qua giờ = đã đăng.
     // nền theo format (Reel → facebook:<acct>, ảnh / album → fb_anh:<acct>, bài link → fb_link:<acct>) để nhãn format + nhóm kênh khớp bài máy trên cùng Page
     const hen = (await d.execute(sql`SELECT id, acct, ten, ke_hoach, hen_luc::text AS luc, nhom, format, chu, anh, video, link, url, post_id FROM bai_hen WHERE graph_id IS NOT NULL`).catch(() => [])) as unknown as { acct: number; ten: string; ke_hoach: string; luc: string; nhom: string | null; format: string | null; chu: string; anh: string[] | null; video: string | null; link: string | null; url: string | null; post_id: string | null }[];
+    // tên kênh lấy theo nơi đăng Page cũ của máy (facebook:<acct>) để bài hẹn + bài máy trên cùng Page về MỘT mục trong cây (ảnh chụp 25/10: hai mục Retro Cars Club)
+    const tenPage = new Map(noiTk.filter((x) => x.nen.startsWith('facebook:') && x.tk).map((x) => [x.nen.split(':')[1], x.tk!]));
     for (const x of hen) {
       const vn = new Date(Date.parse(x.luc) + 7 * 3600e3).toISOString(), qua = Date.parse(x.luc) <= Date.now(), nen = `${x.video ? 'facebook' : x.link ? 'fb_link' : 'fb_anh'}:${x.acct}`;
       // đã đăng: link thật lấy từ số đo theo mã bài (link lúc hẹn của bài ảnh là photo.php tạm); Reel giữ /reel/<id>/
       const so = x.post_id ? soFb.get(x.post_id) : undefined, url = qua ? so?.url ?? x.url : null;
       o.push({ ngay: vn.slice(0, 10), gio: vn.slice(11, 16), may: x.ke_hoach, mayTen: 'Page hoài cổ · kế hoạch tuần', nen, title: x.chu.split('\n')[0] ?? '', url, loai: qua ? 'da' : 'du_kien',
-        anh: x.anh?.[0] || null, tk: x.ten, nhom: x.nhom, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null, bam: null });
+        anh: x.anh?.[0] || null, tk: tenPage.get(String(x.acct)) ?? x.ten, nhom: x.nhom, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null, bam: null });
     }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }

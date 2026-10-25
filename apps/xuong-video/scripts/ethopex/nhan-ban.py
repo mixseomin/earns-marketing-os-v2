@@ -7,6 +7,7 @@ Chặn: camp gốc phải đang bật; phim đã có ≥ TRAN_PHIM camp ĐANG CH
 Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc>            → in payload (chạy khô, không tạo gì)
   python3 nhan-ban.py <camp_gốc> --that [--lich today|tomorrow] [--luat "…"] [--ai "…"]   → tạo, đọc lại, ghi nhật ký (ethopex_nhat_ky)
+    Clone luôn dùng creative KHÁC creative gốc + chưa có camp chạy; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH (anh 25/10/2026).
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
 In một dòng JSON {ok, goc, moi, ten, loi}."""
@@ -63,6 +64,28 @@ def creative_khac(content_id, bo_qua):
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
     ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
     return next((c for c in ds if c not in bo_qua and str(c) in dat and str(c) not in tc and dem_doan(c) < TRAN_DOAN), None)
+# CỔNG CHẤM CREATIVE (anh 25/10/2026: "cái nào đủ điều kiện lên camp thì lên luôn"): mọi camp mới / bản clone chỉ dùng creative máy chấm SẠCH
+# (etp.cham.ket = 'ok' — Worker Cloudflare etp-cham, tiêu chí Meta + AFS). Chưa chấm → xếp hàng etp.cham_hang, lượt sau mới lên.
+def cham_sach(cr):
+    k = q(f"select ket || '|' || coalesce(meta::text, '–') || '|' || coalesce(afs::text, '–') from etp.cham where creative_id = {int(cr)}")
+    if not k:
+        q(f"insert into etp.cham_hang (creative_id, nguon, ai) values ({int(cr)}, 'moi', 'nhan-ban: chờ chấm trước khi lên') on conflict (creative_id) do nothing")
+        return f"creative #{cr} chưa được máy chấm — đã xếp hàng chấm, lượt sau mới lên"
+    ket, meta, afs = k.split("|")
+    return None if ket == "ok" else f"creative #{cr} máy chấm {'cấm' if ket == 'cam' else 'cần người xem'} (Meta {meta} · AFS {afs}) — không lên"
+
+# CLONE PHẢI KHÁC CREATIVE (anh 25/10/2026: "clone camp thì phải khác creative một chút, chặt chẽ hơn"): bản nhân bản KHÔNG dùng lại creative
+# của camp gốc, cũng không dùng creative đang có camp chạy của cùng phim — chọn creative khác cùng phim (đạt CTA, chưa bị Meta từ chối,
+# đoạn < 3 camp, chấm sạch, mới nhất trước); không có → xếp hàng cắt góc mới, không clone y nguyên.
+def creative_clone(content_id, cr_goc):
+    dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
+    tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
+    ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
+    for c in ds:
+        if c == cr_goc or DEM_CR.get(c, 0) > 0 or str(c) not in dat or str(c) in tc or dem_doan(c) >= TRAN_DOAN: continue
+        if cham_sach(c) is None: return c
+    return None
+
 def xep_goc_moi(goc_id, content_id, ten):
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_can_goc_moi', '{}'::jsonb) on conflict (ten) do nothing")
     v = json.dumps({"goc": goc_id, "ten": ten, "luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")}, ensure_ascii=False).replace("'", "''")
@@ -170,7 +193,15 @@ def main(a):
             except Exception: bh = ""
             if bh: raise ValueError(f"phim {cid} đang bão hoà — {bh} → không nhân bản thêm (dồn tiền sang phim khác)")
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
-        if dem_doan(cr) >= TRAN_DOAN:
+        if not moi:   # clone: luôn đổi sang creative KHÁC (anh 25/10/2026)
+            khac = creative_clone(cid, cr)
+            if not khac:
+                xep_goc_moi(goc, cid, ten)
+                raise ValueError(f"clone phải khác creative — phim chưa có creative khác sạch, chưa dùng (creative gốc #{cr}) — đã xếp hàng cắt góc mới")
+            chan = cong(cid, khac, ten)
+            if chan: raise ValueError(chan)
+            ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}; cr = khac
+        elif dem_doan(cr) >= TRAN_DOAN:
             khac = creative_khac(cid, {cr})
             if not khac:
                 xep_goc_moi(goc, cid, ten)
@@ -178,6 +209,8 @@ def main(a):
             chan = cong(cid, khac, ten)
             if chan: raise ValueError(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
+        ly = cham_sach(ad0["creative_id"])   # cổng chấm: creative cuối cùng phải SẠCH
+        if ly: raise ValueError(ly)
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, 1, 0, str(bo) if bo else None)
         if ly: raise ValueError(ly)

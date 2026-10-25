@@ -238,6 +238,27 @@ for cid, a in thang.items():
     try: ly = NT.chan_giam(api, cid)
     except Exception: ly = None
     if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm qua + hôm nay {r2:+.0f}%" + (f" · hôm nay {rh:+.0f}%" if rh is not None else "") + f" (chi ${g2['chi']:.2f})" + (" · vừa tăng lên $20 mà hôm nay âm" if am else f" < {ROI_GIAM_SOM}%") + " · giảm sớm (Support)"))
+# GIẢM TRONG NGÀY — ĐỐI XỨNG VỚI TĂNG TRONG NGÀY (anh 25/10/2026: "các camp âm phải có cơ chế giảm bậc giống với camp dương"): trước đây camp dương
+# được tăng từng bậc ngay trong ngày, còn camp âm chỉ giảm mỗi sáng (GB, số trọn hôm qua) hoặc GIẢM SỚM (chỉ camp ≥ $15) → camp $10 / $7 / $5 âm
+# cả ngày vẫn tiêu đủ. Gương của tăng trong ngày: ROI hôm nay (đã chốt chi) < 0% · đã chi ≥ 30% ngân sách · ROI hôm qua < 50% (camp vừa lãi đậm
+# không bị cắt vì doanh thu hôm nay về trễ) → xuống MỘT bậc, mọi mức ngân sách > $1; hai lần đổi ngân sách cách ≥ 6 giờ (nhip_tang.chan_giam).
+ROI_HQ_GIU = 50
+_da_ha = {cid for cid, _ in ha}
+if TANG_CHOT:   # cần số hôm nay đã chốt chi (giống tăng trong ngày)
+    for cid, a in thang.items():
+        ns = a["budget"]
+        if ns <= 1 or cid in _da_ha: continue
+        h = hom.get(cid, {"chi": 0.0, "thu": 0.0})
+        if h.get("chi", 0) < max(0.3 * ns, 0.3): continue
+        rh = roi(h)
+        if rh is None or rh >= 0: continue
+        _yq = hqua.get(cid); _ryq = roi(_yq) if _yq and _yq["chi"] >= 0.3 else None
+        if _ryq is not None and _ryq >= ROI_HQ_GIU: continue
+        dich = NT.xuong(ns, 1)
+        try: ly = NT.chan_giam(api, cid)
+        except Exception: ly = None
+        if dich and not ly: ha.append((cid, f"#{a['ten'][:70]} · ${ns:g} → ${dich:g} · ROI hôm nay {rh:+.0f}% (chi ${h['chi']:.2f} = {h['chi'] / ns * 100:.0f}% ngân sách)"
+                                          + (f" · ROI hôm qua {_ryq:+.0f}%" if _ryq is not None else "") + " · giảm trong ngày (đối xứng tăng trong ngày)"))
 tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).

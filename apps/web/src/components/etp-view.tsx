@@ -442,6 +442,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
 }
 
 function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
+  const tlC = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
   const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');
   const tuoi = (c: CampEtpKho) => (c.tao ? Math.max(0, Math.floor((Date.parse(du.nay) - Date.parse(c.tao.slice(0, 10))) / 86_400_000)) : null);
   const ngay = [6, 5, 4, 3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
@@ -475,6 +476,7 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
             cr #{c.creative_id ?? '?'} · {c.doan?.split(':')[1] ?? ''}s</span>
           <span data-cot="dau-hieu" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', whiteSpace: 'nowrap' }}>
+          <LichCamp c={c} du={du} tl={tlC} />
           {n ? <span title={`Có ${n} camp nhân bản từ camp này`}>🧬{n}</span> : null}
           {l ? <span title={`Không nhân bản được (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`} style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}
           {giam(c) ? <span title="Lãi giảm 2 ngày liền" style={{ color: '#f87171' }}>↘</span> : null}
@@ -533,6 +535,30 @@ function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
 // Hàng = thể loại phim, cột = khung giờ VN; mỗi ô bấm để đổi BẬT / TẮT, dưới là chi + ROI 7 ngày trọn của thể loại trong khung đó. Máy apps/etp/lich-gio.py áp ở lượt đồng bộ kế.
 const KHUNG_GIO = [{ k: 'k07', ten: '07h', t: '07:00–07:59 · ngân sách ngày vừa nạp lại, Meta xả tiền' }, { k: 'k08', ten: '08h–12h', t: '08:00–12:59' }, { k: 'k13', ten: '13h–19h', t: '13:00–19:59' }, { k: 'k20', ten: '20h–06h', t: '20:00–06:59' }];
 const khungNay = () => { const h = (new Date().getUTCHours() + 7) % 24; return h === 7 ? 'k07' : h >= 8 && h <= 12 ? 'k08' : h >= 13 && h <= 19 ? 'k13' : 'k20'; };
+const GIO_BAT_DAU: Record<string, string> = { k07: '07:00', k08: '08:00', k13: '13:00', k20: '20:00' };
+const SO_GIO: Record<string, number> = { k07: 1, k08: 5, k13: 7, k20: 11 };
+/** lịch của một thể loại: [khung, bật?] theo thứ tự 07 → 08–12 → 13–19 → 20–06 (thể loại lạ → '_khac', không có dòng → bật) */
+const lichCua = (ds: DuLieuEtp['lichGio'], tl: string | null) => KHUNG_GIO.map((k) => {
+  const r = ds.find((x) => x.the_loai === (tl ?? '_khac') && x.khung === k.k) ?? ds.find((x) => x.the_loai === '_khac' && x.khung === k.k);
+  return { ...k, bat: r?.bat ?? true };
+});
+// DẢI LỊCH TRÊN TỪNG CAMP (anh 25/10/2026: "trên camp cũng cần show rõ lịch này"): 4 đoạn dài theo số giờ của khung, xanh = BẬT, xám = TẮT, khung đang chạy viền sáng;
+// camp đang tạm dừng vì lịch → chữ "bật lại HH:MM". Rê chuột: lịch đủ của thể loại.
+function LichCamp({ c, du, tl }: { c: CampEtpKho; du: DuLieuEtp; tl: (k: string | null) => string }) {
+  const tong = du.cauHinh.find((x) => x.khoa === 'lich_gio')?.gia_tri === true;
+  const l = lichCua(du.lichGio, c.the_loai); const kn = khungNay(); const i = l.findIndex((k) => k.k === kn);
+  const ke = [...l.slice(i + 1), ...l.slice(0, i + 1)].find((k) => k.bat);
+  const t = `Lịch giờ · ${c.the_loai ? tl(c.the_loai) : 'chưa gắn thể loại'}${tong ? '' : ' (công tắc lịch đang TẮT — không áp)'}\n` + l.map((k) => `${k.ten}: ${k.bat ? 'BẬT' : 'TẮT'}${k.k === kn ? '  ← đang chạy' : ''}`).join('\n')
+    + (c.lich_tat ? `\nĐang tạm dừng theo lịch — máy bật lại lúc ${ke ? GIO_BAT_DAU[ke.k] : '?'} giờ VN` : '');
+  return (
+    <span title={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, opacity: tong ? 1 : 0.45, whiteSpace: 'nowrap' }}>
+      <span style={{ display: 'inline-flex', gap: 1 }}>
+        {l.map((k) => <span key={k.k} style={{ width: (SO_GIO[k.k] ?? 1) * 3, height: 8, borderRadius: 2, background: k.bat ? 'var(--neon-lime, #4ade80)' : 'var(--bg-3, #4b5563)', outline: k.k === kn ? '1.5px solid var(--fg-1, #fff)' : 'none', outlineOffset: 1 }} />)}
+      </span>
+      {c.lich_tat ? <span style={{ fontSize: 11, color: MAU_DEN.phong }}>⏸ bật lại {ke ? GIO_BAT_DAU[ke.k] : '?'}</span> : null}
+    </span>
+  );
+}
 function LichGio({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => string }) {
   const router = useRouter();
   const [dang, setDang] = useState<string | null>(null);
@@ -625,6 +651,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     { key: 'id', header: 'Camp', align: 'left', cell: (c) => <span style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} />#{c.camp_id} <TT c={c} /></span>, sortValue: (c) => c.camp_id },
     { key: 'phim', header: 'Phim · creative', align: 'left', cell: (c) => <span title={c.ten} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(c.creative_id)}<span>{c.phim ?? c.ten.slice(0, 50)}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{c.creative_id} {c.dang ?? ''}{c.cung_doan > 1 ? ` · ⚔${c.cung_doan} camp cùng đoạn` : ''}</span></span></span>, sortValue: (c) => c.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
+    { key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) },
     { key: 'ns', header: 'Bậc · ROI hôm nay', align: 'left', title: 'thang bậc ngân sách · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
     ...soCot<CampEtpKho>('nay', 'h.nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', 'h.qua', (c) => c.qua), ...soCot<CampEtpKho>('kh', KH_TEN[kh].toLowerCase(), (c) => ckh(c.camp_id)),
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },

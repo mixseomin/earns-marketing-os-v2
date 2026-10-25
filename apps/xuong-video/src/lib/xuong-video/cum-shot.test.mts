@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
-import { chiaCum, lichCum, vaoTuCatThat, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { chiaCum, lichCum, vaoTuCatThat, thamChieuCum, DUNG_DUOC, VAO_DAU } from './cum-shot';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
 const phat = [1.5, 1.5, 2, 1.5, 1.5, 1, 2, 1, 1.5, 1.5, 2, 3, 1.5, 4.7, 5, 1.5, 3];
@@ -37,4 +37,13 @@ assert.deepStrictEqual(cn, [[1, 2, 3], [4, 5, 6, 7, 8], [9, 10, 11], [12, 13], [
 for (const c of cn.filter((x) => x.length > 1)) { const co = new Set([...nguoi[c[0]! - 1]!, ...(ket[c.at(-1)! - 1] ? nguoi[c.at(-1)! - 1]! : [])]); assert.ok(c.every((t) => nguoi[t - 1]!.every((x) => co.has(x))), String(c)); }
 // phá thử: cụm cũ #1–#4 (Vivian chỉ ở #3, #4 không khung kết) phải bị tách
 assert.ok(!cn.some((c) => c.includes(1) && c.includes(4)));
+// ảnh tham chiếu: biến thể của shot thắng ảnh mẫu; mỗi người một ảnh danh tính trước; bối cảnh = khung shot rộng nhất, luôn giữ một ô
+const nv = (id: number, ten: string, bt: { id: number; anh_url: string }[], ref: string[]) => ({ id, ten, loai: 'nhan_vat', bien_the: bt, anh_ref: ref, anh_mat: null }) as never;
+const ha = nv(1, 'Lâm Hạ', [{ id: 160, anh_url: 'ha-khong-the' }, { id: 150, anh_url: 'ha-co-the' }], ['ha-mau']);
+const vi = nv(2, 'Vivian', [], ['vi-mau', 'vi-phu']);
+const shot = (kf: string, co: string, bienThe: number[], ds: unknown[]) => ({ canh: { keyframe_url: kf, ky_thuat: { co_canh: co }, bien_the: bienThe } as never, nhanVat: ds as never });
+const t1 = thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi, ha])]);
+assert.deepStrictEqual(t1.anh, ['ha-khong-the', 'vi-mau', 'ha-mau', 'vi-phu', 'kf-ws']);
+assert.ok(t1.goi.startsWith('Reference image 1 is Lâm Hạ; Reference image 2 is Vivian') && t1.goi.endsWith('the location (lighting, set, colours)'));
+assert.deepStrictEqual(thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi])], 3).anh, ['ha-khong-the', 'vi-mau', 'kf-ws']);
 console.log('✓ cum-shot');

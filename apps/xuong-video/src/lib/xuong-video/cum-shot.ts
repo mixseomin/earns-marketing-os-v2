@@ -52,12 +52,18 @@ export function cauMiengShot(c: Canh, nv: NhanVat[]): string {
 const CO_CANH: Record<string, string> = { ews: 'extreme wide shot', ws: 'wide shot', ms: 'medium shot', mcu: 'medium close-up', cu: 'close-up', ecu: 'extreme close-up', insert: 'insert close-up', ots: 'over-the-shoulder shot', pov: 'point-of-view shot' };
 
 /** Prompt MỘT lần sinh cho cả cụm: danh sách góc có mốc giây + "hard cut" + câu giữ người / đồ / bối cảnh qua mọi cú cắt. */
-export function promptCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them = ''): string {
+export function promptCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them = '', toiDa = Infinity): string {
+  // Quá giới hạn prompt của model (Vidu 3000 ký tự) → bỏ khối trạng thái đồ / dáng lặp lại ở từng shot (đã nằm trong ảnh tham chiếu + câu giữ chung), giữ hành động
+  const gon = (t: string) => t.replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim();
+  const du = promptCumTho(cum, them, (t) => t);
+  return du.length <= toiDa ? du : promptCumTho(cum, them, gon).slice(0, toiDa);
+}
+function promptCumTho(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them: string, loc: (t: string) => string): string {
   const lich = lichCum(cum.map((x) => x.canh));
   const shot = cum.map(({ canh: c, nhanVat }, i) => {
     const l = lich[i]!; const co = CO_CANH[c.ky_thuat?.co_canh ?? ''] ?? c.ky_thuat?.co_canh ?? 'medium shot';
     const mieng = cauMiengShot(c, nhanVat);
-    return `Shot ${i + 1} (${(l.tu - VAO_DAU).toFixed(1)}–${(l.den - VAO_DAU).toFixed(1)} s, ${co}${i ? ', hard cut' : ''}): ${c.dan_dung?.mo ?? c.canh} → ${c.dan_dung?.ket ?? ''}${mieng ? `; ${mieng}` : ''}`;
+    return `Shot ${i + 1} (${(l.tu - VAO_DAU).toFixed(1)}–${(l.den - VAO_DAU).toFixed(1)} s, ${co}${i ? ', hard cut' : ''}): ${loc(c.dan_dung?.mo ?? c.canh)} → ${loc(c.dan_dung?.ket ?? '')}${mieng ? `; ${mieng}` : ''}`;
   });
   return [`A short edited film sequence of ${cum.length} shots with hard cuts between them. The same people with the same faces, hair and outfits, the same props in the same state and the same location and lighting in every shot — it is one continuous moment filmed from several angles.`,
     `${shot.join('. ')}.`, 'Keep every object state continuous across the cuts (what was taken stays taken, stains stay, nothing reappears). Only the people of this scene appear. No on-screen text, no subtitles.', them].filter(Boolean).join(' ');
@@ -71,4 +77,24 @@ export function vaoTuCatThat(cum: readonly ShotCum[], cat: readonly number[], da
   const vao = cum.map((_, i) => +moc[i]!.toFixed(2));
   const ngan = cum.filter((c, i) => moc[i + 1]! - moc[i]! < giayPhat(c) - 0.15).map((c) => c.thu_tu);
   return { vao, theoDo, ngan };
+}
+
+/** CHẾ ĐỘ THAM CHIẾU (model nhận ảnh nhân vật — Vidu Q2 / Veo REFERENCE_2_VIDEO; bài thử phim #353 #13–#14 25/10/2026: khung mở thiếu Vivian thì Veo Lite
+ *  bịa người, có ảnh tham chiếu thì đúng). Mỗi người của cụm một–hai ảnh theo TRANG PHỤC ở shot đầu tiên người đó có mặt (biến thể canh.bien_the → ảnh
+ *  sát mặt → ảnh mẫu), cộng ảnh bối cảnh (khung đã duyệt của shot rộng nhất cụm). Thuần — không gọi mạng. */
+const DO_RONG: Record<string, number> = { ews: 0, ws: 1, ots: 2, ms: 3, mcu: 4, cu: 5, ecu: 6, insert: 7 };
+export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], toiDa = 7): { anh: string[]; goi: string } {
+  const nguoi: { ten: string; anh: string[] }[] = [];
+  for (const { canh: c, nhanVat } of cum) for (const v of nhanVat.filter((x) => x.loai === 'nhan_vat')) {
+    if (nguoi.some((n) => n.ten === v.ten)) continue;
+    const bt = (v.bien_the ?? []).find((b) => c.bien_the.includes(b.id) && b.anh_url)?.anh_url;
+    nguoi.push({ ten: v.ten, anh: [...new Set([bt, ...(v.anh_mat?.url ?? []).slice(0, 1), ...v.anh_ref].filter((x): x is string => !!x))].slice(0, 2) });
+  }
+  const rong = [...cum].filter((x) => x.canh.keyframe_url).sort((a, b) => (DO_RONG[a.canh.ky_thuat?.co_canh ?? ''] ?? 3) - (DO_RONG[b.canh.ky_thuat?.co_canh ?? ''] ?? 3))[0]?.canh.keyframe_url;
+  // ảnh đầu của mỗi người trước (danh tính), ảnh phụ khi còn chỗ, bối cảnh luôn giữ một ô
+  const cho = toiDa - (rong ? 1 : 0); const anh: string[] = []; const nhan: string[] = [];
+  for (const n of nguoi) if (n.anh[0] && anh.length < cho) { anh.push(n.anh[0]); nhan.push(n.ten); }
+  for (const n of nguoi) if (n.anh[1] && anh.length < cho) { anh.push(n.anh[1]); nhan.push(n.ten); }
+  if (rong) { anh.push(rong); nhan.push('the location (lighting, set, colours)'); }
+  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${t}`).join('; ') };
 }

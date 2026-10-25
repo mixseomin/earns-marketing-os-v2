@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
-import type { CampEtpKho, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
+import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
 
 type Tab = 'tong' | 'camp' | 'creative' | 'phim' | 'tn' | 'luat';
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
@@ -181,36 +181,6 @@ const loiThuong = (loi: string | null) => {
   if (/rào|trần ngày|trần bộ|dừng khẩn/.test(t)) return 'chạm trần ngân sách';
   return (t.split(' — ')[0] ?? '').replace(/#\d+|\(.*?\)|[a-z_]+_[a-z_]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 };
-// CREATIVE › QUÉT NỘI DUNG (anh 25/10/2026: "tập trung show việc quét các lỗi về nội dung bị Meta từ chối"): mỗi creative đang chạy một dòng,
-// mỗi nhóm vi phạm Meta một cột (khoả thân / gợi dục · cưỡng ép tình dục · máu / bạo lực · vũ khí), phán quyết của máy quét và của Meta cạnh nhau. Lý do ở hover.
-type Dau = { k: 'ok' | 'loi' | 'cho' | 'chua'; t: string };
-const DAU_MAU: Record<Dau['k'], string> = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', cho: '#9ecbff', chua: 'var(--fg-3, #666)' };
-const DAU_KY: Record<Dau['k'], string> = { ok: '✓', loi: '✕', cho: '…', chua: '–' };
-const O = ({ d }: { d: Dau }) => <span title={d.t} aria-label={d.t} style={{ color: DAU_MAU[d.k], fontWeight: 700, cursor: 'help', display: 'inline-block', minWidth: 16, textAlign: 'center' }}>{DAU_KY[d.k]}</span>;
-const NHOM_VP: { key: string; ten: string; re: RegExp }[] = [
-  { key: 'khoa_than', ten: 'Khoả thân · gợi dục', re: /Adult Nudity|Sexual Activity|khoả? ?thân|khỏa thân|gợi dục|hở hang|xuyên thấu|tình dục(?! *cưỡng)|trên giường|nội y|sexual content/i },
-  { key: 'cuong_ep', ten: 'Cưỡng ép tình dục', re: /Sexual Exploitation|sexual violence|cưỡng ép|cưỡng hiếp|xé áo|đè|khống chế|trói|dồn vào tường|ép sát/i },
-  { key: 'mau', ten: 'Máu · bạo lực', re: /Violent|Graphic|máu|bạo lực|thương tích|bị thương|đánh đập/i },
-  { key: 'vu_khi', ten: 'Vũ khí', re: /Weapon|Dangerous|vũ khí|súng|dao|kiếm|chĩa/i },
-];
-const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'cưỡng ép / bạo lực tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
-const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
-const loiSoat = (g: string) => /^Meta từ chối/i.test(g) ? loiMeta(g) : g.replace(/^máy soát (lại \d+\/\d+ )?(Claude)?\s*(\([^)]*\))?:?\s*/i, 'Máy xem: ').replace(/^soát tờ khung theo lô.*/i, 'Cho qua theo cả lô, chưa xem riêng đoạn này').replace(/^Claude soát tờ[^:]*:?\s*/i, 'Đã xem tờ khung: ');
-function danhGia(r: CreativeEtpKho, phot: Map<number, string>) {
-  const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED') || phot.has(r.creative_id));   // phốt đã ghi = Meta từng từ chối, kể cả khi camp đã thay creative
-  const meta: Dau = metaLoi ? { k: 'loi', t: loiMeta(r.tu_choi ?? phot.get(r.creative_id) ?? '') } : r.giao.includes('ACTIVE') ? { k: 'ok', t: 'Meta đã duyệt, đang phát' } : r.giao.includes('IN_PROCESS') ? { k: 'cho', t: 'Meta đang duyệt' } : { k: 'chua', t: 'Không camp nào đang phát' };
-  const theoLo = !!r.sd && /theo lô/i.test(r.sd.ghi);
-  const doMeta = !!r.sd && /^Meta từ chối/i.test(r.sd.ghi);   // dòng cấm do Meta ghi sau khi từ chối = máy đã cho qua đoạn này (bỏ sót)
-  const may: Dau = doMeta ? { k: 'ok', t: 'Máy đã cho qua — Meta vẫn từ chối (máy bỏ sót)' } : !r.sd || theoLo ? (r.sd_cho ? { k: 'cho', t: 'Máy chưa chắc — chờ người xem' } : { k: 'chua', t: theoLo && r.sd ? loiSoat(r.sd.ghi) : 'Chưa quét đoạn video này' })
-    : { k: r.sd.ok ? 'ok' : 'loi', t: `${r.sd.ok ? 'Sạch' : 'Cấm'} — ${loiSoat(r.sd.ghi)} (${r.sd.luc})` };
-  const lyDo = `${r.sd && !r.sd.ok ? r.sd.ghi : ''} ${metaLoi ? r.tu_choi ?? phot.get(r.creative_id) ?? '' : ''}`;
-  const nhom: Record<string, Dau> = Object.fromEntries(NHOM_VP.map((g) => [g.key, (may.k === 'chua' && !metaLoi ? { k: 'chua', t: 'Chưa quét' } : g.re.test(lyDo) ? { k: 'loi', t: `${g.ten}: ${loiSoat(lyDo.trim()).slice(0, 220)}` } : may.k === 'cho' ? { k: 'cho', t: 'Chờ người xem' } : { k: 'ok', t: `Không thấy ${g.ten.toLowerCase()}` }) as Dau]));
-  const s18: Dau = r.s18 ? { k: r.s18.ok ? 'ok' : 'loi', t: `Cả phim: ${r.s18.ok ? 'không có cảnh 18+' : 'có cảnh cấm'}${r.s18.ghi ? ' — ' + loiSoat(r.s18.ghi) : ''} (${r.s18.luc})` } : { k: 'chua', t: 'Cả phim chưa soát 18+' };
-  // máy chấm sạch nhưng Meta từ chối = máy bỏ sót (đáng xem nhất để chỉnh tiêu chí quét)
-  const sot = metaLoi && (!r.sd || r.sd.ok || theoLo || doMeta);
-  return { meta, may, s18, nhom, metaLoi, sot, muc: metaLoi ? 0 : may.k === 'loi' ? 1 : may.k === 'cho' ? 2 : may.k === 'chua' ? 3 : 4 };
-}
-type LocSoat = 'loi' | 'meta' | 'chua' | 'all';
 // PHỐT META THEO BỘ / PAGE (anh 25/10/2026: "cảnh báo từ Meta phải coi là phốt gắn với bộ tk/page để còn biết mà xử lý"):
 // mỗi bộ một thẻ: khối bộ · Page · số phốt 7 ngày / tổng · nhóm vi phạm · lần cuối; bộ có phốt trong 7 ngày viền đỏ. Danh sách từng phốt bên dưới (mở ra xem).
 const NHOM_PHOT: Record<string, string> = { cuong_ep: 'cưỡng ép tình dục', khoa_than: 'khoả thân / gợi dục', mau: 'máu / bạo lực', vu_khi: 'vũ khí', khac: 'vi phạm khác' };
@@ -239,53 +209,108 @@ function PhotBo({ du }: { du: DuLieuEtp }) {
     </div>
   );
 }
+// CREATIVE › QUÉT NỘI DUNG (anh 25/10/2026): mỗi creative một dòng, cột chia NHÓM theo bộ chấm (DataTable groups):
+//   Đã quét (chữ · giọng · ảnh · nội dung — lớp nào chưa chạy hiện "–") · Meta (điểm 0–10 từng tiêu chí) · AFS (content ads, CTA) · Kết luận.
+// Tiêu chí lấy từ etp.tieu_chi (một nguồn với máy chấm cham-creative.py). Rê chuột vào ô → thẻ xem: lý do + tờ 30 khung có viền đỏ đúng khung bị bắt
+// + video tua tới giây đó (anh: "hover phải xem được đoạn nội dung đó để còn xác nhận sai").
+const DAU_MAU = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', vua: '#f59e0b', cho: '#9ecbff', chua: 'var(--fg-3, #666)' };
+const mauDiem = (d: number | null | undefined) => (d == null ? DAU_MAU.chua : d >= 8 ? DAU_MAU.ok : d >= 5 ? DAU_MAU.vua : DAU_MAU.loi);
+const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'cưỡng ép / bạo lực tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
+const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
+type The = { tieu: string; diem?: number | null; ly: string; khung?: number[]; anh?: string; video?: string | null; dai?: number; chu?: string; x: number; y: number };
+// THẺ XEM: tờ khung 6×5 (30 khung theo thứ tự) — khung bị bắt viền đỏ; video bắt đầu ở khung bị bắt đầu tiên
+function TheXem({ t }: { t: The }) {
+  const W = 300, rong = typeof window !== 'undefined' ? window.innerWidth : 1400, cao = typeof window !== 'undefined' ? window.innerHeight : 900;
+  const giay = t.khung?.length && t.dai ? Math.max(0, ((t.khung[0]! - 0.5) * t.dai) / 30) : 0;
+  return (
+    <div style={{ position: 'fixed', zIndex: 60, pointerEvents: 'none', left: Math.min(t.x + 14, rong - (t.video ? 2 * W + 40 : W + 30)), top: Math.max(8, Math.min(t.y - 120, cao - 560)),
+      background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, padding: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', display: 'flex', gap: 10 }}>
+      <div style={{ width: W }}>
+        <div style={{ fontWeight: 700, fontSize: 13 }}>{t.tieu}{t.diem != null ? <span style={{ color: mauDiem(t.diem), marginLeft: 6 }}>{t.diem}/10</span> : null}</div>
+        <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '4px 0 8px', whiteSpace: 'pre-wrap' }}>{t.ly}</div>
+        {t.anh ? (
+          <div style={{ position: 'relative', width: W }}>
+            <img src={t.anh} alt="" style={{ width: W, display: 'block', borderRadius: 4 }} />
+            {(t.khung ?? []).map((n) => <span key={n} style={{ position: 'absolute', left: `${((n - 1) % 6) * (100 / 6)}%`, top: `${Math.floor((n - 1) / 6) * 20}%`, width: `${100 / 6}%`, height: '20%', border: '2px solid #ef4444', boxSizing: 'border-box' }} />)}
+          </div>) : null}
+        {t.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6, maxHeight: 120, overflow: 'hidden' }}>{t.chu}</div> : null}
+      </div>
+      {t.video ? <video key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} autoPlay muted loop playsInline style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
+    </div>
+  );
+}
+type LocSoat = 'loi' | 'xem' | 'meta' | 'chua' | 'all';
 function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) => React.ReactElement }) {
   const [loc, setLoc] = useState<LocSoat>('loi');
+  const [the, setThe] = useState<The | null>(null);
   const router = useRouter();
-  // "x giờ:phút ngày/tháng/năm" (giờ VN máy ghi) → ms — đang quét và cập nhật < 3 phút thì làm mới mỗi 5 giây
   const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
   const quet = Object.entries(du.quet ?? {}).filter(([, q]) => q.dang && Date.now() - msVn(q.cap_nhat) < 180_000);
   useEffect(() => { if (!quet.length) return; const t = setInterval(() => router.refresh(), 5_000); return () => clearInterval(t); }, [quet.length, router]);
   const photCr = useMemo(() => new Map(du.phot.filter((p) => p.creative_id).map((p) => [p.creative_id!, p.ly_do ?? ''])), [du.phot]);
-  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id)).map((r) => ({ r, d: danhGia(r, photCr) })).sort((a, b) => a.d.muc - b.d.muc), [du.creatives, photCr]);
-  const dem = { loi: ds.filter((x) => x.d.muc <= 1).length, meta: ds.filter((x) => x.d.metaLoi).length, chua: ds.filter((x) => x.d.may.k === 'chua' || x.d.may.k === 'cho').length, all: ds.length };
-  const daQuet = ds.filter((x) => x.d.may.k === 'ok' || x.d.may.k === 'loi').length, sot = ds.filter((x) => x.d.sot).length;
-  const rows = ds.filter((x) => loc === 'all' || (loc === 'loi' ? x.d.muc <= 1 : loc === 'meta' ? x.d.metaLoi : x.d.may.k === 'chua' || x.d.may.k === 'cho'));
-  const xep = (d: Dau) => ['loi', 'cho', 'chua', 'ok'].indexOf(d.k);
+  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id))
+    .map((r) => { const c = du.cham[r.creative_id]; const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED') || photCr.has(r.creative_id));
+      return { r, c, metaLoi, muc: metaLoi ? 0 : c?.ket === 'cam' ? 1 : c?.ket === 'xem' ? 2 : !c ? 3 : 4 }; }).sort((a, b) => a.muc - b.muc || (a.c?.meta ?? 11) - (b.c?.meta ?? 11)), [du.creatives, du.cham, photCr]);
+  const dem = { loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter((x) => x.muc === 2).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
+  const rows = ds.filter((x) => loc === 'all' || (loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? x.muc === 2 : loc === 'meta' ? x.metaLoi : !x.c));
+  const sot = ds.filter((x) => x.metaLoi && x.c && x.c.ket === 'ok').length;
+  type Dong = (typeof ds)[number];
+  const moThe = (e: React.MouseEvent, x: Dong, t: Omit<The, 'x' | 'y' | 'anh' | 'video' | 'dai'>) => setThe({ ...t, anh: x.c?.lop.anh?.url, video: x.r.video, dai: x.c?.lop.anh?.giay, x: e.clientX, y: e.clientY });
+  const O = ({ x, children, t }: { x: Dong; children: React.ReactNode; t: Omit<The, 'x' | 'y' | 'anh' | 'video' | 'dai'> }) => (
+    <span onMouseEnter={(e) => moThe(e, x, t)} onMouseLeave={() => setThe(null)} style={{ cursor: 'zoom-in', display: 'inline-block', minWidth: 22, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{children}</span>);
+  const LOP: { key: 'chu' | 'giong' | 'anh' | 'noi_dung'; ten: string; noi: (c: ChamCr) => string }[] = [
+    { key: 'chu', ten: 'Chữ', noi: (c) => [c.lop.chu?.noi_dung, ...(c.lop.chu?.loi ?? []), ...(c.lop.chu?.cta ?? [])].filter(Boolean).join('\n') || 'Không có chữ trên hình' },
+    { key: 'giong', ten: 'Giọng', noi: (c) => c.lop.giong?.noi_dung || 'Không có lời nói' },
+    { key: 'anh', ten: 'Ảnh', noi: () => 'Tờ 30 khung theo thứ tự' },
+    { key: 'noi_dung', ten: 'Nội dung', noi: (c) => c.lop.noi_dung?.tom_tat ?? '' },
+  ];
+  const cotLop: DataColumn<Dong>[] = LOP.map((l) => ({ key: `lop_${l.key}`, header: l.ten, group: 'lop', title: `đã quét ${l.ten.toLowerCase()} chưa`,
+    cell: (x) => (x.c?.lop[l.key] ? <O x={x} t={{ tieu: `${l.ten} — đã quét ${x.c.lop[l.key]!.luc}`, ly: l.noi(x.c).slice(0, 900) }}><span style={{ color: DAU_MAU.ok }}>✓</span></O>
+      : <span title={x.c?.loi ?? 'Chưa quét'} style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => (x.c?.lop[l.key] ? 1 : 0) }));
+  const cotDiem = (nhom: 'meta' | 'afs'): DataColumn<Dong>[] => [
+    { key: `${nhom}_tong`, header: 'Tổng', group: nhom, title: 'điểm thấp nhất trong nhóm (một tiêu chí hỏng là hỏng)', cell: (x) => <b style={{ color: mauDiem(x.c?.[nhom]) }}>{x.c?.[nhom] ?? '–'}</b>, sortValue: (x) => x.c?.[nhom] ?? 99 },
+    ...du.tieuChi.filter((t) => t.nhom === nhom).map((t): DataColumn<Dong> => { const k = `${nhom}.${t.ma}`; return { key: k, header: t.ten, group: nhom,
+      cell: (x) => { const d = x.c?.diem[k]; return d == null ? <span style={{ color: DAU_MAU.chua }}>–</span>
+        : <O x={x} t={{ tieu: t.ten, diem: d, ly: x.c?.ly_do[k] ?? 'Không thấy vấn đề', khung: x.c?.khung[k] }}><span style={{ color: mauDiem(d), fontWeight: d < 8 ? 700 : 400 }}>{d}</span></O>; },
+      sortValue: (x) => x.c?.diem[k] ?? 99 }; }),
+  ];
+  const KET: Record<string, [string, string]> = { ok: ['Sạch', DAU_MAU.ok], xem: ['Cần người xem', DAU_MAU.vua], cam: ['Cấm', DAU_MAU.loi] };
   return (
     <div>
       {quet.length ? (
         <div style={{ border: '1px solid #9ecbff', borderRadius: 8, padding: '8px 12px', margin: '4px 0 12px' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}><Den mau="#9ecbff" t="đang quét" song /> Đang quét nội dung · tự làm mới 5 giây</div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}><Den mau="#9ecbff" t="đang quét" song /> Đang chấm creative · tự làm mới 5 giây</div>
           {quet.map(([may, q]) => (
-            <div key={may} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 260px', gap: 10, alignItems: 'center', fontSize: 12, margin: '3px 0' }}>
+            <div key={may} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 260px', gap: 10, alignItems: 'center', fontSize: 12, margin: '3px 0' }} title={q.cuoi}>
               <b>{may === 'box3' ? 'Máy chủ' : may.includes('iMac') ? 'iMac' : may}</b>
-              <div style={{ height: 8, background: 'var(--bg-2, #222)', borderRadius: 4, overflow: 'hidden', display: 'flex' }} title={`${q.xong}/${q.tong} · bắt đầu ${q.bat_dau}`}>
+              <div style={{ height: 8, background: 'var(--bg-2, #222)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
                 <div style={{ width: `${(q.ok / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.ok }} />
                 <div style={{ width: `${(q.cam / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.loi }} />
-                <div style={{ width: `${(q.xem / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.cho }} />
+                <div style={{ width: `${(q.xem / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.vua }} />
               </div>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{q.xong}/{q.tong} · <span style={{ color: DAU_MAU.ok }}>{q.ok} sạch</span> · <span style={{ color: DAU_MAU.loi }}>{q.cam} chặn</span> · <span style={{ color: DAU_MAU.cho }}>{q.xem} chờ người</span></span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{q.xong}/{q.tong} · <span style={{ color: DAU_MAU.ok }}>{q.ok} sạch</span> · <span style={{ color: DAU_MAU.loi }}>{q.cam} cấm</span> · <span style={{ color: DAU_MAU.vua }}>{q.xem} cần xem</span></span>
             </div>))}
         </div>) : null}
       <PhotBo du={du} />
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
-        <span title="creative đang chạy đã được máy xem riêng đoạn video"><b style={{ fontSize: 18 }}>{daQuet}/{ds.length}</b> đã quét</span>
-        <span style={{ color: DAU_MAU.loi }} title="máy quét chặn — không được lên / phải thay"><b style={{ fontSize: 18 }}>{ds.filter((x) => x.d.may.k === 'loi').length}</b> máy chặn</span>
+        <span><b style={{ fontSize: 18 }}>{ds.length - dem.chua}/{ds.length}</b> đã chấm</span>
+        <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{ds.filter((x) => x.c?.ket === 'cam').length}</b> cấm</span>
+        <span style={{ color: DAU_MAU.vua }}><b style={{ fontSize: 18 }}>{dem.xem}</b> cần người xem</span>
         <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{dem.meta}</b> Meta từ chối</span>
-        <span style={{ color: sot ? '#fb923c' : 'var(--fg-2)' }} title="Meta từ chối mà máy quét từng chấm sạch — máy bỏ sót"><b style={{ fontSize: 18 }}>{sot}</b> máy bỏ sót</span>
-        <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'loi', label: 'Bị chặn / từ chối' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa quét' }, { value: 'all', label: 'Tất cả đang chạy' }]} /></span>
+        <span style={{ color: sot ? '#fb923c' : 'var(--fg-2)' }} title="Meta từ chối mà máy chấm sạch"><b style={{ fontSize: 18 }}>{sot}</b> máy bỏ sót</span>
+        <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'loi', label: 'Cấm / Meta từ chối' }, { value: 'xem', label: 'Cần người xem' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa chấm' }, { value: 'all', label: 'Tất cả đang chạy' }]} /></span>
       </div>
-      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-quet" minWidth={1000} pageSize={100}
+      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1500} pageSize={100}
+        groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
-          { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={x.r.creative_id} /><span>{x.r.phim ?? '—'}{x.d.sot ? <span title="Meta từ chối mà máy quét từng chấm sạch" style={{ marginLeft: 6, color: '#fb923c' }}>⚠</span> : null}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.d.muc },
-          { key: 'meta', header: 'Meta', title: 'Meta duyệt hay từ chối', cell: (x) => <O d={x.d.meta} />, sortValue: (x) => xep(x.d.meta) },
-          { key: 'may', header: 'Máy quét', title: 'máy xem riêng đoạn video quảng cáo', cell: (x) => <O d={x.d.may} />, sortValue: (x) => xep(x.d.may) },
-          ...NHOM_VP.map((g): DataColumn<(typeof ds)[number]> => ({ key: g.key, header: g.ten, cell: (x) => <O d={x.d.nhom[g.key] ?? { k: 'chua', t: 'Chưa quét' }} />, sortValue: (x) => xep(x.d.nhom[g.key] ?? { k: 'chua', t: '' }) })),
-          { key: 's18', header: 'Cả phim 18+', title: 'soát 18+ toàn phim trước khi cắt', cell: (x) => <O d={x.d.s18} />, sortValue: (x) => xep(x.d.s18) },
-          { key: 'luc', header: 'Quét lúc', cell: (x) => <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.r.sd?.luc?.slice(0, 11) ?? '—'}</span>, sortValue: (x) => x.r.sd?.luc ?? '' },
+          { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={x.r.creative_id} /><span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },
+          ...cotLop, ...cotDiem('meta'), ...cotDiem('afs'),
+          { key: 'ket', header: 'Máy', group: 'kq', title: 'kết luận bộ chấm', cell: (x) => (x.c?.ket ? <span style={{ color: KET[x.c.ket]?.[1], fontWeight: 600, whiteSpace: 'nowrap' }}>{KET[x.c.ket]?.[0] ?? x.c.ket}</span> : <span style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => x.muc },
+          { key: 'meta_that', header: 'Meta thật', group: 'kq', title: 'Meta duyệt hay từ chối', cell: (x) => (x.metaLoi ? <span title={loiMeta(x.r.tu_choi ?? photCr.get(x.r.creative_id) ?? '')} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span> : x.r.giao.includes('ACTIVE') ? <span title="Meta đã duyệt, đang phát" style={{ color: DAU_MAU.ok }}>✓</span> : <span title="Meta đang duyệt" style={{ color: DAU_MAU.cho }}>…</span>), sortValue: (x) => (x.metaLoi ? 0 : 1) },
+          { key: 'luc', header: 'Chấm lúc', group: 'kq', cell: (x) => <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.c ? vn(x.c.luc) : '—'}</span>, sortValue: (x) => x.c?.luc ?? '' },
         ]} />
-      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: DAU_MAU.ok }}>✓</span> sạch · <span style={{ color: DAU_MAU.loi }}>✕</span> vi phạm · <span style={{ color: DAU_MAU.cho }}>…</span> chờ · – chưa quét · <span style={{ color: '#fb923c' }}>⚠</span> máy bỏ sót · rê chuột vào dấu để xem lý do</div>
+      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}>Điểm 0–10 (10 = sạch): <span style={{ color: DAU_MAU.ok }}>8–10</span> · <span style={{ color: DAU_MAU.vua }}>5–7 cần xem</span> · <span style={{ color: DAU_MAU.loi }}>0–4 sẽ bị từ chối</span> · rê chuột vào ô để xem khung hình, video và lý do</div>
+      {the ? <TheXem t={the} /> : null}
     </div>
   );
 }

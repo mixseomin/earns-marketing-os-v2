@@ -64,7 +64,8 @@ def cau_hoi(tc, chu, giong):
             f"On-screen text read by OCR: {chu.get('noi_dung', '')[:2500] or '(none)'}\nSpoken voice transcript: {(giong or {}).get('noi_dung', '')[:2500] or '(none)'}\n"
             "Score EACH criterion from 0 to 10 where 10 = fully compliant / no risk, 7 = minor doubt, 4 or less = Meta or Google would very likely reject:\n"
             f"{ds}\nReply ONLY JSON: {{\"noi_dung\": \"<2 sentences in Vietnamese: what happens in the video>\", "
-            "\"diem\": {\"<group.code>\": <0-10>, ...every criterion...}, \"ly_do\": {\"<group.code>\": \"<short reason in Vietnamese naming the frame / words, only for scores below 10>\"}}")
+            "\"diem\": {\"<group.code>\": <0-10>, ...every criterion...}, \"ly_do\": {\"<group.code>\": \"<short reason in Vietnamese naming the frame / words, only for scores below 10>\"}, "
+            "\"khung\": {\"<group.code>\": [<frame numbers 1-30 (left to right, top to bottom) that show the problem, only for scores below 10>]}}")
 
 def claude(to, hoi, tc):
     """tờ khung + câu hỏi → box3 chạy goi_claude → {noi_dung, diem, ly_do, duong}"""
@@ -83,7 +84,11 @@ def box(jpg, hf):
         d = j.get("diem") or {}
         thieu = can - set(d)
         if thieu or not all(isinstance(d[k], (int, float)) and 0 <= d[k] <= 10 for k in can): raise ValueError(f"thiếu / sai điểm: {sorted(thieu)[:4]}")
-    try: j, duong = SD.goi_claude(jpg, open(hf).read(), 1200, kiem); print(json.dumps({**j, "duong": duong}, ensure_ascii=False))
+    try:
+        j, duong = SD.goi_claude(jpg, open(hf).read(), 1500, kiem)
+        # tờ khung lên kho img.on.tc → trang etp hiện đúng khung bị bắt khi rê chuột (anh 25/10/2026: "hover phải xem được đoạn nội dung đó để còn xác nhận sai")
+        u = subprocess.run(["kho", "phat", jpg, "ethopex", "cham", os.path.basename(jpg)], capture_output=True, text=True, timeout=120).stdout.strip().splitlines()
+        print(json.dumps({**j, "duong": duong, "anh_url": u[-1] if u and u[-1].startswith("http") else None}, ensure_ascii=False))
     except Exception as e: print(json.dumps({"loi": str(e)[:300]}, ensure_ascii=False))
 
 def mot(cr, doan, url, tc, KT, CQ):
@@ -96,12 +101,17 @@ def mot(cr, doan, url, tc, KT, CQ):
     to = SD.to_khung(f, f"cham-{cr}")
     if to: lop["anh"] = {"luc": SD.vn(), "so_khung": 30}
     else: loi.append("ảnh: không dựng được tờ khung")
-    diem, ly = {}, {}
+    diem, ly, khung = {}, {}, {}
     if to:
         try:
             j = claude(to, cau_hoi(tc, lop.get("chu", {}), lop.get("giong")), tc)
             diem = {k: int(round(float(v))) for k, v in (j.get("diem") or {}).items()}; ly = {k: str(v)[:300] for k, v in (j.get("ly_do") or {}).items() if diem.get(k, 10) < 10}
             lop["noi_dung"] = {"luc": SD.vn(), "tom_tat": str(j.get("noi_dung", ""))[:600], "duong": j.get("duong")}
+            if j.get("anh_url"): lop["anh"]["url"] = j["anh_url"]
+            # khung bị bắt → giây trong video (30 khung chia đều độ dài) để trang tua video tới đúng chỗ
+            dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], capture_output=True, text=True).stdout.strip() or 0)
+            lop["anh"]["giay"] = round(dur, 2)
+            khung = {k: sorted({int(n) for n in v if str(n).isdigit() and 1 <= int(n) <= 30}) for k, v in (j.get("khung") or {}).items() if isinstance(v, list) and diem.get(k, 10) < 10}
         except Exception as e: loi.append(f"nội dung: {str(e)[:160]}")
     # luật máy đọc chữ / lời thắng điểm Claude
     tu_cam = (lop.get("chu", {}).get("loi") or []) + (lop.get("giong", {}).get("loi") or [])
@@ -109,11 +119,11 @@ def mot(cr, doan, url, tc, KT, CQ):
     if lop.get("chu", {}).get("cta"): diem["afs.cta"] = min(diem.get("afs.cta", 10), 2); ly["afs.cta"] = "chữ dụ nhấp: " + "; ".join(lop["chu"]["cta"])[:280]
     meta = min([v for k, v in diem.items() if k.startswith("meta.")], default=None); afs = min([v for k, v in diem.items() if k.startswith("afs.")], default=None)
     ket = "xem" if meta is None or afs is None else "cam" if meta <= CAM_META else "xem" if meta <= XEM or afs <= XEM else "ok"
-    v = json.dumps({"creative_id": int(cr), "doan": doan, "may": MAY, "lop": lop, "diem": diem, "ly_do": ly, "meta": meta, "afs": afs, "ket": ket, "loi": "; ".join(loi) or None}, ensure_ascii=False).replace("$J$", "")
-    SD.sql(f"""insert into etp.cham (creative_id, doan, may, lop, diem, ly_do, meta, afs, ket, loi)
-               select creative_id, doan, may, lop, diem, ly_do, meta, afs, ket, loi from jsonb_populate_record(null::etp.cham, $J${v}$J$::jsonb)
+    v = json.dumps({"creative_id": int(cr), "doan": doan, "may": MAY, "lop": lop, "diem": diem, "ly_do": ly, "khung": khung, "meta": meta, "afs": afs, "ket": ket, "loi": "; ".join(loi) or None}, ensure_ascii=False).replace("$J$", "")
+    SD.sql(f"""insert into etp.cham (creative_id, doan, may, lop, diem, ly_do, khung, meta, afs, ket, loi)
+               select creative_id, doan, may, lop, diem, ly_do, khung, meta, afs, ket, loi from jsonb_populate_record(null::etp.cham, $J${v}$J$::jsonb)
                on conflict (creative_id) do update set doan = excluded.doan, luc = now(), may = excluded.may, lop = excluded.lop, diem = excluded.diem,
-                 ly_do = excluded.ly_do, meta = excluded.meta, afs = excluded.afs, ket = excluded.ket, loi = excluded.loi""")
+                 ly_do = excluded.ly_do, khung = excluded.khung, meta = excluded.meta, afs = excluded.afs, ket = excluded.ket, loi = excluded.loi""")
     if doan and ket in ("ok", "cam"):   # cổng lên creative / thay-tu-choi đọc chung một sổ soát đoạn
         SD.gop("ethopex_soat_doan", {doan: {"ok": ket == "ok", "luc": SD.vn(), "ghi": f"máy chấm 4 lớp: Meta {meta}/10 · AFS {afs}/10" + (f" — {'; '.join(f'{k}: {x}' for k, x in ly.items())}"[:300] if ly else "")}})
     return ket, meta, afs

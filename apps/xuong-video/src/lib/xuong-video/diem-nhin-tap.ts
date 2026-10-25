@@ -12,11 +12,11 @@ import { mapCanh, type Db, type Row } from './doc-db';
 import { soiAnh } from './soi-mat';
 import { giayPhat, type Canh } from './kieu';
 import { DUOI_CLIP_BO } from './xuat';
-import { khungCanh, type Diem, type KhungLai } from './diem-nhin';
+import { khungCanh, type Diem, type Hop, type KhungLai } from './diem-nhin';
 
 const chay = promisify(execFile);
 type HS = Record<string, { lung?: boolean }>;
-export type DiemNhinShot = { khoa: string; dau: Diem | null; cuoi: Diem | null; ten_dau?: string; ten_cuoi?: string; lech_goc?: number | null; lech_sau?: number | null };
+export type DiemNhinShot = { khoa: string; dau: Diem | null; cuoi: Diem | null; ten_dau?: string; ten_cuoi?: string; lech_goc?: number | null; lech_sau?: number | null; giu?: Hop[]; thieu?: boolean };
 
 const khoaCua = (url: string, boDau: number, phat: number) => createHash('sha1').update(`${url}|${boDau.toFixed(2)}|${phat.toFixed(2)}`).digest('hex').slice(0, 16);
 
@@ -52,9 +52,17 @@ export async function doDiemNhinTap(db: Db, tapId: number, o: { ghi?: boolean; l
     return null;
   };
   const dn = new Map<number, DiemNhinShot>(cu);
-  for (const [cid, khoa] of moi) { const a = diem(cid, 'dau'), b = diem(cid, 'cuoi'); dn.set(cid, { khoa, dau: a?.p ?? null, cuoi: b?.p ?? null, ten_dau: a?.ten, ten_cuoi: b?.ten }); }
+  // người phải GIỮ trong khung: hộp mặt nới ra (vai, tóc) của MỌI người đo được ở khung mở + đóng; người sơ đồ nói có mà không đo được → thieu (không phóng)
+  const giuCua = (cid: number): { giu: Hop[]; thieu: boolean } => {
+    const giu: Hop[] = []; let thieu = false;
+    for (const luc of ['dau', 'cuoi'] as const) { const k = vao.get(`${cid}:${luc}`); if (k == null) continue; const kq = (soi.get(k)?.ket ?? []) as { ten: string; hop?: number[] }[];
+      for (const t of anh.find((x) => x.id === k)?.ten ?? []) { const m = kq.find((x) => x.ten === t && x.hop); if (!m?.hop) { thieu = true; continue; }
+        const [x, y, w, h] = m.hop as [number, number, number, number]; giu.push({ x0: Math.max(0, x - 0.6 * w), y0: Math.max(0, y - 0.35 * h), x1: Math.min(1, x + 1.6 * w), y1: Math.min(1, y + 1.6 * h) }); } }
+    return { giu, thieu };
+  };
+  for (const [cid, khoa] of moi) { const a = diem(cid, 'dau'), b = diem(cid, 'cuoi'); dn.set(cid, { khoa, dau: a?.p ?? null, cuoi: b?.p ?? null, ten_dau: a?.ten, ten_cuoi: b?.ten, ...giuCua(cid) }); }
   const tat = (c: Canh) => !!(c.ky_thuat as { khung_lai_tat?: boolean } | undefined)?.khung_lai_tat;
-  const kq = khungCanh(ds.map((c) => ({ thu_tu: c.thu_tu, dau: dn.get(c.id)?.dau ?? null, cuoi: dn.get(c.id)?.cuoi ?? null, tat: tat(c) })));
+  const kq = khungCanh(ds.map((c) => ({ thu_tu: c.thu_tu, dau: dn.get(c.id)?.dau ?? null, cuoi: dn.get(c.id)?.cuoi ?? null, tat: tat(c), giu: dn.get(c.id)?.giu, khoa: dn.get(c.id)?.thieu })));
   const out = ds.map((c, i) => { const d = dn.get(c.id); return { thu_tu: c.thu_tu, dn: d ? { ...d, lech_goc: kq[i]!.lech_goc, lech_sau: kq[i]!.lech_truoc } : null, k: kq[i]!.k }; });
   if (o.ghi) for (const [i, c] of ds.entries()) {
     const { dn: d, k } = out[i]!; const kl = k.s > 1 ? JSON.stringify(k) : null;

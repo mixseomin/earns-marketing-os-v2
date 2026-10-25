@@ -329,6 +329,46 @@ except Exception as e:
 # nhưng bảng không được đưa camp đã tắt cho anh duyệt). Không đọc được danh sách camp thì giữ nguyên (đường tăng thật vẫn tự kiểm trạng thái).
 _bat = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"}
 if ds_camp: dat, dau_phien, theo, giam, moc30, ha = ([x for x in ds if x[0] in _bat] for ds in (dat, dau_phien, theo, giam, moc30, ha))
+# BỘ TÀI KHOẢN của từng camp (anh 23/10/2026: tên trên Telegram ghi [1]/[2] = bộ TK) — theo ad_account_id ↔ studio ethopex_bo_tk
+_bo = {int(v["tk"]): k for k, v in json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_bo_tk'") or "{}").items()}
+_bo_c = {int(c["id"]): _bo.get(int(c.get("ad_account_id") or 0)) for c in ds_camp}
+# THANG NHÂN BẢN — CHỈ BỘ 2 (anh 25/10/2026: "áp dụng chiến lược này cho bộ tk số 2 trước. Bộ 1 vẫn giữ nguyên"): đổi ngân sách lớn (> ~20%) là chỉnh
+# sửa đáng kể → camp học lại. Bộ 2 KHÔNG tăng ngân sách camp đang chạy (không tăng bậc / đầu phiên / T30 / nhân bản $1 NB) mà mở BẢN MỚI ở bậc kế
+# THANG_NB, dùng creative KHÁC cùng phim (nhan-ban.py --thang chọn: 3 giây đầu khác thì Meta mới coi là creative khác; qua cổng chấm).
+# Điều kiện (anh 25/10/2026 "áp dụng cho hôm nay"): camp bộ 2 chạm ĐÚNG luật tăng của bộ 1 (tăng bậc / tăng trong ngày / lãi đầu phiên — cùng mọi cổng:
+# hôm nay không lỗ, tăng lại sau giảm, LD siết) → thay vì đổi ngân sách, mở một bản ở bậc kế; mỗi camp tối đa THANG_CON bản con, bản trước còn chạy thì
+# không mở thêm. (Bản đầu đòi 2 ngày trọn ROI ≥ 50%: đo 25/10 bộ 2 có 0 camp đạt — không áp được hôm nay.) Bản thang chi ≥ 1 ngày ngân sách mà ROI ≤ −30% → đề xuất TẮT (anh bấm nút — luật cấm tự tắt).
+# Bản thang không đi đường giảm bậc (giữ ngân sách lúc mở); camp bộ 2 cũ vẫn giảm như bộ 1. Không biết bộ (API lỗi) thì đọc kho etp — chặn tăng cho chắc.
+BO_THANG, THANG_NB, THANG_CON, THANG_TAT = "2", [1, 3, 7, 15, 30], 2, -30
+la_thang = lambda c: re.search(r"\(thang \$\d+ cua (\d+)\)$", c.get("name") or "")
+bo2 = {cid for cid, b in _bo_c.items() if b == BO_THANG} | {int(x) for x in q(f"select camp_id from etp.camp where bo = '{BO_THANG}'").split() if x.isdigit()}
+_tang_bo2 = {int(x[0]) for x in dat + dau_phien if int(x[0] or 0) in bo2}
+dat, dau_phien, nb = ([x for x in ds if int(x[0] or 0) not in bo2] for ds in (dat, dau_phien, nb))
+_id_thang = {int(c["id"]) for c in ds_camp if la_thang(c)}
+ha = [x for x in ha if int(x[0] or 0) not in _id_thang]
+thang_nb, thang_tat = [], []
+try:
+    _con = {}
+    for c in ds_camp:
+        mt = la_thang(c)
+        if mt: _con.setdefault(int(mt.group(1)), []).append(c)
+    _chan_phim, _loi6 = locals().get("chan_phim") or {}, locals().get("loi6") or set()
+    for cid, a in thang.items():
+        if int(cid) not in _tang_bo2 or cid not in _bat: continue
+        ns = a["budget"]; dich = next((b for b in THANG_NB if b > ns + 1e-9), None)
+        if not dich: continue
+        con = _con.get(int(cid), [])
+        if len(con) >= THANG_CON or any(x.get("state") == "ACTIVE" or (x.get("sync_status") or "done") not in ("done", "synced", "error") for x in con): continue
+        h = hom.get(cid, {"chi": 0.0, "thu": 0.0}); y = hqua.get(cid) or {"chi": 0.0, "thu": 0.0}
+        if int(phim_cua.get(cid) or 0) in _chan_phim or cid in _loi6: continue
+        thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich} bản mới (creative khác cùng phim; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
+    for c in ds_camp:
+        if not la_thang(c) or c.get("state") != "ACTIVE": continue
+        cid = c["id"]; a = tron.get(cid) or tron.get(str(cid)); ns = float((thang.get(cid) or {}).get("budget") or c.get("budget_daily") or 0)
+        if a and ns and a["chi"] >= ns and roi(a) is not None and roi(a) <= THANG_TAT:
+            thang_tat.append((cid, f"#{c['name'][:70]} · bản thang ${ns:g} · chi ${a['chi']:.2f} (≥ 1 ngày ngân sách) · ROI {roi(a):+.0f}% ≤ {THANG_TAT}% → TẮT"))
+except Exception as e:
+    loi_may.append((0, f"luật thang nhân bản lỗi: {str(e)[:80]}"))
 # TẮT CHỈ XÉT CAMP ĐỦ 7 NGÀY (anh 22/10/2026: "ít nhất 7 ngày sẽ review tắt camp, chứ không tắt sớm") — camp trẻ hơn mà lỗ thì đi đường giảm bậc (GB)
 TUOI_TAT = 7
 _tao = {c["id"]: dt.datetime.fromisoformat(str(c["created_at"]).replace("Z", "+00:00")) for c in ds_camp if c.get("created_at")}
@@ -352,12 +392,38 @@ try:
             tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · {rd(cid)} {roi(a):+.0f}%"))
 except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
+tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
+# DỪNG ĐÊM — CAMP ÂM TĂNG NHANH (anh 25/10/2026: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"):
+# 21h–5h VN là giờ Mỹ mua mạnh, camp âm tiêu rất nhanh — chờ giảm bậc sáng mai là mất cả đêm. Camp đang bật, hôm nay (số đã chốt chi) chi ≥ 40% ngân sách,
+# ROI ≤ −40%, và khoản LỖ tăng ≥ 15% ngân sách so với lượt chấm trước (≤ 90 phút) → máy TẮT luôn (lam-ethopex vẫn chặn camp ROI cộng dồn > 20%).
+# CHỈ CAMP CLONE Y NGUYÊN CREATIVE (anh 25/10/2026: "luật dừng này chỉ áp dụng cho camp là clone lại hoàn toàn creative. Còn camp creative mới vẫn duy trì
+# theo dõi thêm"): camp mà creative của nó đã có camp khác tạo TRƯỚC (kho etp.camp) — camp đầu tiên của một creative không bao giờ bị dừng đêm.
+# Ảnh chụp lỗ từng camp lưu xv_khoa_ngoai['ethopex_lo_dem'], chỉ ghi ở lượt --json (Phòng Ethopex ~35 phút/lượt).
+DEM_ROI, DEM_CHI, DEM_TANG, DEM_PHUT = -40, 0.4, 0.15, 90
+dung_dem = []
+if vn.hour >= 21 or vn.hour < 5:
+    try:
+        _truoc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_lo_dem'") or "{}")
+        _bay = dt.datetime.now(dt.timezone.utc); _anh = {}
+        _clone_y = {int(x) for x in q("""select c.camp_id from etp.camp c where c.creative_id is not null and exists (select 1 from etp.camp o where o.creative_id = c.creative_id
+                                          and o.camp_id <> c.camp_id and (o.tao, o.camp_id) < (c.tao, c.camp_id))""").split() if x.isdigit()}
+        for cid, a in thang.items():
+            h = hom.get(cid) or {"chi": 0.0, "thu": 0.0}; ns = a["budget"] or 0
+            if not ns or h.get("chi", 0) <= 0: continue
+            lo = h["chi"] - h.get("thu", 0.0); _anh[str(cid)] = [round(lo, 2), _bay.isoformat()]
+            if int(cid) not in _clone_y or (_bat and cid not in _bat) or h["chi"] < DEM_CHI * ns or roi(h) > DEM_ROI: continue
+            p0 = _truoc.get(str(cid))
+            if not p0 or (_bay - dt.datetime.fromisoformat(p0[1])).total_seconds() > DEM_PHUT * 60: continue
+            if lo - p0[0] >= DEM_TANG * ns:
+                dung_dem.append((cid, f"#{a['ten'][:70]} · ${ns:g} · hôm nay chi ${h['chi']:.2f} ({h['chi'] / ns * 100:.0f}% ngân sách), ROI {roi(h):+.0f}% · lỗ ${p0[0]:.2f} → ${lo:.2f} sau {(_bay - dt.datetime.fromisoformat(p0[1])).total_seconds() / 60:.0f} phút · clone y nguyên creative → DỪNG ĐÊM"))
+        _dd = {int(x[0]) for x in dung_dem}   # camp sắp tắt thì không giảm / mở bản thang trong cùng lượt
+        ha, thang_nb = [x for x in ha if int(x[0] or 0) not in _dd], [x for x in thang_nb if int(x[0] or 0) not in _dd]
+        if JSON: q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_lo_dem', '" + json.dumps(_anh).replace("'", "''") + "'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
+    except Exception as e:
+        loi_may.append((0, f"luật dừng đêm lỗi: {str(e)[:80]}"))   # bộ 2 đi thang nhân bản, không lên $30 bằng đổi ngân sách
 if JSON:
-    # BỘ TÀI KHOẢN của từng camp (anh 23/10/2026: tên trên Telegram ghi [1]/[2] = bộ TK) — theo ad_account_id ↔ studio ethopex_bo_tk
-    _bo = {int(v["tk"]): k for k, v in json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_bo_tk'") or "{}").items()}
-    _bo_c = {int(c["id"]): _bo.get(int(c.get("ad_account_id") or 0)) for c in ds_camp}
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)
@@ -367,6 +433,9 @@ print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: "
 in_("CẦN TẮT (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — CHỜ ANH TẮT:", tat_l)
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
+in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")
+in_("DỪNG ĐÊM (21h–5h, camp âm, lỗ tăng nhanh) — MÁY TẮT:", dung_dem, "(không)")
+in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — CHỜ ANH TẮT:", thang_tat, "(không)")
 in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (CHỜ ANH DUYỆT):", tang30, "(chưa có)")
 in_("ĐỦ TIÊU CHÍ BID ROAS (chi ≥ $100, ROI ≥ 50% ổn định 2–3 ngày trọn):", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")

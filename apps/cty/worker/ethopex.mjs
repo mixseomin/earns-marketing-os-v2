@@ -24,6 +24,9 @@ const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); 
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
   ['tat', '⏹ <b>CẦN TẮT</b> — tiêu > $10 từ trước tới nay, ROI < −50%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
+  ['dung_dem', '🌙 <b>DỪNG ĐÊM</b> — 21h–5h, chỉ camp clone y nguyên creative: camp âm (chi ≥ 40% ngân sách, ROI ≤ −40%) mà lỗ tăng ≥ 15% ngân sách so với lượt trước → máy tắt luôn', null],
+  ['thang_tat', '⏹ <b>BẢN THANG LỖ</b> — bộ 2: bản nhân ở bậc cao đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
+  ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp ổn 2 ngày trọn (chi ≥ 50%, ROI ≥ 50%) → máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — Edit camp, thay creative sạch đã duyệt cùng phim', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
@@ -375,6 +378,32 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   if (daNb.length) {
     const dong = daNb.map(({ m, r, lich }) => (r.ok ? `🧬 #${m.id} → <b>#${r.moi}</b> $1 · lịch ${lich === 'today' ? 'hôm nay' : 'ngày mai'}` : `⚠️ #${m.id} chưa nhân bản được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI 30 ngày ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    gui++;
+  }
+  // DỪNG ĐÊM (anh 25/10/2026 chat: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"): anh lệnh đích danh luật
+  // này nên máy tắt qua lam-ethopex với người duyệt "anh (chat …)"; lam-ethopex vẫn từ chối camp ROI cộng dồn > 20% (camp lãi không bị tắt). Không tự bật lại.
+  const daDem = [];
+  for (const m of kq.dung_dem || []) {
+    if (lamRoi.has(m.id)) continue; lamRoi.add(m.id);
+    let r; try { r = JSON.parse((await chay(LAM, ['tat', String(m.id), '--luat', `dừng đêm · ${m.chu}`.slice(0, 400), '--ai', 'anh (chat 25/10/2026: phiên 21h–5h camp âm tăng nhanh thì chủ động dừng luôn) — máy chạy'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    daDem.push({ m, r });
+  }
+  if (daDem.length) {
+    const dong = daDem.map(({ m, r }) => (r.ok ? `🌙 #${m.id} <b>đã tắt</b>` : `⚠️ #${m.id} chưa tắt: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🌙 <b>MÁY DỪNG ĐÊM</b> — camp âm, lỗ tăng nhanh trong phiên 21h–5h (anh lệnh 25/10/2026); camp lãi cộng dồn > 20% không tắt; không tự bật lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+    gui++;
+  }
+  // THANG NHÂN BẢN — BỘ 2 (anh 25/10/2026: "áp dụng chiến lược này cho bộ tk số 2 trước. Bộ 1 vẫn giữ nguyên"): bộ 2 không tăng ngân sách camp đang
+  // chạy (đổi lớn = Meta bắt học lại) mà mở bản mới ở bậc kế qua nhan-ban.py --thang (creative khác cùng phim, cổng chấm, rào chắn etp). Báo một tin.
+  const daThang = [];
+  for (const m of kq.thang_nb || []) {
+    const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
+    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--lich', 'today', '--thang', String(d), '--luat', `thang nhân bản bộ 2 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự mở bản thang (anh duyệt chiến lược bộ 2 ngày 25/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    daThang.push({ m, d, r });
+  }
+  if (daThang.length) {
+    const dong = daThang.map(({ m, d, r }) => (r.ok ? `🪜 #${m.id} → <b>#${r.moi}</b> $${esc(r.ns ?? d)}` + (r.doi_creative ? ` · creative #${r.doi_creative.tu} → #${r.doi_creative.sang}` : '') : `⚠️ #${m.id} → $${d} chưa mở được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🪜 <b>MÁY MỞ BẢN THANG — BỘ 2</b> — camp gốc giữ nguyên ngân sách (không học lại); bản mới ở bậc kế, creative khác cùng phim\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
     gui++;
   }
   // ĐỀ XUẤT CŨ HẾT LIÊN QUAN: camp không còn chạm đúng luật + mức đó ở lượt chấm này → gỡ hàng nút; tin hết hàng thì xoá

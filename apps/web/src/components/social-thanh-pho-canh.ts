@@ -300,9 +300,13 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // GÓC NHÌN NHỚ QUA F5 (anh 22/10/2026): vị trí camera + tâm nhìn lưu ở trình duyệt mỗi lần dừng kéo / phóng / xoay và mỗi lần bay xong;
   // mở lại thì về đúng chỗ đó. Nút ⌂ vẫn về góc toàn cảnh. Riêng từng máy (localStorage), hỏng / chế độ riêng tư thì mở góc toàn cảnh như cũ.
   const KHOA_CAM = 'tp-cam';
-  const luuCam = () => { try { localStorage.setItem(KHOA_CAM, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* chế độ riêng tư */ } };
-  const camDaLuu: { p: number[]; t: number[] } | null = (() => { try { const v = JSON.parse(localStorage.getItem(KHOA_CAM) ?? 'null'); const so = v ? [...v.p, ...v.t] : []; return so.length === 6 && so.every(Number.isFinite) ? v : null; } catch { return null; } })();
+  const luuCam = () => { try { localStorage.setItem(KHOA_CAM, JSON.stringify({ p: cam.position.toArray(), t: ctl.target.toArray() })); } catch { /* chế độ riêng tư */ } try { ghiUrlNhin(); } catch { /* cảnh chưa dựng xong */ } };
+  // GÓC NHÌN TRONG URL (góp ý #1450 lần 2, anh 25/10/2026: card góp ý chỉ mang link trang chủ thì không ai biết anh đang nói khu nào): mỗi lần camera dừng
+  // ghi ?khu=<khu đang nhìn>&cam=<x,y,z,tx,tz> vào URL → link "Trang báo lỗi" của card mở lại ĐÚNG góc nhìn đó (ưu tiên hơn góc lưu ở trình duyệt).
+  const camUrl: { p: number[]; t: number[] } | null = (() => { try { const so = (new URLSearchParams(window.location.search).get('cam') ?? '').split(',').map(Number); return so.length === 5 && so.every(Number.isFinite) ? { p: so.slice(0, 3), t: [so[3]!, 0, so[4]!] } : null; } catch { return null; } })();
+  const camDaLuu: { p: number[]; t: number[] } | null = camUrl ?? (() => { try { const v = JSON.parse(localStorage.getItem(KHOA_CAM) ?? 'null'); const so = v ? [...v.p, ...v.t] : []; return so.length === 6 && so.every(Number.isFinite) ? v : null; } catch { return null; } })();
   ctl.addEventListener('end', luuCam);
+  let henUrl = 0; ctl.addEventListener('change', () => { clearTimeout(henUrl); henUrl = window.setTimeout(() => { try { ghiUrlNhin(); } catch { /* cảnh chưa dựng xong */ } }, 500); });   // quán tính còn trôi sau khi thả chuột: ghi URL khi camera đứng hẳn
   const trang = new THREE.DirectionalLight('#cfd8ff', 0.55); trang.position.set(-260, 420, 180); trang.castShadow = true; trang.shadow.mapSize.set(camUng ? 1024 : 2048, camUng ? 1024 : 2048);
   Object.assign(trang.shadow.camera, { left: -700, right: 700, top: 450, bottom: -450 }); scene.add(trang);
   const dat = new THREE.Mesh(new THREE.PlaneGeometry(2000, 1200), new THREE.MeshStandardMaterial({ color: '#0b1022', roughness: 1 })); dat.rotation.x = -Math.PI / 2; dat.receiveShadow = true; scene.add(dat);
@@ -2055,12 +2059,18 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // NGỮ CẢNH GÓP Ý (góp ý #1450): nút 💬 tự nhúng vật đang chọn + khu / vật camera đang nhìn (window.__nguCanhTrang — gop-y-mos2 docNguCanh đọc lúc gửi), không cần chụp ảnh.
   // Vật đang chọn còn nằm trong URL (?xem=<tên ô tìm>): link "Trang báo lỗi" của card mở lại đúng vật (đọc ?xem sau lần dựng đầu).
   const tenVat = (o: any): string => chiMuc.find((c) => c.obj === o)?.ten ?? (() => { try { return thongTin(o).dau.replace(/<[^>]+>/g, '').trim(); } catch { return ''; } })();
-  function datXem(ten: string | null) { try { const u = new URL(window.location.href); if (ten) u.searchParams.set('xem', ten); else u.searchParams.delete('xem'); if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href); } catch { /* không đổi được URL: ngữ cảnh vẫn gửi qua __nguCanhTrang */ } }
+  function datUrl(dat: Record<string, string | null>) { try { const u = new URL(window.location.href); for (const [k, v] of Object.entries(dat)) { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); } if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href); } catch { /* không đổi được URL: ngữ cảnh vẫn gửi qua __nguCanhTrang */ } }
+  function datXem(ten: string | null) { datUrl({ xem: ten }); }
+  // khu đang nhìn = vật gần tâm nhất: vật thuộc khu Tài nguyên → 'Tài nguyên'; chính nó là khu → tên nó; còn lại → khu dự án / xưởng gần tâm nhất
+  const khuDangNhin = () => { const vat = ganTam(() => true), laKhu = (c: { nhan: string; obj: any }) => c.obj.userData?.loai === 'khu' || /^khu/.test(c.nhan);
+    return vat?.nhan === 'tài nguyên' ? 'Tài nguyên' : vat && laKhu(vat as any) ? vat.ten : ganTam(laKhu)?.ten ?? null; };
+  function ghiUrlNhin() { if (!chiMuc.length) return; const r0 = (v: number) => String(Math.round(v));
+    datUrl({ khu: khuDangNhin(), cam: [cam.position.x, cam.position.y, cam.position.z, ctl.target.x, ctl.target.z].map(r0).join(',') }); }
   const vGan = new THREE.Vector3();
   const ganTam = (loc: (c: { ten: string; nhan: string; obj: any }) => boolean) => { let tot: { ten: string; nhan: string } | null = null, kc = Infinity;
     for (const c of chiMuc) { if (!loc(c)) continue; c.obj.getWorldPosition(vGan); const d = (vGan.x - ctl.target.x) ** 2 + (vGan.z - ctl.target.z) ** 2; if (d < kc) { kc = d; tot = c; } } return tot; };
-  const nguCanhCity = () => { const chon = vatChon ? tenVat(vatChon) : '', khu = ganTam((c) => c.obj.userData?.loai === 'khu' || /^khu/.test(c.nhan)), vat = ganTam(() => true);
-    return [chon && `đang chọn: ${chon}`, khu && `khu đang nhìn: ${khu.ten}`, vat && vat !== khu && `vật giữa màn: ${vat.ten} (${vat.nhan})`].filter(Boolean).join(' · '); };
+  const nguCanhCity = () => { const chon = vatChon ? tenVat(vatChon) : '', khu = khuDangNhin(), vat = ganTam(() => true);
+    return [chon && `đang chọn: ${chon}`, khu && `khu đang nhìn: ${khu}`, vat && vat.ten !== khu && `vật giữa màn: ${vat.ten} (${vat.nhan})`].filter(Boolean).join(' · '); };
   (window as any).__nguCanhTrang = nguCanhCity;
   const onPhim = (e: KeyboardEvent) => { if (e.key === 'Escape' && !ngan.hidden) dongNgan(); };
   window.addEventListener('keydown', onPhim);

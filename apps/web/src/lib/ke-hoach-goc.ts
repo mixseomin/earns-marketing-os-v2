@@ -71,6 +71,27 @@ export async function sinhTuan(tuan: string): Promise<number> {
 /** tuần này + tuần sau luôn có kế hoạch (gọi từ trang Lịch; nhanh khi đã có — một câu đếm) */
 export async function damBaoKeHoach(hom: string): Promise<void> {
   for (const t of [thuHai(hom), cong(thuHai(hom), 7)]) await sinhTuan(t);
+  await danhDauBaiSite(thuHai(hom));
+}
+/** BÀI SITE THEO GÓC (anh 26/10/2026): góc có ô bài link, hoặc từ 3 ô trở lên trong một tuần kế hoạch (từ tuần `tu`), cần một bài trên site đích
+ *  của thương hiệu (xv_may.site_dich) — thêm dòng 'can_viet' nếu chưa có; dòng đã có giữ nguyên trạng thái, chỉ kéo sớm hạn can_truoc. */
+export async function danhDauBaiSite(tu: string): Promise<void> {
+  const d = getDb(); if (!d) return;
+  await d.execute(sql`INSERT INTO bai_site_goc (may, goc_id, goc, site, can_truoc, ly_do)
+    SELECT k.may, (k.goc->>'id')::int, (array_agg(k.goc))[1], m.site_dich,
+      coalesce(min(k.ngay) FILTER (WHERE k.format = 'Bài link'), min(k.ngay)),
+      CASE WHEN bool_or(k.format = 'Bài link') THEN 'bài link' ELSE count(*) || ' ô trong tuần' END
+    FROM ke_hoach_goc k JOIN xv_may m ON m.ma = k.may
+    WHERE k.tuan >= ${tu}::date AND m.site_dich IS NOT NULL
+    GROUP BY k.may, k.tuan, (k.goc->>'id')::int, m.site_dich
+    HAVING bool_or(k.format = 'Bài link') OR count(*) >= 3
+    ON CONFLICT (may, goc_id) DO UPDATE SET can_truoc = least(bai_site_goc.can_truoc, excluded.can_truoc), cap_nhat = now()
+      WHERE excluded.can_truoc < bai_site_goc.can_truoc`);
+}
+export type BaiSite = { may: string; goc_id: number; site: string; can_truoc: string | null; ly_do: string | null; trang_thai: string; url: string | null };
+export async function docBaiSite(): Promise<BaiSite[]> {
+  const d = getDb(); if (!d) return [];
+  return (await d.execute(sql`SELECT may, goc_id, site, can_truoc::text AS can_truoc, ly_do, trang_thai, url FROM bai_site_goc`)) as unknown as BaiSite[];
 }
 export type OKeHoach = { may: string; ho: string; ngay: string; nen: string; format: string; can_dung: boolean; goc: GocBai };
 export async function docKeHoachGoc(tu: string, den: string): Promise<OKeHoach[]> {

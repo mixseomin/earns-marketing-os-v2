@@ -18,8 +18,9 @@ export async function GET() {
       array(SELECT DISTINCT split_part(n->>'nen', ':', 1) FROM jsonb_array_elements(m.dang) n) AS nen,
       (SELECT coalesce(jsonb_object_agg(id, n), '{}') FROM (SELECT v.dang->'goc'->>'id' AS id, count(*) AS n FROM xv_may_video v WHERE v.may_id = m.id AND v.dang ? 'goc' AND v.da_dang <> '{}'::jsonb GROUP BY 1) x) AS da,
       (SELECT coalesce(jsonb_object_agg(id, n), '{}') FROM (SELECT k.goc->>'id' AS id, count(*) AS n FROM ke_hoach_goc k WHERE k.may = m.ma AND k.ngay >= ${thuHai(hom)}::date GROUP BY 1) x) AS kh,
-      array(SELECT goc_id FROM goc_tat t WHERE t.may = m.ma) AS tat
-    FROM xv_may m WHERE m.chay ORDER BY m.ten`)) as unknown as { ma: string; ten: string; goc_sp: number[]; nen: string[]; da: Record<string, number>; kh: Record<string, number>; tat: number[] }[];
+      array(SELECT goc_id FROM goc_tat t WHERE t.may = m.ma) AS tat, m.site_dich,
+      (SELECT coalesce(jsonb_object_agg(goc_id, jsonb_build_object('tt', trang_thai, 'url', url, 'han', can_truoc, 'ly_do', ly_do)), '{}') FROM bai_site_goc b WHERE b.may = m.ma) AS site
+    FROM xv_may m WHERE m.chay ORDER BY m.ten`)) as unknown as { ma: string; ten: string; goc_sp: number[]; nen: string[]; da: Record<string, number>; kh: Record<string, number>; tat: number[]; site_dich: string | null; site: Record<string, { tt: string; url: string | null; han: string | null; ly_do: string | null }> }[];
   const sp = [...new Set(may.flatMap((m) => m.goc_sp.map(Number)))];
   const pg = await moSpy();
   try {
@@ -30,7 +31,7 @@ export async function GET() {
     ]);
     return NextResponse.json({
       may: may.map((m) => ({ ...m, goc_sp: m.goc_sp.map(Number), tat: m.tat.map(Number),
-        goc: goc.filter((g) => m.goc_sp.map(Number).includes(Number(g.sp_id))).map((g) => ({ id: Number(g.id), sp: Number(g.sp_id), loai: g.loai, ten: g.ten, mo_ta: g.mo_ta, nhac: Number(g.n), da: Number(m.da[String(g.id)] ?? 0), kh: Number(m.kh[String(g.id)] ?? 0) })) })),
+        goc: goc.filter((g) => m.goc_sp.map(Number).includes(Number(g.sp_id))).map((g) => ({ id: Number(g.id), sp: Number(g.sp_id), loai: g.loai, ten: g.ten, mo_ta: g.mo_ta, nhac: Number(g.n), da: Number(m.da[String(g.id)] ?? 0), kh: Number(m.kh[String(g.id)] ?? 0), site: m.site[String(g.id)] ?? null })) })),
       nhom: nhom.filter((x) => x.n > 0).map((x) => ({ id: Number(x.id), ten: x.ten, n: x.n })),
     });
   } finally { await pg.end(); }

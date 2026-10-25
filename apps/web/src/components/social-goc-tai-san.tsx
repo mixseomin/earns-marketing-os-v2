@@ -8,11 +8,18 @@ import { MultiSelect } from '@/components/ui';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { wrapExternalUrl } from '@/lib/external-url';
 
-type Goc = { id: number; sp: number; loai: string; ten: string; mo_ta: string | null; nhac: number; da: number; kh: number };
-type May = { ma: string; ten: string; goc_sp: number[]; nen: string[]; tat: number[]; goc: Goc[] };
+type Goc = { id: number; sp: number; loai: string; ten: string; mo_ta: string | null; nhac: number; da: number; kh: number; site: { tt: string; url: string | null; han: string | null; ly_do: string | null } | null };
+type May = { ma: string; ten: string; goc_sp: number[]; nen: string[]; tat: number[]; goc: Goc[]; site_dich: string | null };
 type Nhom = { id: number; ten: string; n: number };
 const NEN_PK: Record<string, string> = { facebook: 'facebook', fb_anh: 'facebook', fb_link: 'facebook', x: 'twitter', x_anh: 'twitter', x_link: 'twitter', youtube: 'youtube', instagram: 'instagram', tiktok: 'tiktok', dailymotion: 'dailymotion' };
 
+const TT_SITE: Record<string, [string, string]> = { can_viet: ['Cần viết', 'var(--danger, #dc2626)'], dang_viet: ['Đang viết', 'var(--warn, #d97706)'], cho_duyet: ['Chờ Phòng Nội dung', 'var(--warn, #d97706)'], da_len: ['Đã lên', 'var(--ok, #16a34a)'] };
+function BaiSite({ s }: { s: Goc['site'] }) {
+  if (!s) return <span style={{ color: 'var(--fg-3)', fontSize: 12 }}>—</span>;
+  const [nhan, mau] = TT_SITE[s.tt] ?? [s.tt, 'var(--fg-2)'], han = s.han ? ` · trước ${s.han.slice(8, 10)}/${s.han.slice(5, 7)}` : '';
+  return s.url ? <a href={wrapExternalUrl(s.url)} target="_blank" rel="noreferrer" title={s.ly_do ?? ''} style={{ color: mau, fontSize: 12, fontWeight: 600 }}>{nhan} ↗</a>
+    : <span title={s.ly_do ? `cần vì: ${s.ly_do}` : ''} style={{ color: mau, fontSize: 12, fontWeight: 600 }}>{nhan}{s.tt !== 'da_len' ? han : ''}</span>;
+}
 export function GocTaiSan() {
   const [ds, setDs] = useState<{ may: May[]; nhom: Nhom[] } | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [chon, setChon] = useState<string | null>(null), [loai, setLoai] = useState<string | null>(null), [ban, setBan] = useState(false);
@@ -58,10 +65,10 @@ export function GocTaiSan() {
                 style={{ ...nut, borderColor: mau, color: !loai || loai === k ? mau : 'var(--fg-3)', fontWeight: 600, borderRadius: 999 }}>{k}{loai === k ? ' ✕' : ''}</button>; })}
           </div>
           <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 720 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 820 }}>
               <thead><tr style={{ color: 'var(--fg-2)', textAlign: 'left' }}>
                 <th style={td}>Loại</th><th style={td}>Góc</th><th style={{ ...td, textAlign: 'right' }} title="số lần thị trường nhắc tới (spy)">Lượt nhắc</th>
-                <th style={{ ...td, textAlign: 'right' }} title="bài đã đăng làm từ góc này">Đã đăng</th><th style={{ ...td, textAlign: 'right' }} title="ô kế hoạch từ tuần này">Kế hoạch</th><th style={td}></th>
+                <th style={{ ...td, textAlign: 'right' }} title="bài đã đăng làm từ góc này">Đã đăng</th><th style={{ ...td, textAlign: 'right' }} title="ô kế hoạch từ tuần này">Kế hoạch</th><th style={td} title={`bài trên site đích ${m.site_dich ?? ''} đón traffic của góc (cần khi góc có ô bài link hoặc từ 3 ô trong tuần)`}>Bài site</th><th style={td}></th>
               </tr></thead>
               <tbody>{goc.map((g) => { const [nhan, mau] = loaiGoc(g.loai), tat = m.tat.includes(g.id);
                 return <tr key={g.id} style={{ opacity: tat ? .5 : 1 }}>
@@ -70,6 +77,7 @@ export function GocTaiSan() {
                   <td style={{ ...td, textAlign: 'right' }}>{g.nhac}</td>
                   <td style={{ ...td, textAlign: 'right', color: g.da ? undefined : 'var(--fg-3)' }}>{g.da}</td>
                   <td style={{ ...td, textAlign: 'right', color: g.kh ? undefined : 'var(--fg-3)' }}>{g.kh}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}><BaiSite s={g.site} /></td>
                   <td style={{ ...td, textAlign: 'right' }}><button type="button" disabled={ban} onClick={() => void gui({ may: m.ma, goc_id: g.id, tat: !tat })} style={nut}
                     title={tat ? 'bật lại: góc vào kế hoạch các tuần chưa sinh' : 'tắt: không xếp góc này vào kế hoạch các tuần chưa sinh'}>{tat ? 'Bật' : 'Tắt'}</button></td>
                 </tr>; })}</tbody>

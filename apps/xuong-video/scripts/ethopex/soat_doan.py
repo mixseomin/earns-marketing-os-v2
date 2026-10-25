@@ -160,16 +160,28 @@ def main(a):
             i, n = map(int, a[a.index("--phan") + 1].split("/")); viec = [x for x in viec if int(x[0]) % n == i]
         luong = int(a[a.index("--luong") + 1]) if "--luong" in a else 6
         print(f"rà soát {len(viec)} creative đang chạy chưa soát đoạn", flush=True)
+        # BÁO THỜI GIAN THỰC (anh 25/10/2026: "khi quét thì phải báo thời gian thực lên etp.on.tc/?t=creative&v=soat"): mỗi đoạn xong ghi ngay sổ soát đoạn
+        # + tiến độ máy này vào xv_khoa_ngoai['ethopex_quet'][<máy>] {tong, xong, ok, cam, xem, bat_dau, cap_nhat, dang, cuoi}; trang tự làm mới 5 giây khi đang quét
+        import socket, threading
+        may = "box3" if TREN_BOX else socket.gethostname().split(".")[0]; khoa_lk = threading.Lock(); cam = []
+        td = {"tong": len(viec), "xong": 0, "ok": 0, "cam": 0, "xem": 0, "bat_dau": vn(), "cap_nhat": vn(), "dang": True, "cuoi": ""}
+        gop("ethopex_quet", {may: td})
         def mot(x):
-            cr, k, v = x; return cr, k, ai(to_khung(v, k))
-        kq_all = list(ThreadPoolExecutor(luong).map(mot, viec)); ghi, tong, cam = {}, {"ok": 0, "cam": 0, "xem": 0}, []
-        for cr, k, kq in kq_all:
-            tong[kq["ket"]] += 1
-            if kq["ket"] != "xem": ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude ({kq.get('duong')}): {kq['ly']}"}
-            if kq["ket"] == "cam": cam.append(cr)
-            if kq["ket"] != "ok": print(f"{kq['ket'].upper()} creative #{cr} đoạn {k} · {kq['ly'][:160]} · tờ (iMac): {os.path.join(CHO, k.replace(':', '-') + '.jpg')}", flush=True)
-        if ghi: gop("ethopex_soat_doan", ghi)
-        print(f"rà soát xong: ok {tong['ok']} · cấm {tong['cam']} · cần người xem {tong['xem']}", flush=True)
+            cr, k, v = x; kq = ai(to_khung(v, k))
+            with khoa_lk:
+                td["xong"] += 1; td[kq["ket"]] += 1; td["cap_nhat"] = vn(); td["cuoi"] = f"#{cr} {kq['ket']}: {kq['ly'][:90]}"
+                if kq["ket"] == "cam": cam.append(cr)
+                if kq["ket"] != "ok": print(f"{kq['ket'].upper()} creative #{cr} đoạn {k} · {kq['ly'][:160]} · tờ ({may}): {os.path.join(CHO, k.replace(':', '-') + '.jpg')}", flush=True)
+                moi = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude ({kq.get('duong')}): {kq['ly']}"} if kq["ket"] != "xem" else None
+                try:
+                    if moi: gop("ethopex_soat_doan", {k: moi})
+                    else: gop("ethopex_cho_soat", {k: {"x": {"content_id": int(k.split(":")[0]), "file": v, "tu": float(k.split(":")[1].split("-")[0]), "den": float(k.split("-")[-1])}, "ma": "quet", "dang": "canh cuoi", "to": to_khung(v, k), "luc": vn(), "may": kq["ly"], "creative": cr}})
+                    gop("ethopex_quet", {may: td})
+                except Exception as e: print("ghi lỗi:", e, flush=True)
+        list(ThreadPoolExecutor(luong).map(mot, viec))
+        td["dang"] = False; td["cap_nhat"] = vn(); gop("ethopex_quet", {may: td})
+        print(f"rà soát xong ({may}): ok {td['ok']} · cấm {td['cam']} · cần người xem {td['xem']}", flush=True)
+        cam = [str(c) for c in cam]
         if cam:   # camp mới < 48 giờ mang đoạn cấm → thay creative sạch; camp cũ (Meta đã duyệt, có thể đang lãi) chỉ báo, không sửa
             camps = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where creative_id in ({','.join(cam)}) and trang_thai <> 'ARCHIVED'")
             if camps:

@@ -66,6 +66,24 @@ def main():
         kq["so_chi_tiet"] = ghi("camp", rows, ["camp_id"], {"camp_id": "int", "ten": "text", "bo": "text", "ad_account_id": "bigint", "trang_thai": "text", "giao": "text", "dong_bo": "text",
             "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
     except Exception as e: loi.append(f"camp: {e}")
+    # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
+    try:
+        moi = q("""with bt as (select k bo, (v->>'page')::bigint page_id, v->>'ten' ten from xv_khoa_ngoai, jsonb_each(gia_tri) e(k, v) where ten = 'ethopex_bo_tk'),
+            m as (insert into etp.phot (camp_id, ad_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do)
+              select c.camp_id, c.ad_id, c.creative_id, c.content_id, c.bo, c.ad_account_id, bt.page_id,
+                case when c.loi ~* 'Sexual Exploitation|sexual violence' then 'cuong_ep' when c.loi ~* 'Nudity|Sexual' then 'khoa_than'
+                     when c.loi ~* 'Violent|Graphic' then 'mau' when c.loi ~* 'Weapon|Dangerous' then 'vu_khi' else 'khac' end, c.loi
+              from etp.camp c left join bt on bt.bo = c.bo
+              where (c.giao = 'DISAPPROVED' or c.loi ilike '%DISAPPROVED%') and c.creative_id is not null
+              on conflict (camp_id, creative_id) do nothing returning camp_id, creative_id, bo, page_id, nhom)
+            insert into etp.canh_bao (loai, khoa, muc, noi_dung)
+              select 'phot', 'phot:' || m.camp_id || ':' || m.creative_id, 'do', 'Phốt Meta: bộ ' || coalesce(m.bo, '?') || coalesce(' (' || bt.ten || ')', '') || ' · Page ' || coalesce(m.page_id::text, '?') || ' · camp #' || m.camp_id
+                || ' · creative #' || m.creative_id || ' · ' || case m.nhom when 'cuong_ep' then 'cưỡng ép / bạo lực tình dục' when 'khoa_than' then 'khoả thân / gợi dục'
+                when 'mau' then 'bạo lực / máu' when 'vu_khi' then 'vũ khí' else 'vi phạm khác' end
+                || ' · bộ này đã ' || (select count(*) from etp.phot p where p.bo is not distinct from m.bo and p.luc > now() - interval '7 days') || ' phốt trong 7 ngày'
+              from m left join bt on bt.bo = m.bo on conflict (khoa) do nothing returning 1""")
+        kq["phot_moi"] = len([x for x in moi.splitlines() if x])
+    except Exception as e: loi.append(f"phot: {e}")
     # ── số theo ngày (camp × ngày)
     try:
         tu = "2026-10-19" if day_du or q("select count(*) from etp.so_ngay") == "0" else (nay - dt.timedelta(days=3)).isoformat()

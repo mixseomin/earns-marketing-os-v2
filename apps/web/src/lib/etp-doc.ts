@@ -33,7 +33,11 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** phim bão hoà / dừng nhân bản (etp.phim_bao_hoa — canh-bao.py, anh 25/10/2026) */
   baoHoa: { content_id: number; ten: string | null; so_camp: number; roi: { d: string; roi: number | null }[]; chan_nb: string | null; bao_hoa: string | null }[];
   /** nhân bản lỗi 24 giờ theo camp gốc (cây camp, anh 25/10/2026): số lần, lần cuối, lý do cuối */
-  nbLoi: { camp_id: number; lan: number; luc: string; loi: string | null }[] };
+  nbLoi: { camp_id: number; lan: number; luc: string; loi: string | null }[];
+  /** phốt Meta (etp.phot — anh 25/10/2026: cảnh báo từ Meta = phốt gắn bộ tài khoản / Page) */
+  /** tiến độ lượt quét nội dung theo máy (soat_doan.py quet ghi từng đoạn — xv_khoa_ngoai ethopex_quet) */
+  quet: Record<string, { tong: number; xong: number; ok: number; cam: number; xem: number; bat_dau: string; cap_nhat: string; dang: boolean; cuoi: string }>;
+  phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
 const st = (c: unknown, t: unknown): SoTien => ({ chi: n(c), thu: n(t) });
@@ -70,7 +74,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();
-  const [sKhoa] = await Promise.all([run<{ ten: string; gia_tri: Record<string, { ok?: boolean; ghi?: string; luc?: string }> | null }>(sql`select ten, gia_tri from xv_khoa_ngoai where ten in ('ethopex_soat_18', 'ethopex_soat_doan', 'ethopex_cho_soat')`)]);
+  const [sKhoa] = await Promise.all([run<{ ten: string; gia_tri: Record<string, { ok?: boolean; ghi?: string; luc?: string }> | null }>(sql`select ten, gia_tri from xv_khoa_ngoai where ten in ('ethopex_soat_18', 'ethopex_soat_doan', 'ethopex_cho_soat', 'ethopex_quet')`)]);
   const khoaS = (t: string) => sKhoa.find((r) => r.ten === t)?.gia_tri ?? {};
   const s18 = khoaS('ethopex_soat_18'), sDoan = khoaS('ethopex_soat_doan'), choSoat = khoaS('ethopex_cho_soat');
   const dongS = (v?: { ok?: boolean; ghi?: string; luc?: string }) => (v && typeof v.ok === 'boolean' ? { ok: v.ok, ghi: String(v.ghi ?? ''), luc: String(v.luc ?? '') } : null);
@@ -109,7 +113,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
   for (const x of crMap.values()) if (x.ngay_dau) dn(x.ngay_dau.slice(0, 10)).cr_moi++;
   for (const r of tatNgay) dn(r.d).tat = n(r.n);
   const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: String(b.page), tk_id: Number(b.tk), page_id: Number(b.page), chi_phim_moi: b.chi_phim_moi }]));
-  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi] = await Promise.all([
+  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
         max(coalesce(xong, bat_dau))::text cuoi, avg(extract(epoch from xong - bat_dau)) filter (where trang_thai = 'xong') giay_tb from etp.viec where may is not null group by may order by may`),
@@ -123,11 +127,15 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<DuLieuEtp['baoHoa'][number]>(sql`select content_id, ten, so_camp, roi, chan_nb, bao_hoa from etp.phim_bao_hoa where chan_nb is not null or bao_hoa is not null order by so_camp desc`).catch(() => [] as DuLieuEtp['baoHoa']),
     run<Record<string, unknown>>(sql`select distinct on (camp_id) camp_id, count(*) over (partition by camp_id) lan, luc::text luc, loi from etp.nhat_ky
       where viec = 'nhan_ban' and not coalesce(ok, true) and luc > now() - interval '24 hours' and camp_id is not null order by camp_id, luc desc`),
+    run<Record<string, unknown>>(sql`select id, luc::text luc, camp_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do from etp.phot order by luc desc limit 500`).catch(() => [] as Record<string, unknown>[]),
   ]);
   return { luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp) })), camps: cs, creatives: [...crMap.values()], phims,
     cauHinh, nhatKy, canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
+    quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],
+    phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),
+      bo: (r.bo as string) ?? null, ad_account_id: r.ad_account_id == null ? null : n(r.ad_account_id), page_id: r.page_id == null ? null : n(r.page_id), nhom: String(r.nhom ?? 'khac'), ly_do: (r.ly_do as string) ?? null })),
     bao, baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
       ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })) })) };
 }

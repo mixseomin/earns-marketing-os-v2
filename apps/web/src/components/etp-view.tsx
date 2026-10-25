@@ -211,8 +211,41 @@ function danhGia(r: CreativeEtpKho) {
   return { meta, may, s18, nhom, metaLoi, sot, muc: metaLoi ? 0 : may.k === 'loi' ? 1 : may.k === 'cho' ? 2 : may.k === 'chua' ? 3 : 4 };
 }
 type LocSoat = 'loi' | 'meta' | 'chua' | 'all';
+// PHỐT META THEO BỘ / PAGE (anh 25/10/2026: "cảnh báo từ Meta phải coi là phốt gắn với bộ tk/page để còn biết mà xử lý"):
+// mỗi bộ một thẻ: khối bộ · Page · số phốt 7 ngày / tổng · nhóm vi phạm · lần cuối; bộ có phốt trong 7 ngày viền đỏ. Danh sách từng phốt bên dưới (mở ra xem).
+const NHOM_PHOT: Record<string, string> = { cuong_ep: 'cưỡng ép tình dục', khoa_than: 'khoả thân / gợi dục', mau: 'máu / bạo lực', vu_khi: 'vũ khí', khac: 'vi phạm khác' };
+function PhotBo({ du }: { du: DuLieuEtp }) {
+  const tuan = Date.now() - 7 * 86_400_000;
+  const bos = [...new Set([...Object.keys(du.boTk), ...du.phot.map((p) => p.bo ?? '?')])].sort();
+  return (
+    <div style={{ margin: '4px 0 14px' }}>
+      <div style={{ fontSize: 13, fontWeight: 600, margin: '0 0 6px' }}>Phốt Meta theo bộ tài khoản · Page</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {bos.map((b) => {
+          const ds = du.phot.filter((p) => (p.bo ?? '?') === b), d7 = ds.filter((p) => Date.parse(p.luc) > tuan), info = du.boTk[b];
+          const nhom = [...new Set(d7.map((p) => NHOM_PHOT[p.nhom] ?? p.nhom))].join(', ');
+          return (
+            <div key={b} title={ds.length ? ds.slice(0, 8).map((p) => `${vn(p.luc)} · camp #${p.camp_id} · creative #${p.creative_id ?? '?'} · ${NHOM_PHOT[p.nhom] ?? p.nhom}`).join('\n') : 'Chưa có phốt'}
+              style={{ border: `1px solid ${d7.length ? '#f87171' : 'var(--line)'}`, borderRadius: 8, padding: '6px 10px', minWidth: 170, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Hex bo={b === '?' ? null : b} info={info} />
+              <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+                <div><b style={{ fontSize: 16, color: d7.length ? '#f87171' : 'var(--fg-2)' }}>{d7.length}</b> <span style={{ color: 'var(--fg-2)' }}>phốt 7 ngày · {ds.length} tổng</span></div>
+                <div style={{ color: 'var(--fg-2)', fontSize: 11 }}>Page {info?.page ?? (ds[0]?.page_id ?? '?')}{d7[0] ? ` · lần cuối ${vn(d7[0].luc)}` : ''}</div>
+                {nhom ? <div style={{ color: '#f87171', fontSize: 11 }}>{nhom}</div> : null}
+              </div>
+            </div>);
+        })}
+      </div>
+    </div>
+  );
+}
 function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) => React.ReactElement }) {
   const [loc, setLoc] = useState<LocSoat>('loi');
+  const router = useRouter();
+  // "x giờ:phút ngày/tháng/năm" (giờ VN máy ghi) → ms — đang quét và cập nhật < 3 phút thì làm mới mỗi 5 giây
+  const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
+  const quet = Object.entries(du.quet ?? {}).filter(([, q]) => q.dang && Date.now() - msVn(q.cap_nhat) < 180_000);
+  useEffect(() => { if (!quet.length) return; const t = setInterval(() => router.refresh(), 5_000); return () => clearInterval(t); }, [quet.length, router]);
   const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS')).map((r) => ({ r, d: danhGia(r) })).sort((a, b) => a.d.muc - b.d.muc), [du.creatives]);
   const dem = { loi: ds.filter((x) => x.d.muc <= 1).length, meta: ds.filter((x) => x.d.metaLoi).length, chua: ds.filter((x) => x.d.may.k === 'chua' || x.d.may.k === 'cho').length, all: ds.length };
   const daQuet = ds.filter((x) => x.d.may.k === 'ok' || x.d.may.k === 'loi').length, sot = ds.filter((x) => x.d.sot).length;
@@ -220,6 +253,21 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
   const xep = (d: Dau) => ['loi', 'cho', 'chua', 'ok'].indexOf(d.k);
   return (
     <div>
+      {quet.length ? (
+        <div style={{ border: '1px solid #9ecbff', borderRadius: 8, padding: '8px 12px', margin: '4px 0 12px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}><Den mau="#9ecbff" t="đang quét" song /> Đang quét nội dung · tự làm mới 5 giây</div>
+          {quet.map(([may, q]) => (
+            <div key={may} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 260px', gap: 10, alignItems: 'center', fontSize: 12, margin: '3px 0' }}>
+              <b>{may === 'box3' ? 'Máy chủ' : may.includes('iMac') ? 'iMac' : may}</b>
+              <div style={{ height: 8, background: 'var(--bg-2, #222)', borderRadius: 4, overflow: 'hidden', display: 'flex' }} title={`${q.xong}/${q.tong} · bắt đầu ${q.bat_dau}`}>
+                <div style={{ width: `${(q.ok / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.ok }} />
+                <div style={{ width: `${(q.cam / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.loi }} />
+                <div style={{ width: `${(q.xem / Math.max(q.tong, 1)) * 100}%`, background: DAU_MAU.cho }} />
+              </div>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{q.xong}/{q.tong} · <span style={{ color: DAU_MAU.ok }}>{q.ok} sạch</span> · <span style={{ color: DAU_MAU.loi }}>{q.cam} chặn</span> · <span style={{ color: DAU_MAU.cho }}>{q.xem} chờ người</span></span>
+            </div>))}
+        </div>) : null}
+      <PhotBo du={du} />
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
         <span title="creative đang chạy đã được máy xem riêng đoạn video"><b style={{ fontSize: 18 }}>{daQuet}/{ds.length}</b> đã quét</span>
         <span style={{ color: DAU_MAU.loi }} title="máy quét chặn — không được lên / phải thay"><b style={{ fontSize: 18 }}>{ds.filter((x) => x.d.may.k === 'loi').length}</b> máy chặn</span>

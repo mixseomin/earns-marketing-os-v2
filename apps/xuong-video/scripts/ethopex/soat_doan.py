@@ -12,6 +12,7 @@ khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự
   python3 soat_doan.py ds                          → đoạn đang chờ soát + đường tờ khung
   python3 soat_doan.py ok|cam <khoá> … [--ghi "…"]  → ghi kết quả (cam: đoạn này không bao giờ được cắt lại — goc_moi / sua-cta tránh)
   python3 soat_doan.py lo <thư mục lô>             → soát cả lô bằng máy (Claude, chuỗi rẻ): in đoạn cấm / cần người xem kèm tờ 30 khung
+  python3 soat_doan.py quet                        → rà soát mọi creative đang chạy chưa soát đoạn (video thành phẩm) → ghi sổ; cấm → thay creative ở camp mới
   python3 soat_doan.py len                         → đẩy các đoạn đã ok (len-creative) + nhân bản camp góc mới đang chờ (nhan-ban --lich today)
 Chạy trên iMac."""
 import datetime as dt, json, os, subprocess, sys, time
@@ -143,6 +144,30 @@ def main(a):
             if kq["ket"] != "ok": print(f"{kq['ket'].upper()} {k} · {x.get('ten', '')[:40]} · {kq['ly'][:160]} · tờ (iMac): {os.path.join(CHO, k.replace(':', '-') + '.jpg')}", flush=True)
         if ghi: gop("ethopex_soat_doan", ghi)
         print(f"soát lô {lo_dir}: {len(viec)} đoạn soát mới ({len(lo) - len(viec)} đã có) → ok {tong['ok']} · cấm {tong['cam']} · cần người xem {tong['xem']}"); return
+    if lenh == "quet":   # RÀ SOÁT MỌI CREATIVE ĐANG CHẠY (anh 25/10/2026: "dừng lên camp mới đến khi rà soát hết các creative"): creative của camp đang chạy /
+        # đang chờ Meta duyệt / bị từ chối mà đoạn chưa có dòng soát → tờ 30 khung từ video thành phẩm → máy soát (Claude, chuỗi rẻ) → ghi sổ; cấm → thay-tu-choi
+        from concurrent.futures import ThreadPoolExecutor
+        r = sql("""select distinct c.creative_id, c.doan, c.video from etp.camp k join etp.creative c on c.creative_id = k.creative_id
+                   where (k.trang_thai = 'ACTIVE' or k.giao in ('IN_PROCESS', 'DISAPPROVED')) and c.doan is not null and c.video is not null
+                     and c.doan not in (select jsonb_object_keys(gia_tri) from xv_khoa_ngoai where ten = 'ethopex_soat_doan')""")
+        viec = [l.split("|") for l in r.splitlines() if l.count("|") == 2]
+        print(f"rà soát {len(viec)} creative đang chạy chưa soát đoạn", flush=True)
+        def mot(x):
+            cr, k, v = x; return cr, k, ai(to_khung(v, k))
+        kq_all = list(ThreadPoolExecutor(6).map(mot, viec)); ghi, tong, cam = {}, {"ok": 0, "cam": 0, "xem": 0}, []
+        for cr, k, kq in kq_all:
+            tong[kq["ket"]] += 1
+            if kq["ket"] != "xem": ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude ({kq.get('duong')}): {kq['ly']}"}
+            if kq["ket"] == "cam": cam.append(cr)
+            if kq["ket"] != "ok": print(f"{kq['ket'].upper()} creative #{cr} đoạn {k} · {kq['ly'][:160]} · tờ (iMac): {os.path.join(CHO, k.replace(':', '-') + '.jpg')}", flush=True)
+        if ghi: gop("ethopex_soat_doan", ghi)
+        print(f"rà soát xong: ok {tong['ok']} · cấm {tong['cam']} · cần người xem {tong['xem']}", flush=True)
+        if cam:   # camp mới < 48 giờ mang đoạn cấm → thay creative sạch; camp cũ (Meta đã duyệt, có thể đang lãi) chỉ báo, không sửa
+            camps = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where creative_id in ({','.join(cam)}) and trang_thai <> 'ARCHIVED'")
+            if camps:
+                r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 thay-tu-choi.py --camp {camps}"], capture_output=True, text=True, timeout=1800)
+                print(r.stdout[-3000:], r.stderr[-300:], flush=True)
+        return
     if lenh == "ds":
         h = khoa("ethopex_cho_soat")
         for k, v in h.items(): print(k, "·", v["x"].get("ten", "")[:50], "·", v["dang"], "· lô", v["ma"], "· tờ khung (iMac):", v.get("to"))

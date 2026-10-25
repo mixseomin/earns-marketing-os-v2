@@ -21,8 +21,10 @@ ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 CHO = os.path.join(C, "cho-soat")
 vn = lambda: (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")
 
+TREN_BOX = bool(os.environ.get("DATABASE_URL"))   # chạy ngay trên box3 (quet song song, anh 25/10/2026): psql / Claude gọi tại chỗ, không ssh vòng
 def sql(cau):
-    r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", B, f'{ENV}; psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -'], input=cau, capture_output=True, text=True, timeout=120)
+    lenh = ["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"] if TREN_BOX else ["ssh", "-o", "ConnectTimeout=15", B, f'{ENV}; psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -']
+    r = subprocess.run(lenh, input=cau, capture_output=True, text=True, timeout=120)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
     return r.stdout.strip()
 def khoa(ten): return json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten='{ten}'") or "{}")
@@ -99,6 +101,9 @@ def ai_box(jpg):
 def ai(to):
     """từ iMac: gửi tờ khung sang box3, gọi ai_box → {ket, ly}; lỗi thì 'xem' (giữ lại)"""
     if not to or not os.path.exists(to): return {"ket": "xem", "ly": "không có tờ khung"}
+    if TREN_BOX:
+        try: return ai_box(to)
+        except Exception as e: return {"ket": "xem", "ly": f"máy soát lỗi: {type(e).__name__}: {str(e)[:100]}"}
     try:
         dich = f"/root/etp-soat/{os.path.basename(to)}"
         subprocess.run(["ssh", B, "mkdir -p /root/etp-soat"], check=True, timeout=60); subprocess.run(["scp", "-q", to, f"{B}:{dich}"], check=True, timeout=300)
@@ -151,10 +156,13 @@ def main(a):
                    where (k.trang_thai = 'ACTIVE' or k.giao in ('IN_PROCESS', 'DISAPPROVED')) and c.doan is not null and c.video is not null
                      and c.doan not in (select jsonb_object_keys(gia_tri) from xv_khoa_ngoai where ten = 'ethopex_soat_doan')""")
         viec = [l.split("|") for l in r.splitlines() if l.count("|") == 2]
+        if "--phan" in a:   # chia việc cho nhiều máy chạy song song: --phan i/n lấy creative có id % n == i (iMac 0/2, box3 1/2)
+            i, n = map(int, a[a.index("--phan") + 1].split("/")); viec = [x for x in viec if int(x[0]) % n == i]
+        luong = int(a[a.index("--luong") + 1]) if "--luong" in a else 6
         print(f"rà soát {len(viec)} creative đang chạy chưa soát đoạn", flush=True)
         def mot(x):
             cr, k, v = x; return cr, k, ai(to_khung(v, k))
-        kq_all = list(ThreadPoolExecutor(6).map(mot, viec)); ghi, tong, cam = {}, {"ok": 0, "cam": 0, "xem": 0}, []
+        kq_all = list(ThreadPoolExecutor(luong).map(mot, viec)); ghi, tong, cam = {}, {"ok": 0, "cam": 0, "xem": 0}, []
         for cr, k, kq in kq_all:
             tong[kq["ket"]] += 1
             if kq["ket"] != "xem": ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude ({kq.get('duong')}): {kq['ly']}"}
@@ -165,7 +173,7 @@ def main(a):
         if cam:   # camp mới < 48 giờ mang đoạn cấm → thay creative sạch; camp cũ (Meta đã duyệt, có thể đang lãi) chỉ báo, không sửa
             camps = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where creative_id in ({','.join(cam)}) and trang_thai <> 'ARCHIVED'")
             if camps:
-                r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 thay-tu-choi.py --camp {camps}"], capture_output=True, text=True, timeout=1800)
+                r = subprocess.run(["python3", f"{D}/thay-tu-choi.py", "--camp", *camps.split()] if TREN_BOX else ["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 thay-tu-choi.py --camp {camps}"], capture_output=True, text=True, timeout=1800)
                 print(r.stdout[-3000:], r.stderr[-300:], flush=True)
         return
     if lenh == "ds":

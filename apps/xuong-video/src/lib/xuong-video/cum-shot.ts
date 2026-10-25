@@ -87,14 +87,19 @@ export function vaoTuCatThat(cum: readonly ShotCum[], cat: readonly number[], da
  *  bịa người, có ảnh tham chiếu thì đúng). Mỗi người của cụm một–hai ảnh theo TRANG PHỤC ở shot đầu tiên người đó có mặt (biến thể canh.bien_the → ảnh
  *  sát mặt → ảnh mẫu), cộng ảnh bối cảnh (khung đã duyệt của shot rộng nhất cụm). Thuần — không gọi mạng. */
 const DO_RONG: Record<string, number> = { ews: 0, ws: 1, ots: 2, ms: 3, mcu: 4, cu: 5, ecu: 6, insert: 7 };
-export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], toiDa = 7): { anh: string[]; goi: string } {
+/** Ảnh bối cảnh của một phân cảnh = keyframe shot RỘNG NHẤT trong CẢ phân cảnh (không chỉ trong cụm): cụm toàn cận (#5–#9 giật thẻ) mà lấy khung của chính nó
+ *  thì ảnh "bối cảnh" chỉ là ngực áo trên nền xám → Vidu dựng cả cụm trên phông xám, sảnh biến mất giữa cảnh (phim #353, 25/10/2026). */
+export function anhBoiCanh(ds: readonly Pick<Canh, 'keyframe_url' | 'ky_thuat'>[]): string | null {
+  return [...ds].filter((c) => c.keyframe_url).sort((a, b) => (DO_RONG[a.ky_thuat?.co_canh ?? ''] ?? 3) - (DO_RONG[b.ky_thuat?.co_canh ?? ''] ?? 3))[0]?.keyframe_url ?? null;
+}
+export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], toiDa = 7, boiCanh?: string | null): { anh: string[]; goi: string } {
   const nguoi: { ten: string; anh: string[] }[] = [];
   for (const { canh: c, nhanVat } of cum) for (const v of nhanVat.filter((x) => x.loai === 'nhan_vat')) {
     if (nguoi.some((n) => n.ten === v.ten)) continue;
     const bt = (v.bien_the ?? []).find((b) => c.bien_the.includes(b.id) && b.anh_url)?.anh_url;
     nguoi.push({ ten: v.ten, anh: [...new Set([bt, ...(v.anh_mat?.url ?? []).slice(0, 1), ...v.anh_ref].filter((x): x is string => !!x))].slice(0, 2) });
   }
-  const rong = [...cum].filter((x) => x.canh.keyframe_url).sort((a, b) => (DO_RONG[a.canh.ky_thuat?.co_canh ?? ''] ?? 3) - (DO_RONG[b.canh.ky_thuat?.co_canh ?? ''] ?? 3))[0]?.canh.keyframe_url;
+  const rong = boiCanh ?? anhBoiCanh(cum.map((x) => x.canh));
   // ảnh đầu của mỗi người trước (danh tính), ảnh phụ khi còn chỗ, bối cảnh luôn giữ một ô
   const cho = toiDa - (rong ? 1 : 0); const anh: string[] = []; const nhan: string[] = [];
   for (const n of nguoi) if (n.anh[0] && anh.length < cho) { anh.push(n.anh[0]); nhan.push(n.ten); }

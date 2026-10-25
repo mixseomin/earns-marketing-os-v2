@@ -72,6 +72,33 @@ export async function sinhTuan(tuan: string): Promise<number> {
 export async function damBaoKeHoach(hom: string): Promise<void> {
   for (const t of [thuHai(hom), cong(thuHai(hom), 7)]) await sinhTuan(t);
   await danhDauBaiSite(thuHai(hom));
+  await noiBaiSite(hom);
+}
+/** Ô link tối đa mỗi họ nền mỗi tuần — cùng nhịp máy đăng (nhip-an-toan NHIP_LINK = 3: một bài link sau hai bài thường ≈ 2 / 7 ngày) */
+export const LINK_TUAN = 2;
+/** BÀI SITE KHÔNG BƠ VƠ (anh 26/10/2026): mỗi bài site đã lên phải có ít nhất một ô kế hoạch sắp tới (từ ngày mai) trỏ sang.
+ *  Chọn ô của đúng thương hiệu, họ nền facebook / x, chưa có link đích, tuần đó chưa đủ LINK_TUAN ô link; ưu tiên ô cùng góc → ô 'Bài link' → ngày sớm.
+ *  Ô được chọn nhận góc của bài + link đích; ở họ nền máy có nơi đăng link (fb_link / x_link) thì thành 'Bài link', không thì giữ format, link nằm trong chữ đăng.
+ *  Hết chỗ trong các tuần đã sinh thì bài chờ tuần sau (bảng hiện "chưa có nguồn"). */
+export async function noiBaiSite(hom: string): Promise<void> {
+  const d = getDb(); if (!d) return;
+  const mai = cong(hom, 1);
+  const bai = (await d.execute(sql`SELECT b.may, b.goc, b.url, m.dang FROM bai_site_goc b JOIN xv_may m ON m.ma = b.may
+    WHERE b.trang_thai = 'da_len' AND b.url IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM ke_hoach_goc k WHERE k.dich = b.url AND k.ngay >= ${hom}::date)
+    ORDER BY b.can_truoc NULLS LAST`)) as unknown as { may: string; goc: GocBai; url: string; dang: { nen: string }[] }[];
+  for (const b of bai) {
+    const nenMay = new Set((b.dang ?? []).map((x) => x.nen));
+    const [o] = (await d.execute(sql`SELECT k.id, k.ho FROM ke_hoach_goc k
+      WHERE k.may = ${b.may} AND k.ngay >= ${mai}::date AND k.dich IS NULL AND k.ho IN ('facebook', 'x')
+        AND (SELECT count(*) FROM ke_hoach_goc z WHERE z.may = k.may AND z.ho = k.ho AND z.tuan = k.tuan AND (z.dich IS NOT NULL OR z.format = 'Bài link')) < ${LINK_TUAN}
+           + CASE WHEN k.format = 'Bài link' THEN 1 ELSE 0 END
+      ORDER BY (k.goc->>'id')::int = ${b.goc.id} DESC, k.format = 'Bài link' DESC, k.ngay, k.ho LIMIT 1`)) as unknown as { id: number; ho: string }[];
+    if (!o) continue;
+    const nenLink = o.ho === 'facebook' ? 'fb_link' : 'x_link', laLink = nenMay.has(nenLink);
+    if (laLink) await d.execute(sql`UPDATE ke_hoach_goc SET dich = ${b.url}, goc = ${JSON.stringify(b.goc)}::jsonb, format = 'Bài link', nen = ${nenLink}, can_dung = false WHERE id = ${o.id}`);
+    else await d.execute(sql`UPDATE ke_hoach_goc SET dich = ${b.url}, goc = ${JSON.stringify(b.goc)}::jsonb WHERE id = ${o.id}`);
+  }
 }
 /** BÀI SITE THEO GÓC (anh 26/10/2026): góc có ô bài link, hoặc từ 3 ô trở lên trong một tuần kế hoạch (từ tuần `tu`), cần một bài trên site đích
  *  của thương hiệu (xv_may.site_dich) — thêm dòng 'can_viet' nếu chưa có; dòng đã có giữ nguyên trạng thái, chỉ kéo sớm hạn can_truoc. */
@@ -93,8 +120,8 @@ export async function docBaiSite(): Promise<BaiSite[]> {
   const d = getDb(); if (!d) return [];
   return (await d.execute(sql`SELECT may, goc_id, site, can_truoc::text AS can_truoc, ly_do, trang_thai, url FROM bai_site_goc`)) as unknown as BaiSite[];
 }
-export type OKeHoach = { may: string; ho: string; ngay: string; nen: string; format: string; can_dung: boolean; goc: GocBai };
+export type OKeHoach = { may: string; ho: string; ngay: string; nen: string; format: string; can_dung: boolean; goc: GocBai; dich: string | null };
 export async function docKeHoachGoc(tu: string, den: string): Promise<OKeHoach[]> {
   const d = getDb(); if (!d) return [];
-  return (await d.execute(sql`SELECT may, ho, ngay::text AS ngay, nen, format, can_dung, goc FROM ke_hoach_goc WHERE ngay BETWEEN ${tu}::date AND ${den}::date`)) as unknown as OKeHoach[];
+  return (await d.execute(sql`SELECT may, ho, ngay::text AS ngay, nen, format, can_dung, goc, dich FROM ke_hoach_goc WHERE ngay BETWEEN ${tu}::date AND ${den}::date`)) as unknown as OKeHoach[];
 }

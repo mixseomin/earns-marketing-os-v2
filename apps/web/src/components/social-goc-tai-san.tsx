@@ -8,7 +8,7 @@ import { MultiSelect } from '@/components/ui';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { wrapExternalUrl } from '@/lib/external-url';
 
-type Goc = { id: number; sp: number; loai: string; ten: string; mo_ta: string | null; nhac: number; da: number; kh: number; site: { tt: string; url: string | null; han: string | null; ly_do: string | null } | null };
+type Goc = { id: number; sp: number; loai: string; ten: string; mo_ta: string | null; nhac: number; da: number; kh: number; site: { tt: string; url: string | null; han: string | null; ly_do: string | null; nguon: number } | null };
 type May = { ma: string; ten: string; goc_sp: number[]; nen: string[]; tat: number[]; goc: Goc[]; site_dich: string | null };
 type Nhom = { id: number; ten: string; n: number };
 const NEN_PK: Record<string, string> = { facebook: 'facebook', fb_anh: 'facebook', fb_link: 'facebook', x: 'twitter', x_anh: 'twitter', x_link: 'twitter', youtube: 'youtube', instagram: 'instagram', tiktok: 'tiktok', dailymotion: 'dailymotion' };
@@ -17,6 +17,10 @@ const TT_SITE: Record<string, [string, string]> = { can_viet: ['Cần viết', '
 function BaiSite({ s }: { s: Goc['site'] }) {
   if (!s) return <span style={{ color: 'var(--fg-3)', fontSize: 12 }}>—</span>;
   const [nhan, mau] = TT_SITE[s.tt] ?? [s.tt, 'var(--fg-2)'], han = s.han ? ` · trước ${s.han.slice(8, 10)}/${s.han.slice(5, 7)}` : '';
+  // bài đã lên phải có nguồn social trỏ sang (anh 26/10/2026: không tạo bài bơ vơ) — số ô kế hoạch + bài đã làm có link đích là bài này
+  if (s.url) return <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><a href={wrapExternalUrl(s.url)} target="_blank" rel="noreferrer" title={s.ly_do ?? ''} style={{ color: mau, fontSize: 12, fontWeight: 600 }}>{nhan} ↗</a>
+    {s.nguon ? <span title="số ô kế hoạch / bài social trỏ sang bài này" style={{ fontSize: 11, color: 'var(--fg-2)' }}>↙ {s.nguon} nguồn</span>
+      : <span title="chưa có ô social nào trỏ sang — máy gắn vào ô link sắp tới khi còn chỗ (tối đa 2 ô link / nền / tuần)" style={{ fontSize: 11, color: 'var(--danger, #dc2626)', fontWeight: 600 }}>⚠ chưa có nguồn</span>}</span>;
   return s.url ? <a href={wrapExternalUrl(s.url)} target="_blank" rel="noreferrer" title={s.ly_do ?? ''} style={{ color: mau, fontSize: 12, fontWeight: 600 }}>{nhan} ↗</a>
     : <span title={s.ly_do ? `cần vì: ${s.ly_do}` : ''} style={{ color: mau, fontSize: 12, fontWeight: 600 }}>{nhan}{s.tt !== 'da_len' ? han : ''}</span>;
 }

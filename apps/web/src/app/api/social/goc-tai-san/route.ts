@@ -19,8 +19,9 @@ export async function GET() {
       (SELECT coalesce(jsonb_object_agg(id, n), '{}') FROM (SELECT v.dang->'goc'->>'id' AS id, count(*) AS n FROM xv_may_video v WHERE v.may_id = m.id AND v.dang ? 'goc' AND v.da_dang <> '{}'::jsonb GROUP BY 1) x) AS da,
       (SELECT coalesce(jsonb_object_agg(id, n), '{}') FROM (SELECT k.goc->>'id' AS id, count(*) AS n FROM ke_hoach_goc k WHERE k.may = m.ma AND k.ngay >= ${thuHai(hom)}::date GROUP BY 1) x) AS kh,
       array(SELECT goc_id FROM goc_tat t WHERE t.may = m.ma) AS tat, m.site_dich,
-      (SELECT coalesce(jsonb_object_agg(goc_id, jsonb_build_object('tt', trang_thai, 'url', url, 'han', can_truoc, 'ly_do', ly_do)), '{}') FROM bai_site_goc b WHERE b.may = m.ma) AS site
-    FROM xv_may m WHERE m.chay ORDER BY m.ten`)) as unknown as { ma: string; ten: string; goc_sp: number[]; nen: string[]; da: Record<string, number>; kh: Record<string, number>; tat: number[]; site_dich: string | null; site: Record<string, { tt: string; url: string | null; han: string | null; ly_do: string | null }> }[];
+      (SELECT coalesce(jsonb_object_agg(goc_id, jsonb_build_object('tt', trang_thai, 'url', url, 'han', can_truoc, 'ly_do', ly_do,
+        'nguon', (SELECT count(*) FROM ke_hoach_goc k WHERE k.dich = b.url) + (SELECT count(*) FROM xv_may_video v JOIN xv_may mm ON mm.id = v.may_id WHERE mm.ma = b.may AND v.dang->>'link' = b.url))), '{}') FROM bai_site_goc b WHERE b.may = m.ma) AS site
+    FROM xv_may m WHERE m.chay ORDER BY m.ten`)) as unknown as { ma: string; ten: string; goc_sp: number[]; nen: string[]; da: Record<string, number>; kh: Record<string, number>; tat: number[]; site_dich: string | null; site: Record<string, { tt: string; url: string | null; han: string | null; ly_do: string | null; nguon: number }> }[];
   const sp = [...new Set(may.flatMap((m) => m.goc_sp.map(Number)))];
   const pg = await moSpy();
   try {

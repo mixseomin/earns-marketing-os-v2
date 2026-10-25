@@ -46,7 +46,9 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
   /** ô KẾ HOẠCH GÓC hằng tuần (ke_hoach_goc): format định làm + format chưa có đường đăng */
   format?: string | null; canDung?: boolean;
   /** bài site đích cho góc của ô kế hoạch (bai_site_goc): trạng thái + link khi đã lên */
-  baiSite?: { tt: string; url: string | null } | null }
+  baiSite?: { tt: string; url: string | null } | null;
+  /** link đích của ô kế hoạch (bài site của góc) — ô này là nguồn social trỏ sang bài */
+  dich?: string | null }
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
@@ -482,7 +484,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       const coKh = new Set(kh.map((x) => `${x.may}|${x.ho}|${x.ngay}`)), tenMay = new Map([...da.map((x) => [String(x.ma), String(x.may_ten)] as const), ...ds.map((x) => [x.may, x.mayTen ?? x.may] as const)]);
       for (let i = o.length - 1; i >= 0; i--) { const x = o[i]!; if (x.loai === 'du_kien' && !x.nen.includes(':') && coKh.has(`${x.may}|${hoCua(x.nen)}|${x.ngay}`)) o.splice(i, 1); }
       for (const x of kh) if (x.ngay >= hom) o.push({ ngay: x.ngay, gio: '—', may: x.may, mayTen: tenMay.get(x.may) ?? x.may, nen: x.nen, title: x.goc.ten, url: null, loai: 'du_kien', anh: null,
-        tk: tkCua.get(`${x.may}|${x.nen}`) ?? tkCua.get(`${x.may}|${x.ho}`) ?? null, nhom: null, link: x.format === 'Bài link', goc: x.goc, format: x.format, canDung: x.can_dung, baiSite: bs.get(`${x.may}|${x.goc.id}`) ?? null });
+        tk: tkCua.get(`${x.may}|${x.nen}`) ?? tkCua.get(`${x.may}|${x.ho}`) ?? null, nhom: null, link: x.format === 'Bài link' || !!x.dich, goc: x.goc, format: x.format, canDung: x.can_dung, baiSite: bs.get(`${x.may}|${x.goc.id}`) ?? null, dich: x.dich });
     } catch (e) { loi.push(`kế hoạch góc: ${(e as Error).message.slice(0, 120)}`); }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }

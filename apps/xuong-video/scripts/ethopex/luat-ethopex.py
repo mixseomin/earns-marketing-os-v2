@@ -393,24 +393,6 @@ try:
 except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
 tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
-# TRẦN CHI THEO PHIM THEO KHUNG GIỜ (anh 25/10/2026: "tốc độ tăng lãi ban ngày chậm dần khi tăng chi ban ngày → có ngưỡng giới hạn chi ban ngày để đạt mức
-# lãi tối đa trên từng film"): apps/etp/tran-chi-phim.py ước đường lợi suất giảm dần R = k·S^α cho khung ngày (07–19h VN) / đêm (20–06h) → trần S* mỗi phim.
-# Phim đã chi tới trần của khung đang chạy (số hôm nay, etp.so_gio) → không tăng / đầu phiên / T30 / nhân bản / mở bản thang cho camp của phim đó — mỗi $ thêm
-# sau trần là lỗ. Chỉ CHẶN TĂNG, không giảm / tắt. Khung chưa thấy bão hoà (α ≥ 0,93) thì không có trần → không chặn.
-tran_phim = []
-try:
-    _kh = "ngay" if 7 <= vn.hour < 20 else "dem"
-    _tp = json.loads(subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "tran-chi-phim.py"), _kh, "--json"],
-                                    capture_output=True, text=True, timeout=120).stdout.strip().splitlines()[-1])
-    _tran = {int(x["content_id"]): (x["tran"], x["ten"]) for x in _tp["phim"] if x.get("tran") is not None}
-    _dk = "(gio + 7) % 24 between 7 and 19" if _kh == "ngay" else "not (gio + 7) % 24 between 7 and 19"
-    _chi = {int(l.split("|")[0]): float(l.split("|")[1]) for l in q(f"select content_id, sum(chi) from etp.so_gio where ngay = (now() at time zone 'utc')::date and {_dk} group by 1").splitlines() if "|" in l}
-    _cham = {p for p, (t, _) in _tran.items() if _chi.get(p, 0) >= t}
-    for p in sorted(_cham, key=lambda p: -_chi[p]): tran_phim.append((0, f"{_tran[p][1]} · khung {'ngày' if _kh == 'ngay' else 'đêm'} đã chi ${_chi[p]:.1f} ≥ trần ${_tran[p][0]:g} → không tăng camp của phim này"))
-    _ph = lambda cid: int(phim_cua.get(cid) or phim_cua.get(str(cid)) or 0)
-    dat, dau_phien, tang30, nb, thang_nb = ([x for x in ds if _ph(x[0]) not in _cham] for ds in (dat, dau_phien, tang30, nb, thang_nb))
-except Exception as e:
-    loi_may.append((0, f"trần chi theo phim lỗi: {str(e)[:80]}"))
 # DỪNG ĐÊM — CAMP ÂM TĂNG NHANH (anh 25/10/2026: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"):
 # 21h–5h VN là giờ Mỹ mua mạnh, camp âm tiêu rất nhanh — chờ giảm bậc sáng mai là mất cả đêm. Camp đang bật, hôm nay (số đã chốt chi) chi ≥ 30% ngân sách,
 # ROI ≤ −50%, và khoản LỖ vẫn đang tăng so với lượt chấm trước (≤ 90 phút) → máy TẮT luôn (lam-ethopex vẫn chặn camp ROI cộng dồn > 20%).
@@ -454,7 +436,6 @@ in_("CẦN TẮT (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < �
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")
-in_("TRẦN CHI THEO PHIM (khung giờ đang chạy) — PHIM ĐÃ CHẠM TRẦN, KHÔNG TĂNG:", tran_phim, "(không)")
 in_("DỪNG ĐÊM (21h–5h, camp âm, lỗ tăng nhanh) — MÁY TẮT:", dung_dem, "(không)")
 in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — CHỜ ANH TẮT:", thang_tat, "(không)")
 in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (CHỜ ANH DUYỆT):", tang30, "(chưa có)")

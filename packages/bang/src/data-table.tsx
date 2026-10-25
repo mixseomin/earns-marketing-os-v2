@@ -612,6 +612,7 @@ export function DataTable<T>({
         <div ref={dauRef} className="dt-dau" onScroll={dongCuon('dau')}
              style={{ position: 'sticky', top: dinhTren, zIndex: 6, overflowX: 'auto', margin: '0 -8px', background: 'var(--bg-2)', boxShadow: '0 1px 0 var(--line)' }}>
           <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%', minWidth: cotDo.bang ? undefined : minWidth }}>
+            {groupHeader && cotDo.w.length ? <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup> : null}{/* table-layout:fixed lấy bề rộng theo HÀNG ĐẦU — hàng nhãn nhóm có ô gộp nên khai bề rộng bằng colgroup, không thì cột tiêu đề lệch thân bảng */}
             <thead>{hangNhom()}{hangDau(true)}</thead>
           </table>
         </div>

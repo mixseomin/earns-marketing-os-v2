@@ -12,7 +12,7 @@ import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { DangNenTho, StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
-import { HOST_BAN, MAY_TIM, NEN_QC, gopBinhTraTien, loaiCampEtp, linkKenh, type VaoHeSinhThai } from './social-thanh-pho';
+import { HOST_BAN, MAY_TIM, NEN_QC, gopBinhTraTien, loaiCampEtp, linkKenh, type VaoHeSinhThai, type VaoKeHoach } from './social-thanh-pho';
 import { getProductsView } from './products/data';
 import { networkRows } from './revenue/networks';
 import { docEthopex } from './ethopex-doc';
@@ -23,7 +23,7 @@ const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe;
+export interface SocialLive { /** bảng nội dung Page cũ (city) */ keHoach?: VaoKeHoach; luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe;
   /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
   fav: Record<string, string | null>;
   /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
@@ -77,12 +77,13 @@ export async function getSocialLive(): Promise<SocialLive> {
     doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
     doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; })),
     doGio('hệ sinh thái', gio, () => docHeSinhThai(loi))]);
+  const keHoach = await doGio('bảng nội dung', gio, () => docKeHoach(loi));
   const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host), ...Object.values(HOST_BAN), ...Object.values(NEN_QC).map((q) => q.host), ...nguonSite.flatMap((x) => Object.keys(x.gt ?? {}))])];
   const fav = await doGio('favicon', gio, () => docFav(site));
   // avatar Page Facebook của các kênh (khoá 'fbp:<mã>' — linkKenh) chung bảng fav: city dán lên nóc toà, trình duyệt không gọi ra ngoài
   await Promise.all([...new Set(kenh.kenh.map((x) => x.anh).filter((x): x is string => !!x?.startsWith('fbp:')))].map(async (k) => { fav[k] = await anhPageMot(k.slice(4)).catch(() => null); }));
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, heSinhThai };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, heSinhThai, keHoach };
 }
 /** HỆ SINH THÁI (thành phố): dự án (host của projects.website, ngung_luc), sổ du_an_site, sản phẩm mọi cửa bán (kho products Directus — cùng nguồn tab
  *  Tài sản, số 30 ngày), app_ung_dung, tài khoản cửa bán trong vault. Phần nào lỗi thì phần đó rỗng, ghi lỗi, không chặn trang. */
@@ -220,6 +221,19 @@ async function docNguonApp(): Promise<{ sp: string; nguon: string; hien: number;
   for (const x of ((await r.json()) as { data: { product_id: string | null; raw_data: { chiTiet?: { n?: number; su?: string; nguon?: string }[] } | null }[] }).data)
     for (const c of x.raw_data?.chiTiet ?? []) if (x.product_id && c.nguon) ra.push({ sp: x.product_id, nguon: c.nguon, hien: c.su === 'Impression' ? c.n ?? 0 : 0, xem: c.su === 'Page view' ? c.n ?? 0 : 0, tai: c.su === 'First-time download' ? c.n ?? 0 : 0 });
   return ra;
+}
+/** BẢNG NỘI DUNG Page cũ (city, 25/10/2026): Page gắn máy đăng (xv_may.dang[].nen 'facebook:<acct>') + bài đã đăng 8 ngày qua (da_dang theo khoá, link true/false). */
+async function docKeHoach(loi: string[]): Promise<VaoKeHoach | undefined> {
+  const d = getDb(); if (!d) return undefined;
+  try {
+    const r = (await d.execute(sql`SELECT n->>'nen' AS nen, n->'br'->>'acct' AS acct, coalesce(n->'br'->>'ten', n->>'tk') AS ten, v.dang->>'title' AS title,
+        v.da_dang->(n->>'nen')->>'ngay' AS ngay, v.da_dang->(n->>'nen')->>'url' AS url, v.da_dang->(n->>'nen')->>'link' AS link
+      FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n LEFT JOIN xv_may_video v ON v.may_id = m.id AND v.da_dang ? (n->>'nen')
+        AND (v.da_dang->(n->>'nen')->>'ngay') >= to_char(now() + interval '7 hours' - interval '8 days', 'YYYY-MM-DD')
+      WHERE m.chay AND n->>'nen' LIKE 'facebook:%' ORDER BY n->'br'->>'acct'`)) as unknown as { nen: string; acct: string; ten: string; title: string | null; ngay: string | null; url: string | null; link: string | null }[];
+    const trang = [...new Map(r.map((x) => [x.nen, { acct: String(x.acct), ten: x.ten, nen: x.nen }])).values()];
+    return { trang, bai: r.filter((x) => x.ngay).map((x) => ({ nen: x.nen, ngay: x.ngay!, title: x.title ?? '', url: x.url, link: x.link == null ? null : x.link === 'true' })) };
+  } catch (e) { loi.push(`bảng nội dung: ${(e as Error).message.slice(0, 120)}`); return undefined; }
 }
 /** LINK + AVATAR KÊNH (25/10/2026): mã Page Facebook (vault account_stats.page_id, không có thì br.graph_id máy đăng khai) + mã kênh YouTube (br.kenh_id) → linkKenh. */
 async function ganLinkKenh(d: NonNullable<ReturnType<typeof getDb>>, kenh: StKenh[]) {

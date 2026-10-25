@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh, gopBinhTraTien } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh, gopBinhTraTien, keHoachNoiDung, LICH_TUAN } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -313,3 +313,18 @@ console.log('fanpage ✓');
   assert.ok(t && t.url === 'https://www.facebook.com/129365743783277' && t.anh === 'fbp:129365743783277' && t.ten === 'Retro Cars Club');
 }
 console.log('link kênh ✓');
+
+// bảng nội dung Page (25/10/2026): tuần T2→CN chứa hôm nay; ngày qua có bài = bài thật, không bài = trống; ngày tới = kế hoạch lệch pha 2 ngày mỗi Page
+{
+  const v = { trang: [{ acct: '580', ten: 'Retro Cars Club', nen: 'facebook:580' }, { acct: '589', ten: 'Classical Motorcycle', nen: 'facebook:589' }],
+    bai: [{ nen: 'facebook:580', ngay: '2026-10-25', title: 'Only ONE says CHROME #shorts', url: 'u', link: null }] };
+  const k = keHoachNoiDung(v, '2026-10-25');
+  assert.deepStrictEqual(k.tuan.map((d) => d.ngay), ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25'], 'CN 25/10 → tuần 19–25');
+  const o = (t: string, n: string) => k.o.find((x) => x.trang === t && x.ngay === n)!;
+  assert.ok(o('580', '2026-10-25').tt === 'da' && o('580', '2026-10-25').link === true && o('580', '2026-10-25').chu === 'Only ONE says CHROME', 'bài cũ không ghi link = có link');
+  assert.strictEqual(o('580', '2026-10-24').tt, 'trong'); assert.strictEqual(o('589', '2026-10-25').tt, 'ke', 'hôm nay chưa đăng = còn kế hoạch');
+  assert.strictEqual(o('589', '2026-10-25').loai, LICH_TUAN[(6 + 2) % 7]!.loai, 'Page thứ 2 lệch pha 2 ngày');
+  const k2 = keHoachNoiDung({ ...v, bai: [] }, '2026-10-20');
+  assert.ok(k2.o.filter((x) => x.trang === '580' && x.ngay > '2026-10-20').every((x) => x.tt === 'ke'), 'ngày tới đều là kế hoạch');
+}
+console.log('bảng nội dung ✓');

@@ -179,7 +179,30 @@ export function gopNgay(ds: { ngay?: NgayTien[] }[]): NgayTien[] {
   for (const c of ds) for (const x of c.ngay ?? []) { const o = m.get(x.ngay) ?? { ngay: x.ngay, thu: 0, chi: 0 }; o.thu += x.thu; o.chi += x.chi; m.set(x.ngay, o); }
   return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
 }
-export interface PhoMoHinh { tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; taiNguyen: PhoTaiNguyen; fav: Record<string, string | null> }
+/** BẢNG NỘI DUNG Page cũ (anh 25/10/2026: "cần thấy trực quan bảng nội dung này trên city"): lưới 7 ngày (T2→CN tuần này, giờ VN) × từng Page máy đăng.
+ *  Ngày đã qua / hôm nay có bài = BÀI THẬT (loại suy từ nền: Reel câu đố · album · bài link, kèm có link hay không); ngày tới = KẾ HOẠCH ĐỀ XUẤT (chờ anh duyệt) —
+ *  nhịp tuần LICH_TUAN, mỗi Page lệch pha 2 ngày để cùng ngày ba Page ra ba loại khác nhau. */
+export const LOAI_ND: Record<string, { mau: string; ic: string }> = { 'Ký ức': { mau: '#ffb703', ic: '📷' }, 'Đố vui': { mau: '#7c5cff', ic: '🧩' }, 'Chọn một': { mau: '#2ec4b6', ic: '⚖️' },
+  'Bạn có biết': { mau: '#3fa7ff', ic: '💡' }, 'Theo mùa': { mau: '#ff7b54', ic: '🍂' }, 'Quảng bá': { mau: '#ff4d6d', ic: '🔗' } };
+export const LICH_TUAN: { loai: string; format: string }[] = [{ loai: 'Ký ức', format: 'Ảnh đơn + câu hỏi' }, { loai: 'Đố vui', format: 'Reel' }, { loai: 'Chọn một', format: 'Album 2 ảnh' },
+  { loai: 'Bạn có biết', format: 'Thẻ chữ ảnh thật' }, { loai: 'Đố vui', format: 'Album đố + đáp án' }, { loai: 'Ký ức', format: 'Bình chọn 1·2·3' }, { loai: 'Quảng bá', format: 'Bài link' }];
+export interface PhoKeHoach { hom: string; tuan: { ngay: string; thu: string }[]; trang: { id: string; ten: string; anh: string | null }[];
+  o: { trang: string; ngay: string; tt: 'da' | 'ke' | 'trong'; loai: string; format: string; chu?: string; url?: string | null; link?: boolean }[]; }
+export interface VaoKeHoach { trang: { acct: string; ten: string; nen: string }[]; bai: { nen: string; ngay: string; title: string; url: string | null; link: boolean | null }[] }
+const THU = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+export function keHoachNoiDung(v: VaoKeHoach, hom: string, anhCua: (id: string) => string | null = () => null): PhoKeHoach {
+  const h = new Date(`${hom}T00:00:00Z`), lui = (h.getUTCDay() + 6) % 7;
+  const tuan = THU.map((thu, i) => ({ thu, ngay: new Date(h.getTime() + (i - lui) * 864e5).toISOString().slice(0, 10) }));
+  const o: PhoKeHoach['o'] = [];
+  v.trang.forEach((t, ti) => tuan.forEach((d, di) => {
+    const bai = v.bai.filter((b) => b.nen === t.nen && b.ngay === d.ngay);
+    if (bai.length) for (const b of bai) { const g = b.nen.split(':')[0]; o.push({ trang: t.acct, ngay: d.ngay, tt: 'da', loai: b.link === false ? 'Đố vui' : 'Quảng bá', format: g === 'fb_anh' ? 'Album' : g === 'fb_link' ? 'Bài link' : 'Reel câu đố', chu: b.title.replace(/\s*#shorts\s*/i, ''), url: b.url, link: b.link !== false }); }
+    else if (d.ngay < hom) o.push({ trang: t.acct, ngay: d.ngay, tt: 'trong', loai: '—', format: 'không có bài' });
+    else { const k = LICH_TUAN[(di + ti * 2) % 7]!; o.push({ trang: t.acct, ngay: d.ngay, tt: 'ke', loai: k.loai, format: k.format }); }
+  }));
+  return { hom, tuan, trang: v.trang.map((t) => ({ id: t.acct, ten: t.ten, anh: anhCua(t.acct) })), o };
+}
+export interface PhoMoHinh { keHoach?: PhoKeHoach; tk: PhoTk[]; dich: PhoDich[]; duAn: PhoDuAn[]; luong: PhoLuong[]; tien: PhoTien; nhaMay: PhoNhaMay[]; congTy: PhoPhong[]; taiNguyen: PhoTaiNguyen; fav: Record<string, string | null> }
 /** trạng thái tài khoản (platform_accounts.status) → nhóm người đọc */
 /** cụm người xem của fanpage (tiendo social S06) — tên hiển thị + màu khối trên city */
 export const CUM_PAGE: Record<string, { ten: string; mau: string }> = { 'du-lich': { ten: 'Du lịch', mau: '#4fd1ff' }, 'hoai-co': { ten: 'Hoài cổ · người lớn tuổi', mau: '#ffb703' },
@@ -363,7 +386,7 @@ const laShop = (site: string) => /(^|\.)(gumroad\.com|etsy\.com|amazon\.com)$/.t
 /** dòng bán (Gumroad / Etsy) của một site cửa hàng: tên cửa hàng hoặc dự án trùng đầu tên miền — một luật cho cả số đơn lẫn tiền */
 const banCuaShop = (ban: SocialLive['ban'], site: string) => { const ten = chuan(site.split('.')[0]!); return ban.filter((x) => /gumroad|etsy/i.test(x.cua) && (chuan(x.ten) === ten || chuan(x.duAn) === ten)); };
 
-export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'landing' | 'ban' | 'fav' | 'nguonSite' | 'heSinhThai'>): PhoMoHinh {
+export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'landing' | 'ban' | 'fav' | 'nguonSite' | 'heSinhThai'> & { keHoach?: VaoKeHoach }): PhoMoHinh {
   const { kenh, luoi, suc } = live;
   const het7 = new Date(Date.parse(`${luoi.hom}T00:00:00Z`) + 6 * 864e5).toISOString().slice(0, 10);
   const nhanDong = (d: { mayTen: string; nenTen: string }) => `${d.mayTen.split(' · ')[0]} · ${d.nenTen}`;   // trùng cách social-suc-khoe ghi tên kênh trong sự cố
@@ -643,5 +666,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
       ...[...(hst.hat ?? []).filter((x) => x.kind === 'hosting').reduce((g, x) => g.set(x.ip ?? x.label, [...(g.get(x.ip ?? x.label) ?? []), x]), new Map<string, NonNullable<VaoHeSinhThai['hat']>>())].map(([khoa, rs]) => { const het = rs.map((x) => x.het).filter(Boolean).sort()[0] ?? null;
         return { loai: 'hosting' as const, ten: nhaMay.find((m) => m.khoa === khoa)?.ten ?? rs[0]!.label, het, ...mucHan(het, homNay), dich: null, may: nhaMay.some((m) => m.khoa === khoa) ? khoa : null }; })],
   };
-  return { tk, dich, duAn, luong, tien, nhaMay, congTy, taiNguyen, fav: live.fav };
+  const homVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  const keHoach = live.keHoach?.trang.length ? keHoachNoiDung(live.keHoach, homVn, (id) => tk.find((t) => t.id === id)?.anh ?? null) : undefined;
+  return { tk, dich, duAn, luong, tien, nhaMay, congTy, taiNguyen, fav: live.fav, ...(keHoach ? { keHoach } : {}) };
 }

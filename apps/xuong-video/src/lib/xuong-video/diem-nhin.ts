@@ -31,7 +31,8 @@ export function khungDuaVe(a: Diem, muc: Diem, o: { nguong?: number; sMax?: numb
   return { k: tot!.k, lech: +tot!.lech.toFixed(3) };
 }
 
-export type DiemShot = { thu_tu: number; dau: Diem | null; cuoi: Diem | null };
+/** tat = người dựng tắt khung dựng lại ở shot này (giữ khung gốc) — vẫn đo lệch để hiện trên timeline. */
+export type DiemShot = { thu_tu: number; dau: Diem | null; cuoi: Diem | null; tat?: boolean };
 export type KetKhung = { thu_tu: number; k: KhungLai; lech_truoc: number | null; lech_goc: number | null };
 /** Đi xuôi cả cảnh: shot đầu giữ nguyên; mỗi shot sau dựng lại khung để chủ thể mở shot nằm chỗ mắt vừa rời shot trước (đã tính khung dựng lại của nó).
  *  Lệch gốc ≤ ngưỡng → giữ nguyên (không phóng vô cớ). Không đo được chủ thể (cận đồ vật, không thấy mặt) → giữ nguyên, mắt đặt lại theo điểm cuối của shot. */
@@ -40,7 +41,7 @@ export function khungCanh(ds: readonly DiemShot[], o: { nguong?: number; sMax?: 
   const kq: KetKhung[] = []; let mat: Diem | null = null;
   for (const d of ds) {
     let k = GIU; let lt: number | null = null; const lg = mat && d.dau ? +lech(d.dau, mat).toFixed(3) : null;
-    if (mat && d.dau && lg! > nguong) { const r = khungDuaVe(d.dau, mat, o); k = r.k; lt = r.lech; } else if (lg != null) lt = lg;
+    if (mat && d.dau && lg! > nguong && !d.tat) { const r = khungDuaVe(d.dau, mat, o); k = r.k; lt = r.lech; } else if (lg != null) lt = lg;
     kq.push({ thu_tu: d.thu_tu, k, lech_truoc: lt, lech_goc: lg });
     const cuoi = d.cuoi ?? d.dau; mat = cuoi ? lenMan(cuoi, k) : null;
   }

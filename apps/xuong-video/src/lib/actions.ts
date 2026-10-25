@@ -36,7 +36,7 @@ import { dichMoTaVi } from '@/lib/xuong-video/claude';
 import { coKhoa, DON_SO_DU, LOAI_NGUON, TEN_TRANG_THAI, type SoDu, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
 import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
+import { lamSachKyThuat, khoaKyThuatForm, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { maAnimatic } from '@/lib/xuong-video/ho-so';
 import type { BanXuat, BoSet, May3d } from '@/lib/xuong-video/kieu';
@@ -968,6 +968,17 @@ export async function xepCanh(tapId: number, ids: number[]): Promise<Kq> {
   return { ok: true, data: undefined };
 }
 
+/** Tắt / bật KHUNG DỰNG LẠI theo điểm nhìn ở một shot (diem-nhin-tap.ts): tắt = giữ khung gốc ngay (gỡ khung_lai), bật lại = lần xuất / đo sau tính lại. */
+export async function datKhungLaiTat(id: number, tat: boolean): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_canh', id, cot: ['ky_thuat'], moTa: tat ? '👁 tắt khung dựng lại' : '👁 bật khung dựng lại', nguoi: await ai() });
+  await db.execute(tat ? sql`UPDATE xv_canh SET ky_thuat = (coalesce(ky_thuat, '{}'::jsonb) - 'khung_lai') || '{"khung_lai_tat": true}'::jsonb, updated_at = now() WHERE id = ${id}`
+    : sql`UPDATE xv_canh SET ky_thuat = coalesce(ky_thuat, '{}'::jsonb) - 'khung_lai_tat', updated_at = now() WHERE id = ${id}`);
+  return { ok: true, data: undefined };
+}
+
 export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'hanh_dong_vi' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu' | 'phan_doan' | 'cam_xuc' | 'ky_thuat' | 'thoai' | 'trang_phuc' | 'phat_s' | 'chu_man' | 'nhanh' | 'kieu_chu' | 'dan_dung'>>): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
@@ -988,7 +999,7 @@ export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_ma
     prompt_video = coalesce(${d.prompt_video ?? null}, prompt_video), thu_tu = coalesce(${d.thu_tu ?? null}, thu_tu),
     phan_doan = coalesce(${d.phan_doan ?? null}, phan_doan), cam_xuc = coalesce(${d.cam_xuc ?? null}, cam_xuc), trang_phuc = coalesce(${d.trang_phuc ?? null}, trang_phuc),
     phat_s = CASE WHEN ${d.phat_s === undefined} THEN phat_s ELSE ${d.phat_s ?? null} END, chu_man = coalesce(${d.chu_man ?? null}, chu_man), nhanh = coalesce(${d.nhanh ?? null}, nhanh), kieu_chu = coalesce(${d.kieu_chu ? JSON.stringify(d.kieu_chu) : null}::jsonb, kieu_chu),
-    ky_thuat = coalesce(${d.ky_thuat ? JSON.stringify(lamSachKyThuat(d.ky_thuat as unknown as Record<string, unknown>)) : null}::jsonb, ky_thuat), dan_dung = coalesce(${d.dan_dung ? JSON.stringify(d.dan_dung) : null}::jsonb, dan_dung), updated_at = now() WHERE id = ${id}`);
+    ky_thuat = CASE WHEN ${d.ky_thuat ? 1 : 0} = 1 THEN (coalesce(ky_thuat, '{}'::jsonb) - ${`{${khoaKyThuatForm().join(',')}}`}::text[]) || ${d.ky_thuat ? JSON.stringify(lamSachKyThuat(d.ky_thuat as unknown as Record<string, unknown>)) : '{}'}::jsonb ELSE ky_thuat END, dan_dung = coalesce(${d.dan_dung ? JSON.stringify(d.dan_dung) : null}::jsonb, dan_dung), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
 }
 

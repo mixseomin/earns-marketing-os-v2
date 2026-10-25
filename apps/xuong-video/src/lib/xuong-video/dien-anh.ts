@@ -27,6 +27,9 @@ export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, strin
    *  (#322 #4: mắt chỉ liếc ở giây cuối). Không khai = bỏ ≤ 0,5 s đầu như cũ. */ vao_s?: number;
   /** KHUNG DỰNG LẠI (diem-nhin.ts › khungCanh, scripts/diem-nhin.mts): phóng s quanh tâm (cx, cy) để chủ thể mở shot nằm chỗ mắt người xem vừa rời shot trước */
   khung_lai?: { s: number; cx: number; cy: number };
+  /** Người dựng TẮT khung dựng lại ở shot này (giữ khung gốc) — nút trên timeline */ khung_lai_tat?: boolean;
+  /** Số đo điểm nhìn (diem-nhin-tap.ts): điểm chú ý mở / đóng (0…1), ai, lệch với cuối shot trước gốc → sau khi dựng lại; khoá = clip · điểm vào · giây */
+  diem_nhin?: { khoa: string; dau: { x: number; y: number } | null; cuoi: { x: number; y: number } | null; ten_dau?: string; ten_cuoi?: string; lech_goc?: number | null; lech_sau?: number | null };
   /** KỲ VỌNG từ sơ đồ cảnh (so-do-canh.ts › kyVong): người → phía màn (−1 trái / 0 giữa / +1 phải) + phía nhìn — cổng scripts/soat-huong.mts so với soi mặt */
   huong_so?: Record<string, { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1 }>;
   /** TRẠNG THÁI ĐỒ VẬT ở shot này (so-vat.ts › dongVat, tiếng Việt cho người đọc storyboard; ⚡ = đổi ngay tại shot này) */ vat?: string[];
@@ -301,6 +304,9 @@ export function chiTietKyThuat(kt: KyThuatShot | undefined): MucKyThuat[] {
 }
 export const nhanKyThuat = (kt: KyThuatShot | undefined): string[] => chiTietKyThuat(kt).map((m) => `${m.icon} ${m.ten}`);
 /** Chỉ giữ key có trong thư viện (Claude lỡ bịa key thì bỏ). */
+/** Các ô kỹ thuật NGƯỜI CHỌN trên form (lamSachKyThuat lọc đúng các ô này). Ghi form chỉ được THAY các ô này — phần máy ghi (vao_s, huong_so, khung_lai,
+ *  diem_nhin, cum, soat_noi…) giữ nguyên. Trước 25/10/2026 suaCanh ghi đè cả cột bằng bản lọc → sửa một ô kỹ thuật là mất điểm vào / sơ đồ / khung dựng lại. */
+export const khoaKyThuatForm = (): string[] => [...NHOM_KY_THUAT.map((n) => n.key as string), 'giay_cc', 'luat'];
 export function lamSachKyThuat(kt: Record<string, unknown> | undefined): KyThuatShot {
   const o: KyThuatShot = {};
   if (!kt) return o;

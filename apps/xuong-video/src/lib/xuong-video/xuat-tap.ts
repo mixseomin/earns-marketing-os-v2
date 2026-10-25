@@ -2,6 +2,7 @@
 // cùng job, cùng chỗ ghi bản xuất. Trước 15/10/2026 lõi nằm trong server action có kiểm phiên admin → máy không tự xuất được, phải nhờ anh bấm.
 // 0đ (ffmpeg trên máy chủ, không gọi model).
 import { lookPhim } from './look';
+import { doDiemNhinTap } from './diem-nhin-tap';
 import { batCamXuc } from './qc-cam-xuc';
 import { xuatMayDungTap } from './may-dung';
 import 'server-only';
@@ -69,6 +70,9 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   if (qcSai.length) return { ok: false, loi: `Chưa xuất được — ${qcSai.map((x) => x.chiTiet ?? x.chu).join('; ')}` };
   const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Xuất bản · tập ${bc.tap.so}${nhanh ? ` · hook ${nhanh}` : ''}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: nhanh ?? '' } });
   return { ok: true, job, chay: async () => {
+    // ĐIỂM NHÌN QUA CÚ CẮT (diem-nhin-tap.ts, 0đ): đo mặt chủ thể hai bên mỗi cú cắt trên clip thật, lệch thì dựng lại khung (phóng + dịch) — shot đổi mới đo lại
+    try { await doDiemNhinTap(db, tapId, { ghi: true }); canh = ((await db.execute(sql`SELECT c.* FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`)) as unknown as Row[]).map(mapCanh); }
+    catch (e) { console.error(`điểm nhìn lúc xuất tập ${tapId}:`, e); }
     const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh, phuDe: kt.phu_de });
     if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return { loi: kq.loi }; }
     await ghiBanXuat(db, { tapId, job, nhanh: nhanh ?? '', kq });

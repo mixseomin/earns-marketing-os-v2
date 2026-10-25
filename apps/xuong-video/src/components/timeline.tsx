@@ -35,6 +35,7 @@ import { AnhDaiDien } from './anh-set-3d';
 import { ThamKhaoShot } from './tham-khao-ui';
 import { ChonCta } from './cta-ui';
 import { ChipMurch, useDiemMurch } from './diem-murch-noi';
+import { DauDiemNhin } from './diem-nhin-ui';
 import { ChipPrompt } from './diem-prompt-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { laShotCta } from '@/lib/xuong-video/cta';
@@ -64,7 +65,7 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon, goi }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onDoiKhungLai, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon, goi }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
   /** bấm một khối của shot trên bất kỳ làn nào → mở ngăn chi tiết shot (anh 18/10/2026: cuộn xuống các làn dưới thì không kéo lên xem panel được) */ onMoShot?: (id: number) => void;
   /** gói thể loại của phim (kinh_thanh.goi, goi-the-loai.ts) — bố cục màn xem mặc định theo gói */ goi?: string;
@@ -75,6 +76,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
   /** khớp điểm cắt vào phách nhạc nền — trả câu báo */ onKhopNhip?: () => Promise<string>;
   /** khớp giây phát theo giọng — trả câu báo */ onKhopGiong?: () => Promise<string>;
+  /** 👁 tắt / bật khung dựng lại theo điểm nhìn của một shot (datKhungLaiTat) */ onDoiKhungLai?: (id: number, tat: boolean) => void;
   /** ghi kỹ thuật mới cho vài shot một lượt (gói impact / nhịp hành động thêm tiếng) */ onDoiKyThuat?: (ds: { id: number; ky_thuat: KyThuatShot }[]) => void;
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
@@ -711,10 +713,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }).concat(canh.slice(0, -1).map((cc, i) => {
             // Điểm nối giữa hai clip: nút ⇄ chọn chuyển cảnh (ky_thuat.chuyen_canh của shot TRƯỚC) + dải d giây bản xuất hoà hình.
             const sau = canh[i + 1]!;
-            return <NutChuyenCanh key={`cc${cc.id}`} trai={batDau[i + 1]! * pps} pps={pps} value={cc.ky_thuat?.chuyen_canh} giayTay={cc.ky_thuat?.giay_cc} phatTruoc={dur(cc)} phatSau={dur(sau)}
+            return [<DauDiemNhin key={`dn${sau.id}`} trai={batDau[i + 1]! * pps} kt={sau.ky_thuat} tieuDe={`#${cc.thu_tu} → #${sau.thu_tu}`} onDoi={onDoiKhungLai && ((t) => onDoiKhungLai(sau.id, t))} />, <NutChuyenCanh key={`cc${cc.id}`} trai={batDau[i + 1]! * pps} pps={pps} value={cc.ky_thuat?.chuyen_canh} giayTay={cc.ky_thuat?.giay_cc} phatTruoc={dur(cc)} phatSau={dur(sau)}
               anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k, g) => onDoiChuyenCanh(cc.id, k, g))}
-                onImpact={onDoiChuyenCanh && onDoiKyThuat && (() => { const tc = batDau[i + 1]!; datLop((ds) => [...ds, ...lopImpact(tc)]); onDoiChuyenCanh(cc.id, 'cat_soc'); onDoiKyThuat([{ id: sau.id, ky_thuat: themTieng(sau.ky_thuat, 'dap') }]); })} />;
-          })), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
+                onImpact={onDoiChuyenCanh && onDoiKyThuat && (() => { const tc = batDau[i + 1]!; datLop((ds) => [...ds, ...lopImpact(tc)]); onDoiChuyenCanh(cc.id, 'cat_soc'); onDoiKyThuat([{ id: sau.id, ky_thuat: themTieng(sau.ky_thuat, 'dap') }]); })} />];
+          }).flat()), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
           </div>
 
           {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}

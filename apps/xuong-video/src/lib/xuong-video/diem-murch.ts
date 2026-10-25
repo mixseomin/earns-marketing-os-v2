@@ -5,6 +5,7 @@
 // không phải điểm tuyệt đối. Thuần: nhận dữ liệu, không gọi DB / model. Chưa có bên nào bán sẵn thang này (nghiên cứu dựng tự động: Galvane 2015,
 // Leake 2017 có hàm chi phí liên tục / nhịp, không có cảm xúc).
 import type { Canh, NhanVat, BoSet, PhanCanh } from './kieu';
+import { NGUONG_LECH } from './diem-nhin';
 import { giayPhat } from './kieu';
 import { camXucDo, loiMachBieuCam } from './qc-cam-xuc';
 import { loiMachTap, matQuayDi, vuotTruc, shotSoTruc, chuThe, boSetCuaShot, loiHinhHoc, VAI_GOC_RIENG, PT_THAY } from './bo-set-3d';
@@ -89,6 +90,10 @@ export function diemMurchTap(ds: Shot[], nhanVat: NV[], sets: Pick<BoSet, 'id' |
       const sa = chuThe(a.may_3d)[0], sb = chuThe(c.may_3d)[0]; const ta = sa ? tamThay(a, sa) : null, tb = sb ? tamThay(c, sb) : null;
       if (ta && tb) { const d = Math.hypot(ta.x - tb.x, ta.y - tb.y); et = kep(1 - d / 0.6); if (d > 0.35) ly.eye_trace = `mắt phải dời ${Math.round(d * 100)}% khung từ ${sa} sang ${sb}`; }
     }
+    // ĐO TRÊN CLIP THẬT thắng mọi ước lượng (diem-nhin-tap.ts — điểm chú ý hai bên cú cắt, lệch SAU khi bản dựng đã dựng lại khung)
+    const dn = (c.ky_thuat as { diem_nhin?: { lech_goc?: number | null; lech_sau?: number | null } } | undefined)?.diem_nhin;
+    const dDo = dn?.lech_sau ?? dn?.lech_goc;
+    if (a && dDo != null) { et = dDo <= NGUONG_LECH ? 1 : kep(1 - (dDo - NGUONG_LECH) / 0.3); if (dDo > NGUONG_LECH) ly.eye_trace = `điểm nhìn lệch ${Math.round(dDo * 100)}% khung qua cú cắt (đo trên clip${dn?.lech_sau != null && dn.lech_goc != null && dn.lech_sau < dn.lech_goc ? `, đã dựng lại khung từ ${Math.round(dn.lech_goc * 100)}%` : ''})`; else delete ly.eye_trace; }
     // ── MẶT PHẲNG MÀN HÌNH (5): trục 180° · hướng máy chủ · đối mặt ──
     let hc = 1; const thieuHc: string[] = [];
     if (c.may_3d && !c.may_3d.qua_truc) {

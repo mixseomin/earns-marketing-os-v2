@@ -17,4 +17,9 @@ assert.ok(d[2]!.phan.cam_xuc > d[1]!.phan.cam_xuc && d[2]!.tong > d[1]!.tong, JS
 assert.ok(d[3]!.phan.nhip < d[2]!.phan.nhip && d[3]!.ly_do.nhip?.includes('ngắn'), JSON.stringify(d[3]));
 assert.ok(d[3]!.ly_do.cam_xuc?.includes('không đổi bậc'));
 const tb = diemMurchCanh(ds, d); assert.equal(tb.canh.A, tb.tap); assert.ok(tb.tap > 0);
+// điểm nhìn ĐO trên clip thắng ước lượng: lệch sau dựng lại ≤ ngưỡng → eye trace 1; lệch lớn → điểm thấp + lý do có số
+const dn = (lech_goc: number, lech_sau: number) => ({ diem_nhin: { khoa: 'x', dau: null, cuoi: null, lech_goc, lech_sau } }) as Record<string, unknown>;
+const d2 = diemMurchTap([ds[0]!, shot({ id: 2, ky_thuat: { co_canh: 'cu', ...dn(0.3, 0.1) } }), shot({ id: 3, ky_thuat: { co_canh: 'ms', ...dn(0.4, 0.4) } })], nv, [], { khong_loi: true });
+assert.strictEqual(d2[2]!.phan.eye_trace, 1); assert.ok(!d2[2]!.ly_do.eye_trace);
+assert.ok(d2[3]!.phan.eye_trace < 0.2 && d2[3]!.ly_do.eye_trace?.includes('40%'), JSON.stringify(d2[3]));
 console.log('diem-murch.test: ok', Object.values(d).map((x) => x.tong).join(' / '));

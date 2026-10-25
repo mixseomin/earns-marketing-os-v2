@@ -23,6 +23,9 @@ assert.strictEqual(kq[2]!.k.s, 1); assert.strictEqual(kq[2]!.lech_goc, null);   
 assert.strictEqual(kq[3]!.k.s, 1);   // sau shot không đo được, mắt đặt lại — không kéo theo
 // lệch nhỏ dưới ngưỡng → không phóng vô cớ
 assert.strictEqual(khungCanh([{ thu_tu: 1, dau: { x: 0.5, y: 0.5 }, cuoi: { x: 0.5, y: 0.5 } }, { thu_tu: 2, dau: { x: 0.55, y: 0.52 }, cuoi: null }])[1]!.k.s, 1);
+// shot tắt khung dựng lại → giữ gốc, vẫn báo lệch
+const t = khungCanh([{ thu_tu: 1, dau: { x: 0.45, y: 0.4 }, cuoi: { x: 0.45, y: 0.4 } }, { thu_tu: 2, dau: { x: 0.62, y: 0.4 }, cuoi: null, tat: true }]);
+assert.strictEqual(t[1]!.k.s, 1); assert.ok(t[1]!.lech_goc! > NGUONG_LECH);
 // bộ lọc: s=1 rỗng; s>1 có crop đúng cỡ cửa sổ
 assert.strictEqual(locKhungLai({ s: 1, cx: 0.5, cy: 0.5 }), '');
 assert.match(locKhungLai({ s: 1.25, cx: 0.55, cy: 0.5 }), /^crop=iw\*0\.8000:ih\*0\.8000:\(iw-iw\*0\.8000\)\*0\.7500:\(ih-ih\*0\.8000\)\*0\.5000,$/);

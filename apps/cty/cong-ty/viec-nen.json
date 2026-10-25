@@ -446,23 +446,6 @@
    }
   },
   {
-   "nhan": "MacBook:com.claude.fbwarmup.segun",
-   "ten": "Facebook - làm ấm tài khoản segun",
-   "chay": [
-    "/bin/bash",
-    "/Users/htuan/claude-warmup/warmup-segun.sh"
-   ],
-   "nhat_ky": "/Users/htuan/claude-warmup/launchd.out.log",
-   "nhat_ky_loi": "/Users/htuan/claude-warmup/launchd.err.log",
-   "hen": {
-    "luc": [
-     "09:00",
-     "13:00",
-     "19:00"
-    ]
-   }
-  },
-  {
    "nhan": "MacBook:com.earns.adfond.keo-so-cj-adpia-moi-sang",
    "ten": "Adfond - kéo số CJ Adpia buổi sáng",
    "chay": [

@@ -67,6 +67,21 @@ if (a[0] === '--kiem') {
   const id = a[1]!, t = docSo()[id]; if (!t) { console.error(`không có Page ${id} trong sổ`); process.exit(1); }
   await kiemTrang(id, t.ten); console.log(`✓ token khớp Page ${t.ten} (${id})`); process.exit(0);
 }
+// SỐ ĐO REEL (25/10/2026 — trước đó đọc ô reel trên tab Reels bằng br profile doanhedu, chỉ chạy được ở MacBook, đứng từ 17/10):
+//   ... --so   stdin { page_id, ten, ids: [video_id…] } → stdout { "<video_id>": lượt phát | null }. Lượt phát = video_insights blue_reels_play_count
+//   (cần quyền read_insights trong token Page; thiếu thì ném lỗi rõ, không trả số 0 giả).
+if (a[0] === '--so') {
+  let r0 = ''; for await (const c of process.stdin) r0 += c;
+  const q = JSON.parse(r0) as { page_id: string; ten: string; ids: string[] }, t = await kiemTrang(q.page_id, q.ten), ra: Record<string, number | null> = {};
+  for (const id of q.ids) {
+    try {
+      const j = await goi(`${G}/${id}/video_insights?${qs({ metric: 'blue_reels_play_count', access_token: t.token })}`);
+      const v = ((j.data as { values?: { value?: number }[] }[] | undefined)?.[0]?.values?.[0]?.value);
+      ra[id] = typeof v === 'number' ? v : null;
+    } catch (e) { const m = (e as Error).message; if (/read_insights/.test(m)) throw new Error(`token Page ${q.ten} thiếu quyền read_insights — cấp lại token (scripts/fb) rồi chạy lại`); ra[id] = null; }
+  }
+  process.stdout.write(JSON.stringify(ra)); process.exit(0);
+}
 let raw = ''; for await (const c of process.stdin) raw += c;
 const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; mo_ta: string; binh_luan?: string };
 const t = await kiemTrang(x.page_id, x.ten);

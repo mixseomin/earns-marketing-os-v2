@@ -30,18 +30,17 @@
    "id": "giu-am-tai-khoan",
    "ten": "Giữ ấm tài khoản Facebook",
    "so_hoa": "co-dinh",
-   "kich_hoat": "iMac + MacBook 11:15 mỗi ngày · MacBook segun 09:00 · 13:00 · 19:00 — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "kich_hoat": "iMac + MacBook 11:15 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
    "mo_ta": "Mở profile tài khoản Facebook, lướt nhẹ để tài khoản không bị coi là bỏ hoang.",
-   "ma": "courseforge-demo fb-giu-am.mjs · ~/claude-warmup/warmup-segun.sh",
+   "ma": "courseforge-demo fb-giu-am.mjs",
    "chu_tri": "kien",
    "lam": [
     "may"
    ],
-   "khi": "11:15 mỗi ngày + segun 3 lần/ngày",
+   "khi": "11:15 mỗi ngày",
    "lich": [
     "iMac:com.earns.fb-giu-am",
-    "MacBook:com.earns.fb-giu-am",
-    "MacBook:com.claude.fbwarmup.segun"
+    "MacBook:com.earns.fb-giu-am"
    ],
    "chi_phi": "0"
   }

@@ -6,6 +6,8 @@ import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
 
 const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', fb_link: 'FB link', x: 'X', x_anh: 'X ảnh', x_link: 'X link', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
+// Page cũ gắn vào máy (S06): khoá 'facebook:<acct>' → 'FB Page cũ'
+const nhanNen = (n: string) => { const g = n.split(':')[0] ?? n; return NEN_NHAN[n] ?? (g !== n ? `${NEN_NHAN[g] ?? g} Page cũ` : n); };
 const MAU = ['#2563eb', '#d97706', '#059669', '#db2777', '#7c3aed', '#0891b2'];
 const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const cong = (ngay: string, n: number) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -65,7 +67,7 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
             ...ngay.map((n) => (
               <div key={`${g}${n}`} style={{ padding: 4, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 3, alignContent: 'flex-start', minHeight: 30, background: n === luoi.hom ? 'var(--accent-soft, rgba(37,99,235,.05))' : undefined }}>
                 {o(n, g).map((x, i) => {
-                  const nhan = `${x.loai === 'da' ? '✓ ' : ''}${NEN_NHAN[x.nen] ?? x.nen}`, tip = `${x.mayTen} · ${NEN_NHAN[x.nen] ?? x.nen} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
+                  const nhan = `${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
                   const st = { display: 'inline-block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, borderLeft: `3px solid ${mauMay[x.may]}`,
                     ...(x.loai === 'da' ? { background: 'var(--bg-2, rgba(0,0,0,.05))', color: 'var(--fg-1, inherit)', textDecoration: 'none' } : { border: `1px dashed ${mauMay[x.may]}`, borderLeftWidth: 3, borderLeftStyle: 'solid' as const, color: 'var(--fg-2)' }) };
                   return x.url ? <a key={i} href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" title={tip} style={st}>{nhan}</a> : <span key={i} title={tip} style={st}>{nhan}</span>;
@@ -97,7 +99,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
   const doi = (b: number) => { setChon(null); setMoc(kieu === 'tuan' ? cong(moc, b * 7) : (() => { const d = new Date(Date.parse(`${moc.slice(0, 8)}01T00:00:00Z`)); d.setUTCMonth(d.getUTCMonth() + b); return d.toISOString().slice(0, 10); })()); };
   const nut = { border: '1px solid var(--border)', background: 'var(--bg-1, transparent)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer', color: 'inherit' } as const;
   const Bai = ({ x }: { x: StLuoiO }) => {
-    const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${NEN_NHAN[x.nen] ?? x.nen}`, tip = `${x.mayTen} · ${NEN_NHAN[x.nen] ?? x.nen} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
+    const nhan = `${x.gio === '—' ? '' : `${x.gio} `}${x.loai === 'da' ? '✓ ' : ''}${nhanNen(x.nen)}`, tip = `${x.mayTen} · ${nhanNen(x.nen)} · ${x.gio}${x.loai === 'du_kien' ? ' (dự kiến)' : ''}\n${x.title}`;
     const st = { display: 'block', padding: '1px 6px', borderRadius: 6, lineHeight: '18px', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `3px solid ${mauMay[x.may]}`, fontSize: 11,
       ...(x.loai === 'da' ? { background: 'var(--bg-2, rgba(0,0,0,.05))', color: 'var(--fg-1, inherit)', textDecoration: 'none' } : { border: `1px dashed ${mauMay[x.may]}`, borderLeftWidth: 3, borderLeftStyle: 'solid' as const, color: 'var(--fg-2)' }) };
     return x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" title={tip} style={st}>{nhan}</a> : <span title={tip} style={st}>{nhan}</span>;
@@ -123,7 +125,7 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
                   background: chon === n ? 'var(--accent-soft, rgba(37,99,235,.14))' : homNay ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined, opacity: ngoaiThang ? .45 : 1, display: 'grid', alignContent: 'start', gap: 3 }}>
                 <span style={{ fontWeight: homNay ? 700 : 500, color: n < luoi.hom ? 'var(--fg-3)' : undefined }}>{homNay ? 'Hôm nay' : `${n.slice(8)}/${n.slice(5, 7)}`}{bs.length ? <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}> · {bs.length}</span> : null}</span>
                 {kieu === 'tuan' ? bs.map((x, i) => <Bai key={i} x={x} />)
-                  : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>{bs.slice(0, 24).map((x, i) => <i key={i} title={`${x.gio} ${NEN_NHAN[x.nen] ?? x.nen} · ${x.title}`} style={{ width: 8, height: 8, borderRadius: 2, background: x.loai === 'da' ? mauMay[x.may] : 'transparent', border: `1.5px solid ${mauMay[x.may]}` }} />)}</span>}
+                  : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>{bs.slice(0, 24).map((x, i) => <i key={i} title={`${x.gio} ${nhanNen(x.nen)} · ${x.title}`} style={{ width: 8, height: 8, borderRadius: 2, background: x.loai === 'da' ? mauMay[x.may] : 'transparent', border: `1.5px solid ${mauMay[x.may]}` }} />)}</span>}
               </div>
             );
           })}

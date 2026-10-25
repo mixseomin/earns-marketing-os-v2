@@ -71,14 +71,16 @@ export const KHO_TOI_THIEU = 7;
 const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']);   // nền bài link: dòng dang.loai 'link', không video
 // HỌ NỀN (25/10/2026): máy đăng chống spam xoay vòng các nền cùng một tài khoản (facebook / fb_anh / fb_link chung trần ngày Facebook, x / x_anh / x_link chung X —
 // nhip-an-toan.mjs › hopNen + xepXoay) → một nền đứng chờ lượt KHÔNG phải lỡ lượt. Chỉ báo lỡ khi CẢ HỌ hôm qua không có bài nào.
-export const hoNen = (nen) => (/^(facebook|fb_)/.test(nen) ? 'fb' : /^x(_|$)/.test(nen) ? 'x' : nen);
+// Page cũ 'facebook:<acct>' (S06): họ theo phần trước dấu ':'; mỗi Page một TÀI KHOẢN nên họ xét theo máy + tài khoản (Page A có bài không che Page B lỡ lượt)
+export const hoNen = (nen) => { const g = String(nen).split(':')[0]; return /^(facebook|fb_)/.test(g) ? 'fb' : /^x(_|$)/.test(g) ? 'x' : g; };
+const khoaHo = (x) => `${x.ma}|${x.acct ?? ''}|${hoNen(x.nen)}`;
 /** Vấn đề của các máy đang bật. ds = [{ ma, ten, nen, tran, cuoi (YYYY-MM-DD|null), con, canh? (cảnh báo tài khoản chưa xử trong 7 ngày) }], homQua = YYYY-MM-DD (giờ VN).
  *  canh: máy đăng DỪNG ĐÚNG LUẬT ("tài khoản có cảnh báo rủi ro trong 7 ngày — dừng đăng") → báo lý do dừng + nội dung cảnh báo, không báo lỡ lượt. */
 export function vanDeMay(ds, homQua) {
   const ra = [], cuoiHo = new Map();
-  for (const x of ds) { const k = `${x.ma}|${hoNen(x.nen)}`; if (x.cuoi && (!cuoiHo.get(k) || x.cuoi > cuoiHo.get(k))) cuoiHo.set(k, x.cuoi); }
+  for (const x of ds) { const k = khoaHo(x); if (x.cuoi && (!cuoiHo.get(k) || x.cuoi > cuoiHo.get(k))) cuoiHo.set(k, x.cuoi); }
   for (const x of ds) {
-    const cuoi = cuoiHo.get(`${x.ma}|${hoNen(x.nen)}`) ?? null;
+    const cuoi = cuoiHo.get(khoaHo(x)) ?? null;
     // chỉ khi thật sự lỡ (cả họ hôm qua không có bài) mới xét lý do: có cảnh báo tài khoản → dừng đúng luật; vẫn đăng đều thì cảnh báo cũ không phải chuyện của máy đăng
     if (cuoi && cuoi >= homQua) { /* có bài hôm qua: không lỡ */ }
     else if (x.toi === 0 && x.som) { /* còn bài nhưng CHƯA TỚI HẠN ĐĂNG (bài theo ngày, sớm nhất x.som): máy đứng đúng lịch, không phải lỡ — Giỗ Chạp 24/10 */ }
@@ -91,7 +93,7 @@ export function vanDeMay(ds, homQua) {
 }
 const homNayVN = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 export async function docMayDang(sql) {
-  return sql`select m.ma, m.ten, n->>'nen' as nen, coalesce((n->>'tran')::int, 1) as tran,
+  return sql`select m.ma, m.ten, n->>'nen' as nen, nullif(n->'br'->>'acct', '') as acct, coalesce((n->>'tran')::int, 1) as tran,
       (select left(a.noi_dung, 160) from platform_alerts a where a.account_id = nullif(n->'br'->>'acct', '')::int and a.xong_luc is null
          and a.luc > now() - interval '7 days' order by a.luc desc limit 1) as canh,
       (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi, k.con, k.toi, k.som
@@ -176,7 +178,10 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.deepEqual(vanDeMay([{ ma: 'r', ten: 'R', nen: 'youtube', tran: 1, cuoi: '2026-10-17', con: 9, canh: 'cảnh báo cũ' }], '2026-10-17'), [], 'có cảnh báo nhưng vẫn đăng đều = im (youtube ratesbyroom 24/10)');
   t.deepEqual(vanDeMay([{ ma: 'g', ten: 'G', nen: 'facebook', tran: 1, cuoi: null, con: 31, toi: 0, som: '2026-11-06' }], '2026-10-17'), [], 'bài theo ngày chưa tới hạn = im (Giỗ Chạp 24/10)');
   t.equal(vanDeMay([{ ma: 'g', ten: 'G', nen: 'facebook', tran: 1, cuoi: null, con: 31, toi: 2, som: '2026-11-06' }], '2026-10-17')[0]?.khoa, 'lo|g|facebook', 'có bài trong hạn mà không đăng = lỡ thật');
-  t.equal(hoNen('fb_link'), 'fb'); t.equal(hoNen('facebook'), 'fb'); t.equal(hoNen('x_anh'), 'x'); t.equal(hoNen('x'), 'x'); t.equal(hoNen('youtube'), 'youtube');
+  // Page cũ: mỗi Page một tài khoản → Page 580 có bài hôm qua không che Page 589 lỡ lượt (S06 25/10/2026)
+  const pc = vanDeMay([{ ma: 'fp', ten: 'FP', nen: 'facebook:580', acct: '580', tran: 1, cuoi: '2026-10-17', con: 99 }, { ma: 'fp', ten: 'FP', nen: 'facebook:589', acct: '589', tran: 1, cuoi: '2026-10-15', con: 99 }], '2026-10-17');
+  t.deepEqual(pc.map((x) => x.khoa), ['lo|fp|facebook:589'], 'họ nền xét theo tài khoản');
+  t.equal(hoNen('facebook:580'), 'fb'); t.equal(hoNen('fb_link'), 'fb'); t.equal(hoNen('facebook'), 'fb'); t.equal(hoNen('x_anh'), 'x'); t.equal(hoNen('x'), 'x'); t.equal(hoNen('youtube'), 'youtube');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

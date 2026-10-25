@@ -12,6 +12,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const GIO_BAO = '21:30';   // sau lượt 21:00 — lượt cuối trong ngày của máy đăng
 const SAP_CAN_NGAY = 7, LICH_CU_GIO = 26;
 const NEN = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', x: 'X', x_anh: 'X ảnh', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads', pinterest: 'Pinterest' };
+const nhanNen = (n) => NEN[n] ?? (String(n).includes(':') ? `${NEN[String(n).split(':')[0]] ?? n} Page cũ` : n);   // Page cũ 'facebook:<acct>' (S06)
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const ngayVn = (t = Date.now()) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
 const cong = (ngay, n) => new Date(Date.parse(`${ngay}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -27,8 +28,8 @@ export function tinBaoCao(s, bayGio = Date.now()) {
     const da = s.da.filter((x) => x.may === m.ma), dk = dinh.filter((x) => x.may === m.ma);
     const chua = dk.filter((x) => !da.some((d) => d.nen === x.nen)), lo = [...new Set(chua.filter((x) => x.gio <= gioVn).map((x) => x.nen))];
     const cho = [...new Set(chua.filter((x) => x.gio > gioVn).map((x) => x.nen))]; tongLo += lo.length; tongCho += cho.length;   // giờ chưa tới thì là CHỜ, không phải lỡ
-    const nen = da.map((x) => (x.url ? `<a href="${esc(x.url)}">${esc(NEN[x.nen] ?? x.nen)}</a>` : esc(NEN[x.nen] ?? x.nen)));
-    const ds2 = (xs) => xs.map((n) => esc(NEN[n] ?? n)).join(', ');
+    const nen = da.map((x) => (x.url ? `<a href="${esc(x.url)}">${esc(nhanNen(x.nen))}</a>` : esc(nhanNen(x.nen))));
+    const ds2 = (xs) => xs.map((n) => esc(nhanNen(n))).join(', ');
     dong.push(`• <b>${esc(ten[m.ma])}</b>: ${da.length} lượt${nen.length ? ` · ${nen.join(', ')}` : ''}${lo.length ? `\n   ✗ lỡ: ${ds2(lo)}` : ''}${cho.length ? `\n   ⏳ chờ: ${ds2(cho)}` : ''}`);
   }
   // kho đã xếp lịch: máy × format — số lượt còn trong lịch từ mai + ngày lượt cuối

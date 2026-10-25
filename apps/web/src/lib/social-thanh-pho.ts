@@ -43,7 +43,8 @@ export const mayTimCua = (nguon: string | null) => { if (!nguon || / \/ (cpc|pai
 export type PhoNen = 'yt' | 'fb' | 'ig' | 'tt' | 'x' | 'pin' | 'dm' | 'th' | 'qu';
 const NEN_KEY: Record<string, PhoNen> = { youtube: 'yt', facebook: 'fb', instagram: 'ig', tiktok: 'tt', twitter: 'x', x: 'x', pinterest: 'pin', dailymotion: 'dm', threads: 'th', quora: 'qu' };
 /** nơi đăng của máy (xv_may.dang[].nen: youtube, x_anh, fb_link…) → khoá nền tảng của tài khoản (platform_accounts.platform_key) */
-export const nenCuaMay = (nen: string) => { const g = nen.replace(/_(anh|link)$/, ''); return ({ fb: 'facebook', ig: 'instagram', x: 'twitter' } as Record<string, string>)[g] ?? g; };
+// Page cũ gắn vào máy (S06): khoá 'facebook:<acct vault>' → phần trước dấu ':'
+export const nenCuaMay = (nen: string) => { const g = (nen.split(':')[0] ?? nen).replace(/_(anh|link)$/, ''); return ({ fb: 'facebook', ig: 'instagram', x: 'twitter' } as Record<string, string>)[g] ?? g; };
 
 /** toà NGUỒN cạnh đích: tài khoản mạng xã hội ('mxh') · máy tìm kiếm ('tim', id `tim:<máy>@<site>`) · quảng cáo ('qc') · trang giới thiệu ('gt') · nguồn trong cửa hàng ('ch');
  *  host = tên miền lấy favicon, mau = màu hãng */

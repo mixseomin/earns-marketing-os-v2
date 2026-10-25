@@ -41,7 +41,7 @@ const COT_LICH: DataColumn<StLich>[] = [
   { key: 'gio', header: 'Giờ', sortValue: (l) => l.gio, cell: (l) => (l.luot.length
       ? <span title={`lượt thật trên ${l.mayMac}: ${l.luot.join(', ')} (sổ việc nền cty)`}>{l.luot[0]} · {l.mayMac}</span>
       : <span style={{ color: 'var(--bad)' }} title={`cấu hình ghi ${l.gio} · ${l.mayMac} nhưng sổ việc nền cty không có lượt máy đăng nào trên ${l.mayMac} — nơi này KHÔNG đăng`}>⛔ không có lượt · {l.mayMac}</span>) },
-  { key: 'nen', header: 'Nơi đăng', align: 'left', sortValue: (l) => l.nenTen, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={l.nenTen} khoa={KHOA_NEN[l.nen] ?? l.nen} />{l.nenTen}<span style={nho}>{l.tk}</span></span> },
+  { key: 'nen', header: 'Nơi đăng', align: 'left', sortValue: (l) => l.nenTen, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={l.nenTen} khoa={KHOA_NEN[l.nen] ?? l.nen.split(':')[0]} />{l.nenTen}<span style={nho}>{l.tk}</span></span> },
   { key: 'may', header: 'Máy', align: 'left', sortValue: (l) => l.may, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{l.may}{!l.chay && <Pill color="var(--fg-3)" label="⏸ tắt" uppercase={false} />}</span> },
   { key: 'hom', header: 'Hôm nay', sortValue: (l) => l.homNay / Math.max(1, l.tran), cell: (l) => (l.homNay >= l.tran
       ? <a href={l.homNayUrl ? `https://href.li/?${l.homNayUrl}` : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--ok)' }} title="mở bài đã đăng hôm nay">✅ {l.homNay}/{l.tran}</a>

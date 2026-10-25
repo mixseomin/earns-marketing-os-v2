@@ -51,14 +51,15 @@ const TT = ({ c }: { c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lic
 // chấm rỗng = chưa chi đủ 30% ngân sách (luật chưa xét) · dấu máy luật đang đánh (etp.bao): ↑ tăng · ↓ giảm bậc · ✕ đề xuất tắt · ↘ ROI tụt · ★ bid ROAS
 const BAC_NS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
 // GẦN ĐẠT luật (anh 26/10/2026: "các camp gần đạt tiêu chí tăng hay giảm bậc cũng cần show") — đọc đúng ngưỡng luat-ethopex.py (/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/luat-ethopex.py, box3):
-// tăng trong ngày ROI hôm nay ≥ +50% · chi ≥ 30% ngân sách · hôm qua ≥ 0% | giảm trong ngày (ngân sách > $1) ROI ≤ −5% · chi ≥ 30% · hôm qua < +50% | tắt: tiêu > $10 · ROI < −50% · ≥ 7 ngày (ROI/tiêu lấy 30 ngày)
+// tăng trong ngày ROI hôm nay ≥ +50% · chi ≥ 30% ngân sách · hôm qua ≥ 0% (hoặc chi hôm qua < 50% ngân sách — luật B1 26/10) | giảm trong ngày (ngân sách > $1) ROI ≤ −5% · chi ≥ 30% · hôm qua < +50% | tắt: tiêu > $10 · ROI < −50% · ≥ 7 ngày (ROI/tiêu lấy 30 ngày)
 // dấu mờ ⇡ gần tăng · ⇣ gần giảm · ✕ mờ gần tắt; máy luật đã đánh dấu thật (etp.bao) thì không hiện dấu gần cùng loại
-function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao'>, r: number | null, du: boolean, rq: number | null, da: Set<string>): [string, string, string][] {
+function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua'>, r: number | null, du: boolean, rq: number | null, da: Set<string>): [string, string, string][] {
   const ra: [string, string, string][] = [];
+  const hqChan = rq != null && rq < 0 && c.qua.chi >= 0.5 * c.ngan_sach;   // luật B1: hôm qua âm chỉ chặn khi chi hôm qua ≥ 50% ngân sách
   if (r != null && !['tang', 'dau_phien', 'tang30'].some((k) => da.has(k))) {
     if (r >= 50 && !du) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}% đã đạt, chờ chi đủ 30% ngân sách`]);
-    else if (r >= 50 && rq != null && rq < 0) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}% đạt, nhưng hôm qua ${rq}% < 0%`]);
-    else if (r >= 30 && r < 50 && (rq == null || rq >= 0)) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}%, còn thiếu ${50 - r} điểm để chạm +50%`]);
+    else if (r >= 50 && hqChan) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}% đạt, nhưng hôm qua ${rq}% với chi $${c.qua.chi.toFixed(2)} ≥ 50% ngân sách`]);
+    else if (r >= 30 && r < 50 && !hqChan) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}%, còn thiếu ${50 - r} điểm để chạm +50%`]);
   }
   if (r != null && c.ngan_sach > 1 && !da.has('ha')) {
     if (r <= -5 && !du) ra.push(['⇣', '#fb923c', `gần giảm bậc: ROI hôm nay ${r}% ở vùng giảm, chờ chi đủ 30% ngân sách`]);

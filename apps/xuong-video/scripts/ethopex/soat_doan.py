@@ -15,7 +15,7 @@ khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự
   python3 soat_doan.py quet                        → rà soát mọi creative đang chạy chưa soát đoạn (video thành phẩm) → ghi sổ; cấm → thay creative ở camp mới
   python3 soat_doan.py len                         → đẩy các đoạn đã ok (len-creative) + nhân bản camp góc mới đang chờ (nhan-ban --lich today)
 Chạy trên iMac."""
-import datetime as dt, json, os, subprocess, sys, time
+import datetime as dt, json, os, re, subprocess, sys, time
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 CHO = os.path.join(C, "cho-soat")
@@ -185,7 +185,9 @@ def main(a):
                 moi = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude ({kq.get('duong')}): {kq['ly']}"} if kq["ket"] != "xem" else None
                 try:
                     if moi: gop("ethopex_soat_doan", {k: moi})
-                    else: gop("ethopex_cho_soat", {k: {"x": {"content_id": int(k.split(":")[0]), "file": v, "tu": float(k.split(":")[1].split("-")[0]), "den": float(k.split("-")[-1])}, "ma": "quet", "dang": "canh cuoi", "to": to_khung(v, k), "luc": vn(), "may": kq["ly"], "creative": cr}})
+                    elif re.fullmatch(r"\d+:\d+-\d+", k):   # khoá cr:<id> không có mốc giây → không xếp hàng soát đoạn
+                        c_, td_ = k.split(":"); t_, d_ = td_.split("-")
+                        gop("ethopex_cho_soat", {k: {"x": {"content_id": int(c_), "file": v, "tu": float(t_), "den": float(d_)}, "ma": "quet", "dang": "canh cuoi", "to": to_khung(v, k), "luc": vn(), "may": kq["ly"], "creative": cr}})
                     gop("ethopex_quet", {may: td})
                 except Exception as e: print("ghi lỗi:", e, flush=True)
         list(ThreadPoolExecutor(luong).map(mot, viec))

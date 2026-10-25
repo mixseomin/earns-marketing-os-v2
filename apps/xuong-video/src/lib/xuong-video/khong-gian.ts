@@ -135,6 +135,8 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
     const cua = ds.filter((c) => (c.phan_doan ?? '') === pd); const nguoi = new Set(cua.flatMap((c) => nguoiKhung(kg, c, 'dau') ?? []));
     if (nguoi.size >= 2 && !cua.some((c) => CO_TONG.has(c.ky_thuat?.co_canh ?? '') && (nguoiKhung(kg, c, 'dau') ?? []).length >= 2)) them(cua[0]!.id, `cảnh "${pd}" thiếu shot TỔNG THỂ: ${[...nguoi].join(', ')} chưa lần nào cùng khung toàn`);
   }
+  // DÒNG SỔ THIẾU TÊN TIẾNG ANH: tên dòng (tiếng Việt) đi thẳng vào prompt video → bộ chấm prompt chặn "lẫn tiếng Việt" (25/10/2026 'Chỗ đứng Hạ')
+  if (kg.ten_en) for (const ten of [...Object.keys(kg.so_vat ?? {}), ...Object.keys(kg.so_dang ?? {})]) if (!kg.ten_en[ten]?.trim() && ds[0]) them(ds[0].id, `sổ thiếu tên tiếng Anh: dòng "${ten}" chưa có trong ten_en — prompt sẽ lẫn chữ Việt`);
   // ĐỔI CHỖ ĐỨNG không ghi sổ (vào / ra thang, phòng, xe): shot có người đi vào / ra mà sổ không có mốc mới của người đó ở shot đó
   for (const l of diChuyenKhongGhi(ds.map((c) => ({ thu_tu: c.thu_tu, chu: `${c.dan_dung?.mo ?? ''} ${c.dan_dung?.ket ?? ''}`, nguoi: [...new Set([...(nguoiKhung(kg, c, 'dau') ?? []), ...(nguoiKhung(kg, c, 'ket') ?? [])])] })), { ...(kg.so_dang ?? {}), ...(kg.so_vat ?? {}) })) {
     const n = Number(/#(\d+)/.exec(l)?.[1]); const c = theoSo.get(n); if (c) them(c.id, `đứt mạch chỗ đứng: ${l}`);

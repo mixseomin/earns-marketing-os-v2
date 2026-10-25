@@ -158,4 +158,7 @@ console.log('khong-gian.test: ok (câu hỏi vắng mặt)');
   const xa = gan.map((g) => ({ ...g, hop: [g.hop[0]!, 0.3, 0.05, 0.08] })); assert.ok(loiDoThem(kg, S(5), 'dau', xa, false).some((x) => x.chu.includes('sơ đồ nói đứng sát')), 'cách 8 bề rộng mặt mà sơ đồ nói sát'); }
 // KHUNG QUA VAI: người quay lưng ở TIỀN CẢNH (gần máy hơn người được nhìn) → kỳ vọng ots, không coi má lộ ra là lỗi
 { const { kyVong } = await import('./so-do-canh'); const k4 = kyVong(kg.so_do, S(4).ky_thuat!.sd!, kg.nguoi); assert.ok(k4['Lâm Hạ']?.ots, JSON.stringify(k4)); assert.ok(!kyVong(kg.so_do, S(1).ky_thuat!.sd!, kg.nguoi)['Lâm Hạ']?.ots, '#1 toàn cảnh một người: không phải qua vai'); }
+// dòng sổ thiếu tên tiếng Anh → lỗi mạch (prompt sẽ lẫn chữ Việt)
+{ const ten_en = { ...kg.ten_en! }; delete ten_en['Chỗ đứng Hạ']; assert.ok(Object.values(loiMach2d({ ...kg, ten_en }, ds)).flat().some((x) => x.includes('thiếu tên tiếng Anh'))); }
+assert.ok(!Object.values(loiMach2d(kg, ds)).flat().some((x) => x.includes('thiếu tên tiếng Anh')));
 console.log('khong-gian.test: ok (đo đầu ra luật chữ)');

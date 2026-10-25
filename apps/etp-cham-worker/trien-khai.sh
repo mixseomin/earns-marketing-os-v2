@@ -1,6 +1,8 @@
 #!/bin/bash
 # Triển khai Worker etp-cham lên Cloudflare (tài khoản Eimagini) — chạy TRÊN box1 (5.78.65.158), nơi giữ khoá Cloudflare.
-# Từ iMac: rsync -a --exclude node_modules /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/etp-cham-worker/ root@5.78.65.158:/opt/etp-cham-worker/ && ssh root@5.78.65.158 /opt/etp-cham-worker/trien-khai.sh [--khoa]
+# Từ iMac (thư mục Worker trong repo = apps/etp-cham-worker, đường đầy đủ ở dòng D= dưới):
+#   D=/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/etp-cham-worker
+#   rsync -a --exclude node_modules $D/ root@5.78.65.158:/opt/etp-cham-worker/ && ssh root@5.78.65.158 /opt/etp-cham-worker/trien-khai.sh [--khoa]
 #   --khoa : đặt lại secret (MOS2_EXT_KEY + khoá Claude chuỗi rẻ đọc thẳng từ /opt/earns-marketing-os-v2/.env.production trên box3, không in ra)
 set -e
 cd /opt/etp-cham-worker

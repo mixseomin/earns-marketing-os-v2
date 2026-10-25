@@ -11,8 +11,18 @@ import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien 
 type Tab = 'tong' | 'camp' | 'creative' | 'phim' | 'tn' | 'luat';
 const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const roiOf = (s: SoTien) => (s.chi >= 0.3 ? Math.round(((s.thu - s.chi) / s.chi) * 100) : null);
-const Roi = ({ s }: { s: SoTien }) => { const r = roiOf(s); return <span style={{ color: r == null ? 'var(--fg-3)' : r >= 0 ? 'var(--neon-lime, #4ade80)' : 'var(--neon-red, #f87171)', fontVariantNumeric: 'tabular-nums' }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</span>; };
-const Lai = ({ s }: { s: SoTien }) => <span style={{ color: s.thu - s.chi >= 0 ? 'var(--neon-lime, #4ade80)' : 'var(--neon-red, #f87171)', fontVariantNumeric: 'tabular-nums' }}>{usd(s.thu - s.chi)}</span>;
+// số 0 ($0.00, 0%) hiện MỜ; ROI âm càng sâu càng đậm — −100% đỏ đậm in đậm, −5% đỏ nhạt (anh 26/10/2026)
+const MO = 'var(--fg-3)';
+const Roi = ({ s }: { s: SoTien }) => { const r = roiOf(s);
+  const am = r != null && r < 0 ? Math.min(1, -r / 100) : 0;
+  return <span style={{ color: r == null || r === 0 ? MO : r > 0 ? 'var(--neon-lime, #4ade80)' : `rgba(248,113,113,${(0.45 + 0.55 * am).toFixed(2)})`, fontWeight: r != null && r <= -90 ? 800 : r != null && r <= -50 ? 600 : 400, fontVariantNumeric: 'tabular-nums' }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</span>; };
+// CỘT TIỀN KIỂU KẾ TOÁN (anh 26/10/2026, luật YDNI): "$" dính mép trái ô, số dính mép phải, có dấu phẩy nghìn, số âm trong ngoặc (1.10) — cột thẳng hàng dấu thập phân; 0 thì mờ
+const KeToan = ({ v, mau }: { v: number; mau?: string }) => { const khong = Math.abs(v) < 0.005, so = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%', color: khong ? MO : mau, fontVariantNumeric: 'tabular-nums' }}><span style={{ opacity: 0.6 }}>$</span><span>{v < 0 && !khong ? `(${so})` : so}</span></span>; };
+const Tien = ({ v }: { v: number }) => <KeToan v={v} />;
+const mauLai = (v: number) => (v > 0 ? 'var(--neon-lime, #4ade80)' : 'var(--neon-red, #f87171)');
+const LaiCot = ({ s }: { s: SoTien }) => <KeToan v={s.thu - s.chi} mau={mauLai(s.thu - s.chi)} />;   // trong CỘT bảng / lưới
+const Lai = ({ s }: { s: SoTien }) => { const v = s.thu - s.chi; return <span style={{ color: Math.abs(v) < 0.005 ? MO : mauLai(v), fontVariantNumeric: 'tabular-nums' }}>{usd(v)}</span>; };   // trong câu / thẻ số
 const vn = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
 const cong = (xs: SoTien[]) => xs.reduce((a, x) => ({ chi: a.chi + x.chi, thu: a.thu + x.thu }), { chi: 0, thu: 0 });
 // ĐÈN TRẠNG THÁI (anh 24/10/2026 "bỏ chữ này đi, dùng cái đèn xanh là hiểu"): trạng thái = chấm màu, chữ chỉ ở hover.
@@ -55,8 +65,8 @@ function BacCamp({ c, bao }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua'>;
 // kỳ (hôm nay / hôm qua / khoảng chọn) nằm ở nhãn NHÓM phía trên — tiêu đề cột chỉ ghi ROI · Lãi · Chi (anh 25/10/2026: lặp "ROI h.nay … ROI hôm nay" khó đọc)
 const soCot = <T,>(key: string, f: (r: T) => SoTien): DataColumn<T>[] => [
   { key: `${key}_roi`, header: 'ROI', group: key, cell: (r) => <Roi s={f(r)} />, sortValue: (r) => roiOf(f(r)) ?? -1e9 },
-  { key: `${key}_lai`, header: 'Lãi', group: key, cell: (r) => <Lai s={f(r)} />, sortValue: (r) => f(r).thu - f(r).chi, total: (rs) => usd(rs.reduce((a, r) => a + f(r).thu - f(r).chi, 0)) },
-  { key: `${key}_chi`, header: 'Chi', group: key, cell: (r) => usd(f(r).chi), sortValue: (r) => f(r).chi, total: (rs) => usd(rs.reduce((a, r) => a + f(r).chi, 0)) },
+  { key: `${key}_lai`, header: 'Lãi', group: key, cell: (r) => <LaiCot s={f(r)} />, sortValue: (r) => f(r).thu - f(r).chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + f(r).thu - f(r).chi, 0)} /> },
+  { key: `${key}_chi`, header: 'Chi', group: key, cell: (r) => <Tien v={f(r).chi} />, sortValue: (r) => f(r).chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + f(r).chi, 0)} /> },
 ];
 type Kh = 'nay' | '7' | '14' | '30' | 'thang' | 'all';
 const KH_TEN: Record<Kh, string> = { nay: 'Hôm nay', '7': '7 ngày', '14': '14 ngày', '30': '30 ngày', thang: 'Tháng này', all: 'Tất cả' };
@@ -475,7 +485,7 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
           {n ? <span>🧬{n}</span> : null}{l ? <span style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}
         </span>
         <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" />
-        <span style={{ textAlign: 'right' }}><Lai s={laiC} /></span>
+        <span style={{ textAlign: 'right' }}><LaiCot s={laiC} /></span>
       </div>) : (
       <div className="dong" style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined }}>
@@ -495,7 +505,7 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
           </span>
         </span>
         {ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(so.get(c.camp_id)?.get(d))} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" />
-        <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><Lai s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} /></span>
+        <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} /></span>
       </div>);
     return ds.length ? <details><summary style={{ cursor: 'pointer' }}>{hang}</summary>{sapXep(ds).map((x) => <Dong key={x.camp_id} c={x} cap={cap + 1} />)}</details> : hang;
   };
@@ -538,7 +548,7 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
             </span>
             {hep ? null : ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }))} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}
             <O cot="roi-nay" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />
-            <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><Lai s={p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0), thu: a.thu + c.nay.thu + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) }), { chi: 0, thu: 0 })} /></span>
+            <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0), thu: a.thu + c.nay.thu + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) }), { chi: 0, thu: 0 })} /></span>
           </summary>
           {sapXep(p.ds).map((c) => <Dong key={c.camp_id} c={c} cap={1} />)}
         </details>))}
@@ -753,9 +763,9 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi` }))} dinhDang={usd} height={260} duKien={duKien} duongPhu={[{ ten: 'camp mới lên', mau: '#3b82f6', gt: ngayGanNhat.map((r) => r.camp_moi) }, { ten: 'creative mới', mau: '#a855f7', gt: ngayGanNhat.map((r) => r.cr_moi) }, { ten: 'camp tắt', mau: '#f87171', gt: ngayGanNhat.map((r) => r.tat) }]} />
           <DataTable rows={[...ngayGanNhat].reverse()} getRowKey={(r) => r.ngay} persistKey="etp-ngay" minWidth={820} columns={[
             { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{r.ngay.slice(8, 10)}/{r.ngay.slice(5, 7)}{r.ngay === du.nay ? <Den mau={MAU_DEN.chay} t="hôm nay, đang chạy" song /> : null}</span>, sortValue: (r) => r.ngay },
-            { key: 'chi', header: 'Chi', cell: (r) => usd(r.chi), sortValue: (r) => r.chi, total: (rs) => usd(rs.reduce((a, r) => a + r.chi, 0)) },
-            { key: 'thu', header: 'Thu', cell: (r) => usd(r.thu), sortValue: (r) => r.thu, total: (rs) => usd(rs.reduce((a, r) => a + r.thu, 0)) },
-            { key: 'lai', header: 'Lãi', cell: (r) => <Lai s={r} />, sortValue: (r) => r.thu - r.chi, total: (rs) => usd(rs.reduce((a, r) => a + r.thu - r.chi, 0)) },
+            { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.chi, 0)} /> },
+            { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu, 0)} /> },
+            { key: 'lai', header: 'Lãi', cell: (r) => <LaiCot s={r} />, sortValue: (r) => r.thu - r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu - r.chi, 0)} /> },
             { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
             { key: 'camp', header: 'Camp có chi', cell: (r) => r.camp, sortValue: (r) => r.camp },
             { key: 'cm', header: 'Camp mới lên', cell: (r) => (r.camp_moi ? `+${r.camp_moi}` : '—'), sortValue: (r) => r.camp_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.camp_moi, 0)}` },

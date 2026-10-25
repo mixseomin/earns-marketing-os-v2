@@ -17,7 +17,7 @@ type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shot
 export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'do-chu-mot-dung': { ass: (de) => assMotDung(de as DeMotDung), lenh: (o) => lenhMotDung({ ...o, de: o.de as DeMotDung }), shots: (de) => kichBanMotDung(de as DeMotDung).shots, dai: () => DAI_DO_CHU, truyVanAnh: (_de, chuDe) => `${chuDe} cozy`,
     // ảnh tĩnh cho bài album Page (S06 đan xen format, 25/10/2026): khung giữa lúc đếm (chưa lộ) + khung sau khi lộ đáp án, cắt 3:4 giữa khung dọc
-    anh: () => [{ t: T_DEM_DC + DEM_DC * 0.5, cat: [0, 240, 1080, 1440] }, { t: T_LO_DC + 1.4, cat: [0, 240, 1080, 1440] }] },
+    anh: () => [{ t: T_DEM_DC + DEM_DC * 0.5, cat: [0, 120, 1080, 1440] }, { t: T_LO_DC + 1.4, cat: [0, 120, 1080, 1440] }] },
   'scam-or-real': { ass: (de) => assScam(de as DeScam), lenh: (o) => lenhScam({ ...o, de: o.de as DeScam }), shots: (de) => kichBanScam(de as DeScam).shots, dai: (de) => nhipScam(de as DeScam).DAI, anh: (de) => anhScam(de as DeScam), tuNguon: tuNguonScam as never },
   'before-you-land': { ass: (de) => assLand(de as DeLand), lenh: (o) => lenhLand({ ...o, de: o.de as DeLand }), shots: (de) => kichBanLand(de as DeLand).shots, dai: (de) => nhipLand(de as DeLand).DAI, anh: (de) => anhLand(de as DeLand), tuNguon: tuNguonLand as never },
   'cau-hoi-thi': { ass: (de) => assThi(de as DeThi), lenh: (o) => lenhThi({ ...o, de: o.de as DeThi }), shots: (de) => kichBanThi(de as DeThi).shots, dai: (de) => nhipThi(de as DeThi).DAI, anh: (de) => anhThi(de as DeThi), truyVanAnh: (de) => truyVanThi(de as DeThi), tuNguon: tuNguonThi as never },

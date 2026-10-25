@@ -13,6 +13,7 @@ Phần nào có máy làm thì dùng máy, không làm tay lại.
 - **A01 Giữ tên + ghi sổ.** iOS: `Tools/asc.mjs bundle`; Windows: `br play run partner-center.giu-ten-app`. Ghi sổ Tài sản bằng `sanpham add` (Windows playbook tự ghi).
 - **A02 Trang giới thiệu chi tiết.** Trên clane.app/<slug> (hoặc site riêng của app) theo `chuan-trang-ban.md`: tên to nhất ở đầu, demo chạy thật, ảnh màn app thật, nút store đầu + cuối, giá rõ, FAQ. Chưa bán thì form "Notify me". Nộp `kiem-bai --loai trang-ban`, DUYỆT mới lên.
 - **A03 Trang hỗ trợ + quyền riêng tư** có chữ thật (store bắt buộc, `onboard-site.mjs` kiểm).
+- **A04 Nhóm góc trên spy.** Mỗi app một nhóm loại `app` ở spy.on.tc/#/goc. Cụm tìm là chữ người ta gõ khi tìm loại app đó (vd "speech to text"), không phải tên app. Máy cào tự lấy gợi ý tìm, Reddit, YouTube và đánh giá store qua proxy, không tốn AI. Góc sinh ra là nguồn cho C01, C03, C04 và chữ quảng cáo D01. Lệnh: `ra-mat-app "<Tên>: <loại app>" --chi-goc --cum "…" --thi-truong US`. "Sinh góc bằng AI" tốn tiền nên vẫn do người bấm trên màn.
 
 ## B · Trang store (ASO)
 

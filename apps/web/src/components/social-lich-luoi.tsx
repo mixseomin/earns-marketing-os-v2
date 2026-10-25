@@ -161,7 +161,8 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null);
   // HAI CÁCH XEM (anh 25/10/2026: "phần bài vẫn phải show kiểu lịch… nếu cột thì phải là dạng timeline, nhưng chỉ là 1 option"):
   // lịch = lưới T2→CN hai tuần, dòng thời gian = một tuần, mỗi ngày một cột, bài đặt theo giờ đăng
-  const [xem, setXem] = useState<'lich' | 'gio'>('lich');
+  const [xem, setXem] = useState<'lich' | 'gio'>('lich'), [chiTiet, setChiTiet] = useState(false);
+  // CHI TIẾT (anh 25/10/2026: "toggle view chi tiết hơn bài viết trong calendar, default vẫn gọn"): thẻ đủ — tên format, ảnh 4:3, tiêu đề 2 dòng; tắt = thẻ gọn
   const thu2 = cong(cong(luoi.hom, lech), -((new Date(`${cong(luoi.hom, lech)}T00:00:00Z`).getUTCDay() + 6) % 7));
   const ngay = Array.from({ length: xem === 'lich' ? 14 : 7 }, (_, i) => cong(thu2, i)), dau = ngay[0]!, cuoi = ngay[ngay.length - 1]!;
   const kenh = [...luoi.o.reduce((m, x) => {
@@ -210,6 +211,8 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
             <button type="button" style={nut} disabled={lech <= -42} onClick={() => setLech((l) => Math.max(-42, l - 7))} aria-label="lùi 7 ngày">◀</button>
             <button type="button" style={{ ...nut, fontWeight: lech === 0 ? 700 : 400, minWidth: 150, fontVariantNumeric: 'tabular-nums' }} onClick={() => setLech(0)} title="về hôm nay">{ngayVn(dau)} – {ngayVn(cuoi)}</button>
             <button type="button" style={nut} disabled={lech >= 35} onClick={() => setLech((l) => Math.min(35, l + 7))} aria-label="tới 7 ngày">▶</button>
+            {xem === 'lich' ? <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }} title="thẻ bài đầy đủ: tên format, ảnh lớn, tiêu đề hai dòng">
+              <input type="checkbox" checked={chiTiet} onChange={(e) => setChiTiet(e.target.checked)} />Chi tiết</label> : null}
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }} title={coXem ? 'lượt xem + lượt vào site từ bài' : 'kênh này chưa đo lượt xem — chỉ có lượt vào site từ bài'}>
               <input type="checkbox" checked={so} onChange={(e) => setSo(e.target.checked)} />📊</label>
           </div>
@@ -222,7 +225,7 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
           {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} title={`${n} bài`} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12, color: 'var(--fg-2)' }}>{k}</span>)}
         </div> : null}
         {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài trong khoảng ngày này — bấm ◀ ▶ để xem tuần khác.</div>
-          : xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />
+          : xem === 'lich' ? <LichBai ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} gon={!chiTiet} />
           : <DongThoiGian ngay={ngay} bai={bai} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />}
       </section> : null}
     </div>
@@ -231,7 +234,7 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
 const tenNgay = (n: string, hom: string) => (n === hom ? 'Hôm nay' : `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`);
 const theoGio = (a: StLuoiO, b: StLuoiO) => a.gio.localeCompare(b.gio);
 /** LỊCH: lưới T2→CN, mỗi ô một ngày, thẻ bài gọn xếp theo giờ trong ô; ngày không bài để trống nhỏ (lưới lịch giữ nhịp tuần, không chèn chữ "không có bài") */
-function LichBai({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; hom: string; so: boolean | 'bam' }) {
+function LichBai({ ngay, bai, hom, so, gon }: { ngay: string[]; bai: StLuoiO[]; hom: string; so: boolean | 'bam'; gon: boolean }) {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
       {ngay.slice(0, 7).map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-1)', padding: '6px 8px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)', borderBottom: '1px solid var(--border)' }}>{THU[new Date(`${n}T00:00:00Z`).getUTCDay()]}</div>)}
@@ -239,7 +242,7 @@ function LichBai({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; hom: 
         return <div key={n} title={`${ds.length} bài`} style={{ padding: 5, minHeight: 90, display: 'grid', alignContent: 'start', gap: 5, borderTop: i >= 7 ? '1px solid var(--border)' : undefined, borderLeft: i % 7 ? '1px solid var(--border)' : undefined,
           background: n === hom ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined }}>
           <span style={{ fontSize: 12, fontWeight: n === hom ? 700 : 500, color: n === hom ? 'var(--accent, #d97706)' : n < hom ? 'var(--fg-3)' : 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{n === hom ? 'Hôm nay' : `${n.slice(8)}/${n.slice(5, 7)}`}</span>
-          {ds.map((x, j) => <OBai key={j} x={x} hom={hom} so={so} gon />)}
+          {ds.map((x, j) => <OBai key={j} x={x} hom={hom} so={so} gon={gon} />)}
         </div>; })}
     </div>);
 }

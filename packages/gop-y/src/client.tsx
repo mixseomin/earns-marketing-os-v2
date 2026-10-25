@@ -19,6 +19,8 @@ export type KhungHom = ComponentType<{ onClose: () => void; tieuDe: ReactNode; d
 export type CauHinhHom = {
   ten: string; khoa: string; hd: HanhDongGopY; Khung: KhungHom;
   nut?: { thuong: string; chinh: string }; xemAnh?: (url: string) => void; chonNgan?: string; chonLoi?: string;
+  /** vị trí / lớp riêng của nút 💬 nổi (mos2 đứng trái nút ⚙, city đứng trên cảnh 3D) — gộp đè lên mặc định góc phải-dưới */
+  nutStyle?: CSSProperties;
 };
 type Cfg = { khoa: string; hd: HanhDongGopY; xemAnh?: (url: string) => void; nut: { thuong: string; chinh: string }; chonNgan: string; chonLoi: string };
 const Ctx = createContext<Cfg | null>(null);
@@ -314,12 +316,18 @@ function docNguCanh(chonNgan: string, chonLoi: string): string {
   const nc = [...document.querySelectorAll('[data-ngu-canh]')].filter((d) => !d.closest('[data-gop-y]')).map((d) => d.getAttribute('data-ngu-canh')).filter(Boolean);
   const drawer = [...document.querySelectorAll(chonNgan)].filter((d) => !d.querySelector('[data-gop-y]')).map((d) => chu(d.querySelector('h2, h3'))).filter(Boolean);
   const loiMan = [...document.querySelectorAll(chonLoi)].map((e) => chu(e)).filter(Boolean).slice(0, 5);
+  // tab đang chọn của trang (role=tab / aria-selected) — trừ thứ nằm trong chính hòm góp ý
+  const tab = [...document.querySelectorAll('[role=tab][aria-selected=true], [data-comp="ui.Tabs"] [aria-selected="true"]')].filter((e) => !e.closest('[data-gop-y]') && !e.closest(chonNgan)?.querySelector('[data-gop-y]')).map((e) => chu(e)).filter(Boolean);
+  // TRẠNG THÁI RIÊNG CỦA TRANG (góp ý city #1450): trang có thứ DOM không thấy (cảnh 3D, canvas…) khai `window.__nguCanhTrang = () => string`, đọc đúng lúc gửi
+  let rieng = ''; try { rieng = String((window as unknown as { __nguCanhTrang?: () => string }).__nguCanhTrang?.() ?? '').slice(0, 400); } catch { /* trang khai lỗi: bỏ phần riêng */ }
   const ua = navigator.userAgent;
   const may = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'khác';
   const tdt = /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '?';
   return [
     `màn: ${document.title}`,
+    tab.length ? `tab: ${[...new Set(tab)].join(' › ')}` : '',
     nc.length ? `đang xem: ${nc.join(' › ')}` : '',
+    rieng,
     drawer.length ? `ngăn mở: ${drawer.join(' › ')}` : '',
     loiMan.length ? `lỗi trên màn: ${loiMan.join(' | ')}` : '',
     loiJs.length ? `lỗi JS: ${loiJs.join(' | ')}` : '',
@@ -506,7 +514,7 @@ export function HomGopY(p: CauHinhHom) {
   return (
     <Ctx.Provider value={cfg}>
       {!mo && <button type="button" aria-label="Góp ý / báo lỗi" title={vuaGui ? `Đã gửi card #${vuaGui}` : 'Góp ý / báo lỗi về màn đang xem'} onClick={() => setMo((v) => !v)}
-        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s' }}>{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</button>}
+        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s', ...p.nutStyle }}>{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</button>}
       {mo && (
         <Khung onClose={() => setMo(false)} tieuDe={`💬 Góp ý / báo lỗi · ${ten}`} dau={
           <div style={{ display: 'flex', gap: 4 }}>

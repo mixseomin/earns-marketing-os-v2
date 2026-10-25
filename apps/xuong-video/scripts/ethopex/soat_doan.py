@@ -76,11 +76,12 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "Ordinary drama (arguments, slaps without blood, kneeling, crying from sadness, kissing fully clothed, business suits, parties) is OK. "
        "If unsure, answer 'xem'. Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\"}")
 
-def ai_box(jpg):
-    """chạy TRÊN BOX3: gọi Claude xem một tờ khung qua chuỗi rẻ → {ket, ly, duong}"""
+def goi_claude(jpg, hoi, max_tokens=300, kiem=None):
+    """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, đường đã dùng) qua chuỗi rẻ ckey → ShopAIKey → Anthropic.
+    kiem(j) ném lỗi khi JSON sai khuôn → thử đường sau. Mọi đường lỗi → RuntimeError (người gọi quyết định giữ lại)."""
     import base64, urllib.request
     b64 = base64.b64encode(open(jpg, "rb").read()).decode()
-    nd = [{"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}, {"type": "text", "text": HOI}]}]
+    nd = [{"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}, {"type": "text", "text": hoi}]}]
     e = os.environ; duong = []
     if e.get("CKEY_API_KEY"): duong += [("ckey", "https://api.xah.io/v1/messages", e["CKEY_API_KEY"], m) for m in CKEY]
     if e.get("SHOPAIKEY_API_KEY"): duong.append(("shopaikey", "https://api.shopaikey.com/v1/messages", e["SHOPAIKEY_API_KEY"], MO_HINH))
@@ -90,13 +91,21 @@ def ai_box(jpg):
         try:
             h = {"x-api-key": k, "anthropic-version": "2023-06-01", "content-type": "application/json"}
             if ten != "anthropic": h["authorization"] = "Bearer " + k
-            r = urllib.request.Request(url, data=json.dumps({"model": m, "max_tokens": 300, "messages": nd}).encode(), method="POST", headers=h)
-            t = "".join(b.get("text", "") for b in json.load(urllib.request.urlopen(r, timeout=120)).get("content", []) if b.get("type") == "text")
+            r = urllib.request.Request(url, data=json.dumps({"model": m, "max_tokens": max_tokens, "messages": nd}).encode(), method="POST", headers=h)
+            t = "".join(b.get("text", "") for b in json.load(urllib.request.urlopen(r, timeout=180)).get("content", []) if b.get("type") == "text")
             j = json.loads(t[t.index("{"): t.rindex("}") + 1])
-            if j.get("ket") not in ("ok", "cam", "xem"): raise ValueError(f"khuôn sai: {t[:80]}")
-            return {"ket": j["ket"], "ly": str(j.get("ly", ""))[:200], "duong": f"{ten}:{m}"}
+            if kiem: kiem(j)
+            return j, f"{ten}:{m}"
         except Exception as x: loi.append(f"{ten} {m}: {type(x).__name__} {str(x)[:80]}")
-    return {"ket": "xem", "ly": "mọi đường Claude lỗi — " + " | ".join(loi)[:300], "duong": None}
+    raise RuntimeError("mọi đường Claude lỗi — " + " | ".join(loi)[:300])
+
+def ai_box(jpg):
+    """chạy TRÊN BOX3: soát một tờ khung → {ket, ly, duong}"""
+    def kiem(j):
+        if j.get("ket") not in ("ok", "cam", "xem"): raise ValueError(f"khuôn sai: {str(j)[:80]}")
+    try: j, d = goi_claude(jpg, HOI, 300, kiem)
+    except RuntimeError as e: return {"ket": "xem", "ly": str(e), "duong": None}
+    return {"ket": j["ket"], "ly": str(j.get("ly", ""))[:200], "duong": d}
 
 def ai(to):
     """từ iMac: gửi tờ khung sang box3, gọi ai_box → {ket, ly}; lỗi thì 'xem' (giữ lại)"""

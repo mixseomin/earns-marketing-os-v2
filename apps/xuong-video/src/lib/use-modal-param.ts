@@ -4,7 +4,7 @@
 // useModalParam — DEFAULT design cho mọi modal trong MOS2.
 //
 // Nguyên tắc: URL là source-of-truth cho modal đang mở. F5 / share link
-// → mở lại đúng modal đó ở đúng page. Dùng shallow history.replaceState
+// → mở lại đúng modal đó ở đúng page. Ghi shallow qua lib/ghi-url.ts
 // nên KHÔNG trigger RSC roundtrip mỗi lần open/close (UI vẫn instant).
 //
 // Mỗi "modal slot" = cặp param: `<key>` (modal nào) + `<key>Id` (target id).
@@ -25,8 +25,9 @@
 // Nested: const sub = useModalParam('sub');
 // ──────────────────────────────────────────────────────────────────
 
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 
 export interface ModalParam {
   /** Raw value của ?<key>= (vd 'habitat-edit'), hoặc null nếu không mở. */
@@ -46,14 +47,11 @@ export interface ModalParam {
 const SU_KIEN = 'xv-modal-param';
 
 export function useModalParam(key = 'm'): ModalParam {
-  const pathname = usePathname();
   const sp = useSearchParams();
   const idKey = `${key}Id`;
 
-  // Local mirror = source of truth cho RE-RENDER. window.history.replaceState
-  // KHÔNG trigger useSearchParams update (đó là lý do shallow URL sync nhanh),
-  // nên nếu chỉ đọc sp.get() thì open()/close() sẽ không re-render. Init từ
-  // URL khi mount → F5 / deep-link mở lại đúng modal.
+  // Local mirror = source of truth cho RE-RENDER: ghiThamSoUrl báo router Next trong startTransition (useSearchParams theo
+  // sau một nhịp), đổi state tại chỗ để mở/đóng tức thì. Init từ URL khi mount → F5 / deep-link mở lại đúng modal.
   const [value, setValue] = useState<string | null>(() => sp.get(key));
   const [id, setId] = useState<string | null>(() => sp.get(idKey));
 
@@ -82,23 +80,13 @@ export function useModalParam(key = 'm'): ModalParam {
       setValue(m);
       setId(m && mid != null && mid !== '' ? String(mid) : null);
       if (typeof window === 'undefined') return;
-      const next = new URLSearchParams(window.location.search);
-      if (!m) {
-        next.delete(key);
-        next.delete(idKey);
-      } else {
-        next.set(key, m);
-        if (mid != null && mid !== '') next.set(idKey, String(mid));
-        else next.delete(idKey);
-      }
-      const qs = next.toString();
-      // Giữ window.history.state (Next App Router lưu state điều hướng ở đó — ghi {} là phá back/forward).
-      window.history.replaceState(window.history.state, '', qs ? `${pathname}?${qs}` : pathname);
+      // lib/ghi-url.ts: router Next biết URL mới (trước đây ghi kèm state __NA → Next bỏ qua rồi ghi đè URL cũ ở lần gọi máy chủ kế tiếp).
+      ghiThamSoUrl({ [key]: m, [idKey]: m && mid != null && mid !== '' ? String(mid) : null });
       // Báo MỌI bản hook cùng khoá (replaceState không phát tín hiệu): trước đây nút trong ngăn gọi open() chỉ đổi state của chính nó —
       // bản ở cấp trang (chỗ quyết định mở gì) không biết → bấm "🧩 từ #24" trong ngăn phim không ra gì (15/10/2026).
       window.dispatchEvent(new CustomEvent(SU_KIEN, { detail: key }));
     },
-    [pathname, key, idKey],
+    [key, idKey],
   );
 
   const open = useCallback((m: string, mid?: string | number | null) => write(m, mid), [write]);

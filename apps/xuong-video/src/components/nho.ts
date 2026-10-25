@@ -2,6 +2,7 @@
 // State nhớ theo trình duyệt (lib/luu-tru): giá trị ngoài danh sách hợp lệ (khoá cũ, sửa tay) → về mặc định.
 import { useLayoutEffect, useState } from 'react';
 import { docLT, ghiLT } from '@/lib/luu-tru';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 
 /** thamSoUrl: trạng thái đổi cách nhìn cũng nằm trên URL (luật nhà #1255, như ?tlz=) — link/F5 mở đúng chỗ, URL thắng localStorage. */
 export function useNho<T extends string>(khoa: string, macDinh: T, hopLe?: readonly T[], thamSoUrl?: string): [T, (v: T) => void] {
@@ -16,6 +17,6 @@ export function useNho<T extends string>(khoa: string, macDinh: T, hopLe?: reado
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return [v, (x: T) => {
     setV(x); ghiLT(khoa, x);
-    if (thamSoUrl && typeof window !== 'undefined') { const u = new URL(window.location.href); u.searchParams.set(thamSoUrl, x); window.history.replaceState(window.history.state, '', u.toString()); }
+    if (thamSoUrl) ghiThamSoUrl({ [thamSoUrl]: x });
   }];
 }

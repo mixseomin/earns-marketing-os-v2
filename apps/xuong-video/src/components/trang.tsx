@@ -28,6 +28,7 @@ import { SoDoSeries } from './so-do';
 import { TemplatePanel, KhoTemplate } from './template-ui';
 import { DanhSachSanPham, NganSanPham } from './kho-creative-ui';
 import { taNguon, taThu } from '@/lib/xuong-video/cong-ai';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 
 export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
@@ -68,7 +69,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   // Ngăn một sản phẩm (kho creative): khoá sản phẩm trong URL (?sp=) → F5 / chia sẻ mở lại đúng sản phẩm.
   const [spMo, setSpMoState] = useState<string | null>(null);
   useLayoutEffect(() => { const k = new URLSearchParams(window.location.search).get('sp'); if (k) setSpMoState(k); }, []);   // sau hydrate, như nho.ts
-  const setSpMo = (k: string | null) => { setSpMoState(k); const u = new URL(window.location.href); if (k) u.searchParams.set('sp', k); else { u.searchParams.delete('sp'); u.searchParams.delete('sptab'); } window.history.replaceState(window.history.state, '', u.toString()); };
+  const setSpMo = (k: string | null) => { setSpMoState(k); ghiThamSoUrl(k ? { sp: k } : { sp: null, sptab: null }); };
   const [moTao, setMoTao] = useState(false);
   const moPhim = (id: number) => { setTapMo(null); modal.open('phim', id); };
 

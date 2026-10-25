@@ -47,6 +47,7 @@ import { soatKhanGia, xepHangYDo, hieuUngKG } from '@/lib/xuong-video/khan-gia';
 import { kiemKhuon, xepHang, QUY_CHUAN_DONG, khuonTheoKey, type KetAp } from '@/lib/xuong-video/khuon-chuoi';
 import type { TheLoai } from '@/lib/xuong-video/dien-anh';
 import { trangThaiDoiTuong, mucDiem, TEN_NHANH, type MucDoiTuong } from '@/lib/xuong-video/trang-thai-doi-tuong';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 
 /** Màu khối làn Đối tượng theo mức điểm (khoiAm cần mã hex để ghép độ trong). */
 const MAU_DOI_TUONG: Record<MucDoiTuong, string> = { tot: '#a3e635', vang: '#f5b638', do: '#f87171', trong: '#545a68' };
@@ -111,7 +112,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [docThu, setDocThu] = useState(true);
   // Độ phóng thước nằm trong URL (?tlz=) để F5/chia sẻ giữ nguyên (#1255) — luật chung: mọi trạng thái đổi cách nhìn đều ở URL.
   const [zoom, setZoom] = useState(() => { if (typeof window === 'undefined') return 1; const v = Number(new URLSearchParams(window.location.search).get('tlz')); return v >= 1 && v <= 6 ? v : 1; });
-  useEffect(() => { const u = new URL(window.location.href); if (zoom === 1) u.searchParams.delete('tlz'); else u.searchParams.set('tlz', String(zoom)); window.history.replaceState(window.history.state, '', u.toString()); }, [zoom]);
+  useEffect(() => { ghiThamSoUrl({ tlz: zoom === 1 ? null : String(zoom) }); }, [zoom]);
   // Cột nhãn, panel trái/phải, chiều cao hàng panel — cùng một cơ chế kéo (keo.tsx, #1276).
   const cotNhan = useKichThuoc(KHOA_NHAN_W, NHAN_W_MAC_DINH, 80, 400);
   const nhanW = cotNhan.v;
@@ -272,7 +273,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     if (!daKhoiPhuc.current) return;
     const h = setTimeout(() => {
       const v = t > 0.05 ? t.toFixed(1) : null; ghiLT(khoaT, v);
-      const u = new URL(window.location.href); if (v) u.searchParams.set('tlt', `${tap.id}:${v}`); else u.searchParams.delete('tlt'); window.history.replaceState(window.history.state, '', u.toString());
+      ghiThamSoUrl({ tlt: v ? `${tap.id}:${v}` : null });
     }, 400);
     return () => clearTimeout(h);
   }, [t, khoaT]);

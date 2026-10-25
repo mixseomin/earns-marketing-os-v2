@@ -22,6 +22,7 @@ import { ChipMurch, useDiemMurch } from './diem-murch-noi';
 import { mayClip } from '@/lib/xuong-video/qc-cam-xuc';
 import { Khung3DSong } from './khung-3d-song';
 import { KhungDauKet } from './khung-dau-ket';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -57,7 +58,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   const doc = tiLe !== '16:9';
   // ĐỘ PHÓNG LƯỚI (#1350): bề rộng thẻ 5 nấc, ở URL (?lz=) như độ phóng thước timeline (?tlz=) — F5 / chia sẻ giữ nguyên.
   const [zoom, setZoom] = useState(() => { if (typeof window === 'undefined') return 2; const v = Number(new URLSearchParams(window.location.search).get('lz')); return v >= 1 && v <= 5 ? v : 2; });
-  useEffect(() => { const u = new URL(window.location.href); if (zoom === 2) u.searchParams.delete('lz'); else u.searchParams.set('lz', String(zoom)); window.history.replaceState(window.history.state, '', u.toString()); }, [zoom]);
+  useEffect(() => { ghiThamSoUrl({ lz: zoom === 2 ? null : String(zoom) }); }, [zoom]);
   // CHỈ XEM (anh 14/10/2026): cả hai · chỉ keyframe · chỉ khung 3D — ở URL (?lh=) như độ phóng, F5 giữ nguyên.
   // Ngôn ngữ mô tả shot (#1397): mặc định ngôn ngữ GỐC (câu gửi model); bật 🇻🇳 = hiện bản tiếng Việt — shot chưa có thì máy chủ dịch bằng
   // model chữ rẻ nhất rồi lưu (actions.ts › dichMoTaTap), lần sau không gọi lại. Giữ qua F5 (?mtv=vi).
@@ -77,7 +78,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   // 'dien' = BẢN DIỄN 3D (anh 22/10/2026: "phần ảnh vừa sinh từ ren 3D thì thêm 1 option để xem riêng chúng trên Lưới") — khung giữa Blender render
   // (khung_xam.giua, nap-dien.mts), rê chuột chạy clip diễn (khung_xam.dien).
   const [hien, setHien] = useState<'ca' | 'kf' | '3d' | 'dien'>(() => { if (typeof window === 'undefined') return 'ca'; const v = new URLSearchParams(window.location.search).get('lh'); return v === 'kf' || v === '3d' || v === 'dien' ? v : 'ca'; });
-  useEffect(() => { const u = new URL(window.location.href); if (hien === 'ca') u.searchParams.delete('lh'); else u.searchParams.set('lh', hien); window.history.replaceState(window.history.state, '', u.toString()); }, [hien]);
+  useEffect(() => { ghiThamSoUrl({ lh: hien === 'ca' ? null : hien }); }, [hien]);
   const rongThe = (doc ? [96, 132, 180, 240, 320] : [150, 210, 280, 360, 480])[zoom - 1]!;
   const coAnh = nacNho(rongThe);   // ảnh thu nhỏ theo cỡ thẻ (màn retina ×2) — phóng to không bị nhoè
   const nutZoom = (chu: string, title: string, tat: boolean, d: number) => (

@@ -13,6 +13,7 @@ import { BoSetXem } from './bo-set-xem';
 import { SoNguonAi } from './nguon-ai-ui';
 import { ThuVienDien } from './thu-vien-dien-ui';
 import { SoLienMachXem } from './so-lien-mach-ui';
+import { ghiThamSoUrl } from '@/lib/ghi-url';
 
 export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'bo-set'; setId: number; tapId?: undefined; canhId?: undefined } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' } | { loai: 'thu-vien-dien' };
 const SU_KIEN = 'xv-ngan';
@@ -48,10 +49,7 @@ function docChong(): Lop[] {
   return ds;
 }
 function ghiChong(ds: Lop[]): void {
-  const u = new URL(window.location.href);
-  u.searchParams.delete(URL_CHONG); u.searchParams.delete('ngan'); u.searchParams.delete('nganId');
-  for (const l of ds) if (l.loai !== 'xem') u.searchParams.append(URL_CHONG, khoaLop(l));
-  window.history.replaceState(window.history.state, '', `${u.pathname}${u.search}${u.hash}`);
+  ghiThamSoUrl({ [URL_CHONG]: ds.filter((l) => l.loai !== 'xem').map(khoaLop), ngan: null, nganId: null });
 }
 
 function Host() {

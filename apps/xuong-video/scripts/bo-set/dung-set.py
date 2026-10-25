@@ -2023,7 +2023,30 @@ def dien_shot(s, sh, ra, giay=4.0, fps=12):
         bpy.app.handlers.frame_change_pre.insert(0, _do_truoc); bpy.app.handlers.frame_change_post.append(_do_mat)
         bpy.app.handlers.frame_change_post.append(_do_sau); bpy.app.handlers.render_pre.append(_do_ve0); bpy.app.handlers.render_post.append(_do_ve1)
     else: bpy.app.handlers.frame_change_post.append(dat_mat_moi_nguoi)
+    # ĐỒ ĐỔI TAY TRONG LẦN DIỄN (quay nhiều máy, 25/10/2026 — một lần diễn cả nhịp nên đồ phải đổi người giữ GIỮA clip, vd thẻ giật đứt khỏi cổ Hạ
+    # sang tay Vivian): vi_tri món khai doi_cam (người nhận) · doi_tay ('p' | 't' | khớp) · doi_luc (phần shot). Hai ràng buộc Child Of, đổi ảnh hưởng ở
+    # đúng khung đó, nghịch đảo đặt để món KHÔNG nhảy chỗ lúc đổi (rồi theo tay người nhận).
+    for ten, (e, nv) in neo.items():
+        nhan = nv.get('doi_cam')
+        if not nhan or nhan not in NGUOI or nv.get('cam') not in neo: continue
+        tay = nv.get('doi_tay') or 'p'; t2 = NGUOI[nhan].get(f'cotay_{tay}') or NGUOI[nhan].get(tay) or neo[nhan][0]
+        t1 = e.parent; fs = 1 + round(float(nv.get('doi_luc', 0.8)) * (N - 1))
+        s.frame_set(1); mw0 = e.matrix_world.copy(); e.parent = None; e.matrix_world = mw0
+        c1 = e.constraints.new('CHILD_OF'); c1.target = t1; s.frame_set(1); c1.inverse_matrix = t1.matrix_world.inverted()
+        c2 = e.constraints.new('CHILD_OF'); c2.target = t2; c2.influence = 0
+        s.frame_set(fs); bpy.context.view_layer.update()
+        c2.inverse_matrix = t2.matrix_world.inverted() @ t1.matrix_world @ c1.inverse_matrix
+        for f_, a1, a2 in ((1, 1, 0), (fs, 1, 0), (fs + 1, 0, 1), (N, 0, 1)):
+            c1.influence, c2.influence = a1, a2; c1.keyframe_insert('influence', frame=f_); c2.keyframe_insert('influence', frame=f_)
+        print('DOI TAY', ten, nv.get('cam'), '->', nhan, tay, 'khung', fs)
+    s.frame_set(1)
     s.render.filepath = f"{ra}/f"; bpy.ops.render.render(animation=True)
+    # QUAY NHIỀU MÁY (25/10/2026, anh: "như studio thật quay nhiều cam cho một cảnh… hậu kỳ tách cảnh để ghép"): CÙNG một lần diễn (hoạt cảnh đã dựng
+    # bên trên), thêm máy đứng ở sh['may_them'] = [{ma, dat, nhin, ong_kinh}] — mỗi máy render trọn trục thời gian vào <ra>/<ma>/ → hậu kỳ cắt giữa
+    # các máy cùng giây: người, đồ, tay, chỗ đứng khớp tuyệt đối vì chỉ có một lần diễn.
+    for mt in (sh.get('may_them') or []):
+        may(s, mt, f"may {mt['ma']}"); os.makedirs(f"{ra}/{mt['ma']}", exist_ok=True)
+        s.render.filepath = f"{ra}/{mt['ma']}/f"; bpy.ops.render.render(animation=True); print('XONG may', mt['ma'])
     for i, t in enumerate((0, 0.25, 0.5, 0.75, 1)):
         f = 1 + round(t * (N - 1)); print('KHOA', i, f)
     print('XONG dien', sh['ma'], N, 'khung')

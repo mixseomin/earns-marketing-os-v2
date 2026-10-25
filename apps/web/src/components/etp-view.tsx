@@ -1,6 +1,6 @@
 'use client';
 // etp.on.tc — QUẢN LÝ CAMP / CREATIVE / ROI TẬP TRUNG (anh 24/10/2026). Đọc kho `etp` (lib/etp-doc), làm mới mỗi phút; ngày = ngày Ethopex (07:00–07:00 VN).
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
@@ -218,17 +218,41 @@ const DAU_MAU = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', vua: '#f59e0b
 const mauDiem = (d: number | null | undefined) => (d == null ? DAU_MAU.chua : d >= 8 ? DAU_MAU.ok : d >= 5 ? DAU_MAU.vua : DAU_MAU.loi);
 const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'cưỡng ép / bạo lực tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
 const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
+// THẺ NỔI DÙNG CHUNG (anh 25/10/2026: "preview hiện xong đéo có nút tắt"): mọi thẻ xem trên trang — nút ✕, Esc tắt, rê chuột vào thẻ thì giữ
+// (xem video, đọc lý do), rời cả ô lẫn thẻ 0,3 giây thì tắt. Ô mở thẻ là HÀM dựng, không phải component khai bên trong component cha:
+// trang tự làm mới 5–60 giây, component khai bên trong bị dựng lại mỗi lần → mất sự kiện rời chuột → thẻ treo không tắt được.
+function useNoi<T>() {
+  const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
+  const hen = useRef<number | undefined>(undefined);
+  const giu = useCallback(() => { if (hen.current) window.clearTimeout(hen.current); }, []);
+  const dongTre = useCallback(() => { giu(); hen.current = window.setTimeout(() => setV(null), 300); }, [giu]);
+  const dong = useCallback(() => { giu(); setV(null); }, [giu]);
+  const mo = useCallback((x: T, e: React.MouseEvent) => { giu(); setV({ ...x, x: e.clientX, y: e.clientY }); }, [giu]);
+  useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
+  return { v, mo, giu, dongTre, dong };
+}
+type Noi = { giu: () => void; dongTre: () => void; dong: () => void };
+function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties }) {
+  const W = typeof window !== 'undefined' ? window.innerWidth : 1400, H = typeof window !== 'undefined' ? window.innerHeight : 900;
+  return (
+    <div onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x + 14, W - rong - 16)), top: Math.max(8, Math.min(y - 120, H - cao - 16)),
+      background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
+      <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
+        background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
+      {children}
+    </div>
+  );
+}
 type The = { tieu: string; diem?: number | null; ly: string; khung?: number[]; anh?: string; anhKhung?: string[]; video?: string | null; dai?: number; chu?: string; x: number; y: number };
 // THẺ XEM: tờ khung 6×5 (30 khung theo thứ tự) — khung bị bắt viền đỏ; video bắt đầu ở khung bị bắt đầu tiên
-function TheXem({ t }: { t: The }) {
-  const W = 300, rong = typeof window !== 'undefined' ? window.innerWidth : 1400, cao = typeof window !== 'undefined' ? window.innerHeight : 900;
+function TheXem({ t, noi }: { t: The; noi: Noi }) {
+  const W = 300;
   const so = t.anhKhung?.length || 30;   // số khung trên tờ: Worker cắt từng khung (20) · bản cũ tờ 6×5 (30)
   const giay = t.khung?.length && t.dai ? Math.max(0, ((t.khung[0]! - 0.5) * t.dai) / so) : 0;
   return (
-    <div style={{ position: 'fixed', zIndex: 60, pointerEvents: 'none', left: Math.min(t.x + 14, rong - (t.video ? 2 * W + 40 : W + 30)), top: Math.max(8, Math.min(t.y - 120, cao - 560)),
-      background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, padding: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', display: 'flex', gap: 10 }}>
+    <KhungNoi x={t.x} y={t.y} rong={t.video ? 2 * W + 30 : W + 20} cao={560} noi={noi} style={{ padding: 10, display: 'flex', gap: 10 }}>
       <div style={{ width: W }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>{t.tieu}{t.diem != null ? <span style={{ color: mauDiem(t.diem), marginLeft: 6 }}>{t.diem}/10</span> : null}</div>
+        <div style={{ fontWeight: 700, fontSize: 13, paddingRight: 26 }}>{t.tieu}{t.diem != null ? <span style={{ color: mauDiem(t.diem), marginLeft: 6 }}>{t.diem}/10</span> : null}</div>
         <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '4px 0 8px', whiteSpace: 'pre-wrap' }}>{t.ly}</div>
         {t.anhKhung?.length ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 2, width: W }}>
@@ -240,16 +264,16 @@ function TheXem({ t }: { t: The }) {
           </div>) : null}
         {t.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6, maxHeight: 120, overflow: 'hidden' }}>{t.chu}</div> : null}
       </div>
-      {t.video ? <video key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} autoPlay muted loop playsInline style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
-    </div>
+      {t.video ? <video key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} autoPlay muted loop playsInline controls style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
+    </KhungNoi>
   );
 }
 type LocSoat = 'loi' | 'xem' | 'meta' | 'chua' | 'all';
 // tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
-function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) => React.ReactElement }) {
+function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
   const [loc, setLoc] = useState<LocSoat>('loi');
-  const [the, setThe] = useState<The | null>(null);
+  const noi = useNoi<Omit<The, 'x' | 'y'>>(); const the = noi.v;
   const router = useRouter();
   const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
   const quet = Object.entries(du.quet ?? {}).filter(([, q]) => q.dang && Date.now() - msVn(q.cap_nhat) < 180_000);
@@ -267,9 +291,9 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
   const sot = ds.filter((x) => x.metaLoi && x.c && x.c.ket === 'ok').length;
   type Dong = (typeof ds)[number];
   type Mo = Omit<The, 'x' | 'y' | 'anh' | 'anhKhung' | 'video' | 'dai'>;
-  const moThe = (e: React.MouseEvent, x: Dong, t: Mo) => setThe({ ...t, anh: x.c?.lop.anh?.url, anhKhung: x.c?.lop.anh?.khung_url, video: x.r.video, dai: x.c?.lop.anh?.giay, x: e.clientX, y: e.clientY });
-  const O = ({ x, children, t }: { x: Dong; children: React.ReactNode; t: Mo }) => (
-    <span onMouseEnter={(e) => moThe(e, x, t)} onMouseLeave={() => setThe(null)} style={{ cursor: 'zoom-in', display: 'inline-block', minWidth: 22, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{children}</span>);
+  const o = (x: Dong, t: Mo, children: React.ReactNode) => (
+    <span onMouseEnter={(e) => noi.mo({ ...t, anh: x.c?.lop.anh?.url, anhKhung: x.c?.lop.anh?.khung_url, video: x.r.video, dai: x.c?.lop.anh?.giay }, e)} onMouseLeave={noi.dongTre}
+      style={{ cursor: 'zoom-in', display: 'inline-block', minWidth: 22, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{children}</span>);
   const LOP: { key: 'chu' | 'giong' | 'anh' | 'noi_dung'; ten: string; noi: (c: ChamCr) => string }[] = [
     { key: 'chu', ten: 'Chữ', noi: (c) => [c.lop.chu?.noi_dung, ...(c.lop.chu?.loi ?? []), ...(c.lop.chu?.cta ?? [])].filter(Boolean).join('\n') || 'Không có chữ trên hình' },
     { key: 'giong', ten: 'Giọng', noi: (c) => c.lop.giong?.noi_dung || 'Không có lời nói' },
@@ -277,13 +301,13 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
     { key: 'noi_dung', ten: 'Nội dung', noi: (c) => c.lop.noi_dung?.tom_tat ?? '' },
   ];
   const cotLop: DataColumn<Dong>[] = LOP.map((l) => ({ key: `lop_${l.key}`, header: l.ten, group: 'lop', align: 'center', width: 52, title: `đã quét ${l.ten.toLowerCase()} chưa`,
-    cell: (x) => (x.c?.lop[l.key] ? <O x={x} t={{ tieu: `${l.ten} — đã quét ${x.c.lop[l.key]!.luc}`, ly: l.noi(x.c).slice(0, 900) }}><span style={{ color: DAU_MAU.ok }}>✓</span></O>
+    cell: (x) => (x.c?.lop[l.key] ? o(x, { tieu: `${l.ten} — đã quét ${x.c.lop[l.key]!.luc}`, ly: l.noi(x.c).slice(0, 900) }, <span style={{ color: DAU_MAU.ok }}>✓</span>)
       : <span title={x.c?.loi ?? 'Chưa quét'} style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => (x.c?.lop[l.key] ? 1 : 0) }));
   const cotDiem = (nhom: 'meta' | 'afs'): DataColumn<Dong>[] => [
     { key: `${nhom}_tong`, header: 'Tổng', group: nhom, align: 'center', width: 52, title: 'điểm thấp nhất trong nhóm (một tiêu chí hỏng là hỏng)', cell: (x) => <b style={{ color: mauDiem(x.c?.[nhom]) }}>{x.c?.[nhom] ?? '–'}</b>, sortValue: (x) => x.c?.[nhom] ?? 99 },
     ...du.tieuChi.filter((t) => t.nhom === nhom).map((t): DataColumn<Dong> => { const k = `${nhom}.${t.ma}`; return { key: k, header: <Tde t={t.ten} />, title: t.ten, group: nhom, align: 'center', width: 74,
       cell: (x) => { const d = x.c?.diem[k]; return d == null ? <span style={{ color: DAU_MAU.chua }}>–</span>
-        : <O x={x} t={{ tieu: t.ten, diem: d, ly: x.c?.ly_do[k] ?? 'Không thấy vấn đề', khung: x.c?.khung[k] }}><span style={{ color: mauDiem(d), fontWeight: d < 8 ? 700 : 400 }}>{d}</span></O>; },
+        : o(x, { tieu: t.ten, diem: d, ly: x.c?.ly_do[k] ?? 'Không thấy vấn đề', khung: x.c?.khung[k] }, <span style={{ color: mauDiem(d), fontWeight: d < 8 ? 700 : 400 }}>{d}</span>); },
       sortValue: (x) => x.c?.diem[k] ?? 99 }; }),
   ];
   const KET: Record<string, [string, string]> = { ok: ['Sạch', DAU_MAU.ok], xem: ['Cần người xem', DAU_MAU.vua], cam: ['Cấm', DAU_MAU.loi] };
@@ -317,7 +341,7 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
       <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1100} pageSize={100}
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
-          { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={x.r.creative_id} /><span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },
+          { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(x.r.creative_id)}<span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },
           ...cotLop, ...cotDiem('meta'), ...cotDiem('afs'),
           { key: 'ket', header: 'Máy', group: 'kq', title: 'kết luận bộ chấm', cell: (x) => (x.c?.ket ? <span style={{ color: KET[x.c.ket]?.[1], fontWeight: 600, whiteSpace: 'nowrap' }}>{KET[x.c.ket]?.[0] ?? x.c.ket}</span> : <span style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => x.muc },
           { key: 'meta_that', header: 'Meta thật', group: 'kq', title: 'Meta duyệt hay từ chối', cell: (x) => (x.metaLoi ? <span title={loiMeta(x.r.tu_choi ?? photCr.get(x.r.creative_id) ?? '')} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span> : x.r.giao.includes('ACTIVE') ? <span title="Meta đã duyệt, đang phát" style={{ color: DAU_MAU.ok }}>✓</span> : <span title="Meta đang duyệt" style={{ color: DAU_MAU.cho }}>…</span>), sortValue: (x) => (x.metaLoi ? 0 : 1) },
@@ -330,7 +354,7 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
           { key: 'luc', header: 'Chấm lúc', group: 'kq', cell: (x) => <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.c ? vn(x.c.luc) : '—'}</span>, sortValue: (x) => x.c?.luc ?? '' },
         ]} />
       <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}>Điểm 0–10 (10 = sạch): <span style={{ color: DAU_MAU.ok }}>8–10</span> · <span style={{ color: DAU_MAU.vua }}>5–7 cần xem</span> · <span style={{ color: DAU_MAU.loi }}>0–4 sẽ bị từ chối</span> · rê chuột vào ô để xem khung hình, video và lý do</div>
-      {the ? <TheXem t={the} /> : null}
+      {the ? <TheXem t={the as The} noi={noi} /> : null}
     </div>
   );
 }
@@ -439,7 +463,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     if (tab === 'camp' && loc !== 'chay') u.searchParams.set('l', loc); else u.searchParams.delete('l'); history.replaceState(history.state, '', u);
     try { localStorage.setItem('etp-camp-xem', xemCay ? 'cay' : 'bang'); } catch { /* trình duyệt chặn */ } }, [tab, xemCay, xemSoat, loc, daDoc]);
   const [kh, setKh] = useState<Kh>('7');
-  const [xem, setXem] = useState<{ anh: string; video: string | null; x: number; y: number } | null>(null);   // ảnh to + video khi rê vào ảnh creative
+  const noiAnh = useNoi<{ anh: string; video: string | null }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
   useEffect(() => { try { const v = localStorage.getItem('etp-kh') as Kh | null; if (v && v in KH_TEN) setKh(v); } catch { /* bỏ qua */ } }, []);
   useEffect(() => { try { localStorage.setItem('etp-kh', kh); } catch { /* bỏ qua */ } }, [kh]);
   const ngayKh = useMemo(() => { const tu = kh === 'nay' ? du.nay : kh === 'thang' ? `${du.nay.slice(0, 8)}01` : kh === 'all' ? '0000' : new Date(Date.parse(du.nay) - (Number(kh) - 1) * 86_400_000).toISOString().slice(0, 10); return (d: string) => d >= tu && d <= du.nay; }, [kh, du.nay]);
@@ -450,8 +474,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const phKh = useMemo(() => { const m = new Map<number, SoTien>(); for (const c of du.camps) if (c.content_id) { const a = m.get(c.content_id) ?? { chi: 0, thu: 0 }; const x = khCamp.get(c.camp_id); if (x) { a.chi += x.chi; a.thu += x.thu; } m.set(c.content_id, a); } return m; }, [du.camps, khCamp]);
   const NHOM = [{ key: 'nay', label: 'Hôm nay (đang chạy)' }, { key: 'qua', label: 'Hôm qua' }, { key: 'kh', label: KH_TEN[kh] }];
   const crAnh = useMemo(() => new Map(du.creatives.map((r) => [r.creative_id, r])), [du.creatives]);
-  const Anh = ({ cr }: { cr: number | null }) => { const r = cr ? crAnh.get(cr) : null; return r?.anh
-    ? <img src={r.anh} alt="" loading="lazy" onMouseEnter={(e) => setXem({ anh: r.anh!, video: r.video, x: e.clientX, y: e.clientY })} onMouseLeave={() => setXem(null)} style={{ width: 27, height: 48, objectFit: 'cover', borderRadius: 3, background: '#000', verticalAlign: 'middle', cursor: 'zoom-in', flex: 'none' }} />
+  const anh = (cr: number | null) => { const r = cr ? crAnh.get(cr) : null; return r?.anh
+    ? <img src={r.anh} alt="" loading="lazy" onMouseEnter={(e) => noiAnh.mo({ anh: r.anh!, video: r.video }, e)} onMouseLeave={noiAnh.dongTre} style={{ width: 27, height: 48, objectFit: 'cover', borderRadius: 3, background: '#000', verticalAlign: 'middle', cursor: 'zoom-in', flex: 'none' }} />
     : <span style={{ display: 'inline-block', width: 27, height: 48, borderRadius: 3, background: 'var(--bg-2, #222)', verticalAlign: 'middle' }} />; };
   const tl = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
   const nay = cong(du.camps.map((c) => c.nay)), qua = cong(du.camps.map((c) => c.qua)), thang = cong(du.camps.map((c) => c.thang));
@@ -463,7 +487,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
 
   const cotCamp: DataColumn<CampEtpKho>[] = [
     { key: 'id', header: 'Camp', align: 'left', cell: (c) => <span style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} />#{c.camp_id} <TT c={c} /></span>, sortValue: (c) => c.camp_id },
-    { key: 'phim', header: 'Phim · creative', align: 'left', cell: (c) => <span title={c.ten} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={c.creative_id} /><span>{c.phim ?? c.ten.slice(0, 50)}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{c.creative_id} {c.dang ?? ''}{c.cung_doan > 1 ? ` · ⚔${c.cung_doan} camp cùng đoạn` : ''}</span></span></span>, sortValue: (c) => c.phim ?? '' },
+    { key: 'phim', header: 'Phim · creative', align: 'left', cell: (c) => <span title={c.ten} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(c.creative_id)}<span>{c.phim ?? c.ten.slice(0, 50)}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{c.creative_id} {c.dang ?? ''}{c.cung_doan > 1 ? ` · ⚔${c.cung_doan} camp cùng đoạn` : ''}</span></span></span>, sortValue: (c) => c.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     { key: 'ns', header: 'Ngân sách', cell: (c) => `$${c.ngan_sach}`, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
     ...soCot<CampEtpKho>('nay', 'h.nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', 'h.qua', (c) => c.qua), ...soCot<CampEtpKho>('kh', KH_TEN[kh].toLowerCase(), (c) => ckh(c.camp_id)),
@@ -471,7 +495,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   ];
   const cotCr: DataColumn<CreativeEtpKho>[] = [
     { key: 'id', header: 'Creative', align: 'left', cell: (r) => <span style={{ whiteSpace: 'nowrap' }}>#{r.creative_id} <span style={{ fontSize: 11, color: r.cta_dat ? 'var(--neon-lime,#4ade80)' : '#ffb74d' }}>{r.cta_dat ? 'CTA đạt' : 'CTA cũ'}</span>{r.tu_choi ? <span style={{ fontSize: 11, color: '#f87171' }}> · Meta từ chối</span> : null}</span>, sortValue: (r) => r.creative_id },
-    { key: 'phim', header: 'Phim · đoạn', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={r.creative_id} /><span>{r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{r.dang ?? ''} {r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : ''}</span>{r.video ? <a href={r.video} target="_blank" rel="noreferrer" style={{ marginLeft: 6, fontSize: 11 }}>video</a> : null}</span></span>, sortValue: (r) => r.phim ?? '' },
+    { key: 'phim', header: 'Phim · đoạn', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(r.creative_id)}<span>{r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{r.dang ?? ''} {r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : ''}</span>{r.video ? <a href={r.video} target="_blank" rel="noreferrer" style={{ marginLeft: 6, fontSize: 11 }}>video</a> : null}</span></span>, sortValue: (r) => r.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (r) => <span style={{ fontSize: 12 }}>{tl(r.the_loai)}</span>, sortValue: (r) => r.the_loai ?? '' },
     { key: 'camp', header: 'Camp chạy', title: '⚔ = số camp đang chạy cùng ĐOẠN (gộp bản CTA cũ + bản sửa) — trần 3', cell: (r) => <span>{r.chay}/{r.camp}{r.cung_doan > 1 ? <span style={{ marginLeft: 4, color: r.cung_doan > 3 ? '#ffb74d' : 'var(--fg-2)' }}>⚔{r.cung_doan}</span> : null}</span>, sortValue: (r) => r.chay },
     ...soCot<CreativeEtpKho>('nay', 'h.nay', (r) => r.nay), ...soCot<CreativeEtpKho>('qua', 'h.qua', (r) => r.qua), ...soCot<CreativeEtpKho>('kh', KH_TEN[kh].toLowerCase(), (r) => crKh.get(r.creative_id) ?? KHONG),
@@ -563,7 +587,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         <DataTable rows={camps} columns={cotCamp} groups={NHOM} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" />
       ) : tab === 'creative' && xemSoat ? (
-        <TabSoat du={du} Anh={Anh} />
+        <TabSoat du={du} anh={anh} />
       ) : tab === 'creative' ? (
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />
@@ -595,10 +619,10 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         </>
       )}
       {xem ? (
-        <div style={{ position: 'fixed', zIndex: 50, pointerEvents: 'none', left: Math.min(xem.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 290), top: Math.max(8, Math.min(xem.y - 240, (typeof window !== 'undefined' ? window.innerHeight : 800) - 500)), width: 270, height: 480, borderRadius: 8, overflow: 'hidden', background: '#000', boxShadow: '0 8px 30px rgba(0,0,0,.5)' }}>
+        <KhungNoi x={xem.x} y={xem.y} rong={270} cao={480} noi={noiAnh} style={{ width: 270, height: 480, overflow: 'hidden', background: '#000' }}>
           <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
-          {xem.video ? <video src={xem.video} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
-        </div>) : null}
+          {xem.video ? <video src={xem.video} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
+        </KhungNoi>) : null}
     </div>
     </div>
   );

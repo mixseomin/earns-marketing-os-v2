@@ -59,12 +59,12 @@ export function LichLuoi({ luoi }: { luoi: StLuoi }) {
       </div>
       <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
         <div style={{ display: 'grid', gridTemplateColumns: `52px repeat(${ngay.length}, minmax(118px, 1fr))`, minWidth: 52 + ngay.length * 118, fontSize: 12 }}>
-          <div style={{ position: 'sticky', left: 0, background: 'var(--bg-1, var(--bg))', borderBottom: '1px solid var(--border)' }} />
+          <div style={{ position: 'sticky', left: 0, background: 'var(--bg-1)', borderBottom: '1px solid var(--border)' }} />
           {ngay.map((n) => { const homNay = n === luoi.hom, d = new Date(`${n}T00:00:00Z`), so = luoi.o.filter((x) => x.ngay === n).length;
             return <div key={n} style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', fontWeight: homNay ? 700 : 500, background: homNay ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined, color: n < luoi.hom ? 'var(--fg-3)' : undefined }}
               title={`${so} bài`}>{homNay ? 'Hôm nay' : THU[d.getUTCDay()]} {n.slice(8)}/{n.slice(5, 7)}</div>; })}
           {hang.map((g) => [
-            <div key={`g${g}`} style={{ position: 'sticky', left: 0, padding: '6px 8px', borderBottom: '1px solid var(--border)', background: 'var(--bg-1, var(--bg))', color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{g}</div>,
+            <div key={`g${g}`} style={{ position: 'sticky', left: 0, padding: '6px 8px', borderBottom: '1px solid var(--border)', background: 'var(--bg-1)', color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{g}</div>,
             ...ngay.map((n) => (
               <div key={`${g}${n}`} style={{ padding: 4, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 3, alignContent: 'flex-start', minHeight: 30, background: n === luoi.hom ? 'var(--accent-soft, rgba(37,99,235,.05))' : undefined }}>
                 {o(n, g).map((x, i) => {
@@ -173,7 +173,7 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   const trong = (c: KenhBang) => c.bai.filter((x) => x.ngay >= dau && x.ngay <= cuoi);
   const c = kenh.find((x) => x.k === chon) ?? [...kenh].sort((a, b) => trong(b).length - trong(a).length)[0] ?? null;
   const ngayVn = (n: string) => `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`;
-  const nut = { border: '1px solid var(--border)', background: 'var(--bg)', color: 'inherit', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' } as const;
+  const nut = { border: '1px solid var(--border)', background: 'var(--bg-1)', color: 'inherit', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' } as const;
   if (!kenh.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 0' }}>Chưa có bài nào trong sổ đăng.</div>;
   const baiKy = c ? trong(c) : [], bai = loc ? baiKy.filter((x) => FMT_NEN(x.nen) === loc) : baiKy, coXem = c ? c.bai.some((x) => x.xem != null) : false;
   const dem = (f: (x: StLuoiO) => string) => [...baiKy.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
@@ -205,7 +205,7 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
           <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
             <span role="group" aria-label="cách xem" style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {([['lich', '📅 Lịch'], ['gio', '⏱ Dòng thời gian']] as const).map(([k, t]) => <button key={k} type="button" aria-pressed={xem === k} onClick={() => setXem(k)}
-                style={{ border: 0, padding: '4px 10px', fontSize: 12, cursor: 'pointer', background: xem === k ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg)', color: 'inherit', fontWeight: xem === k ? 700 : 400 }}>{t}</button>)}
+                style={{ border: 0, padding: '4px 10px', fontSize: 12, cursor: 'pointer', background: xem === k ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'var(--bg-1)', color: 'inherit', fontWeight: xem === k ? 700 : 400 }}>{t}</button>)}
             </span>
             <button type="button" style={nut} disabled={lech <= -42} onClick={() => setLech((l) => Math.max(-42, l - 7))} aria-label="lùi 7 ngày">◀</button>
             <button type="button" style={{ ...nut, fontWeight: lech === 0 ? 700 : 400, minWidth: 150, fontVariantNumeric: 'tabular-nums' }} onClick={() => setLech(0)} title="về hôm nay">{ngayVn(dau)} – {ngayVn(cuoi)}</button>
@@ -233,8 +233,8 @@ const theoGio = (a: StLuoiO, b: StLuoiO) => a.gio.localeCompare(b.gio);
 /** LỊCH: lưới T2→CN, mỗi ô một ngày, thẻ bài gọn xếp theo giờ trong ô; ngày không bài để trống nhỏ (lưới lịch giữ nhịp tuần, không chèn chữ "không có bài") */
 function LichBai({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; hom: string; so: boolean | 'bam' }) {
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
-      {ngay.slice(0, 7).map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)', padding: '6px 8px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)', borderBottom: '1px solid var(--border)' }}>{THU[new Date(`${n}T00:00:00Z`).getUTCDay()]}</div>)}
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+      {ngay.slice(0, 7).map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-1)', padding: '6px 8px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)', borderBottom: '1px solid var(--border)' }}>{THU[new Date(`${n}T00:00:00Z`).getUTCDay()]}</div>)}
       {ngay.map((n, i) => { const ds = bai.filter((x) => x.ngay === n).sort(theoGio);
         return <div key={n} title={`${ds.length} bài`} style={{ padding: 5, minHeight: 90, display: 'grid', alignContent: 'start', gap: 5, borderTop: i >= 7 ? '1px solid var(--border)' : undefined, borderLeft: i % 7 ? '1px solid var(--border)' : undefined,
           background: n === hom ? 'var(--accent-soft, rgba(37,99,235,.08))' : undefined }}>
@@ -252,8 +252,8 @@ function DongThoiGian({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; 
   const cuoi = Math.max(cao, ...cot.flat().map((c) => c.top + THE));
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, display: 'grid', gridTemplateColumns: '44px repeat(7, minmax(0, 1fr))' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', borderBottom: '1px solid var(--border)' }} />
-      {ngay.map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', padding: '6px 8px', fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', color: n === hom ? 'var(--accent, #d97706)' : 'var(--fg-2)' }}>{tenNgay(n, hom)}</div>)}
+      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-1)', borderBottom: '1px solid var(--border)' }} />
+      {ngay.map((n) => <div key={`t${n}`} style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-1)', padding: '6px 8px', fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', color: n === hom ? 'var(--accent, #d97706)' : 'var(--fg-2)' }}>{tenNgay(n, hom)}</div>)}
       <div style={{ position: 'relative', height: cuoi }}>
         {Array.from({ length: den - tu }, (_, h) => <span key={h} style={{ position: 'absolute', top: h * PX - 7, right: 6, fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{h ? `${tu + h}h` : ''}</span>)}
       </div>

@@ -6,7 +6,7 @@ import { unstable_cache } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql, type SQL } from 'drizzle-orm';
 import { siteOf } from './host';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
@@ -287,6 +287,8 @@ async function docFav(site: string[]): Promise<Record<string, string | null>> {
 const CHO_GOC_MS = 3000, TEP_GOC = `${process.env.MOS2_DATA_DIR || '/var/lib/mos2'}/social-goc.json`;
 let dangNapGoc: Promise<{ goc: StGoc[]; nhom: number }> | null = null;
 async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {
+  // bản lưu còn mới (< 5 phút, cùng hạn nhớ của từng nhóm) → trả ngay, không gọi spy: trước đây MỌI lần tải trang chờ đủ 0,8 giây (đo 25/10/2026: 800 / 1000 ms)
+  try { if (Date.now() - statSync(TEP_GOC).mtimeMs < 300_000) { const c = JSON.parse(readFileSync(TEP_GOC, 'utf8')) as { goc: StGoc[]; nhom: number }; if (c.goc?.length) return { goc: c.goc, nhom: c.nhom }; } } catch { /* chưa có bản lưu */ }
   const loiNen: string[] = [];
   dangNapGoc ??= napGocSpy(loiNen).then((r) => {
     if (r.goc.length) try { mkdirSync(dirname(TEP_GOC), { recursive: true }); writeFileSync(TEP_GOC, JSON.stringify({ luc: new Date().toISOString(), ...r })); } catch { /* ghi đĩa hỏng: lần sau vẫn đọc spy */ }

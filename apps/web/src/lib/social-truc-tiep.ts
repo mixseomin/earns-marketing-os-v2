@@ -83,6 +83,16 @@ export async function docSuKienAff(id: string, sites: string[]): Promise<SuKienA
  *  (puzzle-books dang-may.mjs › utm); page-events ghi phien_khach.nguon = "<nền> / short", site = host trang. KHÔNG ghép theo campaign:
  *  sổ phiên adfond không lưu utm_campaign (cột campaign trống với lượt social — đo 18/10/2026, bản đầu ghép theo campaign nên cột luôn 0).
  *  Mỗi kênh của một máy trỏ về site của chính máy đó → nền + site đủ tách từng kênh. Bỏ lượt đội nhà. */
+/** CLICK THEO BÀI (Bảng nội dung, 25/10/2026): phiên từ video ngắn theo nền gốc × trang vào (đường dẫn) trong 6 tuần — mỗi video trỏ về trang chủ đề của nó
+ *  (pickjot /printables/<chủ đề>/, ratesbyroom /<bài>/) nên cặp nền × trang = click của bài đó (hai bản cùng chủ đề trên cùng nền thì chia chung). */
+export async function docBamTheoTrang(): Promise<Map<string, number>> {
+  const sql = db(), ra = new Map<string, number>(); if (!sql) return ra;
+  const rows = await sql<{ nen: string; trang: string; n: number }[]>`
+    SELECT split_part(nguon, ' / ', 1) AS nen, split_part(trang_vao, '?', 1) AS trang, count(*)::int AS n FROM phien_khach
+    WHERE nguon LIKE '% / short' AND NOT noi_bo AND bat_dau > now() - interval '42 days' AND trang_vao IS NOT NULL GROUP BY 1, 2`;
+  for (const r of rows) ra.set(`${r.nen}|${r.trang}`, r.n);
+  return ra;
+}
 export async function docBamBaiDang(): Promise<Map<string, number>> {
   const sql = db(), ra = new Map<string, number>(); if (!sql) return ra;
   const rows = await sql<{ nen: string; site: string; n: number }[]>`

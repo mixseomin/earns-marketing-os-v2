@@ -145,13 +145,17 @@ export function LichThangTuan({ luoi, kieu }: { luoi: StLuoi; kieu: 'tuan' | 'th
  *  đã đăng (ảnh khung video / ảnh tĩnh / ảnh nền studio, chữ đăng, có link hay không, bấm mở bài) hoặc lượt máy SẼ đăng (lịch dự kiến dang-may, cùng luật nhịp an toàn).
  *  Dải trên cùng đếm kiểu nội dung + format trong cửa sổ — nhìn là thấy đa dạng hay đơn điệu. Không vẽ ô trống. */
 const FMT_NEN = (nen: string) => { const g = nen.split(':')[0] ?? nen; return g.endsWith('_link') ? 'Bài link' : g.endsWith('_anh') ? 'Album ảnh' : g === 'youtube' ? 'Shorts' : g === 'tiktok' ? 'TikTok' : g === 'instagram' ? 'Reel IG' : g === 'dailymotion' ? 'Video DM' : g === 'x' ? 'Video X' : 'Reel FB'; };
-const MAU_FMT: Record<string, string> = { 'Reel FB': '#1877f2', Shorts: '#e11d48', TikTok: '#111827', 'Reel IG': '#c026d3', 'Album ảnh': '#0f9f94', 'Bài link': '#d97706', 'Video DM': '#0066dc', 'Video X': '#334155' };
+// FORMAT = nhãn ĐẶC màu + icon riêng (anh 25/10/2026: "nhìn màu ko phân biệt đc format") — tám màu cách xa nhau trên vòng màu, chữ trắng
+const MAU_FMT: Record<string, string> = { 'Reel FB': '#1d4ed8', Shorts: '#dc2626', TikTok: '#0f172a', 'Reel IG': '#a21caf', 'Album ảnh': '#047857', 'Bài link': '#c2410c', 'Video DM': '#0891b2', 'Video X': '#525252' };
+const IC_FMT: Record<string, string> = { 'Reel FB': '🎞', Shorts: '▶', TikTok: '♪', 'Reel IG': '◎', 'Album ảnh': '🖼', 'Bài link': '🔗', 'Video DM': '▷', 'Video X': '𝕏' };
 /** ẢNH THU NHỎ cho ô bảng (trang Lịch 25/10/2026 tải ảnh gốc 1080×1920 ~220 KB mỗi ô): img.on.tc qua Cloudflare resize (~17 KB), Pexels qua tham số w. */
 const nho = (u: string) => (u.startsWith('https://img.on.tc/') ? `https://img.on.tc/cdn-cgi/image/width=280,quality=70,format=auto/${u.slice(18)}` : u.includes('images.pexels.com') ? `${u.split('?')[0]}?auto=compress&cs=tinysrgb&w=280` : u);
 /** khoá nền tảng cho icon: vault (platform_key) trước, không có thì suy từ nơi đăng */
 const khoaNen = (nen: string, k?: string | null) => k ?? (({ x: 'twitter', fb: 'facebook' } as Record<string, string>)[(nen.split(':')[0] ?? nen).replace(/_(anh|link)$/, '')] ?? (nen.split(':')[0] ?? nen).replace(/_(anh|link)$/, ''));
 export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
-  const ngay = Array.from({ length: 9 }, (_, i) => cong(luoi.hom, i - 2)), dau = ngay[0]!, cuoi = ngay[8]!;
+  // DỊCH NGÀY (anh 25/10/2026 "cho phép dịch chuyển ngày để xem các bài trước đó"): mỗi bước 7 ngày, trong khoảng sổ có (6 tuần qua → 6 tuần tới)
+  const [lech, setLech] = useState(0), [so, setSo] = useState(true);
+  const ngay = Array.from({ length: 9 }, (_, i) => cong(luoi.hom, i - 2 + lech)), dau = ngay[0]!, cuoi = ngay[8]!;
   const o = luoi.o.filter((x) => x.ngay >= dau && x.ngay <= cuoi);
   const hang = [...new Map(o.map((x) => { const k = `${x.may}|${x.nen}`, kn = luoi.kenh?.[k]; return [k, { k, may: x.mayTen.split(' · ')[0] ?? x.mayTen, nen: x.nen, tk: x.tk ?? kn?.tk ?? nhanNen(x.nen), url: kn?.url ?? null, khoa: khoaNen(x.nen, kn?.nenKey) }]; })).values()].sort((a, b) => a.may.localeCompare(b.may) || a.nen.localeCompare(b.nen));
   const dem = (f: (x: StLuoiO) => string) => [...o.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
@@ -162,9 +166,19 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
       {ds.map(([k, n], i) => <span key={k} title={`${k}: ${n}/${o.length}`} style={{ flex: n, background: mau(k, i), color: '#fff', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '0 8px', minWidth: 0 }}>
         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k}</span><span style={{ fontVariantNumeric: 'tabular-nums', opacity: .85 }}>{n}</span></span>)}
     </div>);
-  if (!o.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 0' }}>Chưa có bài nào trong 9 ngày quanh hôm nay.</div>;
+  const nut = { border: '1px solid var(--border)', background: 'var(--bg)', color: 'inherit', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' } as const;
+  const thanh = (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+      <button type="button" style={nut} disabled={lech <= -42} onClick={() => setLech((l) => Math.max(-42, l - 7))}>◀ 7 ngày</button>
+      <button type="button" style={{ ...nut, fontWeight: lech === 0 ? 700 : 400 }} onClick={() => setLech(0)}>Hôm nay</button>
+      <button type="button" style={nut} disabled={lech >= 35} onClick={() => setLech((l) => Math.min(35, l + 7))}>7 ngày ▶</button>
+      <span style={{ fontSize: 12, color: 'var(--fg-2)', marginLeft: 4 }}>{ngayVn(dau)} – {ngayVn(cuoi)}</span>
+      <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}><input type="checkbox" checked={so} onChange={(e) => setSo(e.target.checked)} />📊 Lượt xem · click</label>
+    </div>);
+  if (!o.length) return <div style={{ display: 'grid', gap: 10, margin: '4px 0 14px' }}>{thanh}<div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Không có bài nào trong khoảng này.</div></div>;
   return (
     <div style={{ display: 'grid', gap: 14, margin: '4px 0 14px' }}>
+      {thanh}
       <div style={{ display: 'grid', gap: 8 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'center' }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)' }}>Format · {o.length} bài</span>{dai(dFmt, (k) => MAU_FMT[k] ?? '#64748b')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'center' }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)' }}>Kiểu nội dung</span>{dai(dKieu, (_, i) => MAU[i % MAU.length]!)}</div>
@@ -175,13 +189,13 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
         <div style={{ display: 'grid', gridTemplateColumns: `210px repeat(9, minmax(132px, 1fr))`, gap: 6, minWidth: 1430, padding: '0 6px 6px 0' }}>
           <div style={{ position: 'sticky', top: 0, left: 0, zIndex: 3, background: 'var(--bg)' }} />
           {ngay.map((n) => <div key={n} style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', fontSize: 12, fontWeight: 700, padding: '8px 4px', borderBottom: '1px solid var(--border)', color: n === luoi.hom ? 'var(--accent, #d97706)' : 'var(--fg-2)' }}>{ngayVn(n)}{n === luoi.hom ? ' · hôm nay' : ''}</div>)}
-          {hang.map((h) => <BangHang key={h.k} h={h} ngay={ngay} o={o} hom={luoi.hom} />)}
+          {hang.map((h) => <BangHang key={h.k} h={h} ngay={ngay} o={o} hom={luoi.hom} so={so} />)}
         </div>
       </div>
     </div>
   );
 }
-function BangHang({ h, ngay, o, hom }: { h: { k: string; may: string; nen: string; tk: string; url: string | null; khoa: string }; ngay: string[]; o: StLuoiO[]; hom: string }) {
+function BangHang({ h, ngay, o, hom, so }: { h: { k: string; may: string; nen: string; tk: string; url: string | null; khoa: string }; ngay: string[]; o: StLuoiO[]; hom: string; so: boolean }) {
   return <>
     <div style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg)', display: 'grid', gridTemplateColumns: '22px 1fr', alignContent: 'center', alignItems: 'start', columnGap: 8, padding: '0 6px 0 8px', minWidth: 0, borderRight: '1px solid var(--border)' }}>
       <SiteFavicon platformKey={h.khoa} size={20} title={h.khoa} />
@@ -194,21 +208,25 @@ function BangHang({ h, ngay, o, hom }: { h: { k: string; may: string; nen: strin
     {ngay.map((n) => {
       const ds = o.filter((x) => `${x.may}|${x.nen}` === h.k && x.ngay === n);
       if (!ds.length) return <div key={n} />;
-      return <div key={n} style={{ display: 'grid', gap: 4 }}>{ds.map((x, i) => <OBai key={i} x={x} hom={hom} khoa={h.khoa} />)}</div>;
+      return <div key={n} style={{ display: 'grid', gap: 4 }}>{ds.map((x, i) => <OBai key={i} x={x} hom={hom} khoa={h.khoa} so={so} />)}</div>;
     })}
   </>;
 }
-function OBai({ x, hom, khoa }: { x: StLuoiO; hom: string; khoa: string }) {
+function OBai({ x, hom, khoa, so }: { x: StLuoiO; hom: string; khoa: string; so: boolean }) {
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
   const the = (
-    <div style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderTop: `3px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
-      {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} />
-        : <div style={{ aspectRatio: '4 / 3', display: 'grid', placeItems: 'center', fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2, #f1f5f9)' }}>chưa có ảnh</div>}
-      <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 2 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: mau, display: 'flex', alignItems: 'center', gap: 4 }}><SiteFavicon platformKey={khoa} size={13} title={khoa} />{f}{x.gio !== '—' ? ` · ${x.gio}` : ''}</span>
+    <div style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
+      {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
+      <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 3 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{f}</span>
+          <SiteFavicon platformKey={khoa} size={13} title={khoa} />{x.gio !== '—' ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{x.gio}</span> : null}
+        </span>
         {x.nhom ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.nhom}</span> : null}
         <span style={{ fontSize: 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
         <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{da ? '✅ đã đăng' : '🗓 máy sẽ đăng'}{x.link === true ? ' · 🔗 có link' : x.link === false ? ' · không link' : ''}</span>
+        {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', gap: 10 }} title="lượt xem cộng dồn (sổ số đo kênh) · click về site 6 tuần (phiên theo nền × trang đích)">
+          <span>👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span><span>🖱 {x.bam == null ? '—' : x.bam}</span></span> : null}
       </div>
     </div>);
   return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} title="mở bài">{the}</a> : the;

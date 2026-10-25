@@ -196,14 +196,14 @@ const NHOM_VP: { key: string; ten: string; re: RegExp }[] = [
 const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'cưỡng ép / bạo lực tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
 const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
 const loiSoat = (g: string) => /^Meta từ chối/i.test(g) ? loiMeta(g) : g.replace(/^máy soát (lại \d+\/\d+ )?(Claude)?\s*(\([^)]*\))?:?\s*/i, 'Máy xem: ').replace(/^soát tờ khung theo lô.*/i, 'Cho qua theo cả lô, chưa xem riêng đoạn này').replace(/^Claude soát tờ[^:]*:?\s*/i, 'Đã xem tờ khung: ');
-function danhGia(r: CreativeEtpKho) {
-  const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED'));
-  const meta: Dau = metaLoi ? { k: 'loi', t: loiMeta(r.tu_choi ?? '') } : r.giao.includes('ACTIVE') ? { k: 'ok', t: 'Meta đã duyệt, đang phát' } : r.giao.includes('IN_PROCESS') ? { k: 'cho', t: 'Meta đang duyệt' } : { k: 'chua', t: 'Không camp nào đang phát' };
+function danhGia(r: CreativeEtpKho, phot: Map<number, string>) {
+  const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED') || phot.has(r.creative_id));   // phốt đã ghi = Meta từng từ chối, kể cả khi camp đã thay creative
+  const meta: Dau = metaLoi ? { k: 'loi', t: loiMeta(r.tu_choi ?? phot.get(r.creative_id) ?? '') } : r.giao.includes('ACTIVE') ? { k: 'ok', t: 'Meta đã duyệt, đang phát' } : r.giao.includes('IN_PROCESS') ? { k: 'cho', t: 'Meta đang duyệt' } : { k: 'chua', t: 'Không camp nào đang phát' };
   const theoLo = !!r.sd && /theo lô/i.test(r.sd.ghi);
   const doMeta = !!r.sd && /^Meta từ chối/i.test(r.sd.ghi);   // dòng cấm do Meta ghi sau khi từ chối = máy đã cho qua đoạn này (bỏ sót)
   const may: Dau = doMeta ? { k: 'ok', t: 'Máy đã cho qua — Meta vẫn từ chối (máy bỏ sót)' } : !r.sd || theoLo ? (r.sd_cho ? { k: 'cho', t: 'Máy chưa chắc — chờ người xem' } : { k: 'chua', t: theoLo && r.sd ? loiSoat(r.sd.ghi) : 'Chưa quét đoạn video này' })
     : { k: r.sd.ok ? 'ok' : 'loi', t: `${r.sd.ok ? 'Sạch' : 'Cấm'} — ${loiSoat(r.sd.ghi)} (${r.sd.luc})` };
-  const lyDo = `${r.sd && !r.sd.ok ? r.sd.ghi : ''} ${metaLoi ? r.tu_choi ?? '' : ''}`;
+  const lyDo = `${r.sd && !r.sd.ok ? r.sd.ghi : ''} ${metaLoi ? r.tu_choi ?? phot.get(r.creative_id) ?? '' : ''}`;
   const nhom: Record<string, Dau> = Object.fromEntries(NHOM_VP.map((g) => [g.key, (may.k === 'chua' && !metaLoi ? { k: 'chua', t: 'Chưa quét' } : g.re.test(lyDo) ? { k: 'loi', t: `${g.ten}: ${loiSoat(lyDo.trim()).slice(0, 220)}` } : may.k === 'cho' ? { k: 'cho', t: 'Chờ người xem' } : { k: 'ok', t: `Không thấy ${g.ten.toLowerCase()}` }) as Dau]));
   const s18: Dau = r.s18 ? { k: r.s18.ok ? 'ok' : 'loi', t: `Cả phim: ${r.s18.ok ? 'không có cảnh 18+' : 'có cảnh cấm'}${r.s18.ghi ? ' — ' + loiSoat(r.s18.ghi) : ''} (${r.s18.luc})` } : { k: 'chua', t: 'Cả phim chưa soát 18+' };
   // máy chấm sạch nhưng Meta từ chối = máy bỏ sót (đáng xem nhất để chỉnh tiêu chí quét)
@@ -246,7 +246,8 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
   const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
   const quet = Object.entries(du.quet ?? {}).filter(([, q]) => q.dang && Date.now() - msVn(q.cap_nhat) < 180_000);
   useEffect(() => { if (!quet.length) return; const t = setInterval(() => router.refresh(), 5_000); return () => clearInterval(t); }, [quet.length, router]);
-  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS')).map((r) => ({ r, d: danhGia(r) })).sort((a, b) => a.d.muc - b.d.muc), [du.creatives]);
+  const photCr = useMemo(() => new Map(du.phot.filter((p) => p.creative_id).map((p) => [p.creative_id!, p.ly_do ?? ''])), [du.phot]);
+  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id)).map((r) => ({ r, d: danhGia(r, photCr) })).sort((a, b) => a.d.muc - b.d.muc), [du.creatives, photCr]);
   const dem = { loi: ds.filter((x) => x.d.muc <= 1).length, meta: ds.filter((x) => x.d.metaLoi).length, chua: ds.filter((x) => x.d.may.k === 'chua' || x.d.may.k === 'cho').length, all: ds.length };
   const daQuet = ds.filter((x) => x.d.may.k === 'ok' || x.d.may.k === 'loi').length, sot = ds.filter((x) => x.d.sot).length;
   const rows = ds.filter((x) => loc === 'all' || (loc === 'loi' ? x.d.muc <= 1 : loc === 'meta' ? x.d.metaLoi : x.d.may.k === 'chua' || x.d.may.k === 'cho'));

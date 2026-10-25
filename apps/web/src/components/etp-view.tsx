@@ -553,8 +553,9 @@ function LichCamp({ c, du, tl }: { c: CampEtpKho; du: DuLieuEtp; tl: (k: string 
   return (
     <span title={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, opacity: tong ? 1 : 0.45, whiteSpace: 'nowrap' }}>
       <span style={{ display: 'inline-flex', gap: 1 }}>
-        {l.map((k) => <span key={k.k} style={{ width: (SO_GIO[k.k] ?? 1) * 3, height: 8, borderRadius: 2, background: k.bat ? 'var(--neon-lime, #4ade80)' : 'var(--bg-3, #4b5563)', outline: k.k === kn ? '1.5px solid var(--fg-1, #fff)' : 'none', outlineOffset: 1 }} />)}
+        {l.map((k) => <span key={k.k} style={{ width: Math.max((SO_GIO[k.k] ?? 1) * 3, 6), height: 10, borderRadius: 2, boxSizing: 'border-box', background: k.bat ? 'var(--neon-lime, #4ade80)' : 'rgba(239,68,68,.35)', border: k.bat ? 'none' : '1px solid #ef4444', outline: k.k === kn ? '1.5px solid var(--fg-1, #fff)' : 'none', outlineOffset: 1 }} />)}
       </span>
+      <span style={{ fontSize: 11, color: l.some((k) => !k.bat) ? '#f87171' : 'var(--fg-2)' }}>{l.some((k) => !k.bat) ? `tắt ${l.filter((k) => !k.bat).map((k) => k.ten).join(' · ')}` : 'chạy cả ngày'}</span>
       {c.lich_tat ? <span style={{ fontSize: 11, color: MAU_DEN.phong }}>⏸ bật lại {ke ? GIO_BAT_DAU[ke.k] : '?'}</span> : null}
     </span>
   );

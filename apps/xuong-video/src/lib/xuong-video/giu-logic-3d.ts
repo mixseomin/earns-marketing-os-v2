@@ -1,5 +1,6 @@
 // CÂU GIỮ LOGIC khi biến khung 3D thô thành ảnh / video người thật (khoa-3d-dien-ai.mts, phu-be-mat.mts — một câu, hai đường dùng).
 // Giữ VỊ TRÍ + ĐỘNG TÁC, không giữ HÌNH: trước 26/10/2026 câu ghi "giữ y nguyên tay" → AI chép luôn bàn tay ma-nơ-canh, nắm đấm / bàn tay chống hông
-// trông như đất nặn (phim #353, máy qua vai + cận tay). Bàn tay, mặt, da, tóc của khung 3D chỉ là hình nộm — phải vẽ lại thành người thật.
-export const GIU_LOGIC_3D = "Keep EXACTLY from image 1: the camera angle and framing, every person's position, body pose, head direction, where each hand is and what it does, what each hand holds, and every object's position and state. "
+// trông như đất nặn (phim #353, máy qua vai + cận tay). Nền cũng là logic: khung đầu #4 AI đổi bảng chỉ dẫn sau lưng Vivian thành cửa thang máy → khung đầu
+// và cuối khác nền, Vidu phải lia máy giữa clip (26/10/2026). Bàn tay, mặt, da, tóc của khung 3D chỉ là hình nộm — phải vẽ lại thành người thật.
+export const GIU_LOGIC_3D = "Keep EXACTLY from image 1: the camera angle and framing, every person's position, body pose, head direction, where each hand is and what it does, what each hand holds, every object's position and state, and the background layout (which wall, door, sign, bench or elevator is behind whom — never swap the background for another part of the room). "
   + "Image 1 is a crude 3D placeholder: its hands, fingers, faces, skin and hair are clay-like stand-ins — redraw them as real human anatomy (natural slender fingers with knuckles and nails, relaxed realistic grip, real skin texture, real hair), never copy their blocky shapes.";

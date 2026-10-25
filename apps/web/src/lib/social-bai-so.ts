@@ -11,17 +11,20 @@ let dangChay: Promise<number> | null = null;
 /** khoá bài để khớp sổ đăng ↔ số đo: mã reel/video, còn lại link không đuôi '/' */
 export const khoaBai = (u: string | null | undefined) => (u ? (u.match(/(?:reel|shorts|video|videos)\/([\w-]+)/)?.[1] ?? u.replace(/\/+$/, '')) : '');
 
-type Bai = { id?: string; permalink_url?: string; created_time?: string; insights?: { data?: { name: string; values?: { value?: number }[] }[] } };
-async function docTrang(pageId: string, token: string, tu: number): Promise<{ id: string | null; url: string; xem: number | null; bam: number | null; luc: string | null }[]> {
-  const ra: { id: string | null; url: string; xem: number | null; bam: number | null; luc: string | null }[] = [];
-  let u: string | null = `${G}/${pageId}/posts?${new URLSearchParams({ fields: 'id,permalink_url,created_time,insights.metric(post_media_view,post_clicks)', since: String(tu), limit: '100', access_token: token })}`;
+type Dong = { id: string | null; url: string; xem: number | null; bam: number | null; thich: number | null; binhLuan: number | null; chiaSe: number | null; luc: string | null };
+type Bai = { id?: string; permalink_url?: string; created_time?: string; insights?: { data?: { name: string; values?: { value?: number | Record<string, number> }[] }[] } };
+async function docTrang(pageId: string, token: string, tu: number): Promise<Dong[]> {
+  const ra: Dong[] = [];
+  let u: string | null = `${G}/${pageId}/posts?${new URLSearchParams({ fields: 'id,permalink_url,created_time,insights.metric(post_media_view,post_clicks,post_activity_by_action_type)', since: String(tu), limit: '100', access_token: token })}`;
   for (let trang = 0; u && trang < 5; trang++) {
     const r = await fetch(u, { signal: AbortSignal.timeout(20_000) }), j = (await r.json()) as { data?: Bai[]; paging?: { next?: string }; error?: { message: string } };
     if (j.error) throw new Error(j.error.message);
     for (const b of j.data ?? []) {
       if (!b.permalink_url) continue;
-      const so = (m: string) => { const v = b.insights?.data?.find((x) => x.name === m)?.values?.[0]?.value; return typeof v === 'number' ? v : null; };
-      ra.push({ id: b.id ?? null, url: b.permalink_url, xem: so('post_media_view'), bam: so('post_clicks'), luc: b.created_time ?? null });
+      const gt = (m: string) => b.insights?.data?.find((x) => x.name === m)?.values?.[0]?.value, so = (m: string) => { const v = gt(m); return typeof v === 'number' ? v : null; };
+      // post_activity_by_action_type = { like, comment, share } (thiếu khoá = 0 khi đã có số đo)
+      const hd = gt('post_activity_by_action_type'), hdv = (k: string) => (hd && typeof hd === 'object' ? hd[k] ?? 0 : null);
+      ra.push({ id: b.id ?? null, url: b.permalink_url, xem: so('post_media_view'), bam: so('post_clicks'), thich: hdv('like'), binhLuan: hdv('comment'), chiaSe: hdv('share'), luc: b.created_time ?? null });
     }
     u = j.paging?.next ?? null;
   }
@@ -38,8 +41,8 @@ export async function lamMoiSoBaiFb(): Promise<number> {
       try {
         const bs = await docTrang(id, t.token!, tu);
         for (const b of bs) {
-          await d.execute(sql`INSERT INTO bai_so (url, nen, page_id, post_id, xem, bam, dang_luc, cap_nhat) VALUES (${b.url}, 'facebook', ${id}, ${b.id}, ${b.xem}, ${b.bam}, ${b.luc}, now())
-            ON CONFLICT (url) DO UPDATE SET xem = excluded.xem, bam = excluded.bam, post_id = excluded.post_id, cap_nhat = now()`);
+          await d.execute(sql`INSERT INTO bai_so (url, nen, page_id, post_id, xem, bam, thich, binh_luan, chia_se, dang_luc, cap_nhat) VALUES (${b.url}, 'facebook', ${id}, ${b.id}, ${b.xem}, ${b.bam}, ${b.thich}, ${b.binhLuan}, ${b.chiaSe}, ${b.luc}, now())
+            ON CONFLICT (url) DO UPDATE SET xem = excluded.xem, bam = excluded.bam, thich = excluded.thich, binh_luan = excluded.binh_luan, chia_se = excluded.chia_se, post_id = excluded.post_id, cap_nhat = now()`);
           n++;
         }
       } catch { loi++; }
@@ -48,12 +51,12 @@ export async function lamMoiSoBaiFb(): Promise<number> {
   if (loi) console.warn(`[bai_so] ${loi}/${ds.length} Page đọc lỗi`);
   return n;
 }
-export type SoBai = { xem: number | null; bam: number | null; url: string };
+export type SoBai = { xem: number | null; bam: number | null; thich: number | null; binhLuan: number | null; url: string };
 /** số đo bài Facebook, khoá theo khoaBai(link) VÀ theo mã bài <page_id>_<id> (bài hẹn giờ chỉ biết mã); số cũ quá 3 giờ (hoặc chưa có) thì khởi làm mới chạy kèm */
 export async function docSoBaiFb(): Promise<Map<string, SoBai>> {
   const d = getDb(); if (!d) return new Map();
-  const rows = (await d.execute(sql`SELECT url, post_id, xem, bam, extract(epoch FROM cap_nhat) * 1000 AS luc FROM bai_so WHERE nen = 'facebook'`)) as unknown as { url: string; post_id: string | null; xem: number | null; bam: number | null; luc: number }[];
+  const rows = (await d.execute(sql`SELECT url, post_id, xem, bam, thich, binh_luan, extract(epoch FROM cap_nhat) * 1000 AS luc FROM bai_so WHERE nen = 'facebook'`)) as unknown as { url: string; post_id: string | null; xem: number | null; bam: number | null; thich: number | null; binh_luan: number | null; luc: number }[];
   const moi = rows.reduce((m, r) => Math.max(m, Number(r.luc)), 0);
   if (Date.now() - moi > CU_MS && !dangChay) dangChay = lamMoiSoBaiFb().catch(() => 0).finally(() => { dangChay = null; });
-  return new Map(rows.flatMap((r) => { const v = { xem: r.xem, bam: r.bam, url: r.url }; return r.post_id ? [[khoaBai(r.url), v], [r.post_id, v]] as const : [[khoaBai(r.url), v]] as const; }));
+  return new Map(rows.flatMap((r) => { const v = { xem: r.xem, bam: r.bam, thich: r.thich, binhLuan: r.binh_luan, url: r.url }; return r.post_id ? [[khoaBai(r.url), v], [r.post_id, v]] as const : [[khoaBai(r.url), v]] as const; }));
 }

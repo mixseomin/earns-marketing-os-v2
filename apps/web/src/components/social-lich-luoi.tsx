@@ -269,7 +269,7 @@ function DongThoiGian({ ngay, bai, hom, so }: { ngay: string[]; bai: StLuoiO[]; 
 /** thẻ CAO CỐ ĐỊNH 56px cho dòng thời gian (đặt tuyệt đối theo giờ, nên chiều cao phải biết trước): ảnh vuông trái · màu format ở viền · giờ + chấm trạng thái · 1 dòng chữ */
 function OBaiDong({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) {
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
-  const tt = `${x.title}\n${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && so && x.bam != null ? ` · ↪ ${x.bam}` : ''}`;
+  const tt = `${x.title}\n${f} · ${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : ''}${da && so === true && x.xem != null ? ` · 👁 ${x.xem}` : ''}${da && so && x.bam != null ? ` · ↪ ${x.bam}` : ''}${da && x.thich != null ? ` · ♥ ${x.thich}` : ''}${da && x.binhLuan != null ? ` · 💬 ${x.binhLuan}` : ''}`;
   const the = (
     <div title={tt} style={{ height: 56, display: 'flex', gap: 5, border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 7, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da ? 1 : .45 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: 44, height: '100%', objectFit: 'cover', objectPosition: 'top', flex: 'none', background: '#111' }} /> : null}
@@ -304,8 +304,8 @@ function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean 
           </span>
         </span>
         <span style={{ fontSize: gon ? 11 : 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: gon ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
-        {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', gap: 10, color: 'var(--fg-2)' }}>
-          {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}<span title="lượt vào site từ bài (6 tuần)">↪ {x.bam == null ? '—' : x.bam}</span></span> : null}
+        {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', flexWrap: 'wrap', gap: '2px 10px', color: 'var(--fg-2)' }}>
+          {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}{x.thich != null ? <span title="lượt thích">♥ {x.thich}</span> : null}{x.binhLuan != null ? <span title="bình luận">💬 {x.binhLuan}</span> : null}<span title="lượt vào site từ bài (6 tuần)">↪ {x.bam == null ? '—' : x.bam}</span></span> : null}
       </div>
     </div>);
   return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{the}</a> : the;

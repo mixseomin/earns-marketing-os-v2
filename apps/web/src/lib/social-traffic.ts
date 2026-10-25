@@ -38,7 +38,7 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
    *  kiểu nội dung (dang.nhom), có link hay không (sổ đăng ghi từ 25/10; bài cũ = null, lượt dự kiến = null — máy quyết lúc đăng) */
   anh?: string | null; tk?: string | null; nhom?: string | null; link?: boolean | null;
   /** số liệu bài đã đăng: lượt xem cộng dồn (kenh_so_ngay mới nhất, khớp link bài) · click về site 6 tuần (phiên theo nền × trang đích — docBamTheoTrang); null = chưa đo */
-  xem?: number | null; bam?: number | null }
+  xem?: number | null; bam?: number | null; thich?: number | null; binhLuan?: number | null }
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
@@ -414,7 +414,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const [soXem, bamTrang, soFb] = await Promise.all([
       d.execute(sql`SELECT k.chi_tiet FROM kenh_so_ngay k JOIN (SELECT kenh, max(ngay) AS ngay FROM kenh_so_ngay GROUP BY 1) m USING (kenh, ngay)`) as unknown as Promise<{ chi_tiet: { videos?: { url?: string; xem?: number }[] } | unknown[] }[]>,
       docBamTheoTrang().catch((e: Error) => { loi.push(`click theo bài: ${e.message.slice(0, 100)}`); return new Map<string, number>(); }),
-      docSoBaiFb().catch((e: Error) => { loi.push(`số bài Facebook: ${e.message.slice(0, 100)}`); return new Map<string, { xem: number | null; bam: number | null; url: string }>(); }),
+      docSoBaiFb().catch((e: Error) => { loi.push(`số bài Facebook: ${e.message.slice(0, 100)}`); return new Map<string, { xem: number | null; bam: number | null; thich: number | null; binhLuan: number | null; url: string }>(); }),
     ]);
     const maBai = khoaBai;
     const xemCua = new Map<string, number>(); for (const r of soXem) for (const v of (Array.isArray(r.chi_tiet) ? [] : r.chi_tiet?.videos ?? [])) if (v.url && typeof v.xem === 'number') xemCua.set(maBai(v.url), v.xem);
@@ -443,6 +443,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const gioVn = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) : '—');
     const o: StLuoiO[] = da.map((x) => ({ ngay: String(x.ngay), gio: gioVn(x.luc ?? null), may: String(x.ma), mayTen: String(x.may_ten), nen: String(x.nen), title: String(x.title ?? ''), url: x.url ?? null, loai: 'da' as const,
       anh: x.anh ?? null, tk: tkCua.get(`${x.ma}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: x.link == null ? null : x.link === 'true',
+      thich: x.url ? soFb.get(maBai(x.url))?.thich ?? null : null, binhLuan: x.url ? soFb.get(maBai(x.url))?.binhLuan ?? null : null,
       xem: x.url ? xemCua.get(maBai(x.url)) ?? null : null, bam: (() => { const p = duongDan(x.dich ?? null); return p ? bamTrang.get(`${String(x.nen).split(':')[0]}|${p}`) ?? 0 : null; })() }));
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
@@ -457,7 +458,8 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       // đã đăng: link thật lấy từ số đo theo mã bài (link lúc hẹn của bài ảnh là photo.php tạm); Reel giữ /reel/<id>/
       const so = x.post_id ? soFb.get(x.post_id) : undefined, url = qua ? so?.url ?? x.url : null;
       o.push({ ngay: vn.slice(0, 10), gio: vn.slice(11, 16), may: x.ke_hoach, mayTen: 'Page hoài cổ · kế hoạch tuần', nen, title: x.chu.split('\n')[0] ?? '', url, loai: qua ? 'da' : 'du_kien',
-        anh: x.anh?.[0] || null, tk: tenPage.get(String(x.acct)) ?? x.ten, nhom: x.nhom, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null, bam: null });
+        anh: x.anh?.[0] || null, tk: tenPage.get(String(x.acct)) ?? x.ten, nhom: x.nhom, link: x.link != null, xem: qua ? so?.xem ?? (url ? xemCua.get(maBai(url)) ?? null : null) : null, bam: null,
+        thich: qua ? (so ?? (url ? soFb.get(maBai(url)) : undefined))?.thich ?? null : null, binhLuan: qua ? (so ?? (url ? soFb.get(maBai(url)) : undefined))?.binhLuan ?? null : null });
     }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }

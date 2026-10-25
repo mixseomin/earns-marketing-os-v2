@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """LÊN CAMP SAU KHI CHẤM (anh 25/10/2026: "cái nào đủ điều kiện lên camp thì lên luôn. Mở lại quy định lên camp mới").
-Creative của một lô đã đẩy lên Ethopex (ra/<mã lô>/len.json) mà CHƯA có camp → máy chấm Sạch thì tạo camp bộ 2 (nhan-ban.py --creative, khuôn EN/ES
+Creative của một lô đã đẩy lên Ethopex (ra/<mã lô>/len.json) mà CHƯA có camp → qua cổng chấm (view etp.cham_cong: Meta ≤ 4 / CTA ≤ 4 thì chặn) thì tạo camp bộ 2 (nhan-ban.py --creative, khuôn EN/ES
 như dot-phim-moi); chưa chấm thì bỏ qua (nhan-ban tự xếp hàng chấm) — chạy lại lệnh này sau khi chấm xong để lên nốt. Cấm / cần xem: không lên.
 Cổng thật nằm ở nhan-ban.py (cổng chấm + rào chắn etp + bão hoà + phim 18+ + CTA) — lệnh này chỉ chọn việc và gọi.
 Chạy (iMac):  python3 len-sau-cham.py <mã lô, vd pm24101433> [--lich today|tomorrow] [--thu]"""
@@ -19,7 +19,7 @@ def main(a):
     ds = [x for x in json.load(open(os.path.join(C, "ra", ma, "len.json"))) if x.get("ok") and x.get("creative_id")]
     ids = ",".join(str(int(x["creative_id"])) for x in ds) or "0"
     co_camp = set(SD.sql(f"select distinct creative_id from etp.camp where creative_id in ({ids}) and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
-    cham = dict(l.split("|", 1) for l in SD.sql(f"select creative_id, ket from etp.cham where creative_id in ({ids})").splitlines() if "|" in l)
+    cham = dict(l.split("|", 1) for l in SD.sql(f"select creative_id, case when duoc_len then 'ok' else 'chan' end from etp.cham_cong where creative_id in ({ids})").splitlines() if "|" in l)   # cổng một nguồn: view etp.cham_cong
     dem = {"len": 0, "loi": 0, "co_camp": 0, "chua_cham": 0, "khong_sach": 0}
     for x in ds:
         cr = str(int(x["creative_id"]))

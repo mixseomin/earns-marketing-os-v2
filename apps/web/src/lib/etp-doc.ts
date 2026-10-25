@@ -18,7 +18,7 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
     anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */ }; noi_dung?: { luc: string; tom_tat: string } };
-  diem: Record<string, number>; ly_do: Record<string, string>; khung: Record<string, number[]> };
+  diem: Record<string, number>; ly_do: Record<string, string>; khung: Record<string, number[]>; duoc_len: boolean | null; chan_boi: string | null };
 export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
@@ -138,7 +138,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
       where viec = 'nhan_ban' and not coalesce(ok, true) and luc > now() - interval '24 hours' and camp_id is not null order by camp_id, luc desc`),
     run<Record<string, unknown>>(sql`select id, luc::text luc, camp_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do from etp.phot order by luc desc limit 500`).catch(() => [] as Record<string, unknown>[]),
     run<{ nhom: string; ma: string; ten: string }>(sql`select nhom, ma, ten from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string }[]),
-    run<Record<string, unknown>>(sql`select creative_id, luc::text luc, may, ket, meta, afs, loi, lop, diem, ly_do, khung from etp.cham`).catch(() => [] as Record<string, unknown>[]),
+    run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi from etp.cham c left join etp.cham_cong g using (creative_id)`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`select creative_id, trang_thai, luc::text luc, loi, nguon, buoc, nhat_ky, bat_dau::text bat_dau, xong::text xong from etp.cham_hang
       where trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day') or xong > now() - interval '30 minutes'`).catch(() => [] as Record<string, unknown>[]),
   ]);
@@ -161,7 +161,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     chamHang: Object.fromEntries(chamHang.map((r) => [n(r.creative_id), { trang_thai: String(r.trang_thai), luc: String(r.luc), loi: (r.loi as string) ?? null, nguon: String(r.nguon ?? ''),
       buoc: (r.buoc as string) ?? null, nhat_ky: (r.nhat_ky ?? []) as { b: string; luc: string }[], bat_dau: (r.bat_dau as string) ?? null, xong: (r.xong as string) ?? null }])),
     cham: Object.fromEntries(cham.map((r) => [n(r.creative_id), { luc: String(r.luc), may: (r.may as string) ?? null, ket: (r.ket as string) ?? null, meta: r.meta == null ? null : n(r.meta), afs: r.afs == null ? null : n(r.afs),
-      loi: (r.loi as string) ?? null, lop: (r.lop ?? {}) as ChamCr['lop'], diem: (r.diem ?? {}) as ChamCr['diem'], ly_do: (r.ly_do ?? {}) as ChamCr['ly_do'], khung: (r.khung ?? {}) as ChamCr['khung'] }])),
+      loi: (r.loi as string) ?? null, lop: (r.lop ?? {}) as ChamCr['lop'], diem: (r.diem ?? {}) as ChamCr['diem'], ly_do: (r.ly_do ?? {}) as ChamCr['ly_do'], khung: (r.khung ?? {}) as ChamCr['khung'], duoc_len: r.duoc_len == null ? null : !!r.duoc_len, chan_boi: (r.chan_boi as string) ?? null }])),
     phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),
       bo: (r.bo as string) ?? null, ad_account_id: r.ad_account_id == null ? null : n(r.ad_account_id), page_id: r.page_id == null ? null : n(r.page_id), nhom: String(r.nhom ?? 'khac'), ly_do: (r.ly_do as string) ?? null })),
     bao, baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),

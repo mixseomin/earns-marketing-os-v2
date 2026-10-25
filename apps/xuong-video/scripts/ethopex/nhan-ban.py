@@ -73,15 +73,15 @@ def creative_khac(content_id, bo_qua):
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
     ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
     return next((c for c in ds if c not in bo_qua and str(c) in dat and str(c) not in tc and dem_doan(c) < TRAN_DOAN), None)
-# CỔNG CHẤM CREATIVE (anh 25/10/2026: "cái nào đủ điều kiện lên camp thì lên luôn"): mọi camp mới / bản clone chỉ dùng creative máy chấm SẠCH
-# (etp.cham.ket = 'ok' — Worker Cloudflare etp-cham, tiêu chí Meta + AFS). Chưa chấm → xếp hàng etp.cham_hang, lượt sau mới lên.
+# CỔNG CHẤM CREATIVE (anh 25/10/2026: "cái nào đủ điều kiện lên camp thì lên luôn" · chọn "kiểu 1"): view etp.cham_cong (migration 0328 — MỘT nguồn):
+# chặn khi bất kỳ tiêu chí Meta ≤ 4 hoặc AFS CTA / dụ nhấp ≤ 4; an toàn thương hiệu / chất lượng / khớp đích chỉ cảnh báo. Chưa chấm → xếp hàng etp.cham_hang.
 def cham_sach(cr):
-    k = q(f"select ket || '|' || coalesce(meta::text, '–') || '|' || coalesce(afs::text, '–') from etp.cham where creative_id = {int(cr)}")
+    k = q(f"select duoc_len::text || '|' || coalesce(chan_boi, '') from etp.cham_cong where creative_id = {int(cr)}")
     if not k:
         q(f"insert into etp.cham_hang (creative_id, nguon, ai) values ({int(cr)}, 'moi', 'nhan-ban: chờ chấm trước khi lên') on conflict (creative_id) do nothing")
         return f"creative #{cr} chưa được máy chấm — đã xếp hàng chấm, lượt sau mới lên"
-    ket, meta, afs = k.split("|")
-    return None if ket == "ok" else f"creative #{cr} máy chấm {'cấm' if ket == 'cam' else 'cần người xem'} (Meta {meta} · AFS {afs}) — không lên"
+    duoc, chan = k.split("|", 1)
+    return None if duoc == "true" else f"creative #{cr} bị cổng chấm chặn ({chan}) — không lên"
 
 # CLONE PHẢI KHÁC CREATIVE (anh 25/10/2026: "clone camp thì phải khác creative một chút, chặt chẽ hơn"): bản nhân bản KHÔNG dùng lại creative
 # của camp gốc, cũng không dùng creative đang có camp chạy của cùng phim — chọn creative khác cùng phim (đạt CTA, chưa bị Meta từ chối,

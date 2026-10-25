@@ -12,7 +12,9 @@ NGHI_GIO, TOI_DA_NGAY = 3, None
 #   giảm chỉ chấm trên số TRỌN ngày hôm qua (doanh thu về trễ), cách lần đổi ngân sách trước ≥ NGHI_GIAM_GIO; sau khi giảm khoá tăng KHOA_SAU_GIAM_GIO
 #   và muốn tăng lại phải đạt ROI ≥ 50% trên số SAU lần giảm (luat-ethopex.py) — không dùng ROI tháng cũ → hết vòng tăng–giảm.
 # KHOÁ SAU GIẢM 24 → 6 giờ (anh 24/10/2026: "về $15 mà tăng lại thì không bị mất nhịp"): giảm từng bậc $20 → $15, hồi lại (ROI từ ngày giảm ≥ 50%) thì lên lại sau 6 giờ
-NGHI_GIAM_GIO, KHOA_SAU_GIAM_GIO = 6, 6
+# GIẢM GIỐNG TĂNG (anh 25/10/2026: "sao phải đợi đến mai"): giảm tiếp sau một lần GIẢM cách ≥ 3 giờ (bằng nhịp tăng); camp vừa TĂNG mà âm thì giảm NGAY
+# (không chờ) — chỉ khoá TĂNG sau giảm 6 giờ để không vòng tăng–giảm.
+NGHI_GIAM_GIO, KHOA_SAU_GIAM_GIO = 3, 6
 BAC = [1, 2, 3, 5, 7, 10, 15, 20, 30]
 def xuong(ns, buoc=1):
     """mức thấp hơn ns `buoc` bậc trên thang (tối thiểu $1)"""
@@ -21,8 +23,8 @@ def xuong(ns, buoc=1):
 def chan_giam(api, cid, bay_gio=None):
     """→ lý do chưa được giảm (vừa đổi ngân sách < NGHI_GIAM_GIO giờ), None nếu được"""
     now = bay_gio or dt.datetime.now(dt.timezone.utc); vn = lambda x: x + dt.timedelta(hours=7)
-    ls = sorted(lan_tang(api, cid) + lan_giam(api, cid), reverse=True)
-    if ls and (now - ls[0]).total_seconds() < NGHI_GIAM_GIO * 3600: return f"vừa đổi ngân sách lúc {vn(ls[0]):%H:%M} — chờ đủ {NGHI_GIAM_GIO} giờ số liệu"
+    g = lan_giam(api, cid)   # chỉ lần GIẢM gần nhất mới khoá giảm tiếp; vừa tăng mà âm thì giảm luôn
+    if g and (now - g[0]).total_seconds() < NGHI_GIAM_GIO * 3600: return f"vừa giảm lúc {vn(g[0]):%H:%M} — chờ đủ {NGHI_GIAM_GIO} giờ số liệu"
     return None
 
 _CACHE = {}
@@ -70,8 +72,10 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     api2 = lambda p: gia2
     assert chan_tang(api2, 2, u("2026-10-22T04:00:00")).startswith("vừa giảm"), "vừa giảm 3 giờ trước → khoá tăng"
     assert chan_tang(api2, 2, u("2026-10-22T07:30:00")) is None, "sau 6 giờ hết khoá — hồi lại thì lên lại không mất nhịp (điều kiện ROI từ ngày giảm do luat-ethopex chấm)"
-    assert chan_giam(api2, 2, u("2026-10-22T03:00:00")) is not None and chan_giam(api2, 2, u("2026-10-22T08:00:00")) is None, "giảm cách lần đổi trước ≥ 6 giờ"
+    assert chan_giam(api2, 2, u("2026-10-22T03:00:00")) is not None and chan_giam(api2, 2, u("2026-10-22T04:30:00")) is None, "giảm tiếp cách lần GIẢM trước ≥ 3 giờ"
+    _CACHE.clear()
+    assert chan_giam(api, 1, u("2026-10-21T08:00:00")) is None, "vừa TĂNG 23 phút trước mà âm → được giảm ngay (không chờ)"
     assert xuong(5) == 3 and xuong(7, 2) == 3 and xuong(2) == 1 and xuong(1) is None and xuong(30) == 20
     api0 = lambda p: {"data": []}
     assert chan_tang(api0, 1) is None
-    print("tự kiểm: 9/9 đạt")
+    print("tự kiểm: 10/10 đạt")

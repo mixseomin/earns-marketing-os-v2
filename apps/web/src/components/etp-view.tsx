@@ -674,6 +674,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     { key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) },
     { key: 'ns', header: 'Bậc', align: 'left', title: 'thang bậc ngân sách · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(kh === 'nay' ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
+    { key: 'tuoi', header: 'Tuổi', title: 'tuổi camp tính từ lúc tạo — dưới 1 ngày ghi theo giờ', cell: (c) => { if (!c.tao) return '—'; const h = Math.floor((Date.now() - Date.parse(c.tao)) / 3_600_000); return h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`; }, sortValue: (c) => (c.tao ? -Date.parse(c.tao) : null) },
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },
   ];
   const cotCr: DataColumn<CreativeEtpKho>[] = [

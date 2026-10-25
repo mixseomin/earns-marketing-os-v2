@@ -6,6 +6,11 @@
 //   node worker/kiem-bai.mjs --nop <url> [--tu "<người gửi>"] [--html <tệp nháp>] [--loai trang-ban]   nộp bài (bản nháp chưa lên trang: --html)
 //     --loai trang-ban: TRANG BÁN app / sản phẩm số — chấm theo chuan-trang-ban.md + thư viện mẫu thật thu-vien-trang-ban/ (anh 23/10/2026: chuẩn bài SEO
 //     1.200–1.800 chữ không áp cho trang bán; "có thư viện mẫu các trang bán hàng thành công sẽ hiệu quả hơn là mỗi lần thêm một chút")
+//   LOẠI + MỤC ĐÍCH (anh 26/10/2026: "nhận thêm loại nội dung, mục đích của bài đăng để có review cho phù hợp… tìm đủ thư viện kỹ năng"): bảng khai
+//     cong-ty/quy-dinh/noi-dung/loai-bai.json — mỗi loại (bài SEO, so sánh, trang bán, công cụ, email, quảng cáo, bài đăng MXH…) có chuẩn nhà + 3 kỹ năng
+//     trong ky-nang/ (coreyhaines31/marketingskills, MIT) + bộ chặn cứng; mỗi mục đích (seo, chuyen-doi, giu-chan, thu-email, tin-cay, ra-mat) có điều
+//     ưu tiên khi chấm. --loai <mã> --muc-dich <mã>; không khai thì máy đoán từ trang (tin báo ghi "máy đoán"). Gửi link trên Telegram kèm chữ
+//     ("so sánh", "trang bán", "seo", "bán hàng"…) cũng được hiểu.
 //   node worker/kiem-bai.mjs --tu-kiem                                                tự kiểm máy đo + khuôn tin
 import fs from 'node:fs';
 import path from 'node:path';
@@ -56,15 +61,43 @@ export function soLuot(url, ds = docJson(XONG())) {
 export function moKhoa(url) { fs.mkdirSync(XONG(), { recursive: true }); fs.writeFileSync(path.join(XONG(), `${Date.now()}-mo.json`), JSON.stringify({ url, ket: 'MO_KHOA', luc: new Date().toISOString() })); }
 
 /** Nộp một bài vào hàng chờ. html = nội dung bản nháp (chưa lên trang) — có thì phòng chấm cái này, không tải url (url vẫn bắt buộc: vòng sửa đếm lượt theo url). */
-export const LOAI = ['bai', 'trang-ban'];
-export function nopBai({ url, tu = 'Không rõ', html = null, ban = null, loai = 'bai' }) {
-  if (!LOAI.includes(loai)) throw new Error(`--loai phải là ${LOAI.join(' | ')}`);
+const ND = () => path.join(GOC, 'cong-ty', 'quy-dinh', 'noi-dung');
+export const BANG = JSON.parse(fs.readFileSync(path.join(ND(), 'loai-bai.json'), 'utf8'));
+export const LOAI = Object.keys(BANG.loai), MUC_DICH = Object.keys(BANG.muc_dich);
+/** Mã loại chuẩn (nhận cả bí danh cũ, vd 'bai' → 'bai-dich-mxh'); null khi lạ. */
+export const chuanLoai = (l) => (l == null || l === '' ? null : Object.entries(BANG.loai).find(([k, v]) => k === l || v.bi_danh?.includes(l))?.[0] ?? null);
+/** Chữ anh gõ kèm link trên Telegram → loại / mục đích (null = không nói). Khai thẳng "loại: so-sanh" / "mục đích: seo" cũng được. */
+export function yTuChu(chu) {
+  const t = String(chu).toLowerCase().replace(/https?:\/\/\S+/g, ' ');
+  const khai = (k) => (t.match(new RegExp(`${k}\\s*:\\s*([a-z-]+)`)) || [])[1];
+  const loai = chuanLoai(khai('lo[aạ]i')) ?? [['trang-ban', /trang bán|sales page|landing bán|trang sản phẩm/], ['so-sanh', /so sánh|review|top \d|\bvs\b|đánh giá/], ['cong-cu', /công cụ|máy tính|calculator|\btool\b/],
+    ['trang-dich-qc', /trang đích|landing quảng cáo/], ['lead-magnet', /lead magnet|quiz|đổi email/], ['email', /\bemail\b|\bthư\b/], ['quang-cao', /quảng cáo|\bads?\b|creative/],
+    ['kich-ban-video', /kịch bản|script video/], ['bai-dang-mxh', /bài đăng|post (fb|x|pinterest)|thread/], ['bai-seo', /bài seo|\bseo\b/]].find(([, re]) => re.test(t))?.[0] ?? null;
+  const md = khai('m[uụ]c [dđ][ií]ch'); const muc = MUC_DICH.includes(md) ? md : [['chuyen-doi', /bán hàng|chuyển đổi|ra đơn|affiliate|click/], ['thu-email', /lấy email|thu email|đăng ký/],
+    ['giu-chan', /mạng xã hội|\bmxh\b|tiktok|facebook|từ video|giữ chân/], ['tin-cay', /uy tín|thương hiệu|tin cậy/], ['ra-mat', /ra mắt|launch/], ['seo', /\bseo\b|google|tìm kiếm/]].find(([, re]) => re.test(t))?.[0] ?? null;
+  return { loai, mucDich: muc };
+}
+/** Máy đoán loại từ trang khi người nộp không nói: trang bán (giá + ≥2 nút mua / link store) · công cụ (ô nhập trong thân) · so sánh (tiêu đề vs / best / top / review)
+ *  · bài đích mạng xã hội (site affiliate có người phụ trách, nơi traffic đến từ video) · còn lại bài SEO. */
+export function doanLoai(html, url = '') {
+  const h = thanBai(html), chu = chuBai(html), tieuDe = (String(html).match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || String(html).match(/<title>([\s\S]*?)<\/title>/i) || [, ''])[1].replace(/<[^>]+>/g, '');
+  const nutMua = (h.match(/<a [^>]*class="[^"]*\b(btn|cta)\b|apps\.apple\.com|play\.google\.com|gumroad\.com|<form [^>]*data-cho/gi) || []).length;
+  if (/[$€£₫]\s?\d|\d\s?(₫|USD|VND)/.test(chu) && nutMua >= 2 && chu.split(/\s+/).length < 1800) return 'trang-ban';
+  if (/<(input|select)\b/i.test(h) && !/type="(email|search)"/i.test(h.match(/<input\b[^>]*>/i)?.[0] ?? '')) return 'cong-cu';
+  if (/\bvs\.?\b|\bbest\b|\btop \d+|\breview|alternatives?\b|compared|so sánh/i.test(tieuDe)) return 'so-sanh';
+  if (phuTrach(url)) return 'bai-dich-mxh';
+  return 'bai-seo';
+}
+export function nopBai({ url, tu = 'Không rõ', html = null, ban = null, loai = null, mucDich = null }) {
+  if (loai != null && !chuanLoai(loai)) throw new Error(`--loai phải là ${LOAI.join(' | ')}`);
+  if (mucDich != null && !MUC_DICH.includes(mucDich)) throw new Error(`--muc-dich phải là ${MUC_DICH.join(' | ')}`);
+  loai = chuanLoai(loai);
   if (!url) throw new Error('cần --nop <url> (bản nháp thì thêm --html <tệp>, url là trang đích)');
   const n = soLuot(url);
   if (n >= TRAN_LUOT) throw new Error(`${url} đã ${n}/${TRAN_LUOT} lượt chấm chưa DUYỆT — dừng vòng, chờ anh quyết (anh mở lại: --mo-khoa <url>)`);
   fs.mkdirSync(CHO(), { recursive: true });
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, loai, luc: new Date().toISOString() }));
+  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, loai, muc_dich: mucDich, luc: new Date().toISOString() }));
   for (const x of docJson(TRA())) if (x.url === url) fs.rmSync(path.join(TRA(), `${x.id}.json`), { force: true });   // đã nộp lại = đã nhận việc sửa
   return id;
 }
@@ -86,7 +119,8 @@ export function chuBai(html) {
 }
 
 /** Máy đo (không AI) — số khách quan để mô hình không phải đoán, và chặn cứng không cần mô hình. */
-export function mayDo(html, loai = 'bai') {
+export function mayDo(html, loai = 'bai-dich-mxh') {
+  loai = chuanLoai(loai) ?? 'bai-dich-mxh'; const chan = BANG.loai[loai].chan;
   const chu = chuBai(html), thuong = chu.toLowerCase(), dong = chu.split('\n');
   const tuMay = TU_MAY.filter((w) => thuong.includes(w));
   const gachDai = (chu.match(/[—–]/g) || []).length, h = thanBai(html);   // hình đếm trong thân bài — icon logo / ô tìm kiếm ở đầu trang không phải hình của bài
@@ -109,7 +143,8 @@ export function mayDo(html, loai = 'bai') {
     co_gia: /[$€£₫]\s?\d|\d\s?(₫|đ\b|USD|VND|EUR\b)/.test(chu),
     co_demo: video > 0 || /class="[^"]*\bdemo\b/i.test(h),
     loai,
-    chan_cung: loai === 'trang-ban' ? chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) : [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
+    chan_cung: chan === 'trang-ban' ? chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) : chan !== 'bai' ? [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
+      ...(chan === 'cong-cu' && !/<(input|select)\b/i.test(h) ? ['trang công cụ mà không có ô nhập nào — công cụ không chạy được trên trang'] : [])] : [...(gachDai ? [`${gachDai} gạch ngang dài`] : []), ...(tuMay.length ? [`từ máy: ${tuMay.join(', ')}`] : []),
       ...(!soHinh ? ['không có khối hình nào (ảnh / video / khung ví dụ) — tường chữ'] : soChu / soHinh > 300 ? [`${Math.round(soChu / soHinh)} chữ mỗi khối hình (tối đa ~300)`] : []),
       ...(!anhThat ? ['không có ảnh thật (<img>) — chuẩn SEO'] : []), ...(!video ? ['không có video nhúng — chuẩn SEO'] : []), ...(!coFaq ? ['không có mục FAQ — chuẩn SEO'] : [])],
     chu,
@@ -128,19 +163,27 @@ function chanTrangBan({ gachDai, tuMay, anhThat, video, h, chu, soChu, coFaq }) 
     ...(soChu < 400 ? [`${soChu} chữ — dưới 400, thiếu lý do mua`] : soChu > 1600 ? [`${soChu} chữ — quá 1.600, đang viết bài chứ không phải trang bán`] : [])];
 }
 
+/** Thước chấm của một loại: chuẩn nhà (thắng khi trái nhau) + kỹ năng thư viện. 'tệp.md#2' = chỉ Phần 2 (giọng văn) của tệp đó — loại không phải bài dài
+ *  không bị chấm theo khung bài dài. Mỗi kỹ năng cắt ở TRAN_KY_NANG ký tự để một lượt chấm không phình (3 kỹ năng ≈ 15k token). */
+const TRAN_KY_NANG = 20000;
+export function thuocCham(loai) {
+  const L = BANG.loai[loai], docMd = (f) => fs.readFileSync(path.join(ND(), f), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  const [tep, phan] = L.chuan.split('#'), goc = docMd(tep), chuan = phan === '2' ? goc.slice(goc.indexOf('# Phần 2')) : goc;
+  const kn = L.ky_nang.map((k) => `### Kỹ năng: ${k}\n${docMd(`ky-nang/${k}.md`).replace(/^---[\s\S]*?---\n/, '').slice(0, TRAN_KY_NANG)}`).join('\n\n');
+  return `CHUẨN CỦA NHÀ (thắng khi trái với kỹ năng):\n${chuan}${L.kem ? `\n\n${docMd(L.kem)}` : ''}\n\nKỸ NĂNG ÁP CHO LOẠI NÀY (thư viện marketingskills — dùng làm thước, không phải để viết lại bài):\n${kn}`;
+}
 /** Ngọc chấm qua proxy công ty. Trả { thieu[], thua[], giong[], diem, ket_luan, tom_tat } hoặc null khi mô hình hỏng. */
 async function cham(nguoi, model, phong, url, d) {
-  const ND = path.join(GOC, 'cong-ty', 'quy-dinh', 'noi-dung'), docMd = (f) => fs.readFileSync(path.join(ND, f), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
-  const tb = d.loai === 'trang-ban';
-  const chuan = tb ? `${docMd('chuan-trang-ban.md')}\n\n${docMd('thu-vien-trang-ban/README.md')}` : docMd('chuan-duyet-bai.md');
-  const system = `Bạn là Ngọc, trưởng phòng Nội dung. Bạn duyệt ${tb ? 'TRANG BÁN (app / sản phẩm số) — so với thư viện mẫu thật, nói rõ trang thua mẫu nào ở nước đi nào' : 'bài'} trước khi lên trang, theo đúng CHUẨN dưới đây, khắt khe như biên tập viên.
+  const tb = d.loai === 'trang-ban', L = BANG.loai[d.loai], M = BANG.muc_dich[d.muc_dich];
+  const system = `Bạn là Ngọc, trưởng phòng Nội dung. Bạn duyệt nội dung LOẠI "${L.ten}" với MỤC ĐÍCH "${M.ten}"${tb ? ' — so với thư viện mẫu thật, nói rõ trang thua mẫu nào ở nước đi nào' : ''} trước khi lên trang, theo đúng CHUẨN và KỸ NĂNG dưới đây, khắt khe như biên tập viên.
+Mục đích quyết định điều quan trọng nhất: ${M.uu_tien}
+Nội dung làm tốt việc khác mà không phục vụ mục đích này thì chưa DUYỆT. Mọi nhận xét phải chỉ ra đoạn cụ thể và nêu kỹ năng / mục của chuẩn mà nó vi phạm.
 Chỉ dựa vào chữ của bài và số máy đo; không bịa chi tiết bài không có. Viết nhận xét bằng tiếng Việt, ngắn, cụ thể (chỉ ra đoạn nào).
 Kết luận: DUYET khi bài đạt mọi phần chính của chuẩn và không có chặn cứng; SUA_LAI khi khung đúng nhưng thiếu / thừa / giọng còn lỗi;
 KHONG_DUYET khi bài sơ sài (không cảnh mở, không ví dụ cho các ý, không giữ được người đọc) hoặc sai hướng.
-Trả DUY NHẤT một JSON: {"thieu":["…"],"thua":["…"],"giong":["…"],"diem":0-10,"ket_luan":"DUYET|SUA_LAI|KHONG_DUYET","tom_tat":"một câu"}.
+Trả DUY NHẤT một JSON: {"thieu":["…"],"thua":["…"],"giong":["…"],"muc_dich":"một câu: nội dung phục vụ mục đích tới đâu","diem":0-10,"ket_luan":"DUYET|SUA_LAI|KHONG_DUYET","tom_tat":"một câu"}.
 
-CHUẨN:
-${chuan}`;
+${thuocCham(d.loai)}`;
   const may = { loai: d.loai, so_hinh: d.so_hinh, so_anh: d.so_anh, so_anh_that: d.so_anh_that, so_video: d.so_video, co_demo: d.co_demo, so_khung_vi_du: d.so_khung_vi_du, chu_moi_hinh: d.chu_moi_hinh, so_chu: d.so_chu, gach_dai: d.gach_dai, tu_may: d.tu_may, so_muc: d.so_muc, so_vi_du: d.so_vi_du, co_faq: d.co_faq, co_neu_da_lo: d.co_neu_da_lo, co_nut: d.co_nut, so_nut: d.so_nut, co_gia: d.co_gia, chan_cung: d.chan_cung };
   const body = { model, max_tokens: 900, temperature: 0.2, system, messages: [{ role: 'user', content: `Bài: ${url || '(bản nháp)'}\nMáy đo: ${JSON.stringify(may)}\n\n${d.chu.slice(0, 24000)}` }] };
   try {
@@ -148,7 +191,7 @@ ${chuan}`;
     const j = await r.json(); if (!r.ok) { console.error(`✗ ${model}: ${r.status} ${JSON.stringify(j).slice(0, 200)}`); return null; }
     const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
     const o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
-    return { thieu: [].concat(o.thieu || []), thua: [].concat(o.thua || []), giong: [].concat(o.giong || []), diem: Number(o.diem) || 0, ket_luan: KET[o.ket_luan] ? o.ket_luan : 'SUA_LAI', tom_tat: String(o.tom_tat || '') };
+    return { thieu: [].concat(o.thieu || []), thua: [].concat(o.thua || []), giong: [].concat(o.giong || []), muc_dich: String(o.muc_dich || ''), diem: Number(o.diem) || 0, ket_luan: KET[o.ket_luan] ? o.ket_luan : 'SUA_LAI', tom_tat: String(o.tom_tat || '') };
   } catch (e) { console.error(`✗ chấm: ${e.message}`); return null; }
 }
 
@@ -160,7 +203,9 @@ export const diemCuoi = (kq, d) => (d.chan_cung.length ? Math.min(kq.diem, 6) : 
 /** Tin Telegram theo khuôn anh đặt: "<người> gửi bài <url>. KQ: thiếu…, thừa… Kết luận: …". */
 export function tinKiem({ tu, url, kq, d, ket, ten = 'Ngọc' }) {
   const ds = (nhan, xs) => (xs.length ? `\n<b>${nhan}:</b>\n${xs.slice(0, 6).map((x) => `• ${esc(x)}`).join('\n')}` : '');
-  return `📝 <b>${esc(tenNguoi(tu))}</b> gửi ${d.loai === 'trang-ban' ? 'trang bán' : 'bài'} ${url ? esc(url) : '(bản nháp)'}\n<b>KQ (${esc(tenNguoi(ten))} chấm ${kq.diem}/10):</b> ${esc(kq.tom_tat)}`
+  const L = BANG.loai[d.loai] ?? BANG.loai['bai-dich-mxh'], M = BANG.muc_dich[d.muc_dich] ?? BANG.muc_dich[L.muc_dich];
+  return `📝 <b>${esc(tenNguoi(tu))}</b> gửi ${d.loai === 'trang-ban' ? 'trang bán' : 'bài'} ${url ? esc(url) : '(bản nháp)'}\n<b>Loại:</b> ${esc(L.ten)} · <b>Mục đích:</b> ${esc(M.ten)}${d.doan ? ' <i>(máy đoán — gửi lại link kèm chữ, vd "so sánh, bán hàng", nếu sai)</i>' : ''}\n<b>Kỹ năng áp:</b> ${esc(L.ky_nang.join(', '))}`
+    + `\n<b>KQ (${esc(tenNguoi(ten))} chấm ${kq.diem}/10):</b> ${esc(kq.tom_tat)}${kq.muc_dich ? `\n<b>Theo mục đích:</b> ${esc(kq.muc_dich)}` : ''}`
     + ds('Thiếu', kq.thieu) + ds('Thừa', kq.thua) + ds('Giọng văn', kq.giong)
     + `\n<b>Máy đo:</b> ${d.so_chu} chữ · ${d.so_hinh} khối hình (${d.so_anh_that} ảnh thật, ${d.so_video} video, ${d.so_khung_vi_du} khung ví dụ) · ${d.so_muc} mục · ${d.so_vi_du} ví dụ trích · FAQ ${d.co_faq ? 'có' : 'không'}${d.loai === 'trang-ban' ? ` · demo ${d.co_demo ? 'có' : 'không'} · nút ×${d.so_nut} · giá ${d.co_gia ? 'có' : 'không'}` : ` · phần "nếu đã lỡ" ${d.co_neu_da_lo ? 'có' : 'không'} · nút ${d.co_nut ? 'có' : 'không'}`}${d.chan_cung.length ? ` · <b>chặn cứng:</b> ${esc(d.chan_cung.join('; '))}` : ''}`
     + `\n<b>Kết luận: ${KET[ket]}</b>\n<a href="${CTY}">↗ cty · Phòng Nội dung</a>`;
@@ -274,7 +319,8 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     }
     if (!m || m.from?.is_bot) continue;
     for (const url of linkTrong(m)) {
-      try { nopBai({ url, tu: m.from?.first_name || m.from?.username || 'Anh' }); await bao(`📥 <b>${esc(tenNguoi(nguoi))}</b> nhận bài ${esc(url)} — chấm ngay`, m.message_id); }
+      const y = yTuChu(m.text || m.caption || '');
+      try { nopBai({ url, tu: m.from?.first_name || m.from?.username || 'Anh', loai: y.loai, mucDich: y.mucDich }); await bao(`📥 <b>${esc(tenNguoi(nguoi))}</b> nhận bài ${esc(url)}${y.loai || y.mucDich ? ` (${[y.loai && BANG.loai[y.loai].ten, y.mucDich && BANG.muc_dich[y.mucDich].ten].filter(Boolean).map(esc).join(' · ')})` : ''} — chấm ngay`, m.message_id); }
       catch (e) { await bao(`⛔ Không nhận ${esc(url)}: ${esc(e.message)}`, m.message_id); }
     }
   }
@@ -289,7 +335,7 @@ export async function nhipKiemBai(nguoi, { ten = nguoi, model = '', phong = 'noi
     let html = b.html;
     if (!html) { const r = await fetch(`${b.url}${b.url.includes('?') ? '&' : '?'}kiem=${Date.now()}`, { signal: AbortSignal.timeout(30000), headers: { 'user-agent': 'cty-noi-dung/1' } }).catch(() => null); html = r?.ok ? await r.text() : null; }
     if (!html) { ra.push(`${b.url}: không tải được`); continue; }   // để nguyên trong hàng chờ, lượt sau thử lại
-    const d = mayDo(html, b.loai || 'bai'), kq = await cham(nguoi, model, phong, b.url, d);
+    const loai = chuanLoai(b.loai) ?? doanLoai(html, b.url), d = { ...mayDo(html, loai), muc_dich: b.muc_dich || BANG.loai[loai].muc_dich, doan: !b.loai || !b.muc_dich }, kq = await cham(nguoi, model, phong, b.url, d);
     if (!kq) { ra.push(`${b.url}: mô hình hỏng`); continue; }
     kq.diem = diemCuoi(kq, d); const ket = ketCuoi(kq, d), { chu, ...may } = d;
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinKiem({ tu: b.tu, url: b.url, kq, d, ket, ten }), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
@@ -338,7 +384,18 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
     t.ok(mayDo(tb().replace('<video src=d.mp4></video>', ''), 'trang-ban').chan_cung.some((x) => x.includes('demo')), 'không video / demo → chặn');
     t.ok(mayDo(tb().replace('<video src=d.mp4></video>', '<div class="sc-demo demo"></div>'), 'trang-ban').chan_cung.every((x) => !x.includes('demo')), 'demo tương tác thay được video');
     t.ok(mayDo(tb({ chu: 2000 }), 'trang-ban').chan_cung.some((x) => x.includes('quá 1.600')), 'trang bán quá dài → chặn');
-    t.throws(() => nopBai({ url: 'https://x.test/', loai: 'quang-cao' }), /--loai/, 'loại lạ bị từ chối');
+    t.throws(() => nopBai({ url: 'https://x.test/', loai: 'tieu-thuyet' }), /--loai/, 'loại lạ bị từ chối'); t.throws(() => nopBai({ url: 'https://x.test/', mucDich: 'vui' }), /--muc-dich/);
+    // loại + mục đích (26/10/2026)
+    t.equal(chuanLoai('bai'), 'bai-dich-mxh', 'bí danh cũ'); t.equal(chuanLoai('xyz'), null);
+    for (const [k, v] of Object.entries(BANG.loai)) { t.ok(MUC_DICH.includes(v.muc_dich), `${k}: mục đích mặc định có thật`); for (const n of v.ky_nang) t.ok(fs.existsSync(path.join(ND(), 'ky-nang', `${n}.md`)), `${k}: kỹ năng ${n} có tệp`);
+      const th = thuocCham(k); t.ok(th.length < 120000 && th.includes('### Kỹ năng:'), `${k}: thước chấm có kỹ năng, không phình`); }
+    t.ok(!thuocCham('email').includes('# Phần 1'), 'email không bị chấm theo khung bài dài'); t.ok(thuocCham('trang-ban').includes('Kỹ năng: cro'));
+    t.deepEqual(yTuChu('https://x.com/a so sánh, bán hàng'), { loai: 'so-sanh', mucDich: 'chuyen-doi' }); t.deepEqual(yTuChu('https://x.com/a'), { loai: null, mucDich: null });
+    t.deepEqual(yTuChu('loại: email mục đích: thu-email https://x.com'), { loai: 'email', mucDich: 'thu-email' }); t.equal(yTuChu('bài seo nhé https://x.com').loai, 'bai-seo');
+    t.equal(doanLoai(tb(), 'https://app.test/'), 'trang-ban'); t.equal(doanLoai('<main><h1>Best hotel sites vs Booking</h1><p>x</p></main>'), 'so-sanh');
+    t.equal(doanLoai('<main><h1>BAH calculator</h1><input name=zip></main>'), 'cong-cu'); t.equal(doanLoai('<main><h1>Hotel scam</h1></main>', 'https://ratesbyroom.com/x/'), 'bai-dich-mxh'); t.equal(doanLoai('<main><h1>How to</h1></main>', 'https://a.test/'), 'bai-seo');
+    t.deepEqual(mayDo('<main><p>Hi there, short email.</p></main>', 'email').chan_cung, [], 'email không bị đòi ảnh / video / FAQ'); t.ok(mayDo('<main><h1>Tool</h1></main>', 'cong-cu').chan_cung[0].includes('ô nhập'));
+    t.ok(tinKiem({ tu: 'A', url: 'https://x.com/', kq: { thieu: [], thua: [], giong: [], diem: 8, ket_luan: 'DUYET', tom_tat: 'ổn', muc_dich: 'đủ ý định tìm kiếm' }, d: { ...mayDo(du, 'bai-seo'), muc_dich: 'seo', doan: true }, ket: 'DUYET' }).match(/Loại:<\/b> Bài SEO.*Mục đích:<\/b> Kéo khách tìm kiếm <i>\(máy đoán[\s\S]*Kỹ năng áp:<\/b> seo-audit[\s\S]*Theo mục đích:<\/b> đủ ý định/), 'tin báo ghi loại, mục đích, kỹ năng');
     t.ok(mayDo('<main><h2>Câu hỏi hay gặp</h2></main>').co_faq, 'FAQ tiếng Việt được nhận');
     t.ok(mayDo('<main><h2>Nếu đã lỡ</h2></main>').co_neu_da_lo && !mayDo('<main><h2>Sắm lễ</h2></main>').co_neu_da_lo, 'phần "nếu đã lỡ" tiếng Việt được nhận');
     t.ok(mayDo('<main><p>Miễn phí, 0 ₫</p></main>', 'trang-ban').co_gia, 'giá kiểu Việt (0 ₫) được nhận');
@@ -385,7 +442,7 @@ if (process.argv[1]?.endsWith('kiem-bai.mjs')) {
   if (lay('--nop') != null || lay('--html') != null) {
     const html = lay('--html') ? fs.readFileSync(lay('--html') === '-' ? 0 : lay('--html'), 'utf8') : null;   // '-' = đọc từ stdin (máy Mac đẩy bản nháp qua ssh)
     const url = lay('--nop') || '', tu = lay('--tu') || 'Không rõ', luot = soLuot(url);
-    console.log(`đã nộp ${nopBai({ url, tu, html, ban: lay('--ban'), loai: lay('--loai') || 'bai' })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
+    console.log(`đã nộp ${nopBai({ url, tu, html, ban: lay('--ban'), loai: lay('--loai') || null, mucDich: lay('--muc-dich') || null })} — Phòng Nội dung kiểm ở nhịp kế (≤ 1 phút)`);
     if (luot) { const { bao } = await tgNoiDung().catch(() => ({})); await bao?.(`📤 <b>${esc(tenNguoi(tu))}</b> nộp lại ${esc(url)} · lượt ${luot + 1}/${TRAN_LUOT}\n${CTY_LINK}`); }
   }
 }

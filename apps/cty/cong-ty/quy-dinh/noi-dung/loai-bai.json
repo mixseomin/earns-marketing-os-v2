@@ -1,0 +1,24 @@
+{
+  "_ghi_chu": "Loại nội dung + mục đích Ngọc (Phòng Nội dung) dùng để chọn thước chấm (anh 26/10/2026: 'nhận thêm loại nội dung, mục đích của bài đăng để có review cho phù hợp'). worker/kiem-bai.mjs đọc tệp này. chuan = tệp chuẩn của nhà (thắng khi trái với kỹ năng); ky_nang = tệp trong ky-nang/ (coreyhaines31/marketingskills, MIT); chan = bộ chặn cứng máy đo: bai (ảnh thật + video + FAQ + mật độ hình), trang-ban, cong-cu (phải có ô nhập), chung (chỉ giọng văn). Thêm loại = thêm một mục ở đây.",
+  "loai": {
+    "bai-dich-mxh": { "ten": "Bài đích cho traffic mạng xã hội (cảnh báo / hướng dẫn)", "chuan": "chuan-duyet-bai.md", "ky_nang": ["copywriting", "copy-editing", "marketing-psychology"], "chan": "bai", "muc_dich": "giu-chan", "bi_danh": ["bai"] },
+    "bai-seo": { "ten": "Bài SEO (kéo khách từ Google / trợ lý AI)", "chuan": "chuan-duyet-bai.md", "ky_nang": ["seo-audit", "ai-seo", "copy-editing"], "chan": "bai", "muc_dich": "seo" },
+    "so-sanh": { "ten": "Trang so sánh / review / top list (affiliate)", "chuan": "chuan-duyet-bai.md", "ky_nang": ["competitors", "copywriting", "ai-seo"], "chan": "bai", "muc_dich": "chuyen-doi" },
+    "trang-ban": { "ten": "Trang bán app / sản phẩm số", "chuan": "chuan-trang-ban.md", "kem": "thu-vien-trang-ban/README.md", "ky_nang": ["cro", "copywriting", "offers"], "chan": "trang-ban", "muc_dich": "chuyen-doi" },
+    "cong-cu": { "ten": "Trang công cụ / máy tính miễn phí", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["free-tools", "programmatic-seo", "schema"], "chan": "cong-cu", "muc_dich": "seo" },
+    "trang-dich-qc": { "ten": "Trang đích cho quảng cáo trả tiền", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["cro", "ads", "copywriting"], "chan": "chung", "muc_dich": "chuyen-doi" },
+    "lead-magnet": { "ten": "Trang / quà đổi email (lead magnet, quiz)", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["lead-magnets", "copywriting", "cro"], "chan": "chung", "muc_dich": "thu-email" },
+    "email": { "ten": "Email (chuỗi chăm khách / outreach)", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["emails", "cold-email", "copy-editing"], "chan": "chung", "muc_dich": "chuyen-doi" },
+    "bai-dang-mxh": { "ten": "Bài đăng mạng xã hội (X / FB / Pinterest / Threads)", "chuan": "chuan-bai-dang.md", "ky_nang": ["social", "image", "copy-editing"], "chan": "chung", "muc_dich": "giu-chan" },
+    "quang-cao": { "ten": "Mẫu quảng cáo (chữ + hình)", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["ad-creative", "ads", "marketing-psychology"], "chan": "chung", "muc_dich": "chuyen-doi" },
+    "kich-ban-video": { "ten": "Kịch bản video ngắn", "chuan": "chuan-bai-dang.md", "ky_nang": ["video", "social", "marketing-psychology"], "chan": "chung", "muc_dich": "giu-chan" }
+  },
+  "muc_dich": {
+    "seo": { "ten": "Kéo khách tìm kiếm", "uu_tien": "Khớp đúng ý định tìm kiếm của câu người ta gõ; tiêu đề / H1 / mô tả có từ khoá tự nhiên; trả lời thẳng câu hỏi ngay đoạn đầu; đủ sâu hơn trang đang đứng top; FAQ trả lời ngắn từng câu; dữ liệu có cấu trúc (schema) khi hợp; liên kết nội bộ; trợ lý AI trích được (đoạn tự đứng được, có số, có nguồn)." },
+    "chuyen-doi": { "ten": "Bán / ra click affiliate", "uu_tien": "Một lời hứa rõ ở màn đầu; bằng chứng cụ thể (ảnh thật, số thật, demo); xử lý phản đối chính (giá, tin được không, hợp với tôi không); giá / ưu đãi rõ; nút hành động có lý do, lặp ở giữa và cuối; ghi rõ hoa hồng khi có; mọi đoạn phải đẩy người đọc tới hành động, đoạn nào không thì thừa." },
+    "giu-chan": { "ten": "Giữ chân người đến từ video / mạng xã hội", "uu_tien": "Câu đầu đón đúng cảm xúc người vừa bấm; trả lời nhanh hơn họ kịp chán; nhịp căng / thả; hình mỗi ~300 chữ; ví dụ nhìn thấy được; có chỗ để người đọc tự làm (câu đố, checklist); kết bằng việc làm tiếp." },
+    "thu-email": { "ten": "Lấy email / đăng ký", "uu_tien": "Món đổi lấy email phải đáng giá và cụ thể (người đọc biết chính xác nhận được gì); form ít ô nhất có thể; nói rõ sau khi đăng ký nhận gì, khi nào, bao lâu một lần; không hứa quá." },
+    "tin-cay": { "ten": "Xây uy tín / thương hiệu", "uu_tien": "Nguồn cho mọi khẳng định; tác giả / ai đứng sau; minh bạch hoa hồng và cách chọn; không phóng đại, không mượn uy tín không nguồn; giọng bình tĩnh, nhất quán với thương hiệu." },
+    "ra-mat": { "ten": "Ra mắt sản phẩm / tính năng", "uu_tien": "Một câu nói được sản phẩm là gì, cho ai; vì sao bây giờ; thứ người đọc làm được ngay (tải, thử, đăng ký); hình / video sản phẩm đang chạy; không liệt kê tính năng khô." }
+  }
+}

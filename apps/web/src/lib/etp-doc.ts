@@ -138,6 +138,16 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<{ nhom: string; ma: string; ten: string }>(sql`select nhom, ma, ten from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string }[]),
     run<Record<string, unknown>>(sql`select creative_id, luc::text luc, may, ket, meta, afs, loi, lop, diem, ly_do, khung from etp.cham`).catch(() => [] as Record<string, unknown>[]),
   ]);
+  // creative đã chấm / có phốt mà không còn ở camp nào (camp đã thay creative khác) vẫn phải hiện ở Quét nội dung — lấy thẳng từ etp.creative
+  const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id))])].filter((id) => id && !crMap.has(id));
+  if (thieu.length) {
+    const ds = await run<Record<string, unknown>>(sql`select c.creative_id, c.content_id, p.ten phim, p.the_loai, c.dang, c.doan, c.tu, c.den, c.lang, c.cta_dat, c.tu_choi, c.video, c.anh
+      from etp.creative c left join etp.phim p on p.content_id = c.content_id where c.creative_id = any(${`{${thieu.join(',')}}`}::int[])`);
+    for (const i of ds) crMap.set(n(i.creative_id), { creative_id: n(i.creative_id), content_id: i.content_id == null ? null : n(i.content_id), phim: (i.phim as string) ?? null, the_loai: (i.the_loai as string) ?? null,
+      dang: (i.dang as string) ?? null, doan: (i.doan as string) ?? null, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den), lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat,
+      tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
+      ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
+  }
   return { luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp) })), camps: cs, creatives: [...crMap.values()], phims,
     cauHinh, nhatKy, canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),

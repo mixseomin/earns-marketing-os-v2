@@ -240,6 +240,8 @@ function TheXem({ t }: { t: The }) {
   );
 }
 type LocSoat = 'loi' | 'xem' | 'meta' | 'chua' | 'all';
+// tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
+const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
 function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) => React.ReactElement }) {
   const [loc, setLoc] = useState<LocSoat>('loi');
   const [the, setThe] = useState<The | null>(null);
@@ -248,7 +250,7 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
   const quet = Object.entries(du.quet ?? {}).filter(([, q]) => q.dang && Date.now() - msVn(q.cap_nhat) < 180_000);
   useEffect(() => { if (!quet.length) return; const t = setInterval(() => router.refresh(), 5_000); return () => clearInterval(t); }, [quet.length, router]);
   const photCr = useMemo(() => new Map(du.phot.filter((p) => p.creative_id).map((p) => [p.creative_id!, p.ly_do ?? ''])), [du.phot]);
-  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id))
+  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id) || du.cham[r.creative_id])
     .map((r) => { const c = du.cham[r.creative_id]; const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED') || photCr.has(r.creative_id));
       return { r, c, metaLoi, muc: metaLoi ? 0 : c?.ket === 'cam' ? 1 : c?.ket === 'xem' ? 2 : !c ? 3 : 4 }; }).sort((a, b) => a.muc - b.muc || (a.c?.meta ?? 11) - (b.c?.meta ?? 11)), [du.creatives, du.cham, photCr]);
   const dem = { loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter((x) => x.muc === 2).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
@@ -264,12 +266,12 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
     { key: 'anh', ten: 'Ảnh', noi: () => 'Tờ 30 khung theo thứ tự' },
     { key: 'noi_dung', ten: 'Nội dung', noi: (c) => c.lop.noi_dung?.tom_tat ?? '' },
   ];
-  const cotLop: DataColumn<Dong>[] = LOP.map((l) => ({ key: `lop_${l.key}`, header: l.ten, group: 'lop', title: `đã quét ${l.ten.toLowerCase()} chưa`,
+  const cotLop: DataColumn<Dong>[] = LOP.map((l) => ({ key: `lop_${l.key}`, header: l.ten, group: 'lop', align: 'center', width: 52, title: `đã quét ${l.ten.toLowerCase()} chưa`,
     cell: (x) => (x.c?.lop[l.key] ? <O x={x} t={{ tieu: `${l.ten} — đã quét ${x.c.lop[l.key]!.luc}`, ly: l.noi(x.c).slice(0, 900) }}><span style={{ color: DAU_MAU.ok }}>✓</span></O>
       : <span title={x.c?.loi ?? 'Chưa quét'} style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => (x.c?.lop[l.key] ? 1 : 0) }));
   const cotDiem = (nhom: 'meta' | 'afs'): DataColumn<Dong>[] => [
-    { key: `${nhom}_tong`, header: 'Tổng', group: nhom, title: 'điểm thấp nhất trong nhóm (một tiêu chí hỏng là hỏng)', cell: (x) => <b style={{ color: mauDiem(x.c?.[nhom]) }}>{x.c?.[nhom] ?? '–'}</b>, sortValue: (x) => x.c?.[nhom] ?? 99 },
-    ...du.tieuChi.filter((t) => t.nhom === nhom).map((t): DataColumn<Dong> => { const k = `${nhom}.${t.ma}`; return { key: k, header: t.ten, group: nhom,
+    { key: `${nhom}_tong`, header: 'Tổng', group: nhom, align: 'center', width: 52, title: 'điểm thấp nhất trong nhóm (một tiêu chí hỏng là hỏng)', cell: (x) => <b style={{ color: mauDiem(x.c?.[nhom]) }}>{x.c?.[nhom] ?? '–'}</b>, sortValue: (x) => x.c?.[nhom] ?? 99 },
+    ...du.tieuChi.filter((t) => t.nhom === nhom).map((t): DataColumn<Dong> => { const k = `${nhom}.${t.ma}`; return { key: k, header: <Tde t={t.ten} />, title: t.ten, group: nhom, align: 'center', width: 74,
       cell: (x) => { const d = x.c?.diem[k]; return d == null ? <span style={{ color: DAU_MAU.chua }}>–</span>
         : <O x={x} t={{ tieu: t.ten, diem: d, ly: x.c?.ly_do[k] ?? 'Không thấy vấn đề', khung: x.c?.khung[k] }}><span style={{ color: mauDiem(d), fontWeight: d < 8 ? 700 : 400 }}>{d}</span></O>; },
       sortValue: (x) => x.c?.diem[k] ?? 99 }; }),
@@ -300,7 +302,7 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
         <span style={{ color: sot ? '#fb923c' : 'var(--fg-2)' }} title="Meta từ chối mà máy chấm sạch"><b style={{ fontSize: 18 }}>{sot}</b> máy bỏ sót</span>
         <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'loi', label: 'Cấm / Meta từ chối' }, { value: 'xem', label: 'Cần người xem' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa chấm' }, { value: 'all', label: 'Tất cả đang chạy' }]} /></span>
       </div>
-      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1500} pageSize={100}
+      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1100} pageSize={100}
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
           { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={x.r.creative_id} /><span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },

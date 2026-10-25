@@ -7,7 +7,8 @@
 // từ máy, hashtag). Lỗi giống nhau trên cả loạt bài của một mẫu → báo MỘT tin theo mẫu (sửa ở mẫu, không sửa từng bài).
 //   node worker/cham-dang.mjs --chay        chấm mọi video chưa chấm / đã xuất lại (box3, có DATABASE_URL) — nhịp 'kiem-bai' của Ngọc gọi hàm này
 //   node worker/cham-dang.mjs --tu-kiem
-const NGUON_ANH = /^https:\/\/([a-z0-9-]+\.)*(pexels\.com|pixabay\.com|unsplash\.com)\//i;
+// Wikimedia Commons (anh duyệt kế hoạch Page hoài cổ 25/10/2026): ảnh xe / máy cổ đúng đời, giấy phép tự do — chữ đăng phải ghi công tác giả + giấy phép (kiểm ở mục 1)
+const NGUON_ANH = /^https:\/\/([a-z0-9-]+\.)*(pexels\.com|pixabay\.com|unsplash\.com|wikimedia\.org)\//i;
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless',
   'game-changer', 'cutting-edge', 'state-of-the-art', "in today's world", 'in the realm of', "it's worth noting", 'in conclusion', 'unlock the'];
 const DIEM_DUYET = 7;
@@ -17,7 +18,8 @@ export function doBaiDang(v, ten = '') {
   const chan = [], canh = [], d = v.dang ?? {}, title = String(d.title ?? ''), mo = String(d.description ?? ''), chu = `${title}\n${mo}`, thuong = chu.toLowerCase();
   // 1 · ảnh thật
   if (!v.nen_url) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
-  else if (!NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash (${String(v.nen_url).slice(0, 60)})`);
+  else if (!NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
+  for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
   if (!v.xuat_luc || (!v.video_url && d.loai !== 'link')) chan.push('chưa có bản xuất');   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
   // 2 · câu móc
   if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
@@ -27,7 +29,9 @@ export function doBaiDang(v, ten = '') {
   // 6 · đa dạng — đăng nhiều nhưng không spam (anh 18/10/2026, "rule này là quan trọng"): cùng tiêu đề với video khác của máy = nội dung lặp
   if ((v.trung ?? 1) > 1) chan.push(`tiêu đề trùng với ${v.trung - 1} video khác của máy — mỗi bài một tiêu đề (chống spam)`);
   // 4 · lý do bấm
-  if (!d.link) chan.push('không có link trang đích');
+  // bài THƯỜNG (dang.loai 'thuong' — luật đan xen 1 link / 7 bài, kế hoạch Page hoài cổ 25/10/2026): không link là đúng, có link mới là lỗi
+  if (d.loai === 'thuong') { if (/https?:\/\//.test(chu)) chan.push('bài thường mà chữ đăng có link'); }
+  else if (!d.link) chan.push('không có link trang đích');
   else if (!mo.includes(d.link)) chan.push('chữ đăng không chứa link trang đích');
   // 5 · giọng văn
   const gach = (chu.match(/[—–]/g) || []).length; if (gach) chan.push(`${gach} gạch ngang dài`);
@@ -166,6 +170,12 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.ok(doBaiDang({ ...tot, nen_url: null }).diem <= 6, 'chặn cứng thì trần 6');
   t.equal(doBaiDang({ ...tot, trung: 2 }).ket, 'SUA_LAI', 'tiêu đề trùng video khác = chặn (chống spam)');
   t.equal(doBaiDang({ ...tot, trung: 1 }).ket, 'DUYET');
+  const thuong = { ...tot, dang: { title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };
+  t.equal(doBaiDang(thuong).ket, 'DUYET', 'bài thường không link = DUYỆT');
+  t.ok(doBaiDang({ ...thuong, dang: { ...thuong.dang, description: thuong.dang.description + ' https://pickjot.com/' } }).chan_cung.some((x) => x.includes('bài thường')), 'bài thường mà có link = chặn');
+  const wm = { ...thuong, nen_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/x.jpg/1600px-x.jpg' };
+  t.ok(doBaiDang(wm).chan_cung.some((x) => x.includes('ghi công')), 'ảnh Wikimedia thiếu ghi công = chặn');
+  t.equal(doBaiDang({ ...wm, dang: { ...wm.dang, description: wm.dang.description + '\n\n📷 Jane Doe, CC BY-SA 4.0, via Wikimedia Commons' } }).ket, 'DUYET', 'ảnh Wikimedia có ghi công = DUYỆT');
   t.ok(tinChamDang({ cham: 2, duyet: 1, sua: 1, theoMau: { m: { ten: '<b>', n: 2, sua: 1, loi: { 'không có ảnh thật': 1 } } } }).includes('&lt;b&gt;'), 'thoát HTML');
   const v = vanDeMay([{ ma: 'm', ten: 'M', nen: 'x', tran: 1, cuoi: '2026-10-17', con: 20 }, { ma: 'm', ten: 'M', nen: 'yt', tran: 1, cuoi: null, con: 3 }, { ma: 'm', ten: 'M', nen: 'tiktok', tran: 2, cuoi: '2026-10-16', con: 13 }], '2026-10-17');
   t.deepEqual(v.map((x) => x.khoa), ['lo|m|yt', 'kho|m|yt', 'lo|m|tiktok', 'kho|m|tiktok'], 'đăng hôm qua + kho đủ = im; chưa có bài = lỡ; 13 bài / 2 mỗi ngày = 6 ngày < 7');

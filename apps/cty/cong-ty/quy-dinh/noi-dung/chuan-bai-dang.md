@@ -12,6 +12,7 @@ Ba thứ đó là thước chấm. Bài đúng mà không ai dừng lại thì v
 
 - Mọi bài có hình (video, ảnh, thẻ câu đố, ảnh xem trước của bài link) phải có **ảnh chụp thật, đúng chủ đề** từ Pexels / Pixabay / Unsplash:
   sảnh khách sạn, quầy lễ tân, tay cầm điện thoại đọc tin, va li ở sân bay, đường phố của đúng nước đang nói…
+- Ảnh đồ vật / xe / máy đúng đời (Page hoài cổ, 25/10/2026) được lấy từ **Wikimedia Commons** giấy phép tự do (Public domain, CC0, CC BY, CC BY-SA); chữ đăng **phải ghi công** dạng `📷 <tác giả>, <giấy phép>, via Wikimedia Commons` (thiếu là chặn cứng).
 - Ảnh phải **nhìn rõ**: người xem nhận ra ảnh chụp gì mà không cần nheo mắt. Lớp phủ màu chỉ đủ để chữ đọc được, không phủ tối tới mất ảnh.
 - **Chặn cứng:** chữ trên nền màu phẳng / gradient / hoạ tiết vẽ; ảnh phủ tối gần như đen; ảnh không liên quan chủ đề (ảnh bãi biển cho bài lừa đảo tin nhắn).
 - Ảnh đổi theo bài: cùng một ảnh nền cho mọi bài của một kênh trông như bài lặp, feed nhìn chán.
@@ -32,6 +33,7 @@ Ba thứ đó là thước chấm. Bài đúng mà không ai dừng lại thì v
 
 - Câu dẫn sang trang nói **họ được gì** ở đó ("Take the 10-question quiz", "Paste your own message to check it"), không chỉ "Link in bio" / "Learn more".
 - Link gắn UTM theo kênh và dạng bài (máy gắn; thiếu là chặn cứng).
+- **Bài thường không link** (đan xen: một bài link trong bảy bài của một Page, 25/10/2026): khai `dang.loai = 'thuong'`; bài thường mà chữ đăng có link là chặn cứng.
 
 ## 5 · Giọng văn (chặn cứng như bài site)
 

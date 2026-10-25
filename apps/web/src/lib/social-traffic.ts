@@ -447,6 +447,14 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     const bayVn = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
     const cuoiLuoi = new Date(Date.parse(`${hom}T00:00:00Z`) + 42 * 864e5).toISOString().slice(0, 10);   // 6 tuần tới cho lịch tháng / tuần (lưới giờ tự lọc 10 ngày); lịch 90 ngày còn lại chỉ dùng cho thống kê kho
     for (const x of dk[0]?.ds ?? []) if (`${x.ngay} ${x.gio}` > bayVn && x.ngay <= cuoiLuoi) o.push({ ngay: x.ngay, gio: x.gio, may: x.may, mayTen: x.mayTen ?? x.may, nen: x.nen, title: x.title, url: null, loai: 'du_kien', anh: x.slug ? anhCua.get(`${x.may}|${x.slug}`) ?? null : null, tk: tkCua.get(`${x.may}|${x.nen}`) ?? null, nhom: x.nhom ?? null, link: null });
+    // BÀI HẸN GIỜ theo kế hoạch Page (bai_hen — kế hoạch Page hoài cổ 25/10/2026): Facebook tự đăng đúng giờ; trước giờ = sẽ đăng, qua giờ = đã đăng.
+    // nền theo format (Reel → facebook:<acct>, ảnh / album → fb_anh:<acct>, bài link → fb_link:<acct>) để nhãn format + nhóm kênh khớp bài máy trên cùng Page
+    const hen = (await d.execute(sql`SELECT id, acct, ten, ke_hoach, hen_luc::text AS luc, nhom, format, chu, anh, video, link, url FROM bai_hen WHERE graph_id IS NOT NULL`).catch(() => [])) as unknown as { acct: number; ten: string; ke_hoach: string; luc: string; nhom: string | null; format: string | null; chu: string; anh: string[] | null; video: string | null; link: string | null; url: string | null }[];
+    for (const x of hen) {
+      const vn = new Date(Date.parse(x.luc) + 7 * 3600e3).toISOString(), qua = Date.parse(x.luc) <= Date.now(), nen = `${x.video ? 'facebook' : x.link ? 'fb_link' : 'fb_anh'}:${x.acct}`;
+      o.push({ ngay: vn.slice(0, 10), gio: vn.slice(11, 16), may: x.ke_hoach, mayTen: 'Page hoài cổ · kế hoạch tuần', nen, title: x.chu.split('\n')[0] ?? '', url: qua ? x.url : null, loai: qua ? 'da' : 'du_kien',
+        anh: x.anh?.[0] || null, tk: x.ten, nhom: x.nhom, link: x.link != null, xem: qua && x.url ? xemCua.get(maBai(x.url)) ?? null : null, bam: null });
+    }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };
   } catch (e) { loi.push(`lưới lịch: ${(e as Error).message}`); return rong; }
 }

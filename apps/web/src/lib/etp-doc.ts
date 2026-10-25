@@ -10,7 +10,9 @@ export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; tran
   goc: number | null; lich: string | null; tao: string | null; loi: string | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien };
 export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; tu: number | null; den: number | null;
-  lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null };
+  lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null;
+  /** tab Creative › Soát (anh 25/10/2026: "chỉ số review từng creative về mọi tiêu chí"): soát 18+ cả phim · soát từng đoạn (máy / người, chờ soát) · trạng thái phát của Meta ở các camp */
+  s18: { ok: boolean; ghi: string; luc: string } | null; sd: { ok: boolean; ghi: string; luc: string } | null; sd_cho: boolean; giao: string[] };
 export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: string | null; bo: string | null; locale: string | null; nguon: string | null; creative: number; camp: number; chay: number;
   thang: SoTien; qua: SoTien; nay: SoTien };
 export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[];
@@ -68,13 +70,19 @@ export async function docEtp(): Promise<DuLieuEtp> {
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();
+  const [sKhoa] = await Promise.all([run<{ ten: string; gia_tri: Record<string, { ok?: boolean; ghi?: string; luc?: string }> | null }>(sql`select ten, gia_tri from xv_khoa_ngoai where ten in ('ethopex_soat_18', 'ethopex_soat_doan', 'ethopex_cho_soat')`)]);
+  const khoaS = (t: string) => sKhoa.find((r) => r.ten === t)?.gia_tri ?? {};
+  const s18 = khoaS('ethopex_soat_18'), sDoan = khoaS('ethopex_soat_doan'), choSoat = khoaS('ethopex_cho_soat');
+  const dongS = (v?: { ok?: boolean; ghi?: string; luc?: string }) => (v && typeof v.ok === 'boolean' ? { ok: v.ok, ghi: String(v.ghi ?? ''), luc: String(v.luc ?? '') } : null);
   const crInfo = new Map((await run<Record<string, unknown>>(sql`select creative_id, tu, den, lang, cta_dat, tu_choi, video, anh from etp.creative`)).map((r) => [n(r.creative_id), r]));
   for (const c of cs) {
     if (c.creative_id == null) continue;
     const i = crInfo.get(c.creative_id) ?? {};
     const x = crMap.get(c.creative_id) ?? { creative_id: c.creative_id, content_id: c.content_id, phim: c.phim, the_loai: c.the_loai, dang: c.dang, doan: c.doan, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den),
       lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat, tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: c.cung_doan,
-      thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, ngay_dau: null };
+      thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, ngay_dau: null,
+      s18: c.content_id ? dongS(s18[String(c.content_id)]) : null, sd: c.doan ? dongS(sDoan[c.doan]) : null, sd_cho: !!(c.doan && choSoat[c.doan]), giao: [] as string[] };
+    if (c.giao) x.giao.push(c.giao);
     x.camp++; if (c.trang_thai === 'ACTIVE') x.chay++; x.thang = cong(x.thang, c.thang); x.qua = cong(x.qua, c.qua); x.nay = cong(x.nay, c.nay);
     if (c.tao && (!x.ngay_dau || c.tao < x.ngay_dau)) x.ngay_dau = c.tao;
     crMap.set(c.creative_id, x);

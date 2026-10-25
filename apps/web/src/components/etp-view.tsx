@@ -181,6 +181,62 @@ const loiThuong = (loi: string | null) => {
   if (/rào|trần ngày|trần bộ|dừng khẩn/.test(t)) return 'chạm trần ngân sách';
   return (t.split(' — ')[0] ?? '').replace(/#\d+|\(.*?\)|[a-z_]+_[a-z_]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 };
+// CREATIVE › SOÁT (anh 25/10/2026: "cần 1 tab để hiện các chỉ số review từng creative về mọi tiêu chí"): mỗi creative một dòng, mỗi tiêu chí một dấu hiệu,
+// lý do (lời thường) ở hover. Tiêu chí: soát 18+ cả phim · soát từng đoạn (máy / người) · CTA · Meta duyệt · số camp cùng đoạn · phim bão hoà · hiệu quả.
+type Dau = { k: 'ok' | 'loi' | 'cho' | 'chua'; t: string };
+const DAU_MAU: Record<Dau['k'], string> = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', cho: '#f59e0b', chua: 'var(--fg-3, #666)' };
+const DAU_KY: Record<Dau['k'], string> = { ok: '✓', loi: '✕', cho: '…', chua: '–' };
+const O = ({ d }: { d: Dau }) => <span title={d.t} aria-label={d.t} style={{ color: DAU_MAU[d.k], fontWeight: 700, cursor: 'help', display: 'inline-block', minWidth: 16, textAlign: 'center' }}>{DAU_KY[d.k]}</span>;
+// lời máy ghi → lời thường: bỏ tên cổng / mô hình, ngày; "cho qua theo lô" nói rõ là chưa soát từng đoạn
+const loiSoat = (g: string) => g.replace(/^máy soát (lại \d+\/\d+ )?(Claude)?\s*(\([^)]*\))?:?\s*/i, 'Máy xem: ').replace(/^soát tờ khung theo lô.*/i, 'Cho qua theo cả lô, chưa xem riêng đoạn này').replace(/^Claude soát tờ[^:]*:?\s*/i, 'Đã xem tờ khung: ');
+const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'bạo lực / cưỡng ép tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
+const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
+function danhGia(r: CreativeEtpKho, chan: Map<number, string>) {
+  const s18: Dau = r.s18 ? { k: r.s18.ok ? 'ok' : 'loi', t: `Cả phim: ${r.s18.ok ? 'không có cảnh 18+' : 'có cảnh cấm'}${r.s18.ghi ? ' — ' + loiSoat(r.s18.ghi) : ''} (${r.s18.luc})` } : { k: 'chua', t: 'Cả phim chưa soát 18+' };
+  const sd: Dau = r.sd ? (/theo lô/i.test(r.sd.ghi) ? { k: 'cho', t: loiSoat(r.sd.ghi) } : { k: r.sd.ok ? 'ok' : 'loi', t: `${r.sd.ok ? 'Đoạn sạch' : 'Đoạn bị cấm'} — ${loiSoat(r.sd.ghi)} (${r.sd.luc})` })
+    : r.sd_cho ? { k: 'cho', t: 'Đoạn đang chờ người xem' } : { k: 'chua', t: 'Đoạn này lên trước khi có soát từng đoạn' };
+  const cta: Dau = r.cta_dat ? { k: 'ok', t: 'Nút kêu gọi đạt luật' } : { k: 'cho', t: 'Nút kêu gọi kiểu cũ, chưa sửa' };
+  const meta: Dau = r.tu_choi || r.giao.includes('DISAPPROVED') ? { k: 'loi', t: loiMeta(r.tu_choi ?? '') }
+    : r.giao.includes('ACTIVE') ? { k: 'ok', t: 'Meta đã duyệt, đang phát' } : r.giao.includes('IN_PROCESS') ? { k: 'cho', t: 'Meta đang duyệt' } : { k: 'chua', t: 'Không camp nào đang phát' };
+  const doan: Dau = r.cung_doan > 3 ? { k: 'loi', t: `${r.cung_doan} camp đang dùng cùng đoạn này — nên tối đa 3` } : { k: 'ok', t: `${r.cung_doan} camp dùng cùng đoạn này (tối đa 3)` };
+  const c = r.content_id ? chan.get(r.content_id) : undefined;
+  const bh: Dau = c ? { k: 'loi', t: `Phim đang dừng nhân bản — ${c}` } : { k: 'ok', t: 'Phim chưa bão hoà' };
+  const ds = [s18, sd, cta, meta, doan, bh];
+  return { s18, sd, cta, meta, doan, bh, loi: ds.filter((d) => d.k === 'loi').length, cho: ds.filter((d) => d.k === 'cho').length };
+}
+type LocSoat = 'van_de' | 'meta' | 'cho' | 'all';
+function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) => React.ReactElement }) {
+  const [loc, setLoc] = useState<LocSoat>('van_de');
+  const chan = useMemo(() => new Map(du.baoHoa.filter((b) => b.chan_nb).map((b) => [b.content_id, b.chan_nb!])), [du.baoHoa]);
+  const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS')).map((r) => ({ r, d: danhGia(r, chan) })), [du.creatives, chan]);
+  const dem = { van_de: ds.filter((x) => x.d.loi).length, meta: ds.filter((x) => x.d.meta.k === 'loi').length, cho: ds.filter((x) => x.d.cho).length, all: ds.length };
+  const rows = ds.filter((x) => loc === 'all' || (loc === 'van_de' ? x.d.loi > 0 : loc === 'meta' ? x.d.meta.k === 'loi' : x.d.cho > 0));
+  const cot = (key: keyof ReturnType<typeof danhGia>, header: string, title: string): DataColumn<(typeof ds)[number]> => (
+    { key, header, title, cell: (x) => <O d={x.d[key] as Dau} />, sortValue: (x) => ['loi', 'cho', 'chua', 'ok'].indexOf((x.d[key] as Dau).k) });
+  return (
+    <div>
+      <div style={{ margin: '4px 0 8px' }}>
+        <FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'van_de', label: 'Có lỗi' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'cho', label: 'Đang chờ' }, { value: 'all', label: 'Tất cả đang chạy' }]} />
+      </div>
+      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-soat" minWidth={1000} pageSize={100}
+        searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
+          { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Anh cr={x.r.creative_id} /><span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''}</span></span></span>, sortValue: (x) => x.r.phim ?? '' },
+          cot('s18', 'Cả phim 18+', 'Soát 18+ toàn phim (khoả thân, máu, vũ khí)'),
+          cot('sd', 'Đoạn video', 'Soát riêng đoạn video quảng cáo này'),
+          cot('meta', 'Meta', 'Meta duyệt hay từ chối quảng cáo'),
+          cot('cta', 'Nút kêu gọi', 'Nút kêu gọi cuối video đạt luật'),
+          cot('doan', 'Cùng đoạn', 'Số camp dùng cùng đoạn video — tối đa 3'),
+          cot('bh', 'Phim bão hoà', 'Phim có đang bị dừng nhân bản vì ROI tụt'),
+          { key: 'camp', header: 'Camp chạy', cell: (x) => `${x.r.chay}/${x.r.camp}`, sortValue: (x) => x.r.chay },
+          { key: 'roi_qua', header: 'ROI h.qua', cell: (x) => <Roi s={x.r.qua} />, sortValue: (x) => roiOf(x.r.qua) ?? -1e9 },
+          { key: 'roi_nay', header: 'ROI h.nay', cell: (x) => <Roi s={x.r.nay} />, sortValue: (x) => roiOf(x.r.nay) ?? -1e9 },
+          { key: 'diem', header: 'Lỗi', title: 'số tiêu chí đang lỗi', cell: (x) => (x.d.loi ? <span style={{ color: '#f87171', fontWeight: 700 }}>{x.d.loi}</span> : <span style={{ color: 'var(--fg-3)' }}>0</span>), sortValue: (x) => x.d.loi * 10 + x.d.cho },
+        ]} />
+      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: DAU_MAU.ok }}>✓</span> đạt · <span style={{ color: DAU_MAU.loi }}>✕</span> lỗi · <span style={{ color: DAU_MAU.cho }}>…</span> đang chờ · – chưa có · rê chuột vào dấu để xem lý do</div>
+    </div>
+  );
+}
+
 function CayCamp({ camps, du }: { camps: CampEtpKho[]; du: DuLieuEtp }) {
   const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');
   const tuoi = (c: CampEtpKho) => (c.tao ? Math.max(0, Math.floor((Date.parse(du.nay) - Date.parse(c.tao.slice(0, 10))) / 86_400_000)) : null);
@@ -270,14 +326,15 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('tong');
   const [loc, setLoc] = useState<'all' | 'chay' | 'tat' | 'cung' | 'roas'>('chay');
+  const [xemSoat, setXemSoat] = useState(false);   // tab Creative: Hiệu quả | Soát (?v=soat)
   const [xemCay, setXemCay] = useState(true);   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
   const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
   useEffect(() => { const mq = window.matchMedia('(max-width: 720px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
   useEffect(() => { const q = new URLSearchParams(location.search); const x = q.get('t') as Tab | null; if (x) setTab(x);
-    const v = q.get('v') ?? (() => { try { return localStorage.getItem('etp-camp-xem'); } catch { return null; } })(); if (v === 'bang' || v === 'cay') setXemCay(v === 'cay'); }, []);
-  useEffect(() => { const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCay ? 'cay' : 'bang'); else u.searchParams.delete('v'); history.replaceState(history.state, '', u);
-    try { localStorage.setItem('etp-camp-xem', xemCay ? 'cay' : 'bang'); } catch { /* trình duyệt chặn */ } }, [tab, xemCay]);
+    const v = q.get('v') ?? (() => { try { return localStorage.getItem('etp-camp-xem'); } catch { return null; } })(); if (v === 'bang' || v === 'cay') setXemCay(v === 'cay'); if (q.get('v') === 'soat') setXemSoat(true); }, []);
+  useEffect(() => { const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCay ? 'cay' : 'bang'); else if (tab === 'creative' && xemSoat) u.searchParams.set('v', 'soat'); else u.searchParams.delete('v'); history.replaceState(history.state, '', u);
+    try { localStorage.setItem('etp-camp-xem', xemCay ? 'cay' : 'bang'); } catch { /* trình duyệt chặn */ } }, [tab, xemCay, xemSoat]);
   const [kh, setKh] = useState<Kh>('7');
   const [xem, setXem] = useState<{ anh: string; video: string | null; x: number; y: number } | null>(null);   // ảnh to + video khi rê vào ảnh creative
   useEffect(() => { try { const v = localStorage.getItem('etp-kh') as Kh | null; if (v && v in KH_TEN) setKh(v); } catch { /* bỏ qua */ } }, []);
@@ -374,6 +431,12 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
               <button key={nhan} onClick={() => setXemCay(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCay === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCay === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}
+        {tab === 'creative' ? (
+          <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            {([[false, 'Hiệu quả', 'lãi, ROI, chi theo ngày'], [true, '🛡 Soát', 'mọi tiêu chí kiểm duyệt của từng creative']] as const).map(([v, nhan, t]) => (
+              <button key={nhan} onClick={() => setXemSoat(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
+                background: xemSoat === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemSoat === v ? 600 : 400 }}>{nhan}</button>))}
+          </span>) : null}
         {tab === 'camp' ? <FilterChips value={loc} onChange={setLoc} counts={{ all: du.camps.length, chay: chay.length, tat: du.camps.length - chay.length, cung: du.camps.filter((c) => c.cung_doan > 3).length, roas: roasDat.size }}
           options={[{ value: 'chay', label: 'Đang chạy' }, { value: 'tat', label: 'Đã tắt' }, { value: 'cung', label: 'Đoạn > 3 camp' }, { value: 'roas', label: '★ Đủ bid ROAS' }, { value: 'all', label: 'Tất cả' }]} /> : null}
       </div>
@@ -396,6 +459,8 @@ export function EtpView({ du }: { du: DuLieuEtp }) {
       ) : tab === 'camp' ? (
         <DataTable rows={camps} columns={cotCamp} groups={NHOM} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" />
+      ) : tab === 'creative' && xemSoat ? (
+        <TabSoat du={du} Anh={Anh} />
       ) : tab === 'creative' ? (
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />

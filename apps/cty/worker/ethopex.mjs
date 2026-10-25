@@ -24,7 +24,7 @@ const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); 
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
   ['tat', '⏹ <b>CẦN TẮT</b> — tiêu > $10 từ trước tới nay, ROI < −50%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
-  ['dung_dem', '🌙 <b>DỪNG ĐÊM</b> — 21h–5h, chỉ camp clone y nguyên creative: camp âm (chi ≥ 40% ngân sách, ROI ≤ −40%) mà lỗ tăng ≥ 15% ngân sách so với lượt trước → máy tắt luôn', null],
+  ['dung_dem', '🌙 <b>DỪNG ĐÊM</b> — 21h–5h, chỉ camp clone y nguyên creative: camp âm (chi ≥ 30% ngân sách, ROI ≤ −50%) mà lỗ còn tăng so với lượt trước → máy tắt luôn', null],
   ['thang_tat', '⏹ <b>BẢN THANG LỖ</b> — bộ 2: bản nhân ở bậc cao đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp ổn 2 ngày trọn (chi ≥ 50%, ROI ≥ 50%) → máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — Edit camp, thay creative sạch đã duyệt cùng phim', null],

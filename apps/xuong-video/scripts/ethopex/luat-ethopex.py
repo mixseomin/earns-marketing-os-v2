@@ -394,12 +394,14 @@ except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
 tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
 # DỪNG ĐÊM — CAMP ÂM TĂNG NHANH (anh 25/10/2026: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"):
-# 21h–5h VN là giờ Mỹ mua mạnh, camp âm tiêu rất nhanh — chờ giảm bậc sáng mai là mất cả đêm. Camp đang bật, hôm nay (số đã chốt chi) chi ≥ 40% ngân sách,
-# ROI ≤ −40%, và khoản LỖ tăng ≥ 15% ngân sách so với lượt chấm trước (≤ 90 phút) → máy TẮT luôn (lam-ethopex vẫn chặn camp ROI cộng dồn > 20%).
+# 21h–5h VN là giờ Mỹ mua mạnh, camp âm tiêu rất nhanh — chờ giảm bậc sáng mai là mất cả đêm. Camp đang bật, hôm nay (số đã chốt chi) chi ≥ 30% ngân sách,
+# ROI ≤ −50%, và khoản LỖ vẫn đang tăng so với lượt chấm trước (≤ 90 phút) → máy TẮT luôn (lam-ethopex vẫn chặn camp ROI cộng dồn > 20%).
+# Ngưỡng chọn bằng mô phỏng hai đêm 23–24/10 (scripts mo-phong theo đường giờ phim): 40%/−40%/lỗ +15% cắt ~$0; 30%/−50%/lỗ tăng cắt $4–6 mỗi đêm,
+# dừng 21–33 camp, mất doanh thu ít nhất; 20%/−20% dừng 37–67 camp, có đêm lỗ còn tăng vì mất doanh thu về trễ.
 # CHỈ CAMP CLONE Y NGUYÊN CREATIVE (anh 25/10/2026: "luật dừng này chỉ áp dụng cho camp là clone lại hoàn toàn creative. Còn camp creative mới vẫn duy trì
 # theo dõi thêm"): camp mà creative của nó đã có camp khác tạo TRƯỚC (kho etp.camp) — camp đầu tiên của một creative không bao giờ bị dừng đêm.
 # Ảnh chụp lỗ từng camp lưu xv_khoa_ngoai['ethopex_lo_dem'], chỉ ghi ở lượt --json (Phòng Ethopex ~35 phút/lượt).
-DEM_ROI, DEM_CHI, DEM_TANG, DEM_PHUT = -40, 0.4, 0.15, 90
+DEM_ROI, DEM_CHI, DEM_TANG, DEM_PHUT = -50, 0.3, 0.01, 90   # DEM_TANG: lỗ tăng tối thiểu (tỷ lệ ngân sách) — chỉ cần còn đang tăng
 dung_dem = []
 if vn.hour >= 21 or vn.hour < 5:
     try:

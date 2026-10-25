@@ -246,13 +246,14 @@ export type KieuChu = { font?: string; mau?: string; vien?: string; nhan?: strin
 /** ngang = độ rộng chữ % (ASS ScaleX; <100 = chữ hẹp như font QC mẫu). co = cỡ chữ ASS / bề ngang (ASS tính theo chiều cao dòng → chữ nhỏ hơn cùng số px của drawtext). */
 export const KIEU_CHU_MAC_DINH = { font: 'DejaVu Sans', mau: '#FFFFFF', vien: '#000000', nhan: '', co: 0.062, vien_day: 0.07, ngang: 100, vao: '' as '' | 'bat' | 'dap' };
 /** Gộp kiểu chữ màn: mặc định ← phim ← shot (giá trị rỗng không đè). MỘT hàm cho bản xuất (xuat.ts › tepAss) và ô xem trước (chu-man.tsx).
- *  Phim CHƯA chọn kiểu chữ → chữ trắng trên băng nền tối: viền mỏng chìm hẳn trên nền giấy sáng của phim vẽ (Fox Tales 13/10/2026,
- *  "nền chữ trắng không đọc được"). Phim đã chọn kiểu (QC chép từ mẫu) giữ nguyên kiểu của nó. */
-export const NEN_CHU_MAC_DINH = '#000000';
+ *  Phim CHƯA chọn kiểu chữ → chữ trắng VIỀN ĐEN DÀY, không băng nền (anh 25/10/2026, kể chuyện Step Back: "dùng chữ có viền đen chứ không dùng nền đen,
+ *  như vậy mất hết hình video"). Viền dày VIEN_DAY_MAC_DINH vẫn đọc được trên nền giấy sáng của phim vẽ (lý do cũ dùng băng nền: viền mỏng 0,07 chìm —
+ *  Fox Tales 13/10/2026). Phim đã chọn kiểu (QC chép từ mẫu, kể cả kiểu có nền) giữ nguyên kiểu của nó. */
+export const VIEN_DAY_MAC_DINH = 0.12;
 export function gopKieu(phim?: KieuChu | null, shot?: KieuChu | null): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string; tu?: number } {
   const sach = (d?: KieuChu | null) => Object.fromEntries(Object.entries(d ?? {}).filter(([, v]) => v !== '' && v != null));
   const p = sach(phim);
-  return Object.assign({}, KIEU_CHU_MAC_DINH, Object.keys(p).length ? {} : { nen: NEN_CHU_MAC_DINH }, p, sach(shot));
+  return Object.assign({}, KIEU_CHU_MAC_DINH, Object.keys(p).length ? {} : { vien_day: VIEN_DAY_MAC_DINH }, p, sach(shot));
 }
 export const VAO_CHU: { key: '' | 'bat' | 'dap'; ten: string }[] = [{ key: '', ten: 'Hiện thẳng' }, { key: 'bat', ten: 'Nảy (pop)' }, { key: 'dap', ten: 'Đập (trailer)' }];
 /** Đoạn ASS mở đầu mỗi câu theo hiệu ứng vào — CÙNG thời lượng với CSS xem trước (xv.css › xv-chu-bat / xv-chu-dap). */

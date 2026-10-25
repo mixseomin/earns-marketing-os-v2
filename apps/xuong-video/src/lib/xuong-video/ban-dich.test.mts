@@ -40,7 +40,9 @@ assert.deepStrictEqual(giongDong({ nhan_vat: 'Felix' }, nv, kt), { model: 'm', v
 assert.strictEqual(giongDong({ nhan_vat: 'Crow' }, nv, kt), null, 'nhân vật chưa có giọng → không lấy nhầm giọng lời dẫn');
 assert.deepStrictEqual(giongDong({ nhan_vat: '' }, nv, kt), { model: 'm', voice: 'george' });
 // chữ màn: phim chưa chọn kiểu → băng nền tối; phim có kiểu (QC chép mẫu) → giữ kiểu
-assert.strictEqual(gopKieu(undefined).nen, '#000000');
-assert.strictEqual(gopKieu({}, { mau: '#FF0000' }).nen, '#000000');
+assert.strictEqual(gopKieu(undefined).nen, undefined);   // anh 25/10/2026: không băng nền đen — chữ viền đen dày
+assert.strictEqual(gopKieu(undefined).vien_day, 0.12);
+assert.strictEqual(gopKieu({}, { mau: '#FF0000' }).nen, undefined);
+assert.strictEqual(gopKieu({ nen: '#000000' }).nen, '#000000');   // phim tự chọn kiểu có nền thì giữ
 assert.strictEqual(gopKieu({ font: 'Montserrat Black', vien_day: 0.1 }).nen, undefined);
 console.log('ban-dich.test: ok');

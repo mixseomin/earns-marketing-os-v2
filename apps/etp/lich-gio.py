@@ -70,6 +70,11 @@ def main():
     # camp trong lich_tat đã bị lưu trữ / mất khỏi kho → bỏ khỏi sổ (không bật)
     q("delete from etp.lich_tat l where not exists (select 1 from etp.camp c where c.camp_id = l.camp_id and c.trang_thai <> 'ARCHIVED')")
     # camp trong sổ mà đang chạy lại (vd máy thay creative bị Meta từ chối xong bật lại) → tạm dừng lại luôn, không để chạy suốt khung TẮT
+    # camp vừa tạm dừng mà kho chưa thấy Ethopex đổi gì sau lúc đó (cap_nhat_etp ≤ lúc ghi lich_tat) vẫn hiện ACTIVE trong kho — KHÔNG gửi lại lệnh + báo lại mỗi lượt;
+    # chỉ tạm dừng lại camp trong sổ khi Ethopex có cập nhật MỚI hơn lúc tạm dừng (vd máy thay creative bật lại)
+    cu_kho = {int(c) for c in q("""select l.camp_id from etp.lich_tat l join etp.camp c using (camp_id)
+        where c.trang_thai = 'ACTIVE' and (c.cap_nhat_etp is null or c.cap_nhat_etp <= l.luc)""").split() if c.isdigit()}
+    chay = [(c, t) for c, t in chay if c not in cu_kho]
     can_tat = [c for c, t in chay if bat_lich and (not on(t, k_nay) or not on(t, k_toi))]
     can_bat = [c for c, t in dang_tat.items() if (not bat_lich or (on(t, k_nay) and on(t, k_toi))) and not dung_khan]
     # BÁO TRƯỚC: lượt này không đổi gì nhưng lượt KẾ (sau CHU_KY phút) sẽ tạm dừng / bật lại hàng loạt → báo một lần cho mỗi lần chuyển khung

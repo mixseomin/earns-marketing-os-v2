@@ -221,13 +221,20 @@ const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.te
 // THẺ NỔI DÙNG CHUNG (anh 25/10/2026: "preview hiện xong đéo có nút tắt"): mọi thẻ xem trên trang — nút ✕, Esc tắt, rê chuột vào thẻ thì giữ
 // (xem video, đọc lý do), rời cả ô lẫn thẻ 0,3 giây thì tắt. Ô mở thẻ là HÀM dựng, không phải component khai bên trong component cha:
 // trang tự làm mới 5–60 giây, component khai bên trong bị dựng lại mỗi lần → mất sự kiện rời chuột → thẻ treo không tắt được.
+// TRỄ MỞ (anh 25/10/2026: "không cho hiện ngay, phải để một lúc mới hiện tránh hover nhầm"): dừng chuột TRE_MO ms mới mở; lướt qua thì không mở;
+// đang có thẻ mở mà rê sang ô khác thì đổi ngay. Luật chung: ~/.claude/skills/design/ydni/SKILL.md (THẺ NỔI KHI RÊ CHUỘT).
+const TRE_MO = 450;
 function useNoi<T>() {
   const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
   const hen = useRef<number | undefined>(undefined);
+  const dangMo = useRef(false); dangMo.current = !!v;
   const giu = useCallback(() => { if (hen.current) window.clearTimeout(hen.current); }, []);
   const dongTre = useCallback(() => { giu(); hen.current = window.setTimeout(() => setV(null), 300); }, [giu]);
   const dong = useCallback(() => { giu(); setV(null); }, [giu]);
-  const mo = useCallback((x: T, e: React.MouseEvent) => { giu(); setV({ ...x, x: e.clientX, y: e.clientY }); }, [giu]);
+  const mo = useCallback((x: T, e: React.MouseEvent) => {
+    giu(); const toaDo = { x: e.clientX, y: e.clientY };
+    if (dangMo.current) setV({ ...x, ...toaDo }); else hen.current = window.setTimeout(() => setV({ ...x, ...toaDo }), TRE_MO);
+  }, [giu]);
   useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
   return { v, mo, giu, dongTre, dong };
 }

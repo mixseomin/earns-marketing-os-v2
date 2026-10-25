@@ -42,6 +42,16 @@ export const mayTimCua = (nguon: string | null) => { if (!nguon || / \/ (cpc|pai
 
 export type PhoNen = 'yt' | 'fb' | 'ig' | 'tt' | 'x' | 'pin' | 'dm' | 'th' | 'qu';
 const NEN_KEY: Record<string, PhoNen> = { youtube: 'yt', facebook: 'fb', instagram: 'ig', tiktok: 'tt', twitter: 'x', x: 'x', pinterest: 'pin', dailymotion: 'dm', threads: 'th', quora: 'qu' };
+/** LINK + AVATAR của kênh (anh 25/10/2026: "muốn mở xem kênh đó hoạt động thực tế" · "fanpage thì dùng avatar của page đó là chính, bên thân để fb"):
+ *  Facebook Page theo mã Page (vault account_stats.page_id / máy đăng br.graph_id) → facebook.com/<mã>, avatar = khoá 'fbp:<mã>' trong bảng fav (máy chủ tải
+ *  ảnh Page về data URI); YouTube theo mã kênh (br.kenh_id) hoặc @handle; nền khác theo handle. Handle không phải tên người dùng (có dấu cách) → không link. */
+export function linkKenh(nenKey: string, handle: string, id: { pageId?: string | null; kenhId?: string | null } = {}): { url: string | null; anh: string | null } {
+  const h = handle.replace(/\s*\(Page\)\s*$/i, '').replace(/^@/, '').trim(), ok = /^[\w.-]+$/.test(h), pid = id.pageId && /^\d+$/.test(id.pageId) ? id.pageId : null;
+  if (nenKey === 'facebook') return { url: pid ? `https://www.facebook.com/${pid}` : null, anh: pid ? `fbp:${pid}` : null };
+  if (nenKey === 'youtube') return { url: id.kenhId ? `https://www.youtube.com/channel/${id.kenhId}` : ok ? `https://www.youtube.com/@${h}` : null, anh: null };
+  const goc: Record<string, string> = { instagram: 'https://www.instagram.com/', tiktok: 'https://www.tiktok.com/@', twitter: 'https://x.com/', x: 'https://x.com/', pinterest: 'https://www.pinterest.com/', threads: 'https://www.threads.net/@', dailymotion: 'https://www.dailymotion.com/' };
+  return { url: ok && goc[nenKey] ? `${goc[nenKey]}${h}` : null, anh: null };
+}
 /** nơi đăng của máy (xv_may.dang[].nen: youtube, x_anh, fb_link…) → khoá nền tảng của tài khoản (platform_accounts.platform_key) */
 // Page cũ gắn vào máy (S06): khoá 'facebook:<acct vault>' → phần trước dấu ':'
 export const nenCuaMay = (nen: string) => { const g = (nen.split(':')[0] ?? nen).replace(/_(anh|link)$/, ''); return ({ fb: 'facebook', ig: 'instagram', x: 'twitter' } as Record<string, string>)[g] ?? g; };
@@ -59,6 +69,8 @@ export interface PhoTk {
   dich: string | null; hong: string | null; dung: boolean;
   /** MÁY ĐĂNG từng nền của tài khoản (trangThaiNen) + trạng thái nặng nhất của cả toà (ttDang) — city vẽ dấu trên nóc, thẻ hover liệt kê */
   dang?: DangNen[]; ttDang?: TtDang | null;
+  /** link mở kênh thật + khoá avatar trong bảng fav (Page Facebook: 'fbp:<mã Page>') — linkKenh */
+  url?: string | null; anh?: string | null;
 }
 /** trạng thái máy đăng một nền hôm nay: sua = Mạnh (thợ máy) đang sửa / chờ sửa · dang = đang đăng · hong = lượt đăng hỏng · cho = có lịch hôm nay, chưa lên · xong = đã lên */
 export type TtDang = 'sua' | 'dang' | 'hong' | 'cho' | 'xong';
@@ -345,7 +357,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
   const tk: PhoTk[] = tho.map((t) => ({
     id: t.id, loai: 'mxh' as const, nen: NEN_KEY[t.k.nenKey!]!, ten: t.k.ten.replace(/\s*\(Page\)\s*$/i, ''), duAn: t.duAn,
     chay: t.k.video, sap: t.sap, xem: t.k.daDo === false ? null : t.k.xem, phien: t.k.click, phienKy: t.k.nenKey === 'pinterest' ? '30 ngày' : '7 ngày',
-    dich: t.site, hong: t.hong, dung: t.k.tt === 'dung',
+    dich: t.site, hong: t.hong, dung: t.k.tt === 'dung', url: t.k.url ?? null, anh: t.k.anh ?? null,
     ...(() => { const ds = (t.k.dangMay ?? []).map((x) => trangThaiNen(x)).filter((x): x is DangNen => !!x); return ds.length ? { dang: ds, ttDang: ttNangNhat(ds) } : {}; })(),
   }));
 

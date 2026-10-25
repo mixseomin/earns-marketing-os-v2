@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -284,3 +284,19 @@ console.log('máy đăng trên city ✓');
   assert.ok(f[3]!.tat && !f[0]!.tat && f[2]!.kenh && !f[1]!.kenh && f[3]!.nguoi === null);
 }
 console.log('fanpage ✓');
+
+// link + avatar kênh (25/10/2026): Page theo mã → facebook.com/<mã> + khoá avatar 'fbp:'; YouTube theo mã kênh; handle có dấu cách → không link
+{
+  assert.deepStrictEqual(linkKenh('facebook', 'Retro Cars Club (Page)', { pageId: '129365743783277' }), { url: 'https://www.facebook.com/129365743783277', anh: 'fbp:129365743783277' });
+  assert.deepStrictEqual(linkKenh('facebook', 'Retro Cars Club (Page)', {}), { url: null, anh: null }, 'thiếu mã Page: không bịa link');
+  assert.strictEqual(linkKenh('youtube', '@frontporchpuzzles', { kenhId: 'UCdii' }).url, 'https://www.youtube.com/channel/UCdii');
+  assert.strictEqual(linkKenh('youtube', '@frontporchpuzzles').url, 'https://www.youtube.com/@frontporchpuzzles');
+  assert.strictEqual(linkKenh('instagram', '@hotelscamalerts').url, 'https://www.instagram.com/hotelscamalerts');
+  assert.strictEqual(linkKenh('tiktok', 'uriellrqv5g').url, 'https://www.tiktok.com/@uriellrqv5g');
+  assert.strictEqual(linkKenh('twitter', 'Hotel Scam Alerts').url, null, 'tên hiển thị có dấu cách không phải handle');
+  // toà Page mang url + anh sang PhoTk
+  const m = tinhThanhPho({ ...live, kenh: [...live.kenh, { id: 580, ten: 'Retro Cars Club (Page)', nenTang: 'Facebook Reels', nenKey: 'facebook', nhom: 'Front Porch Puzzles', duAn: 'Front Porch Puzzles', ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 0, video: 1, trungViXem: 0, xem: 0, click: 0, hh: 0, url: 'https://www.facebook.com/129365743783277', anh: 'fbp:129365743783277' }] } as any);
+  const t = m.tk.find((x) => x.id === '580')!;
+  assert.ok(t && t.url === 'https://www.facebook.com/129365743783277' && t.anh === 'fbp:129365743783277' && t.ten === 'Retro Cars Club');
+}
+console.log('link kênh ✓');

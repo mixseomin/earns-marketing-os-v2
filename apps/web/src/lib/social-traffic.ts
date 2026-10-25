@@ -12,7 +12,7 @@ import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { DangNenTho, StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
 import { docBamBaiDang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
-import { HOST_BAN, MAY_TIM, NEN_QC, loaiCampEtp, type VaoHeSinhThai } from './social-thanh-pho';
+import { HOST_BAN, MAY_TIM, NEN_QC, loaiCampEtp, linkKenh, type VaoHeSinhThai } from './social-thanh-pho';
 import { getProductsView } from './products/data';
 import { networkRows } from './revenue/networks';
 import { docEthopex } from './ethopex-doc';
@@ -79,6 +79,8 @@ export async function getSocialLive(): Promise<SocialLive> {
     doGio('hệ sinh thái', gio, () => docHeSinhThai(loi))]);
   const site = [...new Set([...kenh.landing.map((x) => x.site), ...suc.dong.map((x) => x.site).filter((x): x is string => !!x), ...nguonSite.map((x) => x.site), ...MAY_TIM.map((m) => m.host), ...Object.values(HOST_BAN), ...Object.values(NEN_QC).map((q) => q.host), ...nguonSite.flatMap((x) => Object.keys(x.gt ?? {}))])];
   const fav = await doGio('favicon', gio, () => docFav(site));
+  // avatar Page Facebook của các kênh (khoá 'fbp:<mã>' — linkKenh) chung bảng fav: city dán lên nóc toà, trình duyệt không gọi ra ngoài
+  await Promise.all([...new Set(kenh.kenh.map((x) => x.anh).filter((x): x is string => !!x?.startsWith('fbp:')))].map(async (k) => { fav[k] = await anhPageMot(k.slice(4)).catch(() => null); }));
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
   return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, heSinhThai };
 }
@@ -219,6 +221,21 @@ async function docNguonApp(): Promise<{ sp: string; nguon: string; hien: number;
     for (const c of x.raw_data?.chiTiet ?? []) if (x.product_id && c.nguon) ra.push({ sp: x.product_id, nguon: c.nguon, hien: c.su === 'Impression' ? c.n ?? 0 : 0, xem: c.su === 'Page view' ? c.n ?? 0 : 0, tai: c.su === 'First-time download' ? c.n ?? 0 : 0 });
   return ra;
 }
+/** LINK + AVATAR KÊNH (25/10/2026): mã Page Facebook (vault account_stats.page_id, không có thì br.graph_id máy đăng khai) + mã kênh YouTube (br.kenh_id) → linkKenh. */
+async function ganLinkKenh(d: NonNullable<ReturnType<typeof getDb>>, kenh: StKenh[]) {
+  const ids = kenh.map((k) => Number(k.id)).filter((x) => x > 0); if (!ids.length) return;
+  const r = (await d.execute(sql`SELECT a.id, a.platform_key, a.handle, coalesce(a.account_stats->>'page_id', br.graph_id) AS page_id, br.kenh_id
+    FROM platform_accounts a LEFT JOIN LATERAL (SELECT max(n->'br'->>'graph_id') AS graph_id, max(n->'br'->>'kenh_id') AS kenh_id FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n
+      WHERE n->'br'->>'acct' = a.id::text) br ON true WHERE a.id IN (${sql.join(ids.map((x) => sql`${x}`), sql`, `)})`)) as unknown as { id: number; platform_key: string; handle: string; page_id: string | null; kenh_id: string | null }[];
+  const m = new Map(r.map((x) => [x.id, linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id })]));
+  for (const k of kenh) { const l = m.get(Number(k.id)); if (l) { k.url = l.url; k.anh = l.anh; } }
+}
+/** AVATAR PAGE (city: nóc toà Page = ảnh đại diện Page): ảnh công khai graph.facebook.com/<mã>/picture → data URI, nhớ 1 ngày; lỗi → null (nóc vẽ logo FB). */
+const anhPageMot = (pid: string) => unstable_cache(async (): Promise<string | null> => {
+  const r = await fetch(`https://graph.facebook.com/${pid}/picture?type=normal`, { signal: AbortSignal.timeout(4000) });
+  if (!r.ok) return null; const b = Buffer.from(await r.arrayBuffer()); if (b.length < 200) return null;
+  return `data:${r.headers.get('content-type') ?? 'image/jpeg'};base64,${b.toString('base64')}`;
+}, ['social-anh-page-v1', pid], { revalidate: 86400 })();
 /** FAVICON SITE ĐÍCH (thành phố Social): Google s2 cỡ 128 → data URI, nhớ 1 ngày mỗi site. Site không có favicon riêng thì s2 trả quả địa cầu
  *  16×16 → null (thành phố vẽ chữ cái đầu). Lỗi mạng / quá 3 giây → null, không chặn trang. */
 const favMot = (site: string) => unstable_cache(async (): Promise<string | null> => {
@@ -515,9 +532,15 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
     const duAn = [...new Set([...cua.map((c) => c.project_id), ...storeAll.map((s) => duAnStore(s.store)).filter((x): x is string => !!x)])];
     if (!duAn.length) { const hm = Date.parse(new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)), kv = await docKenhVault(d, new Set(), hm);
       try { const dm = await docDangMay(d, hm); for (const k of kv) k.dangMay = dm.get(Number(k.id)); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }
+      try { await ganLinkKenh(d, kv); } catch (e) { loi.push(`link kênh: ${(e as Error).message.slice(0, 120)}`); }
       return { kenh: kv, trang: [], ban: [] }; }
     // drizzle trải mảng JS thành ($1, $2…) chứ không thành text[] → `= ANY(${mang})` gãy ("op ANY/ALL (array) requires array"); dùng IN (…)
     const trong = (xs: string[]) => sql.join(xs.map((x) => sql`${x}`), sql`, `);
+    // tài khoản MÁY ĐĂNG khai cho nền gốc (xv_may.dang[].nen = facebook / youtube…, không phải Page cũ 'facebook:<acct>') — số đo kenh_so_ngay của dự án là của
+    // đúng tài khoản đó. Trước 25/10 lấy tài khoản cùng nền ĐẦU TIÊN của dự án → Page cũ gắn vào dự án Front Porch nhận nhầm số của Page Front Porch.
+    const khai = await (d.execute(sql`SELECT n->>'nen' AS nen, (n->'br'->>'acct')::int AS acct FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n
+      WHERE n->'br'->>'acct' ~ '^[0-9]+$'`) as unknown as Promise<{ nen: string; acct: number }[]>);
+    const acctKhai = new Set(khai.map((x) => x.acct)), acctNen = (pk: string) => new Set(khai.filter((x) => x.nen === pk).map((x) => x.acct));
     const [tk, so, video, kenhSp, dau, gum] = await Promise.all([
       d.execute(sql`SELECT id, platform_key, handle, status, project_id, proxy_id, created_at::date::text AS tao FROM platform_accounts
         WHERE project_id IN (${trong(duAn)}) AND platform_key IN (${trong(MXH)}) ORDER BY project_id, platform_key`) as unknown as Promise<{ id: number; platform_key: string; handle: string; status: string | null; project_id: string; proxy_id: number | null; tao: string }[]>,
@@ -538,7 +561,7 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
       for (const [key, nen] of Object.entries(NEN)) {
         const n = tv.nen.find((x) => x.kenh === key);
         const coSo = key === 'pinterest' ? !!pin : !!n && n.soVideo > 0;
-        const t = tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id));
+        const nk = acctNen(nen.pk), t = tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id) && nk.has(x.id)) ?? tk.find((x) => x.project_id === da && x.platform_key === nen.pk && !daDung.has(x.id) && !acctKhai.has(x.id));
         if (!coSo && !t) continue;
         if (t) daDung.add(t.id);
         const ngayDau = dau.find((x) => x.du_an === da && x.kenh === key)?.dau ?? t?.tao ?? hom;
@@ -557,13 +580,14 @@ async function docKenhThat(loi: string[]): Promise<{ kenh: StKenh[]; trang: StTr
         });
       }
       // kênh MXH khác của dự án (twitter, threads…) có trong vault nhưng chưa có máy đo
-      for (const t of tk.filter((x) => x.project_id === da && !daDung.has(x.id)))
+      for (const t of tk.filter((x) => x.project_id === da && !daDung.has(x.id) && !acctKhai.has(x.id)))   // tài khoản máy đăng khai → docKenhVault (đếm bài theo sổ máy)
         kenh.push({ id: t.id, ten: t.handle, nenTang: NEN_TEN[t.platform_key] ?? t.platform_key, nenKey: t.platform_key, nhom: tenDuAn[da] ?? da, duAn: tenDuAn[da] ?? da, ngonNgu: 'EN', proxy: t.proxy_id ? `proxy #${t.proxy_id}` : 'chưa gắn proxy',
           tt: TT_TK(t.status), ngay: Math.max(0, Math.round((homMs - Date.parse(t.tao)) / 864e5)), video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false });
     }
     kenh.push(...await docKenhVault(d, new Set(kenh.map((k) => k.id)), homMs));
     // id kênh đường dự án là chuỗi (SQL), khoá máy đăng là số → tra bằng Number(id)
     try { const dm = await docDangMay(d, homMs); for (const k of kenh) k.dangMay = dm.get(Number(k.id)); } catch (e) { loi.push(`máy đăng trên city: ${(e as Error).message.slice(0, 120)}`); }   // mọi kênh (cả kênh của dự án có cửa bán — Front Porch) mang trạng thái máy đăng
+    try { await ganLinkKenh(d, kenh); } catch (e) { loi.push(`link kênh: ${(e as Error).message.slice(0, 120)}`); }
     // trang đích = các đích link mà kênh trỏ tới (kenh_sp.dich) — chưa có máy đo click từng trang → null
     const theoDich = new Map<string, StTrang>();
     for (const sp of kenhSp.filter((x) => x.project && duAn.includes(x.project))) for (const o of Object.values(sp.o)) {

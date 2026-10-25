@@ -19,6 +19,7 @@ export interface StKenh {
   tt: StTrangThaiKenh; ngay: number; video: number; trungViXem: number; xem: number; click: number; hh: number;
   daDo?: boolean;      // LIVE: false = kênh có trong vault nhưng chưa có máy đo số (cột số hiện '—', không hiện 0 giả)
   demBai?: boolean; /** lượt sang site đọc được từ sổ phiên (UTM máy đăng) dù chưa đo lượt xem */ demBam?: boolean;    // LIVE: số bài (video) đọc từ SỔ máy đăng (xv_may_video.da_dang) — biết chắc kể cả khi chưa có máy đọc lượt xem (daDo=false)
+  /** link mở kênh thật + khoá avatar (social-thanh-pho › linkKenh) */ url?: string | null; anh?: string | null;
   xem7?: number | null; // LIVE: lượt xem 7 ngày (cùng phép tính tab Tài sản — tai-san/video-tinh.ts)
   dangCuoi?: string | null;  // LIVE: ngày đăng video mới nhất trên nền này (YYYY-MM-DD); null = chưa có máy đo
   landing?: string | null;   // LIVE: link đích được nhiều sản phẩm của kênh trỏ tới nhất (kenh_sp.dich)

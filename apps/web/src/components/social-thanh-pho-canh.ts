@@ -454,6 +454,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = co * .12; g.strokeStyle = 'rgba(4,8,20,.85)'; g.strokeText(ten, 0, 4); g.shadowColor = mau; g.shadowBlur = 4; g.fillStyle = '#ffffff'; g.fillText(ten, 0, 4);
     return (tex[k] = new THREE.CanvasTexture(c));
   }
+  // AVATAR PAGE (25/10/2026, anh: "fanpage thì dùng avatar của page đó là chính, bên thân để fb"): ảnh đại diện Page (data URI máy chủ tải sẵn, khoá 'fbp:<mã>') phủ kín nóc
+  function texAnh(khoa: string) {
+    const k = `a:${khoa}`; if (tex[k]) return tex[k];
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d')!, t = new THREE.CanvasTexture(c);
+    g.fillStyle = '#1877f2'; g.fillRect(0, 0, 256, 256);
+    const img = new Image(); img.onload = () => { g.drawImage(img, 0, 0, 256, 256); t.needsUpdate = true; }; img.src = mh.fav[khoa]!;
+    return (tex[k] = t);
+  }
   function texFav(site: string, mau = '#1f8f6c') {
     const k = `f:${site}`; if (tex[k]) return tex[k];
     const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d')!, t = new THREE.CanvasTexture(c);
@@ -619,7 +627,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // ── toà tài khoản
   // máy tìm kiếm: màu hãng + favicon trên nóc; tài khoản mạng xã hội: màu + logo nền tảng
   const mauTk = (tk: PhoTk) => tk.mau ?? NEN[tk.nen][0];
-  const maiTk = (tk: PhoTk) => (tk.loai !== 'mxh' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
+  const coAnh = (tk: PhoTk) => tk.loai === 'mxh' && !!tk.anh && !!mh.fav[tk.anh];
+  const maiTk = (tk: PhoTk) => (coAnh(tk) ? texAnh(tk.anh!) : tk.loai !== 'mxh' && tk.host ? texFav(tk.host, tk.mau) : texNen(tk.nen));
   const CUA_SANG = new THREE.Color('#ffd27a'), CUA_TOI = new THREE.Color('#1c2440');
   const cuaGeo = new THREE.PlaneGeometry(3.2, 2.6), cuaMat = new THREE.MeshBasicMaterial();
   const ds: Record<string, any[]> = { nha: [], cua: [], thung: [], cot: [], xe: [], xu: [], hong: [], khoi: [], onl: [], dien: [], thap: [], ngam: [], san: [], ham: [], cho: [], dang: [] };
@@ -655,6 +664,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     else if (tt === 'cho') { const mt = new THREE.MeshBasicMaterial({ color: '#4fd1ff', transparent: true, opacity: .7, depthWrite: false });
       for (const [dy, rx] of [[1.2, Math.PI], [3.4, 0]] as const) { const c = add(new THREE.ConeGeometry(1.4, 2.2, 8), mt, false); c.rotation.x = rx; c.position.set(x, y0 + dy, z); c.userData = { tk, chu: m }; ds.cho!.push(c); } }
     else if (tt === 'xong') { const c = add(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial({ color: '#3fd68a' }), false); c.position.set(x, y0 + .5, z); c.userData = { tk, chu: m }; }
+    // nóc là avatar Page → thân mang logo nền tảng (FB) trên bốn mặt, sát mép trên
+    if (coAnh(tk)) { const lg = M({ map: texNen(tk.nen), emissive: '#ffffff', emissiveMap: texNen(tk.nen), emissiveIntensity: .35 }), s = Math.min(6, w * .32);
+      for (let mat = 0; mat < 4; mat++) { const goc = mat * Math.PI / 2, p = add(new THREE.PlaneGeometry(s, s), lg, false);
+        p.position.set(x + Math.sin(goc) * (w / 2 + .12), h - s / 2 - .6, z + Math.cos(goc) * (w / 2 + .12)); p.rotation.set(0, goc, 0); p.userData = { tk, chu: m }; } }
     bangTen(x, z, w, h, tk.loai === 'mxh' ? `${NEN[tk.nen][1]} · ${tk.ten}` : tk.ten, '', mauTk(tk), m);   // chỉ tên — số ở thẻ hover / poster rào
     return { m, cua: new THREE.Vector3(x, 1.5, z) };
   }
@@ -1730,7 +1743,8 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${oTk(t)} ${esc(t.ten)}`, h: [['Traffic', nhan], ['Đổ vào', tenDich(t.dich)], [`🚗 Khách (${t.phienKy})`, t.phien]] };
     }
     if (u.loai === 'tk') { const t = u.tk as PhoTk;
-      return { dau: `${oNen(t.nen)} ${esc(t.ten)}`, h: [['Nền', NEN[t.nen][1]], ['Đổ vào', tenDich(t.dich)], ['🪟 Bài đã đăng', t.chay], ['📦 Sắp đăng 7 ngày', t.sap], ['🔦 Lượt xem', so(t.xem)],
+      const anh = t.anh && mh.fav[t.anh] ? `<img src="${mh.fav[t.anh]}" width="22" height="22" style="vertical-align:middle;border-radius:50%;flex:none" alt="">` : '';
+      return { dau: `${anh}${oNen(t.nen)} ${esc(t.ten)}`, h: [['Nền', NEN[t.nen][1]], ['Đổ vào', tenDich(t.dich)], ['🪟 Bài đã đăng', t.chay], ['📦 Sắp đăng 7 ngày', t.sap], ['🔦 Lượt xem', so(t.xem)],
         [`🚗 Khách về đích (${t.phienKy})`, t.phien], ['Trạng thái', t.dung ? '⏸ dừng' : t.hong ? `🔴 ${esc(t.hong)}` : '🟢 chạy'],
         ...(t.dang ?? []).map((d): [string, string] => [`${({ sua: '🔧', dang: '📤', hong: '🔴', cho: '⏳', xong: '✅' } as const)[d.tt]} Máy đăng · ${esc(d.nen)}`, esc(d.chu)])] };
     }
@@ -1981,7 +1995,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (d.loai === 'site') { ds_.push(a(`https://${d.site}`, '↗ Mở site', true), a(`${MOS2}/?tab=social&sts=landing`, '🛬 Landing')); }
       else if (d.loai === 'nen' || d.loai === 'camp') ds_.push(a(`${MOS2}/?tab=ethopex`, '🎬 Tab Ethopex'));
       else { if (d.url) ds_.push(a(d.url, '↗ Mở trang bán', true)); ds_.push(a(`${MOS2}/?tab=taisan`, '🗂 Tài sản')); } }
-    if (u.loai === 'tk' && u.tk.loai === 'mxh') ds_.push(a(`${MOS2}/?tab=social&sts=kenh`, '📺 Kênh'), a(`${MOS2}/?tab=social&sts=lich`, '🗓 Lịch'));
+    if (u.loai === 'tk' && u.tk.loai === 'mxh') { if (u.tk.url) ds_.push(a(u.tk.url, '↗ Mở kênh', true)); ds_.push(a(`${MOS2}/?tab=social&sts=kenh`, '📺 Kênh'), a(`${MOS2}/?tab=social&sts=lich`, '🗓 Lịch')); }
     if (u.loai === 'khu' && u.khoa.startsWith('d:')) ds_.push(a(`${MOS2}/p/${encodeURIComponent(u.khoa.slice(2))}`, '📁 Mở dự án'));
     if (u.loai === 'kho') ds_.push(a(`${MOS2}/?tab=doanhthu`, '💵 Doanh thu'));
     if (u.loai === 'tn-tk') ds_.push(a(`${MOS2}/platforms`, '🗂 Tài khoản'));

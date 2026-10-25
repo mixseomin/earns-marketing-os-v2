@@ -183,12 +183,12 @@ const loiThuong = (loi: string | null) => {
 };
 // CREATIVE › SOÁT (anh 25/10/2026: "cần 1 tab để hiện các chỉ số review từng creative về mọi tiêu chí"): mỗi creative một dòng, mỗi tiêu chí một dấu hiệu,
 // lý do (lời thường) ở hover. Tiêu chí: soát 18+ cả phim · soát từng đoạn (máy / người) · CTA · Meta duyệt · số camp cùng đoạn · phim bão hoà · hiệu quả.
-type Dau = { k: 'ok' | 'loi' | 'cho' | 'chua'; t: string };
-const DAU_MAU: Record<Dau['k'], string> = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', cho: '#f59e0b', chua: 'var(--fg-3, #666)' };
-const DAU_KY: Record<Dau['k'], string> = { ok: '✓', loi: '✕', cho: '…', chua: '–' };
+type Dau = { k: 'ok' | 'loi' | 'canh' | 'cho' | 'chua'; t: string };
+const DAU_MAU: Record<Dau['k'], string> = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', canh: '#fb923c', cho: '#9ecbff', chua: 'var(--fg-3, #666)' };
+const DAU_KY: Record<Dau['k'], string> = { ok: '✓', loi: '✕', canh: '⚠', cho: '…', chua: '–' };
 const O = ({ d }: { d: Dau }) => <span title={d.t} aria-label={d.t} style={{ color: DAU_MAU[d.k], fontWeight: 700, cursor: 'help', display: 'inline-block', minWidth: 16, textAlign: 'center' }}>{DAU_KY[d.k]}</span>;
 // lời máy ghi → lời thường: bỏ tên cổng / mô hình, ngày; "cho qua theo lô" nói rõ là chưa soát từng đoạn
-const loiSoat = (g: string) => g.replace(/^máy soát (lại \d+\/\d+ )?(Claude)?\s*(\([^)]*\))?:?\s*/i, 'Máy xem: ').replace(/^soát tờ khung theo lô.*/i, 'Cho qua theo cả lô, chưa xem riêng đoạn này').replace(/^Claude soát tờ[^:]*:?\s*/i, 'Đã xem tờ khung: ');
+const loiSoat = (g: string) => /^Meta từ chối/i.test(g) ? loiMeta(g) : g.replace(/^máy soát (lại \d+\/\d+ )?(Claude)?\s*(\([^)]*\))?:?\s*/i, 'Máy xem: ').replace(/^soát tờ khung theo lô.*/i, 'Cho qua theo cả lô, chưa xem riêng đoạn này').replace(/^Claude soát tờ[^:]*:?\s*/i, 'Đã xem tờ khung: ');
 const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'bạo lực / cưỡng ép tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
 const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
 function danhGia(r: CreativeEtpKho, chan: Map<number, string>) {
@@ -198,25 +198,25 @@ function danhGia(r: CreativeEtpKho, chan: Map<number, string>) {
   const cta: Dau = r.cta_dat ? { k: 'ok', t: 'Nút kêu gọi đạt luật' } : { k: 'cho', t: 'Nút kêu gọi kiểu cũ, chưa sửa' };
   const meta: Dau = r.tu_choi || r.giao.includes('DISAPPROVED') ? { k: 'loi', t: loiMeta(r.tu_choi ?? '') }
     : r.giao.includes('ACTIVE') ? { k: 'ok', t: 'Meta đã duyệt, đang phát' } : r.giao.includes('IN_PROCESS') ? { k: 'cho', t: 'Meta đang duyệt' } : { k: 'chua', t: 'Không camp nào đang phát' };
-  const doan: Dau = r.cung_doan > 3 ? { k: 'loi', t: `${r.cung_doan} camp đang dùng cùng đoạn này — nên tối đa 3` } : { k: 'ok', t: `${r.cung_doan} camp dùng cùng đoạn này (tối đa 3)` };
+  const doan: Dau = r.cung_doan > 3 ? { k: 'canh', t: `${r.cung_doan} camp đang dùng cùng đoạn này — nên tối đa 3` } : { k: 'ok', t: `${r.cung_doan} camp dùng cùng đoạn này (tối đa 3)` };
   const c = r.content_id ? chan.get(r.content_id) : undefined;
-  const bh: Dau = c ? { k: 'loi', t: `Phim đang dừng nhân bản — ${c}` } : { k: 'ok', t: 'Phim chưa bão hoà' };
+  const bh: Dau = c ? { k: 'canh', t: `Phim đang dừng nhân bản — ${c}` } : { k: 'ok', t: 'Phim chưa bão hoà' };
   const ds = [s18, sd, cta, meta, doan, bh];
-  return { s18, sd, cta, meta, doan, bh, loi: ds.filter((d) => d.k === 'loi').length, cho: ds.filter((d) => d.k === 'cho').length };
+  return { s18, sd, cta, meta, doan, bh, loi: ds.filter((d) => d.k === 'loi').length, canh: ds.filter((d) => d.k === 'canh').length, cho: ds.filter((d) => d.k === 'cho').length };
 }
-type LocSoat = 'van_de' | 'meta' | 'cho' | 'all';
+type LocSoat = 'van_de' | 'meta' | 'canh' | 'cho' | 'all';
 function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) => React.ReactElement }) {
   const [loc, setLoc] = useState<LocSoat>('van_de');
   const chan = useMemo(() => new Map(du.baoHoa.filter((b) => b.chan_nb).map((b) => [b.content_id, b.chan_nb!])), [du.baoHoa]);
   const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS')).map((r) => ({ r, d: danhGia(r, chan) })), [du.creatives, chan]);
-  const dem = { van_de: ds.filter((x) => x.d.loi).length, meta: ds.filter((x) => x.d.meta.k === 'loi').length, cho: ds.filter((x) => x.d.cho).length, all: ds.length };
-  const rows = ds.filter((x) => loc === 'all' || (loc === 'van_de' ? x.d.loi > 0 : loc === 'meta' ? x.d.meta.k === 'loi' : x.d.cho > 0));
+  const dem = { van_de: ds.filter((x) => x.d.loi).length, meta: ds.filter((x) => x.d.meta.k === 'loi').length, canh: ds.filter((x) => x.d.canh).length, cho: ds.filter((x) => x.d.cho).length, all: ds.length };
+  const rows = ds.filter((x) => loc === 'all' || (loc === 'van_de' ? x.d.loi > 0 : loc === 'meta' ? x.d.meta.k === 'loi' : loc === 'canh' ? x.d.canh > 0 : x.d.cho > 0));
   const cot = (key: keyof ReturnType<typeof danhGia>, header: string, title: string): DataColumn<(typeof ds)[number]> => (
-    { key, header, title, cell: (x) => <O d={x.d[key] as Dau} />, sortValue: (x) => ['loi', 'cho', 'chua', 'ok'].indexOf((x.d[key] as Dau).k) });
+    { key, header, title, cell: (x) => <O d={x.d[key] as Dau} />, sortValue: (x) => ['loi', 'canh', 'cho', 'chua', 'ok'].indexOf((x.d[key] as Dau).k) });
   return (
     <div>
       <div style={{ margin: '4px 0 8px' }}>
-        <FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'van_de', label: 'Có lỗi' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'cho', label: 'Đang chờ' }, { value: 'all', label: 'Tất cả đang chạy' }]} />
+        <FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'van_de', label: 'Có lỗi' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'canh', label: 'Cảnh báo' }, { value: 'cho', label: 'Đang chờ' }, { value: 'all', label: 'Tất cả đang chạy' }]} />
       </div>
       <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-soat" minWidth={1000} pageSize={100}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
@@ -230,9 +230,9 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
           { key: 'camp', header: 'Camp chạy', cell: (x) => `${x.r.chay}/${x.r.camp}`, sortValue: (x) => x.r.chay },
           { key: 'roi_qua', header: 'ROI h.qua', cell: (x) => <Roi s={x.r.qua} />, sortValue: (x) => roiOf(x.r.qua) ?? -1e9 },
           { key: 'roi_nay', header: 'ROI h.nay', cell: (x) => <Roi s={x.r.nay} />, sortValue: (x) => roiOf(x.r.nay) ?? -1e9 },
-          { key: 'diem', header: 'Lỗi', title: 'số tiêu chí đang lỗi', cell: (x) => (x.d.loi ? <span style={{ color: '#f87171', fontWeight: 700 }}>{x.d.loi}</span> : <span style={{ color: 'var(--fg-3)' }}>0</span>), sortValue: (x) => x.d.loi * 10 + x.d.cho },
+          { key: 'diem', header: 'Lỗi', title: 'số tiêu chí đang lỗi', cell: (x) => (x.d.loi ? <span style={{ color: '#f87171', fontWeight: 700 }}>{x.d.loi}</span> : <span style={{ color: 'var(--fg-3)' }}>0</span>), sortValue: (x) => x.d.loi * 100 + x.d.canh * 10 + x.d.cho },
         ]} />
-      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: DAU_MAU.ok }}>✓</span> đạt · <span style={{ color: DAU_MAU.loi }}>✕</span> lỗi · <span style={{ color: DAU_MAU.cho }}>…</span> đang chờ · – chưa có · rê chuột vào dấu để xem lý do</div>
+      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: DAU_MAU.ok }}>✓</span> đạt · <span style={{ color: DAU_MAU.loi }}>✕</span> lỗi · <span style={{ color: DAU_MAU.canh }}>⚠</span> cảnh báo · <span style={{ color: DAU_MAU.cho }}>…</span> đang chờ · – chưa có · rê chuột vào dấu để xem lý do</div>
     </div>
   );
 }

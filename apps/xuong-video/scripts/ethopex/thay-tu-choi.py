@@ -54,7 +54,10 @@ def mot(camp, tu_choi, dat):
     if not lan and khoa("ethopex_thay_cho_duyet").get(str(camp)) == cu: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # vừa thay, Meta chưa duyệt lại
     ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else (f"creative #{cu} thuộc đoạn soát cấm ({str(tu_choi[str(cu)].get('ly_do', ''))[:120]})" if (tu_choi.get(str(cu)) or {}).get("soat") else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})")
     kq.update(creative_cu=cu, content=cid, ly_do=ly)
-    if not lan: gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly, "luc": vn()}}); tu_choi[str(cu)] = {"ly_do": ly}
+    if not lan:
+        gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly, "luc": vn()}}); tu_choi[str(cu)] = {"ly_do": ly}
+        dn = q(f"select doan from etp.creative where creative_id = {int(cu)}")   # Meta là phán quyết cuối: đoạn bị từ chối ghi CẤM vào sổ soát đoạn (máy từng chấm sạch, 25/10/2026)
+        if dn: gop("ethopex_soat_doan", {dn: {"ok": False, "luc": vn(), "ghi": f"Meta từ chối: {ly[:200]}"}})
     ds = ung_vien(cid, cu, tu_choi, dat)
     if not ds:
         gop("ethopex_cho_dung_lai", {str(cu): {"goc": camp, "luc": vn(), "ten": d["campaign"]["name"].split(": ", 1)[-1], "content_id": cid, "tu_choi": True, "ly_do": ly}})

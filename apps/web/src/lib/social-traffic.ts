@@ -11,6 +11,7 @@ import { dirname } from 'node:path';
 import { docKenh, docKenhSo, docVideoSo } from './tai-san/kenh';
 import { tinhVideo, tinhPin } from './tai-san/video-tinh';
 import type { DangNenTho, StBan, StGoc, StKenh, StLanding, StLo, StTrang, StTrangThaiKenh } from './social-traffic-demo';
+import { docSoBaiFb, khoaBai } from './social-bai-so';
 import { docBamBaiDang, docBamTheoTrang, docNguonSite, docSoLanding, siteCoMa } from './social-truc-tiep';
 import { HOST_BAN, MAY_TIM, NEN_QC, gopBinhTraTien, loaiCampEtp, linkKenh, type VaoHeSinhThai, type VaoKeHoach } from './social-thanh-pho';
 import { getProductsView } from './products/data';
@@ -410,12 +411,15 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     ]);
     const kenh: NonNullable<StLuoi['kenh']> = Object.fromEntries(noiTk.map((x) => [`${x.ma}|${x.nen}`, { tk: x.tk, nenKey: x.platform_key, url: x.platform_key && x.handle ? linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id }).url : null }]));
     // số liệu: lượt xem theo link bài (ô reel / Shorts / TikTok của sổ số đo mới nhất từng kênh) + click theo nền gốc × trang đích
-    const [soXem, bamTrang] = await Promise.all([
+    const [soXem, bamTrang, soFb] = await Promise.all([
       d.execute(sql`SELECT k.chi_tiet FROM kenh_so_ngay k JOIN (SELECT kenh, max(ngay) AS ngay FROM kenh_so_ngay GROUP BY 1) m USING (kenh, ngay)`) as unknown as Promise<{ chi_tiet: { videos?: { url?: string; xem?: number }[] } | unknown[] }[]>,
       docBamTheoTrang().catch((e: Error) => { loi.push(`click theo bài: ${e.message.slice(0, 100)}`); return new Map<string, number>(); }),
+      docSoBaiFb().catch((e: Error) => { loi.push(`số bài Facebook: ${e.message.slice(0, 100)}`); return new Map<string, { xem: number | null; bam: number | null }>(); }),
     ]);
-    const maBai = (u: string | null | undefined) => u?.match(/(?:reel|shorts|video|videos)\/([\w-]+)/)?.[1] ?? u ?? '';
+    const maBai = khoaBai;
     const xemCua = new Map<string, number>(); for (const r of soXem) for (const v of (Array.isArray(r.chi_tiet) ? [] : r.chi_tiet?.videos ?? [])) if (v.url && typeof v.xem === 'number') xemCua.set(maBai(v.url), v.xem);
+    // bài Facebook (album ảnh, bài link, Reel Page cũ) — Graph post insights; Reel đã có lượt phát từ sổ số đo thì giữ số đó
+    for (const [k, v] of soFb) if (v.xem != null && !xemCua.has(k)) xemCua.set(k, v.xem);
     const duongDan = (u: string | null) => { try { return u ? new URL(u).pathname : null; } catch { return null; } };
     const tkCua = new Map(noiTk.map((x) => [`${x.ma}|${x.nen}`, x.tk])), anhCua = new Map(anhSlug.map((x) => [`${x.ma}|${x.slug}`, x.anh]));
     // kho + đã đăng theo máy × nền × kiểu nội dung (dang.nhom); cùng điều kiện "DUYỆT đúng bản" như máy đăng (may.ts › dsVideoDang) và nền ảnh cần ảnh tĩnh

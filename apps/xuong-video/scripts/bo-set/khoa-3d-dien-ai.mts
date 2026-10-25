@@ -76,7 +76,8 @@ await Promise.all(con.map(async (m) => {
     sC ?? anhThat(`${thu}/${m}-cuoi.png`, `${m}-cuoi`, sD ? [sD, cCuoi] : [cDau, cCuoi], sD ? loiCungMay : loiChuan)]);
   anh[m] = { dau: d, cuoi: c };
 }));
-writeFileSync(`${thu}/anh.json`, JSON.stringify(anh));
+// GỘP vào sổ ảnh đang có (đọc lại lúc ghi): ghi đè chỉ còn máy của lượt này → lượt #8 xoá mất ảnh của #4 (26/10/2026); đọc lại thì hai lượt chạy song song không nuốt nhau
+writeFileSync(`${thu}/anh.json`, JSON.stringify({ ...(existsSync(`${thu}/anh.json`) ? JSON.parse(readFileSync(`${thu}/anh.json`, 'utf8')) : {}), ...anh }));
 if (chiAnh) { console.log(JSON.stringify(anh)); process.exit(0); }
 
 // 2. Vidu đầu + cuối: mô hình tự diễn đoạn giữa

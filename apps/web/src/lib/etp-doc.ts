@@ -44,6 +44,8 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** bộ chấm creative (anh 25/10/2026): tiêu chí Meta + AFS (etp.tieu_chi — một nguồn với máy chấm) · bản chấm từng creative (etp.cham, cham-creative.py) */
   tieuChi: { nhom: string; ma: string; ten: string }[];
   cham: Record<number, ChamCr>;
+  /** hàng chờ chấm (etp.cham_hang): đang chờ / đang chấm / lỗi gần đây — nút "Chấm" trên trang */
+  chamHang: Record<number, { trang_thai: string; luc: string; loi: string | null }>;
   phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
@@ -120,7 +122,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
   for (const x of crMap.values()) if (x.ngay_dau) dn(x.ngay_dau.slice(0, 10)).cr_moi++;
   for (const r of tatNgay) dn(r.d).tat = n(r.n);
   const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: String(b.page), tk_id: Number(b.tk), page_id: Number(b.page), chi_phim_moi: b.chi_phim_moi }]));
-  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham] = await Promise.all([
+  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
         max(coalesce(xong, bat_dau))::text cuoi, avg(extract(epoch from xong - bat_dau)) filter (where trang_thai = 'xong') giay_tb from etp.viec where may is not null group by may order by may`),
@@ -137,6 +139,8 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<Record<string, unknown>>(sql`select id, luc::text luc, camp_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do from etp.phot order by luc desc limit 500`).catch(() => [] as Record<string, unknown>[]),
     run<{ nhom: string; ma: string; ten: string }>(sql`select nhom, ma, ten from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string }[]),
     run<Record<string, unknown>>(sql`select creative_id, luc::text luc, may, ket, meta, afs, loi, lop, diem, ly_do, khung from etp.cham`).catch(() => [] as Record<string, unknown>[]),
+    run<{ creative_id: number; trang_thai: string; luc: string; loi: string | null }>(sql`select creative_id, trang_thai, luc::text luc, loi from etp.cham_hang
+      where trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day')`).catch(() => [] as { creative_id: number; trang_thai: string; luc: string; loi: string | null }[]),
   ]);
   // creative đã chấm / có phốt mà không còn ở camp nào (camp đã thay creative khác) vẫn phải hiện ở Quét nội dung — lấy thẳng từ etp.creative
   const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id))])].filter((id) => id && !crMap.has(id));
@@ -154,6 +158,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
     quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],
     tieuChi,
+    chamHang: Object.fromEntries(chamHang.map((r) => [n(r.creative_id), { trang_thai: r.trang_thai, luc: r.luc, loi: r.loi }])),
     cham: Object.fromEntries(cham.map((r) => [n(r.creative_id), { luc: String(r.luc), may: (r.may as string) ?? null, ket: (r.ket as string) ?? null, meta: r.meta == null ? null : n(r.meta), afs: r.afs == null ? null : n(r.afs),
       loi: (r.loi as string) ?? null, lop: (r.lop ?? {}) as ChamCr['lop'], diem: (r.diem ?? {}) as ChamCr['diem'], ly_do: (r.ly_do ?? {}) as ChamCr['ly_do'], khung: (r.khung ?? {}) as ChamCr['khung'] }])),
     phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),

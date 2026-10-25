@@ -103,6 +103,12 @@ EOF'""", timeout=3600)
     out = [{"camp_cu": x.get("camp"), "content_id": x["content_id"], "creative_id": x.get("creative_id"), "lang": x["lang"], "lo": x.get("lo", ma),
             "ten": f"{x.get('lo', ma)} {ascii_(x['ten'])} {x['lang'].upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s {ma}", "ok": not x.get("loi"), "loi": x.get("loi")} for x in lo]
     json.dump(out, open(f"{ra}/len.json", "w"), ensure_ascii=False, indent=1)
+    # TỰ CHẤM CREATIVE MỚI (anh 25/10/2026: "các creative mới từ giờ có bước chấm tự động"): xếp hàng etp.cham_hang → tiến trình iMac com.htuan.ethopex-cham chấm.
+    # CHỈ CHẤM — không chặn lên camp (anh: "chưa áp dụng vào camp hay rule nào hết").
+    moi = [str(int(x["creative_id"])) for x in lo if not x.get("loi") and x.get("creative_id")]
+    if moi:
+        try: SD.sql(f"insert into etp.cham_hang (creative_id, nguon, ai) select unnest('{{{','.join(moi)}}}'::int[]), 'moi', 'len-creative {ma}' on conflict (creative_id) do nothing")
+        except Exception as e: print("xếp hàng chấm lỗi:", e)
     # TỜ REVIEW CTA CỦA CẢ LÔ (anh 22/10/2026: "tao đang review thì mày phải chụp lại hết") — mỗi creative 2 ô: giữa video + thẻ cuối, 4 cột, 16 ô/tờ
     o = []
     for x in lo:

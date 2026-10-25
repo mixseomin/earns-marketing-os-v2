@@ -12,6 +12,7 @@ Luật máy đọc chữ / lời kéo điểm xuống (không tự kết cấm):
 Kết luận: cấm khi Meta ≤ 5 · cần người xem khi Meta ≤ 7 hoặc AFS ≤ 7 · còn lại sạch. Ghi luôn vào sổ soát đoạn (ethopex_soat_doan) để cổng lên creative dùng chung.
 Tiến độ từng creative ghi ngay vào xv_khoa_ngoai['ethopex_quet'] → etp.on.tc/?t=creative&v=soat hiện thời gian thực.
 Chạy (iMac):  cham-creative.py chay [--lai] [--creative <id>…] [--luong 4]   → chấm creative đang chạy chưa có bản chấm (--lai: chấm lại hết)
+Tiến trình iMac (launchd com.htuan.ethopex-cham, mỗi phút):  cham-creative.py hang   → chấm hàng chờ etp.cham_hang (nút trên trang + creative mới)
 Box3 (máy gọi):  cham-creative.py box <tờ khung.jpg> <câu hỏi.txt>   → in JSON"""
 import importlib.util, json, os, socket, subprocess, sys, tempfile, threading, urllib.request
 D = os.path.dirname(os.path.abspath(__file__))
@@ -171,10 +172,15 @@ def chay(a):
     print(f"chấm {len(viec)} creative ({luong} luồng, {MAY})", flush=True)
     td = {"tong": len(viec), "xong": 0, "ok": 0, "cam": 0, "xem": 0, "bat_dau": SD.vn(), "cap_nhat": SD.vn(), "dang": True, "cuoi": "", "loai": "cham"}
     SD.gop("ethopex_quet", {MAY: td}); kl = threading.Lock()
+    hang = "--hang" in a
     def lam(x):
         cr, doan, url = x
-        try: ket, meta, afs = mot(cr, doan or None, url, tc, KT, CQ); dong = f"#{cr} {ket} · Meta {meta} · AFS {afs}"
-        except Exception as e: ket, dong = "xem", f"#{cr} lỗi: {type(e).__name__} {str(e)[:120]}"
+        try:
+            ket, meta, afs = mot(cr, doan or None, url, tc, KT, CQ); dong = f"#{cr} {ket} · Meta {meta} · AFS {afs}"
+            if hang: SD.sql(f"update etp.cham_hang set trang_thai = 'xong', xong = now(), loi = null where creative_id = {int(cr)}")
+        except Exception as e:
+            ket, dong = "xem", f"#{cr} lỗi: {type(e).__name__} {str(e)[:120]}"
+            if hang: SD.sql(f"update etp.cham_hang set trang_thai = 'loi', xong = now(), loi = $L${str(e)[:200].replace('$L$', '')}$L$ where creative_id = {int(cr)}")
         print(dong, flush=True)
         with kl:
             td["xong"] += 1; td[ket] += 1; td["cap_nhat"] = SD.vn(); td["cuoi"] = dong[:120]
@@ -185,8 +191,26 @@ def chay(a):
     td["dang"] = False; td["cap_nhat"] = SD.vn(); SD.gop("ethopex_quet", {MAY: td})
     print(f"xong: sạch {td['ok']} · cấm {td['cam']} · cần người xem {td['xem']}", flush=True)
 
+def hang():
+    """TIẾN TRÌNH com.htuan.ethopex-cham (launchd iMac, mỗi phút, anh duyệt 25/10/2026): nhận etp.cham_hang (nút "Chấm" trên trang + creative mới)
+    → chấm. Hàng trống → thoát ngay (một lệnh đọc, 0đ). Một lượt một lúc (khoá tệp). Ưu tiên nút anh bấm."""
+    import fcntl
+    os.makedirs(C, exist_ok=True); lk = open(os.path.join(C, "cham.lock"), "w")
+    try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError: return
+    # 'dang' quá 30 phút = lượt trước chết giữa chừng → trả về hàng; creative chưa vào kho sau 2 giờ (đồng bộ 10 phút) → lỗi
+    nhan = SD.sql("""update etp.cham_hang set trang_thai = 'cho', bat_dau = null where trang_thai = 'dang' and bat_dau < now() - interval '30 minutes';
+        update etp.cham_hang h set trang_thai = 'loi', xong = now(), loi = 'creative không có trong kho / không có video sau 2 giờ'
+          where trang_thai = 'cho' and luc < now() - interval '2 hours' and not exists (select 1 from etp.creative c where c.creative_id = h.creative_id and c.video is not null);
+        update etp.cham_hang set trang_thai = 'dang', bat_dau = now() where creative_id in (
+          select h.creative_id from etp.cham_hang h join etp.creative c on c.creative_id = h.creative_id and c.video is not null
+          where h.trang_thai = 'cho' order by (h.nguon = 'nut') desc, h.luc limit 6) returning creative_id""")
+    ids = [x for x in nhan.split() if x.isdigit()]
+    if ids: chay(["--creative", *ids, "--luong", "3", "--hang"])
+
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[:1] == ["box"]: box(a[1], a[2], a[3:])
     elif a[:1] == ["chay"]: chay(a[1:])
+    elif a[:1] == ["hang"]: hang()
     else: print(__doc__)

@@ -300,7 +300,8 @@ async function docGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }>
   const het = new Promise<null>((xong) => setTimeout(() => xong(null), existsSync(TEP_GOC) ? 800 : CHO_GOC_MS));
   const r = await Promise.race([dangNapGoc, het]);
   if (r) { loi.push(...loiNen); return r; }
-  try { const c = JSON.parse(readFileSync(TEP_GOC, 'utf8')) as { luc: string; goc: StGoc[]; nhom: number }; loi.push(`spy chậm — đang hiện góc lưu lúc ${new Date(Date.parse(c.luc) + 7 * 3600e3).toISOString().slice(11, 16)} ${c.luc.slice(8, 10)}/${c.luc.slice(5, 7)}, bản mới nạp ở nền`); return { goc: c.goc, nhom: c.nhom }; }
+  // bản lưu dưới 30 phút: dùng im lặng (bản mới vẫn nạp ở nền) — trước đây cứ quá 5 phút là hiện dòng đỏ "spy chậm" dù góc chỉ cũ vài phút
+  try { const c = JSON.parse(readFileSync(TEP_GOC, 'utf8')) as { luc: string; goc: StGoc[]; nhom: number }; if (Date.now() - Date.parse(c.luc) < 30 * 60_000) return { goc: c.goc, nhom: c.nhom }; loi.push(`spy chậm — đang hiện góc lưu lúc ${new Date(Date.parse(c.luc) + 7 * 3600e3).toISOString().slice(11, 16)} ${c.luc.slice(8, 10)}/${c.luc.slice(5, 7)}, bản mới nạp ở nền`); return { goc: c.goc, nhom: c.nhom }; }
   catch { loi.push('spy chậm, chưa có bản góc lưu — góc nạp ở nền, mở lại sau ít phút'); return { goc: [], nhom: 0 }; }
 }
 async function napGocSpy(loi: string[]): Promise<{ goc: StGoc[]; nhom: number }> {

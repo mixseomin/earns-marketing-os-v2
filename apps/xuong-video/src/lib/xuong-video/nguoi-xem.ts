@@ -62,11 +62,21 @@ export function tomTatNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[
   if (!t) return { dat: false, theoCanh: false, soCanh: 0, diem: null, cu: false };
   const chan = chanNguoiXem(t, canh);
   const cu = chan.some((x) => x.includes('đã sửa sau lần kiểm'));
-  if (t.ma === maKichBan(canh)) return { dat: t.dat, theoCanh: false, soCanh: 0, diem: [t.diem, t.diem], cu };
+  if (t.ma === maKichBan(canh) && !(!t.dat && canhVuotCaTap(t, canh))) return { dat: t.dat, theoCanh: false, soCanh: 0, diem: [t.diem, t.diem], cu };
   const phu = phuTheoCanh(t, canh);
   const theoCanh = !chan.length && phu.length > 0 && phu.every((x) => x.phu);
   const ds = phu.map((x) => t.canh?.[x.ten]?.diem).filter((d): d is number => typeof d === 'number');
   return { dat: theoCanh, theoCanh, soCanh: phu.length, diem: theoCanh && ds.length ? [Math.min(...ds), Math.max(...ds)] : null, cu };
+}
+
+/** Bản cả tập KHỚP mã nhưng chưa đạt, rồi SAU ĐÓ mọi cảnh được kiểm riêng và đạt trên đúng nội dung hiện tại → các lần kiểm cảnh mới hơn thay
+ *  kết luận cả tập. Trước đây nhánh khớp mã chỉ nhìn t.dat nên một lượt cả tập hỏng (cổng rẻ trả chữ rác "0/10", phim #306 25/10/2026) chặn mãi dù
+ *  6/6 cảnh đã kiểm riêng đạt sau đó. Lần kiểm cả tập MỚI HƠN mọi cảnh vẫn là bằng chứng mới nhất → vẫn chặn. */
+function canhVuotCaTap(t: ThuNguoiXem, canh: ShotXem[]): boolean {
+  if (!canh.some((c) => c.phan_doan != null)) return false;
+  const ma = maTheoCanh(canh);
+  const luc = Date.parse(t.luc) || 0;
+  return Object.keys(ma).every((ten) => { const r = t.canh?.[ten]; return !!r && r.ma === ma[ten] && r.dat && (Date.parse(r.luc) || 0) >= luc; });
 }
 
 export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): string[] {
@@ -82,6 +92,7 @@ export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[])
     return [`${tien}kịch bản đã sửa sau lần kiểm — bấm ${TEN_NUT_NGUOI_XEM} lần nữa`];
   }
   if (t.dat) return [];
+  if (canhVuotCaTap(t, canh)) return [];
   return [`${tien}chưa hiểu (${t.diem}/10${t.khop ? '' : ', lệch ý tác giả'}): ${[t.lech, ...t.cho_kho.slice(0, 3).map((x) => `#${x.shot} ${x.van_de}`)].filter(Boolean).join('; ')}`];
 }
 

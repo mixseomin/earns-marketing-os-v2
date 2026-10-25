@@ -68,4 +68,16 @@ console.log('nguoi-xem.test: ok');
   if (!k3.dat || k3.theoCanh || JSON.stringify(k3.diem) !== '[8,8]') throw new Error(`bản cả tập khớp mã → điểm cả tập: ${JSON.stringify(k3)}`);
   if (tomTatNguoiXem(null, goc).dat) throw new Error('chưa kiểm → chưa đạt');
   console.log('nguoi-xem.test: tóm tắt nhãn ok');
+  // Bản cả tập KHỚP mã nhưng hỏng (0/10 chữ rác) + SAU ĐÓ mọi cảnh kiểm riêng đạt → qua (phim #306, 25/10/2026); cả tập mới hơn → vẫn chặn.
+  const hong = { ...ca, dat: false, diem: 0, lech: 'viec-cao-vua', luc: '2026-10-25T11:45:00Z' };
+  const rr = (ten: string, luc: string, dat = true) => ({ ...r(ten, 8, dat), luc });
+  const sau = { A: rr('A', '2026-10-25T11:46:00Z'), B: rr('B', '2026-10-25T11:46:00Z'), C: rr('C', '2026-10-25T11:46:00Z') };
+  if (!chanNguoiXem(hong, goc).length) throw new Error('cả tập hỏng, chưa kiểm cảnh → chặn');
+  if (chanNguoiXem({ ...hong, canh: sau }, goc).length) throw new Error('mọi cảnh kiểm riêng đạt SAU lần cả tập → qua');
+  if (!chanNguoiXem({ ...hong, canh: { ...sau, C: rr('C', '2026-10-25T11:46:00Z', false) } }, goc).length) throw new Error('một cảnh chưa đạt → chặn');
+  if (!chanNguoiXem({ ...hong, canh: { A: sau.A, B: sau.B } }, goc).length) throw new Error('thiếu một cảnh → chặn');
+  if (!chanNguoiXem({ ...hong, canh: { ...sau, B: rr('B', '2026-10-25T11:40:00Z') } }, goc).length) throw new Error('cảnh kiểm TRƯỚC lần cả tập → cả tập mới hơn thắng → chặn');
+  const k4 = tomTatNguoiXem({ ...hong, canh: sau }, goc);
+  if (!k4.dat || !k4.theoCanh) throw new Error(`nhãn: đạt theo cảnh: ${JSON.stringify(k4)}`);
+  console.log('nguoi-xem.test: cảnh thay bản cả tập hỏng ok');
 }

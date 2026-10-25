@@ -16,7 +16,8 @@ const dir = `/tmp/xv-thu-xuat/t${TAP}`; mkdirSync(dir, { recursive: true });
 const urls = urlCanXuat(canh, nhanVat, tap, NHANH, kt.qc);
 console.log('shot', canh.length, 'url cần tải', urls.length);
 const probe = (f: string) => { try { const j = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', f]).toString()); return { dai: Number(j.format?.duration) || null, coAm: (j.streams ?? []).some((s: any) => s.codec_type === 'audio') }; } catch { return { dai: null, coAm: false }; } };
-const nguyenLieu = urls.map((url, i) => { const duong = `${dir}/${i}-${createHash('sha1').update(url).digest('hex').slice(0, 12)}.${(url.split('?')[0].split('.').pop() || 'bin').slice(0, 5)}`;   // khoá theo LINK: trước khoá theo số thứ tự → đổi clip mà trùng số thì dựng bằng tệp cũ (25/10/2026) if (!existsSync(duong)) execFileSync('curl', ['-sfL', '-o', duong, url]); return { url, duong, ...probe(duong) }; });
+// tệp tải khoá theo LINK: trước khoá theo số thứ tự → đổi clip mà trùng số thì dựng bằng tệp cũ (25/10/2026)
+const nguyenLieu = urls.map((url, i) => { const duong = `${dir}/${i}-${createHash('sha1').update(url).digest('hex').slice(0, 12)}.${(url.split('?')[0].split('.').pop() || 'bin').slice(0, 5)}`; if (!existsSync(duong)) execFileSync('curl', ['-sfL', '-o', duong, url]); return { url, duong, ...probe(duong) }; });
 const kh = keHoachXuat({ loai: tap.loai, tiLe: kt.ti_le || '9:16', canh, nhanVat, tap, qc: kt.qc, nhanh: NHANH, nguyenLieu, font: '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', thuMuc: dir, ra: `${dir}/ra.mp4` });
 for (const t of kh.tep) writeFileSync(t.duong, t.noiDung);
 console.log('giây', kh.giay, 'thiếu hình:', kh.canhThieu.join(', ') || 'không');

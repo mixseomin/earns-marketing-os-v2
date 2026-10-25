@@ -5,7 +5,7 @@
 // Cửa sổ sáng = bài đang chạy · thùng tím ở chân = bài sắp đăng · cột sáng xanh = lượt xem · xe trên phố = khách về site · đèn đỏ + khói = hỏng ·
 // toà mờ = dừng. Chữ trong cảnh chỉ có tên dọc thân toà trung tâm / toà đích; favicon site trên nóc.
 // Điều hướng kiểu bản đồ: kéo một ngón / chuột trái = trượt · hai ngón / chuột phải = xoay · chụm / lăn = phóng · nút ⟲ ⟳ ＋ － ⌂ cho một tay.
-import { CUM_PAGE, KHU_XUONG, LINH_VUC, TEN_BAN, laDichSong, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
+import { CUM_PAGE, LOAI_ND, KHU_XUONG, LINH_VUC, TEN_BAN, laDichSong, TRANG_THAI_VN, TT_TK, VUNG_SX, type TtTk, type PhoDich, type PhoMoHinh, type PhoNen, type PhoTk } from '@/lib/social-thanh-pho';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { nhoLanMoi, phanLoaiLan } from '@/lib/loai-lan';
 type Nen = PhoNen | 'tim' | 'qc' | 'gt' | 'ch';
@@ -756,12 +756,14 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const bienPhim = new Map<string, any[]>();   // khoá 'hub|cum' → [biển, cột]
   const bangXhCua = new Map<string, any>(); let bangXhMo: any = null;   // bảng xếp hạng phim mỗi khu (gọn / mở theo hover)
   const datBangXh = (sp: any, mo: boolean) => { const u = sp.userData.bangXh, h = mo ? u.HbDu : u.HbGon; sp.material.map = mo ? u.texDu : u.texGon; sp.material.needsUpdate = true; sp.scale.y = h; sp.position.y = u.day + h / 2; };
-  let tatBien: Record<string, boolean> = (() => { try { return JSON.parse(localStorage.getItem('tp-tat-bien') ?? '{}'); } catch { return {}; } })();
+  // BẢNG HIỆU PHIM MẶC ĐỊNH TẮT (anh 25/10/2026 "các bảng biển của ethopex default là off"): chưa bấm nút 🪧 thì coi như tắt; khoá mới tp-bien-v2 để lựa chọn cũ (mặc định bật) không đè
+  let tatBien: Record<string, boolean> = (() => { try { return JSON.parse(localStorage.getItem('tp-bien-v2') ?? '{}'); } catch { return {}; } })();
+  const bienTat = (hub: string) => tatBien[hub] ?? true;
   let bienDangLo: string | null = null;
   const datBien = (khoa: string, hien: boolean) => { for (const o of bienPhim.get(khoa) ?? []) o.visible = hien; };
   // ẨN TẠM bảng phim của một bộ khi đứng xem căn cứ của bộ đó (anh 24/10/2026 "ít chữ khi không cần hiện"): bảng phim đứng ngay trước camera che bệ căn cứ;
   // rê lên sân vẫn lộ đúng một bảng như khi tắt bảng hiệu, rời căn cứ thì hiện lại. Không đụng lựa chọn bật / tắt của người xem (tatBien).
-  const anBienTam = new Set<string>(), tatCua = (hub: string) => !!tatBien[hub] || anBienTam.has(hub);
+  const anBienTam = new Set<string>(), tatCua = (hub: string) => bienTat(hub) || anBienTam.has(hub);
   const apTatBien = (hub: string) => { for (const k of bienPhim.keys()) if (k.startsWith(`${hub}|`)) datBien(k, !tatCua(hub)); bienDangLo = null; };
   // SỐ MỖI PHIM (anh 23/10/2026 "làm sao nhìn được ROI · profit · cost · revenue của từng phim, từng camp trên city"): cộng mọi camp của cụm (kể cả kho camp tắt);
   // hôm nay = ngày báo cáo mới nhất của Ethopex (cùng số với bảng Content), ROI = (thu − chi) / chi như bảng đó
@@ -1158,7 +1160,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       // TRẠM ĐIỆN BẢNG HIỆU (anh 23/10/2026 "phải thiết kế như một công trình liên quan, không phải cái nút"): nhà trạm bên trái bảng xếp hạng (bên phải là toà nền tảng), cầu dao lớn ở mặt trước,
       // đèn tín hiệu trên mái, biển tên gắn tường; dây điện chạy trên mặt đất tới chân từng bảng hiệu phim. Bật: đèn + dây sáng xanh, cần gạt hướng lên;
       // tắt: đèn + dây tối, cần gạt hướng xuống, bảng hiệu tắt hết (rê lên phim vẫn lộ biển phim đó). Bấm vào bất cứ phần nào của trạm = gạt cầu dao.
-      const K = 1.9, nx = x - Wb / 2 - 26 * K, nz = z, bat = !tatBien[hub.khoa], nut = { loai: 'nut-bien', hub: hub.khoa }, dau0 = the.children.length;   // K = cỡ trạm so với bảng hiệu
+      const K = 1.9, nx = x - Wb / 2 - 26 * K, nz = z, bat = !bienTat(hub.khoa), nut = { loai: 'nut-bien', hub: hub.khoa }, dau0 = the.children.length;   // K = cỡ trạm so với bảng hiệu
       const vat = (g: any, m: any, px: number, py: number, pz: number, bong = true) => { const o = add(g, m, bong); o.position.set(px, py, pz); o.userData = nut; return o; };
       vat(new THREE.BoxGeometry(26, 1, 22), GACH, nx, .5, nz, false);
       vat(new THREE.BoxGeometry(16, 13, 12), M({ color: '#2b3550', roughness: .7, metalness: .2 }), nx, 7.5, nz);
@@ -1273,6 +1275,31 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       for (let k = 0; k < soXe; k++) { const xe = add(new THREE.BoxGeometry(3.4 * CO_XE, 1.8 * CO_XE, 2 * CO_XE), M({ color: ['#20232b', '#1b1b22', '#101010'].includes(mau) ? '#dfe4f2' : mau, emissive: mau, emissiveIntensity: .6 })); xe.userData = { duong, t: k / soXe, toc: .003 + Math.log10(l.so + 1) * .0012, tk, chu: a.m, den: l.den, k, n: soXe }; ds.xe!.push(xe); }
     }
     // ỐNG DẪN SÁNG (plan sức sống 24/10/2026): mỗi nguồn đang gắn vào đích (mọi loại — mạng xã hội, máy tìm, quảng cáo, giới thiệu, kênh) là một ống cong
+    // BẢNG NỘI DUNG Page cũ (anh 25/10/2026: "cần thấy trực quan bảng nội dung này trên city"): tấm bảng (Sprite — luôn quay về người xem) treo trên cụm toà Page,
+    // lưới 7 ngày × Page: ô đặc = bài thật đã đăng, ô mờ viền đứt = kế hoạch đề xuất (chờ anh duyệt), ô xám = ngày không có bài. Chỉ hiện khi tới gần (GAN_KHU).
+    if (mh.keHoach) { const kh = mh.keHoach, vt = kh.trang.map((t) => viTri[`tk:${t.id}`]?.m).filter(Boolean);
+      if (vt.length) { const hop = new THREE.Box3(); for (const m of vt) hop.expandByObject(m);
+        const W = 1800, C0 = 330, CW = (W - C0) / 7, HD = 150, RH = 160, H = HD + 60 + kh.trang.length * RH + 20;
+        const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d')!, tx = new THREE.CanvasTexture(cv);
+        const ve = () => { g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(14,18,32,.94)'; g.beginPath(); g.roundRect(0, 0, W, H, 28); g.fill();
+          const dm = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
+          g.fillStyle = '#fff'; g.font = '800 46px system-ui, "Apple Color Emoji", sans-serif'; g.textBaseline = 'middle'; g.fillText(`🗓 Bảng nội dung Page · ${dm(kh.tuan[0]!.ngay)}–${dm(kh.tuan[6]!.ngay)}`, 30, 52);
+          g.font = '500 28px system-ui, "Apple Color Emoji", sans-serif'; g.fillStyle = '#aab3cc'; g.fillText('ô đặc = bài đã đăng · ô mờ viền đứt = kế hoạch đề xuất (chờ anh duyệt) · ô xám = không có bài', 30, 108);
+          kh.tuan.forEach((d, i) => { const x = C0 + i * CW; g.fillStyle = d.ngay === kh.hom ? '#ffd166' : '#dfe4f2'; g.font = '800 32px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(`${d.thu} ${dm(d.ngay)}`, x + CW / 2, HD + 28); g.textAlign = 'left'; });
+          kh.trang.forEach((t, r) => { const y = HD + 60 + r * RH;
+            const av = t.anh && mh.fav[t.anh]; if (av) { const im = new Image(); im.onload = () => { g.save(); g.beginPath(); g.arc(70, y + RH / 2, 42, 0, 7); g.clip(); g.drawImage(im, 28, y + RH / 2 - 42, 84, 84); g.restore(); tx.needsUpdate = true; }; im.src = av; }
+            g.fillStyle = '#fff'; g.font = '700 30px system-ui, sans-serif'; const ten = t.ten.length > 16 ? t.ten.slice(0, 15) + '…' : t.ten; g.fillText(ten, 124, y + RH / 2);
+            kh.tuan.forEach((d, i) => { const os = kh.o.filter((o) => o.trang === t.id && o.ngay === d.ngay), o = os[0]; if (!o) return; const x = C0 + i * CW + 8, w = CW - 16, hh = RH - 16, mau = LOAI_ND[o.loai]?.mau ?? '#4a4f60';
+              g.save(); g.beginPath(); g.roundRect(x, y + 8, w, hh, 16);
+              if (o.tt === 'da') { g.fillStyle = mau; g.fill(); } else if (o.tt === 'ke') { g.globalAlpha = .28; g.fillStyle = mau; g.fill(); g.globalAlpha = 1; g.setLineDash([12, 8]); g.lineWidth = 4; g.strokeStyle = mau; g.stroke(); } else { g.fillStyle = '#2a2f40'; g.fill(); }
+              if (d.ngay === kh.hom) { g.setLineDash([]); g.lineWidth = 6; g.strokeStyle = '#ffd166'; g.stroke(); }
+              g.restore(); g.fillStyle = o.tt === 'trong' ? '#6b7385' : '#fff'; g.font = '800 27px system-ui, "Apple Color Emoji", sans-serif';
+              g.fillText(`${LOAI_ND[o.loai]?.ic ?? '·'} ${o.loai}`, x + 14, y + 44); g.font = '500 23px system-ui, sans-serif'; g.fillText(o.format, x + 14, y + 84);
+              g.font = '600 22px system-ui, "Apple Color Emoji", sans-serif'; g.fillText(o.tt === 'da' ? (o.link ? `✅ đã đăng · có link${os.length > 1 ? ` · ${os.length} bài` : ''}` : '✅ đã đăng · không link') : o.tt === 'ke' ? '🗓 kế hoạch' : '', x + 14, y + 122); }); });
+          tx.needsUpdate = true; };
+        ve(); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false })), rong = Math.max(90, (hop.max.x - hop.min.x) * 1.1);
+        sp.scale.set(rong, rong * H / W, 1); sp.position.set((hop.min.x + hop.max.x) / 2, hop.max.y + 18 + rong * H / W / 2, (hop.min.z + hop.max.z) / 2);
+        sp.userData = { loai: 'ke-hoach', gan: GAN_KHU }; sp.userData.chu = sp; the.add(sp); chiMuc.push({ ten: 'Bảng nội dung Page', nhan: 'kế hoạch', obj: sp }); } }
     // từ nóc toà nguồn tới đỉnh toà đích; có khách = ống sáng + chấm sáng chạy dọc ống (nhanh theo số khách), đã gắn mà chưa ra khách = ống mờ, không chấm.
     // Cả thành phố một khối nét (LineSegments) + một khối chấm (InstancedMesh) — không thêm vật lẻ.
     { const nv: number[] = [], mv: number[] = [], hop = new THREE.Box3(), c3 = new THREE.Color(); ongDs = [];
@@ -1756,6 +1783,11 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         [`🚗 Khách về đích (${t.phienKy})`, t.phien], ['Trạng thái', t.dung ? '⏸ dừng' : t.hong ? `🔴 ${esc(t.hong)}` : '🟢 chạy'],
         ...(t.dang ?? []).map((d): [string, string] => [`${({ sua: '🔧', dang: '📤', hong: '🔴', cho: '⏳', xong: '✅' } as const)[d.tt]} Máy đăng · ${esc(d.nen)}`, esc(d.chu)])] };
     }
+    if (u.loai === 'ke-hoach' && mh.keHoach) { const kh = mh.keHoach;
+      return { dau: '🗓 Bảng nội dung Page', h: [['Tuần', `${kh.tuan[0]!.ngay.slice(8)}/${kh.tuan[0]!.ngay.slice(5, 7)} – ${kh.tuan[6]!.ngay.slice(8)}/${kh.tuan[6]!.ngay.slice(5, 7)}`],
+        ...kh.trang.map((t): [string, string] => [esc(t.ten), kh.tuan.map((d) => { const o = kh.o.find((x) => x.trang === t.id && x.ngay === d.ngay); return `${d.thu} ${o?.tt === 'da' ? '✅' : o?.tt === 'ke' ? LOAI_ND[o.loai]?.ic ?? '🗓' : '·'}`; }).join(' ')]),
+        ['Ghi chú', 'ô mờ = kế hoạch đề xuất, chờ anh duyệt']] };
+    }
     if (u.loai === 'phong') { const p = u.p as typeof mh.congTy[number], gio = (iso: string) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(11, 16) + ' ' + iso.slice(8, 10) + '/' + iso.slice(5, 7);
       return { dau: `🏢 ${esc(p.ten)}`, h: [['Trưởng phòng', esc(p.truong)], ['Trạng thái', esc(p.trangThai || '—')], ['Dự án', esc(p.duAn.join(', ') || '—')], ['Việc nền 24 giờ', p.viec24],
         ...(p.cuoi ? [['Việc gần nhất', `${esc(p.cuoi.viec)} · ${gio(p.cuoi.luc)}`] as [string, string], ['Kết quả', esc((p.cuoi.ket ?? '').slice(0, 90))] as [string, string]] : [])] };
@@ -1850,7 +1882,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         : { cot: ['Camp', '💵 Thu 30n', '💸 Chi 30n'], dong: ds2.sort((a, b) => (b.chi30 ?? 0) - (a.chi30 ?? 0)).slice(0, 14).map((d) => [ten(d), tienO(d.tien30), tienO(d.chi30)]) };
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
     }
-    if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', tatBien[u.hub] ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', tatBien[u.hub] ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
+    if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', bienTat(u.hub) ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', bienTat(u.hub) ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
     if (u.loai === 'fanpage') { const fp = mh.taiNguyen?.fanpage ?? [], song = fp.filter((p) => !p.tat), nhom = new Map<string, typeof fp>();
       for (const p of song) nhom.set(p.cum, [...(nhom.get(p.cum) ?? []), p]);
       return { dau: `📄 Kho Fanpage · ${song.length} đang chạy · ${fp.length - song.length} đã tắt`, h: [['Người theo dõi (đang chạy)', so(song.reduce((a, p) => a + (p.nguoi ?? 0), 0))], ['Đang là kênh máy đăng', song.filter((p) => p.kenh).length]],
@@ -2076,7 +2108,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   window.addEventListener('keydown', onPhim);
   function cham(e: PointerEvent) {
     datChuot(e); const chu = chuDuoiChuot(); anMeo();
-    if (chu?.userData?.loai === 'nut-bien') { const h = chu.userData.hub; tatBien = { ...tatBien, [h]: !tatBien[h] }; try { localStorage.setItem('tp-tat-bien', JSON.stringify(tatBien)); } catch { /* chế độ riêng tư */ } dung(); return; }
+    if (chu?.userData?.loai === 'nut-bien') { const h = chu.userData.hub; tatBien = { ...tatBien, [h]: !bienTat(h) }; try { localStorage.setItem('tp-bien-v2', JSON.stringify(tatBien)); } catch { /* chế độ riêng tư */ } dung(); return; }
     if (chu) moNgan(chu); else if (!ngan.hidden) dongNgan();
   }
   r.domElement.addEventListener('pointermove', onMove); r.domElement.addEventListener('pointerleave', onLeave); r.domElement.addEventListener('pointerdown', onDown);

@@ -172,7 +172,7 @@ export function DataTable<T>({
     e.stopPropagation();
     const th = e.currentTarget.parentElement as HTMLElement | null; const hang = th?.parentElement; if (!th || !hang) return;
     // chốt bề ngang HIỆN TẠI của mọi cột trước khi chuyển sang fixed — không thì các cột chưa khai width nhảy lung tung lúc bắt đầu kéo
-    const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.round((x as HTMLElement).getBoundingClientRect().width); });
+    const chot: Record<string, number> = {}; Array.from(hang.children).forEach((x, i) => { const k = visibleKeys[i]; if (k) chot[k] = Math.ceil((x as HTMLElement).getBoundingClientRect().width); });   // làm tròn LÊN: hụt nửa px là ô bị cắt "…"
     setRong((r) => ({ ...chot, ...r }));
     batDauKeo(e, { dau: th.getBoundingClientRect().width, min: 36, max: () => 1600,
       doi: (v) => setRong((r) => ({ ...r, [key]: v })),

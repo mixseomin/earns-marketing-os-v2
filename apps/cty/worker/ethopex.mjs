@@ -26,7 +26,7 @@ const NHOM = [
   ['tat', '⏹ <b>CẦN TẮT</b> — tiêu > $10 từ trước tới nay, ROI < −50%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['dung_dem', '🌙 <b>DỪNG ĐÊM</b> — 21h–5h, chỉ camp clone y nguyên creative: camp âm (chi ≥ 30% ngân sách, ROI ≤ −50%) mà lỗ còn tăng so với lượt trước → máy tắt luôn', null],
   ['thang_tat', '⏹ <b>BẢN THANG LỖ</b> — bộ 2: bản nhân ở bậc cao đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
-  ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp ổn 2 ngày trọn (chi ≥ 50%, ROI ≥ 50%) → máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
+  ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — Edit camp, thay creative sạch đã duyệt cùng phim', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],

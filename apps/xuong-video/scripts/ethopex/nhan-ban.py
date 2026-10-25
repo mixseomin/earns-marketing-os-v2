@@ -34,8 +34,8 @@ def dem_dang_chay(content_id):
     Đọc KHO etp (dong-bo.py 10 phút/lần) + camp vừa tạo trong 15 phút qua (nhật ký luật) — trước 25/10/2026 đọc chi tiết từng camp qua API
     (~500 lượt gọi, 3–4 phút mỗi lần tạo camp)."""
     n = 0; DEM_CR.clear()
-    rows = q(f"""select camp_id, coalesce(creative_id, 0) from etp.camp where content_id = {int(content_id)}
-                 and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced') or camp_id in (select camp_id from etp.lich_tat))""").splitlines()   # tạm dừng theo lịch giờ vẫn tính
+    rows = q(f"""select camp_id, coalesce(creative_id, 0) from etp.camp c where content_id = {int(content_id)}
+                 and (camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(dong_bo, '') not in ('done', 'synced'))""").splitlines()   # view gồm camp tạm dừng theo lịch giờ
     for l in rows:
         _, cr = l.split("|"); n += 1; DEM_CR[int(cr)] = DEM_CR.get(int(cr), 0) + 1
     # camp vừa tạo chưa vào kho (đồng bộ 10 phút): lấy từ sổ nhật ký studio
@@ -141,7 +141,11 @@ def ghi_bo(content_id, bo):
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_phim_tk', '{}'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(content_id)}', '{bo}') where ten='ethopex_phim_tk' and not gia_tri ? '{int(content_id)}'")
 
-THANG_MUC = {3, 7, 15, 30}   # = luat-ethopex.THANG_NB (bậc mở bản mới, trừ $1)
+def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh thang_bo / thang_muc (migration 0333)
+    v = q(f"select gia_tri::text from etp.cau_hinh where khoa = '{khoa}'")
+    return json.loads(v) if v else mac
+THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
+THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
 def payload(goc_id, lich, moi=None, bo=None, thang=None):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
@@ -205,7 +209,7 @@ def main(a):
         if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
         if thang:   # thang nhân bản: chỉ bộ 2, bậc mới phải cao hơn ngân sách camp gốc
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
-            if str(bo) != "2": raise ValueError(f"thang nhân bản chỉ áp dụng bộ 2 (camp gốc thuộc bộ {bo}) — anh 25/10/2026: bộ 1 giữ nguyên")
+            if str(bo) not in THANG_BO: raise ValueError(f"thang nhân bản chỉ áp dụng bộ {', '.join(THANG_BO)} (camp gốc thuộc bộ {bo}) — bộ khác giữ tăng bậc (etp.cau_hinh.thang_bo)")
             if thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn camp gốc ${ns:g}")
         elif not moi:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
             tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)

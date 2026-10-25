@@ -550,29 +550,28 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
 
 // LỊCH GIỜ BẬT / TẮT THEO THỂ LOẠI (anh 25/10/2026: "Chốt kiểu này… cần có bảng giờ on-off theo khung như trên ở etp để còn kiểm soát. Tab camp là đẹp").
 // Hàng = thể loại phim, cột = khung giờ VN; mỗi ô bấm để đổi BẬT / TẮT, dưới là chi + ROI 7 ngày trọn của thể loại trong khung đó. Máy apps/etp/lich-gio.py áp ở lượt đồng bộ kế.
-const KHUNG_GIO = [{ k: 'k07', ten: '07h', t: '07:00–07:59 · ngân sách ngày vừa nạp lại, Meta xả tiền' }, { k: 'k08', ten: '08h–12h', t: '08:00–12:59' }, { k: 'k13', ten: '13h–19h', t: '13:00–19:59' }, { k: 'k20', ten: '20h–06h', t: '20:00–06:59' }];
-const khungNay = () => { const h = (new Date().getUTCHours() + 7) % 24; return h === 7 ? 'k07' : h >= 8 && h <= 12 ? 'k08' : h >= 13 && h <= 19 ? 'k13' : 'k20'; };
-const GIO_BAT_DAU: Record<string, string> = { k07: '07:00', k08: '08:00', k13: '13:00', k20: '20:00' };
-const SO_GIO: Record<string, number> = { k07: 1, k08: 5, k13: 7, k20: 11 };
+// Khung giờ: MỘT sổ trong kho (etp.khung_gio + hàm etp.khung_vn — migration 0333), cùng nguồn với máy lịch; trang chỉ đọc du.khungGio / du.khungNay
+const hh = (h: number) => `${String(h % 24).padStart(2, '0')}:00`;
+const khungCua = (du: DuLieuEtp) => du.khungGio.map((r) => ({ k: r.khung, ten: r.ten, so: r.so_gio, bd: hh(r.gio_tu), t: `${hh(r.gio_tu)}–${String((r.gio_tu + r.so_gio + 23) % 24).padStart(2, '0')}:59${r.ghi ? ` · ${r.ghi}` : ''}` }));
 /** lịch của một thể loại: [khung, bật?] theo thứ tự 07 → 08–12 → 13–19 → 20–06 (thể loại lạ → '_khac', không có dòng → bật) */
-const lichCua = (ds: DuLieuEtp['lichGio'], tl: string | null) => KHUNG_GIO.map((k) => {
-  const r = ds.find((x) => x.the_loai === (tl ?? '_khac') && x.khung === k.k) ?? ds.find((x) => x.the_loai === '_khac' && x.khung === k.k);
+const lichCua = (du: DuLieuEtp, tl: string | null) => khungCua(du).map((k) => {
+  const ds = du.lichGio; const r = ds.find((x) => x.the_loai === (tl ?? '_khac') && x.khung === k.k) ?? ds.find((x) => x.the_loai === '_khac' && x.khung === k.k);
   return { ...k, bat: r?.bat ?? true };
 });
 // DẢI LỊCH TRÊN TỪNG CAMP (anh 25/10/2026: "trên camp cũng cần show rõ lịch này"): 4 đoạn dài theo số giờ của khung, xanh = BẬT, xám = TẮT, khung đang chạy viền sáng;
 // camp đang tạm dừng vì lịch → chữ "bật lại HH:MM". Rê chuột: lịch đủ của thể loại.
 function LichCamp({ c, du, tl }: { c: CampEtpKho; du: DuLieuEtp; tl: (k: string | null) => string }) {
   const tong = du.cauHinh.find((x) => x.khoa === 'lich_gio')?.gia_tri === true;
-  const l = lichCua(du.lichGio, c.the_loai); const kn = khungNay(); const i = l.findIndex((k) => k.k === kn);
+  const l = lichCua(du, c.the_loai); const kn = du.khungNay; const i = l.findIndex((k) => k.k === kn);
   const ke = [...l.slice(i + 1), ...l.slice(0, i + 1)].find((k) => k.bat);
   const t = `Lịch giờ · ${c.the_loai ? tl(c.the_loai) : 'chưa gắn thể loại'}${tong ? '' : ' (công tắc lịch đang TẮT — không áp)'}\n` + l.map((k) => `${k.ten}: ${k.bat ? 'BẬT' : 'TẮT'}${k.k === kn ? '  ← đang chạy' : ''}`).join('\n')
-    + (c.lich_tat ? `\nĐang tạm dừng theo lịch — máy bật lại lúc ${ke ? GIO_BAT_DAU[ke.k] : '?'} giờ VN` : '');
+    + (c.lich_tat ? `\nĐang tạm dừng theo lịch — máy bật lại từ ${ke ? ke.bd : '?'} giờ VN (lượt đồng bộ đầu tiên sau mốc, ≤ 10 phút)` : '');
   return (
     <span title={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, opacity: tong ? 1 : 0.45, whiteSpace: 'nowrap' }}>
       <span style={{ display: 'inline-flex', gap: 1 }}>
-        {l.map((k) => <span key={k.k} style={{ width: Math.max((SO_GIO[k.k] ?? 1) * 3, 6), height: 10, borderRadius: 2, boxSizing: 'border-box', background: k.bat ? 'var(--neon-lime, #4ade80)' : 'rgba(239,68,68,.35)', border: k.bat ? 'none' : '1px solid #ef4444', outline: k.k === kn ? '1.5px solid var(--fg-1, #fff)' : 'none', outlineOffset: 1 }} />)}
+        {l.map((k) => <span key={k.k} style={{ width: Math.max(k.so * 3, 6), height: 10, borderRadius: 2, boxSizing: 'border-box', background: k.bat ? 'var(--neon-lime, #4ade80)' : 'rgba(239,68,68,.35)', border: k.bat ? 'none' : '1px solid #ef4444', outline: k.k === kn ? '1.5px solid var(--fg-1, #fff)' : 'none', outlineOffset: 1 }} />)}
       </span>
-      {c.lich_tat ? <span style={{ fontSize: 11, color: MAU_DEN.phong }}>⏸ bật lại {ke ? GIO_BAT_DAU[ke.k] : '?'}</span> : null}
+      {c.lich_tat ? <span style={{ fontSize: 11, color: MAU_DEN.phong }}>⏸ bật lại từ {ke ? ke.bd : '?'}</span> : null}
     </span>
   );
 }
@@ -580,7 +579,7 @@ function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => str
   const router = useRouter();
   const [dang, setDang] = useState<string | null>(null);
   const tong = du.cauHinh.find((c) => c.khoa === 'lich_gio')?.gia_tri === true;
-  const kn = khungNay();
+  const kn = du.khungNay; const KHUNG_GIO = khungCua(du);
   const o = useMemo(() => new Map(du.lichGio.map((r) => [`${r.the_loai}|${r.khung}`, r])), [du.lichGio]);
   const so = useMemo(() => new Map(du.khungSo.map((r) => [`${r.the_loai}|${r.khung}`, r])), [du.khungSo]);
   const camp = useMemo(() => { const m = new Map<string, { chay: number; tam: number }>(); for (const c of du.camps) { const t = c.the_loai ?? '_khac'; const a = m.get(t) ?? { chay: 0, tam: 0 }; if (c.trang_thai === 'ACTIVE') a.chay++; if (c.lich_tat) a.tam++; m.set(t, a); } return m; }, [du.camps]);

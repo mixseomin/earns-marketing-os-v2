@@ -52,6 +52,8 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   lichGio: { the_loai: string; khung: string; bat: boolean; ai: string | null; luc: string }[];
   khungSo: { the_loai: string; khung: string; chi: number; thu: number }[];
   lichTat: { camp_id: number; the_loai: string | null; khung: string | null; luc: string }[];
+  /** sổ khung giờ (etp.khung_gio, migration 0333 — cùng nguồn với máy lịch apps/etp/lich-gio.py) + khung đang chạy (etp.khung_vn lúc đọc) */
+  khungGio: { khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }[]; khungNay: string;
   phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
@@ -128,12 +130,14 @@ export async function docEtp(): Promise<DuLieuEtp> {
   for (const x of crMap.values()) if (x.ngay_dau) dn(x.ngay_dau.slice(0, 10)).cr_moi++;
   for (const r of tatNgay) dn(r.d).tat = n(r.n);
   const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: String(b.page), tk_id: Number(b.tk), page_id: Number(b.page), chi_phim_moi: b.chi_phim_moi }]));
-  const [lichGio, khungSo, lichTat] = await Promise.all([
-    run<DuLieuEtp['lichGio'][number]>(sql`select the_loai, khung, bat, ai, luc::text luc from etp.lich_gio order by the_loai, khung`).catch(() => [] as DuLieuEtp['lichGio']),
-    run<{ the_loai: string; khung: string; chi: string; thu: string }>(sql`select coalesce(p.the_loai, '_khac') the_loai,
-        case when (s.gio + 7) % 24 = 7 then 'k07' when (s.gio + 7) % 24 between 8 and 12 then 'k08' when (s.gio + 7) % 24 between 13 and 19 then 'k13' else 'k20' end khung, sum(s.chi) chi, sum(s.thu) thu
+  // LỊCH GIỜ — không .catch: đọc lỗi mà trả rỗng thì bảng hiện toàn BẬT trong khi máy đang tạm dừng camp (audit 25/10/2026)
+  const [lichGio, khungSo, lichTat, khungGio, khungNay] = await Promise.all([
+    run<DuLieuEtp['lichGio'][number]>(sql`select the_loai, khung, bat, ai, luc::text luc from etp.lich_gio order by the_loai, khung`),
+    run<{ the_loai: string; khung: string; chi: string; thu: string }>(sql`select coalesce(p.the_loai, '_khac') the_loai, etp.khung_vn((s.gio + 7) % 24) khung, sum(s.chi) chi, sum(s.thu) thu
       from etp.so_gio s left join etp.phim p using (content_id) where s.ngay between ${nay}::date - 7 and ${nay}::date - 1 group by 1, 2`),
-    run<DuLieuEtp['lichTat'][number]>(sql`select camp_id, the_loai, khung, luc::text luc from etp.lich_tat order by luc desc`).catch(() => [] as DuLieuEtp['lichTat']),
+    run<DuLieuEtp['lichTat'][number]>(sql`select camp_id, the_loai, khung, luc::text luc from etp.lich_tat order by luc desc`),
+    run<{ khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }>(sql`select khung, gio_tu, so_gio, ten, ghi from etp.khung_gio order by (gio_tu + 17) % 24`),
+    run<{ k: string }>(sql`select etp.khung_vn(extract(hour from now() at time zone 'Asia/Ho_Chi_Minh')::int) k`),
   ]);
   const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
@@ -170,7 +174,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
     quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],
-    tieuChi, lichGio, lichTat, khungSo: khungSo.map((r) => ({ the_loai: r.the_loai, khung: r.khung, chi: n(r.chi), thu: n(r.thu) })),
+    tieuChi, lichGio, lichTat, khungGio: khungGio.map((r) => ({ ...r, gio_tu: n(r.gio_tu), so_gio: n(r.so_gio) })), khungNay: khungNay[0]?.k ?? '', khungSo: khungSo.map((r) => ({ the_loai: r.the_loai, khung: r.khung, chi: n(r.chi), thu: n(r.thu) })),
     chamHang: Object.fromEntries(chamHang.map((r) => [n(r.creative_id), { trang_thai: String(r.trang_thai), luc: String(r.luc), loi: (r.loi as string) ?? null, nguon: String(r.nguon ?? ''),
       buoc: (r.buoc as string) ?? null, nhat_ky: (r.nhat_ky ?? []) as { b: string; luc: string }[], bat_dau: (r.bat_dau as string) ?? null, xong: (r.xong as string) ?? null }])),
     cham: Object.fromEntries(cham.map((r) => [n(r.creative_id), { luc: String(r.luc), may: (r.may as string) ?? null, ket: (r.ket as string) ?? null, meta: r.meta == null ? null : n(r.meta), afs: r.afs == null ? null : n(r.afs),

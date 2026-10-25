@@ -7,7 +7,7 @@ Mỗi lượt (dong-bo.py gọi đầu lượt, 10 phút/lần):
   · CHỈ bật lại camp do chính lịch tạm dừng — camp tắt vì lý do khác (anh, luật, Meta) không bao giờ bị bật. Dừng khẩn (etp.cau_hinh.dung_khan) → không bật gì.
   · công tắc tổng etp.cau_hinh['lich_gio'] = false → bật lại mọi camp đang tạm dừng vì lịch, không tắt thêm.
 Ghi một dòng tóm tắt mỗi lượt có việc vào etp.nhat_ky (viec lich_tat / lich_bat).
-Chạy tay (box3, đã nạp .env.production):  python3 lich-gio.py [--thu] [--luc HH:MM]
+Chạy tay (box3, đã nạp .env.production):  python3 lich-gio.py [--thu] [--luc HH:MM] | --tu-kiem
   --thu: chỉ in sẽ làm gì · --luc (chỉ đi cùng --thu): mô phỏng giờ VN đó trên camp hiện tại — liệt kê số camp sẽ tạm dừng / bật lại theo thể loại"""
 import datetime as dt, json, os, subprocess, sys, urllib.request
 TRUOC_PHUT = 15   # tắt sớm tối đa 15 phút trước khung TẮT (lượt chạy 10 phút/lần) — kịp chặn cú xả lúc 07:00
@@ -33,9 +33,11 @@ def dieu_khien(ids, trang_thai):
         except Exception as e: print(f"lỗi gọi {trang_thai}: {e}", file=sys.stderr)
     return xong
 
+_KHUNG = {}
 def khung(t):
-    h = t.hour
-    return "k07" if h == 7 else "k08" if 8 <= h <= 12 else "k13" if 13 <= h <= 19 else "k20"
+    """khung giờ VN của thời điểm t — MỘT nguồn: hàm SQL etp.khung_vn (sổ etp.khung_gio, migration 0333), cùng hàm trang etp.on.tc dùng"""
+    if t.hour not in _KHUNG: _KHUNG[t.hour] = q(f"select etp.khung_vn({t.hour})")
+    return _KHUNG[t.hour]
 
 def main():
     vn = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)
@@ -70,18 +72,24 @@ def main():
         if ok:
             j = json.dumps([{"camp_id": c, "the_loai": tl_cua.get(c), "khung": k_toi if on(tl_cua.get(c, "_khac"), k_nay) else k_nay} for c in ok])
             q(f"insert into etp.lich_tat (camp_id, the_loai, khung) select camp_id, the_loai, khung from jsonb_to_recordset($J${j}$J$::jsonb) as x(camp_id int, the_loai text, khung text) on conflict do nothing")
-            q(f"update etp.camp set trang_thai = 'PAUSED' where camp_id in ({','.join(map(str, ok))})")   # kho phản ánh ngay — lượt đồng bộ sau ghi đè bằng số thật
             ghi("lich_tat", ok, f"lịch giờ: khung {k_toi if k_toi != k_nay else k_nay} TẮT cho thể loại " + ", ".join(sorted({tl_cua.get(c, '_khac') for c in ok})))
     if can_bat:
         ok = dieu_khien(can_bat, "active")
         if ok:
             q(f"delete from etp.lich_tat where camp_id in ({','.join(map(str, ok))})")
-            q(f"update etp.camp set trang_thai = 'ACTIVE' where camp_id in ({','.join(map(str, ok))})")
             ghi("lich_bat", ok, f"lịch giờ: khung {k_nay} BẬT" + ("" if bat_lich else " (công tắc lịch giờ tắt — bật lại hết)"))
 
 def ghi(viec, ids, luat):
     j = json.dumps([{"viec": viec, "sau": str(len(ids)), "luat": (luat + " · camp " + ", ".join(f"#{c}" for c in ids[:40]) + (" …" if len(ids) > 40 else ""))[:1000]}], ensure_ascii=False)
     q(f"insert into etp.nhat_ky (luc, viec, camp_id, sau, ok, luat, ai) select now(), viec, null, sau, true, luat, 'máy lịch giờ (anh chốt 25/10/2026)' from jsonb_to_recordset($J${j}$J$::jsonb) as x(viec text, sau text, luat text) on conflict do nothing")
 
+def tu_kiem():
+    """--tu-kiem: mọi giờ 0–23 ra đúng khung (đối chiếu mốc anh chốt), và mốc tắt sớm 15 phút đúng chỗ — đỏ thì exit 1"""
+    mong = {**{h: "k20" for h in list(range(20, 24)) + list(range(0, 7))}, 7: "k07", **{h: "k08" for h in range(8, 13)}, **{h: "k13" for h in range(13, 20)}}
+    sai = [(h, khung(dt.datetime(2026, 1, 1, h)), k) for h, k in mong.items() if khung(dt.datetime(2026, 1, 1, h)) != k]
+    t = lambda h, m: khung(dt.datetime(2026, 1, 1, h, m) + dt.timedelta(minutes=TRUOC_PHUT))
+    sai += [(f"{h}:{m:02d}+15", t(h, m), k) for h, m, k in ((6, 44, "k20"), (6, 46, "k07"), (12, 44, "k08"), (12, 46, "k13"), (19, 46, "k20"))  if t(h, m) != k]
+    print("lich-gio tự kiểm:", "ĐẠT 29/29" if not sai else f"SAI {sai}"); sys.exit(1 if sai else 0)
+
 if __name__ == "__main__":
-    main()
+    tu_kiem() if "--tu-kiem" in sys.argv else main()

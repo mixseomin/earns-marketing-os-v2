@@ -343,9 +343,10 @@ _bo_c = {int(c["id"]): _bo.get(int(c.get("ad_account_id") or 0)) for c in ds_cam
 # hôm nay không lỗ, tăng lại sau giảm, LD siết) → thay vì đổi ngân sách, mở một bản ở bậc kế; mỗi camp tối đa THANG_CON bản con, bản trước còn chạy thì
 # không mở thêm. (Bản đầu đòi 2 ngày trọn ROI ≥ 50%: đo 25/10 bộ 2 có 0 camp đạt — không áp được hôm nay.) Bản thang chi ≥ 1 ngày ngân sách mà ROI ≤ −30% → đề xuất TẮT (anh bấm nút — luật cấm tự tắt).
 # Bản thang không đi đường giảm bậc (giữ ngân sách lúc mở); camp bộ 2 cũ vẫn giảm như bộ 1. Không biết bộ (API lỗi) thì đọc kho etp — chặn tăng cho chắc.
-BO_THANG, THANG_NB, THANG_CON, THANG_TAT = "2", [1, 3, 7, 15, 30], 2, -30
+_ch = lambda k, mac: json.loads(q(f"select gia_tri::text from etp.cau_hinh where khoa = '{k}'") or json.dumps(mac))   # một sổ với nhan-ban.py (migration 0333)
+BO_THANG, THANG_NB, THANG_CON, THANG_TAT = [str(x) for x in _ch("thang_bo", ["2"])], sorted(float(x) for x in _ch("thang_muc", [1, 3, 7, 15, 30])), 2, -30
 la_thang = lambda c: re.search(r"\(thang \$\d+ cua (\d+)\)$", c.get("name") or "")
-bo2 = {cid for cid, b in _bo_c.items() if b == BO_THANG} | {int(x) for x in q(f"select camp_id from etp.camp where bo = '{BO_THANG}'").split() if x.isdigit()}
+bo2 = {cid for cid, b in _bo_c.items() if b in BO_THANG} | {int(x) for x in q("select camp_id from etp.camp where bo in (" + ",".join(f"'{b}'" for b in BO_THANG) + ")").split() if x.isdigit()}
 _tang_bo2 = {int(x[0]) for x in dat + dau_phien if int(x[0] or 0) in bo2}
 dat, dau_phien, nb = ([x for x in ds if int(x[0] or 0) not in bo2] for ds in (dat, dau_phien, nb))
 _id_thang = {int(c["id"]) for c in ds_camp if la_thang(c)}
@@ -365,7 +366,7 @@ try:
         if len(con) >= THANG_CON or any(x.get("state") == "ACTIVE" or (x.get("sync_status") or "done") not in ("done", "synced", "error") for x in con): continue
         h = hom.get(cid, {"chi": 0.0, "thu": 0.0}); y = hqua.get(cid) or {"chi": 0.0, "thu": 0.0}
         if int(phim_cua.get(cid) or 0) in _chan_phim or cid in _loi6: continue
-        thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich} bản mới (creative khác cùng phim; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
+        thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich:g} bản mới (creative khác cùng phim; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
     for c in ds_camp:
         if not la_thang(c) or c.get("state") != "ACTIVE": continue
         cid = c["id"]; a = tron.get(cid) or tron.get(str(cid)); ns = float((thang.get(cid) or {}).get("budget") or c.get("budget_daily") or 0)

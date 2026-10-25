@@ -27,8 +27,8 @@ def bao(loai, muc, khoa, chu):
 BH_CAMP, NB_ROI_PHIM, NB_GIU = 10, 50, 0.8   # 0.7 → 0.8 (anh 25/10/2026: Number One 148% → 106% vẫn > 100% nhưng giảm sâu thì cũng phải dừng nhân bản)
 def bao_hoa_phim(nay):
     d = [(nay - dt.timedelta(days=k)).isoformat() for k in (1, 2, 3)]
-    # camp tạm dừng vì LỊCH GIỜ (etp.lich_tat) vẫn là camp đang chạy của phim — khung TẮT không được làm phim rơi khỏi bảng bão hoà
-    rows = q(f"""with c as (select content_id, count(*) filter (where trang_thai = 'ACTIVE' or camp_id in (select camp_id from etp.lich_tat)) so from etp.camp where content_id is not null group by 1),
+    # đếm theo view etp.camp_dang_chay (gồm camp tạm dừng vì LỊCH GIỜ) — khung TẮT không được làm phim rơi khỏi bảng bão hoà
+    rows = q(f"""with c as (select content_id, count(*) so from etp.camp_dang_chay where content_id is not null group by 1),
                  s as (select k.content_id, s.ngay, sum(s.chi) chi, sum(s.thu) thu from etp.so_ngay s join etp.camp k using (camp_id)
                        where s.ngay in ('{d[0]}', '{d[1]}', '{d[2]}') group by 1, 2)
              select c.content_id, coalesce(p.ten, ''), c.so, coalesce(json_agg(json_build_object('d', s.ngay, 'chi', round(s.chi, 2), 'thu', round(s.thu, 2)) order by s.ngay) filter (where s.ngay is not null), '[]')

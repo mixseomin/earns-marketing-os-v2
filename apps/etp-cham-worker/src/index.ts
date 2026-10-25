@@ -103,6 +103,7 @@ async function chamMot(env: Env, v0: Viec, tc: TieuChi[], mau: Mau | null) {
   // video tạm vào R2 MỘT lần (mỗi lượt Media binding cần luồng mới — cắt từ R2, không kéo lại từ box3)
   const r = await fetch(v.video); const dai = Number(r.headers.get('content-length') ?? 0);
   if (!r.ok || !r.body || !dai) throw new Error(`không tải được video (${r.status})`);
+  if (dai >= 100 * 1048576) { r.body.cancel(); throw new Error(`video ${(dai / 1048576).toFixed(0)} MB vượt giới hạn 100 MB của Cloudflare (cần bản xem nhẹ)`); }
   const { readable, writable } = new FixedLengthStream(dai); r.body.pipeTo(writable); await env.R2.put(key, readable);
   const that = await doDaiMp4(env, key, dai); if (that && that > 1) v = { ...v, dur: that };
   await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · dài ${v.dur.toFixed(0)}s · cắt ${SO_KHUNG} khung`);

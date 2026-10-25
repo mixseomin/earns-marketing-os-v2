@@ -212,24 +212,28 @@ function PhotBo({ du }: { du: DuLieuEtp }) {
 }
 // CREATIVE › QUÉT NỘI DUNG (anh 25/10/2026): mỗi creative một dòng, cột chia NHÓM theo bộ chấm (DataTable groups):
 //   Đã quét (chữ · giọng · ảnh · nội dung — lớp nào chưa chạy hiện "–") · Meta (điểm 0–10 từng tiêu chí) · AFS (content ads, CTA) · Kết luận.
-// Tiêu chí lấy từ etp.tieu_chi (một nguồn với máy chấm cham-creative.py). Rê chuột vào ô → thẻ xem: lý do + tờ 30 khung có viền đỏ đúng khung bị bắt
+// Tiêu chí lấy từ etp.tieu_chi (một nguồn với Worker chấm apps/etp-cham-worker). Rê chuột vào ô → thẻ xem: lý do + lưới khung có viền đỏ đúng khung bị bắt
 // + video tua tới giây đó (anh: "hover phải xem được đoạn nội dung đó để còn xác nhận sai").
 const DAU_MAU = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', vua: '#f59e0b', cho: '#9ecbff', chua: 'var(--fg-3, #666)' };
 const mauDiem = (d: number | null | undefined) => (d == null ? DAU_MAU.chua : d >= 8 ? DAU_MAU.ok : d >= 5 ? DAU_MAU.vua : DAU_MAU.loi);
 const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'cưỡng ép / bạo lực tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
 const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
-type The = { tieu: string; diem?: number | null; ly: string; khung?: number[]; anh?: string; video?: string | null; dai?: number; chu?: string; x: number; y: number };
+type The = { tieu: string; diem?: number | null; ly: string; khung?: number[]; anh?: string; anhKhung?: string[]; video?: string | null; dai?: number; chu?: string; x: number; y: number };
 // THẺ XEM: tờ khung 6×5 (30 khung theo thứ tự) — khung bị bắt viền đỏ; video bắt đầu ở khung bị bắt đầu tiên
 function TheXem({ t }: { t: The }) {
   const W = 300, rong = typeof window !== 'undefined' ? window.innerWidth : 1400, cao = typeof window !== 'undefined' ? window.innerHeight : 900;
-  const giay = t.khung?.length && t.dai ? Math.max(0, ((t.khung[0]! - 0.5) * t.dai) / 30) : 0;
+  const so = t.anhKhung?.length || 30;   // số khung trên tờ: Worker cắt từng khung (20) · bản cũ tờ 6×5 (30)
+  const giay = t.khung?.length && t.dai ? Math.max(0, ((t.khung[0]! - 0.5) * t.dai) / so) : 0;
   return (
     <div style={{ position: 'fixed', zIndex: 60, pointerEvents: 'none', left: Math.min(t.x + 14, rong - (t.video ? 2 * W + 40 : W + 30)), top: Math.max(8, Math.min(t.y - 120, cao - 560)),
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, padding: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', display: 'flex', gap: 10 }}>
       <div style={{ width: W }}>
         <div style={{ fontWeight: 700, fontSize: 13 }}>{t.tieu}{t.diem != null ? <span style={{ color: mauDiem(t.diem), marginLeft: 6 }}>{t.diem}/10</span> : null}</div>
         <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '4px 0 8px', whiteSpace: 'pre-wrap' }}>{t.ly}</div>
-        {t.anh ? (
+        {t.anhKhung?.length ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 2, width: W }}>
+            {t.anhKhung.map((u, i) => <img key={u} src={u} alt="" style={{ width: '100%', display: 'block', borderRadius: 2, outline: t.khung?.includes(i + 1) ? '2px solid #ef4444' : 'none', outlineOffset: -2 }} />)}
+          </div>) : t.anh ? (
           <div style={{ position: 'relative', width: W }}>
             <img src={t.anh} alt="" style={{ width: W, display: 'block', borderRadius: 4 }} />
             {(t.khung ?? []).map((n) => <span key={n} style={{ position: 'absolute', left: `${((n - 1) % 6) * (100 / 6)}%`, top: `${Math.floor((n - 1) / 6) * 20}%`, width: `${100 / 6}%`, height: '20%', border: '2px solid #ef4444', boxSizing: 'border-box' }} />)}
@@ -262,13 +266,14 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
   const rows = ds.filter((x) => loc === 'all' || (loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? x.muc === 2 : loc === 'meta' ? x.metaLoi : !x.c));
   const sot = ds.filter((x) => x.metaLoi && x.c && x.c.ket === 'ok').length;
   type Dong = (typeof ds)[number];
-  const moThe = (e: React.MouseEvent, x: Dong, t: Omit<The, 'x' | 'y' | 'anh' | 'video' | 'dai'>) => setThe({ ...t, anh: x.c?.lop.anh?.url, video: x.r.video, dai: x.c?.lop.anh?.giay, x: e.clientX, y: e.clientY });
-  const O = ({ x, children, t }: { x: Dong; children: React.ReactNode; t: Omit<The, 'x' | 'y' | 'anh' | 'video' | 'dai'> }) => (
+  type Mo = Omit<The, 'x' | 'y' | 'anh' | 'anhKhung' | 'video' | 'dai'>;
+  const moThe = (e: React.MouseEvent, x: Dong, t: Mo) => setThe({ ...t, anh: x.c?.lop.anh?.url, anhKhung: x.c?.lop.anh?.khung_url, video: x.r.video, dai: x.c?.lop.anh?.giay, x: e.clientX, y: e.clientY });
+  const O = ({ x, children, t }: { x: Dong; children: React.ReactNode; t: Mo }) => (
     <span onMouseEnter={(e) => moThe(e, x, t)} onMouseLeave={() => setThe(null)} style={{ cursor: 'zoom-in', display: 'inline-block', minWidth: 22, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{children}</span>);
   const LOP: { key: 'chu' | 'giong' | 'anh' | 'noi_dung'; ten: string; noi: (c: ChamCr) => string }[] = [
     { key: 'chu', ten: 'Chữ', noi: (c) => [c.lop.chu?.noi_dung, ...(c.lop.chu?.loi ?? []), ...(c.lop.chu?.cta ?? [])].filter(Boolean).join('\n') || 'Không có chữ trên hình' },
     { key: 'giong', ten: 'Giọng', noi: (c) => c.lop.giong?.noi_dung || 'Không có lời nói' },
-    { key: 'anh', ten: 'Ảnh', noi: () => 'Tờ 30 khung theo thứ tự' },
+    { key: 'anh', ten: 'Ảnh', noi: (c) => `${c.lop.anh?.khung_url?.length ?? 30} khung theo thứ tự thời gian` },
     { key: 'noi_dung', ten: 'Nội dung', noi: (c) => c.lop.noi_dung?.tom_tat ?? '' },
   ];
   const cotLop: DataColumn<Dong>[] = LOP.map((l) => ({ key: `lop_${l.key}`, header: l.ten, group: 'lop', align: 'center', width: 52, title: `đã quét ${l.ten.toLowerCase()} chưa`,
@@ -298,6 +303,8 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
               <span style={{ fontVariantNumeric: 'tabular-nums' }}>{q.xong}/{q.tong} · <span style={{ color: DAU_MAU.ok }}>{q.ok} sạch</span> · <span style={{ color: DAU_MAU.loi }}>{q.cam} cấm</span> · <span style={{ color: DAU_MAU.vua }}>{q.xem} cần xem</span></span>
             </div>))}
         </div>) : null}
+      {choCham ? (() => { const hs = Object.values(du.chamHang ?? {}); const dang = hs.filter((h) => h.trang_thai === 'dang').length, cho = hs.filter((h) => h.trang_thai === 'cho').length;
+        return <div style={{ fontSize: 13, margin: '4px 0 10px', color: 'var(--fg-2)' }}><Den mau="#9ecbff" t="đang chấm" song /> Cloudflare đang chấm <b style={{ color: 'var(--fg-1)' }}>{dang}</b> creative · <b style={{ color: 'var(--fg-1)' }}>{cho}</b> đang chờ · tự làm mới 5 giây</div>; })() : null}
       <PhotBo du={du} />
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
         <span><b style={{ fontSize: 18 }}>{ds.length - dem.chua}/{ds.length}</b> đã chấm</span>
@@ -314,10 +321,10 @@ function TabSoat({ du, Anh }: { du: DuLieuEtp; Anh: (p: { cr: number | null }) =
           ...cotLop, ...cotDiem('meta'), ...cotDiem('afs'),
           { key: 'ket', header: 'Máy', group: 'kq', title: 'kết luận bộ chấm', cell: (x) => (x.c?.ket ? <span style={{ color: KET[x.c.ket]?.[1], fontWeight: 600, whiteSpace: 'nowrap' }}>{KET[x.c.ket]?.[0] ?? x.c.ket}</span> : <span style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => x.muc },
           { key: 'meta_that', header: 'Meta thật', group: 'kq', title: 'Meta duyệt hay từ chối', cell: (x) => (x.metaLoi ? <span title={loiMeta(x.r.tu_choi ?? photCr.get(x.r.creative_id) ?? '')} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span> : x.r.giao.includes('ACTIVE') ? <span title="Meta đã duyệt, đang phát" style={{ color: DAU_MAU.ok }}>✓</span> : <span title="Meta đang duyệt" style={{ color: DAU_MAU.cho }}>…</span>), sortValue: (x) => (x.metaLoi ? 0 : 1) },
-          { key: 'nut', header: 'Chấm', group: 'kq', align: 'center', title: 'chấm creative này ngay (máy iMac nhận trong ~1 phút, ~400–600₫ Claude)', cell: (x) => {
+          { key: 'nut', header: 'Chấm', group: 'kq', align: 'center', title: 'chấm creative này ngay (Cloudflare nhận trong ~1 phút)', cell: (x) => {
             const h = du.chamHang?.[x.r.creative_id];
             if (h?.trang_thai === 'dang') return <span style={{ whiteSpace: 'nowrap', fontSize: 12, color: DAU_MAU.cho }}><Den mau="#9ecbff" t="đang chấm" song /> đang chấm</span>;
-            if (h?.trang_thai === 'cho' || bam.has(x.r.creative_id)) return <span style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--fg-2)' }}><Den mau="#f59e0b" t="đang chờ máy iMac nhận" /> chờ</span>;
+            if (h?.trang_thai === 'cho' || bam.has(x.r.creative_id)) return <span style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--fg-2)' }}><Den mau="#f59e0b" t="đang chờ Cloudflare nhận" /> chờ</span>;
             return <span style={{ whiteSpace: 'nowrap' }}>{h?.trang_thai === 'loi' ? <span title={`Lần chấm trước lỗi: ${h.loi ?? ''}`} style={{ color: DAU_MAU.loi, marginRight: 4 }}>✕</span> : null}
               <button onClick={() => chamNgay(x.r.creative_id)} style={{ border: '1px solid var(--line)', background: 'transparent', color: 'inherit', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}>{x.c ? 'Chấm lại' : 'Chấm'}</button></span>; } },
           { key: 'luc', header: 'Chấm lúc', group: 'kq', cell: (x) => <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.c ? vn(x.c.luc) : '—'}</span>, sortValue: (x) => x.c?.luc ?? '' },

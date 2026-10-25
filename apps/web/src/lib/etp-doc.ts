@@ -17,7 +17,7 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
   thang: SoTien; qua: SoTien; nay: SoTien };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
-    anh?: { luc: string; url?: string; giay?: number }; noi_dung?: { luc: string; tom_tat: string } };
+    anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */ }; noi_dung?: { luc: string; tom_tat: string } };
   diem: Record<string, number>; ly_do: Record<string, string>; khung: Record<string, number[]> };
 export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
@@ -41,7 +41,7 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** phốt Meta (etp.phot — anh 25/10/2026: cảnh báo từ Meta = phốt gắn bộ tài khoản / Page) */
   /** tiến độ lượt quét nội dung theo máy (soat_doan.py quet ghi từng đoạn — xv_khoa_ngoai ethopex_quet) */
   quet: Record<string, { tong: number; xong: number; ok: number; cam: number; xem: number; bat_dau: string; cap_nhat: string; dang: boolean; cuoi: string }>;
-  /** bộ chấm creative (anh 25/10/2026): tiêu chí Meta + AFS (etp.tieu_chi — một nguồn với máy chấm) · bản chấm từng creative (etp.cham, cham-creative.py) */
+  /** bộ chấm creative (anh 25/10/2026): tiêu chí Meta + AFS (etp.tieu_chi — một nguồn với máy chấm) · bản chấm từng creative (etp.cham, Worker Cloudflare etp-cham) */
   tieuChi: { nhom: string; ma: string; ten: string }[];
   cham: Record<number, ChamCr>;
   /** hàng chờ chấm (etp.cham_hang): đang chờ / đang chấm / lỗi gần đây — nút "Chấm" trên trang */

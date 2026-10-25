@@ -1,6 +1,6 @@
 -- HÀNG CHỜ CHẤM CREATIVE (anh 25/10/2026: "thêm nút để tao có thể chủ động chạy chấm 1 creative cụ thể" + "các creative mới từ giờ có bước chấm tự động").
 -- Ai ghi: nút "Chấm" trên etp.on.tc (lib/actions/etp-cham.ts, nguon = 'nut') · len-creative.py khi đẩy creative mới (nguon = 'moi').
--- Ai đọc: tiến trình iMac com.htuan.ethopex-cham (mỗi phút) → cham-creative.py hang. CHỈ CHẤM — không áp vào camp / luật.
+-- Ai đọc: Worker Cloudflare etp-cham (Cron mỗi phút, apps/etp-cham-worker) qua /api/ext/etp-cham. CHỈ CHẤM — không áp vào camp / luật.
 CREATE TABLE IF NOT EXISTS etp.cham_hang (
   creative_id  integer PRIMARY KEY,
   luc          timestamptz NOT NULL DEFAULT now(),   -- lúc xếp hàng

@@ -1,6 +1,6 @@
 'use server';
 // NÚT "CHẤM" trên etp.on.tc › Creative › Quét nội dung (anh 25/10/2026: "thêm nút để tao có thể chủ động chạy chấm 1 creative cụ thể").
-// Chỉ xếp hàng etp.cham_hang — tiến trình iMac com.htuan.ethopex-cham nhận trong ~1 phút (chữ Vision + giọng whisper chỉ chạy trên iMac).
+// Chỉ xếp hàng etp.cham_hang — Worker Cloudflare etp-cham nhận trong ~1 phút.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';

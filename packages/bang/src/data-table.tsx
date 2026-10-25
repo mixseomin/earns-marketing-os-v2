@@ -619,6 +619,7 @@ export function DataTable<T>({
       )}
       <div ref={thanRef} className={`dt-scroll${theoTrang ? '' : ' dt-hop'}`} onScroll={theoTrang ? dongCuon('than') : undefined} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
         <table ref={bangRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout || Object.keys(rong).length ? 'fixed' : 'auto', minWidth, ...(theoTrang && cotDo.cao ? { marginTop: -cotDo.cao } : {}) }}>
+          {groupHeader ? <colgroup>{visible.map((c) => <col key={c.key} style={{ width: rong[c.key] ?? c.width }} />)}</colgroup> : null}{/* hàng nhãn nhóm (ô gộp) đứng ĐẦU thead → table-layout:fixed bỏ qua bề rộng ở hàng cột → kéo giãn cột bị chia đều; khai bề rộng bằng colgroup */}
           {!hideHeader && (theoTrang
             ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangNhom()}{hangDau(false)}</thead>
             : <thead>{hangNhom()}{hangDau(true)}</thead>)}

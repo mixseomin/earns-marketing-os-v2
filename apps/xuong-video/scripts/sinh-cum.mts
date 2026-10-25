@@ -12,7 +12,7 @@ import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { guiPlenx, docPlenx } from '../src/lib/xuong-video/cong-plenxai';
 import { giaVideoCong } from '../src/lib/xuong-video/cong-ai';
-import { chiaCum, promptCum, vaoTuCatThat, BO_DUOI, VAO_DAU } from '../src/lib/xuong-video/cum-shot';
+import { chiaCum, anhNeoCuoi, promptCum, vaoTuCatThat, BO_DUOI, VAO_DAU, DUNG_DUOC } from '../src/lib/xuong-video/cum-shot';
 import { uploadToR2 } from '../src/lib/r2';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
@@ -22,7 +22,9 @@ if (!tap) { console.error('cần --tap'); process.exit(1); }
 if (!thu && !process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 (hoặc --thu để xem kế hoạch)'); process.exit(2); }
 const db = getDb()!; const tmp = `/tmp/sinh-cum-${tap}`; mkdirSync(tmp, { recursive: true });
 const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} AND thu_tu BETWEEN ${tu} AND ${den} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
-const cacCum = chiaCum(ds).filter((c) => c.length > 1 || !c[0]!.video_url);
+// người trong từng shot = nhân vật (loai nhan_vat) của shot — neo người: ai cũng phải có ở ảnh mở / ảnh neo cuối (cum-shot.ts › chiaCum)
+const laNguoi = new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE loai = 'nhan_vat' AND id IN (SELECT DISTINCT jsonb_array_elements_text(nhan_vat)::int FROM xv_canh WHERE tap_id = ${tap})`)) as unknown as Row[]).map((r) => Number(r.id)));
+const cacCum = chiaCum(ds, DUNG_DUOC, { nguoi: (c) => c.nhan_vat.filter((x) => laNguoi.has(Number(x))), coKet: (c) => !!c.keyframe_ket }).filter((c) => c.length > 1 || !c[0]!.video_url);
 const giaCum = giaVideoCong('plenxai', moHinh);
 console.log(`tập ${tap}: ${ds.length} shot → ${cacCum.length} cụm cần sinh · ~${(giaCum.vnd ?? 0) * cacCum.length}₫`);
 const bcCum = await Promise.all(cacCum.map((c) => Promise.all(c.map((x) => boiCanhCanh(db, x.id)))));
@@ -48,7 +50,7 @@ function catThat(f: string, n: number, d: number): number[] {
 async function sinh(i: number): Promise<string | null> {
   const c = cacCum[i]!; const nhan = `${c[0]!.thu_tu}-${c.at(-1)!.thu_tu}`;
   for (let lan = 1; lan <= 6; lan++) {
-    const g = await guiPlenx(moHinh, { prompt: pr[i]!, anhDau: c[0]!.keyframe_url!, anhCuoi: null, giay: 8 });
+    const g = await guiPlenx(moHinh, { prompt: pr[i]!, anhDau: c[0]!.keyframe_url!, anhCuoi: anhNeoCuoi(c), giay: 8 });
     if (!g.ok) { console.log(`  cụm ${nhan}: gửi lỗi (${g.loi.slice(0, 120)}) — đợi 30s thử lại`); await new Promise((r) => setTimeout(r, 30_000)); continue; }
     const tao = new Date().toISOString();
     for (let k = 0; k < 90; k++) { await new Promise((r) => setTimeout(r, 10_000)); const d = await docPlenx(g.taskId, tao, 12);

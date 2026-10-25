@@ -27,4 +27,14 @@ const t = vaoTuCatThat(cum, [3.1]);
 assert.ok(!t.theoDo); assert.deepStrictEqual(t.vao, lichCum(cum).map((x) => x.tu));
 // đoạn đo ngắn hơn giây phát → báo shot đó (bản dựng sẽ lấn sang góc kế)
 assert.deepStrictEqual(vaoTuCatThat(cum, [0.6, 2.7, 4.8, 5.9]).ngan, [5]);
+// neo người — người của shot cảnh Thang máy (H Hạ, V Vivian, T Thần, X người lạ) + shot có khung kết
+const nguoi = [['H'], ['H'], ['V', 'H'], ['V'], ['V', 'H'], ['V', 'H'], ['V', 'H'], ['H'], ['V'], ['V'], ['T', 'H', 'V', 'X'], ['T'], ['H'], ['V'], ['H'], ['V'], ['H']];
+const ket = [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1];
+const neo = { nguoi: (c: { thu_tu: number }) => nguoi[c.thu_tu - 1]!, coKet: (c: { thu_tu: number }) => !!ket[c.thu_tu - 1] };
+const cn = chiaCum(ds, DUNG_DUOC, neo).map((c) => c.map((x) => x.thu_tu));
+assert.deepStrictEqual(cn, [[1, 2, 3], [4, 5, 6, 7, 8], [9, 10, 11], [12, 13], [14], [15], [16, 17]]);
+// mọi cụm nhiều shot: người của cụm ⊆ người shot đầu ∪ người shot cuối có khung kết
+for (const c of cn.filter((x) => x.length > 1)) { const co = new Set([...nguoi[c[0]! - 1]!, ...(ket[c.at(-1)! - 1] ? nguoi[c.at(-1)! - 1]! : [])]); assert.ok(c.every((t) => nguoi[t - 1]!.every((x) => co.has(x))), String(c)); }
+// phá thử: cụm cũ #1–#4 (Vivian chỉ ở #3, #4 không khung kết) phải bị tách
+assert.ok(!cn.some((c) => c.includes(1) && c.includes(4)));
 console.log('✓ cum-shot');

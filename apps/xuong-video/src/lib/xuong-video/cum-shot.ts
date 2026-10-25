@@ -12,17 +12,26 @@ export const DUNG_DUOC = GIAY_CLIP - VAO_DAU - BO_DUOI;
 
 type ShotCum = Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'phat_s' | 'thoi_luong_s'> & { cat_cuoi_s?: number | null };
 
-/** Chia shot liền nhau thành cụm: cùng phân cảnh (đổi nơi / thời điểm = cụm mới), tổng giây phát ≤ tran. Shot dài hơn tran đứng riêng. */
-export function chiaCum<T extends ShotCum>(ds: readonly T[], tran = DUNG_DUOC): T[][] {
+/** Chia shot liền nhau thành cụm: cùng phân cảnh (đổi nơi / thời điểm = cụm mới), tổng giây phát ≤ tran. Shot dài hơn tran đứng riêng.
+ *  NEO NGƯỜI (phim #353 25/10/2026: cụm #1–#4, #13–#16 khung mở chỉ có Hạ → model BỊA Vivian vest đen, đổi mặt Hạ; cụm #5–#9 khung mở có đủ hai người
+ *  → giữ đúng): mọi nhân vật của cụm phải có trong shot ĐẦU (ảnh mở) hoặc shot CUỐI khi shot đó có khung kết (gửi làm ảnh neo cuối) — thiếu thì tách. */
+export function chiaCum<T extends ShotCum>(ds: readonly T[], tran = DUNG_DUOC, neo?: { nguoi: (c: T) => readonly (string | number)[]; coKet: (c: T) => boolean }): T[][] {
+  const du = (cum: readonly T[]) => {
+    if (!neo) return true;
+    const co = new Set([...neo.nguoi(cum[0]!), ...(cum.length > 1 && neo.coKet(cum.at(-1)!) ? neo.nguoi(cum.at(-1)!) : [])]);
+    return cum.every((c) => neo.nguoi(c).every((x) => co.has(x)));
+  };
   const kq: T[][] = []; let cur: T[] = []; let tong = 0;
   for (const c of ds) {
     const g = giayPhat(c);
-    if (cur.length && (c.phan_doan !== cur[0]!.phan_doan || tong + g > tran + 1e-6)) { kq.push(cur); cur = []; tong = 0; }
+    if (cur.length && (c.phan_doan !== cur[0]!.phan_doan || tong + g > tran + 1e-6 || !du([...cur, c]))) { kq.push(cur); cur = []; tong = 0; }
     cur.push(c); tong += g;
   }
   if (cur.length) kq.push(cur);
   return kq;
 }
+/** Ảnh neo cuối của cụm: khung kết của shot cuối (đã duyệt) — chỉ khi cụm > 1 shot và shot cuối có khung kết. */
+export const anhNeoCuoi = (cum: readonly Pick<Canh, 'keyframe_ket'>[]): string | null => (cum.length > 1 ? cum.at(-1)!.keyframe_ket ?? null : null);
 
 /** Lịch giây của từng shot TRONG clip cụm (theo prompt): giãn tỉ lệ cho đầy phần dùng được — mỗi đoạn ≥ giây phát của shot. */
 export function lichCum(cum: readonly ShotCum[]): { thu_tu: number; tu: number; den: number }[] {

@@ -158,7 +158,7 @@ type KenhBang = { k: string; khoa: string; tk: string; url: string | null; may: 
 // trái = nền tảng → kênh (gom theo TÀI KHOẢN: một Page có Reel + album + bài link là một mục), phải = bài của kênh đang chọn, chia theo ngày
 export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   // DỊCH NGÀY (anh 25/10/2026 "cho phép dịch chuyển ngày để xem các bài trước đó"): mỗi bước 7 ngày, trong khoảng sổ có (6 tuần qua → 6 tuần tới)
-  const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({});
+  const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null);
   const ngay = Array.from({ length: 9 }, (_, i) => cong(luoi.hom, i - 2 + lech)), dau = ngay[0]!, cuoi = ngay[8]!;
   const kenh = [...luoi.o.reduce((m, x) => {
     const kn = luoi.kenh?.[`${x.may}|${x.nen}`], khoa = khoaNen(x.nen, kn?.nenKey), tk = x.tk ?? kn?.tk ?? nhanNen(x.nen), k = `${khoa}|${tk}`;
@@ -171,77 +171,81 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   const ngayVn = (n: string) => `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`;
   const nut = { border: '1px solid var(--border)', background: 'var(--bg)', color: 'inherit', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' } as const;
   if (!kenh.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 0' }}>Chưa có bài nào trong sổ đăng.</div>;
-  const bai = c ? trong(c) : [], coXem = c ? c.bai.some((x) => x.xem != null) : false;
-  const dem = (f: (x: StLuoiO) => string) => [...bai.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
+  const baiKy = c ? trong(c) : [], bai = loc ? baiKy.filter((x) => FMT_NEN(x.nen) === loc) : baiKy, coXem = c ? c.bai.some((x) => x.xem != null) : false;
+  const dem = (f: (x: StLuoiO) => string) => [...baiKy.reduce((m, x) => m.set(f(x), (m.get(f(x)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 270px) minmax(0, 1fr)', gap: 14, margin: '4px 0 14px', alignItems: 'start' }}>
-      <nav aria-label="Nền tảng và kênh" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 6, position: 'sticky', top: 8, maxHeight: '80vh', overflow: 'auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, 250px) minmax(0, 1fr)', gap: 14, margin: '4px 0 14px', alignItems: 'start' }}>
+      {/* YDNI: cây không có hộp cuộn riêng (một thanh cuộn = trang), nhãn chỉ ghi tên — số bài ở hover, kênh không có bài trong khoảng thì mờ */}
+      <nav aria-label="Nền tảng và kênh" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 6, position: 'sticky', top: 8 }}>
         {nhom.map(([khoa, ds]) => (
           <div key={khoa}>
-            <button type="button" onClick={() => setDong((d) => ({ ...d, [khoa]: !d[khoa] }))} aria-expanded={!dong[khoa]}
+            <button type="button" onClick={() => setDong((d) => ({ ...d, [khoa]: !d[khoa] }))} aria-expanded={!dong[khoa]} title={`${ds.length} kênh`}
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
               <span style={{ width: 10, color: 'var(--fg-3)' }}>{dong[khoa] ? '▸' : '▾'}</span><SiteFavicon platformKey={khoa} size={18} title={khoa} />
-              <span style={{ flex: 1, textAlign: 'left' }}>{TEN_NEN[khoa] ?? khoa}</span><span style={{ fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{ds.length}</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>{TEN_NEN[khoa] ?? khoa}</span>
             </button>
-            {!dong[khoa] && ds.sort((a, b) => a.tk.localeCompare(b.tk)).map((x) => { const n = trong(x).length, sel = c?.k === x.k;
-              return <button key={x.k} type="button" onClick={() => setChon(x.k)} aria-current={sel ? 'true' : undefined}
-                style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, alignItems: 'center', padding: '6px 8px 6px 36px', border: 0, borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'inherit',
+            {!dong[khoa] && ds.sort((a, b) => a.tk.localeCompare(b.tk)).map((x) => { const n = trong(x).length, sel = c?.k === x.k, coSo = x.bai.some((b) => b.xem != null);
+              return <button key={x.k} type="button" onClick={() => { setChon(x.k); setLoc(null); }} aria-current={sel ? 'true' : undefined} title={`${x.may} · ${n} bài trong khoảng ngày đang xem${coSo ? ' · có lượt xem' : ''}`}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px 6px 36px', border: 0, borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'inherit', opacity: n ? 1 : .5,
                   background: sel ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'transparent', fontWeight: sel ? 700 : 400 }}>
-                <span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.tk}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--fg-3)' }}>{x.may}{x.bai.some((b) => b.xem != null) ? ' · 👁 có số' : ''}</span></span>
-                <span title="số bài trong khoảng ngày đang xem" style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums', color: n ? 'inherit' : 'var(--fg-3)' }}>{n}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.tk}</span>
+                {coSo ? <span aria-label="có lượt xem" style={{ fontSize: 11, color: 'var(--fg-3)' }}>👁</span> : null}
               </button>; })}
           </div>))}
       </nav>
-      {c ? <section style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+      {c ? <section style={{ display: 'grid', gap: 10, minWidth: 0 }}>
         <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
           <SiteFavicon platformKey={c.khoa} size={24} title={c.khoa} />
-          <div style={{ display: 'grid', minWidth: 0 }}>
-            {c.url ? <a href={wrapExternalUrl(c.url)} target="_blank" rel="noreferrer" style={{ fontSize: 16, fontWeight: 700, color: 'inherit' }} title="mở kênh">{c.tk} ↗</a> : <b style={{ fontSize: 16 }}>{c.tk}</b>}
-            <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{c.may} · {c.nen.map(nhanNen).join(' · ')}</span>
-          </div>
+          <span title={`${c.may} · ${c.nen.map(nhanNen).join(' · ')}`} style={{ minWidth: 0 }}>
+            {c.url ? <a href={wrapExternalUrl(c.url)} target="_blank" rel="noreferrer" style={{ fontSize: 16, fontWeight: 700, color: 'inherit' }}>{c.tk} ↗</a> : <b style={{ fontSize: 16 }}>{c.tk}</b>}</span>
           <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-            <button type="button" style={nut} disabled={lech <= -42} onClick={() => setLech((l) => Math.max(-42, l - 7))}>◀ 7 ngày</button>
-            <button type="button" style={{ ...nut, fontWeight: lech === 0 ? 700 : 400 }} onClick={() => setLech(0)}>Hôm nay</button>
-            <button type="button" style={nut} disabled={lech >= 35} onClick={() => setLech((l) => Math.min(35, l + 7))}>7 ngày ▶</button>
-            <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{ngayVn(dau)} – {ngayVn(cuoi)}</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}><input type="checkbox" checked={so} onChange={(e) => setSo(e.target.checked)} />📊 Số liệu</label>
+            <button type="button" style={nut} disabled={lech <= -42} onClick={() => setLech((l) => Math.max(-42, l - 7))} aria-label="lùi 7 ngày">◀</button>
+            <button type="button" style={{ ...nut, fontWeight: lech === 0 ? 700 : 400, minWidth: 150, fontVariantNumeric: 'tabular-nums' }} onClick={() => setLech(0)} title="về hôm nay">{ngayVn(dau)} – {ngayVn(cuoi)}</button>
+            <button type="button" style={nut} disabled={lech >= 35} onClick={() => setLech((l) => Math.min(35, l + 7))} aria-label="tới 7 ngày">▶</button>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }} title={coXem ? 'lượt xem + lượt vào site từ bài' : 'kênh này chưa đo lượt xem — chỉ có lượt vào site từ bài'}>
+              <input type="checkbox" checked={so} onChange={(e) => setSo(e.target.checked)} />📊</label>
           </div>
         </header>
-        {bai.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {dem((x) => FMT_NEN(x.nen)).map(([k, n]) => <span key={k} style={{ background: MAU_FMT[k] ?? '#64748b', color: '#fff', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>{IC_FMT[k] ?? '•'} {k} · {n}</span>)}
-          {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12 }}>{k} · {n}</span>)}
+        {/* đếm format = dải lọc (bấm để lọc, bấm lại bỏ lọc); kiểu nội dung = chip xám */}
+        {baiKy.length ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {dem((x) => FMT_NEN(x.nen)).map(([k, n]) => <button key={k} type="button" onClick={() => setLoc((l) => (l === k ? null : k))} aria-pressed={loc === k} title={`${n} bài · bấm để ${loc === k ? 'bỏ lọc' : 'chỉ xem format này'}`}
+            style={{ background: !loc || loc === k ? MAU_FMT[k] ?? '#64748b' : 'transparent', color: !loc || loc === k ? '#fff' : 'var(--fg-2)', border: `1px solid ${MAU_FMT[k] ?? '#64748b'}`, borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            {IC_FMT[k] ?? '•'} {k} {n}{loc === k ? ' ✕' : ''}</button>)}
+          {dem((x) => x.nhom ?? 'chưa phân kiểu').map(([k, n]) => <span key={k} title={`${n} bài`} style={{ border: '1px solid var(--border)', borderRadius: 999, padding: '2px 10px', fontSize: 12, color: 'var(--fg-2)' }}>{k}</span>)}
         </div> : null}
-        {so && !coXem ? <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>👁 Kênh này chưa có máy đo lượt xem — mới có click về site (phiên theo nền × trang đích).</div> : null}
-        {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Kênh này không có bài trong khoảng ngày này.</div>
+        {!bai.length ? <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Không có bài trong khoảng ngày này — bấm ◀ ▶ để xem tuần khác.</div>
           : ngay.filter((n) => bai.some((x) => x.ngay === n)).map((n) => (
             <div key={n} style={{ display: 'grid', gap: 6 }}>
               <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)', padding: '4px 0', fontSize: 13, fontWeight: 700, color: n === luoi.hom ? 'var(--accent, #d97706)' : 'var(--fg-2)', borderBottom: '1px solid var(--border)' }}>
                 {ngayVn(n)}{n === luoi.hom ? ' · hôm nay' : ''}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 8 }}>
-                {bai.filter((x) => x.ngay === n).sort((a, b) => a.gio.localeCompare(b.gio)).map((x, i) => <OBai key={i} x={x} hom={luoi.hom} khoa={c.khoa} so={so && coXem ? true : so ? 'bam' : false} />)}
+                {bai.filter((x) => x.ngay === n).sort((a, b) => a.gio.localeCompare(b.gio)).map((x, i) => <OBai key={i} x={x} hom={luoi.hom} so={so ? (coXem ? true : 'bam') : false} />)}
               </div>
             </div>))}
       </section> : null}
     </div>
   );
 }
-function OBai({ x, hom, khoa, so }: { x: StLuoiO; hom: string; khoa: string; so: boolean | 'bam' }) {
+// YDNI: trạng thái = dấu hiệu (chấm xanh đã đăng · vòng cam máy sẽ đăng · 🔗 có link), chữ vào hover; thẻ gọn: ảnh · một dòng nhãn · 2 dòng chữ · số
+function OBai({ x, hom, so }: { x: StLuoiO; hom: string; so: boolean | 'bam' }) {
   const f = FMT_NEN(x.nen), mau = MAU_FMT[f] ?? '#64748b', da = x.loai === 'da';
+  const tt = `${da ? 'đã đăng' : 'máy sẽ đăng'}${x.gio !== '—' ? ` lúc ${x.gio}` : ''}${x.link === true ? ' · có link' : x.link === false ? ' · không link' : ''}${x.nhom ? ` · ${x.nhom}` : ''}`;
   const the = (
-    <div style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
+    <div title={tt} style={{ border: `1px ${da ? 'solid' : 'dashed'} var(--border)`, borderLeft: `5px solid ${mau}`, borderRadius: 8, overflow: 'hidden', background: 'var(--surface, var(--bg-2))', opacity: da || x.ngay >= hom ? 1 : .7 }}>
       {x.anh ? <img src={nho(x.anh)} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', objectPosition: 'top', display: 'block', background: '#111' }} /> : null}
       <div style={{ padding: '6px 7px 7px', display: 'grid', gap: 3 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
           <span style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{f}</span>
-          <SiteFavicon platformKey={khoa} size={13} title={khoa} />{x.gio !== '—' ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{x.gio}</span> : null}
+          {x.gio !== '—' ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{x.gio}</span> : null}
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {x.link === true ? <span aria-label="có link" style={{ fontSize: 11 }}>🔗</span> : null}
+            <span aria-label={da ? 'đã đăng' : 'máy sẽ đăng'} style={{ width: 9, height: 9, borderRadius: '50%', background: da ? 'var(--ok, #16a34a)' : 'transparent', border: `2px solid ${da ? 'var(--ok, #16a34a)' : 'var(--warn, #d97706)'}` }} />
+          </span>
         </span>
-        {x.nhom ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.nhom}</span> : null}
-        <span style={{ fontSize: 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{da ? '✅ đã đăng' : '🗓 máy sẽ đăng'}{x.link === true ? ' · 🔗 có link' : x.link === false ? ' · không link' : ''}</span>
-        {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', gap: 10 }} title="lượt xem cộng dồn (sổ số đo kênh) · click về site 6 tuần (phiên theo nền × trang đích)">
-          {so === true ? <span>👁 {x.xem == null ? 'chưa đo' : x.xem.toLocaleString('vi-VN')}</span> : null}<span>🖱 {x.bam == null ? '—' : x.bam}</span></span> : null}
+        <span style={{ fontSize: 12, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{x.title.replace(/\s*#shorts\s*/i, '')}</span>
+        {so && da ? <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'flex', gap: 10, color: 'var(--fg-2)' }}>
+          {so === true ? <span title="lượt xem">👁 {x.xem == null ? '—' : x.xem.toLocaleString('vi-VN')}</span> : null}<span title="lượt vào site từ bài (6 tuần)">🖱 {x.bam == null ? '—' : x.bam}</span></span> : null}
       </div>
     </div>);
-  return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} title="mở bài">{the}</a> : the;
+  return da && x.url ? <a href={wrapExternalUrl(x.url)} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{the}</a> : the;
 }

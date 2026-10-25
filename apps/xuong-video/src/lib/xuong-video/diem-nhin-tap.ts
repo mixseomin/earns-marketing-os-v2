@@ -27,7 +27,7 @@ export async function doDiemNhinTap(db: Db, tapId: number, o: { ghi?: boolean; l
   const dai = async (f: string) => Number((await chay('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f])).stdout.trim());
   const cat = async (f: string, g: number, ra: string) => { await chay('ffmpeg', ['-loglevel', 'error', '-y', '-ss', String(Math.max(0, g)), '-i', f, '-frames:v', '1', '-q:v', '3', ra], { timeout: 60_000 }); return ra; };
 
-  const cu = new Map<number, DiemNhinShot>(); const moi = new Map<number, string>();   // id shot → điểm đã nhớ còn đúng / khoá mới cần đo
+  const cu = new Map<number, DiemNhinShot>(); const moi = new Map<number, string>(); const quayLung = new Set<string>();   // id shot → điểm đã nhớ còn đúng / khoá mới cần đo
   const anh: { id: number; url: string; ten: string[] }[] = []; const ai = new Map<number, string[]>(); const vao = new Map<string, number>(); let n = 1;
   for (const c of ds) {
     const url = c.video_cuoi_url || c.video_url; if (!url || c.ky_thuat?.co_canh === 'insert') continue;   // cận đồ vật: không có mặt để đo
@@ -38,7 +38,10 @@ export async function doDiemNhinTap(db: Db, tapId: number, o: { ghi?: boolean; l
     moi.set(c.id, khoa);
     const noi = (c.thoai ?? []).filter((t) => t.loi?.trim() && t.nhan_vat?.trim()).map((t) => t.nhan_vat.trim());
     for (const [luc, g, hs] of [['dau', boDau + 0.06, c.ky_thuat?.huong_so], ['cuoi', boDau + phat - 0.1, (c.ky_thuat as { huong_so_ket?: HS } | undefined)?.huong_so_ket ?? c.ky_thuat?.huong_so]] as const) {
-      const thay = Object.entries((hs ?? {}) as HS).filter(([, x]) => !x.lung).map(([t]) => t); if (!thay.length) continue;
+      const thay = Object.entries((hs ?? {}) as HS).filter(([, x]) => !x.lung).map(([t]) => t);
+      const lung = Object.entries((hs ?? {}) as HS).filter(([, x]) => x.lung).map(([t]) => t);
+      if (lung.length) quayLung.add(`${c.id}:${luc}`);   // người quay lưng vẫn ĐANG trong khung — không đo được mặt thì không được phóng (có thể cắt mất họ)
+      if (!thay.length) continue;
       vao.set(`${c.id}:${luc}`, n); ai.set(n, [...noi.filter((t) => thay.includes(t)), ...thay.filter((t) => !noi.includes(t))]);
       anh.push({ id: n++, url: await cat(f, g, `${thu}/${c.thu_tu}-${luc}.jpg`), ten: thay });
     }
@@ -55,7 +58,7 @@ export async function doDiemNhinTap(db: Db, tapId: number, o: { ghi?: boolean; l
   // người phải GIỮ trong khung: hộp mặt nới ra (vai, tóc) của MỌI người đo được ở khung mở + đóng; người sơ đồ nói có mà không đo được → thieu (không phóng)
   const giuCua = (cid: number): { giu: Hop[]; thieu: boolean } => {
     const giu: Hop[] = []; let thieu = false;
-    for (const luc of ['dau', 'cuoi'] as const) { const k = vao.get(`${cid}:${luc}`); if (k == null) continue; const kq = (soi.get(k)?.ket ?? []) as { ten: string; hop?: number[] }[];
+    for (const luc of ['dau', 'cuoi'] as const) { if (quayLung.has(`${cid}:${luc}`)) thieu = true; const k = vao.get(`${cid}:${luc}`); if (k == null) continue; const kq = (soi.get(k)?.ket ?? []) as { ten: string; hop?: number[] }[];
       for (const t of anh.find((x) => x.id === k)?.ten ?? []) { const m = kq.find((x) => x.ten === t && x.hop); if (!m?.hop) { thieu = true; continue; }
         const [x, y, w, h] = m.hop as [number, number, number, number]; giu.push({ x0: Math.max(0, x - 0.6 * w), y0: Math.max(0, y - 0.35 * h), x1: Math.min(1, x + 1.6 * w), y1: Math.min(1, y + 1.6 * h) }); } }
     return { giu, thieu };

@@ -139,6 +139,9 @@ def main(a):
             ok = lambda s: s["tt"] == "PAUSED"
         elif viec == "bat":   # bật lại camp đã tắt — chỉ khi anh lệnh (vd 22/10/2026 "camp nào lãi hơn 20% thì bật lại")
             if truoc["tt"] == "ACTIVE": raise ValueError("camp đã ACTIVE")
+            # camp đang tạm dừng vì LỊCH GIỜ (etp.lich_tat): không bật giữa khung TẮT — apps/etp/lich-gio.py tự bật khi tới khung BẬT (≤ 10 phút sau mốc)
+            if q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
+                kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)
             if ly: raise ValueError(ly)
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "active"}])

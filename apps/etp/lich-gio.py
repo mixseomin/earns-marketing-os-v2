@@ -7,10 +7,13 @@ Mỗi lượt (dong-bo.py gọi đầu lượt, 10 phút/lần):
   · CHỈ bật lại camp do chính lịch tạm dừng — camp tắt vì lý do khác (anh, luật, Meta) không bao giờ bị bật. Dừng khẩn (etp.cau_hinh.dung_khan) → không bật gì.
   · công tắc tổng etp.cau_hinh['lich_gio'] = false → bật lại mọi camp đang tạm dừng vì lịch, không tắt thêm.
 Ghi một dòng tóm tắt mỗi lượt có việc vào etp.nhat_ky (viec lich_tat / lich_bat).
-Chạy tay (box3, đã nạp .env.production):  python3 lich-gio.py [--thu]   (--thu: chỉ in sẽ làm gì)"""
+Chạy tay (box3, đã nạp .env.production):  python3 lich-gio.py [--thu] [--luc HH:MM]
+  --thu: chỉ in sẽ làm gì · --luc (chỉ đi cùng --thu): mô phỏng giờ VN đó trên camp hiện tại — liệt kê số camp sẽ tạm dừng / bật lại theo thể loại"""
 import datetime as dt, json, os, subprocess, sys, urllib.request
 TRUOC_PHUT = 15   # tắt sớm tối đa 15 phút trước khung TẮT (lượt chạy 10 phút/lần) — kịp chặn cú xả lúc 07:00
 THU = "--thu" in sys.argv
+LUC = sys.argv[sys.argv.index("--luc") + 1] if "--luc" in sys.argv else None
+if LUC and not THU: raise SystemExit("--luc chỉ dùng cùng --thu (mô phỏng, không gửi lệnh)")
 def q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
@@ -36,6 +39,7 @@ def khung(t):
 
 def main():
     vn = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)
+    if LUC: vn = vn.replace(hour=int(LUC[:2]), minute=int(LUC[3:5]))
     k_nay, k_toi = khung(vn), khung(vn + dt.timedelta(minutes=TRUOC_PHUT))
     ch = {l.split("|", 1)[0]: json.loads(l.split("|", 1)[1]) for l in q("select khoa, gia_tri::text from etp.cau_hinh where khoa in ('lich_gio', 'dung_khan')").splitlines() if "|" in l}
     bat_lich, dung_khan = ch.get("lich_gio", False) is True, ch.get("dung_khan") is True
@@ -50,10 +54,16 @@ def main():
         left join etp.camp c using (camp_id) left join etp.phim p on p.content_id = c.content_id""").splitlines() if "|" in l)}
     # camp trong lich_tat đã bị lưu trữ / mất khỏi kho → bỏ khỏi sổ (không bật)
     q("delete from etp.lich_tat l where not exists (select 1 from etp.camp c where c.camp_id = l.camp_id and c.trang_thai <> 'ARCHIVED')")
-    can_tat = [c for c, t in chay if bat_lich and (not on(t, k_nay) or not on(t, k_toi)) and c not in dang_tat]
+    # camp trong sổ mà đang chạy lại (vd máy thay creative bị Meta từ chối xong bật lại) → tạm dừng lại luôn, không để chạy suốt khung TẮT
+    can_tat = [c for c, t in chay if bat_lich and (not on(t, k_nay) or not on(t, k_toi))]
     can_bat = [c for c, t in dang_tat.items() if (not bat_lich or (on(t, k_nay) and on(t, k_toi))) and not dung_khan]
     print(f"giờ VN {vn:%H:%M} · khung {k_nay}{' → ' + k_toi if k_toi != k_nay else ''} · lịch {'BẬT' if bat_lich else 'TẮT'} · sẽ tạm dừng {len(can_tat)} · sẽ bật lại {len(can_bat)} · đang tạm dừng {len(dang_tat)}")
-    if THU: return
+    if THU:
+        from collections import Counter
+        if can_tat: print("  sẽ tạm dừng theo thể loại:", dict(Counter(dict(chay)[c] for c in can_tat)))
+        bo_qua = Counter(t for c, t in chay if c not in can_tat)
+        print("  vẫn chạy theo thể loại:", dict(bo_qua))
+        return
     tl_cua = dict(chay)
     if can_tat:
         ok = dieu_khien(can_tat, "paused")

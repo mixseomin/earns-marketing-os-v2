@@ -35,7 +35,7 @@ def dem_dang_chay(content_id):
     (~500 lượt gọi, 3–4 phút mỗi lần tạo camp)."""
     n = 0; DEM_CR.clear()
     rows = q(f"""select camp_id, coalesce(creative_id, 0) from etp.camp where content_id = {int(content_id)}
-                 and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced'))""").splitlines()
+                 and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced') or camp_id in (select camp_id from etp.lich_tat))""").splitlines()   # tạm dừng theo lịch giờ vẫn tính
     for l in rows:
         _, cr = l.split("|"); n += 1; DEM_CR[int(cr)] = DEM_CR.get(int(cr), 0) + 1
     # camp vừa tạo chưa vào kho (đồng bộ 10 phút): lấy từ sổ nhật ký studio

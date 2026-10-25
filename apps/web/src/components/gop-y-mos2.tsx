@@ -58,10 +58,15 @@ const lbl = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)'
 const nutPhu = { fontSize: 11.5, padding: '5px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'none', color: 'var(--fg-3)', cursor: 'pointer' } as const;
 const oNhap = { width: '100%', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', fontSize: 12.5, color: 'var(--fg-1)', fontFamily: 'inherit' } as const;
 
-/** Ngữ cảnh màn lúc gửi: tiêu đề tab trình duyệt · tab trang đang chọn · drawer đang mở (trừ chính hòm góp ý) · thiết bị + khổ. */
+/** Ngữ cảnh màn lúc gửi: tiêu đề tab trình duyệt · tab trang đang chọn · drawer đang mở (trừ chính hòm góp ý) · trạng thái riêng của trang · thiết bị + khổ.
+ *  Trạng thái riêng (góp ý city #1450 "đang xem khu nào thì tự nhúng, không phải chụp ảnh / nhắc"): trang có thứ DOM không thấy (cảnh 3D city, canvas…)
+ *  khai `window.__nguCanhTrang = () => string` — đọc đúng lúc gửi. Trang thường thì để trạng thái trong URL (?tab=…, ?xem=…): link "Trang báo lỗi" đã mang nó. */
 function docNguCanh(): string {
   const chu = (e: Element | null | undefined) => (e?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 90);
-  const tab = chu(document.querySelector('[data-comp="ui.Tabs"] [aria-selected="true"]'));
+  // tab của chính hòm góp ý (Gửi góp ý / Của tôi) nằm trong drawer hòm nhưng ngoài [data-gop-y] — bỏ, trước 25/10 mọi card đều ghi nhầm "tab: Gửi góp ý"
+  const cuaHom = (e: Element) => !!e.closest('[data-comp="ui.Drawer"]')?.querySelector('[data-gop-y]');
+  const tab = [...document.querySelectorAll('[data-comp="ui.Tabs"] [aria-selected="true"]')].filter((e) => !cuaHom(e)).map(chu).filter(Boolean).join(' › ');
+  let rieng = ''; try { rieng = String((window as unknown as { __nguCanhTrang?: () => string }).__nguCanhTrang?.() ?? '').slice(0, 400); } catch { /* trang khai lỗi: bỏ phần riêng, phần chung vẫn gửi */ }
   const drawer = [...document.querySelectorAll('[data-comp="ui.Drawer"]')].filter((d) => !d.querySelector('[data-gop-y]'))
     // drawer tự khai ngữ cảnh (data-ngu-canh, vd sản phẩm + id sổ) thì dùng nó; không thì lấy tiêu đề drawer
     .map((d) => d.querySelector('[data-ngu-canh]')?.getAttribute('data-ngu-canh') || chu(d.querySelector('h1, h2, h3, b'))).filter(Boolean);
@@ -72,6 +77,7 @@ function docNguCanh(): string {
     `màn: ${document.title}`,
     tab && `tab: ${tab}`,
     drawer.length ? `đang mở: ${drawer.join(' › ')}` : '',
+    rieng,
     `${may} · ${tdt} · ${window.innerWidth}×${window.innerHeight}`,
   ].filter(Boolean).join(' · ');
 }

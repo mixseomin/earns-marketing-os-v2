@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh, gopBinhTraTien } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -212,6 +212,19 @@ assert.equal(appA4.giaiDoan, 'tham-dinh', 'app có bản đang duyệt → Phòn
   const k9 = mX.dich.find((x) => x.khoa === 'p:k9')!, k8 = mX.dich.find((x) => x.khoa === 'p:k8')!;
   assert.ok(k9.duAn === 'xuong' && k9.giaiDoan === 'sx' && k9.vungSx === 'sach', 'sẵn sàng chưa nộp → nhà máy, khu Sách');
   assert.ok(k8.giaiDoan === 'tham-dinh', 'chờ anh duyệt → Phòng thẩm định'); }
+// BỒN = MỌI NỀN TRẢ TIỀN (góp ý #1451 "thiếu vast.ai… thiếu nhiều vô cùng"): ảnh chụp số dư + vault + sổ nguồn AI; chưa đọc được vẫn có bồn, ghi vì sao
+{ const b = gopBinhTraTien({ du: { kie: 4190, ckey: null }, loi: { ckey: 'thiếu khoá tài khoản ckey' }, luc: '2026-10-25T05:00:00Z', lich: [{ ngay: '2026-10-24', du: { kie: 4730 } }, { ngay: '2026-10-25', du: { kie: 4190 } }] },
+    ['vastai', '2proxy', 'facebook', 'propellerads'],
+    [{ key: 'vast', ten: 'Vast.ai', trangThai: 'co_tk', nap: 'https://cloud.vast.ai/billing/', khoaEnv: 'VAST_API_KEY' }, { key: 'anthropic', ten: 'Anthropic', trangThai: 'dang', nap: 'https://console.anthropic.com', khoaEnv: 'ANTHROPIC_API_KEY' },
+     { key: 'piapi', ten: 'PiAPI', trangThai: 'tham_khao', nap: 'https://piapi.ai/pricing', khoaEnv: 'PIAPI_API_KEY' }]);
+  const k = (x: string) => b.find((y) => y.key === x);
+  assert.ok(k('vast') && k('vast')!.du == null && k('vast')!.loi === 'chưa đọc — cần khoá VAST_API_KEY' && k('vast')!.nap === 'https://cloud.vast.ai/billing/', 'Vast.ai (vault vastai) có bồn, nói rõ thiếu khoá + link nạp');
+  assert.ok(k('2proxy') && k('2proxy')!.loai === 'Proxy' && k('propellerads')!.loai === 'QC trả trước', 'proxy / QC trả trước trong vault đều có bồn');
+  assert.equal(k('anthropic')!.loi, 'cổng không có API số dư — xem trên trang nạp', 'cổng không có API số dư nói thẳng');
+  assert.ok(!k('piapi') && !k('facebook') && !k('runpod'), 'nguồn chỉ tham khảo / nền không trả tiền / nền không có tài khoản thì không dựng bồn');
+  assert.equal(k('ckey')!.loi, 'thiếu khoá tài khoản ckey', 'lỗi đọc của Phòng Tài nguyên giữ nguyên');
+  assert.equal(b[0]!.key, 'kie', 'bồn đọc được số dư xếp trước');
+  assert.equal(tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, taiNguyen: { tk: [], canhBao: [], hoSo: [], proxy: [], soNganSach: [], tkQcShop: [], soDu: b } } } as any).taiNguyen.binh.find((x) => x.key === 'vast')!.muc, 'chua-do', 'bồn chưa đọc → mức chưa đo'); }
 console.log('✓ social-thanh-pho: app một thực thể · phường lĩnh vực · kho bạc · sản phẩm → dự án · khu dự án / site riêng / dự án ngừng · máy tìm kiếm mỗi máy một toà · site chưa có nguồn · sắp đăng theo nơi đăng · TikTok chưa khai acct · cụm theo site/tên/dự án · hỏng chỉ khi bad · đích + đơn cửa hàng');
 
 // SỨC SỐNG: mọi nguồn ngang nhau — đơ / thoi thóp / sống / sôi động

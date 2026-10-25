@@ -166,7 +166,7 @@ export interface PhoTaiNguyen {
   /** FANPAGE = tài sản (anh 25/10/2026): Page Facebook htuan82 quản — người theo dõi, cụm người xem (tiendo social S06), đã tắt, đang là kênh của máy đăng */
   fanpage?: { ten: string; nguoi: number | null; cum: string; tat: boolean; kenh: boolean }[];
   /** BỒN — tài nguyên trả trước (nguồn AI, máy thuê): số dư, mức tiêu bình quân / ngày, còn bao nhiêu ngày, mức (tinhBinh) */
-  binh: { key: string; ten: string; don: string; du: number | null; tieuNgay: number | null; conNgay: number | null; muc: MucTn; loi: string | null; luc: string | null }[];
+  binh: { key: string; ten: string; don: string; du: number | null; tieuNgay: number | null; conNgay: number | null; muc: MucTn; loi: string | null; luc: string | null; loai?: string; nap?: string | null }[];
   /** HẠN — tên miền / máy chủ: ngày hết hạn, còn bao nhiêu ngày, mức (mucHan); dich = khoá toà site của tên miền */
   han: { loai: 'domain' | 'hosting'; ten: string; het: string | null; conNgay: number | null; muc: MucTn; dich: string | null; may: string | null }[];
 }
@@ -238,7 +238,7 @@ export interface VaoHeSinhThai {
   /** tài nguyên: tài khoản theo nền × trạng thái, cảnh báo nền tảng chưa xử, hồ sơ trình duyệt, proxy, sổ ngân sách, hạn mức tài khoản QC shop */
   taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; canhBaoDs?: PhoTaiNguyen['canhBaoDs']; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
     proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[];
-    soDu?: { key: string; ten: string; don: string; du: number | null; loi: string | null; luc: string | null; lich: { ngay: string; du: number | null }[] }[];
+    soDu?: { key: string; ten: string; don: string; du: number | null; loi: string | null; luc: string | null; lich: { ngay: string; du: number | null }[]; loai?: string; nap?: string | null }[];
     fanpage?: { ten: string; status: string; st: Record<string, unknown>; project_id: string | null }[] };
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null; henGio?: number | null; loiDv?: string[] }[];
@@ -284,6 +284,43 @@ export function tinhBinh(du: number | null, lich: { ngay: string; du: number | n
   const soNgay = Math.max(1, (Date.parse(ds[ds.length - 1]!.ngay) - Date.parse(ds[0]!.ngay)) / 864e5), tieuNgay = giam / soNgay;
   if (tieuNgay <= 0) return { tieuNgay: 0, conNgay: null, muc: 'xanh' };
   const conNgay = du / tieuNgay; return { tieuNgay, conNgay, muc: conNgay <= 3 ? 'do' : conNgay <= 14 ? 'vang' : 'xanh' };
+}
+/** NỀN TRẢ TIỀN (góp ý #1451 "thiếu vast.ai… thiếu nhiều vô cùng"): mỗi nền mình TRẢ tiền / nạp trước (cổng AI, máy GPU, proxy, VPN, VPS, công cụ, nền QC trả trước)
+ *  là MỘT bồn, kể cả khi chưa đọc được số dư — bồn xám "chưa đọc" là chỗ mù phải thấy, không phải lý do để giấu. Trước 25/10 city chỉ dựng bồn cho 5 cổng có mã đọc.
+ *  khoa = khoá ở ảnh chụp số dư (apps/cty/worker/tai-nguyen-api.mjs) và sổ nguồn AI studio (xv_nguon); vault = platform_key trong vault khi khác khoa.
+ *  Bồn hiện khi: có số dư trong ảnh chụp · hoặc vault có tài khoản (chưa đóng) ở nền này · hoặc xv_nguon đang dùng / đã có tài khoản. */
+export const NEN_TRA_TIEN: { khoa: string; ten: string; loai: string; don?: string; vault?: string[]; khongApi?: true }[] = [
+  { khoa: 'shopaikey', ten: 'ShopAIKey', loai: 'AI', don: '$' }, { khoa: 'kie', ten: 'Kie.ai', loai: 'AI', don: 'credit' }, { khoa: 'plenxai', ten: 'PlenX AI', loai: 'AI', don: 'credit' },
+  { khoa: 'ckey', ten: 'ckey.vn', loai: 'AI', don: '₫' }, { khoa: 'apimaster', ten: 'APIMaster.ai', loai: 'AI' }, { khoa: 'fal', ten: 'fal.ai', loai: 'AI' },
+  { khoa: 'elevenlabs', ten: 'ElevenLabs', loai: 'AI', don: 'credit' }, { khoa: 'google', ten: 'Google AI Studio', loai: 'AI', khongApi: true },
+  { khoa: 'anthropic', ten: 'Anthropic', loai: 'AI', khongApi: true }, { khoa: 'openai', ten: 'OpenAI', loai: 'AI', khongApi: true },
+  { khoa: 'tripo', ten: 'Tripo 3D', loai: 'AI' }, { khoa: 'lumalabs', ten: 'Luma AI', loai: 'AI' }, { khoa: 'digen', ten: 'Digen', loai: 'AI' }, { khoa: 'together', ten: 'Together AI', loai: 'AI' },
+  { khoa: 'runpod', ten: 'RunPod', loai: 'GPU', don: '$' }, { khoa: 'vast', ten: 'Vast.ai', loai: 'GPU', don: '$', vault: ['vastai'] },
+  { khoa: 'vpschinhhang', ten: 'vpschinhhang', loai: 'Máy chủ' }, { khoa: 'aws', ten: 'AWS', loai: 'Máy chủ' },
+  { khoa: '2proxy', ten: '2proxy', loai: 'Proxy' }, { khoa: 'webshare', ten: 'Webshare', loai: 'Proxy' }, { khoa: 'decodo', ten: 'Decodo', loai: 'Proxy' },
+  { khoa: 'oxylabs', ten: 'Oxylabs', loai: 'Proxy' }, { khoa: 'suiproxy', ten: 'SuiProxy', loai: 'Proxy' }, { khoa: 'nordvpn', ten: 'NordVPN', loai: 'VPN' }, { khoa: 'hidemyass', ten: 'HideMyAss', loai: 'VPN' },
+  { khoa: 'spypro', ten: 'SpyPro', loai: 'Công cụ' }, { khoa: 'morelogin', ten: 'MoreLogin', loai: 'Công cụ' }, { khoa: 'voluum', ten: 'Voluum', loai: 'Công cụ' },
+  { khoa: 'textverified', ten: 'TextVerified', loai: 'Công cụ' }, { khoa: 'sonetel', ten: 'Sonetel', loai: 'Công cụ' }, { khoa: 'serpfox', ten: 'SerpFox', loai: 'Công cụ' },
+  { khoa: 'propellerads', ten: 'PropellerAds', loai: 'QC trả trước' }, { khoa: 'exoclick', ten: 'ExoClick', loai: 'QC trả trước' }, { khoa: 'trafficfactory', ten: 'TrafficFactory', loai: 'QC trả trước' },
+  { khoa: 'bidvertiser', ten: 'Bidvertiser', loai: 'QC trả trước' }, { khoa: 'udimi', ten: 'Udimi', loai: 'QC trả trước' },
+];
+type SoDuVao = NonNullable<NonNullable<VaoHeSinhThai['taiNguyen']>['soDu']>[number];
+/** Gộp ảnh chụp số dư + vault + sổ nguồn AI thành danh sách bồn (thuần, có test). Bồn chưa đọc được ghi rõ VÌ SAO: lỗi đọc của Phòng Tài nguyên ·
+ *  cổng không có API số dư · thiếu khoá env (theo xv_nguon.khoa_env) · chưa có mã đọc. Đọc được xếp trước, rồi theo loại. */
+export function gopBinhTraTien(anh: { du?: Record<string, number | null>; loi?: Record<string, string>; luc?: string; lich?: { ngay: string; du: Record<string, number | null> }[] },
+  vaultNen: string[], nguonAi: { key: string; ten: string; trangThai: string; nap: string; khoaEnv: string }[]): (SoDuVao & { loai: string; nap: string | null })[] {
+  const vault = new Set(vaultNen), xv = new Map(nguonAi.map((x) => [x.key, x])), anhCo = new Set(Object.keys({ ...(anh.du ?? {}), ...(anh.loi ?? {}) }));
+  const so = new Map(NEN_TRA_TIEN.map((n) => [n.khoa, n]));
+  for (const x of nguonAi) if (!so.has(x.key) && (x.trangThai === 'dang' || x.trangThai === 'co_tk')) so.set(x.key, { khoa: x.key, ten: x.ten, loai: 'AI' });
+  for (const k of anhCo) if (!so.has(k)) so.set(k, { khoa: k, ten: xv.get(k)?.ten ?? k, loai: 'AI' });
+  const ra = [...so.values()].filter((n) => anhCo.has(n.khoa) || [n.khoa, ...(n.vault ?? [])].some((v) => vault.has(v)) || ['dang', 'co_tk'].includes(xv.get(n.khoa)?.trangThai ?? '')).map((n) => {
+    const x = xv.get(n.khoa), du = anh.du?.[n.khoa] ?? null, env = x?.khoaEnv && /^[A-Z][A-Z0-9_]+$/.test(x.khoaEnv.split(/[\s|(]/)[0]!) ? x.khoaEnv.split(/[\s|(]/)[0]! : '';
+    const loi = du != null ? null : anh.loi?.[n.khoa] ?? (n.khongApi ? 'cổng không có API số dư — xem trên trang nạp' : !anhCo.has(n.khoa) && env ? `chưa đọc — cần khoá ${env}` : 'chưa nối đọc số dư');
+    return { key: n.khoa, ten: x?.ten ?? n.ten, loai: n.loai, don: n.don ?? '', du, loi, luc: anhCo.has(n.khoa) ? anh.luc ?? null : null, nap: x?.nap?.startsWith('http') ? x.nap : null,
+      lich: (anh.lich ?? []).map((l) => ({ ngay: l.ngay, du: l.du?.[n.khoa] ?? null })) };
+  });
+  const thuLoai = [...new Set(NEN_TRA_TIEN.map((n) => n.loai))];
+  return ra.sort((a, b) => Number(a.du == null) - Number(b.du == null) || thuLoai.indexOf(a.loai) - thuLoai.indexOf(b.loai) || a.ten.localeCompare(b.ten));
 }
 /** tên miền gốc để tra hạn (a.b.example.com → example.com); site trên nền người khác (gumroad.com…) không phải tên miền của mình */
 export const tenMienGoc = (host: string) => host.replace(/^www\./, '').split('.').slice(-2).join('.');
@@ -595,7 +632,7 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
       ...(vt?.tkQcShop ?? []).filter((x) => x.hanMuc != null).map((x) => ({ ten: `TK QC shop · ${x.ten}`, ky: 'hạn mức' as const, so: x.hanMuc!, tienTe: x.tienTe })),
     ],
     chuaNoi: ['Ngân sách / số dư Google Ads (DB adfond — mos2 chưa có quyền đọc)'],
-    binh: (vt?.soDu ?? []).map((x) => ({ key: x.key, ten: x.ten, don: x.don, du: x.du, loi: x.loi, luc: x.luc, ...tinhBinh(x.du, x.lich) })),
+    binh: (vt?.soDu ?? []).map((x) => ({ key: x.key, ten: x.ten, don: x.don, du: x.du, loi: x.loi, luc: x.luc, loai: x.loai, nap: x.nap ?? null, ...tinhBinh(x.du, x.lich) })),
     fanpage: (vt?.fanpage ?? []).map((x) => ({ ten: x.ten.replace(/\s*\(Page\)\s*$/i, ''), nguoi: typeof x.st.followers === 'number' ? x.st.followers : null, cum: String(x.st.cum ?? 'chua-xep'),
       tat: x.st.da_tat === true || x.status === 'closed', kenh: !!x.project_id })).sort((a, b) => Number(a.tat) - Number(b.tat) || (b.nguoi ?? 0) - (a.nguoi ?? 0)),
     // hạn: tên miền của MỌI site trên thành phố (site chưa có dòng trong sổ hạ tầng = chỗ mù) + máy chủ trong sổ

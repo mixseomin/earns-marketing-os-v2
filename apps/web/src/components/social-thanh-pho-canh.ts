@@ -1542,16 +1542,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       xTnPhai = xTn + rongL / 2 + 40;
       // BỒN TRẢ TRƯỚC (anh 24/10/2026 "nhìn vào là biết cái nào sắp hết tiền"): mỗi nguồn trả trước một bồn kính đứng dọc mép phải lô — mực nước = số ngày còn
       // (đầy = ≥ 30 ngày hoặc không tiêu), màu theo mức, đỏ thì khói; chưa đọc được số dư = bồn rỗng xám. Số chi tiết ở thẻ hover.
-      (tn.binh ?? []).forEach((b, i) => { const x = xTn + rongL / 2 + 44, z = zA + 26 + i * 36, R = 9, HB = 26, mau = MAU_TN[b.muc]!;
-        const vo = add(new THREE.CylinderGeometry(R, R, HB, 28, 1, true), new THREE.MeshStandardMaterial({ color: '#bcd6ff', transparent: true, opacity: .22, roughness: .1, metalness: .3, side: THREE.DoubleSide, depthWrite: false }), false);
+      // góp ý #1451: mọi nền trả tiền (~40 bồn) → LƯỚI COT_B cột thay vì một dãy dọc dài; vỏ / đế dùng chung hình + vật liệu
+      const COT_B = 5, BXB = 46, R = 9, HB = 26, hinhVo = new THREE.CylinderGeometry(R, R, HB, 28, 1, true), hinhDe = new THREE.CylinderGeometry(R + 1.5, R + 1.8, 2, 28),
+        matVo = new THREE.MeshStandardMaterial({ color: '#bcd6ff', transparent: true, opacity: .22, roughness: .1, metalness: .3, side: THREE.DoubleSide, depthWrite: false }), matDe = M({ color: '#2a3146', roughness: .7 });
+      (tn.binh ?? []).forEach((b, i) => { const x = xTn + rongL / 2 + 44 + (i % COT_B) * BXB, z = zA + 26 + Math.floor(i / COT_B) * 36, mau = MAU_TN[b.muc]!;
+        const vo = add(hinhVo, matVo, false);
         vo.position.set(x, 2 + HB / 2, z); vo.userData = { loai: 'binh', b }; chiMuc.push({ ten: `Bồn ${b.ten}`, nhan: 'tài nguyên', obj: vo }); viTriBinh.set(b.key, vo);
-        const de = add(new THREE.CylinderGeometry(R + 1.5, R + 1.8, 2, 28), M({ color: '#2a3146', roughness: .7 })); de.position.set(x, 1, z); de.userData = { chu: vo };
+        const de = add(hinhDe, matDe); de.position.set(x, 1, z); de.userData = { chu: vo };
         const f = b.muc === 'chua-do' ? 0 : b.conNgay == null ? 1 : Math.min(1, b.conNgay / 30), hN = Math.max(.4, (HB - .6) * f);
         if (f > 0) { const nuoc = add(new THREE.CylinderGeometry(R - .7, R - .7, hN, 28), M({ color: mau, emissive: mau, emissiveIntensity: b.muc === 'do' ? .7 : .35, transparent: true, opacity: .85 }), false); nuoc.position.set(x, 2.3 + hN / 2, z); nuoc.userData = { chu: vo }; if (b.muc === 'do') ds.cot!.push(nuoc); }
         const nap = add(new THREE.TorusGeometry(R, .5, 6, 28), M({ color: mau, emissive: mau, emissiveIntensity: .5 }), false); nap.rotation.x = Math.PI / 2; nap.position.set(x, 2 + HB, z); nap.userData = { chu: vo };
-        const bn = bienXe(`🛢 ${b.ten} · ${b.du == null ? 'chưa đọc được số dư' : `${soGon(b.du)}${b.don === '$' ? ' $' : ` ${b.don}`} · ${chuCon(b.conNgay)}`}`, mau); bn.scale.set(40, 6, 1); bn.position.set(x, HB + 10, z); bn.userData = { chu: vo, gan: GAN_NHAN }; the.add(bn);
+        const bn = bienXe(`🛢 ${b.ten} · ${b.du == null ? 'chưa đọc số dư' : `${soGon(b.du)}${b.don === '$' ? ' $' : ` ${b.don}`} · ${chuCon(b.conNgay)}`}`, mau); bn.scale.set(40, 6, 1); bn.position.set(x, HB + 10, z); bn.userData = { chu: vo, gan: GAN_NHAN }; the.add(bn);
         if (b.muc === 'do') khoi(x, HB + 4, z, undefined as unknown as PhoTk, vo, 12); });
-      if (tn.binh?.length) xTnPhai += 50;
+      if (tn.binh?.length) xTnPhai += Math.min(COT_B, tn.binh.length) * BXB + 4;
       // KHO FANPAGE (anh 25/10/2026 "các page này là tài sản, show lên city"): mỗi Page một khối trong lưới cạnh dãy bồn — cao theo người theo dõi (log), màu theo cụm
       // người xem (tiendo social S06), đang là kênh máy đăng = đèn sáng, đã tắt = thấp xám mờ. Một InstancedMesh (một lệnh vẽ). Không chữ: thẻ rê = bảng theo cụm.
       if (tn.fanpage?.length) { const fp = tn.fanpage, COTF = 12, OF = 6, x0F = xTn + rongL / 2 + 80, z0F = zA - 40, hangF = Math.ceil(fp.length / COTF);
@@ -1776,9 +1779,9 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         them: `<div class="xg"><input class="xg-loc" type="search" placeholder="lọc tên…" aria-label="Lọc tài nguyên" />${muc('🛢', 'Bồn trả trước (số dư · còn bao lâu)', ds2.filter((d) => d.nhom === 'binh'), true)}${muc('🖥', 'Máy chủ', ds2.filter((d) => d.nhom === 'hosting'), true)}${muc('🌐', 'Tên miền (gần hết hạn lên đầu)', ds2.filter((d) => d.nhom === 'domain'), ds2.some((d) => d.nhom === 'domain' && ganHet(d.muc)))}</div>` }; }
     if (u.loai === 'binh') { const b = u.b as PhoMoHinh['taiNguyen']['binh'][number];
       return { dau: `🛢 ${esc(b.ten)}`, h: [['Mức', `<span style="color:${MAU_TN[b.muc]}">●</span> ${{ do: 'phải nạp ngay', vang: 'sắp cạn', xanh: 'ổn', 'chua-do': 'chưa đo được' }[b.muc]}`],
-        ['Số dư', b.du == null ? '—' : `${soGon(b.du)} ${b.don}`], ['Tiêu bình quân', b.tieuNgay ? `${soGon(b.tieuNgay)} ${b.don} / ngày` : 'không tiêu'], ['Còn', chuCon(b.conNgay)],
+        ...(b.loai ? [['Loại', esc(b.loai)] as [string, string]] : []), ['Số dư', b.du == null ? '—' : `${soGon(b.du)} ${b.don}`], ['Tiêu bình quân', b.tieuNgay ? `${soGon(b.tieuNgay)} ${b.don} / ngày` : 'không tiêu'], ['Còn', chuCon(b.conNgay)],
         ...(b.loi ? [['Lỗi đọc', esc(b.loi)] as [string, string]] : []), ['Đọc lúc', b.luc ? new Date(Date.parse(b.luc) + 7 * 3600e3).toISOString().slice(11, 16) + ' (GMT+7)' : '—']],
-        them: '<div class="nut-mo"><a href="https://studio.on.tc/?kho=sanpham&kcvong=&nc=nguon-ai%3A" target="_blank" rel="noopener">↗ Sổ nguồn AI</a></div>' }; }
+        them: `<div class="nut-mo">${b.nap ? `<a href="${esc(wrapExternalUrl(b.nap))}" target="_blank" rel="noreferrer">↗ Trang nạp / số dư</a>` : ''}${b.loai === 'AI' || b.loai === 'GPU' ? '<a href="https://studio.on.tc/?kho=sanpham&kcvong=&nc=nguon-ai%3A" target="_blank" rel="noopener">↗ Sổ nguồn AI</a>' : ''}</div>` }; }
     if (u.loai === 'chuyen') return { dau: u.tt['Người'] ? '🧑‍🏭 Người trong nhà máy phim' : `🚚 ${u.tt['Chở']}`, h: Object.entries(u.tt as Record<string, string>).filter(([k]) => k !== 'Chở' && k !== 'Người') };
     if (u.loai === 'xuong-etp') { const x = xuongData, n = x?.nhip;
       if (!x) return { dau: '🏭 Xưởng phim mới', h: [['', 'đang đọc số…']] };
@@ -2045,9 +2048,19 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // CHỌN (góp ý #1438): bấm vật = viền vàng quanh nó + mở ngăn, camera đứng yên (chỉ ô tìm mới bay tới, vì vật có thể ở ngoài màn);
   // bấm chỗ trống / Esc = đóng ngăn + bỏ viền. Một viền dùng lại, nằm ngoài nhóm `the` nên không bị dựng lại hay bắt tia.
   const hopChon = new THREE.Box3(), vienChon = new THREE.Box3Helper(hopChon, 0xffd27a); vienChon.visible = false; scene.add(vienChon);
-  function chonVat(o: any) { if (vatChon && vatChon !== o && vatChon !== dangSang) sangLen(vatChon, false); vatChon = o; sangLen(o, true);
+  function chonVat(o: any) { if (vatChon && vatChon !== o && vatChon !== dangSang) sangLen(vatChon, false); vatChon = o; sangLen(o, true); datXem(tenVat(o));
     if (o.isSprite) vienChon.visible = false; else { hopChon.setFromObject(o).expandByScalar(1.5); vienChon.visible = true; } danhThuc(); }   // bảng nổi (sprite) quay theo camera: hộp bao trục thẳng thành khung dài xuyên qua bảng (góp ý #1443) — chỉ sáng lên, không viền
-  function dongNgan() { ngan.hidden = true; vienChon.visible = false; if (vatChon && vatChon !== dangSang) sangLen(vatChon, false); vatChon = null; danhThuc(); }
+  function dongNgan() { ngan.hidden = true; vienChon.visible = false; if (vatChon && vatChon !== dangSang) sangLen(vatChon, false); vatChon = null; datXem(null); danhThuc(); }
+  // NGỮ CẢNH GÓP Ý (góp ý #1450): nút 💬 tự nhúng vật đang chọn + khu / vật camera đang nhìn (window.__nguCanhTrang — gop-y-mos2 docNguCanh đọc lúc gửi), không cần chụp ảnh.
+  // Vật đang chọn còn nằm trong URL (?xem=<tên ô tìm>): link "Trang báo lỗi" của card mở lại đúng vật (đọc ?xem sau lần dựng đầu).
+  const tenVat = (o: any): string => chiMuc.find((c) => c.obj === o)?.ten ?? (() => { try { return thongTin(o).dau.replace(/<[^>]+>/g, '').trim(); } catch { return ''; } })();
+  function datXem(ten: string | null) { try { const u = new URL(window.location.href); if (ten) u.searchParams.set('xem', ten); else u.searchParams.delete('xem'); if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href); } catch { /* không đổi được URL: ngữ cảnh vẫn gửi qua __nguCanhTrang */ } }
+  const vGan = new THREE.Vector3();
+  const ganTam = (loc: (c: { ten: string; nhan: string; obj: any }) => boolean) => { let tot: { ten: string; nhan: string } | null = null, kc = Infinity;
+    for (const c of chiMuc) { if (!loc(c)) continue; c.obj.getWorldPosition(vGan); const d = (vGan.x - ctl.target.x) ** 2 + (vGan.z - ctl.target.z) ** 2; if (d < kc) { kc = d; tot = c; } } return tot; };
+  const nguCanhCity = () => { const chon = vatChon ? tenVat(vatChon) : '', khu = ganTam((c) => c.obj.userData?.loai === 'khu' || /^khu/.test(c.nhan)), vat = ganTam(() => true);
+    return [chon && `đang chọn: ${chon}`, khu && `khu đang nhìn: ${khu.ten}`, vat && vat !== khu && `vật giữa màn: ${vat.ten} (${vat.nhan})`].filter(Boolean).join(' · '); };
+  (window as any).__nguCanhTrang = nguCanhCity;
   const onPhim = (e: KeyboardEvent) => { if (e.key === 'Escape' && !ngan.hidden) dongNgan(); };
   window.addEventListener('keydown', onPhim);
   function cham(e: PointerEvent) {
@@ -2298,8 +2311,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   const ro = new ResizeObserver(() => { if (!W() || !H()) return; cam.aspect = W() / H(); cam.updateProjectionMatrix(); r.setSize(W(), H()); });
   ro.observe(host);
   dung(); vong();
+  { const xem0 = new URLSearchParams(window.location.search).get('xem'); if (xem0) setTimeout(() => { const c = chiMuc.find((x) => x.ten === xem0); if (c) bayToiObj(c.obj); }, 0); }   // ?xem= (link góp ý) → bay tới đúng vật
   const capNhat = (moi: PhoMoHinh) => { mh = moi; dung(); };
   const don = () => {
+    if ((window as any).__nguCanhTrang === nguCanhCity) delete (window as any).__nguCanhTrang;
     cancelAnimationFrame(raf); ro.disconnect(); for (const x of widgetRo) x.disconnect(); ctl.dispose(); document.removeEventListener('fullscreenchange', onFs); document.documentElement.style.overflow = '';
     r.domElement.removeEventListener('pointermove', onMove); r.domElement.removeEventListener('pointerleave', onLeave); r.domElement.removeEventListener('pointerdown', onDown);
     r.domElement.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onPhim); r.domElement.removeEventListener('pointermove', danhThuc); r.domElement.removeEventListener('pointerdown', danhThuc); host.removeEventListener('wheel', onWheel, { capture: true } as any); r.domElement.removeEventListener('dblclick', onDup); r.domElement.removeEventListener('pointerdown', onKeoXuong); window.removeEventListener('pointermove', onKeoDi); window.removeEventListener('pointerup', onKeoLen); window.removeEventListener('pointercancel', onKeoLen); r.domElement.removeEventListener('gesturestart', onGStart); r.domElement.removeEventListener('gesturechange', onGChange); for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) r.domElement.removeEventListener(ev, onCham2 as any); r.domElement.removeEventListener('contextmenu', onMenu);

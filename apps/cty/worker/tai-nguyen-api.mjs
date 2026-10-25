@@ -9,10 +9,10 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const ENV_STUDIO = '/opt/earns-marketing-os-v2/.env.production';
-export const SAN = { shopaikey: 5, kie: 500, runpod: 2, ckey: 50000, plenxai: 100 };   // $ / credit / $ / ₫ — dưới mức này là báo
+export const SAN = { shopaikey: 5, kie: 500, runpod: 2, ckey: 50000, plenxai: 100, vast: 2, elevenlabs: 1000 };   // $ / credit / $ / ₫ — dưới mức này là báo
 export const NGAY_CON = 3; export const GIO_BAO = '08:00';
-const DON = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit' };
-const TEN = { plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai' };
+const DON = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit' };
+const TEN = { plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai' };
 
 const so = (x, d = 2) => Number(x).toLocaleString('vi-VN', { maximumFractionDigits: d });
 const hien = (k, v) => (DON[k] === '$' ? `$${so(v)}` : DON[k] === '₫' ? `${so(v, 0)}₫` : `${so(v, 0)} ${DON[k]}`);
@@ -69,6 +69,9 @@ export async function docSoDu() {
     // PlenX: token đăng nhập ở tệp của studio (cong-plenxai.ts) — CHỈ đọc access_token còn hạn, không tự xoay (xoay ở đây sẽ giành refresh_token của studio)
     thu('plenxai', async () => { const t = JSON.parse(fs.readFileSync('/root/.secrets/plenxai.json', 'utf8')).access_token; if (!t) throw new Error('chưa có token');
       const j = await lay('https://plenxai.com/api/v1/users/me', { headers: { authorization: `Bearer ${t}` } }); return Number(j.credit_balance) + Number(j.free_credits ?? 0); }),
+    // Vast.ai (máy GPU, góp ý city #1451) + ElevenLabs (credit còn trong kỳ = hạn mức − đã dùng): đọc khi env có khoá, chưa có thì city ghi "cần khoá …"
+    thu('vast', async () => { if (!e.VAST_API_KEY) throw new Error('thiếu khoá VAST_API_KEY'); const j = await lay('https://console.vast.ai/api/v0/users/current/', { headers: { authorization: `Bearer ${e.VAST_API_KEY}` } }); return Math.round(Number(j.credit ?? j.balance) * 100) / 100; }),
+    thu('elevenlabs', async () => { if (!e.ELEVENLABS_API_KEY) throw new Error('thiếu khoá ELEVENLABS_API_KEY'); const j = await lay('https://api.elevenlabs.io/v1/user/subscription', { headers: { 'xi-api-key': e.ELEVENLABS_API_KEY } }); return Number(j.character_limit) - Number(j.character_count); }),
     thu('ckey', async () => { if (!e.CKEY_TAI_KHOAN_KEY) throw new Error('thiếu khoá tài khoản ckey'); const j = await lay(`https://ckey.vn/api/profile?key=${e.CKEY_TAI_KHOAN_KEY}`, { headers: { 'user-agent': 'Mozilla/5.0' } }); return Number(j.data.profile.balance_raw); }),
   ]);
   return { du, loi };

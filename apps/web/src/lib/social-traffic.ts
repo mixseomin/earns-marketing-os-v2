@@ -48,7 +48,9 @@ export interface StLuoiO { ngay: string; gio: string; may: string; mayTen: strin
   /** bài site đích cho góc của ô kế hoạch (bai_site_goc): trạng thái + link khi đã lên */
   baiSite?: { tt: string; url: string | null } | null;
   /** link đích của ô kế hoạch (bài site của góc) — ô này là nguồn social trỏ sang bài */
-  dich?: string | null }
+  dich?: string | null;
+  /** ô kế hoạch đã có video DUYỆT làm từ đúng góc */
+  coBai?: boolean }
 /** THỐNG KÊ KHO (anh 18/10/2026: "cần thống kê theo kiểu nội dung, format… trên lịch nhìn thấy hết"): một dòng = máy × (format | kiểu nội dung).
  *  da = lượt đã đăng · kho = lượt DUYỆT chưa đăng (một video lên 3 nền = 3) · den = ngày lượt dự kiến cuối cùng (lịch 90 ngày của dang-may) — null = không có lượt nào. */
 export interface StKho { may: string; mayTen: string; chieu: 'format' | 'kieu'; nhan: string; da: number; kho: number; den: string | null }
@@ -421,7 +423,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       d.execute(sql`SELECT m.ma, n->>'nen' AS nen, coalesce(n->>'tk', n->'br'->>'ten', n->>'ten') AS tk, a.platform_key, a.handle,
           coalesce(a.account_stats->>'page_id', n->'br'->>'graph_id') AS page_id, n->'br'->>'kenh_id' AS kenh_id
         FROM xv_may m CROSS JOIN LATERAL jsonb_array_elements(m.dang) n LEFT JOIN platform_accounts a ON a.id::text = n->'br'->>'acct'`) as unknown as Promise<{ ma: string; nen: string; tk: string | null; platform_key: string | null; handle: string | null; page_id: string | null; kenh_id: string | null }[]>,
-      d.execute(sql`SELECT m.ma, v.slug, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.dang->'goc' AS goc FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false)`) as unknown as Promise<{ ma: string; slug: string; anh: string | null; goc: GocBai | null }[]>,
+      d.execute(sql`SELECT m.ma, v.slug, coalesce(v.anh->>0, v.khung->>0, v.nen_url) AS anh, v.dang->'goc' AS goc, (v.cham->>'ket' = 'DUYET' AND v.cham->>'xuat' = v.xuat_luc::text) AS duyet FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.chay AND NOT coalesce(v.luu_tru, false)`) as unknown as Promise<{ ma: string; slug: string; anh: string | null; goc: GocBai | null; duyet: boolean | null }[]>,
     ]);
     const kenh: NonNullable<StLuoi['kenh']> = Object.fromEntries(noiTk.map((x) => [`${x.ma}|${x.nen}`, { tk: x.tk, nenKey: x.platform_key, url: x.platform_key && x.handle ? linkKenh(x.platform_key, x.handle, { pageId: x.page_id, kenhId: x.kenh_id }).url : null }]));
     // số liệu: lượt xem theo link bài (ô reel / Shorts / TikTok của sổ số đo mới nhất từng kênh) + click theo nền gốc × trang đích
@@ -436,6 +438,8 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
     for (const [k, v] of soFb) if (v.xem != null && !xemCua.has(k)) xemCua.set(k, v.xem);
     const duongDan = (u: string | null) => { try { return u ? new URL(u).pathname : null; } catch { return null; } };
     const tkCua = new Map(noiTk.map((x) => [`${x.ma}|${x.nen}`, x.tk])), anhCua = new Map(anhSlug.map((x) => [`${x.ma}|${x.slug}`, x.anh])); const gocCua = new Map(anhSlug.map((x) => [`${x.ma}|${x.slug}`, x.goc]));
+    // ô kế hoạch đã có bài: video DUYỆT làm từ đúng góc (dang.goc) — ảnh của nó hiện trên ô, chưa có thì ô báo 'chưa có bài' (bước 4 P1, 26/10/2026)
+    const baiGoc = new Map<string, string | null>(); for (const x of anhSlug) if (x.goc?.id && x.duyet && !baiGoc.has(`${x.ma}|${x.goc.id}`)) baiGoc.set(`${x.ma}|${x.goc.id}`, x.anh);
     // kho + đã đăng theo máy × nền × kiểu nội dung (dang.nhom); cùng điều kiện "DUYỆT đúng bản" như máy đăng (may.ts › dsVideoDang) và nền ảnh cần ảnh tĩnh
     const kr = (await d.execute(sql`SELECT m.ma, m.ten, n->>'nen' AS nen, coalesce(v.dang->>'nhom', '—') AS nhom,
         count(*) FILTER (WHERE v.da_dang ? (n->>'nen'))::int AS da,
@@ -483,7 +487,7 @@ async function docLuoi(loi: string[]): Promise<StLuoi> {
       const kh = await docKeHoachGoc(hom, cuoiLuoi), hoCua = (nen: string) => { const g = nen.split(':')[0] ?? nen; return /^(facebook|fb_)/.test(g) ? 'facebook' : /^x(_|$)/.test(g) ? 'x' : g; };
       const coKh = new Set(kh.map((x) => `${x.may}|${x.ho}|${x.ngay}`)), tenMay = new Map([...da.map((x) => [String(x.ma), String(x.may_ten)] as const), ...ds.map((x) => [x.may, x.mayTen ?? x.may] as const)]);
       for (let i = o.length - 1; i >= 0; i--) { const x = o[i]!; if (x.loai === 'du_kien' && !x.nen.includes(':') && coKh.has(`${x.may}|${hoCua(x.nen)}|${x.ngay}`)) o.splice(i, 1); }
-      for (const x of kh) if (x.ngay >= hom) o.push({ ngay: x.ngay, gio: '—', may: x.may, mayTen: tenMay.get(x.may) ?? x.may, nen: x.nen, title: x.goc.ten, url: null, loai: 'du_kien', anh: null,
+      for (const x of kh) if (x.ngay >= hom) o.push({ ngay: x.ngay, gio: '—', may: x.may, mayTen: tenMay.get(x.may) ?? x.may, nen: x.nen, title: x.goc.ten, url: null, loai: 'du_kien', anh: baiGoc.get(`${x.may}|${x.goc.id}`) ?? null, coBai: baiGoc.has(`${x.may}|${x.goc.id}`),
         tk: tkCua.get(`${x.may}|${x.nen}`) ?? tkCua.get(`${x.may}|${x.ho}`) ?? null, nhom: null, link: x.format === 'Bài link' || !!x.dich, goc: x.goc, format: x.format, canDung: x.can_dung, baiSite: bs.get(`${x.may}|${x.goc.id}`) ?? null, dich: x.dich });
     } catch (e) { loi.push(`kế hoạch góc: ${(e as Error).message.slice(0, 120)}`); }
     return { hom, tinhLuc: dk[0]?.luc ?? null, o, kenh, kho: [...gom.values()].filter((g) => g.da || g.kho).sort((a, b) => a.mayTen.localeCompare(b.mayTen) || a.chieu.localeCompare(b.chieu) || b.kho - a.kho) };

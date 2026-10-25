@@ -365,6 +365,7 @@ function OBai({ x, hom, so, gon, dong }: { x: StLuoiO; hom: string; so: boolean 
         <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '3px 5px', whiteSpace: 'nowrap' }}>
           <span title={f} style={{ background: mau, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '1px 8px', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden' }}><span aria-hidden>{IC_FMT[f] ?? '•'}</span>{gon && !x.format ? null : nhanF}</span>
           {x.format && x.link && !x.dich ? <span title="ô link chưa có bài site đích của góc — tạo bài (Social › Góc › Theo tài sản › Bài site) rồi máy tự gắn" style={{ fontSize: 10, color: 'var(--danger, #dc2626)', border: '1px solid currentColor', borderRadius: 4, padding: '0 4px' }}>⚠ bài site</span> : null}
+          {x.format && !x.coBai ? <span title="chưa có video DUYỆT làm từ góc này — studio làm bù; tới lượt máy đăng bài kho" style={{ fontSize: 10, color: 'var(--warn, #d97706)', border: '1px dashed currentColor', borderRadius: 4, padding: '0 4px' }}>chưa có bài</span> : null}
           {x.canDung ? <span title="format chưa có đường đăng — chuẩn bị P4" style={{ fontSize: 10, color: 'var(--warn, #d97706)', border: '1px solid currentColor', borderRadius: 4, padding: '0 4px' }}>cần dựng</span> : null}
           {x.gio !== '—' ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{x.gio}</span> : null}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>

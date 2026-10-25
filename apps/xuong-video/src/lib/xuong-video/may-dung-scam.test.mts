@@ -1,17 +1,20 @@
 // Tự kiểm mẫu "Scam or Real?" + cả tệp nguồn đề: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-scam.test.mts
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { anhScam, assScam, boCuc, ngat, tuNguonScam, kichBanScam, nhipScam, CHU_KET_SCAM, T_LO, type DeScam } from './may-dung-scam';
+import { anhScam, assScam, boCuc, coLyDo, ngat, tuNguonScam, kichBanScam, nhipScam, CHU_KET_SCAM, T_LO, type DeScam } from './may-dung-scam';
 import { giayDoc } from './may-dung-ass';
 
 assert.deepStrictEqual(ngat('one two three four', 9), ['one two', 'three', 'four']);
+assert.strictEqual(coLyDo('x'.repeat(36)), 40); assert.ok(coLyDo('x'.repeat(38)) < 40, 'dòng dài phải thu chữ');
 const ds = JSON.parse(readFileSync(new URL('../../../mau/may/scam-or-real.json', import.meta.url), 'utf8')) as (DeScam & { slug: string })[];
+// đề theo góc (scripts/ke-hoach-goc/rbr-goc.json) cũng qua đúng các kiểm bố cục / ảnh
+const dsGoc = (JSON.parse(readFileSync(new URL('../../../../../scripts/ke-hoach-goc/rbr-goc.json', import.meta.url), 'utf8')) as { slug: string; de: DeScam }[]).filter((x) => x.de?.ly_do).map((x) => ({ ...x.de, slug: x.slug }));
 assert.strictEqual(new Set(ds.map((x) => x.slug)).size, ds.length, 'slug trùng');
-for (const x of ds) {
+for (const x of [...ds, ...dsGoc]) {
   const co = x.dong.filter((d) => d.co).map((d) => d.co);
   if (x.ket === 'scam') { assert.deepStrictEqual(co, [1, 2, 3], `${x.slug}: tin lừa phải khoanh đúng 3 dòng 1-2-3`); assert.strictEqual(x.ly_do.length, 3, `${x.slug}: 3 lý do`); }
   else assert.strictEqual(co.length, 0, `${x.slug}: tin thật không khoanh dòng nào`);
-  for (const l of x.ly_do) assert.ok(l.length <= 36, `${x.slug}: lý do dài quá 36 ký tự (tràn dòng): ${l}`);
+  for (const l of x.ly_do) assert.ok(coLyDo(l) >= 32, `${x.slug}: lý do dài quá, chữ thu nhỏ dưới 80% (${l.length} ký tự): ${l}`);
   assert.ok(boCuc(x).cuoi < 1560, `${x.slug}: tin dài quá, đè lên phần lý do / đồng hồ (${boCuc(x).cuoi})`);
   const ass = assScam(x); assert.ok(ass.includes(x.ket === 'scam' ? 'SCAM' : 'REAL'));
   const n = tuNguonScam(x); assert.ok(n.dang.link.startsWith('https://ratesbyroom.com/') && n.dang.description.includes(n.dang.link) && !('slug' in n.de));
@@ -25,8 +28,11 @@ for (const x of ds) {
   assert.ok(q!.t < T_LO && d!.t > T_LO + 0.15 * 2 + 0.2 && d!.t < N.T_KET, `${x.slug}: mốc ảnh sai`);
   for (const k of [q!, d!]) assert.ok(k.cat[1] + k.cat[3] <= 1920 && k.cat[0] + k.cat[2] <= 1080);
   assert.ok(boCuc(x).cuoi < d!.cat[1] + d!.cat[3], `${x.slug}: ảnh đáp án cắt mất đuôi tin`);
+  const B = boCuc(x);
+  assert.ok(B.lyDo.at(-1)! + 40 <= d!.cat[1] + d!.cat[3] && d!.cat[1] <= B.dauLo, `${x.slug}: ảnh đáp án cắt mất dòng lý do / dấu lộ`);
+  for (const l of B.tieuDe) assert.ok(l.length <= 34, `${x.slug}: dòng tiêu đề email tràn`);
 }
-console.log(`may-dung-scam: ${ds.length} đề đạt`);
+console.log(`may-dung-scam: ${ds.length} đề + ${dsGoc.length} đề góc đạt`);
 
 // tiêu đề không trùng (chống spam, 18/10/2026), không lộ đáp án, đủ ngắn cho feed
 {

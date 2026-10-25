@@ -17,6 +17,8 @@ export interface DeScam {
 }
 
 export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM;
+/** Cỡ chữ dòng lý do: 40 vừa 36 ký tự trên bề ngang 1080; dòng dài hơn thu nhỏ theo tỉ lệ thay vì tràn khỏi khung (đề góc 27/10 có dòng 37–38 ký tự). */
+export const LY_DO_VUA = 36, coLyDo = (s: string) => Math.min(40, Math.floor(40 * LY_DO_VUA / Math.max(1, s.length)));
 export const CHU_KET_SCAM = ['Never pay through a link in a message.', 'Call the hotel on the number from its official website.', 'Compare real hotel rates: ratesbyroom.com'];
 /** Mốc theo đề (luật đọc may-dung-ass.ts › giayDoc): lộ đáp án → lý do đứng đủ thời gian đọc + đệm → màn kết đứng đủ thời gian đọc + đệm. */
 export function nhipScam(de: DeScam) {
@@ -26,8 +28,12 @@ export function nhipScam(de: DeScam) {
 /** ẢNH TĨNH cho bài ảnh (nền "x_anh" — X đăng 2 ảnh, 18/10/2026): câu đố (tin nhắn, chưa lộ, cắt bỏ vòng đếm ngược ở đáy) và đáp án (dấu SCAM/REAL,
  *  dấu hiệu khoanh + lý do, cắt bỏ tiêu đề trên). Mốc theo nhịp của đề (đáp án đứng ở 70% quãng lộ → kết, mọi dòng lý do đã hiện). Khung cắt 3:4. */
 export function anhScam(de: DeScam): { t: number; cat: [number, number, number, number] }[] {
-  const { T_KET } = nhipScam(de);
-  return [{ t: T_DEM + DEM * 0.45, cat: [0, 0, 1080, 1440] }, { t: T_LO + (T_KET - T_LO) * 0.7, cat: [0, 240, 1080, 1440] }];
+  const { T_KET } = nhipScam(de), L = boCuc(de);
+  // khung đáp án tính từ bố cục (không số cứng — bản cũ [0,240,1080,1440] dừng ở y=1680, thẻ cao thì cắt mất dòng lý do 3):
+  // phải chứa từ đỉnh dấu SCAM/REAL nghiêng tới đáy dòng lý do cuối; vượt 3:4 thì khung cao hơn (X nhận mọi tỉ lệ), không cắt chữ
+  const tren = L.dauLo, duoi = L.lyDo.at(-1)! + 65, cao = Math.min(H, Math.max(1440, duoi - tren));
+  const y = Math.max(0, Math.min(tren, Math.max(240, duoi - cao), H - cao));
+  return [{ t: T_DEM + DEM * 0.45, cat: [0, 0, 1080, 1440] }, { t: T_LO + (T_KET - T_LO) * 0.7, cat: [0, y, 1080, cao] }];
 }
 const W = 1080, H = 1920, DO = '#E5484D', XANH = '#2EBD85', NHAN = '#FCA311', SAU = '#14213D', TRANG = '#F4F6F8';
 const MAU_KENH: Record<KenhScam, string> = { WhatsApp: '#1FA855', Email: '#3B6FE0', SMS: '#5B6472' };
@@ -37,15 +43,21 @@ export { mauAss, ngat };
 const EM = 1.25;
 const fs = (px: number) => `\\fs${Math.round(px * EM)}`;
 /** Bố cục tin: mỗi đoạn → các dòng đã ngắt, toạ độ y; đoạn có dấu hiệu giữ khung bao (y đầu, y cuối) để khoanh. */
+/** Một nguồn cho mọi toạ độ: tiêu đề Email (ngắt dòng — bản cũ vẽ một dòng, tiêu đề dài tràn khỏi thẻ), đoạn tin, chiều cao thẻ, dòng lý do, đỉnh dấu lộ.
+ *  assScam vẽ và anhScam cắt đều đọc từ đây, nên khung cắt không lệch khỏi chỗ vẽ. */
 export function boCuc(de: DeScam) {
-  const DONG = 66, x = 140, y0 = de.kenh === 'Email' && de.tieu_de ? 700 : 620;
-  let y = y0; const doan: { dong: string[]; y: number[]; co?: number; tren: number; duoi: number }[] = [];
+  const DONG = 66, x = 140, DONG_TD = 52;
+  const tieuDe = de.kenh === 'Email' && de.tieu_de ? ngat(de.tieu_de, 34) : [];
+  const yTieuDe = tieuDe.map((_, i) => 580 + i * DONG_TD);
+  let y = tieuDe.length ? 700 + (tieuDe.length - 1) * DONG_TD : 620; const doan: { dong: string[]; y: number[]; co?: number; tren: number; duoi: number }[] = [];
   for (const p of de.dong) {
     const ds = ngat(p.t), ys = ds.map((_, i) => y + i * DONG);
     doan.push({ dong: ds, y: ys, co: p.co, tren: y - DONG / 2 - 4, duoi: y + (ds.length - 1) * DONG + DONG / 2 + 4 });
     y += ds.length * DONG + 26;
   }
-  return { x, doan, cuoi: y };
+  const cao = Math.max(760, y - 360 + 40), yLy = Math.min(1640, 380 + cao + 70);
+  const lyDo = de.ly_do.slice(0, 3).map((_, i) => yLy + i * 70);
+  return { x, tieuDe, yTieuDe, doan, cuoi: y, cao, lyDo, dauLo: 340 };
 }
 
 
@@ -62,7 +74,7 @@ export function assScam(de: DeScam): string {
   d.push([2, 0, T_LO, 'Ve', `{\\an7\\pos(60,312)\\1c&HFFFFFF&\\1a${alpha(0.18)}\\p1}${bo(960, 20, 10)}`]);
   d.push([3, 0, T_LO, 'Ve', `{\\an7\\pos(60,312)\\1c${mauAss(NHAN)}\\clip(60,312,1020,332)\\t(${ms(T_DEM)},${ms(T_LO)},\\clip(60,312,60,332))\\p1}${bo(960, 20, 10)}`]);
   // khung điện thoại (thẻ trắng) + dải đầu theo màu kênh
-  const cao = Math.max(760, L.cuoi - 360 + 40), tamY = 380 + cao / 2;
+  const cao = L.cao, tamY = 380 + cao / 2;
   d.push([1, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY + 14)})\\1c&H000000&\\1a${alpha(0.3)}${nay(90)}\\p1}${bo(940, cao, 34)}`]);
   d.push([2, 0, T_KET, 'Ve', `{\\an5\\pos(540,${Math.round(tamY)})\\1c${mauAss(TRANG)}${nay(90)}\\p1}${bo(940, cao, 34)}`]);
   d.push([3, 0, T_KET, 'Ve', `{\\an7\\pos(70,380)\\1c${mauAss(kenh)}\\clip(70,380,1010,520)${nay(90)}\\p1}${bo(940, 200, 34)}`]);
@@ -71,7 +83,7 @@ export function assScam(de: DeScam): string {
   d.push([5, 0, T_KET, 'Den', `{\\an5\\pos(150,452)${fs(38)}\\1c&HFFFFFF&${nay(90)}}${chu(de.gui.trim()[0] ?? '?').toUpperCase()}`]);
   d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(212,428)\\b1${fs(30)}\\1c&HFFFFFF&\\1a&H30&${nay(90)}}${chu(de.kenh)}`]);
   d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(212,472)\\b1${fs(38)}\\1c&HFFFFFF&${nay(90)}}${chu(de.gui)}`]);
-  if (de.kenh === 'Email' && de.tieu_de) d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(140,580)\\b1${fs(38)}\\1c&H222222&${nay(90)}}${chu(de.tieu_de)}`]);
+  for (const [i, s] of L.tieuDe.entries()) d.push([5, 0, T_KET, 'Chu', `{\\an4\\pos(140,${L.yTieuDe[i]})\\b1${fs(38)}\\1c&H222222&${nay(90)}}${chu(s)}`]);
   // các đoạn tin (chữ đen trên thẻ trắng); dòng có dấu hiệu: lúc lộ khung đỏ viền + số
   for (const p of L.doan) {
     for (const [i, s] of p.dong.entries()) d.push([6, 0, T_KET, 'Chu', `{\\an4\\pos(${L.x},${p.y[i]})\\b0${fs(44)}\\1c&H1B1B1B&${nay(90)}}${chu(s)}`]);
@@ -91,9 +103,8 @@ export function assScam(de: DeScam): string {
   // lộ: dấu SCAM / REAL nghiêng + lý do bên dưới thẻ
   d.push([9, T_LO, T_KET, 'Ve', `{\\an5\\pos(800,${Math.round(380 + 60)})\\frz-12\\1c${mauAss(mauKet)}\\fscx40\\fscy40\\t(0,220,0.6,\\fscx100\\fscy100)\\p1}${bo(360, 120, 18)}`]);
   d.push([10, T_LO, T_KET, 'Den', `{\\an5\\pos(800,${Math.round(380 + 62)})\\frz-12${fs(78)}\\1c&HFFFFFF&\\fscx40\\fscy40\\t(0,220,0.6,\\fscx100\\fscy100)}${lua ? 'SCAM' : 'REAL'}`]);
-  const yLy = Math.min(1640, 380 + cao + 70);
   for (const [i, s] of de.ly_do.slice(0, 3).entries()) {
-    d.push([9, T_LO + 0.15 * i, T_KET, 'Chu', `{\\an4\\pos(90,${yLy + i * 70})\\b1${fs(40)}\\1c&HFFFFFF&\\fad(150,0)}{\\1c${mauAss(mauKet)}}${lua ? `${i + 1}` : '•'}{\\1c&HFFFFFF&}  ${chu(s)}`]);
+    d.push([9, T_LO + 0.15 * i, T_KET, 'Chu', `{\\an4\\pos(90,${L.lyDo[i]})\\b1${fs(coLyDo(s))}\\1c&HFFFFFF&\\fad(150,0)}{\\1c${mauAss(mauKet)}}${lua ? `${i + 1}` : '•'}{\\1c&HFFFFFF&}  ${chu(s)}`]);
   }
   // màn kết
   const fad = '\\fad(300,0)';

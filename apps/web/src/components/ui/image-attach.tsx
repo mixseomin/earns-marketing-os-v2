@@ -110,7 +110,9 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
         setMeta(docMeta());
         setCho((ds) => ds.filter((x) => x.id !== c.id)); URL.revokeObjectURL(c.xem);
       } catch (e) {
-        loi++; datCho(c.id, { buoc: 'loi', loi: e instanceof Error ? e.message : 'upload lỗi' });
+        // tab mở từ trước lượt deploy: Next đổi mã server action mỗi bản build → "Failed to find Server Action" / "unexpected response" — nói thẳng phải F5 (nháp form giữ qua F5)
+        const m = e instanceof Error ? e.message : 'upload lỗi', cu = /Server Action|unexpected response|older or newer deployment/i.test(m);
+        loi++; datCho(c.id, { buoc: 'loi', loi: cu ? 'Bản mới vừa lên — tải lại trang (F5) rồi dán lại ảnh' : m });
       }
     }
     if (done.length) onChange([...valueRef.current, ...done].slice(0, max));

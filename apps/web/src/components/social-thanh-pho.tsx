@@ -18,16 +18,22 @@ export function SocialThanhPho({ live, mh, luc: luc0, toanTrang = false, lamMoiN
   useEffect(() => {
     let canh: { don: () => void; capNhat: (mh: PhoMoHinh) => void; capNhatXuong: (x: XuongEtp) => void } | null = null, song = true;
     napThree().then((T) => { if (song && ref.current) canh = dungThanhPho(ref.current, mh0, T); }).catch((e: Error) => song && setLoi(e.message));
+    // BẢN MỚI LÊN → TỰ TẢI LẠI (góp ý #1454: tab mở cả ngày, sau deploy mọi server action — đính ảnh góp ý, gửi góp ý — chết im). Chỉ tải lại khi anh để yên
+    // ≥ 30 giây và không gõ ô nào; nháp góp ý + ảnh đã lên (localStorage), góc nhìn (localStorage + URL ?cam) đều sống qua tải lại.
+    let ban = '', banMoi = false, thaoTac = Date.now();
+    const danhDau = () => { thaoTac = Date.now(); };
+    for (const ev of ['pointerdown', 'keydown', 'wheel']) window.addEventListener(ev, danhDau, { passive: true });
+    const taiLaiNeuRanh = () => { const go = document.activeElement; if (banMoi && Date.now() - thaoTac > 30_000 && !(go && /^(INPUT|TEXTAREA|SELECT)$/.test(go.tagName))) window.location.reload(); };
     const lamMoi = () => {
       if (document.visibilityState !== 'visible' || !canh) return;
-      fetch('/api/social/thanh-pho', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((x: { luc: string; mh: PhoMoHinh } | null) => { if (song && x && canh) { canh.capNhat(x.mh); setLuc(x.luc); } }).catch(() => { /* mạng chập chờn: giữ số cũ, lượt sau gọi lại */ });
+      fetch('/api/social/thanh-pho', { cache: 'no-store' }).then((r) => { const b = r.headers.get('x-ban-dung') ?? ''; if (b) { if (!ban) ban = b; else if (b !== ban) banMoi = true; } taiLaiNeuRanh(); return r.ok ? r.json() : null; }).then((x: { luc: string; mh: PhoMoHinh } | null) => { if (song && x && canh) { canh.capNhat(x.mh); setLuc(x.luc); } }).catch(() => { /* mạng chập chờn: giữ số cũ, lượt sau gọi lại */ });
     };
     const id = setInterval(lamMoi, LAM_MOI_MS);
     // XƯỞNG PHIM MỚI ETHOPEX: số sản xuất 5 giây/lần (anh 23/10/2026 "nhìn được realtime trên city") — đường nhẹ, không dựng lại cả cảnh
     const xuong = () => { if (document.visibilityState !== 'visible' || !canh) return; fetch('/api/social/thanh-pho/xuong', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((x: XuongEtp | null) => { if (song && x && canh) canh.capNhatXuong(x); }).catch(() => {}); };
     const idX = setInterval(xuong, 5_000); setTimeout(xuong, 1500);
     if (lamMoiNgay) { const cho = setInterval(() => { if (canh) { clearInterval(cho); lamMoi(); } }, 300); setTimeout(() => clearInterval(cho), 20_000); }
-    return () => { song = false; clearInterval(id); clearInterval(idX); canh?.don(); };
+    return () => { song = false; clearInterval(id); clearInterval(idX); for (const ev of ['pointerdown', 'keydown', 'wheel']) window.removeEventListener(ev, danhDau); canh?.don(); };
   }, [mh0, lamMoiNgay]);
   if (loi) return <div style={{ padding: 16, color: 'var(--bad)' }}>Không dựng được thành phố: {loi}</div>;
   return <div style={{ position: 'relative' }}>

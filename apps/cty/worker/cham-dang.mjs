@@ -20,7 +20,8 @@ export function doBaiDang(v, ten = '') {
   if (!v.nen_url) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
   else if (!NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
   for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
-  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link')) chan.push('chưa có bản xuất');   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
+  // bản xuất = video, hoặc ảnh đã dựng (v.anh — bài ảnh / album / thẻ chữ, kế hoạch Page hoài cổ 25/10/2026), hoặc bài link
+  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link' && !v.anh?.length)) chan.push('chưa có bản xuất');   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
   // 2 · câu móc
   if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
   else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
@@ -172,6 +173,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.equal(doBaiDang({ ...tot, trung: 1 }).ket, 'DUYET');
   const thuong = { ...tot, dang: { title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };
   t.equal(doBaiDang(thuong).ket, 'DUYET', 'bài thường không link = DUYỆT');
+  t.equal(doBaiDang({ ...thuong, video_url: null, anh: ['a.jpg'] }).ket, 'DUYET', 'bài ảnh không video: ảnh đã dựng là bản xuất');
+  t.ok(doBaiDang({ ...thuong, video_url: null, anh: [] }).chan_cung.includes('chưa có bản xuất'), 'bài ảnh chưa dựng ảnh = chặn');
   t.ok(doBaiDang({ ...thuong, dang: { ...thuong.dang, description: thuong.dang.description + ' https://pickjot.com/' } }).chan_cung.some((x) => x.includes('bài thường')), 'bài thường mà có link = chặn');
   const wm = { ...thuong, nen_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/x.jpg/1600px-x.jpg' };
   t.ok(doBaiDang(wm).chan_cung.some((x) => x.includes('ghi công')), 'ảnh Wikimedia thiếu ghi công = chặn');

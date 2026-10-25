@@ -38,7 +38,7 @@ for (const b of ds) {
   const ts = Math.floor(Date.parse(`${b.ngay}T${b.gio}:00+07:00`) / 1000), dong = b.chu.split('\n')[0]!;
   // ảnh nguồn để chấm: ảnh thật tải về (Pexels / Wikimedia), bài cắt từ video thì ảnh nền Pexels của video đó
   const nguon = b.nguon_anh.length ? b.nguon_anh : [b.slug ? nenCua.get(b.slug) ?? null : null];
-  const cham = doBaiDang({ nen_url: nguon[0], nen_them: nguon.slice(1), video_url: b.video, xuat_luc: new Date().toISOString(),
+  const cham = doBaiDang({ nen_url: nguon[0], nen_them: nguon.slice(1), video_url: b.video, anh: b.anh, xuat_luc: new Date().toISOString(),
     dang: { title: dong, description: b.chu, link: b.link, loai: b.link ? 'link' : 'thuong' } }, b.ten);
   console.log(`${cham.ket === 'DUYET' ? '✓' : '✗'} ${b.id} ${b.ten} ${b.ngay} ${b.gio} · ${b.format} · điểm ${cham.diem}${cham.chan_cung.length ? ` · chặn: ${cham.chan_cung.join('; ')}` : ''}${cham.canh_bao.length ? ` · nhắc: ${cham.canh_bao.join('; ')}` : ''}`);
   if (THU || cham.ket !== 'DUYET') continue;

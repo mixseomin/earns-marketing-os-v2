@@ -1,0 +1,20 @@
+# Worker CHẤM CREATIVE ETHOPEX (anh 25/10/2026: "chấm điểm sao lại cài trên iMac" → chọn Cloudflare Worker, tài khoản Eimagini Workers Paid).
+# Deploy từ box1 (khoá Cloudflare ở /root/.secrets/cf-bwp.ini): apps/etp-cham-worker/trien-khai.sh
+name = "etp-cham"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+account_id = "f1fefdd1431b68732ec5eab5cd5d7e23"
+workers_dev = true
+
+[media]
+binding = "MEDIA"
+
+[ai]
+binding = "AI"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "etp-cham"
+
+[triggers]
+crons = ["* * * * *"]

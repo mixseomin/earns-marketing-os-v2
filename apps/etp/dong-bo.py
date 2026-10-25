@@ -102,6 +102,14 @@ def main():
                            for x in bc(["content_name", "hour", "cost", "revenue"], ["content_name", "hour"], d, d) if x.get("content_group_id") is not None],
                 ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
     except Exception as e: loi.append(f"so_gio: {e}")
+    # ── LUẬT TỪ CẤM / CTA cho Worker chấm creative (anh 25/10/2026: một nguồn — danh sách gốc ở kiem-thoai.py / cta_qc.py) → xv_khoa_ngoai['ethopex_mau_cam']
+    try:
+        import importlib.util as _iu
+        _s = _iu.spec_from_file_location("kiem_thoai", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "kiem-thoai.py"))
+        _kt = _iu.module_from_spec(_s); _s.loader.exec_module(_kt)
+        q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_mau_cam', $J$" + json.dumps(_kt.mau_js(), ensure_ascii=False).replace("$J$", "") + "$J$::jsonb) "
+          "on conflict (ten) do update set gia_tri = excluded.gia_tri, cap_nhat = now() where xv_khoa_ngoai.gia_tri is distinct from excluded.gia_tri")
+    except Exception as e: loi.append(f"mau_cam: {e}")
     # ── phim + creative (studio + spy)
     try:
         tl, ptk = khoa("ethopex_the_loai"), khoa("ethopex_phim_tk")

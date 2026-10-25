@@ -37,6 +37,11 @@ CAM += [CQ.MAU_CTA.pattern]
 CAM += [r"\bcuerpaz", r"\bqu[eé] cuerpo\b", r"\b(hot|nice|sexy) body\b", r"\bhorny\b", r"\bsexy\b"]
 MAU = re.compile("|".join(CAM), re.I)
 
+def mau_js():
+    """luật thoại cấm dạng JS cho Worker chấm creative (anh 25/10/2026: một nguồn luật — danh sách CAM ở trên là gốc) → {thoai, thoai_hoa, cta…}"""
+    t, th = CQ.tach_hoa("|".join(x for x in CAM if x != CQ.MAU_CTA.pattern))
+    return {"thoai": t, "thoai_hoa": th, **CQ.mau_js()}
+
 def soat(cau):
     """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich)"""
     m = MAU.search(cau or "")

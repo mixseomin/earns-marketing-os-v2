@@ -25,6 +25,17 @@ MAU_PHU = re.compile(r"limited[- ]time|tiempo limitado|por tiempo limitado|ofert
 # nút chuẩn khi OCR đọc lại: dấu "·" ra "•" / "-" / "." / mất — gỡ bằng mẫu nới (22/10/2026 chặn oan cả lô cta3 vì "WATCH FREE • LEARN MORE")
 NUT_CHUAN = re.compile(r"WATCH\W{0,4}FREE\W{0,4}LEARN\W{0,4}MORE|M[IÍ]RALA\W{0,4}GRATIS\W{0,4}M[AÁ]S\W{0,4}INFORMACI[OÓ]N|WHAT HAPPENS NEXT\W?|\W?QU[EÉ] PASA DESPU[EÉ]S\W?", re.I)
 
+def tach_hoa(mau):
+    """mẫu Python → (mẫu không phân biệt hoa/thường, [mẫu phân biệt hoa]) cho máy không hiểu (?-i:…) — Worker chấm creative (JS) đọc qua kho (anh 25/10/2026: một nguồn luật)"""
+    hoa = re.findall(r"\(\?-i:(.*?)\)", mau)
+    con = re.sub(r"\|?\(\?-i:.*?\)\|?", "|", mau).strip("|").replace("||", "|")
+    return con, hoa
+
+def mau_js():
+    """luật CTA dạng JS: {cta, cta_hoa, phu, phu_hoa, nut_chuan} (nguồn: MAU_CTA / MAU_PHU / NUT_CHUAN ở trên)"""
+    c, ch = tach_hoa(MAU_CTA.pattern); p, ph = tach_hoa(MAU_PHU.pattern)
+    return {"cta": c, "cta_hoa": ch, "phu": p, "phu_hoa": ph, "nut_chuan": NUT_CHUAN.pattern}
+
 def _bo_dau(t):
     import unicodedata
     return "".join(c for c in unicodedata.normalize("NFKD", t) if not unicodedata.combining(c))

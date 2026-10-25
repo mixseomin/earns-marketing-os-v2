@@ -665,9 +665,10 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       for (const [dy, rx] of [[1.2, Math.PI], [3.4, 0]] as const) { const c = add(new THREE.ConeGeometry(1.4, 2.2, 8), mt, false); c.rotation.x = rx; c.position.set(x, y0 + dy, z); c.userData = { tk, chu: m }; ds.cho!.push(c); } }
     else if (tt === 'xong') { const c = add(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial({ color: '#3fd68a' }), false); c.position.set(x, y0 + .5, z); c.userData = { tk, chu: m }; }
     // nóc là avatar Page → thân mang logo nền tảng (FB) trên bốn mặt, sát mép trên
-    if (coAnh(tk)) { const lg = M({ map: texNen(tk.nen), emissive: '#ffffff', emissiveMap: texNen(tk.nen), emissiveIntensity: .35 }), s = Math.min(6, w * .32);
-      for (let mat = 0; mat < 4; mat++) { const goc = mat * Math.PI / 2, p = add(new THREE.PlaneGeometry(s, s), lg, false);
-        p.position.set(x + Math.sin(goc) * (w / 2 + .12), h - s / 2 - .6, z + Math.cos(goc) * (w / 2 + .12)); p.rotation.set(0, goc, 0); p.userData = { tk, chu: m }; } }
+    // (ngay DƯỚI biển tên — cùng phép tính chiều cao biển trong bangTen — để logo không đè chữ; bốn mặt gộp một lệnh vẽ)
+    if (coAnh(tk)) { const s = Math.min(5, w * .3), caoBang = Math.min(w * .98 * .36, Math.max(4, h * .5)), y = h - .4 - caoBang - s / 2 - .5;
+      const lg = add(gopMat(s, s, [0, 1, 2, 3].map((i) => (o: any) => { const g = (i * Math.PI) / 2; o.position.set(x + Math.sin(g) * (w / 2 + .14), y, z + Math.cos(g) * (w / 2 + .14)); o.rotation.y = g; })),
+        new THREE.MeshBasicMaterial({ map: texNen(tk.nen) }), false); lg.userData = { tk, chu: m }; }
     bangTen(x, z, w, h, tk.loai === 'mxh' ? `${NEN[tk.nen][1]} · ${tk.ten}` : tk.ten, '', mauTk(tk), m);   // chỉ tên — số ở thẻ hover / poster rào
     return { m, cua: new THREE.Vector3(x, 1.5, z) };
   }
@@ -1557,7 +1558,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (tn.binh?.length) xTnPhai += Math.min(COT_B, tn.binh.length) * BXB + 4;
       // KHO FANPAGE (anh 25/10/2026 "các page này là tài sản, show lên city"): mỗi Page một khối trong lưới cạnh dãy bồn — cao theo người theo dõi (log), màu theo cụm
       // người xem (tiendo social S06), đang là kênh máy đăng = đèn sáng, đã tắt = thấp xám mờ. Một InstancedMesh (một lệnh vẽ). Không chữ: thẻ rê = bảng theo cụm.
-      if (tn.fanpage?.length) { const fp = tn.fanpage, COTF = 12, OF = 6, x0F = xTn + rongL / 2 + 80, z0F = zA - 40, hangF = Math.ceil(fp.length / COTF);
+      if (tn.fanpage?.length) { const fp = tn.fanpage, COTF = 12, OF = 6, x0F = xTnPhai - 10, z0F = zA - 40, hangF = Math.ceil(fp.length / COTF);
         const nenF = add(new THREE.BoxGeometry(COTF * OF + 8, .5, hangF * OF + 8), M({ color: '#1a2238', roughness: .9 }), false); nenF.position.set(x0F + COTF * OF / 2, .25, z0F + hangF * OF / 2);
         const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: .5, metalness: .2, emissive: '#ffffff', emissiveIntensity: .08 }), fp.length), o3 = new THREE.Object3D(), c3 = new THREE.Color();
         fp.forEach((p, i) => { const h = p.tat ? 1.2 : 2 + Math.log10(1 + (p.nguoi ?? 0)) * 6; o3.position.set(x0F + 4 + (i % COTF) * OF, .5 + h / 2, z0F + 4 + Math.floor(i / COTF) * OF); o3.scale.set(4.4, h, 4.4); o3.updateMatrix(); im.setMatrixAt(i, o3.matrix);
@@ -1781,7 +1782,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `🛢 ${esc(b.ten)}`, h: [['Mức', `<span style="color:${MAU_TN[b.muc]}">●</span> ${{ do: 'phải nạp ngay', vang: 'sắp cạn', xanh: 'ổn', 'chua-do': 'chưa đo được' }[b.muc]}`],
         ...(b.loai ? [['Loại', esc(b.loai)] as [string, string]] : []), ['Số dư', b.du == null ? '—' : `${soGon(b.du)} ${b.don}`], ['Tiêu bình quân', b.tieuNgay ? `${soGon(b.tieuNgay)} ${b.don} / ngày` : 'không tiêu'], ['Còn', chuCon(b.conNgay)],
         ...(b.loi ? [['Lỗi đọc', esc(b.loi)] as [string, string]] : []), ['Đọc lúc', b.luc ? new Date(Date.parse(b.luc) + 7 * 3600e3).toISOString().slice(11, 16) + ' (GMT+7)' : '—']],
-        them: `<div class="nut-mo">${b.nap ? `<a href="${esc(wrapExternalUrl(b.nap))}" target="_blank" rel="noreferrer">↗ Trang nạp / số dư</a>` : ''}${b.loai === 'AI' || b.loai === 'GPU' ? '<a href="https://studio.on.tc/?kho=sanpham&kcvong=&nc=nguon-ai%3A" target="_blank" rel="noopener">↗ Sổ nguồn AI</a>' : ''}</div>` }; }
+        them: `<div class="nut-mo">${b.nap ? `<a href="${esc(wrapExternalUrl(b.nap))}" target="_blank" rel="noreferrer">↗ Trang nạp / số dư</a> ` : ''}${b.loai === 'AI' || b.loai === 'GPU' ? '<a href="https://studio.on.tc/?kho=sanpham&kcvong=&nc=nguon-ai%3A" target="_blank" rel="noopener">↗ Sổ nguồn AI</a>' : ''}</div>` }; }
     if (u.loai === 'chuyen') return { dau: u.tt['Người'] ? '🧑‍🏭 Người trong nhà máy phim' : `🚚 ${u.tt['Chở']}`, h: Object.entries(u.tt as Record<string, string>).filter(([k]) => k !== 'Chở' && k !== 'Người') };
     if (u.loai === 'xuong-etp') { const x = xuongData, n = x?.nhip;
       if (!x) return { dau: '🏭 Xưởng phim mới', h: [['', 'đang đọc số…']] };

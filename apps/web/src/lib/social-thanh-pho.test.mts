@@ -218,7 +218,7 @@ assert.equal(appA4.giaiDoan, 'tham-dinh', 'app có bản đang duyệt → Phòn
     [{ key: 'vast', ten: 'Vast.ai', trangThai: 'co_tk', nap: 'https://cloud.vast.ai/billing/', khoaEnv: 'VAST_API_KEY' }, { key: 'anthropic', ten: 'Anthropic', trangThai: 'dang', nap: 'https://console.anthropic.com', khoaEnv: 'ANTHROPIC_API_KEY' },
      { key: 'piapi', ten: 'PiAPI', trangThai: 'tham_khao', nap: 'https://piapi.ai/pricing', khoaEnv: 'PIAPI_API_KEY' }]);
   const k = (x: string) => b.find((y) => y.key === x);
-  assert.ok(k('vast') && k('vast')!.du == null && k('vast')!.loi === 'chưa đọc — cần khoá VAST_API_KEY' && k('vast')!.nap === 'https://cloud.vast.ai/billing/', 'Vast.ai (vault vastai) có bồn, nói rõ thiếu khoá + link nạp');
+  assert.ok(k('vast') && k('vast')!.du == null && k('vast')!.loi === 'chưa nối đọc số dư (khoá VAST_API_KEY)' && k('vast')!.nap === 'https://cloud.vast.ai/billing/', 'Vast.ai (vault vastai) có bồn, nói rõ thiếu khoá + link nạp');
   assert.ok(k('2proxy') && k('2proxy')!.loai === 'Proxy' && k('propellerads')!.loai === 'QC trả trước', 'proxy / QC trả trước trong vault đều có bồn');
   assert.equal(k('anthropic')!.loi, 'cổng không có API số dư — xem trên trang nạp', 'cổng không có API số dư nói thẳng');
   assert.ok(!k('piapi') && !k('facebook') && !k('runpod'), 'nguồn chỉ tham khảo / nền không trả tiền / nền không có tài khoản thì không dựng bồn');

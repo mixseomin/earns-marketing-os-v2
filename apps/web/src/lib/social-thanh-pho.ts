@@ -315,7 +315,7 @@ export function gopBinhTraTien(anh: { du?: Record<string, number | null>; loi?: 
   for (const k of anhCo) if (!so.has(k)) so.set(k, { khoa: k, ten: xv.get(k)?.ten ?? k, loai: 'AI' });
   const ra = [...so.values()].filter((n) => anhCo.has(n.khoa) || [n.khoa, ...(n.vault ?? [])].some((v) => vault.has(v)) || ['dang', 'co_tk'].includes(xv.get(n.khoa)?.trangThai ?? '')).map((n) => {
     const x = xv.get(n.khoa), du = anh.du?.[n.khoa] ?? null, env = x?.khoaEnv && /^[A-Z][A-Z0-9_]+$/.test(x.khoaEnv.split(/[\s|(]/)[0]!) ? x.khoaEnv.split(/[\s|(]/)[0]! : '';
-    const loi = du != null ? null : anh.loi?.[n.khoa] ?? (n.khongApi ? 'cổng không có API số dư — xem trên trang nạp' : !anhCo.has(n.khoa) && env ? `chưa đọc — cần khoá ${env}` : 'chưa nối đọc số dư');
+    const loi = du != null ? null : anh.loi?.[n.khoa] ?? (n.khongApi ? 'cổng không có API số dư — xem trên trang nạp' : env ? `chưa nối đọc số dư (khoá ${env})` : 'chưa nối đọc số dư');
     return { key: n.khoa, ten: x?.ten ?? n.ten, loai: n.loai, don: n.don ?? '', du, loi, luc: anhCo.has(n.khoa) ? anh.luc ?? null : null, nap: x?.nap?.startsWith('http') ? x.nap : null,
       lich: (anh.lich ?? []).map((l) => ({ ngay: l.ngay, du: l.du?.[n.khoa] ?? null })) };
   });

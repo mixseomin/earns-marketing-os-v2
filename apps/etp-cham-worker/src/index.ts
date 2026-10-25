@@ -32,6 +32,22 @@ async function cat(env: Env, key: string, out: Record<string, unknown>, transfor
   return new Uint8Array(await (await m.output(out).response()).arrayBuffer());
 }
 
+// ĐỘ DÀI THẬT của video: đọc hộp mvhd trong tệp mp4 (đầu tệp nếu faststart, không thì cuối tệp) — creative cũ không theo khuôn
+// "đoạn + thẻ cuối", ước theo đoạn cắt làm mốc khung vượt cuối video (25/10/2026: #51921 chỉ cắt được 5/20 khung)
+async function doDaiMp4(env: Env, key: string, dai: number): Promise<number | null> {
+  const doc = async (r: R2Range) => { const o = await env.R2.get(key, { range: r }); return o ? new Uint8Array(await o.arrayBuffer()) : null; };
+  for (const r of [{ offset: 0, length: Math.min(dai, 2 << 20) }, { suffix: Math.min(dai, 8 << 20) }] as R2Range[]) {
+    const b = await doc(r); if (!b) continue;
+    for (let i = 0; i + 32 < b.length; i++) {
+      if (b[i] !== 0x6d || b[i + 1] !== 0x76 || b[i + 2] !== 0x68 || b[i + 3] !== 0x64) continue;   // 'mvhd'
+      const dv = new DataView(b.buffer, b.byteOffset + i + 4), v1 = dv.getUint8(0) === 1;
+      const ts = v1 ? dv.getUint32(20) : dv.getUint32(12), du = v1 ? Number(dv.getBigUint64(24)) : dv.getUint32(16);
+      if (ts > 0 && du > 0) return du / ts;
+    }
+  }
+  return null;
+}
+
 function cauHoi(tc: TieuChi[], giong: string) {
   const ds = tc.map((x) => `- "${x.nhom}.${x.ma}": ${x.mo_ta}`).join('\n');
   return `You review a Facebook/Instagram video ad for a short drama. The ${SO_KHUNG} images are frames 1–${SO_KHUNG} of the video in time order (the last frames are the end card). Look closely at clothing, skin and body contact.\n`
@@ -79,7 +95,8 @@ function soat(mau: Mau | null, chu: string, loi_noi: string) {
 // BÁO BƯỚC về mos2 (bảng chấm trực tiếp trên etp.on.tc — anh 25/10/2026 "thiếu bảng live chi tiết") — lỗi báo không làm hỏng lượt chấm
 const bao = (env: Env, cr: number, buoc: string) => fetch(MOS2, { method: 'POST', headers: { authorization: `Bearer ${env.MOS2_EXT_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ creative_id: cr, buoc }) }).catch(() => null);
 
-async function chamMot(env: Env, v: Viec, tc: TieuChi[], mau: Mau | null) {
+async function chamMot(env: Env, v0: Viec, tc: TieuChi[], mau: Mau | null) {
+  let v = v0;
   const cr = v.creative_id, key = `tam/${cr}.mp4`, loi: string[] = [];
   await bao(env, cr, 'tải video vào kho tạm Cloudflare');
   const lop: Record<string, unknown> = {};
@@ -87,7 +104,8 @@ async function chamMot(env: Env, v: Viec, tc: TieuChi[], mau: Mau | null) {
   const r = await fetch(v.video); const dai = Number(r.headers.get('content-length') ?? 0);
   if (!r.ok || !r.body || !dai) throw new Error(`không tải được video (${r.status})`);
   const { readable, writable } = new FixedLengthStream(dai); r.body.pipeTo(writable); await env.R2.put(key, readable);
-  await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · cắt ${SO_KHUNG} khung`);
+  const that = await doDaiMp4(env, key, dai); if (that && that > 1) v = { ...v, dur: that };
+  await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · dài ${v.dur.toFixed(0)}s · cắt ${SO_KHUNG} khung`);
   try {
     // ảnh: 20 khung chia đều, khung cuối sát thẻ kết
     const moc = Array.from({ length: SO_KHUNG }, (_, i) => Math.min(v.dur - 1.2, ((i + 0.5) * v.dur) / SO_KHUNG));

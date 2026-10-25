@@ -67,6 +67,8 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "Decide if Meta would reject it under Adult Nudity / Adult Sexual Exploitation / Violent or Graphic Content / Dangerous content. "
        "BAN (cam) if ANY frame shows: nudity or exposed intimate parts; sexual acts or strongly sexualised posing; non-consensual or forced sexual touching, "
        "a man grabbing / pinning / tearing clothes of a woman, a victim crying or disheveled right after a struggle, any suggested sexual threat; "
+       "a person cornered / pressed against a wall or door while someone leans in face-to-face inches away or touches them (Meta reads it as sexual); "
+       "sheer / see-through / lingerie-like clothing in close-up; "
        "blood, gore, injuries; a weapon pointed at a person or used; self-harm; drug use. "
        "Ordinary drama (arguments, slaps without blood, kneeling, crying from sadness, kissing fully clothed, business suits, parties) is OK. "
        "If unsure, answer 'xem'. Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\"}")
@@ -109,7 +111,8 @@ def loc(lo, ma, dang, da_soat=False):
     for x in lo:
         k = khoa_doan(x); v = s.get(k)
         if v and v.get("ok") is False: print(f"SOÁT ĐOẠN: {k} đã bị cấm ({v.get('ghi', '')[:80]}) — bỏ", flush=True)   # cấm thắng cả --da-soat (25/10/2026)
-        elif da_soat: ghi[k] = {"ok": True, "luc": vn(), "ghi": f"soát tờ khung theo lô {ma}"}; di.append(x)
+        # --da-soat KHÔNG còn cho qua đoạn chưa có kết quả soát (25/10/2026: đoạn 165796 1078s bị cắt lại sau lượt máy soát, cờ này
+        # ghi "ok" đè lên mà chưa ai xem → Meta từ chối "gợi dục"). Đoạn nào chưa có dòng soát đều qua máy soát Claude bên dưới.
         elif (v and v.get("ok")) or k in duyet: di.append(x)
         else: giu[k] = {"x": x, "ma": ma, "dang": dang, "to": to_khung(x["file"], k), "luc": vn()}
     for k in list(giu):   # máy soát ngay: ok → đẩy luôn lượt này, cam → bỏ, xem → giữ chờ người

@@ -165,6 +165,9 @@ export interface PhoTaiNguyen {
   chuaNoi: string[];
   /** FANPAGE = tài sản (anh 25/10/2026): Page Facebook htuan82 quản — người theo dõi, cụm người xem (tiendo social S06), đã tắt, đang là kênh của máy đăng */
   fanpage?: { ten: string; nguoi: number | null; cum: string; tat: boolean; kenh: boolean }[];
+  /** TỪNG TÀI KHOẢN (góp ý #1453): nen = kho hiển thị (nền ít tài khoản → 'khac'), nenGoc = nền thật · tt nhóm trạng thái · dùng lần cuối · cảnh báo chưa xử ·
+   *  chiSo = chỉ số đọc được (người theo dõi / karma / đánh giá / bài) + soChiSo để dựng cao thấp · ly = lý do khoá */
+  tkMot?: { id: number; nen: string; nenGoc: string; handle: string; tt: TtTk; duAn: string | null; dung: string | null; cb: number; chiSo: string | null; soChiSo: number; ly: string | null }[];
   /** BỒN — tài nguyên trả trước (nguồn AI, máy thuê): số dư, mức tiêu bình quân / ngày, còn bao nhiêu ngày, mức (tinhBinh) */
   binh: { key: string; ten: string; don: string; du: number | null; tieuNgay: number | null; conNgay: number | null; muc: MucTn; loi: string | null; luc: string | null; loai?: string; nap?: string | null }[];
   /** HẠN — tên miền / máy chủ: ngày hết hạn, còn bao nhiêu ngày, mức (mucHan); dich = khoá toà site của tên miền */
@@ -215,6 +218,8 @@ export const TT_TK: Record<TtTk, { ten: string; mau: string }> = { song: { ten: 
 export const nhomTt = (st: string): TtTk => (st === 'active' ? 'song' : ['warming', 'creating', 'pending', 'todo'].includes(st) ? 'nuoi' : st === 'limited' ? 'han' : ['banned', 'blocked', 'suspended', 'locked'].includes(st) ? 'khoa' : 'dong');
 const TEN_NEN_TK: Record<string, string> = { facebook: 'Facebook', google: 'Google', twitter: 'X', instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', pinterest: 'Pinterest', reddit: 'Reddit', outlook: 'Outlook', gumroad: 'Gumroad', producthunt: 'Product Hunt', dailymotion: 'Dailymotion', threads: 'Threads', quora: 'Quora', 'app-store': 'App Store', 'ms-store': 'Microsoft Store', etsy: 'Etsy', kdp: 'Amazon KDP', udemy: 'Udemy', khac: 'Nền khác' };
 const SO_NEN_TK = 14;
+/** thứ tự nhóm trạng thái tài khoản: có vấn đề lên trước (khoá → hạn chế → nuôi → dùng → đóng) */
+const THU_TT_TK: TtTk[] = ['khoa', 'han', 'nuoi', 'song', 'dong'];
 /** LĨNH VỰC = phường trong thành phố (anh 22/10/2026): mỗi phường một màu nền + cổng có tên. Thêm lĩnh vực = thêm dòng ở đây + gán trong linh_vuc_gan. */
 export const LINH_VUC: Record<string, { ten: string; ic: string; mau: string }> = {
   'du-lich': { ten: 'Du lịch', ic: '✈️', mau: '#2f8fbf' }, 'thuong-mai': { ten: 'Thương mại · Dropship', ic: '🛍', mau: '#c0507a' }, app: { ten: 'App', ic: '📱', mau: '#3a6ff0' },
@@ -262,7 +267,8 @@ export interface VaoHeSinhThai {
   taiNguyen?: { tk: { nen: string; status: string; n: number }[]; canhBao: { nen: string; loai: string; n: number }[]; canhBaoDs?: PhoTaiNguyen['canhBaoDs']; hoSo: { tool: string; n: number; gan7: number; cuoi: string | null }[];
     proxy: { suc: string; n: number }[]; soNganSach: { ten: string; kieu: string; so: number; tienTe: string; chuKy: number | null }[]; tkQcShop: { ten: string; trangThai: string; hanMuc: number | null; tienTe: string }[];
     soDu?: { key: string; ten: string; don: string; du: number | null; loi: string | null; luc: string | null; lich: { ngay: string; du: number | null }[]; loai?: string; nap?: string | null }[];
-    fanpage?: { ten: string; status: string; st: Record<string, unknown>; project_id: string | null }[] };
+    fanpage?: { ten: string; status: string; st: Record<string, unknown>; project_id: string | null }[];
+    tkMot?: { id: number; nen: string; handle: string; status: string; duAn: string | null; dung: string | null; ly: string | null; st: Record<string, unknown>; cb: number }[] };
   /** máy chủ đo trực tiếp (nginx + tải): site nó phục vụ, tải CPU / số nhân, RAM trống, % đĩa; loi = không đo được */
   mayChu?: { ten: string; ip: string; tai: number | null; nhan: number | null; ramMB: number | null; diaPct: number | null; sites: string[]; loi: string | null; henGio?: number | null; loiDv?: string[] }[];
 }
@@ -344,6 +350,14 @@ export function gopBinhTraTien(anh: { du?: Record<string, number | null>; loi?: 
   });
   const thuLoai = [...new Set(NEN_TRA_TIEN.map((n) => n.loai))];
   return ra.sort((a, b) => Number(a.du == null) - Number(b.du == null) || thuLoai.indexOf(a.loai) - thuLoai.indexOf(b.loai) || a.ten.localeCompare(b.ten));
+}
+/** CHỈ SỐ MỘT TÀI KHOẢN (góp ý #1453 "biết trạng thái, hiệu suất"): đọc account_stats — người theo dõi > karma > đánh giá > bài > lượt xem; số dùng dựng cao thấp. */
+export function chiSoTk(st: Record<string, unknown> | null | undefined): { chu: string | null; so: number } {
+  const n = (k: string) => { const v = Number(st?.[k]); return Number.isFinite(v) && st?.[k] != null && st[k] !== '' ? v : null; };
+  for (const [k, nhan] of [['followers', 'người theo dõi'], ['karma', 'karma'], ['rating', 'đánh giá'], ['reviews', 'lượt đánh giá'], ['posts', 'bài'], ['views', 'lượt xem']] as const) {
+    const v = n(k); if (v != null) return { chu: `${v.toLocaleString('vi-VN')} ${nhan}`, so: v };
+  }
+  return { chu: null, so: 0 };
 }
 /** tên miền gốc để tra hạn (a.b.example.com → example.com); site trên nền người khác (gumroad.com…) không phải tên miền của mình */
 export const tenMienGoc = (host: string) => host.replace(/^www\./, '').split('.').slice(-2).join('.');
@@ -656,6 +670,9 @@ export function tinhThanhPho(live: Pick<SocialLive, 'kenh' | 'luoi' | 'suc' | 'l
     ],
     chuaNoi: ['Ngân sách / số dư Google Ads (DB adfond — mos2 chưa có quyền đọc)'],
     binh: (vt?.soDu ?? []).map((x) => ({ key: x.key, ten: x.ten, don: x.don, du: x.du, loi: x.loi, luc: x.luc, loai: x.loai, nap: x.nap ?? null, ...tinhBinh(x.du, x.lich) })),
+    tkMot: (vt?.tkMot ?? []).map((a) => { const c = chiSoTk(a.st);
+      return { id: a.id, nen: veKho(a.nen), nenGoc: a.nen, handle: a.handle, tt: nhomTt(a.status), duAn: a.duAn, dung: a.dung, cb: a.cb, chiSo: c.chu, soChiSo: c.so, ly: a.ly }; })
+      .sort((a, b) => b.cb - a.cb || THU_TT_TK.indexOf(a.tt) - THU_TT_TK.indexOf(b.tt) || b.soChiSo - a.soChiSo),
     fanpage: (vt?.fanpage ?? []).map((x) => ({ ten: x.ten.replace(/\s*\(Page\)\s*$/i, ''), nguoi: typeof x.st.followers === 'number' ? x.st.followers : null, cum: String(x.st.cum ?? 'chua-xep'),
       tat: x.st.da_tat === true || x.status === 'closed', kenh: !!x.project_id })).sort((a, b) => Number(a.tat) - Number(b.tat) || (b.nguoi ?? 0) - (a.nguoi ?? 0)),
     // hạn: tên miền của MỌI site trên thành phố (site chưa có dòng trong sổ hạ tầng = chỗ mù) + máy chủ trong sổ

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh, gopBinhTraTien, keHoachNoiDung, LICH_TUAN } from './social-thanh-pho';
+import { tinhThanhPho, nenCuaMay, mayTimCua, nguonNgoaiCua, loaiCampEtp, tinhSucSong, sucSongKhu, laDichSong, tinhBinh, mucHan, tenMienGoc, gopNgay, trangThaiNen, ttNangNhat, linkKenh, gopBinhTraTien, chiSoTk, keHoachNoiDung, LICH_TUAN } from './social-thanh-pho';
 import { siteOf } from './host';
 
 const k = (id: number, nenKey: string, ten: string, duAn: string, o: Record<string, unknown> = {}) => ({ id, ten, nenTang: nenKey, nenKey, nhom: duAn, duAn, ngonNgu: 'EN', proxy: '', tt: 'song', ngay: 3, video: 0, trungViXem: 0, xem: 0, click: 0, hh: 0, daDo: false, ...o });
@@ -212,6 +212,17 @@ assert.equal(appA4.giaiDoan, 'tham-dinh', 'app có bản đang duyệt → Phòn
   const k9 = mX.dich.find((x) => x.khoa === 'p:k9')!, k8 = mX.dich.find((x) => x.khoa === 'p:k8')!;
   assert.ok(k9.duAn === 'xuong' && k9.giaiDoan === 'sx' && k9.vungSx === 'sach', 'sẵn sàng chưa nộp → nhà máy, khu Sách');
   assert.ok(k8.giaiDoan === 'tham-dinh', 'chờ anh duyệt → Phòng thẩm định'); }
+// TỪNG TÀI KHOẢN (góp ý #1453 "rải ra, biết trạng thái, hiệu suất"): mỗi tài khoản một dòng, nền ít tài khoản về kho 'khac', có vấn đề lên đầu, chỉ số đọc từ account_stats
+{ assert.deepEqual(chiSoTk({ followers: 1200, karma: 5 }), { chu: '1.200 người theo dõi', so: 1200 }, 'người theo dõi ưu tiên');
+  assert.deepEqual(chiSoTk({ karma: '37' }), { chu: '37 karma', so: 37 }, 'karma dạng chuỗi vẫn đọc');
+  assert.deepEqual(chiSoTk({ note: 'x' }), { chu: null, so: 0 }, 'không có chỉ số');
+  const tk = Array.from({ length: 16 }, (_, i) => ({ nen: `nen${i}`, status: 'active', n: 20 - i }));
+  const mM = tinhThanhPho({ ...live, heSinhThai: { ...live.heSinhThai, taiNguyen: { tk, canhBao: [], hoSo: [], proxy: [], soNganSach: [], tkQcShop: [],
+    tkMot: [{ id: 1, nen: 'nen0', handle: 'a', status: 'active', duAn: null, dung: null, ly: null, st: { followers: 50 }, cb: 0 }, { id: 2, nen: 'nen0', handle: 'b', status: 'banned', duAn: 'x', dung: null, ly: 'spam', st: {}, cb: 0 },
+      { id: 3, nen: 'nen15', handle: 'c', status: 'active', duAn: null, dung: null, ly: null, st: {}, cb: 2 }] } } } as any).taiNguyen.tkMot!;
+  assert.deepEqual(mM.map((x) => x.id), [3, 2, 1], 'có cảnh báo → bị khoá → đang dùng');
+  assert.ok(mM[0]!.nen === 'khac' && mM[0]!.nenGoc === 'nen15', 'nền thứ 16 vào kho Nền khác, giữ nền thật');
+  assert.ok(mM[1]!.tt === 'khoa' && mM[1]!.ly === 'spam' && mM[2]!.chiSo === '50 người theo dõi', 'trạng thái + lý do + chỉ số từng tài khoản'); }
 // BỒN = MỌI NỀN TRẢ TIỀN (góp ý #1451 "thiếu vast.ai… thiếu nhiều vô cùng"): ảnh chụp số dư + vault + sổ nguồn AI; chưa đọc được vẫn có bồn, ghi vì sao
 { const b = gopBinhTraTien({ du: { kie: 4190, ckey: null }, loi: { ckey: 'thiếu khoá tài khoản ckey' }, luc: '2026-10-25T05:00:00Z', lich: [{ ngay: '2026-10-24', du: { kie: 4730 } }, { ngay: '2026-10-25', du: { kie: 4190 } }] },
     ['vastai', '2proxy', 'facebook', 'propellerads'],

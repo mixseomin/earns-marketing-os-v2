@@ -1194,26 +1194,25 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // bản nhân bản bằng nửa; đủ luật nhân bản = viên kim cương vàng trên nóc; lỗ sâu chạm luật tắt = bốc khói
     // LUỐNG CÂY = một camp (anh 24/10/2026 chọn): loại cây theo DẠNG CREATIVE — kể chuyện = lúa, phim dài = ngô, cảnh thật = hoa, cảnh cuối = bí, khác = bụi cây;
     // lãi = xanh tốt, cao theo tiền 30 ngày · lỗ = úa đỏ, thấp · chờ public = mạ non + cột sáng xanh nhấp nháy · vi phạm = cây cháy tím đen. Bản nhân bản = luống nhỏ quanh gốc.
-    // Mỗi loại cây một hình gộp sẵn (màu theo đỉnh), mỗi luống MỘT vật — không thêm lệnh vẽ so với toà camp cũ.
+    // Mỗi loại cây một hình gộp sẵn (màu theo đỉnh), mỗi camp MỘT cây = MỘT vật (anh 25/10/2026: một camp vẽ thành cả dãy cây bị đọc nhầm là nhiều creative).
     const hinhCay = new Map<string, any>();
     const cayCua = (loai: string) => { let g = hinhCay.get(loai); if (g) return g;
       const phan: [any, string][] = [], dat3 = (geo: any, x: number, y: number, z: number, mau: string, sx = 1, sy = 1, sz = 1) => { geo.scale(sx, sy, sz); geo.translate(x, y, z); phan.push([geo, mau]); };
-      // HOA + BÍ dựng lại (góp ý #1454 "cụm hoa ruộng nhìn như…"): khối 20 mặt thô phóng to thành cục đa giác — giờ hoa có 5 cánh + nhuỵ + lá, bí có múi + cuống + lá
-      if (loai === 'hoa') { const MAU_HOA = ['#ff7eb6', '#ffd166', '#f4f1ff', '#b28dff', '#ff9f68'];
-        for (let r = 0; r < 3; r++) for (let i = 0; i < 6; i++) { const px = -.75 + (i + .5) * 1.5 / 6 + (r % 2 ? .06 : -.06), pz = (r - 1) * .17, cao = .62 + ((i * 7 + r * 3) % 5) * .05, mau = MAU_HOA[(i + r * 2) % MAU_HOA.length]!;
-          dat3(new THREE.CylinderGeometry(.012, .016, cao, 4, 1, true), px, cao / 2, pz, '#3f8a3a');
-          dat3(new THREE.SphereGeometry(.06, 6, 3), px + .05, cao * .4, pz, '#4f9a3a', 1.4, .25, .6);
-          for (let k = 0; k < 5; k++) { const g = (k / 5) * Math.PI * 2; dat3(new THREE.SphereGeometry(.05, 6, 4), px + Math.cos(g) * .055, cao + .01, pz + Math.sin(g) * .055, mau, 1.1, .3, .7); }
-          dat3(new THREE.SphereGeometry(.03, 6, 4), px, cao + .03, pz, '#c98a1a'); } }
+      // MỘT CAMP = MỘT CÂY (anh 25/10/2026 "nhìn vào tưởng có 6 creatives"): trước đây một camp vẽ thành cả dãy (6 quả bí, 18 bông hoa, 8 cây lúa) → đọc nhầm thành nhiều
+      // creative. Giờ mỗi camp đúng MỘT cây ở giữa ô: một bông hoa, một quả bí, một cây ngô, một bó lúa, một bụi — đếm cây = đếm camp.
+      if (loai === 'hoa') { dat3(new THREE.CylinderGeometry(.03, .04, .75, 6, 1, true), 0, .375, 0, '#3f8a3a');
+        for (const dx of [.12, -.12]) dat3(new THREE.SphereGeometry(.1, 8, 4), dx, .32, 0, '#4f9a3a', 1.5, .25, .6);
+        for (let k = 0; k < 6; k++) { const g = (k / 6) * Math.PI * 2; dat3(new THREE.SphereGeometry(.12, 10, 6), Math.cos(g) * .15, .8, Math.sin(g) * .15, '#ff7eb6', 1.1, .3, 1.1); }
+        dat3(new THREE.SphereGeometry(.08, 10, 6), 0, .83, 0, '#ffc93a'); }
       else if (loai === 'bi') {
-        for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) { const px = -.75 + (i + .5) * 1.5 / 3 + (r ? .1 : -.1), pz = r ? .17 : -.17;
-          for (let k = 0; k < 6; k++) { const g = (k / 6) * Math.PI * 2; dat3(new THREE.SphereGeometry(.1, 8, 6), px + Math.cos(g) * .07, .13, pz + Math.sin(g) * .07, k % 2 ? '#f08a24' : '#e07a18', .8, 1, .8); }   // múi bí
-          dat3(new THREE.CylinderGeometry(.015, .025, .08, 5), px, .27, pz, '#6a4a2a');
-          for (const [dx, dz] of [[.2, .08], [-.18, -.1]] as const) dat3(new THREE.CircleGeometry(.13, 7).rotateX(-Math.PI / 2), px + dx, .03, pz + dz, '#4f9a3a'); } }
-      else for (let r = 0; r < 2; r++) for (let i = 0; i < 4; i++) { const n = 4, px = -.75 + (i + .5) * 1.5 / n, pz = r ? .16 : -.16;
-        if (loai === 'lua') { dat3(new THREE.ConeGeometry(.16, 1, 4), px, .5, pz, '#b5c94a'); dat3(new THREE.ConeGeometry(.08, .3, 3), px + .05, 1.05, pz, '#e3c75a'); }
-        else if (loai === 'ngo') { dat3(new THREE.CylinderGeometry(.04, .05, 1, 4, 1, true), px, .5, pz, '#3f9a3a'); dat3(new THREE.BoxGeometry(.4, .03, .12), px, .55, pz, '#5bbf4a'); dat3(new THREE.OctahedronGeometry(.08), px + .06, .7, pz, '#f2d04a', 1, 1.6, 1); }
-        else dat3(new THREE.IcosahedronGeometry(.19, 0), px, .3, pz, '#4caf50', 1, 1.3, 1); }
+        for (let k = 0; k < 8; k++) { const g = (k / 8) * Math.PI * 2; dat3(new THREE.SphereGeometry(.2, 12, 8), Math.cos(g) * .15, .25, Math.sin(g) * .15, k % 2 ? '#f08a24' : '#e07a18', .7, 1, .7); }   // múi bí
+        dat3(new THREE.CylinderGeometry(.03, .05, .16, 6), 0, .54, 0, '#6a4a2a');
+        for (const [dx, dz] of [[.42, .1], [-.38, -.16]] as const) dat3(new THREE.CircleGeometry(.24, 9).rotateX(-Math.PI / 2), dx, .03, dz, '#4f9a3a'); }
+      else if (loai === 'lua') for (let k = 0; k < 7; k++) { const g = (k / 7) * Math.PI * 2, r0 = k ? .1 : 0; dat3(new THREE.ConeGeometry(.05, .9, 5), Math.cos(g) * r0, .45, Math.sin(g) * r0, '#b5c94a'); dat3(new THREE.ConeGeometry(.04, .25, 4), Math.cos(g) * r0 * 1.4, .98, Math.sin(g) * r0 * 1.4, '#e3c75a'); }
+      else if (loai === 'ngo') { dat3(new THREE.CylinderGeometry(.05, .07, 1, 6, 1, true), 0, .5, 0, '#3f9a3a');
+        for (const [y, g] of [[.35, 0], [.55, 2.1], [.75, 4.2]] as const) dat3(new THREE.BoxGeometry(.5, .025, .1).rotateY(g), 0, y, 0, '#5bbf4a');
+        dat3(new THREE.SphereGeometry(.08, 8, 6), .09, .62, 0, '#f2d04a', 1, 2, 1); }
+      else for (const [x, y, r] of [[0, .3, .3], [.2, .22, .22], [-.2, .2, .22]] as const) dat3(new THREE.IcosahedronGeometry(r, 1), x, y, 0, '#4caf50');
       const pos: number[] = [], nor: number[] = [], col: number[] = [], c = new THREE.Color();
       for (const [geo, mau] of phan) { const g2 = geo.index ? geo.toNonIndexed() : geo; c.set(mau); const a3 = g2.attributes.position, q = g2.attributes.normal;
         for (let i = 0; i < a3.count; i++) { pos.push(a3.getX(i), a3.getY(i), a3.getZ(i)); nor.push(q.getX(i), q.getY(i), q.getZ(i)); col.push(c.r, c.g, c.b); } geo.dispose(); if (g2 !== geo) g2.dispose(); }
@@ -1580,7 +1579,12 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     // sáng = mở trong 7 ngày) + máy ảo Android, cột proxy (màu = sức khoẻ), két ngân sách. Số chi tiết ở thẻ hover; poster số tổng ở cổng.
     const tn = mh.taiNguyen; let xTnPhai = 0;
     if (tn && (tn.tk.length || tn.hoSo.length)) {
-      const COT = 5, BX = 32, BZ = 36, soHang = Math.ceil(tn.tk.length / COT), rongL = COT * BX + 50, sauL = soHang * BZ + 110, xTn = (coCty ? xCty : xKho + 150) + 280, zA = 60, x0 = xTn - rongL / 2;
+      // LÔ TÀI KHOẢN (góp ý #1453 "mọi thứ phải rải ra, còn biết trạng thái, hiệu suất"): mỗi nền một lô, MỖI TÀI KHOẢN MỘT NHÀ (màu = trạng thái, cao = chỉ số + dùng gần đây,
+      // chấm đỏ = cảnh báo chưa xử) — rê từng nhà ra chi tiết tài khoản. Xếp kệ: trái → phải, hết bề ngang thì xuống hàng.
+      const tkMot = tn.tkMot ?? [], OT = 4.6, rongL = 250;
+      const loTk = tn.tk.map((t) => { const ds = tkMot.filter((a) => a.nen === t.nen), cot = Math.max(2, Math.min(18, Math.ceil(Math.sqrt(ds.length * 1.8)))); return { t, ds, cot, w: cot * OT + 6, d: Math.max(1, Math.ceil(ds.length / cot)) * OT + 14, x: 0, z: 0 }; });
+      const sauLo = (() => { let cx = 0, cz = 0, sau = 0; for (const l of loTk) { if (cx && cx + l.w > rongL - 30) { cx = 0; cz += sau + 10; sau = 0; } l.x = cx; l.z = cz; cx += l.w + 10; sau = Math.max(sau, l.d); } return cz + sau; })();
+      const sauL = sauLo + 120, xTn = (coCty ? xCty : xKho + 150) + 280, zA = 60, x0 = xTn - rongL / 2;
       xTnPhai = xTn + rongL / 2 + 40;
       // BỒN TRẢ TRƯỚC (anh 24/10/2026 "nhìn vào là biết cái nào sắp hết tiền"): mỗi nguồn trả trước một bồn kính đứng dọc mép phải lô — mực nước = số ngày còn
       // (đầy = ≥ 30 ngày hoặc không tiêu), màu theo mức, đỏ thì khói; chưa đọc được số dư = bồn rỗng xám. Số chi tiết ở thẻ hover.
@@ -1599,15 +1603,24 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       if (tn.binh?.length) xTnPhai += Math.min(COT_B, tn.binh.length) * BXB + 4;
       // KHO FANPAGE (anh 25/10/2026 "các page này là tài sản, show lên city"): mỗi Page một khối trong lưới cạnh dãy bồn — cao theo người theo dõi (log), màu theo cụm
       // người xem (tiendo social S06), đang là kênh máy đăng = đèn sáng, đã tắt = thấp xám mờ. Một InstancedMesh (một lệnh vẽ). Không chữ: thẻ rê = bảng theo cụm.
-      if (tn.fanpage?.length) { const fp = tn.fanpage, COTF = 12, OF = 6, x0F = xTnPhai - 10, z0F = zA - 40, hangF = Math.ceil(fp.length / COTF);
-        const nenF = add(new THREE.BoxGeometry(COTF * OF + 8, .5, hangF * OF + 8), M({ color: '#1a2238', roughness: .9 }), false); nenF.position.set(x0F + COTF * OF / 2, .25, z0F + hangF * OF / 2);
-        const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: .5, metalness: .2, emissive: '#ffffff', emissiveIntensity: .08 }), fp.length), o3 = new THREE.Object3D(), c3 = new THREE.Color();
-        fp.forEach((p, i) => { const h = p.tat ? 1.2 : 2 + Math.log10(1 + (p.nguoi ?? 0)) * 6; o3.position.set(x0F + 4 + (i % COTF) * OF, .5 + h / 2, z0F + 4 + Math.floor(i / COTF) * OF); o3.scale.set(4.4, h, 4.4); o3.updateMatrix(); im.setMatrixAt(i, o3.matrix);
-          c3.set(p.tat ? '#3a3f50' : (CUM_PAGE[p.cum] ?? CUM_PAGE['chua-xep']!).mau); if (p.kenh) c3.lerp(new THREE.Color('#ffffff'), .35); im.setColorAt(i, c3); });
-        im.instanceColor.needsUpdate = true; im.castShadow = true; im.frustumCulled = false; im.userData = { chu: nenF, luonVe: true }; nenF.userData = { loai: 'fanpage' }; the.add(im);
-        // ↑ frustumCulled tắt: khung bao mặc định của InstancedMesh ở gốc · luonVe: không áp ngưỡng điểm ảnh vật lẻ · nền lô là vật chính (ô tìm bay tới vị trí của nó; khối gộp đặt ở gốc toạ độ)
-        const bn = bienXe(`📄 Kho Fanpage · ${fp.filter((p) => !p.tat).length} đang chạy`, '#4fd1ff'); bn.scale.set(36, 5.4, 1); bn.position.set(x0F + COTF * OF / 2, 30, z0F - 4); bn.userData = { chu: nenF, gan: GAN_NHAN }; the.add(bn);
-        chiMuc.push({ ten: 'Kho Fanpage', nhan: 'tài nguyên', obj: nenF }); xTnPhai += COTF * OF + 50; }
+      // góp ý #1452 ("nhìn như nghĩa địa"): lưới khối trơn + Page tắt nằm bẹp xám = bãi bia mộ. Giờ: mỗi CỤM người xem một lô riêng, tên cụm in dưới nền, Page trong lô xếp
+      // theo người theo dõi; Page đã tắt KHÔNG dựng (chỉ đếm trên biển + liệt kê ở thẻ rê); rê từng toà = chi tiết Page đó (vatCon).
+      if (tn.fanpage?.length) { const fp = tn.fanpage, song = fp.filter((p) => !p.tat), COTF = 10, OF = 6, x0F = xTnPhai - 10, z0F = zA - 40, rongF = COTF * OF + 8;
+        const tongNguoi = (ds: typeof fp) => ds.reduce((a, p) => a + (p.nguoi ?? 0), 0);
+        const nhom = [...song.reduce((m, p) => m.set(p.cum, [...(m.get(p.cum) ?? []), p]), new Map<string, typeof fp>())].sort((a, b) => tongNguoi(b[1]) - tongNguoi(a[1]));
+        const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: .5, metalness: .2, emissive: '#ffffff', emissiveIntensity: .08 }), Math.max(1, song.length)), o3 = new THREE.Object3D(), c3 = new THREE.Color(), trang = new THREE.Color('#ffffff');
+        const duP: typeof fp = []; let zF = z0F, nenDau: any = null;
+        for (const [cum, ds] of nhom) { const cp = CUM_PAGE[cum] ?? CUM_PAGE['chua-xep']!, sauF = Math.ceil(ds.length / COTF) * OF + 12;
+          const nenF = add(new THREE.BoxGeometry(rongF, .5, sauF), M({ color: '#1a2238', roughness: .9 }), false); nenF.position.set(x0F + rongF / 2, .25, zF + sauF / 2); nenF.userData = { loai: 'fanpage', cum }; nenDau ??= nenF;
+          chuNen(`${cp.ten} · ${ds.length} Page · ${so(tongNguoi(ds))} theo dõi`, x0F + rongF / 2, zF + 4, rongF - 6, cp.mau);
+          [...ds].sort((a, b) => (b.nguoi ?? 0) - (a.nguoi ?? 0)).forEach((p, j) => { const h = 2 + Math.log10(1 + (p.nguoi ?? 0)) * 5;
+            o3.position.set(x0F + 4 + OF / 2 + (j % COTF) * OF, .5 + h / 2, zF + 9 + Math.floor(j / COTF) * OF); o3.scale.set(4.4, h, 4.4); o3.updateMatrix(); im.setMatrixAt(duP.length, o3.matrix);
+            c3.set(cp.mau); if (p.kenh) c3.lerp(trang, .35); im.setColorAt(duP.length, c3); duP.push(p); });
+          zF += sauF + 6; }
+        im.count = duP.length; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.castShadow = true; im.frustumCulled = false; im.userData = { chu: nenDau, luonVe: true, vatCon: conCua(im, duP, 'page-1', 'p') }; the.add(im);
+        // ↑ frustumCulled tắt: khung bao mặc định của InstancedMesh ở gốc · luonVe: không áp ngưỡng điểm ảnh vật lẻ · lô cụm đầu là vật chính (ô tìm 'Kho Fanpage' bay tới)
+        const bn = bienXe(`📄 Kho Fanpage · ${song.length} đang chạy · ${fp.length - song.length} đã tắt`, '#4fd1ff'); bn.scale.set(44, 5.4, 1); bn.position.set(x0F + rongF / 2, 30, z0F - 4); bn.userData = { loai: 'fanpage', gan: GAN_NHAN }; the.add(bn);
+        if (nenDau) chiMuc.push({ ten: 'Kho Fanpage', nhan: 'tài nguyên', obj: nenDau }); xTnPhai += rongF + 50; }
       // ĐÀI THEO DÕI TÀI NGUYÊN (anh 24/10/2026 "cần chỗ tập trung để theo dõi"): một toà màn hình ở đầu dãy bồn — màn tóm tắt số đỏ / vàng / chưa đo + 3 việc gấp nhất;
       // bấm / rê → bảng đầy đủ mọi bồn, mọi tên miền, mọi máy chủ, chỗ mù (xếp gần hết lên đầu, ô lọc). Dải cảnh báo có nút mở thẳng.
       { const x = xTn + rongL / 2 + 44, z = zA - 26, H = 30;
@@ -1620,20 +1633,25 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
         { ic: '🟢', so: String(dem2('song')), nhan: 'tài khoản đang dùng', ma: 'song' }, { ic: '⛔', so: String(dem2('khoa') + dem2('han')), nhan: 'bị khoá / hạn chế', ma: 'khoa' },
         ...(cbTong ? [{ ic: '🚨', so: String(cbTong), nhan: 'cảnh báo chưa xử', ma: 'cb' }] : []), ...(hsTong ? [{ ic: '🖥', so: String(hsTong), nhan: 'hồ sơ br · máy ảo', ma: 'hs' }] : [])], 'tai-nguyen');
       const NEN_LOGO: Record<string, Nen> = { facebook: 'fb', youtube: 'yt', instagram: 'ig', tiktok: 'tt', twitter: 'x', pinterest: 'pin', dailymotion: 'dm', threads: 'th', quora: 'qu' };
-      const THU_TT: TtTk[] = ['song', 'nuoi', 'han', 'khoa', 'dong'];
-      tn.tk.forEach((t, i) => {
-        const x = x0 + 35 + (i % COT) * BX, z = zA + 34 + Math.floor(i / COT) * BZ, f = Math.min(1, 48 / Math.max(1, t.tong));
-        const mau: string[] = []; for (const k of THU_TT) { const n = t.theo[k] ? Math.max(1, Math.round(t.theo[k] * f)) : 0; for (let j = 0; j < n; j++) mau.push(TT_TK[k].mau); }
-        const tang = Math.max(2, Math.ceil(mau.length / 4)), h = 6 + tang * 3.2, w = 18;
+      // mỗi lô: nền lô (rê = tổng nền) + biển logo dựng ở mép trước + tên nền in dưới nền; nhà tài khoản = MỘT InstancedMesh cho cả khu (rê từng nhà = vatCon)
+      const imTk = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: .55, metalness: .1, emissive: '#ffffff', emissiveIntensity: .06 }), Math.max(1, tkMot.length)), o3 = new THREE.Object3D(), c3 = new THREE.Color(), toi = new THREE.Color('#2a3350');
+      const duTk: typeof tkMot = [], dauDo: number[][] = [], gan7 = (s: string | null) => !!s && Date.now() - Date.parse(s) < 7 * 864e5;
+      for (const l of loTk) { const { t } = l, lx = x0 + 15 + l.x, lz = zA + 34 + l.z;
+        const nen = add(new THREE.BoxGeometry(l.w, .5, l.d), M({ color: '#1f2945', roughness: .8 }), false); nen.position.set(lx + l.w / 2, .45, lz + l.d / 2); nen.userData = { loai: 'tn-tk', t };
         const logo = NEN_LOGO[t.nen] ? texNen(NEN_LOGO[t.nen]!) : texIc(`tn:${t.nen}`, '#3a4f7a', t.ten[0]!.toUpperCase());
-        const than = M({ color: '#26304d', roughness: .6 }), m = add(new THREE.BoxGeometry(w, h, w * .7), [than, than, M({ map: logo, emissive: '#fff', emissiveMap: logo, emissiveIntensity: .35 }), than, than, than]); m.position.set(x, h / 2, z); m.userData = { loai: 'tn-tk', t };
-        mau.forEach((c, j) => { const tg = Math.floor(j / 4), co = j % 4; for (const mat of [-1, 1]) oPhang(x - 6 + co * 4, 4 + tg * 3.2, z + mat * (w * .35 + .06), 2.6, 2, 0, mat > 0 ? 0 : Math.PI, 0, c); });
-        bangTen(x, z, w * .7, h, t.ten, '', '#6ea8ff', m);
-        if (t.canhBao) { const d = add(new THREE.SphereGeometry(2, 12, 12), new THREE.MeshBasicMaterial({ color: '#ff3b4e' }), false); d.position.set(x, h + 2.5, z); d.userData = { chu: m }; ds.hong!.push(d); khoi(x, h + 3, z, undefined as unknown as PhoTk, m); }
-        chiMuc.push({ ten: `Tài khoản ${t.ten}`, nhan: 'tài nguyên', obj: m });
-      });
+        const bien = add(new THREE.PlaneGeometry(5, 5), new THREE.MeshBasicMaterial({ map: logo, side: THREE.DoubleSide }), false); bien.position.set(lx + 4, 3.4, lz + .6); bien.userData = { chu: nen };
+        chuNen(`${t.ten} · ${l.ds.length}`, lx + l.w / 2 + 3, lz + 4.5, l.w - 8, '#9fc0ff');
+        l.ds.forEach((a, j) => { const px = lx + 3 + OT / 2 + (j % l.cot) * OT, pz = lz + 10 + Math.floor(j / l.cot) * OT, h = (a.tt === 'dong' ? 1 : 2.2) + Math.min(6, Math.log10(1 + a.soChiSo) * 1.6) + (gan7(a.dung) ? 1.4 : 0);
+          o3.position.set(px, .7 + h / 2, pz); o3.scale.set(3.2, h, 3.2); o3.updateMatrix(); imTk.setMatrixAt(duTk.length, o3.matrix);
+          c3.set(TT_TK[a.tt].mau); if (a.tt === 'song' && !gan7(a.dung)) c3.lerp(toi, .35); imTk.setColorAt(duTk.length, c3); duTk.push(a);
+          if (a.cb) dauDo.push([px, .7 + h + 1.3, pz]); });
+        if (t.canhBao) khoi(lx + l.w / 2, 3, lz + l.d / 2, undefined as unknown as PhoTk, nen);
+        chiMuc.push({ ten: `Tài khoản ${t.ten}`, nhan: 'tài nguyên', obj: nen }); }
+      imTk.count = duTk.length; if (imTk.instanceColor) imTk.instanceColor.needsUpdate = true; imTk.castShadow = true; imTk.frustumCulled = false; imTk.userData = { luonVe: true, vatCon: conCua(imTk, duTk, 'tk-1', 'a') }; the.add(imTk);
+      if (dauDo.length) { const imDo = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial({ color: '#ff3b4e' }), dauDo.length);
+        dauDo.forEach(([x, y, z], j) => { o3.position.set(x!, y!, z!); o3.scale.set(1.1, 1.1, 1.1); o3.updateMatrix(); imDo.setMatrixAt(j, o3.matrix); }); imDo.frustumCulled = false; imDo.userData = { luonVe: true }; the.add(imDo); }
       // dãy cuối: trạm br + máy ảo · cột proxy · két ngân sách
-      const zC = zA + 34 + soHang * BZ + 14, chrome = tn.hoSo.find((h) => h.tool === 'chrome'), emu = tn.hoSo.find((h) => h.tool === 'emulator');
+      const zC = zA + 34 + sauLo + 24, chrome = tn.hoSo.find((h) => h.tool === 'chrome'), emu = tn.hoSo.find((h) => h.tool === 'emulator');
       if (chrome) { const n = Math.min(64, chrome.n), tang = Math.ceil(n / 8), h = 8 + tang * 3, br = add(new THREE.BoxGeometry(40, h, 14), M({ color: '#1d2b24', emissive: '#1f8f5c', emissiveIntensity: .15, roughness: .4 })); br.position.set(x0 + 40, h / 2, zC); br.userData = { loai: 'tn-br' };
         for (let j = 0; j < n; j++) oPhang(x0 + 40 - 16.5 + (j % 8) * 4.7, 4 + Math.floor(j / 8) * 3, zC - 7.06, 3.4, 2.1, 0, Math.PI, 0, j < chrome.gan7 ? '#ffd27a' : '#2a3350');
         bangTen(x0 + 40, zC, 14, h, 'br · trình duyệt', '', '#3fd68a', br); chiMuc.push({ ten: 'br · hồ sơ trình duyệt', nhan: 'tài nguyên', obj: br }); }
@@ -1858,6 +1876,15 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${lv.ic} Phường ${esc(lv.ten)}`, h: [['Khu', ks_.length], ['Site', ds_.filter((d) => d.loai === 'site').length], ['App · sản phẩm', ds_.filter((d) => d.loai !== 'site').length],
         ['Phiên 30 ngày', so(ds_.reduce((a, d) => a + (d.phien30 ?? 0), 0))], ['💵 Tiền 30 ngày', `$${ds_.reduce((a, d) => a + (d.tien30 ?? 0), 0).toFixed(2)}`]] };
     }
+    // MỘT TÀI KHOẢN / MỘT PAGE (góp ý #1453 / #1452): rê đúng nhà / toà trong khối gộp → chi tiết của chính nó
+    if (u.loai === 'tk-1') { const a = u.a as NonNullable<typeof mh.taiNguyen.tkMot>[number], gio = (s: string) => new Date(Date.parse(s) + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ') + ' (GMT+7)';
+      const cb = mh.taiNguyen.canhBaoDs.filter((c) => c.acct === a.id);
+      return { dau: `👤 ${esc(a.handle)}`, h: [['Nền', esc(a.nenGoc)], ['Trạng thái', `<span style="color:${TT_TK[a.tt].mau}">●</span> ${TT_TK[a.tt].ten}`], ...(a.ly ? [['Lý do', esc(a.ly)] as [string, string]] : []),
+        ['Chỉ số', a.chiSo ? esc(a.chiSo) : 'chưa đo'], ['Dùng lần cuối', a.dung ? gio(a.dung) : 'chưa ghi'], ['Cảnh báo chưa xử', a.cb ? `<span style="color:#ff4d5e">${a.cb}</span>` : 'không'], ['Dự án', esc(a.duAn ?? '—')],
+        ...cb.slice(0, 3).map((c) => [`🚨 ${esc(LOAI_CB[c.loai] ?? c.loai)}`, esc((c.noiDung ?? '').replace(/\s+/g, ' ').slice(0, 90))] as [string, string])] }; }
+    if (u.loai === 'page-1') { const p = u.p as NonNullable<typeof mh.taiNguyen.fanpage>[number];
+      return { dau: `📄 ${esc(p.ten)}`, h: [['Người theo dõi', p.nguoi == null ? 'chưa đo' : so(p.nguoi)], ['Cụm người xem', `<span style="color:${(CUM_PAGE[p.cum] ?? CUM_PAGE['chua-xep']!).mau}">●</span> ${esc(CUM_PAGE[p.cum]?.ten ?? p.cum)}`],
+        ['Kênh máy đăng', p.kenh ? '✅ đang đăng bài' : 'chưa gắn máy đăng'], ['Trạng thái', 'đang chạy']] }; }
     if (u.loai === 'tn-tk') { const t = u.t as typeof mh.taiNguyen.tk[number];
       // CẢNH BÁO xử được tại chỗ (anh 23/10/2026 "tài khoản đang bị cảnh báo khi nhìn thấy thì có thể làm gì ở city?"): mở đúng trang cần xử, mở sổ tài khoản, đánh dấu đã xử
       const ds2 = mh.taiNguyen.canhBaoDs.filter((c) => c.nen === t.nen), coGhi = /(^|\.)on\.tc$/.test(location.hostname);
@@ -1893,11 +1920,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
       return { dau: `${p.ic} ${esc(p.so)} ${esc(p.nhan)}`, h: [['Khu', esc(k?.ten ?? '—')]], bang };
     }
     if (u.loai === 'nut-bien') return { dau: '🪧 Bảng hiệu phim', h: [['Đang', bienTat(u.hub) ? 'TẮT — rê lên sân phim để xem biển phim đó' : 'BẬT'], ['Bấm', bienTat(u.hub) ? 'bật lại mọi bảng hiệu' : 'tắt mọi bảng hiệu cho đỡ rối']] };
-    if (u.loai === 'fanpage') { const fp = mh.taiNguyen?.fanpage ?? [], song = fp.filter((p) => !p.tat), nhom = new Map<string, typeof fp>();
+    if (u.loai === 'fanpage') { const fp = mh.taiNguyen?.fanpage ?? [], song = fp.filter((p) => !p.tat), nhom = new Map<string, typeof fp>(), tong = (ds: typeof fp) => ds.reduce((a, p) => a + (p.nguoi ?? 0), 0);
       for (const p of song) nhom.set(p.cum, [...(nhom.get(p.cum) ?? []), p]);
-      return { dau: `📄 Kho Fanpage · ${song.length} đang chạy · ${fp.length - song.length} đã tắt`, h: [['Người theo dõi (đang chạy)', so(song.reduce((a, p) => a + (p.nguoi ?? 0), 0))], ['Đang là kênh máy đăng', song.filter((p) => p.kenh).length]],
-        bang: { cot: ['Cụm', 'Page', 'Theo dõi', 'Lớn nhất'], dong: [...nhom].sort((a, b) => b[1].reduce((x, p) => x + (p.nguoi ?? 0), 0) - a[1].reduce((x, p) => x + (p.nguoi ?? 0), 0))
-          .map(([c, ds]) => [esc(CUM_PAGE[c]?.ten ?? c), ds.length, so(ds.reduce((a, p) => a + (p.nguoi ?? 0), 0)), esc(ds.slice(0, 2).map((p) => p.ten).join(', '))]) } }; }
+      // rê lô một cụm → danh sách Page của cụm đó; rê biển → bảng mọi cụm. Bảng 3 cột ngắn (góp ý #1452: cột "Lớn nhất" dài đẩy cột Cụm vỡ từng chữ)
+      if (u.cum) { const ds = [...(nhom.get(u.cum) ?? [])].sort((a, b) => (b.nguoi ?? 0) - (a.nguoi ?? 0));
+        return { dau: `📄 ${esc(CUM_PAGE[u.cum]?.ten ?? u.cum)} · ${ds.length} Page`, h: [['Người theo dõi', so(tong(ds))], ['Đang là kênh máy đăng', ds.filter((p) => p.kenh).length]],
+          bang: { cot: ['Page', 'Theo dõi', 'Kênh'], dong: ds.map((p) => [esc(p.ten), p.nguoi == null ? '—' : so(p.nguoi), p.kenh ? '✅' : '']) } }; }
+      const tat = fp.filter((p) => p.tat);
+      return { dau: `📄 Kho Fanpage · ${song.length} đang chạy · ${tat.length} đã tắt`, h: [['Người theo dõi (đang chạy)', so(tong(song))], ['Đang là kênh máy đăng', song.filter((p) => p.kenh).length],
+        ...(tat.length ? [['Đã tắt (không dựng)', esc(tat.slice(0, 8).map((p) => p.ten).join(', ') + (tat.length > 8 ? ` … +${tat.length - 8}` : ''))] as [string, string]] : [])],
+        bang: { cot: ['Cụm', 'Page', 'Theo dõi'], dong: [...nhom].sort((a, b) => tong(b[1]) - tong(a[1])).map(([c, ds]) => [esc(CUM_PAGE[c]?.ten ?? c), ds.length, so(tong(ds))]) } }; }
     if (u.loai === 'tram-etp') { const d = mh.dich.find((x) => x.khoa === u.hub); if (!d) return { dau: '—', h: [] }; const cs = mh.dich.filter((c) => c.cha === d.khoa), xt = xuongData?.tram;
       const T: Record<string, [string, [string, string | number][]]> = {
         kho: ['🎬 Nhà quay · kho phim', [['Phim của bộ', boCumP.get(d.khoa)?.cum.length ?? 0], ['Phim đang có camp chạy', boCumP.get(d.khoa)?.cum.filter((o) => o.goc.length).length ?? 0]]],
@@ -1982,9 +2014,16 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
 
   const ray = new THREE.Raycaster(), chuot = new THREE.Vector2(); let bay: any = null;
   const datChuot = (e: PointerEvent) => { const b = r.domElement.getBoundingClientRect(); chuot.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); return b; };
+  /** VẬT CON của một khối gộp (InstancedMesh — nhà tài khoản, toà Page): mỗi phần tử một vật đại diện vô hình (hộp đúng chỗ, không vẽ) mang userData { loai, [khoa]: dữ liệu },
+   *  để rê / bấm / viền chọn / ô tìm dùng chung đường với vật thường. Tạo khi cần, nhớ lại — cùng phần tử luôn ra cùng vật (thẻ hover so bằng ===). */
+  function conCua(im: any, du: any[], loai: string, khoa: string) { const nho: any[] = [], m4 = new THREE.Matrix4(), hinh = new THREE.BoxGeometry(1, 1, 1);
+    return (i: number) => { if (nho[i]) return nho[i]; if (!du[i]) return null; im.getMatrixAt(i, m4); const p = new THREE.Mesh(hinh, []); m4.decompose(p.position, p.quaternion, p.scale); p.updateMatrixWorld(true);
+      p.userData = { loai, [khoa]: du[i] }; return (nho[i] = p); }; }
   function chuDuoiChuot() {
     ray.setFromCamera(chuot, cam);
-    for (const h of ray.intersectObjects(the.children.filter((o: any) => o.visible), false)) { const o = h.object.userData.chu ?? (h.object.userData.loai ? h.object : null); if (o && o.visible !== false) return o; }
+    for (const h of ray.intersectObjects(the.children.filter((o: any) => o.visible), false)) {
+      if (h.object.userData.vatCon && h.instanceId != null) { const c = h.object.userData.vatCon(h.instanceId); if (c) return c; }
+      const o = h.object.userData.chu ?? (h.object.userData.loai ? h.object : null); if (o && o.visible !== false) return o; }
     return null;
   }
   let dangSang: any = null, vatChon: any = null;

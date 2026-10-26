@@ -11,6 +11,8 @@ import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { uploadToR2 } from '../src/lib/r2';
+import { sinhAnhMotCong } from '../src/lib/xuong-video/cong-ai';
+import { bieuCam } from '../src/lib/xuong-video/qc-cam-xuc';
 import { phieuShot, khongGianTap, type BangShot } from './phieu-shot.mts';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
@@ -41,6 +43,16 @@ async function motShot(so: number) {
   if (!existsSync(`${thu}/so-${so}-that.png`)) return console.log(`#${so}: chưa có khung so-${so}-that.png`);
   // so-N-dau.png = KHUNG ĐẦU riêng (khung đã duyệt vẽ trạng thái SAU động tác — #11 thẻ đã trong tay Vivian, #28 Hạ đã quay mặt ra): khi đó khung đã duyệt
   // thành khung CUỐI. Không có thì khung đã duyệt là khung đầu, so-N-cuoi.png (nếu có) là khung cuối.
+  // SHOT CẬN luôn khoá khung cuối (26/10/2026: chỉ khung đầu thì Vidu tự lùi máy ra toàn thân sau ~0,8 giây ở MỌI shot cận — biên độ 'small' cũng không
+  // giữ được): nét mặt không đổi → khung cuối = chính khung đầu (0đ); nét đổi → sửa khung đầu sang nét cuối (câu BIEU_CAM, ~110₫).
+  if (['cu', 'mcu', 'ecu'].includes(s.co) && !existsSync(`${thu}/so-${so}-dau.png`) && !existsSync(`${thu}/so-${so}-cuoi.png`) && !xem) {
+    const n = (s.nguoi ?? []).find((x) => !x.lung && x.mat); const doi = n?.mat && n.mat[0] !== n.mat[1];
+    if (!doi) writeFileSync(`${thu}/so-${so}-cuoi.png`, readFileSync(`${thu}/so-${so}-that.png`));
+    else { const ai = bang.nhan_vat[n!.ma]?.ten_db ?? 'the person';
+      const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: `Edit this photo. Keep EXACTLY the same camera position, framing and crop, lighting, background, ${ai}'s face identity, hair, outfit, props and head direction; the eyes keep looking the same way. ONLY change ${ai}'s facial expression to: ${bieuCam(n!.mat![1])?.en}. Nothing else changes. No text.`, thamChieuUrl: [await len(`${thu}/so-${so}-that.png`, `vk-${so}-nen`, 'image/png')], tiLe: '9:16' });
+      if (!a.anh) return console.log(`#${so}: khung cuối hỏng — ${a.loi}`);
+      writeFileSync(`${thu}/so-${so}-cuoi.png`, a.anh.data); }
+  }
   const dauRieng = existsSync(`${thu}/so-${so}-dau.png`);
   const fDau = dauRieng ? `${thu}/so-${so}-dau.png` : `${thu}/so-${so}-that.png`, fCuoi = dauRieng ? `${thu}/so-${so}-that.png` : existsSync(`${thu}/so-${so}-cuoi.png`) ? `${thu}/so-${so}-cuoi.png` : null;
   const p = prompt(so); const coCuoi = !!fCuoi; const giay = Math.max(2, Math.ceil(s.giay));

@@ -95,12 +95,31 @@ const LUAT_NHAN: Record<string, [string, string, string, 'dang' | 'gan']> = {   
 const luatCua = (bao?: { nhom: string; chu: string }[]) => (bao ?? []).filter((b) => LUAT_NHAN[b.nhom]).sort((a, b) => (LUAT_NHAN[a.nhom]![3] === 'dang' ? 0 : 1) - (LUAT_NHAN[b.nhom]![3] === 'dang' ? 0 : 1));
 function LuatCamp({ bao }: { bao?: { nhom: string; chu: string }[] }) {
   const ds = luatCua(bao);
-  if (!ds.length) return <span style={{ color: 'var(--fg-3, #666)' }}>—</span>;
+  if (!ds.length) return null;
   const title = ds.map((b) => `${LUAT_NHAN[b.nhom]![3] === 'gan' ? '(sắp chạm) ' : ''}${LUAT_NHAN[b.nhom]![1]}: ${b.chu.replace(/^#\d+:\s*/, '').split(' · ').slice(1).join(' · ')}`).join('\n');
   return <span title={title} style={{ display: 'inline-flex', gap: 3, alignItems: 'center', cursor: 'help' }}>{ds.slice(0, 3).map((b) => { const [kh, , mau, loai] = LUAT_NHAN[b.nhom]!;
     return <span key={b.nhom} style={{ width: 18, height: 18, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1, color: loai === 'dang' ? '#0b0b0c' : mau,
       background: loai === 'dang' ? mau : 'transparent', border: `1px ${loai === 'gan' ? 'dashed' : 'solid'} ${mau}` }}>{kh}</span>; })}
     {ds.length > 3 ? <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>+{ds.length - 3}</span> : null}</span>;
+}
+// DẢI TÓM TẮT LUẬT trên bảng Camp (anh 27/10/2026 "ko thấy" — cột Luật trống ở các camp mới đầu bảng): số camp đang chạm / sắp chạm từng luật,
+// bấm = lọc đúng luật đó (bỏ lọc Đang chạy để thấy cả camp chờ giờ / tạm dừng lịch), bấm lại = bỏ lọc
+function DaiLuat({ du, baoCampBang, chon, onChon }: { du: DuLieuEtp; baoCampBang: Map<number, { nhom: string; chu: string }[]>; chon: string; onChon: (t: string) => void }) {
+  const dem = new Map<string, number>();
+  for (const c of du.camps) for (const t of new Set((baoCampBang.get(c.camp_id) ?? []).filter((b) => LUAT_NHAN[b.nhom]).map((b) => LUAT_NHAN[b.nhom]![1]))) dem.set(t, (dem.get(t) ?? 0) + 1);
+  const ds = Object.values(LUAT_NHAN).filter((x, i, a) => a.findIndex((y) => y[1] === x[1]) === i && dem.get(x[1]));
+  if (!ds.length) return <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Máy luật nhịp này không xếp camp nào.</div>;
+  const nut = ([kh, ten, mau, loai]: [string, string, string, 'dang' | 'gan']) => (
+    <button key={ten} type="button" onClick={() => onChon(chon === ten ? '' : ten)} title={chon === ten ? 'bỏ lọc' : `lọc camp ${loai === 'gan' ? 'sắp chạm' : 'đang chạm'} luật ${ten}`}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 9px', borderRadius: 14, cursor: 'pointer', color: 'inherit',
+        border: `1px ${loai === 'gan' ? 'dashed' : 'solid'} ${mau}`, background: chon === ten ? `${mau}33` : 'transparent', fontWeight: chon === ten ? 600 : 400 }}>
+      <b style={{ color: mau, fontVariantNumeric: 'tabular-nums' }}>{dem.get(ten)}</b><span style={{ color: mau }}>{kh}</span>{ten}</button>);
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', margin: '0 0 10px' }}>
+      <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>Đang chạm luật</span>{ds.filter((x) => x[3] === 'dang').map(nut)}
+      {ds.some((x) => x[3] === 'gan') ? <><span style={{ fontSize: 12, color: 'var(--fg-2)', marginLeft: 8 }}>Sắp chạm</span>{ds.filter((x) => x[3] === 'gan').map(nut)}</> : null}
+      {chon ? <button type="button" onClick={() => onChon('')} style={{ fontSize: 12, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer', textDecoration: 'underline' }}>bỏ lọc</button> : null}
+    </div>);
 }
 const DAU_LUAT: Record<string, [string, string, string]> = { tang: ['↑', '#4ade80', 'máy luật: sắp tăng bậc'], dau_phien: ['↑', '#4ade80', 'máy luật: sắp tăng bậc (đầu phiên)'], tang30: ['↑', '#4ade80', 'máy luật: sắp lên trần $30'],
   ha: ['↓', '#fb923c', 'máy luật: sắp giảm bậc'], tat: ['✕', '#f87171', 'máy luật: đề xuất tắt'], giam: ['↘', '#f59e0b', 'máy luật: ROI đang tụt'], moc30: ['★', '#facc15', 'máy luật: đủ tiêu chí bid ROAS'] };
@@ -928,7 +947,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     { key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) },
     { key: 'ns', header: 'Bậc ngân sách', align: 'left', title: 'ngân sách $/ngày của camp · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
-    { key: 'luat', header: 'Luật', align: 'left', title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <LuatCamp bao={baoCampBang.get(c.camp_id)} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
+    { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <LuatCamp bao={baoCampBang.get(c.camp_id)} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(kh === 'nay' ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: (c) => (c.tao ? `${Math.floor((tuoiNgay(c.tao) ?? 0) * 24)} giờ` : undefined), cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },
@@ -1039,8 +1058,11 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} du={du} hep={hep} />
       ) : tab === 'camp' ? (
+        <>
+        <DaiLuat du={du} baoCampBang={baoCampBang} chon={luatLoc} onChon={(t) => { setLuatLoc(t); if (t) setLoc('all'); }} />
         <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} rowTitle={(c) => (hetNs(c) ? `đã tiêu $${c.nay.chi.toFixed(2)} ≥ ngân sách $${c.ngan_sach}/ngày — Meta gần như ngừng chi tới 07:00` : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" />
+        </>
       ) : tab === 'creative' && xemSoat ? (
         <TabSoat du={du} anh={anh} />
       ) : tab === 'creative' && xemCr === 'sx' ? (

@@ -279,7 +279,10 @@ function TabRoas({ camps, tong, ungVien, cot, nhom }: { camps: CampEtpKho[]; ton
   const tu = (c: CampEtpKho) => tong.get(c.camp_id) ?? { chi: 0, thu: 0 };
   const cotRoas: DataColumn<CampEtpKho>[] = [
     cot[0],
-    { key: 'muc', header: 'ROAS goal', title: 'mức bid ROAS đặt ở Ad Set (Support: rải 1.0 – 1.4)', cell: (c) => <b>{muc(c)?.[1] ?? '—'}</b>, sortValue: (c) => Number(muc(c)?.[1] ?? 0) },
+    { key: 'muc', header: 'ROAS bid', title: 'ROAS goal THẬT đang đặt trên Ethopex (Ad Set bid_constraints, kho etp đồng bộ 10 phút) — đỏ = khác mức ghi trong tên camp hoặc camp không còn bid ROAS',
+      cell: (c) => { const ten = muc(c)?.[1], lech = c.roas == null || (ten != null && Math.abs(Number(ten) - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
+        return <b style={{ color: lech ? '#f87171' : undefined }} title={`${c.chien_luoc ?? 'chưa đồng bộ'} · tên camp ghi ${ten ?? '—'}`}>{c.roas == null ? (ten ? `${ten}?` : '—') : c.roas}</b>; },
+      sortValue: (c) => c.roas ?? Number(muc(c)?.[1] ?? 0) },
     { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => <span>#{muc(c)?.[2] ?? '—'}</span>, sortValue: (c) => Number(muc(c)?.[2] ?? 0) },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (c) => <span style={{ fontSize: 12, color: c.trang_thai !== 'ACTIVE' ? 'var(--fg-2)' : choGio(c) ? '#f59e0b' : '#4ade80' }}>{tt(c)}</span>, sortValue: (c) => tt(c) },
     ...cot.slice(1).filter((k) => k.key !== 'tuoi'),

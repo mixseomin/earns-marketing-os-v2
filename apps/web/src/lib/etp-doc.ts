@@ -11,7 +11,9 @@ export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; tran
   goc: number | null; lich: string | null; tao: string | null; loi: string | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
-  lich_tat: boolean };
+  lich_tat: boolean;
+  /** ROAS goal thật đang đặt trên Ethopex (Ad Set) + bid strategy cấp campaign — camp ROAS ★ (migration 0339) */
+  roas: number | null; chien_luoc: string | null };
 export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; tu: number | null; den: number | null;
   lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null;
   /** tab Creative › Soát (anh 25/10/2026: "chỉ số review từng creative về mọi tiêu chí"): soát 18+ cả phim · soát từng đoạn (máy / người, chờ soát) · trạng thái phát của Meta ở các camp */
@@ -76,7 +78,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, case when ngay = ${nay}::date then (select sum(ngan_sach) from etp.camp_dang_chay) else sum(ngan_sach) filter (where trang_thai = 'ACTIVE') end ns from etp.so_ngay group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = c.creative_id where cr.doan is not null group by cr.doan)
-      select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, c.creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi,
+      select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, c.creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
         p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat
       from etp.camp c left join etp.creative cr on cr.creative_id = c.creative_id left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
         left join cd on cd.doan = cr.doan left join s on s.camp_id = c.camp_id
@@ -90,7 +92,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),
     creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
     loi: (r.loi as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
-    thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat }));
+    thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null }));
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();

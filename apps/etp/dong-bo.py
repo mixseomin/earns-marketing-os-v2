@@ -28,6 +28,13 @@ def api(p, b=None):
 def bc(cols, gb, tu, den):
     return api("/api/v1/report", {"columns": cols, "group_by": gb, "filters": {}, "metric_conditions": [], "limit": 50000, "page": 1, "page_size": 50000, "date_from": tu, "date_to": den})["rows"]
 
+def _roas(sp):
+    """ROAS goal đang đặt ở Ad Set (bid_constraints.roas_average_floor; Meta có lúc trả ×10000) — None khi camp không bid ROAS"""
+    v = (sp.get("bid_constraints") or {}).get("roas_average_floor")
+    try: v = float(v)
+    except (TypeError, ValueError): return None
+    return round(v / 10000 if v > 100 else v, 4)
+
 def ghi(bang, rows, khoa_, cot):
     """upsert rows (list dict) vào etp.<bang>; cot = {tên cột: kiểu}"""
     if not rows: return 0
@@ -72,9 +79,10 @@ def main():
                 rows.append({"camp_id": c["id"], "ten": re.sub(r"^\d+:\s*", "", c.get("name", "")), "bo": bo_tk.get(int(c.get("ad_account_id") or 0)), "ad_account_id": c.get("ad_account_id"),
                              "trang_thai": c.get("state"), "giao": a.get("delivery_status"), "dong_bo": c.get("sync_status"), "ngan_sach": c.get("budget_daily"),
                              "creative_id": a.get("creative_id"), "content_id": a.get("content_id"), "ad_id": a.get("id"), "goc": int(m.group(1)) if m else None,
-                             "lich": sp.get("start_time"), "loi": (a.get("error") or c.get("error") or None), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at")})
+                             "lich": sp.get("start_time"), "loi": (a.get("error") or c.get("error") or None), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at"),
+                             "roas": _roas(sp), "chien_luoc": (d or {}).get("campaign", {}).get("source_bidding_strategy") or c.get("source_bidding_strategy")})
         kq["so_chi_tiet"] = ghi("camp", rows, ["camp_id"], {"camp_id": "int", "ten": "text", "bo": "text", "ad_account_id": "bigint", "trang_thai": "text", "giao": "text", "dong_bo": "text",
-            "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
+            "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz", "roas": "numeric", "chien_luoc": "text"})
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")

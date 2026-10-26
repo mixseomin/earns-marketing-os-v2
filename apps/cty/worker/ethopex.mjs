@@ -396,6 +396,35 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI 30 ngày ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
+  // T7 — TẮT THEO LUẬT SUPPORT (Dol 26/10/2026: 7 ngày lãi < 0, > 3 ngày có chi, chi > $5; anh: "thêm và áp dụng rule này"): BÁO TRƯỚC một nhịp
+  // (anh 26/10/2026: "lúc chuẩn bị tắt / bật hàng loạt phải báo qua tele") — camp mới chạm luật vào sổ chờ + một tin "sắp tắt"; nhịp sau (≥ 25 phút) còn chạm
+  // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
+  {
+    const TEP = path.join(DATA(), 'ethopex-tat7.json'), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [];
+    const ds = (kq.tat7 || []).filter((m) => !lamRoi.has(m.id));
+    for (const k of Object.keys(cho)) if (!ds.some((m) => String(m.id) === k)) delete cho[k];   // hết chạm luật → bỏ khỏi sổ chờ
+    for (const m of ds) { if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }
+    if (moi.length) {
+      const lo = moi.reduce((a, m) => a + Number((String(m.chu).match(/lãi \$([+-]?[\d.]+)/) || [])[1] || 0), 0);
+      await guiNhanh({ message_thread_id: topic, text: `⏳ <b>SẮP TẮT ${moi.length} CAMP</b> ở nhịp kế (~30 phút) — luật T7 của Support: 7 ngày đã khép lãi &lt; 0, &gt; 3 ngày có chi, chi &gt; $5 · tổng lãi 7 ngày $${lo.toFixed(2)}\n`
+        + moi.map((m) => `#${m.id}${m.bo ? ` (bộ ${m.bo})` : ''} ${esc((String(m.chu).match(/lãi \$[+-]?[\d.]+ · ROI [+-]?\d+%/) || [''])[0])}`).join('\n').slice(0, 3300)
+        + `\n<i>Muốn giữ camp nào: nhắn trong chat trước giờ đó. Camp ROI cộng dồn &gt; 20% máy không tắt.</i>` });
+      gui++;
+    }
+    const daT7 = [];
+    for (const m of tat) {
+      lamRoi.add(m.id); delete cho[m.id];
+      let r; try { r = JSON.parse((await chay(LAM, ['tat', String(m.id), '--luat', `T7 Support · ${m.chu}`.slice(0, 400), '--ai', 'anh (chat 26/10/2026: thêm và áp dụng luật T7 của Support) — máy chạy'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      daT7.push({ m, r });
+    }
+    fs.writeFileSync(TEP, JSON.stringify(cho));
+    if (daT7.length) {
+      const ok = daT7.filter((x) => x.r.ok).length;
+      const dong = daT7.map(({ m, r }) => (r.ok ? `⏹ #${m.id} <b>đã tắt</b>` : `⚠️ #${m.id} chưa tắt: ${esc(r.loi || 'không rõ')}`)).join('\n');
+      await guiNhanh({ message_thread_id: topic, text: `⏹ <b>MÁY TẮT THEO LUẬT T7</b> — đã tắt ${ok}/${daT7.length} camp (7 ngày lãi &lt; 0, &gt; 3 ngày có chi, chi &gt; $5); không tự bật lại\n${dong}`.slice(0, 4000) });
+      gui++;
+    }
+  }
   // DỪNG ĐÊM (anh 25/10/2026 chat: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"): anh lệnh đích danh luật
   // này nên máy tắt qua lam-ethopex với người duyệt "anh (chat …)"; lam-ethopex vẫn từ chối camp ROI cộng dồn > 20% (camp lãi không bị tắt). Không tự bật lại.
   const daDem = [];

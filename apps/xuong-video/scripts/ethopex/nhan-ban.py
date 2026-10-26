@@ -309,11 +309,11 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai):
         if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
         kq["moi"] = moi
         # ĐỢI ĐỒNG BỘ XONG HẲN (#70162, 26/10/2026: lệnh tạm dừng gửi lúc còn 'creating_adset' bị Ethopex đè — đồng bộ xong camp tự về ACTIVE)
-        for _ in range(45):
+        for _ in range(150):   # Meta kiểm ad (checking_ads) có lúc > 15 phút (#70162, #70174 26/10/2026) — chờ tới 20 phút
             time.sleep(8); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
             if c.get("sync_status") in ("done", "error") or c.get("error"): break
         if c.get("error"): raise ValueError("Ethopex báo lỗi: " + str(c.get("error"))[:200])
-        if c.get("sync_status") != "done": raise ValueError(f"camp #{moi} chưa đồng bộ xong sau 6 phút ({c.get('sync_status')}) — chưa đọc lại / tạm dừng được, kiểm tay")
+        if c.get("sync_status") != "done": raise ValueError(f"camp #{moi} chưa đồng bộ xong sau 20 phút ({c.get('sync_status')}) — chưa đọc lại / tạm dừng được, kiểm tay")
         if float(c.get("budget_daily") or 0) != ns:   # Ethopex có lúc không nhận ngân sách lúc tạo → đặt lại
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": ns}}}); time.sleep(8)
             d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]

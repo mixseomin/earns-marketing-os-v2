@@ -46,7 +46,8 @@ async function motShot(so: number) {
   const p = prompt(so); const coCuoi = !!fCuoi; const giay = Math.max(2, Math.ceil(s.giay));
   if (xem) return console.log(`---- #${so} · ${giay}s${coCuoi ? ' · khoá cuối' : ''}\n${p}`);
   const g = await guiFal('fal-ai/vidu/q2/image-to-video/turbo', { image_url: await len(fDau, `vk-${so}`, 'image/png'), ...(fCuoi ? { end_image_url: await len(fCuoi, `vk-${so}-cuoi`, 'image/png') } : {}),
-    prompt: p, duration: giay, resolution: '720p', movement_amplitude: 'auto' });
+    // shot CẬN / TRUNG CẬN: biên độ 'small' — 'auto' cho máy tự lùi ra toàn thân ở nửa sau clip (26/10/2026 #7 #9 #21 #27; lùi ra còn vẽ thêm thẻ đeo trên ngực Vivian)
+    prompt: p, duration: giay, resolution: '720p', movement_amplitude: ['cu', 'mcu', 'ecu', 'insert', 'ots'].includes(s.co) ? 'small' : 'auto' });
   if (!g.ok) return console.log(`#${so}: Vidu từ chối — ${g.loi}`);
   for (let i = 0; i < 120; i++) { await new Promise((r) => setTimeout(r, 10_000)); const d = await docFal(g.taskId);
     if (d.done && d.ok) { writeFileSync(`${thu}/so-${so}.mp4`, Buffer.from(await (await fetch(d.uri)).arrayBuffer())); return console.log(`#${so}: ${await len(`${thu}/so-${so}.mp4`, `video-${so}`, 'video/mp4')}`); }

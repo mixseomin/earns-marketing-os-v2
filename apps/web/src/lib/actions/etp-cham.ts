@@ -42,6 +42,7 @@ export async function tatBatCreative(id: number, bat: boolean): Promise<{ ok: tr
   if (!me) return { loi: 'chưa đăng nhập' };
   if (me.role !== 'admin') return { loi: 'chỉ admin' };
   if (!Number.isInteger(id) || id <= 0) return { loi: 'creative sai' };
+  if (bat) return { loi: 'không bật camp từ trang Soát (anh 26/10/2026: còn nhiều luật xung quanh) — chỉ duyệt creative' };
   const db = getDb()!;
   const rows = (await db.execute(sql`select c.camp_id from etp.camp c where c.trang_thai = ${bat ? 'PAUSED' : 'ACTIVE'}
     and coalesce(nullif(c.creative_id, 0), (select s.creative_id from etp.camp s where s.camp_id = substring(c.ten from 'duplicate by (\d+)')::int)) = ${id}`)) as unknown as { rows?: { camp_id: number }[] } | { camp_id: number }[];

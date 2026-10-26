@@ -626,10 +626,12 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
           { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(x.r.creative_id)}<span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },
-          { key: 'chay', header: 'Chạy', align: 'center', width: 70, title: 'đèn xanh nhấp nháy = creative đang có camp ACTIVE (chạy thật) · rê chuột vào ô để Tắt / Bật mọi camp của creative', cell: (x) => {
+          { key: 'chay', header: 'Chạy', align: 'center', width: 70, title: 'đèn xanh nhấp nháy = creative đang có camp ACTIVE (chạy thật) · rê chuột vào ô để Tắt mọi camp của creative (bật lại không làm ở đây)', cell: (x) => {
             const cho = dangTb[x.r.creative_id], bat = x.r.chay > 0;
             if (!x.r.camp) return <Den mau={MAU_DEN.tat} rong t="chưa lên camp" />;
             if (cho != null) return <Den mau={MAU_DEN.cho} song t={`đã gửi lệnh ${cho ? 'bật' : 'tắt'}, chờ Ethopex`} />;
+            // KHÔNG BẬT TỪ ĐÂY (anh 26/10/2026: "không nên cho bật lại camp từ đây vì còn nhiều rule xung quanh. Chỉ cho duyệt Creative là đủ") — camp tắt chỉ có đèn xám
+            if (!bat) return <Den mau={MAU_DEN.tat} t={`${x.r.camp} camp đã tắt`} />;
             return <span className="etp-chay"><span className="den"><Den mau={bat ? MAU_DEN.chay : MAU_DEN.tat} song={bat} t={bat ? `${x.r.chay}/${x.r.camp} camp đang chạy` : `${x.r.camp} camp đã tắt`} /></span>
               <button className="nut" onClick={() => tatBat(x.r.creative_id, !bat, bat ? x.r.chay : x.r.camp)}
                 style={{ border: `1px solid ${bat ? DAU_MAU.loi : DAU_MAU.ok}`, color: bat ? DAU_MAU.loi : DAU_MAU.ok, background: 'transparent', borderRadius: 5, padding: '1px 8px', fontSize: 11, cursor: 'pointer' }}>{bat ? 'Tắt' : 'Bật'}</button></span>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },

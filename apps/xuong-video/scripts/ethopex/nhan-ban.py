@@ -308,10 +308,12 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai):
             time.sleep(3); moi = next((x["id"] for x in api("/api/v1/campaigns?page_size=20")["data"] if x.get("name") == ten), None)
         if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
         kq["moi"] = moi
-        for _ in range(12):
-            time.sleep(5); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
-            if c.get("sync_status") in ("done", "synced") or c.get("error"): break
+        # ĐỢI ĐỒNG BỘ XONG HẲN (#70162, 26/10/2026: lệnh tạm dừng gửi lúc còn 'creating_adset' bị Ethopex đè — đồng bộ xong camp tự về ACTIVE)
+        for _ in range(45):
+            time.sleep(8); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
+            if c.get("sync_status") in ("done", "error") or c.get("error"): break
         if c.get("error"): raise ValueError("Ethopex báo lỗi: " + str(c.get("error"))[:200])
+        if c.get("sync_status") != "done": raise ValueError(f"camp #{moi} chưa đồng bộ xong sau 6 phút ({c.get('sync_status')}) — chưa đọc lại / tạm dừng được, kiểm tay")
         if float(c.get("budget_daily") or 0) != ns:   # Ethopex có lúc không nhận ngân sách lúc tạo → đặt lại
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": ns}}}); time.sleep(8)
             d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
@@ -322,7 +324,11 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai):
         sai = c.get("source_bidding_strategy") not in (None, "", "LOWEST_COST_WITH_MIN_ROAS") or san is None or abs(san - roas) > 1e-6
         if sai or tam_dung:
             api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [moi], "status": "paused"}])
-            kq["tam_dung"] = True
+            for _ in range(15):
+                time.sleep(5); tt = api(f"/api/v1/campaigns/{moi}")["campaign"]
+                if tt.get("state") == "PAUSED" and tt.get("source_status") == "PAUSED": break
+            kq["tam_dung"] = tt.get("state") == "PAUSED"; kq["trang_thai"] = tt.get("state")
+            if not kq["tam_dung"]: raise ValueError(f"đã gửi lệnh tạm dừng nhưng camp #{moi} vẫn {tt.get('state')} — tắt tay ngay")
         if sai: raise ValueError(f"đọc lại sai ROAS (đặt {roas}, Ethopex {san}, chiến lược {c.get('source_bidding_strategy')}) — đã tạm dừng camp")
         kq["ok"] = True; ghi_bo(cid, bo)
     except Exception as e:

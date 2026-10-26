@@ -1,0 +1,646 @@
+{
+ "ten": "Phim #353 · tập 356 · cảnh Thang máy — sơ đồ shot (bản nháp B, 29 shot ~55 s)",
+ "nhan_vat": {
+  "ha": {
+   "ao": "#f2f2f0",
+   "toc": "dai",
+   "vet": true,
+   "duoi": "#141416",
+   "nhan": "Hạ"
+  },
+  "vi": {
+   "ao": "#7a1325",
+   "toc": "duoi_ngua",
+   "duoi": "#7a1325",
+   "nhan": "Vivian"
+  },
+  "than": {
+   "ao": "#111216",
+   "toc": "ngan",
+   "duoi": "#111216",
+   "nhan": "Lục Thần"
+  }
+ },
+ "shot": [
+  {
+   "so": 1,
+   "giay": 2.0,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "len",
+     "deo": [
+      "the"
+     ],
+     "cam": [
+      "thung"
+     ]
+    }
+   ],
+   "dien": "Hạ ôm thùng, ngước nhìn số tầng.",
+   "ke": "Ngày cuối ở Lục thị, tôi chỉ muốn đi thật lặng lẽ. (nháp)"
+  },
+  {
+   "so": 2,
+   "giay": 1.5,
+   "co": "can_do",
+   "nen": "da",
+   "do": [
+    {
+     "loai": "so_tang",
+     "x": 0.5,
+     "y": 0.4,
+     "to": 1.4,
+     "chu": "38"
+    }
+   ],
+   "dien": "Bảng số tầng đổi số."
+  },
+  {
+   "so": 3,
+   "giay": 1.5,
+   "co": "can_do",
+   "nen": "san",
+   "do": [
+    {
+     "loai": "giay_do",
+     "x": 0.55,
+     "y": 0.68,
+     "to": 1.3
+    }
+   ],
+   "mui_ten": [
+    [
+     0.95,
+     0.82,
+     0.6,
+     0.82
+    ]
+   ],
+   "dien": "Gót giày đỏ bước trên sàn đá — tiếng cao gót."
+  },
+  {
+   "so": 4,
+   "giay": 2.0,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "phai",
+     "deo": [
+      "the"
+     ],
+     "cam": [
+      "thung"
+     ]
+    }
+   ],
+   "dien": "Hạ quay đầu sang phải, cảnh giác."
+  },
+  {
+   "so": 5,
+   "giay": 2.5,
+   "co": "toan",
+   "nen": "thang",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.22,
+     "nhin": "phai",
+     "deo": [
+      "the"
+     ],
+     "cam": [
+      "thung"
+     ]
+    },
+    {
+     "ma": "vi",
+     "x": 0.74,
+     "nhin": "trai"
+    }
+   ],
+   "mui_ten": [
+    [
+     0.97,
+     0.9,
+     0.78,
+     0.9
+    ]
+   ],
+   "dien": "Vivian sải bước vào, dừng gần Hạ. (dùng lại #3)"
+  },
+  {
+   "so": 6,
+   "giay": 2.0,
+   "co": "qua_vai",
+   "nen": "thang",
+   "cua": [
+    0.75
+   ],
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.56,
+     "nhin": "trai"
+    },
+    {
+     "ma": "ha",
+     "x": 0.08,
+     "lung": true,
+     "to": 1.1
+    }
+   ],
+   "dien": "Qua vai Hạ: Vivian chống hông, cười khinh. (dùng lại #4)"
+  },
+  {
+   "so": 7,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "phai",
+     "deo": [
+      "the"
+     ]
+    }
+   ],
+   "dien": "Hạ mím môi."
+  },
+  {
+   "so": 8,
+   "giay": 1.5,
+   "co": "can_do",
+   "nen": "nguc_ha",
+   "do": [
+    {
+     "loai": "the",
+     "x": 0.4,
+     "y": 0.62,
+     "to": 0.8
+    },
+    {
+     "loai": "tay",
+     "x": 0.62,
+     "y": 0.42,
+     "goc": 0,
+     "to": 0.9
+    }
+   ],
+   "mui_ten": [
+    [
+     0.95,
+     0.3,
+     0.72,
+     0.36
+    ]
+   ],
+   "dien": "Tay móng đỏ vươn tới thẻ trên ngực Hạ. (dùng lại cận tay)"
+  },
+  {
+   "so": 9,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "xuong",
+     "deo": [
+      "the"
+     ]
+    }
+   ],
+   "dien": "Hạ cứng người, mắt nhìn xuống."
+  },
+  {
+   "so": 10,
+   "giay": 1.5,
+   "co": "can_do",
+   "nen": "nguc_ha",
+   "do": [
+    {
+     "loai": "the",
+     "x": 0.5,
+     "y": 0.6,
+     "to": 0.9
+    },
+    {
+     "loai": "nam_tay",
+     "x": 0.5,
+     "y": 0.42,
+     "goc": 0,
+     "to": 1.0
+    }
+   ],
+   "dien": "Ngón tay siết tấm thẻ. (dùng lại cận tay)"
+  },
+  {
+   "so": 11,
+   "giay": 1.5,
+   "co": "trung",
+   "nen": "thang",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.28,
+     "nhin": "phai",
+     "cam": [
+      "thung"
+     ]
+    },
+    {
+     "ma": "vi",
+     "x": 0.76,
+     "nhin": "trai",
+     "cam": [
+      "the_treo"
+     ]
+    }
+   ],
+   "do": [
+    {
+     "loai": "day_dut",
+     "x": 0.52,
+     "y": 0.42,
+     "to": 0.7
+    }
+   ],
+   "mui_ten": [
+    [
+     0.56,
+     0.5,
+     0.82,
+     0.5
+    ],
+    [
+     0.18,
+     0.58,
+     0.3,
+     0.58
+    ]
+   ],
+   "dien": "Giật mạnh — dây đứt, Hạ chúi người. (dùng lại nhịp giật)"
+  },
+  {
+   "so": 12,
+   "giay": 2.0,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "xuong"
+    }
+   ],
+   "do": [
+    {
+     "loai": "the",
+     "x": 0.86,
+     "y": 0.66,
+     "to": 0.5
+    }
+   ],
+   "dien": "Hạ sững sờ, mắt cụp xuống tấm thẻ. (dùng lại #8)"
+  },
+  {
+   "so": 13,
+   "giay": 1.5,
+   "co": "can_do",
+   "nen": "da",
+   "do": [
+    {
+     "loai": "the",
+     "x": 0.55,
+     "y": 0.55,
+     "to": 0.8
+    },
+    {
+     "loai": "nam_tay",
+     "x": 0.55,
+     "y": 0.3,
+     "goc": 0,
+     "to": 0.9
+    }
+   ],
+   "mui_ten": [
+    [
+     0.3,
+     0.4,
+     0.3,
+     0.08
+    ]
+   ],
+   "dien": "Thẻ lủng lẳng, nắm tay giật lên. (dùng lại #9)"
+  },
+  {
+   "so": 14,
+   "giay": 2.0,
+   "co": "mcu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.5,
+     "nhin": "trai",
+     "cam": [
+      "the_treo"
+     ]
+    }
+   ],
+   "dien": "Vivian đung đưa thẻ cạnh mặt, cười."
+  },
+  {
+   "so": 15,
+   "giay": 1.0,
+   "co": "can_do",
+   "nen": "da",
+   "do": [
+    {
+     "loai": "so_tang",
+     "x": 0.5,
+     "y": 0.4,
+     "to": 1.4,
+     "chu": "38"
+    }
+   ],
+   "dien": "Số tầng sáng — tiếng “ting”."
+  },
+  {
+   "so": 16,
+   "giay": 1.5,
+   "co": "mcu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.5,
+     "nhin": "trai",
+     "cam": [
+      "the_treo"
+     ]
+    }
+   ],
+   "dien": "Vivian liếc sang cửa thang (trái màn)."
+  },
+  {
+   "so": 17,
+   "giay": 2.0,
+   "co": "trung",
+   "goc": "thap",
+   "nen": "thang_mo",
+   "cua": [
+    0.5
+   ],
+   "nguoi": [
+    {
+     "ma": "than",
+     "x": 0.5,
+     "nhin": "may"
+    },
+    {
+     "ma": "ha",
+     "x": 0.06,
+     "lung": true,
+     "to": 1.0
+    }
+   ],
+   "dien": "Cửa mở, Lục Thần bước ra — máy thấp, quyền lực."
+  },
+  {
+   "so": 18,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "trai"
+    }
+   ],
+   "dien": "Hạ nhìn sang Lục Thần (trái màn)."
+  },
+  {
+   "so": 19,
+   "giay": 2.5,
+   "co": "cu",
+   "nen": "thang",
+   "nguoi": [
+    {
+     "ma": "than",
+     "x": 0.5,
+     "nhin": "may"
+    }
+   ],
+   "thoai": "Người ngoài thì đừng đứng chắn thang máy.",
+   "dien": "Lục Thần nói, không nhìn Hạ. (khớp môi)"
+  },
+  {
+   "so": 20,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "xuong"
+    }
+   ],
+   "dien": "Hạ cụp mắt, im lặng."
+  },
+  {
+   "so": 21,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.5,
+     "nhin": "trai"
+    }
+   ],
+   "dien": "Vivian cười đắc ý."
+  },
+  {
+   "so": 22,
+   "giay": 2.0,
+   "co": "mcu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.5,
+     "nhin": "trai",
+     "cam": [
+      "the_treo"
+     ]
+    }
+   ],
+   "thoai": "Thẻ của công ty.",
+   "dien": "Vivian đung đưa thẻ. (khớp môi)"
+  },
+  {
+   "so": 23,
+   "giay": 1.5,
+   "co": "can_do",
+   "nen": "da",
+   "do": [
+    {
+     "loai": "the",
+     "x": 0.5,
+     "y": 0.5,
+     "to": 1.0
+    }
+   ],
+   "mui_ten": [
+    [
+     0.5,
+     0.82,
+     0.8,
+     0.78
+    ],
+    [
+     0.5,
+     0.82,
+     0.2,
+     0.78
+    ]
+   ],
+   "dien": "Thẻ đung đưa như con lắc."
+  },
+  {
+   "so": 24,
+   "giay": 2.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.5,
+     "nhin": "trai"
+    }
+   ],
+   "thoai": "Loại như cô, đừng mơ bước vào toà nhà này lần nữa.",
+   "dien": "(khớp môi)"
+  },
+  {
+   "so": 25,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "len"
+    }
+   ],
+   "mui_ten": [
+    [
+     0.85,
+     0.5,
+     0.85,
+     0.3
+    ]
+   ],
+   "dien": "Hạ từ từ ngước mắt lên — lật cảm xúc."
+  },
+  {
+   "so": 26,
+   "giay": 3.0,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "phai",
+     "to": 1.1
+    }
+   ],
+   "thoai": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.",
+   "dien": "Hạ nhếch môi, máy đẩy chậm. (khớp môi)"
+  },
+  {
+   "so": 27,
+   "giay": 1.5,
+   "co": "cu",
+   "nen": "da",
+   "nguoi": [
+    {
+     "ma": "vi",
+     "x": 0.5,
+     "nhin": "trai"
+    }
+   ],
+   "dien": "Nụ cười Vivian cứng lại."
+  },
+  {
+   "so": 28,
+   "giay": 2.0,
+   "co": "trung",
+   "nen": "thang_mo",
+   "cua": [
+    0.5
+   ],
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "may",
+     "cam": [
+      "thung"
+     ]
+    }
+   ],
+   "dien": "Hạ đứng trong thang, quay mặt ra."
+  },
+  {
+   "so": 29,
+   "giay": 2.5,
+   "co": "trung",
+   "nen": "thang_mo",
+   "cua": [
+    0.5
+   ],
+   "nguoi": [
+    {
+     "ma": "ha",
+     "x": 0.5,
+     "nhin": "may",
+     "cam": [
+      "thung"
+     ]
+    }
+   ],
+   "mui_ten": [
+    [
+     0.02,
+     0.6,
+     0.3,
+     0.6
+    ],
+    [
+     0.98,
+     0.6,
+     0.7,
+     0.6
+    ]
+   ],
+   "dien": "Cửa thép khép trước mặt Hạ bình thản → loá sáng, hết cảnh."
+  }
+ ]
+}

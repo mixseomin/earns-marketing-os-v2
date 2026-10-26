@@ -104,7 +104,7 @@ def main():
               f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
             moc = (vn + dt.timedelta(minutes=CHU_KY)).strftime("%H:%M")
             _tat_tl = {t for t in set(tl_cua.values()) | {l.split("|")[0] for l in q("select the_loai from etp.lich_gio").splitlines()} if not on(t, k2_toi)}
-            try: rp = bao_phien(vn, k_nay, _tat_tl) + bao_phien_toi(vn, k2_toi, _tat_tl)
+            try: rp = bao_phien(vn, k_nay, k2_toi, _tat_tl)
             except Exception as e: rp = ""; print(f"report phiên lỗi: {e}", file=sys.stderr)
             bao_tg(rp + f"⏰ <b>LỊCH GIỜ — SẮP {'TẠM DỪNG' if tat2 else 'BẬT LẠI'} HÀNG LOẠT</b> khoảng {moc}\n"
                    + (f"⏸ sẽ tạm dừng <b>{len(tat2)}</b> camp (khung {k2_toi} TẮT): {tom_tl([tl_cua.get(c, '_khac') for c in tat2])}\n" if tat2 else "")
@@ -154,39 +154,39 @@ def bao_chi_gio(vn):
     q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('chi_gio_bao', to_jsonb('{khoa}'::text), 'giờ đã báo chi theo giờ trên Telegram', 'lich-gio.py') "
       f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
 
-def bao_phien(vn, k_cu, tat_tl):
-    """REPORT PHIÊN VỪA XONG kèm tin báo trước (anh 26/10/2026: "khi thông báo việc tắt cho phiên tiếp, thì có thêm report cho phiên vừa xong với các camp sẽ tắt
-    và cả camp đang chạy"): số khung k_cu từ đầu khung tới giờ hiện tại (etp.so_gio, giờ UTC), chia nhóm thể loại SẼ TẠM DỪNG / VẪN CHẠY, so cùng khung hôm qua."""
-    gio_tu = int(q(f"select gio_tu from etp.khung_gio where khung = '{k_cu}'") or vn.hour)
-    bd = vn.replace(minute=0, second=0, microsecond=0) - dt.timedelta(hours=(vn.hour - gio_tu) % 24)
-    gio = [bd + dt.timedelta(hours=i) for i in range(int((vn - bd).total_seconds() // 3600))]   # chỉ giờ ĐÃ TRỌN — giờ đang dở so với giờ trọn hôm qua là lệch
-    if not gio: return ""
-    def so(lui):
-        cap = ",".join(f"('{(g - dt.timedelta(hours=7 + 24 * lui)):%Y-%m-%d}'::date, {(g - dt.timedelta(hours=7)).hour})" for g in gio)
-        r = {"tat": [0.0, 0.0], "chay": [0.0, 0.0]}
-        for l in q(f"select coalesce(p.the_loai, '_khac'), sum(s.chi), sum(s.thu) from etp.so_gio s left join etp.phim p using (content_id) where (s.ngay, s.gio) in ({cap}) group by 1").splitlines():
-            t, c, th = l.split("|"); a = r["tat" if t in tat_tl else "chay"]; a[0] += float(c); a[1] += float(th)
-        return r
-    nay, qua = so(0), so(1)
-    roi = lambda a: f"{(a[1] - a[0]) / a[0] * 100:+.0f}%" if a[0] >= 0.3 else "—"
-    dong = lambda ten, a, b: f"{ten}: chi ${a[0]:.2f} · lãi ${a[1] - a[0]:+.2f} · ROI {roi(a)}  <i>(hôm qua cùng giờ: lãi ${b[1] - b[0]:+.2f} · ROI {roi(b)})</i>"
-    tong = lambda r: [r["tat"][0] + r["chay"][0], r["tat"][1] + r["chay"][1]]
-    return (f"📊 <b>Phiên vừa xong {gio[0]:%H}h–{gio[-1] + dt.timedelta(hours=1):%H}h</b> (giờ đã trọn)\n" + dong("Tổng", tong(nay), tong(qua)) + "\n"
-            + dong("⏸ Nhóm sẽ tạm dừng", nay["tat"], qua["tat"]) + "\n" + dong("▶️ Nhóm vẫn chạy", nay["chay"], qua["chay"]) + "\n")
-
-def bao_phien_toi(vn, k_toi, tat_tl):
-    """PHIÊN SẮP TỚI — HÔM QUA (anh 26/10/2026: "thêm report về phiên tiếp theo ngày hôm qua nữa"): trọn khung k_toi của hôm qua, hai nhóm như bao_phien."""
-    gt, sg = [int(x) for x in q(f"select gio_tu, so_gio from etp.khung_gio where khung = '{k_toi}'").split("|")]
-    bd = (vn - dt.timedelta(days=1)).replace(hour=gt, minute=0, second=0, microsecond=0)
-    if bd + dt.timedelta(hours=sg) > vn - dt.timedelta(hours=1): bd -= dt.timedelta(days=1)   # khung qua đêm chưa khép hết → lùi một ngày nữa
-    gio = [bd + dt.timedelta(hours=i) for i in range(sg)]
-    cap = ",".join(f"('{(g - dt.timedelta(hours=7)):%Y-%m-%d}'::date, {(g - dt.timedelta(hours=7)).hour})" for g in gio)
+def _so_nhom(gio, tat_tl, lui=0):
+    """chi / thu hai nhóm (sẽ tạm dừng / vẫn chạy) trong các giờ VN `gio` (lùi `lui` ngày) — etp.so_gio lưu giờ UTC"""
+    cap = ",".join(f"('{(g - dt.timedelta(hours=7 + 24 * lui)):%Y-%m-%d}'::date, {(g - dt.timedelta(hours=7)).hour})" for g in gio)
     r = {"tat": [0.0, 0.0], "chay": [0.0, 0.0]}
     for l in q(f"select coalesce(p.the_loai, '_khac'), sum(s.chi), sum(s.thu) from etp.so_gio s left join etp.phim p using (content_id) where (s.ngay, s.gio) in ({cap}) group by 1").splitlines():
         t, c, th = l.split("|"); a = r["tat" if t in tat_tl else "chay"]; a[0] += float(c); a[1] += float(th)
-    roi = lambda a: f"{(a[1] - a[0]) / a[0] * 100:+.0f}%" if a[0] >= 0.3 else "—"
-    dong = lambda ten, a: f"{ten}: chi ${a[0]:.2f} · lãi ${a[1] - a[0]:+.2f} · ROI {roi(a)}"
-    return (f"🕑 <b>Phiên sắp tới — hôm qua {bd:%d/%m} {gio[0]:%H}h–{gio[-1] + dt.timedelta(hours=1):%H}h</b>\n" + dong("⏸ Nhóm sẽ tạm dừng", r["tat"]) + "\n" + dong("▶️ Nhóm vẫn chạy", r["chay"]) + "\n")
+    r["tong"] = [r["tat"][0] + r["chay"][0], r["tat"][1] + r["chay"][1]]
+    return r
+
+def _dong(ten, a, chi=True):   # một dòng bảng chữ đều cột (≤ 30 ký tự — vừa màn điện thoại)
+    roi = f"{(a[1] - a[0]) / a[0] * 100:+.0f}%" if a[0] >= 0.3 else "—"
+    return f"{ten:<9}{(f'{a[0]:.0f}' if chi else ''):>6}{a[1] - a[0]:>+7.0f}{roi:>7}"
+
+def bao_phien(vn, k_cu, k_toi, tat_tl):
+    """REPORT kèm tin báo trước, dạng BẢNG (anh 26/10/2026: "khi thông báo việc tắt cho phiên tiếp, thì có thêm report cho phiên vừa xong với các camp sẽ tắt và cả
+    camp đang chạy" · "thêm report về phiên tiếp theo ngày hôm qua nữa" · "trình bày kiểu bảng cho dễ đọc"): (1) phiên vừa xong — giờ ĐÃ TRỌN của khung k_cu, mỗi nhóm
+    kèm dòng cùng giờ hôm qua; (2) phiên sắp tới k_toi — trọn khung đó của hôm qua. Hai nhóm: thể loại SẼ TẠM DỪNG / VẪN CHẠY. Số $ làm tròn."""
+    gt = int(q(f"select gio_tu from etp.khung_gio where khung = '{k_cu}'") or vn.hour)
+    bd = vn.replace(minute=0, second=0, microsecond=0) - dt.timedelta(hours=(vn.hour - gt) % 24)
+    gio = [bd + dt.timedelta(hours=i) for i in range(int((vn - bd).total_seconds() // 3600))]   # chỉ giờ ĐÃ TRỌN
+    dong = [f"{'':<9}{'Chi':>6}{'Lãi':>7}{'ROI':>7}"]
+    if gio:
+        nay, qua = _so_nhom(gio, tat_tl), _so_nhom(gio, tat_tl, 1)
+        dong = [f"PHIÊN VỪA XONG {gio[0]:%H}–{gio[-1] + dt.timedelta(hours=1):%H}h"] + dong
+        for k, ten in (("tong", "Tổng"), ("tat", "Tạm dừng"), ("chay", "Vẫn chạy")): dong += [_dong(ten, nay[k]), _dong(" hôm qua", qua[k], False)]
+    t2 = q(f"select gio_tu, so_gio from etp.khung_gio where khung = '{k_toi}'")
+    if t2:
+        gt2, sg = [int(x) for x in t2.split("|")]
+        b2 = (vn - dt.timedelta(days=1)).replace(hour=gt2, minute=0, second=0, microsecond=0)
+        if b2 + dt.timedelta(hours=sg) > vn - dt.timedelta(hours=1): b2 -= dt.timedelta(days=1)   # khung qua đêm chưa khép hết → lùi thêm một ngày
+        r = _so_nhom([b2 + dt.timedelta(hours=i) for i in range(sg)], tat_tl)
+        dong += ["", f"PHIÊN TỚI · {b2:%d/%m} {gt2:02d}–{(gt2 + sg) % 24:02d}h", _dong("Tạm dừng", r["tat"]), _dong("Vẫn chạy", r["chay"])]
+    return "<pre>" + "\n".join(dong).replace("&", "&amp;").replace("<", "&lt;") + "</pre>\n"
 
 def tom_tl(ds):
     from collections import Counter

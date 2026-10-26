@@ -113,7 +113,8 @@ def don_mac():
     dang = {v.get("ghi") for v in tt.values() if v["tt"] == "da_cat"}   # lô còn đoạn chờ lên
     for f in glob.glob(os.path.join(C, "ra", "*", "c-*.mp4")) + glob.glob(os.path.join(C, "ra", "*", "p-*", "c-*.mp4")):   # lô cũ + lô qua hàng đợi (p-<phim>/)
         lo_ = os.path.basename(os.path.dirname(f)); lo_ = os.path.basename(os.path.dirname(os.path.dirname(f))) if lo_.startswith("p-") else lo_
-        if lo_ not in dang: xoa += os.path.getsize(f); os.remove(f)
+        # CHỈ dọn lô CỦA quy trình phim mới (pm-*) đã lên — 27/10/2026 xoá nhầm cả lô thay-26101700 (cắt thay creative spy, chưa lên) vì nó không nằm trong sổ phim mới
+        if lo_.startswith("pm-") and lo_ not in dang: xoa += os.path.getsize(f); os.remove(f)
     trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9
     print(f"dọn iMac: {xoa / 1e9:.1f} GB · ổ còn trống {trong:.0f} GB", flush=True)
     return trong

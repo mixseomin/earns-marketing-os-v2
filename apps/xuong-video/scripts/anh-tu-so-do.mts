@@ -39,21 +39,26 @@ const len = async (f: string, k: string) => { const jpg = f.endsWith('.jpg'); co
 
 const BO_CUC = 'Image 1 is a flat schematic storyboard diagram, NOT a style reference: use it ONLY for the layout — the framing and crop, who stands where (screen left / right), which way each body and head turns, where the props are. '
   + 'Everything must look like a real photograph from a live-action drama: real people with natural skin, real hair, real fabric, real anatomy and hands. Never draw flat shapes, outlines, arrows, symbols or any diagram graphics.';
+// TRẦN ẢNH MẪU của cổng (ckey: 3 — cong-ai.ts chặn trước khi gửi). Ưu tiên: sơ đồ (bố cục) → ô ảnh chung (đồng nhất cả cảnh — đã chứa mặt / đồ / nền)
+// → nhân vật → đạo cụ → bối cảnh; câu prompt chỉ nhắc đúng những ảnh được gửi.
+const TRAN_MAU = Number(gia('tran-mau') || 3);
 async function motKhung(so: number) {
   const s = bang.shot.find((x) => x.so === so); if (!s) return console.log(`#${so}: không có trong bảng`);
-  const co = (s.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '').filter((t) => t && anhCua(s, t)).slice(0, 2);
-  // chỗ còn lại: đạo cụ trong khung (khai ở cận đồ / người trong khung đang giữ) rồi bối cảnh
+  const xem = process.argv.includes('--xem');
+  const co = (s.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '').filter((t) => t && anhCua(s, t));
   const doTrong = [...new Set([...(s.do ?? []).map((o) => bang.vat_so?.[o.loai]), ...(s.nguoi ?? []).flatMap((n) => [...(n.cam ?? []), ...(n.deo ?? [])].map((k) => bang.vat_so?.[k.split('_')[0]!]))].filter((x): x is string => !!x))];
-  const them = [...doTrong.map((t) => khac.find((x) => x.ten === t && x.anh_ref[0])), khac.find((x) => x.loai === 'boi_canh' && x.anh_ref[0])].filter((x): x is NonNullable<typeof x> => !!x).slice(0, 2 - co.length);
-  const u1 = process.argv.includes('--xem') ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
-  const mat = co.map((t, i) => `${t} looks exactly like reference image ${i + 2} (same face and hair; the outfit follows reference image ${i + 2} AND the wearing description above — the description wins on stains, badges and details).`).join(' ');
-  const mau2 = them.map((x, i) => x.loai === 'boi_canh' ? `Reference image ${co.length + i + 2} is the location — match its walls, doors, materials and warm lighting (not its framing).` : `Reference image ${co.length + i + 2} shows ${x.ten} — draw it exactly like this.`).join(' ');
-  // Ô của ẢNH CHUNG cả cảnh (--chung) → thêm làm ảnh mẫu cuối: mặt, tóc, chi tiết đồ, ánh sáng, màu theo ô chung; bố cục vẫn theo sơ đồ (ảnh 1)
-  const oChung = existsSync(`${thu}/so-${so}-chung.png`) ? (process.argv.includes('--xem') ? '(ô chung)' : await len(`${thu}/so-${so}-chung.png`, `${so}-chung`)) : null;
-  const sau = oChung ? ` Reference image ${co.length + them.length + 2} is this shot's panel from the SHARED SCENE SHEET (all shots of the scene drawn together): match its faces, hair, outfit details, lighting and colours exactly — the framing and positions still follow image 1.` : '';
-  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${mat} ${mau2}${sau}`;
-  if (process.argv.includes('--xem')) return console.log(`---- #${so} (ảnh mẫu: ${co.map((t) => anhCua(s, t).split('/').pop()).join(', ')}${them.length ? ` + ${them.map((x) => x.ten).join(', ')}` : ''})\n${p}`);   // xem prompt, 0đ
-  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map((t) => anhCua(s, t)), ...them.map((x) => x.anh_ref[0]!), ...(oChung ? [oChung] : [])], tiLe: '9:16' });
+  const oChung = existsSync(`${thu}/so-${so}-chung.png`) ? (xem ? '(ô chung)' : await len(`${thu}/so-${so}-chung.png`, `${so}-chung`)) : null;
+  type Mau = { url: string; cau: (k: number) => string };
+  const ds2: Mau[] = [
+    ...(oChung ? [{ url: oChung, cau: (k: number) => `Reference image ${k} is this shot's panel from the SHARED SCENE SHEET (all shots of the scene drawn together): match its faces, hair, outfit details, props, lighting and colours exactly — the framing and positions still follow image 1.` }] : []),
+    ...co.map((t) => ({ url: anhCua(s, t), cau: (k: number) => `${t} looks exactly like reference image ${k} (same face and hair; the outfit follows reference image ${k} AND the wearing description above — the description wins on stains, badges and details).` })),
+    ...doTrong.map((t) => khac.find((x) => x.ten === t && x.anh_ref[0])).filter((x): x is NonNullable<typeof x> => !!x).map((x) => ({ url: x.anh_ref[0]!, cau: (k: number) => `Reference image ${k} shows ${x.ten} — draw it exactly like this.` })),
+    ...[khac.find((x) => x.loai === 'boi_canh' && x.anh_ref[0])].filter((x): x is NonNullable<typeof x> => !!x).map((x) => ({ url: x.anh_ref[0]!, cau: (k: number) => `Reference image ${k} is the location — match its walls, doors, materials and warm lighting (not its framing).` })),
+  ].slice(0, TRAN_MAU - 1);
+  const u1 = xem ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
+  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${ds2.map((m, k) => m.cau(k + 2)).join(' ')}`;
+  if (xem) return console.log(`---- #${so} (${ds2.length + 1} ảnh mẫu)\n${p}`);   // xem prompt, 0đ
+  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...ds2.map((m) => m.url)], tiLe: '9:16' });
   if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.loi}`);
   writeFileSync(`${thu}/so-${so}-that.png`, a.anh.data); console.log(`#${so}: ${await len(`${thu}/so-${so}-that.png`, `${so}-that`)}`);
 }

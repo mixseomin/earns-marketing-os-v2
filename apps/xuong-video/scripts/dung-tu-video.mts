@@ -21,7 +21,7 @@ const coTieng = (f: string) => execFileSync('ffprobe', ['-v', 'error', '-select_
 const tai = (u: string, f: string) => { if (!existsSync(f)) execFileSync('curl', ['-sfL', '-o', f, u]); return f; };
 const ngat = (t: string, n = 26) => { const o: string[] = []; let d = ''; for (const w of t.split(/\s+/)) { if ((d + ' ' + w).trim().length > n) { o.push(d); d = w; } else d = `${d} ${w}`.trim(); } if (d) o.push(d); return o; };
 
-const doan: string[] = [];
+const doan: string[] = []; const keTren: { tu: number; f: string }[] = []; let moc = 0;
 for (const [i, s] of b.shot.entries()) {
   const tep = [`noi-${s.so}c`, `noi-${s.so}`, `clip-${s.so}`, `tinh-${s.so}`, `so-${s.so}`].map((x) => `${thu}/${x}.mp4`).find(existsSync);
   if (!tep) { console.log(`#${s.so}: thiếu video — bỏ`); continue; }
@@ -37,14 +37,17 @@ for (const [i, s] of b.shot.entries()) {
   // tiếng: thoại (giữ tiếng clip) + lời kể + hiệu ứng, trên nền lặng đúng d giây
   const vaoTieng: string[] = []; const loc: string[] = [];
   if (thoai && coTieng(tep)) { vaoTieng.push('-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep); loc.push(`[${loc.length + 1}:a]anull`); }   // nhánh trơn phải có tên bộ lọc
-  const ke = s.ke ? nho[s.ke.replace(/\s*\(nháp\)\s*$/, '')] : null; if (ke) { vaoTieng.push('-i', tai(ke, `${tam}/ke-${s.so}.mp3`)); loc.push(`[${loc.length + 1}:a]adelay=100|100`); }
+  // LỜI KỂ không cắt theo shot (câu kể dài hơn shot thì tràn sang shot sau — L-cut): ghi mốc giây, trộn lên dòng thời gian chung ở cuối
+  const ke = s.ke ? nho[s.ke.replace(/\s*\(nháp\)\s*$/, '')] : null; if (ke) keTren.push({ tu: moc + 0.1, f: tai(ke, `${tam}/ke-${s.so}.mp3`) });
   const sfx = s.sfx ? new URL(`../public/sfx/${s.sfx}.mp3`, import.meta.url).pathname : null; if (sfx && existsSync(sfx)) { vaoTieng.push('-i', sfx); loc.push(`[${loc.length + 1}:a]volume=0.5`); }
   const a = `${tam}/a-${s.so}.wav`;
   const fc = loc.map((x, k) => `${x}[t${k}];`).join('') + `[0:a]${loc.map((_, k) => `[t${k}]`).join('')}amix=inputs=${loc.length + 1}:duration=first:normalize=0[a]`;
   sh(['-f', 'lavfi', '-t', d.toFixed(2), '-i', 'anullsrc=r=44100:cl=stereo', ...vaoTieng, '-filter_complex', fc, '-map', '[a]', '-t', d.toFixed(2), a]);
-  const m = `${tam}/m-${s.so}.mp4`; sh(['-i', v, '-i', a, '-c:v', 'copy', '-c:a', 'aac', '-shortest', m]); doan.push(m);
+  const m = `${tam}/m-${s.so}.mp4`; sh(['-i', v, '-i', a, '-c:v', 'copy', '-c:a', 'aac', '-shortest', m]); doan.push(m); moc += d;
   console.log(`#${s.so} ${d.toFixed(2)}s ← ${tep.split('/').pop()}`);
 }
 writeFileSync(`${tam}/ds.txt`, doan.map((x) => `file '${x}'`).join('\n'));
-sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/ds.txt`, '-c:v', 'libx264', '-crf', '19', '-c:a', 'aac', '-movflags', '+faststart', ra]);
+const ghep = keTren.length ? `${tam}/ghep.mp4` : ra;
+sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/ds.txt`, '-c:v', 'libx264', '-crf', '19', '-c:a', 'aac', '-movflags', '+faststart', ghep]);
+if (keTren.length) sh(['-i', ghep, ...keTren.flatMap((k) => ['-i', k.f]), '-filter_complex', `${keTren.map((k, j) => `[${j + 1}:a]adelay=${Math.round(k.tu * 1000)}|${Math.round(k.tu * 1000)}[k${j}];`).join('')}[0:a]${keTren.map((_, j) => `[k${j}]`).join('')}amix=inputs=${keTren.length + 1}:duration=first:normalize=0[a]`, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-movflags', '+faststart', ra]);
 console.log(ra, `${dai(ra).toFixed(1)}s`, `${doan.length} shot`);

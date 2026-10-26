@@ -507,6 +507,32 @@ const LOC_SOAT = ['duyet', 'xem', 'nloai', 'loi', 'meta', 'chua', 'all'] as cons
 type LocSoat = (typeof LOC_SOAT)[number];
 // tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
+// TAB 🏭 ĐANG SX: một bảng mọi món đang làm dở trước khi thành creative chạy (etp-doc dangSx) — bước, phim, lô, máy, từ lúc, ghi chú; lỗi lên đầu
+const MAU_SX: Record<string, string> = { 'Lỗi cắt góc': '#f87171', 'Đang cắt góc': '#9ecbff', 'Đang chấm (Cloudflare)': '#9ecbff' };
+function TabDangSx({ du }: { du: DuLieuEtp }) {
+  const router = useRouter();
+  useEffect(() => { const t = setInterval(() => router.refresh(), 15_000); return () => clearInterval(t); }, [router]);   // việc máy đang chạy — làm mới 15 giây
+  const dem = useMemo(() => { const m = new Map<string, number>(); for (const x of du.dangSx) m.set(x.buoc, (m.get(x.buoc) ?? 0) + 1); return [...m.entries()]; }, [du.dangSx]);
+  const tuLuc = (s: string | null) => { if (!s) return '—'; const t = Date.parse(s); if (Number.isNaN(t)) return s.slice(0, 11); const p = Math.max(0, Math.round((Date.now() - t) / 60000)); return p < 60 ? `${p} phút` : p < 1440 ? `${Math.floor(p / 60)}g${p % 60 ? String(p % 60).padStart(2, '0') : ''}` : `${Math.floor(p / 1440)} ngày`; };
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
+        <span><b style={{ fontSize: 18 }}>{du.dangSx.length}</b> đang sản xuất</span>
+        {dem.map(([b, n]) => <span key={b} style={{ color: MAU_SX[b] ?? 'var(--fg-1)' }}><b style={{ fontSize: 18 }}>{n}</b> {b.toLowerCase()}</span>)}
+      </div>
+      <DataTable rows={du.dangSx} getRowKey={(x) => x.khoa} persistKey="etp-sx" minWidth={900} pageSize={100} defaultSort={[{ key: 'buoc', dir: 'asc' }]}
+        searchText={(x) => `${x.phim ?? ''} ${x.content_id ?? ''} ${x.creative_id ?? ''} ${x.lo ?? ''} ${x.buoc}`} searchPlaceholder="Tìm phim, lô, creative…" columns={[
+          { key: 'buoc', header: 'Bước', align: 'left', cell: (x) => <span style={{ color: MAU_SX[x.buoc] ?? 'var(--fg-1)', whiteSpace: 'nowrap' }}>{x.buoc}</span>, sortValue: (x) => x.thu_tu * 1e12 - (Date.parse(x.luc ?? '') || 0) / 1e3 },
+          { key: 'phim', header: 'Phim', align: 'left', cell: (x) => <span title={x.phim ?? ''}>{(x.phim ?? (x.content_id ? `phim #${x.content_id}` : '—')).slice(0, 60)}</span>, sortValue: (x) => x.phim ?? '' },
+          { key: 'id', header: 'Phim · creative', cell: (x) => <span style={{ fontSize: 11 }}>{x.content_id ? `#${x.content_id}` : ''}{x.creative_id ? ` cr #${x.creative_id}` : ''}</span>, sortValue: (x) => x.content_id ?? x.creative_id ?? 0 },
+          { key: 'lo', header: 'Lô', cell: (x) => <span style={{ fontSize: 11 }}>{x.lo ?? '—'}</span>, sortValue: (x) => x.lo ?? '' },
+          { key: 'may', header: 'Máy', cell: (x) => <span style={{ fontSize: 11 }}>{x.may ?? '—'}</span>, sortValue: (x) => x.may ?? '' },
+          { key: 'luc', header: 'Từ lúc', title: 'đang làm: từ lúc bắt đầu · chờ: từ lúc xếp hàng', cell: (x) => <span style={{ fontSize: 11 }} title={x.luc ?? ''}>{tuLuc(x.luc)}</span>, sortValue: (x) => Date.parse(x.luc ?? '') || 0 },
+          { key: 'ghi', header: 'Ghi chú', align: 'left', cell: (x) => <span style={{ fontSize: 11, color: x.loi ? '#f87171' : 'var(--fg-2)' }} title={x.ghi ?? ''}>{(x.ghi ?? '').slice(0, 90)}</span> }]} />
+    </div>
+  );
+}
+
 function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
   // ô lọc lên URL (anh 26/10/2026 "tab này cũng phải cho lên url"): ?t=creative&v=soat&l=<lọc> — mặc định 'loi' thì bỏ khỏi URL; link Telegram ?l=duyet vẫn chạy
   const [loc, setLoc] = useState<LocSoat>(() => { const l = typeof location !== 'undefined' ? new URL(location.href).searchParams.get('l') : null; return (LOC_SOAT as readonly string[]).includes(l ?? '') ? (l as LocSoat) : 'loi'; });
@@ -818,7 +844,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   // tab + kiểu xem lấy từ URL ngay lần vẽ đầu (máy chủ truyền vào) — F5 giữ nguyên chỗ đang xem
   const [tab, setTab] = useState<Tab>(TABS.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
   const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : 'chay');   // ?l= lọc camp
-  const [xemSoat, setXemSoat] = useState(dauVao?.v === 'soat');   // tab Creative: Hiệu quả | Soát (?v=soat)
+  // tab Creative: Hiệu quả | 🛡 Quét nội dung (?v=soat) | 🏭 Đang sx (?v=sx — anh 26/10/2026 "Thêm 1 tab là Đang sx")
+  const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
   const [xemCamp, setXemCamp] = useState<'cay' | 'bang' | 'lich'>(dauVao?.v === 'bang' || dauVao?.v === 'lich' ? dauVao.v : 'cay');   // + Lịch giờ (anh 25/10/2026)   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
   const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
   useEffect(() => { const mq = window.matchMedia('(max-width: 720px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
@@ -829,9 +856,9 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   // KHÔNG GHI ĐÈ URL LÚC VỪA MỞ (anh 25/10/2026: "bấm sang lịch rồi khi mày sửa lại tự quay về v=cay" — lúc deploy, bản cũ chưa biết v=lich rơi về Cây rồi ghi đè URL):
   // lượt đầu chỉ ghi khi URL chưa có v (kiểu xem lấy từ localStorage); từ đó chỉ ghi khi anh bấm đổi — bản nào không hiểu một giá trị v cũng để nguyên URL
   const ghiLanDau = useRef(false);
-  useEffect(() => { if (!daDoc) return; if (!ghiLanDau.current) { ghiLanDau.current = true; if (new URL(location.href).searchParams.get('v')) return; } const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCamp); else if (tab === 'creative' && xemSoat) u.searchParams.set('v', 'soat'); else u.searchParams.delete('v');
+  useEffect(() => { if (!daDoc) return; if (!ghiLanDau.current) { ghiLanDau.current = true; if (new URL(location.href).searchParams.get('v')) return; } const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCamp); else if (tab === 'creative' && xemCr !== 'hq') u.searchParams.set('v', xemCr); else u.searchParams.delete('v');
     if (tab === 'camp' && loc !== 'chay') u.searchParams.set('l', loc); else if (!(tab === 'creative' && xemSoat)) u.searchParams.delete('l'); history.replaceState(history.state, '', u);   // Quét nội dung tự giữ ?l= (TabSoat)
-    try { localStorage.setItem('etp-camp-xem', xemCamp); } catch { /* trình duyệt chặn */ } }, [tab, xemCamp, xemSoat, loc, daDoc]);
+    try { localStorage.setItem('etp-camp-xem', xemCamp); } catch { /* trình duyệt chặn */ } }, [tab, xemCamp, xemCr, xemSoat, loc, daDoc]);
   const [kh, setKh] = useState<Kh>('7');
   const dinhRef = useRef<HTMLDivElement>(null);
   useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => document.documentElement.style.setProperty('--etp-dinh', `${el.offsetHeight}px`); dat();
@@ -944,9 +971,9 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           </span>) : null}
         {tab === 'creative' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            {([[false, 'Hiệu quả', 'lãi, ROI, chi theo ngày'], [true, '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí']] as const).map(([v, nhan, t]) => (
-              <button key={nhan} onClick={() => setXemSoat(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
-                background: xemSoat === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemSoat === v ? 600 : 400 }}>{nhan}</button>))}
+            {([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm']] as const).map(([v, nhan, t]) => (
+              <button key={nhan} onClick={() => setXemCr(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
+                background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}
         {tab === 'camp' && xemCamp !== 'lich' ? <FilterChips value={loc} onChange={setLoc} counts={{ all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > 3).length, roas: roasDat.size }}
           options={[{ value: 'chay', label: 'Đang chạy' }, { value: 'cho', label: 'Chờ giờ chạy' }, { value: 'tat', label: 'Đã tắt' }, { value: 'gtang', label: '⇡ Gần tăng' }, { value: 'ggiam', label: '⇣ Gần giảm' }, { value: 'gtat', label: '✕ Gần tắt' }, { value: 'cung', label: 'Đoạn > 3 camp' }, { value: 'roas', label: '★ Đủ bid ROAS' }, { value: 'all', label: 'Tất cả' }]} /> : null}
@@ -977,6 +1004,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" />
       ) : tab === 'creative' && xemSoat ? (
         <TabSoat du={du} anh={anh} />
+      ) : tab === 'creative' && xemCr === 'sx' ? (
+        <TabDangSx du={du} />
       ) : tab === 'creative' ? (
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} groupHeader getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />

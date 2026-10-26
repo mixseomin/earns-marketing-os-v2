@@ -13,7 +13,7 @@ def q(s):
     return r.stdout.strip()
 
 def mot(cr, video):
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(dir="/var/tmp") as d:   # /tmp trên box3 là tmpfs 512 MB — video dài không vừa (#52487 26/10/2026)
         goc, ra = os.path.join(d, "goc.mp4"), os.path.join(d, "nhe.mp4")
         urllib.request.urlretrieve(video, goc)
         for crf in (28, 32, 36):   # tới khi < 95 MB

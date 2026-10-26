@@ -100,11 +100,17 @@ async function chamMot(env: Env, v0: Viec, tc: TieuChi[], mau: Mau | null) {
   const cr = v.creative_id, key = `tam/${cr}.mp4`, loi: string[] = [];
   await bao(env, cr, 'tải video vào kho tạm Cloudflare');
   const lop: Record<string, unknown> = {};
-  // video tạm vào R2 MỘT lần (mỗi lượt Media binding cần luồng mới — cắt từ R2, không kéo lại từ box3)
-  const r = await fetch(v.video); const dai = Number(r.headers.get('content-length') ?? 0);
-  if (!r.ok || !r.body || !dai) throw new Error(`không tải được video (${r.status})`);
-  if (dai >= 100 * 1048576) { r.body.cancel(); throw new Error(`video ${(dai / 1048576).toFixed(0)} MB vượt giới hạn 100 MB của Cloudflare (cần bản xem nhẹ)`); }
-  const { readable, writable } = new FixedLengthStream(dai); r.body.pipeTo(writable); await env.R2.put(key, readable);
+  // BẢN XEM NHẸ (apps/etp/cham-nhe.py trên box3 dựng 720p khi video > 100 MB / không cắt được khung, đẩy vào R2 nhe/<id>.mp4) — có thì dùng thay bản gốc
+  const nhe = await env.R2.head(`nhe/${cr}.mp4`);
+  let dai: number;
+  if (nhe) { const o = await env.R2.get(`nhe/${cr}.mp4`); dai = nhe.size; await env.R2.put(key, o!.body); await bao(env, cr, `dùng bản xem nhẹ ${(dai / 1048576).toFixed(0)} MB`); }
+  else {
+    // video tạm vào R2 MỘT lần (mỗi lượt Media binding cần luồng mới — cắt từ R2, không kéo lại từ box3)
+    const r = await fetch(v.video); dai = Number(r.headers.get('content-length') ?? 0);
+    if (!r.ok || !r.body || !dai) throw new Error(`không tải được video (${r.status})`);
+    if (dai >= 100 * 1048576) { r.body.cancel(); throw new Error(`video ${(dai / 1048576).toFixed(0)} MB vượt giới hạn 100 MB của Cloudflare (cần bản xem nhẹ)`); }
+    const { readable, writable } = new FixedLengthStream(dai); r.body.pipeTo(writable); await env.R2.put(key, readable);
+  }
   const that = await doDaiMp4(env, key, dai); if (that && that > 1) v = { ...v, dur: that };
   await bao(env, cr, `đã tải video ${(dai / 1048576).toFixed(0)} MB · dài ${v.dur.toFixed(0)}s · cắt ${SO_KHUNG} khung`);
   try {
@@ -182,6 +188,13 @@ export default {
     // khung đã cắt — trang etp.on.tc hiện khi rê chuột (ảnh khung quảng cáo, không bí mật)
     const m = u.pathname.match(/^\/khung\/(\d+)\/(\d+)\.jpg$/);
     if (m) { const o = await env.R2.get(`khung/${m[1]}/${m[2]}.jpg`); return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=31536000' } }) : new Response('không có', { status: 404 }); }
+    // nhận BẢN XEM NHẸ từ box3 (apps/etp/cham-nhe.py, khoá MOS2_EXT_KEY sẵn trên box3): PUT /nhe/<creative_id> thân = mp4 720p
+    const n = u.pathname.match(/^\/nhe\/(\d+)$/);
+    if (n && req.method === 'PUT') {
+      if (req.headers.get('authorization') !== `Bearer ${env.MOS2_EXT_KEY}`) return new Response('cấm', { status: 403 });
+      const dai = Number(req.headers.get('content-length') ?? 0); if (!dai || dai >= 100 * 1048576 || !req.body) return new Response('cỡ tệp sai', { status: 400 });
+      await env.R2.put(`nhe/${n[1]}.mp4`, req.body, { httpMetadata: { contentType: 'video/mp4' } }); return Response.json({ ok: true, dai });
+    }
     if (req.headers.get('authorization') !== `Bearer ${env.KHOA_THU}`) return new Response('cấm', { status: 403 });
     if (u.pathname === '/chay') return Response.json(await chay(env, Number(u.searchParams.get('so') ?? 1)));
     return new Response('?', { status: 404 });

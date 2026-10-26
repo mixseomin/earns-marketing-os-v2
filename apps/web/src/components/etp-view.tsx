@@ -308,7 +308,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
   const tt = (c: CampEtpKho) => (c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ giờ · ${vn(c.lich)}` : 'Đang chạy');
   const tu = (c: CampEtpKho) => tong.get(c.camp_id) ?? { chi: 0, thu: 0 };
   const cotRoas: DataColumn<CampEtpKho>[] = [
-    { ...cot[0], cell: (c) => reCamp(c, cot[0].cell(c)) },
+    { ...cot[0]!, cell: (c, i) => reCamp(c, cot[0]!.cell(c, i)) },
     { key: 'muc', header: 'ROAS bid', title: 'ROAS goal THẬT đang đặt trên Ethopex (Ad Set bid_constraints, kho etp đồng bộ 10 phút) — đỏ = khác mức ghi trong tên camp hoặc camp không còn bid ROAS',
       cell: (c) => { const ten = muc(c)?.[1], lech = c.roas == null || (ten != null && Math.abs(Number(ten) - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
         return <b style={{ color: lech ? '#f87171' : undefined }} title={`${c.chien_luoc ?? 'chưa đồng bộ'} · tên camp ghi ${ten ?? '—'}`}>{c.roas == null ? (ten ? `${ten}?` : '—') : c.roas}</b>; },
@@ -324,7 +324,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
     <div>
       <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ một luật: chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt.</div>
       <DataTable rows={camps} columns={cotRoas} groups={nhom} groupHeader getRowKey={(c) => String(c.camp_id)} persistKey="etp-roas" minWidth={1300} defaultSort={[{ key: 'tao', dir: 'desc' }]}
-        searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" emptyText="Chưa có camp ROAS nào." />
+        searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" />
       {noi.v && dang ? (
         <KhungNoi x={noi.v.x} y={noi.v.y} rong={760} cao={460} noi={noi} style={{ padding: 12, width: 760, display: 'flex', gap: 16 }}>
           <CotCampNoi c={dang} nhan="★ Camp ROAS" du={du} anh={anh} bid={<b>ROAS bid {dang.roas ?? `${muc(dang)?.[1] ?? '?'}?`}</b>} />
@@ -332,7 +332,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
           <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
         </KhungNoi>) : null}
       <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="Support: chi ≥ $100 mà ROI > 50% ổn định 2–3 ngày → nhân bản 2–3 camp bid ROAS">Ứng viên lên ROAS</h3>
-      <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'chi', dir: 'desc' }]} emptyText="Chưa có camp đủ tiêu chí." columns={[
+      <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'chi', dir: 'desc' }]} columns={[
         { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.chi >= 100 ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
         { key: 'ns', header: 'Ngân sách', cell: (r) => `$${r.ngan_sach}`, sortValue: (r) => r.ngan_sach },
         { key: 'chi', header: 'Chi 30 ngày', title: 'đủ khi ≥ $100', cell: (r) => <span style={{ color: r.chi >= 100 ? '#4ade80' : r.chi >= 70 ? '#f59e0b' : undefined }}><Tien v={r.chi} /></span>, sortValue: (r) => r.chi },
@@ -466,9 +466,10 @@ function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => 
   const dang = tat.filter((x) => x.h.trang_thai === 'dang');
   const cho = tat.filter((x) => x.h.trang_thai === 'cho').length;
   const vua = tat.filter((x) => x.h.trang_thai === 'xong' || x.h.trang_thai === 'loi').sort((a, b) => (b.h.xong ?? b.h.luc).localeCompare(a.h.xong ?? a.h.luc));
-  const hien = [...dang, ...vua.slice(0, 3)];
+  const thuLai = tat.filter((x) => x.h.trang_thai === 'cho' && (x.h.buoc === 'chờ thử lại' || x.h.buoc === 'đã có bản xem nhẹ'));   // máy đang tự xử lỗi (thử lại / bản xem nhẹ)
+  const hien = [...dang, ...thuLai, ...vua.slice(0, 3)];
   const MAU: Record<string, string> = { dang: '#9ecbff', cho: '#f59e0b', xong: '#4ade80', loi: '#f87171' };
-  const CHU: Record<string, string> = { dang: 'đang chấm', cho: 'đang chờ', xong: 'xong', loi: 'lỗi' };
+  const CHU: Record<string, string> = { dang: 'đang chấm', cho: 'chờ thử lại', xong: 'xong', loi: 'lỗi' };
   const mo = noi.v ? tat.find((x) => x.id === noi.v!.id) : undefined;
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 10px', margin: '4px 0 12px', fontSize: 12 }}>

@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   const viec = (await db.execute(sql`with nhan as (
       update etp.cham_hang set trang_thai = 'dang', bat_dau = now(), buoc = 'Cloudflare nhận việc', nhat_ky = jsonb_build_array(jsonb_build_object('b', 'Cloudflare nhận việc', 'luc', now())) where creative_id in (
         select h.creative_id from etp.cham_hang h join etp.creative c on c.creative_id = h.creative_id and c.video is not null
-        where h.trang_thai = 'cho' order by (h.nguon = 'nut') desc, h.luc limit ${so} for update of h skip locked)
+        where h.trang_thai = 'cho' and (h.thu_lai_luc is null or h.thu_lai_luc <= now()) order by (h.nguon = 'nut') desc, h.luc limit ${so} for update of h skip locked)
       returning creative_id)
     select c.creative_id, c.video, coalesce(c.den - c.tu, 85) + 4 dur, c.doan, p.ten phim
     from nhan join etp.creative c using (creative_id) left join etp.phim p on p.content_id = c.content_id`)) as unknown as ViecCham[];
@@ -59,6 +59,16 @@ export async function POST(req: Request) {
         ly_do = excluded.ly_do, khung = excluded.khung, meta = excluded.meta, afs = excluded.afs, ket = excluded.ket, loi = excluded.loi`);
   }
   const xong = !!(b.lop && b.diem);   // một lớp lỗi (vd giọng) vẫn có bản chấm — lỗi ghi kèm, cột lớp đó hiện "–"
+  // LỖI TẠM THỜI → TỰ THỬ LẠI (anh 26/10/2026: "Lỗi thì phải có cách xử lý chứ mày cứ để mãi ở đấy?"): mất mạng, Cloudflare lỗi nội bộ, đường Claude lỗi, mos2 5xx…
+  // xếp lại hàng chờ, giãn 5 / 15 / 45 phút, tối đa 3 lần. Lỗi do VIDEO (> 100 MB, không cắt được khung) không thử lại ở đây — apps/etp/cham-nhe.py dựng bản xem nhẹ rồi xếp lại.
+  const loiVideo = /vượt giới hạn 100 MB|cắt được \d+\/\d+ khung|không tải được video \(4|không có trong kho/.test(b.loi ?? '');
+  if (!xong && !loiVideo) {
+    const r = (await db.execute(sql`update etp.cham_hang set trang_thai = 'cho', bat_dau = null, lan_thu = lan_thu + 1, thu_lai_luc = now() + make_interval(mins => (5 * power(3, lan_thu))::int),
+        loi = ${b.loi ?? null}, buoc = 'chờ thử lại',
+        nhat_ky = nhat_ky || jsonb_build_array(jsonb_build_object('b', 'lỗi tạm thời, tự thử lại lần ' || (lan_thu + 1) || ' lúc ' || to_char((now() + make_interval(mins => (5 * power(3, lan_thu))::int)) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') || ': ' || ${(b.loi ?? '').slice(0, 120)}::text, 'luc', now()))
+      where creative_id = ${id} and lan_thu < 3 returning creative_id`)) as unknown as unknown[];
+    if (r.length) return NextResponse.json({ ok: true, thu_lai: true });
+  }
   await db.execute(sql`update etp.cham_hang set trang_thai = ${xong ? 'xong' : 'loi'}, xong = now(), loi = ${b.loi ?? null}, buoc = ${xong ? 'xong' : 'lỗi'},
     nhat_ky = nhat_ky || jsonb_build_array(jsonb_build_object('b', ${xong ? `xong · ${b.ket ?? ''} · Meta ${b.meta ?? '–'} · AFS ${b.afs ?? '–'}` : `lỗi: ${(b.loi ?? '').slice(0, 150)}`}::text, 'luc', now())) where creative_id = ${id}`);
   return NextResponse.json({ ok: true });

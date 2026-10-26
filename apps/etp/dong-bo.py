@@ -207,6 +207,11 @@ def main():
     l_ = "; ".join(loi)[:1000].replace("$L$", "")
     q(f"update etp.dong_bo set xong = now(), so_camp = {kq['so_camp']}, so_chi_tiet = {kq['so_chi_tiet']}, so_dong_ngay = {kq['so_dong_ngay']}, loi = {('$L$' + l_ + '$L$') if loi else 'null'} where lan = {lan}")
     print(json.dumps({**kq, "loi": loi}, ensure_ascii=False))
+    # ── BẢN XEM NHẸ cho creative chấm lỗi vì video (anh 26/10/2026 "lỗi thì phải có cách xử lý") — cham-nhe.py, tối đa 1 creative / lượt
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cham-nhe.py")], capture_output=True, text=True, timeout=540)
+        if (r.stdout or r.stderr).strip(): print((r.stdout + r.stderr).strip()[-300:])
+    except Exception as e: print(f"cham-nhe: {e}")
     r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "canh-bao.py")], capture_output=True, text=True, timeout=120)   # bước 3: cảnh báo bất thường
     print((r.stdout or r.stderr).strip()[-300:])
 

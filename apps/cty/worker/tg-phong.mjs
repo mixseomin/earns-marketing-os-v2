@@ -149,10 +149,14 @@ export async function gomTin(tg, { cho = 0 } = {}) {   // cho = giây chờ tin 
       if (d?.hoi) tinNhanh(d.hoi);   // câu "ok"/"ko" anh gõ để duyệt — xong việc thì dọn như tin nhanh
       if (d) x = { update_id: x.update_id, callback_query: { id: null, data: d.nut.callback_data, from: d.from, tu_chu: true, message: { message_id: d.mid, message_thread_id: d.topic, reply_markup: { inline_keyboard: d.kb } } } };
       if (x.message_reaction) { offset = x.update_id + 1; continue; }   // cảm xúc không phải đồng ý / từ chối trên tin có nút → bỏ
+      // NÚT CỐ ĐỊNH 📊 Report dưới ô nhập (bàn phím trả lời bền — anh 26/10/2026 "có thêm nút cố định ở đây đc ko"): bấm = gửi chữ "📊 Report"
+      // → đổi thành nút eb:report vào hộp ethopex-bang (dịch vụ nghe xử ngay, cùng đường nút 📊 Report dưới tin báo cáo giờ); tin chữ đó dọn như tin nhanh
+      if (x.message && !x.message.from?.is_bot && String(x.message.text ?? '').trim() === '📊 Report') {
+        tinNhanh(x.message.message_id); x = { update_id: x.update_id, callback_query: { id: null, data: 'eb:report', ban_phim: true, from: x.message.from, message: { message_id: x.message.message_id, message_thread_id: x.message.message_thread_id } } }; }
       const phong = (x.callback_query && NUT_CUA[String(x.callback_query.data ?? '').split(':')[0]]) ?? phongCuaTopic(topicCua(x)) ?? KHAC;
       // ĐÃ NHẬN ngay khi gom (≤ 1 phút), không đợi nhịp của phòng (Ethopex 30 phút): nút anh bấm đổi thành "⏳ … — đã nhận, đang xử" và không bấm
       // lại được (tránh tăng ngân sách hai lần). Kết quả thành / bại do phòng sở hữu nút báo khi xử xong (anh 21/10/2026: "bấm không có tác dụng gì").
-      if (x.callback_query) try { await daNhanNut(tg, x.callback_query, banPhim); } catch { /* đánh dấu hỏng không chặn việc xếp hộp */ }
+      if (x.callback_query && !x.callback_query.ban_phim) try { await daNhanNut(tg, x.callback_query, banPhim); } catch { /* đánh dấu hỏng không chặn việc xếp hộp */ }
       fs.mkdirSync(HOP(phong), { recursive: true }); fs.writeFileSync(path.join(HOP(phong), `${x.update_id}.json`), JSON.stringify(x));
       offset = x.update_id + 1; n++;
     }

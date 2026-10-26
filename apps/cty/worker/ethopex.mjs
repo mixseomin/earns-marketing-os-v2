@@ -274,7 +274,7 @@ export async function xuNutBang(tg) {
   const { moHop } = await import('./tg-phong.mjs'); let n = 0;
   for (const x of moHop('ethopex-bang')) { x.xong(); const c = x.callback_query; if (!c) continue;
     // 📊 Report (anh 26/10/2026: "Trên topic nếu có 1 nút kiểu Report, bấm cái là phải sinh được report") — nút nằm dưới mọi tin BÁO CÁO GIỜ (apps/etp/lich-gio.py)
-    if (c.data === 'eb:report') { await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đang lập report…' });
+    if (c.data === 'eb:report') { if (c.id) await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đang lập report…' });
       try { await chay(LICH, ['--bao-cao'], 60); } catch (e) { await tg('sendMessage', { message_thread_id: c.message?.message_thread_id, text: `⚠️ Report lỗi: ${String(e.message).slice(0, 200)}` }); }
       n++; continue; }
     await bangEthopex(tg, { ep: true }); n++; }

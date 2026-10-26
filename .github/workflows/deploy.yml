@@ -125,18 +125,20 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
       # Gửi + bung + deploy trong MỘT phiên ssh. Lượt không dựng app nào (chỉ sửa deploy.sh/deploy/) thì không có tarball.
+      # Tarball + chỗ bung ở /var/tmp/mos2-deploy (đĩa), KHÔNG /tmp: /tmp của box3 là tmpfs 512M, các phiên khác hay lấp đầy → deploy hỏng "No space left" (26/10/2026).
       - name: Ship + server-side deploy (migrations + swap + restart)
         run: |
-          if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz; scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/tmp/; else echo "↺ không app nào dựng lượt này"; fi
+          if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz; ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} "mkdir -p /var/tmp/mos2-deploy"; scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/var/tmp/mos2-deploy/; else echo "↺ không app nào dựng lượt này"; fi
           ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
             set -e
             for a in web store xuong-video cty; do
-              [ -f "/tmp/$a.tar.gz" ] || { echo "↺ $a: không build lượt này"; continue; }
+              [ -f "/var/tmp/mos2-deploy/$a.tar.gz" ] || { echo "↺ $a: không build lượt này"; continue; }
               mkdir -p "/opt/earns-marketing-os-v2/apps/$a" && cd "/opt/earns-marketing-os-v2/apps/$a"
-              rm -rf .next.new "/tmp/b-$a" && mkdir -p .next.new "/tmp/b-$a"
-              tar -xzf "/tmp/$a.tar.gz" -C "/tmp/b-$a/"
-              mv "/tmp/b-$a/.next/"* .next.new/
-              rm -rf "/tmp/b-$a" "/tmp/$a.tar.gz"
+              B="/var/tmp/mos2-deploy/b-$a"
+              rm -rf .next.new "$B" && mkdir -p .next.new "$B"
+              tar -xzf "/var/tmp/mos2-deploy/$a.tar.gz" -C "$B/"
+              mv "$B/.next/"* .next.new/
+              rm -rf "$B" "/var/tmp/mos2-deploy/$a.tar.gz"
               echo "✓ $a: đã gửi bản mới"
             done
             SKIP_BUILD=1 /opt/earns-marketing-os-v2/deploy.sh

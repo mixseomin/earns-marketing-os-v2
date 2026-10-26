@@ -272,18 +272,48 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
 }
 
 // TAB ★ ROAS: bảng camp bid ROAS (cột Camp chung + Mức ROAS · nhân từ · từ lúc lên · trạng thái) + ứng viên đủ tiêu chí lên ROAS
-function TabRoas({ camps, tong, ungVien, cot, nhom }: { camps: CampEtpKho[]; tong: Map<number, DuLieuEtp['roasChay'][number]>; ungVien: DuLieuEtp['roas'];
-  cot: DataColumn<CampEtpKho>[]; nhom: { key: string; label: string; color: string }[] }) {
+// THẺ CHI TIẾT KHI RÊ (anh 26/10/2026: "xem được chi tiết camp khi hover vào — cả camp gốc lẫn camp ROAS"): hai cột cạnh nhau, cùng khuôn —
+// trạng thái · ngân sách · bid · lịch · số hôm nay / hôm qua / tháng / từ lúc lên · bảng từng ngày (kho etp.so_ngay) để so camp ROAS với bài gốc của nó.
+function CotCampNoi({ c, nhan, du, bid, anh }: { c: CampEtpKho | undefined; nhan: string; du: DuLieuEtp; bid?: React.ReactNode; anh: (cr: number | null) => React.ReactNode }) {
+  if (!c) return <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)' }}><b>{nhan}</b><div>Không có trong kho etp (camp đã lưu trữ).</div></div>;
+  const ngay = du.soNgay.filter((r) => r.c === c.camp_id && (r.chi > 0 || r.thu > 0)).sort((a, b) => (a.d < b.d ? 1 : -1));
+  const tong = ngay.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
+  const dong = (ten: string, x: SoTien) => { const v = roiOf(x); return (
+    <tr key={ten}><td style={{ color: 'var(--fg-2)', paddingRight: 8 }}>{ten}</td><td style={{ textAlign: 'right' }}>{usd(x.chi)}</td><td style={{ textAlign: 'right' }}>{usd(x.thu)}</td>
+      <td style={{ textAlign: 'right', color: x.thu - x.chi >= 0 ? '#4ade80' : '#f87171' }}>{usd(x.thu - x.chi)}</td>
+      <td style={{ textAlign: 'right', fontWeight: 600, color: v == null ? 'var(--fg-2)' : v >= 30 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171' }}>{v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`}</td></tr>); };
+  return (
+    <div style={{ flex: 1, minWidth: 0, fontSize: 12 }}>
+      <div style={{ fontSize: 11, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{nhan}</div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0 6px' }}>{anh(c.creative_id)}
+        <div style={{ minWidth: 0 }}><b>#{c.camp_id}</b> <span style={{ color: c.trang_thai === 'ACTIVE' ? (choGio(c) ? '#f59e0b' : '#4ade80') : 'var(--fg-2)' }}>{c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ giờ · ${vn(c.lich)}` : 'Đang chạy'}</span>
+          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.ten}>{c.ten}</div></div></div>
+      <div style={{ color: 'var(--fg-2)', marginBottom: 6 }}>${c.ngan_sach}/ngày · {bid ?? (c.chien_luoc ? c.chien_luoc.replace('LOWEST_COST_', '').toLowerCase() : 'bid thường')} · bộ {c.bo ?? '—'} · tạo {vn(c.tao)}{c.phim ? ` · ${c.phim}` : ''}</div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>
+        <thead><tr style={{ color: 'var(--fg-2)' }}><th /><th style={{ textAlign: 'right' }}>Chi</th><th style={{ textAlign: 'right' }}>Thu</th><th style={{ textAlign: 'right' }}>Lãi</th><th style={{ textAlign: 'right' }}>ROI</th></tr></thead>
+        <tbody>{dong('Hôm nay', c.nay)}{dong('Hôm qua', c.qua)}{dong('Tháng này', c.thang)}{dong('Từ 19/10', tong)}
+          {ngay.slice(0, 7).map((r) => dong(`${r.d.slice(8, 10)}/${r.d.slice(5, 7)}`, r))}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpKho[]; tong: Map<number, DuLieuEtp['roasChay'][number]>; ungVien: DuLieuEtp['roas'];
+  cot: DataColumn<CampEtpKho>[]; nhom: { key: string; label: string; color: string }[]; du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
   const muc = (c: CampEtpKho) => (c.ten ?? '').match(/roas ([\d.]+) duplicate by (\d+)/);
+  const theoId = useMemo(() => new Map(du.camps.map((c) => [c.camp_id, c])), [du.camps]);
+  const noi = useNoi<{ id: number }>();
+  const reCamp = (c: CampEtpKho, nd: React.ReactNode) => <span onMouseEnter={(e) => noi.mo({ id: c.camp_id }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help' }}>{nd}</span>;
+  const dang = noi.v ? theoId.get(noi.v.id) : undefined, gocId = dang ? Number(muc(dang)?.[2] ?? 0) : 0;
   const tt = (c: CampEtpKho) => (c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ giờ · ${vn(c.lich)}` : 'Đang chạy');
   const tu = (c: CampEtpKho) => tong.get(c.camp_id) ?? { chi: 0, thu: 0 };
   const cotRoas: DataColumn<CampEtpKho>[] = [
-    cot[0],
+    { ...cot[0], cell: (c) => reCamp(c, cot[0].cell(c)) },
     { key: 'muc', header: 'ROAS bid', title: 'ROAS goal THẬT đang đặt trên Ethopex (Ad Set bid_constraints, kho etp đồng bộ 10 phút) — đỏ = khác mức ghi trong tên camp hoặc camp không còn bid ROAS',
       cell: (c) => { const ten = muc(c)?.[1], lech = c.roas == null || (ten != null && Math.abs(Number(ten) - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
         return <b style={{ color: lech ? '#f87171' : undefined }} title={`${c.chien_luoc ?? 'chưa đồng bộ'} · tên camp ghi ${ten ?? '—'}`}>{c.roas == null ? (ten ? `${ten}?` : '—') : c.roas}</b>; },
       sortValue: (c) => c.roas ?? Number(muc(c)?.[1] ?? 0) },
-    { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => <span>#{muc(c)?.[2] ?? '—'}</span>, sortValue: (c) => Number(muc(c)?.[2] ?? 0) },
+    { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => reCamp(c, <span style={{ textDecoration: 'underline dotted' }}>#{muc(c)?.[2] ?? '—'}</span>), sortValue: (c) => Number(muc(c)?.[2] ?? 0) },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (c) => <span style={{ fontSize: 12, color: c.trang_thai !== 'ACTIVE' ? 'var(--fg-2)' : choGio(c) ? '#f59e0b' : '#4ade80' }}>{tt(c)}</span>, sortValue: (c) => tt(c) },
     ...cot.slice(1).filter((k) => k.key !== 'tuoi'),
     { key: 'tuchi', header: 'Chi từ lúc lên', cell: (c) => <Tien v={tu(c).chi} />, sortValue: (c) => tu(c).chi, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).chi, 0)} /> },
@@ -295,6 +325,12 @@ function TabRoas({ camps, tong, ungVien, cot, nhom }: { camps: CampEtpKho[]; ton
       <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ một luật: chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt.</div>
       <DataTable rows={camps} columns={cotRoas} groups={nhom} groupHeader getRowKey={(c) => String(c.camp_id)} persistKey="etp-roas" minWidth={1300} defaultSort={[{ key: 'tao', dir: 'desc' }]}
         searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" emptyText="Chưa có camp ROAS nào." />
+      {noi.v && dang ? (
+        <KhungNoi x={noi.v.x} y={noi.v.y} rong={760} cao={460} noi={noi} style={{ padding: 12, width: 760, display: 'flex', gap: 16 }}>
+          <CotCampNoi c={dang} nhan="★ Camp ROAS" du={du} anh={anh} bid={<b>ROAS bid {dang.roas ?? `${muc(dang)?.[1] ?? '?'}?`}</b>} />
+          <div style={{ width: 1, background: 'var(--line)' }} />
+          <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
+        </KhungNoi>) : null}
       <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="Support: chi ≥ $100 mà ROI > 50% ổn định 2–3 ngày → nhân bản 2–3 camp bid ROAS">Ứng viên lên ROAS</h3>
       <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'chi', dir: 'desc' }]} emptyText="Chưa có camp đủ tiêu chí." columns={[
         { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.chi >= 100 ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
@@ -885,7 +921,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
             { key: 'tat', header: 'Camp tắt', title: 'camp máy / anh tắt trong ngày (nhật ký luật)', cell: (r) => (r.tat ? <span style={{ color: '#f87171' }}>{r.tat}</span> : '—'), sortValue: (r) => r.tat, total: (rs) => String(rs.reduce((a, r) => a + r.tat, 0)) }]} />
         </div>
       ) : tab === 'roas' ? (
-        <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} />
+        <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (

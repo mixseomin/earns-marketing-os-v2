@@ -414,8 +414,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
   // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ). Luật ROAS KHÔNG đi đường này — xem khối ★ ROAS bên dưới (anh: báo riêng, anh tự quyết).
   const LUAT_TAT = [
-    { khoa: 'tat7', tep: 'ethopex-tat7.json', ten: 'LUẬT T7', mo_ta: 'luật T7: 7 ngày đã khép lãi &lt; $1 (anh 26/10), &gt; 3 ngày có chi, chi &gt; $5',
-      luat: 'T7 (7 ngày đã khép lãi < $1, > 3 ngày bật, chi > $5)', ai: 'anh (chat 26/10/2026: thêm và áp dụng luật T7, tắt đủ danh sách) — máy chạy' },
+    { khoa: 'tat7', tep: 'ethopex-tat7.json', ten: 'LUẬT T7', mo_ta: 'luật T7: 7 ngày đã khép lãi &lt; −$1 (anh 26/10), &gt; 3 ngày có chi, chi &gt; $5',
+      luat: 'T7 (7 ngày đã khép lãi < −$1, > 3 ngày bật, chi > $5)', ai: 'anh (chat 26/10/2026: thêm và áp dụng luật T7, tắt đủ danh sách) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);

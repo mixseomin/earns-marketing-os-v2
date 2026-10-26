@@ -497,11 +497,14 @@ function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => 
     </div>
   );
 }
-type LocSoat = 'duyet' | 'loi' | 'xem' | 'meta' | 'chua' | 'all';
+const LOC_SOAT = ['duyet', 'loi', 'xem', 'meta', 'chua', 'all'] as const;
+type LocSoat = (typeof LOC_SOAT)[number];
 // tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
 function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
-  const [loc, setLoc] = useState<LocSoat>(() => (typeof location !== 'undefined' && new URL(location.href).searchParams.get('l') === 'duyet' ? 'duyet' : 'loi'));   // link tin Telegram: ?t=creative&v=soat&l=duyet
+  // ô lọc lên URL (anh 26/10/2026 "tab này cũng phải cho lên url"): ?t=creative&v=soat&l=<lọc> — mặc định 'loi' thì bỏ khỏi URL; link Telegram ?l=duyet vẫn chạy
+  const [loc, setLoc] = useState<LocSoat>(() => { const l = typeof location !== 'undefined' ? new URL(location.href).searchParams.get('l') : null; return (LOC_SOAT as readonly string[]).includes(l ?? '') ? (l as LocSoat) : 'loi'; });
+  useEffect(() => { const u = new URL(location.href); if (loc === 'loi') u.searchParams.delete('l'); else u.searchParams.set('l', loc); history.replaceState(history.state, '', u); }, [loc]);
   const noi = useNoi<Omit<The, 'x' | 'y'>>(); const the = noi.v;
   const router = useRouter();
   const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
@@ -573,7 +576,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
       <style>{'.etp-chay .nut{display:none}.etp-chay:hover .nut{display:inline-block}.etp-chay:hover .den{display:none}.etp-chay{display:inline-flex;min-width:44px;min-height:20px;align-items:center;justify-content:center}'}</style>
       <ChamTrucTiep du={du} anh={anh} />
       <PhotBo du={du} />
-      <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
+      <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13, position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 4, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
         <span><b style={{ fontSize: 18 }}>{ds.length - dem.chua}/{ds.length}</b> đã chấm</span>
         <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{ds.filter((x) => x.c?.ket === 'cam').length}</b> cấm</span>
         <span style={{ color: DAU_MAU.vua }}><b style={{ fontSize: 18 }}>{dem.xem}</b> cần người xem</span>
@@ -702,7 +705,7 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ display: 'inline-flex', gap: 1 }}>{([[3, 0], [15, 1], [21, 0], [33, 1]] as const).map(([w, b], i) => <span key={i} style={{ width: Math.max(w, 6), height: 10, borderRadius: 2, boxSizing: 'border-box', background: b ? '#4ade80' : 'rgba(239,68,68,.35)', border: b ? 'none' : '1px solid #ef4444' }} />)}</span> lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt)</span>
         </>}
       </div>
-      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
         <span>{hep ? 'Phim → camp' : 'Phim → camp gốc → bản nhân bản'}</span>
         {hep ? null : ngay.map((d, i) => <span key={d} data-cot={`roi-${i}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm nay">nay</span>
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }} title="lãi 6 ngày trọn + hôm nay">lãi 7 ngày</span>
@@ -820,9 +823,12 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   // lượt đầu chỉ ghi khi URL chưa có v (kiểu xem lấy từ localStorage); từ đó chỉ ghi khi anh bấm đổi — bản nào không hiểu một giá trị v cũng để nguyên URL
   const ghiLanDau = useRef(false);
   useEffect(() => { if (!daDoc) return; if (!ghiLanDau.current) { ghiLanDau.current = true; if (new URL(location.href).searchParams.get('v')) return; } const u = new URL(location.href); u.searchParams.set('t', tab); if (tab === 'camp') u.searchParams.set('v', xemCamp); else if (tab === 'creative' && xemSoat) u.searchParams.set('v', 'soat'); else u.searchParams.delete('v');
-    if (tab === 'camp' && loc !== 'chay') u.searchParams.set('l', loc); else u.searchParams.delete('l'); history.replaceState(history.state, '', u);
+    if (tab === 'camp' && loc !== 'chay') u.searchParams.set('l', loc); else if (!(tab === 'creative' && xemSoat)) u.searchParams.delete('l'); history.replaceState(history.state, '', u);   // Quét nội dung tự giữ ?l= (TabSoat)
     try { localStorage.setItem('etp-camp-xem', xemCamp); } catch { /* trình duyệt chặn */ } }, [tab, xemCamp, xemSoat, loc, daDoc]);
   const [kh, setKh] = useState<Kh>('7');
+  const dinhRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => document.documentElement.style.setProperty('--etp-dinh', `${el.offsetHeight}px`); dat();
+    const ro = new ResizeObserver(dat); ro.observe(el); return () => { ro.disconnect(); document.documentElement.style.removeProperty('--etp-dinh'); }; }, []);
   const noiAnh = useNoi<{ anh: string; video: string | null }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
   useEffect(() => { try { const v = localStorage.getItem('etp-kh') as Kh | null; if (v && v in KH_TEN) setKh(v); } catch { /* bỏ qua */ } }, []);
   useEffect(() => { try { localStorage.setItem('etp-kh', kh); } catch { /* bỏ qua */ } }, [kh]);
@@ -917,7 +923,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           { key: 'cb', label: 'Cảnh báo 24h', value: du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length, color: du.canhBao.some((c) => c.muc === 'do' && Date.now() - Date.parse(c.luc) < 86_400_000) ? '#f87171' : undefined },
         ]} />}
       </div>
-      <div className={hep ? 'etp-dk' : undefined} style={{ display: 'flex', gap: hep ? 6 : 12, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0' }}>
+      {/* HÀNG TAB + PILL DÍNH KHI CUỘN (anh 26/10/2026 "các tabs pill phải sticky khi scroll xuống") — chiều cao vào --etp-dinh cho hàng dính bên dưới (lọc Quét nội dung, đầu cây camp) */}
+      <div ref={dinhRef} className={hep ? 'etp-dk' : undefined} style={{ display: 'flex', gap: hep ? 6 : 12, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
         <Segmented<Tab> value={tab} onChange={setTab} options={[
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />

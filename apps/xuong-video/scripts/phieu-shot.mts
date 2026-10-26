@@ -8,12 +8,13 @@ import { pathToFileURL } from 'node:url';
 import { bieuCam, camThuc, type MaBieuCam } from '../src/lib/xuong-video/qc-cam-xuc';
 
 type Nguoi = { ma: string; x: number; lung?: boolean; mat?: [MaBieuCam, MaBieuCam]; quay?: number; nhin_vao?: string; nhin_huong?: string; cam?: string[]; deo?: string[] };
-export type Shot = { so: number; giay: number; co: string; goc?: string; nguoi?: Nguoi[]; do?: { loai: string }[]; dien_en?: string; thoai?: string };
-export type BangShot = { nhan_vat: Record<string, { en: string; nhan: string; gioi?: string; ten_db?: string }>; canh_en: string; ten_vat_en?: Record<string, string>; shot: Shot[] };
+export type Shot = { so: number; giay: number; co: string; goc?: string; nguoi?: Nguoi[]; do?: { loai: string; en?: string }[]; dien_en?: string; thoai?: string };
+export type BangShot = { vat_theo_doi?: Record<string, string>; nhan_vat: Record<string, { en: string; nhan: string; gioi?: string; ten_db?: string }>; canh_en: string; ten_vat_en?: Record<string, string>; shot: Shot[] };
 let b: BangShot;
 const ten = (m: string) => b.nhan_vat[m]?.en.split(' (')[0] ?? b.ten_vat_en?.[m] ?? m;
 const phia = (x: number) => (x < 0.4 ? 'screen left' : x > 0.6 ? 'screen right' : 'the centre of the frame');
-const KHUNG: Record<string, string> = { cu: 'close-up, head and top of the shoulders', mcu: 'medium close-up, chest up', trung: 'medium shot, waist up', toan: 'wide shot, full bodies, lots of floor and ceiling', qua_vai: 'over-the-shoulder shot', can_do: 'extreme close-up insert of an object, no faces at all' };
+// CỠ KHUNG ghi CHỖ CẮT + "không mở rộng": AI hay nới khung ra toàn thân theo ảnh mẫu (26/10/2026 sơ đồ #11 trung → toàn, #12 cận → trung cận)
+const KHUNG: Record<string, string> = { cu: 'TIGHT close-up: head and neck, cropped just below the collarbones — never widen the framing', mcu: 'medium close-up cropped at mid-chest — never widen the framing', trung: 'medium shot cropped at the waist — legs and feet NOT visible, never widen to a full-body shot', toan: 'wide shot, full bodies, lots of floor and ceiling', qua_vai: 'over-the-shoulder shot cropped at chest height', can_do: 'extreme close-up insert of an object, no faces at all' };
 const quayDau = (q = 0) => { const h = q > 0 ? 'screen right' : 'screen left'; const a = Math.abs(q);
   return a < 10 ? 'face frontal to the camera' : a < 25 ? `face almost frontal, turned slightly toward ${h}` : a <= 60 ? `three-quarter view, head turned toward ${h}` : `profile, facing ${h}`; };
 const DO: Record<string, string> = { the: 'a white staff ID badge on a dark blue lanyard around her neck, resting on her chest', thung: 'hugs a cardboard box of her belongings (a small potted plant and a mug) against her chest with both arms', the_treo: 'holds the SNAPPED dark blue lanyard in her right hand, the white badge dangling below her fingers (never holding the card itself)' };
@@ -32,16 +33,20 @@ function phieu(s: Shot): string {
     const nhin = !t ? 'eyes looking ahead past the camera, never into the lens'
       : t === 'phia_truoc' ? 'staring straight ahead past the camera, deliberately NOT looking at anyone, never into the lens'
       : tg ? `eyes on ${ten(t)}, who is in frame at ${phia(tg.x)}`
-      : n.nhin_huong === 'len' ? `eyes lifted UP toward the ${b.ten_vat_en?.[t] ?? ten(t)} above, out of frame`
-      : n.nhin_huong === 'xuong' ? `eyes lowered DOWN to the ${b.ten_vat_en?.[t] ?? ten(t)}`
+      : n.nhin_huong === 'len' ? `eyes lifted UP toward ${b.ten_vat_en?.[t] ?? ten(t)} above, out of frame`
+      : n.nhin_huong === 'xuong' ? `eyes lowered DOWN to ${b.ten_vat_en?.[t] ?? ten(t)}`
       : `eyes looking off-screen to ${n.nhin_huong === 'trai' ? 'screen left' : 'screen right'} at ${b.ten_vat_en?.[t] ?? ten(t)}, at eye level, never into the lens`;
     let c = `${ten(n.ma)}: ${quayDau(n.quay)}; ${nhin}.`;
     if (n.mat) { const [d0, d1] = n.mat; c += ` Expression at the start: ${bieuCam(d0)?.en}.${d1 !== d0 ? ` By the end: ${bieuCam(d1)?.en}.` : ' Keep this expression the whole shot.'}`;
       const cam = camThuc({ nv: n.ma, dau: d0, cuoi: d1 }); if (cam.length) c += ` Never: ${cam.map((k) => bieuCam(k)!.en).join('; ')}.`; }
     const dd = [...(n.deo ?? []), ...(n.cam ?? [])].map((k) => DO[k]).filter(Boolean);
     const ho = b.nhan_vat[n.ma]?.gioi === 'nam' ? ['He', 'he'] : ['She', 'she']; if (dd.length) c += ` ${ho[0]} ${dd.join(`; ${ho[1]} `)}.`.replace(/around her neck|in her right hand/g, (x) => ho[0] === 'He' ? x.replace('her', 'his') : x);
+    // ĐỒ ĐÃ MẤT phải nói ra: phiếu chỉ kể đồ đang có thì AI giữ đồ cũ trên người (#12 Hạ vừa bị giật thẻ vẫn đeo dây thẻ)
+    const mat_do = Object.entries(b.vat_theo_doi ?? {}).filter(([k]) => ![...(n.deo ?? []), ...(n.cam ?? [])].some((x) => x === k || x.startsWith(`${k}_`))).map(([, en]) => en);
+    if (mat_do.length) c += ` ${ten(n.ma)} has NO ${mat_do.join(' and NO ')} on ${b.nhan_vat[n.ma]?.gioi === 'nam' ? 'him' : 'her'}.`;
     dong.push(c);
   }
+  for (const o of s.do ?? []) if (o.en) dong.push(o.en);
   dong.push(`ONE motion only: ${s.dien_en}${s.thoai ? ` ${ten((s.nguoi ?? []).find((n) => !n.lung)?.ma ?? '')} says (lip-sync, Vietnamese): "${s.thoai}"` : ''} Static locked-off camera unless stated. No text, no captions.`);
   return dong.join('\n');
 }

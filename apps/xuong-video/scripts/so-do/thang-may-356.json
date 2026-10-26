@@ -394,7 +394,8 @@
      "loai": "the",
      "x": 0.86,
      "y": 0.66,
-     "to": 0.5
+     "to": 0.5,
+     "en": "At the right edge of the frame, Vivian's hand (burgundy sleeve) enters from off-screen right holding the SNAPPED dark blue lanyard; the white staff badge dangles below her fingers. Exactly one badge in the frame."
     }
    ],
    "dien": "Hạ sững sờ, mắt cụp xuống tấm thẻ. (dùng lại #8)",
@@ -846,9 +847,12 @@
  },
  "canh_en": "Luxury corporate elevator lobby: dark marble walls, brushed steel elevator doors, black polished marble floor, warm recessed ceiling light — the same lighting setup in every shot of the scene.",
  "ten_vat_en": {
-  "so_tang": "floor indicator",
-  "the": "dangling staff badge",
-  "cua_thang": "elevator door",
+  "so_tang": "the floor indicator",
+  "the": "the dangling staff badge",
+  "cua_thang": "the elevator door",
   "phia_truoc": "straight ahead"
+ },
+ "vat_theo_doi": {
+  "the": "staff ID badge and NO lanyard"
  }
 }

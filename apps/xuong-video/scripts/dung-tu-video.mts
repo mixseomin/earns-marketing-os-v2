@@ -36,7 +36,7 @@ for (const [i, s] of b.shot.entries()) {
   sh(['-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep, '-vf', `scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=24${ve ? `,${ve}` : ''}${loa},format=yuv420p`, '-an', v]);
   // tiếng: thoại (giữ tiếng clip) + lời kể + hiệu ứng, trên nền lặng đúng d giây
   const vaoTieng: string[] = []; const loc: string[] = [];
-  if (thoai && coTieng(tep)) { vaoTieng.push('-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep); loc.push(`[${loc.length + 1}:a]`); }
+  if (thoai && coTieng(tep)) { vaoTieng.push('-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep); loc.push(`[${loc.length + 1}:a]anull`); }   // nhánh trơn phải có tên bộ lọc
   const ke = s.ke ? nho[s.ke.replace(/\s*\(nháp\)\s*$/, '')] : null; if (ke) { vaoTieng.push('-i', tai(ke, `${tam}/ke-${s.so}.mp3`)); loc.push(`[${loc.length + 1}:a]adelay=100|100`); }
   const sfx = s.sfx ? new URL(`../public/sfx/${s.sfx}.mp3`, import.meta.url).pathname : null; if (sfx && existsSync(sfx)) { vaoTieng.push('-i', sfx); loc.push(`[${loc.length + 1}:a]volume=0.5`); }
   const a = `${tam}/a-${s.so}.wav`;

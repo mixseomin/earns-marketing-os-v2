@@ -54,6 +54,13 @@ def bao_tg(chu):
         return mid
     except Exception as e: print(f"báo Telegram lỗi: {e}", file=sys.stderr)
 
+def sua_tg(mid, chu):
+    """sửa tin đã gửi (editMessageText) — mid lấy từ /var/lib/cty/etp-tin.json"""
+    env = dict(l.strip().split("=", 1) for l in open("/root/.secrets/mine-tg.env") if "=" in l and not l.lstrip().startswith("#"))
+    body = {"chat_id": env["TG_CHAT"].strip('"'), "message_id": mid, "text": chu, "parse_mode": "HTML", "link_preview_options": {"is_disabled": True}}
+    return json.load(urllib.request.urlopen(urllib.request.Request(f"https://api.telegram.org/bot{env['TG_BOT_TOKEN'].strip(chr(34))}/editMessageText", data=json.dumps(body).encode(),
+                                                                   headers={"content-type": "application/json"}), timeout=20))
+
 _KHUNG = {}
 def khung(t):
     """khung giờ VN của thời điểm t — MỘT nguồn: hàm SQL etp.khung_vn (sổ etp.khung_gio, migration 0333), cùng hàm trang etp.on.tc dùng"""
@@ -155,14 +162,21 @@ def bao_chi_gio(vn):
     ty = c_ng / ns if ns else 0
     # BẢNG chữ đều cột (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng") — ≤ 30 ký tự / dòng cho màn điện thoại
     b = [f"{'Giờ':<6}{'Chi':>7}{'Thu':>7}{'ROI':>7}"] + [f"{int(h) + 7:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio[-6:]]
-    b += ["-" * 27, f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}", f"NS ngày ${ns:.0f} · đã chi {ty * 100:.0f}%"]
+    b += ["-" * 27, f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}", f"NS ngày ${ns:.0f} · đã chi {ty * 100:.0f}%"]; dam, nhat = {0, len(b) - 2}, {len(b) - 1}
     if het:
+        dam |= {len(b) + 1, len(b) + 2}
         b += ["", f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])
-    chu = (f"🕐 <b>CHI THEO GIỜ — {vn.hour - 1:02d}h</b> (khung 08h–12h)\n<pre>" + "\n".join(b) + "</pre>"
+    chu = (f"🕐 <b>CHI THEO GIỜ — {vn.hour - 1:02d}h</b> (khung 08h–12h)\n" + bang(b, dam, nhat)
            + (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — còn {(1 - ty) * 100:.0f}% cho khung tối 20h–06h" if ty >= NGUONG_HUT else ""))
     bao_tg(chu)
     q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('chi_gio_bao', to_jsonb('{khoa}'::text), 'giờ đã báo chi theo giờ trên Telegram', 'lich-gio.py') "
       f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+
+def bang(dong, dam=(), nhat=()):
+    """BẢNG Telegram chữ đều cột CÓ ĐẬM / NHẠT (anh 26/10/2026: "những kiểu này phải luôn dùng bảng" · "còn có format đậm nhạt ko thấy mày dùng"): <pre> không chứa được
+    định dạng khác, nên mỗi dòng là một <code> riêng — dòng trong `dam` bọc <b> (tiêu đề cột, dòng tổng), dòng trong `nhat` bọc <i> (dòng so sánh / phụ)"""
+    e = lambda x: x.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return "\n".join("" if not d else f"<b><code>{e(d)}</code></b>" if i in dam else f"<i><code>{e(d)}</code></i>" if i in nhat else f"<code>{e(d)}</code>" for i, d in enumerate(dong)) + "\n"
 
 def _so_nhom(gio, tat_tl, lui=0):
     """chi / thu hai nhóm (sẽ tạm dừng / vẫn chạy) trong các giờ VN `gio` (lùi `lui` ngày) — etp.so_gio lưu giờ UTC"""
@@ -184,19 +198,19 @@ def bao_phien(vn, k_cu, k_toi, tat_tl):
     gt = int(q(f"select gio_tu from etp.khung_gio where khung = '{k_cu}'") or vn.hour)
     bd = vn.replace(minute=0, second=0, microsecond=0) - dt.timedelta(hours=(vn.hour - gt) % 24)
     gio = [bd + dt.timedelta(hours=i) for i in range(int((vn - bd).total_seconds() // 3600))]   # chỉ giờ ĐÃ TRỌN
-    dong = [f"{'':<9}{'Chi':>6}{'Lãi':>7}{'ROI':>7}"]
+    dong = [f"{'':<9}{'Chi':>6}{'Lãi':>7}{'ROI':>7}"]; dam, nhat = {0}, set()
     if gio:
         nay, qua = _so_nhom(gio, tat_tl), _so_nhom(gio, tat_tl, 1)
-        dong = [f"PHIÊN VỪA XONG {gio[0]:%H}–{gio[-1] + dt.timedelta(hours=1):%H}h"] + dong
-        for k, ten in (("tong", "Tổng"), ("tat", "Tạm dừng"), ("chay", "Vẫn chạy")): dong += [_dong(ten, nay[k]), _dong(" hôm qua", qua[k], False)]
+        dong = [f"PHIÊN VỪA XONG {gio[0]:%H}–{gio[-1] + dt.timedelta(hours=1):%H}h"] + dong; dam = {0, 1, 2}
+        for k, ten in (("tong", "Tổng"), ("tat", "Tạm dừng"), ("chay", "Vẫn chạy")): dong += [_dong(ten, nay[k]), _dong(" hôm qua", qua[k], False)]; nhat.add(len(dong) - 1)
     t2 = q(f"select gio_tu, so_gio from etp.khung_gio where khung = '{k_toi}'")
     if t2:
         gt2, sg = [int(x) for x in t2.split("|")]
         b2 = (vn - dt.timedelta(days=1)).replace(hour=gt2, minute=0, second=0, microsecond=0)
         if b2 + dt.timedelta(hours=sg) > vn - dt.timedelta(hours=1): b2 -= dt.timedelta(days=1)   # khung qua đêm chưa khép hết → lùi thêm một ngày
         r = _so_nhom([b2 + dt.timedelta(hours=i) for i in range(sg)], tat_tl)
-        dong += ["", f"PHIÊN TỚI · {b2:%d/%m} {gt2:02d}–{(gt2 + sg) % 24:02d}h", _dong("Tạm dừng", r["tat"]), _dong("Vẫn chạy", r["chay"])]
-    return "<pre>" + "\n".join(dong).replace("&", "&amp;").replace("<", "&lt;") + "</pre>\n"
+        dong += ["", f"PHIÊN TỚI · {b2:%d/%m} {gt2:02d}–{(gt2 + sg) % 24:02d}h", _dong("Tạm dừng", r["tat"]), _dong("Vẫn chạy", r["chay"])]; dam.add(len(dong) - 3)
+    return bang(dong, dam, nhat)
 
 def tom_tl(ds):
     from collections import Counter

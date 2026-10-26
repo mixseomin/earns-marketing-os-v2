@@ -191,9 +191,12 @@ def tat_cham():
     · "Áp dụng cho mọi loại camp" · "kể cả đang lãi"). Một nguồn: view etp.cham_cong (0341) — cột tat (≤ 4 / người duyệt loại), cho_duyet (5 điểm).
     Mỗi lượt (10 phút): (1) camp tạm dừng vì lịch mà creative dính → bỏ khỏi sổ lịch (20h không bật lại); (2) camp ACTIVE mọi loại (thường, ★ ROAS,
     phim mới, đang lãi) dính → lam-ethopex tat-loat --ep; (3) creative chưa chấm của camp đang chạy → xếp hàng chấm; (4) creative 5 điểm → báo
-    Telegram kèm nút Đạt / Loại (mỗi creative báo một lần)."""
-    mien = cham_mien()
-    bo = [l.split("|") for l in q(f"""select c.camp_id, g.chan_boi from etp.lich_tat l join etp.camp c using (camp_id) join etp.cham_cong g on g.creative_id = {CR_CAMP} where g.tat""").splitlines() if "|" in l and l.split("|")[0] not in mien]
+    Telegram kèm nút Đạt / Loại (mỗi creative báo một lần).
+    CÔNG TẮC etp.cau_hinh 'cham_tat' (anh 27/10/2026: "phải tạm bỏ luật tắt camp có điểm creative <=4 lúc này"): false → KHÔNG tắt camp, KHÔNG gỡ
+    camp khỏi sổ lịch (bước 1–2); bước 3–4 (xếp hàng chấm, báo 5 điểm) vẫn chạy."""
+    tat_bat = q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'cham_tat'), 'true')") != "false"
+    mien = cham_mien() if tat_bat else None
+    bo = [] if not tat_bat else [l.split("|") for l in q(f"""select c.camp_id, g.chan_boi from etp.lich_tat l join etp.camp c using (camp_id) join etp.cham_cong g on g.creative_id = {CR_CAMP} where g.tat""").splitlines() if "|" in l and l.split("|")[0] not in mien]
     if bo:
         q(f"delete from etp.lich_tat where camp_id in ({','.join(c for c, _ in bo)})")
         ghi("cham_bo_lich", sorted(int(c) for c, _ in bo), "luật chấm ≤ 4 (Meta / GG): bỏ khỏi sổ lịch, không bật lại")
@@ -203,7 +206,7 @@ def tat_cham():
     da = {k: v for k, v in da.items() if now - v < 3600}
     dinh = [l.split("|") for l in q(f"""select c.camp_id, {CR_CAMP}, g.chan_boi from etp.camp c join etp.cham_cong g on g.creative_id = {CR_CAMP}
         where c.trang_thai = 'ACTIVE' and g.tat order by 1""").splitlines() if l.count("|") == 2]
-    moi = [x for x in dinh if x[0] not in da and x[0] not in mien]   # đã gửi lệnh trong 1 giờ (kho chưa kịp thấy PAUSED) → không gửi / báo lại
+    moi = [] if not tat_bat else [x for x in dinh if x[0] not in da and x[0] not in mien]   # đã gửi lệnh trong 1 giờ (kho chưa kịp thấy PAUSED) → không gửi / báo lại
     if moi:
         ids = ",".join(c for c, _, _ in moi)
         r = subprocess.run(["python3", LAM, "tat-loat", ids, "--ep", "--luat", "creative chấm ≤ 4 điểm Meta / GG — tự tắt mọi loại camp, kể cả đang lãi",

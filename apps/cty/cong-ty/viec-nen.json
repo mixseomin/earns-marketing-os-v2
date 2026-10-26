@@ -282,7 +282,9 @@
      "22:00",
      "23:00"
     ]
-   }
+   },
+   "tat": true,
+   "tat_ly_do": "thay bằng iMac:com.earns.may-dang-lien-tuc (anh duyệt 26/10/2026)"
   },
   {
    "nhan": "iMac:com.earns.puzzle-shorts",
@@ -621,7 +623,9 @@
      "22:05",
      "23:05"
     ]
-   }
+   },
+   "tat": true,
+   "tat_ly_do": "thay bằng iMac:com.earns.may-dang-lien-tuc (anh duyệt 26/10/2026)"
   },
   {
    "nhan": "MacBook:com.earns.sao-luu-claude",
@@ -673,6 +677,22 @@
    "uu_tien_thap": true
   },
   {
+   "nhan": "iMac:com.earns.may-dang-lien-tuc",
+   "ten": "Máy đăng - chạy liên tục (10 phút)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/dang-lien-tuc.mjs"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/dang-lien-tuc.log",
+   "hen": {
+    "moi_giay": 600
+   }
+  },
+  {
    "nhan": "iMac:com.earns.may-dang",
    "ten": "Máy đăng chung - video các máy studio",
    "chay": [
@@ -693,7 +713,9 @@
      "21:00"
     ]
    },
-   "ghi_chu": "Mọi nền của mọi máy studio đang bật mà xv_may.dang[].may = iMac. Mỗi lượt hỏi NHỊP AN TOÀN (puzzle-books scripts/nhip-an-toan.mjs — anh 18/10/2026 'đăng được nhiều nhưng không được spam'): trần theo tuổi kênh (kênh mới 1 bài/nền/ngày, tăng ở 14 / 28 ngày), trần tài khoản, cách ≥ 3 giờ, không trùng chuyện một ngày, dừng khi có cảnh báo rủi ro. 4 khung (02:00 · 08:00 · 20:00 · 21:00 giờ VN = chiều / tối / sáng giờ Mỹ): khung thêm chỉ đăng khi nhịp an toàn cho phép; 21:00 bù khi 20:00 hỏng. Nền nào giao MacBook thì thêm lại việc MacBook:com.earns.may-dang."
+   "ghi_chu": "Mọi nền của mọi máy studio đang bật mà xv_may.dang[].may = iMac. Mỗi lượt hỏi NHỊP AN TOÀN (puzzle-books scripts/nhip-an-toan.mjs — anh 18/10/2026 'đăng được nhiều nhưng không được spam'): trần theo tuổi kênh (kênh mới 1 bài/nền/ngày, tăng ở 14 / 28 ngày), trần tài khoản, cách ≥ 3 giờ, không trùng chuyện một ngày, dừng khi có cảnh báo rủi ro. 4 khung (02:00 · 08:00 · 20:00 · 21:00 giờ VN = chiều / tối / sáng giờ Mỹ): khung thêm chỉ đăng khi nhịp an toàn cho phép; 21:00 bù khi 20:00 hỏng. Nền nào giao MacBook thì thêm lại việc MacBook:com.earns.may-dang.",
+   "tat": true,
+   "tat_ly_do": "thay bằng iMac:com.earns.may-dang-lien-tuc (anh duyệt 26/10/2026)"
   },
   {
    "nhan": "iMac:com.earns.puzzle-short-yt",
@@ -716,7 +738,9 @@
      "23:05"
     ]
    },
-   "ghi_chu": "Chuyển từ MacBook 17/10/2026: YouTube (Gmail đăng nhập profile militarycalc iMac) + Facebook (Graph API box3, xv_may.dang[].br.api). Instagram còn MacBook:com.earns.puzzle-short-yt."
+   "ghi_chu": "Chuyển từ MacBook 17/10/2026: YouTube (Gmail đăng nhập profile militarycalc iMac) + Facebook (Graph API box3, xv_may.dang[].br.api). Instagram còn MacBook:com.earns.puzzle-short-yt.",
+   "tat": true,
+   "tat_ly_do": "thay bằng iMac:com.earns.may-dang-lien-tuc (anh duyệt 26/10/2026)"
   },
   {
    "nhan": "iMac:tc.on.cty.van-thu",

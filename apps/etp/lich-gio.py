@@ -173,7 +173,9 @@ def tat_cham():
     da = {k: v for k, v in da.items() if now - v < 3600}
     dinh = [l.split("|") for l in q(f"""select c.camp_id, {CR_CAMP}, g.chan_boi from etp.camp c join etp.cham_cong g on g.creative_id = {CR_CAMP}
         where c.trang_thai = 'ACTIVE' and g.tat order by 1""").splitlines() if l.count("|") == 2]
-    moi = [x for x in dinh if x[0] not in da]   # đã gửi lệnh trong 1 giờ (kho chưa kịp thấy PAUSED) → không gửi / báo lại
+    # MIỄN THEO CAMP (anh 26/10/2026 "chỉ bật lại camp đang cắn tiền" — camp ROAS ★ anh cho chạy tiếp): etp.cau_hinh 'cham_mien' = [camp_id, …]
+    mien = {str(x) for x in json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from etp.cau_hinh where khoa = 'cham_mien'") or "[]")}
+    moi = [x for x in dinh if x[0] not in da and x[0] not in mien]   # đã gửi lệnh trong 1 giờ (kho chưa kịp thấy PAUSED) → không gửi / báo lại
     if moi:
         ids = ",".join(c for c, _, _ in moi)
         r = subprocess.run(["python3", LAM, "tat-loat", ids, "--ep", "--luat", "creative chấm ≤ 4 điểm Meta / GG — tự tắt mọi loại camp, kể cả đang lãi",

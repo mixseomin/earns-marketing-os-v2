@@ -241,6 +241,10 @@ def lap_bao_cao(vn, gio_cuoi=None):
     b.append("-" * 28); dam.add(len(b)); b.append(f"{'Từ 07h':<6}{c_ng:>5.0f}{t_ng:>5.0f}{roi(c_ng, t_ng):>6}{roi(c_hq, t_hq):>6}")
     nhat.add(len(b)); b.append(f"Hqua cùng giờ: chi {c_hq:.0f} · thu {t_hq:.0f}")
     nhat.add(len(b)); b.append(f"Lãi {t_ng - c_ng:+.0f}$ · NS ${ns:.0f} · chi {ty * 100:.0f}%")
+    # NS ĐANG CHẠY (anh 26/10/2026: "camp tắt thì ngân sách phải đổi?") — NS ở trên là mức cao nhất trong ngày (0340), không giảm khi tắt camp
+    if ngay == (dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m-%d"):
+        nc, sc = q("select count(*), coalesce(round(sum(ngan_sach)), 0) from etp.camp_dang_chay").split("|")
+        dam.add(len(b)); b.append(f"NS đang chạy ${sc} · {nc} camp")
     if n_r or c_r:
         b.append(f"{'★ROAS':<6}{c_r:>5.0f}{t_r:>5.0f}{roi(c_r, t_r):>6}"); nhat.add(len(b)); b.append(f"{int(n_r)} camp ROAS đang bật")
     if het:

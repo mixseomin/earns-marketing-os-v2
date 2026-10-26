@@ -132,7 +132,7 @@ def tat_loat(ids, luat, ai, t7=False, ep=False):
         d0 = (r.get("data") or [{}])[0]
         if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")
     if kq["gui"]:
-        for _ in range(4):
+        for _ in range(12):   # Ethopex đổi trạng thái chậm (đo 26/10/2026: > 20 giây cho 15 camp) — đọc lại tới 60 giây
             time.sleep(5); ds2 = {int(c["id"]): c.get("state") for c in api("/api/v1/campaigns?page_size=2000")["data"]}
             if all(ds2.get(c) == "PAUSED" for c in kq["gui"]): break
         kq["da_tat"] = [c for c in kq["gui"] if ds2.get(c) == "PAUSED"]; kq["chua"] = [c for c in kq["gui"] if ds2.get(c) != "PAUSED"]

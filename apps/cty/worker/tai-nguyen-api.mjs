@@ -1,7 +1,7 @@
 // PHÒNG TÀI NGUYÊN · SỐ DƯ CỔNG API (anh 20/10/2026: "có phòng quản lý các API này về hiện trạng như balance… và báo cáo hàng ngày qua telegram").
 // Chạy TRONG nhịp kiem-tai-nguyen (tai-nguyen.mjs, mỗi 30 phút trên box3) — không có tiến trình riêng. $0: chỉ đọc số dư, không gọi mô hình.
-//   Số dư đọc thẳng từ cổng: ShopAIKey (trần − đã dùng, credit $1 = 3.250₫) · Kie.ai (credit) · RunPod ($) · PlenX AI (credit, 100₫/credit — token studio). ckey cần khoá TÀI KHOẢN riêng
-//   (ckey.vn/api/profile?key=…, khác khoá AI CKEY_API_KEY) — có biến CKEY_TAI_KHOAN_KEY thì đọc, chưa có thì ghi "chưa đọc được".
+//   Số dư đọc thẳng từ cổng: ShopAIKey (trần − đã dùng, credit $1 = 3.250₫) · Kie.ai (credit) · RunPod ($) · PlenX AI (credit, 100₫/credit — token studio) · fal.ai ($, khoá FAL_ADMIN_KEY).
+//   ckey.vn KHÔNG đọc (anh 26/10/2026 "CKEY bỏ"): API số dư cần khoá tài khoản riêng, không có.
 //   Tiền đã tiêu hôm qua theo cổng: sổ job studio (xv_job.chi_phi_cents, mos2_prod) — gồm cả cổng không có API số dư (Anthropic, Google, fal).
 // Cảnh báo (cùng chủ đề 🧰 Tài nguyên, nhắc lại sau 6 giờ như cảnh báo khác): số dư dưới SAN, hoặc chỉ còn < NGAY_CON ngày theo mức tiêu 7 ngày.
 // Báo cáo ngày: một tin mỗi ngày (giờ VN) ở nhịp đầu tiên sau GIO_BAO.
@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const ENV_STUDIO = '/opt/earns-marketing-os-v2/.env.production';
-export const SAN = { shopaikey: 5, kie: 500, runpod: 2, ckey: 50000, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5 };   // $ / credit / $ / ₫ — dưới mức này là báo
+export const SAN = { shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5 };   // $ / credit / $ / ₫ — dưới mức này là báo
 export const NGAY_CON = 3; export const GIO_BAO = '08:00';
 const DON = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$' };
 const TEN = { plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai' };
@@ -86,7 +86,6 @@ export async function docSoDu() {
     thu('elevenlabs', async () => { if (!e.ELEVENLABS_API_KEY) throw new Error('thiếu khoá ELEVENLABS_API_KEY'); const j = await lay('https://api.elevenlabs.io/v1/user/subscription', { headers: { 'xi-api-key': e.ELEVENLABS_API_KEY } }); return Number(j.character_limit) - Number(j.character_count); }),
     // fal.ai (anh 26/10/2026 "cần thêm ngân sách còn lại" ở bảng AI spy): khoá AI FAL_KEY không có quyền billing → cần khoá ADMIN riêng FAL_ADMIN_KEY (quyền billing:usage:read)
     thu('fal', async () => { if (!e.FAL_ADMIN_KEY) throw new Error('thiếu khoá FAL_ADMIN_KEY (quyền billing:usage:read)'); const j = await lay('https://rest.alpha.fal.ai/billing/user_balance', { headers: { authorization: `Key ${e.FAL_ADMIN_KEY}` } }); const v = Number(typeof j === 'object' ? j.balance ?? j.credits : j); if (!Number.isFinite(v)) throw new Error('trả lạ'); return Math.round(v * 100) / 100; }),
-    thu('ckey', async () => { if (!e.CKEY_TAI_KHOAN_KEY) throw new Error('thiếu khoá tài khoản ckey'); const j = await lay(`https://ckey.vn/api/profile?key=${e.CKEY_TAI_KHOAN_KEY}`, { headers: { 'user-agent': 'Mozilla/5.0' } }); return Number(j.data.profile.balance_raw); }),
   ]);
   return { du, loi };
 }
@@ -123,11 +122,11 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
     assert.strictEqual(tieuNgay(l, 'shopaikey'), 4, 'mức tiêu chỉ tính quãng tụt — ngày nạp tiền (66 → 80) bỏ');
     assert.strictEqual(tieuNgay([{ ngay: 'a', du: { kie: 10 } }], 'kie'), null, 'một mốc chưa tính được');
     const k = (du, ls = []) => xetCanhBaoApi(du, ls).map((c) => c.khoa);
-    assert.deepStrictEqual(k({ shopaikey: 61.38, kie: 7425, runpod: 8.6, ckey: null }), [], 'số dư 20/10/2026: im (ckey chưa đọc được không báo)');
+    assert.deepStrictEqual(k({ shopaikey: 61.38, kie: 7425, runpod: 8.6, ckey: null }), [], 'số dư 20/10/2026: im');
     assert.deepStrictEqual(k({ runpod: 1.2 }), ['api:runpod:san'], 'RunPod dưới $2');
     assert.deepStrictEqual(k({ shopaikey: 10 }, [{ ngay: 'a', du: { shopaikey: 20 } }, { ngay: 'b', du: { shopaikey: 10 } }]), ['api:shopaikey:ngay'], '$10 mà tiêu $10/ngày = 1 ngày');
-    const t = baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-20', du: { shopaikey: 61.38, kie: 7425, runpod: 8.6, ckey: null }, lichSu: [], tieu: { ckey: 1.2, anthropic: 30 }, loiDoc: { ckey: 'thiếu khoá tài khoản ckey' } });
-    assert.ok(t.includes('20/10') && t.includes('$61,38') && t.includes('7.425 credit') && t.includes('ckey.vn: chưa đọc được số dư (thiếu khoá tài khoản ckey)') && t.includes('Anthropic 7.800₫'), t);
+    const t = baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-20', du: { shopaikey: 61.38, kie: 7425, runpod: 8.6, plenxai: null }, lichSu: [], tieu: { ckey: 1.2, anthropic: 30 }, loiDoc: { plenxai: 'HTTP 401' } });
+    assert.ok(t.includes('20/10') && t.includes('$61,38') && t.includes('7.425 credit') && t.includes('PlenX AI: chưa đọc được số dư (HTTP 401)') && !t.includes('ckey.vn: chưa đọc') && t.includes('Anthropic 7.800₫'), t);
     assert.strictEqual(ngayVN(Date.parse('2026-10-19T18:30:00Z')), '2026-10-20', '01:30 sáng VN đã là ngày mới');
     console.log('tai-nguyen-api tu-kiem ok');
   } else if (process.argv.includes('--in')) {

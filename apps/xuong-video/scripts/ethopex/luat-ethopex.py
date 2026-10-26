@@ -385,11 +385,23 @@ _tao = {c["id"]: dt.datetime.fromisoformat(str(c["created_at"]).replace("Z", "+0
 du_tuoi = lambda cid: cid in _tao and (dt.datetime.now(dt.timezone.utc) - _tao[cid]).days >= TUOI_TAT
 tat_l = [(cid, f"#{a['ten'][:70]} · {(dt.datetime.now(dt.timezone.utc) - _tao[cid]).days} ngày · tiêu ${a['chi']:.2f} từ trước tới nay · ROI {roi(a):+.0f}% → TẮT") for cid, a in tron.items() if a["chi"] > 10 and roi(a) is not None and roi(a) < -50 and du_tuoi(cid)]
 # T7 — LUẬT TẮT CỦA SUPPORT (Dol 26/10/2026: "Last 7 day, profit < 0, active day > 3, cost > $5 — những camp như này có thể off"; anh: "thêm và áp dụng rule này"):
-# 7 ngày ĐÃ KHÉP D−7..D−1 (luật giảm / tắt chỉ dùng ngày đã khép — thu hôm nay còn về trễ) · lãi < 0 · > 3 ngày có chi · chi > $5. Camp đang chạy hoặc đang tạm dừng vì lịch giờ.
-_t7 = [l.split("|") for l in q("""with x as (select s.camp_id, sum(s.chi) chi, sum(s.thu) thu, count(*) filter (where s.chi > 0) n from etp.so_ngay s
-    where s.ngay between (now() at time zone 'utc')::date - 7 and (now() at time zone 'utc')::date - 1 group by 1)
-  select x.camp_id, x.chi, x.thu, x.n, coalesce(c.ten, '') from x join etp.camp_dang_chay c using (camp_id) where x.thu - x.chi < 0 and x.n > 3 and x.chi > 5 order by x.thu - x.chi""").splitlines() if "|" in l]
-tat7 = [(int(c), f"#{t[:70]} · 7 ngày đã khép: chi ${float(x):.2f} · lãi ${float(y) - float(x):+.2f} · ROI {(float(y) - float(x)) / float(x) * 100:+.0f}% · {n} ngày có chi → TẮT (luật T7 Support)") for c, x, y, n, t in _t7]
+# lấy THẲNG Report Ethopex 7 ngày ĐÃ KHÉP D−7..D−1 (thu hôm nay còn về trễ) với cột active_day của Ethopex = số ngày camp được BẬT trong kỳ — KHÔNG phải số ngày
+# có chi (bản đầu đếm ngày có chi từ kho etp → 22 camp, Report của anh ra 57; anh 26/10/2026 "mày phải check lại rule"). Chỉ tắt camp đang chạy / đang tạm dừng vì lịch giờ.
+def _bc7():
+    body = json.dumps({"columns": ["campaign_name", "active_day", "cost", "revenue", "profit"], "filters": {}, "metric_conditions": [], "limit": 2000, "page": 1, "page_size": 2000,
+                       "date_from": (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=7)).isoformat(), "date_to": (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)).isoformat()}).encode()
+    g = {}
+    for x in json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=90)).get("rows", []):
+        a = g.setdefault(int(x["campaign_id"]), {"ten": x.get("campaign_name") or "", "chi": 0.0, "lai": 0.0, "ad": 0})
+        a["chi"] += float(x.get("cost") or 0); a["lai"] += float(x.get("profit") or 0); a["ad"] = max(a["ad"], int(x.get("active_day") or 0))
+    return g
+_dc = {int(c) for c in q("select camp_id from etp.camp_dang_chay").split() if c.isdigit()}
+try:
+    _r7 = _bc7(); T7_DAT = {c: a for c, a in _r7.items() if a["lai"] < 0 and a["chi"] > 5 and a["ad"] > 3}
+except Exception as e:
+    T7_DAT = {}; loi_may.append((0, f"luật T7 không đọc được Report: {str(e)[:80]}"))
+tat7 = [(c, f"#{a['ten'][:70]} · 7 ngày đã khép: chi ${a['chi']:.2f} · lãi ${a['lai']:+.2f} · ROI {a['lai'] / a['chi'] * 100:+.0f}% · {a['ad']} ngày bật → TẮT (luật T7 Support)")
+        for c, a in sorted(T7_DAT.items(), key=lambda x: x[1]["lai"]) if c in _dc]
 # ROI TỤT chỉ đi đường GIẢM BẬC (anh 26/10/2026 "ds này chỉ cần giảm bậc"): kèm "$ns → $đích" một bậc để Telegram ra nút giảm thay nút tắt; camp $1 (đáy thang) chỉ báo
 _dich_tut = lambda cid: (lambda ns: (ns, NT.xuong(ns, 1)) if ns else (None, None))(float((thang.get(cid) or {}).get("budget") or 0))
 giam = [(cid, s + (lambda nd: f" · ${nd[0]:g} → ${nd[1]:g}" if nd[1] else " · đang ở đáy thang $1, không giảm được nữa")(_dich_tut(cid))) for cid, s in giam]

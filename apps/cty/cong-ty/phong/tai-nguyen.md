@@ -30,3 +30,7 @@ trang_thai: chạy một việc · Kiểm tài nguyên máy cào spy + số dư 
 ## Spy - tự sửa máy cào — Mạnh (anh duyệt 24/10/2026; tên có chữ Spy để biết đây là việc spy chạy trên iMac)
 
 Cảnh báo **máy móc** (làn cào đứng, box3 / VPS quá tải, thiếu RAM, trình duyệt tắt) không chỉ báo: Nguyên xếp vào hàng `apps/cty/worker/tho-may-viec.mjs`, Mạnh (Claude Code không giao diện **trên iMac**, `apps/cty/may/tho-may.mjs`) nhận trong ≤ 5 phút, báo "đã nhận" ngay dưới tin cảnh báo, đo · tìm gốc · sửa trong repo spy-on-tc · kiểm · deploy, rồi trả lời dưới đúng tin đó (✅ đã sửa / ⚠️ không sửa được / 🙋 cần anh quyết). Trần **6 lượt / ngày**, **30 phút / lượt**. Khoá 2proxy, tài sản hết hạn là chuyện tiền — không vào hàng thợ máy.
+
+## Người bán ckey của spy (giao Nguyên 26/10/2026)
+
+Mọi lượt AI của spy đi **ckey trước → fal → chính hãng luôn cuối**. Danh sách người bán ckey do việc `spy-bao-tri-ckey.timer` (box3, 6 giờ, `spy-on-tc/scripts/bao-tri-ckey.mjs`) gọi thử + xếp lại, ghi `/var/lib/spy/ckey-tuyen.json`. Nguyên canh trong nhịp `kiem-tai-nguyen`: việc đứng quá 13 giờ (thợ máy nhận) · dòng hết người bán · người bán đổi giá — **anh** bấm chấp nhận trên ckey.vn, máy không bấm · danh sách đổi. Báo cáo ngày có dòng **Spy AI hôm qua** chia ckey / fal / chính hãng; chính hãng > 10% là cảnh báo.

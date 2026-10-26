@@ -41,7 +41,7 @@ export function xetCanhBaoApi(du, lichSu) {
 }
 
 /** Thuần: tin báo cáo ngày (HTML Telegram). tieu = { provider: cents hôm qua } từ sổ job. */
-export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc }) {
+export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null }) {
   const dong = [];
   for (const k of Object.keys(SAN)) {
     const v = du[k]; const t = tieuNgay(lichSu, k);
@@ -50,7 +50,19 @@ export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc }) {
   }
   const tong = Object.values(tieu).reduce((a, x) => a + x, 0);
   const tieuDong = Object.entries(tieu).sort((a, b) => b[1] - a[1]).map(([p, c]) => `${TEN[p] ?? p} ${so(c / 100 * 26000, 0)}₫`).join(' · ');
-  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}`;
+  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}`;
+}
+/** Thuần: dòng "Spy AI hôm qua" theo tuyến — chính hãng phải gần 0 (anh 26/10/2026: ckey trước, chính hãng luôn cuối); chính hãng > 10% tổng = in đậm cảnh báo. */
+export function dongSpy(spy) {
+  const tong = (spy.ckey || 0) + (spy.fal || 0) + (spy.chinh_hang || 0); if (!tong) return '<b>Spy AI hôm qua</b>: không có lượt tốn tiền';
+  const pt = Math.round((spy.chinh_hang || 0) / tong * 100);
+  return `<b>Spy AI hôm qua</b>: ${so(tong, 0)}₫ — ckey ${so(spy.ckey || 0, 0)}₫ · fal ${so(spy.fal || 0, 0)}₫ · chính hãng ${so(spy.chinh_hang || 0, 0)}₫${pt > 10 ? ` · <b>⚠ chính hãng ${pt}% — người bán ckey đang hỏng?</b>` : ''}`;
+}
+/** Tiền spy AI theo tuyến trong MỘT ngày VN (sổ ai_luot của spy, chi_phi USD → ₫ theo 26.000). */
+export function tieuSpy(ngay) {
+  const url = docEnvTep('/root/.secrets/spy.env').DATABASE_URL; if (!url) return null;
+  const out = execFileSync('psql', [url, '-tAF', '|', '-c', `SELECT CASE WHEN model LIKE 'ckey:%' THEN 'ckey' WHEN model LIKE 'fal:%' THEN 'fal' ELSE 'chinh_hang' END, round(sum(chi_phi) * 26000) FROM ai_luot WHERE (luc AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = '${ngay}'::date GROUP BY 1`], { encoding: 'utf8', timeout: 20000 });
+  return Object.fromEntries(out.trim().split('\n').filter(Boolean).map((r) => r.split('|')).map(([k, v]) => [k, Number(v) || 0]));
 }
 
 const docEnvTep = (f) => { try { return Object.fromEntries(fs.readFileSync(f, 'utf8').split('\n').map((l) => l.match(/^([A-Z0-9_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2].replace(/^["']|["']$/g, '')])); } catch { return {}; } };
@@ -93,7 +105,8 @@ export async function nhipApi({ ten, tep, bay = Date.now() }) {
   let bao = null;
   if (st.baoNgay !== ngay && gioVN(bay) >= GIO_BAO) {
     let tieu = {}; try { tieu = tieuTheoCong(ngayVN(bay - 864e5)); } catch { /* sổ job không đọc được: báo số dư vẫn gửi */ }
-    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi });
+    let spy = null; try { spy = tieuSpy(ngayVN(bay - 864e5)); } catch { /* sổ spy không đọc được: phần còn lại vẫn gửi */ }
+    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy });
   }
   return { st, du, loi, canhBao, bao, ghiBao: () => { st.baoNgay = ngay; } };
 }
@@ -102,6 +115,9 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
   if (process.argv.includes('--tu-kiem')) {
     const assert = (await import('node:assert')).default;
     const l = [{ ngay: '2026-10-17', du: { shopaikey: 70 } }, { ngay: '2026-10-18', du: { shopaikey: 66 } }, { ngay: '2026-10-19', du: { shopaikey: 80 } }, { ngay: '2026-10-20', du: { shopaikey: 76 } }];
+    assert.ok(!dongSpy({ ckey: 9000, fal: 500, chinh_hang: 300 }).includes('⚠'), 'chính hãng 3%: không cảnh báo');
+    assert.ok(dongSpy({ ckey: 1000, chinh_hang: 60000 }).includes('chính hãng 98%'), 'chính hãng chiếm phần lớn: cảnh báo đậm');
+    assert.ok(dongSpy({}).includes('không có lượt'), 'ngày không tiêu');
     assert.strictEqual(tieuNgay(l, 'shopaikey'), 4, 'mức tiêu chỉ tính quãng tụt — ngày nạp tiền (66 → 80) bỏ');
     assert.strictEqual(tieuNgay([{ ngay: 'a', du: { kie: 10 } }], 'kie'), null, 'một mốc chưa tính được');
     const k = (du, ls = []) => xetCanhBaoApi(du, ls).map((c) => c.khoa);

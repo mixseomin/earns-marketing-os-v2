@@ -12,7 +12,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const SPY_ENV = '/root/.secrets/spy.env';
 /** Làn → khoá 2proxy dùng (tên biến trong spy.env). Một chỗ khai; làn mới thêm vào đây. */
 export const KHOA_LAN = { TWOPROXY_KEY_XOAY: 'cao_chinh', TWOPROXY_KEYS_SONG_SONG: 'cao_chinh', TWOPROXY_KEY_DT: 'doi_thu', TWOPROXY_KEY_UU: 'goc_uu' };
-export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5 };
+export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13 };
 // QUÁ TẢI = % CPU BẬN THẬT trung bình giữa hai nhịp (~30 phút, /proc/stat; chờ đĩa/mạng tính là rỗi) — KHÔNG dùng load average 1 phút: nó đếm cả
 // tiến trình ngồi chờ mạng/đĩa và một phút nhói là kêu (22/10/2026: box3 "thỉnh thoảng quá tải" theo nhịp deploy spy; VPS CPU rỗi 97% mà tải 4).
 // Báo kèm 3 tiến trình nặng nhất lúc chụp → biết nghẽn ở đâu, không đoán.
@@ -52,6 +52,18 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     const ngay = (Date.parse(t.het) - bayGio) / 864e5; if (ngay >= NGUONG.taiSanConNgay) continue;
     const tien = t.thang ? ` · ${Math.round(t.thang / 100).toLocaleString('vi-VN')} ${t.tien}/tháng` : '';
     ra.push({ khoa: `taisan:${t.id}`, chu: `Tài sản <b>${t.ten}</b> (#${t.id}, ${t.nha || '?'}) ${ngay < 0 ? 'ĐÃ HẾT HẠN' : `còn ${ngay.toFixed(1)} ngày`} — hạn ${new Date(t.het).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}${tien}. Gia hạn tay (không tự gia hạn)` });
+  }
+  // người bán ckey (scripts/bao-tri-ckey.mjs của spy): khoá box3:ckey = máy móc → thợ máy nhận; ckey-gia / ckey-dong = anh quyết; ckey-doi = báo một lần
+  if (s.ckey !== undefined) {
+    const c = s.ckey, gio = c?.cap_nhat ? (bayGio - Date.parse(c.cap_nhat)) / 36e5 : Infinity;
+    if (gio > NGUONG.ckeyDungGio) ra.push({ khoa: 'box3:ckey', chu: `Việc bảo trì người bán ckey (spy-bao-tri-ckey.timer) ${gio === Infinity ? 'chưa ghi danh sách lần nào' : `đứng ${gio.toFixed(1)} giờ`} — spy đang dùng danh sách cũ` });
+    for (const [k, ds] of Object.entries(c?.dong ?? {})) if (!ds.length) ra.push({ khoa: `ckey-dong:${k}`, chu: `Dòng <b>${k}</b> không còn người bán ckey nào sống — spy đang gọi tuyến đắt hơn (fal / chính hãng)` });
+    for (const [k, ds] of Object.entries(c?.chi_tiet ?? {})) for (const u of ds) if (!u.song && /price .*changed|accept the new price/i.test(u.loi || '')) ra.push({ khoa: `ckey-gia:${u.id}`, chu: `Người bán ckey <b>${u.id}</b> (${k}) đổi giá — muốn dùng lại thì anh vào ckey.vn bấm chấp nhận giá mới (máy không tự bấm)` });
+    const truoc = s.ckeyTruoc?.dong;
+    if (truoc && c?.dong) for (const [k, ds] of Object.entries(c.dong)) {
+      const cu = truoc[k] ?? [], vao = ds.filter((x) => !cu.includes(x)), ra2 = cu.filter((x) => !ds.includes(x)), ten = (x) => x.replace(/^ckey:/, '');
+      if (vao.length || ra2.length) ra.push({ khoa: `ckey-doi:${k}:${c.cap_nhat}`, chu: `Người bán ckey dòng <b>${k}</b> đổi:${vao.length ? ` thêm ${vao.map(ten).join(', ')}` : ''}${ra2.length ? ` · bỏ ${ra2.map(ten).join(', ')}` : ''} → đầu chuỗi: ${ten(ds[0] || '—')}` });
+    }
   }
   for (const v of s.vps ?? []) {
     const coLan = s.lan.some((l) => l.may === v.ten);
@@ -129,7 +141,11 @@ export async function chupTaiNguyen() {
     } catch { return { ten, toi: false }; }
   });
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepCpu, JSON.stringify(cpu));
-  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps };
+  // NGƯỜI BÁN CKEY (anh 26/10/2026 "giao cho Nguyên"): spy-bao-tri-ckey.timer (box3, 6 giờ) ghi danh sách sống — Nguyên canh việc đó còn chạy, dòng nào hết người bán,
+  // người bán nào đổi giá (cần anh bấm chấp nhận trên ckey.vn), danh sách đổi so với nhịp trước
+  const ck = docJson('/var/lib/spy/ckey-tuyen.json'), ckeyTruoc = docJson(`${DATA()}/tai-nguyen.json`)?.ckey ?? null;
+  const ckey = ck ? { cap_nhat: ck.cap_nhat, dong: ck.dong, chi_tiet: ck.chi_tiet } : null;
+  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps, ckey, ckeyTruoc };
 }
 
 /** Nhịp (worker/nhip.mjs): chụp → lưu → cảnh báo MỚI (hoặc quá 6 giờ chưa nhắc) → Telegram. */
@@ -189,6 +205,14 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: false }] }), ['vps:may-cao-vn:toi'], 'VPS mất kết nối khi có làn');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: false }] }), [], 'VPS mất kết nối nhưng không có làn: im');
     assert.deepStrictEqual(k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: false, ban: 97, phut: 30, nang: [] }] }), ['vps:may-cao-vn:daemon', 'vps:may-cao-vn:tai'], 'VPS daemon tắt + quá tải');
+    const ckT = (h, dong, chi_tiet = {}, truoc) => ({ lan: [], khoa: [], may, ckey: { cap_nhat: gio(h), dong, chi_tiet }, ckeyTruoc: truoc ? { dong: truoc } : null });
+    assert.deepStrictEqual(k(ckT(2, { haiku: ['ckey:a/h'] })), [], 'ckey vừa bảo trì, đủ người bán: im');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may, ckey: null }), ['box3:ckey'], 'chưa có tệp danh sách: báo (thợ máy nhận)');
+    assert.deepStrictEqual(k(ckT(20, { haiku: ['ckey:a/h'] })), ['box3:ckey'], 'việc bảo trì đứng 20 giờ');
+    assert.deepStrictEqual(k(ckT(1, { sonnet: [] })), ['ckey-dong:sonnet'], 'dòng hết người bán');
+    assert.deepStrictEqual(k(ckT(1, { opus: ['ckey:x/o'] }, { opus: [{ id: 't/o', song: false, loi: 'The price of this model has changed. Accept the new price in the dashboard' }] })), ['ckey-gia:t/o'], 'người bán đổi giá → anh quyết');
+    assert.deepStrictEqual(k(ckT(1, { haiku: ['ckey:b/h', 'ckey:a/h'] }, {}, { haiku: ['ckey:a/h', 'ckey:c/h'] })).map((x) => x.split(':').slice(0, 2).join(':')), ['ckey-doi:haiku'], 'danh sách đổi → báo một lần');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may }), [], 'ảnh chụp cũ không có trường ckey: không báo bừa');
     console.log('tai-nguyen tu-kiem ok');
   } else if (process.argv.includes('--in')) {
     const s = await chupTaiNguyen(); console.log(JSON.stringify(s, null, 1)); console.log(xetCanhBao(s));

@@ -277,6 +277,14 @@ export async function xuNutBang(tg) {
     if (c.data === 'eb:report') { if (c.id) await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đang lập report…' });
       try { await chay(LICH, ['--bao-cao'], 60); } catch (e) { await tg('sendMessage', { message_thread_id: c.message?.message_thread_id, text: `⚠️ Report lỗi: ${String(e.message).slice(0, 200)}` }); }
       n++; continue; }
+    // ✅ Đạt / ⛔ Loại dưới tin CẦN NGƯỜI DUYỆT creative 5 điểm (anh 26/10/2026: "5 điểm thì sẽ cần review người thật") → lich-gio.py --duyet
+    const dy = /^eb:dy:(\d+):(ok|loai)$/.exec(c.data || '');
+    if (dy) { const ai = [c.from?.first_name, c.from?.username && '@' + c.from.username].filter(Boolean).join(' ') || 'Telegram';
+      let chu; try { chu = (await chay(LICH, ['--duyet', dy[1], dy[2], ai], 400)).trim().split('\n').pop(); } catch (e) { chu = `⚠️ duyệt lỗi: ${String(e.message).slice(0, 150)}`; }
+      if (c.id) await tg('answerCallbackQuery', { callback_query_id: c.id, text: chu.slice(0, 190) });
+      if (c.message?.message_id) await tg('editMessageReplyMarkup', { message_id: c.message.message_id, reply_markup: { inline_keyboard: [[{ text: (dy[2] === 'ok' ? '✅ ' : '⛔ ') + chu.slice(0, 60), callback_data: 'eb:x' }]] } });
+      n++; continue; }
+    if (c.data === 'eb:x') { if (c.id) await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã duyệt' }); n++; continue; }
     await bangEthopex(tg, { ep: true }); n++; }
   return n;
 }

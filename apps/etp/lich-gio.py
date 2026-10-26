@@ -77,6 +77,12 @@ def main():
     for l in q("select the_loai, khung, bat from etp.lich_gio").splitlines():
         t, k, b = l.split("|"); lich[(t, k)] = b == "t"
     on = lambda tl, k: lich.get((tl, k), lich.get(("_khac", k), True))   # thể loại lạ → theo '_khac'; không có dòng → bật
+    # LUẬT CHẤM chạy TRƯỚC khi đọc sổ lịch: camp creative ≤ 4 bị tắt + bỏ khỏi sổ → lượt này không tạm dừng lại vào sổ, 20h không bật lại
+    if not THU:
+        try: tat_cham()
+        except Exception as e: print(f"luật chấm lỗi: {e}", file=sys.stderr); bao_tg(f"⚠️ <b>LUẬT CHẤM</b> lỗi: {str(e)[:200]}")
+    try: vua_tat = {int(k) for k in json.load(open(TAT_CHAM_TEP))}
+    except Exception: vua_tat = set()
     # camp đang chạy + thể loại (kho etp, đồng bộ 10 phút)
     chay = [(int(c), t or "_khac") for c, t in (l.split("|") for l in q("""select c.camp_id, coalesce(p.the_loai, '') from etp.camp c left join etp.phim p using (content_id)
         where c.trang_thai = 'ACTIVE' and c.ten not like '% duplicate by %' and c.ten not like '★%'""").splitlines() if "|" in l)]   # camp ROAS miễn lịch giờ (cong.camp_roas)
@@ -90,7 +96,7 @@ def main():
     # chỉ tạm dừng lại camp trong sổ khi Ethopex có cập nhật MỚI hơn lúc tạm dừng (vd máy thay creative bật lại)
     cu_kho = {int(c) for c in q("""select l.camp_id from etp.lich_tat l join etp.camp c using (camp_id)
         where c.trang_thai = 'ACTIVE' and (c.cap_nhat_etp is null or c.cap_nhat_etp <= l.luc)""").split() if c.isdigit()}
-    chay = [(c, t) for c, t in chay if c not in cu_kho]
+    chay = [(c, t) for c, t in chay if c not in cu_kho and c not in vua_tat]   # vua_tat: luật chấm vừa tắt, kho chưa thấy PAUSED
     can_tat = [c for c, t in chay if bat_lich and (not on(t, k_nay) or not on(t, k_toi))]
     # TẮT QUÁ 24 GIỜ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026): camp nằm sổ lịch quá 24 giờ → bỏ khỏi sổ, không bật
     qua24 = {int(c) for c in q("delete from etp.lich_tat where luc < now() - interval '24 hours' returning camp_id").split() if c.isdigit()}
@@ -141,6 +147,69 @@ def main():
             q(f"delete from etp.lich_tat where camp_id in ({','.join(map(str, ok))})")
             bao_tg(f"▶️ <b>LỊCH GIỜ — ĐÃ BẬT LẠI {len(ok)}/{len(can_bat)} camp</b> (khung {k_nay} BẬT)" + ("" if bat_lich else " — công tắc lịch giờ tắt, bật lại hết"))
             ghi("lich_bat", ok, f"lịch giờ: khung {k_nay} BẬT" + ("" if bat_lich else " (công tắc lịch giờ tắt — bật lại hết)"))
+
+LAM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "lam-ethopex.py")
+TAT_CHAM_TEP, DUYET_TEP = "/var/lib/cty/etp-cham-tat.json", "/var/lib/cty/etp-cham-duyet.json"
+# creative của camp: kho ghi creative_id; camp nhân bản qua Ethopex (★ ROAS "… duplicate by <gốc>") kho để 0 → lấy creative của camp gốc
+CR_CAMP = r"coalesce(nullif(c.creative_id, 0), (select s.creative_id from etp.camp s where s.camp_id = substring(c.ten from 'duplicate by (\d+)')::int))"
+
+def tat_cham():
+    """LUẬT CHẤM (anh 26/10/2026: "creative <= 4 điểm chấm META hoặc GG đều tắt camp tự động nếu đang chạy … 5 điểm thì cần review người thật"
+    · "Áp dụng cho mọi loại camp" · "kể cả đang lãi"). Một nguồn: view etp.cham_cong (0341) — cột tat (≤ 4 / người duyệt loại), cho_duyet (5 điểm).
+    Mỗi lượt (10 phút): (1) camp tạm dừng vì lịch mà creative dính → bỏ khỏi sổ lịch (20h không bật lại); (2) camp ACTIVE mọi loại (thường, ★ ROAS,
+    phim mới, đang lãi) dính → lam-ethopex tat-loat --ep; (3) creative chưa chấm của camp đang chạy → xếp hàng chấm; (4) creative 5 điểm → báo
+    Telegram kèm nút Đạt / Loại (mỗi creative báo một lần)."""
+    bo = [l.split("|") for l in q(f"""select c.camp_id, g.chan_boi from etp.lich_tat l join etp.camp c using (camp_id) join etp.cham_cong g on g.creative_id = {CR_CAMP} where g.tat""").splitlines() if "|" in l]
+    if bo:
+        q(f"delete from etp.lich_tat where camp_id in ({','.join(c for c, _ in bo)})")
+        ghi("cham_bo_lich", sorted(int(c) for c, _ in bo), "luật chấm ≤ 4 (Meta / GG): bỏ khỏi sổ lịch, không bật lại")
+    try: da = json.load(open(TAT_CHAM_TEP))
+    except Exception: da = {}
+    now = dt.datetime.now(dt.timezone.utc).timestamp()
+    da = {k: v for k, v in da.items() if now - v < 3600}
+    dinh = [l.split("|") for l in q(f"""select c.camp_id, {CR_CAMP}, g.chan_boi from etp.camp c join etp.cham_cong g on g.creative_id = {CR_CAMP}
+        where c.trang_thai = 'ACTIVE' and g.tat order by 1""").splitlines() if l.count("|") == 2]
+    moi = [x for x in dinh if x[0] not in da]   # đã gửi lệnh trong 1 giờ (kho chưa kịp thấy PAUSED) → không gửi / báo lại
+    if moi:
+        ids = ",".join(c for c, _, _ in moi)
+        r = subprocess.run(["python3", LAM, "tat-loat", ids, "--ep", "--luat", "creative chấm ≤ 4 điểm Meta / GG — tự tắt mọi loại camp, kể cả đang lãi",
+                            "--ai", "anh (chat 26/10/2026: creative <= 4 điểm chấm META hoặc GG đều tắt camp tự động — mọi loại camp, kể cả đang lãi)"],
+                           capture_output=True, text=True, timeout=300, cwd=os.path.dirname(LAM))
+        try: k = json.loads(r.stdout.strip().splitlines()[-1])
+        except Exception: k = {"da_tat": [], "loi": (r.stderr or r.stdout)[-200:]}
+        gui = {str(x) for x in (k.get("gui") or [])}
+        for c in gui: da[c] = now
+        json.dump(da, open(TAT_CHAM_TEP, "w"))
+        tat = {str(x) for x in (k.get("da_tat") or [])}
+        b, dam = [f"{'Camp':<8}{'Creative':<9}Điểm"], {0}
+        b += [f"#{c:<7}#{cr:<8}{(chan or '')[:30]}" for c, cr, chan in moi[:15]] + (["…"] if len(moi) > 15 else [])
+        bao_tg(f"⛔ <b>LUẬT CHẤM — ĐÃ TẮT {len(tat)}/{len(moi)} camp</b> (creative ≤ 4 điểm Meta / GG, mọi loại camp, kể cả đang lãi)\n" + bang(b, dam)
+               + ("" if len(tat) == len(moi) else f"<i>Chưa đọc lại được {len(moi) - len(tat)} camp — lượt sau kiểm tiếp.</i>"))
+    # creative của camp đang chạy mà chưa có bản chấm → xếp hàng chấm (Worker etp-cham)
+    q(f"""insert into etp.cham_hang (creative_id, nguon, ai) select distinct {CR_CAMP}, 'chay', 'lich-gio: camp đang chạy chưa chấm' from etp.camp c
+        where c.trang_thai = 'ACTIVE' and {CR_CAMP} > 0 and not exists (select 1 from etp.cham h where h.creative_id = {CR_CAMP}) on conflict (creative_id) do nothing""")
+    # 5 điểm → người duyệt: creative đang có camp chạy hoặc chưa có camp (chờ lên)
+    try: bao = set(json.load(open(DUYET_TEP)))
+    except Exception: bao = set()
+    cho = [l.split("|") for l in q(f"""select g.creative_id, g.cho_duyet, coalesce(r.video, ''), coalesce(p.ten, ''),
+          (select count(*) from etp.camp c where c.trang_thai = 'ACTIVE' and {CR_CAMP} = g.creative_id)
+        from etp.cham_cong g left join etp.creative r using (creative_id) left join etp.phim p using (content_id)
+        where g.cho_duyet is not null and (exists (select 1 from etp.camp c where c.trang_thai = 'ACTIVE' and {CR_CAMP} = g.creative_id)
+          or not exists (select 1 from etp.camp c where c.creative_id = g.creative_id)) order by 5 desc, 1 desc""").splitlines() if l.count("|") == 4]
+    cho = [x for x in cho if x[0] not in bao][:8]
+    for cr, diem, video, ten, n in cho:
+        mid = bao_tg(f"🔎 <b>CẦN NGƯỜI DUYỆT — creative #{cr}</b> (5 điểm: {diem})\n{ten[:60]} · {'<b>' + n + ' camp đang chạy</b>' if n != '0' else 'chưa lên camp'}\n"
+                     + (f'<a href="{video}">xem video</a>\n' if video else "") + "<i>Đạt = cho lên / chạy tiếp · Loại = chặn + tắt mọi camp dùng creative này.</i>",
+                     {"inline_keyboard": [[{"text": f"✅ Đạt #{cr}", "callback_data": f"eb:dy:{cr}:ok"}, {"text": f"⛔ Loại #{cr}", "callback_data": f"eb:dy:{cr}:loai"}]]})
+        if mid: bao.add(cr)
+    if cho: json.dump(sorted(bao), open(DUYET_TEP, "w"))
+
+def duyet(cr, kq, ai):
+    """nút Đạt / Loại dưới tin CẦN NGƯỜI DUYỆT (cty ethopex.mjs xuNutBang → lich-gio.py --duyet <cr> ok|loai <ai>)"""
+    q(f"insert into etp.cham_duyet (creative_id, ok, ai, ghi) values ({int(cr)}, {'true' if kq == 'ok' else 'false'}, $A${ai[:80]}$A$, 'Telegram') "
+      f"on conflict (creative_id) do update set ok = excluded.ok, ai = excluded.ai, luc = now()")
+    if kq != "ok": tat_cham()   # Loại → tắt luôn camp đang dùng creative này
+    return f"#{cr}: {'ĐẠT — cho lên / chạy tiếp' if kq == 'ok' else 'LOẠI — chặn lên + tắt camp đang dùng'} ({ai})"
 
 NGUONG_HUT = 0.4               # trước 13h mà đã chi ≥ 40% tổng ngân sách ngày → cảnh báo đang hút nhanh
 
@@ -256,5 +325,6 @@ def tu_kiem():
     print("lich-gio tự kiểm:", "ĐẠT 29/29" if not sai else f"SAI {sai}"); sys.exit(1 if sai else 0)
 
 if __name__ == "__main__":
-    if "--bao-cao" in sys.argv: print(bao_cao_ngay_bay_gio())   # nút 📊 Report (cty ethopex.mjs xuNutBang)
+    if "--duyet" in sys.argv: i = sys.argv.index("--duyet"); print(duyet(sys.argv[i + 1], sys.argv[i + 2], " ".join(sys.argv[i + 3:]) or "?"))
+    elif "--bao-cao" in sys.argv: print(bao_cao_ngay_bay_gio())   # nút 📊 Report (cty ethopex.mjs xuNutBang)
     else: tu_kiem() if "--tu-kiem" in sys.argv else main()

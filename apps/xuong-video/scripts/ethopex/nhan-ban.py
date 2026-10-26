@@ -81,8 +81,8 @@ def creative_khac(content_id, bo_qua):
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
     ds = [int(x) for x in q(f"select (kinh_thanh->'ethopex'->>'creative_id') from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(content_id)} order by 1 desc").split() if x.isdigit()]
     return next((c for c in ds if c not in bo_qua and str(c) in dat and str(c) not in tc and dem_doan(c) < TRAN_DOAN), None)
-# CỔNG CHẤM CREATIVE (anh 25/10/2026: "cái nào đủ điều kiện lên camp thì lên luôn" · chọn "kiểu 1"): view etp.cham_cong (migration 0328 — MỘT nguồn):
-# chặn khi bất kỳ tiêu chí Meta ≤ 4 hoặc AFS CTA / dụ nhấp ≤ 4; an toàn thương hiệu / chất lượng / khớp đích chỉ cảnh báo. Chưa chấm → xếp hàng etp.cham_hang.
+# CỔNG CHẤM CREATIVE: view etp.cham_cong (migration 0341 — MỘT nguồn, anh 26/10/2026): bất kỳ tiêu chí Meta / GG (afs.*) ≤ 4 → chặn;
+# có tiêu chí = 5 → chặn tới khi người duyệt Đạt (Telegram / lich-gio.py --duyet). Chưa chấm → xếp hàng etp.cham_hang.
 def cham_sach(cr):
     k = q(f"select duoc_len::text || '|' || coalesce(chan_boi, '') from etp.cham_cong where creative_id = {int(cr)}")
     if not k:
@@ -314,6 +314,12 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None):
         if not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
         d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         ly = chan_bo(cid, bo)
+        if ly: raise ValueError(ly)
+        # CỔNG CHẤM ÁP CẢ CAMP ROAS (anh 26/10/2026: "Áp dụng cho mọi loại camp" — 10 camp ★ nhân từ creative QC spy lọt vì đường ROAS bỏ cổng chấm):
+        # ad ROAS = bài đăng của camp gốc → creative của camp gốc phải sạch
+        cr_goc = q(f"select creative_id from etp.camp where camp_id = {int(goc)}")
+        if not cr_goc.isdigit() or int(cr_goc) <= 0: raise ValueError(f"camp gốc #{goc} không rõ creative trong kho — không qua được cổng chấm")
+        ly = cham_sach(int(cr_goc))
         if ly: raise ValueError(ly)
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")

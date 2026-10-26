@@ -41,6 +41,9 @@ def ung_vien(cid, cu, tu_choi, dat):
     doan_cu = next(((t, d) for c, t, d in ds if c == str(cu)), None)
     ra = [int(c) for c, t, d in ds if c.isdigit() and c != str(cu) and c in dat and c not in tu_choi and (t, d) != doan_cu]
     dem, doan = so_camp_doan(), dict(l.split("|") for l in q(f"select creative_id, doan from etp.creative where content_id = {int(cid)}").splitlines() if "|" in l)
+    # cổng chấm (anh 26/10/2026: mọi loại camp — creative thay vào cũng phải qua view etp.cham_cong: Meta / GG ≤ 4 chặn, 5 chờ người duyệt)
+    sach = set(q(f"select creative_id from etp.cham_cong where duoc_len and creative_id in ({','.join(map(str, ra)) or '0'})").split())
+    ra = [c for c in ra if str(c) in sach]
     return sorted(ra, key=lambda c: (dem.get(doan.get(str(c)), 0), -c))   # đoạn ít camp trước, rồi mới nhất
 
 def mot(camp, tu_choi, dat):

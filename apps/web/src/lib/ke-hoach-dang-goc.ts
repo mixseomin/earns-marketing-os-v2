@@ -48,20 +48,23 @@ export const DUONG_DANG: { nen: string; ho: string; ten: string; co: boolean }[]
   { nen: 'youtube', ho: 'youtube', ten: 'YouTube Shorts', co: true }, { nen: 'dailymotion', ho: 'dailymotion', ten: 'Dailymotion (API)', co: true },
 ];
 
+/** Ngách của từng máy studio đang có (lọc dạng theo ngách khi chọn sản phẩm; 'moi' luôn hợp). Bước 1 chuyển vào DB cùng dang_tat. */
+export const NGACH_MAY: Record<string, string[]> = { 'front-porch-only-one': ['cao-tuoi'], 'ratesbyroom-scam-or-real': ['scam', 'du-lich'], 'esimfares-before-you-land': ['du-lich'], 'examweight-cau-hoi': ['hoc'], 'giochap-van-khan': ['san-pham'] };
+
 /** Sản phẩm / dịch vụ ứng viên cho bước 5: đã có nhóm góc trên spy (id nhóm = goc_sp.id) nhưng chưa có máy studio. */
-export const UNG_VIEN: { ten: string; du_an: string; goc_sp: number[]; site: string | null; ghi: string }[] = [
-  { ten: 'ExamWeight', du_an: 'examweight', goc_sp: [], site: 'examweight.com', ghi: 'máy examweight-cau-hoi đang tắt, chưa gán nhóm góc' },
-  { ten: 'Wordfrost', du_an: 'wordfrost', goc_sp: [1559], site: null, ghi: 'app iOS, cần kênh' },
-  { ten: 'MilitaryCalc', du_an: 'militarycalc', goc_sp: [1553], site: 'militarycalc.com', ghi: 'có site, cần kênh' },
-  { ten: 'Astrolas', du_an: 'astrolas', goc_sp: [9], site: 'astrolas.com', ghi: 'dịch vụ chiêm tinh; không dùng br htuan82' },
-  { ten: 'Bra / Orabra', du_an: 'bra', goc_sp: [399, 230, 347], site: null, ghi: 'shop Shopdy; QC Meta riêng' },
-  { ten: 'Teleprompter', du_an: 'clane', goc_sp: [842], site: null, ghi: 'app Clane' },
-  { ten: 'Saidly (transcription)', du_an: 'clane', goc_sp: [1551], site: null, ghi: 'app Clane' },
-  { ten: 'Foldwell (bills & rx)', du_an: 'clane', goc_sp: [1562], site: null, ghi: 'app Clane' },
-  { ten: 'Milkline (feeding)', du_an: 'clane', goc_sp: [1563], site: null, ghi: 'app Clane' },
-  { ten: 'Final Tin (quit pouches)', du_an: 'clane', goc_sp: [1561], site: null, ghi: 'app Clane' },
-  { ten: 'The Light-House (idle game)', du_an: 'clane', goc_sp: [1560], site: null, ghi: 'app Clane' },
-  { ten: 'Route Planner', du_an: 'clane', goc_sp: [1654], site: null, ghi: 'app Clane' },
-  { ten: 'Tâm ngắm (crosshair)', du_an: 'clane', goc_sp: [1554], site: null, ghi: 'app Clane' },
-  { ten: 'Mellowstep', du_an: 'mellowstep', goc_sp: [], site: 'mellowstep.com', ghi: 'chưa có nhóm góc spy — cào trước' },
+export const UNG_VIEN: { ma: string; ten: string; du_an: string; goc_sp: number[]; site: string | null; ngach: string[]; ghi: string }[] = [
+  { ma: 'examweight', ten: 'ExamWeight', du_an: 'examweight', goc_sp: [], site: 'examweight.com', ngach: ['hoc'], ghi: 'máy examweight-cau-hoi đang tắt, chưa gán nhóm góc' },
+  { ma: 'wordfrost', ten: 'Wordfrost', du_an: 'wordfrost', goc_sp: [1559], site: null, ngach: ['hoc', 'san-pham'], ghi: 'app iOS, cần kênh' },
+  { ma: 'militarycalc', ten: 'MilitaryCalc', du_an: 'militarycalc', goc_sp: [1553], site: 'militarycalc.com', ngach: ['san-pham'], ghi: 'có site, cần kênh' },
+  { ma: 'astrolas', ten: 'Astrolas', du_an: 'astrolas', goc_sp: [9], site: 'astrolas.com', ngach: ['san-pham'], ghi: 'dịch vụ chiêm tinh; không dùng br htuan82' },
+  { ma: 'bra', ten: 'Bra / Orabra', du_an: 'bra', goc_sp: [399, 230, 347], site: null, ngach: ['san-pham'], ghi: 'shop Shopdy; QC Meta riêng' },
+  { ma: 'teleprompter', ten: 'Teleprompter', du_an: 'clane', goc_sp: [842], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'saidly', ten: 'Saidly (transcription)', du_an: 'clane', goc_sp: [1551], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'foldwell', ten: 'Foldwell (bills & rx)', du_an: 'clane', goc_sp: [1562], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'milkline', ten: 'Milkline (feeding)', du_an: 'clane', goc_sp: [1563], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'final-tin', ten: 'Final Tin (quit pouches)', du_an: 'clane', goc_sp: [1561], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'light-house', ten: 'The Light-House (idle game)', du_an: 'clane', goc_sp: [1560], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'route-planner', ten: 'Route Planner', du_an: 'clane', goc_sp: [1654], site: null, ngach: ['du-lich', 'san-pham'], ghi: 'app Clane' },
+  { ma: 'tam-ngam', ten: 'Tâm ngắm (crosshair)', du_an: 'clane', goc_sp: [1554], site: null, ngach: ['san-pham'], ghi: 'app Clane' },
+  { ma: 'mellowstep', ten: 'Mellowstep', du_an: 'mellowstep', goc_sp: [], site: 'mellowstep.com', ngach: ['san-pham'], ghi: 'chưa có nhóm góc spy — cào trước' },
 ];

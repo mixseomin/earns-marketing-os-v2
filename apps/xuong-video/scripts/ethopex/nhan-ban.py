@@ -174,7 +174,9 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
-    if c.get("state") != "ACTIVE" and not roas: raise ValueError(f"camp gốc đang {c.get('state')}")   # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng
+    # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng. moi (--creative): camp gốc chỉ là KHUÔN cấu hình (Ad Set, pixel, nước, ngôn ngữ),
+    # creative thay hẳn → khuôn tạm dừng vẫn dùng được (26/10/2026: khuôn #65110 / #65734 bị tắt vì creative QC spy → mọi lượt lên camp mới gãy "camp gốc đang PAUSED")
+    if c.get("state") != "ACTIVE" and not roas and not moi: raise ValueError(f"camp gốc đang {c.get('state')}")
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
     if roas:
         # mức ROAS ĐẦU tên (anh 26/10/2026 "đặt thêm chỉ số ROAS vào tên camp để kiểm tra cho tiện" — bảng Ethopex cắt mất đuôi); đuôi "roas X duplicate by <gốc>" giữ cho máy đọc

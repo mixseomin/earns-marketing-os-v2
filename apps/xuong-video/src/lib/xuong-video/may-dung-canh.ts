@@ -8,7 +8,7 @@ import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss }
 export type AmCanh = 'mua' | 'gio' | 'song' | 'pho' | 'lua' | 'im';
 export interface DeCanh {
   truy: string;            // từ khoá tìm VIDEO nền Pexels (tiếng Anh, theo góc: "rain porch night", "kyoto station morning")
-  moc?: string;            // câu móc của góc — một dòng nhỏ ở đáy (≤ 60 ký tự; dài hơn thì ngắt 2 dòng)
+  moc?: string;            // câu móc của góc — chữ nhỏ ở đáy, ngắt tối đa 3 dòng × 36 ký tự (dài hơn thì thu cỡ chữ, không bao giờ cắt chữ)
   am?: AmCanh;             // tiếng nền sinh ffmpeg; mặc định theo từ khoá (mưa / gió / sóng / phố / lửa), 'im' = không tiếng
   dai?: number;            // giây cảnh (6–15, mặc định 10)
   ket?: string[];          // 1–2 dòng kết nhỏ (tên nơi, "Save this for your trip"…) — tuỳ chọn
@@ -37,13 +37,19 @@ export function nhipCanh(de: DeCanh) {
 /** Ảnh tĩnh cho bài ảnh (fb_anh / x_anh): một khung giữa cảnh, cắt 3:4 phần giữa. */
 export const anhCanh = (de: DeCanh): { t: number; cat: [number, number, number, number] }[] => [{ t: nhipCanh(de).CANH * 0.5, cat: [0, 240, 1080, 1440] }];
 
+/** Câu móc lên khung ĐỦ CHỮ: ngắt 36 ký tự / dòng, tối đa 3 dòng; dài hơn 3 dòng thì ngắt rộng hơn và thu cỡ chữ theo tỉ lệ (26/10/2026: bản đầu cắt còn 2 dòng, mất đuôi câu). */
+export function dongMoc(moc: string): { dong: string[]; co: number } {
+  const t = moc.trim();
+  for (const [rong, co] of [[36, 42], [44, 36], [54, 30], [70, 24]] as const) { const dong = ngat(t, rong); if (dong.length <= 3) return { dong, co }; }
+  return { dong: ngat(t, 70).slice(0, 3), co: 24 };
+}
 export function assCanh(de: DeCanh): string {
   const { CANH, DAI, ket } = nhipCanh(de), d: DongAss[] = [];
   // dải tối mỏng ở đáy cho chữ đọc được trên cảnh sáng (không phủ cả khung — cảnh phải nhìn rõ, luật ảnh thật 18/10/2026)
   if (de.moc?.trim()) {
-    const dong = ngat(de.moc.trim(), 30).slice(0, 2);
-    d.push([1, T_MOC, CANH, 'Ve', `{\\an2\\pos(540,1700)\\1c&H000000&\\1a${alpha(0.42)}\\fad(400,400)\\p1}${bo(1000, 70 + 64 * dong.length, 24)}`]);
-    d.push([2, T_MOC, CANH, 'Chu', `{\\an2\\pos(540,${1700 - 35})\\b1${fs(42)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\q2\\fad(400,400)}${dong.map(chu).join('\\N')}`]);
+    const { dong, co } = dongMoc(de.moc);
+    d.push([1, T_MOC, CANH, 'Ve', `{\\an2\\pos(540,1700)\\1c&H000000&\\1a${alpha(0.42)}\\fad(400,400)\\p1}${bo(1000, 70 + Math.round(co * 1.55) * dong.length, 24)}`]);
+    d.push([2, T_MOC, CANH, 'Chu', `{\\an2\\pos(540,${1700 - 35})\\b1${fs(co)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\q2\\fad(400,400)}${dong.map(chu).join('\\N')}`]);
   }
   if (ket.length) {
     d.push([3, CANH, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.45)}\\fad(500,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);

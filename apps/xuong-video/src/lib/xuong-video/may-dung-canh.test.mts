@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-canh.test.mts
 import assert from 'node:assert';
-import { amCanh, amTheoTruy, anhCanh, assCanh, kichBanCanh, lenhCanh, nhipCanh, DAI_MAX, DAI_MIN, type DeCanh } from './may-dung-canh';
+import { amCanh, amTheoTruy, anhCanh, assCanh, dongMoc, kichBanCanh, lenhCanh, nhipCanh, DAI_MAX, DAI_MIN, type DeCanh } from './may-dung-canh';
 import { giayDoc } from './may-dung-ass';
 
 const de: DeCanh = { truy: 'rain on porch at night', moc: 'Long drive ahead? Hand this to whoever is riding shotgun', ket: ['Front Porch Puzzles', 'Save this for a rainy day'] };
@@ -12,6 +12,12 @@ assert.strictEqual(amTheoTruy('rain on porch'), 'mua'); assert.strictEqual(amThe
 for (const am of ['mua', 'gio', 'song', 'pho', 'lua', 'im'] as const) assert.ok(amCanh(am, 10).includes('afade=t=out'), am);
 // ASS: câu móc ngắt ≤ 2 dòng, có dòng kết; không móc thì không vẽ dải
 const ass = assCanh(de); assert.ok(ass.includes('Long drive ahead?') && ass.includes('Front Porch Puzzles') && ass.includes('Save this'));
+// câu móc phải lên ĐỦ CHỮ (từ cuối có mặt), kể cả câu dài; ≤ 3 dòng; câu rất dài thu cỡ chữ
+for (const m of [de.moc!, 'Landing in Greece for the islands? Get data sorted before Santorini', 'A very long hook sentence that keeps going and going well past one hundred characters so the template must shrink the font']) {
+  const { dong, co } = dongMoc(m); assert.ok(dong.length <= 3 && dong.join(' ') === m.replace(/\s+/g, ' ').trim(), `câu móc bị cắt: ${m}`); assert.ok(co >= 24 && co <= 42);
+  assert.ok(assCanh({ truy: 'x', moc: m }).includes(m.split(' ').pop()!), `từ cuối không lên khung: ${m}`);
+}
+assert.ok(dongMoc('A very long hook sentence that keeps going and going well past one hundred characters so the template must shrink the font').co < 42, 'câu dài phải thu chữ');
 assert.ok(!assCanh({ truy: 'x' }).includes('\\p1}m 0 0'), 'không kết thì không phủ');
 // lệnh: bắt buộc video nền; có loop + tiếng; khung = 1 ảnh
 assert.throws(() => lenhCanh({ de, ass: 'a.ass', nen: null, fontsDir: '/f', ra: 'r.mp4' }), /VIDEO nền/);

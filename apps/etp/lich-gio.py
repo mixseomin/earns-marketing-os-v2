@@ -35,13 +35,13 @@ def dieu_khien(ids, trang_thai):
 
 CHU_KY = 10   # phút giữa hai lượt (etp-dong-bo.timer) — để đoán lượt KẾ sẽ làm gì mà báo trước
 
-def bao_tg(chu):
+def bao_tg(chu, nut=None):
     """Báo chủ đề 📂 Ethopex (anh 26/10/2026: "lúc chuẩn bị tắt/bật hàng loạt phải báo qua tele") — khoá bot đọc server-side ở /root/.secrets/mine-tg.env,
     mã chủ đề ở /var/lib/cty/tg-ethopex.json (cùng chủ đề máy luật cty dùng). Lỗi gửi chỉ in ra stderr, không chặn việc tắt / bật."""
     try:
         env = dict(l.strip().split("=", 1) for l in open("/root/.secrets/mine-tg.env") if "=" in l and not l.lstrip().startswith("#"))
         topic = json.load(open("/var/lib/cty/tg-ethopex.json")).get("topic")
-        body = {"chat_id": env["TG_CHAT"].strip('"'), "text": chu, "parse_mode": "HTML", "link_preview_options": {"is_disabled": True}, **({"message_thread_id": topic} if topic else {})}
+        body = {"chat_id": env["TG_CHAT"].strip('"'), "text": chu, "parse_mode": "HTML", "link_preview_options": {"is_disabled": True}, **({"message_thread_id": topic} if topic else {}), **({"reply_markup": nut} if nut else {})}
         j = json.load(urllib.request.urlopen(urllib.request.Request(f"https://api.telegram.org/bot{env['TG_BOT_TOKEN'].strip(chr(34))}/sendMessage", data=json.dumps(body).encode(),
                                                       headers={"content-type": "application/json"}), timeout=20))
         # SỔ TIN ĐÃ GỬI (anh 26/10/2026 "sửa luôn message vừa xong" — trước đây không giữ message_id nên không sửa được tin cũ): 200 tin gần nhất, sửa bằng editMessageText
@@ -142,36 +142,58 @@ def main():
             bao_tg(f"▶️ <b>LỊCH GIỜ — ĐÃ BẬT LẠI {len(ok)}/{len(can_bat)} camp</b> (khung {k_nay} BẬT)" + ("" if bat_lich else " — công tắc lịch giờ tắt, bật lại hết"))
             ghi("lich_bat", ok, f"lịch giờ: khung {k_nay} BẬT" + ("" if bat_lich else " (công tắc lịch giờ tắt — bật lại hết)"))
 
-GIO_THEO_DOI = range(9, 14)   # báo đầu giờ 09h…13h = số các giờ 08h…12h (khung 08h–12h vừa bật lại sau 07h)
 NGUONG_HUT = 0.4               # trước 13h mà đã chi ≥ 40% tổng ngân sách ngày → cảnh báo đang hút nhanh
 
-def bao_chi_gio(vn):
-    """CHI THEO GIỜ (anh 26/10/2026: "vẫn phải theo dõi chi theo từng giờ vì có thể nó lại hút hết ngân sách trong giai đoạn 8–12h sáng"):
-    lượt đầu tiên của mỗi giờ 09h–13h báo lên 📂 Ethopex số giờ vừa qua (etp.so_gio — giờ UTC, ngày ngân sách = ngày UTC bắt đầu 07:00 VN) + luỹ kế từ 07h
-    so với tổng ngân sách camp đang chạy + camp đã tiêu hết ngân sách ngày. Chỉ báo, không đổi camp nào."""
-    if vn.hour not in GIO_THEO_DOI: return
-    khoa = f"{vn:%Y-%m-%d %H}"
-    if q("select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'chi_gio_bao'") == khoa: return
-    ngay = (vn - dt.timedelta(hours=7)).strftime("%Y-%m-%d"); g = vn.hour - 1 - 7   # giờ UTC của giờ VN vừa qua
-    gio = [l.split("|") for l in q(f"select gio, sum(chi), sum(thu) from etp.so_gio where ngay = '{ngay}' and gio <= {g} group by 1 order by 1").splitlines() if "|" in l]
-    if not gio or int(gio[-1][0]) != g: return   # số giờ vừa qua chưa về — lượt sau thử lại
+NUT_REPORT = {"inline_keyboard": [[{"text": "📊 Report", "callback_data": "eb:report"}]]}   # bấm → cty ethopex.mjs xuNutBang → lich-gio.py --bao-cao
+
+def lap_bao_cao(vn, gio_cuoi=None):
+    """BẢNG BÁO CÁO GIỜ (dùng chung cho tin mỗi giờ và nút 📊 Report): số từng giờ (6 giờ gần nhất tới gio_cuoi — giờ UTC; None = mọi giờ đã về)
+    + luỹ kế ngày Ethopex (07h–07h VN = ngày UTC): chi · thu · lãi · ROI · % ngân sách cao nhất trong ngày · camp ROAS ★ · camp đã tiêu hết ngân sách.
+    → (chữ HTML, giờ UTC cuối cùng có số) hoặc (None, None) khi chưa có số giờ nào."""
+    ngay = (vn - dt.timedelta(hours=7)).strftime("%Y-%m-%d") if gio_cuoi is None else gio_cuoi[0]
+    gioi = "" if gio_cuoi is None else f" and gio <= {gio_cuoi[1]}"
+    gio = [l.split("|") for l in q(f"select gio, sum(chi), sum(thu) from etp.so_gio where ngay = '{ngay}'{gioi} group by 1 order by 1").splitlines() if "|" in l]
+    if not gio: return None, None
     roi = lambda c, t: f"{(t - c) / c * 100:+.0f}%" if c >= 0.3 else "—"
-    ns = float(q("select coalesce(sum(ngan_sach), 0) from etp.camp_dang_chay") or 0)
+    ns = float(q(f"select coalesce(sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0), 0) from etp.so_ngay where ngay = '{ngay}'") or 0)   # ngân sách cao nhất trong ngày (0340)
     c_ng, t_ng = [float(x) for x in q(f"select coalesce(sum(chi), 0), coalesce(sum(thu), 0) from etp.so_ngay where ngay = '{ngay}'").split("|")]
+    c_r, t_r, n_r = [float(x) for x in q(f"""select coalesce(sum(s.chi), 0), coalesce(sum(s.thu), 0), count(*) filter (where c.trang_thai = 'ACTIVE') from etp.camp c
+        left join etp.so_ngay s on s.camp_id = c.camp_id and s.ngay = '{ngay}' where c.ten like '% duplicate by %' or c.ten like '★%'""").split("|")]
     het = [l.split("|") for l in q(f"""select s.camp_id, s.chi, c.ngan_sach, s.thu from etp.so_ngay s join etp.camp_dang_chay c using (camp_id)
         where s.ngay = '{ngay}' and c.ngan_sach > 0 and s.chi >= c.ngan_sach order by s.chi desc""").splitlines() if "|" in l]
+    moi_nhat = q("select to_char(max(xong) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') from etp.dong_bo where xong is not null") or "?"
     ty = c_ng / ns if ns else 0
-    # BẢNG chữ đều cột (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng") — ≤ 30 ký tự / dòng cho màn điện thoại
-    b = [f"{'Giờ':<6}{'Chi':>7}{'Thu':>7}{'ROI':>7}"] + [f"{int(h) + 7:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio[-6:]]
-    b += ["-" * 27, f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}", f"NS ngày ${ns:.0f} · đã chi {ty * 100:.0f}%"]; dam, nhat = {0, len(b) - 2}, {len(b) - 1}
+    # BẢNG chữ đều cột (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng") — ≤ 30 ký tự / dòng cho màn điện thoại; dam = đậm, nhat = nhạt
+    b, dam, nhat = [f"{'Giờ':<6}{'Chi':>7}{'Thu':>7}{'ROI':>7}"], {0}, set()
+    b += [f"{(int(h) + 7) % 24:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio[-6:]]
+    b.append("-" * 27); dam.add(len(b)); b.append(f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}")
+    nhat.add(len(b)); b.append(f"Lãi {t_ng - c_ng:+.0f}$ · NS ${ns:.0f} · chi {ty * 100:.0f}%")
+    if n_r or c_r:
+        b.append(f"{'★ROAS':<6}{c_r:>7.0f}{t_r:>7.0f}{roi(c_r, t_r):>7}"); nhat.add(len(b)); b.append(f"{int(n_r)} camp ROAS đang bật")
     if het:
-        dam |= {len(b) + 1, len(b) + 2}
-        b += ["", f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])
-    chu = (f"🕐 <b>CHI THEO GIỜ — {vn.hour - 1:02d}h</b> (khung 08h–12h)\n" + bang(b, dam, nhat)
-           + (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — còn {(1 - ty) * 100:.0f}% cho khung tối 20h–06h" if ty >= NGUONG_HUT else ""))
-    bao_tg(chu)
+        b.append(""); dam |= {len(b), len(b) + 1}
+        b += [f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])
+    canh = (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — còn {(1 - ty) * 100:.0f}% cho khung tối 20h–06h" if 7 <= vn.hour < 13 and ty >= NGUONG_HUT else "")
+    return bang(b, dam, nhat) + f"<i>ngày {ngay[8:10]}/{ngay[5:7]} (07h–07h) · số kho etp tới {moi_nhat}</i>" + canh, int(gio[-1][0])
+
+def bao_chi_gio(vn):
+    """BÁO CÁO GIỜ (anh 26/10/2026: "Trên tele, hàng giờ phải gửi báo cáo report định kỳ" — trước đó chỉ báo 09h–13h): lượt đầu tiên của MỖI giờ (24/24)
+    báo lên 📂 Ethopex số tới hết giờ VN vừa qua, kèm nút 📊 Report (bấm = báo cáo mới ngay). Chỉ báo, không đổi camp nào."""
+    p = vn.replace(minute=0, second=0, microsecond=0) - dt.timedelta(hours=1)   # giờ VN vừa qua
+    khoa = f"{vn:%Y-%m-%d %H}"
+    if q("select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'chi_gio_bao'") == khoa: return
+    pu = p - dt.timedelta(hours=7)
+    chu, cuoi = lap_bao_cao(vn, (pu.strftime("%Y-%m-%d"), pu.hour))
+    if chu is None or cuoi != pu.hour: return   # số giờ vừa qua chưa về — lượt sau thử lại
+    bao_tg(f"🕐 <b>BÁO CÁO GIỜ — {p.hour:02d}h–{(p.hour + 1) % 24:02d}h</b>\n" + chu, NUT_REPORT)
     q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('chi_gio_bao', to_jsonb('{khoa}'::text), 'giờ đã báo chi theo giờ trên Telegram', 'lich-gio.py') "
       f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+
+def bao_cao_ngay_bay_gio():
+    """nút 📊 Report: báo cáo tới giờ mới nhất đã có số (giờ đang chạy dở cũng tính)"""
+    vn = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)
+    chu, _ = lap_bao_cao(vn)
+    return bao_tg(f"📊 <b>REPORT {vn:%H:%M} {vn:%d/%m}</b> (anh bấm)\n" + (chu or "<i>chưa có số giờ nào của ngày này</i>"), NUT_REPORT)
 
 def bang(dong, dam=(), nhat=()):
     """BẢNG Telegram chữ đều cột CÓ ĐẬM / NHẠT (anh 26/10/2026: "những kiểu này phải luôn dùng bảng" · "còn có format đậm nhạt ko thấy mày dùng"): <pre> không chứa được
@@ -230,4 +252,5 @@ def tu_kiem():
     print("lich-gio tự kiểm:", "ĐẠT 29/29" if not sai else f"SAI {sai}"); sys.exit(1 if sai else 0)
 
 if __name__ == "__main__":
-    tu_kiem() if "--tu-kiem" in sys.argv else main()
+    if "--bao-cao" in sys.argv: print(bao_cao_ngay_bay_gio())   # nút 📊 Report (cty ethopex.mjs xuNutBang)
+    else: tu_kiem() if "--tu-kiem" in sys.argv else main()

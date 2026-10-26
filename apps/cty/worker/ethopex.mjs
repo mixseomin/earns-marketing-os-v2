@@ -12,6 +12,7 @@ const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
 const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py');
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
+const LICH = path.join(REPO, 'apps/etp/lich-gio.py');   // báo cáo giờ + nút 📊 Report
 const THAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py');
 const THE_LOAI = path.join(REPO, 'apps/xuong-video/scripts/ethopex/the-loai.py');
 const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
@@ -271,7 +272,12 @@ export async function bangEthopex(tg, { ep = false, doc = async () => JSON.parse
 /** Nút 🔄 trong hộp ethopex-bang (dịch vụ nghe gọi ngay sau gom tin). */
 export async function xuNutBang(tg) {
   const { moHop } = await import('./tg-phong.mjs'); let n = 0;
-  for (const x of moHop('ethopex-bang')) { x.xong(); if (x.callback_query) { await bangEthopex(tg, { ep: true }); n++; } }
+  for (const x of moHop('ethopex-bang')) { x.xong(); const c = x.callback_query; if (!c) continue;
+    // 📊 Report (anh 26/10/2026: "Trên topic nếu có 1 nút kiểu Report, bấm cái là phải sinh được report") — nút nằm dưới mọi tin BÁO CÁO GIỜ (apps/etp/lich-gio.py)
+    if (c.data === 'eb:report') { await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đang lập report…' });
+      try { await chay(LICH, ['--bao-cao'], 60); } catch (e) { await tg('sendMessage', { message_thread_id: c.message?.message_thread_id, text: `⚠️ Report lỗi: ${String(e.message).slice(0, 200)}` }); }
+      n++; continue; }
+    await bangEthopex(tg, { ep: true }); n++; }
   return n;
 }
 

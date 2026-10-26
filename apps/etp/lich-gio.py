@@ -158,7 +158,8 @@ def bao_phien(vn, k_cu, tat_tl):
     và cả camp đang chạy"): số khung k_cu từ đầu khung tới giờ hiện tại (etp.so_gio, giờ UTC), chia nhóm thể loại SẼ TẠM DỪNG / VẪN CHẠY, so cùng khung hôm qua."""
     gio_tu = int(q(f"select gio_tu from etp.khung_gio where khung = '{k_cu}'") or vn.hour)
     bd = vn.replace(minute=0, second=0, microsecond=0) - dt.timedelta(hours=(vn.hour - gio_tu) % 24)
-    gio = [bd + dt.timedelta(hours=i) for i in range(int((vn - bd).total_seconds() // 3600) + 1)]
+    gio = [bd + dt.timedelta(hours=i) for i in range(int((vn - bd).total_seconds() // 3600))]   # chỉ giờ ĐÃ TRỌN — giờ đang dở so với giờ trọn hôm qua là lệch
+    if not gio: return ""
     def so(lui):
         cap = ",".join(f"('{(g - dt.timedelta(hours=7 + 24 * lui)):%Y-%m-%d}'::date, {(g - dt.timedelta(hours=7)).hour})" for g in gio)
         r = {"tat": [0.0, 0.0], "chay": [0.0, 0.0]}
@@ -169,7 +170,7 @@ def bao_phien(vn, k_cu, tat_tl):
     roi = lambda a: f"{(a[1] - a[0]) / a[0] * 100:+.0f}%" if a[0] >= 0.3 else "—"
     dong = lambda ten, a, b: f"{ten}: chi ${a[0]:.2f} · lãi ${a[1] - a[0]:+.2f} · ROI {roi(a)}  <i>(hôm qua cùng giờ: lãi ${b[1] - b[0]:+.2f} · ROI {roi(b)})</i>"
     tong = lambda r: [r["tat"][0] + r["chay"][0], r["tat"][1] + r["chay"][1]]
-    return (f"📊 <b>Phiên vừa xong {gio[0]:%H}h–{vn:%H:%M}</b>\n" + dong("Tổng", tong(nay), tong(qua)) + "\n"
+    return (f"📊 <b>Phiên vừa xong {gio[0]:%H}h–{gio[-1] + dt.timedelta(hours=1):%H}h</b> (giờ đã trọn)\n" + dong("Tổng", tong(nay), tong(qua)) + "\n"
             + dong("⏸ Nhóm sẽ tạm dừng", nay["tat"], qua["tat"]) + "\n" + dong("▶️ Nhóm vẫn chạy", nay["chay"], qua["chay"]) + "\n")
 
 def tom_tl(ds):

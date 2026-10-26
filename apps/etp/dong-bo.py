@@ -114,7 +114,7 @@ def main():
         # ngân sách + trạng thái của camp cho NGÀY HÔM NAY (giá trị lượt cuối ngày thắng) — lịch sử cho chạy thử luật (bước 3c)
         # + ns_max / bat: ngân sách CAO NHẤT trong ngày lúc camp bật, camp có lúc nào bật (migration 0340 — cột ngân sách theo ngày trên etp.on.tc)
         q(f"insert into etp.so_ngay (camp_id, ngay, ngan_sach, trang_thai, ns_max, bat) select camp_id, '{nay.isoformat()}', ngan_sach, trang_thai, "
-          f"case when trang_thai = 'ACTIVE' then ngan_sach end, trang_thai = 'ACTIVE' from etp.camp where trang_thai <> 'ARCHIVED' "
+          f"case when trang_thai = 'ACTIVE' then ngan_sach end, coalesce(trang_thai, '') = 'ACTIVE' from etp.camp where trang_thai <> 'ARCHIVED' "
           f"on conflict (camp_id, ngay) do update set ngan_sach = excluded.ngan_sach, trang_thai = excluded.trang_thai, "
           f"ns_max = greatest(so_ngay.ns_max, excluded.ns_max), bat = so_ngay.bat or excluded.bat")
     except Exception as e: loi.append(f"so_ngay: {e}")

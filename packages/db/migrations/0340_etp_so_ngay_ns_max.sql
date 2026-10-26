@@ -9,5 +9,5 @@ update etp.so_ngay s set
                                    where n.camp_id = s.camp_id and n.viec in ('tang', 'giam') and (n.luc at time zone 'UTC')::date = s.ngay
                                    union all select nullif(regexp_replace(n.sau, '[^0-9.]', '', 'g'), '')::numeric from etp.nhat_ky n
                                    where n.camp_id = s.camp_id and n.viec in ('tang', 'giam') and (n.luc at time zone 'UTC')::date = s.ngay) x)),
-  bat = (s.trang_thai = 'ACTIVE' or s.chi > 0)
+  bat = (coalesce(s.trang_thai, '') = 'ACTIVE' or coalesce(s.chi, 0) > 0)
 where s.ns_max is null;

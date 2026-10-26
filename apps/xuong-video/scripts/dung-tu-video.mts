@@ -28,13 +28,14 @@ for (const [i, s] of b.shot.entries()) {
   const thoai = /\/noi-/.test(tep), dTep = dai(tep);
   const vao = thoai || /\/(tinh|clip)-/.test(tep) ? 0 : Math.min(0.2, Math.max(0, dTep - s.giay));
   // độ dài làm tròn ĐÚNG số khung (24/giây) — hình và tiếng cùng một con số; tiếng 48 kHz = đúng 2.000 mẫu / khung (44,1 kHz lẻ 1.837,5)
-  const d = Math.round((thoai ? dTep : Math.min(s.giay, dTep - vao)) * 24) / 24;
+  let d = Math.round((thoai ? dTep : Math.min(s.giay, dTep - vao)) * 24) / 24;
   const cuoi = i === b.shot.length - 1;
   const sub = s.thoai ?? (s.ke ? s.ke.replace(/\s*\(nháp\)\s*$/, '') : '');
   const ve = ngat(sub).map((t, k, a) => `drawtext=fontfile=${FONT}:text='${t.replace(/[':\\]/g, (c) => `\\${c}`)}':fontcolor=white:fontsize=40:borderw=4:bordercolor=black:x=(w-tw)/2:y=h*0.80-${(a.length - 1 - k) * 50}`).join(',');
   const loa = cuoi ? `,fade=t=out:st=${Math.max(0, d - 0.45).toFixed(2)}:d=0.45:color=white` : '';
   const v = `${tam}/v-${s.so}.mp4`;
-  sh(['-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep, '-vf', `scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=24,tpad=stop_mode=clone:stop_duration=0.2${ve ? `,${ve}` : ''}${loa},format=yuv420p`, '-t', d.toFixed(4), '-an', v]);   // clip nguồn ngắn hơn d → giữ khung cuối cho đủ (hình = tiếng)
+  sh(['-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep, '-vf', `scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=24,tpad=stop_mode=clone:stop_duration=2${ve ? `,${ve}` : ''}${loa},format=yuv420p`, '-t', d.toFixed(4), '-an', v]);   // clip nguồn ngắn hơn d → giữ khung cuối cho đủ (hình = tiếng)
+  d = Math.round(dai(v) * 24) / 24;   // độ dài THẬT của đoạn hình vừa dựng — tiếng lấy đúng con số này (clip nguồn ngắn hơn thì hình đã giữ khung cuối)
   // tiếng: thoại (giữ tiếng clip) + lời kể + hiệu ứng, trên nền lặng đúng d giây
   const vaoTieng: string[] = []; const loc: string[] = [];
   if (thoai && coTieng(tep)) { vaoTieng.push('-ss', vao.toFixed(2), '-t', d.toFixed(2), '-i', tep); loc.push(`[${loc.length + 1}:a]anull`); }   // nhánh trơn phải có tên bộ lọc

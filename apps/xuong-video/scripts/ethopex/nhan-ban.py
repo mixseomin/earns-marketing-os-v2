@@ -146,6 +146,23 @@ def ghi_bo(content_id, bo):
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_phim_tk', '{}'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(content_id)}', '{bo}') where ten='ethopex_phim_tk' and not gia_tri ? '{int(content_id)}'")
 
+def lich_ap(moi, content_id):
+    """CAMP MỚI THEO LỊCH GIỜ NGAY KHI TẠO (anh 26/10/2026: "nếu camp thuộc luồng tắt như đang kế hoạch thì camp mới lên cũng phải áp dụng luôn"): thể loại của phim đang ở
+    khung TẮT (hoặc 15 phút nữa sang khung TẮT — cùng TRUOC_PHUT với apps/etp/lich-gio.py) thì tạm dừng ngay + ghi etp.lich_tat → lich-gio tự bật lại khi tới khung BẬT.
+    Không đợi lượt đồng bộ kế (camp mới vào kho chậm 10–20 phút, chạy giữa khung lỗ)."""
+    import datetime as dt
+    if q("select gia_tri::text from etp.cau_hinh where khoa = 'lich_gio'") != "true": return None
+    tl = q(f"select coalesce(the_loai, '_khac') from etp.phim where content_id = {int(content_id)}") or "_khac"
+    vn = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)
+    tat = [k for k in {q(f"select etp.khung_vn({vn.hour})"), q(f"select etp.khung_vn({(vn + dt.timedelta(minutes=15)).hour})")}
+           if q(f"select coalesce((select bat from etp.lich_gio where the_loai = '{tl}' and khung = '{k}'), (select bat from etp.lich_gio where the_loai = '_khac' and khung = '{k}'), true)") == "f"]
+    if not tat: return None
+    r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [int(moi)], "status": "paused"}])
+    d0 = (r.get("data") or [{}])[0]
+    if d0 and d0.get("ok") is False: return f"chưa tạm dừng theo lịch: {d0.get('error')}"
+    q(f"insert into etp.lich_tat (camp_id, the_loai, khung) values ({int(moi)}, '{tl}', '{tat[0]}') on conflict do nothing")
+    return f"tạm dừng theo lịch giờ ({tl} · khung {tat[0]} TẮT) — máy tự bật lại khi tới khung BẬT"
+
 def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh thang_bo / thang_muc (migration 0333)
     v = q(f"select gia_tri::text from etp.cau_hinh where khoa = '{khoa}'")
     return json.loads(v) if v else mac
@@ -280,7 +297,10 @@ def main(a):
         if thang and kq["ok"] and float(c.get("budget_daily") or 0) != thang:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
-        if kq["ok"]: ghi_bo(cid, bo)
+        if kq["ok"]:
+            ghi_bo(cid, bo)
+            try: kq["lich"] = lich_ap(moi, cid)
+            except Exception as e: kq["lich"] = f"lỗi áp lịch giờ: {str(e)[:80]}"
     except Exception as e:
         kq["loi"] = str(e)[:240]
     if that: ghi_nhat_ky(kq, luat, ai)

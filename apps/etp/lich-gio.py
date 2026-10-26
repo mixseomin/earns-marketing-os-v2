@@ -83,7 +83,8 @@ def main():
     dang_tat = {int(c): t or "_khac" for c, t in (l.split("|") for l in q("""select l.camp_id, coalesce(p.the_loai, l.the_loai, '') from etp.lich_tat l
         left join etp.camp c using (camp_id) left join etp.phim p on p.content_id = c.content_id""").splitlines() if "|" in l)}
     # camp trong lich_tat đã bị lưu trữ / mất khỏi kho → bỏ khỏi sổ (không bật)
-    q("delete from etp.lich_tat l where not exists (select 1 from etp.camp c where c.camp_id = l.camp_id and c.trang_thai <> 'ARCHIVED')")
+    # camp mới do nhan-ban vừa tạm dừng theo lịch (lich_ap) chưa vào kho trong 30 phút đầu — không bỏ khỏi sổ, kẻo 20h không bật lại
+    q("delete from etp.lich_tat l where l.luc < now() - interval '30 minutes' and not exists (select 1 from etp.camp c where c.camp_id = l.camp_id and c.trang_thai <> 'ARCHIVED')")
     # camp trong sổ mà đang chạy lại (vd máy thay creative bị Meta từ chối xong bật lại) → tạm dừng lại luôn, không để chạy suốt khung TẮT
     # camp vừa tạm dừng mà kho chưa thấy Ethopex đổi gì sau lúc đó (cap_nhat_etp ≤ lúc ghi lich_tat) vẫn hiện ACTIVE trong kho — KHÔNG gửi lại lệnh + báo lại mỗi lượt;
     # chỉ tạm dừng lại camp trong sổ khi Ethopex có cập nhật MỚI hơn lúc tạm dừng (vd máy thay creative bật lại)

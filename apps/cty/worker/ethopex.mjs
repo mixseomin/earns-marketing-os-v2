@@ -413,11 +413,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
     const daT7 = [];
-    for (const m of tat) {
-      lamRoi.add(m.id); delete cho[m.id];
-      let r; try { r = JSON.parse((await chay(LAM, ['tat', String(m.id), '--luat', `T7 Support · ${m.chu}`.slice(0, 400), '--ai', 'anh (chat 26/10/2026: thêm và áp dụng luật T7 của Support) — máy chạy'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
-      if (!r.ok) giu.ds[m.id] = String(r.loi || '').slice(0, 80);
-      daT7.push({ m, r });
+    if (tat.length) {   // MỘT lệnh bulk cho cả danh sách (anh 26/10/2026: "sao ko gửi hàng loạt"); T7 tắt đủ, không giữ camp "hôm nay đang lãi" (anh 26/10/2026)
+      for (const m of tat) { lamRoi.add(m.id); delete cho[m.id]; }
+      let r; try { r = JSON.parse((await chay(LAM, ['tat-loat', tat.map((m) => m.id).join(','), '--t7', '--ep', '--luat', 'T7 Support (7 ngày đã khép lãi < 0, > 3 ngày bật, chi > $5)', '--ai', 'anh (chat 26/10/2026: thêm và áp dụng luật T7, tắt đủ danh sách) — máy chạy'], 300)).trim().split('\n').pop()); } catch (e) { r = { loi: e.message } }
+      for (const m of tat) { const ok = (r.da_tat || []).includes(m.id) || (r.lich || []).includes(m.id); if (!ok) giu.ds[m.id] = String(r.loi || r.giu?.[m.id] || 'chưa tắt').slice(0, 80); daT7.push({ m, r: { ok, loi: ok ? null : giu.ds[m.id] } }); }
     }
     fs.writeFileSync(TEP, JSON.stringify({ ...cho, _giu: giu }));
     if (daT7.length) {

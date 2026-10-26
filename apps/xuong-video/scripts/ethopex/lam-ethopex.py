@@ -97,7 +97,7 @@ def chan_sau_giam(cid):
     return None
 ROI_TANG_LAI = 50
 
-def tat_loat(ids, luat, ai, t7=False):
+def tat_loat(ids, luat, ai, t7=False, ep=False):
     """TẮT HÀNG LOẠT (anh 26/10/2026: "sao ko gửi hàng loạt — backend có nút select all rồi set"): cùng chặn như `tat` nhưng đọc số MỘT lần cho cả danh sách
     (3 lượt Report: hôm nay · 2 ngày · từ đầu tháng) + một danh sách camp, rồi MỘT lệnh bulk mỗi 50 camp, đọc lại một lần. Bản cũ gọi từng camp ~25 giây/camp."""
     import datetime as dt
@@ -125,7 +125,7 @@ def tat_loat(ids, luat, ai, t7=False):
               f"hôm nay ROI {roi(nay, c):+.0f}%" if (roi(nay, c) or -1e9) > ROI_GIU else
               f"2 ngày ROI {roi(hai, c):+.0f}%" if (roi(hai, c) or -1e9) > 0 else
               f"cộng dồn ROI {roi(tong, c):+.0f}%" if (roi(tong, c) or -1e9) > 0 else None)
-        if ly: kq["giu"][c] = ly
+        if ly and not ep: kq["giu"][c] = ly   # ep: anh lệnh tắt cả danh sách (anh 26/10/2026 với luật T7: không giữ camp "hôm nay đang lãi")
         else: kq["gui"].append(c)
     for i in range(0, len(kq["gui"]), 50):
         r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": kq["gui"][i:i + 50], "status": "paused"}])
@@ -146,7 +146,7 @@ def main(a):
     ep = "--ep" in a   # anh lệnh đích danh (vd phim 18+) — bỏ qua chặn camp lãi
     a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
-        print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv), ensure_ascii=False)); return
+        print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv, ep=ep), ensure_ascii=False)); return
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
     try:
         truoc = doc(cid); kq["truoc"] = truoc

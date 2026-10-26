@@ -109,6 +109,9 @@ interface DataTableProps<T> {
    * (quy ước của mọi bảng đang có). Truyền false nếu bảng nào không hợp.
    */
   stickyFirst?: boolean;
+  /** GHIM N cột đầu (mặc định 1 khi stickyFirst) — vd bảng Soát creative etp ghim Creative · Chạy · Duyệt (anh 26/10/2026 "Sticky cột Duyệt").
+   *  Cột thứ 2 trở đi lấy mép trái = tổng bề rộng đo được của các cột ghim trước (chế độ cuộn theo trang). */
+  stickyCols?: number;
   /**
    * table-layout: fixed — bề rộng cột lấy THEO `width` khai báo, không theo nội dung. Dùng khi NHIỀU bảng cùng bộ cột xếp chồng
    * (cây Tài sản: mỗi shop một bảng) mà cột phải thẳng hàng giữa các bảng. Cột không có `width` chia phần còn lại; ô tràn tự cắt.
@@ -159,7 +162,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
-  stickyFirst = true, fixedLayout = false,
+  stickyFirst = true, stickyCols, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
@@ -373,11 +376,20 @@ export function DataTable<T>({
   const viTriDong = useMemo(() => new Map(pageRows.map((r, i) => [r, i] as const)), [pageRows]);   // chỉ số gốc của dòng khi vẽ theo nhóm
 
   // Ô ghim phải có nền ĐỤC, không thì cột cuộn phía dưới nhìn xuyên qua thành chữ chồng chữ.
-  const stick = (i: number, head: boolean): CSSProperties =>
-    (stickyFirst && i === 0
-      ? { position: 'sticky', left: 0, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--bg-1)',
-          boxShadow: '1px 0 0 var(--line)', maxWidth: STICKY_MAX, overflow: 'hidden', textOverflow: 'ellipsis' }
-      : {});
+  // ghim(i): cột i có ghim không + mép trái. Cột ≥ 2 cần bề rộng đo (cotDo) — chưa đo xong thì chỉ ghim cột đầu.
+  const soGhim = stickyCols ?? (stickyFirst ? 1 : 0);
+  const ghim = (i: number): { left: number; cuoi: boolean } | null => {
+    if (i < 0 || i >= soGhim) return null;
+    if (i === 0) return { left: 0, cuoi: soGhim === 1 || cotDo.w.length < soGhim };
+    if (cotDo.w.length < soGhim) return null;
+    let left = 0; for (let k = 0; k < i; k++) left += cotDo.w[k]!;
+    return { left, cuoi: i === soGhim - 1 };
+  };
+  const stick = (i: number, head: boolean): CSSProperties => {
+    const g = ghim(i);
+    return g ? { position: 'sticky', left: g.left, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--bg-1)',
+        boxShadow: g.cuoi ? '1px 0 0 var(--line)' : undefined, ...(i === 0 ? { maxWidth: STICKY_MAX } : {}), overflow: 'hidden', textOverflow: 'ellipsis' } : {};
+  };
   // bảng bề rộng cố định (table-layout:fixed — đã kéo cột / fixedLayout): ô nào cũng cắt phần tràn, không thì chữ dài đè sang cột bên cạnh (anh 26/10/2026)
   const coDinh = !!fixedLayout || Object.keys(rong).length > 0;
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
@@ -392,8 +404,8 @@ export function DataTable<T>({
       backgroundColor: 'var(--bg-2)',
       backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined,
       borderLeft: i ? '1px solid var(--line)' : undefined,
-      position: 'sticky', top: 0, zIndex: stickyFirst && i === 0 ? 4 : 3,
-      ...(stickyFirst && i === 0 ? { left: 0, maxWidth: STICKY_MAX, overflow: 'hidden', boxShadow: '1px 0 0 var(--line), 0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
+      position: 'sticky', top: 0, zIndex: ghim(i) ? 4 : 3,
+      ...(ghim(i) ? { left: ghim(i)!.left, ...(i === 0 ? { maxWidth: STICKY_MAX } : {}), overflow: 'hidden', boxShadow: ghim(i)!.cuoi ? '1px 0 0 var(--line), 0 1px 0 var(--line)' : '0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
   };
 
   const pager = pageSize ? (

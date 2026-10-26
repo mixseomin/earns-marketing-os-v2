@@ -503,7 +503,7 @@ function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => 
     </div>
   );
 }
-const LOC_SOAT = ['duyet', 'xem', 'nloai', 'loi', 'meta', 'chua', 'all'] as const;
+const LOC_SOAT = ['duyet', 'xem', 'ndat', 'nloai', 'loi', 'meta', 'chua', 'all'] as const;
 type LocSoat = (typeof LOC_SOAT)[number];
 // tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
@@ -558,8 +558,9 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const choDuyet = (x: { c?: ChamCr }) => !!x.c?.cho_duyet && x.c.duyet == null;
   const canXem = (x: { c?: ChamCr }) => !!x.c && x.c.duyet == null && !le4(x) && (!!x.c.cho_duyet || x.c.ket === 'xem');
   const nguoiLoai = (x: { c?: ChamCr }) => x.c?.duyet === false;   // anh 26/10/2026: "Loại xong thì creative phải để sang tab riêng: Người loại" — không còn ở Cần người xem
-  const dem = { duyet: ds.filter(choDuyet).length, nloai: ds.filter(nguoiLoai).length, loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter(canXem).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
-  const rows = ds.filter((x) => loc === 'all' || (loc === 'duyet' ? choDuyet(x) : loc === 'nloai' ? nguoiLoai(x) : loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? canXem(x) : loc === 'meta' ? x.metaLoi : !x.c));
+  const nguoiDat = (x: { c?: ChamCr }) => x.c?.duyet === true;   // anh 26/10/2026: "vậy phải có thêm tab Người duyệt"
+  const dem = { duyet: ds.filter(choDuyet).length, ndat: ds.filter(nguoiDat).length, nloai: ds.filter(nguoiLoai).length, loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter(canXem).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
+  const rows = ds.filter((x) => loc === 'all' || (loc === 'duyet' ? choDuyet(x) : loc === 'ndat' ? nguoiDat(x) : loc === 'nloai' ? nguoiLoai(x) : loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? canXem(x) : loc === 'meta' ? x.metaLoi : !x.c));
   const [dangDuyet, setDangDuyet] = useState<Record<number, boolean>>({});
   const [dangTb, setDangTb] = useState<Record<number, boolean>>({});   // vừa bấm Tắt (false) / Bật (true), chờ kho thấy trạng thái mới
   useEffect(() => { setDangTb((d) => { const x = { ...d }; for (const k of Object.keys(x)) { const r = du.creatives.find((c) => c.creative_id === Number(k)); if (r && (r.chay > 0) === x[Number(k)]) delete x[Number(k)]; } return x; }); }, [du.creatives]);
@@ -615,9 +616,9 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
         <span style={{ color: DAU_MAU.vua }}><b style={{ fontSize: 18 }}>{dem.xem}</b> cần người xem</span>
         <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{dem.meta}</b> Meta từ chối</span>
         <span style={{ color: sot ? '#fb923c' : 'var(--fg-2)' }} title="Meta từ chối mà máy chấm sạch"><b style={{ fontSize: 18 }}>{sot}</b> máy bỏ sót</span>
-        <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'duyet', label: 'Chờ duyệt (5 điểm)' }, { value: 'xem', label: 'Cần người xem' }, { value: 'nloai', label: 'Người loại' }, { value: 'loi', label: 'Cấm / Meta từ chối' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa chấm' }, { value: 'all', label: 'Tất cả đang chạy' }]} /></span>
+        <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'all', label: 'Tất cả' }, { value: 'duyet', label: 'Chờ duyệt (5 điểm)' }, { value: 'xem', label: 'Cần người xem' }, { value: 'ndat', label: 'Người duyệt' }, { value: 'nloai', label: 'Người loại' }, { value: 'loi', label: 'Cấm / Meta từ chối' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa chấm' }]} /></span>
       </div>
-      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1100} pageSize={100}
+      <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1100} pageSize={100} stickyCols={3}
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
           { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(x.r.creative_id)}<span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },

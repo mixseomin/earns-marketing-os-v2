@@ -4,7 +4,7 @@
 # mũi tên chuyển động, dấu điểm neo mắt (0,5 ; 0,31 — quy ước phim ngắn AI, tham-khao/reelshort.md), chữ diễn + thoại dưới khung.
 #   python ve-so-do-shot.py <bang-shot.json> <ra.png> [--cot 6]
 # bang-shot.json: {"ten": "...", "nhan_vat": {"<mã>": {"ao": "#hex", "toc": "dai|duoi_ngua|ngan", "nhan": "Hạ"}}, "shot": [
-#   {"so": 1, "giay": 2.0, "co": "toan|trung|mcu|cu|qua_vai|can_do", "goc": "ngang|thap|cao", "nen": "thang|thang_mo|san|da",
+#   {"so": 1, "giay": 2.0, "co": "ws|ms|two|mcu|cu|ots|insert (mã co_canh studio)", "goc": "ngang|thap|cao", "nen": "thang|thang_mo|san|da",
 #    "nguoi": [{"ma": "ha", "x": 0.5, "nhin": "trai|phai|may|xuong|len", "cam": ["thung"], "deo": ["the"], "lung": false, "dang": "chuc|dung"}],
 #    "do": [{"loai": "the|day_dut|tay|so_tang|giay_do|nam_tay|mat", "x": 0.5, "y": 0.5, "to": 1.0, "chu": "38"}],
 #    "mui_ten": [[x1, y1, x2, y2]], "dien": "chữ diễn", "thoai": "lời thoại", "ke": "lời kể"}]}
@@ -19,7 +19,7 @@ f_to, f_nho = ImageFont.truetype(FONT, 17), ImageFont.truetype(FONT, 13)
 hx = lambda s: tuple(int(s[i:i + 2], 16) for i in (1, 3, 5))
 
 # cỡ cảnh → bán kính đầu (theo bề ngang khung) và chỗ mắt; toàn = thân đủ, chân ở 0,86 khung
-CO = {'cu': (0.17, NEO[1]), 'mcu': (0.11, NEO[1]), 'trung': (0.09, NEO[1]), 'qua_vai': (0.1, NEO[1]), 'toan': (0.03, None)}
+CO = {'cu': (0.17, NEO[1]), 'mcu': (0.11, NEO[1]), 'ms': (0.09, NEO[1]), 'two': (0.09, NEO[1]), 'ots': (0.1, NEO[1]), 'ws': (0.03, None)}   # mã co_canh studio
 
 def mui_ten(d, x1, y1, x2, y2, mau=(230, 40, 40), day=5):
     d.line([(x1, y1), (x2, y2)], fill=mau, width=day); g = math.atan2(y2 - y1, x2 - x1)
@@ -93,13 +93,13 @@ TEN_CAM = {'binh_thuong': 'Bình thường', 'lo_lang': 'Lo lắng', 'buon': 'Bu
 
 def nguoi(d, nv, mau_nv, co, toan_y=0.86, to_them=1.0):
     r = CO[co][0] * W * to_them; cx = nv['x'] * W
-    if co == 'toan': ey = toan_y * H - 7.2 * r * 2; cy = ey + 0.15 * r
+    if co == 'ws': ey = toan_y * H - 7.2 * r * 2; cy = ey + 0.15 * r
     else: ey = (nv.get('y', CO[co][1])) * H; cy = ey + 0.15 * r
     ao = hx(mau_nv['ao']); toc = (18, 16, 15); lung = nv.get('lung')
     # tóc dài vẽ TRƯỚC thân → chỉ lộ hai bên vai, không đè lên ngực
-    if mau_nv['toc'] == 'dai': d.rectangle([cx - 1.15 * r, cy - 0.3 * r, cx + 1.15 * r, cy + (2.0 if co != 'toan' else 1.6) * r], fill=toc)
+    if mau_nv['toc'] == 'dai': d.rectangle([cx - 1.15 * r, cy - 0.3 * r, cx + 1.15 * r, cy + (2.0 if co != 'ws' else 1.6) * r], fill=toc)
     # thân: toàn = cả người (váy / quần), còn lại = vai + ngực chạy xuống đáy khung
-    if co == 'toan':
+    if co == 'ws':
         d.polygon([(cx - 1.6 * r, cy + 1.3 * r), (cx + 1.6 * r, cy + 1.3 * r), (cx + 1.4 * r, cy + 7 * r), (cx - 1.4 * r, cy + 7 * r)], fill=ao)
         d.rectangle([cx - 1.1 * r, cy + 7 * r, cx + 1.1 * r, cy + 13.4 * r], fill=hx(mau_nv.get('duoi', '#1a1a1c')))
     else:
@@ -117,7 +117,7 @@ def nguoi(d, nv, mau_nv, co, toan_y=0.86, to_them=1.0):
             d.rectangle([cx - 0.25 * r, cy + 2.6 * r, cx + 0.25 * r, cy + 3.3 * r], fill=(250, 250, 250), outline=(40, 70, 160), width=2)
     for x in nv.get('cam', []):
         if x == 'thung':
-            y0 = cy + (3.2 if co == 'toan' else 3.0) * r
+            y0 = cy + (3.2 if co == 'ws' else 3.0) * r
             d.rectangle([cx - 1.9 * r, y0, cx + 1.9 * r, y0 + 2.2 * r], fill=(176, 138, 90), outline=(120, 90, 50), width=2)
         if x == 'the_treo':   # cầm dây thẻ đứt, thẻ lủng lẳng cạnh mặt
             hb = -1 if nv.get('nhin') == 'trai' else 1; tx = cx + hb * 1.6 * r
@@ -159,8 +159,8 @@ def nen(d, s):
     if s.get('nen') == 'nguc_ha':   # cận đồ trên ngực Hạ: nền là áo sơ mi trắng + vết cà phê
         d.rectangle([0, 0, W, H], fill=(236, 236, 232)); d.ellipse([W * 0.62, H * 0.62, W * 0.95, H * 0.85], fill=(160, 115, 70))
         d.line([(W * 0.5, 0), (W * 0.5, H)], fill=(215, 215, 210), width=3)
-    if s['co'] in ('toan', 'trung', 'qua_vai') and s.get('nen', 'thang').startswith('thang'):
-        sx = {'toan': 1.0, 'trung': 1.6, 'qua_vai': 1.5}[s['co']]; y_san = H * (0.62 if s['co'] == 'toan' else 0.9)
+    if s['co'] in ('ws', 'ms', 'two', 'ots') and s.get('nen', 'thang').startswith('thang'):
+        sx = {'ws': 1.0, 'ms': 1.6, 'two': 1.6, 'ots': 1.5}[s['co']]; y_san = H * (0.62 if s['co'] == 'ws' else 0.9)
         d.rectangle([0, y_san, W, H], fill=(30, 30, 33))
         for cx in s.get('cua', [0.3, 0.72]):
             w = 70 * sx; hh = 210 * sx
@@ -174,7 +174,7 @@ def khung(s, nvs):
     nen(d, s); DAU.clear(); TEN.update({k: v.get('nhan', k) for k, v in nvs.items()})
     ds = sorted(s.get('nguoi', []), key=lambda n: -1 if n.get('lung') else 0, reverse=True)   # người quay lưng (tiền cảnh qua vai) vẽ sau cùng
     for n in [n for n in ds if not n.get('lung')] + [n for n in ds if n.get('lung')]:
-        co = 'cu' if (n.get('lung') and s['co'] == 'qua_vai') else s['co']
+        co = 'cu' if (n.get('lung') and s['co'] == 'ots') else s['co']
         nguoi(d, n, nvs[n['ma']], co, to_them=n.get('to', 1.0))
     if SACH:
         for o in s.get('do', []): do_vat(d, o, nvs)
@@ -191,11 +191,11 @@ def khung(s, nvs):
     for o in s.get('do', []): do_vat(d, o, nvs)
     for m in s.get('mui_ten', []): mui_ten(d, m[0] * W, m[1] * H, m[2] * W, m[3] * H)
     d.rectangle([0, H, W, H + CHU_H], fill=(250, 250, 248))   # thân người không tràn xuống ô chữ
-    if s['co'] not in ('toan', 'can_do'):   # dấu điểm neo mắt
+    if s['co'] not in ('ws', 'insert'):   # dấu điểm neo mắt
         x, y = NEO[0] * W, NEO[1] * H; d.line([(x - 14, y), (x + 14, y)], fill=(60, 200, 255), width=2); d.line([(x, y - 14), (x, y + 14)], fill=(60, 200, 255), width=2)
     if s.get('goc') in ('thap', 'cao'): d.text((W - 8, 8), 'MÁY THẤP ↑' if s['goc'] == 'thap' else 'MÁY CAO ↓', font=f_nho, fill=(255, 220, 80), anchor='ra')
     d.rectangle([0, 0, W - 1, H - 1], outline=(0, 0, 0), width=2)
-    ten_co = {'toan': 'Toàn', 'trung': 'Trung', 'mcu': 'Trung cận', 'cu': 'Cận', 'qua_vai': 'Qua vai', 'can_do': 'Cận đồ'}[s['co']]
+    ten_co = {'ws': 'Toàn', 'ms': 'Trung', 'two': 'Trung đôi', 'mcu': 'Trung cận', 'cu': 'Cận', 'ots': 'Qua vai', 'insert': 'Cận đồ'}.get(s['co'], s['co'])
     d.text((8, H + 6), f"#{s['so']} · {s['giay']:.1f}s · {ten_co}".replace('.', ','), font=f_to, fill=(20, 20, 20))
     y = H + 30
     mat_chu = ' · '.join(f"{TEN.get(n['ma'], n['ma'])}: {' → '.join(TEN_CAM.get(m, m) for m in dict.fromkeys(n['mat']))}" + (f", nhìn {TEN.get(n['nhin_vao'], n['nhin_vao'])}" if n.get('nhin_vao') else '') for n in s.get('nguoi', []) if n.get('mat') and not n.get('lung'))

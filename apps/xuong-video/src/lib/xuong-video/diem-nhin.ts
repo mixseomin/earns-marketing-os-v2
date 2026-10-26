@@ -5,6 +5,10 @@
 
 /** Toạ độ trên khung, 0…1 (trái→phải, trên→dưới). */
 export type Diem = { x: number; y: number };
+/** ĐIỂM NEO MẮT của phim ngắn dọc (đo 14 phim AI ReelShort + Trung Quốc, 811 điểm mặt, 26/10/2026 — tham-khao/reelshort.md): mắt chủ thể ở giữa
+ *  ngang, trên đường 1/3 trên. Mọi shot cận / trung cận đặt mắt ở đây thì cắt kiểu gì mắt khán giả cũng rơi đúng chỗ cũ. Dùng ở: câu khung của phiếu
+ *  shot (phieu-shot.ts), đích khung dựng lại (khungCanh › neo), sơ đồ shot (so-do-shot.ts). */
+export const NEO_MAT: Diem = { x: 0.5, y: 0.31 };
 /** Khung dựng lại của một shot: phóng s (≥1) quanh tâm cửa sổ (cx, cy) trên khung gốc. s = 1 = giữ nguyên. */
 export type KhungLai = { s: number; cx: number; cy: number };
 /** Lệch tối đa (theo phần khung) mà mắt chấp nhận không phải "tìm" — Murch / thực hành phòng dựng: chủ thể mới trong ~1/8 khung quanh chỗ mắt đang nhìn. */

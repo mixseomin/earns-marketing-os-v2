@@ -64,7 +64,7 @@
   {
    "so": 2,
    "giay": 1.5,
-   "co": "can_do",
+   "co": "insert",
    "nen": "da",
    "do": [
     {
@@ -82,7 +82,7 @@
   {
    "so": 3,
    "giay": 1.5,
-   "co": "can_do",
+   "co": "insert",
    "nen": "san",
    "do": [
     {
@@ -136,7 +136,7 @@
   {
    "so": 5,
    "giay": 2.5,
-   "co": "toan",
+   "co": "ws",
    "nen": "thang",
    "nguoi": [
     {
@@ -183,7 +183,7 @@
   {
    "so": 6,
    "giay": 2.0,
-   "co": "qua_vai",
+   "co": "ots",
    "nen": "thang",
    "cua": [
     0.75
@@ -241,7 +241,7 @@
   {
    "so": 8,
    "giay": 1.5,
-   "co": "can_do",
+   "co": "insert",
    "nen": "nguc_ha",
    "do": [
     {
@@ -299,7 +299,7 @@
   {
    "so": 10,
    "giay": 1.5,
-   "co": "can_do",
+   "co": "insert",
    "nen": "nguc_ha",
    "do": [
     {
@@ -323,7 +323,7 @@
   {
    "so": 11,
    "giay": 1.5,
-   "co": "trung",
+   "co": "ms",
    "nen": "thang",
    "nguoi": [
     {
@@ -415,7 +415,7 @@
   {
    "so": 13,
    "giay": 1.5,
-   "co": "can_do",
+   "co": "insert",
    "nen": "da",
    "do": [
     {
@@ -473,7 +473,7 @@
   {
    "so": 15,
    "giay": 1.0,
-   "co": "can_do",
+   "co": "insert",
    "nen": "da",
    "do": [
     {
@@ -517,7 +517,7 @@
   {
    "so": 17,
    "giay": 2.0,
-   "co": "trung",
+   "co": "ms",
    "goc": "thap",
    "nen": "thang_mo",
    "cua": [
@@ -667,7 +667,7 @@
   {
    "so": 23,
    "giay": 1.5,
-   "co": "can_do",
+   "co": "insert",
    "nen": "da",
    "do": [
     {
@@ -801,7 +801,7 @@
   {
    "so": 28,
    "giay": 2.0,
-   "co": "trung",
+   "co": "ms",
    "nen": "thang_mo",
    "cua": [
     0.5
@@ -828,7 +828,7 @@
   {
    "so": 29,
    "giay": 2.5,
-   "co": "trung",
+   "co": "ms",
    "nen": "thang_mo",
    "cua": [
     0.5
@@ -867,12 +867,6 @@
    "so_cu": 17
   }
  ],
- "ten_vat": {
-  "so_tang": "số tầng",
-  "the": "tấm thẻ",
-  "cua_thang": "cửa thang",
-  "phia_truoc": "phía trước, không nhìn Hạ"
- },
  "canh_en": "Luxury corporate elevator lobby: dark marble walls, brushed steel elevator doors, black polished marble floor, warm recessed ceiling light — the same lighting setup in every shot of the scene.",
  "ten_vat_en": {
   "so_tang": "the floor indicator",

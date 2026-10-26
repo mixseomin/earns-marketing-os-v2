@@ -23,6 +23,7 @@ import { chonKeyframe } from '../src/lib/xuong-video/tu-sua-clip';
 import { uploadToR2 } from '../src/lib/r2';
 import type { Canh, NhanVat } from '../src/lib/xuong-video/kieu';
 import { svgPhac, type ManhSoDo, type MangPhong, type SoDo } from '../src/lib/xuong-video/so-do-canh';
+import { cauKhung } from '../src/lib/xuong-video/phieu-shot';
 import { loiTrangThaiVat } from '../src/lib/xuong-video/kiem-prompt';
 import { catDo } from '../src/lib/xuong-video/cat-do';
 
@@ -39,7 +40,6 @@ const khoiTruoc = gia('khoi-truoc') ?? null; if (motDoan && !khoiTruoc && gia('t
 const cot1 = Number(gia('cot') || (ds.length > 12 ? 4 : ds.length > 6 ? 3 : 2));
 const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`))[0]!.phim_id);
 const nv: NhanVat[] = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)).map(mapNhanVat));
-const CO: Record<string, string> = { ws: 'Wide shot', ms: 'Medium two-shot', mcu: 'Medium close-up', cu: 'Close-up', insert: 'Insert close-up', ecu: 'Extreme close-up' };
 // --so-do=<bảng mảnh JSON có so_do> → tầng 1 kèm TỜ PHÁC BỐ TRÍ (so-do-canh.ts › svgPhac) làm ảnh 1: lưới cố định + chỗ người / nền / hướng nhìn đúng sơ đồ
 const bm = gia('so-do') ? JSON.parse(readFileSync(gia('so-do')!, 'utf8')) as { so_do: SoDo & { phong?: MangPhong[] }; nguoi: string[]; mau?: Record<string, string>; shot: { sd?: ManhSoDo }[]; ten_en?: Record<string, string> } : null;
 const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc giữa các tầng (URL) — chạy lại từng tầng không mất tầng trên
@@ -115,7 +115,8 @@ async function luoiPhac(nhom: Canh[], cot: number): Promise<{ tron: string; so: 
   const tron = await sharp({ create: { width: cot * CW + (cot + 1) * G, height: hang * CH + (hang + 1) * G, channels: 3, background: '#ffffff' } }).composite(o.map((x, j) => ({ input: x, left: vt[j]!.x0, top: vt[j]!.y0 }))).jpeg({ quality: 90 }).toBuffer();
   return { tron: await len(tron, `phac-${nhom[0]!.thu_tu}`), so: await len(await danhSo(tron, vt, nhom.map((c) => c.thu_tu)), `phac-so-${nhom[0]!.thu_tu}`) };
 }
-const moTaKhung = (c: Canh) => `${CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'}: ${(c.prompt_anh || c.dan_dung?.dien || c.hanh_dong).trim()}${c.dan_dung?.huong ? ` Screen direction: ${c.dan_dung.huong}.` : ''}`;
+// cỡ khung + chỗ cắt + điểm neo mắt: một nguồn với phiếu sơ đồ (src/lib/xuong-video/phieu-shot.ts › cauKhung) — trước 26/10/2026 bảng CO riêng thiếu ots / two / pov
+const moTaKhung = (c: Canh) => `${cauKhung(c.ky_thuat?.co_canh) || 'Shot.'} ${(c.prompt_anh || c.dan_dung?.dien || c.hanh_dong).trim()}${c.dan_dung?.huong ? ` Screen direction: ${c.dan_dung.huong}.` : ''}`;
 // CỔNG CHẤM trước mọi lượt sinh bảng (đường phân cảnh không đi qua sinh-anh nên trước đây không ai chấm — anh 24/10/2026 "đoạn này đã chấm chưa?"):
 // mỗi khung phải nói đủ trạng thái đồ sổ đồ vật đòi (kiem-prompt.ts › loiTrangThaiVat). Lỗi → dừng, không tiêu tiền lên prompt thiếu.
 function chanCham(nhom: Canh[]) { const loi = nhom.flatMap((c) => loiTrangThaiVat(`#${c.thu_tu}`, moTaKhung(c), c.ky_thuat?.vat_so)); if (loi.length) { console.error(`bộ chấm chặn:\n  ${loi.map((l) => l.chu).join('\n  ')}`); process.exit(1); } }
@@ -223,11 +224,11 @@ const TEN_LUC: Record<Luc, string> = { dau: 'đầu', giua: 'giữa', ket: 'cu�
 type Khung = { c: Canh; luc: Luc; key: string; nhan: string; moTa: string; vatSo?: { ten: string; cach: string }[]; sd?: ManhSoDo; /** ô NGỮ CẢNH (shot liền trước / sau khi chạy một đoạn): vẽ cùng bảng để nối cắt, không phóng, không ghi */ nguCanh?: string };
 const sdCua = (c: Canh, luc: Luc): ManhSoDo | undefined => { const m = bm?.shot[c.thu_tu - 1] as ({ sd?: ManhSoDo; sd_ket?: Partial<ManhSoDo> } | undefined); if (!m?.sd) return undefined;
   return luc === 'ket' ? { ...m.sd, ...(m.sd_ket ?? {}), o: { ...m.sd.o, ...(m.sd_ket?.o ?? {}) } } : m.sd; };
-const khungCua = (c: Canh): Khung[] => { const kv = (c.ky_thuat?.khung_ve ?? ['dau']) as Luc[]; const co = CO[String(c.ky_thuat?.co_canh)] ?? 'Shot'; const dd = c.dan_dung ?? {};
+const khungCua = (c: Canh): Khung[] => { const kv = (c.ky_thuat?.khung_ve ?? ['dau']) as Luc[]; const co = cauKhung(c.ky_thuat?.co_canh) || 'Shot.'; const dd = c.dan_dung ?? {};
   return kv.map((luc) => ({ c, luc, key: `${c.thu_tu}-${luc}`, nhan: kv.length > 1 ? `#${c.thu_tu}·${TEN_LUC[luc]}` : `#${c.thu_tu}`, sd: sdCua(c, luc),
     vatSo: luc === 'ket' ? c.ky_thuat?.vat_so_ket : luc === 'dau' ? c.ky_thuat?.vat_so : undefined,
-    moTa: luc === 'dau' ? `${moTaKhung(c)} (FIRST moment of the shot)` : luc === 'giua' ? `${co}, MIDDLE moment of the shot: ${dd.giua ?? dd.dien ?? c.hanh_dong}.`
-      : `${co}, LAST moment of the shot: ${dd.ket ?? c.hanh_dong}.${dd.huong_ket ? ` Screen direction: ${dd.huong_ket}.` : ''}` })); };
+    moTa: luc === 'dau' ? `${moTaKhung(c)} (FIRST moment of the shot)` : luc === 'giua' ? `${co} MIDDLE moment of the shot: ${dd.giua ?? dd.dien ?? c.hanh_dong}.`
+      : `${co} LAST moment of the shot: ${dd.ket ?? c.hanh_dong}.${dd.huong_ket ? ` Screen direction: ${dd.huong_ket}.` : ''}` })); };
 /** Lưới tờ phác của một dãy khung (ô 9:16, viền trắng): trơn cho model + bản có nhãn cho người đọc. */
 async function luoiPhacKhung(ks: Khung[], cot: number, ten: string): Promise<{ tron: string; so: string }> {
   const CW = 360, CH = 640, G = 14; const hang = Math.ceil(ks.length / cot);

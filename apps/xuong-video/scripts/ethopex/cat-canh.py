@@ -19,7 +19,8 @@ def nap(ten, tep):
 gb = nap("gb", "ghep-b.py"); gx = gb.gx; CQ = nap("cta_qc", "cta_qc.py")
 W, H = gx.W, gx.H
 # MÃ HOÁ (23/10/2026): Mac dùng bộ mã hoá phần cứng (đo 85s: libx264 23,4s → videotoolbox 11,4s, SSIM 0,9935); box3 không có → libx264 như cũ
-MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "6M", "-maxrate", "9M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "18"]
+# 3 Mbps (26/10/2026): 6M ra ~66 MB/đoạn 85s, đường đẩy iMac → box3 chỉ ~1 Mbit/s → lô 70 đoạn mất >10 giờ (phim-moi len pm-26101408 gãy giữa chừng). FB tự nén lại, 3M 1080p đủ nét
+MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "3M", "-maxrate", "4500k"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "23"]
 TOC_GIONG, VAO_TRUOC, Y_NUT = 1.15, 1.0, 1600
 
 def the_cuoi_anh(poster, hoi, ra):

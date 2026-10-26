@@ -3,7 +3,7 @@
 // phieu-shot.mts (chỉ người trong khung, nhìn ai, nét đầu → cuối + cấm, điểm neo mắt). ckey nano-banana-2 ~110₫/ảnh.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server \
 //     ../../node_modules/.bin/tsx scripts/anh-tu-so-do.mts --bang=scripts/so-do/thang-may-356.json --khung=/tmp/so-do-thang-may --so=11,12 --phim=353 --shot=1822
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -14,7 +14,8 @@ import { phieuShot, khongGianTap, lechSo, type BangShot } from './phieu-shot.mts
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const bang = JSON.parse(readFileSync(gia('bang')!, 'utf8')) as BangShot; const thu = gia('khung')!; const phim = Number(gia('phim')); const shotMau = Number(gia('shot') || 0);
-const ds = gia('so') === 'all' ? bang.shot.map((x) => x.so) : (gia('so') || '').split(',').map(Number).filter(Boolean);
+// --so=all | thieu (chỉ khung chưa có ảnh — chạy lại sau lỗi hết giờ không trả tiền khung đã đạt) | 1,2,3
+const ds = gia('so') === 'all' ? bang.shot.map((x) => x.so) : gia('so') === 'thieu' ? bang.shot.map((x) => x.so).filter((so) => !existsSync(`${thu}/so-${so}-that.png`)) : (gia('so') || '').split(',').map(Number).filter(Boolean);
 if (!thu || !phim || !ds.length) { console.error('cần --bang --khung --so --phim'); process.exit(1); }
 if (!process.env.DUYET_SINH_1_LAN && !process.argv.includes('--xem')) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 (hoặc --xem để chỉ in prompt)'); process.exit(2); }
 const db = getDb()!;
@@ -54,9 +55,10 @@ async function motKhung(so: number) {
   writeFileSync(`${thu}/so-${so}-that.png`, a.anh.data); console.log(`#${so}: ${await len(`${thu}/so-${so}-that.png`, `${so}-that`)}`);
 }
 // song song có trần (anh 24/10/2026: sinh AI song song mặc định) — 6 ảnh một lúc
-const hang = [...ds]; await Promise.all(Array.from({ length: Math.min(6, hang.length) }, async () => { for (let so = hang.shift(); so != null; so = hang.shift()) await motKhung(so); }));
+// --song=N: số ảnh cùng lúc (mặc định 6; cổng chợ ckey trả chậm khi dồn — 26/10/2026 19/29 hết giờ 180 s ở mức 6)
+const hang = [...ds]; await Promise.all(Array.from({ length: Math.min(Number(gia('song') || 6), hang.length) }, async () => { for (let so = hang.shift(); so != null; so = hang.shift()) await motKhung(so); }));
 // bảng duyệt: các khung đã có, đánh số #N
-const { existsSync } = await import('node:fs'); const sharp = (await import('sharp')).default;
+const sharp = (await import('sharp')).default;
 const co2 = bang.shot.filter((x) => existsSync(`${thu}/so-${x.so}-that.png`)); const C = 8, W = 270, H = 480;
 if (co2.length) {
   const o = await Promise.all(co2.map(async (x, i) => ({ input: await sharp(`${thu}/so-${x.so}-that.png`).resize(W, H, { fit: 'cover' }).composite([{ input: Buffer.from(`<svg width="${W}" height="40"><rect width="70" height="34" rx="6" fill="#000" opacity="0.7"/><text x="10" y="25" font-size="22" font-weight="700" fill="#fff" font-family="DejaVu Sans, Arial">#${x.so}</text></svg>`), top: 6, left: 6 }]).png().toBuffer(), left: (i % C) * (W + 6), top: Math.floor(i / C) * (H + 6) })));

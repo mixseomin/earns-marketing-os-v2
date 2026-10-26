@@ -19,7 +19,9 @@ const uAm = /^https?:/.test(am) ? am : await len(am, 'khop-am', 'audio/mpeg');
 const cho = async (id: string): Promise<string> => { for (let i = 0; i < 120; i++) { await new Promise((r) => setTimeout(r, 10_000)); const d = await docFal(id); if (d.done && d.ok) return d.uri; if (d.done) throw new Error(d.loi); } throw new Error('quá 20 phút'); };
 if (gia('dien')) {
   const giay = Math.max(2, Math.min(8, Math.ceil(Number(gia('giay') || 3))));
-  const v = await guiFal('fal-ai/vidu/q2/image-to-video/turbo', { image_url: uAnh, prompt: `Photorealistic live-action vertical short drama close-up. ${gia('dien')} The person speaks during the shot (mouth moving as if talking). Locked-off camera unless stated. Natural, realistic acting.`, duration: giay, resolution: '720p', movement_amplitude: 'auto' });
+  // --cuoi=<khung cuối>: khoá cả khung cuối (ánh mắt, nét kết) — chỉ khung đầu thì Vidu tự chế đoạn kết (#26 nửa sau quay thẳng vào ống kính, sai trục nhìn)
+  const uCuoi = gia('cuoi') ? (/^https?:/.test(gia('cuoi')!) ? gia('cuoi')! : await len(gia('cuoi')!, 'khop-cuoi', 'image/png')) : null;
+  const v = await guiFal('fal-ai/vidu/q2/image-to-video/turbo', { ...(uCuoi ? { end_image_url: uCuoi } : {}), image_url: uAnh, prompt: `Photorealistic live-action vertical short drama close-up. ${gia('dien')} The person speaks during the shot (mouth moving as if talking). Locked-off camera unless stated. Natural, realistic acting.`, duration: giay, resolution: '720p', movement_amplitude: 'auto' });
   if (!v.ok) { console.log(`Vidu từ chối — ${v.loi}`); process.exit(3); }
   const uV = await cho(v.taskId); console.log(`video diễn: ${uV}`);
   const s2 = await guiFal('fal-ai/sync-lipsync/v2', { video_url: uV, audio_url: uAm, sync_mode: 'cut_off' });

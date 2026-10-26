@@ -71,7 +71,7 @@ if (chinh) { const [vao, ra] = process.argv.slice(2).filter((x) => !x.startsWith
 const tap = Number(process.argv.find((x) => x.startsWith('--tap='))?.slice(6)); if (tap) kg = await khongGianTap(tap, b.phan_doan ?? '');
 if (kg) for (const l of lechSo(b, kg)) console.error(`LỆCH SỔ: ${l}`);
 const md = b.shot.map((s) => `### #${s.so} · ${s.giay}s · ${s.co}\n\n\`\`\`\n${phieu(s)}\n\`\`\``).join('\n\n');
-if (ra) writeFileSync(ra, `# Phiếu prompt — ${vao}\n\n${md}\n`); else console.log(md); }
+if (ra) writeFileSync(ra, `# Phiếu prompt — ${vao}\n\n${md}\n`); else console.log(md); process.exit(0); }   // thoát hẳn: kết nối DB (--tap) giữ tiến trình sống
 
 /** Sổ không gian (gồm SỔ ĐỒ VẬT) của một cảnh trong tập — nguồn của studio (xv_tap.khong_gian[phan_doan]). */
 export async function khongGianTap(tapId: number, phanDoan: string): Promise<KhongGian | null> {

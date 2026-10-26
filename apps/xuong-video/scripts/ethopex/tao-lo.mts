@@ -8,11 +8,11 @@
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { khuonQcPhim, BEATS_QC_PHIM, PHAN_CANH_QC_PHIM, shotQc, thamKhaoQcGoc, briefQcPhim, nenCua, type QcGoc } from './khuon-qc-phim';
+import { khuonQcPhim, BEATS_QC_PHIM, PHAN_CANH_QC_PHIM, shotQc, thamKhaoQcGoc, thamKhaoTrangPhim, briefQcPhim, nenCua, type QcGoc } from './khuon-qc-phim';
 
 type Canh = { loi: string; anh: string; dong: string; co_canh?: string; chuyen_dong?: string };   // co_canh / chuyen_dong: đạo diễn khai tay (vào bối cảnh mới = ws…), thiếu thì shotQc chia
 // the_cuoi_anh: tả riêng khung thẻ cuối khi poster gốc hở hang / gợi dục (cổng chấm Meta khoa_than) — mặc định "key art theo poster"
-type Phim = { content_id: number; ten: string; lang: 'en' | 'es'; nguon: string; giong: string; poster: string; url: string; nhan_vat: string; qc_goc?: QcGoc; boi_canh?: { ten: string; mo_ta: string }; canh: Canh[]; the_cuoi_anh?: string };
+type Phim = { content_id: number; ten: string; lang: 'en' | 'es'; nguon: string; giong: string; poster: string; url: string; nhan_vat: string; qc_goc?: QcGoc; boi_canh?: { ten: string; mo_ta: string }; canh: Canh[]; the_cuoi_anh?: string; trang_phim?: string };   // trang_phim: tóm tắt chính thức trên trang phim — nguồn khi phim mới chưa có QC gốc trong spy
 // khuon.giay_canh (mặc định 3s) + khuon.mo_hinh_video: QC kể chuyện dài 2–3' (anh 21/10/2026) dùng ~20 shot 8s
 const lo = JSON.parse(readFileSync(process.argv[2]!, 'utf8')) as { ghi_chu: string; khuon: { the_cuoi: Record<string, string>; giay_canh?: number; mo_hinh_video?: string }; phim: Phim[] };
 const GIAY = lo.khuon.giay_canh ?? 3;
@@ -21,7 +21,7 @@ const PHONG_CACH = 'Photorealistic cinematic vertical short drama (US micro-dram
 const j = (x: unknown) => JSON.stringify(x);
 const ra: { content_id: number; phim: number; tap: number }[] = [];
 for (const p of lo.phim) {
-  if (!p.qc_goc) { console.log(`✗ ${p.ten}: thiếu qc_goc (QC thật của app gốc) — studio đòi nguồn tham khảo, bỏ qua`); continue; }
+  if (!p.qc_goc && !p.trang_phim) { console.log(`✗ ${p.ten}: thiếu qc_goc (QC thật của app gốc) lẫn trang_phim (tóm tắt chính thức) — studio đòi nguồn tham khảo, bỏ qua`); continue; }
   const co = (await db.execute(sql`SELECT id FROM xv_phim WHERE project = 'ethopex' AND (kinh_thanh->'ethopex'->>'content_id')::int = ${p.content_id} AND kinh_thanh->'ethopex'->>'lo' = ${process.argv[2]!}`)) as unknown as { id: number }[];
   if (co.length) { console.log(`· ${p.ten}: đã có phim #${co[0]!.id} — bỏ qua`); continue; }
   const poster = /^https?:/.test(p.poster) ? p.poster : `https://acdn.dofez.com/${p.poster}`;   // poster Ethopex (đường tương đối) hoặc link đầy đủ (R2)
@@ -57,7 +57,7 @@ for (const p of lo.phim) {
         ${j([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${c.chu}, ${anchors}::jsonb, ${s.phan_doan},
         ${j({ co_canh: s.co_canh, am_thanh: [], chuyen_dong: s.chuyen_dong })}::jsonb,
         ${j({ mo: c.anh.slice(0, 220), ket: c.dong, dien: c.dong, muc_dich: s.muc_dich })}::jsonb,
-        ${j(thamKhaoQcGoc([c.chu, c.loi], p.qc_goc))}::jsonb, ${i === shots.length - 1 ? 3 : GIAY}, 'nhap')`);
+        ${j(p.qc_goc ? thamKhaoQcGoc([c.chu, c.loi], p.qc_goc) : thamKhaoTrangPhim([c.chu, c.loi], p.url, p.trang_phim!))}::jsonb, ${i === shots.length - 1 ? 3 : GIAY}, 'nhap')`);
   }
   ra.push({ content_id: p.content_id, phim: phimId, tap: tapId });
   console.log(`✓ ${p.ten}: phim #${phimId} · tập #${tapId} · ${shots.length} cảnh (đủ quy trình)`);

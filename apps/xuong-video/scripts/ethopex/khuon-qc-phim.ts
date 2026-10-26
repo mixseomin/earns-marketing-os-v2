@@ -69,5 +69,8 @@ export type QcGoc = { ma: string; page: string; ngay: number };
 export const thamKhaoQcGoc = (cau: string[], g: QcGoc) => cau.filter((c) => c.trim()).map((c) => ({ cau: c, nguon: [{ ma: g.ma, link: `https://www.facebook.com/ads/library/?id=${g.ma}`, loai: 'qc_thang', nguon: 'qc_meta',
   trich: `QC của chính app gốc cho đúng phim này (${g.page} · đang chạy ${g.ngay} ngày, Meta ${g.ma}) — cùng cốt truyện, kể bất công → lật ngược → xem phim`,
   ky_thuat: 'Kể ngôi thứ nhất theo cốt truyện chính thức của phim (khuôn video thắng #1 Ethopex)' }] }));
+/** phim MỚI chưa có QC của app gốc trong kho spy (lô phim mới, anh 26/10/2026) → nguồn = tóm tắt chính thức trên trang phim (loai trang_ban: thông tin thật của sản phẩm) */
+export const thamKhaoTrangPhim = (cau: string[], link: string, trich: string) => cau.filter((c) => c.trim()).map((c) => ({ cau: c, nguon: [{ link, loai: 'trang_ban', nguon: 'trang_phim',
+  trich: trich.slice(0, 600), ky_thuat: 'Kể ngôi thứ nhất theo tóm tắt chính thức của phim trên trang phim (khuôn video thắng #1 Ethopex)' }] }));
 export const briefQcPhim = (ten: string, nen: string, lang: 'en' | 'es', soNhip = 6) => `QC Facebook Ads cho PHIM NGẮN "${ten}" (${nen}, ${lang === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}). Sản phẩm = bộ phim; người xem là người lướt Facebook mê phim ngắn drama. Mục tiêu duy nhất: tò mò cốt truyện → bấm nút 'Learn More' để xem phim miễn phí trên trang phim. Không bán hàng, không giảm giá. Khuôn: hook kịch tính ngay giây đầu, kể ngôi thứ nhất ${soNhip} nhịp, chữ trên màn ngắn, thẻ cuối tên phim + 'xem miễn phí, bấm Learn More'.`;
 export const nenCua = (nguon: string) => NEN[nguon] ?? 'our app';

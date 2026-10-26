@@ -1,0 +1,316 @@
+{
+ "ghi_chu": "Lô kể chuyện 26/10/2026 bản B — anh đổi chiến lược: kể chuyện CHỈ cho phim có cảnh nhạy cảm (cắt cảnh thật bị loại soát 18+ lô pm-26101408: máu / cưỡng ép / ôm hôn cởi áo), kể lại bằng hình AI sạch, tránh đúng cảnh đó → ít cạnh tranh. Trần $4/phim. Chọn 6 theo thứ hạng ethopex_200_phim (165186, 165049, 165028, 165010, 164995) + 159997; bỏ 165089 (lõi truyện là bị đẩy xuống vực + giết người) và 160024 (trại tâm thần, tra tấn) vì không kể được cú lật mà sạch. Phim mới chưa có QC gốc trong spy → nguồn tham khảo = tóm tắt chính thức trên trang phim (trang_phim). Lời + hình: không máu, vũ khí, cưỡng ép, khoả thân, gợi dục, bạo lực; shot 5 (lật ngược) mở bằng toàn cảnh một nhịp (cổng dẫn dắt studio).",
+ "khuon": {
+  "ti_le": "9:16",
+  "do_phan_giai": "1080p",
+  "so_canh": 6,
+  "giong_mac_dinh": "Jessica",
+  "the_cuoi": {
+   "en": "Watch the full series for free · Learn More",
+   "es": "Mira la serie completa gratis · Más información"
+  },
+  "giay_canh": 4
+ },
+ "phim": [
+  {
+   "content_id": 165186,
+   "ten": "Alfa Sangre de Dragón",
+   "lang": "es",
+   "nguon": "reelshort",
+   "giong": "Liam",
+   "poster": "1/o9upxjklvc9kf1xa7x.webp",
+   "url": "https://www.reelshort.com/es/episodes/episode-1-alfa-sangre-de-drag%C3%B3n-6acc9d212386eb1afa0ba6f7-flrxd8umrv",
+   "trang_phim": "Abandonado de bebé por carecer de un 'espíritu de lobo', Kyle es criado por tres Bestias Legendarias en el Bosque de las Bestias. Dieciocho años después, no solo se ha convertido en un luchador feroz, sino que también ha despertado el poder oculto de un dragón en su interior. En busca de sus padres, Kyle rescata a Freya, la princesa de la Manada Luna Plateada, y la sigue hasta la Ciudad Llama Carmesí. Allí, descubre que Elina, una esclava deshonrada atormentada por el hipócrita Alfa de la manada, Alaric, es en realidad su madre biológica. Mientras Alaric y el cobarde heredero Kent se rinden y traicionan a Freya para salvarse, Kyle da un paso al frente y desata su linaje dragón-lobo.",
+   "nhan_vat": "KYLE = young man about 20, tousled light-brown hair, rough linen tunic with a leather vest, fully clothed (narrator, poster center); ELINA = his mother, woman 40s, long dark hair, plain brown servant dress; ALARIC = pack Alpha, man 50s, long grey hair, heavy dark fur cloak, arrogant; KENT = Alaric's heir, smug young man 20s in a dark velvet coat; FREYA = princess, silver-blonde braided hair, pale blue gown; THE LEGENDARY BEASTS = a giant white dragon, a huge black bear with glowing blue markings, a great grey serpent",
+   "boi_canh": {
+    "ten": "Crimson Flame City and the Beast Forest",
+    "mo_ta": "Misty ancient forest with giant trees and moonlight; medieval stone fortress city with red banners, torches and a great courtyard where the wolf pack gathers"
+   },
+   "canh": [
+    {
+     "loi": "Me abandonaron de bebé por no tener espíritu de lobo.",
+     "anh": "Misty ancient forest at night. KYLE stands alone in his linen tunic under a giant tree, moonlight on his face, looking up toward a distant fortress.",
+     "dong": "KYLE clenches his fist and looks up at the fortress, slow push-in on his eyes."
+    },
+    {
+     "loi": "Tres Bestias Legendarias me criaron en el bosque.",
+     "anh": "Forest clearing. The giant white dragon, the black bear with blue markings and the grey serpent rest around KYLE, who places his hand on the dragon's snout.",
+     "dong": "The dragon lowers its head and KYLE touches its snout calmly, handheld camera circles them."
+    },
+    {
+     "loi": "En la ciudad encontré a mi madre, sirviendo al Alfa Alaric.",
+     "anh": "Fortress great hall with torches. ELINA in a plain brown servant dress carries a heavy tray while ALARIC in his fur cloak waves her away with contempt; KYLE watches from the doorway.",
+     "dong": "ALARIC waves ELINA away with a sneer, she lowers her head, slow sideways track to KYLE in the doorway."
+    },
+    {
+     "loi": "Cuando llegó la invasión, el Alfa se rindió y entregó a la princesa.",
+     "anh": "Fortress courtyard full of armored invaders in dark cloaks. ALARIC and KENT step aside and push the princess FREYA forward toward the invaders' leader; FREYA looks back in disbelief.",
+     "dong": "ALARIC and KENT step back from FREYA, she turns to them in disbelief, wide pan across the courtyard."
+    },
+    {
+     "loi": "Entonces desperté el poder de dragón que llevaba dentro.",
+     "anh": "Wide shot of the fortress courtyard. Huge wings of golden light unfold behind KYLE as he steps between FREYA and the invaders; the invaders stumble back in awe.",
+     "dong": "Golden dragon wings of light spread behind KYLE and the invaders back away, slow push-in from the wide courtyard toward KYLE.",
+     "co_canh": "ws",
+     "chuyen_dong": "day_vao"
+    },
+    {
+     "loi": "Ahora todos saben quién es el verdadero Alfa.",
+     "anh": "Same courtyard at dawn. KYLE helps his mother ELINA to her feet; the whole wolf pack, FREYA and even ALARIC lower their heads to him.",
+     "dong": "KYLE lifts his mother up gently and the pack bows around them, camera cranes up over the courtyard."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: KYLE in a linen tunic and leather vest stands in front, his mother ELINA and princess FREYA in a pale blue gown beside him, the giant white dragon and the black bear towering behind them, a stone fortress under a full moon, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 165049,
+   "ten": "Rebirth of the Pale Moon Lycan Queen",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Jessica",
+   "poster": "1/3f6tbl1qo4yhy3znne.webp",
+   "url": "https://netshort.com/episode/rebirth-of-the-pale-moon-lycan-queen-2110219424340561921",
+   "trang_phim": "Betrayed at her wedding, Princess Ilana sees husband Alaric take the Alpha King's life and seize power. Imprisoned and given cursed Demon Claws, she breaks the curse and flees. Teaming with Alaric's brother Lucian, she exposes his doppelganger plot. Leading outcast werewolves, they fall in love, defeat the usurper, and Ilana becomes the true Alpha Queen.",
+   "nhan_vat": "ILANA = princess about 25, long black wavy hair, pale skin, silver tiara, clean white lace wedding gown with long sleeves (narrator, poster center; never any stains on her dress); ALARIC = her husband, cold handsome man 30s, short dark hair, black royal coat with gold trim; LUCIAN = Alaric's brother, man 30s, platinum-blond hair, black leather coat, kind eyes; THE PACK = werewolf people in dark medieval clothes, a large silver-grey wolf",
+   "boi_canh": {
+    "ten": "Pale Moon castle",
+    "mo_ta": "Gothic moonlit castle with a grand throne hall, tall stained-glass windows, candles and white petals on the stairs; a dark stone tower cell; a snowy forest at night"
+   },
+   "canh": [
+    {
+     "loi": "On my wedding day, my husband stole the Alpha King's throne.",
+     "anh": "Gothic throne hall with candles and white petals. ALARIC in a black royal coat sits down on the empty throne and smirks, while ILANA in her white wedding gown stares at him in shock.",
+     "dong": "ALARIC settles onto the throne with a cold smile, ILANA steps back in shock, slow push-in on her face."
+    },
+    {
+     "loi": "He locked me in a tower and cursed my hands.",
+     "anh": "Dark stone tower cell lit by one candle. ILANA in her wedding gown looks down at her hands, which glow with dark purple curse marks.",
+     "dong": "ILANA turns her glowing hands over in fear, handheld camera close on her face."
+    },
+    {
+     "loi": "But I broke the curse and escaped.",
+     "anh": "Same cell. The purple marks on ILANA's hands crack and fade into silver light as the heavy door swings open.",
+     "dong": "Silver light washes the curse away and ILANA runs out through the door, slow sideways track."
+    },
+    {
+     "loi": "His own brother, Lucian, was waiting for me. He knew the secret too.",
+     "anh": "Snowy forest at night. LUCIAN in a black leather coat holds out his hand to ILANA beside a large silver-grey wolf; ILANA hesitates, then takes it.",
+     "dong": "LUCIAN offers his hand and ILANA takes it, the wolf circles them, wide pan through the snowy trees."
+    },
+    {
+     "loi": "Together we showed the pack the truth: the king they bowed to was a double.",
+     "anh": "Wide shot of the throne hall full of the pack. LUCIAN and ILANA stand facing two identical men in black royal coats, one on the throne and one standing in a beam of moonlight; the pack gasps.",
+     "dong": "The false Alaric's face flickers like a mask and the pack gasps, slow push-in from the wide hall toward ILANA.",
+     "co_canh": "ws",
+     "chuyen_dong": "day_vao"
+    },
+    {
+     "loi": "Now I'm the true Alpha Queen.",
+     "anh": "Same hall at dawn. ILANA in a clean white gown and a silver crown stands at the top of the stairs beside LUCIAN; the whole pack kneels, the silver wolf at her side.",
+     "dong": "The pack kneels as ILANA lifts her chin, camera cranes up over the hall."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: ILANA with long black hair and a silver tiara in a spotless white lace gown stands on a moonlit gothic staircase, LUCIAN with platinum hair in a black coat beside her, a giant silver wolf and full moon behind them, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 165028,
+   "ten": "The Mafia Godfather's Contract Wife",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Sarah",
+   "poster": "1/8742yfhmfjwx6upiz6.webp",
+   "url": "https://netshort.com/episode/the-mafia-godfathers-contract-wife-2110674013871955969",
+   "trang_phim": "Single mom Chloe is tricked into a deal to save her son and ends up in a contract marriage with ruthless mafia don Victor. As enemies inside his family close in, she fights to protect her child, expose an impostor, and claim a place in the empire that tried to break her.",
+   "nhan_vat": "CHLOE = woman about 30, wavy honey-blonde hair in a loose updo, elegant dark-green long-sleeve dress (narrator, poster center); VICTOR = don, handsome man early 30s, dark swept hair, black suit and black shirt, cold eyes; VICTOR'S AUNT = woman 60s, silver bob, black dress, pearls, cold; THE IMPOSTOR = smug man 30s with glasses in a navy suit",
+   "boi_canh": {
+    "ten": "Victor's family mansion",
+    "mo_ta": "Dark luxurious mansion with chandeliers, a long family dining table, a study with a desk and a signed contract, red roses"
+   },
+   "canh": [
+    {
+     "loi": "I signed a marriage contract with the most feared don in the city.",
+     "anh": "Dark study with a chandelier. CHLOE in a dark-green dress signs a contract on the desk while VICTOR in a black suit watches her coldly.",
+     "dong": "CHLOE signs and slides the contract back, VICTOR picks it up without a smile, slow push-in on CHLOE's face."
+    },
+    {
+     "loi": "I did it to save my little boy.",
+     "anh": "Quiet hallway at night. CHLOE holds a small toy car close to her chest and looks at a closed bedroom door with tears in her eyes.",
+     "dong": "CHLOE presses the toy car to her chest and breathes in, handheld camera close."
+    },
+    {
+     "loi": "His family called me a stranger who wouldn't last a week.",
+     "anh": "Long family dining table. VICTOR'S AUNT in black and pearls raises her glass and laughs at CHLOE; other relatives smirk.",
+     "dong": "The aunt laughs and the relatives join in, CHLOE keeps her chin up, slow sideways track."
+    },
+    {
+     "loi": "But someone at that table wasn't who he claimed to be.",
+     "anh": "Same table. The smug IMPOSTOR with glasses in a navy suit whispers to the aunt while VICTOR, at the head of the table, doesn't notice; CHLOE watches them.",
+     "dong": "The impostor leans in and whispers, CHLOE's eyes narrow, wide pan along the table."
+    },
+    {
+     "loi": "So I put the proof on the table in front of everyone.",
+     "anh": "Wide shot of the dining room. CHLOE stands and lays photos and documents across the table; the IMPOSTOR goes pale and the family stares; VICTOR rises from his chair.",
+     "dong": "CHLOE spreads the documents and the impostor freezes, slow push-in from the wide room toward CHLOE.",
+     "co_canh": "ws",
+     "chuyen_dong": "day_vao"
+    },
+    {
+     "loi": "Now Victor stands beside me. Nobody calls me a stranger anymore.",
+     "anh": "Same dining room. VICTOR walks to CHLOE's side and takes her hand; the aunt lowers her eyes and the family falls silent.",
+     "dong": "VICTOR takes CHLOE's hand and faces his family, camera cranes up over the table."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: CHLOE with honey-blonde hair in an elegant dark-green long-sleeve dress stands between VICTOR in a black suit and a man with glasses in a navy suit, chandelier and red roses behind, a contract on the table, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 165010,
+   "ten": "Awakening The Demon Sister",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Jessica",
+   "poster": "1/es2yclx6n01rq8bwp0.webp",
+   "url": "https://netshort.com/episode/awakening-the-demon-sister-2110931794370187266",
+   "trang_phim": "To save Vane from her husband Kells, her twin sister Ferne, a former psychiatric patient, assumes Vane's identity to enact revenge. Ferne ruins Kells financially, exposes his affairs, seizes his corporation, and ultimately makes him lose all his assets before he is arrested, allowing the sisters to start anew.",
+   "nhan_vat": "FERNE = woman about 28, platinum-blonde hair in a messy updo, sharp confident eyes, black trench coat over a white shirt (narrator, poster center); VANE = her identical twin, same face, soft frightened look, beige cardigan; KELLS = Vane's husband, man 35, dark slicked hair, black suit, arrogant; THE MISTRESS = brunette woman 30s in a gold sequined long-sleeve dress",
+   "boi_canh": {
+    "ten": "Kells' world",
+    "mo_ta": "Modern luxury house with a cold grey living room; glass-walled corporate boardroom high above the city; grand hall with chandeliers"
+   },
+   "canh": [
+    {
+     "loi": "My twin sister's husband made her life miserable. So I took her place.",
+     "anh": "Modern grey living room. FERNE in a beige cardigan like her sister's looks into a mirror and pins her hair into her sister's style, a sharp smile forming.",
+     "dong": "FERNE fixes the last hairpin and smiles at her reflection, slow push-in on her eyes."
+    },
+    {
+     "loi": "Vane is gentle. I'm the twin everyone underestimated.",
+     "anh": "Small cafe. VANE in a beige cardigan sits with her head down; FERNE sits across from her and squeezes her hand firmly.",
+     "dong": "FERNE squeezes VANE's hand and VANE looks up hopefully, handheld camera."
+    },
+    {
+     "loi": "Kells thought his quiet wife would never fight back.",
+     "anh": "Luxury living room. KELLS in a black suit tosses his jacket on the sofa and talks down to FERNE, who stands quietly in the cardigan.",
+     "dong": "KELLS points at her with a smirk, FERNE lowers her eyes calmly, slow sideways track."
+    },
+    {
+     "loi": "He had no idea who was really standing in front of him.",
+     "anh": "Same room. KELLS turns away to check his phone; behind him FERNE slowly lifts her head and gives a cold, confident smile.",
+     "dong": "KELLS walks off with his phone, FERNE raises her head with a sharp smile, wide pan."
+    },
+    {
+     "loi": "In one week I took his company and exposed his affairs.",
+     "anh": "Wide shot of a glass-walled boardroom. FERNE in a black trench coat sits at the head of the table as the board members raise their hands to vote; KELLS stands by the door, stunned, the MISTRESS behind him.",
+     "dong": "The board raises their hands one by one and KELLS freezes, slow push-in from the wide room toward FERNE.",
+     "co_canh": "ws",
+     "chuyen_dong": "day_vao"
+    },
+    {
+     "loi": "He lost everything. Now my sister and I start over.",
+     "anh": "Bright city street outside the tower. Two police officers lead KELLS to a car in the background; in front, FERNE and VANE hug and smile.",
+     "dong": "The sisters hug as the car door closes behind them, camera cranes up over the street."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: FERNE with platinum-blonde hair in a black trench coat and white shirt stands confidently in a grand hall, KELLS in a black suit and a brunette woman in a gold long-sleeve dress behind her, guests holding phones, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 164995,
+   "ten": "The Ex-Husband's Regret",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Sarah",
+   "poster": "1/ia7slr6mtiqorgxp21.webp",
+   "url": "https://netshort.com/episode/the-ex-husbands-regret-2110939611852431361",
+   "trang_phim": "Charlotte, a billionaire heiress, hides her identity to marry a nobody, making Daniel a CEO and saving his sick mother, Victoria. After eight years of his cheating with vicious Lily, Charlotte hits her limit when Lily humiliates her and Victoria in public while Daniel blows her off. She teams up with her mother-in-law and best friend William to destroy the cheaters.",
+   "nhan_vat": "CHARLOTTE = woman about 32, long dark-brown hair, black leather jacket over a white ruffled blouse (narrator, poster center); DANIEL = her husband, handsome man 30s, dark hair, white shirt; LILY = brunette woman 30s in a black lace long-sleeve dress, smug; VICTORIA = mother-in-law, woman 60s, short dark bob, cream cardigan and pearls; WILLIAM = best friend, man 30s with glasses, dark suit",
+   "boi_canh": {
+    "ten": "Daniel's company and a luxury restaurant",
+    "mo_ta": "Elegant restaurant with warm golden lights and a bar; modern corporate office with a CEO desk and a glass boardroom"
+   },
+   "canh": [
+    {
+     "loi": "I'm a billionaire heiress. For eight years, my husband never knew.",
+     "anh": "Modern office lobby. CHARLOTTE in a leather jacket watches from a distance as DANIEL in a white shirt is congratulated as the new CEO.",
+     "dong": "DANIEL raises his glass to applause, CHARLOTTE gives a small knowing smile, slow push-in on her face."
+    },
+    {
+     "loi": "I made him a CEO and paid for his mother's care.",
+     "anh": "Bright hospital room. CHARLOTTE quietly signs a payment form at the bedside of VICTORIA, who smiles at her gratefully.",
+     "dong": "CHARLOTTE signs and VICTORIA holds her hand, handheld camera."
+    },
+    {
+     "loi": "He repaid me by cheating with Lily.",
+     "anh": "Elegant restaurant. DANIEL laughs with LILY in a black lace dress at a corner table, his hand on hers; CHARLOTTE stops at the entrance.",
+     "dong": "LILY leans toward DANIEL and laughs, CHARLOTTE freezes at the entrance, slow sideways track."
+    },
+    {
+     "loi": "Lily humiliated me in public. Daniel just walked away.",
+     "anh": "Same restaurant. LILY points at CHARLOTTE and laughs loudly as guests stare and whisper; DANIEL turns his back and walks off with his coat.",
+     "dong": "LILY laughs in CHARLOTTE's face and DANIEL walks away, wide pan across the staring guests."
+    },
+    {
+     "loi": "So I teamed up with the one person he never expected: his mother.",
+     "anh": "Wide shot of a glass boardroom. VICTORIA in a cream cardigan walks in beside CHARLOTTE and WILLIAM and places a thick folder on the table; DANIEL and LILY stare in shock.",
+     "dong": "VICTORIA sets the folder down beside CHARLOTTE and DANIEL's smile drops, slow push-in from the wide room toward CHARLOTTE.",
+     "co_canh": "ws",
+     "chuyen_dong": "day_vao"
+    },
+    {
+     "loi": "Now the cheaters are losing everything.",
+     "anh": "CEO office. Security staff carry out boxes of DANIEL's things while LILY argues with him; CHARLOTTE and VICTORIA watch calmly from the doorway.",
+     "dong": "The boxes go out and DANIEL looks back at CHARLOTTE, camera cranes up over the office."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: CHARLOTTE with long dark-brown hair in a black leather jacket over a white ruffled blouse stands in front, VICTORIA in a cream cardigan and pearls at her side, DANIEL in a white shirt and LILY in a black long-sleeve lace dress behind them in a golden bar, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 159997,
+   "ten": "Amor de Familia Llévame a Casa",
+   "lang": "es",
+   "nguon": "dramabox",
+   "giong": "Jessica",
+   "poster": "1/rwi5hfj3nlprokpaaw.webp",
+   "url": "https://www.dramabox.com/es/video/41000102994_Family-Love-Takes-Me-Home/569007435_Episode-1",
+   "trang_phim": "Hace 18 años, Evelyn Lynn sacrificó a su nieta Zoe Lynn para salvar a su nieto, Ben Lynn. Abandonada en una aldea por el mayordomo, Zoe fue encontrada por Mark Dunn, un conserje, quien le dio un nuevo nombre, Grace Dunn. Hoy, Helen Reed emerge como la líder del Grupo Lynn. Como madre de Zoe, ella emprende una búsqueda para encontrar a su hija.",
+   "nhan_vat": "GRACE = young East Asian woman about 19, long straight black hair, simple cream knit sweater, gentle face (narrator, poster center); MARK DUNN = East Asian man in his 50s, grey janitor uniform, kind tired face; HELEN REED = elegant East Asian woman in her 40s, short black hair, navy business suit, pearl earrings; EVELYN LYNN = stern East Asian grandmother in her 70s, grey hair bun, dark qipao-style dress",
+   "boi_canh": {
+    "ten": "Village and the Lynn Group",
+    "mo_ta": "Quiet snowy village with old houses; small humble apartment; glossy corporate headquarters lobby of the Lynn Group with a big logo wall"
+   },
+   "canh": [
+    {
+     "loi": "Hace dieciocho años me abandonaron en una aldea. Nadie vino por mí.",
+     "anh": "Quiet snowy village street at dusk. GRACE in a cream sweater stands alone by an old wooden gate, looking down the empty road.",
+     "dong": "GRACE pulls her sweater tighter and looks down the empty road, slow push-in on her face."
+    },
+    {
+     "loi": "Un conserje, Mark Dunn, me crió y me llamó Grace.",
+     "anh": "Small humble apartment kitchen. MARK DUNN in a grey janitor uniform sets a bowl of hot soup in front of GRACE and smiles warmly.",
+     "dong": "MARK pushes the bowl toward her and GRACE smiles back, handheld camera."
+    },
+    {
+     "loi": "Crecí pobre, sin saber de qué familia venía.",
+     "anh": "Same apartment at night. GRACE sits at a small table looking at an old faded baby blanket with an embroidered letter Z.",
+     "dong": "GRACE runs her fingers over the embroidered Z, slow sideways track."
+    },
+    {
+     "loi": "Mi propia abuela me había dejado allí a propósito.",
+     "anh": "Elegant mansion study. EVELYN LYNN in a dark dress turns away from a window with a cold, guilty face, an old photo face-down on her desk.",
+     "dong": "EVELYN turns the photo face-down and walks away, wide pan across the study."
+    },
+    {
+     "loi": "Hoy, la presidenta del Grupo Lynn vio mi manta y empezó a llorar.",
+     "anh": "Wide shot of a glossy corporate lobby. HELEN REED in a navy suit stops in the middle of the lobby, staring at the embroidered baby blanket in GRACE's hands, tears in her eyes.",
+     "dong": "HELEN walks slowly toward GRACE with tears falling, slow push-in from the wide lobby toward HELEN.",
+     "co_canh": "ws",
+     "chuyen_dong": "day_vao"
+    },
+    {
+     "loi": "Era mi madre. Llevaba dieciocho años buscándome.",
+     "anh": "Same lobby. HELEN REED embraces GRACE tightly; MARK DUNN watches nearby with a proud, teary smile.",
+     "dong": "HELEN hugs GRACE and GRACE hugs her back, camera cranes up over the lobby."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art: GRACE, a young East Asian woman with long black hair in a cream knit sweater, stands in front of a family portrait wall, HELEN REED in a navy suit beside her with a hand on her shoulder, warm snowy light, all adults, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  }
+ ]
+}

@@ -3,7 +3,7 @@
 Creative của một lô đã đẩy lên Ethopex (ra/<mã lô>/len.json) mà CHƯA có camp → qua cổng chấm (view etp.cham_cong: Meta ≤ 4 / CTA ≤ 4 thì chặn) thì tạo camp ở bộ của phim (sổ ethopex_phim_tk; phim mới → bộ 2) (nhan-ban.py --creative, khuôn EN/ES
 như dot-phim-moi); chưa chấm thì bỏ qua (nhan-ban tự xếp hàng chấm) — chạy lại lệnh này sau khi chấm xong để lên nốt. Cấm / cần xem: không lên.
 Cổng thật nằm ở nhan-ban.py (cổng chấm + rào chắn etp + bão hoà + phim 18+ + CTA) — lệnh này chỉ chọn việc và gọi.
-Chạy (iMac):  python3 len-sau-cham.py <mã lô, vd pm24101433> [--lich today|tomorrow] [--thu]"""
+Chạy (iMac):  python3 len-sau-cham.py <mã lô, vd pm24101433 | cho = mọi creative đang chờ trong kho> [--lich today|tomorrow] [--thu]"""
 import json, os, subprocess, sys
 D = os.path.dirname(os.path.abspath(__file__)); C = os.path.expanduser("~/.cache/ethopex")
 sys.path.insert(0, D)
@@ -16,7 +16,14 @@ def main(a):
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("len-sau-cham đang chạy ở lượt khác — thoát")
     ma = a[0]; lich = a[a.index("--lich") + 1] if "--lich" in a else "today"; thu = "--thu" in a
-    ds = [x for x in json.load(open(os.path.join(C, "ra", ma, "len.json"))) if x.get("ok") and x.get("creative_id")]
+    if ma == "cho":   # MỌI creative đang chờ trong kho etp (anh 26/10/2026 "làm luôn 1 lượt để có camp lên") — không cần ra/<lô>/len.json (lô cắt ở máy khác / đã dọn); tên camp dựng từ kho
+        import unicodedata
+        a_ = lambda t: unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().replace("'", "").strip()
+        ds = [{"creative_id": int(c), "content_id": int(p_), "lang": l, "ok": True, "ten": f"{lo} {a_(t) or 'phim ' + p_} {l.upper()} - {a_(d).lower()} {round(float(tu))}-{round(float(de))}s"}
+              for c, p_, l, lo, t, d, tu, de in (r.split("|") for r in SD.sql("""select r.creative_id, r.content_id, coalesce(r.lang, 'en'), r.lo, coalesce(p.ten, ''), coalesce(r.dang, ''), coalesce(r.tu, 0), coalesce(r.den, 0)
+                  from etp.creative r left join etp.phim p using (content_id) where r.tu_choi is null and r.content_id is not null
+                  and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)""").splitlines() if r.count("|") == 7)]
+    else: ds = [x for x in json.load(open(os.path.join(C, "ra", ma, "len.json"))) if x.get("ok") and x.get("creative_id")]
     ids = ",".join(str(int(x["creative_id"])) for x in ds) or "0"
     co_camp = set(SD.sql(f"select distinct creative_id from etp.camp where creative_id in ({ids}) and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
     bo_phim = json.loads(SD.sql("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_tk'") or "{}")   # mỗi phim một bộ — phim đã có bộ thì lên đúng bộ đó, phim mới → bộ 2

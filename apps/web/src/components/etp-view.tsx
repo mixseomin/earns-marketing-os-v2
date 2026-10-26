@@ -433,6 +433,10 @@ function TheXem({ t, noi }: { t: The; noi: Noi }) {
   const W = 300;
   const so = t.anhKhung?.length || 30;   // số khung trên tờ: Worker cắt từng khung (20) · bản cũ tờ 6×5 (30)
   const giay = t.khung?.length && t.dai ? Math.max(0, ((t.khung[0]! - 0.5) * t.dai) / so) : 0;
+  // BẤM KHUNG → TUA VIDEO ĐÚNG CHỖ (anh 26/10/2026): khung n (đếm từ 1) nằm giữa đoạn thứ n của video chia đều so phần — cùng công thức giay ở trên
+  const vid = useRef<HTMLVideoElement>(null); const [chon, setChon] = useState<number | null>(null);
+  const tua = (n: number) => { if (!t.dai || !vid.current) return; vid.current.currentTime = Math.max(0, ((n - 0.5) * t.dai) / so); void vid.current.play().catch(() => {}); setChon(n); };
+  const duocTua = !!(t.video && t.dai);
   return (
     <KhungNoi x={t.x} y={t.y} rong={t.video ? 2 * W + 30 : W + 20} cao={560} noi={noi} style={{ padding: 10, display: 'flex', gap: 10 }}>
       <div style={{ width: W }}>
@@ -440,15 +444,17 @@ function TheXem({ t, noi }: { t: The; noi: Noi }) {
         <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '4px 0 8px', whiteSpace: 'pre-wrap' }}>{t.ly}</div>
         {t.anhKhung?.length ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 2, width: W }}>
-            {t.anhKhung.map((u, i) => <img key={u} src={u} alt="" style={{ width: '100%', display: 'block', borderRadius: 2, outline: t.khung?.includes(i + 1) ? '2px solid #ef4444' : 'none', outlineOffset: -2 }} />)}
+            {t.anhKhung.map((u, i) => <img key={u} src={u} alt="" onClick={() => tua(i + 1)} title={duocTua ? `khung ${i + 1} — bấm để tua video tới ${(((i + 0.5) * t.dai!) / so).toFixed(1)}s` : undefined}
+              style={{ width: '100%', display: 'block', borderRadius: 2, cursor: duocTua ? 'pointer' : undefined, outline: chon === i + 1 ? '2px solid #38bdf8' : t.khung?.includes(i + 1) ? '2px solid #ef4444' : 'none', outlineOffset: -2 }} />)}
           </div>) : t.anh ? (
           <div style={{ position: 'relative', width: W }}>
-            <img src={t.anh} alt="" style={{ width: W, display: 'block', borderRadius: 4 }} />
+            <img src={t.anh} alt="" style={{ width: W, display: 'block', borderRadius: 4, cursor: duocTua ? 'pointer' : undefined }}
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); tua(Math.floor(((e.clientY - r.top) / r.height) * 5) * 6 + Math.floor(((e.clientX - r.left) / r.width) * 6) + 1); }} />
             {(t.khung ?? []).map((n) => <span key={n} style={{ position: 'absolute', left: `${((n - 1) % 6) * (100 / 6)}%`, top: `${Math.floor((n - 1) / 6) * 20}%`, width: `${100 / 6}%`, height: '20%', border: '2px solid #ef4444', boxSizing: 'border-box' }} />)}
           </div>) : null}
         {t.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6, maxHeight: 120, overflow: 'hidden' }}>{t.chu}</div> : null}
       </div>
-      {t.video ? <video key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} autoPlay muted loop playsInline controls style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
+      {t.video ? <video ref={vid} key={`${t.video}#${giay}`} src={`${t.video}#t=${giay.toFixed(1)}`} autoPlay muted loop playsInline controls style={{ width: W, height: 533, objectFit: 'contain', background: '#000', borderRadius: 6 }} /> : null}
     </KhungNoi>
   );
 }

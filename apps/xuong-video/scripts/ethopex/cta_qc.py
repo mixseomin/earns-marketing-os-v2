@@ -22,8 +22,9 @@ MAU_CTA = re.compile(r"\btap (?:to|here|now|below|learn|the (?:link|button)|for 
 MAU_PHU = re.compile(r"limited[- ]time|tiempo limitado|por tiempo limitado|oferta limitada|\bwatch (?:it )?for free\b|\bfree for (?:a )?limited|"
                      r"\bdownload\b|\bdescarga|\binstall\b|\binstala|\bcontinue watching\b|\bsigue viendo\b|"
                      r"(?-i:\bFREE\b)|(?-i:\bGRATIS\b)|^\s*(?:free|gratis)\s*!*\s*$|\b\d{2}:\d{2}\b(?=.{0,40}(?:free|gratis|limit))", re.I)
+# 26/10/2026: nút xuống dòng giữa hai vế (tên phim ES dài) → OCR " • | " / " P | " — chặn oan creative kể chuyện Atravesando; nới phần nối giữa hai vế.
 # nút chuẩn khi OCR đọc lại: dấu "·" ra "•" / "-" / "." / mất — gỡ bằng mẫu nới (22/10/2026 chặn oan cả lô cta3 vì "WATCH FREE • LEARN MORE")
-NUT_CHUAN = re.compile(r"WATCH\W{0,4}FREE\W{0,4}LEARN\W{0,4}MORE|M[IÍ]RALA\W{0,4}GRATIS\W{0,4}M[AÁ]S\W{0,4}INFORMACI[OÓ]N|WHAT HAPPENS NEXT\W?|\W?QU[EÉ] PASA DESPU[EÉ]S\W?", re.I)
+NUT_CHUAN = re.compile(r"WATCH\W{0,4}FREE(?:[\W_]{0,8}\w?[\W_]{0,8})LEARN\W{0,4}MORE|M[IÍ]RALA\W{0,4}GRATIS(?:[\W_]{0,8}\w?[\W_]{0,8})M[AÁ]S\W{0,4}INFORMACI[OÓ]N|WHAT HAPPENS NEXT\W?|\W?QU[EÉ] PASA DESPU[EÉ]S\W?", re.I)
 
 def tach_hoa(mau):
     """mẫu Python → (mẫu không phân biệt hoa/thường, [mẫu phân biệt hoa]) cho máy không hiểu (?-i:…) — Worker chấm creative (JS) đọc qua kho (anh 25/10/2026: một nguồn luật)"""

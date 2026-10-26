@@ -13,6 +13,11 @@ Chạy trên box3 (khoá ở studio):
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
   python3 nhan-ban.py <camp_gốc> --thang <$> --that …   → THANG NHÂN BẢN bộ 2 (anh 25/10/2026): bản mới ở bậc ngân sách cao hơn camp gốc
     (creative khác cùng phim, tên "(thang $X cua <gốc>)"); không đòi gốc chạm trần — camp gốc giữ nguyên ngân sách, không phải học lại
+  python3 nhan-ban.py <camp_gốc> --roas <1.0–1.4> [--ns 20] [--tam-dung] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
+    nhân bản camp gốc (chi all time > $100, ROI > 50%) với bid ROAS goal (LOWEST_COST_WITH_MIN_ROAS + roas_average_floor ở Ad Set),
+    ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch tomorrow, tên "… roas X duplicate by <gốc>".
+    Camp ROAS là loại riêng: KHÔNG qua luật clone-khác-creative / cổng chấm / chạm trần / bão hoà (dùng lại đúng bài cũ); vẫn qua cổng etp + trần phim.
+    Tạo xong đọc lại: mức ROAS sai → tạm dừng camp ngay + báo lỗi (Support: "nhập sai là lỗi camp"). --tam-dung = để PAUSED chờ anh review.
 In một dòng JSON {ok, goc, moi, ten, loi}."""
 import datetime as dt, importlib.util, json, os, re, subprocess, sys, time, urllib.request
 
@@ -146,19 +151,22 @@ def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh tha
     return json.loads(v) if v else mac
 THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
 THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
-def payload(goc_id, lich, moi=None, bo=None, thang=None):
+ROAS_MIN, ROAS_MAX = 1.0, 1.4
+def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
-    if c.get("state") != "ACTIVE": raise ValueError(f"camp gốc đang {c.get('state')}")
+    if c.get("state") != "ACTIVE" and not roas: raise ValueError(f"camp gốc đang {c.get('state')}")   # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
-    if moi:
+    if roas:
+        ten = f"{re.sub(r'^\d+:\s*', '', c['name'])} roas {roas:g} duplicate by {goc_id}"
+    elif moi:
         ten = moi["ten"]; a = {**a, "creative_id": moi["creative"], "content_id": moi["content"]}
     else:
         goc_ten = re.sub(r"\s*\((nhan ban \d+|thang \$\d+) cua \d+\)$", "", c["name"])
         so = 1 + sum(1 for x in api("/api/v1/campaigns?page_size=500")["data"] if re.search(rf"\(nhan ban \d+ cua {goc_id}\)$", x.get("name", "")))
         ten = f"{goc_ten} (thang ${thang:g} cua {goc_id})" if thang else f"{goc_ten} (nhan ban {so} cua {goc_id})"
-        if _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):   # CTA cũ → thay bằng bản sửa của chính đoạn đó
+        if not roas and _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):   # CTA cũ → thay bằng bản sửa của chính đoạn đó
             sua = ban_sua(a.get("creative_id"))
             if not sua:
                 xep_dung_lai(goc_id, a.get("creative_id"), a.get("content_id"), c["name"])
@@ -173,6 +181,17 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None):
     if bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
         b = bo_tk(bo); tk, ext, page = int(b["tk"]), str(b["ext"]), int(b["page"])
     sp_g = {k: v for k, v in js(g.get("source_payload")).items() if k not in BO}; sp_g.update(name=f"{ten} · adset")
+    if roas:   # đúng đường form Ethopex (bid strategy cấp campaign + roas_average_floor cấp Ad Set, tối ưu VALUE) — đọc từ mã app 26/10/2026
+        sid = (a.get("effective_object_story_id") or "").strip()
+        if not re.fullmatch(r"\d+_\d+", sid): raise ValueError(f"camp gốc #{goc_id} không có mã bài đăng (effective_object_story_id) để dùng lại")
+        if bo and str(bo) != str(bo_cua_camp(c)): raise ValueError("camp ROAS dùng bài đăng của camp gốc → phải cùng bộ tài khoản / Page với camp gốc")
+        sp_c.update(bid_strategy="LOWEST_COST_WITH_MIN_ROAS", daily_budget=int(ns_roas))
+        sp_g.update(optimization_goal="VALUE", bid_constraints={"roas_average_floor": roas}); sp_g.pop("bid_amount", None)
+        return d, ten, a.get("content_id"), {
+            "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo),
+            "external_account_id": ext,
+            "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
+                "ads": [{"effective_object_story_id": sid, "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
     return d, ten, a.get("content_id"), {
         "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo),
         "external_account_id": ext,
@@ -195,6 +214,11 @@ def main(a):
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
+    roas = float(lay("--roas")) if lay("--roas") else None
+    if roas is not None:
+        if moi or thang: raise SystemExit("--roas không đi kèm --creative / --thang")
+        if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
+        return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang); kq["ten"] = ten; bo = pl.pop("bo")
@@ -257,6 +281,50 @@ def main(a):
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
         if kq["ok"]: ghi_bo(cid, bo)
+    except Exception as e:
+        kq["loi"] = str(e)[:240]
+    if that: ghi_nhat_ky(kq, luat, ai)
+    print(json.dumps(kq, ensure_ascii=False))
+
+def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai):
+    """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim + mỗi phim một bộ."""
+    kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None}
+    try:
+        if not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
+        d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns); kq["ten"] = ten; bo = pl.pop("bo")
+        ly = chan_bo(cid, bo)
+        if ly: raise ValueError(ly)
+        n = dem_dang_chay(cid)
+        if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM})")
+        if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")
+        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None)
+        if ly: raise ValueError(ly)
+        kq["content"] = cid
+        if not that:
+            print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
+        r = api("/api/v1/campaigns/facebook", pl)
+        moi = r.get("id") or (r.get("data") or {}).get("id") or (r.get("campaign") or {}).get("id")
+        if not moi:
+            time.sleep(3); moi = next((x["id"] for x in api("/api/v1/campaigns?page_size=20")["data"] if x.get("name") == ten), None)
+        if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
+        kq["moi"] = moi
+        for _ in range(12):
+            time.sleep(5); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
+            if c.get("sync_status") in ("done", "synced") or c.get("error"): break
+        if c.get("error"): raise ValueError("Ethopex báo lỗi: " + str(c.get("error"))[:200])
+        if float(c.get("budget_daily") or 0) != ns:   # Ethopex có lúc không nhận ngân sách lúc tạo → đặt lại
+            api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": ns}}}); time.sleep(8)
+            d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]
+        g = js(((d2.get("ad_groups") or [{}])[0]).get("source_payload"))
+        san = (g.get("bid_constraints") or {}).get("roas_average_floor")
+        san = float(san) / 10000 if san is not None and float(san) > 100 else (float(san) if san is not None else None)   # Meta lưu ×10000
+        kq.update(ns=c.get("budget_daily"), chien_luoc=c.get("source_bidding_strategy"), roas_doc_lai=san, target_roas=c.get("target_roas"), trang_thai=c.get("state"), dong_bo=c.get("sync_status"))
+        sai = c.get("source_bidding_strategy") not in (None, "", "LOWEST_COST_WITH_MIN_ROAS") or san is None or abs(san - roas) > 1e-6
+        if sai or tam_dung:
+            api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [moi], "status": "paused"}])
+            kq["tam_dung"] = True
+        if sai: raise ValueError(f"đọc lại sai ROAS (đặt {roas}, Ethopex {san}, chiến lược {c.get('source_bidding_strategy')}) — đã tạm dừng camp")
+        kq["ok"] = True; ghi_bo(cid, bo)
     except Exception as e:
         kq["loi"] = str(e)[:240]
     if that: ghi_nhat_ky(kq, luat, ai)

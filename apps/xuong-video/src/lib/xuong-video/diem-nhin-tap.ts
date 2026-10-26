@@ -12,7 +12,8 @@ import { mapCanh, type Db, type Row } from './doc-db';
 import { soiAnh } from './soi-mat';
 import { giayPhat, type Canh } from './kieu';
 import { DUOI_CLIP_BO } from './xuat';
-import { khungCanh, type Diem, type Hop, type KhungLai } from './diem-nhin';
+import { khungCanh, NEO_MAT, type Diem, type Hop, type KhungLai } from './diem-nhin';
+import { docKinhThanh, type KinhThanh } from './kieu';
 
 const chay = promisify(execFile);
 type HS = Record<string, { lung?: boolean }>;
@@ -65,7 +66,9 @@ export async function doDiemNhinTap(db: Db, tapId: number, o: { ghi?: boolean; l
   };
   for (const [cid, khoa] of moi) { const a = diem(cid, 'dau'), b = diem(cid, 'cuoi'); dn.set(cid, { khoa, dau: a?.p ?? null, cuoi: b?.p ?? null, ten_dau: a?.ten, ten_cuoi: b?.ten, ...giuCua(cid) }); }
   const tat = (c: Canh) => !!(c.ky_thuat as { khung_lai_tat?: boolean } | undefined)?.khung_lai_tat;
-  const kq = khungCanh(ds.map((c) => ({ thu_tu: c.thu_tu, dau: dn.get(c.id)?.dau ?? null, cuoi: dn.get(c.id)?.cuoi ?? null, tat: tat(c), giu: dn.get(c.id)?.giu, khoa: dn.get(c.id)?.thieu })));
+  // Phim ngắn dọc: đích là ĐIỂM NEO MẮT cố định (diem-nhin › NEO_MAT — luat-dung › eye_trace), không trôi theo chuỗi; phim khác giữ cách khớp shot trước.
+  const kt = docKinhThanh((((await db.execute(sql`SELECT p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[])[0]?.kinh_thanh ?? null) as KinhThanh);
+  const kq = khungCanh(ds.map((c) => ({ thu_tu: c.thu_tu, dau: dn.get(c.id)?.dau ?? null, cuoi: dn.get(c.id)?.cuoi ?? null, tat: tat(c), giu: dn.get(c.id)?.giu, khoa: dn.get(c.id)?.thieu })), kt.the_loai === 'phim_doc' ? { neo: NEO_MAT } : {});
   const out = ds.map((c, i) => { const d = dn.get(c.id); return { thu_tu: c.thu_tu, dn: d ? { ...d, lech_goc: kq[i]!.lech_goc, lech_sau: kq[i]!.lech_truoc } : null, k: kq[i]!.k }; });
   if (o.ghi) for (const [i, c] of ds.entries()) {
     const { dn: d, k } = out[i]!; const kl = k.s > 1 ? JSON.stringify(k) : null;

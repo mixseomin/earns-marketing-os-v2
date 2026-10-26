@@ -74,3 +74,11 @@ Khung ngay trước + ngay sau mỗi cú cắt → mặt to nhất → điểm g
   mắt dịch trung vị **0,47** bề ngang qua cú cắt — gấp đôi ReelShort.
 - Áp vào studio: điểm neo mắt mặc định (0,5 ; 0,31) + cỡ mặt 0,25–0,35 khung cho mọi shot không phải toàn / cận đồ — đặt ở khâu ngắm khung
   (dung-set.py › ngam_lai, câu cỡ cảnh trong prompt) và lấy làm đích cho khung dựng lại (diem-nhin-tap.ts › khungCanh) thay vì chỉ khớp từng cặp.
+
+## Đã gắn vào studio (26/10/2026)
+- Luật: `luat-dung.ts` › `eye_trace` (điểm neo mắt), `nhip_phim_doc` (shot 1,3–2,5 s, tách mảnh va chạm, cận đồ, vòng phản ứng, loá sáng), `nhip_cat_doc`, luật mới `loi_ke_noi_tam`.
+- Tách shot: `claude.ts › tachCanh` đưa các luật trên vào prompt khi thể loại là phim ngắn dọc; sàn giây đọc 1,2 s (`nhip-hinh.ts › giayDoc`); trần nhịp 2,5 s (`nhip-cat.ts`).
+- Prompt ảnh: `phieu-shot.ts` (cỡ khung + chỗ cắt + điểm neo mắt, chỉ người trong khung, nhìn ai, nét đầu → cuối, sổ đồ vật) — `bang-gom.mts` dùng `cauKhung`.
+- Sơ đồ shot: `so-do-shot.ts` vẽ SVG từ sơ đồ cảnh 2D + sổ đồ vật + biểu cảm → ô 📐 Sơ đồ trên thẻ shot; `scripts/ve-so-do.mts` vẽ bảng / khung trơn; `scripts/anh-tu-so-do.mts` sinh ảnh từ sơ đồ.
+- Xuất: `diem-nhin.ts › khungCanh({ neo: NEO_MAT })` — phim ngắn dọc kéo mắt về điểm neo cố định (`diem-nhin-tap.ts`).
+- Chưa gắn: thẻ tên tự động (vẫn bấm nút 🏷 Thẻ tên trên timeline), loá sáng chuyển cảnh trong bộ dựng, lời kể tự sinh giọng.

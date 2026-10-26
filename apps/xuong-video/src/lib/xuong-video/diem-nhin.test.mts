@@ -36,3 +36,11 @@ const g = khungDuaVe({ x: 0.66, y: 0.4 }, { x: 0.5, y: 0.4 }, { giu }); assert.s
 // người sơ đồ nói có mà không đo được chỗ → khoá, không phóng
 assert.strictEqual(khungCanh([{ thu_tu: 1, dau: { x: 0.45, y: 0.4 }, cuoi: { x: 0.45, y: 0.4 } }, { thu_tu: 2, dau: { x: 0.62, y: 0.4 }, cuoi: null, khoa: true }])[1]!.k.s, 1);
 console.log('✓ diem-nhin');
+
+// ĐIỂM NEO (phim ngắn dọc): shot đầu cũng bị kéo về neo; shot đã ở gần neo thì giữ nguyên
+{ const { khungCanh: kc, NEO_MAT: N } = await import('./diem-nhin');
+  const r = kc([{ thu_tu: 1, dau: { x: 0.7, y: 0.4 }, cuoi: { x: 0.7, y: 0.4 } }, { thu_tu: 2, dau: { x: 0.52, y: 0.32 }, cuoi: null }], { neo: N });
+  if (!(r[0]!.k.s > 1)) throw new Error('neo: shot đầu lệch neo phải được dựng lại khung');
+  if (r[1]!.k.s !== 1) throw new Error('neo: shot đã ở neo thì giữ nguyên');
+  const cu = kc([{ thu_tu: 1, dau: { x: 0.7, y: 0.4 }, cuoi: { x: 0.7, y: 0.4 } }]); if (cu[0]!.k.s !== 1) throw new Error('không neo: shot đầu giữ nguyên như cũ');
+  console.log('✓ diem-nhin neo'); }

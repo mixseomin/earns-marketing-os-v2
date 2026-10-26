@@ -20,4 +20,12 @@ assert.equal(veShotTuCanh(c(5, 'ms'), null), null, 'không sơ đồ cảnh → 
 const svg = svgSoDoShot(v); assert.ok(svg.startsWith('<svg') && svg.includes('cuối · Hạ') && svg.includes('stroke-dasharray'), 'có ô nét cuối + mũi tên ánh nhìn');
 const tron = svgSoDoShot(v, { sach: true }); assert.ok(!tron.includes('<text') && !tron.includes('stroke-dasharray'), 'khung trơn cho model: không chữ, không mũi tên');
 assert.ok(svgSoDoShot({ co: 'insert', nguoi: [], khai: ['Thẻ'] }).includes('Thẻ'), 'cận đồ vẽ món');
+// CẮT GIỮA ĐỘNG TÁC: shot 5 nối động tác (noi = dong_tac); shot 6 Hạ quay sang nhìn trái → khung CUỐI shot 5: đầu bắt đầu quay sang trái
+const c5 = { ...c(5, 'cu'), phan_doan: 'A', dan_dung: { noi: 'dong_tac' } } as unknown as Canh;
+const c6 = { ...c(6, 'cu'), phan_doan: 'A', ky_thuat: { co_canh: 'cu', sd: { may: 'm', o: { 'Hạ': 'ha', 'Vivian': 'vi' }, nhin: { 'Hạ': [-5, 3] } } } } as unknown as Canh;
+const k5 = veShotTuCanh(c5, kg, [], { luc: 'ket', sau: c6 })!; const h5 = k5.nguoi.find((n) => n.ten === 'Hạ')!;
+assert.equal(h5.bat_dau_quay, -1, 'cuối shot 5: Hạ bắt đầu quay sang trái'); assert.ok(h5.quay! < 40 && h5.quay! > -40, `đầu mới quay một phần (${h5.quay})`);
+assert.ok(svgSoDoShot(k5).includes('bắt đầu quay ←') && svgSoDoShot(k5).includes('CUỐI shot'));
+assert.equal(veShotTuCanh({ ...c5, dan_dung: {} } as unknown as Canh, kg, [], { luc: 'ket', sau: c6 })!.nguoi.find((n) => n.ten === 'Hạ')!.bat_dau_quay, undefined, 'không nối động tác → không vẽ');
+assert.ok(!svgSoDoShot(k5, { sach: true }).includes('bắt đầu quay'), 'khung trơn: đầu đã quay nhưng không mũi tên / chữ');
 console.log('so-do-shot.test: ok');

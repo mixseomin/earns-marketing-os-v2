@@ -57,7 +57,7 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
 }
 
 /** chiTiet: đang nằm trong ngăn chi tiết shot — cột trái rộng hơn, khung 3D nhúng bộ xem xoay được (#1365). */
-export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet, kg }: { kg?: KhongGian | null; c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
+export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet, kg, sau }: { kg?: KhongGian | null; sau?: Canh | null; c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
   // Lỗi của MỌI nút trong thẻ shot hiện ngay trên hàng nút của chính shot đó (không phải đầu tập).
   const [loiNut, setLoiNut] = useState('');
   const chay = async (k: string, fn: () => Promise<KqChay>) => { setLoiNut(''); setLoiNut(await chayTap(k, fn, true)); };
@@ -125,12 +125,17 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
                   : <img src={anhNho(c.khung_xam.mau || c.khung_xam.xam, 320)} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />}
               </button>)}
           {/* SƠ ĐỒ SHOT (so-do-shot.ts, 0đ): vẽ từ sơ đồ cảnh 2D + sổ đồ vật + kế hoạch biểu cảm — cỡ khung, trái / phải màn, nhìn ai, nét mặt, đồ, điểm neo mắt. */}
-          {!c.may_3d && (() => { const v = veShotTuCanh(c, kg, nhanVat); if (!v) return null; const url = `data:image/svg+xml;utf8,${encodeURIComponent(svgSoDoShot(v))}`;
-            return <button type="button" title="Sơ đồ shot — vẽ từ dữ liệu: cỡ khung, ai đứng đâu, nhìn ai (mũi tên vàng), nét mặt (ô góc = nét cuối shot), đồ trên người, dấu xanh = điểm neo mắt" onClick={() => moNgan({ loai: 'xem', url, ten: `Sơ đồ shot #${c.thu_tu}` })}
-              style={{ justifySelf: 'stretch', marginTop: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', gap: 2, justifyItems: 'center' }}>
-              <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', justifySelf: 'start' }}>📐 Sơ đồ</span>
-              <img src={url} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />
-            </button>; })()}
+          {!c.may_3d && (() => {
+            // cặp ĐẦU | CUỐI: khung cuối của shot nối động tác vẽ đầu đã bắt đầu quay về hướng shot sau (mũi tên cam) — duyệt chỗ nối trước khi sinh
+            const ds = (['dau', 'ket'] as const).map((luc) => { const v = veShotTuCanh(c, kg, nhanVat, { luc, sau }); return v ? { luc, url: `data:image/svg+xml;utf8,${encodeURIComponent(svgSoDoShot(v))}` } : null; }).filter((x) => !!x);
+            if (!ds.length) return null;
+            return <div style={{ justifySelf: 'stretch', marginTop: 6, display: 'grid', gap: 2 }}>
+              <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }} title="Sơ đồ shot — vẽ từ dữ liệu: cỡ khung, ai đứng đâu, nhìn ai (mũi tên vàng), nét mặt (ô góc = nét cuối shot), đồ trên người, dấu xanh = điểm neo mắt; mũi tên cam = đầu bắt đầu quay ở cuối shot (cắt giữa động tác)">📐 Sơ đồ đầu · cuối</span>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ds.length}, 1fr)`, gap: 4 }}>
+                {ds.map((d) => <button key={d.luc} type="button" title={`Sơ đồ ${d.luc === 'ket' ? 'cuối' : 'đầu'} shot — bấm để phóng to`} onClick={() => moNgan({ loai: 'xem', url: d.url, ten: `Sơ đồ shot #${c.thu_tu} · ${d.luc === 'ket' ? 'cuối' : 'đầu'}` })}
+                  style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}><img src={d.url} alt="" style={{ width: '100%', aspectRatio: kt.ti_le === '16:9' ? '16 / 9' : '9 / 16', objectFit: 'contain', background: '#000', borderRadius: 4 }} /></button>)}
+              </div>
+            </div>; })()}
           <div style={{ justifySelf: 'stretch' }}><KyThuatTheoNhom kt={c.ky_thuat} /></div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

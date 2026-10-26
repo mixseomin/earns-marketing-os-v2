@@ -8,8 +8,9 @@ import { dichNhin, doCam, nguoiKhung, nhinCan, thayMat, viTri, type KhongGian } 
 import type { Canh, NhanVat } from './kieu';
 
 export type VeNguoi = { ten: string; x: number; lung?: boolean; quay?: number; nhin_vao?: string | null; nhin_huong?: -1 | 0 | 1 | 'len' | 'xuong' | null;
-  mat?: [string, string]; ao: string; toc?: 'dai' | 'ngan' | 'duoi_ngua'; do?: { mon: string; cam: boolean }[] };
-export type VeShot = { so?: number | string; co: string; goc?: string; nguoi: VeNguoi[]; khai?: string[]; dien?: string; thoai?: string };
+  mat?: [string, string]; ao: string; toc?: 'dai' | 'ngan' | 'duoi_ngua'; do?: { mon: string; cam: boolean }[];
+  /** cuối shot nối động tác sang shot sau: đầu đã bắt đầu quay về phía này (−1 trái màn, +1 phải màn) — vẽ mũi tên cong */ bat_dau_quay?: -1 | 1 };
+export type VeShot = { so?: number | string; co: string; goc?: string; nguoi: VeNguoi[]; khai?: string[]; dien?: string; thoai?: string; /** khung nào của shot */ luc?: 'dau' | 'ket' };
 
 const DA = '#e8c4a8', TOC = '#121010', DEN = '#141414';
 // cỡ cảnh → bán kính đầu (phần bề ngang khung); null = toàn (thân đủ, chân ở 0,86 khung). Mã co_canh studio (dien-anh.ts).
@@ -77,6 +78,11 @@ export function svgSoDoShot(s: VeShot, o: { W?: number; H?: number; sach?: boole
       const tx = d.cam ? cx + ((n.quay ?? 0) < 0 ? -1.9 : 1.9) * r : cx, ty = cy + (toan ? 3 : 2.6) * r + i * 0.7 * r, tw = Math.max(26, Math.min(110, d.mon.length * 6.5));
       g += `<rect x="${f(tx - tw / 2)}" y="${f(ty)}" width="${f(tw)}" height="16" rx="3" fill="#fff8e6" stroke="#b08a3a"/>${o.sach ? '' : `<text x="${f(tx)}" y="${f(ty + 12)}" font-size="10" text-anchor="middle" fill="#5a4410">${esc(d.mon)}</text>`}`;
     }
+    if (n.bat_dau_quay && !o.sach) {   // mũi tên cong trên đầu: động tác quay đầu đã BẮT ĐẦU ở cuối shot này, shot sau quay tiếp (cắt giữa động tác)
+      const b = n.bat_dau_quay, y0 = cy - 1.45 * r;
+      g += `<path d="M${f(cx - b * 0.7 * r)} ${f(y0 + 0.2 * r)}Q${f(cx)} ${f(y0 - 0.35 * r)} ${f(cx + b * 0.9 * r)} ${f(y0 + 0.1 * r)}" fill="none" stroke="#ff6a3c" stroke-width="4" marker-end="url(#mq)"/>`
+        + `<text x="${f(cx)}" y="${f(y0 - 0.45 * r)}" font-size="12" font-weight="700" text-anchor="middle" fill="#ff8a5c" stroke="#1e1e1e" stroke-width="3" paint-order="stroke">bắt đầu quay ${b > 0 ? '→' : '←'}</text>`;
+    }
     dau[n.ten] = { x: cx, y: ey, r, lung: n.lung };
   }
   if (s.co === 'insert') for (const [i, m] of (s.khai ?? []).entries()) g += `<rect x="${f(W * 0.2)}" y="${f(H * (0.3 + i * 0.25))}" width="${f(W * 0.6)}" height="${f(H * 0.2)}" rx="8" fill="#f5f2ea" stroke="#b08a3a" stroke-width="3"/>${o.sach ? '' : `<text x="${f(W / 2)}" y="${f(H * (0.41 + i * 0.25))}" font-size="18" text-anchor="middle" fill="#5a4410">${esc(m)}</text>`}`;
@@ -96,21 +102,33 @@ export function svgSoDoShot(s: VeShot, o: { W?: number; H?: number; sach?: boole
       g += `<rect x="${ox - 42}" y="${oy - 46}" width="84" height="98" rx="8" fill="#f5f5f0" stroke="#ffd228" stroke-width="2"/><ellipse cx="${ox}" cy="${oy}" rx="${r}" ry="${f(1.1 * r)}" fill="${DA}"/><path d="M${f(ox - 1.05 * r)} ${f(oy - 0.5 * r)}A${f(1.05 * r)} ${f(0.7 * r)} 0 0 1 ${f(ox + 1.05 * r)} ${f(oy - 0.5 * r)}Z" fill="${TOC}"/>`
         + mat(ox, oy - 0.15 * r, r, n.mat![1], n.quay ?? 0) + `<text x="${ox}" y="${oy + 46}" font-size="10" text-anchor="middle" fill="#785a00">${esc(`cuối · ${n.ten}`)}</text>`;
     }
+    if (s.luc) g += `<text x="8" y="18" font-size="12" font-weight="700" fill="#9fe0ff" stroke="#1e1e1e" stroke-width="3" paint-order="stroke">${s.luc === 'ket' ? 'CUỐI shot' : 'ĐẦU shot'}</text>`;
     if (s.goc === 'thap' || s.goc === 'cao') g += `<text x="${W - 8}" y="18" font-size="12" font-weight="700" text-anchor="end" fill="#ffdc50">${s.goc === 'thap' ? 'MÁY THẤP ↑' : 'MÁY CAO ↓'}</text>`;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><defs><marker id="mt" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ffd228"/></marker></defs>${g}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><defs><marker id="mt" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ffd228"/></marker><marker id="mq" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff6a3c"/></marker></defs>${g}</svg>`;
 }
 
-/** Sơ đồ của một shot studio từ sổ không gian của cảnh (sơ đồ 2D + sổ đồ vật) + kế hoạch biểu cảm. null = shot không có sơ đồ cảnh. */
-export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[] = []): VeShot | null {
-  if (!kg) return null; const ai = nguoiKhung(kg, c, 'dau'); if (!ai) return null;
+/** Sơ đồ của một shot studio từ sổ không gian của cảnh (sơ đồ 2D + sổ đồ vật) + kế hoạch biểu cảm. null = shot không có sơ đồ cảnh.
+ *  luc = khung ĐẦU / CUỐI. Khung cuối của shot nối động tác (dan_dung.noi = 'dong_tac' — cùng điều kiện sinh-video.ts › catDongTac) mà shot SAU người đó
+ *  quay đầu: đầu đã quay một phần (~1/3) về hướng mới + mũi tên "bắt đầu quay" — cắt giữa động tác, xem được trên sơ đồ trước khi sinh ảnh / video. */
+export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[] = [], o: { luc?: 'dau' | 'ket'; sau?: Canh | null } = {}): VeShot | null {
+  const luc = o.luc ?? 'dau';
+  if (!kg) return null; const ai = nguoiKhung(kg, c, luc); if (!ai) return null;
   const bc = (c.bieu_cam ?? []) as { nv: string; dau: string; cuoi: string }[];
+  const noiSau = luc === 'ket' && c.dan_dung?.noi === 'dong_tac' && !!o.sau && o.sau.phan_doan === c.phan_doan;
   const nguoi: VeNguoi[] = ai.map((ten) => {
-    const v = viTri(kg, c, ten, 'dau'); const lung = thayMat(kg, c, ten, 'dau') === false; const h = nhinCan(kg, c, ten, 'dau'); const b = bc.find((x) => x.nv === ten);
-    const dich = dichNhin(c, ten, 'dau');   // nhìn MỐC của cảnh (cửa, lối vào…) → tên đọc được của mốc thay mã
-    return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay: h == null ? 0 : h * 40, nhin_vao: dich && !kg.nguoi.includes(dich) ? kg.so_do.ten?.[dich] ?? dich : dich, nhin_huong: h,
-      mat: b ? [b.dau, b.cuoi] : undefined, ao: MAU_AO[Math.max(0, kg.nguoi.indexOf(ten)) % MAU_AO.length]!, do: doCam(kg, c.thu_tu, ten, 'dau').map((d) => ({ mon: d.mon, cam: !!d.tay })) };
+    const v = viTri(kg, c, ten, luc); const lung = thayMat(kg, c, ten, luc) === false; const h = nhinCan(kg, c, ten, luc); const b = bc.find((x) => x.nv === ten);
+    const dich = dichNhin(c, ten, luc);   // nhìn MỐC của cảnh (cửa, lối vào…) → tên đọc được của mốc thay mã
+    // hướng người đó nhìn khi shot sau MỞ (hoặc khi shot sau kết nếu shot sau mới quay) — khác hướng hiện tại = động tác quay đầu nối qua cú cắt
+    let quay = h == null ? 0 : h * 40, bat: -1 | 1 | undefined;
+    if (noiSau && !lung && h != null) {
+      const sd = nhinCan(kg, o.sau!, ten, 'dau'), sk = nhinCan(kg, o.sau!, ten, 'ket'); const toi = sd != null && sd !== h ? sd : sk != null && sk !== h ? sk : null;
+      if (toi != null) { bat = toi > h ? 1 : -1; quay = h * 40 + (toi - h) * 40 * 0.35; }
+    }
+    return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay, nhin_vao: dich && !kg.nguoi.includes(dich) ? kg.so_do.ten?.[dich] ?? dich : dich, nhin_huong: h,
+      mat: b ? (luc === 'ket' ? [b.cuoi, b.cuoi] : [b.dau, b.cuoi]) : undefined, ao: MAU_AO[Math.max(0, kg.nguoi.indexOf(ten)) % MAU_AO.length]!,
+      do: doCam(kg, c.thu_tu, ten, luc).map((d) => ({ mon: d.mon, cam: !!d.tay })), bat_dau_quay: bat };
   });
   const khai = (c.nhan_vat ?? []).map((id) => nhanVat.find((x) => x.id === id)).filter((x) => x && (x.loai === 'dao_cu' || x.loai === 'san_pham')).map((x) => x!.ten);   // đạo cụ gắn vào shot
-  return { so: c.thu_tu, co: String(c.ky_thuat?.co_canh ?? 'ms'), nguoi, khai };
+  return { so: c.thu_tu, co: String(c.ky_thuat?.co_canh ?? 'ms'), nguoi, khai, luc };
 }

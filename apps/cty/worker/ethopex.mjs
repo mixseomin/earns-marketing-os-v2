@@ -319,6 +319,22 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   }
+  // MÁY TỰ GIẢM BẬC CAMP ROI TỤT ĐANG ÂM (anh 26/10/2026: "giảm bậc mày tự set theo rule nếu camp đó đang âm"): mục ROI TỤT có ROI 3 ngày gần < 0%
+  // và có bậc dưới ("→ $X") → lam-ethopex giam một bậc (cùng chặn của lam: đổi < 6 giờ, camp phải bật, mức trên thang); không tắt. ROI 3 ngày gần ≥ 0% vẫn chỉ ra nút.
+  {
+    const daGiam = [];
+    for (const m of kq.giam || []) {
+      const rg = Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]); const d = Number(dichCua(m));
+      if (!(rg < 0) || !d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
+      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `ROI tụt + đang âm (3 ngày gần ${rg}%) · ${m.chu}`.slice(0, 400), '--ai', 'máy tự giảm (anh duyệt 26/10/2026: ROI tụt mà đang âm)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      daGiam.push({ m, d, r });
+    }
+    if (daGiam.length) {
+      const dong = daGiam.map(({ m, d, r }) => (r.ok ? `⬇️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa giảm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ GIẢM BẬC — ROI TỤT ĐANG ÂM</b> (anh duyệt 26/10) — ROI 3 ngày gần < 0%, xuống một bậc; không tắt camp nào; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+      gui++;
+    }
+  }
   if (tuTang) {
     for (const k of ['dau_phien', 'tang']) for (const m of kq[k] || []) {
       const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id)) continue;

@@ -162,7 +162,9 @@ def cham_mien():
       · camp_id (số)  → miễn vĩnh viễn (anh 26/10/2026 "chỉ bật lại camp đang cắn tiền" — camp ROAS ★ anh cho chạy tiếp)
       · {"camp": id, "den": ISO, "het_khi_co_thay": true} → MIỄN CÓ THỜI HẠN (anh 27/10/2026: "bật lại các camp chưa có creative thay thế tạm đến khi
         có camp thay thế" · "miễn luật có thời hạn đi"): hết miễn khi quá `den`, hoặc khi phim của camp đã có camp thay chạy được = camp khác cùng phim,
-        creative được lên (etp.cham_cong.duoc_len), đang ACTIVE, ngân sách ≥ $5. Hết miễn → lượt này luật chấm tắt lại như thường (có báo Telegram).
+        creative được lên (etp.cham_cong.duoc_len), đang ACTIVE, ngân sách ≥ $5, và TẠO SAU mốc `tu` của mục miễn (mặc định 16:56 26/10 VN — lúc lô
+        creative cắt từ QC spy bị tắt). Camp sạch CŨ của phim không tính (27/10/2026: tính cả camp cũ → Number One hết miễn ngay, 21 camp bị tắt nhầm).
+        Hết miễn → lượt này luật chấm tắt lại như thường (có báo Telegram).
     → tập camp_id (chuỗi) đang được miễn."""
     ds = json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from etp.cau_hinh where khoa = 'cham_mien'") or "[]")
     now = dt.datetime.now(dt.timezone.utc)
@@ -172,13 +174,16 @@ def cham_mien():
             try:
                 if dt.datetime.fromisoformat(str(x["den"]).replace("Z", "+00:00")) < now: continue
             except Exception: continue
-            han[str(int(x["camp"]))] = bool(x.get("het_khi_co_thay", True))
+            han[str(int(x["camp"]))] = (bool(x.get("het_khi_co_thay", True)), str(x.get("tu") or "2026-10-26T09:56:00Z"))
         else: ra.add(str(int(x)))
     if han:
-        co_thay = {l for l in q(f"""select c.camp_id from etp.camp c where c.camp_id in ({','.join(han)}) and exists (select 1 from etp.camp k
-            join etp.cham_cong g on g.creative_id = k.creative_id where k.content_id = c.content_id and k.camp_id <> c.camp_id and g.duoc_len
-            and k.trang_thai = 'ACTIVE' and k.ngan_sach >= 5)""").split() if l.isdigit()}
-        ra |= {c for c, theo_thay in han.items() if not (theo_thay and c in co_thay)}
+        co_thay = set()
+        for tu in {t for _, t in han.values()}:
+            ids = [c for c, (_, t) in han.items() if t == tu]
+            co_thay |= {l for l in q(f"""select c.camp_id from etp.camp c where c.camp_id in ({','.join(ids)}) and exists (select 1 from etp.camp k
+                join etp.cham_cong g on g.creative_id = k.creative_id where k.content_id = c.content_id and k.camp_id <> c.camp_id and g.duoc_len
+                and k.trang_thai = 'ACTIVE' and k.ngan_sach >= 5 and k.tao > '{tu}'::timestamptz)""").split() if l.isdigit()}
+        ra |= {c for c, (theo_thay, _) in han.items() if not (theo_thay and c in co_thay)}
     return ra
 
 def tat_cham():

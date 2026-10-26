@@ -32,14 +32,16 @@ type VideoPexels = { id: number; duration: number; video_files: { width: number;
 export const idPexelsVideo = (u: string | null | undefined): number | null => { const m = String(u ?? '').match(/video-files\/(\d+)\//); return m ? Number(m[1]) : null; };
 /** Tệp dọc gần 1080×1920 nhất của một video (ưu tiên đúng 1080 rộng, rồi hd). */
 export const tepDoc = (v: VideoPexels) => [...v.video_files].filter((f) => f.height > f.width).sort((a, b) => Math.abs(a.width - 1080) - Math.abs(b.width - 1080) || (b.quality === 'hd' ? 1 : 0) - (a.quality === 'hd' ? 1 : 0))[0] ?? null;
-export async function timVideoNen(truyVan: string, daDung: Set<number>, key = process.env.PEXELS_KEY): Promise<string> {
+/** Danh sách ứng viên video dọc chưa dùng (theo thứ tự Pexels trả) — may-dung.ts › timVideoNenDong tải từng cái đo chuyển động rồi mới nhận. */
+export async function ungVienVideoNen(truyVan: string, daDung: Set<number>, key = process.env.PEXELS_KEY): Promise<{ id: number; url: string; giay: number }[]> {
   if (!key) throw new Error('thiếu PEXELS_KEY — không dựng video thiếu cảnh thật');
   const tu = truyVan.trim().split(/\s+/);
   for (const q of [...new Set([tu.join(' '), tu.slice(0, 2).join(' ')])].filter(Boolean)) {
     const r = await fetch(`https://api.pexels.com/videos/search?${new URLSearchParams({ query: q, orientation: 'portrait', size: 'medium', per_page: '20' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
     if (!r.ok) throw new Error(`Pexels video ${r.status} cho "${q}"`);
-    const ds = (((await r.json()) as { videos?: VideoPexels[] }).videos ?? []).filter((v) => v.duration >= 6 && v.duration <= 30 && !daDung.has(v.id));
-    for (const v of ds) { const f = tepDoc(v); if (f) return f.link; }
+    const ds = (((await r.json()) as { videos?: VideoPexels[] }).videos ?? []).filter((v) => v.duration >= 6 && v.duration <= 30 && !daDung.has(v.id)).map((v) => ({ v, f: tepDoc(v) })).filter((x) => x.f).map((x) => ({ id: x.v.id, url: x.f!.link, giay: x.v.duration }));
+    if (ds.length) return ds;
   }
   throw new Error(`Pexels không còn video dọc chưa dùng cho "${truyVan}"`);
 }
+export async function timVideoNen(truyVan: string, daDung: Set<number>, key = process.env.PEXELS_KEY): Promise<string> { return (await ungVienVideoNen(truyVan, daDung, key))[0]!.url; }

@@ -11,7 +11,7 @@ import type { MauMayDung } from './may-dung-mau';
 
 export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh;
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
-type LenhVao = { de: DeMay; ass: string; nen: string | null; fontsDir: string; ra: string; khung?: number };
+type LenhVao = { de: DeMay; ass: string; nen: string | null; /** tệp tiếng nền thu thật (mẫu nenVideo) */ am?: string | null; fontsDir: string; ra: string; khung?: number };
 /** tuNguon: một dòng tệp nguồn đề của mẫu → dòng nạp máy { slug, chu_de, de, dang } (may-dung.mts --nap-nguon). */
 type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shots: (de: DeMay) => ShotMau[]; /** thời lượng theo đề (luật đọc: nhịp tính theo chữ) */ dai: (de: DeMay) => number; /** ảnh tĩnh cắt từ video cho bài ảnh (nền x_anh): giây + khung cắt [x, y, w, h] */ anh?: (de: DeMay) => { t: number; cat: [number, number, number, number] }[]; tuNguon?: (x: never) => { slug: string; chu_de: string; de: DeMay; dang: Record<string, string> }; /** truy vấn ảnh nền Pexels khi video chưa có nen_url (anh-nen.ts) — mặc định chu_de */ truyVanAnh?: (de: DeMay, chuDe: string) => string; /** nền là VIDEO Pexels (anh-nen.ts › timVideoNen) thay vì ảnh */ nenVideo?: boolean };
 

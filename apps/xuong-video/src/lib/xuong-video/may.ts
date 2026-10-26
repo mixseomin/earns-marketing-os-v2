@@ -4,9 +4,10 @@
 import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
-import { catAnhTuVideo, dungVideo } from './may-dung';
+import { catAnhTuVideo, dungVideo, timVideoNenDong } from './may-dung';
 import { BO_DUNG, truyVanAnhMau, type DeMay } from './mau-dung';
-import { idPexels, idPexelsVideo, timAnhNen, timVideoNen } from './anh-nen';
+import { idPexels, idPexelsVideo, timAnhNen } from './anh-nen';
+import { amTheoTruy, chonAm, type LoaiAm } from './am-nen';
 import { MAU_MAY_DUNG, type MauMayDung } from './may-dung-mau';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -109,7 +110,8 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
   if (!r.nen_url) {
     const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => (nenVideo ? idPexelsVideo : idPexels)(x.nen_url as string)).filter((x): x is number => x != null));
     // de.truy: dòng tự khai từ khoá ảnh (bài link — mỗi bài một ảnh riêng, anh 21/10/2026 "bài phải đa dạng không thành spam"); không có thì theo mẫu
-    try { r.nen_url = await (nenVideo ? timVideoNen : timAnhNen)((r.de as { truy?: string } | null)?.truy ?? truyVanAnhMau(r.mau as MauMayDung, r.de as DeMay, String(r.chu_de ?? '')), daDung); }
+    const truy = (r.de as { truy?: string } | null)?.truy ?? truyVanAnhMau(r.mau as MauMayDung, r.de as DeMay, String(r.chu_de ?? ''));
+    try { if (nenVideo) { const v = await timVideoNenDong(truy, daDung); r.nen_url = v.url; console.log(`nền video ${r.slug}: Pexels #${v.id}, lệch khung ${v.dong.toFixed(2)} (thử ${v.thu})`); } else r.nen_url = await timAnhNen(truy, daDung); }
     catch (e) { return { ok: false, loi: `ảnh nền: ${(e as Error).message}` }; }
     await db.execute(sql`UPDATE xv_may_video SET nen_url = ${r.nen_url as string}, updated_at = now() WHERE id = ${videoId}`);
   }
@@ -119,7 +121,9 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = ${JSON.stringify([r.nen_url])}::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: String(r.nen_url) };
   }
-  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, slug: String(r.slug) });
+  // tiếng nền thu thật cho mẫu nền video (am-nen.ts): loại theo đề hoặc từ khoá, bản theo băm slug
+  const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = nenVideo ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? ''), String(r.slug))?.url ?? null : null;
+  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, amUrl, slug: String(r.slug) });
   if (!v.ok) return v;
   await db.execute(sql`UPDATE xv_may_video SET video_url = ${v.url}, khung = ${JSON.stringify(v.khung)}::jsonb, anh = ${JSON.stringify(v.anh)}::jsonb, giay = ${v.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
   return { ok: true, url: v.url };

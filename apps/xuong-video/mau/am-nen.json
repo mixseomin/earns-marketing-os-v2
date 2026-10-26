@@ -1,0 +1,27 @@
+{
+ "_ghi_chu": "KHO TIẾNG NỀN THU THẬT cho mẫu cảnh động (26/10/2026, anh: 'có mỗi cái ảnh kèm tiếng ồn' — bỏ hẳn nhiễu tổng hợp). Nguồn Mixkit (mixkit.co/free-sound-effects), giấy phép Mixkit Sound Effects Free License: dùng miễn phí trong dự án thương mại, không cần ghi nguồn, không phân phối lại tệp rời. Chỉ chọn bản AMBIENCE / LOOP (không swoosh, không hiệu ứng). Thêm tiếng = thêm dòng; chọn bản theo băm slug (am-nen.ts › chonAm) để cùng một video dựng lại vẫn ra cùng tiếng.",
+ "am": {
+  "mua": [
+   { "id": 2390, "ten": "Light rain loop" }, { "id": 1247, "ten": "Heavy rain drops" }, { "id": 1253, "ten": "Long rain ambience" }, { "id": 1294, "ten": "Light rain loop" }, { "id": 1249, "ten": "Rain long loop" }, { "id": 2397, "ten": "Light rain looping" }
+  ],
+  "song": [
+   { "id": 1208, "ten": "Sea waves with birds loop" }, { "id": 1195, "ten": "Small waves harbor rocks" }, { "id": 1196, "ten": "Close sea waves loop" }, { "id": 1194, "ten": "Sea waves loop" }, { "id": 1172, "ten": "Sea coast breaking waves" }, { "id": 1206, "ten": "Windy sea loop" }
+  ],
+  "gio": [
+   { "id": 1474, "ten": "Wind blowing ambience" }, { "id": 1157, "ten": "Wind in the top of the mountain" }, { "id": 1237, "ten": "Breeze through the trees" }, { "id": 1216, "ten": "Wind in the forest" }
+  ],
+  "rung": [
+   { "id": 1212, "ten": "Forest birds ambience" }, { "id": 2485, "ten": "Little birds singing in the trees" }, { "id": 1232, "ten": "Forest birds singing" }, { "id": 2427, "ten": "Windy humming forest with birds" }, { "id": 2456, "ten": "River in the forest with birds" }, { "id": 1185, "ten": "Morning birds" }
+  ],
+  "dem": [
+   { "id": 1230, "ten": "Night forest with insects" }
+  ],
+  "pho": [
+   { "id": 2463, "ten": "Urban street and kids" }, { "id": 182, "ten": "Passenger train passing by" }, { "id": 1631, "ten": "Train arrival at station" }
+  ],
+  "lua": [
+   { "id": 1345, "ten": "Campfire crackles" }, { "id": 2653, "ten": "Campfire burning crackles" }, { "id": 1329, "ten": "Campfire night wind" }
+  ]
+ },
+ "url": "https://assets.mixkit.co/active_storage/sfx/{id}/{id}-preview.mp3"
+}

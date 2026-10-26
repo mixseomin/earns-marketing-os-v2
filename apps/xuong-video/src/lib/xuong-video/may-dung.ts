@@ -19,10 +19,37 @@ import type { KinhThanh } from './kieu';
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type Row = Record<string, unknown>;
 const run = promisify(execFile);
+const UA_TRINH_DUYET = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+/** Độ lệch trung bình giữa các khung (signalstats YDIF, 5 giây đầu thu nhỏ 180px): clip tĩnh ≈ 0,3; sóng biển ≈ 8. Ngưỡng nhận 1,5 (đo 26/10/2026 trên 16 clip Pexels). */
+export const NGUONG_DONG = 1.5;
+export async function doChuyenDong(tep: string): Promise<number> {
+  const { stderr } = await run('ffmpeg', ['-hide_banner', '-t', '5', '-i', tep, '-vf', 'scale=180:-1,signalstats,metadata=print:key=lavfi.signalstats.YDIF', '-an', '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 }).catch((e: { stderr?: string }) => ({ stderr: e.stderr ?? '' }));
+  const ds = [...String(stderr).matchAll(/YDIF=([0-9.]+)/g)].map((m) => Number(m[1]));
+  return ds.length ? ds.reduce((a, b) => a + b, 0) / ds.length : 0;
+}
+/** Video nền CÓ CHUYỂN ĐỘNG: tải từng ứng viên Pexels (anh-nen.ts › ungVienVideoNen), đo YDIF, nhận clip đầu tiên ≥ NGUONG_DONG — 26/10/2026 clip mưa hiên
+ *  Pexels đứng yên (YDIF 0,33) khiến video "có mỗi cái ảnh". Trả URL + số đo để ghi nen_url. */
+export async function timVideoNenDong(truyVan: string, daDung: Set<number>): Promise<{ url: string; id: number; dong: number; thu: number }> {
+  const { ungVienVideoNen } = await import('./anh-nen');
+  const uv = await ungVienVideoNen(truyVan, daDung), thuMuc = `${tmpdir()}/xv-dong-${randomUUID().slice(0, 8)}`;
+  await mkdir(thuMuc, { recursive: true });
+  try {
+    let tot: { url: string; id: number; dong: number } | null = null, thu = 0;
+    for (const c of uv.slice(0, 8)) {
+      thu++;
+      const t = await fetch(c.url, { signal: AbortSignal.timeout(90_000), headers: { 'User-Agent': UA_TRINH_DUYET } }).catch(() => null); if (!t?.ok) continue;
+      const f = `${thuMuc}/${c.id}.mp4`; await writeFile(f, Buffer.from(await t.arrayBuffer()));
+      const dong = await doChuyenDong(f); await rm(f, { force: true }).catch(() => {});
+      if (dong >= NGUONG_DONG) return { url: c.url, id: c.id, dong, thu };
+      if (!tot || dong > tot.dong) tot = { url: c.url, id: c.id, dong };
+    }
+    throw new Error(`Pexels: ${thu} clip cho "${truyVan}" đều tĩnh (lệch khung cao nhất ${tot?.dong.toFixed(2) ?? '—'} < ${NGUONG_DONG}) — đổi từ khoá cảnh`);
+  } finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
+}
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
 /** Dựng MỘT video từ đề theo mẫu của máy: MP4 cả video + mỗi shot của mẫu một khung (giây giữa shot), đẩy lên R2. */
-export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string | null; slug: string }): Promise<{ ok: true; url: string; khung: string[]; anh: string[]; giay: number } | { ok: false; loi: string }> {
+export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string | null; /** URL tệp tiếng nền thu thật (mẫu nenVideo — am-nen.ts) */ amUrl?: string | null; slug: string }): Promise<{ ok: true; url: string; khung: string[]; anh: string[]; giay: number } | { ok: false; loi: string }> {
   if (!FONTS_DIR) return { ok: false, loi: 'máy chủ thiếu thư mục font (apps/xuong-video/public/fonts)' };
   const bo = BO_DUNG[o.mau]; if (!bo) return { ok: false, loi: `mẫu máy lạ: ${o.mau}` };
   const thuMuc = `${tmpdir()}/xv-may-${o.slug}-${randomUUID().slice(0, 8)}`;
@@ -31,15 +58,22 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
     let nen: string | null = null;
     if (o.nenUrl) {
       // UA trình duyệt: CDN ảnh stock (Pexels) trả 403 cho UA mặc định của Node
-      const t = await fetch(o.nenUrl, { signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' } }).catch(() => null);
+      const t = await fetch(o.nenUrl, { signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': UA_TRINH_DUYET } }).catch(() => null);
       if (!t?.ok) return { ok: false, loi: `không tải được ảnh nền (${t?.status ?? 'mạng'})` };
       nen = `${thuMuc}/nen.${(o.nenUrl.split('?')[0]!.split('.').pop() || 'jpg').slice(0, 4)}`;
       await writeFile(nen, Buffer.from(await t.arrayBuffer()));
     }
+    let am: string | null = null;
+    if (o.amUrl) {
+      const t = await fetch(o.amUrl, { signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': UA_TRINH_DUYET } }).catch(() => null);
+      if (!t?.ok) return { ok: false, loi: `không tải được tiếng nền (${t?.status ?? 'mạng'})` };
+      am = `${thuMuc}/am.${(o.amUrl.split('?')[0]!.split('.').pop() || 'mp3').slice(0, 4)}`;
+      await writeFile(am, Buffer.from(await t.arrayBuffer()));
+    }
     const ass = `${thuMuc}/de.ass`, ra = `${thuMuc}/ra.mp4`;
     await writeFile(ass, bo.ass(o.de), 'utf8');
     // lệnh dựng chính: máy dựng Cloudflare (nhẹ tải box3), lỗi / chưa cấu hình thì tại chỗ — may-dung-cf.ts
-    const args = bo.lenh({ de: o.de, ass, nen, fontsDir: FONTS_DIR, ra });
+    const args = bo.lenh({ de: o.de, ass, nen, am, fontsDir: FONTS_DIR, ra });
     try { const d = await dungFfmpeg(args, { thuMuc, fontsDir: FONTS_DIR, ra, chayTaiCho: () => run('ffmpeg', args, { timeout: 5 * 60_000, maxBuffer: 8 << 20 }) }); console.log(`dựng ${o.slug}: ${d.noi}${d.giay ? ` ${d.giay}s` : ''}${d.loiCf ? ` (cloudflare lỗi: ${d.loiCf})` : ''}`); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
     const goc = `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`;

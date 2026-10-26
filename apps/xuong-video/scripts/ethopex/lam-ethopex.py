@@ -45,6 +45,13 @@ def roi_ky(cid):
 
 CHI_TOI_THIEU_TAT = 10
 TUOI_TOI_THIEU_TAT = 7
+def tat_bao_lau(cid):
+    """số giờ camp đã tắt: từ lần tắt gần nhất trong etp.nhat_ky; không có thì từ cuối ngày UTC cuối cùng còn chi (etp.so_ngay); không biết → None"""
+    g = q(f"select extract(epoch from now() - max(luc)) / 3600 from etp.nhat_ky where camp_id = {cid} and viec = 'tat' and ok")
+    if not g: g = q(f"select extract(epoch from now() - (max(ngay) + 1)::timestamp at time zone 'utc') / 3600 from etp.so_ngay where camp_id = {cid} and chi > 0")
+    try: return float(g)
+    except (TypeError, ValueError): return None
+
 def dang_lai(cid, t7=False):
     """camp còn lãi thì không tắt (anh 22/10/2026: "camp nào lãi hơn 20% thì bật lại", rồi "camp hơn 2 ngày có lãi sao lại đóng?"):
     hôm nay > 20% · hoặc 2 ngày gần nhất có lãi (> 0) · hoặc cộng dồn > 0 → trả câu lý do, không thì None"""
@@ -143,6 +150,9 @@ def main(a):
             # camp đang tạm dừng vì LỊCH GIỜ (etp.lich_tat): không bật giữa khung TẮT — apps/etp/lich-gio.py tự bật khi tới khung BẬT (≤ 10 phút sau mốc)
             if q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
                 kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
+            # TẮT QUÁ 24 GIỜ THÌ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026) — mọi đường bật đi qua đây (nút anh, máy thay creative bị từ chối…)
+            tg = tat_bao_lau(cid)
+            if tg is not None and tg > 24: raise ValueError(f"camp đã tắt {tg:.0f} giờ (> 24 giờ) — luật: tắt quá 24 giờ không bao giờ bật lại")
             ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)
             if ly: raise ValueError(ly)
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "active"}])

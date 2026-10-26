@@ -50,6 +50,11 @@ def main():
     # ── camp
     try:
         ds = api("/api/v1/campaigns?page_size=2000")["data"]; kq["so_camp"] = len(ds)
+        # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
+        # vào nhánh "đổi" bên dưới, kho giữ ACTIVE cũ cho camp đã tắt; lượt lịch giờ 12h sẽ ghi camp vừa tắt theo T7 vào sổ lịch rồi 20h bật lại)
+        _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily")} for c in ds])
+        q(f"""update etp.camp c set trang_thai = x.tt, ngan_sach = coalesce(x.ns, c.ngan_sach), cap_nhat = now() from jsonb_to_recordset($J${_tt}$J$::jsonb) as x(id int, tt text, ns numeric)
+            where c.camp_id = x.id and (c.trang_thai is distinct from x.tt or (x.ns is not null and c.ngan_sach is distinct from x.ns))""")
         bo_tk = {int(v["tk"]): k for k, v in khoa("ethopex_bo_tk").items()}
         cu = {} if day_du else {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select camp_id || '|' || coalesce(cap_nhat_etp::text, '') from etp.camp").splitlines() if l}
         doi = [c for c in ds if day_du or c["id"] not in cu or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]

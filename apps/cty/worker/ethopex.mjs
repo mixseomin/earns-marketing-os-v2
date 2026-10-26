@@ -400,8 +400,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // (anh 26/10/2026: "lúc chuẩn bị tắt / bật hàng loạt phải báo qua tele") — camp mới chạm luật vào sổ chờ + một tin "sắp tắt"; nhịp sau (≥ 25 phút) còn chạm
   // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
   {
-    const TEP = path.join(DATA(), 'ethopex-tat7.json'), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [];
-    const ds = (kq.tat7 || []).filter((m) => !lamRoi.has(m.id));
+    const TEP = path.join(DATA(), 'ethopex-tat7.json'), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
+    const giu = cho._giu?.ngay === homNay ? cho._giu : { ngay: homNay, ds: {} }; delete cho._giu;   // camp lam-ethopex từ chối tắt (đang lãi) — không báo / thử lại trong ngày
+    const ds = (kq.tat7 || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id]);
     for (const k of Object.keys(cho)) if (!ds.some((m) => String(m.id) === k)) delete cho[k];   // hết chạm luật → bỏ khỏi sổ chờ
     for (const m of ds) { if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }
     if (moi.length) {
@@ -415,9 +416,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     for (const m of tat) {
       lamRoi.add(m.id); delete cho[m.id];
       let r; try { r = JSON.parse((await chay(LAM, ['tat', String(m.id), '--luat', `T7 Support · ${m.chu}`.slice(0, 400), '--ai', 'anh (chat 26/10/2026: thêm và áp dụng luật T7 của Support) — máy chạy'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      if (!r.ok) giu.ds[m.id] = String(r.loi || '').slice(0, 80);
       daT7.push({ m, r });
     }
-    fs.writeFileSync(TEP, JSON.stringify(cho));
+    fs.writeFileSync(TEP, JSON.stringify({ ...cho, _giu: giu }));
     if (daT7.length) {
       const ok = daT7.filter((x) => x.r.ok).length;
       const dong = daT7.map(({ m, r }) => (r.ok ? `⏹ #${m.id} <b>đã tắt</b>` : `⚠️ #${m.id} chưa tắt: ${esc(r.loi || 'không rõ')}`)).join('\n');

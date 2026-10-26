@@ -76,6 +76,10 @@ def main():
         where c.trang_thai = 'ACTIVE' and (c.cap_nhat_etp is null or c.cap_nhat_etp <= l.luc)""").split() if c.isdigit()}
     chay = [(c, t) for c, t in chay if c not in cu_kho]
     can_tat = [c for c, t in chay if bat_lich and (not on(t, k_nay) or not on(t, k_toi))]
+    # TẮT QUÁ 24 GIỜ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026): camp nằm sổ lịch quá 24 giờ → bỏ khỏi sổ, không bật
+    qua24 = {int(c) for c in q("delete from etp.lich_tat where luc < now() - interval '24 hours' returning camp_id").split() if c.isdigit()}
+    if qua24: ghi("lich_bo24", sorted(qua24), "lịch giờ: tạm dừng quá 24 giờ → bỏ khỏi sổ, không bật lại (luật 24 giờ)")
+    dang_tat = {c: t for c, t in dang_tat.items() if c not in qua24}
     can_bat = [c for c, t in dang_tat.items() if (not bat_lich or (on(t, k_nay) and on(t, k_toi))) and not dung_khan]
     # BÁO TRƯỚC: lượt này không đổi gì nhưng lượt KẾ (sau CHU_KY phút) sẽ tạm dừng / bật lại hàng loạt → báo một lần cho mỗi lần chuyển khung
     vn2 = vn + dt.timedelta(minutes=CHU_KY); k2_nay, k2_toi = khung(vn2), khung(vn2 + dt.timedelta(minutes=TRUOC_PHUT))

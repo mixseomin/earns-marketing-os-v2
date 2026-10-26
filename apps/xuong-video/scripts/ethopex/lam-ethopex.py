@@ -196,7 +196,7 @@ def main(a):
             if q(f"select 1 from etp.lich_tat where camp_id = {cid}"):
                 kq.update(ok=True, sau=truoc, loi=None, lich="đang tạm dừng theo lịch giờ — lịch tự bật lại khi tới khung BẬT"); ghi_nhat_ky(kq, luat, ai); print(json.dumps(kq, ensure_ascii=False)); return
             # TẮT QUÁ 24 GIỜ THÌ KHÔNG BAO GIỜ BẬT LẠI (anh 26/10/2026) — mọi đường bật đi qua đây (nút anh, máy thay creative bị từ chối…)
-            tg = tat_bao_lau(cid)
+            tg = None if cid in CONG.camp_roas() else tat_bao_lau(cid)   # camp ROAS miễn luật 24 giờ (anh 26/10/2026: dạng riêng, review tay rồi bật)
             if tg is not None and tg > 24: raise ValueError(f"camp đã tắt {tg:.0f} giờ (> 24 giờ) — luật: tắt quá 24 giờ không bao giờ bật lại")
             ly = CONG.kiem("bat", cid, float(truoc["ns"] or 0), 0)
             if ly: raise ValueError(ly)

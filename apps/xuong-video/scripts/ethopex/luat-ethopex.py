@@ -453,9 +453,30 @@ if vn.hour >= 21 or vn.hour < 5:
         if JSON: q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_lo_dem', '" + json.dumps(_anh).replace("'", "''") + "'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
     except Exception as e:
         loi_may.append((0, f"luật dừng đêm lỗi: {str(e)[:80]}"))   # bộ 2 đi thang nhân bản, không lên $30 bằng đổi ngân sách
+# CAMP ROAS — DẠNG RIÊNG (tài liệu Support 26/10/2026; anh: "Camp ROAS là 1 dạng riêng, miễn hết các luật"): camp ★ … duplicate by <gốc> (nhan-ban.py --roas)
+# ra khỏi MỌI danh sách luật ở trên (tắt / T7 / tăng / giảm / hạ / nhân bản / thang / dừng đêm / T30 / thay creative) — chỉ còn luật tắt ROAS của Support:
+# "camp tiêu > $20 mà ROI < 30%, 1–2 ngày thì off" = ngày đã khép hôm qua, hoặc cộng 2 ngày đã khép, chi > $20 và ROI < 30% → báo trước một nhịp rồi máy tắt.
+import importlib.util as _iuc
+_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
+ROAS_CHI, ROAS_ROI = 20, 30
+try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}
+except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
+_bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
+tat_l, tat7, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo = map(_bo_roas, (tat_l, tat7, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo))
+tat_roas = []
+try:
+    if _ROAS & _bat:
+        _r1, _r2 = bc(d(1), d(1)), bc(d(2), d(1))
+        for cid in sorted(_ROAS & _bat):
+            for so, ky in ((_r1, "hôm qua"), (_r2, "2 ngày đã khép")):
+                a = so.get(cid) or so.get(str(cid))
+                if a and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI:
+                    tat_roas.append((cid, f"#{a['ten'][:80]} · {ky}: chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật ROAS)")); break
+except Exception as e:
+    loi_may.append((0, f"luật ROAS không đọc được Report: {str(e)[:80]}"))
 if JSON:
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tat7": m(tat7), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tat7": m(tat7), "tat_roas": m(tat_roas), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)
@@ -463,6 +484,7 @@ trong = any(abs(((gio - m + 12) % 24) - 12) <= 1 for m in (21, 0, 8))
 in_ = lambda tieu, ds, rong="(không)": (print(tieu), print("\n".join("  " + s for _, s in ds) or "  " + rong))
 print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: " + ("ĐANG TRONG KHUNG" if trong else f"mốc kế ~{int(moc) % 24}h") + " (ngân sách còn thấp $1–3 thì chưa cần canh giờ; không thu lại sau khung)")
 in_("CẦN TẮT (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — CHỜ ANH TẮT:", tat_l)
+in_(f"LUẬT ROAS (camp ★, chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% trong 1–2 ngày đã khép) — MÁY TẮT:", tat_roas, "(không)")
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")

@@ -33,6 +33,13 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None):
     except Exception as e:
         return f"không đọc được rào chắn etp ({str(e)[:80]}) — chặn cho an toàn"
 
+# CAMP ROAS (tài liệu Support 26/10/2026; anh: "Camp ROAS là 1 dạng riêng, miễn hết các luật"): nhận diện bằng TÊN — nhan-ban.py --roas luôn đặt
+# "★ … roas X duplicate by <gốc>" (★ hiện ở mọi nơi có tên camp: Report Ethopex, Telegram, etp.on.tc, Ads Manager). Mọi luật / lịch giờ lọc qua đây.
+la_roas = lambda ten: " duplicate by " in (ten or "") or (ten or "").lstrip().startswith("★")
+def camp_roas():
+    """tập camp ROAS trong kho etp (đồng bộ 10 phút) — luật đọc API trực tiếp thì cộng thêm la_roas(tên)"""
+    return {int(x) for x in _q("select camp_id from etp.camp where ten like '% duplicate by %' or ten like '★%'").split() if x.isdigit()}
+
 if __name__ == "__main__":
     import sys; a = sys.argv[1:]
     print(kiem(a[0], int(a[1]) if len(a) > 1 and a[1].isdigit() else None, float(a[2]) if len(a) > 2 else None, float(a[3]) if len(a) > 3 else 0) or "CHO QUA")

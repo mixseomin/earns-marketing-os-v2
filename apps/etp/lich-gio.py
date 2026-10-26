@@ -64,7 +64,7 @@ def main():
     on = lambda tl, k: lich.get((tl, k), lich.get(("_khac", k), True))   # thể loại lạ → theo '_khac'; không có dòng → bật
     # camp đang chạy + thể loại (kho etp, đồng bộ 10 phút)
     chay = [(int(c), t or "_khac") for c, t in (l.split("|") for l in q("""select c.camp_id, coalesce(p.the_loai, '') from etp.camp c left join etp.phim p using (content_id)
-        where c.trang_thai = 'ACTIVE'""").splitlines() if "|" in l)]
+        where c.trang_thai = 'ACTIVE' and c.ten not like '% duplicate by %' and c.ten not like '★%'""").splitlines() if "|" in l)]   # camp ROAS miễn lịch giờ (cong.camp_roas)
     dang_tat = {int(c): t or "_khac" for c, t in (l.split("|") for l in q("""select l.camp_id, coalesce(p.the_loai, l.the_loai, '') from etp.lich_tat l
         left join etp.camp c using (camp_id) left join etp.phim p on p.content_id = c.content_id""").splitlines() if "|" in l)}
     # camp trong lich_tat đã bị lưu trữ / mất khỏi kho → bỏ khỏi sổ (không bật)

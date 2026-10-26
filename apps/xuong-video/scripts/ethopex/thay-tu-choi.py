@@ -153,6 +153,10 @@ if __name__ == "__main__":
     a = sys.argv[1:]
     if "--don-doan" in a: don_doan(that="--thu" not in a); sys.exit(0)
     camps = [int(x) for x in a[a.index("--camp") + 1:] if x.isdigit()] if "--camp" in a else [c["id"] for c in api("/api/v1/campaigns?page_size=500")["data"] if c.get("state") == "ACTIVE"]
+    # camp ROAS (★ … duplicate by) chạy BÀI ĐĂNG CŨ, không có creative để thay — dạng riêng, miễn luật (anh 26/10/2026)
+    import importlib.util as _iuc
+    _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
+    camps = [c for c in camps if c not in CONG.camp_roas()]
     tu_choi, dat = khoa("ethopex_tu_choi"), khoa("ethopex_cta_dat")
     def an_toan(c):
         try: return mot(c, tu_choi, dat)

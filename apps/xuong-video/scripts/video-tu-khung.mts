@@ -39,9 +39,13 @@ function prompt(so: number): string {
 async function motShot(so: number) {
   const s = bang.shot.find((x) => x.so === so); if (!s) return console.log(`#${so}: không có trong bảng`);
   if (!existsSync(`${thu}/so-${so}-that.png`)) return console.log(`#${so}: chưa có khung so-${so}-that.png`);
-  const p = prompt(so); const coCuoi = existsSync(`${thu}/so-${so}-cuoi.png`); const giay = Math.max(2, Math.ceil(s.giay));
+  // so-N-dau.png = KHUNG ĐẦU riêng (khung đã duyệt vẽ trạng thái SAU động tác — #11 thẻ đã trong tay Vivian, #28 Hạ đã quay mặt ra): khi đó khung đã duyệt
+  // thành khung CUỐI. Không có thì khung đã duyệt là khung đầu, so-N-cuoi.png (nếu có) là khung cuối.
+  const dauRieng = existsSync(`${thu}/so-${so}-dau.png`);
+  const fDau = dauRieng ? `${thu}/so-${so}-dau.png` : `${thu}/so-${so}-that.png`, fCuoi = dauRieng ? `${thu}/so-${so}-that.png` : existsSync(`${thu}/so-${so}-cuoi.png`) ? `${thu}/so-${so}-cuoi.png` : null;
+  const p = prompt(so); const coCuoi = !!fCuoi; const giay = Math.max(2, Math.ceil(s.giay));
   if (xem) return console.log(`---- #${so} · ${giay}s${coCuoi ? ' · khoá cuối' : ''}\n${p}`);
-  const g = await guiFal('fal-ai/vidu/q2/image-to-video/turbo', { image_url: await len(`${thu}/so-${so}-that.png`, `vk-${so}`, 'image/png'), ...(coCuoi ? { end_image_url: await len(`${thu}/so-${so}-cuoi.png`, `vk-${so}-cuoi`, 'image/png') } : {}),
+  const g = await guiFal('fal-ai/vidu/q2/image-to-video/turbo', { image_url: await len(fDau, `vk-${so}`, 'image/png'), ...(fCuoi ? { end_image_url: await len(fCuoi, `vk-${so}-cuoi`, 'image/png') } : {}),
     prompt: p, duration: giay, resolution: '720p', movement_amplitude: 'auto' });
   if (!g.ok) return console.log(`#${so}: Vidu từ chối — ${g.loi}`);
   for (let i = 0; i < 120; i++) { await new Promise((r) => setTimeout(r, 10_000)); const d = await docFal(g.taskId);

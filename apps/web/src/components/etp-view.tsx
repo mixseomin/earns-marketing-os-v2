@@ -515,9 +515,15 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id) || du.cham[r.creative_id])
     .map((r) => { const c = du.cham[r.creative_id]; const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED') || photCr.has(r.creative_id));
       return { r, c, metaLoi, muc: metaLoi ? 0 : c?.ket === 'cam' ? 1 : c?.ket === 'xem' ? 2 : !c ? 3 : 4 }; }).sort((a, b) => a.muc - b.muc || (a.c?.meta ?? 11) - (b.c?.meta ?? 11)), [du.creatives, du.cham, photCr]);
-  const choDuyet = (x: { c?: ChamCr }) => !!x.c?.cho_duyet && x.c.duyet == null;   // 5 điểm, chưa ai duyệt (view etp.cham_cong 0341)
-  const dem = { duyet: ds.filter(choDuyet).length, loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter((x) => x.muc === 2).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
-  const rows = ds.filter((x) => loc === 'all' || (loc === 'duyet' ? choDuyet(x) : loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? x.muc === 2 : loc === 'meta' ? x.metaLoi : !x.c));
+  // NGƯỜI DUYỆT (anh 26/10/2026: "cần người xem mà lại không cho bấm gì thì sao?"): MỘT logic cho cả hai nhóm —
+  //   le4      : có tiêu chí ≤ 4 → máy chặn + tự tắt, không cần người (không có nút)
+  //   choDuyet : tiêu chí 5 (đang bị chặn lên tới khi Đạt)                 ┐ chưa ai duyệt → nút ✓ Đạt / ✕ Loại;
+  //   canXem   : máy kết "cần người xem" (6–7, đang được lên) hoặc choDuyet ┘ duyệt xong thì rời danh sách
+  const le4 = (x: { c?: ChamCr }) => x.c?.duoc_len === false && !x.c.cho_duyet && x.c.duyet !== false;
+  const choDuyet = (x: { c?: ChamCr }) => !!x.c?.cho_duyet && x.c.duyet == null;
+  const canXem = (x: { c?: ChamCr }) => !!x.c && x.c.duyet == null && !le4(x) && (!!x.c.cho_duyet || x.c.ket === 'xem');
+  const dem = { duyet: ds.filter(choDuyet).length, loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter(canXem).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
+  const rows = ds.filter((x) => loc === 'all' || (loc === 'duyet' ? choDuyet(x) : loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? canXem(x) : loc === 'meta' ? x.metaLoi : !x.c));
   const [dangDuyet, setDangDuyet] = useState<Record<number, boolean>>({});
   const [dangTb, setDangTb] = useState<Record<number, boolean>>({});   // vừa bấm Tắt (false) / Bật (true), chờ kho thấy trạng thái mới
   useEffect(() => { setDangTb((d) => { const x = { ...d }; for (const k of Object.keys(x)) { const r = du.creatives.find((c) => c.creative_id === Number(k)); if (r && (r.chay > 0) === x[Number(k)]) delete x[Number(k)]; } return x; }); }, [du.creatives]);
@@ -564,6 +570,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
               <span style={{ fontVariantNumeric: 'tabular-nums' }}>{q.xong}/{q.tong} · <span style={{ color: DAU_MAU.ok }}>{q.ok} sạch</span> · <span style={{ color: DAU_MAU.loi }}>{q.cam} cấm</span> · <span style={{ color: DAU_MAU.vua }}>{q.xem} cần xem</span></span>
             </div>))}
         </div>) : null}
+      <style>{'.etp-chay .nut{display:none}.etp-chay:hover .nut{display:inline-block}.etp-chay:hover .den{display:none}.etp-chay{display:inline-flex;min-width:44px;min-height:20px;align-items:center;justify-content:center}'}</style>
       <ChamTrucTiep du={du} anh={anh} />
       <PhotBo du={du} />
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13 }}>
@@ -578,22 +585,22 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
           { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(x.r.creative_id)}<span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },
-          { key: 'chay', header: 'Chạy', align: 'center', width: 64, title: 'công tắc = mọi camp của creative: xanh = đang chạy thật (camp ACTIVE) · bấm để tắt / bật', cell: (x) => {
-            const cho = dangTb[x.r.creative_id], bat = cho ?? x.r.chay > 0;
-            if (!x.r.camp) return <span title="chưa lên camp" style={{ color: DAU_MAU.chua }}>–</span>;
-            return <button disabled={cho != null} onClick={() => tatBat(x.r.creative_id, !bat, bat ? x.r.chay : x.r.camp)}
-              title={cho != null ? `đã gửi lệnh ${cho ? 'bật' : 'tắt'}, chờ Ethopex` : bat ? `${x.r.chay}/${x.r.camp} camp đang chạy — bấm để tắt` : `${x.r.camp} camp đã tắt — bấm để bật`}
-              style={{ width: 34, height: 18, borderRadius: 9, border: 'none', padding: 0, position: 'relative', cursor: cho != null ? 'wait' : 'pointer', opacity: cho != null ? 0.55 : 1,
-                background: bat ? MAU_DEN.chay : '#3f3f46', boxShadow: bat && cho == null ? '0 0 8px rgba(34,197,94,.55)' : 'none', transition: 'background .15s' }}>
-              <span style={{ position: 'absolute', top: 2, left: bat ? 18 : 2, width: 14, height: 14, borderRadius: 7, background: '#fff', transition: 'left .15s' }} /></button>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
+          { key: 'chay', header: 'Chạy', align: 'center', width: 70, title: 'đèn xanh nhấp nháy = creative đang có camp ACTIVE (chạy thật) · rê chuột vào ô để Tắt / Bật mọi camp của creative', cell: (x) => {
+            const cho = dangTb[x.r.creative_id], bat = x.r.chay > 0;
+            if (!x.r.camp) return <Den mau={MAU_DEN.tat} rong t="chưa lên camp" />;
+            if (cho != null) return <Den mau={MAU_DEN.cho} song t={`đã gửi lệnh ${cho ? 'bật' : 'tắt'}, chờ Ethopex`} />;
+            return <span className="etp-chay"><span className="den"><Den mau={bat ? MAU_DEN.chay : MAU_DEN.tat} song={bat} t={bat ? `${x.r.chay}/${x.r.camp} camp đang chạy` : `${x.r.camp} camp đã tắt`} /></span>
+              <button className="nut" onClick={() => tatBat(x.r.creative_id, !bat, bat ? x.r.chay : x.r.camp)}
+                style={{ border: `1px solid ${bat ? DAU_MAU.loi : DAU_MAU.ok}`, color: bat ? DAU_MAU.loi : DAU_MAU.ok, background: 'transparent', borderRadius: 5, padding: '1px 8px', fontSize: 11, cursor: 'pointer' }}>{bat ? 'Tắt' : 'Bật'}</button></span>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
           { key: 'duyet', header: 'Duyệt', align: 'center', width: 120, title: 'creative có tiêu chí 5 điểm — rê vào ảnh / điểm để xem video + lý do, rồi bấm: Đạt = được lên camp mới / clone, camp đang chạy giữ nguyên · Loại = chặn lên + máy tắt mọi camp đang dùng trong ≤ 10 phút', cell: (x) => {
             const d = dangDuyet[x.r.creative_id] ?? x.c?.duyet;
             if (d != null) return <span style={{ color: d ? DAU_MAU.ok : DAU_MAU.loi, fontWeight: 600, whiteSpace: 'nowrap' }}>{d ? '✓ Đạt' : '✕ Loại'}</span>;
-            if (!x.c?.cho_duyet) return <span style={{ color: DAU_MAU.chua }}>–</span>;
+            if (le4(x)) return <span title={`máy chặn + tự tắt: ${x.c?.chan_boi ?? ''}`} style={{ color: DAU_MAU.loi, fontSize: 12, whiteSpace: 'nowrap' }}>chặn ≤ 4</span>;
+            if (!canXem(x)) return <span style={{ color: DAU_MAU.chua }}>–</span>;
             const nut = { border: '1px solid var(--line)', background: 'transparent', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' } as const;
-            return <span title={`5 điểm: ${x.c.cho_duyet}`} style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
+            return <span title={x.c!.cho_duyet ? `5 điểm (đang chặn lên tới khi Đạt): ${x.c!.cho_duyet}` : 'máy kết cần người xem (đang được lên) — Đạt để xác nhận, Loại để chặn + tắt'} style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
               <button title="Đạt: được lên camp mới / clone; camp đang chạy giữ nguyên" onClick={() => duyet(x.r.creative_id, true)} style={{ ...nut, color: DAU_MAU.ok, borderColor: DAU_MAU.ok }}>✓ Đạt</button>
-              <button title="Loại: chặn lên camp + máy tắt mọi camp đang dùng creative này trong ≤ 10 phút" onClick={() => duyet(x.r.creative_id, false)} style={{ ...nut, color: DAU_MAU.loi, borderColor: DAU_MAU.loi }}>✕ Loại</button></span>; }, sortValue: (x) => (choDuyet(x) ? 0 : 1) },
+              <button title="Loại: chặn lên camp + máy tắt mọi camp đang dùng creative này trong ≤ 10 phút" onClick={() => duyet(x.r.creative_id, false)} style={{ ...nut, color: DAU_MAU.loi, borderColor: DAU_MAU.loi }}>✕ Loại</button></span>; }, sortValue: (x) => (choDuyet(x) ? 0 : canXem(x) ? 1 : 2) },
           ...cotLop, ...cotDiem('meta'), ...cotDiem('afs'),
           { key: 'ket', header: 'Máy', group: 'kq', title: 'kết luận bộ chấm', cell: (x) => (x.c?.ket ? <span style={{ color: KET[x.c.ket]?.[1], fontWeight: 600, whiteSpace: 'nowrap' }}>{KET[x.c.ket]?.[0] ?? x.c.ket}</span> : <span style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => x.muc },
           { key: 'len', header: 'Lên camp', group: 'kq', align: 'center', title: 'cổng lên camp (anh 26/10/2026): chặn khi bất kỳ tiêu chí Meta / AFS ≤ 4 (máy tự tắt camp đang chạy); có tiêu chí 5 → chờ người duyệt',

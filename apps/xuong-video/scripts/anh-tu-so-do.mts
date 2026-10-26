@@ -48,11 +48,35 @@ async function motKhung(so: number) {
   const u1 = process.argv.includes('--xem') ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
   const mat = co.map((t, i) => `${t} looks exactly like reference image ${i + 2} (same face and hair; the outfit follows reference image ${i + 2} AND the wearing description above — the description wins on stains, badges and details).`).join(' ');
   const mau2 = them.map((x, i) => x.loai === 'boi_canh' ? `Reference image ${co.length + i + 2} is the location — match its walls, doors, materials and warm lighting (not its framing).` : `Reference image ${co.length + i + 2} shows ${x.ten} — draw it exactly like this.`).join(' ');
-  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${mat} ${mau2}`;
+  // Ô của ẢNH CHUNG cả cảnh (--chung) → thêm làm ảnh mẫu cuối: mặt, tóc, chi tiết đồ, ánh sáng, màu theo ô chung; bố cục vẫn theo sơ đồ (ảnh 1)
+  const oChung = existsSync(`${thu}/so-${so}-chung.png`) ? (process.argv.includes('--xem') ? '(ô chung)' : await len(`${thu}/so-${so}-chung.png`, `${so}-chung`)) : null;
+  const sau = oChung ? ` Reference image ${co.length + them.length + 2} is this shot's panel from the SHARED SCENE SHEET (all shots of the scene drawn together): match its faces, hair, outfit details, lighting and colours exactly — the framing and positions still follow image 1.` : '';
+  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${mat} ${mau2}${sau}`;
   if (process.argv.includes('--xem')) return console.log(`---- #${so} (ảnh mẫu: ${co.map((t) => anhCua(s, t).split('/').pop()).join(', ')}${them.length ? ` + ${them.map((x) => x.ten).join(', ')}` : ''})\n${p}`);   // xem prompt, 0đ
-  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map((t) => anhCua(s, t)), ...them.map((x) => x.anh_ref[0]!)], tiLe: '9:16' });
+  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map((t) => anhCua(s, t)), ...them.map((x) => x.anh_ref[0]!), ...(oChung ? [oChung] : [])], tiLe: '9:16' });
   if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.loi}`);
   writeFileSync(`${thu}/so-${so}-that.png`, a.anh.data); console.log(`#${so}: ${await len(`${thu}/so-${so}-that.png`, `${so}-that`)}`);
+}
+// ẢNH CHUNG CẢ CẢNH (--chung, anh 26/10/2026 — gộp tầng 1 của bang-gom.mts với sơ đồ shot): lưới 3×3 khung sơ đồ trơn → MỘT ảnh người thật cho cả lưới
+// (model vẽ mọi ô cùng lúc nên mặt / đồ / ánh sáng đồng nhất) → cắt từng ô thành so-N-chung.png; lượt sinh từng khung sau đó tự lấy ô làm ảnh mẫu.
+if (process.argv.includes('--chung')) {
+  const sharp = (await import('sharp')).default; const CW = 360, CH = 640, G = 12;
+  for (let i = 0; i < ds.length; i += 9) {
+    const nhom = ds.slice(i, i + 9); const W = 3 * CW + 4 * G, H = 3 * CH + 4 * G; const o = (k: number) => ({ left: G + (k % 3) * (CW + G), top: G + Math.floor(k / 3) * (CH + G) });
+    const luoi = await sharp({ create: { width: W, height: H, channels: 3, background: '#ffffff' } }).composite(await Promise.all(nhom.map(async (so, k) => ({ input: await sharp(`${thu}/so-${so}.png`).resize(CW, CH).png().toBuffer(), ...o(k) })))).png().toBuffer();
+    writeFileSync(`${thu}/luoi-${i / 9}.png`, luoi);
+    const ai = [...new Set(nhom.flatMap((so) => (bang.shot.find((x) => x.so === so)?.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '')).filter(Boolean))].slice(0, 3);
+    const sMau = bang.shot.find((x) => x.so === nhom[0]) ?? {};
+    const tung = nhom.map((so, k) => { const s = bang.shot.find((x) => x.so === so)!; return `Panel ${k + 1} (row ${Math.floor(k / 3) + 1}, column ${(k % 3) + 1}): ${s.co} — ${s.dien_en ?? ''}`; }).join('\n');
+    const p = `Image 1 is a 3×3 storyboard GRID of flat schematic diagrams (white gutters between panels). Redraw the SAME 3×3 grid as nine photoreal live-action film stills of one scene — keep the grid, the panel order, every panel's framing and who stands where; the white gutters stay. The same people must look IDENTICAL in every panel (same face, hair, makeup, outfit details) and one consistent lighting setup runs through all panels. ${bang.canh_en} No text, no captions, no panel numbers.\n${tung}\n${Object.values(taCua(sMau)).filter((t) => ai.some((a) => t.startsWith(a))).join('\n')}\n${ai.map((t, k) => `${t} looks exactly like reference image ${k + 2}.`).join(' ')}`;
+    if (process.argv.includes('--xem')) { console.log(`---- lưới ${i / 9}: ${nhom.join(', ')}\n${p}`); continue; }
+    const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [await len(`${thu}/luoi-${i / 9}.png`, `luoi-${i / 9}`), ...ai.map((t) => anhCua(sMau as never, t))], tiLe: '9:16' });
+    if (!a.anh) { console.log(`ảnh chung ${i / 9}: hỏng — ${a.loi}`); continue; }
+    writeFileSync(`${thu}/chung-${i / 9}.png`, a.anh.data); const m = await sharp(a.anh.data).metadata(); const kx = (m.width ?? W) / W, ky = (m.height ?? H) / H;
+    for (const [k, so] of nhom.entries()) { const q = o(k); await sharp(a.anh.data).extract({ left: Math.round(q.left * kx), top: Math.round(q.top * ky), width: Math.round(CW * kx), height: Math.round(CH * ky) }).png().toFile(`${thu}/so-${so}-chung.png`); }
+    console.log(`ảnh chung ${i / 9} (${nhom.join(', ')}): ${await len(`${thu}/chung-${i / 9}.png`, `chung-${i / 9}`)}`);
+  }
+  process.exit(0);
 }
 // song song có trần (anh 24/10/2026: sinh AI song song mặc định) — 6 ảnh một lúc
 // --song=N: số ảnh cùng lúc (mặc định 6; cổng chợ ckey trả chậm khi dồn — 26/10/2026 19/29 hết giờ 180 s ở mức 6)

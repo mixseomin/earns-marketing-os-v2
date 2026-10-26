@@ -63,7 +63,7 @@ const cDau = await anhThat(`${thu}/${chuan}-dau.png`, `${chuan}-dau`, nguoiAnh.s
 if (!cDau) process.exit(3);
 const cCuoi = await anhThat(`${thu}/${chuan}-cuoi.png`, `${chuan}-cuoi`, [cDau], 'Every person, outfit, prop and the room look exactly like reference image 2 (same people, same faces, same clothes, same lighting).');
 if (!cCuoi) process.exit(3);
-const anh: Record<string, { dau: string | null; cuoi: string | null }> = { [chuan]: { dau: cDau, cuoi: cCuoi } };
+const anh: Record<string, { dau: string | null; cuoi: string | null }> = { [chuan!]: { dau: cDau, cuoi: cCuoi } };
 const loiChuan = 'The people, faces, hair, outfits, props and the room look exactly like reference images 2 and 3 (the same scene seen from another camera).';
 // CÙNG MÁY = CÙNG NỀN: máy đã có sẵn một đầu là ảnh người thật (vd khung cuối #4 = khung đầu shot sau, dùng lại) thì đầu kia lấy CHÍNH ảnh đó làm mẫu.
 // Lấy ảnh máy chuẩn làm mẫu thì AI chép nền của máy chuẩn (26/10/2026 #4: nền bảng chỉ dẫn thành cửa thang máy dù câu chữ đã khoá nền → Vidu lia máy giữa clip).

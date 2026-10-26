@@ -133,3 +133,9 @@ export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat:
   const khai = (c.nhan_vat ?? []).map((id) => nhanVat.find((x) => x.id === id)).filter((x) => x && (x.loai === 'dao_cu' || x.loai === 'san_pham')).map((x) => x!.ten);   // đạo cụ gắn vào shot
   return { so: c.thu_tu, co: String(c.ky_thuat?.co_canh ?? 'ms'), nguoi, khai, luc };
 }
+
+/** Câu prompt cho KHUNG CUỐI của shot nối động tác (cùng dữ liệu với mũi tên cam trên sơ đồ): đầu vừa bắt đầu quay, shot sau quay tiếp. Rỗng = không có. */
+export function cauBatDauQuay(v: VeShot | null): string {
+  const ds = (v?.nguoi ?? []).filter((n) => n.bat_dau_quay);
+  return ds.map((n) => `At this last moment ${n.ten}'s head has JUST begun turning toward screen ${n.bat_dau_quay! > 0 ? 'right' : 'left'} (about a third of the way) — the turn is caught in motion and continues in the next shot.`).join(' ');
+}

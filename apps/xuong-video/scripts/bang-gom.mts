@@ -24,6 +24,8 @@ import { uploadToR2 } from '../src/lib/r2';
 import type { Canh, NhanVat } from '../src/lib/xuong-video/kieu';
 import { svgPhac, type ManhSoDo, type MangPhong, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { cauKhung } from '../src/lib/xuong-video/phieu-shot';
+import { veShotTuCanh, cauBatDauQuay } from '../src/lib/xuong-video/so-do-shot';
+import { kgCua, type KhongGianTap } from '../src/lib/xuong-video/khong-gian';
 import { loiTrangThaiVat } from '../src/lib/xuong-video/kiem-prompt';
 import { catDo } from '../src/lib/xuong-video/cat-do';
 
@@ -40,6 +42,9 @@ const khoiTruoc = gia('khoi-truoc') ?? null; if (motDoan && !khoiTruoc && gia('t
 const cot1 = Number(gia('cot') || (ds.length > 12 ? 4 : ds.length > 6 ? 3 : 2));
 const phimId = Number((await q(sql`SELECT phim_id FROM xv_tap WHERE id = ${tap}`))[0]!.phim_id);
 const nv: NhanVat[] = await kemBienThe(db, (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)).map(mapNhanVat));
+// sổ không gian của tập (sơ đồ 2D + sổ đồ vật) — khung CUỐI của shot nối động tác nhận câu "đầu vừa bắt đầu quay" (so-do-shot.ts › cauBatDauQuay, cùng dữ liệu với sơ đồ)
+const kgTap = ((await q(sql`SELECT khong_gian FROM xv_tap WHERE id = ${tap}`))[0]?.khong_gian ?? null) as KhongGianTap | null;
+const sauCua = (c: Canh) => ds.find((x) => x.thu_tu > c.thu_tu && x.phan_doan === c.phan_doan) ?? null;
 // --so-do=<bảng mảnh JSON có so_do> → tầng 1 kèm TỜ PHÁC BỐ TRÍ (so-do-canh.ts › svgPhac) làm ảnh 1: lưới cố định + chỗ người / nền / hướng nhìn đúng sơ đồ
 const bm = gia('so-do') ? JSON.parse(readFileSync(gia('so-do')!, 'utf8')) as { so_do: SoDo & { phong?: MangPhong[] }; nguoi: string[]; mau?: Record<string, string>; shot: { sd?: ManhSoDo }[]; ten_en?: Record<string, string> } : null;
 const TEP = `/tmp/bang-gom-${tap}-${tu}-${ds.at(-1)?.thu_tu}.json`;   // mốc giữa các tầng (URL) — chạy lại từng tầng không mất tầng trên
@@ -228,7 +233,7 @@ const khungCua = (c: Canh): Khung[] => { const kv = (c.ky_thuat?.khung_ve ?? ['d
   return kv.map((luc) => ({ c, luc, key: `${c.thu_tu}-${luc}`, nhan: kv.length > 1 ? `#${c.thu_tu}·${TEN_LUC[luc]}` : `#${c.thu_tu}`, sd: sdCua(c, luc),
     vatSo: luc === 'ket' ? c.ky_thuat?.vat_so_ket : luc === 'dau' ? c.ky_thuat?.vat_so : undefined,
     moTa: luc === 'dau' ? `${moTaKhung(c)} (FIRST moment of the shot)` : luc === 'giua' ? `${co} MIDDLE moment of the shot: ${dd.giua ?? dd.dien ?? c.hanh_dong}.`
-      : `${co} LAST moment of the shot: ${dd.ket ?? c.hanh_dong}.${dd.huong_ket ? ` Screen direction: ${dd.huong_ket}.` : ''}` })); };
+      : `${co} LAST moment of the shot: ${dd.ket ?? c.hanh_dong}.${dd.huong_ket ? ` Screen direction: ${dd.huong_ket}.` : ''} ${cauBatDauQuay(veShotTuCanh(c, kgCua(kgTap, c), nv, { luc: 'ket', sau: sauCua(c) }))}`.trim() })); };
 /** Lưới tờ phác của một dãy khung (ô 9:16, viền trắng): trơn cho model + bản có nhãn cho người đọc. */
 async function luoiPhacKhung(ks: Khung[], cot: number, ten: string): Promise<{ tron: string; so: string }> {
   const CW = 360, CH = 640, G = 14; const hang = Math.ceil(ks.length / cot);

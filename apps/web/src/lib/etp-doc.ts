@@ -52,8 +52,9 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   tieuChi: { nhom: string; ma: string; ten: string }[];
   cham: Record<number, ChamCr>;
   /** hàng chờ chấm (etp.cham_hang): đang chờ / đang chấm / lỗi gần đây — nút "Chấm" trên trang */
-  /** ĐANG SẢN XUẤT (anh 26/10/2026 "Thêm 1 tab là Đang sx"): mọi món đang làm dở trước khi thành creative chạy — cắt góc (etp.viec, máy thợ iMac),
-   *  chờ soát (ethopex_cho_soat), cần góc mới (ethopex_can_goc_moi), chờ dựng lại CTA (ethopex_cho_dung_lai), chấm trên Cloudflare (etp.cham_hang) */
+  /** ĐANG SẢN XUẤT — SOURCE OF TRUTH CHÍNH của sản xuất creative (anh 26/10/2026 "Thêm 1 tab là Đang sx" · "chỗ mới này sẽ là source of truth chính"):
+   *  công đoạn mới nào của dây chuyền cũng PHẢI hiện ở đây. Mọi món đang làm dở trước khi thành creative chạy — cắt góc (etp.viec, máy thợ iMac),
+   *  chờ soát (ethopex_cho_soat), cần góc mới (ethopex_can_goc_moi), chờ dựng lại CTA (ethopex_cho_dung_lai), chấm trên Cloudflare (etp.cham_hang), chờ lên camp (chấm Sạch, chưa có camp) */
   dangSx: { khoa: string; buoc: string; thu_tu: number; content_id: number | null; creative_id: number | null; phim: string | null; lo: string | null; may: string | null; luc: string | null; ghi: string | null; loi: boolean }[];
   chamHang: Record<number, { trang_thai: string; luc: string; loi: string | null; nguon: string; buoc: string | null; nhat_ky: { b: string; luc: string }[]; bat_dau: string | null; xong: string | null }>;
   /** LỊCH GIỜ (anh 25/10/2026): ô thể loại × khung bật/tắt (etp.lich_gio) · số chi/thu 7 ngày trọn theo thể loại × khung (etp.so_gio, giờ VN) · camp đang tạm dừng vì lịch */
@@ -147,7 +148,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<{ khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }>(sql`select khung, gio_tu, so_gio, ten, ghi from etp.khung_gio order by (gio_tu + 17) % 24`),
     run<{ k: string }>(sql`select etp.khung_vn(extract(hour from now() at time zone 'Asia/Ho_Chi_Minh')::int) k`),
   ]);
-  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay, viecSx] = await Promise.all([
+  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay, viecSx, choCamp] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
         max(coalesce(xong, bat_dau))::text cuoi, avg(extract(epoch from xong - bat_dau)) filter (where trang_thai = 'xong') giay_tb from etp.viec where may is not null group by may order by may`),
@@ -172,6 +173,9 @@ export async function docEtp(): Promise<DuLieuEtp> {
       group by 1, 2, 3, 4 order by c.camp_id desc`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`select v.id, v.lo, v.content_id, v.trang_thai, v.may, v.lan_thu, v.loi, v.du_lieu->>'ten' ten, v.du_lieu->>'so_ban' so_ban, coalesce(v.bat_dau, v.tao)::text luc
       from etp.viec v where v.trang_thai in ('cho', 'dang') or (v.trang_thai = 'loi' and coalesce(v.xong, v.tao) > now() - interval '2 days') order by v.id`).catch(() => [] as Record<string, unknown>[]),
+    // chấm SẠCH (cổng chấm cho lên) mà chưa có camp nào — bước cuối của sản xuất (len-sau-cham.py lên camp)
+    run<Record<string, unknown>>(sql`select g.creative_id, c.content_id, p.ten, ch.luc::text luc from etp.cham_cong g join etp.creative c using (creative_id) left join etp.phim p on p.content_id = c.content_id
+      left join etp.cham ch using (creative_id) where g.duoc_len and not exists (select 1 from etp.camp k where k.creative_id = g.creative_id)`).catch(() => [] as Record<string, unknown>[]),
   ]);
   // creative đã chấm / có phốt mà không còn ở camp nào (camp đã thay creative khác) vẫn phải hiện ở Quét nội dung — lấy thẳng từ etp.creative
   const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id))])].filter((id) => id && !crMap.has(id));
@@ -199,6 +203,8 @@ export async function docEtp(): Promise<DuLieuEtp> {
         content_id: Number(k) || null, creative_id: null, phim: v.ten ?? null, lo: null, may: null, luc: v.luc ?? null, ghi: v.goc ? `cho camp #${v.goc} (hết creative sạch chưa dùng)` : null, loi: false })),
       ...Object.entries(khoaS('ethopex_cho_dung_lai') as Record<string, { goc?: number; content?: number; ten?: string; luc?: string; tu_choi?: boolean }>).map(([k, v]) => ({ khoa: `cta-${k}`, buoc: v.tu_choi ? 'Dựng góc thay bị Meta từ chối' : 'Chờ dựng lại CTA', thu_tu: 2,
         content_id: v.content ?? null, creative_id: Number(k) || null, phim: v.ten ?? null, lo: null, may: null, luc: v.luc ?? null, ghi: v.goc ? `camp #${v.goc}` : null, loi: false })),
+      ...choCamp.map((r) => ({ khoa: `camp-${r.creative_id}`, buoc: 'Chờ lên camp', thu_tu: 5, content_id: r.content_id == null ? null : n(r.content_id), creative_id: n(r.creative_id),
+        phim: (r.ten as string) ?? null, lo: null, may: null, luc: (r.luc as string) ?? null, ghi: 'chấm Sạch — chờ len-sau-cham lên camp', loi: false })),
       ...chamHang.filter((r) => r.trang_thai === 'cho' || r.trang_thai === 'dang').map((r) => ({ khoa: `cham-${r.creative_id}`, buoc: r.trang_thai === 'dang' ? 'Đang chấm (Cloudflare)' : (r.buoc === 'chờ thử lại' ? 'Chờ chấm lại' : 'Chờ chấm'), thu_tu: 4,
         content_id: null, creative_id: n(r.creative_id), phim: null, lo: null, may: r.trang_thai === 'dang' ? 'Cloudflare' : null, luc: String((r.bat_dau as string) ?? r.luc), ghi: (r.buoc as string) ?? null, loi: false })),
     ],

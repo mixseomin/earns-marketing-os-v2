@@ -2,17 +2,15 @@
 //   - chữ lạ: tesseract đọc 6 khung — model tự in phụ đề / chữ (Grok "Look at that fit!" #54 shot 6, 9) dù prompt cấm;
 //   - sản phẩm còn trong khung: màu chủ đạo của ảnh gốc sản phẩm, đo qua từng khung — máy đẩy vào ngực làm quần ra khỏi khung (#54 shot 9);
 //   - biến dạng (17/10/2026, #120 shot 4 quần phồng / đũng tụt): soi-bien-dang.ts — Gemini nhìn ảnh ghép 12 khung, hai lượt, ~$0.003/clip.
-// Kết quả ghi xv_canh.soi_clip (gắn url clip). Bản xuất không nhận clip còn lỗi soi (xuat-tap.ts); người duyệt bấm bỏ qua nếu máy báo nhầm.
+// Chữ lạ (cắt khung + tesseract) chạy ở máy dựng Cloudflare — soi-chu.ts. Kết quả ghi xv_canh.soi_clip (gắn url clip). Bản xuất không nhận clip còn lỗi soi (xuat-tap.ts); người duyệt bấm bỏ qua nếu máy báo nhầm.
 // MỘT đường cho lúc nhận clip (sinh-video.ts › kiemVideoTap) và script soi lại (scripts/soi-clip.mts). Phép đo thuần: soi-clip-do.ts.
 import 'server-only';
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { mauSanPham, tiLeMau, giayMatSanPham, chuTrongKhung, VANG_SP, type MauSp } from './soi-clip-do';
 import { mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 import { soiMatClip } from './soi-mat';
+import { docChuKhung } from './soi-chu';
 import { soiBienDang, yDoShot } from './soi-bien-dang';
 import { giayPhat, type Canh, type SoiClip } from './kieu';
 
@@ -54,17 +52,10 @@ export async function soiClipCanh(db: Db, canhId: number): Promise<SoiClip | nul
   const giay = [0.1, dai * 0.2, dai * 0.4, dai * 0.6, dai * 0.8, Math.max(0.1, dai - 0.3)].map((x) => Math.round(x * 10) / 10);
   const loi: string[] = [];
   // Chữ lạ: chữ màn studio chồng lúc XUẤT, không nằm trong clip → mọi chữ đọc được trong clip là model tự in.
-  const thu = await mkdtemp(join(tmpdir(), 'soi-clip-'));
+  // Cắt khung + tesseract chạy ở máy dựng Cloudflare (soi-chu.ts), lỗi thì tại box3 một tesseract một lúc.
   const chu: string[] = [];
-  try {
-    for (const [i, t] of giay.entries()) {
-      const png = join(thu, `${i}.png`);
-      if (!(await chay('ffmpeg', ['-v', 'error', '-y', '-ss', String(t), '-i', url, '-frames:v', '1', '-vf', 'scale=720:-2', png]))) continue;
-      const tsv = await chay('tesseract', [png, 'stdout', '--psm', '11', '-l', 'eng', 'tsv']);
-      const tu = tsv ? chuTrongKhung(String(tsv)) : [];
-      if (tu.length >= 2) chu.push(`${t}s: ${tu.join(' ')}`);
-    }
-  } finally { await rm(thu, { recursive: true, force: true }); }
+  const { tsv } = await docChuKhung(url, giay);
+  for (const [i, t] of giay.entries()) { const tu = tsv[i] ? chuTrongKhung(tsv[i]!) : []; if (tu.length >= 2) chu.push(`${t}s: ${tu.join(' ')}`); }
   if (chu.length) loi.push(`chữ lạ model tự in trong clip (${chu[0]}${chu.length > 1 ? ` · +${chu.length - 1} khung` : ''})`);
   // Sản phẩm còn trong khung: chỉ shot gắn sản phẩm có ảnh gốc màu nổi. Đo theo LƯỢNG màu — sản phẩm bị cắt còn một dải ở mép (máy đẩy
   // vào) mà lượng màu không giảm thì không bắt được; lỗi đó chặn từ kịch bản (san-pham-shot.ts › loiSanPhamShot).

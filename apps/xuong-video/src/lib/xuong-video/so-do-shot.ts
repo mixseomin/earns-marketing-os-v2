@@ -22,7 +22,7 @@ const NET: Record<string, [number, number, 'to' | 'hip' | 'sup' | 'thuong', stri
   lo_lang: [-0.35, 0.05, 'thuong', 'tre'], dau: [-0.4, -0.05, 'hip', 'mim'], met: [-0.15, -0.05, 'sup', 'thang'], buon: [-0.35, 0, 'sup', 'tre'], that_vong: [-0.3, -0.05, 'sup', 'tre'],
   lanh_lung: [0.15, -0.08, 'hip', 'mim'], khinh_bi: [0.05, 0.02, 'hip', 'nhech'], dac_y: [0.05, 0.03, 'thuong', 'nhech_cuoi'], nhuc_nha: [-0.4, 0, 'sup', 'tre'],
   nhan_nhin: [0, -0.03, 'thuong', 'mim'], gian: [0.45, -0.1, 'thuong', 'mim'], soc: [-0.1, 0.25, 'to', 'ha'], quyet_tam: [0.2, -0.05, 'thuong', 'mim'],
-  nhech_moi: [0, 0.02, 'thuong', 'nhech'], khoc_tham: [-0.5, 0.05, 'hip', 'ha'], cuoi_dau: [-0.5, 0, 'hip', 'ha_cuoi'],
+  nhech_moi: [0, 0.02, 'thuong', 'nhech'], dap_tra_lanh: [0.2, -0.06, 'hip', 'nhech'], khoc_tham: [-0.5, 0.05, 'hip', 'ha'], cuoi_dau: [-0.5, 0, 'hip', 'ha_cuoi'],
 };
 const MAU_AO = ['#f2f2f0', '#7a1325', '#16181d', '#2f5d8a', '#6b4f2a', '#4d6b3a'];
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

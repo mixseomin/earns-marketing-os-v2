@@ -807,8 +807,8 @@
      "nhin": "phai",
      "to": 1.1,
      "mat": [
-      "nhan_nhin",
-      "nhech_moi"
+      "dap_tra_lanh",
+      "dap_tra_lanh"
      ],
      "quay": 30,
      "nhin_vao": "vi",
@@ -817,7 +817,7 @@
    ],
    "thoai": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.",
    "dien": "Hạ nhếch môi, máy đẩy chậm. (khớp môi)",
-   "dien_en": "Hạ speaks softly with a faint knowing smirk; very slow push-in.",
+   "dien_en": "Hạ answers Vivian calmly and coldly, a faint cold smirk, steady gaze straight at her; very slow push-in.",
    "so_cu": 15,
    "bien_the": {
     "ha": 160

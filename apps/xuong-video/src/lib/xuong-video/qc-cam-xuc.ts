@@ -40,6 +40,9 @@ export const BIEU_CAM = [
   { key: 'soc', ten: 'Sốc', en: 'stunned, eyes wide, mouth slightly open, frozen', am: true },
   { key: 'quyet_tam', ten: 'Quyết tâm', en: 'resolute and fearless, steady eye contact', am: false },
   { key: 'nhech_moi', ten: 'Nhếch môi', en: 'a subtle knowing smirk at one corner of the mouth', am: false },
+  // ĐÁP TRẢ LẠNH (anh 26/10/2026 "Hạ hiền quá" — #353 #26 câu chốt lật thế): nữ chính hết nhịn, đáp lại bình thản mà sắc — 'nhẫn nhịn' / 'nhếch môi' kiểu
+  // subtle cho ra mặt hiền, mắt mềm. Phải có: mắt nhìn thẳng không chớp, cằm hơi nâng, khoé môi lạnh, không chút mềm / ngại.
+  { key: 'dap_tra_lanh', ten: 'Đáp trả lạnh', en: 'cool, confident defiance: a steady unblinking gaze straight at the other person, chin slightly raised, eyelids a little lowered, a faint cold smirk at one corner of the mouth, jaw firm — never gentle, sweet, shy, pleading or soft-eyed', am: false },
   // CẢM XÚC MẠNH (anh 18/10/2026: "phải diễn được khóc thảm thiết, cười trong đau đớn tột cùng mới đi vào cảm xúc người xem") — mặt 3D MPFB diễn
   // đúng nét (mesh/nguoi.py › BIEU_CAM_ARKIT), chữ tả cơ mặt + nước mắt cụ thể (FLUX ra cau mày khi chỉ ghi "crying")
   { key: 'khoc_tham', ten: 'Khóc thảm thiết', en: 'sobbing uncontrollably, face crumpled, mouth open in a wail, tears streaming down both cheeks, red swollen eyes', am: true },

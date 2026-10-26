@@ -165,7 +165,7 @@ def lap_bao_cao(vn, gio_cuoi=None):
     ty = c_ng / ns if ns else 0
     # BẢNG chữ đều cột (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng") — ≤ 30 ký tự / dòng cho màn điện thoại; dam = đậm, nhat = nhạt
     b, dam, nhat = [f"{'Giờ':<6}{'Chi':>7}{'Thu':>7}{'ROI':>7}"], {0}, set()
-    b += [f"{(int(h) + 7) % 24:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio[-6:]]
+    b += [f"{(int(h) + 7) % 24:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio]   # đủ mọi giờ từ 07h đầu ngày (anh 26/10/2026: "report này phải luôn từ 7h sáng đầu ngày")
     b.append("-" * 27); dam.add(len(b)); b.append(f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}")
     nhat.add(len(b)); b.append(f"Lãi {t_ng - c_ng:+.0f}$ · NS ${ns:.0f} · chi {ty * 100:.0f}%")
     if n_r or c_r:

@@ -404,7 +404,7 @@ try:
     _r7 = _bc7(); T7_DAT = {c: a for c, a in _r7.items() if a["lai"] < T7_LAI and a["chi"] > 5 and a["ad"] > 3}
 except Exception as e:
     T7_DAT = {}; loi_may.append((0, f"luật T7 không đọc được Report: {str(e)[:80]}"))
-tat7 = [(c, f"#{a['ten'][:70]} · 7 ngày đã khép: chi ${a['chi']:.2f} · lãi ${a['lai']:+.2f} · ROI {a['lai'] / a['chi'] * 100:+.0f}% · {a['ad']} ngày bật → TẮT (luật T7 Support)")
+tat7 = [(c, f"#{a['ten'][:70]} · 7 ngày đã khép: chi ${a['chi']:.2f} · lãi ${a['lai']:+.2f} · ROI {a['lai'] / a['chi'] * 100:+.0f}% · {a['ad']} ngày bật → TẮT (luật T7: lãi 7 ngày < $1)")
         for c, a in sorted(T7_DAT.items(), key=lambda x: x[1]["lai"]) if c in _dc]
 # ROI TỤT chỉ đi đường GIẢM BẬC (anh 26/10/2026 "ds này chỉ cần giảm bậc"): kèm "$ns → $đích" một bậc để Telegram ra nút giảm thay nút tắt; camp $1 (đáy thang) chỉ báo
 _dich_tut = lambda cid: (lambda ns: (ns, NT.xuong(ns, 1)) if ns else (None, None))(float((thang.get(cid) or {}).get("budget") or 0))

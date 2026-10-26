@@ -42,8 +42,16 @@ def bao_tg(chu):
         env = dict(l.strip().split("=", 1) for l in open("/root/.secrets/mine-tg.env") if "=" in l and not l.lstrip().startswith("#"))
         topic = json.load(open("/var/lib/cty/tg-ethopex.json")).get("topic")
         body = {"chat_id": env["TG_CHAT"].strip('"'), "text": chu, "parse_mode": "HTML", "link_preview_options": {"is_disabled": True}, **({"message_thread_id": topic} if topic else {})}
-        urllib.request.urlopen(urllib.request.Request(f"https://api.telegram.org/bot{env['TG_BOT_TOKEN'].strip(chr(34))}/sendMessage", data=json.dumps(body).encode(),
-                                                      headers={"content-type": "application/json"}), timeout=20)
+        j = json.load(urllib.request.urlopen(urllib.request.Request(f"https://api.telegram.org/bot{env['TG_BOT_TOKEN'].strip(chr(34))}/sendMessage", data=json.dumps(body).encode(),
+                                                      headers={"content-type": "application/json"}), timeout=20))
+        # SỔ TIN ĐÃ GỬI (anh 26/10/2026 "sửa luôn message vừa xong" — trước đây không giữ message_id nên không sửa được tin cũ): 200 tin gần nhất, sửa bằng editMessageText
+        mid = (j.get("result") or {}).get("message_id")
+        if mid:
+            f = "/var/lib/cty/etp-tin.json"
+            try: so = json.load(open(f))
+            except Exception: so = []
+            json.dump((so + [{"id": mid, "luc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "dau": chu[:60]}])[-200:], open(f, "w"), ensure_ascii=False)
+        return mid
     except Exception as e: print(f"báo Telegram lỗi: {e}", file=sys.stderr)
 
 _KHUNG = {}

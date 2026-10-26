@@ -379,7 +379,8 @@
    ],
    "dien": "Giật mạnh — dây đứt, Hạ chúi người. (dùng lại nhịp giật)",
    "dien_en": "Vivian yanks the badge back hard; the lanyard snaps; Hạ is jerked half a step forward, still hugging the box.",
-   "so_cu": 7
+   "so_cu": 7,
+   "sfx": "vut"
   },
   {
    "so": 12,
@@ -410,7 +411,8 @@
    ],
    "dien": "Hạ sững sờ, mắt cụp xuống tấm thẻ. (dùng lại #8)",
    "dien_en": "Hạ stares, stunned, then her eyes drop to the dangling badge at screen right.",
-   "so_cu": 8
+   "so_cu": 8,
+   "sfx": "tim_dap"
   },
   {
    "so": 13,
@@ -486,7 +488,8 @@
    ],
    "dien": "Số tầng sáng — tiếng “ting”.",
    "dien_en": "The floor indicator lights up with a chime.",
-   "so_cu": 10
+   "so_cu": 10,
+   "sfx": "ding"
   },
   {
    "so": 16,

@@ -14,7 +14,7 @@ const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.sl
 const tepBang = gia('bang')!; const ra = gia('ra') ?? '/tmp/animatic.mp4'; const tap = Number(gia('tap') || 0);
 if (!tepBang) { console.error('cần --bang'); process.exit(1); }
 type N = { ma: string; x: number; lung?: boolean; quay?: number; nhin_vao?: string; nhin_huong?: string; mat?: [string, string]; cam?: string[]; deo?: string[] };
-type S = { so: number; so_cu?: number; giay: number; co: string; goc?: string; nguoi?: N[]; do?: { loai: string }[]; dien?: string; thoai?: string; ke?: string };
+type S = { so: number; so_cu?: number; /** tiếng hiệu ứng của studio: public/sfx/<key>.mp3 (dung-sfx.mjs) */ sfx?: string; giay: number; co: string; goc?: string; nguoi?: N[]; do?: { loai: string }[]; dien?: string; thoai?: string; ke?: string };
 const b = JSON.parse(readFileSync(tepBang, 'utf8')) as { ten: string; vat_so?: Record<string, string>; ten_vat_vi?: Record<string, string>; nhan_vat: Record<string, { ao: string; toc?: string; ten_db?: string }>; shot: S[] };
 const thu = `/tmp/animatic-${tepBang.replace(/\W+/g, '-')}`; mkdirSync(thu, { recursive: true });
 const sh = (cmd: string, args: string[]) => execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
@@ -70,19 +70,20 @@ const amNho = `${tepBang}.am.json`; const nho: Record<string, string> = existsSy
 async function sinhKe(loi: string, f: string): Promise<string | null> {
   if (nho[loi]) return tai(nho[loi]!, f);
   if (!process.env.DUYET_SINH_1_LAN) { console.log(`lời kể chưa có tệp, bỏ qua (cần DUYET_SINH_1_LAN=1 để sinh): ${loi}`); return null; }
-  const { guiFal, docFal } = await import('../src/lib/xuong-video/fal'); const { dauVaoGiongTheoModel } = await import('../src/lib/xuong-video/giong');
+  // đường chạy âm chuẩn của studio (viec-am.ts › chayViecAm — tự tìm khoá tệp âm thanh trong kết quả fal, đẩy lên R2); 26/10/2026 docFal chỉ đọc video → mất tệp
+  const { chayViecAm } = await import('../src/lib/xuong-video/viec-am'); const { dauVaoGiongTheoModel } = await import('../src/lib/xuong-video/giong');
   const model = 'fal-ai/elevenlabs/tts/eleven-v3';
-  const g = await guiFal(model, await dauVaoGiongTheoModel(model, { text: loi, voice: gia('giong-ke') ?? 'Sarah', ngonNgu: 'vi', camXuc: 0, theLoai: 'phim_doc' }));
-  if (!g.ok) { console.log(`lời kể: fal từ chối — ${g.loi}`); return null; }
-  for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 3000)); const d = await docFal(g.taskId); if (d.done && d.ok) { nho[loi] = d.uri; writeFileSync(amNho, JSON.stringify(nho, null, 1)); return tai(d.uri, f); } if (d.done) { console.log(`lời kể hỏng — ${d.loi}`); return null; } }
-  return null;
+  const r = await chayViecAm({ kieu: 'am', job: 0, model, thuMuc: 'thoai/animatic', input: await dauVaoGiongTheoModel(model, { text: loi, voice: gia('giong-ke') ?? 'Sarah', ngonNgu: 'vi', camXuc: 0, theLoai: 'phim_doc' }) });
+  if (!r.ok) { console.log(`lời kể hỏng — ${r.loi}`); return null; }
+  nho[loi] = r.url; writeFileSync(amNho, JSON.stringify(nho, null, 1)); return tai(r.url, f);
 }
 
 const daDungAm = new Set<number>(); const doan: { v: string; a: string; d: number }[] = [];
 for (const s of b.shot) {
   const g = s.thoai ? giongCo(s.thoai, `${thu}/g-${s.so}.mp3`) : s.ke ? await sinhKe(s.ke.replace(/\s*\(nháp\)\s*$/, ''), `${thu}/k-${s.so}.mp3`) : null;
   const dg = g ? dai(g) : 0; const d = Math.max(s.giay, dg ? dg + 0.25 : 0);
-  const cu = tapThoai.find((r) => r.thu_tu === s.so_cu); const sfx = cu?.am && !daDungAm.has(s.so_cu!) ? tai(cu.am, `${thu}/s-${s.so_cu}.mp3`) : null; if (sfx) daDungAm.add(s.so_cu!);
+  const kho = s.sfx ? new URL(`../public/sfx/${s.sfx}.mp3`, import.meta.url).pathname : null;
+  const cu = tapThoai.find((r) => r.thu_tu === s.so_cu); const sfx = kho && existsSync(kho) ? kho : cu?.am && !daDungAm.has(s.so_cu!) ? tai(cu.am, `${thu}/s-${s.so_cu}.mp3`) : null; if (sfx && !kho) daDungAm.add(s.so_cu!);
   const doi = (s.nguoi ?? []).some((n) => n.mat && n.mat[0] !== n.mat[1]);
   await khung(s, 'dau', `${thu}/f-${s.so}-a.png`); if (doi) await khung(s, 'ket', `${thu}/f-${s.so}-b.png`);
   const v = `${thu}/v-${s.so}.mp4`, a = `${thu}/a-${s.so}.wav`;

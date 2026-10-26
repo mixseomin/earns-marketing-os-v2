@@ -25,4 +25,6 @@ assert.ok(!phieuShot({ co: 'cu', so_cu: 8, nguoi: [{ ten: 'Hạ', x: 0.5 }] }, n
 const so2 = { 'Thẻ': [{ tu: 1, ai: 'Vivian', cach: "held by its snapped lanyard in Vivian's right hand", vi: '' }] };
 const p9 = phieuShot({ co: 'insert', so_cu: 9, nguoi: [], khai: ['Thẻ'] }, { canh_en: '', so_vat: so2, ta_nguoi: { Vivian: 'burgundy dress, red nails' } });
 assert.ok(p9.includes('NOT worn around anyone') && p9.includes("Only Vivian's hand and forearm") && p9.includes('burgundy dress'), p9);
+// món ĐEO (không cầm) ở cận chèn: không được bảo "chỉ tay người đeo vào khung" (#10: thẻ còn trên cổ Hạ, người siết là Vivian)
+assert.ok(!phieuShot({ co: 'insert', so_cu: 3, nguoi: [], khai: ['Thẻ'] }, { ...n, ta_nguoi: { 'Hạ': 'white blouse' } }).includes('hand and forearm'), 'đồ đeo: không câu tay người giữ');
 console.log('phieu-shot.test: ok');

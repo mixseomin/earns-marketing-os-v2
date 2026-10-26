@@ -69,8 +69,9 @@ export function phieuShot(s: ShotPhieu, n: NguonPhieu): string {
     // CẦM ≠ ĐEO (26/10/2026: Vivian cầm thẻ bằng dây đứt mà model vẽ thêm một thẻ đeo trên cổ cô) + người giữ ở NGOÀI khung: chỉ tay họ vào khung, đúng tay áo
     for (const [t, m] of Object.entries(trangThai(n.so_vat, s.so_cu, 'ket'))) {
       if (!m.ai) continue; const trong = ai.includes(m.ai), chen = khai.includes(t);
-      if ((trong || chen) && /\b(hand|holds?|held|grip|fist|pinch)/i.test(m.cach)) dong.push(`${en(t)} is HELD in ${m.ai}'s hand only — it is NOT worn around anyone's neck; ${m.ai} wears no badge or lanyard of their own. Exactly one ${en(t)} in the frame.`);
-      if (chen && !trong && n.ta_nguoi?.[m.ai]) dong.push(`Only ${m.ai}'s hand and forearm enter the frame, never their face — the sleeve and skin match ${m.ai}: ${n.ta_nguoi[m.ai]}.`);
+      const cam = /\b(hand|holds?|held|grip|fist|pinch)/i.test(m.cach);   // ĐANG CẦM trên tay (khác đeo / ôm) — chỉ khi đó mới có "tay người giữ"
+      if ((trong || chen) && cam) dong.push(`${en(t)} is HELD in ${m.ai}'s hand only — it is NOT worn around anyone's neck; ${m.ai} wears no badge or lanyard of their own. Exactly one ${en(t)} in the frame.`);
+      if (chen && !trong && cam && n.ta_nguoi?.[m.ai]) dong.push(`Only ${m.ai}'s hand and forearm enter the frame, never their face — the sleeve and skin match ${m.ai}: ${n.ta_nguoi[m.ai]}.`);
     }
   }
   // HÌNH DẠNG CHUẨN của đạo cụ trong khung (26/10/2026: thẻ #7 tự in chữ + ảnh, thùng đổi đồ bên trong — mô tả chuẩn có sẵn mà phiếu không dùng)

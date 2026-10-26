@@ -1,4 +1,5 @@
 'use client';
+import { kgCua } from '@/lib/xuong-video/khong-gian';
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
 import { HoSoTap } from './ho-so';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -353,7 +354,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                   }}
                   // Thẻ shot đang chọn nằm ở panel THUỘC TÍNH bên phải (bố cục After Effects) — không còn chồng dưới timeline (13/10/2026).
                   theShot={<div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
-                    <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
+                    <CanhRow key={cc.id} c={cc} kg={kgCua(tap.khong_gian, cc)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
                   </div>}
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
               </>
@@ -363,7 +364,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           ) : xem === 'luoi' ? (
             <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} laQc={phim.loai === 'quang_cao'} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => setXemShot(id)} />
           ) : (
-            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
+            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
           )}
         </>
       ))}
@@ -374,7 +375,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         return (
           <Ngan onClose={() => setXemShot(null)} tieuDe={`Shot #${c.thu_tu} · ${c.canh}`}
             nut={<button type="button" className="xv-btn" title="Đóng ngăn, chuyển sang Timeline và đặt con trỏ ở đầu shot này" onClick={() => { setXemShot(null); setChonCanh(c.id); setXem('timeline'); }}>⏱ Mở trên timeline</button>}>
-            <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chiTiet />
+            <CanhRow key={c.id} c={c} kg={kgCua(tap.khong_gian, c)} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chiTiet />
           </Ngan>
         );
       })()}

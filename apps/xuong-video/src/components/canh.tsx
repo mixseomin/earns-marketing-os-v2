@@ -17,6 +17,8 @@ import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-
 import { GiongNhanVat } from './nhan-vat';
 import { NutNghe, ClipNho } from './media';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { svgSoDoShot, veShotTuCanh } from '@/lib/xuong-video/so-do-shot';
+import type { KhongGian } from '@/lib/xuong-video/khong-gian';
 
 /** Keyframe nhỏ dưới video (#1218): có video rồi vẫn xem lại được ảnh gốc của clip (rê để phóng to, kèm ảnh so sánh). */
 export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
@@ -55,7 +57,7 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
 }
 
 /** chiTiet: đang nằm trong ngăn chi tiết shot — cột trái rộng hơn, khung 3D nhúng bộ xem xoay được (#1365). */
-export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
+export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet, kg }: { kg?: KhongGian | null; c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
   // Lỗi của MỌI nút trong thẻ shot hiện ngay trên hàng nút của chính shot đó (không phải đầu tập).
   const [loiNut, setLoiNut] = useState('');
   const chay = async (k: string, fn: () => Promise<KqChay>) => { setLoiNut(''); setLoiNut(await chayTap(k, fn, true)); };
@@ -122,6 +124,13 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
                   ? <div style={{ width: '100%' }}><KhungDauKet kx={c.khung_xam} doc={kt.ti_le !== '16:9'} onMo={() => moNgan({ loai: 'bo-set', tapId: c.tap_id, canhId: c.id })} /></div>
                   : <img src={anhNho(c.khung_xam.mau || c.khung_xam.xam, 320)} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />}
               </button>)}
+          {/* SƠ ĐỒ SHOT (so-do-shot.ts, 0đ): vẽ từ sơ đồ cảnh 2D + sổ đồ vật + kế hoạch biểu cảm — cỡ khung, trái / phải màn, nhìn ai, nét mặt, đồ, điểm neo mắt. */}
+          {!c.may_3d && (() => { const v = veShotTuCanh(c, kg, nhanVat); if (!v) return null; const url = `data:image/svg+xml;utf8,${encodeURIComponent(svgSoDoShot(v))}`;
+            return <button type="button" title="Sơ đồ shot — vẽ từ dữ liệu: cỡ khung, ai đứng đâu, nhìn ai (mũi tên vàng), nét mặt (ô góc = nét cuối shot), đồ trên người, dấu xanh = điểm neo mắt" onClick={() => moNgan({ loai: 'xem', url, ten: `Sơ đồ shot #${c.thu_tu}` })}
+              style={{ justifySelf: 'stretch', marginTop: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', gap: 2, justifyItems: 'center' }}>
+              <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', justifySelf: 'start' }}>📐 Sơ đồ</span>
+              <img src={url} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />
+            </button>; })()}
           <div style={{ justifySelf: 'stretch' }}><KyThuatTheoNhom kt={c.ky_thuat} /></div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

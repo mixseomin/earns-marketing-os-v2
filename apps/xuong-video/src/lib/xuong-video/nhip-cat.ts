@@ -7,7 +7,7 @@ import type { TheLoai } from './dien-anh';
 
 /** Trần nhịp theo thể loại: tb = trần độ dài trung bình một đoạn thoại (s), le = trần một shot thoại lẻ (s). Thể loại không có = không đo. */
 export const TRAN_NHIP: Partial<Record<TheLoai, { tb: number; le: number }>> = {
-  phim_doc: { tb: 3, le: 5 },
+  phim_doc: { tb: 2.5, le: 5 },   // 26/10/2026: phim AI ReelShort / Trung Quốc đo 1,3–2,5 s/shot (tham-khao/reelshort.md)
 };
 type ShotNhip = { id: number; thu_tu: number; phat_s?: number | null; thoi_luong_s?: number | null; thoai?: unknown[] | null };
 export type CanhBaoNhip = { tu: number; den: number; chu: string };

@@ -8,7 +8,7 @@ import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, khoaKhung, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { giayDoc } from './nhip-hinh';
-import { vanLuatDung, LUAT_DUNG_CANH } from './luat-dung';
+import { vanLuatDung, LUAT_DUNG_CANH, luatDung } from './luat-dung';
 import { vanKhuonChuoi } from './khuon-chuoi';
 import { vanKhanGia } from './khan-gia';
 import { vanGoi, goiTheoKey } from './goi-the-loai';
@@ -262,7 +262,8 @@ export async function tachCanh(opts: {
   if (mau) { opts = { ...opts, soCanh: mau.shots.length, thoiLuongS: giayMau(mau) }; }
   // Thời lượng mục tiêu chia cho từng beat (quảng cáo có tỉ lệ sẵn) → Claude biết hook được mấy giây, không tự kéo 24s thành 64s.
   const giayTheoBeat = opts.thoiLuongS && !mau ? giayBeat(kKhung, opts.thoiLuongS) : null;
-  const toiGiay = giayDoc({ laQc, khong_loi: kt.khong_loi });
+  const phimDoc = kt.the_loai === 'phim_doc';
+  const toiGiay = giayDoc({ laQc, khong_loi: kt.khong_loi, phim_doc: phimDoc });
   const user = [
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC (nối mạch, không kể lại):\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
@@ -273,8 +274,11 @@ export async function tachCanh(opts: {
     `KHUNG BEAT (${khung.ten}):\n${khung.beats.map((b, i) => `- ${b.ten}: ${b.mo_ta}${giayTheoBeat ? ` → giây ${giayTheoBeat[i]!.tu}–${giayTheoBeat[i]!.den}` : ''}`).join('\n')}`,
     `THƯ VIỆN ĐIỆN ẢNH (chọn key cho từng shot):\n${taThuVien(kt.the_loai)}`,
     opts.khuon ?? '',
+    // Phim ngắn dọc: luật nhịp / eye trace / lời kể là luật THỢ (xem: false — không vào lời dặn người xem ảo) nên phải đưa riêng vào lúc tách shot.
+    // Đọc thẳng từ thư viện luật (luat-dung.ts) — một nguồn, không chép câu.
+    phimDoc ? `KHUÔN PHIM NGẮN DỌC (bắt buộc khi chia shot):\n${['nhip_phim_doc', 'nhip_cat_doc', 'eye_trace', 'loi_ke_noi_tam', 'vang_mat_do'].map((k) => luatDung(k)).filter(Boolean).map((l) => `- [${l!.key}] ${l!.ten}: ${l!.luat}`).join('\n')}` : '',
     opts.thoiLuongS ? `THỜI LƯỢNG MỤC TIÊU: ${opts.thoiLuongS} giây — tổng phat_s của mọi shot (trừ hook_bien_the) phải trong khoảng ${Math.round(opts.thoiLuongS * 0.9)}–${Math.round(opts.thoiLuongS * 1.1)} giây.` : '',
-    mau ? HUONG_DAN_MAU(mau.shots.length) : opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot${laQc ? '' : `, mỗi shot phát ≥ ${toiGiay} giây (luật 10 — nhịp đọc)`}.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : `Số shot vừa đủ kể hết kịch bản, mỗi shot ${toiGiay}–8 giây.`,
+    mau ? HUONG_DAN_MAU(mau.shots.length) : opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot${laQc ? '' : `, mỗi shot phát ≥ ${toiGiay} giây (luật 10 — nhịp đọc)`}.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : phimDoc ? `Số shot vừa đủ kể hết kịch bản theo khuôn phim ngắn dọc: phần lớn shot phát ${toiGiay}–2,5 giây, shot thoại dài theo câu nói (≤ 5 giây).` : `Số shot vừa đủ kể hết kịch bản, mỗi shot ${toiGiay}–8 giây.`,
   ].filter(Boolean).join('\n\n');
   try {
     // Mỗi shot ≈ 700–900 token JSON (2 prompt tiếng Anh + kỹ thuật + thoại); 28 shot bám mẫu vượt trần 16k → JSON đứt giữa chừng (09/10/2026).

@@ -67,9 +67,12 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
  *  + lời dẫn đỡ), phim truyện cần trọn đầu–giữa–cuối của hành động, phim không lời còn lâu hơn vì không có lời giải thích.
  *  MỘT luật cho: tách cảnh (claude.ts kẹp phat_s + giới hạn số shot), khớp giây theo giọng (hau-ky.ts không co dưới mức này),
  *  cổng tiền kỳ (chanTienKy). */
-export const giayDoc = (p: { laQc?: boolean; khong_loi?: boolean }): number => (p.laQc ? 1.5 : p.khong_loi ? 3.5 : 3);
+// PHIM NGẮN DỌC (đo 14 phim AI ReelShort + Trung Quốc, 26/10/2026 — tham-khao/reelshort.md): shot trung vị 1,3–2,5 s, mảnh hành động / cận đồ /
+// phản ứng chỉ 1–1,5 s — sàn 3 s ép mọi shot thành 3–4 s (bản Thang máy #353 17 × 4 s, AI phải diễn trọn cú chạm trong một clip). Shot có thoại vẫn
+// không co dưới độ dài câu nói (hau-ky.ts › canPhat).
+export const giayDoc = (p: { laQc?: boolean; khong_loi?: boolean; phim_doc?: boolean }): number => (p.laQc ? 1.5 : p.khong_loi ? 3.5 : p.phim_doc ? 1.2 : 3);
 /** Số shot tối đa cho một thời lượng mà mỗi shot vẫn đủ giây đọc (chừa ~0,5s/shot cho phản ứng). */
-export const soShotToiDa = (giay: number, p: { laQc?: boolean; khong_loi?: boolean }): number => Math.max(1, Math.floor(giay / (giayDoc(p) + (p.laQc ? 0 : 0.5))));
+export const soShotToiDa = (giay: number, p: { laQc?: boolean; khong_loi?: boolean; phim_doc?: boolean }): number => Math.max(1, Math.floor(giay / (giayDoc(p) + (p.laQc ? 0 : 0.5))));
 export const TIEN_TO_NHIP_DOC = 'nhịp đọc: ';
 export const TIEN_TO_DAN_KHONG_GIAN = 'dẫn không gian: ';
 export const TIEN_TO_VAI_KE = 'vai kể: ';

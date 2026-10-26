@@ -25,6 +25,7 @@ assert.deepStrictEqual(kiemGiayDoc(T1, { laQc: true }), []);
 assert.deepStrictEqual(kiemGiayDoc([{ thu_tu: 1, phat_s: null, thoi_luong_s: 4 }], { khong_loi: true }), []);
 assert.strictEqual(kiemGiayDoc(T1, {}).length, 1, 'phim truyện có lời: ngưỡng 3s vẫn chặn shot 2s');
 assert.ok(giayDoc({ khong_loi: true }) > giayDoc({}) && giayDoc({}) > giayDoc({ laQc: true }));
+assert.equal(giayDoc({ phim_doc: true }), 1.2, 'phim ngắn dọc: sàn 1,2 s'); assert.equal(giayDoc({ phim_doc: true, khong_loi: true }), 3.5, 'không lời vẫn thắng');
 assert.strictEqual(soShotToiDa(48, { khong_loi: true }), 12, '48s không lời → tối đa 12 shot (không phải 20)');
 assert.strictEqual(soShotToiDa(30, { laQc: true }), 20);
 // dẫn không gian: bối cảnh 1 = cả bàn, 2 = rừng cáp, 3 = đế cắm; 9 = nhân vật (không phải bối cảnh)

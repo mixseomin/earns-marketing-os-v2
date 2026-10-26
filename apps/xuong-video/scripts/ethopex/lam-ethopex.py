@@ -97,11 +97,56 @@ def chan_sau_giam(cid):
     return None
 ROI_TANG_LAI = 50
 
+def tat_loat(ids, luat, ai, t7=False):
+    """TẮT HÀNG LOẠT (anh 26/10/2026: "sao ko gửi hàng loạt — backend có nút select all rồi set"): cùng chặn như `tat` nhưng đọc số MỘT lần cho cả danh sách
+    (3 lượt Report: hôm nay · 2 ngày · từ đầu tháng) + một danh sách camp, rồi MỘT lệnh bulk mỗi 50 camp, đọc lại một lần. Bản cũ gọi từng camp ~25 giây/camp."""
+    import datetime as dt
+    if not ((ai or "").strip().lower().startswith("anh") or "(nút telegram)" in (ai or "").lower()): raise ValueError("cấm tự tắt camp — phải có anh duyệt")
+    if not (luat or "").strip(): raise ValueError("tắt camp phải ghi rõ luật nào (--luat)")
+    hn = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date(); mai = (hn + dt.timedelta(days=1)).isoformat()
+    def ky(tu):
+        g = {}
+        for x in api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 5000, "page": 1, "page_size": 5000, "date_from": tu, "date_to": mai}).get("rows", []):
+            a = g.setdefault(int(x["campaign_id"]), [0.0, 0.0]); a[0] += float(x.get("cost") or 0); a[1] += float(x.get("revenue") or 0)
+        return g
+    nay, hai, tong = ky(hn.isoformat()), ky((hn - dt.timedelta(days=1)).isoformat()), ky(hn.replace(day=1).isoformat())
+    roi = lambda g, c: (lambda x: (x[1] - x[0]) / x[0] * 100 if x and x[0] >= 0.3 else None)(g.get(c))
+    ds = {int(c["id"]): c for c in api("/api/v1/campaigns?page_size=2000")["data"]}
+    kq = {"gui": [], "lich": [], "giu": {}, "da_tat": [], "chua": []}
+    for c in ids:
+        st = (ds.get(c) or {}).get("state")
+        if st != "ACTIVE":
+            if q(f"delete from etp.lich_tat where camp_id = {c} returning camp_id"): kq["lich"].append(c)
+            else: kq["giu"][c] = f"camp đã {st}"
+            continue
+        tuoi = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(str(ds[c].get("created_at")).replace("Z", "+00:00"))).total_seconds() / 86400 if ds[c].get("created_at") else 99
+        ly = (f"camp mới {tuoi:.1f} ngày (< {TUOI_TOI_THIEU_TAT})" if not t7 and tuoi < TUOI_TOI_THIEU_TAT else
+              f"mới tiêu ${(tong.get(c) or [0])[0]:.2f} (< ${CHI_TOI_THIEU_TAT})" if not t7 and (tong.get(c) or [0])[0] < CHI_TOI_THIEU_TAT else
+              f"hôm nay ROI {roi(nay, c):+.0f}%" if (roi(nay, c) or -1e9) > ROI_GIU else
+              f"2 ngày ROI {roi(hai, c):+.0f}%" if (roi(hai, c) or -1e9) > 0 else
+              f"cộng dồn ROI {roi(tong, c):+.0f}%" if (roi(tong, c) or -1e9) > 0 else None)
+        if ly: kq["giu"][c] = ly
+        else: kq["gui"].append(c)
+    for i in range(0, len(kq["gui"]), 50):
+        r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": kq["gui"][i:i + 50], "status": "paused"}])
+        d0 = (r.get("data") or [{}])[0]
+        if d0 and d0.get("ok") is False: raise ValueError(d0.get("error") or "Ethopex từ chối tắt")
+    if kq["gui"]:
+        for _ in range(4):
+            time.sleep(5); ds2 = {int(c["id"]): c.get("state") for c in api("/api/v1/campaigns?page_size=2000")["data"]}
+            if all(ds2.get(c) == "PAUSED" for c in kq["gui"]): break
+        kq["da_tat"] = [c for c in kq["gui"] if ds2.get(c) == "PAUSED"]; kq["chua"] = [c for c in kq["gui"] if ds2.get(c) != "PAUSED"]
+    for c in kq["da_tat"] + kq["lich"]:
+        ghi_nhat_ky({"viec": "tat", "id": c, "ok": True, "truoc": {"ns": ds[c].get("budget_daily"), "tt": "ACTIVE"}, "sau": {"ns": ds[c].get("budget_daily"), "tt": "PAUSED"}}, luat, ai)
+    return kq
+
 def main(a):
     # --luat "<mã luật · số liệu>" (BẮT BUỘC ghi khi tăng — anh 21/10/2026) · --ai "<ai duyệt: anh (chat) / anh (nút Telegram)>"
     luat = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--luat"), None); ai = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--ai"), None)
     ep = "--ep" in a   # anh lệnh đích danh (vd phim 18+) — bỏ qua chặn camp lãi
     a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
+    if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
+        print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv), ensure_ascii=False)); return
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
     try:
         truoc = doc(cid); kq["truoc"] = truoc

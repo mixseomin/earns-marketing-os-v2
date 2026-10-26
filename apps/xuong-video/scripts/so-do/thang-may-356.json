@@ -8,7 +8,8 @@
    "duoi": "#141416",
    "nhan": "Hạ",
    "en": "Lâm Hạ (young woman, long straight black hair, white blouse with a coffee stain on her left chest, black trousers)",
-   "gioi": "nu"
+   "gioi": "nu",
+   "ten_db": "Lâm Hạ"
   },
   "vi": {
    "ao": "#7a1325",
@@ -16,7 +17,8 @@
    "duoi": "#7a1325",
    "nhan": "Vivian",
    "en": "Vivian (woman in her thirties, glossy hair in a ponytail, fitted burgundy office dress, red nails, small gold stud earrings, bold red lipstick)",
-   "gioi": "nu"
+   "gioi": "nu",
+   "ten_db": "Vivian"
   },
   "than": {
    "ao": "#111216",
@@ -24,7 +26,8 @@
    "duoi": "#111216",
    "nhan": "Lục Thần",
    "en": "Lục Thần (tall man about thirty, short dark hair, black suit, cold face)",
-   "gioi": "nam"
+   "gioi": "nam",
+   "ten_db": "Lục Thần"
   }
  },
  "shot": [

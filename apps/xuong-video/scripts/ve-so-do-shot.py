@@ -86,6 +86,7 @@ def anh_nhin(d, nv, nvs_ds):
         d.text(vt, nhan, font=f_nho, fill=(255, 220, 80), anchor=neo, stroke_width=2, stroke_fill=(30, 30, 30))
 
 TEN = {}
+SACH = False   # --cho-ai: khung sạch làm ảnh bố cục cho AI — bỏ chữ, dấu neo, mũi tên, ô nét cuối (AI hay vẽ lại chúng thành vật thật)
 TEN_CAM = {'binh_thuong': 'Bình thường', 'lo_lang': 'Lo lắng', 'buon': 'Buồn', 'lanh_lung': 'Lạnh lùng', 'khinh_bi': 'Khinh bỉ', 'dac_y': 'Đắc ý',
            'nhuc_nha': 'Nhục nhã', 'nhan_nhin': 'Nhẫn nhịn', 'gian': 'Giận', 'soc': 'Sốc', 'quyet_tam': 'Quyết tâm', 'nhech_moi': 'Nhếch môi',
            'bat_ngo': 'Bất ngờ', 'tu_tin': 'Tự tin', 'vui': 'Vui'}
@@ -175,6 +176,9 @@ def khung(s, nvs):
     for n in [n for n in ds if not n.get('lung')] + [n for n in ds if n.get('lung')]:
         co = 'cu' if (n.get('lung') and s['co'] == 'qua_vai') else s['co']
         nguoi(d, n, nvs[n['ma']], co, to_them=n.get('to', 1.0))
+    if SACH:
+        for o in s.get('do', []): do_vat(d, o, nvs)
+        return im.crop((0, 0, W, H))
     for n in s.get('nguoi', []): anh_nhin(d, n, s.get('nguoi', []))
     # ô NÉT CUỐI shot (khi đổi nét): mặt nhỏ góc trên, cùng màu da / tóc
     ds_cuoi = [n for n in s.get('nguoi', []) if not n.get('lung') and len(n.get('mat') or []) > 1 and n['mat'][1] != n['mat'][0]]
@@ -205,6 +209,10 @@ def khung(s, nvs):
 
 if __name__ == '__main__':
     bang = json.load(open(sys.argv[1])); ra = sys.argv[2]; cot = int(sys.argv[sys.argv.index('--cot') + 1]) if '--cot' in sys.argv else 6
+    if '--cho-ai' in sys.argv:   # ra = thư mục: so-<N>.png từng khung sạch
+        SACH = True; os.makedirs(ra, exist_ok=True); TEN.update(bang.get('ten_vat', {}))
+        for sh in bang['shot']: khung(sh, bang['nhan_vat']).save(f"{ra}/so-{sh['so']}.png")
+        print(ra, len(bang['shot'])); sys.exit(0)
     TEN.update(bang.get('ten_vat', {}))
     ks = [khung(s, bang['nhan_vat']) for s in bang['shot']]
     hang = math.ceil(len(ks) / cot); g = 12

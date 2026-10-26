@@ -157,13 +157,38 @@ TAT_CHAM_TEP, DUYET_TEP = "/var/lib/cty/etp-cham-tat.json", "/var/lib/cty/etp-ch
 # creative của camp: kho ghi creative_id; camp nhân bản qua Ethopex (★ ROAS "… duplicate by <gốc>") kho để 0 → lấy creative của camp gốc
 CR_CAMP = r"coalesce(nullif(c.creative_id, 0), (select s.creative_id from etp.camp s where s.camp_id = substring(c.ten from 'duplicate by (\d+)')::int))"
 
+def cham_mien():
+    """MIỄN LUẬT CHẤM THEO CAMP — etp.cau_hinh 'cham_mien' là mảng; mỗi phần tử:
+      · camp_id (số)  → miễn vĩnh viễn (anh 26/10/2026 "chỉ bật lại camp đang cắn tiền" — camp ROAS ★ anh cho chạy tiếp)
+      · {"camp": id, "den": ISO, "het_khi_co_thay": true} → MIỄN CÓ THỜI HẠN (anh 27/10/2026: "bật lại các camp chưa có creative thay thế tạm đến khi
+        có camp thay thế" · "miễn luật có thời hạn đi"): hết miễn khi quá `den`, hoặc khi phim của camp đã có camp thay chạy được = camp khác cùng phim,
+        creative được lên (etp.cham_cong.duoc_len), đang ACTIVE, ngân sách ≥ $5. Hết miễn → lượt này luật chấm tắt lại như thường (có báo Telegram).
+    → tập camp_id (chuỗi) đang được miễn."""
+    ds = json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from etp.cau_hinh where khoa = 'cham_mien'") or "[]")
+    now = dt.datetime.now(dt.timezone.utc)
+    ra, han = set(), {}
+    for x in ds:
+        if isinstance(x, dict):
+            try:
+                if dt.datetime.fromisoformat(str(x["den"]).replace("Z", "+00:00")) < now: continue
+            except Exception: continue
+            han[str(int(x["camp"]))] = bool(x.get("het_khi_co_thay", True))
+        else: ra.add(str(int(x)))
+    if han:
+        co_thay = {l for l in q(f"""select c.camp_id from etp.camp c where c.camp_id in ({','.join(han)}) and exists (select 1 from etp.camp k
+            join etp.cham_cong g on g.creative_id = k.creative_id where k.content_id = c.content_id and k.camp_id <> c.camp_id and g.duoc_len
+            and k.trang_thai = 'ACTIVE' and k.ngan_sach >= 5)""").split() if l.isdigit()}
+        ra |= {c for c, theo_thay in han.items() if not (theo_thay and c in co_thay)}
+    return ra
+
 def tat_cham():
     """LUẬT CHẤM (anh 26/10/2026: "creative <= 4 điểm chấm META hoặc GG đều tắt camp tự động nếu đang chạy … 5 điểm thì cần review người thật"
     · "Áp dụng cho mọi loại camp" · "kể cả đang lãi"). Một nguồn: view etp.cham_cong (0341) — cột tat (≤ 4 / người duyệt loại), cho_duyet (5 điểm).
     Mỗi lượt (10 phút): (1) camp tạm dừng vì lịch mà creative dính → bỏ khỏi sổ lịch (20h không bật lại); (2) camp ACTIVE mọi loại (thường, ★ ROAS,
     phim mới, đang lãi) dính → lam-ethopex tat-loat --ep; (3) creative chưa chấm của camp đang chạy → xếp hàng chấm; (4) creative 5 điểm → báo
     Telegram kèm nút Đạt / Loại (mỗi creative báo một lần)."""
-    bo = [l.split("|") for l in q(f"""select c.camp_id, g.chan_boi from etp.lich_tat l join etp.camp c using (camp_id) join etp.cham_cong g on g.creative_id = {CR_CAMP} where g.tat""").splitlines() if "|" in l]
+    mien = cham_mien()
+    bo = [l.split("|") for l in q(f"""select c.camp_id, g.chan_boi from etp.lich_tat l join etp.camp c using (camp_id) join etp.cham_cong g on g.creative_id = {CR_CAMP} where g.tat""").splitlines() if "|" in l and l.split("|")[0] not in mien]
     if bo:
         q(f"delete from etp.lich_tat where camp_id in ({','.join(c for c, _ in bo)})")
         ghi("cham_bo_lich", sorted(int(c) for c, _ in bo), "luật chấm ≤ 4 (Meta / GG): bỏ khỏi sổ lịch, không bật lại")
@@ -173,8 +198,6 @@ def tat_cham():
     da = {k: v for k, v in da.items() if now - v < 3600}
     dinh = [l.split("|") for l in q(f"""select c.camp_id, {CR_CAMP}, g.chan_boi from etp.camp c join etp.cham_cong g on g.creative_id = {CR_CAMP}
         where c.trang_thai = 'ACTIVE' and g.tat order by 1""").splitlines() if l.count("|") == 2]
-    # MIỄN THEO CAMP (anh 26/10/2026 "chỉ bật lại camp đang cắn tiền" — camp ROAS ★ anh cho chạy tiếp): etp.cau_hinh 'cham_mien' = [camp_id, …]
-    mien = {str(x) for x in json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from etp.cau_hinh where khoa = 'cham_mien'") or "[]")}
     moi = [x for x in dinh if x[0] not in da and x[0] not in mien]   # đã gửi lệnh trong 1 giờ (kho chưa kịp thấy PAUSED) → không gửi / báo lại
     if moi:
         ids = ",".join(c for c, _, _ in moi)

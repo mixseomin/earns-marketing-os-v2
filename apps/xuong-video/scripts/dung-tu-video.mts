@@ -27,7 +27,8 @@ for (const [i, s] of b.shot.entries()) {
   if (!tep) { console.log(`#${s.so}: thiếu video — bỏ`); continue; }
   const thoai = /\/noi-/.test(tep), dTep = dai(tep);
   const vao = thoai || /\/(tinh|clip)-/.test(tep) ? 0 : Math.min(0.2, Math.max(0, dTep - s.giay));
-  const d = thoai ? dTep : Math.min(s.giay, dTep - vao) + (/\/clip-/.test(tep) ? 0 : 0);
+  // độ dài làm tròn ĐÚNG số khung (24/giây) — hình và tiếng cùng một con số; tiếng 48 kHz = đúng 2.000 mẫu / khung (44,1 kHz lẻ 1.837,5)
+  const d = Math.round((thoai ? dTep : Math.min(s.giay, dTep - vao)) * 24) / 24;
   const cuoi = i === b.shot.length - 1;
   const sub = s.thoai ?? (s.ke ? s.ke.replace(/\s*\(nháp\)\s*$/, '') : '');
   const ve = ngat(sub).map((t, k, a) => `drawtext=fontfile=${FONT}:text='${t.replace(/[':\\]/g, (c) => `\\${c}`)}':fontcolor=white:fontsize=40:borderw=4:bordercolor=black:x=(w-tw)/2:y=h*0.80-${(a.length - 1 - k) * 50}`).join(',');
@@ -42,12 +43,18 @@ for (const [i, s] of b.shot.entries()) {
   const sfx = s.sfx ? new URL(`../public/sfx/${s.sfx}.mp3`, import.meta.url).pathname : null; if (sfx && existsSync(sfx)) { vaoTieng.push('-i', sfx); loc.push(`[${loc.length + 1}:a]volume=0.5`); }
   const a = `${tam}/a-${s.so}.wav`;
   const fc = loc.map((x, k) => `${x}[t${k}];`).join('') + `[0:a]${loc.map((_, k) => `[t${k}]`).join('')}amix=inputs=${loc.length + 1}:duration=first:normalize=0[a]`;
-  sh(['-f', 'lavfi', '-t', d.toFixed(2), '-i', 'anullsrc=r=44100:cl=stereo', ...vaoTieng, '-filter_complex', fc, '-map', '[a]', '-t', d.toFixed(2), a]);
-  const m = `${tam}/m-${s.so}.mp4`; sh(['-i', v, '-i', a, '-c:v', 'copy', '-c:a', 'aac', '-shortest', m]); doan.push(m); moc += d;
+  sh(['-f', 'lavfi', '-t', d.toFixed(2), '-i', 'anullsrc=r=48000:cl=stereo', ...vaoTieng, '-filter_complex', fc, '-map', '[a]', '-t', d.toFixed(2), a]);
+  doan.push(`${v}|${a}`); moc += d;
   console.log(`#${s.so} ${d.toFixed(2)}s ← ${tep.split('/').pop()}`);
 }
-writeFileSync(`${tam}/ds.txt`, doan.map((x) => `file '${x}'`).join('\n'));
-const ghep = keTren.length ? `${tam}/ghep.mp4` : ra;
-sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/ds.txt`, '-c:v', 'libx264', '-crf', '19', '-c:a', 'aac', '-movflags', '+faststart', ghep]);
-if (keTren.length) sh(['-i', ghep, ...keTren.flatMap((k) => ['-i', k.f]), '-filter_complex', `${keTren.map((k, j) => `[${j + 1}:a]adelay=${Math.round(k.tu * 1000)}|${Math.round(k.tu * 1000)}[k${j}];`).join('')}[0:a]${keTren.map((_, j) => `[k${j}]`).join('')}amix=inputs=${keTren.length + 1}:duration=first:normalize=0[a]`, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-movflags', '+faststart', ra]);
+// NỐI: hình nối riêng (đã cùng mã), tiếng nối riêng ở dạng PCM (wav — không có khung đệm đầu như AAC) rồi mới ghép một lần. 27/10/2026: mỗi đoạn mã AAC riêng
+// rồi nối → mỗi đoạn thêm vài chục ms đệm, 29 đoạn trôi ~1,6 giây → giọng đè sang shot người khác, miệng không khớp tiếng.
+writeFileSync(`${tam}/v.txt`, doan.map((x) => `file '${x.split('|')[0]}'`).join('\n')); writeFileSync(`${tam}/a.txt`, doan.map((x) => `file '${x.split('|')[1]}'`).join('\n'));
+sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/v.txt`, '-c', 'copy', `${tam}/hinh.mp4`]);
+sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/a.txt`, '-c', 'copy', `${tam}/tieng.wav`]);
+const tieng = keTren.length ? `${tam}/tieng-ke.wav` : `${tam}/tieng.wav`;
+if (keTren.length) sh(['-i', `${tam}/tieng.wav`, ...keTren.flatMap((k) => ['-i', k.f]), '-filter_complex', `${keTren.map((k, j) => `[${j + 1}:a]aresample=48000,adelay=${Math.round(k.tu * 1000)}|${Math.round(k.tu * 1000)}[k${j}];`).join('')}[0:a]${keTren.map((_, j) => `[k${j}]`).join('')}amix=inputs=${keTren.length + 1}:duration=first:normalize=0[a]`, '-map', '[a]', tieng]);
+sh(['-i', `${tam}/hinh.mp4`, '-i', tieng, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', '19', '-c:a', 'aac', '-movflags', '+faststart', ra]);
+// TỰ KIỂM: tiếng và hình phải dài bằng nhau (lệch > 1 khung = có đoạn trôi)
+const lech = Math.abs(dai(`${tam}/tieng.wav`) - dai(`${tam}/hinh.mp4`)); console.log(`lệch tiếng/hình: ${(lech * 1000).toFixed(0)} ms${lech > 1 / 24 ? ' ⚠ QUÁ 1 KHUNG' : ''} · tổng mốc ${moc.toFixed(2)}s`);
 console.log(ra, `${dai(ra).toFixed(1)}s`, `${doan.length} shot`);

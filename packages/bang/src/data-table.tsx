@@ -387,7 +387,8 @@ export function DataTable<T>({
   };
   const stick = (i: number, head: boolean): CSSProperties => {
     const g = ghim(i);
-    return g ? { position: 'sticky', left: g.left, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--bg-1)',
+    // ô ghim thân bảng: nền đặc lấy từ biến --dt-row-bg nếu rowStyle của dòng đặt (dòng đang được tô), không thì nền thường
+    return g ? { position: 'sticky', left: g.left, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--dt-row-bg, var(--bg-1))',
         boxShadow: g.cuoi ? '1px 0 0 var(--line)' : undefined, ...(i === 0 ? { maxWidth: STICKY_MAX } : {}), overflow: 'hidden', textOverflow: 'ellipsis' } : {};
   };
   // bảng bề rộng cố định (table-layout:fixed — đã kéo cột / fixedLayout): ô nào cũng cắt phần tràn, không thì chữ dài đè sang cột bên cạnh (anh 26/10/2026)

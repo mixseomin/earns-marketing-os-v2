@@ -622,7 +622,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
           { value: 'loi', label: 'Cấm', title: 'máy kết cấm hoặc Meta từ chối' }, { value: 'meta', label: 'Meta loại', title: 'Meta từ chối thật' }, { value: 'chua', label: 'Chưa chấm' }]} /></span>
       </div>
       <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1100} pageSize={100} stickyCols={3}
-        rowStyle={(x) => (the && (the as The).cr === x.r.creative_id ? { background: 'rgba(56,189,248,.14)', outline: '1px solid #38bdf8', outlineOffset: -1 } : undefined)}
+        rowStyle={(x) => (the && (the as The).cr === x.r.creative_id ? ({ background: '#0f2a3a', '--dt-row-bg': '#0f2a3a', outline: '1px solid #38bdf8', outlineOffset: -1 } as React.CSSProperties) : undefined)}
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
           { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(x.r.creative_id)}<span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },

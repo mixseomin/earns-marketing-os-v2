@@ -23,11 +23,13 @@ let dangChay = Promise.resolve();
 export function motLuc<T>(f: () => Promise<T>): Promise<T> { const p = dangChay.then(f, f); dangChay = p.then(() => undefined, () => undefined); return p; }
 const FLOCK = existsSync('/usr/bin/flock') ? '/usr/bin/flock' : null;
 const KHOA_TESS = join(tmpdir(), 'soi-chu-tesseract.lock');
+// Ảnh khung tại chỗ ghi ra đĩa (/var/tmp), không /tmp: /tmp box3 là tmpfs 512M hay đầy → ffmpeg ghi khung hỏng, mất khung soi (đo 26/10/2026).
+const THU_KHUNG = existsSync('/var/tmp') ? '/var/tmp' : tmpdir();
 const nhe = (cmd: string, args: string[]): [string, string[]] => FLOCK ? [FLOCK, ['-w', '300', KHOA_TESS, 'nice', '-n', '19', cmd, ...args]] : ['nice', ['-n', '19', cmd, ...args]];
 
 /** Đường tại chỗ: cắt khung rồi tesseract lần lượt, nice 19, mỗi lúc một tesseract. */
 export async function docChuTaiCho(url: string, giay: number[]): Promise<(string | null)[]> {
-  const thu = await mkdtemp(join(tmpdir(), 'soi-clip-'));
+  const thu = await mkdtemp(join(THU_KHUNG, 'soi-clip-'));
   try {
     const ra: (string | null)[] = [];
     for (const [i, t] of giay.entries()) {

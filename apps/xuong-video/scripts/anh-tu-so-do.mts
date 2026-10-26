@@ -16,7 +16,7 @@ const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.sl
 const bang = JSON.parse(readFileSync(gia('bang')!, 'utf8')) as BangShot; const thu = gia('khung')!; const phim = Number(gia('phim')); const shotMau = Number(gia('shot') || 0);
 const ds = gia('so') === 'all' ? bang.shot.map((x) => x.so) : (gia('so') || '').split(',').map(Number).filter(Boolean);
 if (!thu || !phim || !ds.length) { console.error('cần --bang --khung --so --phim'); process.exit(1); }
-if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1'); process.exit(2); }
+if (!process.env.DUYET_SINH_1_LAN && !process.argv.includes('--xem')) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1 (hoặc --xem để chỉ in prompt)'); process.exit(2); }
 const db = getDb()!;
 // SỔ ĐỒ VẬT của cảnh (studio) — trạng thái đồ trong phiếu lấy từ đây, không từ sơ đồ
 const tapId = Number(((await db.execute(sql`SELECT tap_id FROM xv_canh WHERE id = ${shotMau}`)) as unknown as Row[])[0]?.tap_id ?? 0);
@@ -27,21 +27,29 @@ const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat
 const khac = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai IN ('dao_cu', 'boi_canh') ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
 const btShot: number[] = shotMau ? ((((await db.execute(sql`SELECT bien_the FROM xv_canh WHERE id = ${shotMau}`)) as unknown as Row[])[0]?.bien_the ?? []) as number[]) : [];
 const anhMau = (ten: string) => { const v = nv.find((x) => x.ten === ten); const bt = (v?.bien_the ?? []).find((b) => btShot.includes(b.id) && b.anh_url); return bt?.anh_url ?? v?.anh_ref[0] ?? ''; };
+// TRANG PHỤC theo SHOT (bảng: bien_the mặc định của cảnh, shot đè) — tả = mô tả gốc + biến thể; ảnh mẫu = ảnh biến thể, biến thể chưa có ảnh (vd "không thẻ")
+// thì mượn ảnh biến thể cùng bộ đồ có ảnh, câu tả đè trạng thái (26/10/2026: phiếu dùng câu tả nháp → vết cà phê, cúc áo, thẻ mỗi khung một kiểu)
+const btCua = (s: { bien_the?: Record<string, number> }, ma: string) => { const id = s.bien_the?.[ma] ?? bang.bien_the?.[ma]; const v = nv.find((x) => x.ten === bang.nhan_vat[ma]?.ten_db); return { v, bt: (v?.bien_the ?? []).find((b) => b.id === id) }; };
+const taCua = (s: { bien_the?: Record<string, number> }) => Object.fromEntries(Object.keys(bang.nhan_vat).flatMap((ma) => { const { v, bt } = btCua(s, ma); return v ? [[v.ten, `${v.ten} (${v.mo_ta}; wearing: ${bt?.mo_ta ?? 'the outfit of reference image'})`]] : []; }));
+const anhCua = (s: { bien_the?: Record<string, number> }, ten: string) => { const ma = Object.keys(bang.nhan_vat).find((m) => bang.nhan_vat[m]?.ten_db === ten); const { v, bt } = ma ? btCua(s, ma) : { v: undefined, bt: undefined };
+  return bt?.anh_url ?? (v?.bien_the ?? []).find((b) => b.anh_url && bt && b.mo_ta.length > 20 && bt.mo_ta.startsWith(b.mo_ta.slice(0, 60)))?.anh_url ?? anhMau(ten); };
+const vatTa = Object.fromEntries(khac.filter((x) => x.loai === 'dao_cu' && x.mo_ta).map((x) => [x.ten, x.mo_ta]));
 const len = async (f: string, k: string) => { const jpg = f.endsWith('.jpg'); const u = await uploadToR2(`xuong-video/thu/so-do-${k}-${randomUUID()}.${jpg ? 'jpg' : 'png'}`, readFileSync(f), jpg ? 'image/jpeg' : 'image/png'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 
 const BO_CUC = 'Image 1 is a flat schematic storyboard diagram, NOT a style reference: use it ONLY for the layout — the framing and crop, who stands where (screen left / right), which way each body and head turns, where the props are. '
   + 'Everything must look like a real photograph from a live-action drama: real people with natural skin, real hair, real fabric, real anatomy and hands. Never draw flat shapes, outlines, arrows, symbols or any diagram graphics.';
 async function motKhung(so: number) {
   const s = bang.shot.find((x) => x.so === so); if (!s) return console.log(`#${so}: không có trong bảng`);
-  const co = (s.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '').filter((t) => t && anhMau(t)).slice(0, 2);
+  const co = (s.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '').filter((t) => t && anhCua(s, t)).slice(0, 2);
   // chỗ còn lại: đạo cụ trong khung (khai ở cận đồ / người trong khung đang giữ) rồi bối cảnh
   const doTrong = [...new Set([...(s.do ?? []).map((o) => bang.vat_so?.[o.loai]), ...(s.nguoi ?? []).flatMap((n) => [...(n.cam ?? []), ...(n.deo ?? [])].map((k) => bang.vat_so?.[k.split('_')[0]!]))].filter((x): x is string => !!x))];
   const them = [...doTrong.map((t) => khac.find((x) => x.ten === t && x.anh_ref[0])), khac.find((x) => x.loai === 'boi_canh' && x.anh_ref[0])].filter((x): x is NonNullable<typeof x> => !!x).slice(0, 2 - co.length);
-  const u1 = await len(`${thu}/so-${so}.png`, `${so}`);
-  const mat = co.map((t, i) => `${t} looks exactly like reference image ${i + 2} (same face, hair and outfit).`).join(' ');
+  const u1 = process.argv.includes('--xem') ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
+  const mat = co.map((t, i) => `${t} looks exactly like reference image ${i + 2} (same face and hair; the outfit follows reference image ${i + 2} AND the wearing description above — the description wins on stains, badges and details).`).join(' ');
   const mau2 = them.map((x, i) => x.loai === 'boi_canh' ? `Reference image ${co.length + i + 2} is the location — match its walls, doors, materials and warm lighting (not its framing).` : `Reference image ${co.length + i + 2} shows ${x.ten} — draw it exactly like this.`).join(' ');
-  const p = `${BO_CUC}\n${phieuShot(bang, s, kg)}\n${mat} ${mau2}`;
-  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map(anhMau), ...them.map((x) => x.anh_ref[0]!)], tiLe: '9:16' });
+  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${mat} ${mau2}`;
+  if (process.argv.includes('--xem')) return console.log(`---- #${so} (ảnh mẫu: ${co.map((t) => anhCua(s, t).split('/').pop()).join(', ')}${them.length ? ` + ${them.map((x) => x.ten).join(', ')}` : ''})\n${p}`);   // xem prompt, 0đ
+  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map((t) => anhCua(s, t)), ...them.map((x) => x.anh_ref[0]!)], tiLe: '9:16' });
   if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.loi}`);
   writeFileSync(`${thu}/so-${so}-that.png`, a.anh.data); console.log(`#${so}: ${await len(`${thu}/so-${so}-that.png`, `${so}-that`)}`);
 }

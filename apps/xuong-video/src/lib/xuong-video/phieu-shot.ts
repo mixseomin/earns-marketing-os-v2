@@ -6,7 +6,7 @@
 //   - nét mặt đầu → cuối + nét cấm (qc-cam-xuc › BIEU_CAM), trạng thái đồ từ SỔ ĐỒ VẬT (so-vat › cauVat — gồm câu "không còn trên người")
 // Tự kiểm: phieu-shot.test.mts.
 import { bieuCam, camThuc, type MaBieuCam } from './qc-cam-xuc';
-import { cauVat, type SoVat } from './so-vat';
+import { cauVat, trangThai, type SoVat } from './so-vat';
 import { NEO_MAT } from './diem-nhin';
 
 /** Cỡ khung (mã co_canh studio — dien-anh.ts THU_VIEN) → câu tiếng Anh có chỗ cắt. Mã lạ → không ghi câu khung. */
@@ -44,7 +44,7 @@ export const phiaMan = (x: number) => (x < 0.4 ? 'screen left' : x > 0.6 ? 'scre
 export type NguoiPhieu = { ten: string; ta?: string; x: number; lung?: boolean; mat?: [MaBieuCam, MaBieuCam]; quay?: number; nhin_vao?: string; nhin_huong?: 'trai' | 'phai' | 'len' | 'xuong' | 'truoc'; nam?: boolean };
 export type ShotPhieu = { co: string; goc?: 'thap' | 'cao' | 'ngang'; nguoi: NguoiPhieu[]; /** món trong khung mà người giữ ở ngoài khung (cận chèn) */ khai?: string[];
   dien_en?: string; thoai?: { ai: string; loi: string } | null; /** mảnh của sổ đồ vật áp cho shot */ so_cu?: number; may_dong?: string };
-export type NguonPhieu = { canh_en: string; so_vat?: SoVat; ten_en?: Record<string, string> };
+export type NguonPhieu = { canh_en: string; so_vat?: SoVat; ten_en?: Record<string, string>; /** MÔ TẢ CHUẨN của đạo cụ (xv_nhan_vat.mo_ta) — món có trong khung thì chép nguyên câu này */ vat_ta?: Record<string, string> };
 
 export function phieuShot(s: ShotPhieu, n: NguonPhieu): string {
   const en = (t: string) => n.ten_en?.[t] ?? t;
@@ -67,6 +67,9 @@ export function phieuShot(s: ShotPhieu, n: NguonPhieu): string {
     const dau = cauVat(n.so_vat, s.so_cu, ai, en, khai, 'dau'), ket = cauVat(n.so_vat, s.so_cu, ai, en, khai, 'ket');
     if (dau && ket && dau !== ket) dong.push(`At the start — ${dau}`, `By the end — ${ket}`); else if (ket) dong.push(ket);
   }
+  // HÌNH DẠNG CHUẨN của đạo cụ trong khung (26/10/2026: thẻ #7 tự in chữ + ảnh, thùng đổi đồ bên trong — mô tả chuẩn có sẵn mà phiếu không dùng)
+  if (n.vat_ta) { const ai = s.nguoi.map((x) => x.ten); const giu = n.so_vat && s.so_cu != null ? Object.entries(trangThai(n.so_vat, s.so_cu, 'dau')).filter(([, m]) => m.ai && ai.includes(m.ai)).map(([t]) => t) : [];
+    for (const t of [...new Set([...(s.khai ?? []), ...giu])]) if (n.vat_ta[t]) dong.push(`${t} looks exactly like this (same in every shot): ${n.vat_ta[t]}.`); }
   dong.push(`ONE motion only: ${s.dien_en ?? ''}${s.thoai?.loi ? ` ${s.thoai.ai} says (lip-sync): "${s.thoai.loi}"` : ''} ${s.may_dong ?? 'Static locked-off camera.'} No text, no captions.`.replace(/\s+/g, ' ').trim());
   return dong.join('\n');
 }

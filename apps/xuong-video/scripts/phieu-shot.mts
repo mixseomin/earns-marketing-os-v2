@@ -10,21 +10,22 @@ import { phieuShot as phieuLoi, type ShotPhieu } from '../src/lib/xuong-video/ph
 import type { KhongGian } from '../src/lib/xuong-video/khong-gian';
 
 type Nguoi = { ma: string; x: number; lung?: boolean; mat?: [MaBieuCam, MaBieuCam]; quay?: number; nhin_vao?: string; nhin_huong?: string; cam?: string[]; deo?: string[] };
-export type Shot = { so: number; so_cu?: number; giay: number; co: string; goc?: string; nguoi?: Nguoi[]; do?: { loai: string }[]; dien_en?: string; thoai?: string };
-export type BangShot = { phan_doan?: string; vat_so?: Record<string, string>; ten_vat_en?: Record<string, string>; canh_en: string;
+export type Shot = { so: number; /** biến thể trang phục theo mã người (id xv_bien_the) — đè bien_the của bảng */ bien_the?: Record<string, number>; so_cu?: number; giay: number; co: string; goc?: string; nguoi?: Nguoi[]; do?: { loai: string }[]; dien_en?: string; thoai?: string };
+export type BangShot = { /** biến thể trang phục mặc định của cảnh theo mã người */ bien_the?: Record<string, number>; phan_doan?: string; vat_so?: Record<string, string>; ten_vat_en?: Record<string, string>; canh_en: string;
   nhan_vat: Record<string, { en: string; nhan: string; gioi?: string; ten_db?: string }>; shot: Shot[] };
 
 /** Một shot của bảng sơ đồ → khuôn của lõi (tên theo danh sách nhân vật / sổ đồ vật). */
-export function sangPhieu(b: BangShot, s: Shot): ShotPhieu {
+/** taDb: tả NGƯỜI theo studio (mô tả gốc + biến thể trang phục của shot) — có thì thay câu tả nháp trong bảng. */
+export function sangPhieu(b: BangShot, s: Shot, taDb?: Record<string, string>): ShotPhieu {
   const ten = (m: string) => b.nhan_vat[m]?.ten_db ?? b.vat_so?.[m] ?? b.ten_vat_en?.[m] ?? m;
   const ng = s.nguoi ?? []; const noi = ng.find((n) => !n.lung);
   return { co: s.co, goc: s.goc as ShotPhieu['goc'], so_cu: s.so_cu, dien_en: s.dien_en, khai: (s.do ?? []).map((o) => b.vat_so?.[o.loai]).filter((x): x is string => !!x),
     thoai: s.thoai && noi ? { ai: ten(noi.ma), loi: s.thoai } : null, may_dong: /push-in|đẩy chậm/i.test(s.dien_en ?? '') ? 'Very slow push-in, no other camera move.' : undefined,
-    nguoi: ng.map((n) => ({ ten: ten(n.ma), ta: b.nhan_vat[n.ma]?.en, x: n.x, lung: n.lung, mat: n.mat, quay: n.quay, nam: b.nhan_vat[n.ma]?.gioi === 'nam',
+    nguoi: ng.map((n) => ({ ten: ten(n.ma), ta: taDb?.[ten(n.ma)] ?? b.nhan_vat[n.ma]?.en, x: n.x, lung: n.lung, mat: n.mat, quay: n.quay, nam: b.nhan_vat[n.ma]?.gioi === 'nam',
       nhin_vao: n.nhin_vao === 'phia_truoc' ? undefined : n.nhin_vao ? ten(n.nhin_vao) : undefined, nhin_huong: (n.nhin_vao === 'phia_truoc' ? 'truoc' : n.nhin_huong) as ShotPhieu['nguoi'][number]['nhin_huong'] })) };
 }
-export function phieuShot(b: BangShot, s: Shot, kg?: KhongGian | null): string {
-  return phieuLoi(sangPhieu(b, s), { canh_en: b.canh_en, so_vat: kg?.so_vat, ten_en: { ...(kg?.ten_en ?? {}), ...Object.fromEntries(Object.entries(b.ten_vat_en ?? {}).map(([k, v]) => [b.vat_so?.[k] ?? k, v])) } });
+export function phieuShot(b: BangShot, s: Shot, kg?: KhongGian | null, db?: { ta?: Record<string, string>; vat_ta?: Record<string, string> }): string {
+  return phieuLoi(sangPhieu(b, s, db?.ta), { canh_en: b.canh_en, so_vat: kg?.so_vat, vat_ta: db?.vat_ta, ten_en: { ...(kg?.ten_en ?? {}), ...Object.fromEntries(Object.entries(b.ten_vat_en ?? {}).map(([k, v]) => [b.vat_so?.[k] ?? k, v])) } });
 }
 /** Sơ đồ vẽ đồ khác sổ (người đeo / cầm món mà sổ nói không phải họ) → cảnh báo. */
 export function lechSo(b: BangShot, kg: KhongGian): string[] {

@@ -6,19 +6,25 @@
    "toc": "dai",
    "vet": true,
    "duoi": "#141416",
-   "nhan": "Hạ"
+   "nhan": "Hạ",
+   "en": "Lâm Hạ (young woman, long straight black hair, white blouse with a coffee stain on her left chest, black trousers)",
+   "gioi": "nu"
   },
   "vi": {
    "ao": "#7a1325",
    "toc": "duoi_ngua",
    "duoi": "#7a1325",
-   "nhan": "Vivian"
+   "nhan": "Vivian",
+   "en": "Vivian (woman in her thirties, glossy hair in a ponytail, fitted burgundy office dress, red nails, small gold stud earrings, bold red lipstick)",
+   "gioi": "nu"
   },
   "than": {
    "ao": "#111216",
    "toc": "ngan",
    "duoi": "#111216",
-   "nhan": "Lục Thần"
+   "nhan": "Lục Thần",
+   "en": "Lục Thần (tall man about thirty, short dark hair, black suit, cold face)",
+   "gioi": "nam"
   }
  },
  "shot": [
@@ -37,11 +43,19 @@
      ],
      "cam": [
       "thung"
-     ]
+     ],
+     "mat": [
+      "buon",
+      "nhan_nhin"
+     ],
+     "quay": 0,
+     "nhin_vao": "so_tang",
+     "nhin_huong": "len"
     }
    ],
    "dien": "Hạ ôm thùng, ngước nhìn số tầng.",
-   "ke": "Ngày cuối ở Lục thị, tôi chỉ muốn đi thật lặng lẽ. (nháp)"
+   "ke": "Ngày cuối ở Lục thị, tôi chỉ muốn đi thật lặng lẽ. (nháp)",
+   "dien_en": "Hạ waits, holding the box, then lifts her eyes to the floor indicator above the door."
   },
   {
    "so": 2,
@@ -57,7 +71,8 @@
      "chu": "38"
     }
    ],
-   "dien": "Bảng số tầng đổi số."
+   "dien": "Bảng số tầng đổi số.",
+   "dien_en": "The amber floor indicator above the steel door changes number."
   },
   {
    "so": 3,
@@ -80,7 +95,8 @@
      0.82
     ]
    ],
-   "dien": "Gót giày đỏ bước trên sàn đá — tiếng cao gót."
+   "dien": "Gót giày đỏ bước trên sàn đá — tiếng cao gót.",
+   "dien_en": "A red high heel steps onto the black marble floor, moving toward screen left."
   },
   {
    "so": 4,
@@ -97,10 +113,18 @@
      ],
      "cam": [
       "thung"
-     ]
+     ],
+     "mat": [
+      "nhan_nhin",
+      "lo_lang"
+     ],
+     "quay": 40,
+     "nhin_vao": "vi",
+     "nhin_huong": "phai"
     }
    ],
-   "dien": "Hạ quay đầu sang phải, cảnh giác."
+   "dien": "Hạ quay đầu sang phải, cảnh giác.",
+   "dien_en": "Hạ hears heels and turns her head toward screen right, wary."
   },
   {
    "so": 5,
@@ -117,12 +141,24 @@
      ],
      "cam": [
       "thung"
-     ]
+     ],
+     "mat": [
+      "lo_lang",
+      "lo_lang"
+     ],
+     "quay": 35,
+     "nhin_vao": "vi"
     },
     {
      "ma": "vi",
      "x": 0.74,
-     "nhin": "trai"
+     "nhin": "trai",
+     "mat": [
+      "dac_y",
+      "khinh_bi"
+     ],
+     "quay": -35,
+     "nhin_vao": "ha"
     }
    ],
    "mui_ten": [
@@ -133,7 +169,8 @@
      0.9
     ]
    ],
-   "dien": "Vivian sải bước vào, dừng gần Hạ. (dùng lại #3)"
+   "dien": "Vivian sải bước vào, dừng gần Hạ. (dùng lại #3)",
+   "dien_en": "Vivian strides in toward Hạ and slows to a stop close to her."
   },
   {
    "so": 6,
@@ -147,7 +184,14 @@
     {
      "ma": "vi",
      "x": 0.56,
-     "nhin": "trai"
+     "nhin": "trai",
+     "mat": [
+      "khinh_bi",
+      "dac_y"
+     ],
+     "quay": -30,
+     "nhin_vao": "ha",
+     "nhin_huong": "trai"
     },
     {
      "ma": "ha",
@@ -156,7 +200,8 @@
      "to": 1.1
     }
    ],
-   "dien": "Qua vai Hạ: Vivian chống hông, cười khinh. (dùng lại #4)"
+   "dien": "Qua vai Hạ: Vivian chống hông, cười khinh. (dùng lại #4)",
+   "dien_en": "Vivian puts a hand on her hip and looks Hạ up and down with a cold smile."
   },
   {
    "so": 7,
@@ -170,10 +215,18 @@
      "nhin": "phai",
      "deo": [
       "the"
-     ]
+     ],
+     "mat": [
+      "lo_lang",
+      "lo_lang"
+     ],
+     "quay": 30,
+     "nhin_vao": "vi",
+     "nhin_huong": "phai"
     }
    ],
-   "dien": "Hạ mím môi."
+   "dien": "Hạ mím môi.",
+   "dien_en": "Hạ presses her lips together, holding still."
   },
   {
    "so": 8,
@@ -203,7 +256,8 @@
      0.36
     ]
    ],
-   "dien": "Tay móng đỏ vươn tới thẻ trên ngực Hạ. (dùng lại cận tay)"
+   "dien": "Tay móng đỏ vươn tới thẻ trên ngực Hạ. (dùng lại cận tay)",
+   "dien_en": "Vivian's red-nailed hand reaches in from screen right toward the badge on Hạ's chest."
   },
   {
    "so": 9,
@@ -217,10 +271,18 @@
      "nhin": "xuong",
      "deo": [
       "the"
-     ]
+     ],
+     "mat": [
+      "lo_lang",
+      "lo_lang"
+     ],
+     "quay": 15,
+     "nhin_vao": "the",
+     "nhin_huong": "xuong"
     }
    ],
-   "dien": "Hạ cứng người, mắt nhìn xuống."
+   "dien": "Hạ cứng người, mắt nhìn xuống.",
+   "dien_en": "Hạ stiffens, eyes dropping to the hand at her chest."
   },
   {
    "so": 10,
@@ -242,7 +304,8 @@
      "to": 1.0
     }
    ],
-   "dien": "Ngón tay siết tấm thẻ. (dùng lại cận tay)"
+   "dien": "Ngón tay siết tấm thẻ. (dùng lại cận tay)",
+   "dien_en": "Vivian's fingers close tight around the badge card."
   },
   {
    "so": 11,
@@ -256,7 +319,13 @@
      "nhin": "phai",
      "cam": [
       "thung"
-     ]
+     ],
+     "mat": [
+      "soc",
+      "soc"
+     ],
+     "quay": 40,
+     "nhin_vao": "vi"
     },
     {
      "ma": "vi",
@@ -264,7 +333,13 @@
      "nhin": "trai",
      "cam": [
       "the_treo"
-     ]
+     ],
+     "mat": [
+      "gian",
+      "dac_y"
+     ],
+     "quay": -40,
+     "nhin_vao": "ha"
     }
    ],
    "do": [
@@ -289,7 +364,8 @@
      0.58
     ]
    ],
-   "dien": "Giật mạnh — dây đứt, Hạ chúi người. (dùng lại nhịp giật)"
+   "dien": "Giật mạnh — dây đứt, Hạ chúi người. (dùng lại nhịp giật)",
+   "dien_en": "Vivian yanks the badge back hard; the lanyard snaps; Hạ is jerked half a step forward, still hugging the box."
   },
   {
    "so": 12,
@@ -300,7 +376,14 @@
     {
      "ma": "ha",
      "x": 0.5,
-     "nhin": "xuong"
+     "nhin": "xuong",
+     "mat": [
+      "soc",
+      "nhuc_nha"
+     ],
+     "quay": 30,
+     "nhin_vao": "the",
+     "nhin_huong": "phai"
     }
    ],
    "do": [
@@ -311,7 +394,8 @@
      "to": 0.5
     }
    ],
-   "dien": "Hạ sững sờ, mắt cụp xuống tấm thẻ. (dùng lại #8)"
+   "dien": "Hạ sững sờ, mắt cụp xuống tấm thẻ. (dùng lại #8)",
+   "dien_en": "Hạ stares, stunned, then her eyes drop to the dangling badge at screen right."
   },
   {
    "so": 13,
@@ -341,7 +425,8 @@
      0.08
     ]
    ],
-   "dien": "Thẻ lủng lẳng, nắm tay giật lên. (dùng lại #9)"
+   "dien": "Thẻ lủng lẳng, nắm tay giật lên. (dùng lại #9)",
+   "dien_en": "The badge sways below Vivian's fist, then the fist jerks straight up out of the top of the frame."
   },
   {
    "so": 14,
@@ -355,10 +440,18 @@
      "nhin": "trai",
      "cam": [
       "the_treo"
-     ]
+     ],
+     "mat": [
+      "dac_y",
+      "dac_y"
+     ],
+     "quay": -30,
+     "nhin_vao": "ha",
+     "nhin_huong": "trai"
     }
    ],
-   "dien": "Vivian đung đưa thẻ cạnh mặt, cười."
+   "dien": "Vivian đung đưa thẻ cạnh mặt, cười.",
+   "dien_en": "Vivian dangles the badge beside her face, smiling at Hạ."
   },
   {
    "so": 15,
@@ -374,7 +467,8 @@
      "chu": "38"
     }
    ],
-   "dien": "Số tầng sáng — tiếng “ting”."
+   "dien": "Số tầng sáng — tiếng “ting”.",
+   "dien_en": "The floor indicator lights up with a chime."
   },
   {
    "so": 16,
@@ -388,10 +482,18 @@
      "nhin": "trai",
      "cam": [
       "the_treo"
-     ]
+     ],
+     "mat": [
+      "dac_y",
+      "bat_ngo"
+     ],
+     "quay": -45,
+     "nhin_vao": "cua_thang",
+     "nhin_huong": "trai"
     }
    ],
-   "dien": "Vivian liếc sang cửa thang (trái màn)."
+   "dien": "Vivian liếc sang cửa thang (trái màn).",
+   "dien_en": "At the chime Vivian's eyes flick toward screen left, to the elevator door."
   },
   {
    "so": 17,
@@ -406,7 +508,12 @@
     {
      "ma": "than",
      "x": 0.5,
-     "nhin": "may"
+     "nhin": "may",
+     "mat": [
+      "lanh_lung",
+      "lanh_lung"
+     ],
+     "quay": 0
     },
     {
      "ma": "ha",
@@ -415,7 +522,8 @@
      "to": 1.0
     }
    ],
-   "dien": "Cửa mở, Lục Thần bước ra — máy thấp, quyền lực."
+   "dien": "Cửa mở, Lục Thần bước ra — máy thấp, quyền lực.",
+   "dien_en": "The elevator doors are open; Lục Thần steps out toward camera."
   },
   {
    "so": 18,
@@ -426,10 +534,18 @@
     {
      "ma": "ha",
      "x": 0.5,
-     "nhin": "trai"
+     "nhin": "trai",
+     "mat": [
+      "nhuc_nha",
+      "nhan_nhin"
+     ],
+     "quay": -40,
+     "nhin_vao": "than",
+     "nhin_huong": "trai"
     }
    ],
-   "dien": "Hạ nhìn sang Lục Thần (trái màn)."
+   "dien": "Hạ nhìn sang Lục Thần (trái màn).",
+   "dien_en": "Hạ looks toward screen left at Lục Thần."
   },
   {
    "so": 19,
@@ -440,11 +556,19 @@
     {
      "ma": "than",
      "x": 0.5,
-     "nhin": "may"
+     "nhin": "may",
+     "mat": [
+      "lanh_lung",
+      "lanh_lung"
+     ],
+     "quay": 15,
+     "nhin_vao": "phia_truoc",
+     "nhin_huong": "phai"
     }
    ],
    "thoai": "Người ngoài thì đừng đứng chắn thang máy.",
-   "dien": "Lục Thần nói, không nhìn Hạ. (khớp môi)"
+   "dien": "Lục Thần nói, không nhìn Hạ. (khớp môi)",
+   "dien_en": "Lục Thần speaks without turning his head."
   },
   {
    "so": 20,
@@ -455,10 +579,17 @@
     {
      "ma": "ha",
      "x": 0.5,
-     "nhin": "xuong"
+     "nhin": "xuong",
+     "mat": [
+      "nhan_nhin",
+      "buon"
+     ],
+     "quay": -15,
+     "nhin_huong": "xuong"
     }
    ],
-   "dien": "Hạ cụp mắt, im lặng."
+   "dien": "Hạ cụp mắt, im lặng.",
+   "dien_en": "Hạ lowers her eyes, silent."
   },
   {
    "so": 21,
@@ -469,10 +600,18 @@
     {
      "ma": "vi",
      "x": 0.5,
-     "nhin": "trai"
+     "nhin": "trai",
+     "mat": [
+      "tu_tin",
+      "dac_y"
+     ],
+     "quay": -30,
+     "nhin_vao": "ha",
+     "nhin_huong": "trai"
     }
    ],
-   "dien": "Vivian cười đắc ý."
+   "dien": "Vivian cười đắc ý.",
+   "dien_en": "Vivian smiles, pleased."
   },
   {
    "so": 22,
@@ -486,11 +625,19 @@
      "nhin": "trai",
      "cam": [
       "the_treo"
-     ]
+     ],
+     "mat": [
+      "khinh_bi",
+      "dac_y"
+     ],
+     "quay": -30,
+     "nhin_vao": "ha",
+     "nhin_huong": "trai"
     }
    ],
    "thoai": "Thẻ của công ty.",
-   "dien": "Vivian đung đưa thẻ. (khớp môi)"
+   "dien": "Vivian đung đưa thẻ. (khớp môi)",
+   "dien_en": "Vivian swings the badge slowly while she speaks."
   },
   {
    "so": 23,
@@ -519,7 +666,8 @@
      0.78
     ]
    ],
-   "dien": "Thẻ đung đưa như con lắc."
+   "dien": "Thẻ đung đưa như con lắc.",
+   "dien_en": "The badge swings like a pendulum on its snapped lanyard."
   },
   {
    "so": 24,
@@ -530,11 +678,19 @@
     {
      "ma": "vi",
      "x": 0.5,
-     "nhin": "trai"
+     "nhin": "trai",
+     "mat": [
+      "khinh_bi",
+      "dac_y"
+     ],
+     "quay": -25,
+     "nhin_vao": "ha",
+     "nhin_huong": "trai"
     }
    ],
    "thoai": "Loại như cô, đừng mơ bước vào toà nhà này lần nữa.",
-   "dien": "(khớp môi)"
+   "dien": "(khớp môi)",
+   "dien_en": "Vivian speaks slowly, eyes on Hạ."
   },
   {
    "so": 25,
@@ -545,7 +701,14 @@
     {
      "ma": "ha",
      "x": 0.5,
-     "nhin": "len"
+     "nhin": "len",
+     "mat": [
+      "buon",
+      "nhan_nhin"
+     ],
+     "quay": 25,
+     "nhin_vao": "vi",
+     "nhin_huong": "phai"
     }
    ],
    "mui_ten": [
@@ -556,7 +719,8 @@
      0.3
     ]
    ],
-   "dien": "Hạ từ từ ngước mắt lên — lật cảm xúc."
+   "dien": "Hạ từ từ ngước mắt lên — lật cảm xúc.",
+   "dien_en": "Hạ slowly lifts her eyes to Vivian."
   },
   {
    "so": 26,
@@ -568,11 +732,19 @@
      "ma": "ha",
      "x": 0.5,
      "nhin": "phai",
-     "to": 1.1
+     "to": 1.1,
+     "mat": [
+      "nhan_nhin",
+      "nhech_moi"
+     ],
+     "quay": 30,
+     "nhin_vao": "vi",
+     "nhin_huong": "phai"
     }
    ],
    "thoai": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.",
-   "dien": "Hạ nhếch môi, máy đẩy chậm. (khớp môi)"
+   "dien": "Hạ nhếch môi, máy đẩy chậm. (khớp môi)",
+   "dien_en": "Hạ speaks softly with a faint knowing smirk; very slow push-in."
   },
   {
    "so": 27,
@@ -583,10 +755,18 @@
     {
      "ma": "vi",
      "x": 0.5,
-     "nhin": "trai"
+     "nhin": "trai",
+     "mat": [
+      "dac_y",
+      "soc"
+     ],
+     "quay": -30,
+     "nhin_vao": "ha",
+     "nhin_huong": "trai"
     }
    ],
-   "dien": "Nụ cười Vivian cứng lại."
+   "dien": "Nụ cười Vivian cứng lại.",
+   "dien_en": "Vivian's smile stiffens and drains away."
   },
   {
    "so": 28,
@@ -603,10 +783,16 @@
      "nhin": "may",
      "cam": [
       "thung"
-     ]
+     ],
+     "mat": [
+      "binh_thuong",
+      "quyet_tam"
+     ],
+     "quay": 0
     }
    ],
-   "dien": "Hạ đứng trong thang, quay mặt ra."
+   "dien": "Hạ đứng trong thang, quay mặt ra.",
+   "dien_en": "Hạ stands inside the elevator, turns to face out."
   },
   {
    "so": 29,
@@ -623,7 +809,12 @@
      "nhin": "may",
      "cam": [
       "thung"
-     ]
+     ],
+     "mat": [
+      "quyet_tam",
+      "quyet_tam"
+     ],
+     "quay": 0
     }
    ],
    "mui_ten": [
@@ -640,7 +831,21 @@
      0.6
     ]
    ],
-   "dien": "Cửa thép khép trước mặt Hạ bình thản → loá sáng, hết cảnh."
+   "dien": "Cửa thép khép trước mặt Hạ bình thản → loá sáng, hết cảnh.",
+   "dien_en": "The steel doors slide closed in front of Hạ's calm face."
   }
- ]
+ ],
+ "ten_vat": {
+  "so_tang": "số tầng",
+  "the": "tấm thẻ",
+  "cua_thang": "cửa thang",
+  "phia_truoc": "phía trước, không nhìn Hạ"
+ },
+ "canh_en": "Luxury corporate elevator lobby: dark marble walls, brushed steel elevator doors, black polished marble floor, warm recessed ceiling light — the same lighting setup in every shot of the scene.",
+ "ten_vat_en": {
+  "so_tang": "floor indicator",
+  "the": "dangling staff badge",
+  "cua_thang": "elevator door",
+  "phia_truoc": "straight ahead"
+ }
 }

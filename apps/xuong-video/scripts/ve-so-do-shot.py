@@ -11,7 +11,7 @@
 import json, math, os, sys
 from PIL import Image, ImageDraw, ImageFont
 
-W, H, CHU_H = 360, 640, 150
+W, H, CHU_H = 360, 640, 185
 NEO = (0.5, 0.31)
 DA = (232, 196, 168); NEN = {'thang': (52, 52, 56), 'thang_mo': (52, 52, 56), 'san': (40, 40, 44), 'da': (34, 34, 38)}
 FONT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'font', 'DejaVuSans-Bold.ttf')
@@ -24,6 +24,71 @@ CO = {'cu': (0.17, NEO[1]), 'mcu': (0.11, NEO[1]), 'trung': (0.09, NEO[1]), 'qua
 def mui_ten(d, x1, y1, x2, y2, mau=(230, 40, 40), day=5):
     d.line([(x1, y1), (x2, y2)], fill=mau, width=day); g = math.atan2(y2 - y1, x2 - x1)
     d.polygon([(x2, y2), (x2 - 18 * math.cos(g - 0.45), y2 - 18 * math.sin(g - 0.45)), (x2 - 18 * math.cos(g + 0.45), y2 - 18 * math.sin(g + 0.45))], fill=mau)
+
+
+# NÉT MẶT theo mã BIEU_CAM của studio (src/lib/xuong-video/qc-cam-xuc.ts — chữ tiếng Anh của từng nét nằm ở đó, đây chỉ là HÌNH):
+# lông mày (độ nghiêng trong → ngoài, độ cao), mắt (mở to / híp / sụp mi), miệng (thẳng, cười, nhếch một bên, há, trễ xuống, mím).
+NET = {   # (mày: nghiêng, cao) · mắt: 'to'|'hip'|'sup'|'thuong' · miệng
+    'binh_thuong': ((0, 0), 'thuong', 'thang'), 'vui': ((0, 0.05), 'thuong', 'cuoi'), 'cuoi_lon': ((0, 0.08), 'hip', 'ha_cuoi'),
+    'bat_ngo': ((0, 0.2), 'to', 'ha_nho'), 'ngo_vuc': ((0.25, 0.05), 'thuong', 'thang'), 'tu_tin': ((0, 0), 'thuong', 'cuoi_nho'),
+    'lo_lang': ((-0.35, 0.05), 'thuong', 'tre'), 'buon': ((-0.35, 0), 'sup', 'tre'), 'lanh_lung': ((0.15, -0.08), 'hip', 'mim'),
+    'khinh_bi': ((0.05, 0.02), 'hip', 'nhech'), 'dac_y': ((0.05, 0.03), 'thuong', 'nhech_cuoi'), 'nhuc_nha': ((-0.4, 0), 'sup', 'tre'),
+    'nhan_nhin': ((0, -0.03), 'thuong', 'mim'), 'gian': ((0.45, -0.1), 'thuong', 'mim'), 'soc': ((-0.1, 0.25), 'to', 'ha'),
+    'quyet_tam': ((0.2, -0.05), 'thuong', 'mim'), 'nhech_moi': ((0, 0.02), 'thuong', 'nhech'), 'dau': ((-0.4, -0.05), 'hip', 'mim'),
+    'khoc_tham': ((-0.5, 0.05), 'hip', 'ha'), 'cuoi_dau': ((-0.5, 0), 'hip', 'ha_cuoi'), 'met': ((-0.15, -0.05), 'sup', 'thang'),
+}
+DAU = {}   # mã người → (x, y mắt, bán kính đầu, quay lưng?) để vẽ mũi tên ánh nhìn
+
+def mat(d, cx, ey, r, ma, quay=0, nhin=None):
+    (ng, cao), mt, mi = NET.get(ma, NET['binh_thuong'])
+    q = math.radians(max(-80, min(80, quay))); fx = math.sin(q) * 0.5 * r; gian = 0.38 * r * max(0.35, math.cos(q))
+    gx = {'trai': -0.12, 'phai': 0.12}.get(nhin, 0) * r + math.sin(q) * 0.06 * r; gy = {'xuong': 0.09, 'len': -0.08}.get(nhin, 0) * r
+    den, w = (20, 20, 20), max(2, int(r / 14))
+    for s in (-1, 1):
+        if abs(quay) > 60 and s == (-1 if quay > 0 else 1): continue   # nghiêng hẳn: mắt phía xa khuất
+        x = cx + fx + s * gian; rw, rh = 0.2 * r, {'to': 0.15, 'hip': 0.06, 'sup': 0.09}.get(mt, 0.11) * r
+        d.ellipse([x - rw, ey - rh, x + rw, ey + rh], fill=(250, 250, 250), outline=den, width=1)
+        pr = min(rh, 0.08 * r); d.ellipse([x + gx - pr, ey + gy - pr, x + gx + pr, ey + gy + pr], fill=den)
+        if mt == 'sup': d.rectangle([x - rw, ey - rh - 1, x + rw, ey - 0.2 * rh], fill=DA); d.line([(x - rw, ey - 0.2 * rh), (x + rw, ey - 0.2 * rh)], fill=den, width=w)
+        by = ey - (0.3 + cao) * r; trong = x - s * rw; ngoai = x + s * rw   # lông mày: đầu trong (sát mũi) cao/thấp theo nghiêng
+        d.line([(trong, by + ng * 0.25 * r), (ngoai, by - ng * 0.25 * r * 0.2)], fill=den, width=max(3, int(r / 9)))
+    nx = cx + fx * 1.3; d.line([(nx, ey + 0.1 * r), (nx + math.sin(q) * 0.12 * r, ey + 0.38 * r)], fill=(150, 110, 90), width=w)
+    mx, my, mw = cx + fx * 1.15, ey + 0.62 * r, 0.32 * r * max(0.5, math.cos(q))
+    if mi == 'thang': d.line([(mx - mw, my), (mx + mw, my)], fill=den, width=w)
+    elif mi == 'mim': d.line([(mx - mw * 0.8, my), (mx + mw * 0.8, my)], fill=den, width=w + 2)
+    elif mi in ('cuoi', 'cuoi_nho'): d.arc([mx - mw, my - 0.2 * r, mx + mw, my + (0.18 if mi == 'cuoi' else 0.08) * r], 10, 170, fill=den, width=w)
+    elif mi == 'tre': d.arc([mx - mw, my, mx + mw, my + 0.3 * r], 200, 340, fill=den, width=w)
+    elif mi in ('ha', 'ha_nho'): k = 0.16 if mi == 'ha' else 0.09; d.ellipse([mx - k * r, my - k * r * 0.7, mx + k * r, my + k * r * 1.3], fill=(90, 30, 30))
+    elif mi == 'ha_cuoi': d.chord([mx - mw, my - 0.1 * r, mx + mw, my + 0.25 * r], 0, 180, fill=(90, 30, 30))
+    elif mi in ('nhech', 'nhech_cuoi'):   # nhếch MỘT khoé (phía xa máy theo quay, mặc định phải)
+        b = -1 if quay < 0 else 1; d.line([(mx - b * mw, my + 0.02 * r), (mx + b * mw * 0.2, my), (mx + b * mw, my - (0.14 if mi == 'nhech_cuoi' else 0.1) * r)], fill=den, width=w)
+    if ma in ('nhuc_nha', 'khoc_tham', 'cuoi_dau'):   # má đỏ + nước mắt
+        for s in (-1, 1): d.ellipse([cx + fx + s * 0.55 * r - 0.14 * r, ey + 0.3 * r, cx + fx + s * 0.55 * r + 0.14 * r, ey + 0.42 * r], fill=(225, 140, 130))
+        d.ellipse([cx + fx + gian - 0.04 * r, ey + 0.16 * r, cx + fx + gian + 0.04 * r, ey + 0.3 * r], fill=(120, 190, 255))
+
+def anh_nhin(d, nv, nvs_ds):
+    """Mũi tên vàng nét đứt từ mắt tới người / vật được nhìn: trong khung → chỉ vào đầu họ; ngoài khung → chỉ ra mép kèm tên."""
+    if nv['ma'] not in DAU or DAU[nv['ma']][3] or not nv.get('nhin_vao'): return
+    x0, y0, r, _ = DAU[nv['ma']]; t = nv['nhin_vao']
+    if t in DAU: x1, y1 = DAU[t][0], DAU[t][1]; nhan = ''
+    else:
+        huong = nv.get('nhin_huong', nv.get('nhin', 'phai'))
+        x1, y1 = {'trai': (8, y0), 'phai': (W - 8, y0), 'len': (x0, 8), 'xuong': (x0, H * 0.97), 'may': (x0, y0)}.get(huong, (W - 8, y0))
+        if huong == 'len': x1 = x0 + (W * 0.25 if nv.get('nhin') == 'phai' else -W * 0.25 if nv.get('nhin') == 'trai' else 0)
+        nhan = f"{TEN.get(t, t)} (ngoài khung)"
+    if (x1, y1) == (x0, y0): d.text((x0, y0 - r * 1.5), 'nhìn thẳng ống kính', font=f_nho, fill=(255, 220, 80), anchor='mm'); return
+    n = int(math.hypot(x1 - x0, y1 - y0) / 14)
+    for i in range(0, n, 2): a, b = i / n, min(1, (i + 1) / n); d.line([(x0 + (x1 - x0) * a, y0 + (y1 - y0) * a), (x0 + (x1 - x0) * b, y0 + (y1 - y0) * b)], fill=(255, 210, 40), width=3)
+    mui_ten(d, x0 + (x1 - x0) * 0.9, y0 + (y1 - y0) * 0.9, x1, y1, mau=(255, 210, 40), day=3)
+    if nhan:   # nhãn nằm TRONG khung, canh theo phía mép mũi tên chỉ ra
+        huong = nv.get('nhin_huong', nv.get('nhin', 'phai'))
+        vt, neo = {'phai': ((W - 6, y1 - 8), 'rs'), 'trai': ((6, y1 - 8), 'ls'), 'len': ((x1, 24), 'mt'), 'xuong': ((x1, y1 - 14), 'mb')}.get(huong, ((W - 6, y1 - 8), 'rs'))
+        d.text(vt, nhan, font=f_nho, fill=(255, 220, 80), anchor=neo, stroke_width=2, stroke_fill=(30, 30, 30))
+
+TEN = {}
+TEN_CAM = {'binh_thuong': 'Bình thường', 'lo_lang': 'Lo lắng', 'buon': 'Buồn', 'lanh_lung': 'Lạnh lùng', 'khinh_bi': 'Khinh bỉ', 'dac_y': 'Đắc ý',
+           'nhuc_nha': 'Nhục nhã', 'nhan_nhin': 'Nhẫn nhịn', 'gian': 'Giận', 'soc': 'Sốc', 'quyet_tam': 'Quyết tâm', 'nhech_moi': 'Nhếch môi',
+           'bat_ngo': 'Bất ngờ', 'tu_tin': 'Tự tin', 'vui': 'Vui'}
 
 def nguoi(d, nv, mau_nv, co, toan_y=0.86, to_them=1.0):
     r = CO[co][0] * W * to_them; cx = nv['x'] * W
@@ -42,10 +107,8 @@ def nguoi(d, nv, mau_nv, co, toan_y=0.86, to_them=1.0):
     d.ellipse([cx - r, cy - 1.1 * r, cx + r, cy + 1.1 * r], fill=toc if lung else DA)
     d.chord([cx - 1.05 * r, cy - 1.2 * r, cx + 1.05 * r, cy + 0.2 * r], 180, 360, fill=toc)   # mái tóc dừng trên mắt
     if mau_nv['toc'] == 'duoi_ngua': hb = 1 if nv.get('nhin') == 'trai' else -1; d.ellipse([cx + hb * 0.9 * r - 0.35 * r, cy - 0.9 * r, cx + hb * 0.9 * r + 0.35 * r, cy - 0.2 * r], fill=toc)
-    if not lung:   # mắt + mũi lệch theo hướng nhìn
-        dx = {'trai': -0.35, 'phai': 0.35}.get(nv.get('nhin'), 0) * r; dy = {'xuong': 0.18, 'len': -0.15}.get(nv.get('nhin'), 0) * r
-        for s in (-1, 1): d.ellipse([cx + s * 0.38 * r + dx - 0.09 * r, ey + dy - 0.09 * r, cx + s * 0.38 * r + dx + 0.09 * r, ey + dy + 0.09 * r], fill=(20, 20, 20))
-        d.line([(cx + dx * 1.3, ey + 0.15 * r), (cx + dx * 1.5, ey + 0.45 * r)], fill=(150, 110, 90), width=max(2, int(r / 12)))
+    if not lung: mat(d, cx, ey, r, (nv.get('mat') or ['binh_thuong'])[0], nv.get('quay', 0), nv.get('nhin'))
+    DAU[nv['ma']] = (cx, ey, r, lung)
     # đồ trên người
     for x in nv.get('deo', []):
         if x == 'the' and not lung:
@@ -107,11 +170,20 @@ def nen(d, s):
 
 def khung(s, nvs):
     im = Image.new('RGB', (W, H + CHU_H), (250, 250, 248)); d = ImageDraw.Draw(im)
-    nen(d, s)
+    nen(d, s); DAU.clear(); TEN.update({k: v.get('nhan', k) for k, v in nvs.items()})
     ds = sorted(s.get('nguoi', []), key=lambda n: -1 if n.get('lung') else 0, reverse=True)   # người quay lưng (tiền cảnh qua vai) vẽ sau cùng
     for n in [n for n in ds if not n.get('lung')] + [n for n in ds if n.get('lung')]:
         co = 'cu' if (n.get('lung') and s['co'] == 'qua_vai') else s['co']
         nguoi(d, n, nvs[n['ma']], co, to_them=n.get('to', 1.0))
+    for n in s.get('nguoi', []): anh_nhin(d, n, s.get('nguoi', []))
+    # ô NÉT CUỐI shot (khi đổi nét): mặt nhỏ góc trên, cùng màu da / tóc
+    ds_cuoi = [n for n in s.get('nguoi', []) if not n.get('lung') and len(n.get('mat') or []) > 1 and n['mat'][1] != n['mat'][0]]
+    for i, n in enumerate(ds_cuoi):
+        ox, oy, rr = W - 46 - i * 84, 62, 30
+        d.rounded_rectangle([ox - 42, oy - 46, ox + 42, oy + 52], 8, fill=(245, 245, 240), outline=(255, 210, 40), width=2)
+        d.ellipse([ox - rr, oy - rr * 1.1, ox + rr, oy + rr * 1.1], fill=DA); d.chord([ox - rr * 1.05, oy - rr * 1.2, ox + rr * 1.05, oy + rr * 0.2], 180, 360, fill=(18, 16, 15))
+        if nvs[n['ma']]['toc'] == 'duoi_ngua': hb = 1 if n.get('quay', 0) < 0 else -1; d.ellipse([ox + hb * 0.9 * rr - 0.35 * rr, oy - 0.9 * rr, ox + hb * 0.9 * rr + 0.35 * rr, oy - 0.2 * rr], fill=(18, 16, 15))
+        mat(d, ox, oy - 0.15 * rr, rr, n['mat'][1], n.get('quay', 0), n.get('nhin')); d.text((ox, oy + 42), f"cuối · {TEN.get(n['ma'], n['ma'])}", font=ImageFont.truetype(FONT, 10), fill=(120, 90, 0), anchor='mm')
     for o in s.get('do', []): do_vat(d, o, nvs)
     for m in s.get('mui_ten', []): mui_ten(d, m[0] * W, m[1] * H, m[2] * W, m[3] * H)
     d.rectangle([0, H, W, H + CHU_H], fill=(250, 250, 248))   # thân người không tràn xuống ô chữ
@@ -122,7 +194,8 @@ def khung(s, nvs):
     ten_co = {'toan': 'Toàn', 'trung': 'Trung', 'mcu': 'Trung cận', 'cu': 'Cận', 'qua_vai': 'Qua vai', 'can_do': 'Cận đồ'}[s['co']]
     d.text((8, H + 6), f"#{s['so']} · {s['giay']:.1f}s · {ten_co}".replace('.', ','), font=f_to, fill=(20, 20, 20))
     y = H + 30
-    for chu, mau in ((s.get('dien', ''), (60, 60, 60)), (f"“{s['thoai']}”" if s.get('thoai') else '', (170, 20, 40)), (f"Kể: {s['ke']}" if s.get('ke') else '', (30, 90, 170))):
+    mat_chu = ' · '.join(f"{TEN.get(n['ma'], n['ma'])}: {' → '.join(TEN_CAM.get(m, m) for m in dict.fromkeys(n['mat']))}" + (f", nhìn {TEN.get(n['nhin_vao'], n['nhin_vao'])}" if n.get('nhin_vao') else '') for n in s.get('nguoi', []) if n.get('mat') and not n.get('lung'))
+    for chu, mau in ((s.get('dien', ''), (60, 60, 60)), (mat_chu, (120, 80, 0)), (f"“{s['thoai']}”" if s.get('thoai') else '', (170, 20, 40)), (f"Kể: {s['ke']}" if s.get('ke') else '', (30, 90, 170))):
         dong = ''
         for tu in chu.split():
             if d.textlength(dong + ' ' + tu, font=f_nho) > W - 16: d.text((8, y), dong, font=f_nho, fill=mau); y += 17; dong = tu
@@ -132,6 +205,7 @@ def khung(s, nvs):
 
 if __name__ == '__main__':
     bang = json.load(open(sys.argv[1])); ra = sys.argv[2]; cot = int(sys.argv[sys.argv.index('--cot') + 1]) if '--cot' in sys.argv else 6
+    TEN.update(bang.get('ten_vat', {}))
     ks = [khung(s, bang['nhan_vat']) for s in bang['shot']]
     hang = math.ceil(len(ks) / cot); g = 12
     bo = Image.new('RGB', (cot * (W + g) + g, hang * (H + CHU_H + g) + g + 40), (225, 225, 222)); db = ImageDraw.Draw(bo)

@@ -286,8 +286,7 @@
    "ngach": [
     "scam",
     "san-pham",
-    "du-lich",
-    "moi"
+    "du-lich"
    ],
    "goc_loai": [
     "ai_noi_dau",
@@ -311,8 +310,7 @@
    ],
    "ngach": [
     "scam",
-    "san-pham",
-    "moi"
+    "san-pham"
    ],
    "goc_loai": [
     "ai_phan_doi",

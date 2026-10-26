@@ -232,6 +232,19 @@ export function bangNoiDung(ds, tong, rong = 15) {
   return [hang('Nội dung', 'ROI', 'Lãi', 'Chi'), '─'.repeat(rong + 21), ...ds.map((x) => hang(x.ten, roiChu(x.roi), usd(x.lai), `$${x.chi.toFixed(2)}`)), '─'.repeat(rong + 21),
     hang(`Tổng ${ds.length} phim`, roiChu(tong.roi), usd(tong.lai), `$${tong.chi.toFixed(0)}`)].map(esc).join('\n');
 }
+/** BẢNG VIỆC MÁY TỰ LÀM (anh 26/10/2026: tin "MÁY TỰ GIẢM BẬC / MÁY TỰ TĂNG" "format dạng table"): mọi tin máy tự đổi camp dùng chung bảng này —
+ *  Camp · Phim · Đổi · ROI hôm nay · ROI kỳ (cột thứ năm đặt nhãn theo luật: hôm qua / 3 ngày / 5 ngày…), chữ đơn cách trong <pre> cho thẳng cột;
+ *  dòng lỗi ghi "⚠ lỗi" trong bảng, lý do in dưới bảng. ds = [{ m (mục luật: id, chu), doi (chữ ngắn: "$3→$2", "tắt", "→#70195"), loi }]. */
+export function bangViec(ds, nhanKy = 'Kỳ') {
+  const phim = (chu) => { const t = String(chu).replace(/^#?\d{5,6}:\s*/, '').split(' · ')[0].replace(/^★\s*/, ''), m = t.match(/^\d{4}\w* (.+?) ([A-Z]{2}) - /);
+    const ten = m ? m[1] : t; return `${ten.length > 13 ? `${ten.slice(0, 12)}…` : ten}${m ? ` ${m[2]}` : ''}`; };
+  const roi = (chu, re) => { const x = String(chu).match(re); return x ? `${x[1].replace('−', '-').replace(/^(\d)/, '+$1')}%` : '—'; };
+  const hang = (a, b, c, d, e) => `${a.padEnd(5)} ${b.padEnd(16)} ${c.padEnd(7)} ${d.padStart(5)} ${e.padStart(5)}`;
+  const bang = [hang('Camp', 'Phim', 'Đổi', 'Nay', nhanKy.slice(0, 5)), '─'.repeat(42),
+    ...ds.map(({ m, doi, loi }) => hang(String(m.id), phim(m.chu), loi ? '⚠ lỗi' : doi, roi(m.chu, /ROI hôm nay ([+\-−]?\d+)%/), roi(m.chu, /ROI (?!hôm nay)[^%·]*?([+\-−]?\d+)%/)))].map(esc).join('\n');
+  const loi = ds.filter((x) => x.loi).map(({ m, loi }) => `⚠ #${m.id}: ${esc(String(loi).slice(0, 160))}`);
+  return [`<pre>${bang}</pre>`, ...loi].join('\n');
+}
 export function tinBang(t) {
   const dong = (nhan, a) => `<b>${nhan}</b>: lãi <b>${tienUsd(a.lai)}</b> · ROI <b>${roiChu(a.roi)}</b> · chi $${a.chi.toFixed(2)}`;
   return [`📊 <b>ETHOPEX hôm nay</b> · cập nhật ${esc(t.luc)}${t.chot_toi ? `\n<i>ngày Ethopex 07:00–07:00 VN · chi ghi tới ${esc(t.chot_toi)} (doanh thu còn về thêm)</i>` : ''}`,
@@ -314,7 +327,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       daGiam.push({ m, d, r });
     }
     if (daGiam.length) {
-      const dong = daGiam.map(({ m, d, r }) => (r.ok ? `⬇️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa giảm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+      const dong = bangViec(daGiam.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Qua');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ GIẢM BẬC</b> (luật GB, anh duyệt) — số trọn ngày hôm qua; không tắt camp nào; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
       gui++;
     }
@@ -330,7 +343,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       daGiam.push({ m, d, r });
     }
     if (daGiam.length) {
-      const dong = daGiam.map(({ m, d, r }) => (r.ok ? `⬇️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa giảm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+      const dong = bangViec(daGiam.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ GIẢM BẬC — ROI TỤT ĐANG ÂM</b> (anh duyệt 26/10) — ROI 3 ngày gần < 0%, xuống một bậc; không tắt camp nào; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
       gui++;
     }
@@ -343,7 +356,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       daTu.push({ k, m, d, r });
     }
     if (daTu.length) {
-      const dong = daTu.map(({ k, m, d, r }) => (r.ok ? `⬆️ #${m.id} $${esc(r.truoc?.ns)} → <b>$${esc(r.sau?.ns)}</b>` : `⚠️ #${m.id} → $${d} chưa làm: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${esc(TEN[k])} · ${dongGon(m, false)}`).join('\n');
+      const dong = bangViec(daTu.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
@@ -392,7 +405,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     daNb.push({ m, r, lich });
   }
   if (daNb.length) {
-    const dong = daNb.map(({ m, r, lich }) => (r.ok ? `🧬 #${m.id} → <b>#${r.moi}</b> $1 · lịch ${lich === 'today' ? 'hôm nay' : 'ngày mai'}` : `⚠️ #${m.id} chưa nhân bản được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · lịch ${daNb[0].lich === 'today' ? 'hôm nay' : 'ngày mai'}</i>`;
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI 30 ngày ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
@@ -401,8 +414,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
   // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ). Luật ROAS KHÔNG đi đường này — xem khối ★ ROAS bên dưới (anh: báo riêng, anh tự quyết).
   const LUAT_TAT = [
-    { khoa: 'tat7', tep: 'ethopex-tat7.json', ten: 'LUẬT T7', mo_ta: 'luật T7 của Support: 7 ngày đã khép lãi &lt; 0, &gt; 3 ngày có chi, chi &gt; $5',
-      luat: 'T7 Support (7 ngày đã khép lãi < 0, > 3 ngày bật, chi > $5)', ai: 'anh (chat 26/10/2026: thêm và áp dụng luật T7, tắt đủ danh sách) — máy chạy' },
+    { khoa: 'tat7', tep: 'ethopex-tat7.json', ten: 'LUẬT T7', mo_ta: 'luật T7: 7 ngày đã khép lãi &lt; $1 (anh 26/10), &gt; 3 ngày có chi, chi &gt; $5',
+      luat: 'T7 (7 ngày đã khép lãi < $1, > 3 ngày bật, chi > $5)', ai: 'anh (chat 26/10/2026: thêm và áp dụng luật T7, tắt đủ danh sách) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
@@ -426,7 +439,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     fs.writeFileSync(TEP, JSON.stringify({ ...cho, _giu: giu }));
     if (daT7.length) {
       const ok = daT7.filter((x) => x.r.ok).length;
-      const dong = daT7.map(({ m, r }) => (r.ok ? `⏹ #${m.id} <b>đã tắt</b>` : `⚠️ #${m.id} chưa tắt: ${esc(r.loi || 'không rõ')}`)).join('\n');
+      const dong = bangViec(daT7.map(({ m, r }) => ({ m, doi: 'tắt', loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
       await guiNhanh({ message_thread_id: topic, text: `⏹ <b>MÁY TẮT THEO ${LT.ten}</b> — đã tắt ${ok}/${daT7.length} camp (${LT.mo_ta}); không tự bật lại\n${dong}`.slice(0, 4000) });
       gui++;
   }
@@ -453,7 +466,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     daDem.push({ m, r });
   }
   if (daDem.length) {
-    const dong = daDem.map(({ m, r }) => (r.ok ? `🌙 #${m.id} <b>đã tắt</b>` : `⚠️ #${m.id} chưa tắt: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+    const dong = bangViec(daDem.map(({ m, r }) => ({ m, doi: 'tắt', loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🌙 <b>MÁY DỪNG ĐÊM</b> — camp âm, lỗ tăng nhanh trong phiên 21h–5h (anh lệnh 25/10/2026); camp lãi cộng dồn > 20% không tắt; không tự bật lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
     gui++;
   }
@@ -466,7 +479,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     daThang.push({ m, d, r });
   }
   if (daThang.length) {
-    const dong = daThang.map(({ m, d, r }) => (r.ok ? `🪜 #${m.id} → <b>#${r.moi}</b> $${esc(r.ns ?? d)}` + (r.doi_creative ? ` · creative #${r.doi_creative.tu} → #${r.doi_creative.sang}` : '') : `⚠️ #${m.id} → $${d} chưa mở được: ${esc(r.loi || 'không rõ')}`) + `\n   ↳ ${dongGon(m, false)}`).join('\n');
+    const dong = bangViec(daThang.map(({ m, d, r }) => ({ m, doi: `#${r.moi ?? '?'} $${r.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🪜 <b>MÁY MỞ BẢN THANG — BỘ 2</b> — camp gốc giữ nguyên ngân sách (không học lại); bản mới ở bậc kế, creative khác cùng phim\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
     gui++;
   }

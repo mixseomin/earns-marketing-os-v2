@@ -389,6 +389,7 @@ tat_l = [(cid, f"#{a['ten'][:70]} · {(dt.datetime.now(dt.timezone.utc) - _tao[c
 # T7 — LUẬT TẮT CỦA SUPPORT (Dol 26/10/2026: "Last 7 day, profit < 0, active day > 3, cost > $5 — những camp như này có thể off"; anh: "thêm và áp dụng rule này"):
 # lấy THẲNG Report Ethopex 7 ngày ĐÃ KHÉP D−7..D−1 (thu hôm nay còn về trễ) với cột active_day của Ethopex = số ngày camp được BẬT trong kỳ — KHÔNG phải số ngày
 # có chi (bản đầu đếm ngày có chi từ kho etp → 22 camp, Report của anh ra 57; anh 26/10/2026 "mày phải check lại rule"). Chỉ tắt camp đang chạy / đang tạm dừng vì lịch giờ.
+T7_LAI = 1   # lãi 7 ngày đã khép phải ≥ $1 mới giữ (anh 26/10/2026)
 def _bc7():
     body = json.dumps({"columns": ["campaign_name", "active_day", "cost", "revenue", "profit"], "filters": {}, "metric_conditions": [], "limit": 2000, "page": 1, "page_size": 2000,
                        "date_from": (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=7)).isoformat(), "date_to": (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)).isoformat()}).encode()
@@ -399,7 +400,8 @@ def _bc7():
     return g
 _dc = _bat | {int(c) for c in q("select camp_id from etp.lich_tat").split() if c.isdigit()}   # trạng thái THẬT từ API (kho etp chậm 10 phút) + camp tạm dừng vì lịch
 try:
-    _r7 = _bc7(); T7_DAT = {c: a for c, a in _r7.items() if a["lai"] < 0 and a["chi"] > 5 and a["ad"] > 3}
+    # anh 26/10/2026: "Luật T7 đổi thành lãi 7N < $1" (bản Support: lãi < 0)
+    _r7 = _bc7(); T7_DAT = {c: a for c, a in _r7.items() if a["lai"] < T7_LAI and a["chi"] > 5 and a["ad"] > 3}
 except Exception as e:
     T7_DAT = {}; loi_may.append((0, f"luật T7 không đọc được Report: {str(e)[:80]}"))
 tat7 = [(c, f"#{a['ten'][:70]} · 7 ngày đã khép: chi ${a['chi']:.2f} · lãi ${a['lai']:+.2f} · ROI {a['lai'] / a['chi'] * 100:+.0f}% · {a['ad']} ngày bật → TẮT (luật T7 Support)")

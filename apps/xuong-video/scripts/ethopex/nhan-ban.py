@@ -177,7 +177,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     if c.get("state") != "ACTIVE" and not roas: raise ValueError(f"camp gốc đang {c.get('state')}")   # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
     if roas:
-        ten = f"★ {re.sub(r'^\d+:\s*', '', c['name'])}{f' {nhan}' if nhan else ''} roas {roas:g} duplicate by {goc_id}"   # nhan: phân biệt bản cùng mức (vd "chay ngay")   # ★ = dấu camp ROAS (anh 26/10/2026), cong.la_roas nhận theo tên
+        # mức ROAS ĐẦU tên (anh 26/10/2026 "đặt thêm chỉ số ROAS vào tên camp để kiểm tra cho tiện" — bảng Ethopex cắt mất đuôi); đuôi "roas X duplicate by <gốc>" giữ cho máy đọc
+        ten = f"★ ROAS {roas:g} · {re.sub(r'^\d+:\s*', '', c['name'])}{f' {nhan}' if nhan else ''} roas {roas:g} duplicate by {goc_id}"   # nhan: phân biệt bản cùng mức (vd "chay ngay")   # ★ = dấu camp ROAS (anh 26/10/2026), cong.la_roas nhận theo tên
     elif moi:
         ten = moi["ten"]; a = {**a, "creative_id": moi["creative"], "content_id": moi["content"]}
     else:

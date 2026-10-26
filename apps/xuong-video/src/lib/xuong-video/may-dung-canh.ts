@@ -54,7 +54,7 @@ export function assCanh(de: DeCanh): string {
 }
 
 /** Dải tiếng: tệp thu thật `am` lặp cho đủ dài, vào/ra êm; không có tệp (am 'im') → im lặng. KHÔNG tổng hợp nhiễu (26/10/2026). */
-export const locAm = (dai: number) => `[1:a]atrim=0:${dai.toFixed(2)},asetpts=PTS-STARTPTS,afade=t=in:d=1,afade=t=out:st=${Math.max(0, dai - 1.5).toFixed(2)}:d=1.5,volume=0.9[a]`;
+export const locAm = (dai: number) => `[1:a]atrim=0:${dai.toFixed(2)},asetpts=PTS-STARTPTS,loudnorm=I=-18:TP=-2:LRA=11,afade=t=in:d=1,afade=t=out:st=${Math.max(0, dai - 1.5).toFixed(2)}:d=1.5[a]`;   // loudnorm: bản thu Mixkit to nhỏ khác nhau (đo 26/10: −33 vs −23 dB) → đưa về cùng mức
 /** Lệnh ffmpeg: VIDEO nền thật (nen, mp4 Pexels) lặp cho đủ dài, phủ kín 1080×1920, tối nhẹ → ass → H.264 + AAC. Không có video nền thì DỪNG. `khung` = một khung JPG. */
 export function lenhCanh(o: { de: DeCanh; ass: string; nen?: string | null; am?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const { DAI } = nhipCanh(o.de), dai = Number(DAI.toFixed(2)), imLang = (o.de.am ?? amTheoTruy(o.de.truy)) === 'im';

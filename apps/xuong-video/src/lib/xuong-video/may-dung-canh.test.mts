@@ -9,7 +9,7 @@ assert.strictEqual(nhipCanh({ truy: 'x', dai: 3 }).CANH, DAI_MIN); assert.strict
 const N = nhipCanh(de); assert.ok(N.DAI - N.T_KET >= Math.min(2.5, giayDoc(...N.ket) - 1) - 1e-9, 'dòng kết đủ thời gian đọc');
 // tiếng nền theo từ khoá
 assert.strictEqual(amTheoTruy('rain on porch'), 'mua'); assert.strictEqual(amTheoTruy('santorini beach waves'), 'song'); assert.strictEqual(amTheoTruy('tokyo station morning'), 'pho'); assert.strictEqual(amTheoTruy('campfire'), 'lua');
-assert.ok(locAm(10).includes('afade=t=out') && locAm(10).startsWith('[1:a]'));
+assert.ok(locAm(10).includes('afade=t=out') && locAm(10).startsWith('[1:a]') && locAm(10).includes('loudnorm'), 'tiếng vào/ra êm + cùng mức');
 // ASS: câu móc ngắt ≤ 2 dòng, có dòng kết; không móc thì không vẽ dải
 const ass = assCanh(de); assert.ok(ass.includes('Long drive ahead?') && ass.includes('Front Porch Puzzles') && ass.includes('Save this'));
 // câu móc phải lên ĐỦ CHỮ (từ cuối có mặt), kể cả câu dài; ≤ 3 dòng; câu rất dài thu cỡ chữ

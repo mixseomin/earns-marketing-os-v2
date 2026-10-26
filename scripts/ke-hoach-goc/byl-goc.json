@@ -23,7 +23,8 @@
     }
    ],
    "link": "https://esimfares.com/pt/",
-   "truy": "Lisbon street tram"
+   "truy": "Lisbon street tram",
+   "moc": "Staying a month? Don't grab the first eSIM you see"
   },
   "dang": {
    "title": "Staying in Portugal for a month? Don't grab the first eSIM you see",
@@ -62,7 +63,8 @@
     }
    ],
    "link": "https://esimfares.com/mx/",
-   "truy": "Mexico City airport"
+   "truy": "Mexico City airport",
+   "moc": "Check your phone isn't carrier-locked first"
   },
   "dang": {
    "title": "Landing in Mexico? Check your phone isn't carrier-locked first",
@@ -101,7 +103,8 @@
     }
    ],
    "link": "https://esimfares.com/it/",
-   "truy": "Rome Colosseum evening"
+   "truy": "Rome Colosseum evening",
+   "moc": "Your home SIM can start roaming before you're off the plane"
   },
   "dang": {
    "title": "Landing in Italy? Your home SIM can start roaming before you're off the plane",
@@ -140,7 +143,8 @@
     }
    ],
    "link": "https://esimfares.com/de/",
-   "truy": "Berlin apartment moving boxes"
+   "truy": "Berlin apartment moving boxes",
+   "moc": "Moving here? Have data the minute you land"
   },
   "dang": {
    "title": "Moving to Germany? Here's how to have data the minute you land",
@@ -179,7 +183,8 @@
     }
    ],
    "link": "https://esimfares.com/gb/",
-   "truy": "London Heathrow airport"
+   "truy": "London Heathrow airport",
+   "moc": "First trip abroad? Sort your phone before you fly"
   },
   "dang": {
    "title": "First trip abroad? Landing in the UK, sort your phone before you fly",
@@ -218,7 +223,8 @@
     }
    ],
    "link": "https://esimfares.com/au/",
-   "truy": "Sydney Opera House harbour"
+   "truy": "Sydney Opera House harbour",
+   "moc": "Spent a lot on flights? Don't add a roaming bill on top"
   },
   "dang": {
    "title": "Spent a lot on flights to Australia? Don't add a roaming bill on top",
@@ -257,7 +263,8 @@
     }
    ],
    "link": "https://esimfares.com/gr/",
-   "truy": "Santorini sea view"
+   "truy": "Santorini sea view",
+   "moc": "Get data sorted before Santorini"
   },
   "dang": {
    "title": "Landing in Greece for the islands? Get data sorted before Santorini",
@@ -296,7 +303,8 @@
     }
    ],
    "link": "https://esimfares.com/es/",
-   "truy": "Barcelona beach aerial"
+   "truy": "Barcelona beach aerial",
+   "moc": "Cheap flight? Don't lose the savings to roaming"
   },
   "dang": {
    "title": "Found a cheap flight to Spain? Don't lose the savings to roaming",
@@ -335,7 +343,8 @@
     }
    ],
    "link": "https://esimfares.com/kr/",
-   "truy": "Seoul university campus"
+   "truy": "Seoul university campus",
+   "moc": "Starting a semester? Set up your phone before ICN"
   },
   "dang": {
    "title": "Starting a semester in South Korea? Set up your phone before ICN",
@@ -374,7 +383,8 @@
     }
    ],
    "link": "https://esimfares.com/fr/",
-   "truy": "Paris street cafe"
+   "truy": "Paris street cafe",
+   "moc": "On a Europe trip? Do this before the wheels touch down"
   },
   "dang": {
    "title": "Landing in France on a Europe trip? Do this before the wheels touch down",
@@ -413,7 +423,8 @@
     }
    ],
    "link": "https://esimfares.com/jp/",
-   "truy": "Tokyo Shibuya crossing night"
+   "truy": "Tokyo Shibuya crossing night",
+   "moc": "Maps, Translate and video calls all running?"
   },
   "dang": {
    "title": "Landing in Japan with Maps, Translate and video calls all running?",
@@ -452,7 +463,8 @@
     }
    ],
    "link": "https://esimfares.com/tr/",
-   "truy": "Istanbul Galata tower"
+   "truy": "Istanbul Galata tower",
+   "moc": "Check your phone actually supports eSIM"
   },
   "dang": {
    "title": "Landing in Turkey? Check your phone actually supports eSIM",
@@ -486,7 +498,8 @@
     }
    ],
    "link": "https://esimfares.com/ae/",
-   "truy": "Dubai airport terminal"
+   "truy": "Dubai airport terminal",
+   "moc": "Flying on points? Don't let the layover cost you in roaming"
   },
   "dang": {
    "title": "Flying to Dubai on points? Don't let the layover cost you in roaming",
@@ -520,7 +533,8 @@
     }
    ],
    "link": "https://esimfares.com/ph/",
-   "truy": "Manila city skyline"
+   "truy": "Manila city skyline",
+   "moc": "Keep video calls home working from day one"
   },
   "dang": {
    "title": "Landing in the Philippines? Keep video calls home working from day one",
@@ -559,7 +573,8 @@
     }
    ],
    "link": "https://esimfares.com/th/",
-   "truy": "Bangkok temple"
+   "truy": "Bangkok temple",
+   "moc": "On a Southeast Asia loop? Start with this"
   },
   "dang": {
    "title": "Landing in Thailand on a Southeast Asia loop? Start with this",
@@ -588,7 +603,8 @@
     }
    ],
    "link": "https://esimfares.com/sg/",
-   "truy": "Singapore Marina Bay"
+   "truy": "Singapore Marina Bay",
+   "moc": "Keep your home number for bank codes"
   },
   "dang": {
    "title": "Landing in Singapore? Keep your home number for bank codes",
@@ -617,7 +633,8 @@
     }
    ],
    "link": "https://esimfares.com/is/",
-   "truy": "Iceland road waterfall"
+   "truy": "Iceland road waterfall",
+   "moc": "Surprise phone bill? Rule it out before you fly"
   },
   "dang": {
    "title": "Worried about a surprise phone bill after Iceland? Rule it out before you fly",
@@ -656,7 +673,8 @@
     }
    ],
    "link": "https://esimfares.com/vn/",
-   "truy": "Ha Long Bay boat"
+   "truy": "Ha Long Bay boat",
+   "moc": "A long trip, north to south?"
   },
   "dang": {
    "title": "Landing in Vietnam for a long trip, north to south?",
@@ -695,7 +713,8 @@
     }
    ],
    "link": "https://esimfares.com/nz/",
-   "truy": "Queenstown lake mountains"
+   "truy": "Queenstown lake mountains",
+   "moc": "Flights already stretched the budget?"
   },
   "dang": {
    "title": "Flights to New Zealand already stretched the budget?",

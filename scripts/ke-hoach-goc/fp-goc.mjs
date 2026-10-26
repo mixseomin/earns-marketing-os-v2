@@ -81,7 +81,7 @@ const out = L.map(([goc, dich, goi, truy, mau, trang, title, than, gum], k) => {
   if (o.filter((x) => x === dich).length !== 1) throw new Error(dich);
   const link = P(trang), ten = trang.replace(/-word-search$/, '').replace(/-/g, ' ');
   const description = `${than}\nFree large print ${ten === 'large print' ? '' : ten + ' '}word search to print, with the answer key: ${link}${gum ? `\n100 more puzzles in the Nostalgic Word Search & Memory Book: ${GUM}` : ''}`;
-  return { slug: `goc-${goc.id}-${dich.toLowerCase()}`, chu_de: goi, de: { dich, o, cho, goi, mau, truy }, dang: { title, description, link, book: 'nostalgia', words: [dich], nhom: 'Góc spy', goc } };
+  return { slug: `goc-${goc.id}-${dich.toLowerCase()}`, chu_de: goi, de: { dich, o, cho, goi, mau, truy, moc: (title.match(/^[^?!.]*[?!.]/) ?? [title])[0] }, dang: { title, description, link, book: 'nostalgia', words: [dich], nhom: 'Góc spy', goc } };
 });
 for (const x of out) { const t = `${x.dang.title}\n${x.dang.description}`; if (/[—–]/.test(t)) throw new Error('gach ' + x.slug); if (x.dang.title.length < 25 || !/[?!]|\d/.test(x.dang.title)) throw new Error('moc ' + x.slug); }
 process.stdout.write(JSON.stringify(out));

@@ -6,7 +6,7 @@
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-do-chu.test.mts
 
 export interface MauBia { sau: string; truoc: string; nhan: string }
-export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string; mau: MauBia }
+export interface DeMotDung { dich: string; o: string[]; cho: number; goi: string; mau: MauBia; moc?: string }   // moc: câu móc theo GÓC spy (26/10/2026), hiện giữa bảng và đồng hồ
 
 export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, LO = 0.6, T_KET = T_LO + LO + 1.2, DAI = T_KET + 2.7;
 const W = 1080, H = 1920, DO = '#E5484D';
@@ -31,6 +31,9 @@ export function luoi(de: DeMotDung) {
   return { cot, hang, cw, ch, co, o: de.o.map((w, i) => ({ w, x: 60 + ((i % cot) + 0.5) * cw, y: 470 + (Math.floor(i / cot) + 0.5) * ch })) };
 }
 
+/** Cỡ chữ câu móc: 36 vừa 40 ký tự trên một dòng (bề ngang dải 1000px), dài hơn thì thu theo tỉ lệ. */
+export const coMoc = (m: string) => Math.min(36, Math.floor(36 * 40 / Math.max(1, m.length)));
+
 export function assMotDung(de: DeMotDung): string {
   const M = de.mau, L = luoi(de), d: DongAss[] = [];
   // nền chưa có ảnh: vết sáng giữa trên (dải radial lo ở ffmpeg) — có ảnh thì phủ một lớp màu bìa mỏng ở ffmpeg, ở đây không vẽ gì
@@ -54,6 +57,12 @@ export function assMotDung(de: DeMotDung): string {
       d.push([4, T_LO, T_KET, 'Ve', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})\\1c${mauAss(DO)}\\fscx80\\fscy80\\t(0,300,0.5,\\fscx125\\fscy125)\\p1}${bo(w, h, 14)}`]);
       d.push([5, T_LO, T_KET, 'Ve', `{\\an5\\pos(${Math.round(c.x)},${Math.round(c.y)})\\1c${mauAss(M.nhan)}\\fscx80\\fscy80\\t(0,300,0.5,\\fscx125\\fscy125)\\p1}${bo(w - 16, h - 16, 10)}`]);
     }
+  }
+  // câu móc của góc (nếu đề có): một dòng trên dải tối trong khoảng trống giữa đáy bảng (1530) và đỉnh đồng hồ (1600); dài thì thu chữ cho vừa 1 dòng
+  if (de.moc?.trim()) {
+    const m = de.moc.trim(), co = coMoc(m);
+    d.push([3, 0, T_LO, 'Ve', `{\\an5\\pos(540,1566)\\1c&H000000&\\1a${alpha(0.45)}${nayVao(88)}\\p1}${bo(Math.min(1000, Math.round(m.length * co * EM * 0.52) + 60), 58, 29)}`]);
+    d.push([4, 0, T_LO, 'Chu', `{\\an5\\pos(540,1566)\\fnAtkinson Hyperlegible\\b1${fs(co)}\\1c${mauAss(M.truoc)}${nayVao(88)}}${chu(m)}`]);
   }
   // đồng hồ đếm 7 → 1 (3 giây cuối nền đỏ chữ trắng), mỗi số nảy 1,12 ở 0,2s cuối giây của nó
   for (let s = DEM; s >= 1; s--) {
@@ -108,7 +117,7 @@ export const SHOT_MOT_DUNG = [
 export function kichBanMotDung(de: DeMotDung) {
   const L = luoi(de), sai = de.o.filter((_, i) => i !== de.cho).length;
   const shots = [
-    { ...SHOT_MOT_DUNG[0], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: `Only ONE is spelled\n${de.dich}\nFind it in 7 seconds`,
+    { ...SHOT_MOT_DUNG[0], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: `Only ONE is spelled\n${de.dich}\nFind it in 7 seconds${de.moc ? `\n${de.moc}` : ''}`,
       hanh_dong: `Tiêu đề và bảng trắng "đập" vào khung (0,5s). Bảng ${L.cot}×${L.hang} = 36 ô: ${sai} bản viết sai một chữ của ${de.dich}, đúng một ô viết đúng. Thanh thời gian co dần, đồng hồ đếm 7 → 1 (3 giây cuối nền đỏ, nảy mỗi giây), tích tắc mỗi giây.` },
     { ...SHOT_MOT_DUNG[1], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: de.dich,
       hanh_dong: `Lộ đáp án: ô ${de.cho + 1} (hàng ${Math.floor(de.cho / L.cot) + 1}, cột ${(de.cho % L.cot) + 1}) bật khung màu nhấn viền đỏ, phóng 1,25; 35 ô sai mờ còn 25%. Tiếng "ting".` },

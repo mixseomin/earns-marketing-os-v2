@@ -44,3 +44,16 @@ assert.strictEqual(kb.shots[0]!.tu, 0); assert.strictEqual(kb.shots[2]!.den, DAI
 for (let i = 1; i < 3; i++) assert.strictEqual(kb.shots[i]!.tu, kb.shots[i - 1]!.den, 'shot phải nối liền');
 assert.ok(kb.kich_ban.includes('COSTUME') && kb.shots[1]!.hanh_dong.includes('ô 30'));
 console.log('kichBanMotDung: đạt');
+
+// câu móc theo góc (26/10/2026): một dòng giữa bảng và đồng hồ, chữ không thu dưới 75%; không có moc thì không vẽ
+{
+  const { assMotDung, coMoc } = await import('./may-dung-do-chu');
+  const goc = (JSON.parse((await import('node:fs')).readFileSync(new URL('../../../../../scripts/ke-hoach-goc/fp-goc.json', import.meta.url), 'utf8')) as { slug: string; de: Parameters<typeof assMotDung>[0] }[]);
+  for (const { slug, de } of goc) {
+    assert.ok(de.moc && assMotDung(de).includes(de.moc), `${slug}: câu móc không lên khung`);
+    assert.ok(coMoc(de.moc!) >= 27, `${slug}: câu móc dài quá, chữ thu dưới 75% (${de.moc!.length} ký tự)`);
+  }
+  assert.ok(!assMotDung({ ...goc[0]!.de, moc: undefined }).includes('pos(540,1566)'), 'không có moc thì không vẽ dải');
+  assert.ok(coMoc('x'.repeat(60)) < 36, 'câu dài phải thu chữ');
+  console.log(`may-dung-do-chu: ${goc.length} đề góc có câu móc trên khung`);
+}

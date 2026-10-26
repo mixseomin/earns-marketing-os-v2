@@ -12,6 +12,7 @@ export interface DeLand {
   nuoc: string;                                       // tên nước tiếng Anh
   san_bay: { iata: string; ten: string; tp: string }[];   // 1–3 cửa ngõ quốc tế chính
   link: string;                                       // https://esimfares.com/<iso>/
+  moc?: string;                                       // câu móc theo GÓC spy (26/10/2026): thay dòng chung CHU_MO ở cảnh mở, để góc hiện ngay trên khung hình
 }
 
 export const FPS = 30;
@@ -39,6 +40,8 @@ const TEN_QUEN: Record<string, string> = {
 export const aAn = (w: string) => (/^[AEIOU]/i.test(w) ? 'an' : 'a');
 /** Thành phố gọn: bỏ phần trong ngoặc / sau dấu phẩy (OurAirports hay ghi "Paris (Roissy-en-France, Val-d'Oise)"). */
 export const tpGon = (t: string) => t.replace(/\s*\(.*$/, '').split(',')[0]!.trim();
+/** Dòng dưới tên nước ở cảnh mở: câu móc của góc nếu đề có, không thì câu chung. */
+export const chuMo = (de: Pick<DeLand, 'moc'>) => de.moc?.trim() || CHU_MO;
 export const CHU_MO = 'Do this before the wheels touch down', CHU_CANH = 'Your home SIM can start roaming the moment it connects abroad';
 export const CHU_KET = (nuoc: string) => [`Land connected in ${nuoc}`, 'Compare eSIM plans before you fly:', 'esimfares.com'];
 export const BUOC = (nuoc: string) => [`Install ${aAn(nuoc)} ${nuoc} eSIM at home, on Wi-Fi`, 'Keep it switched off until you land', 'Turn off data roaming on your home line'];
@@ -46,7 +49,7 @@ export const BUOC = (nuoc: string) => [`Install ${aAn(nuoc)} ${nuoc} eSIM at hom
 /** Mốc thời gian của một đề (giây). Mỗi khối: hiện → đứng đủ giayDoc(chữ của khối) → khối kế. */
 export function nhipLand(de: DeLand) {
   const sb = de.san_bay.slice(0, 3), buoc = BUOC(de.nuoc);
-  const T_CUA = 0.5 + giayDoc('LANDING IN', de.nuoc, CHU_MO);                                   // cảnh tên nước
+  const T_CUA = 0.5 + giayDoc('LANDING IN', de.nuoc, chuMo(de));                                   // cảnh tên nước
   const T_CANH = T_CUA + 0.25 + sb.length * 0.4 + giayDoc(...sb.map((a) => tenGon(a.ten)));   // đọc xong tên các sân bay mới hiện cảnh báo (thẻ còn nằm trên màn suốt các khối sau)
   const T_BUOC = T_CANH + giayDoc(CHU_CANH);                                                   // đọc xong cảnh báo mới sang 3 bước
   const buocTu: number[] = []; let t = T_BUOC + 0.4 + giayLuot('3 STEPS, 2 MINUTES');
@@ -70,7 +73,7 @@ export function assLand(de: DeLand): string {
   // ── 0 → T_CUA: tên nước ở giữa màn
   d.push([5, 0, T_CUA, 'Chu', `{\\an5\\pos(540,700)\\b1${fs(56)}\\1c${mauAss(XANH)}\\3c&H000000&\\bord3${nayVao(120, 0, 0.45)}}LANDING IN`]);
   d.push([6, 0, T_CUA, 'Den', `{\\an5\\pos(540,880)${fs(Math.round(coTen(de.nuoc) * 1.2))}\\1c&HFFFFFF&\\3c&H000000&\\bord4\\shad8\\4a&H60&\\q0${nayVao(135, 0, 0.45)}}${chu(de.nuoc.toUpperCase())}`]);
-  d.push([5, 0.5, T_CUA, 'Chu', `{\\an5\\pos(540,1080)\\b1${fs(54)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\fad(250,200)}${ngat(CHU_MO, 16).join('\\N')}`]);
+  d.push([5, 0.5, T_CUA, 'Chu', `{\\an5\\pos(540,1080)\\b1${fs(54)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\fad(250,200)}${ngat(chuMo(de), de.moc ? 22 : 16).map(chu).join('\\N')}`]);
   const mb = 'm 0 18 l 120 10 b 140 9 150 14 150 18 b 150 22 140 27 120 26 l 0 18 m 70 15 l 40 -20 l 58 -20 l 98 14 m 70 21 l 40 56 l 58 56 l 98 22 m 6 17 l -6 0 l 6 0 l 22 15';
   d.push([4, 0, T_CUA, 'Ve', `{\\an7\\1c${mauAss(NHAN)}\\fscx160\\fscy160\\move(-260,1260,1100,1340,0,${Math.round(T_CUA * 1000)})\\frz-4\\p1}${mb}`]);
   // ── T_CUA → T_KET: tên nước thu lên đầu, thẻ cửa ngõ, cảnh báo, 3 bước
@@ -154,7 +157,7 @@ export function tuNguonLand(x: DeLand & { slug: string; nen_url?: string; nen_ng
 export function kichBanLand(de: DeLand) {
   const { T_CUA, T_BUOC, DAI } = nhipLand(de);
   return { tom_tat: `Before you land · ${de.nuoc}`, shots: [
-    { tu: 0, den: T_CUA, canh: 'Tên nước', hanh_dong: `"LANDING IN ${de.nuoc.toUpperCase()}" đập vào, máy bay lướt ngang, dòng "Do this before the wheels touch down".` },
+    { tu: 0, den: T_CUA, canh: 'Tên nước', hanh_dong: `"LANDING IN ${de.nuoc.toUpperCase()}" đập vào, máy bay lướt ngang, dòng "${chuMo(de)}".` },
     { tu: T_CUA, den: T_BUOC, canh: 'Cửa ngõ + cảnh báo roaming', hanh_dong: `Thẻ ${de.san_bay.length} sân bay chính (${de.san_bay.map((a) => a.iata).join(', ')}), dải đỏ: SIM nhà có thể bắt đầu roaming ngay khi bắt sóng nước ngoài.` },
     { tu: T_BUOC, den: DAI, canh: '3 bước + màn kết', hanh_dong: 'Ba bước tick lần lượt (cài eSIM ở nhà, tắt tới khi hạ cánh, tắt roaming SIM nhà) → so gói eSIM ở esimfares.com.' },
   ] };

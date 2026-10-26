@@ -66,9 +66,11 @@ B={
 19865:('nz','new-zealand-flight-costs','Queenstown lake mountains',"Flights to New Zealand already stretched the budget?",
  "After that airfare, the last thing you need is a roaming charge on top. Setting up data before you fly is the cheap part of the trip."),
 }
+# câu móc theo góc hiện trên khung hình (mẫu land › chuMo, 26/10/2026): phần nói đúng góc, bỏ "Landing in X" vì tên nước đã to giữa màn
+MOC = {"19199": "Staying a month? Don't grab the first eSIM you see", "19232": "Check your phone isn't carrier-locked first", "19191": "Your home SIM can start roaming before you're off the plane", "19203": "Moving here? Have data the minute you land", "19188": "First trip abroad? Sort your phone before you fly", "19839": "Spent a lot on flights? Don't add a roaming bill on top", "19857": "Get data sorted before Santorini", "19838": "Cheap flight? Don't lose the savings to roaming", "19193": "Starting a semester? Set up your phone before ICN", "19189": "On a Europe trip? Do this before the wheels touch down", "19194": "Maps, Translate and video calls all running?", "19195": "Check your phone actually supports eSIM", "19841": "Flying on points? Don't let the layover cost you in roaming", "19222": "Keep video calls home working from day one", "19190": "On a Southeast Asia loop? Start with this", "19196": "Keep your home number for bank codes", "19198": "Surprise phone bill? Rule it out before you fly", "19843": "A long trip, north to south?", "19865": "Flights already stretched the budget?"}
 out=[]
 for gid,(iso,suf,q,title,lead) in B.items():
-    s=src[iso]; de={'iso':iso,'nuoc':s['nuoc'],'san_bay':s['san_bay'],'link':s['link'],'truy':q}
+    s=src[iso]; de={'iso':iso,'nuoc':s['nuoc'],'san_bay':s['san_bay'],'link':s['link'],'truy':q,'moc':MOC[str(gid)]}
     n=s['nuoc']; cua=', '.join(f"{tp(a['tp'])} ({a['iata']})" for a in s['san_bay'])
     desc=f"{lead} Main arrival airports: {cua}. 1) Install {an(n)} {n} eSIM at home, on Wi-Fi. 2) Keep it switched off until you land. 3) Turn off data roaming on your home line. Compare eSIM plans for {n}: {s['link']}"
     sp,loai,ten=G[gid]

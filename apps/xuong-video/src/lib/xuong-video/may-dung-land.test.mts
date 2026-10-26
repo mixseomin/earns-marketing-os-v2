@@ -32,3 +32,20 @@ assert.strictEqual(tenGon('Some Very Long Regional Name Field Airport'), 'Some V
 assert.ok(BUOC('Italy')[0]!.startsWith('Install an Italy') && BUOC('Japan')[0]!.startsWith('Install a Japan'), 'mạo từ a/an');
 assert.strictEqual(tpGon("Paris (Roissy-en-France, Val-d'Oise)"), 'Paris'); assert.strictEqual(tpGon('Manchester, Greater Manchester'), 'Manchester');
 console.log(`may-dung-land: ${ds.length} đề đạt`);
+
+// câu móc theo góc (26/10/2026): có moc thì thay dòng chung ở cảnh mở, vừa ≤ 3 dòng, cảnh mở dài đủ đọc; đề góc thật đều qua
+{
+  const { assLand, chuMo, nhipLand, CHU_MO } = await import('./may-dung-land');
+  const { ngat } = await import('./may-dung-ass');
+  const goc = (JSON.parse((await import('node:fs')).readFileSync(new URL('../../../../../scripts/ke-hoach-goc/byl-goc.json', import.meta.url), 'utf8')) as { slug: string; de: Parameters<typeof assLand>[0] }[]);
+  for (const { slug, de } of goc) {
+    assert.ok(de.moc && chuMo(de) === de.moc && assLand(de).includes(ngat(de.moc, 22)[0]!), `${slug}: câu móc không lên khung`);
+    assert.ok(!assLand(de).includes(CHU_MO) || de.moc!.includes(CHU_MO), `${slug}: còn dòng chung`);
+    assert.ok(ngat(de.moc!, 22).length <= 3, `${slug}: câu móc quá 3 dòng`);
+    assert.ok(!/^landing in/i.test(de.moc!), `${slug}: câu móc lặp "Landing in" (tên nước đã to giữa màn)`);
+  }
+  const g = goc[0]!.de, khong = { ...g, moc: undefined };
+  assert.strictEqual(chuMo(khong), CHU_MO, 'không có moc thì giữ câu chung');
+  assert.ok(nhipLand(g).T_CUA !== nhipLand(khong).T_CUA, 'cảnh mở tính giờ đọc theo câu móc');
+  console.log(`may-dung-land: ${goc.length} đề góc có câu móc trên khung`);
+}

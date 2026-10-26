@@ -188,21 +188,18 @@ def tat_cham():
     # creative của camp đang chạy mà chưa có bản chấm → xếp hàng chấm (Worker etp-cham)
     q(f"""insert into etp.cham_hang (creative_id, nguon, ai) select distinct {CR_CAMP}, 'chay', 'lich-gio: camp đang chạy chưa chấm' from etp.camp c
         where c.trang_thai = 'ACTIVE' and {CR_CAMP} > 0 and not exists (select 1 from etp.cham h where h.creative_id = {CR_CAMP}) on conflict (creative_id) do nothing""")
-    # 5 điểm → người duyệt: creative đang có camp chạy hoặc chưa có camp (chờ lên)
+    # 5 điểm → người duyệt TRÊN TRANG (anh 26/10/2026: "không duyệt qua tele. Chỉ gửi 1 tin tổng hợp rồi link đến page trên etp.on.tc"):
+    # một tin tổng hợp khi có creative chờ duyệt MỚI (chưa báo), link thẳng bộ lọc Chờ duyệt ở etp.on.tc › Creative › Soát
     try: bao = set(json.load(open(DUYET_TEP)))
     except Exception: bao = set()
-    cho = [l.split("|") for l in q(f"""select g.creative_id, g.cho_duyet, coalesce(r.video, ''), coalesce(p.ten, ''),
-          (select count(*) from etp.camp c where c.trang_thai = 'ACTIVE' and {CR_CAMP} = g.creative_id)
-        from etp.cham_cong g left join etp.creative r using (creative_id) left join etp.phim p using (content_id)
-        where g.cho_duyet is not null and (exists (select 1 from etp.camp c where c.trang_thai = 'ACTIVE' and {CR_CAMP} = g.creative_id)
-          or not exists (select 1 from etp.camp c where c.creative_id = g.creative_id)) order by 5 desc, 1 desc""").splitlines() if l.count("|") == 4]
-    cho = [x for x in cho if x[0] not in bao][:8]
-    for cr, diem, video, ten, n in cho:
-        mid = bao_tg(f"🔎 <b>CẦN NGƯỜI DUYỆT — creative #{cr}</b> (5 điểm: {diem})\n{ten[:60]} · {'<b>' + n + ' camp đang chạy</b>' if n != '0' else 'chưa lên camp'}\n"
-                     + (f'<a href="{video}">xem video</a>\n' if video else "") + "<i>Đạt = cho lên / chạy tiếp · Loại = chặn + tắt mọi camp dùng creative này.</i>",
-                     {"inline_keyboard": [[{"text": f"✅ Đạt #{cr}", "callback_data": f"eb:dy:{cr}:ok"}, {"text": f"⛔ Loại #{cr}", "callback_data": f"eb:dy:{cr}:loai"}]]})
-        if mid: bao.add(cr)
-    if cho: json.dump(sorted(bao), open(DUYET_TEP, "w"))
+    cho = [l.split("|") for l in q(f"""select g.creative_id, (select count(*) from etp.camp c where c.trang_thai = 'ACTIVE' and {CR_CAMP} = g.creative_id)
+        from etp.cham_cong g where g.cho_duyet is not null""").splitlines() if "|" in l]
+    if cho and {cr for cr, _ in cho} - bao:
+        chay = sum(1 for _, n in cho if n != "0"); camp = sum(int(n) for _, n in cho)
+        mid = bao_tg(f"🔎 <b>CHỜ NGƯỜI DUYỆT: {len(cho)} creative 5 điểm</b> ({len({cr for cr, _ in cho} - bao)} mới)\n"
+                     f"<b>{chay}</b> creative đang chạy · {camp} camp — chưa duyệt thì không lên camp mới, camp đang chạy vẫn chạy\n"
+                     f'👉 <a href="https://etp.on.tc/?t=creative&v=soat&l=duyet">Duyệt trên etp.on.tc</a>')
+        if mid: json.dump(sorted(bao | {cr for cr, _ in cho}), open(DUYET_TEP, "w"))
 
 def duyet(cr, kq, ai):
     """nút Đạt / Loại dưới tin CẦN NGƯỜI DUYỆT (cty ethopex.mjs xuNutBang → lich-gio.py --duyet <cr> ok|loai <ai>)"""

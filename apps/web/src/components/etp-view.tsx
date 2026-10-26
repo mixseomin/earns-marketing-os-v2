@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
-import { xepHangCham } from '@/lib/actions/etp-cham';
+import { xepHangCham, duyetCham, tatBatCreative } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
 
@@ -496,11 +496,11 @@ function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => 
     </div>
   );
 }
-type LocSoat = 'loi' | 'xem' | 'meta' | 'chua' | 'all';
+type LocSoat = 'duyet' | 'loi' | 'xem' | 'meta' | 'chua' | 'all';
 // tiêu đề cột tiêu chí: hẹp, xuống dòng (bảng ~25 cột không cuộn ngang)
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
 function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
-  const [loc, setLoc] = useState<LocSoat>('loi');
+  const [loc, setLoc] = useState<LocSoat>(() => (typeof location !== 'undefined' && new URL(location.href).searchParams.get('l') === 'duyet' ? 'duyet' : 'loi'));   // link tin Telegram: ?t=creative&v=soat&l=duyet
   const noi = useNoi<Omit<The, 'x' | 'y'>>(); const the = noi.v;
   const router = useRouter();
   const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
@@ -514,8 +514,16 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id) || du.cham[r.creative_id])
     .map((r) => { const c = du.cham[r.creative_id]; const metaLoi = !!(r.tu_choi || r.giao.includes('DISAPPROVED') || photCr.has(r.creative_id));
       return { r, c, metaLoi, muc: metaLoi ? 0 : c?.ket === 'cam' ? 1 : c?.ket === 'xem' ? 2 : !c ? 3 : 4 }; }).sort((a, b) => a.muc - b.muc || (a.c?.meta ?? 11) - (b.c?.meta ?? 11)), [du.creatives, du.cham, photCr]);
-  const dem = { loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter((x) => x.muc === 2).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
-  const rows = ds.filter((x) => loc === 'all' || (loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? x.muc === 2 : loc === 'meta' ? x.metaLoi : !x.c));
+  const choDuyet = (x: { c?: ChamCr }) => !!x.c?.cho_duyet && x.c.duyet == null;   // 5 điểm, chưa ai duyệt (view etp.cham_cong 0341)
+  const dem = { duyet: ds.filter(choDuyet).length, loi: ds.filter((x) => x.muc <= 1).length, xem: ds.filter((x) => x.muc === 2).length, meta: ds.filter((x) => x.metaLoi).length, chua: ds.filter((x) => !x.c).length, all: ds.length };
+  const rows = ds.filter((x) => loc === 'all' || (loc === 'duyet' ? choDuyet(x) : loc === 'loi' ? x.muc <= 1 : loc === 'xem' ? x.muc === 2 : loc === 'meta' ? x.metaLoi : !x.c));
+  const [dangDuyet, setDangDuyet] = useState<Record<number, boolean>>({});
+  const [dangTb, setDangTb] = useState<Record<number, boolean>>({});   // vừa bấm Tắt (false) / Bật (true), chờ kho thấy trạng thái mới
+  useEffect(() => { setDangTb((d) => { const x = { ...d }; for (const k of Object.keys(x)) { const r = du.creatives.find((c) => c.creative_id === Number(k)); if (r && (r.chay > 0) === x[Number(k)]) delete x[Number(k)]; } return x; }); }, [du.creatives]);
+  useEffect(() => { if (!Object.keys(dangTb).length) return; const t = setInterval(() => router.refresh(), 10_000); return () => clearInterval(t); }, [dangTb, router]);
+  const tatBat = async (id: number, bat: boolean, so: number) => { if (!confirm(`${bat ? 'Bật' : 'Tắt'} ${so} camp của creative #${id}?`)) return;
+    const r = await tatBatCreative(id, bat); if ('loi' in r) return alert(r.loi); setDangTb((d) => ({ ...d, [id]: bat })); };
+  const duyet = async (id: number, ok: boolean) => { setDangDuyet((d) => ({ ...d, [id]: ok })); const r = await duyetCham(id, ok); if ('loi' in r) { alert(r.loi); setDangDuyet((d) => { const x = { ...d }; delete x[id]; return x; }); } router.refresh(); };
   const sot = ds.filter((x) => x.metaLoi && x.c && x.c.ket === 'ok').length;
   type Dong = (typeof ds)[number];
   type Mo = Omit<The, 'x' | 'y' | 'anh' | 'anhKhung' | 'video' | 'dai'>;
@@ -563,17 +571,32 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
         <span style={{ color: DAU_MAU.vua }}><b style={{ fontSize: 18 }}>{dem.xem}</b> cần người xem</span>
         <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{dem.meta}</b> Meta từ chối</span>
         <span style={{ color: sot ? '#fb923c' : 'var(--fg-2)' }} title="Meta từ chối mà máy chấm sạch"><b style={{ fontSize: 18 }}>{sot}</b> máy bỏ sót</span>
-        <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'loi', label: 'Cấm / Meta từ chối' }, { value: 'xem', label: 'Cần người xem' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa chấm' }, { value: 'all', label: 'Tất cả đang chạy' }]} /></span>
+        <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'duyet', label: 'Chờ duyệt (5 điểm)' }, { value: 'loi', label: 'Cấm / Meta từ chối' }, { value: 'xem', label: 'Cần người xem' }, { value: 'meta', label: 'Meta từ chối' }, { value: 'chua', label: 'Chưa chấm' }, { value: 'all', label: 'Tất cả đang chạy' }]} /></span>
       </div>
       <DataTable rows={rows} getRowKey={(x) => String(x.r.creative_id)} persistKey="etp-cham" minWidth={1100} pageSize={100}
         groups={[{ key: 'lop', label: 'Đã quét', color: '#64748b' }, { key: 'meta', label: 'Meta', color: '#3b82f6' }, { key: 'afs', label: 'AFS · content ads, CTA', color: '#a855f7' }, { key: 'kq', label: 'Kết luận', color: '#f59e0b' }]}
         searchText={(x) => `${x.r.creative_id} ${x.r.phim ?? ''}`} searchPlaceholder="Tìm creative, phim…" columns={[
           { key: 'cr', header: 'Creative', align: 'left', cell: (x) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{anh(x.r.creative_id)}<span>{x.r.phim ?? '—'}<br /><span style={{ color: 'var(--fg-2)', fontSize: 11 }}>#{x.r.creative_id} · {x.r.tu != null ? `${Math.round(x.r.tu)}–${Math.round(x.r.den ?? 0)}s` : ''} · {x.r.chay}/{x.r.camp} camp</span></span></span>, sortValue: (x) => x.muc },
+          { key: 'chay', header: 'Chạy', align: 'center', width: 96, title: 'đèn xanh = creative đang có camp ACTIVE (đang chạy thật) · bấm Tắt / Bật cho mọi camp của creative', cell: (x) => {
+            const dang = dangTb[x.r.creative_id];
+            if (dang != null) return <span style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}><Den mau="#f59e0b" t="đã gửi lệnh, chờ Ethopex" /> {dang ? 'đang bật' : 'đang tắt'}</span>;
+            const nut = { border: '1px solid var(--line)', background: 'transparent', color: 'inherit', borderRadius: 5, padding: '1px 7px', fontSize: 11, cursor: 'pointer', marginLeft: 6 } as const;
+            return x.r.chay > 0 ? <span style={{ whiteSpace: 'nowrap' }}><Den mau={MAU_DEN.chay} song t={`${x.r.chay} camp đang chạy`} /><button onClick={() => tatBat(x.r.creative_id, false, x.r.chay)} style={nut}>Tắt</button></span>
+              : x.r.camp > 0 ? <span style={{ whiteSpace: 'nowrap' }}><Den mau={MAU_DEN.tat} t="mọi camp đã tắt" /><button onClick={() => tatBat(x.r.creative_id, true, x.r.camp)} style={nut}>Bật</button></span>
+              : <Den mau={MAU_DEN.tat} rong t="chưa lên camp" />; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
           ...cotLop, ...cotDiem('meta'), ...cotDiem('afs'),
           { key: 'ket', header: 'Máy', group: 'kq', title: 'kết luận bộ chấm', cell: (x) => (x.c?.ket ? <span style={{ color: KET[x.c.ket]?.[1], fontWeight: 600, whiteSpace: 'nowrap' }}>{KET[x.c.ket]?.[0] ?? x.c.ket}</span> : <span style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => x.muc },
-          { key: 'len', header: 'Lên camp', group: 'kq', align: 'center', title: 'cổng lên camp: chặn khi tiêu chí Meta hoặc CTA / dụ nhấp ≤ 4 (an toàn thương hiệu, chất lượng chỉ cảnh báo)',
+          { key: 'len', header: 'Lên camp', group: 'kq', align: 'center', title: 'cổng lên camp (anh 26/10/2026): chặn khi bất kỳ tiêu chí Meta / AFS ≤ 4 (máy tự tắt camp đang chạy); có tiêu chí 5 → chờ người duyệt',
             cell: (x) => (x.c?.duoc_len == null ? <span style={{ color: DAU_MAU.chua }}>–</span> : x.c.duoc_len ? <span title="được lên camp / clone" style={{ color: DAU_MAU.ok }}>✓</span>
               : <span title={`bị chặn: ${x.c.chan_boi ?? ''}`} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span>), sortValue: (x) => (x.c?.duoc_len == null ? 2 : x.c.duoc_len ? 1 : 0) },
+          { key: 'duyet', header: 'Duyệt', group: 'kq', align: 'center', title: 'creative có tiêu chí 5 điểm: người xem video rồi bấm Đạt (cho lên / chạy tiếp) hoặc Loại (chặn + máy tắt camp đang dùng trong ≤ 10 phút)', cell: (x) => {
+            const d = dangDuyet[x.r.creative_id] ?? x.c?.duyet;
+            if (d != null) return <span style={{ color: d ? DAU_MAU.ok : DAU_MAU.loi, fontWeight: 600, whiteSpace: 'nowrap' }}>{d ? '✓ Đạt' : '✕ Loại'}</span>;
+            if (!x.c?.cho_duyet) return <span style={{ color: DAU_MAU.chua }}>–</span>;
+            const nut = { border: '1px solid var(--line)', background: 'transparent', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' } as const;
+            return <span title={`5 điểm: ${x.c.cho_duyet}`} style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
+              <button onClick={() => duyet(x.r.creative_id, true)} style={{ ...nut, color: DAU_MAU.ok }}>Đạt</button>
+              <button onClick={() => duyet(x.r.creative_id, false)} style={{ ...nut, color: DAU_MAU.loi }}>Loại</button></span>; }, sortValue: (x) => (choDuyet(x) ? 0 : 1) },
           { key: 'meta_that', header: 'Meta thật', group: 'kq', title: 'Meta duyệt hay từ chối', cell: (x) => (x.metaLoi ? <span title={loiMeta(x.r.tu_choi ?? photCr.get(x.r.creative_id) ?? '')} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span> : x.r.giao.includes('ACTIVE') ? <span title="Meta đã duyệt, đang phát" style={{ color: DAU_MAU.ok }}>✓</span> : <span title="Meta đang duyệt" style={{ color: DAU_MAU.cho }}>…</span>), sortValue: (x) => (x.metaLoi ? 0 : 1) },
           { key: 'nut', header: 'Chấm', group: 'kq', align: 'center', title: 'chấm creative này ngay (Cloudflare nhận trong ~1 phút)', cell: (x) => {
             const h = du.chamHang?.[x.r.creative_id];
@@ -583,7 +606,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
               <button onClick={() => chamNgay(x.r.creative_id)} style={{ border: '1px solid var(--line)', background: 'transparent', color: 'inherit', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}>{x.c ? 'Chấm lại' : 'Chấm'}</button></span>; } },
           { key: 'luc', header: 'Chấm lúc', group: 'kq', cell: (x) => <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.c ? vn(x.c.luc) : '—'}</span>, sortValue: (x) => x.c?.luc ?? '' },
         ]} />
-      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}>Điểm 0–10 (10 = sạch): <span style={{ color: DAU_MAU.ok }}>8–10</span> · <span style={{ color: DAU_MAU.vua }}>5–7 cần xem</span> · <span style={{ color: DAU_MAU.loi }}>0–4 sẽ bị từ chối</span> · rê chuột vào ô để xem khung hình, video và lý do</div>
+      <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}>Điểm 0–10 (10 = sạch): <span style={{ color: DAU_MAU.ok }}>8–10</span> · <span style={{ color: DAU_MAU.vua }}>5 chờ người duyệt · 6–7 cần xem</span> · <span style={{ color: DAU_MAU.loi }}>0–4 chặn lên + tự tắt camp</span> · rê chuột vào ô để xem khung hình, video và lý do</div>
       {the ? <TheXem t={the as The} noi={noi} /> : null}
     </div>
   );

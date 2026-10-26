@@ -62,7 +62,7 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, sea
 // ── FilterChips ──────────────────────────────────────────────────────────────────────────────
 // Chip group with a count on each option — the standard "all / awin / cj / …" filter.
 // Wraps Segmented so the active chip is the screen's ONE accent and the rest stay neutral (YDNI).
-// `counts` is optional; when given, each chip shows `label n`.
+// `counts` is optional; when given, the count goes into the chip's hover (title) — chip label is the name only (luật nhãn không mang số).
 //
 // Chọn NHIỀU: truyền `values` + `onToggle` thay cho `value` + `onChange` (mảng rỗng = không lọc).
 export interface ChipOption<T extends string> { value: T; label: string; title?: string; icon?: ReactNode }   // icon: favicon / glyph trước chữ (YDNI trực quan trước chữ) — không nhét emoji vào label
@@ -89,9 +89,9 @@ export function FilterChips<T extends string>({ options, value, onChange, values
       hrefFor={href}
       options={options.map((o) => ({
         value: o.value,
-        title: o.title,   // hover explanation per chip (Segmented renders it) — don't drop tooltips on migrate
-        label: (() => { const chu = counts && counts[o.value] != null ? `${o.label} ${counts[o.value]}` : o.label;
-          return o.icon ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{o.icon}{chu}</span> : chu; })(),
+        // NHÃN CHIP KHÔNG MANG SỐ (luật anh 16/10/2026, nhắc lại 26/10/2026 "tiêu đề mà viết hết cả tên ra"): chip chỉ ghi tên, số đếm vào hover
+        title: [counts && counts[o.value] != null ? `${counts[o.value]}` : null, o.title].filter(Boolean).join(' · ') || undefined,
+        label: o.icon ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{o.icon}{o.label}</span> : o.label,
       }))}
     />
   );

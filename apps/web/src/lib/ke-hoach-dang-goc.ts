@@ -13,7 +13,7 @@ export const KE_HOACH: Buoc[] = [
     muc_dich: 'Mọi dạng bài thu thập được nằm một chỗ, mỗi tài sản social bật / tắt dạng như đang bật / tắt góc.',
     cach: ['Kho 36 dạng ở scripts/ke-hoach-goc/dang-bai.json (có nguồn) — mos2 đọc thẳng tệp này.', 'Bảng dang_tat (máy, dạng) như goc_tat: dạng tắt không vào kế hoạch các tuần chưa sinh. Ngách của máy là cột xv_may.ngach (migration 0344), sửa ngay trên trang khi chọn sản phẩm.', 'Bảng ghép loại góc spy → dạng là trường goc_loai của từng dạng (bước này hiện ở mục Ghép).'],
     viec: [{ ten: 'Thu thập dạng bài từ web, lưu repo', tt: 'xong', ghi: 'commit 9cee64bf' }, { ten: 'Trang Kế hoạch mô tả đủ 7 bước + số thật', tt: 'xong', ghi: 'chung → chọn sản phẩm mới lọc' }, { ten: 'Bật / tắt dạng + ngách theo tài sản (dang_tat, xv_may.ngach)', tt: 'xong', ghi: 'migration 0344' }] },
-  { so: 2, ma: 'ghep', ten: 'Kế hoạch tuần chọn dạng từ kho', tt: 'cho', hien: 'ghep',
+  { so: 2, ma: 'ghep', ten: 'Kế hoạch tuần chọn dạng từ kho', tt: 'dang', hien: 'ghep',
     muc_dich: 'Mỗi ô tuần = góc + dạng hợp loại góc đó, thay bảng xoay cứng 7 ô / họ nền.',
     cach: ['ke-hoach-goc.ts › sinhTuan: dạng = kho lọc theo loại góc của ô + họ nền + đường đăng đã có; ưu tiên dạng ít dùng nhất 14 ngày qua.', 'Luật: mỗi kênh ≥ 4 dạng khác nhau / tuần; không hai ngày liền cùng dạng; góc có bài site thì nhường ô cho Bài link (noiBaiSite giữ nguyên).', 'Bảng nội dung + tab Góc hiện tên dạng trên từng ô; ô dạng chưa có mẫu / chưa có đường đăng đánh dấu cần dựng.'],
     viec: [{ ten: 'Chọn dạng theo loại góc (thay XOAY)', tt: 'cho' }, { ten: 'Luật đa dạng ≥ 4 dạng / kênh / tuần', tt: 'cho' }, { ten: 'Tự kiểm: tuần sinh ra không có 2 ngày liền cùng dạng', tt: 'cho' }] },

@@ -2,7 +2,8 @@
 // với mỗi máy studio đang chạy có nhóm góc spy (xv_may.goc_sp) → mỗi họ nền đã có bài 14 ngày qua × 7 ngày → một góc + một format.
 //   góc: kho spy (bảng goc, loại ai_*), mỗi loại lấy các góc mạnh nhất (lượt nhắc), xếp xen loại; mỗi tuần dịch đi một đoạn để góc xoay vòng,
 //        trong tuần mỗi họ nền lệch nhau 3 bậc (cùng ngày các nền khác góc).
-//   format: xoay theo họ nền; format chưa có đường đăng đánh dấu can_dung; bài link một lần mỗi tuần và chỉ khi máy có nơi đăng link.
+//   dạng: kho dang-bai.json qua chon-dang.ts — lọc họ nền + ngách máy + dạng máy tắt (dang_tat), ưu tiên dạng nuôi bởi loại góc của ô, xoay để
+//        ≥ 4 dạng / kênh / tuần và không hai ngày liền trùng; dạng chưa có đường đăng đánh dấu can_dung; bài link ô cuối tuần khi máy có nơi đăng link.
 // Sinh khi CHƯA có (tuần này + tuần sau) lúc trang Lịch đọc — không cần tiến trình nền, không ghi đè ô đã sinh. 0đ, không gọi mô hình.
 import 'server-only';
 import { getDb } from '@mos2/db';
@@ -10,18 +11,10 @@ import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import type { GocBai } from './goc-spy';
 import { hoCua } from './ho-nen';
+import { chonDang } from './chon-dang';
 
-type Fmt = { ten: string; nen: string; co: boolean };
-// format theo họ nền (nen = nơi đăng của máy để nhãn / nhóm kênh khớp); co = đã có đường đăng
-const F = (ten: string, nen: string, co = true): Fmt => ({ ten, nen, co });
-const XOAY: Record<string, Fmt[]> = {
-  facebook: [F('Reel', 'facebook'), F('Album 2 ảnh', 'fb_anh'), F('Thẻ chữ trên ảnh', 'fb_anh'), F('Ảnh + câu hỏi', 'fb_anh'), F('Reel', 'facebook'), F('A/B 2 ảnh', 'fb_anh'), F('Bài link', 'fb_link')],
-  x: [F('Bình chọn', 'x_anh', false), F('Video', 'x'), F('Ảnh', 'x_anh'), F('Video', 'x'), F('Ảnh', 'x_anh'), F('Bình chọn', 'x_anh', false), F('Bài link', 'x_link')],
-  instagram: [F('Carousel', 'instagram', false), F('Reel', 'instagram'), F('Carousel', 'instagram', false), F('Reel', 'instagram'), F('Story bình chọn', 'instagram', false), F('Reel', 'instagram'), F('Reel', 'instagram')],
-  tiktok: [F('Video', 'tiktok'), F('Bài ảnh trượt', 'tiktok', false), F('Video', 'tiktok'), F('Video', 'tiktok'), F('Bài ảnh trượt', 'tiktok', false), F('Video', 'tiktok'), F('Video', 'tiktok')],
-  youtube: Array.from({ length: 7 }, () => F('Shorts', 'youtube')),
-  dailymotion: Array.from({ length: 7 }, () => F('Video', 'dailymotion')),
-};
+// họ nền máy đăng có đường (dạng cho từng ô lấy từ kho dang-bai.json qua chon-dang.ts — bước 2, 26/10/2026: thay bảng xoay cứng 7 ô / họ nền)
+const HO_DANG = new Set(['facebook', 'x', 'instagram', 'tiktok', 'youtube', 'dailymotion']);
 const cong = (n: string, d: number) => new Date(Date.parse(`${n}T00:00:00Z`) + d * 864e5).toISOString().slice(0, 10);
 export const thuHai = (n: string) => cong(n, -((new Date(`${n}T00:00:00Z`).getUTCDay() + 6) % 7));
 
@@ -48,22 +41,30 @@ async function docGoc(sp: number[], tat: number[] = []): Promise<GocBai[]> {
 /** Sinh kế hoạch cho tuần bắt đầu `tuan` (thứ Hai) nếu chưa có. Trả số ô đã thêm. */
 export async function sinhTuan(tuan: string): Promise<number> {
   const d = getDb(); if (!d) return 0;
-  const may = (await d.execute(sql`SELECT m.ma, m.goc_sp, array(SELECT DISTINCT e.key FROM xv_may_video v CROSS JOIN LATERAL jsonb_each(v.da_dang) e
+  const may = (await d.execute(sql`SELECT m.ma, m.goc_sp, coalesce(m.ngach, '{}') AS ngach, array(SELECT t.dang FROM dang_tat t WHERE t.may = m.ma) AS tat,
+      array(SELECT DISTINCT e.key FROM xv_may_video v CROSS JOIN LATERAL jsonb_each(v.da_dang) e
       WHERE v.may_id = m.id AND e.key NOT LIKE '%:%' AND e.value->>'url' IS NOT NULL AND e.value->>'ngay' >= to_char(${tuan}::date - 14, 'YYYY-MM-DD')) AS nen
     FROM xv_may m WHERE m.chay AND m.goc_sp IS NOT NULL AND cardinality(m.goc_sp) > 0
-      AND NOT EXISTS (SELECT 1 FROM ke_hoach_goc k WHERE k.may = m.ma AND k.tuan = ${tuan}::date)`)) as unknown as { ma: string; goc_sp: number[]; nen: string[] }[];
+      AND NOT EXISTS (SELECT 1 FROM ke_hoach_goc k WHERE k.may = m.ma AND k.tuan = ${tuan}::date)`)) as unknown as { ma: string; goc_sp: number[]; ngach: string[]; tat: string[]; nen: string[] }[];
   const so = Math.round(Date.parse(`${tuan}T00:00:00Z`) / (7 * 864e5));   // số thứ tự tuần → dịch góc mỗi tuần
   let them = 0;
   for (const m of may) {
     const tat = ((await d.execute(sql`SELECT goc_id FROM goc_tat WHERE may = ${m.ma}`)) as unknown as { goc_id: number }[]).map((x) => Number(x.goc_id));
     const goc = await docGoc(m.goc_sp, tat); if (!goc.length) continue;
-    const ho = [...new Set(m.nen.map(hoCua))].filter((h) => XOAY[h]).sort(), coLink = new Set(m.nen.filter((n) => /_link$/.test(n)).map(hoCua));
-    for (const [hi, h] of ho.entries()) for (let i = 0; i < 7; i++) {
-      let f = XOAY[h]![(i + hi) % 7]!; if (f.ten === 'Bài link' && !coLink.has(h)) f = XOAY[h]![0]!;
-      const g = goc[(so * 7 + i + hi * 3) % goc.length]!;
-      await d.execute(sql`INSERT INTO ke_hoach_goc (tuan, may, ho, ngay, nen, format, can_dung, goc) VALUES (${tuan}::date, ${m.ma}, ${h}, ${cong(tuan, i)}::date, ${f.nen}, ${f.ten}, ${!f.co}, ${JSON.stringify(g)}::jsonb)
-        ON CONFLICT (may, ho, ngay) DO NOTHING`);
-      them++;
+    const ho = [...new Set(m.nen.map(hoCua))].filter((h) => HO_DANG.has(h)).sort(), coLink = new Set(m.nen.filter((n) => /_link$/.test(n)).map(hoCua));
+    for (const [hi, h] of ho.entries()) {
+      // dạng đã xếp 14 ngày trước tuần này cho máy × họ nền → xoay đều (chon-dang trừ điểm dạng dùng nhiều)
+      const dem14 = Object.fromEntries(((await d.execute(sql`SELECT dang, count(*) AS n FROM ke_hoach_goc WHERE may = ${m.ma} AND ho = ${h} AND dang IS NOT NULL
+        AND ngay >= ${tuan}::date - 14 AND ngay < ${tuan}::date GROUP BY 1`)) as unknown as { dang: string; n: number }[]).map((x) => [x.dang, Number(x.n)]));
+      const tuanDa: string[] = [];
+      for (let i = 0; i < 7; i++) {
+        const g = goc[(so * 7 + i + hi * 3) % goc.length]!;
+        const c = chonDang({ ho: h, ngach: m.ngach, tat: m.tat, loaiGoc: g.loai, tuan: tuanDa, dem14, coLink: coLink.has(h), ngayLink: i === 6 });
+        if (!c) continue;
+        await d.execute(sql`INSERT INTO ke_hoach_goc (tuan, may, ho, ngay, nen, format, can_dung, goc, dang) VALUES (${tuan}::date, ${m.ma}, ${h}, ${cong(tuan, i)}::date, ${c.nen}, ${c.ten}, ${!c.co}, ${JSON.stringify(g)}::jsonb, ${c.ma})
+          ON CONFLICT (may, ho, ngay) DO NOTHING`);
+        tuanDa.push(c.ma); them++;
+      }
     }
   }
   return them;

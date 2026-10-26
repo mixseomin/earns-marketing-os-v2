@@ -471,6 +471,7 @@ function ChamTrucTiep({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => 
   if (!tat.length) return null;
   const dang = tat.filter((x) => x.h.trang_thai === 'dang');
   const cho = tat.filter((x) => x.h.trang_thai === 'cho').length;
+  if (!dang.length && !cho) return null;   // anh 26/10/2026: "làm xong thì ẩn đi" — chỉ hiện khi đang chấm / đang chờ
   const vua = tat.filter((x) => x.h.trang_thai === 'xong' || x.h.trang_thai === 'loi').sort((a, b) => (b.h.xong ?? b.h.luc).localeCompare(a.h.xong ?? a.h.luc));
   const thuLai = tat.filter((x) => x.h.trang_thai === 'cho' && (x.h.buoc === 'chờ thử lại' || x.h.buoc === 'đã có bản xem nhẹ'));   // máy đang tự xử lỗi (thử lại / bản xem nhẹ)
   const hien = [...dang, ...thuLai, ...vua.slice(0, 3)];
@@ -609,7 +610,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
         </div>) : null}
       <style>{'.etp-chay .nut{display:none}.etp-chay:hover .nut{display:inline-block}.etp-chay:hover .den{display:none}.etp-chay{display:inline-flex;min-width:44px;min-height:20px;align-items:center;justify-content:center}'}</style>
       <ChamTrucTiep du={du} anh={anh} />
-      <PhotBo du={du} />
+      {loc === 'meta' ? <PhotBo du={du} /> : null}{/* anh 26/10/2026: phốt Meta chỉ ở tab Meta loại */}
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13, position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 4, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
         <span><b style={{ fontSize: 18 }}>{ds.length - dem.chua}/{ds.length}</b> đã chấm</span>
         <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{ds.filter((x) => x.c?.ket === 'cam').length}</b> cấm</span>

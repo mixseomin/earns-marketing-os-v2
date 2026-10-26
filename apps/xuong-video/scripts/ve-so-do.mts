@@ -21,7 +21,8 @@ async function tuTap(tap: number, pd: string): Promise<{ ten: string; ds: O[] }>
     const s2 = canh[i + 1]!; const a = veShotTuCanh(c, kgCua(t.khong_gian, c), nv, { luc: 'ket', sau: s2 }), b = veShotTuCanh(s2, kgCua(t.khong_gian, s2), nv, { luc: 'dau' });
     const noi = c.dan_dung?.noi ? ` · nối: ${c.dan_dung.noi}` : '';
     return [...(a ? [{ so: `${c.thu_tu} cuối`, ve: a, co: a.co, dien: `→ #${s2.thu_tu}${noi}` }] : []), ...(b ? [{ so: `${s2.thu_tu} đầu`, ve: b, co: b.co, dien: `← #${c.thu_tu}` }] : [])]; }) };
-  return { ten: `Tập ${tap} · ${pd} — sơ đồ shot (từ studio)`, ds: canh.flatMap((c) => { const ve = veShotTuCanh(c, kgCua(t.khong_gian, c), nv); return ve ? [{ so: c.thu_tu, ve, giay: Number(c.phat_s || c.thoi_luong_s), co: ve.co, dien: (c.dan_dung?.dien ?? c.hanh_dong ?? '').split(/ (?:OBJECT STATE|BODY POSE)/)[0],   // bỏ câu trạng thái dài của prompt khỏi chú thích thoai: (c.thoai ?? []).map((x) => x.loi).filter(Boolean).join(' / ') }] : []; }) };
+  // chú thích dưới khung: bỏ câu trạng thái dài của prompt (OBJECT STATE / BODY POSE)
+  return { ten: `Tập ${tap} · ${pd} — sơ đồ shot (từ studio)`, ds: canh.flatMap((c) => { const ve = veShotTuCanh(c, kgCua(t.khong_gian, c), nv); return ve ? [{ so: c.thu_tu, ve, giay: Number(c.phat_s || c.thoi_luong_s), co: ve.co, dien: (c.dan_dung?.dien ?? c.hanh_dong ?? '').split(/ (?:OBJECT STATE|BODY POSE)/)[0], thoai: (c.thoai ?? []).map((x) => x.loi).filter(Boolean).join(' / ') }] : []; }) };
 }
 function tuBang(tep: string): { ten: string; ds: O[] } {
   type N = { ma: string; x: number; lung?: boolean; quay?: number; nhin_vao?: string; nhin_huong?: string; mat?: [string, string]; cam?: string[]; deo?: string[] };

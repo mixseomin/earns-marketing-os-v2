@@ -103,7 +103,9 @@ def main():
             q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('lich_bao_truoc', to_jsonb('{khoa}'::text), 'lần chuyển khung đã báo trước trên Telegram', 'lich-gio.py') "
               f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
             moc = (vn + dt.timedelta(minutes=CHU_KY)).strftime("%H:%M")
-            bao_tg(f"⏰ <b>LỊCH GIỜ — SẮP {'TẠM DỪNG' if tat2 else 'BẬT LẠI'} HÀNG LOẠT</b> khoảng {moc}\n"
+            try: rp = bao_phien(vn, k_nay, {t for t in set(tl_cua.values()) | {l.split("|")[0] for l in q("select the_loai from etp.lich_gio").splitlines()} if not on(t, k2_toi)})
+            except Exception as e: rp = ""; print(f"report phiên lỗi: {e}", file=sys.stderr)
+            bao_tg(rp + f"⏰ <b>LỊCH GIỜ — SẮP {'TẠM DỪNG' if tat2 else 'BẬT LẠI'} HÀNG LOẠT</b> khoảng {moc}\n"
                    + (f"⏸ sẽ tạm dừng <b>{len(tat2)}</b> camp (khung {k2_toi} TẮT): {tom_tl([tl_cua.get(c, '_khac') for c in tat2])}\n" if tat2 else "")
                    + (f"▶️ sẽ bật lại <b>{len(bat2)}</b> camp đang tạm dừng vì lịch (khung {k2_nay} BẬT)\n" if bat2 else "")
                    + "<i>Muốn hoãn: tắt công tắc Lịch giờ ở etp.on.tc › Camp › Lịch giờ trước giờ đó.</i>")
@@ -150,6 +152,25 @@ def bao_chi_gio(vn):
     bao_tg(chu)
     q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('chi_gio_bao', to_jsonb('{khoa}'::text), 'giờ đã báo chi theo giờ trên Telegram', 'lich-gio.py') "
       f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+
+def bao_phien(vn, k_cu, tat_tl):
+    """REPORT PHIÊN VỪA XONG kèm tin báo trước (anh 26/10/2026: "khi thông báo việc tắt cho phiên tiếp, thì có thêm report cho phiên vừa xong với các camp sẽ tắt
+    và cả camp đang chạy"): số khung k_cu từ đầu khung tới giờ hiện tại (etp.so_gio, giờ UTC), chia nhóm thể loại SẼ TẠM DỪNG / VẪN CHẠY, so cùng khung hôm qua."""
+    gio_tu = int(q(f"select gio_tu from etp.khung_gio where khung = '{k_cu}'") or vn.hour)
+    bd = vn.replace(minute=0, second=0, microsecond=0) - dt.timedelta(hours=(vn.hour - gio_tu) % 24)
+    gio = [bd + dt.timedelta(hours=i) for i in range(int((vn - bd).total_seconds() // 3600) + 1)]
+    def so(lui):
+        cap = ",".join(f"('{(g - dt.timedelta(hours=7 + 24 * lui)):%Y-%m-%d}'::date, {(g - dt.timedelta(hours=7)).hour})" for g in gio)
+        r = {"tat": [0.0, 0.0], "chay": [0.0, 0.0]}
+        for l in q(f"select coalesce(p.the_loai, '_khac'), sum(s.chi), sum(s.thu) from etp.so_gio s left join etp.phim p using (content_id) where (s.ngay, s.gio) in ({cap}) group by 1").splitlines():
+            t, c, th = l.split("|"); a = r["tat" if t in tat_tl else "chay"]; a[0] += float(c); a[1] += float(th)
+        return r
+    nay, qua = so(0), so(1)
+    roi = lambda a: f"{(a[1] - a[0]) / a[0] * 100:+.0f}%" if a[0] >= 0.3 else "—"
+    dong = lambda ten, a, b: f"{ten}: chi ${a[0]:.2f} · lãi ${a[1] - a[0]:+.2f} · ROI {roi(a)}  <i>(hôm qua cùng giờ: lãi ${b[1] - b[0]:+.2f} · ROI {roi(b)})</i>"
+    tong = lambda r: [r["tat"][0] + r["chay"][0], r["tat"][1] + r["chay"][1]]
+    return (f"📊 <b>Phiên vừa xong {gio[0]:%H}h–{vn:%H:%M}</b>\n" + dong("Tổng", tong(nay), tong(qua)) + "\n"
+            + dong("⏸ Nhóm sẽ tạm dừng", nay["tat"], qua["tat"]) + "\n" + dong("▶️ Nhóm vẫn chạy", nay["chay"], qua["chay"]) + "\n")
 
 def tom_tl(ds):
     from collections import Counter

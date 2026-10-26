@@ -159,6 +159,7 @@ const STICKY_MAX = '33vw';
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
+const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
@@ -395,7 +396,9 @@ export function DataTable<T>({
   const coDinh = !!fixedLayout || Object.keys(rong).length > 0;
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseCell, textAlign: c.align ?? 'right', width: rong[c.key] ?? c.width, ...(rong[c.key] ? { maxWidth: rong[c.key] } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
+    // bảng đã chuyển fixed (đã kéo cột) mà cột này chưa có bề ngang (cột MỚI thêm sau lần kéo) → bề ngang mặc định, không thì table-layout:fixed
+    // dồn hết chỗ cho các cột đã chốt và cột mới bị ép còn 0px — biến mất (etp cột Luật, anh 27/10/2026 "ko có cột Luật nào")
+    return { ...baseCell, textAlign: c.align ?? 'right', width: rong[c.key] ?? c.width ?? (coDinh ? RONG_MAC_DINH : undefined), ...(rong[c.key] ? { maxWidth: rong[c.key] } : {}), ...(coDinh ? { overflow: 'hidden', textOverflow: 'ellipsis' } : {}), background: bandSoft(g?.color), ...stick(i, false), ...extra };
   };
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;

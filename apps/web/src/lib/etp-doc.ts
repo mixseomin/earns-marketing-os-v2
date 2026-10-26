@@ -37,6 +37,8 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** máy luật đang báo (etp.bao — cty ethopex.mjs ghi mỗi nhịp, cùng nhóm với Telegram) · bid ROAS: camp ROI ≥ 50% mọi ngày trọn (3 ngày, ≥ 2 ngày có chi) — đủ khi chi ≥ $100 */
   bao: { nhom: string; camp_id: number; chu: string; luc: string }[];
   roas: { camp_id: number; ten: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[] }[];
+  /** camp ROAS ★ đang theo dõi (nhan-ban.py --roas, tên "★ … roas X duplicate by <gốc>" — anh 26/10/2026 "lưu vào etp để theo dõi cùng"): số từ lúc lên */
+  roasChay: { camp_id: number; ten: string | null; trang_thai: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[] }[];
   /** phim bão hoà / dừng nhân bản (etp.phim_bao_hoa — canh-bao.py, anh 25/10/2026) */
   baoHoa: { content_id: number; ten: string | null; so_camp: number; roi: { d: string; roi: number | null }[]; chan_nb: string | null; bao_hoa: string | null }[];
   /** nhân bản lỗi 24 giờ theo camp gốc (cây camp, anh 25/10/2026): số lần, lần cuối, lý do cuối */
@@ -140,7 +142,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<{ khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }>(sql`select khung, gio_tu, so_gio, ten, ghi from etp.khung_gio order by (gio_tu + 17) % 24`),
     run<{ k: string }>(sql`select etp.khung_vn(extract(hour from now() at time zone 'Asia/Ho_Chi_Minh')::int) k`),
   ]);
-  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang] = await Promise.all([
+  const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
         max(coalesce(xong, bat_dau))::text cuoi, avg(extract(epoch from xong - bat_dau)) filter (where trang_thai = 'xong') giay_tb from etp.viec where may is not null group by may order by may`),
@@ -159,6 +161,10 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi from etp.cham c left join etp.cham_cong g using (creative_id)`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`select creative_id, trang_thai, luc::text luc, loi, nguon, buoc, nhat_ky, bat_dau::text bat_dau, xong::text xong from etp.cham_hang
       where trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day') or xong > now() - interval '30 minutes'`).catch(() => [] as Record<string, unknown>[]),
+    run<Record<string, unknown>>(sql`select c.camp_id, c.ten, c.trang_thai, c.ngan_sach, coalesce(sum(s.chi), 0) chi, coalesce(sum(s.thu), 0) thu,
+        coalesce(json_agg(json_build_object('d', s.ngay::text, 'chi', s.chi, 'thu', s.thu) order by s.ngay) filter (where s.chi > 0), '[]') ngay
+      from etp.camp c left join etp.so_ngay s using (camp_id) where (c.ten like '% duplicate by %' or c.ten like '★%') and coalesce(c.trang_thai, '') <> 'ARCHIVED'
+      group by 1, 2, 3, 4 order by c.camp_id desc`).catch(() => [] as Record<string, unknown>[]),
   ]);
   // creative đã chấm / có phốt mà không còn ở camp nào (camp đã thay creative khác) vẫn phải hiện ở Quét nội dung — lấy thẳng từ etp.creative
   const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id))])].filter((id) => id && !crMap.has(id));
@@ -183,5 +189,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),
       bo: (r.bo as string) ?? null, ad_account_id: r.ad_account_id == null ? null : n(r.ad_account_id), page_id: r.page_id == null ? null : n(r.page_id), nhom: String(r.nhom ?? 'khac'), ly_do: (r.ly_do as string) ?? null })),
     bao, baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
+      ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })) })),
+    roasChay: roasChay.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, trang_thai: (r.trang_thai as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
       ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })) })) };
 }

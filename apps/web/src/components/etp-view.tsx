@@ -240,6 +240,19 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
       </div>
       <div style={the}>
         <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Support 24/10/2026: chi ≥ ~$100 mà ROI > 50% ổn định 2–3 ngày → áp dụng bid ROAS. Thanh = đã chi / $100; ô = ROI từng ngày trọn">★ Bid ROAS</h3>
+        {du.roasChay.length ? <div style={{ fontSize: 11, color: 'var(--fg-2)', margin: '2px 0 2px' }} title="camp chạy bid ROAS (nhan-ban.py --roas) — dạng riêng, miễn mọi luật; luật tắt ROAS: chi > $20 mà ROI < 30% trong 1–2 ngày đã khép → báo riêng trên Telegram">Đang chạy</div> : null}
+        {du.roasChay.map((r) => {
+          const m = (r.ten ?? '').match(/roas ([\d.]+) duplicate by (\d+)/), roi = r.chi ? Math.round((r.thu - r.chi) / r.chi * 100) : null;
+          return (
+            <div key={r.camp_id} style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto auto', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
+              <span title={r.trang_thai ?? ''} style={{ width: 8, height: 8, borderRadius: 4, background: r.trang_thai === 'ACTIVE' ? '#22c55e' : '#9ca3af' }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ten ?? ''}>★ #{r.camp_id} {(r.ten ?? '').replace(/^★\s*/, '').replace(/^\d{4}\w* /, '').replace(/ roas [\d.]+ duplicate by \d+$/, '').slice(0, 34)}</span>
+              <span style={{ color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }} title={`ROAS goal ${m?.[1] ?? '?'} · nhân từ #${m?.[2] ?? '?'} · $${r.ngan_sach}/ngày · từ lúc lên: chi $${r.chi.toFixed(2)}, thu $${r.thu.toFixed(2)}`}>
+                {m ? `${m[1]}× ` : ''}${r.chi.toFixed(0)} · <b style={{ color: roi == null ? 'var(--fg-2)' : roi >= 30 ? '#4ade80' : roi >= 0 ? '#f59e0b' : '#f87171' }}>{roi == null ? '—' : `${roi > 0 ? '+' : ''}${roi}%`}</b></span>
+              <span style={{ display: 'flex', gap: 3 }}>{r.ngay.slice(-3).map((x) => { const v = x.chi ? Math.round((x.thu - x.chi) / x.chi * 100) : 0; return <span key={x.d} title={`${x.d.slice(8, 10)}/${x.d.slice(5, 7)} · chi $${x.chi.toFixed(2)} · thu $${x.thu.toFixed(2)}`} style={{ fontSize: 10, padding: '0 4px', borderRadius: 4, fontVariantNumeric: 'tabular-nums', background: v >= 30 ? 'rgba(34,197,94,.15)' : 'rgba(248,113,113,.15)', color: v >= 30 ? '#4ade80' : '#f87171' }}>{v}</span>; })}</span>
+            </div>);
+        })}
+        {du.roasChay.length && du.roas.length ? <div style={{ fontSize: 11, color: 'var(--fg-2)', margin: '8px 0 2px' }}>Ứng viên</div> : null}
         {du.roas.map((r) => {
           const du100 = r.chi >= 100;
           return (

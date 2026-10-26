@@ -68,13 +68,15 @@ def main():
                 a = ((d or {}).get("ad_groups") or [{}])[0].get("ads", [{}])[0] if d else {}
                 sp = ((d or {}).get("ad_groups") or [{}])[0].get("source_payload") if d else None
                 sp = json.loads(sp) if isinstance(sp, str) and sp.strip().startswith("{") else (sp or {})
-                m = re.search(r"\(nhan ban \d+ cua (\d+)\)", c.get("name", ""))
+                m = re.search(r"\(nhan ban \d+ cua (\d+)\)", c.get("name", "")) or re.search(r" duplicate by (\d+)\s*$", c.get("name", ""))   # camp ROAS ★ … duplicate by <gốc>
                 rows.append({"camp_id": c["id"], "ten": re.sub(r"^\d+:\s*", "", c.get("name", "")), "bo": bo_tk.get(int(c.get("ad_account_id") or 0)), "ad_account_id": c.get("ad_account_id"),
                              "trang_thai": c.get("state"), "giao": a.get("delivery_status"), "dong_bo": c.get("sync_status"), "ngan_sach": c.get("budget_daily"),
                              "creative_id": a.get("creative_id"), "content_id": a.get("content_id"), "ad_id": a.get("id"), "goc": int(m.group(1)) if m else None,
                              "lich": sp.get("start_time"), "loi": (a.get("error") or c.get("error") or None), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at")})
         kq["so_chi_tiet"] = ghi("camp", rows, ["camp_id"], {"camp_id": "int", "ten": "text", "bo": "text", "ad_account_id": "bigint", "trang_thai": "text", "giao": "text", "dong_bo": "text",
             "ngan_sach": "numeric", "creative_id": "int", "content_id": "int", "ad_id": "int", "goc": "int", "lich": "timestamptz", "loi": "text", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
+        # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
+        q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")
     # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
     try:

@@ -1,0 +1,67 @@
+// KẾ HOẠCH DẠNG × GÓC × SẢN PHẨM (anh 26/10/2026: "tao sẽ làm tất cả các ngách, mọi sản phẩm, mọi dịch vụ… kết hợp với góc trong spy mới ra được
+// nội dung"; "page này phải nâng cấp để mô tả hết những gì plan theo từng bước, sau đó mới triển khai"). Đây là SỔ kế hoạch: mô tả, việc con,
+// trạng thái từng bước — tab Social › Góc › Kế hoạch đọc sổ này + số thật (kho dạng, máy, góc spy). Làm xong bước nào đổi trạng thái ở đây
+// trong cùng commit. Trạng thái: cho (chờ) · dang (đang làm) · xong · duyet (chờ anh duyệt).
+export type TtBuoc = 'cho' | 'dang' | 'xong' | 'duyet';
+export interface ViecCon { ten: string; tt: TtBuoc; ghi?: string }
+export interface Buoc { so: number; ma: string; ten: string; tt: TtBuoc; muc_dich: string; cach: string[]; viec: ViecCon[]; hien: 'kho' | 'ghep' | 'mau' | 'duong' | 'san-pham' | 'giong' | 'do' }
+
+export const NGUYEN_LY = 'Một bài = một SẢN PHẨM (máy studio có nhóm góc spy) × một GÓC (spy) × một DẠNG (kho dạng bài). Ba thứ là dữ liệu; máy không phụ thuộc ngách. Thêm sản phẩm mới = thêm một dòng máy, không thêm mã.';
+
+export const KE_HOACH: Buoc[] = [
+  { so: 1, ma: 'kho', ten: 'Kho dạng bài vào mos2', tt: 'dang', hien: 'kho',
+    muc_dich: 'Mọi dạng bài thu thập được nằm một chỗ, mỗi tài sản social bật / tắt dạng như đang bật / tắt góc.',
+    cach: ['Kho 36 dạng ở scripts/ke-hoach-goc/dang-bai.json (có nguồn) — mos2 đọc thẳng tệp này.', 'Bảng dang_tat (máy, dạng) như goc_tat: dạng tắt không vào kế hoạch các tuần chưa sinh.', 'Bảng ghép loại góc spy → dạng là trường goc_loai của từng dạng (bước này hiện ở mục Ghép).'],
+    viec: [{ ten: 'Thu thập dạng bài từ web, lưu repo', tt: 'xong', ghi: 'commit 9cee64bf' }, { ten: 'Trang Kế hoạch mô tả đủ 7 bước + số thật', tt: 'dang' }, { ten: 'Bật / tắt dạng theo tài sản (dang_tat)', tt: 'cho' }] },
+  { so: 2, ma: 'ghep', ten: 'Kế hoạch tuần chọn dạng từ kho', tt: 'cho', hien: 'ghep',
+    muc_dich: 'Mỗi ô tuần = góc + dạng hợp loại góc đó, thay bảng xoay cứng 7 ô / họ nền.',
+    cach: ['ke-hoach-goc.ts › sinhTuan: dạng = kho lọc theo loại góc của ô + họ nền + đường đăng đã có; ưu tiên dạng ít dùng nhất 14 ngày qua.', 'Luật: mỗi kênh ≥ 4 dạng khác nhau / tuần; không hai ngày liền cùng dạng; góc có bài site thì nhường ô cho Bài link (noiBaiSite giữ nguyên).', 'Bảng nội dung + tab Góc hiện tên dạng trên từng ô; ô dạng chưa có mẫu / chưa có đường đăng đánh dấu cần dựng.'],
+    viec: [{ ten: 'Chọn dạng theo loại góc (thay XOAY)', tt: 'cho' }, { ten: 'Luật đa dạng ≥ 4 dạng / kênh / tuần', tt: 'cho' }, { ten: 'Tự kiểm: tuần sinh ra không có 2 ngày liền cùng dạng', tt: 'cho' }] },
+  { so: 3, ma: 'mau', ten: 'Mẫu dựng chung cho dạng 0đ', tt: 'cho', hien: 'mau',
+    muc_dich: 'Mỗi dạng 0đ một mẫu studio dùng cho MỌI ngách: đề = góc + dữ liệu sản phẩm, nền = ảnh / video thật Pexels, tiếng sinh ffmpeg.',
+    cach: ['Thứ tự: cảnh động → bộ bài ảnh (thẻ chữ, ai còn nhớ, đoán năm/giá, hai lựa chọn) → top 3/5 → lầm tưởng / đúng-sai → so sánh → tin nào giả + chuỗi nhầm số → câu nói theo nước → đố thị giác (tìm vật, lạc loài, câu đố mẹo).', 'Mỗi mẫu: may-dung-<ma>.ts + test, qua Phòng Nội dung chấm, chụp khung gửi anh; mỗi mẫu một nhịp.', 'Bỏ "Comment YES or NO" ở màn kết Only ONE ngay nhịp đầu (Facebook coi là mồi tương tác).'],
+    viec: [{ ten: 'Cảnh động thả hồn (video Pexels + tiếng nền)', tt: 'cho' }, { ten: 'Bộ bài ảnh: thẻ chữ · ai còn nhớ · đoán năm/giá · hai lựa chọn', tt: 'cho' }, { ten: 'Top 3/5 đếm ngược', tt: 'cho' }, { ten: 'Lầm tưởng vs sự thật · Đúng/Sai', tt: 'cho' }, { ten: 'So sánh X vs Y', tt: 'cho' }, { ten: 'Tin nào giả · Chuỗi nhầm số (mở rộng mẫu Scam)', tt: 'cho' }, { ten: 'Câu nói theo nước', tt: 'cho' }, { ten: 'Tìm vật giấu · Vật lạc loài · Câu đố mẹo', tt: 'cho' }, { ten: 'Bỏ "Comment YES or NO" khỏi Only ONE', tt: 'cho' }] },
+  { so: 4, ma: 'duong', ten: 'Đường đăng còn thiếu', tt: 'cho', hien: 'duong',
+    muc_dich: 'Mọi dạng trong kho đều có đường lên nền tảng; hết ô "cần dựng" vì thiếu đường.',
+    cach: ['puzzle-books dang-br.mjs thêm: Instagram carousel, Instagram Story bình chọn, TikTok bài ảnh trượt, X bình chọn.', 'Mỗi đường một hàm + tự kiểm danh tính trước khi đăng như các đường đang có; máy đăng (dang-may.mjs › DANG) nhận thêm nền.'],
+    viec: [{ ten: 'Instagram carousel', tt: 'cho' }, { ten: 'Instagram Story bình chọn', tt: 'cho' }, { ten: 'TikTok bài ảnh trượt', tt: 'cho' }, { ten: 'X bình chọn', tt: 'cho' }] },
+  { so: 5, ma: 'san-pham', ten: 'Mọi sản phẩm vào máy', tt: 'cho', hien: 'san-pham',
+    muc_dich: 'Mỗi dự án / sản phẩm / dịch vụ có nhóm góc trên spy thành một máy studio: nhóm góc + site đích + kênh → tự vào kế hoạch tuần.',
+    cach: ['Máy = một dòng xv_may (ma, goc_sp, site_dich, dang[] nơi đăng). Thiếu kênh: đổi tên Page cũ (luật 18/10/2026) hoặc lập tài khoản mới có proxy.', 'Sản phẩm chưa có nhóm góc trên spy: cào spy trước rồi mới lập máy.', 'Thứ tự: sản phẩm đã có site + kênh trước (ExamWeight bật lại, Wordfrost, MilitaryCalc, Giỗ Chạp đã có), rồi sản phẩm cần lập kênh.'],
+    viec: [{ ten: 'Bật lại máy ExamWeight', tt: 'cho' }, { ten: 'Máy Wordfrost · MilitaryCalc', tt: 'cho' }, { ten: 'Máy cho app Clane (Foldwell, Milkline, Final Tin, Light-House, Route Planner, Tâm ngắm, Saidly, Teleprompter)', tt: 'cho' }, { ten: 'Máy Bra / Orabra · Astrolas · Mellowstep', tt: 'cho' }] },
+  { so: 6, ma: 'giong', ten: 'Giọng AI cho dạng cần giọng', tt: 'cho', hien: 'giong',
+    muc_dich: 'Kể chuyện, lồng tiếng giải thích, từ đọc sai, 10 câu theo chủ đề — bốn dạng cần giọng đọc.',
+    cach: ['Báo giá THẬT của đường sẽ đi (cổng API rẻ đã có ở vault) trước, anh gật mới chạy; dưới $0,01 / video thì tự chạy theo luật 16/10/2026.', 'Giọng lưu cùng video trong studio, tái dùng khi dựng lại.'],
+    viec: [{ ten: 'Đo giá một video mẫu', tt: 'cho' }, { ten: 'Mẫu kể chuyện có thật', tt: 'cho' }, { ten: 'Mẫu lồng tiếng giải thích', tt: 'cho' }] },
+  { so: 7, ma: 'do', ten: 'Đo theo dạng', tt: 'cho', hien: 'do',
+    muc_dich: 'Biết dạng nào kéo người ở kênh nào; dạng yếu giảm tần suất, dạng mạnh thêm ô.',
+    cach: ['Bảng Số bài thêm chiều dạng × góc (lượt xem, thích, bình luận, click site).', 'Luật dạng yếu: 2 tuần không bài nào có lượt xem ở một kênh → giảm tần suất dạng đó cho kênh đó (không bỏ hẳn). Luật kênh chết (nhip-an-toan › kenhChet) đã chạy từ 26/10/2026.'],
+    viec: [{ ten: 'Số bài theo dạng × góc', tt: 'cho' }, { ten: 'Luật dạng yếu trong kế hoạch tuần', tt: 'cho' }] },
+];
+
+/** Đường đăng của máy đăng (puzzle-books dang-br.mjs / dang-may.mjs): co = đã có hàm đăng. Dạng trong kho cần đường chưa có → ô "cần dựng". */
+export const DUONG_DANG: { nen: string; ho: string; ten: string; co: boolean }[] = [
+  { nen: 'facebook', ho: 'facebook', ten: 'Facebook Reel (Graph API)', co: true }, { nen: 'fb_anh', ho: 'facebook', ten: 'Facebook bài ảnh / album', co: true }, { nen: 'fb_link', ho: 'facebook', ten: 'Facebook bài link', co: true },
+  { nen: 'x', ho: 'x', ten: 'X video', co: true }, { nen: 'x_anh', ho: 'x', ten: 'X bài ảnh (1–4 ảnh)', co: true }, { nen: 'x_link', ho: 'x', ten: 'X bài link', co: true }, { nen: 'x_poll', ho: 'x', ten: 'X bình chọn', co: false },
+  { nen: 'instagram', ho: 'instagram', ten: 'Instagram Reel', co: true }, { nen: 'ig_carousel', ho: 'instagram', ten: 'Instagram carousel', co: false }, { nen: 'ig_story_poll', ho: 'instagram', ten: 'Instagram Story bình chọn', co: false },
+  { nen: 'tiktok', ho: 'tiktok', ten: 'TikTok video (máy ảo Android)', co: true }, { nen: 'tiktok_anh', ho: 'tiktok', ten: 'TikTok bài ảnh trượt', co: false },
+  { nen: 'youtube', ho: 'youtube', ten: 'YouTube Shorts', co: true }, { nen: 'dailymotion', ho: 'dailymotion', ten: 'Dailymotion (API)', co: true },
+];
+
+/** Sản phẩm / dịch vụ ứng viên cho bước 5: đã có nhóm góc trên spy (id nhóm = goc_sp.id) nhưng chưa có máy studio. */
+export const UNG_VIEN: { ten: string; du_an: string; goc_sp: number[]; site: string | null; ghi: string }[] = [
+  { ten: 'ExamWeight', du_an: 'examweight', goc_sp: [], site: 'examweight.com', ghi: 'máy examweight-cau-hoi đang tắt, chưa gán nhóm góc' },
+  { ten: 'Wordfrost', du_an: 'wordfrost', goc_sp: [1559], site: null, ghi: 'app iOS, cần kênh' },
+  { ten: 'MilitaryCalc', du_an: 'militarycalc', goc_sp: [1553], site: 'militarycalc.com', ghi: 'có site, cần kênh' },
+  { ten: 'Astrolas', du_an: 'astrolas', goc_sp: [9], site: 'astrolas.com', ghi: 'dịch vụ chiêm tinh; không dùng br htuan82' },
+  { ten: 'Bra / Orabra', du_an: 'bra', goc_sp: [399, 230, 347], site: null, ghi: 'shop Shopdy; QC Meta riêng' },
+  { ten: 'Teleprompter', du_an: 'clane', goc_sp: [842], site: null, ghi: 'app Clane' },
+  { ten: 'Saidly (transcription)', du_an: 'clane', goc_sp: [1551], site: null, ghi: 'app Clane' },
+  { ten: 'Foldwell (bills & rx)', du_an: 'clane', goc_sp: [1562], site: null, ghi: 'app Clane' },
+  { ten: 'Milkline (feeding)', du_an: 'clane', goc_sp: [1563], site: null, ghi: 'app Clane' },
+  { ten: 'Final Tin (quit pouches)', du_an: 'clane', goc_sp: [1561], site: null, ghi: 'app Clane' },
+  { ten: 'The Light-House (idle game)', du_an: 'clane', goc_sp: [1560], site: null, ghi: 'app Clane' },
+  { ten: 'Route Planner', du_an: 'clane', goc_sp: [1654], site: null, ghi: 'app Clane' },
+  { ten: 'Tâm ngắm (crosshair)', du_an: 'clane', goc_sp: [1554], site: null, ghi: 'app Clane' },
+  { ten: 'Mellowstep', du_an: 'mellowstep', goc_sp: [], site: 'mellowstep.com', ghi: 'chưa có nhóm góc spy — cào trước' },
+];

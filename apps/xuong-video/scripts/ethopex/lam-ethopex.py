@@ -45,18 +45,19 @@ def roi_ky(cid):
 
 CHI_TOI_THIEU_TAT = 10
 TUOI_TOI_THIEU_TAT = 7
-def dang_lai(cid):
+def dang_lai(cid, t7=False):
     """camp còn lãi thì không tắt (anh 22/10/2026: "camp nào lãi hơn 20% thì bật lại", rồi "camp hơn 2 ngày có lãi sao lại đóng?"):
     hôm nay > 20% · hoặc 2 ngày gần nhất có lãi (> 0) · hoặc cộng dồn > 0 → trả câu lý do, không thì None"""
     # REVIEW TẮT CHỈ KHI CAMP ĐỦ 7 NGÀY (anh 22/10/2026: "quy tắc đúng về cắt camp là ít nhất 7 ngày sẽ review tắt camp, chứ không tắt sớm")
     import datetime as dt
-    tao = api(f"/api/v1/campaigns/{cid}")["campaign"].get("created_at")
+    # LUẬT T7 của Support (anh 26/10/2026 "tắt luôn đi"): kỳ xét là 7 ngày, > 3 ngày bật, chi > $5 — bỏ hai chặn tuổi 7 ngày / tiêu $10; các chặn camp đang LÃI giữ nguyên
+    tao = None if t7 else api(f"/api/v1/campaigns/{cid}")["campaign"].get("created_at")
     if tao:
         tuoi = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(str(tao).replace("Z", "+00:00"))).total_seconds() / 86400
         if tuoi < TUOI_TOI_THIEU_TAT: return f"camp mới {tuoi:.1f} ngày (< {TUOI_TOI_THIEU_TAT} ngày) — chưa tới kỳ review tắt, lỗ thì giảm bậc"
     r = roi_ky(cid)
     # ĐÓNG CAMP PHẢI TIÊU ÍT NHẤT $10 (anh 22/10/2026: "lý do đóng camp là phải tiêu ít nhất $10") — chưa đủ tiền thì chưa đủ dữ liệu để kết luận
-    if r["chi_tong"] < CHI_TOI_THIEU_TAT: return f"mới tiêu ${r['chi_tong']:.2f} (< ${CHI_TOI_THIEU_TAT}) — chưa đủ để đóng"
+    if not t7 and r["chi_tong"] < CHI_TOI_THIEU_TAT: return f"mới tiêu ${r['chi_tong']:.2f} (< ${CHI_TOI_THIEU_TAT}) — chưa đủ để đóng"
     if r["hom_nay"] is not None and r["hom_nay"] > ROI_GIU: return f"hôm nay ROI {r['hom_nay']:+.0f}%"
     if r["hai_ngay"] is not None and r["hai_ngay"] > 0: return f"2 ngày ROI {r['hai_ngay']:+.0f}%"
     if r["tong"] is not None and r["tong"] > 0: return f"cộng dồn ROI {r['tong']:+.0f}%"
@@ -131,7 +132,7 @@ def main(a):
                 raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            lai = None if ep else dang_lai(cid)
+            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
             if lai: raise ValueError(f"không tắt: {lai}")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
             d0 = (r.get("data") or [{}])[0]

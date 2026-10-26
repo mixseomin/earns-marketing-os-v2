@@ -395,7 +395,7 @@ def _bc7():
         a = g.setdefault(int(x["campaign_id"]), {"ten": x.get("campaign_name") or "", "chi": 0.0, "lai": 0.0, "ad": 0})
         a["chi"] += float(x.get("cost") or 0); a["lai"] += float(x.get("profit") or 0); a["ad"] = max(a["ad"], int(x.get("active_day") or 0))
     return g
-_dc = {int(c) for c in q("select camp_id from etp.camp_dang_chay").split() if c.isdigit()}
+_dc = _bat | {int(c) for c in q("select camp_id from etp.lich_tat").split() if c.isdigit()}   # trạng thái THẬT từ API (kho etp chậm 10 phút) + camp tạm dừng vì lịch
 try:
     _r7 = _bc7(); T7_DAT = {c: a for c, a in _r7.items() if a["lai"] < 0 and a["chi"] > 5 and a["ad"] > 3}
 except Exception as e:

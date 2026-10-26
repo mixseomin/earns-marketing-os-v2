@@ -1,4 +1,4 @@
-// ẢNH NGƯỜI THẬT TỪ SƠ ĐỒ SHOT (anh 26/10/2026: sơ đồ 0đ thay khung xám 3D). Ảnh 1 = khung sạch của ve-so-do-shot.py --cho-ai (chỉ bố cục: ai đứng
+// ẢNH NGƯỜI THẬT TỪ SƠ ĐỒ SHOT (anh 26/10/2026: sơ đồ 0đ thay khung xám 3D). Ảnh 1 = khung trơn của ve-so-do.mts --sach=<thư mục> (chỉ bố cục: ai đứng
 // đâu, cỡ khung, đầu quay đâu, đồ ở đâu); ảnh 2–3 = trang phục CỦA CẢNH của người có mặt (biến thể ở --shot, cùng luật khoa-3d-dien-ai.mts); prompt = phiếu
 // phieu-shot.mts (chỉ người trong khung, nhìn ai, nét đầu → cuối + cấm, điểm neo mắt). ckey nano-banana-2 ~110₫/ảnh.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server \

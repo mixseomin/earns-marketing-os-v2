@@ -56,7 +56,8 @@ function mat(cx: number, ey: number, r: number, ma: string, quay = 0, nhinX = 0,
 
 /** SVG một khung (W × H, mặc định 360 × 640 dọc). Khung trơn (sach) không chữ / dấu / mũi tên. */
 export function svgSoDoShot(s: VeShot, o: { W?: number; H?: number; sach?: boolean } = {}): string {
-  const W = o.W ?? 360, H = o.H ?? 640, rr = R[s.co] ?? 0.09; const dau: Record<string, { x: number; y: number; r: number; lung?: boolean }> = {};
+  // rr null = shot toàn (thân đủ) — không dùng ?? vì null là giá trị thật
+  const W = o.W ?? 360, H = o.H ?? 640, rr = s.co in R ? R[s.co]! : 0.09; const dau: Record<string, { x: number; y: number; r: number; lung?: boolean }> = {};
   let g = `<rect width="${W}" height="${H}" fill="#2a2a2e"/>`;
   if (rr == null || rr <= 0.06) g += `<rect y="${f(H * 0.62)}" width="${W}" height="${f(H * 0.38)}" fill="#1e1e21"/>`;
   const ds = [...s.nguoi].sort((a, b) => Number(!!a.lung) - Number(!!b.lung));   // người quay lưng (tiền cảnh) vẽ sau cùng

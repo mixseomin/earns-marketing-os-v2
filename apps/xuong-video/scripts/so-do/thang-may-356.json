@@ -878,5 +878,15 @@
  "vat_so": {
   "the": "Thẻ nhân viên",
   "thung": "Thùng đồ cá nhân"
+ },
+ "ten_vat_vi": {
+  "so_tang": "Số tầng",
+  "giay_do": "Giày cao gót đỏ",
+  "tay": "Tay Vivian",
+  "nam_tay": "Nắm tay Vivian",
+  "day_dut": "Dây thẻ đứt",
+  "cua_thang": "Cửa thang",
+  "mat": "Mắt",
+  "loa": "Loá sáng"
  }
 }

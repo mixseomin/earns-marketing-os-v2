@@ -6,11 +6,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { bieuCam, camThuc, type MaBieuCam } from '../src/lib/xuong-video/qc-cam-xuc';
+import { cauVat, trangThai } from '../src/lib/xuong-video/so-vat';
+import type { KhongGian } from '../src/lib/xuong-video/khong-gian';
 
 type Nguoi = { ma: string; x: number; lung?: boolean; mat?: [MaBieuCam, MaBieuCam]; quay?: number; nhin_vao?: string; nhin_huong?: string; cam?: string[]; deo?: string[] };
-export type Shot = { so: number; giay: number; co: string; goc?: string; nguoi?: Nguoi[]; do?: { loai: string; en?: string }[]; dien_en?: string; thoai?: string };
-export type BangShot = { vat_theo_doi?: Record<string, string>; nhan_vat: Record<string, { en: string; nhan: string; gioi?: string; ten_db?: string }>; canh_en: string; ten_vat_en?: Record<string, string>; shot: Shot[] };
-let b: BangShot;
+export type Shot = { so: number; /** mảnh của SỔ ĐỒ VẬT studio có trạng thái áp cho shot này */ so_cu?: number; giay: number; co: string; goc?: string; nguoi?: Nguoi[]; do?: { loai: string; en?: string }[]; dien_en?: string; thoai?: string };
+export type BangShot = { phan_doan?: string; /** loại đồ trên sơ đồ → tên món trong sổ đồ vật */ vat_so?: Record<string, string>; nhan_vat: Record<string, { en: string; nhan: string; gioi?: string; ten_db?: string }>; canh_en: string; ten_vat_en?: Record<string, string>; shot: Shot[] };
+let b: BangShot; let kg: KhongGian | null = null;
 const ten = (m: string) => b.nhan_vat[m]?.en.split(' (')[0] ?? b.ten_vat_en?.[m] ?? m;
 const phia = (x: number) => (x < 0.4 ? 'screen left' : x > 0.6 ? 'screen right' : 'the centre of the frame');
 // CỠ KHUNG ghi CHỖ CẮT + "không mở rộng": AI hay nới khung ra toàn thân theo ảnh mẫu (26/10/2026 sơ đồ #11 trung → toàn, #12 cận → trung cận)
@@ -20,7 +22,16 @@ const quayDau = (q = 0) => { const h = q > 0 ? 'screen right' : 'screen left'; c
 const DO: Record<string, string> = { the: 'a white staff ID badge on a dark blue lanyard around her neck, resting on her chest', thung: 'hugs a cardboard box of her belongings (a small potted plant and a mug) against her chest with both arms', the_treo: 'holds the SNAPPED dark blue lanyard in her right hand, the white badge dangling below her fingers (never holding the card itself)' };
 
 /** Phiếu prompt tiếng Anh cho một shot của bảng (dùng cả ở anh-tu-so-do.mts). */
-export function phieuShot(bang: BangShot, s: Shot): string { b = bang; return phieu(s); }
+export function phieuShot(bang: BangShot, s: Shot, khongGian?: KhongGian | null): string { b = bang; kg = khongGian ?? null; return phieu(s); }
+/** Sơ đồ vẽ đồ khác sổ đồ vật studio (người đeo / cầm món mà sổ nói không phải họ) → cảnh báo; sổ là nguồn đúng. */
+export function lechSo(bang: BangShot, khongGian: KhongGian): string[] {
+  const loi: string[] = []; const so = khongGian.so_vat ?? {};
+  for (const s of bang.shot) { if (s.so_cu == null) { loi.push(`#${s.so}: thiếu so_cu`); continue; }
+    const tt = trangThai(so, s.so_cu, 'ket');
+    for (const n of s.nguoi ?? []) for (const k of [...(n.deo ?? []), ...(n.cam ?? [])]) { const mon = bang.vat_so?.[k.split('_')[0]!]; const ai = bang.nhan_vat[n.ma]?.ten_db;
+      if (mon && tt[mon] && tt[mon]!.ai !== ai) loi.push(`#${s.so}: sơ đồ vẽ ${ai} có "${mon}" nhưng sổ ghi ${tt[mon]!.ai ?? 'không ai'} giữ`); } }
+  return loi;
+}
 function phieu(s: Shot): string {
   const ng = s.nguoi ?? []; const thay = ng.filter((n) => !n.lung);
   const dong: string[] = [`Vertical 9:16 photoreal live-action drama still, ${KHUNG[s.co]}${s.goc === 'thap' ? ', LOW camera angle looking up (power shot)' : s.goc === 'cao' ? ', high camera angle looking down' : ''}.`, b.canh_en];
@@ -40,17 +51,31 @@ function phieu(s: Shot): string {
     if (n.mat) { const [d0, d1] = n.mat; c += ` Expression at the start: ${bieuCam(d0)?.en}.${d1 !== d0 ? ` By the end: ${bieuCam(d1)?.en}.` : ' Keep this expression the whole shot.'}`;
       const cam = camThuc({ nv: n.ma, dau: d0, cuoi: d1 }); if (cam.length) c += ` Never: ${cam.map((k) => bieuCam(k)!.en).join('; ')}.`; }
     const dd = [...(n.deo ?? []), ...(n.cam ?? [])].map((k) => DO[k]).filter(Boolean);
-    const ho = b.nhan_vat[n.ma]?.gioi === 'nam' ? ['He', 'he'] : ['She', 'she']; if (dd.length) c += ` ${ho[0]} ${dd.join(`; ${ho[1]} `)}.`.replace(/around her neck|in her right hand/g, (x) => ho[0] === 'He' ? x.replace('her', 'his') : x);
-    // ĐỒ ĐÃ MẤT phải nói ra: phiếu chỉ kể đồ đang có thì AI giữ đồ cũ trên người (#12 Hạ vừa bị giật thẻ vẫn đeo dây thẻ)
-    const mat_do = Object.entries(b.vat_theo_doi ?? {}).filter(([k]) => ![...(n.deo ?? []), ...(n.cam ?? [])].some((x) => x === k || x.startsWith(`${k}_`))).map(([, en]) => en);
-    if (mat_do.length) c += ` ${ten(n.ma)} has NO ${mat_do.join(' and NO ')} on ${b.nhan_vat[n.ma]?.gioi === 'nam' ? 'him' : 'her'}.`;
+    const ho = b.nhan_vat[n.ma]?.gioi === 'nam' ? ['He', 'he'] : ['She', 'she']; if (dd.length && !kg?.so_vat) c += ` ${ho[0]} ${dd.join(`; ${ho[1]} `)}.`.replace(/around her neck|in her right hand/g, (x) => ho[0] === 'He' ? x.replace('her', 'his') : x);
     dong.push(c);
   }
   for (const o of s.do ?? []) if (o.en) dong.push(o.en);
+  // TRẠNG THÁI ĐỒ từ SỔ ĐỒ VẬT studio (so-vat.ts › cauVat — gồm cả câu "không còn trên người" cho món đã mất). Shot có sự kiện đổi đồ: nói cả đầu lẫn cuối.
+  if (kg?.so_vat && s.so_cu != null) {
+    const ai = (s.nguoi ?? []).map((n) => b.nhan_vat[n.ma]?.ten_db).filter((x): x is string => !!x);
+    const khai = (s.do ?? []).map((o) => b.vat_so?.[o.loai]).filter((x): x is string => !!x);
+    const en = (t: string) => kg!.ten_en?.[t] ?? t;
+    const dau = cauVat(kg.so_vat, s.so_cu, ai, en, khai, 'dau'), ket = cauVat(kg.so_vat, s.so_cu, ai, en, khai, 'ket');
+    if (dau && ket && dau !== ket) dong.push(`At the start — ${dau}`, `By the end — ${ket}`); else if (ket) dong.push(ket);
+  }
   dong.push(`ONE motion only: ${s.dien_en}${s.thoai ? ` ${ten((s.nguoi ?? []).find((n) => !n.lung)?.ma ?? '')} says (lip-sync, Vietnamese): "${s.thoai}"` : ''} Static locked-off camera unless stated. No text, no captions.`);
   return dong.join('\n');
 }
 const chinh = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (chinh) { const [vao, ra] = process.argv.slice(2); b = JSON.parse(readFileSync(vao!, 'utf8')) as BangShot;
+if (chinh) { const [vao, ra] = process.argv.slice(2).filter((x) => !x.startsWith('--')); b = JSON.parse(readFileSync(vao!, 'utf8')) as BangShot;
+const tap = Number(process.argv.find((x) => x.startsWith('--tap='))?.slice(6)); if (tap) kg = await khongGianTap(tap, b.phan_doan ?? '');
+if (kg) for (const l of lechSo(b, kg)) console.error(`LỆCH SỔ: ${l}`);
 const md = b.shot.map((s) => `### #${s.so} · ${s.giay}s · ${s.co}\n\n\`\`\`\n${phieu(s)}\n\`\`\``).join('\n\n');
 if (ra) writeFileSync(ra, `# Phiếu prompt — ${vao}\n\n${md}\n`); else console.log(md); }
+
+/** Sổ không gian (gồm SỔ ĐỒ VẬT) của một cảnh trong tập — nguồn của studio (xv_tap.khong_gian[phan_doan]). */
+export async function khongGianTap(tapId: number, phanDoan: string): Promise<KhongGian | null> {
+  const { sql } = await import('drizzle-orm'); const { getDb } = await import('@mos2/db');
+  const r = (await getDb()!.execute(sql`SELECT khong_gian FROM xv_tap WHERE id = ${tapId}`)) as unknown as { khong_gian: Record<string, KhongGian> | null }[];
+  return r[0]?.khong_gian?.[phanDoan] ?? null;
+}

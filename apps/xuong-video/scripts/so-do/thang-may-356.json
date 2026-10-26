@@ -58,7 +58,8 @@
    ],
    "dien": "Hạ ôm thùng, ngước nhìn số tầng.",
    "ke": "Ngày cuối ở Lục thị, tôi chỉ muốn đi thật lặng lẽ. (nháp)",
-   "dien_en": "Hạ waits, holding the box, then lifts her eyes to the floor indicator above the door."
+   "dien_en": "Hạ waits, holding the box, then lifts her eyes to the floor indicator above the door.",
+   "so_cu": 1
   },
   {
    "so": 2,
@@ -75,7 +76,8 @@
     }
    ],
    "dien": "Bảng số tầng đổi số.",
-   "dien_en": "The amber floor indicator above the steel door changes number."
+   "dien_en": "The amber floor indicator above the steel door changes number.",
+   "so_cu": 1
   },
   {
    "so": 3,
@@ -99,7 +101,8 @@
     ]
    ],
    "dien": "Gót giày đỏ bước trên sàn đá — tiếng cao gót.",
-   "dien_en": "A red high heel steps onto the black marble floor, moving toward screen left."
+   "dien_en": "A red high heel steps onto the black marble floor, moving toward screen left.",
+   "so_cu": 2
   },
   {
    "so": 4,
@@ -127,7 +130,8 @@
     }
    ],
    "dien": "Hạ quay đầu sang phải, cảnh giác.",
-   "dien_en": "Hạ hears heels and turns her head toward screen right, wary."
+   "dien_en": "Hạ hears heels and turns her head toward screen right, wary.",
+   "so_cu": 2
   },
   {
    "so": 5,
@@ -173,7 +177,8 @@
     ]
    ],
    "dien": "Vivian sải bước vào, dừng gần Hạ. (dùng lại #3)",
-   "dien_en": "Vivian strides in toward Hạ and slows to a stop close to her."
+   "dien_en": "Vivian strides in toward Hạ and slows to a stop close to her.",
+   "so_cu": 3
   },
   {
    "so": 6,
@@ -204,7 +209,8 @@
     }
    ],
    "dien": "Qua vai Hạ: Vivian chống hông, cười khinh. (dùng lại #4)",
-   "dien_en": "Vivian puts a hand on her hip and looks Hạ up and down with a cold smile."
+   "dien_en": "Vivian puts a hand on her hip and looks Hạ up and down with a cold smile.",
+   "so_cu": 4
   },
   {
    "so": 7,
@@ -229,7 +235,8 @@
     }
    ],
    "dien": "Hạ mím môi.",
-   "dien_en": "Hạ presses her lips together, holding still."
+   "dien_en": "Hạ presses her lips together, holding still.",
+   "so_cu": 4
   },
   {
    "so": 8,
@@ -260,7 +267,8 @@
     ]
    ],
    "dien": "Tay móng đỏ vươn tới thẻ trên ngực Hạ. (dùng lại cận tay)",
-   "dien_en": "Vivian's red-nailed hand reaches in from screen right toward the badge on Hạ's chest."
+   "dien_en": "Vivian's red-nailed hand reaches in from screen right toward the badge on Hạ's chest.",
+   "so_cu": 5
   },
   {
    "so": 9,
@@ -285,7 +293,8 @@
     }
    ],
    "dien": "Hạ cứng người, mắt nhìn xuống.",
-   "dien_en": "Hạ stiffens, eyes dropping to the hand at her chest."
+   "dien_en": "Hạ stiffens, eyes dropping to the hand at her chest.",
+   "so_cu": 5
   },
   {
    "so": 10,
@@ -308,7 +317,8 @@
     }
    ],
    "dien": "Ngón tay siết tấm thẻ. (dùng lại cận tay)",
-   "dien_en": "Vivian's fingers close tight around the badge card."
+   "dien_en": "Vivian's fingers close tight around the badge card.",
+   "so_cu": 6
   },
   {
    "so": 11,
@@ -368,7 +378,8 @@
     ]
    ],
    "dien": "Giật mạnh — dây đứt, Hạ chúi người. (dùng lại nhịp giật)",
-   "dien_en": "Vivian yanks the badge back hard; the lanyard snaps; Hạ is jerked half a step forward, still hugging the box."
+   "dien_en": "Vivian yanks the badge back hard; the lanyard snaps; Hạ is jerked half a step forward, still hugging the box.",
+   "so_cu": 7
   },
   {
    "so": 12,
@@ -394,12 +405,12 @@
      "loai": "the",
      "x": 0.86,
      "y": 0.66,
-     "to": 0.5,
-     "en": "At the right edge of the frame, Vivian's hand (burgundy sleeve) enters from off-screen right holding the SNAPPED dark blue lanyard; the white staff badge dangles below her fingers. Exactly one badge in the frame."
+     "to": 0.5
     }
    ],
    "dien": "Hạ sững sờ, mắt cụp xuống tấm thẻ. (dùng lại #8)",
-   "dien_en": "Hạ stares, stunned, then her eyes drop to the dangling badge at screen right."
+   "dien_en": "Hạ stares, stunned, then her eyes drop to the dangling badge at screen right.",
+   "so_cu": 8
   },
   {
    "so": 13,
@@ -430,7 +441,8 @@
     ]
    ],
    "dien": "Thẻ lủng lẳng, nắm tay giật lên. (dùng lại #9)",
-   "dien_en": "The badge sways below Vivian's fist, then the fist jerks straight up out of the top of the frame."
+   "dien_en": "The badge sways below Vivian's fist, then the fist jerks straight up out of the top of the frame.",
+   "so_cu": 9
   },
   {
    "so": 14,
@@ -455,7 +467,8 @@
     }
    ],
    "dien": "Vivian đung đưa thẻ cạnh mặt, cười.",
-   "dien_en": "Vivian dangles the badge beside her face, smiling at Hạ."
+   "dien_en": "Vivian dangles the badge beside her face, smiling at Hạ.",
+   "so_cu": 10
   },
   {
    "so": 15,
@@ -472,7 +485,8 @@
     }
    ],
    "dien": "Số tầng sáng — tiếng “ting”.",
-   "dien_en": "The floor indicator lights up with a chime."
+   "dien_en": "The floor indicator lights up with a chime.",
+   "so_cu": 10
   },
   {
    "so": 16,
@@ -497,7 +511,8 @@
     }
    ],
    "dien": "Vivian liếc sang cửa thang (trái màn).",
-   "dien_en": "At the chime Vivian's eyes flick toward screen left, to the elevator door."
+   "dien_en": "At the chime Vivian's eyes flick toward screen left, to the elevator door.",
+   "so_cu": 10
   },
   {
    "so": 17,
@@ -527,7 +542,8 @@
     }
    ],
    "dien": "Cửa mở, Lục Thần bước ra — máy thấp, quyền lực.",
-   "dien_en": "The elevator doors are open; Lục Thần steps out toward camera."
+   "dien_en": "The elevator doors are open; Lục Thần steps out toward camera.",
+   "so_cu": 11
   },
   {
    "so": 18,
@@ -549,7 +565,8 @@
     }
    ],
    "dien": "Hạ nhìn sang Lục Thần (trái màn).",
-   "dien_en": "Hạ looks toward screen left at Lục Thần."
+   "dien_en": "Hạ looks toward screen left at Lục Thần.",
+   "so_cu": 11
   },
   {
    "so": 19,
@@ -572,7 +589,8 @@
    ],
    "thoai": "Người ngoài thì đừng đứng chắn thang máy.",
    "dien": "Lục Thần nói, không nhìn Hạ. (khớp môi)",
-   "dien_en": "Lục Thần speaks without turning his head."
+   "dien_en": "Lục Thần speaks without turning his head.",
+   "so_cu": 12
   },
   {
    "so": 20,
@@ -593,7 +611,8 @@
     }
    ],
    "dien": "Hạ cụp mắt, im lặng.",
-   "dien_en": "Hạ lowers her eyes, silent."
+   "dien_en": "Hạ lowers her eyes, silent.",
+   "so_cu": 13
   },
   {
    "so": 21,
@@ -615,7 +634,8 @@
     }
    ],
    "dien": "Vivian cười đắc ý.",
-   "dien_en": "Vivian smiles, pleased."
+   "dien_en": "Vivian smiles, pleased.",
+   "so_cu": 13
   },
   {
    "so": 22,
@@ -641,7 +661,8 @@
    ],
    "thoai": "Thẻ của công ty.",
    "dien": "Vivian đung đưa thẻ. (khớp môi)",
-   "dien_en": "Vivian swings the badge slowly while she speaks."
+   "dien_en": "Vivian swings the badge slowly while she speaks.",
+   "so_cu": 14
   },
   {
    "so": 23,
@@ -671,7 +692,8 @@
     ]
    ],
    "dien": "Thẻ đung đưa như con lắc.",
-   "dien_en": "The badge swings like a pendulum on its snapped lanyard."
+   "dien_en": "The badge swings like a pendulum on its snapped lanyard.",
+   "so_cu": 14
   },
   {
    "so": 24,
@@ -694,7 +716,8 @@
    ],
    "thoai": "Loại như cô, đừng mơ bước vào toà nhà này lần nữa.",
    "dien": "(khớp môi)",
-   "dien_en": "Vivian speaks slowly, eyes on Hạ."
+   "dien_en": "Vivian speaks slowly, eyes on Hạ.",
+   "so_cu": 14
   },
   {
    "so": 25,
@@ -724,7 +747,8 @@
     ]
    ],
    "dien": "Hạ từ từ ngước mắt lên — lật cảm xúc.",
-   "dien_en": "Hạ slowly lifts her eyes to Vivian."
+   "dien_en": "Hạ slowly lifts her eyes to Vivian.",
+   "so_cu": 15
   },
   {
    "so": 26,
@@ -748,7 +772,8 @@
    ],
    "thoai": "Chị nói đúng. Lần sau, tôi sẽ không đi cửa này.",
    "dien": "Hạ nhếch môi, máy đẩy chậm. (khớp môi)",
-   "dien_en": "Hạ speaks softly with a faint knowing smirk; very slow push-in."
+   "dien_en": "Hạ speaks softly with a faint knowing smirk; very slow push-in.",
+   "so_cu": 15
   },
   {
    "so": 27,
@@ -770,7 +795,8 @@
     }
    ],
    "dien": "Nụ cười Vivian cứng lại.",
-   "dien_en": "Vivian's smile stiffens and drains away."
+   "dien_en": "Vivian's smile stiffens and drains away.",
+   "so_cu": 16
   },
   {
    "so": 28,
@@ -796,7 +822,8 @@
     }
    ],
    "dien": "Hạ đứng trong thang, quay mặt ra.",
-   "dien_en": "Hạ stands inside the elevator, turns to face out."
+   "dien_en": "Hạ stands inside the elevator, turns to face out.",
+   "so_cu": 17
   },
   {
    "so": 29,
@@ -836,7 +863,8 @@
     ]
    ],
    "dien": "Cửa thép khép trước mặt Hạ bình thản → loá sáng, hết cảnh.",
-   "dien_en": "The steel doors slide closed in front of Hạ's calm face."
+   "dien_en": "The steel doors slide closed in front of Hạ's calm face.",
+   "so_cu": 17
   }
  ],
  "ten_vat": {
@@ -852,7 +880,9 @@
   "cua_thang": "the elevator door",
   "phia_truoc": "straight ahead"
  },
- "vat_theo_doi": {
-  "the": "staff ID badge and NO lanyard"
+ "phan_doan": "Thang máy",
+ "vat_so": {
+  "the": "Thẻ nhân viên",
+  "thung": "Thùng đồ cá nhân"
  }
 }

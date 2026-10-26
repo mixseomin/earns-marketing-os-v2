@@ -24,6 +24,7 @@ def bao(loai, muc, khoa, chu):
 # Dear Brother 16 camp 59→22→−8%; phim ít camp giữ ROI). Ngày trọn = ngày Ethopex (UTC) D−1, D−2, D−3.
 #   chan_nb (B — luật NB đọc): ROI phim hôm qua < 50%, hoặc tụt hơn 20% so với hôm kia (dù vẫn > 100%), hoặc đang bão hoà (D) → không nhân bản thêm
 #   bao_hoa (D — Telegram / etp / extension): > 10 camp đang chạy và ROI phim giảm 2 ngày liền (mỗi ngày chi ≥ $5)
+CM_CHI, CM_ROI = 20, 20   # clone mới: chi ≥ $20 trong 2 ngày khép mà ROI < 20% → chặn nhân bản phim
 BH_CAMP, NB_ROI_PHIM, NB_GIU = 10, 50, 0.8   # 0.7 → 0.8 (anh 25/10/2026: Number One 148% → 106% vẫn > 100% nhưng giảm sâu thì cũng phải dừng nhân bản)
 def bao_hoa_phim(nay):
     d = [(nay - dt.timedelta(days=k)).isoformat() for k in (1, 2, 3)]
@@ -33,6 +34,8 @@ def bao_hoa_phim(nay):
                        where s.ngay in ('{d[0]}', '{d[1]}', '{d[2]}') group by 1, 2)
              select c.content_id, coalesce(p.ten, ''), c.so, coalesce(json_agg(json_build_object('d', s.ngay, 'chi', round(s.chi, 2), 'thu', round(s.thu, 2)) order by s.ngay) filter (where s.ngay is not null), '[]')
              from c left join s using (content_id) left join etp.phim p using (content_id) where c.so > 0 group by 1, 2, 3""").splitlines()
+    moi_cua = {int(l.split("|")[0]): (float(l.split("|")[1]), float(l.split("|")[2])) for l in q(f"""select k.content_id, sum(s.chi), sum(s.thu) from etp.so_ngay s join etp.camp k using (camp_id)
+        where s.ngay in ('{d[0]}', '{d[1]}') and k.content_id is not null and s.ngay - (k.tao at time zone 'utc')::date <= 2 group by 1""").splitlines() if l.count("|") == 2}
     out, n = [], 0
     for l in rows:
         cid, ten, so, js = l.split("|", 3); so = int(so); ng = {x["d"]: x for x in json.loads(js)}
@@ -42,6 +45,8 @@ def bao_hoa_phim(nay):
         if x1 and x1["chi"] >= 10 and r1 is not None:
             if r1 < NB_ROI_PHIM: chan = f"ROI phim hôm qua {r1:+.0f}% < {NB_ROI_PHIM}%"
             elif r2 is not None and r2 > 0 and r1 < NB_GIU * r2: chan = f"ROI phim tụt {r2:+.0f}% → {r1:+.0f}% (giảm {round((1 - r1 / r2) * 100)}%, ngưỡng {round((1 - NB_GIU) * 100)}%)"
+        cm = moi_cua.get(int(cid))   # CLONE MỚI KHÔNG ĂN (anh 26/10/2026 "làm đi": ¡Atrás! camp cũ +42% mà clone ≤ 2 ngày chỉ +2%) — clone mới 2 ngày khép ROI < 20% → ngừng nhân bản
+        if not chan and cm and cm[0] >= CM_CHI and (cm[1] - cm[0]) / cm[0] * 100 < CM_ROI: chan = f"clone mới (≤ 2 ngày tuổi) 2 ngày khép ROI {(cm[1] - cm[0]) / cm[0] * 100:+.0f}% < {CM_ROI}% trên ${cm[0]:.0f} — nhân bản thêm không ăn"
         bh = None
         if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1:
             bh = f"{so} camp đang chạy · ROI phim {r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}% (3 ngày) — camp tự giành cùng tệp người xem"

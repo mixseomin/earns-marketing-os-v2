@@ -222,7 +222,7 @@ def main(a):
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = chan_bo(cid, bo)
+        ly = chan_bo(cid, bo) or q(f"select etp.bo_chan_mo('{bo}')")   # bộ lỗ 3 ngày khép → ngừng mở camp mới (migration 0338, anh 26/10/2026)
         if ly: raise ValueError(ly)
         if moi: kq["viec"] = "tao_camp"
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)

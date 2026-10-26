@@ -357,6 +357,7 @@ dat, dau_phien, nb = ([x for x in ds if int(x[0] or 0) not in bo2] for ds in (da
 _id_thang = {int(c["id"]) for c in ds_camp if la_thang(c)}
 ha = [x for x in ha if int(x[0] or 0) not in _id_thang]
 thang_nb, thang_tat = [], []
+_bo_chan = {b: q(f"select etp.bo_chan_mo('{b}')") for b in BO_THANG}
 try:
     _con = {}
     for c in ds_camp:
@@ -365,6 +366,7 @@ try:
     _chan_phim, _loi6 = locals().get("chan_phim") or {}, locals().get("loi6") or set()
     for cid, a in thang.items():
         if int(cid) not in _tang_bo2 or cid not in _bat: continue
+        if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")): continue   # bộ lỗ 3 ngày khép → không mở bản thang (etp.bo_chan_mo, anh 26/10/2026)
         ns = a["budget"]; dich = next((b for b in THANG_NB if b > ns + 1e-9), None)
         if not dich: continue
         con = _con.get(int(cid), [])

@@ -76,7 +76,7 @@
     }
    ],
    "dien": "Bảng số tầng đổi số.",
-   "dien_en": "The amber floor indicator above the steel door changes number.",
+   "dien_en": "The amber digital floor indicator above the steel elevator door changes from 37 to 38 (it shows exactly the number 38 at the end).",
    "so_cu": 1
   },
   {
@@ -496,7 +496,7 @@
     }
    ],
    "dien": "Số tầng sáng — tiếng “ting”.",
-   "dien_en": "The floor indicator lights up with a chime.",
+   "dien_en": "The amber floor indicator showing exactly 38 lights up brighter with a chime.",
    "so_cu": 10,
    "sfx": "ding",
    "bien_the": {

@@ -44,7 +44,7 @@ export const phiaMan = (x: number) => (x < 0.4 ? 'screen left' : x > 0.6 ? 'scre
 export type NguoiPhieu = { ten: string; ta?: string; x: number; lung?: boolean; mat?: [MaBieuCam, MaBieuCam]; quay?: number; nhin_vao?: string; nhin_huong?: 'trai' | 'phai' | 'len' | 'xuong' | 'truoc'; nam?: boolean };
 export type ShotPhieu = { co: string; goc?: 'thap' | 'cao' | 'ngang'; nguoi: NguoiPhieu[]; /** món trong khung mà người giữ ở ngoài khung (cận chèn) */ khai?: string[];
   dien_en?: string; thoai?: { ai: string; loi: string } | null; /** mảnh của sổ đồ vật áp cho shot */ so_cu?: number; may_dong?: string };
-export type NguonPhieu = { canh_en: string; so_vat?: SoVat; ten_en?: Record<string, string>; /** MÔ TẢ CHUẨN của đạo cụ (xv_nhan_vat.mo_ta) — món có trong khung thì chép nguyên câu này */ vat_ta?: Record<string, string> };
+export type NguonPhieu = { canh_en: string; so_vat?: SoVat; ten_en?: Record<string, string>; /** tả trang phục MỌI người của cảnh — người giữ đồ ở NGOÀI khung (cận chèn) thì tả tay áo của họ */ ta_nguoi?: Record<string, string>; /** MÔ TẢ CHUẨN của đạo cụ (xv_nhan_vat.mo_ta) — món có trong khung thì chép nguyên câu này */ vat_ta?: Record<string, string> };
 
 export function phieuShot(s: ShotPhieu, n: NguonPhieu): string {
   const en = (t: string) => n.ten_en?.[t] ?? t;
@@ -66,6 +66,12 @@ export function phieuShot(s: ShotPhieu, n: NguonPhieu): string {
     const ai = s.nguoi.map((x) => x.ten); const khai = s.khai ?? [];
     const dau = cauVat(n.so_vat, s.so_cu, ai, en, khai, 'dau'), ket = cauVat(n.so_vat, s.so_cu, ai, en, khai, 'ket');
     if (dau && ket && dau !== ket) dong.push(`At the start — ${dau}`, `By the end — ${ket}`); else if (ket) dong.push(ket);
+    // CẦM ≠ ĐEO (26/10/2026: Vivian cầm thẻ bằng dây đứt mà model vẽ thêm một thẻ đeo trên cổ cô) + người giữ ở NGOÀI khung: chỉ tay họ vào khung, đúng tay áo
+    for (const [t, m] of Object.entries(trangThai(n.so_vat, s.so_cu, 'ket'))) {
+      if (!m.ai) continue; const trong = ai.includes(m.ai), chen = khai.includes(t);
+      if ((trong || chen) && /\b(hand|holds?|held|grip|fist|pinch)/i.test(m.cach)) dong.push(`${en(t)} is HELD in ${m.ai}'s hand only — it is NOT worn around anyone's neck; ${m.ai} wears no badge or lanyard of their own. Exactly one ${en(t)} in the frame.`);
+      if (chen && !trong && n.ta_nguoi?.[m.ai]) dong.push(`Only ${m.ai}'s hand and forearm enter the frame, never their face — the sleeve and skin match ${m.ai}: ${n.ta_nguoi[m.ai]}.`);
+    }
   }
   // HÌNH DẠNG CHUẨN của đạo cụ trong khung (26/10/2026: thẻ #7 tự in chữ + ảnh, thùng đổi đồ bên trong — mô tả chuẩn có sẵn mà phiếu không dùng)
   if (n.vat_ta) { const ai = s.nguoi.map((x) => x.ten); const giu = n.so_vat && s.so_cu != null ? Object.entries(trangThai(n.so_vat, s.so_cu, 'dau')).filter(([, m]) => m.ai && ai.includes(m.ai)).map(([t]) => t) : [];

@@ -21,4 +21,8 @@ assert.ok(p7.includes('eyes on Hạ, who is in frame at screen left'));
 const nVt = { ...n, vat_ta: { 'Thẻ': 'white badge, gold logo, no readable name' } };
 assert.ok(phieuShot({ co: 'cu', so_cu: 3, nguoi: [{ ten: 'Hạ', x: 0.5 }] }, nVt).includes('Thẻ looks exactly like this'), 'Hạ đang đeo thẻ → tả thẻ chuẩn');
 assert.ok(!phieuShot({ co: 'cu', so_cu: 8, nguoi: [{ ten: 'Hạ', x: 0.5 }] }, nVt).includes('looks exactly like this'), 'thẻ đã sang Vivian ngoài khung → không tả');
+// cầm ≠ đeo + tay người ngoài khung ở cận chèn
+const so2 = { 'Thẻ': [{ tu: 1, ai: 'Vivian', cach: "held by its snapped lanyard in Vivian's right hand", vi: '' }] };
+const p9 = phieuShot({ co: 'insert', so_cu: 9, nguoi: [], khai: ['Thẻ'] }, { canh_en: '', so_vat: so2, ta_nguoi: { Vivian: 'burgundy dress, red nails' } });
+assert.ok(p9.includes('NOT worn around anyone') && p9.includes("Only Vivian's hand and forearm") && p9.includes('burgundy dress'), p9);
 console.log('phieu-shot.test: ok');

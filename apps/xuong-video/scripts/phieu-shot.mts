@@ -25,7 +25,7 @@ export function sangPhieu(b: BangShot, s: Shot, taDb?: Record<string, string>): 
       nhin_vao: n.nhin_vao === 'phia_truoc' ? undefined : n.nhin_vao ? ten(n.nhin_vao) : undefined, nhin_huong: (n.nhin_vao === 'phia_truoc' ? 'truoc' : n.nhin_huong) as ShotPhieu['nguoi'][number]['nhin_huong'] })) };
 }
 export function phieuShot(b: BangShot, s: Shot, kg?: KhongGian | null, db?: { ta?: Record<string, string>; vat_ta?: Record<string, string> }): string {
-  return phieuLoi(sangPhieu(b, s, db?.ta), { canh_en: b.canh_en, so_vat: kg?.so_vat, vat_ta: db?.vat_ta, ten_en: { ...Object.fromEntries(Object.entries(b.ten_vat_en ?? {}).map(([k, v]) => [b.vat_so?.[k] ?? k, v])), ...(kg?.ten_en ?? {}) } });   // tên của SỔ thắng tên nháp
+  return phieuLoi(sangPhieu(b, s, db?.ta), { canh_en: b.canh_en, so_vat: kg?.so_vat, vat_ta: db?.vat_ta, ta_nguoi: db?.ta, ten_en: { ...Object.fromEntries(Object.entries(b.ten_vat_en ?? {}).map(([k, v]) => [b.vat_so?.[k] ?? k, v])), ...(kg?.ten_en ?? {}) } });   // tên của SỔ thắng tên nháp
 }
 /** Sơ đồ vẽ đồ khác sổ (người đeo / cầm món mà sổ nói không phải họ) → cảnh báo. */
 export function lechSo(b: BangShot, kg: KhongGian): string[] {

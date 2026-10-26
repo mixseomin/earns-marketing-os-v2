@@ -43,7 +43,7 @@ for (const [i, s] of b.shot.entries()) {
   const sfx = s.sfx ? new URL(`../public/sfx/${s.sfx}.mp3`, import.meta.url).pathname : null; if (sfx && existsSync(sfx)) { vaoTieng.push('-i', sfx); loc.push(`[${loc.length + 1}:a]volume=0.5`); }
   const a = `${tam}/a-${s.so}.wav`;
   const fc = loc.map((x, k) => `${x}[t${k}];`).join('') + `[0:a]${loc.map((_, k) => `[t${k}]`).join('')}amix=inputs=${loc.length + 1}:duration=first:normalize=0[a]`;
-  sh(['-f', 'lavfi', '-t', d.toFixed(2), '-i', 'anullsrc=r=48000:cl=stereo', ...vaoTieng, '-filter_complex', fc, '-map', '[a]', '-t', d.toFixed(2), a]);
+  sh(['-f', 'lavfi', '-t', d.toFixed(4), '-i', 'anullsrc=r=48000:cl=stereo', ...vaoTieng, '-filter_complex', fc, '-map', '[a]', '-t', d.toFixed(4), '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', a]);   // MỌI đoạn cùng định dạng — khác kênh / kiểu mẫu thì nối kiểu chép đếm sai độ dài (mất 5,1 giây, 27/10/2026)
   doan.push(`${v}|${a}`); moc += d;
   console.log(`#${s.so} ${d.toFixed(2)}s ← ${tep.split('/').pop()}`);
 }

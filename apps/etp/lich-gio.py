@@ -140,16 +140,18 @@ def bao_chi_gio(vn):
     gio = [l.split("|") for l in q(f"select gio, sum(chi), sum(thu) from etp.so_gio where ngay = '{ngay}' and gio <= {g} group by 1 order by 1").splitlines() if "|" in l]
     if not gio or int(gio[-1][0]) != g: return   # số giờ vừa qua chưa về — lượt sau thử lại
     roi = lambda c, t: f"{(t - c) / c * 100:+.0f}%" if c >= 0.3 else "—"
-    dong = [f"{int(h) + 7:02d}h: chi ${float(c):.2f} · thu ${float(t):.2f} · ROI {roi(float(c), float(t))}" for h, c, t in gio]
     ns = float(q("select coalesce(sum(ngan_sach), 0) from etp.camp_dang_chay") or 0)
     c_ng, t_ng = [float(x) for x in q(f"select coalesce(sum(chi), 0), coalesce(sum(thu), 0) from etp.so_ngay where ngay = '{ngay}'").split("|")]
     het = [l.split("|") for l in q(f"""select s.camp_id, s.chi, c.ngan_sach, s.thu from etp.so_ngay s join etp.camp_dang_chay c using (camp_id)
         where s.ngay = '{ngay}' and c.ngan_sach > 0 and s.chi >= c.ngan_sach order by s.chi desc""").splitlines() if "|" in l]
     ty = c_ng / ns if ns else 0
-    chu = (f"🕐 <b>CHI THEO GIỜ — {vn.hour - 1:02d}h</b> (khung 08h–12h)\n" + "\n".join(dong[-6:])
-           + f"\nTừ 07h: chi <b>${c_ng:.2f}</b> / ngân sách ngày ${ns:.0f} (<b>{ty * 100:.0f}%</b>) · thu ${t_ng:.2f} · ROI {roi(c_ng, t_ng)}"
-           + (f"\n⏹ {len(het)} camp đã tiêu hết ngân sách ngày: " + ", ".join(f"#{c} ${float(x):.2f}/${float(n):g} ROI {roi(float(x), float(t))}" for c, x, n, t in het[:6]) + (" …" if len(het) > 6 else "") if het else "")
-           + (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — ngân sách cho khung tối 20h–06h còn {(1 - ty) * 100:.0f}%" if ty >= NGUONG_HUT else ""))
+    # BẢNG chữ đều cột (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng") — ≤ 30 ký tự / dòng cho màn điện thoại
+    b = [f"{'Giờ':<6}{'Chi':>7}{'Thu':>7}{'ROI':>7}"] + [f"{int(h) + 7:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio[-6:]]
+    b += ["-" * 27, f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}", f"NS ngày ${ns:.0f} · đã chi {ty * 100:.0f}%"]
+    if het:
+        b += ["", f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])
+    chu = (f"🕐 <b>CHI THEO GIỜ — {vn.hour - 1:02d}h</b> (khung 08h–12h)\n<pre>" + "\n".join(b) + "</pre>"
+           + (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — còn {(1 - ty) * 100:.0f}% cho khung tối 20h–06h" if ty >= NGUONG_HUT else ""))
     bao_tg(chu)
     q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('chi_gio_bao', to_jsonb('{khoa}'::text), 'giờ đã báo chi theo giờ trên Telegram', 'lich-gio.py') "
       f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")

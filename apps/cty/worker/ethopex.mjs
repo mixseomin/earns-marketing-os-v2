@@ -413,7 +413,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (moi.length) {
       const lo = moi.reduce((a, m) => a + Number((String(m.chu).match(/lãi \$([+-]?[\d.]+)/) || [])[1] || 0), 0);
       await guiNhanh({ message_thread_id: topic, text: `⏳ <b>SẮP TẮT ${moi.length} CAMP</b> ở nhịp kế (~30 phút) — ${LT.mo_ta} · tổng lãi $${lo.toFixed(2)}\n`
-        + moi.map((m) => `#${m.id}${m.bo ? ` (bộ ${m.bo})` : ''} ${esc((String(m.chu).match(/lãi \$[+-]?[\d.]+ · ROI [+-]?\d+%/) || [''])[0])}`).join('\n').slice(0, 3300)
+        + '<pre>' + [`${'Camp'.padEnd(8)}${'Bộ'.padStart(3)}${'Lãi 7n'.padStart(9)}${'ROI'.padStart(7)}`, ...moi.map((m) => { const c = String(m.chu); const l = (c.match(/lãi \$([+-]?[\d.]+)/) || [])[1] || ''; const r = (c.match(/ROI ([+-]?\d+%)/) || [])[1] || ''; return `#${String(m.id).padEnd(7)}${String(m.bo || '?').padStart(3)}${l.padStart(9)}${r.padStart(7)}`; })].join('\n').slice(0, 3300) + '</pre>'   // bảng (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng")
         + `\n<i>Muốn giữ camp nào: nhắn trong chat trước giờ đó. Camp ROI cộng dồn &gt; 20% máy không tắt.</i>` });
       gui++;
     }

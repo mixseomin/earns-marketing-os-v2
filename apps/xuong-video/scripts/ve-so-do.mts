@@ -16,7 +16,7 @@ async function tuTap(tap: number, pd: string): Promise<{ ten: string; ds: O[] }>
   const t = ((await db.execute(sql`SELECT khong_gian, phim_id FROM xv_tap WHERE id = ${tap}`)) as unknown as { khong_gian: never; phim_id: number }[])[0]!;
   const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${t.phim_id}`)) as unknown as never[]).map(mapNhanVat);
   const canh = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} AND phan_doan = ${pd} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu`)) as unknown as never[]).map(mapCanh);
-  return { ten: `Tập ${tap} · ${pd} — sơ đồ shot (từ studio)`, ds: canh.flatMap((c) => { const ve = veShotTuCanh(c, kgCua(t.khong_gian, c), nv); return ve ? [{ so: c.thu_tu, ve, giay: Number(c.phat_s || c.thoi_luong_s), co: ve.co, dien: c.dan_dung?.dien ?? c.hanh_dong, thoai: (c.thoai ?? []).map((x) => x.loi).filter(Boolean).join(' / ') }] : []; }) };
+  return { ten: `Tập ${tap} · ${pd} — sơ đồ shot (từ studio)`, ds: canh.flatMap((c) => { const ve = veShotTuCanh(c, kgCua(t.khong_gian, c), nv); return ve ? [{ so: c.thu_tu, ve, giay: Number(c.phat_s || c.thoi_luong_s), co: ve.co, dien: (c.dan_dung?.dien ?? c.hanh_dong ?? '').split(/ (?:OBJECT STATE|BODY POSE)/)[0],   // bỏ câu trạng thái dài của prompt khỏi chú thích thoai: (c.thoai ?? []).map((x) => x.loi).filter(Boolean).join(' / ') }] : []; }) };
 }
 function tuBang(tep: string): { ten: string; ds: O[] } {
   type N = { ma: string; x: number; lung?: boolean; quay?: number; nhin_vao?: string; nhin_huong?: string; mat?: [string, string]; cam?: string[]; deo?: string[] };

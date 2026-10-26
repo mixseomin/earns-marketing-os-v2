@@ -107,7 +107,8 @@ export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat:
   const bc = (c.bieu_cam ?? []) as { nv: string; dau: string; cuoi: string }[];
   const nguoi: VeNguoi[] = ai.map((ten) => {
     const v = viTri(kg, c, ten, 'dau'); const lung = thayMat(kg, c, ten, 'dau') === false; const h = nhinCan(kg, c, ten, 'dau'); const b = bc.find((x) => x.nv === ten);
-    return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay: h == null ? 0 : h * 40, nhin_vao: dichNhin(c, ten, 'dau'), nhin_huong: h,
+    const dich = dichNhin(c, ten, 'dau');   // nhìn MỐC của cảnh (cửa, lối vào…) → tên đọc được của mốc thay mã
+    return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay: h == null ? 0 : h * 40, nhin_vao: dich && !kg.nguoi.includes(dich) ? kg.so_do.ten?.[dich] ?? dich : dich, nhin_huong: h,
       mat: b ? [b.dau, b.cuoi] : undefined, ao: MAU_AO[Math.max(0, kg.nguoi.indexOf(ten)) % MAU_AO.length]!, do: doCam(kg, c.thu_tu, ten, 'dau').map((d) => ({ mon: d.mon, cam: !!d.tay })) };
   });
   const khai = (c.nhan_vat ?? []).map((id) => nhanVat.find((x) => x.id === id)).filter((x) => x && (x.loai === 'dao_cu' || x.loai === 'san_pham')).map((x) => x!.ten);   // đạo cụ gắn vào shot

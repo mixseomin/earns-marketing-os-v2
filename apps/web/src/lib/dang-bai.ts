@@ -1,5 +1,5 @@
-// KHO DẠNG BÀI — một nguồn: scripts/ke-hoach-goc/dang-bai.json (thu thập 26/10/2026, có nguồn). Kế hoạch tuần (ke-hoach-goc.ts) và
-// tab Social › Góc › Kế hoạch cùng đọc từ đây; thêm / sửa dạng = sửa JSON, không sửa mã.
+// KHO DẠNG BÀI — một nguồn: scripts/ke-hoach-goc/dang-bai.json (thu thập 26/10/2026, có nguồn). Tab Social › Góc › Dạng bài / Kế hoạch đọc từ đây;
+// kế hoạch tuần (ke-hoach-goc.ts) CHƯA — còn bảng XOAY cứng, chuyển sang kho này ở bước 2. Thêm / sửa dạng = sửa JSON, không sửa mã.
 import kho from '../../../../scripts/ke-hoach-goc/dang-bai.json';
 
 export type DuongDung = '0d' | 'giong' | 'anh' | 'poll';
@@ -19,5 +19,8 @@ export const NGACH: Record<string, string> = { moi: 'Mọi ngách', 'du-lich': '
 export const dangTheoLoai = (loai: string) => DANG_BAI.filter((d) => d.goc_loai.includes(loai));
 /** Dạng dùng được cho một họ nền (facebook / x / instagram / tiktok / youtube / dailymotion). */
 export const dangTheoNen = (ho: string) => DANG_BAI.filter((d) => d.nen.includes(ho));
+/** Dạng hợp một sản phẩm: ngách khớp (hoặc 'moi'); máy đang có (laMay) còn phải có họ nền máy đang đăng. Một công thức cho API lẫn trang. */
+export const dangHop = (ds: DangBai[], sp: { ho: Set<string>; ngach: string[]; laMay: boolean }) =>
+  ds.filter((d) => (d.ngach.includes('moi') || d.ngach.some((n) => sp.ngach.includes(n))) && (!sp.laMay || d.nen.some((h) => sp.ho.has(h))));
 /** Mọi loại góc spy có trong kho, theo thứ tự số dạng giảm dần. */
 export const LOAI_GOC_KHO = [...new Set(DANG_BAI.flatMap((d) => d.goc_loai))].sort((a, b) => dangTheoLoai(b).length - dangTheoLoai(a).length);

@@ -7,11 +7,11 @@ import { loaiGoc, linkGoc } from '@/lib/goc-spy';
 import { MultiSelect } from '@/components/ui';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { wrapExternalUrl } from '@/lib/external-url';
+import { pkCua } from '@/lib/ho-nen';
 
 type Goc = { id: number; sp: number; loai: string; ten: string; mo_ta: string | null; nhac: number; da: number; kh: number; site: { tt: string; url: string | null; han: string | null; ly_do: string | null; nguon: number } | null };
 type May = { ma: string; ten: string; goc_sp: number[]; nen: string[]; tat: number[]; goc: Goc[]; site_dich: string | null };
 type Nhom = { id: number; ten: string; n: number };
-const NEN_PK: Record<string, string> = { facebook: 'facebook', fb_anh: 'facebook', fb_link: 'facebook', x: 'twitter', x_anh: 'twitter', x_link: 'twitter', youtube: 'youtube', instagram: 'instagram', tiktok: 'tiktok', dailymotion: 'dailymotion' };
 
 const TT_SITE: Record<string, [string, string]> = { can_viet: ['Cần viết', 'var(--danger, #dc2626)'], dang_viet: ['Đang viết', 'var(--warn, #d97706)'], cho_duyet: ['Chờ Phòng Nội dung', 'var(--warn, #d97706)'], da_len: ['Đã lên', 'var(--ok, #16a34a)'] };
 function BaiSite({ s }: { s: Goc['site'] }) {
@@ -46,7 +46,7 @@ export function GocTaiSan() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 240px) minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
       <nav aria-label="Tài sản social" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 6, position: 'sticky', top: 8, display: 'grid', gap: 2 }}>
-        {ds.may.map((x) => { const sel = x.ma === m.ma, nen = [...new Set(x.nen.map((n) => NEN_PK[n]).filter(Boolean))];
+        {ds.may.map((x) => { const sel = x.ma === m.ma, nen = [...new Set(x.nen.map(pkCua))];
           return <button key={x.ma} type="button" onClick={() => { setChon(x.ma); setLoai(null); }} aria-current={sel ? 'true' : undefined} title={`${x.goc.length} góc · ${x.goc_sp.length} nhóm spy`}
             style={{ display: 'grid', gap: 4, textAlign: 'left', padding: '8px 10px', border: 0, borderRadius: 8, cursor: 'pointer', color: 'inherit', background: sel ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'transparent', opacity: x.goc_sp.length ? 1 : .6 }}>
             <b style={{ fontSize: 13, fontWeight: sel ? 700 : 600 }}>{x.ten}</b>

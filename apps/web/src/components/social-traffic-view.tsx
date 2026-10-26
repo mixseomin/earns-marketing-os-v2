@@ -10,6 +10,7 @@ import { DataTable, EmptyState, FilterChips, GuardedButton, MultiSelect, Panel, 
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
+import { pkCua } from '@/lib/ho-nen';
 import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
 import type { SocialLive, StLich } from '@/lib/social-traffic';
@@ -36,14 +37,13 @@ const nho = { fontSize: 11, color: 'var(--fg-3)' } as const;
  *  'Gumroad' → khoá /api/platform-icon theo chữ đầu. Một chỗ cho bảng Kênh, Trang đích, Sổ tiền, Cửa bán. */
 const Logo = ({ ten, khoa, co = 16 }: { ten: string; khoa?: string; co?: number }) => <SiteFavicon platformKey={khoa ?? ten.split(/\s+/)[0]!.toLowerCase()} size={co} title={ten} />;   // khoa = platforms.key thật; thiếu mới đoán từ tên (cửa bán Gumroad/Etsy/KDP)
 /** Nơi đăng của máy (xv_may.dang[].nen) → khoá platforms để lấy favicon: bài ảnh dùng logo nền gốc. */
-const KHOA_NEN: Record<string, string> = { x: 'twitter', x_anh: 'twitter', fb_anh: 'facebook' };
 /** Mốc ISO → 'HH:mm dd/MM' giờ Việt Nam (luật giờ GMT+7). */
 const gioVN = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const COT_LICH: DataColumn<StLich>[] = [
   { key: 'gio', header: 'Giờ', sortValue: (l) => l.gio, cell: (l) => (l.luot.length
       ? <span title={`lượt thật trên ${l.mayMac}: ${l.luot.join(', ')} (sổ việc nền cty)`}>{l.luot[0]} · {l.mayMac}</span>
       : <span style={{ color: 'var(--bad)' }} title={`cấu hình ghi ${l.gio} · ${l.mayMac} nhưng sổ việc nền cty không có lượt máy đăng nào trên ${l.mayMac} — nơi này KHÔNG đăng`}>⛔ không có lượt · {l.mayMac}</span>) },
-  { key: 'nen', header: 'Nơi đăng', align: 'left', sortValue: (l) => l.nenTen, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={l.nenTen} khoa={KHOA_NEN[l.nen] ?? l.nen.split(':')[0]} />{l.nenTen}<span style={nho}>{l.tk}</span></span> },
+  { key: 'nen', header: 'Nơi đăng', align: 'left', sortValue: (l) => l.nenTen, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo ten={l.nenTen} khoa={pkCua(l.nen)} />{l.nenTen}<span style={nho}>{l.tk}</span></span> },
   { key: 'may', header: 'Máy', align: 'left', sortValue: (l) => l.may, cell: (l) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{l.may}{!l.chay && <Pill color="var(--fg-3)" label="⏸ tắt" uppercase={false} />}</span> },
   { key: 'hom', header: 'Hôm nay', sortValue: (l) => l.homNay / Math.max(1, l.tran), cell: (l) => (l.homNay >= l.tran
       ? <a href={l.homNayUrl ? `https://href.li/?${l.homNayUrl}` : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--ok)' }} title="mở bài đã đăng hôm nay">✅ {l.homNay}/{l.tran}</a>

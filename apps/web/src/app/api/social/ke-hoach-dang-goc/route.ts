@@ -3,7 +3,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { moSpy } from '@/lib/ke-hoach-goc';
-import { DANG_BAI, LUAT_NEN, NGUON_DANG } from '@/lib/dang-bai';
+import { DANG_BAI, LUAT_NEN, NGUON_DANG, dangHop } from '@/lib/dang-bai';
+import { hoCua } from '@/lib/ho-nen';
 import { DUONG_DANG, KE_HOACH, NGACH_MAY, NGUYEN_LY, UNG_VIEN } from '@/lib/ke-hoach-dang-goc';
 
 export const dynamic = 'force-dynamic';
@@ -28,12 +29,12 @@ export async function GET() {
   const loaiCua = (ids: number[]) => loaiSp.filter((x) => ids.includes(x.sp_id)).reduce<Record<string, number>>((m, x) => ({ ...m, [x.loai]: (m[x.loai] ?? 0) + x.n }), {});
   const hoCo = new Set(DUONG_DANG.filter((x) => x.co).map((x) => x.ho));
   return NextResponse.json({
-    nguyen_ly: NGUYEN_LY, buoc: KE_HOACH, dang: DANG_BAI, luat_nen: LUAT_NEN, nguon: NGUON_DANG, duong: DUONG_DANG, loi_spy: loiSpy,
+    nguyen_ly: NGUYEN_LY, buoc: KE_HOACH, dang: DANG_BAI, luat_nen: LUAT_NEN, nguon: NGUON_DANG, duong_dang: DUONG_DANG, loi_spy: loiSpy,
     may: may.map((m) => ({ ...m, goc_sp: m.goc_sp.map(Number), da_dang: Number(m.da_dang), goc: gocCua(m.goc_sp.map(Number)), loai: loaiCua(m.goc_sp.map(Number)), ngach: NGACH_MAY[m.ma] ?? [],
       nhom: m.goc_sp.map(Number).map((id) => ({ id, ten: nhom.find((x) => x.id === id)?.ten ?? `#${id}`, n: nhom.find((x) => x.id === id)?.n ?? 0 })),
-      // dạng dùng được cho máy = dạng có họ nền máy đang đăng; có mẫu = mẫu studio đã dựng; có đường = họ nền đó đã có đường đăng
-      dang_dung: DANG_BAI.filter((x) => x.nen.some((h) => m.nen.map((n) => (/^fb_|^facebook/.test(n) ? 'facebook' : /^x(_|$)/.test(n) ? 'x' : n)).includes(h) && hoCo.has(h))).length,
-      dang_mau: DANG_BAI.filter((x) => x.mau && x.nen.some((h) => m.nen.map((n) => (/^fb_|^facebook/.test(n) ? 'facebook' : /^x(_|$)/.test(n) ? 'x' : n)).includes(h))).length })),
+      // dạng hợp máy (dangHop: ngách + họ nền máy đang đăng — cùng công thức với trang); có đường = họ nền đó đã có đường đăng; có mẫu = mẫu studio đã dựng
+      ...(() => { const ho = new Set(m.nen.map(hoCua)), hop = dangHop(DANG_BAI, { ho, ngach: NGACH_MAY[m.ma] ?? [], laMay: true });
+        return { dang_dung: hop.filter((x) => x.nen.some((h) => ho.has(h) && hoCo.has(h))).length, dang_mau: hop.filter((x) => x.mau).length }; })() })),
     ung_vien: UNG_VIEN.map((u) => ({ ...u, goc: gocCua(u.goc_sp), loai: loaiCua(u.goc_sp), nhom: u.goc_sp.map((id) => ({ id, ten: nhom.find((x) => x.id === id)?.ten ?? `#${id}`, n: nhom.find((x) => x.id === id)?.n ?? 0 })) })),
   });
 }

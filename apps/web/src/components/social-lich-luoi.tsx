@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { StKho, StLuoi, StLuoiO } from '@/lib/social-traffic';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { SiteFavicon } from '@/components/ui/site-favicon';
+import { pkCua } from '@/lib/ho-nen';
 
 const NEN_NHAN: Record<string, string> = { youtube: 'YT', facebook: 'FB', fb_anh: 'FB ảnh', fb_link: 'FB link', x: 'X', x_anh: 'X ảnh', x_link: 'X link', tiktok: 'TikTok', instagram: 'IG', dailymotion: 'DM', threads: 'Threads' };
 // Page cũ gắn vào máy (S06): khoá 'facebook:<acct>' → 'FB Page cũ'
@@ -152,7 +153,7 @@ const IC_FMT: Record<string, string> = { 'Reel FB': '🎞', Shorts: '▶', TikTo
 /** ẢNH THU NHỎ cho ô bảng (trang Lịch 25/10/2026 tải ảnh gốc 1080×1920 ~220 KB mỗi ô): img.on.tc qua Cloudflare resize (~17 KB), Pexels qua tham số w. */
 const nho = (u: string) => (u.startsWith('https://img.on.tc/') ? `https://img.on.tc/cdn-cgi/image/width=280,quality=70,format=auto/${u.slice(18)}` : u.includes('images.pexels.com') ? `${u.split('?')[0]}?auto=compress&cs=tinysrgb&w=280` : u);
 /** khoá nền tảng cho icon: vault (platform_key) trước, không có thì suy từ nơi đăng */
-const khoaNen = (nen: string, k?: string | null) => k ?? (({ x: 'twitter', fb: 'facebook' } as Record<string, string>)[(nen.split(':')[0] ?? nen).replace(/_(anh|link)$/, '')] ?? (nen.split(':')[0] ?? nen).replace(/_(anh|link)$/, ''));
+const khoaNen = (nen: string, k?: string | null) => k ?? pkCua(nen);
 const TEN_NEN: Record<string, string> = { facebook: 'Facebook', youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram', twitter: 'X', dailymotion: 'Dailymotion', pinterest: 'Pinterest', threads: 'Threads' };
 type KenhBang = { k: string; khoa: string; tk: string; url: string | null; may: string; nen: string[]; bai: StLuoiO[] };
 // CÂY CHỌN (anh 25/10/2026: "hiện tại đang show hết có vẻ nặng và ko tập trung — tree select nền tảng bên trái, bấm vào mới hiện danh sách bài của từng page"):

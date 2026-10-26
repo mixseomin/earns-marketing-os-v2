@@ -9,6 +9,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import type { GocBai } from './goc-spy';
+import { hoCua } from './ho-nen';
 
 type Fmt = { ten: string; nen: string; co: boolean };
 // format theo họ nền (nen = nơi đăng của máy để nhãn / nhóm kênh khớp); co = đã có đường đăng
@@ -21,7 +22,6 @@ const XOAY: Record<string, Fmt[]> = {
   youtube: Array.from({ length: 7 }, () => F('Shorts', 'youtube')),
   dailymotion: Array.from({ length: 7 }, () => F('Video', 'dailymotion')),
 };
-const hoCua = (nen: string) => { const g = nen.split(':')[0] ?? nen; return /^(facebook|fb_)/.test(g) ? 'facebook' : /^x(_|$)/.test(g) ? 'x' : g; };
 const cong = (n: string, d: number) => new Date(Date.parse(`${n}T00:00:00Z`) + d * 864e5).toISOString().slice(0, 10);
 export const thuHai = (n: string) => cong(n, -((new Date(`${n}T00:00:00Z`).getUTCDay() + 6) % 7));
 

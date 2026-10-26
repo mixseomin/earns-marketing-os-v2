@@ -9,7 +9,8 @@ import { Collapsible, FilterChips, MultiSelect, SimpleTable, StatsStrip } from '
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { useShallowParam } from '@/lib/url-shallow';
 import { loaiGoc, linkGoc } from '@/lib/goc-spy';
-import { DUONG_DUNG, NGACH, NHOM_DANG, type DangBai } from '@/lib/dang-bai';
+import { DUONG_DUNG, NGACH, NHOM_DANG, dangHop, type DangBai } from '@/lib/dang-bai';
+import { HO_PK, hoCua } from '@/lib/ho-nen';
 import type { Buoc, TtBuoc } from '@/lib/ke-hoach-dang-goc';
 import { wrapExternalUrl } from '@/lib/external-url';
 
@@ -17,13 +18,13 @@ type Nhom = { id: number; ten: string; n: number };
 type May = { ma: string; ten: string; du_an: string | null; chay: boolean; goc_sp: number[]; site_dich: string | null; nen: string[]; da_dang: number; dang_14: Record<string, number>; goc: number; loai: Record<string, number>; ngach: string[]; nhom: Nhom[]; dang_dung: number; dang_mau: number };
 type UngVien = { ma: string; ten: string; du_an: string; goc_sp: number[]; site: string | null; ngach: string[]; ghi: string; goc: number; loai: Record<string, number>; nhom: Nhom[] };
 type Duong = { nen: string; ho: string; ten: string; co: boolean };
-type Du = { nguyen_ly: string; buoc: Buoc[]; dang: DangBai[]; luat_nen: Record<string, string>; nguon: string[]; duong: Duong[]; loi_spy: string | null; may: May[]; ung_vien: UngVien[] };
+type Du = { nguyen_ly: string; buoc: Buoc[]; dang: DangBai[]; luat_nen: Record<string, string>; nguon: string[]; duong_dang: Duong[]; loi_spy: string | null; may: May[]; ung_vien: UngVien[] };
+/** Họ nền đã có đường đăng trong máy đăng. */
+const hoCoDuong = (du: Du) => new Set(du.duong_dang.filter((x) => x.co).map((x) => x.ho));
 /** Một sản phẩm / dịch vụ đang chọn — máy studio hoặc ứng viên, quy về cùng một hình. */
 type SanPham = { khoa: string; ten: string; laMay: boolean; chay: boolean; ho: Set<string>; ngach: string[]; nhom: Nhom[]; goc: number; loai: Record<string, number>; site: string | null; da_dang: number; dang_14: Record<string, number>; ghi: string };
 
 const TT: Record<TtBuoc, [string, string]> = { cho: ['chờ', 'var(--fg-3)'], dang: ['đang làm', 'var(--warn, #d97706)'], xong: ['xong', 'var(--ok, #16a34a)'], duyet: ['chờ anh duyệt', 'var(--accent)'] };
-const HO_PK: Record<string, string> = { facebook: 'facebook', x: 'twitter', youtube: 'youtube', instagram: 'instagram', tiktok: 'tiktok', dailymotion: 'dailymotion' };
-const hoCua = (n: string) => (/^fb_|^facebook/.test(n) ? 'facebook' : /^x(_|$)/.test(n) ? 'x' : n.split(':')[0]!);
 const nho = { fontSize: 12, color: 'var(--fg-2)' } as const;
 const Tt = ({ tt }: { tt: TtBuoc }) => { const [t, c] = TT[tt]; return <span style={{ fontSize: 11, fontWeight: 700, color: c, whiteSpace: 'nowrap' }}>● {t}</span>; };
 const Ho = ({ ho }: { ho: Iterable<string> }) => <span style={{ display: 'inline-flex', gap: 4 }}>{[...ho].map((h) => (HO_PK[h] ? <SiteFavicon key={h} platformKey={HO_PK[h]!} size={14} title={h} /> : <span key={h} style={nho}>{h}</span>))}</span>;
@@ -36,8 +37,6 @@ function sanPhamCua(du: Du, sp: string): SanPham | null {
   const u = du.ung_vien.find((x) => `uv:${x.ma}` === sp); if (u) return { khoa: `uv:${u.ma}`, ten: u.ten, laMay: false, chay: false, ho: new Set<string>(), ngach: u.ngach, nhom: u.nhom, goc: u.goc, loai: u.loai, site: u.site, da_dang: 0, dang_14: {}, ghi: u.ghi };
   return null;
 }
-/** Dạng hợp một sản phẩm: ngách khớp (hoặc 'moi'); máy đang có thì còn phải có họ nền máy đang đăng. */
-const dangHop = (ds: DangBai[], sp: SanPham) => ds.filter((d) => (d.ngach.includes('moi') || d.ngach.some((n) => sp.ngach.includes(n))) && (!sp.laMay || d.nen.some((h) => sp.ho.has(h))));
 
 /** Thanh chọn sản phẩm dùng chung cho Dạng bài + Kế hoạch: Chung · từng máy studio · ứng viên (hộp chọn). */
 function ChonSanPham({ du, sp, setSp }: { du: Du; sp: string; setSp: (v: string) => void }) {
@@ -49,7 +48,7 @@ function ChonSanPham({ du, sp, setSp }: { du: Du; sp: string; setSp: (v: string)
 }
 /** Dải số của sản phẩm đang chọn: góc spy theo loại, nền, site, dạng hợp / có đường / có mẫu. */
 function DaiSanPham({ du, sp }: { du: Du; sp: SanPham }) {
-  const hoCo = new Set(du.duong.filter((x) => x.co).map((x) => x.ho));
+  const hoCo = hoCoDuong(du);
   const hop = dangHop(du.dang, sp), coDuong = hop.filter((d) => d.nen.some((h) => (sp.laMay ? sp.ho.has(h) : true) && hoCo.has(h))), coMau = hop.filter((d) => d.mau);
   return <div style={{ display: 'grid', gap: 8 }}>
     <StatsStrip minColWidth={130} cards={[
@@ -58,7 +57,7 @@ function DaiSanPham({ du, sp }: { du: Du; sp: SanPham }) {
       { key: 'site', label: 'Site đích', value: sp.site ? '✓' : '—', sub: sp.site ?? 'chưa có' },
       { key: 'hop', label: 'Dạng hợp', value: hop.length, sub: `${coDuong.length} có đường đăng` },
       { key: 'mau', label: 'Có mẫu dựng', value: coMau.length, sub: `${hop.length - coMau.length} chưa dựng`, color: coMau.length < 3 ? 'var(--warn, #d97706)' : undefined },
-      { key: 'da', label: 'Đã đăng', value: sp.da_dang || '—', sub: Object.keys(sp.dang_14).length ? `14 ngày: ${Object.entries(sp.dang_14).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(' · ')}` : '' },
+      { key: 'da', label: 'Video đã đăng', value: sp.da_dang || '—', sub: Object.keys(sp.dang_14).length ? `14 ngày: ${Object.entries(sp.dang_14).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(' · ')}` : '' },
     ]} />
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
       <span style={nho}>Ngách: <b>{sp.ngach.map((n) => NGACH[n] ?? n).join(' · ') || '—'}</b></span>
@@ -70,7 +69,7 @@ function DaiSanPham({ du, sp }: { du: Du; sp: SanPham }) {
 }
 /** Bảng dạng bài: chung = tên khái niệm + có mẫu hay chưa; theo sản phẩm = thêm ví dụ, mã mẫu, đường đăng của riêng nó. */
 function BangDang({ ds, du, sp }: { ds: DangBai[]; du: Du; sp: SanPham | null }) {
-  const hoCo = new Set(du.duong.filter((x) => x.co).map((x) => x.ho));
+  const hoCo = hoCoDuong(du);
   return <SimpleTable rows={ds} getRowKey={(d) => d.ma} columns={[
     { key: 'ten', header: 'Dạng', cell: (d) => <span><b style={{ fontWeight: 600 }}>{d.ten}</b>{sp && d.vi_du ? <span style={{ ...nho, fontSize: 11 }}><br />{d.vi_du}</span> : null}</span> },
     { key: 'dung', header: 'Cách dựng', cell: (d) => <span style={{ fontSize: 12 }}>{d.dung}</span> },
@@ -91,16 +90,16 @@ export function KeHoachDangGoc() {
   if (!du) return <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang đọc kế hoạch…</div>;
   const sp = sanPhamCua(du, spKhoa), b = du.buoc.find((x) => String(x.so) === kb) ?? du.buoc[0]!;
   const dang = sp ? dangHop(du.dang, sp) : du.dang;
-  const coMau = du.dang.filter((d) => d.mau).length, duongCo = du.duong.filter((x) => x.co).length, mayBat = du.may.filter((m) => m.chay), vi = du.buoc.flatMap((x) => x.viec);
+  const coMau = du.dang.filter((d) => d.mau).length, duongCo = du.duong_dang.filter((x) => x.co).length, mayBat = du.may.filter((m) => m.chay), vi = du.buoc.flatMap((x) => x.viec);
   const loaiKho = [...new Set(dang.flatMap((d) => d.goc_loai))].filter((l) => !sp || (sp.loai[l] ?? 0) > 0 || !sp.goc).sort((a, b) => (sp ? (sp.loai[b] ?? 0) - (sp.loai[a] ?? 0) : 0));
-  const duong = sp?.laMay ? du.duong.filter((x) => sp.ho.has(x.ho)) : du.duong;
+  const duongDang = sp?.laMay ? du.duong_dang.filter((x) => sp.ho.has(x.ho)) : du.duong_dang;
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <ChonSanPham du={du} sp={spKhoa} setSp={setSp} />
       {sp ? <DaiSanPham du={du} sp={sp} /> : <>
         <StatsStrip minColWidth={130} cards={[
           { key: 'dang', label: 'Dạng bài', value: du.dang.length, sub: `${coMau} có mẫu dựng` },
-          { key: 'duong', label: 'Đường đăng', value: `${duongCo}/${du.duong.length}`, sub: `${du.duong.length - duongCo} chưa dựng` },
+          { key: 'duong', label: 'Đường đăng', value: `${duongCo}/${du.duong_dang.length}`, sub: `${du.duong_dang.length - duongCo} chưa dựng` },
           { key: 'may', label: 'Máy studio', value: `${mayBat.length}/${du.may.length}`, sub: `${mayBat.reduce((a, m) => a + m.goc, 0)} góc spy đang dùng` },
           { key: 'sp', label: 'Sản phẩm chưa có máy', value: du.ung_vien.length, sub: `${du.ung_vien.reduce((a, u) => a + u.goc, 0)} góc spy sẵn` },
           { key: 'viec', label: 'Việc', value: `${vi.filter((v) => v.tt === 'xong').length}/${vi.length}`, sub: `${vi.filter((v) => v.tt === 'dang').length} đang làm` },
@@ -128,7 +127,7 @@ export function KeHoachDangGoc() {
 
           {b.hien === 'kho' && (sp
             ? <><b style={{ fontSize: 13 }}>Dạng hợp với {sp.ten} ({dang.length})</b><BangDang ds={dang} du={du} sp={sp} /></>
-            : <span style={nho}>Danh sách đủ {du.dang.length} dạng (khái niệm chung) ở mục <a href="?tab=social&sts=goc&stgx=dang" style={{ color: 'var(--accent)' }}>🧩 Dạng bài</a> — kế hoạch tuần và bảng nội dung đọc cùng kho đó.</span>)}
+            : <span style={nho}>Danh sách đủ {du.dang.length} dạng (khái niệm chung) ở mục <a href="?tab=social&sts=goc&stgx=dang" style={{ color: 'var(--accent)' }}>🧩 Dạng bài</a> — xong bước 2 thì kế hoạch tuần và bảng nội dung đọc cùng kho này (hiện còn bảng xoay cứng).</span>)}
 
           {b.hien === 'ghep' && <SimpleTable rows={loaiKho.map((l) => ({ l, n: sp?.loai[l], ds: dang.filter((d) => d.goc_loai.includes(l)) }))} getRowKey={(r) => r.l} columns={[
             { key: 'loai', header: sp ? 'Loại góc · số góc của sản phẩm' : 'Loại góc spy', width: 190, cell: (r) => <ChipLoai loai={r.l} n={r.n} /> },
@@ -138,7 +137,7 @@ export function KeHoachDangGoc() {
           {b.hien === 'mau' && <BangDang ds={dang.filter((d) => d.duong === '0d' || d.duong === 'anh')} du={du} sp={sp} />}
 
           {b.hien === 'duong' && <>
-            <SimpleTable rows={duong} getRowKey={(x) => x.nen} columns={[
+            <SimpleTable rows={duongDang} getRowKey={(x) => x.nen} columns={[
               { key: 'ho', header: 'Họ nền', width: 60, cell: (x) => <Ho ho={[x.ho]} /> }, { key: 'ten', header: 'Đường đăng', cell: (x) => x.ten }, { key: 'nen', header: 'Mã nền', width: 110, cell: (x) => <code style={{ fontSize: 11 }}>{x.nen}</code> },
               { key: 'co', header: 'Máy đăng', width: 110, cell: (x) => <Co co={x.co} /> }]} />
             {sp && !sp.laMay ? <span style={nho}>{sp.ten} chưa có kênh nào — lập kênh (bước 5) rồi đường đăng mới áp được.</span> : null}
@@ -158,7 +157,7 @@ export function KeHoachDangGoc() {
                 <SimpleTable rows={du.may} getRowKey={(m) => m.ma} columns={[
                   { key: 'ten', header: 'Máy', cell: (m) => <button type="button" onClick={() => setSp(m.ma)} style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: 13, opacity: m.chay ? 1 : .6 }}>{m.ten}{m.chay ? '' : ' · tắt'}</button> },
                   { key: 'goc', header: 'Góc spy', align: 'right', width: 70, cell: (m) => m.goc }, { key: 'nen', header: 'Nền', cell: (m) => <Ho ho={new Set(m.nen.map(hoCua))} /> },
-                  { key: 'site', header: 'Site đích', cell: (m) => <span style={nho}>{m.site_dich ?? '—'}</span> }, { key: 'da', header: 'Đã đăng', align: 'right', width: 70, cell: (m) => m.da_dang },
+                  { key: 'site', header: 'Site đích', cell: (m) => <span style={nho}>{m.site_dich ?? '—'}</span> }, { key: 'da', header: 'Video đã đăng', align: 'right', width: 90, cell: (m) => m.da_dang },
                   { key: 'dang', header: 'Dạng dùng được / có mẫu', align: 'right', width: 110, cell: (m) => <span>{m.dang_dung} / <b>{m.dang_mau}</b></span> }]} />
                 <b style={{ fontSize: 13 }}>Sản phẩm / dịch vụ chưa có máy</b>
                 <SimpleTable rows={du.ung_vien} getRowKey={(u) => u.ma} columns={[
@@ -179,13 +178,13 @@ export function KeHoachDangGoc() {
 export function KhoDangBai() {
   const [du, setDu] = useState<Du | null>(null), [loi, setLoi] = useState<string | null>(null);
   const [spKhoa, setSp] = useShallowParam('sp', 'chung');
-  const [nhom, setNhom] = useShallowParam('kbn', 'all'), [duong, setDuong] = useShallowParam('kbd', 'all');
+  const [nhom, setNhom] = useShallowParam('kbn', 'all'), [duongDung, setDuongDung] = useShallowParam('kbd', 'all');   // kbd = ĐƯỜNG DỰNG (0đ / ảnh / giọng / poll), khác đường đăng
   useEffect(() => dungDu(setDu, setLoi), []);
   if (loi) return <div style={{ color: 'var(--danger, #dc2626)', fontSize: 13 }}>Không đọc được kho dạng bài: {loi}</div>;
   if (!du) return <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang đọc kho dạng bài…</div>;
   const sp = sanPhamCua(du, spKhoa), goc = sp ? dangHop(du.dang, sp) : du.dang;
-  const ds = goc.filter((d) => (nhom === 'all' || d.nhom === nhom) && (duong === 'all' || d.duong === duong));
-  const coMau = goc.filter((d) => d.mau).length, hoCo = new Set(du.duong.filter((x) => x.co).map((x) => x.ho));
+  const ds = goc.filter((d) => (nhom === 'all' || d.nhom === nhom) && (duongDung === 'all' || d.duong === duongDung));
+  const coMau = goc.filter((d) => d.mau).length, hoCo = hoCoDuong(du);
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <ChonSanPham du={du} sp={spKhoa} setSp={setSp} />
@@ -198,7 +197,7 @@ export function KhoDangBai() {
       ]} />}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <FilterChips value={nhom} onChange={setNhom} urlKey="kbn" options={[{ value: 'all', label: 'Mọi nhóm' }, ...Object.entries(NHOM_DANG).map(([v, l]) => ({ value: v, label: l }))]} counts={Object.fromEntries([['all', goc.length], ...Object.keys(NHOM_DANG).map((k) => [k, goc.filter((d) => d.nhom === k).length])])} />
-        <FilterChips value={duong} onChange={setDuong} urlKey="kbd" options={[{ value: 'all', label: 'Mọi đường' }, { value: '0d', label: '0đ' }, { value: 'anh', label: 'Bài ảnh' }, { value: 'giong', label: 'Giọng AI' }, { value: 'poll', label: 'Bình chọn' }]} counts={Object.fromEntries([['all', goc.length], ...(['0d', 'anh', 'giong', 'poll'] as const).map((k) => [k, goc.filter((d) => d.duong === k).length])])} />
+        <FilterChips value={duongDung} onChange={setDuongDung} urlKey="kbd" options={[{ value: 'all', label: 'Mọi đường' }, { value: '0d', label: '0đ' }, { value: 'anh', label: 'Bài ảnh' }, { value: 'giong', label: 'Giọng AI' }, { value: 'poll', label: 'Bình chọn' }]} counts={Object.fromEntries([['all', goc.length], ...(['0d', 'anh', 'giong', 'poll'] as const).map((k) => [k, goc.filter((d) => d.duong === k).length])])} />
       </div>
       <BangDang ds={ds} du={du} sp={sp} />
       {!sp && <>

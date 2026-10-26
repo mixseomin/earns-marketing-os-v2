@@ -55,9 +55,9 @@ def main(lo_dir):
         print(f"{cid}: {ket} · {kq[cid]['ly']}", flush=True)
     if kq:
         j = json.dumps([{"content_id": int(k), **v} for k, v in kq.items()], ensure_ascii=False).replace("$J$", "")
-        sql(f"""create table if not exists etp.soat_may (content_id int primary key, ket text, ly text, khung int, goi int, do numeric, luc timestamptz not null default now());
-               insert into etp.soat_may (content_id, ket, ly, khung, goi, do) select content_id, ket, ly, khung, goi, do from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, ket text, ly text, khung int, goi int, do numeric)
-               on conflict (content_id) do update set ket = excluded.ket, ly = excluded.ly, khung = excluded.khung, goi = excluded.goi, do = excluded.do, luc = now()""")
+        sql(f"""create table if not exists etp.soat_may (content_id int primary key, ket text, ly text, khung int, goi int, "do" numeric, luc timestamptz not null default now());
+               insert into etp.soat_may (content_id, ket, ly, khung, goi, "do") select content_id, ket, ly, khung, goi, "do" from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, ket text, ly text, khung int, goi int, "do" numeric)
+               on conflict (content_id) do update set ket = excluded.ket, ly = excluded.ly, khung = excluded.khung, goi = excluded.goi, "do" = excluded."do", luc = now()   -- "do" là từ khoá SQL, phải trích (26/10/2026: lô pm-26101408 chết ở đây)""")
         cam = [k for k, v in kq.items() if v["ket"] == "cam"]
         for k in cam:   # tự loại khoả thân rõ — cùng sổ soát 18+ với Claude
             sql(f"select 1"); subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 kiem-phim-18.py --soat {k} cam 'máy soát 18+ (NudeNet): {kq[k]['ly'][:120]}'"], capture_output=True, timeout=120)

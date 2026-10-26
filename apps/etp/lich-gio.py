@@ -82,6 +82,9 @@ def main():
     tat2 = [c for c, t in chay if c not in can_tat and bat_lich and (not on(t, k2_nay) or not on(t, k2_toi))]
     bat2 = [c for c, t in dang_tat.items() if c not in can_bat and bat_lich and on(t, k2_nay) and on(t, k2_toi) and not dung_khan]
     print(f"giờ VN {vn:%H:%M} · khung {k_nay}{' → ' + k_toi if k_toi != k_nay else ''} · lịch {'BẬT' if bat_lich else 'TẮT'} · sẽ tạm dừng {len(can_tat)} · sẽ bật lại {len(can_bat)} · đang tạm dừng {len(dang_tat)}")
+    if not THU:
+        try: bao_chi_gio(vn)
+        except Exception as e: print(f"báo chi theo giờ lỗi: {e}", file=sys.stderr)
     if THU:
         from collections import Counter
         if can_tat: print("  sẽ tạm dừng theo thể loại:", dict(Counter(dict(chay)[c] for c in can_tat)))
@@ -115,6 +118,34 @@ def main():
             q(f"delete from etp.lich_tat where camp_id in ({','.join(map(str, ok))})")
             bao_tg(f"▶️ <b>LỊCH GIỜ — ĐÃ BẬT LẠI {len(ok)}/{len(can_bat)} camp</b> (khung {k_nay} BẬT)" + ("" if bat_lich else " — công tắc lịch giờ tắt, bật lại hết"))
             ghi("lich_bat", ok, f"lịch giờ: khung {k_nay} BẬT" + ("" if bat_lich else " (công tắc lịch giờ tắt — bật lại hết)"))
+
+GIO_THEO_DOI = range(9, 14)   # báo đầu giờ 09h…13h = số các giờ 08h…12h (khung 08h–12h vừa bật lại sau 07h)
+NGUONG_HUT = 0.4               # trước 13h mà đã chi ≥ 40% tổng ngân sách ngày → cảnh báo đang hút nhanh
+
+def bao_chi_gio(vn):
+    """CHI THEO GIỜ (anh 26/10/2026: "vẫn phải theo dõi chi theo từng giờ vì có thể nó lại hút hết ngân sách trong giai đoạn 8–12h sáng"):
+    lượt đầu tiên của mỗi giờ 09h–13h báo lên 📂 Ethopex số giờ vừa qua (etp.so_gio — giờ UTC, ngày ngân sách = ngày UTC bắt đầu 07:00 VN) + luỹ kế từ 07h
+    so với tổng ngân sách camp đang chạy + camp đã tiêu hết ngân sách ngày. Chỉ báo, không đổi camp nào."""
+    if vn.hour not in GIO_THEO_DOI: return
+    khoa = f"{vn:%Y-%m-%d %H}"
+    if q("select gia_tri #>> '{}' from etp.cau_hinh where khoa = 'chi_gio_bao'") == khoa: return
+    ngay = (vn - dt.timedelta(hours=7)).strftime("%Y-%m-%d"); g = vn.hour - 1 - 7   # giờ UTC của giờ VN vừa qua
+    gio = [l.split("|") for l in q(f"select gio, sum(chi), sum(thu) from etp.so_gio where ngay = '{ngay}' and gio <= {g} group by 1 order by 1").splitlines() if "|" in l]
+    if not gio or int(gio[-1][0]) != g: return   # số giờ vừa qua chưa về — lượt sau thử lại
+    roi = lambda c, t: f"{(t - c) / c * 100:+.0f}%" if c >= 0.3 else "—"
+    dong = [f"{int(h) + 7:02d}h: chi ${float(c):.2f} · thu ${float(t):.2f} · ROI {roi(float(c), float(t))}" for h, c, t in gio]
+    ns = float(q("select coalesce(sum(ngan_sach), 0) from etp.camp_dang_chay") or 0)
+    c_ng, t_ng = [float(x) for x in q(f"select coalesce(sum(chi), 0), coalesce(sum(thu), 0) from etp.so_ngay where ngay = '{ngay}'").split("|")]
+    het = [l.split("|") for l in q(f"""select s.camp_id, s.chi, c.ngan_sach, s.thu from etp.so_ngay s join etp.camp_dang_chay c using (camp_id)
+        where s.ngay = '{ngay}' and c.ngan_sach > 0 and s.chi >= c.ngan_sach order by s.chi desc""").splitlines() if "|" in l]
+    ty = c_ng / ns if ns else 0
+    chu = (f"🕐 <b>CHI THEO GIỜ — {vn.hour - 1:02d}h</b> (khung 08h–12h)\n" + "\n".join(dong[-6:])
+           + f"\nTừ 07h: chi <b>${c_ng:.2f}</b> / ngân sách ngày ${ns:.0f} (<b>{ty * 100:.0f}%</b>) · thu ${t_ng:.2f} · ROI {roi(c_ng, t_ng)}"
+           + (f"\n⏹ {len(het)} camp đã tiêu hết ngân sách ngày: " + ", ".join(f"#{c} ${float(x):.2f}/${float(n):g} ROI {roi(float(x), float(t))}" for c, x, n, t in het[:6]) + (" …" if len(het) > 6 else "") if het else "")
+           + (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — ngân sách cho khung tối 20h–06h còn {(1 - ty) * 100:.0f}%" if ty >= NGUONG_HUT else ""))
+    bao_tg(chu)
+    q(f"insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('chi_gio_bao', to_jsonb('{khoa}'::text), 'giờ đã báo chi theo giờ trên Telegram', 'lich-gio.py') "
+      f"on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
 
 def tom_tl(ds):
     from collections import Counter

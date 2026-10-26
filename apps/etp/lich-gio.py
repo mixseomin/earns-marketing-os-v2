@@ -102,6 +102,10 @@ def main():
     qua24 = {int(c) for c in q("delete from etp.lich_tat where luc < now() - interval '24 hours' returning camp_id").split() if c.isdigit()}
     if qua24: ghi("lich_bo24", sorted(qua24), "lịch giờ: tạm dừng quá 24 giờ → bỏ khỏi sổ, không bật lại (luật 24 giờ)")
     dang_tat = {c: t for c, t in dang_tat.items() if c not in qua24}
+    # GIỮ TẮT TỚI MỐC (etp.lich_tat.giu_toi — migration 0343, anh 26/10/2026): chưa tới mốc thì không bật, khung nào cũng vậy
+    try: giu = {int(c) for c in q("select camp_id from etp.lich_tat where giu_toi > now()").split() if c.isdigit()}
+    except Exception: giu = set()
+    dang_tat = {c: t for c, t in dang_tat.items() if c not in giu}
     can_bat = [c for c, t in dang_tat.items() if (not bat_lich or (on(t, k_nay) and on(t, k_toi))) and not dung_khan]
     # BÁO TRƯỚC: lượt này không đổi gì nhưng lượt KẾ (sau CHU_KY phút) sẽ tạm dừng / bật lại hàng loạt → báo một lần cho mỗi lần chuyển khung
     vn2 = vn + dt.timedelta(minutes=CHU_KY); k2_nay, k2_toi = khung(vn2), khung(vn2 + dt.timedelta(minutes=TRUOC_PHUT))

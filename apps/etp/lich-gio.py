@@ -154,6 +154,9 @@ def lap_bao_cao(vn, gio_cuoi=None):
     gioi = "" if gio_cuoi is None else f" and gio <= {gio_cuoi[1]}"
     gio = [l.split("|") for l in q(f"select gio, sum(chi), sum(thu) from etp.so_gio where ngay = '{ngay}'{gioi} group by 1 order by 1").splitlines() if "|" in l]
     if not gio: return None, None
+    # cột "Hqua" = ROI CÙNG GIỜ hôm qua (anh 26/10/2026: "show thêm cột ROI cùng ngày hôm trước") — luỹ kế cũng chỉ tới đúng giờ cuối của hôm nay
+    hq = {int(h): (float(c), float(t)) for h, c, t in (l.split("|") for l in q(f"select gio, sum(chi), sum(thu) from etp.so_gio where ngay = date '{ngay}' - 1 group by 1").splitlines() if "|" in l)}
+    c_hq = sum(c for h, (c, _) in hq.items() if h <= int(gio[-1][0])); t_hq = sum(t for h, (_, t) in hq.items() if h <= int(gio[-1][0]))
     roi = lambda c, t: f"{(t - c) / c * 100:+.0f}%" if c >= 0.3 else "—"
     ns = float(q(f"select coalesce(sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0), 0) from etp.so_ngay where ngay = '{ngay}'") or 0)   # ngân sách cao nhất trong ngày (0340)
     c_ng, t_ng = [float(x) for x in q(f"select coalesce(sum(chi), 0), coalesce(sum(thu), 0) from etp.so_ngay where ngay = '{ngay}'").split("|")]
@@ -164,12 +167,13 @@ def lap_bao_cao(vn, gio_cuoi=None):
     moi_nhat = q("select to_char(max(xong) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') from etp.dong_bo where xong is not null") or "?"
     ty = c_ng / ns if ns else 0
     # BẢNG chữ đều cột (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng") — ≤ 30 ký tự / dòng cho màn điện thoại; dam = đậm, nhat = nhạt
-    b, dam, nhat = [f"{'Giờ':<6}{'Chi':>7}{'Thu':>7}{'ROI':>7}"], {0}, set()
-    b += [f"{(int(h) + 7) % 24:02d}h{'':<3}{float(c):>7.0f}{float(t):>7.0f}{roi(float(c), float(t)):>7}" for h, c, t in gio]   # đủ mọi giờ từ 07h đầu ngày (anh 26/10/2026: "report này phải luôn từ 7h sáng đầu ngày")
-    b.append("-" * 27); dam.add(len(b)); b.append(f"{'Từ 07h':<6}{c_ng:>7.0f}{t_ng:>7.0f}{roi(c_ng, t_ng):>7}")
+    b, dam, nhat = [f"{'Giờ':<6}{'Chi':>5}{'Thu':>5}{'ROI':>6}{'Hqua':>6}"], {0}, set()
+    b += [f"{(int(h) + 7) % 24:02d}h{'':<3}{float(c):>5.0f}{float(t):>5.0f}{roi(float(c), float(t)):>6}{roi(*hq.get(int(h), (0, 0))):>6}" for h, c, t in gio]   # đủ mọi giờ từ 07h đầu ngày (anh 26/10/2026: "report này phải luôn từ 7h sáng đầu ngày")
+    b.append("-" * 28); dam.add(len(b)); b.append(f"{'Từ 07h':<6}{c_ng:>5.0f}{t_ng:>5.0f}{roi(c_ng, t_ng):>6}{roi(c_hq, t_hq):>6}")
+    nhat.add(len(b)); b.append(f"Hqua cùng giờ: chi {c_hq:.0f} · thu {t_hq:.0f}")
     nhat.add(len(b)); b.append(f"Lãi {t_ng - c_ng:+.0f}$ · NS ${ns:.0f} · chi {ty * 100:.0f}%")
     if n_r or c_r:
-        b.append(f"{'★ROAS':<6}{c_r:>7.0f}{t_r:>7.0f}{roi(c_r, t_r):>7}"); nhat.add(len(b)); b.append(f"{int(n_r)} camp ROAS đang bật")
+        b.append(f"{'★ROAS':<6}{c_r:>5.0f}{t_r:>5.0f}{roi(c_r, t_r):>6}"); nhat.add(len(b)); b.append(f"{int(n_r)} camp ROAS đang bật")
     if het:
         b.append(""); dam |= {len(b), len(b) + 1}
         b += [f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])

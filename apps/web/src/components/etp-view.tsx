@@ -8,7 +8,7 @@ import { xepHangCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
 
-type Tab = 'tong' | 'camp' | 'creative' | 'phim' | 'tn' | 'luat';
+type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -39,6 +39,8 @@ const MAU_DEN = { chay: '#22c55e', cho: '#f59e0b', loi: '#ef4444', tat: '#6b7280
 // camp ACTIVE mà lịch bắt đầu còn ở tương lai = CHỜ GIỜ, chưa chạy (anh 26/10/2026: lọc "Đang chạy" lẫn camp chấm cam) — một định nghĩa cho chấm, bộ lọc, ô số
 const choGio = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 'ACTIVE' && !!c.lich && Date.parse(c.lich) > Date.now();
 const dangChay = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 'ACTIVE' && !choGio(c);
+// CAMP ROAS ★ (nhan-ban.py --roas: "★ … roas X duplicate by <gốc>") — cùng cách nhận với apps/etp/cong.py la_roas
+const laRoas = (ten: string | null) => / duplicate by \d+/.test(ten ?? '') || (ten ?? '').trimStart().startsWith('★');
 // đã tiêu ≥ ngân sách ngày → Meta gần như ngừng phân phối tới lúc ngân sách nạp lại 07:00 VN (anh 26/10/2026: dòng đó để mờ hơn)
 const hetNs = (c: Pick<CampEtpKho, 'trang_thai' | 'ngan_sach' | 'nay'>) => c.trang_thai === 'ACTIVE' && c.ngan_sach > 0 && c.nay.chi >= c.ngan_sach;
 const TT = ({ c }: { c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean } }) => {
@@ -265,6 +267,37 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
         })}
         {!du.roas.length ? <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>—</div> : null}
       </div>
+    </div>
+  );
+}
+
+// TAB ★ ROAS: bảng camp bid ROAS (cột Camp chung + Mức ROAS · nhân từ · từ lúc lên · trạng thái) + ứng viên đủ tiêu chí lên ROAS
+function TabRoas({ camps, tong, ungVien, cot, nhom }: { camps: CampEtpKho[]; tong: Map<number, DuLieuEtp['roasChay'][number]>; ungVien: DuLieuEtp['roas'];
+  cot: DataColumn<CampEtpKho>[]; nhom: { key: string; label: string; color: string }[] }) {
+  const muc = (c: CampEtpKho) => (c.ten ?? '').match(/roas ([\d.]+) duplicate by (\d+)/);
+  const tt = (c: CampEtpKho) => (c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ giờ · ${vn(c.lich)}` : 'Đang chạy');
+  const tu = (c: CampEtpKho) => tong.get(c.camp_id) ?? { chi: 0, thu: 0 };
+  const cotRoas: DataColumn<CampEtpKho>[] = [
+    cot[0],
+    { key: 'muc', header: 'ROAS goal', title: 'mức bid ROAS đặt ở Ad Set (Support: rải 1.0 – 1.4)', cell: (c) => <b>{muc(c)?.[1] ?? '—'}</b>, sortValue: (c) => Number(muc(c)?.[1] ?? 0) },
+    { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => <span>#{muc(c)?.[2] ?? '—'}</span>, sortValue: (c) => Number(muc(c)?.[2] ?? 0) },
+    { key: 'tt', header: 'Trạng thái', align: 'left', cell: (c) => <span style={{ fontSize: 12, color: c.trang_thai !== 'ACTIVE' ? 'var(--fg-2)' : choGio(c) ? '#f59e0b' : '#4ade80' }}>{tt(c)}</span>, sortValue: (c) => tt(c) },
+    ...cot.slice(1).filter((k) => k.key !== 'tuoi'),
+    { key: 'tuchi', header: 'Chi từ lúc lên', cell: (c) => <Tien v={tu(c).chi} />, sortValue: (c) => tu(c).chi, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).chi, 0)} /> },
+    { key: 'tuthu', header: 'Thu từ lúc lên', cell: (c) => <Tien v={tu(c).thu} />, sortValue: (c) => tu(c).thu, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).thu, 0)} /> },
+    { key: 'turoi', header: 'ROI từ lúc lên', title: 'luật tắt ROAS (Support): chi > $20 mà ROI < 30% trong 1–2 ngày đã khép → báo riêng anh trên Telegram', cell: (c) => <Roi s={tu(c)} />, sortValue: (c) => roiOf(tu(c)) ?? -1e9 },
+  ];
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ một luật: chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt.</div>
+      <DataTable rows={camps} columns={cotRoas} groups={nhom} groupHeader getRowKey={(c) => String(c.camp_id)} persistKey="etp-roas" minWidth={1300} defaultSort={[{ key: 'tao', dir: 'desc' }]}
+        searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" emptyText="Chưa có camp ROAS nào." />
+      <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="Support: chi ≥ $100 mà ROI > 50% ổn định 2–3 ngày → nhân bản 2–3 camp bid ROAS">Ứng viên lên ROAS</h3>
+      <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'chi', dir: 'desc' }]} emptyText="Chưa có camp đủ tiêu chí." columns={[
+        { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.chi >= 100 ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
+        { key: 'ns', header: 'Ngân sách', cell: (r) => `$${r.ngan_sach}`, sortValue: (r) => r.ngan_sach },
+        { key: 'chi', header: 'Chi 30 ngày', title: 'đủ khi ≥ $100', cell: (r) => <span style={{ color: r.chi >= 100 ? '#4ade80' : r.chi >= 70 ? '#f59e0b' : undefined }}><Tien v={r.chi} /></span>, sortValue: (r) => r.chi },
+        { key: 'roi', header: 'ROI 30 ngày', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 }]} />
     </div>
   );
 }
@@ -697,7 +730,7 @@ function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => str
   );
 }
 
-const TABS: Tab[] = ['tong', 'camp', 'creative', 'phim', 'tn', 'luat'];
+const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'tn', 'luat'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'gtang', 'ggiam', 'gtat', 'cung', 'roas'] as const;
 export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; v?: string; l?: string } }) {
   const router = useRouter();
@@ -739,6 +772,9 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const dk = du.cauHinh.find((c) => c.khoa === 'dung_khan')?.gia_tri === true;
   // ĐỦ BID ROAS (anh 24/10/2026: "đạt thì cho vào 1 danh sách riêng (filter)"): chi 30 ngày ≥ $100 + ROI ≥ 50% ổn định 2–3 ngày trọn (etp-doc roas)
   const roasDat = useMemo(() => new Set(du.roas.filter((r) => r.chi >= 100).map((r) => r.camp_id)), [du.roas]);
+  // TAB ★ ROAS (anh 26/10/2026 "Tạo 1 tab riêng cho loại camp này"): mọi camp ROAS, mọi trạng thái (đang chạy · chờ giờ · đã tắt), số từ lúc lên
+  const campRoas = useMemo(() => du.camps.filter((c) => laRoas(c.ten)), [du.camps]);
+  const roasTong = useMemo(() => new Map(du.roasChay.map((r) => [r.camp_id, r])), [du.roasChay]);
   const baoCampBang = useMemo(() => { const m = new Map<number, { nhom: string; chu: string }[]>(); for (const b of du.bao) m.set(b.camp_id, [...(m.get(b.camp_id) ?? []), b]); return m; }, [du.bao]);
   // gần tăng / giảm / tắt (anh 26/10/2026: "muốn lọc để xem các camp gần tăng/giảm") — chỉ camp đang chạy thật, gồm cả camp máy luật đã đánh dấu cùng hướng
   const ganMap = useMemo(() => new Map(du.camps.filter(dangChay).map((c) => [c.camp_id, ganCamp(c, baoCampBang.get(c.camp_id))])), [du.camps, baoCampBang]);
@@ -812,7 +848,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       </div>
       <div className={hep ? 'etp-dk' : undefined} style={{ display: 'flex', gap: hep ? 6 : 12, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0' }}>
         <Segmented<Tab> value={tab} onChange={setTab} options={[
-          { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
+          { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
         {tab !== 'luat' && tab !== 'tn' ? <Segmented<Kh> value={kh} onChange={setKh} options={(Object.keys(KH_TEN) as Kh[]).map((k) => ({ value: k, label: KH_TEN[k] }))} /> : null}
         {tab === 'camp' ? (
@@ -845,6 +881,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
             { key: 'crm', header: 'Creative mới', cell: (r) => (r.cr_moi ? `+${r.cr_moi}` : '—'), sortValue: (r) => r.cr_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.cr_moi, 0)}` },
             { key: 'tat', header: 'Camp tắt', title: 'camp máy / anh tắt trong ngày (nhật ký luật)', cell: (r) => (r.tat ? <span style={{ color: '#f87171' }}>{r.tat}</span> : '—'), sortValue: (r) => r.tat, total: (rs) => String(rs.reduce((a, r) => a + r.tat, 0)) }]} />
         </div>
+      ) : tab === 'roas' ? (
+        <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (

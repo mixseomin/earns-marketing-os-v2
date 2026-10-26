@@ -403,7 +403,11 @@ try:
     # anh 26/10/2026: "T7 đổi là lãi 7N < -$1" (bản Support: lãi < 0)
     _r7 = _bc7(); T7_DAT = {c: a for c, a in _r7.items() if a["lai"] < T7_LAI and a["chi"] > 5 and a["ad"] > 3}
 except Exception as e:
-    T7_DAT = {}; loi_may.append((0, f"luật T7 không đọc được Report: {str(e)[:80]}"))
+    _r7 = {}; T7_DAT = {}; loi_may.append((0, f"luật T7 không đọc được Report: {str(e)[:80]}"))
+# GẦN CHẠM T7 (anh 27/10/2026: etp.on.tc "cần show được camp đang chạm luật nào (chưa chạy), chuẩn bị chạm"): camp đang chạy, 7 ngày đã khép
+# đã âm nhưng chưa đủ điều kiện T7 (lãi chưa < −$1, hoặc chi chưa > $5, hoặc ≤ 3 ngày bật) — chỉ báo trên etp, không làm gì
+gan_t7 = [(c, f"#{a['ten'][:70]} · gần T7: 7 ngày đã khép lãi ${a['lai']:+.2f} (tắt khi < −$1) · chi ${a['chi']:.2f} (> $5) · {a['ad']} ngày bật (> 3)")
+          for c, a in sorted(_r7.items(), key=lambda x: x[1]["lai"]) if c in _dc and c not in T7_DAT and a["lai"] < 0 and a["chi"] > 3]
 tat7 = [(c, f"#{a['ten'][:70]} · 7 ngày đã khép: chi ${a['chi']:.2f} · lãi ${a['lai']:+.2f} · ROI {a['lai'] / a['chi'] * 100:+.0f}% · {a['ad']} ngày bật → TẮT (luật T7: lãi 7 ngày < −$1)")
         for c, a in sorted(T7_DAT.items(), key=lambda x: x[1]["lai"]) if c in _dc]
 # ROI TỤT chỉ đi đường GIẢM BẬC (anh 26/10/2026 "ds này chỉ cần giảm bậc"): kèm "$ns → $đích" một bậc để Telegram ra nút giảm thay nút tắt; camp $1 (đáy thang) chỉ báo
@@ -466,7 +470,7 @@ ROAS_CHI, ROAS_ROI = 20, 30
 try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
-tat_l, tat7, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo = map(_bo_roas, (tat_l, tat7, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo))
+tat_l, tat7, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_l, tat7, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
 tat_roas = []
 try:
     if _ROAS & _bat:
@@ -480,7 +484,7 @@ except Exception as e:
     loi_may.append((0, f"luật ROAS không đọc được Report: {str(e)[:80]}"))
 if JSON:
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tat7": m(tat7), "tat_roas": m(tat_roas), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tat7": m(tat7), "tat_roas": m(tat_roas), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)

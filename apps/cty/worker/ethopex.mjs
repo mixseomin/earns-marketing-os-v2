@@ -305,7 +305,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'])).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
   // BÁO LÊN etp.on.tc (anh 24/10/2026 "báo trên etp nữa"): ghi đè etp.bao bằng đúng các nhóm luật của nhịp này — trang etp tab Luật đọc
   try {
-    const rows = NHOM.flatMap(([k]) => (kq[k] || []).filter((m) => Number(m.id) > 0).map((m) => ({ nhom: k, camp_id: Number(m.id), chu: String(m.chu || '') })));
+    // MỌI danh sách luật của nhịp (anh 27/10/2026: etp.on.tc "cần show được camp đang chạm luật nào (chưa chạy), chuẩn bị chạm") — cả luật máy tự làm
+    // (tat7, dung_dem, tat_roas, nb…) và danh sách gần chạm (gan, gan_t7), không chỉ nhóm có nút trên Telegram (NHOM)
+    const rows = Object.entries(kq).filter(([k, v]) => Array.isArray(v) && k !== 'loi_may')
+      .flatMap(([k, v]) => v.filter((m) => Number(m.id) > 0).map((m) => ({ nhom: k, camp_id: Number(m.id), chu: String(m.chu || '') })));
     const j = JSON.stringify(rows).replace(/\$B\$/g, '');
     await chayPsql(`begin; delete from etp.bao; insert into etp.bao (nhom, camp_id, chu) select nhom, camp_id, chu from jsonb_to_recordset($B$${j}$B$::jsonb) as x(nhom text, camp_id int, chu text) on conflict do nothing; commit;`);
   } catch (e) { console.error('etp.bao:', e.message); }

@@ -11,7 +11,8 @@ import { getDb } from '@mos2/db';
 import { khuonQcPhim, BEATS_QC_PHIM, PHAN_CANH_QC_PHIM, shotQc, thamKhaoQcGoc, briefQcPhim, nenCua, type QcGoc } from './khuon-qc-phim';
 
 type Canh = { loi: string; anh: string; dong: string; co_canh?: string; chuyen_dong?: string };   // co_canh / chuyen_dong: đạo diễn khai tay (vào bối cảnh mới = ws…), thiếu thì shotQc chia
-type Phim = { content_id: number; ten: string; lang: 'en' | 'es'; nguon: string; giong: string; poster: string; url: string; nhan_vat: string; qc_goc?: QcGoc; boi_canh?: { ten: string; mo_ta: string }; canh: Canh[] };
+// the_cuoi_anh: tả riêng khung thẻ cuối khi poster gốc hở hang / gợi dục (cổng chấm Meta khoa_than) — mặc định "key art theo poster"
+type Phim = { content_id: number; ten: string; lang: 'en' | 'es'; nguon: string; giong: string; poster: string; url: string; nhan_vat: string; qc_goc?: QcGoc; boi_canh?: { ten: string; mo_ta: string }; canh: Canh[]; the_cuoi_anh?: string };
 // khuon.giay_canh (mặc định 3s) + khuon.mo_hinh_video: QC kể chuyện dài 2–3' (anh 21/10/2026) dùng ~20 shot 8s
 const lo = JSON.parse(readFileSync(process.argv[2]!, 'utf8')) as { ghi_chu: string; khuon: { the_cuoi: Record<string, string>; giay_canh?: number; mo_hinh_video?: string }; phim: Phim[] };
 const GIAY = lo.khuon.giay_canh ?? 3;
@@ -45,7 +46,7 @@ for (const p of lo.phim) {
     VALUES (${phimId}, 1, 'Bản A — hook gốc', ${p.canh.map((c, i) => `${i + 1}. ${c.loi}`).join('\n')}, ${p.canh[0]!.loi}, ${briefQcPhim(p.ten, nenCua(p.nguon), p.lang, p.canh.length)},
       ${j(BEATS_QC_PHIM)}::jsonb, ${j(PHAN_CANH_QC_PHIM)}::jsonb, 'storyboard') RETURNING id`)) as unknown as { id: number }[];
   const tapId = tap[0]!.id;
-  const shots = [...p.canh.map((c, i) => ({ ...c, chu: k.chu[i]! })), { loi: k.theCuoi.loi, anh: k.theCuoi.anh, dong: k.theCuoi.dong, chu: k.theCuoi.chu }];
+  const shots = [...p.canh.map((c, i) => ({ ...c, chu: k.chu[i]! })), { loi: k.theCuoi.loi, anh: p.the_cuoi_anh ?? k.theCuoi.anh, dong: k.theCuoi.dong, chu: k.theCuoi.chu }];
   let truocKt: { co_canh: string; chuyen_dong: string } | undefined;
   for (const [i, c] of shots.entries()) {
     const g = shotQc(i, shots.length, truocKt);

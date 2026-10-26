@@ -1,0 +1,302 @@
+{
+ "ghi_chu": "Lô kể chuyện 26/10/2026 — anh duyệt 6 phim (~$8–10, trần $4/phim, $24 tổng). Khuôn = bản thắng #55604 Step Back (kc2510v, 34s): kể ngôi thứ nhất, 6 cảnh chữ ngắn, hook câu đầu, cú lật hiện NGAY trong hình ở cảnh 5, thẻ cuối viết thường theo luật AFS (không Tap/mũi tên/FREE in hoa). Truyện theo tóm tắt chính thức của app gốc (QC spy + trang phim), không bịa chi tiết trái phim. Hình: không vũ khí, không máu, không cảnh gợi dục, nhân vật luôn mặc kín; poster gốc hở hang → thẻ cuối tả riêng (the_cuoi_anh). ¡Atrás! (92980): phim #307 đã thành creative #55605 (kể bản ngân hàng quỳ) → bản này góc MỚI: subjefe hôn nhẫn + đề nghị 1.000 triệu.",
+ "khuon": {
+  "ti_le": "9:16",
+  "do_phan_giai": "1080p",
+  "so_canh": 6,
+  "giong_mac_dinh": "Brian",
+  "the_cuoi": {
+   "en": "Watch the full series for free · Learn More",
+   "es": "Mira la serie completa gratis · Más información"
+  },
+  "giay_canh": 4
+ },
+ "phim": [
+  {
+   "content_id": 92980,
+   "ten": "¡Atrás! No te metas con ese vagabundo",
+   "lang": "es",
+   "nguon": "reelshort",
+   "giong": "Brian",
+   "poster": "1/353cp3rxgfdm3y3vqe.webp",
+   "url": "https://www.reelshort.com/es/episodes/episode-1-atr%C3%A1s-no-te-metas-con-ese-vagabundo-6aaf9ceb06a03f4a5c09a274-bnhfhooqsr",
+   "nhan_vat": "VINCE = rugged man late 30s, long messy brown hair, full beard, worn dark coat (narrator, poster hero holding a gold signet ring); HELEN = elegant blonde CEO in a white dress; PHILIP WEST = smug young man in a navy suit; HELEN'S MOTHER = woman 50s, dark bob, navy dress, pearls; UNDERBOSS = broad grey-haired man 60s in a black suit and black tie",
+   "qc_goc": { "ma": "2618055638635042", "page": "61593320572537", "ngay": 9 },
+   "boi_canh": {
+    "ten": "Stark mansion",
+    "mo_ta": "Sunlit Mediterranean-style mansion with a fountain garden and a grand marble hall with a crystal chandelier; rainy night city street outside"
+   },
+   "canh": [
+    {
+     "loi": "Llegué a la mansión de su familia vestido de vagabundo. A propósito.",
+     "anh": "Grand front steps of a sunlit mansion. VINCE in his worn dark coat and full beard stands calmly at the door; HELEN in a white dress holds his arm proudly.",
+     "dong": "VINCE looks up at the mansion with a calm half-smile, HELEN squeezes his arm, slow push-in on his face."
+    },
+    {
+     "loi": "Helen, la CEO que salvé hace dos años, me pidió matrimonio en la calle.",
+     "anh": "Busy city sidewalk at dusk. HELEN in a white dress holds VINCE's rough hands, passersby stop and stare.",
+     "dong": "HELEN takes his hands and smiles, VINCE looks at her surprised, handheld camera circles them."
+    },
+    {
+     "loi": "Su madre me miró como si fuera basura.",
+     "anh": "Mansion garden by a fountain. HELEN'S MOTHER in a navy dress and pearls looks VINCE up and down with disgust, arms crossed.",
+     "dong": "The mother wrinkles her nose and turns her face away from VINCE, slow sideways track."
+    },
+    {
+     "loi": "Y la obligaban a casarse con Philip West.",
+     "anh": "Same garden. PHILIP WEST in a navy suit smirks and pulls HELEN to his side while her mother nods approvingly; VINCE stands alone in his worn coat.",
+     "dong": "PHILIP pulls HELEN closer and smirks at VINCE, HELEN looks back at VINCE, wide pan across the group."
+    },
+    {
+     "loi": "Entonces entró un subjefe y besó mi anillo.",
+     "anh": "Grand marble hall with a crystal chandelier. The grey-haired UNDERBOSS in a black suit bows low and kisses the gold signet ring on VINCE's hand; HELEN'S MOTHER and PHILIP stare frozen.",
+     "dong": "The underboss bends and kisses the ring, the mother's jaw drops, camera pushes in on the ring."
+    },
+    {
+     "loi": "Pero Helen ya me había elegido cuando yo no tenía nada.",
+     "anh": "Same hall. HELEN in her white dress takes VINCE's hand and stands beside him; her mother and PHILIP lower their heads in the background.",
+     "dong": "HELEN laces her fingers with his and smiles, VINCE looks at her, camera cranes up over the hall."
+    }
+   ]
+  },
+  {
+   "content_id": 80386,
+   "ten": "El gran y poderoso genio",
+   "lang": "es",
+   "nguon": "reelshort",
+   "giong": "Chris",
+   "poster": "1/ouxyjyranfqix3mvwh.webp",
+   "url": "https://www.reelshort.com/es/movie/el-gran-y-poderoso-genio-6a702f0f85d596905908bd4b",
+   "nhan_vat": "ELIJAH = handsome dark-haired man mid-30s, strong jaw, light stubble, ALWAYS FULLY CLOTHED in a fitted charcoal suit or a dark buttoned shirt (narrator; face as on the poster, never shirtless); CHRISTINE = elegant blonde woman early 30s, hair in an updo, cream business suit, cold expression; GRANDFATHER = silver-haired billionaire in his 80s, grey suit",
+   "qc_goc": { "ma": "1162289113022776", "page": "61594646863491", "ngay": 5 },
+   "boi_canh": {
+    "ten": "Christine's penthouse and office",
+    "mo_ta": "Modern glass penthouse at night with a city skyline view and a dark marble dining table; sleek CEO office with floor-to-ceiling windows; an ornate golden oil lamp on a shelf"
+   },
+   "canh": [
+    {
+     "loi": "Fui un genio atrapado en una lámpara durante miles de años.",
+     "anh": "Dark antique room. An ornate golden oil lamp on a velvet cloth glows; golden mist rises and forms ELIJAH in a charcoal suit, his calm eyes glowing faintly gold.",
+     "dong": "Golden mist swirls up from the lamp and ELIJAH steps out of it, slow push-in on his eyes."
+    },
+    {
+     "loi": "Mi libertad tenía un precio: casarme con su nieta, Christine.",
+     "anh": "Elegant study. The silver-haired GRANDFATHER places CHRISTINE's hand into ELIJAH's hand; CHRISTINE in a cream suit looks away coldly.",
+     "dong": "The grandfather joins their hands, CHRISTINE pulls her hand back slightly, handheld camera drifts around them."
+    },
+    {
+     "loi": "En secreto, la convertí en una gran directora ejecutiva.",
+     "anh": "Sleek CEO office. CHRISTINE signs a big contract at her desk while ELIJAH stands unseen by the window, a faint golden glow at his fingertips.",
+     "dong": "ELIJAH flicks his fingers and a soft golden spark drifts to the contract, CHRISTINE smiles at her success, slow sideways track."
+    },
+    {
+     "loi": "Pero ella me ignoró y me despreció cada día.",
+     "anh": "Penthouse dining table at night. ELIJAH sets down a carefully cooked dinner; CHRISTINE in her suit walks past without looking, phone to her ear.",
+     "dong": "CHRISTINE brushes past the table, ELIJAH lowers his eyes, wide pan across the empty table."
+    },
+    {
+     "loi": "Al final de los cinco años, firmé el divorcio. Y ella vio la luz.",
+     "anh": "Same penthouse. ELIJAH signs divorce papers on the table; golden light pours from his hand and the golden lamp on the shelf blazes; CHRISTINE freezes in the doorway, stunned.",
+     "dong": "ELIJAH signs and golden light flares around him, CHRISTINE's eyes widen, camera pushes in on her face."
+    },
+    {
+     "loi": "Ahora sabe a quién le debía todo su éxito.",
+     "anh": "CEO office at night. CHRISTINE alone at her desk holds the golden lamp with both hands, looking at it in realization; the city lights behind her.",
+     "dong": "CHRISTINE turns the lamp in her hands and looks up toward the door, camera cranes up and away."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art of the two leads from the reference poster, fully clothed: ELIJAH in a fitted charcoal suit with arms crossed in front, CHRISTINE in an elegant cream evening gown with a modest high neckline beside him, a glowing golden lamp and a night city skyline behind them, dramatic warm backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 152051,
+   "ten": "The Mafia Bosses' Max-Level Nanny",
+   "lang": "en",
+   "nguon": "netshort",
+   "giong": "Jessica",
+   "poster": "1/19bb2rux34zjk1vfzk.webp",
+   "url": "https://netshort.com/episode/the-mafia-bosses-max-level-nanny-2108386528632586241",
+   "nhan_vat": "SOPHIA = young woman early 20s, long brown hair in a low bun, black nanny dress with a white collar (narrator, poster center); VICTOR = tall stern man mid-30s, slicked-back black hair, black three-piece suit; THE BABIES = four toddlers from the poster (two little boys in tiny black suits, a baby boy in a blue romper, a red-haired baby girl in a lace dress); BUTLER = thin man 40s in a grey suit with a sly look",
+   "qc_goc": { "ma": "4550536965202176", "page": "61592740952954", "ngay": 10 },
+   "boi_canh": {
+    "ten": "Victor's gilded mansion",
+    "mo_ta": "Baroque golden mansion with marble staircase and a sunny pastel nursery full of toys; dark wood study for the boss"
+   },
+   "canh": [
+    {
+     "loi": "After a crash, I woke up in a stranger's life. Buried in debt.",
+     "anh": "Plain small bedroom at dawn. SOPHIA sits up in bed in shock, holding a stack of overdue bills, staring at her own reflection in a mirror.",
+     "dong": "SOPHIA drops the bills and touches her face in the mirror, slow push-in on her eyes."
+    },
+    {
+     "loi": "To pay it, I became nanny to Victor, the most feared godfather in town.",
+     "anh": "Dark wood study. VICTOR in a black three-piece suit sits behind a big desk and studies SOPHIA coldly; she stands in her nanny dress holding a contract.",
+     "dong": "VICTOR slides the contract toward her without a smile, SOPHIA swallows and signs, handheld camera."
+    },
+    {
+     "loi": "His four wild little heirs drove every nanny away.",
+     "anh": "Sunny pastel nursery in chaos. The four toddlers throw toys and pillows; SOPHIA stands in the doorway, hair messy, a toy stuck on her shoulder.",
+     "dong": "A pillow flies past SOPHIA, the toddlers giggle, slow sideways track across the mess."
+    },
+    {
+     "loi": "Victor gave me one rule. One mistake, and I'm out.",
+     "anh": "Marble staircase. VICTOR looks down at SOPHIA from the top step and raises one finger; the sly BUTLER watches from behind him.",
+     "dong": "VICTOR lifts one finger and turns away, the butler smirks, wide pan up the staircase."
+    },
+    {
+     "loi": "Then I heard the babies' thoughts. They warned me about the butler.",
+     "anh": "Nursery. SOPHIA kneels and hugs the four toddlers close while staring at the sly BUTLER, who freezes in the doorway holding a baby bottle; VICTOR appears behind him.",
+     "dong": "SOPHIA pulls the babies behind her and points at the butler, VICTOR grabs the bottle from his hand, camera pushes in on SOPHIA."
+    },
+    {
+     "loi": "Now the godfather who trusts no one is breaking every rule for me.",
+     "anh": "Golden hall at sunset. VICTOR in his black suit holds one of the toddlers and offers SOPHIA his hand with a rare soft smile; the other babies cling to her dress.",
+     "dong": "VICTOR reaches for her hand and smiles, SOPHIA hesitates then takes it, camera cranes up over them."
+    }
+   ]
+  },
+  {
+   "content_id": 158419,
+   "ten": "Atravesando el infierno contigo (Doblado)",
+   "lang": "es",
+   "nguon": "dramabox",
+   "giong": "Chris",
+   "poster": "1/8q0b94bebnyhzfxjs7.webp",
+   "url": "https://www.dramabox.com/es/video/42000028332_Atravesando-el-infierno-contigo-Doblado/701697675_Episode-1",
+   "nhan_vat": "LUCAS = rugged man mid-30s, short dark hair, stubble, worn brown leather jacket over a grey T-shirt (narrator, the man on the poster); CARLOTA = young woman late 20s, long dark wavy hair, FULLY CLOTHED in a denim jacket over a high-neck white top and jeans; UNCLE = man in his 50s, grey goatee, cream linen suit, sunglasses; SISTER = young woman asleep in a hospital bed with monitors",
+   "qc_goc": { "ma": "1634919751507826", "page": "100092637974249", "ngay": 3 },
+   "boi_canh": {
+    "ten": "Mojave desert road",
+    "mo_ta": "Endless sun-baked Mojave desert highway with Joshua trees and red rocks; a dusty old pickup truck; a quiet hospital room"
+   },
+   "canh": [
+    {
+     "loi": "Por mi hermana en coma, acepté un trabajo peligroso.",
+     "anh": "Quiet hospital room. LUCAS in his leather jacket holds the hand of his SISTER asleep in a hospital bed with soft monitor light.",
+     "dong": "LUCAS squeezes her hand, stands up and puts on his jacket with resolve, slow push-in on his face."
+    },
+    {
+     "loi": "Escoltar a una chica, Carlota, a través del desierto de Mojave.",
+     "anh": "Desert highway at noon. CARLOTA in a denim jacket climbs into the passenger seat of LUCAS's dusty pickup truck, clutching a small leather folder.",
+     "dong": "CARLOTA hugs the folder and slams the door, LUCAS starts the engine, handheld camera at the window."
+    },
+    {
+     "loi": "No me dijo que llevaba pruebas para salvar a su abuelo.",
+     "anh": "Inside the truck cab. CARLOTA opens the leather folder showing photos and papers; LUCAS glances at it sharply while driving.",
+     "dong": "LUCAS looks from the road to the papers and back, CARLOTA closes the folder nervously, slow sideways track."
+    },
+    {
+     "loi": "Gente muy peligrosa nos siguió por todo el desierto.",
+     "anh": "Wide desert highway. The dusty pickup races ahead while three black SUVs follow far behind in a long trail of dust.",
+     "dong": "The pickup speeds along the road, the SUVs close the distance, wide aerial pan."
+    },
+    {
+     "loi": "Y el que nos traicionó fue su propio tío.",
+     "anh": "Desert roadside at sunset. The UNCLE in a cream linen suit steps out of a black SUV and takes off his sunglasses with a cold smile; CARLOTA stares at him in shock, LUCAS shields her.",
+     "dong": "The uncle removes his sunglasses and smiles, CARLOTA steps back, camera pushes in on her shocked face."
+    },
+    {
+     "loi": "Cruzamos el infierno juntos. Y decidimos no separarnos nunca.",
+     "anh": "Desert at sunrise beside the dusty pickup. LUCAS and CARLOTA stand side by side holding hands, looking at the horizon, golden light on their faces.",
+     "dong": "CARLOTA rests her head on his shoulder, LUCAS smiles, camera cranes up into the sunrise."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art of the two leads from the reference poster, fully clothed and not kissing: LUCAS in a worn brown leather jacket and CARLOTA in a denim jacket over a high-neck white top stand back to back beside a dusty pickup truck on a Mojave desert highway at sunset, dramatic warm backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 157015,
+   "ten": "Called Me a Gold Digger? So Why Is He Begging?",
+   "lang": "en",
+   "nguon": "dramabox",
+   "giong": "Jessica",
+   "poster": "1/rrdabhyxc3cukqzlm4.webp",
+   "url": "https://www.dramabox.com/video/42000027933_Called-Me-a-Gold-Digger-So-Why-Is-He-Begging/701635551_Episode-1",
+   "nhan_vat": "FREDA = young woman late 20s, long auburn hair, elegant ivory dress with a modest high neckline (narrator, poster center); VICTOR = handsome dark-haired billionaire early 30s, black tuxedo; VICTOR'S MOTHER = blonde woman 50s in a burgundy gown, pearls",
+   "qc_goc": { "ma": "1606874384227683", "page": "100092370012118", "ngay": 3 },
+   "boi_canh": {
+    "ten": "Victor's family mansion",
+    "mo_ta": "Luxurious chandelier ballroom and long candlelit dining table in a billionaire mansion; bright modern airport terminal"
+   },
+   "canh": [
+    {
+     "loi": "For three years, they called me a gold digger.",
+     "anh": "Chandelier ballroom. Elegant guests whisper and point at FREDA in an ivory dress; VICTOR'S MOTHER in a burgundy gown sneers at her.",
+     "dong": "The guests whisper behind their hands, FREDA keeps her chin up, slow push-in on her face."
+    },
+    {
+     "loi": "My billionaire fiancé, Victor, never once defended me.",
+     "anh": "Same ballroom. VICTOR in a black tuxedo stands silent beside his mother, avoiding FREDA's eyes, a glass in his hand.",
+     "dong": "FREDA looks to VICTOR for help, he looks away and sips, handheld camera."
+    },
+    {
+     "loi": "Then he asked me again: do you love me, or my money?",
+     "anh": "Candlelit dining table. VICTOR leans toward FREDA with a doubtful frown; his mother watches with a satisfied smile.",
+     "dong": "VICTOR asks with a cold frown, FREDA's eyes fill with tears, slow sideways track."
+    },
+    {
+     "loi": "So I gave back the ring and left for a job overseas.",
+     "anh": "Same dining room. FREDA places her engagement ring on the white tablecloth in front of VICTOR, stands and walks out; VICTOR stares at the ring.",
+     "dong": "FREDA sets down the ring and walks away without looking back, wide pan following her out."
+    },
+    {
+     "loi": "Only after I left did Victor learn the truth.",
+     "anh": "Empty dim mansion study at night. VICTOR alone reads a thick file of papers, his face pale with shock, FREDA's ring on the desk beside him.",
+     "dong": "VICTOR flips a page and freezes, drops the file, camera pushes in on his stunned face."
+    },
+    {
+     "loi": "Now the billionaire is begging. But I've moved on.",
+     "anh": "Bright airport arrivals hall. VICTOR holds a big bouquet and pleads with FREDA, who walks past him confidently in a smart beige coat, rolling her suitcase.",
+     "dong": "VICTOR steps toward her with the flowers, FREDA keeps walking with a calm smile, camera cranes up over the hall."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: FREDA with long auburn hair in an elegant ivory gown with a modest high neckline stands proudly in a chandelier ballroom, VICTOR in a black tuxedo behind her holding out an open ring box, dramatic warm backlight, empty dark space in the lower third for title text, vertical 9:16."
+  },
+  {
+   "content_id": 134720,
+   "ten": "The Discarded Wife Is the Queen of Luxury",
+   "lang": "en",
+   "nguon": "reelshort",
+   "giong": "Sarah",
+   "poster": "1/wreghcvmrcli27e2uv.webp",
+   "url": "https://www.reelshort.com/episodes/episode-1-the-discarded-wife-is-the-queen-of-luxury-6abb235d54bd74f95d01337a-rzty1cd6tk",
+   "nhan_vat": "FREYA = elegant woman about 30, light brown hair in a sleek bun, pearl drop earrings, grey eyes (narrator, poster center); HUSBAND = handsome man early 30s, short brown hair, navy suit; MOTHER-IN-LAW = woman 60s, grey bob, beige skirt suit; ASSISTANTS = young staff in black suits",
+   "qc_goc": { "ma": "1994949637840053", "page": "61584430431668", "ngay": 6 },
+   "boi_canh": {
+    "ten": "Husband's family home and Alysia headquarters",
+    "mo_ta": "Cold upscale family living room with grey sofas; gleaming white-and-gold luxury brand headquarters lobby with the brand name ALYSIA on the wall"
+   },
+   "canh": [
+    {
+     "loi": "For years, I hid who I really was. For him.",
+     "anh": "Plain kitchen in an upscale home. FREYA in a simple apron over a grey sweater quietly sets dishes on the counter, pearl earrings catching the light.",
+     "dong": "FREYA pauses and looks at her reflection in a window, slow push-in on her calm eyes."
+    },
+    {
+     "loi": "I gave up everything to be his wife.",
+     "anh": "Family living room. FREYA serves tea to her HUSBAND in a navy suit; he scrolls his phone and does not look at her.",
+     "dong": "FREYA sets down the cup, the husband waves her away without looking, handheld camera."
+    },
+    {
+     "loi": "His family called me a useless housewife.",
+     "anh": "Same living room. The MOTHER-IN-LAW in a beige suit points at FREYA's apron and laughs with the husband.",
+     "dong": "The mother-in-law laughs and points, FREYA lowers her eyes, slow sideways track."
+    },
+    {
+     "loi": "Then he betrayed me to pay off his debts.",
+     "anh": "Same room at night. The HUSBAND pushes a signed paper across the table toward FREYA and turns his back on her; her suitcase stands by the door.",
+     "dong": "The husband slides the paper over and walks away, FREYA picks it up stunned, wide pan."
+    },
+    {
+     "loi": "So I took off the apron. I'm the founder of Alysia.",
+     "anh": "Gleaming white-and-gold luxury headquarters lobby with ALYSIA on the wall. FREYA in a sharp white suit walks in; a row of ASSISTANTS in black bow to her.",
+     "dong": "FREYA strides through the lobby and the staff bow as she passes, camera pushes in on her face."
+    },
+    {
+     "loi": "Now the family that threw me away can only watch.",
+     "anh": "Glamorous launch event stage with gold lights. FREYA in the white suit is applauded on stage; the HUSBAND and MOTHER-IN-LAW stand at the back of the crowd, stunned.",
+     "dong": "The crowd applauds FREYA, the husband's smile falls, camera cranes up over the hall."
+    }
+   ],
+   "the_cuoi_anh": "Movie key art from the reference poster: FREYA with light brown hair in a sleek bun and pearl earrings in an elegant ivory gown with a modest neckline, holding a torn wedding photo of her husband, glittering gold chandelier light behind her, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16."
+  }
+ ]
+}

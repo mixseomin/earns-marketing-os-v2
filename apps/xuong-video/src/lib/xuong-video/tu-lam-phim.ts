@@ -16,6 +16,7 @@ import { tuSuaClipTap, sinhKeyframeCoDuPhong, ANH_DU_PHONG, type KetTuSua } from
 import { chonGiongDan, MODEL_GIONG_DAN } from './tu-sua-clip-do';
 import { boiCanhTap, ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
 import { congTk, docKinhThanh, locNhanh, tien } from './kieu';
+import { chanNguoiXem } from './nguoi-xem';
 
 const ngu = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 async function doiJob(db: Db, ids: number[], phut = 10): Promise<void> {
@@ -76,8 +77,9 @@ export async function lamPhimTuDau(db: Db, tapId: number, log: (s: string) => vo
   };
   const dungVi = async (): Promise<KetLamPhim | null> => { const l = await vuot(); return l ? { ok: false, buoc: l.startsWith(BUOC_HET_GIO) ? BUOC_HET_GIO : BUOC_NGAN_SACH, loi: [l], clip: [] } : null; };
   const canhA = () => db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`).then((r) => locNhanh((r as unknown as Row[]).map(mapCanh), 'A'));
-  // 1. người xem CẢ PHIM (cùng cổng: thu_nguoi_xem.ma = mã kịch bản) — trượt thì dừng trước khi tiêu tiền hình
-  if (!bc.tap.thu_nguoi_xem?.dat) {
+  // 1. người xem — hỏi ĐÚNG cổng studio (nguoi-xem.ts › chanNguoiXem, cùng hàm quy-trinh / xuất dùng): qua theo cả tập HOẶC mọi cảnh đã kiểm riêng đạt.
+  //    Trước 26/10/2026 chỉ nhìn thu_nguoi_xem.dat (cờ cả tập) → tập đã qua theo cảnh (tự chấm 0đ) vẫn bị chấm lại cả tập và trượt (lô kể chuyện 23/10 kẹt dang_lam).
+  if (chanNguoiXem(bc.tap.thu_nguoi_xem, await canhA()).length) {
     const k = await kiemNguoiXemTap(db, tapId, chamClaude);
     if (!k.ok) return { ok: false, buoc: 'người xem', loi: [k.loi], clip: [] };
     log(`  người xem ${k.data.dat ? '✓' : '✗'} ${k.data.diem}/10${k.data.khop ? '' : ` · lệch: ${k.data.lech}`}`);

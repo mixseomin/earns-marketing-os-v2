@@ -8,7 +8,6 @@ export function rutChu(s: string, maxTu = 10): string {
   return m.length ? c.slice(0, m.at(-1)! + 1).replace(/[,;:—]$/, '…') : c;
 }
 export function khuonQcPhim(ten: string, lang: 'en' | 'es', nguon: string, loi: string[]) {
-  const nen = NEN[nguon] ?? 'our app';
   const chu = loi.map((l, i) => (i === 0 ? `${rutChu(l)}\n${lang === 'es' ? 'MINISERIE' : 'SHORT DRAMA'}: "${ten}"` : rutChu(l)));
   // luật CTA (Support Ads 22/10/2026, bản Python: cta_qc.py): không "Tap/Toca/Click", không mũi tên — chỉ "Watch Free - Learn More"
   const theCuoi = lang === 'es'
@@ -16,7 +15,8 @@ export function khuonQcPhim(ten: string, lang: 'en' | 'es', nguon: string, loi: 
     : { chu: `"${ten}"\nWATCH FREE · LEARN MORE`, loi: `Watch "${ten}" free. Learn More.` };
   return {
     chu,
-    qcTen: lang === 'es' ? `${ten} — miniserie, gratis en ${nen}` : `${ten} — short drama, free on ${nen}`,
+    // KHÔNG nêu tên nền tảng (luật AFS: traffic về trang Ethopex, không về app gốc) — 25/10/2026 phải sửa tay DB 6 phim vì cổng người xem đòi tên app
+    qcTen: `${ten} — phim ngắn, xem trọn bộ miễn phí bằng nút Learn More (QC Ethopex: không nêu tên nền tảng / tên miền theo luật AFS)`,
     theCuoi: { ...theCuoi, anh: 'Movie key art poster composition of the main characters from the reference poster, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16.', dong: 'Slow cinematic push-in on the key art, light flares, characters hold still.' },
   };
 }

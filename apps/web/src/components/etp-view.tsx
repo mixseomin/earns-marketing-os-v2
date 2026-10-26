@@ -102,6 +102,71 @@ function LuatCamp({ bao }: { bao?: { nhom: string; chu: string }[] }) {
       background: loai === 'dang' ? mau : 'transparent', border: `1px ${loai === 'gan' ? 'dashed' : 'solid'} ${mau}` }}>{kh}</span>; })}
     {ds.length > 3 ? <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>+{ds.length - 3}</span> : null}</span>;
 }
+// TỔNG QUAN THEO PHIM (anh 27/10/2026: "Cần group theo film. Có hero cho từng film để soát độc lập … trong film xem từng camp. Nếu giả sử tắt hết
+// camp âm thì lãi là bao nhiêu"): dải đầu = lãi hiện tại vs lãi nếu tắt mọi camp âm; mỗi phim một thẻ (lãi, ROI, chi, camp chạy, camp âm, lãi nếu tắt
+// camp âm), xếp theo lãi; bấm thẻ = mở bảng camp của phim. Mọi số theo khoảng đang chọn (7 ngày / 14 ngày …), camp âm = camp lãi < 0 trong khoảng đó.
+function TongPhim({ du, ckh, anh, tl, khTen, baoCampBang }: { du: DuLieuEtp; ckh: (id: number) => SoTien; anh: (cr: number | null) => React.ReactNode;
+  tl: (k: string | null) => string; khTen: string; baoCampBang: Map<number, { nhom: string; chu: string }[]> }) {
+  const [mo, setMo] = useState<number | null>(null);
+  const phim = useMemo(() => {
+    const m = new Map<number, { p: PhimEtpKho | undefined; camps: { c: CampEtpKho; s: SoTien }[] }>();
+    const pm = new Map(du.phims.map((p) => [p.content_id, p]));
+    for (const c of du.camps) { if (!c.content_id) continue; const s = ckh(c.camp_id); const x = m.get(c.content_id) ?? { p: pm.get(c.content_id), camps: [] }; x.camps.push({ c, s }); m.set(c.content_id, x); }
+    return [...m.entries()].map(([id, x]) => {
+      const tong = x.camps.reduce((a, y) => ({ chi: a.chi + y.s.chi, thu: a.thu + y.s.thu }), { chi: 0, thu: 0 });
+      const am = x.camps.filter((y) => y.s.thu - y.s.chi < 0);
+      const loAm = am.reduce((a, y) => a + (y.s.thu - y.s.chi), 0);
+      const top = [...x.camps].sort((a, b) => b.s.chi - a.s.chi)[0];
+      return { id, p: x.p, camps: x.camps, tong, lai: tong.thu - tong.chi, am, loAm, laiNeuTat: tong.thu - tong.chi - loAm,
+        chay: x.camps.filter((y) => y.c.trang_thai === 'ACTIVE').length, cr: top?.c.creative_id ?? null };
+    }).filter((x) => x.tong.chi > 0 || x.chay > 0).sort((a, b) => b.lai - a.lai);
+  }, [du.camps, du.phims, ckh]);
+  const lai = phim.reduce((a, x) => a + x.lai, 0), loAm = phim.reduce((a, x) => a + x.loAm, 0), soAm = phim.reduce((a, x) => a + x.am.length, 0);
+  const chi = phim.reduce((a, x) => a + x.tong.chi, 0), chiAm = phim.reduce((a, x) => a + x.am.reduce((b, y) => b + y.s.chi, 0), 0);
+  const so = (v: number) => <b style={{ color: mauLai(v), fontVariantNumeric: 'tabular-nums' }}>{usd(v)}</b>;
+  const roi = (l: number, c: number) => (c >= 0.3 ? `${l >= 0 ? '+' : ''}${Math.round((l / c) * 100)}%` : '—');
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+        {[['Lãi ' + khTen.toLowerCase(), lai, `ROI ${roi(lai, chi)} · chi ${usd(chi)}`],
+          ['Nếu tắt hết camp âm', lai - loAm, `ROI ${roi(lai - loAm, chi - chiAm)} · chi ${usd(chi - chiAm)}`],
+          [`${soAm} camp âm đang làm lỗ`, loAm, `chi ${usd(chiAm)} trong ${khTen.toLowerCase()}`]].map(([t, v, phu]) => (
+          <div key={t as string} style={{ flex: '1 1 220px', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 14px' }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{t as string}</div>
+            <div style={{ fontSize: 24, margin: '2px 0' }}>{so(v as number)}</div><div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{phu as string}</div></div>))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 10 }}>
+        {phim.map((x) => (
+          <div key={x.id} style={{ gridColumn: mo === x.id ? '1 / -1' : undefined, border: `1px solid ${mo === x.id ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, borderRadius: 10, padding: 10 }}>
+            <div onClick={() => setMo(mo === x.id ? null : x.id)} style={{ display: 'flex', gap: 10, cursor: 'pointer' }} title="bấm để xem từng camp của phim">
+              <div style={{ transform: 'scale(1.6)', transformOrigin: 'top left', width: 32, height: 58, flex: 'none' }}>{anh(x.cr)}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.p?.ten ?? ''}>{x.p?.ten ?? `phim #${x.id}`}</div>
+                <div style={{ fontSize: 11, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[x.p?.locale, x.p?.nguon, tl(x.p?.the_loai ?? null)].filter(Boolean).join(' · ')}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}><span style={{ fontSize: 20 }}>{so(x.lai)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>ROI {roi(x.lai, x.tong.chi)} · chi {usd(x.tong.chi)}</span></div>
+                <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 2 }}>{x.chay}/{x.camps.length} camp chạy{x.am.length ? <> · <span style={{ color: '#f87171' }}>{x.am.length} âm {usd(x.loAm)}</span></> : null}</div>
+                {x.am.length ? <div style={{ fontSize: 12, marginTop: 2 }}>Tắt camp âm → {so(x.laiNeuTat)}</div> : null}
+              </div>
+            </div>
+            {mo === x.id ? (
+              <div style={{ marginTop: 10, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+                  <thead><tr style={{ color: 'var(--fg-2)', textAlign: 'right' }}><th style={{ textAlign: 'left' }}>Camp</th><th style={{ textAlign: 'left' }}>Trạng thái</th><th>Ngân sách</th><th>Chi</th><th>Thu</th><th>Lãi</th><th>ROI</th><th style={{ textAlign: 'left', paddingLeft: 10 }}>Luật</th></tr></thead>
+                  <tbody>{[...x.camps].sort((a, b) => (b.s.thu - b.s.chi) - (a.s.thu - a.s.chi)).map(({ c, s: t }) => { const l = t.thu - t.chi; return (
+                    <tr key={c.camp_id} style={{ borderTop: '1px solid var(--line)', background: l < 0 ? 'rgba(248,113,113,.07)' : undefined, opacity: c.trang_thai === 'ACTIVE' ? 1 : 0.55 }}>
+                      <td title={c.ten} style={{ padding: '4px 0', whiteSpace: 'nowrap' }}>#{c.camp_id} <span style={{ color: 'var(--fg-2)' }}>{c.ten.replace(/^\d{4}\w* .*? - /, '').slice(0, 34)}</span></td>
+                      <td>{c.trang_thai === 'ACTIVE' ? (choGio(c) ? 'chờ giờ' : 'chạy') : 'tắt'}</td><td style={{ textAlign: 'right' }}>${c.ngan_sach}</td>
+                      <td style={{ textAlign: 'right' }}>{usd(t.chi)}</td><td style={{ textAlign: 'right' }}>{usd(t.thu)}</td><td style={{ textAlign: 'right' }}>{so(l)}</td>
+                      <td style={{ textAlign: 'right' }}>{roi(l, t.chi)}</td><td style={{ paddingLeft: 10 }}><LuatCamp bao={baoCampBang.get(c.camp_id)} /></td></tr>); })}</tbody>
+                </table>
+              </div>) : null}
+          </div>))}
+      </div>
+    </div>
+  );
+}
+
 // DẢI TÓM TẮT LUẬT trên bảng Camp (anh 27/10/2026 "ko thấy" — cột Luật trống ở các camp mới đầu bảng): số camp đang chạm / sắp chạm từng luật,
 // bấm = lọc đúng luật đó (bỏ lọc Đang chạy để thấy cả camp chờ giờ / tạm dừng lịch), bấm lại = bỏ lọc
 function DaiLuat({ du, baoCampBang, chon, onChon }: { du: DuLieuEtp; baoCampBang: Map<number, { nhom: string; chu: string }[]>; chon: string; onChon: (t: string) => void }) {
@@ -1038,6 +1103,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       </div>
       {tab === 'tong' ? (
         <div>
+          <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={KH_TEN[kh]} baoCampBang={baoCampBang} />
           <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi${r.ns != null ? ` · ngân sách active ${usd(r.ns)}/ngày` : ''}` }))} dinhDang={usd} height={260} duKien={duKien} duongPhu={[{ ten: 'camp mới lên', mau: '#3b82f6', gt: ngayGanNhat.map((r) => r.camp_moi) }, { ten: 'creative mới', mau: '#a855f7', gt: ngayGanNhat.map((r) => r.cr_moi) }, { ten: 'camp tắt', mau: '#f87171', gt: ngayGanNhat.map((r) => r.tat) }]} />
           <DataTable rows={[...ngayGanNhat].reverse()} getRowKey={(r) => r.ngay} persistKey="etp-ngay" minWidth={820} columns={[
             { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{r.ngay.slice(8, 10)}/{r.ngay.slice(5, 7)}{r.ngay === du.nay ? <Den mau={MAU_DEN.chay} t="hôm nay, đang chạy" song /> : null}</span>, sortValue: (r) => r.ngay },

@@ -14,7 +14,7 @@ import { phieuShot, khongGianTap, lechSo, type BangShot } from './phieu-shot.mts
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const bang = JSON.parse(readFileSync(gia('bang')!, 'utf8')) as BangShot; const thu = gia('khung')!; const phim = Number(gia('phim')); const shotMau = Number(gia('shot') || 0);
-const ds = (gia('so') || '').split(',').map(Number).filter(Boolean);
+const ds = gia('so') === 'all' ? bang.shot.map((x) => x.so) : (gia('so') || '').split(',').map(Number).filter(Boolean);
 if (!thu || !phim || !ds.length) { console.error('cần --bang --khung --so --phim'); process.exit(1); }
 if (!process.env.DUYET_SINH_1_LAN) { console.error('tốn tiền — cần DUYET_SINH_1_LAN=1'); process.exit(2); }
 const db = getDb()!;
@@ -23,20 +23,36 @@ const tapId = Number(((await db.execute(sql`SELECT tap_id FROM xv_canh WHERE id 
 const kg = tapId ? await khongGianTap(tapId, bang.phan_doan ?? '') : null;
 if (!kg?.so_vat) console.log('⚠ cảnh không có sổ đồ vật — phiếu dùng đồ vẽ trên sơ đồ'); else for (const l of lechSo(bang, kg)) console.log(`LỆCH SỔ: ${l}`);
 const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+// ảnh mẫu ĐẠO CỤ + BỐI CẢNH của phim — lấp chỗ mẫu còn trống (cổng ảnh nhận tối đa 3: sơ đồ + 2) để đồ và nền giống nhau mọi khung
+const khac = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai IN ('dao_cu', 'boi_canh') ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
 const btShot: number[] = shotMau ? ((((await db.execute(sql`SELECT bien_the FROM xv_canh WHERE id = ${shotMau}`)) as unknown as Row[])[0]?.bien_the ?? []) as number[]) : [];
 const anhMau = (ten: string) => { const v = nv.find((x) => x.ten === ten); const bt = (v?.bien_the ?? []).find((b) => btShot.includes(b.id) && b.anh_url); return bt?.anh_url ?? v?.anh_ref[0] ?? ''; };
-const len = async (f: string, k: string) => { const u = await uploadToR2(`xuong-video/thu/so-do-${k}-${randomUUID()}.png`, readFileSync(f), 'image/png'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
+const len = async (f: string, k: string) => { const jpg = f.endsWith('.jpg'); const u = await uploadToR2(`xuong-video/thu/so-do-${k}-${randomUUID()}.${jpg ? 'jpg' : 'png'}`, readFileSync(f), jpg ? 'image/jpeg' : 'image/png'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 
 const BO_CUC = 'Image 1 is a flat schematic storyboard diagram, NOT a style reference: use it ONLY for the layout — the framing and crop, who stands where (screen left / right), which way each body and head turns, where the props are. '
   + 'Everything must look like a real photograph from a live-action drama: real people with natural skin, real hair, real fabric, real anatomy and hands. Never draw flat shapes, outlines, arrows, symbols or any diagram graphics.';
-await Promise.all(ds.map(async (so) => {
+async function motKhung(so: number) {
   const s = bang.shot.find((x) => x.so === so); if (!s) return console.log(`#${so}: không có trong bảng`);
   const co = (s.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '').filter((t) => t && anhMau(t)).slice(0, 2);
+  // chỗ còn lại: đạo cụ trong khung (khai ở cận đồ / người trong khung đang giữ) rồi bối cảnh
+  const doTrong = [...new Set([...(s.do ?? []).map((o) => bang.vat_so?.[o.loai]), ...(s.nguoi ?? []).flatMap((n) => [...(n.cam ?? []), ...(n.deo ?? [])].map((k) => bang.vat_so?.[k.split('_')[0]!]))].filter((x): x is string => !!x))];
+  const them = [...doTrong.map((t) => khac.find((x) => x.ten === t && x.anh_ref[0])), khac.find((x) => x.loai === 'boi_canh' && x.anh_ref[0])].filter((x): x is NonNullable<typeof x> => !!x).slice(0, 2 - co.length);
   const u1 = await len(`${thu}/so-${so}.png`, `${so}`);
   const mat = co.map((t, i) => `${t} looks exactly like reference image ${i + 2} (same face, hair and outfit).`).join(' ');
-  const p = `${BO_CUC}\n${phieuShot(bang, s, kg)}\n${mat}`;
-  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map(anhMau)], tiLe: '9:16' });
+  const mau2 = them.map((x, i) => x.loai === 'boi_canh' ? `Reference image ${co.length + i + 2} is the location — match its walls, doors, materials and warm lighting (not its framing).` : `Reference image ${co.length + i + 2} shows ${x.ten} — draw it exactly like this.`).join(' ');
+  const p = `${BO_CUC}\n${phieuShot(bang, s, kg)}\n${mat} ${mau2}`;
+  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...co.map(anhMau), ...them.map((x) => x.anh_ref[0]!)], tiLe: '9:16' });
   if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.loi}`);
   writeFileSync(`${thu}/so-${so}-that.png`, a.anh.data); console.log(`#${so}: ${await len(`${thu}/so-${so}-that.png`, `${so}-that`)}`);
-}));
+}
+// song song có trần (anh 24/10/2026: sinh AI song song mặc định) — 6 ảnh một lúc
+const hang = [...ds]; await Promise.all(Array.from({ length: Math.min(6, hang.length) }, async () => { for (let so = hang.shift(); so != null; so = hang.shift()) await motKhung(so); }));
+// bảng duyệt: các khung đã có, đánh số #N
+const { existsSync } = await import('node:fs'); const sharp = (await import('sharp')).default;
+const co2 = bang.shot.filter((x) => existsSync(`${thu}/so-${x.so}-that.png`)); const C = 8, W = 270, H = 480;
+if (co2.length) {
+  const o = await Promise.all(co2.map(async (x, i) => ({ input: await sharp(`${thu}/so-${x.so}-that.png`).resize(W, H, { fit: 'cover' }).composite([{ input: Buffer.from(`<svg width="${W}" height="40"><rect width="70" height="34" rx="6" fill="#000" opacity="0.7"/><text x="10" y="25" font-size="22" font-weight="700" fill="#fff" font-family="DejaVu Sans, Arial">#${x.so}</text></svg>`), top: 6, left: 6 }]).png().toBuffer(), left: (i % C) * (W + 6), top: Math.floor(i / C) * (H + 6) })));
+  await sharp({ create: { width: C * (W + 6), height: Math.ceil(co2.length / C) * (H + 6), channels: 3, background: '#111' } }).composite(o).jpeg({ quality: 85 }).toFile(`${thu}/bang.jpg`);
+  console.log(`bảng: ${thu}/bang.jpg (${co2.length} khung) · ${await len(`${thu}/bang.jpg`, 'bang')}`);
+}
 process.exit(0);

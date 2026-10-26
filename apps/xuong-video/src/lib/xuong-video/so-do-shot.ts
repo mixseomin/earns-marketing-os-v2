@@ -121,9 +121,10 @@ export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat:
     const dich = dichNhin(c, ten, luc);   // nhìn MỐC của cảnh (cửa, lối vào…) → tên đọc được của mốc thay mã
     // hướng người đó nhìn khi shot sau MỞ (hoặc khi shot sau kết nếu shot sau mới quay) — khác hướng hiện tại = động tác quay đầu nối qua cú cắt
     let quay = h == null ? 0 : h * 40, bat: -1 | 1 | undefined;
-    if (noiSau && !lung && h != null) {
-      const sd = nhinCan(kg, o.sau!, ten, 'dau'), sk = nhinCan(kg, o.sau!, ten, 'ket'); const toi = sd != null && sd !== h ? sd : sk != null && sk !== h ? sk : null;
-      if (toi != null) { bat = toi > h ? 1 : -1; quay = h * 40 + (toi - h) * 40 * 0.35; }
+    // người QUAY LƯNG cũng bắt đầu xoay đầu được (khán giả thấy má lộ dần — #353 #1 → #2: Hạ quay lưng nhìn thang, shot sau quay sang phải): coi hướng hiện tại là 0
+    if (noiSau) {
+      const h0 = h ?? 0; const sd = nhinCan(kg, o.sau!, ten, 'dau'), sk = nhinCan(kg, o.sau!, ten, 'ket'); const toi = sd != null && sd !== h0 ? sd : sk != null && sk !== h0 ? sk : null;
+      if (toi != null && toi !== 0) { bat = toi > h0 ? 1 : -1; quay = h0 * 40 + (toi - h0) * 40 * 0.35; } else if (toi === 0 && h0 !== 0) { bat = h0 > 0 ? -1 : 1; quay = h0 * 40 * 0.65; }
     }
     return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay, nhin_vao: dich && !kg.nguoi.includes(dich) ? kg.so_do.ten?.[dich] ?? dich : dich, nhin_huong: h,
       mat: b ? (luc === 'ket' ? [b.cuoi, b.cuoi] : [b.dau, b.cuoi]) : undefined, ao: MAU_AO[Math.max(0, kg.nguoi.indexOf(ten)) % MAU_AO.length]!,

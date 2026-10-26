@@ -28,4 +28,9 @@ assert.equal(h5.bat_dau_quay, -1, 'cuối shot 5: Hạ bắt đầu quay sang tr
 assert.ok(svgSoDoShot(k5).includes('bắt đầu quay ←') && svgSoDoShot(k5).includes('CUỐI shot'));
 assert.equal(veShotTuCanh({ ...c5, dan_dung: {} } as unknown as Canh, kg, [], { luc: 'ket', sau: c6 })!.nguoi.find((n) => n.ten === 'Hạ')!.bat_dau_quay, undefined, 'không nối động tác → không vẽ');
 assert.ok(!svgSoDoShot(k5, { sach: true }).includes('bắt đầu quay'), 'khung trơn: đầu đã quay nhưng không mũi tên / chữ');
+// quay lưng ở cuối shot trước, shot sau quay sang phải → vẫn vẽ "bắt đầu quay →"
+const kgL = { ...kg, so_do: { ...kg.so_do, moc: { ...kg.so_do.moc, thang: [-1, 9] } } } as unknown as KhongGian;
+const c1 = { ...c(1, 'ws'), phan_doan: 'A', dan_dung: { noi: 'dong_tac' }, ky_thuat: { co_canh: 'ws', sd: { may: 'm', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'thang' } } } } as unknown as Canh;
+const c2 = { ...c(2, 'cu'), phan_doan: 'A', ky_thuat: { co_canh: 'cu', sd: { may: 'm', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'thang' } }, sd_ket: { nhin: { 'Hạ': 'vi' } } } } as unknown as Canh;
+assert.equal(veShotTuCanh(c1, kgL, [], { luc: 'ket', sau: c2 })!.nguoi[0]!.bat_dau_quay, 1, 'quay lưng → shot sau quay phải: mũi tên phải');
 console.log('so-do-shot.test: ok');

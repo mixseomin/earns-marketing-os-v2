@@ -5,8 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { catAnhTuVideo, dungVideo } from './may-dung';
-import { truyVanAnhMau, type DeMay } from './mau-dung';
-import { idPexels, timAnhNen } from './anh-nen';
+import { BO_DUNG, truyVanAnhMau, type DeMay } from './mau-dung';
+import { idPexels, idPexelsVideo, timAnhNen, timVideoNen } from './anh-nen';
 import { MAU_MAY_DUNG, type MauMayDung } from './may-dung-mau';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -23,11 +23,12 @@ export type May = {
 };
 export type VideoMay = {
   id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] };
-  video_url: string | null; khung: string[]; /** ảnh tĩnh cho bài ảnh (nền x_anh) */ anh: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
+  /** mẫu dựng riêng (NULL = mẫu của máy) */ mau: MauMayDung | null; video_url: string | null; khung: string[]; /** ảnh tĩnh cho bài ảnh (nền x_anh) */ anh: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
 };
 /** nen_url: ảnh nền của video (mẫu có nền ảnh thật — luật 'nền lớn = ảnh thật'); đổi ảnh = dựng lại như đổi đề.
  *  KHÔNG gửi trường này (undefined) = giữ nguyên ảnh nền đang có — máy cũ (Front Porch) nạp đề không kèm ảnh, không được xoá ảnh của nó. */
-export type DeNapMay = { slug: string; chu_de: string; de: DeMay; dang: VideoMay['dang']; nen_url?: string | null };
+/** mau: mẫu dựng riêng của video (bước 3 Dạng × Góc × Sản phẩm, 26/10/2026 — một máy nhiều dạng); bỏ trống = mẫu của máy. Đổi mẫu = đổi đề (dựng lại). */
+export type DeNapMay = { slug: string; chu_de: string; de: DeMay; dang: VideoMay['dang']; nen_url?: string | null; mau?: MauMayDung | null };
 /** Một bước máy đã làm (xv_may_nhat_ky): chon_de · trang_tang · dung · dang · bo_qua · loi. */
 export type NhatKy = { id: number; luc: string; buoc: string; ok: boolean; slug: string | null; nen: string | null; noi_dung: string; url: string | null };
 /** Lượt đăng gần nhất của một nền — tệp báo lượt dang-short.mjs ghi cho cty.on.tc (/var/lib/cty/may/video-<nền>.json, cùng box). */
@@ -45,7 +46,7 @@ const mapMay = (r: Row): May => ({
   so: { video: Number(r.so_video ?? 0), cho_dang: Number(r.so_cho ?? 0), luu_tru: Number(r.so_luu ?? 0) },
 });
 const mapVideo = (r: Row): VideoMay => ({
-  id: Number(r.id), slug: String(r.slug), chu_de: String(r.chu_de ?? ''), de: r.de as DeMay, dang: (r.dang ?? {}) as VideoMay['dang'],
+  id: Number(r.id), slug: String(r.slug), chu_de: String(r.chu_de ?? ''), de: r.de as DeMay, dang: (r.dang ?? {}) as VideoMay['dang'], mau: (r.mau as MauMayDung | null) ?? null,
   video_url: (r.video_url as string | null) ?? null, khung: (r.khung ?? []) as string[], anh: (r.anh ?? []) as string[], giay: r.giay == null ? null : Number(r.giay),
   xuat_luc: r.xuat_luc == null ? null : String(r.xuat_luc), da_dang: (r.da_dang ?? {}) as Record<string, DaDang>, luu_tru: !!r.luu_tru, created_at: String(r.created_at),
 });
@@ -82,15 +83,17 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
   if (!MAU_MAY_DUNG[m.mau]) throw new Error(`máy ${ma}: mẫu lạ ${m.mau}`);
   let moi = 0, doi = 0, giu = 0;
   for (const x of ds) {
-    const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de, nen_url FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
+    const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de, nen_url, mau FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
     const coNen = x.nen_url !== undefined, nen = coNen ? x.nen_url ?? null : ((cu?.nen_url as string | null | undefined) ?? null);
+    if (x.mau && !MAU_MAY_DUNG[x.mau]) throw new Error(`${x.slug}: mẫu lạ ${x.mau}`);
+    const mau = x.mau !== undefined ? x.mau ?? null : ((cu?.mau as MauMayDung | null | undefined) ?? null);   // không gửi = giữ mẫu đang có
     if (!cu) {
-      await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang, nen_url) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb, ${nen})`);
+      await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang, nen_url, mau) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb, ${nen}, ${mau})`);
       moi++; continue;
     }
-    const deDoi = jsonChuan(cu.de) !== jsonChuan(x.de) || (coNen && (cu.nen_url ?? null) !== nen), chuDoi = jsonChuan(cu.dang) !== jsonChuan(x.dang) || cu.chu_de !== x.chu_de;
+    const deDoi = jsonChuan(cu.de) !== jsonChuan(x.de) || (coNen && (cu.nen_url ?? null) !== nen) || ((cu.mau ?? null) !== mau), chuDoi = jsonChuan(cu.dang) !== jsonChuan(x.dang) || cu.chu_de !== x.chu_de;
     if (!deDoi && !chuDoi) { giu++; continue; }
-    if (deDoi) await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(x.de)}::jsonb, dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, nen_url = ${nen}, video_url = NULL, khung = '[]'::jsonb, anh = '[]'::jsonb, xuat_luc = NULL, updated_at = now() WHERE id = ${Number(cu.id)}`);
+    if (deDoi) await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(x.de)}::jsonb, dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, nen_url = ${nen}, mau = ${mau}, video_url = NULL, khung = '[]'::jsonb, anh = '[]'::jsonb, xuat_luc = NULL, updated_at = now() WHERE id = ${Number(cu.id)}`);
     else await db.execute(sql`UPDATE xv_may_video SET dang = ${JSON.stringify(x.dang)}::jsonb, chu_de = ${x.chu_de}, updated_at = now() WHERE id = ${Number(cu.id)}`);
     doi++;
   }
@@ -99,13 +102,14 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
 
 /** Dựng video của một dòng (0đ) → video_url + 3 khung. */
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, v.chu_de, v.may_id, m.mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: `không có video #${videoId}` };
+  const nenVideo = !!BO_DUNG[r.mau as MauMayDung]?.nenVideo;   // mẫu nền video (canh-dong): tìm VIDEO Pexels, so trùng theo id video
   // chưa có ảnh nền → tự lấy ảnh thật Pexels theo chủ đề, không trùng trong máy (luật anh 18/10/2026: mọi bài đăng có ảnh minh hoạ thật; anh-nen.ts)
   if (!r.nen_url) {
-    const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => idPexels(x.nen_url as string)).filter((x): x is number => x != null));
+    const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => (nenVideo ? idPexelsVideo : idPexels)(x.nen_url as string)).filter((x): x is number => x != null));
     // de.truy: dòng tự khai từ khoá ảnh (bài link — mỗi bài một ảnh riêng, anh 21/10/2026 "bài phải đa dạng không thành spam"); không có thì theo mẫu
-    try { r.nen_url = await timAnhNen((r.de as { truy?: string } | null)?.truy ?? truyVanAnhMau(r.mau as MauMayDung, r.de as DeMay, String(r.chu_de ?? '')), daDung); }
+    try { r.nen_url = await (nenVideo ? timVideoNen : timAnhNen)((r.de as { truy?: string } | null)?.truy ?? truyVanAnhMau(r.mau as MauMayDung, r.de as DeMay, String(r.chu_de ?? '')), daDung); }
     catch (e) { return { ok: false, loi: `ảnh nền: ${(e as Error).message}` }; }
     await db.execute(sql`UPDATE xv_may_video SET nen_url = ${r.nen_url as string}, updated_at = now() WHERE id = ${videoId}`);
   }
@@ -123,7 +127,7 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
 
 /** Bù ảnh tĩnh cho video đã dựng mà chưa có (mẫu mới khai `anh`) — không dựng lại video. */
 export async function bucAnh(db: Db, videoId: number): Promise<{ ok: true; so: number } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.video_url, m.mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.video_url, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r?.video_url) return { ok: false, loi: `video #${videoId} chưa dựng` };
   const k = await catAnhTuVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, videoUrl: String(r.video_url), slug: String(r.slug) });
   if (!k.ok) return k;
@@ -136,7 +140,7 @@ export async function dsVideoDang(db: Db, ma: string, caLuuTru = false): Promise
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
   // duyet: Phòng Nội dung đã DUYỆT đúng bản xuất + đúng chữ đăng này (cham.xuat = xuat_luc, cham.dang = md5(dang) — xuất lại / sửa chữ là phải chấm lại; apps/cty/worker/cham-dang.mjs). Máy đăng chỉ lấy video duyet.
   const rows = (await db.execute(sql`SELECT *, (cham->>'ket' = 'DUYET' AND cham->>'xuat' = xuat_luc::text AND cham->>'dang' = md5(dang::text)) AS duyet FROM xv_may_video WHERE may_id = ${m.id} AND (${caLuuTru} OR NOT luu_tru) ORDER BY id`)) as unknown as Row[];
-  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, file_url: v.video_url, anh: v.anh, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
+  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, mau: v.mau, file_url: v.video_url, anh: v.anh, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
 }
 /** Sổ đăng: ghi (hoặc gộp thêm trường, vd binhLuan) lượt đăng của một video lên một nền. Slug lạ → false. */
 export async function ghiDang(db: Db, ma: string, slug: string, nen: string, x: Partial<DaDang>): Promise<boolean> {

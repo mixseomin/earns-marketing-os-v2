@@ -5,5 +5,6 @@ export const MAU_MAY_DUNG = {
   'scam-or-real': { ten: 'Scam or Real? · tin nhắn khách sạn' },
   'before-you-land': { ten: 'Before you land · eSIM theo nước' },
   'cau-hoi-thi': { ten: 'Câu hỏi luyện thi · ExamWeight' },
+  'canh-dong': { ten: 'Cảnh động thả hồn' },   // mẫu CHUNG mọi ngách (bước 3 Dạng × Góc × Sản phẩm, 26/10/2026): video thật + tiếng nền + câu móc nhỏ
 } as const;
 export type MauMayDung = keyof typeof MAU_MAY_DUNG;

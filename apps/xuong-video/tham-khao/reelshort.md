@@ -61,3 +61,16 @@ Trung vị cả 9 tập: **1,3–2,5 s một shot**, tập dài 68–242 s.
   (`khoa-3d-dien-ai.mts`) chỉ còn cho mảnh cần nối liền thật.
 - Thêm lớp lời kể ngôi thứ nhất (giọng nhân vật chính) cho phim kể kiểu này; thẻ tên ở lần xuất hiện đầu; khoá một bảng sáng cho cả tập trong câu tả.
 - Mở mỗi tập bằng khung đỉnh xung đột; kết bằng câu móc + loá sáng.
+
+## Eye trace — đo trên 9 tập AI (26/10/2026, `scripts/do-diem-nhin-mau.py`, YuNet)
+Khung ngay trước + ngay sau mỗi cú cắt → mặt to nhất → điểm giữa hai mắt (0..1 khung). 811 điểm mặt.
+
+- **Mắt luôn ở cùng một chỗ**: ngang **0,51 ± 0,16** (giữa khung), dọc **0,31 ± 0,09** (đúng đường 1/3 trên). 69 % mặt nằm trong ô giữa
+  (ngang 1/3–2/3, dọc 0,18–0,42); tập dựng kỹ nhất 80–88 % (Dear Brother, Forward, Triplets).
+- **Mặt to**: chiều cao mặt trung bình 0,22–0,36 chiều cao khung (cận / trung cận).
+- Qua cú cắt mắt dịch trung vị **~0,2 bề ngang khung** — ngang mức ghép ngẫu nhiên: họ KHÔNG chỉnh từng cú cắt, họ đặt MỌI shot về một điểm neo
+  mắt cố định, nên cắt kiểu gì mắt người xem cũng rơi đúng chỗ cũ. Liền mạch bằng quy ước khung, không bằng đo từng cặp.
+- Bản 5 shot Thang máy của studio (ca5, 26/10): mắt dọc 0,24 ± 0,13, ngang lệch 0,15, mặt cao 0,12 (nhiều toàn / qua vai), chỉ 54 % trong ô giữa,
+  mắt dịch trung vị **0,47** bề ngang qua cú cắt — gấp đôi ReelShort.
+- Áp vào studio: điểm neo mắt mặc định (0,5 ; 0,31) + cỡ mặt 0,25–0,35 khung cho mọi shot không phải toàn / cận đồ — đặt ở khâu ngắm khung
+  (dung-set.py › ngam_lai, câu cỡ cảnh trong prompt) và lấy làm đích cho khung dựng lại (diem-nhin-tap.ts › khungCanh) thay vì chỉ khớp từng cặp.

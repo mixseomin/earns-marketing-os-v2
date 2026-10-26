@@ -140,7 +140,7 @@ export async function dsVideoDang(db: Db, ma: string, caLuuTru = false): Promise
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
   // duyet: Phòng Nội dung đã DUYỆT đúng bản xuất + đúng chữ đăng này (cham.xuat = xuat_luc, cham.dang = md5(dang) — xuất lại / sửa chữ là phải chấm lại; apps/cty/worker/cham-dang.mjs). Máy đăng chỉ lấy video duyet.
   const rows = (await db.execute(sql`SELECT *, (cham->>'ket' = 'DUYET' AND cham->>'xuat' = xuat_luc::text AND cham->>'dang' = md5(dang::text)) AS duyet FROM xv_may_video WHERE may_id = ${m.id} AND (${caLuuTru} OR NOT luu_tru) ORDER BY id`)) as unknown as Row[];
-  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, mau: v.mau, file_url: v.video_url, anh: v.anh, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
+  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, file_url: v.video_url, anh: v.anh, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
 }
 /** Sổ đăng: ghi (hoặc gộp thêm trường, vd binhLuan) lượt đăng của một video lên một nền. Slug lạ → false. */
 export async function ghiDang(db: Db, ma: string, slug: string, nen: string, x: Partial<DaDang>): Promise<boolean> {

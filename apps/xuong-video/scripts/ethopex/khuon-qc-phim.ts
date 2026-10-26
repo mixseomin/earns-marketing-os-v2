@@ -1,4 +1,6 @@
-// KHUÔN QC PHIM NGẮN (Ethopex): chữ trên màn ngắn + tên phim ở shot 1 + thẻ cuối xem miễn phí. Dùng chung cho tao-lo.mts và them-the-cuoi.mts.
+// KHUÔN QC PHIM NGẮN (Ethopex): chữ trên màn ngắn + thẻ cuối tên phim + xem miễn phí. Dùng chung cho tao-lo.mts, them-the-cuoi.mts, ap-chu-ke-chuyen.mts.
+import { gopKieu, type KieuChu } from '../../src/lib/xuong-video/kieu';
+import { dongChuMan } from '../../src/lib/xuong-video/ngat-dong';
 const NEN: Record<string, string> = { reelshort: 'ReelShort', netshort: 'NetShort', dramabox: 'DramaBox' };
 /** chữ trên màn gọn: ≤ maxTu từ giữ nguyên; dài hơn thì cắt ở DẤU CÂU gần nhất (≥ 4 từ) — không cắt giữa cụm (bản đầu ra "So I took a job at the…") */
 export function rutChu(s: string, maxTu = 10): string {
@@ -7,14 +9,28 @@ export function rutChu(s: string, maxTu = 10): string {
   const m = [...c.matchAll(/[.,;:!?—]/g)].map((x) => x.index!).filter((i) => c.slice(0, i).split(/\s+/).length >= 4 && c.slice(0, i).split(/\s+/).length <= maxTu);
   return m.length ? c.slice(0, m.at(-1)! + 1).replace(/[,;:—]$/, '…') : c;
 }
+/** CHỮ MÀN QC KỂ CHUYỆN (anh 27/10/2026: "chữ trên màn hình nhiều và che hết cả nội dung"): chữ nhỏ (co 0,044 — mặc định studio 0,062),
+ *  khối chữ ở VÙNG DƯỚI (tâm 78% chiều cao: dưới mặt nhân vật, trên dải nút/chữ QC của Meta), mỗi khung ≤ 7 từ (≈ ≤ 2 dòng, câu dài hiện
+ *  lần lượt), viền đen dày để đọc trên mọi nền. Kinh thánh phim (qc.kieu_chu + qc.vi_tri_chu) — áp cho mọi phim khuôn qc_ke_chuyen. */
+export const KIEU_CHU_KE_CHUYEN: KieuChu = { co: 0.044, y: 0.78, tu: 7, vien_day: 0.12 };
+export const VI_TRI_CHU_KE_CHUYEN = 'duoi' as const;
+/** Thẻ cuối không cắt cụm (tu 0): cắt theo từ sẽ tách đôi tên phim / nút "WATCH FREE · LEARN MORE" — OCR cổng thoại chặn chữ FREE/GRATIS đứng lẻ. */
+export const KIEU_THE_CUOI: KieuChu = { tu: 0 };
+/** chữ thẻ cuối ≤ 2 dòng: tên phim vừa MỘT dòng thì tên + nút cùng khung; tên dài (2 dòng) thì tên hiện trước, nút thay vào từ giây 1,4 (cú pháp @giây). */
+export function chuTheCuoi(ten: string, nut: string, W = 1080): string {
+  const k = gopKieu(KIEU_CHU_KE_CHUYEN, KIEU_THE_CUOI);
+  return dongChuMan(`"${ten}"`, W, k).dong.length <= 1 ? `"${ten}"\n${nut}` : `"${ten}"\n@1.4 ${nut}`;
+}
+export const NUT_CTA = { en: 'WATCH FREE · LEARN MORE', es: 'MÍRALA GRATIS · MÁS INFORMACIÓN' } as const;
 export function khuonQcPhim(ten: string, lang: 'en' | 'es', nguon: string, loi: string[]) {
-  const chu = loi.map((l, i) => (i === 0 ? `${rutChu(l)}\n${lang === 'es' ? 'MINISERIE' : 'SHORT DRAMA'}: "${ten}"` : rutChu(l)));
+  // shot 1 chỉ câu hook — bỏ dòng "SHORT DRAMA / MINISERIE: tên" (27/10/2026: 4–5 dòng che mặt ở khung đầu; tên phim đã có ở thẻ cuối)
+  const chu = loi.map((l) => rutChu(l));
   // luật CTA (Support Ads 22/10/2026, bản Python: cta_qc.py): không "Tap/Toca/Click", không mũi tên — chỉ "Watch Free - Learn More"
   const theCuoi = lang === 'es'
-    ? { chu: `"${ten}"\nMÍRALA GRATIS · MÁS INFORMACIÓN`, loi: `Mira "${ten}" gratis. Más información.` }
-    : { chu: `"${ten}"\nWATCH FREE · LEARN MORE`, loi: `Watch "${ten}" free. Learn More.` };
+    ? { chu: chuTheCuoi(ten, NUT_CTA.es), loi: `Mira "${ten}" gratis. Más información.` }
+    : { chu: chuTheCuoi(ten, NUT_CTA.en), loi: `Watch "${ten}" free. Learn More.` };
   return {
-    chu,
+    chu, kieuChu: KIEU_CHU_KE_CHUYEN, viTriChu: VI_TRI_CHU_KE_CHUYEN, kieuTheCuoi: KIEU_THE_CUOI,
     // KHÔNG nêu tên nền tảng (luật AFS: traffic về trang Ethopex, không về app gốc) — 25/10/2026 phải sửa tay DB 6 phim vì cổng người xem đòi tên app
     qcTen: `${ten} — phim ngắn, xem trọn bộ miễn phí bằng nút Learn More (QC Ethopex: không nêu tên nền tảng / tên miền theo luật AFS)`,
     theCuoi: { ...theCuoi, anh: 'Movie key art poster composition of the main characters from the reference poster, dramatic backlight, empty dark space in the lower third for title text, vertical 9:16.', dong: 'Slow cinematic push-in on the key art, light flares, characters hold still.' },
@@ -23,7 +39,7 @@ export function khuonQcPhim(ten: string, lang: 'en' | 'es', nguon: string, loi: 
 
 /** QUY TRÌNH STUDIO cho QC phim ngắn (cổng keyframe/video của studio, 19/10/2026): khung truyện 4 nhịp, phân cảnh, vai từng shot, máy, khối diễn. */
 export const BEATS_QC_PHIM = [
-  { ten: 'Mở', mo_ta: 'cảnh kịch tính nhất + tên phim trong 2 giây đầu', cam_xuc: 2 },
+  { ten: 'Mở', mo_ta: 'cảnh kịch tính nhất trong 2 giây đầu (tên phim ở thẻ cuối)', cam_xuc: 2 },
   { ten: 'Bất công', mo_ta: 'nhân vật chính bị chà đạp / phản bội — người xem tức thay', cam_xuc: -3 },
   { ten: 'Lật ngược', mo_ta: 'bí mật / sức mạnh lộ ra, kẻ ác bắt đầu trả giá', cam_xuc: 3 },
   { ten: 'Chốt', mo_ta: 'tên phim + xem miễn phí, bấm Learn More', cam_xuc: 4 },

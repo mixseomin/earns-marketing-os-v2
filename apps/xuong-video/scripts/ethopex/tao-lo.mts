@@ -30,7 +30,7 @@ for (const p of lo.phim) {
     ti_le: '9:16', do_phan_giai: '1080p', ngon_ngu: p.lang, the_loai: 'qc_ke_chuyen', phong_cach: PHONG_CACH,
     mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: lo.khuon.mo_hinh_video ?? 'veo-3.1-lite-generate-preview',
     giong_dan: { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: p.giong }, logline: p.canh[0]!.loi,
-    qc: { ten: k.qcTen, link: p.url, the_cuoi: lo.khuon.the_cuoi[p.lang] },
+    qc: { ten: k.qcTen, link: p.url, the_cuoi: lo.khuon.the_cuoi[p.lang], kieu_chu: k.kieuChu, vi_tri_chu: k.viTriChu },
     ethopex: { content_id: p.content_id, nguon: p.nguon, lo: process.argv[2]!, qc_goc: p.qc_goc, khuon: 'video thắng #1: kể ngôi thứ nhất + phụ đề + thẻ cuối, hook nhanh' },
   };
   const ph = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai, poster_url)
@@ -46,15 +46,15 @@ for (const p of lo.phim) {
     VALUES (${phimId}, 1, 'Bản A — hook gốc', ${p.canh.map((c, i) => `${i + 1}. ${c.loi}`).join('\n')}, ${p.canh[0]!.loi}, ${briefQcPhim(p.ten, nenCua(p.nguon), p.lang, p.canh.length)},
       ${j(BEATS_QC_PHIM)}::jsonb, ${j(PHAN_CANH_QC_PHIM)}::jsonb, 'storyboard') RETURNING id`)) as unknown as { id: number }[];
   const tapId = tap[0]!.id;
-  const shots = [...p.canh.map((c, i) => ({ ...c, chu: k.chu[i]! })), { loi: k.theCuoi.loi, anh: p.the_cuoi_anh ?? k.theCuoi.anh, dong: k.theCuoi.dong, chu: k.theCuoi.chu }];
+  const shots = [...p.canh.map((c, i) => ({ ...c, chu: k.chu[i]!, kieu: {} })), { loi: k.theCuoi.loi, anh: p.the_cuoi_anh ?? k.theCuoi.anh, dong: k.theCuoi.dong, chu: k.theCuoi.chu, kieu: k.kieuTheCuoi }];
   let truocKt: { co_canh: string; chuyen_dong: string } | undefined;
   for (const [i, c] of shots.entries()) {
     const g = shotQc(i, shots.length, truocKt);
     const s = { ...g, co_canh: (c as Canh).co_canh ?? g.co_canh, chuyen_dong: (c as Canh).chuyen_dong ?? g.chuyen_dong };
     truocKt = { co_canh: s.co_canh, chuyen_dong: s.chuyen_dong };
-    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, prompt_anh, prompt_video, loi_thoai, thoai, chu_man, nhan_vat, phan_doan, ky_thuat, dan_dung, tham_khao, thoi_luong_s, trang_thai)
+    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, prompt_anh, prompt_video, loi_thoai, thoai, chu_man, kieu_chu, nhan_vat, phan_doan, ky_thuat, dan_dung, tham_khao, thoi_luong_s, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1}${i === 0 ? ' · hook' : i === shots.length - 1 ? ' · end card' : ''}`}, ${c.anh}, ${c.anh}, ${c.dong}, ${c.loi},
-        ${j([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${c.chu}, ${anchors}::jsonb, ${s.phan_doan},
+        ${j([{ nhan_vat: '', loi: c.loi }])}::jsonb, ${c.chu}, ${j(c.kieu)}::jsonb, ${anchors}::jsonb, ${s.phan_doan},
         ${j({ co_canh: s.co_canh, am_thanh: [], chuyen_dong: s.chuyen_dong })}::jsonb,
         ${j({ mo: c.anh.slice(0, 220), ket: c.dong, dien: c.dong, muc_dich: s.muc_dich })}::jsonb,
         ${j(p.qc_goc ? thamKhaoQcGoc([c.chu, c.loi], p.qc_goc) : thamKhaoTrangPhim([c.chu, c.loi], p.url, p.trang_phim!))}::jsonb, ${i === shots.length - 1 ? 3 : GIAY}, 'nhap')`);

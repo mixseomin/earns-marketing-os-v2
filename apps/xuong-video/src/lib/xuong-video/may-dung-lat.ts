@@ -62,15 +62,16 @@ export function assLat(de: DeLat): string {
     d.push([5, m.lat + 0.2, m.het, 'Chu', `{\\an8\\pos(540,${1450})\\b1${fs(38)}\\1c${mauAss(TRANG)}\\q2\\fad(200,250)}${dongL.map(chu).join('\\N')}`]);
   });
   if (N.diem) {
-    d.push([6, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\fad(300,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([7, N.T_KET, N.T_DIEM + (N.ket.length ? 0 : 0), 'Den', `{\\an5\\pos(540,820)${fs(72)}\\1c&HFFFFFF&\\q2\\fad(300,200)}How many did you get?`]);
-    d.push([7, N.T_KET, N.T_DIEM, 'Chu', `{\\an5\\pos(540,980)\\b1${fs(44)}\\1c${mauAss(NHAN)}\\fad(300,200)}Tell us in the comments: 0, 1, 2 or ${tong}`]);
+    // màn điểm: phủ tối đậm (ảnh cuối có thể sáng trắng — bản thử 27/10 chữ chìm vào màn điện thoại) + viền chữ; KHÔNG mời bình luận (Facebook coi là mồi tương tác)
+    d.push([6, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.68)}\\fad(300,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+    d.push([7, N.T_KET, N.T_DIEM, 'Den', `{\\an5\\pos(540,820)${fs(72)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,200)}How many did you get?`]);
+    d.push([7, N.T_KET, N.T_DIEM, 'Chu', `{\\an5\\pos(540,980)\\b1${fs(44)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(300,200)}Your score: 0, 1, 2 or ${tong}`]);
   }
   if (N.ket.length) {
     const t0 = N.T_DIEM;
-    if (!N.diem) d.push([6, t0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(64)}\\1c&HFFFFFF&\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    if (!N.diem) d.push([6, t0, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.6)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+    d.push([7, t0, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(64)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
+    if (N.ket[1]) d.push([7, t0, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
   }
   if (de.nhan) d.push([2, 0, N.DAI, 'Chu', `{\\an7\\pos(40,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

@@ -20,7 +20,7 @@ const M = nhipLat({ ...lt, cau: [...lt.cau, ...ds.cau] }); assert.strictEqual(M.
 assert.deepStrictEqual([nhanLat('lam-tuong', false), nhanLat('lam-tuong', true), nhanLat('dung-sai', true), nhanLat('dung-sai', false)], ['MYTH', 'FACT', 'TRUE', 'FALSE']);
 // ASS: 3 câu đánh số, đếm 3·2·1, FALSE/TRUE, điểm, kết; lầm tưởng có MYTH + "Myth or fact?"
 const a = assLat(ds); for (const s of ['1/3', '3/3', '}3', '}2', '}1', 'FALSE', 'TRUE', 'How many did you get?', 'Check before you book', 'True or false?', 'same price as the']) assert.ok(a.includes(s), s);
-const b = assLat(lt); assert.ok(b.includes('MYTH') && b.includes('Myth or fact?') && !b.includes('How many') && !b.includes('1/1'));
+assert.ok(!/comment/i.test(a), 'màn điểm không mời bình luận'); const b = assLat(lt); assert.ok(b.includes('MYTH') && b.includes('Myth or fact?') && !b.includes('How many') && !b.includes('1/1'));
 // ảnh: câu đầu = nen, câu sau = nen_them; thiếu thì dùng lại
 assert.strictEqual(truyVanLat(ds), 'hotel reception desk'); assert.deepStrictEqual(truyVanThemLat(ds), ['hotel room key card', 'resort pool palm trees']); assert.deepStrictEqual(truyVanThemLat(lt), []);
 assert.deepStrictEqual(anhTheoMuc(3, 'a', ['b']), ['a', 'b', 'b']); assert.deepStrictEqual(anhTheoMuc(2, 'a'), ['a', 'a']);

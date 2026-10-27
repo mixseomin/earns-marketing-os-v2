@@ -12,7 +12,7 @@
    "ma": "canh-dong",
    "ten": "Cảnh động thả hồn",
    "nhom": "video",
-   "dung": "1 clip thật 8–15s (Pexels video) đúng nơi/đồ vật của góc, tiếng nền (mưa/gió/phố) sinh ffmpeg, 0–1 dòng chữ nhỏ cuối, màn kết nhẹ",
+   "dung": "1 clip thật 8–15s (Pexels video có chuyển động, máy đo) hoặc ảnh thật + AI sửa theo góc rồi làm sống (clip phủ mưa/tuyết/bụi 0đ hoặc Grok ảnh→video lặp chồng mờ 30–60s); tiếng nền THU THẬT (am-nen.json), 0–1 dòng câu móc, dòng kết nhẹ",
    "nen": [
     "facebook",
     "instagram",
@@ -32,6 +32,30 @@
    "duong": "0d",
    "mau": "canh-dong",
    "vi_du": "Hiên nhà mưa 1950s (Front Porch) · ga tàu Kyoto sáng sớm (Before You Land)"
+  },
+  {
+   "ma": "anh-song",
+   "ten": "Ảnh sống (cinemagraph)",
+   "nhom": "video",
+   "dung": "Ảnh thật Pexels → AI sửa theo góc (ckey 110₫: thêm vật của sản phẩm vào cảnh) → chuyển động: clip phủ thật (mưa / tuyết / bụi / sương / tia nắng) + lia máy chậm 0đ, hoặc Grok ảnh→video (3.250₫/10s) rồi lặp chồng mờ 0,8s thành 30–60s; tiếng thu thật",
+   "nen": [
+    "facebook",
+    "instagram",
+    "tiktok",
+    "youtube",
+    "x"
+   ],
+   "ngach": [
+    "moi"
+   ],
+   "goc_loai": [
+    "ai_tinh_huong",
+    "ai_mong_muon",
+    "ai_chan_dung"
+   ],
+   "duong": "0d",
+   "mau": null,
+   "vi_du": "hiên nhà mưa có sách đố chữ + kính đọc trên bàn (Front Porch, thử 26/10/2026) · bàn khách sạn có eSIM + hộ chiếu (Before You Land)"
   },
   {
    "ma": "noi-chua-nghe",

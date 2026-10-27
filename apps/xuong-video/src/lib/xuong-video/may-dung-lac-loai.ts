@@ -27,7 +27,7 @@ export function luoiLacLoai(de: DeLacLoai) {
   const hang = kep(de.hang), cot = kep(de.cot), canh = Math.floor((960 - 16 * (cot - 1)) / cot), rong = canh * cot + 16 * (cot - 1), cao = canh * hang + 16 * (hang - 1);
   const x0 = Math.round((W - rong) / 2), y0 = Math.round(980 - cao / 2), vi = Math.min(hang * cot - 1, Math.max(0, Math.round(de.vi_tri)));
   const o = (i: number) => ({ x: x0 + (i % cot) * (canh + 16), y: y0 + Math.floor(i / cot) * (canh + 16) });
-  return { hang, cot, canh, x0, y0, rong, cao, vi, o, coChu: Math.max(36, Math.floor(canh * (de.giong.length > 2 ? 0.32 : 0.55))) };
+  return { hang, cot, canh, x0, y0, rong, cao, vi, o, coChu: Math.max(36, Math.floor(canh * (de.giong.length > 4 ? 0.22 : de.giong.length > 2 ? 0.27 : 0.55))) };   // bản thử 27/10: 4 chữ ở 0,32 chạm mép ô
 }
 export function nhipLacLoai(de: DeLacLoai) {
   const T_DEM = Math.max(T_MO, giayDoc(de.moc ?? '') - 1), T_LO = T_DEM + DEM, T_KET = T_LO + 2.5;

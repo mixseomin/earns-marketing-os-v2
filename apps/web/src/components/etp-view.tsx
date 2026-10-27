@@ -715,6 +715,27 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
     const r = await tatCreative(id); if ('loi' in r) return alert(r.loi); setDangTb((d) => ({ ...d, [id]: false })); };
   const duyet = async (id: number, ok: boolean) => { setDangDuyet((d) => ({ ...d, [id]: ok })); const r = await duyetCham(id, ok); if ('loi' in r) { alert(r.loi); setDangDuyet((d) => { const x = { ...d }; delete x[id]; return x; }); } router.refresh(); };
   const sot = ds.filter((x) => x.metaLoi && x.c && x.c.ket === 'ok').length;
+  // CHI PHÍ CƠ HỘI của luật chấm (anh 27/10/2026 "show thêm tổng chi phí cơ hội đang áp dụng"): camp ĐANG tắt mà creative bị cổng chấm chặn (cham_cong.tat:
+  // có tiêu chí ≤ 4 hoặc người Loại) — trừ camp miễn (cau_hinh cham_mien) và camp dừng theo lịch giờ. Mỗi camp: lãi TB/ngày trên các ngày có chi trong 7 ngày gần nhất.
+  // Camp lãi → phần lãi bỏ lỡ (chi phí cơ hội); camp lỗ → phần lỗ tránh được. Creative của bản nhân ★ lấy theo camp gốc "duplicate by N" (như etp.creative_cua).
+  const coHoi = useMemo(() => {
+    const mienRaw = (du.cauHinh.find((k) => k.khoa === 'cham_mien')?.gia_tri ?? []) as (number | { camp: number; den?: string })[];
+    const mien = new Set(mienRaw.filter((m) => typeof m === 'number' || !m.den || Date.parse(m.den) > Date.now()).map((m) => (typeof m === 'number' ? m : m.camp)));
+    const theoId = new Map(du.camps.map((c) => [c.camp_id, c]));
+    const crCua = (c: CampEtpKho) => c.creative_id || theoId.get(Number(c.ten.match(/duplicate by (\d+)/)?.[1]))?.creative_id || null;
+    const tu = new Date(Date.parse(du.nay) - 7 * 86_400_000).toISOString().slice(0, 10);
+    const ngayCamp = new Map<number, { chi: number; thu: number; n: number }>();
+    for (const r of du.soNgay) if (r.d >= tu && r.chi > 0) { const x = ngayCamp.get(r.c) ?? { chi: 0, thu: 0, n: 0 }; x.chi += r.chi; x.thu += r.thu; x.n++; ngayCamp.set(r.c, x); }
+    let mat = 0, tranh = 0, ns = 0, so = 0, soLai = 0;
+    for (const c of du.camps) {
+      if (c.trang_thai === 'ACTIVE' || c.lich_tat || mien.has(c.camp_id)) continue;
+      const cr = crCua(c); const ch = cr ? du.cham[cr] : undefined;
+      if (!ch || !(ch.duyet === false || (ch.duoc_len === false && !ch.cho_duyet))) continue;
+      so++; ns += c.ngan_sach; const x = ngayCamp.get(c.camp_id); if (!x) continue;
+      const tb = (x.thu - x.chi) / x.n; if (tb > 0) { mat += tb; soLai++; } else tranh -= tb;
+    }
+    return { mat, tranh, ns, so, soLai };
+  }, [du.camps, du.cham, du.cauHinh, du.soNgay, du.nay]);
   type Dong = (typeof ds)[number];
   type Mo = Omit<The, 'x' | 'y' | 'anh' | 'anhKhung' | 'video' | 'dai' | 'cr'>;
   const o = (x: Dong, t: Mo, children: React.ReactNode) => (
@@ -767,6 +788,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
         <span style={{ color: DAU_MAU.vua }}><b style={{ fontSize: 18 }}>{dem.xem}</b> cần người xem</span>
         <span style={{ color: DAU_MAU.loi }}><b style={{ fontSize: 18 }}>{dem.meta}</b> Meta từ chối</span>
         <span style={{ color: sot ? '#fb923c' : 'var(--fg-2)' }} title="Meta từ chối mà máy chấm sạch"><b style={{ fontSize: 18 }}>{sot}</b> máy bỏ sót</span>
+        <span style={{ color: coHoi.mat ? '#facc15' : 'var(--fg-2)' }} title={`Chi phí cơ hội của luật chấm đang áp dụng: ${coHoi.so} camp đang tắt vì creative bị chặn (≤ 4 điểm hoặc người Loại; không tính camp miễn, camp dừng theo lịch giờ) · ngân sách ${usd(coHoi.ns)}/ngày.\n${coHoi.soLai} camp đang lãi → bỏ lỡ ≈ ${usd(coHoi.mat)}/ngày (lãi TB/ngày lúc chạy, 7 ngày gần nhất).\nCamp lỗ → tránh được ≈ ${usd(coHoi.tranh)}/ngày · ròng ${usd(coHoi.mat - coHoi.tranh)}/ngày.`}><b style={{ fontSize: 18 }}>{usd(coHoi.mat)}</b>/ngày chi phí cơ hội · {coHoi.so} camp</span>
         <span style={{ marginLeft: 'auto' }}><FilterChips value={loc} onChange={setLoc} counts={dem} options={[{ value: 'all', label: 'Tất cả', title: 'mọi creative đã chấm / đang chạy' }, { value: 'duyet', label: 'Chờ duyệt', title: 'có tiêu chí 5 điểm — chặn lên tới khi người Đạt' },
           { value: 'xem', label: 'Cần xem', title: 'máy kết cần người xem hoặc 5 điểm, chưa ai duyệt' }, { value: 'ndat', label: 'Người duyệt', title: 'người đã bấm Đạt' }, { value: 'nloai', label: 'Người loại', title: 'người đã bấm Loại — chặn + tắt camp' },
           { value: 'loi', label: 'Cấm', title: 'máy kết cấm hoặc Meta từ chối' }, { value: 'meta', label: 'Meta loại', title: 'Meta từ chối thật' }, { value: 'chua', label: 'Chưa chấm' }]} /></span>

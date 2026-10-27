@@ -427,8 +427,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ). Luật ROAS KHÔNG đi đường này — xem khối ★ ROAS bên dưới (anh: báo riêng, anh tự quyết).
   // anh 27/10/2026: "Đặt 1 cái mới … Sau đó dừng T7" → T2 thay T7 (máy luật không còn trả tat7)
   const LUAT_TAT = [
-    { khoa: 'tat2', tep: 'ethopex-tat2.json', ten: 'LUẬT T2', mo_ta: 'luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ $5',
-      cot: 'Lãi 2n', luat: 'T2 (2 ngày đầu ROI < −20%, chi ≥ $5)', ai: 'anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy' },
+    { khoa: 'tat2', tep: 'ethopex-tat2.json', ten: 'LUẬT T2', mo_ta: 'luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ $2.5',
+      cot: 'Lãi 2n', luat: 'T2 (2 ngày đầu ROI < −20%, chi ≥ $2.5)', ai: 'anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);

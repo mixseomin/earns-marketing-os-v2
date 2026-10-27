@@ -869,6 +869,8 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
             {p.b?.chan_nb ? <span title={`Tạm dừng nhân bản phim này: ${p.b.chan_nb.replace(/ROI phim/g, 'lãi cả phim')}`} style={{ color: '#f59e0b' }}>⏸🧬</span> : null}
             {p.loi ? <span title={`${p.loi} camp không nhân bản được trong 24 giờ`} style={{ color: '#f87171' }}>⚠{p.loi}</span> : null}
             {p.sut ? <span title={`${p.sut} camp lãi giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}
+            {/* tổng ngân sách camp đang bật của phim (anh 27/10/2026), thẳng cột với $ của từng camp bên dưới */}
+            <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ marginLeft: 'auto', color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>${p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</span>
             </span>
             {hep ? null : ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }))} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}
             <O cot="roi-nay" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />

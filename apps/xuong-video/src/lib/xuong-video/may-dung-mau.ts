@@ -8,6 +8,7 @@ export const MAU_MAY_DUNG = {
   'canh-dong': { ten: 'Cảnh động thả hồn' },
   'bai-anh': { ten: 'Bài ảnh (thẻ chữ · nhận ra · đoán · hai lựa chọn)' },
   'top-n': { ten: 'Top 3/5 đếm ngược' },
+  'cau-noi': { ten: 'Câu nói theo tình huống (ngôn ngữ khác)' },   // 3–5 câu bản ngữ + cách đọc + nghĩa trên một cảnh thật; cần font CJK trong máy dựng — bước 3, 27/10/2026
   'so-sanh': { ten: 'So sánh X vs Y (chia đôi màn)' },   // hai ảnh thật trên/dưới (nen_url = X, nen_them[0] = Y) — bước 3, 27/10/2026
   'lat-dap-an': { ten: 'Lật đáp án (lầm tưởng vs sự thật · đúng/sai)' },   // một mẫu hai dạng (dang_bai ghi ở từng video), mỗi câu một ảnh thật — bước 3, 27/10/2026   // mẫu CHUNG: mỗi mục một ảnh thật (nen_url + nen_them), số đếm ngược, tiếng thật — bước 3, 27/10/2026   // mẫu CHUNG chỉ ra ẢNH 1080×1350 (chiAnh), không MP4 — bước 3, 27/10/2026   // mẫu CHUNG mọi ngách (bước 3 Dạng × Góc × Sản phẩm, 26/10/2026): video thật + tiếng nền + câu móc nhỏ
 } as const;

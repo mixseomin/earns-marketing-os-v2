@@ -34,12 +34,16 @@ def main(lo_f, ma, dang):
     # 1. kho
     sh(f"ssh {B} 'mkdir -p /var/lib/ethopex/creative/{ma}'")
     # ĐẨY SONG SONG 12 LUỒNG (27/10/2026): mạng nhà đẩy được 254 Mbps nhưng MỘT luồng TCP tới box3 (Đức, trễ ~220 ms) chỉ ~1 Mbit/s →
-    # lô 72 đoạn đẩy tuần tự mất ~5 giờ; 12 luồng cùng lúc đo được ~2 MB/s (gấp ~20). Đoạn cắt trên box3 ("box3:/đường") chép tại chỗ (23/10/2026).
+    # lô 72 đoạn đẩy tuần tự mất ~5 giờ; 8–12 luồng cùng lúc đo được ~2 MB/s (gấp ~20). Đoạn cắt trên box3 ("box3:/đường") chép tại chỗ (23/10/2026).
     from concurrent.futures import ThreadPoolExecutor
     def day(x):
-        if x["file"].startswith("box3:"): subprocess.run(["ssh", B, f"cp '{x['file'][5:]}' /var/lib/ethopex/creative/{ma}/{x['ten_tep']}"], check=True)
-        else: subprocess.run(["rsync", "-a", "--partial", x["file"], f"{B}:/var/lib/ethopex/creative/{ma}/{x['ten_tep']}"], check=True)
-    with ThreadPoolExecutor(12) as ex: list(ex.map(day, lo))
+        lenh = (["ssh", B, f"cp '{x['file'][5:]}' /var/lib/ethopex/creative/{ma}/{x['ten_tep']}"] if x["file"].startswith("box3:")
+                else ["rsync", "-a", "--partial", x["file"], f"{B}:/var/lib/ethopex/creative/{ma}/{x['ten_tep']}"])
+        for lan in range(3):   # sshd box3 bỏ bớt kết nối khi mở dồn (MaxStartups) — 27/10/2026 một luồng rớt làm gãy cả lô → thử lại
+            if subprocess.run(lenh, capture_output=True).returncode == 0: return
+            time.sleep(5 * (lan + 1))
+        raise RuntimeError(f"đẩy {x['file']} lỗi 3 lần")
+    with ThreadPoolExecutor(8) as ex: list(ex.map(day, lo))
     r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; done'""", timeout=3600)
     anh = {l.split("|")[0]: l.split("|") for l in r.stdout.splitlines() if l.count("|") == 4}
     XG.bao("day", ma, "đẩy video lên kho xong · viết chữ QC", 0, len(lo), ep=True)

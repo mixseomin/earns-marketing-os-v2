@@ -279,8 +279,8 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const [hep, setHep] = useState(false);
   useEffect(() => { const mq = window.matchMedia('(max-width: 640px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   useEffect(() => { const q = new URLSearchParams(location.search); const v = q.get('etl') as Loc | null; if (v) setLoc(v); const x = q.get('etx') as Xem | null; if (x) setXem(x); }, []);
-  useEffect(() => { const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(history.state, '', u); }, [xem]);
-  useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(history.state, '', u); }, [loc]);
+  useEffect(() => { const u = new URL(location.href); if (xem === 'camp') u.searchParams.delete('etx'); else u.searchParams.set('etx', xem); history.replaceState(null, '', u); }, [xem]);
+  useEffect(() => { const u = new URL(location.href); if (loc === 'all') u.searchParams.delete('etl'); else u.searchParams.set('etl', loc); history.replaceState(null, '', u); }, [loc]);
   const dong: Dong[] = useMemo(() => {
     const soCamp = new Map<number, number>();
     for (const c of du.camps) if (c.content_id && c.trang_thai === 'ACTIVE') soCamp.set(c.content_id, (soCamp.get(c.content_id) ?? 0) + 1);   // chỉ camp ĐANG CHẠY tính vào trần phim

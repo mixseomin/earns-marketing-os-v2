@@ -37,7 +37,7 @@ function syncUrl(s: EntityDrawerReq[]) {
   const u = new URL(window.location.href);
   if (s.length) u.searchParams.set('ed', encode(s));
   else u.searchParams.delete('ed');
-  window.history.replaceState(window.history.state, '', u.toString());
+  window.history.replaceState(null, '', u.toString());
 }
 
 function commit(next: EntityDrawerReq[]) {

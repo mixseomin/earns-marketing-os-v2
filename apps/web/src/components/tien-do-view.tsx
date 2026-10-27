@@ -60,7 +60,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
     const u = new URL(window.location.href);
     const set = (k: string, v: string) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); };
     set('tdp', proj && proj !== projectId ? proj : ''); set('tdtt', tt === 'all' ? '' : tt); set('tdo', [...open].join(',')); set('tdxong', showDone ? '1' : '');
-    if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href);
+    if (u.href !== window.location.href) window.history.replaceState(null, '', u.href);
   }, [proj, projectId, tt, open, showDone]);
   const [detail, setDetail] = useState<Record<number, HangMucChiTiet>>({});
   // Tiêu đề tab: "Tiến độ · <dự án> [· <mã> <tên>]" — mở nhiều tab tiến độ vẫn biết tab nào là gì.

@@ -2141,7 +2141,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
   // NGỮ CẢNH GÓP Ý (góp ý #1450): nút 💬 tự nhúng vật đang chọn + khu / vật camera đang nhìn (window.__nguCanhTrang — gop-y-mos2 docNguCanh đọc lúc gửi), không cần chụp ảnh.
   // Vật đang chọn còn nằm trong URL (?xem=<tên ô tìm>): link "Trang báo lỗi" của card mở lại đúng vật (đọc ?xem sau lần dựng đầu).
   const tenVat = (o: any): string => chiMuc.find((c) => c.obj === o)?.ten ?? (() => { try { return thongTin(o).dau.replace(/<[^>]+>/g, '').trim(); } catch { return ''; } })();
-  function datUrl(dat: Record<string, string | null>) { try { const u = new URL(window.location.href); for (const [k, v] of Object.entries(dat)) { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); } if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href); } catch { /* không đổi được URL: ngữ cảnh vẫn gửi qua __nguCanhTrang */ } }
+  function datUrl(dat: Record<string, string | null>) { try { const u = new URL(window.location.href); for (const [k, v] of Object.entries(dat)) { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); } if (u.href !== window.location.href) window.history.replaceState(null, '', u.href); } catch { /* không đổi được URL: ngữ cảnh vẫn gửi qua __nguCanhTrang */ } }
   function datXem(ten: string | null) { datUrl({ xem: ten }); }
   // khu đang nhìn = vật gần tâm nhất: vật thuộc khu Tài nguyên → 'Tài nguyên'; chính nó là khu → tên nó; còn lại → khu dự án / xưởng gần tâm nhất
   const khuDangNhin = () => { const vat = ganTam(() => true), laKhu = (c: { nhan: string; obj: any }) => c.obj.userData?.loai === 'khu' || /^khu/.test(c.nhan);

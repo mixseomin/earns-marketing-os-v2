@@ -92,6 +92,7 @@ jobs:
       - name: Kiểm tĩnh
         run: |
           node scripts/check-sql-aliases.mjs
+          node scripts/check-replace-state.mjs
           node scripts/check-canon.mjs
           node scripts/check-gop-y-surface.mjs
           node scripts/check-mos2-host.mjs --tu-kiem && node scripts/check-mos2-host.mjs

@@ -81,7 +81,7 @@ export function useModalParam(key = 'm'): ModalParam {
       }
       const qs = next.toString();
       // Giữ window.history.state (Next App Router lưu state điều hướng ở đó — ghi {} là phá back/forward).
-      window.history.replaceState(window.history.state, '', qs ? `${pathname}?${qs}` : pathname);
+      window.history.replaceState(null, '', qs ? `${pathname}?${qs}` : pathname);
     },
     [pathname, key, idKey],
   );

@@ -632,7 +632,7 @@ function TabDangSx({ du }: { du: DuLieuEtp }) {
 function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
   // ô lọc lên URL (anh 26/10/2026 "tab này cũng phải cho lên url"): ?t=creative&v=soat&l=<lọc> — mặc định 'loi' thì bỏ khỏi URL; link Telegram ?l=duyet vẫn chạy
   const [loc, setLoc] = useState<LocSoat>(() => { const l = typeof location !== 'undefined' ? new URL(location.href).searchParams.get('l') : null; return (LOC_SOAT as readonly string[]).includes(l ?? '') ? (l as LocSoat) : 'loi'; });
-  useEffect(() => { const u = new URL(location.href); if (loc === 'loi') u.searchParams.delete('l'); else u.searchParams.set('l', loc); history.replaceState(history.state, '', u); }, [loc]);
+  useEffect(() => { const u = new URL(location.href); if (loc === 'loi') u.searchParams.delete('l'); else u.searchParams.set('l', loc); history.replaceState(null, '', u); }, [loc]);
   const noi = useNoi<Omit<The, 'x' | 'y'>>(); const the = noi.v;
   const router = useRouter();
   const msVn = (t: string) => { const m = t.match(/(\d+):(\d+) (\d+)\/(\d+)\/(\d+)/); return m ? Date.UTC(Number(m[5]), Number(m[4]) - 1, Number(m[3]), Number(m[1]) - 7, Number(m[2])) : 0; };
@@ -991,7 +991,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     if (x.tab === 'camp') u.searchParams.set('v', x.xemCamp); else if (x.tab === 'creative' && x.xemCr !== 'hq') u.searchParams.set('v', x.xemCr); else u.searchParams.delete('v');
     if (x.tab === 'camp' && x.loc !== 'chay') u.searchParams.set('l', x.loc); else if (!(x.tab === 'creative' && x.xemCr === 'soat')) u.searchParams.delete('l');   // Quét nội dung tự giữ ?l= (TabSoat)
     if (x.tab === 'camp' && x.xemCamp === 'bang' && x.phim) u.searchParams.set('p', String(x.phim)); else u.searchParams.delete('p');
-    if (u.href !== location.href) history.replaceState(history.state, '', u); };
+    if (u.href !== location.href) history.replaceState(null, '', u); };
   const hienTai = { tab, xemCamp, xemCr, loc, phim: phimLoc };
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   const doiTab = (t: Tab) => doi({ tab: t }, () => setTab(t));

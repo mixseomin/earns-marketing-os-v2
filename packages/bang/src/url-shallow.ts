@@ -16,11 +16,13 @@ export function readShallowParam(key: string): string | null {
 }
 
 /** replaceState shallow CHUẨN NHÀ — mọi chỗ tự gọi window.history.replaceState phải đi qua đây.
- *  Lý do tồn tại: Next App Router lưu state điều hướng trong history.state; ghi `{}`/`null` như
- *  17 call-site cũ là ĐÈ MẤT nó → back/forward lệch sau khi đụng bất kỳ filter shallow nào. */
+ *  PHẢI truyền `null` (Next ≥ 14.1 vá history.replaceState): state KHÔNG mang dấu __NA → Next tự chép state nội bộ của nó
+ *  sang VÀ cập nhật URL vào bộ định tuyến. Truyền `window.history.state` (mang __NA) thì Next coi là lệnh nội bộ, BỎ QUA đồng bộ
+ *  → bộ định tuyến giữ URL lúc mở trang; mỗi lần deploy, lượt router.refresh gặp bản build mới → Next tải cứng theo URL CŨ
+ *  → trang nhảy về tab trước (anh chửi 27/10/2026 "sửa 10000 lần"). Đã đọc mã next/dist/client/components/app-router.js 15.5. */
 export function shallowReplaceUrl(url: string): void {
   if (typeof window === 'undefined') return;
-  try { window.history.replaceState(window.history.state, '', url); } catch { /* ignore */ }
+  try { window.history.replaceState(null, '', url); } catch { /* ignore */ }
 }
 
 export function writeShallowParam(key: string, value: string | null): void {

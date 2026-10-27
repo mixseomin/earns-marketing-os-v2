@@ -312,7 +312,7 @@ function BangXet({ xet }: { xet: XetLuat[] }) {
           <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}</div>
           {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}>{l.ghi}</div> : null}</td>;
         return l.dk.length ? l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>{i === 0 ? dau : null}
-          <td style={o}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}>{gt}</td><td style={{ ...o, whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{ng}</td>
+          <td style={{ ...o, minWidth: 190 }}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}>{gt}</td><td style={{ ...o, whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{ng}</td>
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)
           : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}>{l.mo_ta}</td></tr>; })}</tbody>
     </table>
@@ -338,7 +338,7 @@ function ChipLuat(p: VaoLuat) {
   const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p);
   if (!t.chinh && !t.xet) return <span style={{ color: 'var(--fg-3, #777)' }}>·</span>;
   // camp không chạm luật nào vẫn rê được: ô hiện "…" (anh 28/10/2026 "hiển thị (...) là được")
-  const R = t.xet ? 600 : 340;
+  const R = t.xet ? 760 : 340;
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}

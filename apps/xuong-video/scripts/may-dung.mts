@@ -12,7 +12,7 @@
 //   --nguon                        stdin JSON { dung, tong, mo_ta? } → số của nguồn đề
 //   --ghi-du-kien                  stdin JSON { may, ds: [{ ngay, gio, may, nen, slug, title }] } → lịch dự kiến 7 ngày (tab Social › Lịch đăng)
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
-//   --sinh-de <YYYY-MM-DD> [--xuat] [--toi-da N]   ô kế hoạch ngày đó chưa có bài đúng góc + dạng → sinh đề bằng chữ AI (may-de.ts) → nạp (→ dựng); TỐN TIỀN vài chục đồng / đề
+//   --sinh-de <YYYY-MM-DD> [--va-xuat] [--toi-da N]   ô kế hoạch ngày đó chưa có bài đúng góc + dạng → sinh đề bằng chữ AI (may-de.ts) → nạp (→ dựng); TỐN TIỀN vài chục đồng / đề
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
@@ -67,7 +67,7 @@ if (a.includes('--nap')) {
 } else if (a.includes('--nhat-ky')) {
   await ghiNhatKy(db, ma, await docStdin()); console.log('✓ nhật ký');
 } else if (lay('--sinh-de') != null) {
-  // MÁY SINH ĐỀ THEO GÓC (bước 3, 27/10/2026): ô kế hoạch của máy ngày đó chưa có bài DUYỆT đúng góc + dạng → sinh đề bằng chữ AI rẻ (may-de.ts) → nạp (→ --xuat dựng luôn).
+  // MÁY SINH ĐỀ THEO GÓC (bước 3, 27/10/2026): ô kế hoạch của máy ngày đó chưa có bài DUYỆT đúng góc + dạng → sinh đề bằng chữ AI rẻ (may-de.ts) → nạp (→ --va-xuat dựng luôn; không dùng chữ --xuat vì nhánh --xuat <slug> đứng trước trong chuỗi lệnh).
   // TỐN TIỀN (vài chục đồng / đề qua ckey): chạy bằng script cần DUYET_SINH_1_LAN=1 khi quá ngưỡng tự chạy (chot-tien.ts); --toi-da N giới hạn số đề một lượt.
   const ngay = lay('--sinh-de')!; if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay)) { console.error('--sinh-de cần ngày YYYY-MM-DD'); process.exit(1); }
   const { sinhDe, MAU_CUA_DANG, MAU_SINH } = await import('../src/lib/xuong-video/may-de');
@@ -92,7 +92,7 @@ if (a.includes('--nap')) {
     if (!kq.ok) { ra.push(`✗ ${oKe.nen} ${oKe.dang} #${oKe.goc.id}: ${kq.loi}`); continue; }
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? ''); daCo.push({ goc: String(oKe.goc.id), dang: oKe.dang, title: kq.de.dang.title ?? null });
     let xuat = '';
-    if (a.includes('--xuat')) { const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0]; const x = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' }; xuat = x.ok ? ` · dựng ✓ ${x.url}` : ` · dựng ✗ ${x.loi}`; }
+    if (a.includes('--va-xuat')) { const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0]; const x = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' }; xuat = x.ok ? ` · dựng ✓ ${x.url}` : ` · dựng ✗ ${x.loi}`; }
     ra.push(`✓ ${oKe.nen} ${oKe.dang} #${oKe.goc.id} → ${kq.de.slug} (${kq.model}, ${Math.round(kq.vnd)}₫) "${kq.de.dang.title}"${xuat}`);
   }
   console.log(ra.join('\n')); console.log(`sinh đề ${ma} ${ngay}: ${n} lượt mô hình, ${Math.round(vnd)}₫`);

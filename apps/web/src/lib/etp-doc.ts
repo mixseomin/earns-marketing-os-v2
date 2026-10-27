@@ -175,8 +175,9 @@ export async function docEtp(): Promise<DuLieuEtp> {
       select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, d.ngay from t join d using (camp_id) join etp.camp c using (camp_id)
       where d.on_dinh and d.so >= 2 and c.trang_thai = 'ACTIVE' order by t.chi desc`),
     run<DuLieuEtp['baoHoa'][number]>(sql`select content_id, ten, so_camp, roi, chan_nb, bao_hoa from etp.phim_bao_hoa where chan_nb is not null or bao_hoa is not null order by so_camp desc`).catch(() => [] as DuLieuEtp['baoHoa']),
-    run<Record<string, unknown>>(sql`select distinct on (camp_id) camp_id, count(*) over (partition by camp_id) lan, luc::text luc, loi from etp.nhat_ky
-      where viec = 'nhan_ban' and not coalesce(ok, true) and luc > now() - interval '24 hours' and camp_id is not null order by camp_id, luc desc`),
+    // ⚠ nhân bản lỗi = số LƯỢT hỏng thật (phút khác nhau) — luật chặn ghi ok NULL không tính; dòng chép trùng cũ (cùng phút) gộp một (anh 27/10/2026)
+    run<Record<string, unknown>>(sql`select camp_id, count(distinct luc) lan, max(luc)::text luc, (array_agg(loi order by luc desc))[1] loi from etp.nhat_ky
+      where viec = 'nhan_ban' and ok = false and luc > now() - interval '24 hours' and camp_id is not null group by camp_id`),
     run<Record<string, unknown>>(sql`select id, luc::text luc, camp_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do from etp.phot order by luc desc limit 500`).catch(() => [] as Record<string, unknown>[]),
     run<{ nhom: string; ma: string; ten: string; mo_ta: string }>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string; mo_ta: string }[]),
     run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi, g.cho_duyet, u.ok duyet from etp.cham c left join etp.cham_cong g using (creative_id) left join etp.cham_duyet u using (creative_id)`).catch(() => [] as Record<string, unknown>[]),

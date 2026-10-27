@@ -323,7 +323,7 @@ try:
     except Exception: chan_phim = {}
     # NGHỈ SAU LỖI (25/10/2026: 16.751 lần nhân bản thất bại trong nhật ký — luật đề xuất lại cùng camp bị chặn ở MỖI nhịp, #67663 3 lần / phút):
     # camp gốc nhân bản lỗi trong 6 giờ qua thì bỏ qua lượt này
-    try: loi6 = {int(x) for x in q("select distinct camp_id from etp.nhat_ky where viec = 'nhan_ban' and not coalesce(ok, true) and luc > now() - interval '6 hours' and camp_id is not null").split()}
+    try: loi6 = {int(x) for x in q("select distinct camp_id from etp.nhat_ky where viec = 'nhan_ban' and ok is not true and luc > now() - interval '6 hours' and camp_id is not null").split()}
     except Exception: loi6 = set()
     for cid, a in sorted(thang.items(), key=lambda z: -(roi(z[1]) or 0)):
         r, g3, p = roi(a), roi(gan.get(cid) or {"chi": 0, "thu": 0}), phim_cua.get(cid)

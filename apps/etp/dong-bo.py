@@ -202,7 +202,10 @@ def main():
             j = json.dumps(rows, ensure_ascii=False)
             q(f"""insert into etp.nhat_ky (luc, viec, camp_id, goc, truoc, sau, ok, loi, luat, ai)
                   select luc, viec, camp_id, goc, truoc, sau, ok, loi, luat, ai from jsonb_to_recordset($J${j}$J$::jsonb)
-                  as x(luc timestamptz, viec text, camp_id int, goc int, truoc text, sau text, ok boolean, loi text, luat text, ai text) on conflict do nothing""")
+                  as x(luc timestamptz, viec text, camp_id int, goc int, truoc text, sau text, ok boolean, loi text, luat text, ai text)
+                  where not exists (select 1 from etp.nhat_ky n where n.luc = x.luc and n.viec = x.viec and n.camp_id is not distinct from x.camp_id
+                                    and n.sau is not distinct from x.sau and n.loi is not distinct from x.loi)
+                  on conflict do nothing""")   # KHÔNG CHÉP LẠI (anh 27/10/2026 "⚠302 nghĩa là gì"): khoá (luc, viec, camp_id, sau) coi NULL là khác nhau → dòng lỗi (sau NULL) bị chép lại mỗi lượt 10 phút, 1 lần thử thành 130 dòng
     except Exception as e: loi.append(f"nhat_ky: {e}")
     l_ = "; ".join(loi)[:1000].replace("$L$", "")
     q(f"update etp.dong_bo set xong = now(), so_camp = {kq['so_camp']}, so_chi_tiet = {kq['so_chi_tiet']}, so_dong_ngay = {kq['so_dong_ngay']}, loi = {('$L$' + l_ + '$L$') if loi else 'null'} where lan = {lan}")

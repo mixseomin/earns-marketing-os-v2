@@ -223,6 +223,10 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
             "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": a.get("domain") or "",
                      "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
 
+class ChanLuat(ValueError):
+    """LUẬT CHẶN, KHÔNG PHẢI LỖI (anh 27/10/2026: ⚠302 trên cây camp gồm cả "chưa chạm trần $30" — máy đúng luật mà bị đếm là nhân bản hỏng):
+    cổng trần ngân sách / trần phim / bão hoà / cổng chấm / chặn bộ… → nhật ký ghi ok = NULL (bỏ qua); ValueError thường vẫn là lỗi thật (ok = false)"""
+
 def ghi_nhat_ky(kq, luat, ai):
     dong = {"luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y"), "viec": kq.get("viec") or "nhan_ban", "id": kq.get("moi") or kq.get("goc"), "goc": kq.get("goc"),
             "truoc": None, "sau": (kq.get("ns") or 1) if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?", "content": kq.get("content"), "creative": kq.get("creative")}
@@ -248,50 +252,50 @@ def main(a):
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang); kq["ten"] = ten; bo = pl.pop("bo")
         ly = (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo('{bo}')"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (migration 0339, anh 26/10/2026)
-        if ly: raise ValueError(ly)
+        if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
-        if chan: raise ValueError(chan)
+        if chan: raise ChanLuat(chan)
         n = dem_dang_chay(cid)
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
-            raise ValueError(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
-        if n >= TRAN_PHIM and not ep: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
+            raise ChanLuat(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
+        if n >= TRAN_PHIM and not ep: raise ChanLuat(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
         if thang:   # thang nhân bản: chỉ bộ 2, bậc mới phải cao hơn ngân sách camp gốc
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
-            if str(bo) not in THANG_BO: raise ValueError(f"thang nhân bản chỉ áp dụng bộ {', '.join(THANG_BO)} (camp gốc thuộc bộ {bo}) — bộ khác giữ tăng bậc (etp.cau_hinh.thang_bo)")
+            if str(bo) not in THANG_BO: raise ChanLuat(f"thang nhân bản chỉ áp dụng bộ {', '.join(THANG_BO)} (camp gốc thuộc bộ {bo}) — bộ khác giữ tăng bậc (etp.cau_hinh.thang_bo)")
             if thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn camp gốc ${ns:g}")
         elif not moi and not ep:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
             tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
-            if ns < tran: raise ValueError(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa chạm trần ${tran:g} — chưa clone (tăng ngân sách camp gốc trước)")
+            if ns < tran: raise ChanLuat(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa chạm trần ${tran:g} — chưa clone (tăng ngân sách camp gốc trước)")
         if not moi and not ep:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường nhân bản (luật NB, góc mới, soát đoạn) — phim đang tụt thì không nhân thêm camp
             try: bh = q(f"select chan_nb from etp.phim_bao_hoa where content_id = {int(cid)} and chan_nb is not null")
             except Exception: bh = ""
-            if bh: raise ValueError(f"phim {cid} đang bão hoà — {bh} → không nhân bản thêm (dồn tiền sang phim khác)")
+            if bh: raise ChanLuat(f"phim {cid} đang bão hoà — {bh} → không nhân bản thêm (dồn tiền sang phim khác)")
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
         if ep: kq["viec"] = "sang_bo"
         elif not moi:   # clone: luôn đổi sang creative KHÁC (anh 25/10/2026)
             khac = creative_clone(cid, cr)
             if not khac:
                 xep_goc_moi(goc, cid, ten)
-                raise ValueError(f"clone phải khác creative — phim chưa có creative khác sạch, chưa dùng (creative gốc #{cr}) — đã xếp hàng cắt góc mới")
+                raise ChanLuat(f"clone phải khác creative — phim chưa có creative khác sạch, chưa dùng (creative gốc #{cr}) — đã xếp hàng cắt góc mới")
             chan = cong(cid, khac, ten)
-            if chan: raise ValueError(chan)
+            if chan: raise ChanLuat(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}; cr = khac
         elif dem_doan(cr) >= TRAN_DOAN:
             khac = creative_khac(cid, {cr})
             if not khac:
                 xep_goc_moi(goc, cid, ten)
-                raise ValueError(f"đoạn creative #{cr} đã {dem_doan(cr)} camp chạy (trần {TRAN_DOAN}/đoạn), phim chưa có góc khác — đã xếp hàng cắt góc mới (ethopex_can_goc_moi)")
+                raise ChanLuat(f"đoạn creative #{cr} đã {dem_doan(cr)} camp chạy (trần {TRAN_DOAN}/đoạn), phim chưa có góc khác — đã xếp hàng cắt góc mới (ethopex_can_goc_moi)")
             chan = cong(cid, khac, ten)
-            if chan: raise ValueError(chan)
+            if chan: raise ChanLuat(chan)
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
         kq["content"], kq["creative"] = cid, ad0["creative_id"]   # nhật ký mang phim + creative → dem_dang_chay đếm được camp vừa tạo chưa vào kho
         ly = cham_sach(ad0["creative_id"])   # cổng chấm: creative cuối cùng phải SẠCH
-        if ly: raise ValueError(ly)
+        if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None)
-        if ly: raise ValueError(ly)
+        if ly: raise ChanLuat(ly)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)
@@ -310,6 +314,8 @@ def main(a):
             ghi_bo(cid, bo)
             try: kq["lich"] = lich_ap(moi, cid)
             except Exception as e: kq["lich"] = f"lỗi áp lịch giờ: {str(e)[:80]}"
+    except ChanLuat as e:
+        kq.update(ok=None, chan=True, loi=str(e)[:240])   # bỏ qua theo luật — nhật ký ok NULL
     except Exception as e:
         kq["loi"] = str(e)[:240]
     if that: ghi_nhat_ky(kq, luat, ai)

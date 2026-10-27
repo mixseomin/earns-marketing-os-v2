@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lat.test.mts
 import assert from 'node:assert';
-import { anhLat, assLat, demCua, kichBanLat, lenhLat, nhanLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
+import { anhLat, assLat, demCua, dongKhangDinh, kichBanLat, lenhLat, nhanLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
 import { anhTheoMuc, chuoiAnh } from './may-dung-chuoi';
 import { giayDoc } from './may-dung-ass';
 
@@ -39,4 +39,8 @@ const cd: DeLat = { kieu: 'cau-do', cau: [{ khang_dinh: 'What has keys but opens
 const C = nhipLat(cd); assert.strictEqual(C.n, 1); assert.strictEqual(demCua('cau-do'), 10); assert.strictEqual(Number((C.moc[0]!.lat - C.moc[0]!.dem).toFixed(2)), 10);
 const c = assLat(cd); assert.ok(c.includes('ANSWER') && c.includes('A piano') && c.includes('}10') && c.includes('Think before it flips') && !c.includes('TRUE'));
 assert.strictEqual(nhanLat('cau-do', true), 'ANSWER');
+// khẳng định dài (đề AI 86 ký tự) phải lên khung đủ chữ: thu cỡ, không cắt
+const dai = 'Most hotel booking apps have terrible customer service because OTA companies cut corners';
+const L = dongKhangDinh(dai); assert.strictEqual(L.dong.join(' '), dai, 'không mất chữ'); assert.ok(L.co < 60);
+assert.ok(assLat({ ...lt, cau: [{ ...lt.cau[0]!, khang_dinh: dai }] }).includes('corners'), 'đuôi câu còn trên khung');
 console.log(`may-dung-lat: đạt (đúng/sai ${N.DAI.toFixed(1)}s, lầm tưởng ${M.DAI.toFixed(1)}s)`);

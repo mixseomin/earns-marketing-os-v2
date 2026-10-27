@@ -26,6 +26,11 @@ const W = 1080, H = 1920, TRANG = '#F4F6F8', NHAN = '#FCA311', DUNG = '#22C55E',
 const EM = 1.25, fs = (px: number) => `\\fs${Math.round(px * EM)}`;
 /** Nhãn lật theo dạng: lầm tưởng = MYTH/FACT (khẳng định sai = lầm tưởng), đúng-sai = TRUE/FALSE. */
 export const nhanLat = (kieu: KieuLat, dung: boolean) => (kieu === 'cau-do' ? 'ANSWER' : kieu === 'lam-tuong' ? (dung ? 'FACT' : 'MYTH') : dung ? 'TRUE' : 'FALSE');
+export function dongKhangDinh(s: string): { dong: string[]; co: number } {
+  const t = s.trim();
+  for (const [rong, co] of [[22, 76], [22, 68], [22, 60], [28, 52], [34, 44], [42, 36]] as const) { const dong = ngat(t, rong); if (dong.length <= (rong === 22 ? [1, 2, 3][[76, 68, 60].indexOf(co)]! + 1 : 4)) return { dong, co }; }
+  return { dong: ngat(t, 42).slice(0, 4), co: 36 };
+}
 export const soCau = (de: DeLat) => (de.kieu === 'dung-sai' ? Math.min(3, Math.max(1, de.cau.length)) : 1);
 const CAU_HOI: Record<KieuLat, string> = { 'lam-tuong': 'Myth or fact?', 'dung-sai': 'True or false?', 'cau-do': 'Think before it flips' };
 
@@ -50,7 +55,8 @@ export function assLat(de: DeLat): string {
     d.push([2, 0, N.T_MO, 'Den', `{\\an5\\pos(540,900)${fs(78)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(200,250)}${ngat(de.tieu_de!, 20).slice(0, 3).map(chu).join('\\N')}`]);
   }
   N.cau.forEach((c, i) => {
-    const m = N.moc[i]!, dongK = ngat(c.khang_dinh, 22).slice(0, 4), co = dongK.length >= 4 ? 60 : dongK.length === 3 ? 68 : 76;
+    // khẳng định lên khung ĐỦ CHỮ: ngắt 22 ký tự / dòng tối đa 4 dòng; dài hơn thì ngắt rộng hơn + thu cỡ chữ, không bao giờ cắt đuôi (27/10: đề AI 86 ký tự mất vế sau)
+    const m = N.moc[i]!, { dong: dongK, co } = dongKhangDinh(c.khang_dinh);
     // khẳng định to giữa màn, đứng suốt câu (đọc + đếm + lật); nhãn "1/3" ở góc khi nhiều câu
     d.push([1, m.doc, m.het, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.4)}\\fad(250,250)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
     d.push([2, m.doc, m.het, 'Den', `{\\an5\\pos(540,760)${fs(co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(250,250)}${dongK.map(chu).join('\\N')}`]);

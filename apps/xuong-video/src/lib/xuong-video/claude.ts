@@ -180,7 +180,7 @@ function client(): KhachChu | null {
 export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
   const c = client(); if (!c) return { ok: false, loi: 'thiếu khoá chữ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)' };
   try {
-    const r = await c.messages.parse({ model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema) } });
+    const r = await c.messages.parse({ model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) } });
     const data = (r as { parsed_output?: T }).parsed_output; if (!data) return { ok: false, loi: 'mô hình không trả đúng khuôn JSON' };
     return { ok: true, data, model: r.model, tokens: tkCua(r) };
   } catch (e) { return { ok: false, loi: loiGoi(e) }; }

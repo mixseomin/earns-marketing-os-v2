@@ -23,7 +23,7 @@ export type May = {
   so: { video: number; cho_dang: number; luu_tru: number };
 };
 export type VideoMay = {
-  id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[]; /** mã dạng bài trong kho mos2 dang-bai.json (máy đăng khớp ô kế hoạch) */ dang_bai?: string };
+  id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[]; /** mã dạng bài trong kho mos2 dang-bai.json (máy đăng khớp ô kế hoạch) */ dang_bai?: string; /** góc spy nguồn idea (luật 25/10/2026) */ goc?: { sp: number; id: number; loai: string; ten: string }; nhom?: string; loai?: string };
   /** mẫu dựng riêng (NULL = mẫu của máy) */ mau: MauMayDung | null; video_url: string | null; khung: string[]; /** ảnh tĩnh cho bài ảnh (nền x_anh) */ anh: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
 };
 /** nen_url: ảnh nền của video (mẫu có nền ảnh thật — luật 'nền lớn = ảnh thật'); đổi ảnh = dựng lại như đổi đề.

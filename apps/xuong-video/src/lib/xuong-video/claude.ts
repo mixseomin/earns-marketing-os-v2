@@ -175,6 +175,16 @@ function client(): KhachChu | null {
     stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams).finalMessage() as Promise<TinChu>) }),
   } };
 }
+/** LƯỢT CHỮ RA JSON THEO KHUÔN ZOD cho mọi máy ngoài phim (máy sinh đề theo góc — may-de.ts, 27/10/2026): cùng chuỗi dự phòng, cùng sổ tiền. Mặc định Haiku qua ckey
+ *  (vài chục đồng một lượt). Trả dữ liệu đã parse + token/tiền; lỗi → ok:false với câu đọc được. */
+export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
+  const c = client(); if (!c) return { ok: false, loi: 'thiếu khoá chữ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)' };
+  try {
+    const r = await c.messages.parse({ model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema) } });
+    const data = (r as { parsed_output?: T }).parsed_output; if (!data) return { ok: false, loi: 'mô hình không trả đúng khuôn JSON' };
+    return { ok: true, data, model: r.model, tokens: tkCua(r) };
+  } catch (e) { return { ok: false, loi: loiGoi(e) }; }
+}
 /** Token + tiền thật (ckey báo VNĐ) của một lượt — ghiTienChu dùng vnd khi có, không thì token × giá model. */
 export const tkCua = (...rs: TinChu[]): { in: number; out: number; vnd?: number } => congTk(...rs.map((r) => ({ in: r.usage.input_tokens, out: r.usage.output_tokens, ...(typeof r.vnd === 'number' ? { vnd: r.vnd } : {}) })));
 

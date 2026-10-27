@@ -328,7 +328,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
   // mức phải trên thang); không bao giờ tắt. Camp đã giảm không ra nút ↓ nữa.
   const duyet = docJ(TEP_DUYET(), {});
-  if (duyet.gb_tu_giam) {
+  // CÔNG TẮC MÁY TỰ GIẢM BẬC (anh 27/10/2026: "Tạm dừng rule giảm bậc tự động"): etp.cau_hinh.giam_tu_dong = false → cả hai đường tự giảm (GB + ROI tụt đang âm)
+  // dừng; luật vẫn chạy, vẫn báo + ra nút ↓ để anh tự bấm. Không có dòng cấu hình = bật như cũ.
+  const giamTu = String(await chayPsql("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'").catch(() => '')).trim() !== 'false';
+  if (duyet.gb_tu_giam && giamTu) {
     const daGiam = [];
     for (const m of kq.ha || []) {
       const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
@@ -343,7 +346,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   // MÁY TỰ GIẢM BẬC CAMP ROI TỤT ĐANG ÂM (anh 26/10/2026: "giảm bậc mày tự set theo rule nếu camp đó đang âm"): mục ROI TỤT có ROI 3 ngày gần < 0%
   // và có bậc dưới ("→ $X") → lam-ethopex giam một bậc (cùng chặn của lam: đổi < 6 giờ, camp phải bật, mức trên thang); không tắt. ROI 3 ngày gần ≥ 0% vẫn chỉ ra nút.
-  {
+  if (giamTu) {
     const daGiam = [];
     for (const m of kq.giam || []) {
       const rg = Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]); const d = Number(dichCua(m));

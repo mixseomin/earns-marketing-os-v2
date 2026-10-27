@@ -7,13 +7,14 @@ import { anhScam, assScam, kichBanScam, lenhScam, nhipScam, tuNguonScam, type De
 import { anhLand, assLand, kichBanLand, lenhLand, nhipLand, tuNguonLand, type DeLand } from './may-dung-land';
 import { anhThi, assThi, kichBanThi, lenhThi, nhipThi, truyVanThi, tuNguonThi, type DeThi } from './may-dung-thi';
 import { anhCanh, assCanh, kichBanCanh, lenhCanh, nhipCanh, truyVanCanh, type DeCanh } from './may-dung-canh';
+import { anhAnh, assAnh, kichBanAnh, lenhAnh, truyVanBaiAnh, type DeAnh } from './may-dung-anh';
 import type { MauMayDung } from './may-dung-mau';
 
-export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh;
+export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeAnh;
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
 type LenhVao = { de: DeMay; ass: string; nen: string | null; /** tệp tiếng nền thu thật (mẫu nenVideo) */ am?: string | null; fontsDir: string; ra: string; khung?: number };
 /** tuNguon: một dòng tệp nguồn đề của mẫu → dòng nạp máy { slug, chu_de, de, dang } (may-dung.mts --nap-nguon). */
-type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shots: (de: DeMay) => ShotMau[]; /** thời lượng theo đề (luật đọc: nhịp tính theo chữ) */ dai: (de: DeMay) => number; /** ảnh tĩnh cắt từ video cho bài ảnh (nền x_anh): giây + khung cắt [x, y, w, h] */ anh?: (de: DeMay) => { t: number; cat: [number, number, number, number] }[]; tuNguon?: (x: never) => { slug: string; chu_de: string; de: DeMay; dang: Record<string, string> }; /** truy vấn ảnh nền Pexels khi video chưa có nen_url (anh-nen.ts) — mặc định chu_de */ truyVanAnh?: (de: DeMay, chuDe: string) => string; /** nền là VIDEO Pexels (anh-nen.ts › timVideoNen) thay vì ảnh */ nenVideo?: boolean };
+type BoDung = { ass: (de: DeMay) => string; lenh: (o: LenhVao) => string[]; shots: (de: DeMay) => ShotMau[]; /** thời lượng theo đề (luật đọc: nhịp tính theo chữ) */ dai: (de: DeMay) => number; /** ảnh tĩnh cắt từ video cho bài ảnh (nền x_anh): giây + khung cắt [x, y, w, h] */ anh?: (de: DeMay) => { t: number; cat: [number, number, number, number] }[]; tuNguon?: (x: never) => { slug: string; chu_de: string; de: DeMay; dang: Record<string, string> }; /** truy vấn ảnh nền Pexels khi video chưa có nen_url (anh-nen.ts) — mặc định chu_de */ truyVanAnh?: (de: DeMay, chuDe: string) => string; /** nền là VIDEO Pexels (anh-nen.ts › timVideoNen) thay vì ảnh */ nenVideo?: boolean; /** mẫu CHỈ RA ẢNH (bài ảnh): không dựng MP4, `anh` là bản xuất, video_url NULL */ chiAnh?: boolean };
 
 export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'do-chu-mot-dung': { ass: (de) => assMotDung(de as DeMotDung), lenh: (o) => lenhMotDung({ ...o, de: o.de as DeMotDung }), shots: (de) => kichBanMotDung(de as DeMotDung).shots, dai: () => DAI_DO_CHU, truyVanAnh: (_de, chuDe) => `${chuDe} cozy`,
@@ -22,6 +23,7 @@ export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'scam-or-real': { ass: (de) => assScam(de as DeScam), lenh: (o) => lenhScam({ ...o, de: o.de as DeScam }), shots: (de) => kichBanScam(de as DeScam).shots, dai: (de) => nhipScam(de as DeScam).DAI, anh: (de) => anhScam(de as DeScam), tuNguon: tuNguonScam as never },
   'before-you-land': { ass: (de) => assLand(de as DeLand), lenh: (o) => lenhLand({ ...o, de: o.de as DeLand }), shots: (de) => kichBanLand(de as DeLand).shots, dai: (de) => nhipLand(de as DeLand).DAI, anh: (de) => anhLand(de as DeLand), tuNguon: tuNguonLand as never },
   'canh-dong': { ass: (de) => assCanh(de as DeCanh), lenh: (o) => lenhCanh({ ...o, de: o.de as DeCanh }), shots: (de) => kichBanCanh(de as DeCanh).shots, dai: (de) => nhipCanh(de as DeCanh).DAI, anh: (de) => anhCanh(de as DeCanh), truyVanAnh: (de) => truyVanCanh(de as DeCanh), nenVideo: true },
+  'bai-anh': { ass: (de) => assAnh(de as DeAnh), lenh: (o) => lenhAnh({ ...o, de: o.de as DeAnh }), shots: (de) => kichBanAnh(de as DeAnh).shots, dai: () => 2, anh: (de) => anhAnh(de as DeAnh), truyVanAnh: (de) => truyVanBaiAnh(de as DeAnh), chiAnh: true },
   'cau-hoi-thi': { ass: (de) => assThi(de as DeThi), lenh: (o) => lenhThi({ ...o, de: o.de as DeThi }), shots: (de) => kichBanThi(de as DeThi).shots, dai: (de) => nhipThi(de as DeThi).DAI, anh: (de) => anhThi(de as DeThi), truyVanAnh: (de) => truyVanThi(de as DeThi), tuNguon: tuNguonThi as never },
 };
 /** 3 shot kịch bản của một video theo mẫu của máy (tab Mẫu, ngăn video). */

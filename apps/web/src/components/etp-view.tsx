@@ -4,7 +4,7 @@ import { Fragment, startTransition, useCallback, useEffect, useMemo, useRef, use
 import { useRouter } from 'next/navigation';
 import { DataTable, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
-import { xepHangCham, duyetCham, tatCreative, luuTieuChi } from '@/lib/actions/etp-cham';
+import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
 
@@ -720,14 +720,18 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const o = (x: Dong, t: Mo, children: React.ReactNode) => (
     <span onMouseEnter={(e) => noi.mo({ ...t, cr: x.r.creative_id, anh: x.c?.lop.anh?.url, anhKhung: khungUrl(x.c?.lop.anh), video: x.r.video, dai: x.c?.lop.anh?.giay }, e)} onMouseLeave={noi.dongTre}
       style={{ cursor: 'zoom-in', display: 'inline-block', minWidth: 22, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{children}</span>);
-  const LOP: { key: 'chu' | 'giong' | 'anh' | 'noi_dung'; ten: string; noi: (c: ChamCr) => string }[] = [
-    { key: 'chu', ten: 'Chữ', noi: (c) => [c.lop.chu?.noi_dung, ...(c.lop.chu?.loi ?? []), ...(c.lop.chu?.cta ?? [])].filter(Boolean).join('\n') || 'Không có chữ trên hình' },
-    { key: 'giong', ten: 'Giọng', noi: (c) => c.lop.giong?.noi_dung || 'Không có lời nói' },
+  // chữ của lớp chấm tải ngầm một lần khi mở tab (trang không chở sẵn — etp-doc gonLop); chưa về thì thẻ ghi "đang tải"
+  const [chuLop, setChuLop] = useState<Awaited<ReturnType<typeof chuCham>> | null>(null);
+  useEffect(() => { let bo = false; chuCham().then((x) => { if (!bo) setChuLop(x); }).catch(() => { if (!bo) setChuLop({}); }); return () => { bo = true; }; }, [du.luc]);
+  const chuCua = (id: number, k: 'chu' | 'giong' | 'tom_tat') => (chuLop ? chuLop[id]?.[k] ?? '' : null);
+  const LOP: { key: 'chu' | 'giong' | 'anh' | 'noi_dung'; ten: string; noi: (c: ChamCr, id: number) => string }[] = [
+    { key: 'chu', ten: 'Chữ', noi: (c, id) => { const t = chuCua(id, 'chu'); return t == null ? 'đang tải chữ…' : [t, ...(c.lop.chu?.loi ?? []), ...(c.lop.chu?.cta ?? [])].filter(Boolean).join('\n') || 'Không có chữ trên hình'; } },
+    { key: 'giong', ten: 'Giọng', noi: (_c, id) => { const t = chuCua(id, 'giong'); return t == null ? 'đang tải lời nói…' : t || 'Không có lời nói'; } },
     { key: 'anh', ten: 'Ảnh', noi: (c) => `${khungUrl(c.lop.anh)?.length ?? 30} khung theo thứ tự thời gian` },
-    { key: 'noi_dung', ten: 'Nội dung', noi: (c) => c.lop.noi_dung?.tom_tat ?? '' },
+    { key: 'noi_dung', ten: 'Nội dung', noi: (_c, id) => chuCua(id, 'tom_tat') ?? 'đang tải tóm tắt…' },
   ];
   const cotLop: DataColumn<Dong>[] = LOP.map((l) => ({ key: `lop_${l.key}`, header: l.ten, group: 'lop', align: 'center', width: 52, title: `đã quét ${l.ten.toLowerCase()} chưa`,
-    cell: (x) => (x.c?.lop[l.key] ? o(x, { tieu: `${l.ten} — đã quét ${x.c.lop[l.key]!.luc}`, ly: l.noi(x.c).slice(0, 900) }, <span style={{ color: DAU_MAU.ok }}>✓</span>)
+    cell: (x) => (x.c?.lop[l.key] ? o(x, { tieu: `${l.ten} — đã quét ${x.c.lop[l.key]!.luc}`, ly: l.noi(x.c, x.r.creative_id).slice(0, 900) }, <span style={{ color: DAU_MAU.ok }}>✓</span>)
       : <span title={x.c?.loi ?? 'Chưa quét'} style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => (x.c?.lop[l.key] ? 1 : 0) }));
   const cotDiem = (nhom: 'meta' | 'afs'): DataColumn<Dong>[] => [
     { key: `${nhom}_tong`, header: 'Tổng', group: nhom, align: 'center', width: 52, title: 'điểm thấp nhất trong nhóm (một tiêu chí hỏng là hỏng)', cell: (x) => <b style={{ color: mauDiem(x.c?.[nhom]) }}>{x.c?.[nhom] ?? '–'}</b>, sortValue: (x) => x.c?.[nhom] ?? 99 },

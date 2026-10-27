@@ -66,15 +66,14 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
-// GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang) — trang chỉ hiện chữ ≤ CHU_TOI_DA ký tự trong thẻ hover,
-// và danh sách khung là …/khung/<cr>/1..N.jpg?v=… → gửi một mẫu '{n}' + số khung; lệch khuôn thì giữ nguyên danh sách
-const CHU_TOI_DA = 900;
-const cat = (t?: string) => (t && t.length > CHU_TOI_DA ? t.slice(0, CHU_TOI_DA) : t);
+// GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang, mọi tab đều phải chở):
+//  - chữ trên hình / lời nói / tóm tắt chỉ hiện trong thẻ hover tab Quét nội dung → KHÔNG gửi kèm trang; tab đó tự tải ngầm (actions/etp-cham chuCham)
+//  - danh sách khung là …/khung/<cr>/1..N.jpg?v=… → gửi một mẫu '{n}' + số khung (etp-view khungUrl dựng lại); lệch khuôn thì giữ nguyên danh sách
 function gonLop(v: unknown): ChamCr['lop'] {
   const l = { ...((v ?? {}) as ChamCr['lop']) };
-  if (l.chu) l.chu = { ...l.chu, noi_dung: cat(l.chu.noi_dung) ?? '' };
-  if (l.giong) l.giong = { ...l.giong, noi_dung: cat(l.giong.noi_dung) ?? '' };
-  if (l.noi_dung) l.noi_dung = { ...l.noi_dung, tom_tat: cat(l.noi_dung.tom_tat) ?? '' };
+  if (l.chu) l.chu = { ...l.chu, noi_dung: '' };
+  if (l.giong) l.giong = { ...l.giong, noi_dung: '' };
+  if (l.noi_dung) l.noi_dung = { ...l.noi_dung, tom_tat: '' };
   const ds = l.anh?.khung_url;
   if (l.anh && ds?.length) {
     const m = ds[0]!.match(/^(.*\/)1(\.jpg(?:\?.*)?)$/); const mau = m ? `${m[1]}{n}${m[2]}` : null;

@@ -6,6 +6,16 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { spawn } from 'node:child_process';
 
+// CHỮ CỦA LỚP CHẤM (chữ trên hình · lời nói · tóm tắt) — trang không chở sẵn nữa (etp-doc gonLop, anh 27/10/2026 "load chậm quá");
+// tab Quét nội dung gọi một lần lúc mở, cắt 900 ký tự như thẻ hover
+export async function chuCham(): Promise<Record<number, { chu: string; giong: string; tom_tat: string }>> {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return {};
+  const ds = (await getDb()!.execute(sql`select creative_id, left(lop->'chu'->>'noi_dung', 900) chu, left(lop->'giong'->>'noi_dung', 900) giong, left(lop->'noi_dung'->>'tom_tat', 900) tom_tat
+    from etp.cham where lop is not null`)) as unknown as { creative_id: number; chu: string | null; giong: string | null; tom_tat: string | null }[];
+  return Object.fromEntries(ds.map((r) => [Number(r.creative_id), { chu: r.chu ?? '', giong: r.giong ?? '', tom_tat: r.tom_tat ?? '' }]));
+}
+
 export async function xepHangCham(ids: number[]): Promise<{ ok: true; so: number } | { loi: string }> {
   const me = await getCurrentUser();
   if (!me) return { loi: 'chưa đăng nhập' };

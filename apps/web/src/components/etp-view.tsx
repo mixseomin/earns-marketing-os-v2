@@ -759,7 +759,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
 }
 
 // ĐIỆN THOẠI (anh 25/10/2026 "tối ưu trên mobile"): dòng = chấm · camp · ngân sách · dải lịch · ROI hôm nay · lãi 7 ngày; ẩn 6 ô ngày, ô bậc, ô creative; chú giải gập sau nút
-const LUOI_CAY_HEP = '1fr 38px 38px 78px';   // + cột ROI hôm qua (anh 27/10/2026 "thêm cả cột hqua")   // lãi 7 ngày cần ~78px cho "$ 1,416.34"
+const LUOI_CAY_HEP = '1fr 38px 38px 86px';   // + cột ROI hôm qua (anh 27/10/2026 "thêm cả cột hqua")   // lãi 7 ngày cần ~86px cho "$ 1,416.34"
 // điện thoại (anh 27/10/2026 "trên mobile ẩn cái này đi, bố cục lại cho thẳng cột"): bỏ dải lịch giờ; ô camp chia lưới cố định chấm · ▸#id (thụt theo cấp) · $ngân sách · 🧬/⚠ — mọi dòng cùng mép
 const LUOI_CAMP_HEP = '10px minmax(0,1fr) 30px 36px';
 function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean }) {

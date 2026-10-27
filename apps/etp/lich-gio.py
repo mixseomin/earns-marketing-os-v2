@@ -197,8 +197,8 @@ def tat_cham():
     tat_bat = q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'cham_tat'), 'true')") != "false"
     mien = cham_mien() if tat_bat else None
     # CÔNG BỐ KẾT LUẬN MIỄN cho trang (audit 27/10/2026: số "chi phí cơ hội" ở etp.on.tc tự tính lại miễn chỉ theo hạn `den`, thiếu "hết khi có camp thay"
-    # → lệch máy luật). Trang đọc đúng tập này, không tính lại.
-    q(f"""insert into etp.cau_hinh (khoa, gia_tri, ghi, ai, luc) values ('cham_mien_dang', '{json.dumps(sorted(int(x) for x in (mien or ())))}'::jsonb,
+    # → lệch máy luật). Trang đọc đúng tập này, không tính lại. Công tắc tắt vẫn công bố (cham_mien chỉ đọc) — trang tự ghi "luật đang tạm tắt".
+    q(f"""insert into etp.cau_hinh (khoa, gia_tri, ghi, ai, luc) values ('cham_mien_dang', '{json.dumps(sorted(int(x) for x in (mien if mien is not None else cham_mien())))}'::jsonb,
         'camp đang được miễn luật chấm ở lượt lich-gio gần nhất (máy ghi, đừng sửa tay)', 'lich-gio', now())
         on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()""")
     bo = [] if not tat_bat else [l.split("|") for l in q(f"""select c.camp_id, g.chan_boi from etp.lich_tat l join etp.camp c using (camp_id) join etp.cham_cong g on g.creative_id = {CR_CAMP} where g.tat""").splitlines() if "|" in l and l.split("|")[0] not in mien]

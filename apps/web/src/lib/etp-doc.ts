@@ -49,7 +49,7 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** tiến độ lượt quét nội dung theo máy (soat_doan.py quet ghi từng đoạn — xv_khoa_ngoai ethopex_quet) */
   quet: Record<string, { tong: number; xong: number; ok: number; cam: number; xem: number; bat_dau: string; cap_nhat: string; dang: boolean; cuoi: string }>;
   /** bộ chấm creative (anh 25/10/2026): tiêu chí Meta + AFS (etp.tieu_chi — một nguồn với máy chấm) · bản chấm từng creative (etp.cham, Worker Cloudflare etp-cham) */
-  tieuChi: { nhom: string; ma: string; ten: string }[];
+  tieuChi: { nhom: string; ma: string; ten: string; mo_ta: string }[];
   cham: Record<number, ChamCr>;
   /** hàng chờ chấm (etp.cham_hang): đang chờ / đang chấm / lỗi gần đây — nút "Chấm" trên trang */
   /** ĐANG SẢN XUẤT — SOURCE OF TRUTH CHÍNH của sản xuất creative (anh 26/10/2026 "Thêm 1 tab là Đang sx" · "chỗ mới này sẽ là source of truth chính"):
@@ -163,7 +163,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<Record<string, unknown>>(sql`select distinct on (camp_id) camp_id, count(*) over (partition by camp_id) lan, luc::text luc, loi from etp.nhat_ky
       where viec = 'nhan_ban' and not coalesce(ok, true) and luc > now() - interval '24 hours' and camp_id is not null order by camp_id, luc desc`),
     run<Record<string, unknown>>(sql`select id, luc::text luc, camp_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do from etp.phot order by luc desc limit 500`).catch(() => [] as Record<string, unknown>[]),
-    run<{ nhom: string; ma: string; ten: string }>(sql`select nhom, ma, ten from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string }[]),
+    run<{ nhom: string; ma: string; ten: string; mo_ta: string }>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string; mo_ta: string }[]),
     run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi, g.cho_duyet, u.ok duyet from etp.cham c left join etp.cham_cong g using (creative_id) left join etp.cham_duyet u using (creative_id)`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`select creative_id, trang_thai, luc::text luc, loi, nguon, buoc, nhat_ky, bat_dau::text bat_dau, xong::text xong from etp.cham_hang
       where trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day') or xong > now() - interval '30 minutes'`).catch(() => [] as Record<string, unknown>[]),

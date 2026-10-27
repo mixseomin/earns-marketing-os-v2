@@ -4,7 +4,7 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useRouter } from 'next/navigation';
 import { DataTable, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
-import { xepHangCham, duyetCham, tatCreative } from '@/lib/actions/etp-cham';
+import { xepHangCham, duyetCham, tatCreative, luuTieuChi } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
 
@@ -629,6 +629,54 @@ function TabDangSx({ du }: { du: DuLieuEtp }) {
   );
 }
 
+// TIÊU CHÍ CHẤM — THÊM / SỬA BẰNG CHỮ (anh 27/10/2026: "nếu tao thêm 1 tiêu chí = text …" · "Chỉ thêm và ko chấm lại hàng loạt nếu tao ko cho phép.
+// Chỉ áp dụng cho lượt chấm mới!"). Lưu = ghi etp.tieu_chi, máy chấm đọc ở lượt kế. KHÔNG có nút chấm lại hàng loạt ở đây.
+function TieuChiCham({ du }: { du: DuLieuEtp }) {
+  const router = useRouter();
+  const [mo, setMo] = useState(false);
+  const [sua, setSua] = useState<string | null>(null);   // 'nhom.ma' đang sửa · 'moi' = thêm mới
+  const [nhap, setNhap] = useState({ nhom: 'meta', ten: '', mo_ta: '' });
+  const [dang, setDang] = useState(false);
+  const luu = async (ma?: string) => { setDang(true); const r = await luuTieuChi({ ...nhap, ma }); setDang(false); if ('loi' in r) { alert(r.loi); return; } setSua(null); router.refresh(); };
+  const o = { width: '100%', boxSizing: 'border-box' as const, fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit', fontFamily: 'inherit' };
+  const nut = (mau?: string) => ({ fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: `1px solid ${mau ?? 'var(--line)'}`, color: mau ?? 'inherit', background: 'transparent' });
+  const form = (ma?: string) => (
+    <div style={{ display: 'grid', gap: 6, margin: '6px 0 4px' }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <select value={nhap.nhom} disabled={!!ma} onChange={(e) => setNhap({ ...nhap, nhom: e.target.value })} style={{ ...o, width: 110 }}><option value="meta">Meta</option><option value="afs">AFS</option></select>
+        <input value={nhap.ten} onChange={(e) => setNhap({ ...nhap, ten: e.target.value })} placeholder="Tên ngắn, vd: Gạ gẫm · lời tình dục" style={o} />
+      </div>
+      <textarea value={nhap.mo_ta} onChange={(e) => setNhap({ ...nhap, mo_ta: e.target.value })} rows={5} placeholder="Mô tả cho máy chấm đọc: chính sách nào, dấu hiệu nào thì cho ≤ 4 điểm, ca bị từ chối thật (creative #…). Viết tiếng Anh máy chấm hiểu tốt nhất." style={o} />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button disabled={dang} onClick={() => luu(ma)} style={nut('#4ade80')}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
+        <button onClick={() => setSua(null)} style={nut()}>Huỷ</button>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>Chỉ áp cho lượt chấm mới — creative đã chấm giữ nguyên điểm, không chấm lại.</span>
+      </div>
+    </div>);
+  return (
+    <div style={{ margin: '4px 0 10px' }}>
+      <button onClick={() => setMo(!mo)} style={nut()}>{mo ? '▾' : '▸'} Tiêu chí chấm</button>
+      {mo ? (
+        <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 12px', marginTop: 6 }}>
+          {(['meta', 'afs'] as const).map((nh) => (
+            <div key={nh} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em', margin: '4px 0' }}>{nh === 'meta' ? 'Meta' : 'AFS · content ads, CTA'}</div>
+              {du.tieuChi.filter((t) => t.nhom === nh).map((t) => { const k = `${t.nhom}.${t.ma}`; return (
+                <div key={k} style={{ borderTop: '1px solid var(--line)', padding: '6px 0' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    <b style={{ fontSize: 13, minWidth: 180 }}>{t.ten}</b>
+                    <span style={{ fontSize: 12, color: 'var(--fg-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.mo_ta}>{t.mo_ta}</span>
+                    {sua === k ? null : <button onClick={() => { setNhap({ nhom: t.nhom, ten: t.ten, mo_ta: t.mo_ta }); setSua(k); }} style={nut()}>Sửa</button>}
+                  </div>
+                  {sua === k ? form(t.ma) : null}
+                </div>); })}
+            </div>))}
+          {sua === 'moi' ? form() : <button onClick={() => { setNhap({ nhom: 'meta', ten: '', mo_ta: '' }); setSua('moi'); }} style={nut('#60a5fa')}>+ Thêm tiêu chí</button>}
+        </div>) : null}
+    </div>
+  );
+}
+
 function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
   // ô lọc lên URL (anh 26/10/2026 "tab này cũng phải cho lên url"): ?t=creative&v=soat&l=<lọc> — mặc định 'loi' thì bỏ khỏi URL; link Telegram ?l=duyet vẫn chạy
   const [loc, setLoc] = useState<LocSoat>(() => { const l = typeof location !== 'undefined' ? new URL(location.href).searchParams.get('l') : null; return (LOC_SOAT as readonly string[]).includes(l ?? '') ? (l as LocSoat) : 'loi'; });
@@ -704,6 +752,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
             </div>))}
         </div>) : null}
       <style>{'.etp-chay .nut{display:none}.etp-chay:hover .nut{display:inline-block}.etp-chay:hover .den{display:none}.etp-chay{display:inline-flex;min-width:44px;min-height:20px;align-items:center;justify-content:center}'}</style>
+      <TieuChiCham du={du} />
       <ChamTrucTiep du={du} anh={anh} />
       {loc === 'meta' ? <PhotBo du={du} /> : null}{/* anh 26/10/2026: phốt Meta chỉ ở tab Meta loại */}
       <div style={{ display: 'flex', gap: 18, alignItems: 'baseline', flexWrap: 'wrap', margin: '4px 0 10px', fontSize: 13, position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 4, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>

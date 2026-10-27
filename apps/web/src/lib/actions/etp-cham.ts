@@ -20,6 +20,29 @@ export async function xepHangCham(ids: number[]): Promise<{ ok: true; so: number
   return { ok: true, so: ds.length };
 }
 
+// THÊM / SỬA TIÊU CHÍ CHẤM (anh 27/10/2026: "nếu tao thêm 1 tiêu chí = text …" — "Chỉ thêm và ko chấm lại hàng loạt nếu tao ko cho phép. Chỉ áp dụng cho lượt chấm mới!").
+// Ghi thẳng etp.tieu_chi — máy chấm (Worker etp-cham) đọc bảng này mỗi lượt nên lượt chấm SAU áp ngay. TUYỆT ĐỐI không xếp chấm lại: creative đã chấm giữ nguyên điểm.
+export async function luuTieuChi(x: { nhom: string; ma?: string; ten: string; mo_ta: string }): Promise<{ ok: true; ma: string } | { loi: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { loi: 'chưa đăng nhập' };
+  if (me.role !== 'admin') return { loi: 'chỉ admin' };
+  const nhom = x.nhom === 'afs' ? 'afs' : x.nhom === 'meta' ? 'meta' : null;
+  const ten = (x.ten ?? '').trim(), mo = (x.mo_ta ?? '').trim();
+  if (!nhom) return { loi: 'nhóm phải là meta hoặc afs' };
+  if (ten.length < 2 || ten.length > 60) return { loi: 'tên 2–60 ký tự' };
+  if (mo.length < 20 || mo.length > 4000) return { loi: 'mô tả 20–4000 ký tự (máy chấm đọc mô tả này để cho điểm)' };
+  const db = getDb()!;
+  if (x.ma) {
+    const r = await db.execute(sql`update etp.tieu_chi set ten = ${ten}, mo_ta = ${mo} where nhom = ${nhom} and ma = ${x.ma} returning ma`);
+    return (r as unknown as unknown[]).length ? { ok: true, ma: x.ma } : { loi: 'không thấy tiêu chí' };
+  }
+  const goc = ten.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'tieu_chi';
+  const co = new Set(((await db.execute(sql`select ma from etp.tieu_chi where nhom = ${nhom}`)) as unknown as { ma: string }[]).map((r) => r.ma));
+  let ma = goc; for (let i = 2; co.has(ma); i++) ma = `${goc}_${i}`;
+  await db.execute(sql`insert into etp.tieu_chi (nhom, ma, ten, mo_ta, thu_tu) select ${nhom}, ${ma}, ${ten}, ${mo}, coalesce(max(thu_tu), 0) + 1 from etp.tieu_chi where nhom = ${nhom}`);
+  return { ok: true, ma };
+}
+
 // DUYỆT CREATIVE 5 ĐIỂM (anh 26/10/2026: "5 điểm thì sẽ cần review người thật" · "không duyệt qua tele — gửi 1 tin tổng hợp rồi link đến page trên etp.on.tc"):
 // Đạt = cho lên / chạy tiếp; Loại = chặn lên + máy tắt mọi camp dùng creative này ở lượt lịch giờ kế (≤ 10 phút, apps/etp/lich-gio.py tat_cham). Một nguồn: view etp.cham_cong (0341).
 export async function duyetCham(id: number, ok: boolean): Promise<{ ok: true } | { loi: string }> {

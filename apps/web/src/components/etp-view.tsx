@@ -850,8 +850,21 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
   const dem = (c: CampEtpKho): number => (con.m.get(c.camp_id) ?? []).reduce((a, x) => a + 1 + dem(x), 0);
   const giam = (c: CampEtpKho) => { const r = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return r[0] != null && r[1] != null && r[2] != null && r[0] > r[1] && r[1] > r[2]; };
   // data-cot: phép đo `do-man thang` (mọi ô cùng tên cột phải cùng mép) — anh 25/10/2026 không muốn nhắc lại chuyện lệch cột
-  const O = ({ v, t, cot }: { v: number | null; t: string; cot: string }) => <span data-cot={cot} data-cot-can="giua" title={t} style={{ fontSize: 10, width: 38, textAlign: 'center', padding: '1px 0', borderRadius: 4, fontVariantNumeric: 'tabular-nums',
+  const O0 = ({ v, t, cot }: { v: number | null; t: string; cot: string }) => <span data-cot={cot} data-cot-can="giua" title={t} style={{ fontSize: 10, width: 38, textAlign: 'center', padding: '1px 0', borderRadius: 4, fontVariantNumeric: 'tabular-nums',
     background: v == null ? 'transparent' : v >= 50 ? 'rgba(34,197,94,.15)' : v >= 0 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)', color: v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171' }}>{v == null ? '·' : `${v}%`}</span>;
+  // GỘP BIỂU ĐỒ VÀO NHÓM NGÀY (anh 27/10/2026 "gộp sang 1 nhóm"): mỗi ô ROI ngày mang luôn cột lãi/lỗ của chính ngày đó (trên dương, dưới âm, cao theo ngày lớn nhất của dòng) —
+  // bỏ cột biểu đồ riêng; s = số ngày đó, max = |lãi| lớn nhất của dòng, mo = hôm nay (đang chạy, nhạt)
+  const O = ({ v, t, cot, s, max, mo }: { v: number | null; t: string; cot: string; s?: SoTien; max?: number; mo?: boolean }) => {
+    if (s == null || max == null) return <O0 v={v} t={t} cot={cot} />;
+    const lai = s.thu - s.chi, h = max > 0 ? Math.max(lai ? 1 : 0, Math.round((Math.abs(lai) / max) * 7)) : 0;
+    return <span data-cot={cot} data-cot-can="giua" title={`${t}${s.chi ? ` · chi ${usd(s.chi)} · lãi ${usd(lai)}` : ' · chưa chi'}`} style={{ width: 38, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+      <span style={{ position: 'relative', width: 16, height: 14, opacity: mo ? 0.6 : 1 }}>
+        <span style={{ position: 'absolute', left: 0, right: 0, top: 7, height: 1, background: 'var(--line)' }} />
+        {h ? <span style={{ position: 'absolute', left: 2, right: 2, borderRadius: 1, background: lai >= 0 ? '#4ade80' : '#f87171', ...(lai >= 0 ? { bottom: 7, height: h } : { top: 8, height: h }) }} /> : null}
+      </span>
+      <O0 v={v} t={t} cot={`${cot}-so`} /></span>;
+  };
+  const maxLai = (ds: (SoTien | undefined)[]) => Math.max(0, ...ds.map((x) => (x ? Math.abs(x.thu - x.chi) : 0)));
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {
     const ds = con.m.get(c.camp_id) ?? []; const l = loiNb.get(c.camp_id); const n = dem(c); const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
     const mau = l ? '#ef4444' : giam(c) ? '#f59e0b' : null;   // dòng cảnh báo: vạch mép trái + nền nhạt — đỏ nhân bản lỗi, cam ROI giảm 2 ngày
@@ -883,9 +896,9 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
           <span data-cot="nb-loi" style={{ whiteSpace: 'nowrap' }}>{l ? <span title={`Không nhân bản được (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`} style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}</span>
           <span data-cot="giam">{giam(c) ? <span title="Lãi giảm 2 ngày liền" style={{ color: '#f87171' }}>↘</span> : null}</span>
           <span data-cot="cung-doan">{c.cung_doan > 3 ? <span title={`${c.cung_doan} camp đang dùng cùng đoạn video này (${c.doan?.split(':')[1] ?? ''}s) — nên tối đa 3`} style={{ color: '#f59e0b', border: '1px solid #f59e0b66', borderRadius: 4, padding: '0 4px', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{c.cung_doan}/3</span> : null}</span>
-          <span data-cot="bieu-do" style={{ minWidth: 0, paddingRight: 8 }}><CotAmDuong nho conDuong={false} height={20} dinhDang={usd} data={[...ngay.map((d) => ({ x: `${d.slice(8, 10)}/${d.slice(5, 7)}`, s: so.get(c.camp_id)?.get(d) })), { x: 'nay', s: c.nay, mo: true }].map((r) => ({ x: r.x, v: (r.s?.thu ?? 0) - (r.s?.chi ?? 0), phu: r.s?.chi ? `chi ${usd(r.s.chi)} · ROI ${roi(r.s) ?? '—'}%` : 'chưa chi', mo: 'mo' in r }))} /></span>
         </span>
-        {ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(so.get(c.camp_id)?.get(d))} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" />
+        {(() => { const sd = ngay.map((d) => so.get(c.camp_id)?.get(d)), mx = maxLai([...sd, c.nay]);
+          return <>{ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo /></>; })()}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} /></span>
       </div>);
     return ds.length ? <details open={moCay.has(`c${c.camp_id}`)} onToggle={(e) => doiMo(`c${c.camp_id}`, e.currentTarget.open)}><summary style={{ cursor: 'pointer' }}>{hang}</summary>{moCay.has(`c${c.camp_id}`) ? sapXep(ds).map((x) => <Fragment key={x.camp_id}>{Dong({ c: x, cap: cap + 1 })}</Fragment>) : null}</details> : hang;
@@ -941,11 +954,11 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
             </span>
             {/* tổng ngân sách/ngày camp đang bật — mép phải trùng mép phải $ của camp (điện thoại: ô 30px canh phải; máy tính: ô $ 26px đầu BacCamp) */}
             <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ display: 'flex', justifyContent: 'flex-end', width: hep ? undefined : 26, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>${p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</span>
-            {hep ? null : <span style={{ gridColumn: '-2 / -1', minWidth: 0, paddingRight: 8 }}><CotAmDuong nho conDuong={false} height={20} dinhDang={usd} data={[...ngay.map((d) => ({ x: `${d.slice(8, 10)}/${d.slice(5, 7)}`, s: p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }) })),
-              { x: 'nay', s: p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mo: true }].map((r) => ({ x: r.x, v: r.s.thu - r.s.chi, phu: r.s.chi ? `chi ${usd(r.s.chi)} · ROI ${roi(r.s) ?? '—'}%` : 'chưa chi', mo: 'mo' in r }))} /></span>}
             </span>
-            {hep ? null : ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }))} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}
-            <O cot="roi-nay" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />
+            {(() => { const sd = ngay.map((d) => p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }));
+              const sn = p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mx = hep ? undefined : maxLai([...sd, sn]);
+              return <>{hep ? null : ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={mx} />)}
+                <O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={hep ? undefined : sn} max={mx} mo /></>; })()}
             {hep ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}
             <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0), thu: a.thu + c.nay.thu + ngay.reduce((b, d) => b + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) }), { chi: 0, thu: 0 })} /></span>
           </summary>

@@ -819,7 +819,7 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
           <span data-cot="nb-loi" style={{ whiteSpace: 'nowrap' }}>{l ? <span title={`Không nhân bản được (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`} style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}</span>
           <span data-cot="giam">{giam(c) ? <span title="Lãi giảm 2 ngày liền" style={{ color: '#f87171' }}>↘</span> : null}</span>
           <span data-cot="cung-doan">{c.cung_doan > 3 ? <span title={`${c.cung_doan} camp đang dùng cùng đoạn video này (${c.doan?.split(':')[1] ?? ''}s) — nên tối đa 3`} style={{ color: '#f59e0b', border: '1px solid #f59e0b66', borderRadius: 4, padding: '0 4px', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{c.cung_doan}/3</span> : null}</span>
-          <span />
+          <span data-cot="bieu-do" style={{ minWidth: 0, paddingRight: 8 }}><CotAmDuong nho conDuong={false} height={20} dinhDang={usd} data={[...ngay.map((d) => ({ x: `${d.slice(8, 10)}/${d.slice(5, 7)}`, s: so.get(c.camp_id)?.get(d) })), { x: 'nay', s: c.nay, mo: true }].map((r) => ({ x: r.x, v: (r.s?.thu ?? 0) - (r.s?.chi ?? 0), phu: r.s?.chi ? `chi ${usd(r.s.chi)} · ROI ${roi(r.s) ?? '—'}%` : 'chưa chi', mo: 'mo' in r }))} /></span>
         </span>
         {ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(so.get(c.camp_id)?.get(d))} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" />
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={{ chi: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.chi ?? 0), 0) + c.nay.chi, thu: ngay.reduce((a, d) => a + (so.get(c.camp_id)?.get(d)?.thu ?? 0), 0) + c.nay.thu }} /></span>
@@ -877,6 +877,8 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
             </span>
             {/* tổng ngân sách/ngày camp đang bật — mép phải trùng mép phải $ của camp (điện thoại: ô 30px canh phải; máy tính: ô $ 26px đầu BacCamp) */}
             <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ display: 'flex', justifyContent: 'flex-end', width: hep ? undefined : 26, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>${p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</span>
+            {hep ? null : <span style={{ gridColumn: '-2 / -1', minWidth: 0, paddingRight: 8 }}><CotAmDuong nho conDuong={false} height={20} dinhDang={usd} data={[...ngay.map((d) => ({ x: `${d.slice(8, 10)}/${d.slice(5, 7)}`, s: p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }) })),
+              { x: 'nay', s: p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mo: true }].map((r) => ({ x: r.x, v: r.s.thu - r.s.chi, phu: r.s.chi ? `chi ${usd(r.s.chi)} · ROI ${roi(r.s) ?? '—'}%` : 'chưa chi', mo: 'mo' in r }))} /></span>}
             </span>
             {hep ? null : ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }))} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}
             <O cot="roi-nay" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />

@@ -767,8 +767,9 @@
     "ai_phan_doi"
    ],
    "duong": "poll",
-   "mau": null,
-   "vi_du": "ô 'Bình chọn' / 'Story bình chọn' — chưa có đường đăng"
+   "mau": "binh-chon",
+   "sinh_de": true,
+   "vi_du": "X poll (máy đăng dang-br › dangXPoll, 27/10/2026); FB poll / IG Story poll chưa có đường"
   },
   {
    "ma": "cau-hoi-mo",

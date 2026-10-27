@@ -36,11 +36,12 @@ export async function kiemGoc(ds) {
 export function doBaiDang(v, ten = '') {
   const chan = [], canh = [], d = v.dang ?? {}, title = String(d.title ?? ''), mo = String(d.description ?? ''), chu = `${title}\n${mo}`, thuong = chu.toLowerCase();
   // 1 · ảnh thật
-  if (!v.nen_url) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
+  if (!v.nen_url && d.loai !== 'poll') chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');   // poll (X) không có media
   else if (!NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
   for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
   // bản xuất = video, hoặc ảnh đã dựng (v.anh — bài ảnh / album / thẻ chữ, kế hoạch Page hoài cổ 25/10/2026), hoặc bài link
-  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link' && !v.anh?.length)) chan.push('chưa có bản xuất');   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
+  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link' && d.loai !== 'poll' && !v.anh?.length)) chan.push('chưa có bản xuất');
+  if (d.loai === 'poll') { const lua = Array.isArray(d.lua) ? d.lua : []; if (lua.length < 2 || lua.length > 4 || lua.some((l) => String(l).length > 25)) chan.push('bình chọn cần 2–4 lựa chọn ≤ 25 ký tự'); }   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
   // 2 · câu móc
   if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
   else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
@@ -97,7 +98,7 @@ export async function chamMoi(sql) {
 // (bài DUYỆT chưa đăng lên nền đó < KHO_TOI_THIEU ngày theo trần mỗi ngày). Chỉ báo khi vấn đề MỚI xuất hiện (tệp trạng thái), hết vấn đề thì xoá khỏi sổ —
 // không nhắc lại cùng một chuyện mỗi ngày.
 export const KHO_TOI_THIEU = 7;
-const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']);   // nền bài link: dòng dang.loai 'link', không video
+const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']), NEN_POLL = new Set(['x_poll']);   // nền bài link: dòng dang.loai 'link', không video · nền poll: dang.loai 'poll', không tệp
 // HỌ NỀN (25/10/2026): máy đăng chống spam xoay vòng các nền cùng một tài khoản (facebook / fb_anh / fb_link chung trần ngày Facebook, x / x_anh / x_link chung X —
 // nhip-an-toan.mjs › hopNen + xepXoay) → một nền đứng chờ lượt KHÔNG phải lỡ lượt. Chỉ báo lỡ khi CẢ HỌ hôm qua không có bài nào.
 // Page cũ 'facebook:<acct>' (S06): họ theo phần trước dấu ':'; mỗi Page một TÀI KHOẢN nên họ xét theo máy + tài khoản (Page A có bài không che Page B lỡ lượt)
@@ -133,7 +134,8 @@ export async function docMayDang(sql) {
          count(*) filter (where coalesce(v.dang->>'dang_tu', '') <= ${homNayVN()} and coalesce(nullif(v.dang->>'dang_den', ''), '9999') >= ${homNayVN()})::int as toi,
          min(v.dang->>'dang_tu') filter (where v.dang->>'dang_tu' > ${homNayVN()}) as som
        from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false)
-         and ((n->>'nen') = any(${[...NEN_LINK]})) = (coalesce(v.dang->>'loai', '') = 'link') and (v.video_url is not null or (n->>'nen') = any(${[...NEN_LINK]}))
+         and ((n->>'nen') = any(${[...NEN_LINK]})) = (coalesce(v.dang->>'loai', '') = 'link') and ((n->>'nen') = any(${[...NEN_POLL]})) = (coalesce(v.dang->>'loai', '') = 'poll')
+         and (v.video_url is not null or (n->>'nen') = any(${[...NEN_LINK, ...NEN_POLL]}))
          and v.cham->>'ket' = 'DUYET' and v.cham->>'xuat' = v.xuat_luc::text and not v.da_dang ? (n->>'nen')
          and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) k
     where m.chay`;

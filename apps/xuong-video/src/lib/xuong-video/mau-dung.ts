@@ -16,7 +16,9 @@ import { anhGia, assGia, kichBanGia, lenhGia, nhipGia, truyVanGia, type DeGia } 
 import { anhLacLoai, assLacLoai, kichBanLacLoai, lenhLacLoai, nhipLacLoai, truyVanLacLoai, type DeLacLoai } from './may-dung-lac-loai';
 import type { MauMayDung } from './may-dung-mau';
 
-export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeAnh | DeTop | DeLat | DeSoSanh | DeCauNoi | DeGia | DeLacLoai;
+export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeAnh | DeTop | DeLat | DeSoSanh | DeCauNoi | DeGia | DeLacLoai | DePoll;
+/** Đề bình chọn (X poll): không tệp. loai 'binh-chon' để xuatVideo / Phòng Nội dung nhận ra. */
+export interface DePoll { loai: 'binh-chon'; cau_hoi: string; lua: string[]; ngay?: number }
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
 type LenhVao = { de: DeMay; ass: string; nen: string | null; /** ảnh nền THÊM (mẫu nhiều cảnh — nen_them) */ nenThem?: string[]; /** tệp tiếng nền thu thật (mẫu nenVideo / amThat) */ am?: string | null; fontsDir: string; ra: string; khung?: number };
 /** tuNguon: một dòng tệp nguồn đề của mẫu → dòng nạp máy { slug, chu_de, de, dang } (may-dung.mts --nap-nguon). */
@@ -31,6 +33,7 @@ export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'canh-dong': { ass: (de) => assCanh(de as DeCanh), lenh: (o) => lenhCanh({ ...o, de: o.de as DeCanh }), shots: (de) => kichBanCanh(de as DeCanh).shots, dai: (de) => nhipCanh(de as DeCanh).DAI, anh: (de) => anhCanh(de as DeCanh), truyVanAnh: (de) => truyVanCanh(de as DeCanh), nenVideo: true },
   'bai-anh': { ass: (de) => assAnh(de as DeAnh), lenh: (o) => lenhAnh({ ...o, de: o.de as DeAnh }), shots: (de) => kichBanAnh(de as DeAnh).shots, dai: () => 2, anh: (de) => anhAnh(de as DeAnh), truyVanAnh: (de) => truyVanBaiAnh(de as DeAnh), chiAnh: true },
   'top-n': { ass: (de) => assTop(de as DeTop), lenh: (o) => lenhTop({ ...o, de: o.de as DeTop }), shots: (de) => kichBanTop(de as DeTop).shots, dai: (de) => nhipTop(de as DeTop).DAI, anh: (de) => anhTop(de as DeTop), truyVanAnh: (de) => truyVanTop(de as DeTop), truyVanThem: (de) => truyVanThemTop(de as DeTop), amThat: true },
+  'binh-chon': { ass: () => '', lenh: () => { throw new Error('bình chọn không dựng tệp (xuatVideo chốt bản trực tiếp)'); }, shots: (de) => [{ tu: 0, den: 0, canh: 'Poll', hanh_dong: `${(de as DePoll).cau_hoi} — ${(de as DePoll).lua.join(' / ')}` }], dai: () => 0 },
   'lac-loai': { ass: (de) => assLacLoai(de as DeLacLoai), lenh: (o) => lenhLacLoai({ ...o, de: o.de as DeLacLoai }), shots: (de) => kichBanLacLoai(de as DeLacLoai).shots, dai: (de) => nhipLacLoai(de as DeLacLoai).DAI, anh: (de) => anhLacLoai(de as DeLacLoai), truyVanAnh: (de) => truyVanLacLoai(de as DeLacLoai), amThat: true },
   'cai-nao-gia': { ass: (de) => assGia(de as DeGia), lenh: (o) => lenhGia({ ...o, de: o.de as DeGia }), shots: (de) => kichBanGia(de as DeGia).shots, dai: (de) => nhipGia(de as DeGia).DAI, anh: (de) => anhGia(de as DeGia), truyVanAnh: (de) => truyVanGia(de as DeGia), amThat: true },
   'cau-noi': { ass: (de) => assCauNoi(de as DeCauNoi), lenh: (o) => lenhCauNoi({ ...o, de: o.de as DeCauNoi }), shots: (de) => kichBanCauNoi(de as DeCauNoi).shots, dai: (de) => nhipCauNoi(de as DeCauNoi).DAI, anh: (de) => anhCauNoi(de as DeCauNoi), truyVanAnh: (de) => truyVanCauNoi(de as DeCauNoi), amThat: true },

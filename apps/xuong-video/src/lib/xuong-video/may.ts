@@ -105,6 +105,11 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
   const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: `không có video #${videoId}` };
+  // BÌNH CHỌN (bước 4 Dạng × Góc × Sản phẩm, 27/10/2026): X poll không có media — không ảnh, không video; "xuất" = chốt bản (xuat_luc) để Phòng Nội dung chấm chữ + lựa chọn
+  if ((r.de as { loai?: string } | null)?.loai === 'binh-chon') {
+    await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = '[]'::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
+    return { ok: true, url: `poll:${String(r.slug)}` };
+  }
   const nenVideo = !!BO_DUNG[r.mau as MauMayDung]?.nenVideo;   // mẫu nền video (canh-dong): tìm VIDEO Pexels, so trùng theo id video
   // chưa có ảnh nền → tự lấy ảnh thật Pexels theo chủ đề, không trùng trong máy (luật anh 18/10/2026: mọi bài đăng có ảnh minh hoạ thật; anh-nen.ts)
   if (!r.nen_url) {

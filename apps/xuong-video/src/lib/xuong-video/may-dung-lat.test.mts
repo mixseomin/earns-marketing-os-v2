@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lat.test.mts
 import assert from 'node:assert';
-import { anhLat, assLat, kichBanLat, lenhLat, nhanLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
+import { anhLat, assLat, demCua, kichBanLat, lenhLat, nhanLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
 import { anhTheoMuc, chuoiAnh } from './may-dung-chuoi';
 import { giayDoc } from './may-dung-ass';
 
@@ -34,4 +34,9 @@ assert.throws(() => lenhLat({ de: lt, ass: 'a.ass', nen: null, fontsDir: '/f', r
 assert.ok(chuoiAnh([{ anh: 'x', tu: 0, den: 5 }], { W: 1080, H: 1920, dai: 5 }).loc.join(';').includes('[vx]')); assert.throws(() => chuoiAnh([], { W: 1, H: 1, dai: 1 }), /rỗng/);
 const [k] = anhLat(ds); assert.ok(k!.t > N.moc[0]!.doc && k!.t < N.moc[0]!.dem);
 assert.strictEqual(kichBanLat(ds).shots.length, 1 + 9 + 2); assert.strictEqual(kichBanLat(lt).shots.length, 3 + 1);
+// câu đố mẹo: 1 câu, đếm 10s, nhãn ANSWER, đáp án ở chỗ lý do; nhiều câu vẫn 1
+const cd: DeLat = { kieu: 'cau-do', cau: [{ khang_dinh: 'What has keys but opens no door?', dung: true, ly_do: 'A piano', truy: 'old piano keys' }, ...ds.cau], ket: ['Front Porch Puzzles'] };
+const C = nhipLat(cd); assert.strictEqual(C.n, 1); assert.strictEqual(demCua('cau-do'), 10); assert.strictEqual(Number((C.moc[0]!.lat - C.moc[0]!.dem).toFixed(2)), 10);
+const c = assLat(cd); assert.ok(c.includes('ANSWER') && c.includes('A piano') && c.includes('}10') && c.includes('Think before it flips') && !c.includes('TRUE'));
+assert.strictEqual(nhanLat('cau-do', true), 'ANSWER');
 console.log(`may-dung-lat: đạt (đúng/sai ${N.DAI.toFixed(1)}s, lầm tưởng ${M.DAI.toFixed(1)}s)`);

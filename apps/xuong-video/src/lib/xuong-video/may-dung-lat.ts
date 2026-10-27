@@ -1,6 +1,7 @@
 // MẪU MÁY DỰNG "Lật đáp án" — một mẫu, HAI dạng trong kho dạng bài (bước 3 Dạng × Góc × Sản phẩm, 27/10/2026):
 //   lam-tuong  = 1 câu khẳng định to → đếm 3s → lật MYTH / FACT + 1 lý do, cảnh thật nền
 //   dung-sai   = 3 câu liên tiếp, mỗi câu lật TRUE / FALSE + lý do ngắn, màn cuối "Bạn được mấy / 3?"
+//   cau-do     = câu đố mẹo (dạng cau-do-meo): câu đố chữ → đếm 10s → lật ANSWER + đáp án (ly_do = đáp án, dung luôn true)
 // MẪU CHUNG mọi ngách: đề = 1–3 câu (khẳng định · đúng/sai · lý do · từ khoá ảnh riêng). Mỗi câu một ẢNH THẬT (nen_url + nen_them qua may-dung-chuoi),
 // tiếng nền thu thật. THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): câu đứng đủ đọc, đếm 3s, đáp án + lý do đứng đủ đọc.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-lat.test.mts
@@ -8,7 +9,7 @@ import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, type 
 import { anhTheoMuc, chuoiAnh, locAmChuoi, type DoanAnh } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 
-export type KieuLat = 'lam-tuong' | 'dung-sai';
+export type KieuLat = 'lam-tuong' | 'dung-sai' | 'cau-do';
 export interface CauLat { khang_dinh: string; dung: boolean; ly_do: string; truy: string }
 export interface DeLat {
   kieu: KieuLat;
@@ -18,21 +19,25 @@ export interface DeLat {
   am?: LoaiAm;
   nhan?: string;
 }
-export const FPS = 30, T_DEM = 3, T_MO_MIN = 2.2;
+export const FPS = 30, T_DEM = 3, T_DEM_DO = 10, T_MO_MIN = 2.2;
+/** Giây đếm ngược theo dạng: câu đố mẹo cần nghĩ (10s), lật khẳng định chỉ cần nhịp (3s). */
+export const demCua = (kieu: KieuLat) => (kieu === 'cau-do' ? T_DEM_DO : T_DEM);
 const W = 1080, H = 1920, TRANG = '#F4F6F8', NHAN = '#FCA311', DUNG = '#22C55E', SAI = '#EF4444', SAU = '#0B1D33';
 const EM = 1.25, fs = (px: number) => `\\fs${Math.round(px * EM)}`;
 /** Nhãn lật theo dạng: lầm tưởng = MYTH/FACT (khẳng định sai = lầm tưởng), đúng-sai = TRUE/FALSE. */
-export const nhanLat = (kieu: KieuLat, dung: boolean) => (kieu === 'lam-tuong' ? (dung ? 'FACT' : 'MYTH') : dung ? 'TRUE' : 'FALSE');
-export const soCau = (de: DeLat) => (de.kieu === 'lam-tuong' ? 1 : Math.min(3, Math.max(1, de.cau.length)));
+export const nhanLat = (kieu: KieuLat, dung: boolean) => (kieu === 'cau-do' ? 'ANSWER' : kieu === 'lam-tuong' ? (dung ? 'FACT' : 'MYTH') : dung ? 'TRUE' : 'FALSE');
+export const soCau = (de: DeLat) => (de.kieu === 'dung-sai' ? Math.min(3, Math.max(1, de.cau.length)) : 1);
+const CAU_HOI: Record<KieuLat, string> = { 'lam-tuong': 'Myth or fact?', 'dung-sai': 'True or false?', 'cau-do': 'Think before it flips' };
 
 /** Mốc: [mở nếu có tiêu đề] → mỗi câu: đọc câu (giayDoc) → đếm 3s → lật (giayDoc nhãn + lý do) → [kết: điểm (dung-sai ≥ 2 câu) / dòng kết]. */
 export function nhipLat(de: DeLat) {
   const cau = de.cau.slice(0, soCau(de)), coMo = !!de.tieu_de?.trim() && de.kieu === 'dung-sai';
   const T_MO = coMo ? Math.max(T_MO_MIN, giayDoc(de.tieu_de!)) : 0;
-  let t = T_MO; const moc = cau.map((c) => { const doc = t, dem = doc + Math.max(2, giayDoc(c.khang_dinh) - 0.5), lat = dem + T_DEM, het = lat + Math.max(2.5, giayDoc(c.ly_do)); t = het; return { doc, dem, lat, het }; });
+  const DEM = demCua(de.kieu);
+  let t = T_MO; const moc = cau.map((c) => { const doc = t, dem = doc + Math.max(2, giayDoc(c.khang_dinh) - 0.5), lat = dem + DEM, het = lat + Math.max(2.5, giayDoc(c.ly_do)); t = het; return { doc, dem, lat, het }; });
   const T_KET = t, ket = (de.ket ?? []).filter((x) => x.trim()).slice(0, 2), diem = de.kieu === 'dung-sai' && cau.length >= 2;
   const DAI = T_KET + (diem ? 3 : 0) + (ket.length ? Math.max(2.5, giayDoc(...ket) - 1) : diem ? 0 : 0.8);
-  return { T_MO, moc, T_KET, T_DIEM: diem ? T_KET + 3 : T_KET, DAI, cau, ket, diem, n: cau.length };
+  return { T_MO, moc, T_KET, T_DIEM: diem ? T_KET + 3 : T_KET, DAI, cau, ket, diem, n: cau.length, DEM };
 }
 export const anhLat = (de: DeLat): { t: number; cat: [number, number, number, number] }[] => { const N = nhipLat(de); return [{ t: N.moc[0]!.doc + 0.6, cat: [0, 240, 1080, 1440] }]; };
 export const truyVanLat = (de: DeLat) => de.cau[0]?.truy ?? '';
@@ -50,12 +55,11 @@ export function assLat(de: DeLat): string {
     d.push([1, m.doc, m.het, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.4)}\\fad(250,250)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
     d.push([2, m.doc, m.het, 'Den', `{\\an5\\pos(540,760)${fs(co)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(250,250)}${dongK.map(chu).join('\\N')}`]);
     if (tong > 1) d.push([2, m.doc, m.het, 'Chu', `{\\an9\\pos(1040,40)\\b1${fs(30)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2}${i + 1}/${tong}`]);
-    if (de.kieu === 'lam-tuong') d.push([2, m.doc, m.dem + T_DEM, 'Chu', `{\\an5\\pos(540,1120)\\b1${fs(40)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(250,0)}Myth or fact?`]);
-    else d.push([2, m.doc, m.dem + T_DEM, 'Chu', `{\\an5\\pos(540,1120)\\b1${fs(40)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(250,0)}True or false?`]);
-    // đếm 3 · 2 · 1 (mỗi số 1s, nảy ở cuối)
-    for (let k = 0; k < T_DEM; k++) d.push([3, m.dem + k, m.dem + k + 1, 'Den', `{\\an5\\pos(540,1320)${fs(120)}\\1c&HFFFFFF&\\3c&H000000&\\bord4${nhipDem(1)}}${T_DEM - k}`]);
+    d.push([2, m.doc, m.dem + N.DEM, 'Chu', `{\\an5\\pos(540,1120)\\b1${fs(40)}\\1c${mauAss(NHAN)}\\3c&H000000&\\bord2\\fad(250,0)}${CAU_HOI[de.kieu]}`]);
+    // đếm N · … · 1 (mỗi số 1s, nảy ở cuối)
+    for (let k = 0; k < N.DEM; k++) d.push([3, m.dem + k, m.dem + k + 1, 'Den', `{\\an5\\pos(540,1320)${fs(120)}\\1c&HFFFFFF&\\3c&H000000&\\bord4${nhipDem(1)}}${N.DEM - k}`]);
     // lật: thẻ màu + nhãn + lý do
-    const nhan = nhanLat(de.kieu, c.dung), mau = c.dung ? DUNG : SAI, dongL = ngat(c.ly_do, 34).slice(0, 3), cao = 150 + 52 * dongL.length;
+    const nhan = nhanLat(de.kieu, c.dung), mau = de.kieu === 'cau-do' ? NHAN : c.dung ? DUNG : SAI, dongL = ngat(c.ly_do, 34).slice(0, 3), cao = 150 + 52 * dongL.length;
     d.push([4, m.lat, m.het, 'Ve', `{\\an5\\pos(540,${1320})\\1c${mauAss(mau)}\\fad(150,250)\\p1}${bo(560, 120, 60)}`]);
     d.push([5, m.lat, m.het, 'Den', `{\\an5\\pos(540,${1320 + 4})${fs(64)}\\1c&HFFFFFF&\\fad(150,250)}${nhan}`]);
     d.push([4, m.lat + 0.2, m.het, 'Ve', `{\\an8\\pos(540,${1420})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,250)\\p1}${bo(1000, cao - 110, 24)}`]);
@@ -89,9 +93,9 @@ export function lenhLat(o: { de: DeLat; ass: string; nen?: string | null; nenThe
 }
 export function kichBanLat(de: DeLat) {
   const N = nhipLat(de);
-  return { tom_tat: `${de.kieu === 'lam-tuong' ? 'Lầm tưởng' : 'Đúng/Sai'} · ${N.cau.map((c) => c.khang_dinh).join(' | ').slice(0, 80)}`, shots: [
+  return { tom_tat: `${de.kieu === 'lam-tuong' ? 'Lầm tưởng' : de.kieu === 'cau-do' ? 'Câu đố mẹo' : 'Đúng/Sai'} · ${N.cau.map((c) => c.khang_dinh).join(' | ').slice(0, 80)}`, shots: [
     ...(N.T_MO > 0 ? [{ tu: 0, den: N.T_MO, canh: 'Mở', hanh_dong: `Tiêu đề "${de.tieu_de}"` }] : []),
-    ...N.cau.flatMap((c, i) => { const m = N.moc[i]!; return [{ tu: m.doc, den: m.dem, canh: `Câu ${i + 1}`, hanh_dong: `Ảnh thật "${c.truy}", khẳng định "${c.khang_dinh}"` }, { tu: m.dem, den: m.lat, canh: `Đếm ${i + 1}`, hanh_dong: '3 · 2 · 1' }, { tu: m.lat, den: m.het, canh: `Lật ${i + 1}`, hanh_dong: `${nhanLat(de.kieu, c.dung)} — ${c.ly_do}` }]; }),
+    ...N.cau.flatMap((c, i) => { const m = N.moc[i]!; return [{ tu: m.doc, den: m.dem, canh: `Câu ${i + 1}`, hanh_dong: `Ảnh thật "${c.truy}", khẳng định "${c.khang_dinh}"` }, { tu: m.dem, den: m.lat, canh: `Đếm ${i + 1}`, hanh_dong: `${N.DEM} · … · 1` }, { tu: m.lat, den: m.het, canh: `Lật ${i + 1}`, hanh_dong: `${nhanLat(de.kieu, c.dung)} — ${c.ly_do}` }]; }),
     ...(N.diem ? [{ tu: N.T_KET, den: N.T_DIEM, canh: 'Điểm', hanh_dong: `Bạn được mấy / ${N.n}?` }] : []),
     ...(N.ket.length ? [{ tu: N.T_DIEM, den: N.DAI, canh: 'Kết', hanh_dong: N.ket.join(' / ') }] : [])] };
 }

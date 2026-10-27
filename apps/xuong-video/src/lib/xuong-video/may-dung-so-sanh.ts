@@ -44,26 +44,26 @@ export function assSoSanh(de: DeSoSanh): string {
   d.push([3, 0, N.DAI, 'Den', `{\\an4\\pos(70,${NUA + 120 + 4})${fs(44)}\\1c&HFFFFFF&}${chu(de.phai.ten)}`]);
   // màn mở: tiêu đề giữa vạch chia
   const dongT = ngat(de.tieu_de, 22).slice(0, 3);
-  d.push([4, 0, N.T_MO, 'Ve', `{\\an5\\pos(540,${NUA})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,250)\\p1}${bo(1000, 110 + 90 * dongT.length, 28)}`]);
-  d.push([5, 0, N.T_MO, 'Den', `{\\an5\\pos(540,${NUA})${fs(68)}\\1c&HFFFFFF&\\3c&H000000&\\bord2\\q2\\fad(200,250)}${dongT.map(chu).join('\\N')}`]);
+  d.push([4, 0, N.T_MO, 'Ve', `{\\an5\\pos(540,${NUA - 240})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,250)\\p1}${bo(1000, 110 + 90 * dongT.length, 28)}`]);
+  d.push([5, 0, N.T_MO, 'Den', `{\\an5\\pos(540,${NUA - 240})${fs(68)}\\1c&HFFFFFF&\\3c&H000000&\\bord2\\q2\\fad(200,250)}${dongT.map(chu).join('\\N')}`]);
   // từng cặp dòng: mỗi bên một dải tối ở phần dưới nửa mình, dòng mới thêm vào dưới dòng cũ, giữ tới hết
   for (let i = 0; i < N.n; i++) {
     const t0 = N.tu[i]!, den = N.DAI;
     for (const [ben, goc] of [[de.trai, 0], [de.phai, NUA]] as const) {
-      const dong = ngat(ben.dong[i]!, 40).slice(0, 2), y = goc + 300 + i * 130;
-      d.push([6, t0, den, 'Ve', `{\\an7\\pos(40,${y})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,0)\\p1}${bo(1000, 40 + 54 * dong.length, 18)}`]);
-      d.push([7, t0, den, 'Chu', `{\\an7\\pos(70,${y + 18})\\b1${fs(36)}\\1c${mauAss(TRANG)}\\fad(200,0)}${dong.map(chu).join('\\N')}`]);
+      const dong = ngat(ben.dong[i]!, 34).slice(0, 2), y = goc + 280 + i * 140;
+      d.push([6, t0, den, 'Ve', `{\\an7\\pos(40,${y})\\1c&H000000&\\1a${alpha(0.55)}\\fad(200,0)\\p1}${bo(1000, 44 + 60 * dong.length, 18)}`]);
+      d.push([7, t0, den, 'Chu', `{\\an7\\pos(70,${y + 20})\\b1${fs(42)}\\1c${mauAss(TRANG)}\\fad(200,0)}${dong.map(chu).join('\\N')}`]);
     }
   }
   if (N.kl) {
-    const dongK = ngat(N.kl, 26).slice(0, 2);
-    d.push([8, N.T_KL, N.DAI, 'Ve', `{\\an5\\pos(540,${NUA})\\1c${mauAss(NHAN)}\\fad(200,0)\\p1}${bo(1000, 90 + 70 * dongK.length, 28)}`]);
-    d.push([9, N.T_KL, N.DAI, 'Den', `{\\an5\\pos(540,${NUA + 4})${fs(52)}\\1c&H111111&\\q2\\fad(200,0)}${dongK.map(chu).join('\\N')}`]);
+    const dongK = ngat(N.kl, 30).slice(0, 2);
+    d.push([8, N.T_KL, N.DAI, 'Ve', `{\\an5\\pos(540,1790)\\1c${mauAss(NHAN)}\\fad(200,0)\\p1}${bo(1000, 90 + 70 * dongK.length, 28)}`]);
+    d.push([9, N.T_KL, N.DAI, 'Den', `{\\an5\\pos(540,1794)${fs(52)}\\1c&H111111&\\q2\\fad(200,0)}${dongK.map(chu).join('\\N')}`]);
   }
   if (N.ket.length) {
     d.push([10, N.T_KET, N.DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.62)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([11, N.T_KET, N.DAI, 'Den', `{\\an5\\pos(540,${N.kl ? 1500 : 900})${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
-    if (N.ket[1]) d.push([11, N.T_KET, N.DAI, 'Chu', `{\\an5\\pos(540,${N.kl ? 1600 : 1010})\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
+    d.push([11, N.T_KET, N.DAI, 'Den', `{\\an5\\pos(540,900)${fs(60)}\\1c&HFFFFFF&\\3c&H000000&\\bord3\\q2\\fad(300,0)}${chu(N.ket[0]!)}`]);
+    if (N.ket[1]) d.push([11, N.T_KET, N.DAI, 'Chu', `{\\an5\\pos(540,1010)\\b1${fs(40)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&\\fad(300,0)}${chu(N.ket[1])}`]);
   }
   if (de.nhan) d.push([3, 0, N.DAI, 'Chu', `{\\an9\\pos(1040,40)\\b1${fs(26)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\1a&H30&}${chu(de.nhan)}`]);
   return rapAss(W, H, d);

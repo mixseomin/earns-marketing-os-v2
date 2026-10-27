@@ -518,8 +518,9 @@ def _xet_luat():
            ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("dung_dem", dung_dem), ("tat_roas", tat_roas))}
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
-    def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True):
-        thieu = sum(1 for x in dk if not x[3])
+    def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0):
+        # tien = số điều kiện TIỀN ĐỀ đứng đầu dk (camp có thuộc diện luật không: đáy $1 không giảm được, đã qua 2 ngày đầu…) — hỏng một cái là 'khong_ap', không gọi là 'gần'
+        ap = ap and all(x[3] for x in dk[:tien]); thieu = sum(1 for x in dk if not x[3])
         return {"ma": ma, "ten": ten, "mo_ta": mo_ta, "dk": dk, "ket": ("khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 else "xa"), "vao": vao_ds, "ghi": ghi}
     ra = {}
     for cid in sorted(_dc):
@@ -541,7 +542,7 @@ def _xet_luat():
         ls.append(L("t2", "T2 · tắt sau 2 ngày đầu", f"Camp vừa hết 2 ngày có chi đầu tiên (2–3 ngày đã khép có chi), 2 ngày đầu chi ≥ ${T2_CHI:g} và ROI < {T2_ROI}%, mọi ngày đã khép vẫn < {T2_ROI}% → máy tắt hẳn.",
             [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "2–3 ngày", 2 <= len(ds2) <= 3], ["Chi 2 ngày đầu", f(c2, "$"), f"≥ ${T2_CHI:g}", c2 >= T2_CHI],
              ["ROI 2 ngày đầu", f(r2, "%"), f"< {T2_ROI}%", r2 is not None and r2 < T2_ROI], ["ROI mọi ngày đã khép", f(ra_, "%"), f"< {T2_ROI}%", ra_ is not None and ra_ < T2_ROI]],
-            "tat2" if int(cid) in vao["tat2"] else None))
+            "tat2" if int(cid) in vao["tat2"] else None, tien=1))
         # OFF — tắt camp lỗ lâu
         ls.append(L("off", "OFF · tắt camp lỗ lâu", "Camp đủ 7 ngày tuổi, tiêu > $10 từ trước tới nay mà ROI < −50% → đề xuất tắt.",
             [["Tuổi", f"{tuoi} ngày" if tuoi is not None else "—", f"≥ {TUOI_TAT} ngày", tuoi is not None and tuoi >= TUOI_TAT], ["Chi từ trước tới nay", f(tr["chi"] if tr else 0, "$"), "> $10", bool(tr and tr["chi"] > 10)],
@@ -550,7 +551,7 @@ def _xet_luat():
         a7 = _r7.get(int(cid)) if isinstance(_r7, dict) else None
         ls.append(L("t7", "T7 · lãi 7 ngày (ĐANG DỪNG)", "Đã dừng từ 27/10, thay bằng T2. Số chỉ để đối chiếu: 7 ngày đã khép lãi < −$1, chi > $5, > 3 ngày bật.",
             [["Lãi 7 ngày đã khép", f(a7["lai"] if a7 else None, "$"), "< −$1", bool(a7 and a7["lai"] < -1)], ["Chi 7 ngày", f(a7["chi"] if a7 else None, "$"), "> $5", bool(a7 and a7["chi"] > 5)],
-             ["Ngày bật", f"{a7['ad']} ngày" if a7 else "—", "> 3", bool(a7 and a7["ad"] > 3)]], None, "luật đang dừng — không làm gì"))
+             ["Ngày bật", f"{a7['ad']} ngày" if a7 else "—", "> 3", bool(a7 and a7["ad"] > 3)]], None, "luật đang dừng — không làm gì", ap=False))
         # TĂNG BẬC / THANG NHÂN BẢN (bộ 2 không đổi ngân sách, mở bản thang)
         spv = (y["chi"] if (KHUNG_DEM and y) else h.get("chi", 0)) / ns * 100 if ns else 0
         dk_tang = [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {ROI_TANG}%", r is not None and r >= ROI_TANG],
@@ -568,15 +569,15 @@ def _xet_luat():
         ls.append(L("gb", "GB · giảm bậc phiên sáng", f"Phiên sáng ({9 if GB_9H else 6}–13h VN) trên số trọn hôm qua: ngân sách > $1, hôm qua tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày) → xuống một bậc.",
             [["Ngân sách", f"${ns:g}", "> $1", ns > 1], ["Chi hôm qua", f"{((y['chi'] if y else 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 50%", bool(y and ns and y["chi"] >= 0.5 * ns)],
              ["ROI hôm qua", f(ry, "%"), "< 0%", ry is not None and ry < 0], ["ROI 3 ngày gần", f(r3, "%"), "< 20%", r3 is not None and r3 < 20]],
-            "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang))
+            "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang, tien=1))
         ls.append(L("giam_ngay", "Giảm trong ngày", "ROI hôm nay (đã chốt chi) ≤ −5%, đã chi ≥ 30% ngân sách, ROI hôm qua < 50% → xuống một bậc (ngân sách > $1).",
             [["Ngân sách", f"${ns:g}", "> $1", ns > 1], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= max(0.3 * ns, 0.3))],
              ["ROI hôm nay", f(rh, "%"), "≤ −5%", rh is not None and rh <= -5], ["ROI hôm qua", f(ry, "%"), "< 50%", ry is None or ry < 50]],
-            "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang))
+            "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang, tien=1))
         g2s = {"chi": (y["chi"] if y else 0) + h.get("chi", 0), "thu": (y["thu"] if y else 0) + h.get("thu", 0)}; r2s = roi(g2s) if g2s["chi"] else None
         ls.append(L("giam_som", "Giảm sớm camp lớn (Support)", f"Camp ≥ $15 đã tiêu (hôm qua + hôm nay) ≥ 1 ngày ngân sách mà ROI gộp < {ROI_GIAM_SOM}% → xuống một bậc ngay.",
             [["Ngân sách", f"${ns:g}", "≥ $15", ns >= 15], ["Chi hôm qua + nay", f(g2s["chi"], "$"), f"≥ ${ns:g}", g2s["chi"] >= ns > 0], ["ROI gộp", f(r2s, "%"), f"< {ROI_GIAM_SOM}%", r2s is not None and r2s < ROI_GIAM_SOM]],
-            "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang))
+            "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang, tien=1))
         ls.append(L("roi_tut", "ROI tụt", "So 3 ngày gần (đã khép) với 4 ngày trước: mỗi khoảng chi ≥ $1.5; ROI trước ≥ 20% mà gần < 0%, hoặc tụt ≥ 30 điểm → báo giảm một bậc.",
             [["Chi 3 ngày gần", f(g3["chi"] if g3 else 0, "$"), "≥ $1.5", bool(g3 and g3["chi"] >= 1.5)], ["Chi 4 ngày trước", f(t4["chi"] if t4 else 0, "$"), "≥ $1.5", bool(t4 and t4["chi"] >= 1.5)],
              ["ROI 4 ngày trước → 3 ngày gần", f"{f(rt, '%')} → {f(rg, '%')}", "tụt ≥ 30 điểm, hoặc ≥ 20% → < 0%", rt is not None and rg is not None and ((rt >= roi_min and rg < 0) or rt - rg >= 30)]],
@@ -589,7 +590,7 @@ def _xet_luat():
             du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]; r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
             ls.append(L("t30", "T30 · $20 → $30", f"Camp đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách, ROI các ngày đó > {T30_ROI}% → đề xuất $30 (anh duyệt).",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > 80%", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
-                "tang30" if int(cid) in vao["tang30"] else None))
+                "tang30" if int(cid) in vao["tang30"] else None, tien=1))
         ra[int(cid)] = ls
     return ra
 if JSON:

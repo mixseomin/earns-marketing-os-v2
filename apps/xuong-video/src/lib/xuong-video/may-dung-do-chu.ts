@@ -77,7 +77,7 @@ export function assMotDung(de: DeMotDung): string {
   d.push([11, T_KET, DAI, 'Ve', `{\\an5\\pos(540,700)\\1c${mauAss(tron(M.sau, '#ffffff', 0.3))}\\1a${alpha(0.55)}${fad}\\blur40\\p1}${bo(1000, 1000, 500)}`]);
   d.push([12, T_KET, DAI, 'Den', `{\\an5\\pos(540,780)${fs(100)}\\1c${mauAss(M.truoc)}\\q2${fad}}Did you spot\\Nit in time?`]);
   d.push([12, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1000)\\1c${mauAss(M.nhan)}${fad}\\p1}${bo(620, 110, 18)}`]);
-  d.push([13, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1000)\\fnAtkinson Hyperlegible\\b1${fs(60)}\\1c&H111111&${fad}}Comment YES or NO`]);
+  d.push([13, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1000)\\fnAtkinson Hyperlegible\\b1${fs(60)}\\1c&H111111&${fad}}Try one on paper`]);   // 27/10/2026: bỏ "Comment YES or NO" (mồi tương tác, Facebook hạ bài)
   d.push([12, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1180)\\fnAtkinson Hyperlegible\\b1${fs(52)}\\1c${mauAss(M.truoc)}${fad}}Free large print puzzles to print:`]);
   d.push([12, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1250)\\fnAtkinson Hyperlegible\\b1${fs(54)}\\1c${mauAss(M.nhan)}${fad}}pickjot.com/printables`]);
   return rapAss(W, H, d, { chuDam: true });
@@ -121,8 +121,8 @@ export function kichBanMotDung(de: DeMotDung) {
       hanh_dong: `Tiêu đề và bảng trắng "đập" vào khung (0,5s). Bảng ${L.cot}×${L.hang} = 36 ô: ${sai} bản viết sai một chữ của ${de.dich}, đúng một ô viết đúng. Thanh thời gian co dần, đồng hồ đếm 7 → 1 (3 giây cuối nền đỏ, nảy mỗi giây), tích tắc mỗi giây.` },
     { ...SHOT_MOT_DUNG[1], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: de.dich,
       hanh_dong: `Lộ đáp án: ô ${de.cho + 1} (hàng ${Math.floor(de.cho / L.cot) + 1}, cột ${(de.cho % L.cot) + 1}) bật khung màu nhấn viền đỏ, phóng 1,25; 35 ô sai mờ còn 25%. Tiếng "ting".` },
-    { ...SHOT_MOT_DUNG[2], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: 'Did you spot it in time?\nComment YES or NO\nFree large print puzzles to print:\npickjot.com/printables',
-      hanh_dong: 'Màn kết hiện dần (0,3s) trên nền màu bìa: câu hỏi, nút "Comment YES or NO", link pickjot.com/printables.' },
+    { ...SHOT_MOT_DUNG[2], goc_may: 'Khung dọc cố định 9:16, toàn màn', chu_man: 'Did you spot it in time?\nTry one on paper\nFree large print puzzles to print:\npickjot.com/printables',
+      hanh_dong: 'Màn kết hiện dần (0,3s) trên nền màu bìa: câu hỏi, nút "Try one on paper", link pickjot.com/printables.' },
   ].map((s) => ({ ...s, giay: Math.round((s.den - s.tu) * 100) / 100 }));
   const kich_ban = shots.map((s, i) => `#${i + 1} ${s.canh} (${s.tu.toFixed(1)}–${s.den.toFixed(1)}s)\n${s.hanh_dong}\nChữ màn: ${s.chu_man.replace(/\n/g, ' / ')}`).join('\n\n');
   return { tom_tat: `Đố chữ "Only ONE is spelled right" — ${de.goi}: tìm ${de.dich} đúng chính tả giữa 36 ô trong 7 giây.`, kich_ban, shots };

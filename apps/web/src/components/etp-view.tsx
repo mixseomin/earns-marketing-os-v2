@@ -847,7 +847,7 @@ const BadgeDangNgan = ({ d }: { d: string | null }) => (d ? <span title={`loại
 const BadgeDang = ({ d }: { d: string | null }) => (d ? <span title={`loại creative: ${d}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 9, whiteSpace: 'nowrap', color: MAU_DANG[d] ?? 'var(--fg-2)', border: `1px solid ${(MAU_DANG[d] ?? '#888')}66`, background: `${MAU_DANG[d] ?? '#888'}1a` }}>{d}</span> : null);
 const LUOI_CAMP_HEP = '10px minmax(0,1fr) 30px 36px';
 // laiKy / tenKy: lãi theo CHU KỲ đang chọn (7 · 14 · 30 ngày · tháng · tất cả — anh 27/10/2026 "phải tuân thủ cả time chu kỳ"); 6 ô ngày vẫn là 6 ngày trọn gần nhất
-function CayCamp({ camps, du, hep, laiKy, tenKy }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string }) {
+function CayCamp({ camps, du, hep, laiKy, tenKy, moCr, dongCr }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent) => void; dongCr?: () => void }) {
   const tlC = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
   const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');
   const [giai, setGiai] = useState(false);   // điện thoại: chú giải gập
@@ -913,7 +913,7 @@ function CayCamp({ camps, du, hep, laiKy, tenKy }: { camps: CampEtpKho[]; du: Du
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} /></span>
-          <span data-cot="creative" title={`Video quảng cáo: ${c.dang ?? ''}, cắt từ giây ${c.doan?.split(':')[1] ?? '?'} của phim`} style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
             cr #{c.creative_id ?? '?'} · {c.doan?.split(':')[1] ?? ''}s</span>
           <span data-cot="loai-cr"><BadgeDang d={c.dang} /></span>
@@ -1110,7 +1110,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const dinhRef = useRef<HTMLDivElement>(null);
   useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => document.documentElement.style.setProperty('--etp-dinh', `${el.offsetHeight}px`); dat();
     const ro = new ResizeObserver(dat); ro.observe(el); return () => { ro.disconnect(); document.documentElement.style.removeProperty('--etp-dinh'); }; }, []);
-  const noiAnh = useNoi<{ anh: string; video: string | null }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
+  const noiAnh = useNoi<{ anh: string; video: string | null; cr?: number }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
   useEffect(() => { try { const v = localStorage.getItem('etp-kh') as Kh | null; if (v && v in KH_TEN) setKh(v); } catch { /* bỏ qua */ } }, []);
   useEffect(() => { try { localStorage.setItem('etp-kh', kh); } catch { /* bỏ qua */ } }, [kh]);
   const ngayKh = useMemo(() => { const tu = kh === 'nay' ? du.nay : kh === 'thang' ? `${du.nay.slice(0, 8)}01` : kh === 'all' ? '0000' : new Date(Date.parse(du.nay) - (Number(kh) - 1) * 86_400_000).toISOString().slice(0, 10); return (d: string) => d >= tu && d <= du.nay; }, [kh, du.nay]);
@@ -1267,7 +1267,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
-        <CayCamp camps={camps} du={du} hep={hep} laiKy={(c) => (kh === 'nay' ? c.nay : ckh(c.camp_id))} tenKy={KH_TEN[kh]} />
+        <CayCamp camps={camps} du={du} hep={hep} moCr={(cr, e) => { const r = crAnh.get(cr); if (r?.anh) noiAnh.mo({ anh: r.anh, video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (kh === 'nay' ? c.nay : ckh(c.camp_id))} tenKy={KH_TEN[kh]} />
       ) : tab === 'camp' ? (
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={KH_TEN[kh]} chon={phimLoc} onChon={doiPhim} />
@@ -1309,11 +1309,21 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         </div>
         </>
       )}
-      {xem ? (
-        <KhungNoi x={xem.x} y={xem.y} rong={270} cao={480} noi={noiAnh} style={{ width: 270, height: 480, overflow: 'hidden', background: '#000' }}>
-          <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
-          {xem.video ? <video src={xem.video} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
-        </KhungNoi>) : null}
+      {xem ? (() => {
+        // THẺ CHI TIẾT CREATIVE (anh 27/10/2026 "hover vào xem đc chi tiết creative"): rê vào ô creative ở cây camp → dải thông tin trên đầu + ảnh/video bên dưới
+        const r = xem.cr ? crAnh.get(xem.cr) : undefined, ch = xem.cr ? du.cham[xem.cr] : undefined, k = xem.cr ? crKh.get(xem.cr) : undefined, DAI = r ? 92 : 0;
+        return <KhungNoi x={xem.x} y={xem.y} rong={270} cao={480 + DAI} noi={noiAnh} style={{ width: 270, height: 480 + DAI, overflow: 'hidden', background: '#000' }}>
+          {r ? <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: DAI, padding: '6px 8px', boxSizing: 'border-box', background: 'var(--bg-1, #111)', fontSize: 11, lineHeight: 1.45, color: 'var(--fg-2)', overflow: 'hidden' }}>
+            <div style={{ color: 'var(--fg-1, #eee)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><b>cr #{r.creative_id}</b> <BadgeDangNgan d={r.dang} /> · {r.phim ?? '—'}</div>
+            <div>đoạn {r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : '?'} · {r.lang ?? ''} · {r.cta_dat ? 'CTA đạt' : 'CTA cũ'} · camp chạy {r.chay}/{r.camp}{r.cung_doan > 1 ? ` · cùng đoạn ${r.cung_doan}` : ''}</div>
+            <div>chấm: {ch ? <><span style={{ color: mauDiem(ch.meta) }}>Meta {ch.meta ?? '–'}</span> · <span style={{ color: mauDiem(ch.afs) }}>AFS {ch.afs ?? '–'}</span> · {ch.duyet === false ? 'người Loại' : ch.duyet ? 'người Đạt' : ch.chan_boi ? `chặn: ${ch.chan_boi}` : ch.duoc_len ? 'được lên' : ''}</> : 'chưa chấm'}{r.tu_choi ? <span style={{ color: '#f87171' }}> · Meta từ chối</span> : null}</div>
+            <div>hôm nay <Lai s={r.nay} /> · hôm qua <Lai s={r.qua} />{k && kh !== 'nay' ? <> · {KH_TEN[kh].toLowerCase()} <Lai s={k} /></> : null}</div>
+          </div> : null}
+          <div style={{ position: 'absolute', top: DAI, left: 0, right: 0, bottom: 0 }}>
+            <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
+            {xem.video ? <video src={xem.video} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
+          </div>
+        </KhungNoi>; })() : null}
     </div>
     </div>
   );

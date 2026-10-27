@@ -585,7 +585,7 @@
     "ai_tinh_huong"
    ],
    "duong": "anh",
-   "mau": null,
+   "mau": "bai-anh",
    "vi_du": "đồ vật 1950s (Front Porch) · sân bay thập niên 80 · phiên bản đầu của app"
   },
   {
@@ -608,7 +608,7 @@
     "ai_tieu_chi"
    ],
    "duong": "anh",
-   "mau": null
+   "mau": "bai-anh"
   },
   {
    "ma": "xua-nay",
@@ -670,7 +670,7 @@
     "ai_phan_doi"
    ],
    "duong": "anh",
-   "mau": null,
+   "mau": "bai-anh",
    "vi_du": "ô 'Thẻ chữ trên ảnh' của kế hoạch tuần"
   },
   {
@@ -691,7 +691,7 @@
     "ai_mong_muon"
    ],
    "duong": "anh",
-   "mau": null,
+   "mau": "bai-anh",
    "vi_du": "ô 'A/B 2 ảnh' của kế hoạch tuần"
   },
   {

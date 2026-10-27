@@ -360,6 +360,7 @@ thang_nb, thang_tat = [], []
 _bo_chan = {b: q(f"select etp.bo_chan_mo('{b}')") for b in BO_THANG}
 try:
     _con = {}
+    _la_ban_thang = lambda cid: int(cid) in _id_thang   # _id_thang: camp mang tên "(thang $N cua <gốc>)" (khai phía trên)
     for c in ds_camp:
         mt = la_thang(c)
         if mt: _con.setdefault(int(mt.group(1)), []).append(c)
@@ -367,7 +368,11 @@ try:
     for cid, a in thang.items():
         if int(cid) not in _tang_bo2 or cid not in _bat: continue
         if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")): continue   # bộ lỗ 3 ngày khép → không mở bản thang (etp.bo_chan_mo, anh 26/10/2026)
+        # THANG ĐI TỪ ĐÁY (anh 27/10/2026: "nhân bản này sai rule rồi. Phải nhân từ $1 - $3... lên cơ mà?" — #68835 $10 mở thẳng bản $15 #71957):
+        # camp gốc THƯỜNG (đã được tăng bậc kiểu cũ tới $5–$20) → bản thang đầu tiên tối đa bậc thứ hai ($3); chỉ bản nhân của chính một BẢN THANG
+        # mới lên bậc kế ($3 → $7 → $15 → $30)
         ns = a["budget"]; dich = next((b for b in THANG_NB if b > ns + 1e-9), None)
+        if dich and not _la_ban_thang(cid): dich = min(dich, THANG_NB[1] if len(THANG_NB) > 1 else THANG_NB[0])
         if not dich: continue
         con = _con.get(int(cid), [])
         if len(con) >= THANG_CON or any(x.get("state") == "ACTIVE" or (x.get("sync_status") or "done") not in ("done", "synced", "error") for x in con): continue

@@ -263,7 +263,11 @@ def main(a):
         if thang:   # thang nhân bản: chỉ bộ 2, bậc mới phải cao hơn ngân sách camp gốc
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
             if str(bo) not in THANG_BO: raise ChanLuat(f"thang nhân bản chỉ áp dụng bộ {', '.join(THANG_BO)} (camp gốc thuộc bộ {bo}) — bộ khác giữ tăng bậc (etp.cau_hinh.thang_bo)")
-            if thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn camp gốc ${ns:g}")
+            # bản thang của BẢN THANG phải cao hơn nó; camp gốc thường thì bản thang đầu đi từ đáy (≤ bậc thứ hai) — anh 27/10/2026 "phải nhân từ $1 - $3 lên"
+            la_ban_thang = bool(re.search(r"\(thang \$\d+ cua \d+\)$", (d.get("campaign") or {}).get("name") or ""))
+            tran_dau = sorted(THANG_MUC | {1.0})[1] if len(THANG_MUC) else 3
+            if la_ban_thang and thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn bản thang gốc ${ns:g}")
+            if not la_ban_thang and thang > tran_dau: raise ChanLuat(f"bản thang đầu của camp gốc thường tối đa ${tran_dau:g} (đi từ đáy $1–$3), không mở thẳng ${thang:g}")
         elif not moi and not ep:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
             tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)

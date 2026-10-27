@@ -31,7 +31,8 @@ export function MayDang() {
   if (loi && !du) return <div style={{ color: 'var(--danger, #dc2626)', fontSize: 13 }}>Không đọc được máy đăng: {loi}</div>;
   if (!du) return <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Đang đọc máy đăng…</div>;
   const luotCuoi = du.luot[0] ?? null, phut = luotCuoi ? phutTruoc(luotCuoi.luc) : null;
-  const dangHom = du.su_kien.filter((x) => x.ok && x.luc.slice(0, 10) >= new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)).length;
+  const ngayVn = (iso: string) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 10);   // ngày VN của mốc (luc là UTC — 00:04 VN = 17:04 UTC hôm trước)
+  const dangHom = du.su_kien.filter((x) => x.ok && ngayVn(x.luc) === du.hom).length;
   const hong24 = du.su_kien.filter((x) => !x.ok).length, nghi = du.tt.filter((x) => x.quyet === 'dung').length;
   const khCua = (ma: string, nen: string) => du.kh.find((k) => k.may === ma && k.nen === nen) ?? du.kh.find((k) => k.may === ma && k.ho === pkCua(nen).replace('twitter', 'x'));
   const duyet24 = du.video.filter((v) => v.cham === 'DUYET').length;

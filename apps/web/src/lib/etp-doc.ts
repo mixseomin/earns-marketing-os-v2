@@ -63,6 +63,8 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   lichTat: { camp_id: number; the_loai: string | null; khung: string | null; luc: string }[];
   /** sổ khung giờ (etp.khung_gio, migration 0333 — cùng nguồn với máy lịch apps/etp/lich-gio.py) + khung đang chạy (etp.khung_vn lúc đọc) */
   khungGio: { khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }[]; khungNay: string;
+  /** camp ĐANG TẮT vì luật chấm (cham_cong.tat qua etp.creative_cua, trừ miễn lich-gio công bố 'cham_mien_dang' và camp dừng theo lịch) · bat = công tắc cham_tat */
+  chamTat: { bat: boolean; camp: number[]; mienLuc: string | null };
   phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
@@ -163,6 +165,12 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<{ khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }>(sql`select khung, gio_tu, so_gio, ten, ghi from etp.khung_gio order by (gio_tu + 17) % 24`),
     run<{ k: string }>(sql`select etp.khung_vn(extract(hour from now() at time zone 'Asia/Ho_Chi_Minh')::int) k`),
   ]);
+  const [chamTatRow] = await run<{ bat: boolean; camp: number[] | null; mien_luc: string | null }>(sql`select
+      coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'cham_tat'), 'true') <> 'false' bat,
+      (select luc::text from etp.cau_hinh where khoa = 'cham_mien_dang') mien_luc,
+      (select array_agg(c.camp_id) from etp.camp c join etp.cham_cong g on g.creative_id = etp.creative_cua(c.creative_id, c.ten)
+        where g.tat and c.trang_thai not in ('ACTIVE', 'ARCHIVED') and not exists (select 1 from etp.lich_tat l where l.camp_id = c.camp_id)
+          and c.camp_id not in (select jsonb_array_elements_text(coalesce((select gia_tri from etp.cau_hinh where khoa = 'cham_mien_dang'), '[]'))::int)) camp`);
   const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay, viecSx, choCamp] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
@@ -208,6 +216,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
     quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],
+    chamTat: { bat: !!chamTatRow?.bat, camp: (chamTatRow?.camp ?? []).map(Number), mienLuc: chamTatRow?.mien_luc ?? null },
     tieuChi, lichGio, lichTat, khungGio: khungGio.map((r) => ({ ...r, gio_tu: n(r.gio_tu), so_gio: n(r.so_gio) })), khungNay: khungNay[0]?.k ?? '', khungSo: khungSo.map((r) => ({ the_loai: r.the_loai, khung: r.khung, chi: n(r.chi), thu: n(r.thu) })),
     dangSx: [
       ...viecSx.map((r) => ({ khoa: `cat-${r.id}`, buoc: r.trang_thai === 'dang' ? 'Đang cắt góc' : r.trang_thai === 'loi' ? 'Lỗi cắt góc' : 'Chờ cắt góc', thu_tu: r.trang_thai === 'dang' ? 1 : r.trang_thai === 'loi' ? 0 : 2,

@@ -113,14 +113,25 @@ export const CKEY_CLAUDE: Record<string, string[]> = {
   // người bán xếp theo giá đã đo (ckey.vn/ajax/apiai-public-catalog, 19/10/2026) — lỗi người trước thì thử người sau
   'claude-opus-5-5': ['anhyeu00m/claude-opus-5-5', 'tranhieu13102003/claude-opus-5.5'],
   'claude-sonnet-5-5': ['duc121026ab/claude-sonnet-5-5', 'thanhnhan9023/claude-sonnet-5.5'],
-  'claude-haiku-4-5': ['anhyeu00m/claude-haiku-4.5', 'sypham98/claude-haiku-4.5'],
+  'claude-haiku-4-5': ['3h15pm/claude-haiku-4.5', 'w3leee/claude-haiku-4.5'],   // 27/10/2026: anhyeu00m / sypham98 đã gỡ (404); người bán khác tự phát hiện qua /v1/models
 };
 type DuongChu = { ten: 'ckey' | 'shopaikey' | 'anthropic'; c: Anthropic; model: string; jsonTay: boolean };
-const duongChu = (model: string): DuongChu[] => {
+/** NGƯỜI BÁN CKEY ĐANG CÓ cho một model Claude — đọc /v1/models (nhớ 10 phút): người bán trên chợ đổi tên / nghỉ liên tục (27/10/2026: cả hai người bán Haiku
+ *  trong CKEY_CLAUDE đều 404 → lượt rơi thẳng về Anthropic giá gấp 30 lần). Bảng cố định đi trước (đã đo giá), người phát hiện thêm xếp sau. Thuần phần khớp tên. */
+export const khopTenCkey = (model: string, id: string): boolean => { const d = id.split('/')[1]; if (!d || !id.includes('/')) return false; const re = new RegExp('^' + model.replace(/[.-](?=\d)/g, '[.-]') + '$', 'i'); return re.test(d); };
+let khoNguoiBan: { luc: number; ids: string[] } | null = null;
+async function nguoiBanCkey(k: string, model: string): Promise<string[]> {
+  if (!khoNguoiBan || Date.now() - khoNguoiBan.luc > 600_000) {
+    try { const r = await fetch('https://api.xah.io/v1/models', { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(15_000) }); const j = (await r.json()) as { data?: { id: string }[] }; khoNguoiBan = { luc: Date.now(), ids: (j.data ?? []).map((x) => x.id) }; }
+    catch { khoNguoiBan = { luc: Date.now(), ids: [] }; }
+  }
+  return khoNguoiBan.ids.filter((id) => khopTenCkey(model, id));
+}
+const duongChu = async (model: string): Promise<DuongChu[]> => {
   const ds: DuongChu[] = [];
   const kc = process.env.CKEY_API_KEY, ks = process.env.SHOPAIKEY_API_KEY, ka = process.env.ANTHROPIC_API_KEY;
   const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 1 });
-  if (kc) for (const m of CKEY_CLAUDE[model] ?? []) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: false });
+  if (kc) { const co = CKEY_CLAUDE[model] ?? [], them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: false }); }
   if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });
   if (ka) ds.push({ ten: 'anthropic', c: new Anthropic({ apiKey: ka }), model, jsonTay: false });
   return ds;
@@ -141,7 +152,7 @@ type TinChu = Anthropic.Message & { parsed_output?: unknown; vnd?: number };
 async function quaChuoi(p: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promise<TinChu>): Promise<TinChu> {
   // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới 1¢ tự chạy
   chotTien('gọi Claude', { cents: giaChuCents(p.model, Math.ceil(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3), Number(p.max_tokens) || 0) });
-  const ds = duongChu(p.model); const loi: string[] = [];
+  const ds = await duongChu(p.model); const loi: string[] = [];
   if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');
   const f = p.output_config?.format;
   for (let i = 0; i < ds.length; i++) {

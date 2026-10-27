@@ -22,7 +22,7 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
   thang: SoTien; qua: SoTien; nay: SoTien };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
-    anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */ }; noi_dung?: { luc: string; tom_tat: string } };
+    anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */; khung_mau?: string /* gọn: mẫu '{n}' + so_khung thay danh sách — dựng lại bằng khungUrl() ở etp-view */; so_khung?: number }; noi_dung?: { luc: string; tom_tat: string } };
   diem: Record<string, number>; ly_do: Record<string, string>; khung: Record<string, number[]>; duoc_len: boolean | null; chan_boi: string | null; cho_duyet: string | null; duyet: boolean | null };
 export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
@@ -66,6 +66,22 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
+// GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang) — trang chỉ hiện chữ ≤ CHU_TOI_DA ký tự trong thẻ hover,
+// và danh sách khung là …/khung/<cr>/1..N.jpg?v=… → gửi một mẫu '{n}' + số khung; lệch khuôn thì giữ nguyên danh sách
+const CHU_TOI_DA = 900;
+const cat = (t?: string) => (t && t.length > CHU_TOI_DA ? t.slice(0, CHU_TOI_DA) : t);
+function gonLop(v: unknown): ChamCr['lop'] {
+  const l = { ...((v ?? {}) as ChamCr['lop']) };
+  if (l.chu) l.chu = { ...l.chu, noi_dung: cat(l.chu.noi_dung) ?? '' };
+  if (l.giong) l.giong = { ...l.giong, noi_dung: cat(l.giong.noi_dung) ?? '' };
+  if (l.noi_dung) l.noi_dung = { ...l.noi_dung, tom_tat: cat(l.noi_dung.tom_tat) ?? '' };
+  const ds = l.anh?.khung_url;
+  if (l.anh && ds?.length) {
+    const m = ds[0]!.match(/^(.*\/)1(\.jpg(?:\?.*)?)$/); const mau = m ? `${m[1]}{n}${m[2]}` : null;
+    if (mau && ds.every((u, i) => u === mau.replace('{n}', String(i + 1)))) { const { khung_url: _bo, ...anh } = l.anh; l.anh = { ...anh, khung_mau: mau, so_khung: ds.length }; }
+  }
+  return l;
+}
 const st = (c: unknown, t: unknown): SoTien => ({ chi: n(c), thu: n(t) });
 
 export async function docEtp(): Promise<DuLieuEtp> {
@@ -211,7 +227,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     chamHang: Object.fromEntries(chamHang.map((r) => [n(r.creative_id), { trang_thai: String(r.trang_thai), luc: String(r.luc), loi: (r.loi as string) ?? null, nguon: String(r.nguon ?? ''),
       buoc: (r.buoc as string) ?? null, nhat_ky: (r.nhat_ky ?? []) as { b: string; luc: string }[], bat_dau: (r.bat_dau as string) ?? null, xong: (r.xong as string) ?? null }])),
     cham: Object.fromEntries(cham.map((r) => [n(r.creative_id), { luc: String(r.luc), may: (r.may as string) ?? null, ket: (r.ket as string) ?? null, meta: r.meta == null ? null : n(r.meta), afs: r.afs == null ? null : n(r.afs),
-      loi: (r.loi as string) ?? null, lop: (r.lop ?? {}) as ChamCr['lop'], diem: (r.diem ?? {}) as ChamCr['diem'], ly_do: (r.ly_do ?? {}) as ChamCr['ly_do'], khung: (r.khung ?? {}) as ChamCr['khung'], duoc_len: r.duoc_len == null ? null : !!r.duoc_len, chan_boi: (r.chan_boi as string) ?? null, cho_duyet: (r.cho_duyet as string) ?? null, duyet: r.duyet == null ? null : !!r.duyet }])),
+      loi: (r.loi as string) ?? null, lop: gonLop(r.lop), diem: (r.diem ?? {}) as ChamCr['diem'], ly_do: (r.ly_do ?? {}) as ChamCr['ly_do'], khung: (r.khung ?? {}) as ChamCr['khung'], duoc_len: r.duoc_len == null ? null : !!r.duoc_len, chan_boi: (r.chan_boi as string) ?? null, cho_duyet: (r.cho_duyet as string) ?? null, duyet: r.duyet == null ? null : !!r.duyet }])),
     phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),
       bo: (r.bo as string) ?? null, ad_account_id: r.ad_account_id == null ? null : n(r.ad_account_id), page_id: r.page_id == null ? null : n(r.page_id), nhom: String(r.nhom ?? 'khac'), ly_do: (r.ly_do as string) ?? null })),
     bao, baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),

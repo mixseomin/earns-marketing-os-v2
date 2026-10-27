@@ -94,7 +94,7 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
   return (
     <>
       <button ref={ref} type="button" data-comp="ui.ChonKhoang" title={title ?? 'chọn khoảng ngày'} onClick={() => (mo ? setMo(false) : mo_())}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap',
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none',
           border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
         {nhan}<span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>

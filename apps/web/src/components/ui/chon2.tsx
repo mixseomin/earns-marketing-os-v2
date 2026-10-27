@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnchoredPopover } from './anchored-popover';
 
-export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string }
+export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
 
 export function Chon2({ value, onChange, options, nhan, rong = 'tất cả', title, minWidth, align = 'left', anRong }: {
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
@@ -34,9 +34,9 @@ export function Chon2({ value, onChange, options, nhan, rong = 'tất cả', tit
   return (
     <>
       <button ref={ref} type="button" data-comp="ui.Chon2" title={title} onClick={() => setMo((v) => !v)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', minWidth, maxWidth: '100%',
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', minWidth, maxWidth: '100%', flex: 'none',
           border: `1px solid ${coLoc ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)', color: 'inherit' }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{nhan ? <span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{dang?.label ?? rong}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{nhan ? <span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{dang?.ngan ?? dang?.label ?? rong}</span>
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} align={align}>

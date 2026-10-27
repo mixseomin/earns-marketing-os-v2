@@ -49,7 +49,7 @@ export async function timVideoNenDong(truyVan: string, daDung: Set<number>): Pro
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
 /** Dựng MỘT video từ đề theo mẫu của máy: MP4 cả video + mỗi shot của mẫu một khung (giây giữa shot), đẩy lên R2. */
-export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string | null; /** URL tệp tiếng nền thu thật (mẫu nenVideo — am-nen.ts) */ amUrl?: string | null; slug: string }): Promise<{ ok: true; url: string; khung: string[]; anh: string[]; giay: number; /** mẫu chỉ ảnh: url = ảnh 1, không có MP4 */ chiAnh?: boolean } | { ok: false; loi: string }> {
+export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string | null; /** URL tệp tiếng nền thu thật (mẫu nenVideo — am-nen.ts) */ amUrl?: string | null; /** ảnh nền thêm (mẫu nhiều cảnh) */ nenThemUrl?: string[]; slug: string }): Promise<{ ok: true; url: string; khung: string[]; anh: string[]; giay: number; /** mẫu chỉ ảnh: url = ảnh 1, không có MP4 */ chiAnh?: boolean } | { ok: false; loi: string }> {
   if (!FONTS_DIR) return { ok: false, loi: 'máy chủ thiếu thư mục font (apps/xuong-video/public/fonts)' };
   const bo = BO_DUNG[o.mau]; if (!bo) return { ok: false, loi: `mẫu máy lạ: ${o.mau}` };
   const thuMuc = `${tmpdir()}/xv-may-${o.slug}-${randomUUID().slice(0, 8)}`;
@@ -62,6 +62,12 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
       if (!t?.ok) return { ok: false, loi: `không tải được ảnh nền (${t?.status ?? 'mạng'})` };
       nen = `${thuMuc}/nen.${(o.nenUrl.split('?')[0]!.split('.').pop() || 'jpg').slice(0, 4)}`;
       await writeFile(nen, Buffer.from(await t.arrayBuffer()));
+    }
+    const nenThem: string[] = [];
+    for (const [i, u] of (o.nenThemUrl ?? []).entries()) {
+      const t = await fetch(u, { signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': UA_TRINH_DUYET } }).catch(() => null);
+      if (!t?.ok) return { ok: false, loi: `không tải được ảnh nền thêm #${i + 1} (${t?.status ?? 'mạng'})` };
+      const f = `${thuMuc}/nen${i + 1}.${(u.split('?')[0]!.split('.').pop() || 'jpg').slice(0, 4)}`; await writeFile(f, Buffer.from(await t.arrayBuffer())); nenThem.push(f);
     }
     let am: string | null = null;
     if (o.amUrl) {
@@ -77,7 +83,7 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
       const goc = `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`, anh: string[] = [];
       for (const [i, x] of (bo.anh?.(o.de) ?? [{ t: 0.5, cat: [0, 0, 1080, 1350] as [number, number, number, number] }]).entries()) {
         const f = `${thuMuc}/a${i}.jpg`;
-        try { await run('ffmpeg', bo.lenh({ de: o.de, ass, nen, am, fontsDir: FONTS_DIR, ra: f, khung: x.t }), { timeout: 120_000, maxBuffer: 8 << 20 }); }
+        try { await run('ffmpeg', bo.lenh({ de: o.de, ass, nen, nenThem, am, fontsDir: FONTS_DIR, ra: f, khung: x.t }), { timeout: 120_000, maxBuffer: 8 << 20 }); }
         catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg ảnh #${i + 1}: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
         const u = await uploadToR2(`${goc}-a${i + 1}.jpg`, await readFile(f), 'image/jpeg'); if (!u) return { ok: false, loi: `không đẩy được ảnh #${i + 1} lên R2` };
         anh.push(u);
@@ -85,7 +91,7 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
       return { ok: true, url: anh[0]!, khung: anh, anh, giay: 0, chiAnh: true };
     }
     // lệnh dựng chính: máy dựng Cloudflare (nhẹ tải box3), lỗi / chưa cấu hình thì tại chỗ — may-dung-cf.ts
-    const args = bo.lenh({ de: o.de, ass, nen, am, fontsDir: FONTS_DIR, ra });
+    const args = bo.lenh({ de: o.de, ass, nen, nenThem, am, fontsDir: FONTS_DIR, ra });
     try { const d = await dungFfmpeg(args, { thuMuc, fontsDir: FONTS_DIR, ra, chayTaiCho: () => run('ffmpeg', args, { timeout: 5 * 60_000, maxBuffer: 8 << 20 }) }); console.log(`dựng ${o.slug}: ${d.noi}${d.giay ? ` ${d.giay}s` : ''}${d.loiCf ? ` (cloudflare lỗi: ${d.loiCf})` : ''}`); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
     const goc = `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`;

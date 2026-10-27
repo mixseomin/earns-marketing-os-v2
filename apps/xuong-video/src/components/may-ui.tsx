@@ -90,7 +90,7 @@ function DangChay({ m, nhatKy, luot, video, onMo }: { m: May; nhatKy: NhatKy[]; 
 }
 
 /** Chữ phụ của một video theo mẫu: đố chữ = từ đích; Scam or Real = kênh · đáp án; Before you land = nước · mã cửa ngõ; câu hỏi thi = kỳ thi · mảng · đáp án. */
-const phuDe = (de: DeMay) => ('dich' in de ? de.dich : 'san_bay' in de ? `${de.nuoc} · ${de.san_bay.map((a) => a.iata).join(' ')}` : 'ky' in de ? `${de.ky} · ${de.mang} · ${de.dung}` : `${de.kenh} · ${de.ket === 'scam' ? 'SCAM' : 'REAL'}`);
+const phuDe = (de: DeMay) => ('dich' in de ? de.dich : 'san_bay' in de ? `${de.nuoc} · ${de.san_bay.map((a) => a.iata).join(' ')}` : 'ky' in de ? `${de.ky} · ${de.mang} · ${de.dung}` : 'muc' in de ? `Top ${de.muc.length} · ${de.tieu_de}` : 'kenh' in de ? `${de.kenh} · ${de.ket === 'scam' ? 'SCAM' : 'REAL'}` : 'truy' in de ? de.truy : '');
 const mauNen = (de: DeMay) => ('mau' in de ? de.mau.sau : '#14213D');
 
 const chipChay = (m: May) => <Pill color={m.chay ? '#4ade80' : 'var(--fg-3)'} nhat={!m.chay}>{m.chay ? '● đang chạy' : '○ chưa bật'}</Pill>;

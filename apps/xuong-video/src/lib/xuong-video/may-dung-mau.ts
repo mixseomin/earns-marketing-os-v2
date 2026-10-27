@@ -6,6 +6,7 @@ export const MAU_MAY_DUNG = {
   'before-you-land': { ten: 'Before you land · eSIM theo nước' },
   'cau-hoi-thi': { ten: 'Câu hỏi luyện thi · ExamWeight' },
   'canh-dong': { ten: 'Cảnh động thả hồn' },
-  'bai-anh': { ten: 'Bài ảnh (thẻ chữ · nhận ra · đoán · hai lựa chọn)' },   // mẫu CHUNG chỉ ra ẢNH 1080×1350 (chiAnh), không MP4 — bước 3, 27/10/2026   // mẫu CHUNG mọi ngách (bước 3 Dạng × Góc × Sản phẩm, 26/10/2026): video thật + tiếng nền + câu móc nhỏ
+  'bai-anh': { ten: 'Bài ảnh (thẻ chữ · nhận ra · đoán · hai lựa chọn)' },
+  'top-n': { ten: 'Top 3/5 đếm ngược' },   // mẫu CHUNG: mỗi mục một ảnh thật (nen_url + nen_them), số đếm ngược, tiếng thật — bước 3, 27/10/2026   // mẫu CHUNG chỉ ra ẢNH 1080×1350 (chiAnh), không MP4 — bước 3, 27/10/2026   // mẫu CHUNG mọi ngách (bước 3 Dạng × Góc × Sản phẩm, 26/10/2026): video thật + tiếng nền + câu móc nhỏ
 } as const;
 export type MauMayDung = keyof typeof MAU_MAY_DUNG;

@@ -103,7 +103,7 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
 
 /** Dựng video của một dòng (0đ) → video_url + 3 khung. */
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: `không có video #${videoId}` };
   const nenVideo = !!BO_DUNG[r.mau as MauMayDung]?.nenVideo;   // mẫu nền video (canh-dong): tìm VIDEO Pexels, so trùng theo id video
   // chưa có ảnh nền → tự lấy ảnh thật Pexels theo chủ đề, không trùng trong máy (luật anh 18/10/2026: mọi bài đăng có ảnh minh hoạ thật; anh-nen.ts)
@@ -115,6 +115,17 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     catch (e) { return { ok: false, loi: `ảnh nền: ${(e as Error).message}` }; }
     await db.execute(sql`UPDATE xv_may_video SET nen_url = ${r.nen_url as string}, updated_at = now() WHERE id = ${videoId}`);
   }
+  // ẢNH NỀN THÊM cho mẫu nhiều cảnh (top-n): mỗi mục một ảnh thật riêng theo từ khoá của mục, không trùng ảnh trong máy lẫn trong video; ghi nen_them để dựng lại không đổi
+  const truyThem = BO_DUNG[r.mau as MauMayDung]?.truyVanThem?.(r.de as DeMay) ?? [];
+  let nenThem = (r.nen_them as string[] | null) ?? [];
+  if (truyThem.length && nenThem.length < truyThem.length) {
+    const daDung = new Set([...((await db.execute(sql`SELECT nen_url, nen_them FROM xv_may_video WHERE may_id = ${Number(r.may_id)}`)) as unknown as { nen_url: string | null; nen_them: string[] | null }[]).flatMap((x) => [x.nen_url, ...(x.nen_them ?? [])]).map((u) => idPexels(u)).filter((x): x is number => x != null), ...(idPexels(r.nen_url as string) != null ? [idPexels(r.nen_url as string)!] : [])]);
+    for (let i = nenThem.length; i < truyThem.length; i++) {
+      try { const u = await timAnhNen(truyThem[i]!, daDung); nenThem = [...nenThem, u]; const id = idPexels(u); if (id != null) daDung.add(id); }
+      catch (e) { return { ok: false, loi: `ảnh nền mục #${i + 2}: ${(e as Error).message}` }; }
+    }
+    await db.execute(sql`UPDATE xv_may_video SET nen_them = ${sql.raw(`ARRAY[${nenThem.map((u) => `'${u.replace(/'/g, "''")}'`).join(',')}]::text[]`)}, updated_at = now() WHERE id = ${videoId}`);
+  }
   // BÀI LINK (S03 bước 4, anh chọn 21/10/2026): dòng không có video — bài FB / X dẫn về trang đích, ảnh = ảnh thật nen_url (cũng là ảnh của trang đích).
   // "Xuất" = chốt bản (xuat_luc) để Phòng Nội dung chấm đúng bản, anh = [nen_url]; không dựng ffmpeg.
   if ((r.de as { loai?: string } | null)?.loai === 'bai-link') {
@@ -122,8 +133,8 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     return { ok: true, url: String(r.nen_url) };
   }
   // tiếng nền thu thật cho mẫu nền video (am-nen.ts): loại theo đề hoặc từ khoá, bản theo băm slug
-  const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = nenVideo ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? ''), String(r.slug))?.url ?? null : null;
-  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, amUrl, slug: String(r.slug) });
+  const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = nenVideo || BO_DUNG[r.mau as MauMayDung]?.amThat ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? String(r.chu_de ?? '')), String(r.slug))?.url ?? null : null;
+  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, nenThemUrl: nenThem, amUrl, slug: String(r.slug) });
   if (!v.ok) return v;
   // mẫu chỉ ảnh (chiAnh): bản xuất là `anh`, video_url NULL — máy đăng chỉ lên nền ảnh (fb_anh / x_anh), Phòng Nội dung chấm theo anh (như bài link)
   await db.execute(sql`UPDATE xv_may_video SET video_url = ${v.chiAnh ? null : v.url}, khung = ${JSON.stringify(v.khung)}::jsonb, anh = ${JSON.stringify(v.anh)}::jsonb, giay = ${v.chiAnh ? null : v.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);

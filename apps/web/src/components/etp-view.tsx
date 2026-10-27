@@ -1079,7 +1079,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   // ?lu= luật · ?d= loại creative — bộ lọc giữ qua F5 (anh 27/10/2026 "bộ lọc cũng phải lưu theo F5")
   const [luatLoc, setLuatLoc] = useState(dauVao?.lu ?? '');
   const [dangLoc, setDangLoc] = useState(dauVao?.d ?? '');
-  const [boLoc, setBoLoc] = useState(dauVao?.b ?? '');   // ?b= lọc theo bộ tài khoản QC (anh 27/10/2026 "thêm bộ lọc theo tk")   // lọc theo loại creative (KT/CC/CT…) — anh 27/10/2026 "thêm bộ lọc chi tiết như danh sách camp KT"   // lọc theo MỘT luật (cột Luật bảng Camp)
+  const [boLoc, setBoLoc] = useState(dauVao?.b ?? '');
+  const [moLoc, setMoLoc] = useState(false);   // điện thoại: bảng lọc gập sau nút Lọc (anh 27/10/2026 "trên mobile không thể cứ xuống dòng liên tục — tổ chức lại")   // ?b= lọc theo bộ tài khoản QC (anh 27/10/2026 "thêm bộ lọc theo tk")   // lọc theo loại creative (KT/CC/CT…) — anh 27/10/2026 "thêm bộ lọc chi tiết như danh sách camp KT"   // lọc theo MỘT luật (cột Luật bảng Camp)
   const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : 'chay');   // ?l= lọc camp
   // tab Creative: Hiệu quả | 🛡 Quét nội dung (?v=soat) | 🏭 Đang sx (?v=sx — anh 26/10/2026 "Thêm 1 tab là Đang sx")
   const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
@@ -1192,6 +1193,19 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     return { i, v: chi * r, tu: chi * (r - 0.07), den: chi * (r + 0.07), cach: `chi ~${usd(chi)} (90% ngân sách $${ns}/ngày) × ROI ~${Math.round(r * 100)}% (TB hôm nay ${Math.round(rn * 100)}% và hôm qua ${Math.round(rq * 100)}%)` };
   })();
 
+  // ô chọn lọc camp — MỘT bản cho máy tính (cùng hàng chip) và điện thoại (bảng Lọc, ba ô một hàng)
+  const luatSel = () => (<select value={luatLoc} onChange={(e) => { const v = e.target.value; doi({ luat: v }, () => setLuatLoc(v)); }} title="lọc camp theo một luật (đang chạm hoặc sắp chạm)" style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
+            <option value="">Luật: tất cả</option>
+            {[...new Set(Object.values(LUAT_NHAN).map((x) => x[1]))].map((t) => { const n = du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[1] === t)).length; return n ? <option key={t} value={t}>{t}</option> : null; })}
+          </select>);
+  const dangSel = () => (<select value={dangLoc} onChange={(e) => { const v = e.target.value; doi({ dang: v }, () => setDangLoc(v)); }} title="lọc camp theo loại creative" style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
+            <option value="">Loại: tất cả</option>
+            {Object.entries(MA_DANG).map(([d, m]) => { const n = du.camps.filter((c) => c.dang === d).length; return n ? <option key={d} value={d}>{m} · {d}</option> : null; })}
+          </select>);
+  const boSel = () => (<select value={boLoc} onChange={(e) => { const v = e.target.value; doi({ bo: v }, () => setBoLoc(v)); }} title="lọc camp theo bộ tài khoản QC (tài khoản + Page)" style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
+            <option value="">TK: tất cả</option>
+            {[...new Set(du.camps.map((c) => c.bo).filter((b): b is string => !!b))].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b)).map((b) => <option key={b} value={b}>Bộ {b}{hep ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''}</option>)}
+          </select>);
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
@@ -1226,35 +1240,34 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         <Segmented<Tab> value={tab} onChange={doiTab} options={[
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
-        {tab !== 'luat' && tab !== 'tn' ? <Segmented<Kh> value={kh} onChange={setKh} options={(Object.keys(KH_TEN) as Kh[]).map((k) => ({ value: k, label: KH_TEN[k] }))} /> : null}
+        {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
+        {tab !== 'luat' && tab !== 'tn' ? (hep
+          ? <select value={kh} onChange={(e) => setKh(e.target.value as Kh)} title="chu kỳ số liệu" style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
+              {(Object.keys(KH_TEN) as Kh[]).map((k) => <option key={k} value={k}>{KH_TEN[k]}</option>)}</select>
+          : <Segmented<Kh> value={kh} onChange={setKh} options={(Object.keys(KH_TEN) as Kh[]).map((k) => ({ value: k, label: KH_TEN[k] }))} />) : null}
         {tab === 'camp' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
             {([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']] as const).map(([v, nhan, t]) => (
               <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
-                background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{nhan}</button>))}
+                background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{hep ? nhan.split(' ')[0] : nhan}</button>))}
           </span>) : null}
+        {hep && tab === 'camp' && xemCamp !== 'lich' ? (() => { const coLoc = loc !== 'chay' || !!luatLoc || !!dangLoc || !!boLoc;
+          return <button onClick={() => setMoLoc((v) => !v)} title={coLoc ? 'đang có lọc' : 'mở bộ lọc'} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', color: coLoc ? '#60a5fa' : 'inherit',
+            border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}
         {tab === 'creative' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
             {([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm']] as const).map(([v, nhan, t]) => (
               <button key={nhan} onClick={() => doiXemCr(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}
-        {tab === 'camp' && xemCamp !== 'lich' ? <FilterChips value={loc} onChange={doiLoc} counts={{ all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > 3).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length }}
-          options={[{ value: 'chay', label: 'Đang chạy' }, { value: 'cho', label: 'Chờ giờ chạy' }, { value: 'tat', label: 'Đã tắt' }, { value: 'luat', label: '⚑ Chạm luật' }, { value: 'ganluat', label: '◌ Sắp chạm luật' }, { value: 'gtang', label: '⇡ Gần tăng' }, { value: 'ggiam', label: '⇣ Gần giảm' }, { value: 'gtat', label: '✕ Gần tắt' }, { value: 'cung', label: 'Đoạn > 3 camp' }, { value: 'roas', label: '★ Đủ bid ROAS' }, { value: 'all', label: 'Tất cả' }]} /> : null}
-        {tab === 'camp' && xemCamp !== 'lich' ? (
-          <select value={luatLoc} onChange={(e) => { const v = e.target.value; doi({ luat: v }, () => setLuatLoc(v)); }} title="lọc camp theo một luật (đang chạm hoặc sắp chạm)" style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
-            <option value="">Luật: tất cả</option>
-            {[...new Set(Object.values(LUAT_NHAN).map((x) => x[1]))].map((t) => { const n = du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[1] === t)).length; return n ? <option key={t} value={t}>{t}</option> : null; })}
-          </select>) : null}
-        {tab === 'camp' && xemCamp !== 'lich' ? (
-          <><select value={dangLoc} onChange={(e) => { const v = e.target.value; doi({ dang: v }, () => setDangLoc(v)); }} title="lọc camp theo loại creative" style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
-            <option value="">Loại: tất cả</option>
-            {Object.entries(MA_DANG).map(([d, m]) => { const n = du.camps.filter((c) => c.dang === d).length; return n ? <option key={d} value={d}>{m} · {d}</option> : null; })}
-          </select>
-          <select value={boLoc} onChange={(e) => { const v = e.target.value; doi({ bo: v }, () => setBoLoc(v)); }} title="lọc camp theo bộ tài khoản QC (tài khoản + Page)" style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }}>
-            <option value="">TK: tất cả</option>
-            {[...new Set(du.camps.map((c) => c.bo).filter((b): b is string => !!b))].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b)).map((b) => <option key={b} value={b}>Bộ {b}{du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''}</option>)}
-          </select></>) : null}
+        {tab === 'camp' && xemCamp !== 'lich' && (!hep || moLoc) ? <div style={hep ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
+        {<FilterChips value={loc} onChange={doiLoc} counts={{ all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > 3).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length }}
+          options={[{ value: 'chay', label: 'Đang chạy' }, { value: 'cho', label: 'Chờ giờ chạy' }, { value: 'tat', label: 'Đã tắt' }, { value: 'luat', label: '⚑ Chạm luật' }, { value: 'ganluat', label: '◌ Sắp chạm luật' }, { value: 'gtang', label: '⇡ Gần tăng' }, { value: 'ggiam', label: '⇣ Gần giảm' }, { value: 'gtat', label: '✕ Gần tắt' }, { value: 'cung', label: 'Đoạn > 3 camp' }, { value: 'roas', label: '★ Đủ bid ROAS' }, { value: 'all', label: 'Tất cả' }]} />}
+        {hep ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }} className="etp-loc3">
+          <style>{'.etp-loc3 select{width:100%;min-width:0}'}</style>
+          {luatSel()}{dangSel()}{boSel()}</div> : null}
+        {!hep ? <>{luatSel()}{dangSel()}{boSel()}</> : null}
+        </div> : null}
       </div>
       {tab === 'tong' ? (
         <div>

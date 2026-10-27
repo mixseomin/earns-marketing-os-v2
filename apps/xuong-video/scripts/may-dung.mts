@@ -14,7 +14,7 @@
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
-//   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
+//   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, dang, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
@@ -38,7 +38,7 @@ if (a.includes('--nap')) {
   console.log(JSON.stringify(kq));
 } else if (lay('--ke-hoach') != null) {
   const ngay = lay('--ke-hoach')!; if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay)) { console.error('--ke-hoach cần ngày YYYY-MM-DD'); process.exit(1); }
-  process.stdout.write(JSON.stringify(await db.execute(sql`SELECT ho, nen, format, can_dung, goc, dich FROM ke_hoach_goc WHERE may = ${ma} AND ngay = ${ngay}::date`)));
+  process.stdout.write(JSON.stringify(await db.execute(sql`SELECT ho, nen, format, dang, can_dung, goc, dich FROM ke_hoach_goc WHERE may = ${ma} AND ngay = ${ngay}::date`)));
 } else if (a.includes('--ds')) {
   process.stdout.write(JSON.stringify(await dsVideoDang(db, ma, a.includes('--ca-luu-tru'))));
 } else if (lay('--xuat') != null) {

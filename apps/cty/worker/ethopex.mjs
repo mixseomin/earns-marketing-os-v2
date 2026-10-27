@@ -425,9 +425,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // (anh 26/10/2026: "lúc chuẩn bị tắt / bật hàng loạt phải báo qua tele") — camp mới chạm luật vào sổ chờ + một tin "sắp tắt"; nhịp sau (≥ 25 phút) còn chạm
   // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
   // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ). Luật ROAS KHÔNG đi đường này — xem khối ★ ROAS bên dưới (anh: báo riêng, anh tự quyết).
+  // anh 27/10/2026: "Đặt 1 cái mới … Sau đó dừng T7" → T2 thay T7 (máy luật không còn trả tat7)
   const LUAT_TAT = [
-    { khoa: 'tat7', tep: 'ethopex-tat7.json', ten: 'LUẬT T7', mo_ta: 'luật T7: 7 ngày đã khép lãi &lt; −$1 (anh 26/10), &gt; 3 ngày có chi, chi &gt; $5',
-      luat: 'T7 (7 ngày đã khép lãi < −$1, > 3 ngày bật, chi > $5)', ai: 'anh (chat 26/10/2026: thêm và áp dụng luật T7, tắt đủ danh sách) — máy chạy' },
+    { khoa: 'tat2', tep: 'ethopex-tat2.json', ten: 'LUẬT T2', mo_ta: 'luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ $1',
+      cot: 'Lãi 2n', luat: 'T2 (2 ngày đầu ROI < −20%, chi ≥ $1)', ai: 'anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
@@ -438,7 +439,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (moi.length) {
       const lo = moi.reduce((a, m) => a + Number((String(m.chu).match(/lãi \$([+-]?[\d.]+)/) || [])[1] || 0), 0);
       await guiNhanh({ message_thread_id: topic, text: `⏳ <b>SẮP TẮT ${moi.length} CAMP</b> ở nhịp kế (~30 phút) — ${LT.mo_ta} · tổng lãi $${lo.toFixed(2)}\n`
-        + [`${'Camp'.padEnd(8)}${'Bộ'.padStart(3)}${'Lãi 7n'.padStart(9)}${'ROI'.padStart(7)}`, ...moi.map((m) => { const c = String(m.chu); const l = (c.match(/lãi \$([+-]?[\d.]+)/) || [])[1] || ''; const r = (c.match(/ROI ([+-]?\d+%)/) || [])[1] || ''; return `#${String(m.id).padEnd(7)}${String(m.bo || '?').padStart(3)}${l.padStart(9)}${r.padStart(7)}`; })].map((d, i) => (i === 0 ? `<b><code>${esc(d)}</code></b>` : `<code>${esc(d)}</code>`)).slice(0, 61).join('\n')   // bảng (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng")
+        + [`${'Camp'.padEnd(8)}${'Bộ'.padStart(3)}${(LT.cot || 'Lãi').padStart(9)}${'ROI'.padStart(7)}`, ...moi.map((m) => { const c = String(m.chu); const l = (c.match(/lãi \$([+-]?[\d.]+)/) || [])[1] || ''; const r = (c.match(/ROI ([+-]?\d+%)/) || [])[1] || ''; return `#${String(m.id).padEnd(7)}${String(m.bo || '?').padStart(3)}${l.padStart(9)}${r.padStart(7)}`; })].map((d, i) => (i === 0 ? `<b><code>${esc(d)}</code></b>` : `<code>${esc(d)}</code>`)).slice(0, 61).join('\n')   // bảng (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng")
         + `\n<i>Muốn giữ camp nào: nhắn trong chat trước giờ đó. Camp ROI cộng dồn &gt; 20% máy không tắt.</i>` });
       gui++;
     }

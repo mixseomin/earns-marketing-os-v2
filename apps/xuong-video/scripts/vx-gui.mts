@@ -1,6 +1,9 @@
 // GỬI LÔ video lên VideoExpress.ai qua br (anh 27/10/2026). Mỗi shot cờ `nguon:"vx"` (hoặc --so=list): nạp so-N-that.png làm khung đầu →
 // prompt chuyển động từ `dien_en` (+ sfx) → Create Video. Ghi sổ {shot → uuid} vào <bang>.vx.json để vx-lay.mts lấy về.
 // GỬI async nên cứ gửi hết lô rồi đi (không chờ render); dừng ngay khi gặp "limit" (hết lượt/ngày). $0 — lái giao diện thật, không đụng ToS.
+// TRẠNG THÁI 27/10/2026: upload (napKhung) + mở modal (moModal, có tải lại trang cho sạch) chạy ỔN. Bước CHỌN KHUNG trong picker "Select Image"
+// còn CHẬP CHỜN (SPA React: event synthetic bị bỏ qua, folder chỉ mở bằng click toạ độ thật, picker dễ bị đóng) — có khi phải mở folder bằng tay 1 lần.
+// vx-lay.mts (lấy về) thì ỔN hoàn toàn. Hai clip #26/#28 đã sinh THẬT (submit do thao tác tay hỗ trợ), mặt Hạ giữ nguyên.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && ~/bin/br use 677 && ~/bin/br goto https://app.videoexpress.ai/   # mở app trước
 //   VX_CHAY=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/vx-gui.mts --bang=scripts/so-do/thang-may-356.json --khung=/tmp/khung-356 --so=26,28
 //   (bỏ VX_CHAY=1 = chạy thử, chỉ IN tag + prompt, không gửi)

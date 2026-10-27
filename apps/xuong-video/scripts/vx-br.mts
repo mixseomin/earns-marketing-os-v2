@@ -21,6 +21,7 @@ export function brEval<T = unknown>(js: string): T {
 }
 export const brPost = (verb: string, body: Record<string, unknown>) =>
   execFileSync(BR, ['post', verb, JSON.stringify(body)], { encoding: 'utf8' });
+export const taiLai = () => { try { execFileSync(BR, ['goto', 'https://app.videoexpress.ai/'], { encoding: 'utf8' }); } catch {} }; // DOM mới = hết panel/modal rác (nguồn đua trạng thái)
 
 // bấm phần tử CHỮ KHỚP (không cooldown như `br click`): lấy phần tử SÂU NHẤT khớp (nhãn thật) rồi LEO lên nút bấm gần nhất
 // (icon làm <button> có nhiều con → khớp vào span rỗng bên trong là bấm hụt; phải leo về button/a).
@@ -48,7 +49,12 @@ export function trenApp(): boolean {
 }
 const dongHet = () => brEval(`(()=>{let n=0;document.querySelectorAll("button").forEach(b=>{if(b.offsetParent&&b.textContent.trim()==="Close"){b.click();n++}});return n})()`);
 const thay = (reText: string) => brEval<boolean>(`new RegExp(${JSON.stringify(reText)}).test(document.body.innerText)`);
-const moDefault = () => evDispatch(`[...document.querySelectorAll("*")].find(x=>/^Default$/.test((x.textContent||"").trim())&&x.querySelectorAll("*").length<2&&x.offsetParent)?.closest("div")`); // dblclick folder Default (dùng trong picker Select Image)
+// mở folder Default (picker Select Image): CLICK THẬT tại TOẠ ĐỘ ô folder qua daemon /clickxy — MouseEvent synthetic bị React bỏ qua,
+// còn getByText("Default") click nhầm nhãn theo thứ tự DOM (có thể dưới overlay → đóng picker). Lấy toạ độ nhãn Default rồi clickxy lên Ô (trên nhãn ~40px).
+function moDefault() {
+  const pos = brEval<{ x: number; y: number } | null>(`(()=>{const l=[...document.querySelectorAll("*")].filter(x=>/^Default$/.test((x.textContent||"").trim())&&x.offsetParent&&x.querySelectorAll("*").length<2);if(!l.length)return null;const r=l[0].getBoundingClientRect();return{x:Math.round(r.x+r.width/2),y:Math.round(r.y-40)}})()`);
+  if (pos) { try { brPost('clickxy', { x: pos.x, y: pos.y, dbl: true }); } catch {} }
+}
 // MỞ panel theo NỘI DUNG, không toggle: chỉ bấm nút rail khi nội dung CHƯA hiện (bấm lại nút rail của panel đang mở = TẮT nó).
 async function moPanel(railText: string, noiDung: string) { if (!thay(noiDung)) { evClick(railText); await ngu(1500); } }
 // về gốc thư viện (thoát folder đang mở) rồi mở Default
@@ -91,17 +97,25 @@ async function moModal(): Promise<boolean> {
 // GỬI một shot: mở modal → 9:16 → prompt chuyển động → Use from Library → chọn tile tag → Create Video.
 // Trả uuid của job vừa tạo (item my_ai_videos mới nhất chưa có trong daBiet), hoặc null.
 export async function guiShot(tag: string, prompt: string, catVideo: number, daBiet: Set<string>): Promise<string | null> {
+  taiLai(); await ngu(5000); // trang mới, sạch panel rác từ napKhung / lần trước
   if (!(await moModal())) { console.log(`  ! ${tag}: không mở được modal`); return null; }
   // 9:16 + prompt vào ô "Video and Audio Prompt" (ta[1]) + xoá ta[0] + TẮT auto-enhance
   brEval(`(()=>{const v=[...document.querySelectorAll("button")].find(x=>/vertical 9:16/i.test(x.textContent)&&x.offsetParent&&x.getBoundingClientRect().top<160);if(v)v.click();const ta=document.querySelectorAll("textarea");const set=(el,val)=>{const d=Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,"value").set;d.call(el,val);el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))};if(ta[0])set(ta[0],"");if(ta[1])set(ta[1],${JSON.stringify(prompt)});const enh=[...document.querySelectorAll("input[type=checkbox]")].find(c=>/enhance my image/i.test(c.closest("label")?.textContent||c.parentElement?.textContent||""));if(enh&&enh.checked)enh.click();return 1})()`);
   await ngu(600);
-  evClick('use from library', 'true'); await ngu(2500);
-  await moDefault();
-  // tile load CHẬM sau khi mở folder → chờ tới khi có tile (tránh "no-tile(0)")
-  for (let i = 0; i < 8; i++) { await ngu(1200); if (brEval<number>(`[...document.querySelectorAll("*")].filter(x=>{const b=getComputedStyle(x).backgroundImage||"";return x.offsetParent&&(b.indexOf("cdn-ny-b")>-1||b.indexOf("userfiles")>-1)&&x.getBoundingClientRect().width>80}).length`) > 0) break; }
+  const coPicker = () => brEval<boolean>(`/Select Image/.test(document.body.innerText)`);
+  const coSearch = () => brEval<boolean>(`[...document.querySelectorAll("input")].some(i=>i.offsetParent&&/search/i.test(i.placeholder||""))`); // = đang Ở TRONG folder
+  const coDefaultLabel = () => brEval<boolean>(`[...document.querySelectorAll("*")].some(x=>/^Default$/.test((x.textContent||"").trim())&&x.offsetParent&&x.querySelectorAll("*").length<2)`);
+  const demTile = () => brEval<number>(`[...document.querySelectorAll("*")].filter(x=>{const b=getComputedStyle(x).backgroundImage||"";return x.offsetParent&&(b.indexOf("cdn-ny-b")>-1||b.indexOf("userfiles")>-1)&&x.getBoundingClientRect().width>80}).length`);
+  // 1) mở picker (verify + retry)
+  for (let i = 0; i < 8 && !coPicker(); i++) { evClick('use from library', 'true'); await ngu(1000); }
+  // 2) vào folder Default (clickxy toạ độ, verify bằng search box; retry) — bỏ qua nếu đã ở trong folder
+  for (let i = 0; i < 6 && coPicker() && !coSearch(); i++) { if (coDefaultLabel()) moDefault(); await ngu(1500); }
+  // 3) chờ tile load
+  let nTile = 0;
+  for (let i = 0; i < 8; i++) { nTile = demTile(); if (nTile > 0) break; await ngu(1200); }
   // chọn tile có NHÃN = tag (khớp chính xác), fallback tile đầu nếu chỉ một
   const chon = brEval<string>(`(()=>{document.body.click();const tiles=[...document.querySelectorAll("*")].filter(x=>{const b=getComputedStyle(x).backgroundImage||"";return x.offsetParent&&(b.indexOf("cdn-ny-b")>-1||b.indexOf("userfiles")>-1)&&x.getBoundingClientRect().width>80});const khop=tiles.find(x=>{const box=x.closest("div")?.parentElement||x.parentElement;return new RegExp("^"+${JSON.stringify(tag)}+"$","i").test((box?box.innerText:"").trim())});const tile=khop||(tiles.length===1?tiles[0]:null);if(!tile)return "no-tile("+tiles.length+")";const r=tile.getBoundingClientRect();tile.dispatchEvent(new MouseEvent("click",{bubbles:true,clientX:r.x+r.width/2,clientY:r.y+r.height/2}));const c=[...document.querySelectorAll("button")].find(x=>/^\\s*Choose\\s*$/i.test((x.textContent||"").trim())&&x.offsetParent);if(c){c.click();return "chose"}return "no-choose"})()`);
-  if (chon !== 'chose') { console.log(`  ! ${tag}: không chọn được khung (${chon})`); dongHet(); return null; }
+  if (chon !== 'chose') { console.log(`  ! ${tag}: không chọn được khung (${chon}, tile=${nTile})`); dongHet(); return null; }
   await ngu(2000);
   if (!brEval<boolean>(`(()=>{const cv=[...document.querySelectorAll("button")].find(x=>/create video/i.test(x.textContent)&&x.offsetParent);return cv?!cv.disabled:false})()`)) { console.log(`  ! ${tag}: nút Create Video chưa bật`); return null; }
   brEval(`(()=>{const cv=[...document.querySelectorAll("button")].find(x=>/create video/i.test(x.textContent)&&x.offsetParent&&!x.disabled);if(cv)cv.click();return 1})()`);

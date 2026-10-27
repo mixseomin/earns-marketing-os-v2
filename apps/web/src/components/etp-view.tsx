@@ -4,7 +4,7 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useRouter } from 'next/navigation';
 import { DataTable, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
-import { xepHangCham, duyetCham, tatBatCreative } from '@/lib/actions/etp-cham';
+import { xepHangCham, duyetCham, tatCreative } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien } from '@/lib/etp-doc';
 
@@ -660,8 +660,8 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const [dangTb, setDangTb] = useState<Record<number, boolean>>({});   // vừa bấm Tắt (false) / Bật (true), chờ kho thấy trạng thái mới
   useEffect(() => { setDangTb((d) => { const x = { ...d }; for (const k of Object.keys(x)) { const r = du.creatives.find((c) => c.creative_id === Number(k)); if (r && (r.chay > 0) === x[Number(k)]) delete x[Number(k)]; } return x; }); }, [du.creatives]);
   useEffect(() => { if (!Object.keys(dangTb).length) return; const t = setInterval(() => router.refresh(), 10_000); return () => clearInterval(t); }, [dangTb, router]);
-  const tatBat = async (id: number, bat: boolean, so: number) => { if (!confirm(`${bat ? 'Bật' : 'Tắt'} ${so} camp của creative #${id}?`)) return;
-    const r = await tatBatCreative(id, bat); if ('loi' in r) return alert(r.loi); setDangTb((d) => ({ ...d, [id]: bat })); };
+  const tat = async (id: number, so: number) => { if (!confirm(`Tắt ${so} camp của creative #${id}?`)) return;
+    const r = await tatCreative(id); if ('loi' in r) return alert(r.loi); setDangTb((d) => ({ ...d, [id]: false })); };
   const duyet = async (id: number, ok: boolean) => { setDangDuyet((d) => ({ ...d, [id]: ok })); const r = await duyetCham(id, ok); if ('loi' in r) { alert(r.loi); setDangDuyet((d) => { const x = { ...d }; delete x[id]; return x; }); } router.refresh(); };
   const sot = ds.filter((x) => x.metaLoi && x.c && x.c.ket === 'ok').length;
   type Dong = (typeof ds)[number];
@@ -723,12 +723,12 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
           { key: 'chay', header: 'Chạy', align: 'center', width: 70, title: 'đèn xanh nhấp nháy = creative đang có camp ACTIVE (chạy thật) · rê chuột vào ô để Tắt mọi camp của creative (bật lại không làm ở đây)', cell: (x) => {
             const cho = dangTb[x.r.creative_id], bat = x.r.chay > 0;
             if (!x.r.camp) return <Den mau={MAU_DEN.tat} rong t="chưa lên camp" />;
-            if (cho != null) return <Den mau={MAU_DEN.cho} song t={`đã gửi lệnh ${cho ? 'bật' : 'tắt'}, chờ Ethopex`} />;
+            if (cho != null) return <Den mau={MAU_DEN.cho} song t="đã gửi lệnh tắt, chờ Ethopex" />;
             // KHÔNG BẬT TỪ ĐÂY (anh 26/10/2026: "không nên cho bật lại camp từ đây vì còn nhiều rule xung quanh. Chỉ cho duyệt Creative là đủ") — camp tắt chỉ có đèn xám
             if (!bat) return <Den mau={MAU_DEN.tat} t={`${x.r.camp} camp đã tắt`} />;
-            return <span className="etp-chay"><span className="den"><Den mau={bat ? MAU_DEN.chay : MAU_DEN.tat} song={bat} t={bat ? `${x.r.chay}/${x.r.camp} camp đang chạy` : `${x.r.camp} camp đã tắt`} /></span>
-              <button className="nut" onClick={() => tatBat(x.r.creative_id, !bat, bat ? x.r.chay : x.r.camp)}
-                style={{ border: `1px solid ${bat ? DAU_MAU.loi : DAU_MAU.ok}`, color: bat ? DAU_MAU.loi : DAU_MAU.ok, background: 'transparent', borderRadius: 5, padding: '1px 8px', fontSize: 11, cursor: 'pointer' }}>{bat ? 'Tắt' : 'Bật'}</button></span>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
+            return <span className="etp-chay"><span className="den"><Den mau={MAU_DEN.chay} song t={`${x.r.chay}/${x.r.camp} camp đang chạy`} /></span>
+              <button className="nut" onClick={() => tat(x.r.creative_id, x.r.chay)}
+                style={{ border: `1px solid ${DAU_MAU.loi}`, color: DAU_MAU.loi, background: 'transparent', borderRadius: 5, padding: '1px 8px', fontSize: 11, cursor: 'pointer' }}>Tắt</button></span>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
           { key: 'duyet', header: 'Duyệt', align: 'center', width: 120, title: 'creative có tiêu chí 5 điểm — rê vào ảnh / điểm để xem video + lý do, rồi bấm: Đạt = được lên camp mới / clone, camp đang chạy giữ nguyên · Loại = chặn lên + máy tắt mọi camp đang dùng trong ≤ 10 phút', cell: (x) => {
             const d = dangDuyet[x.r.creative_id] ?? x.c?.duyet;
             if (d != null) return <span style={{ color: d ? DAU_MAU.ok : DAU_MAU.loi, fontWeight: 600, whiteSpace: 'nowrap' }}>{d ? '✓ Đạt' : '✕ Loại'}</span>;

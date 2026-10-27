@@ -155,7 +155,7 @@ def main():
 LAM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "lam-ethopex.py")
 TAT_CHAM_TEP, DUYET_TEP = "/var/lib/cty/etp-cham-tat.json", "/var/lib/cty/etp-cham-duyet.json"
 # creative của camp: kho ghi creative_id; camp nhân bản qua Ethopex (★ ROAS "… duplicate by <gốc>") kho để 0 → lấy creative của camp gốc
-CR_CAMP = r"coalesce(nullif(c.creative_id, 0), (select s.creative_id from etp.camp s where s.camp_id = substring(c.ten from 'duplicate by (\d+)')::int))"
+CR_CAMP = "etp.creative_cua(c.creative_id, c.ten)"   # hàm SQL một nguồn (0347)
 
 def cham_mien():
     """MIỄN LUẬT CHẤM THEO CAMP — etp.cau_hinh 'cham_mien' là mảng; mỗi phần tử:
@@ -238,13 +238,6 @@ def tat_cham():
                      f'👉 <a href="https://etp.on.tc/?t=creative&v=soat&l=duyet">Duyệt trên etp.on.tc</a>')
         if mid: json.dump(sorted(bao | {cr for cr, _ in cho}), open(DUYET_TEP, "w"))
 
-def duyet(cr, kq, ai):
-    """nút Đạt / Loại dưới tin CẦN NGƯỜI DUYỆT (cty ethopex.mjs xuNutBang → lich-gio.py --duyet <cr> ok|loai <ai>)"""
-    q(f"insert into etp.cham_duyet (creative_id, ok, ai, ghi) values ({int(cr)}, {'true' if kq == 'ok' else 'false'}, $A${ai[:80]}$A$, 'Telegram') "
-      f"on conflict (creative_id) do update set ok = excluded.ok, ai = excluded.ai, luc = now()")
-    if kq != "ok": tat_cham()   # Loại → tắt luôn camp đang dùng creative này
-    return f"#{cr}: {'ĐẠT — cho lên / chạy tiếp' if kq == 'ok' else 'LOẠI — chặn lên + tắt camp đang dùng'} ({ai})"
-
 NGUONG_HUT = 0.4               # trước 13h mà đã chi ≥ 40% tổng ngân sách ngày → cảnh báo đang hút nhanh
 
 NUT_REPORT = {"inline_keyboard": [[{"text": "📊 Report", "callback_data": "eb:report"}]]}   # bấm → cty ethopex.mjs xuNutBang → lich-gio.py --bao-cao
@@ -277,8 +270,9 @@ def lap_bao_cao(vn, gio_cuoi=None):
     nhat.add(len(b)); b.append(f"Lãi {t_ng - c_ng:+.0f}$ · NS ${ns:.0f} · chi {ty * 100:.0f}%")
     # NS ĐANG CHẠY (anh 26/10/2026: "camp tắt thì ngân sách phải đổi?") — NS ở trên là mức cao nhất trong ngày (0340), không giảm khi tắt camp
     if ngay == (dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m-%d"):
-        nc, sc = q("select count(*), coalesce(round(sum(ngan_sach)), 0) from etp.camp_dang_chay").split("|")
-        dam.add(len(b)); b.append(f"NS đang chạy ${sc} · {nc} camp")
+        # camp_dang_chay gồm cả camp tạm dừng theo lịch (sẽ tự bật lại) — tách riêng để nhãn đúng nghĩa (audit 27/10/2026)
+        nc, sc, nl = q("select count(*) filter (where trang_thai = 'ACTIVE'), coalesce(round(sum(ngan_sach) filter (where trang_thai = 'ACTIVE')), 0), count(*) filter (where trang_thai <> 'ACTIVE') from etp.camp_dang_chay").split("|")
+        dam.add(len(b)); b.append(f"NS camp bật ${sc} · {nc} camp" + (f" (+{nl} dừng lịch)" if nl != "0" else ""))
     if n_r or c_r:
         b.append(f"{'★ROAS':<6}{c_r:>5.0f}{t_r:>5.0f}{roi(c_r, t_r):>6}"); nhat.add(len(b)); b.append(f"{int(n_r)} camp ROAS đang bật")
     if het:
@@ -363,6 +357,5 @@ def tu_kiem():
     print("lich-gio tự kiểm:", "ĐẠT 29/29" if not sai else f"SAI {sai}"); sys.exit(1 if sai else 0)
 
 if __name__ == "__main__":
-    if "--duyet" in sys.argv: i = sys.argv.index("--duyet"); print(duyet(sys.argv[i + 1], sys.argv[i + 2], " ".join(sys.argv[i + 3:]) or "?"))
-    elif "--bao-cao" in sys.argv: print(bao_cao_ngay_bay_gio())   # nút 📊 Report (cty ethopex.mjs xuNutBang)
+    if "--bao-cao" in sys.argv: print(bao_cao_ngay_bay_gio())   # nút 📊 Report (cty ethopex.mjs xuNutBang)
     else: tu_kiem() if "--tu-kiem" in sys.argv else main()

@@ -11,7 +11,7 @@ import { napKhung, guiShot, catId, trenApp, ngu } from './vx-br.mts';
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tepBang = gia('bang')!, thu = gia('khung')!;
 if (!tepBang || !thu) { console.error('cần --bang --khung [--so=list]'); process.exit(1); }
-type Shot = { so: number; giay: number; dien_en?: string; sfx?: string; nguon?: string };
+type Shot = { so: number; giay: number; dien_en?: string; sfx?: string; nguon?: string; thoai?: string };
 const bang = JSON.parse(readFileSync(tepBang, 'utf8')) as { shot: Shot[] };
 const chay = !!process.env.VX_CHAY;
 const loc = (gia('so') || '').split(',').map(Number).filter(Boolean);
@@ -20,6 +20,9 @@ if (!ds.length) { console.error(loc.length ? 'không có shot nào khớp --so' 
 
 function cauPrompt(s: Shot): string {
   const tieng = s.sfx ? ` Include a natural ${s.sfx.replace(/_/g, ' ')} sound and soft ambient room tone.` : ' Soft, natural ambient room tone.';
+  // SHOT THOẠI: để VideoExpress TỰ sinh tiếng Việt từ lời thoại (anh chốt 27/10 "tạm ổn vì $0" — native, không TTS ngoài).
+  // Đưa thẳng câu tiếng Việt vào prompt; dien_en cho sắc thái/động tác. enhanceVideoPrompt=0 (vx-gui) để giữ nguyên câu.
+  if (s.thoai) return `Photorealistic live-action vertical short-drama clip; the first frame is exact — keep the person's face, hair, outfit and props unchanged. The person looks ahead and speaks in Vietnamese with natural lip-sync. ${s.dien_en ?? ''} They say in Vietnamese: "${s.thoai}". Locked camera.${tieng}`.replace(/\s+/g, ' ').slice(0, 1500);
   return `Photorealistic live-action vertical short-drama clip; the first frame is exact — keep the person's face, hair, outfit and props unchanged. ${s.dien_en ?? 'Subtle natural movement.'} Subtle, natural motion and weight; locked camera unless the direction says otherwise.${tieng}`.replace(/\s+/g, ' ').slice(0, 1500);
 }
 
@@ -41,7 +44,7 @@ for (const s of ds) {
   console.log(`#${s.so} → nạp + gửi`);
   const mediaId = await napKhung(f, catDefault);
   if (!mediaId) { console.log(`#${s.so}: ✗ nạp khung hỏng — DỪNG`); break; }
-  const uuid = guiShot(mediaId, cauPrompt(s));
+  const uuid = guiShot(mediaId, cauPrompt(s), !s.thoai); // shot thoại: enhance=0 để giữ nguyên câu tiếng Việt
   so[s.so] = { uuid, mediaId, luc: new Date().toISOString(), prompt: cauPrompt(s) };
   writeFileSync(soSo, JSON.stringify(so, null, 2));
   if (uuid) { console.log(`#${s.so}: ✓ job ${uuid.slice(0, 8)} (mediaId ${mediaId})`); gui++; }

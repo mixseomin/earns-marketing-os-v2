@@ -44,12 +44,13 @@ export async function napKhung(file: string, catDefault: number): Promise<number
   return moi ? moi.id : null;
 }
 
-// GỬI image2video qua fetch. prompt = chỉ đạo chuyển động. Trả uuid hoặc null. isShared=0 (riêng tư). aspect 9:16.
-export function guiShot(mediaId: number, prompt: string): string | null {
+// GỬI image2video qua fetch. prompt = chỉ đạo chuyển động (+ lời thoại VN cho shot thoại — VideoExpress TỰ sinh tiếng, $0). Trả uuid. isShared=0, aspect 9:16.
+// enhance=false cho shot THOẠI: giữ nguyên câu tiếng Việt, không để máy tự viết lại prompt (anh chốt 27/10 dùng native speech).
+export function guiShot(mediaId: number, prompt: string, enhance = true): string | null {
   const body = [
     'type=human', 'imagePrompt=', `prompt=${encodeURIComponent(prompt)}`, 'uuid=', `mediaId=${mediaId}`,
     'audioMediaId=0', 'isShared=0', 'aspect=9%3A16', 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
-    'isNarrationVideo=0', 'enhanceVideoPrompt=1', 'videoOnly=0', 'speed=', 'generatorName=create_from_prompt',
+    'isNarrationVideo=0', `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', 'generatorName=create_from_prompt',
     'faceImageMediaId=0', 'faceSwap=0', 'mode=',
   ].join('&');
   const r = brEval<{ success?: boolean; uuid?: string; message?: string }>(

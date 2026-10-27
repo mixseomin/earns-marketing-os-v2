@@ -100,7 +100,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
       sum(chi) filter (where ngay = ${qua}::date) qc, sum(thu) filter (where ngay = ${qua}::date) qt,
       sum(chi) filter (where ngay = ${nay}::date) nc, sum(thu) filter (where ngay = ${nay}::date) nt, min(ngay) filter (where chi > 0) ngay_dau
     from etp.so_ngay group by camp_id`;
-  const [ngay, camps, cauHinh, nhatKy, lsBacR, xetR, canhBao, dongBo, tl] = await Promise.all([
+  const [ngay, camps, cauHinh, nhatKy, xetR, lsBacR, canhBao, dongBo, tl] = await Promise.all([   // thứ tự PHẢI khớp các câu bên dưới (xet_luat trước lịch sử bậc)
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0) ns from etp.so_ngay group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = c.creative_id where cr.doan is not null group by cr.doan)

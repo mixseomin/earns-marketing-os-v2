@@ -878,13 +878,15 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
   // bỏ cột biểu đồ riêng; s = số ngày đó, max = |lãi| lớn nhất của dòng, mo = hôm nay (đang chạy, nhạt)
   const O = ({ v, t, cot, s, max, mo }: { v: number | null; t: string; cot: string; s?: SoTien; max?: number; mo?: boolean }) => {
     if (s == null || max == null) return <O0 v={v} t={t} cot={cot} />;
-    const lai = s.thu - s.chi, h = max > 0 ? Math.max(lai ? 1 : 0, Math.round((Math.abs(lai) / max) * 7)) : 0;
-    return <span data-cot={cot} data-cot-can="giua" title={`${t}${s.chi ? ` · chi ${usd(s.chi)} · lãi ${usd(lai)}` : ' · chưa chi'}`} style={{ width: 38, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-      <span style={{ position: 'relative', width: 16, height: 14, opacity: mo ? 0.6 : 1 }}>
-        <span style={{ position: 'absolute', left: 0, right: 0, top: 7, height: 1, background: 'var(--line)' }} />
-        {h ? <span style={{ position: 'absolute', left: 2, right: 2, borderRadius: 1, background: lai >= 0 ? '#4ade80' : '#f87171', ...(lai >= 0 ? { bottom: 7, height: h } : { top: 8, height: h }) }} /> : null}
+    // anh 27/10/2026 "số bé lại, chart rõ hơn, bỏ bớt khoảng trống, highlight hôm nay": cột 30px cao ±10px, số 9px sát dưới, ô hôm nay nền xanh nhạt
+    const lai = s.thu - s.chi, h = max > 0 ? Math.max(lai ? 2 : 0, Math.round((Math.abs(lai) / max) * 10)) : 0, mau = v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171';
+    return <span data-cot={cot} data-cot-can="giua" title={`${t}${s.chi ? ` · chi ${usd(s.chi)} · lãi ${usd(lai)}` : ' · chưa chi'}`} style={{ width: 38, alignSelf: 'stretch', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: mo ? 'rgba(59,130,246,.12)' : undefined, boxShadow: mo ? 'inset 1px 0 rgba(59,130,246,.35), inset -1px 0 rgba(59,130,246,.35)' : undefined }}>
+      <span style={{ position: 'relative', width: 30, height: 21 }}>
+        <span style={{ position: 'absolute', left: 0, right: 0, top: 10, height: 1, background: 'var(--line)' }} />
+        {h ? <span style={{ position: 'absolute', left: 3, right: 3, borderRadius: 2, background: lai >= 0 ? '#4ade80' : '#f87171', ...(lai >= 0 ? { bottom: 11, height: h } : { top: 11, height: h }) }} /> : null}
       </span>
-      <O0 v={v} t={t} cot={`${cot}-so`} /></span>;
+      <span data-cot={`${cot}-so`} style={{ fontSize: 9, lineHeight: '10px', color: mau, fontVariantNumeric: 'tabular-nums' }}>{v == null ? '' : `${v}%`}</span></span>;
   };
   const maxLai = (ds: (SoTien | undefined)[]) => Math.max(0, ...ds.map((x) => (x ? Math.abs(x.thu - x.chi) : 0)));
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {
@@ -952,7 +954,7 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
             <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách · ROI nay</span><span>creative · đoạn</span><span>loại</span>
             <span title="lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt, ⏸ đang dừng theo lịch)">lịch giờ</span><span title="số bản nhân">nhân</span><span title="nhân bản lỗi 24h">⚠ lỗi</span><span title="ROI giảm 2 ngày">↘</span><span title="số camp cùng đoạn video / trần 3">đoạn</span><span />
           </span>)}
-        {hep ? null : ngay.map((d, i) => <span key={d} data-cot={`roi-${i}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm nay">nay</span>
+        {hep ? null : ngay.map((d, i) => <span key={d} data-cot={`roi-${i}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center', color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' }} title="ROI hôm nay">nay</span>
         {hep ? <span data-cot="roi-qua" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm qua">qua</span> : null}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }} title="lãi 6 ngày trọn + hôm nay">lãi 7 ngày</span>
       </div>

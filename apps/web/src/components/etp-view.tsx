@@ -862,15 +862,19 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
           <summary className="dong-phim" style={{ cursor: 'pointer', padding: '6px 0', fontSize: 13, display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, rowGap: 2, alignItems: 'center' }}>
             {/* điện thoại (anh 27/10/2026 "đéo đọc được tên phim"): tên phim một dòng riêng trọn bề ngang, không cắt …; dòng dưới là số camp + ký hiệu + cột số */}
             {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0 }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></span> : null}
-            <span style={{ display: 'flex', gap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap', paddingLeft: hep ? 18 : 0 }}>
+            {/* THẲNG CỘT NGÂN SÁCH (anh 27/10/2026): ô đầu dòng phim dùng CÙNG lưới trong của dòng camp (LUOI_CAMP_HEP / LUOI_TRONG), cột 1 bù phần lề trái
+                dòng camp (4px điện thoại / 12px máy tính) → tổng $ đứng đúng cột $ của từng camp */}
+            <span style={{ display: 'grid', gridTemplateColumns: hep ? LUOI_CAMP_HEP.replace(/^10px/, '14px') : LUOI_TRONG.replace(/^12px/, '24px'), columnGap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
+            <span style={{ gridColumn: hep ? '1 / 3' : '1 / 4', display: 'flex', gap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, overflow: 'hidden', paddingLeft: hep ? 18 : 0 }}>
             {hep ? null : <><span className="mui">▸</span><b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
             <span title="camp" style={{ color: 'var(--fg-2)' }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
             {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b' }}>{hep ? '⚠' : '⚠ bão hoà'}</span> : null}
             {p.b?.chan_nb ? <span title={`Tạm dừng nhân bản phim này: ${p.b.chan_nb.replace(/ROI phim/g, 'lãi cả phim')}`} style={{ color: '#f59e0b' }}>⏸🧬</span> : null}
             {p.loi ? <span title={`${p.loi} camp không nhân bản được trong 24 giờ`} style={{ color: '#f87171' }}>⚠{p.loi}</span> : null}
             {p.sut ? <span title={`${p.sut} camp lãi giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}
-            {/* tổng ngân sách camp đang bật của phim (anh 27/10/2026), thẳng cột với $ của từng camp bên dưới */}
-            <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ marginLeft: 'auto', color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>${p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</span>
+            </span>
+            {/* tổng ngân sách/ngày camp đang bật — mép phải trùng mép phải $ của camp (điện thoại: ô 30px canh phải; máy tính: ô $ 26px đầu BacCamp) */}
+            <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ display: 'flex', justifyContent: 'flex-end', width: hep ? undefined : 26, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>${p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</span>
             </span>
             {hep ? null : ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }))} t={`ROI cả phim ${d.slice(8, 10)}/${d.slice(5, 7)}`} />)}
             <O cot="roi-nay" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm nay" />

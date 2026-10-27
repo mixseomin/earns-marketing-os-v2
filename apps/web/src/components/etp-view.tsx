@@ -759,7 +759,9 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
 }
 
 // ĐIỆN THOẠI (anh 25/10/2026 "tối ưu trên mobile"): dòng = chấm · camp · ngân sách · dải lịch · ROI hôm nay · lãi 7 ngày; ẩn 6 ô ngày, ô bậc, ô creative; chú giải gập sau nút
-const LUOI_CAY_HEP = '1fr 38px 64px';
+const LUOI_CAY_HEP = '1fr 38px 78px';   // lãi 7 ngày cần ~78px cho "$ 1,416.34"
+// điện thoại (anh 27/10/2026 "trên mobile ẩn cái này đi, bố cục lại cho thẳng cột"): bỏ dải lịch giờ; ô camp chia lưới cố định chấm · ▸#id (thụt theo cấp) · $ngân sách · 🧬/⚠ — mọi dòng cùng mép
+const LUOI_CAMP_HEP = '10px minmax(0,1fr) 30px 36px';
 function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean }) {
   const tlC = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
   const [xep, setXep] = useState<'lai' | 'tuoi'>('lai');
@@ -789,9 +791,11 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
     const hang = hep ? (
       <div className="dong" style={{ display: 'grid', gridTemplateColumns: LUOI_CAY_HEP, columnGap: 4, alignItems: 'center', padding: '5px 0 5px 4px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined }}>
-        <span style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, paddingLeft: (cap - 1) * 10, whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          <TT c={c} /><span className="mui">{ds.length ? '▸' : ''}</span><b>#{c.camp_id}</b><span style={{ color: 'var(--fg-2)' }}>${c.ngan_sach}</span><LichCamp c={c} du={du} tl={tlC} />
-          {n ? <span>🧬{n}</span> : null}{l ? <span style={{ color: '#f87171' }}>⚠{l.lan}</span> : null}
+        <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
+          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span>
+          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><b>#{c.camp_id}</b></span>
+          <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>${c.ngan_sach}</span>
+          <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{l ? <span style={{ color: '#f87171' }} title={`nhân bản lỗi ${l.lan} lần / 24h`}>⚠{l.lan}</span> : n ? <span title={`${n} bản nhân`}>🧬{n}</span> : null}</span>
         </span>
         <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" />
         <span style={{ textAlign: 'right' }}><LaiCot s={laiC} /></span>

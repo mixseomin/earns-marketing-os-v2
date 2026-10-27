@@ -12,9 +12,10 @@ import { anhTop, assTop, kichBanTop, lenhTop, nhipTop, truyVanThemTop, truyVanTo
 import { anhLat, assLat, kichBanLat, lenhLat, nhipLat, truyVanLat, truyVanThemLat, type DeLat } from './may-dung-lat';
 import { anhSoSanh, assSoSanh, kichBanSoSanh, lenhSoSanh, nhipSoSanh, truyVanSoSanh, truyVanThemSoSanh, type DeSoSanh } from './may-dung-so-sanh';
 import { anhCauNoi, assCauNoi, kichBanCauNoi, lenhCauNoi, nhipCauNoi, truyVanCauNoi, type DeCauNoi } from './may-dung-cau-noi';
+import { anhGia, assGia, kichBanGia, lenhGia, nhipGia, truyVanGia, type DeGia } from './may-dung-gia';
 import type { MauMayDung } from './may-dung-mau';
 
-export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeAnh | DeTop | DeLat | DeSoSanh | DeCauNoi;
+export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeAnh | DeTop | DeLat | DeSoSanh | DeCauNoi | DeGia;
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
 type LenhVao = { de: DeMay; ass: string; nen: string | null; /** ảnh nền THÊM (mẫu nhiều cảnh — nen_them) */ nenThem?: string[]; /** tệp tiếng nền thu thật (mẫu nenVideo / amThat) */ am?: string | null; fontsDir: string; ra: string; khung?: number };
 /** tuNguon: một dòng tệp nguồn đề của mẫu → dòng nạp máy { slug, chu_de, de, dang } (may-dung.mts --nap-nguon). */
@@ -29,6 +30,7 @@ export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'canh-dong': { ass: (de) => assCanh(de as DeCanh), lenh: (o) => lenhCanh({ ...o, de: o.de as DeCanh }), shots: (de) => kichBanCanh(de as DeCanh).shots, dai: (de) => nhipCanh(de as DeCanh).DAI, anh: (de) => anhCanh(de as DeCanh), truyVanAnh: (de) => truyVanCanh(de as DeCanh), nenVideo: true },
   'bai-anh': { ass: (de) => assAnh(de as DeAnh), lenh: (o) => lenhAnh({ ...o, de: o.de as DeAnh }), shots: (de) => kichBanAnh(de as DeAnh).shots, dai: () => 2, anh: (de) => anhAnh(de as DeAnh), truyVanAnh: (de) => truyVanBaiAnh(de as DeAnh), chiAnh: true },
   'top-n': { ass: (de) => assTop(de as DeTop), lenh: (o) => lenhTop({ ...o, de: o.de as DeTop }), shots: (de) => kichBanTop(de as DeTop).shots, dai: (de) => nhipTop(de as DeTop).DAI, anh: (de) => anhTop(de as DeTop), truyVanAnh: (de) => truyVanTop(de as DeTop), truyVanThem: (de) => truyVanThemTop(de as DeTop), amThat: true },
+  'cai-nao-gia': { ass: (de) => assGia(de as DeGia), lenh: (o) => lenhGia({ ...o, de: o.de as DeGia }), shots: (de) => kichBanGia(de as DeGia).shots, dai: (de) => nhipGia(de as DeGia).DAI, anh: (de) => anhGia(de as DeGia), truyVanAnh: (de) => truyVanGia(de as DeGia), amThat: true },
   'cau-noi': { ass: (de) => assCauNoi(de as DeCauNoi), lenh: (o) => lenhCauNoi({ ...o, de: o.de as DeCauNoi }), shots: (de) => kichBanCauNoi(de as DeCauNoi).shots, dai: (de) => nhipCauNoi(de as DeCauNoi).DAI, anh: (de) => anhCauNoi(de as DeCauNoi), truyVanAnh: (de) => truyVanCauNoi(de as DeCauNoi), amThat: true },
   'so-sanh': { ass: (de) => assSoSanh(de as DeSoSanh), lenh: (o) => lenhSoSanh({ ...o, de: o.de as DeSoSanh }), shots: (de) => kichBanSoSanh(de as DeSoSanh).shots, dai: (de) => nhipSoSanh(de as DeSoSanh).DAI, anh: (de) => anhSoSanh(de as DeSoSanh), truyVanAnh: (de) => truyVanSoSanh(de as DeSoSanh), truyVanThem: (de) => truyVanThemSoSanh(de as DeSoSanh), amThat: true },
   'lat-dap-an': { ass: (de) => assLat(de as DeLat), lenh: (o) => lenhLat({ ...o, de: o.de as DeLat }), shots: (de) => kichBanLat(de as DeLat).shots, dai: (de) => nhipLat(de as DeLat).DAI, anh: (de) => anhLat(de as DeLat), truyVanAnh: (de) => truyVanLat(de as DeLat), truyVanThem: (de) => truyVanThemLat(de as DeLat), amThat: true },

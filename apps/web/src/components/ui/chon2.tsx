@@ -7,7 +7,7 @@ import { AnchoredPopover } from './anchored-popover';
 
 export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
 
-export function Chon2({ value, onChange, options, nhan, rong = 'tất cả', title, minWidth, align = 'left', anRong }: {
+export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong }: {
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
   /** chữ đứng trước giá trị trên nút: "Luật", "Loại"… */ nhan?: string;
   /** nhãn khi value = '' (mục "tất cả" tự thêm đầu danh sách) */ rong?: string;

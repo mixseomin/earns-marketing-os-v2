@@ -1182,6 +1182,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const [kh, setKh] = useState<Kh>('7');
   const khK = khKhoang(kh, du.nay), khNay = khK.tu === du.nay && khK.den === du.nay, khNhan = khNhanCua(kh);
   const dinhRef = useRef<HTMLDivElement>(null);
+  const cuonRef = useRef<HTMLDivElement>(null), heroRef = useRef<HTMLDivElement>(null); const [gonHero, setGonHero] = useState(false);
   useEffect(() => { const el = dinhRef.current; if (!el) return; const dat = () => document.documentElement.style.setProperty('--etp-dinh', `${el.offsetHeight}px`); dat();
     const ro = new ResizeObserver(dat); ro.observe(el); return () => { ro.disconnect(); document.documentElement.style.removeProperty('--etp-dinh'); }; }, []);
   const noiAnh = useNoi<{ anh: string; video: string | null; cr?: number }>(); const xem = noiAnh.v;   // ảnh to + video khi rê vào ảnh creative (thẻ nổi dùng chung: ✕ / Esc)
@@ -1288,7 +1289,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
-    <div style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > h.offsetTop + h.offsetHeight; if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px', maxWidth: 1600, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
@@ -1296,7 +1297,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
       </div>
-      <div style={{ margin: gon ? '8px 0' : '12px 0' }}>
+      <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0' }}>
         {gon ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > 3).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
             {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s]) => (
@@ -1317,7 +1318,14 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         ]} />}
       </div>
       {/* HÀNG TAB + PILL DÍNH KHI CUỘN (anh 26/10/2026 "các tabs pill phải sticky khi scroll xuống") — chiều cao vào --etp-dinh cho hàng dính bên dưới (lọc Quét nội dung, đầu cây camp) */}
-      <div ref={dinhRef} className={gon ? 'etp-dk' : undefined} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon || (thap && !moLoc) ? 'nowrap' : 'wrap', overflowX: !gon || (thap && !moLoc) ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
+      {/* HERO GỌN DÍNH KHI CUỘN (anh 27/10/2026 "hero khi cuộn xuống vẫn sticky nhưng gọn lại"): cuộn qua dải số lớn thì một dòng số gọn dính trên hàng tab */}
+      <div ref={dinhRef} style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)' }}>
+      {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: 'baseline', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
+        {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x]) => <span key={ten}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
+        <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
+        <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
+      </div> : null}
+      <div className={gon ? 'etp-dk' : undefined} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon || (thap && !moLoc) ? 'nowrap' : 'wrap', overflowX: !gon || (thap && !moLoc) ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
         <Segmented<Tab> value={tab} onChange={doiTab} options={[
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
@@ -1353,6 +1361,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           {laiSel()}{luatSel()}{dangSel()}{boSel()}</div> : null}
         {!gon ? <>{laiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}
         </div> : null}
+      </div>
       </div>
       {tab === 'tong' ? (
         <div>

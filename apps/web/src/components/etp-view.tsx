@@ -861,12 +861,14 @@ function CayCamp({ camps, du, hep }: { camps: CampEtpKho[]; du: DuLieuEtp; hep?:
         <details key={p.k} style={{ borderTop: '1px solid var(--line)' }}>
           <summary className="dong-phim" style={{ cursor: 'pointer', padding: '6px 0', fontSize: 13, display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, rowGap: 2, alignItems: 'center' }}>
             {/* điện thoại (anh 27/10/2026 "đéo đọc được tên phim"): tên phim một dòng riêng trọn bề ngang, không cắt …; dòng dưới là số camp + ký hiệu + cột số */}
-            {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0 }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></span> : null}
+            {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0, alignItems: 'flex-start' }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? `#${p.k}`}</b>
+              {/* badge bộ tài khoản của phim (anh 27/10/2026) — mỗi bộ có camp một badge, cùng khuôn Hex của bảng camp */}
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 3, flex: 'none', paddingTop: 2 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}</span></span> : null}
             {/* THẲNG CỘT NGÂN SÁCH (anh 27/10/2026): ô đầu dòng phim dùng CÙNG lưới trong của dòng camp (LUOI_CAMP_HEP / LUOI_TRONG), cột 1 bù phần lề trái
                 dòng camp (4px điện thoại / 12px máy tính) → tổng $ đứng đúng cột $ của từng camp */}
             <span style={{ display: 'grid', gridTemplateColumns: hep ? LUOI_CAMP_HEP.replace(/^10px/, '14px') : LUOI_TRONG.replace(/^12px/, '24px'), columnGap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
             <span style={{ gridColumn: hep ? '1 / 3' : '1 / 4', display: 'flex', gap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, overflow: 'hidden', paddingLeft: hep ? 18 : 0 }}>
-            {hep ? null : <><span className="mui">▸</span><b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
+            {hep ? null : <><span className="mui">▸</span>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}<b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
             <span title="camp" style={{ color: 'var(--fg-2)' }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
             {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b' }}>{hep ? '⚠' : '⚠ bão hoà'}</span> : null}
             {p.b?.chan_nb ? <span title={`Tạm dừng nhân bản phim này: ${p.b.chan_nb.replace(/ROI phim/g, 'lãi cả phim')}`} style={{ color: '#f59e0b' }}>⏸🧬</span> : null}

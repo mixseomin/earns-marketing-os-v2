@@ -23,6 +23,12 @@ export function coChu(s: string): { dong: string[]; co: number } {
   for (const [rong, co] of [[22, 68], [26, 60], [32, 50], [40, 42], [52, 34]] as const) { const dong = ngat(t, rong); if (dong.length <= 3) return { dong, co }; }
   return { dong: ngat(t, 52).slice(0, 4), co: 30 };
 }
+/** Vế A / B lên ĐỦ CHỮ: ≤ 2 dòng × 38 ký tự ở cỡ 34; dài hơn ngắt rộng hơn và thu chữ (27/10/2026: bản đầu cắt còn một dòng 34 ký tự, mất đuôi vế). */
+export function veLua(v: string): { dong: string[]; co: number } {
+  const t = v.replace(/\s+/g, ' ').trim();
+  for (const [rong, co] of [[38, 34], [46, 29], [56, 24]] as const) { const dong = ngat(t, rong); if (dong.length <= 2) return { dong, co }; }
+  return { dong: ngat(t, 56).slice(0, 2), co: 24 };
+}
 export const NHAN_KIEU: Record<KieuAnh, string> = { 'the-chu-tren-anh': '', 'ai-con-nho': 'Do you remember this?', 'doan-nam-gia': 'Take a guess', 'hai-lua-chon': 'A or B?' };
 
 export function assAnh(de: DeAnh): string {
@@ -37,12 +43,13 @@ export function assAnh(de: DeAnh): string {
   void yChu;
   if (de.kieu === 'hai-lua-chon' && de.lua) {
     // hai ô A / B ở nửa dưới ảnh
+    // mỗi vế: ô tối cao 120, vòng tròn A/B ở tâm dòng (an5 — bản đầu đặt chữ ở mép dưới ô nên không thấy), vế đủ chữ: ≤ 2 dòng × 38 ký tự, dài hơn thu chữ
     for (const [i, v] of de.lua.entries()) {
-      const yo = 1040 + i * 130;
-      d.push([3, 0, DAI, 'Ve', `{\\an4\\pos(60,${yo})\\1c&H000000&\\1a${alpha(0.5)}\\p1}${bo(960, 104, 20)}`]);
-      d.push([4, 0, DAI, 'Ve', `{\\an4\\pos(84,${yo})\\1c${mauAss(NHAN)}\\p1}${bo(72, 72, 36)}`]);
-      d.push([5, 0, DAI, 'Den', `{\\an5\\pos(120,${yo + 52})${fs(40)}\\1c&H111111&}${'AB'[i]}`]);
-      d.push([5, 0, DAI, 'Chu', `{\\an4\\pos(180,${yo + 52})\\b1${fs(38)}\\1c${mauAss(TRANG)}}${chu(ngat(v, 34)[0] ?? v)}`]);
+      const yo = 1030 + i * 140, { dong, co } = veLua(v);
+      d.push([3, 0, DAI, 'Ve', `{\\an4\\pos(60,${yo})\\1c&H000000&\\1a${alpha(0.5)}\\p1}${bo(960, 120, 20)}`]);
+      d.push([4, 0, DAI, 'Ve', `{\\an5\\pos(120,${yo})\\1c${mauAss(NHAN)}\\p1}${bo(72, 72, 36)}`]);
+      d.push([5, 0, DAI, 'Den', `{\\an5\\pos(120,${yo + 2})${fs(40)}\\1c&H111111&}${'AB'[i]}`]);
+      d.push([5, 0, DAI, 'Chu', `{\\an4\\pos(180,${yo})\\b1${fs(co)}\\1c${mauAss(TRANG)}\\q2}${dong.map(chu).join('\\N')}`]);
     }
   }
   if (de.kieu === 'doan-nam-gia' && de.dap_an) {

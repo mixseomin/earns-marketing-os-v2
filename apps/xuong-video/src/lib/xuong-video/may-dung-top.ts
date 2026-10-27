@@ -4,6 +4,7 @@
 // tiếng nền thu thật (am-nen.ts). THUẦN: đề → ASS + lệnh ffmpeg. Nhịp theo luật đọc (giayDoc): mỗi mục đứng đủ thời gian đọc tên + dòng.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-top.test.mts
 import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { anhTheoMuc, chuoiAnh, locAmChuoi, type DoanAnh } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
 
 export interface MucTop { ten: string; chu?: string; truy: string }
@@ -59,26 +60,19 @@ export function assTop(de: DeTop): string {
   }
   return rapAss(W, H, d);
 }
-/** Dải tiếng: tệp thu thật lặp, vào/ra êm, cùng mức. */
-export const locAmTop = (dai: number) => `[${'A'}]atrim=0:${dai.toFixed(2)},asetpts=PTS-STARTPTS,loudnorm=I=-18:TP=-2:LRA=11,afade=t=in:d=1,afade=t=out:st=${Math.max(0, dai - 1.5).toFixed(2)}:d=1.5[a]`;
 
 /** Lệnh ffmpeg: ảnh thật từng mục (nen = mục đầu, nenThem = các mục sau; thiếu ảnh thì mục dùng lại ảnh trước đó), mỗi ảnh lia chậm (zoompan) đúng
  *  thời lượng mục, màn mở dùng ảnh mục #1 (ảnh cuối), chồng mờ XF giữa các đoạn → ass → tiếng. `khung` = một khung JPG. */
 export function lenhTop(o: { de: DeTop; ass: string; nen?: string | null; nenThem?: string[]; am?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const N = nhipTop(o.de), dai = Number(N.DAI.toFixed(2));
   if (!o.nen) throw new Error('mẫu top-n cần ảnh nền thật (nen_url)');
-  const anhMuc = N.muc.map((_, i) => (i === 0 ? o.nen! : o.nenThem?.[i - 1] ?? o.nenThem?.[o.nenThem.length - 1] ?? o.nen!));
-  // đoạn: [mở = ảnh mục #1] + từng mục + [kết = ảnh mục #1]; thời lượng mỗi đoạn + XF chồng mờ sang đoạn kế
-  const doan = [{ anh: anhMuc[N.n - 1]!, tu: 0, den: N.T_MO }, ...N.muc.map((_, i) => ({ anh: anhMuc[i]!, tu: N.tu[i]!, den: i + 1 < N.n ? N.tu[i + 1]! : N.T_KET })), ...(N.DAI > N.T_KET + 1 ? [{ anh: anhMuc[N.n - 1]!, tu: N.T_KET, den: N.DAI }] : [])];
-  const vao: string[] = [], f: string[] = [];
-  doan.forEach((x, i) => { const d = Number((x.den - x.tu + XF).toFixed(2)); vao.push('-loop', '1', '-framerate', String(FPS), '-t', String(d), '-i', x.anh);
-    f.push(`[${i}:v]scale=${Math.round(W * 1.12)}:${Math.round(H * 1.12)}:force_original_aspect_ratio=increase,crop=${Math.round(W * 1.12)}:${Math.round(H * 1.12)},zoompan=z='1+0.08*on/${Math.round(d * FPS)}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS},eq=brightness=-0.03,setsar=1[v${i}]`); });
-  let prev = '[v0]'; for (let i = 1; i < doan.length; i++) { const out = i === doan.length - 1 ? '[vx]' : `[x${i}]`; f.push(`${prev}[v${i}]xfade=transition=fade:duration=${XF}:offset=${doan[i]!.tu.toFixed(2)}${out}`); prev = out; }
-  if (doan.length === 1) f.push(`[v0]null[vx]`);
-  f.push(`[vx]trim=0:${dai},setpts=PTS-STARTPTS,ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`);
-  if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', f.join(';'), '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
-  const iAm = doan.length, amVao = o.am ? ['-stream_loop', '-1', '-i', o.am] : ['-f', 'lavfi', '-i', `anullsrc=r=44100:cl=mono:d=${dai}`];
-  return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, ...amVao, '-filter_complex', `${f.join(';')};${locAmTop(dai).replace('[A]', `[${iAm}:a]`)}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
+  const anhMuc = anhTheoMuc(N.n, o.nen, o.nenThem);
+  // đoạn: [mở = ảnh mục #1] + từng mục + [kết = ảnh mục #1]; dải ảnh + chồng mờ dùng chung may-dung-chuoi
+  const doan: DoanAnh[] = [{ anh: anhMuc[N.n - 1]!, tu: 0, den: N.T_MO }, ...N.muc.map((_, i) => ({ anh: anhMuc[i]!, tu: N.tu[i]!, den: i + 1 < N.n ? N.tu[i + 1]! : N.T_KET })), ...(N.DAI > N.T_KET + 1 ? [{ anh: anhMuc[N.n - 1]!, tu: N.T_KET, den: N.DAI }] : [])];
+  const c = chuoiAnh(doan, { W, H, dai, fps: FPS, xf: XF }), f = [...c.loc, `[vx]ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`];
+  if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...c.vao, '-filter_complex', f.join(';'), '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
+  const amVao = o.am ? ['-stream_loop', '-1', '-i', o.am] : ['-f', 'lavfi', '-i', `anullsrc=r=44100:cl=mono:d=${dai}`];
+  return ['-y', '-hide_banner', '-loglevel', 'error', ...c.vao, ...amVao, '-filter_complex', `${f.join(';')};${locAmChuoi(dai).replace('[A]', `[${c.soVao}:a]`)}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
 }
 export function kichBanTop(de: DeTop) {
   const N = nhipTop(de);

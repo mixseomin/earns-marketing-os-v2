@@ -2,6 +2,7 @@
 // etp.on.tc — QUẢN LÝ CAMP / CREATIVE / ROI TẬP TRUNG (anh 24/10/2026). Đọc kho `etp` (lib/etp-doc), làm mới mỗi phút; ngày = ngày Ethopex (07:00–07:00 VN).
 import { Fragment, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { DataTable, Drawer, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
@@ -696,14 +697,16 @@ function useNoi<T>() {
 type Noi = { giu: () => void; dongTre: () => void; dong: () => void };
 function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties }) {
   const W = typeof window !== 'undefined' ? window.innerWidth : 1400, H = typeof window !== 'undefined' ? window.innerHeight : 900;
-  return (
+  // PORTAL ra <body> (anh 28/10/2026: thẻ xét luật trong Bảng không hiện): position:fixed nằm trong khung cuộn / có transform của DataTable bị neo + cắt theo khung đó
+  if (typeof document === 'undefined') return null;
+  return createPortal((
     <div onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x + 14, W - rong - 16)), top: Math.max(8, Math.min(y - 120, H - cao - 16)),
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
       {children}
     </div>
-  );
+  ), document.body);
 }
 /** danh sách URL khung của lớp ảnh — máy chủ gửi gọn mẫu '{n}' + số khung (etp-doc gonLop), bản cũ gửi thẳng danh sách */
 const khungUrl = (a?: ChamCr['lop']['anh']) => (a?.khung_mau && a.so_khung ? Array.from({ length: a.so_khung }, (_, i) => a.khung_mau!.replace('{n}', String(i + 1))) : a?.khung_url);

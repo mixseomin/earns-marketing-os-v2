@@ -228,11 +228,11 @@ function TheBac({ ls, d }: { ls: DuLieuEtp['lsBac'][number]; d: DauBac }) {
   );
 }
 // CHIP LUẬT trên dòng camp ở Cây (anh 27/10/2026: "các luật này show lên … kiểu gì cho dễ hiểu" → "ok"): một chip lời ngắn — camp sắp bị gì, về bao nhiêu, lúc nào;
-// rê vào = bảng điều kiện ✓/✗ với số hiện tại và ngưỡng. Chip ĐẶC = máy luật đã xếp làm (etp.bao, nguồn thật); chip VIỀN NÉT ĐỨT = còn thiếu đúng một điều kiện.
+// rê vào = bảng điều kiện ✓/✗ với số hiện tại và ngưỡng. Chip ĐẶC = máy luật đã xếp làm (etp.bao, nguồn thật); chip VIỀN NÉT ĐỨT = sắp chạm (thiếu 1 điều kiện; luật tắt theo ngưỡng bộ lọc Gần tắt: thiếu ≤ 2).
 // Ngưỡng chép từ máy luật /opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/luat-ethopex.py (box3) — đổi ở đó thì đổi ở đây.
 // Bộ 2: không tăng bậc mà mở bản thang; bản thang "(thang $N cua …)" không giảm bậc, chỉ đề xuất tắt.
 type DkLuat = { ten: string; dat: boolean };
-type LuatO = { k: string; mau: string; chip: string; ten: string; dk: DkLuat[]; bao?: string };
+type LuatO = { k: string; mau: string; chip: string; ten: string; dk: DkLuat[]; ganThieu?: number /* thiếu tối đa bao nhiêu điều kiện vẫn tính 'gần' — mặc định 1 */ };
 const bacXuong = (ns: number) => [...BAC_NS].reverse().find((b) => b < ns - 1e-9) ?? null;
 const bacLen = (ns: number) => BAC_NS.find((b) => b > ns + 1e-9) ?? null;
 const phanTram = (v: number | null) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
@@ -264,7 +264,8 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
   if (bo2) { const dich = thangMuc.find((b) => b > 1) ?? 3;   // bộ 2: bản thang đầu đi từ đáy (≤ $3) — luat-ethopex 27/10/2026
     ra.push({ k: '⧉', mau: '#a78bfa', chip: `⧉ bản thang $${dich}`, ten: `Bộ 2: không tăng ngân sách — mở bản thang $${dich} (creative khác cùng phim)`, dk: dkTang }); }
   else if (len != null) ra.push({ k: '↑', mau: '#4ade80', chip: `↑ $${ns}→$${len}`, ten: `Tăng bậc $${ns} → $${len}`, dk: dkTang });
-  ra.push({ k: '✕', mau: '#f87171', chip: '✕ tắt', ten: 'Tắt (camp đủ 7 ngày lỗ nặng)', dk: [
+  // "gần tắt" theo CÙNG ngưỡng bộ lọc Sắp chạm / Gần tắt (ganLuat): ROI 30 ngày < −40% và thiếu tối đa 2 điều kiện
+  ra.push({ k: '✕', mau: '#f87171', chip: '✕ tắt', ten: 'Tắt (camp đủ 7 ngày lỗ nặng)', ganThieu: r30 != null && r30 < -40 ? 2 : 0, dk: [
     { ten: `ROI 30 ngày ${phanTram(r30)} < −50%`, dat: r30 != null && r30 < -50 },
     { ten: `chi 30 ngày $${c.thang.chi.toFixed(2)} > $10`, dat: c.thang.chi > 10 },
     { ten: `tuổi ${tuoi.toFixed(1)} ≥ 7 ngày`, dat: tuoi >= 7 }] });
@@ -278,7 +279,7 @@ function ChipLuat({ c, ba, bao, boThang, thangMuc }: { c: Pick<CampEtpKho, 'ngan
   // máy luật đã xếp (etp.bao) → chip đặc theo đúng hướng; không có → luật đủ điều kiện, rồi tới luật thiếu đúng 1 điều kiện (nét đứt)
   const daXep = (bao ?? []).filter((b) => BAO_LUAT_KIEU[b.nhom] && LUAT_NHAN[b.nhom]?.[3] === 'dang');
   const du = ds.filter((l) => l.dk.every((d) => d.dat)).sort((a, b) => xep(a) - xep(b));
-  const gan = ds.filter((l) => l.dk.filter((d) => !d.dat).length === 1).sort((a, b) => xep(a) - xep(b));
+  const gan = ds.filter((l) => { const t = l.dk.filter((d) => !d.dat).length; return t >= 1 && t <= (l.ganThieu ?? 1); }).sort((a, b) => xep(a) - xep(b));
   const chinh = daXep.length ? { chip: `${BAO_LUAT_KIEU[daXep[0]!.nhom]} ${LUAT_NHAN[daXep[0]!.nhom]?.[1] ?? daXep[0]!.nhom}`, mau: LUAT_NHAN[daXep[0]!.nhom]?.[2] ?? '#94a3b8', dac: true }
     : du[0] ? { chip: du[0].chip, mau: du[0].mau, dac: true } : gan[0] ? { chip: gan[0].chip, mau: gan[0].mau, dac: false } : null;
   if (!chinh) return <span style={{ color: 'var(--fg-3, #777)' }}>·</span>;
@@ -290,7 +291,7 @@ function ChipLuat({ c, ba, bao, boThang, thangMuc }: { c: Pick<CampEtpKho, 'ngan
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={340} cao={300} noi={noi}><div style={{ width: 340, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {daXep.map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật đã xếp: {LUAT_NHAN[b.nhom]?.[1]}</b><div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\S*\s*/, ''))}</div></div>)}
         {hien.map((l, i) => <div key={i} style={{ marginTop: i || daXep.length ? 8 : 0 }}>
-          <b style={{ color: l.mau }}>{l.ten}</b>{l.dk.every((d) => d.dat) ? <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>đủ điều kiện</span> : <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>thiếu 1 điều kiện</span>}
+          <b style={{ color: l.mau }}>{l.ten}</b>{l.dk.every((d) => d.dat) ? <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>đủ điều kiện</span> : <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>thiếu {l.dk.filter((d) => !d.dat).length} điều kiện</span>}
           {l.dk.map((d, j) => <div key={j} style={{ color: d.dat ? 'var(--fg-1)' : 'var(--fg-3, #777)' }}><b style={{ color: d.dat ? '#4ade80' : '#f87171', marginRight: 4 }}>{d.dat ? '✓' : '✗'}</b>{d.ten}</div>)}
         </div>)}
       </div></KhungNoi> : null}
@@ -1090,7 +1091,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr }: { cam
       <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
         {hep ? <span>Phim → camp</span> : (
           <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', paddingLeft: 12, whiteSpace: 'nowrap' }}>
-            <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách · ROI nay</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: còn thiếu 1 điều kiện · rê vào xem điều kiện">luật</span><span>creative · đoạn</span><span>loại</span>
+            <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách · ROI nay</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: sắp chạm · rê vào xem điều kiện">luật</span><span>creative · đoạn</span><span>loại</span>
             {coLich ? <span title="lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt, ⏸ đang dừng theo lịch)">lịch giờ</span> : null}<span />
           </span>)}
         {ngayHien.map((d) => <span key={d} data-cot={`roi-${ngay.indexOf(d)}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center', color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' }} title="ROI hôm nay">nay</span>

@@ -8,6 +8,7 @@ export const MAU_MAY_DUNG = {
   'canh-dong': { ten: 'Cảnh động thả hồn' },
   'bai-anh': { ten: 'Bài ảnh (thẻ chữ · nhận ra · đoán · hai lựa chọn)' },
   'top-n': { ten: 'Top 3/5 đếm ngược' },
+  'lac-loai': { ten: 'Vật lạc loài (lưới ô chữ, một ô khác)' },   // lưới 3×3–5×5 trên ảnh thật, đếm 7s, khoanh — bước 3, 27/10/2026
   'cai-nao-gia': { ten: 'Cái nào giả? (hai mẫu cạnh nhau)' },   // hai thẻ chữ A/B trên ảnh thật mờ, đếm 7s, lộ FAKE/REAL + khoanh dấu hiệu — bước 3, 27/10/2026
   'cau-noi': { ten: 'Câu nói theo tình huống (ngôn ngữ khác)' },   // 3–5 câu bản ngữ + cách đọc + nghĩa trên một cảnh thật; cần font CJK trong máy dựng — bước 3, 27/10/2026
   'so-sanh': { ten: 'So sánh X vs Y (chia đôi màn)' },   // hai ảnh thật trên/dưới (nen_url = X, nen_them[0] = Y) — bước 3, 27/10/2026

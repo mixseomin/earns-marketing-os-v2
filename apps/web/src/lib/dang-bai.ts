@@ -6,6 +6,7 @@ export type DuongDung = '0d' | 'giong' | 'anh' | 'poll';
 export interface DangBai {
   ma: string; ten: string; nhom: 'video' | 'anh' | 'tuong-tac' | 'link'; dung: string;
   nen: string[]; ngach: string[]; goc_loai: string[]; duong: DuongDung; mau: string | null; vi_du?: string;
+  /** mẫu CHUNG có máy sinh đề (xuong-video may-de MAU_SINH): máy nào cũng tự làm ra bài; không có thì máy chỉ đăng được khi kho đã có bài dạng đó (nguồn đề riêng) */ sinh_de?: boolean;
 }
 export const DANG_BAI = kho.dang as DangBai[];
 export const LUAT_NEN = kho._luat_nen as Record<string, string>;

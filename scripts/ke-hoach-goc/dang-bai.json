@@ -31,6 +31,7 @@
    ],
    "duong": "0d",
    "mau": "canh-dong",
+   "sinh_de": true,
    "vi_du": "Hiên nhà mưa 1950s (Front Porch) · ga tàu Kyoto sáng sớm (Before You Land)"
   },
   {
@@ -98,7 +99,8 @@
     "ai_tieu_chi"
    ],
    "duong": "0d",
-   "mau": "top-n"
+   "mau": "top-n",
+   "sinh_de": true
   },
   {
    "ma": "so-sanh",
@@ -119,7 +121,8 @@
     "ai_phan_doi"
    ],
    "duong": "0d",
-   "mau": "so-sanh"
+   "mau": "so-sanh",
+   "sinh_de": true
   },
   {
    "ma": "lam-tuong",
@@ -140,7 +143,8 @@
     "ai_phan_doi"
    ],
    "duong": "0d",
-   "mau": "lat-dap-an"
+   "mau": "lat-dap-an",
+   "sinh_de": true
   },
   {
    "ma": "dung-sai",
@@ -163,7 +167,8 @@
     "ai_tieu_chi"
    ],
    "duong": "0d",
-   "mau": "lat-dap-an"
+   "mau": "lat-dap-an",
+   "sinh_de": true
   },
   {
    "ma": "ky-vong-thuc-te",
@@ -342,6 +347,7 @@
    ],
    "duong": "0d",
    "mau": "cai-nao-gia",
+   "sinh_de": true,
    "vi_du": "hai tin nhắn khách sạn · hai trang đăng nhập · hai tờ hoá đơn"
   },
   {
@@ -388,6 +394,7 @@
    ],
    "duong": "0d",
    "mau": "cau-noi",
+   "sinh_de": true,
    "vi_du": "\"Say this at hotel check-in in Japanese\" (Before You Land)"
   },
   {
@@ -516,7 +523,8 @@
     "ai_chan_dung"
    ],
    "duong": "0d",
-   "mau": "lac-loai"
+   "mau": "lac-loai",
+   "sinh_de": true
   },
   {
    "ma": "cau-do-meo",
@@ -538,7 +546,8 @@
     "ai_mong_muon"
    ],
    "duong": "0d",
-   "mau": "lat-dap-an"
+   "mau": "lat-dap-an",
+   "sinh_de": true
   },
   {
    "ma": "cau-hoi-thi",
@@ -586,6 +595,7 @@
    ],
    "duong": "anh",
    "mau": "bai-anh",
+   "sinh_de": true,
    "vi_du": "đồ vật 1950s (Front Porch) · sân bay thập niên 80 · phiên bản đầu của app"
   },
   {
@@ -608,7 +618,8 @@
     "ai_tieu_chi"
    ],
    "duong": "anh",
-   "mau": "bai-anh"
+   "mau": "bai-anh",
+   "sinh_de": true
   },
   {
    "ma": "xua-nay",
@@ -671,6 +682,7 @@
    ],
    "duong": "anh",
    "mau": "bai-anh",
+   "sinh_de": true,
    "vi_du": "ô 'Thẻ chữ trên ảnh' của kế hoạch tuần"
   },
   {
@@ -692,6 +704,7 @@
    ],
    "duong": "anh",
    "mau": "bai-anh",
+   "sinh_de": true,
    "vi_du": "ô 'A/B 2 ảnh' của kế hoạch tuần"
   },
   {

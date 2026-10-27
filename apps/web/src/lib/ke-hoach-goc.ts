@@ -40,6 +40,13 @@ async function docGoc(sp: number[], tat: number[] = []): Promise<GocBai[]> {
 }
 
 /** Sinh kế hoạch cho tuần bắt đầu `tuan` (thứ Hai) nếu chưa có. Trả số ô đã thêm. */
+/** Dạng máy ĐÃ có bài trong kho: dang_bai ghi ở video, hoặc suy từ mẫu của video / mẫu mặc định của máy (kho dạng: dạng nào khai mẫu đó). */
+async function dangCoBai(d: NonNullable<ReturnType<typeof getDb>>, ma: string): Promise<Set<string>> {
+  const r = (await d.execute(sql`SELECT DISTINCT coalesce(v.dang->>'dang_bai', v.mau, m.mau) AS k FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${ma} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { k: string | null }[];
+  const ra = new Set<string>();
+  for (const { k } of r) { if (!k) continue; if (DANG_BAI.some((b) => b.ma === k)) ra.add(k); for (const b of DANG_BAI) if (b.mau === k) ra.add(b.ma); }
+  return ra;
+}
 export async function sinhTuan(tuan: string): Promise<number> {
   const d = getDb(); if (!d) return 0;
   const may = (await d.execute(sql`SELECT m.ma, m.goc_sp, coalesce(m.ngach, '{}') AS ngach, array(SELECT t.dang FROM dang_tat t WHERE t.may = m.ma) AS tat,
@@ -52,6 +59,7 @@ export async function sinhTuan(tuan: string): Promise<number> {
   for (const m of may) {
     const tat = ((await d.execute(sql`SELECT goc_id FROM goc_tat WHERE may = ${m.ma}`)) as unknown as { goc_id: number }[]).map((x) => Number(x.goc_id));
     const goc = await docGoc(m.goc_sp, tat); if (!goc.length) continue;
+    const coBai = await dangCoBai(d, m.ma);
     const ho = [...new Set(m.nen.map(hoCua))].filter((h) => HO_DANG.has(h)).sort(), coLink = new Set(m.nen.filter((n) => /_link$/.test(n)).map(hoCua));
     for (const [hi, h] of ho.entries()) {
       // dạng đã xếp 14 ngày trước tuần này cho máy × họ nền → xoay đều (chon-dang trừ điểm dạng dùng nhiều)
@@ -60,7 +68,7 @@ export async function sinhTuan(tuan: string): Promise<number> {
       const tuanDa: string[] = [];
       for (let i = 0; i < 7; i++) {
         const g = goc[(so * 7 + i + hi * 3) % goc.length]!;
-        const c = chonDang({ ho: h, ngach: m.ngach, tat: m.tat, loaiGoc: g.loai, tuan: tuanDa, dem14, coLink: coLink.has(h), ngayLink: i === 6 });
+        const c = chonDang({ ho: h, ngach: m.ngach, tat: m.tat, loaiGoc: g.loai, tuan: tuanDa, dem14, coLink: coLink.has(h), ngayLink: i === 6, coBai });
         if (!c) continue;
         await d.execute(sql`INSERT INTO ke_hoach_goc (tuan, may, ho, ngay, nen, format, can_dung, goc, dang) VALUES (${tuan}::date, ${m.ma}, ${h}, ${cong(tuan, i)}::date, ${c.nen}, ${c.ten}, ${!c.co}, ${JSON.stringify(g)}::jsonb, ${c.ma})
           ON CONFLICT (may, ho, ngay) DO NOTHING`);
@@ -78,13 +86,14 @@ export async function suaOSai(tuNgay: string): Promise<number> {
   const may = (await d.execute(sql`SELECT m.ma, coalesce(m.ngach, '{}') AS ngach, array(SELECT t.dang FROM dang_tat t WHERE t.may = m.ma) AS tat FROM xv_may m WHERE m.chay`)) as unknown as { ma: string; ngach: string[]; tat: string[] }[];
   let sua = 0;
   for (const m of may) {
+    const coBai = await dangCoBai(d, m.ma);
     const o = (await d.execute(sql`SELECT tuan::text AS tuan, ho, ngay::text AS ngay, dang, goc FROM ke_hoach_goc WHERE may = ${m.ma} AND ngay >= ${tuNgay}::date AND dang IS NOT NULL AND dich IS NULL ORDER BY ho, ngay`)) as unknown as { tuan: string; ho: string; ngay: string; dang: string; goc: { loai?: string } | null }[];
     for (const x of o) {
-      if (DANG_BAI.find((b) => b.ma === x.dang)?.nhom === 'link' || ungVien({ ho: x.ho, ngach: m.ngach, tat: m.tat }).some((u) => u.ma === x.dang)) continue;
+      if (DANG_BAI.find((b) => b.ma === x.dang)?.nhom === 'link' || ungVien({ ho: x.ho, ngach: m.ngach, tat: m.tat, coBai }).some((u) => u.ma === x.dang)) continue;
       const tuanDa = o.filter((y) => y.ho === x.ho && y.tuan === x.tuan && y.ngay < x.ngay).map((y) => y.dang);
       const dem14 = Object.fromEntries(((await d.execute(sql`SELECT dang, count(*) AS n FROM ke_hoach_goc WHERE may = ${m.ma} AND ho = ${x.ho} AND dang IS NOT NULL
         AND ngay >= ${x.tuan}::date - 14 AND ngay < ${x.tuan}::date GROUP BY 1`)) as unknown as { dang: string; n: number }[]).map((y) => [y.dang, Number(y.n)]));
-      const c = chonDang({ ho: x.ho, ngach: m.ngach, tat: m.tat, loaiGoc: x.goc?.loai ?? '', tuan: tuanDa, dem14, coLink: false });
+      const c = chonDang({ ho: x.ho, ngach: m.ngach, tat: m.tat, loaiGoc: x.goc?.loai ?? '', tuan: tuanDa, dem14, coLink: false, coBai });
       if (!c) continue;
       await d.execute(sql`UPDATE ke_hoach_goc SET dang = ${c.ma}, nen = ${c.nen}, format = ${c.ten}, can_dung = ${!c.co} WHERE may = ${m.ma} AND ho = ${x.ho} AND ngay = ${x.ngay}::date`);
       x.dang = c.ma; sua++;

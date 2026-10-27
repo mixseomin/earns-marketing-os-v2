@@ -15,6 +15,9 @@ assert.strictEqual(nenCua(the, 'youtube'), null, 'ảnh không lên YouTube'); a
 assert.ok(ungVien({ ho: 'youtube', ...may }).every((d) => d.nhom === 'video'));
 assert.ok(!ungVien({ ho: 'facebook', ...may, tat: ['canh-dong'] }).some((d) => d.ma === 'canh-dong'), 'dạng tắt không vào');
 assert.ok(!ungVien({ ho: 'facebook', ...may }).some((d) => d.ngach.length === 1 && d.ngach[0] === 'cao-tuoi'), 'ngách lệch không vào');
+// có coBai: chỉ dạng sinh được hoặc đã có bài; n-buoc (mẫu riêng) bị loại khi còn dạng làm được; máy có bài n-buoc thì vào lại
+const cb = ungVien({ ho: 'facebook', ...may, coBai: new Set<string>() }); assert.ok(cb.length && cb.every((d) => d.sinh_de), 'chỉ dạng sinh được'); assert.ok(!cb.some((d) => d.ma === 'n-buoc'));
+assert.ok(ungVien({ ho: 'facebook', ...may, coBai: new Set(['n-buoc']) }).some((d) => d.ma === 'n-buoc'), 'đã có bài thì vào');
 
 // một ô: ưu tiên đúng loại góc; không trùng hôm trước
 const o1 = chonDang({ ho: 'facebook', ...may, loaiGoc: 'ai_phan_doi', tuan: [], coLink: true })!;

@@ -26,13 +26,18 @@ export interface ChonDangVao {
   coLink: boolean;            // máy có nơi đăng link cho họ nền này
   ngayLink?: boolean;         // ô này là ô dành cho bài link (một ô / tuần / họ nền)
   kho?: DangBai[];
+  /** dạng máy ĐÃ có bài trong kho (dang_bai của video / mẫu nguồn riêng) — có truyền thì ưu tiên dạng LÀM RA ĐƯỢC (sinh_de hoặc đã có bài); không có ứng viên nào làm được mới xếp ô chờ mẫu */
+  coBai?: Set<string>;
 }
 export interface ChonDangRa { ma: string; ten: string; nen: string; co: boolean }
 
 /** Ứng viên dạng cho một họ nền của máy: trong kho, không tắt, hợp ngách, họ nền đăng được. */
-export function ungVien(v: Pick<ChonDangVao, 'ho' | 'ngach' | 'tat' | 'kho'>): (DangBai & { nenO: string })[] {
-  return (v.kho ?? DANG_BAI).filter((d) => d.nhom !== 'link' && !v.tat.includes(d.ma) && (d.ngach.includes('moi') || d.ngach.some((n) => v.ngach.includes(n))) && d.nen.includes(v.ho))
+export function ungVien(v: Pick<ChonDangVao, 'ho' | 'ngach' | 'tat' | 'kho' | 'coBai'>): (DangBai & { nenO: string })[] {
+  const uv = (v.kho ?? DANG_BAI).filter((d) => d.nhom !== 'link' && !v.tat.includes(d.ma) && (d.ngach.includes('moi') || d.ngach.some((n) => v.ngach.includes(n))) && d.nen.includes(v.ho))
     .map((d) => ({ ...d, nenO: nenCua(d, v.ho)! })).filter((d) => d.nenO);
+  if (!v.coBai) return uv;
+  const lamDuoc = uv.filter((d) => d.sinh_de || v.coBai!.has(d.ma));   // 27/10/2026: Front Porch bị xếp n-buoc (mẫu riêng esimfares) → ô trống
+  return lamDuoc.length ? lamDuoc : uv;
 }
 
 /** Chọn dạng cho một ô. Điểm: đúng loại góc +4 · có mẫu dựng +2 · có đường đăng +1 · dựng 0đ +0,5 · trừ số lần đã dùng trong tuần ×3 · trừ số lần 14 ngày ×0,5;

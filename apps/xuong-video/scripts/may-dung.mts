@@ -4,8 +4,8 @@
 //   (--may mặc định front-porch-only-one)
 //   --nap                          đọc JSON đề từ stdin ([{slug, chu_de, de, dang}]) → video của máy (đề đổi thì video cũ bỏ, xuất lại)
 //   --ds [--ca-luu-tru]            in JSON { slug: { id, file_url, xuat_luc, da_dang, title, description, link, book, … } } — bên đăng / bên đọc số
-//   --xuat <slug|all-chua|all>     dựng video (MP4 + 3 khung) cho một slug, mọi video đang dùng chưa có video, hoặc dựng lại TẤT CẢ (đổi mẫu)
-//                                  — chạy song song SONG_SONG lượt trong một tiến trình (box3 4 nhân)
+//   --xuat <slug|all-chua|all> [--mau <mẫu>] [--song-song N]   dựng video (MP4 + 3 khung) cho một slug, mọi video đang dùng chưa có video, hoặc dựng lại TẤT CẢ (đổi mẫu)
+//                                  — --mau chỉ lấy video của một mẫu (vd dựng lại màn kết Only ONE: --xuat all --mau do-chu-mot-dung); song song N lượt (mặc định 3; máy dựng Cloudflare chịu được 6)
 //   --anh <slug|all-chua>          cắt ảnh tĩnh (mẫu có khai `anh`, vd scam → 2 ảnh cho nền x_anh) từ video ĐÃ dựng, không dựng lại
 //   --ghi-dang <slug> <nền>        stdin JSON { url, ngay, luc?, binhLuan? } → sổ đăng của video (gộp vào lượt đã có)
 //   --nap-nguon <tệp.json>         nạp cả tệp nguồn đề của mẫu (vd mau/may/scam-or-real.json) qua tuNguon của mẫu (mau-dung.ts)
@@ -44,10 +44,11 @@ if (a.includes('--nap')) {
 } else if (a.includes('--ds')) {
   process.stdout.write(JSON.stringify(await dsVideoDang(db, ma, a.includes('--ca-luu-tru'))));
 } else if (lay('--xuat') != null) {
-  const muc = lay('--xuat')!, ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url && !(x.loai === 'link' && x.xuat_luc) : slug === muc));   // bài link không có video: đã chốt bản (xuat_luc) là xong
+  const muc = lay('--xuat')!, mauLoc = lay('--mau'), mMay = await mayTheoMa(db, ma);
+  const ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url && !(x.loai === 'link' && x.xuat_luc) : slug === muc)).filter(([, x]) => !mauLoc || ((x as { mau?: string | null }).mau ?? mMay?.mau) === mauLoc);   // bài link không có video: đã chốt bản (xuat_luc) là xong
   if (!ds.length) { console.error(muc === 'all-chua' ? 'không còn video nào chưa dựng' : `không có video "${muc}" (đang dùng) trong máy ${ma}`); process.exit(muc === 'all-chua' ? 0 : 1); }
   let hong = 0, i = 0;
-  const SONG_SONG = 3, lam = async () => { while (i < ds.length) {
+  const SONG_SONG = Math.min(8, Math.max(1, Number(lay('--song-song') ?? 3))), lam = async () => { while (i < ds.length) {
     const [slug, x] = ds[i++]!, t = Date.now(), r = await xuatVideo(db, Number(x.id));
     console.log(r.ok ? `✓ ${slug} ${((Date.now() - t) / 1000).toFixed(1)}s` : `✗ ${slug}: ${r.loi}`); if (!r.ok) hong++;
   } };

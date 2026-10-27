@@ -76,9 +76,9 @@ export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[]): st
     'Return the JSON now.'].filter(Boolean).join('\n');
 }
 const MO_TA_DANG: Record<string, string> = {
-  'canh-dong': 'a calm 8-15s real scene video with ambient sound; one small hook line at the bottom; optional 1-2 closing lines (brand + site).',
+  'canh-dong': 'a calm 8-15s real scene video with ambient sound; one small hook line at the bottom that fits a quiet real scene (a feeling, a question, a situation from the angle) — never an on-screen task or puzzle instruction, nothing that is not in the footage; optional 1-2 closing lines (brand + site).',
   'the-chu-tren-anh': 'one hook sentence placed on a real photo; the sentence IS the content.',
-  'ai-con-nho': 'a nostalgic object/scene photo + one memory question the audience will answer in comments; sub line = era/detail.',
+  'ai-con-nho': 'a nostalgic object/scene photo + one memory question the audience will answer in comments; the memory must connect to the angle (same need, same habit, earlier era); sub line = era/detail.',
   'doan-nam-gia': 'a guess question (year, price, count) on a photo; second image reveals the answer — the answer must be a real fact.',
   'hai-lua-chon': 'a dilemma from the angle + exactly two options A/B the audience picks between; the text invites them to choose.',
 };

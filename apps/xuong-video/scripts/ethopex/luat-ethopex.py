@@ -420,8 +420,8 @@ tat7, gan_t7 = [], []
 # T2 — CẮT SAU 2 NGÀY ĐẦU (anh 27/10/2026, chọn "2 ngày đầu ROI < −20%" và đặt tên T2): tín hiệu đo trên 255 camp 20–26/10 (apps/etp/phan-tich/som.py) —
 # ROI gộp 2 ngày có chi ĐẦU TIÊN < −20% → chỉ 6–12% thành lãi thực về sau (đúng ở cả hai nửa thời gian), 103 camp như vậy lỗ thêm $99 nếu để chạy.
 # Xét trên kho etp.so_ngay, CHỈ ngày đã khép (trước hôm nay): camp có 2–3 ngày đã khép có chi (vừa hết 2 ngày đầu — không quét lại camp già đã hồi),
-# 2 ngày đầu chi ≥ $1 và ROI < −20%, ROI mọi ngày đã khép vẫn < −20% → TẮT HẲN (bỏ khỏi sổ lịch, không luật nào bật lại). Camp ROAS không áp.
-T2_ROI, T2_CHI = -20, 1.0
+# 2 ngày đầu chi ≥ T2_CHI và ROI < −20%, ROI mọi ngày đã khép vẫn < −20% → TẮT HẲN (bỏ khỏi sổ lịch, không luật nào bật lại). Camp ROAS không áp.
+T2_ROI, T2_CHI = -20, 5.0   # chi 2 ngày đầu tối thiểu $5 — ngang T7 (anh 27/10/2026 "nâng lên đi. T7 còn min chi là $5")
 tat2 = []
 try:
     _n2 = {}
@@ -433,7 +433,7 @@ try:
         _c2, _t2 = _ds[0][0] + _ds[1][0], _ds[0][1] + _ds[1][1]; _ca, _ta = sum(x[0] for x in _ds), sum(x[1] for x in _ds)
         _r2, _ra = (_t2 - _c2) / _c2 * 100, (_ta - _ca) / _ca * 100
         if _c2 >= T2_CHI and _r2 < T2_ROI and _ra < T2_ROI:
-            tat2.append((_c, f"#{_ten[:70]} · 2 ngày đầu: chi ${_c2:.2f} · lãi ${_t2 - _c2:+.2f} · ROI {_r2:+.0f}%" + (f" · cả {len(_ds)} ngày ROI {_ra:+.0f}%" if len(_ds) > 2 else "") + " → TẮT (luật T2: 2 ngày đầu ROI < −20%)"))
+            tat2.append((_c, f"#{_ten[:70]} · 2 ngày đầu: chi ${_c2:.2f} · lãi ${_t2 - _c2:+.2f} · ROI {_r2:+.0f}%" + (f" · cả {len(_ds)} ngày ROI {_ra:+.0f}%" if len(_ds) > 2 else "") + " → TẮT (luật T2: 2 ngày đầu ROI < −20%, chi ≥ $5)"))
     tat2.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
     loi_may.append((0, f"luật T2 lỗi: {str(e)[:80]}"))

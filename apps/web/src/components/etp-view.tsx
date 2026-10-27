@@ -271,17 +271,19 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
     { ten: `tuổi ${tuoi.toFixed(1)} ≥ 7 ngày`, dat: tuoi >= 7 }] });
   return ra;
 }
-const BAO_LUAT_KIEU: Record<string, string> = { ha: '↓', tat: '✕', tat7: '✕', thang_tat: '✕', dung_dem: '✕', tang: '↑', dau_phien: '↑', tang30: '↑', thang_nb: '⧉', nb: '⧉' };
 function ChipLuat({ c, ba, bao, boThang, thangMuc }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo'>; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[] }) {
   const noi = useNoi<{ id: 0 }>();
   const ds = dieuKienLuat(c, ba, boThang, thangMuc);
   const xep = (l: LuatO) => (l.k === '✕' ? 0 : l.k === '↓' ? 1 : 2);
-  // máy luật đã xếp (etp.bao) → chip đặc theo đúng hướng; không có → luật đủ điều kiện, rồi tới luật thiếu đúng 1 điều kiện (nét đứt)
-  const daXep = (bao ?? []).filter((b) => BAO_LUAT_KIEU[b.nhom] && LUAT_NHAN[b.nhom]?.[3] === 'dang');
+  // THỨ TỰ NGUỒN: máy luật đã xếp (etp.bao 'dang', chip đặc) → luật đủ điều kiện theo số trang → máy luật báo GẦN (etp.bao 'gan', vd Gần T7 — nét đứt)
+  // → luật thiếu điều kiện theo số trang (nét đứt). Sổ máy luật là nguồn thật; bảng điều kiện của trang chỉ bù khi máy chưa ghi.
+  const tuBao = (bao ?? []).filter((b) => LUAT_NHAN[b.nhom]);
+  const daXep = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'dang'), ganBao = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'gan');
+  const tuSo = (b: { nhom: string }, dac: boolean) => ({ chip: `${LUAT_NHAN[b.nhom]![0]} ${LUAT_NHAN[b.nhom]![1]}`, mau: LUAT_NHAN[b.nhom]![2], dac });
   const du = ds.filter((l) => l.dk.every((d) => d.dat)).sort((a, b) => xep(a) - xep(b));
   const gan = ds.filter((l) => { const t = l.dk.filter((d) => !d.dat).length; return t >= 1 && t <= (l.ganThieu ?? 1); }).sort((a, b) => xep(a) - xep(b));
-  const chinh = daXep.length ? { chip: `${BAO_LUAT_KIEU[daXep[0]!.nhom]} ${LUAT_NHAN[daXep[0]!.nhom]?.[1] ?? daXep[0]!.nhom}`, mau: LUAT_NHAN[daXep[0]!.nhom]?.[2] ?? '#94a3b8', dac: true }
-    : du[0] ? { chip: du[0].chip, mau: du[0].mau, dac: true } : gan[0] ? { chip: gan[0].chip, mau: gan[0].mau, dac: false } : null;
+  const chinh = daXep[0] ? tuSo(daXep[0], true) : du[0] ? { chip: du[0].chip, mau: du[0].mau, dac: true }
+    : ganBao[0] ? tuSo(ganBao[0], false) : gan[0] ? { chip: gan[0].chip, mau: gan[0].mau, dac: false } : null;
   if (!chinh) return <span style={{ color: 'var(--fg-3, #777)' }}>·</span>;
   const hien = [...du, ...gan.filter((l) => !du.includes(l))];
   return (
@@ -289,8 +291,9 @@ function ChipLuat({ c, ba, bao, boThang, thangMuc }: { c: Pick<CampEtpKho, 'ngan
       fontSize: 11, padding: '0 6px', borderRadius: 9, color: chinh.mau, border: `1px ${chinh.dac ? 'solid' : 'dashed'} ${chinh.mau}${chinh.dac ? '' : '99'}`, background: chinh.dac ? `${chinh.mau}22` : 'transparent' }}>
       {chinh.chip}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={340} cao={300} noi={noi}><div style={{ width: 340, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
-        {daXep.map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật đã xếp: {LUAT_NHAN[b.nhom]?.[1]}</b><div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\S*\s*/, ''))}</div></div>)}
-        {hien.map((l, i) => <div key={i} style={{ marginTop: i || daXep.length ? 8 : 0 }}>
+        {[...daXep, ...ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
+          <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}
+        {hien.map((l, i) => <div key={i} style={{ marginTop: i || daXep.length || ganBao.length ? 8 : 0 }}>
           <b style={{ color: l.mau }}>{l.ten}</b>{l.dk.every((d) => d.dat) ? <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>đủ điều kiện</span> : <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>thiếu {l.dk.filter((d) => !d.dat).length} điều kiện</span>}
           {l.dk.map((d, j) => <div key={j} style={{ color: d.dat ? 'var(--fg-1)' : 'var(--fg-3, #777)' }}><b style={{ color: d.dat ? '#4ade80' : '#f87171', marginRight: 4 }}>{d.dat ? '✓' : '✗'}</b>{d.ten}</div>)}
         </div>)}

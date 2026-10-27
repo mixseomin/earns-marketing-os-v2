@@ -6,12 +6,13 @@
 //        ≥ 4 dạng / kênh / tuần và không hai ngày liền trùng; dạng chưa có đường đăng đánh dấu can_dung; bài link ô cuối tuần khi máy có nơi đăng link.
 // Sinh khi CHƯA có (tuần này + tuần sau) lúc trang Lịch đọc — không cần tiến trình nền, không ghi đè ô đã sinh. 0đ, không gọi mô hình.
 import 'server-only';
+import { DANG_BAI } from './dang-bai';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import type { GocBai } from './goc-spy';
 import { hoCua } from './ho-nen';
-import { chonDang } from './chon-dang';
+import { chonDang, ungVien } from './chon-dang';
 
 // họ nền máy đăng có đường (dạng cho từng ô lấy từ kho dang-bai.json qua chon-dang.ts — bước 2, 26/10/2026: thay bảng xoay cứng 7 ô / họ nền)
 const HO_DANG = new Set(['facebook', 'x', 'instagram', 'tiktok', 'youtube', 'dailymotion']);
@@ -69,9 +70,32 @@ export async function sinhTuan(tuan: string): Promise<number> {
   }
   return them;
 }
-/** tuần này + tuần sau luôn có kế hoạch (gọi từ trang Lịch; nhanh khi đã có — một câu đếm) */
+/** Ô ĐÃ SINH mà dạng không còn hợp máy (ngách máy khai sau, dạng bị tắt — 27/10/2026: tuần 09/11 sinh trước khi khai ngách nên Front Porch dính n-buoc /
+ *  tin-lua-tuan, esimfares dính cau-hoi-thi, máy sinh đề bỏ ô) → chọn lại dạng bằng đúng luật chon-dang và SỬA tại chỗ (không xoá ô; ô đã nối bài site giữ nguyên;
+ *  ô bài link giữ nguyên). Chạy từ damBaoKeHoach mỗi lần mở Lịch: rẻ, lặp vô hại (ô hợp rồi thì không đụng). */
+export async function suaOSai(tuNgay: string): Promise<number> {
+  const d = getDb(); if (!d) return 0;
+  const may = (await d.execute(sql`SELECT m.ma, coalesce(m.ngach, '{}') AS ngach, array(SELECT t.dang FROM dang_tat t WHERE t.may = m.ma) AS tat FROM xv_may m WHERE m.chay`)) as unknown as { ma: string; ngach: string[]; tat: string[] }[];
+  let sua = 0;
+  for (const m of may) {
+    const o = (await d.execute(sql`SELECT tuan::text AS tuan, ho, ngay::text AS ngay, dang, goc FROM ke_hoach_goc WHERE may = ${m.ma} AND ngay >= ${tuNgay}::date AND dang IS NOT NULL AND dich IS NULL ORDER BY ho, ngay`)) as unknown as { tuan: string; ho: string; ngay: string; dang: string; goc: { loai?: string } | null }[];
+    for (const x of o) {
+      if (DANG_BAI.find((b) => b.ma === x.dang)?.nhom === 'link' || ungVien({ ho: x.ho, ngach: m.ngach, tat: m.tat }).some((u) => u.ma === x.dang)) continue;
+      const tuanDa = o.filter((y) => y.ho === x.ho && y.tuan === x.tuan && y.ngay < x.ngay).map((y) => y.dang);
+      const dem14 = Object.fromEntries(((await d.execute(sql`SELECT dang, count(*) AS n FROM ke_hoach_goc WHERE may = ${m.ma} AND ho = ${x.ho} AND dang IS NOT NULL
+        AND ngay >= ${x.tuan}::date - 14 AND ngay < ${x.tuan}::date GROUP BY 1`)) as unknown as { dang: string; n: number }[]).map((y) => [y.dang, Number(y.n)]));
+      const c = chonDang({ ho: x.ho, ngach: m.ngach, tat: m.tat, loaiGoc: x.goc?.loai ?? '', tuan: tuanDa, dem14, coLink: false });
+      if (!c) continue;
+      await d.execute(sql`UPDATE ke_hoach_goc SET dang = ${c.ma}, nen = ${c.nen}, format = ${c.ten}, can_dung = ${!c.co} WHERE may = ${m.ma} AND ho = ${x.ho} AND ngay = ${x.ngay}::date`);
+      x.dang = c.ma; sua++;
+    }
+  }
+  return sua;
+}
+/** tuần này + tuần sau luôn có kế hoạch (gọi từ trang Lịch; nhanh khi đã có — một câu đếm); ô dạng sai ngách tự sửa (suaOSai) */
 export async function damBaoKeHoach(hom: string): Promise<void> {
   for (const t of [thuHai(hom), cong(thuHai(hom), 7)]) await sinhTuan(t);
+  await suaOSai(hom);
   await danhDauBaiSite(thuHai(hom));
   await noiBaiSite(hom);
 }

@@ -5,6 +5,7 @@
 import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
+import { giaChuCents } from './kieu';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -164,18 +165,19 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
 }
 
 /** Sinh một đề (gọi mô hình, tối đa 2 lượt nếu lượt đầu sai luật). Trả dòng nạp + tiền. */
-export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[] }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
+export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[] }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
   const mau = MAU_CUA_DANG[o.dang_bai]; if (!mau || !MAU_SINH.has(mau)) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
   const { sinhJson } = await import('./claude');
   const schema = z.object({ de: mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : DeCanhSchema, chu: ChuDangSchema });
-  let vnd = 0, loiCu: string[] = [];
+  // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
+  let vnd = 0, loiCu: string[] = []; const tk = { in: 0, out: 0 };
   for (let lan = 0; lan < 2; lan++) {
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? []) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
-    vnd += r.tokens.vnd ?? 0;
+    vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich });
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan });
-    if (!loiCu.length) return { ok: true, de, vnd, model: r.model };
+    if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
   return { ok: false, loi: `đề sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };
 }

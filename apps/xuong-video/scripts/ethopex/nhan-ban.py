@@ -13,6 +13,9 @@ Chạy trên box3 (khoá ở studio):
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
   python3 nhan-ban.py <camp_gốc> --thang <$> --that …   → THANG NHÂN BẢN bộ 2 (anh 25/10/2026): bản mới ở bậc ngân sách cao hơn camp gốc
     (creative khác cùng phim, tên "(thang $X cua <gốc>)"); không đòi gốc chạm trần — camp gốc giữ nguyên ngân sách, không phải học lại
+  python3 nhan-ban.py <camp_gốc> --bo <bộ> --ep --that [--lich today]   → CLONE SANG BỘ KHÁC theo lệnh đích danh của anh (anh 27/10/2026: "clone 1 camp tốt
+    nhất sang bộ tk 03"): giữ NGUYÊN creative camp gốc (bản CTA sửa nếu có), bỏ qua 4 cổng chỉ dành cho nhân camp trong cùng bộ — mỗi phim một bộ, chạm trần $30,
+    bão hoà phim, buộc đổi creative khác (và trần 30 camp/phim); vẫn qua cổng chấm sạch + rào chắn etp. --ep chỉ dùng khi anh ra lệnh trong lượt đó.
   python3 nhan-ban.py <camp_gốc> --roas <1.0–1.4> [--ns 20] [--tam-dung] [--nhan "chay ngay"] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
     nhân bản camp gốc (chi all time > $100, ROI > 50%) với bid ROAS goal (LOWEST_COST_WITH_MIN_ROAS + roas_average_floor ở Ad Set),
     ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch tomorrow, tên "… roas X duplicate by <gốc>".
@@ -232,6 +235,7 @@ def main(a):
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)
     lich, luat, ai = lay("--lich", "tomorrow"), lay("--luat"), lay("--ai")
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
+    ep = "--ep" in a and bool(lay("--bo"))   # clone sang bộ khác theo lệnh anh — xem docstring
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
@@ -243,7 +247,7 @@ def main(a):
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = chan_bo(cid, bo) or (None if moi else q(f"select etp.bo_chan_mo('{bo}')"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (migration 0339, anh 26/10/2026)
+        ly = (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo('{bo}')"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (migration 0339, anh 26/10/2026)
         if ly: raise ValueError(ly)
         if moi: kq["viec"] = "tao_camp"
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
@@ -251,21 +255,22 @@ def main(a):
         n = dem_dang_chay(cid)
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ValueError(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
-        if n >= TRAN_PHIM: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
+        if n >= TRAN_PHIM and not ep: raise ValueError(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
         if thang:   # thang nhân bản: chỉ bộ 2, bậc mới phải cao hơn ngân sách camp gốc
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
             if str(bo) not in THANG_BO: raise ValueError(f"thang nhân bản chỉ áp dụng bộ {', '.join(THANG_BO)} (camp gốc thuộc bộ {bo}) — bộ khác giữ tăng bậc (etp.cau_hinh.thang_bo)")
             if thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn camp gốc ${ns:g}")
-        elif not moi:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
+        elif not moi and not ep:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
             tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
             if ns < tran: raise ValueError(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa chạm trần ${tran:g} — chưa clone (tăng ngân sách camp gốc trước)")
-        if not moi:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường nhân bản (luật NB, góc mới, soát đoạn) — phim đang tụt thì không nhân thêm camp
+        if not moi and not ep:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường nhân bản (luật NB, góc mới, soát đoạn) — phim đang tụt thì không nhân thêm camp
             try: bh = q(f"select chan_nb from etp.phim_bao_hoa where content_id = {int(cid)} and chan_nb is not null")
             except Exception: bh = ""
             if bh: raise ValueError(f"phim {cid} đang bão hoà — {bh} → không nhân bản thêm (dồn tiền sang phim khác)")
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
-        if not moi:   # clone: luôn đổi sang creative KHÁC (anh 25/10/2026)
+        if ep: kq["viec"] = "sang_bo"
+        elif not moi:   # clone: luôn đổi sang creative KHÁC (anh 25/10/2026)
             khac = creative_clone(cid, cr)
             if not khac:
                 xep_goc_moi(goc, cid, ten)

@@ -1,0 +1,19 @@
+The one that catches careful people: the message comes from inside the real booking app.
+
+Here's how it goes. You book a real hotel on a big booking site. A few days later you get a chat message in the app, in the same thread as your reservation, from the hotel's name. It says your card "couldn't be verified" and you need to confirm it within 24 hours or the room will be released. There's a link to a payment page that looks exactly like the booking site.
+
+It isn't the hotel. Scammers get into the hotel's partner account (usually through a phishing email sent to the front desk) and then message every upcoming guest from there. Because it shows up inside the app, next to your real booking details, almost nobody suspects it.
+
+Red flags that give it away:
+- A deadline. "Within 24 hours or we cancel" is pressure, not policy.
+- A link to pay. Real hotels charge the card on file or at check-in. They don't send you to a new page to type it again.
+- A request to pay by bank transfer or a payment app instead of the card you booked with.
+
+What to do if you get one:
+- Don't click. Call the hotel on the number from its own website or Google Maps, not the number in the message.
+- Check your booking status in the app itself. If it says confirmed, it is confirmed.
+- If you already entered your card, call your bank now, freeze the card and dispute the charge.
+
+I keep a free checklist of these messages with examples you can compare against: https://ratesbyroom.com/hotel-scam-check/?utm_source=quora&utm_medium=answer&utm_campaign=rbr-quora-01-unusual-scam
+
+The rule that would have stopped almost every case I've seen: never pay a hotel through a link someone sent you.

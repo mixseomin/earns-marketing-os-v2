@@ -70,12 +70,22 @@ export function doBaiDang(v, ten = '') {
 }
 
 /** HTML gửi kiem-bai cho một bài viết: có html (Substack / Medium) thì dùng; câu trả lời Quora chỉ có chữ → bọc đoạn. */
-export const htmlBaiViet = (d, anh = null) => d.html || `<article><h1>${String(d.title ?? '').replace(/</g, '&lt;')}</h1>${anh ? `<img src="${anh}" alt="${String(d.title ?? '').replace(/"/g, '')}">` : ''}${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${p.replace(/</g, '&lt;')}</p>`).join('')}</article>`;
+export const htmlBaiViet = (d, anh = null, taAnh = '') => {
+  if (d.html) return d.html;
+  const e = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  // câu trả lời Quora: câu hỏi là của người hỏi, không phải câu móc của mình → ghi "Trả lời cho" chứ không đặt làm tiêu đề; alt ảnh tả ẢNH (de.truy), không lặp câu hỏi
+  // (28/10/2026: Phòng Nội dung đọc alt = câu hỏi thành "ảnh chỉ là chữ", đọc câu hỏi trong <h1> thành câu móc khô — chấm SỬA LẠI oan cả hai bài BAH)
+  const dau = d.cau_hoi ? `<p>Answer to the Quora question: <em>${e(d.title)}</em></p>` : `<h1>${e(d.title)}</h1>`;
+  const hinh = anh ? `<img src="${e(anh)}" alt="${e(taAnh ? `Photo: ${taAnh}` : 'Photo')}">` : '';
+  return `<article>${dau}${hinh}${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${e(p)}</p>`).join('')}</article>`;
+};
 /** Kết quả kiem-bai cho đúng bản của bài viết: 'DUYET' | 'SUA_LAI' | 'KHONG_DUYET' | 'CHO'. Chưa nộp thì nộp (url bai://<máy>/<slug>, khoa = md5 chữ đăng). */
 async function kiemBaiViet(v) {
-  const { ketKhoa, nopBai } = await import('./kiem-bai.mjs'), url = `bai://${v.ma}/${v.slug}`, k = ketKhoa(url, v.dang_md5);
+  // khoá = md5 của ĐÚNG bản HTML gửi phòng (chữ đăng + ảnh + cách dựng bản gửi): sửa bài HAY sửa cách dựng bản gửi đều là bản mới, phải chấm lại
+  const { ketKhoa, nopBai } = await import('./kiem-bai.mjs'), { createHash } = await import('node:crypto');
+  const html = htmlBaiViet(v.dang, v.nen_url, v.de?.truy), khoa = createHash('md5').update(html).digest('hex'), url = `bai://${v.ma}/${v.slug}`, k = ketKhoa(url, khoa);
   if (k) return k;
-  try { nopBai({ url, tu: 'claude', html: htmlBaiViet(v.dang, v.nen_url), loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'bai-dang-mxh' : 'bai-dich-mxh'), khoa: v.dang_md5 }); return 'CHO'; }
+  try { nopBai({ url, tu: 'claude', html, loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'bai-dang-mxh' : 'bai-dich-mxh'), khoa }); return 'CHO'; }
   catch (e) { return `không nộp được: ${String(e.message).slice(0, 120)}`; }   // hết lượt sửa → SỬA LẠI kèm lý do, anh mở khoá trên Telegram
 }
 
@@ -87,12 +97,13 @@ async function ketNoi() {
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
-  const ds = await sql`select v.id, v.slug, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, v.anh,
+  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, v.anh,
       v.created_at >= ${MOC_GOC}::timestamptz as can_goc,
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
     where not coalesce(v.luu_tru, false) and v.xuat_luc is not null
       and (v.cham is null or v.cham->>'xuat' is distinct from v.xuat_luc::text or v.cham->>'dang' is distinct from md5(v.dang::text)
+           or (v.dang->>'loai' = 'bai' and v.cham->>'ket' is distinct from 'DUYET')   -- bài viết chưa DUYỆT: xét lại mỗi lượt (bản gửi phòng có thể đã đổi)
            or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1))
     order by v.id`;
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
@@ -253,6 +264,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.equal(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null, description: 'x', html: `<p>${tot.dang.description}</p>` }, nen_url: tot.nen_url }).chan_cung.filter((x) => x.includes('link')).length, 0, 'link nằm trong html cũng tính');
   t.ok(htmlBaiViet({ title: 'Q', description: 'a\n\nb' }).includes('<p>b</p>'), 'bọc đoạn cho kiem-bai');
   t.ok(htmlBaiViet({ title: 'Q', description: 'a' }, 'https://images.pexels.com/x.jpg').includes('<img src="https://images.pexels.com/x.jpg"'), 'ảnh bìa vào bản gửi kiem-bai');
+  { const h = htmlBaiViet({ title: 'How is BAH calculated?', description: 'a', cau_hoi: 'https://www.quora.com/q' }, 'https://images.pexels.com/x.jpg', 'moving boxes');
+    t.ok(h.includes('alt="Photo: moving boxes"') && !h.includes('<h1>') && h.includes('Answer to the Quora question'), 'Quora: alt tả ảnh, câu hỏi không làm tiêu đề'); }
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

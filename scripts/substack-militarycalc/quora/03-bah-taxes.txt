@@ -1,0 +1,19 @@
+No. BAH is a tax-free allowance. It is not part of your federal taxable income, and you won't find it in box 1 of your W-2.
+
+What that means in practice:
+- Your base pay is taxed. Your BAH and BAS are not.
+- That is why a military paycheck often goes further than a civilian salary with the same total. A civilian has to earn more before tax to end up with the same take-home.
+- Most states follow the federal treatment, but if you're filing in a state with unusual rules, check that state's instructions.
+
+One thing people miss: if you own a home, you can still deduct mortgage interest and property taxes even though you paid them with BAH. The IRS allows it, so don't skip those deductions.
+
+Another: lenders and some benefit programs may ask about BAH as income even though it isn't taxed. On a mortgage application it usually helps you, because it counts toward what you can afford.
+
+Quick check on your own pay:
+- Find the base pay line on your LES. That's the taxed part.
+- Find BAH and BAS. Those are tax-free.
+- Compare your take-home with a civilian offer using the gross a civilian would need, not the same number.
+
+If you want to see what your BAH is at your duty station and grade, this lookup gives the monthly figure: https://militarycalc.com/bah?utm_source=quora&utm_medium=answer&utm_campaign=quora-03-bah-taxes
+
+Not tax advice, just how the rules work for most members. Your base legal or tax office can confirm anything specific to your situation for free.

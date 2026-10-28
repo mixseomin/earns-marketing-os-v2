@@ -1,0 +1,22 @@
+BAH comes down to three things: where you're stationed, your pay grade, and whether you have dependents.
+
+1. Location. The rate is tied to the ZIP code of your permanent duty station, not where you choose to live. Live 40 minutes away in a cheaper town and you still get the duty station rate.
+
+2. Pay grade. An E-4 and an O-3 at the same base get different amounts, because the rate is built from the cost of housing someone at that grade would typically rent.
+
+3. Dependents. "With dependents" pays more than "without". It doesn't matter if you have one dependent or five, the rate is the same.
+
+Where the numbers come from: every year DoD surveys local rents and utility costs in each housing area and sets new rates that start January 1. Members cover a small share of housing cost themselves, so BAH isn't meant to pay 100% of every rental.
+
+Two things that surprise people:
+- If the rate for your area drops, you keep your old, higher rate as long as you stay at the same duty station. That is called rate protection.
+- A PCS resets it. New station, new ZIP, new rate, sometimes lower.
+
+Quick self-check before you sign a lease:
+- Which ZIP is my duty station, not my house?
+- Am I listed with or without dependents?
+- Does the rent plus utilities fit under the rate, with some room?
+
+You can look up the exact monthly figure for any base, grade and dependent status here: https://militarycalc.com/bah?utm_source=quora&utm_medium=answer&utm_campaign=quora-02-bah-calculated
+
+If your LES shows a different amount than the table, the usual cause is the wrong duty ZIP or dependent status on file. Your finance office can fix both.

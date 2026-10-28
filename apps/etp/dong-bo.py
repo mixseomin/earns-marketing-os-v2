@@ -63,6 +63,19 @@ def main():
         ghi("camp_ngoai", [{"camp_id": c["id"], "ten": re.sub(r"^\d+:\s*", "", c.get("name", "")), "ad_account_id": c.get("ad_account_id"), "trang_thai": c.get("state"),
                             "ngan_sach": c.get("budget_daily"), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at")} for c in ngoai], ["camp_id"],
             {"camp_id": "int", "ten": "text", "ad_account_id": "bigint", "trang_thai": "text", "ngan_sach": "numeric", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
+        # PHIM / CREATIVE CỦA CAMP NGOÀI lấy từ AD của camp (chi tiết camp), không từ report: report trả nhóm nội dung riêng của team ("Unknown Content" #143938)
+        # trong khi ad trỏ đúng phim (#67443 → 94344 Number One Nobody) — anh 28/10/2026. Chỉ camp mới / đổi / chưa có phim
+        cu_n = {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select camp_id || '|' || coalesce(cap_nhat_etp::text, '') from etp.camp_ngoai where content_id is not null and creative_id is not null").splitlines() if l}
+        doi_n = [c for c in ngoai if c["id"] not in cu_n or str(c.get("updated_at") or "")[:19] != (cu_n.get(c["id"]) or "")[:19].replace(" ", "T")]
+        def ct_n(c):
+            try: a = (EA.api(f"/api/v1/campaigns/{c['id']}").get("ad_groups") or [{}])[0].get("ads", [{}])[0]
+            except Exception: return None
+            return {"id": c["id"], "ct": a.get("content_id"), "cr": a.get("creative_id")}
+        with ThreadPoolExecutor(10) as ex: ad_n = [x for x in ex.map(ct_n, doi_n) if x and (x["ct"] or x["cr"])]
+        if ad_n:
+            _an = json.dumps(ad_n)
+            q(f"update etp.camp_ngoai n set content_id = coalesce(x.ct, n.content_id), creative_id = coalesce(x.cr, n.creative_id) from jsonb_to_recordset($J${_an}$J$::jsonb) as x(id int, ct int, cr int) where n.camp_id = x.id")
+        kq["chi_tiet_ngoai"] = len(ad_n)
         # tài khoản → người dùng (report theo người trên etp.on.tc, anh 28/10/2026)
         try:
             ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK}
@@ -123,14 +136,14 @@ def main():
         phim_ngoai = {}   # camp ngoài → (content_id, tên phim) cho cây phim theo người
         for x in bc(["campaign_name", "content_name", "date", "cost", "revenue"], ["campaign_name", "content_name", "date"], tu, nay.isoformat()):
             nha = str(x.get("external_account_id") or "") in EA.EXT
-            if not nha and x.get("content_group_id"): phim_ngoai[x["campaign_id"]] = (x["content_group_id"], x.get("content_group_name"))
+            if not nha and x.get("content_group_name") and x.get("content_group_name") != "Unknown Content": phim_ngoai[x["campaign_id"]] = x["content_group_name"]   # chỉ tên phim dự phòng (phim không có trong etp.phim)
             k = (x["campaign_id"], str(x["report_date"])[:10]); e = (g if nha else gn).setdefault(k, [0.0, 0.0])
             e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
         kq["so_dong_ngay"] = ghi("so_ngay", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in g.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
         ghi("so_ngay_ngoai", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in gn.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
         if phim_ngoai:
-            _pn = json.dumps([{"id": c, "ct": p[0], "ten": p[1]} for c, p in phim_ngoai.items()], ensure_ascii=False).replace("$J$", "")
-            q(f"update etp.camp_ngoai n set content_id = x.ct, phim_ten = x.ten from jsonb_to_recordset($J${_pn}$J$::jsonb) as x(id int, ct int, ten text) where n.camp_id = x.id")
+            _pn = json.dumps([{"id": c, "ten": p} for c, p in phim_ngoai.items()], ensure_ascii=False).replace("$J$", "")
+            q(f"update etp.camp_ngoai n set phim_ten = x.ten from jsonb_to_recordset($J${_pn}$J$::jsonb) as x(id int, ten text) where n.camp_id = x.id")
         # ngân sách + trạng thái của camp cho NGÀY HÔM NAY (giá trị lượt cuối ngày thắng) — lịch sử cho chạy thử luật (bước 3c)
         # + ns_max / bat: ngân sách CAO NHẤT trong ngày lúc camp bật, camp có lúc nào bật (migration 0340 — cột ngân sách theo ngày trên etp.on.tc)
         q(f"insert into etp.so_ngay (camp_id, ngay, ngan_sach, trang_thai, ns_max, bat) select camp_id, '{nay.isoformat()}', ngan_sach, trang_thai, "

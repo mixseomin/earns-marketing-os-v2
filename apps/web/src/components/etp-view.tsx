@@ -1495,7 +1495,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       ...[3, 5, 7].map((n) => ({ value: `g${n}`, label: `Lãi ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều lãi`, tim: `lai lien tiep ${n} ngay` })),
       ...[2, 3, 5, 7].map((n) => ({ value: `l${n}`, label: `Lỗ ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều âm`, tim: `lo lien tiep ${n} ngay` }))]} />;
   // NGƯỜI (anh 28/10/2026 "xem được report của từng người"): đổi người = nạp lại dữ liệu từ máy chủ (?ng=); người nhà bỏ tham số; bỏ lọc bộ (bộ chỉ có ở nhà)
-  const nguoiSel = () => (du.nguoi.ds.length > 1 ? <Chon2 value={du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="right" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
+  const nguoiSel = () => (du.nguoi.ds.length > 1 ? <Chon2 value={du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
     onChange={(v) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v); u.searchParams.delete('b'); u.searchParams.delete('ngan'); router.push(`${u.pathname}${u.search}`); }}
     options={du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten }))} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /> : null);
   const boSel = () => <Chon2 value={boLoc} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="right" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
@@ -1510,9 +1510,10 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
-        {du.nguoi.ngoai ? <span title="camp + số của tài khoản QC người này (Ethopex cho htuan82 xem) — chỉ để theo dõi / học; máy luật, nút bật / tắt không áp"
-          style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600 }}>
-          👁 {du.nguoi.ds.find((x) => x.id === du.nguoi.dang)?.ten} · chỉ xem</span> : null}
+        {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
+        <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}
+          {du.nguoi.ngoai ? <span title="camp + số của tài khoản QC người này (Ethopex cho htuan82 xem) — chỉ để theo dõi / học; máy luật, nút bật / tắt không áp"
+            style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
       </div>
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0' }}>
         {gon ? (
@@ -1576,8 +1577,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
             m('cung', 'Đoạn > 3 camp', 'Khác'), m('roas', '★ Đủ bid ROAS', 'Khác')]} />; })()}
         {gon ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }} className="etp-loc3">
           <style>{'.etp-loc3 select{width:100%;min-width:0}'}</style>
-          {nguoiSel()}{laiSel()}{luatSel()}{dangSel()}{boSel()}</div> : null}
-        {!gon ? <>{nguoiSel()}{laiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}
+          {laiSel()}{luatSel()}{dangSel()}{boSel()}</div> : null}
+        {!gon ? <>{laiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}
         </div> : null}
       </div>
       </div>

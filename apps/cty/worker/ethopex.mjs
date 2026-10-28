@@ -183,7 +183,7 @@ export function tinDeXuatLuat2() {
     ``,
     `<b>1. Giảm / tắt chỉ dùng ngày đã khép</b> — GT so 3 ngày D−3..D−1 với 4 ngày D−7..D−4 (bỏ hôm nay đang chạy, đang báo tụt giả); OFF (review ≥ 7 ngày) tính tới hết hôm qua.`,
     `<b>2. GB chạy 9h–13h</b> thay vì 6h–13h — 6h sáng ngày UTC hôm qua chưa khép.`,
-    `<b>3. Tăng trong ngày theo ROI đã chốt chi</b> — chỉ cộng các giờ tới đợt chi gần nhất. Tăng một bậc khi ROI hôm nay (chốt) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không lỗ (camp mới bỏ qua điều kiện này); vẫn ≥ 3 giờ giữa hai lần, trần $20; LD cần chi ≥ $1,5. Ngày tính theo UTC nên 0–7h VN số hôm nay có thật. Chạy thử tối nay: bắt thêm #65176 Number One Nobody (+51% hôm nay) và #65727 Runaway Single Mom (+66%) mà luật cũ bỏ sót.`,
+    `<b>3. Tăng trong ngày theo ROI đã chốt chi</b> — chỉ cộng các giờ tới đợt chi gần nhất. Tăng một bậc khi ROI hôm nay (chốt) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không lỗ (camp mới bỏ qua điều kiện này; hôm qua lỗ mà chi hôm qua &lt; max($2, 50% ngân sách) cũng bỏ qua — luật B1); vẫn ≥ 3 giờ giữa hai lần, trần $20; LD cần chi ≥ $1,5. Ngày tính theo UTC nên 0–7h VN số hôm nay có thật. Chạy thử tối nay: bắt thêm #65176 Number One Nobody (+51% hôm nay) và #65727 Runaway Single Mom (+66%) mà luật cũ bỏ sót.`,
     `<b>4. Ghi rõ số đã chốt</b> — bảng ghim + tab Ethopex mos2: "ngày 07:00–07:00 VN · chi ghi tới HH:00".`,
     ``,
     `Song song (chỉ đọc, $0): đo độ trễ 3–4 ngày để đặt ngưỡng chốt chính xác. Quyền máy tự tăng đã gia hạn: trần $10, tới khi anh rút lại.`,

@@ -8,7 +8,7 @@ import json, os, re, subprocess, sys, urllib.request, datetime as dt
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
 # TĂNG BẬC chỉ khi ROI tháng > 50% (Support Dol 21/10/2026: "a chỉ tăng budget những camp rois > 50% nhé") — roi_min (20) còn dùng cho luật giảm / theo dõi
 ROI_TANG = 50
-HQ_NHO = 0.5   # luật B1: chi hôm qua dưới tỷ lệ này của ngân sách hiện tại thì ROI hôm qua âm không chặn tăng trong ngày
+HQ_NHO, HQ_NHO_MIN = 0.5, 2.0   # sàn $2 (anh 28/10/2026 "cấm viết chung chung, chi nhỏ là bao nhiêu — set tối thiểu $2"): chi nhỏ = chi hôm qua < max($2, 50% ngân sách) · luật B1: chi hôm qua dưới tỷ lệ này của ngân sách hiện tại thì ROI hôm qua âm không chặn tăng trong ngày
 roi_min = float(ARGS[0]) if ARGS else 20; sp_min = float(ARGS[1]) if len(ARGS) > 1 else 50; JSON = '--json' in sys.argv
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 # API Ethopex chậm / quá giờ (23/10/2026 21:49 "The read operation timed out" thành tin báo động giả) → mọi lượt gọi tự thử lại 3 lần, nghỉ 5–10s.
@@ -109,10 +109,10 @@ for cid, a in sorted(thang.items()):
     # NỚI B1 (anh 26/10/2026 "theo B1"): hôm qua âm mà chi hôm qua < 50% ngân sách HIỆN TẠI (mẫu nhỏ — vừa lên bậc / mới chạy) thì bỏ qua điều kiện hôm qua.
     # Chạy lại 19–24/10: nhóm này hôm sau ROI +74% (4/6 lãi); hôm qua âm với chi ≥ 50% ngân sách hôm sau −4% (16/24 lỗ) → vẫn chặn.
     _yq = hqua.get(cid); _ryq = roi(_yq) if _yq and _yq["chi"] >= 0.3 else None; _rh = roi(h) if h.get("chi", 0) >= 0.3 else None
-    _hq_nho = _ryq is not None and _ryq < 0 and _yq["chi"] < HQ_NHO * a["budget"]
+    _hq_nho = _ryq is not None and _ryq < 0 and _yq["chi"] < max(HQ_NHO_MIN, HQ_NHO * a["budget"])
     tb_ngay = TANG_CHOT and _rh is not None and _rh >= 50 and h["chi"] >= 0.3 * a["budget"] and (_ryq is None or _ryq >= 0 or _hq_nho)
     if tb_ngay and not (r >= ROI_TANG and sp > sp_min and them_dk): dong += f" · ROI hôm nay (chốt chi) {_rh:+.0f}%, chi {h['chi'] / a['budget'] * 100:.0f}% ngân sách"
-    if tb_ngay and _hq_nho: dong += f" · hôm qua {_ryq:+.0f}% nhưng chi ${_yq['chi']:.2f} < {HQ_NHO * 100:.0f}% ngân sách → bỏ qua (luật B1)"
+    if tb_ngay and _hq_nho: dong += f" · hôm qua {_ryq:+.0f}% nhưng chi ${_yq['chi']:.2f} < ${max(HQ_NHO_MIN, HQ_NHO * a['budget']):g} (max $2, 50% ngân sách) → bỏ qua (luật B1)"
     # KHÔNG TĂNG KHI HÔM NAY ĐANG LỖ (anh duyệt 23/10/2026 sau Step Back: #66055 −31% hôm nay vẫn được tăng $10 → $15 nhờ ROI tháng): ROI hôm nay
     # (số đã chốt chi, chi ≥ $0,3) < 0 → không vào danh sách tăng, kể cả máy tự tăng; ROI tháng chỉ còn là điều kiện cần.
     lo_nay = _rh is not None and _rh < 0
@@ -557,13 +557,13 @@ def _xet_luat():
         spv = (y["chi"] if (KHUNG_DEM and y) else h.get("chi", 0)) / ns * 100 if ns else 0
         dk_tang = [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {ROI_TANG}%", r is not None and r >= ROI_TANG],
                    ["Spending " + ("hôm qua" if KHUNG_DEM else "hôm nay"), f"{spv:.0f}%", f"> {sp_min:g}%", spv > sp_min],
-                   ["ROI hôm nay (đã chốt chi)", f(rh, "%"), "không âm", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
+                   ["ROI hôm nay (tới đợt chi gần nhất, chi ≥ $0.3)", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
             ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại.",
             dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
-        ls.append(L("tang_ngay", "Tăng trong ngày", "ROI hôm nay (đã chốt chi) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi < 50% ngân sách thì bỏ qua — luật B1).",
+        ls.append(L("tang_ngay", "Tăng trong ngày", "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1). ROI chỉ tính khi chi ≥ $0.3.",
             [["ROI hôm nay", f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
-             ["ROI hôm qua", f(ry, "%"), "≥ 0% (hoặc chi nhỏ)", ry is None or ry >= 0 or (y and y["chi"] < HQ_NHO * ns)]], ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
+             ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))]], ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
         # GIẢM BẬC
         ghi_g = None if giam_tu else "máy tự giảm đang TẠM DỪNG (giam_tu_dong = false) — chỉ báo + nút ↓"
         r3 = rg if rg is not None else ry
@@ -571,7 +571,7 @@ def _xet_luat():
             [["Ngân sách", f"${ns:g}", "> $1", ns > 1], ["Chi hôm qua", f"{((y['chi'] if y else 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 50%", bool(y and ns and y["chi"] >= 0.5 * ns)],
              ["ROI hôm qua", f(ry, "%"), "< 0%", ry is not None and ry < 0], ["ROI 3 ngày gần", f(r3, "%"), "< 20%", r3 is not None and r3 < 20]],
             "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang, tien=1))
-        ls.append(L("giam_ngay", "Giảm trong ngày", "ROI hôm nay (đã chốt chi) ≤ −5%, đã chi ≥ 30% ngân sách, ROI hôm qua < 50% → xuống một bậc (ngân sách > $1).",
+        ls.append(L("giam_ngay", "Giảm trong ngày", "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất, chi ≥ $0.3) ≤ −5%, đã chi ≥ 30% ngân sách, ROI hôm qua < 50% → xuống một bậc (ngân sách > $1).",
             [["Ngân sách", f"${ns:g}", "> $1", ns > 1], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= max(0.3 * ns, 0.3))],
              ["ROI hôm nay", f(rh, "%"), "≤ −5%", rh is not None and rh <= -5], ["ROI hôm qua", f(ry, "%"), "< 50%", ry is None or ry < 50]],
             "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang, tien=1))
@@ -581,7 +581,7 @@ def _xet_luat():
             "ha" if int(cid) in vao["ha"] else None, ghi_g, ap=int(cid) not in _id_thang, tien=1))
         ls.append(L("roi_tut", "ROI tụt", "So 3 ngày gần (đã khép) với 4 ngày trước: mỗi khoảng chi ≥ $1.5; ROI trước ≥ 20% mà gần < 0%, hoặc tụt ≥ 30 điểm → báo giảm một bậc.",
             [["Chi 3 ngày gần", f(g3["chi"] if g3 else 0, "$"), "≥ $1.5", bool(g3 and g3["chi"] >= 1.5)], ["Chi 4 ngày trước", f(t4["chi"] if t4 else 0, "$"), "≥ $1.5", bool(t4 and t4["chi"] >= 1.5)],
-             ["ROI 4 ngày trước → 3 ngày gần", f"{f(rt, '%')} → {f(rg, '%')}", "tụt ≥ 30 điểm, hoặc ≥ 20% → < 0%", rt is not None and rg is not None and ((rt >= roi_min and rg < 0) or rt - rg >= 30)]],
+             ["ROI 4 ngày trước → 3 ngày gần", f"{f(rt, '%')} → {f(rg, '%')}", f"tụt ≥ 30 điểm, hoặc ≥ {roi_min:g}% → < 0%", rt is not None and rg is not None and ((rt >= roi_min and rg < 0) or rt - rg >= 30)]],
             "giam" if int(cid) in vao["giam"] else None, ghi_g))
         if not b2:
             ls.append(L("nb", "Nhân bản camp thắng (NB)", f"ROI khung dài ≥ {NB_ROI}%, tiêu ≥ ${NB_CHI}, ROI 3 ngày gần ≥ {NB_ROI3}%, camp gốc đã chạm trần ${TRAN_NB:g} → nhân một bản $1 creative khác.",

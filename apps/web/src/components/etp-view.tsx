@@ -57,7 +57,7 @@ const TT = ({ c }: { c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lic
 // chấm rỗng = chưa chi đủ 30% ngân sách (luật chưa xét) · dấu máy luật đang đánh (etp.bao): ↑ tăng · ↓ giảm bậc · ✕ đề xuất tắt · ↘ ROI tụt · ★ bid ROAS
 const BAC_NS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
 // GẦN ĐẠT luật (anh 26/10/2026: "các camp gần đạt tiêu chí tăng hay giảm bậc cũng cần show") — đọc đúng ngưỡng luat-ethopex.py (/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/luat-ethopex.py, box3):
-// tăng trong ngày ROI hôm nay ≥ +50% · chi ≥ 30% ngân sách · hôm qua ≥ 0% (hoặc chi hôm qua < 50% ngân sách — luật B1 26/10) | giảm trong ngày (ngân sách > $1) ROI ≤ −5% · chi ≥ 30% · hôm qua < +50% | tắt: tiêu > $10 · ROI < −50% · ≥ 7 ngày (ROI/tiêu lấy 30 ngày)
+// tăng trong ngày ROI hôm nay ≥ +50% · chi ≥ 30% ngân sách · hôm qua ≥ 0% (hoặc chi hôm qua < max($2, 50% ngân sách) — luật B1 26/10, sàn $2 28/10) | giảm trong ngày (ngân sách > $1) ROI ≤ −5% · chi ≥ 30% · hôm qua < +50% | tắt: tiêu > $10 · ROI < −50% · ≥ 7 ngày (ROI/tiêu lấy 30 ngày)
 // dấu mờ ⇡ gần tăng · ⇣ gần giảm · ✕ mờ gần tắt; máy luật đã đánh dấu thật (etp.bao) thì không hiện dấu gần cùng loại
 // một chỗ cho ô Bậc + bộ lọc "Gần tăng / Gần giảm / Gần tắt": dấu GẦN (ganLuat) + dấu máy luật đã đánh (etp.bao) cùng hướng
 const BAO_HUONG: Record<string, 'tang' | 'giam' | 'tat'> = { tang: 'tang', dau_phien: 'tang', tang30: 'tang', ha: 'giam', tat: 'tat' };   // ↘ 'giam' = ROI TỤT theo xu hướng 3 ngày (cảnh báo), KHÔNG phải luật giảm bậc — không vào lọc Gần giảm
@@ -68,10 +68,10 @@ function ganCamp(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'ta
 }
 function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua' | 'nay'>, r: number | null, du: boolean, rq: number | null, da: Set<string>): [string, string, string][] {
   const ra: [string, string, string][] = [];
-  const hqChan = rq != null && rq < 0 && c.qua.chi >= 0.5 * c.ngan_sach;
+  const hqChan = rq != null && rq < 0 && c.qua.chi >= Math.max(2, 0.5 * c.ngan_sach);   // sàn $2 cùng máy luật (HQ_NHO_MIN, anh 28/10/2026)
   // "gần" chỉ khi HÔM NAY còn đường chạm ngưỡng (anh 26/10/2026: "ko còn chi thêm nữa thì làm sao mà đạt đc tăng"): đã tiêu hết ngân sách → chi đứng yên, ROI chỉ nhích nhờ thu về trễ;
   // vướng hôm qua → số hôm qua đã chốt. Hai ca đó không gắn dấu gần — mai máy xét lại với hôm nay làm "hôm qua".
-  const het = c.nay.chi >= c.ngan_sach;   // luật B1: hôm qua âm chỉ chặn khi chi hôm qua ≥ 50% ngân sách
+  const het = c.nay.chi >= c.ngan_sach;   // luật B1: hôm qua âm chỉ chặn khi chi hôm qua ≥ max($2, 50% ngân sách)
   if (r != null && !['tang', 'dau_phien', 'tang30'].some((k) => da.has(k))) {
     if (r >= 50 && !du) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}% đã đạt, chờ chi đủ 30% ngân sách`]);
     else if (r >= 30 && r < 50 && !hqChan && !het) ra.push(['⇡', '#4ade80', `gần tăng bậc: ROI hôm nay ${r}%, còn thiếu ${50 - r} điểm để chạm +50%`]);
@@ -258,10 +258,10 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
       { ten: `ROI hôm nay ${phanTram(rn)} < 0%`, dat: rn != null && rn < 0 },
       { ten: `ROI 3 ngày ${phanTram(r3)} < +20%`, dat: r3 == null || r3 < 20 }] });
   }
-  const hqChan = rq != null && rq < 0 && c.qua.chi >= 0.5 * ns;
+  const hqChan = rq != null && rq < 0 && c.qua.chi >= Math.max(2, 0.5 * ns);   // sàn $2 cùng máy luật
   const dkTang: DkLuat[] = [{ ten: `ROI hôm nay ${phanTram(rn)} ≥ +50%`, dat: rn != null && rn >= 50 },
     { ten: `hôm nay chi ${pct(c.nay.chi)}% ngân sách ≥ 30%`, dat: c.nay.chi >= Math.max(0.3 * ns, 0.3) },
-    { ten: `hôm qua không lỗ nặng (ROI ${phanTram(rq)})`, dat: !hqChan }];
+    { ten: `hôm qua ROI ≥ 0% (${phanTram(rq)}, chi ${usd(c.qua.chi)}) — bỏ qua khi chi hôm qua < $${Math.max(2, 0.5 * ns)}`, dat: !hqChan }];
   if (bo2) { const dich = thangMuc.find((b) => b > 1) ?? 3;   // bộ 2: bản thang đầu đi từ đáy (≤ $3) — luat-ethopex 27/10/2026
     ra.push({ k: '⧉', mau: '#a78bfa', chip: `⧉ bản thang $${dich}`, ten: `Bộ 2: không tăng ngân sách — mở bản thang $${dich} (creative khác cùng phim)`, dk: dkTang }); }
   else if (len != null) ra.push({ k: '↑', mau: '#4ade80', chip: `↑ $${ns}→$${len}`, ten: `Tăng bậc $${ns} → $${len}`, dk: dkTang });

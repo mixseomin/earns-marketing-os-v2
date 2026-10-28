@@ -19,8 +19,7 @@ def qj(s): return json.loads(q(f"select coalesce(json_agg(t), '[]') from ({s}) t
 
 # nhật ký máy luật → mã luật (cùng mã etp.xet_luat). Lệnh tay của anh / sửa CTA / dọn lỗi KHÔNG tính vào luật nào.
 MA = [("tang", r"^lãi đầu phiên", "dau_phien"), ("tang", r"^t30|\$20 → \$30", "t30"), ("tang", r"(đủ điều kiện tăng bậc|ĐỦ ĐIỀU KIỆN TĂNG BẬC|^TB tăng bậc)", "tang"),
-      ("giam", r"trong ngày", "giam_ngay"), ("giam", r"^giảm sớm", "giam_som"), ("giam", r"ROI T[ỤU]T", "roi_tut"), ("giam", r"^giảm bậc \(GB\)", "gb"),
-      ("tat", r"^T2 ", "t2"), ("tat", r"^T7 \(", "t7"), ("tat", r"^OFF|lỗ lâu", "off"), ("tat", r"^D24|dừng > 24", "d24"), ("tat", r"dừng đêm", "dung_dem"),
+      ("tat", r"^L3 ", "l3"), ("tat", r"^T2 ", "t2"), ("tat", r"^T7 \(", "t7"), ("tat", r"^OFF|lỗ lâu", "off"), ("tat", r"^D24|dừng > 24", "d24"), ("tat", r"dừng đêm", "dung_dem"),
       ("nhan_ban", r"^thang nhân bản", "thang_nb"), ("nhan_ban", r"^nhân bản camp thắng · ", "nb")]
 def DX(lam, vi, cach):
     """một đề xuất = LÀM GÌ (vài chữ, hiện trong ô) · VÌ SAO (một câu) · CÁCH (một câu) — số chi tiết đã có ở cột, không chép lại (anh 29/10/2026 \"khó đọc quá\")"""
@@ -78,7 +77,7 @@ def main():
     for m in sorted(set(luat) | set(ra)):
         L = luat.get(m, {}); x = ra.get(m, {"lan": 0, "camp": set(), "mau": []}); mau = x["mau"]; dx = []
         so_ = {"lan": x["lan"], "camp": len(x["camp"]), "ngay": NGAY}
-        if m in ("tang", "dau_phien", "t30", "gb", "giam_ngay", "giam_som", "roi_tut"):
+        if m in ("tang", "dau_phien", "t30"):
             do = [a for a in mau if a["sau"][2] and a["truoc"][2]]
             tc, tt, tn = (sum(a["truoc"][i] for a in do) for i in range(3)); sc, st, sn = (sum(a["sau"][i] for a in do) for i in range(3))
             tot = sum(1 for a in do if (a["sau"][1] - a["sau"][0]) / a["sau"][2] > (a["truoc"][1] - a["truoc"][0]) / a["truoc"][2])
@@ -100,7 +99,7 @@ def main():
                               else DX("Tắt thay vì giảm", "camp bị giảm vẫn lỗ như cũ.", "camp lỗ thì tắt luôn, không giảm từng bậc.") if lt < 0
                               else DX("Nới điều kiện giảm", f"camp bị giảm đang lãi; giảm làm mất ≈ ${mat:.0f} trong {NGAY} ngày.", "chỉ giảm khi 2 ngày đã khép cùng lỗ (thay vì 1 ngày).") if ls_ < lt
                               else DX("Giữ", "giảm không làm mất lãi.", None))
-        elif m in ("t2", "t7", "off", "d24", "dung_dem"):
+        elif m in ("t2", "t7", "off", "d24", "dung_dem", "l3"):
             co = [a for a in mau if a["truoc"][2]]; lai = [a for a in co if a["truoc"][1] > a["truoc"][0]]
             tc, tt, tn = (sum(a["truoc"][i] for a in co) for i in range(3))
             so_.update(do_duoc=len(co), roi_3_ngay_truoc=roi(tc, tt), lo_ngay_truoc=round((tt - tc) / tn, 2) if tn else None, dang_lai=len(lai), lai_bi_tat=round(sum(a["truoc"][1] - a["truoc"][0] for a in lai), 2))

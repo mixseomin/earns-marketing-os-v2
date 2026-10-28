@@ -344,7 +344,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daTu = []; const lamRoi = new Set();
   // Một camp một quyết định: máy luật (luat-ethopex.py _SE_TAT) đã gỡ camp trong danh sách tắt khỏi mọi danh sách tăng / giảm / nhân bản —
   // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
-  const seTat = new Set(['tat2', 'tat_d24', 'dung_dem', 'tat', 'thang_tat'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
+  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'dung_dem', 'tat', 'thang_tat'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -484,6 +484,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       cot: 'Lãi 2n', luat: 'T2 (2 ngày đầu ROI < −20%, chi ≥ $2.5)', ai: 'anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy' },
     { khoa: 'tat_d24', tep: 'ethopex-tat-d24.json', ten: 'LUẬT D24', mo_ta: 'luật D24: camp có khoảng dừng &gt; 24 giờ (một ngày trọn không chi sau ngày chi đầu) — tắt ngay, không xét lãi lỗ (anh 29/10)',
       cot: 'Lãi', luat: 'D24 (khoảng dừng > 24 giờ)', ai: 'anh (chat 29/10/2026: camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức) — máy chạy', ngay: true },
+    { khoa: 'tat_l3', tep: 'ethopex-tat-l3.json', ten: 'LUẬT L3', mo_ta: 'luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ $1 — thay cho giảm bậc (anh 29/10)',
+      cot: 'Lãi 3n', luat: 'L3 (lỗ 3 ngày đã khép liền, chi ≥ $1/ngày)', ai: 'anh (chat 29/10/2026: bỏ giảm bậc, ROI âm liên tục thì tắt — làm 1+2) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);

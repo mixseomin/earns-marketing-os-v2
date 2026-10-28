@@ -904,7 +904,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   // Điểm chạm mới một bản KHÔNG phải phép thử → gom một dòng "chưa có bản để so".
   const nhan = (kk: string, v: string) => NHAN_DC[`${kk}=${v}`]?.[0] ?? v;
   const lp = (r: DongDc) => (r.lechW ? r.lech / r.lechW : null), ctr = (r: DongDc) => (r.h ? r.n / r.h : null), cvr = (r: DongDc) => (r.sn ? r.sv / r.sn : null);
-  const duMau = (r: DongDc) => r.n >= 100 && r.chi >= 30;
+  const duMau = (r: DongDc) => r.n >= 100 && r.chi >= 30 && r.cr >= 5;   // ≥ 5 creative: 2 creative thắng có thể chỉ là may của một đoạn phim (90–120s 28/10)
   const khoi = useMemo(() => DIEM_CHAM.map((d) => { const rs = bang(d.k).filter((x) => x.v !== '(chưa ghi)'); const ls = rs.map(lp).filter((x): x is number => x != null);
     return { ...d, rs, lech: ls.length > 1 ? Math.max(...ls) - Math.min(...ls) : 0 }; }), [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
   const coSo = khoi.filter((d) => d.rs.length > 1).sort((a, b) => b.lech - a.lech), mot = khoi.filter((d) => d.rs.length <= 1);
@@ -929,7 +929,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
           <div style={{ padding: '8px 12px', background: 'var(--bg-1, #111)' }}>
             <div style={{ fontSize: 13 }}><span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span><b>{d.ten}</b> <span style={{ color: 'var(--fg-2)' }}>— {MO_TA_DC[d.k] ?? ''}</span></div>
             <div style={{ fontSize: 12.5, marginTop: 3 }}><b style={{ color: kl.chac ? '#4ade80' : '#f59e0b' }}>{kl.chac ? '✓ chắc' : '◌ chưa chắc'}</b> · {kl.chu}
-              {kl.chac ? null : <span style={{ color: 'var(--fg-3, #777)' }}> — cần thêm mẫu (≥ 100 nhấp, chi ≥ $30 mỗi bản) hoặc chênh chưa đủ lớn</span>}</div>
+              {kl.chac ? null : <span style={{ color: 'var(--fg-3, #777)' }}> — cần thêm mẫu (mỗi bản ≥ 5 creative, ≥ 100 nhấp, chi ≥ $30) hoặc chênh chưa đủ lớn</span>}</div>
           </div>
           <div style={{ overflowX: 'auto' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
             <thead><tr style={{ color: 'var(--fg-3, #777)', fontSize: 10.5 }}>{['Bản', 'Mẫu nhìn', 'Creative', 'Chi', 'ROI', '± phim', 'Δ ± phim', 'CTR', 'Δ CTR', 'S CVR', 'Δ S CVR', 'Mẫu'].map((h, i) => <th key={h} style={{ ...o, textAlign: i < 2 ? 'left' : 'right', fontWeight: 500 }}>{h}</th>)}</tr></thead>
@@ -947,7 +947,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
                 <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(ctr(r), ctr(base)) }}>{la || ctr(r) == null || ctr(base) == null ? '—' : `${ctr(r)! - ctr(base)! >= 0 ? '+' : ''}${((ctr(r)! - ctr(base)!) * 100).toFixed(1)} điểm`}</td>
                 <td style={o}>{pc(cvr(r))}</td>
                 <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(cvr(r), cvr(base)) }}>{la || cvr(r) == null || cvr(base) == null ? '—' : `${cvr(r)! - cvr(base)! >= 0 ? '+' : ''}${((cvr(r)! - cvr(base)!) * 100).toFixed(1)} điểm`}</td>
-                <td style={o}>{duMau(r) ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.n} nhấp</span>}</td>
+                <td style={o}>{duMau(r) ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.cr < 5 ? `${r.cr} creative` : `${r.n} nhấp`}</span>}</td>
               </tr>; })}</tbody></table></div>
         </div>; })}
       {mot.length ? <div style={{ border: '1px dashed var(--line)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>

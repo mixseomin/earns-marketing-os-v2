@@ -555,6 +555,8 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
   // MỘT MÀN, CHIA TAB (YDNI) · MỖI SỐ MỘT CỘT (anh 29/10/2026 "dùng dạng ui.DataTable, các số nào vào cột được thì ra cột riêng")
   const [nhom, setNhom] = useState('tang'); useEffect(() => { try { const v = localStorage.getItem('etp-luat-nhom'); if (v) setNhom(v); } catch { /* */ } }, []);   // đọc sau khi nạp: tránh lệch SSR
   const chon = (k: string) => { setNhom(k); try { localStorage.setItem('etp-luat-nhom', k); } catch { /* */ } };
+  // THẺ NỔI CHUNG CỦA TRANG (useNoi + KhungNoi: trễ mở, ✕ / Esc, rê vào được) thay hover mặc định của trình duyệt (anh 29/10/2026 "show dạng format đẹp")
+  const noi = useNoi<{ ma: string; kieu: 'dx' | 'dk' }>();
   const ds = (NHOM.find(([k]) => k === nhom) ?? NHOM[0]!)[2].map((m) => theo.get(m)).filter((x): x is SoLuat => !!x);
   const T = ({ v }: { v: number | null | undefined }) => (v == null ? <span style={{ color: MO }}>—</span> : <KeToan v={v} mau={v ? mauLai(v) : undefined} />);
   const N = ({ v }: { v: number | null | undefined }) => <span style={{ color: !v ? MO : undefined, fontVariantNumeric: 'tabular-nums' }}>{v ?? '—'}</span>;
@@ -563,7 +565,7 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
     ({ key, header, group, title, cell: (l) => { const v = get(l); return kieu === 'tien' ? <T v={v} /> : kieu === 'roi' ? <RoiSo r={v} /> : kieu === 'pct' ? <N v={v == null ? null : Math.round(v)} /> : <N v={v} />; }, sortValue: (l) => so(get(l)) });
   const lai = (l: SoLuat) => (l.so.lai_ngay_sau != null && l.so.lai_ngay_truoc != null ? Math.round((l.so.lai_ngay_sau - l.so.lai_ngay_truoc) * 100) / 100 : null);
   const cotDau: DataColumn<SoLuat>[] = [
-    { key: 'ten', header: 'Luật', align: 'left', width: 220, cell: (l) => <span title={`${l.mo_ta ?? ''}\n\nĐiều kiện đang chạy:\n${l.dk.map(([t, n]) => `· ${t} ${n}`).join('\n')}`} style={{ cursor: 'help' }}>
+    { key: 'ten', header: 'Luật', align: 'left', width: 220, cell: (l) => <span onMouseEnter={(e) => noi.mo({ ma: l.ma, kieu: 'dk' }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help' }}>
       <b style={{ textDecoration: 'underline dotted' }}>{l.ten}</b>{l.dung ? <span style={{ color: MO }}> · tạm dừng</span> : null}</span>, sortValue: (l) => l.ten },
     c('lan', 'Lần làm', '14', (l) => l.so.lan, 'so', 'số lần máy luật đã làm trong 14 ngày'), c('camp', 'Camp', '14', (l) => l.so.camp, 'so', 'số camp khác nhau'),
     c('do', 'Đo được', '14', (l) => l.so.do_duoc, 'so', 'số lần có đủ ngày trước + sau để đo (lần mới làm hôm nay / hôm qua chưa có ngày sau)'),
@@ -595,7 +597,7 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
   const dxChu = (x: SoLuat['de_xuat'][number]) => (typeof x === 'string' ? { lam: x, vi: '', cach: null } : x);
   const cotDx: DataColumn<SoLuat> = { key: 'dx', header: 'Đề xuất', align: 'left', width: 380, title: 'rê vào đọc lý do + cách làm',
     cell: (l) => { const ds = l.de_xuat.map(dxChu); if (!ds.length) return <span style={{ display: 'block', width: 360, color: MO, fontSize: 11 }}>chưa đủ số (cần ≥ 10 lần đo)</span>;
-      return <span title={ds.map((x) => `Làm: ${x.lam}\nVì: ${x.vi}${x.cach ? `\nCách: ${x.cach}` : ''}`).join('\n\n')} style={{ display: 'block', width: 360, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, cursor: 'help' }}>
+      return <span onMouseEnter={(e) => noi.mo({ ma: l.ma, kieu: 'dx' }, e)} onMouseLeave={noi.dongTre} style={{ display: 'block', width: 360, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, cursor: 'help' }}>
         {ds.map((x, i) => { const giu = x.lam === 'Giữ' || x.lam.startsWith('Xem ');
           return <span key={i}>{i ? <span style={{ color: MO }}> · </span> : null}<b style={{ color: giu ? 'var(--fg-2)' : '#f59e0b' }}>{x.lam}</b>{ds.length === 1 && x.vi ? <span style={{ color: 'var(--fg-2)' }}> — {x.vi}</span> : null}</span>; })}</span>; },
     sortValue: (l) => l.de_xuat.map(dxChu).filter((x) => x.lam !== 'Giữ').length };
@@ -607,6 +609,21 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
       <Segmented value={nhom} onChange={chon} options={NHOM.map(([k, ten, ms]) => ({ value: k, label: ten.split(' — ')[0]!, title: `${ten} · ${ms.filter((m) => theo.has(m)).length} luật` }))} />
       <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{luc ? `số tính lúc ${vn(luc)} · máy tính lại mỗi giờ` : 'chưa có số — máy tính ở nhịp đồng bộ kế'} · rê tên luật xem điều kiện đầy đủ · đề xuất là gợi ý, đổi luật anh chốt</span>
     </div>
+    {noi.v ? (() => { const l = theo.get(noi.v.ma); if (!l) return null; const xs = l.de_xuat.map(dxChu);
+      const nhan = (t: string) => <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-3, #777)', margin: '8px 0 2px' }}>{t}</div>;
+      return <KhungNoi x={noi.v.x} y={noi.v.y} rong={420} cao={300} noi={noi} style={{ width: 420, padding: '12px 14px', fontSize: 12.5, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, paddingRight: 26 }}>{l.ten}{l.dung ? <span style={{ fontSize: 11, fontWeight: 400, color: MO }}> · tạm dừng</span> : null}</div>
+        {noi.v.kieu === 'dk' ? <>
+          {l.mo_ta ? <div style={{ color: 'var(--fg-2)', marginTop: 4 }}>{l.mo_ta}</div> : null}
+          {l.dk.length ? <>{nhan('Điều kiện đang chạy')}<table style={{ borderCollapse: 'collapse', width: '100%' }}><tbody>{l.dk.map(([t, n]) => <tr key={t}>
+            <td style={{ padding: '3px 10px 3px 0', borderTop: '1px solid var(--line)', color: 'var(--fg-2)' }}>{t}</td><td style={{ padding: '3px 0', borderTop: '1px solid var(--line)', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{n}</td></tr>)}</tbody></table></> : null}
+        </> : xs.map((x, i) => { const giu = x.lam === 'Giữ' || x.lam.startsWith('Xem ');
+          return <div key={i} style={{ marginTop: i ? 12 : 8, paddingTop: i ? 10 : 0, borderTop: i ? '1px solid var(--line)' : undefined }}>
+            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 12, background: giu ? 'var(--bg-2, #222)' : 'rgba(245,158,11,.15)', color: giu ? 'var(--fg-2)' : '#f59e0b' }}>{x.lam}</span>
+            {x.vi ? <>{nhan('Vì sao')}<div>{x.vi}</div></> : null}
+            {x.cach ? <>{nhan('Cách làm')}<div>{x.cach}</div></> : null}
+          </div>; })}
+      </KhungNoi>; })() : null}
     <DataTable rows={ds} columns={cot} groups={NHOM_COT.filter((g) => cot.some((x) => x.group === g.key))} groupHeader getRowKey={(l) => l.ma} persistKey={`etp-luat-${nhom}`} minWidth={nhom === 'tang' ? 2300 : 1600} />
   </div>;
 }

@@ -40,6 +40,8 @@ export interface DataColumn<T> {
   // value for a row (number sorts numerically, string via localeCompare; null/undefined sort last).
   // Omit → column not sortable (e.g. action/icon columns). Sort is client-side + uncontrolled.
   sortValue?: (row: T) => string | number | null | undefined;
+  /** kiểu lọc 🔍 mặc định: 'so' = KHOẢNG từ–đến · 'chu' = chứa (LIKE %%). Không khai → cột canh trái (chữ, mã: Camp, Creative…) là 'chu', cột canh phải có giá trị số là 'so' */
+  loc?: 'so' | 'chu';
 }
 
 export interface DataGroup {
@@ -734,7 +736,8 @@ export function DataTable<T>({
         if (key == null) return null;                 // narrow: searchCol string trong nhánh này
         const col = columns.find((c) => c.key === key);
         // mặc định theo LOẠI cột: cột số (đa số ô là số) → KHOẢNG từ–đến; cột chữ → "chứa"
-        const laSo = (() => { const sv = col?.sortValue; if (!sv) return false; let so = 0, co = 0; for (const r of rows.slice(0, 200)) { const x = sv(r); if (x == null || x === '') continue; co++; if (typeof x === 'number') so++; } return co > 0 && so > co / 2; })();
+        // anh 29/10/2026: "cột dạng text thì không chọn Khoảng là default, chọn Like %" — cột canh trái (tên, mã camp / creative sắp theo số) là cột chữ
+        const laSo = col?.loc ? col.loc === 'so' : (col?.align ?? 'right') !== 'left' && (() => { const sv = col?.sortValue; if (!sv) return false; let so = 0, co = 0; for (const r of rows.slice(0, 200)) { const x = sv(r); if (x == null || x === '') continue; co++; if (typeof x === 'number') so++; } return co > 0 && so > co / 2; })();
         const cur = colFilters[key] ?? { op: laSo ? 'KHOẢNG' : 'LIKE %%', val: '' };
         return (
           <AnchoredPopover anchorRef={searchAnchor} open onClose={() => setSearchCol(null)} align="left" zIndex={1100}>

@@ -914,7 +914,9 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   const ketLuan = (d: (typeof khoi)[number]) => {
     const base = d.rs[0]!; const ung = d.rs.filter(duMau); const best = (ung.length ? ung : d.rs).reduce((a, b) => ((lp(b) ?? -1e9) > (lp(a) ?? -1e9) ? b : a));
     const wb = wilson(best.n, best.h), wa = wilson(base.n, base.h); const tachCtr = !!(wb && wa && (wb[0]! > wa[1]! || wb[1]! < wa[0]!));
-    const chac = duMau(best) && duMau(base) && (tachCtr || Math.abs((lp(best) ?? 0) - (lp(base) ?? 0)) >= 15);
+    // chắc = cả hai bản đủ mẫu VÀ (± phim hơn ≥ 15 điểm, HOẶC ± phim hơn + CTR tách rõ CÙNG CHIỀU) — CTR tách ngược chiều không phải bằng chứng thắng (≥ 120s 28/10: CTR thấp hơn mà bị chấm chắc)
+    const dl = (lp(best) ?? 0) - (lp(base) ?? 0);
+    const chac = best !== base && duMau(best) && duMau(base) && (dl >= 15 || (dl > 0 && tachCtr && (ctr(best) ?? 0) > (ctr(base) ?? 0)));
     const chu = best === base ? `${nhan(d.k, base.v)} (đối chứng) đang tốt nhất`
       : `${nhan(d.k, best.v)} hơn ${nhan(d.k, base.v)}: ± phim ${dLech(lp(best), 0, '')} so với ${dLech(lp(base), 0, '')} điểm · CTR ${pc(ctr(best))} so với ${pc(ctr(base))} · ROI ${roiOf(best) ?? '—'}% so với ${roiOf(base) ?? '—'}%`;
     return { best, chu, chac };

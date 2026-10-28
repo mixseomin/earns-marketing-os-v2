@@ -58,6 +58,12 @@ const docJson = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.end
 export function soLuot(url, ds = docJson(XONG())) {
   let n = 0; for (const x of ds.filter((x) => x.url === url)) n = x.ket === 'DUYET' || x.ket === 'MO_KHOA' ? 0 : n + 1; return n;
 }
+/** BÀI VIẾT CỦA MÁY ĐĂNG (cham-dang.mjs, 28/10/2026): kết quả phòng cho đúng BẢN `khoa` (md5 chữ đăng) của url `bai://<máy>/<slug>` —
+ *  'CHO' khi bản đó đang trong hàng chờ, null khi chưa nộp. Khác `ban` (mã commit site → hàng cho-dang): bài nền ngoài do máy đăng đưa lên. */
+export function ketKhoa(url, khoa, xong = docJson(XONG()), cho = docJson(CHO())) {
+  if (cho.some((x) => x.url === url && x.khoa === khoa)) return 'CHO';
+  return xong.filter((x) => x.url === url && x.khoa === khoa && x.ket).pop()?.ket ?? null;
+}
 /** Anh mở khoá một url đã hết lượt: ghi mốc MO_KHOA vào da-kiem để đếm lại từ 0. */
 export function moKhoa(url) { fs.mkdirSync(XONG(), { recursive: true }); fs.writeFileSync(path.join(XONG(), `${Date.now()}-mo.json`), JSON.stringify({ url, ket: 'MO_KHOA', luc: new Date().toISOString() })); }
 
@@ -91,7 +97,7 @@ export function doanLoai(html, url = '') {
   if (phuTrach(url)) return 'bai-dich-mxh';
   return 'bai-seo';
 }
-export function nopBai({ url, tu = 'Không rõ', html = null, ban = null, loai = null, mucDich = null }) {
+export function nopBai({ url, tu = 'Không rõ', html = null, ban = null, loai = null, mucDich = null, khoa = null }) {
   if (loai != null && !chuanLoai(loai)) throw new Error(`--loai phải là ${LOAI.join(' | ')}`);
   if (mucDich != null && !MUC_DICH.includes(mucDich)) throw new Error(`--muc-dich phải là ${MUC_DICH.join(' | ')}`);
   loai = chuanLoai(loai);
@@ -100,7 +106,7 @@ export function nopBai({ url, tu = 'Không rõ', html = null, ban = null, loai =
   if (n >= TRAN_LUOT) throw new Error(`${url} đã ${n}/${TRAN_LUOT} lượt chấm chưa DUYỆT — dừng vòng, chờ anh quyết (anh mở lại: --mo-khoa <url>)`);
   fs.mkdirSync(CHO(), { recursive: true });
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, loai, muc_dich: mucDich, luc: new Date().toISOString() }));
+  fs.writeFileSync(path.join(CHO(), `${id}.json`), JSON.stringify({ id, url, tu, html, ban, loai, muc_dich: mucDich, khoa, luc: new Date().toISOString() }));
   for (const x of docJson(TRA())) if (x.url === url) fs.rmSync(path.join(TRA(), `${x.id}.json`), { force: true });   // đã nộp lại = đã nhận việc sửa
   return id;
 }

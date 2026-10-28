@@ -35,12 +35,13 @@ export async function kiemGoc(ds) {
 /** Máy đo một bài đăng. v = { nen_url, xuat_luc, video_url, dang: { title, description, link } }, ten = tên kênh / thương hiệu (câu móc không được mở bằng tên kênh). */
 export function doBaiDang(v, ten = '') {
   const chan = [], canh = [], d = v.dang ?? {}, title = String(d.title ?? ''), mo = String(d.description ?? ''), chu = `${title}\n${mo}`, thuong = chu.toLowerCase();
-  // 1 · ảnh thật
-  if (!v.nen_url && d.loai !== 'poll') chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');   // poll (X) không có media
-  else if (d.loai !== 'poll' && !NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
+  // 1 · ảnh thật — poll (X) không có media; câu trả lời Quora (bài viết có dang.cau_hoi, 28/10/2026) là chữ trả lời, ảnh không bắt buộc
+  const khongAnh = d.loai === 'poll' || (d.loai === 'bai' && !!d.cau_hoi);
+  if (!v.nen_url && !khongAnh) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
+  else if (v.nen_url && d.loai !== 'poll' && !NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
   for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
   // bản xuất = video, hoặc ảnh đã dựng (v.anh — bài ảnh / album / thẻ chữ, kế hoạch Page hoài cổ 25/10/2026), hoặc bài link
-  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link' && d.loai !== 'poll' && !v.anh?.length)) chan.push('chưa có bản xuất');
+  if (!v.xuat_luc || (!v.video_url && d.loai !== 'link' && d.loai !== 'poll' && d.loai !== 'bai' && !v.anh?.length)) chan.push('chưa có bản xuất');
   if (d.loai === 'poll') { const lua = Array.isArray(d.lua) ? d.lua : []; if (lua.length < 2 || lua.length > 4 || lua.some((l) => String(l).length > 25)) chan.push('bình chọn cần 2–4 lựa chọn ≤ 25 ký tự'); }   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
   // 2 · câu móc
   if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
@@ -56,7 +57,9 @@ export function doBaiDang(v, ten = '') {
   // bài THƯỜNG (dang.loai 'thuong' — luật đan xen 1 link / 7 bài, kế hoạch Page hoài cổ 25/10/2026): không link là đúng, có link mới là lỗi
   if (d.loai === 'thuong') { if (/https?:\/\//.test(chu)) chan.push('bài thường mà chữ đăng có link'); }
   else if (!d.link) chan.push('không có link trang đích');
-  else if (!mo.includes(d.link)) chan.push('chữ đăng không chứa link trang đích');
+  else if (!mo.includes(d.link) && !String(d.html ?? '').includes(d.link)) chan.push('chữ đăng không chứa link trang đích');
+  // 8 · BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): nội dung dài phải qua Phòng Nội dung kiem-bai đúng bản này (v.kiem = kết quả của bản)
+  if (d.loai === 'bai') { if (!d.html && !mo) chan.push('bài viết không có nội dung'); if (v.kiem !== 'DUYET') chan.push(`Phòng Nội dung (kiem-bai) chưa DUYỆT bản này: ${v.kiem ?? 'chưa nộp'}`); }
   // 5 · giọng văn
   const gach = (chu.match(/[—–]/g) || []).length; if (gach) chan.push(`${gach} gạch ngang dài`);
   const tm = TU_MAY.filter((w) => thuong.includes(w)); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
@@ -64,6 +67,16 @@ export function doBaiDang(v, ten = '') {
   if (mo.length < 80) canh.push('chữ đăng quá mỏng, chưa cho người xem điều gì dùng được');
   const diem = chan.length ? Math.min(6, 10 - canh.length) : Math.max(0, 10 - canh.length);
   return { ket: !chan.length && diem >= DIEM_DUYET ? 'DUYET' : 'SUA_LAI', diem, chan_cung: chan, canh_bao: canh };
+}
+
+/** HTML gửi kiem-bai cho một bài viết: có html (Substack / Medium) thì dùng; câu trả lời Quora chỉ có chữ → bọc đoạn. */
+export const htmlBaiViet = (d) => d.html || `<article><h1>${String(d.title ?? '').replace(/</g, '&lt;')}</h1>${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${p.replace(/</g, '&lt;')}</p>`).join('')}</article>`;
+/** Kết quả kiem-bai cho đúng bản của bài viết: 'DUYET' | 'SUA_LAI' | 'KHONG_DUYET' | 'CHO'. Chưa nộp thì nộp (url bai://<máy>/<slug>, khoa = md5 chữ đăng). */
+async function kiemBaiViet(v) {
+  const { ketKhoa, nopBai } = await import('./kiem-bai.mjs'), url = `bai://${v.ma}/${v.slug}`, k = ketKhoa(url, v.dang_md5);
+  if (k) return k;
+  try { nopBai({ url, tu: 'claude', html: htmlBaiViet(v.dang), loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'bai-dang-mxh' : 'bai-dich-mxh'), khoa: v.dang_md5 }); return 'CHO'; }
+  catch (e) { return `không nộp được: ${String(e.message).slice(0, 120)}`; }   // hết lượt sửa → SỬA LẠI kèm lý do, anh mở khoá trên Telegram
 }
 
 async function ketNoi() {
@@ -85,7 +98,11 @@ export async function chamMoi(sql) {
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
   for (const [i, v] of ds.entries()) {
-    const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i] }, '');
+    let kiem;
+    if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau
+      const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
+    }
+    const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], kiem }, '');
     await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
@@ -98,7 +115,7 @@ export async function chamMoi(sql) {
 // (bài DUYỆT chưa đăng lên nền đó < KHO_TOI_THIEU ngày theo trần mỗi ngày). Chỉ báo khi vấn đề MỚI xuất hiện (tệp trạng thái), hết vấn đề thì xoá khỏi sổ —
 // không nhắc lại cùng một chuyện mỗi ngày.
 export const KHO_TOI_THIEU = 7;
-const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']), NEN_POLL = new Set(['x_poll']);   // nền bài link: dòng dang.loai 'link', không video · nền poll: dang.loai 'poll', không tệp
+const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']), NEN_POLL = new Set(['x_poll']), NEN_BAI = new Set(['quora', 'substack', 'medium']);   // nền bài link: dòng dang.loai 'link', không video · nền poll: dang.loai 'poll', không tệp
 // HỌ NỀN (25/10/2026): máy đăng chống spam xoay vòng các nền cùng một tài khoản (facebook / fb_anh / fb_link chung trần ngày Facebook, x / x_anh / x_link chung X —
 // nhip-an-toan.mjs › hopNen + xepXoay) → một nền đứng chờ lượt KHÔNG phải lỡ lượt. Chỉ báo lỡ khi CẢ HỌ hôm qua không có bài nào.
 // Page cũ 'facebook:<acct>' (S06): họ theo phần trước dấu ':'; mỗi Page một TÀI KHOẢN nên họ xét theo máy + tài khoản (Page A có bài không che Page B lỡ lượt)
@@ -135,6 +152,7 @@ export async function docMayDang(sql) {
          min(v.dang->>'dang_tu') filter (where v.dang->>'dang_tu' > ${homNayVN()}) as som
        from xv_may_video v where v.may_id = m.id and not coalesce(v.luu_tru, false)
          and ((n->>'nen') = any(${[...NEN_LINK]})) = (coalesce(v.dang->>'loai', '') = 'link') and ((n->>'nen') = any(${[...NEN_POLL]})) = (coalesce(v.dang->>'loai', '') = 'poll')
+         and ((n->>'nen') = any(${[...NEN_BAI]})) = (coalesce(v.dang->>'loai', '') = 'bai')
          and (v.video_url is not null or (n->>'nen') = any(${[...NEN_LINK, ...NEN_POLL]}))
          and v.cham->>'ket' = 'DUYET' and v.cham->>'xuat' = v.xuat_luc::text and not v.da_dang ? (n->>'nen')
          and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) k
@@ -225,6 +243,14 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const pc = vanDeMay([{ ma: 'fp', ten: 'FP', nen: 'facebook:580', acct: '580', tran: 1, cuoi: '2026-10-17', con: 99 }, { ma: 'fp', ten: 'FP', nen: 'facebook:589', acct: '589', tran: 1, cuoi: '2026-10-15', con: 99 }], '2026-10-17');
   t.deepEqual(pc.map((x) => x.khoa), ['lo|fp|facebook:589'], 'họ nền xét theo tài khoản');
   t.equal(hoNen('facebook:580'), 'fb'); t.equal(hoNen('fb_link'), 'fb'); t.equal(hoNen('facebook'), 'fb'); t.equal(hoNen('x_anh'), 'x'); t.equal(hoNen('x'), 'x'); t.equal(hoNen('youtube'), 'youtube');
+  // bài viết (28/10/2026): câu trả lời Quora không cần ảnh, cần kiem-bai DUYỆT đúng bản; bài Substack cần ảnh
+  const qa = { ...tot, nen_url: null, video_url: null, dang: { ...tot.dang, loai: 'bai', cau_hoi: 'https://www.quora.com/x' } };
+  t.equal(doBaiDang({ ...qa, kiem: 'DUYET' }).ket, 'DUYET', 'câu trả lời Quora đã kiem-bai DUYỆT');
+  t.ok(doBaiDang(qa).chan_cung.some((x) => x.includes('kiem-bai')), 'chưa kiem-bai = chặn');
+  t.ok(doBaiDang({ ...qa, kiem: 'SUA_LAI' }).chan_cung.some((x) => x.includes('SUA_LAI')), 'kiem-bai SỬA LẠI = chặn');
+  t.ok(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null } }).chan_cung.some((x) => x.includes('ảnh thật')), 'bài Substack thiếu ảnh = chặn');
+  t.equal(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null, description: 'x', html: `<p>${tot.dang.description}</p>` }, nen_url: tot.nen_url }).chan_cung.filter((x) => x.includes('link')).length, 0, 'link nằm trong html cũng tính');
+  t.ok(htmlBaiViet({ title: 'Q', description: 'a\n\nb' }).includes('<p>b</p>'), 'bọc đoạn cho kiem-bai');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

@@ -110,6 +110,11 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = '[]'::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: `poll:${String(r.slug)}` };
   }
+  // BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): chữ dài, không dựng ffmpeg — "xuất" = chốt bản để Phòng Nội dung (kiem-bai) chấm đúng bản; ảnh bìa = nen_url nạp sẵn
+  if ((r.de as { loai?: string } | null)?.loai === 'bai-viet') {
+    await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = ${JSON.stringify(r.nen_url ? [r.nen_url] : [])}::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
+    return { ok: true, url: `bai:${String(r.slug)}` };
+  }
   const nenVideo = !!BO_DUNG[r.mau as MauMayDung]?.nenVideo;   // mẫu nền video (canh-dong): tìm VIDEO Pexels, so trùng theo id video
   // chưa có ảnh nền → tự lấy ảnh thật Pexels theo chủ đề, không trùng trong máy (luật anh 18/10/2026: mọi bài đăng có ảnh minh hoạ thật; anh-nen.ts)
   if (!r.nen_url) {

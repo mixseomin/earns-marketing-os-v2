@@ -64,12 +64,24 @@ def the_ten(ten, nut, ra):
     d.rounded_rectangle([bx, y + 10, bx + bw, y + 70], 30, fill=(229, 57, 53, 255)); d.text((bx + bw / 2, y + 40), nut, font=fn, fill=(255, 255, 255), anchor="mm")
     im.save(ra)
 
-def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW"):
+def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
+    """cam = các giây (trên nguồn) dính thoại / khung cấm → bỏ cửa sổ ±1,5s quanh mỗi giây, phần còn lại nối liền (anh 28/10/2026: "đoạn nào vi phạm
+    chủ động cắt bỏ luôn. Ko cần phải liền mạch") — không bỏ cả tập như trước"""
     if CQ.sai_luat(nut): raise SystemExit(f"CTA CHAN: chữ '{nut}' dính '{CQ.sai_luat(nut)}'")
-    tmp = os.path.splitext(out)[0]; the_ten(ten, nut, tmp + "-the-ten.png"); L = den - tu
-    loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[c];"
+    tmp = os.path.splitext(out)[0]; the_ten(ten, nut, tmp + "-the-ten.png")
+    kh = []
+    for g in sorted(float(x) for x in cam if tu <= float(x) <= den):
+        a_, z_ = max(tu, g - 1.5), min(den, g + 1.5)
+        if kh and a_ <= kh[-1][1]: kh[-1][1] = max(kh[-1][1], z_)
+        else: kh.append([a_, z_])
+    bo = "+".join(f"between(t,{a_ - tu:.2f},{z_ - tu:.2f})" for a_, z_ in kh)
+    L = (den - tu) - sum(z_ - a_ for a_, z_ in kh)
+    if L < 30: raise SystemExit(f"bỏ giây cấm xong còn {L:.0f}s — quá ngắn, bỏ tập")
+    cv = f"select='not({bo})',setpts=N/FRAME_RATE/TB," if bo else ""; ca = f"aselect='not({bo})',asetpts=N/SR/TB," if bo else ""
+    loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,fps=30,{cv}scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[c];"
            f"[1:v]format=rgba,fade=in:st={L - O_CUOI}:d=0.3:alpha=1[o];[c][o]overlay=0:0:enable='gte(t,{L - O_CUOI})'[v];"
-           f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
+           f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,{ca}afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
+    if kh: print("bỏ giây cấm:", ", ".join(f"{a_:.1f}–{z_:.1f}s" for a_, z_ in kh), file=sys.stderr)
     gx.sh("ffmpeg", "-v", "error", "-y", "-i", nguon, "-loop", "1", "-t", f"{L}", "-i", tmp + "-the-ten.png", "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
           *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
     dv, da = gx.dur_luong(out)
@@ -106,8 +118,11 @@ if __name__ == "__main__":
     # CỔNG THOẠI (20/10/2026, Meta từ chối #65717/#65719 "Adult Sexual Exploitation"): phụ đề/chữ trong đoạn dính mua bán dâm, quan hệ,
     # đe doạ lột đồ → KHÔNG cắt (kiem-thoai.py đọc chữ mỗi giây bằng Vision macOS)
     k = __import__("subprocess").run(["python3", os.path.join(D, "kiem-thoai.py"), a[0], a[1], a[2]], capture_output=True, text=True)
+    if os.environ.get("ETP_KIEU") == "tap":   # kiểu tập nguyên: giây thoại cấm (kiem-thoai) + giây cấm cat-cuoi-lo đã đọc (ETP_CAM) → BỎ những giây đó, không bỏ cả tập
+        import re as _re
+        cam = [float(x) for x in _re.findall(r"THOAI CHAN: (\d+(?:\.\d+)?)s «", k.stdout)] + [float(x) for x in os.environ.get("ETP_CAM", "").split(",") if x.strip()]
+        if k.returncode != 0 and not cam: sys.exit(k.stdout.strip() or k.stderr.strip() or "THOAI CHAN: không đọc được phụ đề")
+        dung_tap(a[0], float(a[1]), float(a[2]), os.environ.get("ETP_TEN") or "Watch the full story", a[6], cam=cam); sys.exit(0)
     if k.returncode != 0: sys.exit(k.stdout.strip() or k.stderr.strip() or "THOAI CHAN: không đọc được phụ đề")
-    if os.environ.get("ETP_KIEU") == "tap":   # kiểu tập nguyên: tên phim từ ETP_TEN (cat-cuoi-lo truyền), ra = a[6]
-        dung_tap(a[0], float(a[1]), float(a[2]), os.environ.get("ETP_TEN") or "Watch the full story", a[6]); sys.exit(0)
     dung(a[0], float(a[1]), float(a[2]), a[3], json.load(open(a[4])) if a[4] != "-" else None, a[5], a[6],
          a[7] if len(a) > 7 and a[7] != "-" else None, a[8] if len(a) > 8 else "WHAT HAPPENS NEXT?")

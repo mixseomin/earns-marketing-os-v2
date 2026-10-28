@@ -17,6 +17,7 @@ DAI_MIN, DAI_MAX, QUET = 65, 85, 420
 # video, thẻ tên phim + WATCH NOW chỉ ở 3 giây cuối (cat-canh.py dung_tap). Mẫu đo từ creative thắng của Kim Kiên 22–27/10 (#54757, #53591, #54460: 53–150s)
 KIEU = os.environ.get("ETP_KIEU", "")
 TAP_MIN, TAP_MAX = 45, 160
+CAM_PHIM = {}   # phim → giây cấm đã đọc (chon) — kiểu tập nguyên truyền sang cat-canh để bỏ
 sys.path.insert(0, D); import loi_ky_thuat as LK; import cat_drive as CD
 
 def ghep_mo(tm):
@@ -63,7 +64,7 @@ def chon(src, moc, so_ban=1):
         for i in range(len(moc) - 1, -1, -1):
             s, e = bd[i], moc[i]
             if len(ra) >= so_ban: break
-            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0 and sach(s, e): ra.append((s, e))   # chỉ trong vùng đã đọc chữ (QUET giây cuối)
+            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0: ra.append((s, e))   # chỉ trong vùng đã đọc chữ (QUET giây cuối); giây cấm trong tập → cat-canh BỎ những giây đó (anh 28/10/2026)
         return ra, cam   # lô kiểu tập nguyên không lùi về kiểu cũ — phim không có tập vừa độ dài thì báo không có khung
     for e in reversed(moc):
         if e - DAI_MIN < tu0 or len(ra) >= so_ban: break
@@ -77,7 +78,7 @@ def lam(p, goc, ra_dir, so_ban=1):
     cid, loc, ten = p[0], p[1], p[3]; tm = os.path.join(goc, cid)
     try:
         pst = os.path.join(tm, "poster-1080.png"); DL.poster(os.path.join(tm, "poster.jpg"), pst)
-        src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban)
+        src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban); CAM_PHIM[cid] = cam
         if not khung: return [{"content_id": int(cid), "ten": ten, "loi": f"không có khung cuối sạch (giây cấm {cam[:12]})"}]
         return [LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir) for tu, den in khung]   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
     except Exception as e:
@@ -87,10 +88,10 @@ def cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir):
     try:
         ra = os.path.join(ra_dir, f"{'t' if KIEU == 'tap' else 'c'}-{cid}-{int(tu)}.mp4")
         c = CQ.CTA["es" if loc == "es" else "en"]; args = [c["nut"], ra, c["giong"], c["hoi"]]   # CTA chung (cta_qc.py)
-        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, "ETP_TEN": ten})
+        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, "ETP_TEN": ten, "ETP_CAM": ",".join(str(g) for g in CAM_PHIM.get(cid, []) if tu <= g <= den)})
         if r.returncode != 0: return {"content_id": int(cid), "ten": ten, "loi": (r.stdout + r.stderr)[-300:]}
         g = DL.giay(ra)
-        if g < den - tu: return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}
+        if g < (den - tu) * (0.5 if KIEU == "tap" else 1) - (1 if KIEU == "tap" else 0): return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}   # tập nguyên: không thẻ cuối + có thể đã bỏ giây cấm
         return {"content_id": int(cid), "lang": loc, "ten": ten, "tu": tu, "den": den, "het_tap": len(moc), "moc_tap": moc, "file": ra, "giay": round(DL.giay(ra), 1)}
     except Exception as e:
         return {"content_id": int(cid), "ten": ten, "loi": str(e)[-300:]}
